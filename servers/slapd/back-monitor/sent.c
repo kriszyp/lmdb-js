@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2004 The OpenLDAP Foundation.
+ * Copyright 2001-2005 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -200,6 +200,8 @@ monitor_subsys_sent_update(
 	/* NOTE: no minus sign is allowed in the counters... */
 	UI2BV( &a->a_vals[ 0 ], n );
 	ldap_pvt_mp_clear( n );
+
+	/* FIXME: touch modifyTimestamp? */
 
 	return 0;
 }

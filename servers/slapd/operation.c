@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -108,16 +108,6 @@ slap_op_free( Operation *op )
 	op->o_hdr = (Opheader *)(op+1);
 	op->o_controls = (void **)(op->o_hdr+1);
 
-#if 0	/* DELETE ME */
-	slap_sync_cookie_free( &op->o_sync_state, 0 );
-	if ( op->o_sync_csn.bv_val != NULL ) {
-		ch_free( op->o_sync_csn.bv_val );
-	}
-	op->o_sync_state.sid = -1;
-	op->o_sync_slog_size = -1;
-	op->o_sync_state.rid = -1;
-#endif
-
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	LDAP_STAILQ_INSERT_HEAD( &slap_free_ops, op, o_next );
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
@@ -154,14 +144,6 @@ slap_op_alloc(
 	op->o_time = slap_get_time();
 	op->o_opid = id;
 	op->o_res_ber = NULL;
-
-#if 0	/* DELETE ME */
-	op->o_sync_state.sid = -1;
-	op->o_sync_slog_size = -1;
-	op->o_sync_state.rid = -1;
-	LDAP_STAILQ_FIRST( &op->o_sync_slog_list ) = NULL;
-	op->o_sync_slog_list.stqh_last = &LDAP_STAILQ_FIRST( &op->o_sync_slog_list );
-#endif
 
 #if defined( LDAP_SLAPI )
 	if ( slapi_plugins_used ) {

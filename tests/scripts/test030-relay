@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2004 The OpenLDAP Foundation.
+## Copyright 1998-2005 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -29,25 +29,40 @@ if test "x$RELAYS" = "x" ; then
 	if test $BACKRELAY = relayno ; then 
 		echo "relay backend not available, test skipped"
 	else
-		RELAYS="${RELAYS}relay "
+		if test "x$RELAYS" != "x" ; then
+			RELAYS="${RELAYS} "
+		fi
+		RELAYS="${RELAYS}relay"
 	fi
 
 	# back-ldap
 	if test $BACKLDAP = ldapno ; then 
 		echo "ldap backend not available, test skipped"
 	else
-		RELAYS="${RELAYS}ldap "
+		if test "x$RELAYS" != "x" ; then
+			RELAYS="${RELAYS} "
+		fi
+		RELAYS="${RELAYS}ldap"
 	fi
 
 	# back-meta
 	if test $BACKMETA = metano ; then 
 		echo "meta backend not available, test skipped"
 	else
-		RELAYS="${RELAYS}meta "
+		if test "x$RELAYS" != "x" ; then
+			RELAYS="${RELAYS} "
+		fi
+		RELAYS="${RELAYS}meta"
 	fi 
 fi
 
-echo "Using $RELAYS..."
+if test "x$RELAYS" = "x" ; then
+	echo "no relaying capable backend is available"
+	echo ">>>>> Test succeeded"
+	exit 0
+fi
+
+echo "Testing virtual naming context mapping with $RELAYS backend(s)..."
 echo ""
 
 first=1

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,8 +22,6 @@
 #include <db.h>
 
 LDAP_BEGIN_DECL
-
-#undef BDB_PSEARCH
 
 #define DB_VERSION_FULL ((DB_VERSION_MAJOR << 24) | (DB_VERSION_MINOR << 16) | DB_VERSION_PATCH)
 
@@ -184,11 +182,6 @@ struct bdb_info {
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
-#ifdef BDB_PSEARCH
-	LDAP_LIST_HEAD(pl, slap_op) bi_psearch_list;
-	ldap_pvt_thread_rdwr_t bi_pslist_rwlock;
-	LDAP_LIST_HEAD(se, slap_session_entry) bi_session_list;
-#endif
 	int		bi_idl_cache_max_size;
 	int		bi_idl_cache_size;
 	Avlnode		*bi_idl_tree;
@@ -261,19 +254,19 @@ struct bdb_op_info {
 
 /* Copy an ID "src" to pointer "dst" in big-endian byte order */
 #define BDB_ID2DISK( src, dst )	\
-	do { int i0; ID tmp; char *ptr;	\
-		tmp = (src); ptr = (char *)(dst);	\
+	do { int i0; ID tmp; unsigned char *_p;	\
+		tmp = (src); _p = (char *)(dst);	\
 		for ( i0=sizeof(ID)-1; i0>=0; i0-- ) {	\
-			ptr[i0] = tmp & 0xff; tmp >>= 8;	\
+			_p[i0] = tmp & 0xff; tmp >>= 8;	\
 		} \
 	} while(0);
 
 /* Copy a pointer "src" to a pointer "dst" from big-endian to native order */
 #define BDB_DISK2ID( src, dst ) \
-	do { int i0; ID tmp = 0; unsigned char *ptr;	\
-		ptr = (unsigned char *)(src);	\
+	do { int i0; ID tmp = 0; unsigned char *_p;	\
+		_p = (unsigned char *)(src);	\
 		for ( i0=0; i0<sizeof(ID); i0++ ) {	\
-			tmp <<= 8; tmp |= *ptr++;	\
+			tmp <<= 8; tmp |= *_p++;	\
 		} *(dst) = tmp; \
 	} while (0);
 

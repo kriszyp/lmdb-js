@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -438,10 +438,9 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
  * as "\=", but it is treated as a regular char, i.e. it can also 
  * appear as '='.
  *
- * As such, we currently choose to allow reading unescaped '=',
- * but we always produce escaped '\3D'; this may change in the
- * future, if compatibility issues do not arise */
-#ifdef LDAP_DEVEL
+ * As such, in 2.2 we used to allow reading unescaped '=',
+ * but we always produced escaped '\3D'; this changes 
+ * since 2.3, if compatibility issues do not arise */
 #define LDAP_DN_NE(c) \
 	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
 	  || LDAP_DN_QUOTES(c) \
@@ -451,17 +450,7 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 	  || LDAP_DN_AVA_EQUALS(c) \
 	  || LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) )
 #define LDAP_DN_SHOULDESCAPE(c)		( LDAP_DN_AVA_EQUALS(c) )
-#else /* ! LDAP_DEVEL */
-#define LDAP_DN_NE(c) \
-	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
-	  || LDAP_DN_AVA_EQUALS(c) || LDAP_DN_QUOTES(c) \
-	  || (c) == '<' || (c) == '>' )
-#define LDAP_DN_MAYESCAPE(c) \
-	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) \
-	  || LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) )
-#define LDAP_DN_SHOULDESCAPE(c)		( 0 )
-#endif /* ! LDAP_DEVEL */
-	
+
 #define LDAP_DN_NEEDESCAPE(c) \
 	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) )
 #define LDAP_DN_NEEDESCAPE_LEAD(c) 	LDAP_DN_MAYESCAPE(c)

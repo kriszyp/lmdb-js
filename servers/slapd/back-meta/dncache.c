@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -96,7 +96,7 @@ meta_dncache_get_target(
 {
 	struct metadncacheentry tmp_entry, *entry;
 	time_t curr_time;
-	int target = -1;
+	int target = META_TARGET_NONE;
 
 	assert( cache );
 	assert( ndn );
@@ -115,6 +115,7 @@ meta_dncache_get_target(
 		 */
 		if ( cache->ttl < 0 ) { 
 			target = entry->target;
+
 		} else {
 
 			/*

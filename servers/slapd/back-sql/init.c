@@ -1,8 +1,9 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
+ * Portions Copyright 2002 Pierangelo Masarati.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,7 +16,8 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
- * by OpenLDAP Software.
+ * by OpenLDAP Software.  Additional significant contributors include
+ * Pierangelo Masarati.
  */
 
 #include "portable.h"
@@ -32,11 +34,14 @@ sql_back_initialize(
 	BackendInfo	*bi )
 { 
 	static char *controls[] = {
+		LDAP_CONTROL_ASSERT,
+		LDAP_CONTROL_MANAGEDSAIT,
 #if 0 /* needs improvements */
-#ifdef LDAP_CONTROL_NOOP
 		LDAP_CONTROL_NOOP,
-#endif /* LDAP_CONTROL_NOOP */
 #endif
+#ifdef LDAP_CONTROL_X_TREE_DELETE
+		LDAP_CONTROL_X_TREE_DELETE,
+#endif /* LDAP_CONTROL_X_TREE_DELETE */
 #ifdef LDAP_CONTROL_VALUESRETURNFILTER
  		LDAP_CONTROL_VALUESRETURNFILTER,
 #endif /* LDAP_CONTROL_VALUESRETURNFILTER */
@@ -44,6 +49,12 @@ sql_back_initialize(
 	};
 
 	bi->bi_controls = controls;
+
+	bi->bi_flags |=
+#if 0
+		SLAP_BFLAG_INCREMENT |
+#endif
+		SLAP_BFLAG_REFERRALS;
 
 	Debug( LDAP_DEBUG_TRACE,"==>sql_back_initialize()\n", 0, 0, 0 );
 	
@@ -133,10 +144,20 @@ backsql_db_destroy(
 	free( bi->sql_subtree_cond.bv_val );
 	free( bi->sql_oc_query );
 	free( bi->sql_at_query );
-	free( bi->sql_insentry_query );
-	free( bi->sql_delentry_query );
-	free( bi->sql_delobjclasses_query );
-	free( bi->sql_delreferrals_query );
+	free( bi->sql_insentry_stmt );
+	free( bi->sql_delentry_stmt );
+	free( bi->sql_renentry_stmt );
+	free( bi->sql_delobjclasses_stmt );
+
+	if ( bi->sql_anlist ) {
+		int	i;
+
+		for ( i = 0; !BER_BVISNULL( &bi->sql_anlist[i].an_name ); i++ )
+		{
+			ch_free( bi->sql_anlist[i].an_name.bv_val );
+		}
+		ch_free( bi->sql_anlist );
+	}
 
 	if ( bi->sql_baseObject ) {
 		entry_free( bi->sql_baseObject );
@@ -153,8 +174,7 @@ backsql_db_open(
 	BackendDB 	*bd )
 {
 	backsql_info 	*bi = (backsql_info*)bd->be_private;
-	SQLHDBC 	dbh;
-	ber_len_t	idq_len;
+	SQLHDBC 	dbh = SQL_NULL_HDBC;
 	struct berbuf	bb = BB_NULL;
 
 	char		opbuf[ OPERATION_BUFFER_SIZE ];
@@ -342,48 +362,48 @@ backsql_db_open(
 		bi->sql_at_query = ch_strdup( backsql_def_at_query );
 	}
 	
-	if ( bi->sql_insentry_query == NULL ) {
+	if ( bi->sql_insentry_stmt == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"entry insertion SQL statement not specified "
-			"(use \"insentry_query\" directive in slapd.conf)\n",
+			"(use \"insentry_stmt\" directive in slapd.conf)\n",
 			0, 0, 0 );
 		Debug(LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"setting \"%s\" by default\n",
-			backsql_def_insentry_query, 0, 0 );
-		bi->sql_insentry_query = ch_strdup( backsql_def_insentry_query );
+			backsql_def_insentry_stmt, 0, 0 );
+		bi->sql_insentry_stmt = ch_strdup( backsql_def_insentry_stmt );
 	}
 	
-	if ( bi->sql_delentry_query == NULL ) {
+	if ( bi->sql_delentry_stmt == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"entry deletion SQL statement not specified "
-			"(use \"delentry_query\" directive in slapd.conf)\n",
+			"(use \"delentry_stmt\" directive in slapd.conf)\n",
 			0, 0, 0 );
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"setting \"%s\" by default\n",
-			backsql_def_delentry_query, 0, 0 );
-		bi->sql_delentry_query = ch_strdup( backsql_def_delentry_query );
+			backsql_def_delentry_stmt, 0, 0 );
+		bi->sql_delentry_stmt = ch_strdup( backsql_def_delentry_stmt );
 	}
 
-	if ( bi->sql_delobjclasses_query == NULL ) {
+	if ( bi->sql_renentry_stmt == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"entry deletion SQL statement not specified "
+			"(use \"renentry_stmt\" directive in slapd.conf)\n",
+			0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"setting \"%s\" by default\n",
+			backsql_def_renentry_stmt, 0, 0 );
+		bi->sql_renentry_stmt = ch_strdup( backsql_def_renentry_stmt );
+	}
+
+	if ( bi->sql_delobjclasses_stmt == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"objclasses deletion SQL statement not specified "
-			"(use \"delobjclasses_query\" directive in slapd.conf)\n",
+			"(use \"delobjclasses_stmt\" directive in slapd.conf)\n",
 			0, 0, 0 );
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"setting \"%s\" by default\n",
-			backsql_def_delobjclasses_query, 0, 0 );
-		bi->sql_delobjclasses_query = ch_strdup( backsql_def_delobjclasses_query );
-	}
-
-	if ( bi->sql_delreferrals_query == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"referrals deletion SQL statement not specified "
-			"(use \"delreferrals_query\" directive in slapd.conf)\n",
-			0, 0, 0 );
-		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"setting \"%s\" by default\n",
-			backsql_def_delreferrals_query, 0, 0 );
-		bi->sql_delreferrals_query = ch_strdup( backsql_def_delreferrals_query );
+			backsql_def_delobjclasses_stmt, 0, 0 );
+		bi->sql_delobjclasses_stmt = ch_strdup( backsql_def_delobjclasses_stmt );
 	}
 
 	op->o_hdr = (Opheader *)&op[ 1 ];
@@ -398,34 +418,34 @@ backsql_db_open(
 	/*
 	 * Prepare ID selection query
 	 */
-	bi->sql_id_query = NULL;
-	idq_len = 0;
+	if ( bi->sql_id_query == NULL ) {
+		/* no custom id_query provided */
+		if ( bi->sql_upper_func.bv_val == NULL ) {
+			backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
 
-	if ( bi->sql_upper_func.bv_val == NULL ) {
-		backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
-
-	} else {
-		if ( BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ) {
-			backsql_strcat( &bb, backsql_id_query,
-					"dn_ru=?", NULL );
 		} else {
-			if ( BACKSQL_USE_REVERSE_DN( bi ) ) {
-				backsql_strfcat( &bb, "sbl",
-						backsql_id_query,
-						&bi->sql_upper_func, 
-						(ber_len_t)STRLENOF( "(dn)=?" ), "(dn)=?" );
+			if ( BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ) {
+				backsql_strcat( &bb, backsql_id_query,
+						"dn_ru=?", NULL );
 			} else {
-				backsql_strfcat( &bb, "sblbcb",
-						backsql_id_query,
-						&bi->sql_upper_func, 
-						(ber_len_t)STRLENOF( "(dn)=" ), "(dn)=",
-						&bi->sql_upper_func_open, 
-						'?', 
-						&bi->sql_upper_func_close );
+				if ( BACKSQL_USE_REVERSE_DN( bi ) ) {
+					backsql_strfcat( &bb, "sbl",
+							backsql_id_query,
+							&bi->sql_upper_func, 
+							(ber_len_t)STRLENOF( "(dn)=?" ), "(dn)=?" );
+				} else {
+					backsql_strfcat( &bb, "sblbcb",
+							backsql_id_query,
+							&bi->sql_upper_func, 
+							(ber_len_t)STRLENOF( "(dn)=" ), "(dn)=",
+							&bi->sql_upper_func_open, 
+							'?', 
+							&bi->sql_upper_func_close );
+				}
 			}
 		}
+		bi->sql_id_query = bb.bb_val.bv_val;
 	}
-	bi->sql_id_query = bb.bb_val.bv_val;
 
        	/*
 	 * Prepare children ID selection query
@@ -447,6 +467,14 @@ backsql_db_open(
 			"test failed, schema map not loaded - exiting\n",
 			0, 0, 0 );
 		return 1;
+	}
+
+	/* should never happen! */
+	assert( bd->be_nsuffix != NULL );
+	
+	if ( BER_BVISNULL( &bd->be_nsuffix[ 1 ] ) ) {
+		/* enable if only one suffix is defined */
+		bi->sql_flags |= BSQLF_USE_SUBTREE_SHORTCUT;
 	}
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_open(): "

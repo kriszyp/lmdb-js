@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,21 @@
 #include "ldap_queue.h"
 
 LDAP_BEGIN_DECL
+
+#ifdef LDAP_DEVEL
+#define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
+#define SLAP_DYNACL
+#define LDAP_COMP_MATCH			/* experimental */
+#define LDAP_DYNAMIC_OBJECTS
+#define LDAP_SYNC_TIMESTAMP
+#define LDAP_COLLECTIVE_ATTRIBUTES
+#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
+#endif
+
+#if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
+/* use librewrite for sasl-regexp */
+#define SLAP_AUTH_REWRITE	1
+#endif /* LDAP_DEVEL && ENABLE_REWRITE */
 
 /*
  * SLAPD Memory allocation macros
@@ -323,10 +338,6 @@ typedef int slap_syntax_transform_func LDAP_P((
 	struct berval * in,
 	struct berval * out,
 	void *memctx));
-
-#ifdef LDAP_DEVEL
-#define LDAP_COMP_MATCH
-#endif
 
 #ifdef LDAP_COMP_MATCH
 typedef void* slap_component_transform_func LDAP_P((
@@ -1123,11 +1134,13 @@ typedef struct slap_ldap_modlist {
 typedef enum slap_access_e {
 	ACL_INVALID_ACCESS = -1,
 	ACL_NONE = 0,
+	ACL_DISCLOSE,
 	ACL_AUTH,
 	ACL_COMPARE,
 	ACL_SEARCH,
 	ACL_READ,
-	ACL_WRITE
+	ACL_WRITE,
+	ACL_MANAGE
 } slap_access_t;
 
 typedef enum slap_control_e {
@@ -1165,10 +1178,6 @@ typedef struct slap_authz_info {
 	slap_ssf_t	sai_sasl_ssf;		/* SASL SSF */
 } AuthorizationInformation;
 
-
-#ifdef LDAP_DEVEL
-#define SLAP_DYNACL
-#endif /* LDAP_DEVEL */
 
 #ifdef SLAP_DYNACL
 struct slap_op;
@@ -1209,11 +1218,13 @@ typedef struct slap_access {
 #define ACL_ACCESS2PRIV(access)	(0x01U << (access))
 
 #define ACL_PRIV_NONE			ACL_ACCESS2PRIV( ACL_NONE )
+#define ACL_PRIV_DISCLOSE		ACL_ACCESS2PRIV( ACL_DISCLOSE )
 #define ACL_PRIV_AUTH			ACL_ACCESS2PRIV( ACL_AUTH )
 #define ACL_PRIV_COMPARE		ACL_ACCESS2PRIV( ACL_COMPARE )
 #define ACL_PRIV_SEARCH			ACL_ACCESS2PRIV( ACL_SEARCH )
 #define ACL_PRIV_READ			ACL_ACCESS2PRIV( ACL_READ )
 #define ACL_PRIV_WRITE			ACL_ACCESS2PRIV( ACL_WRITE )
+#define ACL_PRIV_MANAGE			ACL_ACCESS2PRIV( ACL_MANAGE )
 
 #define ACL_PRIV_MASK			0x00ffUL
 
@@ -1242,26 +1253,32 @@ typedef struct slap_access {
 #define ACL_IS_SUBTRACTIVE(m)	ACL_PRIV_ISSET((m),ACL_PRIV_SUBSTRACTIVE)
 
 #define ACL_LVL_NONE			(ACL_PRIV_NONE|ACL_PRIV_LEVEL)
-#define ACL_LVL_AUTH			(ACL_PRIV_AUTH|ACL_LVL_NONE)
+#define ACL_LVL_DISCLOSE		(ACL_PRIV_DISCLOSE|ACL_LVL_NONE)
+#define ACL_LVL_AUTH			(ACL_PRIV_AUTH|ACL_LVL_DISCLOSE)
 #define ACL_LVL_COMPARE			(ACL_PRIV_COMPARE|ACL_LVL_AUTH)
 #define ACL_LVL_SEARCH			(ACL_PRIV_SEARCH|ACL_LVL_COMPARE)
 #define ACL_LVL_READ			(ACL_PRIV_READ|ACL_LVL_SEARCH)
 #define ACL_LVL_WRITE			(ACL_PRIV_WRITE|ACL_LVL_READ)
+#define ACL_LVL_MANAGE			(ACL_PRIV_MANAGE|ACL_LVL_WRITE)
 
 #define ACL_LVL(m,l)			(((m)&ACL_PRIV_MASK) == ((l)&ACL_PRIV_MASK))
 #define ACL_LVL_IS_NONE(m)		ACL_LVL((m),ACL_LVL_NONE)
+#define ACL_LVL_IS_DISCLOSE(m)	ACL_LVL((m),ACL_LVL_DISCLOSE)
 #define ACL_LVL_IS_AUTH(m)		ACL_LVL((m),ACL_LVL_AUTH)
 #define ACL_LVL_IS_COMPARE(m)	ACL_LVL((m),ACL_LVL_COMPARE)
 #define ACL_LVL_IS_SEARCH(m)	ACL_LVL((m),ACL_LVL_SEARCH)
 #define ACL_LVL_IS_READ(m)		ACL_LVL((m),ACL_LVL_READ)
 #define ACL_LVL_IS_WRITE(m)		ACL_LVL((m),ACL_LVL_WRITE)
+#define ACL_LVL_IS_MANAGE(m)	ACL_LVL((m),ACL_LVL_MANAGE)
 
 #define ACL_LVL_ASSIGN_NONE(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_NONE)
+#define ACL_LVL_ASSIGN_DISCLOSE(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_DISCLOSE)
 #define ACL_LVL_ASSIGN_AUTH(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_AUTH)
 #define ACL_LVL_ASSIGN_COMPARE(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_COMPARE)
 #define ACL_LVL_ASSIGN_SEARCH(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_SEARCH)
 #define ACL_LVL_ASSIGN_READ(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_READ)
 #define ACL_LVL_ASSIGN_WRITE(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_WRITE)
+#define ACL_LVL_ASSIGN_MANAGE(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_MANAGE)
 
 	slap_mask_t	a_access_mask;
 
@@ -1447,6 +1464,8 @@ typedef BackendDB Backend;
 #define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
+#define	SLAP_SYNC_UPDATE_MSGID	2
+
 struct nonpresent_entry {
 	struct berval *npe_name;
 	struct berval *npe_nname;
@@ -1454,9 +1473,8 @@ struct nonpresent_entry {
 };
 
 struct sync_cookie {
-	struct berval *ctxcsn;
-	long sid;
-	struct berval *octet_str;
+	struct berval ctxcsn;
+	struct berval octet_str;
 	long rid;
 	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
 };
@@ -1466,13 +1484,11 @@ LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
         long				si_rid;
-        char				*si_provideruri;
-        BerVarray			si_provideruri_bv;
+        struct berval			si_provideruri;
 #define SYNCINFO_TLS_OFF		0
 #define SYNCINFO_TLS_ON			1
 #define SYNCINFO_TLS_CRITICAL	2
         int					si_tls;
-		struct berval		si_updatedn;	
         int					si_bindmethod;
         char				*si_binddn;
         char				*si_passwd;
@@ -1506,7 +1522,6 @@ typedef struct syncinfo_s {
         Avlnode				*si_presentlist;
 		LDAP				*si_ld;
 		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
-		LDAP_STAILQ_ENTRY( syncinfo_s ) si_next;
 } syncinfo_t;
 
 LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
@@ -1670,7 +1685,7 @@ struct slap_backend_db {
 	struct		be_pcl	*be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	ldap_pvt_thread_mutex_t					*be_pcl_mutexp;
-	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
+	syncinfo_t								*be_syncinfo; /* For syncrepl */
 
 	char	*be_realm;
 	void    *be_pb;         /* Netscape plugin */
@@ -2059,35 +2074,6 @@ typedef struct slap_paged_state {
 	int ps_count;
 } PagedResultsState;
 
-#define LDAP_PSEARCH_BY_ADD			0x01
-#define LDAP_PSEARCH_BY_DELETE		0x02
-#define LDAP_PSEARCH_BY_PREMODIFY	0x03
-#define LDAP_PSEARCH_BY_MODIFY		0x04
-#define LDAP_PSEARCH_BY_SCOPEOUT	0x05
-#define LDAP_PSEARCH_BY_PREDELETE	0x06
-
-struct psid_entry {		/* DELETE ME */
-	struct slap_op *ps_op;
-	LDAP_LIST_ENTRY(psid_entry) ps_link;
-};
-
-#if 0	/* DELETE ME */
-struct slog_entry {
-	struct berval sl_uuid;
-	struct berval sl_name;
-	struct berval sl_csn;
-	LDAP_STAILQ_ENTRY(slog_entry) sl_link;
-};
-
-/* session lists */
-struct slap_session_entry {
-	int se_id;
-	int se_size;
-	struct berval se_spec;
-	LDAP_LIST_ENTRY( slap_session_entry ) se_link;
-};
-#endif
-
 struct slap_csn_entry {
 	struct berval ce_csn;
 	unsigned long ce_opid;
@@ -2096,16 +2082,6 @@ struct slap_csn_entry {
 #define SLAP_CSN_COMMIT		2
 	long ce_state;
 	LDAP_TAILQ_ENTRY (slap_csn_entry) ce_csn_link;
-};
-
-struct pc_entry {
-	ID pc_id;
-	int pc_sent;
-	struct berval pc_csn;
-	struct berval pc_entryUUID;
-	struct berval pc_ename;
-	struct berval pc_enname;
-	LDAP_TAILQ_ENTRY( pc_entry ) pc_link;
 };
 
 /*
@@ -2343,29 +2319,6 @@ typedef struct slap_op {
 #define o_sync			o_ctrlflag[slap_cids.sc_LDAPsync]
 
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
-
-#ifdef BDB_PSEARCH
-	struct sync_cookie	o_sync_state;
-	int					o_sync_rhint;
-	struct berval		o_sync_cid;
-	int					o_sync_slog_size;
-	struct berval		o_sync_csn;
-	struct berval		o_sync_slog_omitcsn;
-	int					o_sync_slog_len;
-	LDAP_STAILQ_HEAD(sl, slog_entry) o_sync_slog_list;
-
-	int o_ps_entries;
-	int	o_no_psearch;
-	LDAP_LIST_ENTRY(slap_op) o_ps_link;
-	LDAP_LIST_HEAD(pe, psid_entry) o_pm_list;
-
-	int o_refresh_in_progress;
-	LDAP_TAILQ_HEAD(pc_pre, pc_entry) o_ps_pre_candidates;
-	LDAP_TAILQ_HEAD(pc_post, pc_entry) o_ps_post_candidates;
-	Avlnode *o_psearch_finished;
-	struct pc_entry *o_ps_send_wait;
-	ldap_pvt_thread_mutex_t	o_pcmutex;
-#endif
 
 	AuthorizationInformation o_authz;
 
@@ -2634,11 +2587,6 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 
 #define SLAP_ZONE_ALLOC 1
 #undef SLAP_ZONE_ALLOC
-
-#if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
-/* use librewrite for sasl-regexp */
-#define SLAP_AUTH_REWRITE	1
-#endif /* LDAP_DEVEL && ENABLE_REWRITE */
 
 #ifdef LDAP_COMP_MATCH
 /*

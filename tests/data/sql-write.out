@@ -1,3 +1,324 @@
+# Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost:9010/dc=example,dc=com??sub
+
+# Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
+dn: o=An Org,dc=example,dc=com
+objectClass: organization
+o: An Org
+
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: cn=Lev Tolstoij,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Lev Tolstoij
+sn: Tolstoij
+seeAlso: documentTitle=War and Peace,dc=example,dc=com
+givenName: Lev
+telephoneNumber: +39 02 XXXX YYYY
+telephoneNumber: +39 02 XXXX ZZZZ
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
+dn: cn=Some One,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: simpleSecurityObject
+cn: Some One
+sn: One
+givenName: Some
+telephoneNumber: +1 800 900 1234
+telephoneNumber: +1 800 900 1235
+
+dn: dc=subnet,dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: SubNet
+dc: subnet
+
+dn: cn=SubNet User,dc=subnet,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: SubNet User
+sn: User
+givenName: SubNet
+
+dn: dc=subnet2,dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: SubNet 2
+dc: subnet 2
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+dn: documentTitle=War and Peace,dc=example,dc=com
+objectClass: document
+description: Historical novel
+documentTitle: War and Peace
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentIdentifier: document 3
+
+# refldap://localhost:9010/dc=example,dc=com??sub
+
+# Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
+dn: o=An Org,dc=example,dc=com
+objectClass: organization
+o: An Org
+
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: cn=Lev Tolstoij,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Lev Tolstoij
+sn: Tolstoij
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+seeAlso: documentTitle=War and Peace,dc=example,dc=com
+givenName: Lev
+telephoneNumber: +39 02 XXXX ZZZZ
+telephoneNumber: +39 333 ZZZ 1234
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: +1 800 123 4567
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
+dn: cn=Some One,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: simpleSecurityObject
+cn: Some One
+sn: One
+givenName: Some
+
+dn: dc=subnet,dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: SubNet
+dc: subnet
+
+dn: cn=SubNet User,dc=subnet,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: SubNet User
+sn: User
+givenName: SubNet
+
+dn: dc=subnet2,dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: SubNet 2
+dc: subnet 2
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+dn: documentTitle=War and Peace,dc=example,dc=com
+objectClass: document
+description: Historical novel
+documentTitle: War and Peace
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentIdentifier: document 3
+
+# refldap://localhost:9010/dc=example,dc=com??sub
+
+# Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
+dn: o=An Org,dc=example,dc=com
+objectClass: organization
+o: An Org
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: cn=Lev Tolstoij,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Lev Tolstoij
+sn: Tolstoij
+seeAlso: documentTitle=book2,dc=example,dc=com
+seeAlso: documentTitle=War and Peace,dc=example,dc=com
+givenName: Lev
+telephoneNumber: +39 02 XXXX ZZZZ
+telephoneNumber: +39 333 ZZZ 1234
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: +1 800 123 4567
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
+dn: cn=Some One,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: simpleSecurityObject
+cn: Some One
+sn: One
+givenName: Some
+
+dn: dc=subnet,dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: SubNet
+dc: subnet
+
+dn: cn=SubNet User,dc=subnet,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: SubNet User
+sn: User
+givenName: SubNet
+
+dn: documentTitle=War and Peace,dc=example,dc=com
+objectClass: document
+description: Historical novel
+documentTitle: War and Peace
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentIdentifier: document 3
+
+# refldap://localhost:9010/dc=example,dc=com??sub
+
+# Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
 dn: dc=example,dc=com
 objectClass: organization
 objectClass: dcObject
@@ -61,4 +382,93 @@ description: Historical novel
 documentTitle: War and Peace
 documentAuthor: cn=Lev Tolstoij,dc=subnet,dc=example,dc=com
 documentIdentifier: document 3
+
+# refldap://localhost:9010/dc=example,dc=com??sub
+
+# Using ldapsearch to retrieve the modified entry...
+dn: ou=Referral,dc=example,dc=com
+objectClass: referral
+objectClass: extensibleObject
+ou: Referral
+ref: ldap://localhost:9009/
+
+# Using ldapsearch to retrieve the renamed entry...
+dn: ou=Renamed Referral,dc=example,dc=com
+objectClass: referral
+objectClass: extensibleObject
+ou: Renamed Referral
+ref: ldap://localhost:9009/
+
+# Using ldapsearch to retrieve all the entries...
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Akakiy Zinberstein
+sn: Zinberstein
+givenName: Akakiy
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: cn=Lev Tolstoij,dc=subnet,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Lev Tolstoij
+sn: Tolstoij
+seeAlso: documentTitle=Renamed Book,dc=example,dc=com
+seeAlso: documentTitle=War and Peace,dc=example,dc=com
+givenName: Lev
+telephoneNumber: +39 02 XXXX ZZZZ
+telephoneNumber: +39 333 ZZZ 1234
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=Renamed Book,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: +1 800 123 4567
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
+dn: documentTitle=Renamed Book,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: Renamed Book
+documentAuthor: cn=Lev Tolstoij,dc=subnet,dc=example,dc=com
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: o=Renamed Org,dc=example,dc=com
+objectClass: organization
+o: Renamed Org
+
+dn: cn=Some One,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: simpleSecurityObject
+cn: Some One
+sn: One
+givenName: Some
+
+dn: dc=subnet,dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: SubNet
+dc: subnet
+
+dn: cn=SubNet User,dc=subnet,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: SubNet User
+sn: User
+givenName: SubNet
+
+dn: documentTitle=War and Peace,dc=example,dc=com
+objectClass: document
+description: Historical novel
+documentTitle: War and Peace
+documentAuthor: cn=Lev Tolstoij,dc=subnet,dc=example,dc=com
+documentIdentifier: document 3
+
+# refldap://localhost:9009/dc=example,dc=com??sub
 

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,8 +68,10 @@ ldap_back_dn_massage(
 {
 	int rc = 0;
 
-	switch (rewrite_session( dc->rwmap->rwm_rw, dc->ctx, (dn->bv_len ? dn->bv_val : ""), dc->conn, 
-				&res->bv_val )) {
+	switch ( rewrite_session( dc->rwmap->rwm_rw, dc->ctx,
+				( dn->bv_len ? dn->bv_val : "" ),
+				dc->conn, &res->bv_val ) )
+	{
 	case REWRITE_REGEXEC_OK:
 		if ( res->bv_val != NULL ) {
 			res->bv_len = strlen( res->bv_val );

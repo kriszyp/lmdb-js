@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * Portions Copyright 2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -34,7 +34,6 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	struct berval		dn = BER_BVNULL,
-				*dnp = NULL,
 				ndn = BER_BVNULL;
 	int			rc = 0;
 	dncookie		dc;
@@ -56,28 +55,32 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	 * and the caller sets op->o_req_dn = op->o_req_ndn,
 	 * only rewrite the op->o_req_ndn and use it as 
 	 * op->o_req_dn as well */
+	ndn = op->o_req_ndn;
 	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
-		dnp = &dn;
+		dn = op->o_req_dn;
+		rc = rwm_dn_massage_pretty_normalize( &dc, &op->o_req_dn, &dn, &ndn );
+	} else {
+		rc = rwm_dn_massage_normalize( &dc, &op->o_req_ndn, &ndn );
 	}
 
-	rc = rwm_dn_massage( &dc, &op->o_req_dn, dnp, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	if ( ( dnp && dn.bv_val == op->o_req_dn.bv_val ) ||
-		( !dnp && ndn.bv_val == op->o_req_ndn.bv_val ) ) {
+	if ( ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val && dn.bv_val == op->o_req_dn.bv_val )
+			|| ndn.bv_val == op->o_req_ndn.bv_val )
+	{
 		return LDAP_SUCCESS;
 	}
 
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( dnp ) {
+	op->o_req_ndn = ndn;
+	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
 		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		op->o_req_dn = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
-	op->o_req_ndn = ndn;
 
 	return LDAP_SUCCESS;
 }
@@ -93,6 +96,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 				i;
 	Attribute		**ap = NULL;
 	char			*olddn = op->o_req_dn.bv_val;
+	int			isupdate;
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "addDN" );
@@ -115,11 +119,12 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	}
 
 	/* Count number of attributes in entry */ 
+	isupdate = be_shadow_update( op );
 	for ( i = 0, ap = &op->oq_add.rs_e->e_attrs; *ap; ) {
 		struct berval	mapped;
 		Attribute	*a;
 
-		if ( (*ap)->a_desc->ad_type->sat_no_user_mod ) {
+		if ( !isupdate && (*ap)->a_desc->ad_type->sat_no_user_mod ) {
 			goto next_attr;
 		}
 
@@ -337,6 +342,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
+	int			isupdate;
 	Modifications		**mlp;
 	int			rc;
 
@@ -352,11 +358,12 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
+	isupdate = be_shadow_update( op );
 	for ( mlp = &op->oq_modify.rs_modlist; *mlp; ) {
 		int		is_oc = 0;
 		Modifications	*ml;
 
-		if ( (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
+		if ( !isupdate && (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
 			goto next_mod;
 		}
 
@@ -494,7 +501,9 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 		dc.tofrom = 0;
 		dc.normalized = 0;
 #endif /* ! ENABLE_REWRITE */
-		rc = rwm_dn_massage( &dc, op->orr_newSup, &newSup, &nnewSup );
+		newSup = *op->orr_newSup;
+		nnewSup = *op->orr_nnewSup;
+		rc = rwm_dn_massage_pretty_normalize( &dc, op->orr_newSup, &newSup, &nnewSup );
 		if ( rc != LDAP_SUCCESS ) {
 			op->o_bd->bd_info = (BackendInfo *)on->on_info;
 			send_ldap_error( op, rs, rc, "newSuperiorDN massage error" );
@@ -709,7 +718,8 @@ rwm_matched( Operation *op, SlapReply *rs )
 	dc.normalized = 0;
 #endif /* ! ENABLE_REWRITE */
 	ber_str2bv( rs->sr_matched, 0, 0, &dn );
-	rc = rwm_dn_massage( &dc, &dn, &mdn, NULL );
+	mdn = dn;
+	rc = rwm_dn_massage_pretty( &dc, &dn, &mdn );
 	if ( rc != LDAP_SUCCESS ) {
 		rs->sr_err = rc;
 		rs->sr_text = "Rewrite error";
@@ -739,6 +749,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 	dncookie		dc;
 	int			rc;
 	Attribute		**ap;
+	int			isupdate;
 
 	/*
 	 * Rewrite the dn attrs, if needed
@@ -764,6 +775,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 	 * an error (because multiple instances of attrs in 
 	 * response are not valid), or merge the values (what
 	 * about duplicate values?) */
+	isupdate = be_shadow_update( op );
 	for ( ap = a_first; *ap; ) {
 		struct ldapmapping	*m;
 		int			drop_missing;
@@ -781,7 +793,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 			goto cleanup_attr;
 		}
 
-		if ( (*ap)->a_desc->ad_type->sat_no_user_mod 
+		if ( !isupdate && (*ap)->a_desc->ad_type->sat_no_user_mod 
 			&& (*ap)->a_desc->ad_type != slap_schema.si_at_undefined )
 		{
 			goto next_attr;
@@ -938,7 +950,9 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	 * from the one known to the meta, and a DN with unknown
 	 * attributes is returned.
 	 */
-	rc = rwm_dn_massage( &dc, &e->e_name, &dn, &ndn );
+	dn = e->e_name;
+	ndn = e->e_nname;
+	rc = rwm_dn_massage_pretty_normalize( &dc, &e->e_name, &dn, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		rc = 1;
 		goto fail;

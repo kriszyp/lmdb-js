@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,8 @@ const Entry slap_entry_root = {
 	NOID, { 0, "" }, { 0, "" }, NULL, 0, { 0, "" }, NULL
 };
 
+static const struct berval dn_bv = BER_BVC("dn");
+
 int entry_destroy(void)
 {
 	if ( ebuf ) free( ebuf );
@@ -62,13 +64,14 @@ str2entry( char *s )
 {
 	int rc;
 	Entry		*e;
-	char		*type;
+	struct berval	type;
 	struct berval	vals[2];
 	struct berval	nvals[2], *nvalsp;
 	AttributeDescription *ad, *ad_prev;
 	const char *text;
 	char	*next;
 	int		attr_cnt;
+	int		freeval;
 
 	/*
 	 * LDIF is used as the string format.
@@ -114,60 +117,57 @@ str2entry( char *s )
 			break;
 		}
 
-		if ( ldif_parse_line( s, &type, &vals[0].bv_val, &vals[0].bv_len ) != 0 ) {
+		if ( ldif_parse_line2( s, &type, vals, &freeval ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
 		}
 
-		if ( strcasecmp( type, "dn" ) == 0 ) {
-			free( type );
+		if ( type.bv_len == dn_bv.bv_len &&
+			strcasecmp( type.bv_val, dn_bv.bv_val ) == 0 ) {
 
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
 					(long) e->e_id, e->e_dn, vals[0].bv_val );
-				free( vals[0].bv_val );
+				if ( freeval ) free( vals[0].bv_val );
 				entry_free( e );
 				return NULL;
 			}
 
 			rc = dnPrettyNormal( NULL, &vals[0], &e->e_name, &e->e_nname, NULL );
+			if ( freeval ) free( vals[0].bv_val );
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has invalid DN \"%s\"\n",
 					(long) e->e_id, vals[0].bv_val, 0 );
 				entry_free( e );
-				free( vals[0].bv_val );
 				return NULL;
 			}
-			free( vals[0].bv_val );
 			continue;
 		}
 
 		ad_prev = ad;
 		ad = NULL;
-		rc = slap_str2ad( type, &ad, &text );
+		rc = slap_bv2ad( &type, &ad, &text );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( slapMode & SLAP_TOOL_MODE
 				? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
-				"<= str2entry: str2ad(%s): %s\n", type, text, 0 );
+				"<= str2entry: str2ad(%s): %s\n", type.bv_val, text, 0 );
 			if( slapMode & SLAP_TOOL_MODE ) {
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
-			rc = slap_str2undef_ad( type, &ad, &text );
+			rc = slap_bv2undef_ad( &type, &ad, &text );
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
 					"<= str2entry: str2undef_ad(%s): %s\n",
-						type, text, 0 );
+						type.bv_val, text, 0 );
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 		}
@@ -200,8 +200,7 @@ str2entry( char *s )
 					ad->ad_cname.bv_val, attr_cnt,
 					ad->ad_type->sat_syntax->ssyn_oid );
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
@@ -212,14 +211,14 @@ str2entry( char *s )
 					ad->ad_cname.bv_val, attr_cnt,
 					ad->ad_type->sat_syntax->ssyn_oid );
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
 			if( pretty ) {
-				free( vals[0].bv_val );
+				if ( freeval ) free( vals[0].bv_val );
 				vals[0] = pval;
+				freeval = 1;
 			}
 		}
 
@@ -240,8 +239,7 @@ str2entry( char *s )
 			   		"<= str2entry NULL (smr_normalize %d)\n", rc, 0, 0 );
 
 				entry_free( e );
-				free( vals[0].bv_val );
-				free( type );
+				if ( freeval ) free( vals[0].bv_val );
 				return NULL;
 			}
 
@@ -256,13 +254,11 @@ str2entry( char *s )
 			Debug( LDAP_DEBUG_ANY,
 				"<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
 			entry_free( e );
-			free( vals[0].bv_val );
-			free( type );
+			if ( freeval ) free( vals[0].bv_val );
 			return( NULL );
 		}
 
-		free( type );
-		free( vals[0].bv_val );
+		if ( freeval ) free( vals[0].bv_val );
 		free( nvals[0].bv_val );
 
 		attr_cnt++;

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -49,35 +49,39 @@ usage( int tool, const char *progname )
 {
 	char *options = NULL;
 	fprintf( stderr,
-		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]\n",
+		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]",
 		progname );
 
 	switch( tool ) {
+	case SLAPACL:
+		options = "\n\t[-U authcID | -D authcDN]"
+			" -b DN [attr[/access][:value]] [...]\n";
+		break;
+
 	case SLAPADD:
-		options = "\t[-n databasenumber | -b suffix]\n"
-			"\t[-l ldiffile] [-u] [-p [-w] | -r [-i syncreplidlist] [-w]]\n";
-		break;
-
-	case SLAPCAT:
-		options = "\t[-n databasenumber | -b suffix]"
-			" [-l ldiffile] [-a filter] [-m] [-k]\n";
-		break;
-
-	case SLAPDN:
-		options = "\tDN [...]\n";
-		break;
-
-	case SLAPINDEX:
-		options = "\t[-n databasenumber | -b suffix]\n";
+		options = "\n\t[-n databasenumber | -b suffix]\n"
+			"\t[-l ldiffile] [-u] [-w]\n";
 		break;
 
 	case SLAPAUTH:
-		options = "\t[-U authcID] [-X authzID] [-R realm] [-M mech] ID [...]\n";
+		options = "\n\t[-U authcID] [-X authzID] [-R realm] [-M mech] ID [...]\n";
 		break;
 
-	case SLAPACL:
-		options = "\t[-U authcID | -D authcDN]"
-			" -b DN [attr[/access][:value]] [...]\n";
+	case SLAPCAT:
+		options = "\n\t[-n databasenumber | -b suffix]"
+			" [-l ldiffile] [-a filter]\n";
+		break;
+
+	case SLAPDN:
+		options = " DN [...]\n";
+		break;
+
+	case SLAPINDEX:
+		options = "\n\t[-n databasenumber | -b suffix]\n";
+		break;
+
+	case SLAPTEST:
+		options = " [-u]\n";
 		break;
 	}
 
@@ -113,7 +117,7 @@ slap_tool_init(
 	int truncatemode = 0;
 
 #ifdef CSRIMALLOC
-	leakfilename = malloc( strlen( progname ) + STRLEOF( ".leak" ) - 1 );
+	leakfilename = malloc( strlen( progname ) + STRLENOF( ".leak" ) + 1 );
 	sprintf( leakfilename, "%s.leak", progname );
 	if( ( leakfile = fopen( leakfilename, "w" )) == NULL ) {
 		leakfile = stderr;
@@ -123,17 +127,21 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:i:l:n:prtuvWw";
+		options = "b:cd:f:l:n:tuvw";
 		break;
 
 	case SLAPCAT:
-		options = "a:b:cd:f:kl:mn:s:v";
+		options = "a:b:cd:f:l:n:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPDN:
-	case SLAPTEST:
 		options = "d:f:v";
+		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
+		break;
+
+	case SLAPTEST:
+		options = "d:f:uv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -184,37 +192,8 @@ slap_tool_init(
 			conffile = strdup( optarg );
 			break;
 
-		case 'i': /* specify syncrepl id list */
-			replica_id_string = strdup( optarg );
-			if ( !isdigit( (unsigned char) *replica_id_string )) {
-				usage( tool, progname );
-				exit( EXIT_FAILURE );
-			}
-			slap_str2clist( &replica_id_strlist, replica_id_string, "," );
-			for ( i = 0; replica_id_strlist && replica_id_strlist[i]; i++ ) ;
-			replica_id_list = ch_calloc( i + 1, sizeof( int ) );
-			for ( i = 0; replica_id_strlist && replica_id_strlist[i]; i++ ) {
-				replica_id_list[i] = atoi( replica_id_strlist[i] );
-				if ( replica_id_list[i] >= 1000 ) {
-					fprintf(stderr,
-						"%s: syncrepl id %d is out of range [0..999]\n",
-						progname, replica_id_list[i] );
-					exit( EXIT_FAILURE );
-				}
-			}
-			replica_id_list[i] = -1;
-			break;
-
-		case 'k':	/* Retrieve sync cookie entry */
-			retrieve_synccookie = 1;
-			break;
-
 		case 'l':	/* LDIF file */
 			ldiffile = strdup( optarg );
-			break;
-
-		case 'm':	/* Retrieve ldapsync entry */
-			retrieve_ctxcsn = 1;
 			break;
 
 		case 'M':
@@ -223,14 +202,6 @@ slap_tool_init(
 
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg ) - 1;
-			break;
-
-		case 'p':	/* replica promotion */
-			replica_promotion = 1;		
-			break;
-
-		case 'r':	/* replica demotion */
-			replica_demotion = 1;		
 			break;
 
 		case 'R':
@@ -258,13 +229,8 @@ slap_tool_init(
 			verbose++;
 			break;
 
-		case 'W':	/* write context csn on every entry add */
-			update_ctxcsn = SLAP_TOOL_CTXCSN_BATCH;
-			/* FIXME : update_ctxcsn = SLAP_TOOL_CTXCSN_ENTRY; */
-			break;
-
-		case 'w':	/* write context csn on at the end */
-			update_ctxcsn = SLAP_TOOL_CTXCSN_BATCH;
+		case 'w':	/* write context csn at the end */
+			update_ctxcsn++;
 			break;
 
 		case 'X':
@@ -285,14 +251,6 @@ slap_tool_init(
 			usage( tool, progname );
 		}
 
-		if ( replica_promotion && replica_demotion ) {
-			usage( tool, progname );
-
-		} else if ( !replica_promotion && !replica_demotion ) {
-			if ( update_ctxcsn != SLAP_TOOL_CTXCSN_KEEP ) {
-				usage( tool, progname );
-			}
-		}
 		break;
 
 	case SLAPDN:
@@ -523,7 +481,19 @@ startup:;
 #endif
 
 	if ( !dryrun && slap_startup( be ) ) {
-		fprintf( stderr, "slap_startup failed\n" );
+
+		switch ( tool ) {
+		case SLAPTEST:
+			fprintf( stderr, "slap_startup failed "
+					"(test would succeed using "
+					"the -u switch)\n" );
+			break;
+
+		default:
+			fprintf( stderr, "slap_startup failed\n" );
+			break;
+		}
+		
 		exit( EXIT_FAILURE );
 	}
 }

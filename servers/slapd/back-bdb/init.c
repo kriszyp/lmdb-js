@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,11 +85,6 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
-#ifdef BDB_PSEARCH
-	LDAP_LIST_INIT (&bdb->bi_psearch_list);
-	ldap_pvt_thread_rdwr_init ( &bdb->bi_pslist_rwlock );
-#endif
-
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
@@ -97,31 +92,6 @@ bdb_db_init( BackendDB *be )
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
 
 	be->be_private = bdb;
-
-	return 0;
-}
-
-int
-bdb_bt_compare(
-	DB *db, 
-	const DBT *usrkey,
-	const DBT *curkey )
-{
-	unsigned char *u, *c;
-	int i, x;
-
-	u = usrkey->data;
-	c = curkey->data;
-
-#ifdef WORDS_BIGENDIAN
-	for( i = 0; i < (int)sizeof(ID); i++)
-#else
-	for( i = sizeof(ID)-1; i >= 0; i--)
-#endif
-	{
-		x = u[i] - c[i];
-		if( x ) return x;
-	}
 
 	return 0;
 }
@@ -321,10 +291,6 @@ bdb_db_open( BackendDB *be )
 		}
 
 		if( i == BDB_ID2ENTRY ) {
-#if 0
-			rc = db->bdi_db->set_bt_compare( db->bdi_db,
-				bdb_bt_compare );
-#endif
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
@@ -336,20 +302,12 @@ bdb_db_open( BackendDB *be )
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 #ifndef BDB_HIER
-#if 0
-			rc = db->bdi_db->set_dup_compare( db->bdi_db,
-				bdb_bt_compare );
-#endif
 			if ( slapMode & SLAP_TOOL_READONLY ) {
 				flags |= DB_RDONLY;
 			} else {
 				flags |= DB_CREATE;
 			}
 #else
-			rc = db->bdi_db->set_dup_compare( db->bdi_db,
-				bdb_dup_compare );
-			rc = db->bdi_db->set_bt_compare( db->bdi_db,
-				bdb_bt_compare );
 			if ( slapMode & (SLAP_TOOL_READONLY|SLAP_TOOL_READMAIN) ) {
 				flags |= DB_RDONLY;
 			} else {
@@ -378,10 +336,14 @@ bdb_db_open( BackendDB *be )
 			bdb->bi_dbenv_mode );
 #endif
 
-		if( rc != 0 ) {
+		if ( rc != 0 ) {
+			char	buf[SLAP_TEXT_BUFLEN];
+
+			snprintf( buf, sizeof(buf), "%s/%s", 
+				bdb->bi_dbenv_home, bdbi_databases[i].file );
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_db_open: db_open(%s) failed: %s (%d)\n",
-				bdb->bi_dbenv_home, db_strerror(rc), rc );
+				buf, db_strerror(rc), rc );
 			return rc;
 		}
 
@@ -500,68 +462,6 @@ bdb_db_destroy( BackendDB *be )
 		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 	}
-
-#ifdef BDB_PSEARCH
-	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
-	ps = LDAP_LIST_FIRST( &bdb->bi_psearch_list );
-
-	if ( ps ) {
-		psn = LDAP_LIST_NEXT( ps, o_ps_link );
-
-		saved_tmpmemctx = ps->o_tmpmemctx;
-
-		if (!BER_BVISNULL(&ps->o_req_dn)) {
-			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->o_req_ndn)) {
-			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->ors_filterstr)) {
-			slap_sl_free(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
-		}
-		if (ps->ors_filter != NULL) {
-			filter_free_x(ps, ps->ors_filter);
-		}
-		if ( ps->ors_attrs != NULL) {
-			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
-		}
-
-		slap_op_free( ps );
-
-		if ( saved_tmpmemctx ) {
-			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
-		}
-	}
-
-	while ( psn ) {
-		ps = psn;
-		psn = LDAP_LIST_NEXT( ps, o_ps_link );
-
-		saved_tmpmemctx = ps->o_tmpmemctx;
-
-		if (!BER_BVISNULL(&ps->o_req_dn)) {
-			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->o_req_ndn)) {
-			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->ors_filterstr)) {
-			slap_sl_free(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
-		}
-		if (ps->ors_filter != NULL) {
-			filter_free_x(ps, ps->ors_filter);
-		}
-		if ( ps->ors_attrs != NULL) {
-			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
-		}
-
-		slap_op_free( ps );
-
-		if ( saved_tmpmemctx ) {
-			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
-		}
-	}
-#endif
 
 	ch_free( bdb );
 	be->be_private = NULL;

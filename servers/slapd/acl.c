@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -253,7 +253,7 @@ access_allowed_mask(
 		    "<= root access granted\n",
 			0, 0, 0 );
 		if ( maskp ) {
-			mask = ACL_LVL_WRITE;
+			mask = ACL_LVL_MANAGE;
 		}
 
 		goto done;
@@ -541,8 +541,11 @@ acl_get(
 				Debug( LDAP_DEBUG_ACL,
 					"acl_get: valpat %s\n",
 					a->acl_attrval.bv_val, 0, 0 );
-				if (regexec(&a->acl_attrval_re, val->bv_val, 0, NULL, 0))
+				if ( regexec( &a->acl_attrval_re, val->bv_val, 0, NULL, 0 ) )
+				{
 					continue;
+				}
+
 			} else {
 				int match = 0;
 				const char *text;
@@ -1741,7 +1744,9 @@ acl_check_modlist(
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( ACL_WRITE ),
-			op->o_bd->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn.bv_val );
+			op->o_bd->be_dfltaccess >= ACL_WRITE
+				? "granted" : "denied",
+			op->o_dn.bv_val );
 		ret = (op->o_bd->be_dfltaccess >= ACL_WRITE);
 		goto done;
 	}
@@ -2111,8 +2116,9 @@ aci_match_set (
 	int		rc = 0;
 	AciSetCookie	cookie;
 
-	if (setref == 0) {
+	if ( setref == 0 ) {
 		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
+
 	} else {
 		struct berval		subjdn, ndn = BER_BVNULL;
 		struct berval		setat;
@@ -2122,7 +2128,7 @@ aci_match_set (
 
 		/* format of string is "entry/setAttrName" */
 		if ( aci_get_part( subj, 0, '/', &subjdn ) < 0 ) {
-			return(0);
+			return 0;
 		}
 
 		if ( aci_get_part( subj, 1, '/', &setat ) < 0 ) {

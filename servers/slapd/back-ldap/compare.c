@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -49,14 +49,12 @@ ldap_back_compare(
 	}
 
 	ctrls = op->o_ctrls;
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		rc = -1;
 		goto cleanup;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
 	rs->sr_err = ldap_compare_ext( lc->lc_ld, op->o_req_ndn.bv_val,
@@ -72,9 +70,7 @@ retry:
 	}
 
 cleanup:
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 	
 	return rc;
 }

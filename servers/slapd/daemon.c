@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1844,6 +1844,7 @@ slapd_daemon_task(
 				}
 				slapd_close( wd );
 			}
+			SLAP_EVENT_CLR_WRITE( wd );
 		}
 
 		for ( i = 0; nrfds > 0; i++ )

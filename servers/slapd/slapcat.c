@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -82,20 +82,6 @@ slapcat( int argc, char **argv )
 		if( filter != NULL ) {
 			int rc = test_filter( NULL, e, filter );
 			if( rc != LDAP_COMPARE_TRUE ) {
-				be_entry_release_r( &op, e );
-				continue;
-			}
-		}
-
-		if ( retrieve_ctxcsn == 0 ) {
-			if ( is_entry_syncProviderSubentry( e ) ) {
-				be_entry_release_r( &op, e );
-				continue;
-			}
-		}
-
-		if ( retrieve_synccookie == 0 ) {
-			if ( is_entry_syncConsumerSubentry( e ) ) {
 				be_entry_release_r( &op, e );
 				continue;
 			}

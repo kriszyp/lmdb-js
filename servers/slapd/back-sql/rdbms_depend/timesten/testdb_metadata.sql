@@ -105,4 +105,4 @@ insert into ldap_entry_objclasses (entry_id,oc_name)
 values (4,'referral');
 
 insert into ldap_referrals (entry_id,url)
-values (4,'http://localhost');
+values (4,'ldap://localhost:9010');

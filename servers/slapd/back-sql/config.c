@@ -1,8 +1,10 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
+ * Portions Copyright 2002 Pierangelo Masarati.
+ * Portions Copyright 2004 Mark Adamson.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,7 +17,8 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
- * by OpenLDAP Software.
+ * by OpenLDAP Software.  Additional significant contributors include
+ * Pierangelo Masarati.
  */
 
 #include "portable.h"
@@ -173,18 +176,20 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"at_query=%s\n", bi->sql_at_query, 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "insentry_query" ) ) {
+	} else if ( !strcasecmp( argv[ 0 ], "insentry_stmt" ) ||
+			!strcasecmp( argv[ 0 ], "insentry_query" ) )
+	{
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE, 
 				"<==backsql_db_config (%s line %d): "
 				"missing SQL statement "
-				"in \"insentry_query\" directive\n",
+				"in \"insentry_stmt\" directive\n",
 				fname, lineno, 0 );
 			return 1;
 		}
-		bi->sql_insentry_query = ch_strdup( argv[ 1 ] );
+		bi->sql_insentry_stmt = ch_strdup( argv[ 1 ] );
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
-			"insentry_query=%s\n", bi->sql_insentry_query, 0, 0 );
+			"insentry_stmt=%s\n", bi->sql_insentry_stmt, 0, 0 );
 
 	} else if ( !strcasecmp( argv[ 0 ], "create_needs_select" ) ) {
 		if ( argc < 2 ) {
@@ -271,44 +276,50 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"strcast_func=%s\n", bi->sql_strcast_func.bv_val, 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "delentry_query" ) ) {
+	} else if ( !strcasecmp( argv[ 0 ], "delentry_stmt" ) ||
+			!strcasecmp( argv[ 0 ], "delentry_query" ) )
+	{
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
 				"missing SQL statement "
-				"in \"delentry_query\" directive\n",
+				"in \"delentry_stmt\" directive\n",
 				fname, lineno, 0 );
 			return 1;
 		}
-		bi->sql_delentry_query = ch_strdup( argv[ 1 ] );
+		bi->sql_delentry_stmt = ch_strdup( argv[ 1 ] );
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
-			"delentry_query=%s\n", bi->sql_delentry_query, 0, 0 );
+			"delentry_stmt=%s\n", bi->sql_delentry_stmt, 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "delobjclasses_query" ) ) {
+	} else if ( !strcasecmp( argv[ 0 ], "renentry_stmt" ) ||
+			!strcasecmp( argv[ 0 ], "renentry_query" ) )
+	{
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
 				"missing SQL statement "
-				"in \"delobjclasses_query\" directive\n",
+				"in \"renentry_stmt\" directive\n",
 				fname, lineno, 0 );
 			return 1;
 		}
-		bi->sql_delobjclasses_query = ch_strdup( argv[ 1 ] );
+		bi->sql_renentry_stmt = ch_strdup( argv[ 1 ] );
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
-			"delobjclasses_query=%s\n", bi->sql_delobjclasses_query, 0, 0 );
+			"renentry_stmt=%s\n", bi->sql_renentry_stmt, 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "delreferrals_query" ) ) {
+	} else if ( !strcasecmp( argv[ 0 ], "delobjclasses_stmt" ) ||
+			!strcasecmp( argv[ 0 ], "delobjclasses_query" ) )
+	{
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
 				"missing SQL statement "
-				"in \"delreferrals_query\" directive\n",
+				"in \"delobjclasses_stmt\" directive\n",
 				fname, lineno, 0 );
 			return 1;
 		}
-		bi->sql_delreferrals_query = ch_strdup( argv[ 1 ] );
+		bi->sql_delobjclasses_stmt = ch_strdup( argv[ 1 ] );
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
-			"delreferrals_query=%s\n", bi->sql_delreferrals_query, 0, 0 );
+			"delobjclasses_stmt=%s\n", bi->sql_delobjclasses_stmt, 0, 0 );
 
 	} else if ( !strcasecmp( argv[ 0 ], "has_ldapinfo_dn_ru") ) {
 		if ( argc < 2 ) {
@@ -433,12 +444,121 @@ backsql_db_config(
 		}
 
 	} else if ( !strcasecmp( argv[ 0 ], "sqllayer") ) {
-		if ( backsql_api_config( bi, argv[ 1 ] ) ) {
+		if ( backsql_api_config( bi, argv[ 1 ], argc - 2, &argv[ 2 ] ) )
+		{
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
 				"unable to load sqllayer \"%s\"\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
+		}
+
+	} else if ( !strcasecmp( argv[ 0 ], "id_query" ) ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE, 
+				"<==backsql_db_config (%s line %d): "
+				"missing SQL condition "
+				"in \"id_query\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		bi->sql_id_query = ch_strdup( argv[ 1 ] );
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"id_query=%s\n", bi->sql_id_query, 0, 0 );
+
+	} else if ( !strcasecmp( argv[ 0 ], "use_subtree_shortcut") ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing { yes | no }"
+				"in \"use_subtree_shortcut\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			bi->sql_flags |= BSQLF_USE_SUBTREE_SHORTCUT;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			bi->sql_flags &= ~BSQLF_USE_SUBTREE_SHORTCUT;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"\"use_subtree_shortcut\" directive arg "
+				"must be \"yes\" or \"no\"\n",
+				fname, lineno, 0 );
+			return 1;
+
+		}
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"use_subtree_shortcut=%s\n", 
+			BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ? "yes" : "no",
+			0, 0 );
+
+	} else if ( !strcasecmp( argv[ 0 ], "fetch_all_attrs") ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing { yes | no }"
+				"in \"fetch_all_attrs\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			bi->sql_flags |= BSQLF_FETCH_ALL_ATTRS;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			bi->sql_flags &= ~BSQLF_FETCH_ALL_ATTRS;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"\"fetch_all_attrs\" directive arg "
+				"must be \"yes\" or \"no\"\n",
+				fname, lineno, 0 );
+			return 1;
+
+		}
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"fetch_all_attrs=%s\n", 
+			BACKSQL_FETCH_ALL_ATTRS( bi ) ? "yes" : "no",
+			0, 0 );
+
+	} else if ( !strcasecmp( argv[ 0 ], "fetch_attrs") ) {
+		char	*str, *s, *next;
+		char	delimstr[] = ",";
+
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing <attrlist>"
+				"in \"fetch_all_attrs <attrlist>\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		str = ch_strdup( argv[ 1 ] );
+		for ( s = ldap_pvt_strtok( str, delimstr, &next );
+				s != NULL;
+				s = ldap_pvt_strtok( NULL, delimstr, &next ) )
+		{
+			if ( strlen( s ) == 1 ) {
+				if ( *s == '*' ) {
+					bi->sql_flags |= BSQLF_FETCH_ALL_USERATTRS;
+					argv[ 1 ][ s - str ] = ',';
+
+				} else if ( *s == '+' ) {
+					bi->sql_flags |= BSQLF_FETCH_ALL_OPATTRS;
+					argv[ 1 ][ s - str ] = ',';
+				}
+			}
+		}
+		ch_free( str );
+		bi->sql_anlist = str2anlist( bi->sql_anlist, argv[ 1 ], delimstr );
+		if ( bi->sql_anlist == NULL ) {
+			return -1;
 		}
 
 	} else {
@@ -469,7 +589,8 @@ read_baseObject(
 	fp = fopen( fname, "r" );
 	if ( fp == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"could not open back-sql baseObject attr file \"%s\" - absolute path?\n",
+			"could not open back-sql baseObject "
+			"attr file \"%s\" - absolute path?\n",
 			fname, 0, 0 );
 		perror( fname );
 		return LDAP_OTHER;
@@ -491,8 +612,9 @@ read_baseObject(
 		Attribute	*a;
 
 		if( e == NULL ) {
-			fprintf( stderr, "back-sql baseObject: could not parse entry (line=%d)\n",
-				lineno );
+			fprintf( stderr, "back-sql baseObject: "
+					"could not parse entry (line=%d)\n",
+					lineno );
 			rc = LDAP_OTHER;
 			break;
 		}
@@ -500,8 +622,9 @@ read_baseObject(
 		/* make sure the DN is the database's suffix */
 		if ( !be_issuffix( be, &e->e_nname ) ) {
 			fprintf( stderr,
-				"back-sql: invalid baseObject - dn=\"%s\" (line=%d)\n",
-				e->e_dn, lineno );
+				"back-sql: invalid baseObject - "
+				"dn=\"%s\" (line=%d)\n",
+				e->e_name.bv_val, lineno );
 			entry_free( e );
 			rc = EXIT_FAILURE;
 			break;
@@ -512,8 +635,10 @@ read_baseObject(
 		 * entry, and add each attribute type and description to baseObject
 		 */
 		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-			if ( attr_merge( bi->sql_baseObject, a->a_desc, a->a_vals,
-				( a->a_nvals == a->a_vals ) ? NULL : a->a_nvals ) )
+			if ( attr_merge( bi->sql_baseObject, a->a_desc,
+						a->a_vals,
+						( a->a_nvals == a->a_vals ) ?
+						NULL : a->a_nvals ) )
 			{
 				rc = LDAP_OTHER;
 				break;
@@ -535,7 +660,8 @@ read_baseObject(
 
 	fclose( fp );
 
-	Debug( LDAP_DEBUG_CONFIG, "back-sql baseObject file \"%s\" read.\n", fname, 0, 0 );
+	Debug( LDAP_DEBUG_CONFIG, "back-sql baseObject file \"%s\" read.\n",
+			fname, 0, 0 );
 
 	return rc;
 }
@@ -556,9 +682,11 @@ create_baseObject(
 			"dn: %s\n"
 			"objectClass: extensibleObject\n"
 			"description: builtin baseObject for back-sql\n"
-			"description: all entries mapped in the \"ldap_entries\" table\n"
-			"description: must have \"" BACKSQL_BASEOBJECT_IDSTR "\" "
-				"in the \"parent\" column",
+			"description: all entries mapped "
+			"in the \"ldap_entries\" table\n"
+			"description: must have "
+			"\"" BACKSQL_BASEOBJECT_IDSTR "\" "
+			"in the \"parent\" column",
 			be->be_suffix[0].bv_val );
 
 	bi->sql_baseObject = str2entry( buf );
@@ -574,11 +702,14 @@ create_baseObject(
 		return 0;
 	}
 
-	rc = ldap_bv2rdn( &be->be_suffix[ 0 ], &rdn, (char **) &p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( &be->be_suffix[ 0 ], &rdn, (char **)&p,
+			LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		snprintf( buf, sizeof(buf),
-			"unable to extract RDN from baseObject DN \"%s\" (%d: %s)",
-			be->be_suffix[ 0 ].bv_val, rc, ldap_err2string( rc ) );
+			"unable to extract RDN "
+			"from baseObject DN \"%s\" (%d: %s)",
+			be->be_suffix[ 0 ].bv_val,
+			rc, ldap_err2string( rc ) );
 		Debug( LDAP_DEBUG_TRACE,
 			"<==backsql_db_config (%s line %d): %s\n",
 			fname, lineno, buf );
@@ -622,12 +753,14 @@ create_baseObject(
 	
 			if ( rc != LDAP_SUCCESS ) {
 				snprintf( buf, sizeof(buf),
-					"prettying of attribute #%d from baseObject "
+					"prettying of attribute #%d "
+					"from baseObject "
 					"DN \"%s\" failed: %d: %s",
 					iAVA, be->be_suffix[ 0 ].bv_val,
 					rc, ldap_err2string( rc ) );
 				Debug( LDAP_DEBUG_TRACE,
-					"<==backsql_db_config (%s line %d): %s\n",
+					"<==backsql_db_config (%s line %d): "
+					"%s\n",
 					fname, lineno, buf );
 				return 1;
 			}

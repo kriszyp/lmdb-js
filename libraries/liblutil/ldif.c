@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,7 +81,14 @@ static const unsigned char b642nib[0x80] = {
  * ldif_parse_line - takes a line of the form "type:[:] value" and splits it
  * into components "type" and "value".  if a double colon separates type from
  * value, then value is encoded in base 64, and parse_line un-decodes it
- * (in place) before returning.
+ * (in place) before returning. The type and value are stored in malloc'd
+ * memory which must be freed by the caller.
+ *
+ * ldif_parse_line2 - operates in-place on input buffer, returning type
+ * in-place. Will return value in-place if possible, (must malloc for
+ * fetched URLs). If freeval is NULL, all return data will be malloc'd
+ * and the input line will be unmodified. Otherwise freeval is set to
+ * True if the value was malloc'd.
  */
 
 int
@@ -92,46 +99,65 @@ ldif_parse_line(
     ber_len_t *vlenp
 )
 {
+	struct berval type, value;
+	int rc = ldif_parse_line2( (char *)line, &type, &value, NULL );
+
+	*typep = type.bv_val;
+	*valuep = value.bv_val;
+	*vlenp = value.bv_len;
+	return rc;
+}
+
+int
+ldif_parse_line2(
+    char	*line,
+	struct berval *type,
+	struct berval *value,
+	int		*freeval
+)
+{
 	char	*s, *p, *d; 
 	char	nib;
 	int	b64, url;
-	char	*freeme, *type, *value;
-	ber_len_t vlen;
 
-	*typep = NULL;
-	*valuep = NULL;
-	*vlenp = 0;
+	BER_BVZERO( type );
+	BER_BVZERO( value );
 
 	/* skip any leading space */
 	while ( isspace( (unsigned char) *line ) ) {
 		line++;
 	}
 
-	freeme = ber_strdup( line );
+	if ( freeval ) {
+		*freeval = 0;
+	} else {
+		line = ber_strdup( line );
 
-	if( freeme == NULL ) {
-		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-			_("ldif_parse_line: line malloc failed\n"));
-		return( -1 );
+		if( line == NULL ) {
+			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+				_("ldif_parse_line: line malloc failed\n"));
+			return( -1 );
+		}
 	}
 
-	type = freeme;
+	type->bv_val = line;
 
-	s = strchr( type, ':' );
+	s = strchr( type->bv_val, ':' );
 
 	if ( s == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 			_("ldif_parse_line: missing ':' after %s\n"),
 			type );
-		ber_memfree( freeme );
+		if ( !freeval ) ber_memfree( line );
 		return( -1 );
 	}
 
 	/* trim any space between type and : */
-	for ( p = &s[-1]; p > type && isspace( * (unsigned char *) p ); p-- ) {
+	for ( p = &s[-1]; p > type->bv_val && isspace( * (unsigned char *) p ); p-- ) {
 		*p = '\0';
 	}
 	*s++ = '\0';
+	type->bv_len = s - type->bv_val - 1;
 
 	url = 0;
 	b64 = 0;
@@ -165,13 +191,13 @@ ldif_parse_line(
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 				_("ldif_parse_line: %s missing base64 value\n"), type );
-			ber_memfree( freeme );
+			if ( !freeval ) ber_memfree( line );
 			return( -1 );
 		}
 
-		byte = value = s;
+		byte = value->bv_val = s;
 
-		for ( p = s, vlen = 0; p < d; p += 4, vlen += 3 ) {
+		for ( p = s, value->bv_len = 0; p < d; p += 4, value->bv_len += 3 ) {
 			int i;
 			for ( i = 0; i < 4; i++ ) {
 				if ( p[i] != '=' && (p[i] & 0x80 ||
@@ -180,7 +206,7 @@ ldif_parse_line(
 						_("ldif_parse_line: %s: invalid base64 encoding"
 						" char (%c) 0x%x\n"),
 					    type, p[i], p[i] );
-					ber_memfree( freeme );
+					if ( !freeval ) ber_memfree( line );
 					return( -1 );
 				}
 			}
@@ -194,7 +220,7 @@ ldif_parse_line(
 			byte[1] = (nib & RIGHT4) << 4;
 			/* third digit */
 			if ( p[2] == '=' ) {
-				vlen += 1;
+				value->bv_len += 1;
 				break;
 			}
 			nib = b642nib[ p[2] & 0x7f ];
@@ -202,7 +228,7 @@ ldif_parse_line(
 			byte[2] = (nib & RIGHT2) << 6;
 			/* fourth digit */
 			if ( p[3] == '=' ) {
-				vlen += 2;
+				value->bv_len += 2;
 				break;
 			}
 			nib = b642nib[ p[3] & 0x7f ];
@@ -210,59 +236,58 @@ ldif_parse_line(
 
 			byte += 3;
 		}
-		s[ vlen ] = '\0';
+		s[ value->bv_len ] = '\0';
 
 	} else if ( url ) {
 		if ( *s == '\0' ) {
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 				_("ldif_parse_line: %s missing URL value\n"), type );
-			ber_memfree( freeme );
+			if ( !freeval ) ber_memfree( line );
 			return( -1 );
 		}
 
-		if( ldif_fetch_url( s, &value, &vlen ) ) {
+		if( ldif_fetch_url( s, &value->bv_val, &value->bv_len ) ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 				_("ldif_parse_line: %s: URL \"%s\" fetch failed\n"),
 				type, s );
-			ber_memfree( freeme );
+			if ( !freeval ) ber_memfree( line );
 			return( -1 );
 		}
+		if ( freeval ) *freeval = 1;
 
 	} else {
-		value = s;
-		vlen = (int) (d - s);
+		value->bv_val = s;
+		value->bv_len = (int) (d - s);
 	}
 
-	type = ber_strdup( type );
+	if ( !freeval ) {
+		struct berval bv = *type;
 
-	if( type == NULL ) {
-		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-			_("ldif_parse_line: type malloc failed\n"));
-		if( url ) ber_memfree( value );
-		ber_memfree( freeme );
-		return( -1 );
-	}
+		ber_dupbv( type, &bv );
 
-	if( !url ) {
-		p = ber_memalloc( vlen + 1 );
-		if( p == NULL ) {
+		if( BER_BVISNULL( type )) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-				_("ldif_parse_line: value malloc failed\n"));
-			ber_memfree( type );
-			ber_memfree( freeme );
+				_("ldif_parse_line: type malloc failed\n"));
+			if( url ) ber_memfree( value->bv_val );
+			ber_memfree( line );
 			return( -1 );
 		}
-		AC_MEMCPY( p, value, vlen );
-		p[vlen] = '\0';
-		value = p;
+
+		if( !url ) {
+			bv = *value;
+			ber_dupbv( value, &bv );
+			if( BER_BVISNULL( value )) {
+				ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+					_("ldif_parse_line: value malloc failed\n"));
+				ber_memfree( type->bv_val );
+				ber_memfree( line );
+				return( -1 );
+			}
+		}
+
+		ber_memfree( line );
 	}
-
-	ber_memfree( freeme );
-
-	*typep = type;
-	*valuep = value;
-	*vlenp = vlen;
 
 	return( 0 );
 }

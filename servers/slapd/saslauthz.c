@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * Portions Copyright 2000 Mark Adamson, Carnegie Mellon.
  * All rights reserved.
  *
@@ -700,7 +700,9 @@ static int slap_authz_regexp( struct berval *in, struct berval *out,
 		if ( !BER_BVISNULL( out ) ) {
 			char *val = out->bv_val;
 			ber_str2bv_x( val, 0, 1, out, ctx );
-			free( val );
+			if ( val != in->bv_val ) {
+				free( val );
+			}
 		} else {
 			ber_dupbv_x( out, in, ctx );
 		}

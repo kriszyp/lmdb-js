@@ -1,8 +1,9 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
+ * Portions Copyright 2002 Pierangelo Masarati.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,7 +16,8 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
- * by OpenLDAP Software.
+ * by OpenLDAP Software.  Additional significant contributors include
+ * Pierangelo Masarati.
  */
 
 #include "portable.h"
@@ -178,12 +180,13 @@ backsql_operational(
 			&& !got[ BACKSQL_OP_ENTRYUUID ]
 			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID ) == NULL )
 	{
-		backsql_srch_info	bsi;
+		backsql_srch_info	bsi = { 0 };
 
 		rc = backsql_init_search( &bsi, &rs->sr_entry->e_nname,
-				LDAP_SCOPE_BASE, -1, -1, -1, NULL,
-				dbh, op, rs, NULL,
-				( BACKSQL_ISF_GET_ID | BACKSQL_ISF_MUCK ) );
+				LDAP_SCOPE_BASE,
+				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+				(time_t)(-1), NULL, dbh, op, rs, NULL,
+				BACKSQL_ISF_GET_ID );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
 				"could not retrieve entry ID - no such entry\n", 
@@ -193,7 +196,11 @@ backsql_operational(
 
 		*ap = backsql_operational_entryUUID( bi, &bsi.bsi_base_id );
 
-		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+
+		if ( bsi.bsi_attrs != NULL ) {
+			op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
+		}
 
 		if ( *ap == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -494,8 +494,12 @@ limits_parse(
 			struct berval	oc, ad;
 
 			oc.bv_val = pattern + 1;
+			pattern = strchr( pattern, '=' );
+			if ( pattern == NULL ) {
+				return -1;
+			}
 
-			ad.bv_val = strchr(pattern, '/');
+			ad.bv_val = strchr( oc.bv_val, '/' );
 			if ( ad.bv_val != NULL ) {
 				const char	*text = NULL;
 				int		rc;
@@ -503,18 +507,14 @@ limits_parse(
 				oc.bv_len = ad.bv_val - oc.bv_val;
 
 				ad.bv_val++;
-				ad.bv_len = strlen( ad.bv_val );
+				ad.bv_len = pattern - ad.bv_val;
 				rc = slap_bv2ad( &ad, &group_ad, &text );
 				if ( rc != LDAP_SUCCESS ) {
 					goto no_ad;
 				}
 
-				pattern = ad.bv_val + ad.bv_len;
-
 			} else {
-				oc.bv_len = strlen( oc.bv_val );
-
-				pattern = oc.bv_val + oc.bv_len;
+				oc.bv_len = pattern - oc.bv_val;
 			}
 
 			group_oc = oc_bvfind( &oc );

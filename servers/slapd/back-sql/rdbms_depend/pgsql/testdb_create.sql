@@ -37,3 +37,11 @@ create table phones (
 	pers_id int not null
 );
 
+drop table referrals;
+drop sequence referrals_id_seq;
+create table referrals (
+	id serial not null primary key,
+	name varchar(255) not null,
+	url varchar(255) not null
+);
+

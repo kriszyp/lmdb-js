@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1061,27 +1061,11 @@ operations_error:
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
-#if 0	/* DELETE ME */
-	if ( op->o_cancel != SLAP_CANCEL_ACK &&
-		( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
-	{
-		slap_sl_mem_detach( ctx, memctx );
-	} else if ( op->o_sync_slog_size != -1 ) {
-		slap_sl_mem_detach( ctx, memctx );
-		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
-		LDAP_STAILQ_NEXT(op, o_next) = NULL;
-		conn->c_n_ops_executing--;
-		conn->c_n_ops_completed++;
-
-	} else
-#endif
-	{
-		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
-		LDAP_STAILQ_NEXT(op, o_next) = NULL;
-		slap_op_free( op );
-		conn->c_n_ops_executing--;
-		conn->c_n_ops_completed++;
-	}
+	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
+	LDAP_STAILQ_NEXT(op, o_next) = NULL;
+	slap_op_free( op );
+	conn->c_n_ops_executing--;
+	conn->c_n_ops_completed++;
 
 	switch( tag ) {
 	case LBER_ERROR:
@@ -1426,7 +1410,7 @@ connection_input(
 	}
 #endif
 	if(tag == LDAP_REQ_BIND) {
-		/* immediately abandon all exiting operations upon BIND */
+		/* immediately abandon all existing operations upon BIND */
 		connection_abandon( conn );
 	}
 
@@ -1655,8 +1639,6 @@ int connection_write(ber_socket_t s)
 
 	c = connection_get( s );
 
-	slapd_clr_write( s, 0);
-
 	if( c == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"connection_write(%ld): no connection!\n",
@@ -1665,6 +1647,8 @@ int connection_write(ber_socket_t s)
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return -1;
 	}
+
+	slapd_clr_write( s, 0);
 
 	c->c_n_write++;
 

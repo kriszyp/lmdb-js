@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -200,63 +200,70 @@ BerVarray referral_rewrite(
 	struct berval *target,
 	int scope )
 {
-	int i;
-	BerVarray refs;
-	struct berval *iv, *jv;
+	int		i;
+	BerVarray	refs;
+	struct berval	*iv, *jv;
 
-	if( in == NULL ) return NULL;
+	if ( in == NULL ) {
+		return NULL;
+	}
 
-	for( i=0; in[i].bv_val != NULL ; i++ ) {
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ ) {
 		/* just count them */
 	}
 
-	if( i < 1 ) return NULL;
+	if ( i < 1 ) {
+		return NULL;
+	}
 
-	refs = SLAP_MALLOC( (i+1) * sizeof( struct berval ) );
-	if( refs == NULL ) {
+	refs = SLAP_MALLOC( ( i + 1 ) * sizeof( struct berval ) );
+	if ( refs == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"referral_rewrite: SLAP_MALLOC failed\n", 0, 0, 0 );
 		return NULL;
 	}
 
-	for( iv=in,jv=refs; iv->bv_val != NULL ; iv++ ) {
-		LDAPURLDesc *url;
-		int rc = ldap_url_parse_ext( iv->bv_val, &url );
-
-		if( rc == LDAP_URL_ERR_BADSCHEME ) {
+	for ( iv = in, jv = refs; !BER_BVISNULL( iv ); iv++ ) {
+		LDAPURLDesc	*url;
+		char		*dn;
+		int		rc;
+		
+		rc = ldap_url_parse_ext( iv->bv_val, &url );
+		if ( rc == LDAP_URL_ERR_BADSCHEME ) {
 			ber_dupbv( jv++, iv );
 			continue;
 
-		} else if( rc != LDAP_URL_SUCCESS ) {
+		} else if ( rc != LDAP_URL_SUCCESS ) {
 			continue;
 		}
 
-		{
-			char *dn = url->lud_dn;
-			url->lud_dn = referral_dn_muck(
-				( dn && *dn ) ? dn : NULL,
+		dn = url->lud_dn;
+		url->lud_dn = referral_dn_muck( ( dn && *dn ) ? dn : NULL,
 				base, target );
+		ldap_memfree( dn );
 
-			ldap_memfree( dn );
-		}
-
-		if( url->lud_scope == LDAP_SCOPE_DEFAULT ) {
+		if ( url->lud_scope == LDAP_SCOPE_DEFAULT ) {
 			url->lud_scope = scope;
 		}
 
 		jv->bv_val = ldap_url_desc2str( url );
-		jv->bv_len = strlen( jv->bv_val );
+		if ( jv->bv_val != NULL ) {
+			jv->bv_len = strlen( jv->bv_val );
+
+		} else {
+			ber_dupbv( jv, iv );
+		}
+		jv++;
 
 		ldap_free_urldesc( url );
-		jv++;
 	}
 
-	if( jv == refs ) {
+	if ( jv == refs ) {
 		ch_free( refs );
 		refs = NULL;
 
 	} else {
-		jv->bv_val = NULL;
+		BER_BVZERO( jv );
 	}
 
 	return refs;

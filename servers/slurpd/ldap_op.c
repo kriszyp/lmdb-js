@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * Portions Copyright 2003 Mark Benson.
  * All rights reserved.
  *
@@ -103,9 +103,9 @@ do_ldap(
 			lderr = op_ldap_add( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"Error: ldap_add_s failed adding \"%s\": %s\n",
-					*errmsg ? *errmsg : ldap_err2string( lderr ),
-					re->re_dn, 0 );
+					"Error: ldap_add_s failed adding DN \"%s\": %s\n",
+					re->re_dn, *errmsg && (*errmsg)[0] ?
+					*errmsg : ldap_err2string( lderr ), 0 );
 			}
 			break;
 
@@ -113,9 +113,9 @@ do_ldap(
 			lderr = op_ldap_modify( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"Error: ldap_modify_s failed modifying \"%s\": %s\n",
-					*errmsg ? *errmsg : ldap_err2string( lderr ),
-					re->re_dn, 0 );
+					"Error: ldap_modify_s failed modifying DN \"%s\": %s\n",
+					re->re_dn, *errmsg && (*errmsg)[0] ?
+					*errmsg : ldap_err2string( lderr ), 0 );
 			}
 			break;
 
@@ -123,9 +123,9 @@ do_ldap(
 			lderr = op_ldap_delete( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"Error: ldap_delete_s failed deleting \"%s\": %s\n",
-					*errmsg ? *errmsg : ldap_err2string( lderr ),
-					re->re_dn, 0 );
+					"Error: ldap_delete_s failed deleting DN \"%s\": %s\n",
+					re->re_dn, *errmsg && (*errmsg)[0] ?
+					*errmsg : ldap_err2string( lderr ), 0 );
 			}
 			break;
 
@@ -133,15 +133,15 @@ do_ldap(
 			lderr = op_ldap_modrdn( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"Error: ldap_modrdn_s failed modifying %s: %s\n",
-					*errmsg ? *errmsg : ldap_err2string( lderr ),
-					re->re_dn, 0 );
+					"Error: ldap_modrdn_s failed modifying DN \"%s\": %s\n",
+					re->re_dn, *errmsg && (*errmsg)[0] ?
+					*errmsg : ldap_err2string( lderr ), 0 );
 			}
 			break;
 
 		default:
 			Debug( LDAP_DEBUG_ANY,
-				"Error: do_ldap: bad op \"%d\", dn = \"%s\"\n",
+				"Error: do_ldap: bad op \"%d\", DN \"%s\"\n",
 				re->re_changetype, re->re_dn, 0 );
 			return DO_LDAP_ERR_FATAL;
 		}

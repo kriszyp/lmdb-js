@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,31 +105,16 @@ ldbm_back_bind(
 
 	switch ( op->oq_bind.rb_method ) {
 	case LDAP_AUTH_SIMPLE:
-		if ( ! access_allowed( op, e,
-			password, NULL, ACL_AUTH, NULL ) )
-		{
-#if 1
-			rc = LDAP_INVALID_CREDENTIALS;
-#else
-			rc = LDAP_INSUFFICIENT_ACCESS;
-#endif
-			goto return_results;
-		}
-
 		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
 			/* stop front end from sending result */
-#if 1
 			rc = LDAP_INVALID_CREDENTIALS;
-#else
-			rc = LDAP_INAPPROPRIATE_AUTH;
-#endif
 			goto return_results;
 		}
 
-		if ( slap_passwd_check( op->o_conn,
-			a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 )
+		if ( slap_passwd_check( op, e, a, &op->oq_bind.rb_cred,
+					&rs->sr_text ) != 0 )
 		{
-			/* stop front end from sending result */
+			/* failure; stop front end from sending result */
 			rc = LDAP_INVALID_CREDENTIALS;
 			goto return_results;
 		}

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,20 +50,6 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	int argc, char **argv ));
 
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
-
-/*
- * ctxcsn.c
- */
-#define bdb_csn_commit				BDB_SYMBOL(csn_commit)
-#define bdb_get_commit_csn			BDB_SYMBOL(get_commit_csn)
-
-int bdb_csn_commit LDAP_P(( Operation *op, SlapReply *rs, DB_TXN *tid,
-						EntryInfo *ei, EntryInfo **suffix_ei, Entry **ctxcsn_e,
-						int *ctxcsn_added, u_int32_t locker ));
-
-int bdb_get_commit_csn LDAP_P(( Operation *op, SlapReply *rs,
-						struct berval **search_context_csn,
-						u_int32_t locker, DB_LOCK *ctxcsn_lock ));
 
 /*
  * dbcache.c
@@ -125,7 +111,6 @@ int bdb_dn2idl(
 
 #ifdef BDB_HIER
 #define bdb_dn2id_parent			BDB_SYMBOL(dn2id_parent)
-#define bdb_dup_compare				BDB_SYMBOL(dup_compare)
 #define bdb_fix_dn					BDB_SYMBOL(fix_dn)
 
 int bdb_dn2id_parent(
@@ -133,11 +118,6 @@ int bdb_dn2id_parent(
 	DB_TXN *txn,
 	EntryInfo *ei,
 	ID *idp );
-
-int bdb_dup_compare(
-	DB *db,
-	const DBT *usrkey,
-	const DBT *curkey );
 
 int bdb_fix_dn( Entry *e, int checkit );
 #endif
@@ -299,13 +279,6 @@ bdb_idl_union(
 ID bdb_idl_first( ID *ids, ID *cursor );
 ID bdb_idl_next( ID *ids, ID *cursor );
 
-
-#define bdb_bt_compare				BDB_SYMBOL(bt_compare)
-
-int bdb_bt_compare(
-	DB *db,
-	const DBT *a,
-	const DBT *b );
 
 
 /*
@@ -551,34 +524,6 @@ int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
 #define	LOCK_ID(env, locker)		XLOCK_ID(env, locker)
 
 #endif
-
-/*
- * search.c
- */
-
-#define bdb_abandon					BDB_SYMBOL(abandon)
-#define bdb_cancel					BDB_SYMBOL(cancel)
-#define bdb_do_search				BDB_SYMBOL(do_search)
-#define bdb_psearch				BDB_SYMBOL(psearch)
-
-BI_op_abandon bdb_abandon;
-BI_op_cancel bdb_cancel;
-
-int bdb_psearch(
-	Operation       *op,
-	SlapReply	*rs,
-	Operation       *ps_op,
-	Entry           *entry,
-	int             psearch_type
-);
-
-int bdb_do_search(
-	Operation       *op,
-	SlapReply	*rs,
-	Operation       *ps_op,
-	Entry           *entry,
-	int             psearch_type
-);
 
 /*
  * trans.c

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -195,7 +195,7 @@ ConfigTable SystemConfiguration[] = {
   { "ucdata-path",		2,  2,  0,  "path",	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
   { "sizelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_SIZE,	&config_sizelimit,		NULL, NULL, NULL },
   { "timelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_TIME,	&config_timelimit,		NULL, NULL, NULL },
-  { "limits",			2,  2,  0,  "limits",	ARG_DB|ARG_MAGIC|CFG_LIMITS, &config_generic,		NULL, NULL, NULL },
+  { "limits",			2,  0,  0,  "limits",	ARG_DB|ARG_MAGIC|CFG_LIMITS, &config_generic,		NULL, NULL, NULL },
   { "overlay",			2,  2,  0,  "overlay",	ARG_MAGIC,		&config_overlay,		NULL, NULL, NULL },
   { "suffix",			2,  2,  0,  "suffix",	ARG_DB|ARG_MAGIC,	&config_suffix,			NULL, NULL, NULL },
   { "maxDerefDepth",		2,  2,  0,  "depth",	ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH, &config_generic,	NULL, NULL, NULL },
@@ -1637,9 +1637,7 @@ add_syncrepl(
 )
 {
 	syncinfo_t *si;
-	syncinfo_t *si_entry;
 	int	rc = 0;
-	int duplicated_replica_id = 0;
 
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
@@ -1649,9 +1647,6 @@ add_syncrepl(
 	}
 
 	si->si_tls = SYNCINFO_TLS_OFF;
-	if ( be->be_rootndn.bv_val ) {
-		ber_dupbv( &si->si_updatedn, &be->be_rootndn );
-	}
 	si->si_bindmethod = LDAP_AUTH_SIMPLE;
 	si->si_schemachecking = 0;
 	ber_str2bv( "(objectclass=*)", STRLENOF("(objectclass=*)"), 1,
@@ -1670,9 +1665,6 @@ add_syncrepl(
 	si->si_retryinterval = NULL;
 	si->si_retrynum_init = NULL;
 	si->si_retrynum = NULL;
-	si->si_syncCookie.ctxcsn = NULL;
-	si->si_syncCookie.octet_str = NULL;
-	si->si_syncCookie.sid = -1;
 	si->si_manageDSAit = 0;
 	si->si_tlimit = 0;
 	si->si_slimit = 0;
@@ -1682,28 +1674,20 @@ add_syncrepl(
 
 	rc = parse_syncrepl_line( cargv, cargc, si );
 
-	LDAP_STAILQ_FOREACH( si_entry, &be->be_syncinfo, si_next ) {
-		if ( si->si_rid == si_entry->si_rid ) {
-			Debug( LDAP_DEBUG_ANY,
-				"add_syncrepl: duplicated replica id\n",0, 0, 0 );
-			duplicated_replica_id = 1;
-			break;
-		}
-	}
-
-	if ( rc < 0 || duplicated_replica_id ) {
+	if ( rc < 0 ) {
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
 		syncinfo_free( si );	
 		return 1;
 	} else {
 		Debug( LDAP_DEBUG_CONFIG,
 			"Config: ** successfully added syncrepl \"%s\"\n",
-			si->si_provideruri == NULL ? "(null)" : si->si_provideruri, 0, 0 );
+			BER_BVISNULL( &si->si_provideruri ) ?
+			"(null)" : si->si_provideruri.bv_val, 0, 0 );
 		if ( !si->si_schemachecking ) {
 			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
 		si->si_be = be;
-		LDAP_STAILQ_INSERT_TAIL( &be->be_syncinfo, si, si_next );
+		be->be_syncinfo = si;
 		return 0;
 	}
 }
@@ -1721,7 +1705,6 @@ add_syncrepl(
 #define SLIMITSTR		"sizelimit"
 #define TLIMITSTR		"timelimit"
 #define SCHEMASTR		"schemachecking"
-#define UPDATEDNSTR		"updatedn"
 #define BINDMETHSTR		"bindmethod"
 #define SIMPLESTR			"simple"
 #define SASLSTR				"sasl"
@@ -1748,6 +1731,7 @@ add_syncrepl(
 #define LMREQSTR		"req"
 #define SRVTABSTR		"srvtab"
 #define SUFFIXSTR		"suffix"
+#define UPDATEDNSTR		"updatedn"
 
 /* mandatory */
 #define GOT_ID			0x0001
@@ -1787,13 +1771,7 @@ parse_syncrepl_line(
 					STRLENOF( PROVIDERSTR "=" ) ) )
 		{
 			val = cargv[ i ] + STRLENOF( PROVIDERSTR "=" );
-			si->si_provideruri = ch_strdup( val );
-			si->si_provideruri_bv = (BerVarray)
-				ch_calloc( 2, sizeof( struct berval ));
-			ber_str2bv( si->si_provideruri, strlen( si->si_provideruri ),
-				1, &si->si_provideruri_bv[0] );
-			si->si_provideruri_bv[1].bv_len = 0;
-			si->si_provideruri_bv[1].bv_val = NULL;
+			ber_str2bv( val, 0, 1, &si->si_provideruri );
 			gots |= GOT_PROVIDER;
 		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR "=",
 					STRLENOF(STARTTLSSTR "=") ) )
@@ -1804,23 +1782,6 @@ parse_syncrepl_line(
 			} else {
 				si->si_tls = SYNCINFO_TLS_ON;
 			}
-		} else if ( !strncasecmp( cargv[ i ], UPDATEDNSTR "=",
-					STRLENOF( UPDATEDNSTR "=" ) ) )
-		{
-			struct berval	updatedn = BER_BVNULL;
-			int		rc;
-
-			val = cargv[ i ] + STRLENOF( UPDATEDNSTR "=" );
-			ber_str2bv( val, 0, 0, &updatedn );
-			ch_free( si->si_updatedn.bv_val );
-			rc = dnNormalize( 0, NULL, NULL, &updatedn, &si->si_updatedn, NULL );
-			if ( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"update DN \"%s\" is invalid: %d (%s)\n",
-					updatedn, rc, ldap_err2string( rc ) );
-				return -1;
-			}
-			
 		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR "=",
 				STRLENOF( BINDMETHSTR "=" ) ) )
 		{

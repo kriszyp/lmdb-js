@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -96,8 +96,10 @@ typedef struct dncookie {
 #endif /* !ENABLE_REWRITE */
 } dncookie;
 
-int rwm_dn_massage( dncookie *dc, struct berval *in,
-	struct berval *dn, struct berval *ndn );
+int rwm_dn_massage( dncookie *dc, struct berval *in, struct berval *dn );
+int rwm_dn_massage_pretty( dncookie *dc, struct berval *in, struct berval *pdn );
+int rwm_dn_massage_normalize( dncookie *dc, struct berval *in, struct berval *ndn );
+int rwm_dn_massage_pretty_normalize( dncookie *dc, struct berval *in, struct berval *pdn, struct berval *ndn );
 
 /* attributeType/objectClass mapping */
 int rwm_mapping_cmp (const void *, const void *);

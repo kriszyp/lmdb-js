@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -181,7 +181,6 @@ do_modrdn(
 	rs->sr_err = frontendDB->be_modrdn( op, rs );
 
 cleanup:
-
 	slap_graduate_commit_csn( op );
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
@@ -190,8 +189,10 @@ cleanup:
 	op->o_tmpfree( op->orr_newrdn.bv_val, op->o_tmpmemctx );	
 	op->o_tmpfree( op->orr_nnewrdn.bv_val, op->o_tmpmemctx );	
 
-	if ( pnewSuperior.bv_val ) op->o_tmpfree( pnewSuperior.bv_val, op->o_tmpmemctx );
-	if ( nnewSuperior.bv_val ) op->o_tmpfree( nnewSuperior.bv_val, op->o_tmpmemctx );
+	if ( !BER_BVISNULL( &pnewSuperior ) ) 
+		op->o_tmpfree( pnewSuperior.bv_val, op->o_tmpmemctx );
+	if ( !BER_BVISNULL( &nnewSuperior ) )
+		op->o_tmpfree( nnewSuperior.bv_val, op->o_tmpmemctx );
 
 	return rs->sr_err;
 }

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,10 @@ static struct berval supportedFeatures[] = {
 	BER_BVC(LDAP_FEATURE_ABSOLUTE_FILTERS),		/* (&) and (|) search filters */
 	BER_BVC(LDAP_FEATURE_LANGUAGE_TAG_OPTIONS), /* Language Tag Options */
 	BER_BVC(LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS),/* Language Range Options */
-
-#ifdef LDAP_DEVEL
+#ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
 	BER_BVC(LDAP_FEATURE_SUBORDINATE_SCOPE),	/* "children" search scope */
+#endif
+#ifdef LDAP_FEATURE_MODIFY_INCREMENT
 	BER_BVC(LDAP_FEATURE_MODIFY_INCREMENT),		/* Modify/increment */
 #endif
 	{0,NULL}

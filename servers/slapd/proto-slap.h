@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -246,7 +246,6 @@ LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be,
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_isroot_dn LDAP_P(( Backend *be, struct berval *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Operation *op ));
-LDAP_SLAPD_F (int) be_sync_update LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) be_slurp_update LDAP_P(( Operation *op ));
 #define be_isupdate( op ) be_slurp_update( (op) )
 LDAP_SLAPD_F (int) be_shadow_update LDAP_P(( Operation *op ));
@@ -295,6 +294,8 @@ LDAP_SLAPD_F (int) backend_operational LDAP_P((
 	Operation *op,
 	SlapReply *rs 
 ));
+
+LDAP_SLAPD_V(BackendInfo) slap_binfo[]; 
 
 /*
  * backglue.c
@@ -752,7 +753,7 @@ LDAP_SLAPD_V (int)	krbv4_ldap_auth();
  * ldapsync.c
  */
 LDAP_SLAPD_F (void) slap_compose_sync_cookie LDAP_P((
-				Operation *, struct berval *, struct berval *, int, int ));
+				Operation *, struct berval *, struct berval *, int ));
 LDAP_SLAPD_F (void) slap_sync_cookie_free LDAP_P((
 				struct sync_cookie *, int free_cookie ));
 LDAP_SLAPD_F (int) slap_parse_sync_cookie LDAP_P((
@@ -1000,10 +1001,11 @@ LDAP_SLAPD_F (int) overlay_init( void );
 LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) passwd_extop;
 
 LDAP_SLAPD_F (int) slap_passwd_check(
-	Connection			*conn,
-	Attribute			*attr,
+	Operation		*op,
+	Entry			*e,
+	Attribute		*a,
 	struct berval		*cred,
-	const char			**text );
+	const char		**text );
 
 LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
@@ -1015,18 +1017,18 @@ LDAP_SLAPD_F (void) slap_passwd_hash(
 LDAP_SLAPD_F (void) slap_passwd_hash_type(
 	struct berval		*cred,
 	struct berval		*hash,
-	char				*htype,
+	char			*htype,
 	const char		**text );
 
 LDAP_SLAPD_F (struct berval *) slap_passwd_return(
 	struct berval		*cred );
 
 LDAP_SLAPD_F (int) slap_passwd_parse(
-	struct berval *reqdata,
-	struct berval *id,
-	struct berval *oldpass,
-	struct berval *newpass,
-	const char **text );
+	struct berval		*reqdata,
+	struct berval		*id,
+	struct berval		*oldpass,
+	struct berval		*newpass,
+	const char		**text );
 
 /*
  * phonetic.c
@@ -1293,8 +1295,6 @@ LDAP_SLAPD_F (Entry*) slap_create_syncrepl_entry LDAP_P((
 					struct berval *, struct berval * ));
 LDAP_SLAPD_F (struct berval *) slap_uuidstr_from_normalized LDAP_P((
 					struct berval *, struct berval *, void * ));
-LDAP_SLAPD_F (int) syncrepl_isupdate LDAP_P(( Operation * ));
-LDAP_SLAPD_F (int) syncrepl_isupdate_dn LDAP_P(( Backend *, struct berval * ));
 LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( syncinfo_t * ));
 
 /* syntax.c */

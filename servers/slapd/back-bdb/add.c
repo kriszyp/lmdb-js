@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -367,19 +367,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef BDB_PSEARCH
-	if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
-			&ctxcsn_e, &ctxcsn_added, locker );
-		switch ( rc ) {
-		case BDB_CSN_ABORT :
-			goto return_results;
-		case BDB_CSN_RETRY :
-			goto retry;
-		}
-	}
-#endif
-
 	/* post-read */
 	if( op->o_postread ) {
 		if( postread_ctrl == NULL ) {
@@ -420,31 +407,6 @@ retry:	/* transaction retry */
 		if ( suffix_ei == NULL ) {
 			suffix_ei = BEI(e);
 		}
-
-#ifdef BDB_PSEARCH
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-			if ( ctxcsn_added ) {
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
-					(struct berval *)&slap_ldapsync_cn_bv, locker );
-			}
-		}
-
-		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
-			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
-			assert( BEI(e) );
-			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_ADD );
-				if ( rc ) {
-					Debug( LDAP_DEBUG_TRACE,
-						LDAP_XSTRING(bdb_add)
-						": persistent search failed "
-						"(%d,%d)\n",
-						rc, rs->sr_err, 0 );
-				}
-			}
-			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
-		}
-#endif
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";

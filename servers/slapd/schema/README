@@ -4,16 +4,16 @@ with slapd(8).
 File                    Description
 ----                    -----------
 collective.schema       Collective attributes (experimental)
-corba.schema            Corba Object (RFC 2714)
+corba.schema            Corba Object
 core.schema             OpenLDAP "core"
 cosine.schema           COSINE Pilot
-duaconf.schema          Client Configuration (experimental)
+dyngroup.schema			Dynamic Group (experimental)
 inetorgperson.schema    InetOrgPerson
-java.schema             Java Object (RFC 2713)
+java.schema             Java Object
 misc.schema             Miscellaneous Schema (experimental)
 nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project (FYI)
-ppolicy.schema          Password Policy Schema (experimental)
+ppolicy.schema          Password Policy Schema (work in progress)
 
 Additional "generally useful" schema definitions can be submitted
 using the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
@@ -24,7 +24,7 @@ technical specification (e.g., an RFC) for the schema.
 
 This notice applies to all files in this directory.
 
-Copyright 1998-2004 The OpenLDAP Foundation, Redwood City, California, USA
+Copyright 1998-2005 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -112,7 +112,7 @@ meta_back_group(
 	} /* else: do the search */
 
 	candidate = meta_back_select_unique_candidate( li, gr_ndn );
-	if ( candidate == -1 ) {
+	if ( candidate == META_TARGET_NONE ) {
 		goto cleanup;
 	}
 

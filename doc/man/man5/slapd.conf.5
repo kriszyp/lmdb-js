@@ -1,5 +1,5 @@
 .TH SLAPD.CONF 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 1998-2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2005 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -1373,7 +1373,7 @@ when initially populating a database).  If the rootdn is within
 a namingContext (suffix) of the database, a simple bind password
 may also be provided using the
 .B rootpw
-directive.
+directive. Note that the rootdn is always needed when using syncrepl.
 .TP
 .B rootpw <password>
 Specify a password (or hash of the password) for the rootdn.  The
@@ -1410,7 +1410,7 @@ with the inner suffix must come first in the configuration file.
 .B [sizelimit=<limit>]
 .B [timelimit=<limit>]
 .B [schemachecking=on|off]
-.B [updatedn=<dn>]
+.B [starttls=yes|critical]
 .B [bindmethod=simple|sasl]
 .B [binddn=<dn>]
 .B [saslmech=<mech>]
@@ -1486,15 +1486,12 @@ consumer site by turning on the
 .B schemachecking
 parameter. The default is off.
 The
-.B updatedn
-parameter specifies the DN in the consumer site
-which is allowed to make changes to the replica.
-The DN should have read/write access to the replica database.
-Generally, this DN
-.I should not
-be the same as the
-.B rootdn
-of the master database.
+.B starttls
+parameter specifies use of the StartTLS extended operation
+to establish a TLS session before Binding to the provider. If the
+.B critical
+argument is supplied, the session will be aborted if the StartTLS request
+fails. Otherwise the syncrepl session continues without TLS.
 A
 .B bindmethod
 of 

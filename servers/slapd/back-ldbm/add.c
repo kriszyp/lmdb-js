@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@ ldbm_back_add(
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+	rs->sr_text = NULL;
 
 #ifdef LDBM_SUBENTRIES
 	subentry = is_entry_subentry( op->oq_add.rs_e );

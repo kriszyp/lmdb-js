@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -58,7 +58,7 @@ ldap_back_add(
 	}
 
 	/* Count number of attributes in entry */
-	for (i = 1, a = op->oq_add.rs_e->e_attrs; a; i++, a = a->a_next)
+	for ( i = 1, a = op->oq_add.rs_e->e_attrs; a; i++, a = a->a_next )
 		/* just count attrs */ ;
 	
 	/* Create array of LDAPMods for ldap_add() */
@@ -89,14 +89,12 @@ ldap_back_add(
 	attrs[ i ] = NULL;
 
 	ctrls = op->o_ctrls;
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		rc = -1;
 		goto cleanup;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
 	rs->sr_err = ldap_add_ext( lc->lc_ld, op->o_req_dn.bv_val, attrs,
@@ -110,9 +108,7 @@ retry:
 	}
 
 cleanup:
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	if ( attrs ) {
 		for ( --i; i >= 0; --i ) {

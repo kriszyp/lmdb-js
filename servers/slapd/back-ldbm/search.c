@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,16 +85,25 @@ ldbm_back_search(
 		struct berval matched_dn = BER_BVNULL;
 
 		if ( matched != NULL ) {
-			BerVarray erefs;
-			ber_dupbv( &matched_dn, &matched->e_name );
+			BerVarray erefs = NULL;
+			
+			if ( ! access_allowed( op, matched,
+						slap_schema.si_ad_entry,
+						NULL, ACL_DISCLOSE, NULL ) )
+			{
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-			erefs = is_entry_referral( matched )
-				? get_entry_referrals( op, matched )
-				: NULL;
+			} else {
+				ber_dupbv( &matched_dn, &matched->e_name );
+
+				erefs = is_entry_referral( matched )
+					? get_entry_referrals( op, matched )
+					: NULL;
+			}
 
 			cache_return_entry_r( &li->li_cache, matched );
 
-			if( erefs ) {
+			if ( erefs ) {
 				rs->sr_ref = referral_rewrite( erefs, &matched_dn,
 					&op->o_req_dn, op->ors_scope );
 
@@ -115,17 +124,32 @@ ldbm_back_search(
 		ber_memfree( matched_dn.bv_val );
 		rs->sr_ref = NULL;
 		rs->sr_matched = NULL;
-		return LDAP_REFERRAL;
+		return rs->sr_err;
 	}
 
-	if (!manageDSAit && is_entry_referral( e ) ) {
+	if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
+				NULL, ACL_DISCLOSE, NULL ) )
+	{
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+
+		cache_return_entry_r( &li->li_cache, e );
+		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
+
+		send_ldap_result( op, rs );
+		return rs->sr_err;
+	}
+
+	if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
-		struct berval matched_dn;
-		BerVarray erefs;
+		struct berval	matched_dn = BER_BVNULL;
+		BerVarray	erefs = NULL;
+
+		rs->sr_ref = NULL;
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "bad referral object";
 
 		ber_dupbv( &matched_dn, &e->e_name );
 		erefs = get_entry_referrals( op, e );
-		rs->sr_ref = NULL;
 
 		cache_return_entry_r( &li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
@@ -134,28 +158,25 @@ ldbm_back_search(
 			"ldbm_search: entry is referral\n",
 			0, 0, 0 );
 
-		if( erefs ) {
+		if ( erefs ) {
 			rs->sr_ref = referral_rewrite( erefs, &matched_dn,
 				&op->o_req_dn, op->ors_scope );
 
 			ber_bvarray_free( erefs );
+			
+			if ( rs->sr_ref ) {
+				rs->sr_err = LDAP_REFERRAL;
+				rs->sr_text = NULL;
+			}
 		}
 
 		rs->sr_matched = matched_dn.bv_val;
-		if( rs->sr_ref ) {
-			rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-			ber_bvarray_free( rs->sr_ref );
-
-		} else {
-			send_ldap_error( op, rs, LDAP_OTHER,
-			"bad referral object" );
-		}
-
+		send_ldap_result( op, rs );
+		ber_bvarray_free( rs->sr_ref );
 		ber_memfree( matched_dn.bv_val );
 		rs->sr_ref = NULL;
 		rs->sr_matched = NULL;
-		return LDAP_OTHER;
+		return rs->sr_err;
 	}
 
 	if ( is_entry_alias( e ) ) {

@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2004 The OpenLDAP Foundation.
+## Copyright 1998-2005 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -102,6 +102,17 @@ fi
 echo "Testing subtree search..."
 echo "# Testing subtree search..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing subtree search with manageDSAit..."
+echo "# Testing subtree search with manageDSAit..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M '*' ref >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -453,6 +464,25 @@ case $RC in
 	exit $RC
 	;;
 *)	echo "failed ($RC)"
+	;;
+esac
+
+echo -n "Testing compare on hasSubordinates (should be TRUE)... "
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 "$BASEDN" \
+	 "hasSubordinates:TRUE" >> $TESTOUT 2>&1
+
+RC=$?
+case $RC in
+6)
+	echo "TRUE"
+	;;
+5)	echo "FALSE!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+*)	echo "failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
 	;;
 esac
 

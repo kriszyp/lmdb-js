@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -300,7 +300,7 @@ slap_sl_malloc(
 				}
 				so_right = LDAP_LIST_FIRST(&sh->sh_sopool);
 				LDAP_LIST_REMOVE(so_right, so_link);
-				so_right->so_ptr = so_left->so_ptr + (1 << j);
+				so_right->so_ptr = (void *)((char *)so_left->so_ptr + (1 << j));
 				if (j == order + 1) {
 					ptr = so_left->so_ptr;
 					diff = (unsigned long)((char*)ptr -
@@ -326,6 +326,9 @@ slap_sl_malloc(
 			return (void*)ch_malloc(size);
 		}
 	}
+
+	/* FIXME: missing return; guessing... */
+	return NULL;
 }
 
 void *
@@ -495,7 +498,7 @@ slap_sl_free(void *ptr, void *ctx)
 					while (so) {
 						if ((char*)so->so_ptr == (char*)tmpp) {
 							LDAP_LIST_REMOVE(so, so_link);
-						} else if ((char*)tmpp == so->so_ptr + order_size) {
+						} else if ((char*)tmpp == (char *)so->so_ptr + order_size) {
 							LDAP_LIST_REMOVE(so, so_link);
 							tmpp = so->so_ptr;
 							break;
@@ -548,6 +551,8 @@ slap_sl_context( void *ptr )
 {
 	struct slab_heap *sh = NULL;
 	void *ctx;
+
+	if ( slapMode & SLAP_TOOL_MODE ) return NULL;
 
 #ifdef NO_THREADS
 	sh = slheap;

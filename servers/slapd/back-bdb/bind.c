@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -130,25 +130,20 @@ dn2entry_retry:
 
 	switch ( op->oq_bind.rb_method ) {
 	case LDAP_AUTH_SIMPLE:
-		rs->sr_err = access_allowed( op, e,
-			password, NULL, ACL_AUTH, NULL );
-		if ( ! rs->sr_err ) {
+		a = attr_find( e->e_attrs, password );
+		if ( a == NULL ) {
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			goto done;
 		}
 
-		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			goto done;
-		}
-
-		if ( slap_passwd_check( op->o_conn,
-			a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 )
+		if ( slap_passwd_check( op, e, a, &op->oq_bind.rb_cred,
+					&rs->sr_text ) != 0 )
 		{
+			/* failure; stop front end from sending result */
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			goto done;
 		}
-
+			
 		rs->sr_err = 0;
 		break;
 

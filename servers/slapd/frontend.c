@@ -1,7 +1,7 @@
 /* frontend.c - routines for dealing with frontend */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -69,8 +69,6 @@ frontend_init( void )
 	/* FIXME: do we need this? */
 	frontendDB->be_pcl_mutexp = &frontendDB->be_pcl_mutex;
 	ldap_pvt_thread_mutex_init( frontendDB->be_pcl_mutexp );
-
-	LDAP_STAILQ_INIT( &frontendDB->be_syncinfo );
 #endif
 
 	/* suffix */

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -34,15 +34,21 @@
 int
 meta_back_compare( Operation *op, SlapReply *rs )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn *lc;
-	struct metasingleconn *lsc;
-	char *match = NULL, *err = NULL;
-	struct berval mmatch = BER_BVNULL;
-	int candidates = 0, last = 0, i, count = 0, rc;
-       	int cres = LDAP_SUCCESS, rres = LDAP_SUCCESS;
-	int *msgid;
-	dncookie dc;
+	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn		*lc;
+	struct metasingleconn	*lsc;
+	char			*match = NULL,
+				*err = NULL;
+	struct berval		mmatch = BER_BVNULL;
+	int			candidates = 0,
+				last = 0,
+				i,
+				count = 0,
+				rc,
+       				cres = LDAP_SUCCESS,
+				rres = LDAP_SUCCESS,
+				*msgid;
+	dncookie		dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_ALLOW_MULTIPLE,
 			&op->o_req_ndn, NULL );
@@ -52,7 +58,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	}
 	
 	if ( !meta_back_dobind( lc, op ) ) {
-		rs->sr_err = LDAP_OTHER;
+		rs->sr_err = LDAP_UNAVAILABLE;
  		send_ldap_result( op, rs );
 		return -1;
 	}
@@ -69,12 +75,12 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	dc.rs = rs;
 	dc.ctx = "compareDN";
 
-	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
+	for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); ++i, ++lsc ) {
 		struct berval mdn = BER_BVNULL;
-		struct berval mapped_attr = op->oq_compare.rs_ava->aa_desc->ad_cname;
-		struct berval mapped_value = op->oq_compare.rs_ava->aa_value;
+		struct berval mapped_attr = op->orc_ava->aa_desc->ad_cname;
+		struct berval mapped_value = op->orc_ava->aa_value;
 
-		if ( lsc->candidate != META_CANDIDATE ) {
+		if ( lsc->msc_candidate != META_CANDIDATE ) {
 			msgid[ i ] = -1;
 			continue;
 		}
@@ -82,7 +88,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the compare dn, if needed
 		 */
-		dc.rwmap = &li->targets[ i ]->rwmap;
+		dc.rwmap = &li->targets[ i ]->mt_rwmap;
 
 		switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
@@ -96,9 +102,9 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * if attr is objectClass, try to remap the value
 		 */
-		if ( op->oq_compare.rs_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-			ldap_back_map( &li->targets[ i ]->rwmap.rwm_oc,
-					&op->oq_compare.rs_ava->aa_value,
+		if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass ) {
+			ldap_back_map( &li->targets[ i ]->mt_rwmap.rwm_oc,
+					&op->orc_ava->aa_value,
 					&mapped_value, BACKLDAP_MAP );
 
 			if ( mapped_value.bv_val == NULL || mapped_value.bv_val[0] == '\0' ) {
@@ -108,18 +114,18 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * else try to remap the attribute
 		 */
 		} else {
-			ldap_back_map( &li->targets[ i ]->rwmap.rwm_at,
-				&op->oq_compare.rs_ava->aa_desc->ad_cname,
+			ldap_back_map( &li->targets[ i ]->mt_rwmap.rwm_at,
+				&op->orc_ava->aa_desc->ad_cname,
 				&mapped_attr, BACKLDAP_MAP );
 			if ( mapped_attr.bv_val == NULL || mapped_attr.bv_val[0] == '\0' ) {
 				continue;
 			}
 
-			if ( op->oq_compare.rs_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
+			if ( op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
 			{
 				dc.ctx = "compareAttrDN";
 
-				switch ( ldap_back_dn_massage( &dc, &op->oq_compare.rs_ava->aa_value, &mapped_value ) )
+				switch ( ldap_back_dn_massage( &dc, &op->orc_ava->aa_value, &mapped_value ) )
 				{
 				case LDAP_UNWILLING_TO_PERFORM:
 					rc = 1;
@@ -136,23 +142,27 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * that returns determines the result; a constraint on unicity
 		 * of the result ought to be enforced
 		 */
-		msgid[ i ] = ldap_compare( lc->conns[ i ].ld, mdn.bv_val,
-				mapped_attr.bv_val, mapped_value.bv_val );
+		 rc = ldap_compare_ext( lc->mc_conns[ i ].msc_ld, mdn.bv_val,
+				mapped_attr.bv_val, &mapped_value,
+				NULL, NULL, &msgid[ i ] );
 
 		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 			free( mdn.bv_val );
-			mdn.bv_val = NULL;
+			BER_BVZERO( &mdn );
 		}
 
-		if ( mapped_attr.bv_val != op->oq_compare.rs_ava->aa_desc->ad_cname.bv_val ) {
+		if ( mapped_attr.bv_val != op->orc_ava->aa_desc->ad_cname.bv_val ) {
 			free( mapped_attr.bv_val );
+			BER_BVZERO( &mapped_attr );
 		}
 
-		if ( mapped_value.bv_val != op->oq_compare.rs_ava->aa_value.bv_val ) {
+		if ( mapped_value.bv_val != op->orc_ava->aa_value.bv_val ) {
 			free( mapped_value.bv_val );
+			BER_BVZERO( &mapped_value );
 		}
 
-		if ( msgid[ i ] == -1 ) {
+		if ( rc != LDAP_SUCCESS ) {
+			/* FIXME: what should we do with the error? */
 			continue;
 		}
 
@@ -167,7 +177,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * FIXME: should we check for abandon?
 		 */
-		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); lsc++, i++ ) {
+		for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); lsc++, i++ ) {
 			int		lrc;
 			LDAPMessage	*res = NULL;
 
@@ -175,7 +185,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 				continue;
 			}
 
-			lrc = ldap_result( lsc->ld, msgid[ i ],
+			lrc = ldap_result( lsc->msc_ld, msgid[ i ],
 					0, NULL, &res );
 
 			if ( lrc == 0 ) {
@@ -193,8 +203,16 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					rc = -1;
 					goto finish;
 				}
+
+				rc = ldap_parse_result( lsc->msc_ld, res,
+						&rs->sr_err,
+						NULL, NULL, NULL, NULL, 1 );
+				if ( rc != LDAP_SUCCESS ) {
+					rres = rc;
+					rc = -1;
+					goto finish;
+				}
 				
-				rs->sr_err = ldap_result2error( lsc->ld, res, 1 );
 				switch ( rs->sr_err ) {
 				case LDAP_COMPARE_TRUE:
 				case LDAP_COMPARE_FALSE:
@@ -217,13 +235,13 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					if ( err != NULL ) {
 						free( err );
 					}
-					ldap_get_option( lsc->ld,
+					ldap_get_option( lsc->msc_ld,
 						LDAP_OPT_ERROR_STRING, &err );
 
 					if ( match != NULL ) {
 						free( match );
 					}
-					ldap_get_option( lsc->ld,
+					ldap_get_option( lsc->msc_ld,
 						LDAP_OPT_MATCHED_DN, &match );
 					
 					last = i;

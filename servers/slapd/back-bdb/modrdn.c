@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,15 +100,6 @@ retry:	/* transaction retry */
 		}
 		Debug( LDAP_DEBUG_TRACE, "==>" LDAP_XSTRING(bdb_modrdn)
 				": retrying...\n", 0, 0, 0 );
-#ifdef BDB_PSEARCH
-		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-		while ( pm_list != NULL ) {
-			LDAP_LIST_REMOVE ( pm_list, ps_link );
-			pm_prev = pm_list;
-			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
-			ch_free( pm_prev );
-		}
-#endif
 
 		rs->sr_err = TXN_ABORT( ltid );
 		ltid = NULL;
@@ -172,7 +163,6 @@ retry:	/* transaction retry */
 	if (( rs->sr_err == DB_NOTFOUND ) ||
 		( !manageDSAit && e && is_entry_glue( e )))
 	{
-		BerVarray deref = NULL;
 		if( e != NULL ) {
 			rs->sr_matched = ch_strdup( e->e_dn );
 			rs->sr_ref = is_entry_referral( e )
@@ -182,27 +172,14 @@ retry:	/* transaction retry */
 			e = NULL;
 
 		} else {
-			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				syncinfo_t *si;
-				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-					struct berval tmpbv;
-					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
-					ber_bvarray_add( &deref, &tmpbv );
-                }
-			} else {
-				deref = default_referral;
-			}
-			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
-					LDAP_SCOPE_DEFAULT );
+			rs->sr_ref = referral_rewrite( default_referral, NULL,
+					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
 		send_ldap_result( op, rs );
 
 		ber_bvarray_free( rs->sr_ref );
-		if ( deref != default_referral ) {
-			ber_bvarray_free( deref );
-		}
 		free( (char *)rs->sr_matched );
 		rs->sr_ref = NULL;
 		rs->sr_matched = NULL;
@@ -720,23 +697,6 @@ retry:	/* transaction retry */
 
 	dummy.e_attrs = e->e_attrs;
 
-#ifdef BDB_PSEARCH
-	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop && !op->o_no_psearch ) {
-		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
-		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-			rc = bdb_psearch( op, rs, ps_list, &dummy, LDAP_PSEARCH_BY_PREMODIFY );
-			if ( rc ) {
-				Debug( LDAP_DEBUG_TRACE,
-					LDAP_XSTRING(bdb_modrdn)
-					": persistent search failed (%d,%d)\n",
-					rc, rs->sr_err, 0 );
-			}
-		}
-		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
-	}
-#endif
-
-
 	/* modify entry */
 	rs->sr_err = bdb_modify_internal( op, lt2, &mod[0], &dummy,
 		&rs->sr_text, textbuf, textlen );
@@ -805,19 +765,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef BDB_PSEARCH
-	if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
-			&ctxcsn_e, &ctxcsn_added, locker );
-		switch ( rc ) {
-		case BDB_CSN_ABORT :
-			goto return_results;
-		case BDB_CSN_RETRY :
-			goto retry;
-		}
-	}
-#endif
-
 	if( op->o_postread ) {
 		if( postread_ctrl == NULL ) {
 			postread_ctrl = &ctrls[num_ctrls++];
@@ -852,47 +799,6 @@ retry:	/* transaction retry */
 		dummy.e_attrs = NULL;
 		new_dn.bv_val = NULL;
 		new_ndn.bv_val = NULL;
-
-#ifdef BDB_PSEARCH
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-			if ( ctxcsn_added ) {
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
-					(struct berval *)&slap_ldapsync_cn_bv, locker );
-			}
-		}
-
-		if ( rs->sr_err == LDAP_SUCCESS ) {
-			/* Loop through in-scope entries for each psearch spec */
-			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
-			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
-				if ( rc ) {
-					Debug( LDAP_DEBUG_TRACE,
-						LDAP_XSTRING(bdb_modrdn)
-						": persistent search failed "
-						"(%d,%d)\n",
-						rc, rs->sr_err, 0 );
-			}
-			}
-			pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-			while ( pm_list != NULL ) {
-				rc = bdb_psearch(op, rs, pm_list->ps_op,
-							e, LDAP_PSEARCH_BY_SCOPEOUT);
-				if ( rc ) {
-					Debug( LDAP_DEBUG_TRACE,
-						LDAP_XSTRING(bdb_modrdn)
-						": persistent search failed "
-						"(%d,%d)\n",
-						rc, rs->sr_err, 0 );
-				}
-				pm_prev = pm_list;
-				LDAP_LIST_REMOVE ( pm_list, ps_link );
-				pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
-				ch_free( pm_prev );
-			}
-			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
-		}
-#endif
 
 		if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 			rs->sr_text = "txn_commit failed";
@@ -980,15 +886,6 @@ done:
 	}
 
 	if( ltid != NULL ) {
-#ifdef BDB_PSEARCH
-		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-		while ( pm_list != NULL ) {
-			LDAP_LIST_REMOVE ( pm_list, ps_link );
-			pm_prev = pm_list;
-			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
-			ch_free( pm_prev );
-		}
-#endif
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}

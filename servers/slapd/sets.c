@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,13 +116,15 @@ slap_set_join(
 
 	set = NULL;
 	switch ( op ) {
-	case '|':
+	case '|':	/* union */
 		if ( lset == NULL || BER_BVISNULL( lset ) ) {
 			if ( rset == NULL ) {
 				if ( lset == NULL ) {
-					return cp->op->o_tmpcalloc( 1,
+					set = cp->op->o_tmpcalloc( 1,
 							sizeof(struct berval),
 							cp->op->o_tmpmemctx );
+					BER_BVZERO( set );
+					return set;
 				}
 				return set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
 			}
@@ -151,10 +153,13 @@ slap_set_join(
 				}
 			}
 
+			last = i;
+
 			for ( i = 0; !BER_BVISNULL( &rset[ i ] ); i++ ) {
 				int	exists = 0;
+
 				for ( j = 0; !BER_BVISNULL( &set[ j ] ); j++ ) {
-					if ( dn_match( &rset[ i ], &set[ j ] ) )
+					if ( bvmatch( &rset[ i ], &set[ j ] ) )
 					{
 						if ( !( op_flags & SLAP_SET_RREFVAL ) ) {
 							cp->op->o_tmpfree( rset[ i ].bv_val, cp->op->o_tmpmemctx );
@@ -167,22 +172,25 @@ slap_set_join(
 
 				if ( !exists ) {
 					if ( op_flags & SLAP_SET_RREFVAL ) {
-						ber_dupbv_x( &set[ j ], &rset[ i ], cp->op->o_tmpmemctx );
+						ber_dupbv_x( &set[ last ], &rset[ i ], cp->op->o_tmpmemctx );
 
 					} else {
-						set[ j ] = rset[ i ];
+						set[ last ] = rset[ i ];
 					}
+					last++;
 				}
 			}
+			BER_BVZERO( &set[ last ] );
 		}
 		break;
 
-	case '&':
+	case '&':	/* intersection */
 		if ( lset == NULL || BER_BVISNULL( lset )
 				|| rset == NULL || BER_BVISNULL( rset ) )
 		{
 			set = cp->op->o_tmpcalloc( 1, sizeof(struct berval),
 					cp->op->o_tmpmemctx );
+			BER_BVZERO( set );
 
 		} else {
 			set = set_dup( cp, lset, SLAP_SET_LREF2REF( op_flags ) );
@@ -193,7 +201,7 @@ slap_set_join(
 			last = slap_set_size( set ) - 1;
 			for ( i = 0; !BER_BVISNULL( &set[ i ] ); i++ ) {
 				for ( j = 0; !BER_BVISNULL( &rset[ j ] ); j++ ) {
-					if ( dn_match( &set[ i ], &rset[ j ] ) ) {
+					if ( bvmatch( &set[ i ], &rset[ j ] ) ) {
 						break;
 					}
 				}
@@ -209,10 +217,53 @@ slap_set_join(
 		}
 		break;
 
+	case '+':	/* string concatenation */
+		i = slap_set_size( rset );
+		j = slap_set_size( lset );
+
+		set = cp->op->o_tmpcalloc( i * j + 1, sizeof(struct berval),
+				cp->op->o_tmpmemctx );
+		if ( set == NULL ) {
+			break;
+		}
+
+		for ( last = 0, i = 0; !BER_BVISNULL( &lset[ i ] ); i++ ) {
+			for ( j = 0; !BER_BVISNULL( &rset[ j ] ); j++ ) {
+				struct berval	bv;
+				long		k;
+
+				bv.bv_len = lset[ i ].bv_len + rset[ j ].bv_len;
+				bv.bv_val = cp->op->o_tmpalloc( bv.bv_len + 1,
+						cp->op->o_tmpmemctx );
+				if ( bv.bv_val == NULL ) {
+					slap_set_dispose( cp, set, 0 );
+					set = NULL;
+					goto done;
+				}
+				AC_MEMCPY( bv.bv_val, lset[ i ].bv_val, lset[ i ].bv_len );
+				AC_MEMCPY( &bv.bv_val[ lset[ i ].bv_len ], rset[ j ].bv_val, rset[ j ].bv_len );
+				bv.bv_val[ bv.bv_len ] = '\0';
+
+				for ( k = 0; k < last; k++ ) {
+					if ( bvmatch( &set[ k ], &bv ) ) {
+						cp->op->o_tmpfree( bv.bv_val, cp->op->o_tmpmemctx );
+						break;
+					}
+				}
+
+				if ( k == last ) {
+					set[ last++ ] = bv;
+				}
+			}
+		}
+		BER_BVZERO( &set[ last ] );
+		break;
+
 	default:
 		break;
 	}
 
+done:;
 	if ( !( op_flags & SLAP_SET_LREFARR ) && lset != NULL ) {
 		cp->op->o_tmpfree( lset, cp->op->o_tmpmemctx );
 	}
@@ -231,12 +282,16 @@ set_chase( SLAP_SET_GATHER gatherer,
 	BerVarray	vals, nset;
 	int		i;
 
-	if ( set == NULL )
-		return cp->op->o_tmpcalloc( 1, sizeof(struct berval),
+	if ( set == NULL ) {
+		set = cp->op->o_tmpcalloc( 1, sizeof(struct berval),
 				cp->op->o_tmpmemctx );
-
-	if ( BER_BVISNULL( set ) )
+		BER_BVZERO( set );
 		return set;
+	}
+
+	if ( BER_BVISNULL( set ) ) {
+		return set;
+	}
 
 	nset = cp->op->o_tmpcalloc( 1, sizeof(struct berval), cp->op->o_tmpmemctx );
 	if ( nset == NULL ) {
@@ -271,18 +326,19 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 	SetCookie *cp, struct berval *fbv,
 	struct berval *user, struct berval *target, BerVarray *results )
 {
+#define STACK_SIZE	64
 #define IS_SET(x)	( (unsigned long)(x) >= 256 )
 #define IS_OP(x)	( (unsigned long)(x) < 256 )
 #define SF_ERROR(x)	do { rc = -1; goto _error; } while (0)
 #define SF_TOP()	( (BerVarray)( (stp < 0) ? 0 : stack[ stp ] ) )
 #define SF_POP()	( (BerVarray)( (stp < 0) ? 0 : stack[ stp-- ] ) )
 #define SF_PUSH(x)	do { \
-		if (stp >= 63) SF_ERROR(overflow); \
+		if (stp >= (STACK_SIZE - 1)) SF_ERROR(overflow); \
 		stack[ ++stp ] = (BerVarray)(long)(x); \
 	} while (0)
 
 	BerVarray	set, lset;
-	BerVarray	stack[64] = { 0 };
+	BerVarray	stack[ STACK_SIZE ] = { 0 };
 	int		len, rc, stp;
 	unsigned	op;
 	char		c, *filter = fbv->bv_val;
@@ -334,8 +390,9 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 			}
 			break;
 
-		case '&':
-		case '|':
+		case '|':	/* union */
+		case '&':	/* intersection */
+		case '+':	/* string concatenation */
 			set = SF_POP();
 			if ( IS_OP( set ) ) {
 				SF_ERROR( syntax );
@@ -430,6 +487,7 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 				if ( BER_BVISNULL( set ) ) {
 					SF_ERROR( memory );
 				}
+				BER_BVZERO( &set[ 1 ] );
 				
 			} else if ( len == 4
 				&& memcmp( "user", filter, len ) == 0 ) 
@@ -446,6 +504,7 @@ slap_set_filter( SLAP_SET_GATHER gatherer,
 				if ( BER_BVISNULL( set ) ) {
 					SF_ERROR( memory );
 				}
+				BER_BVZERO( &set[ 1 ] );
 				
 			} else if ( SF_TOP() != (void *)'/' ) {
 				SF_ERROR( syntax );

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,9 +74,10 @@ lock_fopen( const char *fname, const char *type, FILE **lfp )
 int
 lock_fclose( FILE *fp, FILE *lfp )
 {
+	int rc = fclose( fp );
 	/* unlock */
 	ldap_unlockf( fileno(lfp) );
 	fclose( lfp );
 
-	return( fclose( fp ) );
+	return( rc );
 }

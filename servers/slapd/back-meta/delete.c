@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -47,9 +47,14 @@ meta_back_delete( Operation *op, SlapReply *rs )
 		return -1;
 	}
 	
-	if ( !meta_back_dobind( lc, op )
-			|| !meta_back_is_valid( lc, candidate ) ) {
+	if ( !meta_back_dobind( lc, op ) ) {
+		rs->sr_err = LDAP_UNAVAILABLE;
+
+	} else if ( !meta_back_is_valid( lc, candidate ) ) {
 		rs->sr_err = LDAP_OTHER;
+	}
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
  		send_ldap_result( op, rs );
 		return -1;
 	}
@@ -57,7 +62,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "deleteDN";
@@ -67,10 +72,12 @@ meta_back_delete( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	ldap_delete_s( lc->conns[ candidate ].ld, mdn.bv_val );
+	(void)ldap_delete_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			NULL, NULL );
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
+		BER_BVZERO( &mdn );
 	}
 	
 	return meta_back_op_result( lc, op, rs );

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -919,10 +919,11 @@ bdb_cache_add(
 	}
 	bdb_cache_entryinfo_unlock( eip );
 
-	/* set lru mutex */
-	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
 	++bdb->bi_cache.c_cursize;
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+
+	/* set lru mutex */
+	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
 
 	/* lru_mutex is unlocked for us */
 	bdb_cache_lru_add( bdb, locker, new );

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,6 @@ ldap_back_extended(
 	for ( i = 0; exop_table[i].extended != NULL; i++ ) {
 		if ( bvmatch( exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
 		{
-#ifdef LDAP_BACK_PROXY_AUTHZ 
 			struct ldapconn	*lc;
 			LDAPControl	**oldctrls = NULL;
 			int		rc;
@@ -81,9 +80,6 @@ ldap_back_extended(
 			op->o_ctrls = oldctrls;
 
 			return rc;
-#else /* ! LDAP_BACK_PROXY_AUTHZ */
-			return ( *exop_table[i].extended )( op, rs );
-#endif /* ! LDAP_BACK_PROXY_AUTHZ */
 		}
 	}
 

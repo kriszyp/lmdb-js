@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -39,18 +39,7 @@
 #include "slapcommon.h"
 
 static char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-static const struct berval slap_syncrepl_bvc = BER_BVC("syncreplxxx");
-static const struct berval slap_syncrepl_cn_bvc = BER_BVC("cn=syncreplxxx");
-static struct berval slap_syncrepl_bv = BER_BVNULL;
-static struct berval slap_syncrepl_cn_bv = BER_BVNULL;
-
-struct subentryinfo {
-	struct berval cn;
-	struct berval ndn;
-	struct berval rdn;
-	struct berval cookie;
-	LDAP_SLIST_ENTRY( subentryinfo ) sei_next;
-};
+static char maxcsnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 
 int
 slapadd( int argc, char **argv )
@@ -66,24 +55,16 @@ slapadd( int argc, char **argv )
 	const char *progname = "slapadd";
 
 	struct berval csn;
-	struct berval maxcsn = BER_BVNULL;
-	struct berval ldifcsn = BER_BVNULL;
+	struct berval maxcsn;
 	int match;
-	int	provider_subentry = 0;
-	struct subentryinfo *sei;
-	LDAP_SLIST_HEAD( consumer_subentry_slist, subentryinfo ) consumer_subentry;
 	Attribute *attr;
 	Entry *ctxcsn_e;
-	ID	ctxcsn_id;
-	struct berval	ctxcsn_ndn = BER_BVNULL;
+	ID	ctxcsn_id, id;
 	int ret;
 	struct berval bvtext;
 	int i;
 	struct berval mc;
-	struct sync_cookie sc;
 	slap_tool_init( progname, SLAPADD, argc, argv );
-
-	LDAP_SLIST_INIT( &consumer_subentry );
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
@@ -106,6 +87,11 @@ slapadd( int argc, char **argv )
 		fprintf( stderr, "%s: could not open database.\n",
 			progname );
 		exit( EXIT_FAILURE );
+	}
+
+	if ( update_ctxcsn ) {
+		maxcsn.bv_val = maxcsnbuf;
+		maxcsn.bv_len = 0;
 	}
 
 	while( ldif_read_record( ldiffp, &lineno, &buf, &lmax ) ) {
@@ -288,11 +274,10 @@ slapadd( int argc, char **argv )
 				attr_merge( e, slap_schema.si_ad_entryCSN, vals, NULL );
 			}
 
-			if ( !is_entry_syncProviderSubentry( e ) &&
-				 !is_entry_syncConsumerSubentry( e ) &&
-				 update_ctxcsn != SLAP_TOOL_CTXCSN_KEEP ) {
+			if ( update_ctxcsn ) {
 				attr = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
 				if ( maxcsn.bv_len != 0 ) {
+					match = 0;
 					value_match( &match, slap_schema.si_ad_entryCSN,
 						slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
 						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
@@ -301,142 +286,32 @@ slapadd( int argc, char **argv )
 					match = -1;
 				}
 				if ( match < 0 ) {
-					if ( maxcsn.bv_val )
-						ch_free( maxcsn.bv_val );
-					ber_dupbv( &maxcsn, &attr->a_nvals[0] );
+					strcpy( maxcsn.bv_val, attr->a_nvals[0].bv_val );
+					maxcsn.bv_len = attr->a_nvals[0].bv_len;
 				}
 			}
 		}
 
-		if ( dryrun ) {
-			if ( verbose ) {
-				fprintf( stderr, "(dry) added: \"%s\"\n", e->e_dn );
-			}
-			goto done;
-		}
-
-		if ( update_ctxcsn == SLAP_TOOL_CTXCSN_KEEP &&
-			( replica_promotion || replica_demotion )) {
-			if ( is_entry_syncProviderSubentry( e )) { 
-				if ( !LDAP_SLIST_EMPTY( &consumer_subentry )) {
-					fprintf( stderr, "%s: consumer and provider subentries "
-									 "are both present\n", progname );
-					rc = EXIT_FAILURE;
-					entry_free( e );
-					sei = LDAP_SLIST_FIRST( &consumer_subentry );
-					while ( sei ) {
-						ch_free( sei->cn.bv_val );
-						ch_free( sei->ndn.bv_val );
-						ch_free( sei->rdn.bv_val );
-						ch_free( sei->cookie.bv_val );
-						LDAP_SLIST_REMOVE_HEAD( &consumer_subentry, sei_next );
-						ch_free( sei );
-						sei = LDAP_SLIST_FIRST( &consumer_subentry );
-					}
-					break;
-				}
-				if ( provider_subentry ) {
-					fprintf( stderr, "%s: multiple provider subentries are "
-							"present : add -w flag to refresh\n", progname );
-					rc = EXIT_FAILURE;
-					entry_free( e );
-					break;
-				}
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
-				if ( attr == NULL ) {
-					entry_free( e );
-					continue;
-				}
-				provider_subentry = 1;
-				ber_dupbv( &maxcsn, &attr->a_nvals[0] );
-			} else if ( is_entry_syncConsumerSubentry( e )) {
-				if ( provider_subentry ) {
-					fprintf( stderr, "%s: consumer and provider subentries "
-									 "are both present\n", progname );
-					rc = EXIT_FAILURE;
-					entry_free( e );
-					break;
-				}
-
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_cn );
-
-				if ( attr == NULL ) {
-					entry_free( e );
-					continue;
-				}
-
-				if ( !LDAP_SLIST_EMPTY( &consumer_subentry )) {
-					LDAP_SLIST_FOREACH( sei, &consumer_subentry, sei_next ) {
-						value_match( &match, slap_schema.si_ad_cn,
-							slap_schema.si_ad_cn->ad_type->sat_equality,
-							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-							&sei->cn, &attr->a_nvals[0], &text );
-					}
-					if ( !match ) {
-						fprintf( stderr, "%s: multiple consumer subentries "
-								"have the same id : add -w flag to refresh\n",
-								progname );
-						rc = EXIT_FAILURE;
-						entry_free( e );
-						sei = LDAP_SLIST_FIRST( &consumer_subentry );
-						while ( sei ) {
-							ch_free( sei->cn.bv_val );
-							ch_free( sei->ndn.bv_val );
-							ch_free( sei->rdn.bv_val );
-							ch_free( sei->cookie.bv_val );
-							LDAP_SLIST_REMOVE_HEAD( &consumer_subentry, sei_next );
-							ch_free( sei );
-							sei = LDAP_SLIST_FIRST( &consumer_subentry );
-						}
-						break;
-					}
-				}
-				sei = ch_calloc( 1, sizeof( struct subentryinfo ));
-				ber_dupbv( &sei->cn, &attr->a_nvals[0] );
-				ber_dupbv( &sei->ndn, &e->e_nname );
-				dnExtractRdn( &sei->ndn, &sei->rdn, NULL );
-				attr = attr_find( e->e_attrs, slap_schema.si_ad_syncreplCookie );
-				if ( attr == NULL ) {
-					ch_free( sei->cn.bv_val );
-					ch_free( sei->ndn.bv_val );
-					ch_free( sei->rdn.bv_val );
-					ch_free( sei->cookie.bv_val );
-					ch_free( sei );
-					entry_free( e );
-					continue;
-				}
-				ber_dupbv( &sei->cookie, &attr->a_nvals[0] );
-				LDAP_SLIST_INSERT_HEAD( &consumer_subentry, sei, sei_next );
+		if ( !dryrun ) {
+			id = be->be_entry_put( be, e, &bvtext );
+			if( id == NOID ) {
+				fprintf( stderr, "%s: could not add entry dn=\"%s\" "
+								 "(line=%d): %s\n", progname, e->e_dn,
+								 lineno, bvtext.bv_val );
+				rc = EXIT_FAILURE;
+				entry_free( e );
+				if( continuemode ) continue;
+				break;
 			}
 		}
 
-		if (( !is_entry_syncProviderSubentry( e ) &&
-				 !is_entry_syncConsumerSubentry( e )) ||
-				 ( !replica_promotion && !replica_demotion ))
-		{
-			/* dryrun moved earlier */
-			assert( !dryrun );
-
-			if (!dryrun) {
-				ID id = be->be_entry_put( be, e, &bvtext );
-				if( id == NOID ) {
-					fprintf( stderr, "%s: could not add entry dn=\"%s\" "
-									 "(line=%d): %s\n", progname, e->e_dn,
-									 lineno, bvtext.bv_val );
-					rc = EXIT_FAILURE;
-					entry_free( e );
-					if( continuemode ) continue;
-					break;
-				}
-	
-				if ( verbose ) {
-					fprintf( stderr, "added: \"%s\" (%08lx)\n",
-						e->e_dn, (long) id );
-				}
+		if ( verbose ) {
+			if ( dryrun ) {
+				fprintf( stderr, "added: \"%s\"\n",
+					e->e_dn );
 			} else {
-				if ( verbose ) {
-					fprintf( stderr, "(dry) added: \"%s\"\n", e->e_dn );
-				}
+				fprintf( stderr, "added: \"%s\" (%08lx)\n",
+					e->e_dn, (long) id );
 			}
 		}
 
@@ -448,279 +323,37 @@ done:;
 	bvtext.bv_val = textbuf;
 	bvtext.bv_val[0] = '\0';
 
-	if ( !LDAP_SLIST_EMPTY( &consumer_subentry )) {
-		maxcsn.bv_len = 0;
-		maxcsn.bv_val = NULL;
-		LDAP_SLIST_FOREACH( sei, &consumer_subentry, sei_next ) {
-			sc.octet_str = &sei->cookie;
-			slap_parse_sync_cookie( &sc );
-			if ( maxcsn.bv_len != 0 ) {
-				value_match( &match, slap_schema.si_ad_syncreplCookie,
-					slap_schema.si_ad_syncreplCookie->ad_type->sat_ordering,
+	if ( update_ctxcsn && !dryrun && maxcsn.bv_len ) {
+		ctxcsn_id = be->be_dn2id_get( be, be->be_nsuffix );
+		if ( ctxcsn_id == NOID ) {
+			fprintf( stderr, "%s: context entry is missing\n", progname );
+			rc = EXIT_FAILURE;
+		} else {
+			ret = be->be_id2entry_get( be, ctxcsn_id, &ctxcsn_e );
+			if ( ret == LDAP_SUCCESS ) {
+				attr = attr_find( ctxcsn_e->e_attrs,
+									slap_schema.si_ad_contextCSN );
+				value_match( &match, slap_schema.si_ad_entryCSN,
+					slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					&maxcsn, &sc.ctxcsn[0], &text );
-			} else {
-				match = -1;
-			}
-			if ( match < 0 ) {
-				if ( maxcsn.bv_val )
-					ch_free( maxcsn.bv_val );
-				ber_dupbv( &maxcsn, &sc.ctxcsn[0] );
-			}
-			sc.octet_str = NULL;
-			slap_sync_cookie_free( &sc, 0 );
-		}
-	}
-
-	slap_compose_sync_cookie( NULL, &mc, &maxcsn, -1, -1 );
-
-	if ( SLAP_LASTMOD(be) && replica_promotion ) {
-		if ( provider_subentry || update_ctxcsn == SLAP_TOOL_CTXCSN_BATCH ||
-			 !LDAP_SLIST_EMPTY( &consumer_subentry )) {
-			build_new_dn( &ctxcsn_ndn, &be->be_nsuffix[0],
-						  (struct berval *)&slap_ldapsync_cn_bv, NULL );
-			ctxcsn_id = be->be_dn2id_get( be, &ctxcsn_ndn );
-		
-			if ( ctxcsn_id == NOID ) {
-				ctxcsn_e = slap_create_context_csn_entry( be, &maxcsn );
-				
-				/* dryrun moved earlier */
-				assert( !dryrun );
-
-				if ( !dryrun ) {
-					ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
-					if( ctxcsn_id == NOID ) {
-						fprintf( stderr, "%s: could not add ctxcsn subentry\n",
-										 progname);
-						rc = EXIT_FAILURE;
-					}
-					if ( verbose ) {
-						fprintf( stderr, "added: \"%s\" (%08lx)\n",
-										 ctxcsn_e->e_dn, (long) ctxcsn_id );
-					}
-				} else {
-					if ( verbose ) {
-						fprintf( stderr, "(dry) added: \"%s\"\n", ctxcsn_e->e_dn );
-					}
-				}
-				entry_free( ctxcsn_e );
-			} else {
-				ret = be->be_id2entry_get( be, ctxcsn_id, &ctxcsn_e );
-				if ( ret == LDAP_SUCCESS ) {
-					attr = attr_find( ctxcsn_e->e_attrs,
-										slap_schema.si_ad_contextCSN );
+					&maxcsn, &attr->a_nvals[0], &text );
+				if ( match > 0 ) {
 					AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
 					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
 					attr->a_vals[0].bv_len = maxcsn.bv_len;
 				
-					/* dryrun moved earlier */
-					assert( !dryrun );
-
-					if ( !dryrun ) {
-						ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
-						if( ctxcsn_id == NOID ) {
-							fprintf( stderr, "%s: could not modify ctxcsn "
-											 "subentry\n", progname);
-							rc = EXIT_FAILURE;
-						}
-						if ( verbose ) {
-							fprintf( stderr, "modified: \"%s\" (%08lx)\n",
-											 ctxcsn_e->e_dn, (long) ctxcsn_id );
-						}
-					} else {
-						if ( verbose ) {
-							fprintf( stderr, "(dry) modified: \"%s\"\n",
-											 ctxcsn_e->e_dn );
-						}
+					ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
+					if( ctxcsn_id == NOID ) {
+						fprintf( stderr, "%s: could not modify ctxcsn\n",
+										progname);
+						rc = EXIT_FAILURE;
+					} else if ( verbose ) {
+						fprintf( stderr, "modified: \"%s\" (%08lx)\n",
+										 ctxcsn_e->e_dn, (long) ctxcsn_id );
 					}
-				} else {
-					fprintf( stderr, "%s: could not modify ctxcsn subentry\n",
-									 progname);
-					rc = EXIT_FAILURE;
 				}
 			}
 		} 
-	} else if ( SLAP_LASTMOD(be) && replica_demotion &&
-				( update_ctxcsn == SLAP_TOOL_CTXCSN_BATCH ||
-				provider_subentry )) {
-
-		ber_dupbv( &slap_syncrepl_bv, (struct berval *) &slap_syncrepl_bvc );
-		ber_dupbv( &slap_syncrepl_cn_bv,
-					(struct berval *) &slap_syncrepl_cn_bvc );
-
-		if ( replica_id_list == NULL ) {
-			replica_id_list = ch_calloc( 2, sizeof( int ));
-			replica_id_list[0] = 0;
-			replica_id_list[1] = -1;
-		}
-
-		for ( i = 0; replica_id_list[i] > -1 ; i++ ) {
-			slap_syncrepl_bv.bv_len = snprintf( slap_syncrepl_bv.bv_val,
-									slap_syncrepl_bvc.bv_len+1,
-									"syncrepl%d", replica_id_list[i] );
-			slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
-										slap_syncrepl_cn_bvc.bv_len+1,
-										"cn=syncrepl%d", replica_id_list[i] );
-			build_new_dn( &ctxcsn_ndn, &be->be_nsuffix[0],
-						  (struct berval *)&slap_syncrepl_cn_bv, NULL );
-			ctxcsn_id = be->be_dn2id_get( be, &ctxcsn_ndn );
-
-			if ( ctxcsn_id == NOID ) {
-				ctxcsn_e = slap_create_syncrepl_entry( be, &mc,
-						&slap_syncrepl_cn_bv,
-						&slap_syncrepl_bv );
-
-				/* dryrun moved earlier */
-				assert( !dryrun );
-
-				if ( !dryrun ) {
-					ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
-					if( ctxcsn_id == NOID ) {
-						fprintf( stderr, "%s: could not add ctxcsn subentry\n",
-										 progname);
-						rc = EXIT_FAILURE;
-					}
-					if ( verbose ) {
-						fprintf( stderr, "added: \"%s\" (%08lx)\n",
-										 ctxcsn_e->e_dn, (long) ctxcsn_id );
-					}
-				} else {
-					if ( verbose ) {
-						fprintf( stderr, "(dry) added: \"%s\"\n",
-											ctxcsn_e->e_dn );
-					}
-				}
-				entry_free( ctxcsn_e );
-			} else {
-				ret = be->be_id2entry_get( be, ctxcsn_id, &ctxcsn_e );
-				if ( ret == LDAP_SUCCESS ) {
-					attr = attr_find( ctxcsn_e->e_attrs,
-									  slap_schema.si_ad_syncreplCookie );
-					AC_MEMCPY( attr->a_vals[0].bv_val, mc.bv_val, mc.bv_len );
-					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
-					attr->a_vals[0].bv_len = maxcsn.bv_len;
-				
-					/* dryrun moved earlier */
-					assert( !dryrun );
-
-					if ( !dryrun ) {
-						ctxcsn_id = be->be_entry_modify( be,
-											ctxcsn_e, &bvtext );
-						if( ctxcsn_id == NOID ) {
-							fprintf( stderr, "%s: could not modify ctxcsn "
-											 "subentry\n", progname);
-							rc = EXIT_FAILURE;
-						}
-						if ( verbose ) {
-							fprintf( stderr, "modified: \"%s\" (%08lx)\n",
-											 ctxcsn_e->e_dn, (long) ctxcsn_id );
-						}
-					} else {
-						if ( verbose ) {
-							fprintf( stderr, "(dry) modified: \"%s\"\n",
-											 ctxcsn_e->e_dn );
-						}
-					}
-				} else {
-					fprintf( stderr, "%s: could not modify ctxcsn subentry\n",
-									 progname);
-					rc = EXIT_FAILURE;
-				}
-			}
-		}
-		
-		if ( slap_syncrepl_bv.bv_val ) {
-			ch_free( slap_syncrepl_bv.bv_val );
-		}
-		if ( slap_syncrepl_cn_bv.bv_val ) {
-			ch_free( slap_syncrepl_cn_bv.bv_val );
-		}
-	} else if ( SLAP_LASTMOD(be) && replica_demotion &&
-				!LDAP_SLIST_EMPTY( &consumer_subentry )) {
-
-		LDAP_SLIST_FOREACH( sei, &consumer_subentry, sei_next ) {
-			ctxcsn_id = be->be_dn2id_get( be, &sei->ndn );
-
-			if ( ctxcsn_id == NOID ) {
-				ctxcsn_e = slap_create_syncrepl_entry( be, &sei->cookie,
-						&sei->rdn, &sei->cn );
-
-				/* dryrun moved earlier */
-				assert( !dryrun );
-
-				if ( !dryrun ) {
-					ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
-					if( ctxcsn_id == NOID ) {
-						fprintf( stderr, "%s: could not add ctxcsn subentry\n",
-										 progname);
-						rc = EXIT_FAILURE;
-					}
-					if ( verbose ) {
-						fprintf( stderr, "added: \"%s\" (%08lx)\n",
-										 ctxcsn_e->e_dn, (long) ctxcsn_id );
-					}
-				} else {
-					if ( verbose ) {
-						fprintf( stderr, "(dry) added: \"%s\"\n",
-											ctxcsn_e->e_dn );
-					}
-				}
-				entry_free( ctxcsn_e );
-			} else {
-				ret = be->be_id2entry_get( be, ctxcsn_id, &ctxcsn_e );
-				if ( ret == LDAP_SUCCESS ) {
-					attr = attr_find( ctxcsn_e->e_attrs,
-									  slap_schema.si_ad_syncreplCookie );
-					AC_MEMCPY( attr->a_vals[0].bv_val, sei->cookie.bv_val, sei->cookie.bv_len );
-					attr->a_vals[0].bv_val[sei->cookie.bv_len] = '\0';
-					attr->a_vals[0].bv_len = sei->cookie.bv_len;
-					
-					/* dryrun moved earlier */
-					assert( !dryrun );
-
-					if ( !dryrun ) {
-						ctxcsn_id = be->be_entry_modify( be,
-											ctxcsn_e, &bvtext );
-						if( ctxcsn_id == NOID ) {
-							fprintf( stderr, "%s: could not modify ctxcsn "
-											 "subentry\n", progname);
-							rc = EXIT_FAILURE;
-						}
-						if ( verbose ) {
-							fprintf( stderr, "modified: \"%s\" (%08lx)\n",
-											 ctxcsn_e->e_dn, (long) ctxcsn_id );
-						}
-					} else {
-						if ( verbose ) {
-							fprintf( stderr, "(dry) modified: \"%s\"\n",
-											 ctxcsn_e->e_dn );
-						}
-					}
-				} else {
-					fprintf( stderr, "%s: could not modify ctxcsn subentry\n",
-									 progname);
-					rc = EXIT_FAILURE;
-				}
-			}
-		}
-		
-		if ( slap_syncrepl_bv.bv_val ) {
-			ch_free( slap_syncrepl_bv.bv_val );
-		}
-		if ( slap_syncrepl_cn_bv.bv_val ) {
-			ch_free( slap_syncrepl_cn_bv.bv_val );
-		}
-	}
-
-	sei = LDAP_SLIST_FIRST( &consumer_subentry );
-	while ( sei ) {
-		ch_free( sei->cn.bv_val );
-		ch_free( sei->ndn.bv_val );
-		ch_free( sei->rdn.bv_val );
-		ch_free( sei->cookie.bv_val );
-		LDAP_SLIST_REMOVE_HEAD( &consumer_subentry, sei_next );
-		ch_free( sei );
-		sei = LDAP_SLIST_FIRST( &consumer_subentry );
 	}
 
 	ch_free( buf );

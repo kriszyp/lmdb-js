@@ -1,8 +1,9 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
+ * Portions Copyright 2002 Pierangelo Masarati.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,7 +16,8 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
- * by OpenLDAP Software.
+ * by OpenLDAP Software.  Additional significant contributors include
+ * Pierangelo Masarati.
  */
 
 #include "portable.h"
@@ -45,13 +47,13 @@ char backsql_def_at_query[] =
 	"SELECT name,sel_expr,from_tbls,join_where,add_proc,delete_proc,"
 	"param_order,expect_return,sel_expr_u FROM ldap_attr_mappings "
 	"WHERE oc_map_id=?";
-char backsql_def_delentry_query[] = "DELETE FROM ldap_entries WHERE id=?";
-char backsql_def_insentry_query[] = 
+char backsql_def_delentry_stmt[] = "DELETE FROM ldap_entries WHERE id=?";
+char backsql_def_renentry_stmt[] =
+	"UPDATE ldap_entries SET dn=?,parent=?,keyval=? WHERE id=?";
+char backsql_def_insentry_stmt[] = 
 	"INSERT INTO ldap_entries (dn,oc_map_id,parent,keyval) "
 	"VALUES (?,?,?,?)";
-char backsql_def_delobjclasses_query[] = "DELETE FROM ldap_entry_objclasses "
-	"WHERE entry_id=?";
-char backsql_def_delreferrals_query[] = "DELETE FROM ldap_referrals "
+char backsql_def_delobjclasses_stmt[] = "DELETE FROM ldap_entry_objclasses "
 	"WHERE entry_id=?";
 char backsql_def_subtree_cond[] = "ldap_entries.dn LIKE CONCAT('%',?)";
 char backsql_def_upper_subtree_cond[] = "(ldap_entries.dn) LIKE CONCAT('%',?)";
@@ -243,44 +245,33 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 
 int
 backsql_entry_addattr(
-	Entry		*e,
-	struct berval	*at_name,
-	struct berval	*at_val,
-	void		*memctx )
+	Entry			*e,
+	AttributeDescription	*ad,
+	struct berval		*val,
+	void			*memctx )
 {
-	AttributeDescription	*ad;
 	int			rc;
-	const char		*text;
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-		"at_name=\"%s\", at_val=\"%s\"\n", 
-		at_name->bv_val, at_val->bv_val, 0 );
+	Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(\"%s\"): %s=%s\n", 
+		e->e_name.bv_val, ad->ad_cname->bv_val, val->bv_val );
 #endif /* BACKSQL_TRACE */
 
-	ad = NULL;
-	rc = slap_bv2ad( at_name, &ad, &text );
+	rc = attr_merge_normalize_one( e, ad, val, memctx );
+
 	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-			"failed to find AttributeDescription for \"%s\"\n",
-			at_name->bv_val, 0, 0 );
-		return 0;
-	}
-
-	rc = attr_merge_normalize_one( e, ad, at_val, memctx );
-
-	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
+		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(\"%s\"): "
 			"failed to merge value \"%s\" for attribute \"%s\"\n",
-			at_val->bv_val, at_name->bv_val, 0 );
-		return 0;
+			e->e_name.bv_val, val->bv_val, ad->ad_cname.bv_val );
+		return rc;
 	}
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_query_addattr()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_entry_addattr(\"%s\")\n",
+		e->e_name.bv_val, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-	return 1;
+	return LDAP_SUCCESS;
 }
 
 static char *
@@ -531,7 +522,7 @@ backsql_entryUUID(
 	snprintf( uuidbuf, sizeof( uuidbuf ),
 			"%08x-%04x-%04x-0000-000000000000",
 			( id->eid_oc_id & 0xFFFFFFFF ),
-			( ( id->eid_keyval & 0xFFFF0000 ) >> 16 ),
+			( ( id->eid_keyval & 0xFFFF0000 ) >> 020 /* 16 */ ),
 			( id->eid_keyval & 0xFFFF ) );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
@@ -556,16 +547,17 @@ backsql_entryUUID_decode(
 {
 	fprintf( stderr, "==> backsql_entryUUID_decode()\n" );
 
-	*oc_id = ( entryUUID->bv_val[0] << 3 )
-		+ ( entryUUID->bv_val[1] << 2 )
-		+ ( entryUUID->bv_val[2] << 1 )
+	*oc_id = ( entryUUID->bv_val[0] << 030 /* 24 */ )
+		+ ( entryUUID->bv_val[1] << 020 /* 16 */ )
+		+ ( entryUUID->bv_val[2] << 010 /* 8 */ )
 		+ entryUUID->bv_val[3];
 
 #ifdef BACKSQL_ARBITRARY_KEY
+	/* FIXME */
 #else /* ! BACKSQL_ARBITRARY_KEY */
-	*keyval = ( entryUUID->bv_val[4] << 3 )
-		+ ( entryUUID->bv_val[5] << 2 )
-		+ ( entryUUID->bv_val[6] << 1 )
+	*keyval = ( entryUUID->bv_val[4] << 030 /* 24 */ )
+		+ ( entryUUID->bv_val[5] << 020 /* 16 */ )
+		+ ( entryUUID->bv_val[6] << 010 /* 8 */ )
 		+ entryUUID->bv_val[7];
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -103,7 +103,7 @@ dn2entry_retry:
 
 		if( rs->sr_ref != NULL ) {
 			/* send referrals */
-			rs->sr_err = LDAP_REFERRAL;
+			rc = rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;

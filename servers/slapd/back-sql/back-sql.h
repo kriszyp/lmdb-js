@@ -1,9 +1,10 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Mararati.
+ * Portions Copyright 2004 Mark Adamson.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,9 +18,8 @@
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Dmitry Kovalev for inclusion
  * by OpenLDAP Software.  Additional significant contributors include
- *    Pierangelo Mararati
+ * Pierangelo Masarati and Mark Adamson.
  */
-
 /*
  * The following changes have been addressed:
  *	 
@@ -70,11 +70,120 @@
  *   - check how to allow multiple operations with one statement, to remove
  *     BACKSQL_REALLOC_STMT from modify.c (a more recent unixODBC lib?)
  */
+/*
+ * Improvements submitted by (ITS#3432)
+ *
+ * 1. id_query.patch		applied (with changes)
+ * 2. shortcut.patch		applied (reworked)
+ * 3. create_hint.patch		applied
+ * 4. count_query.patch		applied (reworked)
+ * 5. returncodes.patch		applied (with sanity checks)
+ * 6. connpool.patch		under evaluation
+ * 7. modoc.patch		under evaluation (requires
+ * 				manageDSAit and "manage"
+ * 				access privileges)
+ * 8. miscfixes.patch		applied (reworked; other
+ *				operations need to load the
+ *				entire entry for ACL purposes;
+ *				see ITS#3480, now fixed)
+ *
+ * original description:
+
+         Changes that were made to the SQL backend.
+
+The patches were made against 2.2.18 and can be applied individually,
+but would best be applied in the numerical order of the file names.
+A synopsis of each patch is given here:
+
+
+1. Added an option to set SQL query for the "id_query" operation.
+
+2. Added an option to the SQL backend called "use_subtree_shortcut".
+When a search is performed, the SQL query includes a WHERE clause
+which says the DN must be "LIKE %<searchbase>".  The LIKE operation
+can be slow in an RDBM. This shortcut option says that if the
+searchbase of the LDAP search is the root DN of the SQL backend,
+and thus all objects will match the LIKE operator, do not include
+the "LIKE %<searchbase>" clause in the SQL query (it is replaced
+instead by the always true "1=1" clause to keep the "AND"'s 
+working correctly).  This option is off by default, and should be
+turned on only if all objects to be found in the RDBM are under the
+same root DN. Multiple backends working within the same RDBM table
+space would encounter problems. LDAP searches whose searchbase are
+not at the root DN will bypass this shortcut and employ the LIKE 
+clause.
+
+3. Added a "create_hint" column to ldap_oc_mappings table. Allows
+taking the value of an attr named in "create_hint" and passing it to
+the create_proc procedure.  This is necessary for when an objectClass's
+table is partition indexed by some indexing column and thus the value
+in that indexing column cannot change after the row is created. The
+value for the indexed column is passed into the create_proc, which
+uses it to fill in the indexed column as the new row is created.
+
+4. When loading the values of an attribute, the count(*) of the number
+of values is fetched first and memory is allocated for the array of
+values and normalized values. The old system of loading the values one
+by one and running realloc() on the array of values and normalized
+values each time was badly fragmenting memory. The array of values and
+normalized values would be side by side in memory, and realloc()'ing
+them over and over would force them to leapfrog each other through all
+of available memory. Attrs with a large number of values could not be
+loaded without crashing the slapd daemon.
+
+5. Added code to interpret the value returned by stored procedures
+which have expect_return set. Returned value is interpreted as an LDAP
+return code. This allows the distinction between the SQL failing to
+execute and the SQL running to completion and returning an error code
+which can indicate a policy violation.
+
+6. Added RDBM connection pooling. Once an operation is finished the
+connection to the RDBM is returned to a pool rather than closing.
+Allows the next operation to skip the initialization and authentication
+phases of contacting the RDBM. Also, if licensing with ODBC places
+a limit on the number of connections, an LDAP thread can block waiting
+for another thread to finish, so that no LDAP errors are returned
+for having more LDAP connections than allowed RDBM connections. An
+RDBM connection which receives an SQL error is marked as "tainted"
+so that it will be closed rather than returned to the pool.
+  Also, RDBM connections must be bound to a given LDAP connection AND
+operation number, and NOT just the connection number.  Asynchronous
+LDAP clients can have multiple simultaneous LDAP operations which
+should not share the same RDBM connection.  A given LDAP operation can
+even make multiple SQL operations (e.g. a BIND operation which
+requires SASL to perform an LDAP search to convert the SASL ID to an
+LDAP DN), so each RDBM connection now has a refcount that must reach
+zero before the connection is returned to the free pool.
+
+7. Added ability to change the objectClass of an object. Required 
+considerable work to copy all attributes out of old object and into
+new object.  Does a schema check before proceeding.  Creates a new
+object, fills it in, deletes the old object, then changes the 
+oc_map_id and keyval of the entry in the "ldap_entries" table.
+
+8.  Generic fixes. Includes initializing pointers before they
+get used in error branch cases, pointer checks before dereferencing,
+resetting a return code to success after a COMPARE op, sealing
+memory leaks, and in search.c, changing some of the "1=1" tests to
+"2=2", "3=3", etc so that when reading slapd trace output, the 
+location in the source code where the x=x test was added to the SQL
+can be easily distinguished.
+ */
 
 #ifndef __BACKSQL_H__
 #define __BACKSQL_H__
 
-#include "sql-types.h"
+/* former sql-types.h */
+#include <sql.h>
+#include <sqlext.h>
+
+typedef struct {
+	SWORD		ncols;
+	BerVarray	col_names;
+	UDWORD		*col_prec;
+	char		**cols;
+	SQLINTEGER	*value_len;
+} BACKSQL_ROW_NTS;
 
 /*
  * Better use the standard length of 8192 (as of slap.h)?
@@ -88,6 +197,21 @@
  * define to enable very extensive trace logging (debug only)
  */
 #undef BACKSQL_TRACE
+
+/*
+ * define if using MS SQL and workaround needed (see sql-wrap.c)
+ */
+#undef BACKSQL_MSSQL_WORKAROUND
+
+/*
+ * define to enable values counting for attributes
+ */
+#define BACKSQL_COUNTQUERY
+
+/*
+ * define to enable prettification/validation of values
+ */
+#define BACKSQL_PRETTY_VALIDATE
 
 /*
  * define to enable varchars as unique keys in user tables
@@ -132,9 +256,14 @@
  */
 typedef struct backsql_api {
 	char			*ba_name;
+	int 			(*ba_config)( struct backsql_api *self, int argc, char *argv[] );
+	int			(*ba_destroy)( struct backsql_api *self );
+
 	int 			(*ba_dn2odbc)( Operation *op, SlapReply *rs, struct berval *dn );
 	int 			(*ba_odbc2dn)( Operation *op, SlapReply *rs, struct berval *dn );
-	struct backsql_api *ba_next;
+
+	void			*ba_private;
+	struct backsql_api	*ba_next;
 } backsql_api;
 
 /*
@@ -175,24 +304,25 @@ typedef struct backsql_oc_map_rec {
 	/*
 	 * Structure of corresponding LDAP objectClass definition
 	 */
-	ObjectClass	*bom_oc;
+	ObjectClass		*bom_oc;
 #define BACKSQL_OC_NAME(ocmap)	((ocmap)->bom_oc->soc_cname.bv_val)
 	
-	struct berval	bom_keytbl;
-	struct berval	bom_keycol;
+	struct berval		bom_keytbl;
+	struct berval		bom_keycol;
 	/* expected to return keyval of newly created entry */
-	char		*bom_create_proc;
+	char			*bom_create_proc;
 	/* in case create_proc does not return the keyval of the newly
 	 * created row */
-	char		*bom_create_keyval;
+	char			*bom_create_keyval;
 	/* supposed to expect keyval as parameter and delete 
 	 * all the attributes as well */
-	char		*bom_delete_proc;
+	char			*bom_delete_proc;
 	/* flags whether delete_proc is a function (whether back-sql 
 	 * should bind first parameter as output for return code) */
-	int		bom_expect_return;
-	unsigned long	bom_id;
-	Avlnode		*bom_attrs;
+	int			bom_expect_return;
+	unsigned long		bom_id;
+	Avlnode			*bom_attrs;
+	AttributeDescription	*bom_create_hint;
 } backsql_oc_map_rec;
 
 /*
@@ -221,6 +351,9 @@ typedef struct backsql_at_map_rec {
 	/* for optimization purposes attribute load query 
 	 * is preconstructed from parts on schemamap load time */
 	char		*bam_query;
+#ifdef BACKSQL_COUNTQUERY
+	char		*bam_countquery;
+#endif /* BACKSQL_COUNTQUERY */
 	/* following flags are bitmasks (first bit used for add_proc, 
 	 * second - for delete_proc) */
 	/* order of parameters for procedures above; 
@@ -241,14 +374,14 @@ typedef struct backsql_at_map_rec {
  * (currently broken) */
 /* #define	BACKSQL_UPPERCASE_FILTER */
 
-#define	BACKSQL_AT_CANUPPERCASE(at)	((at)->bam_sel_expr_u.bv_val)
+#define	BACKSQL_AT_CANUPPERCASE(at)	( !BER_BVISNULL( &(at)->bam_sel_expr_u ) )
 
 /* defines to support bitmasks above */
 #define BACKSQL_ADD	0x1
 #define BACKSQL_DEL	0x2
 
-#define BACKSQL_IS_ADD(x)	( BACKSQL_ADD & (x) )
-#define BACKSQL_IS_DEL(x)	( BACKSQL_DEL & (x) )
+#define BACKSQL_IS_ADD(x)	( ( BACKSQL_ADD & (x) ) == BACKSQL_ADD )
+#define BACKSQL_IS_DEL(x)	( ( BACKSQL_DEL & (x) ) == BACKSQL_DEL )
 
 #define BACKSQL_NCMP(v1,v2)	ber_bvcmp((v1),(v2))
 
@@ -261,8 +394,18 @@ typedef struct berbuf {
 	ber_len_t	bb_len;
 } BerBuffer;
 
-#define BB_NULL		{ { 0, NULL }, 0 }
+#define BB_NULL		{ BER_BVNULL, 0 }
 
+/* the function must collect the entry associated to nbase */
+#define BACKSQL_ISF_GET_ID	0x1U
+#define BACKSQL_ISF_GET_ENTRY	( 0x2U | BACKSQL_ISF_GET_ID )
+#define BACKSQL_ISF_MATCHED	0x4U
+#define BACKSQL_IS_GET_ID(f) \
+	( ( (f) & BACKSQL_ISF_GET_ID ) == BACKSQL_ISF_GET_ID )
+#define BACKSQL_IS_GET_ENTRY(f) \
+	( ( (f) & BACKSQL_ISF_GET_ENTRY ) == BACKSQL_ISF_GET_ENTRY )
+#define BACKSQL_IS_MATCHED(f) \
+	( ( (f) & BACKSQL_ISF_MATCHED ) == BACKSQL_ISF_MATCHED )
 typedef struct backsql_srch_info {
 	Operation		*bsi_op;
 	SlapReply		*bsi_rs;
@@ -276,8 +419,13 @@ typedef struct backsql_srch_info {
 #define BSQL_SF_FILTER_ENTRYUUID	0x0020U
 #define BSQL_SF_FILTER_ENTRYCSN		0x0040U
 #define BSQL_SF_RETURN_ENTRYUUID	(BSQL_SF_FILTER_ENTRYUUID << 8)
+#define	BSQL_ISF(bsi, f)		( ( (bsi)->bsi_flags & f ) == f )
+#define	BSQL_ISF_ALL_USER(bsi)		BSQL_ISF(bsi, BSQL_SF_ALL_USER)
+#define	BSQL_ISF_ALL_OPER(bsi)		BSQL_ISF(bsi, BSQL_SF_ALL_OPER)
+#define	BSQL_ISF_ALL_ATTRS(bsi)		BSQL_ISF(bsi, BSQL_SF_ALL_ATTRS)
 
 	struct berval		*bsi_base_ndn;
+	int			bsi_use_subtree_shortcut;
 	backsql_entryID		bsi_base_id;
 	int			bsi_scope;
 /* BACKSQL_SCOPE_BASE_LIKE can be set by API in ors_scope
@@ -313,7 +461,7 @@ typedef struct backsql_srch_info {
 /*
  * Backend private data structure
  */
-typedef struct {
+typedef struct backsql_info {
 	char		*sql_dbhost;
 	int		sql_dbport;
 	char		*sql_dbuser;
@@ -329,10 +477,10 @@ typedef struct {
 	struct berval	sql_children_cond;
 	char		*sql_oc_query,
 			*sql_at_query;
-	char		*sql_insentry_query,
-			*sql_delentry_query,
-			*sql_delobjclasses_query,
-			*sql_delreferrals_query;
+	char		*sql_insentry_stmt,
+			*sql_delentry_stmt,
+			*sql_renentry_stmt,
+			*sql_delobjclasses_stmt;
 	char		*sql_id_query;
 	char		*sql_has_children_query;
 
@@ -343,8 +491,9 @@ typedef struct {
 	struct berval	sql_upper_func_open;
 	struct berval	sql_upper_func_close;
 	BerVarray	sql_concat_func;
-
 	struct berval	sql_strcast_func;
+
+	AttributeName	*sql_anlist;
 
 	unsigned int	sql_flags;
 #define	BSQLF_SCHEMA_LOADED		0x0001
@@ -355,25 +504,40 @@ typedef struct {
 #define BSQLF_DONTCHECK_LDAPINFO_DN_RU	0x0020
 #define BSQLF_USE_REVERSE_DN		0x0040
 #define BSQLF_ALLOW_ORPHANS		0x0080
+#define BSQLF_USE_SUBTREE_SHORTCUT	0x0100
+#define BSQLF_FETCH_ALL_USERATTRS	0x0200
+#define BSQLF_FETCH_ALL_OPATTRS		0x0400
+#define	BSQLF_FETCH_ALL_ATTRS		(BSQLF_FETCH_ALL_USERATTRS|BSQLF_FETCH_ALL_OPATTRS)
+
+#define BACKSQL_ISF(si, f) \
+	(((si)->sql_flags & f) == f)
 
 #define	BACKSQL_SCHEMA_LOADED(si) \
-	((si)->sql_flags & BSQLF_SCHEMA_LOADED)
+	BACKSQL_ISF(si, BSQLF_SCHEMA_LOADED)
 #define BACKSQL_UPPER_NEEDS_CAST(si) \
-	((si)->sql_flags & BSQLF_UPPER_NEEDS_CAST)
+	BACKSQL_ISF(si, BSQLF_UPPER_NEEDS_CAST)
 #define BACKSQL_CREATE_NEEDS_SELECT(si) \
-	((si)->sql_flags & BSQLF_CREATE_NEEDS_SELECT)
+	BACKSQL_ISF(si, BSQLF_CREATE_NEEDS_SELECT)
 #define BACKSQL_FAIL_IF_NO_MAPPING(si) \
-	((si)->sql_flags & BSQLF_FAIL_IF_NO_MAPPING)
+	BACKSQL_ISF(si, BSQLF_FAIL_IF_NO_MAPPING)
 #define BACKSQL_HAS_LDAPINFO_DN_RU(si) \
-	((si)->sql_flags & BSQLF_HAS_LDAPINFO_DN_RU)
+	BACKSQL_ISF(si, BSQLF_HAS_LDAPINFO_DN_RU)
 #define BACKSQL_DONTCHECK_LDAPINFO_DN_RU(si) \
-	((si)->sql_flags & BSQLF_DONTCHECK_LDAPINFO_DN_RU)
+	BACKSQL_ISF(si, BSQLF_DONTCHECK_LDAPINFO_DN_RU)
 #define BACKSQL_USE_REVERSE_DN(si) \
-	((si)->sql_flags & BSQLF_USE_REVERSE_DN)
+	BACKSQL_ISF(si, BSQLF_USE_REVERSE_DN)
 #define BACKSQL_CANUPPERCASE(si) \
 	(!BER_BVISNULL( &(si)->sql_upper_func ))
 #define BACKSQL_ALLOW_ORPHANS(si) \
-	((si)->sql_flags & BSQLF_ALLOW_ORPHANS)
+	BACKSQL_ISF(si, BSQLF_ALLOW_ORPHANS)
+#define BACKSQL_USE_SUBTREE_SHORTCUT(si) \
+	BACKSQL_ISF(si, BSQLF_USE_SUBTREE_SHORTCUT)
+#define BACKSQL_FETCH_ALL_USERATTRS(si) \
+	BACKSQL_ISF(si, BSQLF_FETCH_ALL_USERATTRS)
+#define BACKSQL_FETCH_ALL_OPATTRS(si) \
+	BACKSQL_ISF(si, BSQLF_FETCH_ALL_OPATTRS)
+#define BACKSQL_FETCH_ALL_ATTRS(si) \
+	BACKSQL_ISF(si, BSQLF_FETCH_ALL_ATTRS)
 
 	Entry		*sql_baseObject;
 #ifdef BACKSQL_ARBITRARY_KEY
@@ -382,7 +546,7 @@ typedef struct {
 #define	BACKSQL_IS_BASEOBJECT_ID(id)	(bvmatch((id), &backsql_baseObject_bv))
 #else /* ! BACKSQL_ARBITRARY_KEY */
 #define BACKSQL_BASEOBJECT_ID		0
-#define BACKSQL_BASEOBJECT_IDSTR	"0"
+#define BACKSQL_BASEOBJECT_IDSTR	LDAP_XSTRING(BACKSQL_BASEOBJECT_ID)
 #define BACKSQL_BASEOBJECT_KEYVAL	0
 #define	BACKSQL_IS_BASEOBJECT_ID(id)	(*(id) == BACKSQL_BASEOBJECT_ID)
 #endif /* ! BACKSQL_ARBITRARY_KEY */
@@ -404,7 +568,16 @@ typedef struct {
 #define BACKSQL_AVL_STOP		0
 #define BACKSQL_AVL_CONTINUE		1
 
+/* see ldap.h for the meaning of the macros and of the values */
+#define BACKSQL_LEGAL_ERROR( rc ) \
+	( LDAP_RANGE( (rc), 0x00, 0x0e ) \
+	  || LDAP_ATTR_ERROR( (rc) ) \
+	  || LDAP_NAME_ERROR( (rc) ) \
+	  || LDAP_SECURITY_ERROR( (rc) ) \
+	  || LDAP_SERVICE_ERROR( (rc) ) \
+	  || LDAP_UPDATE_ERROR( (rc) ) )
+#define BACKSQL_SANITIZE_ERROR( rc ) \
+	( BACKSQL_LEGAL_ERROR( (rc) ) ? (rc) : LDAP_OTHER )
+
 #endif /* __BACKSQL_H__ */
-
-
 

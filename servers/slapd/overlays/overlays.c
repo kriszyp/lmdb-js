@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * Copyright 2003 by Howard Chu.
  * All rights reserved.
  *
@@ -23,9 +23,6 @@
 
 #include "slap.h"
 
-#if SLAPD_OVER_CHAIN == SLAPD_MOD_STATIC
-extern int chain_init();
-#endif
 #if SLAPD_OVER_DENYOP == SLAPD_MOD_STATIC
 extern int denyop_init();
 #endif
@@ -61,9 +58,6 @@ static struct {
 	char *name;
 	int (*func)();
 } funcs[] = {
-#if SLAPD_OVER_CHAIN == SLAPD_MOD_STATIC
-	{ "LDAP Chain Response", chain_init },
-#endif
 #if SLAPD_OVER_DENYOP == SLAPD_MOD_STATIC
 	{ "Deny Operation", denyop_init },
 #endif

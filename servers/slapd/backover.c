@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -279,7 +279,7 @@ over_op_func(
 	for (; on; on=on->on_next ) {
 		func = &on->on_bi.bi_op_bind;
 		if ( func[which] ) {
-			db.bd_info = (BackendInfo *)on;
+			op->o_bd->bd_info = (BackendInfo *)on;
 			rc = func[which]( op, rs );
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
@@ -287,7 +287,7 @@ over_op_func(
 
 	func = &oi->oi_orig->bi_op_bind;
 	if ( func[which] && rc == SLAP_CB_CONTINUE ) {
-		db.bd_info = oi->oi_orig;
+		op->o_bd->bd_info = oi->oi_orig;
 		rc = func[which]( op, rs );
 	}
 	/* should not fall thru this far without anything happening... */

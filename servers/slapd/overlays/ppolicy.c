@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004 The OpenLDAP Foundation.
+ * Copyright 2004-2005 The OpenLDAP Foundation.
  * Portions Copyright 2004 Howard Chu, Symas Corporation.
  * Portions Copyright 2004 Hewlett-Packard Company.
  * All rights reserved.
@@ -1143,7 +1143,7 @@ ppolicy_add(
 			}
 		}
 		/* If password aging is in effect, set the pwdChangedTime */
-		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_isupdate( op )) {
+		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_shadow_update( op )) {
 			struct berval timestamp;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 			struct tm *ltm;
@@ -1173,7 +1173,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	PassPolicy		pp;
 	Modifications		*mods = NULL, *modtail, *ml, *delmod, *addmod;
 	Attribute		*pa, *ha, *ra, at;
-	int			repl_user = be_isupdate( op );
 	const char		*txt;
 	pw_hist			*tl = NULL, *p;
 	int			zapReset, send_ctrl = 0;
@@ -1376,7 +1375,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		const char *txt;
 		
 		bv = oldpw.bv_val ? &oldpw : delmod->sml_values;
-		rc = slap_passwd_check( op->o_conn, pa, bv, &txt );
+		/* FIXME: no access checking? */
+		rc = slap_passwd_check( op, NULL, pa, bv, &txt );
 		if (rc != LDAP_SUCCESS) {
 			Debug( LDAP_DEBUG_TRACE,
 				"old password check failed: %s\n", txt, 0, 0 );
@@ -1420,7 +1420,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		/*
 		 * Last check - the password history.
 		 */
-		if (slap_passwd_check( op->o_conn, pa, bv, &txt ) == LDAP_SUCCESS) {
+		/* FIXME: no access checking? */
+		if (slap_passwd_check( op, NULL, pa, bv, &txt ) == LDAP_SUCCESS) {
 			/*
 			 * This is bad - it means that the user is attempting
 			 * to set the password to the same as the old one.
@@ -1442,7 +1443,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		cr[1].bv_val = NULL;
 		for(p=tl; p; p=p->next) {
 			cr[0] = p->pw;
-			rc = slap_passwd_check( op->o_conn, &at, bv, &txt );
+			/* FIXME: no access checking? */
+			rc = slap_passwd_check( op, NULL, &at, bv, &txt );
 			
 			if (rc != LDAP_SUCCESS) continue;
 			
@@ -1454,7 +1456,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	}
 
 do_modify:
-	if ((pwmod) && (!repl_user)) {
+	if ((pwmod) && (!be_shadow_update( op ))) {
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		struct tm *ltm;

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -370,13 +370,17 @@ static struct slap_schema_oc_map {
 			"matchingRuleUse ) )",
 		subentryObjectClass, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_subschema) },
-#ifdef LDAP_DEVEL
+#ifdef LDAP_COLLECTIVE_ATTRIBUTES
 	{ "collectiveAttributeSubentry", "( 2.5.17.2 "
 			"NAME 'collectiveAttributeSubentry' "
+			"DESC 'RFC3671: collective attribute subentry' "
 			"AUXILIARY )",
 		subentryObjectClass,
 		SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY|SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
-		offsetof(struct slap_internal_schema, si_oc_collectiveAttributeSubentry) },
+		offsetof( struct slap_internal_schema,
+			si_oc_collectiveAttributeSubentry) },
+#endif
+#ifdef LDAP_DYNAMIC_OBJECTS
 	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
 			"NAME 'dynamicObject' "
 			"DESC 'RFC2589: Dynamic Object' "
@@ -506,9 +510,10 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
-#ifdef LDAP_DEVEL
+#ifdef LDAP_COLLECTIVE_ATTRIBUTES
 	{ "collectiveAttributeSubentries", "( 2.5.18.12 "
 			"NAME 'collectiveAttributeSubentries' "
+			"DESC 'RFC3671: collective attribute subentries' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
 			"NO-USER-MODIFICATION USAGE directoryOperation )",
@@ -517,6 +522,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_collectiveSubentries) },
 	{ "collectiveExclusions", "( 2.5.18.7 NAME 'collectiveExclusions' "
+			"DESC 'RFC3671: collective attribute exclusions' "
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
 			"USAGE directoryOperation )",
@@ -566,7 +572,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_namingCSN) },
 
-#if 0
+#ifdef LDAP_SUPERIOR_UUID
 	{ "superiorUUID", "( 1.3.6.1.4.1.4203.666.1.11 NAME 'superiorUUID' "   
 			"DESC 'UUID of the superior entry' "
 			"EQUALITY octetStringMatch "
@@ -602,7 +608,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_contextCSN) },
 
-#ifdef LDAP_DEVEL
+#ifdef LDAP_SYNC_TIMESTAMP
 	{ "syncTimestamp", "( 1.3.6.1.4.1.4203.666.1.26 NAME 'syncTimestamp' "
 			"DESC 'Time which object was replicated' "
 			"EQUALITY generalizedTimeMatch "
@@ -862,7 +868,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_aci) },
 #endif
 
-#ifdef LDAP_DEVEL
+#ifdef LDAP_DYNAMIC_OBJECTS
 	{ "entryTtl", "( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl' "
 			"DESC 'RFC2589: entry time-to-live' "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE "

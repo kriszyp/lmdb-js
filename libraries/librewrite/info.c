@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -261,7 +261,9 @@ rewrite_session(
 	case REWRITE_REGEXEC_UNWILLING:
 	case REWRITE_REGEXEC_ERR:
 		if ( *result != NULL ) {
-			free( *result );
+			if ( *result != string ) {
+				free( *result );
+			}
 			*result = NULL;
 		}
 

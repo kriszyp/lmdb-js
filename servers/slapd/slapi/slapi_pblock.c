@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2004 The OpenLDAP Foundation.
+ * Copyright 2002-2005 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -228,6 +228,10 @@ isOkNetscapeParam( int param )
 static int
 isValidParam( Slapi_PBlock *pb, int param ) 
 {
+	if ( !pb ) {
+		return INVALID_PARAM;
+	}
+	
 	if ( pb->ckParams == TRUE ) {
 		if ( IBM_RESERVED( param ) ) return LDAP_SUCCESS;
 		if (param == SLAPI_PLUGIN_AUDIT_FN ||

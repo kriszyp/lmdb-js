@@ -1,7 +1,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 2004 The OpenLDAP Foundation.
+## Copyright 2004-2005 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -12,16 +12,20 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 #
-## Portions Copyright (C) The Internet Society (2004).  All Rights Reserved.
+## Portions Copyright (C) The Internet Society (2004).
 ## Please see full copyright statement below.
 
-# Definitions from Draft behera-ldap-password-policy-07
+# Definitions from Draft behera-ldap-password-policy-07 (a work in progress)
 #	Password Policy for LDAP Directories
-
 # With extensions from Hewlett-Packard:
 #	pwdCheckModule etc.
 
-# 
+# Contents of this file are subject to change (including deletion)
+# without notice.
+#
+# Not recommended for production use!
+# Use with extreme caution!
+
 # Internet-Draft                                                P. Behera
 # draft behera-ldap-password-policy-07.txt                      L. Poitou
 # Intended Category: Proposed Standard                   Sun Microsystems

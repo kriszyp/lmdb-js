@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -148,8 +148,6 @@ retry:	/* transaction retry */
 
 	/* FIXME : dn2entry() should return non-glue entry */
 	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
-		BerVarray deref = NULL;
-
 		Debug( LDAP_DEBUG_ARGS,
 			"<=- " LDAP_XSTRING(bdb_delete) ": no such object %s\n",
 			op->o_req_dn.bv_val, 0, 0);
@@ -163,18 +161,8 @@ retry:	/* transaction retry */
 			matched = NULL;
 
 		} else {
-			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				syncinfo_t *si;
-				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-					struct berval tmpbv;
-					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
-					ber_bvarray_add( &deref, &tmpbv );
-				}
-			} else {
-				deref = default_referral;
-			}
-			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
-					LDAP_SCOPE_DEFAULT );
+			rs->sr_ref = referral_rewrite( default_referral, NULL,
+					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -182,9 +170,6 @@ retry:	/* transaction retry */
 
 		if ( rs->sr_ref != default_referral ) {
 			ber_bvarray_free( rs->sr_ref );
-		}
-		if ( deref != default_referral ) {
-			ber_bvarray_free( deref );
 		}
 		free( (char *)rs->sr_matched );
 		rs->sr_ref = NULL;
@@ -377,22 +362,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef BDB_PSEARCH
-	ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
-	LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-		rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_PREDELETE );
-		if ( rc == LDAP_BUSY && op->o_ps_send_wait ) {
-			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
-			goto retry;
-		} else if ( rc ) {
-			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_delete) ": persistent search "
-				"failed (%d,%d)\n", rc, rs->sr_err, 0 );
-		}
-	}
-	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
-#endif
-
 	/* delete from dn2id */
 	rs->sr_err = bdb_dn2id_delete( op, lt2, eip, e );
 	if ( rs->sr_err != 0 ) {
@@ -482,21 +451,6 @@ retry:	/* transaction retry */
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
 #endif
 
-#ifdef BDB_PSEARCH
-	if ( !dn_match( &ctxcsn_ndn, &op->o_req_ndn ) &&
-		 !be_issuffix( op->o_bd, &op->o_req_ndn ) &&
-			LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
-			&ctxcsn_e, &ctxcsn_added, locker );
-		switch ( rc ) {
-		case BDB_CSN_ABORT :
-			goto return_results;
-		case BDB_CSN_RETRY :
-			goto retry;
-		}
-	}
-#endif
-
 	if( op->o_noop ) {
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
@@ -512,43 +466,6 @@ retry:	/* transaction retry */
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		}
-
-#ifdef BDB_PSEARCH
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-			if ( ctxcsn_added ) {
-				bdb_cache_add( bdb, suffix_ei,
-					ctxcsn_e, (struct berval *)&slap_ldapsync_cn_bv, locker );
-			}
-		}
-
-		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
-			Attribute *a;
-			a = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
-			if ( a ) {
-				if( (void *) e->e_attrs != (void *) (e+1)) {
-					attr_delete( &e->e_attrs, slap_schema.si_ad_entryCSN );
-					attr_merge_normalize_one( e, slap_schema.si_ad_entryCSN,
-					&op->o_sync_csn, NULL );
-				} else {
-					a->a_vals[0] = op->o_sync_csn;
-				}
-			} else {
-				/* Hm, the entryCSN ought to exist. ??? */
-			}
-			ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
-			LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
-				if ( rc ) {
-					Debug( LDAP_DEBUG_TRACE,
-						LDAP_XSTRING(bdb_delete)
-						": persistent search failed "
-						"(%d,%d)\n",
-						rc, rs->sr_err, 0 );
-				}
-			}
-			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
-		}
-#endif
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}

@@ -1,6 +1,6 @@
 .TH SLAPADD 8C "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
-.\" Copyright 1998-2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 1998-2005 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 slapadd \- Add entries to a SLAPD database
@@ -9,13 +9,10 @@ slapadd \- Add entries to a SLAPD database
 .B [\-v]
 .B [\-c]
 .B [\-u]
-.B [\-p]
-.B [\-r]
 .B [\-w]
 .B [\-d level]
 .B [\-b suffix]
 .B [\-n dbnum]
-.B [\-i rid1,rid2,...]
 .B [\-f slapd.conf]
 .B [\-l ldif-file]
 .SH DESCRIPTION
@@ -49,24 +46,10 @@ enable continue (ignore errors) mode.
 .B \-u
 enable dry-run (don't write to backend) mode.
 .TP
-.BI \-p
-If the LDIF input represents a syncrepl consumer replica,
-promote it to the syncrepl provider's content after adding
-the entries.
-.TP
-.BI \-r
-If  the  LDIF  input represents a  syncrepl  provider, demote 
-it  to  the syncrepl consumer replica after adding the entries.
-.TP
 .BI \-w
-When used with either 
-.B \-p
-or
-.B \-r,
-rebuild the new syncrepl
-information from the contents of the added entries.
-The syncrepl information contained in the LDIF input
-file is ignored.
+write syncrepl context information.
+After all entries are added, the contextCSN
+will be updated with the greatest CSN in the database.
 .TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
@@ -86,11 +69,6 @@ configuration file.  The
 cannot be used in conjunction with the
 .B \-b
 option.
-.TP
-.BI \-i " rid1,rid2,..."
-Specify the replication ids for one or more syncrepl consumer
-replicas contained in the LDIF input. If omitted, 0 is used
-as the replication id.
 .TP
 .BI \-f " slapd.conf"
 specify an alternative

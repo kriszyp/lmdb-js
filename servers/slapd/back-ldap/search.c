@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -105,13 +105,11 @@ ldap_back_search(
 	}
 
 	ctrls = op->o_ctrls;
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		dontfreetext = 1;
 		goto finish;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 	
 retry:
 	rs->sr_err = ldap_search_ext( lc->lc_ld, op->o_req_ndn.bv_val,
@@ -274,9 +272,7 @@ fail:;
 finish:;
 	send_ldap_result( op, rs );
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	if ( rs->sr_ctrls ) {
 		ldap_controls_free( rs->sr_ctrls );
@@ -462,7 +458,7 @@ ldap_build_entry(
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
-					NULL /* op->o_tmpmemctx */ );
+					NULL );
 
 				if ( rc != LDAP_SUCCESS ) {
 					BER_BVZERO( &attr->a_nvals[i] );
@@ -498,7 +494,6 @@ ldap_back_entry_get(
 {
 	struct ldapconn *lc;
 	int		rc = 1,
-			is_oc,
 			do_not_cache;
 	struct berval	bdn;
 	LDAPMessage	*result = NULL,
@@ -508,6 +503,7 @@ ldap_back_entry_get(
 	Connection	*oconn;
 	SlapReply	rs;
 	int		do_retry = 1;
+	LDAPControl	**ctrls = NULL;
 
 	/* Tell getconn this is a privileged op */
 	do_not_cache = op->o_do_not_cache;
@@ -524,9 +520,8 @@ ldap_back_entry_get(
 	op->o_conn = oconn;
 
 	if ( at ) {
-		is_oc = ( strcasecmp( "objectclass", at->ad_cname.bv_val ) == 0 );
-		if ( oc && !is_oc ) {
-			gattr[0] = "objectclass";
+		if ( oc && at != slap_schema.si_ad_objectClass ) {
+			gattr[0] = slap_schema.si_ad_objectClass->ad_cname.bv_val;
 			gattr[1] = at->ad_cname.bv_val;
 			gattr[2] = NULL;
 
@@ -547,9 +542,15 @@ ldap_back_entry_get(
 		*ptr++ = '\0';
 	}
 
+	ctrls = op->o_ctrls;
+	rc = ldap_back_proxy_authz_ctrl( lc, op, &rs, &ctrls );
+	if ( rc != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+	
 retry:
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
-				at ? gattr : NULL, 0, NULL, NULL, LDAP_NO_LIMIT,
+				at ? gattr : NULL, 0, ctrls, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
@@ -576,6 +577,8 @@ retry:
 	}
 
 cleanup:
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
 	if ( result ) {
 		ldap_msgfree( result );
 	}

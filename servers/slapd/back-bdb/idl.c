@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2004 The OpenLDAP Foundation.
+ * Copyright 2000-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -441,7 +441,14 @@ bdb_idl_fetch_key(
 #if DB_VERSION_FULL < 0x04010000
 #	define BDB_ENOUGH 5
 #else
+	/* We sometimes test with tiny IDLs, and BDB always wants buffers
+	 * that are at least one page in size.
+	 */
+# if BDB_IDL_DB_SIZE < 4096
+#   define BDB_ENOUGH 2048
+# else
 #	define BDB_ENOUGH 1
+# endif
 #endif
 	ID buf[BDB_IDL_DB_SIZE*BDB_ENOUGH];
 
@@ -653,6 +660,7 @@ bdb_idl_insert_key(
 			if ( count >= BDB_IDL_DB_MAX ) {
 			/* No room, convert to a range */
 				DBT key2 = *key;
+				db_recno_t i;
 
 				key2.dlen = key2.ulen;
 				key2.flags |= DB_DBT_PARTIAL;
@@ -679,35 +687,62 @@ bdb_idl_insert_key(
 					}
 				}
 				BDB_DISK2ID( &nhi, &hi );
-				if ( id < lo ) {
-					lo = id;
-					nlo = nid;
-				} else if ( id > hi ) {
-					hi = id;
-					nhi = nid;
+				/* Update hi/lo if needed, then delete all the items
+				 * between lo and hi
+				 */
+				data.data = &nid;
+				if ( id > hi ) {
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del hi";
+						goto fail;
+					}
+					rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
+					if ( rc != 0 ) {
+						err = "c_put hi";
+						goto fail;
+					}
 				}
-				rc = db->del( db, tid, key, 0 );
+				/* Don't fetch anything, just position cursor */
+				data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+				data.dlen = data.ulen = 0;
+				rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
 				if ( rc != 0 ) {
-					err = "del";
+					err = "c_get 2";
 					goto fail;
 				}
-				data.data = &nid;
+				if ( id < lo ) {
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del lo";
+						goto fail;
+					}
+					rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+					if ( rc != 0 ) {
+						err = "c_put lo";
+						goto fail;
+					}
+				}
+				/* Delete all the records between lo and hi */
+				for ( i=2; i<count; i++ ) {
+					rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_DUP | DB_RMW );
+					if ( rc != 0 ) {
+						err = "c_get next_dup";
+						goto fail;
+					}
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del range";
+						goto fail;
+					}
+				}
+				/* Store the range marker */
+				data.size = data.ulen = sizeof(ID);
+				data.flags = DB_DBT_USERMEM;
 				nid = 0;
 				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 				if ( rc != 0 ) {
-					err = "c_put 0";
-					goto fail;
-				}
-				nid = nlo;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-				if ( rc != 0 ) {
-					err = "c_put lo";
-					goto fail;
-				}
-				nid = nhi;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-				if ( rc != 0 ) {
-					err = "c_put hi";
+					err = "c_put range";
 					goto fail;
 				}
 			} else {

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * Portions Copyright 2003 Howard Chu.
  * All rights reserved.
  *
@@ -21,25 +21,23 @@
 
 #include "portable.h"
 
-#if defined(SLAPD_LDAP) 
-
-#ifdef SLAPD_OVER_CHAIN
-
 #include <stdio.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "../back-ldap/back-ldap.h"
+#include "back-ldap.h"
 
 static BackendInfo *lback;
 
+#if 0
 static int
 ldap_chain_chk_referrals( Operation *op, SlapReply *rs )
 {
 	return LDAP_SUCCESS;
 }
+#endif
 
 static int
 ldap_chain_operational( Operation *op, SlapReply *rs )
@@ -95,9 +93,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
 	void		*private = op->o_bd->be_private;
 	slap_callback	*sc = op->o_callback;
-	LDAPControl	**prev = op->o_ctrls;
-	LDAPControl	**ctrls = NULL, authz;
-	int		i, nctrls, rc = 0;
+	int		rc = 0;
 	int		cache = op->o_do_not_cache;
 	char		*authzid = NULL;
 	BerVarray	ref;
@@ -134,7 +130,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 			/* parse reference and use 
 			 * proto://[host][:port]/ only */
 			rc = ldap_url_parse_ext( ref[0].bv_val, &srv );
-			if ( rc != LDAP_URL_SUCCESS) {
+			if ( rc != LDAP_URL_SUCCESS ) {
 				/* error */
 				return 1;
 			}
@@ -159,41 +155,11 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		op->o_bd->be_private = on->on_bi.bi_private;
 	}
 
-	/* Chaining is performed by a privileged user on behalf
-	 * of a normal user, using the ProxyAuthz control. However,
-	 * Binds are done separately, on an anonymous session.
+	/* Chaining can be performed by a privileged user on behalf
+	 * of normal users, using the ProxyAuthz control, by exploiting
+	 * the identity assertion feature of back-ldap; see idassert-*
+	 * directives in slapd-ldap(5).
 	 */
-	if ( op->o_tag != LDAP_REQ_BIND ) {
-		for ( i = 0; prev && prev[i]; i++ )
-			/* count and set prev to the last one */ ;
-		nctrls = i;
-
-		/* Add an extra NULL slot */
-		if ( !prev ) {
-			i++;
-		}
-
-		ctrls = op->o_tmpalloc((i + 1)*sizeof(LDAPControl *),
-			op->o_tmpmemctx);
-		for ( i = 0; i < nctrls; i++ ) {
-			ctrls[i] = prev[i];
-		}
-		ctrls[nctrls] = &authz;
-		ctrls[nctrls + 1] = NULL;
-		authz.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		authz.ldctl_iscritical = 1;
-		authz.ldctl_value = op->o_dn;
-		if ( !BER_BVISEMPTY( &op->o_dn ) ) {
-			authzid = op->o_tmpalloc( op->o_dn.bv_len + STRLENOF("dn:"),
-				op->o_tmpmemctx );
-			strcpy(authzid, "dn:");
-			strcpy(authzid + STRLENOF("dn:"), op->o_dn.bv_val);
-			authz.ldctl_value.bv_len = op->o_dn.bv_len + STRLENOF("dn:");
-			authz.ldctl_value.bv_val = authzid;
-		}
-		op->o_ctrls = ctrls;
-		op->o_ndn = op->o_bd->be_rootndn;
-	}
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_BIND: {
@@ -363,19 +329,21 @@ end_of_searchref:;
 	    	break;
 	case LDAP_REQ_EXTENDED:
 		rc = lback->bi_extended( op, rs );
+		/* FIXME: ldap_back_extended() by design 
+		 * doesn't send result; frontend is expected
+		 * to send it... */
+		if ( rc != SLAPD_ABANDON ) {
+			send_ldap_extended( op, rs );
+		}
 		break;
 	default:
 		rc = SLAP_CB_CONTINUE;
 		break;
 	}
 	op->o_do_not_cache = cache;
-	op->o_ctrls = prev;
 	op->o_bd->be_private = private;
 	op->o_callback = sc;
 	op->o_ndn = ndn;
-	if ( ctrls ) {
-		op->o_tmpfree( ctrls, op->o_tmpmemctx );
-	}
 	if ( authzid ) {
 		op->o_tmpfree( authzid, op->o_tmpmemctx );
 	}
@@ -388,7 +356,7 @@ end_of_searchref:;
 }
 
 static int
-ldap_chain_config(
+ldap_chain_db_config(
 	BackendDB	*be,
 	const char	*fname,
 	int		lineno,
@@ -416,13 +384,21 @@ ldap_chain_config(
 }
 
 static int
-ldap_chain_init(
+ldap_chain_db_init(
 	BackendDB *be
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	void *private = be->be_private;
 	int rc;
+
+	if ( lback == NULL ) {
+		lback = backend_info( "ldap" );
+
+		if ( lback == NULL ) {
+			return -1;
+		}
+	}
 
 	be->be_private = NULL;
 	rc = lback->bi_db_init( be );
@@ -433,7 +409,7 @@ ldap_chain_init(
 }
 
 static int
-ldap_chain_destroy(
+ldap_chain_db_destroy(
 	BackendDB *be
 )
 {
@@ -451,18 +427,12 @@ ldap_chain_destroy(
 static slap_overinst ldapchain;
 
 int
-chain_init()
+chain_init( void )
 {
-	lback = backend_info( "ldap" );
-
-	if ( !lback ) {
-		return -1;
-	}
-
 	ldapchain.on_bi.bi_type = "chain";
-	ldapchain.on_bi.bi_db_init = ldap_chain_init;
-	ldapchain.on_bi.bi_db_config = ldap_chain_config;
-	ldapchain.on_bi.bi_db_destroy = ldap_chain_destroy;
+	ldapchain.on_bi.bi_db_init = ldap_chain_db_init;
+	ldapchain.on_bi.bi_db_config = ldap_chain_db_config;
+	ldapchain.on_bi.bi_db_destroy = ldap_chain_db_destroy;
 	
 	/* ... otherwise the underlying backend's function would be called,
 	 * likely passing an invalid entry; on the contrary, the requested
@@ -477,18 +447,10 @@ chain_init()
 	
 	ldapchain.on_response = ldap_chain_response;
 
-
+#if 0
 	ldapchain.on_bi.bi_chk_referrals = ldap_chain_chk_referrals;
+#endif
 
 	return overlay_register( &ldapchain );
 }
 
-#if SLAPD_OVER_CHAIN == SLAPD_MOD_DYNAMIC
-int init_module(int argc, char *argv[]) {
-	return chain_init();
-}
-#endif /* SLAPD_OVER_CHAIN == SLAPD_MOD_DYNAMIC */
-
-#endif /* SLAPD_OVER_CHAIN */
-
-#endif /* ! defined(SLAPD_LDAP) */

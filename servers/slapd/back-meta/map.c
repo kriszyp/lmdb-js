@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ mapping_cmp ( const void *c1, const void *c2 )
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
 	int rc = map1->src.bv_len - map2->src.bv_len;
 	if (rc) return rc;
-	return ( strcasecmp(map1->src.bv_val, map2->src.bv_val) );
+	return ( strcasecmp( map1->src.bv_val, map2->src.bv_val ) );
 }
 
 int
@@ -79,7 +79,7 @@ mapping_dup ( void *c1, void *c2 )
 	struct ldapmapping *map1 = (struct ldapmapping *)c1;
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
 
-	return( ( strcasecmp(map1->src.bv_val, map2->src.bv_val) == 0 ) ? -1 : 0 );
+	return ( ( strcasecmp( map1->src.bv_val, map2->src.bv_val ) == 0 ) ? -1 : 0 );
 }
 
 void
@@ -116,23 +116,25 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	Avlnode *tree;
 	struct ldapmapping *mapping, fmapping;
 
-	if (remap == BACKLDAP_REMAP)
+	if ( remap == BACKLDAP_REMAP ) {
 		tree = map->remap;
-	else
+	} else {
 		tree = map->map;
+	}
 
-	bv->bv_len = 0;
-	bv->bv_val = NULL;
+	BER_BVZERO( bv );
 	fmapping.src = *s;
 	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
-	if (mapping != NULL) {
-		if ( mapping->dst.bv_val )
+	if ( mapping != NULL ) {
+		if ( !BER_BVISNULL( &mapping->dst ) ) {
 			*bv = mapping->dst;
+		}
 		return;
 	}
 
-	if (!map->drop_missing)
+	if ( !map->drop_missing ) {
 		*bv = *s;
+	}
 
 	return;
 }
@@ -149,28 +151,29 @@ ldap_back_map_attrs(
 	char **na;
 	struct berval mapped;
 
-	if (an == NULL) {
+	if ( an == NULL ) {
 		*mapped_attrs = NULL;
 		return LDAP_SUCCESS;
 	}
 
-	for (i = 0; an[i].an_name.bv_val; i++) {
-		/*  */
-	}
+	for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ )
+		/*  */ ;
 
 	na = (char **)ch_calloc( i + 1, sizeof(char *) );
-	if (na == NULL) {
+	if ( na == NULL ) {
 		*mapped_attrs = NULL;
 		return LDAP_NO_MEMORY;
 	}
 
-	for (i = j = 0; an[i].an_name.bv_val; i++) {
-		ldap_back_map(at_map, &an[i].an_name, &mapped, remap);
-		if (mapped.bv_val != NULL && mapped.bv_val != '\0')
+	for ( i = j = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
+		ldap_back_map( at_map, &an[i].an_name, &mapped, remap );
+		if ( !BER_BVISNULL( &mapped ) && !BER_BVISEMPTY( &mapped ) ) {
 			na[j++] = mapped.bv_val;
+		}
 	}
-	if (j == 0 && i != 0)
+	if ( j == 0 && i != 0 ) {
 		na[j++] = LDAP_NO_ATTRS;
+	}
 	na[j] = NULL;
 
 	*mapped_attrs = na;
@@ -190,12 +193,12 @@ map_attr_value(
 	int			freeval = 0;
 
 	ldap_back_map( &dc->rwmap->rwm_at, &ad->ad_cname, mapped_attr, remap );
-	if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0') {
+	if ( BER_BVISNULL( mapped_attr ) || BER_BVISEMPTY( mapped_attr ) ) {
 		/*
 		 * FIXME: are we sure we need to search oc_map if at_map fails?
 		 */
 		ldap_back_map( &dc->rwmap->rwm_oc, &ad->ad_cname, mapped_attr, remap );
-		if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0' ) {
+		if ( BER_BVISNULL( mapped_attr ) || BER_BVISEMPTY( mapped_attr ) ) {
 			*mapped_attr = ad->ad_cname;
 		}
 	}
@@ -228,7 +231,7 @@ map_attr_value(
 
 	} else if ( ad == slap_schema.si_ad_objectClass || ad == slap_schema.si_ad_structuralObjectClass ) {
 		ldap_back_map( &dc->rwmap->rwm_oc, value, &vtmp, remap );
-		if ( vtmp.bv_val == NULL || vtmp.bv_val[0] == '\0' ) {
+		if ( BER_BVISNULL( &vtmp ) || BER_BVISEMPTY( &vtmp ) ) {
 			vtmp = *value;
 		}
 		
@@ -341,13 +344,13 @@ ldap_back_int_filter_map_rewrite(
 
 		/* cannot be a DN ... */
 
-		fstr->bv_len = atmp.bv_len + ( sizeof("(=*)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 128 );
+		fstr->bv_len = atmp.bv_len + ( STRLENOF( "(=*)" ) );
+		fstr->bv_val = malloc( fstr->bv_len + 128 ); /* FIXME: why 128 ? */
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			atmp.bv_val );
 
-		if ( f->f_sub_initial.bv_val != NULL ) {
+		if ( !BER_BVISNULL( &f->f_sub_initial ) ) {
 			len = fstr->bv_len;
 
 			filter_escape_value( &f->f_sub_initial, &vtmp );
@@ -363,7 +366,7 @@ ldap_back_int_filter_map_rewrite(
 		}
 
 		if ( f->f_sub_any != NULL ) {
-			for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
+			for ( i = 0; !BER_BVISNULL( &f->f_sub_any[i] ); i++ ) {
 				len = fstr->bv_len;
 				filter_escape_value( &f->f_sub_any[i], &vtmp );
 
@@ -377,7 +380,7 @@ ldap_back_int_filter_map_rewrite(
 			}
 		}
 
-		if ( f->f_sub_final.bv_val != NULL ) {
+		if ( !BER_BVISNULL( &f->f_sub_final ) ) {
 			len = fstr->bv_len;
 
 			filter_escape_value( &f->f_sub_final, &vtmp );
@@ -401,7 +404,7 @@ ldap_back_int_filter_map_rewrite(
 			return -1;
 		}
 
-		fstr->bv_len = atmp.bv_len + ( sizeof("(=*)") - 1 );
+		fstr->bv_len = atmp.bv_len + ( STRLENOF( "(=*)" ) );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
@@ -411,8 +414,8 @@ ldap_back_int_filter_map_rewrite(
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
-		fstr->bv_len = sizeof("(%)") - 1;
-		fstr->bv_val = malloc( fstr->bv_len + 128 );
+		fstr->bv_len = STRLENOF( "(%)" );
+		fstr->bv_val = malloc( fstr->bv_len + 128 );	/* FIXME: why 128? */
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
 			f->f_choice == LDAP_FILTER_AND ? '&' :
@@ -446,24 +449,22 @@ ldap_back_int_filter_map_rewrite(
 			}
 
 		} else {
-			atmp.bv_len = 0;
-			atmp.bv_val = "";
-			
+			BER_BVSTR( &atmp, "" );
 			filter_escape_value( &f->f_mr_value, &vtmp );
 		}
-			
 
+		/* FIXME: cleanup (less ?: operators...) */
 		fstr->bv_len = atmp.bv_len +
-			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
-			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
-			vtmp.bv_len + ( sizeof("(:=)") - 1 );
+			( f->f_mr_dnattrs ? STRLENOF( ":dn" ) : 0 ) +
+			( !BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_len + 1 : 0 ) +
+			vtmp.bv_len + ( STRLENOF( "(:=)" ) );
 		fstr->bv_val = malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			atmp.bv_val,
 			f->f_mr_dnattrs ? ":dn" : "",
-			f->f_mr_rule_text.bv_len ? ":" : "",
-			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
+			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? ":" : "",
+			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_val : "",
 			vtmp.bv_val );
 		ber_memfree( vtmp.bv_val );
 		} break;
@@ -523,6 +524,7 @@ ldap_back_filter_map_rewrite(
 	case REWRITE_REGEXEC_OK:
 		if ( !BER_BVISNULL( fstr ) ) {
 			fstr->bv_len = strlen( fstr->bv_val );
+
 		} else {
 			*fstr = ftmp;
 		}
@@ -579,6 +581,14 @@ ldap_back_referral_result_rewrite(
 			continue;
 		}
 
+		/* FIXME: URLs like "ldap:///dc=suffix" if passed
+		 * thru ldap_url_parse() and ldap_url_desc2str()
+		 * get rewritten as "ldap:///dc=suffix??base";
+		 * we don't want this to occur... */
+		if ( ludp->lud_scope == LDAP_SCOPE_BASE ) {
+			ludp->lud_scope = LDAP_SCOPE_DEFAULT;
+		}
+
 		ber_str2bv( ludp->lud_dn, 0, 0, &olddn );
 		
 		rc = ldap_back_dn_massage( dc, &olddn, &dn );
@@ -608,7 +618,8 @@ ldap_back_referral_result_rewrite(
 				newurl = ldap_url_desc2str( ludp );
 				if ( newurl == NULL ) {
 					/* FIXME: leave attr untouched
-					 * even if ldap_url_desc2str failed... */
+					 * even if ldap_url_desc2str failed...
+					 */
 					break;
 				}
 
@@ -642,10 +653,13 @@ ldap_dnattr_rewrite(
 	struct berval	bv;
 	int		i, last;
 
-	for ( last = 0; a_vals[last].bv_val != NULL; last++ );
+	assert( a_vals != NULL );
+
+	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ )
+		;
 	last--;
 
-	for ( i = 0; a_vals[i].bv_val != NULL; i++ ) {
+	for ( i = 0; !BER_BVISNULL( &a_vals[i] ); i++ ) {
 		switch ( ldap_back_dn_massage( dc, &a_vals[i], &bv ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
@@ -654,17 +668,16 @@ ldap_dnattr_rewrite(
 			 * it should be when searching (e.g. ACLs).
 			 */
 			ch_free( a_vals[i].bv_val );
-			if (last > i ) {
+			if ( last > i ) {
 				a_vals[i] = a_vals[last];
 			}
-			a_vals[last].bv_len = 0;
-			a_vals[last].bv_val = NULL;
+			BER_BVZERO( &a_vals[last] );
 			last--;
 			break;
 
 		default:
 			/* leave attr untouched if massage failed */
-			if ( bv.bv_val && bv.bv_val != a_vals[i].bv_val ) {
+			if ( !BER_BVISNULL( &bv ) && bv.bv_val != a_vals[i].bv_val ) {
 				ch_free( a_vals[i].bv_val );
 				a_vals[i] = bv;
 			}
@@ -684,10 +697,13 @@ ldap_dnattr_result_rewrite(
 	struct berval	bv;
 	int		i, last;
 
-	for ( last = 0; a_vals[last].bv_val; last++ );
+	assert( a_vals != NULL );
+
+	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ )
+		;
 	last--;
 
-	for ( i = 0; a_vals[i].bv_val; i++ ) {
+	for ( i = 0; !BER_BVISNULL( &a_vals[i] ); i++ ) {
 		switch ( ldap_back_dn_massage( dc, &a_vals[i], &bv ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
@@ -705,7 +721,7 @@ ldap_dnattr_result_rewrite(
 
 		default:
 			/* leave attr untouched if massage failed */
-			if ( bv.bv_val && a_vals[i].bv_val != bv.bv_val ) {
+			if ( !BER_BVISNULL( &bv ) && a_vals[i].bv_val != bv.bv_val ) {
 				LBER_FREE( a_vals[i].bv_val );
 				a_vals[i] = bv;
 			}

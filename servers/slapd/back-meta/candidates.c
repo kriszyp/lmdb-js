@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2004 The OpenLDAP Foundation.
+ * Copyright 1999-2005 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -95,7 +95,8 @@ meta_back_count_candidates(
 	assert( li->ntargets != 0 );
 
 	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->targets[ i ]->suffix, ndn ) ) {
+		if ( meta_back_is_candidate( &li->targets[ i ]->mt_nsuffix, ndn ) )
+		{
 			++cnt;
 		}
 	}
@@ -131,7 +132,7 @@ meta_back_select_unique_candidate(
 		struct berval		*ndn
 )
 {
-	int i;
+	int	i;
 	
 	switch ( meta_back_count_candidates( li, ndn ) ) {
 	case 1:
@@ -139,16 +140,17 @@ meta_back_select_unique_candidate(
 	case 0:
 	default:
 		return ( li->defaulttarget == META_DEFAULT_TARGET_NONE
-			       	? -1 : li->defaulttarget );
+			       	? META_TARGET_NONE : li->defaulttarget );
 	}
 
 	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->targets[ i ]->suffix, ndn ) ) {
+		if ( meta_back_is_candidate( &li->targets[ i ]->mt_nsuffix, ndn ) )
+		{
 			return i;
 		}
 	}
 
-	return -1;
+	return META_TARGET_NONE;
 }
 
 /*
@@ -170,7 +172,7 @@ meta_clear_unused_candidates(
 		if ( i == candidate ) {
 			continue;
 		}
-		meta_clear_one_candidate( &lc->conns[ i ], reallyclean );
+		meta_clear_one_candidate( &lc->mc_conns[ i ], reallyclean );
 	}
 
 	return 0;
@@ -187,27 +189,25 @@ meta_clear_one_candidate(
 		int			reallyclean
 )
 {
-	lsc->candidate = META_NOT_CANDIDATE;
+	lsc->msc_candidate = META_NOT_CANDIDATE;
 
 	if ( !reallyclean ) {
 		return 0;
 	}
 
-	if ( lsc->ld ) {
-		ldap_unbind( lsc->ld );
-		lsc->ld = NULL;
+	if ( lsc->msc_ld ) {
+		ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
+		lsc->msc_ld = NULL;
 	}
 
-	if ( lsc->bound_dn.bv_val != NULL ) {
-		ber_memfree( lsc->bound_dn.bv_val );
-		lsc->bound_dn.bv_val = NULL;
-		lsc->bound_dn.bv_len = 0;
+	if ( !BER_BVISNULL( &lsc->msc_bound_ndn ) ) {
+		ber_memfree( lsc->msc_bound_ndn.bv_val );
+		BER_BVZERO( &lsc->msc_bound_ndn );
 	}
 
-	if ( lsc->cred.bv_val != NULL ) {
-		ber_memfree( lsc->cred.bv_val );
-		lsc->cred.bv_val = NULL;
-		lsc->cred.bv_len = 0;
+	if ( !BER_BVISNULL( &lsc->msc_cred ) ) {
+		ber_memfree( lsc->msc_cred.bv_val );
+		BER_BVZERO( &lsc->msc_cred );
 	}
 
 	return 0;

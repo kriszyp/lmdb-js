@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
  *
@@ -27,57 +27,32 @@
 #include "../../libraries/liblber/lber-int.h" /* get ber_strndup() */
 #include "lutil_ldap.h"
 
-#if 0
-struct sync_cookie *slap_sync_cookie = NULL;
-#else
 struct slap_sync_cookie_s slap_sync_cookie =
 	LDAP_STAILQ_HEAD_INITIALIZER( slap_sync_cookie );
-#endif
 
 void
 slap_compose_sync_cookie(
 	Operation *op,
 	struct berval *cookie,
 	struct berval *csn,
-	int sid,
 	int rid )
 {
 	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 20 ];
 
-	if ( csn->bv_val == NULL ) {
-		if ( sid == -1 ) {
-			if ( rid == -1 ) {
-				cookiestr[0] = '\0';
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"rid=%03d", rid );
-			}
+	if ( BER_BVISNULL( csn )) {
+		if ( rid == -1 ) {
+			cookiestr[0] = '\0';
 		} else {
-			if ( rid == -1 ) {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"sid=%03d", sid );
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"sid=%03d,rid=%03d", sid, rid );
-			}
+			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+					"rid=%03d", rid );
 		}
 	} else {
-		if ( sid == -1 ) {
-			if ( rid == -1 ) {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s", csn->bv_val );
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s,rid=%03d", csn->bv_val, rid );
-			}
+		if ( rid == -1 ) {
+			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+					"csn=%s", csn->bv_val );
 		} else {
-			if ( rid == -1 ) {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s,sid=%03d", csn->bv_val, sid );
-			} else {
-				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
-						"csn=%s,sid=%03d,rid=%03d", csn->bv_val, sid, rid );
-			}
+			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+					"csn=%s,rid=%03d", csn->bv_val, rid );
 		}
 	}
 	ber_str2bv( cookiestr, strlen(cookiestr), 1, cookie );
@@ -92,14 +67,14 @@ slap_sync_cookie_free(
 	if ( cookie == NULL )
 		return;
 
-	if ( cookie->ctxcsn ) {
-		ber_bvarray_free( cookie->ctxcsn );
-		cookie->ctxcsn = NULL;
+	if ( !BER_BVISNULL( &cookie->ctxcsn )) {
+		ch_free( cookie->ctxcsn.bv_val );
+		BER_BVZERO( &cookie->ctxcsn );
 	}
 
-	if ( cookie->octet_str ) {
-		ber_bvarray_free( cookie->octet_str );
-		cookie->octet_str = NULL;
+	if ( !BER_BVISNULL( &cookie->octet_str )) {
+		ch_free( cookie->octet_str.bv_val );
+		BER_BVZERO( &cookie->octet_str );
 	}
 
 	if ( free_cookie ) {
@@ -118,17 +93,14 @@ slap_parse_sync_cookie(
 	char *csn_str;
 	int csn_str_len;
 	int valid = 0;
-	char *sid_ptr;
-	char *sid_str;
 	char *rid_ptr;
 	char *rid_str;
 	char *cval;
-	struct berval ctxcsn;
 
 	if ( cookie == NULL )
 		return -1;
 
-	while (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
+	while (( csn_ptr = strstr( cookie->octet_str.bv_val, "csn=" )) != NULL ) {
 		AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
 		slap_syntax_validate_func *validate;
 		struct berval stamp;
@@ -153,25 +125,12 @@ slap_parse_sync_cookie(
 		break;
 	}
 	if ( valid ) {
-		ber_str2bv( csn_str, csn_str_len, 1, &ctxcsn );
-		ber_bvarray_add( &cookie->ctxcsn, &ctxcsn );
+		ber_str2bv( csn_str, csn_str_len, 1, &cookie->ctxcsn );
 	} else {
-		cookie->ctxcsn = NULL;
+		BER_BVZERO( &cookie->ctxcsn );
 	}
 
-	if (( sid_ptr = strstr( cookie->octet_str->bv_val, "sid=" )) != NULL ) {
-		sid_str = SLAP_STRNDUP( sid_ptr,
-							SLAP_SYNC_SID_SIZE + sizeof("sid=") - 1 );
-		if ( (cval = strchr( sid_str, ',' )) != NULL ) {
-			*cval = '\0';
-		}
-		cookie->sid = atoi( sid_str + sizeof("sid=") - 1 );
-		ch_free( sid_str );
-	} else {
-		cookie->sid = -1;
-	}
-
-	if (( rid_ptr = strstr( cookie->octet_str->bv_val, "rid=" )) != NULL ) {
+	if (( rid_ptr = strstr( cookie->octet_str.bv_val, "rid=" )) != NULL ) {
 		rid_str = SLAP_STRNDUP( rid_ptr,
 							SLAP_SYNC_RID_SIZE + sizeof("rid=") - 1 );
 		if ( (cval = strchr( rid_str, ',' )) != NULL ) {
@@ -193,8 +152,6 @@ slap_init_sync_cookie_ctxcsn(
 	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE + 4 ];
 	struct berval octet_str = BER_BVNULL;
 	struct berval ctxcsn = BER_BVNULL;
-	struct berval ctxcsn_dup = BER_BVNULL;
-	struct berval slap_syncCookie;
 
 	if ( cookie == NULL )
 		return -1;
@@ -203,15 +160,12 @@ slap_init_sync_cookie_ctxcsn(
 					"csn=%4d%02d%02d%02d%02d%02dZ#%06x#%02x#%06x",
 					1900, 1, 1, 0, 0, 0, 0, 0, 0 );
 	octet_str.bv_val = csnbuf;
-	build_new_dn( &slap_syncCookie, &cookie->octet_str[0], &octet_str, NULL );
-	ber_bvarray_free( cookie->octet_str );
-	cookie->octet_str = NULL;
-	ber_bvarray_add( &cookie->octet_str, &slap_syncCookie );
+	ch_free( cookie->octet_str.bv_val );
+	ber_dupbv( &cookie->octet_str, &octet_str );
 
 	ctxcsn.bv_val = octet_str.bv_val + 4;
 	ctxcsn.bv_len = octet_str.bv_len - 4;
-	ber_dupbv( &ctxcsn_dup, &ctxcsn );
-	ber_bvarray_add( &cookie->ctxcsn, &ctxcsn_dup );
+	ber_dupbv( &cookie->ctxcsn, &ctxcsn );
 
 	return 0;
 }
@@ -230,29 +184,24 @@ slap_dup_sync_cookie(
 		return NULL;
 
 	if ( dst ) {
-		ber_bvarray_free( dst->ctxcsn );
-		ber_bvarray_free( dst->octet_str );
+		ch_free( dst->ctxcsn.bv_val );
+		ch_free( dst->octet_str.bv_val );
+		BER_BVZERO( &dst->ctxcsn );
+		BER_BVZERO( &dst->octet_str );
 		new = dst;
 	} else {
 		new = ( struct sync_cookie * )
 				ch_calloc( 1, sizeof( struct sync_cookie ));
 	}
 
-	new->sid = src->sid;
 	new->rid = src->rid;
 
-	if ( src->ctxcsn ) {
-		for ( i=0; src->ctxcsn[i].bv_val; i++ ) {
-			ber_dupbv( &tmp_bv, &src->ctxcsn[i] );
-			ber_bvarray_add( &new->ctxcsn, &tmp_bv );
-		}
+	if ( !BER_BVISNULL( &src->ctxcsn )) {
+		ber_dupbv( &new->ctxcsn, &src->ctxcsn );
 	}
 
-	if ( src->octet_str ) {
-		for ( i=0; src->octet_str[i].bv_val; i++ ) {
-			ber_dupbv( &tmp_bv, &src->octet_str[i] );
-			ber_bvarray_add( &new->octet_str, &tmp_bv );
-		}
+	if ( !BER_BVISNULL( &src->octet_str )) {
+		ber_dupbv( &new->octet_str, &src->octet_str );
 	}
 
 	return new;

@@ -41,13 +41,6 @@ create table ldap_entries
 	UNIQUE ( dn )
 );
 
-drop table ldap_referrals;
-create table ldap_referrals
- (
-	entry_id integer not null references ldap_entries(id),
-	url text not null
-);
-
 drop table ldap_entry_objclasses;
 create table ldap_entry_objclasses
  (

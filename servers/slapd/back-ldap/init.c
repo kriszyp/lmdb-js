@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2003-2005 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -70,6 +70,10 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
 
+	if ( chain_init( ) ) {
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -86,7 +90,6 @@ ldap_back_db_init( Backend *be )
 	BER_BVZERO( &li->acl_authcDN );
 	BER_BVZERO( &li->acl_passwd );
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
 
 	BER_BVZERO( &li->idassert_authcID );
@@ -105,7 +108,6 @@ ldap_back_db_init( Backend *be )
 
 	/* by default, use proxyAuthz control on each operation */
 	li->idassert_flags = LDAP_BACK_AUTH_NONE;
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 
@@ -124,7 +126,6 @@ ldap_back_db_open( BackendDB *be )
 		"ldap_back_db_open: URI=%s\n",
 		li->url != NULL ? li->url : "", 0, 0 );
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	/* by default, use proxyAuthz control on each operation */
 	switch ( li->idassert_mode ) {
 	case LDAP_BACK_IDASSERT_LEGACY:
@@ -137,10 +138,14 @@ ldap_back_db_open( BackendDB *be )
 	default:
 		break;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 #if 0 && defined(SLAPD_MONITOR)
 	{
+		/* FIXME: disabled because namingContexts doesn't have
+		 * a matching rule, and using an MRA filter doesn't work
+		 * because the normalized assertion is compared to the 
+		 * non-normalized value, which in general differ.
+		 * See ITS#3406 */
 		struct berval	filter,
 				base = BER_BVC( "cn=Databases,cn=Monitor" );
 		struct berval	vals[ 2 ];
@@ -217,7 +222,6 @@ ldap_back_db_destroy(
 			ch_free( li->acl_passwd.bv_val );
 			BER_BVZERO( &li->acl_passwd );
 		}
-#ifdef LDAP_BACK_PROXY_AUTHZ
 		if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
 			ch_free( li->idassert_authcID.bv_val );
 			BER_BVZERO( &li->idassert_authcID );
@@ -242,7 +246,6 @@ ldap_back_db_destroy(
 			ch_free( li->idassert_sasl_realm.bv_val );
 			BER_BVZERO( &li->idassert_sasl_realm );
 		}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
                 if ( li->conntree ) {
 			avl_free( li->conntree, ldap_back_conn_free );
 		}

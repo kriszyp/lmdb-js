@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,13 @@ ldif_parse_line LDAP_P((
 	char **name,
 	char **value,
 	ber_len_t *vlen ));
+
+LDAP_LDIF_F( int )
+ldif_parse_line2 LDAP_P((
+	char *line,
+	struct berval *type,
+	struct berval *value,
+	int *freeval ));
 
 LDAP_LDIF_F( int )
 ldif_fetch_url LDAP_P((

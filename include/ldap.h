@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2005 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -317,9 +317,10 @@ typedef struct ldapcontrol {
 #define LDAP_FEATURE_ABSOLUTE_FILTERS "1.3.6.1.4.1.4203.1.5.3"  /* (&) (|) */
 #define LDAP_FEATURE_LANGUAGE_TAG_OPTIONS "1.3.6.1.4.1.4203.1.5.4"
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"
-#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.8.2"
 
 #ifdef LDAP_DEVEL
+/* LDAP Experimental (works in progress) Features */
+#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.8.2"
 #define LDAP_FEATURE_SUBORDINATE_SCOPE \
 	"1.3.6.1.4.1.4203.666.8.1" /* "children" */
 #define LDAP_FEATURE_CHILDREN_SCOPE LDAP_FEATURE_SUBORDINATE_SCOPE
@@ -446,10 +447,8 @@ typedef struct ldapcontrol {
 #define LDAP_SCOPE_ONE			LDAP_SCOPE_ONELEVEL
 #define LDAP_SCOPE_SUBTREE		((ber_int_t) 0x0002)
 #define LDAP_SCOPE_SUB			LDAP_SCOPE_SUBTREE
-#ifdef LDAP_DEVEL
 #define LDAP_SCOPE_SUBORDINATE	((ber_int_t) 0x0003) /* OpenLDAP extension */
 #define LDAP_SCOPE_CHILDREN		LDAP_SCOPE_SUBORDINATE
-#endif
 
 /* substring filter component types */
 #define LDAP_SUBSTRING_INITIAL	((ber_tag_t) 0x80U)	/* context specific */

@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2004 The OpenLDAP Foundation.
+## Copyright 1998-2005 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -13,10 +13,17 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 #
-# Dynamic Group schema, as defined by Netscape
+# Dynamic Group schema (experimental), as defined by Netscape.  See
+# http://enterprise.netscape.com/docs/enterprise/60/admin/esusrgrp.htm#1019520
+# for details.
 #
 # depends upon:
 #	core.schema
+#
+# These definitions are considered experimental due to the lack of
+# a formal specification (e.g., RFC).
+#
+# Not recommended for production use!  Use with caution!
 
 objectIdentifier NetscapeRoot 2.16.840.1.113730
 
