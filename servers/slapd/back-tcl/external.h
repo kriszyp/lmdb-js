@@ -1,4 +1,4 @@
-/* $Id: external.h,v 1.7 1999/06/29 01:29:27 kdz Exp $ */
+/* $OpenLDAP$ */
 
 #ifndef _TCL_EXTERNAL_H
 #define _TCL_EXTERNAL_H

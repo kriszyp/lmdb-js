@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* tcl_back.h - tcl backend header (structs, functions)
- *
- * $Id: tcl_back.h,v 1.1 1999/02/17 01:23:18 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

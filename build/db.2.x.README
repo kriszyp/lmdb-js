@@ -27,6 +27,3 @@ The OpenLDAP configure tool will most probably find the correct
 configuration itself.   No special action has to be taken
 while building the OpenLDAP package.
 
-9 Jan 1999, KSp <ksp@openldap.org>
-
-Last updated: 29 July 1999 by Kdz <kurt@openldap.org>

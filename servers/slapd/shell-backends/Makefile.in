@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 PROGRAMS = passwd-shell
 
 SRCS = passwd-shell.c shellutil.c

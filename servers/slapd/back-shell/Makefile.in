@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 SRCS	= init.c config.c fork.c search.c bind.c unbind.c add.c delete.c \
 		modify.c modrdn.c compare.c abandon.c result.c
 OBJS	= init.lo config.lo fork.lo search.lo bind.lo unbind.lo add.lo delete.lo \
