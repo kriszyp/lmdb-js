@@ -190,14 +190,14 @@ ldap_sasl_bind_s(
 		rc = ldap_parse_sasl_bind_result( ld, result, &scredp, 0 );
 	}
 
-	if( rc != LDAP_SUCCESS ) {
+	if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
 		ldap_msgfree( result );
 		return( rc );
 	}
 
 	rc = ldap_result2error( ld, result, 1 );
 
-	if( rc == LDAP_SUCCESS ) {
+	if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
 		if( servercredp != NULL ) {
 			*servercredp = scredp;
 		}
@@ -782,35 +782,58 @@ ldap_pvt_sasl_getsimple(void *context, int id, const char **result, int *len)
 }
 
 /*
- * ldap_negotiated_sasl_bind_s - bind to the ldap server (and X.500) using SASL
- * authentication.  The dn and password of the entry to which to bind are
- * supplied.  LDAP_SUCCESS is returned upon success, the ldap error code
+ * ldap_negotiated_sasl_bind_s - bind to the ldap server (and X.500)
+ * using SASL authentication.
+ *
+ * This routine attempts to authenticate the user referred by the
+ * authentication id using the provided password.  An optional
+ * authorization identity may be provided.  An DN is generally not
+ * provided [see AuthMethod].
+ *
+ * If the mechanism negotiated does not require a password, the
+ * passwd field is ignored.  [A callback mechanism should really
+ * be used].
+ * 
+ * LDAP_SUCCESS is returned upon success, the ldap error code
  * otherwise.
  *
- * Example:
+ * Examples:
  *	ldap_negotiated_sasl_bind_s( ld, NULL,
- *	    "dn:cn=manager", NULL, "GSSAPI", NULL, NULL, NULL );
+ *	    "user@OPENLDAP.ORG", NULL, NULL,
+ *		"GSSAPI", NULL, NULL, NULL );
+ *
+ *	ldap_negotiated_sasl_bind_s( ld, NULL,
+ *	    "manager", "cn=user,dc=openldap,dc=org", NULL,
+ *		"DIGEST-MD5", NULL, NULL, NULL );
+ *
+ *	ldap_negotiated_sasl_bind_s( ld, NULL,
+ *	    "root@OPENLDAP.ORG", "u:user@OPENLDAP.ORG", NULL,
+ *		"GSSAPI", NULL, NULL, NULL );
+ *
+ *	ldap_negotiated_sasl_bind_s( ld, NULL,
+ *	    "manager", "dn:cn=user,dc=openldap,dc=org", NULL,
+ *		"DIGEST-MD5", NULL, NULL, NULL );
  */
 int
 ldap_negotiated_sasl_bind_s(
-        LDAP *ld,
+	LDAP *ld,
 	LDAP_CONST char *dn, /* usually NULL */
-        LDAP_CONST char *authorizationId,
-        LDAP_CONST char *authenticationId,  
-        LDAP_CONST char *saslMechanism,     
-        struct berval *passPhrase,        
-        LDAPControl **serverControls,
-        LDAPControl **clientControls)
+	LDAP_CONST char *authenticationId,
+	LDAP_CONST char *authorizationId, /* commonly NULL */
+	LDAP_CONST char *saslMechanism,
+	struct berval *passPhrase,
+	LDAPControl **serverControls,
+	LDAPControl **clientControls)
 {
 	sasl_callback_t callbacks[4];
 	int rc;
 
 	callbacks[0].id = SASL_CB_USER;
 	callbacks[0].proc = ldap_pvt_sasl_getsimple;
-	callbacks[0].context = (void *)authorizationId;
+	callbacks[1].context = (void *)authenticationId;
 	callbacks[1].id = SASL_CB_AUTHNAME;
 	callbacks[1].proc = ldap_pvt_sasl_getsimple;
-	callbacks[1].context = (void *)authenticationId;
+	callbacks[0].context = (void *)authorizationId;
 	callbacks[2].id = SASL_CB_PASS;
 	callbacks[2].proc = ldap_pvt_sasl_getsecret;
 	callbacks[2].context = (void *)passPhrase;
@@ -818,7 +841,8 @@ ldap_negotiated_sasl_bind_s(
 	callbacks[3].proc = NULL;
 	callbacks[3].context = NULL;
 
-	rc = ldap_pvt_sasl_bind(ld, dn, saslMechanism, callbacks, serverControls, clientControls);
+	rc = ldap_pvt_sasl_bind(ld, dn, saslMechanism, callbacks,
+		serverControls, clientControls);
 
 	return rc;
 }

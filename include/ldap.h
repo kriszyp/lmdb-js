@@ -657,8 +657,8 @@ LIBLDAP_F( int )
 ldap_negotiated_sasl_bind_s LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn, /* usually NULL */
-	LDAP_CONST char *authorizationId,
-	LDAP_CONST char *authenticationId, /* usually NULL */
+	LDAP_CONST char *authenticationId, 
+	LDAP_CONST char *authorizationId, /* usually NULL */
 	LDAP_CONST char *saslMechanism,
 	struct berval *passPhrase,
 	LDAPControl **serverControls,
