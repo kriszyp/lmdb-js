@@ -43,6 +43,7 @@ Modify -lldap to be reentrant/threadsafe implement LDAP
 	concurrency and ldap_dup drafts
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
+Implement authPassword (RFC 3062)
 
 Small projects
 --------------
