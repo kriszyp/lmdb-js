@@ -21,9 +21,8 @@ else
 	REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 fi
 
-if test "$LDAP_PROTO" ; then
-	PROTO="-P $LDAP_PROTO"
-fi
+TOOLARGS="-x $LDAP_TOOLARGS"
+TOOLPROTO="-P 3"
 
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 
@@ -36,11 +35,11 @@ LDIF2LDBM="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
 CMP="diff -i -q"
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd
-LDAPPASSWD="$CLIENTDIR/ldappasswd"
-LDAPSEARCH="$CLIENTDIR/ldapsearch $PROTO -LLL"
-LDAPMODIFY="$CLIENTDIR/ldapmodify $PROTO"
-LDAPADD="$CLIENTDIR/ldapadd $PROTO"
-LDAPMODRDN="$CLIENTDIR/ldapmodrdn $PROTO"
+LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
+LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
+LDAPMODIFY="$CLIENTDIR/ldapmodify $TOOLPROTO $TOOLARGS"
+LDAPADD="$CLIENTDIR/ldapadd $TOOLPROTO $TOOLARGS"
+LDAPMODRDN="$CLIENTDIR/ldapmodrdn $TOOLPROTO $TOOLARGS"
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=${SLAPD_DEBUG-5}
 ADDR=127.0.0.1

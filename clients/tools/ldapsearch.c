@@ -171,6 +171,8 @@ main( int argc, char **argv )
 	scope = LDAP_SCOPE_SUBTREE;
 	authmethod = -1;
 
+    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : ++prog;
+
 	while (( i = getopt( argc, argv,
 		"Aa:b:f:Ll:S:s:T:tuV:z:" "Cd:D:h:kKMnO:p:P:U:vw:WxX:Y:Z")) != EOF )
 	{
@@ -192,6 +194,9 @@ main( int argc, char **argv )
 		break;
 	case 'A':	/* retrieve attribute names only -- no values */
 		++attrsonly;
+		break;
+	case 'b': /* search base */
+		base = strdup( optarg );
 		break;
 	case 'f':	/* input file */
 		infile = strdup( optarg );
@@ -456,6 +461,8 @@ main( int argc, char **argv )
 #endif
 		break;
 	default:
+		fprintf( stderr, "%s: unrecongized option -%c\n",
+			prog, optopt );
 		usage( argv[0] );
 	}
 	}

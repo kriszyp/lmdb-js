@@ -61,6 +61,7 @@ int
 main( int argc, char *argv[] )
 {
 	int rc;
+	char	*prog = NULL;
 	char	*ldaphost = NULL;
 
 	char	*dn = NULL;
@@ -96,6 +97,8 @@ main( int argc, char *argv[] )
 	char *matcheddn = NULL, *text = NULL, **refs = NULL;
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
+
+    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : ++prog;
 
 	if (argc == 1)
 		usage (argv[0]);
@@ -235,6 +238,8 @@ main( int argc, char *argv[] )
 			break;
 
 		default:
+			fprintf( stderr, "%s: unrecongized option -%c\n",
+				prog, optopt );
 			usage (argv[0]);
 		}
 	}

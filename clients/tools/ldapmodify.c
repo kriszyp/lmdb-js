@@ -391,6 +391,8 @@ main( int argc, char **argv )
 #endif
 		break;
 	default:
+		fprintf( stderr, "%s: unrecongized option -%c\n",
+			prog, optopt );
 	    usage( prog );
 	}
     }

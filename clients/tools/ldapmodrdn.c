@@ -63,15 +63,15 @@ usage( const char *s )
 "		If not given, the list of modifications is read from stdin or\n"
 "		from the file specified by \"-f file\" (see man page).\n"
 "Rename options:\n"
+"	-c\t\tcontinuous operation mode (do not stop on errors)\n"
+"	-f file\t\tread operations from `file'\n"
 "	-r\t\tremove old RDN\n"
 "	-s newsuperior\tnew superior entry\n"
 
 "common options:\n"
-"	-c\t\tcontinuous operation mode (do not stop on errors)\n"
 "	-C\t\tchase referrals\n"
 "	-d level\tset LDAP debugging level to `level'\n"
 "	-D binddn\tbind DN\n"
-"	-f file\t\tread operations from `file'\n"
 "	-h host\t\tLDAP server\n"
 "	-k\t\tuse Kerberos authentication\n"
 "	-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
@@ -109,9 +109,12 @@ main(int argc, char **argv)
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : ++prog;
 
-    while (( i = getopt( argc, argv, "rs:" "cCd:D:f:h:kKMnO:p:P:U:vw:WxX:Y:Z" )) != EOF ) {
+    while (( i = getopt( argc, argv, "cf:rs:" "Cd:D:h:kKMnO:p:P:U:vw:WxX:Y:Z" )) != EOF ) {
 	switch( i ) {
 	/* Modrdn Options */
+	case 'c':
+		contoper++;
+		break;
 	case 's':	/* newSuperior */
 		if( version == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -X incompatible with LDAPv%d\n",
@@ -346,6 +349,8 @@ main(int argc, char **argv)
 #endif
 		break;
 	default:
+		fprintf( stderr, "%s: unrecongized option -%c\n",
+			prog, optopt );
 	    usage( argv[0] );
 	    return( EXIT_FAILURE );
 	}
@@ -374,7 +379,8 @@ main(int argc, char **argv)
         }
 	++havedn;
     } else if ( argc - optind != 0 ) {
-	fprintf( stderr, "%s: invalid number of arguments, only two allowed\n", prog);
+	fprintf( stderr, "%s: invalid number of arguments (%d), "
+		"only two allowed\n", prog, argc-optind );
 	usage( argv[0] );
 	return( EXIT_FAILURE );
     }
