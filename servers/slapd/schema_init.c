@@ -15,14 +15,24 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
-#include "lutil_md5.h"
 
+#ifdef USE_MD5
+#include "lutil_md5.h"
 /* We should replace MD5 with a faster hash */
 #define HASH_BYTES				LUTIL_MD5_BYTES
 #define HASH_CONTEXT			lutil_MD5_CTX
 #define HASH_Init(c)			lutil_MD5Init(c)
 #define HASH_Update(c,buf,len)	lutil_MD5Update(c,buf,len)
 #define HASH_Final(d,c)			lutil_MD5Final(d,c)
+#else
+#include "lutil_hash.h"
+/* We should replace MD5 with a faster hash */
+#define HASH_BYTES				LUTIL_HASH_BYTES
+#define HASH_CONTEXT			lutil_HASH_CTX
+#define HASH_Init(c)			lutil_HASHInit(c)
+#define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
+#define HASH_Final(d,c)			lutil_HASHFinal(d,c)
+#endif
 
 /* recycled validatation routines */
 #define berValidate						blobValidate
