@@ -189,7 +189,7 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 
 #if defined( SLAPD_SCHEMA_DN )
-	} else if ( strcasecmp( e->e_ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+	} else if ( bvmatch( &e->e_nname, &global_schemandn ) ) {
 		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
 			NULL, "subschema subentry already exists",
 			NULL, NULL );

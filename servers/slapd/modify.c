@@ -205,7 +205,7 @@ do_modify(
 		goto cleanup;
 
 #if defined( SLAPD_SCHEMA_DN )
-	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
+	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
 			"do_modify: attempt to modify subschema subentry.\n" , 0, 0, 0  );

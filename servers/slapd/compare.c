@@ -169,7 +169,8 @@ do_compare(
 			goto cleanup;
 		}
 
-	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
+#ifdef SLAPD_SCHEMA_DN
+	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"do_compare: dn (%s) attr(%s) value (%s)\n",
@@ -198,6 +199,7 @@ do_compare(
 			rc = 0;
 			goto cleanup;
 		}
+#endif /* SLAPD_SCHEMA_DN */
 	}
 
 	if( entry ) {

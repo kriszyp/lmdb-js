@@ -1113,7 +1113,7 @@ Attribute *backend_operational(
 #ifdef SLAPD_SCHEMA_DN
 	if ( opattrs || ( attrs &&
 		ad_inlist( slap_schema.si_ad_subschemaSubentry, attrs )) ) {
-		*ap = slap_operational_subschemaSubentry();
+		*ap = slap_operational_subschemaSubentry( be );
 		ap = &(*ap)->a_next;
 	}
 #endif

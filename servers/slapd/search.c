@@ -239,7 +239,7 @@ do_search(
 		}
 
 #if defined( SLAPD_SCHEMA_DN )
-		else if ( strcasecmp( nbase.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
+		else if ( bvmatch( &nbase, &global_schemandn ) ) {
 			/* check restrictions */
 			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
 			if( rc != LDAP_SUCCESS ) {
