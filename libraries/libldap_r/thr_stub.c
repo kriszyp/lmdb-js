@@ -161,6 +161,12 @@ ldap_pvt_thread_pool_submit (
 }
 
 int
+ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads )
+{
+	return(0);
+}
+
+int
 ldap_pvt_thread_pool_backload (
 	ldap_pvt_thread_pool_t *pool )
 {
