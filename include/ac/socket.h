@@ -106,7 +106,7 @@
 #if !defined( HAVE_INET_ATON ) && !defined( inet_aton )
 #define inet_aton ldap_pvt_inet_aton
 struct in_addr;
-int ldap_pvt_inet_aton( const char *, struct in_addr * );
+int ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #endif
 
 #if	defined(__WIN32) && defined(_ALPHA)
