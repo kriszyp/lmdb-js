@@ -92,7 +92,7 @@ homephone: +1 313 555 5444
 EOMODS6
 
 #
-# Try to add a "member" attribute to the "All Staff" group.  It should
+# Try to add a "member" attribute to the "ITD Staff" group.  It should
 # fail when we add some DN other than our own, and should succeed when
 # we add our own DN.
 # bjensen
@@ -117,9 +117,9 @@ uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, 
 EOMODS2
 
 #
-# Try to modify the "All Staff" group.  Two attempts are made:
+# Try to modify the "ITD Staff" group.  Two attempts are made:
 # 1) bound as "James A Jones 1" - should fail
-# 2) bound as "Barbara Jensen" - should succeed
+# 2) bound as "Bjorn Jensen" - should succeed
 #
 $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS3
@@ -144,6 +144,28 @@ add: ou
 ou: Groups
 # comment
 EOMODS4
+
+#
+# Try to modify the "ITD Staff" group.  Two attempts are made:
+# 1) bound as "James A Jones 1" - should succeed
+# 2) bound as "Barbara Jensen" - should fail
+# should exploit sets
+#
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS5
+dn: cn=Alumni Assoc Staff, ou=Groups, dc=example, dc=com
+changetype: modify
+add: description
+description: added by jaj
+EOMODS5
+
+$LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
+	$TESTOUT 2>&1 << EOMODS6
+dn: cn=Alumni Assoc Staff, ou=Groups, dc=example, dc=com
+changetype: modify
+add: description
+description: added by bjensen
+EOMODS6
 
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \

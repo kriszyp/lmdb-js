@@ -47,6 +47,7 @@ member: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
 member: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
 owner: cn=Manager,dc=example,dc=com
 description: All Alumni Assoc Staff
+description: added by jaj
 cn: Alumni Assoc Staff
 objectClass: groupOfNames
 
@@ -271,6 +272,7 @@ uniqueMember: cn=John Doe,ou=Information Technology Division,ou=People,dc=exam
  ple,dc=com
 uniqueMember: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc
  =com
+ou: Groups
 
 dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example
  ,dc=com
