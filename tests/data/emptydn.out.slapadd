@@ -1,4 +1,3 @@
-# geographical naming contexts
 dn: c=US
 objectClass: country
 c: US

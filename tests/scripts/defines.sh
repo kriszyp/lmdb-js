@@ -130,8 +130,8 @@ LDIFREFINT=$DATADIR/test-refint.ldif
 LDIFUNIQUE=$DATADIR/test-unique.ldif
 LDIFLIMITS=$DATADIR/test-limits.ldif
 LDIFDN=$DATADIR/test-dn.ldif
-LDIFEMPTYDN2=$DATADIR/test-emptydn1.ldif
-LDIFEMPTYDN1=$DATADIR/test-emptydn2.ldif
+LDIFEMPTYDN1=$DATADIR/test-emptydn1.ldif
+LDIFEMPTYDN2=$DATADIR/test-emptydn2.ldif
 MONITOR=""
 REFDN="c=US"
 BASEDN="dc=example,dc=com"
@@ -193,7 +193,8 @@ MODSRCHFILTERS=$DATADIR/modify.search.filters
 CERTIFICATETLS=$DATADIR/certificate.tls
 CERTIFICATEOUT=$DATADIR/certificate.out
 DNOUT=$DATADIR/dn.out
-EMPTYDNOUT=$DATADIR/emptydn.out
+EMPTYDNOUT1=$DATADIR/emptydn.out.slapadd
+EMPTYDNOUT2=$DATADIR/emptydn.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

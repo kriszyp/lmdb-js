@@ -81,7 +81,7 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-LDIFOUT=$EMPTYDNOUT
+LDIFOUT=$EMPTYDNOUT1
 
 echo "Comparing ldapsearch results against original..."
 $CMP $SEARCHOUT $LDIFOUT > $CMPOUT
@@ -131,6 +131,15 @@ $LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 $LDAPADD -D "$EMPTYDNDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 	-f $LDIFEMPTYDN2 > /dev/null 2>&1
 
+$LDAPMODIFY -D "$EMPTYDNDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+	> /dev/null 2>&1 << EOF
+dn: o=Beispiel,c=DE
+changetype: delete
+
+dn: c=DE
+changetype: delete
+EOF
+
 echo "Searching database..."
 
 $LDAPSEARCH -b "" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
@@ -144,7 +153,7 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-LDIFOUT=$EMPTYDNOUT
+LDIFOUT=$EMPTYDNOUT2
 
 echo "Comparing ldapsearch results against original..."
 $CMP $SEARCHOUT $LDIFOUT > $CMPOUT
