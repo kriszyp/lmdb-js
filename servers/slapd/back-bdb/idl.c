@@ -653,6 +653,7 @@ bdb_idl_insert_key(
 			if ( count >= BDB_IDL_DB_MAX ) {
 			/* No room, convert to a range */
 				DBT key2 = *key;
+				db_recno_t i;
 
 				key2.dlen = key2.ulen;
 				key2.flags |= DB_DBT_PARTIAL;
@@ -679,35 +680,63 @@ bdb_idl_insert_key(
 					}
 				}
 				BDB_DISK2ID( &nhi, &hi );
-				if ( id < lo ) {
-					lo = id;
-					nlo = nid;
-				} else if ( id > hi ) {
-					hi = id;
+				/* Update hi/lo if needed, then delete all the items
+				 * between lo and hi
+				 */
+				if ( id > hi ) {
 					nhi = nid;
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del hi";
+						goto fail;
+					}
+					rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
+					if ( rc != 0 ) {
+						err = "c_put hi";
+						goto fail;
+					}
 				}
-				rc = db->del( db, tid, key, 0 );
+				/* Don't fetch anything, just position cursor */
+				data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+				data.dlen = data.ulen = 0;
+				rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
 				if ( rc != 0 ) {
-					err = "del";
+					err = "c_get 2";
 					goto fail;
 				}
 				data.data = &nid;
+				if ( id < lo ) {
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del lo";
+						goto fail;
+					}
+					rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+					if ( rc != 0 ) {
+						err = "c_put lo";
+						goto fail;
+					}
+				}
+				/* Delete all the records between lo and hi */
+				for ( i=2; i<count; i++ ) {
+					rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_DUP | DB_RMW );
+					if ( rc != 0 && rc != DB_NOTFOUND ) {
+						err = "c_get next_dup";
+						goto fail;
+					}
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 && rc != DB_NOTFOUND ) {
+						err = "c_del range";
+						goto fail;
+					}
+				}
+				/* Store the range marker */
+				data.size = data.ulen = sizeof(ID);
+				data.flags = DB_DBT_USERMEM;
 				nid = 0;
 				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 				if ( rc != 0 ) {
-					err = "c_put 0";
-					goto fail;
-				}
-				nid = nlo;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-				if ( rc != 0 ) {
-					err = "c_put lo";
-					goto fail;
-				}
-				nid = nhi;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-				if ( rc != 0 ) {
-					err = "c_put hi";
+					err = "c_put range";
 					goto fail;
 				}
 			} else {
