@@ -136,8 +136,12 @@ main( int argc, char **argv )
 				}
 
 				vals[1].bv_val = NULL;
-				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
-					vals );
+#ifdef SLAP_NVALUES
+				attr_merge( e, slap_schema.si_ad_structuralObjectClass, vals,
+					NULL /* FIXME */ );
+#else
+				attr_merge( e, slap_schema.si_ad_structuralObjectClass, vals );
+#endif
 			}
 
 			/* check schema */
@@ -160,8 +164,21 @@ main( int argc, char **argv )
 			struct berval vals[ 2 ];
 
 			struct berval name, timestamp, csn;
+
+#ifdef SLAP_NVALUES
+			struct berval nvals[ 2 ];
+			struct berval nname;
+#endif
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 			char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+
+			vals[1].bv_len = 0;
+			vals[1].bv_val = NULL;
+
+#ifdef SLAP_NVALUES
+			nvals[1].bv_len = 0;
+			nvals[1].bv_val = NULL;
+#endif
 
 			ltm = gmtime(&now);
 			lutil_gentime( timebuf, sizeof(timebuf), ltm );
@@ -175,8 +192,15 @@ main( int argc, char **argv )
 			if ( be->be_rootndn.bv_len == 0 ) {
 				name.bv_val = SLAPD_ANONYMOUS;
 				name.bv_len = sizeof(SLAPD_ANONYMOUS) - 1;
+#ifdef SLAP_NVALUES
+				nname.bv_val = SLAPD_ANONYMOUS;
+				nname.bv_len = sizeof(SLAPD_ANONYMOUS) - 1;
+#endif
 			} else {
-				name = be->be_rootndn;
+				name = be->be_rootdn;
+#ifdef SLAP_NVALUES
+				nname = be->be_rootndn;
+#endif
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )
@@ -184,54 +208,68 @@ main( int argc, char **argv )
 			{
 				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				vals[0].bv_val = uuidbuf;
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
+#ifdef SLAP_NVALUES
+				attr_merge( e, slap_schema.si_ad_entryUUID, vals, vals );
+#else
 				attr_merge( e, slap_schema.si_ad_entryUUID, vals );
+#endif
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )
 				== NULL )
 			{
 				vals[0] = name;
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
-				attr_merge( e, slap_schema.si_ad_creatorsName, vals);
+#ifdef SLAP_NVALUES
+				nvals[0] = nname;
+				attr_merge( e, slap_schema.si_ad_creatorsName, vals, nvals );
+#else
+				attr_merge( e, slap_schema.si_ad_creatorsName, vals );
+#endif
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_modifiersName )
 				== NULL )
 			{
 				vals[0] = name;
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
-				attr_merge( e, slap_schema.si_ad_modifiersName, vals);
+#ifdef SLAP_NVALUES
+				nvals[0] = nname;
+				attr_merge( e, slap_schema.si_ad_modifiersName, vals, nvals );
+#else
+				attr_merge( e, slap_schema.si_ad_modifiersName, vals );
+#endif
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_createTimestamp )
 				== NULL )
 			{
 				vals[0] = timestamp;
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
+#ifdef SLAP_NVALUES
+				attr_merge( e, slap_schema.si_ad_createTimestamp, vals, NULL );
+#else
 				attr_merge( e, slap_schema.si_ad_createTimestamp, vals );
+#endif
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp )
 				== NULL )
 			{
 				vals[0] = timestamp;
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
+#ifdef SLAP_NVALUES
+				attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals, NULL );
+#else
 				attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals );
+#endif
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_entryCSN )
 				== NULL )
 			{
 				vals[0] = csn;
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
+#ifdef SLAP_NVALUES
+				attr_merge( e, slap_schema.si_ad_entryCSN, vals, NULL );
+#else
 				attr_merge( e, slap_schema.si_ad_entryCSN, vals );
+#endif
 			}
 		}
 

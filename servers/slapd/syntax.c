@@ -238,8 +238,14 @@ syn_schema_info( Entry *e )
 #endif
 
 #endif
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_ldapSyntaxes, vals, NULL /* FIXME */ ) )
+#else
 		if( attr_merge( e, ad_ldapSyntaxes, vals ) )
+#endif
+		{
 			return -1;
+		}
 		ldap_memfree( vals[0].bv_val );
 	}
 	return 0;

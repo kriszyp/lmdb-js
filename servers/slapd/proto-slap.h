@@ -132,12 +132,23 @@ LDAP_SLAPD_F (int) at_next LDAP_P(( AttributeType **at ));
 LDAP_SLAPD_F (void) attr_free LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 
+#ifdef SLAP_NVALUES
+LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
+	AttributeDescription *desc,
+	BerVarray vals,
+	BerVarray nvals ));
+LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
+	AttributeDescription *desc,
+	struct berval *val,
+	struct berval *nval ));
+#else
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	BerVarray vals ));
 LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	struct berval *val ));
+#endif
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((

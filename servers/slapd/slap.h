@@ -36,6 +36,7 @@
 #include "ldap_queue.h"
 
 #ifdef LDAP_DEVEL
+/* #define SLAP_NVALUES 1 */
 #define SLAP_EXTENDED_SCHEMA 1
 #endif
 
@@ -882,7 +883,10 @@ typedef struct slap_valuesreturnfilter {
  */
 typedef struct slap_attr {
 	AttributeDescription *a_desc;
-	BerVarray	a_vals;
+	BerVarray	a_vals;		/* preserved values */
+#ifdef SLAP_NVALUES
+	BerVarray	a_nvals;	/* normalized values */
+#endif
 	struct slap_attr	*a_next;
 	unsigned a_flags;
 #define SLAP_ATTR_IXADD		0x1U
@@ -931,7 +935,11 @@ typedef struct slap_mod {
 	int sm_op;
 	AttributeDescription *sm_desc;
 	struct berval sm_type;
-	BerVarray sm_bvalues;
+#define sm_bvalues sm_values
+	BerVarray sm_values;
+#ifdef SLAP_NVALUES
+	BerVarray sm_nvalues;
+#endif
 } Modification;
 
 typedef struct slap_mod_list {

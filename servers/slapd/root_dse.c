@@ -42,7 +42,10 @@ root_dse_info(
 	const char **text )
 {
 	Entry		*e;
-	struct berval	vals[2], *bv;
+	struct berval vals[2], *bv;
+#ifdef SLAP_NVALUES
+	struct berval nvals[2];
+#endif
 	int		i, j;
 	char ** supportedSASLMechanisms;
 
@@ -68,6 +71,9 @@ root_dse_info(
 		= slap_schema.si_ad_ref;
 
 	vals[1].bv_val = NULL;
+#ifdef SLAP_NVALUES
+	nvals[1].bv_val = NULL;
+#endif
 
 	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
 
@@ -96,21 +102,41 @@ root_dse_info(
 
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
+#ifdef SLAP_NVALUES
+	if( attr_merge( e, ad_objectClass, vals, vals ) )
+#else
 	if( attr_merge( e, ad_objectClass, vals ) )
+#endif
+	{
 		return LDAP_OTHER;
+	}
 
 	vals[0].bv_val = "OpenLDAProotDSE";
 	vals[0].bv_len = sizeof("OpenLDAProotDSE")-1;
+#ifdef SLAP_NVALUES
+	if( attr_merge( e, ad_objectClass, vals, vals ) )
+#else
 	if( attr_merge( e, ad_objectClass, vals ) )
+#endif
 		return LDAP_OTHER;
+#ifdef SLAP_NVALUES
+	if( attr_merge( e, ad_structuralObjectClass, vals, vals ) )
+#else
 	if( attr_merge( e, ad_structuralObjectClass, vals ) )
+#endif
 		return LDAP_OTHER;
 
 	for ( i = 0; i < nbackends; i++ ) {
 		if ( backends[i].be_flags & SLAP_BFLAG_MONITOR ) {
 			vals[0] = backends[i].be_suffix[0];
+#ifdef SLAP_NVALUES
+			if( attr_merge( e, ad_monitorContext, vals, nvals ) )
+#else
 			if( attr_merge( e, ad_monitorContext, vals ) )
+#endif
+			{
 				return LDAP_OTHER;
+			}
 			continue;
 		}
 		if ( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE ) {
@@ -118,8 +144,14 @@ root_dse_info(
 		}
 		for ( j = 0; backends[i].be_suffix[j].bv_val != NULL; j++ ) {
 			vals[0] = backends[i].be_suffix[j];
+#ifdef SLAP_NVALUES
+			if( attr_merge( e, ad_namingContexts, vals, NULL ) )
+#else
 			if( attr_merge( e, ad_namingContexts, vals ) )
+#endif
+			{
 				return LDAP_OTHER;
+			}
 		}
 	}
 
@@ -128,28 +160,54 @@ root_dse_info(
 	/* supportedControl */
 	for ( i=0; (vals[0].bv_val = get_supported_ctrl(i)) != NULL; i++ ) {
 		vals[0].bv_len = strlen( vals[0].bv_val );
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_supportedControl, vals, NULL ) )
+#else
 		if( attr_merge( e, ad_supportedControl, vals ) )
+#endif
+		{
 			return LDAP_OTHER;
+		}
 	}
 
 	/* supportedExtension */
 	for ( i=0; (bv = get_supported_extop(i)) != NULL; i++ ) {
 		vals[0] = *bv;
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_supportedExtension, vals, NULL ) )
+#else
 		if( attr_merge( e, ad_supportedExtension, vals ) )
+#endif
+		{
 			return LDAP_OTHER;
+		}
 	}
 
 #ifdef LDAP_SLAPI
 	/* netscape supportedExtension */
 	for ( i = 0; (bv = ns_get_supported_extop(i)) != NULL; i++ ) {
 		vals[0] = *bv;
-		attr_merge( e, ad_supportedExtension, vals );
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_supportedExtension, vals, NULL ))
+#else
+		if( attr_merge( e, ad_supportedExtension, vals ))
+#endif
+		{
+			return LDAP_OTHER;
+		}
 	}
 #endif /* LDAP_SLAPI */
 
 	/* supportedFeatures */
+#ifdef SLAP_NVALUES
+	if( attr_merge( e, ad_supportedFeatures,
+		supportedFeatures, supportedFeatures ) )
+#else
 	if( attr_merge( e, ad_supportedFeatures, supportedFeatures ) )
+#endif
+	{
 		return LDAP_OTHER;
+	}
 
 	/* supportedLDAPVersion */
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
@@ -163,8 +221,14 @@ root_dse_info(
 		snprintf(buf, sizeof buf, "%d", i);
 		vals[0].bv_val = buf;
 		vals[0].bv_len = strlen( vals[0].bv_val );
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_supportedLDAPVersion, vals, NULL ) )
+#else
 		if( attr_merge( e, ad_supportedLDAPVersion, vals ) )
+#endif
+		{
 			return LDAP_OTHER;
+		}
 	}
 
 	/* supportedSASLMechanism */
@@ -174,22 +238,40 @@ root_dse_info(
 		for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
 			vals[0].bv_val = supportedSASLMechanisms[i];
 			vals[0].bv_len = strlen( vals[0].bv_val );
+#ifdef SLAP_NVALUES
+			if( attr_merge( e, ad_supportedSASLMechanisms, vals, NULL ) )
+#else
 			if( attr_merge( e, ad_supportedSASLMechanisms, vals ) )
+#endif
+			{
 				return LDAP_OTHER;
+			}
 		}
 		ldap_charray_free( supportedSASLMechanisms );
 	}
 
 	if ( default_referral != NULL ) {
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_ref, default_referral, NULL /* FIXME */ ) )
+#else
 		if( attr_merge( e, ad_ref, default_referral ) )
+#endif
+		{
 			return LDAP_OTHER;
+		}
 	}
 
 	if( usr_attr != NULL) {
 		Attribute *a;
 		for( a = usr_attr->e_attrs; a != NULL; a = a->a_next ) {
+#ifdef SLAP_NVALUES
+			if( attr_merge( e, a->a_desc, a->a_vals, a->a_nvals ) )
+#else
 			if( attr_merge( e, a->a_desc, a->a_vals ) )
+#endif
+			{
 				return LDAP_OTHER;
+			}
 		}
 	}
 
@@ -260,8 +342,14 @@ int read_root_dse_file( const char *fname )
 		 */
 
 		for(a = e->e_attrs; a != NULL; a = a->a_next) {
+#ifdef SLAP_NVALUES
+			if( attr_merge( usr_attr, a->a_desc, a->a_vals, a->a_nvals ) )
+#else
 			if( attr_merge( usr_attr, a->a_desc, a->a_vals ) )
+#endif
+			{
 				return LDAP_OTHER;
+			}
 		}
 
 		entry_free( e );

@@ -602,8 +602,14 @@ at_schema_info( Entry *e )
 			return -1;
 		}
 
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_attributeTypes, vals, NULL /* FIXME */ ) )
+#else
 		if( attr_merge( e, ad_attributeTypes, vals ) )
+#endif
+		{
 			return -1;
+		}
 		ldap_memfree( vals[0].bv_val );
 	}
 	return 0;

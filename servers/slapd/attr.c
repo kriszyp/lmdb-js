@@ -32,6 +32,9 @@ void
 attr_free( Attribute *a )
 {
 	ber_bvarray_free( a->a_vals );
+#ifdef SLAP_NVALUES
+	ber_bvarray_free( a->a_nvals );
+#endif
 	free( a );
 }
 
@@ -62,16 +65,29 @@ Attribute *attr_dup( Attribute *a )
 		}
 
 		tmp->a_vals = ch_malloc((i+1) * sizeof(struct berval));
+#ifdef SLAP_NVALUES
+		tmp->a_nvals = ch_malloc((i+1) * sizeof(struct berval));
+#endif
 
 		for( i=0; a->a_vals[i].bv_val != NULL; i++ ) {
 			ber_dupbv( &tmp->a_vals[i], &a->a_vals[i] );
 			if( tmp->a_vals[i].bv_val == NULL ) break;
+#ifdef SLAP_NVALUES
+			ber_dupbv( &tmp->a_nvals[i], &a->a_nvals[i] );
+			if( tmp->a_nvals[i].bv_val == NULL ) break;
+#endif
 		}
 
 		tmp->a_vals[i].bv_val = NULL;
+#ifdef SLAP_NVALUES
+		tmp->a_nvals[i].bv_val = NULL;
+#endif
 
 	} else {
 		tmp->a_vals = NULL;
+#ifdef SLAP_NVALUES
+		tmp->a_nvals = NULL;
+#endif
 	}
 
 	tmp->a_desc = a->a_desc;
@@ -112,8 +128,13 @@ int
 attr_merge(
 	Entry		*e,
 	AttributeDescription *desc,
-	BerVarray	vals )
-{
+	BerVarray	vals
+#ifdef SLAP_NVALUES
+	, BerVarray	nvals
+#endif
+) {
+	int rc;
+
 	Attribute	**a;
 
 	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
@@ -126,19 +147,32 @@ attr_merge(
 		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
 		(*a)->a_desc = desc;
 		(*a)->a_vals = NULL;
+#ifdef SLAP_NVALUES
+		(*a)->a_nvals = NULL;
+#endif
 		(*a)->a_next = NULL;
 		(*a)->a_flags = 0;
 	}
 
-	return( value_add( &(*a)->a_vals, vals ) );
+	rc = value_add( &(*a)->a_vals, vals );
+
+#ifdef SLAP_NVALUES
+	if( !rc && nvals ) rc = value_add( &(*a)->a_nvals, nvals );
+#endif
+
+	return rc;
 }
 
 int
 attr_merge_one(
 	Entry		*e,
 	AttributeDescription *desc,
-	struct berval	*val )
-{
+	struct berval	*val
+#ifdef SLAP_NVALUES
+	, BerVarray	nval
+#endif
+) {
+	int rc;
 	Attribute	**a;
 
 	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
@@ -151,11 +185,19 @@ attr_merge_one(
 		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
 		(*a)->a_desc = desc;
 		(*a)->a_vals = NULL;
+#ifdef SLAP_NVALUES
+		(*a)->a_nvals = NULL;
+#endif
 		(*a)->a_next = NULL;
 		(*a)->a_flags = 0;
 	}
 
-	return( value_add_one( &(*a)->a_vals, val ) );
+	rc = value_add_one( &(*a)->a_vals, val );
+
+#ifdef SLAP_NVALUES
+	if( !rc && nval ) rc = value_add_one( &(*a)->a_nvals, nval );
+#endif
+	return rc;
 }
 
 /*

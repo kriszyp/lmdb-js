@@ -444,7 +444,12 @@ modify_add_values(
 	}
 
 	/* no - add them */
-	if( attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
+#ifdef SLAP_NVALUES
+	if( attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues ) != 0 )
+#else
+	if( attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 )
+#endif
+	{
 		/* this should return result of attr_merge */
 		*text = textbuf;
 		snprintf( textbuf, textlen,
@@ -669,12 +674,11 @@ slap_mod_free(
 	int				freeit
 )
 {
-#if 0
-	if ( mod->sm_type.bv_val)
-		free( mod->sm_type.bv_val );
+	if ( mod->sm_values != NULL ) ber_bvarray_free( mod->sm_values );
+
+#ifdef SLAP_NVALUES
+	if ( mod->sm_nvalues != NULL ) ber_bvarray_free( mod->sm_nvalues );
 #endif
-	if ( mod->sm_bvalues != NULL )
-		ber_bvarray_free( mod->sm_bvalues );
 
 	if( freeit )
 		free( mod );

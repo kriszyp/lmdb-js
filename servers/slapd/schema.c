@@ -32,6 +32,9 @@ schema_info( Entry **entry, const char **text )
 
 	Entry		*e;
 	struct berval	vals[5];
+#ifdef SLAP_NVALUES
+	struct berval	nvals[5];
+#endif
 
 	e = (Entry *) SLAP_CALLOC( 1, sizeof(Entry) );
 	if( e == NULL ) {
@@ -57,7 +60,12 @@ schema_info( Entry **entry, const char **text )
 
 	vals[0].bv_val = "subentry";
 	vals[0].bv_len = sizeof("subentry")-1;
-	if( attr_merge_one( e, ad_structuralObjectClass, vals ) ) {
+#ifdef SLAP_NVALUES
+	if( attr_merge_one( e, ad_structuralObjectClass, vals, vals ) )
+#else
+	if( attr_merge_one( e, ad_structuralObjectClass, vals ) )
+#endif
+	{
 		/* Out of memory, do something about it */
 		entry_free( e );
 		*text = "out of memory";
@@ -73,7 +81,12 @@ schema_info( Entry **entry, const char **text )
 	vals[3].bv_val = "extensibleObject";
 	vals[3].bv_len = sizeof("extensibleObject")-1;
 	vals[4].bv_val = NULL;
-	if( attr_merge( e, ad_objectClass, vals ) ) {
+#ifdef SLAP_NVALUES
+	if( attr_merge( e, ad_objectClass, vals, vals ) )
+#else
+	if( attr_merge( e, ad_objectClass, vals ) )
+#endif
+	{
 		/* Out of memory, do something about it */
 		entry_free( e );
 		*text = "out of memory";
@@ -103,7 +116,17 @@ schema_info( Entry **entry, const char **text )
 			return LDAP_OTHER;
 		}
 
-		if( attr_merge_one( e, desc, vals ) ) {
+#ifdef SLAP_NVALUES
+		nvals[0].bv_val = strchr( global_schemandn.bv_val, '=' );
+		nvals[0].bv_val++;
+		nvals[0].bv_len = global_schemandn.bv_len -
+			(nvals[0].bv_val - global_schemandn.bv_val);
+
+		if( attr_merge_one( e, desc, vals, nvals ) )
+#else
+		if( attr_merge_one( e, desc, vals ) )
+#endif
+		{
 			/* Out of memory, do something about it */
 			entry_free( e );
 			*text = "out of memory";
@@ -134,13 +157,23 @@ schema_info( Entry **entry, const char **text )
 		vals[0].bv_val = timebuf;
 		vals[0].bv_len = strlen( timebuf );
 
-		if( attr_merge_one( e, ad_createTimestamp, vals ) ) {
+#ifdef SLAP_NVALUES
+		if( attr_merge_one( e, ad_createTimestamp, vals, vals ) )
+#else
+		if( attr_merge_one( e, ad_createTimestamp, vals ) )
+#endif
+		{
 			/* Out of memory, do something about it */
 			entry_free( e );
 			*text = "out of memory";
 			return LDAP_OTHER;
 		}
-		if( attr_merge_one( e, ad_modifyTimestamp, vals ) ) {
+#ifdef SLAP_NVALUES
+		if( attr_merge_one( e, ad_modifyTimestamp, vals, vals ) )
+#else
+		if( attr_merge_one( e, ad_modifyTimestamp, vals ) )
+#endif
+		{
 			/* Out of memory, do something about it */
 			entry_free( e );
 			*text = "out of memory";

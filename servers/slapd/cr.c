@@ -401,7 +401,8 @@ cr_schema_info( Entry *e )
 	struct berval	vals[2];
 	ContentRule	*cr;
 
-	AttributeDescription *ad_ditContentRules = slap_schema.si_ad_ditContentRules;
+	AttributeDescription *ad_ditContentRules
+		= slap_schema.si_ad_ditContentRules;
 
 	vals[1].bv_val = NULL;
 
@@ -418,8 +419,14 @@ cr_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging cr [%ld] %s\n",
 	       (long) vals[0].bv_len, vals[0].bv_val, 0 );
 #endif
+#ifdef SLAP_NVALUES
+		if( attr_merge( e, ad_ditContentRules, vals, NULL ) )
+#else
 		if( attr_merge( e, ad_ditContentRules, vals ) )
+#endif
+		{
 			return -1;
+		}
 		ldap_memfree( vals[0].bv_val );
 	}
 #endif

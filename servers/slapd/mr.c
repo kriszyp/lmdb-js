@@ -461,8 +461,14 @@ int mr_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging mr [%lu] %s\n",
 			mr->smr_str.bv_len, mr->smr_str.bv_val, 0 );
 #endif
+#ifdef SLAP_NVALUES
+		if( attr_merge_one( e, ad_matchingRules, &mr->smr_str, NULL /* FIXME */ ) )
+#else
 		if( attr_merge_one( e, ad_matchingRules, &mr->smr_str ) )
+#endif
+		{
 			return -1;
+		}
 	}
 	return 0;
 }
@@ -489,8 +495,14 @@ int mru_schema_info( Entry *e )
 		Debug( LDAP_DEBUG_TRACE, "Merging mru [%lu] %s\n",
 			mru->smru_str.bv_len, mru->smru_str.bv_val, 0 );
 #endif
+#ifdef SLAP_NVALUES
+		if( attr_merge_one( e, ad_matchingRuleUse, &mru->smru_str, NULL /* FIXME */ ) )
+#else
 		if( attr_merge_one( e, ad_matchingRuleUse, &mru->smru_str ) )
+#endif
+		{
 			return -1;
+		}
 	}
 	return 0;
 }

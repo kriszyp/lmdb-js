@@ -43,6 +43,9 @@ str2entry( char *s )
 	Entry		*e;
 	char		*type;
 	struct berval	vals[2];
+#ifdef SLAP_NVALUES
+	struct berval	nvals[2];
+#endif
 	AttributeDescription *ad;
 	const char *text;
 	char	*next;
@@ -233,7 +236,15 @@ str2entry( char *s )
 			}
 		}
 
-		rc = attr_merge( e, ad, vals );
+#ifdef SLAP_NVALUES
+		/* normalize here */
+#endif
+
+		rc = attr_merge( e, ad, vals
+#ifdef SLAP_NVALUES
+			, nvals
+#endif
+			);
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1,
@@ -250,6 +261,9 @@ str2entry( char *s )
 
 		free( type );
 		free( vals[0].bv_val );
+#ifdef SLAP_NVALUES
+		free( nvals[0].bv_val );
+#endif
 	}
 
 	/* check to make sure there was a dn: line */
