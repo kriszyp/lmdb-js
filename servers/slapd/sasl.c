@@ -1114,12 +1114,15 @@ int slap_sasl_init( void )
 		return -1;
 	}
 #endif
-	
+
+	/* SASL 2 does its own memory management internally */
+#if SASL_VERSION_MAJOR < 2
 	sasl_set_alloc(
 		ber_memalloc,
 		ber_memcalloc,
 		ber_memrealloc,
 		ber_memfree ); 
+#endif
 
 	sasl_set_mutex(
 		ldap_pvt_sasl_mutex_new,
