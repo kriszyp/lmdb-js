@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        CD      K M OP *  U WXYZ  cd f h  k  n p     vw
-ldapmodify        CD F    K M OP *  U WXYZabcd f h  k  n p r t vw
-ldapmodrdn        CD      K M OP *  U WXYZ  cd f h  k  n p rs  vw
-ldappasswd      A CD          O  *S U WXYZa  d   h          s  vw    
-ldapsearch      A CD      KLM OP *STUVWXYZab*d f h  kl n p  stuvw  z
+ldapdelete        CD      K M OP *  U WXYZ  cd f h  k  n p     vwx
+ldapmodify        CD F    K M OP *  U WXYZabcd f h  k  n p r t vwx
+ldapmodrdn        CD      K M OP *  U WXYZ  cd f h  k  n p rs  vwx
+ldappasswd      A CD          O  *S U WXYZa  d   h          s  vwx   
+ldapsearch      A CD      KLM OP *STUVWXYZab*d f h  kl n p  stuvwx z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -17,30 +17,31 @@ ud                 D                 V      cd f     l  p   s uv
 
 
 * reserved
-	EGHIJNOegijmoqxy
+	EGHIJNOegijmoqy
 
 * General flags:
 	-C Chase Referrals
-	-D bind DN
+	-D Bind DN
 	-P protocol version
-	-R old don't chase referrals
+	-R deprecated (don't chase referrals)
 	-W prompt for bind password
 	-d debug
 	-h host
 	-n no-op
 	-p port
 	-v verbose
-	-w bind password
+	-w Bind password
+	-x simple bind
 
 * LDAPv3 Only 
 	-M ManageDSAIT
 
 	-Z StartTLS
 
+	-Y SASL Mechanism
 	-O SASL Security Options
 	-U SASL Authentication Identity (username)
 	-X SASL Authorization Identity
-	-Y SASL Mechanism
 
 * LDAPv2+ Only
 	-K LDAPv2 Kerberos Bind (Step 1 only) (depecated)

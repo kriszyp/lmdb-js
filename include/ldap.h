@@ -562,16 +562,6 @@ ldap_set_rebind_proc LDAP_P((
 	LDAP *ld,
 	LDAP_REBIND_PROC *ldap_proc));
 
-/* V3 SASL Interaction Function Callback Prototype */
-/*	when using Cyrus SASL, interact is pointer to sasl_interact_t */
-typedef int (LDAP_SASL_INTERACT_PROC) LDAP_P((
-	LDAP *ld, void *interact ));
-
-LDAP_F( int )
-ldap_set_sasl_interact_proc LDAP_P((
-	LDAP *ld,
-	LDAP_SASL_INTERACT_PROC *ldap_proc));
-
 /*
  * in controls.c:
  */
@@ -702,13 +692,19 @@ ldap_sasl_bind LDAP_P((
 	LDAPControl		**clientctrls,
 	int				*msgidp ));
 
+/* V3 SASL Interaction Function Callback Prototype */
+/*	when using Cyrus SASL, interact is pointer to sasl_interact_t */
+typedef int (LDAP_SASL_INTERACT_PROC) LDAP_P((
+	LDAP *ld, void *interact ));
+
 LDAP_F( int )
 ldap_sasl_interactive_bind_s LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn, /* usually NULL */
 	LDAP_CONST char *saslMechanism,
 	LDAPControl **serverControls,
-	LDAPControl **clientControls ));
+	LDAPControl **clientControls,
+	LDAP_SASL_INTERACT_PROC *proc ));
 
 LDAP_F( int )
 ldap_sasl_bind_s LDAP_P((

@@ -454,7 +454,8 @@ ldap_int_sasl_bind(
 	const char		*dn,
 	const char		*mechs,
 	LDAPControl		**sctrls,
-	LDAPControl		**cctrls )
+	LDAPControl		**cctrls,
+	LDAP_SASL_INTERACT_PROC *interact )
 {
 	char *data;
 	const char *mech = NULL;
@@ -523,8 +524,8 @@ ldap_int_sasl_bind(
 		}
 
 		if( saslrc == SASL_INTERACT ) {
-			if( !ld->ld_options.ldo_sasl_interact ) break;
-			rc = (ld->ld_options.ldo_sasl_interact)( ld, prompts );
+			if( !interact ) break;
+			rc = (interact)( ld, prompts );
 			if( rc != LDAP_SUCCESS ) {
 				break;
 			}
@@ -572,8 +573,8 @@ ldap_int_sasl_bind(
 
 			if( saslrc == SASL_INTERACT ) {
 				int res;
-				if( !ld->ld_options.ldo_sasl_interact ) break;
-				res = (ld->ld_options.ldo_sasl_interact)( ld, prompts );
+				if( !interact ) break;
+				res = (interact)( ld, prompts );
 				if( res != LDAP_SUCCESS ) {
 					break;
 				}

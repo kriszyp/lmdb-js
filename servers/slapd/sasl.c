@@ -377,6 +377,7 @@ int slap_sasl_close( Connection *conn )
 	free( conn->c_sasl_extra );
 	conn->c_sasl_extra = NULL;
 #endif
+
 	return LDAP_SUCCESS;
 }
 

@@ -148,7 +148,6 @@ struct ldapoptions {
 #endif
 #ifdef HAVE_CYRUS_SASL
 	struct sasl_security_properties	ldo_sasl_secprops;
-	LDAP_SASL_INTERACT_PROC	*ldo_sasl_interact;
 #endif
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
@@ -547,7 +546,8 @@ LDAP_F (int) ldap_int_sasl_config LDAP_P(( struct ldapoptions *lo,
 
 LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 	struct ldap *, LDAP_CONST char *,
-	const char *, LDAPControl **, LDAPControl ** ));
+	const char *, LDAPControl **, LDAPControl **,
+	LDAP_SASL_INTERACT_PROC *interact ));
 
 /*
  * in tls.c

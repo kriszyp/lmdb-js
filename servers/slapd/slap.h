@@ -976,6 +976,23 @@ struct slap_backend_info {
 	void	*bi_private;	/* anything the backend type needs */
 };
 
+typedef struct slap_authz_info {
+	unsigned	sai_ssf;		/* Security Strength Factor */
+	ber_tag_t	sai_method;		/* LDAP_AUTH_* from <ldap.h> */
+	char *		sai_mech;		/* SASL Mechanism */
+	char *		sai_dn;			/* DN for reporting purposes */
+	char *		sai_ndn;		/* Normalized DN */
+} AuthorizationInformation;
+
+#define c_authtype	c_authz.sai_method
+#define c_authmech	c_authz.sai_mech
+#define c_dn		c_authz.sai_dn
+
+#define o_authtype	o_authz.sai_method
+#define o_authmech	o_authz.sai_mech
+#define o_dn		o_authz.sai_dn
+#define o_ndn		o_authz.sai_ndn
+
 /*
  * represents an operation pending from an ldap client
  */
@@ -983,21 +1000,16 @@ typedef struct slap_op {
 	ber_int_t	o_opid;		/* id of this operation		  */
 	ber_int_t	o_msgid;	/* msgid of the request		  */
 
-	ldap_pvt_thread_t	o_tid;		/* thread handling this op	  */
+	ldap_pvt_thread_t	o_tid;	/* thread handling this op	  */
 
 	BerElement	*o_ber;		/* ber of the request		  */
 
 	ber_tag_t	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 
-	char		*o_dn;		/* dn bound when op was initiated */
-	char		*o_ndn;		/* normalized dn bound when op was initiated */
+	AuthorizationInformation o_authz;
 
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
-	ber_tag_t	o_authtype;	/* auth method used to bind dn	  */
-					/* values taken from ldap.h	  */
-					/* LDAP_AUTH_*			  */
-	char		*o_authmech; /* SASL mechanism used to bind dn */
 
 	LDAPControl	**o_ctrls;	 /* controls */
 
@@ -1039,6 +1051,7 @@ typedef struct slap_conn {
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	char	*c_sasl_bind_mech;			/* mech in progress */
+	char	*c_cdn;
 
 	/* authentication backend */
 	Backend *c_authc_backend;
@@ -1046,12 +1059,9 @@ typedef struct slap_conn {
 	/* authorization backend - normally same as c_authc_backend */
 	Backend *c_authz_backend;
 
-	char	*c_cdn;		/* DN provided by the client */
-	char	*c_dn;		/* DN bound to this conn  */
+	AuthorizationInformation c_authz;
 
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
-	ber_tag_t	c_authtype;/* auth method used to bind c_dn  */
-	char	*c_authmech;	/* SASL mechanism used to bind c_dn */
 
 	Operation	*c_ops;			/* list of operations being processed */
 	Operation	*c_pending_ops;	/* list of pending operations */

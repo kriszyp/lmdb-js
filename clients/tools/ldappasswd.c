@@ -31,21 +31,20 @@ usage(const char *s)
 "Change the password of an LDAP entry\n\n"
 "usage: %s [options] dn\n"
 "	dn: the DN of the entry whose password must be changed\n"
-"options:\n"
+"Password change options:\n"
 "	-a secret\told password\n"
 "	-A\t\tprompt for old password\n"
+"	-s secret\tnew password\n"
+"	-S\t\tprompt for new password\n"
+
+"Common options:\n"
 "	-d level\tdebugging level\n"
 "	-C\t\tchase referrals\n"
 "	-D binddn\tbind DN\n"
-"	-E\t\trequest SASL privacy (-EE to make it critical)\n"
 "	-h host\t\tLDAP server (default: localhost)\n"
-"	-I\t\trequest SASL integrity checking (-II to make it\n"
-"		\tcritical)\n"
 "	-n\t\tmake no modifications\n"
 "	-O secprops\tSASL security properties\n"
 "	-p port\t\tport on LDAP server\n"
-"	-S\t\tprompt for new password\n"
-"	-s secret\tnew password\n"
 "	-U user\t\tSASL authentication identity (username)\n"
 "	-v\t\tverbose mode\n"
 "	-w passwd\tbind password (for simple authentication)\n"
@@ -80,7 +79,7 @@ main( int argc, char *argv[] )
 	int		ldapport = 0;
 	int		debug = 0;
 	int		version = -1;
-	int		authmethod = LDAP_AUTH_SIMPLE;
+	int		authmethod = -1;
 #ifdef HAVE_CYRUS_SASL
 	char		*sasl_authc_id = NULL;
 	char		*sasl_authz_id = NULL;
@@ -102,12 +101,14 @@ main( int argc, char *argv[] )
 		usage (argv[0]);
 
 	while( (i = getopt( argc, argv,
-		"Aa:CD:d:h:nO:p:Ss:U:vWw:X:Y:Z" )) != EOF )
+		"Aa:Ss:" "Cd:D:h:nO:p:U:vw:WxX:Y:Z" )) != EOF )
 	{
 		switch (i) {
-		case 'A':	/* prompt for oldr password */
+		/* Password Options */
+		case 'A':	/* prompt for old password */
 			want_oldpw++;
 			break;
+
 		case 'a':	/* old password (secret) */
 			oldpw = strdup (optarg);
 
@@ -119,9 +120,27 @@ main( int argc, char *argv[] )
 				}
 			}
 			break;
+
+		case 'S':	/* prompt for user password */
+			want_newpw++;
+			break;
+
+		case 's':	/* new password (secret) */
+			newpw = strdup (optarg);
+			{
+				char* p;
+
+				for( p = optarg; *p == '\0'; p++ ) {
+					*p = '*';
+				}
+			}
+			break;
+
+		/* Common Options */
 		case 'C':
 			referrals++;
 			break;
+
 		case 'D':	/* bind distinguished name */
 			binddn = strdup (optarg);
 			break;
@@ -140,21 +159,6 @@ main( int argc, char *argv[] )
 
 		case 'p':	/* ldap port */
 			ldapport = strtol( optarg, NULL, 10 );
-			break;
-
-		case 'S':	/* prompt for user password */
-			want_newpw++;
-			break;
-
-		case 's':	/* new password (secret) */
-			newpw = strdup (optarg);
-			{
-				char* p;
-
-				for( p = optarg; *p == '\0'; p++ ) {
-					*p = '*';
-				}
-			}
 			break;
 
 		case 'v':	/* verbose */

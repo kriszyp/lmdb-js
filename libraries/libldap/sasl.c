@@ -409,7 +409,8 @@ ldap_sasl_interactive_bind_s(
 	LDAP_CONST char *dn, /* usually NULL */
 	LDAP_CONST char *mechs,
 	LDAPControl **serverControls,
-	LDAPControl **clientControls)
+	LDAPControl **clientControls,
+	LDAP_SASL_INTERACT_PROC *interact )
 {
 	int rc;
 
@@ -435,7 +436,7 @@ ldap_sasl_interactive_bind_s(
 	}
 
 	rc = ldap_int_sasl_bind( ld, dn, mechs,
-		serverControls, clientControls );
+		serverControls, clientControls, interact );
 
 	return rc;
 }
