@@ -99,9 +99,9 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 
 
 	/* Blatantly anonymous ID */
-	len = strlen( "anonymous" );
-	if( id && !strncasecmp( id, "anonymous", len) && 
-		( id[len] == '\0' || id[len] == '@' ) ) {
+	len = sizeof( "anonymous" ) - 1;
+	if( id && ( id[len] == '\0' || id[len] == '@' ) &&
+		!strncasecmp( id, "anonymous", len) ) {
 		*dnptr = NULL;
 		return( LDAP_SUCCESS );
 	}
