@@ -215,9 +215,9 @@ remove_group( char *name )
 	if ((dn = bind_and_fetch(name)) == NULL)
 		return;
 
-	printf("\n  The group '%s' will be permanently removed from\n",
-		name);
-	printf("  the Directory.  Are you absolutely sure that you want to\n" );	printf("  remove this entire group? ");
+	printf("\n  The entry\n    '%s'\n  will be permanently removed from", dn);
+	printf(" the Directory.\n  Are you absolutely sure that you want to" );
+	printf(" remove this entire group? ");
 	fflush(stdout);
 	fetch_buffer(tmp, sizeof(tmp), stdin);
 	if (!(tmp[0] == 'y' || tmp[0] == 'Y'))
@@ -230,7 +230,7 @@ remove_group( char *name )
 		int ld_errno = 0;
 		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
 		if (ld_errno == LDAP_INSUFFICIENT_ACCESS)
-			printf("  You do not own the group \"%s\".\n", name);
+			printf("  You do not own the entry\n\t\"%s\".\n", dn);
 		else
 			ldap_perror(ld, "  ldap_delete_s");
 		printf("  Group not removed.\n");
