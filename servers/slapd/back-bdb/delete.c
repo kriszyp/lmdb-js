@@ -31,6 +31,7 @@ bdb_delete(
 	const char *text;
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 
@@ -185,6 +186,7 @@ retry:	/* transaction retry */
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,
 					children, NULL, ACL_WRITE, NULL );
+
 				p = NULL;
 
 				switch( opinfo.boi_err ) {
@@ -229,6 +231,15 @@ retry:	/* transaction retry */
 				DB_LOCK_WRITE, &lock);
 		}
 #endif
+	}
+
+	rc = access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL );
+
+	switch( opinfo.boi_err ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
 	}
 
 	/* get entry for read/modify/write */
