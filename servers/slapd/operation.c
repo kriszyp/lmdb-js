@@ -24,6 +24,9 @@ slap_op_free( Operation *op )
 	if ( op->o_ndn != NULL ) {
 		free( op->o_ndn );
 	}
+	if ( op->o_authmech != NULL ) {
+		free( op->o_authmech );
+	}
 
 	ldap_pvt_thread_mutex_destroy( &op->o_abandonmutex );
 
@@ -51,6 +54,7 @@ slap_op_alloc(
 
 	op->o_dn = NULL;
 	op->o_ndn = NULL;
+	op->o_authmech = NULL;
 
 	op->o_time = slap_get_time();
 	op->o_opid = id;

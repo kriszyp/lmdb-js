@@ -490,6 +490,9 @@ typedef struct slap_op {
 
 	ber_tag_t	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
+
+	int		o_bind_in_progress;	/* multi-op bind in progress */
+
 	char		*o_dn;		/* dn bound when op was initiated */
 	char		*o_ndn;		/* normalized dn bound when op was initiated */
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
@@ -534,6 +537,8 @@ typedef struct slap_conn {
 	char		*c_client_name;	/* name of client */
 
 	/* only can be changed by binding thread */
+	int		c_bind_in_progress;	/* multi-op bind in progress */
+
 	char	*c_cdn;		/* DN provided by the client */
 	char	*c_dn;		/* DN bound to this conn  */
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */

@@ -602,6 +602,7 @@ void connection_done( Connection *c )
 static void *
 connection_operation( void *arg_v )
 {
+	int rc;
 	struct co_arg	*arg = arg_v;
 	ber_tag_t tag = arg->co_op->o_tag;
 	Connection *conn = arg->co_conn;
@@ -612,44 +613,44 @@ connection_operation( void *arg_v )
 
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
-		do_bind( conn, arg->co_op );
+		rc = do_bind( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_UNBIND:
-		do_unbind( conn, arg->co_op );
+		rc = do_unbind( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_ADD:
-		do_add( conn, arg->co_op );
+		rc = do_add( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_DELETE:
-		do_delete( conn, arg->co_op );
+		rc = do_delete( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_MODRDN:
-		do_modrdn( conn, arg->co_op );
+		rc = do_modrdn( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_MODIFY:
-		do_modify( conn, arg->co_op );
+		rc = do_modify( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_COMPARE:
-		do_compare( conn, arg->co_op );
+		rc = do_compare( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_SEARCH:
-		do_search( conn, arg->co_op );
+		rc = do_search( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_ABANDON:
-		do_abandon( conn, arg->co_op );
+		rc = do_abandon( conn, arg->co_op );
 		break;
 
 #if 0
 	case LDAP_REQ_EXTENDED:
-		do_extended( conn, arg->co_op );
+		rc = do_extended( conn, arg->co_op );
 		break;
 #endif
 
@@ -685,6 +686,7 @@ connection_operation( void *arg_v )
 		if( conn->c_conn_state == SLAP_C_BINDING) {
 			conn->c_conn_state = SLAP_C_ACTIVE;
 		}
+		conn->c_bind_in_progress = ( rc == LDAP_SASL_BIND_IN_PROGRESS );
 	}
 
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
@@ -907,10 +909,16 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_conn = conn;
 	arg->co_op = op;
 
+	arg->co_op->o_bind_in_progress = conn->c_bind_in_progress;
+
 	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
 	arg->co_op->o_ndn = dn_normalize_case( ch_strdup( arg->co_op->o_dn ) );
 
 	arg->co_op->o_protocol = conn->c_protocol;
+
+	arg->co_op->o_authmech = conn->c_authmech != NULL
+		?  ch_strdup( conn->c_authmech ) : NULL;
+	arg->co_op->o_authtype = conn->c_authtype;
 
 	slap_op_add( &conn->c_ops, arg->co_op );
 
@@ -918,7 +926,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 		conn->c_conn_state = SLAP_C_BINDING;
 	}
 
-	if ( tmpdn != NULL ) {
+	if( tmpdn != NULL ) {
 		free( tmpdn );
 	}
 
