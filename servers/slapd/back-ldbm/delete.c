@@ -100,7 +100,7 @@ ldbm_back_delete(
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			"no write access to entry" );
 
-		rc = 1;
+		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
 	}
 
@@ -123,7 +123,7 @@ ldbm_back_delete(
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 
-		rc = 1;
+		rc = LDAP_REFERRAL;
 		goto return_results;
 	}
 
@@ -261,7 +261,7 @@ ldbm_back_delete(
 
 	rs->sr_err = LDAP_SUCCESS;
 	send_ldap_result( op, rs );
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 return_results:;
 	if( p != NULL ) {
