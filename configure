@@ -3203,7 +3203,7 @@ fi
 
 	ac_cv_func_res_search=$ac_cv_lib_bind_res_search
 fi
-if test $ac_cv_func_res_search = "no" ; then 
+if test $ac_cv_func_res_search= "no" ; then 
 	echo $ac_n "checking for __res_search in -lbind""... $ac_c" 1>&6
 echo "configure:3209: checking for __res_search in -lbind" >&5
 ac_lib_var=`echo bind'_'__res_search | sed 'y%./+-:%__p__%'`
@@ -3251,7 +3251,7 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-	ac_cv_func_res_search=$ac_cv_lib_bind_res___search
+	ac_cv_func_res_search=$ac_cv_lib_bind___res_search
 fi
 if test $ac_cv_func_res_search = "no" ; then 
 	echo $ac_n "checking for res_search in -lresolv""... $ac_c" 1>&6
@@ -3303,7 +3303,7 @@ fi
 
 	ac_cv_func_res_search=$ac_cv_lib_resolv_res_search
 fi
-if test "$ac_cv_func_res_search" = "yes" ; then
+if test $ac_cv_func_res_search = "yes" ; then
 	cat >> confdefs.h <<\EOF
 #define HAVE_RES_SEARCH 1
 EOF
