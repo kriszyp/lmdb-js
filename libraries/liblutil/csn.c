@@ -13,16 +13,18 @@
 
 /*
  * This file contains routines to generate a change sequence number.  Every
- * add delete, and modification is given a unique identifier for use in
+ * add, delete, and modification is given a unique identifier for use in
  * resolving conflicts during replication operations.
  *
- * These routines are based upon draft-ietf-ldup-model-03.txt, and will
- * need to be revisited once standardized.
+ * These routines are (loosly) based upon draft-ietf-ldup-model-03.txt,
+ * A WORK IN PROGRESS.  The format will likely change.
  *
- * The format of a CSN string is: yyyymmddhh:mm:ssz#0xSSSS#d#0xssss
- * where SSSS is a counter of operations within a timeslice, d is an
- * offset into a list of replica records, and ssss is a counter of
- * modifications within this operation.
+ * The format of a CSN string is: yyyymmddhhmmssz#s#r#c
+ * where s is a counter of operations within a timeslice, r is
+ * the replica id (normally zero), and c is a counter of
+ * modifications within this operation.  s, r, and c are
+ * represented in hex and zero padded to lengths of 6, 2, and
+ * 6, respectively.
  *
  * Calls to this routine MUST be serialized with other calls
  * to gmtime().
@@ -53,7 +55,8 @@ lutil_csnstr(char *buf, size_t len, unsigned int replica, unsigned int mod)
 	op = ++csnop;
 
 	ltm = gmtime( &t );
-	n = snprintf( buf, len, "%4d%02d%02d%02d:%02d:%02dZ#0x%04x#%d#%04x",
+	n = snprintf( buf, len,
+		"%4d%02d%02d%02d%02d%02dZ#%06x#%02x#%06x",
 	    ltm->tm_year + 1900, ltm->tm_mon + 1, ltm->tm_mday, ltm->tm_hour,
 	    ltm->tm_min, ltm->tm_sec, op, replica, mod );
 
