@@ -373,12 +373,11 @@ ber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
    
    assert( buf_arg != NULL );
    assert( sb != NULL );
-	assert( SOCKBUF_VALID( sb ) );
+   assert( SOCKBUF_VALID( sb ) );
    assert( status_is_ok(sb) );
-#if 0
-   /* breaks slapd :-< */
+
+   /* slapd might have problems with this */
    assert( ber_pvt_sb_in_use( sb ) );
-#endif 
 
 #ifdef TEST_PARTIAL_READ
    if ((rand() & 3)==1) { /* 1 out of 4 */
@@ -566,10 +565,10 @@ long ber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
 	assert( sb != NULL );
 	assert( SOCKBUF_VALID( sb ) );
    assert( status_is_ok(sb) );
-#if 0
-   /* unfortunately breaks slapd */
+
+   /* slapd might have problems with this */
    assert( ber_pvt_sb_in_use( sb ) );
-#endif   
+
 #ifdef TEST_PARTIAL_WRITE
    if ((rand() & 3)==1) { /* 1 out of 4 */
       errno = EWOULDBLOCK;
