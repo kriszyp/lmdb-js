@@ -41,7 +41,7 @@ static STRDISP  syslog_types[] = {
     NULL
 };
 
-static int   cnvt_str2int();
+static int   cnvt_str2int( char *, STRDISP_P, int );
 
 #endif  /* LOG_LOCAL4 */
 
@@ -337,10 +337,7 @@ destroy:
  */
 
 static int
-cnvt_str2int (stringVal, dispatcher, defaultVal)
-char      *stringVal;
-STRDISP_P  dispatcher;
-int        defaultVal;
+cnvt_str2int( char *stringVal, STRDISP_P dispatcher, int defaultVal )
 {
     int        retVal = defaultVal;
     STRDISP_P  disp;
