@@ -1,7 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.16 Engineering
-	Fixed ITS indexing bug (ITS#1359, others)
+	Fixed ITS indexing bug (ITS#1349)
 	Fixed slapd/slurpd maxargs bug (ITS#1343)
 	Fixed slapd ManageDSAIT warning
 	Fixed slapd no OID schema bug
@@ -9,23 +9,23 @@ OpenLDAP 2.0.16 Engineering
 	Fixed slurpd moddn newsup bug (ITS#1379)
 	Fixed -llber ber_realloc bug (ITS#1346)
 	Fixed -lldap multi-level referral chase bug (ITS#1346)
-	Fixed -lldap high port bug
+	Fixed -lldap high port bug (ITS#1375)
 	Fixed CR/LF handling (ITS#1328)
-	Updated slapd/-lldap getaddrinfo handling
+	Updated slapd/-lldap getaddrinfo handling (ITS#1304)
 	Updated -lldap_r pthread stack size
 	Updated slapd acl assert checks
 	Updated slurpd ManageDSAIT handling
-	Updated slapd root/subschema dse update error handling
+	Updated slapd root/subschema DSE update error handling
 	Removed -lldbm use of Berkeley CDB
 	Updated -lldbm to use r/w lock with DB_THREAD
-	Updated ldbm update attribute indices on delete
+	Updated back-ldbm update attribute indices on delete (ITS#1359)
 	Updated ud Kerberos ticket handling
 	Added back-ldbm idl_check() code
 	Build environment
 		Updated ltconfig for MacOS X 10.1 (ITS#1361)
 		Updated slapd.conf with ACL example
 		Updated pthread detection
-		Updated Kerberos detection
+		Updated Kerberos detection (ITS#1372)
 		Updated test005 /dev/null diff for Tru64 compat
 		Updated test007 modrdn test
 		Updated test008 read/write ratio
