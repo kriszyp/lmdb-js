@@ -2961,7 +2961,7 @@ parse_syncrepl_line(
 
 	if ( si->bindmethod == LDAP_AUTH_SASL) {
 		if ((gots & GOT_MECH) == 0) {
-			fprintf( stderr, "Error: \"syncrepl\" line needs SASLmech flag " );
+			fprintf( stderr, "Error: \"syncrepl\" line needs SASLmech flag " 
 			                 "in slapd config file\n" );
 			return -1;
 		}
