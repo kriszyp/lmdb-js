@@ -71,14 +71,6 @@ bdb_modrdn(
 		newSuperior ? newSuperior->bv_val : "NULL" );
 #endif
 
-#if 0
-	if( newSuperior != NULL ) {
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		text = "newSuperior not implemented (yet)";
-		goto return_results;
-	}
-#endif
-
 	if( 0 ) {
 retry:	/* transaction retry */
 		if (e != NULL) {
@@ -384,6 +376,21 @@ retry:	/* transaction retry */
 			newSuperior->bv_val, 0, 0 );
 #endif
 
+		/*  newSuperior == oldParent? */
+		if( dn_match( &p_ndn, nnewSuperior ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_LDBM, INFO, "bdb_back_modrdn: "
+				"new parent \"%s\" same as the old parent \"%s\"\n",
+				newSuperior->bv_val, p_dn.bv_val, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, "bdb_back_modrdn: "
+				"new parent \"%s\" same as the old parent \"%s\"\n",
+				newSuperior->bv_val, p_dn.bv_val, 0 );
+#endif      
+			newSuperior = NULL; /* ignore newSuperior */
+		}
+	}
+	if ( newSuperior != NULL ) {
 		if ( newSuperior->bv_len ) {
 			np_dn = newSuperior;
 			np_ndn = nnewSuperior;
@@ -392,7 +399,8 @@ retry:	/* transaction retry */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			rc = bdb_dn2entry_r( be, ltid, nnewSuperior, &np, NULL, 0, locker, &lock );
+			rc = bdb_dn2entry_r( be,
+				ltid, nnewSuperior, &np, NULL, 0, locker, &lock );
 
 			switch( rc ) {
 			case 0:
