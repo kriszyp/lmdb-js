@@ -112,6 +112,26 @@ ldap_pvt_str2upper( char *str )
 	return( str );
 }
 
+struct berval *
+ldap_pvt_str2upperbv( char *str, struct berval *bv )
+{
+	char    *s = NULL;
+
+	assert( bv );
+
+	/* to upper */
+	if ( str ) {
+		for ( s = str; *s; s++ ) {
+			*s = TOUPPER( (unsigned char) *s );
+		}
+	}
+
+	bv->bv_val = str;
+	bv->bv_len = (ber_len_t)(s - str);
+	
+	return( bv );
+}
+
 char *
 ldap_pvt_str2lower( char *str )
 {
@@ -125,4 +145,24 @@ ldap_pvt_str2lower( char *str )
 	}
 
 	return( str );
+}
+
+struct berval *
+ldap_pvt_str2lowerbv( char *str, struct berval *bv )
+{
+	char    *s = NULL;
+
+	assert( bv );
+
+	/* to lower */
+	if ( str ) {
+		for ( s = str; *s; s++ ) {
+			*s = TOLOWER( (unsigned char) *s );
+		}
+	}
+
+	bv->bv_val = str;
+	bv->bv_len = (ber_len_t)(s - str);
+
+	return( bv );
 }
