@@ -183,18 +183,11 @@ static int test_mra_filter(
 		}
 
 		if ( mra->ma_desc == slap_schema.si_ad_entryDN ) {
-			struct berval *bv;
 			int ret, rc;
 			const char *text;
 
-			if( mra->ma_rule == a->a_desc->ad_type->sat_equality ) {
-				bv = &e->e_nname;
-			} else {
-				bv = &e->e_name;
-			}
-
-			rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-				bv, &mra->ma_value, &text );
+			rc = value_match( &ret, slap_schema.si_ad_entryDN, mra->ma_rule,
+				0, &e->e_nname, &mra->ma_value, &text );
 	
 			if( rc != LDAP_SUCCESS ) return rc;
 			if ( ret == 0 ) return LDAP_COMPARE_TRUE;
