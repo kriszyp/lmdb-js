@@ -70,6 +70,8 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 #ifdef USE_CTIME_R
 # if (CTIME_R_NARGS > 3) || (CTIME_R_NARGS < 2)
 	choke me!  nargs should have 2 or 3
+# elif CTIME_R_NARGS > 2 && defined(CTIME_R_RETURNS_INT)
+	return( ctime_r(tp,buf,26) < 0 ? 0 : buf );
 # elif CTIME_R_NARGS > 2
 	return ctime_r(tp,buf,26);
 # else
