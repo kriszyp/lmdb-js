@@ -365,7 +365,7 @@ static void openldap_ldap_init_w_env(
 }
 
 static void
-ldap_int_destroy_global_options()
+ldap_int_destroy_global_options(void)
 {
 	struct ldapoptions *gopts = LDAP_INT_GLOBAL_OPT();
 
