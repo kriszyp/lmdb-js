@@ -72,7 +72,7 @@
  */
 	/* location of the default slapd config file */
 #define SLAPD_DEFAULT_CONFIGFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.conf"
-#define SLAPD_DEFAULT_DB_DIR		LDAP_DATADIR LDAP_DIRSEP "openldap-data"
+#define SLAPD_DEFAULT_DB_DIR		LDAP_RUNDIR LDAP_DIRSEP "openldap-data"
 #define SLAPD_DEFAULT_DB_MODE		0600
 #define SLAPD_DEFAULT_UCDATA		LDAP_DATADIR LDAP_DIRSEP "ucdata"
 	/* default max deref depth for aliases */
