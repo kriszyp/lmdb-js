@@ -25,6 +25,10 @@
 #include "perl_back.h"
 
 
+LDAP_F( void )
+perl_back_xs_init LDAP_P((void));
+LDAP_F( void )
+boot_DynaLoader LDAP_P((CV* cv));
 
 PerlInterpreter *perl_interpreter = NULL;
 ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
@@ -68,7 +72,7 @@ perl_back_initialize(
 	
 	perl_interpreter = perl_alloc();
 	perl_construct(perl_interpreter);
-	perl_parse(perl_interpreter, NULL, 3, embedding, (char **)NULL);
+	perl_parse(perl_interpreter, perl_back_xs_init, 3, embedding, (char **)NULL);
 	perl_run(perl_interpreter);
 
 	bi->bi_open = perl_back_open;
@@ -122,3 +126,11 @@ perl_back_db_init(
 	return 0;
 }
 
+
+static void
+perl_back_xs_init()
+{
+    char *file = __FILE__;
+    dXSUB_SYS;
+        newXS("DynaLoader::boot_DynaLoader", boot_DynaLoader, file);
+}

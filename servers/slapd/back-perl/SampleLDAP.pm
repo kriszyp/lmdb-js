@@ -1,3 +1,4 @@
+
 =head1 Introduction
 
 This is a sample Perl module for the OpenLDAP server slapd.
@@ -142,13 +143,16 @@ above.
 
 package SampleLDAP;
 
+use POSIX;
+
 sub new
 {
 	my $class = shift;
 
 	my $this = {};
 	bless $this, $class;
-
+        print STDERR "Here in new\n";
+	print STDERR "Posix Var " . BUFSIZ . " and " . FILENAME_MAX . "\n";
 	return $this;
 }
 
@@ -156,7 +160,7 @@ sub search
 {
 	my $this = shift;
 	my( $filterStr, $sizeLim, $timeLim, $attrOnly, @attrs ) = @_;
-
+        print STDERR "====$filterStr====\n";
 	$filterStr =~ s/\(|\)//g;
 	$filterStr =~ s/=/: /;
 
@@ -256,6 +260,7 @@ sub delete
 
 	my ( $dn ) = @_;
 	
+        print STDERR "XXXXXX $dn XXXXXXX\n";
 	delete $this->{$dn};
 }
 
@@ -264,8 +269,10 @@ sub config
 	my $this = shift;
 
 	my ( @args ) = @_;
-			
-	return 1;
+        local $, = " - ";
+        print STDERR @args;
+        print STDERR "\n";
+	return 0;
 }
 
 1;
