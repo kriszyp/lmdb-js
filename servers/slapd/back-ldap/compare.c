@@ -100,6 +100,8 @@ ldap_back_compare(
 			ldap_back_dn_massage( &dc, &op->orc_ava->aa_value, &mapped_val );
 			if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {
 				mapped_val = op->orc_ava->aa_value;
+			} else {
+				freeval = 1;
 			}
 		}
 	}
@@ -109,6 +111,9 @@ ldap_back_compare(
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
+	}
+	if ( freeval ) {
+		free( mapped_val.bv_val );
 	}
 	
 	return( ldap_back_op_result( lc, op, rs, msgid, 1 ) );
