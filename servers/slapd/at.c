@@ -537,7 +537,7 @@ at_add(
 			return SLAP_SCHERR_ATTR_BAD_MR;
 		}
 
-		/* due to funky LDAP builtin substring rules, we
+		/* due to funky LDAP builtin substring rules,
 		 * we check against the equality rule assertion
 		 * syntax and compat syntaxes instead of those
 		 * associated with the substrings rule.
