@@ -72,7 +72,7 @@ H3: {{TERM[expand]SASL}}
 
 OpenLDAP clients and servers require installation of {{PRD:Cyrus}}
 SASL libraries to provide {{TERM[expand]SASL}} services.  Though
-some operating sytems may provide this library as part of the
+some operating systems may provide this library as part of the
 base system or as an optional software component, Cyrus SASL
 often requires separate installation.
 
@@ -118,7 +118,7 @@ H3: TCP Wrappers
 
 {{slapd}}(8) supports TCP wrappers (IP level access control filters)
 if preinstalled.  Use of TCP wrappers or other IP level access
-filters (such as those provided by IP firewalls) is recommended
+filters (such as those provided by IP firewall) is recommended
 for servers containing non-public information.
 
 
@@ -173,8 +173,8 @@ is usually installed in {{F:/usr/local/BerkeleyDB.3.1}} (assuming
 that version 3.1 is being used.) 
 
 The following example shows how to run {{EX:configure}} and specify where to 
-find BerkeleyDB and turn on the DNSSRV backend.  The example should be 
-entered on a single line (it has been split onto seperate lines for clarity.)
+find BerkeleyDB and turn on the DNS-SRV backend.  The example should be 
+entered on a single line (it has been split onto separate lines for clarity.)
 
 >	env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \
 >		LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib" \
@@ -197,7 +197,7 @@ should be:
 >	Please "make depend" to build dependencies
 
 If the last line of output does not match, {{EX:configure}} has failed.
-You should not proceed until {{EX:configure}} completes sucessfuly.
+You should not proceed until {{EX:configure}} completes successfully.
 
 To build dependencies, run:
 >	make depend

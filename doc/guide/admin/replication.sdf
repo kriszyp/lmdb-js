@@ -146,15 +146,15 @@ copies of replication logs. The default location is /usr/tmp.
 
 >	-k <filename>
 
-When slurpd uses kerberos to authenticate to slave slapd
+When slurpd uses Kerberos to authenticate to slave slapd
 instances, it needs to have an appropriate srvtab file for
 the remote slapd. This option allows you to specify an
-alternate filename containing kerberos keys for the remote
+alternate filename containing Kerberos keys for the remote
 slapd. The default filename is /etc/srvtab. You can also
 specify the srvtab file to use in the slapd configuration
 file's replica option. See the documentation on the srvtab
 directive in section 5.2.2, General Backend Options. A
-more complete discussion of using kerberos with slapd
+more complete discussion of using Kerberos with slapd
 and slurpd may be found in Appendix D.
 
 

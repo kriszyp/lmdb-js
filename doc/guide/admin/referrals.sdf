@@ -23,9 +23,9 @@ Subordinate knowledge information may be provided to delegate
 a subtree.
 Subordinate knowledge information is maintained in the directory
 as a special {{referral}} object at the delegate point.
-The referral object acts as a delegation point, gluing two servcies
+The referral object acts as a delegation point, gluing two services
 together.
-This mechanism allows for hierarchial directory services to to be
+This mechanism allows for hierarchical directory services to to be
 constructed.
 
 A referral object has an structural object class of
@@ -107,11 +107,11 @@ is similar to an X.500 knowledge reference held in a
 H2: ManageDSAit
 
 Adding, modify, and deleting referral objects is generally done
-using {{ldapmodify}}(1) or similiar tools which support the
+using {{ldapmodify}}(1) or similar tools which support the
 ManageDsaIT control.  The ManageDsaIT control informs the server
 that you intend to manage the referral object as a regular
 entry.  This keeps the server from sending a referral result
-for requests to introgating or updating referral objects.
+for requests which interrogate or update referral objects.
 The -M option of {{ldapmodify}}(1) (and other tools) enables
 ManageDsaIT.  For example:
 

@@ -88,7 +88,7 @@ Now look in the configuration file for a line that begins with
 
 ..{{EX:database          ldbm}}
 
-.This marks the begining of the database configuration for {{slapd}}.
+.This marks the beginning of the database configuration for {{slapd}}.
 Everything you will need to change for this example is located
 after this line.
 
@@ -96,7 +96,7 @@ after this line.
 {{F:slapd.conf}}(5).  Lines that begin with a sharp sign ('{{EX:#}}')
 are considered to be comments by slapd, they have been removed
 from the listing below to save space.  If a line starts with
-white space it is considered a continuation of the preceeding
+white space it is considered a continuation of the preceding
 line.
 
 ..{{EX:suffix          "dc=my-domain, dc=com"}}

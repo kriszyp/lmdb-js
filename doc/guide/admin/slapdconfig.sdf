@@ -125,7 +125,7 @@ This directive specifies the level at which debugging statements
 and operation statistics should be syslogged (currently
 logged to the {{syslogd}}(8) LOG_LOCAL4 facility). You must
 have compiled slapd with -DLDAP_DEBUG for this to work
-(except for the two stats levels, which are always enabled).
+(except for the two statistics levels, which are always enabled).
 Log levels are additive. To display what numbers correspond
 to what kind of debugging, invoke slapd with the  ? flag or
 consult the table below. The possible values for <integer> are:
@@ -164,7 +164,7 @@ H4: objectclass <RFC2252 Object Class Description>
 
 This directive defines an object class.
 
-H4: referral <url>
+H4: referral <URI>
 
 This directive specifies the referral to pass back when slapd
 cannot find a local database to handle a request.
@@ -204,9 +204,9 @@ from a search operation.
 H4: srvtab <filename>
 
 This directive specifies the srvtab file in which slapd can find the
-kerberos keys necessary for authenticating clients using
-kerberos. This directive is only meaningful if you are using
-kerberos authentication, which must be enabled at compile
+Kerberos keys necessary for authenticating clients using
+Kerberos. This directive is only meaningful if you are using
+Kerberos authentication, which must be enabled at compile
 time by including the appropriate definitions in the
 {{EX:Make-common}} file.
 
@@ -432,7 +432,7 @@ maintained.
 
 The first line sets the default to indices to maintain to present
 and equality.  The second line causes the default (pres,eq) set
-of indices to be maintained for objectcCass and uid attribute
+of indices to be maintained for objectClass and uid attribute
 types.  The third line causes equality, substring, and approximate
 filters to be maintained for cn and sn attribute types.
 
@@ -807,7 +807,7 @@ Each schema element is identified by a globally unique Object
 Identifier (OID).  OIDs are also used to identify other objects.
 They are commonly found in protocols described by ASN.1.  In
 particular, they are heavy used by Simple Network Management
-Protocol (SNMP).  As OIDs are heirarchial, your organization
+Protocol (SNMP).  As OIDs are hierarchical, your organization
 can obtain one OID and branch in as needed.  For example,
 if your organization were assigned OID 1.1, you could branch
 the tree as follows:
@@ -824,17 +824,17 @@ OID		Assignment
 1.1.2.2.1	myObjectClass
 !endblock
 
-You are, of course, free to design a heirarchy suitable to your
+You are, of course, free to design a hierarchy suitable to your
 organizational needs under your organization's OID.
 
 .{{Under no circumstances should you use a fictious OID!}} 
 
 To obtain a fully registered OID at {{no cost}}, apply for
-a OID under {{Internet Assigned Numbers Authority}} maintained
+a OID under {{ORG[expand]IANA}} maintained
 {{Private Enterprise}} arch.  Any private enterprise (organization)
 may request an OID to be assigned under this arch.  Just fill
-out the form at {{URL: http://www.iana.org/}} and your OID will
-be sent to you usually within a few days.
+out the form at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}}
+and your official OID will be sent to you usually within a few days.
 
 H3: AttributeType Specification
 
