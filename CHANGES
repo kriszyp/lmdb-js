@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.2.10 Release Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+Changes included in OpenLDAP 1.2.10
+	CVS Tag: OPENLDAP_REL_ENG_1_2_10
 	Add slapd -DSLAPD_UNDEFINED_OC_IS_NOT_EXTENSIBLE macro disable
 		undefined object classes implies extensible object behavior.
 	Add GNU Pth support (ITS#453)
@@ -10,7 +10,7 @@ Changes included in OpenLDAP 1.2.10 Release Engineering
 	Fixed multiple password support (ITS#464)
 	Fixed -lldap chasing of delete referrals (ITS#471)
 	Fixed back-ldbm/bind invalid credentials vs no such object bug 
-	Fixed slapd str2entry uninitialized varible bug (ITS#482)
+	Fixed slapd str2entry uninitialized variable bug (ITS#482)
 	Fixed back-ldbm/modify mutlivalued indexing bug
 	Fixed -llber seqorset buffer overrun bug (ITS#479)
 	Build Environment
