@@ -157,6 +157,18 @@ bdb_db_open( BackendDB *be )
 		be->be_suffix[0].bv_val, 0, 0 );
 #endif
 
+#ifndef BDB_MULTIPLE_SUFFIXES
+	if ( be->be_suffix[1].bv_val ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_BDB, ARGS, 
+		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_ARGS,
+		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
+#endif
+		return -1;
+	}
+#endif
 	/* we should check existance of dbenv_home and db_directory */
 
 	rc = db_env_create( &bdb->bi_dbenv, 0 );

@@ -67,22 +67,27 @@ bdb_dn2id_add(
 		goto done;
 	}
 
+#ifndef BDB_MULTIPLE_SUFFIXES
 	if( !be_issuffix( be, &ptr )) {
+#endif
 		buf[0] = DN_SUBTREE_PREFIX;
-		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
+		rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( INDEX, ERR, 
-				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+				"=> bdb_dn2id_add: subtree (%s) put failed: %d\n",
 				ptr.bv_val, rc, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-			"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+			"=> bdb_dn2id_add: subtree (%s) put failed: %d\n",
 			ptr.bv_val, rc, 0 );
 #endif
 			goto done;
 		}
 		
+#ifdef BDB_MULTIPLE_SUFFIXES
+	if( !be_issuffix( be, &ptr )) {
+#endif
 		dnParent( &ptr, &pdn );
 	
 		key.size = pdn.bv_len + 2;
@@ -105,9 +110,13 @@ bdb_dn2id_add(
 #endif
 			goto done;
 		}
+#ifndef BDB_MULTIPLE_SUFFIXES
 	}
 
 	while( !be_issuffix( be, &ptr )) {
+#else
+	for (;;) {
+#endif
 		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
 		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
@@ -124,6 +133,9 @@ bdb_dn2id_add(
 #endif
 			break;
 		}
+#ifdef BDB_MULTIPLE_SUFFIXES
+		if( be_issuffix( be, &ptr )) break;
+#endif
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
@@ -131,6 +143,9 @@ bdb_dn2id_add(
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
+#ifdef BDB_MULTIPLE_SUFFIXES
+	}
+#endif
 
 done:
 	ch_free( buf );
@@ -189,7 +204,9 @@ bdb_dn2id_delete(
 		goto done;
 	}
 
+#ifndef BDB_MULTIPLE_SUFFIXES
 	if( !be_issuffix( be, &ptr )) {
+#endif
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = db->del( db, txn, &key, 0 );
 		if( rc != 0 ) {
@@ -205,6 +222,9 @@ bdb_dn2id_delete(
 			goto done;
 		}
 
+#ifdef BDB_MULTIPLE_SUFFIXES
+	if( !be_issuffix( be, &ptr )) {
+#endif
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
@@ -227,9 +247,13 @@ bdb_dn2id_delete(
 #endif
 			goto done;
 		}
+#ifndef BDB_MULTIPLE_SUFFIXES
 	}
 
 	while( !be_issuffix( be, &ptr )) {
+#else
+	for (;;) {
+#endif
 		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
 		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
@@ -245,6 +269,9 @@ bdb_dn2id_delete(
 #endif
 			goto done;
 		}
+#ifdef BDB_MULTIPLE_SUFFIXES
+		if( be_issuffix( be, &ptr )) break;
+#endif
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
@@ -252,6 +279,9 @@ bdb_dn2id_delete(
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
+#ifdef BDB_MULTIPLE_SUFFIXES
+	}
+#endif
 
 done:
 	ch_free( buf );
@@ -525,11 +555,13 @@ bdb_dn2idl(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", dn->bv_val, 0, 0 );
 #endif
 
+#ifndef	BDB_MULTIPLE_SUFFIXES
 	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn))
 	{
 		BDB_IDL_ALL(bdb, ids);
 		return 0;
 	}
+#endif
 
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
