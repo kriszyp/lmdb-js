@@ -143,10 +143,6 @@ SOURCE=.\bind.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cache.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cancel.c
 # End Source File
 # Begin Source File
