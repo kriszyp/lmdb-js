@@ -59,7 +59,7 @@ str2filter( const char *str )
 		goto done;
 	}
 
-	ber_free( ber, 0 );
+	ber_free( ber, 1 );
 
 	ber = (BerElement *)berbuf;
 	ber_init2( ber, bv, 0 );
