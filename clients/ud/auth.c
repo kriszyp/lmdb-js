@@ -13,15 +13,17 @@
 #include <stdio.h>
 #include <pwd.h>
 #include <string.h>
+#include <time.h>
 #include <ctype.h>
-#include <lber.h>
-#include <ldap.h>
-#include <ldapconfig.h>
-#include "ud.h"
 #ifdef KERBEROS
 #include <sys/types.h>
 #include <krb.h>
 #endif
+
+#include <lber.h>
+#include <ldap.h>
+#include <ldapconfig.h>
+#include "ud.h"
 
 extern LDAP *ld;		/* our LDAP descriptor */
 extern int verbose;		/* verbosity indicator */
