@@ -31,8 +31,6 @@
 #define SLAP_NVALUES 1
 
 /* not yet implemented */
-#define integerFirstComponentNormalize NULL
-#define objectIdentifierFirstComponentNormalize NULL
 #define uniqueMemberMatch NULL
 
 #define	OpenLDAPaciMatch			NULL
@@ -1645,16 +1643,14 @@ IA5StringNormalize(
 	void *ctx )
 {
 	char *p, *q;
-	int casefold = SLAP_MR_ASSOCIATED( mr, slap_schema.si_mr_caseExactIA5Match );
+	int casefold = SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
 
 	assert( val->bv_len );
 
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( ASCII_SPACE( *p ) ) {
-		p++;
-	}
+	while ( ASCII_SPACE( *p ) ) p++;
 
 	normalized->bv_val = ber_strdup_x( p, ctx );
 	p = q = normalized->bv_val;
@@ -1685,16 +1681,12 @@ IA5StringNormalize(
 	 * position.  One is enough because the above loop collapsed
 	 * all whitespace to a single space.
 	 */
-
-	if ( ASCII_SPACE( q[-1] ) ) {
-		--q;
-	}
+	if ( ASCII_SPACE( q[-1] ) ) --q;
 
 	/* null terminate */
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
-
 	if( normalized->bv_len == 0 ) {
 		normalized->bv_val = sl_realloc( normalized->bv_val, 2, ctx );
 		normalized->bv_val[0] = ' ';
@@ -1768,95 +1760,6 @@ numericStringNormalize(
 
 	return LDAP_SUCCESS;
 }
-
-#ifndef SLAP_NVALUES
-static int
-objectIdentifierFirstComponentMatch(
-	int *matchp,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *value,
-	void *assertedValue )
-{
-	int rc = LDAP_SUCCESS;
-	int match;
-	struct berval *asserted = (struct berval *) assertedValue;
-	ber_len_t i, j;
-	struct berval oid;
-
-	if( value->bv_len == 0 || value->bv_val[0] != '(' /*')'*/ ) {
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	/* trim leading white space */
-	for( i=1; ASCII_SPACE(value->bv_val[i]) && i < value->bv_len; i++ ) {
-		/* empty */
-	}
-
-	/* grab next word */
-	oid.bv_val = &value->bv_val[i];
-	j = value->bv_len - i;
-	for( i=0; !ASCII_SPACE(oid.bv_val[i]) && i < j; i++ ) {
-		/* empty */
-	}
-	oid.bv_len = i;
-
-	/* insert attributeTypes, objectclass check here */
-	if( OID_LEADCHAR(asserted->bv_val[0]) ) {
-		rc = objectIdentifierMatch( &match, flags, syntax, mr, &oid, asserted );
-
-	} else {
-		if ( !strcmp( syntax->ssyn_oid, SLAP_SYNTAX_MATCHINGRULES_OID ) ) {
-			MatchingRule *asserted_mr = mr_bvfind( asserted );
-			MatchingRule *stored_mr = mr_bvfind( &oid );
-
-			if( asserted_mr == NULL ) {
-				rc = SLAPD_COMPARE_UNDEFINED;
-			} else {
-				match = asserted_mr != stored_mr;
-			}
-
-		} else if ( !strcmp( syntax->ssyn_oid,
-			SLAP_SYNTAX_ATTRIBUTETYPES_OID ) )
-		{
-			AttributeType *asserted_at = at_bvfind( asserted );
-			AttributeType *stored_at = at_bvfind( &oid );
-
-			if( asserted_at == NULL ) {
-				rc = SLAPD_COMPARE_UNDEFINED;
-			} else {
-				match = asserted_at != stored_at;
-			}
-
-		} else if ( !strcmp( syntax->ssyn_oid,
-			SLAP_SYNTAX_OBJECTCLASSES_OID ) )
-		{
-			ObjectClass *asserted_oc = oc_bvfind( asserted );
-			ObjectClass *stored_oc = oc_bvfind( &oid );
-
-			if( asserted_oc == NULL ) {
-				rc = SLAPD_COMPARE_UNDEFINED;
-			} else {
-				match = asserted_oc != stored_oc;
-			}
-		}
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ENTRY, 
-		"objectIdentifierFirstComponentMatch: %d\n %s\n %s\n",
-		match, value->bv_val, asserted->bv_val );
-#else
-	Debug( LDAP_DEBUG_ARGS, "objectIdentifierFirstComponentMatch "
-		"%d\n\t\"%s\"\n\t\"%s\"\n",
-		match, value->bv_val, asserted->bv_val );
-#endif
-
-	if( rc == LDAP_SUCCESS ) *matchp = match;
-	return rc;
-}
-#endif
 
 static int
 integerBitAndMatch(
@@ -2610,6 +2513,61 @@ bootParameterValidate(
 	return LDAP_SUCCESS;
 }
 
+static int
+firstComponentNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	int rc;
+	struct berval oid;
+	ber_len_t len;
+
+	if( val->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
+
+	if( val->bv_val[0] != '(' /*')'*/ &&
+		val->bv_val[0] != '{' /*'}'*/ )
+	{
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/* trim leading white space */
+	for( len=1;
+		len < val->bv_len && ASCII_SPACE(val->bv_val[len]);
+		len++ )
+	{
+		/* empty */
+	}
+
+	/* grab next word */
+	oid.bv_val = &val->bv_val[len];
+	len = val->bv_len - len;
+	for( oid.bv_len=0;
+		!ASCII_SPACE(oid.bv_val[oid.bv_len]) && oid.bv_len < len;
+		oid.bv_len++ )
+	{
+		/* empty */
+	}
+
+	if( mr == slap_schema.si_mr_objectIdentifierFirstComponentMatch ) {
+		rc = numericoidValidate( NULL, &oid );
+	} else if( mr == slap_schema.si_mr_integerFirstComponentMatch ) {
+		rc = integerValidate( NULL, &oid );
+	} else {
+		rc = LDAP_INVALID_SYNTAX;
+	}
+	
+
+	if( rc == LDAP_SUCCESS ) {
+		ber_dupbv_x( normalized, &oid, ctx );
+	}
+
+	return rc;
+}
+
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
 
@@ -3021,7 +2979,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 			integerFirstComponentMatchSyntaxes,
-		NULL, integerFirstComponentNormalize, integerMatch,
+		NULL, firstComponentNormalize, integerMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
@@ -3029,7 +2987,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 			objectIdentifierFirstComponentMatchSyntaxes,
-		NULL, objectIdentifierFirstComponentNormalize, octetStringMatch,
+		NULL, firstComponentNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 

@@ -803,8 +803,12 @@ static struct slap_schema_mr_map {
 		offsetof(struct slap_internal_schema, si_mr_distinguishedNameMatch) },
 	{ "integerMatch",
 		offsetof(struct slap_internal_schema, si_mr_integerMatch) },
-	{ "integerFirstComponentMatch", offsetof(struct slap_internal_schema,
-		si_mr_integerFirstComponentMatch) },
+	{ "integerFirstComponentMatch",
+		offsetof(struct slap_internal_schema,
+			si_mr_integerFirstComponentMatch) },
+	{ "objectIdentifierFirstComponentMatch",
+		offsetof(struct slap_internal_schema,
+			si_mr_objectIdentifierFirstComponentMatch) },
 	{ NULL, 0 }
 };
 

@@ -801,6 +801,7 @@ struct slap_internal_schema {
 	MatchingRule    *si_mr_caseExactIA5Match;
 	MatchingRule	*si_mr_integerMatch;
 	MatchingRule    *si_mr_integerFirstComponentMatch;
+	MatchingRule    *si_mr_objectIdentifierFirstComponentMatch;
 
 	/* Syntaxes */
 	Syntax		*si_syn_directoryString;
