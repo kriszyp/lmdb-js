@@ -70,7 +70,13 @@ actual text are shown in brackets <>.
 Grant access (specified by <access>) to a set of entries and/or
 attributes (specified by <what>) by one or more requestors (specified
 by <who>).
-See Developer's FAQ (http://www.openldap.org/faq/) for details.
+See the "OpenLDAP's Administrator's Guide" for details.
+.TP
+.B argsfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's command line options
+if started without the debugging command line option.
 .HP
 .hy 0
 .B attributetype (\ <oid> [NAME\ <name>] [OBSOLETE]\
@@ -127,19 +133,6 @@ feature.  The default is 0.
 .B include <filename>
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
-.TP
-.B pidfile <filename>
-The ( absolute ) name of a file that will hold the 
-.B slapd
-server's process ID ( see
-.BR getpid (2)
-) if started without the debugging command line option.
-.TP
-.B argsfile <filename>
-The ( absolute ) name of a file that will hold the 
-.B slapd
-server's command line options
-if started without the debugging command line option.
 .TP
 .B loglevel <integer>
 Specify the level at which debugging statements and operation 
@@ -209,11 +202,38 @@ in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
 value "oid.xx" will be used.
 .TP
+.B pidfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's process ID ( see
+.BR getpid (2)
+) if started without the debugging command line option.
+.TP
+.B password-hash <hash>
+The <hash> to use for userPassword generation.  One of
+.BR {SSHA} ,
+.BR {SHA} ,
+.BR {SMD5} ,
+.BR {MD5} ,
+.BR {CRYPT} ,
+.BR {KERBEROS} ,
+.BR {SASL} ,
+and
+.BR {UNIX} .
+The default is
+.BR {SSHA} .
+.TP
 .B referral <url>
 Specify the referral to pass back when
 .BR slapd (8)
 cannot find a local database to handle a request.
 If specified multiple times, each url is provided.
+.TP
+.B sasl-realm <string>
+Used to specify Cyrus SASL realm.
+.TP
+.B sasl-secprops <string>
+Used to specify Cyrus SASL security properties.
 .TP
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
@@ -324,17 +344,22 @@ See
 for more information.
 .TP
 .B rootdn <dn>
-Specify the DN of an entry that is not subject to access control 
+Specify the distinguished name that is not subject to access control 
 or administrative limit restrictions for operations on this database.
+This DN may or may not be associated with an entry.  An empty root
+DN, the default, specifies no root access is to be granted.
 .TP
 .B rootpw <password>
 Specify a password (or hash of the password) for the rootdn.
 This option accepts all RFC 2307 userPassword formats known to
-the server including \fB{SSHA}\fP, \fB{SHA}\fP, \fB{SMD5}\fP,
-\fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext schemes.
+the server (see 
+.B password-hash
+desription) as well as cleartext.
 .BR slappasswd (8) 
 may be used to generate a hash of a password.  Cleartext
-and \fB{CRYPT}\fP passwords are not recommended.
+and \fB{CRYPT}\fP passwords are not recommended.  The default
+is empty imply authentication of the root DN is by other means
+(e.g. SASL).  Use of SASL is encouraged.
 .TP
 .B suffix <dn suffix>
 Specify the DN suffix of queries that will be passed to this 
