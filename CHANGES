@@ -3,6 +3,7 @@ OpenLDAP 2.2 Change Log
 OpenLDAP 2.2.7 Engineering
 	Added total operation count in back-monitor (ITS#2983)
 	Fixed search abandon handling in backglue (ITS#2999)
+	Fixed (undocumented) AD canonical DN (ITS#3000)
 
 OpenLDAP 2.2.6 Release
 	Fixed slapd SASL callback handling (ITS#2926)
