@@ -35,6 +35,7 @@
 #include "slap.h"
 #include "sets.h"
 #include "lber_pvt.h"
+#include "lutil.h"
 
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
@@ -658,8 +659,10 @@ acl_mask(
 	Access	*b;
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
+#if !defined( SLAP_DYNACL ) && defined( SLAPD_ACI_ENABLED )
 	char accessmaskbuf1[ACCESSMASK_MAXLEN];
-#endif
+#endif /* SLAPD_ACI_ENABLED */
+#endif /* DEBUG */
 	const char *attr;
 
 	assert( a != NULL );
@@ -1494,8 +1497,7 @@ dn_match_cleanup:;
 		if ( b->a_aci_at != NULL ) {
 			Attribute	*at;
 			slap_access_t	grant, deny, tgrant, tdeny;
-			struct berval	parent_ndn,
-					old_parent_ndn = BER_BVNULL;
+			struct berval	parent_ndn;
 			BerVarray	bvals = NULL;
 			int		ret, stop;
 
@@ -1543,7 +1545,7 @@ dn_match_cleanup:;
 					}
 				}
 				Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n",
-					  accessmask2str(tgrant,accessmaskbuf, 1), 
+					  accessmask2str(tgrant, accessmaskbuf, 1), 
 					  accessmask2str(tdeny, accessmaskbuf1, 1), 0);
 
 			}
@@ -1552,9 +1554,8 @@ dn_match_cleanup:;
 			 * acis with scope set to subtree
 			 */
 			if ( (tgrant == ACL_PRIV_NONE) && (tdeny == ACL_PRIV_NONE) ) {
-				dnParent(&(e->e_nname), &parent_ndn);
-				while ( parent_ndn.bv_val != old_parent_ndn.bv_val ) {
-					old_parent_ndn = parent_ndn;
+				dnParent( &e->e_nname, &parent_ndn );
+				while ( !BER_BVISEMPTY( &parent_ndn ) ) {
 					Debug(LDAP_DEBUG_ACL, "checking ACI of %s\n", parent_ndn.bv_val, 0, 0);
 					ret = backend_attribute(op, NULL, &parent_ndn, b->a_aci_at, &bvals, ACL_AUTH);
 					switch(ret){
@@ -1584,7 +1585,7 @@ dn_match_cleanup:;
 								}
 							}
 							Debug(LDAP_DEBUG_ACL, "<= aci_mask grant %s deny %s\n", 
-								accessmask2str(tgrant,accessmaskbuf, 1),
+								accessmask2str(tgrant, accessmaskbuf, 1),
 								accessmask2str(tdeny, accessmaskbuf1, 1), 0);
 						}
 						break;
@@ -1610,7 +1611,7 @@ dn_match_cleanup:;
 					if (stop){
 						break;
 					}
-					dnParent(&old_parent_ndn, &parent_ndn);
+					dnParent( &parent_ndn, &parent_ndn );
 				}
 			}
 
@@ -2751,7 +2752,6 @@ dynacl_aci_mask(
 	 */
 	if ( tgrant == ACL_PRIV_NONE && tdeny == ACL_PRIV_NONE ) {
 		struct berval	parent_ndn;
-		struct berval	old_parent_ndn = BER_BVNULL;
 
 #if 1
 		/* to solve the chicken'n'egg problem of accessing
@@ -2775,12 +2775,11 @@ dynacl_aci_mask(
 #endif
 
 		dnParent( &e->e_nname, &parent_ndn );
-		while ( parent_ndn.bv_val != old_parent_ndn.bv_val ){
+		while ( !BER_BVISEMPTY( &parent_ndn ) ){
 			int		i;
 			BerVarray	bvals = NULL;
 			int		ret, stop;
 
-			old_parent_ndn = parent_ndn;
 			Debug( LDAP_DEBUG_ACL, "checking ACI of \"%s\"\n", parent_ndn.bv_val, 0, 0 );
 			ret = backend_attribute( &op2, NULL, &parent_ndn, ad, &bvals, ACL_AUTH );
 
@@ -2835,7 +2834,7 @@ dynacl_aci_mask(
 			if ( stop ) {
 				break;
 			}
-			dnParent( &old_parent_ndn, &parent_ndn );
+			dnParent( &parent_ndn, &parent_ndn );
 		}
 	}
 
