@@ -599,39 +599,6 @@ main( int argc, char **argv )
 			timeout.tv_sec = atoi( line );
 			break;
 
-#ifdef LDAP_UFN
-		case 'U':	/* set ufn search prefix */
-			getline( line, sizeof(line), stdin, "ufn prefix? " );
-			ldap_ufn_setprefix( ld, line );
-			break;
-
-		case 'u':	/* user friendly search w/optional timeout */
-			getline( dn, sizeof(dn), stdin, "ufn? " );
-			strcat( dn, dnsuffix );
-			types = get_list( "attrs to return? " );
-			getline( line, sizeof(line), stdin,
-			    "attrsonly (0=attrs&values, 1=attrs only)? " );
-			attrsonly = atoi( line );
-
-			if ( command2 == 't' ) {
-				id = ldap_ufn_search_c( ld, dn, types,
-				    attrsonly, &res, ldap_ufn_timeout,
-				    &timeout );
-			} else {
-				id = ldap_ufn_search_s( ld, dn, types,
-				    attrsonly, &res );
-			}
-			if ( res == NULL )
-				ldap_perror( ld, "ldap_ufn_search" );
-			else {
-				printf( "\nresult: err %d\n", id );
-				handle_result( ld, res );
-				res = NULL;
-			}
-			free_list( types );
-			break;
-#endif
-
 		case 'l':	/* URL search */
 			getline( line, sizeof(line), stdin,
 			    "attrsonly (0=attrs&values, 1=attrs only)? " );
@@ -767,9 +734,6 @@ main( int argc, char **argv )
     printf( "          [B]ind async  [c]ompare         [l]URL search\n" );
     printf( "          [modi]fy      [modr]dn          [rem]ove\n" );
     printf( "          [res]ult      [s]earch          [q]uit/unbind\n\n" );
-#ifdef LDAP_UFN
-    printf( "          [u]fn search  [ut]fn search with timeout [U]fn prefix\n" );
-#endif
     printf( "          [d]ebug       [e]nable cache    set ms[g]id\n" );
     printf( "          d[n]suffix    [t]imeout         [v]ersion\n" );
     printf( "          [?]help       [o]ptions         [O]cache options\n" );

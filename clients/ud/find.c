@@ -199,50 +199,6 @@ find( char *who, int quiet )
 		search_attrs[k] = NULL;
 	}
 
-#if LDAP_UFN
-	/*
-	 *  If the user-supplied name has any commas in it, we
-	 *  assume that it is a UFN, and do everything right
-	 *  here.  If we don't find it, treat it as NOT a UFN.
-	 */
-	if (strchr(who, ',') != NULL) {
-		int	savederef, deref;
-#ifdef DEBUG
-		if (debug & D_FIND)
-			printf("\"%s\" appears to be a UFN\n", who);
-#endif
-		ldap_get_option(ld, LDAP_OPT_DEREF, &savederef);
-		deref = LDAP_DEREF_FINDING;
-		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
-
-		if ((rc = ldap_ufn_search_s(ld, who, search_attrs, FALSE, &res)) !=
-		    LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED &&
-		    rc != LDAP_TIMELIMIT_EXCEEDED) {
-			ldap_perror(ld, "ldap_ufn_search_s");
-			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
-			return(NULL);
-		}
-		if ((matches = ldap_count_entries(ld, res)) < 0) {
-			ldap_perror(ld, "ldap_count_entries");
-			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
-			return(NULL);
-		} else if (matches == 1) {
-			dn = ldap_get_dn(ld, ldap_first_entry(ld, res));
-			rc = ldap_search_s(ld, dn, LDAP_SCOPE_BASE, NULL, read_attrs, FALSE, &res);
-			ldap_memfree(dn);
-			if (rc != LDAP_SUCCESS) {
-				ldap_perror(ld, "ldap_search_s");
-				return(NULL);
-			}
-			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
-			return(res);
-		} else if (matches > 1 ) {
-			return disambiguate( res, matches, read_attrs, who );
-		}
-		ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
-	}
-#endif
-
 	/*
 	 *  Old users of the MTS *USERDIRECTORY will likely wrap the name
 	 *  in quotes.  Not only is this unnecessary, but it also won't work.

@@ -277,9 +277,6 @@ struct ldap {
 
 	unsigned short	ld_lberoptions;
 
-	LDAPFiltDesc	*ld_filtd;	/* from getfilter for ufn searches */
-	char		*ld_ufnprefix;	/* for incomplete ufn's */
-
 	ber_int_t	ld_errno;
 	char	*ld_error;
 	char	*ld_matched;

@@ -1322,57 +1322,6 @@ ldap_search_st LDAP_P((	/* deprecated */
 	struct timeval *timeout,
 	LDAPMessage **res ));
 
-#ifdef LDAP_UFN
-/*
- * in ufn.c						 	
- *	(deprecated)
- */
-LDAP_F( int )
-ldap_ufn_search_c LDAP_P(( /* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *ufn,
-	char **attrs,
-	int attrsonly,
-	LDAPMessage **res,
-	int (*cancelproc)( void *cl ),
-	void *cancelparm ));
-
-LDAP_F( int )
-ldap_ufn_search_ct LDAP_P(( /* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *ufn,
-	char **attrs,
-	int attrsonly,
-	LDAPMessage **res,
-	int (*cancelproc)( void *cl ),
-	void *cancelparm,
-	char *tag1,
-	char *tag2,
-	char *tag3 ));
-
-LDAP_F( int )
-ldap_ufn_search_s LDAP_P(( /* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *ufn,
-	char **attrs,
-	int attrsonly,
-	LDAPMessage **res ));
-
-LDAP_F( LDAPFiltDesc *)
-ldap_ufn_setfilter LDAP_P(( /* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *fname ));
-
-LDAP_F( void )
-ldap_ufn_setprefix LDAP_P(( /* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *prefix ));
-
-LDAP_F( int )
-ldap_ufn_timeout LDAP_P(( /* deprecated */
-	void *tvparam ));
-#endif
-
 /*
  * in unbind.c
  */
