@@ -107,7 +107,7 @@ static int aci_mask(
 
 static int	regex_matches(
 	struct berval *pat, char *str, char *buf, regmatch_t *matches);
-static void	string_expand(
+static int	string_expand(
 	struct berval *newbuf, struct berval *pattern,
 	char *match, regmatch_t *matches);
 
@@ -734,9 +734,15 @@ acl_mask(
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
 
-					string_expand(&bv, &b->a_dn_pat, 
-							e->e_ndn, matches);
-					if ( dnNormalize(0, NULL, NULL, &bv, &pat, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
+					if ( string_expand(&bv, &b->a_dn_pat, 
+							e->e_ndn, matches) )
+					{
+						continue;
+					}
+					if ( dnNormalize(0, NULL, NULL, &bv,
+							&pat, op->o_tmpmemctx )
+							!= LDAP_SUCCESS )
+					{
 						/* did not expand to a valid dn */
 						continue;
 					}
@@ -822,15 +828,22 @@ dn_match_cleanup:;
 
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
-					string_expand( &bv, &b->a_sockurl_pat, e->e_ndn, matches );
+					if ( string_expand( &bv, &b->a_sockurl_pat,
+							e->e_ndn, matches ) )
+					{
+						continue;
+					}
 
-					if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_listener_url ) != 0 ) {
+					if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_listener_url ) != 0 )
+					{
 						continue;
 					}
 
 				} else {
 					if ( ber_bvstrcasecmp( &b->a_sockurl_pat, &op->o_conn->c_listener_url ) != 0 )
+					{
 						continue;
+					}
 				}
 			}
 		}
@@ -860,7 +873,11 @@ dn_match_cleanup:;
 						bv.bv_len = sizeof(buf) - 1;
 						bv.bv_val = buf;
 
-						string_expand(&bv, &b->a_domain_pat, e->e_ndn, matches);
+						if ( string_expand(&bv, &b->a_domain_pat,
+								e->e_ndn, matches) )
+						{
+							continue;
+						}
 						pat = bv;
 					}
 
@@ -913,7 +930,11 @@ dn_match_cleanup:;
 
 						bv.bv_len = sizeof( buf ) - 1;
 						bv.bv_val = buf;
-						string_expand( &bv, &b->a_peername_pat, e->e_ndn, matches );
+						if ( string_expand( &bv, &b->a_peername_pat,
+								e->e_ndn, matches ) )
+						{
+							continue;
+						}
 
 						if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_peer_name ) != 0 ) {
 							continue;
@@ -1010,15 +1031,20 @@ dn_match_cleanup:;
 
 					bv.bv_len = sizeof( buf ) - 1;
 					bv.bv_val = buf;
-					string_expand( &bv, &b->a_sockname_pat, e->e_ndn, matches );
+					if ( string_expand( &bv, &b->a_sockname_pat,
+							e->e_ndn, matches ) )
+					{
+						continue;
+					}
 
 					if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_sock_name ) != 0 ) {
 						continue;
 					}
 
 				} else {
-					if ( ber_bvstrcasecmp( &b->a_sockname_pat, &op->o_conn->c_sock_name ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_sockname_pat, &op->o_conn->c_sock_name ) != 0 ) {
 						continue;
+					}
 				}
 			}
 		}
@@ -1120,7 +1146,11 @@ dn_match_cleanup:;
 				bv.bv_len = sizeof(buf) - 1;
 				bv.bv_val = buf; 
 
-				string_expand( &bv, &b->a_group_pat, e->e_ndn, matches );
+				if ( string_expand( &bv, &b->a_group_pat,
+						e->e_ndn, matches ) )
+				{
+					continue;
+				}
 				if ( dnNormalize( 0, NULL, NULL, &bv, &ndn, op->o_tmpmemctx ) != LDAP_SUCCESS ) {
 					/* did not expand to a valid dn */
 					continue;
@@ -1148,7 +1178,11 @@ dn_match_cleanup:;
 			if( b->a_set_style == ACL_STYLE_REGEX ){
 				bv.bv_len = sizeof(buf) - 1;
 				bv.bv_val = buf;
-				string_expand( &bv, &b->a_set_pat, e->e_ndn, matches );
+				if ( string_expand( &bv, &b->a_set_pat,
+						e->e_ndn, matches ) )
+				{
+					continue;
+				}
 			}else{
 				bv = b->a_set_pat;
 			}
@@ -1861,7 +1895,12 @@ aci_group_member (
 		struct berval bv, ndn;
 		bv.bv_len = sizeof( buf ) - 1;
 		bv.bv_val = (char *)&buf;
-		string_expand(&bv, &subjdn, e->e_ndn, matches);
+		if ( string_expand(&bv, &subjdn,
+				e->e_ndn, matches) )
+		{
+			rc = LDAP_OTHER;
+			goto done;
+		}
 		if ( dnNormalize(0, NULL, NULL, &bv, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
 			rc = (backend_group(op, e, &ndn, &op->o_ndn,
 				grp_oc, grp_ad) == 0);
@@ -2005,12 +2044,12 @@ aci_mask(
 
 #endif	/* SLAPD_ACI_ENABLED */
 
-static void
+static int
 string_expand(
-	struct berval *bv,
-	struct berval *pat,
-	char *match,
-	regmatch_t *matches)
+	struct berval	*bv,
+	struct berval	*pat,
+	char		*match,
+	regmatch_t	*matches)
 {
 	ber_len_t	size;
 	char   *sp;
@@ -2050,12 +2089,14 @@ string_expand(
 					}
 
 					if ( *sp != /*'{'*/ '}' ) {
-						/* error */
+						/* FIXME: error */
+						return 1;
 					}
 				}
 
 				if ( n >= MAXREMATCHES ) {
-				
+					/* FIXME: error */
+					return 1;
 				}
 				
 				*dp = '\0';
@@ -2089,6 +2130,8 @@ string_expand(
 
 	Debug( LDAP_DEBUG_TRACE, "=> string_expand: pattern:  %.*s\n", (int)pat->bv_len, pat->bv_val, 0 );
 	Debug( LDAP_DEBUG_TRACE, "=> string_expand: expanded: %s\n", bv->bv_val, 0, 0 );
+
+	return 0;
 }
 
 static int
