@@ -2,7 +2,7 @@
 /* include/portable.h.nt -- manually updated of MS NT (MS VC5) */
 /* synced with portable.h.in 1.24 */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
