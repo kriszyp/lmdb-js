@@ -1881,29 +1881,6 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 
 		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
 
-#if 0
-		/* username may have embedded realm name */
-		/* FIXME:
-		 * userids can legally have embedded '@' chars;
-		 * the realm should be set by those mechanisms
-		 * that support it by means of the user_realm
-		 * variable
-		 */
-		if( ( realm.bv_val = strrchr( dn->bv_val, '@') ) ) {
-			char *r = realm.bv_val;
-
-			realm.bv_val++;
-			realm.bv_len = dn->bv_len - ( realm.bv_val - dn->bv_val );
-			len += sizeof( ",cn=" ) - 2;
-			c1.bv_len -= realm.bv_len + 1;
-
-			if ( strchr( dn->bv_val, '@') == r ) {
-				/* FIXME: ambiguity, is it the realm 
-				 * or something else? */
-			}	
-			
-		} else
-#endif
 		if( user_realm && *user_realm ) {
 			realm.bv_val = user_realm;
 			realm.bv_len = strlen( user_realm );
