@@ -155,8 +155,9 @@ The configure script will also use your environmental
 variables for determining compiler/linker options.   This can
 be used to manual specify features and compilation options.
 
-NOTE: If you change environment setting, be sure to remove
-	any config.cache before running ./configure.
+WARNING: Executable built in your environment may not run
+	in your user's environments.  The portability of
+	executables between environments is your responsibility.
 
 Supported Environmental Variables
 	CC			C compiler		(cc, egcc)

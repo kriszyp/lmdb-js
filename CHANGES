@@ -20,6 +20,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 		Reference Quick Start Guide in README and INSTALL
 		Update slapd.conf to reflect Quick Start Guide example
 		ldappasswd(1) fix -c vs -H typo (ITS#154)
+		Added warning about cross environment portability
 
 Changes included in OpenLDAP 1.2.7
 	CVS Tag: OPENLDAP_REL_ENG_1_2_7
