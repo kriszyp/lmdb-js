@@ -20,6 +20,9 @@
 
 int lutil_pair( LBER_SOCKET_T sds[2] )
 {
+#ifdef USE_PIPE
+	return pipe( sds );
+#else
 	struct sockaddr_in si;
 	int rc, len = sizeof(si);
 	LBER_SOCKET_T sd;
@@ -53,4 +56,5 @@ int lutil_pair( LBER_SOCKET_T sds[2] )
 
 	sds[0] = sds[1] = sd;
 	return 0;
+#endif
 }

@@ -115,8 +115,8 @@ extern char* WSAGetErrorString LDAP_P((int));
 #	define tcp_read( s, buf, len)	read( s, buf, len )
 #	define tcp_write( s, buf, len)	write( s, buf, len )
 
-#ifdef HAVE_PAIR
-#define USE_PAIR HAVE_PAIR
+#ifdef HAVE_PIPE
+#define USE_PIPE HAVE_PIPE
 #endif
 
 #endif /* MACOS */

@@ -34,10 +34,6 @@
 /* Define if you don't have vprintf but do have _doprnt.  */
 #undef HAVE_DOPRNT
 
-/* Define if system calls automatically restart after interruption
-   by a signal.  */
-#undef HAVE_RESTARTABLE_SYSCALLS
-
 /* Define if your struct stat has st_blksize.  */
 #undef HAVE_ST_BLKSIZE
 
@@ -217,6 +213,9 @@
 /* Define if you have the mkstemp function.  */
 #undef HAVE_MKSTEMP
 
+/* Define if you have the pipe function.  */
+#undef HAVE_PIPE
+
 /* Define if you have the pthread_getconcurrency function.  */
 #undef HAVE_PTHREAD_GETCONCURRENCY
 
@@ -276,9 +275,6 @@
 
 /* Define if you have the snprintf function.  */
 #undef HAVE_SNPRINTF
-
-/* Define if you have the socketpair function.  */
-#undef HAVE_SOCKETPAIR
 
 /* Define if you have the strdup function.  */
 #undef HAVE_STRDUP
