@@ -90,6 +90,7 @@ ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 		    strdup( ld->ld_defhost )) == NULL ))
 		{
 			if (srv != NULL) free( srv );
+			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return( -1 );
 		}
@@ -101,6 +102,7 @@ ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 		{
 			if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
 			free( (char *)srv );
+			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_SERVER_DOWN;
 			return( -1 );
 		}
@@ -111,6 +113,7 @@ ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 		    ld->ld_defport, &ld->ld_host, 0 ) < 0 )
 		{
 			ldap_ld_free( ld, 0 );
+			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_SERVER_DOWN;
 			return( -1 );
 		}

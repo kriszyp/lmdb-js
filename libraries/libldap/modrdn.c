@@ -49,8 +49,6 @@ ldap_rename2( LDAP *ld,
 	      int deleteoldrdn,
 	      char *newSuperior )
 {
-	BerElement	*ber;
-
 	/*
 	 * A modify rdn request looks like this:
 	 *	ModifyRDNRequest ::= SEQUENCE {
@@ -63,12 +61,13 @@ ldap_rename2( LDAP *ld,
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_rename2\n", 0, 0, 0 );
 
-	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		return( -1 );
-	}
-
 	if( newSuperior != NULL ) {
+	    BerElement	*ber;
+
+	    /* create a message to send */
+	    if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+		return( -1 );
+	    }
 
 	    if ( ber_printf( ber, "{it{ssbts}}",
 			     ++ld->ld_msgid,
