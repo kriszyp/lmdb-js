@@ -203,7 +203,7 @@ dn2entry_retry:
 			&& op != NULL
 			&& access_allowed(be, conn, op, e, entry_at,
 #ifdef SLAP_NVALUES
-				attr->a_nvals ? &attr->a_nvals[i] : &attr->a_vals[i],
+				&attr->a_nvals[i],
 #else
 				&attr->a_vals[i],
 #endif
@@ -213,8 +213,7 @@ dn2entry_retry:
 		}
 
 #ifdef SLAP_NVALUES
-		ber_dupbv( &v[j],
-			attr->a_nvals ? &attr->a_nvals[i] : &attr->a_vals[i] );
+		ber_dupbv( &v[j], &attr->a_nvals[i] );
 #else
 		ber_dupbv( &v[j], &attr->a_vals[i] );
 #endif

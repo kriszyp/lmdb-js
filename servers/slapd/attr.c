@@ -27,7 +27,7 @@ attr_free( Attribute *a )
 {
 	ber_bvarray_free( a->a_vals );
 #ifdef SLAP_NVALUES
-	ber_bvarray_free( a->a_nvals );
+	if (a->a_nvals != a->a_vals) ber_bvarray_free( a->a_nvals );
 #endif
 	free( a );
 }
@@ -66,7 +66,7 @@ Attribute *attr_dup( Attribute *a )
 		tmp->a_vals[i].bv_val = NULL;
 
 #ifdef SLAP_NVALUES
-		if( a->a_nvals != NULL ) {
+		if( a->a_nvals != a->a_vals ) {
 			tmp->a_nvals = ch_malloc((i+1) * sizeof(struct berval));
 			for( i=0; a->a_nvals[i].bv_val != NULL; i++ ) {
 				ber_dupbv( &tmp->a_nvals[i], &a->a_nvals[i] );
@@ -75,7 +75,7 @@ Attribute *attr_dup( Attribute *a )
 			tmp->a_nvals[i].bv_val = NULL;
 
 		} else {
-			tmp->a_nvals = NULL;
+			tmp->a_nvals = tmp->a_vals;
 		}
 #endif
 
@@ -154,6 +154,7 @@ attr_merge(
 
 #ifdef SLAP_NVALUES
 	if( !rc && nvals ) rc = value_add( &(*a)->a_nvals, nvals );
+	else (*a)->a_nvals = (*a)->a_vals;
 #endif
 
 	return rc;
@@ -192,6 +193,7 @@ attr_merge_one(
 
 #ifdef SLAP_NVALUES
 	if( !rc && nval ) rc = value_add_one( &(*a)->a_nvals, nval );
+	else (*a)->a_nvals = (*a)->a_vals;
 #endif
 	return rc;
 }

@@ -431,7 +431,7 @@ slap_mods2entry(
 			mods->sml_values = NULL;
 
 #ifdef SLAP_NVALUES
-			if( attr->a_nvals ) {
+			if( mods->sml_nvalues ) {
 				attr->a_nvals = ch_realloc( attr->a_nvals,
 					sizeof( struct berval ) * (i+j) );
 
@@ -441,6 +441,8 @@ slap_mods2entry(
 				/* trim the mods array */
 				ch_free( mods->sml_nvalues );
 				mods->sml_nvalues = NULL;
+			} else {
+				attr->a_nvals = attr->a_vals;
 			}
 #endif
 
@@ -479,10 +481,31 @@ slap_mods2entry(
 				const char	*text = NULL;
 				char		textbuf[ SLAP_TEXT_BUFLEN ]  = { '\0' };
 				
+#ifdef SLAP_NVALUES
+				int match;
+
+				for ( i = 0; mods->sml_nvalues[i].bv_val != NULL; i++ ) {
+					/* test asserted values against themselves */
+					for( j = 0; j < i; j++ ) {
+						rc = value_match( &match, mods->sml_desc, mr,
+							SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
+							| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+							| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+							&mods->sml_nvalues[i], &mods->sml_nvalues[j], &text );
+						if ( rc == LDAP_SUCCESS && match == 0 ) {
+							/* value exists already */
+							snprintf( textbuf, textlen,
+								"%s: value #%d provided more than once",
+								mods->sml_desc->ad_cname.bv_val, j );
+							return LDAP_TYPE_OR_VALUE_EXISTS;
+						}
+					}
+				}
+#else
 				rc = modify_check_duplicates( mods->sml_desc, mr,
 						NULL, mods->sml_bvalues, 0,
 						&text, textbuf, sizeof( textbuf ) );
-
+#endif
 				if ( rc != LDAP_SUCCESS ) {
 					return rc;
 				}
@@ -501,8 +524,12 @@ slap_mods2entry(
 		mods->sml_values = NULL;
 
 #ifdef SLAP_NVALUES
-		attr->a_nvals = mods->sml_nvalues;
-		mods->sml_nvalues = NULL;
+		if ( mods->sml_nvalues ) {
+			attr->a_nvals = mods->sml_nvalues;
+			mods->sml_nvalues = NULL;
+		} else {
+			attr->a_nvals = attr->a_vals;
+		}
 #endif
 
 		*tail = attr;

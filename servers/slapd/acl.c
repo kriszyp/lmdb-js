@@ -907,7 +907,7 @@ dn_match_cleanup:;
 #ifdef SLAP_NVALUES
 					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-					at->a_nvals ? at->a_nvals : at->a_vals,
+					at->a_nvals,
 #else
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 					at->a_vals,
@@ -1125,7 +1125,7 @@ dn_match_cleanup:;
 				if (aci_mask( be, conn, op,
 					e, desc, val,
 #ifdef SLAP_NVALUES
-					at->a_nvals ? &at->a_nvals[i] : &at->a_vals[i],
+					&at->a_nvals[i],
 #else
 					&at->a_vals[i],
 #endif
@@ -1858,7 +1858,7 @@ aci_mask(
 #ifdef SLAP_NVALUES
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				at->a_nvals ? at->a_nvals : at->a_vals,
+				at->a_nvals,
 #else
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 				at->a_vals,

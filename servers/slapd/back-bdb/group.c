@@ -219,8 +219,7 @@ dn2entry_retry:
 #ifdef SLAP_NVALUES
 	if( value_find_ex( group_at, SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH
 			| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-		attr->a_nvals ? attr->a_nvals : attr->a_vals,
-		op_ndn ) != LDAP_SUCCESS )
+		attr->a_nvals, op_ndn ) != LDAP_SUCCESS )
 #else
 	if( value_find_ex( group_at, 0, attr->a_vals, op_ndn ) != LDAP_SUCCESS )
 #endif

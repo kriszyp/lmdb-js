@@ -388,7 +388,12 @@ test_mra_vrFilter(
 			if( rc != LDAP_SUCCESS ) continue;
 		}
 
-		for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
+#ifdef SLAP_NVALUES
+		bv = a->a_nvals;
+#else
+		bv = a->a_vals;
+#endif
+		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
 			int ret;
 			int rc;
 			const char *text;

@@ -211,7 +211,7 @@ int bdb_modify_internal(
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
 			rc = bdb_index_values( be, tid, ap->a_desc,
 #ifdef SLAP_NVALUES
-				ap->a_nvals ? ap->a_nvals : ap->a_vals,
+				ap->a_nvals,
 #else
 				ap->a_vals,
 #endif
@@ -239,7 +239,7 @@ int bdb_modify_internal(
 		if (ap->a_flags & SLAP_ATTR_IXADD) {
 			rc = bdb_index_values( be, tid, ap->a_desc,
 #ifdef SLAP_NVALUES
-				ap->a_nvals ? ap->a_nvals : ap->a_vals,
+				ap->a_nvals,
 #else
 				ap->a_vals,
 #endif

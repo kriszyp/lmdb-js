@@ -227,7 +227,7 @@ int ldbm_modify_internal(
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
 			rc = index_values( be, ap->a_desc,
 #ifdef SLAP_NVALUES
-				ap->a_nvals ? ap->a_nvals : ap->a_vals,
+				ap->a_nvals,
 #else
 				ap->a_vals,
 #endif
@@ -253,7 +253,7 @@ int ldbm_modify_internal(
 		if ( ap->a_flags & SLAP_ATTR_IXADD ) {
 			rc = index_values( be, ap->a_desc,
 #ifdef SLAP_NVALUES
-				ap->a_nvals ? ap->a_nvals : ap->a_vals,
+				ap->a_nvals,
 #else
 				ap->a_vals,
 #endif

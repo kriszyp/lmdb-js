@@ -31,7 +31,7 @@ modify_check_duplicates(
 	int		i, j, numvals = 0, nummods,
 			rc = LDAP_SUCCESS, matched;
 #ifdef SLAP_NVALUES
-	/* needs major reworking */
+	/* this function is no longer used */
 #else
 	BerVarray	nvals = NULL, nmods = NULL;
 
@@ -315,11 +315,6 @@ modify_add_values(
 
 	/* check if the values we're adding already exist */
 	if( mr == NULL || !mr->smr_match ) {
-#ifdef SLAP_NVALUES
-		/* we should have no normalized values as there is no equality rule */
-		/* assert( mod->sm_nvalues[0].bv_val == NULL); */
-#endif
-
 		if ( a != NULL ) {
 			/* do not allow add of additional attribute
 				if no equality rule exists */
@@ -333,11 +328,6 @@ modify_add_values(
 		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 			/* test asserted values against existing values */
 			if( a ) {
-#ifdef SLAP_NVALUES
-				/* we should have no normalized values as there
-					is no equality rule */
-				assert( a->a_nvals == NULL);
-#endif
 				for( matched = 0, j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 					if ( bvmatch( &mod->sm_bvalues[i], &a->a_vals[j] ) ) {
 						if ( permissive ) {
@@ -639,11 +629,13 @@ modify_delete_values(
 					mr, &a->a_nvals[j],
 					&mod->sm_nvalues[i] );
 			} else {
+#if 0
 				assert( a->a_nvals == NULL );
+#endif
 				rc = (*mr->smr_match)( &match,
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					a->a_desc->ad_type->sat_syntax,
-					mr, &a->a_nvals[j],
+					mr, &a->a_vals[j],
 					&mod->sm_values[i] );
 			}
 #else
@@ -675,7 +667,7 @@ modify_delete_values(
 #ifdef SLAP_NVALUES
 			free( a->a_vals[j].bv_val );
 			a->a_vals[j].bv_val = &dummy;
-			if( a->a_nvals ) {
+			if( a->a_nvals != a->a_vals ) {
 				free( a->a_nvals[j].bv_val );
 				a->a_nvals[j].bv_val = &dummy;
 			}
@@ -723,7 +715,7 @@ modify_delete_values(
 		if ( j != k ) {
 			a->a_vals[ j ] = a->a_vals[ k ];
 #ifdef SLAP_NVALUES
-			if (a->a_nvals) {
+			if (a->a_nvals != a->a_vals) {
 				a->a_nvals[ j ] = a->a_nvals[ k ];
 			}
 #endif
@@ -740,7 +732,7 @@ modify_delete_values(
 
 	a->a_vals[j].bv_val = NULL;
 #ifdef SLAP_NVALUES
-	if (a->a_nvals) a->a_nvals[j].bv_val = NULL;
+	if (a->a_nvals != a->a_vals) a->a_nvals[j].bv_val = NULL;
 #else
 
 	assert( i == k - j );

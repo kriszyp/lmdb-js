@@ -358,8 +358,7 @@ bdb_index_entry(
 	for ( ; ap != NULL; ap = ap->a_next ) {
 #ifdef SLAP_NVALUES
 		rc = bdb_index_values( be, txn, ap->a_desc,
-			ap->a_nvals ? ap->a_nvals : ap->a_vals,
-			e->e_id, op );
+			ap->a_nvals, e->e_id, op );
 #else
 		rc = bdb_index_values( be, txn, ap->a_desc,
 			ap->a_vals, e->e_id, op );

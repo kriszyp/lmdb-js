@@ -940,6 +940,9 @@ done:
 		Modifications *tmp;
 		for (; mod; mod=tmp ) {
 			tmp = mod->sml_next;
+#ifdef SLAP_NVALUES
+			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
+#endif
 			free( mod );
 		}
 	}

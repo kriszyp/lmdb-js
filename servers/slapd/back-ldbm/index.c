@@ -311,7 +311,7 @@ index_entry(
 	for ( ; ap != NULL; ap = ap->a_next ) {
 		index_values( be, ap->a_desc,
 #ifdef SLAP_NVALUES
-			ap->a_nvals ? ap->a_nvals : ap->a_vals,
+			ap->a_nvals,
 #else
 			ap->a_vals,
 #endif

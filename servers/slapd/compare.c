@@ -358,7 +358,7 @@ static int compare_entry(
 		if ( value_find_ex( ava->aa_desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			a->a_nvals ? a->a_nvals : a->a_vals,
+			a->a_nvals,
 			&ava->aa_value ) == 0 )
 #else
 		if ( value_find( ava->aa_desc, a->a_vals, &ava->aa_value ) == 0 )

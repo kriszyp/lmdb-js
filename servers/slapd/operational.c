@@ -66,7 +66,7 @@ slap_operational_hasSubordinate( int hs )
 	a->a_vals[1].bv_val = NULL;
 
 #ifdef SLAP_NVALUES
-	a->a_nvals = NULL;
+	a->a_nvals = a->a_vals;
 #endif
 
 	a->a_next = NULL;

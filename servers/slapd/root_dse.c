@@ -101,7 +101,7 @@ root_dse_info(
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
 #ifdef SLAP_NVALUES
-	if( attr_merge( e, ad_objectClass, vals, vals ) )
+	if( attr_merge( e, ad_objectClass, vals, NULL ) )
 #else
 	if( attr_merge( e, ad_objectClass, vals ) )
 #endif
@@ -112,13 +112,13 @@ root_dse_info(
 	vals[0].bv_val = "OpenLDAProotDSE";
 	vals[0].bv_len = sizeof("OpenLDAProotDSE")-1;
 #ifdef SLAP_NVALUES
-	if( attr_merge( e, ad_objectClass, vals, vals ) )
+	if( attr_merge( e, ad_objectClass, vals, NULL ) )
 #else
 	if( attr_merge( e, ad_objectClass, vals ) )
 #endif
 		return LDAP_OTHER;
 #ifdef SLAP_NVALUES
-	if( attr_merge( e, ad_structuralObjectClass, vals, vals ) )
+	if( attr_merge( e, ad_structuralObjectClass, vals, NULL ) )
 #else
 	if( attr_merge( e, ad_structuralObjectClass, vals ) )
 #endif
@@ -128,6 +128,7 @@ root_dse_info(
 		if ( backends[i].be_flags & SLAP_BFLAG_MONITOR ) {
 			vals[0] = backends[i].be_suffix[0];
 #ifdef SLAP_NVALUES
+			nvals[0] = backends[i].be_nsuffix[0];
 			if( attr_merge( e, ad_monitorContext, vals, nvals ) )
 #else
 			if( attr_merge( e, ad_monitorContext, vals ) )
@@ -143,7 +144,8 @@ root_dse_info(
 		for ( j = 0; backends[i].be_suffix[j].bv_val != NULL; j++ ) {
 			vals[0] = backends[i].be_suffix[j];
 #ifdef SLAP_NVALUES
-			if( attr_merge( e, ad_namingContexts, vals, NULL ) )
+			nvals[0] = backends[i].be_nsuffix[0];
+			if( attr_merge( e, ad_namingContexts, vals, nvals ) )
 #else
 			if( attr_merge( e, ad_namingContexts, vals ) )
 #endif
@@ -191,7 +193,7 @@ root_dse_info(
 	/* supportedFeatures */
 #ifdef SLAP_NVALUES
 	if( attr_merge( e, ad_supportedFeatures,
-		supportedFeatures, supportedFeatures ) )
+		supportedFeatures, NULL ) )
 #else
 	if( attr_merge( e, ad_supportedFeatures, supportedFeatures ) )
 #endif
@@ -255,7 +257,8 @@ root_dse_info(
 		Attribute *a;
 		for( a = usr_attr->e_attrs; a != NULL; a = a->a_next ) {
 #ifdef SLAP_NVALUES
-			if( attr_merge( e, a->a_desc, a->a_vals, a->a_nvals ) )
+			if( attr_merge( e, a->a_desc, a->a_vals,
+			 (a->a_nvals == a->a_vals) ? NULL : a->a_nvals ) )
 #else
 			if( attr_merge( e, a->a_desc, a->a_vals ) )
 #endif
@@ -332,7 +335,8 @@ int read_root_dse_file( const char *fname )
 
 		for(a = e->e_attrs; a != NULL; a = a->a_next) {
 #ifdef SLAP_NVALUES
-			if( attr_merge( usr_attr, a->a_desc, a->a_vals, a->a_nvals ) )
+			if( attr_merge( usr_attr, a->a_desc, a->a_vals,
+			(a->a_nvals == a->a_vals) ? NULL : a->a_nvals ) )
 #else
 			if( attr_merge( usr_attr, a->a_desc, a->a_vals ) )
 #endif

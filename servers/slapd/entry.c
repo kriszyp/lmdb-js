@@ -545,7 +545,7 @@ int entry_encode(Entry *e, struct berval *bv)
 		len += entry_lenlen(i);
 		siz += sizeof(struct berval);	/* empty berval at end */
 #ifdef SLAP_NVALUES_ON_DISK
-		if (a->a_nvals) {
+		if (a->a_nvals != a->a_vals) {
 			for (i=0; a->a_nvals[i].bv_val; i++) {
 				siz += sizeof(struct berval);
 				len += a->a_nvals[i].bv_len + 1;
@@ -590,7 +590,7 @@ int entry_encode(Entry *e, struct berval *bv)
 			*ptr++ = '\0';
 		    }
 #ifdef SLAP_NVALUES_ON_DISK
-		    if (a->a_nvals) {
+		    if (a->a_nvals != a->a_vals) {
 		    	entry_putlen(&ptr, i);
 			for (i=0; a->a_nvals[i].bv_val; i++) {
 			    entry_putlen(&ptr, a->a_nvals[i].bv_len);
@@ -725,7 +725,7 @@ int entry_decode(struct berval *bv, Entry **e)
 			bptr->bv_len = 0;
 			bptr++;
 		} else {
-			a->a_nvals = NULL;
+			a->a_nvals = a->a_vals;
 		}
 #elif defined(SLAP_NVALUES)
 		if( count && ad->ad_type->sat_equality &&
@@ -756,6 +756,8 @@ int entry_decode(struct berval *bv, Entry **e)
 			}
 			a->a_nvals[j].bv_val = NULL;
 			a->a_nvals[j].bv_len = 0;
+		} else {
+			a->a_nvals = a->a_vals;
 		}
 #endif
 

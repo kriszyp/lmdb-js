@@ -564,7 +564,7 @@ slap_modrdn2mods(
 			/* Apply modification */
 #ifdef SLAP_NVALUES
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
-				+ 2 * sizeof ( struct berval ) );
+				+ 4 * sizeof ( struct berval ) );
 #else
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
 				+ 2 * sizeof ( struct berval ) );

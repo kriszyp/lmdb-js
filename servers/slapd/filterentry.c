@@ -233,11 +233,11 @@ static int test_mra_filter(
 		{
 			struct berval *bv;
 #ifdef SLAP_NVALUES
-			for ( bv = a->a_nvals ? a->a_nvals : a->a_vals;
-				bv->bv_val != NULL; bv++ )
+			bv = a->a_nvals;
 #else
-			for ( bv = a->a_vals; bv->bv_val != NULL; bv++ )
+			bv = a->a_vals;
 #endif
+			for ( ; bv->bv_val != NULL; bv++ )
 			{
 				int ret;
 				int rc;
@@ -292,8 +292,7 @@ static int test_mra_filter(
 
 			/* check match */
 #ifdef SLAP_NVALUES
-			for ( bv = a->a_nvals ? a->a_nvals : a->a_vals;
-				bv->bv_val != NULL; bv++ )
+			for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
 #else
 			for ( bv = a->a_vals; bv->bv_val != NULL; bv++ )
 #endif
@@ -447,8 +446,7 @@ test_ava_filter(
 		}
 
 #ifdef SLAP_NVALUES
-		for ( bv = a->a_nvals ? a->a_nvals : a->a_vals;
-			bv->bv_val != NULL; bv++ )
+		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
 #else
 		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ )
 #endif
@@ -684,8 +682,7 @@ test_substrings_filter(
 		}
 
 #ifdef SLAP_NVALUES
-		for ( bv = a->a_nvals ? a->a_nvals : a->a_vals;
-			bv->bv_val != NULL; bv++ )
+		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
 #else
 		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ )
 #endif
