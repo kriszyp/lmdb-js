@@ -1704,6 +1704,7 @@ struct slap_backend_db {
 
 	char	*be_realm;
 	void    *be_pb;         /* Netscape plugin */
+	struct ConfigTable *be_cf_table;
 
 	void	*be_private;	/* anything the backend database needs 	   */
 };
@@ -1911,6 +1912,8 @@ typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
 
+struct ConfigTable;	/* config.h */
+
 struct slap_backend_info {
 	char	*bi_type; /* type of backend */
 
@@ -2033,6 +2036,7 @@ struct slap_backend_info {
 	char	bi_ctrls[SLAP_MAX_CIDS + 1];
 
 	unsigned int bi_nDB;	/* number of databases of this type */
+	struct ConfigTable *bi_cf_table;
 	void	*bi_private;	/* anything the backend type needs */
 };
 

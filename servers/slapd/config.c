@@ -89,6 +89,9 @@ static char	*strtok_quote(char *line, char *sep);
 static int load_ucdata(char *path);
 #endif
 
+/* state info for back-config */
+static ConfigFile cf_prv, *cfn = &cf_prv;
+
 int read_config_file(const char *fname, int depth, ConfigArgs *cf);
 
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
@@ -297,7 +300,7 @@ ConfigTable SystemConfiguration[] = {
 		&config_generic, "( OLcfgAt:29 NAME 'olcMaxDerefDepth' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 #ifdef SLAPD_MODULES
-	{ "moduleload",	"file", 2, 2, 0, ARG_MAGIC|CFG_MODLOAD,
+	{ "moduleload",	"file", 2, 0, 0, ARG_MAGIC|CFG_MODLOAD,
 		&config_generic, "( OLcfgAt:30 NAME 'olcModuleLoad' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "modulepath", "path", 2, 2, 0, ARG_MAGIC|CFG_MODPATH,
@@ -620,7 +623,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 }
 
 int
-init_config_schema(ConfigTable *ct) {
+init_config_attrs(ConfigTable *ct) {
 	LDAPAttributeType *at;
 	int i, code;
 	const char *err;
@@ -654,13 +657,17 @@ read_config(const char *fname, int depth) {
 	int i;
 	char *argv[3];
 
+	/* Schema initialization should normally be part of bi_open */
 	for (i=0; OidMacros[i].name; i++ ) {
 		argv[1] = OidMacros[i].name;
 		argv[2] = OidMacros[i].oid;
 		parse_oidm( "slapd", i, 3, argv );
 	}
-	i = init_config_schema(SystemConfiguration);
+	i = init_config_attrs(SystemConfiguration);
 	if ( i ) return i;
+	
+
+	config_back_init( &cf_prv, SystemConfiguration );
 	return read_config_file(fname, depth, NULL);
 }
 
@@ -696,6 +703,11 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		    fname, strerror(errno), errno);
 		return(1);
 	}
+#ifdef SLAPD_MODULES
+	cfn->c_modlast = &cfn->c_modpaths;
+#endif
+	ber_str2bv( fname, 0, 1, &cfn->c_file );
+	fname = cfn->c_file.bv_val;
 
 	Debug(LDAP_DEBUG_CONFIG, "reading config file %s\n", fname, 0, 0);
 
@@ -827,7 +839,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_DATABASE:
 			c->bi = NULL;
-			if(!(c->be = backend_db_init(c->argv[1]))) {
+			if ( !strcasecmp( c->argv[1], "config" )) {
+				c->be = backendDB;
+			} else if(!(c->be = backend_db_init(c->argv[1]))) {
 				Debug(LDAP_DEBUG_ANY, "%s: "
 					"database %s failed init!\n", c->log, c->argv[1], 0);
 				return(1);
@@ -923,12 +937,6 @@ config_generic(ConfigArgs *c) {
 			parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv);
 			break;
 
-#if 0
-		case CFG_AUDITLOG:
-			c->be->be_auditlogfile = c->value_string;
-			break;
-#endif
-
 		case CFG_REPLOG:
 			if(SLAP_MONITOR(c->be)) {
 				Debug(LDAP_DEBUG_ANY, "%s: "
@@ -947,6 +955,11 @@ config_generic(ConfigArgs *c) {
 					"could not read \"rootDSE <filename>\" line\n",
 					c->log, 0, 0);
 				return(1);
+			}
+			{
+				struct berval bv;
+				ber_str2bv( c->argv[1], 0, 1, &bv );
+				ber_bvarray_add( &cfn->c_dseFiles, &bv );
 			}
 			break;
 
@@ -973,10 +986,31 @@ config_generic(ConfigArgs *c) {
 		case CFG_MODLOAD:
 			if(module_load(c->argv[1], c->argc - 2, (c->argc > 2) ? c->argv + 2 : NULL))
 				return(1);
+			/* Record this load on the current path */
+			{
+				struct berval bv;
+				ber_str2bv(c->line, 0, 1, &bv);
+				ber_bvarray_add( &cfn->c_modlast->mp_loads, &bv );
+			}
 			break;
 
 		case CFG_MODPATH:
 			if(module_path(c->argv[1])) return(1);
+			/* Record which path was used with each module */
+			{
+				ModPaths *mp;
+
+				if (!cfn->c_modpaths.mp_loads)
+					mp = &cfn->c_modpaths;
+				else
+					mp = ch_malloc( sizeof( ModPaths ));
+				ber_str2bv(c->argv[1], 0, 1, &mp->mp_path);
+				mp->mp_next = NULL;
+				mp->mp_loads = NULL;
+				cfn->c_modlast->mp_next = mp;
+				cfn->c_modlast = mp;
+			}
+			
 			break;
 #endif
 
@@ -1635,12 +1669,26 @@ config_updateref(ConfigArgs *c) {
 
 int
 config_include(ConfigArgs *c) {
-	char *savefname = ch_strdup(c->argv[1]);
 	unsigned long savelineno = c->lineno;
 	int rc;
-	rc = read_config_file(savefname, c->depth + 1, c);
-	free(savefname);
+	ConfigFile *cf = ch_calloc( 1, sizeof(ConfigFile));
+	ConfigFile *cfsave = cfn;
+	ConfigFile *cf2 = NULL;
+	if ( cfn->c_kids ) {
+		for (cf2=cfn->c_kids; cf2 && cf2->c_sibs; cf2=cf2->c_sibs) ;
+		cf2->c_sibs = cf;
+	} else {
+		cfn->c_kids = cf;
+	}
+	cfn = cf;
+	rc = read_config_file(c->argv[1], c->depth + 1, c);
 	c->lineno = savelineno - 1;
+	cfn = cfsave;
+	if ( rc ) {
+		if ( cf2 ) cf2->c_sibs = NULL;
+		else cfn->c_kids = NULL;
+		ch_free( cf );
+	}
 	return(rc);
 }
 

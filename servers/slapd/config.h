@@ -15,7 +15,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-typedef struct config_table_s {
+typedef struct ConfigTable {
 	char *name;
 	char *what;
 	int min_args;
@@ -76,3 +76,24 @@ typedef struct config_args_s {
 } ConfigArgs;
 
 typedef int (ConfigDriver)(ConfigArgs *c);
+
+#ifdef SLAPD_MODULES
+typedef struct modpath_s {
+	struct modpath_s *mp_next;
+	struct berval mp_path;
+	BerVarray mp_loads;
+} ModPaths;
+#endif
+
+typedef struct ConfigFile {
+	struct ConfigFile *c_sibs;
+	struct ConfigFile *c_kids;
+	struct berval c_file;
+#ifdef SLAPD_MODULES
+	ModPaths c_modpaths;
+	ModPaths *c_modlast;
+#endif
+	BerVarray c_dseFiles;
+} ConfigFile;
+
+void config_back_init( ConfigFile *cfp, ConfigTable *ct );
