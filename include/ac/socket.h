@@ -26,7 +26,10 @@
 #endif
 
 #include <netinet/in.h>
+
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
 
 #ifdef HAVE_ARPA_NAMESER_H
 #include <arpa/nameser.h>
