@@ -81,10 +81,6 @@ Specify the LDAP attribute to change. The default is "userPassword".
 Use \fIsearchbase\fP as the starting point for the search instead of
 the default.
 .TP
-.B \-H \fInone\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsmd5\fR\||\|\fIsha\fR\||\|\fIssha
-Specify the hashing algorithm used to store the password. The default is
-.IR crypt .
-.TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
@@ -98,6 +94,10 @@ must be compiled with LDAP_DEBUG defined for this option to have any effect.
 Auto-generate passwords of length \fIpwlen\fR.
 Passwords will be displayed when using verbose,
 .BR -vvv .
+.TP
+.B \-H \fInone\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsmd5\fR\||\|\fIsha\fR\||\|\fIssha
+Specify the hashing algorithm used to store the password. The default is
+.IR crypt .
 .TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
