@@ -170,28 +170,12 @@ get_mra(
 		return SLAPD_DISCONNECT;
 	}
 
-#ifndef SLAP_X_MRA_MATCH_DNATTRS
-	/*
-	 * Let's try to implement it
-	 */
-	if( ma->ma_dnattrs ) {
-		*text = "matching with \":dn\" not supported";
-		return LDAP_INAPPROPRIATE_MATCHING;
-	}
-#endif /* !SLAP_X_MRA_MATCH_DNATTRS */
-
 	if( type.bv_val != NULL ) {
 		rc = slap_bv2ad( &type, &ma->ma_desc, text );
 		if( rc != LDAP_SUCCESS ) {
 			mra_free( ma, 1 );
 			return rc;
 		}
-
-#ifndef SLAP_X_MRA_MATCH_DNATTRS
-	} else {
-		*text = "matching without attribute description rule not supported";
-		return LDAP_INAPPROPRIATE_MATCHING;
-#endif /* !SLAP_X_MRA_MATCH_DNATTRS */
 	}
 
 	if( ma->ma_rule_text.bv_val != NULL ) {
@@ -203,26 +187,15 @@ get_mra(
 		}
 	}
 
-	/*
-	 * FIXME: is it correct that ma->ma_rule_text, if present,
-	 * is looked-up, checked, and then replaced by the sat_equality
-	 * of the given attribute?  I'd rather do smtg like use
-	 * the attribute's equality rule only if no matching rule
-	 * was given, otherwise I don't see any extension ...
-	 */
-
-#if 1
 	if ( ma->ma_rule == NULL ) {
-#ifdef SLAP_X_MRA_MATCH_DNATTRS
 		/*
 		 * Need either type or rule ...
 		 */
 		if ( ma->ma_desc == NULL ) {
 			mra_free( ma, 1 );
-			*text = "matching rule not recognized";
+			*text = "no matching rule or type";
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
-#endif /* !SLAP_X_MRA_MATCH_DNATTRS */
 
 		if ( ma->ma_desc->ad_type->sat_equality != NULL &&
 			ma->ma_desc->ad_type->sat_equality->smr_usage & SLAP_MR_EXT )
@@ -232,36 +205,16 @@ get_mra(
 			ma->ma_rule = ma->ma_desc->ad_type->sat_equality;
 
 		} else {
+			*text = "no appropriate rule to use for type";
 			mra_free( ma, 1 );
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 	}
-#else
-	if( ma->ma_desc != NULL &&
-		ma->ma_desc->ad_type->sat_equality != NULL &&
-		ma->ma_desc->ad_type->sat_equality->smr_usage & SLAP_MR_EXT )
-	{
-		/* no matching rule was provided, use the attribute's
-		   equality rule if it supports extensible matching. */
-		ma->ma_rule = ma->ma_desc->ad_type->sat_equality;
 
-	} else {
-		mra_free( ma, 1 );
-		return LDAP_INAPPROPRIATE_MATCHING;
-	}
-#endif
-
-#ifdef SLAP_X_MRA_MATCH_DNATTRS
 	if ( ma->ma_desc != NULL ) {
-#endif /* SLAP_X_MRA_MATCH_DNATTRS */
-		/* check to see if the matching rule is appropriate for
-	 	  the syntax of the attribute.  This check will need
-		   to be extended to support other kinds of extensible
-		   matching rules */
-		if( strcmp( ma->ma_rule->smr_syntax->ssyn_oid,
-			ma->ma_desc->ad_type->sat_syntax->ssyn_oid ) != 0 )
-		{
+		if( !mr_usable_with_at( ma->ma_rule, ma->ma_desc->ad_type ) ) {
 			mra_free( ma, 1 );
+			*text = "matching rule use with this attribute not appropriate";
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
@@ -271,7 +224,6 @@ get_mra(
 		 */
 		rc = value_validate_normalize( ma->ma_desc, SLAP_MR_EQUALITY,
 			&value, &ma->ma_value, text );
-#ifdef SLAP_X_MRA_MATCH_DNATTRS
 	} else {
 		/*
 		 * Need to normalize, but how?
@@ -282,7 +234,6 @@ get_mra(
 		}
 
 	}
-#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
 	if( rc != LDAP_SUCCESS ) {
 		mra_free( ma, 1 );

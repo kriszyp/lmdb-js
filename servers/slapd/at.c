@@ -208,6 +208,42 @@ at_destroy( void )
 		ad_destroy(slap_schema.si_at_undefined->sat_ad);
 }
 
+int
+at_start( AttributeType **at )
+{
+	assert( at );
+
+	*at = attr_list;
+
+	return (*at != NULL);
+}
+
+int
+at_next( AttributeType **at )
+{
+	assert( at );
+
+#if 1	/* pedantic check */
+	{
+		AttributeType *tmp;
+
+		for ( tmp = attr_list; tmp; tmp = tmp->sat_next ) {
+			if ( tmp == *at ) {
+				break;
+			}
+		}
+
+		assert( tmp );
+	}
+#endif
+
+	*at = (*at)->sat_next;
+
+	return (*at != NULL);
+}
+	
+
+
 static int
 at_insert(
     AttributeType	*sat,

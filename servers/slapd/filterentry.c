@@ -215,13 +215,6 @@ static int test_mra_filter(
 {
 	Attribute	*a;
 
-#ifndef SLAP_X_MRA_MATCH_DNATTRS
-	if( !access_allowed( be, conn, op, e,
-		mra->ma_desc, &mra->ma_value, ACL_SEARCH, NULL ) )
-	{
-		return LDAP_INSUFFICIENT_ACCESS;
-	}
-#else /* SLAP_X_MRA_MATCH_DNATTRS */
 	if ( mra->ma_desc ) {
 		/*
 		 * if ma_desc is available, then we're filtering for
@@ -233,7 +226,6 @@ static int test_mra_filter(
 		{
 			return LDAP_INSUFFICIENT_ACCESS;
 		}
-#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
 		for(a = attrs_find( e->e_attrs, mra->ma_desc );
 			a != NULL;
@@ -258,7 +250,6 @@ static int test_mra_filter(
 				}
 			}
 		}
-#ifdef SLAP_X_MRA_MATCH_DNATTRS
 	} else {
 
 		/*
@@ -270,8 +261,7 @@ static int test_mra_filter(
 			int		rc;
 
 			/* check if matching is appropriate */
-			if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
-				a->a_desc->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+			if ( !mr_usable_with_at( mra->ma_rule, a->a_desc->ad_type )) {
 				continue;
 			}
 
@@ -346,8 +336,7 @@ static int test_mra_filter(
 					const char	*text = NULL;
 
 					/* check if matching is appropriate */
-					if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
-						ad->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+					if ( !mr_usable_with_at( mra->ma_rule, ad->ad_type )) {
 						continue;
 					}
 
@@ -382,7 +371,6 @@ static int test_mra_filter(
 			}
 		}
 	}
-#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
 	return LDAP_COMPARE_FALSE;
 }

@@ -573,7 +573,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2252: matching rule uses' "
 			"EQUALITY objectIdentifierFirstComponentMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )",
-		subentryAttribute, SLAP_AT_HIDE,
+		subentryAttribute, 0,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_matchingRuleUse) },
 
@@ -768,7 +768,7 @@ slap_schema_load( void )
 		*synp = syn_find( syn_map[i].sssm_name );
 
 		if( *synp == NULL ) {
-			fprintf( stderr, "slap_schema_check: "
+			fprintf( stderr, "slap_schema_load: "
 				"No syntax \"%s\" defined in schema\n",
 				syn_map[i].sssm_name );
 			return LDAP_INVALID_SYNTAX;
@@ -784,7 +784,7 @@ slap_schema_load( void )
 		*mrp = mr_find( mr_map[i].ssmm_name );
 
 		if( *mrp == NULL ) {
-			fprintf( stderr, "slap_schema_check: "
+			fprintf( stderr, "slap_schema_load: "
 				"No matching rule \"%s\" defined in schema\n",
 				mr_map[i].ssmm_name );
 			return LDAP_INAPPROPRIATE_MATCHING;
@@ -834,7 +834,7 @@ slap_schema_load( void )
 
 			rc = slap_str2ad( ad_map[i].ssam_name, adp, &text );
 			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "slap_schema_check: "
+				fprintf( stderr, "slap_schema_load: "
 					"No attribute \"%s\" defined in schema\n",
 					ad_map[i].ssam_name );
 				return rc;
@@ -918,7 +918,7 @@ slap_schema_load( void )
 
 			*ocp = oc_find( oc_map[i].ssom_name );
 			if( *ocp == NULL ) {
-				fprintf( stderr, "slap_schema_check: "
+				fprintf( stderr, "slap_schema_load: "
 					"No objectClass \"%s\" defined in schema\n",
 					oc_map[i].ssom_name );
 				return LDAP_OBJECT_CLASS_VIOLATION;
@@ -944,6 +944,13 @@ slap_schema_check( void )
 {
 	/* we should only be called once after schema_init() was called */
 	assert( schema_init_done == 1 );
+
+	/*
+	 * cycle thru attributeTypes to build matchingRuleUse
+	 */
+	if ( matching_rule_use_init() ) {
+		return LDAP_OTHER;
+	}
 
 	++schema_init_done;
 	return LDAP_SUCCESS;

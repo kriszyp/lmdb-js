@@ -126,6 +126,11 @@ syn_add(
 
 	ssyn->ssyn_next = NULL;
 
+	/*
+	 * note: ssyn_bvoid uses the same memory of ssyn_syn.syn_oid;
+	 * ssyn_oidlen is #defined as ssyn_bvoid.bv_len
+	 */
+	ssyn->ssyn_bvoid.bv_val = ssyn->ssyn_syn.syn_oid;
 	ssyn->ssyn_oidlen = strlen(syn->syn_oid);
 	ssyn->ssyn_flags = def->sd_flags;
 	ssyn->ssyn_validate = def->sd_validate;

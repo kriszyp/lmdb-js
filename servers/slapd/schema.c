@@ -15,6 +15,7 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
+#include "lutil.h"
 
 
 #if defined( SLAPD_SCHEMA_DN )
@@ -26,6 +27,10 @@ schema_info( Entry **entry, const char **text )
 		= slap_schema.si_ad_structuralObjectClass;
 	AttributeDescription *ad_objectClass
 		= slap_schema.si_ad_objectClass;
+	AttributeDescription *ad_createTimestamp
+		= slap_schema.si_ad_createTimestamp;
+	AttributeDescription *ad_modifyTimestamp
+		= slap_schema.si_ad_modifyTimestamp;
 
 	Entry		*e;
 	struct berval	vals[5];
@@ -79,6 +84,33 @@ schema_info( Entry **entry, const char **text )
 		}
 
 		attr_merge_one( e, desc, vals );
+	}
+
+	{
+		struct		tm *ltm;
+		char		timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+
+		/*
+		 * According to RFC 2251:
+
+   Servers SHOULD provide the attributes createTimestamp and
+   modifyTimestamp in subschema entries, in order to allow clients to
+   maintain their caches of schema information.
+
+		 * to be conservative, we declare schema created 
+		 * AND modified at server startup time ...
+		 */
+
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+		ltm = gmtime( &starttime );
+		lutil_gentime( timebuf, sizeof(timebuf), ltm );
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+
+		vals[0].bv_val = timebuf;
+		vals[0].bv_len = strlen( timebuf );
+
+		attr_merge_one( e, ad_createTimestamp, vals );
+		attr_merge_one( e, ad_modifyTimestamp, vals );
 	}
 
 	if ( syn_schema_info( e ) 
