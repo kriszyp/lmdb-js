@@ -21,6 +21,17 @@ static char copyright[] = "@(#) Copyright (c) 1994 The Regents of the University
 
 #include "ldap-int.h"
 
+/*
+ * C-API deallocator
+ */
+void
+ldap_memfree( void *p )
+{
+	if(p != NULL) {
+		free( p );
+	}
+}
+
 void
 ldap_getfilter_free( LDAPFiltDesc *lfdp )
 {
