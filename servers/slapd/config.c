@@ -84,6 +84,8 @@ static char	*strtok_quote(char *line, char *sep);
 static int load_ucdata(char *path);
 #endif
 
+int read_config_file(const char *fname, int depth, ConfigArgs *cf);
+
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 
@@ -183,7 +185,7 @@ ConfigTable SystemConfiguration[] = {
 #ifdef SLAP_AUTH_REWRITE
   { "auth-rewrite",		2,  2, 14,  NULL,	ARG_MAGIC|CFG_REWRITE,	&config_generic,		NULL, NULL, NULL },
 #endif
-  { "sasl",			2,  2,  4,  NULL,	ARG_MAGIC|CFG_SASLOPT,	&config_generic,		NULL, NULL, NULL },	/* XXX */
+  { "sasl",			2,  0,  4,  NULL,	ARG_MAGIC|CFG_SASLOPT,	&config_generic,		NULL, NULL, NULL },	/* XXX */
   { "auth",			2,  2,  4,  NULL,	ARG_MAGIC|CFG_SASLOPT,	&config_generic,		NULL, NULL, NULL },
   { "schemadn",			2,  2,  0,  "dn",	ARG_MAGIC,		&config_schema_dn,		NULL, NULL, NULL },
   { "ucdata-path",		2,  2,  0,  "path",	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
@@ -266,9 +268,11 @@ ConfigTable SystemConfiguration[] = {
 
 
 ConfigArgs *
-new_config_args(BackendDB *be, const char *fname, int lineno, int argc, char **argv) {
+new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **argv )
+{
 	ConfigArgs *c;
-	if(!(c = ch_calloc(1, sizeof(ConfigArgs)))) return(NULL);
+	c = ch_calloc( 1, sizeof( ConfigArgs ) );
+	if ( c == NULL ) return(NULL);
 	c->be     = be; 
 	c->fname  = fname;
 	c->argc   = argc;
@@ -383,21 +387,23 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 
 int
 read_config(const char *fname, int depth) {
-	return(read_config_file(fname, depth, NULL));
+	return read_config_file(fname, depth, NULL);
 }
 
 int
-read_config_file(char *fname, int depth, ConfigArgs *cf)
+read_config_file(const char *fname, int depth, ConfigArgs *cf)
 {
 	FILE *fp;
-	char *line, *savefname;
 	ConfigArgs *c;
-	int rc, i;
+	int rc;
 
-	c = ch_calloc(1, sizeof(ConfigArgs));
+	c = ch_calloc( 1, sizeof( ConfigArgs ) );
+	if ( c == NULL ) {
+		return 1;
+	}
 
-	if(depth) {
-		memcpy(c, cf, sizeof(ConfigArgs));
+	if ( depth ) {
+		memcpy( c, cf, sizeof( ConfigArgs ) );
 	} else {
 		c->depth = depth; /* XXX */
 		c->bi = NULL;
@@ -405,10 +411,11 @@ read_config_file(char *fname, int depth, ConfigArgs *cf)
 	}
 
 	c->fname = fname;
-	c->argv = ch_calloc(ARGS_STEP + 1, sizeof(*c->argv));
+	c->argv = ch_calloc( ARGS_STEP + 1, sizeof( *c->argv ) );
 	c->argv_size = ARGS_STEP + 1;
 
-	if((fp = fopen(fname, "r")) == NULL) {
+	fp = fopen( fname, "r" );
+	if ( fp == NULL ) {
 		ldap_syslog = 1;
 		Debug(LDAP_DEBUG_ANY,
 		    "could not open config file \"%s\": %s (%d)\n",
@@ -420,26 +427,39 @@ read_config_file(char *fname, int depth, ConfigArgs *cf)
 
 	fp_getline_init(c);
 
-	while(fp_getline(fp, c)) {
+	while ( fp_getline( fp, c ) ) {
 		/* skip comments and blank lines */
-		if(c->line[0] == '#' || c->line[0] == '\0') continue;
-		if(fp_parse_line(c)) goto badline;
+		if ( c->line[0] == '#' || c->line[0] == '\0' ) {
+			continue;
+		}
+		if ( fp_parse_line( c ) ) {
+			goto badline;
+		}
 
-		if(c->argc < 1) {
+		if ( c->argc < 1 ) {
 			Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: bad config line (ignored)\n", fname, c->lineno, 0);
 			continue;
 		}
 
-		rc = parse_config_table(SystemConfiguration, c);
-		if(!rc) continue;
-		if(rc & ARGS_USERLAND) switch(rc) {	/* XXX a usertype would be opaque here */
-			default:	Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: unknown user type <%d>\n",
-						c->fname, c->lineno, *c->argv);
-					goto badline;
-		} else if(rc == ARG_BAD_CONF || rc != ARG_UNKNOWN) {
+		rc = parse_config_table( SystemConfiguration, c );
+		if ( !rc ) {
+			continue;
+		}
+		if ( rc & ARGS_USERLAND ) {
+			switch(rc) {	/* XXX a usertype would be opaque here */
+			default:
+				Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: unknown user type <%d>\n",
+					c->fname, c->lineno, *c->argv);
+				goto badline;
+			}
+
+		} else if ( rc == ARG_BAD_CONF || rc != ARG_UNKNOWN ) {
 			goto badline;
-		} else if(c->bi && c->bi->bi_config) {		/* XXX to check: could both be/bi_config? oops */
-			if(rc = (*c->bi->bi_config)(c->bi, c->fname, c->lineno, c->argc, c->argv)) switch(rc) {
+			
+		} else if ( c->bi && c->bi->bi_config ) {		/* XXX to check: could both be/bi_config? oops */
+			rc = (*c->bi->bi_config)(c->bi, c->fname, c->lineno, c->argc, c->argv);
+			if ( rc ) {
+				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
 					Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: "
 						"unknown directive <%s> inside backend info definition (ignored)\n",
@@ -447,9 +467,13 @@ read_config_file(char *fname, int depth, ConfigArgs *cf)
 					continue;
 				default:
 					goto badline;
+				}
 			}
-		} else if(c->be && c->be->be_config) {
-			if(rc = (*c->be->be_config)(c->be, c->fname, c->lineno, c->argc, c->argv)) switch(rc) {
+			
+		} else if ( c->be && c->be->be_config ) {
+			rc = (*c->be->be_config)(c->be, c->fname, c->lineno, c->argc, c->argv);
+			if ( rc ) {
+				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
 					Debug( LDAP_DEBUG_CONFIG, "%s: line %lu: "
 						"unknown directive <%s> inside backend database definition (ignored)\n",
@@ -457,9 +481,13 @@ read_config_file(char *fname, int depth, ConfigArgs *cf)
 					continue;
 				default:
 					goto badline;
+				}
 			}
-		} else if(frontendDB->be_config) {
-			if(rc = (*frontendDB->be_config)(frontendDB, c->fname, (int)c->lineno, c->argc, c->argv)) switch(rc) {
+
+		} else if ( frontendDB->be_config ) {
+			rc = (*frontendDB->be_config)(frontendDB, c->fname, (int)c->lineno, c->argc, c->argv);
+			if ( rc ) {
+				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
 					Debug( LDAP_DEBUG_CONFIG, "%s: line %lu: "
 						"%s: line %lu: unknown directive <%s> inside global database definition (ignored)\n",
@@ -467,7 +495,9 @@ read_config_file(char *fname, int depth, ConfigArgs *cf)
 					continue;
 				default:
 					goto badline;
+				}
 			}
+			
 		} else {
 			Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: "
 				"unknown directive <%s> outside backend info and database definitions (ignored)\n",
@@ -480,7 +510,7 @@ read_config_file(char *fname, int depth, ConfigArgs *cf)
 	fclose(fp);
 
 	if ( BER_BVISNULL( &frontendDB->be_schemadn ) ) {
-		ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1,
+		ber_str2bv( SLAPD_SCHEMA_DN, STRLENOF( SLAPD_SCHEMA_DN ), 1,
 			&frontendDB->be_schemadn );
 		dnNormalize( 0, NULL, NULL, &frontendDB->be_schemadn, &frontendDB->be_schemandn, NULL );
 	}
@@ -754,7 +784,8 @@ config_sizelimit(ConfigArgs *c) {
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
-			if(rc = limits_parse_one(c->argv[i], lim)) {
+			rc = limits_parse_one(c->argv[i], lim);
+			if ( rc ) {
 				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
 					"unable to parse value \"%s\" in \"sizelimit <limit>\" line\n",
 					c->fname, c->lineno, c->argv[i]);
@@ -789,7 +820,8 @@ config_timelimit(ConfigArgs *c) {
 	struct slap_limits_set *lim = &c->be->be_def_limit;
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
-			if(rc = limits_parse_one(c->argv[i], lim)) {
+			rc = limits_parse_one(c->argv[i], lim);
+			if ( rc ) {
 				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
 					"unable to parse value \"%s\" in \"timelimit <limit>\" line\n",
 					c->fname, c->lineno, c->argv[i]);
@@ -993,7 +1025,8 @@ config_allows(ConfigArgs *c) {
 		{ "update_anon",	SLAP_ALLOW_UPDATE_ANON },
 		{ NULL,	0 }
 	};
-	if(i = verbs_to_mask(c, allowable_ops, &allows)) {
+	i = verbs_to_mask(c, allowable_ops, &allows);
+	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
 			"unknown feature %s in \"allow <features>\" line\n",
 			c->fname, c->lineno, c->argv[i]);
@@ -1015,7 +1048,8 @@ config_disallows(ConfigArgs *c) {
 		{ "tls_authc",		SLAP_DISALLOW_TLS_AUTHC },
 		{ NULL, 0 }
 	};
-	if(i = verbs_to_mask(c, disallowable_ops, &disallows)) {
+	i = verbs_to_mask(c, disallowable_ops, &disallows);
+	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
 			"unknown feature %s in \"disallow <features>\" line\n",
 			c->fname, c->lineno, c->argv[i]);
@@ -1037,7 +1071,8 @@ config_requires(ConfigArgs *c) {
 		{ "strong",		SLAP_REQUIRE_STRONG },
 		{ NULL, 0 }
 	};
-	if(i = verbs_to_mask(c, requires_ops, &requires)) {
+	i = verbs_to_mask(c, requires_ops, &requires);
+	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
 			"unknown feature %s in \"require <features>\" line\n",
 			c->fname, c->lineno, c->argv[i]);
@@ -1447,7 +1482,7 @@ fp_getline_init(ConfigArgs *c) {
 }
 
 static int
-fp_getline(FILE *fp, ConfigArgs *c)
+fp_getline( FILE *fp, ConfigArgs *c )
 {
 	char	*p;
 
@@ -1456,24 +1491,33 @@ fp_getline(FILE *fp, ConfigArgs *c)
 	c->lineno++;
 
 	/* avoid stack of bufs */
-	if(strncasecmp(line, "include", 7) == 0) {
+	if ( strncasecmp( line, "include", STRLENOF( "include" ) ) == 0 ) {
 		buf[0] = '\0';
 		c->line = line;
 		return(1);
 	}
 
-	while(fgets(buf, sizeof(buf), fp)) {
-		if(p = strchr(buf, '\n')) {
-			if(p > buf && p[-1] == '\r') --p;
+	while ( fgets( buf, sizeof( buf ), fp ) ) {
+		p = strchr( buf, '\n' );
+		if ( p ) {
+			if ( p > buf && p[-1] == '\r' ) {
+				--p;
+			}
 			*p = '\0';
 		}
 		/* XXX ugly */
 		c->line = line;
-		if(line[0] && (p = line + strlen(line) - 1)[0] == '\\' && p[-1] != '\\' ) {
+		if ( line[0]
+				&& ( p = line + strlen( line ) - 1 )[0] == '\\'
+				&& p[-1] != '\\' )
+		{
 			p[0] = '\0';
 			lcur--;
+			
 		} else {
-			if(!isspace((unsigned char)buf[0])) return(1);
+			if ( !isspace( (unsigned char)buf[0] ) ) {
+				return(1);
+			}
 			buf[0] = ' ';
 		}
 		CATLINE(buf);
@@ -1490,7 +1534,6 @@ fp_parse_line(ConfigArgs *c)
 {
 	char *token;
 	char *tline = ch_strdup(c->line);
-	char logbuf[STRLENOF("pseudorootpw ***")]; /* longest secret */
 	char *hide[] = { "rootpw", "replica", "bindpw", "pseudorootpw", "dbpasswd", '\0' };
 	int i;
 
@@ -1706,9 +1749,8 @@ parse_syncrepl_line(
 )
 {
 	int	gots = 0;
-	int	i, j;
-	char	*hp, *val;
-	int	nr_attr = 0;
+	int	i;
+	char	*val;
 
 	for ( i = 1; i < cargc; i++ ) {
 		if ( !strncasecmp( cargv[ i ], IDSTR "=",
@@ -1924,7 +1966,6 @@ parse_syncrepl_line(
 				}
 				ch_free( attr_fname );
 			} else {
-				int j;
 				si->si_exanlist = str2anlist( si->si_exanlist, val, " ,\t" );
 				if ( si->si_exanlist == NULL ) {
 					return -1;
@@ -2005,7 +2046,6 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ], RETRYSTR "=",
 					STRLENOF( RETRYSTR "=" ) ) )
 		{
-			char *str;
 			char **retry_list;
 			int j, k, n;
 
@@ -2087,7 +2127,6 @@ slap_str2clist( char ***out, char *in, const char *brkstr )
 	char	*s;
 	char	*lasts;
 	int	i, j;
-	const char *text;
 	char	**new;
 
 	/* find last element in list */
