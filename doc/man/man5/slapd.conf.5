@@ -386,63 +386,6 @@ is closed. The default is 100.
 .B conn_max_pending_auth <integer>
 Specify the maximum number of pending requests for an authenticated session.
 The default is 1000.
-.\"-- NEW_LOGGING option --
-.\".TP
-.\".B debug <subsys> <level>
-.\"Specify a logging level for a particular subsystem.  The subsystems include
-.\".B global
-.\"a global level for all subsystems,
-.\".B acl
-.\"the ACL engine,
-.\".B backend
-.\"the backend databases,
-.\".B cache
-.\"the entry cache manager,
-.\".B config
-.\"the config file reader,
-.\".B connection
-.\"the connection manager,
-.\".B cyrus
-.\"the Cyrus SASL library interface,
-.\".B filter
-.\"the search filter processor,
-.\".B getdn
-.\"the DN normalization library,
-.\".B index
-.\"the database indexer,
-.\".B liblber
-.\"the ASN.1 BER library,
-.\".B module
-.\"the dynamic module loader,
-.\".B operation
-.\"the LDAP operation processors,
-.\".B sasl
-.\"the SASL authentication subsystem,
-.\".B schema
-.\"the schema processor, and
-.\".B tls
-.\"the TLS library interface. This is not an exhaustive list; there are many
-.\"other subsystems and more are added over time.
-.\"
-.\"The levels are, in order of decreasing priority:
-.\".B emergency, alert, critical, error, warning, notice, information, entry,
-.\".B args, results, detail1, detail2
-.\"An integer may be used instead, with 0 corresponding to
-.\".B emergency
-.\"up to 11 for
-.\".BR detail2 .
-.\"The
-.\".B entry
-.\"level logs function entry points,
-.\".B args
-.\"adds function call parameters, and
-.\".B results
-.\"adds the function results to the logs.
-.\"The
-.\".B detail1
-.\"and
-.\".B detail2
-.\"levels add even more low level detail from individual functions.
 .TP
 .B defaultsearchbase <dn>
 Specify a default search base to use when client submits a
