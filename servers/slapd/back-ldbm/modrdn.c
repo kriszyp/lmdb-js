@@ -48,8 +48,8 @@ ldbm_back_modrdn(
 {
 	AttributeDescription *children = slap_schema.si_ad_children;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*p_dn = NULL, *p_ndn = NULL;
-	char		*new_dn = NULL, *new_ndn = NULL;
+	struct berval	p_dn, p_ndn;
+	struct berval	new_dn = { 0, NULL}, *new_ndn = NULL;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	int		isroot = -1;
@@ -71,9 +71,9 @@ ldbm_back_modrdn(
 	char		**old_rdn_vals = NULL;	/* Old rdn attribute values */
 	/* Added to support newSuperior */ 
 	Entry		*np = NULL;	/* newSuperior Entry */
-	char		*np_dn = NULL;	/* newSuperior dn */
-	char		*np_ndn = NULL; /* newSuperior ndn */
-	char		*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
+	struct berval	*np_dn = NULL;	/* newSuperior dn */
+	struct berval	*np_ndn = NULL; /* newSuperior ndn */
+	struct berval	*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
 	/* Used to interface with ldbm_modify_internal() */
 	Modifications	*mod = NULL;		/* Used to delete old/add new rdn */
 	int		manageDSAit = get_manageDSAit( op );
@@ -152,12 +152,15 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL && p_ndn[0] != '\0' ) {
+	p_ndn.bv_val = dn_parent( be, e->e_ndn );
+	p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
+
+	if ( p_ndn.bv_len != 0 ) {
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
 
-		if( (p = dn2entry_w( be, p_ndn, NULL )) == NULL) {
+		if( (p = dn2entry_w( be, p_ndn.bv_val, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"ldbm_back_modrdn: parent of %s does not exist\n", e->e_ndn ));
@@ -192,21 +195,22 @@ ldbm_back_modrdn(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			   "ldbm_back_modrdn: wr to children of entry %s OK\n",
-			   p_ndn ));
+			   p_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: wr to children of entry %s OK\n",
-		       p_ndn, 0, 0 );
+		       p_ndn.bv_val, 0, 0 );
 #endif
 
-		p_dn = dn_parent( be, e->e_dn );
+		p_dn.bv_val = dn_parent( be, e->e_dn );
+		p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "ldbm_back_modrdn: parent dn=%s\n", p_dn ));
+			   "ldbm_back_modrdn: parent dn=%s\n", p_dn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: parent dn=%s\n",
-		       p_dn, 0, 0 );
+		       p_dn.bv_val, 0, 0 );
 #endif
 
 	} else {
@@ -269,7 +273,7 @@ ldbm_back_modrdn(
 #endif
 	}
 
-	new_parent_dn = p_dn;	/* New Parent unless newSuperior given */
+	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
 	if ( newSuperior != NULL ) {
 #ifdef NEW_LOGGING
@@ -282,22 +286,22 @@ ldbm_back_modrdn(
 			newSuperior->bv_val, 0, 0 );
 #endif
 
-		np_dn = ch_strdup( newSuperior->bv_val );
-		np_ndn = ch_strdup( np_dn );
-		(void) dn_normalize( np_ndn );
+		np_dn = newSuperior;
+		np_ndn = nnewSuperior;
 
 		/* newSuperior == oldParent? */
-		if ( strcmp( p_ndn, np_ndn ) == 0 ) {
+		if ( p_ndn.bv_len == np_ndn->bv_len &&
+			strcmp( p_ndn.bv_val, np_ndn->bv_val ) == 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO, "ldbm_back_modrdn: "
 				"new parent\"%s\" seems to be the same as the "
 				"old parent \"%s\"\n",
-				newSuperior->bv_val, p_dn ));
+				newSuperior->bv_val, p_dn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: "
 				"new parent\"%s\" seems to be the same as the "
 				"old parent \"%s\"\n",
-				newSuperior->bv_val, p_dn, 0 );
+				newSuperior->bv_val, p_dn.bv_val, 0 );
 #endif
 
 			newSuperior = NULL; /* ignore newSuperior */
@@ -309,14 +313,14 @@ ldbm_back_modrdn(
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 		if ( nnewSuperior->bv_len ) {
-			if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
+			if( (np = dn2entry_w( be, np_ndn->bv_val, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-					"ldbm_back_modrdn: newSup(ndn=%s) not found.\n", np_ndn ));
+					"ldbm_back_modrdn: newSup(ndn=%s) not found.\n", np_ndn->bv_val ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
 				    "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
-				    np_ndn, 0, 0);
+				    np_ndn->bv_val, 0, 0);
 #endif
 
 				send_ldap_result( conn, op, LDAP_OTHER,
@@ -451,17 +455,15 @@ ldbm_back_modrdn(
 	}
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
-	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn->bv_val ); 
-
-	new_ndn = ch_strdup( new_dn );
-	(void) dn_normalize( new_ndn );
+	build_new_dn( &new_dn, new_parent_dn, newrdn ); 
+	dnNormalize( NULL, &new_dn, &new_ndn );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-		"ldbm_back_modrdn: new ndn=%s\n", new_ndn ));
+		"ldbm_back_modrdn: new ndn=%s\n", new_ndn->bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
-	    new_ndn, 0, 0 );
+	    new_ndn->bv_val, 0, 0 );
 #endif
 
 	/* check for abandon */
@@ -472,7 +474,7 @@ ldbm_back_modrdn(
 	}
 
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-	if ( ( rc_id = dn2id ( be, new_ndn, &id ) ) || id != NOID ) {
+	if ( ( rc_id = dn2id ( be, new_ndn->bv_val, &id ) ) || id != NOID ) {
 		/* if (rc_id) something bad happened to ldbm cache */
 		send_ldap_result( conn, op, 
 			rc_id ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
@@ -742,11 +744,9 @@ ldbm_back_modrdn(
 
 	free( e->e_dn );
 	free( e->e_ndn );
-	e->e_dn = new_dn;
-	e->e_name.bv_len = strlen( new_dn );
-	e->e_ndn = new_ndn;
-	e->e_nname.bv_len = strlen( new_ndn );
-	new_dn = NULL;
+	e->e_name = new_dn;
+	e->e_nname = *new_ndn;
+	new_dn.bv_val = NULL;
 	new_ndn = NULL;
 
 	/* add new one */
@@ -794,8 +794,8 @@ ldbm_back_modrdn(
 	cache_entry_commit( e );
 
 return_results:
-	if( new_dn != NULL ) free( new_dn );
-	if( new_ndn != NULL ) free( new_ndn );
+	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
+	if( new_ndn != NULL ) ber_bvfree( new_ndn );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_types != NULL ) charray_free( new_rdn_types );
@@ -809,9 +809,6 @@ return_results:
 	}
 
 	/* LDAP v3 Support */
-	if ( np_dn != NULL ) free( np_dn );
-	if ( np_ndn != NULL ) free( np_ndn );
-
 	if( np != NULL ) {
 		/* free new parent and writer lock */
 		cache_return_entry_w( &li->li_cache, np );
