@@ -47,7 +47,7 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-Q ]
 [\c
-.BI \-U \ username\fR]
+.BI \-U \ authcid\fR]
 [\c
 .BR \-x ]
 [\c
@@ -97,7 +97,7 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-Q ]
 [\c
-.BI \-U \ username\fR]
+.BI \-U \ authcid\fR]
 [\c
 .BR \-x ]
 [\c
@@ -220,9 +220,9 @@ only as needed.
 .B \-Q
 Enable SASL Quiet mode.  Never prompt.
 .TP
-.BI \-U \ username
-Specify the username for SASL bind. The syntax of the username depends on the
-actual SASL mechanism used.
+.BI \-U \ authcid
+Specify the authentication ID for SASL bind. The form of the ID
+depends on the actual SASL mechanism used.
 .TP
 .BI \-X \ authzid
 Specify the requested authorization ID for SASL bind.
