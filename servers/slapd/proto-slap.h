@@ -1246,6 +1246,7 @@ LDAP_SLAPD_V (int)			connection_pool_max;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	repstamp_mutex;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;

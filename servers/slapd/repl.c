@@ -129,7 +129,7 @@ replog1( struct slap_replica_info *ri, Operation *op, FILE *fp );
 void
 repstamp( Operation *op )
 {
-	ldap_pvt_thread_mutex_lock( &replog_mutex );
+	ldap_pvt_thread_mutex_lock( &repstamp_mutex );
 	op->o_time = slap_get_time();
 	if ( op->o_time == oldstamp.time ) {
 		op->o_tseq = ++oldstamp.seq;
@@ -138,7 +138,7 @@ repstamp( Operation *op )
 		oldstamp.seq = 0;
 		op->o_tseq = 0;
 	}
-	ldap_pvt_thread_mutex_unlock( &replog_mutex );
+	ldap_pvt_thread_mutex_unlock( &repstamp_mutex );
 }
 
 void

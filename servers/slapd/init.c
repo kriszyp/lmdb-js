@@ -91,6 +91,7 @@ ldap_pvt_thread_mutex_t	num_sent_mutex;
  */
 ldap_pvt_thread_mutex_t	entry2str_mutex;
 ldap_pvt_thread_mutex_t	replog_mutex;
+ldap_pvt_thread_mutex_t	repstamp_mutex;
 
 static const char* slap_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
@@ -142,6 +143,7 @@ slap_init( int mode, const char *name )
 
 			ldap_pvt_thread_mutex_init( &entry2str_mutex );
 			ldap_pvt_thread_mutex_init( &replog_mutex );
+			ldap_pvt_thread_mutex_init( &repstamp_mutex );
 			ldap_pvt_thread_mutex_init( &num_ops_mutex );
 			ldap_pvt_thread_mutex_init( &num_sent_mutex );
 
