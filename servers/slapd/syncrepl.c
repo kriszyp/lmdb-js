@@ -805,8 +805,7 @@ syncrepl_message_to_entry(
 
 	ber_scanf( ber, "{xx" );
 
-	rc = ldap_int_get_controls( ber, &rctrls );
-
+	rc = ldap_pvt_get_controls( ber, &rctrls );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,

@@ -341,7 +341,7 @@ ldap_parse_result(
 		}
 
 		if( tag != LBER_ERROR ) {
-			int rc = ldap_int_get_controls( ber, serverctrls );
+			int rc = ldap_pvt_get_controls( ber, serverctrls );
 
 			if( rc != LDAP_SUCCESS ) {
 				tag = LBER_ERROR;

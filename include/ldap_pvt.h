@@ -155,6 +155,9 @@ LDAP_F (struct ldapcontrol *) ldap_control_dup LDAP_P((
 LDAP_F (struct ldapcontrol **) ldap_controls_dup LDAP_P((
 	struct ldapcontrol *const *ctrls ));
 
+LDAP_F (int) ldap_int_get_controls LDAP_P((
+	BerElement *be,
+	struct ldapcontrol ***ctrlsp));
 
 #ifdef HAVE_CYRUS_SASL
 /* cyrus.c */

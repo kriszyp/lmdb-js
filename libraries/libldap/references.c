@@ -106,7 +106,7 @@ ldap_parse_reference(
 		goto free_and_return;
 	}
 
-	rc = ldap_int_get_controls( &be, serverctrls );
+	rc = ldap_pvt_get_controls( &be, serverctrls );
 
 free_and_return:
 
