@@ -37,6 +37,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/@RELAY@/${RELAY}/"			\
 	-e "s/^#${RELAY}#//"				\
 	-e "s/^#${BACKENDTYPE}#//"			\
+	-e "s/^#${AC_glue}#//"				\
 	-e "s/^#${AC_ldap}#//"				\
 	-e "s/^#${AC_meta}#//"				\
 	-e "s/^#${AC_relay}#//"				\
@@ -45,6 +46,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_pcache}#//"			\
 	-e "s/^#${AC_ppolicy}#//"			\
 	-e "s/^#${AC_refint}#//"			\
+	-e "s/^#${AC_syncprov}#//"			\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${AC_rwm}#//"			\
 	-e "s/^#${MON}#//"				\
