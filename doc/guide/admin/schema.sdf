@@ -1,0 +1,161 @@
+# $OpenLDAP$
+# Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+H1: Schema Specification
+
+This chapter describes how to extend slapd(8) schema.  The
+first section details how to extend schema using provided
+schema files.  The second section details how to define
+new schema items.
+
+H2: Distributed Schema Files
+
+OpenLDAP is distributed with a set of schema specifications for
+your use.  Each set is defined in a file suitable for inclusion
+(using the {{EX:include}} directive) in your {{slapd.conf}}(5)
+file.  These schema files are normally installed in the
+{{F:/usr/local/etc/openldap/schema}} directory.
+
+!block table; colaligns="LR"; align=Center; \
+	title="Table 6.1: Provided Schema Specifications"
+File				Description
+{{F:core.schema}}		OpenLDAP {{core}} (required)
+{{F:cosine.schema}}		Cosine and Internet X.500 (useful)
+{{F:inetorgperson.schema}}	InetOrgPerson (useful)
+{{F:misc.schema}}		Assorted (experimental)
+{{F:nadf.schema}}		North American Directory Forum (FYI)
+{{F:nis.schema}}		Network Information Services (FYI)
+{{F:openldap.schema}}		OpenLDAP Project (experimental)
+{{F:pilot.schema}}		Cosine Pilot (obsolete)
+!endblock
+
+To use any of these schema files, you only need to include the
+the desired file in the global definitions portion of your
+{{slapd.conf}}(5) file.  For example:
+
+>	# include schema
+>	include /usr/local/etc/openldap/schema/core.schema
+>	include /usr/local/etc/openldap/schema/cosine.schema
+>	include /usr/local/etc/openldap/schema/inetorgperson.schema
+
+Additional files may be available.  Please consult the OpenLDAP
+FAQ ({{URL:http://www.openldap.org/faq/}}).
+
+Note: You should not modify any of the schema items defined
+in provided files.
+
+H2: Extending Schema
+
+Schema used by {{slapd}}(8) can be extended to support additional
+syntaxes, matching rules, attribute types, and object classes.
+This chapter details how to add attribute types and object classes
+using the syntaxes and matching rules already support by slapd.
+slapd(8) can also be extended to support additional syntaxes
+and matching rules, but this requires some programming and hence
+is not discussed here.
+
+There are four steps to defining new schema:
+^	obtain Object Identifer
++	create local schema file
++	define custom attribute types (if necessary)
++	define custom object classes
+
+H2: Object Identifiers
+
+Each schema element is identified by a globally unique
+{{TERM[expand]OID}} ({{TERM:OID}}).  OIDs are also used to identify
+other objects.
+They are commonly found in protocols described by {{TERM:ASN.1}}.  In
+particular, they are heavy used by Simple Network Management
+Protocol (SNMP).  As OIDs are hierarchical, your organization
+can obtain one OID and branch it as needed.  For example,
+if your organization were assigned OID {{EX:1.1}}, you could branch
+the tree as follows:
+
+!block table; colaligns="LR"; align=Center; \
+	title="Table 6.2: Example OID hierarchy"
+OID			Assignment
+{{EX:1.1}}		Organization's OID
+{{EX:1.1.1}}		SNMP Elements
+{{EX:1.1.2}}		LDAP Elements
+{{EX:1.1.2.1}}		AttributeTypes
+{{EX:1.1.2.1.1}}	myAttribute
+{{EX:1.1.2.2}}		ObjectClasses
+{{EX:1.1.2.2.1}}	myObjectClass
+!endblock
+
+You are, of course, free to design a hierarchy suitable to your
+organizational needs under your organization's OID.  No matter
+what hierarchy you choose, you should maintain a registry of
+assignments you make.  This can be a simple flat file or a
+something more sophisticated such as the OpenLDAP OID Registry
+{{URL:http://www.openldap.org/faq/index.cgi?file=197}}.
+
+For more information about Object Identifers (and a listing
+service) see {{URL:http://www.alvestrand.no/harald/objectid/}}.
+
+.{{Under no circumstances should you use a fictious OID!}} 
+
+To obtain a fully registered OID at {{no cost}}, apply for
+a OID under {{ORG[expand]IANA}} maintained
+{{Private Enterprise}} arch.  Any private enterprise (organization)
+may request an OID to be assigned under this arch.  Just fill
+out the form at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}}
+and your official OID will be sent to you usually within a few days.
+Your base OID will be something like {{EX:1.3.6.1.4.1.X}} were {{EX:X}}
+is an integer.
+
+Note: Don't let the "MIB/SNMP" statement on the IANA page confuse you.
+OIDs obtained using this form may be used for any purpose including
+identifying LDAP schema elements.
+
+
+H3: Local schema file
+
+The {{EX:objectclass}} and {{EX:attributeTypes}} configuration file
+directives can be used to define schema rules on entries in the
+directory.  It is customary to create a file to contain definitions
+of your custom schema items.  We recommend you create a file
+{{F:local.schema}} in {{F:/usr/local/etc/openldap/schema/local.schema}}
+and then include this file in your {{slapd.conf}}(5) file immediately
+after other schema {{EX:include}} directives.
+
+>	# include schema
+>	include /usr/local/etc/openldap/schema/core.schema
+>	include /usr/local/etc/openldap/schema/cosine.schema
+>	include /usr/local/etc/openldap/schema/inetorgperson.schema
+>	# include local schema
+>	include /usr/local/etc/openldap/schema/local.schema
+
+
+H2: AttributeType Specification
+
+{{B:To be specified.}}
+
+E:	attributetype <{{REF:RFC2252}} Attribute Type Description>
+
+H2: ObjectClass Specification
+
+The schema rules are defined by one or more
+objectclass lines, and enforcement is turned on or off via the
+schemacheck directives. The format of an {{EX:objectclass}} line is:
+
+E:	objectclass <{{REF:RFC2252}} Object Class Description>
+
+This directive defines the schema rules for the object class
+given by {{EX:<name>}}. Schema rules consist of the attributes the
+entry is required to have (given by the requires {{EX:<attrs>}}
+clause) and those attributes that it may optionally have (given
+by the allows {{EX:<attrs>}} clause). In both clauses, {{EX:<attrs>}}
+is a comma-separated list of attribute names.
+
+For example, to define an object class called {{myPerson}}, you
+might include a definition like this:
+
+>	objectclass ( 1.2.3 NAME 'myPerson'
+>		DESC 'my person'
+>		MUST ( cn $ sn )
+>		MAY ( mail $ phone $ fax ) )
+
+

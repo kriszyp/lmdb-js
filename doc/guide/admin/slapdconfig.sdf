@@ -100,8 +100,8 @@ More details discussion of this directive can be found in the
 H4: attributetype <{{REF:RFC2252}} Attribute Type Description>
 
 This directive defines an attribute type.
-Please see the {{SECT:Schema Specification}} section of this
-chapter for information regarding how to use this directive.
+Please see the {{SECT:Schema Specification}} chapter
+for information regarding how to use this directive.
 
 
 H4: defaultaccess { none | compare | search | read | write }
@@ -179,8 +179,8 @@ E: loglevel 256
 H4: objectclass <{{REF:RFC2252}} Object Class Description>
 
 This directive defines an object class.
-Please see the {{SECT:Schema Specification}} section of this
-chapter for information regarding how to use this directive.
+Please see the {{SECT:Schema Specification}} chapter for
+information regarding how to use this directive.
 
 
 H4: referral <URI>
@@ -800,92 +800,6 @@ For more details on how to use the {{EX:access}} directive,
 consult the {{Advanced Access Control}} chapter.
 !endif
 
-H2: Schema Specification
-
-The {{EX:objectclass}} and {{EX:attributeTypes}} configuration file
-directives can be used to define schema rules on entries in the
-directory.
-
-H3: Object Identifiers
-
-Each schema element is identified by a globally unique
-{{TERM[expand]OID}} ({{TERM:OID}}).  OIDs are also used to identify
-other objects.
-They are commonly found in protocols described by {{TERM:ASN.1}}.  In
-particular, they are heavy used by Simple Network Management
-Protocol (SNMP).  As OIDs are hierarchical, your organization
-can obtain one OID and branch it as needed.  For example,
-if your organization were assigned OID {{EX:1.1}}, you could branch
-the tree as follows:
-
-!block table; colaligns="LR"; coltags="EX,N"; align=Center; \
-	title="Table 5.4: Example OID hierarchy"
-OID		Assignment
-1.1		Organization's OID
-1.1.1		SNMP Elements
-1.1.2		LDAP Elements
-1.1.2.1		AttributeTypes
-1.1.2.1.1	myAttribute
-1.1.2.2		ObjectClasses
-1.1.2.2.1	myObjectClass
-!endblock
-
-You are, of course, free to design a hierarchy suitable to your
-organizational needs under your organization's OID.  No matter
-what hierarchy you choose, you should maintain a registry of
-assignments you make.  This can be a simple flat file or a
-something more sophisticated such as the OpenLDAP OID Registry
-{{URL:http://www.openldap.org/faq/index.cgi?file=197}}.
-
-For more information about Object Identifers (and a listing
-service) see {{URL:http://www.alvestrand.no/harald/objectid/}}.
-
-.{{Under no circumstances should you use a fictious OID!}} 
-
-To obtain a fully registered OID at {{no cost}}, apply for
-a OID under {{ORG[expand]IANA}} maintained
-{{Private Enterprise}} arch.  Any private enterprise (organization)
-may request an OID to be assigned under this arch.  Just fill
-out the form at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}}
-and your official OID will be sent to you usually within a few days.
-Your base OID will be something like {{EX:1.3.6.1.4.1.X}} were {{EX:X}}
-is an integer.
-
-Note: Don't let the "MIB/SNMP" statement on the IANA page confuse you.
-OIDs obtained using this form may be used for any purpose including
-identifying LDAP schema elements.
-
-
-H3: AttributeType Specification
-
-{{B:To be specified.}}
-
->	attributetype <{{REF:RFC2252}} Attribute Type Description>
-
-H3: ObjectClass Specification
-
-The schema rules are defined by one or more
-objectclass lines, and enforcement is turned on or off via the
-schemacheck directives. The format of an {{EX:objectclass}} line is:
-
->	objectclass <{{REF:RFC2252}} Object Class Description>
-
-This directive defines the schema rules for the object class
-given by {{EX:<name>}}. Schema rules consist of the attributes the
-entry is required to have (given by the requires {{EX:<attrs>}}
-clause) and those attributes that it may optionally have (given
-by the allows {{EX:<attrs>}} clause). In both clauses, {{EX:<attrs>}}
-is a comma-separated list of attribute names.
-
-For example, to define an object class called {{myPerson}}, you
-might include a definition like this:
-
->	objectclass ( 1.2.3 NAME 'myPerson'
->		DESC 'my person'
->		MUST ( cn $ sn )
->		MAY ( mail $ phone $ fax ) )
-
-
 
 H2: Configuration File Example
 
@@ -896,9 +810,9 @@ database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
 
-E: 1. # example config file - global configuration section
-E: 2. include /usr/local/etc/schema/core.schema
-E: 3. referral ldap://root.openldap.org
+E: 1.	# example config file - global configuration section
+E: 2.	include /usr/local/etc/schema/core.schema
+E: 3.	referral ldap://root.openldap.org
 
 Line 1 is a comment. Lines 2 include another config file
 which containing {{core}} schema definitions.

@@ -48,6 +48,9 @@ PB:
 !include "dbtools.sdf"; chapter
 PB:
 
+!include "schema.sdf"; chapter
+PB:
+
 #!include "tuning.sdf"; chapter
 #PB:
 
