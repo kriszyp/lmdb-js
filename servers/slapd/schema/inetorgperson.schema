@@ -39,8 +39,7 @@ attributetype ( 2.16.840.1.113730.3.1.2
 # needed.  Display name is defined for this purpose.
 attributetype ( 2.16.840.1.113730.3.1.241
 	NAME 'displayName'
-	DESC 'RFC2798: preferred name of a person to be used 
-		when displaying entries'
+	DESC 'RFC2798: preferred name to be used when displaying entries'
 	EQUALITY caseIgnoreMatch
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
