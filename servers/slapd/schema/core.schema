@@ -14,81 +14,81 @@
 
 # Standard X.501(93) Operational Attribute Types from RFC2252
 
-attribute ( 2.5.18.1 NAME 'createTimestamp' EQUALITY generalizedTimeMatch
+attributetype ( 2.5.18.1 NAME 'createTimestamp' EQUALITY generalizedTimeMatch
       ORDERING generalizedTimeOrderingMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
       SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
-attribute ( 2.5.18.2 NAME 'modifyTimestamp' EQUALITY generalizedTimeMatch
+attributetype ( 2.5.18.2 NAME 'modifyTimestamp' EQUALITY generalizedTimeMatch
       ORDERING generalizedTimeOrderingMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
       SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
-attribute ( 2.5.18.3 NAME 'creatorsName' EQUALITY distinguishedNameMatch
+attributetype ( 2.5.18.3 NAME 'creatorsName' EQUALITY distinguishedNameMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
       SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
-attribute ( 2.5.18.4 NAME 'modifiersName' EQUALITY distinguishedNameMatch
+attributetype ( 2.5.18.4 NAME 'modifiersName' EQUALITY distinguishedNameMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
       SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
-attribute ( 2.5.18.10 NAME 'subschemaSubentry'
+attributetype ( 2.5.18.10 NAME 'subschemaSubentry'
       EQUALITY distinguishedNameMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION
       SINGLE-VALUE USAGE directoryOperation )
 
-attribute ( 2.5.21.5 NAME 'attributeTypes'
+attributetype ( 2.5.21.5 NAME 'attributeTypes'
       EQUALITY objectIdentifierFirstComponentMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.3 USAGE directoryOperation )
 
-attribute ( 2.5.21.6 NAME 'objectClasses'
+attributetype ( 2.5.21.6 NAME 'objectClasses'
       EQUALITY objectIdentifierFirstComponentMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.37 USAGE directoryOperation )
 
-attribute ( 2.5.21.4 NAME 'matchingRules'
+attributetype ( 2.5.21.4 NAME 'matchingRules'
       EQUALITY objectIdentifierFirstComponentMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.30 USAGE directoryOperation )
 
-attribute ( 2.5.21.8 NAME 'matchingRuleUse'
+attributetype ( 2.5.21.8 NAME 'matchingRuleUse'
       EQUALITY objectIdentifierFirstComponentMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )
 
 # LDAP Operational Attributes from RFC2252
 
-attribute ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'
+attributetype ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 USAGE dSAOperation )
 
-attribute ( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer'
+attributetype ( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 USAGE dSAOperation )
 
-attribute ( 1.3.6.1.4.1.1466.101.120.7 NAME 'supportedExtension'
+attributetype ( 1.3.6.1.4.1.1466.101.120.7 NAME 'supportedExtension'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )
 
-attribute ( 1.3.6.1.4.1.1466.101.120.13 NAME 'supportedControl'
+attributetype ( 1.3.6.1.4.1.1466.101.120.13 NAME 'supportedControl'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )
 
-attribute ( 1.3.6.1.4.1.1466.101.120.14 NAME 'supportedSASLMechanisms'
+attributetype ( 1.3.6.1.4.1.1466.101.120.14 NAME 'supportedSASLMechanisms'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 USAGE dSAOperation )
 
-attribute ( 1.3.6.1.4.1.1466.101.120.15 NAME 'supportedLDAPVersion'
+attributetype ( 1.3.6.1.4.1.1466.101.120.15 NAME 'supportedLDAPVersion'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 USAGE dSAOperation )
 
 # LDAP Subschema Atrribute from RFC2252
 
-attribute ( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes'
+attributetype ( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes'
       EQUALITY objectIdentifierFirstComponentMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.54 USAGE directoryOperation )
 
 # X.500 Subschema attributes from RFC2252
 
-attribute ( 2.5.21.1 NAME 'dITStructureRules' EQUALITY integerFirstComponentMatch
+attributetype ( 2.5.21.1 NAME 'dITStructureRules' EQUALITY integerFirstComponentMatch
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.17 USAGE directoryOperation )
 
-attribute ( 2.5.21.7 NAME 'nameForms'
+attributetype ( 2.5.21.7 NAME 'nameForms'
       EQUALITY objectIdentifierFirstComponentMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.35 USAGE directoryOperation )
 
-attribute ( 2.5.21.2 NAME 'dITContentRules'
+attributetype ( 2.5.21.2 NAME 'dITContentRules'
       EQUALITY objectIdentifierFirstComponentMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 USAGE directoryOperation )
 
@@ -104,59 +104,59 @@ objectclass ( 2.5.20.1 NAME 'subschema' AUXILIARY
 
 # Standard attribute types from RFC2256
 
-attribute ( 2.5.4.0 NAME 'objectClass' EQUALITY objectIdentifierMatch
+attributetype ( 2.5.4.0 NAME 'objectClass' EQUALITY objectIdentifierMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
-attribute ( 2.5.4.1 NAME 'aliasedObjectName' EQUALITY distinguishedNameMatch
+attributetype ( 2.5.4.1 NAME 'aliasedObjectName' EQUALITY distinguishedNameMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE )
 
 # Defined, but no longer used
 
-attribute ( 2.5.4.2 NAME 'knowledgeInformation' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.2 NAME 'knowledgeInformation' EQUALITY caseIgnoreMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
 # Place here since other attribute types derive from it
 
-attribute ( 2.5.4.41 NAME 'name' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.41 NAME 'name' EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
-attribute ( 2.5.4.3 NAME ( 'cn' 'commonName' ) SUP name )
+attributetype ( 2.5.4.3 NAME ( 'cn' 'commonName' ) SUP name )
 
-attribute ( 2.5.4.4 NAME ( 'sn' 'surname' ) SUP name )
+attributetype ( 2.5.4.4 NAME ( 'sn' 'surname' ) SUP name )
 
-attribute ( 2.5.4.5 NAME 'serialNumber' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.5 NAME 'serialNumber' EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{64} )
 
 # (2-letter code from ISO 3166)
 
-attribute ( 2.5.4.6 NAME ( 'c' 'countryName' ) SUP name SINGLE-VALUE )
+attributetype ( 2.5.4.6 NAME ( 'c' 'countryName' ) SUP name SINGLE-VALUE )
 
-attribute ( 2.5.4.7 NAME ( 'l' 'localityName' ) SUP name )
+attributetype ( 2.5.4.7 NAME ( 'l' 'localityName' ) SUP name )
 
-attribute ( 2.5.4.8 NAME ( 'st' 'stateOrProvinceName' ) SUP name )
+attributetype ( 2.5.4.8 NAME ( 'st' 'stateOrProvinceName' ) SUP name )
 
-attribute ( 2.5.4.9 NAME ( 'street' 'streetAddress' ) EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.9 NAME ( 'street' 'streetAddress' ) EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
 
-attribute ( 2.5.4.10 NAME ( 'o' 'organizationName' ) SUP name )
+attributetype ( 2.5.4.10 NAME ( 'o' 'organizationName' ) SUP name )
 
-attribute ( 2.5.4.11 NAME ( 'ou' 'organizationalUnitName' ) SUP name )
+attributetype ( 2.5.4.11 NAME ( 'ou' 'organizationalUnitName' ) SUP name )
 
-attribute ( 2.5.4.12 NAME 'title' SUP name )
+attributetype ( 2.5.4.12 NAME 'title' SUP name )
 
-attribute ( 2.5.4.13 NAME 'description' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.13 NAME 'description' EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )
 
 # Obsoleted by enhancedSearchGuide
 
-attribute ( 2.5.4.14 NAME 'searchGuide'
+attributetype ( 2.5.4.14 NAME 'searchGuide'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.25 )
 
-attribute ( 2.5.4.15 NAME 'businessCategory' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.15 NAME 'businessCategory' EQUALITY caseIgnoreMatch
      SUBSTR caseIgnoreSubstringsMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
 
@@ -164,59 +164,59 @@ attribute ( 2.5.4.15 NAME 'businessCategory' EQUALITY caseIgnoreMatch
 #attribute ( 2.5.4.16 NAME 'postalAddress' EQUALITY caseIgnoreListMatch
 #     SUBSTR caseIgnoreListSubstringsMatch
 #     SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
-attribute ( 2.5.4.16 NAME 'postalAddress' EQUALITY caseIgnoreListMatch
+attributetype ( 2.5.4.16 NAME 'postalAddress' EQUALITY caseIgnoreListMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
 
-attribute ( 2.5.4.17 NAME 'postalCode' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.17 NAME 'postalCode' EQUALITY caseIgnoreMatch
      SUBSTR caseIgnoreSubstringsMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{40} )
 
-attribute ( 2.5.4.18 NAME 'postOfficeBox' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.18 NAME 'postOfficeBox' EQUALITY caseIgnoreMatch
      SUBSTR caseIgnoreSubstringsMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{40} )
 
-attribute ( 2.5.4.19 NAME 'physicalDeliveryOfficeName' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.19 NAME 'physicalDeliveryOfficeName' EQUALITY caseIgnoreMatch
      SUBSTR caseIgnoreSubstringsMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
 
-attribute ( 2.5.4.20 NAME 'telephoneNumber' EQUALITY telephoneNumberMatch
+attributetype ( 2.5.4.20 NAME 'telephoneNumber' EQUALITY telephoneNumberMatch
      SUBSTR telephoneNumberSubstringsMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.50{32} )
 
-attribute ( 2.5.4.21 NAME 'telexNumber'
+attributetype ( 2.5.4.21 NAME 'telexNumber'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.52 )
 
-attribute ( 2.5.4.22 NAME 'teletexTerminalIdentifier'
+attributetype ( 2.5.4.22 NAME 'teletexTerminalIdentifier'
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.51 )
 
-attribute ( 2.5.4.23 NAME ( 'facsimileTelephoneNumber' 'fax' )
+attributetype ( 2.5.4.23 NAME ( 'facsimileTelephoneNumber' 'fax' )
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.22 )
 
-attribute ( 2.5.4.24 NAME 'x121Address' EQUALITY numericStringMatch
+attributetype ( 2.5.4.24 NAME 'x121Address' EQUALITY numericStringMatch
      SUBSTR numericStringSubstringsMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{15} )
 
-attribute ( 2.5.4.25 NAME 'internationaliSDNNumber' EQUALITY numericStringMatch
+attributetype ( 2.5.4.25 NAME 'internationaliSDNNumber' EQUALITY numericStringMatch
      SUBSTR numericStringSubstringsMatch
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{16} )
 
-attribute ( 2.5.4.26 NAME 'registeredAddress' SUP postalAddress
+attributetype ( 2.5.4.26 NAME 'registeredAddress' SUP postalAddress
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
 
-attribute ( 2.5.4.27 NAME 'destinationIndicator' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.27 NAME 'destinationIndicator' EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{128} )
 
-attribute ( 2.5.4.28 NAME 'preferredDeliveryMethod'
+attributetype ( 2.5.4.28 NAME 'preferredDeliveryMethod'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.14
       SINGLE-VALUE )
 
-attribute ( 2.5.4.29 NAME 'presentationAddress'
+attributetype ( 2.5.4.29 NAME 'presentationAddress'
       EQUALITY presentationAddressMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.43
       SINGLE-VALUE )
 
-attribute ( 2.5.4.30 NAME 'supportedApplicationContext'
+attributetype ( 2.5.4.30 NAME 'supportedApplicationContext'
       EQUALITY objectIdentifierMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
@@ -230,89 +230,89 @@ attribute ( 2.5.4.30 NAME 'supportedApplicationContext'
 # dn-valued attribute types derive from it.  So at most, 'dn' would
 # be a subtype of distinguishedName.
 
-attribute ( 2.5.4.49 NAME 'distinguishedName'
+attributetype ( 2.5.4.49 NAME 'distinguishedName'
       EQUALITY distinguishedNameMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
 
-attribute ( 2.5.4.31 NAME 'member' SUP distinguishedName )
+attributetype ( 2.5.4.31 NAME 'member' SUP distinguishedName )
 
-attribute ( 2.5.4.32 NAME 'owner' SUP distinguishedName )
+attributetype ( 2.5.4.32 NAME 'owner' SUP distinguishedName )
 
-attribute ( 2.5.4.33 NAME 'roleOccupant' SUP distinguishedName )
+attributetype ( 2.5.4.33 NAME 'roleOccupant' SUP distinguishedName )
 
-attribute ( 2.5.4.34 NAME 'seeAlso' SUP distinguishedName )
+attributetype ( 2.5.4.34 NAME 'seeAlso' SUP distinguishedName )
 
-attribute ( 2.5.4.35 NAME 'userPassword' EQUALITY octetStringMatch
+attributetype ( 2.5.4.35 NAME 'userPassword' EQUALITY octetStringMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )
 
 # Must be stored and requested in the binary form, as
 # userCertificate;binary
 
-attribute ( 2.5.4.36 NAME 'userCertificate'
+attributetype ( 2.5.4.36 NAME 'userCertificate'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
 
 # As above
 
-attribute ( 2.5.4.37 NAME 'cACertificate'
+attributetype ( 2.5.4.37 NAME 'cACertificate'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
 
 # As above
 
-attribute ( 2.5.4.38 NAME 'authorityRevocationList'
+attributetype ( 2.5.4.38 NAME 'authorityRevocationList'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
 
 # As above
 
-attribute ( 2.5.4.39 NAME 'certificateRevocationList'
+attributetype ( 2.5.4.39 NAME 'certificateRevocationList'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
 
 # As above
 
-attribute ( 2.5.4.40 NAME 'crossCertificatePair'
+attributetype ( 2.5.4.40 NAME 'crossCertificatePair'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.10 )
 
 # 2.5.4.41 is 'name', moved above since other attribute types derive from it
 
-attribute ( 2.5.4.42 NAME 'givenName' SUP name )
+attributetype ( 2.5.4.42 NAME 'givenName' SUP name )
 
-attribute ( 2.5.4.43 NAME 'initials' SUP name )
+attributetype ( 2.5.4.43 NAME 'initials' SUP name )
 
-attribute ( 2.5.4.45 NAME 'x500UniqueIdentifier' EQUALITY bitStringMatch
+attributetype ( 2.5.4.45 NAME 'x500UniqueIdentifier' EQUALITY bitStringMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )
 
-attribute ( 2.5.4.46 NAME 'dnQualifier' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.46 NAME 'dnQualifier' EQUALITY caseIgnoreMatch
       ORDERING caseIgnoreOrderingMatch SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 )
 
-attribute ( 2.5.4.47 NAME 'enhancedSearchGuide'
+attributetype ( 2.5.4.47 NAME 'enhancedSearchGuide'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.21 )
 
-attribute ( 2.5.4.48 NAME 'protocolInformation'
+attributetype ( 2.5.4.48 NAME 'protocolInformation'
       EQUALITY protocolInformationMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )
 
 # 2.5.4.49 is distinguishedName, moved up
 
-attribute ( 2.5.4.50 NAME 'uniqueMember' EQUALITY uniqueMemberMatch
+attributetype ( 2.5.4.50 NAME 'uniqueMember' EQUALITY uniqueMemberMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )
 
-attribute ( 2.5.4.51 NAME 'houseIdentifier' EQUALITY caseIgnoreMatch
+attributetype ( 2.5.4.51 NAME 'houseIdentifier' EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
 # This attribute is to be stored and requested in the binary form, as
 # 'supportedAlgorithms;binary'.
 
-attribute ( 2.5.4.52 NAME 'supportedAlgorithms'
+attributetype ( 2.5.4.52 NAME 'supportedAlgorithms'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.49 )
 
 # This attribute is to be stored and requested in the binary form, as
 # 'deltaRevocationList;binary'.
 
-attribute ( 2.5.4.53 NAME 'deltaRevocationList'
+attributetype ( 2.5.4.53 NAME 'deltaRevocationList'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
 
-attribute ( 2.5.4.54 NAME 'dmdName' SUP name )
+attributetype ( 2.5.4.54 NAME 'dmdName' SUP name )
 
 # Standard object classes from RFC2256
 
@@ -452,7 +452,7 @@ objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
 #
 # Standard Track URI label schema from RFC2079
 #
-attribute ( 1.3.6.1.4.1.250.1.57 NAME 'labeledURI'
+attributetype ( 1.3.6.1.4.1.250.1.57 NAME 'labeledURI'
 	DESC 'Uniform Resource Identifier with optional label'
 	EQUALITY caseExactIA5Match SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
@@ -464,7 +464,7 @@ objectclass ( 1.3.6.1.4.1.250.3.15 NAME 'labeledURIObject'
 # From draft-ietf-ldapext-nameref-00.txt
 #	used to represent referrals in the directory
 #
-attribute ( 2.16.840.1.113730.3.1.34 NAME 'ref' DESC 'URL Reference'
+attributetype ( 2.16.840.1.113730.3.1.34 NAME 'ref' DESC 'URL Reference'
 	EQUALITY caseExactIA5Match SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
 	USAGE distributedOperation )
 
