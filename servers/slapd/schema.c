@@ -663,8 +663,32 @@ case_exact_normalize(
 )
 {
 	struct berval *newval;
+	char *p, *q;
 
 	newval = ber_bvdup( val );
+	p = q = newval->bv_val;
+	/* Ignore initial whitespace */
+	while ( isspace( *p++ ) )
+		;
+	while ( *p ) {
+		if ( isspace( *p ) ) {
+			*q++ = *p++;
+			/* Ignore the extra whitespace */
+			while ( isspace(*p++) )
+				;
+		} else {
+			*q++ = *p++;
+		}
+	}
+	/*
+	 * If the string ended in space, backup the pointer one
+	 * position.  One is enough because the above loop collapsed
+	 * all whitespace to a single space.
+	 */
+	if ( p != newval->bv_val && isspace( *(p-1) ) ) {
+		*(q-1) = '\0';
+	}
+	newval->bv_len = strlen( newval->bv_val );
 	normalized = &newval;
 
 	return 0;
@@ -679,19 +703,39 @@ case_exact_compare(
 	return strcmp( val1->bv_val, val2->bv_val );
 }
 
-static int
+int
 case_ignore_normalize(
 	struct berval *val,
 	struct berval **normalized
 )
 {
 	struct berval *newval;
-	char *p;
+	char *p, *q;
 
 	newval = ber_bvdup( val );
-	for ( p = newval->bv_val; *p; p++ ) {
-		*p = TOUPPER( *p );
+	p = q = newval->bv_val;
+	/* Ignore initial whitespace */
+	while ( isspace( *p++ ) )
+		;
+	while ( *p ) {
+		if ( isspace( *p ) ) {
+			*q++ = *p++;
+			/* Ignore the extra whitespace */
+			while ( isspace(*p++) )
+				;
+		} else {
+			*q++ = TOUPPER( *p++ );
+		}
 	}
+	/*
+	 * If the string ended in space, backup the pointer one
+	 * position.  One is enough because the above loop collapsed
+	 * all whitespace to a single space.
+	 */
+	if ( p != newval->bv_val && isspace( *(p-1) ) ) {
+		*(q-1) = '\0';
+	}
+	newval->bv_len = strlen( newval->bv_val );
 	normalized = &newval;
 
 	return 0;
