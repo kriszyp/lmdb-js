@@ -5,6 +5,7 @@ OpenLDAP 2.2.7 Engineering
 	Fixed slapd erroneous illegal filter handling (ITS#2977)
 	Fixed slapd syncrepl bugs (multiple)
 	Fixed slapd value regex ACL bug (ITS#3008)
+	Fixed slapd SASL dnauthz bug (ITS#2961)
 	Fixed slapcat tools bug (ITS#2974)
 	Fixed back-monitor crash when used with overlays (ITS#3023)
 	Fixed back-ldap massaged base free (ITS#2999)
@@ -22,7 +23,7 @@ OpenLDAP 2.2.7 Engineering
 		Fixed overlay module build issue (ITS#2978)
 		Fixed libldap T_SRV portability bug (ITS#2990)
 		Fixed AIX portability issues (ITS#2997,2998)
-		Fixed shared library soname versioning
+		Fixed shared library soname versioning (ITS#3016)
 		  Requires changes in link practices of dependent apps
 		Updated MS win32 port (ITS#2992)
 	Documentation
