@@ -898,6 +898,12 @@
 /* define to support dynamic BDB2 backend */
 #undef SLAPD_BDB2_DYNAMIC
 
+/* define to support DNS SRV backend */
+#undef SLAPD_DNSSRV
+
+/* define to support dynamic DNS SRV backend */
+#undef SLAPD_DNSSRV_DYNAMIC
+
 /* define to support LDAP backend */
 #undef SLAPD_LDAP
 

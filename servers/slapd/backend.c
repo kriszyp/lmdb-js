@@ -18,6 +18,9 @@
 #include "slap.h"
 #include "lutil.h"
 
+#ifdef SLAPD_DNSSRV
+#include "back-dnssrv/external.h"
+#endif
 #ifdef SLAPD_LDAP
 #include "back-ldap/external.h"
 #endif
@@ -47,6 +50,9 @@
 #endif
 
 static BackendInfo binfo[] = {
+#if defined(SLAPD_DNSSRV) && !defined(SLAPD_DNSSRV_DYNAMIC)
+	{"dnssrv",	dnssrv_back_initialize},
+#endif
 #if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
 	{"ldap",	ldap_back_initialize},
 #endif

@@ -149,6 +149,9 @@ dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb2,[    --enable-bdb2	enable bdb2 backend], no)dnl
 OL_ARG_WITH(bdb2_module,[      --with-bdb2-module	module type], static,
 	[static dynamic])
+OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	enable bdb2 backend], no)dnl
+OL_ARG_WITH(dnssrv_module,[      --with-dnssrv-module	module type], static,
+	[static dynamic])
 OL_ARG_ENABLE(ldap,[    --enable-ldap	enable ldap backend], no)dnl
 OL_ARG_WITH(ldap_module,[      --with-ldap-module	module type], static,
 	[static dynamic])
@@ -159,7 +162,6 @@ OL_ARG_WITH(ldbm_module,[      --with-ldbm-module	module type], static,
 	[static dynamic])
 OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
 	[auto btree hash])
-
 OL_ARG_ENABLE(passwd,[    --enable-passwd	enable passwd backend], no)dnl
 OL_ARG_WITH(passwd_module,[      --with-passwd-module	module type], static,
 	[static dynamic])
@@ -169,11 +171,11 @@ OL_ARG_WITH(perl_module,[      --with-perl-module	module type], static,
 OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
 OL_ARG_WITH(shell_module,[      --with-shell-module	module type], static,
 	[static dynamic])
-OL_ARG_ENABLE(tcl,[    --enable-tcl	enable tcl backend], no)dnl
-OL_ARG_WITH(tcl_module,[      --with-tcl-module	module type], static,
-	[static dynamic])
 OL_ARG_ENABLE(sql,[    --enable-sql	enable sql backend], no)dnl
 OL_ARG_WITH(sql_module,[      --with-sql-module	module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(tcl,[    --enable-tcl	enable tcl backend], no)dnl
+OL_ARG_WITH(tcl_module,[      --with-tcl-module	module type], static,
 	[static dynamic])
 
 dnl ----------------------------------------------------------------
@@ -205,6 +207,9 @@ if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
 	if test $ol_enable_bdb2 = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-bdb2 argument])
+	fi
+	if test $ol_enable_dnssrv = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-dnssrv argument])
 	fi
 	if test $ol_enable_ldap = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-ldap argument])
@@ -257,6 +262,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_bdb2_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-bdb2-module argument])
 	fi
+	if test $ol_with_dnssrv_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-dnssrv-module argument])
+	fi
 	if test $ol_with_ldap_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldap-module argument])
 	fi
@@ -284,6 +292,7 @@ if test $ol_enable_slapd = no ; then
 
 	# force settings to no
 	ol_enable_bdb2=no
+	ol_enable_dnssrv=no
 	ol_enable_ldap=no
 	ol_enable_ldbm=no
 	ol_enable_passwd=no
@@ -305,6 +314,7 @@ if test $ol_enable_slapd = no ; then
 	ol_with_ldbm_type=no
 
 	ol_with_bdb2_module=static
+	ol_with_dnssrv_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
 	ol_with_passwd_module=static
@@ -335,12 +345,13 @@ elif test $ol_enable_ldbm = no ; then
 	fi
 
 	if test $ol_enable_modules != yes -a \
+		$ol_enable_dnssrv = no -a \
 		$ol_enable_ldap = no -a \
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
-		$ol_enable_tcl = no -a \
-		$ol_enable_sql = no ; then
+		$ol_enable_sql = no -a \
+		$ol_enable_tcl = no ; then
 		AC_MSG_ERROR([slapd requires a backend])
 	fi
 
@@ -427,18 +438,21 @@ BUILD_LDAPD=no
 BUILD_SLAPD=no
 BUILD_SLURPD=no
 
+BUILD_QUIPU=no
+BUILD_THREAD=no
+
 BUILD_BDB2=no
+BUILD_DNSSRV=no
 BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_PASSWD=no
 BUILD_PERL=no
-BUILD_QUIPU=no
 BUILD_SHELL=no
-BUILD_TCL=no
 BUILD_SQL=no
-BUILD_THREAD=no
+BUILD_TCL=no
 
 BUILD_BDB2_DYNAMIC=static
+BUILD_DNSSRV_DYNAMIC=static
 BUILD_LDAP_DYNAMIC=static
 BUILD_LDBM_DYNAMIC=static
 BUILD_PASSWD_DYNAMIC=static
@@ -640,6 +654,7 @@ if test $ol_enable_modules != no ; then
 	ol_link_modules=yes
 else
 	ol_with_bdb2_module=static
+	ol_with_dnssrv_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
 	ol_with_passwd_module=static
@@ -2251,6 +2266,19 @@ if test "$ol_link_bdb2" != no ; then
 	fi
 fi
 
+if test "$ol_enable_dnssrv" != no ; then
+	AC_DEFINE(SLAPD_DNSSRV,1,[define to support DNS SRV backend])
+	BUILD_SLAPD=yes
+	BUILD_DNSSRV=yes
+	if test "$ol_with_dnssrv_module" != static ; then
+		AC_DEFINE(SLAPD_DNSSRV_DYNAMIC,1,
+			[define to support dynamic DNS SRV backend])
+		BUILD_DNSSRV=mod
+		BUILD_DNSSRV_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-dnssrv/back_dnssrv.la"
+	fi
+fi
+
 if test "$ol_enable_ldap" != no ; then
 	AC_DEFINE(SLAPD_LDAP,1,[define to support LDAP backend])
 	BUILD_SLAPD=yes
@@ -2380,22 +2408,24 @@ AC_SUBST(DYN_EXT)
 AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_BDB2)
+  AC_SUBST(BUILD_DNSSRV)
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_QUIPU)
   AC_SUBST(BUILD_SHELL)
-  AC_SUBST(BUILD_TCL)
   AC_SUBST(BUILD_SQL)
+  AC_SUBST(BUILD_TCL)
   AC_SUBST(BUILD_BDB2_DYNAMIC)
+  AC_SUBST(BUILD_DNSSRV_DYNAMIC)
   AC_SUBST(BUILD_LDAP_DYNAMIC)
   AC_SUBST(BUILD_LDBM_DYNAMIC)
   AC_SUBST(BUILD_PASSWD_DYNAMIC)
   AC_SUBST(BUILD_PERL_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
-  AC_SUBST(BUILD_TCL_DYNAMIC)
   AC_SUBST(BUILD_SQL_DYNAMIC)
+  AC_SUBST(BUILD_TCL_DYNAMIC)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
@@ -2464,13 +2494,14 @@ servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/mod.mk \
+servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \
 servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
-servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
 servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
+servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \

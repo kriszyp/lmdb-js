@@ -1,0 +1,35 @@
+# $OpenLDAP$
+########################################################################### 
+#   Copyright 2000, OpenLDAP Foundation, All rights reserved.
+#
+#   Redistribution and use in source and binary forms are permitted only
+#   as authorized by the OpenLDAP Public License.  A copy of this
+#   license is available at http://www.OpenLDAP.org/license.html or
+#   in file LICENSE in the top-level directory of the distribution.
+########################################################################### 
+# DNSSRV backend written by Kurt Zeilenga
+##########################################################################
+
+SRCS	= init.c search.c config.c bind.c compare.c \
+		modify.c add.c modrdn.c delete.c
+OBJS	= init.lo search.lo config.lo bind.lo compare.lo \
+		modify.lo add.lo modrdn.lo delete.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-dnssrv"
+BUILD_MOD = @BUILD_DNSSRV@
+LINKAGE = @BUILD_DNSSRV_DYNAMIC@
+
+LIBBASE = back_dnssrv
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+
