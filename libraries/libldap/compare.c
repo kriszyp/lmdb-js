@@ -68,7 +68,7 @@ ldap_compare_ext(
 
 	if ( ber_printf( ber, "{it{s{sO}}", /* '}' */
 		++ld->ld_msgid,
-		LDAP_REQ_COMPARE, dn, attr, &bvalue ) == -1 )
+		LDAP_REQ_COMPARE, dn, attr, bvalue ) == -1 )
 	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
