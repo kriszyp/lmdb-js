@@ -14,8 +14,8 @@ other materials provided with the distribution (e.g. the {{F:INSTALL}}
 document) or on the OpenLDAP web site (in particular, the
 OpenLDAP Software FAQ).
 
-If you intend to run OpenLDAP seriously, you should review the all
-of this document before attempt to install the software.
+If you intend to run OpenLDAP seriously, you should review all
+of this document before attempting to install the software.
 
 Note: This quick start guide does not use strong authentication
 nor any integrity or confidential protection services.  These

@@ -134,7 +134,7 @@ a few letters to localize the changes to your organization.
 The smaller the organization, the longer your prefix should
 be.
 
-In the examples below, we have choosen a short prefix '{{EX:my}}'
+In the examples below, we have chosen a short prefix '{{EX:my}}'
 (to save space).  Such a short prefix would only be suitable for
 a very large, global organization.  For a small, local organization,
 we recommend something like '{{EX:deFirm}}' (German company) or

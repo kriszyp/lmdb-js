@@ -180,7 +180,7 @@ environment variables.
 
 >	[[env] settings] ./configure [options]
 
-As an example, let's assume that we want install OpenLDAP with
+As an example, let's assume that we want to install OpenLDAP with
 LDBM backend and TCP wrapper support.  By default, LDBM
 is enabled and TCP wrappers is not.  So, we just need to specify
 {{EX:--with-wrappers}} to include TCP wrapper support:
@@ -240,7 +240,7 @@ by your configuration.
 
 H2: Installing the Software
 
-One you have successfully tested the software, you are ready to install it.
+Once you have successfully tested the software, you are ready to install it.
 You will need to have write permission
 to the installation directories you specified when you ran configure.
 By default OpenLDAP is installed in {{F:/usr/local}}.  If you changed this

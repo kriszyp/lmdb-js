@@ -131,7 +131,7 @@ be useful to you.
 
 {{How is the information protected from unauthorized access?}} Some
 directory services provide no protection, allowing anyone to see
-the information. LDAP provides a mechanisms for a client to
+the information. LDAP provides a mechanism for a client to
 authenticate, or prove its identity to a directory server, paving
 the way for rich access control to protect the information the
 server contains.  LDAP also supports privacy and integrity security
