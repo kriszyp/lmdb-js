@@ -18,7 +18,7 @@ out-of-the-box settings with the error:
 
 To resolve this problem, the installer must specify the
 proper Pthreads libraries:
-	env env ac_cv_func_pthread_create=no ./configure
+	env LIBS="-lpthread -lposix4" ./configure
 
 On some versions of Solaris, you may be able to use Solaris LWP
 Threads:
