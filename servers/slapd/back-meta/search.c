@@ -225,13 +225,26 @@ meta_back_search(
 			case LDAP_SCOPE_SUBTREE:
 				/*
 				 * make the target suffix the new base
+				 * FIXME: this is very forgiving, because
+				 * illegal bases may be turned into 
+				 * the suffix of the target.
 				 */
-				realbase = li->targets[ i ]->suffix;
+				if ( dn_issuffix( li->targets[ i ]->suffix,
+						nbase ) ) {
+					realbase = li->targets[ i ]->suffix;
+				} else {
+					/*
+					 * this target is no longer candidate
+					 */
+					lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+					continue;
+				}
 				break;
 
 			case LDAP_SCOPE_ONELEVEL:
 				if ( is_one_level_rdn( li->targets[ i ]->suffix,
-						suffixlen-nbaselen-1) ) {
+						suffixlen-nbaselen-1) 
+			&& dn_issuffix( li->targets[ i ]->suffix, nbase ) ) {
 					/*
 					 * if there is exactly one level,
 					 * make the target suffix the new
@@ -248,10 +261,6 @@ meta_back_search(
 				 */
 				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
 				continue;
-				/*
-				rc = meta_back_op_result(lc, op);
-				goto finish;
-				 */
 			}
 
 		}
