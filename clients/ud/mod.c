@@ -375,7 +375,7 @@ get_value( char *id, char *prompt )
 	int count;		/* line # of new value -- if multiline */
 	int multiline = 0;	/* 1 if this value is multiline */
 	static char line[LINE_SIZE];	/* raw line from user */
-	static char buffer[MAX_DESC_LINES * LINE_SIZE];	/* holds ALL of the 
+	static char buffer[MAX_DESC_LINES * (LINE_SIZE+2)]; /* holds ALL of the
 							   lines we get */
 #ifdef DEBUG
 	if (debug & D_TRACE)
