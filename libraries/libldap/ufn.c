@@ -476,7 +476,8 @@ ldap_ufn_setprefix( LDAP *ld, char *prefix )
 	if ( ld->ld_ufnprefix != NULL )
 		free( ld->ld_ufnprefix );
 
-	ld->ld_ufnprefix = ldap_strdup( prefix );
+	ld->ld_ufnprefix = prefix == NULL
+		? NULL : ldap_strdup( prefix );
 }
 
 int
