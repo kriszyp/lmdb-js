@@ -834,17 +834,41 @@ search_ldap_url(
 			syslog( LOG_ALERT,
 				"Not an LDAP URL: %s", url );
 			break;
-		case LDAP_URL_ERR_NODN:
+		case LDAP_URL_ERR_BADENCLOSURE:
 			syslog( LOG_ALERT,
-				"Missing DN in URL: %s", url );
+				"Bad Enclosure in URL: %s", url );
+			break;
+		case LDAP_URL_ERR_BADURL:
+			syslog( LOG_ALERT,
+				"Bad URL: %s", url );
+			break;
+		case LDAP_URL_ERR_BADHOST:
+			syslog( LOG_ALERT,
+				"Host is invalid in URL: %s", url );
+			break;
+		case LDAP_URL_ERR_BADATTRS:
+			syslog( LOG_ALERT,
+				"Attributes are invalid in URL: %s", url );
 			break;
 		case LDAP_URL_ERR_BADSCOPE:
 			syslog( LOG_ALERT,
-				"Scope string is invalid in URL: %s", url );
+				"Scope is invalid in URL: %s", url );
+			break;
+		case LDAP_URL_ERR_BADFILTER:
+			syslog( LOG_ALERT,
+				"Filter is invalid in URL: %s", url );
+			break;
+		case LDAP_URL_ERR_BADEXTS:
+			syslog( LOG_ALERT,
+				"Extensions are invalid in URL: %s", url );
 			break;
 		case LDAP_URL_ERR_MEM:
 			syslog( LOG_ALERT,
 				"Out of memory parsing URL: %s", url );
+			break;
+		case LDAP_URL_ERR_PARAM:
+			syslog( LOG_ALERT,
+				"bad parameter parsing URL: %s", url );
 			break;
 		default:
 			syslog( LOG_ALERT,
