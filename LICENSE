@@ -1,7 +1,7 @@
 The OpenLDAP Public License
 
-Version 1.2, 1 September 1998
-Copyright 1998, The OpenLDAP Foundation.
+Version 1.3, 17 January 1999
+Copyright 1998-1999, The OpenLDAP Foundation.
 All Rights Reserved.
 
 Note:
@@ -114,17 +114,24 @@ generated them, and may be sold commercially, and may be aggregated
 with this Package.
 
 7. C subroutines supplied by you and linked into this Package in
-order to emulate subroutines and variables of the language defined
-by this Package shall not be considered part of this Package, but
-are the equivalent of input as in Paragraph 6, provided these
-subroutines do not change the language in any way that would cause
-it to fail the regression tests for the language.
+order to emulate subroutines and variables defined by this Package
+shall not be considered part of this Package, but are the equivalent
+of input as in Paragraph 6, provided these subroutines do not change
+the behavior of the Package in any way that would cause it to fail
+the regression tests for the Package.
 
-8. The name of the Copyright Holder may not be used to endorse or
+8. Software supplied by you and linked with this Package in order
+to use subroutines and variables defined by this Package shall not
+be considered part of this Package and do not automatically fall
+under the copyright of this Package, and the executables produced
+by linking your software with this Package may be used and
+redistributed without restriction and may be sold commercially.
+
+9. The name of the Copyright Holder may not be used to endorse or
 promote products derived from this software without specific prior
 written permission.
 
-9. THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
+10. THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
 WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
