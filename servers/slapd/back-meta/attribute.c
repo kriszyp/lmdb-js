@@ -89,7 +89,7 @@ meta_back_attribute(
 		Connection		*conn,
 		Operation		*op,
 		Entry			*target,
-		const char		*e_ndn,
+		const char		*ndn,
 		AttributeDescription 	*entry_at,
 		struct berval 		***vals
 )
@@ -104,7 +104,7 @@ meta_back_attribute(
 	LDAP *ld;
 
 	*vals = NULL;
-	if ( target != NULL && strcmp( target->e_ndn, e_ndn ) == 0 ) {
+	if ( target != NULL && strcmp( target->e_ndn, ndn ) == 0 ) {
 		/* we already have a copy of the entry */
 		/* attribute and objectclass mapping has already been done */
 		attr = attr_find( target->e_attrs, entry_at );
@@ -132,7 +132,7 @@ meta_back_attribute(
 		return rc;
 	} /* else */
 
-	candidate = meta_back_select_unique_candidate( li, e_ndn );
+	candidate = meta_back_select_unique_candidate( li, ndn );
 	if ( candidate == -1 ) {
 		return 1;
 	}
@@ -155,7 +155,7 @@ meta_back_attribute(
 
 	gattr[ 0 ] = mapped;
 	gattr[ 1 ] = NULL;
-	if ( ldap_search_ext_s( ld, e_ndn, LDAP_SCOPE_BASE, "(objectclass=*)",
+	if ( ldap_search_ext_s( ld, ndn, LDAP_SCOPE_BASE, "(objectclass=*)",
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result) == LDAP_SUCCESS) {
 		if ( ( e = ldap_first_entry( ld, result ) ) != NULL ) {

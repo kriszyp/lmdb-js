@@ -200,7 +200,7 @@ meta_back_attribute LDAP_P((
 		Connection *conn,
 		Operation *op,
 		Entry *target,
-		const char* e_ndn,
+		const char* ndn,
 		AttributeDescription* entry_at,
 		struct berval ***vals
 ));
