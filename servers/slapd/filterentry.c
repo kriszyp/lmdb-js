@@ -55,8 +55,7 @@ int
 test_filter(
     Operation	*op,
     Entry	*e,
-    Filter	*f
-)
+    Filter	*f )
 {
 	int	rc;
 #ifdef NEW_LOGGING
@@ -92,8 +91,7 @@ test_filter(
 		Debug( LDAP_DEBUG_FILTER, "    EQUALITY\n", 0, 0, 0 );
 #endif
 
-		rc = test_ava_filter( op, e, f->f_ava,
-		    LDAP_FILTER_EQUALITY );
+		rc = test_ava_filter( op, e, f->f_ava, LDAP_FILTER_EQUALITY );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
@@ -107,13 +105,11 @@ test_filter(
 		break;
 
 	case LDAP_FILTER_GE:
-		rc = test_ava_filter( op, e, f->f_ava,
-		    LDAP_FILTER_GE );
+		rc = test_ava_filter( op, e, f->f_ava, LDAP_FILTER_GE );
 		break;
 
 	case LDAP_FILTER_LE:
-		rc = test_ava_filter( op, e, f->f_ava,
-		    LDAP_FILTER_LE );
+		rc = test_ava_filter( op, e, f->f_ava, LDAP_FILTER_LE );
 		break;
 
 	case LDAP_FILTER_PRESENT:
@@ -122,7 +118,6 @@ test_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "    PRESENT\n", 0, 0, 0 );
 #endif
-
 		rc = test_presence_filter( op, e, f->f_desc );
 		break;
 
@@ -132,8 +127,7 @@ test_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "    APPROX\n", 0, 0, 0 );
 #endif
-		rc = test_ava_filter( op, e, f->f_ava,
-		    LDAP_FILTER_APPROX );
+		rc = test_ava_filter( op, e, f->f_ava, LDAP_FILTER_APPROX );
 		break;
 
 	case LDAP_FILTER_AND:
@@ -142,7 +136,6 @@ test_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "    AND\n", 0, 0, 0 );
 #endif
-
 		rc = test_filter_and( op, e, f->f_and );
 		break;
 
@@ -152,7 +145,6 @@ test_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "    OR\n", 0, 0, 0 );
 #endif
-
 		rc = test_filter_or( op, e, f->f_or );
 		break;
 
@@ -162,7 +154,6 @@ test_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "    NOT\n", 0, 0, 0 );
 #endif
-
 		rc = test_filter( op, e, f->f_not );
 
 		/* Flip true to false and false to true
@@ -184,7 +175,6 @@ test_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "    EXT\n", 0, 0, 0 );
 #endif
-
 		rc = test_mra_filter( op, e, f->f_mra );
 		break;
 
@@ -196,7 +186,6 @@ test_filter(
 		Debug( LDAP_DEBUG_ANY, "    unknown filter type %lu\n",
 		    f->f_choice, 0, 0 );
 #endif
-
 		rc = LDAP_PROTOCOL_ERROR;
 	}
 
@@ -205,7 +194,6 @@ test_filter(
 #else
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter %d\n", rc, 0, 0 );
 #endif
-
 	return( rc );
 }
 
@@ -251,17 +239,12 @@ static int test_mra_filter(
 				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
 					bv, &mra->ma_value, &text );
 	
-				if( rc != LDAP_SUCCESS ) {
-					return rc;
-				}
-	
-				if ( ret == 0 ) {
-					return LDAP_COMPARE_TRUE;
-				}
+				if( rc != LDAP_SUCCESS ) return rc;
+				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
 			}
 		}
-	} else {
 
+	} else {
 		/*
 		 * No attribute description: test all
 		 */
@@ -279,9 +262,7 @@ static int test_mra_filter(
 			rc = asserted_value_validate_normalize( a->a_desc, mra->ma_rule,
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 				&mra->ma_value, &value, &text, memctx );
-			if ( rc != LDAP_SUCCESS ) {
-				continue;
-			}
+			if ( rc != LDAP_SUCCESS ) continue;
 
 			/* check search access */
 			if ( !access_allowed( op, e,
@@ -291,20 +272,19 @@ static int test_mra_filter(
 			}
 
 			/* check match */
-			if (mra->ma_rule == a->a_desc->ad_type->sat_equality)
+			if (mra->ma_rule == a->a_desc->ad_type->sat_equality) {
 				bv = a->a_nvals;
-			else
+			} else {
 				bv = a->a_vals;
-			for ( ; bv->bv_val != NULL; bv++ )
-			{
+			}
+
+			for ( ; bv->bv_val != NULL; bv++ ) {
 				int ret;
 	
 				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
 					bv, &value, &text );
 	
-				if( rc != LDAP_SUCCESS ) {
-					break;
-				}
+				if( rc != LDAP_SUCCESS ) break;
 	
 				if ( ret == 0 ) {
 					rc = LDAP_COMPARE_TRUE;
@@ -312,9 +292,7 @@ static int test_mra_filter(
 				}
 			}
 			op->o_tmpfree( value.bv_val, memctx );
-			if ( rc != LDAP_SUCCESS ) {
-				return rc ;
-			}
+			if ( rc != LDAP_SUCCESS ) return rc;
 		}
 	}
 
@@ -337,7 +315,8 @@ static int test_mra_filter(
 			for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 				LDAPAVA		*ava = rdn[ iAVA ];
 				struct berval	*bv = &ava->la_value, value;
-				AttributeDescription *ad = (AttributeDescription *)ava->la_private;
+				AttributeDescription *ad =
+					(AttributeDescription *)ava->la_private;
 				int ret;
 				const char *text;
 
@@ -363,13 +342,12 @@ static int test_mra_filter(
 						mra->ma_rule,
 						SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 						&mra->ma_value, &value, &text, memctx );
-					if ( rc != LDAP_SUCCESS ) {
-						continue;
-					}
+					if ( rc != LDAP_SUCCESS ) continue;
 
 					/* check search access */
 					if ( !access_allowed( op, e,
-						ad, &value, ACL_SEARCH, NULL ) ) {
+						ad, &value, ACL_SEARCH, NULL ) )
+					{
 						op->o_tmpfree( value.bv_val, memctx );
 						continue;
 					}
@@ -383,9 +361,7 @@ static int test_mra_filter(
 					op->o_tmpfree( value.bv_val, memctx );
 				}
 
-				if ( rc == LDAP_SUCCESS && ret == 0 ) {
-					rc = LDAP_COMPARE_TRUE;
-				}
+				if ( rc == LDAP_SUCCESS && ret == 0 ) rc = LDAP_COMPARE_TRUE;
 
 				if( rc != LDAP_SUCCESS ) {
 					ldap_dnfree_x( dn, memctx );
@@ -404,8 +380,7 @@ test_ava_filter(
 	Operation	*op,
 	Entry		*e,
 	AttributeAssertion *ava,
-	int		type
-)
+	int		type )
 {
 	Attribute	*a;
 
@@ -454,35 +429,28 @@ test_ava_filter(
 			rc = value_match( &ret, a->a_desc, mr, 0,
 				bv, &ava->aa_value, &text );
 
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
-			}
+			if( rc != LDAP_SUCCESS ) return rc;
 
 			switch ( type ) {
 			case LDAP_FILTER_EQUALITY:
 			case LDAP_FILTER_APPROX:
-				if ( ret == 0 ) {
-					return LDAP_COMPARE_TRUE;
-				}
+				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
 				break;
 
 			case LDAP_FILTER_GE:
-				if ( ret >= 0 ) {
-					return LDAP_COMPARE_TRUE;
-				}
+				if ( ret >= 0 ) return LDAP_COMPARE_TRUE;
 				break;
 
 			case LDAP_FILTER_LE:
-				if ( ret <= 0 ) {
-					return LDAP_COMPARE_TRUE;
-				}
+				if ( ret <= 0 ) return LDAP_COMPARE_TRUE;
 				break;
 			}
 		}
 	}
 
 	if ( ava->aa_desc == slap_schema.si_ad_hasSubordinates 
-			&& op && op->o_bd && op->o_bd->be_has_subordinates ) {
+		&& op && op->o_bd && op->o_bd->be_has_subordinates )
+	{
 		int		hasSubordinates;
 		struct berval	hs;
 
@@ -491,7 +459,9 @@ test_ava_filter(
 		 */
 		assert( type == LDAP_FILTER_EQUALITY );
 		
-		if (op->o_bd->be_has_subordinates( op, e, &hasSubordinates ) != LDAP_SUCCESS) {
+		if ( op->o_bd->be_has_subordinates( op, e, &hasSubordinates ) !=
+			LDAP_SUCCESS )
+		{
 			return LDAP_OTHER;
 		}
 
@@ -505,10 +475,7 @@ test_ava_filter(
 			return LDAP_OTHER;
 		}
 
-		if ( bvmatch( &ava->aa_value, &hs ) ) {
-			return LDAP_COMPARE_TRUE;
-		}
-
+		if ( bvmatch( &ava->aa_value, &hs ) ) return LDAP_COMPARE_TRUE;
 		return LDAP_COMPARE_FALSE;
 	}
 
@@ -520,18 +487,15 @@ static int
 test_presence_filter(
 	Operation	*op,
 	Entry		*e,
-	AttributeDescription *desc
-)
+	AttributeDescription *desc )
 {
 	Attribute	*a;
 
-	if ( !access_allowed( op, e, desc, NULL, ACL_SEARCH, NULL ) )
-	{
+	if ( !access_allowed( op, e, desc, NULL, ACL_SEARCH, NULL ) ) {
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	a = attrs_find( e->e_attrs, desc );
-
 	if ( a == NULL && desc == slap_schema.si_ad_hasSubordinates ) {
 
 		/*
@@ -555,8 +519,7 @@ static int
 test_filter_and(
 	Operation	*op,
 	Entry	*e,
-	Filter	*flist
-)
+	Filter	*flist )
 {
 	Filter	*f;
 	int rtn = LDAP_COMPARE_TRUE; /* True if empty */
@@ -608,7 +571,6 @@ test_filter_or(
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter_or\n", 0, 0, 0 );
 #endif
 
-
 	for ( f = flist; f != NULL; f = f->f_next ) {
 		int rc = test_filter( op, e, f );
 
@@ -629,7 +591,6 @@ test_filter_or(
 #else
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter_or %d\n", rtn, 0, 0 );
 #endif
-
 	return rtn;
 }
 
@@ -638,8 +599,7 @@ static int
 test_substrings_filter(
 	Operation	*op,
 	Entry	*e,
-	Filter	*f
-)
+	Filter	*f )
 {
 	Attribute	*a;
 
@@ -648,7 +608,6 @@ test_substrings_filter(
 #else
 	Debug( LDAP_DEBUG_FILTER, "begin test_substrings_filter\n", 0, 0, 0 );
 #endif
-
 
 	if ( !access_allowed( op, e,
 		f->f_sub_desc, NULL, ACL_SEARCH, NULL ) )
@@ -663,12 +622,9 @@ test_substrings_filter(
 		MatchingRule *mr = a->a_desc->ad_type->sat_substr;
 		struct berval *bv;
 
-		if( mr == NULL ) {
-			continue;
-		}
+		if( mr == NULL ) continue;
 
-		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ )
-		{
+		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ ) {
 			int ret;
 			int rc;
 			const char *text;
@@ -676,21 +632,17 @@ test_substrings_filter(
 			rc = value_match( &ret, a->a_desc, mr, 0,
 				bv, f->f_sub, &text );
 
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
-			}
-
-			if ( ret == 0 ) {
-				return LDAP_COMPARE_TRUE;
-			}
+			if( rc != LDAP_SUCCESS ) return rc;
+			if ( ret == 0 ) return LDAP_COMPARE_TRUE;
 		}
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, "test_substrings_filter: return FALSE\n", 0, 0, 0 );
+	LDAP_LOG( FILTER, ENTRY, "test_substrings_filter: return FALSE\n",
+		0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_FILTER, "end test_substrings_filter 1\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "end test_substrings_filter 1\n",
+		0, 0, 0 );
 #endif
-
 	return LDAP_COMPARE_FALSE;
 }
