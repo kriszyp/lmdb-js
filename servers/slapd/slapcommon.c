@@ -131,10 +131,12 @@ slap_tool_init(
 	case SLAPDN:
 	case SLAPTEST:
 		options = "d:f:v";
+		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPAUTH:
 		options = "d:f:U:vX:";
+		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPINDEX:
@@ -144,6 +146,7 @@ slap_tool_init(
 
 	case SLAPACL:
 		options = "b:D:d:f:U:v";
+		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	default:
@@ -168,7 +171,7 @@ slap_tool_init(
 			break;
 
 		case 'D':
-			ber_str2bv( optarg, 0, 0, &authcDN );
+			ber_str2bv( optarg, 0, 1, &authcDN );
 			break;
 
 		case 'f':	/* specify a conf file */
@@ -430,8 +433,12 @@ slap_tool_init(
 		be = select_backend( &nbase, 0, 0 );
 		ber_memfree( nbase.bv_val );
 
-		if ( tool == SLAPACL ) {
+		switch ( tool ) {
+		case SLAPACL:
 			goto startup;
+
+		default:
+			break;
 		}
 
 		if( be == NULL ) {
@@ -527,4 +534,8 @@ void slap_tool_destroy( void )
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );
 #endif
+
+	if ( !BER_BVISNULL( &authcDN ) ) {
+		ch_free( authcDN.bv_val );
+	}
 }

@@ -100,7 +100,7 @@ slapadd( int argc, char **argv )
 	lmax = 0;
 	lineno = 0;
 
-	if( be->be_entry_open( be, 1 ) != 0 ) {
+	if( !dryrun && be->be_entry_open( be, 1 ) != 0 ) {
 		fprintf( stderr, "%s: could not open database.\n",
 			progname );
 		exit( EXIT_FAILURE );
@@ -308,6 +308,13 @@ slapadd( int argc, char **argv )
 			}
 		}
 
+		if ( dryrun ) {
+			if ( verbose ) {
+				fprintf( stderr, "(dry) added: \"%s\"\n", e->e_dn );
+			}
+			goto done;
+		}
+
 		if ( update_ctxcsn == SLAP_TOOL_CTXCSN_KEEP &&
 			( replica_promotion || replica_demotion )) {
 			if ( is_entry_syncProviderSubentry( e )) { 
@@ -404,8 +411,12 @@ slapadd( int argc, char **argv )
 		}
 
 		if (( !is_entry_syncProviderSubentry( e ) &&
-			 !is_entry_syncConsumerSubentry( e )) ||
-			 ( !replica_promotion && !replica_demotion )) {
+				 !is_entry_syncConsumerSubentry( e )) ||
+				 ( !replica_promotion && !replica_demotion ))
+		{
+			/* dryrun moved earlier */
+			assert( !dryrun );
+
 			if (!dryrun) {
 				ID id = be->be_entry_put( be, e, &bvtext );
 				if( id == NOID ) {
@@ -429,6 +440,7 @@ slapadd( int argc, char **argv )
 			}
 		}
 
+done:;
 		entry_free( e );
 	}
 
@@ -471,6 +483,10 @@ slapadd( int argc, char **argv )
 		
 			if ( ctxcsn_id == NOID ) {
 				ctxcsn_e = slap_create_context_csn_entry( be, &maxcsn );
+				
+				/* dryrun moved earlier */
+				assert( !dryrun );
+
 				if ( !dryrun ) {
 					ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
 					if( ctxcsn_id == NOID ) {
@@ -496,6 +512,10 @@ slapadd( int argc, char **argv )
 					AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
 					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
 					attr->a_vals[0].bv_len = maxcsn.bv_len;
+				
+					/* dryrun moved earlier */
+					assert( !dryrun );
+
 					if ( !dryrun ) {
 						ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
 						if( ctxcsn_id == NOID ) {
@@ -547,8 +567,12 @@ slapadd( int argc, char **argv )
 
 			if ( ctxcsn_id == NOID ) {
 				ctxcsn_e = slap_create_syncrepl_entry( be, &mc,
-												&slap_syncrepl_cn_bv,
-												&slap_syncrepl_bv );
+						&slap_syncrepl_cn_bv,
+						&slap_syncrepl_bv );
+
+				/* dryrun moved earlier */
+				assert( !dryrun );
+
 				if ( !dryrun ) {
 					ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
 					if( ctxcsn_id == NOID ) {
@@ -575,6 +599,10 @@ slapadd( int argc, char **argv )
 					AC_MEMCPY( attr->a_vals[0].bv_val, mc.bv_val, mc.bv_len );
 					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
 					attr->a_vals[0].bv_len = maxcsn.bv_len;
+				
+					/* dryrun moved earlier */
+					assert( !dryrun );
+
 					if ( !dryrun ) {
 						ctxcsn_id = be->be_entry_modify( be,
 											ctxcsn_e, &bvtext );
@@ -615,7 +643,11 @@ slapadd( int argc, char **argv )
 
 			if ( ctxcsn_id == NOID ) {
 				ctxcsn_e = slap_create_syncrepl_entry( be, &sei->cookie,
-												&sei->rdn, &sei->cn );
+						&sei->rdn, &sei->cn );
+
+				/* dryrun moved earlier */
+				assert( !dryrun );
+
 				if ( !dryrun ) {
 					ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
 					if( ctxcsn_id == NOID ) {
@@ -642,6 +674,10 @@ slapadd( int argc, char **argv )
 					AC_MEMCPY( attr->a_vals[0].bv_val, sei->cookie.bv_val, sei->cookie.bv_len );
 					attr->a_vals[0].bv_val[sei->cookie.bv_len] = '\0';
 					attr->a_vals[0].bv_len = sei->cookie.bv_len;
+					
+					/* dryrun moved earlier */
+					assert( !dryrun );
+
 					if ( !dryrun ) {
 						ctxcsn_id = be->be_entry_modify( be,
 											ctxcsn_e, &bvtext );

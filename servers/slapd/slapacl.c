@@ -65,7 +65,22 @@ slapacl( int argc, char **argv )
 			rc = 1;
 			goto destroy;
 		}
+
+	} else if ( !BER_BVISNULL( &authcDN ) ) {
+		struct berval	ndn;
+
+		rc = dnNormalize( 0, NULL, NULL, &authcDN, &ndn, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "autchDN=\"%s\" normalization failed %d (%s)\n",
+					authcDN.bv_val, rc,
+					ldap_err2string( rc ) );
+			rc = 1;
+			goto destroy;
+		}
+		ch_free( authcDN.bv_val );
+		authcDN = ndn;
 	}
+
 
 	if ( !BER_BVISNULL( &authcDN ) ) {
 		fprintf( stderr, "DN: \"%s\"\n", authcDN.bv_val );

@@ -376,15 +376,22 @@ return_results:
 	if( rc != LDAP_SUCCESS ) {
 		/* free entry */
 		bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
+
 	} else {
-		*ent = e;
-		/* big drag. we need a place to store a read lock so we can
-		 * release it later??
-		 */
-		if ( op && !boi ) {
-			boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
-			boi->boi_lock = lock;
-			op->o_private = boi;
+		if ( slapMode == SLAP_SERVER_MODE ) {
+			*ent = e;
+			/* big drag. we need a place to store a read lock so we can
+			 * release it later??
+			 */
+			if ( op && !boi ) {
+				boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
+				boi->boi_lock = lock;
+				op->o_private = boi;
+			}
+
+		} else {
+			*ent = entry_dup( e );
+			bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
 		}
 	}
 
