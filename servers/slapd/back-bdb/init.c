@@ -429,6 +429,7 @@ bdb_db_destroy( BackendDB *be )
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	Operation *ps = NULL;
 	Operation *psn = NULL;
+	void *saved_tmpmemctx = NULL;
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
@@ -467,17 +468,59 @@ bdb_db_destroy( BackendDB *be )
 
 	if ( ps ) {
 		psn = LDAP_LIST_NEXT( ps, o_ps_link );
+
+		saved_tmpmemctx = ps->o_tmpmemctx;
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			slap_sl_free(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x(ps, ps->ors_filter);
+		}
+		if ( ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
 		slap_op_free( ps );
-		if ( ps->o_tmpmemctx )
-			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
+
+		if ( saved_tmpmemctx ) {
+			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
 	}
 
 	while ( psn ) {
 		ps = psn;
 		psn = LDAP_LIST_NEXT( ps, o_ps_link );
+
+		saved_tmpmemctx = ps->o_tmpmemctx;
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			slap_sl_free(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x(ps, ps->ors_filter);
+		}
+		if ( ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
 		slap_op_free( ps );
-		if ( ps->o_tmpmemctx )
-			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
+
+		if ( saved_tmpmemctx ) {
+			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
 	}
 
 	ch_free( bdb );

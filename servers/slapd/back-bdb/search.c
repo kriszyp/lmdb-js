@@ -341,13 +341,34 @@ int
 bdb_abandon( Operation *op, SlapReply *rs )
 {
 	Operation	*ps;
+	void		*saved_tmpmemctx;
 
 	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid );
 	if ( ps ) {
-		slap_op_free ( ps );
-		if ( ps->o_tmpmemctx ) {
-			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
+		saved_tmpmemctx = ps->o_tmpmemctx;
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free(ps->o_req_dn.bv_val, ps->o_tmpmemctx );
 		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free(ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			ps->o_tmpfree(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x(ps, ps->ors_filter);
+		}
+		if (ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
+		slap_op_free ( ps );
+
+		if ( saved_tmpmemctx ) {
+			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
+
 		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
@@ -357,15 +378,37 @@ int
 bdb_cancel( Operation *op, SlapReply *rs )
 {
 	Operation	*ps;
+	void		*saved_tmpmemctx;
 
 	ps = bdb_drop_psearch( op, op->oq_cancel.rs_msgid );
 	if ( ps ) {
+		saved_tmpmemctx = ps->o_tmpmemctx;
+
 		rs->sr_err = LDAP_CANCELLED;
 		send_ldap_result( ps, rs );
-		slap_op_free ( ps );
-		if ( ps->o_tmpmemctx ) {
-			slap_sl_mem_destroy( NULL, ps->o_tmpmemctx );
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free(ps->o_req_dn.bv_val, ps->o_tmpmemctx );
 		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free(ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			ps->o_tmpfree(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x(ps, ps->ors_filter);
+		}
+		if (ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
+		slap_op_free ( ps );
+
+		if ( saved_tmpmemctx ) {
+			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
+
 		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
