@@ -322,8 +322,8 @@ ldap_int_open_connection(
 	}
 #endif
 
-	if ( conn->lconn_krbinstance != NULL ) {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	if ( conn->lconn_krbinstance == NULL ) {
 		char *c;
 		conn->lconn_krbinstance = ldap_host_connected_to( conn->sb );
 
@@ -331,10 +331,8 @@ ldap_int_open_connection(
 		    ( c = strchr( conn->lconn_krbinstance, '.' )) != NULL ) {
 			*c = '\0';
 		}
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-		conn->lconn_krbinstance = NULL;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	}
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 	return( 0 );
 }

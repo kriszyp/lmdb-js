@@ -181,7 +181,9 @@ typedef struct ldap_conn {
 #define LDAP_CONNST_CONNECTING		2
 #define LDAP_CONNST_CONNECTED		3
 	LDAPURLDesc		*lconn_server;
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char			*lconn_krbinstance;
+#endif
 	struct ldap_conn	*lconn_next;
 	BerElement		*lconn_ber;/* ber receiving on this conn. */
 } LDAPConn;
