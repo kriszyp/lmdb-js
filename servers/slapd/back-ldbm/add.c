@@ -43,7 +43,7 @@ ldbm_back_add(
 		return( -1 );
 	}
 
-	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
+	if ( schema_check_entry( e ) != 0 ) {
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",

@@ -140,6 +140,10 @@ SOURCE=.\add.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\at.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\attr.c
 # End Source File
 # Begin Source File
@@ -236,6 +240,14 @@ SOURCE=.\monitor.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\mr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\oc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\operation.c
 # End Source File
 # Begin Source File
@@ -268,6 +280,10 @@ SOURCE=.\schema.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\schema_check.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\schema_init.c
 # End Source File
 # Begin Source File
@@ -289,6 +305,10 @@ SOURCE=.\str2filter.c
 # Begin Source File
 
 SOURCE=.\suffixalias.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\syntax.c
 # End Source File
 # Begin Source File
 

@@ -95,7 +95,7 @@ int ldbm_modify_internal(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* check that the entry still obeys the schema */
-	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
+	if ( schema_check_entry( e ) != 0 ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check\n", 0, 0, 0 );

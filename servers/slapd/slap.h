@@ -143,10 +143,10 @@ typedef int slap_syntax_transform_func LDAP_P((
 
 typedef struct slap_syntax {
 	LDAP_SYNTAX			ssyn_syn;
-	int	ssyn_flags;
+	unsigned	ssyn_flags;
 
-#define SLAP_SYNTAX_NONE	0
-#define SLAP_SYNTAX_BINARY	1
+#define SLAP_SYNTAX_NONE	0x0U
+#define SLAP_SYNTAX_BINARY	0x1U
 
 	slap_syntax_validate_func	*ssyn_validate;
 
@@ -210,6 +210,9 @@ typedef struct slap_matching_rule {
 } MatchingRule;
 
 typedef struct slap_attribute_type {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	char					*sat_cname;
+#endif
 	LDAP_ATTRIBUTE_TYPE		sat_atype;
 	struct slap_attribute_type	*sat_sup;
 	struct slap_attribute_type	**sat_subtypes;
@@ -234,6 +237,11 @@ typedef struct slap_attribute_type {
 #define sat_no_user_mod		sat_atype.at_no_user_mod
 #define sat_usage		sat_atype.at_usage
 } AttributeType;
+
+#define is_at_operational(at)	((at)->sat_usage)
+#define is_at_single_value(at)	((at)->sat_single_value)
+#define is_at_collective(at)	((at)->sat_collective)
+#define is_at_no_user_mod(at)	((at)->sat_no_user_mod)
 
 typedef struct slap_object_class {
 	LDAP_OBJECT_CLASS		soc_oclass;
@@ -278,6 +286,32 @@ typedef struct slap_mra {
 	int		mra_dnattrs;
 	struct berval	*mra_value;
 } Mra;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+/*
+ * represents a recognized attribute description ( type + options )
+ */
+typedef struct slap_attr_desc {
+	struct berval *ad_cname;	/* canonical name */
+	AttributeType *ad_type;		/* NULL if unknown */
+	char *ad_lang;				/* NULL if no language tags */
+	unsigned ad_flags;
+#define SLAP_DESC_NONE		0x0U
+#define SLAP_DESC_BINARY	0x1U
+} AttributeDescription;
+
+typedef struct slap_attr_assertion {
+	AttributeDescription	aa_desc;
+	struct berval *aa_value;
+} AttributeAssertion;
+
+typedef struct slap_mr_assertion {
+	char					*ma_rule;	/* optional */
+	AttributeDescription	*ma_desc;	/* optional */
+	int						ma_dnattrs; /* boolean */
+	struct berval			*ma_value;	/* required */
+} MatchingRuleAssertion;
+#endif
 
 /*
  * represents a search filter
@@ -331,14 +365,16 @@ typedef struct slap_filter {
 } Filter;
 
 /*
- * represents an attribute (type + values + syntax)
+ * represents an attribute (description + values)
  */
 typedef struct slap_attr {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription a_desc;
+#else
 	char		*a_type;	/* description */
-	struct berval	**a_vals;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	int		a_syntax;
 #endif
+	struct berval	**a_vals;
 	struct slap_attr	*a_next;
 } Attribute;
 

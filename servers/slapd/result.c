@@ -612,7 +612,7 @@ send_search_entry(
 )
 {
 	BerElement	*ber;
-	Attribute	*a;
+	Attribute	*a, *aa;
 	int		i, rc=-1, bytes;
 	char            *edn;
 	int		userattrs;
@@ -659,36 +659,40 @@ send_search_entry(
 		: charray_inlist( attrs, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		char *desc;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		desc = a->a_desc.ad_type->sat_cname;
+#else
+		desc = a->a_type;
+#endif
+
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( !opattrs && oc_check_op_attr( a->a_type ) ) {
+			if( !opattrs && oc_check_op_attr( desc ) ) {
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-			if (  oc_check_op_attr( a->a_type ) ) {
-				if( !opattrs && !charray_inlist( attrs, a->a_type ) )
-				{
+			if ( oc_check_op_attr( desc ) )
+			{
+				if( !opattrs && !charray_inlist( attrs, desc ) ) {
 					continue;
 				}
 			} else {
-				if (!userattrs && !charray_inlist( attrs, a->a_type ) )
-				{
+				if (!userattrs && !charray_inlist( attrs, desc ) ) {
 					continue;
 				}
 			}
 		}
 
-		if ( ! access_allowed( be, conn, op, e,
-			a->a_type, NULL, ACL_READ ) )
-		{
+		if ( ! access_allowed( be, conn, op, e, desc, NULL, ACL_READ ) ) {
 			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
-			    a->a_type, 0, 0 );
+			    desc, 0, 0 );
 			continue;
 		}
 
-		if (( rc = ber_printf( ber, "{s[" /*]}*/ , a->a_type )) == -1 ) {
+		if (( rc = ber_printf( ber, "{s[" /*]}*/ , desc )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -699,11 +703,11 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					a->a_type, a->a_vals[i], ACL_READ ) )
+					desc, a->a_vals[i], ACL_READ ) )
 				{
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
-			    		a->a_type, i, 0 );
+			    		desc, i, 0 );
 					continue;
 				}
 
@@ -727,42 +731,46 @@ send_search_entry(
 		}
 	}
 
-#ifdef SLAPD_SCHEMA_DN
 	/* eventually will loop through generated operational attributes */
 	/* only have subschemaSubentry implemented */
-	a = backend_subschemasubentry( be );
+	aa = backend_operational( be, e );
 	
-	do {
+	for (a = aa ; a == NULL; a = a->a_next ) {
+		char *desc;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		desc = a->a_desc.ad_type->sat_cname;
+#else
+		desc = a->a_type;
+#endif
+
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( !opattrs && oc_check_op_attr( a->a_type ) ) {
+			if( !opattrs && oc_check_op_attr( desc ) ) {
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-			if (  oc_check_op_attr( a->a_type ) ) {
-				if( !opattrs && !charray_inlist( attrs, a->a_type ) )
+			if (  oc_check_op_attr( desc ) ) {
+				if( !opattrs && !charray_inlist( attrs, desc ) )
 				{
 					continue;
 				}
 			} else {
-				if (!userattrs && !charray_inlist( attrs, a->a_type ) )
+				if (!userattrs && !charray_inlist( attrs, desc ) )
 				{
 					continue;
 				}
 			}
 		}
 
-		if ( ! access_allowed( be, conn, op, e,
-			a->a_type, NULL, ACL_READ ) )
-		{
+		if ( ! access_allowed( be, conn, op, e,	desc, NULL, ACL_READ ) ) {
 			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
-			    a->a_type, 0, 0 );
+			    desc, 0, 0 );
 			continue;
 		}
 
-		if (( rc = ber_printf( ber, "{s[" /*]}*/ , a->a_type )) == -1 ) {
+		if (( rc = ber_printf( ber, "{s[" /*]}*/ , desc )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -773,11 +781,11 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					a->a_type, a->a_vals[i], ACL_READ ) )
+					desc, a->a_vals[i], ACL_READ ) )
 				{
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
-			    		a->a_type, i, 0 );
+			    		desc, i, 0 );
 					continue;
 				}
 
@@ -800,8 +808,9 @@ send_search_entry(
 			    NULL, "encode end error", NULL, NULL );
 			goto error_return;
 		}
-	} while (0);
-#endif
+	}
+
+	attrs_free( aa );
 
 	rc = ber_printf( ber, /*{{{*/ "}}}" );
 

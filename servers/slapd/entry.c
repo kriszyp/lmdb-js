@@ -197,9 +197,18 @@ entry2str(
 		/* put "<type>:[:] <value>" line for each value */
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			bv = a->a_vals[i];
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			tmplen = a->a_desc.ad_cname->bv_len;
+#else
 			tmplen = strlen( a->a_type );
+#endif
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
-			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE, a->a_type,
+			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				a->a_desc.ad_cname->bv_val,
+#else
+				a->a_type,
+#endif
 			    bv->bv_val, bv->bv_len );
 		}
 	}

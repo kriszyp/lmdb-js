@@ -244,7 +244,12 @@ add_created_attrs( Operation *op, Entry *e )
 
 	/* return error on any attempts by the user to add these attrs */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		if ( oc_check_op_no_usermod_attr( a->a_type ) ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		if ( is_at_no_user_mod( a->a_desc.ad_type ))
+#else
+		if ( oc_check_op_no_usermod_attr( a->a_type ) )
+#endif
+		{
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}

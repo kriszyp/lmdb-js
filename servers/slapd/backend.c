@@ -633,26 +633,27 @@ backend_group(
 }
 
 #ifdef SLAPD_SCHEMA_DN
-Attribute *backend_subschemasubentry( Backend *be )
+Attribute *backend_operational(
+	Backend *be,
+	Entry *e )
 {
-	/*
-	 * This routine returns points to STATIC data!!!
-	 */
-	/* and should be backend specific */
-
-	static struct berval ss_val = {
-		sizeof(SLAPD_SCHEMA_DN)-1,
-		SLAPD_SCHEMA_DN };
-	static struct berval *ss_vals[2] = { &ss_val, NULL };
-	static Attribute ss_attr = {
-		"subschemasubentry",
-		ss_vals,
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		SYNTAX_DN | SYNTAX_CIS,
+	Attribute *a = ch_malloc( sizeof( Attribute ) );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
+	a->a_type = "subschemasubentry";
+	a->a_syntax = SYNTAX_DN | SYNTAX_CIS;
 #endif
-		NULL
-	};
 
-	return &ss_attr;
+	/* Should be backend specific */
+	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
+	a->a_vals[0] = ch_malloc( sizeof( struct berval ) );
+	a->a_vals[0]->bv_val = strdup( SLAPD_SCHEMA_DN );
+	a->a_vals[0]->bv_len = sizeof( SLAPD_SCHEMA_DN ) - 1;
+	a->a_vals[1] = NULL;
+
+	a->a_next = NULL;
+
+	return a;
 }
 #endif

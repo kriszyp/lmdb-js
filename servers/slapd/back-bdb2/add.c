@@ -38,7 +38,7 @@ bdb2i_back_add_internal(
 		return( -1 );
 	}
 
-	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
+	if ( schema_check_entry( e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",
 			0, 0, 0 );
 

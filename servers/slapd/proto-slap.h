@@ -70,14 +70,15 @@ LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));
 LIBSLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
 LIBSLAPD_F (int) at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
 
+LIBSLAPD_F (void) attrs_free LDAP_P(( Attribute *a ));
+LIBSLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
+
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-LIBSLAPD_F (char *) at_canonical_name LDAP_P(( AttributeType *a_type ));
+#	define at_canonical_name(at) ((at)->sat_cname)	
 #else
 LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
 #endif
 
-LIBSLAPD_F (void) attrs_free LDAP_P(( Attribute *a ));
-LIBSLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
 
 /*
  * ava.c
@@ -138,10 +139,8 @@ LIBSLAPD_F (int) backend_group LDAP_P((Backend *be,
 ));
 #endif
 
-#ifdef SLAPD_SCHEMA_DN
-/* temporary extern for temporary routine*/
-LIBSLAPD_F (Attribute *) backend_subschemasubentry( Backend * );
-#endif
+LIBSLAPD_F (Attribute *) backend_operational( Backend *, Entry * );
+
 
 
 /*
@@ -455,11 +454,19 @@ LIBSLAPD_F (int) sasl_bind LDAP_P((Backend *,
 	char *, char *, char *, struct berval *, char **));
 #endif
 
+/* oc.c */
+LIBSLAPD_F (int) oc_schema_info( Entry *e );
+
+/* mr.c */
+LIBSLAPD_F (int) mr_schema_info( Entry *e );
+
+/* syntax.c */
+LIBSLAPD_F (int) syn_schema_info( Entry *e );
+
 /*
  * schema.c
  */
 
-LIBSLAPD_F (int) oc_schema_check LDAP_P(( Entry *e ));
 LIBSLAPD_F (int) oc_check_op_attr LDAP_P(( const char *type ));
 LIBSLAPD_F (int) oc_check_op_usermod_attr LDAP_P(( const char *type ));
 LIBSLAPD_F (int) oc_check_op_no_usermod_attr LDAP_P(( const char *type ));
@@ -502,6 +509,11 @@ LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
 	Entry *, const char* objectclass ));
 #define is_entry_alias(e)		is_entry_objectclass((e), "ALIAS")
 #define is_entry_referral(e)	is_entry_objectclass((e), "REFERRAL")
+
+/*
+ * schema_check.c
+ */
+LIBSLAPD_F (int) schema_check_entry LDAP_P(( Entry *e ));
 
 
 /*

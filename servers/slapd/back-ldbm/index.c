@@ -15,6 +15,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+
 static int	change_value(Backend *be,
 			  DBCache *db,
 			  char *type,
@@ -51,7 +52,11 @@ index_add_entry(
 	/* add the dn to the indexes */
 	{
 		char *dn = ch_strdup("dn");
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		index_change_values( be, dn, bvals, e->e_id, SLAP_INDEX_ADD_OP );
+#endif
 		free( dn );
 	}
 
@@ -59,8 +64,12 @@ index_add_entry(
 
 	/* add each attribute to the indexes */
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* index_change_values( be, SLAP_INDEX_ADD_OP, e->e_id, ap ); */
+#else
 		index_change_values( be, ap->a_type, ap->a_vals, e->e_id,
 				     SLAP_INDEX_ADD_OP );
+#endif
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_add( %ld, \"%s\" ) 0\n", e->e_id,
