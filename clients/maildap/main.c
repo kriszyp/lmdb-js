@@ -218,6 +218,11 @@ main ( int argc, char **argv )
 
 		case 'f':	/* who it's from & where errors should go */
 			mailfrom = strdup( optarg );
+			/* Deal with <> */
+			if ( mailfrom[0] == '\0' ) {
+				free( mailfrom );
+				mailfrom = strdup( "<>" );
+			}
 			for ( j = 0; sendmailargs[j] != NULL; j++ ) {
 				if ( strcmp( sendmailargs[j], "-f" ) == 0 ) {
 					sendmailargs[j+1] = mailfrom;
