@@ -88,7 +88,7 @@ handle_private_option( int i )
 {
 	switch ( i ) {
 #if 0
-	case 'E': /* passwd controls */ {
+	case 'E': /* passwd extensions */ {
 		int		crit;
 		char	*control, *cvalue;
 		if( protocol == LDAP_VERSION2 ) {
@@ -112,7 +112,7 @@ handle_private_option( int i )
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
-		fprintf( stderr, _("Invalid passwd control name: %s\n"), control );
+		fprintf( stderr, _("Invalid passwd extension name: %s\n"), control );
 		usage();
 		}
 #endif

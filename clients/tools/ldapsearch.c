@@ -102,7 +102,7 @@ usage( void )
 	fprintf( stderr, _("  -a deref   one of never (default), always, search, or find\n"));
 	fprintf( stderr, _("  -A         retrieve attribute names only (no values)\n"));
 	fprintf( stderr, _("  -b basedn  base dn for search\n"));
-	fprintf( stderr, _("  -E [!]<ctrl>[=<ctrlparam>] search controls (! indicates criticality)\n"));
+	fprintf( stderr, _("  -E [!]<ctrl>[=<ctrlparam>] search extensions (! indicates criticality)\n"));
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	fprintf( stderr, _("             [!]domainScope              (domain scope)\n"));
 #endif
@@ -255,7 +255,7 @@ handle_private_option( int i )
 	case 'b': /* search base */
 		base = strdup( optarg );
 		break;
-	case 'E': /* search controls */
+	case 'E': /* search extensions */
 		if( protocol == LDAP_VERSION2 ) {
 			fprintf( stderr, _("%s: -E incompatible with LDAPv%d\n"),
 				prog, protocol );
@@ -411,7 +411,7 @@ handle_private_option( int i )
 			if ( crit ) ldapsync *= -1;
 
 		} else {
-			fprintf( stderr, _("Invalid control name: %s\n"), control );
+			fprintf( stderr, _("Invalid search extension name: %s\n"), control );
 			usage();
 		}
 		break;
