@@ -976,12 +976,11 @@ connection_operation( void *ctx, void *arg_v )
 	/* We can use Thread-Local storage for most mallocs. We can
 	 * also use TL for ber parsing, but not on Add or Modify.
 	 */
-#define	SLAB_SIZE	1048576
 #if 0
 	memsiz = ber_len( op->o_ber ) * 64;
-	if ( SLAB_SIZE > memsiz ) memsiz = SLAB_SIZE;
+	if ( SLMALLOC_SLAB_SIZE > memsiz ) memsiz = SLMALLOC_SLAB_SIZE;
 #endif
-	memsiz = SLAB_SIZE;
+	memsiz = SLMALLOC_SLAB_SIZE;
 
 	memctx = sl_mem_create( memsiz, ctx );
 	op->o_tmpmemctx = memctx;

@@ -817,8 +817,7 @@ do_syncrepl(
 	conn.c_peer_name = slap_empty_bv;
 
 	/* set memory context */
-#define SLAB_SIZE 1048576
-	op.o_tmpmemctx = sl_mem_create( SLAB_SIZE, ctx );
+	op.o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
 	op.o_tmpmfuncs = &sl_mfuncs;
 
 	op.o_dn = si->si_updatedn;

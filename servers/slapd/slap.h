@@ -2292,6 +2292,8 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 	SlapReply *rs,
 	LDAPControl *ctrl ));
 
+#define SLMALLOC_SLAB_SIZE	1048576
+
 LDAP_END_DECL
 
 #include "proto-slap.h"
