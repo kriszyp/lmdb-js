@@ -21,6 +21,7 @@
 
 char *supportedControls[] = {
 	LDAP_CONTROL_MANAGEDSAIT,
+	LDAP_CONTROL_SUBENTRIES,
 	NULL
 };
 
@@ -236,6 +237,29 @@ int get_manageDSAit( Operation *op )
 		if( strcmp( LDAP_CONTROL_MANAGEDSAIT,
 			op->o_ctrls[i]->ldctl_oid )	== 0 )
 		{
+			return op->o_ctrls[i]->ldctl_iscritical
+				? SLAP_CRITICAL_CONTROL
+				: SLAP_NONCRITICAL_CONTROL;
+		}
+	}
+
+	return SLAP_NO_CONTROL;
+}
+
+int get_subentries( Operation *op, int *visibility )
+{
+	int i;
+	if( op == NULL || op->o_ctrls == NULL ) {
+		return SLAP_NO_CONTROL;
+	}
+
+	for( i=0; op->o_ctrls[i] != NULL; i++ ) {
+		if( strcmp( LDAP_CONTROL_SUBENTRIES,
+			op->o_ctrls[i]->ldctl_oid )	== 0 )
+		{
+			/* need to parse the value */
+			*visibility = 0;
+
 			return op->o_ctrls[i]->ldctl_iscritical
 				? SLAP_CRITICAL_CONTROL
 				: SLAP_NONCRITICAL_CONTROL;
