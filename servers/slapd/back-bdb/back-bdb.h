@@ -135,10 +135,14 @@ struct bdb_op_info {
 
 #if DB_VERSION_MAJOR < 4
 #define	TXN_CHECKPOINT(env, k, m, f)	txn_checkpoint(env, k, m, f)
+#define	TXN_ID(txn)			txn_id(txn)
 #define	LOCK_DETECT(env, f, t, a)	lock_detect(env, f, t, a)
+#define	LOCK_GET(env, i, f, o, m, l)	lock_get(env, i, f, o, m, l)
 #else
 #define	TXN_CHECKPOINT(env, k, m, f)	(env)->txn_checkpoint(env, k, m, f)
+#define	TXN_ID(txn)			(txn)->id(txn)
 #define	LOCK_DETECT(env, f, t, a)	(env)->lock_detect(env, f, t, a)
+#define	LOCK_GET(env, i, f, o, m, l)	(env)->lock_get(env, i, f, o, m, l)
 #endif
 
 LDAP_END_DECL
