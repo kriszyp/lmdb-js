@@ -1,5 +1,7 @@
 # ltmain.sh - Provide generalized library-building support services.
 # NOTE: Changing this file will not affect anything until you rerun ltconfig.
+# 
+# $OpenLDAP$
 #
 # Copyright (C) 1996-1999 Free Software Foundation, Inc.
 # Originally by Gordon Matzigkeit <gord@gnu.ai.mit.edu>, 1996
@@ -54,8 +56,8 @@ modename="$progname"
 # Constants.
 PROGRAM=ltmain.sh
 PACKAGE=libtool
-VERSION=1.3.5
-TIMESTAMP=" (1.385.2.206 2000/05/27 11:12:27)"
+VERSION=1.3.5+OpenLDAP
+TIMESTAMP=" (1.385.2.206 2000/10/02 14:18:00)"
 
 default_mode=
 help="Try \`$progname --help' for more information."
@@ -1079,6 +1081,10 @@ compiler."
 	    # These systems don't actually have c library (as such)
 	    continue
 	    ;;
+          *-*-rhapsody* | *-*-darwin*)
+            # Darwin C library is in the System framework
+            deplibs="$deplibs -framework System"
+            ;;
 	  esac
 	elif test "$arg" = "-lm"; then
 	  case "$host" in
@@ -1086,6 +1092,10 @@ compiler."
 	    # These systems don't actually have math library (as such)
 	    continue
 	    ;;
+          *-*-rhapsody* | *-*-darwin*)
+            # Darwin math library is in the System framework
+            deplibs="$deplibs -framework System"
+            ;;
 	  esac
 	fi
 	deplibs="$deplibs $arg"
