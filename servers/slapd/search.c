@@ -98,6 +98,16 @@ do_search(
 		goto return_results;
 	}
 
+	if ( op->ors_tlimit < 0 || op->ors_tlimit > SLAP_MAX_LIMIT ) {
+		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "invalid time limit" );
+		goto return_results;
+	}
+
+	if ( op->ors_slimit < 0 || op->ors_slimit > SLAP_MAX_LIMIT ) {
+		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "invalid size limit" );
+		goto return_results;
+	}
+
 	switch( op->ors_scope ) {
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
