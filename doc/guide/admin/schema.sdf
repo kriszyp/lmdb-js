@@ -395,10 +395,10 @@ any LDAPv3 server and easily construct directives for use with
 
 LDAPv3 servers publish schema elements in special {{subschema}}
 entries (or subentries).  {{slapd}}(8) publishes a single subschema
-entry normally named {{EX:cn=Subschema}}.  If a server which
+entry normally named {{EX:cn=Subschema}}.  In a server which
 supports a single subschema subentry, the DN of the subschema
 subenty can usually be found by examining the value of the
-{{EX:subschemaSubentry}} attribute type in the {{root DSE}}
+{{EX:subschemaSubentry}} attribute type in the {{root DSE}}.
 Other servers may publish multiple subschema entries.  These
 can be located by examining the {{EX:subschemaSubentry}} attribute
 contained in the entry at the root of each administrative context.
