@@ -1,11 +1,12 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.24 Engineering
+OpenLDAP 2.1.24 Release
 	Fixed slapd "exact" v "base" handling (ITS#2782)
 	Fixed slapd running as NT service (ITS#2769)
 	Fixed slapd SASL internal searches (ITS#2825)
 	Fixed slapd extended op referrals (ITS#2678, ITS#2781)
 	Fixed slapd group ACL caching (ITS#2779)
+	Fixed slapd berbuf align bugs
 	Fixed slurpd memory leaks (ITS#2423, ITS#2620)
 	Fixed slurpd TLS retry (ITS#2570)
 	Fixed back-bdb compatibility with BDB 4.2 (ITS#2848)
@@ -14,7 +15,6 @@ OpenLDAP 2.1.24 Engineering
 	Fixed libldap SASL maxbuf usage (ITS#2770)
 	Fixed libldap_r pthread support (ITS#2820)
 	Fixed liblutil NS_MTA_MD5 hash (ITS#2773)
-	Fixed slapd berbuf align bugs
 	Added lutil_passwd extensions
 	Build Environment
 		Added Berkeley DB 4.2 detection (ITS#2839)
