@@ -937,6 +937,7 @@
 /* define to support dynamic SQL backend */
 #undef SLAPD_SQL_DYNAMIC
 
+
 /* begin of postamble */
 
 #ifdef _WIN32
