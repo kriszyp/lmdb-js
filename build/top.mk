@@ -137,6 +137,7 @@ PWD = pwd
 RANLIB = @RANLIB@
 RM = rm -f
 SED = sed
+SUBST = $(SHTOOL) subst
 
 # For manual pages
 # MANCOMPRESS=@MANCOMPRESS@

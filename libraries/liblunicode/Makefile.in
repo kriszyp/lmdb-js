@@ -36,15 +36,6 @@ uctable.h: ucgendat.c $(srcdir)/UnicodeData.txt $(srcdir)/CompositionExclusions.
 ucgendat: $(XLIBS) ucgendat.o
 	$(LTLINK) -o $@ ucgendat.o $(LIBS)
 
-#DATFILES = case.dat cmbcl.dat comp.dat ctype.dat decomp.dat num.dat kdecomp.dat
-
-#install-local: $(PROGRAMS) FORCE
-#	-$(MKDIR) $(DESTDIR)$(datadir)/ucdata
-#	@for i in $(DATFILES); do \
-#		echo $(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
-#		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
-#	done
-
 .links :
 	@for i in $(XXSRCS) $(XXHEADERS); do \
 		$(RM) $$i ; \
