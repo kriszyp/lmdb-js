@@ -146,7 +146,7 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		tmp_be = select_backend( &ndn, 0, 0 );
-		free( ndn.bv_val );
+		ch_free( ndn.bv_val );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, "%s: line %d: suffix already in use"
 				       " by another backend in"
@@ -164,7 +164,7 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		tmp_be = select_backend( &ndn, 0, 0 );
-		free( ndn.bv_val );
+		ch_free( ndn.bv_val );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr, "%s: line %d: massaged suffix"
 				       " already in use by another backend in" 
@@ -303,7 +303,7 @@ ldap_back_db_config(
 static char *
 suffix_massage_regexize( const char *s )
 {
-	char *res, *p, *r;
+	char *res, *p, *r, *ptr;
 	int i;
 
 	for ( i = 0, p = ( char * )s; 
@@ -313,18 +313,18 @@ suffix_massage_regexize( const char *s )
 
 	res = ch_calloc( sizeof( char ), strlen( s ) + 4 + 4*i + 1 );
 
-	strcpy( res, "(.*)" );
+	ptr = slap_strcopy( res, "(.*)" );
 	for ( i = 0, p = ( char * )s;
 			( r = strchr( p, ',' ) ) != NULL;
 			p = r + 1 , i++ ) {
-		strncat( res, p, r - p + 1 );
-		strcat( res, "[ ]?" );
+		ptr = slap_strncopy( ptr, p, r - p + 1 );
+		ptr = slap_strcopy( ptr, "[ ]?" );
 
 		if ( r[ 1 ] == ' ' ) {
 			r++;
 		}
 	}
-	strcat( res, p );
+	slap_strcopy( ptr, p );
 
 	return res;
 }
@@ -332,19 +332,33 @@ suffix_massage_regexize( const char *s )
 static char *
 suffix_massage_patternize( const char *s, int normalize )
 {
-	char *res;
+	struct berval 	dn = { 0, NULL }, odn = { 0, NULL };
+	int		rc;
+	char		*res;
 
-	res = ch_calloc( sizeof( char ), strlen( s ) + sizeof("%1") );
-
-	sprintf( res, "%%1%s", s );
+	dn.bv_val = ( char * )s;
+	dn.bv_len = strlen( s );
 
 	if ( normalize ) {
-		char *out = dn_normalize( res + (sizeof("%1")-1) );
-		if ( out != res + 2 ) {
-			strcpy( res + 2, out );
-			free( out );
-		}
+		rc = dnNormalize2( NULL, &dn, &odn );
+	} else {
+		rc = dnPretty2( NULL, &dn, &odn );
 	}
+
+	if ( rc != LDAP_SUCCESS ) {
+		return NULL;
+	}
+	
+	res = ch_calloc( sizeof( char ), odn.bv_len + sizeof( "%1" ) );
+	if ( res == NULL ) {
+		return NULL;
+	}
+
+	strcpy( res, "%1" );
+	strcpy( res + sizeof( "%1" ) - 1, odn.bv_val );
+
+	/* FIXME: what FREE should I use? */
+	free( odn.bv_val );
 
 	return res;
 }
