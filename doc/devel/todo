@@ -48,6 +48,7 @@ Slapd-DB2 - Berkeley DB backend w/ transaction support <ksp@openldap.org>
 
 Medium projects
 ---------------
+Design and Implement a LDAP C++ API
 Modify -lldap to be reentrant/threadsafe <bart@openldap.org>
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
