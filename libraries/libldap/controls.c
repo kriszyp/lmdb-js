@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -365,7 +365,7 @@ ldap_control_dup( const LDAPControl *c )
 }
 
 /*
- * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* Adapted for inclusion into OpenLDAP by Kurt D. Zeilenga */

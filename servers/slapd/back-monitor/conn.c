@@ -1,12 +1,9 @@
 /* conn.c - deal with connection subsystem */
 /*
- * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * Copyright 2001 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- * 
  * Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
  * 
  * This work has beed deveolped for the OpenLDAP Foundation 

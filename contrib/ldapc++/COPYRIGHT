@@ -1,13 +1,16 @@
-Copyright 1998-2000 The OpenLDAP Foundation
+Copyright 1998-2002 The OpenLDAP Foundation
 All rights reserved.
 
-Redistribution and use in source and binary forms are permitted
-only as authorized by the OpenLDAP Public License.  A copy of this
-license is available at http://www.OpenLDAP.org/license.html or
-in file LICENSE in the top-level directory of the distribution.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted only as authorized by the OpenLDAP
+Public License.  A copy of this license is available at
+http://www.OpenLDAP.org/license.html or in file LICENSE in the
+top-level directory of the distribution.
+
+OpenLDAP is a registered trademark of the OpenLDAP Foundation.
 
 Individual files and/or contributed packages may be copyright by
-other parties and use subject to additional restrictions.
+other parties and subject to additional restrictions.
 
 This work is derived from the University of Michigan LDAP v3.3
 distribution.  Information concerning this software is available
@@ -32,6 +35,3 @@ to the University of Michigan at Ann Arbor. The name of the University
 may not be used to endorse or promote products derived from this
 software without specific prior written permission. This software
 is provided ``as is'' without express or implied warranty.
-
----
-$OpenLDAP$
