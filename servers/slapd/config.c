@@ -2746,7 +2746,7 @@ add_syncrepl(
 	si = be->syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
 	/* set default values; FIXME : add others */
-	si->tlimit = NULL;
+	si->tlimit = -1;
 	si->slimit = -1;
 
 	if ( si == NULL ) {
@@ -2770,14 +2770,12 @@ add_syncrepl(
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( CONFIG, RESULTS,
-			"add_syncrepl: Config: ** successfully added syncrepl \"%s%d\"\n",
-			si->mastername == NULL ? "(null)" : si->mastername,
-			si->masterport, 0 );
+			"add_syncrepl: Config: ** successfully added syncrepl \"%s\"\n",
+			si->masteruri == NULL ? "(null)" : si->masteruri, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_CONFIG,
-			"Config: ** successfully added syncrepl \"%s:%d\"\n",
-			si->mastername == NULL ? "(null)" : si->mastername,
-			si->masterport, 0 );
+			"Config: ** successfully added syncrepl \"%s\"\n",
+			si->masteruri == NULL ? "(null)" : si->masteruri, 0, 0 );
 #endif
 		si->be = be;
 	}
@@ -2853,31 +2851,6 @@ parse_syncrepl_line(
 					sizeof( PROVIDERSTR ) - 1 )) {
 			val = cargv[ i ] + sizeof( PROVIDERSTR );
 			si->masteruri = ch_strdup( val );
-			if (( hp = strchr( val, ':' )) != NULL ) {
-				if ( *( hp + 1 ) == '/' ) {
-					if ( *( hp + 2 ) == '/' ) {
-						val = hp + 3;
-					}
-					if (( hp = strchr( hp+1, ':' )) != NULL ) {
-						*hp = '\0';
-						hp++;
-						si->masterport = atoi( hp );
-					}
-				} else {
-					*hp = '\0';
-					hp++;
-					si->masterport = atoi( hp );
-				}
-			}
-			if ( si->masterport <= 0 ) {
-				si->masterport = 0;
-			}
-			si->mastername = ch_strdup( val );
-			si->master_bv = (BerVarray) ch_calloc( 2, sizeof (struct berval ));
-			ber_str2bv( si->masteruri, strlen(si->masteruri), 0,
-							&si->master_bv[0] );
-			si->master_bv[1].bv_len = 0;
-			si->master_bv[1].bv_val = NULL;
 			gots |= GOT_HOST;
 		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR,
 			sizeof(STARTTLSSTR) - 1 ) )
