@@ -2,6 +2,7 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2.9 Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
+	Fixed slapd/back-ldbm indexing bug (ITS#402)
 	Build Environment
 		Rebuild configure
 
