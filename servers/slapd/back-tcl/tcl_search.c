@@ -36,6 +36,7 @@ tcl_back_search (
 	char *attrs_tcl = NULL, *suf_tcl, *results, *command;
 	int i, err = 0, code;
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
+	char **sattrs = NULL;
 	Entry *e;
 
 	if (ti->ti_search == NULL) {
@@ -44,9 +45,12 @@ tcl_back_search (
 		return (-1);
 	}
 
-	for (i = 0; attrs != NULL && attrs[i] != NULL; i++);
-	if (i > 0)
-		attrs_tcl = Tcl_Merge (i, attrs);
+	for (i = 0; attrs != NULL && attrs[i] != NULL; i++)
+		charray_add(&sattrs, attrs[i]->bv_val);
+	if (i > 0) {
+		attrs_tcl = Tcl_Merge (i, sattrs);
+		charray_free(sattrs);
+	}
 
 	for (i = 0; be->be_suffix[i] != NULL; i++);
 	suf_tcl = Tcl_Merge (i, be->be_suffix);
