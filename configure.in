@@ -1717,6 +1717,8 @@ AC_CHECK_FUNCS(		\
 	memcpy			\
 	memmove			\
 	mkstemp			\
+	recv			\
+	recvfrom		\
 	select			\
 	setpwfile		\
 	setsid			\
