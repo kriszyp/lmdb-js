@@ -932,7 +932,7 @@ idl_firstid( ID_BLOCK *idl )
 	}
 
 	if ( ID_BLOCK_ALLIDS( idl ) ) {
-		return( ID_BLOCK_NIDS(idl) == 1 ? NOID : 1 );
+		return( ID_BLOCK_NIDS(idl) > 1 ? 1 : NOID );
 	}
 
 	return( ID_BLOCK_ID(idl, 0) );
@@ -947,10 +947,9 @@ idl_nextid( ID_BLOCK *idl, ID id )
 		return( ++id < ID_BLOCK_NIDS(idl) ? id : NOID );
 	}
 
-	for ( i = 0; i < ID_BLOCK_NIDS(idl) && ID_BLOCK_ID(idl, i) < id; i++ ) {
+	for ( i = 0; i < ID_BLOCK_NIDS(idl) && ID_BLOCK_ID(idl, i) <= id; i++ ) {
 		;	/* NULL */
 	}
-	i++;
 
 	if ( i >= ID_BLOCK_NIDS(idl) ) {
 		return( NOID );
