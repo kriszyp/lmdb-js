@@ -315,6 +315,7 @@ typedef struct ldapcontrol {
 #define LDAP_SUBSTRING_FINAL	((ber_tag_t) 0x82U)	/* context specific */
 
 /* search scopes */
+#define LDAP_SCOPE_DEFAULT	((ber_int_t) -1)
 #define LDAP_SCOPE_BASE		((ber_int_t) 0x0000)
 #define LDAP_SCOPE_ONELEVEL	((ber_int_t) 0x0001)
 #define LDAP_SCOPE_SUBTREE	((ber_int_t) 0x0002)

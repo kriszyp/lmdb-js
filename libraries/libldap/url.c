@@ -208,7 +208,7 @@ static int str2scope( const char *p )
 
 
 int
-ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
+ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 {
 /*
  *  Pick apart the pieces of an LDAP URL.
@@ -231,7 +231,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	 * because a call to LDAP_INT_GLOBAL_OPT() will try to allocate
 	 * the options and cause infinite recursion
 	 */
-	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse(%s)\n", url_in, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse_ext(%s)\n", url_in, 0, 0 );
 #endif
 
 	*ludpp = NULL;	/* pessimistic */
@@ -275,7 +275,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	ludp->lud_dn = NULL;
 	ludp->lud_attrs = NULL;
 	ludp->lud_filter = NULL;
-	ludp->lud_scope = LDAP_SCOPE_BASE;
+	ludp->lud_scope = LDAP_SCOPE_DEFAULT;
 	ludp->lud_filter = NULL;
 	ludp->lud_exts = NULL;
 
@@ -536,6 +536,27 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	*ludpp = ludp;
 	LDAP_FREE( url );
 	return LDAP_URL_SUCCESS;
+}
+
+int
+ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
+{
+	int rc = ldap_url_parse_ext( url_in, ludpp );
+
+	if( rc != LDAP_URL_SUCCESS ) {
+		return rc;
+	}
+
+	if ((*ludpp)->lud_scope == LDAP_SCOPE_DEFAULT) {
+		(*ludpp)->lud_scope = LDAP_SCOPE_BASE;
+	}
+
+	if ((*ludpp)->lud_host != NULL && *(*ludpp)->lud_host == '\0') {
+		LDAP_FREE( (*ludpp)->lud_host );
+		(*ludpp)->lud_host = NULL;
+	}
+
+	return rc;
 }
 
 LDAPURLDesc *
