@@ -652,7 +652,7 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 		return LDAP_SUCCESS;
 	}
 
-	if( strlen( bv->bv_val ) != bv->bv_len ) {
+	if( memchr( bv->bv_val, '\0', bv->bv_len ) != NULL ) {
 		/* value must have embedded NULs */
 		return LDAP_DECODING_ERROR;
 	}
@@ -883,7 +883,7 @@ ldap_bv2rdn( struct berval *bv, LDAPRDN **rdn,
 
 	}
 
-	if( strlen( bv->bv_val ) != bv->bv_len ) {
+	if( memchr( bv->bv_val, '\0', bv->bv_len ) != NULL ) {
 		/* value must have embedded NULs */
 		return LDAP_DECODING_ERROR;
 	}
