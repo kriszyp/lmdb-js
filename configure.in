@@ -501,15 +501,18 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 int task(arg)
 	int *arg;
 {
+	int i;
 	struct timeval tv;
 
-	tv.tv_sec=4;
+	tv.tv_sec=5;
 	tv.tv_usec=0;
-	select(0, NULL, NULL, NULL, &tv);
 
-	tv.tv_sec=6;
-	tv.tv_usec=0;
-	select(0, NULL, NULL, NULL, &tv);
+	/* we're not interested in any fds */
+	i = select(FD_SETSIZE, NULL, NULL, NULL, &tv);
+
+	if(i < 0) {
+		perror("select");
+	}
 
 	exit(1); /* if we exit here, the select blocked the whole process */
 }
