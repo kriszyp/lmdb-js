@@ -748,7 +748,7 @@ static int chk_unix(
 	const struct berval * cred )
 {
 	int i;
-	char *pw;
+	char *pw,*cr;
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
@@ -794,13 +794,18 @@ static int chk_unix(
 
 	if( pw == NULL || *pw == '\0' ) return 1;
 
-	return strcmp(pw, crypt(cred->bv_val, pw));
+	cr = crypt(cred->bv_val, pw);
+
+	if( cr == NULL || *cr == '\0' ) return 1;
+
+	return strcmp(pw, cr);
 
 }
 # endif
 #endif
 
-/* PASSWORD CHECK ROUTINES */
+/* PASSWORD GENERATION ROUTINES */
+
 static struct berval *hash_ssha1(
 	const struct pw_scheme *scheme,
 	const struct berval  *passwd )
@@ -928,7 +933,12 @@ static struct berval *hash_crypt(
 	hash.bv_val = crypt( passwd->bv_val, salt );
 
 	if( hash.bv_val == NULL ) return NULL;
+
 	hash.bv_len = strlen( hash.bv_val );
+
+	if( hash.bv_len == 0 ) {
+		return NULL;
+	}
 
 	return pw_string( scheme, &hash );
 }
