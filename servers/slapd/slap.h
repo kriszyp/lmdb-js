@@ -715,10 +715,17 @@ struct slap_backend_info {
 	/* Auxilary Functions */
 	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,
 		const char *objectclassValue,
 		AttributeType *group_at ));
+#else
+	int	(*bi_acl_group)  LDAP_P((Backend *bd,
+		Entry *e, const char *bdn, const char *edn,
+		const char *objectclassValue,
+		const char *group_at ));
+#endif
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

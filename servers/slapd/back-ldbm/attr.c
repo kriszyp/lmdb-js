@@ -105,9 +105,7 @@ attr_index_config(
 	for ( i = 0; attrs[i] != NULL; i++ ) {
 		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
 		a->ai_type = ch_strdup( attrs[i] );
-#ifdef SLAPD_SCHEMA_COMPAT
-		a->ai_syntaxmask = attr_syntax( a->ai_type );
-#endif
+
 		if ( argc == 1 ) {
 			a->ai_indexmask = (
 				SLAP_INDEX_PRESENCE | SLAP_INDEX_EQUALITY |
