@@ -26,7 +26,7 @@ ucgendat: $(LIBRARY) ucgendat.o
 install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(DESTDIR)$(datadir)/ucdata
 	@for i $(DATFILES); do \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(DESTDIR)$(datadir)/ucdata; \
 	done
 
 .links :
