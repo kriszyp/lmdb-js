@@ -1206,6 +1206,14 @@ struct slap_backend_db {
 #define		be_group	bd_info->bi_acl_group
 #define		be_attribute	bd_info->bi_acl_attribute
 #define		be_operational	bd_info->bi_operational
+
+/*
+ * define to honor hasSubordinates operational attribute in search filters
+ * (in previous use there was a flaw with back-bdb and back-ldbm; now it 
+ * is fixed).
+ */
+#define SLAP_X_FILTER_HASSUBORDINATES
+
 #ifdef SLAP_X_FILTER_HASSUBORDINATES
 #define		be_has_subordinates bd_info->bi_has_subordinates
 #endif /* SLAP_X_FILTER_HASSUBORDINATES */
