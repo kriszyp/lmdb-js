@@ -597,14 +597,14 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
     }
 
     if ( pmods == NULL || pmods[ i ] == NULL ) {
-	if (( pmods = (LDAPMod **)realloc( pmods, (i + 2) *
+	if (( pmods = (LDAPMod **)ber_memrealloc( pmods, (i + 2) *
 		sizeof( LDAPMod * ))) == NULL ) {
 	    perror( "realloc" );
 	    exit( 1 );
 	}
 	*pmodsp = pmods;
 	pmods[ i + 1 ] = NULL;
-	if (( pmods[ i ] = (LDAPMod *)calloc( 1, sizeof( LDAPMod )))
+	if (( pmods[ i ] = (LDAPMod *)ber_memcalloc( 1, sizeof( LDAPMod )))
 		== NULL ) {
 	    perror( "calloc" );
 	    exit( 1 );
@@ -643,7 +643,7 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 	    }
 	} else {
 	    bvp->bv_len = vlen;
-	    if (( bvp->bv_val = (char *)malloc( vlen + 1 )) == NULL ) {
+	    if (( bvp->bv_val = (char *)ber_memalloc( vlen + 1 )) == NULL ) {
 		perror( "malloc" );
 		exit( 1 );
 	    }
