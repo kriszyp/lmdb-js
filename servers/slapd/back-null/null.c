@@ -209,8 +209,6 @@ null_back_initialize(
 
 	bi->bi_extended = 0;
 
-	bi->bi_acl_group = 0;
-	bi->bi_acl_attribute = 0;
 	bi->bi_chk_referrals = 0;
 
 	bi->bi_connection_init = 0;
