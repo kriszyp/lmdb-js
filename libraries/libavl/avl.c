@@ -11,7 +11,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #ifndef lint

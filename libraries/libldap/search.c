@@ -5,48 +5,30 @@
  *  search.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
+#include <ac/socket.h>
+#include <ac/string.h>
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef NEEDPROTOS
-static char *find_right_paren( char *s );
-static char *put_complex_filter( BerElement *ber, char *str,
-	unsigned long tag, int not );
-static int put_filter( BerElement *ber, char *str );
-static int put_simple_filter( BerElement *ber, char *str );
-static int put_substring_filter( BerElement *ber, char *type, char *str );
-static int put_filter_list( BerElement *ber, char *str );
-#else
-static char *find_right_paren();
-static char *put_complex_filter();
-static int put_filter();
-static int put_simple_filter();
-static int put_substring_filter();
-static int put_filter_list();
-#endif /* NEEDPROTOS */
+static char *find_right_paren LDAP_P(( char *s ));
+static char *put_complex_filter LDAP_P(( BerElement *ber, char *str,
+	unsigned long tag, int not ));
+static int put_filter LDAP_P(( BerElement *ber, char *str ));
+static int put_simple_filter LDAP_P(( BerElement *ber, char *str ));
+static int put_substring_filter LDAP_P(( BerElement *ber, char *type, char *str ));
+static int put_filter_list LDAP_P(( BerElement *ber, char *str ));
 
 /*
  * ldap_search - initiate an ldap (and X.500) search operation.  Parameters:
@@ -80,17 +62,17 @@ ldap_search( LDAP *ld, char *base, int scope, char *filter,
 
 #ifndef NO_CACHE
 	if ( ld->ld_cache != NULL ) {
-		if ( check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
+		if ( ldap_check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
 			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_SUCCESS;
 			return( ld->ld_msgid );
 		}
-		add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
+		ldap_add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
 	}
 #endif /* NO_CACHE */
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));
 }
 
 
@@ -126,7 +108,7 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 	 */
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( NULLBER );
 	}
 

@@ -11,7 +11,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#define DISABLE_BRIDGE /* disable LDAP_BRIDGE code */
 #include "portable.h"
 
 #include <stdio.h>
@@ -24,21 +23,8 @@
 #endif
 
 #include <ac/string.h>
-
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
-
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-#ifdef PCNFS
-#include <tklib.h>
-#endif /* PCNFS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
+#include <ac/socket.h>
 
 #include "lber.h"
 
@@ -126,7 +112,7 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 		if ( ber_read( ber, (char *) &netlen + diff, noctets )
 		    != noctets )
 			return( LBER_DEFAULT );
-		*len = LBER_NTOHL( netlen );
+		*len = NTOHL( netlen );
 	} else {
 		*len = lc;
 	}
@@ -175,10 +161,10 @@ ber_getnint( BerElement *ber, long *num, int len )
         sign = (0x80 & *(p+diff) );
         if ( sign && len < sizeof(long) ) {
                 for ( i = 0; i < diff; i++ ) {
-                        *(p+i) = 0xff;
+                        *(p+i) = (char) 0xff;
 		}
 	}
-	*num = LBER_NTOHL( netnum );
+	*num = NTOHL( netnum );
 
 	return( len );
 }
@@ -191,7 +177,7 @@ ber_get_int( BerElement *ber, long *num )
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
 
-	if ( ber_getnint( ber, num, (int)len ) != len )
+	if ( (unsigned long) ber_getnint( ber, num, (int)len ) != len )
 		return( LBER_DEFAULT );
 	else
 		return( tag );
@@ -210,7 +196,7 @@ ber_get_stringb( BerElement *ber, char *buf, unsigned long *len )
 	if ( datalen > (*len - 1) )
 		return( LBER_DEFAULT );
 
-	if ( ber_read( ber, buf, datalen ) != datalen )
+	if ( (unsigned long) ber_read( ber, buf, datalen ) != datalen )
 		return( LBER_DEFAULT );
 
 	buf[datalen] = '\0';
@@ -249,7 +235,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 	if ( (*buf = (char *) malloc( (size_t)datalen + 1 )) == NULL )
 		return( LBER_DEFAULT );
 
-	if ( ber_read( ber, *buf, datalen ) != datalen )
+	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen )
 		return( LBER_DEFAULT );
 	(*buf)[datalen] = '\0';
 
@@ -282,7 +268,7 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 	if ( ((*bv)->bv_val = (char *) malloc( (size_t)len + 1 )) == NULL )
 		return( LBER_DEFAULT );
 
-	if ( ber_read( ber, (*bv)->bv_val, len ) != len )
+	if ( (unsigned long) ber_read( ber, (*bv)->bv_val, len ) != len )
 		return( LBER_DEFAULT );
 	((*bv)->bv_val)[len] = '\0';
 	(*bv)->bv_len = len;
@@ -319,7 +305,7 @@ ber_get_bitstringa( BerElement *ber, char **buf, unsigned long *blen )
 	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 )
 		return( LBER_DEFAULT );
 
-	if ( ber_read( ber, *buf, datalen ) != datalen )
+	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen )
 		return( LBER_DEFAULT );
 
 	*blen = datalen * 8 - unusedbits;

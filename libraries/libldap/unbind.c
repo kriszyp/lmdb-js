@@ -5,27 +5,17 @@
  *  unbind.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -55,17 +45,17 @@ ldap_ld_free( LDAP *ld, int close )
 		/* free LDAP structure and outstanding requests/responses */
 		for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
 			nextlr = lr->lr_next;
-			free_request( ld, lr );
+			ldap_free_request( ld, lr );
 		}
 
 		/* free and unbind from all open connections */
 		while ( ld->ld_conns != NULL ) {
-			free_connection( ld, ld->ld_conns, 1, close );
+			ldap_free_connection( ld, ld->ld_conns, 1, close );
 		}
 #else /* LDAP_REFERRALS */
 		if ( close ) {
-			err = send_unbind( ld, &ld->ld_sb );
-			close_connection( &ld->ld_sb );
+			err = ldap_send_unbind( ld, &ld->ld_sb );
+			ldap_close_connection( &ld->ld_sb );
 		}
 #endif /* LDAP_REFERRALS */
 	} else {
@@ -106,7 +96,7 @@ ldap_ld_free( LDAP *ld, int close )
 
 #ifdef LDAP_REFERRALS
 	if ( ld->ld_selectinfo != NULL )
-		free_select_info( ld->ld_selectinfo );
+		ldap_free_select_info( ld->ld_selectinfo );
 #endif /* LDAP_REFERRALS */
 
 	if ( ld->ld_defhost != NULL )
@@ -125,14 +115,14 @@ ldap_unbind_s( LDAP *ld )
 
 
 int
-send_unbind( LDAP *ld, Sockbuf *sb )
+ldap_send_unbind( LDAP *ld, Sockbuf *sb )
 {
 	BerElement	*ber;
 
-	Debug( LDAP_DEBUG_TRACE, "send_unbind\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_send_unbind\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( ld->ld_errno );
 	}
 

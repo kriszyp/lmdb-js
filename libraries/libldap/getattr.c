@@ -5,25 +5,18 @@
  *  getattr.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ctype.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -36,7 +29,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 
-	if ( (*ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( NULL );
 	}
 

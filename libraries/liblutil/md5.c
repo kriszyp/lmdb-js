@@ -33,6 +33,9 @@
 
 #include <ac/string.h>
 
+/* include socket.h to get sys/types.h and/or winsock2.h */
+#include <ac/socket.h>
+
 #include <lutil_md5.h>
 
 /* Little-endian byte-swapping routines.  Note that these do not

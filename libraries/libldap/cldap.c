@@ -5,7 +5,6 @@
  *  cldap.c - synchronous, retrying interface to the cldap protocol
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #ifdef CLDAP
@@ -15,22 +14,12 @@ static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the Universi
 #endif
 
 #include <stdio.h>
-#include <ac/string.h>
-#include <errno.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
-#ifdef DOS
-#include "msdos.h"
-#endif /* DOS */
 
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 #include "ldap.h"

@@ -5,21 +5,16 @@
  *  compare.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
 
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -52,7 +47,7 @@ ldap_compare( LDAP *ld, char *dn, char *attr, char *value )
 	Debug( LDAP_DEBUG_TRACE, "ldap_compare\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -65,17 +60,17 @@ ldap_compare( LDAP *ld, char *dn, char *attr, char *value )
 
 #ifndef NO_CACHE
 	if ( ld->ld_cache != NULL ) {
-		if ( check_cache( ld, LDAP_REQ_COMPARE, ber ) == 0 ) {
+		if ( ldap_check_cache( ld, LDAP_REQ_COMPARE, ber ) == 0 ) {
 			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_SUCCESS;
 			return( ld->ld_msgid );
 		}
-		add_request_to_cache( ld, LDAP_REQ_COMPARE, ber );
+		ldap_add_request_to_cache( ld, LDAP_REQ_COMPARE, ber );
 	}
 #endif /* NO_CACHE */
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_COMPARE, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_COMPARE, dn, ber ));
 }
 
 int

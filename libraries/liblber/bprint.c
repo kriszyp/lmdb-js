@@ -1,11 +1,11 @@
 
-#define LDAP_BRIDGE /* disable LDAP_BRIDGE code */
 #include "portable.h"
 
 #if defined( LDAP_DEBUG ) && defined( LDAP_LIBUI )
 #include <stdio.h>
-#include <ac/string.h>
 #include <ctype.h>
+
+#include <ac/string.h>
 #endif /* LDAP_DEBUG && LDAP_LIBUI  */
 
 #include "lber.h"

@@ -5,7 +5,6 @@
  *  cache.c - local caching support for LDAP
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #ifndef NO_CACHE
@@ -15,27 +14,11 @@ static char copyright[] = "@(#) Copyright (c) 1993 The Regents of the University
 #endif
 
 #include <stdio.h>
-#include <ac/string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include <time.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#ifdef WINSOCK
-#include <time.h>
-#endif /* WINSOCK */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -518,7 +501,9 @@ request_cmp( BerElement *req1, BerElement *req2 )
 	/*
 	 * check remaining length and bytes if necessary
 	 */
-	if (( len = r1.ber_end - r1.ber_ptr ) != r2.ber_end - r2.ber_ptr ) {
+	if (( len = r1.ber_end - r1.ber_ptr ) !=
+		(unsigned long) (r2.ber_end - r2.ber_ptr) )
+	{
 		return( -1 );	/* different lengths */
 	}
 	return( memcmp( r1.ber_ptr, r2.ber_ptr, (size_t)len ));

@@ -11,7 +11,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
@@ -21,26 +20,13 @@
 #include <ctype.h>
 #include <ac/unistd.h>
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS || _WIN32 */
-
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#ifdef PCNFS
-#include <tklib.h>
-#endif /* PCNFS */
-#endif /* MACOS */
+#include <ac/socket.h>
 
-#ifdef _WIN32
-#include <winsock.h>
+#ifdef HAVE_IO_H
 #include <io.h>
-#endif /* _WIN32 */
+#endif
 
 #include "lber.h"
 
@@ -320,8 +306,8 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 				return( -1 );
 			/* fake error if write was not atomic */
 			if (rc < towrite) {
-#if !defined( MACOS ) && !defined( DOS )
-			    errno = EMSGSIZE;
+#if defined( WSAEMSGSIZE )
+			    errno = WSAEMSGSIZE;
 #endif
 			    return( -1 );
 			}
@@ -538,7 +524,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 			    noctets ) {
 				return( LBER_DEFAULT );
 			}
-			*len = LBER_NTOHL( netlen );
+			*len = NTOHL( netlen );
 		} else {
 			*len = lc;
 		}
@@ -557,7 +543,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 #endif /* DOS && !_WIN32 */
 
 		if ( ( sb->sb_options & LBER_MAX_INCOMING_SIZE ) &&
-		    *len > sb->sb_max_incoming ) {
+		    *len > (unsigned long) sb->sb_max_incoming ) {
 			return( LBER_DEFAULT );
 		}
 

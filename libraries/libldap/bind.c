@@ -5,27 +5,17 @@
  *  bind.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include "msdos.h"
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#endif /* DOS */
-#endif /* MACOS */
+
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 #include "ldap.h"

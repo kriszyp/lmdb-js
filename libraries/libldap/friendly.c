@@ -5,28 +5,19 @@
  *  friendly.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
+#include <ctype.h>
 
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 #include "ldap.h"

@@ -5,7 +5,6 @@
  *  getfilter.c -- optional add-on to libldap
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #ifndef lint 
@@ -14,26 +13,17 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ac/string.h>
 #include <ctype.h>
-#include <sys/types.h>
-#include <regex.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
+#include <ac/errno.h>
+#include <ac/regex.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
 #include <sys/types.h>
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <sys/errno.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
+#endif
 
 #include "lber.h"
 #include "ldap.h"
@@ -131,7 +121,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	    nextflp->lfl_tag = strdup( tag );
 	    nextflp->lfl_pattern = tok[ 0 ];
 	    if ( (rc = regcomp( &re, nextflp->lfl_pattern, 0 )) != 0 ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));
 		ldap_getfilter_free( lfdp );
@@ -140,7 +130,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 #if !defined( MACOS ) && !defined( DOS )
 		errno = EINVAL;
 #endif
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		free_strarray( tok );
 		return( NULL );
 	    }
@@ -402,14 +392,16 @@ ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
 		*f++ = *p;
 	    }
 		
-	    if ( f - filtbuf > buflen ) {
+	    if ( (unsigned long) (f - filtbuf) > buflen ) {
 		/* sanity check */
 		--f;
 		break;
 	    }
 	}
 
-	if ( suffix != NULL && ( f - filtbuf ) < buflen ) {
+	if ( suffix != NULL && (
+		(unsigned long) ( f - filtbuf ) < buflen ) )
+	{
 	    strcpy( f, suffix );
 	} else {
 	    *f = '\0';

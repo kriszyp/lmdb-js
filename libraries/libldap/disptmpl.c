@@ -13,41 +13,30 @@
  * 7 March 1994 by Mark C Smith
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
+#include <ctype.h>
+
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
+#endif
+
+#include <ac/unistd.h>
 
 #include "lber.h"
 #include "ldap.h"
 #include "disptmpl.h"
 
-#ifndef NEEDPROTOS
-static void free_disptmpl();
-static int read_next_tmpl();
-int next_line_tokens();
-void free_strarray();
-#else /* !NEEDPROTOS */
-static void free_disptmpl( struct ldap_disptmpl *tmpl );
-static int read_next_tmpl( char **bufp, long *blenp,
-	struct ldap_disptmpl **tmplp, int dtversion );
-int next_line_tokens( char **bufp, long *blenp, char ***toksp );
-void free_strarray( char **sap );
-#endif /* !NEEDPROTOS */
+static void free_disptmpl LDAP_P(( struct ldap_disptmpl *tmpl ));
+static int read_next_tmpl LDAP_P(( char **bufp, long *blenp,
+	struct ldap_disptmpl **tmplp, int dtversion ));
+int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
+void free_strarray LDAP_P(( char **sap ));
 
 static char		*tmploptions[] = {
     "addable", "modrdn",
@@ -152,7 +141,7 @@ int
 ldap_init_templates_buf( char *buf, long buflen,
 	struct ldap_disptmpl **tmpllistp )
 {
-    int				rc, version;
+    int				rc=-1, version;
     char			**toks;
     struct ldap_disptmpl	*prevtmpl, *tmpl;
 
@@ -457,9 +446,9 @@ read_next_tmpl( char **bufp, long *blenp, struct ldap_disptmpl **tmplp,
     int				i, j, tokcnt, samerow, adsource;
     char			**toks, *itemopts;
     struct ldap_disptmpl	*tmpl;
-    struct ldap_oclist		*ocp, *prevocp;
-    struct ldap_adddeflist	*adp, *prevadp;
-    struct ldap_tmplitem	*rowp, *ip, *previp;
+    struct ldap_oclist		*ocp, *prevocp = NULL;
+    struct ldap_adddeflist	*adp, *prevadp = NULL;
+    struct ldap_tmplitem	*rowp = NULL, *ip, *previp = NULL;
 
     *tmplp = NULL;
 

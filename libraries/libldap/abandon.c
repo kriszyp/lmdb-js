@@ -5,37 +5,24 @@
  *  abandon.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
-
-#if !defined( MACOS ) && !defined( DOS )
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
-
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS */
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
+
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef NEEDPROTOS
-static int do_abandon( LDAP *ld, int origid, int msgid );
-#else /* NEEDPROTOS */
-static int do_abandon();
-#endif /* NEEDPROTOS */
+static int do_abandon LDAP_P(( LDAP *ld, int origid, int msgid ));
+
 /*
  * ldap_abandon - perform an ldap (and X.500) abandon operation. Parameters:
  *
@@ -107,7 +94,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 	err = 0;
 	if ( sendabandon ) {
 		/* create a message to send */
-		if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+		if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 			err = -1;
 			ld->ld_errno = LDAP_NO_MEMORY;
 		} else {
@@ -151,10 +138,10 @@ do_abandon( LDAP *ld, int origid, int msgid )
 #ifdef LDAP_REFERRALS
 	if ( lr != NULL ) {
 		if ( sendabandon ) {
-			free_connection( ld, lr->lr_conn, 0, 1 );
+			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
 		}
 		if ( origid == msgid ) {
-			free_request( ld, lr );
+			ldap_free_request( ld, lr );
 		}
 	}
 #endif /* LDAP_REFERRALS */

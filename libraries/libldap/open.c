@@ -5,32 +5,22 @@
  *  open.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#include <stdlib.h>
-#endif /* DOS */
+#include <ac/socket.h>
+#include <ac/string.h>
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#ifndef VMS
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#include <netinet/in.h>
-#endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
@@ -81,7 +71,7 @@ ldap_open( char *host, int port )
 	}
 	srv->lsrv_port = ld->ld_defport;
 
-	if (( ld->ld_defconn = new_connection( ld, &srv, 1,1,0 )) == NULL ) {
+	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL ) {
 		if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
 		free( (char *)srv );
 		ldap_ld_free( ld, 0 );
@@ -126,7 +116,7 @@ ldap_init( char *defhost, int defport )
 	}
 
 #ifdef LDAP_REFERRALS
-	if (( ld->ld_selectinfo = new_select_info()) == NULL ) {
+	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		free( (char*)ld );
 		return( NULL );
 	}
@@ -136,7 +126,7 @@ ldap_init( char *defhost, int defport )
 	if ( defhost != NULL &&
 	    ( ld->ld_defhost = strdup( defhost )) == NULL ) {
 #ifdef LDAP_REFERRALS
-		free_select_info( ld->ld_selectinfo );
+		ldap_free_select_info( ld->ld_selectinfo );
 #endif /* LDAP_REFERRALS */
 		free( (char*)ld );
 		return( NULL );
@@ -147,6 +137,10 @@ ldap_init( char *defhost, int defport )
 	ld->ld_version = LDAP_VERSION;
 	ld->ld_lberoptions = LBER_USE_DER;
 	ld->ld_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
+
+#ifdef LDAP_REFERRALS
+        ld->ld_options |= LDAP_OPT_REFERRALS;
+#endif /* LDAP_REFERRALS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
 	ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;
@@ -163,13 +157,14 @@ int
 open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 	char **krbinstancep, int async )
 {
-	int 			rc, port;
+	int 			rc = -1;
+	int				port;
 	char			*p, *q, *r;
 	char			*curhost, hostname[ 2*MAXHOSTNAMELEN ];
 
 	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
 
-	defport = htons( defport );
+	defport = htons( (short) defport );
 
 	if ( host != NULL ) {
 		for ( p = host; p != NULL && *p != '\0'; p = q ) {
@@ -197,13 +192,13 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 			    port = defport;   
 			}
 
-			if (( rc = connect_to_host( sb, curhost, 0L,
+			if (( rc = ldap_connect_to_host( sb, curhost, 0L,
 			    port, async )) != -1 ) {
 				break;
 			}
 		}
 	} else {
-		rc = connect_to_host( sb, NULL, htonl( INADDR_LOOPBACK ),
+		rc = ldap_connect_to_host( sb, NULL, htonl( INADDR_LOOPBACK ),
 		    defport, async );
 	}
 
@@ -213,7 +208,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 
 	if ( krbinstancep != NULL ) {
 #ifdef KERBEROS
-		if (( *krbinstancep = host_connected_to( sb )) != NULL &&
+		if (( *krbinstancep = ldap_host_connected_to( sb )) != NULL &&
 		    ( p = strchr( *krbinstancep, '.' )) != NULL ) {
 			*p = '\0';
 		}

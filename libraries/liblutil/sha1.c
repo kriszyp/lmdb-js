@@ -16,11 +16,15 @@
  */
 
 
-#define DISABLE_BRIDGE
 #include "portable.h"
-
-#include <sys/param.h>
 #include <ac/string.h>
+
+/* include socket.h to get sys/types.h and/or winsock2.h */
+#include <ac/socket.h>
+
+#if defined(HAVE_SYS_PARAM_H)
+#include <sys/param.h>
+#endif
 
 #include "lutil_sha1.h"
 
@@ -197,13 +201,27 @@ void ldap_SHA1Final(digest, context)
 static char rcsid[] = "$OpenBSD: sha1hl.c,v 1.1 1997/07/12 20:06:03 millert Exp $";
 #endif /* LIBC_SCCS and not lint */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
+#include <stdlib.h>
+
+#include <ac/errno.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
-#include <unistd.h>
+#endif
+
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
 
 /* ARGSUSED */
 char *

@@ -11,7 +11,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
@@ -24,21 +23,8 @@
 #include <varargs.h>
 #endif
 
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
-
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-#ifdef PCNFS
-#include <tklib.h>
-#endif /* PCNFS */
-
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
+#include <ac/socket.h>
 
 #include "lber.h"
 
@@ -79,7 +65,7 @@ ber_put_tag( BerElement	*ber, unsigned long tag, int nosos )
 
 	taglen = ber_calc_taglen( tag );
 
-	ntag = LBER_HTONL( tag );
+	ntag = HTONL( tag );
 
 	return( ber_write( ber, ((char *) &ntag) + sizeof(long) - taglen,
 	    taglen, nosos ) );
@@ -125,7 +111,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 	 */
 
 	if ( len <= 127 ) {
-		netlen = LBER_HTONL( len );
+		netlen = HTONL( len );
 		return( ber_write( ber, (char *) &netlen + sizeof(long) - 1,
 		    1, nosos ) );
 	}
@@ -152,7 +138,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 		return( -1 );
 
 	/* write the length itself */
-	netlen = LBER_HTONL( len );
+	netlen = HTONL( len );
 	if ( ber_write( ber, (char *) &netlen + (sizeof(long) - i), i, nosos )
 	    != i )
 		return( -1 );
@@ -203,7 +189,7 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
 		return( -1 );
 	i++;
-	netnum = LBER_HTONL( num );
+	netnum = HTONL( num );
 	if ( ber_write( ber, (char *) &netnum + (sizeof(long) - i), i, 0 )
 	   != i )
 		return( -1 );
@@ -259,7 +245,7 @@ ber_put_ostring( BerElement *ber, char *str, unsigned long len,
 #endif /* STR_TRANSLATION */
 
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ||
-		ber_write( ber, str, len, 0 ) != len ) {
+		(unsigned long) ber_write( ber, str, len, 0 ) != len ) {
 		rc = -1;
 	} else {
 		/* return length of tag + length + contents */
@@ -295,7 +281,7 @@ ber_put_bitstring( BerElement *ber, char *str,
 		return( -1 );
 
 	len = ( blen + 7 ) / 8;
-	unusedbits = len * 8 - blen;
+	unusedbits = (unsigned char) ((len * 8) - blen);
 	if ( (lenlen = ber_put_len( ber, len + 1, 0 )) == -1 )
 		return( -1 );
 
@@ -411,7 +397,7 @@ ber_put_seqorset( BerElement *ber )
 	 */
 
 	len = (*sos)->sos_clen;
-	netlen = LBER_HTONL( len );
+	netlen = HTONL( len );
 	if ( sizeof(long) > 4 && len > 0xFFFFFFFFL )
 		return( -1 );
 
@@ -460,12 +446,14 @@ ber_put_seqorset( BerElement *ber )
 
 		/* the tag */
 		taglen = ber_calc_taglen( (*sos)->sos_tag );
-		ntag = LBER_HTONL( (*sos)->sos_tag );
+		ntag = HTONL( (*sos)->sos_tag );
 		SAFEMEMCPY( (*sos)->sos_first, (char *) &ntag +
 		    sizeof(long) - taglen, taglen );
 
 		if ( ber->ber_options & LBER_USE_DER ) {
-			ltag = (lenlen == 1) ? len : 0x80 + (lenlen - 1);
+			ltag = (lenlen == 1)
+				? (unsigned char) len
+				: 0x80 + (lenlen - 1);
 		}
 
 		/* one byte of length length */

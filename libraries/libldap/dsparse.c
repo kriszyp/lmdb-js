@@ -15,37 +15,26 @@
  * 7 March 1994 by Mark C Smith
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
+
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <stdlib.h>
-#endif /* DOS */
-#endif /* MACOS */
+#endif
 
 #include "lber.h"
 #include "ldap.h"
 
-#ifndef NEEDPROTOS
-int next_line_tokens();
-void free_strarray();
-static int next_line();
-static char *next_token();
-#else /* !NEEDPROTOS */
-int next_line_tokens( char **bufp, long *blenp, char ***toksp );
-void free_strarray( char **sap );
-static int next_line( char **bufp, long *blenp, char **linep );
-static char *next_token( char ** sp );
-#endif /* !NEEDPROTOS */
+int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
+void free_strarray LDAP_P(( char **sap ));
+static int next_line LDAP_P(( char **bufp, long *blenp, char **linep ));
+static char *next_token LDAP_P(( char ** sp ));
 
 
 
