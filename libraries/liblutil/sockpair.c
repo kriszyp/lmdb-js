@@ -57,7 +57,8 @@ int lutil_pair( ber_socket_t sds[2] )
 		return rc;
 	}
 
-	sds[0] = sds[1] = sd;
+	sds[0] = sd;
+	sds[1] = dup( sds[0] );
 	return 0;
 #endif
 }
