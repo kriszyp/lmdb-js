@@ -31,7 +31,7 @@ backsql_LTX_init_module(
 
 	memset( &bi, '\0', sizeof( bi ) );
 	bi.bi_type = "sql";
-	bi.bi_init = backbacksql_initialize;
+	bi.bi_init = sql_back_initialize;
 
 	backend_add( &bi );
 	return 0;
