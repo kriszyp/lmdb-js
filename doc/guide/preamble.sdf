@@ -147,6 +147,7 @@ BDB|Berkeley DB
 BER|Basic Encoding Rules
 BNF|BNF
 C|The C Programming Language
+CA|Certificate Authority
 CLDAP|Connection-less LDAP
 DAP|Directory Access Protocol
 DER|Distinguished Encoding Rules
@@ -172,6 +173,7 @@ LDBM|LDAP Database Manager
 MIB|Management Information Base
 OID|Object Identifier
 OSI|OSI
+PEM|Privacy Enhanced eMail
 PS|Proposed Standard
 RDN|Relative Distinguished Name
 RFC|Request for Comments
