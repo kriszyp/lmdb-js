@@ -24,9 +24,10 @@ AC_PREFIX_DEFAULT(/usr/local)
 dnl General "enable" options
 OL_ARG_ENABLE(debug,[  --enable-debug	enable debugging], yes)dnl
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
+OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(dns,[  --enable-dns	enable dns support], no)dnl
+OL_ARG_ENABLE(dns,[  --enable-dns		enable dns support], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable referrals], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 
@@ -714,7 +715,7 @@ if test $ol_enable_crypt != no ; then
 			have_crypt=yes], [have_crypt=no])])
 
 	if test $have_crypt = yes ; then
-		AC_DEFINE(HAVE_CRYPT)
+		AC_DEFINE(HAVE_CRYPT,1)
 	else
 		AC_MSG_WARN(could not find crypt)
 		if test $ol_enable_crypt = yes ; then
@@ -723,6 +724,20 @@ if test $ol_enable_crypt != no ; then
 
 		AC_MSG_WARN(disabling crypt support)
 		ol_enable_crypt=no
+	fi
+fi
+
+# FreeBSD (and others) have setproctitle(3) in -lutil
+if test $ol_enable_proctitle != no ; then
+	AC_CHECK_FUNC(setproctitle,	[have_setproctitle=yes], [
+		AC_CHECK_LIB(util, setproctitle,
+			[have_setproctitle=yes
+			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
+			[have_setproctitle=no
+			LIBOBJS="$LIBOBJS setproctitle.o"])])
+
+	if test $have_setproctitle = yes ; then
+		AC_DEFINE(HAVE_SETPROCTITLE,1)
 	fi
 fi
 
@@ -737,16 +752,19 @@ fi
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(	\
+	stdarg.h		\
 	stddef.h		\
 	errno.h			\
 	fcntl.h			\
 	filio.h			\
 	getopt.h		\
+	libutil.h		\
 	limits.h		\
 	malloc.h		\
 	regex.h			\
 	sgtty.h			\
 	sys/file.h		\
+	sys/filio.h		\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
@@ -839,6 +857,9 @@ if test $ol_enable_cache = no ; then
 fi
 if test $ol_enable_dns != no ; then
 	AC_DEFINE(LDAP_DNS,1)
+fi
+if test $ol_enable_proctitle != no ; then
+	AC_DEFINE(LDAP_PROCTITLE,1)
 fi
 if test $ol_enable_referrals != no ; then
 	AC_DEFINE(LDAP_REFERRALS,1)
@@ -955,4 +976,7 @@ servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in \
-,[date > stamp-h])
+,[
+date > stamp-h
+echo Please \"make depend\" to build dependencies
+])

@@ -1,4 +1,5 @@
-/* include/portable.h.in.  Generated automatically from configure.in by autoheader.  */
+/* include/portable.h.nt -- manually updated of MS NT (MS VC5) */
+/* synced with portable.h.in 1.5 */
 /*
 Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
@@ -176,6 +177,15 @@ typedef char * caddr_t;
 /* define if your POSIX Threads implementatin is circa Draft 4 */
 /* #undef HAVE_PTHREADS_D4 */
 
+/* define if you have sched_yield() */
+#ifdef __notdef__
+/* see second sched_yield define */
+/* #undef HAVE_SCHED_YIELD */
+#endif
+
+/* define if you have setproctitle() */
+#undef HAVE_SETPROCTITLE
+
 /* define if you have -lwrap */
 /* #undef HAVE_TCPD */
 
@@ -196,6 +206,9 @@ typedef char * caddr_t;
 
 /* define this to remove -lldap cache support */
 /* #undef LDAP_NOCACHE */
+
+/* define this for LDAP process title support */
+/* #undef LDAP_PROCTITLE */
 
 /* define this for LDAP referrals support */
 #define LDAP_REFERRALS 1
@@ -371,6 +384,9 @@ typedef char * caddr_t;
 /* Define if you have the <krb.h> header file.  */
 /* #undef HAVE_KRB_H */
 
+/* Define if you have the <libutil.h> header file.  */
+/* #undef HAVE_LIBUTIL_H */
+
 /* Define if you have the <limits.h> header file.  */
 #define HAVE_LIMITS_H 1
 
@@ -404,6 +420,9 @@ typedef char * caddr_t;
 /* Define if you have the <sgtty.h> header file.  */
 /* #undef HAVE_SGTTY_H */
 
+/* Define if you have the <stdarg.h> header file.  */
+#define HAVE_STDARG_H 1
+
 /* Define if you have the <stddef.h> header file.  */
 #define HAVE_STDDEF_H 1
 
@@ -418,6 +437,9 @@ typedef char * caddr_t;
 
 /* Define if you have the <sys/file.h> header file.  */
 /* #undef HAVE_SYS_FILE_H */
+
+/* Define if you have the <sys/filio.h> header file.  */
+/* #undef HAVE_SYS_FILIO_H */
 
 /* Define if you have the <sys/ioctl.h> header file.  */
 /* #undef HAVE_SYS_IOCTL_H */
