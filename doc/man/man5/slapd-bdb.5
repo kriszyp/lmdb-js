@@ -38,23 +38,22 @@ manual page.
 Specify the size in entries of the in-memory cache maintained 
 by the BDB backend database instance.
 The default is 1000 entries.
-.\" .TP
-.\" Undocumented option, should use DB_CONFIG instead
-.\" .B checkpoint <kbyte> <min>
-.\" Specify the frequency for checkpointing the database transaction log.
-.\" A checkpoint operation flushes the database buffers to disk and writes
-.\" a checkpoint record in the log.
-.\" The checkpoint will occur if either <kbyte> data has been written or
-.\" <min> minutes have passed since the last checkpoint.
-.\" Both arguments default to zero, in which case they are ignored.
-.\" See the Berkeley DB reference guide for more details.
-.\" .TP
-.\" Undocumented option, should use DB_CONFIG instead
-.\" .B dbnosync
-.\" Specify that on-disk database contents should not be immediately
-.\" synchronized with in memory changes.
-.\" Enabling this option may improve performance at the expense of data
-.\" security.
+.TP
+.B checkpoint <kbyte> <min>
+Specify the frequency for checkpointing the database transaction log.
+A checkpoint operation flushes the database buffers to disk and writes
+a checkpoint record in the log.
+The checkpoint will occur if either <kbyte> data has been written or
+<min> minutes have passed since the last checkpoint.
+Both arguments default to zero, in which case they are ignored.
+See the Berkeley DB reference guide for more details.
+.TP
+.B dbnosync
+Specify that on-disk database contents should not be immediately
+synchronized with in memory changes.
+Enabling this option may improve performance at the expense of data
+security.
+See the Berkeley DB reference guide for more details.
 .TP
 .B directory <directory>
 Specify the directory where the BDB files containing this database and
