@@ -2324,6 +2324,7 @@ read_config( const char *fname, int depth )
 		} else if ( strcasecmp( cargv[0], "plugin" ) == 0 ) {
 #if defined( LDAP_SLAPI )
 
+#ifdef notdef /* allow global plugins, too */
 			/*
 			 * a "plugin" line must be inside a database
 			 * definition, since we implement pre-,post- 
@@ -2347,6 +2348,7 @@ read_config( const char *fname, int depth )
 					!= LDAP_SUCCESS ) {
 				return( 1 );
 			}
+#endif /* notdef */
 
 #else /* !defined( LDAP_SLAPI ) */
 #ifdef NEW_LOGGING
