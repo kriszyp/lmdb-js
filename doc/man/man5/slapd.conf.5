@@ -554,10 +554,16 @@ or administrative limit restrictions for operations on this database.
 This DN may or may not be associated with an entry.  An empty root
 DN (the default) specifies no root access is to be granted.  It is
 recommended that the rootdn only be specified when needed (such as
-when initially populating a database).
+when initially populating a database).  If the rootdn is within
+a namingContext (suffix) of the database, a simple bind password
+may also be provided using the
+.B rootpw
+directive.
 .TP
 .B rootpw <password>
-Specify a password (or hash of the password) for the rootdn.
+Specify a password (or hash of the password) for the rootdn.  If
+the rootdn is not within the namingContext of the database, the
+provided password is ignored.
 This option accepts all RFC 2307 userPassword formats known to
 the server (see 
 .B password-hash
