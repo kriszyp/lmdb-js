@@ -32,10 +32,12 @@
 #define berValidate						blobValidate
 
 /* unimplemented pretters */
-#ifndef USE_LDAP_DN_PARSING
-#define dnPretty						NULL
-#endif /* !USE_LDAP_DN_PARSING */
 #define integerPretty					NULL
+#ifndef USE_LDAP_DN_PARSING
+#	define dnPretty						NULL
+#else
+#	define SLAP_LDAPDN_PRETTY 0x1
+#endif /* !USE_LDAP_DN_PARSING */
 
 /* recycled matching routines */
 #define bitStringMatch					octetStringMatch
@@ -305,11 +307,11 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 }
 
 /*
- * In-place normalization of the structural representation 
- * of a distinguished name
+ * In-place, schema-aware normalization / "pretty"ing of the
+ * structural representation of a distinguished name.
  */
 static int
-DN_Normalize( LDAPDN *dn )
+LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 {
 	int 		iRDN;
 	int 		rc;
@@ -324,56 +326,60 @@ DN_Normalize( LDAPDN *dn )
 			LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
 			AttributeDescription	*ad = NULL;
 			const char		*text = NULL;
-			slap_syntax_transform_func *nf = NULL;
+			slap_syntax_transform_func *transf = NULL;
+			MatchingRule *mr;
 			struct berval		*bv = NULL;
 
 			rc = slap_bv2ad( ava->la_attr, &ad, &text );
 			if ( rc != LDAP_SUCCESS ) {
-				return( LDAP_INVALID_SYNTAX );
+				return LDAP_INVALID_SYNTAX;
 			}
 
 			/* 
-			 * FIXME: is this required? 
+			 * Replace attr oid/name with the canonical name
 			 */
 			ber_bvfree( ava->la_attr );
 			ava->la_attr = ber_bvdup( &ad->ad_cname );
-				
-			/*
-			 * FIXME: What is this intended for?
-			 */
-			nf = ad->ad_type->sat_syntax->ssyn_normalize;
-			if ( !nf ) {
-				break;
-			}
-				
-			rc = ( *nf )( ad->ad_type->sat_syntax,
-				 ava->la_value, &bv );
-			
-			if ( rc != LDAP_SUCCESS ) {
-				return( LDAP_INVALID_SYNTAX );
+
+			if( flags & SLAP_LDAPDN_PRETTY ) {
+				transf = ad->ad_type->sat_syntax->ssyn_pretty;
+				mr = NULL;
+			} else {
+				transf = ad->ad_type->sat_syntax->ssyn_normalize;
+				mr = ad->ad_type->sat_equality;
 			}
 
-			/*
-			 * FIXME: shouldn't this happen inside 
-			 * ssyn_normalize if the syntax is case 
-			 * insensitive?
-			 */
-			if ( !( ava->la_flags & LDAP_AVA_BINARY ) ) {
+			if ( transf ) {
+				/*
+			 	 * transform value by normalize/pretty function
+				 */
+				rc = ( *transf )( ad->ad_type->sat_syntax,
+					ava->la_value, &bv );
+			
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+			}
+
+			if( mr && ( mr->smr_usage & SLAP_MR_DN_FOLD ) ) {
 				struct berval *s = bv;
-				
-				bv = ber_bvstr( UTF8normalize( bv, 
-						UTF8_CASEFOLD ) );
+
+				bv = ber_bvstr( UTF8normalize( bv ? bv : ava->la_value, 
+					UTF8_CASEFOLD ) );
+
 				ber_bvfree( s );
 			}
 
-			ber_bvfree( ava->la_value );
-			ava->la_value = bv;
+			if( bv ) {
+				ber_bvfree( ava->la_value );
+				ava->la_value = bv;
+			}
 
 			AVA_Sort( rdn, iAVA );
 		}
 	}
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 int
@@ -384,7 +390,7 @@ dnNormalize(
 {
 	struct berval *out = NULL;
 
-	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: %s\n", val->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, ">>> dnNormalize: <%s>\n", val->bv_val, 0, 0 );
 
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
@@ -396,14 +402,15 @@ dnNormalize(
 		 */
 		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
 		if ( rc != LDAP_SUCCESS ) {
-			return( LDAP_INVALID_SYNTAX );
+			return LDAP_INVALID_SYNTAX;
 		}
 
 		/*
-		 * Add schema-aware normalization stuff
+		 * Schema-aware rewrite
 		 */
-		if ( DN_Normalize( dn ) != LDAP_SUCCESS ) {
-			goto error_return;
+		if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
+			ldapava_free_dn( dn );
+			return LDAP_INVALID_SYNTAX;
 		}
 
 		/*
@@ -411,13 +418,11 @@ dnNormalize(
 		 */
 		rc = ldap_dn2str( dn, &dn_out, LDAP_DN_FORMAT_LDAPV3 );
 
-		if ( rc != LDAP_SUCCESS ) {
-error_return:;
-			ldapava_free_dn( dn );
-			return( LDAP_INVALID_SYNTAX );
-		}
-
 		ldapava_free_dn( dn );
+
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
 
 		out = ber_bvstr( dn_out );
 
@@ -425,11 +430,11 @@ error_return:;
 		out = ber_bvdup( val );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<<< dnNormalize: %s\n", out->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<<< dnNormalize: <%s>\n", out->bv_val, 0, 0 );
 
 	*normalized = out;
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 int
@@ -440,6 +445,8 @@ dnPretty(
 {
 	struct berval *out = NULL;
 
+	Debug( LDAP_DEBUG_TRACE, ">>> dnPretty: <%s>\n", val->bv_val, 0, 0 );
+
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
 		char		*dn_out = NULL;
@@ -448,29 +455,25 @@ dnPretty(
 		/* FIXME: should be liberal in what we accept */
 		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
 		if ( rc != LDAP_SUCCESS ) {
-			return( LDAP_INVALID_SYNTAX );
+			return LDAP_INVALID_SYNTAX;
 		}
 
-		/* Add LDAPDN pretty code here
-		 *   pretty'ing MUST preserve values
-		 *   but MAY use alternative representation of value.
-		 *
-		 * That is, in addition to changes made by the
-		 * str->LDAPDN->str processing, this code can
-		 *	 convert values from BER to LDAP string representation
-		 *	 	(or other direction if appropriate)
-		 *	 "pretty" values
-		 *	 normalize attribute descriptions
-		 *	 reorder AVAs in RDNs
+		/*
+		 * Schema-aware rewrite
 		 */
+		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY ) != LDAP_SUCCESS ) {
+			ldapava_free_dn( dn );
+			return LDAP_INVALID_SYNTAX;
+		}
 
 		/* FIXME: not sure why the default isn't pretty */
 		rc = ldap_dn2str( dn, &dn_out,
 			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
+
 		ldapava_free_dn( dn );
 
 		if ( rc != LDAP_SUCCESS ) {
-			return( LDAP_INVALID_SYNTAX );
+			return LDAP_INVALID_SYNTAX;
 		}
 
 		out = ber_bvstr( dn_out );
@@ -479,9 +482,11 @@ dnPretty(
 		out = ber_bvdup( val );
 	}
 
+	Debug( LDAP_DEBUG_TRACE, "<<< dnPretty: <%s>\n", out->bv_val, 0, 0 );
+
 	*pretty = out;
 
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 int
@@ -4591,7 +4596,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, countryStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, dnValidate, dnNormalize, dnPretty},
+		0, dnValidate, dnNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
@@ -4787,7 +4792,7 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
 		NULL, NULL,
 		caseIgnoreMatch, caseExactIgnoreIndexer, caseExactIgnoreFilter,
 		directoryStringApproxMatchOID },
@@ -4833,7 +4838,7 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
 		NULL, NULL,
 		caseIgnoreIA5Match,
 		caseIgnoreIA5Indexer,
@@ -4851,7 +4856,7 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
 		NULL, NULL,
 		caseIgnoreListMatch, NULL, NULL,
 		NULL},
@@ -4893,7 +4898,7 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
 		NULL, NULL,
 		telephoneNumberMatch,
 		telephoneNumberIndexer,
@@ -4977,7 +4982,7 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
 		NULL, NULL,
 		caseIgnoreIA5Match, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
 		IA5StringApproxMatchOID },

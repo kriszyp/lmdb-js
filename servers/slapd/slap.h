@@ -8,6 +8,8 @@
 #ifndef _SLAP_H_
 #define _SLAP_H_
 
+#define USE_LDAP_DN_PARSING
+
 #include "ldap_defaults.h"
 
 #include <ac/stdlib.h>
@@ -338,6 +340,7 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_EXT				0x0800U
 
 #define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0010U )
+#define SLAP_MR_DN_FOLD			0x0008U
 
 #define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0010U )
 #define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0020U )
