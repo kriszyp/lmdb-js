@@ -230,10 +230,10 @@ slapd.exp: libslapd.a
 	dlltool --dllname slapd.exe --input-def slapd.def \
 		--base-file slapd.base --output-exp $@
 
-slapi/libslapi.a: FORCE
+slapi/.libs/libslapi.a: FORCE
 	(cd slapi; $(MAKE) $(MFLAGS) all)
 
-libslapi.a: slapi/libslapi.a
+libslapi.a: slapi/.libs/libslapi.a
 	cp slapi/.libs/libslapi.a .
 
 slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
