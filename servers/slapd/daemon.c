@@ -513,6 +513,8 @@ static Listener * slap_open_listener(
 		return NULL;
 	}
 
+	AC_MEMCPY( &l.sl_sa, *sal, addrlen );
+
 	switch ( (*sal)->sa_family ) {
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL: {
