@@ -236,12 +236,12 @@ main( int argc, char *argv[] )
 				}
 			}
 			
-			ldapava_free_dn( dn2 );
+			ldap_dnfree( dn2 );
 			ldap_memfree( str2 );
 		}
 		ldap_memfree( str );
 	}
-	ldapava_free_dn( dn );
+	ldap_dnfree( dn );
 
 	/* note: dn is not freed */
 

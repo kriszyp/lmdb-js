@@ -65,15 +65,14 @@ static int strval2ADstr( struct berval *val, char *str, unsigned flags,
 static int dn2domain( LDAPDN *dn, char *str, int *iRDN );
 
 /* AVA helpers */
-LDAPAVA * ldapava_new( const struct berval *attr, const struct berval *val, 
-		unsigned flags );
-void ldapava_free( LDAPAVA *ava );
-LDAPRDN * ldapava_append_to_rdn( LDAPRDN *rdn, LDAPAVA *ava );
-LDAPRDN * ldapava_insert_into_rdn( LDAPRDN *rdn, LDAPAVA *ava, unsigned where );
-/* void ldapava_free_rdn( LDAPRDN *rdn ); in ldap.h */
-LDAPDN * ldapava_append_to_dn( LDAPDN *dn, LDAPRDN *rdn );
-LDAPDN * ldapava_insert_into_dn( LDAPDN *dn, LDAPRDN *rdn, unsigned where );
-/* void ldapava_free_dn( LDAPDN *dn ); in ldap.h */
+static LDAPAVA * ldapava_new(
+	const struct berval *attr, const struct berval *val, unsigned flags );
+static LDAPRDN * ldapava_append_to_rdn( LDAPRDN *rdn, LDAPAVA *ava );
+static LDAPRDN * ldapava_insert_into_rdn(
+	LDAPRDN *rdn, LDAPAVA *ava, unsigned where );
+static LDAPDN * ldapava_append_to_dn( LDAPDN *dn, LDAPRDN *rdn );
+static LDAPDN * ldapava_insert_into_dn(
+	LDAPDN *dn, LDAPRDN *rdn, unsigned where );
 
 /* Higher level helpers */
 static int rdn2strlen( LDAPRDN *rdn, unsigned flags, ber_len_t *len,
@@ -204,7 +203,7 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 		v = LDAP_REALLOC( values, sizeof( char * ) * ( 2 + iRDN ) );
 		if ( v == NULL ) {
 			LBER_VFREE( values );
-			ldapava_free_dn( tmpDN );
+			ldap_dnfree( tmpDN );
 			return( NULL );
 		}
 		values = v;
@@ -292,13 +291,13 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 	}
 	values[ iAVA ] = NULL;
 
-	ldapava_free_dn( tmpDN );
+	ldap_dnfree( tmpDN );
 
 	return( values );
 
 error_return:;
 	LBER_VFREE( values );
-	ldapava_free_dn( tmpDN );
+	ldap_dnfree( tmpDN );
 	return( NULL );
 #endif /* USE_LDAP_DN_PARSING */
 }
@@ -606,7 +605,7 @@ dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 
 	rc = ldap_dn2str( tmpDN, dnout, fout );
 
-	ldapava_free_dn( tmpDN );
+	ldap_dnfree( tmpDN );
 
 	return( rc );
 }
@@ -795,9 +794,12 @@ ldapava_new( const struct berval *attr, const struct berval *val,
 }
 
 void
-ldapava_free( LDAPAVA *ava )
+ldap_avafree( LDAPAVA *ava )
 {
 	assert( ava );
+
+	/* ava's private must be freed by caller */
+	assert( ava->la_private != NULL );
 
 	ber_bvfree( ava->la_attr );
 	ber_bvfree( ava->la_value );
@@ -859,7 +861,7 @@ ldapava_insert_into_rdn( LDAPRDN *rdn, LDAPAVA *ava, unsigned where )
 }
 
 void
-ldapava_free_rdn( LDAPRDN *rdn )
+ldap_rdnfree( LDAPRDN *rdn )
 {
 	int iAVA;
 	
@@ -870,7 +872,7 @@ ldapava_free_rdn( LDAPRDN *rdn )
 	for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
 		assert( rdn[ iAVA ][ 0 ] );
 
-		ldapava_free( rdn[ iAVA ][ 0 ] );
+		ldap_avafree( rdn[ iAVA ][ 0 ] );
 	}
 
 	LDAP_VFREE( rdn );
@@ -930,7 +932,7 @@ ldapava_insert_into_dn( LDAPDN *dn, LDAPRDN *rdn, unsigned where )
 }
 
 void
-ldapava_free_dn( LDAPDN *dn )
+ldap_dnfree( LDAPDN *dn )
 {
 	int iRDN;
 	
@@ -941,7 +943,7 @@ ldapava_free_dn( LDAPDN *dn )
 	for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
 		assert( dn[ iRDN ][ 0 ] );
 
-		ldapava_free_rdn( dn[ iRDN ][ 0 ] );
+		ldap_rdnfree( dn[ iRDN ][ 0 ] );
 	}
 
 	LDAP_VFREE( dn );
@@ -1085,11 +1087,11 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 	
 parsing_error:;
 	if ( newRDN ) {
-		ldapava_free_rdn( newRDN );
+		ldap_rdnfree( newRDN );
 	}
 
 	if ( newDN ) {
-		ldapava_free_dn( newDN );
+		ldap_dnfree( newDN );
 		newDN = NULL;
 	}
 
@@ -1537,7 +1539,7 @@ parsing_error:;
 	}
 
 	if ( newRDN ) {
-		ldapava_free_rdn( newRDN );
+		ldap_rdnfree( newRDN );
 		newRDN = NULL;
 	}
 

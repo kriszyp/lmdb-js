@@ -124,7 +124,7 @@ dnValidate(
 		rc = LDAPDN_validate( dn );
 	}
 	
-	ldapava_free_dn( dn );
+	ldap_dnfree( dn );
 	
 	if ( rc != LDAP_SUCCESS ) {
 		return( LDAP_INVALID_SYNTAX );
@@ -328,7 +328,7 @@ dnNormalize(
 		 * Schema-aware rewrite
 		 */
 		if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
-			ldapava_free_dn( dn );
+			ldap_dnfree( dn );
 			return LDAP_INVALID_SYNTAX;
 		}
 
@@ -337,7 +337,7 @@ dnNormalize(
 		 */
 		rc = ldap_dn2str( dn, &dn_out, LDAP_DN_FORMAT_LDAPV3 );
 
-		ldapava_free_dn( dn );
+		ldap_dnfree( dn );
 
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
@@ -387,7 +387,7 @@ dnPretty(
 		 * Schema-aware rewrite
 		 */
 		if ( LDAPDN_rewrite( dn, SLAP_LDAPDN_PRETTY ) != LDAP_SUCCESS ) {
-			ldapava_free_dn( dn );
+			ldap_dnfree( dn );
 			return LDAP_INVALID_SYNTAX;
 		}
 
@@ -398,7 +398,7 @@ dnPretty(
 		rc = ldap_dn2str( dn, &dn_out,
 			LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
 
-		ldapava_free_dn( dn );
+		ldap_dnfree( dn );
 
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;

@@ -1186,11 +1186,18 @@ typedef LDAPRDN** LDAPDN;
 #define LDAP_DN_FORMAT_AD_CANONICAL	0x0050U	/* dn2str only */
 #define LDAP_DN_FORMAT_MASK		0x00F0U
 
-/* str2dn flags */
+/* DN flags */
 #define LDAP_DN_PRETTY			0x0100U
 #define LDAP_DN_P_NOLEADTRAILSPACES	0x1000U
 #define LDAP_DN_P_NOSPACEAFTERRDN	0x2000U
 #define LDAP_DN_PEDANTIC		0xF000U
+
+LDAP_F( void )
+ldap_avafree LDAP_P(( LDAPAVA *ava ));
+LDAP_F( void )
+ldap_rdnfree LDAP_P(( LDAPRDN *rdn ));
+LDAP_F( void )
+ldap_dnfree LDAP_P(( LDAPDN *dn ));
 
 LDAP_F( int )
 ldap_str2dn LDAP_P((
@@ -1204,9 +1211,6 @@ ldap_dn2str LDAP_P((
 	char **str,
 	unsigned flags ));
 
-LDAP_F( void )
-ldapava_free_dn LDAP_P(( LDAPDN *dn ));
-
 LDAP_F( int )
 ldap_str2rdn LDAP_P(( 
 	const char *str, 
@@ -1219,9 +1223,6 @@ ldap_rdn2str LDAP_P((
 	LDAPRDN *rdn, 
 	char **str, 
 	unsigned flags ));
-
-LDAP_F( void )
-ldapava_free_rdn LDAP_P(( LDAPRDN *rdn ));
 
 LDAP_F( int )
 ldap_dn_normalize LDAP_P((
