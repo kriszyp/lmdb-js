@@ -733,11 +733,10 @@ static Listener * slap_open_listener(
 		inet_ntop( AF_INET, &((struct sockaddr_in *)*sal)->sin_addr,
 			   addr, sizeof(addr) );
 		s = addr;
-		port = ((struct sockaddr_in *)*sal) ->sin_port;
 #else
-		s = inet_ntoa( l.sl_addr.sin_addr );
-		port = l.sl_addr.sin_port;
+		s = inet_ntoa( ((struct sockaddr_in *) *sal)->sin_addr );
 #endif
+		port = ((struct sockaddr_in *)*sal) ->sin_port;
 		l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65535") );
 		sprintf( l.sl_name, "IP=%s:%d",
 			 s != NULL ? s : "unknown" , port );
