@@ -55,6 +55,9 @@ int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 
 	fclose( f );
 	signal( SIGPIPE, sig );
+	if ( res > 0 && res < n ) {
+		res = vsprintf( str, fmt, ap );
+	}
 	return res;
 }
 #endif
