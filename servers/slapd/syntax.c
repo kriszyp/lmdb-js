@@ -104,8 +104,12 @@ syn_add(
     LDAP_SYNTAX		*syn,
 	unsigned flags,
     slap_syntax_validate_func	*validate,
+    slap_syntax_transform_func	*normalize,
+    slap_syntax_transform_func	*pretty,
+#ifdef SLAPD_BINARY_CONVERSION
     slap_syntax_transform_func	*ber2str,
     slap_syntax_transform_func	*str2ber,
+#endif
     const char		**err
 )
 {
@@ -120,6 +124,8 @@ syn_add(
 
 	ssyn->ssyn_flags = flags;
 	ssyn->ssyn_validate = validate;
+	ssyn->ssyn_normalize = normalize;
+	ssyn->ssyn_pretty = pretty;
 
 #ifdef SLAPD_BINARY_CONVERSION
 	ssyn->ssyn_ber2str = ber2str;

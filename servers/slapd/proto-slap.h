@@ -572,13 +572,25 @@ LIBSLAPD_F (int) oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 
 LIBSLAPD_F (Syntax *) syn_find LDAP_P((const char *synname));
 LIBSLAPD_F (Syntax *) syn_find_desc LDAP_P((const char *syndesc, int *slen));
+#ifdef SLAPD_BINARY_CONVERSION
 LIBSLAPD_F (int) syn_add LDAP_P((
 	LDAP_SYNTAX *syn,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
+	slap_syntax_transform_func *normalize,
+	slap_syntax_transform_func *pretty,
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber,
 	const char **err));
+#else
+LIBSLAPD_F (int) syn_add LDAP_P((
+	LDAP_SYNTAX *syn,
+	unsigned flags,
+	slap_syntax_validate_func *validate,
+	slap_syntax_transform_func *normalize,
+	slap_syntax_transform_func *pretty,
+	const char **err));
+#endif
 
 LIBSLAPD_F (MatchingRule *) mr_find LDAP_P((const char *mrname));
 LIBSLAPD_F (int) mr_add LDAP_P((LDAP_MATCHING_RULE *mr,

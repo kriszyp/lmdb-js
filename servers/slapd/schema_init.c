@@ -54,9 +54,7 @@ UTF8StringValidate(
 
 static int
 UTF8StringNormalize(
-	unsigned use,
 	Syntax *syntax,
-	MatchingRule *mr,
 	struct berval *val,
 	struct berval **normalized )
 {
@@ -237,9 +235,7 @@ IA5StringConvert(
 
 static int
 IA5StringNormalize(
-	unsigned use,
 	Syntax *syntax,
-	MatchingRule *mr,
 	struct berval *val,
 	struct berval **normalized )
 {
@@ -353,8 +349,12 @@ struct syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
 	slap_syntax_validate_func *sd_validate;
+	slap_syntax_transform_func *sd_normalize;
+	slap_syntax_transform_func *sd_pretty;
+#ifdef SLAPD_BINARY_CONVERSION
 	slap_syntax_transform_func *sd_ber2str;
 	slap_syntax_transform_func *sd_str2ber;
+#endif
 };
 
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
@@ -393,7 +393,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )",
-		0, UTF8StringValidate, NULL, NULL},
+		0, UTF8StringValidate, UTF8StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DIT Content Rule Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DIT Structure Rule Description' )",
@@ -413,7 +413,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
-		0, IA5StringValidate, NULL, NULL},
+		0, IA5StringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
 		0, integerValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
@@ -558,33 +558,33 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, UTF8StringNormalize, caseIgnoreMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreMatch, NULL, NULL},
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING,
-		NULL, UTF8StringNormalize, caseIgnoreOrderingMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreOrderingMatch, NULL, NULL},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, UTF8StringNormalize, caseIgnoreSubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreSubstringsMatch, NULL, NULL},
 
 	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, UTF8StringNormalize, caseExactMatch, NULL, NULL},
+		NULL, NULL, caseExactMatch, NULL, NULL},
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING,
-		NULL, UTF8StringNormalize, caseExactOrderingMatch, NULL, NULL},
+		NULL, NULL, caseExactOrderingMatch, NULL, NULL},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, UTF8StringNormalize, caseExactSubstringsMatch, NULL, NULL},
+		NULL, NULL, caseExactSubstringsMatch, NULL, NULL},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
@@ -669,17 +669,17 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, IA5StringNormalize, caseExactIA5Match, NULL, NULL},
+		NULL, NULL, caseExactIA5Match, NULL, NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, IA5StringNormalize, caseIgnoreIA5Match, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5Match, NULL, NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
-		NULL, IA5StringNormalize, caseIgnoreIA5SubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5SubstringsMatch, NULL, NULL},
 
 	{NULL, SLAP_MR_NONE, NULL, NULL, NULL}
 };
@@ -699,8 +699,14 @@ schema_init( void )
 		res = register_syntax( syntax_defs[i].sd_desc,
 		    syntax_defs[i].sd_flags,
 		    syntax_defs[i].sd_validate,
+		    syntax_defs[i].sd_normalize,
+			syntax_defs[i].sd_pretty
+#ifdef SLAPD_BINARY_CONVERSION
+			,
 		    syntax_defs[i].sd_ber2str,
-			syntax_defs[i].sd_str2ber );
+			syntax_defs[i].sd_str2ber
+#endif
+		);
 
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering syntax %s\n",
