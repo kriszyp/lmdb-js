@@ -216,9 +216,10 @@ OL_ARG_WITH(perl_module,[    --with-perl-module	  module type static|dynamic], s
 OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
 OL_ARG_WITH(shell_module,[    --with-shell-module	  module type static|dynamic], static,
 	[static dynamic])
-OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
-OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static,
-	[static dynamic])
+dnl OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
+dnl OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static, [static dynamic])
+ol_enable_sql=${ol_enable_sql-no}
+ol_with_sql_module=${ol_enable_sql-static}
 
 dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
@@ -608,18 +609,18 @@ if test $ol_aix_threads = yes ; then
 fi
 
 if test -z "${CC}"; then
-	AC_CHECK_PROGS(CC,cc)
-fi
+	AC_CHECK_PROGS(CC,cc gcc,missing)
 
-dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
-dnl (for now, let autoconf sort this out)
-dnl CFLAGS=${CFLAGS-""}
+	if test "${CC}" = "missing" ; then
+		AC_MSG_ERROR([Unable to locate cc(1) or suitable replacement.  Check PATH or set CC.])
+	fi
+fi
 
 if test -z "${AR}"; then
 	AC_CHECK_PROGS(AR,ar gar,missing)
 
 	if test "${AR}" = "missing" ; then
-		AC_MSG_ERROR([Unable to locate ar(1).  Check PATH or set AR.])
+		AC_MSG_ERROR([Unable to locate ar(1) or suitable replacement.  Check PATH or set AR.])
 	fi
 fi
 
