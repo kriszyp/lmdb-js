@@ -86,12 +86,12 @@ filter_candidates(
 
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
-		result = presence_candidates( be, f->f_desc );
+		result = presence_candidates( be, f->f_ava->aa_desc );
 		break;
 
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
-		result = presence_candidates( be, f->f_desc );
+		result = presence_candidates( be, f->f_ava->aa_desc );
 		break;
 
 	case LDAP_FILTER_AND:
