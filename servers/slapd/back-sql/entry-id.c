@@ -398,6 +398,24 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 				continue;
 			}
 
+			/* if one of the attributes listed here is
+			 * a subtype of another, it must be ignored,
+			 * because subtypes are already dealt with
+			 * by backsql_supad2at()
+			 */
+			for ( j = 0; bsi->bsi_attrs[ j ].an_name.bv_val; j++ ) {
+				/* skip self */
+				if ( j == i ) {
+					continue;
+				}
+
+				/* skip subtypes */
+				if ( is_at_subtype( attr->an_desc->ad_type, bsi->bsi_attrs[ j ].an_desc->ad_type ) )
+				{
+					goto next;
+				}
+			}
+
 			rc = backsql_supad2at( bsi->bsi_oc, attr->an_desc, &vat );
 			if ( rc != 0 || vat == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
@@ -413,6 +431,8 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 			}
 
 			ch_free( vat );
+
+next:;
 		}
 
 	} else {
