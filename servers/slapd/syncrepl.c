@@ -310,15 +310,15 @@ do_syncrep1(
 
 	/* get syncrepl cookie of shadow replica from subentry */
 
-	assert( si->si_id < 1000 );
+	assert( si->si_rid < 1000 );
 	syncrepl_cn_bv.bv_val = syncrepl_cbuf;
 	syncrepl_cn_bv.bv_len = snprintf(syncrepl_cbuf, sizeof(syncrepl_cbuf),
-		CN_STR "syncrepl%d", si->si_id );
+		CN_STR "syncrepl%d", si->si_rid );
 	build_new_dn( &op->o_req_ndn, psub, &syncrepl_cn_bv, op->o_tmpmemctx );
 	op->o_req_dn = op->o_req_ndn;
 
 	LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
-		if ( si->si_id == sc->rid ) {
+		if ( si->si_rid == sc->rid ) {
 			cmdline_cookie_found = 1;
 			break;
 		}
@@ -1492,10 +1492,10 @@ syncrepl_updateCookie(
 	modtail = &mod->sml_next;
 
 	ber_dupbv( &cnbva[0], (struct berval *) &slap_syncrepl_bvc );
-	assert( si->si_id < 1000 );
+	assert( si->si_rid < 1000 );
 	cnbva[0].bv_len = snprintf( cnbva[0].bv_val,
 		slap_syncrepl_bvc.bv_len,
-		"syncrepl%d", si->si_id );
+		"syncrepl%d", si->si_rid );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_cn;
@@ -1545,10 +1545,10 @@ syncrepl_updateCookie(
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
 	slap_syncrepl_cn_bv.bv_val = syncrepl_cbuf;
-	assert( si->si_id < 1000 );
+	assert( si->si_rid < 1000 );
 	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
 		slap_syncrepl_cn_bvc.bv_len,
-		"cn=syncrepl%d", si->si_id );
+		"cn=syncrepl%d", si->si_rid );
 
 	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv,
 		op->o_tmpmemctx );

@@ -1125,7 +1125,7 @@ particular, it is not possible to use moddn to move an entry from
 one subordinate to another subordinate within the namingContext.
 .HP
 .hy 0
-.B syncrepl id=<replica ID>
+.B syncrepl rid=<replica ID>
 .B provider=ldap[s]://<hostname>[:port]
 .B [type=refreshOnly|refreshAndPersist]
 .B [interval=dd:hh:mm:ss]
@@ -1161,7 +1161,7 @@ setting up a replicated
 directory service using the 
 .B syncrepl
 replication engine.
-.B id
+.B rid
 identifies the current
 .B syncrepl
 directive within the replication consumer site.

@@ -1313,7 +1313,7 @@ LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
 
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
-        long				si_id;
+        long				si_rid;
         char				*si_provideruri;
         BerVarray			si_provideruri_bv;
 #define SYNCINFO_TLS_OFF		0

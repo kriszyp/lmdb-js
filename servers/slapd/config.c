@@ -2800,7 +2800,7 @@ add_syncrepl(
 	rc = parse_syncrepl_line( cargv, cargc, si );
 
 	LDAP_STAILQ_FOREACH( si_entry, &be->be_syncinfo, si_next ) {
-		if ( si->si_id == si_entry->si_id ) {
+		if ( si->si_rid == si_entry->si_rid ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONFIG, ERR,
 					"add_syncrepl: duplicaetd replica id\n", 0, 0,0 );
@@ -2866,7 +2866,7 @@ add_syncrepl(
 	}
 }
 
-#define IDSTR			"id"
+#define IDSTR			"rid"
 #define PROVIDERSTR		"provider"
 #define SUFFIXSTR		"suffix"
 #define UPDATEDNSTR		"updatedn"
@@ -2929,7 +2929,7 @@ parse_syncrepl_line(
 					 "syncrepl id %d is out of range [0..999]\n", tmp );
 				return -1;
 			}
-			si->si_id = tmp;
+			si->si_rid = tmp;
 			gots |= GOT_ID;
 		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR,
 					sizeof( PROVIDERSTR ) - 1 )) {
