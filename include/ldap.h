@@ -306,12 +306,12 @@ typedef struct ldapcontrol {
 #define LDAP_FEATURE_ABSOLUTE_FILTERS "1.3.6.1.4.1.4203.1.5.3"  /* (&) (|) */
 #define LDAP_FEATURE_LANGUAGE_TAG_OPTIONS "1.3.6.1.4.1.4203.1.5.4"
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"
+#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.8.2"
 
 #ifdef LDAP_DEVEL
 #define LDAP_FEATURE_SUBORDINATE_SCOPE \
 	"1.3.6.1.4.1.4203.666.8.1" /* "children" */
 #define LDAP_FEATURE_CHILDREN_SCOPE LDAP_FEATURE_SUBORDINATE_SCOPE
-#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.8.2"
 #endif
 
 /*
@@ -752,6 +752,7 @@ ldap_parse_intermediate LDAP_P((
 /*
  * in groupings.c:
  */
+#ifdef LDAP_EXOP_GROUPING_CREATE
 
 LDAP_F( int )
 ldap_grouping_create LDAP_P((
@@ -852,6 +853,7 @@ ldap_parse_grouping_info_notice LDAP_P((
 	struct berval	**retgrpcookiep,
 	struct berval	**retgrpdatap,
 	int				freeit ));
+#endif
 
 /*
  * in abandon.c:
