@@ -3,11 +3,14 @@ OpenLDAP 2.2 Change Log
 OpenLDAP 2.2.18 Engineering
 	Fixed libldap schema keyword sensitivity 
 	Fixed libldap DN filter sensitivity 
+	Fixed libldap recursive bind crash (ITS#3359)
 	Fixed slapd matching rule name sensitivity
 	Fixed slapd referral memory leak
 	Fixed slapd mods2entry memory leak
 	Fixed slapd multiple value delete (ITS#3346)
 	Updated back-sql
+	Documentation
+		Updated release documents
 
 OpenLDAP 2.2.17 Release
 	Fixed slapd syncrepl memory leak bugs
