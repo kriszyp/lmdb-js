@@ -340,7 +340,7 @@ ber_start_seqorset( BerElement *ber, unsigned long tag )
 {
 	Seqorset	*new;
 
-	if ( (new = (Seqorset *) calloc( sizeof(Seqorset), 1 ))
+	if ( (new = (Seqorset *) calloc( 1, sizeof(Seqorset) ))
 	    == NULLSEQORSET )
 		return( -1 );
 	new->sos_ber = ber;
