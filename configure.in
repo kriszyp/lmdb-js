@@ -1484,11 +1484,12 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 
 			dnl All POSIX Thread (final) implementations should have
 			dnl sched_yield instead of pthread yield.
-			dnl check for both
-			AC_CHECK_FUNCS(sched_yield pthread_yield)
+			dnl check for both, and thr_yield for Solaris
+			AC_CHECK_FUNCS(sched_yield pthread_yield thr_yield)
 
 			if test $ac_cv_func_sched_yield = no -a \
-				$ac_cv_func_pthread_yield = no ; then
+				$ac_cv_func_pthread_yield = no -a \
+				$ac_cv_func_thr_yield = no ; then
 				dnl Digital UNIX has sched_yield() in -lrt
 				AC_CHECK_LIB(rt, sched_yield,
 					[LTHREAD_LIBS="$LTHREAD_LIBS -lrt"
@@ -1496,12 +1497,6 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 						[Define if you have the sched_yield function.])
 					ac_cv_func_sched_yield=yes],
 					[ac_cv_func_sched_yield=no])
-			fi
-			if test $ac_cv_func_sched_yield = no -a \
-				$ac_cv_func_pthread_yield = no ; then
-				dnl Solaris has sched_yield() stub in -lposix4
-				dnl but we'll use thr_yield instead.
-				AC_CHECK_FUNCS(thr_yield)
 			fi
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no -a \

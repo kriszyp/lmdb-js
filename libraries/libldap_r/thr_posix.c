@@ -179,15 +179,15 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 int 
 ldap_pvt_thread_yield( void )
 {
-#if HAVE_PTHREADS == 10
+#if HAVE_THR_YIELD
+	return thr_yield();
+
+#elif HAVE_PTHREADS == 10
 	return sched_yield();
 
 #elif defined(_POSIX_THREAD_IS_GNU_PTH)
 	sched_yield();
 	return 0;
-
-#elif HAVE_THR_YIELD
-	return thr_yield();
 
 #elif HAVE_PTHREADS == 6
 	pthread_yield(NULL);
