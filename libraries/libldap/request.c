@@ -568,7 +568,7 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 int
 ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 {
-	int		rc, count, len, newdn;
+	int		rc, count, len, newdn = 0;
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 	int		ldapref;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
@@ -656,9 +656,13 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		*hadrefp = 1;
 		if (( refdn = strchr( tmpref, '/' )) != NULL ) {
 			*refdn++ = '\0';
-			newdn = 1;
-		} else {
-			newdn = 0;
+			if ( *refdn != '\0' )
+			{
+				newdn = 1;
+			} else
+			{
+				refdn = NULL;
+			}
 		}
 
 		if (( ber = re_encode_request( ld, origreq->lr_ber,
