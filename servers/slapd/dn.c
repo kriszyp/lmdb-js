@@ -398,33 +398,8 @@ dnNormalize(
 	return LDAP_SUCCESS;
 }
 
-#if 0
-/*
- * dn "pretty"ing routine
- */
 int
 dnPretty(
-	Syntax *syntax,
-	struct berval *val,
-	struct berval **pretty)
-{
-	struct berval *out;
-	int rc;
-
-	assert( pretty && *pretty == NULL );
-
-	out = ch_malloc( sizeof( struct berval ) );
-	rc = dnPretty2( syntax, val, out );
-	if ( rc != LDAP_SUCCESS )
-		free( out );
-	else
-		*pretty = out;
-	return rc;
-}
-#endif
-
-int
-dnPretty2(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *out,

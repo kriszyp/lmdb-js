@@ -376,12 +376,7 @@ LDAP_SLAPD_F (int) dnValidate LDAP_P((
 LDAP_SLAPD_F (slap_mr_normalize_func) dnNormalize;
 #define dnNormalize2(s,v,n,x)		dnNormalize(0,(s),NULL,(v),(n),(x))
 
-LDAP_SLAPD_F (int) dnPretty LDAP_P(( 
-	Syntax *syntax, 
-	struct berval *val, 
-	struct berval **pretty ));
-
-LDAP_SLAPD_F (slap_syntax_transform_func) dnPretty2;
+LDAP_SLAPD_F (slap_syntax_transform_func) dnPretty;
 
 LDAP_SLAPD_F (int) dnPrettyNormal LDAP_P(( 
 	Syntax *syntax, 

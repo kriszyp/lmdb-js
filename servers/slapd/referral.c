@@ -44,7 +44,7 @@ static char * referral_dn_muck(
 		bvin.bv_val = (char *)refDN;
 		bvin.bv_len = strlen( refDN );
 
-		rc = dnPretty2( NULL, &bvin, &nrefDN, NULL );
+		rc = dnPretty( NULL, &bvin, &nrefDN, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			/* Invalid refDN */
 			return NULL;
@@ -59,7 +59,7 @@ static char * referral_dn_muck(
 		return nrefDN.bv_len ? nrefDN.bv_val : ch_strdup( baseDN->bv_val );
 	}
 
-	rc = dnPretty2( NULL, targetDN, &ntargetDN, NULL );
+	rc = dnPretty( NULL, targetDN, &ntargetDN, NULL );
 	if( rc != LDAP_SUCCESS ) {
 		/* Invalid targetDN */
 		ch_free( nrefDN.bv_val );
@@ -67,7 +67,7 @@ static char * referral_dn_muck(
 	}
 
 	if( nrefDN.bv_len ) {
-		rc = dnPretty2( NULL, baseDN, &nbaseDN, NULL );
+		rc = dnPretty( NULL, baseDN, &nbaseDN, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			/* Invalid baseDN */
 			ch_free( nrefDN.bv_val );

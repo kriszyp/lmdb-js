@@ -857,7 +857,7 @@ slapi_dn_normalize( char *dn )
 	bdn.bv_val = dn;
 	bdn.bv_len = strlen( dn );
 
-	if ( dnPretty2( NULL, &bdn, &pdn, NULL ) != LDAP_SUCCESS ) {
+	if ( dnPretty( NULL, &bdn, &pdn, NULL ) != LDAP_SUCCESS ) {
 		return NULL;
 	}
 

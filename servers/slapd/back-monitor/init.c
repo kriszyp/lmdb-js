@@ -603,7 +603,7 @@ monitor_back_db_open(
 		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
 		strcpy( dn.bv_val, "cn=" );
 		strcat( dn.bv_val, monitor_subsys[ i ].mss_name );
-		rc = dnPretty2( NULL, &dn, &monitor_subsys[ i ].mss_rdn, NULL );
+		rc = dnPretty( NULL, &dn, &monitor_subsys[ i ].mss_rdn, NULL );
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING

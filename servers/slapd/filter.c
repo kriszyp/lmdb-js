@@ -252,20 +252,22 @@ get_filter(
 
 		assert( f.f_not != NULL );
 		if ( f.f_not->f_choice == SLAPD_FILTER_COMPUTED ) {
-			if ( f.f_not->f_result == LDAP_COMPARE_TRUE ) {
-				op->o_tmpfree( f.f_not, op->o_tmpmemctx );
-				f.f_not = NULL;
-				f.f_choice = SLAPD_FILTER_COMPUTED;
+			f.f_choice = SLAPD_FILTER_COMPUTED;
+			f.f_result = f.f_not->f_result;
+			op->o_tmpfree( f.f_not, op->o_tmpmemctx );
+			f.f_not = NULL;
+
+			switch( f.f_result ) {
+			case LDAP_COMPARE_TRUE:
 				f.f_result = LDAP_COMPARE_FALSE;
-			} else if ( f.f_not->f_result == LDAP_COMPARE_FALSE ) {
-				op->o_tmpfree( f.f_not, op->o_tmpmemctx );
-				f.f_not = NULL;
-				f.f_choice = SLAPD_FILTER_COMPUTED;
+				break;
+			case LDAP_COMPARE_FALSE:
 				f.f_result = LDAP_COMPARE_TRUE;
+				break;
+			default:
+				/* (!Undefined) is Undefined */
 			}
-			/* Leave UNDEFINED alone */
 		}
-				
 		break;
 
 	case LDAP_FILTER_EXT:
@@ -836,7 +838,8 @@ filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 		break;
 
 	default:
-		ber_str2bv_x( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr, op->o_tmpmemctx );
+		ber_str2bv_x( "(?=unknown)", sizeof("(?=unknown)")-1,
+			1, fstr, op->o_tmpmemctx );
 		break;
 	}
 }
@@ -1207,7 +1210,8 @@ vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr )
 	ber_len_t len;
 
 	if ( vrf == NULL ) {
-		ber_str2bv_x( "No filter!", sizeof("No filter!")-1, 1, fstr, op->o_tmpmemctx );
+		ber_str2bv_x( "No filter!", sizeof("No filter!")-1,
+			1, fstr, op->o_tmpmemctx );
 		return;
 	}
 
@@ -1404,198 +1408,8 @@ simple_vrFilter2bv( Operation *op, ValuesReturnFilter *vrf, struct berval *fstr 
 		break;
 
 	default:
-		ber_str2bv_x( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr, op->o_tmpmemctx );
+		ber_str2bv_x( "(?=unknown)", sizeof("(?=unknown)")-1,
+			1, fstr, op->o_tmpmemctx );
 		break;
 	}
 }
-
-#if 0 /* unused */
-static int
-get_substring_vrFilter(
-	Operation *op,
-	BerElement	*ber,
-	ValuesReturnFilter	*vrf,
-	const char	**text )
-{
-	ber_tag_t	tag;
-	ber_len_t	len;
-	ber_tag_t	rc;
-	struct berval value;
-	char		*last;
-	struct berval bv;
-	*text = "error decoding filter";
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_substring_filter: conn %d  begin\n", op->o_connid, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
-#endif
-	if ( ber_scanf( ber, "{m" /*}*/, &bv ) == LBER_ERROR ) {
-		return SLAPD_DISCONNECT;
-	}
-
-	vrf->vrf_sub = ch_calloc( 1, sizeof(SubstringsAssertion) );
-	vrf->vrf_sub_desc = NULL;
-	rc = slap_bv2ad( &bv, &vrf->vrf_sub_desc, text );
-
-	if( rc != LDAP_SUCCESS ) {
-		text = NULL;
-		ch_free( vrf->vrf_sub );
-		vrf->vrf_choice = SLAPD_FILTER_COMPUTED;
-		vrf->vrf_result = SLAPD_COMPARE_UNDEFINED;
-		return LDAP_SUCCESS;
-	}
-
-	vrf->vrf_sub_initial.bv_val = NULL;
-	vrf->vrf_sub_any = NULL;
-	vrf->vrf_sub_final.bv_val = NULL;
-
-	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
-		tag = ber_next_element( ber, &len, last ) )
-	{
-		unsigned usage;
-
-		rc = ber_scanf( ber, "m", &value );
-		if ( rc == LBER_ERROR ) {
-			rc = SLAPD_DISCONNECT;
-			goto return_error;
-		}
-
-		if ( value.bv_val == NULL || value.bv_len == 0 ) {
-			rc = LDAP_INVALID_SYNTAX;
-			goto return_error;
-		} 
-
-		switch ( tag ) {
-		case LDAP_SUBSTRING_INITIAL:
-			usage = SLAP_MR_SUBSTR_INITIAL;
-			break;
-
-		case LDAP_SUBSTRING_ANY:
-			usage = SLAP_MR_SUBSTR_ANY;
-			break;
-
-		case LDAP_SUBSTRING_FINAL:
-			usage = SLAP_MR_SUBSTR_FINAL;
-			break;
-
-		default:
-			rc = LDAP_PROTOCOL_ERROR;
-
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, ERR, 
-				"get_filter_substring: conn %d  unknown substring choice=%ld\n",
-				op->o_connid, (long)tag, 0 );
-#else
-			Debug( LDAP_DEBUG_FILTER,
-				"  unknown substring choice=%ld\n",
-				(long) tag, 0, 0 );
-#endif
-			goto return_error;
-		}
-
-		/* validate/normalize using equality matching rule validator! */
-		rc = asserted_value_validate_normalize(
-			vrf->vrf_sub_desc, vrf->vrf_sub_desc->ad_type->sat_equality,
-			usage, &value, &bv, text );
-		if( rc != LDAP_SUCCESS ) {
-			goto return_error;
-		}
-
-		value = bv;
-
-		rc = LDAP_PROTOCOL_ERROR;
-
-		switch ( tag ) {
-		case LDAP_SUBSTRING_INITIAL:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, DETAIL1, 
-				"get_substring_filter: conn %d  INITIAL\n", 
-				op->o_connid, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
-#endif
-
-			if ( vrf->vrf_sub_initial.bv_val != NULL
-				|| vrf->vrf_sub_any != NULL 
-				|| vrf->vrf_sub_final.bv_val != NULL )
-			{
-				free( value.bv_val );
-				goto return_error;
-			}
-
-			vrf->vrf_sub_initial = value;
-			break;
-
-		case LDAP_SUBSTRING_ANY:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, DETAIL1, 
-				"get_substring_filter: conn %d  ANY\n", op->o_connid, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
-#endif
-
-			if ( vrf->vrf_sub_final.bv_val != NULL ) {
-				free( value.bv_val );
-				goto return_error;
-			}
-
-			ber_bvarray_add( &vrf->vrf_sub_any, &value );
-			break;
-
-		case LDAP_SUBSTRING_FINAL:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, DETAIL1, 
-				"get_substring_filter: conn %d  FINAL\n", op->o_connid, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
-#endif
-
-			if ( vrf->vrf_sub_final.bv_val != NULL ) {
-				free( value.bv_val );
-				goto return_error;
-			}
-
-			vrf->vrf_sub_final = value;
-			break;
-
-		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, INFO, 
-				"get_substring_filter: conn %d  unknown substring type %ld\n",
-				op->o_connid, (long)tag, 0 );
-#else
-			Debug( LDAP_DEBUG_FILTER,
-				"  unknown substring type=%ld\n",
-				(long) tag, 0, 0 );
-#endif
-
-			free( value.bv_val );
-
-return_error:
-#ifdef NEW_LOGGING
-			LDAP_LOG( FILTER, INFO, 
-				"get_substring_filter: conn %d  error %ld\n",
-				op->o_connid, (long)rc, 0 );
-#else
-			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
-				(long) rc, 0, 0 );
-#endif
-			free( vrf->vrf_sub_initial.bv_val );
-			ber_bvarray_free( vrf->vrf_sub_any );
-			free( vrf->vrf_sub_final.bv_val );
-			ch_free( vrf->vrf_sub );
-			return rc;
-		}
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( FILTER, ENTRY, 
-		"get_substring_filter: conn %d exit\n", op->o_connid, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_FILTER, "end get_substring_filter\n", 0, 0, 0 );
-#endif
-	return( LDAP_SUCCESS );
-}
-#endif /* unused */

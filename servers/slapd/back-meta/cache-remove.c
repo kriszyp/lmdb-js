@@ -134,7 +134,7 @@ remove_func (
 	}
 	if (count == 1) {
 #if 0	/* ??? pdn is not used anywhere */
-		dnPretty2(NULL, &entry->e_nname, &pdn); 	
+		dnPretty(NULL, &entry->e_nname, &pdn); 	
 #endif
 		info->freed += size; 
 #ifdef NEW_LOGGING
