@@ -23,12 +23,7 @@ id2children_add(
 	IDList		*idl;
 	char		buf[20];
 
-#ifdef HAVE_BERKELEY_DB2
-	Datum		data;
-
 	ldbm_datum_init( key );
-	ldbm_datum_init( data );
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2children_add( %lu, %lu )\n",
 	       p ? p->e_id : 0, e->e_id, 0 );
