@@ -1153,14 +1153,16 @@ int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 {
 #if defined(LDAP_SLAPI)
 	int rc;
-
+	
 	rc = slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
 	if ( rc != LDAP_SUCCESS )
 		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	
+	if ( be != NULL ) {
+		rc = slapi_pblock_set( pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type );
+		if ( rc != LDAP_SUCCESS )
+			return rc;
+	}
 
 	return LDAP_SUCCESS;
 #else

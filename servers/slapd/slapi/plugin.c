@@ -26,6 +26,8 @@ static int loadPlugin( Slapi_PBlock *, const char *, const char *, int,
 
 /* pointer to link list of extended objects */
 static ExtendedOp *pGExtendedOps = NULL;
+/* global plugins not associated with a specific backend */
+static Slapi_PBlock *pGPlugins = NULL;
 
 /*********************************************************************
  * Function Name:      newPlugin
@@ -119,10 +121,13 @@ insertPlugin(
 	Slapi_PBlock *pSavePB;
 	int    rc = LDAP_SUCCESS;
 
-	pTmpPB = (Slapi_PBlock *)(be->be_pb);
-       
+	pTmpPB = ( be == NULL ) ? pGPlugins : (Slapi_PBlock *)(be->be_pb);
+
 	if ( pTmpPB == NULL ) {
-		be->be_pb = (void *)pPB;
+		if ( be != NULL )
+			be->be_pb = (void *)pPB;
+		else
+			pGPlugins = pPB;
 	} else {
 		while ( pTmpPB != NULL && rc == LDAP_SUCCESS ) {
 			pSavePB = pTmpPB;
@@ -173,17 +178,9 @@ getAllPluginFuncs(
 	int		numPB = 0;
 	int		rc = LDAP_SUCCESS;
 
-	if ( be == NULL ) {
-		/*
-		 * No plugins supported if no backend (yet)
-		 */
-		rc = LDAP_OTHER;
-		goto done;
-	}
-
 	assert( ppFuncPtrs );
 
-	pCurrentPB = (Slapi_PBlock *)(be->be_pb);
+	pCurrentPB = ( be == NULL ) ? pGPlugins : (Slapi_PBlock *)(be->be_pb);
      
 	if ( pCurrentPB == NULL ) { 
 		/*
@@ -221,7 +218,7 @@ getAllPluginFuncs(
 		goto done;
 	}
 
-	pCurrentPB = (Slapi_PBlock *)(be->be_pb);
+	pCurrentPB = ( be == NULL ) ? pGPlugins : (Slapi_PBlock *)(be->be_pb);
 	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
 		if ( rc == LDAP_SUCCESS ) {
@@ -568,7 +565,7 @@ doPluginFNs(
 	Slapi_PBlock	*pPB )
 {
 
-	int rc = LDAP_SUCCESS;
+	int rc = 0;
 	SLAPI_FUNC *pGetPlugin = NULL, *tmpPlugin = NULL; 
 
 	rc = getAllPluginFuncs(be, funcType, &tmpPlugin );
@@ -595,7 +592,33 @@ doPluginFNs(
 		}
 	}
 
-	ch_free( tmpPlugin );
+	slapi_ch_free( (void **)&tmpPlugin );
+
+	/*
+	 * If we failed, and this wasn't a postoperation plugin, we
+	 * should return the failure to the frontend.
+	 */
+	if ( !SLAPI_PLUGIN_IS_POST_FN( funcType ) && rc != 0 ) {
+		return rc;
+	}
+
+	/*
+	 * Try any global plugins (not associated with a specific
+	 * backend); same logic as above.
+	 */
+	if ( be != NULL ) {
+		rc = getAllPluginFuncs( be, funcType, &tmpPlugin );
+		if ( rc != LDAP_SUCCESS || tmpPlugin == NULL )
+			return 0;
+		for ( pGetPlugin = tmpPlugin; *pGetPlugin != NULL; pGetPlugin++ ) {
+			rc = (*pGetPlugin)(pPB);
+			if ( !SLAPI_PLUGIN_IS_POST_FN( funcType ) && rc != 0 ) {
+				break;
+			}
+		}
+	}
+
+	slapi_ch_free( (void **)&tmpPlugin );
 
 	return rc;
 }
