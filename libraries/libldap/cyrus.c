@@ -648,7 +648,7 @@ ldap_int_sasl_bind(
 			if( flags != LDAP_SASL_QUIET ) {
 				fprintf( stderr, "SASL installing layers\n" );
 			}
-			ldap_pvt_sasl_install( ld->ld_sb, ctx );
+			ldap_pvt_sasl_install( ld->ld_conns->lconn_sb, ctx );
 		}
 	}
 
