@@ -26,6 +26,20 @@ Entry *bdb_deref_internal_r LDAP_P((
 	bdb_deref_internal_r( be, NULL, dn, err, matched, text)
 
 /*
+ * attr.c
+ */
+
+void bdb_attr_mask LDAP_P(( struct bdb_info *bdb,
+	const char *desc,
+	slap_mask_t *indexmask ));
+
+int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
+	const char *fname, int lineno,
+	int argc, char **argv ));
+
+void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
+
+/*
  * dn2entry.c
  */
 int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,

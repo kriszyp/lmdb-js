@@ -17,7 +17,7 @@ LDAP_BEGIN_DECL
 
 #define BBD_INDEX 1
 /* #define BDB_FILTER_INDICES 1 */
-/* #define BDB_CONFIG_INDICES 1 */
+#define BDB_CONFIG_INDICES 1
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -71,6 +71,11 @@ struct bdb_info {
 	int			bi_lock_detect;
 	int			bi_lock_detect_seconds;
 	ldap_pvt_thread_t	bi_lock_detect_tid;
+#endif
+
+#if BDB_CONFIG_INDICES
+	slap_mask_t	bi_defaultmask;
+	Avlnode		*bi_attrs;
 #endif
 
 	ID			bi_lastid;

@@ -126,7 +126,7 @@ bdb_db_config(
 				"line (ignored)\n",
 				fname, lineno );
 		}
-		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1] );
+		rc = bdb_attr_index_config( bdb, fname, lineno, argc - 1, &argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
 #endif
