@@ -200,7 +200,16 @@ int ldap_domain2hostlist(
 #endif
 
     rc = LDAP_UNAVAILABLE;
+#ifdef NS_HFIXEDSZ
+	/* Bind 8/9 interface */
+    len = res_query(request, ns_c_in, ns_t_srv, reply, sizeof(reply));
+#else
+	/* Bind 4 interface */
+#	ifndef T_SRV
+#		define T_SRV 33
+#	endif
     len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
+#endif
     if (len >= 0) {
 	unsigned char *p;
 	char host[DNSBUFSIZ];
@@ -210,7 +219,18 @@ int ldap_domain2hostlist(
 
 	/* Parse out query */
 	p = reply;
+
+#ifdef NS_HFIXEDSZ
+	/* Bind 8/9 interface */
+	p += NS_HFIXEDSZ;
+#elif defined(HFIXEDSZ)
+	/* Bind 4 interface w HFIXEDSZ */
+	p += HFIXEDSZ;
+#else
+	/* Bind 4 interface w/o HFIXEDSZ */
 	p += sizeof(HEADER);
+#endif
+
 	status = dn_expand(reply, reply + len, p, host, sizeof(host));
 	if (status < 0) {
 	    goto out;
