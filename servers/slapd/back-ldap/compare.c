@@ -153,6 +153,8 @@ ldap_back_compare(
 			}
 #endif /* !ENABLE_REWRITE */
 
+		} else {
+			mapped_val = ava->aa_value;
 		}
 	}
 
