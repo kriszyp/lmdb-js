@@ -1083,6 +1083,8 @@ be_entry_get_rw(
 	Backend *be = op->o_bd;
 	int rc;
 
+	*e = NULL;
+
 	op->o_bd = select_backend( ndn, 0, 0 );
 
 	if (op->o_bd == NULL) {
