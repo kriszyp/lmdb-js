@@ -203,8 +203,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 90 seconds for syncrepl to receive changes..."
-sleep 90
+echo "Waiting 25 seconds for syncrepl to receive changes..."
+sleep 25
 
 echo "Using ldapmodify to modify master directory..."
 
@@ -292,8 +292,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 90 seconds for syncrepl to receive changes..."
-sleep 90
+echo "Waiting 25 seconds for syncrepl to receive changes..."
+sleep 25
 
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \

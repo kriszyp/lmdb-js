@@ -3053,28 +3053,51 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ],
 			INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) )
 		{
-			char *hstr;
-			char *mstr;
-			char *dstr;
 			val = cargv[ i ] + sizeof( INTERVALSTR );
-			dstr = val;
-			hstr = strchr( dstr, ':' );
-			if ( hstr == NULL ) {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"invalid interval \"%s\"\n", val );
-				return 1;
-			}
-			*hstr++ = '\0';
-			mstr = strchr( hstr, ':' );
-			if ( mstr == NULL ) {
-				fprintf( stderr, "Error: parse_syncrepl_line: "
-					"invalid interval \"%s\"\n", val );
-				return 1;
-			}
-			*mstr++ = '\0';
-			si->si_interval = (( atoi( dstr ) * 24 + atoi( hstr )) * 60
-				+ atoi( mstr )) * 60;
+			if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
+				si->si_interval = 0;
+			} else {
+				char *hstr;
+				char *mstr;
+				char *dstr;
+				char *sstr;
+				int dd, hh, mm, ss;
+				dstr = val;
+				hstr = strchr( dstr, ':' );
+				if ( hstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*hstr++ = '\0';
+				mstr = strchr( hstr, ':' );
+				if ( mstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*mstr++ = '\0';
+				sstr = strchr( mstr, ':' );
+				if ( sstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				*sstr++ = '\0';
 
+				dd = atoi( dstr );
+				hh = atoi( hstr );
+				mm = atoi( mstr );
+				ss = atoi( sstr );
+				if (( hh > 24 ) || ( hh < 0 ) ||
+					( mm > 60 ) || ( mm < 0 ) ||
+					( ss > 60 ) || ( ss < 0 ) || ( dd < 0 )) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return 1;
+				}
+				si->si_interval = (( dd * 24 + hh ) * 60 + mm ) * 60 + ss;
+			}
 			if ( si->si_interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"invalid interval \"%ld\"\n",
