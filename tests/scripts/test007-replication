@@ -167,6 +167,7 @@ changetype: delete
 
 EOMODS
 
+RC=$?
 if test $RC != 0 ; then
 	echo "ldapmodify failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
