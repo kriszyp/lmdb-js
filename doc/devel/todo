@@ -20,8 +20,6 @@ Please read:
 
 OpenLDAP 2.0 Projects
 ---------------------
-	client API update
-		Implement LDAP errno draft (deferred)
 	SLAPD
 		Update back-perl
 		Update back-sql
@@ -29,6 +27,9 @@ OpenLDAP 2.0 Projects
 	clients
 		use _ext API, avoid deprecated routines
 		-C/-CC/-R referral chasing options
+	client API update
+		Implement LDAP errno draft (deferred)
+		Implement per referral callback
 	Add TLS SASL/EXTERNAL support
 	SLAPD/SLURD Admin Guide
 	Update manual pages
