@@ -117,7 +117,8 @@ ldbm_back_search(
 		}
 
 		send_ldap_result( conn, op, err,
-			matched_dn->bv_val, text, refs, NULL );
+			matched_dn ? matched_dn->bv_val : NULL, 
+			text, refs, NULL );
 
 		ber_bvecfree( refs );
 		ber_bvfree( matched_dn );
