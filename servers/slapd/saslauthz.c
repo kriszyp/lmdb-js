@@ -33,7 +33,6 @@ typedef struct sasl_regexp {
   char *sr_match;							/* regexp match pattern */
   char *sr_replace; 						/* regexp replace pattern */
   regex_t sr_workspace;						/* workspace for regexp engine */
-  regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
   int sr_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
 } SaslRegexp_t;
 
@@ -282,6 +281,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out, void *ctx )
 {
 	char *saslname = in->bv_val;
 	SaslRegexp_t *reg;
+  	regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
 	int i;
 
 	memset( out, 0, sizeof( *out ) );
@@ -301,7 +301,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out, void *ctx )
 	/* Match the normalized SASL name to the saslregexp patterns */
 	for( reg = SaslRegexp,i=0;  i<nSaslRegexp;  i++,reg++ ) {
 		if ( regexec( &reg->sr_workspace, saslname, SASLREGEX_REPLACE,
-		  reg->sr_strings, 0)  == 0 )
+		  sr_strings, 0)  == 0 )
 			break;
 	}
 
@@ -313,7 +313,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out, void *ctx )
 	 * to replace the $1,$2 with the strings that matched (b.*) and (d.*)
 	 */
 	slap_sasl_rx_exp( reg->sr_replace, reg->sr_offset,
-		reg->sr_strings, saslname, out, ctx );
+		sr_strings, saslname, out, ctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
