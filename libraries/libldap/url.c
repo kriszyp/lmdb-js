@@ -924,7 +924,7 @@ ldap_url_parsehosts(
 	char **specs, *p;
 
 	assert( ludlist != NULL );
-	assert( url != NULL );
+	assert( hosts != NULL );
 
 	*ludlist = NULL;
 
