@@ -204,8 +204,6 @@ read_config( const char *fname )
 			bi = NULL;
 			be = backend_db_init( cargv[1] );
 
-			if( lastmod ) be->be_flags |= SLAP_BFLAG_LASTMOD;
-
 			if( be == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1995,15 +1993,17 @@ read_config( const char *fname )
 				return( 1 );
 			}
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
-				if ( be )
-					be->be_flags |= SLAP_BFLAG_LASTMOD;
-				else
+				if ( be ) {
+					be->be_flags &= ~SLAP_BFLAG_NOLASTMOD;
+				} else {
 					lastmod = ON;
+				}
 			} else {
-				if ( be )
-					be->be_flags &= ~SLAP_BFLAG_LASTMOD;
-				else
+				if ( be ) {
+					be->be_flags |= SLAP_BFLAG_NOLASTMOD;
+				} else {
 					lastmod = OFF;
+				}
 			}
 
 		/* set idle timeout value */
