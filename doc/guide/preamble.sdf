@@ -33,7 +33,7 @@ OpenLDAP OpenLDAP				http://www.openldap.org/
 OLF	 OpenLDAP Foundation			http://www.openldap.org/foundation/
 OLP	 OpenLDAP Project			http://www.openldap.org/project/
 UM	 University of Michigan			http://www.umich.edu/
-UMLDAP	 University of Michigan LDAP		http://www.umich.edu/~dirvcs/ldap/
+UMLDAP	 University of Michigan LDAP		http://www.umich.edu/~dirsvcs/ldap/
 IETF	 Internet Engineering Task Force	http://www.ietf.org/
 RFC	 RFC Editor				http://www.rfc-editor.org/
 !endblock
