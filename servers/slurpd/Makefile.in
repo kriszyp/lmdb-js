@@ -5,9 +5,7 @@
 ## Makefile.in for slurpd
 ##
 
-UNIX_PRGS = slurpd
-
-PROGRAMS = $(@PLAT@_PRGS)
+PROGRAMS = slurpd
 XPROGRAMS = sslurpd
 
 XSRCS	= version.c
