@@ -378,7 +378,7 @@ main( int argc, char **argv )
 		version = LDAP_VERSION2;
 	}
 	else if ( authmethod == LDAP_AUTH_SASL ) {
-		if( version != -1 || version != LDAP_VERSION3 ) {
+		if( version != -1 && version != LDAP_VERSION3 ) {
 			fprintf( stderr, "SASL requires LDAPv3\n" );
 			return( EXIT_FAILURE );
 		}
@@ -386,7 +386,7 @@ main( int argc, char **argv )
 	}
 
 	if( manageDSAit ) {
-		if( version != -1 || version != LDAP_VERSION3 ) {
+		if( version != -1 && version != LDAP_VERSION3 ) {
 			fprintf(stderr, "manage DSA control requires LDAPv3\n");
 			return EXIT_FAILURE;
 		}
@@ -394,7 +394,7 @@ main( int argc, char **argv )
 	}
 
 	if( use_tls ) {
-		if( version != -1 || version != LDAP_VERSION3 ) {
+		if( version != -1 && version != LDAP_VERSION3 ) {
 			fprintf(stderr, "Start TLS requires LDAPv3\n");
 			return EXIT_FAILURE;
 		}
