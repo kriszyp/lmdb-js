@@ -114,7 +114,7 @@ char *derefDN ( Backend     *be,
   struct ldbminfo *li = (struct ldbminfo *) be->be_private;
   char 	*matched;
   char 	*newDN = NULL;
-  int	depth;
+  int	depth, i;
   Entry 	*eMatched;
   Entry 	*eDeref;
   Entry         *eNew;
@@ -125,16 +125,13 @@ char *derefDN ( Backend     *be,
 	 dn, 0, 0 );
   
   newDN = strdup ( dn );
-  
+
   /* while we don't have a matched dn, deref the DN */
   for ( depth = 0;
 	( (eMatched = dn2entry_r( be, newDN, &matched )) == NULL) &&
 	  (depth < be->be_maxDerefDepth);
 	++depth ) {
     
-    /* free reader lock */
-    cache_return_entry_r(&li->li_cache, eMatched);
-
     if ((matched != NULL) && *matched) {	
       char *submatch;
       
@@ -165,7 +162,10 @@ char *derefDN ( Backend     *be,
 
 	  Debug( LDAP_DEBUG_TRACE, "<= l&g we have %s vs %s \n", matched, eNew->e_dn, 0 );
 
-	  if (!strcasecmp (matched, eNew->e_dn)) {
+	  i = strcasecmp (matched, eNew->e_dn);
+          /* free reader lock */
+          cache_return_entry_r(&li->li_cache, eNew);
+	  if (! i) {
 	    /* newDN same as old so not an alias, no need to go further */
 	    free (newDN);
 	    newDN = NULL;
@@ -188,9 +188,6 @@ char *derefDN ( Backend     *be,
 	  free (matched);
 	  matched = NULL;
 	  free (remainder);
-
-          /* free reader lock */
-          cache_return_entry_r(&li->li_cache, eNew);
 	}
         /* free reader lock */
         cache_return_entry_r(&li->li_cache, eMatched);
@@ -205,6 +202,9 @@ char *derefDN ( Backend     *be,
     }
   }
   
+  /* free reader lock */
+  cache_return_entry_r(&li->li_cache, eMatched);
+
   /*
    * the final part of the DN might be an alias 
    * so try to dereference it.
