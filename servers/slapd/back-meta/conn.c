@@ -214,8 +214,11 @@ init_one_conn(
 	 */
 	vers = op->o_conn->c_protocol;
 	ldap_set_option( lsc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
-	/* FIXME: configurable? */
-	ldap_set_option( lsc->msc_ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
+
+	/* automatically chase referrals ("chase-referrals"/"dont-chase-referrals" statement) */
+	if ( li->flags & LDAP_BACK_F_CHASE_REFERRALS ) {
+		ldap_set_option( lsc->msc_ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
+	}
 
 	/*
 	 * Set the network timeout if set

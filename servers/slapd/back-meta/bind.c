@@ -248,7 +248,7 @@ retry:;
 	lsc->msc_bound = META_BOUND;
 	lc->mc_bound_target = candidate;
 
-	if ( li->savecred ) {
+	if ( li->flags & LDAP_BACK_F_SAVECRED ) {
 		if ( !BER_BVISNULL( &lsc->msc_cred ) ) {
 			/* destroy sensitive data */
 			memset( lsc->msc_cred.bv_val, 0, lsc->msc_cred.bv_len );
@@ -328,7 +328,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			BER_BVZERO( &lsc->msc_cred );
 		}
 
-		/* FIXME: should be check if at least some of the op->o_ctrls
+		/* FIXME: should we check if at least some of the op->o_ctrls
 		 * can/should be passed? */
 		rc = ldap_sasl_bind( lsc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
 				NULL, NULL, &msgid );
