@@ -528,6 +528,64 @@ else
 fi
 
 dnl ----------------------------------------------------------------
+dnl Checks for header files.
+OL_HEADER_STDC
+
+if test $ol_cv_header_stdc != yes; then
+	AC_MSG_WARN([could not locate Standard C compliant headers])
+fi
+
+AC_HEADER_DIRENT
+AC_HEADER_SYS_WAIT
+AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
+if test $am_cv_sys_posix_termios = yes ; then
+	AC_DEFINE(HAVE_POSIX_TERMIOS,1,
+		[define if you have POSIX termios])
+fi
+
+AC_CHECK_HEADERS(	\
+	arpa/inet.h		\
+	arpa/nameser.h	\
+	assert.h		\
+	crypt.h			\
+	errno.h			\
+	fcntl.h			\
+	filio.h			\
+	getopt.h		\
+	grp.h			\
+	libutil.h		\
+	limits.h		\
+	locale.h		\
+	netinet/tcp.h	\
+	malloc.h		\
+	memory.h		\
+	psap.h			\
+	pwd.h			\
+	resolv.h		\
+	sgtty.h			\
+	shadow.h		\
+	stdarg.h		\
+	stddef.h		\
+	string.h		\
+	strings.h		\
+	sysexits.h		\
+	sys/file.h		\
+	sys/filio.h		\
+	sys/errno.h		\
+	sys/ioctl.h		\
+	sys/param.h		\
+	sys/resource.h	\
+	sys/select.h	\
+	sys/socket.h	\
+	sys/syslog.h	\
+	sys/time.h		\
+	sys/types.h		\
+	syslog.h		\
+	termios.h		\
+	unistd.h		\
+)
+
+dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
 dnl Find socket()
@@ -548,6 +606,31 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
+AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
+
+dnl Select arg types
+dnl (if this detection becomes permenent, it and the select() detection
+dnl should be done before the yielding select test) 
+AC_FUNC_SELECT_ARGTYPES
+
+
+AC_CHECK_HEADERS( regex.h )
+if test "$ac_cv_header_regex_h" != yes ; then
+	AC_MSG_ERROR([POSIX regex.h required.])
+fi
+AC_CHECK_FUNC(regfree, :, AC_MSG_ERROR([POSIX regex required.]))
+
+OL_POSIX_REGEX
+if test "$ol_cv_c_posix_regex" = no ; then
+	AC_MSG_ERROR([broken POSIX regex!])
+fi
+
+
+dnl HP-UX requires -lV3
+AC_CHECK_LIB(V3, sigset)
+
+
+# find res_search
 if test $ol_enable_dns != no ; then
 	dnl Check for resolver routines
 	AC_CHECK_FUNC(res_search,:)
@@ -570,26 +653,6 @@ if test $ol_enable_dns != no ; then
 	fi
 fi
 
-dnl HP-UX requires -lV3
-AC_CHECK_LIB(V3, sigset)
-
-AC_CHECK_HEADERS( regex.h )
-if test "$ac_cv_header_regex_h" != yes ; then
-	AC_MSG_ERROR([POSIX regex.h required.])
-fi
-AC_CHECK_FUNC(regfree, :, AC_MSG_ERROR([POSIX regex required.]))
-
-OL_POSIX_REGEX
-if test "$ol_cv_c_posix_regex" = no ; then
-	AC_MSG_ERROR([broken POSIX regex!])
-fi
-
-AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
-
-dnl Select arg types
-dnl (if this detection becomes permenent, it and the select() detection
-dnl should be done before the yielding select test) 
-AC_FUNC_SELECT_ARGTYPES
 
 # ISODE tests
 ol_link_isode=no
@@ -874,8 +937,6 @@ int main(argc, argv)
 #else
 	status = pthread_detach( t );
 #endif
-
-	if( status ) return status;
 
 	return status;
 }
@@ -1634,64 +1695,6 @@ if test $ol_enable_proctitle != no ; then
 			[define if setproctitle(3) is available])
 	fi
 fi
-
-dnl ----------------------------------------------------------------
-dnl Checks for header files.
-OL_HEADER_STDC
-
-if test $ol_cv_header_stdc != yes; then
-	AC_MSG_WARN([could not locate Standard C compliant headers])
-fi
-
-AC_HEADER_DIRENT
-AC_HEADER_SYS_WAIT
-AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
-if test $am_cv_sys_posix_termios = yes ; then
-	AC_DEFINE(HAVE_POSIX_TERMIOS,1,
-		[define if you have POSIX termios])
-fi
-
-AC_CHECK_HEADERS(	\
-	arpa/inet.h		\
-	arpa/nameser.h	\
-	assert.h		\
-	crypt.h			\
-	errno.h			\
-	fcntl.h			\
-	filio.h			\
-	getopt.h		\
-	grp.h			\
-	libutil.h		\
-	limits.h		\
-	locale.h		\
-	netinet/tcp.h	\
-	malloc.h		\
-	memory.h		\
-	psap.h			\
-	pwd.h			\
-	resolv.h		\
-	sgtty.h			\
-	shadow.h		\
-	stdarg.h		\
-	stddef.h		\
-	string.h		\
-	strings.h		\
-	sysexits.h		\
-	sys/file.h		\
-	sys/filio.h		\
-	sys/errno.h		\
-	sys/ioctl.h		\
-	sys/param.h		\
-	sys/resource.h	\
-	sys/select.h	\
-	sys/socket.h	\
-	sys/syslog.h	\
-	sys/time.h		\
-	sys/types.h		\
-	syslog.h		\
-	termios.h		\
-	unistd.h		\
-)
 
 dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.

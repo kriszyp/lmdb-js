@@ -576,6 +576,15 @@
 /* defined to be the EXE extension */
 #undef EXEEXT
 
+/* define if system uses EBCDIC instead of ASCII */
+#undef HAVE_EBCDIC
+
+/* Define if TIOCGWINSZ requires sys/ioctl.h */
+#undef GWINSZ_IN_SYS_IOCTL
+
+/* define if you have POSIX termios */
+#undef HAVE_POSIX_TERMIOS
+
 /* define if you have res_search() */
 #undef HAVE_RES_SEARCH
 
@@ -698,15 +707,6 @@
 
 /* define if setproctitle(3) is available */
 #undef HAVE_SETPROCTITLE
-
-/* define if system uses EBCDIC instead of ASCII */
-#undef HAVE_EBCDIC
-
-/* Define if TIOCGWINSZ requires sys/ioctl.h */
-#undef GWINSZ_IN_SYS_IOCTL
-
-/* define if you have POSIX termios */
-#undef HAVE_POSIX_TERMIOS
 
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
