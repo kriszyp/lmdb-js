@@ -43,6 +43,7 @@ static int tls_remove( Sockbuf *sb );
 static ber_slen_t tls_read( Sockbuf *sb, void *buf, ber_len_t len );
 static ber_slen_t tls_write( Sockbuf *sb, void *buf, ber_len_t len );
 static int tls_close( Sockbuf *sb );
+static int tls_report_error( void );
 
 static Sockbuf_IO tls_io=
 {
@@ -120,10 +121,17 @@ ldap_pvt_tls_init_def_ctx( void )
 	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
 #endif
 	if ( tls_def_ctx == NULL ) {
-		tls_def_ctx = SSL_CTX_new( TLSv1_method() );
+		tls_def_ctx = SSL_CTX_new( SSLv23_method() );
 		if ( tls_def_ctx == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 			       "TLS: could not allocate default ctx.\n",0,0,0);
+			goto error_exit;
+		}
+		if ( !SSL_CTX_set_cipher_list( tls_def_ctx,
+			"RC4+RSA:HIGH:MEDIUM:LOW:EXP:+SSLv2:+EXP" ) ) {
+			Debug( LDAP_DEBUG_ANY,
+			       "TLS: could not set cipher list.\n", 0, 0 );
+			tls_report_error();
 			goto error_exit;
 		}
 		if ( !SSL_CTX_load_verify_locations( tls_def_ctx,
@@ -286,6 +294,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 			return 1;
 		}
 		Debug( LDAP_DEBUG_ANY,"TLS: can't accept.\n",0,0,0 );
+		tls_report_error();
 		ber_pvt_sb_clear_io( sb );
 		ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 		return -1;
@@ -427,6 +436,7 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 	default:
 		return -1;
 	}
+	return 0;
 }
 
 static int
@@ -472,6 +482,21 @@ static int
 tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 {
 	return 1;
+}
+
+/* Inspired by ERR_print_errors in OpenSSL */
+static int
+tls_report_error( void )
+{
+        unsigned long l;
+        char buf[200];
+        const char *file;
+        int line;
+
+        while ( ( l = ERR_get_error_line( &file, &line ) ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY, "TLS: %s %s:%d\n",
+			       ERR_error_string( l, buf ), file, line );
+        }
 }
 
 #else
