@@ -40,8 +40,8 @@ static int	et_cmp LDAP_P(( const void *aa, const void *bb));
 
 int
 ldap_sort_strcasecmp(
-	const void	*a,
-	const void	*b
+	LDAP_CONST void	*a,
+	LDAP_CONST void	*b
 )
 {
 	return( strcasecmp( *(char *const *)a, *(char *const *)b ) );
@@ -147,7 +147,7 @@ int
 ldap_sort_values(
     LDAP	*ld,
     char	**vals,
-    int		(*cmp) (const void *, const void *)
+    int		(*cmp) (LDAP_CONST void *, LDAP_CONST void *)
 )
 {
 	int	nel;
