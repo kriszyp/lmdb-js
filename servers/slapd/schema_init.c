@@ -351,6 +351,10 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'SubstringAssertion' )",
 		0, NULL, NULL, NULL},
 
+	/* OpenLDAP Experimental Syntaxes */
+	{"( " SLAPD_OID_ACI_SYNTAX " DESC 'OpenLDAPexperimentalACI' )",
+		0, NULL, NULL, NULL},
+
 	{NULL, 0, NULL, NULL, NULL}
 };
 
