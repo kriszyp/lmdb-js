@@ -97,7 +97,7 @@ do_read( char *host, int port, char *entry, int maxloop )
 
 
 	fprintf( stderr, "PID=%ld - Read(%d): entry=\"%s\".\n",
-				pid, maxloop, entry );
+		 (long) pid, maxloop, entry );
 
 	for ( i = 0; i < maxloop; i++ ) {
 		LDAPMessage *res;
@@ -115,7 +115,7 @@ do_read( char *host, int port, char *entry, int maxloop )
 		ldap_msgfree( res );
 	}
 
-	fprintf( stderr, " PID=%ld - Read done.\n", pid );
+	fprintf( stderr, " PID=%ld - Read done.\n", (long) pid );
 
 	ldap_unbind( ld );
 }
