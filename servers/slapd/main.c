@@ -175,7 +175,12 @@ int main( int argc, char **argv )
 		if ( i != NULL ) 
 		{
 			slap_debug = *i;
+#ifdef NEW_LOGGING
+                        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                                   "main: new debug level from registry is: %d\n", slap_debug ));
+#else
 			Debug( LDAP_DEBUG_ANY, "new debug level from registry is: %d\n", slap_debug, 0, 0 );
+#endif
 		}
 
 		newUrls = (char *) getRegParam(regService, "Urls");
@@ -185,15 +190,27 @@ int main( int argc, char **argv )
 			ch_free(urls);
 
 		    urls = ch_strdup(newUrls);
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                               "main: new urls from registry: %s\n", urls ));
+#else
 		    Debug(LDAP_DEBUG_ANY, "new urls from registry: %s\n",
 			  urls, 0, 0);
+#endif
+
 		}
 
 		newConfigFile = (char*)getRegParam( regService, "ConfigFile" );
 		if ( newConfigFile != NULL ) 
 		{
 			configfile = newConfigFile;
+#ifdef NEW_LOGGING
+                        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                                   "main: new config file from registry is: %s\n", configfile ));
+#else
 			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
+#endif
+
 		}
 	}
 #endif
@@ -283,7 +300,13 @@ int main( int argc, char **argv )
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
 	ldif_debug = slap_debug;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                   "%s", Versionstr ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
+#endif
+
 
 	if( serverName == NULL ) {
 		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
@@ -343,9 +366,15 @@ int main( int argc, char **argv )
 	}
 
 	if ( schema_init( ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+                       "main: schema initialization error\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "schema initialization error\n",
 		    0, 0, 0 );
+#endif
+
 		goto destroy;
 	}
 
@@ -356,9 +385,15 @@ int main( int argc, char **argv )
 	}
 
 	if ( schema_prep( ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+                       "main: schema prep error\n"));
+#else
 		Debug( LDAP_DEBUG_ANY,
 		    "schema prep error\n",
 		    0, 0, 0 );
+#endif
+
 		goto destroy;
 	}
 
@@ -408,7 +443,13 @@ int main( int argc, char **argv )
 	{
 		FILE *fp;
 
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                           "main: slapd starting.\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
+#endif
+
 
 		if (( slapd_pid_file != NULL ) &&
 			(( fp = fopen( slapd_pid_file, "w" )) != NULL ))
@@ -461,7 +502,13 @@ stop:
 	LogSlapdStoppedEvent( serverName );
 #endif
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+                   "main: slapd stopped.\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
+#endif
+
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	ReportSlapdShutdownComplete();

@@ -63,9 +63,16 @@ char *suffix_alias(
 			dn = ch_malloc( diff + strlen(be->be_suffixAlias[i+1]) + 1 );
 			strncpy( dn, oldDN, diff );
 			strcpy( &dn[diff], be->be_suffixAlias[i+1] );
+#ifdef NEW_LOGGING
+                        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                                   "suffix_alias: converted \"%s\" to \"%s\"\n",
+                                   oldDN, dn ));
+#else
 			Debug( LDAP_DEBUG_ARGS,
 				"suffix_alias: converted \"%s\" to \"%s\"\n",
 				oldDN, dn, 0);
+#endif
+
 			free (oldDN);
 			break;
 		}

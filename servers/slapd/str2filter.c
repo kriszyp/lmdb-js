@@ -27,7 +27,13 @@ str2filter( const char *str )
 	Filter	*f = NULL;
 	char	*end, *freeme;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+                   "str2filter: \"%s\"\n", str ));
+#else
 	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );
+#endif
+
 
 	if ( str == NULL || *str == '\0' ) {
 		return( NULL );
@@ -47,32 +53,56 @@ str2filter( const char *str )
 		str++;
 		switch ( *str ) {
 		case '&':
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+                               "str2filter:  AND\n" ));
+#else
 			Debug( LDAP_DEBUG_FILTER, "str2filter: AND\n",
 			    0, 0, 0 );
+#endif
+
 
 			str++;
 			f = str2list( str, LDAP_FILTER_AND );
 			break;
 
 		case '|':
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+                               "str2filter:  OR\n" ));
+#else
 			Debug( LDAP_DEBUG_FILTER, "put_filter: OR\n",
 			    0, 0, 0 );
+#endif
+
 
 			str++;
 			f = str2list( str, LDAP_FILTER_OR );
 			break;
 
 		case '!':
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+                               "str2filter:  NOT\n" ));
+#else
 			Debug( LDAP_DEBUG_FILTER, "put_filter: NOT\n",
 			    0, 0, 0 );
+#endif
+
 
 			str++;
 			f = str2list( str, LDAP_FILTER_NOT );
 			break;
 
 		default:
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+                               "str2filter:  simple\n" ));
+#else
 			Debug( LDAP_DEBUG_FILTER, "str2filter: simple\n",
 			    0, 0, 0 );
+#endif
+
 
 			f = str2simple( str );
 			break;
@@ -81,8 +111,14 @@ str2filter( const char *str )
 		break;
 
 	default:	/* assume it's a simple type=value filter */
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+                       "str2filter: default\n" ));
+#else
 		Debug( LDAP_DEBUG_FILTER, "str2filter: default\n", 0, 0,
 		    0 );
+#endif
+
 
 		f = str2simple( str );
 		break;
@@ -104,7 +140,13 @@ str2list( const char *str, unsigned long ftype )
 	char	*next;
 	char	save;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+                   "str2list: \"%s\"\n", str ));
+#else
 	Debug( LDAP_DEBUG_FILTER, "str2list \"%s\"\n", str, 0, 0 );
+#endif
+
 
 	f = (Filter *) ch_calloc( 1, sizeof(Filter) );
 	f->f_choice = ftype;
@@ -148,7 +190,13 @@ str2simple( const char *str )
 	int			rc;
 	const char		*text;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+                   "str2simple:  \"%s\"\n", str ));
+#else
 	Debug( LDAP_DEBUG_FILTER, "str2simple \"%s\"\n", str, 0, 0 );
+#endif
+
 
 	if ( (s = strchr( str, '=' )) == NULL ) {
 		return( NULL );
@@ -240,7 +288,13 @@ str2subvals( const char *in, Filter *f )
 	char	*nextstar, *val, *freeme;
 	int	gotstar;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+                   "str2subvals: \"%s\"\n", in ));
+#else
 	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", in, 0, 0 );
+#endif
+
 
 	if( in == NULL ) return 0;
 

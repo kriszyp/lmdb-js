@@ -168,8 +168,14 @@ register_matching_rule(
 	const char	*err;
 
 	if( usage == SLAP_MR_NONE ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "register_matching_rule: %s not usable\n", desc ));
+#else
 		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
 		    desc, 0, 0 );
+#endif
+
 		return -1;
 	}
 
@@ -180,9 +186,16 @@ register_matching_rule(
 		/* ignore for now */
 
 		if( amr == NULL ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "register_matching_rule: could not locate associated matching rule %s for %s\n",
+                               associated, desc ));
+#else
 			Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
 				"associated matching rule %s for %s\n",
 				associated, desc, 0 );
+#endif
+
 			return -1;
 		}
 #endif
@@ -191,8 +204,15 @@ register_matching_rule(
 
 	mr = ldap_str2matchingrule( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !mr ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "register_matching_rule: %s before %s in %s.\n",
+                       ldap_scherr2str(code), err, desc ));
+#else
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, desc );
+#endif
+
 		return( -1 );
 	}
 
@@ -203,8 +223,15 @@ register_matching_rule(
 	ldap_memfree( mr );
 
 	if ( code ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "register_matching_rule: %s for %s in %s.\n",
+                       scherr2str(code), err, desc ));
+#else
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s for %s in %s\n",
 		    scherr2str(code), err, desc );
+#endif
+
 		return( -1 );
 	}
 

@@ -56,7 +56,13 @@ do_modrdn(
 	const char *text;
 	int manageDSAit;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "do_modrdn: begin\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
+#endif
+
 
 	/*
 	 * Parse the modrdn request.  It looks like this:
@@ -71,7 +77,13 @@ do_modrdn(
 
 	if ( ber_scanf( op->o_ber, "{aab", &dn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_modrdn: ber_scanf failed\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+#endif
+
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
@@ -84,9 +96,15 @@ do_modrdn(
 			/* Conection record indicates v2 but field 
 			 * newSuperior is present: report error.
 			 */
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "do_modrdn: (v2) invalid field newSuperior.\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			       "modrdn(v2): invalid field newSuperior!\n",
 			       0, 0, 0 );
+#endif
+
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
 			rc = SLAPD_DISCONNECT;
@@ -96,8 +114,14 @@ do_modrdn(
 		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
 		     == LBER_ERROR ) {
 
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "do_modrdn: ber_scanf(\"a\") failed\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
 			   0, 0, 0 );
+#endif
+
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 			rc = SLAPD_DISCONNECT;
@@ -107,8 +131,14 @@ do_modrdn(
 		nnewSuperior = ch_strdup( newSuperior );
 
 		if( dn_normalize( nnewSuperior ) == NULL ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "do_modrdn:  invalid new superior (%s)\n", newSuperior ));
+#else
 			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
 				newSuperior, 0, 0 );
+#endif
+
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 				"invalid new superior DN", NULL, NULL );
 			goto cleanup;
@@ -116,13 +146,26 @@ do_modrdn(
 
 	}
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+                   "do_modrdn: dn (%s) newrdn (%s) newsuperior(%s)\n",
+                   dn, newrdn, newSuperior != NULL ? newSuperior : "" ));
+#else
 	Debug( LDAP_DEBUG_ARGS,
 	    "do_modrdn: dn (%s) newrdn (%s) newsuperior (%s)\n",
 		dn, newrdn,
 		newSuperior != NULL ? newSuperior : "" );
+#endif
+
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_modrdn: ber_scanf failed\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
+#endif
+
 		send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 		rc = SLAPD_DISCONNECT;
@@ -130,7 +173,13 @@ do_modrdn(
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_modrdn: get_ctrls failed\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
+#endif
+
 		/* get_ctrls has sent results.  Now clean up. */
 		goto cleanup;
 	} 
@@ -138,21 +187,39 @@ do_modrdn(
 	ndn = ch_strdup( dn );
 
 	if( dn_normalize( ndn ) == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_modrdn: invalid dn (%s)\n", dn ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
+#endif
+
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
 		goto cleanup;
 	}
 
 	if( !rdn_validate( newrdn ) ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_modrdn: invalid rdn (%s).\n", newrdn ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
+#endif
+
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid RDN", NULL, NULL );
 		goto cleanup;
 	}
 
 	if( ndn == '\0' ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_modrdn:  attempt to modify root DSE.\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
+#endif
+
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "cannot rename the root DSE", NULL, NULL );
 		goto cleanup;

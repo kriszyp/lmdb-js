@@ -43,7 +43,12 @@ get_ava(
 	rc = ber_scanf( ber, "{oo}", &type, &value );
 
 	if( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+                       "get_ava:  ber_scanf failure\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
+#endif
 		*text = "Error decoding attribute value assertion";
 		return SLAPD_DISCONNECT;
 	}

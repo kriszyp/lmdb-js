@@ -93,14 +93,23 @@ do_extended(
 	struct berval *rspdata;
 	LDAPControl **rspctrls;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "do_extended: conn %s\n", conn->c_connid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
-
+#endif
 	reqoid = NULL;
 	reqdata = NULL;
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_extended: protocol version (%d) too low.\n", op->o_protocol ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_extended: protocol version (%d) too low\n",
 			op->o_protocol, 0 ,0 );
+#endif
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "requires LDAPv3" );
 		rc = -1;
@@ -108,7 +117,12 @@ do_extended(
 	}
 
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &reqoid ) == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
+#endif
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		rc = -1;
@@ -116,8 +130,14 @@ do_extended(
 	}
 
 	if( !(ext = find_extop(supp_ext_list, reqoid)) ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_extended: conn %d  unsupported operation \"%s\"\n",
+                       conn->c_connid, reqoid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
 			reqoid, 0 ,0 );
+#endif
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "unsupported extended operation", NULL, NULL );
 		goto done;
@@ -127,7 +147,12 @@ do_extended(
 	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
 		if( ber_scanf( op->o_ber, "O", &reqdata ) == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+#else
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
+#endif
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 			rc = -1;
@@ -136,12 +161,21 @@ do_extended(
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "do_extended: conn %d  get_ctrls failed\n", conn->c_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "do_extended: get_ctrls failed\n", 0, 0 ,0 );
+#endif
 		return rc;
 	} 
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+                   "do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", reqoid, 0 ,0 );
-
+#endif
 	rspoid = NULL;
 	rspdata = NULL;
 	rspctrls = NULL;

@@ -150,8 +150,15 @@ register_syntax(
 
 	syn = ldap_str2syntax( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !syn ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
+                       "register_syntax: Error - %s before %s in %s.\n",
+                       ldap_scherr2str(code), err, desc ));
+#else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, desc );
+#endif
+
 		return( -1 );
 	}
 
@@ -160,8 +167,15 @@ register_syntax(
 	ldap_memfree( syn );
 
 	if ( code ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
+                       "register_syntax: Error - %s %s in %s\n",
+                       scherr2str(code), err, desc ));
+#else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, desc );
+#endif
+
 		return( -1 );
 	}
 
@@ -198,8 +212,15 @@ syn_schema_info( Entry *e )
 		}
 		val.bv_len = strlen( val.bv_val );
 #if 0
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+                           "syn_schema_info: Merging syn [%ld] %s\n",
+                           (long)val.bv_len, val.bv_val ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );
+#endif
+
 #endif
 		attr_merge( e, ad_ldapSyntaxes, vals );
 		ldap_memfree( val.bv_val );

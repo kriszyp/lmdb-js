@@ -289,8 +289,15 @@ dnMatch(
 #endif
 	}
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+                   "dnMatch: %d\n    %s\n    %s\n", match,
+                   value->bv_val, asserted->bv_val ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
 	    match, value->bv_val, asserted->bv_val );
+#endif
+
 
 	*matchp = match;
 	return LDAP_SUCCESS;
@@ -3735,9 +3742,16 @@ objectIdentifierFirstComponentMatch(
 		ch_free( stored );
 	}
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+                   "objectIdentifierFirstComponentMatch: %d\n    %s\n    %s\n",
+                   match, value->bv_val, asserted->bv_val ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "objectIdentifierFirstComponentMatch "
 		"%d\n\t\"%s\"\n\t\"%s\"\n",
 	    match, value->bv_val, asserted->bv_val );
+#endif
+
 
 	if( rc == LDAP_SUCCESS ) *matchp = match;
 	return rc;

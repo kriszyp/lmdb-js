@@ -60,8 +60,15 @@ objectClassMatch(
 	}
 
 #if 0
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+                   "objectClassMatch(%s, %s) = %d\n",
+                   value->bv_val, a->bv_val, *matchp ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "objectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );
+#endif
+
 #endif
 
 	return LDAP_SUCCESS;
@@ -102,8 +109,15 @@ structuralObjectClassMatch(
 	*matchp = ( asserted != oc );
 
 #if 0
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+                   "structuralObjectClassMatch( %s, %s ) = %d\n",
+                   value->bv_val, a->bv_val, *matchp ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "structuralObjectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );
+#endif
+
 #endif
 
 	return LDAP_SUCCESS;

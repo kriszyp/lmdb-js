@@ -235,8 +235,14 @@ dn_validate( char *dn_in )
 
 		default:
 			dn = NULL;
+#ifdef NEW_LOGGING
+                        LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                                   "dn_validate: unknown state %d for dn \"%s\".\n",
+                                   state, dn_in ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 			    "dn_validate - unknown state %d\n", state, 0, 0 );
+#endif
 			break;
 		}
 

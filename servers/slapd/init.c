@@ -74,9 +74,16 @@ slap_init( int mode, const char *name )
 	assert( mode );
 
 	if( slapMode != SLAP_UNDEFINED_MODE ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+                       "init: %s init called twice (old=%d, new=%d)\n",
+                       name, slapMode, mode ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 	   	 "%s init: init called twice (old=%d, new=%d)\n",
 	   	 name, slapMode, mode );
+#endif
+
 		return 1;
 	}
 
@@ -85,10 +92,17 @@ slap_init( int mode, const char *name )
 	switch ( slapMode & SLAP_MODE ) {
 		case SLAP_SERVER_MODE:
 		case SLAP_TOOL_MODE:
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+                               "init: %s initiation, initiated %s.\n",
+                               name, (mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server" ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"%s init: initiated %s.\n",	name,
 				(mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server",
 				0 );
+#endif
+
 
 			slap_name = name;
 	
@@ -115,8 +129,14 @@ slap_init( int mode, const char *name )
 			break;
 
 		default:
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "init: %s init, undefined mode (%d).\n", name, mode ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 	   	 		"%s init: undefined mode (%d).\n", name, mode, 0 );
+#endif
+
 			rc = 1;
 			break;
 	}
@@ -128,9 +148,15 @@ int slap_startup( Backend *be )
 {
 	int rc;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+                   "slap_startup: %s started\n", slap_name ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"%s startup: initiated.\n",
 		slap_name, 0, 0 );
+#endif
+
 
 	rc = backend_startup( be );
 
@@ -141,9 +167,15 @@ int slap_shutdown( Backend *be )
 {
 	int rc;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+                   "slap_shutdown: %s shutdown initiated.\n", slap_name));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"%s shutdown: initiated\n",
 		slap_name, 0, 0 );
+#endif
+
 
 	slap_sasl_destroy();
 
@@ -157,9 +189,16 @@ int slap_destroy(void)
 {
 	int rc;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                   "slap_destroy: %s freeing system resources.\n",
+                   slap_name ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"%s shutdown: freeing system resources.\n",
 		slap_name, 0, 0 );
+#endif
+
 
 	rc = backend_destroy();
 

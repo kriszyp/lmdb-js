@@ -96,8 +96,15 @@ slap_op_remove( Operation **olist, Operation *op )
 		;	/* NULL */
 
 	if ( *tmp == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "slap_op_remove: can't find op %ld.\n",
+                       (long)op->o_msgid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %ld\n",
 		       (long) op->o_msgid, 0, 0 );
+#endif
+
 		return -1; 
 	}
 

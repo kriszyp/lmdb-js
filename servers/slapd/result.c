@@ -214,8 +214,15 @@ static long send_ldap_ber(
 		 * it's a hard error and return.
 		 */
 
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                           "send_ldap_ber: conn %d  ber_flush failed err=%d (%s)\n",
+                           conn ? conn->c_connid : 0, err, sock_errstr(err) ));
+#else
 		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno=%d reason=\"%s\"\n",
 		    err, sock_errstr(err), 0 );
+#endif
+
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			connection_closing( conn );
@@ -265,18 +272,40 @@ send_ldap_response(
 
 	ber = ber_alloc_t( LBER_USE_DER );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_ldap_response: conn %d  msgid=%ld tag=%ld err=%ld\n",
+                   conn ? conn->c_connid : 0, (long)msgid, (long)tag, (long)err ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_response: msgid=%ld tag=%ld err=%ld\n",
 		(long) msgid, (long) tag, (long) err );
+#endif
+
 
 	if( ref ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+                       "send_ldap_response: conn %d  ref=\"%s\"\n",
+                       conn ? conn->c_connid : 0,
+                       ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL" ));
+#else
 		Debug( LDAP_DEBUG_ARGS, "send_ldap_response: ref=\"%s\"\n",
 			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
 			NULL, NULL );
+#endif
+
 	}
 
 	if ( ber == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_ldap_response: conn %d  ber_alloc failed\n",
+                       conn ? conn->c_connid : 0 ));
+#else
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
+#endif
+
 		return;
 	}
 
@@ -315,7 +344,14 @@ send_ldap_response(
 	}
 
 	if ( rc == -1 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_ldap_response: conn %d  ber_printf failed\n",
+                       conn ? conn->c_connid : 0 ));
+#else
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 		ber_free( ber, 1 );
 		return;
 	}
@@ -325,9 +361,16 @@ send_ldap_response(
 	ber_free( ber, 1 );
 
 	if ( bytes < 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_ldap_response: conn %d ber write failed\n",
+                       conn ? conn->c_connid : 0 ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"send_ldap_response: ber write failed\n",
 			0, 0, 0 );
+#endif
+
 		return;
 	}
 
@@ -358,9 +401,16 @@ send_ldap_disconnect(
 
 	assert( LDAP_UNSOLICITED_ERROR( err ) );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_ldap_disconnect: conn %d  %d:%s\n",
+                   conn ? conn->c_connid : 0, err, text ? text : "" ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_disconnect %d:%s\n",
 		err, text ? text : "", NULL );
+#endif
+
 
 	if ( op->o_protocol < LDAP_VERSION3 ) {
 		reqoid = NULL;
@@ -400,18 +450,39 @@ send_ldap_result(
 
 	assert( !LDAP_API_ERROR( err ) );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_ldap_result : conn %ld   op=%ld p=%d\n",
+                   (long)op->o_connid, (long)op->o_opid, op->o_protocol ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_result: conn=%ld op=%ld p=%d\n",
 		(long) op->o_connid, (long) op->o_opid, op->o_protocol );
+#endif
+
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+                   "send_ldap_result: conn=%ld err=%d matched=\"%s\" text=\"%s\"\n",
+                   (long)op->o_connid, err, matched ? matched : "", text ? text : "" ));
+#else
 	Debug( LDAP_DEBUG_ARGS,
 		"send_ldap_result: err=%d matched=\"%s\" text=\"%s\"\n",
 		err, matched ?  matched : "", text ? text : "" );
+#endif
+
 
 	if( ref ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+                       "send_ldap_result: referral=\"%s\"\n",
+                       ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL" ));
+#else
 		Debug( LDAP_DEBUG_ARGS,
 			"send_ldap_result: referral=\"%s\"\n",
 			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
 			NULL, NULL );
+#endif
+
 	}
 
 	assert( err != LDAP_PARTIAL_RESULTS );
@@ -466,8 +537,15 @@ send_ldap_sasl(
 	ber_tag_t tag;
 	ber_int_t msgid;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_ldap_sasl: conn %d err=%ld len=%ld\n",
+                   op->o_connid, (long)err, cred ? cred->bv_len : -1 ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_sasl: err=%ld len=%ld\n",
 		(long) err, cred ? cred->bv_len : -1, NULL );
+#endif
+
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
@@ -493,11 +571,19 @@ send_ldap_extended(
 	ber_tag_t tag;
 	ber_int_t msgid;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_ldap_extended: conn %d  err=%ld oid=%s len=%ld\n",
+                   op->o_connid, (long)err, rspoid ? rspoid : "",
+                   rspdata != NULL ? (long)rspdata->bv_len : (long)0 ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_extended err=%ld oid=%s len=%ld\n",
 		(long) err,
 		rspoid ? rspoid : "",
 		rspdata != NULL ? (long) rspdata->bv_len : (long) 0 );
+#endif
+
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
@@ -525,9 +611,17 @@ send_search_result(
 	char *tmp = NULL;
 	assert( !LDAP_API_ERROR( err ) );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_search_result: conn %d err=%d matched=\"%s\"\n",
+                   op->o_connid, err, matched ? matched : "",
+                   text ? text : "" ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"send_search_result: err=%d matched=\"%s\" text=\"%s\"\n",
 		err, matched ?  matched : "", text ? text : "" );
+#endif
+
 
 	assert( err != LDAP_PARTIAL_RESULTS );
 
@@ -591,16 +685,31 @@ send_search_entry(
 
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_search_entry: conn %d  dn=\"%s\"%s\n",
+                   op->o_connid, e->e_dn,
+                   attrsonly ? " (attrsOnly)" : "" ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_entry: dn=\"%s\"%s\n",
 		e->e_dn, attrsonly ? " (attrsOnly)" : "", 0 );
+#endif
+
 
 	if ( ! access_allowed( be, conn, op, e,
 		ad_entry, NULL, ACL_READ ) )
 	{
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+                       "send_search_entry: conn %d access to entry (%s) not allowed\n",
+                       op->o_connid, e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_entry: access to entry not allowed\n",
 		    0, 0, 0 );
+#endif
+
 		return( 1 );
 	}
 
@@ -609,7 +718,14 @@ send_search_entry(
 	ber = ber_alloc_t( LBER_USE_DER );
 
 	if ( ber == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_search_entry: conn %d  ber_alloc failed\n",
+                       op->o_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
+#endif
+
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "BER allocation error", NULL, NULL );
 		goto error_return;
@@ -619,7 +735,14 @@ send_search_entry(
 		LDAP_RES_SEARCH_ENTRY, e->e_dn );
 
 	if ( rc == -1 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_search_entry: conn %d  ber_printf failed\n",
+                       op->o_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 		ber_free( ber, 1 );
 		send_ldap_result( conn, op, LDAP_OTHER,
 		    NULL, "encoding DN error", NULL, NULL );
@@ -659,13 +782,27 @@ send_search_entry(
 		}
 
 		if ( ! access_allowed( be, conn, op, e, desc, NULL, ACL_READ ) ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+                               "send_search_entry: conn %d  access to attribute %s not allowed\n",
+                               op->o_connid, desc->ad_cname->bv_val ));
+#else
 			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
 			    desc->ad_cname->bv_val, 0, 0 );
+#endif
+
 			continue;
 		}
 
 		if (( rc = ber_printf( ber, "{s[" /*]}*/ , type )) == -1 ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "send_search_entry: conn %d  ber_printf failed\n",
+                               op->o_connid ));
+#else
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encoding description error", NULL, NULL );
@@ -677,15 +814,29 @@ send_search_entry(
 				if ( ! access_allowed( be, conn, op, e,
 					desc, a->a_vals[i], ACL_READ ) )
 				{
+#ifdef NEW_LOGGING
+                                    LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+                                               "send_search_entry: conn %d  access to attribute %s, value %d not allowed\n",
+                                               op->o_connid, desc->ad_cname->bv_val, i ));
+#else
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
 			    		desc->ad_cname->bv_val, i, 0 );
+#endif
+
 					continue;
 				}
 
 				if (( rc = ber_printf( ber, "O", a->a_vals[i] )) == -1 ) {
+#ifdef NEW_LOGGING
+                                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                                               "send_search_entry: conn %d  ber_printf failed.\n",
+                                               op->o_connid ));
+#else
 					Debug( LDAP_DEBUG_ANY,
 					    "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 					ber_free( ber, 1 );
 					send_ldap_result( conn, op, LDAP_OTHER,
 						NULL, "encoding values error", NULL, NULL );
@@ -695,7 +846,14 @@ send_search_entry(
 		}
 
 		if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "send_search_entry: conn %d  ber_printf failed\n",
+                               op->o_connid ));
+#else
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encode end error", NULL, NULL );
@@ -731,14 +889,28 @@ send_search_entry(
 		}
 
 		if ( ! access_allowed( be, conn, op, e,	desc, NULL, ACL_READ ) ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+                               "send_search_entry: conn %s  access to attribute %s not allowed\n",
+                               op->o_connid, desc->ad_cname->bv_val ));
+#else
 			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
 			    desc->ad_cname->bv_val, 0, 0 );
+#endif
+
 			continue;
 		}
 
 		rc = ber_printf( ber, "{s[" /*]}*/ , desc->ad_cname->bv_val );
 		if ( rc == -1 ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "send_search_entry: conn %d  ber_printf failed\n",
+                               op->o_connid ));
+#else
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encoding description error", NULL, NULL );
@@ -750,16 +922,30 @@ send_search_entry(
 				if ( ! access_allowed( be, conn, op, e,
 					desc, a->a_vals[i], ACL_READ ) )
 				{
+#ifdef NEW_LOGGING
+                                    LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+                                               "send_search_entry: conn %d access to %s, value %d not allowed\n",
+                                               op->o_connid, desc->ad_cname->bv_val, i ));
+#else
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
 			    		desc->ad_cname->bv_val, i, 0 );
+#endif
+
 					continue;
 				}
 
 
 				if (( rc = ber_printf( ber, "O", a->a_vals[i] )) == -1 ) {
+#ifdef NEW_LOGGING
+                                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                                               "send_search_entry: conn %d  ber_printf failed\n",
+                                               op->o_connid ));
+#else
 					Debug( LDAP_DEBUG_ANY,
 					    "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 					ber_free( ber, 1 );
 					send_ldap_result( conn, op, LDAP_OTHER,
 						NULL, "encoding values error", NULL, NULL );
@@ -769,7 +955,14 @@ send_search_entry(
 		}
 
 		if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "send_search_entry: conn %d  ber_printf failed\n",
+                               op->o_connid ));
+#else
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encode end error", NULL, NULL );
@@ -782,7 +975,14 @@ send_search_entry(
 	rc = ber_printf( ber, /*{{{*/ "}N}N}" );
 
 	if ( rc == -1 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_search_entry: conn %d ber_printf failed\n",
+                       op->o_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+#endif
+
 		ber_free( ber, 1 );
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "encode entry end error", NULL, NULL );
@@ -793,9 +993,16 @@ send_search_entry(
 	ber_free( ber, 1 );
 
 	if ( bytes < 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_ldap_response: conn %d  ber write failed.\n",
+                       op->o_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"send_ldap_response: ber write failed\n",
 			0, 0, 0 );
+#endif
+
 		return -1;
 	}
 
@@ -808,7 +1015,14 @@ send_search_entry(
 	Statslog( LDAP_DEBUG_STATS2, "conn=%ld op=%ld ENTRY dn=\"%s\"\n",
 	    (long) conn->c_connid, (long) op->o_opid, e->e_dn, 0, 0 );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_search_entry: conn %d exit.\n",
+                   op->o_connid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
+#endif
+
 
 	rc = 0;
 
@@ -835,32 +1049,60 @@ send_search_reference(
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_search_reference: conn %d  dn=\"%s\"\n",
+                   op->o_connid, e->e_dn ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_reference: dn=\"%s\"\n",
 		e->e_dn, 0, 0 );
+#endif
+
 
 	if ( ! access_allowed( be, conn, op, e,
 		ad_entry, NULL, ACL_READ ) )
 	{
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+                       "send_search_reference: conn %d  access to entry %s not allowed\n",
+                       op->o_connid, e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to entry not allowed\n",
 		    0, 0, 0 );
+#endif
+
 		return( 1 );
 	}
 
 	if ( ! access_allowed( be, conn, op, e,
 		ad_ref, NULL, ACL_READ ) )
 	{
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+                       "send_search_reference: conn %d access to reference not allowed.\n",
+                       op->o_connid ));
+#else
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to reference not allowed\n",
 		    0, 0, 0 );
+#endif
+
 		return( 1 );
 	}
 
 	if( refs == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_search_reference: null ref in (%s).\n",
+                       op->o_connid, e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: null ref in (%s)\n", 
 			e->e_dn, 0, 0 );
+#endif
+
 		return( 1 );
 	}
 
@@ -875,8 +1117,15 @@ send_search_reference(
 	ber = ber_alloc_t( LBER_USE_DER );
 
 	if ( ber == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_search_reference: conn %d ber_alloc failed\n",
+                       op->o_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: ber_alloc failed\n", 0, 0, 0 );
+#endif
+
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "alloc BER error", NULL, NULL );
 		return -1;
@@ -886,8 +1135,15 @@ send_search_reference(
 		LDAP_RES_SEARCH_REFERENCE, refs );
 
 	if ( rc == -1 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "send_search_reference: conn %d  ber_printf failed.\n",
+                       op->o_connid ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: ber_printf failed\n", 0, 0, 0 );
+#endif
+
 		ber_free( ber, 1 );
 		send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "encode DN error", NULL, NULL );
@@ -906,7 +1162,13 @@ send_search_reference(
 	Statslog( LDAP_DEBUG_STATS2, "conn=%ld op=%ld ENTRY dn=\"%s\"\n",
 	    (long) conn->c_connid, (long) op->o_opid, e->e_dn, 0, 0 );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "send_search_reference: conn %d exit.\n", op->o_connid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
+#endif
+
 
 	return 0;
 }
@@ -928,8 +1190,14 @@ str2result(
 	*info = NULL;
 
 	if ( strncasecmp( s, "RESULT", 6 ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "str2result: (%s), expecting \"RESULT\"\n", s ));
+#else
 		Debug( LDAP_DEBUG_ANY, "str2result (%s) expecting \"RESULT\"\n",
 		    s, 0, 0 );
+#endif
+
 
 		return( -1 );
 	}
@@ -957,8 +1225,14 @@ str2result(
 				*info = c;
 			}
 		} else {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                               "str2result: (%s) unknown.\n", s ));
+#else
 			Debug( LDAP_DEBUG_ANY, "str2result (%s) unknown\n",
 			    s, 0, 0 );
+#endif
+
 			rc = -1;
 		}
 	}

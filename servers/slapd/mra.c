@@ -51,7 +51,13 @@ get_mra(
 	rc = ber_scanf( ber, "{t", &tag );
 
 	if( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "get_mra: ber_scanf (\"{t\") failure\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
+#endif
+
 		*text = "Error parsing matching rule assertion";
 		mra_free( ma, 1 );
 		return SLAPD_DISCONNECT;
@@ -60,7 +66,13 @@ get_mra(
 	if ( tag == LDAP_FILTER_EXT_OID ) {
 		rc = ber_scanf( ber, "a", &ma->ma_rule_text );
 		if ( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "get_mra: ber_scanf(\"a\") failure.\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf for mr\n", 0, 0, 0 );
+#endif
+
 			*text = "Error parsing matching rule in matching rule assertion";
 			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
@@ -70,7 +82,13 @@ get_mra(
 		rc = ber_scanf( ber, "t", &tag );
 
 		if( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "get_mra: ber_scanf (\"t\") failure\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
+#endif
+
 			*text = "Error parsing matching rule assertion";
 			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
@@ -80,7 +98,13 @@ get_mra(
 	if ( tag == LDAP_FILTER_EXT_TYPE ) {
 		rc = ber_scanf( ber, "o", &type );
 		if ( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "get_mra: ber_scanf (\"o\") failure.\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf for ad\n", 0, 0, 0 );
+#endif
+
 			*text = "Error parsing attribute description in matching rule assertion";
 			return SLAPD_DISCONNECT;
 		}
@@ -97,7 +121,13 @@ get_mra(
 		rc = ber_scanf( ber, "t", &tag );
 
 		if( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "get_mra: ber_scanf (\"t\") failure.\n" ));
+#else
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
+#endif
+
 			*text = "Error parsing matching rule assertion";
 			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
@@ -105,7 +135,13 @@ get_mra(
 	}
 
 	if ( tag != LDAP_FILTER_EXT_VALUE ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "get_mra: ber_scanf missing value\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf missing value\n", 0, 0, 0 );
+#endif
+
 		*text = "Missing value in matching rule assertion";
 		mra_free( ma, 1 );
 		return SLAPD_DISCONNECT;
@@ -114,7 +150,13 @@ get_mra(
 	rc = ber_scanf( ber, "o", &value );
 
 	if( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "get_mra: ber_scanf (\"o\") failure.\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
+#endif
+
 		*text = "Error decoding value in matching rule assertion";
 		mra_free( ma, 1 );
 		return SLAPD_DISCONNECT;
@@ -144,7 +186,13 @@ get_mra(
 	}
 
 	if( rc == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "get_mra: ber_scanf failure\n"));
+#else
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
+#endif
+
 		*text = "Error decoding dnattrs matching rule assertion";
 		mra_free( ma, 1 );
 		return SLAPD_DISCONNECT;

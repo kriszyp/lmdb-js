@@ -63,8 +63,15 @@ slap_init_user( char *user, char *group )
 	    pwd = getpwnam( user );
 	did_getpw:
 	    if ( pwd == NULL ) {
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                           "slap_init_user: No passwd entry for user %s\n",
+                           user ));
+#else
 		Debug( LDAP_DEBUG_ANY, "No passwd entry for user %s\n",
 		       user, 0, 0 );
+#endif
+
 		exit( EXIT_FAILURE );
 	    }
 	    if ( got_uid ) {
@@ -96,8 +103,14 @@ slap_init_user( char *user, char *group )
 		gid = grp->gr_gid;
 	did_group:
 	    if ( grp == NULL ) {
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                           "slap_init_user: No group entry for group %s\n", group));
+#else
 		Debug( LDAP_DEBUG_ANY, "No group entry for group %s\n",
 		       group, 0, 0 );
+#endif
+
 		exit( EXIT_FAILURE );
 	    }
 	}
@@ -107,8 +120,14 @@ slap_init_user( char *user, char *group )
 
     if ( user ) {
 	if ( getuid() == 0 && initgroups( user, gid ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "slap_init_user: Could not set the group access (gid) list.\n" ));
+#else
 	    Debug( LDAP_DEBUG_ANY,
 		   "Could not set the group access (gid) list\n", 0, 0, 0 );
+#endif
+
 	    exit( EXIT_FAILURE );
 	}
 	free( user );
@@ -120,14 +139,26 @@ slap_init_user( char *user, char *group )
 
     if ( got_gid ) {
 	if ( setgid( gid ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "slap_init_user: could not set real group id to %d\n", (int)gid));
+#else
 	    Debug( LDAP_DEBUG_ANY, "Could not set real group id to %d\n",
 		       (int) gid, 0, 0 );
+#endif
+
 	    exit( EXIT_FAILURE );
 	}
 #ifdef HAVE_SETEGID
 	if ( setegid( gid ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "slap_init_user: Could not set effective group id to %d\n",(int)gid));
+#else
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective group id to %d\n",
 		       (int) gid, 0, 0 );
+#endif
+
 	    exit( EXIT_FAILURE );
 	}
 #endif
@@ -135,14 +166,26 @@ slap_init_user( char *user, char *group )
 
     if ( got_uid ) {
 	if ( setuid( uid ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "slap_init_user: Could not set real user id to %d\n", (int)uid ));
+#else
 	    Debug( LDAP_DEBUG_ANY, "Could not set real user id to %d\n",
 		       (int) uid, 0, 0 );
+#endif
+
 	    exit( EXIT_FAILURE );
 	}
 #ifdef HAVE_SETEUID
 	if ( seteuid( uid ) != 0 ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+                       "slap_init_user: Could not set effective user id to %d\n", (int)uid ));
+#else
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective user id to %d\n",
 		       (int) uid, 0, 0 );
+#endif
+
 	    exit( EXIT_FAILURE );
 	}
 #endif

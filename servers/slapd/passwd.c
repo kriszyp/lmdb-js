@@ -82,8 +82,14 @@ int slap_passwd_parse( struct berval *reqdata,
 	ber = ber_init( reqdata );
 
 	if( ber == NULL ) {
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "slap_passwd_parse: ber_init failed\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ber_init failed\n",
 			0, 0, 0 );
+#endif
+
 		*text = "password decoding error";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -96,8 +102,14 @@ int slap_passwd_parse( struct berval *reqdata,
 
 	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID ) {
 		if( id == NULL ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "slap_passwd_parse: ID not allowed.\n"));
+#else
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID not allowed.\n",
 				0, 0, 0 );
+#endif
+
 			*text = "user must change own password";
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			goto done;
@@ -106,8 +118,14 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_scanf( ber, "O", id );
 
 		if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "slap_passwd_parse:  ID parse failed.\n"));
+#else
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID parse failed.\n",
 				0, 0, 0 );
+#endif
+
 			goto decoding_error;
 		}
 
@@ -116,8 +134,14 @@ int slap_passwd_parse( struct berval *reqdata,
 
 	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD ) {
 		if( oldpass == NULL ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "slap_passwd_parse: OLD not allowed.\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD not allowed.\n",
 				0, 0, 0 );
+#endif
+
 			*text = "use bind to verify old password";
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			goto done;
@@ -126,8 +150,14 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_scanf( ber, "O", oldpass );
 
 		if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "slap_passwd_parse:  ID parse failed.\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ID parse failed.\n",
 				0, 0, 0 );
+#endif
+
 			goto decoding_error;
 		}
 
@@ -136,8 +166,14 @@ int slap_passwd_parse( struct berval *reqdata,
 
 	if( tag == LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW ) {
 		if( newpass == NULL ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "slap_passwd_parse:  NEW not allowed.\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: NEW not allowed.\n",
 				0, 0, 0 );
+#endif
+
 			*text = "user specified passwords disallowed";
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			goto done;
@@ -146,8 +182,14 @@ int slap_passwd_parse( struct berval *reqdata,
 		tag = ber_scanf( ber, "O", newpass );
 
 		if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                               "slap_passwd_parse:  OLD parse failed.\n"));
+#else
 			Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: OLD parse failed.\n",
 				0, 0, 0 );
+#endif
+
 			goto decoding_error;
 		}
 
@@ -156,9 +198,15 @@ int slap_passwd_parse( struct berval *reqdata,
 
 	if( len != 0 ) {
 decoding_error:
+#ifdef NEW_LOGGING
+            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+                       "slap_passwd_parse: decoding error, len=%ld\n", (long)len ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_passwd_parse: decoding error, len=%ld\n",
 			(long) len, 0, 0 );
+#endif
+
 
 		*text = "data decoding error";
 		rc = LDAP_PROTOCOL_ERROR;
@@ -195,8 +243,14 @@ struct berval * slap_passwd_return(
 
 	assert( cred != NULL );
 
+#ifdef NEW_LOGGING
+        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+                   "slap_passwd_return: %ld\n",(long)cred->bv_len ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_return: %ld\n",
 		(long) cred->bv_len, 0, 0 );
+#endif
+
 
 	if( ber == NULL ) return NULL;
 	
@@ -250,7 +304,13 @@ slap_passwd_check(
 
 struct berval * slap_passwd_generate( void )
 {
+#ifdef NEW_LOGGING
+    LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+               "slap_passwd_generate: begin\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_generate\n", 0, 0, 0 );
+#endif
+
 
 	/*
 	 * generate passwords of only 8 characters as some getpass(3)
