@@ -440,6 +440,7 @@ slap_modrdn2mods(
 				"slap_modrdn2modlist: access to attr \"%s\" "
 				"(new) not allowed\n", 
 				new_rdn[ a_cnt ]->la_attr.bv_val, 0, 0 );
+			rs->sr_text = "access to naming attributes (new) not allowed";
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 			goto done;
 		}
@@ -493,6 +494,7 @@ slap_modrdn2mods(
 					"to attr \"%s\" (old) not allowed\n", 
 					old_rdn[ d_cnt ]->la_attr.bv_val,
 					0, 0 );
+				rs->sr_text = "access to naming attributes (old) not allowed";
 				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 				goto done;
 			}
@@ -524,7 +526,7 @@ slap_modrdn2mods(
 	
 done:
 
-	if ( !repl_user ) {
+	if ( rs->sr_err == LDAP_SUCCESS && !repl_user ) {
 		char textbuf[ SLAP_TEXT_BUFLEN ];
 		size_t textlen = sizeof textbuf;
 
