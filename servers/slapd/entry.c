@@ -43,7 +43,8 @@ str2entry( char	*s )
 	 * or newline.
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n", s, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
+		s ? s : "NULL", 0, 0 );
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 

@@ -10,8 +10,16 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+/* Revision history
+ *
+ * 5-Jun-96	jeff.hodges@stanford.edu
+ *	Added locking of new_conn_mutex when traversing the c[] array.
+ *	Added locking of currenttime_mutex to protect call(s) to localtime().
+ */
+
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "slap.h"
@@ -32,18 +40,16 @@ extern time_t		currenttime;
 extern time_t		starttime;
 extern int		num_conns;
 
+extern pthread_mutex_t	new_conn_mutex;
+extern pthread_mutex_t	currenttime_mutex;
 
 extern char Versionstr[];
-
-/*
- * no mutex protection in here - take our chances!
- */
 
 void
 monitor_info( Connection *conn, Operation *op )
 {
 	Entry		*e;
-	char		buf[BUFSIZ], buf2[20];
+	char		buf[BUFSIZ], buf2[22];
 	struct berval	val;
 	struct berval	*vals[2];
 	int		i, nconns, nwritewaiters, nreadwaiters;
@@ -73,6 +79,8 @@ monitor_info( Connection *conn, Operation *op )
 	nconns = 0;
 	nwritewaiters = 0;
 	nreadwaiters = 0;
+
+	pthread_mutex_lock( &new_conn_mutex );
 	for ( i = 0; i < dtblsize; i++ ) {
 		if ( c[i].c_sb.sb_sd != -1 ) {
 			nconns++;
@@ -82,8 +90,16 @@ monitor_info( Connection *conn, Operation *op )
 			if ( c[i].c_gettingber ) {
 				nreadwaiters++;
 			}
+			pthread_mutex_lock( &currenttime_mutex );
+#ifndef LDAP_LOCALTIME
+			ltm = gmtime( &c[i].c_starttime );
+			strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+#else
 			ltm = localtime( &c[i].c_starttime );
 			strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
+#endif
+			pthread_mutex_unlock( &currenttime_mutex );
+
 			pthread_mutex_lock( &c[i].c_dnmutex );
 			sprintf( buf, "%d : %s : %ld : %ld : %s : %s%s", i,
 			    buf2, c[i].c_opsinitiated, c[i].c_opscompleted,
@@ -96,6 +112,8 @@ monitor_info( Connection *conn, Operation *op )
 			attr_merge( e, "connection", vals );
 		}
 	}
+	pthread_mutex_unlock( &new_conn_mutex );
+
 	sprintf( buf, "%d", nconns );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
@@ -141,14 +159,28 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "bytessent", vals );
 
-        ltm = localtime( &currenttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+	pthread_mutex_lock( &currenttime_mutex );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &currenttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &currenttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
+	pthread_mutex_unlock( &currenttime_mutex );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "currenttime", vals );
 
-        ltm = localtime( &starttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+	pthread_mutex_lock( &currenttime_mutex );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &starttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &starttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
+	pthread_mutex_unlock( &currenttime_mutex );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "starttime", vals );
