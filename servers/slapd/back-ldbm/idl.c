@@ -11,6 +11,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+static ID_BLOCK* idl_dup( ID_BLOCK *idl );
 
 /* Allocate an ID_BLOCK with room for nids ids */
 ID_BLOCK *
@@ -73,7 +74,12 @@ idl_fetch_one(
 
 	data = ldbm_cache_fetch( db, key );
 
-	idl = (ID_BLOCK *) data.dptr;
+	if( data.dptr == NULL ) {
+		return NULL;
+	}
+
+	idl = idl_dup( (ID_BLOCK *) data.dptr);
+	ldbm_datum_free( db->dbc_db, data );
 
 	return( idl );
 }
@@ -95,35 +101,29 @@ idl_fetch(
     Datum		key
 )
 {
-	Datum	data, k2;
+	Datum	data;
 	ID_BLOCK	*idl;
 	ID_BLOCK	**tmp;
 	char	*kstr;
 	int	i, nids;
 
-	ldbm_datum_init( k2 );
-	ldbm_datum_init( data );
+	idl = idl_fetch_one( be, db, key );
 
-	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch\n", 0, 0, 0 ); */
-
-	data = ldbm_cache_fetch( db, key );
-
-	if ( (idl = (ID_BLOCK *) data.dptr) == NULL ) {
-		return( NULL );
+	if ( idl == NULL ) {
+		return NULL;
 	}
 
-	/* regular block */
-	if ( ! ID_BLOCK_INDIRECT( idl ) ) {
-		/*
-		Debug( LDAP_DEBUG_TRACE, "<= idl_fetch %d ids (%d max)\n",
-		    ID_BLOCK_NIDS(idl), ID_BLOCK_NMAX(idl), 0 );
-		*/
-
+	if ( ID_BLOCK_ALLIDS(idl) ) {
+		/* all ids block */
 		/* make sure we have the current value of highest id */
-		if ( ID_BLOCK_ALLIDS(idl) ) {
-			idl_free( idl );
-			idl = idl_allids( be );
-		}
+		idl_free( idl );
+		idl = idl_allids( be );
+
+		return idl;
+	}
+
+	if ( ! ID_BLOCK_INDIRECT( idl ) ) {
+		/* regular block */
 		return( idl );
 	}
 
@@ -142,19 +142,22 @@ idl_fetch(
 	kstr = (char *) ch_malloc( key.dsize + 20 );
 	nids = 0;
 	for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ ) {
-		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, ID_BLOCK_ID(idl, i) );
-		k2.dptr = kstr;
-		k2.dsize = strlen( kstr ) + 1;
+		ldbm_datum_init( data );
 
-		if ( (tmp[i] = idl_fetch_one( be, db, k2 )) == NULL ) {
+		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, ID_BLOCK_ID(idl, i) );
+		data.dptr = kstr;
+		data.dsize = strlen( kstr ) + 1;
+
+		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "idl_fetch of (%s) returns NULL\n", k2.dptr, 0, 0 );
+			    "idl_fetch of (%s) returns NULL\n", data.dptr, 0, 0 );
 			continue;
 		}
 
 		nids += ID_BLOCK_NIDS(tmp[i]);
 	}
 	tmp[i] = NULL;
+	free( kstr );
 	idl_free( idl );
 
 	/* allocate space for the big block */
@@ -344,8 +347,14 @@ idl_insert_key(
 		return( rc );
 	}
 
-	/* regular block */
+	if ( ID_BLOCK_ALLIDS( idl ) ) {
+		/* ALLIDS */
+		idl_free( idl );
+		return 0;
+	}
+
 	if ( ! ID_BLOCK_INDIRECT( idl ) ) {
+		/* regular block */
 		switch ( idl_insert( &idl, id, db->dbc_maxids ) ) {
 		case 0:		/* id inserted - store the updated block */
 		case 1:
@@ -432,6 +441,7 @@ idl_insert_key(
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "nonexistent continuation block (%s)\n",
 		    k2.dptr, 0, 0 );
+		free( kstr );
 		return( -1 );
 	}
 
@@ -659,7 +669,7 @@ idl_delete_key (
 	ID              id
 )
 {
-	Datum  k2;
+	Datum  data;
 	ID_BLOCK *idl, *tmp;
 	unsigned i;
 	int j, nids;
@@ -671,24 +681,28 @@ idl_delete_key (
 		return -1;
 	}
 
-	if ( ! ID_BLOCK_INDIRECT( idl ) )
-	{
-		for ( i=0; i < ID_BLOCK_NIDS(idl); i++ )
-		{
-			if ( ID_BLOCK_ID(idl, i) == id )
-			{
-				SAFEMEMCPY (
-					&ID_BLOCK_ID(idl, i),
-					&ID_BLOCK_ID(idl, i+1),
-					(ID_BLOCK_NIDS(idl)-(i+1)) * sizeof(ID) );
+	if ( ID_BLOCK_ALLIDS( idl ) ) {
+		idl_free( idl );
+		return 0;
+	}
 
-				ID_BLOCK_ID(idl, ID_BLOCK_NIDS(idl)-1) = NOID;
-				ID_BLOCK_NIDS(idl)--;
-
-				if ( ID_BLOCK_NIDS(idl) )
-					idl_store( be, db, key, idl );
-				else
+	if ( ! ID_BLOCK_INDIRECT( idl ) ) {
+		for ( i=0; i < ID_BLOCK_NIDS(idl); i++ ) {
+			if ( ID_BLOCK_ID(idl, i) == id ) {
+				if( --ID_BLOCK_NIDS(idl) == 0 ) {
 					ldbm_cache_delete( db, key );
+
+				} else {
+					SAFEMEMCPY (
+						&ID_BLOCK_ID(idl, i),
+						&ID_BLOCK_ID(idl, i+1),
+						(ID_BLOCK_NIDS(idl)-i) * sizeof(ID) );
+
+					ID_BLOCK_ID(idl, ID_BLOCK_NIDS(idl)) = NOID;
+
+					idl_store( be, db, key, idl );
+				}
+
 				return 0;
 			}
 			/*  We didn't find the ID.  Hmmm... */
@@ -705,14 +719,14 @@ idl_delete_key (
 
 	for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) 
 	{
-		ldbm_datum_init( k2 );
+		ldbm_datum_init( data );
 		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, ID_BLOCK_ID(idl, j) );
-		k2.dptr = kstr;
-		k2.dsize = strlen( kstr ) + 1;
+		data.dptr = kstr;
+		data.dsize = strlen( kstr ) + 1;
 
-		if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
+		if ( (tmp = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "idl_fetch of (%s) returns NULL\n", k2.dptr, 0, 0 );
+			    "idl_fetch of (%s) returns NULL\n", data.dptr, 0, 0 );
 			continue;
 		}
 		/*
@@ -728,11 +742,12 @@ idl_delete_key (
 					(ID_BLOCK_NIDS(tmp)-(i+1)) * sizeof(ID));
 				ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp)-1 ) = NOID;
 				ID_BLOCK_NIDS(tmp)--;
-				if ( ID_BLOCK_NIDS(tmp) )
-					idl_store ( be, db, k2, tmp );
-				else
-				{
-					ldbm_cache_delete( db, k2 );
+
+				if ( ID_BLOCK_NIDS(tmp) ) {
+					idl_store ( be, db, data, tmp );
+
+				} else {
+					ldbm_cache_delete( db, data );
 					SAFEMEMCPY(
 						&ID_BLOCK_ID(idl, j),
 						&ID_BLOCK_ID(idl, j+1),
@@ -744,10 +759,12 @@ idl_delete_key (
 					else
 						idl_store( be, db, key, idl );
 				}
+				free( kstr );
 				return 0;
 			}
 		}
 	}
+	free( kstr );
 	return -1;
 }
 
