@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.7 Engineering
+OpenLDAP 2.1.7 Release
 	Fixed liblber bvarray_add bug (ITS#2142)
 	Added libldap additional schema routines
 	Updated ldapmodify -c error handling (ITS#2133)
