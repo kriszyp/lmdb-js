@@ -99,11 +99,14 @@ AM_ENABLE_SHARED
 
 dnl General "enable" options
 # validate options
-if test $ol_enable_referrals = no ; then
-	if test $ol_enable_dns = yes ; then
-		AC_MSG_WARN([dns disabled, ignoring --enable-dns argument])
+if test $ol_enable_dns = yes ; then
+	if test $ol_enable_referrals = no ; then
+		AC_MSG_ERROR([DNS requires --enable-referrals])
 	fi
-	ol_enable_dns=no
+	if test $ol_enable_referrals = auto ; then
+		AC_MSG_WARN([DNS requires referrals, adding --enable-referrals])
+		ol_enable_referrals=yes
+	fi
 fi
 
 if test $ol_enable_slapd = no ; then
