@@ -32,7 +32,6 @@
 #include <ac/unistd.h>
 #include <ac/errno.h>
 
-#define LDAP_DEPRECATED 1
 #include <ldap.h>
 
 #include "lutil_ldap.h"
@@ -651,35 +650,31 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 #endif
 
 	if ( !not ) {
-		/* connect to server */
+		int rc;
+
 		if( ( ldaphost != NULL || ldapport ) && ( ldapuri == NULL ) ) {
-			if ( verbose ) {
-				fprintf( stderr, "ldap_init( %s, %d )\n",
-					ldaphost != NULL ? ldaphost : "<DEFAULT>",
-					ldapport );
-			}
+			/* construct URL */
+			LDAPURLDesc url;
+			memset( &url, 0, sizeof(url));
 
-			ld = ldap_init( ldaphost, ldapport );
-			if( ld == NULL ) {
-				char buf[20 + sizeof(": ldap_init")];
-				sprintf( buf, "%.20s: ldap_init", prog );
-				perror( buf );
-				exit( EXIT_FAILURE );
-			}
+			url.lud_scheme = "ldap";
+			url.lud_host = ldaphost;
+			url.lud_port = ldapport;
+			url.lud_scope = LDAP_SCOPE_DEFAULT;
 
-		} else {
-			int rc;
-			if ( verbose ) {
-				fprintf( stderr, "ldap_initialize( %s )\n",
-					ldapuri != NULL ? ldapuri : "<DEFAULT>" );
-			}
-			rc = ldap_initialize( &ld, ldapuri );
-			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr,
-					"Could not create LDAP session handle (%d): %s\n",
-					rc, ldap_err2string(rc) );
-				exit( EXIT_FAILURE );
-			}
+			ldapuri = ldap_url_desc2str( &url );
+		}
+
+		if ( verbose ) {
+			fprintf( stderr, "ldap_initialize( %s )\n",
+				ldapuri != NULL ? ldapuri : "<DEFAULT>" );
+		}
+		rc = ldap_initialize( &ld, ldapuri );
+		if( rc != LDAP_SUCCESS ) {
+			fprintf( stderr,
+				"Could not create LDAP session handle (%d): %s\n",
+				rc, ldap_err2string(rc) );
+			exit( EXIT_FAILURE );
 		}
 
 		if( private_setup ) private_setup( ld );
