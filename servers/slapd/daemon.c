@@ -738,7 +738,8 @@ slapd_daemon_task(
 
 			if( (id = connection_init(s,
 				slap_listeners[l]->sl_url,
-				dnsname, peername,
+				dnsname != NULL ? dnsname : "unknown",
+				peername,
 				slap_listeners[l]->sl_name,
 #ifdef HAVE_TLS
 				slap_listeners[l]->sl_is_tls
