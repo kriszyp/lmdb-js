@@ -45,6 +45,7 @@ rfc3727.txt ASN.1 Module for LDAP Component Matching Rules (PS)
 rfc3771.txt LDAP: Intermediate Response Message (PS)
 rfc3829.txt LDAP Authorization Identity Controls (I)
 rfc3866.txt Language Tag and Ranges in LDAP (PS)
+rfc3876.txt Returning Matched Values with LDAP (PS)
 
 Legend:
 STD	Standard
