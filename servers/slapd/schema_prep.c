@@ -160,6 +160,8 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_supportedLDAPVersion) },
 	{ "supportedSASLMechanisms", NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedSASLMechanisms) },
+	{ "supportedFeatures", NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_supportedFeatures) },
 
 	/* subschema subentry attributes */
 	{ "attributeTypes", NULL, NULL, NULL,

@@ -450,6 +450,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_supportedExtension;
 	AttributeDescription *si_ad_supportedLDAPVersion;
 	AttributeDescription *si_ad_supportedSASLMechanisms;
+	AttributeDescription *si_ad_supportedFeatures;
 
 	/* subschema subentry attribute descriptions */
 	AttributeDescription *si_ad_objectClasses;
