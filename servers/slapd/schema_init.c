@@ -1977,7 +1977,7 @@ UUIDNormalize(
 	int i;
 	int j;
 	normalized->bv_len = 16;
-	normalized->bv_val = slap_sl_malloc( normalized->bv_len+1, ctx );
+	normalized->bv_val = ch_malloc( normalized->bv_len + 1 );
 
 	for( i=0, j=0; i<36; i++ ) {
 		unsigned char nibble;
