@@ -27,7 +27,7 @@
 
 int
 do_search(
-    Connection	*conn,	/* where to send results		       */
+    Connection	*conn,	/* where to send results */
     Operation	*op	/* info about the op to which we're responding */
 ) {
 	int		i;
@@ -164,7 +164,7 @@ do_search(
 		goto return_results;
 	} 
 
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
@@ -192,55 +192,66 @@ do_search(
 	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 #endif
 
-
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    op->o_connid, op->o_opid, base, scope, fstr );
 
 	manageDSAit = get_manageDSAit( op );
 
-	if( scope != LDAP_SCOPE_BASE && nbase[0] == '\0' &&
-		default_search_nbase != NULL )
-	{
-		ch_free( base );
-		ch_free( nbase );
-		base = ch_strdup( default_search_base );
-		nbase = ch_strdup( default_search_nbase );
-	}
-
-	/* Select backend */
-	be = select_backend( nbase, manageDSAit );
-
-	/* check restrictions */
-	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
-	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc,
-			NULL, text, NULL, NULL );
-		goto return_results;
-	}
-
 	if ( scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
 		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
 			rc = root_dse_info( conn, &entry, &text );
 		}
 
 #if defined( SLAPD_MONITOR_DN )
 		else if ( strcasecmp( nbase, SLAPD_MONITOR_DN ) == 0 ) {
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
 			rc = monitor_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_CONFIG_DN )
 		else if ( strcasecmp( nbase, SLAPD_CONFIG_DN ) == 0 ) {
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
 			rc = config_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_SCHEMA_DN )
 		else if ( strcasecmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
-			rc= schema_info( &entry, &text );
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
+			rc = schema_info( &entry, &text );
 		}
 #endif
 
@@ -266,11 +277,30 @@ do_search(
 		}
 	}
 
-	if ( be == NULL ) {
-		/* no backend, return a referral (or noSuchObject) */
+	if( nbase[0] == '\0' && default_search_nbase != NULL ) {
+		ch_free( base );
+		ch_free( nbase );
+		base = ch_strdup( default_search_base );
+		nbase = ch_strdup( default_search_nbase );
+	}
+
+	/*
+	 * We could be serving multiple database backends.  Select the
+	 * appropriate one, or send a referral to our "referral server"
+	 * if we don't hold it.
+	 */
+	if ( (be = select_backend( nbase, manageDSAit )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 
+		goto return_results;
+	}
+
+	/* check restrictions */
+	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
 		goto return_results;
 	}
 
