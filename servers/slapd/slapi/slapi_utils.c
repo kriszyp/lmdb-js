@@ -314,6 +314,178 @@ slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type )
 #endif
 }
 
+int
+slapi_entry_attr_get_int( const Slapi_Entry *e, const char *type )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad = NULL;
+	const char *text;
+	int rc;
+	Attribute *attr;
+
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
+	}
+
+	attr = attr_find( e->e_attrs, ad );
+	if ( attr == NULL ) {
+		return 0;
+	}
+
+	return slapi_value_get_int( attr->a_vals );
+#else
+	return 0;
+#endif
+}
+
+int
+slapi_entry_attr_get_long( const Slapi_Entry *e, const char *type )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad = NULL;
+	const char *text;
+	int rc;
+	Attribute *attr;
+
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
+	}
+
+	attr = attr_find( e->e_attrs, ad );
+	if ( attr == NULL ) {
+		return 0;
+	}
+
+	return slapi_value_get_long( attr->a_vals );
+#else
+	return 0;
+#endif
+}
+
+int
+slapi_entry_attr_get_uint( const Slapi_Entry *e, const char *type )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad = NULL;
+	const char *text;
+	int rc;
+	Attribute *attr;
+
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
+	}
+
+	attr = attr_find( e->e_attrs, ad );
+	if ( attr == NULL ) {
+		return 0;
+	}
+
+	return slapi_value_get_uint( attr->a_vals );
+#else
+	return 0;
+#endif
+}
+
+int
+slapi_entry_attr_get_ulong( const Slapi_Entry *e, const char *type )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad = NULL;
+	const char *text;
+	int rc;
+	Attribute *attr;
+
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
+	}
+
+	attr = attr_find( e->e_attrs, ad );
+	if ( attr == NULL ) {
+		return 0;
+	}
+
+	return slapi_value_get_ulong( attr->a_vals );
+#else
+	return 0;
+#endif
+}
+
+int
+slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value )
+{
+#ifdef LDAP_SLAPI
+	struct berval bv;
+	AttributeDescription *ad;
+	const char *text;
+	int rc;
+	Attribute *attr;
+	
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
+	}
+
+	attr = attr_find( e->e_attrs, ad );
+	if ( attr == NULL ) {
+		return 0;
+	}
+
+	bv.bv_val = (char *)value;
+	bv.bv_len = strlen( value );
+
+	return slapi_attr_value_find( attr, &bv );
+#else
+	return 0;
+#endif
+}
+
+int
+slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
+{
+#ifdef LDAP_SLAPI
+	return slapi_entry_attr_merge( e, (char *)type, vals );
+#else
+	return -1;
+#endif
+}
+
+int
+slapi_entry_attr_replace_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad;
+	const char *text;
+	int rc;
+	BerVarray bv;
+	
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return 0;
+	}
+
+	attr_delete( &e->e_attrs, ad );
+
+	rc = bvptr2obj( vals, &bv );
+	if ( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+	
+	rc = attr_merge( e, ad, bv );
+	slapi_ch_free( (void **)&bv );
+	if ( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+	
+	return 0;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
 /* 
  * FIXME -- The caller must free the allocated memory. 
  * In Netscape they do not have to.
@@ -1966,6 +2138,7 @@ int slapi_value_get_int(const Slapi_Value *value)
 {
 #ifdef LDAP_SLAPI
 	if ( value == NULL ) return 0;
+	if ( value->bv_val == NULL ) return 0;
 	if ( !checkBVString( value ) ) return 0;
 
 	return (int)strtol( value->bv_val, NULL, 10 );
@@ -1978,6 +2151,7 @@ unsigned int slapi_value_get_uint(const Slapi_Value *value)
 {
 #ifdef LDAP_SLAPI
 	if ( value == NULL ) return 0;
+	if ( value->bv_val == NULL ) return 0;
 	if ( !checkBVString( value ) ) return 0;
 
 	return (unsigned int)strtoul( value->bv_val, NULL, 10 );
@@ -1990,6 +2164,7 @@ long slapi_value_get_long(const Slapi_Value *value)
 {
 #ifdef LDAP_SLAPI
 	if ( value == NULL ) return 0;
+	if ( value->bv_val == NULL ) return 0;
 	if ( !checkBVString( value ) ) return 0;
 
 	return strtol( value->bv_val, NULL, 10 );
@@ -2002,6 +2177,7 @@ unsigned long slapi_value_get_ulong(const Slapi_Value *value)
 {
 #ifdef LDAP_SLAPI
 	if ( value == NULL ) return 0;
+	if ( value->bv_val == NULL ) return 0;
 	if ( !checkBVString( value ) ) return 0;
 
 	return strtoul( value->bv_val, NULL, 10 );
