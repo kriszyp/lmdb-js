@@ -3735,25 +3735,31 @@ serial_and_issuer_parse(
 	for (p=begin; p<=end && *p != '$'; p++) /* empty */ ;
 	if ( p > end ) return LDAP_INVALID_SYNTAX;
 
-	/* p now points at the $ sign, now use begin and end to delimit the
-	   serial number */
+	/* p now points at the $ sign, now use
+	 * begin and end to delimit the serial number
+	 */
 	while (ASCII_SPACE(*begin)) begin++;
 	end = p-1;
 	while (ASCII_SPACE(*end)) end--;
+
+	if( end <= begin ) return LDAP_INVALID_SYNTAX;
 
 	bv.bv_len = end-begin+1;
 	bv.bv_val = begin;
 	ber_dupbv(serial, &bv);
 
 	/* now extract the issuer, remember p was at the dollar sign */
-	if ( issuer_dn ) {
-		begin = p+1;
-		end = assertion->bv_val+assertion->bv_len-1;
-		while (ASCII_SPACE(*begin)) begin++;
-		/* should we trim spaces at the end too? is it safe always? */
+	begin = p+1;
+	end = assertion->bv_val+assertion->bv_len-1;
+	while (ASCII_SPACE(*begin)) begin++;
+	/* should we trim spaces at the end too? is it safe always? no, no */
 
+	if( end <= begin ) return LDAP_INVALID_SYNTAX;
+
+	if ( issuer_dn ) {
 		bv.bv_len = end-begin+1;
 		bv.bv_val = begin;
+
 		dnNormalize2( NULL, &bv, issuer_dn );
 	}
 
@@ -3924,9 +3930,10 @@ static int certificateExactFilter(
 {
 	BerVarray keys;
 	struct berval asserted_serial;
+	int ret;
 
-	serial_and_issuer_parse(assertedValue,
-		&asserted_serial, NULL);
+	ret = serial_and_issuer_parse( assertedValue, &asserted_serial, NULL );
+	if( ret != LDAP_SUCCESS ) return ret;
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
 	integerNormalize( syntax, &asserted_serial, &keys[0] );
@@ -4405,7 +4412,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	 * Chadwick in private mail.
 	 */
 	{"( 1.2.826.0.1.3344810.7.1 DESC 'Serial Number and Issuer' )",
-		0, NULL, NULL, NULL},
+		0, UTF8StringValidate, NULL, NULL},
 #endif
 
 	/* OpenLDAP Experimental Syntaxes */
