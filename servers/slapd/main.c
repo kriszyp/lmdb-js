@@ -72,7 +72,10 @@ main( int argc, char **argv )
 	char		*configfile;
 	char	*serverName;
 #ifdef LOG_LOCAL4
+	char *optstring = "d:f:ip:s:ul:";
 	int	syslogUser = DEFAULT_SYSLOG_USER;
+#else
+	char *optstring = "d:f:ip:s:u";
 #endif
 
 	configfile = SLAPD_DEFAULT_CONFIGFILE;
@@ -80,7 +83,7 @@ main( int argc, char **argv )
 	g_argc = argc;
 	g_argv = argv;
 
-	while ( (i = getopt( argc, argv, "d:f:ip:s:u" )) != EOF ) {
+	while ( (i = getopt( argc, argv, optstring )) != EOF ) {
 		switch ( i ) {
 #ifdef LDAP_DEBUG
 		case 'd':	/* turn on debugging */
@@ -142,12 +145,10 @@ main( int argc, char **argv )
 			break;
 
 #ifdef LOG_LOCAL4
-
 		case 'l':	/* set syslog local user */
 			syslogUser = cnvt_str2int( optarg, syslog_types,
                                            DEFAULT_SYSLOG_USER );
 			break;
-
 #endif
 
 		case 'u':	/* do udp */
