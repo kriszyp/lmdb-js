@@ -86,7 +86,9 @@ Entry * dn2entry_rw LDAP_P(( Backend *be, const char *dn, Entry **matched, int r
 /*
  * entry.c
  */
-int ldbm_back_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
+int ldbm_back_entry_release_rw LDAP_P(( Backend *be,
+	Connection *conn, Operation *op,
+	Entry *e, int rw ));
 
 /*
  * filterindex.c

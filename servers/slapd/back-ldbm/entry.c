@@ -20,6 +20,8 @@
 int
 ldbm_back_entry_release_rw(
 	Backend *be,
+	Connection *conn,
+	Operation *op,
 	Entry   *e,
 	int     rw
 )
