@@ -101,7 +101,7 @@ syn_insert(
 
 int
 syn_add(
-    LDAP_SYNTAX		*syn,
+    LDAPSyntax		*syn,
 	unsigned flags,
     slap_syntax_validate_func	*validate,
     slap_syntax_transform_func	*normalize,
@@ -118,7 +118,7 @@ syn_add(
 
 	ssyn = (Syntax *) ch_calloc( 1, sizeof(Syntax) );
 
-	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAP_SYNTAX) );
+	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
 
 	ssyn->ssyn_next = NULL;
 
@@ -144,7 +144,7 @@ register_syntax(
 	slap_syntax_transform_func *ber2str,
 	slap_syntax_transform_func *str2ber )
 {
-	LDAP_SYNTAX	*syn;
+	LDAPSyntax	*syn;
 	int		code;
 	const char	*err;
 

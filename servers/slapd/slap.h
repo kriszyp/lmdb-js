@@ -200,7 +200,7 @@ typedef int slap_syntax_transform_func LDAP_P((
 	struct berval ** out));
 
 typedef struct slap_syntax {
-	LDAP_SYNTAX			ssyn_syn;
+	LDAPSyntax			ssyn_syn;
 #define ssyn_oid		ssyn_syn.syn_oid
 #define ssyn_desc		ssyn_syn.syn_desc
 #define ssyn_extensions		ssyn_syn.syn_extensions
@@ -273,7 +273,7 @@ typedef int slap_mr_filter_func LDAP_P((
 	struct berval ***keys ));
 
 typedef struct slap_matching_rule {
-	LDAP_MATCHING_RULE		smr_mrule;
+	LDAPMatchingRule		smr_mrule;
 	unsigned				smr_usage;
 
 #define SLAP_MR_TYPE_MASK		0xFF00U
@@ -312,7 +312,7 @@ typedef struct slap_matching_rule {
 
 typedef struct slap_attribute_type {
 	char					*sat_cname;
-	LDAP_ATTRIBUTE_TYPE		sat_atype;
+	LDAPAttributeType		sat_atype;
 	struct slap_attribute_type	*sat_sup;
 	struct slap_attribute_type	**sat_subtypes;
 	MatchingRule			*sat_equality;
@@ -343,7 +343,7 @@ typedef struct slap_attribute_type {
 #define is_at_no_user_mod(at)	((at)->sat_no_user_mod)
 
 typedef struct slap_object_class {
-	LDAP_OBJECT_CLASS		soc_oclass;
+	LDAPObjectClass		soc_oclass;
 	struct slap_object_class	**soc_sups;
 	AttributeType			**soc_required;
 	AttributeType			**soc_allowed;

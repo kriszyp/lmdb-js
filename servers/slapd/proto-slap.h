@@ -90,7 +90,7 @@ LDAP_SLAPD_F (int) at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **
 LDAP_SLAPD_F (int) at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
 LDAP_SLAPD_F (int) at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
 LDAP_SLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
-LDAP_SLAPD_F (int) at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
+LDAP_SLAPD_F (int) at_add LDAP_P(( LDAPAttributeType *at, const char **err ));
 
 LDAP_SLAPD_F (int) is_at_subtype LDAP_P((
 	AttributeType *sub,
@@ -566,7 +566,7 @@ LDAP_SLAPD_F (ObjectClass *) oc_find LDAP_P((
 	const char *ocname));
 
 LDAP_SLAPD_F (int) oc_add LDAP_P((
-	LDAP_OBJECT_CLASS *oc,
+	LDAPObjectClass *oc,
 	const char **err));
 
 LDAP_SLAPD_F (int) is_object_subclass LDAP_P((
@@ -578,7 +578,7 @@ LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((const char *synname));
 LDAP_SLAPD_F (Syntax *) syn_find_desc LDAP_P((const char *syndesc, int *slen));
 #ifdef SLAPD_BINARY_CONVERSION
 LDAP_SLAPD_F (int) syn_add LDAP_P((
-	LDAP_SYNTAX *syn,
+	LDAPSyntax *syn,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *normalize,
@@ -588,7 +588,7 @@ LDAP_SLAPD_F (int) syn_add LDAP_P((
 	const char **err));
 #else
 LDAP_SLAPD_F (int) syn_add LDAP_P((
-	LDAP_SYNTAX *syn,
+	LDAPSyntax *syn,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *normalize,
@@ -597,7 +597,7 @@ LDAP_SLAPD_F (int) syn_add LDAP_P((
 #endif
 
 LDAP_SLAPD_F (MatchingRule *) mr_find LDAP_P((const char *mrname));
-LDAP_SLAPD_F (int) mr_add LDAP_P((LDAP_MATCHING_RULE *mr,
+LDAP_SLAPD_F (int) mr_add LDAP_P((LDAPMatchingRule *mr,
 	unsigned usage,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,

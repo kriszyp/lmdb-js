@@ -239,7 +239,7 @@ at_insert(
 
 int
 at_add(
-    LDAP_ATTRIBUTE_TYPE	*at,
+    LDAPAttributeType	*at,
     const char		**err
 )
 {
@@ -258,7 +258,7 @@ at_add(
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
-	memcpy( &sat->sat_atype, at, sizeof(LDAP_ATTRIBUTE_TYPE));
+	memcpy( &sat->sat_atype, at, sizeof(LDAPAttributeType));
 
 	sat->sat_cname = cname;
 

@@ -330,7 +330,7 @@ oc_insert(
 
 int
 oc_add(
-    LDAP_OBJECT_CLASS	*oc,
+    LDAPObjectClass	*oc,
     const char		**err
 )
 {
@@ -338,7 +338,7 @@ oc_add(
 	int		code;
 
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
-	memcpy( &soc->soc_oclass, oc, sizeof(LDAP_OBJECT_CLASS) );
+	memcpy( &soc->soc_oclass, oc, sizeof(LDAPObjectClass) );
 
 	if( soc->soc_sup_oids == NULL &&
 		soc->soc_kind == LDAP_SCHEMA_STRUCTURAL )
