@@ -57,8 +57,9 @@ slapd via LDAP.
 returns a success code to the slurpd process. 
 
 
-Note: {{ldapmodify}}(1) and other tools distributed as part of
-OpenLDAP Software do not support automatic referral chasing.
+Note: {{ldapmodify}}(1) and other clients distributed as part of
+OpenLDAP Software do not support automatic referral chasing
+(for security reasons).
 
 
 
