@@ -31,4 +31,10 @@ int pthread_rdwr_runlock_np(pthread_rdwr_t *rdwrp);
 int pthread_rdwr_wlock_np(pthread_rdwr_t *rdwrp);
 int pthread_rdwr_wunlock_np(pthread_rdwr_t *rdwrp);
 
+#ifdef LDAP_DEBUG
+int pthread_rdwr_rchk_np(pthread_rdwr_t *rdwrp);
+int pthread_rdwr_wchk_np(pthread_rdwr_t *rdwrp);
+int pthread_rdwr_rwchk_np(pthread_rdwr_t *rdwrp);
+#endif /* LDAP_DEBUG */
+
 #endif /* _LTHREAD_RDWR_H */
