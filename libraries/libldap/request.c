@@ -881,7 +881,7 @@ dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
 	srvlist = NULL;
 
 	for ( i = 0; dxs[ i ] != NULL; ++i ) {
-		port = openldap_global_ldap_options.ldo_defport;
+		port = openldap_ldap_global_options.ldo_defport;
 		server_dn = NULL;
 		if ( strchr( dxs[ i ], ':' ) == NULL ) {
 			host = dxs[ i ];
