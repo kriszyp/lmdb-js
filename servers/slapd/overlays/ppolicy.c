@@ -1325,7 +1325,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	 * We need this, even if the user is root, in order to maintain
 	 * the pwdHistory operational attributes properly.
 	 */
-	if (ha = attr_find( e->e_attrs, ad_pwdHistory )) {
+	if (pp.pwdInHistory > 0 && (ha = attr_find( e->e_attrs, ad_pwdHistory ))) {
 		struct berval oldpw;
 		time_t oldtime;
 		char *oid;
@@ -1343,8 +1343,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 				oldpw.bv_len = 0;
 			}
 		}
+		for(p=tl; p; p=p->next, hsize++); /* count history size */
 	}
-	for(p=tl, hsize=0; p; p=p->next, hsize++); /* count history size */
 
 	if (be_isroot( op->o_bd, &op->o_ndn)) goto do_modify;
 
@@ -1570,75 +1570,77 @@ do_modify:
 			modtail = mods;
 		}
 
-		if (hsize >= pp.pwdInHistory) {
-			/*
-			 * We use the >= operator, since we are going to add a
-			 * the existing password attribute value into the
-			 * history - thus the cardinality of history values is
-			 * about to rise by one.
-			 *
-			 * If this would push it over the limit of history
-			 * values (remembering - the password policy could have
-			 * changed since the password was last altered), we must
-			 * delete at least 1 value from the pwdHistory list.
-			 *
-			 * In fact, we delete '(#pwdHistory attrs - max pwd
-			 * history length) + 1' values, starting with the oldest.
-			 * This is easily evaluated, since the linked list is
-			 * created in ascending time order.
-			 */
-			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			mods->sml_op = LDAP_MOD_DELETE;
-			mods->sml_type.bv_val = NULL;
-			mods->sml_desc = ad_pwdHistory;
-			mods->sml_nvalues = NULL;
-			mods->sml_values = ch_calloc( sizeof( struct berval ),
-										   hsize - pp.pwdInHistory + 2 );
-			mods->sml_values[ hsize - pp.pwdInHistory + 1 ].bv_val = NULL;
-			mods->sml_values[ hsize - pp.pwdInHistory + 1 ].bv_len = 0;
-			for(i=0,p=tl; i < (hsize - pp.pwdInHistory + 1); i++, p=p->next) {
-				mods->sml_values[i].bv_val = NULL;
-				mods->sml_values[i].bv_len = 0;
-				ber_dupbv( &(mods->sml_values[i]), &p->bv );
+		if (pp.pwdInHistory > 0) {
+			if (hsize >= pp.pwdInHistory) {
+				/*
+				 * We use the >= operator, since we are going to add
+				 * the existing password attribute value into the
+				 * history - thus the cardinality of history values is
+				 * about to rise by one.
+				 *
+				 * If this would push it over the limit of history
+				 * values (remembering - the password policy could have
+				 * changed since the password was last altered), we must
+				 * delete at least 1 value from the pwdHistory list.
+				 *
+				 * In fact, we delete '(#pwdHistory attrs - max pwd
+				 * history length) + 1' values, starting with the oldest.
+				 * This is easily evaluated, since the linked list is
+				 * created in ascending time order.
+				 */
+				mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				mods->sml_op = LDAP_MOD_DELETE;
+				mods->sml_type.bv_val = NULL;
+				mods->sml_desc = ad_pwdHistory;
+				mods->sml_nvalues = NULL;
+				mods->sml_values = ch_calloc( sizeof( struct berval ),
+											   hsize - pp.pwdInHistory + 2 );
+				mods->sml_values[ hsize - pp.pwdInHistory + 1 ].bv_val = NULL;
+				mods->sml_values[ hsize - pp.pwdInHistory + 1 ].bv_len = 0;
+				for(i=0,p=tl; i < (hsize - pp.pwdInHistory + 1); i++, p=p->next) {
+					mods->sml_values[i].bv_val = NULL;
+					mods->sml_values[i].bv_len = 0;
+					ber_dupbv( &(mods->sml_values[i]), &p->bv );
+				}
+				mods->sml_next = NULL;
+				modtail->sml_next = mods;
+				modtail = mods;
 			}
-			mods->sml_next = NULL;
-			modtail->sml_next = mods;
-			modtail = mods;
-		}
-		free_pwd_history_list( &tl );
+			free_pwd_history_list( &tl );
 
-		/*
-		 * Now add the existing password into the history list.
-		 * This will be executed even if the operation is to delete
-		 * the password entirely.
-		 *
-		 * This isn't in the spec explicitly, but it seems to make
-		 * sense that the password history list is the list of all
-		 * previous passwords - even if they were deleted. Thus, if
-		 * someone tries to add a historical password at some future
-		 * point, it will fail.
-		 */
-		if ((pa = attr_find( e->e_attrs, pp.ad )) != NULL) {
-			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			mods->sml_op = LDAP_MOD_ADD;
-			mods->sml_type.bv_val = NULL;
-			mods->sml_desc = ad_pwdHistory;
-			mods->sml_nvalues = NULL;
-			mods->sml_values = ch_calloc( sizeof( struct berval ), 2 );
-			mods->sml_values[ 1 ].bv_val = NULL;
-			mods->sml_values[ 1 ].bv_len = 0;
-			make_pwd_history_value( timebuf, &mods->sml_values[0], pa );
-			mods->sml_next = NULL;
-			modtail->sml_next = mods;
-			modtail = mods;
-		} else {
+			/*
+			 * Now add the existing password into the history list.
+			 * This will be executed even if the operation is to delete
+			 * the password entirely.
+			 *
+			 * This isn't in the spec explicitly, but it seems to make
+			 * sense that the password history list is the list of all
+			 * previous passwords - even if they were deleted. Thus, if
+			 * someone tries to add a historical password at some future
+			 * point, it will fail.
+			 */
+			if ((pa = attr_find( e->e_attrs, pp.ad )) != NULL) {
+				mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
+				mods->sml_op = LDAP_MOD_ADD;
+				mods->sml_type.bv_val = NULL;
+				mods->sml_desc = ad_pwdHistory;
+				mods->sml_nvalues = NULL;
+				mods->sml_values = ch_calloc( sizeof( struct berval ), 2 );
+				mods->sml_values[ 1 ].bv_val = NULL;
+				mods->sml_values[ 1 ].bv_len = 0;
+				make_pwd_history_value( timebuf, &mods->sml_values[0], pa );
+				mods->sml_next = NULL;
+				modtail->sml_next = mods;
+				modtail = mods;
+			} else {
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ERR, 
-		"ppolicy_modify: password attr lookup failed\n", 0, 0, 0 );
+				LDAP_LOG ( OPERATION, ERR, 
+				"ppolicy_modify: password attr lookup failed\n", 0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE,
-		"ppolicy_modify: password attr lookup failed\n", 0, 0, 0 );
+				Debug( LDAP_DEBUG_TRACE,
+				"ppolicy_modify: password attr lookup failed\n", 0, 0, 0 );
 #endif
+			}
 		}
 
 		/*
