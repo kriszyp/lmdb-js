@@ -615,6 +615,8 @@ retry:	/* transaction retry */
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
 		}
 		goto return_results;
@@ -634,6 +636,8 @@ retry:	/* transaction retry */
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
 		}
 		rs->sr_text = "entry update failed";
@@ -653,6 +657,8 @@ retry:	/* transaction retry */
 		case BDB_CSN_ABORT :
 			goto return_results;
 		case BDB_CSN_RETRY :
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
 		}
 	}
@@ -688,6 +694,8 @@ retry:	/* transaction retry */
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
+			attrs_free( dummy.e_attrs ); 
+			dummy.e_attrs = NULL;
 			goto retry;
 		}
 
