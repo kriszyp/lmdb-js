@@ -179,6 +179,16 @@ do
   --mode) prevopt="--mode" prev=mode ;;
   --mode=*) mode="$optarg" ;;
 
+  --only-shared)
+    build_libtool_libs=yes
+    build_old_libs=no
+    ;;
+
+  --only-static)
+    build_libtool_libs=no
+    build_old_libs=yes
+    ;;
+
   --quiet | --silent)
     show=:
     ;;

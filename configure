@@ -13054,7 +13054,7 @@ servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/srv.mk \
-servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/srv.mk \
+servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/srv.mk \
@@ -13256,7 +13256,7 @@ servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb2/Makefile:build/top.mk:servers/slapd/back-bdb2/Makefile.in:build/srv.mk \
-servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/srv.mk \
+servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/srv.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/srv.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/srv.mk \

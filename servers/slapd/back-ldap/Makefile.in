@@ -1,30 +1,23 @@
-XSRCS	= version.c
-SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c delete.c \
-		modify.c modrdn.c
-OBJS	= init.o config.o search.o bind.o unbind.o add.o compare.o delete.o \
-		modify.o modrdn.o
+SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c \
+		delete.c modify.c modrdn.c
+OBJS	= init.lo config.lo search.lo bind.lo unbind.lo add.lo compare.lo \
+		delete.lo modify.lo modrdn.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-ldap"
-BUILD_SRV = @BUILD_LDAP@
+BUILD_LIB = @BUILD_LDAP@
+BUILD_MOD = @BUILD_LDAP_DYNAMIC@
 
-PROGRAMS =		libback-ldap.a
+LIBBASE = back-ldap
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 
-all-local-srv:	FORCE
-	$(MAKE) $(MFLAGS) libback-ldap.a
+all-lib-local: ../.backend
 
-libback-ldap.a:	version.o
-	$(AR) ruv $@ $(OBJS) version.o
-	@$(RANLIB) $@
+../.backend: $(LIBSTAT)
 	@touch ../.backend
-
-version.c: $(OBJS) $(LDAP_LIBDEPEND)
-	@-$(RM) $@
-	$(MKVERSION) back-ldap > $@
 
