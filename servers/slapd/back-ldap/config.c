@@ -124,8 +124,7 @@ ldap_back_db_config(
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
 		BackendDB *tmp_be;
-		struct berval bvnc, *nvnc = NULL, *pvnc = NULL, 
-			brnc, *nrnc = NULL, *prnc = NULL;
+		struct berval bvnc, nvnc, pvnc, brnc, nrnc, prnc;
 #ifdef ENABLE_REWRITE
 		int rc;
 #endif /* ENABLE_REWRITE */
@@ -150,33 +149,29 @@ ldap_back_db_config(
 		}
 		
 		ber_str2bv( argv[1], 0, 0, &bvnc );
-		pvnc = (struct berval *)ber_memalloc( sizeof( struct berval ) );
-		nvnc = (struct berval *)ber_memalloc( sizeof( struct berval ) );
-		if ( dnPrettyNormal( NULL, &bvnc, pvnc, nvnc ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &bvnc, &pvnc, &nvnc ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, bvnc.bv_val );
 			return( 1 );
 		}
-		tmp_be = select_backend( nvnc, 0, 0 );
+		tmp_be = select_backend( &nvnc, 0, 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, "%s: line %d: suffix already in use"
 				       " by another backend in"
 				       " \"suffixMassage <suffix>"
 				       " <massaged suffix>\"\n",
 				fname, lineno );
-			ber_bvfree( nvnc );
-			ber_bvfree( pvnc );
+			free( nvnc.bv_val );
+			free( pvnc.bv_val );
 			return( 1 );
 		}
 
 		ber_str2bv( argv[2], 0, 0, &brnc );
-		prnc = (struct berval *)ber_memalloc( sizeof( struct berval ) );
-		nrnc = (struct berval *)ber_memalloc( sizeof( struct berval ) );
-		if ( dnPrettyNormal( NULL, &brnc, prnc, nrnc ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &brnc, &prnc, &nrnc ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, brnc.bv_val );
-			ber_bvfree( nvnc );
-			ber_bvfree( pvnc );
+			free( nvnc.bv_val );
+			free( pvnc.bv_val );
 			return( 1 );
 		}
 
@@ -188,10 +183,10 @@ ldap_back_db_config(
 			       	       " \"suffixMassage <suffix>"
 				       " <massaged suffix>\"\n",
                                 fname, lineno );
-			ber_bvfree( nvnc );
-			ber_bvfree( pvnc );
-			ber_bvfree( nrnc );
-			ber_bvfree( prnc );
+			free( nvnc.bv_val );
+			free( pvnc.bv_val );
+			free( nrnc.bv_val );
+			free( prnc.bv_val );
                         return( 1 );
 		}
 #endif
@@ -203,21 +198,20 @@ ldap_back_db_config(
 		 * FIXME: no extra rewrite capabilities should be added
 		 * to the database
 		 */
-	 	rc = suffix_massage_config( li->rwinfo, pvnc, nvnc, prnc, nrnc );
-
-		ber_bvfree( nvnc );
-		ber_bvfree( pvnc );
-		ber_bvfree( nrnc );
-		ber_bvfree( prnc );
+	 	rc = suffix_massage_config( li->rwinfo, &pvnc, &nvnc, &prnc, &nrnc );
+		free( nvnc.bv_val );
+		free( pvnc.bv_val );
+		free( nrnc.bv_val );
+		free( prnc.bv_val );
 
 		return( rc );
 
 #else /* !ENABLE_REWRITE */
-		ber_bvarray_add( &li->suffix_massage, pvnc );
-		ber_bvarray_add( &li->suffix_massage, nvnc );
+		ber_bvarray_add( &li->suffix_massage, &pvnc );
+		ber_bvarray_add( &li->suffix_massage, &nvnc );
 		
-		ber_bvarray_add( &li->suffix_massage, prnc );
-		ber_bvarray_add( &li->suffix_massage, nrnc );
+		ber_bvarray_add( &li->suffix_massage, &prnc );
+		ber_bvarray_add( &li->suffix_massage, &nrnc );
 #endif /* !ENABLE_REWRITE */
 
 	/* rewrite stuff ... */
