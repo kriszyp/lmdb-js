@@ -162,7 +162,7 @@ retry:	/* transaction retry */
 		ch_free( pdn );
 
 		/* no parent, must be root to delete */
-		if( ! be_isroot( be, op->o_ndn ) ) {
+		if( ! be_isroot( be, op->o_ndn ) && ! be_issuffix( be, "" ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- bdb_delete: no parent and not root\n",
 				0, 0, 0);

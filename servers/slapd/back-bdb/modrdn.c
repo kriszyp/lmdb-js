@@ -391,7 +391,7 @@ retry:	/* transaction retry */
 		/* ACL check of newly added attrs */
 		val.bv_val = new_rdn_vals[ a_cnt ];
 		val.bv_len = strlen( val.bv_val );
-		if ( !access_allowed( be, conn, op, p, 
+		if ( !access_allowed( be, conn, op, e, 
 				desc, &val, ACL_WRITE ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: access to attr \"%s\" "
@@ -443,7 +443,7 @@ retry:	/* transaction retry */
 			/* ACL check of newly added attrs */
 			val.bv_val = new_rdn_vals[ d_cnt ];
 			val.bv_len = strlen( val.bv_val );
-			if ( !access_allowed( be, conn, op, p, 
+			if ( !access_allowed( be, conn, op, e, 
 					desc, &val, ACL_WRITE ) ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: access to attr \"%s\" "
