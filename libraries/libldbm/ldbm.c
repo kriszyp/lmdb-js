@@ -80,7 +80,6 @@ static ldap_pvt_thread_mutex_t ldbm_big_mutex;
  *******************************************************************/
 #if defined( HAVE_BERKELEY_DB ) && (DB_VERSION_MAJOR >= 2)
 
-
 void *
 ldbm_malloc( size_t size )
 {
@@ -102,7 +101,7 @@ ldbm_db_errcall( const char *prefix, char *message )
 /*  a dbEnv for BERKELEYv2  */
 DB_ENV           *ldbm_Env = NULL;
 
-int ldbm_initialize( void )
+int ldbm_initialize( const char* home )
 {
 	int     err;
 	u_int32_t	envFlags;
@@ -131,8 +130,9 @@ int ldbm_initialize( void )
 
 #if DB_VERSION_MAJOR >= 3
 	err = db_env_create( &ldbm_Env, 0 );
-#elif DB_VERSION_MAJOR >= 2
-	err = db_appinit( NULL, NULL, ldbm_Env, envFlags );
+#else
+	envFlags |= DB_USE_ENVIRON;
+	err = db_appinit( home, NULL, ldbm_Env, envFlags );
 #endif
 
 	if ( err ) {
@@ -142,7 +142,11 @@ int ldbm_initialize( void )
 
 #ifdef LDAP_SYSLOG
 		syslog( LOG_INFO,
+#if DB_VERSION_MAJOR >= 3
+			"ldbm_initialize(): FATAL error in db_env_create() : %s\n",
+#else
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
+#endif
 			error );
 #endif
 	 	return( 1 );
@@ -152,12 +156,12 @@ int ldbm_initialize( void )
 	ldbm_Env->set_errcall( ldbm_Env, ldbm_db_errcall );
 	ldbm_Env->set_errpfx( ldbm_Env, "==>" );
 
-        envFlags |= DB_INIT_MPOOL;
+	envFlags |= DB_INIT_MPOOL | DB_USE_ENVIRON;
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-        err = ldbm_Env->open( ldbm_Env, NULL, envFlags, 0 );
+        err = ldbm_Env->open( ldbm_Env, home, envFlags, 0 );
 #else
-        err = ldbm_Env->open( ldbm_Env, NULL, NULL, envFlags, 0 );
+        err = ldbm_Env->open( ldbm_Env, home, NULL, envFlags, 0 );
 #endif
         if ( err != 0 )
         {
@@ -167,7 +171,7 @@ int ldbm_initialize( void )
 
 #ifdef LDAP_SYSLOG
             syslog( LOG_INFO,
-                    "ldbm_initialize(): FATAL error in db_appinit() : %s\n",
+                    "ldbm_initialize(): FATAL error in dbEnv->open() : %s\n",
                     error );
 #endif
 		    ldbm_Env->close( ldbm_Env, 0 );
@@ -193,7 +197,7 @@ int ldbm_shutdown( void )
 
 #else  /* some DB other than Berkeley V2 or greater */
 
-int ldbm_initialize( void )
+int ldbm_initialize( const char * home )
 {
 	if(ldbm_initialized++) return 1;
 
@@ -211,7 +215,7 @@ int ldbm_shutdown( void )
 	return 0;
 }
 
-#endif /* ifdef HAVE_BERKELEY_DB */
+#endif /* HAVE_BERKELEY_DB */
 
 
 #if defined( LDBM_USE_DBHASH ) || defined( LDBM_USE_DBBTREE )

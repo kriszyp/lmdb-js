@@ -236,7 +236,7 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-LDAP_LDBM_F (int) ldbm_initialize( void );
+LDAP_LDBM_F (int) ldbm_initialize( const char * );
 LDAP_LDBM_F (int) ldbm_shutdown( void );
 
 LDAP_LDBM_F (int) ldbm_errno( LDBM ldbm );
