@@ -250,6 +250,8 @@ OL_ARG_WITH(denyop,[    --with-denyop  	  Deny Operation overlay no|yes|mod], no
 	[no yes mod])
 OL_ARG_WITH(dyngroup,[    --with-dyngroup	  Dynamic Group overlay no|yes|mod], no,
 	[no yes mod])
+OL_ARG_WITH(ppolicy,[    --with-ppolicy	  Password Policy overlay no|yes|mod], no,
+	[no yes mod])
 OL_ARG_WITH(proxycache,[    --with-proxycache	  Proxy Cache overlay no|yes|mod], no,
 	[no yes mod])
 OL_ARG_WITH(rwm,[    --with-rwm       	  Rewrite/Remap overlay no|yes|mod], no,
@@ -391,6 +393,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_dyngroup != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-dyngroup argument])
 	fi
+	if test $ol_with_ppolicy != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-ppolicy argument])
+	fi
 	if test $ol_with_proxycache != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-proxycache argument])
 	fi
@@ -444,6 +449,7 @@ if test $ol_enable_slapd = no ; then
 	ol_with_chain=no
 	ol_with_denyop=no
 	ol_with_dyngroup=no
+	ol_with_ppolicy=no
 	ol_with_proxycache=no
 	ol_with_rwm=no
 
@@ -610,6 +616,7 @@ BUILD_SQL_DYNAMIC=static
 BUILD_CHAIN=no
 BUILD_DENYOP=no
 BUILD_DYNGROUP=no
+BUILD_PPOLICY=no
 BUILD_PROXYCACHE=no
 BUILD_RWM=no
 
@@ -852,6 +859,10 @@ else
 	if test $ol_with_dyngroup = mod ; then
 		AC_MSG_WARN([building static dyngroup overlay])
 		ol_with_dyngroup=yes
+	fi
+	if test $ol_with_ppolicy = mod ; then
+		AC_MSG_WARN([building static ppolicy overlay])
+		ol_with_ppolicy=yes
 	fi
 	if test $ol_with_proxycache = mod ; then
 		AC_MSG_WARN([building static proxycache overlay])
@@ -2823,6 +2834,17 @@ if test "$ol_with_dyngroup" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNGROUP,$MFLAG,[define for Dynamic Group overlay])
 fi
 
+if test "$ol_with_ppolicy" != no ; then
+	BUILD_PPOLICY=$ol_with_ppolicy
+	if test "$ol_with_ppolicy" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS ppolicy.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_PPOLICY,$MFLAG,[define for Password Policy overlay])
+fi
+
 if test "$ol_with_proxycache" != no ; then
 	BUILD_PROXYCACHE=$ol_with_proxycache
 	if test "$ol_with_proxycache" = mod ; then
@@ -2923,6 +2945,7 @@ dnl overlays
   AC_SUBST(BUILD_CHAIN)
   AC_SUBST(BUILD_DENYOP)
   AC_SUBST(BUILD_DYNGROUP)
+  AC_SUBST(BUILD_PPOLICY)
   AC_SUBST(BUILD_PROXYCACHE)
   AC_SUBST(BUILD_RWM)
 AC_SUBST(BUILD_SLURPD)
