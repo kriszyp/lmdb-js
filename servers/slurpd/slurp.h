@@ -127,6 +127,9 @@
 #define	BIND_ERR_SIMPLE_FAILED		4
 #define	BIND_ERR_KERBEROS_FAILED	5
 #define	BIND_ERR_BADRI			6
+#define	BIND_ERR_VERSION		7
+#define	BIND_ERR_REFERRALS		8
+#define	BIND_ERR_MANAGEDSAIT	9
 
 /* Return codes for do_ldap() */
 #define	DO_LDAP_OK			0

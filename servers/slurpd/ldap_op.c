@@ -91,7 +91,6 @@ do_ldap(
 	    rc = do_bind( ri, &lderr );
 
 	    if ( rc != BIND_OK ) {
-			(void) do_unbind( ri );
 			return DO_LDAP_ERR_RETRYABLE;
 	    }
 	}
@@ -627,16 +626,6 @@ do_bind(
 )
 {
     int		ldrc;
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-    int rc;
-    int retval = 0;
-    int kni, got_tgt;
-    char **krbnames;
-    char *skrbnames[ 2 ];
-    char realm[ REALM_SZ ];
-    char name[ ANAME_SZ ];
-    char instance[ INST_SZ ];
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
     *lderr = 0;
 
@@ -657,113 +646,50 @@ do_bind(
 
     Debug( LDAP_DEBUG_ARGS, "Initializing session to %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
+
     ri->ri_ldp = ldap_init( ri->ri_hostname, ri->ri_port );
     if ( ri->ri_ldp == NULL ) {
-	Debug( LDAP_DEBUG_ANY, "Error: ldap_init(%s, %d) failed: %s\n",
-		ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
-	return( BIND_ERR_OPEN );
+		Debug( LDAP_DEBUG_ANY, "Error: ldap_init(%s, %d) failed: %s\n",
+			ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
+		return( BIND_ERR_OPEN );
     }
 
-    /*
-     * Disable string translation if enabled by default.
-     * The replication log is written in the internal format,
-     * so this would do another translation, breaking havoc.
-     */
-#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
-        ri->ri_ldp->ld_lberoptions &= ~LBER_TRANSLATE_STRINGS;
-#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
+	{	/* set version 3 */
+		int err, version = 3;
+		err = ldap_set_option(ri->ri_ldp,
+			LDAP_OPT_PROTOCOL_VERSION, &version);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Error: ldap_set_option(%s, LDAP_OPT_VERSION, 3) failed!\n",
+				ri->ri_hostname, NULL, NULL );
+
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_VERSION;
+		}
+	}
 
     /*
      * Set ldap library options to (1) not follow referrals, and 
      * (2) restart the select() system call.
      */
-	ldap_set_option(ri->ri_ldp, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
+	{
+		int err;
+		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Error: ldap_set_option(%s,REFERRALS, OFF) failed!\n",
+				ri->ri_hostname, NULL, NULL );
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_REFERRALS;
+		}
+	}
 	ldap_set_option(ri->ri_ldp, LDAP_OPT_RESTART, LDAP_OPT_ON);
 
     switch ( ri->ri_bind_method ) {
-    case AUTH_KERBEROS:
-#ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	Debug( LDAP_DEBUG_ANY,
-	    "Error: Kerberos bind for %s:%d, but not compiled w/kerberos\n",
-	    ri->ri_hostname, ri->ri_port, 0 );
-	return( BIND_ERR_KERBEROS_FAILED );
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-	/*
-	 * Bind using kerberos.
-	 * If "bindprincipal" was given in the config file, then attempt
-	 * to get a TGT for that principal (via the srvtab file).  If only
-	 * a binddn was given, then we need to read that entry to get
-	 * the kerberosName attributes, and try to get a TGT for one
-	 * of them.  All are tried.  The first one which succeeds is
-	 * returned.  XXX It might be a good idea to just require a
-	 * bindprincipal.  Reading the entry every time might be a significant
-	 * amount of overhead, if the connection is closed between most
-	 * updates.
-	 */
-
-	if ( ri->ri_principal != NULL ) {
-	    skrbnames[ 0 ] = ri->ri_principal;
-	    skrbnames[ 1 ] = NULL;
-	    krbnames = skrbnames;
-	} else {
-	    krbnames = read_krbnames( ri );
-	}	
-	    
-	if (( krbnames == NULL ) || ( krbnames[ 0 ] == NULL )) {
-	    Debug( LDAP_DEBUG_ANY,
-		    "Error: Can't find krbname for binddn \"%s\"\n",
-		    ri->ri_bind_dn, 0, 0 );
-	    retval = BIND_ERR_KERBEROS_FAILED;
-	    goto kexit;
-	}
-	/*
-	 * Now we've got one or more kerberos principals.  See if any
-	 * of them are in the srvtab file.
-	 */
-	got_tgt = 0;
-	for ( kni = 0; krbnames[ kni ] != NULL; kni++ ) {
-	    rc = kname_parse( name, instance, realm, krbnames[ kni ]);
-	    if ( rc != KSUCCESS ) {
-		continue;
-	    }
-	    upcase( realm );
-	    rc = krb_get_svc_in_tkt( name, instance, realm, "krbtgt", realm,
-		    1, ri->ri_srvtab );
-	    if ( rc != KSUCCESS) {
-		Debug( LDAP_DEBUG_ANY, "Error: Can't get TGT for %s: %s\n",
-			krbnames[ kni ], krb_err_txt[ rc ], 0 );
-	    } else {
-		got_tgt = 1;
-		break;
-	    }
-	}
-	if (!got_tgt) {
-	    Debug( LDAP_DEBUG_ANY,
-		    "Error: Could not obtain TGT for DN \"%s\"\n", 
-		    ri->ri_bind_dn, 0, 0 );
-	    retval = BIND_ERR_KERBEROS_FAILED;
-	    goto kexit;
-	}
-	/*
-	 * We've got a TGT.  Do a kerberos bind.
-	 */
-	Debug( LDAP_DEBUG_ARGS, "bind to %s:%d as %s (kerberos)\n",
-		ri->ri_hostname, ri->ri_port, ri->ri_bind_dn );
-	ldrc = ldap_kerberos_bind_s( ri->ri_ldp, ri->ri_bind_dn );
-	ri->ri_principal = strdup( krbnames[ kni ] );
-	if ( ldrc != LDAP_SUCCESS ) {
-	    Debug( LDAP_DEBUG_ANY, "Error: kerberos bind for %s:%dfailed: %s\n",
-		ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
-	    *lderr = ldrc;
-	    retval = BIND_ERR_KERBEROS_FAILED;
-	    goto kexit;
-	}
-kexit:	if ( krbnames != NULL ) {
-	    ldap_value_free( krbnames );
-	}
-	return( retval);
-	break;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     case AUTH_SIMPLE:
 	/*
 	 * Bind with a plaintext password.
@@ -777,17 +703,45 @@ kexit:	if ( krbnames != NULL ) {
 		    "Error: ldap_simple_bind_s for %s:%d failed: %s\n",
 		    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
 	    *lderr = ldrc;
+		ldap_unbind( ri->ri_ldp );
+		ri->ri_ldp = NULL;
 	    return( BIND_ERR_SIMPLE_FAILED );
-	} else {
-	    return( BIND_OK );
 	}
 	break;
     default:
 	Debug(  LDAP_DEBUG_ANY,
 		"Error: do_bind: unknown auth type \"%d\" for %s:%d\n",
 		ri->ri_bind_method, ri->ri_hostname, ri->ri_port );
+	ldap_unbind( ri->ri_ldp );
+	ri->ri_ldp = NULL;
 	return( BIND_ERR_BAD_ATYPE );
     }
+
+	{
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = 1;
+
+		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_SERVER_CONTROLS, &ctrls);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Error: ldap_set_option(%s, SERVER_CONTROLS, ManageDSAit) failed!\n",
+				ri->ri_hostname, NULL, NULL );
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_MANAGEDSAIT;
+		}
+	}
+
+	return( BIND_OK );
 }
 
 

@@ -65,7 +65,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Starting slurpd..."
-$SLURPD -f $MASTERCONF -d ${SLURPD_DEBUG-4} -t $REPLDIR > $SLURPLOG 2>&1 &
+$SLURPD -f $MASTERCONF -d ${SLURPD_DEBUG-5} -t $REPLDIR > $SLURPLOG 2>&1 &
 SLURPPID=$!
 
 echo "Using ldapadd to populate the master directory..."

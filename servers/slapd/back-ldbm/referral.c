@@ -38,13 +38,6 @@ ldbm_back_referrals(
 		return rc;
 	} 
 
-	if( be->be_update_ndn != NULL &&
-		!strcmp( be->be_update_ndn, op->o_ndn ) )
-	{
-		/* let op take care of updating */
-		return rc;
-	}
-
 	/* get entry with reader lock */
 	e = dn2entry_r( be, ndn, &matched );
 	if ( e == NULL ) {
