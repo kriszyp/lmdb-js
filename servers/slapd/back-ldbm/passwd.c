@@ -1,4 +1,4 @@
-/* extended.c - ldbm backend extended routines */
+/* passwd.c - ldbm backend password routines */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -86,7 +86,7 @@ ldbm_back_exop_passwd(
 
 	if( dn_normalize( dn ) == NULL ) {
 		*text = "Invalid DN";
-		rc = LDAP_INVALID_DN;
+		rc = LDAP_INVALID_DN_SYNTAX;
 		goto done;
 	}
 
