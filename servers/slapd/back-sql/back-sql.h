@@ -353,14 +353,14 @@ typedef struct backsql_at_map_rec {
  * (currently broken) */
 /* #define	BACKSQL_UPPERCASE_FILTER */
 
-#define	BACKSQL_AT_CANUPPERCASE(at)	((at)->bam_sel_expr_u.bv_val)
+#define	BACKSQL_AT_CANUPPERCASE(at)	( !BER_BVISNULL( &(at)->bam_sel_expr_u ) )
 
 /* defines to support bitmasks above */
 #define BACKSQL_ADD	0x1
 #define BACKSQL_DEL	0x2
 
-#define BACKSQL_IS_ADD(x)	( BACKSQL_ADD & (x) )
-#define BACKSQL_IS_DEL(x)	( BACKSQL_DEL & (x) )
+#define BACKSQL_IS_ADD(x)	( ( BACKSQL_ADD & (x) ) == BACKSQL_ADD )
+#define BACKSQL_IS_DEL(x)	( ( BACKSQL_DEL & (x) ) == BACKSQL_DEL )
 
 #define BACKSQL_NCMP(v1,v2)	ber_bvcmp((v1),(v2))
 
@@ -373,7 +373,7 @@ typedef struct berbuf {
 	ber_len_t	bb_len;
 } BerBuffer;
 
-#define BB_NULL		{ { 0, NULL }, 0 }
+#define BB_NULL		{ BER_BVNULL, 0 }
 
 typedef struct backsql_srch_info {
 	Operation		*bsi_op;
@@ -388,6 +388,10 @@ typedef struct backsql_srch_info {
 #define BSQL_SF_FILTER_ENTRYUUID	0x0020U
 #define BSQL_SF_FILTER_ENTRYCSN		0x0040U
 #define BSQL_SF_RETURN_ENTRYUUID	(BSQL_SF_FILTER_ENTRYUUID << 8)
+#define	BSQL_ISF(bsi, f)		( ( (bsi)->bsi_flags & f ) == f )
+#define	BSQL_ISF_ALL_USER(bsi)		BSQL_ISF(bsi, BSQL_SF_ALL_USER)
+#define	BSQL_ISF_ALL_OPER(bsi)		BSQL_ISF(bsi, BSQL_SF_ALL_OPER)
+#define	BSQL_ISF_ALL_ATTRS(bsi)		BSQL_ISF(bsi, BSQL_SF_ALL_ATTRS)
 
 	struct berval		*bsi_base_ndn;
 	int			bsi_use_subtree_shortcut;
@@ -426,7 +430,7 @@ typedef struct backsql_srch_info {
 /*
  * Backend private data structure
  */
-typedef struct {
+typedef struct backsql_info {
 	char		*sql_dbhost;
 	int		sql_dbport;
 	char		*sql_dbuser;
@@ -456,8 +460,9 @@ typedef struct {
 	struct berval	sql_upper_func_open;
 	struct berval	sql_upper_func_close;
 	BerVarray	sql_concat_func;
-
 	struct berval	sql_strcast_func;
+
+	AttributeName	*sql_anlist;
 
 	unsigned int	sql_flags;
 #define	BSQLF_SCHEMA_LOADED		0x0001
@@ -469,27 +474,39 @@ typedef struct {
 #define BSQLF_USE_REVERSE_DN		0x0040
 #define BSQLF_ALLOW_ORPHANS		0x0080
 #define BSQLF_USE_SUBTREE_SHORTCUT	0x0100
+#define BSQLF_FETCH_ALL_USERATTRS	0x0200
+#define BSQLF_FETCH_ALL_OPATTRS		0x0400
+#define	BSQLF_FETCH_ALL_ATTRS		(BSQLF_FETCH_ALL_USERATTRS|BSQLF_FETCH_ALL_OPATTRS)
+
+#define BACKSQL_ISF(si, f) \
+	(((si)->sql_flags & f) == f)
 
 #define	BACKSQL_SCHEMA_LOADED(si) \
-	((si)->sql_flags & BSQLF_SCHEMA_LOADED)
+	BACKSQL_ISF(si, BSQLF_SCHEMA_LOADED)
 #define BACKSQL_UPPER_NEEDS_CAST(si) \
-	((si)->sql_flags & BSQLF_UPPER_NEEDS_CAST)
+	BACKSQL_ISF(si, BSQLF_UPPER_NEEDS_CAST)
 #define BACKSQL_CREATE_NEEDS_SELECT(si) \
-	((si)->sql_flags & BSQLF_CREATE_NEEDS_SELECT)
+	BACKSQL_ISF(si, BSQLF_CREATE_NEEDS_SELECT)
 #define BACKSQL_FAIL_IF_NO_MAPPING(si) \
-	((si)->sql_flags & BSQLF_FAIL_IF_NO_MAPPING)
+	BACKSQL_ISF(si, BSQLF_FAIL_IF_NO_MAPPING)
 #define BACKSQL_HAS_LDAPINFO_DN_RU(si) \
-	((si)->sql_flags & BSQLF_HAS_LDAPINFO_DN_RU)
+	BACKSQL_ISF(si, BSQLF_HAS_LDAPINFO_DN_RU)
 #define BACKSQL_DONTCHECK_LDAPINFO_DN_RU(si) \
-	((si)->sql_flags & BSQLF_DONTCHECK_LDAPINFO_DN_RU)
+	BACKSQL_ISF(si, BSQLF_DONTCHECK_LDAPINFO_DN_RU)
 #define BACKSQL_USE_REVERSE_DN(si) \
-	((si)->sql_flags & BSQLF_USE_REVERSE_DN)
+	BACKSQL_ISF(si, BSQLF_USE_REVERSE_DN)
 #define BACKSQL_CANUPPERCASE(si) \
 	(!BER_BVISNULL( &(si)->sql_upper_func ))
 #define BACKSQL_ALLOW_ORPHANS(si) \
-	((si)->sql_flags & BSQLF_ALLOW_ORPHANS)
+	BACKSQL_ISF(si, BSQLF_ALLOW_ORPHANS)
 #define BACKSQL_USE_SUBTREE_SHORTCUT(si) \
-	((si)->sql_flags & BSQLF_USE_SUBTREE_SHORTCUT)
+	BACKSQL_ISF(si, BSQLF_USE_SUBTREE_SHORTCUT)
+#define BACKSQL_FETCH_ALL_USERATTRS(si) \
+	BACKSQL_ISF(si, BSQLF_FETCH_ALL_USERATTRS)
+#define BACKSQL_FETCH_ALL_OPATTRS(si) \
+	BACKSQL_ISF(si, BSQLF_FETCH_ALL_OPATTRS)
+#define BACKSQL_FETCH_ALL_ATTRS(si) \
+	BACKSQL_ISF(si, BSQLF_FETCH_ALL_ATTRS)
 
 	Entry		*sql_baseObject;
 #ifdef BACKSQL_ARBITRARY_KEY

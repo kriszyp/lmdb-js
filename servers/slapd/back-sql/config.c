@@ -496,6 +496,71 @@ backsql_db_config(
 			BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ? "yes" : "no",
 			0, 0 );
 
+	} else if ( !strcasecmp( argv[ 0 ], "fetch_all_attrs") ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing { yes | no }"
+				"in \"fetch_all_attrs\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			bi->sql_flags |= BSQLF_FETCH_ALL_ATTRS;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			bi->sql_flags &= ~BSQLF_FETCH_ALL_ATTRS;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"\"fetch_all_attrs\" directive arg "
+				"must be \"yes\" or \"no\"\n",
+				fname, lineno, 0 );
+			return 1;
+
+		}
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"fetch_all_attrs=%s\n", 
+			BACKSQL_FETCH_ALL_ATTRS( bi ) ? "yes" : "no",
+			0, 0 );
+
+	} else if ( !strcasecmp( argv[ 0 ], "fetch_attrs") ) {
+		char	*str, *s, *next;
+		char	delimstr[] = ",";
+
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing <attrlist>"
+				"in \"fetch_all_attrs <attrlist>\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		str = ch_strdup( argv[ 1 ] );
+		for ( s = ldap_pvt_strtok( str, delimstr, &next );
+				s != NULL;
+				s = ldap_pvt_strtok( NULL, delimstr, &next ) )
+		{
+			if ( strlen( s ) == 1 ) {
+				if ( *s == '*' ) {
+					bi->sql_flags |= BSQLF_FETCH_ALL_USERATTRS;
+					argv[ 1 ][ s - str ] = ',';
+
+				} else if ( *s == '+' ) {
+					bi->sql_flags |= BSQLF_FETCH_ALL_OPATTRS;
+					argv[ 1 ][ s - str ] = ',';
+				}
+			}
+		}
+		ch_free( str );
+		bi->sql_anlist = str2anlist( bi->sql_anlist, argv[ 1 ], delimstr );
+		if ( bi->sql_anlist == NULL ) {
+			return -1;
+		}
+
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}

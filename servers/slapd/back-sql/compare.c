@@ -163,6 +163,10 @@ return_results:;
 		entry_clean( e );
 	}
 
+	if ( bsi.bsi_attrs != NULL ) {
+		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
+	}
+
 	Debug(LDAP_DEBUG_TRACE,"<==backsql_compare()\n",0,0,0);
 	switch ( rs->sr_err ) {
 	case LDAP_COMPARE_TRUE:

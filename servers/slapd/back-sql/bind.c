@@ -118,8 +118,12 @@ error_return:;
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
 	}
 
-	if ( e ) {
+	if ( e != NULL ) {
 		entry_clean( e );
+	}
+
+	if ( bsi.bsi_attrs != NULL ) {
+		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
 	}
 
 	if ( rs->sr_err ) {

@@ -140,6 +140,16 @@ backsql_db_destroy(
 	free( bi->sql_delobjclasses_stmt );
 	free( bi->sql_delreferrals_stmt );
 
+	if ( bi->sql_anlist ) {
+		int	i;
+
+		for ( i = 0; !BER_BVISNULL( &bi->sql_anlist[i].an_name ); i++ )
+		{
+			ch_free( bi->sql_anlist[i].an_name.bv_val );
+		}
+		ch_free( bi->sql_anlist );
+	}
+
 	if ( bi->sql_baseObject ) {
 		entry_free( bi->sql_baseObject );
 	}

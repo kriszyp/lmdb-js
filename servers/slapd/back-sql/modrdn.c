@@ -46,7 +46,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 				realnew_dn = BER_BVNULL;
 	LDAPRDN			new_rdn = NULL;
 	LDAPRDN			old_rdn = NULL;
-	Entry			e;
+	Entry			e = { 0 };
 	Modifications		*mod = NULL;
 	struct berval		*newSuperior = op->oq_modrdn.rs_newSup;
 	char			*next;
@@ -95,13 +95,26 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
+	/*
+	 * Check for entry access to target
+	 */
+	e.e_name = op->o_req_dn;
+	e.e_nname = op->o_req_ndn;
+	/* FIXME: need the whole entry (ITS#3480) */
+	if ( !access_allowed( op, &e, slap_schema.si_ad_entry, 
+				NULL, ACL_WRITE, NULL ) ) {
+		Debug( LDAP_DEBUG_TRACE, "   no access to entry\n", 0, 0, 0 );
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		goto modrdn_return;
+	}
+
 	dnParent( &op->o_req_dn, &p_dn );
 	dnParent( &op->o_req_ndn, &p_ndn );
 
 	/*
 	 * namingContext "" is not supported
 	 */
-	if ( p_dn.bv_len == 0 ) {
+	if ( BER_BVISEMPTY( &p_dn ) ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"parent is \"\" - aborting\n", 0, 0, 0 );
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -113,7 +126,6 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Check for children access to parent
 	 */
-	e.e_attrs = NULL;
 	e.e_name = p_dn;
 	e.e_nname = p_ndn;
 	/* FIXME: need the whole entry (ITS#3480) */
@@ -128,7 +140,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		/*
 		 * namingContext "" is not supported
 		 */
-		if ( newSuperior->bv_len == 0 ) {
+		if ( BER_BVISEMPTY( newSuperior ) ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 				"newSuperior is \"\" - aborting\n", 0, 0, 0 );
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -140,12 +152,11 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		new_pdn = newSuperior;
 		new_npdn = op->oq_modrdn.rs_nnewSup;
 
-		e.e_name = *new_pdn;
-		e.e_nname = *new_npdn;
-
 		/*
 		 * Check for children access to new parent
 		 */
+		e.e_name = *new_pdn;
+		e.e_nname = *new_npdn;
 		/* FIXME: need the whole entry (ITS#3480) */
 		if ( !access_allowed( op, &e, slap_schema.si_ad_children, 
 					NULL, ACL_WRITE, NULL ) ) {

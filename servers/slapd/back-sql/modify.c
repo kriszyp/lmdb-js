@@ -142,6 +142,10 @@ done:;
 		entry_clean( bsi.bsi_e );
 	}
 
+	if ( bsi.bsi_attrs != NULL ) {
+		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n", 0, 0, 0 );
 
 	return rs->sr_err != LDAP_SUCCESS ? rs->sr_err : op->o_noop;

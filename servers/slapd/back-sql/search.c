@@ -55,7 +55,7 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 	 * clear the list (retrieve all attrs)
 	 */
 	if ( ad == NULL ) {
-		ch_free( bsi->bsi_attrs );
+		bsi->bsi_op->o_tmpfree( bsi->bsi_attrs, bsi->bsi_op->o_tmpmemctx );
 		bsi->bsi_attrs = NULL;
 		bsi->bsi_flags |= BSQL_SF_ALL_ATTRS;
 		return 1;
@@ -79,8 +79,9 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_attrlist_add(): "
 		"adding \"%s\" to list\n", ad->ad_cname.bv_val, 0, 0 );
 
-	an = (AttributeName *)ch_realloc( bsi->bsi_attrs,
-			sizeof( AttributeName ) * ( n_attrs + 2 ) );
+	an = (AttributeName *)bsi->bsi_op->o_tmprealloc( bsi->bsi_attrs,
+			sizeof( AttributeName ) * ( n_attrs + 2 ),
+			bsi->bsi_op->o_tmpmemctx );
 	if ( an == NULL ) {
 		return -1;
 	}
@@ -118,7 +119,7 @@ backsql_init_search(
 	AttributeName 		*attrs,
 	unsigned		flags )
 {
-	AttributeName		*p;
+	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	int			rc = LDAP_SUCCESS;
 
 	bsi->bsi_base_ndn = nbase;
@@ -134,49 +135,121 @@ backsql_init_search(
 	bsi->bsi_rs = rs;
 	bsi->bsi_flags = BSQL_SF_NONE;
 
-	/*
-	 * handle "*"
-	 */
-	if ( attrs == NULL ) {
-		/* also add request for all operational */
-		bsi->bsi_attrs = NULL;
-		bsi->bsi_flags |= BSQL_SF_ALL_USER;
+	bsi->bsi_attrs = NULL;
+
+	if ( BACKSQL_FETCH_ALL_ATTRS( bi ) ) {
+		/*
+		 * if requested, simply try to fetch all attributes
+		 */
+		bsi->bsi_flags |= BSQL_SF_ALL_ATTRS;
 
 	} else {
-		int	got_oc = 0;
+		if ( BACKSQL_FETCH_ALL_USERATTRS( bi ) ) {
+			bsi->bsi_flags |= BSQL_SF_ALL_USER;
 
-		bsi->bsi_attrs = (AttributeName *)ch_calloc( 1, 
-				sizeof( AttributeName ) );
-		BER_BVZERO( &bsi->bsi_attrs[ 0 ].an_name );
-		
-		for ( p = attrs; !BER_BVISNULL( &p->an_name ); p++ ) {
-			/*
-			 * ignore "1.1"; handle "+"
-			 */
-			if ( BACKSQL_NCMP( &p->an_name, &AllUser ) == 0 ) {
-				bsi->bsi_flags |= BSQL_SF_ALL_USER;
-				continue;
-
-			} else if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
-				bsi->bsi_flags |= BSQL_SF_ALL_OPER;
-				continue;
-
-			} else if ( BACKSQL_NCMP( &p->an_name, &NoAttrs ) == 0 ) {
-				continue;
-
-			} else if ( p->an_desc == slap_schema.si_ad_objectClass ) {
-				got_oc = 1;
-			}
-
-			backsql_attrlist_add( bsi, p->an_desc );
+		} else if ( BACKSQL_FETCH_ALL_OPATTRS( bi ) ) {
+			bsi->bsi_flags |= BSQL_SF_ALL_OPER;
 		}
 
-		if ( got_oc == 0 ) {
-			/* add objectClass if not present,
-			 * because it is required to understand
-			 * if an entry is a referral, an alias 
-			 * or so... */
-			backsql_attrlist_add( bsi, slap_schema.si_ad_objectClass );
+		if ( attrs == NULL ) {
+			/* NULL means all user attributes */
+			bsi->bsi_flags |= BSQL_SF_ALL_USER;
+
+		} else {
+			AttributeName	*p;
+			int		got_oc = 0;
+
+			bsi->bsi_attrs = (AttributeName *)bsi->bsi_op->o_tmpalloc(
+					sizeof( AttributeName ),
+					bsi->bsi_op->o_tmpmemctx );
+			BER_BVZERO( &bsi->bsi_attrs[ 0 ].an_name );
+	
+			for ( p = attrs; !BER_BVISNULL( &p->an_name ); p++ ) {
+				if ( BACKSQL_NCMP( &p->an_name, &AllUser ) == 0 ) {
+					/* handle "*" */
+					bsi->bsi_flags |= BSQL_SF_ALL_USER;
+
+					/* if all attrs are requested, there's
+					 * no need to continue */
+					if ( BSQL_ISF_ALL_ATTRS( bsi ) ) {
+						bsi->bsi_op->o_tmpfree( bsi->bsi_attrs,
+								bsi->bsi_op->o_tmpmemctx );
+						bsi->bsi_attrs = NULL;
+						break;
+					}
+					continue;
+
+				} else if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
+					/* handle "+" */
+					bsi->bsi_flags |= BSQL_SF_ALL_OPER;
+
+					/* if all attrs are requested, there's
+					 * no need to continue */
+					if ( BSQL_ISF_ALL_ATTRS( bsi ) ) {
+						bsi->bsi_op->o_tmpfree( bsi->bsi_attrs,
+								bsi->bsi_op->o_tmpmemctx );
+						bsi->bsi_attrs = NULL;
+						break;
+					}
+					continue;
+
+				} else if ( BACKSQL_NCMP( &p->an_name, &NoAttrs ) == 0 ) {
+					/* ignore "1.1" */
+					continue;
+
+				} else if ( p->an_desc == slap_schema.si_ad_objectClass ) {
+					got_oc = 1;
+				}
+
+				backsql_attrlist_add( bsi, p->an_desc );
+			}
+
+			if ( got_oc == 0 && !( bsi->bsi_flags & BSQL_SF_ALL_USER ) ) {
+				/* add objectClass if not present,
+				 * because it is required to understand
+				 * if an entry is a referral, an alias 
+				 * or so... */
+				backsql_attrlist_add( bsi, slap_schema.si_ad_objectClass );
+			}
+		}
+
+		if ( !BSQL_ISF_ALL_ATTRS( bsi ) && bi->sql_anlist ) {
+			AttributeName	*p;
+			
+			/* use hints if available */
+			for ( p = bi->sql_anlist; !BER_BVISNULL( &p->an_name ); p++ ) {
+				if ( BACKSQL_NCMP( &p->an_name, &AllUser ) == 0 ) {
+					/* handle "*" */
+					bsi->bsi_flags |= BSQL_SF_ALL_USER;
+
+					/* if all attrs are requested, there's
+					 * no need to continue */
+					if ( BSQL_ISF_ALL_ATTRS( bsi ) ) {
+						bsi->bsi_op->o_tmpfree( bsi->bsi_attrs,
+								bsi->bsi_op->o_tmpmemctx );
+						bsi->bsi_attrs = NULL;
+						break;
+					}
+					continue;
+
+				} else if ( BACKSQL_NCMP( &p->an_name, &AllOper ) == 0 ) {
+					/* handle "+" */
+					bsi->bsi_flags |= BSQL_SF_ALL_OPER;
+
+					/* if all attrs are requested, there's
+					 * no need to continue */
+					if ( BSQL_ISF_ALL_ATTRS( bsi ) ) {
+						bsi->bsi_op->o_tmpfree( bsi->bsi_attrs,
+								bsi->bsi_op->o_tmpmemctx );
+						bsi->bsi_attrs = NULL;
+						break;
+					}
+					continue;
+				}
+
+				backsql_attrlist_add( bsi, p->an_desc );
+			}
+
 		}
 	}
 
@@ -202,7 +275,14 @@ backsql_init_search(
 				BACKSQL_IS_MATCHED( flags ), 1 );
 	}
 
-	return ( bsi->bsi_status = rc );
+	bsi->bsi_status = rc;
+
+	if ( rc != LDAP_SUCCESS ) {
+		bsi->bsi_op->o_tmpfree( bsi->bsi_attrs,
+				bsi->bsi_op->o_tmpmemctx );
+	}
+
+	return rc;
 }
 
 static int
@@ -1907,6 +1987,10 @@ backsql_search( Operation *op, SlapReply *rs )
 					} /* else: FIXME: inconsistency! */
 					entry_clean( &user_entry2 );
 				}
+				if ( bsi2.bsi_attrs != NULL ) {
+					op->o_tmpfree( bsi2.bsi_attrs,
+							op->o_tmpmemctx );
+				}
 			}
 
 			if ( refs ) {
@@ -2086,8 +2170,8 @@ done:;
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
 	}
 
-	if ( bsi.bsi_attrs ) {
-		ch_free( bsi.bsi_attrs );
+	if ( bsi.bsi_attrs != NULL ) {
+		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
 	}
 
 	if ( !BER_BVISNULL( &nbase )
@@ -2186,6 +2270,10 @@ backsql_entry_get(
 	}
 
 return_results:;
+	if ( bsi.bsi_attrs != NULL ) {
+		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
+	}
+
 	if ( rc != LDAP_SUCCESS ) {
 		if ( bsi.bsi_e ) {
 			entry_free( bsi.bsi_e );
