@@ -8,7 +8,7 @@ slappasswd \- OpenLDAP password utility
 .B SBINDIR/slappasswd
 .B [\-v]
 .B [\-u]
-.B [\-s secret]
+.B [\-s secret|\-T file]
 .B [\-h hash]
 .B [\-c salt-format]
 .B 
@@ -34,8 +34,24 @@ versions of this program may generate alternative syntaxes
 by default.  This option is provided for forward compatibility.
 .TP
 .BI \-s " secret"
-The secret to hash.  If not provided, the user will be prompted
-for the secret to hash.
+The secret to hash.
+If this and
+.B \-T
+are absent, the user will be prompted for the secret to hash.
+.B \-s
+and
+.B \-T
+and mutually exclusive flags.
+.TP
+.BI \-T " file"
+Hash the contents of the file.
+If this and
+.B \-s
+are absent, the user will be prompted for the secret to hash.
+.B \-s
+and
+.B \-T
+and mutually exclusive flags.
 .TP
 .BI \-h " scheme"
 If -h is specified, one of the following RFC 2307 schemes may

@@ -31,7 +31,7 @@ ldap_enable_cache( LDAP *ld, long timeout, ber_len_t maxmem )
 	assert( LDAP_VALID( ld ) );
 
 	if (!(called++)) {
-		fprintf( stderr, "ldap_enable_cache: function is obsoleted."
+		fprintf( stderr, "ldap_enable_cache: routine is obsoleted.\n");
 	}
 
 	return -1;

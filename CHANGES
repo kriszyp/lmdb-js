@@ -12,9 +12,12 @@ OpenLDAP 2.1.17 Engineering
 	Fixed slurpd core dump on exit (ITS#2363)
 	Fixed slapadd oidm destory bug (ITS#2409)
 	Fixed clients critical argument handling
+	Updated clients password file support
+	Added slappasswd password file support
 	Removed lint (ITS#2382)
 	Build Environment
 		Updated versioning system
+		Added LDAP cache shell-only routines
 	Documentation
 		Updated slurpd(8) -u usage
 		Misc man page updates
