@@ -140,6 +140,8 @@ dn2id_delete(
 
 	rc = ldbm_cache_delete( db, key );
 
+	free( dn );
+
 	ldbm_cache_close( be, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id_delete %d\n", rc, 0, 0 );
