@@ -59,6 +59,15 @@
 static int		sc_chainingBehavior;
 static BackendInfo	*lback;
 
+typedef struct ldap_chain_t {
+	struct ldapinfo		*lc_li;
+	unsigned		lc_flags;
+#define LDAP_CHAIN_F_NONE		0x00U
+#define	LDAP_CHAIN_F_CHAINING		0x01U
+	LDAPControl		lc_chaining_ctrl;
+
+} ldap_chain_t;
+
 static int
 ldap_chain_operational( Operation *op, SlapReply *rs )
 {
@@ -170,13 +179,14 @@ ldap_chain_op(
 	BerVarray	ref )
 {
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
-	struct ldapinfo	li, *lip = (struct ldapinfo *)on->on_bi.bi_private;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	struct ldapinfo	li, *lip = lc->lc_li;
 
 	/* NOTE: returned if ref is empty... */
 	int		rc = LDAP_OTHER;
 
 	if ( lip->url != NULL ) {
-		op->o_bd->be_private = on->on_bi.bi_private;
+		op->o_bd->be_private = lip;
 		return ( *op_f )( op, rs );
 	}
 
@@ -260,7 +270,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	BerVarray	ref;
 	struct berval	ndn = op->o_ndn;
 
-	struct ldapinfo	li, *lip = (struct ldapinfo *)on->on_bi.bi_private;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	struct ldapinfo	li, *lip = lc->lc_li;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	int		sr_err = rs->sr_err;
@@ -537,6 +548,25 @@ dont_chain:;
 }
 
 static int
+str2chain( const char *s )
+{
+	if ( strcasecmp( s, "chainingPreferred" ) == 0 ) {
+		return LDAP_CHAINING_PREFERRED;
+		
+	} else if ( strcasecmp( s, "chainingRequired" ) == 0 ) {
+		return LDAP_CHAINING_REQUIRED;
+
+	} else if ( strcasecmp( s, "referralsPreferred" ) == 0 ) {
+		return LDAP_REFERRALS_PREFERRED;
+		
+	} else if ( strcasecmp( s, "referralsRequired" ) == 0 ) {
+		return LDAP_REFERRALS_REQUIRED;
+	}
+
+	return -1;
+}
+
+static int
 ldap_chain_db_config(
 	BackendDB	*be,
 	const char	*fname,
@@ -546,21 +576,119 @@ ldap_chain_db_config(
 )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
 	void		*private = be->be_private;
 	char		*argv0 = NULL;
 	int		rc;
 
-	be->be_private = on->on_bi.bi_private;
+	be->be_private = lc->lc_li;
 	if ( strncasecmp( argv[ 0 ], "chain-", STRLENOF( "chain-" ) ) == 0 ) {
 		argv0 = argv[ 0 ];
 		argv[ 0 ] = &argv[ 0 ][ STRLENOF( "chain-" ) ];
+
+		if ( strcasecmp( argv0, "chaining" ) == 0 ) {
+			BerElementBuffer	berbuf;
+			BerElement		*ber = (BerElement *)&berbuf;
+			int			resolve = -1,
+						continuation = -1,
+						iscritical = 0;
+
+			for ( argc--, argv++; argc > 0; argc--, argv++ ) {
+				if ( strncasecmp( argv[0], "resolve=", STRLENOF( "resolve=" ) ) == 0 ) {
+					resolve = str2chain( argv[ 0 ] + STRLENOF( "resolve=" ) );
+					if ( resolve == -1 ) {
+						fprintf( stderr, "%s line %d: "
+							"illegal <resolve> value %s "
+							"in \"chain-chaining>\"\n",
+							fname, lineno, argv[ 0 ] );
+						return 1;
+					}
+
+				} else if ( strncasecmp( argv[0], "continuation=", STRLENOF( "continuation=" ) ) == 0 ) {
+					continuation = str2chain( argv[ 0 ] + STRLENOF( "continuation=" ) );
+					if ( continuation == -1 ) {
+						fprintf( stderr, "%s line %d: "
+							"illegal <continuation> value %s "
+							"in \"chain-chaining\"\n",
+							fname, lineno, argv[ 0 ] );
+						return 1;
+					}
+
+				} else if ( strcasecmp( argv[ 0 ], "critical" ) == 0 ) {
+					iscritical = 1;
+
+				} else {
+					fprintf( stderr, "%s line %d: "
+						"unknown option in \"chain-chaining\"\n",
+						fname, lineno );
+					return 1;
+				}
+			}
+
+			if ( resolve != -1 || continuation != -1 ) {
+				int	err;
+
+				if ( resolve == -1 ) {
+					/* default */
+					resolve = LDAP_CHAINING_PREFERRED;
+				}
+
+				ber_init2( ber, NULL, LBER_USE_DER );
+
+				err = ber_printf( ber, "{e" /* } */, resolve );
+		    		if ( err == -1 ) {
+					ber_free( ber, 1 );
+					fprintf( stderr, "%s line %d: "
+						"chaining behavior control encoding error!\n",
+						fname, lineno );
+					return 1;
+				}
+
+				if ( continuation > -1 ) {
+					err = ber_printf( ber, "e", continuation );
+		    			if ( err == -1 ) {
+						ber_free( ber, 1 );
+						fprintf( stderr, "%s line %d: "
+							"chaining behavior control encoding error!\n",
+							fname, lineno );
+						return 1;
+					}
+				}
+
+				err = ber_printf( ber, /* { */ "N}" );
+		    		if ( err == -1 ) {
+					ber_free( ber, 1 );
+					fprintf( stderr, "%s line %d: "
+						"chaining behavior control encoding error!\n",
+						fname, lineno );
+					return 1;
+				}
+
+				if ( ber_flatten2( ber, &lc->lc_chaining_ctrl.ldctl_value, 0 ) == -1 ) {
+					exit( EXIT_FAILURE );
+				}
+
+			} else {
+				BER_BVZERO( &lc->lc_chaining_ctrl.ldctl_value );
+			}
+
+			lc->lc_chaining_ctrl.ldctl_oid = LDAP_CONTROL_X_CHAINING_BEHAVIOR;
+			lc->lc_chaining_ctrl.ldctl_iscritical = iscritical;
+
+			lc->lc_flags |= LDAP_CHAIN_F_CHAINING;
+
+			return 0;
+		}
 	}
+
+
 	rc = lback->bi_db_config( be, fname, lineno, argc, argv );
+	be->be_private = private;
+
 	if ( argv0 ) {
 		argv[ 0 ] = argv0;
 	}
-	
-	be->be_private = private;
+
 	return rc;
 }
 
@@ -570,6 +698,7 @@ ldap_chain_db_init(
 )
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	ldap_chain_t	*lc = NULL;
 	int		rc;
 	BackendDB	bd = *be;
 
@@ -581,35 +710,46 @@ ldap_chain_db_init(
 		}
 	}
 
+	lc = ch_malloc( sizeof( ldap_chain_t ) );
+	memset( lc, 0, sizeof( ldap_chain_t ) );
+
 	bd.be_private = NULL;
 	rc = lback->bi_db_init( &bd );
-	on->on_bi.bi_private = bd.be_private;
+	lc->lc_li = (struct ldapinfo *)bd.be_private;
+	on->on_bi.bi_private = (void *)lc;
 
 	return rc;
 }
 
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static int
 ldap_chain_db_open(
 	BackendDB *be
 )
 {
-	return overlay_register_control( be, LDAP_CONTROL_X_CHAINING_BEHAVIOR );
-}
+	int	rc = 0;
+
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	rc = overlay_register_control( be, LDAP_CONTROL_X_CHAINING_BEHAVIOR );
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+	return rc;
+}
 
 static int
 ldap_chain_db_destroy(
 	BackendDB *be
 )
 {
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	void *private = be->be_private;
-	int rc;
+	slap_overinst	*on = (slap_overinst *) be->bd_info;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	void		*private = be->be_private;
+	int		rc;
 
-	be->be_private = on->on_bi.bi_private;
+	be->be_private = (void *)lc->lc_li;
 	rc = lback->bi_db_destroy( be );
-	on->on_bi.bi_private = be->be_private;
+	lc->lc_li = be->be_private;
+	ch_free( lc );
+	on->on_bi.bi_private = NULL;
 	be->be_private = private;
 	return rc;
 }
@@ -620,14 +760,15 @@ ldap_chain_connection_destroy(
 	Connection *conn
 )
 {
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	void *private = be->be_private;
-	int rc;
+	slap_overinst	*on = (slap_overinst *) be->bd_info;
+	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+	void		*private = be->be_private;
+	int		rc;
 
-	be->be_private = on->on_bi.bi_private;
+	be->be_private = (void *)lc->lc_li;
 	rc = lback->bi_connection_destroy( be, conn );
-	on->on_bi.bi_private = be->be_private;
 	be->be_private = private;
+
 	return rc;
 }
 
@@ -778,9 +919,7 @@ chain_init( void )
 
 	ldapchain.on_bi.bi_type = "chain";
 	ldapchain.on_bi.bi_db_init = ldap_chain_db_init;
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	ldapchain.on_bi.bi_db_open = ldap_chain_db_open;
-#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	ldapchain.on_bi.bi_db_config = ldap_chain_db_config;
 	ldapchain.on_bi.bi_db_destroy = ldap_chain_db_destroy;
 
