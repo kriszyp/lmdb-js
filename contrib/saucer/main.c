@@ -67,7 +67,7 @@ extern int	optind;
 int			option;
 int			portnum = LDAP_PORT;
 char		*progname;
-char		true_filter[] = "objectClass=*";	/* Always succeeds */
+char		true_filter[] = "(objectClass=*)";	/* Always succeeds */
 char		*username;
 
 int			cmd_help(char **cmdargv, int cmdargc);

@@ -755,7 +755,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 				           "filter",
 				           0);
 	if (filterPatternString == (char *)NULL) {
-	    filterPatternString = "objectclass=*";
+	    filterPatternString = "(objectclass=*)";
 	}
 
 	/* Fetch scope setting from control array.
