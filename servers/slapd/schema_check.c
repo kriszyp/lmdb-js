@@ -440,10 +440,12 @@ entry_schema_check(
 				int k;
 
 				if( cr ) {
+					int j;
+
 					k = -1;
 					if( cr->scr_auxiliaries ) {
-						for( ; cr->scr_auxiliaries[k]; k++ ) {
-							if( cr->scr_auxiliaries[k] == oc ) {
+						for( j = 0; cr->scr_auxiliaries[j]; j++ ) {
+							if( cr->scr_auxiliaries[j] == oc ) {
 								k = 0;
 								break;
 							}
