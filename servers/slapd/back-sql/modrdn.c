@@ -69,7 +69,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	rs->sr_err = backsql_dn2id( bi, &e_id, dbh, &op->o_req_ndn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
-			"could not lookup entry id\n", 0, 0, 0 );
+			"could not lookup entry id (%d)\n",
+			rs->sr_err, 0, 0 );
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			?  "SQL-backend error" : NULL;
 		send_ldap_result( op, rs );

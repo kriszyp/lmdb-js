@@ -163,6 +163,12 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	/* avl_apply ... */
+	rs->sr_err = backsql_delete_all_attrs( op, rs, dbh, &e_id, oc );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		goto done;
+	}
+
 	rc = backsql_Prepare( dbh, &sth, oc->bom_delete_proc, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -205,12 +211,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 	SQLFreeStmt( sth, SQL_DROP );
-
-	/* avl_apply ... */
-	rs->sr_err = backsql_delete_all_attrs( op, rs, dbh, &e_id, oc );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		goto done;
-	}
 
 	/* delete "auxiliary" objectClasses, if any... */
 	rc = backsql_Prepare( dbh, &sth, bi->delobjclasses_query, 0 );
