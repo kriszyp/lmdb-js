@@ -88,15 +88,15 @@ index_add_mods(
 						  id,
 						  __INDEX_ADD_OP);
 			break;
-		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there already */
-			rc = 0;
-			break;
 		case LDAP_MOD_DELETE:
 			rc =  index_change_values( be,
 						   mods->mod_type,
 						   mods->mod_bvalues,
 						   id,
 						   __INDEX_DEL_OP );
+			break;
+		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there */
+			rc = 0;
 			break;
 		}
 
