@@ -935,7 +935,7 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 fi
 
 if test $ol_enable_wrappers = yes ; then
-	AC_CHECK_LIB(wrap, hosts_access,
+	AC_CHECK_LIB(wrap, main,
 		[have_wrappers=yes], [have_wrappers=no])
 
 	if test $have_wrappers = yes ; then
