@@ -20,6 +20,7 @@
 #endif
 
 #include <ac/errno.h>
+#include <ac/signal.h>
 #include <ac/syslog.h>
 
 #include <sys/param.h>
