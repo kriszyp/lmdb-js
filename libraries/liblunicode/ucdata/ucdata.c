@@ -65,7 +65,7 @@ typedef struct {
 /*
  * A simple array of 32-bit masks for lookup.
  */
-static unsigned long masks32[32] = {
+static ac_uint4 masks32[32] = {
 	0x00000001UL, 0x00000002UL, 0x00000004UL, 0x00000008UL,
 	0x00000010UL, 0x00000020UL, 0x00000040UL, 0x00000080UL,
 	0x00000100UL, 0x00000200UL, 0x00000400UL, 0x00000800UL,
@@ -117,9 +117,9 @@ _ucopenfile(char *paths, char *filename, char *mode)
  *
  **************************************************************************/
 
-static unsigned long  _ucprop_size;
-static unsigned short *_ucprop_offsets;
-static unsigned long  *_ucprop_ranges;
+static ac_uint4 _ucprop_size;
+static ac_uint2 *_ucprop_offsets;
+static ac_uint4 *_ucprop_ranges;
 
 /*
  * Return -1 on error, 0 if okay
@@ -128,7 +128,7 @@ static int
 _ucprop_load(char *paths, int reload)
 {
     FILE *in;
-    unsigned long size, i;
+    ac_uint4 size, i;
     _ucheader_t hdr;
 
     if (_ucprop_size > 0) {
@@ -169,7 +169,7 @@ _ucprop_load(char *paths, int reload)
     /*
      * Allocate all the storage needed for the lookup table.
      */
-    _ucprop_offsets = (unsigned short *) malloc(hdr.size.bytes);
+    _ucprop_offsets = (ac_uint2 *) malloc(hdr.size.bytes);
 
     /*
      * Calculate the offset into the storage for the ranges.  The offsets
@@ -177,15 +177,15 @@ _ucprop_load(char *paths, int reload)
      * the header count field.  This means the offset to the ranges must be
      * calculated after aligning the count to a 4-byte boundary.
      */
-    if ((size = ((hdr.cnt + 1) * sizeof(unsigned short))) & 3)
+    if ((size = ((hdr.cnt + 1) * sizeof(ac_uint2))) & 3)
       size += 4 - (size & 3);
     size >>= 1;
-    _ucprop_ranges = (unsigned long *) (_ucprop_offsets + size);
+    _ucprop_ranges = (ac_uint4 *) (_ucprop_offsets + size);
 
     /*
      * Load the offset array.
      */
-    fread((char *) _ucprop_offsets, sizeof(unsigned short), size, in);
+    fread((char *) _ucprop_offsets, sizeof(ac_uint2), size, in);
 
     /*
      * Do an endian swap if necessary.  Don't forget there is an extra node on
@@ -200,7 +200,7 @@ _ucprop_load(char *paths, int reload)
      * Load the ranges.  The number of elements is in the last array position
      * of the offsets.
      */
-    fread((char *) _ucprop_ranges, sizeof(unsigned long),
+    fread((char *) _ucprop_ranges, sizeof(ac_uint4),
           _ucprop_offsets[_ucprop_size], in);
 
     fclose(in);
@@ -230,7 +230,7 @@ _ucprop_unload(void)
 }
 
 static int
-_ucprop_lookup(unsigned long code, unsigned long n)
+_ucprop_lookup(ac_uint4 code, ac_uint4 n)
 {
     long l, r, m;
 
@@ -272,9 +272,9 @@ _ucprop_lookup(unsigned long code, unsigned long n)
 }
 
 int
-ucisprop(unsigned long code, unsigned long mask1, unsigned long mask2)
+ucisprop(ac_uint4 code, ac_uint4 mask1, ac_uint4 mask2)
 {
-    unsigned long i;
+    ac_uint4 i;
 
     if (mask1 == 0 && mask2 == 0)
       return 0;
@@ -298,9 +298,9 @@ ucisprop(unsigned long code, unsigned long mask1, unsigned long mask2)
  *
  **************************************************************************/
 
-static unsigned long _uccase_size;
-static unsigned short _uccase_len[2];
-static unsigned long *_uccase_map;
+static ac_uint4 _uccase_size;
+static ac_uint2 _uccase_len[2];
+static ac_uint4 *_uccase_map;
 
 /*
  * Return -1 on error, 0 if okay
@@ -309,7 +309,7 @@ static int
 _uccase_load(char *paths, int reload)
 {
     FILE *in;
-    unsigned long i;
+    ac_uint4 i;
     _ucheader_t hdr;
 
     if (_uccase_size > 0) {
@@ -345,13 +345,13 @@ _uccase_load(char *paths, int reload)
     _uccase_len[0] = hdr.size.len[0] * 3;
     _uccase_len[1] = hdr.size.len[1] * 3;
 
-    _uccase_map = (unsigned long *)
-        malloc(_uccase_size * sizeof(unsigned long));
+    _uccase_map = (ac_uint4 *)
+        malloc(_uccase_size * sizeof(ac_uint4));
 
     /*
      * Load the case mapping table.
      */
-    fread((char *) _uccase_map, sizeof(unsigned long), _uccase_size, in);
+    fread((char *) _uccase_map, sizeof(ac_uint4), _uccase_size, in);
 
     /*
      * Do an endian swap if necessary.
@@ -374,8 +374,8 @@ _uccase_unload(void)
     _uccase_size = 0;
 }
 
-static unsigned long
-_uccase_lookup(unsigned long code, long l, long r, int field)
+static ac_uint4
+_uccase_lookup(ac_uint4 code, long l, long r, int field)
 {
     long m;
 
@@ -400,8 +400,8 @@ _uccase_lookup(unsigned long code, long l, long r, int field)
     return code;
 }
 
-unsigned long
-uctoupper(unsigned long code)
+ac_uint4
+uctoupper(ac_uint4 code)
 {
     int field;
     long l, r;
@@ -427,8 +427,8 @@ uctoupper(unsigned long code)
     return _uccase_lookup(code, l, r, field);
 }
 
-unsigned long
-uctolower(unsigned long code)
+ac_uint4
+uctolower(ac_uint4 code)
 {
     int field;
     long l, r;
@@ -454,8 +454,8 @@ uctolower(unsigned long code)
     return _uccase_lookup(code, l, r, field);
 }
 
-unsigned long
-uctotitle(unsigned long code)
+ac_uint4
+uctotitle(ac_uint4 code)
 {
     int field;
     long l, r;
@@ -490,8 +490,8 @@ uctotitle(unsigned long code)
  *
  **************************************************************************/
 
-static unsigned long  _uccomp_size;
-static unsigned long *_uccomp_data;
+static ac_uint4  _uccomp_size;
+static ac_uint4 *_uccomp_data;
 
 /*
  * Return -1 on error, 0 if okay
@@ -500,7 +500,7 @@ static int
 _uccomp_load(char *paths, int reload)
 {
     FILE *in;
-    unsigned long size, i;
+    ac_uint4 size, i;
     _ucheader_t hdr;
 
     if (_uccomp_size > 0) {
@@ -528,13 +528,13 @@ _uccomp_load(char *paths, int reload)
     }
 
     _uccomp_size = hdr.cnt;
-    _uccomp_data = (unsigned long *) malloc(hdr.size.bytes);
+    _uccomp_data = (ac_uint4 *) malloc(hdr.size.bytes);
 
     /*
      * Read the composition data in.
      */
-    size = hdr.size.bytes / sizeof(unsigned long);
-    fread((char *) _uccomp_data, sizeof(unsigned long), size, in);
+    size = hdr.size.bytes / sizeof(ac_uint4);
+    fread((char *) _uccomp_data, sizeof(ac_uint4), size, in);
 
     /*
      * Do an endian swap if necessary.
@@ -568,7 +568,7 @@ _uccomp_unload(void)
 }
 
 int
-uccomp(unsigned long node1, unsigned long node2, unsigned long *comp)
+uccomp(ac_uint4 node1, ac_uint4 node2, ac_uint4 *comp)
 {
     int l, r, m;
 
@@ -595,7 +595,7 @@ uccomp(unsigned long node1, unsigned long node2, unsigned long *comp)
 }
 
 int
-uccomp_hangul(unsigned long *str, int len)
+uccomp_hangul(ac_uint4 *str, int len)
 {
     const int SBase = 0xAC00, LBase = 0x1100,
         VBase = 0x1161, TBase = 0x11A7,
@@ -604,7 +604,7 @@ uccomp_hangul(unsigned long *str, int len)
         SCount = LCount * NCount;   /* 11172 */
     
     int i, rlen;
-    unsigned long ch, last, lindex, sindex;
+    ac_uint4 ch, last, lindex, sindex;
 
     last = str[0];
     rlen = 1;
@@ -613,9 +613,9 @@ uccomp_hangul(unsigned long *str, int len)
 
         /* check if two current characters are L and V */
         lindex = last - LBase;
-        if (lindex < (unsigned long) LCount) {
-            unsigned long vindex = ch - VBase;
-            if (vindex < (unsigned long) VCount) {
+        if (lindex < (ac_uint4) LCount) {
+            ac_uint4 vindex = ch - VBase;
+            if (vindex < (ac_uint4) VCount) {
                 /* make syllable of form LV */
                 last = SBase + (lindex * VCount + vindex) * TCount;
                 str[rlen-1] = last; /* reset last */
@@ -625,11 +625,11 @@ uccomp_hangul(unsigned long *str, int len)
         
         /* check if two current characters are LV and T */
         sindex = last - SBase;
-        if (sindex < (unsigned long) SCount
+        if (sindex < (ac_uint4) SCount
 			&& (sindex % TCount) == 0)
 		{
-            unsigned long tindex = ch - TBase;
-            if (tindex <= (unsigned long) TCount) {
+            ac_uint4 tindex = ch - TBase;
+            if (tindex <= (ac_uint4) TCount) {
                 /* make syllable of form LVT */
                 last += tindex;
                 str[rlen-1] = last; /* reset last */
@@ -646,10 +646,10 @@ uccomp_hangul(unsigned long *str, int len)
 }
 
 int
-uccanoncomp(unsigned long *str, int len)
+uccanoncomp(ac_uint4 *str, int len)
 {
     int i, stpos, copos;
-    unsigned long cl, prevcl, st, ch, co;
+    ac_uint4 cl, prevcl, st, ch, co;
 
     st = str[0];
     stpos = 0;
@@ -680,13 +680,13 @@ uccanoncomp(unsigned long *str, int len)
  *
  **************************************************************************/
 
-static unsigned long  _ucdcmp_size;
-static unsigned long *_ucdcmp_nodes;
-static unsigned long *_ucdcmp_decomp;
+static ac_uint4  _ucdcmp_size;
+static ac_uint4 *_ucdcmp_nodes;
+static ac_uint4 *_ucdcmp_decomp;
 
-static unsigned long  _uckdcmp_size;
-static unsigned long *_uckdcmp_nodes;
-static unsigned long *_uckdcmp_decomp;
+static ac_uint4  _uckdcmp_size;
+static ac_uint4 *_uckdcmp_nodes;
+static ac_uint4 *_uckdcmp_decomp;
 
 /*
  * Return -1 on error, 0 if okay
@@ -695,7 +695,7 @@ static int
 _ucdcmp_load(char *paths, int reload)
 {
     FILE *in;
-    unsigned long size, i;
+    ac_uint4 size, i;
     _ucheader_t hdr;
 
     if (_ucdcmp_size > 0) {
@@ -723,14 +723,14 @@ _ucdcmp_load(char *paths, int reload)
     }
 
     _ucdcmp_size = hdr.cnt << 1;
-    _ucdcmp_nodes = (unsigned long *) malloc(hdr.size.bytes);
+    _ucdcmp_nodes = (ac_uint4 *) malloc(hdr.size.bytes);
     _ucdcmp_decomp = _ucdcmp_nodes + (_ucdcmp_size + 1);
 
     /*
      * Read the decomposition data in.
      */
-    size = hdr.size.bytes / sizeof(unsigned long);
-    fread((char *) _ucdcmp_nodes, sizeof(unsigned long), size, in);
+    size = hdr.size.bytes / sizeof(ac_uint4);
+    fread((char *) _ucdcmp_nodes, sizeof(ac_uint4), size, in);
 
     /*
      * Do an endian swap if necessary.
@@ -750,7 +750,7 @@ static int
 _uckdcmp_load(char *paths, int reload)
 {
     FILE *in;
-    unsigned long size, i;
+    ac_uint4 size, i;
     _ucheader_t hdr;
 
     if (_uckdcmp_size > 0) {
@@ -778,14 +778,14 @@ _uckdcmp_load(char *paths, int reload)
     }
 
     _uckdcmp_size = hdr.cnt << 1;
-    _uckdcmp_nodes = (unsigned long *) malloc(hdr.size.bytes);
+    _uckdcmp_nodes = (ac_uint4 *) malloc(hdr.size.bytes);
     _uckdcmp_decomp = _uckdcmp_nodes + (_uckdcmp_size + 1);
 
     /*
      * Read the decomposition data in.
      */
-    size = hdr.size.bytes / sizeof(unsigned long);
-    fread((char *) _uckdcmp_nodes, sizeof(unsigned long), size, in);
+    size = hdr.size.bytes / sizeof(ac_uint4);
+    fread((char *) _uckdcmp_nodes, sizeof(ac_uint4), size, in);
 
     /*
      * Do an endian swap if necessary.
@@ -827,7 +827,7 @@ _uckdcmp_unload(void)
 }
 
 int
-ucdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
+ucdecomp(ac_uint4 code, ac_uint4 *num, ac_uint4 **decomp)
 {
     long l, r, m;
 
@@ -859,7 +859,7 @@ ucdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
 }
 
 int
-uckdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
+uckdecomp(ac_uint4 code, ac_uint4 *num, ac_uint4 **decomp)
 {
     long l, r, m;
 
@@ -891,15 +891,15 @@ uckdecomp(unsigned long code, unsigned long *num, unsigned long **decomp)
 }
 
 int
-ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
+ucdecomp_hangul(ac_uint4 code, ac_uint4 *num, ac_uint4 decomp[])
 {
     if (!ucishangul(code))
       return 0;
 
     code -= 0xac00;
-    decomp[0] = 0x1100 + (unsigned long) (code / 588);
-    decomp[1] = 0x1161 + (unsigned long) ((code % 588) / 28);
-    decomp[2] = 0x11a7 + (unsigned long) (code % 28);
+    decomp[0] = 0x1100 + (ac_uint4) (code / 588);
+    decomp[1] = 0x1161 + (ac_uint4) ((code % 588) / 28);
+    decomp[2] = 0x11a7 + (ac_uint4) (code % 28);
     *num = (decomp[2] != 0x11a7) ? 3 : 2;
 
     return 1;
@@ -907,15 +907,15 @@ ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
 
 /* mode == 0 for canonical, mode == 1 for compatibility */
 static int
-uccanoncompatdecomp(const unsigned long *in, int inlen,
-		    unsigned long **out, int *outlen, short mode, void *ctx)
+uccanoncompatdecomp(const ac_uint4 *in, int inlen,
+		    ac_uint4 **out, int *outlen, short mode, void *ctx)
 {
     int l, size;
 	unsigned i, j, k;
-    unsigned long num, class, *decomp, hangdecomp[3];
+    ac_uint4 num, class, *decomp, hangdecomp[3];
 
     size = inlen * 2;
-    *out = (unsigned long *) ber_memalloc_x(size * sizeof(**out), ctx);
+    *out = (ac_uint4 *) ber_memalloc_x(size * sizeof(**out), ctx);
     if (*out == NULL)
         return *outlen = -1;
 
@@ -924,7 +924,7 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
 	if (mode ? uckdecomp(in[j], &num, &decomp) : ucdecomp(in[j], &num, &decomp)) {
             if ( size - i < num) {
                 size = inlen + i - j + num - 1;
-                *out = (unsigned long *) ber_memrealloc_x(*out, size * sizeof(**out), ctx );
+                *out = (ac_uint4 *) ber_memrealloc_x(*out, size * sizeof(**out), ctx );
                 if (*out == NULL)
                     return *outlen = -1;
             }
@@ -944,7 +944,7 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
         } else if (ucdecomp_hangul(in[j], &num, hangdecomp)) {
             if (size - i < num) {
                 size = inlen + i - j + num - 1;
-                *out = (unsigned long *) ber_memrealloc_x(*out, size * sizeof(**out), ctx);
+                *out = (ac_uint4 *) ber_memrealloc_x(*out, size * sizeof(**out), ctx);
                 if (*out == NULL)
                     return *outlen = -1;
             }
@@ -955,7 +955,7 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
         } else {
             if (size - i < 1) {
                 size = inlen + i - j;
-                *out = (unsigned long *) ber_memrealloc_x(*out, size * sizeof(**out), ctx);
+                *out = (ac_uint4 *) ber_memrealloc_x(*out, size * sizeof(**out), ctx);
                 if (*out == NULL)
                     return *outlen = -1;
             }
@@ -976,15 +976,15 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
 }
 
 int
-uccanondecomp(const unsigned long *in, int inlen,
-              unsigned long **out, int *outlen, void *ctx)
+uccanondecomp(const ac_uint4 *in, int inlen,
+              ac_uint4 **out, int *outlen, void *ctx)
 {
     return uccanoncompatdecomp(in, inlen, out, outlen, 0, ctx);
 }
 
 int
-uccompatdecomp(const unsigned long *in, int inlen,
-	       unsigned long **out, int *outlen, void *ctx)
+uccompatdecomp(const ac_uint4 *in, int inlen,
+	       ac_uint4 **out, int *outlen, void *ctx)
 {
     return uccanoncompatdecomp(in, inlen, out, outlen, 1, ctx);
 }
@@ -995,8 +995,8 @@ uccompatdecomp(const unsigned long *in, int inlen,
  *
  **************************************************************************/
 
-static unsigned long  _uccmcl_size;
-static unsigned long *_uccmcl_nodes;
+static ac_uint4  _uccmcl_size;
+static ac_uint4 *_uccmcl_nodes;
 
 /*
  * Return -1 on error, 0 if okay
@@ -1005,7 +1005,7 @@ static int
 _uccmcl_load(char *paths, int reload)
 {
     FILE *in;
-    unsigned long i;
+    ac_uint4 i;
     _ucheader_t hdr;
 
     if (_uccmcl_size > 0) {
@@ -1033,12 +1033,12 @@ _uccmcl_load(char *paths, int reload)
     }
 
     _uccmcl_size = hdr.cnt * 3;
-    _uccmcl_nodes = (unsigned long *) malloc(hdr.size.bytes);
+    _uccmcl_nodes = (ac_uint4 *) malloc(hdr.size.bytes);
 
     /*
      * Read the combining classes in.
      */
-    fread((char *) _uccmcl_nodes, sizeof(unsigned long), _uccmcl_size, in);
+    fread((char *) _uccmcl_nodes, sizeof(ac_uint4), _uccmcl_size, in);
 
     /*
      * Do an endian swap if necessary.
@@ -1061,8 +1061,8 @@ _uccmcl_unload(void)
     _uccmcl_size = 0;
 }
 
-unsigned long
-uccombining_class(unsigned long code)
+ac_uint4
+uccombining_class(ac_uint4 code)
 {
     long l, r, m;
 
@@ -1088,8 +1088,8 @@ uccombining_class(unsigned long code)
  *
  **************************************************************************/
 
-static unsigned long *_ucnum_nodes;
-static unsigned long _ucnum_size;
+static ac_uint4 *_ucnum_nodes;
+static ac_uint4 _ucnum_size;
 static short *_ucnum_vals;
 
 /*
@@ -1099,7 +1099,7 @@ static int
 _ucnumb_load(char *paths, int reload)
 {
     FILE *in;
-    unsigned long size, i;
+    ac_uint4 size, i;
     _ucheader_t hdr;
 
     if (_ucnum_size > 0) {
@@ -1127,7 +1127,7 @@ _ucnumb_load(char *paths, int reload)
     }
 
     _ucnum_size = hdr.cnt;
-    _ucnum_nodes = (unsigned long *) malloc(hdr.size.bytes);
+    _ucnum_nodes = (ac_uint4 *) malloc(hdr.size.bytes);
     _ucnum_vals = (short *) (_ucnum_nodes + _ucnum_size);
 
     /*
@@ -1146,7 +1146,7 @@ _ucnumb_load(char *paths, int reload)
          * Determine the number of values that have to be adjusted.
          */
         size = (hdr.size.bytes -
-                (_ucnum_size * (sizeof(unsigned long) << 1))) /
+                (_ucnum_size * (sizeof(ac_uint4) << 1))) /
             sizeof(short);
 
         for (i = 0; i < size; i++)
@@ -1167,7 +1167,7 @@ _ucnumb_unload(void)
 }
 
 int
-ucnumber_lookup(unsigned long code, struct ucnumber *num)
+ucnumber_lookup(ac_uint4 code, struct ucnumber *num)
 {
     long l, r, m;
     short *vp;
@@ -1196,7 +1196,7 @@ ucnumber_lookup(unsigned long code, struct ucnumber *num)
 }
 
 int
-ucdigit_lookup(unsigned long code, int *digit)
+ucdigit_lookup(ac_uint4 code, int *digit)
 {
     long l, r, m;
     short *vp;
@@ -1227,7 +1227,7 @@ ucdigit_lookup(unsigned long code, int *digit)
 }
 
 struct ucnumber
-ucgetnumber(unsigned long code)
+ucgetnumber(ac_uint4 code)
 {
     struct ucnumber num;
 
@@ -1244,7 +1244,7 @@ ucgetnumber(unsigned long code)
 }
 
 int
-ucgetdigit(unsigned long code)
+ucgetdigit(ac_uint4 code)
 {
     int dig;
 
@@ -1343,7 +1343,7 @@ void
 main(void)
 {
     int dig;
-    unsigned long i, lo, *dec;
+    ac_uint4 i, lo, *dec;
     struct ucnumber num;
 
     ucdata_setup(".");
