@@ -38,13 +38,17 @@ perl_back_compare(
 {
 	int return_code;
 	int count;
+	char *avastr, *ptr;
 
 	PerlBackend *perl_back = (PerlBackend *)be->be_private;
 
-	send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-		NULL, "not supported", NULL, NULL );
+	avastr = ch_malloc( ava->aa_desc->ad_cname.bv_len + 1 +
+		ava->aa_value.bv_len + 1 );
+	
+	slap_strcopy( slap_strcopy( slap_strcopy( avastr,
+		ava->aa_desc->ad_cname.bv_val ), "=" ),
+		ava->aa_value.bv_val );
 
-#ifdef notdef
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
 	{
@@ -52,8 +56,8 @@ perl_back_compare(
 
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
-		XPUSHs(sv_2mortal(newSVpv( dn , 0)));
-		/* XPUSHs(sv_2mortal(newSVpv( cred->bv_val , cred->bv_len))); */
+		XPUSHs(sv_2mortal(newSVpv( dn->bv_val , 0)));
+		XPUSHs(sv_2mortal(newSVpv( avastr , 0)));
 		PUTBACK;
 
 		count = perl_call_method("compare", G_SCALAR);
@@ -71,13 +75,10 @@ perl_back_compare(
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	if( return_code != 0 ) {
-		send_ldap_result( conn, op, LDAP_COMPARE_TRUE, NULL, NULL );
+	ch_free( avastr );
 
-	} else {
-		send_ldap_result( conn, op, LDAP_COMPARE_FALSE, NULL, NULL );
-	}
-#endif
+	send_ldap_result( conn, op, return_code ? LDAP_COMPARE_TRUE :
+		LDAP_COMPARE_FALSE, NULL, NULL, NULL, NULL );
 
 	Debug( LDAP_DEBUG_ANY, "Perl COMPARE\n", 0, 0, 0 );
 

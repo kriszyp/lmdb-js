@@ -67,6 +67,7 @@ Its arguments are as follows.
 
   * obj reference
   * dn
+  * attribute assertion string
 
 RETURN:
 
@@ -186,9 +187,16 @@ sub search
 sub compare
 {
 	my $this = shift;
-	my ( $dn ) = @_;
+	my ( $dn, $avaStr ) = @_;
+	my $rc = 0;
 
-	return 1;
+	$avaStr =~ s/=/: /;
+
+	if ( $this->{ $dn } =~ /$avaStr/im ) {
+		$rc = 1;
+	}
+
+	return $rc;
 }
 
 sub modify
