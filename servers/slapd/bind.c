@@ -574,8 +574,10 @@ do_bind(
 	}
 
 cleanup:
-	conn->c_sasl_bindop = NULL;
-	ldap_pvt_thread_mutex_unlock( &conn->c_sasl_bindmutex );
+	if( conn->c_sasl_bindop != NULL ) {
+		ldap_pvt_thread_mutex_unlock( &conn->c_sasl_bindmutex );
+		conn->c_sasl_bindop = NULL;
+	}
 
 	if( pdn.bv_val != NULL ) {
 		free( pdn.bv_val );
