@@ -2,6 +2,7 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.21 Engineering
 	Fixed slapd group limits
+	Fixed slapd/slurpd replog locking (ITS#3421)
 	Fixed back-bdb entry e_ocflags reset on objectClass modify
 	Build Environment
 		Misc fixes for dynamic modules (ITS#3401, #3428)
