@@ -284,16 +284,23 @@ int sasl_bind(
 				NULL, "no SASL username", NULL, NULL );
 
 		} else {
-			Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: username=%s\n",
+			Debug(LDAP_DEBUG_TRACE, "sasl_bind: username=%s\n",
 				authzid, 0, 0);
 
-			if( strncasecmp( authzid, "anonymous", sizeof("anonyous")-1 ) &&
+			if( !strncasecmp( authzid, "anonymous", sizeof("anonyous")-1 ) &&
 				( ( authzid[sizeof("anonymous")] == '\0' ) ||
-				( authzid[sizeof("anonymous")] == '@' ) ) )
+				  ( authzid[sizeof("anonymous")] == '@' ) ) )
 			{
+				Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: anonymous\n",
+					0, 0, 0);
+
+			} else {
 				*edn = ch_malloc( sizeof( "authzid=" ) + strlen( authzid ) );
 				strcpy( *edn, "authzid=" );
 				strcat( *edn, authzid );
+
+				Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: authzdn: \"%s\"\n",
+					*edn, 0, 0);
 			}
 
 			send_ldap_sasl( conn, op, rc = LDAP_SUCCESS,
