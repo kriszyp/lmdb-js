@@ -501,7 +501,7 @@ ldap_back_op_result(struct ldapconn *lc, Connection *conn, Operation *op,
 	int rc;
 
 	if (err == LDAP_SUCCESS) {
-		if (ldap_result(lc->ld, msgid, 0, NULL, &res) == -1) {
+		if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
 			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
 		} else {
 			rc = ldap_parse_result(lc->ld, res, &err, &match,
