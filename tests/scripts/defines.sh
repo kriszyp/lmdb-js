@@ -32,8 +32,8 @@ CLIENTDIR=../clients/tools
 
 LDIF2LDBM="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
 
-CMP=cmp
-#CMP=diff -i -q
+#CMP=cmp
+CMP="diff -i -q"
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd
 LDAPPASSWD="$CLIENTDIR/ldappasswd"
