@@ -88,8 +88,14 @@ init_syncrepl(syncinfo_t *si)
 #endif
 		}
 
+		/* Add Attributes */
+		for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
+			tmp[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
+			tmp[ n ] = NULL;
+		}
+
 	} else {
-		tmp = ( char ** ) ch_realloc( si->si_attrs, 5 * sizeof( char * ));
+		tmp = ( char ** ) ch_realloc( si->si_attrs, 3 * sizeof( char * ));
 		if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, "out of memory\n", 0,0,0 );
@@ -98,15 +104,12 @@ init_syncrepl(syncinfo_t *si)
 #endif
 		}
 		tmp[ n++ ] = ch_strdup( "*" );
+		tmp[ n++ ] = ch_strdup( "+" );
+		tmp[ n ] = NULL;
 	}
 	
 	si->si_attrs = tmp;
 
-	/* Add Attributes */
-	for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
-		si->si_attrs[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
-		si->si_attrs[ n ] = NULL;
-	}
 }
 
 static int
