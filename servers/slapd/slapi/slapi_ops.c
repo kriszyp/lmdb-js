@@ -178,7 +178,8 @@ slapiConnectionInit(
 
 	c->c_sasl_bind_mech.bv_val = NULL;
 	c->c_sasl_bind_mech.bv_len = 0;
-	c->c_sasl_context = NULL;
+	c->c_sasl_authctx = NULL;
+	c->c_sasl_sockctx = NULL;
 	c->c_sasl_extra = NULL;
 
 	c->c_sb = ber_sockbuf_alloc( );
