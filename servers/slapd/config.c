@@ -192,12 +192,13 @@ read_config( const char *fname )
 				return 1;
 			}
 
-			if ( default_search_base != NULL ) {
+			if ( default_search_nbase != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"default search base \"%s\" already defined "
 					"(discarding old)\n",
 					fname, lineno, default_search_base );
 				free( default_search_base );
+				free( default_search_nbase );
 			}
 
 			default_search_base = ch_strdup( cargv[1] );
@@ -205,9 +206,9 @@ read_config( const char *fname )
 
 			if( dn_normalize( default_search_nbase ) == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"invalid default search base \"%s\""
-					"(discarding old)\n",
+					"invalid default search base \"%s\"\n"
 					fname, lineno, default_search_base );
+				return 1;
 			}
 	       
 		/* set maximum threads in thread pool */
