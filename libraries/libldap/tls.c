@@ -697,6 +697,30 @@ ldap_pvt_tls_get_peer( void *s )
     return p;
 }
 
+char *
+ldap_pvt_tls_get_peer_hostname( void *s )
+{
+	X509 *x;
+	X509_NAME *xn;
+	char buf[2048], *p;
+
+	x = SSL_get_peer_certificate((SSL *)s);
+
+	if (!x)
+		return NULL;
+	
+	xn = X509_get_subject_name(x);
+
+	if ( X509_NAME_get_text_by_NID(xn, NID_commonName, buf, sizeof(buf)) == -1 ) {
+		X509_free(x);
+		return NULL;
+	}
+
+	p = LDAP_STRDUP(buf);
+	X509_free(x);
+	return p;
+}
+
 const char *
 ldap_pvt_tls_get_peer_issuer( void *s )
 {
@@ -867,7 +891,14 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
+<<<<<<< tls.c
 	ldap_pvt_tls_init();
+=======
+	char *peer_cert_cn, *peer_hostname;
+	void *ssl;
+
+	(void) ldap_pvt_tls_init();
+>>>>>>> 1.40
 
 	/*
 	 * Fortunately, the lib uses blocking io...
@@ -876,18 +907,50 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 		return LDAP_CONNECT_ERROR;
 	}
 
-	/* FIXME: hostname of server must be compared with name in
-	 * certificate....
+	ssl = (void *) ldap_pvt_tls_sb_handle( sb );
+	/* 
+	 * compare hostname of server with name in certificate 
 	 */
+	peer_cert_cn = ldap_pvt_tls_get_peer_hostname( ssl );
+	if ( !peer_cert_cn ) {
+		/* could not get hostname from peer certificate */
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: unable to get common name from peer certificate.\n",
+			0, 0, 0 );
+		return LDAP_LOCAL_ERROR;
+	}
+	
+	peer_hostname = ldap_host_connected_to( sb );
+	if ( !peer_hostname ) {
+		/* could not lookup hostname */
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: unable to reverse lookup peer hostname.\n",
+			0, 0, 0 );
+		LDAP_FREE( peer_cert_cn );
+		return LDAP_LOCAL_ERROR;
+	}
 
+	if ( strcasecmp(peer_hostname, peer_cert_cn) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+			"common name in certificate (%s).", 
+			peer_hostname, peer_cert_cn, 0 );
+		LDAP_FREE( peer_cert_cn );
+		LDAP_FREE( peer_hostname );
+		return LDAP_CONNECT_ERROR;
 
+	} else {
+		LDAP_FREE( peer_cert_cn );
+		LDAP_FREE( peer_hostname );
+	}
+
+	/*
+	 * set SASL properties to TLS ssf and authid
+	 */
 	{
-		void *ssl;
 		const char *authid;
 		ber_len_t ssf;
 
 		/* we need to let SASL know */
-		ssl = (void *) ldap_pvt_tls_sb_handle( sb );
 		ssf = ldap_pvt_tls_get_strength( ssl );
 		authid = ldap_pvt_tls_get_peer( ssl );
 
@@ -1012,6 +1075,7 @@ tls_seed_PRNG( const char *randfile )
 {
 #ifndef URANDOM_DEVICE
 	/* no /dev/urandom (or equiv) */
+	long total=0;
 	char buffer[MAXPATHLEN];
 
 	if (randfile == NULL) {
@@ -1034,7 +1098,7 @@ tls_seed_PRNG( const char *randfile )
 		return -1;
 	}
 
-	RAND_load_file(randfile, -1);
+	total = RAND_load_file(randfile, -1);
 
 	if (RAND_status() == 0) {
 		Debug( LDAP_DEBUG_ANY,
@@ -1042,6 +1106,12 @@ tls_seed_PRNG( const char *randfile )
 			0, 0, 0);
 		return -1;
 	}
+
+	/* assume if there was enough bits to seed that it's okay
+	 * to write derived bits to the file
+	 */
+	RAND_write_file(randfile);
+
 #endif
 
 	return 0;
