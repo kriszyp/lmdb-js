@@ -7,6 +7,7 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd caseIgnoreIA5string indexing bug (ITS#786)
 	Fixed slurpd TLS initialization bug (ITS#768)
 	Fixed -lldap SASL ctx close bug (ITS#790)
+	Fixed -lldap first/next attribute bug (ITS#778)
 	Updated -llber bprint routine
 	Build Environment
 		Fixed IPv6 detection (ITS#669,ITS#770)
