@@ -92,7 +92,7 @@ bdb_db_init( BackendDB *be )
 	return 0;
 }
 
-#ifndef NO_THREADS
+#if 0 /* ifndef NO_THREADS */
 static void *lock_detect_task( void *arg )
 {
 	struct bdb_info *bdb = (struct bdb_info *) arg;
@@ -171,6 +171,9 @@ bdb_db_open( BackendDB *be )
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0]->bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
+#ifndef NO_THREADS
+	bdb->bi_dbenv->set_lk_detect( bdb->bi_dbenv, bdb->bi_lock_detect );
+#endif
 
 #ifdef BDB_SUBDIRS
 	{
@@ -309,7 +312,7 @@ bdb_db_open( BackendDB *be )
 	rc = bdb_build_tree( be );
 #endif
 
-#ifndef NO_THREADS
+#if 0 /* ifndef NO_THREADS */
 	if( bdb->bi_lock_detect != DB_LOCK_NORUN ) {
 		/* listener as a separate THREAD */
 		rc = ldap_pvt_thread_create( &bdb->bi_lock_detect_tid,
