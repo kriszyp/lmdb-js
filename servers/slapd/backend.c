@@ -967,7 +967,7 @@ backend_check_restrictions(
 			}
 
 #ifdef SLAP_X_LISTENER_MOD
-			if ( ! ( conn->c_listener->sl_perms & S_IWUSR ) ) {
+			if ( conn->c_listener && ! ( conn->c_listener->sl_perms & S_IWUSR ) ) {
 				/* no "w" mode means readonly */
 				*text = "modifications not allowed on this listener";
 				return LDAP_UNWILLING_TO_PERFORM;
@@ -1026,7 +1026,7 @@ backend_check_restrictions(
 
 #ifdef SLAP_X_LISTENER_MOD
 		if ( !starttls && op->o_dn.bv_len == 0 ) {
-			if ( ! ( conn->c_listener->sl_perms & S_IXUSR ) ) {
+			if ( conn->c_listener && ! ( conn->c_listener->sl_perms & S_IXUSR ) ) {
 				/* no "x" mode means bind required */
 				*text = "bind required on this listener";
 				return LDAP_STRONG_AUTH_REQUIRED;
@@ -1034,7 +1034,7 @@ backend_check_restrictions(
 		}
 
 		if ( !starttls && !updateop ) {
-			if ( ! ( conn->c_listener->sl_perms & S_IRUSR ) ) {
+			if ( conn->c_listener && ! ( conn->c_listener->sl_perms & S_IRUSR ) ) {
 				/* no "r" mode means no read */
 				*text = "read not allowed on this listener";
 				return LDAP_UNWILLING_TO_PERFORM;

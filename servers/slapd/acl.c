@@ -750,6 +750,15 @@ dn_match_cleanup:;
 #endif
 
 			if ( !ber_bvccmp( &b->a_sockurl_pat, '*' ) ) {
+				/*
+				 * FIXME: conn->c_listener can be null
+				 * if the connection is faked (e.g. by
+				 * slapi)
+				 */
+				if ( conn->c_listener == NULL ) {
+					continue;
+				}
+
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
 					if (!regex_matches( &b->a_sockurl_pat, conn->c_listener_url.bv_val,
 							e->e_ndn, matches ) ) 
