@@ -2710,9 +2710,8 @@ add_syncrepl(
 			si->mastername == NULL ? "(null)" : si->mastername,
 			si->masterport, 0 );
 #endif
+		si->be = be;
 	}
-
-	si->be = be;
 }
 
 #define GOT_ID			0x0001
