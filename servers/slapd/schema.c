@@ -102,7 +102,7 @@ schema_info( Entry **entry, char **text )
 	{
 		/* Out of memory, do something about it */
 		entry_free( e );
-		text = "out of memory";
+		*text = "out of memory";
 		return LDAP_OTHER;
 	}
 	

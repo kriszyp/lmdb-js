@@ -97,6 +97,7 @@ int slap_bv2ad(
 	char **tokens;
 
 	assert( ad != NULL );
+	assert( *ad == NULL ); /* temporary */
 	assert( *text != NULL );
 
 	if( bv == NULL || bv->bv_len == 0 ) {
