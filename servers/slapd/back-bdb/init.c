@@ -479,6 +479,8 @@ bdb_db_destroy( BackendDB *be )
 		}
 	}
 
+	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
+
 #ifdef BDB_HIER
 	ldap_pvt_thread_rdwr_destroy( &bdb->bi_tree_rdwr );
 #endif
@@ -486,6 +488,9 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
+
+	ch_free( bdb );
+	be->be_private = NULL;
 
 	return 0;
 }
