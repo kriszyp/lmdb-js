@@ -526,15 +526,23 @@ at_add(
 			return SLAP_SCHERR_ATTR_BAD_MR;
 		}
 
-#if 0
-		if( sat->sat_syntax != mr->smr_syntax ) {
-			if( mr->smr_compat_syntaxes == NULL ) {
+		/* due to funky LDAP builtin substring rules, we
+		 * we check against the equality rule assertion
+		 * syntax and compat syntaxes instead of those
+		 * associated with the substrings rule.
+		 */
+		if( sat->sat_equality &&
+			sat->sat_syntax != sat->sat_equality->smr_syntax )
+		{
+			if( sat->sat_equality->smr_compat_syntaxes == NULL ) {
 				*err = sat->sat_substr_oid;
 				return SLAP_SCHERR_ATTR_BAD_MR;
 			}
 
-			for(i=0; mr->smr_compat_syntaxes[i]; i++) {
-				if( sat->sat_syntax == mr->smr_compat_syntaxes[i] ) {
+			for(i=0; sat->sat_equality->smr_compat_syntaxes[i]; i++) {
+				if( sat->sat_syntax ==
+					sat->sat_equality->smr_compat_syntaxes[i] )
+				{
 					i = -1;
 					break;
 				}
@@ -545,7 +553,6 @@ at_add(
 				return SLAP_SCHERR_ATTR_BAD_MR;
 			}
 		}
-#endif
 
 		sat->sat_substr = mr;
 	}
