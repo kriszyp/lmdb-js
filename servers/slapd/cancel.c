@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /* cancel.c - LDAP cancel extended operation */
 /*
  * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
@@ -107,8 +108,9 @@ int cancel_extop(
 		rc = LDAP_SUCCESS;
 	} else {
 		rc = op->o_cancel;
-		op->o_cancel = LDAP_CANCEL_NOTDONE;
 	}
+
+	op->o_cancel = LDAP_CANCEL_DONE;
 
 	return rc;
 }

@@ -1028,8 +1028,7 @@ operations_error:
 		arg->co_op->o_cancel = LDAP_TOO_LATE;
 
 	while ( arg->co_op->o_cancel != LDAP_CANCEL_NONE &&
-		arg->co_op->o_cancel != LDAP_CANCEL_ACK  &&
-		arg->co_op->o_cancel != LDAP_CANCEL_NOTDONE ) {
+		arg->co_op->o_cancel != LDAP_CANCEL_DONE ) {
 			ldap_pvt_thread_yield();
 	}
 

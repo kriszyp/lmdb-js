@@ -495,7 +495,7 @@ typedef struct ldapcontrol {
 #define LDAP_CANCEL_NONE                0x00
 #define LDAP_CANCEL_REQ                 0x01
 #define LDAP_CANCEL_ACK                 0x02
-#define LDAP_CANCEL_NOTDONE             0x03
+#define LDAP_CANCEL_DONE                0x03
 
 /*
  * This structure represents both ldap messages and ldap responses.
