@@ -60,6 +60,11 @@ bdb_filter_candidates(
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
 		switch( f->f_result ) {
+		case SLAPD_COMPARE_UNDEFINED:
+		/* This technically is not the same as FALSE, but it
+		 * certainly will produce no matches.
+		 */
+		/* FALLTHRU */
 		case LDAP_COMPARE_FALSE:
 			BDB_IDL_ZERO( ids );
 			break;
@@ -67,7 +72,8 @@ bdb_filter_candidates(
 			struct bdb_info *bdb = (struct bdb_info *)op->o_bd->be_private;
 			BDB_IDL_ALL( bdb, ids );
 			} break;
-		case SLAPD_COMPARE_UNDEFINED:
+		case LDAP_SUCCESS:
+		/* this is a pre-computed scope, leave it alone */
 			break;
 		}
 		break;
@@ -232,11 +238,6 @@ list_candidates(
 #endif
 
 	for ( f = flist; f != NULL; f = f->f_next ) {
-		/* Ignore undefined filters */
-		if ( f->f_choice == SLAPD_FILTER_COMPUTED &&
-		     f->f_result == SLAPD_COMPARE_UNDEFINED ) {
-		     	continue;
-		}
 		rc = bdb_filter_candidates( op, f, save, tmp,
 			save+BDB_IDL_UM_SIZE );
 
