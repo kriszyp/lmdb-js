@@ -8,7 +8,7 @@ fi
 
 . $SRCDIR/scripts/args.sh
 
-if test "$BACKEND" != "bdb"; then
+if test "$BACKEND" != "bdb" -a "$BACKEND" != "hdb"; then
 	echo "Test only valid for back-bdb"
 	exit 0
 fi
@@ -82,7 +82,6 @@ RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
-	kill -HUP $SLURPPID
 	exit $RC
 fi
 
@@ -179,7 +178,6 @@ RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at master ($RC)!"
 	kill -HUP $PID $SLAVEPID
-	kill -HUP $SLURPPID
 	exit $RC
 fi
 
@@ -191,7 +189,6 @@ RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed at slave ($RC)!"
 	kill -HUP $PID $SLAVEPID
-	kill -HUP $SLURPPID
 	exit $RC
 fi
 
