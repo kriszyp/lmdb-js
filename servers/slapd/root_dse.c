@@ -33,9 +33,9 @@ root_dse_info( Entry **entry, char **text )
 	AttributeDescription *ad_supportedExtension = slap_schema.si_ad_supportedExtension;
 	AttributeDescription *ad_supportedLDAPVersion = slap_schema.si_ad_supportedLDAPVersion;
 	AttributeDescription *ad_supportedSASLMechanisms = slap_schema.si_ad_supportedSASLMechanisms;
-#ifdef SLAPD_ACI_ENABLED
+#	ifdef SLAPD_ACI_ENABLED
 	AttributeDescription *ad_supportedACIMechanisms = slap_schema.si_ad_supportedACIMechanisms;
-#endif
+#	endif
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 #else
 	char *ad_objectClass = "objectClass";
@@ -44,9 +44,9 @@ root_dse_info( Entry **entry, char **text )
 	char *ad_supportedExtension = "supportedExtension";
 	char *ad_supportedLDAPVersion = "supportedLDAPVersion";
 	char *ad_supportedSASLMechanisms = "supportedSASLMechanisms";
-#ifdef SLAPD_ACI_ENABLED
+#	ifdef SLAPD_ACI_ENABLED
 	char *ad_supportedACIMechanisms = "supportedACIMechanisms";
-#endif
+#	endif
 	char *ad_ref = "ref";
 #endif
 

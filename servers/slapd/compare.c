@@ -106,6 +106,13 @@ do_compare(
 		goto cleanup;
 	}
 
+	if( !ava.aa_desc->ad_type->sat_equality ) {
+		/* no equality matching rule */
+		send_ldap_result( conn, op, rc = LDAP_INAPPROPRIATE_MATCHING, NULL,
+		    "no equality matching rule defined", NULL, NULL );
+		goto cleanup;
+	}
+
 	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &nvalue, &text );
 
 	if( rc != LDAP_SUCCESS ) {
@@ -164,7 +171,7 @@ do_compare(
 		(*be->be_compare)( be, conn, op, dn, ndn, &ava );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "compare function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
 cleanup:

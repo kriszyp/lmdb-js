@@ -317,6 +317,10 @@ typedef struct slap_attr_desc {
  * pointers to schema elements used internally
  */
 struct slap_internal_schema {
+	/* objectClass */
+	ObjectClass *si_oc_alias;
+	ObjectClass *si_oc_referral;
+
 	/* objectClass attribute */
 	AttributeDescription *si_ad_objectClass;
 
@@ -351,6 +355,10 @@ struct slap_internal_schema {
 
 	/* Other */
 	AttributeDescription *si_ad_userPassword;
+	AttributeDescription *si_ad_authPassword;
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	AttributeDescription *si_ad_krbName;
+#endif
 };
 
 typedef struct slap_attr_assertion {

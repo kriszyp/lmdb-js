@@ -18,19 +18,29 @@
 
 int is_entry_objectclass(
 	Entry*	e,
-	const char*	oc)
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	ObjectClass *oc
+#else
+	const char*	oc
+#endif
+)
 {
 	Attribute *attr;
-	struct berval bv;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	int i;
 	AttributeDescription *objectClass = slap_schema.si_ad_objectClass;
+	assert(!( e == NULL || oc == NULL ));
 #else
+	struct berval bv;
 	static const char *objectClass = "objectclass";
+	assert(!( e == NULL || oc == NULL || *oc == '\0' ));
 #endif
 
-	assert(!( e == NULL || oc == NULL || *oc == '\0' ));
-
-	if( e == NULL || oc == NULL || *oc == '\0' ) {
+	if( e == NULL || oc == NULL
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+		|| *oc == '\0'
+#endif
+	) {
 		return 0;
 	}
 
@@ -48,19 +58,28 @@ int is_entry_objectclass(
 		return 0;
 	}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	for( i=0; attr->a_vals[i]; i++ ) {
+		ObjectClass *objectClass = oc_find( attr->a_vals[i]->bv_val );
+
+		if( objectClass == oc ) {
+			return 1;
+		}
+	}
+
+	return 0;
+
+#else
 	bv.bv_val = (char *) oc;
 	bv.bv_len = strlen( bv.bv_val );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
 	if( value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
 		/* entry is not of this objectclass */
 		return 0;
 	}
-#endif
 
 	return 1;
+#endif
 }
 
 

@@ -127,20 +127,18 @@ ldbm_back_exop_passwd(
 		vals[1] = NULL;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		ml.sml_desc = slap_schema.si_ad_userPassword;
 #else
-		ml.ml_type = ch_strdup("userPassword");
-		ml.ml_bvalues = vals;
-		ml.ml_op = LDAP_MOD_REPLACE;
-		ml.ml_next = NULL;
+		ml.sml_type = ch_strdup("userPassword");
 #endif
+		ml.sml_bvalues = vals;
+		ml.sml_op = LDAP_MOD_REPLACE;
+		ml.sml_next = NULL;
 
 		rc = ldbm_modify_internal( be,
 			conn, op, op->o_ndn, &ml, e );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
-#else
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		ch_free(ml.ml_type);
 #endif
 	}

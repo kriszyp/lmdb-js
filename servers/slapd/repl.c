@@ -58,20 +58,23 @@ replog(
 		fprintf( fp, "changetype: modify\n" );
 		ml = change;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
+			char *type;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
+			type = ml->sml_desc->ad_cname->bv_val;
 #else
+			type = ml->sml_type;
+#endif
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
-				fprintf( fp, "add: %s\n", ml->sml_type );
+				fprintf( fp, "add: %s\n", type );
 				break;
 
 			case LDAP_MOD_DELETE:
-				fprintf( fp, "delete: %s\n", ml->sml_type );
+				fprintf( fp, "delete: %s\n", type );
 				break;
 
 			case LDAP_MOD_REPLACE:
-				fprintf( fp, "replace: %s\n", ml->sml_type );
+				fprintf( fp, "replace: %s\n", type );
 				break;
 			}
 
@@ -79,14 +82,14 @@ replog(
 			    ml->sml_bvalues[i] != NULL; i++ ) {
 				char	*buf, *bufp;
 
-				len = strlen( ml->sml_type );
+				len = strlen( type );
 				len = LDIF_SIZE_NEEDED( len,
 				    ml->sml_bvalues[i]->bv_len ) + 1;
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
 				ldif_sput( &bufp, LDIF_PUT_VALUE,
-					ml->sml_type,
+					type,
 				    ml->sml_bvalues[i]->bv_val,
 				    ml->sml_bvalues[i]->bv_len );
 				*bufp = '\0';
@@ -95,7 +98,6 @@ replog(
 
 				free( buf );
 			}
-#endif
 			fprintf( fp, "-\n" );
 		}
 		break;

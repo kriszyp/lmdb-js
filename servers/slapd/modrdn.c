@@ -240,7 +240,7 @@ do_modrdn(
 		}
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "modrdn/moddn function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
 cleanup:

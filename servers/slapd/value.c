@@ -52,7 +52,7 @@ value_add(
 }
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
+	/* not used */
 #else
 int
 value_add_fast( 
@@ -170,7 +170,17 @@ value_normalize(
 #endif
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+int
+value_match(
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	struct berval *v1, /* (unnormalized) stored value */
+	struct berval *v2, /* (normalized) asserted value */
+	char ** text )
+{
 	/* not yet implemented */
+	return 0;
+}
 #else
 int
 value_cmp(
@@ -219,23 +229,36 @@ value_cmp(
 
 	return( rc );
 }
+#endif
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+int value_find(
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	struct berval **vals,
+	struct berval *val,
+	char ** text )
+#else
 int
 value_find(
     struct berval	**vals,
     struct berval	*v,
     int			syntax,
-    int			normalize
-)
+    int			normalize )
+#endif
 {
 	int	i;
 
 	for ( i = 0; vals[i] != NULL; i++ ) {
-		if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
-			return( 0 );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		if ( value_match( ad, mr, vals[i], val, text ) == 0 )
+#else
+		if ( value_cmp( vals[i], v, syntax, normalize ) == 0 )
+#endif
+		{
+			return LDAP_SUCCESS;
 		}
 	}
 
-	return( 1 );
+	return LDAP_NO_SUCH_ATTRIBUTE;
 }
-#endif

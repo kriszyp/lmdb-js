@@ -230,7 +230,28 @@ test_ava_filter(
 	if ( a != NULL )
 #endif
 	{
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		MatchingRule *mr;
+
+		switch ( type ) {
+		case LDAP_FILTER_EQUALITY:
+		case LDAP_FILTER_APPROX:
+			mr = a->a_desc->ad_type->sat_equality;
+			break;
+
+		case LDAP_FILTER_GE:
+		case LDAP_FILTER_LE:
+			mr = a->a_desc->ad_type->sat_ordering;
+			break;
+
+		default:
+			mr = NULL;
+		}
+
+		if( mr == NULL ) {
+			continue;
+		}
+#else
 		if ( a->a_syntax == 0 ) {
 			a->a_syntax = attr_syntax( ava->ava_type );
 		}
@@ -239,10 +260,7 @@ test_ava_filter(
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			int rc;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-			rc = 0;
-#else
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 			rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
 				3 );
 #endif
@@ -283,7 +301,7 @@ test_presence_filter(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc
 #else
-    char	*desc
+    char *desc
 #endif
 )
 {

@@ -273,7 +273,7 @@ do_add( Connection *conn, Operation *op )
 	} else {
 	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "read function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
 done:

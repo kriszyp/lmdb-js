@@ -656,10 +656,19 @@ schema_init( void )
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 struct slap_internal_schema slap_schema;
 
+struct slap_schema_oc_map {
+	char *ssom_name;
+	size_t ssom_offset;
+} oc_map[] = {
+	{ "alias", offsetof(struct slap_internal_schema, si_oc_alias) },
+	{ "referral", offsetof(struct slap_internal_schema, si_oc_referral) },
+	{ NULL, 0 }
+};
+
 struct slap_schema_ad_map {
-	char *ssm_type;
-	size_t ssm_offset;
-} ad_map[]  = {
+	char *ssam_name;
+	size_t ssam_offset;
+} ad_map[] = {
 	{ "objectClass",
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
 
@@ -702,6 +711,16 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_entry) },
 	{ "children",
 		offsetof(struct slap_internal_schema, si_ad_children) },
+
+	{ "userPassword",
+		offsetof(struct slap_internal_schema, si_ad_userPassword) },
+	{ "authPassword",
+		offsetof(struct slap_internal_schema, si_ad_authPassword) },
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	{ "krbName",
+		offsetof(struct slap_internal_schema, si_ad_krbName) },
+#endif
+
 	{ NULL, 0 }
 };
 
@@ -712,26 +731,40 @@ schema_prep( void )
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int i;
-	char *text;
 #endif
 	/* we should only be called once after schema_init() was called */
 	assert( schema_init_done == 1 );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	for( i=0; ad_map[i].ssm_type; i++ ) {
+	for( i=0; oc_map[i].ssom_name; i++ ) {
+		ObjectClass ** ocp = (ObjectClass **)
+			&(((char *) &slap_schema)[oc_map[i].ssom_offset]);
+
+		*ocp = oc_find( oc_map[i].ssom_name );
+
+		if( *ocp == NULL ) {
+			fprintf( stderr,
+				"No objectClass \"%s\" defined in schema\n",
+				oc_map[i].ssom_name );
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+	}
+
+	for( i=0; ad_map[i].ssam_name; i++ ) {
 		int rc;
+		char *text;
 
 		AttributeDescription ** adp = (AttributeDescription **)
-			&(((char *) &slap_schema)[ad_map[i].ssm_offset]);
+			&(((char *) &slap_schema)[ad_map[i].ssam_offset]);
 
 		*adp = NULL;
 
-		rc = slap_str2ad( ad_map[i].ssm_type, adp, &text );
+		rc = slap_str2ad( ad_map[i].ssam_name, adp, &text );
 
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr,
 				"No attribute \"%s\" defined in schema\n",
-				ad_map[i].ssm_type );
+				ad_map[i].ssam_name );
 			return rc;
 		}
 	}

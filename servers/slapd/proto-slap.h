@@ -605,10 +605,18 @@ LIBSLAPD_F (int) register_matching_rule LDAP_P((
 
 LIBSLAPD_F (int) schema_info LDAP_P(( Entry **entry, char **text ));
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
+	Entry *, ObjectClass *oc ));
+#define is_entry_alias(e)		is_entry_objectclass((e), slap_schema.si_oc_alias)
+#define is_entry_referral(e)	is_entry_objectclass((e), slap_schema.si_oc_referral)
+#else
 LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
 	Entry *, const char* objectclass ));
 #define is_entry_alias(e)		is_entry_objectclass((e), "ALIAS")
 #define is_entry_referral(e)	is_entry_objectclass((e), "REFERRAL")
+#endif
+
 
 /*
  * schema_check.c
@@ -667,13 +675,24 @@ LIBSLAPD_F (char *) suffix_alias LDAP_P(( Backend *be, char *ndn ));
 /*
  * value.c
  */
-
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) value_normalize LDAP_P((
 	AttributeDescription *ad,
 	unsigned usage,
 	struct berval *in,
 	struct berval **out,
+	char ** text ));
+LIBSLAPD_F (int) value_match LDAP_P((
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	struct berval *v1,
+	struct berval *v2,
+	char ** text ));
+LIBSLAPD_F (int) value_find LDAP_P((
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	struct berval **values,
+	struct berval *value,
 	char ** text ));
 #else
 LIBSLAPD_F (int) value_add_fast LDAP_P(( struct berval ***vals, struct berval **addvals, int nvals, int naddvals, int *maxvals ));

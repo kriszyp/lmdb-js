@@ -590,7 +590,6 @@ void connection_closing( Connection *c )
 	/* c_mutex must be locked by caller */
 
 	if( c->c_conn_state != SLAP_C_CLOSING ) {
-
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_closing: readying conn=%ld sd=%d for close\n",
 			c->c_connid, ber_pvt_sb_get_desc( c->c_sb ), 0 );
