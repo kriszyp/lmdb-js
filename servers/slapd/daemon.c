@@ -329,7 +329,9 @@ slapd_daemon(
 			if ( c[ns].c_addr != NULL ) {
 				free( c[ns].c_addr );
 			}
-			c[ns].c_addr = ch_strdup( client_addr );
+
+			c[ns].c_addr = ch_strdup( client_addr == NULL
+				? "" : client_addr );
 
 			if ( c[ns].c_domain != NULL ) {
 				free( c[ns].c_domain );
