@@ -341,7 +341,7 @@ ber_memrealloc_x( void* p, ber_len_t s, void *ctx )
 			mh = p;
 		mh->bm_length = s;
 		setend( (char *)&mh[1] + mh->bm_length );
-		if( (s - oldlen) > 0 ) {
+		if( s > oldlen ) {
 			/* poison any new memory */
 			memset( (char *)&mh[1] + oldlen, 0xff, s - oldlen);
 		}
