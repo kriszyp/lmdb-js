@@ -9,6 +9,10 @@
  *
  *  search.c
  */
+/*
+ * Portions Copyright (C) The Internet Society (1997)
+ * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
+ */
 
 #include "portable.h"
 

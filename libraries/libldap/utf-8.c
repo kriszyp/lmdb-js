@@ -3,6 +3,11 @@
  * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
+/*
+ * Portions Copyright (C) The Internet Society (1998)
+ * UTF-8 encodings are derived from those in RFC 2279;
+ * see RFC for full legal notices.
+ */
 
 /*
  * Basic UTF-8 routines

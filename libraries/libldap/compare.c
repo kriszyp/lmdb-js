@@ -9,6 +9,10 @@
  *
  *  compare.c
  */
+/*
+ * Portions Copyright (C) The Internet Society (1997)
+ * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
+ */
 
 /* The compare request looks like this:
  *	CompareRequest ::= SEQUENCE {
