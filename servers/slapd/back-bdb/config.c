@@ -94,6 +94,9 @@ bdb_db_config(
 		} else if( strcasecmp( argv[1], "youngest" ) == 0 ) {
 			bdb->bi_lock_detect = DB_LOCK_YOUNGEST;
 
+		} else if( strcasecmp( argv[1], "fewest" ) == 0 ) {
+			bdb->bi_lock_detect = DB_LOCK_MINLOCKS;
+
 		} else {
 			fprintf( stderr, "%s: line %d: "
 				"bad policy (%s) in \"lockDetect <policy> <seconds>\" line\n",
