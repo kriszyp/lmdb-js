@@ -543,6 +543,7 @@ void slapi_set_object_extension(int objecttype, void *object,
 #define SLAPI_X_GROUP_ENTRY			1250 /* group entry */
 #define SLAPI_X_GROUP_ATTRIBUTE			1251 /* member attribute */
 #define SLAPI_X_GROUP_OPERATION_DN		1252 /* asserted value */
+#define SLAPI_X_GROUP_TARGET_ENTRY		1253 /* target entry */
 
 /* config stuff */
 #define SLAPI_CONFIG_FILENAME			40
