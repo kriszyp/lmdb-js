@@ -21,7 +21,7 @@
 #include "ldap_pvt_thread.h"
 
 
-#if HAVE_PTHREADS_D4
+#if HAVE_PTHREADS == 4
 #  define LDAP_INT_THREAD_ATTR_DEFAULT		pthread_attr_default
 #  define LDAP_INT_THREAD_CONDATTR_DEFAULT	pthread_condattr_default
 #  define LDAP_INT_THREAD_MUTEXATTR_DEFAULT	pthread_mutexattr_default
@@ -76,6 +76,15 @@ ldap_pvt_thread_get_concurrency(void)
 }
 #endif
 
+/* These are first defined in Draft 7 */
+#ifndef PTHREAD_CREATE_JOINABLE
+#define	PTHREAD_CREATE_JOINABLE	0
+#endif
+
+#ifndef PTHREAD_CREATE_DETACHED
+#define	PTHREAD_CREATE_DETACHED	1
+#endif
+
 int 
 ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	int detach,
@@ -83,26 +92,11 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *arg)
 {
 	int rtn;
-#if defined( HAVE_PTHREADS_FINAL )
 	pthread_attr_t attr;
+#if HAVE_PTHREADS > 4
 	pthread_attr_init(&attr);
-
-#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
-	if (!detach) {
-#if defined( PTHREAD_CREATE_JOINABLE )
-		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
-#endif
-#ifdef PTHREAD_CREATE_DETACHED
-	} else {
-		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-#elif HAVE_PTHREADS_OS390
-	} else {
-		int st = __DETACHED;
-		pthread_attr_setdetachstate(&attr, &st);
-#endif
-	}
+	pthread_attr_create(&attr);
 #endif
 
 #if defined(LDAP_PVT_THREAD_STACK_SIZE) && LDAP_PVT_THREAD_STACK_SIZE > 0
@@ -110,31 +104,27 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	pthread_attr_setstacksize( &attr, LDAP_PVT_THREAD_STACK_SIZE );
 #endif
 
+#if HAVE_PTHREADS > 4
+	detach = detach ? PTHREAD_CREATE_DETACHED : PTHREAD_CREATE_JOINABLE;
+#if HAVE_PTHREADS == 6
+	pthread_attr_setdetachstate(&attr, &detach);
+#else
+	pthread_attr_setdetachstate(&attr, detach);
+#endif
+#endif
 	rtn = pthread_create( thread, &attr, start_routine, arg );
-#ifdef HAVE_PTHREADS_OS390
-	if ( rtn == -1 ) rtn = errno;
-#endif
-
-#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
-	if( detach ) {
-#ifdef HAVE_PTHREADS_OS390
-		(void) pthread_detach( thread );
-#else
-		(void) pthread_detach( *thread );
-#endif
-	}
-#endif
+#if HAVE_PTHREADS > 4
 	pthread_attr_destroy(&attr);
-
 #else
-	rtn = pthread_create( thread, LDAP_INT_THREAD_ATTR_DEFAULT,
-		start_routine, arg );
-
+	pthread_attr_delete(&attr);
 	if( detach ) {
 		pthread_detach( thread );
 	}
 #endif
 
+#if HAVE_PTHREADS < 7
+	if ( rtn < 0 ) rtn = errno;
+#endif
 	return rtn;
 }
 
@@ -147,15 +137,14 @@ ldap_pvt_thread_exit( void *retval )
 int 
 ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
-#if !defined( HAVE_PTHREADS_FINAL )
+#if HAVE_PTHREADS < 7
 	void *dummy;
+
 	if (thread_return==NULL)
 	  thread_return=&dummy;
-#endif	
-#ifdef HAVE_PTHREADS_OS390
-	int st = pthread_join( thread, thread_return ); 
-	if ( st == -1 ) st = errno;
-	return st;
+
+	if ( pthread_join( thread, thread_return ) < 0 ) return errno;
+	return 0;
 #else
 	return pthread_join( thread, thread_return );
 #endif
@@ -164,14 +153,11 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 int 
 ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
-#ifdef HAVE_PTHREAD_KILL
-#ifdef HAVE_PTHREADS_OS390
-	int st = pthread_kill( thread, signo );
-	if ( st == -1 ) st = errno;
-	return st;
-#else
+#if HAVE_PTHREADS > 6
 	return pthread_kill( thread, signo );
-#endif
+#elif HAVE_PTHREADS == 6
+	if ( pthread_kill( thread, signo ) < 0 ) return errno;
+	return 0;
 #else
 	/* pthread package with DCE */
 	if (kill( getpid(), signo )<0)
@@ -183,88 +169,136 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 int 
 ldap_pvt_thread_yield( void )
 {
-#ifdef _POSIX_THREAD_IS_GNU_PTH
-	sched_yield();
-	return 0;
-
-#elif HAVE_SCHED_YIELD
+#if HAVE_PTHREADS == 10
 	return sched_yield();
 
-#elif HAVE_PTHREAD_YIELD
-#if HAVE_PTHREADS_OS390
-	pthread_yield(NULL);
-#else
-	pthread_yield();
-#endif
+#elif defined(_POSIX_THREAD_IS_GNU_PTH)
+	sched_yield();
 	return 0;
 
 #elif HAVE_THR_YIELD
 	return thr_yield();
 
-#else
+#elif HAVE_PTHREADS == 6
+	pthread_yield(NULL);
 	return 0;
-#endif   
+#else
+	pthread_yield();
+	return 0;
+#endif
 }
 
 int 
 ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_cond_init( cond, LDAP_INT_THREAD_CONDATTR_DEFAULT ) < 0 )
+		return errno;
+	return 0;
+#else
 	return pthread_cond_init( cond, LDAP_INT_THREAD_CONDATTR_DEFAULT );
+#endif
 }
 
 int 
 ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_cond_destroy( cond ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_cond_destroy( cond );
+#endif
 }
 	
 int 
 ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_cond_signal( cond ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_cond_signal( cond );
+#endif
 }
 
 int
 ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_cond_broadcast( cond ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_cond_broadcast( cond );
+#endif
 }
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
 		      ldap_pvt_thread_mutex_t *mutex )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_cond_wait( cond, mutex ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_cond_wait( cond, mutex );
+#endif
 }
 
 int 
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_mutex_init( mutex, LDAP_INT_THREAD_MUTEXATTR_DEFAULT )<0)
+		return errno;
+	return 0;
+#else
 	return pthread_mutex_init( mutex, LDAP_INT_THREAD_MUTEXATTR_DEFAULT );
+#endif
 }
 
 int 
 ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_mutex_destroy( mutex ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_mutex_destroy( mutex );
+#endif
 }
 
 int 
 ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_mutex_lock( mutex ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_mutex_lock( mutex );
+#endif
 }
 
 int 
 ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_mutex_trylock( mutex ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_mutex_trylock( mutex );
+#endif
 }
 
 int 
 ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_mutex_unlock( mutex ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_mutex_unlock( mutex );
+#endif
 }
 
 #ifdef LDAP_THREAD_HAVE_RDWR
@@ -272,43 +306,83 @@ ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_init( rw, NULL ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_init( rw, NULL );
+#endif
 }
 
 int 
 ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_destroy( rw ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_destroy( rw );
+#endif
 }
 
 int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_rdlock( rw ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_rdlock( rw );
+#endif
 }
 
 int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_tryrdlock( rw ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_tryrdlock( rw );
+#endif
 }
 
 int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_unlock( rw ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_unlock( rw );
+#endif
 }
 
 int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_wrlock( rw ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_wrlock( rw );
+#endif
 }
 
 int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_trywrlock( rw ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_trywrlock( rw );
+#endif
 }
 
 int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 {
+#if HAVE_PTHREADS < 7
+	if ( pthread_rwlock_unlock( rw ) < 0 ) return errno;
+	return 0;
+#else
 	return pthread_rwlock_unlock( rw );
+#endif
 }
 
 #endif /* HAVE_PTHREAD_RDLOCK_DESTROY */

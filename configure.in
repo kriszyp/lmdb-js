@@ -729,6 +729,14 @@ AC_CHECK_LIB(s, afopen, [
 	AC_DEFINE(HAVE_AIX_SECURITY,1,[define if you have AIX security lib])
 ])
 
+dnl ----------------------------------------------------------------
+dnl Check for IBM OS/390
+case "$target" in
+*-ibm-openedition)
+	ac_cv_func_getopt=no
+	AC_DEFINE(BOTH_STRINGS_H,1,[define to use both <string.h> and <strings.h>])
+	;;
+esac
 
 dnl ----------------------------------------------------------------
 dnl Check for module support
@@ -1370,12 +1378,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	if test $ac_cv_header_pthread_h = yes ; then
 		OL_POSIX_THREAD_VERSION
 
-		if test $ol_cv_pthread_version = final ; then
-			AC_DEFINE(HAVE_PTHREADS_FINAL,1,
-				[define if pthreads API compatible with final spec])
-		elif test $ol_cv_pthread_version = draft4 ; then
-			AC_DEFINE(HAVE_PTHREADS_D4,1,
-				[define if pthreads API compatible with draft4 spec])
+		if test $ol_cv_pthread_version != 0 ; then
+			AC_DEFINE_UNQUOTED(HAVE_PTHREADS,$ol_cv_pthread_version,
+				[define to pthreads API spec revision])
 		else
 			AC_MSG_ERROR([unknown pthread version])
 		fi
@@ -1470,9 +1475,6 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 		OL_PTHREAD_TRY([-lpthreads],[ol_cv_pthread_lib_lpthreads])
 
 		if test $ol_link_threads != no ; then
-			AC_DEFINE(HAVE_PTHREADS,1,
-				[define if you have POSIX Threads])
-
 			LTHREAD_LIBS="$LTHREAD_LIBS $ol_link_pthreads"
 
 			dnl save flags
@@ -1621,7 +1623,7 @@ int main(argc, argv)
 #endif
 #endif
 
-#if HAVE_PTHREADS_D4
+#if HAVE_PTHREADS < 6
 	pthread_create(&t, pthread_attr_default, task, NULL);
 #else
 	pthread_create(&t, NULL, task, NULL);
