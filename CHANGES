@@ -13,6 +13,7 @@ OpenLDAP 2.1.13 Engineering
 	Fixed libldap NULL cred bug
 	Build Environment
 		Check back-bdb requirement for BDB 4.1
+		Remove configure flags for deprecated features
 
 OpenLDAP 2.1.12 Release
 	Build Environment
