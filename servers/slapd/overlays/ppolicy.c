@@ -1223,7 +1223,7 @@ ppolicy_add(
 			}
 		}
 		/* If password aging is in effect, set the pwdChangedTime */
-		if ( pp.pwdMaxAge || pp.pwdMinAge ) {
+		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_isupdate( op )) {
 			struct berval timestamp;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 			struct tm *ltm;
