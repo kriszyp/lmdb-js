@@ -6,6 +6,7 @@ Changes included in OpenLDAP 1.2.1
 	Fix ctype 'unsigned char' bug 
 	Build environment
 		Added pthread '-mt' check for Solaris 2.x.
+		Added mkdep CC_MKDEP_FLAGS support
 		Fixed slapd 'make veryclean'
 		Modified doc/man to generate pages during make all.
 
