@@ -31,7 +31,9 @@
 /* extension to UFN that turns trailing "dc=value" rdns in DNS style,
  * e.g. "ou=People,dc=openldap,dc=org" => "People, openldap.org" */
 #define DC_IN_UFN
+#if 0
 #define PRETTY_ESCAPE
+#endif
 
 /* parsing/printing routines */
 static int str2strval( const char *str, ber_len_t stoplen, struct berval *val, 
