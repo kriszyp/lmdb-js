@@ -36,7 +36,7 @@ PROGRAMS2=ldif2index-bdb2 ldif2ldbm-bdb2 \
 
 SRCS = centipede.c ldbmcat.c ldbmtest.c sizecount.c \
 	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c \
-	mimic.c
+	mimic.c ldif2common.c
 
 SRCS2 = ldif2id2children-bdb2.c ldif2id2entry-bdb2.c \
 	ldif2index-bdb2.c ldif2ldbm-bdb2.c
@@ -46,12 +46,13 @@ XSRCS = edb2-vers.c
 EDB2LDIFSRCS	= edb2ldif.c ldapsyntax.c
 EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o
 
-OBJS2	= mimic.o \
+OBJS1	= mimic.o \
 		../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../module.o ../aclparse.o ../schema.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
 		../controls.o ../schemaparse.o
+OBJS2	= $(OBJS1) ldif2common.o
 
 all-local: build-ldbm build-bdb2 build-edb2ldif build-chlog2replog
 
@@ -137,8 +138,8 @@ centipede:	centipede.o $(SLAPD_LIBDEPEND)
 sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
 
-ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2) $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS2) ../libbackends.a $(LIBS)
+ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS1) $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS1) ../libbackends.a $(LIBS)
 
 clean-local: FORCE
 	$(RM) $(PROGRAMS) $(PROGRAMS2) $(XPROGRAMS) $(XSRCS) edb2-vers.c \

@@ -10,8 +10,7 @@
 
 #include <sys/param.h>
 
-#include "ldap_defaults.h"
-#include "../slap.h"
+#include "ldif2common.h"
 #include "../back-bdb2/back-bdb2.h"
 #include "ldif.h"
 
@@ -23,113 +22,28 @@
 static void fork_child( char *prog, char *args[] );
 static void	wait4kids( int nkidval );
 
-static char	*tailorfile;
-static char	*inputfile;
 static int      maxkids = 1;
 static int      nkids;
-
-static void
-usage( char *name )
-{
-	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-j #jobs] [-n databasenumber] [-s sbindir]\n", name );
-	exit( EXIT_FAILURE );
-}
 
 int
 main( int argc, char **argv )
 {
 	int		i, stop;
-	char		*linep, *buf, *sbindir;
+	char		*linep, *buf;
 	char		*args[MAXARGS];
 	char		buf2[20], buf3[20];
 	char		line[BUFSIZ];
 	char		cmd[MAXPATHLEN];
 	int		lineno, elineno;
 	int      	lmax, lcur;
-	int		dbnum;
 	ID		id;
-	int		rc;
 	Backend		*be = NULL;
 	struct ldbminfo *li;
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
 
-	sbindir = LDAP_SBINDIR;
-	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
-	dbnum = -1;
-	while ( (i = getopt( argc, argv, "d:e:s:f:i:j:n:" )) != EOF ) {
-		switch ( i ) {
-		case 'd':	/* turn on debugging */
-			ldap_debug = atoi( optarg );
-			break;
-
-		case 's':	/* alternate sbindir (index cmd location) */
-		case 'e':	/* accept -e for backwards compatibility */
-			sbindir = strdup( optarg );
-			break;
-
-		case 'f':	/* specify a tailor file */
-			tailorfile = strdup( optarg );
-			break;
-
-		case 'i':	/* input file */
-			inputfile = strdup( optarg );
-			break;
-
-		case 'j':	/* number of parallel index procs */
-			maxkids = atoi( optarg );
-			break;
-
-		case 'n':	/* which config file db to index */
-			dbnum = atoi( optarg ) - 1;
-			break;
-
-		default:
-			usage( argv[0] );
-			break;
-		}
-	}
-	if ( inputfile == NULL ) {
-		usage( argv[0] );
-	} else {
-		if ( freopen( inputfile, "r", stdin ) == NULL ) {
-			perror( inputfile );
-			exit( EXIT_FAILURE );
-		}
-	}
-
-	/*
-	 * initialize stuff and figure out which backend we're dealing with
-	 */
-
-	rc = slap_init(SLAP_TOOL_MODE, "ldif2ldbm");
-	if (rc != 0 ) {
-		fprintf( stderr, "ldif2ldbm: slap_init failed!\n");
-		exit(EXIT_FAILURE);
-	}
-
-	read_config( tailorfile );
-
-	if ( dbnum == -1 ) {
-		for ( dbnum = 0; dbnum < nbackends; dbnum++ ) {
-			if ( strcasecmp( backends[dbnum].be_type, "bdb2" )
-			    == 0 ) {
-				break;
-			}
-		}
-		if ( dbnum == nbackends ) {
-			fprintf( stderr, "No bdb2 database found in config file\n" );
-			exit( EXIT_FAILURE );
-		}
-	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
-		fprintf( stderr, "Database number selected via -n is out of range\n" );
-		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
-		exit( EXIT_FAILURE );
-	} else if ( strcasecmp( backends[dbnum].be_type, "bdb2" ) != 0 ) {
-		fprintf( stderr, "Database number %d selected via -n is not an bdb2 database\n", dbnum );
-		exit( EXIT_FAILURE );
-	}
+	slap_ldif_init( argc, argv, LDIF2LDBM, "bdb2", SLAP_TOOL_MODE );
 
 	slap_startup(dbnum);
 
@@ -182,6 +96,8 @@ main( int argc, char **argv )
 	}
 	args[i++] = NULL;
 	fork_child( cmd, args );
+
+	maxkids = cmdkids;
 
 	/*
 	 * generate the attribute indexes

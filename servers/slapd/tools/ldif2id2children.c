@@ -9,23 +9,9 @@
 #include <ac/socket.h>
 #include <ac/unistd.h>
 
-#include "ldap_defaults.h"
-#include "../slap.h"
+#include "ldif2common.h"
 #include "../back-ldbm/back-ldbm.h"
-
 #include "ldif.h"
-
-#define MAXARGS      		100
-
-static char	*tailorfile;
-static char	*inputfile;
- 
-static void
-usage( char *name )
-{
-	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-n databasenumber]\n", name );
-	exit( EXIT_FAILURE );
-}
 
 int
 main( int argc, char **argv )
@@ -35,7 +21,6 @@ main( int argc, char **argv )
 	char		line[BUFSIZ];
 	int		lineno, elineno;
 	int      	lmax, lcur;
-	int		dbnum;
 	ID		id;
 	DBCache	*db, *db2;
 	Backend		*be = NULL;
@@ -45,66 +30,7 @@ main( int argc, char **argv )
 
 	ldbm_ignore_nextid_file = 1;
 
-	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
-	dbnum = -1;
-	while ( (i = getopt( argc, argv, "d:f:i:n:" )) != EOF ) {
-		switch ( i ) {
-		case 'd':	/* turn on debugging */
-			ldap_debug = atoi( optarg );
-			break;
-
-		case 'f':	/* specify a tailor file */
-			tailorfile = strdup( optarg );
-			break;
-
-		case 'i':	/* input file */
-			inputfile = strdup( optarg );
-			break;
-
-		case 'n':	/* which config file db to index */
-			dbnum = atoi( optarg ) - 1;
-			break;
-
-		default:
-			usage( argv[0] );
-			break;
-		}
-	}
-	if ( inputfile == NULL ) {
-		usage( argv[0] );
-	} else {
-		if ( freopen( inputfile, "r", stdin ) == NULL ) {
-			perror( inputfile );
-			exit( EXIT_FAILURE );
-		}
-	}
-
-	/*
-	 * initialize stuff and figure out which backend we're dealing with
-	 */
-
-	slap_init(SLAP_TOOL_MODE, "ldif2id2children");
-	read_config( tailorfile );
-
-	if ( dbnum == -1 ) {
-		for ( dbnum = 0; dbnum < nbackends; dbnum++ ) {
-			if ( strcasecmp( backends[dbnum].be_type, "ldbm" )
-			    == 0 ) {
-				break;
-			}
-		}
-		if ( dbnum == nbackends ) {
-			fprintf( stderr, "No ldbm database found in config file\n" );
-			exit( EXIT_FAILURE );
-		}
-	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
-		fprintf( stderr, "Database number selected via -n is out of range\n" );
-		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
-		exit( EXIT_FAILURE );
-	} else if ( strcasecmp( backends[dbnum].be_type, "ldbm" ) != 0 ) {
-		fprintf( stderr, "Database number %d selected via -n is not an ldbm database\n", dbnum );
-		exit( EXIT_FAILURE );
-	}
+	slap_ldif_init( argc, argv, LDIF2ID2CHILDREN, "ldbm", SLAP_TOOL_MODE );
 
 	slap_startup(dbnum);
 	be = &backends[dbnum];
