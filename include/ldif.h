@@ -76,6 +76,9 @@ LDAP_LDIF_F( char * )
 ldif_getline LDAP_P(( char **next ));
 
 LDAP_LDIF_F( int )
+ldif_countlines LDAP_P(( LDAP_CONST char *line ));
+
+LDAP_LDIF_F( int )
 ldif_read_record LDAP_P((
 	FILE *fp,
 	int *lineno,

@@ -308,6 +308,21 @@ ldif_parse_line2(
  * which it updates and must be supplied on subsequent calls.
  */
 
+int
+ldif_countlines( LDAP_CONST char *buf )
+{
+	char *nl;
+	int ret = 0;
+
+	if ( !buf ) return ret;
+
+	for ( nl = strchr(buf, '\n'); nl; nl = strchr(nl, '\n') ) {
+		nl++;
+		if ( *nl != ' ' ) ret++;
+	}
+	return ret;
+}
+
 char *
 ldif_getline( char **next )
 {
