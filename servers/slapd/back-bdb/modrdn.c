@@ -859,6 +859,7 @@ retry:	/* transaction retry */
 				}
 
 			} else {
+				bdb_cache_entry_commit( e );
 				if(( rc=TXN_COMMIT( ltid, 0 )) != 0 ) {
 					text = "txn_commit failed";
 				} else {
@@ -882,10 +883,6 @@ retry:	/* transaction retry */
 			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
 #endif
 		text = NULL;
-		if ( !noop ) {
-			bdb_cache_entry_commit( e );
-		}
-
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, RESULTS, "bdb_modrdn: %s : %s (%d)\n", 
