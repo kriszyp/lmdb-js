@@ -305,59 +305,60 @@ TERMCAP_LIBS=
 TLS_LIBS=
 
 dnl ----------------------------------------------------------------
+dnl Determine host platform
+dnl		we try not to use this for much
+AC_CANONICAL_HOST
+
+dnl ----------------------------------------------------------------
 dnl Checks for programs
 
 dnl AC_PROG_INSTALL
 
-dnl The default compiler is cc (NOT gcc)
-dnl	(should check to see if 'cc' exists)
-save_CC="$CC"
-if test -z "${CC}"; then
-	AC_CHECK_PROGS(CC,cc)
-fi
-
-dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
-dnl CFLAGS=${CFLAGS-""}
-
-dnl
 dnl AIX Thread requires we use cc_r or xlc_r.
-dnl But only do this IF AIX and CC is zero (initially),
-dnl and cc exists and threads are auto|yes|posix.
+dnl But only do this IF AIX and CC is not set
+dnl and threads are auto|yes|posix.
 dnl
 dnl If we find cc_r|xlc_r, force pthreads and assume
 dnl		pthread_create is in $LIBS (ie: don't bring in
 dnl		any additional thread libraries)
 dnl If we do not find cc_r|xlc_r, disable threads
-dnl
-AC_CANONICAL_HOST
-
-case "$host" in
-	*-*-aix*) ol_host_os=aix ;;
-esac
 
 ol_aix_threads=no
-if test -z "$save_CC" -a "$CC" = cc -a "$ol_host_os" = aix ; then
-	case "$ol_with_threads" in
+case "$host" in
+*-*-aix*) dnl all AIX is not a good idea.
+	if test -z "CC" -a "$ol_host_os" = aix ; then
+		case "$ol_with_threads" in
 		auto | yes |  posix) ol_aix_threads=yes ;;
-	esac
-fi
+		esac
+	fi
+;;
+esac
 
-if test ol_aix_threads = yes ; then
-	CC=
-	AC_CHECK_PROGS(CC,cc_r xlc_r)
+if test -z "${CC}" -a $ol_aix_threads = yes ; then
+	AC_CHECK_PROGS(CC,cc_r xlc_r cc)
 
-	if test "$CC" ; then
+	if test "$CC" = cc ; then
+		dnl no CC! don't allow --with-threads
 		if test $ol_with_threads != auto ; then
 			AC_MSG_ERROR([--with-threads requires cc_r (or other suitable compiler) on AIX])
 		else
 			AC_MSG_WARN([disabling threads, no cc_r on AIX])
 		fi
 		ol_with_threads=no
-	else
+
+	elif test "$CC" ; then
 		ol_with_threads=posix
 		ol_cv_pthread_create=yes
 	fi
 fi
+
+if test -z "${CC}"; then
+	AC_CHECK_PROGS(CC,cc)
+fi
+
+dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
+dnl (for now, let autoconf sort this out)
+dnl CFLAGS=${CFLAGS-""}
 
 AM_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
