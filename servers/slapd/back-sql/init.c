@@ -156,8 +156,9 @@ backsql_db_open(
 	ber_len_t	idq_len;
 	struct berbuf	bb = BB_NULL;
 
-	Operation	otmp = { 0 };
-		
+	char		opbuf[ OPERATION_BUFFER_SIZE ];
+	Operation*	op = (Operation *)opbuf;
+	
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_open(): "
 		"testing RDBMS connection\n", 0, 0, 0 );
 	if ( bi->sql_dbname == NULL ) {
@@ -384,9 +385,10 @@ backsql_db_open(
 		bi->sql_delreferrals_query = ch_strdup( backsql_def_delreferrals_query );
 	}
 
-	otmp.o_connid = (unsigned long)(-1);
-	otmp.o_bd = bd;
-	if ( backsql_get_db_conn( &otmp, &dbh ) != LDAP_SUCCESS ) {
+	op->o_hdr = (Opheader *)&op[ 1 ];
+	op->o_connid = (unsigned long)(-1);
+	op->o_bd = bd;
+	if ( backsql_get_db_conn( op, &dbh ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"connection failed, exiting\n", 0, 0, 0 );
 		return 1;
@@ -438,7 +440,7 @@ backsql_db_open(
 			&bi->sql_children_cond );
 	bi->sql_has_children_query = bb.bb_val.bv_val;
  
-	backsql_free_db_conn( &otmp );
+	backsql_free_db_conn( op );
 	if ( !BACKSQL_SCHEMA_LOADED( bi ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"test failed, schema map not loaded - exiting\n",
@@ -463,12 +465,15 @@ backsql_db_close(
 int
 backsql_connection_destroy( Backend *bd, Connection *c )
 {
-	Operation o = { 0 };
-	o.o_bd = bd;
-	o.o_connid = c->c_connid;
+	char		opbuf[ OPERATION_BUFFER_SIZE ];
+	Operation*	op = (Operation *)opbuf;
+
+	op->o_hdr = (Opheader *)&op[ 1 ];
+	op->o_connid = c->c_connid;
+	op->o_bd = bd;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_connection_destroy()\n", 0, 0, 0 );
-	backsql_free_db_conn( &o );
+	backsql_free_db_conn( op );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_connection_destroy()\n", 0, 0, 0 );
 
 	return 0;
