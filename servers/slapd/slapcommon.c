@@ -127,7 +127,7 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:l:n:tuvw";
+		options = "b:cd:f:l:n:qtuvw";
 		break;
 
 	case SLAPCAT:
@@ -202,6 +202,10 @@ slap_tool_init(
 
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg ) - 1;
+			break;
+
+		case 'q':	/* turn on quick */
+			mode |= SLAP_TOOL_QUICK;
 			break;
 
 		case 'R':
