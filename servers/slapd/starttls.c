@@ -82,7 +82,7 @@ starttls_extop (
 
 done:
 	/* give up connection lock */
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	/*
 	 * RACE CONDITION: we give up lock before sending result
