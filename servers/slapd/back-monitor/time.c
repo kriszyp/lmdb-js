@@ -41,6 +41,9 @@
 #include "proto-slap.h"
 #include "back-monitor.h"
 
+static int
+local_time( const struct tm *ztm, long delta, char *buf, size_t len );
+
 int
 monitor_subsys_time_init(
 	BackendDB		*be
@@ -50,8 +53,8 @@ monitor_subsys_time_init(
 	
 	Entry			*e, *e_tmp, *e_time;
 	struct monitorentrypriv	*mp;
-	char			buf[1024], tmbuf[20];
-	struct tm		*ltm;
+	char			buf[1024], ztmbuf[20], ltmbuf[20];
+	struct tm		*ztm, *ltm;
 
 	assert( be != NULL );
 
@@ -80,16 +83,19 @@ monitor_subsys_time_init(
 	 * Start
 	 */
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	ltm = gmtime( &starttime );
-	strftime( tmbuf, sizeof(tmbuf), "%Y%m%d%H%M%SZ", ltm );
+	ztm = gmtime( &starttime );
+	strftime( ztmbuf, sizeof(ztmbuf), "%Y%m%d%H%M%SZ", ztm );
+	ltm = localtime( &starttime );
+	local_time( ltm, -timezone, ltmbuf, sizeof( ltmbuf ) );
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Start,%s\n"
 			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Start\n"
-			"description: %s",
+			"description: %s\n"
+			"description;lang-x-local: %s",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
-			tmbuf );
+			ztmbuf, ltmbuf );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -141,9 +147,10 @@ monitor_subsys_time_init(
 			"dn: cn=Current,%s\n"
 			SLAPD_MONITOR_OBJECTCLASSES
 			"cn: Current\n"
-			"description: %s",
+			"description: %s\n"
+			"description;lang-x-local: %s",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
-			tmbuf );
+			ztmbuf, ltmbuf );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -202,11 +209,12 @@ monitor_subsys_time_update(
 	Entry                   *e
 )
 {
-	char		tmbuf[20];
-	struct tm	*ltm;
+	char		ztmbuf[20], ltmbuf[20];
+	struct tm	*ztm, *ltm;
 	time_t		currenttime;
-	struct berval	bv[ 2 ];
 	Attribute	*a;
+	static AttributeDescription	*ad_local = NULL;
+	const char	*text = NULL;
 	ber_len_t	len;
 
 	static int	init_start = 0;
@@ -227,21 +235,65 @@ monitor_subsys_time_update(
 		return( 0 );
 	}
 
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+	ztm = gmtime( &currenttime );
+	strftime( ztmbuf, sizeof( ztmbuf ), "%Y%m%d%H%M%SZ", ztm );
+	ltm = localtime( &currenttime );
+	local_time( ltm, -timezone, ltmbuf, sizeof( ltmbuf ) );
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+
 	a = attr_find( e->e_attrs, monitor_ad_desc );
 	if ( a == NULL ) {
 		return( -1 );
 	}
 
-
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	ltm = gmtime( &currenttime );
-	strftime( tmbuf, sizeof(tmbuf), "%Y%m%d%H%M%SZ", ltm );
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
-	len = strlen( tmbuf );
+	len = strlen( ztmbuf );
 	assert( len == a->a_vals[0].bv_len );
-	AC_MEMCPY( a->a_vals[0].bv_val, tmbuf, len );
+	AC_MEMCPY( a->a_vals[0].bv_val, ztmbuf, len );
+
+	if ( ad_local == NULL ) {
+		if ( slap_str2ad( "description;lang-x-local", 
+					&ad_local, &text ) != LDAP_SUCCESS ) {
+			return( -1 );
+		}
+	}
+	a = attr_find( e->e_attrs, ad_local );
+	if ( a == NULL ) {
+		return( -1 );
+	}
+
+	len = strlen( ltmbuf );
+	assert( len == a->a_vals[0].bv_len );
+	AC_MEMCPY( a->a_vals[0].bv_val, ltmbuf, len );
 
 	return( 0 );
+}
+
+/*
+ * assumes gmtime_mutex is locked
+ */
+static int
+local_time( const struct tm *ltm, long delta, char *buf, size_t len )
+{
+	char *p;
+
+	if ( len < 20 ) {
+		return -1;
+	}
+	strftime( buf, len, "%Y%m%d%H%M%S", ltm );
+
+	p = buf + 14;
+
+	if ( delta < 0 ) {
+		p[ 0 ] = '-';
+		delta = -delta;
+	} else {
+		p[ 0 ] = '+';
+	}
+	p++;
+
+	snprintf( p, len - 15, "%02ld%02ld", delta / 3600, delta % 3600 );
+	
+	return 0;
 }
 
