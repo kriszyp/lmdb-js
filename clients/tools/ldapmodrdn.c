@@ -44,20 +44,20 @@ static int domodrdn LDAP_P((
 int
 main(int argc, char **argv)
 {
-	char		*usage = "usage: %s [-nvkWc] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ] [-s newSuperior]\n";
+	char		*usage = "usage: %s [-nvkWc] [-M[M]] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ] [-s newSuperior]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
-	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug;
+	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug, manageDSAit;
     char	*newSuperior=NULL;
 
     infile = NULL;
-    not = contoper = verbose = remove = want_bindpw = debug = 0;
+    not = contoper = verbose = remove = want_bindpw = debug = manageDSAit = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
-    while (( i = getopt( argc, argv, "WkKcnvrh:P:p:D:w:d:f:s:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WkKMcnvrh:P:p:D:w:d:f:s:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef HAVE_KERBEROS
@@ -116,6 +116,10 @@ main(int argc, char **argv)
 	case 'r':	/* remove old RDN */
 	    remove++;
 	    break;
+	case 'M':
+		/* enable Manage DSA IT */
+		manageDSAit++;
+		break;
 	case 'W':
 		want_bindpw++;
 		break;
@@ -216,6 +220,28 @@ main(int argc, char **argv)
 	ldap_perror( ld, "ldap_bind" );
 	return( EXIT_FAILURE );
     }
+
+	if ( manageDSAit ) {
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = manageDSAit > 1;
+
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			if( c.ldctl_iscritical ) {
+				exit( EXIT_FAILURE );
+			}
+		}
+	}
 
     rc = 0;
     if (havedn)

@@ -23,7 +23,7 @@ int		ldap_syslog;
 #endif
 
 int		ldap_syslog_level = LOG_DEBUG;
-char		*default_referral;
+struct berval **default_referral = NULL;
 int		g_argc;
 char		**g_argv;
 
@@ -45,7 +45,9 @@ long			num_ops_completed;
 ldap_pvt_thread_mutex_t	num_ops_mutex;
 
 long			num_entries_sent;
+long			num_refs_sent;
 long			num_bytes_sent;
+long			num_pdu_sent;
 ldap_pvt_thread_mutex_t	num_sent_mutex;
 /*
  * these mutexes must be used when calling the entry2str()

@@ -29,17 +29,17 @@ static int dodelete LDAP_P((
 int
 main( int argc, char **argv )
 {
-	char		*usage = "usage: %s [-n] [-v] [-k] [-W] [-d debug-level] [-f file] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
+	char		*usage = "usage: %s [-n] [-v] [-k] [-W] [-M[M]] [-d debug-level] [-f file] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
     char		buf[ 4096 ];
     FILE		*fp;
-	int		i, rc, authmethod, want_bindpw, version, debug;
+	int		i, rc, authmethod, want_bindpw, version, debug, manageDSAit;
 
-    not = verbose = contoper = want_bindpw = debug = 0;
+    not = verbose = contoper = want_bindpw = debug = manageDSAit = 0;
     fp = NULL;
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "WnvkKch:P:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WMnvkKch:P:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef HAVE_KERBEROS
@@ -96,6 +96,10 @@ main( int argc, char **argv )
 	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
+	case 'M':
+		/* enable Manage DSA IT */
+		manageDSAit++;
+		break;
 	case 'W':
 		want_bindpw++;
 		break;
@@ -163,6 +167,28 @@ main( int argc, char **argv )
 	ldap_perror( ld, "ldap_bind" );
 	return( EXIT_FAILURE );
     }
+
+	if ( manageDSAit ) {
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = manageDSAit > 1;
+
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			if( c.ldctl_iscritical ) {
+				exit( EXIT_FAILURE );
+			}
+		}
+	}
 
     if ( fp == NULL ) {
 	for ( ; optind < argc; ++optind ) {

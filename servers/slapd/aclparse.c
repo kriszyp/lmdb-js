@@ -330,6 +330,7 @@ access2str( int access )
 		strcat( buf, "read" );
 	} else if ( ACL_IS_WRITE(access) ) {
 		strcat( buf, "write" );
+
 	} else {
 		strcat( buf, "unknown" );
 	}

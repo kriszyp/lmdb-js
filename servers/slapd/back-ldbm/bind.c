@@ -74,7 +74,7 @@ ldbm_back_bind(
 	Entry		*e;
 	Attribute	*a;
 	int		rc;
-	char		*matched;
+	Entry		*matched;
 #ifdef HAVE_KERBEROS
 	char		krbname[MAX_K_NAME_SZ + 1];
 	AUTH_DAT	ad;
@@ -86,39 +86,57 @@ ldbm_back_bind(
 
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
+		char *matched_dn = NULL;
+		struct berval **refs = NULL;
+
+		if( matched != NULL ) {
+			matched_dn = ch_strdup( matched->e_dn );
+
+			refs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched )
+				: NULL;
+
+			cache_return_entry_r( &li->li_cache, matched );
+		} else {
+			refs = default_referral;
+		}
+
 		/* allow noauth binds */
 		rc = 1;
 		if ( method == LDAP_AUTH_SIMPLE ) {
 			if( cred->bv_len == 0 ) {
 				/* SUCCESS */
-				send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+				send_ldap_result( conn, op, LDAP_SUCCESS,
+					NULL, NULL, NULL, NULL );
 
 			} else if ( be_isroot_pw( be, dn, cred ) ) {
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0; /* front end will send result */
 
 			} else {
-				send_ldap_result( conn, op,
-					LDAP_NO_SUCH_OBJECT, matched, NULL );
+				send_ldap_result( conn, op, LDAP_REFERRAL,
+					matched_dn, NULL, refs, NULL );
 			}
 
 		} else if ( method == LDAP_AUTH_SASL ) {
 			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") == 0 ) {
 				/* insert DIGEST calls here */
-				send_ldap_result( conn, op,
-					LDAP_AUTH_METHOD_NOT_SUPPORTED, NULL, NULL );
+				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+					NULL, NULL, NULL, NULL );
 				
 			} else {
-				send_ldap_result( conn, op,
-					LDAP_AUTH_METHOD_NOT_SUPPORTED, NULL, NULL );
+				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+					NULL, NULL, NULL, NULL );
 			}
 
 		} else {
-			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, NULL );
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+				matched_dn, NULL, refs, NULL );
 		}
 
 		if ( matched != NULL ) {
-			free( matched );
+			ber_bvecfree( refs );
+			free( matched_dn );
 		}
 		return( rc );
 	}
@@ -130,7 +148,37 @@ ldbm_back_bind(
 	if ( ! access_allowed( be, conn, op, e,
 		"entry", NULL, ACL_AUTH ) )
 	{
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			NULL, NULL, NULL, NULL );
+		rc = 1;
+		goto return_results;
+	}
+
+	if ( is_entry_alias( e ) ) {
+		/* entry is an alias, don't allow bind */
+		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
+		    0, 0 );
+
+		send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
+		    NULL, NULL, NULL, NULL );
+
+		rc = 1;
+		goto return_results;
+	}
+
+	if ( is_entry_referral( e ) ) {
+		/* entry is a referral, don't allow bind */
+		struct berval **refs = get_entry_referrals( be,
+			conn, op, e );
+
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
+		    0, 0 );
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+		    e->e_dn, NULL, refs, NULL );
+
+		ber_bvecfree( refs );
+
 		rc = 1;
 		goto return_results;
 	}
@@ -138,7 +186,8 @@ ldbm_back_bind(
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
 		if ( cred->bv_len == 0 ) {
-			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL );
 
 			/* stop front end from sending result */
 			rc = 1;
@@ -157,14 +206,15 @@ ldbm_back_bind(
 		if ( ! access_allowed( be, conn, op, e,
 			"userpassword", NULL, ACL_AUTH ) )
 		{
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+				NULL, NULL, NULL, NULL );
 			rc = 1;
 			goto return_results;
 		}
 
 		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
-			    NULL, NULL );
+			    NULL, NULL, NULL, NULL );
 
 			/* stop front end from sending result */
 			rc = 1;
@@ -174,7 +224,7 @@ ldbm_back_bind(
 		if ( crypted_value_find( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
 		{
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
-				NULL, NULL );
+				NULL, NULL, NULL, NULL );
 			/* stop front end from sending result */
 			rc = 1;
 			goto return_results;
@@ -188,14 +238,15 @@ ldbm_back_bind(
 		if ( ! access_allowed( be, conn, op, e,
 			"krbname", NULL, ACL_AUTH ) )
 		{
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+				NULL, NULL, NULL, NULL );
 			rc = 1;
 			goto return_results;
 		}
 
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
-			    NULL, NULL );
+			    NULL, NULL, NULL, NULL );
 			rc = 1;
 			goto return_results;
 		}
@@ -203,7 +254,8 @@ ldbm_back_bind(
 		if ( ! access_allowed( be, conn, op, e,
 			"krbname", NULL, ACL_AUTH ) )
 		{
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+				NULL, NULL, NULL, NULL );
 			rc = 1;
 			goto return_results;
 		}
@@ -221,7 +273,7 @@ ldbm_back_bind(
 				break;
 			}
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
-			    NULL, NULL );
+			    NULL, NULL, NULL, NULL );
 			rc = 1;
 			goto return_results;
 
@@ -233,7 +285,8 @@ ldbm_back_bind(
 
 			if ( value_find( a->a_vals, &krbval, a->a_syntax, 3 ) != 0 ) {
 				send_ldap_result( conn, op,
-				    LDAP_INVALID_CREDENTIALS, NULL, NULL );
+				    LDAP_INVALID_CREDENTIALS,
+					NULL, NULL, NULL, NULL );
 				rc = 1;
 				goto return_results;
 			}
@@ -242,7 +295,8 @@ ldbm_back_bind(
 		break;
 
 	case LDAP_AUTH_KRBV42:
-		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_SUCCESS,
+			NULL, NULL, NULL, NULL );
 		/* stop front end from sending result */
 		rc = 1;
 		goto return_results;
@@ -253,7 +307,7 @@ ldbm_back_bind(
 
 	default:
 		send_ldap_result( conn, op, LDAP_STRONG_AUTH_NOT_SUPPORTED,
-		    NULL, "auth method not supported" );
+		    NULL, "auth method not supported", NULL, NULL );
 		rc = 1;
 		goto return_results;
 	}

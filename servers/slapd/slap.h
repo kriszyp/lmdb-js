@@ -193,11 +193,11 @@ typedef struct entry {
 struct access {
 
 #define ACL_NONE		0x0001
-#define ACL_AUTH		0x0002
-#define ACL_COMPARE		0x0004
-#define ACL_SEARCH		0x0008
-#define ACL_READ		0x0010
-#define ACL_WRITE		0x0020
+#define ACL_AUTH		0x0004
+#define ACL_COMPARE		0x0008
+#define ACL_SEARCH		0x0010
+#define ACL_READ		0x0020
+#define ACL_WRITE		0x0040
 #define ACL_PRIV_MASK	0x00ff
 
 #define ACL_SELF		0x4000
@@ -394,12 +394,11 @@ struct backend_db {
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
 	char	**be_nsuffix;	/* the normalized DN suffixes in this backend */
-	char    **be_suffixAlias;       /* the DN suffix aliases of data in this backend */
 	char	*be_root_dn;	/* the magic "root" dn for this db 	*/
 	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
 	char	*be_root_pw;	/* the magic "root" password for this db	*/
 	int	be_readonly;	/* 1 => db is in "read only" mode	   */
-	int     be_maxDerefDepth;       /* limit for depth of an alias deref  */
+	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
 	struct acl *be_acl;	/* access control list for this backend	   */
@@ -407,6 +406,7 @@ struct backend_db {
 	char	**be_replica;	/* replicas of this backend (in master)	   */
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	char	*be_update_ndn;	/* allowed to make changes (in replicas)   */
+	struct berval **be_update_refs;	/* where to refer modifying clients to */
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 
 	char	*be_realm;

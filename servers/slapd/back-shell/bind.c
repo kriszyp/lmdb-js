@@ -30,14 +30,14 @@ shell_back_bind(
 
 	if ( si->si_bind == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "bind not implemented" );
+		    "bind not implemented", NULL, NULL );
 		return( -1 );
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_bind, &rfp, &wfp ))
 	    == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    "could not fork/exec" );
+		    "could not fork/exec", NULL, NULL );
 		return( -1 );
 	}
 

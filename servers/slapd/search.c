@@ -41,8 +41,8 @@ do_search(
 	if( op->o_bind_in_progress ) {
 		Debug( LDAP_DEBUG_ANY, "do_search: SASL bind in progress.\n",
 			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS, NULL,
-		    "SASL bind in progress" );
+		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
+			NULL, "SASL bind in progress", NULL, NULL );
 		return LDAP_SASL_BIND_IN_PROGRESS;
 	}
 
@@ -80,10 +80,27 @@ do_search(
 		goto return_results;
 	}
 
-	if ( scope != LDAP_SCOPE_BASE && scope != LDAP_SCOPE_ONELEVEL
-	    && scope != LDAP_SCOPE_SUBTREE ) {
-		send_ldap_disconnect( conn, op,
-			LDAP_PROTOCOL_ERROR, "decoding error" );
+	switch( scope ) {
+	case LDAP_SCOPE_BASE:
+	case LDAP_SCOPE_ONELEVEL:
+	case LDAP_SCOPE_SUBTREE:
+		break;
+	default:
+		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+			NULL, "invalid scope", NULL, NULL );
+		rc = -1;
+		goto return_results;
+	}
+
+	switch( deref ) {
+	case LDAP_DEREF_NEVER:
+	case LDAP_DEREF_FINDING:
+	case LDAP_DEREF_SEARCHING:
+	case LDAP_DEREF_ALWAYS:
+		break;
+	default:
+		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+			NULL, "invalid deref", NULL, NULL );
 		rc = -1;
 		goto return_results;
 	}
@@ -100,7 +117,8 @@ do_search(
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decode error" );
 		} else {
-			send_ldap_result( conn, op, err, NULL, "Bad search filter" );
+			send_ldap_result( conn, op, err,
+				NULL, "Bad search filter", NULL, NULL );
 		}
 		goto return_results;
 	}
@@ -137,7 +155,6 @@ do_search(
 	    "conn=%d op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    conn->c_connid, op->o_opid, base, scope, fstr );
 
-#if defined( SLAPD_MONITOR_DN ) || defined( SLAPD_CONFIG_DN ) || defined( SLAPD_SCHEMA_DN )
 	if ( scope == LDAP_SCOPE_BASE ) {
 #if defined( SLAPD_MONITOR_DN )
 		if ( strcmp( base, SLAPD_MONITOR_DN ) == 0 ) {
@@ -145,24 +162,25 @@ do_search(
 			goto return_results;
 		}
 #endif
+
 #if defined( SLAPD_CONFIG_DN )
 		if ( strcmp( base, SLAPD_CONFIG_DN ) == 0 ) {
 			config_info( conn, op );
 			goto return_results;
 		}
 #endif
+
 #if defined( SLAPD_SCHEMA_DN )
 		if ( strcmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
 			schema_info( conn, op, attrs, attrsonly );
 			goto return_results;
 		}
 #endif
-	}
-#endif /* monitor or config or schema dn */
 
-	if ( strcmp( base, LDAP_ROOT_DSE ) == 0 && scope == LDAP_SCOPE_BASE ) {
-		root_dse_info( conn, op, attrs, attrsonly );
-		goto return_results;
+		if ( strcmp( base, LDAP_ROOT_DSE ) == 0 ) {
+			root_dse_info( conn, op, attrs, attrsonly );
+			goto return_results;
+		}
 	}
 
 	/*
@@ -171,22 +189,19 @@ do_search(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( base )) == NULL ) {
-		send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
-		    default_referral );
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+			NULL, NULL, default_referral, NULL );
 
 		goto return_results;
 	}
-
-	/* translate the base if it matches an aliased base part */
-	base = suffixAlias ( base, op, be );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, base, scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "Function not implemented" );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Function not implemented", NULL, NULL );
 	}
 
 return_results:;

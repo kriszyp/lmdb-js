@@ -14,6 +14,8 @@ ldapdelete \- ldap delete entry tool
 [\c
 .BR \-c ]
 [\c
+.BR \-M[M] ]
+[\c
 .BI \-d \ debuglevel\fR]
 [\c
 .BI \-f \ file\fR]
@@ -70,6 +72,11 @@ Continuous operation mode.  Errors  are  reported,  but
 .B ldapdelete
 will  continue  with  deletions.   The default is to exit after
 reporting an error.
+.TP
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
 .TP
 .BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.

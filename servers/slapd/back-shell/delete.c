@@ -23,14 +23,14 @@ shell_back_delete(
 
 	if ( si->si_delete == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "delete not implemented" );
+		    "delete not implemented", NULL, NULL );
 		return( -1 );
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_delete, &rfp, &wfp ))
 	    == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    "could not fork/exec" );
+		    "could not fork/exec", NULL, NULL );
 		return( -1 );
 	}
 

@@ -1,6 +1,6 @@
 /* delete.c - tcl delete routines
  *
- * $Id: tcl_delete.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
+ * $Id: tcl_delete.c,v 1.5.6.1 1999/07/09 18:02:59 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -30,7 +30,7 @@ tcl_back_delete (
 
 	if (ti->ti_delete == NULL) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"delete not implemented");
+			"delete not implemented", NULL );
 		return (-1);
 	}
 
@@ -59,7 +59,7 @@ tcl_back_delete (
 
 	if (err != LDAP_SUCCESS)
 		send_ldap_result (conn, op, err, NULL,
-			"internal backend error");
+			"internal backend error", NULL );
 
 	free (results);
 	return (err);

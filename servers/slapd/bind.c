@@ -158,8 +158,8 @@ do_bind(
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 		Debug( LDAP_DEBUG_ANY, "unknown version %d\n", version, 0, 0 );
-		send_ldap_result( conn, op,
-			rc = LDAP_PROTOCOL_ERROR, NULL, "version not supported" );
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
+			NULL, "version not supported", NULL, NULL );
 		goto cleanup;
 	}
 
@@ -178,7 +178,7 @@ do_bind(
 				"do_bind: no sasl mechanism provided\n",
 				version, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, "no sasl mechanism provided" );
+				NULL, "no sasl mechanism provided", NULL, NULL );
 			goto cleanup;
 		}
 
@@ -187,7 +187,7 @@ do_bind(
 				"do_bind: sasl mechanism \"%s\" not supported.\n",
 				mech, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, "sasl mechanism not supported" );
+				NULL, "sasl mechanism not supported", NULL, NULL );
 			goto cleanup;
 		}
 
@@ -242,7 +242,8 @@ do_bind(
 		 * we already forced connection to "anonymous", we just
 		 * need to send success
 		 */
-		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_SUCCESS,
+			NULL, NULL, NULL, NULL );
 		goto cleanup;
 	}
 
@@ -255,15 +256,15 @@ do_bind(
 	if ( (be = select_backend( ndn )) == NULL ) {
 		if ( cred.bv_len == 0 ) {
 			send_ldap_result( conn, op, LDAP_SUCCESS,
-				NULL, NULL );
+				NULL, NULL, NULL, NULL );
 
-		} else if ( default_referral && *default_referral ) {
-			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS,
-				NULL, default_referral );
+		} else if ( default_referral ) {
+			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+				NULL, NULL, default_referral, NULL );
 
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
-				NULL, default_referral );
+				NULL, NULL, NULL, NULL );
 		}
 
 		goto cleanup;
@@ -272,8 +273,6 @@ do_bind(
 	if ( be->be_bind ) {
 		/* alias suffix */
 		char *edn;
-
-		ndn = suffixAlias( ndn, op, be );
 
 		if ( (*be->be_bind)( be, conn, op, ndn, method, mech, &cred, &edn ) == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
@@ -294,15 +293,16 @@ do_bind(
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 			/* send this here to avoid a race condition */
-			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL );
 
 		} else if (edn != NULL) {
 			free( edn );
 		}
 
 	} else {
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "Function not implemented" );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Function not implemented", NULL, NULL );
 	}
 
 cleanup:

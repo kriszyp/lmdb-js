@@ -75,8 +75,8 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 	if (!lc) {
 		ld = ldap_init(li->host, li->port);
 		if (!ld) {
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    	"ldap_init failed" );
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, "ldap_init failed", NULL, NULL );
 			return( NULL );
 		}
 		lc = (struct ldapconn *)ch_malloc(sizeof(struct ldapconn));
@@ -112,7 +112,7 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &err);
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &msg);
 	ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
-	send_ldap_result( lc->conn, op, err, match, msg);
+	send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
 	free(match);
 	free(msg);
 	return( (err==LDAP_SUCCESS) ? 0 : -1 );

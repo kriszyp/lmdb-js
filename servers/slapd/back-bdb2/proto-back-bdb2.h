@@ -17,16 +17,19 @@ int bdb2i_release_add_lock LDAP_P(());
 /*
  * alias.c
  */
-Entry *bdb2i_derefAlias_r LDAP_P((
-	BackendDB   *be,
-	Connection	*conn,
-	Operation	*op,
-	Entry       *e ));
-char *bdb2i_derefDN LDAP_P((
-	BackendDB   *be,
-	Connection  *conn,
-	Operation   *op,
-	char        *dn ));
+
+Entry * bdb2i_deref_r LDAP_P((
+	Backend *be,
+	Entry *e,
+	char *dn,
+	int *err,
+	Entry **matched,
+	char **text ));
+
+#define deref_entry_r( be, e, err, matched, text ) \
+	bdb2i_deref_r( be, e, NULL, err, matched, text )
+#define deref_dn_r( be, dn, err, matched, text ) \
+	bdb2i_deref_r( be, NULL, dn, err, matched, text )
 
 /*
  * attr.c
@@ -74,8 +77,12 @@ int bdb2i_dn2id_add LDAP_P(( BackendDB *be, char *dn, ID id ));
 ID bdb2i_dn2id LDAP_P(( BackendDB *be, char *dn ));
 int bdb2i_dn2id_delete LDAP_P(( BackendDB *be, char *dn ));
 
-Entry * bdb2i_dn2entry_rw LDAP_P(( BackendDB *be, char *dn, char **matched,
- int rw ));
+Entry * bdb2i_dn2entry_rw LDAP_P((
+	BackendDB *be,
+	char *dn,
+	Entry **matched,
+	int rw ));
+
 #define bdb2i_dn2entry_r(be, dn, m) bdb2i_dn2entry_rw((be), (dn), (m), 0)
 #define bdb2i_dn2entry_w(be, dn, m) bdb2i_dn2entry_rw((be), (dn), (m), 1)
 

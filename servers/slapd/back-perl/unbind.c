@@ -34,8 +34,6 @@ perl_back_unbind(
 	Operation *op
 )
 {
-	send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-		"", "not yet implemented" );
 	Debug( LDAP_DEBUG_TRACE, "Perl UNBIND\n", 0, 0, 0 );
 	return 0;
 }

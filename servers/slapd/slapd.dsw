@@ -102,6 +102,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "setup"=..\..\include\setup.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "slapd"=.\slapd.dsp - Package Owner=<4>
 
 Package=<5>
@@ -133,6 +145,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libslapd
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name setup
     End Project Dependency
 }}}
 

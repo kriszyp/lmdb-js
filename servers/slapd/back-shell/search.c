@@ -34,14 +34,14 @@ shell_back_search(
 
 	if ( si->si_search == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "search not implemented" );
+		    "search not implemented", NULL, NULL );
 		return( -1 );
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_search, &rfp, &wfp ))
 	    == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    "could not fork/exec" );
+		    "could not fork/exec", NULL, NULL );
 		return( -1 );
 	}
 

@@ -34,8 +34,16 @@ echo "Starting slapd on TCP/IP port $PORT..."
 $SLAPD -f $CONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
-echo "Waiting 5 seconds for slapd to start..."
-sleep 5
+echo "Using ldapsearch to check that slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -L -s base -b "$MONITOR" -h localhost -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 1 ; then
+		echo "Waiting 5 seconds for slapd to start..."
+		sleep 5
+	fi
+done
 
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -b "$BASEDN" -P "$PROGDIR" -d "$DATADIR" -h localhost -p $PORT -D "$MANAGERDN" -w $PASSWD -l 50

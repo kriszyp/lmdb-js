@@ -16,6 +16,8 @@ ldapmodrdn \- ldap modify entry RDN tool
 [\c
 .BR \-c ]
 [\c
+.BR \-M[M] ]
+[\c
 .BI \-d \ debuglevel\fR]
 [\c
 .BI \-D \ binddn\fR]
@@ -73,6 +75,11 @@ registered with your kerberos servers.
 Continuous operation mode.  Errors  are  reported,  but ldapmodify
 will  continue  with  modifications.   The default is to exit after
 reporting an error.
+.TP
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
 .TP
 .B \-d debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.

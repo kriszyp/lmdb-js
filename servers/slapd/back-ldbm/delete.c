@@ -20,33 +20,42 @@ ldbm_back_delete(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char	*matched = NULL;
+	Entry	*matched = NULL;
 	char	*pdn = NULL;
 	Entry	*e, *p = NULL;
 	int rootlock = 0;
 	int	rc = -1;
+	int		manageDSAit = get_manageDSAit( op );
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn, 0, 0);
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
+		char *matched_dn = NULL;
+		struct berval **refs = NULL;
+
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: no such object %s\n",
 			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, "" );
+
 		if ( matched != NULL ) {
-			free( matched );
+			matched_dn = ch_strdup( matched->e_dn );
+			refs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched )
+				: NULL;
+			cache_return_entry_r( &li->li_cache, matched );
+		} else {
+			refs = default_referral;
 		}
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+			matched_dn, NULL, refs, NULL );
+
+		if ( matched != NULL ) {
+			ber_bvecfree( refs );
+			free( matched_dn );
+		}
+
 		return( -1 );
-	}
-
-	/* check for deleted */
-
-	if ( has_children( be, e ) ) {
-		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
-			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_NOT_ALLOWED_ON_NONLEAF, "",
-		    "" );
-		goto return_results;
 	}
 
 #ifdef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
@@ -56,10 +65,38 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: insufficient access %s\n",
 			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 #endif
+
+    if ( !manageDSAit && is_entry_referral( e ) ) {
+		/* parent is a referral, don't allow add */
+		/* parent is an alias, don't allow add */
+		struct berval **refs = get_entry_referrals( be,
+			conn, op, e );
+
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
+		    0, 0 );
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+		    e->e_dn, NULL, refs, NULL );
+
+		ber_bvecfree( refs );
+
+		rc = 1;
+		goto return_results;
+	}
+
+
+	if ( has_children( be, e ) ) {
+		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
+			dn, 0, 0);
+		send_ldap_result( conn, op, LDAP_NOT_ALLOWED_ON_NONLEAF,
+			NULL, NULL, NULL, NULL );
+		goto return_results;
+	}
 
 	/* delete from parent's id2children entry */
 	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
@@ -68,7 +105,7 @@ ldbm_back_delete(
 				"<=- ldbm_back_delete: parent does not exist\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-				"", "");
+				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
@@ -80,7 +117,7 @@ ldbm_back_delete(
 				"<=- ldbm_back_delete: no access to parent\n", 0,
 				0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				"", "" );
+				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
@@ -91,7 +128,7 @@ ldbm_back_delete(
 				"<=- ldbm_back_delete: no parent & not root\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				"", "");
+				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
@@ -103,7 +140,8 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "","" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 
@@ -112,7 +150,8 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 
@@ -121,11 +160,13 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 
-	send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
+	send_ldap_result( conn, op, LDAP_SUCCESS,
+		NULL, NULL, NULL, NULL );
 	rc = 0;
 
 return_results:;

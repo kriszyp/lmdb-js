@@ -119,6 +119,7 @@ void charray_free LDAP_P(( char **array ));
 int charray_inlist LDAP_P(( char **a, char *s ));
 char ** charray_dup LDAP_P(( char **a ));
 char ** str2charray LDAP_P(( char *str, char *brkstr ));
+char * charray2str LDAP_P(( char **a ));
 
 /*
  * controls.c
@@ -127,6 +128,8 @@ int get_ctrls LDAP_P((
 	Connection *co,
 	Operation *op,
 	int senderrors ));
+
+int get_manageDSAit LDAP_P(( Operation *op ));
 
 /*
  * config.c
@@ -257,17 +260,40 @@ void replog LDAP_P(( Backend *be, int optype, char *dn, void *change, int flag )
  * result.c
  */
 
+struct berval **get_entry_referrals LDAP_P((
+	Backend *be, Connection *conn, Operation *op,
+	Entry *e ));
+
 void send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
-	int err, char *matched, char *text ));
+	int err, char *matched, char *text,
+	struct berval **refs,
+	LDAPControl **ctrls ));
 
 void send_ldap_disconnect LDAP_P((
 	Connection *conn, Operation *op,
 	int err, char *text ));
 
-void send_ldap_search_result LDAP_P((
+void send_search_result LDAP_P((
 	Connection *conn, Operation *op,
-	int err, char *matched, char *text, int nentries ));
+	int err, char *matched, char *text,
+	struct berval **refs,
+	LDAPControl **ctrls,
+	int nentries ));
+
+int send_search_reference LDAP_P((
+	Backend *be, Connection *conn, Operation *op,
+	Entry *e, struct berval **refs, int scope,
+	LDAPControl **ctrls,
+	struct berval ***v2refs ));
+
+int send_search_entry LDAP_P((
+	Backend *be, Connection *conn, Operation *op,
+	Entry *e, char **attrs, int attrsonly, int opattrs,
+	LDAPControl **ctrls ));
+
+int str2result LDAP_P(( char *s,
+	int *code, char **matched, char **info ));
 
 /*
  * schema.c
@@ -285,6 +311,10 @@ MatchingRule *mr_find LDAP_P((const char *mrname));
 int mr_add LDAP_P((LDAP_MATCHING_RULE *mr, slap_mr_normalize_func *normalize, slap_mr_compare_func *compare, const char **err));
 void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
 int schema_init LDAP_P((void));
+
+int is_entry_objectclass LDAP_P(( Entry *, char* objectclass ));
+#define is_entry_alias(e)		is_entry_objectclass((e), "ALIAS")
+#define is_entry_referral(e)	is_entry_objectclass((e), "REFERRAL")
 
 
 /*
@@ -315,11 +345,6 @@ int value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax,
 	int normalize ));
 
 /*
- * suffixAlias.c
- */
-char *suffixAlias LDAP_P(( char *dn, Operation *op, Backend *be ));
-
-/*
  * user.c
  */
 #if defined(HAVE_PWD_H) && defined(HAVE_GRP_H)
@@ -330,7 +355,7 @@ void slap_init_user LDAP_P(( char *username, char *groupname ));
  * Other...
  */
 
-extern char		*default_referral;
+extern struct berval **default_referral;
 extern char		*replogfile;
 extern const char Versionstr[];
 extern int		active_threads;
@@ -347,7 +372,9 @@ extern int		ldap_syslog;
 
 extern ldap_pvt_thread_mutex_t	num_sent_mutex;
 extern long		num_bytes_sent;
+extern long		num_pdu_sent;
 extern long		num_entries_sent;
+extern long		num_refs_sent;
 
 extern ldap_pvt_thread_mutex_t	num_ops_mutex;
 extern long		num_ops_completed;
@@ -373,10 +400,10 @@ extern ldap_pvt_thread_mutex_t	gmtime_mutex;
 
 extern struct acl		*global_acl;
 
-extern int	slap_init LDAP_P((int mode, char* name));
-extern int	slap_startup LDAP_P((int dbnum));
-extern int	slap_shutdown LDAP_P((int dbnum));
-extern int	slap_destroy LDAP_P((void));
+int	slap_init LDAP_P((int mode, char* name));
+int	slap_startup LDAP_P((int dbnum));
+int	slap_shutdown LDAP_P((int dbnum));
+int	slap_destroy LDAP_P((void));
 
 struct sockaddr_in;
 
@@ -416,11 +443,6 @@ extern int	do_search LDAP_P((Connection *conn, Operation *op));
 extern int	do_unbind LDAP_P((Connection *conn, Operation *op));
 extern int	do_extended LDAP_P((Connection *conn, Operation *op));
 
-extern int send_search_entry LDAP_P((
-	Backend *be, Connection *conn, Operation *op,
-	Entry *e, char **attrs, int attrsonly, int opattrs ));
-
-extern int str2result LDAP_P(( char *s, int *code, char **matched, char **info ));
 
 extern ber_socket_t dtblsize;
 

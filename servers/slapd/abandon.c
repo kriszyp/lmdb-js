@@ -28,7 +28,7 @@ do_abandon(
 	ber_int_t		id;
 	Operation	*o;
 	Operation	**oo;
-	int rc;
+	int rc, notfound;
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon\n", 0, 0, 0 );
 
@@ -52,13 +52,19 @@ do_abandon(
 
 	Debug( LDAP_DEBUG_ARGS, "do_abandon: id %d\n", id, 0 ,0 );
 
+	if( id <= 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"do_abandon: bad msgid %ld\n", (long) id, 0, 0 );
+		return LDAP_SUCCESS;
+	}
+
+	notfound = 1; /* not found */
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 	/*
 	 * find the operation being abandoned and set the o_abandon
 	 * flag.  It's up to the backend to periodically check this
 	 * flag and abort the operation at a convenient time.
 	 */
-
-	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
 		if ( o->o_msgid == id ) {
@@ -66,7 +72,8 @@ do_abandon(
 			o->o_abandon = 1;
 			ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
 
-			goto found_it;
+			notfound = 0;
+			goto done;
 		}
 	}
 
@@ -81,13 +88,14 @@ do_abandon(
 		o = *oo;
 		*oo = (*oo)->o_next;
 		slap_op_free( o );
-
-		goto found_it;
+		notfound = 0;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "do_abandon: op not found\n", 0, 0, 0 );
-
-found_it:
+done:
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+	Debug( LDAP_DEBUG_TRACE, "do_abandon: op=%ld %sfound\n",
+		id, notfound ? "not " : "", 0 );
+
 	return LDAP_SUCCESS;
 }

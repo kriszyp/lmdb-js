@@ -10,16 +10,18 @@ LDAP_BEGIN_DECL
 /*
  * alias.c
  */
-Entry *derefAlias_r LDAP_P((
-	Backend     *be,
-	Connection	*conn,
-	Operation	*op,
-	Entry       *e ));
-char *derefDN LDAP_P((
-	Backend     *be,
-	Connection  *conn,
-	Operation   *op,
-	char        *dn ));
+Entry *deref_internal_r LDAP_P((
+	Backend *be,
+	Entry *e,
+	char *dn,
+	int *err,
+	Entry **matched,
+	char **text ));
+
+#define deref_entry_r( be, e, err, matched, text ) \
+	deref_internal_r( be, e, NULL, err, matched, text )
+#define deref_dn_r( be, dn, err, matched, text ) \
+	deref_internal_r( be, NULL, dn, err, matched, text)
 
 /*
  * attr.c
@@ -71,7 +73,7 @@ int dn2id_add LDAP_P(( Backend *be, char *dn, ID id ));
 ID dn2id LDAP_P(( Backend *be, char *dn ));
 int dn2id_delete LDAP_P(( Backend *be, char *dn ));
 
-Entry * dn2entry_rw LDAP_P(( Backend *be, char *dn, char **matched, int rw ));
+Entry * dn2entry_rw LDAP_P(( Backend *be, char *dn, Entry **matched, int rw ));
 #define dn2entry_r(be, dn, m) dn2entry_rw((be), (dn), (m), 0)
 #define dn2entry_w(be, dn, m) dn2entry_rw((be), (dn), (m), 1)
 

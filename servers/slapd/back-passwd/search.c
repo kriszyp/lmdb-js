@@ -35,12 +35,13 @@ passwd_back_search(
     int		attrsonly
 )
 {
-	int sent = 0;
 	struct passwd	*pw;
 	Entry		*e;
 	char		*s;
 	time_t		stoptime;
-	int err = LDAP_NO_SUCH_OBJECT;
+
+	int sent = 0;
+	int err = LDAP_SUCCESS;
 
 	char *rdn = NULL;
 	char *parent = NULL;
@@ -68,43 +69,47 @@ passwd_back_search(
 		vals[0] = &val;
 		vals[1] = NULL;
 
-		/* Create an entry corresponding to the base DN */
-		e = (Entry *) ch_calloc(1, sizeof(Entry));
-		e->e_attrs = NULL;
-		e->e_dn = strdup(base);
+		matched = ch_strdup( base );
 
-		/* Use the first attribute of the DN
-		 * as an attribute within the entry itself.
-		 */
-		rdn = dn_rdn(NULL, base);
+		if( scope != LDAP_SCOPE_ONELEVEL ) {
+			/* Create an entry corresponding to the base DN */
+			e = (Entry *) ch_calloc(1, sizeof(Entry));
+			e->e_attrs = NULL;
+			e->e_dn = ch_strdup( base );
 
-		if( rdn == NULL || (s = strchr(rdn, '=')) == NULL ) {
-			err = LDAP_INVALID_DN_SYNTAX;
-			goto done;
-		}
+			/* Use the first attribute of the DN
+		 	* as an attribute within the entry itself.
+		 	*/
+			rdn = dn_rdn(NULL, base);
 
-		val.bv_val = rdn_attr_value(rdn);
-		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, rdn_attr_type(rdn), vals );
+			if( rdn == NULL || (s = strchr(rdn, '=')) == NULL ) {
+				err = LDAP_INVALID_DN_SYNTAX;
+				goto done;
+			}
 
-		free(rdn);
-		rdn = NULL;
+			val.bv_val = rdn_attr_value(rdn);
+			val.bv_len = strlen( val.bv_val );
+			attr_merge( e, rdn_attr_type(rdn), vals );
 
-		/* Every entry needs an objectclass. We don't really
-		 * know if our hardcoded choice here agrees with the
-		 * DN that was configured for this backend, but it's
-		 * better than nothing.
-		 *
-		 * should be a configuratable item
-		 */
-		val.bv_val = "organizationalUnit";
-		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, "objectClass", vals );
+			free(rdn);
+			rdn = NULL;
+
+			/* Every entry needs an objectclass. We don't really
+			 * know if our hardcoded choice here agrees with the
+			 * DN that was configured for this backend, but it's
+			 * better than nothing.
+			 *
+			 * should be a configuratable item
+			 */
+			val.bv_val = "organizationalUnit";
+			val.bv_len = strlen( val.bv_val );
+			attr_merge( e, "objectClass", vals );
 	
-		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
-			send_search_entry( be, conn, op, e, attrs, attrsonly, 0 );
-			matched = strdup( be->be_suffix[0] );
-			sent++;
+			if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+				send_search_entry( be, conn, op,
+					e, attrs, attrsonly, 0, NULL );
+				sent++;
+			}
 		}
 
 		if ( scope != LDAP_SCOPE_BASE ) {
@@ -123,7 +128,7 @@ passwd_back_search(
 				/* check time limit */
 				if ( slap_get_time() > stoptime ) {
 					send_ldap_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
-			    		NULL, NULL );
+			    		NULL, NULL, NULL, NULL );
 					endpwent();
 					return( 0 );
 				}
@@ -134,12 +139,13 @@ passwd_back_search(
 					/* check size limit */
 					if ( --slimit == -1 ) {
 						send_ldap_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
-				    		NULL, NULL );
+				    		NULL, NULL, NULL, NULL );
 						endpwent();
 						return( 0 );
 					}
 
-					send_search_entry( be, conn, op, e, attrs, attrsonly, 0 );
+					send_search_entry( be, conn, op,
+						e, attrs, attrsonly, 0, NULL );
 					sent++;
 				}
 
@@ -155,13 +161,25 @@ passwd_back_search(
 		 * anything deeper than that.
 		 */
 		if( !be_issuffix( be, parent ) ) {
+			int i;
+			for( i=0; be->be_suffix[i] != NULL; i++ ) {
+				if( dn_issuffix( base, be->be_suffix[i] ) ) {
+					matched = ch_strdup( be->be_suffix[i] );
+					break;
+				}
+			}
+			err = LDAP_NO_SUCH_OBJECT;
+			goto done;
+		}
+
+		if( scope == LDAP_SCOPE_ONELEVEL ) {
 			goto done;
 		}
 
 		rdn = dn_rdn( NULL, base );
 
 		if ( (user = rdn_attr_value(rdn)) == NULL) {
-			err = LDAP_INVALID_DN_SYNTAX;
+			err = LDAP_OPERATIONS_ERROR;
 			goto done;
 		}
 
@@ -170,13 +188,17 @@ passwd_back_search(
 		}
 
 		if ( (pw = getpwnam( user )) == NULL ) {
+			matched = parent;
+			parent = NULL;
+			err = LDAP_NO_SUCH_OBJECT;
 			goto done;
 		}
 
 		e = pw2entry( be, pw, rdn );
 
 		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
-			send_search_entry( be, conn, op, e, attrs, attrsonly, 0 );
+			send_search_entry( be, conn, op,
+				e, attrs, attrsonly, 0, NULL );
 			sent++;
 		}
 
@@ -184,12 +206,9 @@ passwd_back_search(
 	}
 
 done:
-	if( sent ) {
-		send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
-
-	} else {
-		send_ldap_result( conn, op, err, matched, NULL );
-	}
+	send_ldap_result( conn, op,
+		err, err == LDAP_NO_SUCH_OBJECT ? matched : NULL, NULL,
+		NULL, NULL );
 
 	if( matched != NULL ) free( matched );
 	if( parent != NULL ) free( parent );

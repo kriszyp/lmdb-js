@@ -24,13 +24,13 @@ shell_back_add(
 
 	if ( si->si_add == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "add not implemented" );
+		    "add not implemented", NULL, NULL );
 		return( -1 );
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_add, &rfp, &wfp )) == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    "could not fork/exec" );
+		    "could not fork/exec", NULL, NULL );
 		return( -1 );
 	}
 

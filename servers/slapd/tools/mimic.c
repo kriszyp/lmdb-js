@@ -24,24 +24,39 @@ int str2result(
 }
 
 void
+send_ldap_disconnect(
+    Connection	*conn,
+    Operation	*op,
+    ber_int_t	err,
+    char	*text
+)
+{
+	assert(0);
+}
+
+void
 send_ldap_result(
 	Connection  *conn, 
 	Operation   *op,
 	int     err,
 	char    *matched,
-	char    *text
+	char    *text,
+	struct berval **refs,
+	LDAPControl **ctrls
 )        
 {
 	assert(0);
 }
 
 void
-send_ldap_search_result(
+send_search_result(
 	Connection  *conn, 
 	Operation   *op,
 	int     err,
 	char    *matched,
 	char    *text,
+	struct berval **refs,
+	LDAPControl **ctrls,
 	int		nentries
 )        
 {
@@ -56,9 +71,32 @@ send_search_entry(
 	Entry	*e,
 	char	**attrs,
 	int		attrsonly,
-	int		opattrs
+	int		opattrs,
+	LDAPControl **ctrls
 )        
 {
 	assert(0);
 	return -1;
+}
+
+int send_search_reference(
+	Backend *be,
+	Connection  *conn, 
+	Operation   *op,
+	Entry	*e,
+	struct berval **refs,
+	int scope,
+	LDAPControl **ctrls,
+	struct berval ***v2refs
+)
+{
+	assert(0);
+	return -1;
+}
+
+struct berval **get_entry_referrals(
+	Backend *be, Connection *conn, Operation *op, Entry *e )
+{
+	assert(0);
+	return NULL;
 }

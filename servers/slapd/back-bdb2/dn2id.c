@@ -156,7 +156,7 @@ Entry *
 bdb2i_dn2entry_rw(
     BackendDB	*be,
     char	*dn,
-    char	**matched,
+    Entry	**matched,
     int         rw
 )
 {
@@ -168,7 +168,10 @@ bdb2i_dn2entry_rw(
 	Debug(LDAP_DEBUG_TRACE, "dn2entry_%s: dn: \"%s\"\n",
 		rw ? "w" : "r", dn, 0);
 
-	*matched = NULL;
+	if( matched != NULL ) {
+		/* caller cares about match */
+		*matched = NULL;
+	}
 
 	if ( (id = bdb2i_dn2id( be, dn )) != NOID &&
 		(e = bdb2i_id2entry_rw( be, id, rw )) != NULL )
@@ -184,24 +187,17 @@ bdb2i_dn2entry_rw(
 		/* treat as if NOID was found */
 	}
 
-	/* stop when we get to the suffix */
-	if ( be_issuffix( be, dn ) ) {
-		return( NULL );
-	}
+	/* caller doesn't care about match */
+	if( matched == NULL ) return NULL;
 
 	/* entry does not exist - see how much of the dn does exist */
+	/* dn_parent checks returns NULL if dn is suffix */
 	if ( (pdn = dn_parent( be, dn )) != NULL ) {
 		/* get entry with reader lock */
 		if ( (e = bdb2i_dn2entry_r( be, pdn, matched )) != NULL ) {
-			if(*matched != NULL) {
-				free(*matched);
-			}
-			*matched = pdn;
-			/* free entry with reader lock */
-			bdb2i_cache_return_entry_r( &li->li_cache, e );
-		} else {
-			free( pdn );
+			*matched = e;
 		}
+		free( pdn );
 	}
 
 	return( NULL );

@@ -1143,8 +1143,10 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		return;
 	}
 	
-	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly, 0 );
-	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
+	send_search_entry( &backends[0], conn, op,
+		e, attrs, attrsonly, 0, NULL );
+	send_search_result( conn, op, LDAP_SUCCESS,
+		NULL, NULL, NULL, NULL, 1 );
 
 	entry_free( e );
 }
@@ -1179,3 +1181,35 @@ oc_print( ObjectClass *oc )
 }
 
 #endif
+
+
+int is_entry_objectclass(
+	Entry*	e,
+	char*	oc)
+{
+	Attribute *attr;
+	struct berval bv;
+
+	if( e == NULL || oc == NULL || *oc == '\0' )
+		return 0;
+
+	/*
+	 * find objectClass attribute
+	 */
+	attr = attr_find(e->e_attrs, "objectclass");
+
+	if( attr == NULL ) {
+		/* no objectClass attribute */
+		return 0;
+	}
+
+	bv.bv_val = oc;
+	bv.bv_len = strlen( bv.bv_val );
+
+	if( value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
+		/* entry is not of this objectclass */
+		return 0;
+	}
+
+	return 1;
+}

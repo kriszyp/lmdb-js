@@ -86,13 +86,8 @@ perl_back_search(
 					Debug( LDAP_DEBUG_ANY, "str2entry(%s) failed\n", buf, 0, 0 );
 
 				} else {
-					send_search_entry( be,
-							   conn,
-							   op,
-							   e,
-							   attrs,
-							   attrsonly,
-							   0 );
+					send_search_entry( be, conn, op,
+						e, attrs, attrsonly, 0, NULL );
 							 
 					entry_free( e );
 				}
@@ -118,10 +113,12 @@ perl_back_search(
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
 	if( return_code != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 
 	} else {
-		send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
+		send_ldap_result( conn, op, LDAP_SUCCESS,
+			NULL, NULL, NULL, NULL );
 	}
 }
 

@@ -25,14 +25,14 @@ shell_back_modify(
 
 	if ( si->si_modify == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "modify not implemented" );
+		    "modify not implemented", NULL, NULL );
 		return( -1 );
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_modify, &rfp, &wfp ))
 	    == (void *) -1 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-		    "could not fork/exec" );
+		    "could not fork/exec", NULL, NULL );
 		return( -1 );
 	}
 

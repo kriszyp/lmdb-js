@@ -198,6 +198,7 @@ used in conjunction with the schemacheck option.
 Specify the referral to pass back when
 .BR slapd (8)
 cannot find a local database to handle a request.
+If specified multiple times, each url is provided.
 .TP
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
@@ -284,6 +285,12 @@ It specifies the DN allowed to make changes to the replica (typically,
 this is the DN
 .BR slurpd (8)
 binds as when making changes to the replica).
+.TP
+.B updateref <url>
+Specify the referral to pass back when
+.BR slapd (8)
+is asked to modify a replicated local database.
+If specified multiple times, each url is provided.
 .SH LDBM BACKEND-SPECIFIC OPTIONS
 Options in this category only apply to the LDBM backend database. That is,
 they must follow a "database ldbm" line and come before any subsequent

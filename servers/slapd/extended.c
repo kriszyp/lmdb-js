@@ -73,8 +73,8 @@ do_extended(
 	if( !charray_inlist( supportedExtensions, reqoid ) ) {
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
 			reqoid, 0 ,0 );
-		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
-		    "unsuppored operation" );
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
+			NULL, "unsuppored extended operation", NULL, NULL );
 		goto done;
 	}
 
@@ -98,7 +98,7 @@ do_extended(
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid \"%s\"\n", reqoid, 0 ,0 );
 
 	send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-		NULL, "unsupported extended operation" );
+		NULL, "unsupported extended operation", NULL, NULL );
 
 done:
 	if ( reqoid != NULL ) {

@@ -38,7 +38,7 @@ do_add( Connection *conn, Operation *op )
 	if( op->o_bind_in_progress ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: SASL bind in progress.\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS, NULL,
-		    "SASL bind in progress" );
+		    "SASL bind in progress", NULL, NULL );
 		return LDAP_SASL_BIND_IN_PROGRESS;
 	}
 
@@ -89,8 +89,8 @@ do_add( Connection *conn, Operation *op )
 		if ( vals == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n", type,
 			    0, 0 );
-			send_ldap_result( conn, op,
-				LDAP_PROTOCOL_ERROR, NULL, "no values for type" );
+			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+				NULL, "no values for type", NULL, NULL );
 			free( type );
 			entry_free( e );
 			return LDAP_PROTOCOL_ERROR;
@@ -127,8 +127,8 @@ do_add( Connection *conn, Operation *op )
 	be = select_backend( e->e_ndn );
 	if ( be == NULL ) {
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-		    default_referral );
+		send_ldap_result( conn, op, LDAP_REFERRAL, NULL,
+		    NULL, default_referral, NULL );
 		return rc;
 	}
 
@@ -155,14 +155,14 @@ do_add( Connection *conn, Operation *op )
 
 		} else {
 			entry_free( e );
-			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
-			    default_referral );
+			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
+				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
 		}
 	} else {
 	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
 		entry_free( e );
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "Function not implemented" );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Function not implemented", NULL, NULL );
 	}
 
 	return rc;

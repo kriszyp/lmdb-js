@@ -50,7 +50,7 @@ OBJS2	= mimic.o \
 		../module.o ../aclparse.o ../schema.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
-		../schemaparse.o
+		../controls.o ../schemaparse.o
 
 all-local: build-ldbm build-bdb2 build-edb2ldif build-chlog2replog
 

@@ -39,10 +39,10 @@ ldbm_back_modrdn(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*matched = NULL;
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
 	Entry		*e, *p = NULL;
+	Entry		*matched = NULL;
 	int			rootlock = 0;
 	int			rc = -1;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
@@ -62,7 +62,7 @@ ldbm_back_modrdn(
 	struct berval	del_bv;			/* Stores old rdn att */
 	struct berval	*del_bvals[2];		/* Stores old rdn att */
 	LDAPModList	mod[2];			/* Used to delete old rdn */
-
+	int		manageDSAit = get_manageDSAit( op );
 
 	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",
 	       (newSuperior ? newSuperior : "NULL"),
@@ -70,29 +70,62 @@ ldbm_back_modrdn(
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, "" );
-		if ( matched != NULL ) {
-			free( matched );
+		char* matched_dn = NULL;
+		struct berval** refs = NULL;
+
+		if( matched != NULL ) {
+			matched_dn = strdup( matched->e_dn );
+			refs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched )
+				: NULL;
+			cache_return_entry_r( &li->li_cache, matched );
+		} else {
+			refs = default_referral;
 		}
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+			matched_dn, NULL, refs, NULL );
+
+		if ( matched != NULL ) {
+			ber_bvecfree( refs );
+			free( matched_dn );
+		}
+
 		return( -1 );
 	}
 
 #ifdef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
-		/* check parent for "children" acl */
 	if ( ! access_allowed( be, conn, op, e,
 		"entry", NULL, ACL_WRITE ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "no access to entry\n", 0,
 			0, 0 );
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			"", "" );
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 #endif
 
+	if (!manageDSAit && is_entry_referral( e ) ) {
+		/* parent is a referral, don't allow add */
+		/* parent is an alias, don't allow add */
+		struct berval **refs = get_entry_referrals( be,
+			conn, op, e );
+
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
+		    0, 0 );
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+		    e->e_dn, NULL, refs, NULL );
+
+		ber_bvecfree( refs );
+
+		goto return_results;
+	}
+
 	if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL ) {
 
-	        /* Make sure parent entry exist and we can write its 
+		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
 
@@ -100,7 +133,7 @@ ldbm_back_modrdn(
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-				"", "");
+				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
@@ -111,7 +144,7 @@ ldbm_back_modrdn(
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				"", "" );
+				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
@@ -131,7 +164,7 @@ ldbm_back_modrdn(
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				"", "");
+				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
@@ -162,12 +195,11 @@ ldbm_back_modrdn(
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 		if( (np = dn2entry_w( be, np_ndn, &matched )) == NULL) {
-
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
 			       np_ndn, 0, 0);
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "",
-					  "");
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
@@ -183,7 +215,30 @@ ldbm_back_modrdn(
 			       "ldbm_back_modrdn: no wr to newSup children\n",
 			       0, 0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-					  "", "" );
+				NULL, NULL, NULL, NULL );
+			goto return_results;
+		}
+
+		if ( is_entry_alias( np ) ) {
+			/* entry is an alias, don't allow bind */
+			Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
+			    0, 0 );
+
+			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
+			    NULL, NULL, NULL, NULL );
+
+			goto return_results;
+		}
+
+		if ( is_entry_referral( np ) ) {
+			/* parent is a referral, don't allow add */
+			/* parent is an alias, don't allow add */
+			Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
+				0, 0 );
+
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			    NULL, NULL, NULL, NULL );
+
 			goto return_results;
 		}
 
@@ -191,9 +246,7 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: wr to new parent's children OK\n",
 		       0, 0 , 0 );
 
-
 		new_parent_dn = np_dn;
-
 	}
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
@@ -207,7 +260,8 @@ ldbm_back_modrdn(
 	       new_ndn, 0, 0 );
 
 	if (dn2id ( be, new_ndn ) != NOID) {
-	        send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 
@@ -225,7 +279,8 @@ ldbm_back_modrdn(
 
 	/* delete old one */
 	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 
@@ -237,7 +292,8 @@ ldbm_back_modrdn(
 
 	/* add new one */
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
 
@@ -251,7 +307,8 @@ ldbm_back_modrdn(
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out type of newrdn\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;		
 
 	}
@@ -261,7 +318,8 @@ ldbm_back_modrdn(
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out val of newrdn\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;		
 
 	}
@@ -277,7 +335,8 @@ ldbm_back_modrdn(
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out old_rdn from dn\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;		
 
 	}
@@ -287,7 +346,8 @@ ldbm_back_modrdn(
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out the old_rdn type\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;		
 		
 	}
@@ -323,7 +383,6 @@ ldbm_back_modrdn(
 		/* Remove old rdn value if required */
 
 		if (deleteoldrdn) {
-
 			/* Get value of old rdn */
 	
 			if ((old_rdn_val = rdn_attr_value( old_rdn ))
@@ -332,12 +391,9 @@ ldbm_back_modrdn(
 				Debug( LDAP_DEBUG_TRACE,
 				       "ldbm_back_modrdn: can't figure out old_rdn_val from old_rdn\n",
 				       0, 0, 0 );
-				send_ldap_result( conn, op,
-						  LDAP_OPERATIONS_ERROR,
-						  "", "" );
+				send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+					NULL, NULL, NULL, NULL );
 				goto return_results;		
-
-
 			}
 
 			del_bvals[0] = &del_bv;		/* Array of bervals */
@@ -374,8 +430,8 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: not fully implemented...\n",
 		       0, 0, 0 );
   
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
-				  NULL );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results;
 
 	}
@@ -397,11 +453,13 @@ ldbm_back_modrdn(
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto return_results_after;
 	}
 
-	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+	send_ldap_result( conn, op, LDAP_SUCCESS,
+		NULL, NULL, NULL, NULL );
 	rc = 0;
 	goto return_results_after;	
 

@@ -72,12 +72,13 @@ usage( const char *prog )
 {
     fprintf( stderr,
 		 "Add or modify entries from an LDAP server\n\n"
-	     "usage: %s [-abcknrvF] [-d debug-level] [-P version] [-h ldaphost]\n"
+	     "usage: %s [-abcknrvF] [-M[M]] [-d debug-level] [-P version] [-h ldaphost]\n"
 	     "            [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n"
 	     "       a    - add values (default%s)\n"
 	     "       b    - read values from files (for binary attributes)\n"
 	     "       c    - continuous operation\n"
 	     "       D    - bind DN\n"
+		 "       M    - enable Manage DSA IT control (-MM for critical)\n"
 	     "       d    - debug level\n"
 	     "       f    - read from file\n"
 	     "       F    - force all changes records to be used\n"
@@ -97,7 +98,7 @@ main( int argc, char **argv )
 {
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;
-	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug;
+	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug, manageDSAit;
 
     if (( prog = strrchr( argv[ 0 ], *LDAP_DIRSEP )) == NULL ) {
 	prog = argv[ 0 ];
@@ -112,11 +113,11 @@ main( int argc, char **argv )
     new = ( strcmp( prog, "ldapadd" ) == 0 );
 
     infile = NULL;
-    not = verbose = valsfromfiles = want_bindpw = debug = 0;
+    not = verbose = valsfromfiles = want_bindpw = debug = manageDSAit = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "WFabckKnrtvh:p:D:w:d:f:P:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WFMabckKnrtvh:p:D:w:d:f:P:" )) != EOF ) {
 	switch( i ) {
 	case 'a':	/* add */
 	    new = 1;
@@ -182,6 +183,10 @@ main( int argc, char **argv )
 	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
+	case 'M':
+		/* enable Manage DSA IT */
+		manageDSAit++;
+		break;
 	case 'W':
 		want_bindpw++;
 		break;
@@ -258,6 +263,28 @@ main( int argc, char **argv )
     }
 
     rc = 0;
+
+	if ( manageDSAit ) {
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = manageDSAit > 1;
+
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			if( c.ldctl_iscritical ) {
+				exit( EXIT_FAILURE );
+			}
+		}
+	}
 
     while (( rc == 0 || contoper ) &&
 		( rbuf = read_one_record( fp )) != NULL ) {

@@ -205,6 +205,7 @@ main( int argc, char **argv )
 			free_and_close( dbc, key, data );
 			break;
 
+#ifndef HAVE_WINSOCK
 		case 'e':	/* edit an entry */
 			if ( (dbc = openchoice( buf[1], LDBM_WRITER, 1, NULL ))
 			    == NULL ) {
@@ -243,6 +244,7 @@ main( int argc, char **argv )
 
 			free_and_close( dbc, key, data );
 			break;
+#endif
 
 		case 'a':	/* add an entry */
 			if ( (dbc = openchoice( buf[1], LDBM_WRITER, 1, NULL ))
@@ -499,6 +501,7 @@ get_entry( FILE *fp, Datum *data )
 	data->dsize = psize + 1;
 }
 
+#ifndef HAVE_WINSOCK
 static void
 edit_entry( char c, Datum *data )
 {
@@ -565,6 +568,7 @@ edit_entry( char c, Datum *data )
 	fclose( fp );
 	unlink( tmpname );
 }
+#endif
 
 static struct dbcache *
 openfile( char *name, int namesiz, int mode, int verbose, char c )

@@ -116,7 +116,8 @@ fail:		return( ldap_back_op_result(lc, op) );
 	if (rc == -1)
 		goto fail;
 
-	send_ldap_search_result( conn, op, sres, match, err, i );
+	send_search_result( conn, op, sres,
+		match, err, NULL, NULL, i );
 	if (match)
 		free(match);
 	if (err)
@@ -158,7 +159,7 @@ ldap_send_entry(
 		if (!attr->a_vals)
 			attr->a_vals = &dummy;
 	}
-	send_search_entry( be, lc->conn, op, &ent, attrs, attrsonly, 0 );
+	send_search_entry( be, lc->conn, op, &ent, attrs, attrsonly, 0, NULL );
 	for (;ent.e_attrs;) {
 		attr=ent.e_attrs;
 		ent.e_attrs = attr->a_next;

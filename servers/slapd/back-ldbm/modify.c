@@ -120,8 +120,10 @@ int ldbm_modify_internal(
 
 
 	if ( (err = acl_check_modlist( be, conn, op, e, modlist ))
-	     != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, err, NULL, NULL );
+	     != LDAP_SUCCESS )
+	{
+		send_ldap_result( conn, op, err,
+			NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -173,7 +175,8 @@ int ldbm_modify_internal(
 
 		if ( err != LDAP_SUCCESS ) {
 			/* unlock entry, delete from cache */
-			send_ldap_result( conn, op, err, NULL, NULL );
+			send_ldap_result( conn, op, err,
+				NULL, NULL, NULL, NULL );
 			return -1;
 		}
 	}
@@ -181,7 +184,8 @@ int ldbm_modify_internal(
 	/* check that the entry still obeys the schema */
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION,
+			NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -195,7 +199,8 @@ int ldbm_modify_internal(
 
 	/* modify indexes */
 	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		return -1;
 	}
 
@@ -222,35 +227,69 @@ ldbm_back_modify(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*matched;
+	Entry		*matched;
 	Entry		*e;
+	int		manageDSAit = get_manageDSAit( op );
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
 	/* acquire and lock entry */
 	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched,
-		    NULL );
+		char* matched_dn = NULL;
+		struct berval **refs = NULL;
+
 		if ( matched != NULL ) {
-			free( matched );
+			matched_dn = ch_strdup( matched->e_dn );
+			refs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched )
+				: NULL;
+			cache_return_entry_r( &li->li_cache, matched );
+		} else {
+			refs = default_referral;
 		}
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+			matched_dn, NULL, refs, NULL );
+
+		if ( matched != NULL ) {
+			ber_bvecfree( refs );
+			free( matched_dn );
+		}
+
 		return( -1 );
 	}
 
-	/* Modify the entry */
-	if ( ldbm_modify_internal( be, conn, op, dn, modlist, e ) != 0 ) {
+    if ( !manageDSAit && is_entry_referral( e ) ) {
+		/* parent is a referral, don't allow add */
+		/* parent is an alias, don't allow add */
+		struct berval **refs = get_entry_referrals( be,
+			conn, op, e );
+
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
+		    0, 0 );
+
+		send_ldap_result( conn, op, LDAP_REFERRAL,
+		    e->e_dn, NULL, refs, NULL );
+
+		ber_bvecfree( refs );
 
 		goto error_return;
-
+	}
+	
+	/* Modify the entry */
+	if ( ldbm_modify_internal( be, conn, op, dn, modlist, e ) != 0 ) {
+		goto error_return;
 	}
 
 	/* change the entry itself */
 	if ( id2entry_add( be, e ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		goto error_return;
 	}
 
-	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+	send_ldap_result( conn, op, LDAP_SUCCESS,
+		NULL, NULL, NULL, NULL );
 	cache_return_entry_w( &li->li_cache, e );
 	return( 0 );
 

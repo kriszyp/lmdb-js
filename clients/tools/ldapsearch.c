@@ -22,7 +22,9 @@ usage( char *s )
     fprintf( stderr, "usage: %s [options] filter [attributes...]\nwhere:\n", s );
     fprintf( stderr, "    filter\tRFC-1558 compliant LDAP search filter\n" );
     fprintf( stderr, "    attributes\twhitespace-separated list of attributes to retrieve\n" );
-    fprintf( stderr, "\t\t(if no attribute list is given, all are retrieved)\n" );
+    fprintf( stderr, "\t\t*          -- all user attributes\n" );
+    fprintf( stderr, "\t\tempty list -- all non-operational attributes\n" );
+    fprintf( stderr, "\t\t1.1        -- no attributes\n" );
     fprintf( stderr, "options:\n" );
     fprintf( stderr, "    -n\t\tshow what would be done but don't actually search\n" );
     fprintf( stderr, "    -v\t\trun in verbose mode (diagnostics to standard output)\n" );
@@ -31,9 +33,8 @@ usage( char *s )
     fprintf( stderr, "    -A\t\tretrieve attribute names only (no values)\n" );
     fprintf( stderr, "    -B\t\tdo not suppress printing of non-ASCII values\n" );
     fprintf( stderr, "    -L\t\tprint entries in LDIF format (-B is implied)\n" );
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+    fprintf( stderr, "    -M\t\tenable Manage DSA IT control (-MM implies critical)\n" );
     fprintf( stderr, "    -R\t\tdo not automatically follow referrals\n" );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
     fprintf( stderr, "    -d level\tset LDAP debugging level to `level'\n" );
     fprintf( stderr, "    -F sep\tprint `sep' instead of `=' between attribute names and values\n" );
     fprintf( stderr, "    -S attr\tsort the results by attribute `attr'\n" );
@@ -89,21 +90,21 @@ main( int argc, char **argv )
 {
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
-    int			rc, i, first, scope, deref, attrsonly;
+    int			rc, i, first, scope, deref, attrsonly, manageDSAit;
     int			referrals, timelimit, sizelimit, debug;
 	int		authmethod, version, want_bindpw;
     LDAP		*ld;
 
     infile = NULL;
     debug = verbose = allow_binary = not = vals2tmp =
-	    attrsonly = ldif = want_bindpw = 0;
+	    attrsonly = manageDSAit = ldif = want_bindpw = 0;
 
 	deref = referrals = sizelimit = timelimit = version = -1;
 
 	scope = LDAP_SCOPE_SUBTREE;
     authmethod = LDAP_AUTH_SIMPLE;
 
-    while (( i = getopt( argc, argv, "WKknuvtRABLD:s:f:h:b:d:P:p:F:a:w:l:z:S:")) != EOF ) {
+    while (( i = getopt( argc, argv, "WKknuvtMRABLD:s:f:h:b:d:P:p:F:a:w:l:z:S:")) != EOF ) {
 	switch( i ) {
 	case 'n':	/* do Not do any searches */
 	    ++not;
@@ -134,6 +135,10 @@ main( int argc, char **argv )
 	case 't':	/* write attribute values to /tmp files */
 	    ++vals2tmp;
 	    break;
+	case 'M':
+		/* enable Manage DSA IT */
+		manageDSAit++;
+		break;
 	case 'R':	/* don't automatically chase referrals */
 		referrals = (int) LDAP_OPT_OFF;
 	    break;
@@ -338,6 +343,28 @@ main( int argc, char **argv )
 	}
 	fprintf( stderr, "\n" );
     }
+
+	if ( manageDSAit ) {
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = manageDSAit > 1;
+
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, &ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set Manage DSA IT Control\n" );
+			if( c.ldctl_iscritical ) {
+				exit( EXIT_FAILURE );
+			}
+		}
+	}
 
     if ( infile == NULL ) {
 	rc = dosearch( ld, base, scope, attrs, attrsonly, filtpattern, "" );

@@ -32,7 +32,8 @@ bdb2i_back_add_internal(
 
 	if ( ( bdb2i_dn2id( be, e->e_ndn ) ) != NOID ) {
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
+		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
+			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}
 
@@ -41,8 +42,8 @@ bdb2i_back_add_internal(
 			0, 0, 0 );
 
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, "",
-		    "" );
+		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION,
+			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}
 
@@ -55,19 +56,37 @@ bdb2i_back_add_internal(
 	pdn = dn_parent( be, e->e_ndn );
 
 	if( pdn != NULL && *pdn != '\0' && !be_issuffix(be, "") ) {
-		char *matched = NULL;
+		Entry *matched = NULL;
 
 		assert( *pdn != '\0' );
 
 		/* get parent with writer lock */
 		if ( (p = bdb2i_dn2entry_w( be, pdn, &matched )) == NULL ) {
-			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n", 0,
-			    0, 0 );
+			char *matched_dn;
+			struct berval **refs;
+
+			if( matched != NULL ) {
+				matched_dn = ch_strdup( matched->e_dn );
+				refs = is_entry_referral( matched )
+					? get_entry_referrals( be, conn, op, matched )
+					: NULL;
+
+				bdb2i_cache_return_entry_w( &li->li_cache, matched ); 
+
+			} else {
+				matched_dn = NULL;
+				refs = default_referral;
+			}
+
+			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
+				0, 0, 0 );
+
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			    matched, "" );
+			    matched_dn, NULL, NULL, NULL );
 
 			if ( matched != NULL ) {
-				free( matched );
+				ber_bvecfree( refs );
+				free( matched_dn );
 			}
 
 			entry_free( e );
@@ -77,21 +96,54 @@ bdb2i_back_add_internal(
 
 		free(pdn);
 
-		if ( matched != NULL ) {
-			free( matched );
-		}
-
 		if ( ! access_allowed( be, conn, op, p,
 			"children", NULL, ACL_WRITE ) )
 		{
+			/* free parent and writer lock */
+			bdb2i_cache_return_entry_w( &li->li_cache, p ); 
+
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			    "", "" );
+			    NULL, NULL, NULL, NULL );
+
+			entry_free( e );
+			return -1;
+		}
+
+
+		if ( is_entry_alias( p ) ) {
+			/* parent is an alias, don't allow add */
 
 			/* free parent and writer lock */
 			bdb2i_cache_return_entry_w( &li->li_cache, p ); 
 
+			Debug( LDAP_DEBUG_TRACE, "parent is alias\n", 0,
+			    0, 0 );
+			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
+			    NULL, NULL, NULL, NULL );
+
+			entry_free( e );
+			return -1;
+		}
+
+		if ( is_entry_referral( p ) ) {
+			/* parent is an referral, don't allow add */
+			char *matched_dn = ch_strdup( matched->e_dn );
+			struct berval **refs = is_entry_referral( matched )
+					? get_entry_referrals( be, conn, op, matched )
+					: NULL;
+
+			/* free parent and writer lock */
+			bdb2i_cache_return_entry_w( &li->li_cache, p ); 
+
+			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
+			    0, 0 );
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+			    matched_dn, NULL, refs, NULL );
+
+			ber_bvecfree( refs );
+			free( matched_dn );
 			entry_free( e );
 			return -1;
 		}
@@ -109,7 +161,7 @@ bdb2i_back_add_internal(
 				0, 0 );
 
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			    "", "" );
+			    NULL, NULL, NULL, NULL );
 
 			entry_free( e );
 			return -1;
@@ -142,11 +194,9 @@ bdb2i_back_add_internal(
 		/* free the entry */
 		entry_free( e );
 
-		if(rc > 0) {
-			send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
-		} else {
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
-		}
+		send_ldap_result( conn, op,
+			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 
 		return( -1 );
 	}
@@ -162,7 +212,8 @@ bdb2i_back_add_internal(
 	if ( bdb2i_id2children_add( be, p, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb2i_id2children_add failed\n", 0,
 		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 
 		bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2CHILDREN", conn, op );
 
@@ -182,7 +233,8 @@ bdb2i_back_add_internal(
 	if ( bdb2i_index_add_entry( be, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb2i_index_add_entry failed\n", 0,
 		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 
 		bdb2i_stop_timing( be->bd_info, time1, "ADD-INDEX", conn, op );
 
@@ -197,7 +249,8 @@ bdb2i_back_add_internal(
 	if ( bdb2i_dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb2i_dn2id_add failed\n", 0,
 		    0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+ 			NULL, NULL, NULL, NULL );
 
 		bdb2i_stop_timing( be->bd_info, time1, "ADD-DN2ID", conn, op );
 
@@ -213,7 +266,8 @@ bdb2i_back_add_internal(
 		Debug( LDAP_DEBUG_TRACE, "bdb2i_id2entry_add failed\n", 0,
 		    0, 0 );
 		(void) bdb2i_dn2id_delete( be, e->e_ndn );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+ 			NULL, NULL, NULL, NULL );
 
 		bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2ENTRY", conn, op );
 
@@ -222,7 +276,8 @@ bdb2i_back_add_internal(
 
 	bdb2i_stop_timing( be->bd_info, time1, "ADD-ID2ENTRY", conn, op );
 
-	send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
+	send_ldap_result( conn, op, LDAP_SUCCESS,
+ 			NULL, NULL, NULL, NULL );
 	rc = 0;
 
 return_results:;
@@ -255,10 +310,9 @@ bdb2_back_add(
 	bdb2i_start_timing( be->bd_info, &time1 );
 
 	if ( bdb2i_enter_backend_w( &lock ) != 0 ) {
-
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 		return( -1 );
-
 	}
 
 	/*  check, if a new default attribute index will be created,

@@ -1,6 +1,6 @@
 /* unbind.c - tcl unbind routines
  *
- * $Id: tcl_unbind.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
+ * $Id: tcl_unbind.c,v 1.5.6.1 1999/07/09 18:02:59 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -29,8 +29,6 @@ tcl_back_unbind (
 	struct tclinfo *ti = (struct tclinfo *) be->be_private;
 
 	if (ti->ti_unbind == NULL) {
-		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"unbind not implemented");
 		return (-1);
 	}
 

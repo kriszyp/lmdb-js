@@ -18,6 +18,8 @@ ldapmodify, ldapadd \- ldap modify entry and ldap add entry tools
 [\c
 .BR \-k ]
 [\c
+.BR \-M[M] ]
+[\c
 .BI \-d \ debuglevel\fR]
 [\c
 .BI \-D \ binddn\fR]
@@ -123,6 +125,11 @@ lines that begin with
 .I replica:
 (by default, replica: lines are compared against the LDAP server host
 and port in use to decide if a replog record should actually be applied).
+.TP
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
 .TP
 .BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.

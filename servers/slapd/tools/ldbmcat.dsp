@@ -126,7 +126,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib libdb.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\..\libraries\Release"
-# ADD LINK32 libdb.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\..\libraries\Release"
+# ADD LINK32 libdbs.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\..\libraries\Release"
 
 !ENDIF 
 
@@ -139,6 +139,10 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\ldbmcat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\mimic.c
 # End Source File
 # End Target
 # End Project

@@ -17,6 +17,7 @@
 #include "../../libraries/liblber/lber-int.h"
 
 char *supportedControls[] = {
+	LDAP_CONTROL_MANAGEDSAIT,
 	NULL
 };
 
@@ -154,9 +155,29 @@ return_results:
 		if( rc == -1 ) {
 			send_ldap_disconnect( conn, op, rc, errmsg );
 		} else {
-			send_ldap_result( conn, op, rc, NULL, errmsg );
+			send_ldap_result( conn, op, rc,
+				NULL, errmsg, NULL, NULL );
 		}
 	}
 
 	return rc;
+}
+
+
+int get_manageDSAit( Operation *op )
+{
+	int i;
+	if( op == NULL || op->o_ctrls == NULL ) {
+		return 0;
+	}
+
+	for( i=0; op->o_ctrls[i] != NULL; i++ ) {
+		if( strcmp( LDAP_CONTROL_MANAGEDSAIT, op->o_ctrls[i]->ldctl_oid )
+			== 0 )
+		{
+			return 1;
+		}
+	}
+
+	return 0;
 }

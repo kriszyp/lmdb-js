@@ -22,6 +22,8 @@ ldapsearch \- ldap search tool
 [\c
 .BR \-L ]
 [\c
+.BR \-M[M] ]
+[\c
 .BR \-R ]
 [\c
 .BI \-d \ debuglevel\fR]
@@ -113,6 +115,11 @@ Display search results in
 .BR ldif (5)
 format.  This option also turns on the -B option, and causes the -F option
 to be ignored.
+.TP
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
 .TP
 .B \-R
 Do not automatically follow referrals returned while searching.

@@ -59,7 +59,7 @@ read_and_send_results(
 				    buf, 0, 0 );
 			} else {
 				send_search_entry( be, conn, op, e, attrs,
-				    attrsonly, 0 );
+				    attrsonly, 0, NULL );
 				entry_free( e );
 			}
 
@@ -70,7 +70,7 @@ read_and_send_results(
 
 	/* otherwise, front end will send this result */
 	if ( err != 0 || op->o_tag != LDAP_REQ_BIND ) {
-		send_ldap_result( conn, op, err, matched, info );
+		send_ldap_result( conn, op, err, matched, info, NULL, NULL );
 	}
 
 	free( buf );

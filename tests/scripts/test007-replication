@@ -43,8 +43,8 @@ SLAVEPID=$!
 
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $PORT \
-		'cn=Monitor' > /dev/null 2>&1
+	$LDAPSEARCH -L -s base -b "$MONITOR" -h localhost -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
@@ -54,8 +54,8 @@ done
 
 echo "Using ldapsearch to check that slave slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $SLAVEPORT \
-		'cn=Monitor' > /dev/null 2>&1
+	$LDAPSEARCH -L -s base -b "$MONITOR" -h localhost -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
@@ -67,7 +67,7 @@ echo "Starting slurpd..."
 $SLURPD -f $MASTERCONF -d 4 -t $REPLDIR > $SLURPLOG 2>&1 &
 SLURPPID=$!
 
-echo "Using ldapadd to populate the database..."
+echo "Using ldapadd to populate the master directory..."
 $LDAPADD -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
@@ -77,12 +77,16 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Using ldapmodify to modify the database..."
+echo "Waiting 15 seconds for slurpd to send changes..."
+sleep 15
+
+echo "Using ldapmodify to modify slave directory..."
+
 #
 # Do some modifications
 #
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -h localhost -p $SLAVEPORT -w $PASSWD > \
 	/dev/null 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 changetype: modify

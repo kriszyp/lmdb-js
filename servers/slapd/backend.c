@@ -437,26 +437,6 @@ select_backend( char * dn )
 		}
 	}
 
-        /* if no proper suffix could be found then check for aliases */
-        for ( i = 0; i < nbackends; i++ ) {
-                for ( j = 0; 
-		      backends[i].be_suffixAlias != NULL && 
-                      backends[i].be_suffixAlias[j] != NULL; 
-		      j += 2 )
-                {
-                        len = strlen( backends[i].be_suffixAlias[j] );
-
-                        if ( len > dnlen ) {
-                                continue;
-                        }
-
-                        if ( strcmp( backends[i].be_suffixAlias[j],
-                            dn + (dnlen - len) ) == 0 ) {
-                                return( &backends[i] );
-                        }
-                }
-        }
-
 #ifdef LDAP_ALLOW_NULL_SEARCH_BASE
 	/* Add greg@greg.rim.or.jp
 	 * It's quick hack for cheap client

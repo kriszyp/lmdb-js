@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\oldbm32.lib"
-# ADD LIB32 /nologo /out:"..\Debug\oldbm32.lib"
+# ADD LIB32 /nologo /out:"..\SDebug\oldbm32.lib"
 
 !ELSEIF  "$(CFG)" == "libldbm - Win32 Single Release"
 
@@ -111,7 +111,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\oldbm32.lib"
-# ADD LIB32 /nologo /out:"..\Release\oldbm32.lib"
+# ADD LIB32 /nologo /out:"..\SRelease\oldbm32.lib"
 
 !ENDIF 
 

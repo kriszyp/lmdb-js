@@ -60,10 +60,12 @@ perl_back_delete(
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
 	if( return_code != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
 
 	} else {
-		send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
+		send_ldap_result( conn, op, LDAP_SUCCESS,
+			NULL, NULL, NULL, NULL );
 	}
 
 	Debug( LDAP_DEBUG_ANY, "Here DELETE\n", 0, 0, 0 );

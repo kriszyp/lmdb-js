@@ -34,8 +34,8 @@ do_compare(
 	if( op->o_bind_in_progress ) {
 		Debug( LDAP_DEBUG_ANY, "do_compare: SASL bind in progress.\n",
 			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS, NULL,
-		    "SASL bind in progress" );
+		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
+			NULL, "SASL bind in progress", NULL, NULL );
 		return LDAP_SASL_BIND_IN_PROGRESS;
 	}
 
@@ -85,19 +85,16 @@ do_compare(
 		free( ndn );
 		ava_free( &ava, 0 );
 
-		send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
-		    default_referral );
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+			NULL, NULL, default_referral, NULL );
 		return 1;
 	}
-
-	/* alias suffix if approp */
-	ndn = suffixAlias( ndn, op, be );
 
 	if ( be->be_compare ) {
 		(*be->be_compare)( be, conn, op, ndn, &ava );
 	} else {
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
-		    "Function not implemented" );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "Function not implemented", NULL, NULL );
 	}
 
 	free( ndn );

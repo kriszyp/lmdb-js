@@ -8,6 +8,7 @@ if test "$BACKEND" = "bdb2" ; then
 	ACLCONF=$DATADIR/slapd-bdb2-acl.conf
 	MASTERCONF=$DATADIR/slapd-bdb2-repl-master.conf
 	SLAVECONF=$DATADIR/slapd-bdb2-repl-slave.conf
+	REFSLAVECONF=$DATADIR/slapd-bdb2-ref-slave.conf
 	TIMING="-t"
 else
 	LDIF2LDBM=../servers/slapd/tools/ldif2ldbm
@@ -15,6 +16,7 @@ else
 	ACLCONF=$DATADIR/slapd-acl.conf
 	MASTERCONF=$DATADIR/slapd-repl-master.conf
 	SLAVECONF=$DATADIR/slapd-repl-slave.conf
+	REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 fi
 
 if test "$LDAP_PROTO" ; then
@@ -41,8 +43,10 @@ DBDIR=./test-db
 REPLDIR=./test-repl
 LDIF=$DATADIR/test.ldif
 LDIFORDERED=$DATADIR/test-ordered.ldif
+MONITOR="cn=monitor"
 BASEDN="o=University of Michigan, c=US"
 MANAGERDN="cn=Manager, o=University of Michigan, c=US"
+UPDATEDN="cn=Replica, o=University of Michigan, c=US"
 PASSWD=secret
 BABSDN="cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US"
 BJORNSDN="cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US"

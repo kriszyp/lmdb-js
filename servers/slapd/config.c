@@ -47,8 +47,14 @@ read_config( char *fname )
 	char	*cargv[MAXARGS];
 	int	lineno, i, rc;
 
+	struct berval *vals[2];
+	struct berval val;
+
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
+
+	vals[0] = &val;
+	vals[1] = NULL;
 
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
@@ -121,7 +127,7 @@ read_config( char *fname )
 			be = backend_db_init( cargv[1] );
 
  		/* assign a default depth limit for alias deref */
-		be->be_maxDerefDepth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
+		be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
@@ -219,54 +225,9 @@ read_config( char *fname )
 				free( dn );
 			}
 
-                /* set database suffixAlias */
-                } else if ( strcasecmp( cargv[0], "suffixAlias" ) == 0 ) {
-                        if ( cargc < 2 ) {
-                                Debug( LDAP_DEBUG_ANY,
-                    "%s: line %d: missing alias and aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
-                                    fname, lineno, 0 );
-                                return( 1 );
-                        } else if ( cargc < 3 ) {
-                                Debug( LDAP_DEBUG_ANY,
-                    "%s: line %d: missing aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
-                                    fname, lineno, 0 );
-                                return( 1 );
-                        } else if ( cargc > 3 ) {
-                                Debug( LDAP_DEBUG_ANY,
-    "%s: line %d: extra cruft in suffixAlias line (ignored)\n",
-                                    fname, lineno, 0 );
-                        }
-                        if ( be == NULL ) {
-                                Debug( LDAP_DEBUG_ANY,
-"%s: line %d: suffixAlias line must appear inside a database definition (ignored)\n",
-                                    fname, lineno, 0 );
-                        } else {
-                                char *alias, *aliased_dn;
-
-								alias = ch_strdup( cargv[1] );
-                                (void) dn_normalize( alias );
-
-                                aliased_dn = ch_strdup( cargv[2] );
-                                (void) dn_normalize( aliased_dn );
-
-
-								if ( strcasecmp( alias, aliased_dn) == 0 ) {
-                                	Debug( LDAP_DEBUG_ANY,
-"%s: line %d: suffixAlias %s is not different from aliased dn (ignored)\n",
-                                    fname, lineno, alias );
-								} else {
-                                	(void) dn_normalize_case( alias );
-                                	(void) dn_normalize_case( aliased_dn );
-                                	charray_add( &be->be_suffixAlias, alias );
-                                	charray_add( &be->be_suffixAlias, aliased_dn );
-								}
-
-								free(alias);
-								free(aliased_dn);
-                        }
-
                /* set max deref depth */
                } else if ( strcasecmp( cargv[0], "maxDerefDepth" ) == 0 ) {
+					int i;
                        if ( cargc < 2 ) {
                                Debug( LDAP_DEBUG_ANY,
                    "%s: line %d: missing depth in \"maxDerefDepth <depth>\" line\n",
@@ -277,9 +238,14 @@ read_config( char *fname )
                                Debug( LDAP_DEBUG_ANY,
 "%s: line %d: depth line must appear inside a database definition (ignored)\n",
                                    fname, lineno, 0 );
+                       } else if ((i = atoi(cargv[i])) < 0) {
+                               Debug( LDAP_DEBUG_ANY,
+"%s: line %d: depth must be positive (ignored)\n",
+                                   fname, lineno, 0 );
+
                        } else {
-                           be->be_maxDerefDepth = atoi (cargv[1]);
-                       }
+                           be->be_max_deref_depth = i;
+					   }
 
 
 		/* set magic "root" dn for this database */
@@ -343,10 +309,10 @@ read_config( char *fname )
 				    fname, lineno, 0 );
 				return( 1 );
 			}
-			default_referral = (char *) ch_malloc( strlen( cargv[1] )
-			    + sizeof("Referral:\n") + 1 );
-			strcpy( default_referral, "Referral:\n" );
-			strcat( default_referral, cargv[1] );
+
+			vals[0]->bv_val = cargv[1];
+			vals[0]->bv_len = strlen( vals[0]->bv_val );
+			value_add( &default_referral, vals );
 
 		/* specify locale */
 		} else if ( strcasecmp( cargv[0], "locale" ) == 0 ) {
@@ -498,6 +464,27 @@ read_config( char *fname )
 			} else {
 				be->be_update_ndn = ch_strdup( cargv[1] );
 				(void) dn_normalize_case( be->be_update_ndn );
+			}
+
+		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+		    "%s: line %d: missing dn in \"updateref <ldapurl>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+			if ( be == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: updateref line must appear inside a database definition (ignored)\n",
+				    fname, lineno, 0 );
+			} else if ( be->be_update_ndn == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: updateref line must after updatedn (ignored)\n",
+				    fname, lineno, 0 );
+			} else {
+				vals[0]->bv_val = cargv[1];
+				vals[0]->bv_len = strlen( vals[0]->bv_val );
+				value_add( &be->be_update_refs, vals );
 			}
 
 		/* replication log file to which changes are appended */
