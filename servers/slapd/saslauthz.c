@@ -30,6 +30,50 @@
 
 #include <ldap_pvt.h>
 
+#define SASLREGEX_REPLACE 10
+
+typedef struct sasl_uri {
+  struct berval dn;
+  struct berval filter;
+  int scope;
+} SaslUri_t;
+
+typedef struct sasl_regexp {
+  char *sr_match;							/* regexp match pattern */
+  SaslUri_t sr_replace; 						/* regexp replace pattern */
+  regex_t sr_workspace;						/* workspace for regexp engine */
+  regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
+  int sr_dn_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+  int sr_fi_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+} SaslRegexp_t;
+
+static int nSaslRegexp = 0;
+static SaslRegexp_t *SaslRegexp = NULL;
+
+/* What SASL proxy authorization policies are allowed? */
+#define	SASL_AUTHZ_NONE	0
+#define	SASL_AUTHZ_FROM	1
+#define	SASL_AUTHZ_TO	2
+
+static int authz_policy = SASL_AUTHZ_NONE;
+
+int slap_sasl_setpolicy( const char *arg )
+{
+	int rc = LDAP_SUCCESS;
+
+	if ( strcasecmp( arg, "none" ) == 0 )
+		authz_policy = SASL_AUTHZ_NONE;
+	else if ( strcasecmp( arg, "from" ) == 0 )
+		authz_policy = SASL_AUTHZ_FROM;
+	else if ( strcasecmp( arg, "to" ) == 0 )
+		authz_policy = SASL_AUTHZ_TO;
+	else if ( strcasecmp( arg, "both" ) == 0 )
+		authz_policy = SASL_AUTHZ_FROM | SASL_AUTHZ_TO;
+	else
+		rc = LDAP_OTHER;
+	return rc;
+}
+
 /* URI format: ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]] */
 
 static int slap_parseURI( struct berval *uri,
@@ -598,26 +642,20 @@ CONCLUDED:
  * The DNs should not have the dn: prefix
  */
 static int
-slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, struct berval *attr, struct berval *authc)
+slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, AttributeDescription *ad, struct berval *authc)
 {
-	const char *errmsg;
 	int i, rc;
 	BerVarray vals=NULL;
-	AttributeDescription *ad=NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl_check_authz: does %s match %s rule in %s?\n",
-		   assertDN->bv_val, attr->bv_val, searchDN->bv_val ));
+		   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_check_authz: does %s match %s rule in %s?\n",
-	   assertDN->bv_val, attr->bv_val, searchDN->bv_val);
+	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #endif
-
-	rc = slap_bv2ad( attr, &ad, &errmsg );
-	if( rc != LDAP_SUCCESS )
-		goto COMPLETE;
 
 	rc = backend_attribute( NULL, NULL, NULL, NULL, searchDN, ad, &vals );
 	if( rc != LDAP_SUCCESS )
@@ -636,10 +674,10 @@ COMPLETE:
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_check_authz: %s check returning %s\n", attr->bv_val, rc ));
+		   "slap_sasl_check_authz: %s check returning %s\n", ad->ad_cname.bv_val, rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "<==slap_sasl_check_authz: %s check returning %d\n", attr->bv_val, rc, 0);
+	   "<==slap_sasl_check_authz: %s check returning %d\n", ad->ad_cname.bv_val, rc, 0);
 #endif
 
 	return( rc );
@@ -650,12 +688,6 @@ COMPLETE:
 /* Check if a bind can SASL authorize to another identity.
  * The DNs should not have the dn: prefix
  */
-
-static struct berval sasl_authz_src = {
-	sizeof(SASL_AUTHZ_SOURCE_ATTR)-1, SASL_AUTHZ_SOURCE_ATTR };
-
-static struct berval sasl_authz_dst = {
-	sizeof(SASL_AUTHZ_DEST_ATTR)-1, SASL_AUTHZ_DEST_ATTR };
 
 int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 {
@@ -683,17 +715,21 @@ int slap_sasl_authorized( struct berval *authcDN, struct berval *authzDN )
 	}
 
 	/* Check source rules */
-	rc = slap_sasl_check_authz( authcDN, authzDN, &sasl_authz_src,
-	   authcDN );
-	if( rc == LDAP_SUCCESS ) {
-		goto DONE;
+	if( authz_policy & SASL_AUTHZ_TO ) {
+		rc = slap_sasl_check_authz( authcDN, authzDN,
+			slap_schema.si_ad_saslAuthzTo, authcDN );
+		if( rc == LDAP_SUCCESS ) {
+			goto DONE;
+		}
 	}
 
 	/* Check destination rules */
-	rc = slap_sasl_check_authz( authzDN, authcDN, &sasl_authz_dst,
-	   authcDN );
-	if( rc == LDAP_SUCCESS ) {
-		goto DONE;
+	if( authz_policy & SASL_AUTHZ_FROM ) {
+		rc = slap_sasl_check_authz( authzDN, authcDN,
+			slap_schema.si_ad_saslAuthzFrom, authcDN );
+		if( rc == LDAP_SUCCESS ) {
+			goto DONE;
+		}
 	}
 
 	rc = LDAP_INAPPROPRIATE_AUTH;

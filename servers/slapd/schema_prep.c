@@ -478,6 +478,22 @@ static struct slap_schema_ad_map {
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
 		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
+	{ "saslAuthzTo", "( 1.3.6.1.4.1.4203.1.3.3 "
+			"NAME 'saslAuthzTo' "
+			"DESC 'SASL proxy authorization targets' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
+			"USAGE dSAOperation )",
+		NULL, 0, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_saslAuthzTo) },
+	{ "saslAuthzFrom", "( 1.3.6.1.4.1.4203.1.3.4 "
+			"NAME 'saslAuthzFrom' "
+			"DESC 'SASL proxy authorization sources' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
+			"USAGE dSAOperation )",
+		NULL, 0, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_saslAuthzFrom) },
 #ifdef SLAPD_ACI_ENABLED
 	{ "OpenLDAPaci", "( 1.3.6.1.4.1.4203.666.1.5 "
 			"NAME 'OpenLDAPaci' "

@@ -618,6 +618,8 @@ struct slap_internal_schema {
 	/* Access Control Internals */
 	AttributeDescription *si_ad_entry;
 	AttributeDescription *si_ad_children;
+	AttributeDescription *si_ad_saslAuthzTo;
+	AttributeDescription *si_ad_saslAuthzFrom;
 #ifdef SLAPD_ACI_ENABLED
 	AttributeDescription *si_ad_aci;
 #endif
@@ -1603,26 +1605,6 @@ typedef struct slap_conn {
 #else
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #endif
-
-
-#define SASLREGEX_REPLACE 10
-#define SASL_AUTHZ_SOURCE_ATTR "saslAuthzTo"
-#define SASL_AUTHZ_DEST_ATTR "saslAuthzFrom"
-
-typedef struct sasl_uri {
-  struct berval dn;
-  struct berval filter;
-  int scope;
-} SaslUri_t;
-
-typedef struct sasl_regexp {
-  char *sr_match;							/* regexp match pattern */
-  SaslUri_t sr_replace; 						/* regexp replace pattern */
-  regex_t sr_workspace;						/* workspace for regexp engine */
-  regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
-  int sr_dn_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
-  int sr_fi_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
-} SaslRegexp_t;
 
 /*
  * listener; need to access it from monitor backend

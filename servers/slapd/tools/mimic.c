@@ -153,14 +153,14 @@ int slap_sasl_setpass(
 	return LDAP_SUCCESS;
 }
 
-char * slap_sasl_secprops( const char *in )
+int slap_sasl_config(
+	int cargc,
+	char **cargv,
+	char *line,
+	const char *fname,
+	int lineno )
 {
-	return NULL;
-}
-
-int slap_sasl_regexp_config( const char *match, const char *replace )
-{
-	return(0);
+	return LDAP_SUCCESS;
 }
 
 

@@ -61,9 +61,6 @@ char   *slapd_args_file = NULL;
 
 char   *strtok_quote_ptr;
 
-int nSaslRegexp = 0;
-SaslRegexp_t *SaslRegexp = NULL;
-
 #ifdef SLAPD_RLOOKUPS
 int use_reverse_lookup = 1;
 #else /* !SLAPD_RLOOKUPS */
@@ -561,128 +558,10 @@ read_config( const char *fname )
 
 			lutil_salt_format( cargv[1] );
 
-		/* set SASL host */
-		} else if ( strcasecmp( cargv[0], "sasl-host" ) == 0 ) {
-			if ( cargc < 2 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing host in \"sasl-host <host>\" line\n",
-					   fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing host in \"sasl-host <host>\" line\n",
-				    fname, lineno, 0 );
-#endif
-
-				return( 1 );
-			}
-
-			if ( global_host != NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: already set sasl-host!\n",
-					   fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: already set sasl-host!\n",
-					fname, lineno, 0 );
-#endif
-
+		/* SASL config options */
+		} else if ( strncasecmp( cargv[0], "sasl", 4 ) == 0 ) {
+			if ( slap_sasl_config( cargc, cargv, line, fname, lineno ) )
 				return 1;
-
-			} else {
-				global_host = ch_strdup( cargv[1] );
-			}
-
-		/* set SASL realm */
-		} else if ( strcasecmp( cargv[0], "sasl-realm" ) == 0 ) {
-			if ( cargc < 2 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing realm in \"sasl-realm <realm>\" line.\n",
-					   fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing realm in \"sasl-realm <realm>\" line\n",
-				    fname, lineno, 0 );
-#endif
-
-				return( 1 );
-			}
-
-			if ( global_realm != NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: already set sasl-realm!\n",
-					   fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: already set sasl-realm!\n",
-					fname, lineno, 0 );
-#endif
-
-				return 1;
-
-			} else {
-				global_realm = ch_strdup( cargv[1] );
-			}
-
-		} else if ( !strcasecmp( cargv[0], "sasl-regexp" ) 
-			|| !strcasecmp( cargv[0], "saslregexp" ) )
-		{
-			int rc;
-			if ( cargc != 3 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: need 2 args in "
-					   "\"saslregexp <match> <replace>\"\n",
-					   fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY, 
-				"%s: line %d: need 2 args in \"saslregexp <match> <replace>\"\n",
-				    fname, lineno, 0 );
-#endif
-
-				return( 1 );
-			}
-			rc = slap_sasl_regexp_config( cargv[1], cargv[2] );
-			if ( rc ) {
-				return rc;
-			}
-
-		/* SASL security properties */
-		} else if ( strcasecmp( cargv[0], "sasl-secprops" ) == 0 ) {
-			char *txt;
-
-			if ( cargc < 2 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing flags in "
-					   "\"sasl-secprops <properties>\" line\n",
-					   fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing flags in \"sasl-secprops <properties>\" line\n",
-				    fname, lineno, 0 );
-#endif
-
-				return 1;
-			}
-
-			txt = slap_sasl_secprops( cargv[1] );
-			if ( txt != NULL ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d sas-secprops: %s\n",
-					   fname, lineno, txt ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: sasl-secprops: %s\n",
-				    fname, lineno, txt );
-#endif
-
-				return 1;
-			}
 
 		/* set UCDATA path */
 		} else if ( strcasecmp( cargv[0], "ucdata-path" ) == 0 ) {
