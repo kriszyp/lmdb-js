@@ -46,16 +46,18 @@ struct monitorentrypriv {
 	Entry			*mp_children;	/* pointer to first child */
 	struct monitorsubsys	*mp_info;	/* subsystem info */
 #define mp_type		mp_info->mss_type
-	int			mp_flags;	/* flags */
+	unsigned long		mp_flags;	/* flags */
 
-#define	MONITOR_F_NONE		0x00
-#define MONITOR_F_SUB		0x01		/* subentry of subsystem */
-#define MONITOR_F_PERSISTENT	0x10		/* persistent entry */
-#define MONITOR_F_PERSISTENT_CH	0x20		/* subsystem generates 
+#define	MONITOR_F_NONE		0x00U
+#define MONITOR_F_SUB		0x01U		/* subentry of subsystem */
+#define MONITOR_F_PERSISTENT	0x10U		/* persistent entry */
+#define MONITOR_F_PERSISTENT_CH	0x20U		/* subsystem generates 
 						   persistent entries */
-#define MONITOR_F_VOLATILE	0x40		/* volatile entry */
-#define MONITOR_F_VOLATILE_CH	0x80		/* subsystem generates 
+#define MONITOR_F_VOLATILE	0x40U		/* volatile entry */
+#define MONITOR_F_VOLATILE_CH	0x80U		/* subsystem generates 
 						   volatile entries */
+/* NOTE: flags with 0xF0000000U mask are reserved for subsystem internals */
+
 	int			(*mp_update)( Operation *op, Entry *e );
 						/* update callback
 						   for user-defined entries */
@@ -221,6 +223,7 @@ typedef struct monitorsubsys {
 	struct berval	mss_dn;
 	struct berval	mss_ndn;
 	int		mss_flags;
+#define MONITOR_F_OPENED	0x10000000U
 
 #define MONITOR_HAS_VOLATILE_CH( mp ) \
 	( ( mp )->mp_flags & MONITOR_F_VOLATILE_CH )

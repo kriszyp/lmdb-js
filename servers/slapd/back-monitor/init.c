@@ -36,8 +36,17 @@
  */
 BackendDB *be_monitor = NULL;
 
+static struct monitorsubsys	**monitor_subsys = NULL;
+static int			monitor_subsys_opened = 0;
+
 /*
  * subsystem data
+ *
+ * the known subsystems are added to the subsystems
+ * array at backend initialization; other subsystems
+ * may be added by calling monitor_back_register_subsys()
+ * before the database is opened (e.g. by other backends
+ * or by overlays or modules).
  */
 static struct monitorsubsys known_monitor_subsys[] = {
 	{ 
@@ -163,8 +172,6 @@ init_module( int argc, char *argv[] )
 
 #endif /* SLAPD_MONITOR */
 
-static struct monitorsubsys **monitor_subsys = NULL;
-
 int
 monitor_back_register_subsys( monitorsubsys *ms )
 {
@@ -184,6 +191,22 @@ monitor_back_register_subsys( monitorsubsys *ms )
 
 	monitor_subsys[ i ] = ms;
 	monitor_subsys[ i + 1 ] = NULL;
+
+	/* if a subsystem is registered __AFTER__ subsystem 
+	 * initialization (depending on the sequence the databases
+	 * are listed in slapd.conf), init it */
+	if ( monitor_subsys_opened ) {
+
+		/* FIXME: this should only be possible
+		 * if be_monitor is already initialized */
+		assert( be_monitor );
+
+		if ( ms->mss_open && ( *ms->mss_open )( be_monitor, ms ) ) {
+			return -1;
+		}
+
+		ms->mss_flags |= MONITOR_F_OPENED;
+	}
 
 	return 0;
 }
@@ -679,7 +702,8 @@ monitor_back_db_open(
 	Entry 			*e, **ep;
 	struct monitorentrypriv	*mp;
 	int			i;
-	char 			buf[ BACKMONITOR_BUFSIZE ], *end_of_line;
+	char 			buf[ BACKMONITOR_BUFSIZE ],
+				*end_of_line;
 	struct berval		bv;
 	struct tm		*tms;
 #ifdef HAVE_GMTIME_R
@@ -893,7 +917,10 @@ monitor_back_db_open(
 		{
 			return( -1 );
 		}
+		ms[ 0 ]->mss_flags |= MONITOR_F_OPENED;
 	}
+
+	monitor_subsys_opened = 1;
 
 	return( 0 );
 }
