@@ -1098,7 +1098,6 @@ connection_resched( Connection *conn )
 static int connection_op_activate( Connection *conn, Operation *op )
 {
 	struct co_arg *arg;
-	char *tmpdn;
 	int status;
 	ber_tag_t tag = op->o_tag;
 
@@ -1106,17 +1105,11 @@ static int connection_op_activate( Connection *conn, Operation *op )
 		conn->c_conn_state = SLAP_C_BINDING;
 	}
 
-	if ( conn->c_dn != NULL ) {
-		tmpdn = ch_strdup( conn->c_dn );
-	} else {
-		tmpdn = NULL;
-	}
-
 	arg = (struct co_arg *) ch_malloc( sizeof(struct co_arg) );
 	arg->co_conn = conn;
 	arg->co_op = op;
 
-	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
+	arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
 	(void) dn_normalize( arg->co_op->o_ndn );
 
@@ -1128,10 +1121,6 @@ static int connection_op_activate( Connection *conn, Operation *op )
 		?  ch_strdup( conn->c_authmech ) : NULL;
 	
 	slap_op_add( &conn->c_ops, arg->co_op );
-
-	if( tmpdn != NULL ) {
-		free( tmpdn );
-	}
 
 	status = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_operation, (void *) arg );
