@@ -1,17 +1,46 @@
 /* config.c - shell backend configuration file routine */
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "shell.h"
 
-extern char	**charray_dup();
+#ifdef SHELL_SURROGATE_PARENT
 
-shell_back_config(
-    Backend	*be,
-    char	*fname,
+static struct berval make_cmd_info(
+	char **args
+)
+{
+	struct berval ret = { 0, 0 };
+	int i;
+	ber_len_t offset;
+	for( i = 0; args[i] != NULL; i++ )
+		ret.bv_len += strlen( args[i] ) + 1;
+	ret.bv_val = ch_malloc( ret.bv_len );
+	offset = 0;
+	for( i = 0; args[i] != NULL; i++ ) {
+		strcpy( ret.bv_val + offset, args[i] );
+		offset += strlen( args[i] ) + 1;
+	}
+	return ret;
+}
+
+#endif /* SHELL_SURROGATE_PARENT */
+
+int
+shell_back_db_config(
+    BackendDB	*be,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv
@@ -22,7 +51,7 @@ shell_back_config(
 	if ( si == NULL ) {
 		fprintf( stderr, "%s: line %d: shell backend info is null!\n",
 		    fname, lineno );
-		exit( 1 );
+		return( 1 );
 	}
 
 	/* command + args to exec for binds */
@@ -31,9 +60,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"bind <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_bind = charray_dup( &argv[1] );
+		si->si_bind = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for unbinds */
 	} else if ( strcasecmp( argv[0], "unbind" ) == 0 ) {
@@ -41,9 +70,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"unbind <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_unbind = charray_dup( &argv[1] );
+		si->si_unbind = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for searches */
 	} else if ( strcasecmp( argv[0], "search" ) == 0 ) {
@@ -51,9 +80,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"search <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_search = charray_dup( &argv[1] );
+		si->si_search = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for compares */
 	} else if ( strcasecmp( argv[0], "compare" ) == 0 ) {
@@ -61,9 +90,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"compare <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_compare = charray_dup( &argv[1] );
+		si->si_compare = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for modifies */
 	} else if ( strcasecmp( argv[0], "modify" ) == 0 ) {
@@ -71,9 +100,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"modify <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_modify = charray_dup( &argv[1] );
+		si->si_modify = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for modrdn */
 	} else if ( strcasecmp( argv[0], "modrdn" ) == 0 ) {
@@ -81,9 +110,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"modrdn <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_modrdn = charray_dup( &argv[1] );
+		si->si_modrdn = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for add */
 	} else if ( strcasecmp( argv[0], "add" ) == 0 ) {
@@ -91,9 +120,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"add <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_add = charray_dup( &argv[1] );
+		si->si_add = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for delete */
 	} else if ( strcasecmp( argv[0], "delete" ) == 0 ) {
@@ -101,9 +130,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"delete <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_delete = charray_dup( &argv[1] );
+		si->si_delete = MAKE_CMD_INFO( &argv[1] );
 
 	/* command + args to exec for abandon */
 	} else if ( strcasecmp( argv[0], "abandon" ) == 0 ) {
@@ -111,9 +140,9 @@ shell_back_config(
 			fprintf( stderr,
 	"%s: line %d: missing executable in \"abandon <executable>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		si->si_abandon = charray_dup( &argv[1] );
+		si->si_abandon = MAKE_CMD_INFO( &argv[1] );
 
 	/* anything else */
 	} else {
@@ -121,4 +150,6 @@ shell_back_config(
 "%s: line %d: unknown directive \"%s\" in shell database definition (ignored)\n",
 		    fname, lineno, argv[0] );
 	}
+
+	return 0;
 }

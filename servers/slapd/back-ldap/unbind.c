@@ -97,6 +97,9 @@ ldap_back_conn_destroy(
 		if ( lc->bound_dn.bv_val ) {
 			ch_free( lc->bound_dn.bv_val );
 		}
+		if ( lc->cred.bv_val ) {
+			ch_free( lc->cred.bv_val );
+		}
 		ch_free( lc );
 	}
 

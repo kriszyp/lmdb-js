@@ -1,0 +1,119 @@
+.TH SLAPD-LDAP 5 "2 May 2002" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapd-ldap \- LDAP backend to slapd
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The LDAP backend to
+.BR slapd (8)
+is not an actual database; instead it acts as a proxy to forward incoming
+requests to another LDAP server. While processing requests it will also
+chase referrals, so that referrals are fully processed instead of being
+returned to the slapd client.
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the LDAP backend database.
+That is, they must follow a "database ldap" line and come before any
+subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+.LP
+Note: It is strongly recommended to set
+.RS
+lastmod  off
+.RE
+for every
+.B ldap
+and
+.B meta
+database.
+This is because operational attributes related to entry creation and
+modification should not be used, as they could be passed to the target
+servers, generating an error.
+.TP
+.B uri <ldapurl>
+LDAP server to use.
+.TP
+.B server <hostport>
+Obsolete option; same as `uri ldap://<hostport>/'.
+.TP
+.B binddn "<administrative DN for access control purposes>"
+DN which is used to query the target server for acl checking; it
+should have read access on the target server to attributes used on the
+proxy for acl checking.
+There is no risk of giving away such values; they are only used to
+check permissions.
+.TP
+.B bindpw <password>
+Password used with the bind DN above.
+.TP
+.B rebind-as-user
+If this option is given, the client's bind credentials are remembered
+for rebinds when chasing referrals.
+.TP
+.B suffixmassage <suffix> <massaged (remote) suffix>
+DNs ending with <suffix> in a request are changed to end with <remote
+suffix> before sending the request to the remote server, and <remote
+suffix> in the results are changed back to <suffix> before returning
+them to the client.
+The <suffix> field must be defined as a valid suffix (or suffixAlias?)
+for the current database.
+.TP
+.B map "{attribute | objectclass} {<local name> | *} [<foreign name> | *]"
+Map attribute names and object classes from the foreign server to
+different values on the local slapd.
+The reason is that some attributes might not be part of the local
+slapd's schema, some attribute names might be different but serve the
+same purpose, etc.
+If local or foreign name is `*', the name is preserved.
+If foreign name is missing, the name is dropped.
+Local name `*' and no foreign name means unmapped attributes are
+removed, while local name = foreign name = `*' means unmapped
+attributes are preserved.
+.TP
+.B rewrite*
+The rewrite options are described in the "REWRITING" section of the
+.BR slapd-meta (5)
+manual page.
+.SH EXAMPLES
+This maps the OpenLDAP objectclass `groupOfNames' to the Active
+Directory objectclass `group':
+.LP
+.RS
+.nf
+map objectclass groupOfNames group
+.fi
+.RE
+.LP
+This presents a limited attribute set from the foreign
+server:
+.LP
+.RS
+.nf
+map attribute cn *
+map attribute sn *
+map attribute manager *
+map attribute description *
+map attribute *
+.fi
+.RE
+.LP
+These lines map cn, sn, manager, and description to themselves, and 
+any other attribute gets "removed" from the object before it is sent 
+to the client (or sent up to the LDAP server).  This is obviously a 
+simplistic example, but you get the point.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd-meta (5),
+.BR slapd (8),
+.BR ldap (3).
+

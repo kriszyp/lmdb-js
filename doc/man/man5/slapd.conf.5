@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5 "26 January 2002" "OpenLDAP LDVERSION"
+.TH SLAPD.CONF 5 "2 May 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -56,22 +56,23 @@ backslash character (`\\'), the character should be preceded by a
 backslash character.
 .LP
 The specific configuration options available are discussed below in the
-Global Configuration Options, General Backend Options, General Database
-Options, LDBM Database-Specific Options,
-Shell Database-Specific Options, and Password
-Database-Specific Options sections.  Refer to the "OpenLDAP
-Administrator's Guide" for more details on the slapd configuration
-file.
+Global Configuration Options, General Backend Options, and General Database
+Options.  Backend-specific options are discussed in the
+.B slapd-<backend>(5)
+manual pages.  Refer to the "OpenLDAP Administrator's Guide" for more
+details on the slapd configuration file.
 .SH GLOBAL CONFIGURATION OPTIONS
 Options described in this section apply to all backends, unless specifically 
 overridden in a backend definition. Arguments that should be replaced by 
 actual text are shown in brackets <>.
 .TP
-.B access to <what> [ by <who> <access> <control> ]+
+.B access to <what> "[ by <who> <access> <control> ]+"
 Grant access (specified by <access>) to a set of entries and/or
 attributes (specified by <what>) by one or more requestors (specified
 by <who>).
-See the "OpenLDAP's Administrator's Guide" for details.
+See
+.BR slapd.access (5)
+and the "OpenLDAP's Administrator's Guide" for details.
 .TP
 .B allow <features>
 Specify a set of features (separated by white space) to
@@ -91,11 +92,11 @@ server's command line options
 if started without the debugging command line option.
 .HP
 .hy 0
-.B attributetype (\ <oid> [NAME\ <name>] [OBSOLETE]\
+.B attributetype "(\ <oid> [NAME\ <name>] [OBSOLETE]\
  [DESC\ <description>]\
  [SUP\ <oid>] [EQUALITY\ <oid>] [ORDERING\ <oid>]\
  [SUBSTR\ <oid>] [SYNTAX\ <oidlen>] [SINGLE\-VALUE] [COLLECTIVE]\
- [NO\-USER\-MODIFICATION] [USAGE\ <attributeUsage>]\ )
+ [NO\-USER\-MODIFICATION] [USAGE\ <attributeUsage>]\ )"
 .RS
 Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
@@ -252,7 +253,7 @@ to allow any level of depth match, not including the exact match;
 .BR regex
 explicitly requires the (default) match based on regular expression
 pattern, as detailed in
-.BR regex(7).
+.BR regex (7).
 Finally,
 .B anonymous
 matches unbound operations; the 
@@ -402,9 +403,9 @@ option are only usable if slapd was compiled with --enable-modules.
 Specify a list of directories to search for loadable modules. Typically
 the path is colon-separated but this depends on the operating system.
 .HP
-.B objectclass ( <oid> [NAME <name>] [DESC <description] [OBSOLETE]\
+.B objectclass "( <oid> [NAME <name>] [DESC <description] [OBSOLETE]\
  [SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>]\
- [MAY <oids>] )
+ [MAY <oids>] )"
 .RS
 Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
@@ -415,7 +416,7 @@ objectidentifier
 description.)  Object classes are "STRUCTURAL" by default.
 .RE
 .TP
-.B objectidentifier <name> { <oid> | <name>[:<suffix>] }
+.B objectidentifier <name> "{ <oid> | <name>[:<suffix>] }"
 Define a string name that equates to the given OID. The string can be used
 in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
@@ -787,7 +788,11 @@ depending on which backend will serve the database.
 .SH GENERAL DATABASE OPTIONS
 Options in this section only apply to the configuration file section
 for the database in which they are defined.  They are supported by every
-type of backend.
+type of backend.  Note that the
+.B database
+and at least one
+.B suffix
+option are mandatory for each database.
 .TP
 .B database <databasetype>
 Mark the beginning of a new database instance definition. <databasetype>
@@ -910,6 +915,8 @@ and \fB{CRYPT}\fP passwords are not recommended.  If empty
 Specify the DN suffix of queries that will be passed to this 
 backend database.  Multiple suffix lines can be given and at least one is 
 required for each database definition.
+If the suffix of one database is "inside" that of another, the database
+with the inner suffix must come first in the configuration file.
 .TP
 .B suffixalias <alias> <aliased suffix>
 Specify an alternate suffix that may be used to reference an already defined
@@ -941,207 +948,62 @@ Specify the referral to pass back when
 .BR slapd (8)
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
-.\" .SH LDBM BACKEND-SPECIFIC OPTIONS
-.\" Options in this category only apply to the LDBM backend. That is,
-.\" they must follow "backend ldbm" line and come before any subsequent
-.\" "backend" or "database" lines.  The LDBM backend is a high-performance
-.\" database that makes extensive use of indexing and caching to speed
-.\" data access. 
-.SH BDB DATABASE-SPECIFIC OPTIONS
-Options in this category only apply to the BDB databases. That is,
-they must follow "database bdb" line and come before any subsequent
-"backend" or "database" lines.
-.TP
-.B cachesize <integer>
-Specify the size in entries of the in-memory cache maintained 
-by the BDB backend database instance.  The default is 1000 entries.
-.TP
-.B checkpoint <kbyte> <min>
-Specify the frequency for checkpointing the database transaction log.
-A checkpoint operation flushes the database buffers to disk and writes
-a checkpoint record in the log. The checkpoint will occur if either
-<kbyte> data has been written or <min> minutes have passed since the
-last checkpoint. Both arguments default to zero, in which case they are ignored.
-See the Berkeley DB reference guide for more details.
-.TP
-.B dbnosync
-Specify that on-disk database contents should not be immediately
-synchronized with in memory changes.  Enabling this option may improve
-performance at the expense of data security.
-.TP
-.B directory <directory>
-Specify the directory where the BDB files containing this database and
-associated indexes live.  A separate directory must be specified for
-each database.  The default is
-.BR LOCALSTATEDIR/openldap-data .
-.TP
-.B dirtyread
-Allow reads of modified but not yet committed data. Usually transactions
-are isolated to prevent other operations from accessing uncommitted data.
-This option may improve performance, but may also return inconsistent
-results if the data comes from a transaction that is later aborted. In
-this case, the modified data is discarded and a subsequent search will
-return a different result.
-.TP
-.B
-index {<attrlist>|default} [pres,eq,approx,sub,<special>]
-See the description for LDBM.
-.TP
-.B lockdetect {oldest|youngest|fewest|random|default}
-Specify which transaction to abort when a deadlock is detected. The
-default is the same as
-.BR random .
-.TP
-.B mode <integer>
-Specify the file protection mode that newly created database 
-index files should have.  The default is 0600.
+.SH DATABASE-SPECIFIC OPTIONS
+Each database may allow specific configuration options; they are
+documented separately in the
+.BR slapd-<backend> (5)
+manual pages.
+.SH EXAMPLES
+.LP
+Here is a short example of a configuration file:
+.LP
+.RS
+.nf
+include   SYSCONFDIR/schema/core.schema
+pidfile   LOCALSTATEDIR/slapd.pid
 
-.SH LDBM DATABASE-SPECIFIC OPTIONS
-Options in this category only apply to the LDBM databases. That is,
-they must follow "database ldbm" line and come before any subsequent
-"backend" or "database" lines.
-.TP
-.B cachesize <integer>
-Specify the size in entries of the in-memory cache maintained 
-by the LDBM backend database instance.  The default is 1000 entries.
-.TP
-.B dbcachesize <integer>
-Specify the size in bytes of the in-memory cache associated 
-with each open index file. If not supported by the underlying database 
-method, this option is ignored without comment.  The default is 100000 bytes.
-.TP
-.B dbnolocking
-Specify that no database locking should be performed.  
-Enabling this option may improve performance at the expense of data security.
-Do NOT run any slap tools while slapd is running.
-.TP
-.B dbnosync
-Specify that on-disk database contents should not be immediately
-synchronized with in memory changes.  Enabling this option may improve
-performance at the expense of data security.
-.TP
-.B dbsync <frequency> <maxdelays> <delayinterval>
-Flush dirty database buffers to disk every
-.B <seconds>
-seconds.  Implies
-.B dbnosync
-(ie. indvidual updates are no longer written to disk).  It attempts to avoid
-syncs during periods of peak activity by waiting
-.B <delayinterval>
-seconds if the server is busy, repeating this delay up to
-.B <maxdelays>
-times before proceeding.  
-It is an attempt to provide higher write performance with some amount of data
-security.  Note that it may still be possible to get an inconsistent 
-database if the underlying engine fills its cache and writes out individual
-pages and slapd crashes or is killed before the next sync.
-.B <maxdelays>
-and
-.B <delayinterval>
-are optional and default to
-.B 12
-and
-.B 5
-respectively, giving a total elapsed delay of 60 seconds before a sync
-will occur.
-.B <maxdelays>
-may be zero, and
-.B <delayinterval>
-must be 1 or greater.
-.TP
-.B directory <directory>
-Specify the directory where the LDBM files containing this database and
-associated indexes live.  A separate directory must be specified for
-each database.  The default is
-.BR LOCALSTATEDIR/openldap-data .
-.TP
-.B
-index {<attrlist>|default} [pres,eq,approx,sub,<special>]
-Specify the indexes to maintain for the given attribute (or
-list of attributes).  Some attributes only support a subset
-of indexes.  If only an <attr> is given, the indices specified
-for \fBdefault\fR are maintained.  Note that setting a default
-does not imply that all attributes will be indexed.
+database  bdb
+suffix    "dc=our-domain,dc=com"
+# The database directory MUST exist prior to
+# running slapd AND should only be accessible
+# by the slapd/tools. Mode 700 recommended.
+directory LOCALSTATEDIR/openldap-data
+# Indices to maintain
+index     objectClass  eq
+index     cn,sn,mail   pres,eq,approx,sub
 
-A number of special index parameters may be
-specified.
-The index type
-.B sub
-can be decomposed into
-.BR subinitial ,
-.BR subany ,\ and
-.B subfinal
-indices.
-The special type
-.B nolang
-may be specified to disallow use of this index by language subtypes.
-The special type
-.B nosubtypes
-may be specified to disallow use of this index by named subtypes.
-Note: changing index settings requires rebuilding indices, see
-.BR slapindex (8).
-.TP
-.B mode <integer>
-Specify the file protection mode that newly created database 
-index files should have.  The default is 0600.
-.SH SHELL DATABASE-SPECIFIC OPTIONS
-Options in this category only apply to the SHELL backend database. That is,
-they must follow a "database shell" line and come before any subsequent
-"backend" or "database" lines.  The Shell backend executes external programs to
-implement operations, and is designed to make it easy to tie an existing
-database to the
-.B slapd
-front-end.
-.TP
-.B bind <pathname>
-.TP
-.B unbind <pathname>
-.TP
-.B search <pathname>
-.TP
-.B compare <pathname>
-.TP
-.B modify <pathname>
-.TP
-.B modrdn <pathname>
-.TP
-.B add <pathname>
-.TP
-.B delete <pathname>
-.TP
-.B abandon <pathname>
-These options specify the pathname of the command to execute in response 
-to the given LDAP operation.
-
-Note that you need only supply configuration lines for those commands you
-want the backend to handle. Operations for which a command is not
-supplied will be refused with an "unwilling to perform" error.
-.SH PASSWORD DATABASE-SPECIFIC OPTIONS
-Options in this category only apply to the PASSWD backend database.
-That is, they must follow a "database passwd" line and come before any
-subsequent "backend" or "database" lines.  The PASSWD database serves up the user
-account information listed in the system
-.BR passwd (5)
-file.
-.TP
-.B file <filename>
-Specifies an alternate passwd file to use.  The default is
-.B /etc/passwd.
-.SH OTHER DATABASE-SPECIFIC OPTIONS
-Other databases may allow specific configuration options; they will be
-documented separately since most of these databases are very specific
-or experimental.
-.SH EXAMPLE
-"OpenLDAP Administrator's Guide" contains an annotated
+# We serve small clients that do not handle referrals,
+# so handle remote lookups on their behalf.
+database  ldap
+suffix    ""
+uri       ldap://ldap.some-server.com/
+lastmod   off
+.fi
+.RE
+.LP
+"OpenLDAP Administrator's Guide" contains a longer annotated
 example of a configuration file.
+The original ETCDIR/slapd.conf is another example.
 .SH FILES
+.TP
 ETCDIR/slapd.conf
+default slapd configuration file
 .SH SEE ALSO
 .BR ldap (3),
+.BR slapd-bdb (5),
+.BR slapd-dnssrv (5),
+.BR slapd-ldap (5),
+.BR slapd-ldbm (5),
+.BR slapd-meta (5),
+.BR slapd-null (5),
+.BR slapd-passwd (5),
+.BR slapd-perl (5),
+.BR slapd-shell (5),
+.BR slapd-sql (5),
+.BR slapd-tcl (5),
 .BR slapd.replog (5),
 .BR slapd.access (5),
 .BR locale (5),
-.BR passwd (5),
 .BR slapd (8),
 .BR slapadd (8),
 .BR slapcat (8),

@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -18,13 +23,16 @@
  * feedback to the users.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
+
+#include <ac/stdlib.h>
+#include <ac/unistd.h>
+#include <ac/string.h>
 
 #include "slurp.h"
 #include "globals.h"
-#include "portable.h"
 
 #define FC_DIRBAD	1
 #define FC_DIRUNREAD	2
@@ -37,11 +45,7 @@
 /*
  * Forward declarations
  */
-#ifdef NEEDPROTOS
-static unsigned int filecheck( char * );
-#else /* NEEDPROTOS */
-static unsigned int filecheck();
-#endif /* NEEDPROTOS */
+static unsigned int filecheck LDAP_P(( char * ));
 
 
 
@@ -58,7 +62,7 @@ static unsigned int filecheck();
  */
 
 int
-sanity()
+sanity( void )
 {
     int	err = 0;
     int rc;
@@ -67,7 +71,7 @@ sanity()
      * Are there any replicas listed in the slapd config file?
      */
     if ( sglob->replicas == NULL ) {
-	fprintf( stderr, "No replicas in slapd config file \"%s\"!\n",
+	fprintf( stderr, "No replicas in slapd.conf file \"%s\"!\n",
 	    sglob->slapd_configfile );
 	err++;
     }
@@ -77,20 +81,24 @@ sanity()
      * that the slapd replogfile is readable, if it exists.
      */
     if ( sglob->slapd_replogfile == NULL ) {
-	fprintf( stderr, "Fatal error: no \"replogfile\" directive given\n" );
+	fprintf( stderr, "Fatal error: no \"replogfile\" "
+		"slapd.conf directive given\n" );
 	err++;
     } else {
 	rc = filecheck( sglob->slapd_replogfile );
 	if ( rc & FC_DIRBAD ) {
-	    fprintf( stderr, "Error: %s: directory does not exist\n", 
+	    fprintf( stderr, "Error: %s: directory specified in "
+			"\"replogfile\" slapd.conf directive does not exist\n", 
 		    sglob->slapd_replogfile );
 	    err++;
 	} else if ( rc & FC_DIRUNREAD ) {
-	    fprintf( stderr, "Error: %s: directory not readable\n", 
+	    fprintf( stderr, "Error: %s: directory specified in "
+			"\"replogfile\" slapd.conf directive is not readable\n", 
 		    sglob->slapd_replogfile );
 	    err++;
 	} else if (!( rc & FC_FILEBAD) && ( rc & FC_FILEUNREAD )) {
-	    fprintf( stderr, "Error: %s: file not readable\n", 
+	    fprintf( stderr, "Error: %s: file specified in "
+			"\"replogfile\" slapd.conf directive is not readable\n", 
 		    sglob->slapd_replogfile );
 	    err++;
 	}
@@ -106,19 +114,21 @@ sanity()
     } else {
 	rc = filecheck( sglob->slurpd_replogfile );
 	if ( rc & FC_DIRBAD ) {
-	    fprintf( stderr, "Error: %s: directory does not exist\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" "
+			"directory does not exist\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	} else if ( rc & FC_DIRUNREAD ) {
-	    fprintf( stderr, "Error: %s: directory not readable\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" "
+			"directory not readable\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	} else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNREAD )) {
-	    fprintf( stderr, "Error: %s: file not readable\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" not readable\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	} else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNWRITE )) {
-	    fprintf( stderr, "Error: %s: file not writeable\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" not writeable\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	}
@@ -130,19 +140,19 @@ sanity()
      */
     rc = filecheck( sglob->slurpd_status_file );
     if ( rc & FC_DIRBAD ) {
-	fprintf( stderr, "Error: %s: directory does not exist\n", 
+	fprintf( stderr, "Error: %s: status directory does not exist\n", 
 		sglob->slurpd_status_file );
 	err++;
     } else if ( rc & FC_DIRUNREAD ) {
-	fprintf( stderr, "Error: %s: directory not readable\n", 
+	fprintf( stderr, "Error: %s: status directory not readable\n", 
 		sglob->slurpd_status_file );
 	err++;
     } else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNREAD )) {
-	fprintf( stderr, "Error: %s: file not readable\n", 
+	fprintf( stderr, "Error: %s: status file not readable\n", 
 		sglob->slurpd_status_file );
 	err++;
     } else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNWRITE )) {
-	fprintf( stderr, "Error: %s: file not writeable\n", 
+	fprintf( stderr, "Error: %s: status file not writeable\n", 
 		sglob->slurpd_status_file );
 	err++;
     }
@@ -175,8 +185,8 @@ filecheck(
     char		*p;
     unsigned int	ret = 0;
 
-    strcpy( dir, sglob->slapd_replogfile );
-    p = strrchr( dir, '/' );
+    strcpy( dir, f );
+    p = strrchr( dir, LDAP_DIRSEP[0] );
     if ( p != NULL ) {
 	*p = '\0';
     }
@@ -201,4 +211,3 @@ filecheck(
 
     return ret;
 }
-

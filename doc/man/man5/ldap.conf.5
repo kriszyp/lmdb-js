@@ -1,0 +1,167 @@
+.TH LDAP.CONF 5 "6 May 2002" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.UC 6
+.SH NAME
+ldap.conf, .ldaprc \- ldap configuration file
+.SH SYNOPSIS
+ETCDIR/ldap.conf
+\fP.ldaprc\fP
+.SH DESCRIPTION
+The
+.I ldap.conf
+configuration file is used to set system-wide defaults to be applied when
+running
+.I ldap
+clients.  If the environment variable \fBLDAPNOINIT\fP is defined, all
+defaulting is disabled.
+.LP
+Each user may specify an optional configuration file,
+.IR ldaprc
+or
+.IR .ldaprc ,
+in his/her home directory which will be used to override the system-wide
+defaults file.
+The file
+.IR ldaprc
+in the current working directory is also used.
+.LP
+Additional configuration files can be specified using
+the \fBLDAPCONF\fP and \fBLDAPRC\fP environment variables.
+\fBLDAPCONF\fP may be set the path of a configuration file.  This
+path can be absolute or relative to current working directory.
+The \fBLDAPRC\fP, if defined, should be a basename of a file
+in the current working directory or in the user's home directory.
+.LP
+Environmental variables may also be used to augment the file based defaults.
+The name of the option is the as listed but with a prefix of \fBLDAP\fP.
+For example, to define \fBBASE\fP via the environment, define the variable
+\fBLDAPBASE\fP to desired value.
+.LP
+Some options are user\-only.  Such options are ignored if present
+in the
+.IR ldap.conf
+(or file specified by
+.BR LDAPCONF ).
+.SH OPTIONS
+The different configuration options are:
+.TP 1i
+\fBBASE <base>\fP
+Used to specify the default base DN to use when performing ldap operations.
+The base must be specified as a Distinguished Name in LDAP format.
+.TP 1i
+\fBBINDDN <dn>\fP
+Used to specify the default bind DN to use when performing ldap operations.
+The bind DN must be specified as a Distinguished Name in LDAP format.
+This is a user\-only option.
+.TP 1i
+\fBHOST <name[:port] ...>\fP
+Used to specify the name(s) of an LDAP server(s) to which 
+.I ldap 
+library should connect to.  Each server's name can be specified as a
+domain-style name or an IP address and optionally followed a ':' and
+the port number the ldap server is listening on.  A space separated
+listed of host may be provided.
+.TP 1i
+\fBPORT <port>\fP
+Used to specify the port used with connecting to LDAP servers(s).
+The port may be specified as a number.
+.TP 1i
+\fBSASL_SECPROPS <properties>\fP
+Used to specify Cyrus SASL security properties.
+The
+.B none
+flag (without any other properities) causes the flag properites
+defaults ("noanonymous,noplain") to be cleared.
+The
+.B noplain
+flag disables mechanisms susceptible to simple passive attacks.
+The
+.B noactive
+flag disables mechanisms susceptible to active attacks.
+The
+.B nodict
+flag disables mechanisms susceptible to passive dictionary attacks.
+The
+.B noanonyous
+flag disables mechanisms which support anonymous login.
+The
+.B forwardsec
+flag require forward secrecy between sessions.
+The
+.B passcred
+require mechanisms which pass client credentials (and allow
+mechanisms which can pass credentials to do so).
+The
+.B minssf=<factor> 
+property specifies the minimum acceptable
+.I security strength factor
+as an integer approximate to effective key length used for
+encryption.  0 (zero) implies no protection, 1 implies integrity
+protection only, 56 allows DES or other weak ciphers, 112
+allows triple DES and other strong ciphers, 128 allows RC4,
+Blowfish and other modern strong ciphers.  The default is 0.
+The
+.B maxssf=<factor> 
+property specifies the maximum acceptable
+.I security strength factor
+as an integer (see minssf description).  The default is INT_MAX.
+The
+.B maxbufsize=<factor> 
+property specifies the maximum security layer receive buffer
+size allowed.  0 disables security layers.  The default is 65536.
+.TP 1i
+\fBSIZELIMIT <integer>\fP
+Used to specify a size limit to use when performing searches.  The
+number should be an non-negative integer.  \fISIZELIMIT\fP of zero (0)
+specifies unlimited search size.
+.TP 1i
+\fBTIMELIMIT <integer>\fP
+Used to specify a time limit to use when performing searches.  The
+number should be an non-negative integer.  \fITIMELIMIT\fP of zero (0)
+specifies unlimited search time to be used.
+.TP 1i
+\fBDEREF <never|searching|finding|always>\fP
+Specify how aliases dereferencing is done.  \fIDEREF\fP should
+be set to one of
+.B never,
+.B always,
+.B search,
+or 
+.B find 
+to specify that aliases are never dereferenced, always dereferenced,
+dereferenced when searching, or dereferenced only when locating the
+base object for the search.  The default is to never dereference aliases.
+.SH "ENVIRONMENT VARIABLES"
+.TP
+LDAPNOINIT
+disable all defaulting
+.TP
+LDAPCONF
+path of a configuration file
+.TP
+LDAPRC
+basename of ldaprc file in $HOME or $CWD
+.TP
+LDAP<option-name>
+Set <option-name> as from ldap.conf
+.SH FILES
+.TP
+.I  ETCDIR/ldap.conf
+system-wide ldap configuration file
+.TP
+.I  $HOME/ldaprc, $HOME/.ldaprc
+user ldap configuration file
+.TP
+.I  $CWD/ldaprc
+local ldap configuration file
+.SH "SEE ALSO"
+.BR ldap (3)
+.SH AUTHOR
+Kurt Zeilenga, The OpenLDAP Project
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

@@ -33,11 +33,10 @@ shell_back_search(
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
-	int 			i;
 	FILE			*rfp, *wfp;
 	AttributeName		*an;
 
-	if ( si->si_search == NULL ) {
+	if ( IS_NULLCMD( si->si_search ) ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "search not implemented", NULL, NULL );
 		return( -1 );
@@ -52,6 +51,7 @@ shell_back_search(
 
 	/* write out the request to the search process */
 	fprintf( wfp, "SEARCH\n" );
+	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "base: %s\n", base->bv_val );

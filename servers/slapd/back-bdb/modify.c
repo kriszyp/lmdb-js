@@ -241,8 +241,8 @@ bdb_modify(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
-	Entry		*matched;
-	Entry		*e;
+	Entry		*matched = NULL;
+	Entry		*e = NULL;
 	int		manageDSAit = get_manageDSAit( op );
 	const char *text = NULL;
 	char textbuf[SLAP_TEXT_BUFLEN];

@@ -39,6 +39,8 @@ bdb_dn2id_add(
 
 	DBTzero( &key );
 	key.size = e->e_nname.bv_len + 2;
+	key.ulen = key.size;
+	key.flags = DB_DBT_USERMEM;
 	buf = ch_malloc( key.size );
 	key.data = buf;
 	buf[0] = DN_BASE_PREFIX;
@@ -84,6 +86,7 @@ bdb_dn2id_add(
 		dnParent( &ptr, &pdn );
 	
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		pdn.bv_val[-1] = DN_ONE_PREFIX;
 		key.data = pdn.bv_val-1;
 		ptr = pdn;
@@ -124,6 +127,7 @@ bdb_dn2id_add(
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
@@ -189,7 +193,7 @@ bdb_dn2id_delete(
 
 	if( !be_issuffix( be, &ptr )) {
 		buf[0] = DN_SUBTREE_PREFIX;
-		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
+		rc = db->del( db, txn, &key, 0 );
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG (( "db2id", LDAP_LEVEL_ERR, 
@@ -206,6 +210,7 @@ bdb_dn2id_delete(
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		pdn.bv_val[-1] = DN_ONE_PREFIX;
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
@@ -245,6 +250,7 @@ bdb_dn2id_delete(
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
+		key.ulen = key.size;
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
@@ -528,6 +534,8 @@ bdb_dn2idl(
 
 	DBTzero( &key );
 	key.size = dn->bv_len + 2;
+	key.ulen = key.size;
+	key.flags = DB_DBT_USERMEM;
 	key.data = ch_malloc( key.size );
 	((char *)key.data)[0] = prefix;
 	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
@@ -736,7 +744,7 @@ int bdb_build_tree(
 	 * Note that this code always uses be_suffix[0], so defining
 	 * multiple suffixes for a single backend won't work!
 	 */
-	rdns = ldap_explode_dn(be->be_nsuffix[0]->bv_val, 0);
+	rdns = ldap_explode_dn(be->be_nsuffix[0].bv_val, 0);
 	for (i=0; rdns[i]; i++);
 	bdb->bi_nrdns = i;
 	charray_free(rdns);
@@ -775,8 +783,8 @@ int bdb_fix_dn(
 	
 	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
 	o = bdb_find_id_node(id, bdb->bi_tree);
-	rlen = be->be_suffix[0]->bv_len + 1;
-	nrlen = be->be_nsuffix[0]->bv_len + 1;
+	rlen = be->be_suffix[0].bv_len + 1;
+	nrlen = be->be_nsuffix[0].bv_len + 1;
 	for (n = o; n && n->i_parent; n=n->i_parent) {
 		rlen += n->i_rdn->rdn.bv_len + 1;
 		nrlen += n->i_rdn->nrdn.bv_len + 1;
@@ -795,8 +803,8 @@ int bdb_fix_dn(
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
 
-	strcpy(ptr, be->be_suffix[0]->bv_val);
-	strcpy(nptr, be->be_nsuffix[0]->bv_val);
+	strcpy(ptr, be->be_suffix[0].bv_val);
+	strcpy(nptr, be->be_nsuffix[0].bv_val);
 
 	return 0;
 }

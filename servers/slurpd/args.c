@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -14,26 +19,31 @@
  * args.c - process command-line arguments, and set appropriate globals.
  */
 
-#include <stdio.h>
-#include <string.h>
+#include "portable.h"
 
-#include <lber.h>
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <ldap.h>
 
 #include "slurp.h"
 #include "globals.h"
 
 
-static int
+static void
 usage( char *name )
 {
     fprintf( stderr, "usage: %s\t[-d debug-level] [-s syslog-level]\n", name );
     fprintf( stderr, "\t\t[-f slapd-config-file] [-r replication-log-file]\n" );
-#ifdef KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
     fprintf( stderr, "\t\t[-t tmp-dir] [-o] [-k srvtab-file]\n" );
-#else /* KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     fprintf( stderr, "\t\t[-t tmp-dir] [-o]\n" );
-#endif /* KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 }
 
 
@@ -49,20 +59,20 @@ doargs(
 )
 {
     int		i;
-    extern char	*optarg;
     int		rflag = 0;
 
-    if ( (g->myname = strrchr( argv[0], '/' )) == NULL ) {
+    if ( (g->myname = strrchr( argv[0], LDAP_DIRSEP[0] )) == NULL ) {
 	g->myname = strdup( argv[0] );
     } else {
 	g->myname = strdup( g->myname + 1 );
     }
 
-    while ( (i = getopt( argc, argv, "hd:f:r:t:k:o" )) != EOF ) {
+    while ( (i = getopt( argc, argv, "d:f:or:t:" )) != EOF ) {
 	switch ( i ) {
-#ifdef LDAP_DEBUG
-	case 'd':	/* turn on debugging */
+	case 'd':	/* set debug level and 'do not detach' flag */
+	    g->no_detach = 1;
 	    if ( optarg[0] == '?' ) {
+#ifdef LDAP_DEBUG
 		printf( "Debug levels:\n" );
 		printf( "\tLDAP_DEBUG_TRACE\t%d\n",
 			LDAP_DEBUG_TRACE );
@@ -82,38 +92,35 @@ doargs(
 			LDAP_DEBUG_ACL );
 		printf( "\tLDAP_DEBUG_ANY\t\t%d\n",
 			LDAP_DEBUG_ANY );
-		return( -1 );
-	    } else {
-		ldap_debug = atoi( optarg );
-	    }
-	    break;
-#else /* LDAP_DEBUG */
-	case 'd':	/* can't enable debugging - not built with debug code */
-	    fprintf( stderr, "must compile with LDAP_DEBUG for debugging\n" );
-	    break;
+		puts( "\tThe -d flag also prevents slurpd from detaching." );
 #endif /* LDAP_DEBUG */
+		puts( "\tDebugging is disabled.  -d 0 prevents slurpd from detaching." );
+		return( -1 );
+	    }
+#ifdef LDAP_DEBUG
+	    ldap_debug |= atoi( optarg );
+#else /* !LDAP_DEBUG */
+	    if ( atoi( optarg ) != 0 )
+		/* can't enable debugging - not built with debug code */
+		fputs( "must compile with LDAP_DEBUG for debugging\n",
+		       stderr );
+#endif /* LDAP_DEBUG */
+	    break;
 	case 'f':	/* slapd config file */
 	    g->slapd_configfile = strdup( optarg );
 	    break;
+	case 'o':
+	    g->one_shot_mode = 1;
+	    break;
 	case 'r':	/* slapd replog file */
-	    strcpy( g->slapd_replogfile, optarg );
+	    strncpy( g->slapd_replogfile, optarg,
+			sizeof(g->slapd_replogfile)-1 );
+		g->slapd_replogfile[sizeof(g->slapd_replogfile)-1] = '\0';
 	    rflag++;
 	    break;
 	case 't':	/* dir to use for our copies of replogs */
-	    g->slurpd_rdir = strdup( optarg );
-	    break;
-	case 'k':	/* name of kerberos srvtab file */
-#ifdef KERBEROS
-	    g->default_srvtab = strdup( optarg );
-#else /* KERBEROS */
-	    fprintf( stderr, "must compile with KERBEROS to use -k option\n" );
-#endif /* KERBEROS */
-	    break;
-	case 'h':
-	    usage( g->myname );
-	    return( -1 );
-	case 'o':
-	    g->one_shot_mode = 1;
+	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + sizeof("/replica"));
+	    sprintf(g->slurpd_rdir, "%s" LDAP_DIRSEP "replica", optarg);
 	    break;
 	default:
 	    usage( g->myname );
@@ -128,21 +135,22 @@ doargs(
     }
 
     /* Set location/name of our private copy of the slapd replog file */
-    sprintf( g->slurpd_replogfile, "%s/%s", g->slurpd_rdir,
+    sprintf( g->slurpd_replogfile, "%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_REPLOGFILE );
 
     /* Set location/name of the slurpd status file */
-    sprintf( g->slurpd_status_file, "%s/%s", g->slurpd_rdir,
+    sprintf( g->slurpd_status_file, "%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_STATUS_FILE );
+
+	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug);
+	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldap_debug);
+	ldif_debug = ldap_debug;
 
 #ifdef LOG_LOCAL4
     openlog( g->myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
-#else
+#elif LOG_DEBUG
     openlog( g->myname, OPENLOG_OPTIONS );
 #endif
 
     return 0;
-
 }
-
-

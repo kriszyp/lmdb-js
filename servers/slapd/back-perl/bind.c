@@ -85,7 +85,9 @@ perl_back_bind(
 
 	Debug( LDAP_DEBUG_ANY, "Perl BIND returned 0x%04x\n", return_code, 0, 0 );
 
-	send_ldap_result( conn, op, return_code, NULL, NULL, NULL, NULL );
+	/* frontend will send result on success (0) */
+	if( return_code != LDAP_SUCCESS )
+		send_ldap_result( conn, op, return_code, NULL, NULL, NULL, NULL );
 
 	return ( return_code );
 }

@@ -713,6 +713,32 @@ typedef struct slap_filter {
 /* compare routines can return undefined */
 #define SLAPD_COMPARE_UNDEFINED	((ber_int_t) -1)
 
+typedef struct slap_valuesreturnfilter {
+	ber_tag_t	f_choice;
+
+	union vrf_un_u {
+		/* precomputed result */
+		ber_int_t f_un_result;
+
+		/* DN */
+		char *f_un_dn;
+
+		/* present */
+		AttributeDescription *f_un_desc;
+
+		/* simple value assertion */
+		AttributeAssertion *f_un_ava;
+
+		/* substring assertion */
+		SubstringsAssertion *f_un_ssa;
+
+		/* matching rule assertion */
+		MatchingRuleAssertion *f_un_mra;
+	} f_un;
+
+	struct slap_valuesreturnfilter	*f_next;
+} ValuesReturnFilter;
+
 /*
  * represents an attribute (description + values)
  */
@@ -998,7 +1024,7 @@ LDAP_SLAPD_V (int) slapMode;
 
 struct slap_replica_info {
 	char *ri_host;				/* supersedes be_replica */
-	struct berval **ri_nsuffix;	/* array of suffixes this replica accepts */
+	BerVarray ri_nsuffix;	/* array of suffixes this replica accepts */
 	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
 	int ri_exclude;			/* 1 => exclude ri_attrs */
 };
@@ -1025,6 +1051,7 @@ struct slap_limits {
 #define SLAP_LIMITS_REGEX	0x0005
 #define SLAP_LIMITS_ANONYMOUS	0x0006
 #define SLAP_LIMITS_USERS	0x0007
+#define SLAP_LIMITS_ANY		0x0008
 	regex_t	lm_dn_regex;		/* regex data for REGEX */
 
 	/*
@@ -1139,9 +1166,9 @@ struct slap_backend_db {
 	slap_ssf_set_t be_ssf_set;
 
 	/* these should be renamed from be_ to bd_ */
-	struct berval **be_suffix;	/* the DN suffixes of data in this backend */
-	struct berval **be_nsuffix;	/* the normalized DN suffixes in this backend */
-	struct berval **be_suffixAlias; /* pairs of DN suffix aliases and deref values */
+	BerVarray	be_suffix;	/* the DN suffixes of data in this backend */
+	BerVarray	be_nsuffix;	/* the normalized DN suffixes in this backend */
+	BerVarray	be_suffixAlias; /* pairs of DN suffix aliases and deref values */
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
 	struct berval be_rootndn;	/* the magic "root" normalized name (DN) for this db */
 	struct berval be_rootpw;	/* the magic "root" password for this db	*/
@@ -1442,6 +1469,7 @@ typedef struct slap_op {
 	char o_noop;
 	char o_subentries;
 	char o_subentries_visibility;
+	char o_valuesreturnfilter;
 
 	char o_pagedresults;
 	ber_int_t o_pagedresults_size;
@@ -1459,6 +1487,7 @@ typedef struct slap_op {
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
+	ValuesReturnFilter *vrFilter; /* Structure represents ValuesReturnFilter */
 } Operation;
 
 #define get_manageDSAit(op)				((int)(op)->o_managedsait)
@@ -1561,12 +1590,19 @@ typedef struct slap_conn {
 #define SASL_AUTHZ_SOURCE_ATTR "saslAuthzTo"
 #define SASL_AUTHZ_DEST_ATTR "saslAuthzFrom"
 
+typedef struct sasl_uri {
+  struct berval dn;
+  struct berval filter;
+  int scope;
+} SaslUri_t;
+
 typedef struct sasl_regexp {
   char *sr_match;							/* regexp match pattern */
-  char *sr_replace;							/* regexp replace pattern */
+  SaslUri_t sr_replace; 						/* regexp replace pattern */
   regex_t sr_workspace;						/* workspace for regexp engine */
   regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
-  int sr_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+  int sr_dn_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+  int sr_fi_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
 } SaslRegexp_t;
 
 /*

@@ -184,7 +184,7 @@ LDAP_SLAPD_F( int )	backend_check_restrictions LDAP_P((
 	BackendDB *be,
 	Connection *conn,
 	Operation *op,
-	const void *opdata,
+	struct berval *opdata,
 	const char **text ));
 
 LDAP_SLAPD_F( int )	backend_check_referrals LDAP_P((
@@ -406,7 +406,7 @@ LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 
 LDAP_SLAPD_F (int) dnX509normalize LDAP_P(( void *x509_name, struct berval *out ));
 
-LDAP_SLAPD_F (char *) dnX509peerNormalize LDAP_P(( void *ssl ));
+LDAP_SLAPD_F (int) dnX509peerNormalize LDAP_P(( void *ssl, struct berval *dn ));
 
 /*
  * entry.c
@@ -464,6 +464,14 @@ LDAP_SLAPD_F (int) get_filter LDAP_P((
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));
 LDAP_SLAPD_F (void) filter2bv LDAP_P(( Filter *f, struct berval *bv ));
 
+LDAP_SLAPD_F (int) get_vrFilter( Connection *conn, BerElement *ber,
+	ValuesReturnFilter **f,
+	const char **text );
+
+LDAP_SLAPD_F (void) vrFilter_free( ValuesReturnFilter *f );
+LDAP_SLAPD_F (void) vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr );
+
+
 /*
  * filterentry.c
  */
@@ -510,6 +518,16 @@ LDAP_SLAPD_F (int) parse_limit LDAP_P(( const char *arg,
 LDAP_SLAPD_F (FILE *) lock_fopen LDAP_P(( const char *fname,
 	const char *type, FILE **lfp ));
 LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
+
+/*
+ * matchedValues.c
+ */
+LDAP_SLAPD_F (int) filter_matched_values( 
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	Entry		*e,
+	char		***e_flags );
 
 /*
  * modify.c
@@ -815,6 +833,7 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
  * saslauthz.c
  */
 LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
+	Connection *conn,
 	struct berval *saslname,
 	struct berval *dn ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((

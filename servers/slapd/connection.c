@@ -1189,7 +1189,7 @@ int connection_read(ber_socket_t s)
 
 		} else if ( rc == 0 ) {
 			void *ssl;
-			char *authid;
+			struct berval authid = { 0, NULL };
 
 			c->c_needs_tls_accept = 0;
 
@@ -1201,9 +1201,21 @@ int connection_read(ber_socket_t s)
 				c->c_ssf = c->c_tls_ssf;
 			}
 
-			authid = dnX509peerNormalize( ssl );
-			slap_sasl_external( c, c->c_tls_ssf, authid );
-			if ( authid )	free( authid );
+			rc = dnX509peerNormalize( ssl, &authid );
+			if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+				"connection_read: conn %lu unable to get TLS client DN, error %d\n",
+					c->c_connid, rc));
+#else
+				Debug( LDAP_DEBUG_TRACE,
+				"connection_read(%d): unable to get TLS client DN "
+				"error=%d id=%lu\n",
+				s, rc, c->c_connid );
+#endif
+			}
+			slap_sasl_external( c, c->c_tls_ssf, authid.bv_val );
+			if ( authid.bv_val )	free( authid.bv_val );
 		}
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
@@ -1410,6 +1422,8 @@ connection_input(
 	}
 
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
+
+	op->vrFilter = NULL;
 
 	op->o_pagedresults_state = conn->c_pagedresults_state;
 

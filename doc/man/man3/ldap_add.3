@@ -1,25 +1,27 @@
-.TH LDAP_ADD 3  "15 November 1994" "U-M LDAP LDVERSION"
+.TH LDAP_ADD 3 "13 January 2002" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_add, ldap_add_s \- Perform an LDAP add operation
+ldap_add, ldap_add_s, ldap_add_ext, ldap_add_ext_s \- Perform an LDAP add operation
 .SH SYNOPSIS
 .nf
-.ft B
-#include <lber.h>
-#include <ldap.h>
-.LP
-.ft B
-int ldap_add(ld, dn, attrs)
-.ft
-LDAP *ld;
-char *dn;
-LDAPMod *attrs[];
-.LP
-.ft B
-int ldap_add_s(ld, dn, attrs)
-.ft
-LDAP *ld;
-char *dn;
-LDAPMod *attrs[];
+.B #include <ldap.h>
+.sp
+.BI "int ldap_add(LDAP *" ld ", const char *" dn ", LDAPMOD *" attrs "[]);"
+.sp
+.BI "int ldap_add_s(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[]);"
+.sp
+.BI "int ldap_add_ext(LDAP *" ld ", const char *" dn ", LDAPMOD *" attrs "[],"
+.RS
+.BI "LDAPControl *" sctrls "[], LDAPControl *" cctrls "[], int *" msgidp ");"
+.RE
+.sp
+.BI "int ldap_add_ext_s(LDAP *" ld ", const char *" dn ", LDAPMOD *" attrs "[],"
+.RS
+.BI "LDAPControl *" sctrls "[], LDAPControl *" cctrls "[]);"
+.RE
+.fi
 .SH DESCRIPTION
 The
 .B ldap_add_s()
@@ -47,6 +49,23 @@ routine works just like
 but it is asynchronous.  It returns the message id of the request it
 initiated.  The result of this operation can be obtained by calling
 .BR ldap_result (3).
+.LP
+The
+.B ldap_add_ext()
+routine allows server and client controls to be specified to extend
+the add request. This routine is asynchronous like
+.BR ldap_add() ,
+but its return value is an LDAP error code.  It stores the message id
+of the request in the integer pointed to
+by
+.IR msgidp .
+.LP
+The
+.B ldap_add_ext_s()
+routine is the synchronous version of
+.BR ldap_add_ext() .
+It also returns an LDAP error code indicating success or failure
+of the operation.
 .SH ERRORS
 .B ldap_add()
 returns -1 in case of error initiating the request, and
@@ -55,6 +74,15 @@ to indicate the error.
 .B ldap_add_s()
 will return an LDAP error code
 directly (LDAP_SUCCESS if everything went ok, some error otherwise).
+.B ldap_add_ext()
+and
+.B ldap_add_ext_s()
+also directly return LDAP error codes.
 .SH SEE ALSO
-.BR ldap(3),
-.B ldap_modify(3)
+.BR ldap (3),
+.BR ldap_modify (3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

@@ -291,6 +291,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 {
 	struct sb_sasl_data	*p;
 	int			ret;
+	unsigned		*max;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
@@ -307,9 +308,13 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	/* now encode the next packet. */
 #if SASL_VERSION_MAJOR >= 2
 	ber_pvt_sb_buf_init( &p->buf_out );
+	sasl_getprop( p->sasl_context, SASL_MAXOUTBUF, (const void **)&max );
 #else
 	ber_pvt_sb_buf_destroy( &p->buf_out );
+	sasl_getprop( p->sasl_context, SASL_MAXOUTBUF, (void **)&max );
 #endif
+	if ( len > *max - 100 )
+		len = *max - 100;	/* For safety margin */
 	ret = sasl_encode( p->sasl_context, buf, len,
 		(SASL_CONST char **)&p->buf_out.buf_base,
 		(unsigned *)&p->buf_out.buf_size );
@@ -456,9 +461,9 @@ ldap_int_sasl_open(
 	rc = sasl_client_new( "ldap", host, session_callbacks,
 		SASL_SECURITY_LAYER, &ctx );
 #endif
-	LDAP_FREE( session_callbacks );
 
 	if ( rc != SASL_OK ) {
+		LDAP_FREE( session_callbacks );
 		ld->ld_errno = sasl_err2ldap( rc );
 		return ld->ld_errno;
 	}
@@ -472,6 +477,7 @@ ldap_int_sasl_open(
 #endif
 
 	lc->lconn_sasl_ctx = ctx;
+	lc->lconn_sasl_cbs = session_callbacks;
 
 	if( ssf ) {
 #if SASL_VERSION_MAJOR >= 2
@@ -504,6 +510,8 @@ int ldap_int_sasl_close( LDAP *ld, LDAPConn *lc )
 	if( ctx != NULL ) {
 		sasl_dispose( &ctx );
 		lc->lconn_sasl_ctx = NULL;
+		LDAP_FREE( lc->lconn_sasl_cbs );
+		lc->lconn_sasl_cbs = NULL;
 	}
 
 	return LDAP_SUCCESS;

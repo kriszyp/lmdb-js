@@ -30,7 +30,7 @@ bdb_attribute(
 	BerVarray *vals )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	struct bdb_op_info *boi = (struct bdb_op_info *) op->o_private;
+	struct bdb_op_info *boi = NULL;
 	DB_TXN *txn = NULL;
 	Entry *e;
 	int	i, j = 0, rc;
@@ -60,6 +60,7 @@ bdb_attribute(
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
+	if( op ) boi = (struct bdb_op_info *) op->o_private;
 	if( boi != NULL && be == boi->boi_bdb ) {
 		txn = boi->boi_txn;
 	}

@@ -209,7 +209,7 @@ bdb_search(
 		/* if requested limit higher than hard limit, abort */
 		} else if ( tlimit > limit->lms_t_hard ) {
 			/* no hard limit means use soft instead */
-			if ( limit->lms_t_hard == 0 ) {
+			if ( limit->lms_t_hard == 0 && tlimit > limit->lms_t_soft ) {
 				tlimit = limit->lms_t_soft;
 
 			/* positive hard limit means abort */
@@ -231,7 +231,7 @@ bdb_search(
 		/* if requested limit higher than hard limit, abort */
 		} else if ( slimit > limit->lms_s_hard ) {
 			/* no hard limit means use soft instead */
-			if ( limit->lms_s_hard == 0 ) {
+			if ( limit->lms_s_hard == 0 && slimit > limit->lms_s_soft ) {
 				slimit = limit->lms_s_soft;
 
 			/* positive hard limit means abort */
@@ -294,7 +294,7 @@ bdb_search(
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
 		if ( BDB_IDL_N(candidates) > (unsigned) limit->lms_s_unchecked ) {
 			send_search_result( conn, op, 
-					LDAP_UNWILLING_TO_PERFORM,
+					LDAP_ADMINLIMIT_EXCEEDED,
 					NULL, NULL, NULL, NULL, 0 );
 			rc = 1;
 			goto done;

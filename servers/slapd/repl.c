@@ -55,23 +55,23 @@ add_replica_suffix(
     const char  *suffix
 )
 {
-	struct berval dn, *ndn = NULL;
+	struct berval dn, ndn;
 	int rc;
 
 	dn.bv_val = (char *) suffix;
 	dn.bv_len = strlen( dn.bv_val );
 
-	rc = dnNormalize( NULL, &dn, &ndn );
+	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 		return 2;
 	}
 
-	if ( select_backend( ndn, 0, 0 ) != be ) {
-		ber_bvfree( ndn );
+	if ( select_backend( &ndn, 0, 0 ) != be ) {
+		free( ndn.bv_val );
 		return 1;
 	}
 
-	ber_bvecadd( &be->be_replica[nr]->ri_nsuffix, ndn );
+	ber_bvarray_add( &be->be_replica[nr]->ri_nsuffix, &ndn );
 	return 0;
 }
 
@@ -139,13 +139,13 @@ replog(
 		if ( be->be_replica[i]->ri_nsuffix != NULL ) {
 			int j;
 
-			for ( j = 0; be->be_replica[i]->ri_nsuffix[j]; j++ ) {
-				if ( dnIsSuffix( ndn, be->be_replica[i]->ri_nsuffix[j] ) ) {
+			for ( j = 0; be->be_replica[i]->ri_nsuffix[j].bv_val; j++ ) {
+				if ( dnIsSuffix( ndn, &be->be_replica[i]->ri_nsuffix[j] ) ) {
 					break;
 				}
 			}
 
-			if ( !be->be_replica[i]->ri_nsuffix[j] ) {
+			if ( !be->be_replica[i]->ri_nsuffix[j].bv_val ) {
 				/* do not add "replica:" line */
 				continue;
 			}
@@ -195,13 +195,13 @@ replog(
 			if ( be->be_replica[i]->ri_nsuffix != NULL ) {
 				int j;
 
-				for ( j = 0; be->be_replica[i]->ri_nsuffix[j]; j++ ) {
-					if ( dnIsSuffix( ndn, be->be_replica[i]->ri_nsuffix[j] ) ) {
+				for ( j = 0; be->be_replica[i]->ri_nsuffix[j].bv_val; j++ ) {
+					if ( dnIsSuffix( ndn, &be->be_replica[i]->ri_nsuffix[j] ) ) {
 						break;
 					}
 				}
 
-				if ( !be->be_replica[i]->ri_nsuffix[j] ) {
+				if ( !be->be_replica[i]->ri_nsuffix[j].bv_val ) {
 					/* do not add "replica:" line */
 					continue;
 				}

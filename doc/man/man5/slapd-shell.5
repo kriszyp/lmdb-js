@@ -1,0 +1,168 @@
+.TH SLAPD-SHELL 5 "2 May 2002" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapd-shell \- Shell backend to slapd
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The Shell backend to
+.BR slapd (8)
+executes external programs to implement operations, and is designed to
+make it easy to tie an existing database to the
+.B slapd
+front-end.
+.SH WARNING
+.B "This backend's calling conventions have changed since OpenLDAP 2.0."
+The operations receive a new "opid:" (operation ID) line, to be used
+instead of "msgid:".
+The "msgid:" line will be removed in a future version.
+Also, abandon now gets a new "abandonid:" line.
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the SHELL backend database.
+That is, they must follow a "database shell" line and come before any
+subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+.LP
+These options specify the pathname and arguments of the program to
+execute in response to the given LDAP operation.
+Each option is followed by the input lines that the program receives:
+.TP
+.B abandon  <pathname> <argument>...
+.nf
+ABANDON
+opid: <operation ID>
+msgid: <message ID of operation to abandon>
+<repeat { "suffix:" <database suffix DN> }>
+abandonid: <operation ID of operation to abandon>
+.fi
+.TP
+.B add      <pathname> <argument>...
+.nf
+ADD
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+<entry in LDIF format>
+.fi
+.TP
+.B bind     <pathname> <argument>...
+.nf
+BIND
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+method: <method number>
+credlen: <length of <credentials>>
+cred: <credentials>
+.fi
+.TP
+.B compare  <pathname> <argument>...
+.nf
+COMPARE
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+<attribute>: <value>
+.fi
+.TP
+.B delete   <pathname> <argument>...
+.nf
+DELETE
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+.fi
+.TP
+.B modify   <pathname> <argument>...
+.nf
+MODIFY
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+<repeat {
+    <"add"/"delete"/"replace">: <attribute>
+    <repeat { <attribute>: <value> }>
+    -
+}>
+.fi
+.TP
+.B modrdn   <pathname> <argument>...
+.nf
+MODRDN
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <DN>
+newrdn: <new RDN>
+deleteoldrdn: <0 or 1>
+<if new superior is specified: "newSuperior: <DN>">
+.fi
+.TP
+.B search   <pathname> <argument>...
+.nf
+SEARCH
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+base: <base DN>
+scope: <0-2, see ldap.h>
+deref: <0-3, see ldap.h>
+sizelimit: <size limit>
+timelimit: <time limit>
+filter: <filter>
+attrsonly: <0 or 1>
+attrs: <"all" or space-separated attribute list>
+.fi
+.TP
+.B unbind   <pathname> <argument>...
+.nf
+UNBIND
+opid: <operation ID>
+msgid: <message ID>
+<repeat { "suffix:" <database suffix DN> }>
+dn: <bound DN>
+.fi
+.LP
+An
+.I operation ID
+is a "connection ID/message ID" string identifying an operation.
+.LP
+Note that you need only supply configuration lines for those commands you
+want the backend to handle.
+Operations for which a command is not supplied will be refused with an
+"unwilling to perform" error.
+.LP
+The commands - except \fBabandon\fP and \fBunbind\fP - should output:
+.RS
+.nf
+RESULT
+code: <integer>
+matched: <matched DN>
+info: <text>
+.fi
+.RE
+where only RESULT is mandatory.
+The \fBsearch\fP RESULT should be preceded by the entries in LDIF
+format, each entry followed by a blank line.
+Lines starting with `#' or `DEBUG:' are ignored.
+.SH EXAMPLE
+There is an example search script in the slapd/back-shell/ directory
+in the OpenLDAP source tree.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd (8),
+.BR sh (1).

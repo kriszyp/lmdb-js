@@ -39,6 +39,11 @@ typedef unsigned long ldap_unicode_t;
 #define ldap_utf8_to_unicode( p ) ldap_utf8_to_ucs4((p))
 #define ldap_unicode_to_utf8( c, buf ) ldap_ucs4_to_ucs4((c),(buf))
 
+/* Convert a string with csize octets per character to UTF-8 */
+LDAP_F( int ) ldap_ucs_to_utf8s LDAP_P((
+	struct berval *ucs, int csize, struct berval *utf8s ));
+
+
 /* returns the number of bytes in the UTF-8 string */
 LDAP_F (ber_len_t) ldap_utf8_bytes( const char * );
 /* returns the number of UTF-8 characters in the string */

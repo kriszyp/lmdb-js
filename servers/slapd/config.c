@@ -18,7 +18,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#define MAXARGS	500
+#define ARGS_STEP	512
 
 /*
  * defaults for various global variables
@@ -45,6 +45,8 @@ char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
 char		*default_passwd_hash = NULL;
+int		cargc = 0, cargv_size = 0;
+char	**cargv;
 struct berval default_search_base = { 0, NULL };
 struct berval default_search_nbase = { 0, NULL };
 unsigned		num_subordinates = 0;
@@ -68,7 +70,7 @@ int use_reverse_lookup = 0;
 
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
-static int	fp_parse_line(int lineno, char *line, int *argcp, char **argv);
+static int	fp_parse_line(int lineno, char *line);
 
 static char	*strtok_quote(char *line, char *sep);
 static int      load_ucdata(char *path);
@@ -78,8 +80,7 @@ read_config( const char *fname )
 {
 	FILE	*fp;
 	char	*line, *savefname, *saveline;
-	int	cargc, savelineno;
-	char	*cargv[MAXARGS+1];
+	int savelineno;
 	int	lineno, i;
 	int rc;
 	struct berval vals[2];
@@ -89,6 +90,9 @@ read_config( const char *fname )
 	static BackendDB	*be = NULL;
 
 	vals[1].bv_val = NULL;
+
+	cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
+	cargv_size = ARGS_STEP + 1;
 
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
@@ -123,7 +127,7 @@ read_config( const char *fname )
 		/* fp_parse_line is destructive, we save a copy */
 		saveline = ch_strdup( line );
 
-		if ( fp_parse_line( lineno, line, &cargc, cargv ) != 0 ) {
+		if ( fp_parse_line( lineno, line ) != 0 ) {
 			return( 1 );
 		}
 
@@ -858,9 +862,7 @@ read_config( const char *fname )
 		/* set database suffix */
 		} else if ( strcasecmp( cargv[0], "suffix" ) == 0 ) {
 			Backend *tmp_be;
-			struct berval dn;
-			struct berval *pdn = NULL;
-			struct berval *ndn = NULL;
+			struct berval dn, pdn, ndn;
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -919,10 +921,8 @@ read_config( const char *fname )
 
 			dn.bv_val = cargv[1];
 			dn.bv_len = strlen( cargv[1] );
-			pdn = ch_malloc( sizeof( struct berval ));
-			ndn = ch_malloc( sizeof( struct berval ));
 
-			rc = dnPrettyNormal( NULL, &dn, pdn, ndn );
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -936,7 +936,7 @@ read_config( const char *fname )
 				return( 1 );
 			}
 
-			tmp_be = select_backend( ndn, 0, 0 );
+			tmp_be = select_backend( &ndn, 0, 0 );
 			if ( tmp_be == be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
@@ -947,25 +947,25 @@ read_config( const char *fname )
 					"already served by this backend (ignored)\n",
 				    fname, lineno, 0 );
 #endif
-				ber_bvfree( pdn );
-				ber_bvfree( ndn );
+				free( pdn.bv_val );
+				free( ndn.bv_val );
 
 			} else if ( tmp_be  != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffix already served by a preceding "
 					"backend \"%s\"\n", fname, lineno,
-					tmp_be->be_suffix[0]->bv_val ));
+					tmp_be->be_suffix[0].bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix "
 					"already served by a preceeding backend \"%s\"\n",
-				    fname, lineno, tmp_be->be_suffix[0]->bv_val );
+				    fname, lineno, tmp_be->be_suffix[0].bv_val );
 #endif
-				ber_bvfree( pdn );
-				ber_bvfree( ndn );
+				free( pdn.bv_val );
+				free( ndn.bv_val );
 				return( 1 );
 
-			} else if( pdn->bv_len == 0 && default_search_nbase.bv_len ) {
+			} else if( pdn.bv_len == 0 && default_search_nbase.bv_len ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 						"%s: line %d: suffix DN empty and default search "
@@ -979,14 +979,14 @@ read_config( const char *fname )
 #endif
 			}
 
-			ber_bvecadd( &be->be_suffix, pdn );
-			ber_bvecadd( &be->be_nsuffix, ndn );
+			ber_bvarray_add( &be->be_suffix, &pdn );
+			ber_bvarray_add( &be->be_nsuffix, &ndn );
 
 		/* set database suffixAlias */
 		} else if ( strcasecmp( cargv[0], "suffixAlias" ) == 0 ) {
 			Backend *tmp_be;
-			struct berval alias, *palias, nalias;
-			struct berval aliased, *paliased, naliased;
+			struct berval alias, palias, nalias;
+			struct berval aliased, paliased, naliased;
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -1046,9 +1046,8 @@ read_config( const char *fname )
 			
 			alias.bv_val = cargv[1];
 			alias.bv_len = strlen( cargv[1] );
-			palias = ch_malloc(sizeof(struct berval));
 
-			rc = dnPrettyNormal( NULL, &alias, palias, &nalias );
+			rc = dnPrettyNormal( NULL, &alias, &palias, &nalias );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1069,22 +1068,21 @@ read_config( const char *fname )
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffixAlias served by a preceeding "
 					"backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0]->bv_val ));
+					fname, lineno, tmp_be->be_suffix[0].bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias served by"
 					"  a preceeding backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0]->bv_val );
+					fname, lineno, tmp_be->be_suffix[0].bv_val );
 #endif
-				ber_bvfree( palias );
+				free( palias.bv_val );
 				return -1;
 			}
 
 			aliased.bv_val = cargv[2];
 			aliased.bv_len = strlen( cargv[2] );
-			paliased = ch_malloc(sizeof(struct berval));
 
-			rc = dnPrettyNormal( NULL, &aliased, paliased, &naliased );
+			rc = dnPrettyNormal( NULL, &aliased, &paliased, &naliased );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1095,7 +1093,7 @@ read_config( const char *fname )
 					"%s: line %d: aliased DN is invalid\n",
 				   fname, lineno, 0 );
 #endif
-				ber_bvfree( palias );
+				free( palias.bv_val );
 				return( 1 );
 			}
 
@@ -1106,20 +1104,20 @@ read_config( const char *fname )
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffixAlias derefs to a different backend "
 					"a preceeding backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0]->bv_val ));
+					fname, lineno, tmp_be->be_suffix[0].bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias derefs to differnet backend"
 					"  a preceeding backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0]->bv_val );
+					fname, lineno, tmp_be->be_suffix[0].bv_val );
 #endif
-				ber_bvfree( palias );
-				ber_bvfree( paliased );
+				free( palias.bv_val );
+				free( paliased.bv_val );
 				return -1;
 			}
 
-			ber_bvecadd( &be->be_suffixAlias, palias ); 
-			ber_bvecadd( &be->be_suffixAlias, paliased );
+			ber_bvarray_add( &be->be_suffixAlias, &palias ); 
+			ber_bvarray_add( &be->be_suffixAlias, &paliased );
 
                /* set max deref depth */
                } else if ( strcasecmp( cargv[0], "maxDerefDepth" ) == 0 ) {
@@ -2163,7 +2161,7 @@ read_config( const char *fname )
                    }
                    if (module_path( cargv[1] )) {
 #ifdef NEW_LOGGING
-			   LDAP_LOG(( "cofig", LDAP_LEVEL_CRIT,
+			   LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
 				      "%s: line %d: failed to set module search path to %s.\n",
 				      fname, lineno, cargv[1] ));
 #else
@@ -2351,16 +2349,14 @@ read_config( const char *fname )
 static int
 fp_parse_line(
     int		lineno,
-    char	*line,
-    int		*argcp,
-    char	**argv
+    char	*line
 )
 {
 	char *	token;
 	char *	logline;
 	char	logbuf[sizeof("pseudorootpw ***")];
 
-	*argcp = 0;
+	cargc = 0;
 	token = strtok_quote( line, " \t" );
 
 	logline = line;
@@ -2383,21 +2379,28 @@ fp_parse_line(
 		*strtok_quote_ptr = '\0';
 
 	for ( ; token != NULL; token = strtok_quote( NULL, " \t" ) ) {
-		if ( *argcp == MAXARGS ) {
+		if ( cargc == cargv_size - 1 ) {
+			char **tmp;
+			tmp = ch_realloc( cargv, (cargv_size + ARGS_STEP) *
+			                    sizeof(*cargv) );
+			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-				   "fp_parse_line: too many tokens (%d max).\n",
-				   MAXARGS ));
+				LDAP_LOG(( "config", LDAP_LEVEL_ERR,
+					   "line %d: out of memory\n", 
+					   lineno ));
 #else
-			Debug( LDAP_DEBUG_ANY, "Too many tokens (max %d)\n",
-			    MAXARGS, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, 
+						"line %d: out of memory\n", 
+						lineno, 0, 0 );
 #endif
-
-			return( 1 );
+				return -1;
+			}
+			cargv = tmp;
+			cargv_size += ARGS_STEP;
 		}
-		argv[(*argcp)++] = token;
+		cargv[cargc++] = token;
 	}
-	argv[*argcp] = NULL;
+	cargv[cargc] = NULL;
 	return 0;
 }
 

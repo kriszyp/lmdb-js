@@ -1,140 +1,39 @@
-.TH LBER-ENCODE 3  "15 June 1992"
+.TH LBER_ENCODE 3 "25 January 2002" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ber_alloc, ber_flush, ber_printf, ber_put_int, ber_put_ostring, ber_put_string, ber_put_null, ber_put_boolean, ber_put_bitstring, ber_start_seq, ber_start_set, ber_put_seq, ber_put_set \- LBER simplified Basic Encoding Rules library routines for encoding
+ber_alloc_t, ber_flush, ber_printf, ber_put_int, ber_put_enum, ber_put_ostring, ber_put_string, ber_put_null, ber_put_boolean, ber_put_bitstring, ber_start_seq, ber_start_set, ber_put_seq, ber_put_set \- LBER simplified Basic Encoding Rules library routines for encoding
 .SH SYNOPSIS
-.nf
-.ft B
-#include <lber.h>
-.ft
-.fi
+.B #include <lber.h>
 .LP
-.nf
-.ft B
-typedef struct berelement {
-    char *ber_buf;
-    char *ber_ptr;
-    char *ber_end;
-    struct seqorset *ber_sos;
-    int ber_tag;
-    int ber_usertag;
-} BerElement;
-.ft
-.fi
+.BI "BerElement *ber_alloc_t(int " options ");"
 .LP
-.nf
-.ft B
-typedef struct sockbuf {
-    int sb_sd;
-    BerElement sb_ber;
-} Sockbuf;
-.ft
-.fi
+.BI "int ber_flush(Sockbuf *" sb ", BerElement *" ber ", int " freeit ");"
 .LP
-.nf
-.ft B
-BerElement *ber_alloc()
-.ft
-.fi
+.BI "int ber_printf(BerElement *" ber ", const char *" fmt ", ...);"
 .LP
-.nf
-.ft B
-ber_flush(sb, ber, freeit)
-Sockbuf *sb;
-BerElement *ber;
-int freeit;
-.ft
-.fi
+.BI "int ber_put_int(BerElement *" ber ", ber_int_t " num ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_printf(ber, fmt [, arg... ] )
-BerElement *ber;
-char \(**fmt;
-.ft
-.fi
+.BI "int ber_put_enum(BerElement *" ber ", ber_int_t " num ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_put_int(ber, num, tag)
-BerElement *ber;
-long num;
-char tag;
-.ft
-.fi
+.BI "int ber_put_ostring(BerElement *" ber ", const char *" str ", ber_len_t " len ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_put_ostring(ber, str, len, tag)
-BerElement *ber;
-char \(**str;
-unsigned long len;
-char tag;
-.ft
-.fi
+.BI "int ber_put_string(BerElement *" ber ", const char *" str ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_put_string(ber, str, tag)
-BerElement *ber;
-char \(**str;
-char tag;
-.ft
-.fi
+.BI "int ber_put_null(BerElement *" ber ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_put_null(ber, tag)
-BerElement *ber;
-char tag;
-.ft
-.fi
+.BI "int ber_put_boolean(BerElement *" ber ", ber_int_t " bool ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_put_boolean(ber, bool, tag)
-BerElement *ber;
-int bool;
-char tag;
-.ft
-.fi
+.BI "int ber_put_bitstring(BerElement *" ber ", const char *" str ", ber_len_t " blen ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_put_bitstring(ber, str, blen, tag)
-BerElement *ber;
-char *str;
-int blen;
-char tag;
-.ft
-.fi
+.BI "int ber_start_seq(BerElement *" ber ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_start_seq(ber, tag)
-BerElement *ber;
-char tag;
-.ft
-.fi
+.BI "int ber_start_set(BerElement *" ber ", ber_tag_t " tag ");"
 .LP
-.nf
-.ft B
-ber_start_set(ber, tag)
-BerElement *ber;
-char tag;
-.ft
-.fi
+.BI "int ber_put_seq(BerElement *" ber ");"
 .LP
-.nf
-.ft B
-ber_put_seq(ber)
-BerElement *ber;
-.ft
-.fi
-.LP
-.nf
-.ft B
-ber_put_set(ber)
-BerElement *ber;
+.BI "int ber_put_set(BerElement *" ber ");"
 .SH DESCRIPTION
 .LP
 These routines provide a subroutine interface to a simplified
@@ -142,113 +41,168 @@ implementation of the Basic Encoding Rules of ASN.1.  The version
 of BER these routines support is the one defined for the LDAP
 protocol.  The encoding rules are the same as BER, except that 
 only definite form lengths are used, and bitstrings and octet strings
-are always encoded in primitive form.  In addition, these lightweight
-BER routines restrict tags and class to fit in a single octet (this
-means the actual tag must be less than 31).  When a "tag" is specified
-in the descriptions below, it refers to the tag, class, and primitive
-or constructed bit in the first octet of the encoding.  This
+are always encoded in primitive form.  This
 man page describes the encoding routines in the lber library.  See
-lber-decode(3) for details on the corresponding decoding routines.
+.BR lber-decode (3)
+for details on the corresponding decoding routines.  Consult
+.BR lber-types (3)
+for information about types, allocators, and deallocators.
 .LP
-Normally, the only routines that need be called by an application
-are ber_alloc() to allocate a BER element for encoding, ber_printf()
-to do the actual encoding, and ber_flush() to actually write the
-element.  The other routines are provided for those
-applications that need more control than ber_printf() provides.  In
+Normally, the only routines that need to be called by an application
+are
+.BR ber_alloc_t ()
+to allocate a BER element for encoding,
+.BR ber_printf ()
+to do the actual encoding, and
+.BR ber_flush ()
+to actually write the element.  The other routines are provided for those
+applications that need more control than
+.BR ber_printf ()
+provides.  In
 general, these routines return the length of the element encoded, or
--1 if an error occurred.
+LBER_ERROR if an error occurred.
 .LP
-The ber_alloc() routine is used to allocate a new BER element.  The
-ber_flush() routine is used to actually write the element to a socket
-(or file) descriptor, once it has been fully encoded (using ber_printf()
-and friends).  The \fIsb\fP structure contains the descriptor and a
-BerElement used for input buffering.  Only the \fIsb_sd\fP field is relevant
-to the ber_flush() routine.
+The
+.BR ber_alloc_t ()
+routine is used to allocate a new BER element.  It
+should be called with an argument of LBER_USE_DER.
 .LP
-The ber_printf() routine is used to encode a BER element in much the
-same way that sprintf(3) works.  One important difference, though, is
+The
+.BR ber_flush ()
+routine is used to actually write the element to a socket
+(or file) descriptor, once it has been fully encoded (using
+.BR ber_printf ()
+and friends).  See
+.BR lber-sockbuf (3)
+for more details on the Sockbuf implementation of the \fIsb\fP parameter.
+If the \fIfreeit\fP parameter is non-zero, the supplied \fIber\fP will
+be freed after its contents have been flushed.
+.LP
+The
+.BR ber_printf ()
+routine is used to encode a BER element in much the same way that
+.BR sprintf (3)
+works.  One important difference, though, is
 that some state information is kept with the \fIber\fP parameter so
-that multiple calls can be made to ber_printf() to append things to
-the end of the BER element.  Ber_printf() writes to \fIber\fP, a pointer to a
-BerElement such as returned by ber_alloc().  It interprets and
+that multiple calls can be made to
+.BR ber_printf ()
+to append things to the end of the BER element.
+.BR Ber_printf ()
+writes to \fIber\fP, a pointer to a BerElement such as returned by
+.BR ber_alloc_t ().
+It interprets and
 formats its arguments according to the format string \fIfmt\fP.
 The format string can contain the following characters:
 .RS
 .LP
 .TP 3
-.SM b
-Boolean.  An integer parameter should be supplied.  A boolean element
+.B b
+Boolean.  An ber_int_t parameter should be supplied.  A boolean element
 is output.
 .TP
-.SM i
-Integer.  An integer parameter should be supplied.  An integer element
+.B e
+Enumeration.  An ber_int_t parameter should be supplied.  An
+enumeration element is output.
+.TP
+.B i
+Integer.  An ber_int_t parameter should be supplied.  An integer element
 is output.
 .TP
-.SM B
+.B B
 Bitstring.  A char * pointer to the start of the bitstring is supplied,
 followed by the number of bits in the bitstring.  A bitstring element
 is output.
 .TP
-.SM n
+.B n
 Null.  No parameter is required.  A null element is output.
 .TP
-.SM o
+.B o
 Octet string.  A char * is supplied, followed by the length of the
 string pointed to.  An octet string element is output.
 .TP
-.SM s
+.B O
+Octet string.  A struct berval * is supplied.
+An octet string element is output.
+.TP
+.B s
 Octet string.  A null-terminated string is supplied.  An octet string
 element is output, not including the trailing NULL octet.
 .TP
-.SM t
-Tag.  An int specifying the tag to give the next element is provided.
-This works across calls.
+.B t
+Tag.  A ber_tag_t specifying the tag to give the next element
+is provided.  This works across calls.
 .TP
-.SM v
+.B v
 Several octet strings.  A null-terminated array of char *'s is
 supplied.  Note that a construct like '{v}' is required to get
 an actual SEQUENCE OF octet strings.
 .TP
-.SM {
+.B V
+Several octet strings.  A null-terminated array of struct berval *'s
+is supplied.  Note that a construct like '{V}' is required to get
+an actual SEQUENCE OF octet strings.
+.TP
+.B W
+Several octet strings.  An array of struct berval's is supplied.  The
+array is terminated by a struct berval with a NULL bv_val.
+Note that a construct like '{W}' is required to get
+an actual SEQUENCE OF octet strings.
+.TP
+.B {
 Begin sequence.  No parameter is required.
 .TP
-.SM }
+.B }
 End sequence.  No parameter is required.
 .TP
-.SM [
+.B [
 Begin set.  No parameter is required.
 .TP
-.SM ]
+.B ]
 End set.  No parameter is required.
 .RE
 .LP
-The ber_put_int() routine writes the integer element \fInum\fP to
-the BER element \fIber\fP.
+The
+.BR ber_put_int ()
+routine writes the integer element \fInum\fP to the BER element \fIber\fP.
 .LP
-The ber_put_boolean() routine writes the boolean value given by
-\fIbool\fP to the BER element.
+The
+.BR ber_put_enum ()
+routine writes the enumeration element \fInum\fP to the BER element \fIber\fP.
 .LP
-The ber_put_bitstring() routine writes \fIblen\fP bits starting
+The
+.BR ber_put_boolean ()
+routine writes the boolean value given by \fIbool\fP to the BER element.
+.LP
+The
+.BR ber_put_bitstring ()
+routine writes \fIblen\fP bits starting
 at \fIstr\fP as a bitstring value to the given BER element.  Note
 that \fIblen\fP is the length \fIin bits\fP of the bitstring.
 .LP
-The ber_put_ostring() routine writes \fIlen\fP bytes starting at
+The
+.BR ber_put_ostring ()
+routine writes \fIlen\fP bytes starting at
 \fIstr\fP to the BER element as an octet string.
 .LP
-The ber_put_string() routine writes the null-terminated string (minus
+The
+.BR ber_put_string ()
+routine writes the null-terminated string (minus
 the terminating '\0') to the BER element as an octet string.
 .LP
-The ber_put_null() routine writes a NULL element to the BER element.
+The
+.BR ber_put_null ()
+routine writes a NULL element to the BER element.
 .LP
-The ber_start_seq() routine is used to start a sequence in the BER
-element.  The ber_start_set() routine works similarly.
-The end of the sequence or set is marked by the nearest matching
-call to ber_put_seq() or ber_put_set(), respectively.
-.LP
-The ber_first_element() routine is used to return the tag and length
-of the first element in a set or sequence.  It also returns in \fIcookie\fP
-a magic cookie parameter that should be passed to subsequent calls to
-ber_next_element(), which returns similar information.
+The
+.BR ber_start_seq ()
+routine is used to start a sequence in the BER element.  The
+.BR ber_start_set ()
+routine works similarly.
+The end of the sequence or set is marked by the nearest matching call to
+.BR ber_put_seq ()
+or
+.BR ber_put_set (),
+respectively.
 .SH EXAMPLES
 Assuming the following variable declarations, and that the variables
 have been assigned appropriately, an lber encoding of
@@ -278,38 +232,42 @@ the following ASN.1 object:
 can be achieved like so:
 .LP
 .nf
-      int    scope, ali, size, time, attrsonly;
+      int rc;
+      ber_int_t    scope, ali, size, time, attrsonly;
       char   *dn, **attrs;
+      BerElement *ber;
 
       /* ... fill in values ... */
-      if ( (ber = ber_alloc()) == NULLBER )
-		/* error */
 
-      if ( ber_printf( ber, "{siiiib{v}}", dn, scope, ali,
-          size, time, attrsonly, attrs ) == -1 )
+      ber = ber_alloc_t( LBER_USE_DER );
+
+      if ( ber == NULL ) {
+		/* error */
+      }
+
+      rc = ber_printf( ber, "{siiiib{v}}", dn, scope, ali,
+          size, time, attrsonly, attrs );
+
+      if( rc == LBER_ERROR ) {
               /* error */
-      else
+      } else {
               /* success */
+      }
 .fi
 .SH ERRORS
-If an error occurs during encoding, generally these routines return -1.
+If an error occurs during encoding, generally these routines return LBER_ERROR.
 .LP
 .SH NOTES
 .LP
 The return values for all of these functions are declared in the
 <lber.h> header file.
 .SH SEE ALSO
-.BR ldap-async (3)
-.BR ldap-sync (3)
-.BR ldap-parse (3)
-.BR lber-decode (3)
-.LP
-Yeong, W., Howes, T., and Hardcastle-Kille, S., "Lightweight Directory Access
-Protocol", OSI-DS-26, April 1992.
-.LP
-Information Processing - Open Systems Interconnection - Model and Notation -
-Service Definition - Specification of Basic Encoding Rules for Abstract
-Syntax Notation One, International Organization for Standardization,
-International Standard 8825.
-.SH AUTHOR
-Tim Howes, University of Michigan
+.BR lber-decode (3),
+.BR lber-memory (3),
+.BR lber-sockbuf (3),
+.BR lber-types (3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

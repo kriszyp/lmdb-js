@@ -111,8 +111,10 @@ main(
      * Detach from the controlling terminal
      * unless the -d flag is given or in one-shot mode.
      */
+#ifndef HAVE_WINSOCK
     if ( ! (sglob->no_detach || sglob->one_shot_mode) )
 	lutil_detach( 0, 0 );
+#endif
 
     /*
      * Start the main file manager thread (in fm.c).

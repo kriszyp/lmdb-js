@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -14,7 +19,12 @@
  * globals.c - initialization code for global data
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -22,14 +32,19 @@
 Globals		 *sglob;
 
 int ldap_syslog = 0;
+#ifdef LOG_DEBUG
 int ldap_syslog_level = LOG_DEBUG;
+#else
+int ldap_syslog_level = 0;
+#endif
 int ldap_debug = 0;
 
 
 /*
  * Initialize the globals
  */
-Globals *init_globals()
+Globals *
+init_globals( void )
 {
     Globals *g;
 
@@ -43,30 +58,27 @@ Globals *init_globals()
     g->slurpd_shutdown = 0;
     g->num_replicas = 0;
     g->replicas = NULL;
-    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR;
+    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR "/replica";
     strcpy( g->slurpd_status_file, DEFAULT_SLURPD_STATUS_FILE );
     g->slapd_replogfile[ 0 ] = '\0';
     g->slurpd_replogfile[ 0 ] = '\0';
     g->slurpd_status_file[ 0 ] = '\0';
     g->one_shot_mode = 0;
+    g->no_detach = 0;
     g->myname = NULL;
     g->srpos = 0L;
     if ( St_init( &(g->st)) < 0 ) {
 	fprintf( stderr, "Cannot initialize status data\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
-    pthread_mutex_init( &(g->rej_mutex), pthread_mutexattr_default );
+    ldap_pvt_thread_mutex_init( &(g->rej_mutex) );
     if ( Rq_init( &(g->rq)) < 0 ) {
 	fprintf( stderr, "Cannot initialize queue\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
-#ifdef KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
     g->default_srvtab = SRVTAB;
-#endif /* KERBEROS */
-#if defined( THREAD_SUNOS4_LWP )
-    g->tsl_list = NULL;
-    mon_create( &g->tsl_mon ); 
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
     return g;
 }

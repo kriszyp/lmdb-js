@@ -265,7 +265,7 @@ do_bind(
 		}
 
 		/* check restrictions */
-		rc = backend_check_restrictions( NULL, conn, op, mech.bv_val, &text );
+		rc = backend_check_restrictions( NULL, conn, op, &mech, &text );
 		if( rc != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
@@ -367,7 +367,8 @@ do_bind(
 				text = "anonymous bind disallowed";
 
 			} else {
-				rc = backend_check_restrictions( NULL, conn, op, mech.bv_val, &text );
+				rc = backend_check_restrictions( NULL, conn, op,
+					&mech, &text );
 			}
 
 			/*

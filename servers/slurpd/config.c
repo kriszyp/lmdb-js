@@ -34,15 +34,17 @@
 #include "slurp.h"
 #include "globals.h"
 
-#define MAXARGS	500
+#define ARGS_STEP	512
 
 /* Forward declarations */
 static void	add_replica LDAP_P(( char **, int ));
 static int	parse_replica_line LDAP_P(( char **, int, Ri *));
-static void	parse_line LDAP_P(( char *, int *, char ** ));
+static void	parse_line LDAP_P(( char * ));
 static char	*getline LDAP_P(( FILE * ));
 static char	*strtok_quote LDAP_P(( char *, char * ));
 
+int	cargc = 0, cargv_size = 0;
+char	**cargv;
 /* current config file line # */
 static int	lineno;
 
@@ -60,8 +62,9 @@ slurpd_read_config(
 {
     FILE	*fp;
     char	*line;
-    int		cargc;
-    char	*cargv[MAXARGS];
+
+	cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
+	cargv_size = ARGS_STEP + 1;
 
 #ifdef NEW_LOGGING
     LDAP_LOG (( "config", LDAP_LEVEL_ARGS, 
@@ -90,7 +93,7 @@ slurpd_read_config(
 	Debug( LDAP_DEBUG_CONFIG, "Config: (%s)\n", line, 0, 0 );
 #endif
 
-	parse_line( line, &cargc, cargv );
+	parse_line( line );
 
 	if ( cargc < 1 ) {
 	    fprintf( stderr, "line %d: bad config line (ignored)\n", lineno );
@@ -172,19 +175,30 @@ slurpd_read_config(
  */
 static void
 parse_line(
-    char	*line,
-    int		*argcp,
-    char	**argv
+    char	*line
 )
 {
     char *	token;
 
-    *argcp = 0;
+    cargc = 0;
     for ( token = strtok_quote( line, " \t" ); token != NULL;
-	token = strtok_quote( NULL, " \t" ) ) {
-	argv[(*argcp)++] = token;
+	token = strtok_quote( NULL, " \t" ) )
+    {
+        if ( cargc == cargv_size - 1 ) {
+	    char **tmp;
+            tmp = ch_realloc( cargv, (cargv_size + ARGS_STEP) *
+                               sizeof(*cargv) );
+	    if (tmp == NULL) {
+		cargc = 0;
+		return;
+	    }
+	    cargv = tmp;
+            cargv_size += ARGS_STEP;
+        }
+
+	cargv[cargc++] = token;
     }
-    argv[*argcp] = NULL;
+    cargv[cargc] = NULL;
 }
 
 

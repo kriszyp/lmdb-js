@@ -1,0 +1,668 @@
+.TH SLAPD-META 5 "2 May 2002" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copying restrictions apply.  See the COPYRIGHT file.
+.\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+.\" $OpenLDAP$
+.\"
+.\" Portions of this document should probably be moved to slapd-ldap(5)
+.\" and maybe manual pages for librewrite.
+.\"
+.SH NAME
+slapd-meta \- metadirectory backend
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The
+.B meta
+backend to
+.BR slapd (8)
+performs basic LDAP proxying with respect to a set of remote LDAP
+servers, called "targets".
+The information contained in these servers can be presented as
+belonging to a single Directory Information Tree (DIT).
+.LP
+A basic knowledge of the functionality of the
+.BR slapd\-ldap (5)
+backend is recommended.
+This backend has been designed as an enhancement of the ldap backend.
+The two backends share many features (actually they also share
+portions of code).
+While the
+.B ldap
+backend is intended to proxy operations directed to a single server, the
+.B meta
+backend is mainly intended for proxying of multiple servers and possibly
+naming context masquerading.
+These features, although useful in many scenarios, may result in
+excessive overhead for some applications, so its use should be
+carefully considered.
+In the examples section, some typical scenarios will be discussed.
+.SH EXAMPLES
+There are examples in various places in this document, as well as in the
+slapd/back-meta/data/ directory in the OpenLDAP source tree.
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the META backend database.
+That is, they must follow a "database meta" line and come before any
+subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+.LP
+Note: as with the
+.B ldap
+backend, operational attributes related to entry creation/modification
+should not be used, as they would be passed to the target servers,
+generating an error.
+Moreover, it makes little sense to use such attributes in proxying, as
+the proxy server doesn't actually store data, so it should have no
+knowledge of such attributes.
+While code to strip the modification attributes has been put in place
+(and #ifdef'd), it implies unmotivated overhead.
+So it is strongly recommended to set
+.RS
+lastmod  off
+.RE
+for every
+.B ldap
+and
+.B meta
+backend.
+.SH SPECIAL CONFIGURATION DIRECTIVES
+Target configuration starts with the "uri" directive.
+All the configuration directives that are not specific to targets
+should be defined first for clarity, including those that are common
+to all backends.
+They are:
+.TP
+.B default-target none
+This directive forces the backend to reject all those operations
+that must resolve to a single target in case none or multiple
+targets are selected.
+They include: add, delete, modify, modrdn; compare is not included, as
+well as bind since, as they don't alter entries, in case of multiple
+matches an attempt is made to perform the operation on any candidate
+target, with the constraint that at most one must succeed.
+This directive can also be used when processing targets to mark a
+specific target as default.
+.TP
+.B dncache-ttl {forever|disabled|<ttl>}
+This directive sets the time-to-live of the DN cache.
+This caches the target that holds a given DN to speed up target
+selection in case multiple targets would result from an uncached
+search; forever means cache never expires; disabled means no DN
+caching; otherwise a valid ( > 0 ) ttl in seconds is required.
+.SH TARGET SPECIFICATION
+Target specification starts with a "uri" directive:
+.TP
+.B uri <protocol>://[<host>[:<port>]]/<naming context>
+The "server" directive that was allowed in the LDAP backend (although
+deprecated) has been discarded in the Meta backend.
+The <protocol> part can be anything ldap_initialize(3) accepts
+({ldap|ldaps|ldapi} and variants); <host> and <port> may be omitted,
+defaulting to whatever is set in /etc/ldap.conf.
+The <naming context> part is mandatory.
+It must end with one of the naming contexts defined for the backend,
+e.g.:
+.LP
+.RS
+.nf
+suffix "\fBdc=foo,dc=com\fP"
+uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
+.fi
+.RE
+.LP
+The <naming context> part doesn't need to be unique across the targets;
+it may also match one of the values of the "suffix" directive.
+.TP
+.B default-target [<target>]
+The "default-target" directive can also be used during target specification.
+With no arguments it marks the current target as the default.
+The optional number marks target <target> as the default one, starting
+from 1.
+Target <target> must be defined.
+.TP
+.B binddn "<administrative DN for access control purposes>"
+This directive, as in the LDAP backend, allows to define the DN that is
+used to query the target server for acl checking; it should have read
+access on the target server to attributes used on the proxy for acl
+checking.
+There is no risk of giving away such values; they are only used to
+check permissions.
+.TP
+.B bindpw <password for access control purposes>
+This directive sets the password for acl checking in conjunction
+with the above mentioned "binddn" directive.
+.TP
+.B pseudorootdn "<substitute DN in case of rootdn bind>"
+This directive, if present, sets the DN that will be substituted to
+the bind DN if a bind with the backend's "rootdn" succeeds.
+The true "rootdn" of the target server ought not be used; an arbitrary
+administrative DN should used instead.
+.TP
+.B pseudorootpw "<substitute password in case of rootdn bind>"
+This directive sets the credential that will be used in case a bind
+with the backend's "rootdn" succeeds, and the bind is propagated to
+the target using the "pseudorootdn" DN.
+.LP
+Note: cleartext credentials must be supplied here; as a consequence,
+using the pseudorootdn/pseudorootpw directives is inherently unsafe.
+.TP
+.B rewrite* ...
+The rewrite options are described in the "REWRITING" section.
+.TP
+.B suffixmassage "<virtual naming context>" "<real naming context>"
+All the directives starting with "rewrite" refer to the rewrite engine
+that has been added to slapd.
+The "suffixmassage" directive was introduced in the LDAP backend to
+allow suffix massaging while proxying.
+It has been obsoleted by the rewriting tools.
+However, both for backward compatibility and for ease of configuration
+when simple suffix massage is required, it has been preserved.
+It wraps the basic rewriting instructions that perform suffix
+massaging.
+.LP
+Note: this also fixes a flaw in suffix massaging, which operated
+on (case insensitive) DNs instead of normalized DNs,
+so "dc=foo, dc=com" would not match "dc=foo,dc=com".
+.LP
+See the "REWRITING" section.
+.TP
+.B map {objectClass|attribute} {<source>|*} [<dest>|*]
+This maps object classes and attributes as in the LDAP backend.
+See
+.BR slapd-ldap (5).
+.SH SCENARIOS
+A powerful (and in some sense dangerous) rewrite engine has been added
+to both the LDAP and Meta backends.
+While the former can gain limited beneficial effects from rewriting
+stuff, the latter can become an amazingly powerful tool.
+.LP
+Consider a couple of scenarios first.
+.LP
+1) Two directory servers share two levels of naming context;
+say "dc=a,dc=foo,dc=com" and "dc=b,dc=foo,dc=com".
+Then, an unambiguous Meta database can be configured as:
+.LP
+.RS
+.nf
+database meta
+suffix   "\fBdc=foo,dc=com\fP"
+uri      "ldap://a.foo.com/dc=a,\fBdc=foo,dc=com\fP"
+uri      "ldap://b.foo.com/dc=b,\fBdc=foo,dc=com\fP"
+.fi
+.RE
+.LP
+Operations directed to a specific target can be easily resolved
+because there are no ambiguities.
+The only operation that may resolve to multiple targets is a search
+with base "dc=foo,dc=com" and scope at least "one", which results in
+spawning two searches to the targets.
+.LP
+2a) Two directory servers don't share any portion of naming context,
+but they'd present as a single DIT
+[Caveat: uniqueness of (massaged) entries among the two servers is
+assumed; integrity checks risk to incur in excessive overhead and have
+not been implemented].
+Say we have "dc=bar,dc=org" and "o=Foo,c=US",
+and we'd like them to appear as branches of "dc=foo,dc=com", say
+"dc=a,dc=foo,dc=com" and "dc=b,dc=foo,dc=com".
+Then we need to configure our Meta backend as:
+.LP
+.RS
+.nf
+database      meta
+suffix        "dc=foo,dc=com"
+
+uri           "ldap://a.bar.com/\fBdc=a,dc=foo,dc=com\fP"
+suffixmassage "\fBdc=a,dc=foo,dc=com\fP" "dc=bar,dc=org"
+
+uri           "ldap://b.foo.com/\fBdc=b,dc=foo,dc=com\fP"
+suffixmassage "\fBdc=b,dc=foo,dc=com\fP" "o=Foo,c=US"
+.fi
+.RE
+.LP
+Again, operations can be resolved without ambiguity, although
+some rewriting is required.
+Notice that the virtual naming context of each target is a branch of
+the database's naming context; it is rewritten back and forth when
+operations are performed towards the target servers.
+What "back and forth" means will be clarified later.
+.LP
+When a search with base "dc=foo,dc=com" is attempted, if the 
+scope is "base" it fails with "no such object"; in fact, the
+common root of the two targets (prior to massaging) does not
+exist.
+If the scope is "one", both targets are contacted with the base
+replaced by each target's base; the scope is derated to "base".
+In general, a scope "one" search is honored, and the scope is derated,
+only when the incoming base is at most one level lower of a target's
+naming context (prior to massaging).
+.LP
+Finally, if the scope is "sub" the incoming base is replaced
+by each target's unmassaged naming context, and the scope
+is not altered.
+.LP
+2b) Consider the above reported scenario with the two servers
+sharing the same naming context:
+.LP
+.RS
+.nf
+database      meta
+suffix        "\fBdc=foo,dc=com\fP"
+
+uri           "ldap://a.bar.com/\fBdc=foo,dc=com\fP"
+suffixmassage "\fBdc=foo,dc=com\fP" "dc=bar,dc=org"
+
+uri           "ldap://b.foo.com/\fBdc=foo,dc=com\fP"
+suffixmassage "\fBdc=foo,dc=com\fP" "o=Foo,c=US"
+.fi
+.RE
+.LP
+All the previous considerations hold, except that now there is
+no way to unambiguously resolve a DN.
+In this case, all the operations that require an unambiguous target
+selection will fail unless the DN is already cached or a default
+target has been set.
+Practical configurations may result as a combination of all the
+above scenarios.
+.SH ACLs
+Note on ACLs: at present you may add whatever ACL rule you desire
+to to the Meta (and LDAP) backends.
+However, the meaning of an ACL on a proxy may require some
+considerations.
+Two philosophies may be considered:
+.LP
+a) the remote server dictates the permissions; the proxy simply passes
+back what it gets from the remote server.
+.LP
+b) the remote server unveils "everything"; the proxy is responsible
+for protecting data from unauthorized access.
+.LP
+Of course the latter sounds unreasonable, but it is not.
+It is possible to imagine scenarios in which a remote host discloses
+data that can be considered "public" inside an intranet, and a proxy
+that connects it to the internet may impose additional constraints.
+To this purpose, the proxy should be able to comply with all the ACL
+matching criteria that the server supports.
+This has been achieved with regard to all the criteria supported by
+slapd except a special subtle case (please drop me a note if you can
+find other exceptions: <ando@openldap.org>).
+The rule
+.LP
+.RS
+.nf
+access to dn="<dn>" attr=<attr>
+       by dnattr=<dnattr> read
+       by * none
+.fi
+.RE
+.LP
+cannot be matched iff the attribute that is being requested, <attr>,
+is NOT <dnattr>, and the attribute that determines membership,
+<dnattr>, has not been requested (e.g. in a search)
+.LP
+In fact this ACL is resolved by slapd using the portion of entry it
+retrieved from the remote server without requiring any further
+intervention of the backend, so, if the <dnattr> attribute has not
+been fetched, the match cannot be assessed because the attribute is
+not present, not because no value matches the requirement!
+.LP
+Note on ACLs and attribute mapping: ACLs are applied to the mapped
+attributes; for instance, if the attribute locally known as "foo" is
+mapped to "bar" on a remote server, then local ACLs apply to attribute
+"foo" and are totally unaware of its remote name.
+The remote server will check permissions for "bar", and the local
+server will possibly enforce additional restrictions to "foo".
+.\"
+.\" If this section is moved, also update the reference in
+.\" libraries/librewrite/RATIONALE.
+.\"
+.SH REWRITING
+A string is rewritten according to a set of rules, called a `rewrite
+context'.
+The rules are based on Regular Expressions (POSIX regex) with
+substring matching; extensions are planned to allow basic variable
+substitution and map resolution of substrings.
+The behavior of pattern matching/substitution can be altered by a set
+of flags.
+.LP
+The underlying concept is to build a lightweight rewrite module
+for the slapd server (initially dedicated to the LDAP backend).
+.SH Passes
+An incoming string is matched agains a set of rules.
+Rules are made of a match pattern, a substitution pattern and a set of
+actions.
+In case of match a string rewriting is performed according to the
+substitution pattern that allows to refer to substrings matched in the
+incoming string.
+The actions, if any, are finally performed.
+The substitution pattern allows map resolution of substrings.
+A map is a generic object that maps a substitution pattern to a value.
+.SH "Pattern Matching Flags"
+.TP
+.B `C'
+honors case in matching (default is case insensitive)
+.TP
+.B `R'
+use POSIX Basic Regular Expressions (default is Extended)
+.SH "Action Flags"
+.TP
+.B `:'
+apply the rule once only (default is recursive)
+.TP
+.B `@'
+stop applying rules in case of match.
+.TP
+.B `#'
+stop current operation if the rule matches, and issue an `unwilling to
+perform' error.
+.TP
+.B `G{n}'
+jump n rules back and forth (watch for loops!).
+Note that `G{1}' is implicit in every rule.
+.TP
+.B `I'
+ignores errors in rule; this means, in case of error, e.g. issued by a
+map, the error is treated as a missed match.
+The `unwilling to perform' is not overridden.
+.LP
+The ordering of the flags is significant.
+For instance: `IG{2}' means ignore errors and jump two lines ahead
+both in case of match and in case of error, while `G{2}I' means ignore
+errors, but jump thwo lines ahead only in case of match.
+.LP
+More flags (mainly Action Flags) will be added as needed.
+.SH "Pattern matching:"
+See
+.BR regex (7).
+.SH "Substitution Pattern Syntax:"
+Everything starting with `%' requires substitution;
+.LP
+the only obvious exception is `%%', which is left as is;
+.LP
+the basic substitution is `%d', where `d' is a digit;
+0 means the whole string, while 1-9 is a submatch, as discussed in 
+.BR regex (7);
+.LP
+a `%' followed by a `{' invokes an advanced substitution.
+The pattern is:
+.LP
+.RS
+`%' `{' [ <op> ] <name> `(' <substitution> `)' `}'
+.RE
+.LP
+where <name> must be a legal name for the map, i.e.
+.LP
+.RS
+.nf
+<name> ::= [a-z][a-z0-9]* (case insensitive)
+<op> ::= `>' `|' `&' `&&' `*' `**' `$'
+.fi
+.RE
+.LP
+and <substitution> must be a legal substitution
+pattern, with no limits on the nesting level.
+.LP
+The operators are:
+.TP
+.B >
+sub context invocation; <name> must be a legal, already defined
+rewrite context name
+.TP
+.B |
+external command invocation; <name> must refer to a legal, already
+defined command name (NOT IMPL.)
+.TP
+.B &
+variable assignment; <name> defines a variable in the running
+operation structure which can be dereferenced later; operator
+.B &
+assigns a variable in the rewrite context scope; operator
+.B &&
+assigns a variable that scopes the entire session, e.g. its value
+can be derefenced later by other rewrite contexts
+.TP
+.B *
+variable dereferencing; <name> must refer to a variable that is
+defined and assigned for the running operation; operator
+.B *
+dereferences a variable scoping the rewrite context; operator
+.B **
+dereferences a variable scoping the whole session, e.g. the value
+is passed across rewrite contexts
+.TP
+.B $
+parameter dereferencing; <name> must refer to an existing parameter;
+the idea is to make some run-time parameters set by the system
+available to the rewrite engine, as the client host name, the bind DN
+if any, constant parameters initialized at config time, and so on;
+no parameter is currently set by either 
+.B back\-ldap
+or
+.BR back\-meta ,
+but constant parameters can be defined in the configuration file
+by using the
+.B rewriteParam
+directive.
+.LP
+Substitution escaping has been delegated to the `%' symbol, 
+which is used instead of `\e' in string substitution patterns
+because `\e' is already escaped by slapd's low level parsing routines;
+as a consequence, 
+.BR regex (7)
+escaping requires two `\e' symbols, e.g. `\fB.*\e.foo\e.bar\fP' must
+be written as `\fB.*\e\e.foo\e\e.bar\fP'.
+.\"
+.\" The symbol can be altered at will by redefining the related macro in
+.\" "rewrite-int.h".
+.\"
+.SH "Rewrite context:"
+A rewrite context is a set of rules which are applied in sequence.
+The basic idea is to have an application initialize a rewrite
+engine (think of Apache's mod_rewrite ...) with a set of rewrite
+contexts; when string rewriting is required, one invokes the
+appropriate rewrite context with the input string and obtains the
+newly rewritten one if no errors occur.
+.LP
+Each basic server operation is associated to a rewrite context;
+they are divided in two main groups: client \-> server and
+server \-> client rewriting.
+.LP
+client -> server:
+.LP
+.RS
+.nf
+(default)      if defined and no specific context 
+               is available
+bindDn         bind
+searchBase     search
+searchFilter   search
+compareDn      compare
+addDn          add
+modifyDn       modify
+modrDn         modrdn
+newSuperiorDn  modrdn
+deleteDn       delete
+.fi
+.RE
+.LP
+server -> client:
+.LP
+.RS
+.nf
+searchResult   search (only if defined; no default;
+               acts on DN and DN-syntax attributes 
+               of search results)
+matchedDn      all ops (only if defined; no default;
+               NOT IMPL. except in search)
+.fi
+.RE
+.LP
+.SH "Basic configuration syntax"
+.TP
+.B rewriteEngine { on | off }
+If `on', the requested rewriting is performed; if `off', no
+rewriting takes place (an easy way to stop rewriting without
+altering too much the configuration file).
+.TP
+.B rewriteContext <context name> "[ alias <aliased context name> ]"
+<Context name> is the name that identifies the context, i.e. the name
+used by the application to refer to the set of rules it contains.
+It is used also to reference sub contexts in string rewriting.
+A context may aliase another one.
+In this case the alias context contains no rule, and any reference to
+it will result in accessing the aliased one.
+.TP
+.B rewriteRule "<regex pattern>" "<substitution pattern>" "[ <flags> ]"
+Determines how a tring can be rewritten if a pattern is matched.
+Examples are reported below.
+.SH "Additional configuration syntax:"
+.TP
+.B rewriteMap "<map name>" "<map type>" "[ <map attrs> ]"
+Allows to define a map that transforms substring rewriting into
+something else.
+The map is referenced inside the substitution pattern of a rule.
+.TP
+.B rewriteParam <param name> <param value>
+Sets a value with global scope, that can be dereferenced by the
+command `%{$paramName}'.
+.TP
+.B rewriteMaxPasses <number of passes>
+Sets the maximum number of total rewriting passes that can be
+performed in a single rewrite operation (to avoid loops).
+.SH "Configuration examples:"
+.nf
+# set to `off' to disable rewriting
+rewriteEngine on
+
+# Everything defined here goes into the `default' context.
+# This rule changes the naming context of anything sent
+# to `dc=home,dc=net' to `dc=OpenLDAP, dc=org'
+
+rewriteRule "(.*)dc=home,[ ]?dc=net"
+            "%1dc=OpenLDAP, dc=org"  ":"
+
+# since a pretty/normalized DN does not include spaces
+# after rdn separators, e.g. `,', this rule suffices:
+
+rewriteRule "(.*)dc=home,dc=net"
+            "%1dc=OpenLDAP,dc=org"  ":"
+
+# Start a new context (ends input of the previous one).
+# This rule adds blanks between DN parts if not present.
+rewriteContext  addBlanks
+rewriteRule     "(.*),([^ ].*)" "%1, %2"
+
+# This one eats blanks
+rewriteContext  eatBlanks
+rewriteRule     "(.*),[ ](.*)" "%1,%2"
+
+# Here control goes back to the default rewrite
+# context; rules are appended to the existing ones.
+# anything that gets here is piped into rule `addBlanks'
+rewriteContext  default
+rewriteRule     ".*" "%{>addBlanks(%0)}" ":"
+
+.\" # Anything with `uid=username' is looked up in
+.\" # /etc/passwd for gecos (I know it's nearly useless,
+.\" # but it is there just as a guideline to implementing
+.\" # custom maps).
+.\" # Note the `I' flag that leaves `uid=username' in place 
+.\" # if `username' does not have a valid account, and the
+.\" # `:' that forces the rule to be processed exactly once.
+.\" rewriteContext  uid2Gecos
+.\" rewriteRule     "(.*)uid=([a-z0-9]+),(.+)"
+.\"                 "%1cn=%2{xpasswd},%3"      "I:"
+.\" 
+.\" # Finally, in a bind, if one uses a `uid=username' DN,
+.\" # it is rewritten in `cn=name surname' if possible.
+.\" rewriteContext  bindDn
+.\" rewriteRule     ".*" "%{>addBlanks(%{>uid2Gecos(%0)})}" ":"
+.\" 
+# Rewrite the search base  according to `default' rules.
+rewriteContext  searchBase alias default
+
+# Search results with OpenLDAP DN are rewritten back with
+# `dc=home,dc=net' naming context, with spaces eaten.
+rewriteContext  searchResult
+rewriteRule     "(.*[^ ]?)[ ]?dc=OpenLDAP,[ ]?dc=org"
+                "%{>eatBlanks(%1)}dc=home,dc=net"    ":"
+
+# Bind with email instead of full DN: we first need
+# an ldap map that turns attributes into a DN (the
+# argument used when invoking the map is appended to 
+# the URI and acts as the filter portion)
+rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
+
+# Then we need to detect DN made up of a single email,
+# e.g. `mail=someone@example.com'; note that the rule
+# in case of match stops rewriting; in case of error,
+# it is ignored.  In case we are mapping virtual
+# to real naming contexts, we also need to rewrite
+# regular DNs, because the definition of a bindDn
+# rewrite context overrides the default definition.
+rewriteContext bindDn
+rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" "@I"
+
+# This is a rather sophisticated example. It massages a
+# search filter in case who performs the search has
+# administrative privileges.  First we need to keep
+# track of the bind DN of the incoming request, which is
+# stored in a variable called `binddn' with session scope,
+# and left in place to allow regular binding:
+rewriteContext  bindDn
+rewriteRule     ".+" "%{&&binddn(%0)}%0" ":"
+
+# A search filter containing `uid=' is rewritten only
+# if an appropriate DN is bound.
+# To do this, in the first rule the bound DN is
+# dereferenced, while the filter is decomposed in a
+# prefix, in the value of the `uid=<arg>' AVA, and 
+# in a suffix. A tag `<>' is appended to the DN. 
+# If the DN refers to an entry in the `ou=admin' subtree, 
+# the filter is rewritten OR-ing the `uid=<arg>' with
+# `cn=<arg>'; otherwise it is left as is. This could be
+# useful, for instance, to allow apache's auth_ldap-1.4
+# module to authenticate users with both `uid' and
+# `cn', but only if the request comes from a possible
+# `cn=Web auth,ou=admin,dc=home,dc=net' user.
+rewriteContext searchFilter
+rewriteRule "(.*\e\e()uid=([a-z0-9_]+)(\e\e).*)"
+  "%{**binddn}<>%{&prefix(%1)}%{&arg(%2)}%{&suffix(%3)}"
+  ":I"
+rewriteRule "[^,]+,ou=admin,dc=home,dc=net"
+  "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" "@I"
+rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
+.fi
+.SH "LDAP Proxy resolution (a possible evolution of slapd\-ldap(5)):"
+In case the rewritten DN is an LDAP URI, the operation is initiated
+towards the host[:port] indicated in the uri, if it does not refer
+to the local server.
+E.g.:
+.LP
+.nf
+  rewriteRule '^cn=root,.*' '%0'                     'G{3}'
+  rewriteRule '^cn=[a-l].*' 'ldap://ldap1.my.org/%0' '@'
+  rewriteRule '^cn=[m-z].*' 'ldap://ldap2.my.org/%0' '@'
+  rewriteRule '.*'          'ldap://ldap3.my.org/%0' '@'
+.fi
+.LP
+(Rule 1 is simply there to illustrate the `G{n}' action; it could have
+been written:
+.LP
+.nf
+  rewriteRule '^cn=root,.*' 'ldap://ldap3.my.org/%0' '@'
+.fi
+.LP
+with the advantage of saving one rewrite pass ...)
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd\-ldap (5),
+.BR slapd (8),
+.BR regex (7).

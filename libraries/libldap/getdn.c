@@ -3315,66 +3315,149 @@ int
 ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 	unsigned flags )
 {
-	LDAPDN	*newDN = NULL;
-	LDAPRDN	*newRDN = NULL;
+	LDAPDN	*newDN;
+	LDAPRDN	*newRDN;
+	LDAPAVA *newAVA, *baseAVA;
 	X509_NAME_ENTRY *ne;
 	ASN1_OBJECT *obj;
 	ASN1_STRING *str;
-	char oidbuf[2048];
-	int i, j, nrdns, rc = LDAP_NO_MEMORY;
+	char oids[8192], *oidptr = oids, *oidbuf = NULL;
+	void *ptrs[2048];
+	int i, j, k = 0, navas, nrdns, rc = LDAP_SUCCESS;
+	int set = -1;
+	size_t dnsize, oidrem = sizeof(oids), oidsize = 0;
+	int csize;
 
-	struct berval	Type;
 	struct berval	Val;
 
 	assert( bv );
 	bv->bv_len = 0;
 	bv->bv_val = NULL;
 
-	nrdns = X509_NAME_entry_count( x509_name );
-	newDN = (LDAPDN *)LDAP_MALLOC( sizeof(LDAPDN) + sizeof(LDAPRDN *)
-					* (nrdns+1) );
-	if ( newDN == NULL )
-		return LDAP_NO_MEMORY;
+	/* Get the number of AVAs. This is not necessarily the same as
+	 * the number of RDNs.
+	 */
+	navas = X509_NAME_entry_count( x509_name );
+
+	/* Get the last element, to see how many RDNs there are */
+	ne = X509_NAME_get_entry( x509_name, navas - 1 );
+	nrdns = ne->set + 1;
+
+	/* Allocate the DN/RDN/AVA stuff as a single block */    
+	dnsize = sizeof(LDAPDN) + sizeof(LDAPRDN *) * (nrdns+1);
+	dnsize += sizeof(LDAPRDN) * nrdns + sizeof(LDAPAVA *) * (navas+nrdns);
+	dnsize += sizeof(LDAPAVA) * navas;
+	if (dnsize > sizeof(ptrs)) {
+		newDN = (LDAPDN *)LDAP_MALLOC( dnsize );
+		if ( newDN == NULL )
+			return LDAP_NO_MEMORY;
+	} else {
+		newDN = (LDAPDN *)ptrs;
+	}
 	
 	newDN[0] = (LDAPRDN**)(newDN+1);
+	newDN[0][nrdns] = NULL;
+	newRDN = (LDAPRDN*)(newDN[0] + nrdns+1);
+	newAVA = (LDAPAVA*)(newRDN + navas + nrdns*2);
+	baseAVA = newAVA;
 
-	/* Retrieve RDNs in reverse order; LDAP is backwards from X.500.
-	 * The OpenSSL library appears to allow only 1 AVA per RDN.
-	 */
-	for ( i = nrdns - 1, j = 0; i >= 0; i--, j++ ) {
-		newDN[0][j] = NULL;
+	/* Retrieve RDNs in reverse order; LDAP is backwards from X.500. */
+	for ( i = nrdns - 1, j = 0; i >= 0; i-- ) {
 		ne = X509_NAME_get_entry( x509_name, i );
 		obj = X509_NAME_ENTRY_get_object( ne );
 		str = X509_NAME_ENTRY_get_data( ne );
+
+		/* If set changed, move to next RDN */
+		if ( set != ne->set ) {
+			/* If this is not the first time, end the
+			 * previous RDN and advance.
+			 */
+			if ( j > 0 ) {
+				newRDN[0][k] = NULL;
+				newRDN = (LDAPRDN*)(newRDN[0]+k+1);
+			}
+			newDN[0][j++] = newRDN;
+
+			newRDN[0] = (LDAPAVA**)(newRDN+1);
+			k = 0;
+			set = ne->set;
+		}
+		newAVA->la_private = NULL;
+		newAVA->la_flags = LDAP_AVA_STRING;
 
 		if ( !func ) {
 			int n = OBJ_obj2nid( obj );
 
 			if (n == NID_undef)
 				goto get_oid;
-			Type.bv_val = (char *)OBJ_nid2sn( n );
-			Type.bv_len = strlen( Type.bv_val );
+			newAVA->la_attr.bv_val = (char *)OBJ_nid2sn( n );
+			newAVA->la_attr.bv_len = strlen( newAVA->la_attr.bv_val );
 		} else {
-get_oid:		Type.bv_val = oidbuf;
-			Type.bv_len = OBJ_obj2txt( oidbuf, sizeof( oidbuf ), obj, 1 );
+get_oid:		newAVA->la_attr.bv_val = oidptr;
+			newAVA->la_attr.bv_len = OBJ_obj2txt( oidptr, oidrem, obj, 1 );
+			oidptr += newAVA->la_attr.bv_len + 1;
+			oidrem -= newAVA->la_attr.bv_len + 1;
+
+			/* Running out of OID buffer space? */
+			if (oidrem < 128) {
+				if ( oidsize == 0 ) {
+					oidsize = sizeof(oids) * 2;
+					oidrem = oidsize;
+					oidbuf = LDAP_MALLOC( oidsize );
+					if ( oidbuf == NULL ) goto nomem;
+					oidptr = oidbuf;
+				} else {
+					char *old = oidbuf;
+					oidbuf = LDAP_REALLOC( oidbuf, oidsize*2 );
+					if ( oidbuf == NULL ) goto nomem;
+					/* Buffer moved! Fix AVA pointers */
+					if ( old != oidbuf ) {
+						LDAPAVA *a;
+						long dif = oidbuf - old;
+
+						for (a=baseAVA; a<=newAVA; a++){
+							if (a->la_attr.bv_val >= old &&
+								a->la_attr.bv_val <= (old + oidsize))
+								a->la_attr.bv_val += dif;
+						}
+					}
+					oidptr = oidbuf + oidsize - oidrem;
+					oidrem += oidsize;
+					oidsize *= 2;
+				}
+			}
 		}
-		Val.bv_len = str->length;
 		Val.bv_val = str->data;
-
-		newRDN = (LDAPRDN *)LDAP_MALLOC( sizeof(LDAPRDN) + sizeof(LDAPAVA *) * 2);
-		if ( newRDN == NULL )
-			goto nomem;
-
-		newRDN[0] = (LDAPAVA**)(newRDN+1);
-		newRDN[0][0] = ldapava_new( &Type, &Val, LDAP_AVA_STRING );
-		if ( newRDN[0][0] == NULL )
-			goto nomem;
-
-		newRDN[0][1] = NULL;
-		newDN[0][j] = newRDN;
-		newRDN = NULL;
+		Val.bv_len = str->length;
+		switch( str->type ) {
+		case V_ASN1_UNIVERSALSTRING:
+			/* This uses 32-bit ISO 10646-1 */
+			csize = 4; goto to_utf8;
+		case V_ASN1_BMPSTRING:
+			/* This uses 16-bit ISO 10646-1 */
+			csize = 2; goto to_utf8;
+		case V_ASN1_T61STRING:
+			/* This uses 8-bit, assume ISO 8859-1 */
+			csize = 1;
+to_utf8:		rc = ldap_ucs_to_utf8s( &Val, csize, &newAVA->la_value );
+			if (rc != LDAP_SUCCESS) goto nomem;
+			newAVA->la_flags = LDAP_AVA_NONPRINTABLE;
+			break;
+		case V_ASN1_UTF8STRING:
+			newAVA->la_flags = LDAP_AVA_NONPRINTABLE;
+			/* This is already in UTF-8 encoding */
+		case V_ASN1_IA5STRING:
+		case V_ASN1_PRINTABLESTRING:
+			/* These are always 7-bit strings */
+			ber_dupbv( &newAVA->la_value, &Val );
+		default:
+			;
+		}
+		newRDN[0][k] = newAVA;
+		newAVA++;
+		k++;
 	}
-	newDN[0][j] = NULL;
+	newRDN[0][k] = NULL;
 
 	if ( func ) {
 		rc = func( newDN, flags );
@@ -3383,15 +3466,16 @@ get_oid:		Type.bv_val = oidbuf;
 	}
 
 	rc = ldap_dn2bv( newDN, bv, LDAP_DN_FORMAT_LDAPV3 );
-	ldap_dnfree( newDN );
-
-	return rc;
 
 nomem:
-	if ( newRDN )
-		LDAP_FREE( newRDN );
-	if ( newDN )
-		ldap_dnfree( newDN );
+	for (;baseAVA < newAVA; baseAVA++) {
+		LDAP_FREE( baseAVA->la_value.bv_val );
+	}
+
+	if ( oidsize != 0 )
+		LDAP_FREE( oidbuf );
+	if ( newDN != (LDAPDN*) ptrs )
+		LDAP_FREE( newDN );
 	return rc;
 }
 #endif /* HAVE_TLS */

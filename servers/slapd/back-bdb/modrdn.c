@@ -31,7 +31,8 @@ bdb_modrdn(
 	struct berval	p_dn, p_ndn;
 	struct berval	new_dn = {0, NULL}, new_ndn = {0, NULL};
 	int		isroot = -1;
-	Entry		*e, *p = NULL;
+	Entry		*e = NULL;
+	Entry		*p = NULL;
 	Entry		*matched;
 	int			rc;
 	const char *text;

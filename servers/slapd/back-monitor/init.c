@@ -163,6 +163,7 @@ monitor_back_initialize(
 {
 	static char *controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
+		LDAP_CONTROL_VALUESRETURNFILTER,
 		NULL
 	};
 
@@ -226,7 +227,7 @@ monitor_back_db_init(
 	struct monitorentrypriv	*mp;
 	int			i, rc;
 	char 			buf[1024], *end_of_line;
-	struct berval		dn, *ndn;
+	struct berval		dn, ndn;
 	const char 		*text;
 	struct berval		bv[2];
 
@@ -249,11 +250,10 @@ monitor_back_db_init(
 	/* indicate system schema supported */
 	be->be_flags |= SLAP_BFLAG_MONITOR;
 
-	ndn = NULL;
 	dn.bv_val = SLAPD_MONITOR_DN;
 	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
 
-	rc = dnNormalize( NULL, &dn, &ndn );
+	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
@@ -266,8 +266,9 @@ monitor_back_db_init(
 		return -1;
 	}
 
-	ber_bvecadd( &be->be_suffix, ber_dupbv( NULL, &dn ) );
-	ber_bvecadd( &be->be_nsuffix, ndn );
+	ber_dupbv( &bv[0], &dn );
+	ber_bvarray_add( &be->be_suffix, &bv[0] );
+	ber_bvarray_add( &be->be_nsuffix, &ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
@@ -522,7 +523,7 @@ monitor_back_db_config(
 )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "config", LDAP_DEBUG_CONFIG,
+	LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 		"line %d of file '%s' will be ignored\n", lineno, fname ));
 #else
 	Debug( LDAP_DEBUG_CONFIG, 

@@ -53,7 +53,9 @@ Ri_process(
     char	*errmsg;
 
     (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
+#ifdef SIGPIPE
     (void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
     if ( ri == NULL ) {
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "ri", LDAP_LEVEL_ERR, "Ri_process: "

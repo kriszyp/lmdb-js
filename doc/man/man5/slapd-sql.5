@@ -1,0 +1,383 @@
+.TH SLAPD-SQL 5 "2 May 2002" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.SH NAME
+slapd-sql \- SQL backend to slapd
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The primary purpose of this backend (8) to
+.BR slapd (8)
+is to PRESENT information stored in some RDBMS as an LDAP subtree
+without any programming (some SQL and maybe stored procedures can't be
+considered programming, anyway ;).
+.LP
+That is, for example, when you (some ISP) have account information you
+use in an RDBMS, and want to use modern solutions that expect such
+information in LDAP (to authenticate users, make email lookups etc.).
+Or you want to synchronize or distribute information between different
+sites/applications that use RDBMSes and/or LDAP.
+Or whatever else...
+.LP
+It is NOT designed as a general-purpose backend that uses RDBMS instead
+of BerkeleyDB (as the standard BDB backend does), though it can be
+used as such with several limitations.
+You can take a look at
+.B http://www.openldap.org/faq/index.cgi?file=378 
+(OpenLDAP FAQ-O-Matic/General LDAP FAQ/Directories vs. conventional
+databases) to find out more on this point.
+.LP
+The idea (detailed below) is to use some metainformation to translate
+LDAP queries to SQL queries, leaving relational schema untouched, so
+that old applications can continue using it without any
+modifications.
+This allows SQL and LDAP applications to inter-operate without
+replication, and exchange data as needed.
+.LP
+The SQL backend is designed to be tunable to virtually any relational
+schema without having to change source (through that metainformation
+mentioned).
+Also, it uses ODBC to connect to RDBMSes, and is highly configurable
+for SQL dialects RDBMSes may use, so it may be used for integration
+and distribution of data on different RDBMSes, OSes, hosts etc., in
+other words, in highly heterogeneous environment.
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the SQL backend database.
+That is, they must follow a "database sql" line and come before any
+subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+.TP
+.B dbname <datasource name>
+The name of the ODBC datasource to use.
+.LP
+.B dbhost <hostname>
+.br
+.B dbuser <username>
+.br
+.B dbpasswd <password>
+.RS
+These three options are generally unneeded, because this information is already
+taken from the datasource.
+Use them if you need to override datasource settings.
+Also, several RDBMS' drivers tend to require explicit passing of user/password,
+even if those are given in datasource.
+.RE
+.TP
+.B subtree_cond <SQL expression>
+Specifies a where-clause template used to form a subtree search condition.
+It may differ from one SQL dialect to another (see samples).
+.TP
+.B oc_query <SQL expression>
+The default is
+.B "SELECT id, name, keytbl, keycol, create_proc, delete_proc, expect_return FROM ldap_oc_mappings"
+.TP
+.B at_query <SQL expression>
+The default is
+.B "SELECT name, sel_expr, from_tbls, join_where, add_proc, delete_proc, param_order, expect_return FROM ldap_attr_mappings WHERE oc_map_id=?"
+.TP
+.B insentry_query <SQL expression>
+The default is
+.B "INSERT INTO ldap_entries (dn, oc_map_id, parent, keyval) VALUES (?, ?, ?, ?)"
+.TP
+.B delentry_query <SQL expression>
+The default is
+.B "DELETE FROM ldap_entries WHERE id=?"
+
+These four options specify SQL query templates for loading schema mapping
+metainformation,
+adding and deleting entries to ldap_entries, etc.
+All these and subtree_cond should have the given default values.
+For the current value it is recommended to look at the sources,
+or in the log output when slapd starts with "-d 5" or greater.
+.TP
+.B upper_func <SQL function name>
+Specifies the name of a function that converts a given value to uppercase.
+This is used for CIS matching when the RDBMS is case sensitive.
+
+.SH METAINFORMATION USED
+.LP
+Almost everything mentioned later is illustrated in examples located
+in the
+.B slapd/back-sql/rdbms_depend/
+directory in the OpenLDAP source tree, and contains scripts for
+generating sample database for Oracle, MS SQL Server and mySQL.
+.LP
+The first thing that one must arrange is what set of LDAP
+object classes can present your RDBMS information.
+.LP
+The easiest way is to create an objectclass for each entity you had in
+ER-diagram when designing your relational schema.
+Any relational schema, no matter how normalized it is, was designed
+after some model of your application's domain (for instance, accounts,
+services etc. in ISP), and is used in terms of its entities, not just
+tables of normalized schema.
+It means that for every attribute of every such instance there is an
+effective SQL query that loads its values.
+.LP
+Also you might want your object classes to conform to some of the standard
+schemas like inetOrgPerson etc.
+.LP
+Nevertheless, when you think it out, we must define a way to translate
+LDAP operation requests to (a series of) SQL queries.
+Let us deal with the SEARCH operation.
+.LP
+Example:
+Let's suppose that we store information about persons working in our 
+organization in two tables:
+.LP
+.nf
+  PERSONS              PHONES
+  ----------           -------------
+  id integer           id integer
+  first_name varchar   pers_id integer references persons(id)
+  last_name varchar    phone
+  middle_name varchar
+  ...
+.fi
+.LP
+(PHONES contains telephone numbers associated with persons).
+A person can have several numbers, then PHONES contains several
+records with corresponding pers_id, or no numbers (and no records in
+PHONES with such pers_id).
+An LDAP objectclass to present such information could look like this:
+.LP
+.nf
+  person
+  -------
+  MUST cn
+  MAY telephoneNumber $ firstName $ lastName
+  ...
+.fi
+.LP
+To fetch all values for cn attribute given person ID, we construct the
+query:
+.LP
+.nf
+  SELECT CONCAT(persons.first_name,' ',persons.last_name)
+      AS cn FROM persons WHERE persons.id=?
+.fi
+.LP
+for telephoneNumber we can use:
+.LP
+.nf
+  SELECT phones.phone AS telephoneNumber FROM persons,phones
+   WHERE persons.id=phones.pers.id AND persons.id=?
+.fi
+.LP
+If we wanted to service LDAP requests with filters like
+(telephoneNumber=123*), we would construct something like:
+.LP
+.nf
+  SELECT ... FROM persons,phones
+   WHERE persons.id=phones.pers.id
+     AND persons.id=?
+     AND phones.phone like '123%'
+.fi
+.LP
+So, if we had information about what tables contain values for each
+attribute, how to join these tables and arrange these values, we could
+try to automatically generate such statements, and translate search
+filters to SQL WHERE clauses.
+.LP
+To store such information, we add three more tables to our schema
+and fill it with data (see samples):
+.LP
+.nf
+  ldap_oc_mappings (some columns are not listed for clarity)
+  ---------------
+  id=1
+  name="person"
+  keytbl="persons"
+  keycol="id"
+.fi
+.LP
+This table defines a mapping between objectclass (its name held in the
+"name" column), and a table that holds the primary key for corresponding
+entities.
+For instance, in our example, the person entity, which we are trying
+to present as "person" objectclass, resides in two tables (persons and
+phones), and is identified by the persons.id column (that we will call
+the primary key for this entity).
+Keytbl and keycol thus contain "persons" (name of the table), and "id"
+(name of the column).
+.LP
+.nf
+  ldap_attr_mappings (some columns are not listed for clarity)
+  -----------
+  id=1
+  oc_id=1
+  name="cn"
+  sel_expr="CONCAT(persons.first_name,' ',persons.last_name)"
+  from_tbls="persons"
+  join_where=NULL
+  ************
+  id=<n>
+  oc_map_id=1
+  name="telephoneNumber"
+  sel_expr="phones.phone"
+  from_tbls="persons,phones"
+  join_where="phones.pers_id=persons.id"
+.fi
+.LP
+This table defines mappings between LDAP attributes and SQL queries
+that load their values.
+Note that, unlike LDAP schema, these are not
+.B attribute types
+- the attribute "cn" for "person" objectclass can
+have its values in different tables than "cn" for some other objectclass,
+so attribute mappings depend on objectclass mappings (unlike attribute
+types in LDAP schema, which are indifferent to objectclasses).
+Thus, we have oc_map_id column with link to oc_mappings table.
+.LP
+Now we cut the SQL query that loads values for a given attribute into 3 parts.
+First goes into sel_expr column - this is the expression we had
+between SELECT and FROM keywords, which defines WHAT to load.
+Next is table list - text between FROM and WHERE keywords.
+It may contain aliases for convenience (see examples).
+The last is part of the where clause, which (if it exists at all) expresses the
+condition for joining the table containing values with the table
+containing the primary key (foreign key equality and such).
+If values are in the same table as the primary key, then this column is
+left NULL (as for cn attribute above).
+.LP
+Having this information in parts, we are able to not only construct
+queries that load attribute values by id of entry (for this we could
+store SQL query as a whole), but to construct queries that load id's
+of objects that correspond to a given search filter (or at least part of
+it).
+See below for examples.
+.LP
+.nf
+  ldap_entries
+  ------------
+  id=1
+  dn=<dn you choose>
+  oc_map_id=...
+  parent=<parent record id>
+  keyval=<value of primary key>
+.fi
+.LP
+This table defines mappings between DNs of entries in your LDAP tree,
+and values of primary keys for corresponding relational data.
+It has recursive structure (parent column references id column of the
+same table), which allows you to add any tree structure(s) to your
+flat relational data.
+Having id of objectclass mapping, we can determine table and column
+for primary key, and keyval stores value of it, thus defining the exact
+tuple corresponding to the LDAP entry with this DN.
+.LP
+Note that such design (see exact SQL table creation query) implies one
+important constraint - the key must be an integer.
+But all that I know about well-designed schemas makes me think that it's
+not very narrow ;) If anyone needs support for different types for
+keys - he may want to write a patch, and submit it to OpenLDAP ITS,
+then I'll include it.
+.LP
+Also, several people complained that they don't really need very
+structured trees, and they don't want to update one more table every
+time they add or delete an instance in the relational schema.
+Those people can use a view instead of a real table for ldap_entries, something
+like this (by Robin Elfrink):
+.LP
+.nf
+  CREATE VIEW ldap_entries (id, dn, oc_map_id, parent, keyval)
+      AS SELECT (1000000000+userid),
+  UPPER(CONCAT(CONCAT('cn=',gecos),',o=MyCompany,c=NL')),
+  1, 0, userid FROM unixusers UNION
+          SELECT (2000000000+groupnummer),
+  UPPER(CONCAT(CONCAT('cn=',groupnaam),',o=MyCompany,c=NL')),
+  2, 0, groupnummer FROM groups;
+.fi
+.LP
+.SH Typical SQL backend operation
+Having metainformation loaded, the SQL backend uses these tables to
+determine a set of primary keys of candidates (depending on search
+scope and filter).
+It tries to do it for each objectclass registered in ldap_objclasses.
+.LP
+Example:
+for our query with filter (telephoneNumber=123*) we would get the following 
+query generated (which loads candidate IDs)
+.LP
+.nf
+  SELECT ldap_entries.id,persons.id, 'person' AS objectClass,
+         ldap_entries.dn AS dn
+    FROM ldap_entries,persons,phones
+   WHERE persons.id=ldap_entries.keyval
+     AND ldap_entries.objclass=?
+     AND ldap_entries.parent=?
+     AND phones.pers_id=persons.id
+     AND (phones.phone LIKE '123%')
+.fi
+.LP
+(for ONELEVEL search)
+or "... AND dn=?" (for BASE search)
+or "... AND dn LIKE '%?'" (for SUBTREE)
+.LP
+Then, for each candidate, we load the requested attributes using
+per-attribute queries like
+.LP
+.nf
+  SELECT phones.phone AS telephoneNumber
+    FROM persons,phones
+   WHERE persons.id=? AND phones.pers_id=persons.id
+.fi
+.LP
+Then, we use test_filter() from the frontend API to test the entry for a full
+LDAP search filter match (since we cannot effectively make sense of
+SYNTAX of corresponding LDAP schema attribute, we translate the filter
+into the most relaxed SQL condition to filter candidates), and send it to
+the user.
+.LP
+ADD, DELETE, MODIFY operations are also performed on per-attribute
+metainformation (add_proc etc.).
+In those fields one can specify an SQL statement or stored procedure
+call which can add, or delete given values of a given attribute, using
+the given entry keyval (see examples -- mostly ORACLE and MSSQL - since
+there're no stored procs in mySQL).
+.LP
+We just add more columns to oc_mappings and attr_mappings, holding
+statements to execute (like create_proc, add_proc, del_proc etc.), and
+flags governing the order of parameters passed to those statements.
+Please see samples to find out what are the parameters passed, and other
+information on this matter - they are self-explanatory for those familiar
+with concept expressed above.
+.LP
+.SH common techniques (referrals, multiclassing etc.)
+First of all, lets remember that among other major differences to the
+complete LDAP data model, the concept above does not directly support
+such things as multiple objectclasses per entry, and referrals.
+Fortunately, they are easy to adopt in this scheme.
+The SQL backend suggests two more tables being added to the schema -
+ldap_entry_objectclasses(entry_id,oc_name), and
+ldap_referrals(entry_id,url).
+.LP
+The first contains any number of objectclass names that corresponding
+entries will be found by, in addition to that mentioned in
+mapping.
+The SQL backend automatically adds attribute mapping for the "objectclass"
+attribute to each objectclass mapping that loads values from this table.
+So, you may, for instance, have a mapping for inetOrgPerson, and use it
+for queries for "person" objectclass...
+.LP
+The second table contains any number of referrals associated with a given entry.
+The SQL backend automatically adds attribute mapping for "ref" attribute
+to each objectclass mapping that loads values from this table.
+So, if you add objectclass "referral" to this entry, and make one or
+more tuples in ldap_referrals for this entry (they will be seen as
+values of "ref" attribute), you will have slapd return a referral, as
+described in the Administrators Guide.
+.LP
+.SH EXAMPLES
+There are example SQL modules in the slapd/back-sql/rdbms_depend/
+directory in the OpenLDAP source tree.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd (8).

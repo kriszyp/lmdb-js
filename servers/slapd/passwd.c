@@ -16,6 +16,7 @@
 
 #include "slap.h"
 
+#include <lber_pvt.h>
 #include <lutil.h>
 
 int passwd_extop(
@@ -38,28 +39,34 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	if( conn->c_authz_backend != NULL && conn->c_authz_backend->be_extended ) {
-		if( conn->c_authz_backend->be_restrictops & SLAP_RESTRICT_OP_MODIFY ) {
-			*text = "authorization database is read only";
-			rc = LDAP_UNWILLING_TO_PERFORM;
+	if( conn->c_authz_backend == NULL || !conn->c_authz_backend->be_extended ) {
+		*text = "operation not supported for current user";
+		return LDAP_UNWILLING_TO_PERFORM;
+	}
 
-		} else if( conn->c_authz_backend->be_update_ndn.bv_len ) {
-			/* we SHOULD return a referral in this case */
-			*refs = referral_rewrite( conn->c_authz_backend->be_update_refs,
-				NULL, NULL, LDAP_SCOPE_DEFAULT );
+	{
+		struct berval passwd = BER_BVC( LDAP_EXOP_MODIFY_PASSWD );
+
+		rc = backend_check_restrictions( conn->c_authz_backend,
+			conn, op, &passwd, text );
+	}
+
+	if( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	if( conn->c_authz_backend->be_update_ndn.bv_len ) {
+		/* we SHOULD return a referral in this case */
+		*refs = referral_rewrite( conn->c_authz_backend->be_update_refs,
+			NULL, NULL, LDAP_SCOPE_DEFAULT );
 			rc = LDAP_REFERRAL;
 
-		} else {
-			rc = conn->c_authz_backend->be_extended(
-				conn->c_authz_backend, conn, op,
-				reqoid, reqdata,
-				rspoid, rspdata, rspctrls,
-				text, refs );
-		}
-
 	} else {
-		*text = "operation not supported for current user";
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rc = conn->c_authz_backend->be_extended(
+			conn->c_authz_backend, conn, op,
+			reqoid, reqdata,
+			rspoid, rspdata, rspctrls,
+			text, refs );
 	}
 
 	return rc;

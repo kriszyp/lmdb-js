@@ -49,6 +49,8 @@
 
 #define PRINT_CONNTREE 0
 
+static LDAP_REBIND_PROC	ldap_back_rebind;
+
 int
 ldap_back_bind(
     Backend		*be,
@@ -111,8 +113,19 @@ ldap_back_bind(
 		lc->bound = 1;
 	}
 
+	if ( li->savecred ) {
+		if ( lc->cred.bv_val )
+			ch_free( lc->cred.bv_val );
+		ber_dupbv( &lc->cred, cred );
+		ldap_set_rebind_proc( lc->ld, ldap_back_rebind, lc );
+	}
+
+	if ( lc->bound_dn.bv_val )
+		ch_free( lc->bound_dn.bv_val );
 	if ( mdn.bv_val != dn->bv_val ) {
-		free( mdn.bv_val );
+		lc->bound_dn = mdn;
+	} else {
+		ber_dupbv( &lc->bound_dn, dn );
 	}
 	
 	return( rc );
@@ -218,6 +231,9 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		lc = (struct ldapconn *)ch_malloc(sizeof(struct ldapconn));
 		lc->conn = conn;
 		lc->ld = ld;
+
+		lc->cred.bv_len = 0;
+		lc->cred.bv_val = NULL;
 
 #ifdef ENABLE_REWRITE
 		/*
@@ -341,12 +357,27 @@ ldap_back_dobind(struct ldapconn *lc, Operation *op)
 		return( lc->bound );
 	}
 
-	if (ldap_bind_s(lc->ld, lc->bound_dn.bv_val, NULL, LDAP_AUTH_SIMPLE) !=
+	if (ldap_bind_s(lc->ld, lc->bound_dn.bv_val, lc->cred.bv_val, LDAP_AUTH_SIMPLE) !=
 		LDAP_SUCCESS) {
 		ldap_back_op_result(lc, op);
 		return( 0 );
 	} /* else */
 	return( lc->bound = 1 );
+}
+
+/*
+ * ldap_back_rebind
+ *
+ * This is a callback used for chasing referrals using the same
+ * credentials as the original user on this session.
+ */
+static int 
+ldap_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
+	ber_int_t msgid, void *params )
+{
+	struct ldapconn *lc = params;
+
+	return ldap_bind_s( ld, lc->bound_dn.bv_val, lc->cred.bv_val, LDAP_AUTH_SIMPLE );
 }
 
 /* Map API errors to protocol errors... */

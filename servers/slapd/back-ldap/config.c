@@ -111,13 +111,23 @@ ldap_back_db_config(
 		}
 		li->bindpw = ch_strdup(argv[1]);
 	
+	/* save bind creds for referral rebinds? */
+	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
+		if (argc != 1) {
+			fprintf( stderr,
+	"%s: line %d: rebind-as-user takes no arguments\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		li->savecred = 1;
+	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
-#ifndef ENABLE_REWRITE
-		struct berval *bd2, *nd2;
-#endif /* ENABLE_REWRITE */
 		BackendDB *tmp_be;
-		struct berval bdn, ndn;
+		struct berval bvnc, nvnc, pvnc, brnc, nrnc, prnc;
+#ifdef ENABLE_REWRITE
+		int rc;
+#endif /* ENABLE_REWRITE */
 		
 		/*
 		 * syntax:
@@ -138,41 +148,48 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		
-		bdn.bv_val = argv[1];
-		bdn.bv_len = strlen(bdn.bv_val);
-		if ( dnNormalize2( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
+		ber_str2bv( argv[1], 0, 0, &bvnc );
+		if ( dnPrettyNormal( NULL, &bvnc, &pvnc, &nvnc ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
-				fname, lineno, bdn.bv_val );
+				fname, lineno, bvnc.bv_val );
 			return( 1 );
 		}
-		tmp_be = select_backend( &ndn, 0, 0 );
-		ch_free( ndn.bv_val );
+		tmp_be = select_backend( &nvnc, 0, 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, "%s: line %d: suffix already in use"
 				       " by another backend in"
 				       " \"suffixMassage <suffix>"
 				       " <massaged suffix>\"\n",
 				fname, lineno );
-			return( 1 );						
-		}
-
-		bdn.bv_val = argv[2];
-		bdn.bv_len = strlen(bdn.bv_val);
-		if ( dnNormalize2( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
-			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
-				fname, lineno, bdn.bv_val );
+			free( nvnc.bv_val );
+			free( pvnc.bv_val );
 			return( 1 );
 		}
-		tmp_be = select_backend( &ndn, 0, 0 );
-		ch_free( ndn.bv_val );
+
+		ber_str2bv( argv[2], 0, 0, &brnc );
+		if ( dnPrettyNormal( NULL, &brnc, &prnc, &nrnc ) != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
+				fname, lineno, brnc.bv_val );
+			free( nvnc.bv_val );
+			free( pvnc.bv_val );
+			return( 1 );
+		}
+
+#if 0
+		tmp_be = select_backend( &nrnc, 0, 0 );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr, "%s: line %d: massaged suffix"
 				       " already in use by another backend in" 
 			       	       " \"suffixMassage <suffix>"
 				       " <massaged suffix>\"\n",
                                 fname, lineno );
+			free( nvnc.bv_val );
+			free( pvnc.bv_val );
+			free( nrnc.bv_val );
+			free( prnc.bv_val );
                         return( 1 );
 		}
+#endif
 
 #ifdef ENABLE_REWRITE
 		/*
@@ -181,26 +198,31 @@ ldap_back_db_config(
 		 * FIXME: no extra rewrite capabilities should be added
 		 * to the database
 		 */
-	 	return suffix_massage_config( li->rwinfo, argc, argv );
+	 	rc = suffix_massage_config( li->rwinfo, &pvnc, &nvnc, &prnc, &nrnc );
+		free( nvnc.bv_val );
+		free( pvnc.bv_val );
+		free( nrnc.bv_val );
+		free( prnc.bv_val );
+
+		return( rc );
+
 #else /* !ENABLE_REWRITE */
-		bd2 = ber_bvstrdup( argv[1] );
-		ber_bvecadd( &li->suffix_massage, bd2 );
-		nd2 = NULL;
-		dnNormalize( NULL, bd2, &nd2 );
-		ber_bvecadd( &li->suffix_massage, nd2 );
+		ber_bvarray_add( &li->suffix_massage, &pvnc );
+		ber_bvarray_add( &li->suffix_massage, &nvnc );
 		
-		bd2 = ber_bvstrdup( argv[2] );
-		ber_bvecadd( &li->suffix_massage, bd2 );
-		nd2 = NULL;
-		dnNormalize( NULL, bd2, &nd2 );
-		ber_bvecadd( &li->suffix_massage, nd2 );
+		ber_bvarray_add( &li->suffix_massage, &prnc );
+		ber_bvarray_add( &li->suffix_massage, &nrnc );
 #endif /* !ENABLE_REWRITE */
 
-#ifdef ENABLE_REWRITE
 	/* rewrite stuff ... */
  	} else if ( strncasecmp( argv[0], "rewrite", 7 ) == 0 ) {
+#ifdef ENABLE_REWRITE
  		return rewrite_parse( li->rwinfo, fname, lineno, argc, argv );
-#endif /* ENABLE_REWRITE */
+
+#else /* !ENABLE_REWRITE */
+		fprintf( stderr, "%s: line %d: rewrite capabilities "
+				"are not enabled\n", fname, lineno );
+#endif /* !ENABLE_REWRITE */
 		
 	/* objectclass/attribute mapping */
 	} else if ( strcasecmp( argv[0], "map" ) == 0 ) {
@@ -331,35 +353,20 @@ suffix_massage_regexize( const char *s )
 }
 
 static char *
-suffix_massage_patternize( const char *s, int normalize )
+suffix_massage_patternize( const char *s )
 {
-	struct berval 	dn = { 0, NULL }, odn = { 0, NULL };
-	int		rc;
+	ber_len_t	len;
 	char		*res;
 
-	dn.bv_val = ( char * )s;
-	dn.bv_len = strlen( s );
+	len = strlen( s );
 
-	if ( normalize ) {
-		rc = dnNormalize2( NULL, &dn, &odn );
-	} else {
-		rc = dnPretty2( NULL, &dn, &odn );
-	}
-
-	if ( rc != LDAP_SUCCESS ) {
-		return NULL;
-	}
-	
-	res = ch_calloc( sizeof( char ), odn.bv_len + sizeof( "%1" ) );
+	res = ch_calloc( sizeof( char ), len + sizeof( "%1" ) );
 	if ( res == NULL ) {
 		return NULL;
 	}
 
 	strcpy( res, "%1" );
-	strcpy( res + sizeof( "%1" ) - 1, odn.bv_val );
-
-	/* FIXME: what FREE should I use? */
-	free( odn.bv_val );
+	strcpy( res + sizeof( "%1" ) - 1, s );
 
 	return res;
 }
@@ -367,42 +374,45 @@ suffix_massage_patternize( const char *s, int normalize )
 int
 suffix_massage_config( 
 		struct rewrite_info *info,
-		int argc,
-		char **argv
+		struct berval *pvnc,
+		struct berval *nvnc,
+		struct berval *prnc,
+		struct berval *nrnc
 )
 {
 	char *rargv[ 5 ];
+	int line = 0;
 
 	rargv[ 0 ] = "rewriteEngine";
 	rargv[ 1 ] = "on";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 1, 2, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "default";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 2, 2, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 
 	rargv[ 0 ] = "rewriteRule";
-	rargv[ 1 ] = suffix_massage_regexize( argv[ 1 ] );
-	rargv[ 2 ] = suffix_massage_patternize( argv[ 2 ], 0 );
+	rargv[ 1 ] = suffix_massage_regexize( pvnc->bv_val );
+	rargv[ 2 ] = suffix_massage_patternize( prnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 3, 4, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 	
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchResult";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 4, 2, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 	
 	rargv[ 0 ] = "rewriteRule";
-	rargv[ 1 ] = suffix_massage_regexize( argv[ 2 ] );
-	rargv[ 2 ] = suffix_massage_patternize( argv[ 1 ], 0 );
+	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
+	rargv[ 2 ] = suffix_massage_patternize( pvnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 5, 4, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 
@@ -419,30 +429,54 @@ suffix_massage_config(
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchFilter";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 6, 2, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 
-#if 0 /*  matched is not normalized */
+#if 1 /* rewrite filters */
+	{
+		/*
+		 * Note: this is far more optimistic than desirable:
+		 * for any AVA value ending with the virtual naming
+		 * context the terminal part will be replaced by the
+		 * real naming context; a better solution would be to
+		 * walk the filter looking for DN-valued attributes,
+		 * and only rewrite those that require rewriting
+		 */
+		char vbuf[LDAP_FILT_MAXSIZ], rbuf[LDAP_FILT_MAXSIZ];
+
+		snprintf( vbuf, sizeof( vbuf ), "(.*)%s\\)(.*)", nvnc->bv_val );
+		snprintf( rbuf, sizeof( rbuf ), "%%1%s)%%2", nrnc->bv_val );
+		
+		rargv[ 0 ] = "rewriteRule";
+		rargv[ 1 ] = vbuf;
+		rargv[ 2 ] = rbuf;
+		rargv[ 3 ] = ":";
+		rargv[ 4 ] = NULL;
+		rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	}
+#endif /* rewrite filters */
+
+#if 0 /*  "matched" is not normalized */
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDn";
 	rargv[ 2 ] = "alias";
 	rargv[ 3 ] = "searchResult";
 	rargv[ 4 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 7, 4, rargv );
-#else /* normalize matched */
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+#else /* normalize "matched" */
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDn";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 7, 2, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 
 	rargv[ 0 ] = "rewriteRule";
-	rargv[ 1 ] = suffix_massage_regexize( argv[ 2 ] );
-	rargv[ 2 ] = suffix_massage_patternize( argv[ 1 ], 1 );
+	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
+	rargv[ 2 ] = suffix_massage_patternize( nvnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", 8, 4, rargv );
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
-#endif /* normalize matched */
+#endif /* normalize "matched" */
 
 	return 0;
 }

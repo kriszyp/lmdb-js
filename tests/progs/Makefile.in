@@ -1,0 +1,36 @@
+# $OpenLDAP$
+## Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+##
+## tests Makefile.in for OpenLDAP
+
+PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel
+
+SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+NT_XLIBS = $(LDAP_LIBLUTIL_A)
+
+XLIBS    = $(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA) $(@PLAT@_XLIBS)
+XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
+
+# build-tools: FORCE
+# $(MAKE) $(MFLAGS) load-tools
+
+# load-tools: $(PROGRAMS)
+
+slapd-tester: slapd-tester.o $(XLIBS)
+	$(LTLINK) -o $@ slapd-tester.o $(LIBS)
+
+slapd-search: slapd-search.o $(XLIBS)
+	$(LTLINK) -o $@ slapd-search.o $(LIBS)
+
+slapd-read: slapd-read.o $(XLIBS)
+	$(LTLINK) -o $@ slapd-read.o $(LIBS)
+
+slapd-addel: slapd-addel.o $(XLIBS)
+	$(LTLINK) -o $@ slapd-addel.o $(LIBS)
+
+

@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -15,22 +20,37 @@
 #ifndef _SLURPD_H_
 #define _SLURPD_H_
 
-#define LDAP_SYSLOG
+#if !defined(HAVE_WINSOCK) && !defined(LDAP_SYSLOG)
+#define LDAP_SYSLOG 1
+#endif
 
-#include <syslog.h>
-#include <errno.h>
+#include <ac/errno.h>
+#include <ac/param.h>
+#include <ac/signal.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+
 #include <sys/types.h>
-#include <sys/param.h>
-#include "lber.h"
-#include "ldap.h"
-#include "lthread.h"
-#include "portable.h"
-#include "ldapconfig.h"
+
+#include <ldap.h>
+
+#undef  ldap_debug
+#define ldap_debug slurp_debug
+#include "ldap_log.h"
+
+#include "ldap_pvt_thread.h"
+#include "ldap_defaults.h"
 #include "ldif.h"
 
+#ifdef HAVE_WINSOCK
+#define ftruncate(a,b) _chsize(a,b)
+#define truncate(a,b) _lclose( _lcreat(a, 0))
+#define S_IRGRP 0
+#define S_IWGRP 0
+#endif
 
 /* Default directory for slurpd's private copy of replication logs */
-#define	DEFAULT_SLURPD_REPLICA_DIR	"/usr/tmp"
+#define	DEFAULT_SLURPD_REPLICA_DIR	LDAP_RUNDIR LDAP_DIRSEP "openldap-slurp"
 
 /* Default name for slurpd's private copy of the replication log */
 #define	DEFAULT_SLURPD_REPLOGFILE	"slurpd.replog"
@@ -39,7 +59,7 @@
 #define	DEFAULT_SLURPD_STATUS_FILE	"slurpd.status"
 
 /* slurpd dump file - contents of rq struct are written here (debugging) */
-#define	SLURPD_DUMPFILE			"/tmp/slurpd.dump"
+#define	SLURPD_DUMPFILE			LDAP_TMPDIR LDAP_DIRSEP "slurpd.dump"
 
 /* default srvtab file.  Can be overridden */
 #define	SRVTAB				"/etc/srvtab"
@@ -56,9 +76,15 @@
 /* Maximum line length we can read from replication log */
 #define	REPLBUFLEN			256
 
-/* We support simple (plaintext password) and kerberos authentication */
+/* TLS flags */
+#define TLS_OFF			0
+#define TLS_ON			1
+#define TLS_CRITICAL	2
+
+/* We support simple (plaintext password) and SASL authentication */
 #define	AUTH_SIMPLE	1
 #define	AUTH_KERBEROS	2
+#define	AUTH_SASL 3
 
 /* Rejection records are prefaced with this string */
 #define	ERROR_STR	"ERROR"
@@ -78,6 +104,8 @@
 #define	T_DELETECTSTR		"delete"
 #define	T_DELETECT		6
 #define	T_MODRDNCTSTR		"modrdn"
+#define	T_MODDNCTSTR		"moddn"
+#define	T_RENAMECTSTR		"rename"
 #define	T_MODRDNCT		7
 
 #define	T_MODOPADDSTR		"add"
@@ -90,30 +118,46 @@
 #define	T_MODSEP		11
 
 #define	T_NEWRDNSTR		"newrdn"
-#define	T_DRDNFLAGSTR		"deleteoldrdn"
+#define	T_DELOLDRDNSTR	"deleteoldrdn"
+#define T_NEWSUPSTR		"newsuperior"
 
 #define	T_ERR			-1
 
 /* Config file keywords */
 #define	HOSTSTR			"host"
+#define	ATTRSTR			"attr"
+#define	SUFFIXSTR		"suffix"
 #define	BINDDNSTR		"binddn"
 #define	BINDMETHSTR		"bindmethod"
 #define	KERBEROSSTR		"kerberos"
 #define	SIMPLESTR		"simple"
+#define	SASLSTR			"sasl"
 #define	CREDSTR			"credentials"
-#define BINDPSTR		"bindprincipal"
+#define	OLDAUTHCSTR		"bindprincipal"
+#define	AUTHCSTR		"authcID"
+#define	AUTHZSTR		"authzID"
 #define	SRVTABSTR		"srvtab"
+#define	SASLMECHSTR		"saslmech"
+#define	REALMSTR		"realm"
+#define	SECPROPSSTR		"secprops"
+#define TLSSTR			"tls"
+#define TLSCRITICALSTR	"critical"
 
 #define	REPLICA_SLEEP_TIME	( 10 )
 
 /* Enumeration of various types of bind failures */
-#define BIND_OK 			0
-#define BIND_ERR_BADLDP			1
-#define	BIND_ERR_OPEN			2
-#define	BIND_ERR_BAD_ATYPE		3
+#define BIND_OK 					0
+#define BIND_ERR_BADLDP				1
+#define	BIND_ERR_OPEN				2
+#define	BIND_ERR_BAD_ATYPE			3
 #define	BIND_ERR_SIMPLE_FAILED		4
 #define	BIND_ERR_KERBEROS_FAILED	5
-#define	BIND_ERR_BADRI			6
+#define	BIND_ERR_BADRI				6
+#define	BIND_ERR_VERSION			7
+#define	BIND_ERR_REFERRALS			8
+#define	BIND_ERR_MANAGEDSAIT		9
+#define	BIND_ERR_SASL_FAILED		10
+#define	BIND_ERR_TLS_FAILED			11
 
 /* Return codes for do_ldap() */
 #define	DO_LDAP_OK			0
@@ -135,6 +179,7 @@
 #define	RETRY_SLEEP_TIME		60
 
 
+LDAP_BEGIN_DECL
 
 /*
  * ****************************************************************************
@@ -160,27 +205,32 @@ typedef struct rh {
  * Notes:
  *  - Private data should not be manipulated expect by Ri member functions.
  */
-typedef struct ri {
-
+typedef struct ri Ri;
+struct ri {
     /* Private data */
     char	*ri_hostname;		/* canonical hostname of replica */
     int		ri_port;		/* port where slave slapd running */
     LDAP	*ri_ldp;		/* LDAP struct for this replica */
+    int		ri_tls;			/* TLS: 0=no, 1=yes, 2=critical */
     int		ri_bind_method;		/* AUTH_SIMPLE or AUTH_KERBEROS */
     char	*ri_bind_dn;		/* DN to bind as when replicating */
-    char	*ri_password;		/* Password for AUTH_SIMPLE */
-    char	*ri_principal;		/* principal for kerberos bind */
+    char	*ri_password;		/* Password for any method */
+    char	*ri_secprops;		/* SASL security properties */
+    char	*ri_realm;			/* realm for any mechanism */
+    char	*ri_authcId;		/* authentication ID for any mechanism */
+    char	*ri_authzId;		/* authorization ID for any mechanism */
     char	*ri_srvtab;		/* srvtab file for kerberos bind */
+    char	*ri_saslmech;		/* SASL mechanism to use */
     struct re	*ri_curr;		/* current repl entry being processed */
     struct stel	*ri_stel;		/* pointer to Stel for this replica */
     unsigned long
 		ri_seq;			/* seq number of last repl */
-    pthread_t	ri_tid;			/* ID of thread for this replica */
+    ldap_pvt_thread_t	ri_tid;			/* ID of thread for this replica */
 
     /* Member functions */
-    int		(*ri_process)();	/* process the next repl entry */
-    void	(*ri_wake)();		/* wake up a sleeping thread */
-} Ri;
+    int (*ri_process) LDAP_P(( Ri * ));	/* process the next repl entry */
+    void (*ri_wake)   LDAP_P(( Ri * ));	/* wake up a sleeping thread */
+};
     
 
 
@@ -200,19 +250,19 @@ typedef struct mi {
 
 
 
-
 /* 
  * Information about one particular replication entry.  Only routines in
  * re.c  and rq.c should touch the private data.  Other routines should
  * only use member functions.
  */
-typedef struct re {
+typedef struct re Re;
+struct re {
 
     /* Private data */
-    pthread_mutex_t
+    ldap_pvt_thread_mutex_t
 		re_mutex;		/* mutex for this Re */
     int		re_refcnt;		/* ref count, 0 = done */
-    char	*re_timestamp;		/* timestamp of this re */
+    time_t	re_timestamp;		/* timestamp of this re */
     int		re_seq;			/* sequence number */
     Rh    	*re_replicas;		/* array of replica info */
     char	*re_dn;			/* dn of entry being modified */
@@ -221,16 +271,16 @@ typedef struct re {
     struct re	*re_next;		/* pointer to next element */
 
     /* Public functions */
-    int 	(*re_free)();		/* free an re struct */
-    struct re	*(*re_getnext)();	/* return next Re in linked list */
-    int		(*re_parse)();		/* parse a replication log entry */
-    int		(*re_write)();		/* write a replication log entry */
-    void	(*re_dump)();		/* debugging  - print contents */
-    int		(*re_lock)();		/* lock this re */
-    int		(*re_unlock)();		/* unlock this re */
-    int		(*re_decrefcnt)();	/* decrement the refcnt */
-    int		(*re_getrefcnt)();	/* get the refcnt */
-} Re;
+    int	(*re_free)    LDAP_P(( Re * ));	/* free an re struct */
+    Re *(*re_getnext) LDAP_P(( Re * ));	/* return next Re in linked list */
+    int (*re_parse) LDAP_P(( Re *, char * )); /* parse replication log entry */
+    int (*re_write) LDAP_P(( Ri *, Re *, FILE * )); /* write repl. log entry */
+    void (*re_dump)  LDAP_P(( Re *, FILE * )); /* debugging - print contents */
+    int (*re_lock)   LDAP_P(( Re * ));	  /* lock this re */
+    int (*re_unlock) LDAP_P(( Re * ));	  /* unlock this re */
+    int (*re_decrefcnt) LDAP_P(( Re * )); /* decrement the refcnt */
+    int (*re_getrefcnt) LDAP_P(( Re * )); /* get the refcnt */
+};
 
 
 
@@ -243,7 +293,8 @@ typedef struct re {
  * variable so routines in ri.c can use it as a mutex for the
  * rq_more condition variable.
  */
-typedef struct rq {
+typedef struct rq Rq;
+struct rq {
 
     /* Private data */
     Re		*rq_head;		/* pointer to head */
@@ -253,25 +304,24 @@ typedef struct rq {
     time_t	rq_lasttrim;		/* Last time we trimmed file */
     
     /* Public data */
-    pthread_mutex_t
+    ldap_pvt_thread_mutex_t
 		rq_mutex;		/* mutex for whole queue */
-    pthread_cond_t
+    ldap_pvt_thread_cond_t
 		rq_more;		/* condition var - more work added */
 
     /* Member functions */
-    Re		*(*rq_gethead)();	/* get the element at head */
-    Re		*(*rq_getnext)();	/* get the next element */
-    int		(*rq_delhead)();	/* delete the element at head */
-    int		(*rq_add)();		/* add at tail */
-    void	(*rq_gc)();		/* garbage-collect queue */
-    int		(*rq_lock)();		/* lock the queue */
-    int		(*rq_unlock)();		/* unlock the queue */
-    int		(*rq_needtrim)();	/* see if queue needs trimming */
-    int		(*rq_write)();		/* write Rq contents to a file */
-    int		(*rq_getcount)();	/* return queue counts */
-    void	(*rq_dump)();		/* debugging  - print contents */
-} Rq;
-
+    Re * (*rq_gethead)	LDAP_P(( Rq * )); /* get the element at head */
+    Re * (*rq_getnext)	LDAP_P(( Re * )); /* get the next element */
+    int	 (*rq_delhead)	LDAP_P(( Rq * )); /* delete the element at head */
+    int	 (*rq_add)	LDAP_P(( Rq *, char * )); /* add at tail */
+    void (*rq_gc)	LDAP_P(( Rq * )); /* garbage-collect queue */
+    int	 (*rq_lock)	LDAP_P(( Rq * )); /* lock the queue */
+    int	 (*rq_unlock)	LDAP_P(( Rq * )); /* unlock the queue */
+    int	 (*rq_needtrim)	LDAP_P(( Rq * )); /* see if queue needs trimming */
+    int	 (*rq_write)	LDAP_P(( Rq *, FILE * )); /*write Rq contents to file*/
+    int	 (*rq_getcount)	LDAP_P(( Rq *, int )); /* return queue counts */
+    void (*rq_dump)	LDAP_P(( Rq * )); /* debugging - print contents */
+};
 
 
 /*
@@ -282,7 +332,7 @@ typedef struct rq {
 typedef struct stel {
     char	*hostname;		/* host name of replica */
     int		port;			/* port number of replica */
-    char	last[ 64 ];		/* timestamp of last successful repl */
+    time_t	last;			/* timestamp of last successful repl */
     int		seq;			/* Sequence number of last repl */
 } Stel;
 
@@ -297,10 +347,10 @@ typedef struct stel {
  * if present, uses the timestamps to avoid "replaying" replications
  * which have already been sent to a given replica.
  */
-typedef struct st {
-
+typedef struct st St;
+struct st {
     /* Private data */
-    pthread_mutex_t
+    ldap_pvt_thread_mutex_t
 		st_mutex;		/* mutex to serialize access */
     Stel	**st_data;		/* array of pointers to Stel structs */
     int		st_nreplicas;		/* number of repl hosts */
@@ -309,15 +359,15 @@ typedef struct st {
     FILE	*st_lfp;		/* lockfile fp */
 
     /* Public member functions */
-    int		(*st_update)();		/* update the entry for a host */
-    Stel	*(*st_add)();		/* add a new repl host */
-    int		(*st_write)();		/* write status to disk */
-    int		(*st_read)();		/* read status info from disk */
-    int		(*st_lock)();		/* read status info from disk */
-    int		(*st_unlock)();		/* read status info from disk */
-} St;
+    int  (*st_update) LDAP_P(( St *, Stel*, Re* ));/*update entry for a host*/
+    Stel*(*st_add)    LDAP_P(( St *, Ri * ));	   /*add a new repl host*/
+    int  (*st_write)  LDAP_P(( St * ));	/* write status to disk */
+    int  (*st_read)   LDAP_P(( St * ));	/* read status info from disk */
+    int  (*st_lock)   LDAP_P(( St * ));	/* read status info from disk */
+    int  (*st_unlock) LDAP_P(( St * ));	/* read status info from disk */
+};
 
-#if defined( THREAD_SUNOS4_LWP )
+#if defined( HAVE_LWP )
 typedef struct tl {
     thread_t	tl_tid; 	/* thread being managed */
     time_t	tl_wake;	/* time thread should be resumed */
@@ -328,22 +378,17 @@ typedef struct tsl {
     tl_t	*tsl_list;
     mon_t	tsl_mon;
 } tsl_t;
-#endif /* THREAD_SUNOS4_LWP */
-
-    
+#endif /* HAVE_LWP */
 
 /* 
  * Public functions used to instantiate and initialize queue objects.
  */
-#ifdef NEEDPROTOS
-extern int Ri_init( Ri **ri );
-extern int Rq_init( Rq **rq );
-extern int Re_init( Re **re );
-#else /* NEEDPROTOS */
-extern int Ri_init();
-extern int Rq_init();
-extern int Re_init();
-#endif /* NEEDPROTOS */
+extern int Ri_init LDAP_P(( Ri **ri ));
+extern int Rq_init LDAP_P(( Rq **rq ));
+extern int Re_init LDAP_P(( Re **re ));
+
+#include "proto-slurp.h"
+
+LDAP_END_DECL
 
 #endif /* _SLURPD_H_ */
-

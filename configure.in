@@ -526,7 +526,6 @@ BUILD_SQL_DYNAMIC=static
 
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
-SLAPD_MODULES_LIST=
 
 SLAPD_STATIC_BACKENDS=
 SLAPD_DYNAMIC_BACKENDS=
@@ -611,7 +610,13 @@ dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl (for now, let autoconf sort this out)
 dnl CFLAGS=${CFLAGS-""}
 
-AC_CHECK_PROGS(AR,ar gar,ar)
+if test -z "${AR}"; then
+	AC_CHECK_PROGS(AR,ar gar,missing)
+
+	if test "${AR}" = "missing" ; then
+		AC_MSG_ERROR([Unable to locate ar(1).  Check PATH or set AR.])
+	fi
+fi
 
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
@@ -2129,6 +2134,12 @@ if test $ol_with_cyrus_sasl != no ; then
 			fi
 		fi
 	else
+		OL_SASL_COMPAT
+		if test $ol_cv_sasl_compat = no ; then
+			ol_link_sasl=no
+			AC_MSG_ERROR([Cyrus SASL library located but incompatible])
+		fi
+
 		AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
 		SASL_LIBS="$ol_link_sasl"
 		if test $ol_enable_spasswd != no ; then
@@ -2369,6 +2380,7 @@ AC_CHECK_FUNCS(		\
 	read			\
 	recv			\
 	recvfrom		\
+	recvmsg			\
 	setpwfile		\
 	setgid			\
 	setegid			\
@@ -2478,7 +2490,6 @@ if test "$ol_enable_bdb" != no ; then
 			[define to support dynamic BDB backend])
 		BUILD_BDB=mod
 		BUILD_BDB_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-bdb/back_bdb.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-bdb"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-bdb"
@@ -2494,7 +2505,6 @@ if test "$ol_link_dnssrv" != no ; then
 			[define to support dynamic DNS SRV backend])
 		BUILD_DNSSRV=mod
 		BUILD_DNSSRV_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-dnssrv/back_dnssrv.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-dnssrv"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-dnssrv"
@@ -2510,7 +2520,6 @@ if test "$ol_enable_ldap" != no ; then
 			[define to support dynamic LDAP backend])
 		BUILD_LDAP=mod
 		BUILD_LDAP_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldap/back_ldap.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldap"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldap"
@@ -2527,7 +2536,6 @@ if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
 			[define to support dynamic LDBM backend])
 		BUILD_LDBM=mod
 		BUILD_LDBM_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldbm/back_ldbm.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldbm"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldbm"
@@ -2544,12 +2552,13 @@ if test "$ol_enable_meta" != no ; then
 	AC_DEFINE(SLAPD_META,1,[define to support LDAP Metadirectory backend])
 	BUILD_SLAPD=yes
 	BUILD_META=yes
+	BUILD_LDAP=yes
+	BUILD_REWRITE=yes
 	if test "$ol_with_meta_module" != static ; then
 		AC_DEFINE(SLAPD_META_DYNAMIC,1,
 			[define to support dynamic LDAP Metadirectory backend])
 		BUILD_META=mod
 		BUILD_META_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-meta/back_meta.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-meta"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-meta"
@@ -2565,7 +2574,6 @@ if test "$ol_enable_monitor" != no ; then
 			[define to support dynamic cn=Monitor backend])
 		BUILD_MONITOR=mod
 		BUILD_MONITOR_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-monitor/back_monitor.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
@@ -2581,7 +2589,6 @@ if test "$ol_enable_null" != no ; then
 			[define to support dynamic NULL backend])
 		BUILD_NULL=mod
 		BUILD_NULL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-null/back_null.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-null"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-null"
@@ -2597,7 +2604,6 @@ if test "$ol_enable_passwd" != no ; then
 			[define to support dynamic PASSWD backend])
 		BUILD_PASSWD=mod
 		BUILD_PASSWD_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-passwd/back_passwd.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-passwd"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-passwd"
@@ -2613,7 +2619,6 @@ if test "$ol_link_perl" != no ; then
 			[define to support dynamic PERL backend])
 		BUILD_PERL=mod
 		BUILD_PERL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-perl/back_perl.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-perl"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-perl"
@@ -2629,7 +2634,6 @@ if test "$ol_enable_shell" != no ; then
 			[define to support dynamic SHELL backend])
 		BUILD_SHELL=mod
 		BUILD_SHELL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-shell/back_shell.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-shell"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-shell"
@@ -2645,7 +2649,6 @@ if test "$ol_link_sql" != no ; then
 			[define to support dynamic SQL backend])
 		BUILD_SQL=mod
 		BUILD_SQL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-sql/back_sql.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-sql"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-sql"
@@ -2672,7 +2675,6 @@ dnl
 if test "$ac_cv_mingw32" = yes ; then
 	PLAT=NT
 	SLAPD_MODULES_LDFLAGS=
-	SLAPD_MODULES_LIST=
 else
 	PLAT=UNIX
 fi
@@ -2719,7 +2721,6 @@ AC_SUBST(WRAP_LIBS)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)
-AC_SUBST(SLAPD_MODULES_LIST)
 
 AC_SUBST(SLAPD_STATIC_BACKENDS)
 AC_SUBST(SLAPD_DYNAMIC_BACKENDS)

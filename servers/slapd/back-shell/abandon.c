@@ -29,7 +29,7 @@ shell_back_abandon(
 	Operation		*o;
 
 	/* no abandon command defined - just kill the process handling it */
-	if ( si->si_abandon == NULL ) {
+	if ( IS_NULLCMD( si->si_abandon ) ) {
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		pid = -1;
 		LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
@@ -65,8 +65,10 @@ shell_back_abandon(
 
 	/* write out the request to the abandon process */
 	fprintf( wfp, "ABANDON\n" );
+	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %d\n", msgid );
 	print_suffixes( wfp, be );
+	fprintf( wfp, "abandonid: %ld/%d\n", op->o_connid, msgid );
 	fclose( wfp );
 
 	/* no result from abandon */

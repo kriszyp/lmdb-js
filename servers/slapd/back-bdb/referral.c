@@ -23,7 +23,8 @@ bdb_referrals(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc = LDAP_SUCCESS;
-	Entry *e = NULL, *matched;
+	Entry *e = NULL;
+	Entry *matched = NULL;
 
 	if( op->o_tag == LDAP_REQ_SEARCH ) {
 		/* let search take care of itself */

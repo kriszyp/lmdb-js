@@ -47,6 +47,7 @@ static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseSubentries;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
+static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 
 static struct slap_control {
 	char *sc_oid;
@@ -72,6 +73,11 @@ static struct slap_control {
 	{ LDAP_CONTROL_PAGEDRESULTS_REQUEST,
 		SLAP_CTRL_SEARCH, NULL,
 		parsePagedResults },
+#endif
+#ifdef LDAP_CONTROL_VALUESRETURNFILTER
+ 	{ LDAP_CONTROL_VALUESRETURNFILTER,
+ 		SLAP_CTRL_SEARCH, NULL,
+ 		parseValuesReturnFilter },
 #endif
 	{ NULL }
 };
@@ -521,6 +527,64 @@ static int parsePagedResults (
 	op->o_pagedresults_size = size;
 
 	op->o_pagedresults = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+#endif
+
+#ifdef LDAP_CONTROL_VALUESRETURNFILTER
+int parseValuesReturnFilter (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	int		rc;
+	BerElement	*ber;
+	struct berval	fstr = { 0, NULL };
+	const char *err_msg = "";
+
+	if ( op->o_valuesreturnfilter != SLAP_NO_CONTROL ) {
+		*text = "valuesreturnfilter control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	ber = ber_init( &(ctrl->ldctl_value) );
+	if (ber == NULL) {
+		*text = "internal error";
+		return LDAP_OTHER;
+	}
+	
+	rc = get_vrFilter( conn, ber, &(op->vrFilter), &err_msg);
+
+	if( rc != LDAP_SUCCESS ) {
+		text = &err_msg;
+		if( rc == SLAPD_DISCONNECT ) {
+			send_ldap_disconnect( conn, op,
+				LDAP_PROTOCOL_ERROR, *text );
+		} else {
+			send_ldap_result( conn, op, rc,
+				NULL, *text, NULL, NULL );
+		}
+		if( fstr.bv_val != NULL) free( fstr.bv_val );
+		if( op->vrFilter != NULL) vrFilter_free( op->vrFilter ); 
+
+	} else {
+		vrFilter2bv( op->vrFilter, &fstr );
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+		"parseValuesReturnFilter: conn %d	vrFilter: %s\n", conn->c_connid,
+		fstr.bv_len ? fstr.bv_val : "empty" ));
+#else
+	Debug( LDAP_DEBUG_ARGS, "	vrFilter: %s\n",
+		fstr.bv_len ? fstr.bv_val : "empty", 0, 0 );
+#endif
+
+	op->o_valuesreturnfilter = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
 

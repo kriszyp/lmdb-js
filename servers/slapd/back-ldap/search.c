@@ -99,7 +99,7 @@ ldap_back_search(
 	/* if requested limit higher than hard limit, abort */
 	if ( !isroot && tlimit > limit->lms_t_hard ) {
 		/* no hard limit means use soft instead */
-		if ( limit->lms_t_hard == 0 ) {
+		if ( limit->lms_t_hard == 0 && tlimit > limit->lms_t_soft ) {
 			tlimit = limit->lms_t_soft;
 			
 		/* positive hard limit means abort */
@@ -117,7 +117,7 @@ ldap_back_search(
 	/* if requested limit higher than hard limit, abort */
 	if ( !isroot && slimit > limit->lms_s_hard ) {
 		/* no hard limit means use soft instead */
-		if ( limit->lms_s_hard == 0 ) {
+		if ( limit->lms_s_hard == 0 && slimit > limit->lms_s_soft ) {
 			slimit = limit->lms_s_soft;
 			
 		/* positive hard limit means abort */
@@ -258,7 +258,7 @@ fail:;
 	
 	for (	count=0, rc=0;
 			rc != -1;
-			rc = ldap_result(lc->ld, LDAP_RES_ANY, 0, &tv, &res))
+			rc = ldap_result(lc->ld, msgid, 0, &tv, &res))
 	{
 		/* check for abandon */
 		if (op->o_abandon) {
@@ -452,6 +452,7 @@ ldap_send_entry(
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			int i, last;
+			assert( attr->a_vals );
 			for ( last = 0; attr->a_vals[last].bv_val; last++ ) ;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map(&li->oc_map, bv, &mapped, 1);
@@ -474,12 +475,11 @@ ldap_send_entry(
 				}
 			}
 
-#ifdef ENABLE_REWRITE
 		/*
 		 * It is necessary to try to rewrite attributes with
 		 * dn syntax because they might be used in ACLs as
 		 * members of groups; since ACLs are applied to the
-		 * rewritten stuff, no dn-based subecj clause could
+		 * rewritten stuff, no dn-based subject clause could
 		 * be used at the ldap backend side (see
 		 * http://www.OpenLDAP.org/faq/data/cache/452.html)
 		 * The problem can be overcome by moving the dn-based
@@ -489,18 +489,22 @@ ldap_send_entry(
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
+			assert( attr->a_vals );
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
-				char *newval;
+				struct berval newval;
 				
+#ifdef ENABLE_REWRITE
 				switch ( rewrite_session( li->rwinfo,
 							"searchResult",
 							bv->bv_val,
-							lc->conn, &newval )) {
+							lc->conn, 
+							&newval.bv_val )) {
 				case REWRITE_REGEXEC_OK:
 					/* left as is */
-					if ( newval == NULL ) {
+					if ( newval.bv_val == NULL ) {
 						break;
 					}
+					newval.bv_len = strlen( newval.bv_val );
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "backend",
 							LDAP_LEVEL_DETAIL1,
@@ -508,17 +512,16 @@ ldap_send_entry(
 							" attr=%s:"
 							" \"%s\" -> \"%s\"\n",
 							attr->a_desc->ad_type->sat_cname.bv_val,
-							bv->bv_val, newval ));
+							bv->bv_val, 
+							newval.bv_val ));
 #else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ARGS,
 		"rw> searchResult on attr=%s: \"%s\" -> \"%s\"\n",
 						attr->a_desc->ad_type->sat_cname.bv_val,
-						bv->bv_val, newval );
+						bv->bv_val, newval.bv_val );
 #endif /* !NEW_LOGGING */
 					free( bv->bv_val );
-					bv->bv_val = newval;
-					bv->bv_len = strlen( newval );
-					
+					*bv = newval;
 					break;
 					
 				case REWRITE_REGEXEC_UNWILLING:
@@ -531,8 +534,11 @@ ldap_send_entry(
 					 */
 					break;
 				}
+#else /* !ENABLE_REWRITE */
+				ldap_back_dn_massage( li, bv, &newval, 0, 0 );
+				*bv = newval;
+#endif /* !ENABLE_REWRITE */
 			}
-#endif /* ENABLE_REWRITE */
 		}
 
 		*attrp = attr;
@@ -547,7 +553,7 @@ ldap_send_entry(
 		ch_free(attr);
 	}
 	
-	if ( ent.e_dn && ent.e_dn != bdn.bv_val )
+	if ( ent.e_dn && ( ent.e_dn != bdn.bv_val ) )
 		free( ent.e_dn );
 	if ( ent.e_ndn )
 		free( ent.e_ndn );
