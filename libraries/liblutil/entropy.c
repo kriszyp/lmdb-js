@@ -96,7 +96,7 @@ int lutil_entropy( unsigned char *buf, ber_len_t nbytes )
 		struct rdata_s {
 			int counter;
 
-			char *buf;
+			unsigned char *buf;
 			struct rdata_s *stack;
 
 			pid_t	pid;
@@ -134,10 +134,10 @@ int lutil_entropy( unsigned char *buf, ber_len_t nbytes )
 			rdata.junk++;
 
 			lutil_MD5Init( &ctx );
-			lutil_MD5Update( &ctx, (char *) &rdata, sizeof( rdata ) );
+			lutil_MD5Update( &ctx, (unsigned char *) &rdata, sizeof( rdata ) );
 
 			/* allow caller to provided additional entropy */
-			lutil_MD5Update( &ctx, (char *) &buf, nbytes );
+			lutil_MD5Update( &ctx, buf, nbytes );
 
 			lutil_MD5Final( digest, &ctx );
 
