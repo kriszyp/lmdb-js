@@ -39,7 +39,8 @@
 #define LDAP_ENV_PREFIX "LDAP"
 
 /* default ldapi:// socket */
-#define LDAPI_SOCK LDAP_RUNDIR LDAP_DIRSEP "ldapi"
+#define LDAPI_SOCK LDAP_RUNDIR LDAP_DIRSEP "run" \
+	LDAP_DIRSEP "openldap" LDAP_DIRSEP "ldapi"
 
 /*
  * SLAPD DEFINITIONS
