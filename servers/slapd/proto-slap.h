@@ -529,6 +529,7 @@ LDAP_SLAPD_F (void) entry_flatsize LDAP_P((
 LDAP_SLAPD_F (int) entry_decode LDAP_P(( struct berval *bv, Entry **e ));
 LDAP_SLAPD_F (int) entry_encode LDAP_P(( Entry *e, struct berval *bv ));
 
+LDAP_SLAPD_F (void) entry_clean LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (void) entry_free LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) entry_cmp LDAP_P(( Entry *a, Entry *b ));
 LDAP_SLAPD_F (int) entry_dn_cmp LDAP_P(( const void *v_a, const void *v_b ));

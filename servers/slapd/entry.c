@@ -414,7 +414,7 @@ entry2str(
 }
 
 void
-entry_free( Entry *e )
+entry_clean( Entry *e )
 {
 	/* free an entry structure */
 	assert( e != NULL );
@@ -441,6 +441,12 @@ entry_free( Entry *e )
 	/* free attributes */
 	attrs_free( e->e_attrs );
 	e->e_attrs = NULL;
+}
+
+void
+entry_free( Entry *e )
+{
+	entry_clean( e );
 
 	free( e );
 }
