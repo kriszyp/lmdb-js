@@ -409,11 +409,13 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_def_sasl_authcid = NULL;
 	gopts->ldo_def_sasl_authzid = NULL;
 
-	memset( &gopts->ldo_sasl_secprops, '\0', sizeof(gopts->ldo_sasl_secprops) );
+	memset( &gopts->ldo_sasl_secprops,
+		'\0', sizeof(gopts->ldo_sasl_secprops) );
 
 	gopts->ldo_sasl_secprops.max_ssf = INT_MAX;
-	gopts->ldo_sasl_secprops.maxbufsize = 65536;
-	gopts->ldo_sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
+	gopts->ldo_sasl_secprops.maxbufsize = SASL_MAX_BUFF_SIZE;
+	gopts->ldo_sasl_secprops.security_flags =
+		SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS;
 #endif
 
 #ifdef HAVE_TLS
