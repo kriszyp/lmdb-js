@@ -2082,6 +2082,7 @@ dnl ----------------------------------------------------------------
 dnl
 dnl Check for Cyrus SASL
 dnl
+WITH_SASL=no
 ol_link_sasl=no
 ol_link_spasswd=no
 if test $ol_with_cyrus_sasl != no ; then
@@ -2122,6 +2123,8 @@ if test $ol_with_cyrus_sasl != no ; then
 		AC_CHECK_FUNC(sasl_version, [AC_DEFINE(HAVE_SASL_VERSION,1,
 			[define if your SASL library has sasl_version()])])
 		LIBS="$ac_save_LIBS"
+
+		WITH_SASL=yes
 	fi
 
 else
@@ -2780,6 +2783,7 @@ fi
 
 AC_SUBST(LIBSRCS)
 AC_SUBST(PLAT)
+AC_SUBST(WITH_SASL)
 AC_SUBST(WITH_TLS)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
