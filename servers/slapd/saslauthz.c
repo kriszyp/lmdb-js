@@ -1121,7 +1121,7 @@ COMPLETE:
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, RESULTS, 
-		"slap_sasl_check_authz: %s check returning %s\n", 
+		"slap_sasl_check_authz: %s check returning %d\n",
 		ad->ad_cname.bv_val, rc, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
