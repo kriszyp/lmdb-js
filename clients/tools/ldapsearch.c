@@ -429,8 +429,7 @@ handle_private_option( int i )
 		break;
 	case 'l':	/* time limit */
 		if ( strcasecmp( optarg, "none" ) == 0 ) {
-			/* maxInt as per RFC 4.1.1. Message Envelope */
-			sizelimit = 2147483647;
+			timelimit = 0;
 		} else {
 			timelimit = atoi( optarg );
 		}
@@ -476,10 +475,14 @@ handle_private_option( int i )
 		break;
 	case 'z':	/* size limit */
 		if ( strcasecmp( optarg, "none" ) == 0 ) {
-			/* maxInt as per RFC 4.1.1. Message Envelope */
-			sizelimit = 2147483647;
+			sizelimit = 0;
 		} else {
 			sizelimit = atoi( optarg );
+		}
+		if( sizelimit < 0 ) {
+			fprintf( stderr, _("%s: invalid sizelimit (%d) specified\n"),
+				prog, timelimit );
+			exit( EXIT_FAILURE );
 		}
 		break;
 	default:
@@ -499,7 +502,7 @@ private_conn_setup( LDAP *ld )
 		fprintf( stderr, _("Could not set LDAP_OPT_DEREF %d\n"), deref );
 		exit( EXIT_FAILURE );
 	}
-	if (timelimit != -1 &&
+	if (timelimit > 0 &&
 		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit )
 			!= LDAP_OPT_SUCCESS )
 	{
@@ -507,7 +510,7 @@ private_conn_setup( LDAP *ld )
 			_("Could not set LDAP_OPT_TIMELIMIT %d\n"), timelimit );
 		exit( EXIT_FAILURE );
 	}
-	if (sizelimit != -1 &&
+	if (sizelimit > 0 &&
 		ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit )
 			!= LDAP_OPT_SUCCESS )
 	{
