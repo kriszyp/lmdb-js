@@ -1,6 +1,8 @@
 /* $OpenLDAP$ */
-// nt_main.c
+
 #include "portable.h"
+
+#include <ldap.h>
 
 static void stubs()
 {
