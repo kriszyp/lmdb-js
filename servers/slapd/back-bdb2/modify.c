@@ -48,15 +48,15 @@ bdb2i_back_modify_internal(
 
 		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
 		case LDAP_MOD_ADD:
-			err = add_values( e, mod, op->o_ndn );
+			err = bdb2i_add_values( e, mod, op->o_ndn );
 			break;
 
 		case LDAP_MOD_DELETE:
-			err = delete_values( e, mod, op->o_ndn );
+			err = bdb2i_delete_values( e, mod, op->o_ndn );
 			break;
 
 		case LDAP_MOD_REPLACE:
-			err = replace_values( e, mod, op->o_ndn );
+			err = bdb2i_replace_values( e, mod, op->o_ndn );
 			break;
 		}
 
@@ -155,7 +155,7 @@ bdb2_back_modify(
 
 
 int
-add_values(
+bdb2i_add_values(
     Entry	*e,
     LDAPMod	*mod,
     char	*dn
@@ -183,7 +183,7 @@ add_values(
 }
 
 int
-delete_values(
+bdb2i_delete_values(
     Entry	*e,
     LDAPMod	*mod,
     char	*dn
@@ -239,7 +239,7 @@ delete_values(
 }
 
 int
-replace_values(
+bdb2i_replace_values(
     Entry	*e,
     LDAPMod	*mod,
     char	*dn
