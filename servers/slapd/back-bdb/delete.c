@@ -206,12 +206,14 @@ retry:	/* transaction retry */
 	}
 
 	rc = bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
-	if ( rc ) {
-		switch( rc ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		}
+	switch( rc ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	case 0:
+	case DB_NOTFOUND:
+		break;
+	default:
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
