@@ -238,110 +238,6 @@ static int octetStringFilter(
 }
 
 static int
-nameUIDValidate(
-	Syntax *syntax,
-	struct berval *in )
-{
-	int rc;
-	struct berval dn;
-
-	if( in->bv_len == 0 ) return LDAP_SUCCESS;
-
-	ber_dupbv( &dn, in );
-	if( !dn.bv_val ) return LDAP_OTHER;
-
-	if( dn.bv_val[dn.bv_len-1] == 'B'
-		&& dn.bv_val[dn.bv_len-2] == '\'' )
-	{
-		/* assume presence of optional UID */
-		ber_len_t i;
-
-		for(i=dn.bv_len-3; i>1; i--) {
-			if( dn.bv_val[i] != '0' &&	dn.bv_val[i] != '1' ) {
-				break;
-			}
-		}
-		if( dn.bv_val[i] != '\'' ||
-		    dn.bv_val[i-1] != '#' ) {
-			ber_memfree( dn.bv_val );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		/* trim the UID to allow use of dnValidate */
-		dn.bv_val[i-1] = '\0';
-		dn.bv_len = i-1;
-	}
-
-	rc = dnValidate( NULL, &dn );
-
-	ber_memfree( dn.bv_val );
-	return rc;
-}
-
-static int
-nameUIDNormalize(
-	Syntax *syntax,
-	struct berval *val,
-	struct berval *normalized )
-{
-	struct berval out;
-	int rc;
-
-	ber_dupbv( &out, val );
-	if( out.bv_len != 0 ) {
-		ber_len_t dnlen;
-		char *uid = NULL;
-		ber_len_t uidlen = 0;
-
-		if( out.bv_val[out.bv_len-1] == '\'' ) {
-			/* assume presence of optional UID */
-			uid = strrchr( out.bv_val, '#' );
-
-			if( uid == NULL ) {
-				free( out.bv_val );
-				return LDAP_INVALID_SYNTAX;
-			}
-
-			uidlen = out.bv_len - (uid - out.bv_val);
-			/* temporarily trim the UID */
-			*uid = '\0';
-			out.bv_len -= uidlen;
-		}
-
-#ifdef USE_DN_NORMALIZE
-		rc = dnNormalize2( NULL, &out, normalized );
-#else
-		rc = dnPretty2( NULL, &out, normalized );
-#endif
-
-		if( rc != LDAP_SUCCESS ) {
-			free( out.bv_val );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		dnlen = normalized->bv_len;
-
-		if( uidlen ) {
-			struct berval b2;
-			b2.bv_val = ch_malloc(dnlen + uidlen + 1);
-			AC_MEMCPY( b2.bv_val, normalized->bv_val, dnlen );
-
-			/* restore the separator */
-			*uid = '#';
-			/* shift the UID */
-			AC_MEMCPY( normalized->bv_val+dnlen, uid, uidlen );
-			b2.bv_len = dnlen + uidlen;
-			normalized->bv_val[dnlen+uidlen] = '\0';
-			free(normalized->bv_val);
-			*normalized = b2;
-		}
-		free( out.bv_val );
-	}
-
-	return LDAP_SUCCESS;
-}
-
-static int
 inValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -433,6 +329,119 @@ bitStringNormalize(
 	normalized->bv_val[normalized->bv_len] = '\0';
 
 done:
+	return LDAP_SUCCESS;
+}
+
+static int
+nameUIDValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int rc;
+	struct berval dn;
+
+	if( in->bv_len == 0 ) return LDAP_SUCCESS;
+
+	ber_dupbv( &dn, in );
+	if( !dn.bv_val ) return LDAP_OTHER;
+
+	if( dn.bv_val[dn.bv_len-1] == 'B'
+		&& dn.bv_val[dn.bv_len-2] == '\'' )
+	{
+		/* assume presence of optional UID */
+		ber_len_t i;
+
+		for(i=dn.bv_len-3; i>1; i--) {
+			if( dn.bv_val[i] != '0' &&	dn.bv_val[i] != '1' ) {
+				break;
+			}
+		}
+		if( dn.bv_val[i] != '\'' || dn.bv_val[i-1] != '#' ) {
+			ber_memfree( dn.bv_val );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* trim the UID to allow use of dnValidate */
+		dn.bv_val[i-1] = '\0';
+		dn.bv_len = i-1;
+	}
+
+	rc = dnValidate( NULL, &dn );
+
+	ber_memfree( dn.bv_val );
+	return rc;
+}
+
+static int
+nameUIDNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *normalized )
+{
+	struct berval out;
+	int rc;
+
+	ber_dupbv( &out, val );
+	if( out.bv_len != 0 ) {
+		struct berval uidin = { 0, NULL };
+		struct berval uidout = { 0, NULL };
+
+		if( out.bv_val[out.bv_len-1] == 'B'
+			&& out.bv_val[out.bv_len-2] == '\'' )
+		{
+			/* assume presence of optional UID */
+			uidin.bv_val = strrchr( out.bv_val, '#' );
+
+			if( uidin.bv_val == NULL ) {
+				free( out.bv_val );
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			uidin.bv_len = out.bv_len - (uidin.bv_val - out.bv_val);
+			out.bv_len -= uidin.bv_len--;
+
+			/* temporarily trim the UID */
+			*(uidin.bv_val++) = '\0';
+
+			rc = bitStringNormalize( syntax, &uidin, &uidout );
+
+			if( rc != LDAP_SUCCESS ) {
+				free( out.bv_val );
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
+
+#ifdef USE_DN_NORMALIZE
+		rc = dnNormalize2( NULL, &out, normalized );
+#else
+		rc = dnPretty2( NULL, &out, normalized );
+#endif
+
+		if( rc != LDAP_SUCCESS ) {
+			free( out.bv_val );
+			free( uidout.bv_val );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		if( uidout.bv_len ) {
+			normalized->bv_val = ch_realloc( normalized->bv_val,
+				normalized->bv_len + uidout.bv_len + sizeof("#") );
+
+			/* insert the separator */
+			normalized->bv_val[normalized->bv_len++] = '#';
+
+			/* append the UID */
+			AC_MEMCPY( &normalized->bv_val[normalized->bv_len],
+				uidout.bv_val, uidout.bv_len );
+			normalized->bv_len += uidout.bv_len;
+
+			/* terminate */
+			normalized->bv_val[normalized->bv_len] = '\0';
+		}
+
+		free( out.bv_val );
+	}
+
 	return LDAP_SUCCESS;
 }
 
