@@ -139,7 +139,7 @@ struct sockbuf; /* avoid pulling in <lber.h> */
 LDAP_F (int) ldap_pvt_sasl_install LDAP_P(( struct sockbuf *, void * ));
 #endif /* HAVE_CYRUS_SASL */
 
-#define LDAP_PVT_SASL_LOCAL_SSF	52	/* SSF for Unix Domain Sockets */
+#define LDAP_PVT_SASL_LOCAL_SSF	71	/* SSF for Unix Domain Sockets */
 
 /* search.c */
 LDAP_F( char * )

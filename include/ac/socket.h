@@ -83,6 +83,12 @@
 #	define ioctl_t				u_long
 #	define AC_SOCKET_INVALID	((unsigned int) ~0)
 
+#	if SD_BOTH
+#		define tcp_close( s )	(shutdown( s, SD_BOTH ), closesocket( s ))
+#else
+#		define tcp_close( s )		closesocket( s )
+#endif
+
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define EINPROGRESS WSAEINPROGRESS
 #define ETIMEDOUT	WSAETIMEDOUT
@@ -120,9 +126,14 @@ LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 #	endif
 
 #else
-#	define tcp_close( s )		close( s )
 #	define tcp_read( s, buf, len)	read( s, buf, len )
 #	define tcp_write( s, buf, len)	write( s, buf, len )
+
+#	if SHUT_RDWR
+#		define tcp_close( s )	(shutdown( s, SHUT_RDWR ), close( s ))
+#else
+#		define tcp_close( s )		close( s )
+#endif
 
 #ifdef HAVE_PIPE
 /*
