@@ -526,7 +526,7 @@ LDAP_SLAPD_F (int) filter_matched_values(
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	char		***e_flags );
 
 /*

@@ -23,7 +23,7 @@ static int test_mra_vrFilter(
 	Backend 	*be,
 	Connection 	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	MatchingRuleAssertion *mra,
 	char 		***e_flags
 );
@@ -33,7 +33,7 @@ test_substrings_vrFilter(
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	ValuesReturnFilter *f,
 	char		***e_flags
 );
@@ -43,7 +43,7 @@ test_presence_vrFilter(
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	AttributeDescription *desc,
 	char 		***e_flags
 );
@@ -53,7 +53,7 @@ test_ava_vrFilter(
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	AttributeAssertion *ava,
 	int		type,
 	char 		***e_flags
@@ -65,7 +65,7 @@ filter_matched_values(
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	char		***e_flags
 )
 {
@@ -108,7 +108,7 @@ filter_matched_values(
 #else
 			Debug( LDAP_DEBUG_FILTER, "	EQUALITY\n", 0, 0, 0 );
 #endif
-			rc = test_ava_vrFilter( be, conn, op, e, f->f_ava,
+			rc = test_ava_vrFilter( be, conn, op, a, f->f_ava,
 				LDAP_FILTER_EQUALITY, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -123,7 +123,7 @@ filter_matched_values(
 			Debug( LDAP_DEBUG_FILTER, "	SUBSTRINGS\n", 0, 0, 0 );
 #endif
 
-			rc = test_substrings_vrFilter( be, conn, op, e,
+			rc = test_substrings_vrFilter( be, conn, op, a,
 				f, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -137,7 +137,7 @@ filter_matched_values(
 #else
 			Debug( LDAP_DEBUG_FILTER, "	PRESENT\n", 0, 0, 0 );
 #endif
-			rc = test_presence_vrFilter( be, conn, op, e,
+			rc = test_presence_vrFilter( be, conn, op, a,
 				f->f_desc, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -145,7 +145,7 @@ filter_matched_values(
 			break;
 
 		case LDAP_FILTER_GE:
-			rc = test_ava_vrFilter( be, conn, op, e, f->f_ava,
+			rc = test_ava_vrFilter( be, conn, op, a, f->f_ava,
 				LDAP_FILTER_GE, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -153,7 +153,7 @@ filter_matched_values(
 			break;
 
 		case LDAP_FILTER_LE:
-			rc = test_ava_vrFilter( be, conn, op, e, f->f_ava,
+			rc = test_ava_vrFilter( be, conn, op, a, f->f_ava,
 				LDAP_FILTER_LE, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -167,7 +167,7 @@ filter_matched_values(
 #else
 			Debug( LDAP_DEBUG_FILTER, "	EXT\n", 0, 0, 0 );
 #endif
-			rc = test_mra_vrFilter( be, conn, op, e,
+			rc = test_mra_vrFilter( be, conn, op, a,
 				f->f_mra, e_flags );
 			if( rc == -1 ) {
 				return rc;
@@ -198,25 +198,18 @@ filter_matched_values(
 
 static int
 test_ava_vrFilter(
-		Backend		*be,
+	Backend		*be,
 	Connection	*conn,
-		Operation	*op,
-		Entry		*e,
+	Operation	*op,
+	Attribute	*a,
 	AttributeAssertion *ava,
-		int		type,
-		char 		***e_flags
+	int		type,
+	char 		***e_flags
 )
 {
 	int 		i, j;
-	Attribute	*a;
 
-	if ( !access_allowed( be, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_SEARCH, NULL ) )
-	{
-		return LDAP_INSUFFICIENT_ACCESS;
-	}
-
-	for (a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+	for ( i=0; a != NULL; a = a->a_next, i++ ) {
 
 		MatchingRule *mr;
 		struct berval *bv;
@@ -287,22 +280,17 @@ test_ava_vrFilter(
 
 static int
 test_presence_vrFilter(
-		Backend		*be,
-		Connection	*conn,
-		Operation	*op,
-		Entry		*e,
-		AttributeDescription *desc,
-		char 		***e_flags
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	Attribute	*a,
+	AttributeDescription *desc,
+	char 		***e_flags
 )
 {
 	int i, j;
-	Attribute	*a;
 
-	if ( !access_allowed( be, conn, op, e, desc, NULL, ACL_SEARCH, NULL ) ) {
-		return LDAP_INSUFFICIENT_ACCESS;
-	}
-
-	for (a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+	for ( i=0; a != NULL; a = a->a_next, i++ ) {
 		struct berval *bv;
 
 		if ( !is_ad_subtype( a->a_desc, desc ) ) {
@@ -318,24 +306,17 @@ test_presence_vrFilter(
 
 static int
 test_substrings_vrFilter(
-		Backend		*be,
-		Connection	*conn,
-		Operation	*op,
-		Entry		*e,
-		ValuesReturnFilter *f,
-		char		***e_flags
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	Attribute	*a,
+	ValuesReturnFilter *f,
+	char		***e_flags
 )
 {
 	int i, j;
-	Attribute	*a;
 
-	if ( !access_allowed( be, conn, op, e,
-		f->f_sub_desc, NULL, ACL_SEARCH, NULL ) )
-	{
-		return LDAP_INSUFFICIENT_ACCESS;
-	}
-
-	for (a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+	for ( i=0; a != NULL; a = a->a_next, i++ ) {
 		MatchingRule *mr = a->a_desc->ad_type->sat_substr;
 		struct berval *bv;
 
@@ -373,21 +354,14 @@ static int test_mra_vrFilter(
 	Backend 	*be,
 	Connection 	*conn,
 	Operation	*op,
-	Entry		*e,
+	Attribute	*a,
 	MatchingRuleAssertion *mra,
 	char 		***e_flags
 )
 {
 	int i, j;
-	Attribute	*a;
 
-	if( !access_allowed( be, conn, op, e,
-		mra->ma_desc, &mra->ma_value, ACL_SEARCH, NULL ) )
-	{
-		return LDAP_INSUFFICIENT_ACCESS;
-	}
-
-	for (a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+	for ( i=0; a != NULL; a = a->a_next, i++ ) {
 		struct berval *bv;
 	
 		if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
