@@ -75,7 +75,7 @@ int is_entry_objectclass(
 
 	if( set_flags && ( e->e_ocflags & SLAP_OC__END )) {
 		/* flags are set, use them */
-		return e->e_ocflags & oc->soc_flags & SLAP_OC__MASK;
+		return (e->e_ocflags & oc->soc_flags & SLAP_OC__MASK) != 0;
 	}
 
 	/*
@@ -114,7 +114,7 @@ int is_entry_objectclass(
 	/* mark flags as set */
 	e->e_ocflags |= SLAP_OC__END;
 
-	return e->e_ocflags & oc->soc_flags & SLAP_OC__MASK;
+	return (e->e_ocflags & oc->soc_flags & SLAP_OC__MASK) != 0;
 }
 
 
