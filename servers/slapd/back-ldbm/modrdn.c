@@ -184,7 +184,17 @@ ldbm_back_modrdn(
 		np_ndn = ch_strdup( np_dn );
 		(void) dn_normalize( np_ndn );
 
-		/* newSuperior == oldParent?, if so ==> ERROR */
+		/* newSuperior == oldParent? */
+		if ( strcmp( p_ndn, np_ndn ) == 0 ) {
+			Debug( LDAP_DEBUG_TRACE, 
+			       "ldbm_back_modrdn: new parent \"%s\" seems to be the same as old parent \"%s\"...\n",
+			       newSuperior, p_dn, 0 );
+			newSuperior = NULL; /* ignore newSuperior */
+		}
+	}
+
+	if ( newSuperior != NULL ) {
+
 		/* newSuperior == entry being moved?, if so ==> ERROR */
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
