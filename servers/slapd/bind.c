@@ -71,7 +71,7 @@ do_bind(
 		rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
 	}
 
-	ber_free( tber, 1 );
+	ber_free( tber, 0 );
 	}
 #else
 	rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
