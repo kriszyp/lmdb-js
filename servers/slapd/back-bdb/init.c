@@ -205,10 +205,13 @@ bdb_db_open( BackendDB *be )
 	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE
 		| DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN;
 	
-	/* Only slapd will do recovery, slap-tools won't. Otherwise
-	 * running slapcat while slapd is active corrupts the db.
+#if 0
+	/* Never do automatic recovery, must perform it manually.
+	 * Otherwise restarting with gentlehup will corrupt the
+	 * database.
 	 */
 	if( !(slapMode & SLAP_TOOL_MODE) ) flags |= DB_RECOVER;
+#endif
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0].bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
