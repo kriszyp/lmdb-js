@@ -114,7 +114,8 @@ do_search(
 	    attrsonly);
 
 	/* filter - returns a "normalized" version */
-	if ( (rc = get_filter( conn, op->o_ber, &filter, &fstr, &text )) != LDAP_SUCCESS ) {
+	rc = get_filter( conn, op->o_ber, &filter, &fstr, &text );
+	if( rc != LDAP_SUCCESS ) {
 		if( rc == SLAPD_DISCONNECT ) {
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, text );

@@ -312,16 +312,27 @@ get_filter(
 		break;
 	}
 
+	free( ftmp );
+
 	if ( err != LDAP_SUCCESS ) {
-		free( (char *) f );
 		if ( *fstr != NULL ) {
 			free( *fstr );
+		}
+
+		if( err != SLAPD_DISCONNECT ) {
+			/* ignore error */
+			f->f_choice = SLAPD_FILTER_COMPUTED;
+			f->f_result = SLAPD_COMPARE_UNDEFINED;
+			*fstr = ch_strdup( "(badfilter)" );
+			err = LDAP_SUCCESS;
+			*filt = f;
+
+		} else {
+			free(f);
 		}
 	} else {
 		*filt = f;
 	}
-
-	free( ftmp );
 
 	Debug( LDAP_DEBUG_FILTER, "end get_filter %d\n", err, 0, 0 );
 	return( err );
