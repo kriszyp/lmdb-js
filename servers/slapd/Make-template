@@ -100,27 +100,27 @@ version.c: libbackends.a $(OBJS) $(LDIR)/liblber/liblber.a \
 	-e "s|%VERSION%|$${v}|" \
 	< Version.c > $@)
 
-install: all $(LIBEXECDIR) $(LIBEXECDIR)/slapd \
-		$(ETCDIR) $(ETCDIR)/slapd.conf \
-		$(ETCDIR)/slapd.at.conf $(ETCDIR)/slapd.oc.conf \
+install: all $(LDAP_LIBEXECDIR) $(LDAP_LIBEXECDIR)/slapd \
+		$(LDAP_ETCDIR) $(LDAP_ETCDIR)/slapd.conf \
+		$(LDAP_ETCDIR)/slapd.at.conf $(LDAP_ETCDIR)/slapd.oc.conf \
 		install-tools
 
-$(LIBEXECDIR)/slapd:	slapd
-	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(LIBEXECDIR)
+$(LDAP_LIBEXECDIR)/slapd:	slapd
+	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(LDAP_LIBEXECDIR)
 
-$(ETCDIR)/slapd.conf:	slapd.conf
-	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' slapd.conf > /tmp/slapd.$$
-	-$(MV) $(ETCDIR)/slapd.conf $(ETCDIR)/slapd.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(ETCDIR)/slapd.conf
+$(LDAP_ETCDIR)/slapd.conf:	slapd.conf
+	$(SED) -e 's;%ETCDIR%;$(LDAP_ETCDIR);' slapd.conf > /tmp/slapd.$$
+	-$(MV) $(LDAP_ETCDIR)/slapd.conf $(LDAP_ETCDIR)/slapd.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(LDAP_ETCDIR)/slapd.conf
 	$(RM) -f /tmp/slapd.$$
 
-$(ETCDIR)/slapd.at.conf:	slapd.at.conf
-	-$(MV) $(ETCDIR)/slapd.at.conf $(ETCDIR)/slapd.at.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.at.conf $(ETCDIR)
+$(LDAP_ETCDIR)/slapd.at.conf:	slapd.at.conf
+	-$(MV) $(LDAP_ETCDIR)/slapd.at.conf $(LDAP_ETCDIR)/slapd.at.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.at.conf $(LDAP_ETCDIR)
 
-$(ETCDIR)/slapd.oc.conf:	slapd.oc.conf
-	-$(MV) $(ETCDIR)/slapd.oc.conf $(ETCDIR)/slapd.oc.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.oc.conf $(ETCDIR)
+$(LDAP_ETCDIR)/slapd.oc.conf:	slapd.oc.conf
+	-$(MV) $(LDAP_ETCDIR)/slapd.oc.conf $(LDAP_ETCDIR)/slapd.oc.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.oc.conf $(LDAP_ETCDIR)
 
 install-tools: FORCE
 	(cd tools; $(MAKE) $(MFLAGS) install)

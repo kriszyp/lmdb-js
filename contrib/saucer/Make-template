@@ -24,16 +24,16 @@ unprotoize: $(SRCS)
 	unprotoize -c "$(CFLAGS)" $(SRCS)
 
 install:	saucer FORCE
-	-$(MKDIR) -p $(BINDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 saucer $(BINDIR)
-	-$(MKDIR) -p $(INSTMAN)
-	@TMPMAN=/tmp/ldapman.$$$$; \
+	-$(MKDIR) -p $(LDAP_BINDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 saucer $(LDAP_BINDIR)
+	-$(MKDIR) -p $(LDAP_MANDIR)
+	@TMPMAN=/tmp/ldapman.$$$$$(MANCOMPRESSSUFFIX); \
 	VERSION=`$(CAT) $(VERFILE)`; \
 	for page in *.$(SECT); do \
-	    $(SED) -e 's%ETCDIR%$(ETCDIR)%' -e "s%LDVERSION%$$VERSION%" \
-		    $$page > $$TMPMAN; \
+	    $(SED) -e 's%ETCDIR%$(LDAP_ETCDIR)%' -e "s%LDVERSION%$$VERSION%" \
+		    $$page | $(MANCOMPRESS) > $$TMPMAN; \
 	    echo "installing $(INSTMAN)/$$page"; \
-	    $(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN $(INSTMAN)/$$page; \
+	    $(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN $(LDAP_INSTMAN)/$$page$(MANCOMPRESSSUFFIX); \
 	done; \
 	$(RM) $$TMPMAN
 

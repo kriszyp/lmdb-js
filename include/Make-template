@@ -32,22 +32,23 @@ ldapconfig.h:	ldapconfig.h.edit Makefile
         echo " */ " >> $@; \
         echo "" >> $@; \
 	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' \
-			-e 's;%SBINDIR%;$(SBINDIR);' \
-			-e 's;%LIBEXECDIR%;$(LIBEXECDIR);' \
-			-e 's;%EDITOR%;$(EDITOR);' \
-			-e 's;%FINGER%;$(FINGER);' \
-			-e 's;%SENDMAIL%;$(SENDMAIL);' \
+			-e 's;%SBINDIR%;$(LDAP_SBINDIR);' \
+			-e 's;%LIBEXECDIR%;$(LDAP_LIBEXECDIR);' \
+			-e 's;%RUNDIR%;$(LDAP_RUNDIR);' \
+			-e 's;%EDITOR%;$(LDAP_EDITOR);' \
+			-e 's;%FINGER%;$(LDAP_FINGER);' \
+			-e 's;%SENDMAIL%;$(LDAP_SENDMAIL);' \
 			 ldapconfig.h.edit >> $@; \
 	$(CHMOD) 444 $@
 
 install: all FORCE
 		-$(MKDIR) -p $(INCLUDEDIR)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap.h $(INCLUDEDIR)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 lber.h $(INCLUDEDIR)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 proto-lber.h $(INCLUDEDIR)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 proto-ldap.h $(INCLUDEDIR)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 disptmpl.h $(INCLUDEDIR)
-		$(INSTALL) $(INSTALLFLAGS) -m 644 srchpref.h $(INCLUDEDIR)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap.h $(LDAP_INCDIR)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 lber.h $(LDAP_INCDIR)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 proto-lber.h $(LDAP_INCDIR)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 proto-ldap.h $(LDAP_INCDIR)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 disptmpl.h $(LDAP_INCDIR)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 srchpref.h $(LDAP_INCDIR)
 
 depend:	FORCE
 

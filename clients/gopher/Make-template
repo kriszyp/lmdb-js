@@ -56,11 +56,11 @@ gwversion.c: go500gw.o detach.o setproctitle.o $(DLIBS)
 	< Versiongw.c > $@)
 
 install:	go500 go500gw go500gw.help FORCE
-	-$(MKDIR) -p $(ETCDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 go500 $(LIBEXECDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 go500gw $(LIBEXECDIR)
-	-$(MV) $(ETCDIR)/go500gw.help $(ETCDIR)/go500gw.help-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(ETCDIR)
+	-$(MKDIR) -p $(LDAP_ETCDIR) $(LDAP_LIBEXECDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 go500 $(LDAP_LIBEXECDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 go500gw $(LDAP_LIBEXECDIR)
+	-$(MV) $(LDAP_ETCDIR)/go500gw.help $(LDAP_ETCDIR)/go500gw.help-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(LDAP_ETCDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)

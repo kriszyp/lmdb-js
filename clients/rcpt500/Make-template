@@ -39,9 +39,9 @@ version.c: $(OBJS) $(LDIR)/libldap.a
 	< Version.c > $@)
 
 install:	rcpt500 rcpt500.help FORCE
-	-$(MKDIR) -p $(ETCDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(LIBEXECDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 644 rcpt500.help $(ETCDIR)
+	-$(MKDIR) -p $(LDAP_ETCDIR) $(LDAP_LIBEXECDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(LDAP_LIBEXECDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 644 rcpt500.help $(LDAP_ETCDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)

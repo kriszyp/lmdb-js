@@ -79,13 +79,13 @@ ldrversion.c: ldapmodrdn.o
 	< Versionldr.c > $@)
 
 install:	ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd FORCE
-	-$(MKDIR) -p $(BINDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapsearch $(BINDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodify $(BINDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(BINDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(BINDIR)
-	$(RM) $(BINDIR)/ldapadd
-	$(HARDLN) $(BINDIR)/ldapmodify $(BINDIR)/ldapadd
+	-$(MKDIR) -p $(LDAP_BINDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapsearch $(LDAP_BINDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodify $(LDAP_BINDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(LDAP_BINDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(LDAP_BINDIR)
+	$(RM) $(LDAP_BINDIR)/ldapadd
+	$(HARDLN) $(LDAP_BINDIR)/ldapmodify $(LDAP_BINDIR)/ldapadd
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)

@@ -20,7 +20,6 @@
 #############################################################################
 ## LDAP install paths                                                      ##
 #############################################################################
-#
 # by default, everything is installed below INSTROOT
 # config files, etc. are put in ETCDIR
 # include files get put in INCLUDEDIR
@@ -29,21 +28,20 @@
 # programs end-users will run are put in BINDIR
 # programs sysadmins will run are put in SBINDIR
 # servers are put in LIBEXECDIR
+# pid/args files are put in RUNDIR
 #
-PREFIX?=/usr/local
-INSTROOT?=${PREFIX}
-ETCDIR?= $(INSTROOT)/etc/ldap
-INCLUDEDIR?= $(INSTROOT)/include
-LIBDIR?= $(INSTROOT)/lib
-MANDIR?= $(INSTROOT)/man
-BINDIR?= $(INSTROOT)/bin
-SBINDIR?=$(INSTROOT)/sbin
-LIBEXECDIR?=$(INSTROOT)/libexec
+# Per platform defaults override these.
 #
-# if you want things to run in a different directory from where they
-# are installed, set this accordingly (this path gets compiled into a
-# few binaries). otherwise, leave it alone.
-RUNTIMEETCDIR?= $(ETCDIR)
+LDAP_PREFIX?= /usr/local
+LDAP_INSTROOT?= $(LDAP_PREFIX)
+LDAP_ETCDIR?= $(LDAP_INSTROOT)/etc/ldap
+LDAP_INCDIR?= $(LDAP_INSTROOT)/include
+LDAP_LIBDIR?= $(LDAP_INSTROOT)/lib
+LDAP_MANDIR?= $(LDAP_INSTROOT)/man
+LDAP_BINDIR?= $(LDAP_INSTROOT)/bin
+LDAP_SBINDIR?=$(LDAP_INSTROOT)/sbin
+LDAP_LIBEXECDIR?= $(LDAP_INSTROOT)/libexec
+LDAP_RUNDIR?= $(LDAP_ETCDIR)
 
 #############################################################################
 ## General compiler options                                                ##
@@ -159,12 +157,16 @@ LDBMLIB?=
 #THREADS?=-DNO_THREADS
 #THREADSLIB?=
 
-#
 # Locations of auxilary programs
 # (excepts to below are generally defined in Make-platform)
-SENDMAIL?=/usr/lib/sendmail
-EDITOR?=/usr/ucb/vi
-FINGER?=/usr/ucb/finger
+LDAP_SENDMAIL?=/usr/lib/sendmail
+LDAP_EDITOR?=/usr/ucb/vi
+LDAP_FINGER?=/usr/ucb/finger
+
+# For generation of compressed man pages
+# (excepts to below are generally defined in Make-platform)
+MANCOMPRESS?=cat
+MANCOMPRESSSUFFIX?=
 
 #############################################################################
 ## The following options are used by the xax500 client.  If you haven't    ##

@@ -31,8 +31,8 @@ OBJS	= bind.o open.o result.o error.o compare.o search.o \
 HDIR	= ../../include
 
 INCLUDES= -I$(HDIR) $(KRBINCLUDEFLAG)
-DEFINES	= $(DEFS) -DFILTERFILE="\"$(RUNTIMEETCDIR)/ldapfilter.conf\"" \
-	-DTEMPLATEFILE="\"$(RUNTIMEETCDIR)/ldaptemplates.conf\""
+DEFINES	= $(DEFS) -DFILTERFILE="\"$(LDAP_ETCDIR)/ldapfilter.conf\"" \
+	-DTEMPLATEFILE="\"$(LDAP_ETCDIR)/ldaptemplates.conf\""
 
 CFLAGS	= $(INCLUDES) $(DEFINES) $(ACFLAGS)
 LIBS	= -L. -L../liblber -lldap -llber $(KRBLIBFLAG) $(KRBLIBS) $(ALIBS)
@@ -62,20 +62,20 @@ version.c:	$(OBJS)
 	< Version.c > $@)
 
 install:	libldap.a ldapfilter.conf ldapfriendly ldaptemplates.conf ldapsearchprefs.conf FORCE
-	-$(MKDIR) -p $(LIBDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 644 libldap.a $(LIBDIR)
+	-$(MKDIR) -p $(LDAP_LIBDIR) $(LDAP_ETCDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 644 libldap.a $(LDAP_LIBDIR)
 	@if [ ! -z "$(RANLIB)" ]; then \
-		(cd /tmp; $(RANLIB) $(LIBDIR)/libldap.a) \
+		(cd /tmp; $(RANLIB) $(LDAP_LIBDIR)/libldap.a) \
 	fi
-	-$(MKDIR) -p $(ETCDIR)
-	-$(MV) $(ETCDIR)/ldapfriendly $(ETCDIR)/ldapfriendly-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapfriendly $(ETCDIR)
-	-$(MV) $(ETCDIR)/ldapfilter.conf $(ETCDIR)/ldapfilter.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapfilter.conf $(ETCDIR)
-	-$(MV) $(ETCDIR)/ldaptemplates.conf $(ETCDIR)/ldaptemplates.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 ldaptemplates.conf $(ETCDIR)
-	-$(MV) $(ETCDIR)/ldapsearchprefs.conf $(ETCDIR)/ldapsearchprefs.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapsearchprefs.conf $(ETCDIR)
+	-$(MKDIR) -p $(LDAP_ETCDIR)
+	-$(MV) $(LDAP_ETCDIR)/ldapfriendly $(LDAP_ETCDIR)/ldapfriendly-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapfriendly $(LDAP_ETCDIR)
+	-$(MV) $(LDAP_ETCDIR)/ldapfilter.conf $(LDAP_ETCDIR)/ldapfilter.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapfilter.conf $(LDAP_ETCDIR)
+	-$(MV) $(LDAP_ETCDIR)/ldaptemplates.conf $(LDAP_ETCDIR)/ldaptemplates.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 ldaptemplates.conf $(LDAP_ETCDIR)
+	-$(MV) $(LDAP_ETCDIR)/ldapsearchprefs.conf $(LDAP_ETCDIR)/ldapsearchprefs.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 ldapsearchprefs.conf $(LDAP_ETCDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)

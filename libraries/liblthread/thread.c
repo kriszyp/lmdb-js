@@ -491,7 +491,9 @@ pthread_kill( pthread_t tid, int sig )
 
 #if defined ( POSIX_THREADS )
 
-void p_thread_yield( void )
+#include <sched.h>
+
+void pthread_yield( void )
 {
 	sched_yield();
 }

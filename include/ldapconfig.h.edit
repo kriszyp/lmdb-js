@@ -255,9 +255,9 @@ Please try again later.\r\n"
 	/* default timelimit to spend on a search */
 #define SLAPD_DEFAULT_TIMELIMIT		3600
 	/* location of the slapd pid file */
-#define SLAPD_PIDFILE			"%ETCDIR%/slapd.pid"
+#define SLAPD_PIDFILE			"%RUNDIR%/slapd.pid"
 	/* location of the slapd args file */
-#define SLAPD_ARGSFILE			"%ETCDIR%/slapd.args"
+#define SLAPD_ARGSFILE			"%RUNDIR%/slapd.args"
 	/* dn of the special "monitor" entry */
 #define SLAPD_MONITOR_DN		"cn=monitor"
 	/* dn of the special "config" entry */

@@ -14,6 +14,12 @@ EDITOR=/usr/bin/vi
 FINGER=/usr/bin/finger
 SENDMAIL=/usr/sbin/sendmail
 
+RUNDIR=/var/run
+
+MANCOMPRESS=gzip
+MANCOMPRESSSUFFIX=.gz
+
+
 #
 # LDAP has a problem with the idea of implicit vs. explicit yields
 # in call conversion threading packages, like the MIT pthreads

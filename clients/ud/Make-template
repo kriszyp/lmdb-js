@@ -29,8 +29,8 @@ OBJS=	main.o find.o mod.o print.o auth.o util.o help.o\
 HDRS=	ud.h
 
 INCLUDES= -I$(HDIR) $(KRBINCLUDEFLAG)
-DEFINES= $(DEFS) -DDEBUG -DCONFIG_FILE=\"$(RUNTIMEETCDIR)/ud.conf\" \
-		-DLDAP_FRIENDLY_MAP_FILE=\"$(RUNTIMEETCDIR)/ldapfriendly\"
+DEFINES= $(DEFS) -DDEBUG -DCONFIG_FILE=\"$(LDAP_ETCDIR)/ud.conf\" \
+		-DLDAP_FRIENDLY_MAP_FILE=\"$(LDAP_ETCDIR)/ldapfriendly\"
 TERMLIB= -ltermcap
 
 CFLAGS= ${INCLUDES} ${DEFINES} ${ACFLAGS}
@@ -53,9 +53,9 @@ version.c: ${OBJS} $(LDIR)/libldap/libldap.a
 	    < Version.c > $@)
 
 install: ud FORCE
-	-$(MKDIR) -p $(BINDIR)
-	-mv -f ${BINDIR}/ud ${BINDIR}/ud-
-	$(INSTALL) $(INSTALLFLAGS) -m 775 ud ${BINDIR}
+	-$(MKDIR) -p $(LDAP_BINDIR)
+	-mv -f $(LDAP_BINDIR)/ud $(LDAP_BINDIR)/ud-
+	$(INSTALL) $(INSTALLFLAGS) -m 775 ud $(LDAP_BINDIR)
 
 depend: FORCE
 	$(MKDEP) $(INCLUDES) $(DEFINES) $(SRCS)

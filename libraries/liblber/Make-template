@@ -53,10 +53,10 @@ version.c: $(OBJS)
 	< Version.c > $@)
 
 install:	liblber.a FORCE
-	-$(MKDIR) -p $(LIBDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 644 liblber.a $(LIBDIR)
+	-$(MKDIR) -p $(LDAP_LIBDIR)
+	$(INSTALL) $(INSTALLFLAGS) -m 644 liblber.a $(LDAP_LIBDIR)
 	@if [ ! -z "$(RANLIB)" ]; then \
-		(cd /tmp; $(RANLIB) $(LIBDIR)/liblber.a) \
+		(cd /tmp; $(RANLIB) $(LDAP_LIBDIR)/liblber.a) \
 	fi
 
 lint:	FORCE

@@ -15,28 +15,30 @@
 
 LDAPSRC= ../../..
 SECT=3
-INSTDIR=$(MANDIR)/man$(SECT)
+INSTDIR=$(LDAP_MANDIR)/man$(SECT)
 VERSIONFILE = $(LDAPSRC)/build/version
 
 all:	FORCE
 
 install:	FORCE
 	-$(MKDIR) -p $(INSTDIR)
-	@TMPMAN=/tmp/ldapman.$$$$; \
+	@TMPMAN=/tmp/ldapman.$$$$$(MANCOMPRESSSUFFIX); \
 	VERSION=`$(CAT) $(VERSIONFILE)`; \
 	for page in *.$(SECT); do \
 	    $(SED) -e "s%LDVERSION%$$VERSION%" \
-			-e 's%ETCDIR%$(RUNTIMEETCDIR)%' \
-			-e 's%SBINDIR%$(SBINDIR)%' \
-			-e 's%BINDIR%$(BINDIR)%' \
-			-e 's%LIBEXECDIR%$(LIBEXECDIR)%' \
-		    $$page > $$TMPMAN; \
+			-e 's%ETCDIR%$(LDAP_ETCDIR)%' \
+			-e 's%SBINDIR%$(LDAP_SBINDIR)%' \
+			-e 's%BINDIR%$(LDAP_BINDIR)%' \
+			-e 's%LIBEXECDIR%$(LDAP_LIBEXECDIR)%' \
+		    $$page | $(MANCOMPRESS) > $$TMPMAN; \
 	    echo "installing $(INSTDIR)/$$page"; \
-	    $(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN $(INSTDIR)/$$page; \
+		$(RM) $(INSTDIR)/$$page $(INSTDIR)/$$page$(MANCOMPRESSSUFFIX); \
+	    $(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN $(INSTDIR)/$$page$(MANCOMPRESSSUFFIX); \
 	    if [ -f "$$page.links" ]; then \
 		for link in `$(CAT) $$page.links`; do \
 		    echo "installing $(INSTDIR)/$$link as link to $$page"; \
-		    ln -sf $$page.gz $(INSTDIR)/$$link.gz; \
+			$(RM) $(INSTDIR)/$$link $(INSTDIR)/$$link$(MANCOMPRESSSUFFIX); \
+		    ln -sf $$page$(MANCOMPRESSSUFFIX) $(INSTDIR)/$$link$(MANCOMPRESSSUFFIX); \
 		done; \
 	    fi; \
 	done; \
