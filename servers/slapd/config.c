@@ -803,12 +803,15 @@ read_config( const char *fname )
 			value_add( &default_referral, vals );
 
 		} else if ( strcasecmp( cargv[0], "debug" ) == 0 ) {
+                    int level;
 			if ( cargc < 3 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: Error in debug directive, \"debug subsys level\"\n",
 					fname, lineno, 0 );
 				return( 1 );
 			}
+                        level = atoi( cargv[2] );
+                        if ( level <= 0 ) level = lutil_mnem2level( cargv[2] );
 			lutil_set_debug_level( cargv[1], atoi( cargv[2] ) );
 		/* specify an Object Identifier macro */
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
