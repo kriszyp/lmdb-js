@@ -12,12 +12,11 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
               example (and mostly experimental) overlays.
             - Updated LDAP "sync" Engine with replication support,
               provider now an "overlay"
-            - Numerous access control enhancments, including
+            - Numerous access control enhancements, including
               experimental "don't disclose on error" capability
         * LDAPv3 extensions, including:
             - LDAP Component Matching (requires OpenLDAP snacc)
             - LDAP Modify Increment
-
 
     Additional functionality is expected to be added prior to
     general release.
