@@ -33,7 +33,9 @@ Large projects
 --------------
 Redesign slapd memory allocation fault handling
 Perform a security audit (and fix any hole found)
+Implement collective attributes
 Implement localization
+
 
 Medium projects
 ---------------
@@ -43,12 +45,13 @@ Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 Implement authPassword (RFC 3112)
 
+
 Small projects
 --------------
+Add support for simple paged results control
 Add support for duplicate entry control
 Add support for matched values control
 Add tests to test suite (ACI, moddn, manageDSAit, subtyping, etc.)
-Update -lldap TLS checking to fully implement RFC 2829/2830
 Create ldapbind (from ldappasswd?) to support bind operations
 Create ldapcompare (from ldapsearch) to support compare operations
 Create ldapquery (from ldapsearch?) to support searching
