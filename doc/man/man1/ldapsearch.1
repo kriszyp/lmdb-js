@@ -221,32 +221,22 @@ base object for the search.  The default is to never dereference aliases.
 Specify the LDAP protocol version to use.
 .TP
 .BI \-l \ timelimit
-wait at most \fItimelimit\fP seconds for a search to complete.  A
-timelimit of
-.I 0
-(zero) removes the
-.B ldap.conf
-limit.
+wait at most \fItimelimit\fP seconds for a search to complete.
 A timelimit of
+.I 0
+(zero) or
 .I none
-uses
-.I maxInt
-(2147483647, RFC 2251) as timelimit.
+means no limit.
 A server may impose a maximal timelimit which only
 the root user may override.
 .TP
 .BI \-z \ sizelimit
-retrieve at most \fIsizelimit\fP entries for a search.  A sizelimit
-of 
-.I 0
-(zero) removes the 
-.B ldap.conf
-limit.
+retrieve at most \fIsizelimit\fP entries for a search.
 A sizelimit of
+.I 0
+(zero) or
 .I none
-uses
-.I maxInt
-(2147483647, RFC 2251) as sizelimit.
+means no limit.
 A server may impose a maximal sizelimit which only
 the root user may override.
 .TP
@@ -314,8 +304,8 @@ The following command:
     ldapsearch -LLL "(sn=smith)" cn sn telephoneNumber
 .fi
 .LP
-will perform a subtree search (using the default search base defined
-in
+will perform a subtree search (using the default search base and
+other parameters defined in
 .BR ldap.conf (5))
 for entries with a surname (sn) of smith.  The common name (cn), surname
 (sn) and telephoneNumber values will be retrieved and printed to
