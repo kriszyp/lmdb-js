@@ -122,7 +122,7 @@ int lutil_entropy( unsigned char *buf, ber_len_t nbytes )
 
 		for( n = 0; n < nbytes; n += 16 ) {
 			struct lutil_MD5Context ctx;
-			char digest[16];
+			unsigned char digest[16];
 
 			/* poor resolution */
 #ifdef HAVE_GETTIMEOFDAY

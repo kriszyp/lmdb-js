@@ -135,7 +135,7 @@ int ldap_utf8_charlen2( const char * p )
 /* conv UTF-8 to UCS-4, useful for comparisons */
 ldap_ucs4_t ldap_x_utf8_to_ucs4( const char * p )
 {
-    const unsigned char *c = p;
+    const unsigned char *c = (const unsigned char *) p;
     ldap_ucs4_t ch;
 	int len, i;
 	static unsigned char mask[] = {
@@ -163,7 +163,7 @@ ldap_ucs4_t ldap_x_utf8_to_ucs4( const char * p )
 int ldap_x_ucs4_to_utf8( ldap_ucs4_t c, char *buf )
 {
 	int len=0;
-	unsigned char* p = buf;
+	unsigned char* p = (unsigned char *) buf;
 
 	/* not a valid Unicode character */
 	if ( c < 0 ) return 0;
@@ -298,7 +298,7 @@ ldap_ucs_to_utf8s( struct berval *ucs, int csize, struct berval *utf8s )
 char* ldap_utf8_next( const char * p )
 {
 	int i;
-	const unsigned char *u = p;
+	const unsigned char *u = (const unsigned char *) p;
 
 	if( LDAP_UTF8_ISASCII(u) ) {
 		return (char *) &p[1];
@@ -325,7 +325,7 @@ char* ldap_utf8_next( const char * p )
 char* ldap_utf8_prev( const char * p )
 {
 	int i;
-	const unsigned char *u = p;
+	const unsigned char *u = (const unsigned char *) p;
 
 	for( i=-1; i>-6 ; i-- ) {
 		if ( ( u[i] & 0xc0 ) != 0x80 ) {
@@ -349,7 +349,7 @@ char* ldap_utf8_prev( const char * p )
 int ldap_utf8_copy( char* dst, const char *src )
 {
 	int i;
-	const unsigned char *u = src;
+	const unsigned char *u = (const unsigned char *) src;
 
 	dst[0] = src[0];
 

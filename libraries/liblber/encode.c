@@ -83,7 +83,7 @@ ber_put_tag(
 	}
 
 	rc = ber_write( ber,
-		&nettag[sizeof(ber_tag_t) - taglen],
+		(char *) &nettag[sizeof(ber_tag_t) - taglen],
 	    taglen, nosos );
 
 	return rc;
@@ -165,7 +165,7 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 
 	/* write the length itself */
 	rc = ber_write( ber,
-		&netlen[sizeof(ber_len_t)-i],
+		(char *) &netlen[sizeof(ber_len_t)-i],
 		i, nosos );
 
 	return rc == i ?  i+1 : -1;
@@ -230,7 +230,7 @@ ber_put_int_or_enum(
 	}
 
 	rc = ber_write( ber,
-		&netnum[sizeof(ber_int_t) - i],
+		(char *) &netnum[sizeof(ber_int_t) - i],
 		i, 0 );
 
 	/* length of tag + length + contents */
@@ -569,7 +569,7 @@ ber_put_seqorset( BerElement *ber )
 
 			/* the length itself */
 			rc  = ber_write( ber,
-				&netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN-1)],
+				(char *) &netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN-1)],
 				FOUR_BYTE_LEN-1, 1 );
 
 			if( rc != FOUR_BYTE_LEN - 1 ) {

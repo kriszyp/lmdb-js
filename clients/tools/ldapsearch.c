@@ -1600,7 +1600,8 @@ static void print_ctrls(
 			b64->bv_val = ber_memalloc( b64->bv_len + 1 );
 
 			b64->bv_len = lutil_b64_ntop(
-				ctrls[i]->ldctl_value.bv_val, ctrls[i]->ldctl_value.bv_len,
+				(unsigned char *) ctrls[i]->ldctl_value.bv_val,
+				ctrls[i]->ldctl_value.bv_len,
 				b64->bv_val, b64->bv_len );
 		}
 

@@ -641,11 +641,11 @@ int entry_decode(struct berval *bv, Entry **e)
 	i = entry_getlen(&ptr);
 	x = ch_calloc(1, i);
 	i = entry_getlen(&ptr);
-	x->e_name.bv_val = ptr;
+	x->e_name.bv_val = (char *) ptr;
 	x->e_name.bv_len = i;
 	ptr += i+1;
 	i = entry_getlen(&ptr);
-	x->e_nname.bv_val = ptr;
+	x->e_nname.bv_val = (char *) ptr;
 	x->e_nname.bv_len = i;
 	ptr += i+1;
 #ifdef NEW_LOGGING
@@ -667,7 +667,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	while ((i = entry_getlen(&ptr))) {
 		struct berval bv;
 		bv.bv_len = i;
-		bv.bv_val = ptr;
+		bv.bv_val = (char *) ptr;
 		if (a) {
 			a->a_next = (Attribute *)bptr;
 		}

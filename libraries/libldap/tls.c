@@ -234,7 +234,7 @@ ldap_pvt_tls_init_def_ctx( void )
 		}
 
 		SSL_CTX_set_session_id_context( tls_def_ctx,
-			"OpenLDAP", sizeof("OpenLDAP")-1 );
+			(const unsigned char *) "OpenLDAP", sizeof("OpenLDAP")-1 );
 
 		if ( tls_opt_ciphersuite &&
 			!SSL_CTX_set_cipher_list( tls_def_ctx, ciphersuite ) )
@@ -1037,7 +1037,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 				if (gn->type == GEN_DNS) {
 					if (ntype != IS_DNS) continue;
 
-					sn = ASN1_STRING_data(gn->d.ia5);
+					sn = (char *) ASN1_STRING_data(gn->d.ia5);
 					sl = ASN1_STRING_length(gn->d.ia5);
 
 					/* Is this an exact match? */
@@ -1061,7 +1061,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 				} else if (gn->type == GEN_IPADD) {
 					if (ntype == IS_DNS) continue;
 
-					sn = ASN1_STRING_data(gn->d.ia5);
+					sn = (char *) ASN1_STRING_data(gn->d.ia5);
 					sl = ASN1_STRING_length(gn->d.ia5);
 
 #ifdef LDAP_PF_INET6

@@ -150,7 +150,7 @@ main( int argc, char **argv )
 		/* it's base64 encoded. */
 		bvalue.bv_val = malloc( strlen( &sep[1] ));
 		bvalue.bv_len = lutil_b64_pton( &sep[1],
-			bvalue.bv_val, strlen( &sep[1] ));
+			(unsigned char *) bvalue.bv_val, strlen( &sep[1] ));
 
 		if (bvalue.bv_len == (ber_len_t)-1) {
 			fprintf(stderr, _("base64 decode error\n"));

@@ -128,7 +128,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 			return LBER_DEFAULT;
 		}
 
-		if( (unsigned) ber_read( ber, netlen, noctets ) != noctets ) {
+		if( (unsigned) ber_read( ber, (char *) netlen, noctets ) != noctets ) {
 			return LBER_DEFAULT;
 		}
 

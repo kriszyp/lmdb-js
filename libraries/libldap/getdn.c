@@ -29,7 +29,7 @@
 
 /* parsing/printing routines */
 static int str2strval( const char *str, ber_len_t stoplen, struct berval *val, 
-		const char **next, unsigned flags, unsigned *retFlags, void *ctx );
+		const char **next, unsigned flags, int *retFlags, void *ctx );
 static int DCE2strval( const char *str, struct berval *val, 
 		const char **next, unsigned flags, void *ctx );
 static int IA52strval( const char *str, struct berval *val, 
@@ -1439,7 +1439,7 @@ return_result:;
  * '\' + HEXPAIR(p) -> unhex(p)
  */
 static int
-str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char **next, unsigned flags, unsigned *retFlags, void *ctx )
+str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char **next, unsigned flags, int *retFlags, void *ctx )
 {
 	const char 	*p, *end, *startPos, *endPos = NULL;
 	ber_len_t	len, escapes;
@@ -3459,7 +3459,7 @@ get_oid:		newAVA->la_attr.bv_val = oidptr;
 				}
 			}
 		}
-		Val.bv_val = str->data;
+		Val.bv_val = (char *) str->data;
 		Val.bv_len = str->length;
 		switch( str->type ) {
 		case V_ASN1_UNIVERSALSTRING:

@@ -211,8 +211,8 @@ sb_sasl_drop_packet ( Sockbuf_Buf *sec_buf_in, unsigned max, int debuglevel )
 			sec_buf_in->buf_end, len );
    
 	if ( len >= 4 ) {
-		sec_buf_in->buf_end = sb_sasl_pkt_length( sec_buf_in->buf_base,
-			max, debuglevel);
+		sec_buf_in->buf_end = sb_sasl_pkt_length(
+			(unsigned char *) sec_buf_in->buf_base, max, debuglevel);
 	}
 	else {
 		sec_buf_in->buf_end = 0;
@@ -260,7 +260,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	}
 
 	/* The new packet always starts at p->sec_buf_in.buf_base */
-	ret = sb_sasl_pkt_length( p->sec_buf_in.buf_base,
+	ret = sb_sasl_pkt_length( (unsigned char *) p->sec_buf_in.buf_base,
 		*p->sasl_maxbuf, sbiod->sbiod_sb->sb_debug );
 
 	/* Grow the packet buffer if neccessary */

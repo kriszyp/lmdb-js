@@ -343,7 +343,7 @@ struct berval * lutil_passwd_generate( ber_len_t len )
 		return NULL;
 	}
 
-	if( lutil_entropy( pw->bv_val, pw->bv_len) < 0 ) {
+	if( lutil_entropy( (unsigned char *) pw->bv_val, pw->bv_len) < 0 ) {
 		ber_bvfree( pw );
 		return NULL; 
 	}
@@ -442,7 +442,7 @@ static struct berval * pw_string64(
 	AC_MEMCPY(b64->bv_val, sc->bv_val, sc->bv_len);
 
 	rc = lutil_b64_ntop(
-		string.bv_val, string.bv_len,
+		(unsigned char *) string.bv_val, string.bv_len,
 		&b64->bv_val[sc->bv_len], b64len );
 
 	if( salt ) ber_memfree( string.bv_val );
@@ -1046,16 +1046,16 @@ static struct berval *hash_ssha1(
 {
 	lutil_SHA1_CTX  SHA1context;
 	unsigned char   SHA1digest[LUTIL_SHA1_BYTES];
-	unsigned char   saltdata[4];
+	char            saltdata[4];
 	struct berval digest;
 	struct berval salt;
 
-	digest.bv_val = SHA1digest;
+	digest.bv_val = (char *) SHA1digest;
 	digest.bv_len = sizeof(SHA1digest);
 	salt.bv_val = saltdata;
 	salt.bv_len = sizeof(saltdata);
 
-	if( lutil_entropy( salt.bv_val, salt.bv_len) < 0 ) {
+	if( lutil_entropy( (unsigned char *) salt.bv_val, salt.bv_len) < 0 ) {
 		return NULL; 
 	}
 
@@ -1077,7 +1077,7 @@ static struct berval *hash_sha1(
 	lutil_SHA1_CTX  SHA1context;
 	unsigned char   SHA1digest[LUTIL_SHA1_BYTES];
 	struct berval digest;
-	digest.bv_val = SHA1digest;
+	digest.bv_val = (char *) SHA1digest;
 	digest.bv_len = sizeof(SHA1digest);
      
 	lutil_SHA1Init( &SHA1context );
@@ -1096,16 +1096,16 @@ static struct berval *hash_smd5(
 {
 	lutil_MD5_CTX   MD5context;
 	unsigned char   MD5digest[LUTIL_MD5_BYTES];
-	unsigned char   saltdata[4];
+	char            saltdata[4];
 	struct berval digest;
 	struct berval salt;
 
-	digest.bv_val = MD5digest;
+	digest.bv_val = (char *) MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 	salt.bv_val = saltdata;
 	salt.bv_len = sizeof(saltdata);
 
-	if( lutil_entropy( salt.bv_val, salt.bv_len) < 0 ) {
+	if( lutil_entropy( (unsigned char *) salt.bv_val, salt.bv_len) < 0 ) {
 		return NULL; 
 	}
 
@@ -1129,7 +1129,7 @@ static struct berval *hash_md5(
 
 	struct berval digest;
 
-	digest.bv_val = MD5digest;
+	digest.bv_val = (char *) MD5digest;
 	digest.bv_len = sizeof(MD5digest);
 
 	lutil_MD5Init( &MD5context );
@@ -1298,11 +1298,11 @@ static struct berval *hash_crypt(
 		/* copy the salt we made into entropy before snprintfing
 		   it back into the salt */
 		char entropy[sizeof(salt)];
-		strcpy( entropy, salt );
-		snprintf( salt, sizeof(entropy), salt_format, entropy );
+		strcpy( entropy, (char *) salt );
+		snprintf( (char *) salt, sizeof(entropy), salt_format, entropy );
 	}
 
-	hash.bv_val = crypt( passwd->bv_val, salt );
+	hash.bv_val = crypt( passwd->bv_val, (char *) salt );
 
 	if( hash.bv_val == NULL ) return NULL;
 
