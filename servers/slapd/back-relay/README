@@ -1,0 +1,24 @@
+Relay backend automatically sets up a rewrite-remap overlay that maps 
+the virtual naming context to a real naming context that is available
+in the same server
+
+# automatically massage from virtual to real naming context
+database	relay
+suffix		"dc=virtual,dc=naming,dc=context"
+relay		"dc=real,dc=naming,dc=context"
+
+# explicitly massage
+database	relay
+suffix		"dc=virtual,dc=naming,dc=context"
+overlay		rewrite-remap
+suffixmassage	"dc=virtual,dc=naming,dc=context" "dc=real,dc=naming,dc=context"
+
+# old fashioned suffixalias...
+database	relay
+suffix		"dc=virtual,dc=naming,dc=context"
+overlay		rewrite-remap
+rewriteEngine	on
+rewriteContext	default
+rewriteRule	"(.*)dc=virtual,dc=naming,dc=context$" \
+			"\1dc=real,dc=naming,dc=context"
+
