@@ -130,6 +130,12 @@ ldbm_back_exop_passwd(
 		rc = ldbm_modify_internal( be,
 			conn, op, op->o_ndn, &ml, e, text, textbuf, textlen );
 
+		/* FIXME: ldbm_modify_internal may set *tex = textbuf,
+		 * which is BAD */
+		if ( *text == textbuf ) {
+			*text = NULL;
+		}
+
 		if( rc ) {
 			/* cannot return textbuf */
 			*text = "entry modify failed";
