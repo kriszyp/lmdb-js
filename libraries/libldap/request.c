@@ -84,29 +84,12 @@ ldap_send_initial_request(
 
 	if ( ! ber_pvt_sb_in_use(&ld->ld_sb ) ) {
 		/* not connected yet */
+		int rc = ldap_open_defconn( ld );
 
-		if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
-		    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-		    LDAP_STRDUP( ld->ld_defhost )) == NULL ))
-		{
-			if (srv != NULL) LDAP_FREE( srv );
+		if( rc < 0 ) {
 			ber_free( ber, 1 );
-			ld->ld_errno = LDAP_NO_MEMORY;
 			return( -1 );
 		}
-
-		srv->lsrv_port = ld->ld_defport;
-
-		if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 ))
-			== NULL )
-		{
-			if ( ld->ld_defhost != NULL ) LDAP_FREE( srv->lsrv_host );
-			LDAP_FREE( (char *)srv );
-			ber_free( ber, 1 );
-			ld->ld_errno = LDAP_SERVER_DOWN;
-			return( -1 );
-		}
-		++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
 
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_delayed_open successful, ld_host is %s\n",

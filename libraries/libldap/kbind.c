@@ -273,6 +273,13 @@ ldap_get_kerberosv4_credentials(
 		return( NULL );
 	}
 
+	if( ! ber_pvt_sb_in_use( &ld->ld_sb ) ) {
+		/* not connected yet */
+		int rc = ldap_open_defconn( ld );
+
+		if( rc < 0 ) return NULL;
+	}
+
 	krbinstance = ld->ld_defconn->lconn_krbinstance;
 
 	if ( (err = krb_mk_req( &ktxt, service, krbinstance, realm, 0 ))

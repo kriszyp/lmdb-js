@@ -351,6 +351,7 @@ char *ldap_get_kerberosv4_credentials LDAP_P((
 /*
  * in open.c
  */
+int ldap_open_defconn( LDAP *ld );
 int open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
 	char **krbinstancep, int async );
 

@@ -26,6 +26,33 @@
 
 #include "ldap-int.h"
 
+int ldap_open_defconn( LDAP *ld )
+{
+	LDAPServer	*srv;
+
+	if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
+	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
+	    LDAP_STRDUP( ld->ld_defhost )) == NULL ))
+	{
+		if( srv != NULL ) LDAP_FREE( (char*) srv );
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return -1;
+	}
+
+	srv->lsrv_port = ld->ld_defport;
+
+	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL )
+	{
+		if ( ld->ld_defhost != NULL ) LDAP_FREE( srv->lsrv_host );
+		LDAP_FREE( (char *)srv );
+		ld->ld_errno = LDAP_SERVER_DOWN;
+		return -1;
+	}
+
+	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
+
+	return 0;
+}
 
 /*
  * ldap_open - initialize and connect to an ldap server.  A magic cookie to
@@ -40,8 +67,8 @@
 LDAP *
 ldap_open( LDAP_CONST char *host, int port )
 {
+	int rc;
 	LDAP		*ld;
-	LDAPServer	*srv;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
 
@@ -49,22 +76,12 @@ ldap_open( LDAP_CONST char *host, int port )
 		return( NULL );
 	}
 
-	if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
-	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-	    LDAP_STRDUP( ld->ld_defhost )) == NULL )) {
-		if(srv != NULL) LDAP_FREE( (char*) srv );
-		ldap_ld_free( ld, 0, NULL, NULL );
-		return( NULL );
-	}
-	srv->lsrv_port = ld->ld_defport;
+	rc = ldap_open_defconn( ld );
 
-	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL ) {
-		if ( ld->ld_defhost != NULL ) LDAP_FREE( srv->lsrv_host );
-		LDAP_FREE( (char *)srv );
+	if( rc < 0 ) {
 		ldap_ld_free( ld, 0, NULL, NULL );
 		return( NULL );
 	}
-	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open successful, ld_host is %s\n",
 		( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
