@@ -162,7 +162,8 @@ int sasl_bind(
 		callbacks[cbnum].id = SASL_CB_LIST_END;
 		callbacks[cbnum].proc = NULL;
 		callbacks[cbnum].context = NULL;
-	
+
+		/* create new SASL context */
 		if ( sasl_server_new( "ldap", NULL, be->be_realm,
 			callbacks, SASL_SECURITY_LAYER, &conn->c_sasl_context ) != SASL_OK ) {
 			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
@@ -185,6 +186,7 @@ int sasl_bind(
 				NULL, errstr, NULL, NULL );
 		}
 	}
+
 	if ( sc == SASL_OK ) {
 		char *authzid;
 
@@ -199,7 +201,7 @@ int sasl_bind(
 			if ( strcasecmp( authzid, "anonymous" ) == 0 ) {
 				*edn = ch_strdup( "" );
 			} else {
-				*edn = ch_malloc( strlen( authzid ) + sizeof( "authzid=" ) );
+				*edn = ch_malloc( sizeof( "authzid=" ) + strlen( authzid ) );
 				strcpy( *edn, "authzid=" );
 				strcat( *edn, authzid );
 			}
@@ -214,7 +216,7 @@ int sasl_bind(
 		 */
 		conn->c_bind_in_progress = 1;
 		send_ldap_sasl( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
-			/* matched */ NULL, /* text */ NULL, /* refs */ NULL, /* controls */ NULL,  &response );
+			NULL, NULL, NULL, NULL,  &response );
 	} 
 
 	Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: rc=%d\n", rc, 0, 0);
