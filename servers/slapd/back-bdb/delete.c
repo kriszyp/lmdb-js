@@ -119,6 +119,9 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
+		case LDAP_BUSY:
+			text = "ldap server busy";
+			goto return_results;
 		default:
 			rc = LDAP_OTHER;
 			text = "internal error";
@@ -231,6 +234,9 @@ retry:	/* transaction retry */
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
 		goto retry;
+	case LDAP_BUSY:
+		text = "ldap server busy";
+		goto return_results;
 	default:
 		rc = LDAP_OTHER;
 		text = "internal error";

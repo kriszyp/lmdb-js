@@ -38,6 +38,9 @@ bdb_compare(
 	case DB_NOTFOUND:
 	case 0:
 		break;
+	case LDAP_BUSY:
+		text = "ldap server busy";
+		goto return_results;
 	default:
 		rc = LDAP_OTHER;
 		text = "internal error";

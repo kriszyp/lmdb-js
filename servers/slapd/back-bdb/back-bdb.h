@@ -28,7 +28,9 @@ LDAP_BEGIN_DECL
 #define bv2DBT(bv,t)		((t)->data = (bv)->bv_val, \
 								(t)->size = (bv)->bv_len )
 
-#define BDB_TXN_RETRIES	16
+#define BDB_TXN_RETRIES		16
+
+#define BDB_MAX_ADD_LOOP	30
 
 #ifdef BDB_SUBDIRS
 #define BDB_TMP_SUBDIR	LDAP_DIRSEP "tmp"

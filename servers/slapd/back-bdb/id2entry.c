@@ -121,13 +121,23 @@ int bdb_id2entry_rw(
 		ch_free( data.data );
 	}
 
-	if (rc == 0 && bdb_cache_add_entry_rw(&bdb->bi_cache, *e, rw) != 0) {
-		if ((*e)->e_private != NULL)
+	while (rc == 0 && bdb_cache_add_entry_rw(&bdb->bi_cache, *e, rw) != 0) {
+		Entry *ee;
+		int add_loop_cnt = 0;
+		if ( (*e)->e_private != NULL ) {
 			free ((*e)->e_private);
+		}
 		(*e)->e_private = NULL;
-		bdb_entry_return (*e);
-		if ((*e=bdb_cache_find_entry_id(&bdb->bi_cache,id,rw)) != NULL) {
+		if ( (ee = bdb_cache_find_entry_id
+				(&bdb->bi_cache, id, rw) ) != NULL) {
+			bdb_entry_return ( *e );
+			*e = ee;
 			return 0;
+		}
+		if ( ++add_loop_cnt == BDB_MAX_ADD_LOOP ) {
+			bdb_entry_return ( *e );
+			*e = NULL;
+			return LDAP_BUSY;
 		}
 	}
 

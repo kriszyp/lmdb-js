@@ -318,6 +318,9 @@ retry:	/* transaction retry */
 			goto retry;
 		case DB_NOTFOUND:
 			break;
+		case LDAP_BUSY:
+			text = "ldap server busy";
+			goto return_results;
 		default:
 			rc = LDAP_OTHER;
 		}

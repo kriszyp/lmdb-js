@@ -43,6 +43,16 @@ bdb_referrals(
 		rc = 0;
 	case 0:
 		break;
+	case LDAP_BUSY:
+		if (e != NULL) {
+			bdb_cache_return_entry_r(&bdb->bi_cache, e);
+		}
+		if (matched != NULL) {
+			bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+		}
+		send_ldap_result( conn, op, LDAP_BUSY,
+			NULL, "ldap server busy", NULL, NULL );
+		return LDAP_BUSY;
 	default:
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "referral", LDAP_LEVEL_ERR,
