@@ -11,6 +11,7 @@ dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
 
 dnl $OpenLDAP$
+dnl
 dnl Copyright 1998-1999 The OpenLDAP Foundation,  All Rights Reserved.
 dnl COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 dnl

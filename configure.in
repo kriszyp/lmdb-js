@@ -1,11 +1,24 @@
 dnl $OpenLDAP$
-
+dnl
 dnl Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
 dnl Redistribution and use in source and binary forms are permitted only
 dnl as authorized by the OpenLDAP Public License.  A copy of this
 dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
+dnl
+define([AC_INIT_BINSH],
+[#! /bin/sh
+# $]OpenLDAP[$
+# from] translit([$OpenLDAP$], $") [
+
+# Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
+# 
+# Redistribution and use in source and binary forms are permitted only
+# as authorized by the OpenLDAP Public License.  A copy of this
+# license is available at http://www.OpenLDAP.org/license.html or
+# in file LICENSE in the top-level directory of the distribution.
+])dnl
 
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
@@ -14,7 +27,6 @@ define([AC_CACHE_SAVE], )dnl
 dnl Configure.in for OpenLDAP
 AC_INIT(build/version)dnl
 AC_CONFIG_AUX_DIR(build)dnl
-OPENLDAP_ID=OL_RCS_ID(OpenLDAP)
 
 OL_VERSION=`cat $ac_aux_dir/version`
 if test -z "$OL_VERSION"; then
