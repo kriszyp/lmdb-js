@@ -322,6 +322,7 @@ wait4child( int sig )
     while ( wait3( NULL, WNOHANG, NULL ) >= 0 || errno == EINTR )
 	;	/* NULL */
 #endif
+#else
     (void) wait( NULL );
 #endif
     (void) SIGNAL( sig, wait4child );
