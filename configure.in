@@ -1123,7 +1123,7 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 
 		else
 			have_krb5=no
-			AC_MSG_WARN([Unrecongized Kerberos5 Implementation])
+			AC_MSG_WARN([Unrecognized Kerberos5 Implementation])
 		fi
 
 		if test $have_krb5 = yes ; then
