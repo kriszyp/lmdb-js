@@ -115,15 +115,7 @@ int ldbm_modify_internal(
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
-	/* modify indexes */
-	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
-		attrs_free( e->e_attrs );
-		e->e_attrs = save_attrs;
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		return -1;
-	}
-
+	/* remove old indices */
 	if( save_attrs != NULL ) {
 		for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
 			mod = &ml->ml_mod;
@@ -143,6 +135,14 @@ int ldbm_modify_internal(
 			}
 		}
 		attrs_free( save_attrs );
+	}
+
+	/* modify indexes */
+	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
+		/* our indices are likely hosed */
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+		return -1;
 	}
 
 	/* check for abandon */
