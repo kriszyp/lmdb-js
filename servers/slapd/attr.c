@@ -282,31 +282,45 @@ attr_syntax_config(
 	at = (LDAP_ATTRIBUTE_TYPE *)
 		ch_calloc( 1, sizeof(LDAP_ATTRIBUTE_TYPE) );
 
+#define SYNTAX_DS_OID	"1.3.6.1.4.1.1466.115.121.1.15"
+#define SYNTAX_DSCE_OID	"2.5.13.5"
+#define SYNTAX_IA5_OID	"1.3.6.1.4.1.1466.115.121.1.26"
+#define SYNTAX_IA5CE_OID	"1.3.6.1.4.1.1466.109.114.1"
+#define SYNTAX_DN_OID	"1.3.6.1.4.1.1466.115.121.1.12"
+#define SYNTAX_TEL_OID	"1.3.6.1.4.1.1466.115.121.1.50"
+#define SYNTAX_BIN_OID	"1.3.6.1.4.1.1466.115.121.1.40" /* octetString */
+
 	lasti = argc - 1;
 	if ( strcasecmp( argv[lasti], "caseignorestring" ) == 0 ||
 	    strcasecmp( argv[lasti], "cis" ) == 0 ) {
-		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.15";
+		at->at_syntax_oid = SYNTAX_DS_OID;
 		at->at_equality_oid = "2.5.13.2";
 		at->at_ordering_oid = "2.5.13.3";
 		at->at_substr_oid = "2.5.13.4";
+
 	} else if ( strcasecmp( argv[lasti], "telephone" ) == 0 ||
 	    strcasecmp( argv[lasti], "tel" ) == 0 ) {
-		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.50";
+		at->at_syntax_oid = SYNTAX_TEL_OID;
 		at->at_equality_oid = "2.5.13.20";
 		at->at_substr_oid = "2.5.13.21";
+
 	} else if ( strcasecmp( argv[lasti], "dn" ) == 0 ) {
-		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.12";
+		at->at_syntax_oid = SYNTAX_DN_OID;
 		at->at_equality_oid = "2.5.13.1";
+
 	} else if ( strcasecmp( argv[lasti], "caseexactstring" ) == 0 ||
 	    strcasecmp( argv[lasti], "ces" ) == 0 ) {
-		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.15";
-		at->at_equality_oid = "2.5.13.5";
+		at->at_syntax_oid = SYNTAX_DS_OID;
+		at->at_equality_oid = SYNTAX_DSCE_OID;
 		at->at_ordering_oid = "2.5.13.6";
 		at->at_substr_oid = "2.5.13.7";
+
 	} else if ( strcasecmp( argv[lasti], "binary" ) == 0 ||
 	    strcasecmp( argv[lasti], "bin" ) == 0 ) {
-		at->at_syntax_oid = "1.3.6.1.4.1.1466.115.121.1.5";
-		/* There is no match for binary syntax. Really */
+		/* bin -> octetString, not binary! */
+		at->at_syntax_oid = SYNTAX_BIN_OID;
+		at->at_equality_oid = "2.5.13.17";
+
 	} else {
 		Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: unknown syntax \"%s\" in attribute line (ignored)\n",
@@ -572,6 +586,7 @@ at_add(
 	}
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
 	memcpy( &sat->sat_atype, at, sizeof(LDAP_ATTRIBUTE_TYPE));
+
 	if ( at->at_sup_oid ) {
 		if ( (sat1 = at_find(at->at_sup_oid)) ) {
 			sat->sat_sup = sat1;
@@ -585,6 +600,19 @@ at_add(
 		}
 	}
 
+	/*
+	 * Inherit definitions from superiors.  We only check the
+	 * direct superior since that one has already inherited from
+	 * its own superiorss
+	 */
+	if ( sat->sat_sup ) {
+		sat->sat_syntax = sat->sat_sup->sat_syntax;
+
+		sat->sat_equality = sat->sat_sup->sat_equality;
+		sat->sat_ordering = sat->sat_sup->sat_ordering;
+		sat->sat_substr = sat->sat_sup->sat_substr;
+	}
+
 	if ( at->at_syntax_oid ) {
 		if ( (syn = syn_find(sat->sat_syntax_oid)) ) {
 			sat->sat_syntax = syn;
@@ -592,27 +620,40 @@ at_add(
 			*err = sat->sat_syntax_oid;
 			return SLAP_SCHERR_SYN_NOT_FOUND;
 		}
-		if ( !strcmp(at->at_syntax_oid,
-			     "1.3.6.1.4.1.1466.115.121.1.15") ) {
-			if ( at->at_equality_oid &&
-			     !strcmp(at->at_equality_oid, "2.5.13.5") ) {
+
+		if ( !strcmp(at->at_syntax_oid, SYNTAX_DS_OID) ) {
+			if ( at->at_equality_oid && (
+				!strcmp(at->at_equality_oid, SYNTAX_DSCE_OID) ) )
+			{
 				sat->sat_syntax_compat = SYNTAX_CES;
 			} else {
 				sat->sat_syntax_compat = SYNTAX_CIS;
 			}
-		} else if ( !strcmp(at->at_syntax_oid,
-				    "1.3.6.1.4.1.1466.115.121.1.50") ) {
-			sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_TEL;
-		} else if ( !strcmp(at->at_syntax_oid,
-				    "1.3.6.1.4.1.1466.115.121.1.12") ) {
+
+		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_IA5_OID) ) {
+			if ( at->at_equality_oid && (
+				!strcmp(at->at_equality_oid, SYNTAX_IA5CE_OID) ) )
+			{
+				sat->sat_syntax_compat = SYNTAX_CES;
+			} else {
+				sat->sat_syntax_compat = SYNTAX_CIS;
+			}
+
+		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_DN_OID ) ) {
 			sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_DN;
-		} else if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.5") ) {
+
+		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_TEL_OID ) ) {
+			sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_TEL;
+
+		} else if ( !strcmp(at->at_syntax_oid, SYNTAX_BIN_OID ) ) {
 			sat->sat_syntax_compat = SYNTAX_BIN;
+
 		} else {
 			sat->sat_syntax_compat = DEFAULT_SYNTAX;
 		}
-	} else {
-		sat->sat_syntax_compat = DEFAULT_SYNTAX;
+
+	} else if ( sat->sat_syntax == NULL ) {
+		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 
 	if ( sat->sat_equality_oid ) {
@@ -622,7 +663,9 @@ at_add(
 			*err = sat->sat_equality_oid;
 			return SLAP_SCHERR_MR_NOT_FOUND;
 		}
+
 	}
+
 	if ( sat->sat_ordering_oid ) {
 		if ( (mr = mr_find(sat->sat_ordering_oid)) ) {
 			sat->sat_ordering = mr;
@@ -631,6 +674,7 @@ at_add(
 			return SLAP_SCHERR_MR_NOT_FOUND;
 		}
 	}
+
 	if ( sat->sat_substr_oid ) {
 		if ( (mr = mr_find(sat->sat_substr_oid)) ) {
 			sat->sat_substr = mr;
@@ -640,26 +684,6 @@ at_add(
 		}
 	}
 
-	/*
-	 * Now inherit definitions from superiors.  We only check the
-	 * direct superior since that one has already inherited from
-	 * its own superiorss
-	 */
-	if ( sat->sat_sup ) {
-		if ( !sat->sat_syntax ) {
-			sat->sat_syntax = sat->sat_sup->sat_syntax;
-			sat->sat_syntax_len = sat->sat_sup->sat_syntax_len;
-		}
-		if ( !sat->sat_equality ) {
-			sat->sat_equality = sat->sat_sup->sat_equality;
-		}
-		if ( !sat->sat_ordering ) {
-			sat->sat_ordering = sat->sat_sup->sat_ordering;
-		}
-		if ( !sat->sat_substr ) {
-			sat->sat_substr = sat->sat_sup->sat_substr;
-		}
-	}
 	code = at_insert(sat,err);
 	return code;
 }

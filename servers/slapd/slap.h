@@ -115,13 +115,13 @@ struct replog_moddn {
  * represents an attribute value assertion (i.e., attr=value)
  */
 typedef struct slap_ava {
-	char		*ava_type;
+	char		*ava_type;	/* attribute description */
 	struct berval	ava_value;
 } Ava;
 
 typedef struct slap_mra {
 	char	*mra_rule;
-	char	*mra_type;
+	char	*mra_type;	/* attribute description */
 	char	*mra_value;
 	int		mra_dnattrs;
 } Mra;
@@ -180,7 +180,7 @@ typedef struct slap_filter {
  * represents an attribute (type + values + syntax)
  */
 typedef struct slap_attr {
-	char		*a_type;
+	char		*a_type;	/* description */
 	struct berval	**a_vals;
 	int		a_syntax;
 	struct slap_attr	*a_next;
@@ -365,31 +365,37 @@ typedef struct slap_oid_macro {
 	int oidlen;
 } OidMacro;
 
-typedef int slap_syntax_check_func LDAP_P((struct berval * val));
+typedef int slap_syntax_validate_func LDAP_P((
+	struct berval * in));
+
+typedef int slap_syntax_normalize_func LDAP_P((
+	struct berval * in,
+	struct berval ** out));
 
 typedef struct slap_syntax {
 	LDAP_SYNTAX			ssyn_syn;
-	slap_syntax_check_func		*ssyn_check;
+	slap_syntax_validate_func	*ssyn_validate;
+	slap_syntax_normalize_func	*ssyn_normalize;
 	struct slap_syntax		*ssyn_next;
-} Syntax;
 #define ssyn_oid			ssyn_syn.syn_oid
 #define ssyn_desc			ssyn_syn.syn_desc
+} Syntax;
 
-typedef int slap_mr_normalize_func LDAP_P((struct berval * val, struct berval **normalized));
-typedef int slap_mr_compare_func LDAP_P((struct berval * val1, struct berval * val2));
+typedef int slap_mr_match_func LDAP_P((
+	struct berval * atval,
+	struct berval * matchval));
 
 typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
-	slap_mr_normalize_func		*smr_normalize;
-	slap_mr_compare_func		*smr_compare;
+	slap_mr_match_func		*smr_match;
 	Syntax				*smr_syntax;
 	struct slap_matching_rule	*smr_next;
-} MatchingRule;
 #define smr_oid				smr_mrule.mr_oid
 #define smr_names			smr_mrule.mr_names
 #define smr_desc			smr_mrule.mr_desc
 #define smr_obsolete			smr_mrule.mr_obsolete
 #define smr_syntax_oid			smr_mrule.mr_syntax_oid
+} MatchingRule;
 
 typedef struct slap_attribute_type {
 	LDAP_ATTRIBUTE_TYPE		sat_atype;
@@ -402,7 +408,6 @@ typedef struct slap_attribute_type {
 	/* The next one is created to help in the transition */
 	int				sat_syntax_compat;
 	struct slap_attribute_type	*sat_next;
-} AttributeType;
 #define sat_oid			sat_atype.at_oid
 #define sat_names		sat_atype.at_names
 #define sat_desc		sat_atype.at_desc
@@ -412,11 +417,11 @@ typedef struct slap_attribute_type {
 #define sat_ordering_oid	sat_atype.at_ordering_oid
 #define sat_substr_oid		sat_atype.at_substr_oid
 #define sat_syntax_oid		sat_atype.at_syntax_oid
-#define sat_syntax_len		sat_atype.at_syntax_len
 #define sat_single_value	sat_atype.at_single_value
 #define sat_collective		sat_atype.at_collective
 #define sat_no_user_mods	sat_atype.at_no_user_mods
 #define sat_usage		sat_atype.at_usage
+} AttributeType;
 
 typedef struct slap_object_class {
 	LDAP_OBJECT_CLASS		soc_oclass;
@@ -424,7 +429,6 @@ typedef struct slap_object_class {
 	AttributeType			**soc_required;
 	AttributeType			**soc_allowed;
 	struct slap_object_class	*soc_next;
-} ObjectClass;
 #define soc_oid			soc_oclass.oc_oid
 #define soc_names		soc_oclass.oc_names
 #define soc_desc		soc_oclass.oc_desc
@@ -433,6 +437,7 @@ typedef struct slap_object_class {
 #define soc_kind		soc_oclass.oc_kind
 #define soc_at_oids_must	soc_oclass.oc_at_oids_must
 #define soc_at_oids_may		soc_oclass.oc_at_oids_may
+} ObjectClass;
 
 /*
  * Backend-info
