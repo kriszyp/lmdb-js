@@ -1,4 +1,4 @@
-.TH LBER_DECODE 3 "22 September 1998" "OpenLDAP LDVERSION"
+.TH LBER_DECODE 3 "12 May 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-1999 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -13,144 +13,109 @@ ber_get_next, ber_skiptag, ber_peek_tag, ber_scanf, ber_get_int, ber_get_stringb
 .LP
 .nf
 .ft B
-typedef struct berelement BerElement;
+ber_tag_t ber_get_next(
+	Sockbuf *sb,
+	ber_len_t \(**len,
+	BerElement \(**ber);
 .ft
 .fi
 .LP
 .nf
 .ft B
-typedef struct sockbuf Sockbuf;
+ber_tag_t ber_skip_tag(
+	BerElement \(**ber,
+	ber_len_t long \(**len);
 .ft
 .fi
 .LP
 .nf
 .ft B
-typedef struct berval {
-    unsigned long bv_len;
-    char *bv_val;
-};
+ber_tag_t ber_peek_tag(
+	BerElement \(**ber,
+	ber_len_t \(**len);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_next(sb, len, ber)
-Sockbuf *sb;
-unsigned long \(**len;
-BerElement \(**ber;
+ber_tag_t ber_scanf(
+	BerElement \(**ber,
+	const char \(**fmt, ...);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_skip_tag(ber, len)
-BerElement \(**ber;
-unsigned long \(**len;
+ber_tag_t ber_get_int(ber, num)
+	BerElement \(**ber,
+	ber_int_t \(**num);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_peek_tag(ber, len)
-BerElement \(**ber;
-unsigned long \(**len;
+ber_tag_t ber_get_stringb(
+	BerElement \(**ber,
+	char \(**buf,
+	ber_len_t \(**len);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_int(ber, num)
-BerElement \(**ber;
-long \(**num;
+ber_tag_t ber_get_stringa(
+	BerElement \(**ber,
+	char \(***buf);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_stringb(ber, buf, len)
-BerElement \(**ber;
-char \(**buf;
-unsigned long \(**len;
+ber_tag_t ber_get_stringal(
+	BerElement \(**ber,
+	struct berval \(***bv);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_stringa(ber, buf)
-BerElement \(**ber;
-char \(***buf;
+ber_tag_t ber_get_null(
+	BerElement \(**ber );
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_stringal(ber, bv)
-BerElement \(**ber;
-struct berval \(***bv;
+ber_tag_t ber_get_boolean(
+	BerElement \(**ber,
+	ber_int_t \(**bool);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_null(ber)
-BerElement \(**ber;
+ber_tag_t ber_get_bitstringa(
+	BerElement \(**ber,
+	char \(***buf,
+	ber_len_t \(**blen);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_boolean(ber, bool)
-BerElement \(**ber;
-int \(**bool;
+ber_tag_t ber_first_element(
+	BerElement \(**ber,
+	ber_len_t \(**len,
+	char \(***cookie);
 .ft
 .fi
 .LP
 .nf
 .ft B
-ber_get_bitstringa(ber, buf, blen)
-BerElement \(**ber;
-char \(***buf;
-unsigned long \(**blen;
-.ft
-.fi
-.LP
-.nf
-.ft B
-ber_first_element(ber, len, cookie)
-BerElement \(**ber;
-unsigned long \(**len;
-char \(***cookie;
-.ft
-.fi
-.LP
-.nf
-.ft B
-ber_next_element(ber, len, cookie)
-BerElement \(**ber;
-unsigned long \(**len;
-char \(**cookie;
-.ft
-.fi
-.LP
-.nf
-.ft B
-ber_scanf(ber, fmt [, arg...] )
-BerElement \(**ber;
-char \(**fmt;
-.ft
-.fi
-.LP
-.nf
-.ft B
-ber_bvfree(bv)
-struct berval \(**bv;
-.ft
-.fi
-.LP
-.nf
-.ft B
-ber_bvecfree(bvec)
-struct berval \(***bvec;
+ber_tag_t ber_next_element(
+	BerElement \(**ber,
+	ber_len_t \(**len,
+	const char \(**cookie);
 .SH DESCRIPTION
 .LP
 These routines provide a subroutine interface to a simplified
@@ -165,6 +130,7 @@ in the descriptions below, it refers to the tag, class, and primitive
 or constructed bit in the first octet of the encoding.  This man page
 describes the decoding routines in the lber library.  See lber-encode(3)
 for details on the corresponding encoding routines.
+Consult lber-types(3) for information about types, allocators, and deallocators.
 .LP
 Normally, the only routines that need be called by an application
 are ber_get_next() to get the next BER element and ber_scanf()
@@ -200,29 +166,30 @@ characters.
 Octet string.  A char ** should be supplied.  Memory is allocated,
 filled with the contents of the octet string, null-terminated, and
 returned in the parameter.
+The caller should free the returned ber_val using ber_memfree();
 .TP
 .SM s
 Octet string.  A char * buffer should be supplied, followed by a pointer
-to an integer initialized to the size of the buffer.  Upon return, the
+to a ber_len_t initialized to the size of the buffer.  Upon return, the
 null-terminated octet string is put into the buffer, and the integer is
 set to the actual size of the octet string.
 .TP
 .SM O
 Octet string.  A struct ber_val ** should be supplied, which upon return
 points to a dynamically allocated struct berval containing the octet string
-and its length.  ber_bvfree() can be called to free the dynamically
-allocated memory.
+and its length.
+The caller should free the returned structure using ber_bvfree();
 .TP
 .SM b
-Boolean.  A pointer to an integer should be supplied.
+Boolean.  A pointer to a ber_int_t should be supplied.
 .TP
 .SM i
-Integer.  A pointer to an integer should be supplied.
+Integer.  A pointer to a ber_int_t should be supplied.
 .TP
 .SM B
 Bitstring.  A char ** should be supplied which will point to the
 dynamically allocated
-bits, followed by an unsigned long *, which will point to the length
+bits, followed by an ber_len_t *, which will point to the length
 (in bits) of the bitstring returned.
 .TP
 .SM n
@@ -240,8 +207,8 @@ A struct berval *** should be supplied, which upon
 return points to a dynamically allocated null-terminated array of
 struct berval *'s
 containing the octet strings and their lengths.
-NULL is returned if the sequence is empty.  ber_bvecfree() can be called
-to free the dynamically allocated memory.
+NULL is returned if the sequence is empty.  
+The caller should free the returned structures using ber_bvecfree();
 .TP
 .SM x
 Skip element.  The next element is skipped.
@@ -263,7 +230,7 @@ End set.  No parameter is required and no action is taken.
 .LP
 The ber_get_int() routine tries to interpret the next element as an integer,
 returning the result in \fInum\fP.  The tag of whatever it finds is returned
-on success, -1 on failure.
+on success, LBER_ERROR (\-1) on failure.
 .LP
 The ber_get_stringb() routine is used to read an octet string into a
 preallocated buffer.  The \fIlen\fP parameter should be initialized to
@@ -272,12 +239,13 @@ read upon return.  The buffer should be big enough to take the octet
 string value plus a terminating NULL byte.
 .LP
 The ber_get_stringa() routine is used to dynamically allocate space into
-which an octet
-string is read.
+which an octet string is read.
+The caller should free the returned string using ber_memfree();
 .LP
 The ber_get_stringal() routine is used to dynamically allocate space
 into which an octet string and its length are read.  It takes a
 struct berval **, and returns the result in this parameter.
+The caller should free the returned structure using ber_bvfree();
 .LP
 The ber_get_null() routine is used to read a NULL element.  It returns
 the tag of the element it skips over.
@@ -289,6 +257,7 @@ The ber_get_bitstringa() routine is used to read a bitstring value.  It
 takes a char ** which will hold the dynamically allocated bits, followed by an
 unsigned long *, which will point to the length (in bits) of the
 bitstring returned.
+The caller should free the returned string using ber_memfree();
 .LP
 The ber_first_element() routine is used to return the tag and length
 of the first element in a set or sequence.  It also returns in \fIcookie\fP
@@ -322,17 +291,23 @@ the following ASN.1 object:
 The element can be decoded using ber_scanf() as follows.
 .LP
 .nf
-      int    scope, ali, size, time, attrsonly;
+      ber_int_t    scope, ali, size, time, attrsonly;
       char   *dn, **attrs;
+      ber_tag_t tag;
 
-      if ( ber_scanf( ber, "{aiiiib{v}}", &dn, &scope, &ali,
-          &size, &time, &attrsonly, &attrs ) == -1 )
+      tag = ber_scanf( ber, "{aiiiib{v}}",
+          &dn, &scope, &ali,
+          &size, &time, &attrsonly, &attrs );
+
+      if( tag == LBER_ERROR ) {
               /* error */
-      else
+      } else {
               /* success */
+      }
 .fi
 .SH ERRORS
-If an error occurs during decoding, generally these routines return -1.
+If an error occurs during decoding, generally these routines return
+LBER_ERROR (\-1).
 .LP
 .SH NOTES
 .LP
@@ -342,6 +317,7 @@ Some routines may dynamically allocate memory
 which must be freed by the caller using supplied deallocation routines.
 .SH SEE ALSO
 .BR lber-encode (3)
+.BR lber-types (3)
 .BR ldap-parse (3)
 .BR ldap-sync (3)
 .BR ldap-async (3)
