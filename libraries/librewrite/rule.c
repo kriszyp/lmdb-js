@@ -189,6 +189,7 @@ rewrite_rule_compile(
 				/* cleanup ... */
 				return REWRITE_ERR;
 			}
+
 			action->la_type = REWRITE_ACTION_STOP;
 			break;
 			
