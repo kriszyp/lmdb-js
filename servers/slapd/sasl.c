@@ -633,7 +633,7 @@ slap_sasl_authorize(
 	const char **errstr)
 {
 	struct berval authcDN, authzDN;
-	int rc:
+	int rc;
 	Connection *conn = context;
 	char *realm;
 
