@@ -1,12 +1,26 @@
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
-/*
- * Portions Copyright IBM Corp. 1997,2002-2003
+/* $OpenLDAP$/
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP
- * Public License, version 2.7 or later.
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* (C) Copyright PADL Software Pty Ltd. 2003
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that this notice is preserved
+ * and that due credit is given to PADL Software Pty Ltd. This software
+ * is provided ``as is'' without express or implied warranty.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Luke Howard for inclusion
+ * in OpenLDAP Software.
  */
 
 #include "portable.h"

@@ -11,3 +11,6 @@
   plugins in, trap deadly signals and possibly disable unsafe plugins
   without crashing slapd (fork from inside thread? trap signals
   and longjump to next plugin execution? Brrr).
+
+---
+$OpenLDAP$
