@@ -758,9 +758,9 @@ and attributes to which the access control applies.  Entries are
 commonly selected in two ways: by DN and by filter.  The following
 qualifiers select entries by DN:
 
->	by *
->	by dn[.<basic-style>]=<regex>
->	by dn.<scope-style>=<DN>
+>	to *
+>	to dn[.<basic-style>]=<regex>
+>	to dn.<scope-style>=<DN>
 
 The first form is used to select all entries.  The second form may
 be used to select entries by matching a regular expression against
@@ -795,17 +795,17 @@ For example, if the directory contained entries named:
 
 Entries may also be selected using a filter:
 
->	by filter=<ldap filter>
+>	to filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
 search filter, as described in {{REF:RFC2254}}.  For example:
 
->	by filter=(objectClass=person)
+>	to filter=(objectClass=person)
 
 Note that entries may be selected by both DN and filter by
 including both qualifiers in the <what> clause.
 
->	by dn.one="ou=people,o=suffix" filter=(objectClass=person)
+>	to dn.one="ou=people,o=suffix" filter=(objectClass=person)
 
 Attributes within an entry are selected by including a comma-separated
 list of attribute names in the <what> selector:
