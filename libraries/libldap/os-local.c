@@ -156,7 +156,8 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 
 #if !defined(HAVE_GETPEEREID) && \
 	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
-	defined(HAVE_SENDMSG) && defined(HAVE_MSGHDR_MSG_ACCRIGHTS)
+	defined(HAVE_SENDMSG) && (defined(HAVE_MSGHDR_MSG_ACCRIGHTS) || \
+				  defined(HAVE_MSGHDR_MSG_CONTROL))
 #define DO_SENDMSG
 static const char abandonPDU[] = {LDAP_TAG_MESSAGE, 6,
 	LDAP_TAG_MSGID, 1, 0, LDAP_REQ_ABANDON, 1, 0};
@@ -194,12 +195,40 @@ sendcred:
 				/* Abandon, noop, has no reply */
 				struct iovec iov;
 				struct msghdr msg = {0};
+# ifdef HAVE_MSGHDR_MSG_CONTROL
+# ifndef CMSG_SPACE
+# define CMSG_SPACE(len)	(_CMSG_ALIGN( sizeof(struct cmsghdr)) + _CMSG_ALIGN(len) )
+# endif
+# ifndef CMSG_LEN
+# define CMSG_LEN(len)		(_CMSG_ALIGN( sizeof(struct cmsghdr)) + (len) )
+# endif
+				union {
+					struct cmsghdr cm;
+					unsigned char control[CMSG_SPACE(sizeof(int))];
+				} control_un;
+				struct cmsghdr *cmsg;
+# endif /* HAVE_MSGHDR_MSG_CONTROL */
+				msg.msg_name = NULL;
+				msg.msg_namelen = 0;
 				iov.iov_base = (char *) abandonPDU;
 				iov.iov_len = sizeof abandonPDU;
 				msg.msg_iov = &iov;
 				msg.msg_iovlen = 1;
+# ifdef HAVE_MSGHDR_MSG_CONTROL
+				msg.msg_control = control_un.control;
+				msg.msg_controllen = sizeof( control_un.control );
+				msg.msg_flags = 0;
+
+				cmsg = CMSG_FIRSTHDR( &msg );
+				cmsg->cmsg_len = CMSG_LEN( sizeof(int) );
+				cmsg->cmsg_level = SOL_SOCKET;
+				cmsg->cmsg_type = SCM_RIGHTS;
+
+				*((int *)CMSG_DATA(cmsg)) = fds[0];
+# else
 				msg.msg_accrights = (char *)fds;
 				msg.msg_accrightslen = sizeof(int);
+# endif /* HAVE_MSGHDR_MSG_CONTROL */
 				sendmsg( s, &msg, 0 );
 				close(fds[0]);
 				close(fds[1]);
