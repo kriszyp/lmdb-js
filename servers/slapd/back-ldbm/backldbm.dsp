@@ -258,5 +258,9 @@ SOURCE=.\tools.c
 
 SOURCE=.\unbind.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\attribute.c
+# End Source File
 # End Target
 # End Project
