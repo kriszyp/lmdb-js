@@ -122,12 +122,21 @@ use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
 command option.
 
 For the purposes of authentication and authorization, {{slapd}}(8)
-associated the non-mapped authentication DN of
+associates a non-mapped authentication DN of the form:
 
->	uid=user@REALM,cn=GSSAPI,cn=authzid
+>	uid=principal,cn=GSSAPI,cn=authzid
 
-for the GSSAPI principal "user@REALM".  The may be subsequently
-mapped as detailed below.
+If the user principal is within the same realm, the realm is
+trimmed from the principal.  Continuting our example, a user
+with the Kerberos principal {{EX:kurt@EXAMPLE.COM}} would have
+the associated DN:
+
+>	uid=kurt,cn=GSSAPI,cn=authzid
+
+and the principal {{EX:ursula@@FORIEGN.REALM}} would have the
+associated DN:
+
+>	uid=ursula@FOREIGN-REALM,cn=GSSAPI,cn=authzid
 
 
 H3: KERBEROS_V4
