@@ -631,7 +631,7 @@ access line is:
 >		[filter=<ldapfilter>] [attrs=<attrlist>]
 >	<basic-style> ::= regex | exact
 >	<scope-style> ::= base | one | subtree | children
->	<attrlist> ::= <attr> | <attr> , <attrlist>
+>	<attrlist> ::= <attr> [val[.<basic-style>]=<regex>] | <attr> , <attrlist>
 >	<attr> ::= <attrname> | entry | children
 >	<who> ::= * | [anonymous | users | self
 >			| dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>] 
@@ -719,8 +719,13 @@ list of attribute names in the <what> selector:
 
 >	attrs=<attribute list>
 
+A specific value of an attribute is selected by using a single
+attribute name and also using a value selector:
+
+>	attrs=<attribute> val[.<style>]=<regex>
+
 There are two special {{pseudo}} attributes {{EX:entry}} and
-{{EX:children}}.  To read (and hence return) an target entry, the
+{{EX:children}}.  To read (and hence return) a target entry, the
 subject must have {{EX:read}} access to the target's {{entry}}
 attribute.  To add or delete an entry, the subject must have
 {{EX:write}} access to the entry's {{EX:entry}} attribute AND must
