@@ -649,15 +649,15 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 		lr->lr_origid, lr->lr_msgid, 0 );
 #endif
 
+	/* free all referrals (child requests) */
+	while ( lr->lr_child )
+		ldap_free_request( ld, lr->lr_child );
+
 	if ( lr->lr_parent != NULL ) {
 		--lr->lr_parent->lr_outrefcnt;
 		for ( ttmplr = &lr->lr_parent->lr_child; *ttmplr && *ttmplr != lr; ttmplr = &(*ttmplr)->lr_refnext ); 
 		if ( *ttmplr == lr )  
 			*ttmplr = lr->lr_refnext;
-	} else {
-		/* free all referrals (child requests) */
-		while ( lr->lr_child )
-			ldap_free_request( ld, lr->lr_child );
 	}
 	ldap_free_request_int( ld, lr );
 }
