@@ -47,11 +47,11 @@ LDAP_RUNDIR?= $(LDAP_ETCDIR)
 ## General compiler options                                                ##
 #############################################################################
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
-EXTRACFLAGS=-O -g
+#EXTRACFLAGS=-O -g
 #EXTRACFLAGS=-O
-#EXTRACFLAGS=-g
+EXTRACFLAGS?=-g
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
-EXTRALDFLAGS=-g
+EXTRALDFLAGS?=-g
 
 #############################################################################
 ## If you are NOT using Kerberos authentication, you can skip this section.##
