@@ -1,8 +1,10 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.19 Engineering
+OpenLDAP 2.1.19 Release
 	Fixed slapd substring index normalization (ITS#2468)
 	Fixed back-bdb attribute index tracking (ITS#2496)
+	Documentation
+		Misc man page updates
 
 OpenLDAP 2.1.18 Release
 	Fixed slapd slave update when updateref missing bug (ITS#2435)
