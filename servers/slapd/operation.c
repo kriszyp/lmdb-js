@@ -36,6 +36,12 @@ slap_op_free( Operation *op )
 		ldap_controls_free( op->o_ctrls );
 	}
 
+#ifdef LDAP_CLIENT_UPDATE
+	if ( op->o_clientupdate_state.bv_val != NULL ) {
+		free( op->o_clientupdate_state.bv_val );
+	}
+#endif /* LDAP_CLIENT_UPDATE */
+
 	free( (char *) op );
 }
 

@@ -90,7 +90,7 @@ static struct slap_control {
 	{ LDAP_CONTROL_CLIENT_UPDATE,
 		SLAP_CTRL_SEARCH, NULL,
 		parseClientUpdate },
-#endif
+#endif /* LDAP_CLIENT_UPDATE */
 	{ NULL }
 };
 
@@ -703,18 +703,18 @@ static int parseClientUpdate (
 
 	/* TODO : Cookie Scheme Validation */
 #if 0
-	if ( lcup_cookie_validate(scheme, cookie) != LDAP_SUCCESS ) {
-		*text = "Invalid LCUP cookie";
-		return LCUP_INVALID_COOKIE;
-	}
-
 	if ( lcup_cookie_scheme_validate(scheme) != LDAP_SUCCESS ) {
 		*text = "Unsupported LCUP cookie scheme";
 		return LCUP_UNSUPPORTED_SCHEME;
 	}
+
+	if ( lcup_cookie_validate(scheme, cookie) != LDAP_SUCCESS ) {
+		*text = "Invalid LCUP cookie";
+		return LCUP_INVALID_COOKIE;
+	}
 #endif
 
-	op->o_clientupdate_state = ber_dupbv(NULL, &cookie);
+	ber_dupbv( &op->o_clientupdate_state, &cookie );
 
 	(void) ber_free( ber, 1 );
 
@@ -727,4 +727,4 @@ static int parseClientUpdate (
 
 	return LDAP_SUCCESS;
 }
-#endif
+#endif /* LDAP_CLIENT_UPDATE */

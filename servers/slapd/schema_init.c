@@ -59,10 +59,7 @@
 #define caseIgnoreOrderingMatch			caseIgnoreMatch
 #define caseExactOrderingMatch			caseExactMatch
 #define integerOrderingMatch			integerMatch
-
-#ifdef LDAP_CLIENT_UPDATE
 #define	octetStringOrderingMatch		octetStringMatch
-#endif /* LDAP_CLIENT_UPDATE */
 
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
@@ -4462,7 +4459,6 @@ char *objectIdentifierFirstComponentMatchSyntaxes[] = {
  * Other matching rules in X.520 that we do not use (yet):
  *
  * 2.5.13.9		numericStringOrderingMatch
- * 2.5.13.18	octetStringOrderingMatch
  * 2.5.13.19	octetStringSubstringsMatch
  * 2.5.13.25	uTCTimeMatch
  * 2.5.13.26	uTCTimeOrderingMatch
@@ -4635,14 +4631,12 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		octetStringMatch, octetStringIndexer, octetStringFilter,
 		NULL},
 
-#ifdef LDAP_CLIENT_UPDATE
 	{"( 2.5.13.18 NAME 'octetStringOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
 		SLAP_MR_ORDERING, NULL,
 		NULL, NULL,
 		octetStringOrderingMatch, NULL, NULL,
 		NULL},
-#endif /* LDAP_CLIENT_UPDATE */
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",

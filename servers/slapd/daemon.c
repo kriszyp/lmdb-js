@@ -676,8 +676,7 @@ static int slap_open_listener(
 			continue;
 		}
 #ifdef LDAP_CONNECTIONLESS
-		if (l.sl_is_udp)
-		    socktype = SOCK_DGRAM;
+		if( l.sl_is_udp ) socktype = SOCK_DGRAM;
 #endif
 		l.sl_sd = socket( (*sal)->sa_family, socktype, 0);
 		if ( l.sl_sd == AC_SOCKET_INVALID ) {
@@ -1063,8 +1062,7 @@ slapd_daemon_task(
 		 * listening port. The listen() and accept() calls
 		 * are unnecessary.
 		 */
-		if ( slap_listeners[l]->sl_is_udp )
-		{
+		if ( slap_listeners[l]->sl_is_udp ) {
 			slapd_add( slap_listeners[l]->sl_sd );
 			continue;
 		}
@@ -1349,14 +1347,12 @@ slapd_daemon_task(
 				continue;
 
 #ifdef LDAP_CONNECTIONLESS
-			if ( slap_listeners[l]->sl_is_udp )
-			{
-			/* The first time we receive a query, we set this
-			 * up as a "connection". It remains open for the life
-			 * of the slapd.
-			 */
-				if ( slap_listeners[l]->sl_is_udp < 2 )
-				{
+			if ( slap_listeners[l]->sl_is_udp ) {
+				/* The first time we receive a query, we set this
+				 * up as a "connection". It remains open for the life
+				 * of the slapd.
+				 */
+				if ( slap_listeners[l]->sl_is_udp < 2 ) {
 				    id = connection_init(
 				    	slap_listeners[l]->sl_sd,
 					slap_listeners[l]->sl_url, "", "",
@@ -1665,8 +1661,7 @@ slapd_daemon_task(
 				/* The listener is the data port. Don't
 				 * skip it.
 				 */
-					if (slap_listeners[l]->sl_is_udp)
-						continue;
+					if (slap_listeners[l]->sl_is_udp) continue;
 #endif
 					is_listener = 1;
 					break;
@@ -1717,8 +1712,7 @@ slapd_daemon_task(
 			for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 				if ( i == slap_listeners[l]->sl_sd ) {
 #ifdef LDAP_CONNECTIONLESS
-					if (slap_listeners[l]->sl_is_udp)
-						continue;
+					if (slap_listeners[l]->sl_is_udp) continue;
 #endif
 					is_listener = 1;
 					break;
@@ -1769,8 +1763,7 @@ slapd_daemon_task(
 			for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 				if ( rd == slap_listeners[l]->sl_sd ) {
 #ifdef LDAP_CONNECTIONLESS
-					if (slap_listeners[l]->sl_is_udp)
-						continue;
+					if (slap_listeners[l]->sl_is_udp) continue;
 #endif
 					is_listener = 1;
 					break;
