@@ -362,13 +362,18 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 #else
 	ber_pvt_sb_buf_destroy( &p->buf_out );
 #endif
-	if ( len > *p->sasl_maxbuf - 100 )
-		unsigned tmpsize = p->buf_out.buf_size;
+	if ( len > *p->sasl_maxbuf - 100 ) {
 		len = *p->sasl_maxbuf - 100;	/* For safety margin */
+	}
+
+	{
+		unsigned tmpsize = p->buf_out.buf_size;
 		ret = sasl_encode( p->sasl_context, buf, len,
 			(SASL_CONST char **)&p->buf_out.buf_base,
 			&tmpsize );
 		p->buf_out.buf_size = tmpsize;
+	}
+
 	if ( ret != SASL_OK ) {
 		ber_log_printf( LDAP_DEBUG_ANY, sbiod->sbiod_sb->sb_debug,
 			"sb_sasl_write: failed to encode packet: %s\n",

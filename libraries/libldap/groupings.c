@@ -38,7 +38,7 @@ int ldap_grouping_create(
 {
 	int rc;
 	BerElement *ber = NULL;
-	struct berval bv = {0, NULL};
+	struct berval bv = BER_BVNULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "ldap_grouping_create\n", 0,0,0 );
@@ -65,7 +65,6 @@ int ldap_grouping_create(
 	}
 
 	rc = ber_flatten2( ber, &bv, 0 );
-
 	if( rc < 0 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		return( ld->ld_errno );
