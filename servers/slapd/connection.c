@@ -1082,17 +1082,13 @@ operations_error:
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
-	LDAP_STAILQ_NEXT(op, o_next) = NULL;
-
-	if ( op->o_cancel == SLAP_CANCEL_ACK )
-		goto co_op_free;
-	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
+	if ( op->o_cancel != SLAP_CANCEL_ACK && ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
 		sl_mem_detach( ctx, memctx );
 		goto no_co_op_free;
 	}
 
-co_op_free:
+	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
+	LDAP_STAILQ_NEXT(op, o_next) = NULL;
 
 	conn->c_n_ops_executing--;
 	conn->c_n_ops_completed++;

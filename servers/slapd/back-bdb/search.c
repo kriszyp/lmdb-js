@@ -291,21 +291,42 @@ int is_sync_protocol( Operation *op )
 	( type == LDAP_PSEARCH_BY_SCOPEOUT ))
 #define IS_PSEARCH (op != sop)
 
-int
-bdb_abandon( Operation *op, SlapReply *rs )
+static Operation *
+bdb_drop_psearch( Operation *op, ber_int_t msgid )
 {
 	Operation	*ps_list;
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 
 	LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 		if ( ps_list->o_connid == op->o_connid ) {
-			if ( ps_list->o_msgid == op->oq_abandon.rs_msgid ) {
+			if ( ps_list->o_msgid == msgid ) {
 				ps_list->o_abandon = 1;
 				LDAP_LIST_REMOVE( ps_list, o_ps_link );
-				slap_op_free ( ps_list );
-				return LDAP_SUCCESS;
+				ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+				LDAP_STAILQ_REMOVE( &op->o_conn->c_ops, ps_list,
+					slap_op, o_next );
+				LDAP_STAILQ_NEXT( ps_list, o_next ) = NULL;
+				op->o_conn->c_n_ops_executing--;
+				op->o_conn->c_n_ops_completed++;
+				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+				return ps_list;
 			}
 		}
+	}
+}
+
+int
+bdb_abandon( Operation *op, SlapReply *rs )
+{
+	Operation	*ps;
+
+	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid );
+	if ( ps ) {
+		if ( ps->o_tmpmemctx ) {
+			sl_mem_destroy( NULL, ps->o_tmpmemctx );
+		}
+		slap_op_free ( ps );
+		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
 }
@@ -313,26 +334,17 @@ bdb_abandon( Operation *op, SlapReply *rs )
 int
 bdb_cancel( Operation *op, SlapReply *rs )
 {
-	Operation	*ps_list;
-	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	Operation	*ps;
 
-	LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-		if ( ps_list->o_connid == op->o_connid ) {
-			if ( ps_list->o_msgid == op->oq_cancel.rs_msgid ) {
-				ps_list->o_cancel = SLAP_CANCEL_DONE;
-				LDAP_LIST_REMOVE( ps_list, o_ps_link );
-
-				rs->sr_err = LDAP_CANCELLED;
-				send_ldap_result( ps_list, rs );
-
-				if ( ps_list->o_tmpmemctx ) {
-					sl_mem_destroy( NULL, ps_list->o_tmpmemctx );
-				}
-
-				slap_op_free ( ps_list );
-				return LDAP_SUCCESS;
-			}
+	ps = bdb_drop_psearch( op, op->oq_cancel.rs_msgid );
+	if ( ps ) {
+		rs->sr_err = LDAP_CANCELLED;
+		send_ldap_result( ps, rs );
+		if ( ps->o_tmpmemctx ) {
+			sl_mem_destroy( NULL, ps->o_tmpmemctx );
 		}
+		slap_op_free ( ps );
+		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
 }
@@ -818,6 +830,9 @@ dn2entry_retry:
 loop_begin:
 		/* check for abandon */
 		if ( sop->o_abandon ) {
+			if ( sop != op ) {
+				bdb_drop_psearch( sop, sop->o_msgid );
+			}
 			rs->sr_err = LDAP_SUCCESS;
 			goto done;
 		}
