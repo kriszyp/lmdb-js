@@ -8,6 +8,7 @@ Changes included in OpenLDAP 1.2.10 Release Engineering
 	Fixed -lldap Kerberos bind to work ldap_init() (ITS#426)
 	Changed -lldap to ignore space in filter: ( !(foo=bar)) (ITS#459)
 	Fixed multiple password support (ITS#464)
+	Fixed -lldap chasing of delete referrals (ITS#471)
 	Fixed back-ldbm/bind invalid credentials vs no such object bug 
 	Build Environment
 		Do not list unsupported LDBM API option NDBM
