@@ -1,8 +1,6 @@
 access2str
 access_allowed
-acl_access_allowed
 acl_check_modlist
-acl_get_applicable
 active_threads
 active_threads_cond
 active_threads_mutex
