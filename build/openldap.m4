@@ -650,7 +650,7 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 	AC_EGREP_HEADER(pthread_detach,pthread.h,[
 	AC_EGREP_CPP(draft7,[
 #		include <pthread.h>
-#		ifdef PTHREAD_CREATE_JOINABLE
+#		ifdef PTHREAD_CREATE_UNDETACHED
 		draft7
 #		endif
 	], ol_cv_pthread_version=7, [
