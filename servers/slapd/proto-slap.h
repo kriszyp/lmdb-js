@@ -1089,6 +1089,8 @@ LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P((
 LDAP_SLAPD_F (Entry*) slap_create_syncrepl_entry LDAP_P((
 					Backend *, struct berval *,
 					struct berval *, struct berval * ));
+LDAP_SLAPD_F (struct berval *) slap_uuidstr_from_normalized LDAP_P((
+					struct berval *, struct berval *, void * ));
 
 /* syntax.c */
 LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((
