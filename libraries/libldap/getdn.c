@@ -543,7 +543,7 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 #define	LDAP_DC_ATTRU	"DC"
 #define LDAP_DN_IS_RDN_DC( r ) \
 	( (r) && (r)[0] && !(r)[1] \
-	  && ((r)[0]->la_flags == LDAP_AVA_STRING) \
+	  && ((r)[0]->la_flags & LDAP_AVA_STRING) \
 	  && ((r)[0]->la_attr.bv_len == 2) \
 	  && (((r)[0]->la_attr.bv_val[0] == LDAP_DC_ATTR[0]) \
 		|| ((r)[0]->la_attr.bv_val[0] == LDAP_DC_ATTRU[0])) \
@@ -2614,13 +2614,10 @@ rdn2DCEstrlen( LDAPRDN rdn, unsigned flags, ber_len_t *len )
 		/* len(type) + '=' + ',' | '/' */
 		l += ava->la_attr.bv_len + 2;
 
-		switch ( ava->la_flags ) {
-		case LDAP_AVA_BINARY:
+		if ( ava->la_flags & LDAP_AVA_BINARY ) {
 			/* octothorpe + twice the length */
 			l += 1 + 2 * ava->la_value.bv_len;
-			break;
-
-		case LDAP_AVA_STRING: {
+		} else {
 			ber_len_t	vl;
 			unsigned	f = flags | ava->la_flags;
 			
@@ -2628,11 +2625,6 @@ rdn2DCEstrlen( LDAPRDN rdn, unsigned flags, ber_len_t *len )
 				return( -1 );
 			}
 			l += vl;
-			break;
-		}
-
-		default:
-			return( -1 );
 		}
 	}
 	
@@ -2662,16 +2654,13 @@ rdn2DCEstr( LDAPRDN rdn, char *str, unsigned flags, ber_len_t *len, int first )
 
 		str[ l++ ] = '=';
 
-		switch ( ava->la_flags ) {
-			case LDAP_AVA_BINARY:
+		if ( ava->la_flags & LDAP_AVA_BINARY ) {
 			str[ l++ ] = '#';
 			if ( binval2hexstr( &ava->la_value, &str[ l ] ) ) {
 				return( -1 );
 			}
 			l += 2 * ava->la_value.bv_len;
-			break;
-
-		case LDAP_AVA_STRING: {
+		} else {
 			ber_len_t	vl;
 			unsigned	f = flags | ava->la_flags;
 
@@ -2679,11 +2668,6 @@ rdn2DCEstr( LDAPRDN rdn, char *str, unsigned flags, ber_len_t *len, int first )
 				return( -1 );
 			}
 			l += vl;
-			break;
-		}
-				      
-		default:
-			return( -1 );
 		}
 	}
 
@@ -2789,13 +2773,10 @@ rdn2ADstrlen( LDAPRDN rdn, unsigned flags, ber_len_t *len )
 		l++;
 
 		/* FIXME: are binary values allowed in UFN? */
-		switch ( ava->la_flags ) {
-		case LDAP_AVA_BINARY:
+		if ( ava->la_flags & LDAP_AVA_BINARY ) {
 			/* octothorpe + twice the value */
 			l += 1 + 2 * ava->la_value.bv_len;
-			break;
-
-		case LDAP_AVA_STRING: {
+		} else {
 			ber_len_t	vl;
 			unsigned	f = flags | ava->la_flags;
 
@@ -2803,11 +2784,6 @@ rdn2ADstrlen( LDAPRDN rdn, unsigned flags, ber_len_t *len )
 				return( -1 );
 			}
 			l += vl;
-			break;
-		}
-
-		default:
-			return( -1 );
 		}
 	}
 	
@@ -2831,16 +2807,13 @@ rdn2ADstr( LDAPRDN rdn, char *str, unsigned flags, ber_len_t *len, int first )
 			str[ l++ ] = ( iAVA ? ',' : '/' );
 		}
 
-		switch ( ava->la_flags ) {
-		case LDAP_AVA_BINARY:
+		if ( ava->la_flags & LDAP_AVA_BINARY ) {
 			str[ l++ ] = '#';
 			if ( binval2hexstr( &ava->la_value, &str[ l ] ) ) {
 				return( -1 );
 			}
 			l += 2 * ava->la_value.bv_len;
-			break;
-			
-		case LDAP_AVA_STRING: {
+		} else {
 			ber_len_t	vl;
 			unsigned	f = flags | ava->la_flags;
 			
@@ -2848,11 +2821,6 @@ rdn2ADstr( LDAPRDN rdn, char *str, unsigned flags, ber_len_t *len, int first )
 				return( -1 );
 			}
 			l += vl;
-			break;
-		}
-
-		default:
-			return( -1 );
 		}
 	}
 
@@ -3283,7 +3251,7 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 		}
 
 		iRDN--;
-		if ( iRDN && dn2domain( dn, bv, 0, &iRDN ) ) {
+		if ( iRDN && dn2domain( dn, bv, 0, &iRDN ) != 0 ) {
 			for ( l = bv->bv_len; iRDN >= 0 ; iRDN-- ) {
 				ber_len_t	rdnl;
 			
