@@ -208,9 +208,13 @@ main( int argc, char *argv[] )
 	}
 
 	if( want_bindpw && passwd.bv_val == NULL ) {
-		/* handle bind password */
-		passwd.bv_val = strdup( getpassphrase(_("Enter bind password: ")));
-		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+		if ( pw_file ) {
+			rc = lutil_get_filed_password( pw_file, &passwd );
+			if( rc ) return EXIT_FAILURE;
+		} else {
+			passwd.bv_val = getpassphrase( _("Enter LDAP Password: ") );
+			passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+		}
 	}
 
 	ld = tool_conn_setup( 0, 0 );
