@@ -88,6 +88,8 @@ static int load_ucdata(char *path);
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 
+static int get_attrs_from_file LDAP_P(( char ***, const char *, const char * ));
+
 int
 read_config( const char *fname, int depth )
 {
@@ -102,7 +104,6 @@ read_config( const char *fname, int depth )
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
 	char	*next;
-
 
 	vals[1].bv_val = NULL;
 
@@ -2535,12 +2536,33 @@ parse_syncrepl_line(
 			ATTRSSTR, sizeof( ATTRSSTR ) - 1 ) )
 		{
 			val = cargv[ i ] + sizeof( ATTRSSTR );
-			str2clist( &si->si_attrs, val, "," );
+			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
+				char *attr_fname;
+				attr_fname = ch_strdup( val + STRLENOF(":include:") );
+				if ( get_attrs_from_file( &si->si_attrs, attr_fname, " ,\t" )) {
+					ch_free( attr_fname );
+					return -1;
+				}
+				ch_free( attr_fname );
+			} else {
+				str2clist( &si->si_attrs, val, " ,\t" );
+			}
 		} else if ( !strncasecmp( cargv[ i ],
 			EXATTRSSTR, sizeof( EXATTRSSTR ) - 1 ) )
 		{
 			val = cargv[ i ] + sizeof( EXATTRSSTR );
-			str2clist( &si->si_exattrs, val, "," );
+			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
+				char *attr_fname;
+				attr_fname = ch_strdup( val + STRLENOF(":include:") );
+				if ( get_attrs_from_file( &si->si_exattrs,
+							attr_fname, " ,\t" )) {
+					ch_free( attr_fname );
+					return -1;
+				}
+				ch_free( attr_fname );
+			} else {
+				str2clist( &si->si_exattrs, val, " ,\t" );
+			}
 		} else if ( !strncasecmp( cargv[ i ],
 			TYPESTR, sizeof( TYPESTR ) - 1 ) )
 		{
@@ -2699,7 +2721,7 @@ str2clist( char ***out, char *in, const char *brkstr )
 	char	**new;
 
 	/* find last element in list */
-	for (i = 0; *out && *out[i]; i++);
+	for (i = 0; *out && (*out)[i]; i++);
 
 	/* protect the input string from strtok */
 	str = ch_strdup( in );
@@ -2730,4 +2752,61 @@ str2clist( char ***out, char *in, const char *brkstr )
 	*new = NULL;
 	free( str );
 	return( *out );
+}
+
+#define LBUFSIZ	80
+int
+get_attrs_from_file( char ***attrs, const char *fname, const char *brkstr )
+{
+	FILE	*fp;
+	char	*line = NULL;
+	char	*lcur = NULL;
+	char	*c;
+	size_t	lmax = LBUFSIZ;
+
+	fp = fopen( fname, "r" );
+	if ( fp == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"get_attrs_from_file: failed to open attribute list file "
+			"\"%s\": %s\n", fname, strerror(errno), 0 );
+		return 1;
+	}
+
+	lcur = line = (char *) ch_malloc( lmax );
+	if ( !line ) {
+		Debug( LDAP_DEBUG_ANY,
+			"get_attrs_from_file: could not allocate memory\n",
+			0, 0, 0 );
+		fclose(fp);
+		return 1;
+	}
+
+	while ( fgets( lcur, LBUFSIZ, fp ) != NULL ) {
+		if (c = strchr( lcur, '\n' )) {
+			if ( c == line ) {
+				*c = '\0';
+			} else if ( *(c-1) == '\r' ) {
+				*(c-1) = '\0';
+			} else {
+				*c = '\0';
+			}
+		} else {
+			lmax += LBUFSIZ;
+			line = (char *) ch_realloc( line, lmax );
+			if ( !line ) {
+				Debug( LDAP_DEBUG_ANY,
+					"get_attrs_from_file: could not allocate memory\n",
+					0, 0, 0 );
+				fclose(fp);
+				return 1;
+			}
+			lcur = line + strlen( line );
+			continue;
+		}
+		str2clist( attrs, line, brkstr );
+		lcur = line;
+	}
+	ch_free( line );
+	fclose(fp);
+	return 0;
 }
