@@ -1,7 +1,7 @@
 /* op.c - relay backend operations */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2004 The OpenLDAP Foundation.
  * Portions Copyright 2004 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -35,6 +35,16 @@ relay_back_swap_bd( struct slap_op *op, struct slap_rep *rs )
 	cb->sc_private = be;
 
 	return SLAP_CB_CONTINUE;
+}
+
+static void
+relay_back_add_cb( slap_callback *cb, struct slap_op *op )
+{
+		cb->sc_next = op->o_callback;
+		cb->sc_response = relay_back_swap_bd;
+		cb->sc_cleanup = relay_back_swap_bd;
+		cb->sc_private = op->o_bd;
+		op->o_callback = cb;
 }
 
 static BackendDB *
@@ -95,10 +105,15 @@ relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_bind ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_bind )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -125,15 +140,13 @@ relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_unbind )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 	}
 
 	return 0;
@@ -155,15 +168,13 @@ relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_search )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -190,15 +201,13 @@ relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_compare )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -225,15 +234,13 @@ relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_modify )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -260,15 +267,13 @@ relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_modrdn )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -295,15 +300,13 @@ relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_add )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -330,15 +333,13 @@ relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_delete )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 	}
 
 	return rc;
@@ -360,15 +361,13 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_abandon )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -395,15 +394,13 @@ relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_cancel )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -430,15 +427,13 @@ relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_extended )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -520,15 +515,13 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 		BackendDB	*be = op->o_bd;
 		slap_callback	cb;
 
-		cb.sc_next = op->o_callback;
-		cb.sc_response = relay_back_swap_bd;
-		cb.sc_cleanup = relay_back_swap_bd;
-		cb.sc_private = op->o_bd;
-		op->o_callback = &cb;
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_chk_referrals )( op, rs );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 	}
 
 	return rc;
@@ -553,10 +546,15 @@ relay_back_operational( struct slap_op *op, struct slap_rep *rs,
 
 	if ( bd->be_operational ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
 		rc = ( bd->be_operational )( op, rs, opattrs, ap );
 		op->o_bd = be;
+
+		op->o_callback = op->o_callback->sc_next;
 	}
 
 	return rc;

@@ -1,7 +1,7 @@
 /* init.c - initialize relay backend */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2004 The OpenLDAP Foundation.
  * Portions Copyright 2004 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -110,28 +110,9 @@ relay_back_db_open( Backend *be )
 
 	if ( ri->ri_realsuffix.bv_val != NULL ) {
 		ri->ri_bd = select_backend( &ri->ri_realsuffix, 0, 1 );
+		/* must be there: it was during config! */
 		assert( ri->ri_bd );
 	}
-
-#if 0
-	if ( ri->ri_massage ) {
-		char	*argv[ 4 ];
-
-		if ( be->be_suffix[0].bv_val == NULL ) {
-			fprintf( stderr, "suffix must be defined to require suffix massage\n" );
-			return 1;
-		}
-
-		argv[ 0 ] = "suffixmassage";
-		argv[ 1 ] = be->be_suffix[0].bv_val;
-		argv[ 2 ] = ri->ri_bd->be_suffix[0].bv_val;
-		argv[ 3 ] = NULL;
-
-		if ( be->be_config( be, "back-relay", 1, 3, argv ) ) {
-			return 1;
-		}
-	}
-#endif
 
 	return 0;
 }
@@ -148,8 +129,12 @@ relay_back_db_destroy( Backend *be )
 	relay_back_info		*ri = (relay_back_info *)be->be_private;
 
 	if ( ri ) {
+		if ( ri->ri_realsuffix.bv_val ) {
+			ch_free( ri->ri_realsuffix.bv_val );
+		}
 		ch_free( ri );
 	}
 
 	return 0;
 }
+

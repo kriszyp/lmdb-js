@@ -1,7 +1,7 @@
 /* config.c - relay backend configuration file routine */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2004 The OpenLDAP Foundation.
+ * Copyright 2004 The OpenLDAP Foundation.
  * Portions Copyright 2004 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -66,7 +66,8 @@ relay_back_db_config(
 		rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
-					"relay dn \"%s\" is invalid\n",
+					"relay dn \"%s\" is invalid "
+					"in \"relay <dn> [massage]\" line\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
@@ -75,13 +76,15 @@ relay_back_db_config(
 		if ( bd == NULL ) {
 			fprintf( stderr, "%s: line %d: "
 					"cannot find database "
-					"of relay dn \"%s\"\n",
+					"of relay dn \"%s\" "
+					"in \"relay <dn> [massage]\" line\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 
 		} else if ( bd == be ) {
 			fprintf( stderr, "%s: line %d: "
-					"relay dn \"%s\" would call self\n",
+					"relay dn \"%s\" would call self "
+					"in \"relay <dn> [massage]\" line\n",
 					fname, lineno, pdn.bv_val );
 			return 1;
 		}
@@ -91,33 +94,16 @@ relay_back_db_config(
 		if ( overlay_config( be, "rewrite-remap" ) ) {
 			fprintf( stderr, "%s: line %d: unable to install "
 					"rewrite-remap overlay "
-					"in back-relay\n",
+					"in back-relay "
+					"in \"relay <dn> [massage]\" line\n",
 					fname, lineno );
 			return 1;
 		}
 
-#if 0
-		{
+		if ( argc == 3 ) {
 			char	*cargv[ 4 ];
 
-			cargv[ 0 ] = "overlay";
-			cargv[ 1 ] = "rewrite-remap";
-			cargv[ 2 ] = NULL;
-
-			be->be_config( be, fname, lineno, 2, cargv ); 
-
-			cargv[ 0 ] = "suffixmassage";
-			cargv[ 1 ] = be->be_suffix[0].bv_val;
-			cargv[ 2 ] = ri->ri_bd->be_suffix[0].bv_val;
-			cargv[ 3 ] = NULL;
-
-			if ( be->be_config( be, fname, lineno, 3, cargv ) ) {
-				return 1;
-			}
-		}
-
-		if ( argc == 3 ) {
-			if ( strcmp( argv[2], "massage" ) ) {
+			if ( strcmp( argv[2], "massage" ) != 0 ) {
 				fprintf( stderr, "%s: line %d: "
 					"unknown directive \"%s\" "
 					"in \"relay <dn> [massage]\" line\n",
@@ -125,9 +111,17 @@ relay_back_db_config(
 				return 1;
 			}
 
-			ri->ri_massage = 1;
+			cargv[ 0 ] = "suffixmassage";
+			cargv[ 1 ] = be->be_suffix[0].bv_val;
+			cargv[ 2 ] = pdn.bv_val;
+			cargv[ 3 ] = NULL;
+
+			if ( be->be_config( be, fname, lineno, 3, cargv ) ) {
+				return 1;
+			}
 		}
-#endif
+
+		ch_free( pdn.bv_val );
 
 	/* anything else */
 	} else {
