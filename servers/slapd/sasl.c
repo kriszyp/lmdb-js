@@ -425,7 +425,7 @@ slap_auxprop_lookup(
 		Backend *be;
 		Operation op = {0};
 		slap_callback cb = { slap_cb_null_response,
-			slap_cb_null_sresult, sasl_ap_lookup, NULL };
+			slap_cb_null_sresult, sasl_ap_lookup, slap_cb_null_sreference, NULL };
 
 		cb.sc_private = &sl;
 
@@ -551,7 +551,7 @@ slap_sasl_checkpass(
 	if ( be && be->be_search ) {
 		Operation op = {0};
 		slap_callback cb = { slap_cb_null_response,
-			slap_cb_null_sresult, sasl_cb_checkpass, NULL };
+			slap_cb_null_sresult, sasl_cb_checkpass, slap_cb_null_sreference, NULL };
 
 		ci.cred.bv_val = (char *)pass;
 		ci.cred.bv_len = passlen;
