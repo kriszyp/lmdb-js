@@ -45,7 +45,7 @@ version.c: $(OBJS) $(LDAP_LIBDEPEND) $(LDAP_LIBTHREAD_DEPEND)
 
 install-local-srv: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
-	-$(MKDIR) $(DESTDIR)$(localstatedir)/openldap-slurp
+	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-slurp
 	@(								\
 	    for prg in $(PROGRAMS); do					\
 		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
