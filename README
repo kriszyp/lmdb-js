@@ -18,11 +18,12 @@ OpenLDAP 1.1.1 README
 	For a description of what this distribution contains, see the
 	ANNOUNCEMENT file in this directory.  For a description of
 	changes from previous releases, see the CHANGES file in this
-	directory.  For a more detailed description of how to make an
-	install the distribution, see the INSTALL file in this directory.
+	directory.
 
-	Additional installation information, such as per platform
-	hints can be found in the doc/install directory.
+	For a more detailed description of how to make an install the
+	distribution, see the INSTALL file in this directory.  Additional
+	installation information, such as per platform hints can be found
+	in the doc/install directory.
 
 	For more information:
 		http://www.OpenLDAP.org/software/
