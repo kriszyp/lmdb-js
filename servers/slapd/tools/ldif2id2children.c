@@ -1,7 +1,9 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 #include <ac/unistd.h>
@@ -163,7 +165,11 @@ main( int argc, char **argv )
 		}
 		if ( line[0] == '\n' || stop && buf && *buf ) {
 			if ( *buf != '\n' ) {
-				id++;
+				if (isdigit(*buf)) {
+					id = atol(buf);
+				} else {
+					id++;
+				}
 				s = buf;
 				elineno = 0;
 				while ( (linep = str_getline( &s )) != NULL ) {
