@@ -675,7 +675,7 @@ glue_tool_entry_next (
 	int i;
 	ID rc;
 
-	if (!glueBack)
+	if (!glueBack || !glueBack->be_entry_next)
 		return NOID;
 
 	rc = glueBack->be_entry_next (glueBack);
@@ -704,6 +704,9 @@ glue_tool_entry_get (
 	ID id
 )
 {
+	if (!glueBack || !glueBack->be_entry_get)
+		return NULL;
+
 	return glueBack->be_entry_get (glueBack, id);
 }
 
@@ -744,7 +747,7 @@ glue_tool_entry_reindex (
 	ID id
 )
 {
-	if (!glueBack->be_entry_reindex)
+	if (!glueBack || !glueBack->be_entry_reindex)
 		return -1;
 
 	return glueBack->be_entry_reindex (glueBack, id);
