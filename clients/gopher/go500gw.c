@@ -236,7 +236,7 @@ main (int  argc, char **argv )
 			}
 
 #ifdef LDAP_PROCTITLE
-			setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
+			setproctitle( "%s", hp == NULL ? inet_ntoa( from.sin_addr ) :
 			    hp->h_name );
 #endif
 		}
