@@ -231,7 +231,7 @@ ldap_parse_result(
 	if(serverctrls != NULL) *serverctrls = NULL;
 
 	/* Find the next result... */
-	for ( lm = r; lm->lm_chain != NULL; lm = lm->lm_chain ) {
+	for ( lm = r; lm != NULL; lm = lm->lm_chain ) {
 		/* skip over entries and references */
 		if( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
 			lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE &&
