@@ -472,24 +472,57 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 ])
 ])dnl
 dnl
-dnl --------------------------------------------------------------------
-dnl Check LinuxThread
+dnl ====================================================================
+dnl Check LinuxThread Header
 dnl
-dnl defines ol_cv_linux_threads to 'yes' or 'no'
+dnl defines ol_cv_header linux_threads to 'yes' or 'no'
 dnl		'no' implies pthreads.h is not LinuxThreads or pthreads.h
 dnl		doesn't exists.  Existance of pthread.h should separately
 dnl		checked.
 dnl 
-AC_DEFUN([OL_LINUX_THREADS],
-[
-AC_CACHE_CHECK([for LinuxThreads], [ol_cv_linux_threads], [
-	res=`grep Linuxthreads /usr/include/pthread.h 2>/dev/null | wc -l`
-	if test "$res" -gt 0 ; then
-		ol_cv_linux_threads=yes
-	else
-		ol_cv_linux_threads=no
+AC_DEFUN([OL_HEADER_LINUX_THREADS], [
+	AC_CACHE_CHECK([for LinuxThreads pthread.h],
+	[ol_cv_header_linux_threads],
+	[
+		AC_EGREP_CPP(pthread_kill_other_threads_np,
+		[#include <pthread.h>],
+		[ol_cv_header_linux_threads=yes],
+		[ol_cv_header_linux_threads=no])
+	])])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check LinuxThread Implementation
+dnl
+dnl defines ol_cv_sys_linux_threads to 'yes' or 'no'
+dnl		'no' implies pthreads implementation is not LinuxThreads.
+dnl 
+AC_DEFUN([OL_SYS_LINUX_THREADS], [
+	AC_CHECK_FUNC(pthread_kill_other_threads_np)
+	AC_CACHE_CHECK([for LinuxThreads implementation],
+		[ol_cv_sys_linux_threads],
+		[ol_cv_sys_linux_threads=$ac_cv_func_pthread_kill_other_threads_np])
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl
+AC_DEFUN([OL_LINUX_THREADS], [
+	AC_REQUIRE([OL_HEADER_LINUX_THREADS])
+	AC_REQUIRE([OL_SYS_LINUX_THREADS])
+	AC_CACHE_CHECK([for LinuxThreads consistency], [ol_cv_linux_threads], [
+		if test $ol_cv_header_linux_threads = yes -a \
+ 			$ol_cv_sys_linux_threads = yes; then
+			ol_cv_linux_threads=yes
+ 		elif test $ol_cv_header_linux_threads = no -a \
+ 			$ol_cv_sys_linux_threads = no; then
+			ol_cv_linux_threads=no
+ 		else
+			ol_cv_linux_threads=error
+ 		fi
+	])
+	if test $ol_cv_linux_threads = yes; then
+		AC_DEFINE(HAVE_LINUX_THREADS,1,
+			[define if you have LinuxThreads])
 	fi
-])
 ])dnl
 dnl
 dnl ====================================================================

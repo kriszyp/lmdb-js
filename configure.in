@@ -587,12 +587,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		# consider threads found
 		ol_with_threads=found
 
-		OL_LINUX_THREADS
-
-		if test $ol_cv_linux_threads = yes ; then
-			AC_DEFINE(HAVE_LINUX_THREADS,1,
-				[define if you have LinuxThreads])
-		fi
+		OL_HEADER_LINUX_THREADS
 
 		dnl Now the hard part, how to link?
 		dnl
@@ -1000,6 +995,13 @@ dnl				fi
 				thr_setconcurrency \
 				thr_getconcurrency \
 			)
+
+			OL_SYS_LINUX_THREADS
+			OL_LINUX_THREADS
+
+			if test $ol_cv_linux_threads = error ; then
+				AC_MSG_ERROR([LinuxThreads header/library mismatch])
+			fi
 
 			AC_MSG_CHECKING([if pthread_create() works])
 			AC_CACHE_VAL(ol_cv_pthread_create_works,[
