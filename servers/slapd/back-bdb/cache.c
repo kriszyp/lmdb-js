@@ -169,13 +169,14 @@ bdb_cache_entryinfo_destroy( EntryInfo *e )
 	} \
 } while(0)
 
-/* Do a lexical sort on normalized RDNs */
+/* Do a length-ordered sort on normalized RDNs */
 static int
 bdb_rdn_cmp( const void *v_e1, const void *v_e2 )
 {
 	const EntryInfo *e1 = v_e1, *e2 = v_e2;
-	int rc = strncmp( e1->bei_nrdn.bv_val, e2->bei_nrdn.bv_val, e1->bei_nrdn.bv_len );
-	if (rc == 0) rc = e1->bei_nrdn.bv_len - e2->bei_nrdn.bv_len;
+	int rc = e1->bei_nrdn.bv_len - e2->bei_nrdn.bv_len;
+	if (rc == 0) rc = strncmp( e1->bei_nrdn.bv_val, e2->bei_nrdn.bv_val,
+		e1->bei_nrdn.bv_len );
 	return rc;
 }
 
@@ -288,8 +289,10 @@ bdb_entryinfo_add_internal(
 		addkid = 0;
 		cache->c_cursize -= incr;
 #ifdef BDB_HIER
-		if ( ei->bei_rdn.bv_val )
+		if ( ei->bei_rdn.bv_val ) {
 			ber_memfree_x( ei->bei_rdn.bv_val, NULL );
+			ei->bei_rdn.bv_val = NULL;
+		}
 #endif
 	} else {
 		LRU_ADD( cache, ei2 );

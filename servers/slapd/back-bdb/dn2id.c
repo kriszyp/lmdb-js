@@ -503,7 +503,7 @@ typedef struct diskNode {
 } diskNode;
 
 /* Sort function for the sorted duplicate data items of a dn2id key.
- * Sorts based on normalized RDN, in lexical order.
+ * Sorts based on normalized RDN, in length order.
  */
 int
 bdb_dup_compare(
@@ -530,15 +530,9 @@ bdb_dup_compare(
 
 	curlen = ptr[0] << 8 | *pt2;
 
-	if ( usrlen < 0 ) {
-		if ( curlen < 0 ) return 0;
-		return -1;
-	}
+	rc = usrlen - curlen;
 
-	if ( curlen < 0 ) return 1;
-
-	rc = strncmp( usr->nrdn, cur->nrdn, usrlen );
-	if ( rc == 0 ) rc = usrlen - curlen;
+	if ( rc == 0 ) rc = strncmp( usr->nrdn, cur->nrdn, usrlen );
 	return rc;
 }
 
