@@ -506,16 +506,19 @@ acl_get(
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
-					int rdnlen = -1;
+					int	rdnlen = -1, sep = 0;
 
 					if ( dnlen <= patlen )
 						continue;
 
-					if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
-						continue;
+					if ( patlen > 0 ) {
+						if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
+							continue;
+						sep = 1;
+					}
 
 					rdnlen = dn_rdnlen( NULL, &e->e_nname );
-					if ( rdnlen != dnlen - patlen - 1 )
+					if ( rdnlen != dnlen - patlen - sep )
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
