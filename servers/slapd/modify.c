@@ -408,7 +408,7 @@ int slap_modlist2mods(
 			if( !validate ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-					   "modlist2mods: no validator for syntax %S\n",
+					   "modlist2mods: no validator for syntax %s\n",
 					   ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_TRACE,

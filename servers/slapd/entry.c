@@ -59,7 +59,7 @@ str2entry( char *s )
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 		   "str2entry: \"%s\"\n", s ? s : "NULL" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
@@ -559,7 +559,7 @@ int entry_encode(
 	BerElement *ber;
 	
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 		   "entry_encode: id: 0x%08lx  \"%s\"\n",
 		   e->e_id, e->e_dn ));
 #else
