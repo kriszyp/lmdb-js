@@ -806,7 +806,6 @@ glue_sub_init( )
 	BackendDB *b1, *be;
 	BackendInfo *bi;
 	glueinfo *gi;
-	struct berval bv;
 
 	/* While there are subordinate backends, search backwards through the
 	 * backends and connect them to their superior.
@@ -885,14 +884,10 @@ glue_sub_init( )
 					gi->nodes * sizeof(gluenode));
 			}
 			gi->n[gi->nodes].be = be;
-			if ( dnParent( be->be_nsuffix[0]->bv_val, 
-					(const char **)&bv.bv_val ) 
+			if ( dnParent( be->be_nsuffix[0], &gi->n[gi->nodes].pdn ) 
 					!= LDAP_SUCCESS ) {
 				return -1;
 			}
-			bv.bv_len = be->be_nsuffix[0]->bv_len - (bv.bv_val -
-				be->be_nsuffix[0]->bv_val);
-			gi->n[gi->nodes].pdn = bv;
 			gi->nodes++;
 		}
 		if (gi) {
@@ -900,14 +895,10 @@ glue_sub_init( )
 			gi = (glueinfo *)ch_realloc(gi,
 				sizeof(glueinfo) + gi->nodes * sizeof(gluenode));
 			gi->n[gi->nodes].be = gi->be;
-			if ( dnParent( b1->be_nsuffix[0]->bv_val, 
-					(const char **)&bv.bv_val ) 
+			if ( dnParent( b1->be_nsuffix[0], &gi->n[gi->nodes].pdn )
 					!= LDAP_SUCCESS ) {
 				return -1;
 			}
-			bv.bv_len = b1->be_nsuffix[0]->bv_len - (bv.bv_val -
-				b1->be_nsuffix[0]->bv_val);
-			gi->n[gi->nodes].pdn = bv;
 			gi->nodes++;
 			b1->be_private = gi;
 			b1->bd_info = bi;
