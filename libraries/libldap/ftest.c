@@ -25,6 +25,7 @@
 #include <ldap.h>
 
 #include "ldap_pvt.h"
+#include "lber_pvt.h"
 
 #include "ldif.h"
 #include "lutil.h"
@@ -85,7 +86,7 @@ main( int argc, char *argv[] )
 static int filter2ber( char *filter )
 {
 	int rc;
-	struct berval bv = {0, NULL};
+	struct berval bv = BER_BVNULL;
 	BerElement *ber;
 
 	printf( "Filter: %s\n", filter );

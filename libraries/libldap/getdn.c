@@ -955,8 +955,8 @@ ldap_bv2rdn_x( struct berval *bv, LDAPRDN *rdn,
 	int		attrTypeEncoding = LDAP_AVA_STRING, 
 			attrValueEncoding = LDAP_AVA_STRING;
 
-	struct berval	attrType = { 0, NULL };
-	struct berval 	attrValue = { 0, NULL };
+	struct berval	attrType = BER_BVNULL;
+	struct berval 	attrValue = BER_BVNULL;
 
 	LDAPRDN		newRDN = NULL;
 	LDAPAVA		*tmpRDN_[TMP_AVA_SLOTS], **tmpRDN = tmpRDN_;
