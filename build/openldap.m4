@@ -198,7 +198,7 @@ fi
 ])
 dnl
 dnl --------------------------------------------------------------------
-dnl Check if struct passwd has pw_gecos
+dnl Check if struct passwd has pw_passwd
 AC_DEFUN([OL_STRUCT_PASSWD_PW_PASSWD], [# test for pw_passwd in struct passwd
 AC_MSG_CHECKING([struct passwd for pw_passwd])
 AC_CACHE_VAL(ol_cv_struct_passwd_pw_passwd,[
