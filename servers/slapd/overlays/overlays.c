@@ -23,8 +23,6 @@
 
 #include "slap.h"
 
-#define SLAPD_OVER_GLUE	SLAPD_MOD_STATIC
-
 #if SLAPD_OVER_CHAIN == SLAPD_MOD_STATIC
 extern int chain_init();
 #endif
