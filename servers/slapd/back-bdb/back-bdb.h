@@ -44,6 +44,15 @@ LDAP_BEGIN_DECL
 #define BDB_DN2ID		1
 #define BDB_NDB			2
 
+/* The bdb on-disk entry format is pretty space-inefficient. Average
+ * sized user entries are 3-4K each. You need at least two entries to
+ * fit into a single database page, more is better. 64K is BDB's
+ * upper bound.
+ */
+#ifndef BDB_ID2ENTRY_PAGESIZE
+#define	BDB_ID2ENTRY_PAGESIZE	16384
+#endif
+
 #define BDB_INDICES		128
 
 struct bdb_db_info {

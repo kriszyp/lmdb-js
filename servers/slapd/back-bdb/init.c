@@ -232,10 +232,12 @@ bdb_db_open( BackendDB *be )
 		if( i == BDB_ID2ENTRY ) {
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
+			rc = db->bdi_db->set_pagesize( db->bdi_db,
+				BDB_ID2ENTRY_PAGESIZE );
 		}
 		rc = db->bdi_db->open( db->bdi_db,
 			bdbi_databases[i].file,
-			bdbi_databases[i].name,
+		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
 			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
