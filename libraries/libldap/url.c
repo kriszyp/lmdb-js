@@ -454,6 +454,7 @@ ldap_url_dup ( LDAPURLDesc *ludp )
 		return NULL;
 	
 	*dest = *ludp;
+	dest->lud_next = NULL;
 
 	if ( ludp->lud_host != NULL ) {
 		dest->lud_host = LDAP_STRDUP( ludp->lud_host );
