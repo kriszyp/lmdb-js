@@ -60,8 +60,7 @@ int
 filter_matched_values( 
 	Operation	*op,
 	Attribute	*a,
-	char		***e_flags
-)
+	char		***e_flags )
 {
 	ValuesReturnFilter *vrf;
 	int		rc = LDAP_SUCCESS;
@@ -72,9 +71,10 @@ filter_matched_values(
 		switch ( vrf->vrf_choice ) {
 		case SLAPD_FILTER_COMPUTED:
 			Debug( LDAP_DEBUG_FILTER, "	COMPUTED %s (%d)\n",
-				vrf->vrf_result == LDAP_COMPARE_FALSE ? "false" :
-				vrf->vrf_result == LDAP_COMPARE_TRUE ? "true" :
-				vrf->vrf_result == SLAPD_COMPARE_UNDEFINED ? "undefined" : "error",
+				vrf->vrf_result == LDAP_COMPARE_FALSE ? "false"
+				: vrf->vrf_result == LDAP_COMPARE_TRUE ? "true"
+				: vrf->vrf_result == SLAPD_COMPARE_UNDEFINED ? "undefined"
+				: "error",
 				vrf->vrf_result, 0 );
 			/*This type of filter does not affect the result */
 			rc = LDAP_SUCCESS;
@@ -84,60 +84,47 @@ filter_matched_values(
 			Debug( LDAP_DEBUG_FILTER, "	EQUALITY\n", 0, 0, 0 );
 			rc = test_ava_vrFilter( op, a, vrf->vrf_ava,
 				LDAP_FILTER_EQUALITY, e_flags );
-			if( rc == -1 ) {
-				return rc;
-			}
+			if( rc == -1 ) return rc;
 			break;
 
 		case LDAP_FILTER_SUBSTRINGS:
 			Debug( LDAP_DEBUG_FILTER, "	SUBSTRINGS\n", 0, 0, 0 );
-
 			rc = test_substrings_vrFilter( op, a,
 				vrf, e_flags );
-			if( rc == -1 ) {
-				return rc;
-			}
+			if( rc == -1 ) return rc;
 			break;
 
 		case LDAP_FILTER_PRESENT:
 			Debug( LDAP_DEBUG_FILTER, "	PRESENT\n", 0, 0, 0 );
 			rc = test_presence_vrFilter( op, a,
 				vrf->vrf_desc, e_flags );
-			if( rc == -1 ) {
-				return rc;
-			}
+			if( rc == -1 ) return rc;
 			break;
 
 		case LDAP_FILTER_GE:
 			rc = test_ava_vrFilter( op, a, vrf->vrf_ava,
 				LDAP_FILTER_GE, e_flags );
-			if( rc == -1 ) {
-				return rc;
-			}
+			if( rc == -1 ) return rc;
 			break;
 
 		case LDAP_FILTER_LE:
 			rc = test_ava_vrFilter( op, a, vrf->vrf_ava,
 				LDAP_FILTER_LE, e_flags );
-			if( rc == -1 ) {
-				return rc;
-			}
+			if( rc == -1 ) return rc;
 			break;
 
 		case LDAP_FILTER_EXT:
 			Debug( LDAP_DEBUG_FILTER, "	EXT\n", 0, 0, 0 );
 			rc = test_mra_vrFilter( op, a,
 				vrf->vrf_mra, e_flags );
-			if( rc == -1 ) {
-				return rc;
-			}
+			if( rc == -1 ) return rc;
 			break;
 
 		default:
 			Debug( LDAP_DEBUG_ANY, "	unknown filter type %lu\n",
 				vrf->vrf_choice, 0, 0 );
 			rc = LDAP_PROTOCOL_ERROR;
-		} 
+		}
 	}
 
 	Debug( LDAP_DEBUG_FILTER, "<= filter_matched_values %d\n", rc, 0, 0 );
@@ -150,13 +137,11 @@ test_ava_vrFilter(
 	Attribute	*a,
 	AttributeAssertion *ava,
 	int		type,
-	char 		***e_flags
-)
+	char 		***e_flags )
 {
 	int 		i, j;
 
 	for ( i=0; a != NULL; a = a->a_next, i++ ) {
-
 		MatchingRule *mr;
 		struct berval *bv;
 	
@@ -193,9 +178,7 @@ test_ava_vrFilter(
 
 			rc = value_match( &ret, a->a_desc, mr, 0,
 				bv, &ava->aa_value, &text );
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
-			}
+			if( rc != LDAP_SUCCESS ) return rc;
 
 			switch ( type ) {
 			case LDAP_FILTER_EQUALITY:
@@ -227,17 +210,14 @@ test_presence_vrFilter(
 	Operation	*op,
 	Attribute	*a,
 	AttributeDescription *desc,
-	char 		***e_flags
-)
+	char 		***e_flags )
 {
 	int i, j;
 
 	for ( i=0; a != NULL; a = a->a_next, i++ ) {
 		struct berval *bv;
 
-		if ( !is_ad_subtype( a->a_desc, desc ) ) {
-			continue;
-		}
+		if ( !is_ad_subtype( a->a_desc, desc ) ) continue;
 
 		for ( bv = a->a_vals, j=0; bv->bv_val != NULL; bv++, j++ );
 		memset( (*e_flags)[i], 1, j);
@@ -251,8 +231,7 @@ test_substrings_vrFilter(
 	Operation	*op,
 	Attribute	*a,
 	ValuesReturnFilter *vrf,
-	char		***e_flags
-)
+	char		***e_flags )
 {
 	int i, j;
 
@@ -264,9 +243,7 @@ test_substrings_vrFilter(
 			continue;
 		}
 
-		if( mr == NULL ) {
-			continue;
-		}
+		if( mr == NULL ) continue;
 
 		bv = a->a_nvals;
 		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
@@ -295,8 +272,7 @@ test_mra_vrFilter(
 	Operation	*op,
 	Attribute	*a,
 	MatchingRuleAssertion *mra,
-	char 		***e_flags
-)
+	char 		***e_flags )
 {
 	int i, j;
 
@@ -339,9 +315,7 @@ test_mra_vrFilter(
 
 			rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
 				bv, &assertedValue, &text );
-			if( rc != LDAP_SUCCESS ) {
-				return rc;
-			}
+			if( rc != LDAP_SUCCESS ) return rc;
 
 			if ( ret == 0 ) {
 				(*e_flags)[i][j] = 1;
