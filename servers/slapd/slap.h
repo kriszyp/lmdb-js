@@ -139,6 +139,7 @@ LDAP_SLAPD_F (int) slap_debug;
 
 #define SLAP_INDEX_SUBSTR_MINLEN	2
 #define SLAP_INDEX_SUBSTR_MAXLEN	4
+#define SLAP_INDEX_SUBSTR_STEP	2
 
 #define SLAP_INDEX_FLAGS          0xF000UL
 #define SLAP_INDEX_SUBTYPES       0x1000UL /* use index with subtypes */
