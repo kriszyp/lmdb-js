@@ -902,6 +902,7 @@ slapi_dn_issuffix(
 #ifdef LDAP_SLAPI
 	struct berval	bdn, ndn;
 	struct berval	bsuffix, nsuffix;
+	int rc;
 
 	assert( dn != NULL );
 	assert( suffix != NULL );
@@ -912,10 +913,21 @@ slapi_dn_issuffix(
 	bsuffix.bv_val = suffix;
 	bsuffix.bv_len = strlen( suffix );
 
-	dnNormalize2( NULL, &bdn, &ndn );
-	dnNormalize2( NULL, &bsuffix, &nsuffix );
+	if ( dnNormalize2( NULL, &bdn, &ndn ) != LDAP_SUCCESS ) {
+		return 0;
+	}
 
-	return dnIsSuffix( &ndn, &nsuffix );
+	if ( dnNormalize2( NULL, &bsuffix, &nsuffix ) != LDAP_SUCCESS ) {
+		slapi_ch_free( (void **)&ndn.bv_val );
+		return 0;
+	}
+
+	rc = dnIsSuffix( &ndn, &nsuffix );
+
+	slapi_ch_free( (void **)&ndn.bv_val );
+	slapi_ch_free( (void **)&nsuffix.bv_val );
+
+	return rc;
 #else /* LDAP_SLAPI */
 	return 0;
 #endif /* LDAP_SLAPI */
