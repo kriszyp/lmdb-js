@@ -21,6 +21,7 @@
 #include <lber.h>
 #include <ldap.h>
 #include "ud.h"
+extern void Free();
 
 extern struct entry Entry; 
 extern int verbose;
@@ -497,6 +498,7 @@ mail_is_good:
 			}
 			tmp = ldap_get_dn(ld, elmp);
 			strcpy(buffer, tmp);
+			Free(tmp);
 			(void) ldap_msgfree(lmp);
 			break;
 		}

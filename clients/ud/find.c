@@ -235,7 +235,10 @@ int quiet;
 			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 			return(NULL);
 		} else if (matches == 1) {
-			if (ldap_search_s(ld, ldap_get_dn(ld, ldap_first_entry(ld, res)), LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res) != LDAP_SUCCESS) {
+			dn = ldap_get_dn(ld, ldap_first_entry(ld, res));
+			rc = ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res);
+			Free(dn);
+			if (rc != LDAP_SUCCESS) {
 				int ld_errno = 0;
 				ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
 				if (ld_errno == LDAP_UNAVAILABLE)
@@ -301,7 +304,10 @@ int quiet;
 				fflush(stdout);
 				fetch_buffer(response, sizeof(response), stdin);
 				if ((response[0] == 'n') || (response[0] == 'N'))
+				{
+					Free(dn);
 					return(NULL);
+				}
 			}
 #ifdef DEBUG
 			if (debug & D_FIND) {
@@ -320,7 +326,7 @@ int quiet;
 			if (ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res) != LDAP_SUCCESS) {
 				ldap_perror(ld, "ldap_search_s");
 				ldap_msgfree(res);
-				return(NULL);
+				res = NULL;
 			}
 			Free(dn);
 			return(res);
