@@ -63,12 +63,12 @@ monitor_subsys_conn_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn, 
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val, 
 			"", "" );
 #endif
 		return( -1 );
@@ -89,7 +89,7 @@ monitor_subsys_conn_init(
 		"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 		"cn: Total\n",
-		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn );
+		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn->bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -97,12 +97,12 @@ monitor_subsys_conn_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to create entry 'cn=Total,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to create entry 'cn=Total,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -126,12 +126,12 @@ monitor_subsys_conn_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to add entry 'cn=Total,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to add entry 'cn=Total,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -152,7 +152,7 @@ monitor_subsys_conn_init(
 		"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 		"cn: Current\n",
-		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn );
+		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn->bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -160,12 +160,12 @@ monitor_subsys_conn_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to create entry 'cn=Current,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to create entry 'cn=Current,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -185,12 +185,12 @@ monitor_subsys_conn_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to add entry 'cn=Current,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to add entry 'cn=Current,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -280,7 +280,7 @@ conn_create(
 		"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 		"cn: %ld\n",
-		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn,
+		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn->bv_val,
 		c->c_connid );
 	e = str2entry( buf );
 
@@ -291,14 +291,14 @@ conn_create(
 			"unable to create entry "
 			"'cn=%ld,%s' entry\n",
 			c->c_connid, 
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_create: "
 			"unable to create entry "
-			"'cn=%ld,%s' entry\n%s",
+			"'cn=%ld,%s' entry\n",
 			c->c_connid, 
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn, "" );
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn->bv_val, 0 );
 #endif
 		return( -1 );
 	}
@@ -364,7 +364,7 @@ conn_create(
 int 
 monitor_subsys_conn_create( 
 	struct monitorinfo 	*mi,
-	const char		*ndn,
+	struct berval		*ndn,
 	Entry 			*e_parent,
 	Entry			**ep
 )
@@ -397,16 +397,30 @@ monitor_subsys_conn_create(
 		connection_done(c);
 
 		*ep = e;
+
 	} else {
-		/* create exactly the required entry */
-		char *rdn, *value;
-		unsigned long connid;
+		char 		**values;
+		struct berval	*rdn;
+		unsigned long 	connid;
 	       
-		rdn = dn_rdn( NULL, ndn );
-		value = rdn_attr_value( rdn );
-		connid = atol( value );
-		free( value );
-		free( rdn );
+		/* create exactly the required entry */
+
+		if ( dnExtractRdn( ndn->bv_val, &rdn ) != LDAP_SUCCESS ) {
+			return( -1 );
+		}
+
+		if ( rdn_attrs( rdn->bv_val, NULL, &values ) != LDAP_SUCCESS ) {
+			ber_bvfree( rdn );
+			return( -1 );
+		}
+		ber_bvfree( rdn );
+
+		assert( values );
+		assert( values[ 0 ] );
+
+		connid = atol( values[ 0 ] );
+
+		ldap_value_free( values );
 
 		for ( c = connection_first( &connindex );
 				c != NULL;

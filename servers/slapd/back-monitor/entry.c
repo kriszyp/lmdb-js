@@ -64,7 +64,7 @@ monitor_entry_update(
 int
 monitor_entry_create(
 	struct monitorinfo 	*mi,
-	const char		*ndn,
+	struct berval		*ndn,
 	Entry			*e_parent,
 	Entry			**ep
 )

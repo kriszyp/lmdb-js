@@ -101,12 +101,12 @@ monitor_subsys_log_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_log_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_log_init: "
 			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn, 
+			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn->bv_val, 
 			"", "" );
 #endif
 		return( -1 );
@@ -379,8 +379,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 {
 	int             i, j, k, found, rc, nl = 0;
 	Attribute       *a;
-	char *desc = mod->sm_desc->ad_cname.bv_val;
-	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
+	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
 
 	rc = check_constraints( mod, &nl );
 	if ( rc != LDAP_SUCCESS ) {

@@ -220,7 +220,7 @@ monitor_back_db_init(
 	struct monitorentrypriv	*mp;
 	int			i, rc;
 	char 			buf[1024], *end_of_line;
-	struct berval	dn, *ndn;
+	struct berval		dn, *ndn;
 	const char 		*text;
 	struct berval		val, *bv[2] = { &val, NULL };
 
@@ -259,6 +259,7 @@ monitor_back_db_init(
 		return -1;
 	}
 
+	ber_bvecadd( &be->be_suffix, ber_bvdup( &dn ) );
 	ber_bvecadd( &be->be_nsuffix, ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
@@ -281,24 +282,70 @@ monitor_back_db_init(
 	 */
 	e_tmp = NULL;
 	for ( i = 0; monitor_subsys[ i ].mss_name != NULL; i++ ) {
-		int len = strlen( monitor_subsys[ i ].mss_name );
+		int 		len = strlen( monitor_subsys[ i ].mss_name );
+		struct berval	dn, *pdn;
+		int		rc;
 
-		monitor_subsys[ i ].mss_rdn = ch_calloc( sizeof( char ), 
-				4 + len );
-		strcpy( monitor_subsys[ i ].mss_rdn, "cn=" );
-		strcat( monitor_subsys[ i ].mss_rdn, 
-				monitor_subsys[ i ].mss_name );
+		dn.bv_len = len + sizeof( "cn=" ) - 1;
+		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
+		strcpy( dn.bv_val, "cn=" );
+		strcat( dn.bv_val, monitor_subsys[ i ].mss_name );
+		pdn = NULL;
+		rc = dnPretty( NULL, &dn, &pdn );
+		if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor RDN \"%s\" is invalid\n", 
+				dn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor RDN \"%s\" is invalid\n", 
+				dn.bv_val, 0, 0 );
+#endif
+			free( dn.bv_val );
+			return( -1 );
+		}
+		free( dn.bv_val );
+		monitor_subsys[ i ].mss_rdn = pdn;
 
-		monitor_subsys[ i ].mss_dn = ch_calloc( sizeof( char ), 
-				4 + len + sizeof( SLAPD_MONITOR_DN ) );
-		strcpy( monitor_subsys[ i ].mss_dn, 
-				monitor_subsys[ i ].mss_rdn );
-		strcat( monitor_subsys[ i ].mss_dn, "," );
-		strcat( monitor_subsys[ i ].mss_dn, SLAPD_MONITOR_DN );
+		dn.bv_len += sizeof( SLAPD_MONITOR_DN ); /* 1 for the , */
+		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
+		strcpy( dn.bv_val , monitor_subsys[ i ].mss_rdn->bv_val );
+		strcat( dn.bv_val, "," SLAPD_MONITOR_DN );
+		pdn = NULL;
+		rc = dnPretty( NULL, &dn, &pdn );
+		if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor DN \"%s\" is invalid\n", 
+				dn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor DN \"%s\" is invalid\n", 
+				dn.bv_val, 0, 0 );
+#endif
+			free( dn.bv_val );
+			return( -1 );
+		}
+		monitor_subsys[ i ].mss_dn = pdn;
 
-		monitor_subsys[ i ].mss_ndn 
-			= ch_strdup( monitor_subsys[ i ].mss_dn );
-		dn_normalize( monitor_subsys[ i ].mss_ndn );
+		pdn = NULL;
+		dnNormalize( NULL, &dn, &pdn );
+		if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor DN \"%s\" is invalid\n", 
+				dn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor DN \"%s\" is invalid\n", 
+				dn.bv_val, 0, 0 );
+#endif
+			free( dn.bv_val );
+			return( -1 );
+		}
+		free( dn.bv_val );
+		monitor_subsys[ i ].mss_ndn = pdn;
 
 		snprintf( buf, sizeof( buf ),
 				"dn: %s\n"
@@ -310,7 +357,7 @@ monitor_back_db_init(
 				"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 				"cn: %s\n",
-				monitor_subsys[ i ].mss_dn,
+				monitor_subsys[ i ].mss_dn->bv_val,
 				monitor_subsys[ i ].mss_name );
 		
 		e = str2entry( buf );
@@ -319,11 +366,11 @@ monitor_back_db_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"unable to create '%s' entry\n", 
-				monitor_subsys[ i ].mss_dn ));
+				monitor_subsys[ i ].mss_dn->bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"unable to create '%s' entry\n%s%s", 
-				monitor_subsys[ i ].mss_dn, "", "" );
+				"unable to create '%s' entry\n", 
+				monitor_subsys[ i ].mss_dn->bv_val, 0, 0 );
 #endif
 			return( -1 );
 		}
@@ -339,11 +386,11 @@ monitor_back_db_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"unable to add entry '%s' to cache\n",
-				monitor_subsys[ i ].mss_dn ));
+				monitor_subsys[ i ].mss_dn->bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"unable to add entry '%s' to cache\n%s%s",
-				monitor_subsys[ i ].mss_dn, "", "" );
+				"unable to add entry '%s' to cache\n",
+				monitor_subsys[ i ].mss_dn->bv_val, 0, 0 );
 #endif
 			return -1;
 		}

@@ -58,7 +58,9 @@ monitor_back_bind(
 				    
 )
 {
+#if 0	/* not used yet */
 	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,

@@ -51,13 +51,15 @@ monitor_cache_cmp(
 		const void *c2
 )
 {
-	struct monitorcache *cc1 = ( struct monitorcache * )c1;
-	struct monitorcache *cc2 = ( struct monitorcache * )c2;
+	struct monitorcache 	*cc1 = ( struct monitorcache * )c1;
+	struct monitorcache 	*cc2 = ( struct monitorcache * )c2;
+
+	int			d = cc1->mc_ndn->bv_len - cc2->mc_ndn->bv_len;
 	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-	return strcmp( cc1->mc_ndn, cc2->mc_ndn );
+	return d != 0 ? d : strcmp( cc1->mc_ndn->bv_val, cc2->mc_ndn->bv_val );
 }
 
 /*
@@ -71,11 +73,15 @@ monitor_cache_dup(
 {
 	struct monitorcache *cc1 = ( struct monitorcache * )c1;
 	struct monitorcache *cc2 = ( struct monitorcache * )c2;
+
+	int			d = cc1->mc_ndn->bv_len - cc2->mc_ndn->bv_len;
+	int			cmp;
 	
 	/*
 	 * case sensitive, because the dn MUST be normalized
 	 */
-	return ( strcmp( cc1->mc_ndn, cc2->mc_ndn ) == 0 ) ? -1 : 0;
+	cmp = d != 0 ? d : strcmp( cc1->mc_ndn->bv_val, cc2->mc_ndn->bv_val );
+	return cmp == 0 ? -1 : 0;
 }
 
 /*
@@ -98,7 +104,7 @@ monitor_cache_add(
 	ldap_pvt_thread_mutex_init( &mp->mp_mutex );
 
 	mc = ( struct monitorcache * )ch_malloc( sizeof( struct monitorcache ) );
-	mc->mc_ndn = e->e_ndn;
+	mc->mc_ndn = &e->e_nname;
 	mc->mc_e = e;
 	ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
 	rc = avl_insert( &mi->mi_cache, ( caddr_t )mc,
@@ -134,7 +140,7 @@ monitor_cache_lock(
 int
 monitor_cache_get(
 		struct monitorinfo      *mi,
-		const char		*ndn,
+		struct berval		*ndn,
 		Entry			**ep
 )
 {
@@ -144,7 +150,7 @@ monitor_cache_get(
 	assert( ndn != NULL );
 	assert( ep != NULL );
 
-	tmp_mc.mc_ndn = ( char * )ndn;
+	tmp_mc.mc_ndn = ndn;
 	ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
 	mc = ( struct monitorcache * )avl_find( mi->mi_cache,
 			( caddr_t )&tmp_mc, monitor_cache_cmp );
@@ -173,15 +179,15 @@ monitor_cache_get(
 int
 monitor_cache_dn2entry(
 		struct monitorinfo      *mi,
-		const char		*ndn,
+		struct berval		*ndn,
 		Entry			**ep,
 		Entry			**matched
 )
 {
-	int rc;
+	int 		rc;
 
-	char *p_ndn;
-	Entry *e_parent;
+	struct berval		p_ndn = { 0L, NULL };
+	Entry 			*e_parent;
 	struct monitorentrypriv *mp;
 		
 	assert( mi != NULL );
@@ -197,8 +203,17 @@ monitor_cache_dn2entry(
 	}
 
 	/* try with parent/ancestors */
-	p_ndn = dn_parent( NULL, ndn );
-	rc = monitor_cache_dn2entry( mi, p_ndn, &e_parent, matched );
+	if ( ndn && ndn->bv_len ) {
+		p_ndn.bv_val = dn_parent( NULL, ndn->bv_val );
+	}
+	if ( p_ndn.bv_val == NULL ) {
+		p_ndn.bv_val = "";
+		p_ndn.bv_len = 0;
+	} else {
+		p_ndn.bv_len = ndn->bv_len 
+			- ( ber_len_t ) ( p_ndn.bv_val - ndn->bv_val );
+	}
+	rc = monitor_cache_dn2entry( mi, &p_ndn, &e_parent, matched );
 	if ( rc || e_parent == NULL) {
 		return( -1 );
 	}

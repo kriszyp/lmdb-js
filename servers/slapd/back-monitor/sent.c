@@ -63,12 +63,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn, 
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val, 
 			"", "" );
 #endif
 		return( -1 );
@@ -89,7 +89,7 @@ monitor_subsys_sent_init(
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 			"cn: Entries\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn->bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -97,12 +97,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Entries,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Entries,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -125,12 +125,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Entries,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Entries,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -151,7 +151,7 @@ monitor_subsys_sent_init(
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 			"cn: Referrals\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn->bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -159,12 +159,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Referrals,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Referrals,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -187,12 +187,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Referrals,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Referrals,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -213,7 +213,7 @@ monitor_subsys_sent_init(
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 			"cn: PDU\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn->bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -221,12 +221,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=PDU,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=PDU,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -249,12 +249,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=PDU,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=PDU,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -275,7 +275,7 @@ monitor_subsys_sent_init(
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 			"cn: Bytes\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn->bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -283,12 +283,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Bytes,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to create entry 'cn=Bytes,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -311,12 +311,12 @@ monitor_subsys_sent_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Bytes,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn ));
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
 			"unable to add entry 'cn=Bytes,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn,
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn->bv_val,
 			"", "" );
 #endif
 		return( -1 );

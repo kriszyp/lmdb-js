@@ -51,7 +51,7 @@ monitor_send_children(
     	Connection	*conn,
     	Operation	*op,
     	Filter		*filter,
-    	struct berval		**attrs,
+    	struct berval	**attrs,
     	int		attrsonly,
 	Entry		*e_parent,
 	int		sub,
@@ -67,6 +67,7 @@ monitor_send_children(
 	mp = ( struct monitorentrypriv * )e_parent->e_private;
 	e = mp->mp_children;
 
+	e_ch = NULL;
 	if ( MONITOR_HAS_VOLATILE_CH( mp ) ) {
 		monitor_entry_create( mi, NULL, e_parent, &e_ch );
 	}
@@ -167,7 +168,7 @@ monitor_back_search(
 
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( mi, nbase->bv_val, &e, &matched );
+	monitor_cache_dn2entry( mi, nbase, &e, &matched );
 	if ( e == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
 			matched ? matched->e_dn : NULL, 

@@ -68,7 +68,7 @@ int monitor_subsys_thread_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
  */
 int monitor_subsys_conn_init LDAP_P(( BackendDB *be ));
 int monitor_subsys_conn_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
-int monitor_subsys_conn_create LDAP_P(( struct monitorinfo *mi, const char *ndn, Entry *e_parent, Entry **ep ));
+int monitor_subsys_conn_create LDAP_P(( struct monitorinfo *mi, struct berval *ndn, Entry *e_parent, Entry **ep ));
 
 /*
  * read waiters
@@ -99,4 +99,5 @@ int monitor_subsys_sent_init LDAP_P(( BackendDB *be ));
 int monitor_subsys_sent_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
 
 LDAP_END_DECL
+
 #endif

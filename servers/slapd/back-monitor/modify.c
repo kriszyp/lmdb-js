@@ -68,7 +68,7 @@ monitor_back_modify(
 #endif
 
 	/* acquire and lock entry */
-	monitor_cache_dn2entry( mi, ndn->bv_val, &e, &matched );
+	monitor_cache_dn2entry( mi, ndn, &e, &matched );
 	if ( e == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
 				matched ? matched->e_dn : NULL,
