@@ -594,7 +594,7 @@ fill_buffer:
 	}
 
 	if (ber->ber_buf==NULL) {
-		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len );
+		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len + 1 );
 		if (ber->ber_buf==NULL) {
 			return LBER_DEFAULT;
 		}

@@ -44,9 +44,15 @@ ber_get_tag( BerElement *ber )
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
 
-	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 ) {
+	if ( ber_pvt_ber_remaining( ber ) < 1 ) {
 		return LBER_DEFAULT;
 	}
+
+	if ( ber->ber_ptr == ber->ber_buf )
+		xbyte = *ber->ber_ptr;
+	else
+		xbyte = ber->ber_tag;
+	ber->ber_ptr++;
 
 	tag = xbyte;
 
@@ -146,6 +152,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	if( *len > (ber_len_t) ber_pvt_ber_remaining( ber ) ) {
 		return LBER_DEFAULT;
 	}
+	ber->ber_tag = *ber->ber_ptr;
 
 	return tag;
 }
@@ -161,11 +168,13 @@ ber_peek_tag(
 	 */
 
 	char *save;
-	ber_tag_t	tag;
+	ber_tag_t	tag, old;
 
+	old = ber->ber_tag;
 	save = ber->ber_ptr;
 	tag = ber_skip_tag( ber, len );
 	ber->ber_ptr = save;
+	ber->ber_tag = old;
 
 	return tag;
 }
@@ -213,6 +222,7 @@ ber_getnint(
 	} else {
 		*num = 0;
 	}
+	ber->ber_tag = *ber->ber_ptr;
 
 	return len;
 }
@@ -271,6 +281,7 @@ ber_get_stringb(
 	if ( (ber_len_t) ber_read( ber, buf, datalen ) != datalen ) {
 		return LBER_DEFAULT;
 	}
+	ber->ber_tag = *ber->ber_ptr;
 
 	buf[datalen] = '\0';
 
@@ -423,6 +434,7 @@ ber_get_stringbv( BerElement *ber, struct berval *bv )
 		return LBER_DEFAULT;
 	}
 	bv->bv_val[bv->bv_len] = '\0';
+	ber->ber_tag = *ber->ber_ptr;
 
 	return tag;
 }
@@ -499,6 +511,7 @@ ber_get_bitstringa(
 		*buf = NULL;
 		return LBER_DEFAULT;
 	}
+	ber->ber_tag = *ber->ber_ptr;
 
 	*blen = datalen * 8 - unusedbits;
 	return tag;
@@ -520,6 +533,7 @@ ber_get_null( BerElement *ber )
 	if ( len != 0 ) {
 		return LBER_DEFAULT;
 	}
+	ber->ber_tag = *ber->ber_ptr;
 
 	return( tag );
 }
@@ -558,6 +572,7 @@ ber_first_element(
 		*last = NULL;
 		return LBER_DEFAULT;
 	}
+	ber->ber_tag = *ber->ber_ptr;
 
 	*last = ber->ber_ptr + *len;
 
@@ -743,6 +758,7 @@ ber_scanf ( BerElement *ber,
 			if ( (rc = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
 				break;
 			ber->ber_ptr += len;
+			ber->ber_tag = *ber->ber_ptr;
 			break;
 
 		case '{':	/* begin sequence */
