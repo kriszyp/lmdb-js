@@ -310,18 +310,19 @@ parse_limits(
 	 * 
 	 * "anonymous"
 	 * "users"
-	 * [ "dn" [ "." { "exact" | "base" | "one" | "sub" | children" 
+	 * [ "dn" [ "." { "exact" | "base" | "onelevel" | "subtree" | children"
 	 *	| "regex" | "anonymous" } ] "=" ] <dn pattern>
 	 *
 	 * Note:
 	 *	"exact" and "base" are the same (exact match);
-	 *	"one" means exactly one rdn below, NOT including the pattern
-	 *	"sub" means any rdn below, including the pattern
-	 *	"children" means any rdn below, NOT including the pattern
+	 *	"onelevel" means exactly one rdn below, NOT including pattern
+	 *	"subtree" means any rdn below, including pattern
+	 *	"children" means any rdn below, NOT including pattern
 	 *	
 	 *	"anonymous" may be deprecated in favour 
 	 *	of the pattern = "anonymous" form
 	 *
+	 * "group[/objectClass[/attributeType]]" "=" "<dn pattern>"
 	 *
 	 * <limit>:
 	 *
@@ -355,10 +356,42 @@ parse_limits(
 			} else if ( strncasecmp( pattern, "one", sizeof( "one" ) - 1 ) == 0 ) {
 				flags = SLAP_LIMITS_ONE;
 				pattern += sizeof( "one" ) - 1;
+				if ( strncasecmp( pattern, "level", sizeof( "level" ) - 1 ) == 0 ) {
+					pattern += sizeof( "level" ) - 1;
 
-			} else if ( strncasecmp( pattern, "subtree", sizeof( "subtree" ) - 1 ) == 0 ) {
+				} else {
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, WARNING , 
+						"%s : line %d: deprecated \"one\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"onelevel\" instead.\n", fname, lineno, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s : line %d: deprecated \"one\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"onelevel\" instead.\n", fname, lineno, 0 );
+#endif
+				}
+
+			} else if ( strncasecmp( pattern, "sub", sizeof( "sub" ) - 1 ) == 0 ) {
 				flags = SLAP_LIMITS_SUBTREE;
-				pattern += sizeof( "subtree" ) - 1;
+				pattern += sizeof( "sub" ) - 1;
+				if ( strncasecmp( pattern, "tree", sizeof( "tree" ) - 1 ) == 0 ) {
+					pattern += sizeof( "tree" ) - 1;
+
+				} else {
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, WARNING , 
+						"%s : line %d: deprecated \"sub\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"subtree\" instead.\n", fname, lineno, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s : line %d: deprecated \"sub\" style "
+						"\"limits <pattern> <limits>\" line; "
+						"use \"subtree\" instead.\n", fname, lineno, 0 );
+#endif
+				}
 
 			} else if ( strncasecmp( pattern, "children", sizeof( "children" ) - 1 ) == 0 ) {
 				flags = SLAP_LIMITS_CHILDREN;
@@ -392,13 +425,13 @@ parse_limits(
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
 					"%s : line %d: missing '=' in "
-					"\"dn[.{exact|base|one|subtree"
+					"\"dn[.{exact|base|onelevel|subtree"
 					"|children|regex|anonymous}]" "=<pattern>\" in "
 					"\"limits <pattern> <limits>\" line.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s : line %d: missing '=' in "
-					"\"dn[.{exact|base|one|subtree"
+					"\"dn[.{exact|base|onelevel|subtree"
 					"|children|regex|anonymous}]"
 					"=<pattern>\" in "
 					"\"limits <pattern> <limits>\" "

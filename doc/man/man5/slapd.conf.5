@@ -298,7 +298,7 @@ anonymous | users | [dn[.<style>]=]<pattern> | group[/oc[/at]]=<pattern>
 with
 .RS
 .TP
-<style> ::= exact | base | one | subtree | children | regex | anonymous
+<style> ::= exact | base | onelevel | subtree | children | regex | anonymous
 
 .RE
 The term
@@ -317,11 +317,11 @@ with
 or
 .B base
 (which are synonyms), to require an exact match; with
-.BR one, 
+.BR onelevel , 
 to require exactly one level of depth match; with
-.BR subtree,
+.BR subtree ,
 to allow any level of depth match, including the exact match; with
-.BR children,
+.BR children ,
 to allow any level of depth match, not including the exact match;
 .BR regex
 explicitly requires the (default) match based on regular expression
@@ -359,7 +359,7 @@ whose DN exactly matches
 The currently supported limits are 
 .B size
 and 
-.BR time.
+.BR time .
 
 The syntax for time limits is 
 .BR time[.{soft|hard}]=<integer> ,
@@ -370,11 +370,17 @@ If no time limit is explicitly requested by the client, the
 .BR soft
 limit is used; if the requested time limit exceeds the
 .BR hard
-limit, an "Administrative limit exceeded" is returned.
+limit, an
+.I \"Administrative limit exceeded\"
+is returned.
 If the
 .BR hard
-limit is set to 0 or to the keyword "soft", the soft limit is used 
-in either case; if it is set to -1 or to the keyword "none", 
+limit is set to 0 or to the keyword 
+.IR soft ,
+the soft limit is used in either case; if it is set to 
+.I -1 
+or to the keyword 
+.IR none , 
 no hard limit is enforced.
 Explicit requests for time limits smaller or equal to the
 .BR hard 
@@ -395,11 +401,17 @@ If no size limit is explicitly requested by the client, the
 .BR soft
 limit is used; if the requested size limit exceeds the
 .BR hard
-limit, an "Administrative limit exceeded" is returned.
+limit, an 
+.I \"Administrative limit exceeded\"
+is returned.
 If the 
 .BR hard
-limit is set to 0 or to the keyword "soft", the soft limit is used 
-in either case; if it is set to -1 or to the keyword "none", 
+limit is set to 0 or to the keyword 
+.IR soft , 
+the soft limit is used in either case; if it is set to 
+.I -1 
+or to the keyword
+.IR none , 
 no hard limit is enforced.
 Explicit requests for size limits smaller or equal to the
 .BR hard
@@ -410,8 +422,13 @@ flag sets a limit on the number of candidates a search request is allowed
 to examine.
 If the selected candidates exceed the 
 .BR unchecked
-limit, the search will abort with "Unwilling to perform".
-If it is set to -1 or to the keyword "none", no limit is applied (the default).
+limit, the search will abort with 
+.IR \"Unwilling to perform\" .
+If it is set to
+.I -1 
+or to the keyword 
+.IR none , 
+no limit is applied (the default).
 If no flag is set, the value is assigned to the
 .BR soft 
 limit, and the
@@ -420,7 +437,7 @@ limit is set to zero, to preserve the original behavior.
 
 In case of no match, the global limits are used.
 The default values are the same of
-.BR sizelimit
+.B sizelimit
 and
 .BR timelimit ;
 no limit is set on 
@@ -433,7 +450,7 @@ control is defined, additional size limits may be enforced; the syntax is
 where
 .BR integer
 is the max page size if no explicit limit is set; the keyword
-.BR noEstimate
+.IR noEstimate
 inhibits the server to return an estimate of the total number
 of entries that will be returned.
 .RE
