@@ -13,6 +13,7 @@
 #include <ac/unistd.h>
 
 #include "back-bdb.h"
+#include "external.h"
 
 int
 bdb_bind(

@@ -11,6 +11,7 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "external.h"
 
 static int base_candidate(
     BackendDB	*be,
@@ -44,21 +45,24 @@ bdb_search(
     char	**attrs,
     int		attrsonly )
 {
-	int abandon;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	int		 abandon;
 	int		rc;
 	const char *text = NULL;
 	time_t		stoptime;
-	ID		candidates[BDB_IDL_SIZE];
 	ID		id, cursor;
+	ID		candidates[BDB_IDL_SIZE];
 	Entry		*e = NULL;
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
 	char	*realbase = NULL;
 	int		nentries = 0;
-	int		manageDSAit = get_manageDSAit( op );
+	int		manageDSAit;
 
-	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_back_search\n",
+		0, 0, 0);
+
+	manageDSAit = get_manageDSAit( op );
 
 #ifdef BDB_ALIASES
 	/* get entry with reader lock */

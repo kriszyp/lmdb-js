@@ -11,6 +11,7 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "external.h"
 
 int
 bdb_exop_passwd(
