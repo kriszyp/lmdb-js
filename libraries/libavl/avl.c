@@ -21,6 +21,11 @@
 #include <stdio.h>
 #include <ac/stdlib.h>
 
+#ifdef CSRIMALLOC
+#define ber_memalloc malloc
+#define ber_memrealloc realloc
+#endif
+
 #define AVL_INTERNAL
 #include "avl.h"
 
@@ -64,7 +69,7 @@ ravl_insert(
 	Avlnode	*l, *r;
 
 	if ( *iroot == 0 ) {
-		if ( (*iroot = (Avlnode *) malloc( sizeof( Avlnode ) ))
+		if ( (*iroot = (Avlnode *) ber_memalloc( sizeof( Avlnode ) ))
 		    == NULL ) {
 			return( -1 );
 		}
@@ -680,12 +685,12 @@ avl_buildlist( void* data, void* arg )
 	static int	slots;
 
 	if ( avl_list == (void* *) 0 ) {
-		avl_list = (void* *) malloc(AVL_GRABSIZE * sizeof(void*));
+		avl_list = (void* *) ber_memalloc(AVL_GRABSIZE * sizeof(void*));
 		slots = AVL_GRABSIZE;
 		avl_maxlist = 0;
 	} else if ( avl_maxlist == slots ) {
 		slots += AVL_GRABSIZE;
-		avl_list = (void* *) realloc( (char *) avl_list,
+		avl_list = (void* *) ber_memrealloc( (char *) avl_list,
 		    (unsigned) slots * sizeof(void*));
 	}
 
