@@ -22,7 +22,6 @@
 
 /* unimplemented validators */
 #define bitStringValidate				NULL
-#define booleanValidate					NULL
 
 /* recycled normalization routines */
 #define faxNumberNormalize				numericStringNormalize
@@ -32,10 +31,8 @@
 
 /* unimplemented normalizers */
 #define bitStringNormalize				NULL
-#define booleanNormalize				NULL
 
 /* unimplemented pretters */
-#define booleanPretty					NULL
 #define dnPretty						NULL
 #define integerPretty					NULL
 
@@ -298,6 +295,49 @@ blobValidate(
 	struct berval *in )
 {
 	/* any value allowed */
+	return LDAP_SUCCESS;
+}
+
+/*
+ * Handling boolean syntax and matching is quite rigid.
+ * A more flexible approach would be to allow a variety
+ * of strings to be normalized and prettied into TRUE
+ * and FALSE.
+ */
+static int
+booleanValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	/* very unforgiving validation, requires no normalization
+	 * before simplistic matching
+	 */
+
+	if( in->bv_len == 4 ) {
+		if( !memcmp( in->bv_val, "TRUE", 4 ) ) {
+			return LDAP_SUCCESS;
+		}
+	} else if( in->bv_len == 5 ) {
+		if( !memcmp( in->bv_val, "FALSE", 5 ) ) {
+			return LDAP_SUCCESS;
+		}
+	}
+
+	return LDAP_INVALID_SYNTAX;
+}
+
+static int
+booleanMatch(
+	int *matchp,
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	/* simplistic matching allowed by rigid validation */
+	struct berval *asserted = (struct berval *) assertedValue;
+	*matchp = value->bv_len != asserted->bv_len;
 	return LDAP_SUCCESS;
 }
 
@@ -1503,7 +1543,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
 		0, bitStringValidate, bitStringNormalize, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
-		0, booleanValidate, booleanNormalize, booleanPretty},
+		0, booleanValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
@@ -1717,6 +1757,11 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
 		NULL, NULL, caseIgnoreListSubstringsMatch, NULL, NULL},
+
+	{"( 2.5.13.13 NAME 'booleanMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		NULL, NULL, booleanMatch, NULL, NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
