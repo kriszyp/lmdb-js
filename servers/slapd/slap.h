@@ -2036,14 +2036,6 @@ typedef struct slap_conn {
 			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 	} while (0)
 #define StatslogTest( level ) (ldap_debug & (level))
-#elif defined(LDAP_SYSLOG)
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
-	do { \
-		if ( ldap_syslog & (level) ) \
-			syslog( ldap_syslog_level, (fmt), (connid), (opid), (arg1), \
-				(arg2), (arg3) ); \
-	} while (0)
-#define StatslogTest( level ) (ldap_syslog & (level))
 #else
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #define StatslogTest( level ) (0)

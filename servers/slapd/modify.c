@@ -276,7 +276,6 @@ do_modify(
 		}
 #endif
 	}
-#endif
 
 	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
 		char abuf[BUFSIZ/2], *ptr = abuf;
@@ -304,6 +303,7 @@ do_modify(
 	    			op->o_connid, op->o_opid, abuf, 0, 0 );
 		}
 	}
+#endif	/* LDAP_DEBUG */
 
 	manageDSAit = get_manageDSAit( op );
 
