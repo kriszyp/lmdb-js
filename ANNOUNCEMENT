@@ -37,10 +37,6 @@ A N N O U N C E M E N T -- OpenLDAP 2.2
         * LDAPC++ - a LDAP C++ SDK
         * LDAP SASL - An "auxprop" plugin for Cyrus SASL
 
-    This release contains a number of major code changes.  It
-    might be a bit rough around the edges.  Use with appropriate
-    caution.
-
 
 ACKNOWLEDGEMENTS
 
