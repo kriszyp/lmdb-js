@@ -1207,10 +1207,10 @@ AC_DEFUN([OL_SASL_COMPAT],
 
 /* require 2.1.3 or later */
 #if SASL_VERSION_MAJOR == 2  && SASL_VERSION_MINOR > 1
-	__sasl_compat "2.2+ or better okay (we guess)";
+	char *__sasl_compat = "2.2+ or better okay (we guess)";
 #elif SASL_VERSION_MAJOR == 2  && SASL_VERSION_MINOR == 1 \
 	&& SASL_VERSION_STEP >=3
-	__sasl_compat = "2.1.3+ or better okay";
+	char *__sasl_compat = "2.1.3+ or better okay";
 #endif
 	],	[ol_cv_sasl_compat=yes], [ol_cv_sasl_compat=no])])
 ])
