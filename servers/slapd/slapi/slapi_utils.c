@@ -1433,6 +1433,7 @@ slapi_filter_dup( Slapi_Filter *filter )
 		for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ ) {
 			ber_dupbv( &f->f_sub_any[i], &filter->f_sub_any[i] );
 		}
+		f->f_sub_any[i].bv_val = NULL;
 		ber_dupbv( &f->f_sub_final, &filter->f_sub_final );
 		break;
 	}
