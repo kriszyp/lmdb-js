@@ -1216,6 +1216,7 @@ syncrepl_entry(
 	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 	dninfo dni = {0};
+	int	retry = 1;
 
 	switch( syncstate ) {
 	case LDAP_SYNC_PRESENT:
@@ -1337,7 +1338,9 @@ syncrepl_entry(
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
+retry_add:;
 		if ( BER_BVISNULL( &dni.dn )) {
+
 			op->o_req_dn = entry->e_name;
 			op->o_req_ndn = entry->e_nname;
 			op->o_tag = LDAP_REQ_ADD;
@@ -1360,6 +1363,60 @@ syncrepl_entry(
 				syncrepl_add_glue( op, entry );
 				ret = 0;
 				break;
+
+			/* if an entry was added via syncrepl_add_glue(),
+			 * it likely has no entryUUID, so the previous
+			 * be_search() doesn't find it.  In this case,
+			 * give syncrepl a chance to modify it. */
+			case LDAP_ALREADY_EXISTS:
+				if ( retry ) {
+					Operation	op2 = *op;
+					SlapReply	rs2 = { 0 };
+					slap_callback	cb2 = { 0 };
+
+					op2.o_tag = LDAP_REQ_SEARCH;
+					ber_dupbv_x( &op2.o_req_dn,
+						&entry->e_name,
+						op2.o_tmpmemctx );
+					ber_dupbv_x( &op2.o_req_ndn,
+						&entry->e_nname,
+						op2.o_tmpmemctx );
+					op2.ors_scope = LDAP_SCOPE_BASE;
+					op2.ors_attrs = slap_anlist_all_attributes;
+					op2.ors_attrsonly = 0;
+					op2.ors_limit = NULL;
+					op2.ors_slimit = 1;
+					op2.ors_tlimit = SLAP_NO_LIMIT;
+
+					f.f_choice = LDAP_FILTER_EQUALITY;
+					f.f_ava = &ava;
+					ava.aa_desc = slap_schema.si_ad_objectClass;
+					ber_dupbv_x( &ava.aa_value,
+						&slap_schema.si_oc_glue->soc_cname,
+						op2.o_tmpmemctx );
+					op2.ors_filter = &f;
+					filter2bv_x( &op2, op2.ors_filter,
+							&op2.ors_filterstr );
+
+					op2.o_callback = &cb2;
+					cb2.sc_response = dn_callback;
+					cb2.sc_private = &dni;
+
+					be->be_search( &op2, &rs2 );
+
+					op2.o_tmpfree( op2.o_req_dn.bv_val,
+						op2.o_tmpmemctx );
+					op2.o_tmpfree( op2.o_req_ndn.bv_val,
+						op2.o_tmpmemctx );
+					op2.o_tmpfree( ava.aa_value.bv_val,
+						op2.o_tmpmemctx );
+					op2.o_tmpfree( op2.ors_filterstr.bv_val,
+						op2.o_tmpmemctx );
+
+					retry = 0;
+					goto retry_add;
+				}
+				/* FALLTHRU */
 
 			default:
 				Debug( LDAP_DEBUG_ANY,
@@ -1438,11 +1495,13 @@ syncrepl_entry(
 			}
 
 			mod = (Modifications *)ch_calloc(1, sizeof(Modifications));
-			ber_dupbv( &uuid_bv, syncUUID );
 			mod->sml_op = LDAP_MOD_REPLACE;
 			mod->sml_desc = slap_schema.si_ad_entryUUID;
 			mod->sml_type = mod->sml_desc->ad_cname;
+			ber_dupbv( &uuid_bv, &syncUUID_strrep );
 			ber_bvarray_add( &mod->sml_values, &uuid_bv );
+			ber_dupbv( &uuid_bv, syncUUID );
+			ber_bvarray_add( &mod->sml_nvalues, &uuid_bv );
 			modtail->sml_next = mod;
 					
 			op->o_tag = LDAP_REQ_MODIFY;
@@ -2054,21 +2113,27 @@ dn_callback(
 
 				/* Did the DN change? */
 				if ( !dn_match( &rs->sr_entry->e_name,
-						&dni->new_entry->e_name )) {
+						&dni->new_entry->e_name ) )
+				{
 					dni->renamed = 1;
 				}
 
-				i = 0;
-				for ( old=rs->sr_entry->e_attrs; old; old=old->a_next ) i++;
+				for ( i = 0, old = rs->sr_entry->e_attrs;
+						old;
+						i++, old = old->a_next )
+					;
+
 				dni->attrs = i;
 
-				for ( old=rs->sr_entry->e_attrs, new=dni->new_entry->e_attrs;
-					old && new; old=old->a_next, new=new->a_next ) {
+				for ( old = rs->sr_entry->e_attrs, new = dni->new_entry->e_attrs;
+						old && new;
+						old = old->a_next, new = new->a_next )
+				{
 					if ( old->a_desc != new->a_desc ) {
 						dni->wasChanged = 1;
 						break;
 					}
-					for (i=0; ; i++) {
+					for ( i = 0; ; i++ ) {
 						int nold, nnew;
 						nold = BER_BVISNULL( &old->a_vals[i] );
 						nnew = BER_BVISNULL( &new->a_vals[i] );
@@ -2092,7 +2157,7 @@ dn_callback(
 					dni->ads = op->o_tmpalloc( dni->attrs *
 						sizeof(AttributeDescription *), op->o_tmpmemctx );
 					i = 0;
-					for ( old=rs->sr_entry->e_attrs; old; old=old->a_next ) {
+					for ( old = rs->sr_entry->e_attrs; old; old = old->a_next ) {
 						dni->ads[i] = old->a_desc;
 						i++;
 					}
