@@ -98,7 +98,7 @@ append_to_safe_string(safe_string * ss, char * s)
 	}
 	strncpy(&ss->val[ss->pos], s, l);
 	ss->pos += l;
-	if ( ss->pos > 0 && ss->val[ss->pos-1] == ' ' )
+	if ( ss->pos > 0 && isspace(ss->val[ss->pos-1]) )
 		ss->at_whsp = 1;
 	else
 		ss->at_whsp = 0;
