@@ -15,6 +15,19 @@
 
 #ifdef LDAP_CLIENT_UPDATE
 
+static int psearch_base_candidate(
+	BackendDB	*be,
+	Entry	*e,
+	ID		*ids );
+static int psearch_candidates(
+	BackendDB *be,
+	Operation *op,
+	Entry *e,
+	Filter *filter,
+	int scope,
+	int deref,
+	ID	*ids );
+
 int
 bdb_abandon(
 	BackendDB	*be,
@@ -370,6 +383,28 @@ dn2entry_retry:
 	/* compute it anyway; root does not use it */
 	stoptime = ps_op->o_time + tlimit;
 
+	/* select candidates */
+	if ( scope == LDAP_SCOPE_BASE ) {
+		rc = psearch_base_candidate( be, e, candidates );
+	} else {
+		BDB_IDL_ALL( bdb, candidates );
+		rc = psearch_candidates( be, op, e, filter,
+			scope, deref, candidates );
+	}
+
+	if ( !BDB_IDL_IS_RANGE( candidates ) ) {
+		cursor = bdb_idl_search( candidates, entry->e_id );
+		if ( candidates[cursor] != entry->e_id ) {
+			goto test_done;
+		}
+	} else {
+		if ( entry->e_id < BDB_IDL_RANGE_FIRST(candidates) &&
+		     entry->e_id > BDB_IDL_RANGE_LAST(candidates) )
+		{
+			goto test_done;
+		}
+	}
+
 	/* candidates = { e } */
 	candidates[0] = 1;
 	candidates[1] = entry->e_id;
@@ -431,21 +466,6 @@ dn2entry_retry:
 	csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
 	ber_dupbv( &csnfge.f_av_value, &ps_op->o_clientupdate_state );
 	csnfge.f_next = filter;
-
-	if ( !BDB_IDL_IS_RANGE( candidates ) ) {
-		cursor = bdb_idl_search( candidates, entry->e_id );
-		if ( candidates[cursor] != entry->e_id ) {
-			rc = LDAP_SUCCESS;
-			goto done;
-		}
-	} else {
-		if ( entry->e_id < BDB_IDL_RANGE_FIRST(candidates) &&
-		     entry->e_id > BDB_IDL_RANGE_LAST(candidates) )
-		{
-			rc = LDAP_SUCCESS;
-			goto done;
-		}
-	}
 
 	id = entry->e_id;
 
@@ -758,93 +778,276 @@ dn2entry_retry:
 						ber_dupbv( &ctrls[0]->ldctl_value, bv );
 						
 						result = send_search_entry( be, ps_conn, ps_op,
-								e, attrs, attrsonly, ctrls);
+							e, attrs, attrsonly, ctrls);
 
-							ch_free( ctrls[0]->ldctl_value.bv_val );
-							ch_free( ctrls[0] );
-							ber_free( ber, 1 );
-							ber_bvfree( bv );
+						ch_free( ctrls[0]->ldctl_value.bv_val );
+						ch_free( ctrls[0] );
+						ber_free( ber, 1 );
+						ber_bvfree( bv );
 
-							if ( psearch_type == LCUP_PSEARCH_BY_MODIFY ) {
-								struct psid_entry* psid_e;
-								LDAP_LIST_FOREACH( psid_e, &op->premodify_list,
-									link)
-								{
-									if( psid_e->ps ==
-										LDAP_LIST_FIRST(&ps_op->psearch_spec))
-									{
-										LDAP_LIST_REMOVE(psid_e, link);
-										break;
-									}
-								}
-								if (psid_e != NULL) free (psid_e);
-							}
-
-						} else if ( psearch_type == LCUP_PSEARCH_BY_PREMODIFY ) {
+						if ( psearch_type == LCUP_PSEARCH_BY_MODIFY ) {
 							struct psid_entry* psid_e;
-							psid_e = (struct psid_entry *) calloc (1,
-								sizeof(struct psid_entry));
-							psid_e->ps = LDAP_LIST_FIRST(&ps_op->psearch_spec);
-							LDAP_LIST_INSERT_HEAD( &op->premodify_list,
-								psid_e, link );
-
-						} else {
-							printf("Error !\n");
+							LDAP_LIST_FOREACH( psid_e, &op->premodify_list,
+								link)
+							{
+								if( psid_e->ps ==
+									LDAP_LIST_FIRST(&ps_op->psearch_spec))
+								{
+									LDAP_LIST_REMOVE(psid_e, link);
+									break;
+								}
+							}
+							if (psid_e != NULL) free (psid_e);
 						}
-					}
 
-					switch (result) {
-					case 0:		/* entry sent ok */
-						nentries++;
-						break;
-					case 1:		/* entry not sent */
-						break;
-					case -1:	/* connection closed */
-						rc = LDAP_OTHER;
-						goto done;
+					} else if ( psearch_type == LCUP_PSEARCH_BY_PREMODIFY ) {
+						struct psid_entry* psid_e;
+						psid_e = (struct psid_entry *) calloc (1,
+							sizeof(struct psid_entry));
+						psid_e->ps = LDAP_LIST_FIRST(&ps_op->psearch_spec);
+						LDAP_LIST_INSERT_HEAD( &op->premodify_list,
+							psid_e, link );
+
+					} else {
+						printf("Error !\n");
 					}
 				}
-			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, RESULTS,
-					"bdb_search: %ld scope not okay\n", (long) id, 0, 0);
-#else
-				Debug( LDAP_DEBUG_TRACE,
-					"bdb_search: %ld scope not okay\n", (long) id, 0, 0 );
-#endif
+
+				switch (result) {
+				case 0:		/* entry sent ok */
+					nentries++;
+					break;
+				case 1:		/* entry not sent */
+					break;
+				case -1:	/* connection closed */
+					rc = LDAP_OTHER;
+					goto done;
+				}
 			}
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, RESULTS,
-				"bdb_search: %ld does match filter\n", (long) id, 0, 0);
+				"bdb_search: %ld scope not okay\n", (long) id, 0, 0);
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_search: %ld does match filter\n",
-				(long) id, 0, 0 );
+				"bdb_search: %ld scope not okay\n", (long) id, 0, 0 );
 #endif
 		}
+	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, RESULTS,
+			"bdb_search: %ld does match filter\n", (long) id, 0, 0);
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_search: %ld does match filter\n",
+			(long) id, 0, 0 );
+#endif
+	}
 
-	test_done:
-		rc = LDAP_SUCCESS;
+test_done:
+	rc = LDAP_SUCCESS;
 
-	done:
-		if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
-			ch_free( csnfeq.f_av_value.bv_val );
-		}
-		
-		if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
-			ch_free( csnfge.f_av_value.bv_val );
-		}
+done:
+	if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
+		ch_free( csnfeq.f_av_value.bv_val );
+	}
 
-		LOCK_ID_FREE( bdb->bi_dbenv, locker );
+	if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
+		ch_free( csnfge.f_av_value.bv_val );
+	}
 
-		if( v2refs ) ber_bvarray_free( v2refs );
-		if( realbase.bv_val ) ch_free( realbase.bv_val );
-		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
-		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
-			ch_free( attrs[0].an_name.bv_val );
+	LOCK_ID_FREE( bdb->bi_dbenv, locker );
+
+	if( v2refs ) ber_bvarray_free( v2refs );
+	if( realbase.bv_val ) ch_free( realbase.bv_val );
+	if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
+	     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+		ch_free( attrs[0].an_name.bv_val );
 
 	return rc;
 }
+
+static int psearch_base_candidate(
+	BackendDB	*be,
+	Entry	*e,
+	ID		*ids )
+{
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY,
+		"psearch_base_candidate: base: \"%s\" (0x%08lx)\n", e->e_dn, (long) e->e_id, 0);
+#else
+	Debug(LDAP_DEBUG_ARGS, "psearch_base_candidates: base: \"%s\" (0x%08lx)\n",
+		e->e_dn, (long) e->e_id, 0);
+#endif
+
+	ids[0] = 1;
+	ids[1] = e->e_id;
+	return 0;
+}
+
+/* Look for "objectClass Present" in this filter.
+ * Also count depth of filter tree while we're at it.
+ */
+static int psearch_oc_filter(
+	Filter *f,
+	int cur,
+	int *max
+)
+{
+	int rc = 0;
+
+	if( cur > *max ) *max = cur;
+
+	switch(f->f_choice) {
+	case LDAP_FILTER_PRESENT:
+		if (f->f_desc == slap_schema.si_ad_objectClass) {
+			rc = 1;
+		}
+		break;
+
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+		cur++;
+		for (f=f->f_and; f; f=f->f_next) {
+			(void) psearch_oc_filter(f, cur, max);
+		}
+		break;
+
+	default:
+		break;
+	}
+	return rc;
+}
+
+static int psearch_candidates(
+	BackendDB *be,
+	Operation *op,
+	Entry *e,
+	Filter *filter,
+	int scope,
+	int deref,
+	ID	*ids )
+{
+	int rc, depth = 1;
+	Filter		f, scopef, rf, xf;
+	ID		*stack;
+	AttributeAssertion aa_ref;
+#ifdef BDB_SUBENTRIES
+	Filter	sf;
+	AttributeAssertion aa_subentry;
+#endif
+#ifdef BDB_ALIASES
+	Filter	af;
+	AttributeAssertion aa_alias;
+#endif
+
+	/*
+	 * This routine takes as input a filter (user-filter)
+	 * and rewrites it as follows:
+	 *	(&(scope=DN)[(objectClass=subentry)]
+	 *		(|[(objectClass=referral)(objectClass=alias)](user-filter))
+	 */
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY,
+		"psearch_candidates: base=\"%s\" (0x%08lx) scope=%d\n", 
+		e->e_dn, (long) e->e_id, scope);
+#else
+	Debug(LDAP_DEBUG_TRACE,
+		"psearch_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
+		e->e_dn, (long) e->e_id, scope );
+#endif
+
+	xf.f_or = filter;
+	xf.f_choice = LDAP_FILTER_OR;
+	xf.f_next = NULL;
+
+	/* If the user's filter uses objectClass=*,
+	 * these clauses are redundant.
+	 */
+	if (!psearch_oc_filter(filter, 1, &depth) && !get_subentries_visibility(op) ) {
+		if( !get_manageDSAit(op) ) { /* match referrals */
+			struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
+			rf.f_choice = LDAP_FILTER_EQUALITY;
+			rf.f_ava = &aa_ref;
+			rf.f_av_desc = slap_schema.si_ad_objectClass;
+			rf.f_av_value = bv_ref;
+			rf.f_next = xf.f_or;
+			xf.f_or = &rf;
+		}
+
+#ifdef BDB_ALIASES
+		if( deref & LDAP_DEREF_SEARCHING ) { /* match aliases */
+			struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
+			af.f_choice = LDAP_FILTER_EQUALITY;
+			af.f_ava = &aa_alias;
+			af.f_av_desc = slap_schema.si_ad_objectClass;
+			af.f_av_value = bv_alias;
+			af.f_next = xf.f_or;
+			xf.f_or = &af;
+		}
+#endif
+		/* We added one of these clauses, filter depth increased */
+		if( xf.f_or != filter ) depth++;
+	}
+
+	f.f_next = NULL;
+	f.f_choice = LDAP_FILTER_AND;
+	f.f_and = &scopef;
+	scopef.f_choice = scope == LDAP_SCOPE_SUBTREE
+		? SLAPD_FILTER_DN_SUBTREE
+		: SLAPD_FILTER_DN_ONE;
+	scopef.f_dn = &e->e_nname;
+	scopef.f_next = xf.f_or == filter ? filter : &xf ;
+	/* Filter depth increased again, adding scope clause */
+	depth++;
+
+#ifdef BDB_SUBENTRIES
+	if( get_subentries_visibility( op ) ) {
+		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
+		sf.f_choice = LDAP_FILTER_EQUALITY;
+		sf.f_ava = &aa_subentry;
+		sf.f_av_desc = slap_schema.si_ad_objectClass;
+		sf.f_av_value = bv_subentry;
+		sf.f_next = scopef.f_next;
+		scopef.f_next = &sf;
+	}
+#endif
+
+	/* Allocate IDL stack, plus 1 more for former tmp */
+	stack = ch_malloc( (depth + 1) * BDB_IDL_UM_SIZE * sizeof( ID ) );
+
+	rc = bdb_filter_candidates( be, &f, ids, stack, stack+BDB_IDL_UM_SIZE );
+
+	ch_free( stack );
+
+	if( rc ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, DETAIL1,
+			"bdb_psearch_candidates: failed (rc=%d)\n", rc, 0, 0  );
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"bdb_psearch_candidates: failed (rc=%d)\n",
+			rc, NULL, NULL );
+#endif
+
+	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, DETAIL1,
+			"bdb_psearch_candidates: id=%ld first=%ld last=%ld\n",
+			(long) ids[0], (long) BDB_IDL_FIRST(ids), 
+			(long) BDB_IDL_LAST(ids));
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"bdb_psearch_candidates: id=%ld first=%ld last=%ld\n",
+			(long) ids[0],
+			(long) BDB_IDL_FIRST(ids),
+			(long) BDB_IDL_LAST(ids) );
+#endif
+	}
+
+	return rc;
+}
+
 
 #endif /* LDAP_CLIENT_UPDATE */
