@@ -404,6 +404,8 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 
 LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 
+LDAP_SLAPD_F (int) dnDCEnormalize LDAP_P(( char *dce, struct berval *out ));
+
 /*
  * entry.c
  */
