@@ -33,7 +33,7 @@ LIBLUTIL_F (SERVICE_STATUS_HANDLE)	hSLAPDServiceStatus;
 extern ldap_pvt_thread_cond_t	started_event,		stopped_event;
 extern int	  is_NT_Service;
 
-void CommenceStartupProcessing( LPCTSTR serviceName,
+void CommenceStartupProcessing( LPCTSTR serverName,
 							   void(*stopper)(int));
 void ReportSlapdShutdownComplete( void );
 void *getRegParam( char *svc, char *value );
@@ -112,7 +112,7 @@ usage( char *name )
 #ifdef LOG_LOCAL4
 		"\t-l sysloguser\tSyslog User (default: LOCAL4)\n"
 #endif
-		"\t-n serviceName\tservice name\n"
+		"\t-n serverName\tservice name\n"
 		"\t-s level\tSyslog Level\n"
 #ifdef SLAPD_BDB2
 		"\t-t\t\tEnable BDB2 timing\n"
@@ -169,10 +169,10 @@ int main( int argc, char **argv )
 		char *regService = NULL;
 
 		if ( is_NT_Service ) {
-			NTservice = argv[0];
-			CommenceStartupProcessing( NTservice, slap_sig_shutdown );
-			if ( strcmp(NTservice, SERVICE_NAME) )
-			    regService = NTservice;
+			serverName = argv[0];
+			CommenceStartupProcessing( serverName, slap_sig_shutdown );
+			if ( strcmp(serverName, SERVICE_NAME) )
+			    regService = serverName;
 		}
 
 		i = (int*)getRegParam( regService, "DebugLevel" );
@@ -443,7 +443,7 @@ int main( int argc, char **argv )
 
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
-	LogSlapdStartedEvent( NTservice, slap_debug, configfile, urls );
+	LogSlapdStartedEvent( serverName, slap_debug, configfile, urls );
 #endif
 
 	rc = slapd_daemon();
@@ -471,7 +471,7 @@ destroy:
 stop:
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
-	LogSlapdStoppedEvent( NTservice );
+	LogSlapdStoppedEvent( serverName );
 #endif
 
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
