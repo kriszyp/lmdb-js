@@ -570,8 +570,7 @@ slap_mods2entry(
 			for ( i = 0; mods->sml_values[i].bv_val; i++ ) {
 				ber_dupbv( &attr->a_vals[i], &mods->sml_values[i] );
 			}
-			attr->a_vals[i].bv_len = 0;
-			attr->a_vals[i].bv_val = NULL;
+			BER_BVZERO( &attr->a_vals[i] );
 		} else {
 			attr->a_vals = mods->sml_values;
 			mods->sml_values = NULL;
@@ -585,8 +584,7 @@ slap_mods2entry(
 				for ( i = 0; mods->sml_nvalues[i].bv_val; i++ ) {
 					ber_dupbv( &attr->a_nvals[i], &mods->sml_nvalues[i] );
 				}
-				attr->a_nvals[i].bv_len = 0;
-				attr->a_nvals[i].bv_val = NULL;
+				BER_BVZERO( &attr->a_nvals[i] );
 			} else {
 				attr->a_nvals = mods->sml_nvalues;
 				mods->sml_nvalues = NULL;

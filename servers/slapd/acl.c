@@ -1407,7 +1407,7 @@ dn_match_cleanup:;
 				* rights are determined by OR'ing the individual
 				* rights given by the acis.
 				*/
-				for ( i = 0; at->a_vals[i].bv_val != NULL; i++ ) {
+				for ( i = 0; !BER_BVISNULL( &at->a_nvals[i] ); i++ ) {
 					if (aci_mask( op,
 						e, desc, val,
 						&at->a_nvals[i],
@@ -1856,7 +1856,8 @@ aci_match_set (
 
 					set = bvals[0];
 					BER_BVZERO( &bvals[0] );
-					for ( i = 1; !BER_BVISNULL( &bvals[i] ); i++ );
+					for ( i = 1; !BER_BVISNULL( &bvals[i] ); i++ )
+						/* count */ ;
 					bvals[0].bv_val = bvals[i-1].bv_val;
 					BER_BVZERO( &bvals[i-1] );
 				}
