@@ -137,7 +137,7 @@ static struct slap_daemon {
 		epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_MOD, s,	\
 			&SLAP_SOCK_EP(s));	\
 	}	\
-} while(0)	\
+} while(0)
 
 #define SLAP_SOCK_SET_READ(s)	SLAP_SET_SOCK(s, EPOLLIN)
 #define SLAP_SOCK_SET_WRITE(s)	SLAP_SET_SOCK(s, EPOLLOUT)
@@ -152,7 +152,8 @@ static struct slap_daemon {
 
 /* If a Listener address is provided, store that as the epoll data.
  * Otherwise, store the address of this socket's slot in the
- * index array.
+ * index array. If we can't do this add, the system is out of
+ * resources and we need to shutdown.
  */
 #define SLAP_ADD_SOCK(s, l) do { \
 	int rc;	\
@@ -162,6 +163,11 @@ static struct slap_daemon {
 	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_ADD, s,	\
 			&SLAP_SOCK_EP(s));	\
 	if ( rc == 0 ) slap_daemon.sd_nfds++;	\
+	else {
+		Debug( LDAP_DEBUG_ANY, "daemon: epoll_ctl ADD failed, errno %d, shutting down\n"
+		errno, 0, 0 );
+		slapd_shutdown = 2;	\
+	}
 } while(0)
 
 #define	SLAP_EV_LISTENER(ptr) (((int *)(ptr) >= slap_daemon.sd_index && \
