@@ -99,6 +99,8 @@ LDAPRDN_validate( LDAPRDN rdn )
 			}
 		}
 	}
+
+	return LDAP_SUCCESS;
 }
 
 /*
@@ -207,7 +209,6 @@ rdnValidate(
 	struct berval *in )
 {
 	int		rc;
-	LDAPDN		dn = NULL;
 	LDAPRDN		rdn;
 	char*		p;
 
@@ -1018,14 +1019,15 @@ rdnMatch(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ENTRY, "dnMatch: %d\n    %s\n    %s\n", 
+	LDAP_LOG( CONFIG, ENTRY, "rdnMatch: %d\n    %s\n    %s\n", 
 		match, value->bv_val, asserted->bv_val  );
 #else
-	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
+	Debug( LDAP_DEBUG_ARGS, "rdnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
 		match, value->bv_val, asserted->bv_val );
 #endif
 
 	*matchp = match;
+
 	return( LDAP_SUCCESS );
 }
 

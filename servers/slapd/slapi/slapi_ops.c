@@ -818,7 +818,7 @@ slapi_modrdn_internal(
 		goto cleanup;
 	}
 
-	if ( rdnValidate( &op->oq_modrdn.rs_nnewrdn ) != LDAP_SUCCESS ) {
+	if ( rdn_validate( &op->oq_modrdn.rs_nnewrdn ) != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
