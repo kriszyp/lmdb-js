@@ -141,7 +141,6 @@ load_editor( void )
 		printf("->load_editor()\n");
 #endif
 
-#ifdef HAVE_MKSTEMP
 	strcpy(entry_temp_file, LDAP_TMPDIR LDAP_DIRSEP "udXXXXXX");
 
 	{
@@ -157,14 +156,6 @@ load_editor( void )
 			return(-1);
 		}
 	}
-
-#else
-	fp = tmpfile();
-	if ( fp == NULL ) {
-		perror("tmpfile");
-		return(-1);
-	}
-#endif
 
 	fprintf(fp, "## Directory entry of %s\n", Entry.name);
 	fprintf(fp, "##\n");
