@@ -525,7 +525,7 @@ findmax_cb( Operation *op, SlapReply *rs )
 		Attribute *a = attr_find( rs->sr_entry->e_attrs,
 			slap_schema.si_ad_entryCSN );
 
-		if ( a && ber_bvcmp( &a->a_vals[0], maxcsn )) {
+		if ( a && ber_bvcmp( &a->a_vals[0], maxcsn ) > 0 ) {
 			maxcsn->bv_len = a->a_vals[0].bv_len;
 			strcpy( maxcsn->bv_val, a->a_vals[0].bv_val );
 		}
@@ -644,8 +644,9 @@ syncprov_findcsn( Operation *op, int mode )
 		fop.ors_slimit = SLAP_NO_LIMIT;
 		cb.sc_private = &maxcsn;
 		cb.sc_response = findmax_cb;
+		strcpy( cbuf, si->si_ctxcsn.bv_val );
 		maxcsn.bv_val = cbuf;
-		maxcsn.bv_len = 0;
+		maxcsn.bv_len = si->si_ctxcsn.bv_len;
 		break;
 	case FIND_CSN:
 		cf.f_choice = LDAP_FILTER_LE;
@@ -696,10 +697,8 @@ syncprov_findcsn( Operation *op, int mode )
 
 	switch( mode ) {
 	case FIND_MAXCSN:
-		if ( maxcsn.bv_len ) {
-			strcpy( si->si_ctxcsnbuf, maxcsn.bv_val );
-			si->si_ctxcsn.bv_len = maxcsn.bv_len;
-		}
+		strcpy( si->si_ctxcsnbuf, maxcsn.bv_val );
+		si->si_ctxcsn.bv_len = maxcsn.bv_len;
 		break;
 	case FIND_CSN:
 		/* If matching CSN was not found, invalidate the context. */
