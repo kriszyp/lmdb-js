@@ -19,7 +19,7 @@ objectClass: ( 1.3.6.1.4.1.4203.666.3.4 NAME 'OpenLDAPperson'
 	MUST ( uid $ cn )
 	MAY ( authPassword $ givenName $ labeledURI $ o $ ou ) )
 
-objectClass: ( 1.3.6.1.4.1.4203.666.3.5 NAME 'displayableObject'
-	DESC 'A Displayable Object'
+objectClass: ( 1.3.6.1.4.1.4203.666.3.5 NAME 'OpenLDAPdisplayableObject'
+	DESC 'OpenLDAP Displayable Object'
 	MAY displayName AUXILIARY )
 
