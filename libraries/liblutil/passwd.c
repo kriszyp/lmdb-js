@@ -98,7 +98,7 @@ lutil_passwd(
 		lutil_SHA1Final(SHA1digest, &SHA1context);
  
 		/* compare */
-		rc = strncmp((char *)orig_pass, (char *)SHA1digest, sizeof(SHA1digest));
+		rc = memcmp((char *)orig_pass, (char *)SHA1digest, sizeof(SHA1digest));
 		free(orig_pass);
 		return(rc);
 
@@ -128,7 +128,7 @@ lutil_passwd(
 		lutil_MD5Final(MD5digest, &MD5context);
 
 		/* compare */
-		rc = strncmp((char *)orig_pass, (char *)MD5digest, sizeof(MD5digest));
+		rc = memcmp((char *)orig_pass, (char *)MD5digest, sizeof(MD5digest));
 		free(orig_pass);
 		return ( rc );
 
