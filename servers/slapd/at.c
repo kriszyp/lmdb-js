@@ -173,6 +173,19 @@ at_fake_if_needed(
 
 #endif
 
+int is_at_syntax(
+	AttributeType *at,
+	const char *oid )
+{
+	for( ; at != NULL; at = at->sat_sup ) {
+		if( at->sat_syntax_oid ) {
+			return ( strcmp( at->sat_syntax_oid, oid ) == 0 );
+		}
+	}
+
+	return 0;
+}
+
 int is_at_subtype(
 	AttributeType *sub,
 	AttributeType *sup )

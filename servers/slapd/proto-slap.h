@@ -100,6 +100,10 @@ LIBSLAPD_F (int) is_at_subtype LDAP_P((
 	AttributeType *sub,
 	AttributeType *super ));
 
+LIBSLAPD_F (int) is_at_syntax LDAP_P((
+	AttributeType *at,
+	const char *oid ));
+
 #	define at_canonical_name(at) ((at)->sat_cname)	
 #else
 LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));

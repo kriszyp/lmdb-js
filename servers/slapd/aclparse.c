@@ -335,8 +335,8 @@ parse_acl(
 					}
 
 
-					if( strcmp( b->a_dn_at->ad_type->sat_oid,
-						SLAPD_OID_DN_SYNTAX ) != 0 )
+					if( !is_at_syntax( b->a_dn_at->ad_type,
+						SLAPD_OID_DN_SYNTAX ) )
 					{
 						fprintf( stderr,
 							"%s: line %d: dnattr \"%s\": "
@@ -461,8 +461,8 @@ parse_acl(
 					}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-					if( strcmp( b->a_group_at->ad_type->sat_oid,
-						SLAPD_OID_DN_SYNTAX ) != 0 )
+					if( !is_at_syntax( b->a_group_at->ad_type,
+						SLAPD_OID_DN_SYNTAX ) )
 					{
 						fprintf( stderr,
 							"%s: line %d: group \"%s\": inappropriate syntax: %s\n",
