@@ -271,15 +271,16 @@ add_values(
 	/* char *desc = mod->sm_desc->ad_cname->bv_val; */
 	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 
-	if( mr == NULL ) {
-		return LDAP_INAPPROPRIATE_MATCHING;
-	}
-
-
 	a = attr_find( e->e_attrs, mod->sm_desc );
 
 	/* check if the values we're adding already exist */
 	if ( a != NULL ) {
+		/* do allow add of additional attribute if
+			no equality rule exists */
+		if( mr == NULL ) {
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
+
 		for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
 			int rc;
 			int j;
@@ -330,16 +331,18 @@ delete_values(
 	char *desc = mod->sm_desc->ad_cname->bv_val;
 	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
 
-	if( mr == NULL || !mr->smr_match ) {
-		return LDAP_INAPPROPRIATE_MATCHING;
-	}
-
 	/* delete the entire attribute */
 	if ( mod->sm_bvalues == NULL ) {
 		Debug( LDAP_DEBUG_ARGS, "removing entire attribute %s\n",
 		    desc, 0, 0 );
 		return( attr_delete( &e->e_attrs, mod->sm_desc ) ?
 		    LDAP_NO_SUCH_ATTRIBUTE : LDAP_SUCCESS );
+	}
+
+	/* disallow specific attributes from being deleted if
+		no equality rule */
+	if( mr == NULL || !mr->smr_match ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
 	/* delete specific values - find the attribute first */
