@@ -296,7 +296,10 @@ dn.regex clause by using the form
 .BR $<digit> ,
 with 
 .B digit
-ranging from 1 to 9.
+ranging from 0 to 9 (where 0 matches the entire string),
+or the form
+.BR ${<digit>+} ,
+for submatches higher than 9.
 Since the dollar character is used to indicate a substring replacement,
 the dollar character that is used to indicate match up to the end of
 the string must be escaped by a second dollar character, e.g.
@@ -319,7 +322,7 @@ is not
 Note that the 
 .B regex 
 dnstyle in the above example may be of use only if the 
-.B by
+.B <by>
 clause needs to be a regex; otherwise, if the
 value of the second (from the right)
 .B dc=
@@ -331,7 +334,7 @@ portion of the DN in the above example were fixed, the form
 .fi
 .LP
 could be used; if it had to match the value in the 
-.B what
+.B <what>
 clause, the form
 .LP
 .nf
@@ -340,6 +343,43 @@ clause, the form
 .fi
 .LP
 could be used.
+.LP
+Forms of the 
+.B <what>
+clause other than regex may provide submatches as well.
+The 
+.BR base(object) ,
+the
+.BR sub(tree) ,
+the
+.BR one(level) ,
+and the
+.B children
+forms provide
+.B $0
+as the match of the entire string.
+The 
+.BR sub(tree) ,
+the
+.BR one(level) ,
+and the
+.B children
+forms also provide
+.B $1
+as the match of the rightmost part of the DN as defined in the
+.B <what>
+clause.
+This may be useful, for instance, to provide access to all the 
+ancestors of a user by defining
+.LP
+.nf
+    access to dn.subtree="dc=com"
+        by dn.subtree,expand="$1" read
+.fi
+.LP
+which means that only access to entries that appear in the DN of the
+.B <by>
+clause is allowed.
 .LP
 It is perfectly useless to give any access privileges to a DN 
 that exactly matches the
@@ -374,9 +414,19 @@ can be
 which means that
 .B <group>
 will be expanded as a replacement string (but not as a regular expression)
-according to regex (7), and
+according to
+.BR regex (7),
+and
 .BR exact ,
 which means that exact match will be used.
+If the style of the DN portion of the
+.B <what>
+clause is regex, the submatches are made available according to
+.BR regex (7);
+other styles provide limited submatches as discussed above about 
+the DN form of the 
+.B <by>
+clause.
 .LP
 For static groups, the specified attributeType must have
 .B DistinguishedName
@@ -424,7 +474,7 @@ match of the corresponding connection parameters.
 The
 .B exact
 style of the
-.BR peername
+.BR <peername>
 clause (the default) implies a case-exact match on the client's
 .BR IP , 
 including the
@@ -474,7 +524,7 @@ prefix from the
 when connecting through a named pipe, and performs an exact match 
 on the given pattern.
 The
-.BR domain 
+.BR <domain>
 clause also allows the
 .B subtree
 style, which succeeds when a fully qualified name exactly matches the
@@ -503,7 +553,7 @@ statement is strongly discouraged.  By default, reverse lookups are disabled.
 The optional
 .B domainstyle
 qualifier of the
-.B domain
+.B <domain>
 clause allows a
 .B modifier
 option; the only value currently supported is
@@ -514,7 +564,7 @@ the
 is not 
 .BR regex ,
 much like the analogous usage in 
-.B dn
+.B <dn>
 clause.
 .LP
 The statement
@@ -821,7 +871,7 @@ When writing submatch rules, it may be convenient to avoid unnecessary
 .B <dnstyle>
 use; for instance, to allow access to the subtree of the user 
 that matches the
-.B what
+.B <what>
 clause, one could use
 .LP
 .nf
@@ -831,7 +881,7 @@ clause, one could use
 .fi
 .LP
 However, since all that is required in the 
-.B by
+.B <by>
 clause is substring expansion, a more efficient solution is
 .LP
 .nf
