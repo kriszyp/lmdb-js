@@ -93,7 +93,6 @@ bdb2i_back_modrdn_internal(
 			goto return_results;
 		}
 
-#ifndef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
 			"children", NULL, ACL_WRITE ) )
@@ -104,7 +103,6 @@ bdb2i_back_modrdn_internal(
 				"", "" );
 			goto return_results;
 		}
-#endif
 
 		p_dn = dn_parent( be, e->e_dn );
 
@@ -159,7 +157,6 @@ bdb2i_back_modrdn_internal(
 		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%d\n",
 		       np, np->e_id, 0 );
 	    
-#ifndef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
 		/* check newSuperior for "children" acl */
 		if ( !access_allowed( be, conn, op, np, "children", NULL,
 				      ACL_WRITE ) )
@@ -171,7 +168,6 @@ bdb2i_back_modrdn_internal(
 					  "", "" );
 			goto return_results;
 		}
-#endif
 
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: wr to new parent's children OK\n",

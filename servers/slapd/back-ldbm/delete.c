@@ -72,7 +72,6 @@ ldbm_back_delete(
 			goto return_results;
 		}
 
-#ifndef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
 			"children", NULL, ACL_WRITE ) )
@@ -84,7 +83,6 @@ ldbm_back_delete(
 				"", "" );
 			goto return_results;
 		}
-#endif
 
 	} else {
 		/* no parent, must be root to delete */
