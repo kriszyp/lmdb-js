@@ -18,7 +18,8 @@
 
 static Entry *pw2entry(
 	Backend *be,
-	struct passwd *pw);
+	struct passwd *pw,
+	const char **text);
 
 int
 passwd_back_search(
@@ -48,7 +49,7 @@ passwd_back_search(
 	LDAPRDN *rdn = NULL;
 	char *parent = NULL;
 	char *matched = NULL;
-	char *user = NULL;
+	const char *text = NULL;
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 
@@ -76,7 +77,6 @@ passwd_back_search(
 		matched = (char *) base;
 
 		if( scope != LDAP_SCOPE_ONELEVEL ) {
-			const char *text;
 			AttributeDescription *desc = NULL;
 
 			/* Create an entry corresponding to the base DN */
@@ -148,7 +148,11 @@ passwd_back_search(
 					return( 0 );
 				}
 
-				e = pw2entry( be, pw );
+				if ( !(e = pw2entry( be, pw, &text )) ) {
+					err = LDAP_OPERATIONS_ERROR;
+					endpwent();
+					goto done;
+				}
 
 				if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 					/* check size limit */
@@ -170,8 +174,6 @@ passwd_back_search(
 		}
 
 	} else {
-		const char *text = NULL;
-
 		parent = dn_parent( be, nbase->bv_val );
 
 		/* This backend is only one layer deep. Don't answer requests for
@@ -204,7 +206,10 @@ passwd_back_search(
 			goto done;
 		}
 
-		e = pw2entry( be, pw );
+		if ( !(e = pw2entry( be, pw, &text )) ) {
+			err = LDAP_OPERATIONS_ERROR;
+			goto done;
+		}
 
 		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 			send_search_entry( be, conn, op,
@@ -217,7 +222,7 @@ passwd_back_search(
 
 done:
 	send_ldap_result( conn, op,
-		err, err == LDAP_NO_SUCH_OBJECT ? matched : NULL, NULL,
+		err, err == LDAP_NO_SUCH_OBJECT ? matched : NULL, text,
 		NULL, NULL );
 
 	if( rdn != NULL ) ldap_rdnfree( rdn );
@@ -226,7 +231,7 @@ done:
 }
 
 static Entry *
-pw2entry( Backend *be, struct passwd *pw )
+pw2entry( Backend *be, struct passwd *pw, const char **text )
 {
 	size_t pwlen;
 	Entry		*e;
@@ -235,7 +240,6 @@ pw2entry( Backend *be, struct passwd *pw )
 	struct berval	bv;
 
 	int rc;
-	const char *text;
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	AttributeDescription *ad_cn = NULL;
@@ -243,13 +247,13 @@ pw2entry( Backend *be, struct passwd *pw )
 	AttributeDescription *ad_uid = NULL;
 	AttributeDescription *ad_description = NULL;
 
-	rc = slap_str2ad( "cn", &ad_cn, &text );
+	rc = slap_str2ad( "cn", &ad_cn, text );
 	if(rc != LDAP_SUCCESS) return NULL;
-	rc = slap_str2ad( "sn", &ad_sn, &text );
+	rc = slap_str2ad( "sn", &ad_sn, text );
 	if(rc != LDAP_SUCCESS) return NULL;
-	rc = slap_str2ad( "uid", &ad_uid, &text );
+	rc = slap_str2ad( "uid", &ad_uid, text );
 	if(rc != LDAP_SUCCESS) return NULL;
-	rc = slap_str2ad( "description", &ad_description, &text );
+	rc = slap_str2ad( "description", &ad_description, text );
 	if(rc != LDAP_SUCCESS) return NULL;
 
 	/*
