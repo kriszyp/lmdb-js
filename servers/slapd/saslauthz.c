@@ -131,14 +131,42 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	const char *c;
 	int rc, n;
 	SaslRegexp_t *reg;
+	struct berval bv, nbv;
 
 	SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
 	  (nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
 	reg = &( SaslRegexp[nSaslRegexp] );
-	reg->match = ch_strdup( match );
-	reg->replace = ch_strdup( replace );
-	dn_normalize( reg->match );
-	dn_normalize( reg->replace );
+	ber_str2bv( match, 0, 0, &bv );
+	rc = dnNormalize2( NULL, &bv, &nbv );
+	if ( rc ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+			   "slap_sasl_regexp_config: \"%s\" could not be normalized.\n",
+			   match ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+		"SASL match pattern %s could not be normalized.\n",
+		match, 0, 0 );
+#endif
+		return( rc );
+	}
+	reg->match = nbv.bv_val;
+
+	ber_str2bv( replace, 0, 0, &bv );
+	rc = dnNormalize2( NULL, &bv, &nbv );
+	if ( rc ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+			   "slap_sasl_regexp_config: \"%s\" could not be normalized.\n",
+			   replace ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+		"SASL replace pattern %s could not be normalized.\n",
+		replace, 0, 0 );
+#endif
+		return( rc );
+	}
+	reg->replace = nbv.bv_val;
 
 	/* Precompile matching pattern */
 	rc = regcomp( &reg->workspace, reg->match, REG_EXTENDED|REG_ICASE );

@@ -589,55 +589,6 @@ dnParent(
 	return;
 }
 
-#ifdef SLAP_DN_MIGRATION
-/*
- * these routines are provided for migration purposes only!
- *	dn_normalize is deprecated in favor of dnNormalize
- *	strcmp/strcasecmp for DNs is deprecated in favor of dnMatch
- *
- * other routines are likewise deprecated but may not yet have
- * replacement functions.
- */
-
-/*
- * dn_normalize - put dn into a canonical form suitable for storing
- * in a hash database.	this involves normalizing the case as well as
- * the format.	the dn is normalized in place as well as returned if valid.
- * Deprecated in favor of dnNormalize()
- */
-char *
-dn_normalize( char *dn )
-{
-	struct berval val;
-	struct berval *normalized = NULL;
-	int		rc;
-
-	if ( dn == NULL || dn[0] == '\0' ) {
-		return dn;
-	}
-
-	val.bv_val = dn;
-	val.bv_len = strlen( dn );
-
-	rc = dnNormalize( NULL, &val, &normalized );
-	if ( rc != LDAP_SUCCESS ) {
-		return NULL;
-	}
-
-	if ( val.bv_len < normalized->bv_len ) {
-		ber_bvfree( normalized );
-		return NULL;
-	}
-
-	AC_MEMCPY( dn, normalized->bv_val, normalized->bv_len + 1 );
-	ber_bvfree( normalized );
-
-	return dn;
-}
-
-#endif /* SLAP_DN_MIGRATION */
-
-
 int
 dnExtractRdn( 
 	struct berval	*dn, 
