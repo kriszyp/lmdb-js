@@ -202,10 +202,18 @@ ber_free( BerElement *ber, int freebuf )
 
 	assert( BER_VALID( ber ) );
 
-	if ( freebuf && ber->ber_buf != NULL )
+	if ( freebuf ) {
+		Seqorset *s, *next;
 		LBER_FREE( ber->ber_buf );
 
+		for( s = ber->ber_sos ; s != NULL ; s = next ) {
+			next = s->sos_next;
+			LBER_FREE( s );
+		}
+	}
+
 	ber->ber_buf = NULL;
+	ber->ber_sos = NULL;
 	ber->ber_valid = LBER_UNINITIALIZED;
 
 	LBER_FREE( (char *) ber );
