@@ -145,6 +145,9 @@ ldbm_back_db_config(
 			li ->li_dbsyncwaitinterval = i;
 		}
 
+		/* turn off writesync when sync policy is in place */
+		li->li_dbwritesync = 0;
+
 #else
 		Debug( LDAP_DEBUG_ANY,
     "\"dbsync\" policies not supported in non-threaded environments\n", 0, 0, 0);

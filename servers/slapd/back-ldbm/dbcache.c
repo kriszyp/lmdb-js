@@ -46,7 +46,7 @@ ldbm_cache_open(
 		flags |= LDBM_NOLOCKING;
 	}
 	
-	if( li->li_dbwritesync && li->li_dbsyncfreq == 0) {
+	if( li->li_dbwritesync ) {
 		flags |= LDBM_SYNC;
 	} else {
 		flags |= LDBM_NOSYNC;
