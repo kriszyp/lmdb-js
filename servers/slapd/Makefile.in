@@ -228,8 +228,8 @@ install-local-srv: install-slapd install-conf install-schema install-tools
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
 	-$(MKDIR) $(DESTDIR)$(localstatedir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd$(EXEEXT) \
-						$(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@if [ ! -z "$(SLAPD_MODULES)" ]; then \
 	    for i in back-* shell-backends tools; do \
 		if [ -d $$i ]; then \

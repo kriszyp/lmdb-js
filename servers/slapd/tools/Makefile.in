@@ -159,8 +159,8 @@ install-ldbm-no install-bdb2-no install-quipu-no:
 install-ldbm-yes install-ldbm-mod: FORCE
 	-$(MKDIR) $(DESTDIR)$(sbindir) 
 	@for bin in $(PROGRAMS); do \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$bin$(EXEEXT) \
-					    	    $(DESTDIR)$(sbindir); \
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+			$$bin$(EXEEXT) $(DESTDIR)$(sbindir); \
 	done
 
 install-bdb2-yes install-bdb2-mod: FORCE
@@ -169,5 +169,6 @@ install-bdb2-yes install-bdb2-mod: FORCE
 install-quipu-yes: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sbindir)
 	for bin in edb2ldif chlog2replog; do \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$bin $(DESTDIR)$(sbindir); \
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+			$$bin $(DESTDIR)$(sbindir); \
 	done

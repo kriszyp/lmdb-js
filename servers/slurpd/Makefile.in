@@ -47,7 +47,7 @@ install-local-srv: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
 	@(								\
 	    for prg in $(PROGRAMS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(libexecdir);				\
 	    done							\
 	)

@@ -49,4 +49,4 @@ LDAP-types.h: LDAP_tables.c
 
 install-local-srv: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapd $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 ldapd $(DESTDIR)$(libexecdir)

@@ -29,7 +29,7 @@ install-local: FORCE
 	-mv -f $(DESTDIR)$(bindir)/ud $(DESTDIR)$(bindir)/ud-
 	@(								\
 	    for prg in $(PROGRAMS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(bindir);				\
 	    done							\
 	)

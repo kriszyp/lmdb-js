@@ -25,7 +25,7 @@ install-local: $(PROGRAMS) rcpt500.help FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir) $(DESTDIR)$(datadir)
 	@(								\
 	    for prg in $(PROGRAMS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(libexecdir);				\
 	    done							\
 	)

@@ -37,9 +37,9 @@ install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
 	@(								\
 	    for prg in $(EXEPRGS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(libexecdir);				\
 	    done							\
 	)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 xrpcomp.tmp	\
+	$(INSTALL_SCRIPT) $(INSTALLFLAGS) xrpcomp.tmp	\
 		$(DESTDIR)$(libexecdir)/xrpcomp
