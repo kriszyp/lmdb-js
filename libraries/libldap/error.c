@@ -168,7 +168,7 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 	rc = ldap_parse_result( ld, r, &err,
 		NULL, NULL, NULL, NULL, freeit );
 
-	return err != LDAP_SUCCESS ? err : rc;
+	return rc != LDAP_SUCCESS ? rc : err;
 }
 
 /*
