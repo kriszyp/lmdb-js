@@ -41,7 +41,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	unsigned tid;
 	HANDLE thd;
 
-	thd = (HANDLE) _beginthreadex(NULL, 0, (thrfunc_t *) start_routine,
+	thd = (HANDLE) _beginthreadex(NULL, LDAP_PVT_THREAD_STACK_SIZE, (thrfunc_t *) start_routine,
 				      arg, 0, &tid);
 
 	*thread = (ldap_pvt_thread_t) thd;
