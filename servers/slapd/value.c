@@ -132,6 +132,8 @@ value_match(
 {
 	int rc;
 	struct berval *nv1 = NULL;
+	struct berval *nv2 = NULL;
+	Syntax *syntax;
 
 	if( !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
@@ -146,13 +148,22 @@ value_match(
 		}
 	}
 
+	if ( !(flags & SLAP_MR_VALUE_IS_IN_MR_SYNTAX) &&
+	     mr->smr_convert ) {
+		rc = (mr->smr_convert)(v2,&nv2);
+		if ( rc != LDAP_SUCCESS ) {
+		  return LDAP_INVALID_SYNTAX;
+		}
+	}
+
 	rc = (mr->smr_match)( match, flags,
 		ad->ad_type->sat_syntax,
 		mr,
 		nv1 != NULL ? nv1 : v1,
-		v2 );
+		nv2 != NULL ? nv2 : v2 );
 	
 	ber_bvfree( nv1 );
+	ber_bvfree( nv2 );
 	return rc;
 }
 
