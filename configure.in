@@ -1225,7 +1225,7 @@ if test $ol_with_ldbm_api = manual ; then
 
 	AC_MSG_WARN([LDBM defines and link options must be set manually])
 
-	AC_CHECK_HEADERS(db1/db.h db.h db_185.h gdbm.h ndbm.h)
+	AC_CHECK_HEADERS(db.h db_185.h gdbm.h ndbm.h)
 fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then

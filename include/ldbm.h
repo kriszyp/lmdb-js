@@ -29,7 +29,11 @@
 #ifdef HAVE_DB_185_H
 #	include <db_185.h>
 #else
-#	include <db.h>
+#	ifdef HAVE_DB1_DB_H
+#		include <db1/db.h>
+#	else
+#		include <db.h>
+#	endif
 #	ifdef HAVE_BERKELEY_DB2
 #		define R_NOOVERWRITE DB_NOOVERWRITE
 #		define DEFAULT_DB_PAGE_SIZE 1024
@@ -87,7 +91,11 @@ LDAP_END_DECL
 #ifdef HAVE_DB_185_H
 #	include <db_185.h>
 #else
-#	include <db.h>
+#	ifdef HAVE_DB1_DB_H
+#		include <db1/db.h>
+#	else
+#		include <db.h>
+#	endif
 #	ifdef LDBM_USE_DB2
 #		define R_NOOVERWRITE DB_NOOVERWRITE
 #		define DEFAULT_DB_PAGE_SIZE 1024

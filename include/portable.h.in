@@ -396,6 +396,9 @@
 /* Define if you have the <db.h> header file.  */
 #undef HAVE_DB_H
 
+/* Define if you have the <db1/db.h> header file.  */
+#undef HAVE_DB1_DB_H
+
 /* Define if you have the <db_185.h> header file.  */
 #undef HAVE_DB_185_H
 

@@ -12,7 +12,11 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-#include "db.h"
+#ifdef HAVE_DB1_DB_H
+#	include <db1/db.h>
+#else
+#	include <db.h>
+#endif
 
 #ifdef HAVE_BERKELEY_DB2
 
