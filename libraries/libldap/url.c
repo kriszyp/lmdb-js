@@ -537,6 +537,8 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	}
 
 	if ( q != NULL ) {
+		char	*next;
+
 		*q++ = '\0';
 		ldap_pvt_hex_unescape( q );
 
@@ -546,7 +548,12 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 			return LDAP_URL_ERR_BADURL;
 		}
 
-		ludp->lud_port = atoi( q );
+		ludp->lud_port = strtol( q, &next, 10 );
+		if ( next == NULL || next[0] != '\0' ) {
+			LDAP_FREE( url );
+			ldap_free_urldesc( ludp );
+			return LDAP_URL_ERR_BADURL;
+		}
 	}
 
 	ldap_pvt_hex_unescape( url );
@@ -986,9 +993,14 @@ ldap_url_parsehosts(
 				}
 			}
 			if (p != NULL) {
+				char	*next;
+
 				*p++ = 0;
 				ldap_pvt_hex_unescape(p);
-				ludp->lud_port = atoi(p);
+				ludp->lud_port = strtol( p, &next, 10 );
+				if ( next == NULL || next[0] != '\0' ) {
+					return LDAP_PARAM_ERROR;
+				}
 			}
 		}
 		ldap_pvt_hex_unescape(ludp->lud_host);
