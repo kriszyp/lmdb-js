@@ -123,6 +123,17 @@ int slapi_valueset_next_value( Slapi_ValueSet *vs, int index, Slapi_Value **v);
 int slapi_valueset_count( const Slapi_ValueSet *vs);
 void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2);
 
+typedef struct slapi_mutex	Slapi_Mutex;
+typedef struct slapi_condvar	Slapi_CondVar;
+Slapi_Mutex *slapi_new_mutex( void );
+void slapi_destroy_mutex( Slapi_Mutex *mutex );
+void slapi_lock_mutex( Slapi_Mutex *mutex );
+int slapi_unlock_mutex( Slapi_Mutex *mutex );
+Slapi_CondVar *slapi_new_condvar( Slapi_Mutex *mutex );
+void slapi_destroy_condvar( Slapi_CondVar *cvar );
+int slapi_wait_condvar( Slapi_CondVar *cvar, struct timeval *timeout );
+int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all );
+
 char *slapi_ch_malloc( unsigned long size );
 void slapi_ch_free( void **ptr );
 void slapi_ch_free_string( char **s );

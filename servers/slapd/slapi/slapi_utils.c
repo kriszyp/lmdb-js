@@ -44,6 +44,15 @@ static struct			timeval base_time;
 ldap_pvt_thread_mutex_t		slapi_hn_mutex;
 ldap_pvt_thread_mutex_t		slapi_time_mutex;
 
+struct slapi_mutex {
+	ldap_pvt_thread_mutex_t mutex;
+};
+
+struct slapi_condvar {
+	ldap_pvt_thread_cond_t cond;
+	ldap_pvt_thread_mutex_t mutex;
+};
+
 /*
  * This function converts an array of pointers to berval objects to
  * an array of berval objects.
@@ -2866,5 +2875,112 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb)
 #else
 	return -1;
 #endif /* LDAP_SLAPI */
+}
+
+Slapi_Mutex *slapi_new_mutex( void )
+{
+#ifdef LDAP_SLAPI
+	Slapi_Mutex *m;
+
+	m = (Slapi_Mutex *)slapi_ch_malloc( sizeof(*m) );
+	if ( ldap_pvt_thread_mutex_init( &m->mutex ) != 0 ) {
+		slapi_ch_free( (void **)&m );
+		return NULL;
+	}
+
+	return m;
+#else
+	return NULL;
+#endif
+}
+
+void slapi_destroy_mutex( Slapi_Mutex *mutex )
+{
+#ifdef LDAP_SLAPI
+	if ( mutex != NULL ) {
+		ldap_pvt_thread_mutex_destroy( &mutex->mutex );
+		slapi_ch_free( (void **)&mutex);
+	}
+#endif
+}
+
+void slapi_lock_mutex( Slapi_Mutex *mutex )
+{
+#ifdef LDAP_SLAPI
+	ldap_pvt_thread_mutex_lock( &mutex->mutex );
+#endif
+}
+
+int slapi_unlock_mutex( Slapi_Mutex *mutex )
+{
+#ifdef LDAP_SLAPI
+	return ldap_pvt_thread_mutex_unlock( &mutex->mutex );
+#else
+	return -1;
+#endif
+}
+
+Slapi_CondVar *slapi_new_condvar( Slapi_Mutex *mutex )
+{
+#ifdef LDAP_SLAPI
+	Slapi_CondVar *cv;
+
+	if ( mutex == NULL ) {
+		return NULL;
+	}
+
+	cv = (Slapi_CondVar *)slapi_ch_malloc( sizeof(*cv) );
+	if ( ldap_pvt_thread_cond_init( &cv->cond ) != 0 ) {
+		slapi_ch_free( (void **)&cv );
+		return NULL;
+	}
+
+	/* XXX struct copy */
+	cv->mutex = mutex->mutex;
+
+	return cv;
+#else	
+	return NULL;
+#endif
+}
+
+void slapi_destroy_condvar( Slapi_CondVar *cvar )
+{
+#ifdef LDAP_SLAPI
+	if ( cvar != NULL ) {
+		ldap_pvt_thread_cond_destroy( &cvar->cond );
+		slapi_ch_free( (void **)&cvar );
+	}
+#endif
+}
+
+int slapi_wait_condvar( Slapi_CondVar *cvar, struct timeval *timeout )
+{
+#ifdef LDAP_SLAPI
+	if ( cvar == NULL ) {
+		return -1;
+	}
+
+	return ldap_pvt_thread_cond_wait( &cvar->cond, &cvar->mutex );
+#else
+	return -1;
+#endif
+}
+
+int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all )
+{
+#ifdef LDAP_SLAPI
+	if ( cvar == NULL ) {
+		return -1;
+	}
+
+	if ( notify_all ) {
+		return ldap_pvt_thread_cond_braodcast( &cvar->cond );
+	}
+
+	return ldap_pvt_thread_cond_signal( &cvar->cond );
+#else
+	return -1;
+#endif
 }
 
