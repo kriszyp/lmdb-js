@@ -173,6 +173,7 @@ LDAP_F (int) ldap_pvt_tls_get_option LDAP_P(( struct ldap *ld,
 LDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldap *ld,
 	int option, void *arg ));
 
+LDAP_F (void) ldap_pvt_tls_destroy LDAP_P(( void ));
 LDAP_F (int) ldap_pvt_tls_init LDAP_P(( void ));
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));

@@ -542,6 +542,10 @@ stop:
 #endif
 	slapd_daemon_destroy();
 
+#ifdef HAVE_TLS
+	ldap_pvt_tls_destroy();
+#endif
+
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );
 #endif
