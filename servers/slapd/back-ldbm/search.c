@@ -53,6 +53,9 @@ ldbm_back_search(
 	int		nentries = 0;
 	int		manageDSAit = get_manageDSAit( op );
 
+	int timelimit = -1, sizelimit = -1;
+	int isroot = 0;
+		
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "ldbm_back_search: enter\n" ));
@@ -181,19 +184,28 @@ searchit:
 		goto done;
 	}
 
-	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
+	if ( be_isroot( be, op->o_ndn ) ) {
+		isroot = 1;
+	} else {
+		if ( get_limits( be, op->o_ndn, &timelimit, &sizelimit) ) {
+			timelimit = be->be_timelimit;
+			sizelimit = be->be_sizelimit;
+		}
+	}
+
+	if ( tlimit == 0 && isroot ) {
 		tlimit = -1;	/* allow root to set no limit */
 	} else {
-		tlimit = (tlimit > be->be_timelimit || tlimit < 1) ?
-		    be->be_timelimit : tlimit;
+		tlimit = (tlimit > timelimit || tlimit < 1) ?
+		    timelimit : tlimit;
 		stoptime = op->o_time + tlimit;
 	}
 
-	if ( slimit == 0 && be_isroot( be, op->o_ndn ) ) {
+	if ( slimit == 0 && isroot ) {
 		slimit = -1;	/* allow root to set no limit */
 	} else {
-		slimit = (slimit > be->be_sizelimit || slimit < 1) ?
-		    be->be_sizelimit : slimit;
+		slimit = (slimit > sizelimit || slimit < 1) ?
+		    sizelimit : slimit;
 	}
 
 	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
