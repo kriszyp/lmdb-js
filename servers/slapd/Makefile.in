@@ -42,7 +42,6 @@ SLAP_DIR=
 SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a
 SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
 SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
-SLAPD_SLAPI_DEPEND=@SLAPD_SLAPI_DEPEND@
 
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
@@ -226,20 +225,21 @@ slapd.exp: libslapd.a
 		--base-file slapd.base --output-exp $@
 
 libslapi.a: .slapi
+	(cd slapi; $(MAKE) $(MFLAGS) all)
 	cp slapi/.libs/libslapi.a .
 
-.slapi: slapd
+.slapi: $(SLAPD_OBJECTS)
 	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
 	(cd slapi; $(MAKE) $(MFLAGS) all)
 
-slapd: $(SLAPD_DEPENDS)
+slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
 		$(WRAP_LIBS)
 
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
-tools $(SLAPD_DYNAMIC_BACKENDS) $(SLAPD_SLAPI_DEPEND): slapd
+tools $(SLAPD_DYNAMIC_BACKENDS): slapd
 	cd $@; $(MAKE) $(MFLAGS) all
 	@touch $@
 
