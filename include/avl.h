@@ -21,7 +21,7 @@
 
 typedef struct avlnode {
 	caddr_t		avl_data;
-	char		avl_bf;
+	signed char		avl_bf;
 	struct avlnode	*avl_left;
 	struct avlnode	*avl_right;
 } Avlnode;
