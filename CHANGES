@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.16 Engineering
+OpenLDAP 2.2.16 Release
 	Fixed libldap getaddrinfo hints portability bug (ITS#3279)
 	Fixed libldap find_connection bug (ITS#3280)
 	Fixed libldap SASL host connected to bug (ITS#3298)
