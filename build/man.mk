@@ -9,7 +9,7 @@
 MANDIR=$(mandir)/man$(MANSECT)
 TMP_SUFFIX=tmp
 
-all-common: FORCE
+all-common:
 	VERSION=`$(CAT) $(VERSIONFILE)`; \
 	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
 	for page in $$PAGES; do \
