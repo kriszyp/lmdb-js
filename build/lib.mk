@@ -21,11 +21,17 @@ lint: lint-local FORCE
 lint5: lint5-local FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
+#
+# In the mingw/cygwin environment, the so and dll files must be
+# deleted separately, instead of using the {.so*,*.dll} construct
+# that was previously used. It just didn't work.
+#
 clean-common: 	FORCE
 	$(RM) $(LIBRARY) ../$(LIBRARY) $(XLIBRARY) \
 		$(PROGRAMS) $(XPROGRAMS) $(XSRCS) $(XXSRCS) \
 		*.o *.lo a.out *.exe core version.c .libs/* \
-		../`$(BASENAME) $(LIBRARY) .la`{.a,.so*,*.dll}
+		../`$(BASENAME) $(LIBRARY) .la`.so* \
+		../`$(BASENAME) $(LIBRARY) .la`*.dll
 
 depend-common: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $(XXSRCS)
@@ -34,3 +40,4 @@ lint-local: FORCE
 lint5-local: FORCE
 
 Makefile: $(top_srcdir)/build/lib.mk
+

@@ -86,7 +86,7 @@ struct berval; /* avoid include */
 /*
  * Inits the info
  */
-extern struct rewrite_info *
+LDAP_REWRITE_F (struct rewrite_info *)
 rewrite_info_init(
 		int mode
 );
@@ -94,7 +94,7 @@ rewrite_info_init(
 /*
  * Cleans up the info structure
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_info_delete(
                 struct rewrite_info *info
 );
@@ -111,7 +111,7 @@ rewrite_info_delete(
  *      rewriteMap 		mapType mapName [mapArgs]
  *      rewriteParam		paramName paramValue
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_parse(
 		struct rewrite_info *info,
                 const char *fname,
@@ -135,7 +135,7 @@ rewrite_parse(
  *      - ok with copy of string as result,
  *      - use the default rewrite context.
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite(
 		struct rewrite_info *info,
 		const char *rewriteContext,
@@ -146,7 +146,7 @@ rewrite(
 /*
  * Same as above; the cookie relates the rewrite to a session
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_session(
 		struct rewrite_info *info,
 		const char *rewriteContext,
@@ -158,7 +158,7 @@ rewrite_session(
 /*
  * Inits a session
  */
-extern struct rewrite_session *
+LDAP_REWRITE_F (struct rewrite_session *)
 rewrite_session_init(
                 struct rewrite_info *info,
                 const void *cookie
@@ -167,7 +167,7 @@ rewrite_session_init(
 /*
  * Defines and inits a variable with session scope
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_session_var_set(
 		struct rewrite_info *info,
 		const void *cookie,
@@ -178,7 +178,7 @@ rewrite_session_var_set(
 /*
  * Deletes a session
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_session_delete(
 		struct rewrite_info *info,
 		const void *cookie
@@ -192,7 +192,7 @@ rewrite_session_delete(
 /*
  * Defines and inits a variable with global scope
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_param_set(
                 struct rewrite_info *info,
                 const char *name,
@@ -202,7 +202,7 @@ rewrite_param_set(
 /*
  * Gets a var with global scope
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_param_get(
                 struct rewrite_info *info,
                 const char *name,
@@ -212,7 +212,7 @@ rewrite_param_get(
 /* 
  * Destroys the parameter tree
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_param_destroy(
                 struct rewrite_info *info
 );

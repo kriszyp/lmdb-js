@@ -51,8 +51,9 @@ LDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str,
 	/* strdup() is missing, declare our own version */
 #	undef strdup
 #	define strdup(s) ber_strdup(s)
-#else
+#elif !defined(_WIN32)
 	/* some systems fail to declare strdup */
+	/* Windows does not require this declaration */
 	LDAP_LIBC_F(char *) (strdup)();
 #endif
 

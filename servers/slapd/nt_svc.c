@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 #include "slap.h"
+#include "lutil.h"
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 
@@ -25,7 +26,6 @@ int main( int argc, LPTSTR *argv )
 {
 	int		length;
 	char	filename[MAX_PATH], *fname_start;
-	extern int is_NT_Service;
 
 	/*
 	 * Because the service was registered as SERVICE_WIN32_OWN_PROCESS,

@@ -40,28 +40,13 @@ OBJS	= threads.lo rdwr.lo tpool.lo  \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
+LIB_DEFS = -DLDAP_LIBRARY
+
 XDEFS = -DLDAP_R_COMPILE -I$(XXDIR)
 XLIBS = -lldap_r -llber -llutil
 XXLIBS = $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
-
-LINKAGE = @LT_LIB_LINKAGE@
-
-NT_DYN_LIB_LIBS  = -llber -llutil $(AC_LIBS)
-NT_DYN_LIB_DEFS  = -DLBER_DECL=dllimport
-NT_DYN_TEST_DEFS = -DLBER_DECL=dllimport -DLDAP_DECL=dllimport
-
-NT_XXLIBS = $(SECURITY_LIBS)
-
-UNIX_DYN_LIB_LIBS  = -llber $(AC_LIBS)
-UNIX_XXLIBS = $(SECURITY_LIBS)
-
-# Extras for building the library
-EXTRA_DEFS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
-EXTRA_LIBS = $(@PLAT@_@LIB_LINKAGE@_LIB_LIBS) $(@PLAT@_XXLIBS)
-
-# Only the test programs will pick up these defs.
-CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
+NT_LINK_LIBS = -llber $(AC_LIBS) $(SECURITY_LIBS)
 
 .links :
 	@for i in $(XXSRCS); do \
@@ -87,3 +72,4 @@ ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 install-local: $(CFFILES) FORCE
 	-$(MKDIR) $(DESTDIR)$(libdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
+

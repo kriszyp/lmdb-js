@@ -131,7 +131,7 @@ LDAP_BEGIN_DECL
 
 #define SLAPD_TOP_OID			"2.5.6.0"
 
-LDAP_SLAPD_F (int) slap_debug;
+LDAP_SLAPD_V (int) slap_debug;
 
 typedef unsigned long slap_mask_t;
 
@@ -843,12 +843,12 @@ struct replog_moddn {
 typedef struct slap_backend_info BackendInfo;	/* per backend type */
 typedef struct slap_backend_db BackendDB;		/* per backend database */
 
-LDAP_SLAPD_F (int) nBackendInfo;
-LDAP_SLAPD_F (int) nBackendDB;
-LDAP_SLAPD_F (BackendInfo	*) backendInfo;
-LDAP_SLAPD_F (BackendDB *) backendDB;
+LDAP_SLAPD_V (int) nBackendInfo;
+LDAP_SLAPD_V (int) nBackendDB;
+LDAP_SLAPD_V (BackendInfo	*) backendInfo;
+LDAP_SLAPD_V (BackendDB *) backendDB;
 
-LDAP_SLAPD_F (int) slapMode;	
+LDAP_SLAPD_V (int) slapMode;	
 #define SLAP_UNDEFINED_MODE	0x0000
 #define SLAP_SERVER_MODE	0x0001
 #define SLAP_TOOL_MODE		0x0002

@@ -498,12 +498,12 @@ ber_sockbuf_ctrl LDAP_P((
 	int opt,
 	void *arg ));
 
-LBER_F( Sockbuf_IO ) ber_sockbuf_io_tcp;
-LBER_F( Sockbuf_IO ) ber_sockbuf_io_readahead;
-LBER_F( Sockbuf_IO ) ber_sockbuf_io_fd;
-LBER_F( Sockbuf_IO ) ber_sockbuf_io_debug;
+LBER_V( Sockbuf_IO ) ber_sockbuf_io_tcp;
+LBER_V( Sockbuf_IO ) ber_sockbuf_io_readahead;
+LBER_V( Sockbuf_IO ) ber_sockbuf_io_fd;
+LBER_V( Sockbuf_IO ) ber_sockbuf_io_debug;
 #ifdef LDAP_CONNECTIONLESS
-LBER_F( Sockbuf_IO ) ber_sockbuf_io_udp;
+LBER_V( Sockbuf_IO ) ber_sockbuf_io_udp;
 #endif
 
 /*

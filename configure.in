@@ -788,6 +788,7 @@ AC_CHECK_HEADERS(	\
 	termios.h		\
 	unistd.h		\
 	winsock.h		\
+	winsock2.h		\
 )
 
 
@@ -799,24 +800,43 @@ AC_CHECK_FUNC(dlopen, :, [AC_CHECK_LIB(dl, dlopen)])
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
 
-dnl Gotta check for winsock manually
-if test $ac_cv_header_winsock_h = yes; then
-	AC_CACHE_CHECK([for winsock], [ol_cv_winsock], 
-    	AC_TRY_LINK([#include <winsock.h>],[
-			socket(0,0,0);
-			select(0,NULL,NULL,NULL,NULL);
-			closesocket(0);
-			gethostname(NULL,0);
-    	],[ol_cv_winsock=yes],[ol_cv_winsock=no]))
+dnl The following is INTENTIONALLY scripted out because shell does not
+dnl support variable names with the '@' character, which is what
+dnl autoconf would try to generate if one merely used AC_SEARCH_LIBS
+AC_MSG_CHECKING(for winsock)
+save_LIBS="$LIBS"
+for curlib in ws2_32 wsock32; do
+	LIBS="$LIBS -l$curlib"
+	AC_TRY_LINK([
+			char socket@12();
+			char select@20();
+			char closesocket@4();
+			char gethostname@8();
+		    ],
+		    [
+			socket@12();
+			select@20();
+			closesocket@4();
+			gethostname@8();
+		    ],
+		    have_winsock=yes, have_winsock=no)
 
-	if test $ol_cv_winsock = yes ; then
-		AC_DEFINE(HAVE_WINSOCK,1,[define if you have winsock])
+	if test $have_winsock = yes; then
+		AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
 		ac_cv_func_socket=yes
 		ac_cv_func_select=yes
 		ac_cv_func_closesocket=yes
 		ac_cv_func_gethostname=yes
+		if test $curlib = ws2_32; then
+			have_winsock=winsock2
+			AC_DEFINE(HAVE_WINSOCK2, 1,
+				  [define if you have winsock2])
+		fi
+		break
 	fi
-fi
+	LIBS="$save_LIBS"
+done
+AC_MSG_RESULT($have_winsock)
 
 dnl Find socket()
 dnl Likely combinations:
@@ -852,7 +872,8 @@ AC_CHECK_HEADERS( regex.h )
 if test "$ac_cv_header_regex_h" != yes ; then
 	AC_MSG_ERROR([POSIX regex.h required.])
 fi
-AC_CHECK_FUNC(regfree, :, AC_MSG_ERROR([POSIX regex required.]))
+AC_SEARCH_LIBS(regfree, [regex gnuregex],
+	       :, AC_MSG_ERROR([POSIX regex required.]))
 
 OL_POSIX_REGEX
 if test "$ol_cv_c_posix_regex" = no ; then
@@ -1898,9 +1919,10 @@ fi
 
 dnl ----------------------------------------------------------------
 if test $ol_enable_dynamic = yes -a $enable_shared = yes ; then
-	LINK_BINS_DYNAMIC="yes"
+	BUILD_LIBS_DYNAMIC=shared
+	AC_DEFINE(LDAP_LIBS_DYNAMIC, 1, [define if LDAP libs are dynamic])
 else
-	LINK_BINS_DYNAMIC="no"
+	BUILD_LIBS_DYNAMIC=static
 fi
 
 dnl ----------------------------------------------------------------
@@ -2074,7 +2096,7 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for entropy sources
-if test $cross_compiling != yes ; then
+if test $cross_compiling != yes -a $ac_cv_mingw32 != yes ; then
 	dev=no
 	if test -r /dev/urandom ; then
 		dev="/dev/urandom";
@@ -2559,28 +2581,22 @@ fi
 
 dnl ----------------------------------------------------------------
 
-if test "$LINK_BINS_DYNAMIC" = yes; then
-    LIB_LINKAGE=DYN
-    LT_LIB_LINKAGE=shared
-else
-    LIB_LINKAGE=STAT
-    LT_LIB_LINKAGE=static
-fi
+dnl
+dnl For Windows build, we don't want to include -dlopen flags.
+dnl They hurt more than they help.
+dnl
 
 if test "$ac_cv_mingw32" = yes ; then
     PLAT=NT
-    DYN_EXT=dll
+    SLAPD_MODULES_LDFLAGS=
+    SLAPD_MODULES_LIST=
 else
     PLAT=UNIX
-    DYN_EXT=so
 fi
 
 AC_SUBST(LIBSRCS)
-
 AC_SUBST(PLAT)
-AC_SUBST(LIB_LINKAGE)
-AC_SUBST(LT_LIB_LINKAGE)
-AC_SUBST(DYN_EXT)
+AC_SUBST(BUILD_LIBS_DYNAMIC)
 
 AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_BDB)
@@ -2618,7 +2634,6 @@ AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
 AC_SUBST(WRAP_LIBS)
 AC_SUBST(MOD_TCL_LIB)
-AC_SUBST(LINK_BINS_DYNAMIC)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)

@@ -18,40 +18,48 @@
 #include "slap.h"
 #include "lutil.h"
 
-#ifdef SLAPD_BDB
+/*
+ * If a module is configured as dynamic, its header should not
+ * get included into slapd. While this is a general rule and does
+ * not have much of an effect in UNIX, this rule should be adhered
+ * to for Windows, where dynamic object code should not be implicitly
+ * imported into slapd without appropriate __declspec(dllimport) directives.
+ */
+
+#if defined(SLAPD_BDB) && !defined(SLAPD_BDB_DYNAMIC)
 #include "back-bdb/external.h"
 #endif
-#ifdef SLAPD_DNSSRV
+#if defined(SLAPD_DNSSRV) && !defined(SLAPD_DNSSRV_DYNAMIC)
 #include "back-dnssrv/external.h"
 #endif
-#ifdef SLAPD_LDAP
+#if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
 #include "back-ldap/external.h"
 #endif
-#ifdef SLAPD_LDBM
+#if defined(SLAPD_LDBM) && !defined(SLAPD_LDBM_DYNAMIC)
 #include "back-ldbm/external.h"
 #endif
-#ifdef SLAPD_META
+#if defined(SLAPD_META) && !defined(SLAPD_META_DYNAMIC)
 #include "back-meta/external.h"
 #endif
-#ifdef SLAPD_MONITOR
+#if defined(SLAPD_MONITOR) && !defined(SLAPD_MONITOR_DYNAMIC)
 #include "back-monitor/external.h"
 #endif
-#ifdef SLAPD_PASSWD
+#if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
 #include "back-passwd/external.h"
 #endif
-#ifdef SLAPD_PERL
+#if defined(SLAPD_PERL) && !defined(SLAPD_PERL_DYNAMIC)
 #include "back-perl/external.h"
 #endif
-#ifdef SLAPD_SHELL
+#if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
 #include "back-shell/external.h"
 #endif
-#ifdef SLAPD_TCL
+#if defined(SLAPD_TCL) && !defined(SLAPD_TCL_DYNAMIC)
 #include "back-tcl/external.h"
 #endif
-#ifdef SLAPD_SQL
+#if defined(SLAPD_SQL) && !defined(SLAPD_SQL_DYNAMIC)
 #include "back-sql/external.h"
 #endif
-#ifdef SLAPD_PRIVATE
+#if defined(SLAPD_PRIVATE) && !defined(SLAPD_PRIVATE_DYNAMIC)
 #include "private/external.h"
 #endif
 

@@ -17,6 +17,9 @@
 
 #include "ldap_pvt_thread.h"
 
+/* mingw compiler very sensitive about getting prototypes right */
+typedef unsigned __stdcall thrfunc_t(void *);
+
 int
 ldap_int_thread_initialize( void )
 {
@@ -35,16 +38,15 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void *),
 	void *arg)
 {
-	unsigned long tid;
+	unsigned tid;
 	HANDLE thd;
 
-	thd = _beginthreadex( NULL, 0,
-		(LPTHREAD_START_ROUTINE) start_routine, arg,
-		0, &tid );
+	thd = (HANDLE) _beginthreadex(NULL, 0, (thrfunc_t *) start_routine,
+				      arg, 0, &tid);
 
 	*thread = (ldap_pvt_thread_t) thd;
 
-	 return thd == NULL ? -1 : 0;
+	return thd == NULL ? -1 : 0;
 }
 	
 void 

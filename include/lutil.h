@@ -74,7 +74,7 @@ lutil_authpasswd_hash LDAP_P((
 
 #if defined( SLAPD_SPASSWD ) && defined( HAVE_CYRUS_SASL )
 	/* cheat to avoid pulling in <sasl.h> */
-LDAP_LUTIL_F( struct sasl_conn * ) lutil_passwd_sasl_conn;
+LDAP_LUTIL_V( struct sasl_conn * ) lutil_passwd_sasl_conn;
 #endif
 
 LDAP_LUTIL_F( int )
@@ -109,6 +109,27 @@ lutil_progname LDAP_P((
 /* sockpair.c */
 LDAP_LUTIL_F( int )
 lutil_pair( ber_socket_t sd[2] );
+
+/*
+ * Sometimes not all declarations in a header file are needed.
+ * An indicator to this is whether or not the symbol's type has
+ * been defined. Thus, we don't need to include a symbol if
+ * its type has not been defined through another header file.
+ */
+
+#ifdef HAVE_NT_SERVICE_MANAGER
+LDAP_LUTIL_V (int) is_NT_Service;
+
+#ifdef _LDAP_PVT_THREAD_H
+LDAP_LUTIL_V (ldap_pvt_thread_cond_t) started_event;
+#endif /* _LDAP_PVT_THREAD_H */
+
+#ifdef _WINSVC_H
+LDAP_LUTIL_V (SERVICE_STATUS) SLAPDServiceStatus;
+LDAP_LUTIL_V (SERVICE_STATUS_HANDLE) hSLAPDServiceStatus;
+#endif /* _WINSVC_H */
+
+#endif /* HAVE_NT_SERVICE_MANAGER */
 
 LDAP_END_DECL
 

@@ -28,7 +28,7 @@
 /*
  * Retrieves a builtin map
  */
-struct rewrite_builtin_map *
+LDAP_REWRITE_F (struct rewrite_builtin_map *)
 rewrite_builtin_map_find(
                 struct rewrite_info *info,
                 const char *name
@@ -38,7 +38,7 @@ rewrite_builtin_map_find(
 /*
  * LDAP map
  */
-void  * 
+LDAP_REWRITE_F (void  *)
 map_ldap_parse(
 		struct rewrite_info *info,
 		const char *fname,
@@ -47,7 +47,7 @@ map_ldap_parse(
 	       	char **argv
 );
 
-int
+LDAP_REWRITE_F (int)
 map_ldap_apply( struct rewrite_builtin_map *map,
 		const char *filter,
 		struct berval *val

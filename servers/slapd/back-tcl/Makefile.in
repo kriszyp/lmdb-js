@@ -24,10 +24,15 @@ LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-tcl"
 BUILD_MOD = @BUILD_TCL@
-LINKAGE = @BUILD_TCL_DYNAMIC@
+BUILD_MOD_DYNAMIC = @BUILD_TCL_DYNAMIC@
+
+mod_DEFS = -DSLAPD_IMPORT
+MOD_DEFS = $(@BUILD_TCL@_DEFS)
+
+shared_LDAP_LIBS = $(LDAP_LIBPATH) -lldap_r -llber
+NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
 
 LIBBASE = back_tcl
-MODLIBS = @MOD_TCL_LIB@
 
 XDEFS = $(MODULES_CPPFLAGS)
 XINCPATH = -I.. -I$(srcdir)/..
@@ -36,3 +41,4 @@ all-local-lib:	../.backend
 
 ../.backend: lib$(LIBBASE).a
 	@touch $@
+

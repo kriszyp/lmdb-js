@@ -29,13 +29,6 @@ static RETSIGTYPE wait4child( int sig );
 #define MAIN_RETURN(x) return
 struct sockaddr_in	bind_addr;
 
-/* in nt_main.c */
-LDAP_LUTIL_V(SERVICE_STATUS)		SLAPDServiceStatus;
-LDAP_LUTIL_V(SERVICE_STATUS_HANDLE)	hSLAPDServiceStatus;
-/* externs are frowned upon, but so is NT :-) */
-extern ldap_pvt_thread_cond_t	started_event, stopped_event;
-extern int	  is_NT_Service;
-
 void CommenceStartupProcessing( LPCTSTR serverName,
 							   void(*stopper)(int));
 void ReportSlapdShutdownComplete( void );

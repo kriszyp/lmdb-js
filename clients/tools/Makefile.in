@@ -8,9 +8,6 @@ OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o ldappasswd.o
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-NT_DYN_DEFS = -DLBER_DECL=dllimport -DLDAP_DECL=dllimport
-CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_DEFS)
-
 XLIBS =  -llutil -lldif -lldap -llber
 XXLIBS	= $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 

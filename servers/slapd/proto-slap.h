@@ -10,8 +10,8 @@
 
 LDAP_BEGIN_DECL
 
-LDAP_SLAPD_F( int ) schema_init_done;
-LDAP_SLAPD_F( struct slap_internal_schema ) slap_schema;
+LDAP_SLAPD_V( int ) schema_init_done;
+LDAP_SLAPD_V( struct slap_internal_schema ) slap_schema;
 
 LDAP_SLAPD_F( int ) slap_valid_descr( const char * );
 
@@ -334,7 +334,7 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P(( char ** new_dn,
  * entry.c
  */
 
-extern const Entry slap_entry_root;
+LDAP_SLAPD_V (const Entry) slap_entry_root;
 
 LDAP_SLAPD_F (int) entry_destroy LDAP_P((void));
 
@@ -468,7 +468,7 @@ LDAP_SLAPD_F (void) *module_resolve LDAP_P((
 /*
  * controls.c
  */
-LDAP_SLAPD_F (char *) supportedControls[];
+LDAP_SLAPD_V (char *) supportedControls[];
 
 /*
  * mra.c
@@ -853,8 +853,8 @@ LDAP_SLAPD_F (int) slap_passwd_parse(
  * kerberos.c
  */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-extern char		*ldap_srvtab;
-LDAP_SLAPD_F (int)	krbv4_ldap_auth();
+LDAP_SLAPD_V (char)	*ldap_srvtab;
+LDAP_SLAPD_V (int)	krbv4_ldap_auth();
 #endif
 
 /*
@@ -863,65 +863,65 @@ LDAP_SLAPD_F (int)	krbv4_ldap_auth();
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
 #define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
 
-LDAP_SLAPD_F (ber_len_t) sockbuf_max_incoming;
-LDAP_SLAPD_F (ber_len_t) sockbuf_max_incoming_auth;
+LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming;
+LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming_auth;
 
-LDAP_SLAPD_F (slap_mask_t)	global_restrictops;
-LDAP_SLAPD_F (slap_mask_t)	global_allows;
-LDAP_SLAPD_F (slap_mask_t)	global_disallows;
-LDAP_SLAPD_F (slap_mask_t)	global_requires;
-LDAP_SLAPD_F (slap_ssf_set_t)	global_ssf_set;
+LDAP_SLAPD_V (slap_mask_t)	global_restrictops;
+LDAP_SLAPD_V (slap_mask_t)	global_allows;
+LDAP_SLAPD_V (slap_mask_t)	global_disallows;
+LDAP_SLAPD_V (slap_mask_t)	global_requires;
+LDAP_SLAPD_V (slap_ssf_set_t)	global_ssf_set;
 
-LDAP_SLAPD_F (struct berval **)	default_referral;
-LDAP_SLAPD_F (char *)		replogfile;
-LDAP_SLAPD_F (const char) 	Versionstr[];
-LDAP_SLAPD_F (struct slap_limits_set)		deflimit;
-LDAP_SLAPD_F (int)		g_argc;
-LDAP_SLAPD_F (slap_access_t)	global_default_access;
-LDAP_SLAPD_F (int)		global_lastmod;
-LDAP_SLAPD_F (int)		global_idletimeout;
-LDAP_SLAPD_F (int)		global_schemacheck;
-LDAP_SLAPD_F (char)		*global_host;
-LDAP_SLAPD_F (char)		*global_realm;
-LDAP_SLAPD_F (int)		sasl_external_x509dn_convert;
-LDAP_SLAPD_F (char)		*default_passwd_hash;
-LDAP_SLAPD_F (int)		lber_debug;
-LDAP_SLAPD_F (int)		ldap_syslog;
-LDAP_SLAPD_F (char *)	default_search_base;
-LDAP_SLAPD_F (char *)	default_search_nbase;
+LDAP_SLAPD_V (struct berval **)	default_referral;
+LDAP_SLAPD_V (char *)		replogfile;
+LDAP_SLAPD_V (const char) 	Versionstr[];
+LDAP_SLAPD_V (struct slap_limits_set)		deflimit;
+LDAP_SLAPD_V (int)		g_argc;
+LDAP_SLAPD_V (slap_access_t)	global_default_access;
+LDAP_SLAPD_V (int)		global_lastmod;
+LDAP_SLAPD_V (int)		global_idletimeout;
+LDAP_SLAPD_V (int)		global_schemacheck;
+LDAP_SLAPD_V (char)		*global_host;
+LDAP_SLAPD_V (char)		*global_realm;
+LDAP_SLAPD_V (int)		sasl_external_x509dn_convert;
+LDAP_SLAPD_V (char)		*default_passwd_hash;
+LDAP_SLAPD_V (int)		lber_debug;
+LDAP_SLAPD_V (int)		ldap_syslog;
+LDAP_SLAPD_V (char *)	default_search_base;
+LDAP_SLAPD_V (char *)	default_search_nbase;
 
-LDAP_SLAPD_F (int)		nSaslRegexp;
-LDAP_SLAPD_F (SaslRegexp_t*) SaslRegexp;
+LDAP_SLAPD_V (int)		nSaslRegexp;
+LDAP_SLAPD_V (SaslRegexp_t*) SaslRegexp;
 
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	num_sent_mutex;
-LDAP_SLAPD_F (long)		num_bytes_sent;
-LDAP_SLAPD_F (long)		num_pdu_sent;
-LDAP_SLAPD_F (long)		num_entries_sent;
-LDAP_SLAPD_F (long)		num_refs_sent;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_sent_mutex;
+LDAP_SLAPD_V (long)		num_bytes_sent;
+LDAP_SLAPD_V (long)		num_pdu_sent;
+LDAP_SLAPD_V (long)		num_entries_sent;
+LDAP_SLAPD_V (long)		num_refs_sent;
 
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	num_ops_mutex;
-LDAP_SLAPD_F (long)		num_ops_completed;
-LDAP_SLAPD_F (long)		num_ops_initiated;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_ops_mutex;
+LDAP_SLAPD_V (long)		num_ops_completed;
+LDAP_SLAPD_V (long)		num_ops_initiated;
 
-LDAP_SLAPD_F (char *)		slapd_pid_file;
-LDAP_SLAPD_F (char *)		slapd_args_file;
-LDAP_SLAPD_F (char)		**g_argv;
-LDAP_SLAPD_F (time_t)		starttime;
+LDAP_SLAPD_V (char *)		slapd_pid_file;
+LDAP_SLAPD_V (char *)		slapd_args_file;
+LDAP_SLAPD_V (char)		**g_argv;
+LDAP_SLAPD_V (time_t)		starttime;
 
 /* use time(3) -- no mutex */
 #define slap_get_time()	time( NULL )
 
-LDAP_SLAPD_F (ldap_pvt_thread_pool_t)	connection_pool;
+LDAP_SLAPD_V (ldap_pvt_thread_pool_t)	connection_pool;
 
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	entry2str_mutex;
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	replog_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	passwd_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
 #endif
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	gmtime_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 
-LDAP_SLAPD_F (AccessControl *) global_acl;
+LDAP_SLAPD_V (AccessControl *) global_acl;
 
 LDAP_SLAPD_F (int)	slap_init LDAP_P((int mode, const char* name));
 LDAP_SLAPD_F (int)	slap_startup LDAP_P(( Backend *be ));
@@ -968,7 +968,7 @@ LDAP_SLAPD_F (int) do_unbind LDAP_P((Connection *conn, Operation *op));
 LDAP_SLAPD_F (int) do_extended LDAP_P((Connection *conn, Operation *op));
 
 
-LDAP_SLAPD_F (ber_socket_t) dtblsize;
+LDAP_SLAPD_V (ber_socket_t) dtblsize;
 
 LDAP_END_DECL
 

@@ -345,7 +345,7 @@ LDAP_F ( void ) ldap_int_initialize_global_options LDAP_P((
 /*
  * in error.c
  */
-void ldap_int_error_init( void );
+LDAP_F (void) ldap_int_error_init( void );
 
 /*
  * in unit-int.c
@@ -416,7 +416,7 @@ LDAP_F (int) ldap_int_open_connection( LDAP *ld,
 /*
  * in os-ip.c
  */
-LDAP_F (int) ldap_int_tblsize;
+LDAP_V (int) ldap_int_tblsize;
 LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest, const struct timeval *tm );
 LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
 	int proto, const char *host, unsigned long address, int port,

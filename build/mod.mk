@@ -10,18 +10,12 @@
 LIBRARY = $(LIBBASE).la
 LIBSTAT = lib$(LIBBASE).a
 
-LTFLAGS = --only-$(LINKAGE)
-
-COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(MODDEFS) -c
-LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -rpath $(moduledir) \
-	$(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
-
 MKDEPFLAG = -l
 
 .SUFFIXES: .c .o .lo
 
 .c.lo:
-	$(COMPILE) $<
+	$(LTCOMPILE_MOD) $<
 
 all-no lint-no 5lint-no depend-no install-no: FORCE
 	@echo "run configure with $(BUILD_OPT) to make $(LIBBASE)"
@@ -32,9 +26,8 @@ version.c: $(OBJS)
 	$(RM) $@
 	$(MKVERSION) $(LIBBASE) > $@
 
-$(LIBRARY): $(MODDEPS) version.lo
-	$(LTLIBLINK) -module -o $@ $(OBJS) version.lo \
-	    $(MODLIBS)
+$(LIBRARY): version.lo
+	$(LTLINK_MOD) -module -o $@ $(OBJS) version.lo $(LINK_LIBS)
 
 $(LIBSTAT): version.lo
 	$(AR) ruv $@ `echo $(OBJS) | sed 's/\.lo/.o/g'` version.o

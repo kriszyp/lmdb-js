@@ -33,26 +33,11 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
+LIB_DEFS = -DLDAP_LIBRARY
+
 XLIBS = -lldap -llber -llutil
-XXLIBS = $(SECURITY_LIBS) $(TLS_LIBS)
-
-LINKAGE = @LT_LIB_LINKAGE@
-
-NT_DYN_LIB_LIBS  = -llber -llutil $(AC_LIBS)
-NT_DYN_LIB_DEFS  = -DLBER_DECL=dllimport
-NT_DYN_TEST_DEFS = -DLBER_DECL=dllimport -DLDAP_DECL=dllimport
-
-NT_XXLIBS = $(SECURITY_LIBS)
-
-UNIX_DYN_LIB_LIBS  = -llber $(AC_LIBS)
-UNIX_XXLIBS = $(SECURITY_LIBS)
-
-# Extras for building the library
-EXTRA_DEFS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
-EXTRA_LIBS = $(@PLAT@_@LIB_LINKAGE@_LIB_LIBS) $(@PLAT@_XXLIBS)
-
-# Only the test programs will pick up these defs.
-CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
+XXLIBS = $(SECURITY_LIBS) $(LUTIL_LIBS)
+NT_LINK_LIBS = -llber $(AC_LIBS) $(SECURITY_LIBS)
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) -o $@ apitest.o $(LIBS)

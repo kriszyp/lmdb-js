@@ -37,8 +37,11 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@$(ldap_subdir)
 schemadir = $(sysconfdir)/schema
 
+PLAT = @PLAT@
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@
+
+BUILD_LIBS_DYNAMIC = @BUILD_LIBS_DYNAMIC@
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -58,11 +61,47 @@ MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 LIBTOOL = @LIBTOOL@
 LIBVERSION = @OPENLDAP_LIBVERSION@
 LTVERSION = -version-info $(LIBVERSION)
-#We don't use our own shared libraries (yet)
-#LTLINK  = $(LIBTOOL) --mode=link $(CC) -rpath $(libdir) \
-#	$(CFLAGS) $(LDFLAGS)
-LTLINK  = $(LIBTOOL) --mode=link $(CC) \
-	$(CFLAGS) $(LDFLAGS)
+
+# libtool --only flag for libraries: platform specific
+NT_LTONLY_LIB = --only-$(BUILD_LIBS_DYNAMIC)
+LTONLY_LIB = $(@PLAT@_LTONLY_LIB)
+
+# libtool --only flag for modules: depends on linkage of module
+# The BUILD_MOD_DYNAMIC macro is defined in each backend Makefile.in file
+LTONLY_MOD = --only-$(BUILD_MOD_DYNAMIC)
+
+# platform-specific libtool flags
+NT_LTFLAGS_LIB = -no-undefined -avoid-version -rpath $(libdir)
+NT_LTFLAGS_MOD = -no-undefined -avoid-version -rpath $(moduledir)
+UNIX_LTFLAGS_LIB = $(LTVERSION) -rpath $(libdir)
+UNIX_LTFLAGS_MOD = $(LTVERSION) -rpath $(moduledir)
+
+# libtool flags
+LTFLAGS     = $(@PLAT@_LTFLAGS)
+LTFLAGS_LIB = $(@PLAT@_LTFLAGS_LIB)
+LTFLAGS_MOD = $(@PLAT@_LTFLAGS_MOD)
+
+# LIB_DEFS defined in liblber and libldap Makefile.in files.
+# MOD_DEFS defined in backend Makefile.in files.
+
+# platform-specific LINK_LIBS defined in various Makefile.in files.
+# LINK_LIBS referenced in library and module link commands.
+LINK_LIBS = $(@PLAT@_LINK_LIBS)
+
+LTLINK   = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) $(LTFLAGS)
+
+LTCOMPILE_LIB = $(LIBTOOL) $(LTONLY_LIB) --mode=compile \
+		    $(CC) $(CFLAGS) $(CPPFLAGS) $(LIB_DEFS) -c
+
+LTLINK_LIB = $(LIBTOOL) $(LTONLY_LIB) --mode=link \
+		    $(CC) $(CFLAGS) $(LDFLAGS) $(LTFLAGS_LIB)
+
+LTCOMPILE_MOD = $(LIBTOOL) $(LTONLY_MOD) --mode=compile \
+		    $(CC) $(CFLAGS) $(CPPFLAGS) $(MOD_DEFS) -c
+
+LTLINK_MOD = $(LIBTOOL) $(LTONLY_MOD) --mode=link \
+		    $(CC) $(CFLAGS) $(LDFLAGS) $(LTFLAGS_MOD)
+
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
 # Misc UNIX commands used in build environment
@@ -140,7 +179,6 @@ MODULES_LDFLAGS = @SLAPD_MODULES_LDFLAGS@
 MODULES_LIBS = @MODULES_LIBS@
 TERMCAP_LIBS = @TERMCAP_LIBS@
 SLAPD_PERL_LDFLAGS = @SLAPD_PERL_LDFLAGS@
-LINK_BINS_DYNAMIC = @LINK_BINS_DYNAMIC@
 
 SLAPD_SQL_LDFLAGS = @SLAPD_SQL_LDFLAGS@
 SLAPD_SQL_INCLUDES = @SLAPD_SQL_INCLUDES@
@@ -152,7 +190,8 @@ SLURPD_LIBS = @SLURPD_LIBS@
 # Our Defaults
 CC = $(AC_CC)
 DEFS = $(LDAP_INCPATH) $(XINCPATH) $(XDEFS) $(AC_DEFS) $(DEFINES)
-CFLAGS = $(AC_CFLAGS) $(DEFS)
+CFLAGS = $(AC_CFLAGS)
+CPPFLAGS = $(DEFS)
 LDFLAGS = $(LDAP_LIBPATH) $(AC_LDFLAGS) $(XLDFLAGS)
 LIBS = $(XLIBS) $(XXLIBS) $(AC_LIBS) $(XXXLIBS)
 

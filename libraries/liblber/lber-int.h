@@ -24,7 +24,7 @@
 
 LDAP_BEGIN_DECL
 
-LBER_F (BER_ERRNO_FN) ber_int_errno_fn;
+LBER_V (BER_ERRNO_FN) ber_int_errno_fn;
 
 struct lber_options {
 	short lbo_valid;
@@ -51,7 +51,7 @@ struct lber_options {
 #define LBER_VALID_BERELEMENT	0x2
 #define LBER_VALID_SOCKBUF		0x3
 
-LBER_F (struct lber_options) ber_int_options;
+LBER_V (struct lber_options) ber_int_options;
 #define ber_int_debug ber_int_options.lbo_debug
 
 struct berelement {
@@ -105,7 +105,8 @@ struct seqorset {
 /*
  * io.c
  */
-int ber_realloc LDAP_P((
+LBER_F( int )
+ber_realloc LDAP_P((
 	BerElement *ber,
 	ber_len_t len ));
 
@@ -146,7 +147,7 @@ ber_log_sos_dump LDAP_P((
 
 /* memory.c */
 	/* simple macros to realloc for now */
-LBER_F (BerMemoryFunctions *)	ber_int_memory_fns;
+LBER_V (BerMemoryFunctions *)	ber_int_memory_fns;
 LBER_F (char *)	ber_strndup( LDAP_CONST char *, ber_len_t );
 LBER_F (char *)	ber_strndup__( LDAP_CONST char *, size_t );
 

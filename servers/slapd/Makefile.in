@@ -46,9 +46,7 @@ XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
 # $(LTHREAD_LIBS) must be last
 XLIBS = libbackends.a -lavl @LDBM_LIB@ -lldif -llutil -llunicode -lldap_r -llber
-XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
-	 $(SECURITY_LIBS) \
-	 $(LDIF_LIBS) $(LUTIL_LIBS)
+XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
 BUILD_OPT = "--enable-slapd"
@@ -56,120 +54,217 @@ BUILD_SRV = @BUILD_SLAPD@
 
 all-local-srv: all-cffiles
 
-NT_DYN_DEFS  = -DLBER_DECL=dllimport -DLDAP_DECL=dllimport
+NT_SLAPD_DEPENDS = slapd.exp
+NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) version.o
 
-DEFINES = $(@PLAT@_@LIB_LINKAGE@_DEFS)
+UNIX_SLAPD_DEPENDS = libbackends.a version.o
+UNIX_SLAPD_OBJECTS = $(OBJS) version.o
 
-# The tricky part about building slapd in NT is that it will export symbols
-# like a DLL. The symbols that it exports should be representative of all
-# of the static symbols that it knows about.
+SLAPD_DEPENDS = $(@PLAT@_SLAPD_DEPENDS)
+SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 
-NT_EXP = slapd.exp
-NT_IMPLIB = libslapd.a
-NT_DUMMY  = symdummy.o
+# Notes about slapd for Windows
+# =============================
+# slapd.exe must export all of its global symbols, just like a DLL.
+# The purpose of this is to allow dynamic modules (dynamic backends
+# or external dynamic modules) to bind with the symbols at run-time.
+# 
+# Exporting symbols from an .EXE is a bit tricky and involves multiple
+# steps. First a .DEF file must be generated. The .DEF file indicates
+# the set of symbols that are to be exported. Many times, it's possible
+# to manually create this file with an editor. However, with slapd,
+# we want to export EVERY global symbol that it knows about (NOT including
+# symbols that are imported from other DLLs). The set of symbols to
+# export INCLUDES symbols from all static libraries that slapd gets
+# linked with, e.g. avl, ldbm, ldif, lunicode, lutil, etc. This list
+# will also include liblber and libldap_r if they were built as static
+# libraries. ALSO included will be symbols from other STATIC libraries
+# outside the domain of the OpenLDAP source tree, e.g. regex, ltdl,
+# crypto, ssl, sasl, etc. (If these libraries are dynamic, we won't want
+# to include their symbols in the list). The correct set of symbols
+# CAN be determined at build time. The slapd.def target automatically
+# determines the correct set of symbols and generates the slapd.def file.
+#
+# The slapd.def file, serving multiple purposes, will:
+#
+# 1) be used to generate libslapd.a, the import library for slapd.exe.
+#
+# 2) be used to generate the symdummy.c file.
+#
+# 3) be used to help create slapd.exp, the binary-formated slapd export file.
+#
+# The import library is used by dynamic modules at link time. With this
+# library, dynamic modules indicate to the linker that it will resolve
+# these symbols from the slapd.exe binary at run-time. Of course, whenever
+# a module imports dynamic symbols, those symbols should be marked with
+# the __declspec(dllimport) directive in the header files that the dynamic
+# modules build with. In OpenLDAP, this is handled automatically in the
+# header files. (See ldap_cdefs.h for an explanation). Writers of
+# dynamic backend modules should keep in mind that slapd.exe might export
+# other global symbols that are not part of OpenLDAP (e.g. regex, ltdl,
+# crypto, ssl, sasl, etc.) When a writer actually uses (i.e. imports) these
+# symbols, he must verify that the header files from these external packages
+# include a mechanism to mark imported symbols with the __declspec(dllimport)
+# directive. Whether or not such a mechanism exists, the writer must be
+# able to include these directives appropriately when their symbols are
+# being imported from slapd.exe. The directive is not completely necessary
+# for functions, but it is required for variables.
+#
+# The symdummy.c file basically references EVERY symbol available to slapd.exe,
+# including symbols that slapd.exe never actually refereneced. The file
+# is compiled and included at link time. Without this object file, slapd.exe
+# would NOT export symbols that it never referenced. The reason that these
+# symbols must still be exported is because a dynamic module may want to
+# use a symbol even if it had not been referenced by slapd.exe.
+#
 
-# Add extra def targets here
-EXTRA_DEFS =
+#
+# slapd.def REALLY depends upon all slapd objects and all static libraries
+# included in $(LIBS), including static libraries outside of OpenLDAP.
+# When slapd.def is built, the absolute paths to all static libraries
+# (both inside and outside of OpenLDAP) are generated. We don't have
+# any way to include this generated list as a dependency of slapd.def (sigh).
+# Thus, we do the best we can by depending on version.o, which depends
+# on its own very long list of dependencies.
+#
+slapd.def: libbackends.a version.o
+	@for i in $(LDFLAGS) ; do \
+	    path=`expr "$$i" : "-L\(.*\)"`; \
+	    if test $$? != 0; then continue; fi; \
+	    paths="$$paths $$path"; \
+	done; \
+	objs=""; \
+	for i in $(OBJS) version.o $(LIBS) ; do \
+	    case $$i in \
+		-l*) \
+		    obj="" ; \
+		    done="" ;\
+		    base=`expr "$$i" : "-l\(.*\)"`; \
+		    for p in $$paths ; do \
+			for ext in la dll a ; do \
+			    path=$$p/lib$$base.$$ext; \
+			    test ! -f $$path && continue; \
+			    if test $$ext = la ; then \
+				for t in dlname old_library ; do \
+				    line=`grep "^$$t=" $$path`; \
+				    lib=`expr "$$line" : "[^']*'\(.*\)'"`; \
+				    test -n "$$lib" && test -f $$p/$$lib && \
+					path=$$p/$$lib && break; \
+				done; \
+				test $$t = dlname && ext=dll; \
+				test $$t = old_library && ext=a; \
+			    fi; \
+			    if test $$ext = a ; then \
+				obj=$$path; \
+			    fi; \
+			    done=done; \
+			    break; \
+			done; \
+			test -n "$$done" && break; \
+		    done; \
+		    test -z "$$obj" && continue; \
+		    ;; \
+		*.o | *.a) \
+		    obj=$$i; \
+	    esac; \
+	    objs="$$objs $$obj"; \
+	done; \
+	echo dlltool --exclude-symbols main,ServiceMain@8 --export-all-symbols \
+			--output-def $@.tmp $$objs; \
+	dlltool --exclude-symbols main,ServiceMain@8 --export-all-symbols \
+			--output-def $@.tmp $$objs;
+	echo EXPORTS > $@
+	$(SED) -e 1,2d -e 's/ @ [0-9][0-9]*//' $@.tmp | sort >> $@
+	$(RM) $@.tmp
 
-# NT needs this if libltdl is built statically. You'll have to fix the path
-# to point to where libltdl was built, then put ltdl.def in EXTRA_DEFS
-ltdl.def: ../../../libtool/libltdl/*.o
-	dlltool --export-all-symbols --output-def $@ $^
-
-DYNAMIC_DEFS = liblber.def libldap_r.def
-
-STATIC_DEFS = libavl.def libldbm.def libldif.def liblutil.def slapd.def \
-	      $(EXTRA_DEFS)
-
-libavl.def: $(LDAP_LIBDIR)/libavl/*.o
-	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
-
-liblber.def: $(LDAP_LIBDIR)/liblber/*.o
-	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
-
-libldap_r.def: $(LDAP_LIBDIR)/libldap_r/*.o
-	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
-
-libldbm.def: $(LDAP_LIBDIR)/libldbm/*.o
-	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
-
-libldif.def: $(LDAP_LIBDIR)/libldif/*.o
-	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
-
-liblutil.def: $(LDAP_LIBDIR)/liblutil/*.o
-	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
-
-slapd.def: $(OBJS) version.o
-	dlltool --export-all-symbols --exclude-symbols main,ServiceMain@8 --output-def $@ `ls $^ | grep -v test`
-
-# We don't want to include symbols from dynamic libraries.
-all.def: $(STATIC_DEFS) $(DYNAMIC_DEFS)
-	cat $(STATIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' > $@
-	if test "@LIB_LINKAGE@" != "DYN" ; then \
-	    cat $(DYNAMIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' >> $@; \
-	fi
-	echo EXPORTS > tmp.def
-	sort $@ >> tmp.def
-	rm -f $@
-	dlltool --input-def tmp.def --output-def $@
-	rm -f tmp.def
-
-DUMMYTMP = symdummytmp.c
-
-symdummy.c: all.def $(ALL_DEFS)
-	rm -f $@
-	echo "static void never_called() {" > $(DUMMYTMP)
-	cat $< | grep " @ " | while read line; \
+symdummy.c: slapd.def
+	$(RM) $@
+	@echo "generating $@..."; \
+	echo "static void never_called() {" > $@.tmp; \
+	cat $< | while read line; \
 	do \
 	    set dummy $$line; \
 	    case $$# in \
-		5) \
+		3) \
 		    echo "int $$2();" >> $@; \
-		    echo "$$2();" >> $(DUMMYTMP); \
+		    echo "$$2();" >> $@.tmp; \
 		    ;; \
-		6) \
+		4) \
 		    echo "extern int $$2;" >> $@; \
-		    echo "$$2 = 0;" >> $(DUMMYTMP); \
+		    echo "$$2 = 0;" >> $@.tmp; \
 		    ;; \
 	    esac; \
-	done
-	echo "" >> $@
-	echo "}" >> $(DUMMYTMP)
-	cat $(DUMMYTMP) >> $@
-	rm -f $(DUMMYTMP)
+	done; \
+	echo "" >> $@; \
+	echo "}" >> $@.tmp; \
+	cat $@.tmp >> $@; \
+	$(RM) $@.tmp
 
-symdummy.o: symdummy.c
-	$(CC) $(CFLAGS) -c $<
+libslapd.a: symdummy.o
+	dlltool --dllname slapd.exe --input-def slapd.def --output-lib $@
 
-SLAPD_OBJS = $(OBJS) version.o symdummy.o
+slapd.exp: libslapd.a
+	@echo $(LTLINK) -Wl,--base-file,slapd.base -o slapd \
+		$(OBJS) symdummy.o version.o $(LIBS) $(WRAP_LIBS); \
+	$(LTLINK) -Wl,--base-file,slapd.base -o slapd \
+		$(OBJS) symdummy.o version.o $(LIBS) $(WRAP_LIBS)
+	$(RM) slapd.exe
+	@echo dlltool --dllname slapd.exe --input-def slapd.def \
+		--base-file slapd.base --output-exp $@; \
+	dlltool --dllname slapd.exe --input-def slapd.def \
+		--base-file slapd.base --output-exp $@; \
+	echo $(LTLINK) -Wl,--base-file,slapd.base -o slapd $@ \
+		$(OBJS) symdummy.o version.o $(LIBS) $(WRAP_LIBS); \
+	$(LTLINK) -Wl,--base-file,slapd.base -o slapd $@ \
+		$(OBJS) symdummy.o version.o $(LIBS) $(WRAP_LIBS)
+	$(RM) slapd.exe
+	@echo dlltool --dllname slapd.exe --input-def slapd.def \
+		--base-file slapd.base --output-exp $@; \
+	dlltool --dllname slapd.exe --input-def slapd.def \
+		--base-file slapd.base --output-exp $@
 
-slapd.exp: libbackends.a all.def $(SLAPD_OBJS)
-	$(LTLINK) -o slapd $(SLAPD_OBJS) $(LIBS) $(WRAP_LIBS) -Wl,--base-file,slapd.base
-	rm -f slapd.exe
-	dlltool --dllname slapd.exe --input-def all.def --base-file slapd.base --output-exp $@
-	$(LTLINK) -o slapd $(SLAPD_OBJS) $(LIBS) $(WRAP_LIBS) $@ -Wl,--base-file,slapd.base
-	rm -f slapd.exe
-	dlltool --dllname slapd.exe --input-def all.def --base-file slapd.base --output-exp $@
-
-libslapd.a: all.def
-	dlltool --dllname slapd.exe --input-def $< --output-lib $@
-
-slapd: libbackends.a version.o $(@PLAT@_EXP) $(@PLAT@_DUMMY)
-	$(LTLINK) -o $@ $(@PLAT@_EXP) $(@PLAT@_DUMMY) $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
-	(cd tools; $(MAKE) $(MFLAGS) all)
+slapd: $(SLAPD_DEPENDS)
+	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) $(WRAP_LIBS)
+	@msg="building dynamic backends..."; \
+	for i in back-*; do \
+	    if test -d $$i -a -f $$i/Makefile ; then \
+		grep '^BUILD_MOD[ 	]*=[ 	]*mod[ 	]*$$' $$i/Makefile \
+							    > /dev/null 2>&1; \
+		if test $$? = 0; then \
+		    if test -n "$$msg"; then \
+			echo ""; echo "$$msg"; \
+			msg=""; \
+		    fi; \
+		    echo ""; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
+		    ( cd $$i; $(MAKE) $(MFLAGS) all ); \
+		    if test $$? != 0 ; then exit 1; fi ; \
+		fi; \
+	    fi; \
+	done; \
+	echo ""
+	cd tools; $(MAKE) $(MFLAGS) all
 
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
-.backend: $(@PLAT@_IMPLIB) FORCE
-	@for i in back-*; do \
-		if test -d $$i -a -f $$i/Makefile ; then \
-			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
-			( cd $$i; $(MAKE) $(MFLAGS) all ); \
-			if test $$? != 0 ; then exit 1; fi ; \
+#
+# In Windows, dynamic backends have to be built after slapd. For this
+# reason, we only build static backends now and dynamic backends later.
+#
+.backend: FORCE
+	@echo ""; echo "building static backends..."; \
+	for i in back-*; do \
+	    if test -d $$i -a -f $$i/Makefile ; then \
+		grep '^BUILD_MOD[ 	]*=[ 	]*mod[ 	]*$$' $$i/Makefile \
+							    > /dev/null 2>&1; \
+		if test $$? != 0; then \
+		    echo ""; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
+		    ( cd $$i; $(MAKE) $(MFLAGS) all ); \
+		    if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
+	    fi; \
 	done; \
-	echo " "
+	echo ""
 
 libbackends.a: .backend
 	@$(RM) -r tmp
@@ -178,13 +273,14 @@ libbackends.a: .backend
 		( \
 		  cd tmp; \
 		  $(AR) x ../$$i; \
-		  pre=`echo $$i | sed -e 's/\/.*$$//' -e 's/back-//'`; \
+		  pre=`echo $$i | $(SED) -e 's/\/.*$$//' -e 's/back-//'`; \
 		  for j in *.o; do \
 			mv $$j $${pre}$$j; \
 		  done; \
 		  $(AR) ruv libbackends.a *.o 2>&1 | grep -v truncated; \
 		  $(RM) *.o __.SYMDEF  ________64ELEL_ ; \
 		  echo "added backend library $$i"; \
+		  echo ""; \
 		); \
 	done
 	@mv -f tmp/libbackends.a ./libbackends.a
@@ -192,7 +288,7 @@ libbackends.a: .backend
 	@if test ! -z "$(RANLIB)" ; then \
 		$(RANLIB) libbackends.a; \
 	fi
-	@ls -l libbackends.a
+	@ls -l libbackends.a; echo ""
 
 version.c: $(OBJS) $(SLAPD_LIBDEPEND) 
 	@-$(RM) $@
@@ -236,20 +332,30 @@ install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(localstatedir)
 	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
-	@if test ! -z "$(SLAPD_MODULES)" ; then \
-	    for i in back-* shell-backends tools; do \
-		if test -d $$i -a -f $$i/Makefile ; then \
-			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
-			( cd $$i; $(MAKE) $(MFLAGS) install ); \
-			if test $$? != 0 ; then exit 1; fi ; \
-		fi; \
-	    done; \
-	fi
+	@for i in back-* shell-backends tools; do \
+	    if test -d $$i -a -f $$i/Makefile ; then \
+		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
+		( cd $$i; $(MAKE) $(MFLAGS) install ); \
+		if test $$? != 0 ; then exit 1; fi ; \
+	    fi; \
+	done
 
 all-cffiles: slapd
-	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
-		-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
-		-e 's;%MODULEDIR%;$(moduledir);' \
+	@if test $(PLAT) = NT; then \
+	    sysconfdir=`cygpath -w $(sysconfdir) | \
+		$(SED) -e 's/\\\\/\\\\\\\\/g'`; \
+	    localstatedir=`cygpath -w $(localstatedir) | \
+		$(SED) -e 's/\\\\/\\\\\\\\/g'`; \
+	    moduledir=`cygpath -w $(moduledir) | \
+		$(SED) -e 's/\\\\/\\\\\\\\/g'`; \
+	else \
+	    sysconfdir=$(sysconfdir); \
+	    localstatedir=$(localstatedir); \
+	    moduledir=$(moduledir); \
+	fi; \
+	$(SED) -e "s;%SYSCONFDIR%;$$sysconfdir;" \
+		-e "s;%LOCALSTATEDIR%;$$localstatedir;" \
+		-e "s;%MODULEDIR%;$$moduledir;" \
 		$(srcdir)/slapd.conf > slapd.conf.tmp ; \
 	touch all-cffiles
 

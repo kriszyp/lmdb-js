@@ -321,14 +321,14 @@ struct rewrite_info {
 /*
  * Parses a map (also in legacy 'x' version)
  */
-extern struct rewrite_map *
+LDAP_REWRITE_F (struct rewrite_map *)
 rewrite_map_parse(
 		struct rewrite_info *info,
 		const char *s,
 		const char **end
 );
 
-extern struct rewrite_map *
+LDAP_REWRITE_F (struct rewrite_map *)
 rewrite_xmap_parse(
 		struct rewrite_info *info,
 		const char *s,
@@ -338,7 +338,7 @@ rewrite_xmap_parse(
 /*
  * Resolves key in val by means of map (also in legacy 'x' version)
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_map_apply(
 		struct rewrite_info *info,
 		struct rewrite_op *op,
@@ -347,7 +347,7 @@ rewrite_map_apply(
 		struct berval *val
 );
 
-extern int
+LDAP_REWRITE_F (int)
 rewrite_xmap_apply(
 		struct rewrite_info *info,
 		struct rewrite_op *op,
@@ -364,7 +364,7 @@ rewrite_xmap_apply(
 /*
  * Compiles a substitution pattern
  */
-extern struct rewrite_subst *
+LDAP_REWRITE_F (struct rewrite_subst *)
 rewrite_subst_compile(
 		struct rewrite_info *info,
 		const char *result
@@ -374,7 +374,7 @@ rewrite_subst_compile(
  * Substitutes a portion of rewritten string according to substitution
  * pattern using submatches
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_subst_apply(
 		struct rewrite_info *info,
 		struct rewrite_op *op,
@@ -392,7 +392,7 @@ rewrite_subst_apply(
 /*
  * Compiles the rule and appends it at the running context
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_rule_compile(
 		struct rewrite_info *info,
 		struct rewrite_context *context,
@@ -410,7 +410,7 @@ rewrite_rule_compile(
  *      REWRITE_REGEXEC_UNWILL: rule matched; force 'unwilling to perform'
  *      REWRITE_REGEXEC_ERR:	an error occurred
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_rule_apply(
 		struct rewrite_info *info,
 		struct rewrite_op *op,
@@ -426,7 +426,7 @@ rewrite_rule_apply(
 /*
  * Fetches a struct rewrite_session
  */
-extern struct rewrite_session *
+LDAP_REWRITE_F (struct rewrite_session *)
 rewrite_session_find(
                 struct rewrite_info *info,
                 const void *cookie
@@ -435,7 +435,7 @@ rewrite_session_find(
 /*
  * Defines and inits a variable with session scope
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_session_var_set(
                 struct rewrite_info *info,
                 const void *cookie,
@@ -446,7 +446,7 @@ rewrite_session_var_set(
 /*
  * Gets a var with session scope
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_session_var_get(
                 struct rewrite_info *info,
                 const void *cookie,
@@ -457,7 +457,7 @@ rewrite_session_var_get(
 /*
  * Deletes a session
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_session_delete(
                 struct rewrite_info *info,
                 const void *cookie
@@ -466,7 +466,7 @@ rewrite_session_delete(
 /*
  * Destroys the cookie tree
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_session_destroy(
                 struct rewrite_info *info
 );
@@ -479,7 +479,7 @@ rewrite_session_destroy(
 /*
  * Finds a var
  */
-extern struct rewrite_var *
+LDAP_REWRITE_F (struct rewrite_var *)
 rewrite_var_find(
                 Avlnode *tree,
                 const char *name
@@ -488,7 +488,7 @@ rewrite_var_find(
 /*
  * Inserts a newly created var
  */
-extern struct rewrite_var *
+LDAP_REWRITE_F (struct rewrite_var *)
 rewrite_var_insert(
                 Avlnode **tree,
                 const char *name,
@@ -498,7 +498,7 @@ rewrite_var_insert(
 /*
  * Sets/inserts a var
  */
-extern struct rewrite_var *
+LDAP_REWRITE_F (struct rewrite_var *)
 rewrite_var_set(
                 Avlnode **tree,
                 const char *name,
@@ -509,7 +509,7 @@ rewrite_var_set(
 /*
  * Deletes a var tree
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_var_delete(
                 Avlnode *tree
 );
@@ -522,7 +522,7 @@ rewrite_var_delete(
 /*
  * Finds the context named rewriteContext in the context tree
  */
-extern struct rewrite_context *
+LDAP_REWRITE_F (struct rewrite_context *)
 rewrite_context_find(
 		struct rewrite_info *info,
 		const char *rewriteContext
@@ -531,7 +531,7 @@ rewrite_context_find(
 /*
  * Creates a new context called rewriteContext and stores in into the tree
  */
-extern struct rewrite_context *
+LDAP_REWRITE_F (struct rewrite_context *)
 rewrite_context_create(
 		struct rewrite_info *info,
 		const char *rewriteContext
@@ -543,7 +543,7 @@ rewrite_context_create(
  *      STOP:   fine, rule matched; stop processing following rules
  *      UNWILL: rule matched; force 'unwilling to perform'
  */
-extern int
+LDAP_REWRITE_F (int)
 rewrite_context_apply(
 		struct rewrite_info *info,
 		struct rewrite_op *op,

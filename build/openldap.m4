@@ -774,6 +774,7 @@ AC_DEFUN([OL_NT_THREADS], [
 
 	if test $ac_cv_func__beginthread = yes ; then
 		AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT Threads])
+		ol_cv_nt_threads=yes
 	fi
 ])
 dnl ====================================================================

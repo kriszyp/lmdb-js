@@ -69,7 +69,8 @@ int ldap_pvt_url_scheme2proto( const char *scheme )
 	return -1;
 }
 
-LDAP_F(int) ldap_pvt_url_scheme2tls( const char *scheme )
+int
+ldap_pvt_url_scheme2tls( const char *scheme )
 {
 	assert( scheme );
 

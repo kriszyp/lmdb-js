@@ -7,44 +7,47 @@
 ## Makefile Template for Shared Libraries
 ##
 
-NT_LTFLAGS = --only-$(LINKAGE)
-LTFLAGS = $(@PLAT@_LTFLAGS) 
-
-NT_DYN_LT_NO_UNDEF = -no-undefined
-LT_NO_UNDEF = $(@PLAT@_@LIB_LINKAGE@_LT_NO_UNDEF)
-
-COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(EXTRA_DEFS) -c
-LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -rpath $(libdir) \
-	$(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
-
 MKDEPFLAG = -l
 
 .SUFFIXES: .c .o .lo
 
 .c.lo:
-	$(COMPILE) $<
+	$(LTCOMPILE_LIB) $<
 
-
-# DYN_EXT (@DYN_EXT@) describes the extension assoicated with a
-# dynamic library, e.g. so, dll
-
-DYN_EXT=@DYN_EXT@
-
-$(LIBRARY):  version.lo
-	$(LTLIBLINK) -o $@ $(OBJS) version.lo $(EXTRA_LIBS)
-	$(RM) ../$@
-	d=`$(PWD)`; d=`$(BASENAME) $$d`; cd ..; $(LN_S) $$d/$@ $@; \
-	t=`$(BASENAME) $@ .la`.a; $(RM) $$t; $(LN_S) $$d/.libs/$$t $$t
-	if test "$(LINK_BINS_DYNAMIC)" = "yes"; then \
-		d=`$(PWD)`; d=`$(BASENAME) $$d`; b=`$(BASENAME) $@ .la`; \
-		 cd .libs; t=`echo $$b*.$(DYN_EXT)`; (cd ../.. ; $(RM) $$t; \
-		 $(LN_S) $$d/.libs/$$t $$t); \
-		if test "$(DYN_EXT)" != dll; then \
-		    t=`echo $$b.$(DYN_EXT).?`; cd ../.. ; \
-		    $(RM) $$t; \
-		    $(LN_S) $$d/.libs/$$t $$t; \
-		fi \
-	fi
+#
+# symlinks for libraries: UNIX and Windows (a.k.a. NT) need to be handled
+# differently. In UNIX, the static and shared libraries, as well as shared
+# library symlinks, can all be symlinked in the 'libraries' directory. In
+# Windows, only the static library (.a file) or the shared library (.dll)
+# file should be present. The current mingw linker (i.e. ld) WILL look
+# for a .dll file at link time and internally generate an import library
+# for it. However, ld will not do this if a static library is present.
+# That doesn't seem very correct, but that's the behavior, like it or not.
+#
+# Note that there doesn't seem to be a true need for the .la file at
+# this level, so it is left out.
+#
+# The set of symlinks are determined by examining the library's .la file.
+#
+$(LIBRARY): version.lo
+	$(LTLINK_LIB) -o $@ $(OBJS) version.lo $(LINK_LIBS)
+	@d=`$(PWD)`; b=`$(BASENAME) $$d`; \
+	echo cd ..; \
+	cd ..; \
+	arlib=`grep '^old_library=' $$b/$@`; \
+	arlib=`expr "$$arlib" : "[^']*'\(.*\)'"`; \
+	libs=$$arlib; \
+	if test "$(BUILD_LIBS_DYNAMIC)" = "shared"; then \
+		shlibs=`grep '^library_names' $$b/$@`; \
+		shlibs=`expr "$$shlibs" : "[^']*'\(.*\)'"`; \
+		libs="$$libs $$shlibs"; \
+	fi; \
+	for i in $$libs; do \
+		echo $(RM) $$i; \
+		$(RM) $$i; \
+		echo $(LN_S) $$b/.libs/$$i $$i; \
+		$(LN_S) $$b/.libs/$$i $$i; \
+	done
 
 Makefile: $(top_srcdir)/build/lib-shared.mk
 

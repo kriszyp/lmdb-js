@@ -24,6 +24,8 @@
 #ifdef CSRIMALLOC
 #define ber_memalloc malloc
 #define ber_memrealloc realloc
+#else
+#include "lber.h"
 #endif
 
 #define AVL_INTERNAL

@@ -31,7 +31,7 @@ typedef struct sockbuf_buf {
 /*
  * bprint.c
  */
-LBER_F( BER_LOG_PRINT_FN ) ber_pvt_log_print;
+LBER_V( BER_LOG_PRINT_FN ) ber_pvt_log_print;
 
 LBER_F( int )
 ber_pvt_log_printf LDAP_P((

@@ -23,8 +23,16 @@
 
 #include <ldap.h>
 
+/*
+ * The whole debug implementation is a bit of a hack.
+ * We have to define this LDAP_SLAPD_V macro here since the slap.h
+ * header file isn't included (and really shouldn't be).
+ * TODO: re-implement debug functions so that the debug level can
+ * be passed around instead of having to count on the existence of
+ * ldap_debug, slap_debug, etc.
+ */
 #define ldap_debug slap_debug
-extern int slap_debug;
+LDAP_SLAPD_V (int) slap_debug;
 
 #include "ldap_log.h"
 #include "ldap_pvt_thread.h"
