@@ -1578,7 +1578,7 @@ syncprov_operational(
 			ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
 		}
 	}
-	return LDAP_SUCCESS;
+	return SLAP_CB_CONTINUE;
 }
 
 static int
