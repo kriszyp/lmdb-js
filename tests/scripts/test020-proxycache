@@ -180,7 +180,7 @@ CACHED=`grep CACHEABLE $LOG2 | awk '{
 			printf "1" 
 	}'`
 
-if test $CACHEABILITY = $CACHED ; then
+if test "$CACHEABILITY" = "$CACHED" ; then
 	echo "Successfully verified cacheability"
 else 
 	echo "Error in verifying cacheability"
@@ -250,7 +250,7 @@ ANSWERED=`grep ANSWERABLE $LOG2 | awk '{
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-if test $ANSWERABILITY = $ANSWERED ; then
+if test "$ANSWERABILITY" = "$ANSWERED" ; then
 	echo "Successfully verified answerability"
 else 
 	echo "Error in verifying answerability"
