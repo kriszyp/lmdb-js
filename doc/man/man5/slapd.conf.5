@@ -458,9 +458,10 @@ This option puts the database into "read-only" mode.  Any attempts to
 modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
 .HP
-.B replica host=<hostname>[:port] bindmethod=simple|sasl
-.B [binddn=<simple DN>] [credentials=<simple password>]
-.B [saslmech=<SASL mech>] [authcId=<authentication ID>]
+.B replica host=<hostname>[:port] [tls=yes|critical]
+.B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
+.B [saslmech=<SASL mech>] [secopts=<options>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authcId=<authentication ID>]
 .RS
 Specify a replication site for this database.  Refer to the "OpenLDAP 
 Administrator's Guide" for detailed information on setting up a replicated

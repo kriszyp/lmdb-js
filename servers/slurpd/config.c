@@ -345,6 +345,13 @@ parse_replica_line(
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
+	} else if ( !strncasecmp( cargv[ i ], TLSSTR, strlen( TLSSTR ))) {
+	    val = cargv[ i ] + strlen( TLSSTR ) + 1;
+		if( !strcasecmp( val, TLSCRITICALSTR ) ) {
+			ri->ri_tls = TLS_CRITICAL;
+		} else {
+			ri->ri_tls = TLS_ON;
+		}
 	} else if ( !strncasecmp( cargv[ i ],
 		BINDDNSTR, strlen( BINDDNSTR ))) { 
 	    val = cargv[ i ] + strlen( BINDDNSTR ) + 1;
@@ -374,6 +381,12 @@ parse_replica_line(
 	} else if ( !strncasecmp( cargv[ i ], CREDSTR, strlen( CREDSTR ))) {
 	    val = cargv[ i ] + strlen( CREDSTR ) + 1;
 	    ri->ri_password = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], SECPROPSSTR, strlen( SECPROPSSTR ))) {
+	    val = cargv[ i ] + strlen( SECPROPSSTR ) + 1;
+	    ri->ri_secprops = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], REALMSTR, strlen( REALMSTR ))) {
+	    val = cargv[ i ] + strlen( REALMSTR ) + 1;
+	    ri->ri_realm = strdup( val );
 	} else if ( !strncasecmp( cargv[ i ], AUTHCSTR, strlen( AUTHCSTR ))) {
 	    val = cargv[ i ] + strlen( AUTHCSTR ) + 1;
 	    ri->ri_authcId = strdup( val );
@@ -381,6 +394,9 @@ parse_replica_line(
 	    /* Old authcID is provided for some backwards compatibility */
 	    val = cargv[ i ] + strlen( OLDAUTHCSTR ) + 1;
 	    ri->ri_authcId = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], AUTHZSTR, strlen( AUTHZSTR ))) {
+	    val = cargv[ i ] + strlen( AUTHZSTR ) + 1;
+	    ri->ri_authzId = strdup( val );
 	} else if ( !strncasecmp( cargv[ i ], SRVTABSTR, strlen( SRVTABSTR ))) {
 	    val = cargv[ i ] + strlen( SRVTABSTR ) + 1;
 	    if ( ri->ri_srvtab != NULL ) {

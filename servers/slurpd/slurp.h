@@ -66,6 +66,11 @@
 /* Maximum line length we can read from replication log */
 #define	REPLBUFLEN			256
 
+/* TLS flags */
+#define TLS_OFF			0
+#define TLS_ON			1
+#define TLS_CRITICAL	2
+
 /* We support simple (plaintext password) and SASL authentication */
 #define	AUTH_SIMPLE	1
 #define	AUTH_KERBEROS	2
@@ -117,24 +122,30 @@
 #define	SASLSTR			"sasl"
 #define	CREDSTR			"credentials"
 #define	OLDAUTHCSTR		"bindprincipal"
-#define	AUTHCSTR			"authcID"
+#define	AUTHCSTR		"authcID"
+#define	AUTHZSTR		"authzID"
 #define	SRVTABSTR		"srvtab"
 #define	SASLMECHSTR		"saslmech"
+#define	REALMSTR		"realm"
+#define	SECPROPSSTR		"secprops"
+#define TLSSTR			"tls"
+#define TLSCRITICALSTR	"critical"
 
 #define	REPLICA_SLEEP_TIME	( 10 )
 
 /* Enumeration of various types of bind failures */
-#define BIND_OK 			0
-#define BIND_ERR_BADLDP			1
-#define	BIND_ERR_OPEN			2
-#define	BIND_ERR_BAD_ATYPE		3
+#define BIND_OK 					0
+#define BIND_ERR_BADLDP				1
+#define	BIND_ERR_OPEN				2
+#define	BIND_ERR_BAD_ATYPE			3
 #define	BIND_ERR_SIMPLE_FAILED		4
 #define	BIND_ERR_KERBEROS_FAILED	5
-#define	BIND_ERR_BADRI			6
-#define	BIND_ERR_VERSION		7
-#define	BIND_ERR_REFERRALS		8
-#define	BIND_ERR_MANAGEDSAIT	9
-#define	BIND_ERR_SASL_FAILED	10
+#define	BIND_ERR_BADRI				6
+#define	BIND_ERR_VERSION			7
+#define	BIND_ERR_REFERRALS			8
+#define	BIND_ERR_MANAGEDSAIT		9
+#define	BIND_ERR_SASL_FAILED		10
+#define	BIND_ERR_TLS_FAILED			11
 
 /* Return codes for do_ldap() */
 #define	DO_LDAP_OK			0
@@ -184,15 +195,18 @@ typedef struct rh {
  */
 typedef struct ri Ri;
 struct ri {
-
     /* Private data */
     char	*ri_hostname;		/* canonical hostname of replica */
     int		ri_port;		/* port where slave slapd running */
     LDAP	*ri_ldp;		/* LDAP struct for this replica */
+    int		ri_tls;			/* TLS: 0=no, 1=yes, 2=critical */
     int		ri_bind_method;		/* AUTH_SIMPLE or AUTH_KERBEROS */
     char	*ri_bind_dn;		/* DN to bind as when replicating */
-    char	*ri_password;		/* Password for AUTH_SIMPLE */
+    char	*ri_password;		/* Password for any method */
+    char	*ri_secprops;		/* SASL security properties */
+    char	*ri_realm;			/* realm for any mechanism */
     char	*ri_authcId;		/* authentication ID for any mechanism */
+    char	*ri_authzId;		/* authorization ID for any mechanism */
     char	*ri_srvtab;		/* srvtab file for kerberos bind */
     char	*ri_saslmech;		/* SASL mechanism to use */
     struct re	*ri_curr;		/* current repl entry being processed */
