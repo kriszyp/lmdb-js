@@ -64,6 +64,7 @@ int
 main( int argc, char **argv )
 {
 	char	*s;
+	int tag;
 
 	int			fd, rc;
 	BerElement	*ber;
@@ -143,9 +144,13 @@ main( int argc, char **argv )
 			break;
 
 		case 's':	/* string */
-		case 't':	/* tag for the next element */
 			buf = getbuf();
 			rc = ber_printf( ber, fmt, buf );
+			break;
+		case 't':	/* tag for the next element */
+			buf = getbuf();
+			tag = atoi(buf);
+			rc = ber_printf( ber, fmt, tag );
 			break;
 
 		default:
