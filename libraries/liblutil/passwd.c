@@ -1176,7 +1176,7 @@ static struct berval *hash_crypt(
 	const struct berval *passwd )
 {
 	struct berval hash;
-	unsigned char salt[3];
+	unsigned char salt[9];	/* salt suitable for anything */
 	int i;
 
 	for( i=0; i<passwd->bv_len; i++) {
@@ -1189,13 +1189,14 @@ static struct berval *hash_crypt(
 		return NULL;	/* passwd must behave like a string */
 	}
 
-	if( lutil_entropy( salt, sizeof(salt)) < 0 ) {
+	if( lutil_entropy( salt, 8) < 0 ) {
 		return NULL; 
 	}
 
-	salt[0] = crypt64[ salt[0] % (sizeof(crypt64)-1) ];
-	salt[1] = crypt64[ salt[1] % (sizeof(crypt64)-1) ];
-	salt[2] = '\0';
+	for( i=0; i<8; i++ ) {
+		salt[i] = crypt64[ salt[i] % (sizeof(crypt64)-1) ];
+	}
+	salt[8] = '\0';
 
 	hash.bv_val = crypt( passwd->bv_val, salt );
 
