@@ -89,7 +89,7 @@ dnl --with-subdir
 ldap_subdir="/openldap"
 
 AC_ARG_WITH(subdir,
-[  --with-subdir=DIR change default subdirectory used for installs],
+[  --with-subdir=DIR       change default subdirectory used for installs],
 [case "$withval" in
 	no) ldap_subdir=""
 		;;
@@ -157,12 +157,12 @@ OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups], no)dnl
-OL_ARG_ENABLE(slp, [  --enable-slp            enable SLPv2 support], no)dnl     
+OL_ARG_ENABLE(slp, [    --enable-slp          enable SLPv2 support], no)dnl     
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
 
 dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], no)dnl
-OL_ARG_WITH(bdb_module,[    --with-bdb-module  module type], static,
+OL_ARG_WITH(bdb_module,[    --with-bdb-module     module type], static,
 	[static dynamic])
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
 OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type], static,

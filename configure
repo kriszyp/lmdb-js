@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.349 2001/01/18 21:18:14 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.350 2001/01/22 05:49:14 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -25,7 +25,7 @@ ac_default_prefix=/usr/local
 # Any additions from configure.in:
 ac_default_prefix=/usr/local
 ac_help="$ac_help
-  --with-subdir=DIR change default subdirectory used for installs"
+  --with-subdir=DIR       change default subdirectory used for installs"
 ac_help="$ac_help
   --enable-debug 	  enable debugging [yes]"
 ac_help="$ac_help
@@ -83,13 +83,13 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-rlookups	  enable reverse lookups [no]"
 ac_help="$ac_help
-  --enable-slp            enable SLPv2 support [no]"
+    --enable-slp          enable SLPv2 support [no]"
 ac_help="$ac_help
     --enable-wrappers	  enable tcp wrapper support [no]"
 ac_help="$ac_help
     --enable-bdb	  enable Berkeley DB backend [no]"
 ac_help="$ac_help
-    --with-bdb-module  module type [static]"
+    --with-bdb-module     module type [static]"
 ac_help="$ac_help
     --enable-dnssrv	  enable dnssrv backend [no]"
 ac_help="$ac_help
