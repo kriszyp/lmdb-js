@@ -625,12 +625,16 @@ connection_destroy( Connection *c )
 {
 	/* note: connections_mutex should be locked by caller */
     ber_socket_t	sd;
+    unsigned long	connid;
 
     assert( connections != NULL );
     assert( c != NULL );
     assert( c->c_struct_state != SLAP_C_UNUSED );
     assert( c->c_conn_state != SLAP_C_INVALID );
     assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
+
+    /* only for stats (print -1 as "%lu" may give unexpected results ;) */
+    connid = c->c_connid;
 
     backend_connection_destroy(c);
 
@@ -699,7 +703,7 @@ connection_destroy( Connection *c )
 
 		Statslog( LDAP_DEBUG_STATS,
 		    "conn=%lu fd=%d closed\n",
-			c->c_connid, sd, 0, 0, 0 );
+			connid, sd, 0, 0, 0 );
 	}
 
 	ber_sockbuf_free( c->c_sb );
