@@ -1801,11 +1801,24 @@ read_config( const char *fname, int depth )
 					    "a database definition.\n", fname, lineno, 0);
 #endif
 				return 1;
-			} else {
-				if ( add_syncrepl( be, cargv, cargc )) {
-					return 1;
-				}
+
+			} else if ( SLAP_SHADOW( be )) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: syncrepl: database already shadowed.\n",
+					fname, lineno, 0);
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: syncrepl: database already shadowed.\n",
+					fname, lineno, 0);
+#endif
+				return 1;
+
+			} else if ( add_syncrepl( be, cargv, cargc )) {
+				return 1;
 			}
+
+			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
@@ -2010,6 +2023,18 @@ read_config( const char *fname, int depth )
 #endif
 				return 1;
 
+			} else if ( SLAP_SHADOW(be) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: updatedn: database already shadowed.\n",
+					fname, lineno, 0);
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: updatedn: database already shadowed.\n",
+					fname, lineno, 0);
+#endif
+				return 1;
+
 			} else {
 				struct berval dn;
 
@@ -2031,7 +2056,9 @@ read_config( const char *fname, int depth )
 #endif
 					return 1;
 				}
+
 			}
+			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
 
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -2087,8 +2114,9 @@ read_config( const char *fname, int depth )
 
 			vals[0].bv_val = cargv[1];
 			vals[0].bv_len = strlen( vals[0].bv_val );
-			if( value_add( &be->be_update_refs, vals ) )
+			if( value_add( &be->be_update_refs, vals ) ) {
 				return LDAP_OTHER;
+			}
 
 		/* replication log file to which changes are appended */
 		} else if ( strcasecmp( cargv[0], "replogfile" ) == 0 ) {

@@ -1395,6 +1395,9 @@ typedef struct syncinfo_s {
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
+	/* fields in this structure (and routines acting on this structure)
+	   should be renamed from be_ to bd_ */
+
 	/* BackendInfo accessors */
 #define		be_config	bd_info->bi_db_config
 #define		be_type		bd_info->bi_type
@@ -1451,6 +1454,7 @@ struct slap_backend_db {
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE 0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
+#define SLAP_DBFLAG_SHADOW			0x8000U /* a shadow */
 	slap_mask_t	be_flags;
 #define SLAP_DBFLAGS(be)			((be)->be_flags)
 #define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
@@ -1463,6 +1467,7 @@ struct slap_backend_db {
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_SUBORDINATE)
 #define	SLAP_GLUE_LINKED(be)		\
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_LINKED)
+#define SLAP_SHADOW(be)				(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SHADOW)
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U
@@ -1508,7 +1513,6 @@ struct slap_backend_db {
 	/* Required Security Strength Factor */
 	slap_ssf_set_t be_ssf_set;
 
-	/* these should be renamed from be_ to bd_ */
 	BerVarray	be_suffix;	/* the DN suffixes of data in this backend */
 	BerVarray	be_nsuffix;	/* the normalized DN suffixes in this backend */
 	struct berval be_schemadn;	/* per-backend subschema subentry DN */
