@@ -245,6 +245,11 @@ int bdb_index_entry LDAP_P(( Backend *be, DB_TXN *t,
 	bdb_index_entry((be),(t),SLAP_INDEX_DELETE_OP,(e),(ap))
 
 /*
+ * init.c
+ */
+extern struct berval bdb_uuid;
+
+/*
  * key.c
  */
 extern int

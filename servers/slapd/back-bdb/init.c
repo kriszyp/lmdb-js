@@ -30,6 +30,8 @@ static struct bdbi_database {
 	{ NULL, NULL, 0, 0 }
 };
 
+struct berval bdb_uuid = { 0, NULL };
+
 static int
 bdb_open( BackendInfo *bi )
 {
@@ -39,6 +41,8 @@ bdb_open( BackendInfo *bi )
 		LDAP_CONTROL_NOOP,
 		NULL
 	};
+
+	bi->bi_controls = controls;
 
 	/* initialize the underlying database system */
 	Debug( LDAP_DEBUG_TRACE, "bdb_open: initialize BDB backend\n",
@@ -70,7 +74,13 @@ bdb_open( BackendInfo *bi )
 
 	db_env_set_func_yield( ldap_pvt_thread_yield );
 
-	bi->bi_controls = controls;
+	{
+		static char uuidbuf[40];
+
+		bdb_uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ));
+		bdb_uuid.bv_val = uuidbuf;
+	}
+
 	return 0;
 }
 

@@ -13,8 +13,6 @@
 #include "back-bdb.h"
 #include "external.h"
 
-static char bdb_gid[DB_XIDDATASIZE];
-
 int
 bdb_add(
 	BackendDB	*be,
@@ -360,7 +358,12 @@ retry:	/* transaction retry */
 		}
 
 	} else {
-		if (( rc=TXN_PREPARE( ltid, bdb_gid )) != 0 ) {
+		char gid[DB_XIDDATASIZE];
+
+		snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
+			bdb_uuid, (long) op->o_connid, (long) op->o_opid );
+
+		if (( rc=TXN_PREPARE( ltid, gid )) != 0 ) {
 			text = "txn_prepare failed";
 
 		} else {
