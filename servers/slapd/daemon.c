@@ -55,7 +55,7 @@ static void	set_shutdown();
 static void	do_nothing();
 
 void
-daemon(
+slapd_daemon(
     int	port
 )
 {
