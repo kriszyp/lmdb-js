@@ -25,12 +25,11 @@
 #include "ldap-int.h"
 #include "lber.h"
 
-static LDAPConn *find_connection LDAP_P(( LDAP *ld, LDAPServer *srv, int any ));
+static LDAPConn *find_connection LDAP_P(( LDAP *ld, LDAPURLDesc *srv, int any ));
 static void use_connection LDAP_P(( LDAP *ld, LDAPConn *lc ));
-static void free_servers LDAP_P(( LDAPServer *srvlist ));
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-static LDAPServer *dn2servers LDAP_P(( LDAP *ld, const char *dn ));
+static LDAPURLDesc *dn2servers LDAP_P(( LDAP *ld, const char *dn ));
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 static BerElement *re_encode_request LDAP_P((
@@ -78,7 +77,8 @@ ldap_send_initial_request(
 	const char *dn,
 	BerElement *ber )
 {
-	LDAPServer	*servers;
+	LDAPURLDesc	*servers;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
@@ -108,15 +108,17 @@ ldap_send_initial_request(
 
 #ifdef LDAP_DEBUG
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
-			LDAPServer	*srv;
+			LDAPURLDesc	*srv;
 
-			for ( srv = servers; srv != NULL;
-			    srv = srv->lsrv_next ) {
+			for (	srv = servers;
+					srv != NULL;
+			    	srv = srv->lud_next )
+			{
 				fprintf( stderr,
 				    "LDAP server %s:  dn %s, port %d\n",
-				    srv->lsrv_host, ( srv->lsrv_dn == NULL ) ?
-				    "(default)" : srv->lsrv_dn,
-				    srv->lsrv_port );
+				    srv->lud_host, ( srv->lud_dn == NULL ) ?
+				    "(default)" : srv->lud_dn,
+				    srv->lud_port );
 			}
 		}
 #endif /* LDAP_DEBUG */
@@ -130,8 +132,11 @@ ldap_send_initial_request(
 		servers = NULL;
 	}	
 
-	return( ldap_send_server_request( ld, ber, ld->ld_msgid, NULL, servers,
-	    NULL, 0 ));
+	rc = ldap_send_server_request( ld, ber, ld->ld_msgid, NULL,
+									servers, NULL, 0 );
+	if (servers)
+		ldap_free_urllist(servers);
+	return(rc);
 }
 
 
@@ -142,7 +147,7 @@ ldap_send_server_request(
 	BerElement *ber,
 	ber_int_t msgid,
 	LDAPRequest *parentreq,
-	LDAPServer *srvlist,
+	LDAPURLDesc *srvlist,
 	LDAPConn *lc,
 	int bind )
 {
@@ -165,9 +170,8 @@ ldap_send_server_request(
 					incparent = 1;
 					++parentreq->lr_outrefcnt;
 				}
-				lc = ldap_new_connection( ld, &srvlist, 0, 1, bind );
+				lc = ldap_new_connection( ld, srvlist, 0, 1, bind );
 			}
-			free_servers( srvlist );
 		}
 	}
 
@@ -252,11 +256,11 @@ ldap_send_server_request(
 
 
 LDAPConn *
-ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
+ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	int connect, int bind )
 {
 	LDAPConn	*lc;
-	LDAPServer	*prevsrv, *srv;
+	LDAPURLDesc	*srv;
 	Sockbuf		*sb;
 
 	/*
@@ -275,32 +279,24 @@ ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 	lc->lconn_sb = ( use_ldsb ) ? &ld->ld_sb : sb;
 
 	if ( connect ) {
-		prevsrv = NULL;
-
-		for ( srv = *srvlistp; srv != NULL; srv = srv->lsrv_next ) {
+		for ( srv = srvlist; srv != NULL; srv = srv->lud_next ) {
 			if ( open_ldap_connection( ld, lc->lconn_sb,
-			    srv->lsrv_host, srv->lsrv_port,
-			    &lc->lconn_krbinstance, 0 ) != -1 ) {
+			    		srv, &lc->lconn_krbinstance, 0 ) != -1 )
+			{
 				break;
 			}
-			prevsrv = srv;
 		}
 
 		if ( srv == NULL ) {
-		    if ( !use_ldsb ) {
-			ber_sockbuf_free( lc->lconn_sb );
-		    }
+			if ( !use_ldsb ) {
+				ber_sockbuf_free( lc->lconn_sb );
+			}
 		    LDAP_FREE( (char *)lc );
 		    ld->ld_errno = LDAP_SERVER_DOWN;
 		    return( NULL );
 		}
 
-		if ( prevsrv == NULL ) {
-		    *srvlistp = srv->lsrv_next;
-		} else {
-		    prevsrv->lsrv_next = srv->lsrv_next;
-		}
-		lc->lconn_server = srv;
+		lc->lconn_server = ldap_url_dup(srv);
 	}
 
 	lc->lconn_status = LDAP_CONNST_CONNECTED;
@@ -361,21 +357,21 @@ ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 
 
 static LDAPConn *
-find_connection( LDAP *ld, LDAPServer *srv, int any )
+find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 /*
  * return an existing connection (if any) to the server srv
  * if "any" is non-zero, check for any server in the "srv" chain
  */
 {
 	LDAPConn	*lc;
-	LDAPServer	*ls;
+	LDAPURLDesc	*ls;
 
 	for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-		for ( ls = srv; ls != NULL; ls = ls->lsrv_next ) {
-			if ( lc->lconn_server->lsrv_host != NULL &&
-			    ls->lsrv_host != NULL && strcasecmp(
-			    ls->lsrv_host, lc->lconn_server->lsrv_host ) == 0
-			    && ls->lsrv_port == lc->lconn_server->lsrv_port ) {
+		for ( ls = srv; ls != NULL; ls = ls->lud_next ) {
+			if ( lc->lconn_server->lud_host != NULL &&
+			    ls->lud_host != NULL && strcasecmp(
+			    ls->lud_host, lc->lconn_server->lud_host ) == 0
+			    && ls->lud_port == lc->lconn_server->lud_port ) {
 				return( lc );
 			}
 			if ( !any ) {
@@ -433,7 +429,7 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			}
 			prevlc = tmplc;
 		}
-		free_servers( lc->lconn_server );
+		ldap_free_urllist( lc->lconn_server );
 		if ( lc->lconn_krbinstance != NULL ) {
 			LDAP_FREE( lc->lconn_krbinstance );
 		}
@@ -462,9 +458,9 @@ ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 	for ( lc = lconns; lc != NULL; lc = lc->lconn_next ) {
 		if ( lc->lconn_server != NULL ) {
 			fprintf( stderr, "* host: %s  port: %d%s\n",
-			    ( lc->lconn_server->lsrv_host == NULL ) ? "(null)"
-			    : lc->lconn_server->lsrv_host,
-			    lc->lconn_server->lsrv_port, ( lc->lconn_sb ==
+			    ( lc->lconn_server->lud_host == NULL ) ? "(null)"
+			    : lc->lconn_server->lud_host,
+			    lc->lconn_server->lud_port, ( lc->lconn_sb ==
 			    &ld->ld_sb ) ? "  (default)" : "" );
 		}
 		fprintf( stderr, "  refcnt: %d  status: %s\n", lc->lconn_refcnt,
@@ -566,25 +562,6 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 }
 
 
-static void
-free_servers( LDAPServer *srvlist )
-{
-    LDAPServer	*nextsrv;
-
-    while ( srvlist != NULL ) {
-	nextsrv = srvlist->lsrv_next;
-	if ( srvlist->lsrv_dn != NULL ) {
-		LDAP_FREE( srvlist->lsrv_dn );
-	}
-	if ( srvlist->lsrv_host != NULL ) {
-		LDAP_FREE( srvlist->lsrv_host );
-	}
-	LDAP_FREE( srvlist );
-	srvlist = nextsrv;
-    }
-}
-
-
 /*
  * XXX merging of errors in this routine needs to be improved
  */
@@ -597,7 +574,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 	char		*p, *ports, *ref, *tmpref, *refdn, *unfollowed;
 	LDAPRequest	*origreq;
-	LDAPServer	*srv;
+	LDAPURLDesc	*srv;
 	BerElement	*ber;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_chase_referrals\n", 0, 0, 0 );
@@ -692,25 +669,25 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 		if ( ldapref ) {
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
-			if (( srv = (LDAPServer *)LDAP_CALLOC( 1,
-			    sizeof( LDAPServer ))) == NULL ) {
+			if (( srv = (LDAPURLDesc *)LDAP_CALLOC( 1,
+			    sizeof( LDAPURLDesc ))) == NULL ) {
 				ber_free( ber, 1 );
 				ld->ld_errno = LDAP_NO_MEMORY;
 				return( -1 );
 			}
 
-			if (( srv->lsrv_host = LDAP_STRDUP( tmpref )) == NULL ) {
+			if (( srv->lud_host = LDAP_STRDUP( tmpref )) == NULL ) {
 				LDAP_FREE( (char *)srv );
 				ber_free( ber, 1 );
 				ld->ld_errno = LDAP_NO_MEMORY;
 				return( -1 );
 			}
 
-			if (( ports = strchr( srv->lsrv_host, ':' )) != NULL ) {
+			if (( ports = strchr( srv->lud_host, ':' )) != NULL ) {
 				*ports++ = '\0';
-				srv->lsrv_port = atoi( ports );
+				srv->lud_port = atoi( ports );
 			} else {
-				srv->lsrv_port = ldap_int_global_options.ldo_defport;
+				srv->lud_port = ldap_int_global_options.ldo_defport;
 			}
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 		} else {
@@ -727,6 +704,9 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			    ldap_err2string( ld->ld_errno ), 0, 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 		}
+
+		if (srv != NULL)
+			ldap_free_urllist(srv);
 
 		if ( !newdn && refdn != NULL ) {
 			LDAP_FREE( refdn );
@@ -873,13 +853,13 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-static LDAPServer *
+static LDAPURLDesc *
 dn2servers( LDAP *ld, const char *dn )	/* dn can also be a domain.... */
 {
 	char		*p, *host, *server_dn, **dxs;
 	const char *domain;
 	int		i, port;
-	LDAPServer	*srvlist, *prevsrv, *srv;
+	LDAPURLDesc	*srvlist, *prevsrv, *srv;
 
 	if (( domain = strrchr( dn, '@' )) != NULL ) {
 		++domain;
@@ -893,56 +873,17 @@ dn2servers( LDAP *ld, const char *dn )	/* dn can also be a domain.... */
 	}
 
 	srvlist = NULL;
-
 	for ( i = 0; dxs[ i ] != NULL; ++i ) {
-		port = ldap_int_global_options.ldo_defport;
-		server_dn = NULL;
-		if ( strchr( dxs[ i ], ':' ) == NULL ) {
-			host = dxs[ i ];
-		} else if ( strlen( dxs[ i ] ) >= 7 &&
-		    strncmp( dxs[ i ], "ldap://", 7 ) == 0 ) {
-			host = dxs[ i ] + 7;
-			if (( p = strchr( host, ':' )) == NULL ) {
-				p = host;
-			} else {
-				*p++ = '\0';
-				port = atoi( p );
-			}
-			if (( p = strchr( p, '/' )) != NULL ) {
-				server_dn = ++p;
-				if ( *server_dn == '\0' ) {
-					server_dn = NULL;
-				}
-			}
-		} else {
-			host = NULL;
-		}
-
-		if ( host != NULL ) {	/* found a server we can use */
-			if (( srv = (LDAPServer *)LDAP_CALLOC( 1,
-			    sizeof( LDAPServer ))) == NULL ) {
-				free_servers( srvlist );
-				srvlist = NULL;
-				break;		/* exit loop & return */
-			}
-
+		if (ldap_url_parselist(&srv, dxs[i]) == LDAP_SUCCESS
+			|| ldap_url_parsehosts(&srv, dxs[i]) == LDAP_SUCCESS)
+		{
 			/* add to end of list of servers */
 			if ( srvlist == NULL ) {
 				srvlist = srv;
 			} else {
-				prevsrv->lsrv_next = srv;
+				prevsrv->lud_next = srv;
 			}
 			prevsrv = srv;
-			
-			/* copy in info. */
-			if (( srv->lsrv_host = LDAP_STRDUP( host )) == NULL ||
-			    ( server_dn != NULL && ( srv->lsrv_dn =
-			    LDAP_STRDUP( server_dn )) == NULL )) {
-				free_servers( srvlist );
-				srvlist = NULL;
-				break;		/* exit loop & return */
-			}
-			srv->lsrv_port = port;
 		}
 	}
 

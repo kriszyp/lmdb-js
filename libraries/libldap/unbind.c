@@ -124,14 +124,9 @@ ldap_ld_free(
 		ld->ld_selectinfo = NULL;
 	}
 
-	if ( ld->ld_options.ldo_defbase != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_defbase );
-		ld->ld_options.ldo_defbase = NULL;
-	}
-
-	if ( ld->ld_options.ldo_defhost != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_defhost );
-		ld->ld_options.ldo_defhost = NULL;
+	if ( ld->ld_options.ldo_defludp != NULL ) {
+		ldap_free_urllist( ld->ld_options.ldo_defludp );
+		ld->ld_options.ldo_defludp = NULL;
 	}
 
 	if ( ld->ld_options.ldo_tm_api != NULL ) {

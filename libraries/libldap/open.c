@@ -25,23 +25,8 @@
 
 int ldap_open_defconn( LDAP *ld )
 {
-	LDAPServer	*srv;
-
-	if (( srv = (LDAPServer *)LDAP_CALLOC( 1, sizeof( LDAPServer ))) ==
-	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-	    LDAP_STRDUP( ld->ld_defhost )) == NULL ))
+	if (( ld->ld_defconn = ldap_new_connection( ld, ld->ld_options.ldo_defludp, 1,1,0 )) == NULL )
 	{
-		if( srv != NULL ) LDAP_FREE( (char*) srv );
-		ld->ld_errno = LDAP_NO_MEMORY;
-		return -1;
-	}
-
-	srv->lsrv_port = ld->ld_defport;
-
-	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL )
-	{
-		if ( ld->ld_defhost != NULL ) LDAP_FREE( srv->lsrv_host );
-		LDAP_FREE( (char *)srv );
 		ld->ld_errno = LDAP_SERVER_DOWN;
 		return -1;
 	}
@@ -99,8 +84,33 @@ ldap_open( LDAP_CONST char *host, int port )
 LDAP *
 ldap_init( LDAP_CONST char *defhost, int defport )
 {
+	LDAP *ld;
+	int rc;
+
+	rc = ldap_create(&ld);
+	if ( rc != LDAP_SUCCESS )
+		return NULL;
+
+	if (defport != 0)
+		ld->ld_options.ldo_defport = defport;
+
+	if (defhost != NULL) {
+		rc = ldap_set_option(ld, LDAP_OPT_HOST_NAME, defhost);
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_ld_free(ld, 1, NULL, NULL);
+			return NULL;
+		}
+	}
+
+	return( ld );
+}
+
+int
+ldap_create( LDAP **ldp )
+{
 	LDAP			*ld;
 
+	*ldp = NULL;
 	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
 		ldap_int_initialize();
 	}
@@ -110,15 +120,12 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 #ifdef HAVE_WINSOCK2
 {	WORD wVersionRequested;
 	WSADATA wsaData;
-	int err;
  
 	wVersionRequested = MAKEWORD( 2, 0 );
- 
-	err = WSAStartup( wVersionRequested, &wsaData );
-	if ( err != 0 ) {
+	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
 		/* Tell the user that we couldn't find a usable */
 		/* WinSock DLL.                                  */
-		return NULL;
+		return LDAP_LOCAL_ERROR;
 	}
  
 	/* Confirm that the WinSock DLL supports 2.0.*/
@@ -133,21 +140,21 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	    /* Tell the user that we couldn't find a usable */
 	    /* WinSock DLL.                                  */
 	    WSACleanup( );
-	    return NULL; 
+	    return LDAP_LOCAL_ERROR; 
 	}
 }	/* The WinSock DLL is acceptable. Proceed. */
 
 #elif HAVE_WINSOCK
 {	WSADATA wsaData;
 	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return( NULL );
+	    return LDAP_LOCAL_ERROR;
 	}
 }
 #endif
 
 	if ( (ld = (LDAP *) LDAP_CALLOC( 1, sizeof(LDAP) )) == NULL ) {
 	    WSACleanup( );
-		return( NULL );
+		return( LDAP_NO_MEMORY );
 	}
    
 	/* copy the global options */
@@ -157,41 +164,24 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	ld->ld_valid = LDAP_VALID_SESSION;
 
 	/* but not pointers to malloc'ed items */
-	ld->ld_options.ldo_defbase = NULL;
-	ld->ld_options.ldo_defhost = NULL;
+	ld->ld_options.ldo_defludp = NULL;
 	ld->ld_options.ldo_sctrls = NULL;
 	ld->ld_options.ldo_cctrls = NULL;
 
-	if ( defhost != NULL ) {
-		ld->ld_options.ldo_defhost = LDAP_STRDUP( defhost );
-	} else {
-		ld->ld_options.ldo_defhost = LDAP_STRDUP(
-			ldap_int_global_options.ldo_defhost);
-	}
+	ld->ld_options.ldo_defludp =
+			ldap_url_duplist(ldap_int_global_options.ldo_defludp);
 
-	if ( ld->ld_options.ldo_defhost == NULL ) {
+	if ( ld->ld_options.ldo_defludp == NULL ) {
 		LDAP_FREE( (char*)ld );
 	    WSACleanup( );
-		return( NULL );
-	}
-
-	if ( ldap_int_global_options.ldo_defbase != NULL ) {
-		ld->ld_options.ldo_defbase = LDAP_STRDUP(
-			ldap_int_global_options.ldo_defbase);
+		return LDAP_NO_MEMORY;
 	}
 
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
-		LDAP_FREE( (char*) ld->ld_options.ldo_defhost );
-		if ( ld->ld_options.ldo_defbase != NULL ) {
-			LDAP_FREE( (char*) ld->ld_options.ldo_defbase );
-		}
+		ldap_free_urllist( ld->ld_options.ldo_defludp );
 		LDAP_FREE( (char*) ld );
 	    WSACleanup( );
-		return( NULL );
-	}
-
-	if(defport != 0) {
-		ld->ld_defport = defport;
+		return LDAP_NO_MEMORY;
 	}
 
 	ld->ld_lberoptions = LBER_USE_DER;
@@ -208,59 +198,53 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 
 	ber_pvt_sb_init( &(ld->ld_sb) );
 
-	return( ld );
+	*ldp = ld;
+	return LDAP_SUCCESS;
 }
 
+int
+ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
+{
+	int rc;
+	LDAP *ld;
+
+	*ldp = NULL;
+	rc = ldap_create(&ld);
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	if (url != NULL) {
+		rc = ldap_set_option(ld, LDAP_OPT_URI, url);
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_ld_free(ld, 1, NULL, NULL);
+			return rc;
+		}
+	}
+
+	*ldp = ld;
+	return LDAP_SUCCESS;
+}
 
 int
-open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
+open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	char **krbinstancep, int async )
 {
 	int 			rc = -1;
-	int				port;
-	const char		*p, *q;
-	char			*r, *curhost, hostname[ 2*MAXHOSTNAMELEN ];
+	int port;
+	long addr;
 
 	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
 
-	defport = htons( (short) defport );
+	port = srv->lud_port;
+	if (port == 0)
+		port = ld->ld_options.ldo_defport;
+	port = htons( (short) port );
 
-	if ( host != NULL ) {
-		for ( p = host; p != NULL && *p != '\0'; p = q ) {
-			if (( q = strchr( p, ' ' )) != NULL ) {
-				strncpy( hostname, p, q - p );
-				hostname[ q - p ] = '\0';
-				curhost = hostname;
-				while ( *q == ' ' ) {
-				    ++q;
-				}
-			} else {
-				curhost = (char *) p;	/* avoid copy if possible */
-				q = NULL;
-			}
+	addr = 0;
+	if ( srv->lud_host == NULL )
+		addr = htonl( INADDR_LOOPBACK );
 
-			if (( r = strchr( curhost, ':' )) != NULL ) {
-			    if ( curhost != hostname ) {
-				strcpy( hostname, curhost );	/* now copy */
-				r = hostname + ( r - curhost );
-				curhost = hostname;
-			    }
-			    *r++ = '\0';
-			    port = htons( (short) atoi( r ) );
-			} else {
-			    port = defport;   
-			}
-
-			if (( rc = ldap_connect_to_host( ld, sb, curhost, 0L,
-			    port, async )) != -1 ) {
-				break;
-			}
-		}
-	} else {
-		rc = ldap_connect_to_host( ld, sb, 0, htonl( INADDR_LOOPBACK ),
-		    defport, async );
-	}
-
+	rc = ldap_connect_to_host( ld, sb, srv->lud_host, addr, port, async );
 	if ( rc == -1 ) {
 		return( rc );
 	}
@@ -268,7 +252,9 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
    	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 
 #ifdef HAVE_TLS
-   	if ( ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ) {
+   	if ( ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD 
+   		|| srv->lud_ldaps != 0 )
+   	{
 		/*
 		 * Fortunately, the lib uses blocking io...
 		 */

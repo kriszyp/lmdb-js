@@ -218,7 +218,11 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME:
-		* (char **) outvalue = LDAP_STRDUP(lo->ldo_defhost);
+		* (char **) outvalue = ldap_url_list2hosts(lo->ldo_defludp);
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_URI:
+		* (char **) outvalue = ldap_url_list2urls(lo->ldo_defludp);
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_NUMBER:
@@ -287,7 +291,7 @@ ldap_get_option(
 
 	default:
 #ifdef HAVE_TLS
-	   	if ( ldap_pvt_tls_get_option(lo, option, outvalue ) == 0 )
+	   	if ( ldap_pvt_tls_get_option((struct ldapoptions *)lo, option, outvalue ) == 0 )
 	     		return LDAP_OPT_SUCCESS;
 #endif
 		/* bad param */
@@ -446,33 +450,71 @@ ldap_set_option(
 
 	case LDAP_OPT_HOST_NAME: {
 			const char *host = (const char *) invalue;
-
-			if(lo->ldo_defhost != NULL) {
-				LDAP_FREE(lo->ldo_defhost);
-				lo->ldo_defhost = NULL;
-			}
+			LDAPURLDesc *ludlist = NULL;
+			int rc = LDAP_OPT_SUCCESS;
 
 			if(host != NULL) {
-				lo->ldo_defhost = LDAP_STRDUP(host);
-				return LDAP_OPT_SUCCESS;
-			}
+				rc = ldap_url_parsehosts(&ludlist, host);
 
-			if(ld == NULL) {
+			} else if(ld == NULL) {
 				/*
 				 * must want global default returned
 				 * to initial condition.
 				 */
-				lo->ldo_defhost = LDAP_STRDUP("localhost");
+				rc = ldap_url_parselist(&ludlist, "ldap://localhost/");
 
 			} else {
 				/*
 				 * must want the session default
 				 *   updated to the current global default
 				 */
-				lo->ldo_defhost = LDAP_STRDUP(
-					ldap_int_global_options.ldo_defhost);
+				ludlist = ldap_url_duplist(
+					ldap_int_global_options.ldo_defludp);
+				if (ludlist == NULL)
+					rc = LDAP_NO_MEMORY;
 			}
-		} return LDAP_OPT_SUCCESS;
+
+			if (rc == LDAP_OPT_SUCCESS) {
+				if (lo->ldo_defludp != NULL)
+					ldap_free_urllist(lo->ldo_defludp);
+				lo->ldo_defludp = ludlist;
+			}
+			return rc;
+		}
+
+	case LDAP_OPT_URI: {
+			const char *urls = (const char *) invalue;
+			LDAPURLDesc *ludlist = NULL;
+			int rc = LDAP_OPT_SUCCESS;
+
+			if(urls != NULL) {
+				rc = ldap_url_parselist(&ludlist, urls);
+
+			} else if(ld == NULL) {
+				/*
+				 * must want global default returned
+				 * to initial condition.
+				 */
+				rc = ldap_url_parselist(&ludlist, "ldap://localhost/");
+
+			} else {
+				/*
+				 * must want the session default
+				 *   updated to the current global default
+				 */
+				ludlist = ldap_url_duplist(
+					ldap_int_global_options.ldo_defludp);
+				if (ludlist == NULL)
+					rc = LDAP_NO_MEMORY;
+			}
+
+			if (rc == LDAP_OPT_SUCCESS) {
+				if (lo->ldo_defludp != NULL)
+					ldap_free_urllist(lo->ldo_defludp);
+				lo->ldo_defludp = ludlist;
+			}
+			return rc;
+		}
 
 	case LDAP_OPT_ERROR_NUMBER: {
 			int err = * (const int *) invalue;
@@ -525,7 +567,7 @@ ldap_set_option(
 
 	default:
 #ifdef HAVE_TLS
-		if ( ldap_pvt_tls_set_option( lo, option, invalue ) == 0 )
+		if ( ldap_pvt_tls_set_option( lo, option, (void	*)invalue ) == 0 )
 	     		return LDAP_OPT_SUCCESS;
 #endif
 		/* bad param */
