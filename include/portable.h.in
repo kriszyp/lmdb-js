@@ -46,6 +46,15 @@
 /* Define if on MINIX.  */
 #undef _MINIX
 
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#undef mode_t
+
+/* Define to `long' if <sys/types.h> doesn't define.  */
+#undef off_t
+
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#undef pid_t
+
 /* Define if the system does not provide POSIX.1 features except
    with this defined.  */
 #undef _POSIX_1_SOURCE
@@ -64,6 +73,9 @@
 
 /* Define to the type of arg5 for select(). */
 #undef SELECT_TYPE_ARG5
+
+/* Define to `unsigned' if <sys/types.h> doesn't define.  */
+#undef size_t
 
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
@@ -123,6 +135,12 @@
  LBER_SOCKET_T
  LBER_TAG_T
 */
+
+/* define to character address type */
+#undef caddr_t
+
+/* define to signed size type */
+#undef ssize_t
 
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
@@ -412,9 +430,6 @@
 /* Define if you have the <memory.h> header file.  */
 #undef HAVE_MEMORY_H
 
-/* Define if you have the <minix/config.h> header file.  */
-#undef HAVE_MINIX_CONFIG_H
-
 /* Define if you have the <ncurses.h> header file.  */
 #undef HAVE_NCURSES_H
 
@@ -459,9 +474,6 @@
 
 /* Define if you have the <resolv.h> header file.  */
 #undef HAVE_RESOLV_H
-
-/* Define if you have the <sasl.h> header file.  */
-#undef HAVE_SASL_H
 
 /* Define if you have the <sched.h> header file.  */
 #undef HAVE_SCHED_H
@@ -775,26 +787,8 @@
 /* define if setproctitle(3) is available */
 #undef HAVE_SETPROCTITLE
 
-/* Define to `int' if <sys/types.h> does not define. */
-#undef mode_t
-
-/* Define to `long' if <sys/types.h> does not define. */
-#undef off_t
-
-/* Define to `int' if <sys/types.h> does not define. */
-#undef pid_t
-
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
-
-/* Define to `unsigned' if <sys/types.h> does not define. */
-#undef size_t
-
-/* Define to `signed int' if <sys/types.h> does not define. */
-#undef ssize_t
-
-/* Define to `char *' if <sys/types.h> does not define. */
-#undef caddr_t
 
 /* define to int if socklen_t is not available */
 #undef socklen_t

@@ -833,7 +833,10 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Kerberos
+ol_link_kbind=no
+ol_link_kpasswd=no
 ol_link_krb5=no
+ol_link_krb4=no
 
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 \
 	-o $ol_with_kerberos = k5only -o $ol_with_kerberos = k425 ; then
@@ -876,6 +879,10 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 \
 			AC_DEFINE(HAVE_KRB5, 1,
 				[define if you have Kerberos V])
 
+			if test $ol_enable_kpasswd != no ; then
+				ol_link_kpasswd=yes;
+			fi
+
 			if test $ol_with_kerberos = k5only ; then
 				ol_with_kerberos=found
 			fi
@@ -887,7 +894,6 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 \
 	fi
 fi
 
-ol_link_krb4=no
 if test $ol_link_krb5 = yes -a \
 	\( $ol_with_kerberos = auto -o $ol_with_kerberos = k425 \) ; then
 
@@ -971,6 +977,10 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 \
 			fi
 		fi
 	fi
+fi
+
+if test $ol_link_krb4 = yes -a $ol_enable_kpasswd != no ; then
+	ol_link_kpasswd=yes;
 fi
 
 if test $ol_link_krb4 = yes -o $ol_link_krb5 = yes ; then
@@ -2157,7 +2167,7 @@ if test "$ol_enable_cache" = no ; then
 	AC_DEFINE(LDAP_NOCACHE,1,
 		[define this to remove -lldap cache support])
 fi
-if test "$ol_enable_kbind" != no ; then
+if test "$ol_link_kbind" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION)
 fi
 if test "$ol_enable_dns" != no ; then
@@ -2183,7 +2193,7 @@ fi
 if test "$ol_enable_crypt" != no ; then
 	AC_DEFINE(SLAPD_CRYPT,1,[define to support crypt(3) passwords])
 fi
-if test "$ol_enable_kpasswd" != no ; then
+if test "$ol_link_kpasswd" != no ; then
 	AC_DEFINE(SLAPD_KPASSWD,1,[define to support Kerberos passwords])
 fi
 if test "$ol_enable_multimaster" != no ; then
