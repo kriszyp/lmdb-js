@@ -384,3 +384,150 @@ cleanup:
 
 	return rc;
 }
+
+int
+slap_modrdn2mods(
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	Entry		*e,
+	LDAPRDN		*old_rdn,
+	LDAPRDN		*new_rdn,
+	int		deleteoldrdn,
+	Modifications	**pmod )
+{
+	int		rc = LDAP_SUCCESS;
+	const char	*text;
+	Modifications	*mod = NULL;
+	int		a_cnt, d_cnt;
+
+	/* Add new attribute values to the entry */
+	for ( a_cnt = 0; new_rdn[ 0 ][ a_cnt ]; a_cnt++ ) {
+		int 			rc;
+		AttributeDescription	*desc = NULL;
+		Modifications 		*mod_tmp;
+
+		rc = slap_bv2ad( &new_rdn[ 0 ][ a_cnt ]->la_attr, 
+				&desc, &text );
+
+		if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, ERR, 
+				"slap_modrdn2modlist: %s: %s (new)\n", 
+				text, 
+				new_rdn[ 0 ][ a_cnt ]->la_attr.bv_val, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"slap_modrdn2modlist: %s: %s (new)\n",
+				text, 
+				new_rdn[ 0 ][ a_cnt ]->la_attr.bv_val, 0 );
+#endif
+			goto done;		
+		}
+
+		/* ACL check of newly added attrs */
+		if ( be && !access_allowed( be, conn, op, e, desc,
+			&new_rdn[ 0 ][ a_cnt ]->la_value, ACL_WRITE, NULL ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, ERR, 
+				"slap_modrdn2modlist: access to attr \"%s\" "
+				"(new) not allowed\n", 
+				new_rdn[ 0 ][a_cnt]->la_attr.bv_val, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"slap_modrdn2modlist: access to attr \"%s\" "
+				"(new) not allowed\n", 
+				new_rdn[ 0 ][ a_cnt ]->la_attr.bv_val, 0, 0 );
+#endif
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			goto done;
+		}
+
+		/* Apply modification */
+		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
+			+ 2 * sizeof( struct berval ) );
+		mod_tmp->sml_desc = desc;
+		mod_tmp->sml_bvalues = ( BerVarray )( mod_tmp + 1 );
+		mod_tmp->sml_bvalues[ 0 ] = new_rdn[ 0 ][ a_cnt ]->la_value;
+		mod_tmp->sml_bvalues[ 1 ].bv_val = NULL;
+		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
+		mod_tmp->sml_next = mod;
+		mod = mod_tmp;
+	}
+
+	/* Remove old rdn value if required */
+	if ( deleteoldrdn ) {
+		for ( d_cnt = 0; old_rdn[ 0 ][ d_cnt ]; d_cnt++ ) {
+			int 			rc;
+			AttributeDescription	*desc = NULL;
+			Modifications 		*mod_tmp;
+
+			rc = slap_bv2ad( &old_rdn[ 0 ][ d_cnt ]->la_attr,
+					&desc, &text );
+
+			if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, ERR, 
+					"slap_modrdn2modlist: %s: %s (old)\n", 
+					text, 
+					old_rdn[ 0 ][ d_cnt ]->la_attr.bv_val, 
+					0 );
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"slap_modrdn2modlist: %s: %s (old)\n",
+					text, 
+					old_rdn[ 0 ][ d_cnt ]->la_attr.bv_val, 
+					0 );
+#endif
+				goto done;		
+			}
+
+			/* ACL check of newly added attrs */
+			if ( be && !access_allowed( be, conn, op, e, desc,
+				&old_rdn[ 0 ][ d_cnt ]->la_value, ACL_WRITE, 
+				NULL ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, ERR, 
+					"slap_modrdn2modlist: access "
+					"to attr \"%s\" (old) not allowed\n", 
+					old_rdn[ 0 ][ d_cnt ]->la_attr.bv_val, 
+					0, 0 );
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"slap_modrdn2modlist: access "
+					"to attr \"%s\" (old) not allowed\n", 
+					old_rdn[ 0 ][ d_cnt ]->la_attr.bv_val,
+					0, 0 );
+#endif
+				rc = LDAP_INSUFFICIENT_ACCESS;
+				goto done;
+			}
+
+			/* Apply modification */
+			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
+				+ 2 * sizeof ( struct berval ) );
+			mod_tmp->sml_desc = desc;
+			mod_tmp->sml_bvalues = ( BerVarray )(mod_tmp+1);
+			mod_tmp->sml_bvalues[ 0 ] 
+				= old_rdn[ 0 ][ d_cnt ]->la_value;
+			mod_tmp->sml_bvalues[ 1 ].bv_val = NULL;
+			mod_tmp->sml_op = LDAP_MOD_DELETE;
+			mod_tmp->sml_next = mod;
+			mod = mod_tmp;
+		}
+	}
+	
+done:
+	/* LDAP v2 supporting correct attribute handling. */
+	if ( rc != LDAP_SUCCESS && mod != NULL ) {
+		Modifications *tmp;
+		for ( ; mod; mod = tmp ) {
+			tmp = mod->sml_next;
+			ch_free( mod );
+		}
+	}
+
+	*pmod = mod;
+
+	return rc;
+}

@@ -256,3 +256,17 @@ slapd_get_listeners(void)
 	return NULL;
 }
 
+int
+slap_modrdn2mods(
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	Entry		*e,
+	LDAPRDN		*oldrdn,
+	LDAPRDN		*newrdn,
+	int		deleteoldrdn,
+	Modifications	**pmod )
+{
+	return 0;
+}
+
