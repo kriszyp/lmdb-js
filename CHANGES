@@ -3,19 +3,26 @@ OpenLDAP 2.1 Change Log
 OpenLDAP 2.1.4 Engineering
 	Fixed slapd bootParameter validation bug (ITS#1957)
 	Added LDAP SASL auxprop plugin to contrib
-	Added buffer overrun checks (ITS#1965, ITS#1936)
+	Added buffer overrun checks (ITS#1936, ITS#1965, ITS#2009-2011)
 	Fixed slapd saslRegex bug (ITS#1978)
 	Fixed back-monitor time stats (ITS#1984)
+	Fixed slapd saslRegexp normalization (ITS#1951)
 	Fixed back-meta undef DN attr bug (ITS#1953)
 	Fixed ldapmodify LDIF CRLF handling
-	Fixed slapd inappropriate return of operationsError
-	Fixed bdb IDL bugs
+	Fixed back-bdb IDL bugs (ITS#1969, ITS#1977, ITS#2015)
+	Fixed back-bdb entry return (ITS#1994)
+	Fixed slapd inappropriate return of operationsError (ITS#1995)
+	Fixed slapd group ACL bug (ITS#1978)
+	Fixed slapd " " handling (ITS#1998)
+	Fixed IPv6 underallocation bug (ITS#2018)
+	Fixed libldap gethostbyname init bug (ITS#2019)
 	Updated slapd anon update error code (ITS#1987)
-	Updated slapd/libldap error messages
+	Updated slapd/libldap error messages (ITS#1989)
 	Updated slapd/libldap IPv4 only handling
 	Updated libldap LDAP_OPT_RESTART handling
 	Updated new logging
-	Updated OpenLDAPaci (experimental) syntax/semantics
+	Updated OpenLDAPaci (experimental) syntax/semantics (ITS#2005, ITS#2006)
+	Added slapd subschema DN configuration (ITS#1893)
 	Build Environment
 		Added OS/390 port
 		Added DN testing to tests suite
@@ -24,6 +31,9 @@ OpenLDAP 2.1.4 Engineering
 		Fixed pkiUser schema (ITS#1959)
 		Disabled back-sql (ITS#1966)
 		Fixed back-shell builds (ITS#1985)
+		Resolve liblutil/passwd <des.h> conflict (ITS#2016)
+		Resolved IRIX sc_mask conflict (ITS#2022)
+		Removed ud(1) and filter template API (ITS#2011)
 	Documentation
 		Replaced namedref with RFC 3296
 		Misc manual page updates
