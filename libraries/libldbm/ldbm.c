@@ -315,7 +315,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 		return NULL;
 	}
 
-#if DB_VERSION_MINOR < 3
+#if DB_VERSION_MAJOR == 3 && DB_VERSION_MINOR < 3
 	ret->set_malloc( ret, ldbm_malloc );
 #endif
 
