@@ -173,7 +173,7 @@ bdb_modify(
 
 	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n", dn, 0, 0 );
 
-	if (0) {
+	if( 0 ) {
 retry:	/* transaction retry */
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_modify: retrying...\n", 0, 0, 0);
@@ -314,6 +314,7 @@ retry:	/* transaction retry */
 			db_strerror(rc), rc, 0 );
 		rc = LDAP_OTHER;
 		text = "commit failed";
+
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: updated id=%08lx dn=\"%s\"\n",
@@ -384,7 +385,7 @@ add_values(
 			for ( j = 0; a->a_vals[j] != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
-					SLAP_MR_MODIFY_MATCHING,
+					SLAP_MR_VALUE_SYNTAX_MATCH,
 					a->a_vals[j], asserted, &text );
 
 				if( rc == LDAP_SUCCESS && match == 0 ) {
@@ -460,7 +461,7 @@ delete_values(
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
-				SLAP_MR_MODIFY_MATCHING,
+				SLAP_MR_VALUE_SYNTAX_MATCH,
 				a->a_vals[j], asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {

@@ -99,10 +99,7 @@ ldbm_back_compare(
 	{
 		rc = LDAP_COMPARE_FALSE;
 
-		if ( value_find_ex( ava->aa_desc,
-				    SLAP_MR_VALUE_IS_IN_MR_SYNTAX,
-				    a->a_vals, ava->aa_value ) == 0 )
-		{
+		if ( value_find( ava->aa_desc, a->a_vals, ava->aa_value ) == 0 ) {
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}

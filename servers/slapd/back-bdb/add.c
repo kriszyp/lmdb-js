@@ -56,7 +56,7 @@ bdb_add(
 		goto return_results;
 	}
 
-	if (0) {
+	if( 0 ) {
 		/* transaction retry */
 retry:	rc = txn_abort( ltid );
 		ltid = NULL;
@@ -207,7 +207,8 @@ retry:	rc = txn_abort( ltid );
 				p = NULL;
 
 				if ( ! rc ) {
-					Debug( LDAP_DEBUG_TRACE, "bdb_add: no write access to parent\n",
+					Debug( LDAP_DEBUG_TRACE,
+						"bdb_add: no write access to parent\n",
 						0, 0, 0 );
 					rc = LDAP_INSUFFICIENT_ACCESS;
 					text = "no write access to parent";
@@ -287,6 +288,7 @@ retry:	rc = txn_abort( ltid );
 			db_strerror(rc), rc, 0 );
 		rc = LDAP_OTHER;
 		text = "commit failed";
+
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: added id=%08lx dn=\"%s\"\n",
@@ -299,7 +301,7 @@ return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
 
-	if(rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
+	if( rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
 		txn_checkpoint( bdb->bi_dbenv,
 			bdb->bi_txn_cp_kbyte, bdb->bi_txn_cp_min, 0 );

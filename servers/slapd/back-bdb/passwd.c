@@ -84,7 +84,7 @@ bdb_exop_passwd(
 		goto done;
 	}
 
-	if (0) {
+	if( 0 ) {
 retry:	/* transaction retry */
 		Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: retrying...\n", 0, 0, 0 );
 		rc = txn_abort( ltid );

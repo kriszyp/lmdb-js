@@ -68,7 +68,7 @@ bdb_modrdn(
 	}
 #endif
 
-	if (0) {
+	if( 0 ) {
 retry:	/* transaction retry */
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 		rc = txn_abort( ltid );
@@ -80,7 +80,6 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 	}
-
 
 	if( bdb->bi_txn ) {
 		/* begin transaction */

@@ -255,7 +255,7 @@ static int test_mra_filter(
 			const char *text;
 
 			rc = value_match( &ret, a->a_desc, mra->ma_rule,
-				SLAP_MR_VALUE_IS_IN_MR_SYNTAX,
+				SLAP_MR_ASSERTION_SYNTAX_MATCH,
 				a->a_vals[i], mra->ma_value,
 				&text );
 
@@ -327,7 +327,7 @@ test_ava_filter(
 			const char *text;
 
 			rc = value_match( &ret, a->a_desc, mr,
-				SLAP_MR_VALUE_IS_IN_MR_SYNTAX,
+				SLAP_MR_ASSERTION_SYNTAX_MATCH,
 				a->a_vals[i], ava->aa_value,
 				&text );
 
@@ -514,7 +514,7 @@ test_substrings_filter(
 			const char *text;
 
 			rc = value_match( &ret, a->a_desc, mr,
-				SLAP_MR_VALUE_IS_IN_MR_SYNTAX,
+				SLAP_MR_ASSERTION_SYNTAX_MATCH,
 				a->a_vals[i], f->f_sub,
 				&text );
 

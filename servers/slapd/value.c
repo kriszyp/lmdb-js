@@ -148,12 +148,16 @@ value_match(
 		}
 	}
 
-	if ( !(flags & SLAP_MR_VALUE_IS_IN_MR_SYNTAX) &&
-	     mr->smr_convert ) {
-		rc = (mr->smr_convert)(v2,&nv2);
+	if ( SLAP_IS_MR_VALUE_SYNTAX_NONCONVERTED_MATCH( flags ) &&
+		mr->smr_convert )
+	{
+		rc = (mr->smr_convert)( v2, &nv2 );
 		if ( rc != LDAP_SUCCESS ) {
-		  return LDAP_INVALID_SYNTAX;
+			return LDAP_INVALID_SYNTAX;
 		}
+
+		/* let smr_match know we've converted the value */
+		flags |= SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH;
 	}
 
 	rc = (mr->smr_match)( match, flags,
@@ -185,12 +189,16 @@ int value_find_ex(
 	}
 
 	/* Take care of this here or ssyn_normalize later will hurt */
-	if ( !(flags & SLAP_MR_VALUE_IS_IN_MR_SYNTAX) &&
-	     mr->smr_convert ) {
-		rc = (mr->smr_convert)(val,&nval);
+	if ( SLAP_IS_MR_VALUE_SYNTAX_NONCONVERTED_MATCH( flags )
+		&& mr->smr_convert )
+	{
+		rc = (mr->smr_convert)( val, &nval );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
+
+		/* let value_match know we've done the version */
+		flags |= SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH;
 	}
 
 	if( mr->smr_syntax->ssyn_normalize ) {
@@ -209,9 +217,7 @@ int value_find_ex(
 		int match;
 		const char *text;
 
-		/* We did convert, so keep value_match from trying */
-		rc = value_match( &match, ad, mr,
-			flags & !SLAP_MR_VALUE_IS_IN_MR_SYNTAX,
+		rc = value_match( &match, ad, mr, flags,
 			vals[i], nval == NULL ? val : nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {

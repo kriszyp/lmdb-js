@@ -387,7 +387,7 @@ add_values(
 			for ( j = 0; a->a_vals[j] != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
-					SLAP_MR_MODIFY_MATCHING,
+					SLAP_MR_VALUE_SYNTAX_MATCH,
 					a->a_vals[j], asserted, &text );
 
 				if( rc == LDAP_SUCCESS && match == 0 ) {
@@ -474,7 +474,7 @@ delete_values(
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
-				SLAP_MR_MODIFY_MATCHING,
+				SLAP_MR_VALUE_SYNTAX_MATCH,
 				a->a_vals[j], asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {
