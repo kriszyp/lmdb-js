@@ -357,7 +357,7 @@ main( int argc, char **argv )
 	}
 
 	if ( copyfname != NULL ) {
-		if ( ( ld->ld_sb->sb_fd = open( copyfname, O_WRONLY | O_CREAT,
+		if ( ( ld->ld_sb->sb_fd = open( copyfname, O_WRONLY|O_CREAT|O_EXCL,
 		    0600 ))  == -1 ) {
 			perror( copyfname );
 			exit ( EXIT_FAILURE );
