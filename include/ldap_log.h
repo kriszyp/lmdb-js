@@ -59,25 +59,23 @@ extern int	ldap_syslog_level;
 #ifdef LDAP_SYSLOG
 #define Debug( level, fmt, arg1, arg2, arg3 )	\
 	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) ); \
+		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) ); \
 		if ( ldap_syslog & (level) ) \
 			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
 	} while ( 0 )
-#else /* LDAP_SYSLOG */
-#ifndef HAVE_WINSOCK
+
+#else
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
-	do { \
-		if ( ldap_debug & (level) ) \
-			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) ); \
-	} while ( 0 )
-#else /* !WINSOCK */
-LDAP_F(void) Debug LDAP_P(( int level, const char* fmt, ... ));
-#endif /* !WINSOCK */
-#endif /* LDAP_SYSLOG */
+	lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) )
+#endif
+
 #else /* LDAP_DEBUG */
 #define Debug( level, fmt, arg1, arg2, arg3 )
 #endif /* LDAP_DEBUG */
+
+LDAP_F(void) lutil_debug LDAP_P((
+	int debug, int level,
+	const char* fmt, ... ));
 
 LDAP_END_DECL
 
