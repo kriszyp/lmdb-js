@@ -383,16 +383,16 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
-#ifdef HAVE_TLS
-	ldap_pvt_tls_init();
-	ldap_pvt_tls_init_def_ctx();
-#endif
-
 	if ( read_config( configfile ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
 		goto destroy;
 	}
+
+#ifdef HAVE_TLS
+	ldap_pvt_tls_init();
+	ldap_pvt_tls_init_def_ctx();
+#endif
 
 	tcps = set_socket( inetd ? NULL : &bind_addr );
 	if ( tcps == -1 )
