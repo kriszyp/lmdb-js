@@ -1118,8 +1118,8 @@ dnParent(
 	p++;
 
 	assert( ATTR_LEADCHAR( p[ 0 ] ) );
-	pdn->bv_val = p;
 	pdn->bv_len = dn->bv_len - (p - dn->bv_val);
+	pdn->bv_val = p;
 
 	return;
 }
