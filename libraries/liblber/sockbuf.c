@@ -42,8 +42,7 @@ ber_sockbuf_alloc( void )
 
 	sb = LBER_CALLOC( 1, sizeof( Sockbuf ) );
 
-	if( sb == NULL )
-		return NULL;
+	if( sb == NULL ) return NULL;
 
 	ber_int_sb_init( sb );
 	return sb;
@@ -74,43 +73,53 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 	switch ( opt ) {
 		case LBER_SB_OPT_HAS_IO:
 			p = sb->sb_iod;
-   
-			while ( p && p->sbiod_io != (Sockbuf_IO *)arg )
+			while ( p && p->sbiod_io != (Sockbuf_IO *)arg ) {
 				p = p->sbiod_next;
+			}
    
-			if ( p )
+			if ( p ) {
 				ret = 1;
+			}
 			break;
+
 		case LBER_SB_OPT_GET_FD:
-			if ( arg != NULL )
+			if ( arg != NULL ) {
 				*((int *)arg) = sb->sb_fd;
+			}
 			ret = ( sb->sb_fd == AC_SOCKET_INVALID ? -1 : 1);
 			break;
+
 		case LBER_SB_OPT_SET_FD:
 			sb->sb_fd = *((int *)arg);
 			ret = 1;
 			break;
+
 		case LBER_SB_OPT_SET_NONBLOCK:
 			ret = ber_pvt_socket_set_nonblock( sb->sb_fd, arg != NULL)
 				? -1 : 1;
 			break;
+
 		case LBER_SB_OPT_DRAIN: {
 				/* Drain the data source to enable possible errors (e.g.
 				 * TLS) to be propagated to the upper layers
 				 */
 				char buf[MIN_BUFF_SIZE];
+
 				do {
 					ret = ber_int_sb_read( sb, buf, sizeof( buf ) );
 				} while ( ret == sizeof( buf ) );
 
 				ret = 1;
 			} break;
+
 		case LBER_SB_OPT_NEEDS_READ:
 			ret = ( sb->sb_trans_needs_read ? 1 : 0 );
 			break;
+
 		case LBER_SB_OPT_NEEDS_WRITE:
 			ret = ( sb->sb_trans_needs_write ? 1 : 0 );
 			break;
+
 		default:
 			ret = sb->sb_iod->sbiod_io->sbi_ctrl( sb->sb_iod,
 				opt, arg );
@@ -128,8 +137,9 @@ ber_sockbuf_add_io( Sockbuf *sb, Sockbuf_IO *sbio, int layer, void *arg )
 	assert( sb != NULL );
 	assert( SOCKBUF_VALID( sb ) );
    
-	if ( sbio == NULL )
+	if ( sbio == NULL ) {
 		return -1;
+	}
    
 	q = &sb->sb_iod;
 	p = *q;
@@ -139,8 +149,9 @@ ber_sockbuf_add_io( Sockbuf *sb, Sockbuf_IO *sbio, int layer, void *arg )
 	}
    
 	d = LBER_MALLOC( sizeof( *d ) );
-	if ( d == NULL )
+	if ( d == NULL ) {
 		return -1;
+	}
    
 	d->sbiod_level = layer;
 	d->sbiod_sb = sb;
@@ -149,36 +160,40 @@ ber_sockbuf_add_io( Sockbuf *sb, Sockbuf_IO *sbio, int layer, void *arg )
 	d->sbiod_next = p;
 	*q = d;
       
-	if ( sbio->sbi_setup != NULL && ( sbio->sbi_setup( d, arg ) < 0 ) )
+	if ( sbio->sbi_setup != NULL && ( sbio->sbi_setup( d, arg ) < 0 ) ) {
 		return -1;
+	}
       
 	return 0;
-   }
+}
    
 int
 ber_sockbuf_remove_io( Sockbuf *sb, Sockbuf_IO *sbio, int layer )
 {
 	Sockbuf_IO_Desc		*p, **q;
 
-   assert( sb != NULL );
+	assert( sb != NULL );
 	assert( SOCKBUF_VALID( sb ) );
    
-	if ( sb->sb_iod == NULL )
+	if ( sb->sb_iod == NULL ) {
 		return -1;
+	}
    
 	q = &sb->sb_iod;
 	while ( *q != NULL ) {
 		p = *q;
 		if ( layer == p->sbiod_level && p->sbiod_io == sbio ) {
 			if ( p->sbiod_io->sbi_remove != NULL &&
-					p->sbiod_io->sbi_remove( p ) < 0 )
+				p->sbiod_io->sbi_remove( p ) < 0 )
+			{
 				return -1;
+			}
 			*q = p->sbiod_next;
 			LBER_FREE( p );
-	 break;
-   }
+		break;
+		}
 		q = &p->sbiod_next;
-}
+	}
 
 	return 0;
 }
@@ -197,8 +212,9 @@ ber_pvt_sb_buf_destroy( Sockbuf_Buf *buf )
 {
 	assert( buf != NULL);
 
-	if (buf->buf_base)
+	if (buf->buf_base) {
 		LBER_FREE( buf->buf_base );
+	}
 	ber_pvt_sb_buf_init( buf );
 }
 
@@ -239,8 +255,9 @@ ber_pvt_sb_copy_out( Sockbuf_Buf *sbb, char *buf, ber_len_t len )
 	if ( max ) {
 		AC_MEMCPY( buf, sbb->buf_base + sbb->buf_ptr, max );
 		sbb->buf_ptr += max;
-		if ( sbb->buf_ptr >= sbb->buf_end )
+		if ( sbb->buf_ptr >= sbb->buf_end ) {
 			sbb->buf_ptr = sbb->buf_end = 0;
+		}
    }
 	return max;
 }
@@ -249,7 +266,7 @@ ber_slen_t
 ber_pvt_sb_do_write( Sockbuf_IO_Desc *sbiod, Sockbuf_Buf *buf_out )
 {
 	ber_len_t		to_go;
-   ber_slen_t ret;
+	ber_slen_t ret;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
@@ -257,26 +274,28 @@ ber_pvt_sb_do_write( Sockbuf_IO_Desc *sbiod, Sockbuf_Buf *buf_out )
 	to_go = buf_out->buf_end - buf_out->buf_ptr;
 	assert( to_go > 0 );
    
-      for(;;) {
+	for(;;) {
 		ret = LBER_SBIOD_WRITE_NEXT( sbiod, buf_out->buf_base +
 			buf_out->buf_ptr, to_go );
 #ifdef EINTR
-	 if ((ret<0) && (errno==EINTR))
-	   continue;
+		if ((ret<0) && (errno==EINTR)) continue;
 #endif
-	 break;
-      }
+		break;
+	}
 
-	if ( ret <= 0 )
-   return ret;
+	if ( ret <= 0 ) return ret;
    
 	buf_out->buf_ptr += ret;
-	if (buf_out->buf_ptr == buf_out->buf_end)
+	if (buf_out->buf_ptr == buf_out->buf_end) {
 		buf_out->buf_end = buf_out->buf_ptr = 0;
-	if ( (ber_len_t)ret < to_go )
+	}
+
+	if ( (ber_len_t)ret < to_go ) {
 		/* not enough data, so pretend no data was sent. */
 		return -1;
-   return ret;
+	}
+
+	return ret;
 }
 
 int
@@ -284,10 +303,11 @@ ber_pvt_socket_set_nonblock( ber_socket_t sd, int nb )
 {
 #if HAVE_FCNTL
 	int flags = fcntl( sd, F_GETFL);
-	if( nb )
+	if( nb ) {
 		flags |= O_NONBLOCK;
-	else
+	} else {
 		flags &= ~O_NONBLOCK;
+	}
 	return fcntl( sd, F_SETFL, flags );
 		
 #elif defined( FIONBIO )
@@ -301,16 +321,16 @@ ber_int_sb_init( Sockbuf *sb )
 {
 	assert( sb != NULL);
 
-   sb->sb_valid=LBER_VALID_SOCKBUF;
-   sb->sb_options = 0;
+	sb->sb_valid=LBER_VALID_SOCKBUF;
+	sb->sb_options = 0;
 	sb->sb_debug = ber_int_debug;
 	sb->sb_fd = AC_SOCKET_INVALID;
 	sb->sb_iod = NULL;
-   sb->sb_trans_needs_read = 0;
-   sb->sb_trans_needs_write = 0;
+	sb->sb_trans_needs_read = 0;
+	sb->sb_trans_needs_write = 0;
    
-   assert( SOCKBUF_VALID( sb ) );
-   return 0;
+	assert( SOCKBUF_VALID( sb ) );
+	return 0;
 }
    
 int
@@ -323,14 +343,16 @@ ber_int_sb_close( Sockbuf *sb )
 	p = sb->sb_iod;
 	while ( p ) {
 		if ( p->sbiod_io->sbi_close &&
-				p->sbiod_io->sbi_close( p ) < 0 )
-      return -1;
+			p->sbiod_io->sbi_close( p ) < 0 )
+		{
+			return -1;
+		}
 		p = p->sbiod_next;
-   }
+	}
    
 	sb->sb_fd = AC_SOCKET_INVALID;
    
-   return 0;
+	return 0;
 }
 
 int
@@ -346,7 +368,8 @@ ber_int_sb_destroy( Sockbuf *sb )
 		ber_sockbuf_remove_io( sb, sb->sb_iod->sbiod_io,
 			sb->sb_iod->sbiod_level );
 		sb->sb_iod = p;
-}
+	}
+
 	return ber_int_sb_init( sb );
 }
 
@@ -362,12 +385,13 @@ ber_int_sb_read( Sockbuf *sb, void *buf, ber_len_t len )
 
 	for (;;) {
 		ret = sb->sb_iod->sbiod_io->sbi_read( sb->sb_iod, buf, len );
+
 #ifdef EINTR	
-		if ( ( ret < 0 ) && ( errno == EINTR ) )
-			continue;
+		if ( ( ret < 0 ) && ( errno == EINTR ) ) continue;
 #endif
 		break;
-}
+	}
+
 	return ret;
 }
 
@@ -383,12 +407,13 @@ ber_int_sb_write( Sockbuf *sb, void *buf, ber_len_t len )
 
 	for (;;) {
 		ret = sb->sb_iod->sbiod_io->sbi_write( sb->sb_iod, buf, len );
+
 #ifdef EINTR	
-		if ( ( ret < 0 ) && ( errno == EINTR ) )
-			continue;
+		if ( ( ret < 0 ) && ( errno == EINTR ) ) continue;
 #endif
 		break;
-}
+	}
+
 	return ret;
 }
 
@@ -420,23 +445,23 @@ sb_stream_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 /*
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
-   {
-   int rc;
+	{
+		int rc;
 
 		rc = recv( sbiod->sbiod_sb->sb_fd, buf, len, 0 );
 
 #ifdef HAVE_WINSOCK
-   if ( rc < 0 )
-   {
-     int err;
+		if ( rc < 0 ) {
+			int err;
 
-     err = WSAGetLastError();
-     errno = err;
-   }
+			err = WSAGetLastError();
+			errno = err;
+		}
 #endif
 
-   return rc;
-   }
+		return rc;
+	}
+
 #elif defined( HAVE_NCSA )
 /*
  * NCSA Telnet TCP/IP stack (under DOS)
@@ -460,10 +485,10 @@ sb_stream_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
  */
 #define MAX_WRITE	65535
 	return tcpwrite( sbiod->sbiod_sb->sb_fd, (unsigned char *)buf,
-		    (len<MAX_WRITE)? len : MAX_WRITE );
+		(len<MAX_WRITE) ? len : MAX_WRITE );
 
 #elif defined( HAVE_PCNFS) \
-   || defined( HAVE_WINSOCK) || defined ( __BEOS__ )
+	|| defined( HAVE_WINSOCK) || defined ( __BEOS__ )
 /*
  * PCNFS (under DOS)
  */
@@ -473,22 +498,18 @@ sb_stream_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 /*
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
+	{
+		int rc = send( sbiod->sbiod_sb->sb_fd, buf, len, 0 );
 
-   {
-   int rc;
-	
-		rc = send( sbiod->sbiod_sb->sb_fd, buf, len, 0 );
 #ifdef HAVE_WINSOCK
-   if ( rc < 0 )
-   {
-     int err;
-		
-     err = WSAGetLastError();
-     errno = err;
-   }
+		if ( rc < 0 ) {
+			int err;
+			err = WSAGetLastError();
+			errno = err;
+		}
 #endif
-   return rc;
-   }
+		return rc;
+	}
 
 #elif defined(HAVE_NCSA)
 	return netwrite( sbiod->sbiod_sb->sb_fd, buf, len );
@@ -499,7 +520,7 @@ sb_stream_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
  */
 #define MAX_WRITE 65535
 	return write( sbiod->sbiod_sb->sb_fd, buf,
-		 (len<MAX_WRITE)? len : MAX_WRITE);
+		(len<MAX_WRITE) ? len : MAX_WRITE);
 #else
 	return write( sbiod->sbiod_sb->sb_fd, buf, len );
 #endif   
@@ -519,8 +540,9 @@ static int
 sb_stream_setup( Sockbuf_IO_Desc *sbiod, void *arg ) {
 	assert( sbiod != NULL );
 
-	if ( arg != NULL )
+	if ( arg != NULL ) {
 		sbiod->sbiod_sb->sb_fd = *((int *)arg);
+	}
 	return 0;
 }
 
@@ -530,10 +552,9 @@ sb_stream_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg ) {
 	return 0;
 }
 
-Sockbuf_IO ber_sockbuf_io_tcp =
-{
+Sockbuf_IO ber_sockbuf_io_tcp = {
 	sb_stream_setup,	/* sbi_setup */
-	NULL,			/* sbi_remove */
+	NULL,				/* sbi_remove */
 	sb_stream_ctrl,		/* sbi_ctrl */
 	sb_stream_read,		/* sbi_read */
 	sb_stream_write,	/* sbi_write */
@@ -553,15 +574,18 @@ sb_rdahead_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	assert( sbiod != NULL );
 
 	p = LBER_MALLOC( sizeof( *p ) );
-	if ( p == NULL )
-		return -1;
+	if ( p == NULL ) return -1;
+
 	ber_pvt_sb_buf_init( p );
-	if ( arg == NULL )
+
+	if ( arg == NULL ) {
 		ber_pvt_sb_grow_buffer( p, DEFAULT_READAHEAD );
-	else
+	} else {
 		ber_pvt_sb_grow_buffer( p, *((int *)arg) );
+	}
+
 	sbiod->sbiod_pvt = p;
-   return 0;
+	return 0;
 }
 
 static int
@@ -573,8 +597,7 @@ sb_rdahead_remove( Sockbuf_IO_Desc *sbiod )
 
 	p = (Sockbuf_Buf *)sbiod->sbiod_pvt;
 
-	if ( p->buf_ptr != p->buf_end )
-		return -1;
+	if ( p->buf_ptr != p->buf_end ) return -1;
 
 	ber_pvt_sb_buf_destroy( (Sockbuf_Buf *)(sbiod->sbiod_pvt) );
 	LBER_FREE( sbiod->sbiod_pvt );
@@ -602,8 +625,7 @@ sb_rdahead_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	bufptr += ret;
 	len -= ret;
 
-	if ( len == 0 )
-		return bufptr;
+	if ( len == 0 ) return bufptr;
 
 	max = p->buf_size - p->buf_end;
 	ret = 0;
@@ -611,14 +633,14 @@ sb_rdahead_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 		ret = LBER_SBIOD_READ_NEXT( sbiod, p->buf_base + p->buf_end,
 			max );
 #ifdef EINTR	
-		if ( ( ret < 0 ) && ( errno == EINTR ) )
-			continue;
+		if ( ( ret < 0 ) && ( errno == EINTR ) ) continue;
 #endif
 		break;
-}
+	}
 
-	if ( ret < 0 )
+	if ( ret < 0 ) {
 		return ( bufptr ? bufptr : ret );
+	}
 
 	p->buf_end += ret;
 	bufptr += ber_pvt_sb_copy_out( p, (char *) buf + bufptr, len );
@@ -652,12 +674,14 @@ sb_rdahead_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 	p = (Sockbuf_Buf *)sbiod->sbiod_pvt;
 
 	if ( opt == LBER_SB_OPT_DATA_READY ) {
-		if ( p->buf_ptr != p->buf_end )
+		if ( p->buf_ptr != p->buf_end ) {
 			return 1;
-	}
-	else if ( opt == LBER_SB_OPT_SET_READAHEAD ) {
-		if ( p->buf_size >= *((ber_len_t *)arg) )
+		}
+
+	} else if ( opt == LBER_SB_OPT_SET_READAHEAD ) {
+		if ( p->buf_size >= *((ber_len_t *)arg) ) {
 			return 0;
+		}
 		return ( ber_pvt_sb_grow_buffer( p, *((int *)arg) ) ?
 			-1 : 1 );
 	}
@@ -665,8 +689,7 @@ sb_rdahead_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 	return LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg );
 }
 
-Sockbuf_IO ber_sockbuf_io_readahead =
-{
+Sockbuf_IO ber_sockbuf_io_readahead = {
 	sb_rdahead_setup,	/* sbi_setup */
 	sb_rdahead_remove,	/* sbi_remove */
 	sb_rdahead_ctrl,	/* sbi_ctrl */
@@ -723,9 +746,8 @@ sb_fd_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg ) {
 	return 0;
 }
 
-Sockbuf_IO ber_sockbuf_io_fd =
-{
-	sb_fd_setup,		/* sbi_setup */
+Sockbuf_IO ber_sockbuf_io_fd = {
+	sb_fd_setup,	/* sbi_setup */
 	NULL,			/* sbi_remove */
 	sb_fd_ctrl,		/* sbi_ctrl */
 	sb_fd_read,		/* sbi_read */
@@ -742,12 +764,11 @@ sb_debug_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 {
 	assert( sbiod != NULL );
 	
-	if ( arg == NULL )
-		arg = "sockbuf_";
+	if ( arg == NULL ) arg = "sockbuf_";
 
 	sbiod->sbiod_pvt = LBER_MALLOC( strlen( arg ) + 1 );
-	if ( sbiod->sbiod_pvt == NULL )
-		return -1;
+	if ( sbiod->sbiod_pvt == NULL ) return -1;
+
 	strcpy( (char *)sbiod->sbiod_pvt, (char *)arg );
 	return 0;
 }
@@ -779,8 +800,8 @@ sb_debug_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			"%sread: want=%ld error=%s\n", (char *)sbiod->sbiod_pvt,
 			(long)len, STRERROR( errno ) );
-	}
-	else {
+
+	} else {
 		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			"%sread: want=%ld, got=%ld\n", (char *)sbiod->sbiod_pvt,
 			(long)len, (long)ret );
@@ -801,24 +822,24 @@ sb_debug_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 			"%swrite: want=%ld error=%s\n",
 			(char *)sbiod->sbiod_pvt, (long)len,
 			STRERROR( errno ) );
-	}
-	else {
+
+	} else {
 		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			"%swrite: want=%ld, written=%ld\n",
 			(char *)sbiod->sbiod_pvt, (long)len, (long)ret );
 		ber_log_bprint( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			(const char *)buf, ret );
 	}
+
 	return ret;
 }
 
-Sockbuf_IO ber_sockbuf_io_debug =
-{
+Sockbuf_IO ber_sockbuf_io_debug = {
 	sb_debug_setup,		/* sbi_setup */
 	sb_debug_remove,	/* sbi_remove */
 	sb_debug_ctrl,		/* sbi_ctrl */
 	sb_debug_read,		/* sbi_read */
 	sb_debug_write,		/* sbi_write */
-	NULL			/* sbi_close */
+	NULL				/* sbi_close */
 };
 
