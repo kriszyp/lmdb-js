@@ -248,7 +248,7 @@ main( int argc, char **argv )
 					continue;
 
 				type = strdup( type );
-				if ( avl_insert( &avltypes, type, strcasecmp,
+				if ( avl_insert( &avltypes, type, (AVL_CMP) strcasecmp,
 				    avl_dup_error ) != 0 ) {
 					free( type );
 				} else {
