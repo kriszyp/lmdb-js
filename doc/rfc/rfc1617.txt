@@ -1,0 +1,1571 @@
+
+
+
+
+
+
+Network Working Group                                          P. Barker
+Request for Comments: 1617                     University College London
+RARE Technical Report: 11                                       S. Kille
+Obsoletes: 1384                                         ISODE Consortium
+Category: Informational                                  T. Lenggenhager
+                                                                  SWITCH
+                                                                May 1994
+
+
+      Naming and Structuring Guidelines for X.500 Directory Pilots
+
+Status of this Memo
+
+   This memo provides information for the Internet community.  This memo
+   does not specify an Internet standard of any kind.  Distribution of
+   this memo is unlimited.
+
+Abstract
+
+   Deployment of a Directory will benefit from following certain
+   guidelines. This document defines a number of naming and structuring
+   guidelines focused on White Pages usage. Alignment to these
+   guidelines is recommended for directory pilots. The final version of
+   this document will replace RFC 1384.
+
+Table of Contents
+
+    1. Introduction                                                2
+    2. DIT Structure                                               3
+    2.1. Structure Rules                                           3
+    2.2. The Top Level of the DIT                                  3
+    2.3. Countries                                                 4
+    2.4. Organisations                                             5
+    2.4.1. Directory Manager, Postmaster & Secretary               5
+    2.4.2. Depth of tree                                           6
+    2.4.3. Real World Organisational Structure                     7
+    2.5. Multi-National Organisations                              7
+    2.5.1. The Multi-National as a Single Entity                   7
+    2.5.2. The Multi-National as a Loose Confederation             8
+    2.5.3. Loosely Linked DIT Sub-Trees                            9
+    2.5.4. Summary of Advantages and Disadvantages of the
+           Above Approaches                                        9
+    3. Naming Style                                               10
+    3.1. Multi-Component Relative Distinguished Names             11
+    3.2. National Guidelines for Naming                           11
+    3.3. Naming Organisation and Organisational Unit Names        11
+    3.4. Naming Human Users                                       12
+    3.5. Application Entities                                     13
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 1]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+    4. Attribute Values                                           13
+    4.1. Basic Attribute Syntaxes                                 13
+    4.1.1. Printable String                                       14
+    4.1.2. IA5 String - T.50                                      14
+    4.1.3. Teletex String - T.61                                  14
+    4.1.4. Case Ignore String                                     14
+    4.1.5. Distinguished Name                                     14
+    4.2. Languages & Transliteration                              14
+    4.2.1. Languages other than English                           15
+    4.2.2. Transliteration                                        15
+    4.3. Access control                                           15
+    4.4. Selected Attributes                                      16
+    4.4.1. Personal Attributes                                    16
+    4.4.2. Organisational Attributes                              18
+    4.4.3. Local Attributes                                       19
+    4.4.4. Miscellaneous Attributes                               20
+    4.4.5. MHS Attributes                                         21
+    4.4.6. Postal Attributes                                      21
+    4.4.7. Telecom Attributes                                     22
+    5. Miscellany                                                 22
+    5.1. Schema consistency of aliases                            22
+    5.2. Organisational Units                                     23
+    6. References                                                 23
+    7. Security Considerations                                    23
+    8. Authors' Addresses                                         24
+    9. Appendix - Example Entries                                 25
+
+1. Introduction
+
+   The intended audience for this document are mainly data managers
+   using X.500 Directory Services. With the help of these guidelines it
+   should be easier for them to define the structure for the part of the
+   Directory Information Tree they want to model, e.g., the
+   representation of their organisation in the Directory. In addition,
+   decisions like which data elements to store for each kind of entry
+   shall be supported.
+
+   These guidelines concentrate mainly on the White Pages use of the
+   Directory, the X.500 application with most operational experience
+   today, nonetheless many recommendations are also valid for other
+   applications of the Directory.
+
+   As a pre-requisite to this document, it is assumed that the COSINE
+   and Internet X.500 Schema is followed [1].
+
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 2]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+2. DIT Structure
+
+   The majority of this document is concerned with DIT structure, naming
+   and the usage of attributes for organisations, organisational units
+   and personal entries.
+
+   This section briefly notes five other key issues.
+
+2.1 Structure Rules
+
+   A DIT structure is suggested in Annex B of X.521 [2], and it is
+   recommended that Directory Pilots for White Pages services should
+   follow these guidelines. Some simple restrictions should be applied,
+   as described below. For further usage of the Directory like e-mail
+   routing with the Directory or storage of network information in the
+   Directory it will be necessary to follow the guidelines specified in
+   the respective documents.
+
+   One of the few exceptions to the basic DIT structure is, that
+   international organisations will be stored immediately under the root
+   of the tree. Multi-national organisations will be stored within the
+   framework outlined, but with some use of aliases and attributes such
+   as seeAlso to help bind together the constituent parts of these
+   organisations. This is discussed in more detail in section 2.5.
+
+   A general rule for the depth of a subtree is as follows: When a
+   subtree is mainly accessed via searching, it should be as flat as
+   possible to improve the performance, when the access will be mainly
+   through read operations, the depth of the subtree is not a
+   significant parameter for performance.
+
+2.2 The Top Level of the DIT
+
+   The following information will be present at the top level of the
+   DIT:
+
+   Participating Countries
+
+      According to the standard the RDN is the ISO 3166 country code. In
+      addition, the entries should contain suitable values of the
+      friendlyCountryName attribute specified in RFC 1274. Use of this
+      attribute is described in more detail in section 4.4.4.
+
+   International Organisations
+
+      An international organisation is an organisation, such as the
+      United Nations, which inherently has a brief and scope covering
+      many nations.  Such organisations might be considered to be
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 3]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+      supra-national and this, indeed, is the raison-d'etre of such
+      organisations. Such organisations will almost all be governmental
+      or quasi-governmental. A multi-national organisation is an
+      organisation which operates in more than one country, but is not
+      supra-national. This classification includes the large commercial
+      organisations whose production and sales are spread throughout a
+      large number of countries.
+
+      International organisations may be registered at the top level.
+      This will not be done for multi-national organisations. Currently
+      three organisations are registered so far: Inmarsat, Internet and
+      North Atlantic Treaty Organization.
+
+   Localities
+
+      A few localities will be registered under the root. The chief
+      purpose of these locality entries is to provide a "natural" parent
+      node for organisations which are supra-national, and yet which do
+      not have global authority in their particular field. Such
+      organisations will usually be governmental or quasi-governmental.
+      Example localities might include: Europe, Africa, West Indies.
+      Example organisations within Europe might include: European Court
+      of Justice, European Space Agency, European Commission.
+
+   DSA Information
+
+      Some information on DSAs may be needed at the top level.  This
+      should be kept to a minimum.
+
+   The only directory information for which there is a recognised top
+   level registration authority is countries. Registration of other
+   information at the top level may potentially cause problems. At this
+   stage, it is argued that the benefit of limiting additional top level
+   registrations outweighs these problems. However, this potential
+   problem should be noted by anyone making use of such a registration.
+
+2.3 Countries
+
+   The national standardisation bodies will define national guidelines
+   for the structure of the national part of the DIT. In the interim,
+   the following simple structure should suffice. The country entry will
+   appear immediately beneath the root of the tree. Organisations which
+   have national significance should have entries immediately beneath
+   their respective country entries. Smaller organisations which are
+   only known in a particular locality should be placed underneath
+   locality entries representing states or similar geographical
+   divisions. Entry for private persons will be listed under the
+   locality entries. An example plan evolving for the US is the work of
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 4]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   the North American Directory Forum [3]. Another example is the
+   organisation of the X.500 namespace as standardized in Australia [4].
+
+2.4 Organisations
+
+   Large organisations will probably need to be sub-divided by
+   organisational units to help in the disambiguation of entries for
+   people with common names. Entries for people and roles will be stored
+   beneath organisations or organisational units.
+
+   The organisation entry itself shall contain the information necessary
+   to contact the organisation: for example, postal address, telephone
+   and fax numbers.
+
+   Although the structure of organisations often changes considerably
+   over time, the aim should be to minimise the number of changes to the
+   DIT. Note that renaming a superior, department entry has the effect
+   of changing the DN of all subordinate entries. This has an
+   undesirable impact on the service for several reasons. Alias entries
+   and certain attributes or ordinary entries such as seeAlso, secretary
+   and roleOccupant use DNs to maintain links with other entries. These
+   references are one-way only and the Directory standard offers no
+   support to automatically update all references to an entry once its
+   DN changes.
+
+2.4.1 Directory Manager, Postmaster & Secretary
+
+   Similar to messaging, where every domain has its postmaster address
+   it is highly recommended that each organisation in the X.500
+   Directory has two entries: Postmaster and Directory Manager. In
+   addition, Secretary entries for an organisation and its units should
+   be listed. If this guidance is followed, users will benefit because
+   it will be straightforward to find the right contacts for questions
+   or problems with the service.
+
+   These entries should use the object class organizationalRole with the
+   roleOccupant attributes containing the distinguished names of the
+   persons in charge of this role. The values
+
+      CN=Directory Manager
+
+      CN=Postmaster
+
+      CN=Secretary
+
+   should be added as additional values whenever another language than
+   English is used for the name of the entries.
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 5]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+2.4.2 Depth of tree
+
+   The broad recommendation for White Pages is that the DIT should be as
+   flat as possible. A flat tree means that Directory names will be
+   relatively short, and probably somewhat similar in length and
+   component structure to paper mail addresses. A deep DIT would imply
+   long Directory names, with somewhat arbitrary component parts, with a
+   result which it is argued seems less natural. Any artificiality in
+   the choice of names militates against successful querying.
+
+   A presumption behind this style of naming is that most querying will
+   be supported by the user specifying convenient strings of characters
+   which will be mapped onto powerful search operations.  The
+   alternative approach of the user browsing their way down the tree and
+   selecting names from large numbers of possibilities may be more
+   appropriate in some cases, and a deeper tree facilitates this.
+   However, these guidelines recommend a shallow tree, and implicitly a
+   search oriented approach.
+
+   It may be considered that there are two determinants of DIT depth:
+   first, how far down the DIT an organisation is placed; second, the
+   structure of the DIT within organisations.
+
+   The structure of the upper levels of the tree will be determined in
+   due course by various registration authorities, and the pilot will
+   have to work within the given structure. However, it is important
+   that the various pilots are cognisant of what the structures are
+   likely to be, and move early to adopt these structures.
+
+   The other principal determinant of DIT depth is whether an
+   organisation splits its entries over a number of organisational
+   units, and if so, the number of levels. The recommendation here is
+   that this sub-division of organisations is kept to a minimum. A
+   maximum of two levels of organisational unit should suffice even for
+   large organisations. Organisations with only a few tens or hundreds
+   of employees should strongly consider not using organisational units
+   at all. It is noted that there may be some problems with choice of
+   unique RDNs when using a flat DIT structure. Multi-component RDNs can
+   alleviate this problem: see section 3.1. The standard X.521
+   recommends that an organizationalUnitName attribute can also be used
+   as a naming attribute to disambiguate entries [2]. Further
+   disambiguation may be achieved by the use of a personalTitle or
+   userId attribute in the RDN.
+
+
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 6]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+2.4.3 Real World Organisational Structure
+
+   Another aspect on designing the DIT structure for an organisation is
+   the administrative structure within a company. Using the same
+   structure in the DIT might help in distributing maintenance authority
+   to the different units. Please note comments on the stability of the
+   DIT structure in section 2.4.
+
+2.5 Multi-National Organisations
+
+   The standard says that only international organisations may be placed
+   under the root of the DIT. This implies that multi-national
+   organisations must be represented as a number of separate entries
+   underneath country or locality entries. This structure makes it more
+   awkward to use X.500 within a multi-national to provide an internal
+   organisational directory, as the data is now spread widely throughout
+   the DIT, rather than all being grouped within a single sub-tree.
+
+   Many people have expressed the view that this restriction is a severe
+   limitation of X.500, and argue that the intentions of the standard
+   should be ignored in this respect. This note argues, though, that the
+   standard should be followed.
+
+   No attempt to precisely define multinational organisation is essayed
+   here. Instead, the observation is made that the term is applied to a
+   variety of organisational structures, where an organisation operates
+   in more than one country. This suggests that a variety of DIT
+   structures may be appropriate to accommodate these different
+   organisational structures. This document suggests three approaches,
+   and notes some of the characteristics associated with each of these
+   approaches.
+
+   Before considering the approaches, it is worth bearing in mind again
+   that a major aim in the choice of a DIT structure is to facilitate
+   querying, and that approaches which militate against this should be
+   avoided wherever possible.
+
+2.5.1 The Multi-National as a Single Entity
+
+   In many cases, a multi-national organisation will operate with a
+   highly centralised structure. While the organisation may have large
+   operations in a number of countries, the organisation is strongly
+   controlled from the centre and the disparate parts of the
+   organisation exist only as limbs of the main organisation. In such a
+   situation, the model shown in figure 1 may be the best choice.
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 7]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+                            ROOT
+
+                           / | \
+                          /  |  \
+
+                      C=GB  C=FR  C=US
+
+                     /       |       \
+                    /        |        \
+
+          O=MultiNat---->O=MultiNat<----O=MultiNat
+
+                         /    |    \
+                        /     |     \
+                       /      |      \
+
+                 l=abc      ou=def     l=fgi
+
+                     ---> means "alias to"
+
+      Figure 1: The multi-national as a single entity
+
+   The organisation's entries all exist under a single sub-tree. The
+   organisational structure beneath the organisation entry should
+   reflect the perceived structure of the organisation, and so no
+   recommendations on this matter can be made here. To assist the person
+   querying the directory, alias entries should be created under all
+   countries where the organisation operates.
+
+2.5.2 The Multi-National as a Loose Confederation
+
+   Another common model of organisational structure is that where a
+   multi-national consists of a number of national entities, which are
+   in large part independent of both sibling national entities, and of
+   any central entity. In such cases, the model shown in Figure 2 may be
+   a better choice. Organisational entries exist within each country,
+   and only that country's localities and organisational units appear
+   directly beneath the appropriate organisational entry.
+
+
+
+
+
+
+
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 8]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+                              ROOT
+
+                             / | \
+                            /  |  \
+                        C=GB C=FR C=US
+
+                        /      |     \
+                       /       |      \
+              O=MultiNat   O=MultiNat   O=MultiNat
+
+             /    |        /    |   \        |    \
+            /     |       /     |    \       |     \
+
+        L=FR    L=GB<---L=GB     |   L=US--->L=US   L=FR
+          \                      |                 /
+           ------------------->L=FR<----------------
+
+                      ---> means "alias to"
+
+      Figure 2: The multi-national as a loose confederation
+
+   Some binding together of the various parts of the organisation can be
+   achieved by the use of aliases for localities and organisational
+   units, and this can be done in a highly flexible fashion. In some
+   cases, the national view might not contain all branches of the
+   company, as illustrated in Figure 2.
+
+2.5.3 Loosely Linked DIT Sub-Trees
+
+   A third approach is to avoid aliasing altogether, and to use the
+   looser binding provided by an attribute such as seeAlso. This
+   approach treats all parts of an organisation as essentially separate.
+
+   A unified view of the organisation can only be achieved by user
+   interfaces choosing to follow the seeAlso links. This is a key
+   difference with aliasing, where decisions to follow links may be
+   specified within the protocol. (Note that it may be better to specify
+   another attribute for this purpose, as seeAlso is likely to be used
+   for a wide variety of purposes.)
+
+2.5.4 Summary of Advantages and Disadvantages of the Above Approaches
+
+   Providing an internal directory
+
+      All the above methods can be used to provide an internal
+      directory. In the first two cases, the linkage to other parts of
+      the organisation can be followed by the protocol and thus
+      organisation-wide searches can be achieved by single X.500
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)     [Page 9]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+      operations. In the last case, interfaces would have to "know" to
+      follow the soft links indicated by the seeAlso attribute.
+
+   Impact on naming
+
+      In the single-entity model, all DNs within the organisation will
+      be under one country. It could be argued that this will often
+      result in rather "unnatural" naming. In the loose- confederation
+      model, DNs are more natural, although the need to disambiguate
+      between organisational units and localities on an international,
+      rather than just a national, basis may have some impact on the
+      choice of names. For example, it may be necessary to add in an
+      extra level of organisational unit or locality information. In the
+      loosely-linked model, there is no impact on naming at all.
+
+   Views of the organisation
+
+      The first method provides a unique view of the organisation.  The
+      loose confederacy allows for a variety of views of the
+      organisation. The view from the centre of the organisation may
+      well be that all constituent organisations should be seen as part
+      of the main organisation, whereas other parts of the organisation
+      may only be interested in the organisation's centre and a few of
+      its sibling organisations. The third model gives an equally
+      flexible view of organisational structures.
+
+   Lookup performance
+
+      All methods should perform reasonably well, providing information
+      is either held within a single DSA or it is replicated to the
+      other DSAs.
+
+3. Naming Style
+
+   The first goal of naming is to provide unique identifiers for
+   entries. Once this is achieved, the next major goal in naming entries
+   should be to facilitate querying of the Directory. In particular,
+   support for a naming structure which facilitates use of user friendly
+   naming [5] is desirable. Other considerations, such as accurately
+   reflecting the organisational structure of an organisation, should be
+   disregarded if this has an adverse effect on normal querying. Early
+   experience in the pilot has shown that a consistent approach to
+   structure and naming is an aid to querying using a wide range of user
+   interfaces, as interfaces are often optimised for DIT structures
+   which appear prevalent. In addition, the X.501 standard notes that
+   "RDNs are intended to be long-lived so that the users of the
+   Directory can store the distinguished names of objects..." and "It is
+   preferable that distinguished names of objects which humans have to
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 10]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   deal with be user-friendly." [2]
+
+   Naming is dependent on a number of factors and these are now
+   considered in turn.
+
+3.1 Multi-Component Relative Distinguished Names
+
+   According to the standard, relative distinguished names may have more
+   than one component selected from the set of the attributes of the
+   entry to be named. This is useful when there are, for example, two
+   "John Smiths" in one department. The use of multi-component relative
+   distinguished names allows one to avoid artificial naming values such
+   as "John Smith 1" or "John Smith-2". Attributes which could be used
+   as the additional naming attribute include: personalTitle,
+   roomNumber, telephoneNumber, and userId.
+
+3.2 National Guidelines for Naming
+
+   Where naming is being done in a country which has established
+   guidelines for naming, these guidelines should in general be
+   followed. These guidelines might be based on an established
+   registration authority, or may make use of an existing registration
+   mechanism (e.g., company name registration).
+
+   Where an organisation has a name which is nationally registered in an
+   existing registry, this name is likely to be appropriate for use in
+   the Directory, even in cases where there are no national guidelines.
+
+3.3 Naming Organisation and Organisational Unit Names
+
+   The naming of organisations in the Directory will ultimately come
+   under the jurisdiction of official naming authorities. In the
+   interim, it is recommended that pilots and organisations follow these
+   guidelines. An organisation's RDN should usually be the full name of
+   the organisation, rather than just a set of initials. This means that
+   University College London should be preferred over UCL.  An example
+   of the problems which a short name might cause is given by the
+   proposed registration of AA for the Automobile Association.  This
+   seems reasonable at first glance, as the Automobile Association is
+   well known by this acronym. However, it seems less reasonable in a
+   broader perspective when you consider that organisations such as
+   Alcoholics Anonymous and American Airlines use the same acronym.
+
+   Just as initials should usually be avoided for organisational RDNs,
+   so should formal names which, for example, exist only on official
+   charters and are not generally well known. There are two reasons for
+   this approach:
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 11]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+      1.   The names should be meaningful.
+
+      2.   The names should uniquely identify the organisation, and be
+           a name which is unlikely to be challenged in an open
+           registration process. For example, UCL might well be
+           challenged by United Carriers Ltd.
+
+   The same arguments on naming style can be applied with even greater
+   force to the choice of RDNs for organisational units. While
+   abbreviated names will be in common parlance within an organisation,
+   they will almost always be meaningless outside of that organisation.
+   While many people in academic computing habitually refer to CS when
+   thinking of Computer Science, CS may be given several different
+   interpretations. It could equally be interpreted as Computing
+   Services, Cognitive Science, Clinical Science or even Counselling
+   Services.
+
+   For both organisations and organisational units, extra naming
+   information should be stored in the directory as alternative values
+   of the naming attribute. Thus, for University College London, UCL
+   should be stored as an alternative organizationName attribute value.
+   Similarly CS could be stored as an alternative organizationalUnitName
+   value for Computer Science and any of the other departments cited
+   earlier. In general, entries will be located by searching, and so it
+   is not essential to have RDNs which are either the most memorable or
+   guessable, although names should be recognisable. The need for users
+   not to type long names may be achieved by use of carefully selected
+   alternative values.
+
+3.4 Naming Human Users
+
+   A reasonably consistent approach to naming people is particularly
+   critical as a large percentage of directory usage will be looking up
+   information about people. User interfaces will be better able to
+   assist users if entries have names conforming to a common format, or
+   small group of formats. It is suggested that the RDN should follow
+   such a format. Alternative values of the common name attribute should
+   be used to store extra naming information. It seems sensible to try
+   to ensure that the RDN commonName value is genuinely the most common
+   name for a person as it is likely that user interfaces may choose to
+   place greater weight on matches on the RDN than on matches on one of
+   the alternative names.
+
+   The choice of RDN for humans will be influenced by cultural
+   considerations. In many countries the best choice will be of the form
+   familiar-first-name surname. Thus, Steve Kille is preferred as the
+   RDN choice for one of this document's co-authors, while Stephen E.
+   Kille is stored as an alternative commonName value. Pragmatic choices
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 12]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   will have to be made for other cultures. The common name attribute
+   should not be used to hold other attribute information such as
+   telephone numbers, room numbers, or local codes. Such information
+   should be stored within the appropriate attributes as defined in the
+   COSINE and Internet X.500 Schema. Section 3.1 on multi-component RDNs
+   shows how clashing names can be made unique.
+
+   The choice of a naming strategy should not be made on the basis of
+   the possibilities of the currently available user interface
+   implementations. For example, it is inappropriate to use common names
+   of the form 'surname firstname' merely because a user interface
+   presents results in a more satisfactory order by so doing. Use the
+   best structure for human names, and fix the user interface!
+
+   More details on the use of commonName in section 4.4.1.
+
+3.5 Application Entities
+
+   The guidelines of X.521 should be followed, in that the application
+   entity should always be named relative to an Organisation or
+   Organisational Unit. The application process will often correspond to
+   a system or host. In this case, the application entities should be
+   named by Common Names which identify the service (e.g., "FTAM
+   Service"). In cases where there is no useful distinction between
+   application process and application entity, the application process
+   may be omitted (This is often done for DSAs in the current pilot).
+
+4. Attribute Values
+
+   In general the attribute values should be used as documented in the
+   standards. Sometimes the standard is not very precise about which
+   attribute to use and how to represent a value.
+
+   The following sections give recommendations how to use them in X.500
+   pilot projects.
+
+4.1 Basic Attribute Syntaxes
+
+   Every attribute type has a definition of the attribute syntaxes its
+   values may be use. Most attribute types make use the basic attribute
+   syntaxes only.
+
+
+
+
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 13]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+4.1.1 Printable String
+
+   This most simple syntax uses a subset of characters from ISO 646 IRV.
+
+    A-Z   a-z   0-9   '     (     )     +
+
+    ,     -     .     /     :     ?     space
+
+    Tab 1: Characters in PrintableString
+
+4.1.2 IA5 String - T.50
+
+   The International Alphabet No. 5 (IA5) is known from the X.400
+   message handling service. It covers a wider range of characters than
+   the printable string. The international reference version of IA5
+   offers the same set of characters as ISO 646 IRV.
+
+4.1.3 Teletex String - T.61
+
+   The Teletex character set is a very unusual one in the computing
+   environment because it uses mixed one and two octet character codes
+   which are more difficult to handle than single octet codes. Most of
+   the characters can be mapped to the more often supported 8-bit
+   character set standard ISO 8859-1 (ISO Latin-1).
+
+4.1.4 Case Ignore String
+
+   Many attributes use this case insensitive syntax. It allows attribute
+   values to be represented using a mixture of upper and lower case
+   letters, as appropriate. Matching of attribute values, however, is
+   performed such that no significance is given to case.
+
+4.1.5 Distinguished Name
+
+   A Distinguished Name should currently never contain a value in T.61
+   string syntax because most users would not be able to view or type it
+   correctly by lack of appropriate hardware/software configuration.
+   Therefore, only the characters defined in printable string syntax
+   should be used as part of a RDN. The correct representation of the
+   name should be added as additional attribute value to match for
+   search operations.
+
+4.2 Languages & Transliteration
+
+   The standard as available has no support at all for the use of
+   different languages in the Directory. It is e.g., not possible to add
+   a language qualifier to a description attribute nor is it possible to
+   use characters beyond the Teletex character set.
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 14]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+4.2.1 Languages other than English
+
+   Many countries have more than one national language and a world-wide
+   Directory must be able to support non-English-speaking users.
+
+   Until the standard provides a solution for this problem it is
+   possible to make use of multi-valued attributes to specify a value
+   not only in the local languages but also in English.
+
+   In particular the friendlyCountryName, stateOrProvinceName and
+   localityName attributes should use the most often used translations
+   of its original value to increase the chance for successful searches
+   also for users with a foreign language. Other attributes like
+   description, organizationName and organizationalUnitName attributes
+   should provide multi-lingual values where appropriate.
+
+   The drawback of this solution is, that the user interfaces present
+   much redundant information because they are not able to know the
+   language of the values and make an automatic selection.
+
+   Note:   The sequence of multi-valued attribute values in an entry
+           cannot be defined. It is always up to the DSA to decide on
+           which order to store them and return them as results, and
+           to the DUA to decide on which order to display them.
+
+4.2.2 Transliteration
+
+   What measures can be taken to make sure all users are able to read an
+   attribute, when a value uses one of the special characters from the
+   T.61 character set? An interim solution is transliteration as used in
+   earlier days with the typewriters, where e.g., the German 'a' with
+   umlaut is written as 'ae'. Transliteration is not necessarily unique
+   since it is dependent on the language, English speakers transliterate
+   the 'a' with umlaut just to an 'a'. However, it is an improvement
+   over just using the T.61 value since it may not be possible to
+   display such a value at all. Whenever an attribute needs a character
+   not in PrintableString and the attribute syntax allows the use of the
+   T.61 character set, it is recommended that the attribute should be
+   supplied as multi-valued attribute both in T.61 string and in a
+   transliterated PrintableString notation.
+
+4.3 Access control
+
+   An entry's object class attribute, and any attribute(s) used for
+   naming an entry are of special significance and may be considered to
+   be "structural". Any inability to access these attributes will often
+   militate against successful querying of the Directory. For example,
+   user interfaces typically limit the scope of their searches by
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 15]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   searching for entries of a particular type, where the type of entry
+   is indicated by its object class. Thus, unless the intention is to
+   bar public access to an entry or set of entries, the object class and
+   naming attributes should be publicly readable.
+
+4.4 Selected Attributes
+
+   The section lists attributes together with a short description what
+   they should be used for and some examples. [6] The source of the
+   attributes is given in brackets.
+
+   Note that due to national legal restrictions on privacy issues it
+   might be forbidden to use certain attributes or that the search on
+   them is restricted. [7]
+
+4.4.1 Personal Attributes
+
+   commonName [X.520]
+
+      It is proposed that pilots should ignore the standard's
+      recommendations on storing personal titles, and letters indicating
+      academic and professional qualifications within the commonName
+      attribute, as this overloads the commonName attribute. A
+      personalTitle attribute has already been specified in the COSINE
+      and Internet Schema, and another attribute could be specified for
+      information about qualifications.
+
+      The choice of a name depends on the culture as discussed in
+      section 3.4. When a commonName is selected as (part of) a RDN the
+      most often used form of the name should be selected. A firstname
+      should never be supplied only as an initial (unless, of course,
+      the source data does not include forenames). It is very important
+      to have its full value in order to be able to distinguish between
+      two similar entries. Sets of initials should not be concatenated
+      into a single "word", but be separated by spaces and/or "."
+      characters.
+
+
+         Format:    Firstname [Initials] Lastname
+
+         Example:   Steve Kille
+
+                    Stephen E. Kille
+
+                    S.E. Kille
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 16]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+      The use of 'Lastname Firstname' is deprecated as explained in
+      section 3.4.
+
+   favouriteDrink [RFC 1274]
+
+      The intention of this attribute is that it provides at least one
+      benign attribute which any user can create or modify, given a
+      suitable user interface, without having the unfortunate impact on
+      the directory service that follows from modifying an attribute
+      such as an e-mail address or telephone number.
+
+      Example: Pure Crystal Water
+
+   organizationalStatus [RFC 1274]
+
+      The Organisational Status attribute type specifies a category by
+      which a person is often referred to in an organisation. Examples
+      of usage in academia might include undergraduate student,
+      researcher, lecturer, etc.
+
+      A Directory administrator should consider carefully the
+      distinctions between this and the title and description
+      attributes.
+
+      Example: undergraduate student
+
+   personalTitle [RFC 1274]
+
+      The usually used titles, especially academic ones. Excessive use
+      should be avoided.
+
+      Example: Prof. Dr.
+
+   roomNumber [RFC 1274]
+
+      The room where the person works, it will mostly be locally defined
+      how to write the room number, e.g., Building Floor Room.
+
+      Example: HLW B12
+
+   secretary [RFC 1274]
+
+      The secretary of the person. This is the Distinguished Name (DN)
+      of the secretary.
+
+      Example: CN=Beverly Pyke, O=ISODE Consortium, C=GB
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 17]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   surname [X.520]
+
+      Like with commonName it is a matter of culture what to use for
+      surname in case of a noble name, e.g., de Stefani, von Gunten.
+
+      Example: Kille
+
+   title [X.520]
+
+      Title describing the position, job title or function of an
+      organisational person.
+
+      Example: Manager - International Sales
+
+   userId [RFC 1274]
+
+      When an organisation has centrally managed user ids, it might make
+      sense to include it into the entry. It might also be used to form
+      a unique RDN for the person.
+
+      Example: skille
+
+   userPassword [X.520]
+
+      The password of the entry which allows the modification of the
+      entry, provided that the access control permits it. The password
+      should not be the same as any system password, unless it is sure
+      that nobody can read it. With the current implementations this is
+      mostly not guaranteed.
+
+      Example: 8kiu8z7e
+
+4.4.2 Organisational Attributes
+
+   associatedDomain [RFC 1274]
+
+      The Internet domain name for an organisation or one of its units.
+
+      Example: isode.com
+
+   businessCategory [X.520]
+
+      Type of business an organisation, an organisational unit or
+      organisational person is involved in. The values could be chosen
+      from a thesaurus.
+
+      Example: Software Development
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 18]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   organizationName [X.520]
+
+      The name of the organisation. The value for the RDN should be
+      chosen according to section 3.3. Additional names like
+      abbreviations should be used for better search results.
+
+      Example:    Uni Lausanne
+                  Universite de Lausanne
+                  Universit\c2e Lausanne (with a T.61 encoded umlaut)
+                  University of Lausanne
+                 unil
+
+   organizationalUnitName [X.520]
+
+      The name of a part of the organisation. The value for the RDN
+      should be chosen according to section 3.3. Additional names like
+      abbreviations should be provided for better search results.
+
+      Example:    Institut fuer Angewandte Mathematik
+                  Mathematik
+                  iam
+
+   roleOccupant [X.520]
+
+      The person(s) in that role. This is the Distinguished Name of the
+      entry of the person(s).
+
+      Example: CN=Beverly Pyke, O=ISODE Consortium, C=GB
+
+   searchGuide [X.520]
+
+      The currently available DUAs make no use this attribute. It seems
+      that it is not powerful enough for real usage. Experience is
+      needed before being able to give recommendations on how to
+      configure it.
+
+4.4.3 Local Attributes
+
+   localityName [X.520]
+
+      Name of the place, village or town with values in local and other
+      languages as useful.
+
+      Example:    Bale
+                  B\c3ale (with a T.61 encoded accented character) Basel
+                  Basilea
+                  Basle
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 19]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   stateOrProvinceName [X.520]
+
+      Name of the canton, county, department, province or state with
+      values in local and other languages as useful. If official and
+      commonly used abbreviations exist for the states, they should be
+      supplied as additional values
+
+      Example:    Ticino
+                  Tessin
+                  TI
+
+4.4.4 Miscellaneous Attributes
+
+   audio [RFC 1274]
+
+      The audio attribute uses a u-law encoded sound file as used by the
+      "play" utility on a Sun 4. According to RFC 1274 it is an interim
+      format. It may be useful to listen to the pronunciation of a name
+      which is otherwise unknown.
+
+   description [X.520]
+
+      A short informal explanation of special interests of a person or
+      organisation. Overlap with businessCategory, organizationalStatus
+      and title should be avoided.
+
+      Example: Networking, distributed systems, OSI, implementation.
+
+   friendlyCountryName [RFC 1274]
+
+      The friendlyCountryName attribute type specifies names of
+      countries in human readable format. Especially the country name as
+      used in the major languages should be included as additional
+      values to help foreign users.
+
+   jpegPhoto [RFC 1488] [8]
+
+      A colour or grayscale picture encoded according to JPEG File
+      Interchange Format (JFIF). Thanks to compression the size of the
+      pictures is moderate. For persons it may show a portrait, for
+      organisations the company logo or a map on how to get there.
+
+   photo [RFC 1274]
+
+      The photo attribute is a b/w G3 fax encoded picture of an object.
+      The size of the photo should be in a sensible relation to the
+      informational value of it. This attribute will be replaced by
+      jpegPhoto.
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 20]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   seeAlso [X.520]
+
+      Reference to another closely related entry in the DIT, e.g., from
+      a room to the person using that room. It is the Distinguished Name
+      of the entry.
+
+      Example: CN=Beverly Pyke, O=ISODE Consortium, C=GB
+
+4.4.5 MHS Attributes
+
+   mhsORAddresses [X.411]
+
+      The attribute uses internally an ASN.1 structure. The string
+      notation used for display purposes is implementation dependent.
+      This attribute is especially useful for an integrated X.400 user
+      agent since it gets the address in a directly usable format.
+
+   rfc822mailbox [RFC 1274]
+
+      E-Mail address in RFC 822 notation
+
+      Example: s.kille@isode.com
+
+   textEncodedORAddress [RFC 1274]
+
+      X.400 e-mail address in string notation. The F.401 notation should
+      be used. This attribute shall disappear once the majority of the
+      DUAs support the mhsORAddresses attribute. The advantage of the
+      latter attribute is, that a configurable DUA could adjust the
+      syntax to the one needed by the local mailer, where
+      textencodedORAddress is just a string which will mostly have a
+      different syntax than the mailer expects.
+
+      Example:    G=thomas; S=lenggenhager; OU1=gate; O=switch; \
+                  P=switch; A=arcom; C=ch;
+
+4.4.6 Postal Attributes
+
+   postalAddress [X.520]
+
+      The full postal address (but not including the name) in
+      international notation, with up to 6 lines with 30 characters
+      each.
+
+      Example:    SWITCH
+                  Limmatquai 13
+                  CH-8001 Zurich
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 21]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+   postalCode [X.520]
+
+      The postalCode will be the same as used in the postalAddress (in
+      international notation).
+
+      Example: CH-8001
+
+   streetAddress [X.520]
+
+      It shall be the street where the person has its office. Mostly, it
+      will be the street part of the postalAddress.
+
+      Example: Limmatquai 138
+
+4.4.7 Telecom Attributes
+
+   telephoneNumber, facsimileTelephoneNumber & iSDNAddress [X.520]
+
+      The phone number in the international notation according to CCITT
+      E.123. The separator '-' instead of space may be used according to
+      the local habit, it should be used consistently within a country.
+
+      Format: "+" <country code> <national number> ["x" <extension>]
+      Example: +41 1 268 1540
+
+   telexNumber [X.520]
+
+      The telex number in the international notation
+
+      Example: 817379, ch, ehhg
+
+5. Miscellany
+
+   This section draws attention to two areas which frequently provoke
+   questions, and where it is felt that a consistent approach will be
+   useful.
+
+5.1 Schema consistency of aliases
+
+   According to the letter of the standard, an alias may point at any
+   entry. It is beneficial for aliases to be 'schema consistent'.
+
+   The following two checks should be made:
+
+      1.   The Relative Distinguished Name of the alias should use an
+           attribute type normally used for naming entries of the
+           object class of the main entry.
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 22]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+      2.   If the entry (aliased object) were placed where the alias
+           is, there should be no schema violation.
+
+5.2 Organisational Units
+
+   There is a problem that many organisations can be either
+   organisations or organisational units, dependent on the location in
+   the DIT (with aliases giving the alternate names). For example, an
+   organisation may be an independent national organisation and also an
+   organisational unit of a parent organisation. To achieve this, it is
+   important to allow an entry to be of both object class organisation
+   and of object class organisational unit.
+
+6. References
+
+   [1] Barker, P., and S. Hardcastle-Kille, "The COSINE and Internet
+       X.500 schema", RFC 1274, Department of Computer Science,
+       University College London, November 1991.
+
+   [2] "The Directory --- Overview of concepts, models and services",
+       CCITT X.500 Series Recommendations, December 1988.
+
+   [3] The North American Directory Forum. "A Naming Scheme for C=US",
+       RFC 1255, NADF-175, NADF, September 1991.
+
+   [4] Michaelson, G., and M. Prior, "Naming Guidelines for the AARNet
+       X.500 Directory Service", RFC 1562, AEN-001, The University of
+       Queensland, The University of Adelaide, December 1993.
+
+   [5] Hardcastle-Kille, S., "Using the OSI Directory to achieve user
+       friendly naming", RFC 1484, Department of Computer Science,
+       University College London, July 1993.
+
+   [6] Barker, P., "Preparing data for inclusion in an X.500 Directory",
+       Research Note RN/92/41, Department of Computer Science,
+       University College London, May 1992.
+
+   [7] Jeunink, E., and E. Huizer, "Directory Services and Privacy
+       Issues", RARE WG-DATMAN, TF-LEGAL, Work in Progress, May 1993.
+
+   [8] Howes, T., Kille, S., Yeong, W., and C. Robbins, "The X.500
+       String Representation of Standard Attribute Syntaxes", RFC 1488,
+       University of Michigan, ISODE Consortium, Performance Systems
+       International, NeXor Ltd., July 1993.
+
+7. Security Considerations
+
+   Security issues are not substantially discussed in this memo.
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 23]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+8. Authors' Addresses
+
+   Paul Barker
+   Department of Computer Science
+   University College London
+   Gower Street
+   London WC1E 6BT
+   England
+
+   Phone: +44 71 380 7366
+   EMail: p.barker@cs.ucl.ac.uk
+
+   DN:  CN=Paul Barker, OU=Computer Science, O=University College
+        London, C=GB
+
+   UFN: Paul Barker, Computer Science, UCL, GB
+
+
+   Steve Kille
+   ISODE Consortium
+   The Dome
+   The Square
+   Richmond TW9 1DT
+   England
+
+   Phone: +44 81 332 9091
+   EMail: s.kille@isode.com
+
+   DN:  CN=Steve Kille, O=ISODE Consortium, C=GB
+
+   UFN: S. Kille, ISODE   Consortium, GB
+
+
+   Thomas Lenggenhager
+   SWITCH
+   Limmatquai 138
+   CH-8001 Zurich
+   Switzerland
+
+   Phone: +41 1 268 1540
+   EMail: lenggenhager@switch.ch
+
+   DN:  CN=Thomas Lenggenhager, O=SWITCH, C=CH
+
+   UFN: Thomas Lenggenhager, SWITCH, CH
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 24]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+9. Appendix - Example Entries
+
+9.1 Country
+
+    DN: C=CH
+
+    objectClass=top & country & domainRelatedObject & friendlyCountry
+    country=CH
+    associatedDomain=ch
+    friendlyCountryName=CH
+    friendlyCountryName=Confoederatio Helvetica
+    friendlyCountryName=Schweiz
+    friendlyCountryName=Suisse
+    friendlyCountryName=Svizzera
+    friendlyCountryName=Switzerland
+
+9.2 Organisation
+
+    DN: O=SWITCH, C=CH
+
+    objectClass=top & organization & mhsUser & domainRelatedObject
+    description=Swiss Academic and Research Network
+    organizationName=SWIss TeleCommunication system for Higher
+    education\and research
+    organizationName=Swiss Academic and Research Network
+    organizationName=SWITCH
+    localityName=Zuerich
+    localityName=Zurich
+    localityName={T.61}Z\c8urich
+    stateOrProvinceName=ZH
+    stateOrProvinceName=Zuerich
+    stateOrProvinceName=Zurich
+    stateOrProvinceName={T.61}Z\c8urich
+    postalAddress=SWITCH
+                  Limmatquai 138
+                  CH-8001 Zurich
+    postalCode=CH-8001
+    streetAddress=Limmatquai 138
+    telephoneNumber=+41 1 268 1515
+    facsimileTelephoneNumber=+41 1 268 1568
+    seeAlso=CN=Postmaster, O=SWITCH, C=CH
+    mhsORAddresses=S=postmaster, O=switch; P=switch; A=arcom; C=ch;
+    associatedDomain=switch.ch
+
+
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 25]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+9.3 Organisation Unit
+
+    DN: OU=SWITCHdirectory, O=SWITCH, C=CH
+
+    objectClass=top & organizationalUnit
+    description=The SWITCH X.500 pilot project
+    organizationalUnitName=SWITCHdirectory
+    localityName=Zurich
+    localityName=Zuerich
+    localityName={T.61}Z\c8urich
+    stateOrProvinceName=Zurich
+    stateOrProvinceName=Zuerich
+    stateOrProvinceName=ZH
+    stateOrProvinceName={T.61}Z\c8urich
+    postalAddress=SWITCHdirectory
+                  SWITCH
+                  Limmatquai 138
+                  CH-8001 Zurich
+    postalCode=CH-8001
+    streetAddress=Limmatquai 138
+    telephoneNumber=+41 1 268 1540
+    facsimileTelephoneNumber=+41 1 268 1568
+
+9.4 Organizational Role
+
+    DN: CN=Directory Manager, O=SWITCH, C=CH
+
+    objectClass=top & organizationalRole & mhsUser
+    commonName=Directory Manager
+    description=SWITCH Directory Managers
+    roleOccupant=CN=Martin Berli, O=SWITCH, C=CH
+    roleOccupant=CN=Thomas Lenggenhager, O=SWITCH, C=CH
+    localityName=Zuerich
+    localityName=Zurich
+    localityName={T.61}Z\c8urich
+    stateOrProvinceName=Zurich
+    stateOrProvinceName=Zuerich
+    stateOrProvinceName=ZH
+    stateOrProvinceName={T.61}Z\c8urich
+    postalAddress=SWITCHdirectory
+                  SWITCH
+                  Limmatquai 138
+                  CH-8001 Zurich
+    postalCode=CH-8001
+    streetAddress=Limmatquai 138
+    telephoneNumber=+41 1 268 1540
+    facsimileTelephoneNumber=+41 1 268 1568
+    mhsORAddresses=S=switchinfo; O=switch; P=switch; A=arcom; C=ch;
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 26]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+    DN: CN=Postmaster, O=SWITCH, C=CH
+
+    objectClass=top & organizationalRole & mhsUser
+    commonName=Postmaster
+    commonName=Helpdesk
+    roleOccupant=CN=Christoph Graf, O=SWITCH, C=CH
+    roleOccupant=CN=Felix Kugler, O=SWITCH, C=CH
+    roleOccupant=CN=Marcel Parodi, O=SWITCH, C=CH
+    roleOccupant=CN=Marcel Schneider, O=SWITCH, C=CH
+    telephoneNumber=+41 1 268 1520
+    facsimileTelephoneNumber=+41 1 268 1568
+    mhsORAddresses=S=postmaster; O=switch; P=switch; A=arcom; C=ch;
+
+    DN: CN=Secretary, O=SWITCH, C=CH
+
+    objectClass=top & organizationalRole & quipuObject
+    commonName=Secretary
+    roleOccupant=CN=Franziska Remund, O=SWITCH, C=CH
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 27]
+
+RFC 1617      Naming and Structuring Guidelines for X.500       May 1994
+
+
+9.5 Person
+
+    DN: CN=Thomas Lenggenhager, O=SWITCH, C=CH
+
+    objectClass=top & person & organizationalPerson & mhsUser &
+    pilotObject & newPilotPerson
+    commonName=Thomas Lenggenhager
+    commonName=T. Lenggenhager
+    surname=Lenggenhager
+    description=SWITCHinfo, Project Leader
+    localityName=Zuerich
+    localityName=Zurich
+    localityName={T.61}Z\c8urich
+    stateOrProvinceName=ZH
+    stateOrProvinceName=Zuerich
+    stateOrProvinceName=Zurich
+    stateOrProvinceName={T.61}Z\c8urich
+    postalAddress=SWITCH
+                  Limmatquai 138
+                  CH-8001 Zurich
+    postalCode=CH-8001
+    streetAddress=Limmatquai 138
+    telephoneNumber=+41 1 268 1540
+    facsimileTelephoneNumber=+41 1 268 1568
+    mhsORAddresses=S=lenggenhager; O=switch; P=switch; A=arcom; C=ch;
+    userPassword=secret
+    textEncodedORaddress={T.61}S=lenggenhager; O=switch; P=switch; \
+                                  A=arcom; C=ch;
+    rfc822mailbox=lenggenhager@switch.ch
+    secretary=CN=Franziska Remund, O=SWITCH, C=CH
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+RARE Working Group on Network Applications Support (WG-NAP)    [Page 28]
+
