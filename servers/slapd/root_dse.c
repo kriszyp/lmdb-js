@@ -19,8 +19,9 @@
 #include <ldif.h>
 
 static char *supportedFeatures[] = {
-	"1.3.6.1.4.1.4203.1.5.1", /* All Operational Attributes ("+") */
+	"1.3.6.1.4.1.4203.1.5.1", /* all Operational Attributes ("+") */
 	"1.3.6.1.4.1.4203.1.5.2", /* OCs in Attributes List */
+	"1.3.6.1.4.1.4203.1.5.3", /* (&) and (|) search filters */
 	NULL
 };
 
