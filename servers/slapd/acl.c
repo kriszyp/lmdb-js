@@ -904,8 +904,15 @@ dn_match_cleanup:;
 				at = attrs_find( at->a_next, b->a_dn_at ) )
 			{
 				if( value_find_ex( b->a_dn_at,
+#ifdef SLAP_NVALUES
+					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+					at->a_nvals ? at->a_nvals : at->a_vals,
+#else
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-					at->a_vals, &bv ) == 0 )
+					at->a_vals,
+#endif
+					&bv ) == 0 )
 				{
 					/* found it */
 					match = 1;
