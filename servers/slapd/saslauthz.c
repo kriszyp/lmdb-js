@@ -291,7 +291,7 @@ char *slap_sasl_regexp( char *saslname )
 
 
 /*
- * Given a SASL name (e.g. "UID=name,cn=REALM,cn=MECH,cn=AUTHZID")
+ * Given a SASL name (e.g. "UID=name,cn=REALM,cn=MECH,cn=AUTH")
  * return the LDAP DN to which it matches. The SASL regexp rules in the config
  * file turn the SASL name into an LDAP URI. If the URI is just a DN (or a
  * search with scope=base), just return the URI (or its searchbase). Otherwise

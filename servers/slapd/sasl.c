@@ -128,7 +128,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	}
 
 	/* Username strings */
-	len1  = strlen( ",cn=authzid" );
+	len1  = strlen( ",cn=auth" );
 	if( !strncasecmp( dn, "u:", 2 ) ) {
 		len += strlen( "dn:uid=" ) + len1;
 
@@ -166,7 +166,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 		if( conn->c_sasl_bind_mech ) {
 			len += sprintf( dn+len, ",cn=%s", conn->c_sasl_bind_mech );
 		}
-		strcpy(	dn+len, ",cn=authzid" );
+		strcpy(	dn+len, ",cn=auth" );
 		len += len1;
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -177,7 +177,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 
 	}
 
-	/* DN strings that are a cn=authzid identity to run through regexp */
+	/* DN strings that are a cn=auth identity to run through regexp */
 	if( !strncasecmp( dn, "dn:", 3) && ( ( flags & FLAG_GETDN_FINAL ) == 0 ) ) {
 		c1 = slap_sasl2dn( dn + 3 );
 		if( c1 ) {
