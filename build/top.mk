@@ -111,7 +111,6 @@ LTFINISH = $(LIBTOOL) --mode=finish
 
 # Misc UNIX commands used in build environment
 AR = @AR@
-AWK = @AWK@
 BASENAME = basename
 CAT = cat
 CHMOD = chmod
@@ -127,10 +126,6 @@ PWD = pwd
 RANLIB = @RANLIB@
 RM = rm -f
 SED = sed
-
-# Misc UNIX commands used in programs
-EDITOR = @EDITOR@
-SENDMAIL = @SENDMAIL@
 
 # For manual pages
 # MANCOMPRESS=@MANCOMPRESS@

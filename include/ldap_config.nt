@@ -52,12 +52,4 @@
 #define LDAP_RUNDIR			LDAP_PREFIX "\\run"
 #endif
 
-/* command locations */
-#ifndef LDAP_EDITOR
-#define LDAP_EDITOR			"%EDITOR%"
-#endif
-#ifndef LDAP_SENDMAIL
-#define LDAP_SENDMAIL		"%SENDMAIL%"
-#endif
-
 #endif /* _LDAP_CONFIG_H */

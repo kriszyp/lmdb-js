@@ -641,13 +641,8 @@ AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
-AC_PROG_AWK
 OL_PROG_LN_H
 AC_PROG_LN_S
-
-AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
-	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
-AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 
 dnl ----------------------------------------------------------------
 dnl Perl
@@ -701,7 +696,7 @@ AC_MINGW32
 AC_EXEEXT
 AC_OBJEXT
 
-AC_DEFINE_UNQUOTED( EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
+AC_DEFINE_UNQUOTED(EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
 
 dnl ----------------------------------------------------------------
 dnl BeOS requires -lbe -lroot -lnet
@@ -1242,7 +1237,8 @@ ol_link_tls=no
 if test $ol_with_tls != no ; then
 	AC_CHECK_HEADERS(openssl/ssl.h ssl.h)
 	
-	if test $ac_cv_header_openssl_ssl_h = yes -o $ac_cv_header_ssl_h = yes ; then
+	if test $ac_cv_header_openssl_ssl_h = yes \
+		-o $ac_cv_header_ssl_h = yes ; then
 		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
 			[have_ssleay=yes
 			need_rsaref=no],
