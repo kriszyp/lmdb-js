@@ -472,6 +472,8 @@ static int doPreSearchPluginFNs( Operation *op )
 static int doSearchRewriteFNs( Operation *op )
 {
 	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, op->o_pb ) == 0 ) {
+		int rc;
+
 		/*
 		 * The plugin can set the SLAPI_SEARCH_FILTER.
 		 * SLAPI_SEARCH_STRFILER is not normative.
@@ -479,6 +481,26 @@ static int doSearchRewriteFNs( Operation *op )
 		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_FILTER, (void *)&op->ors_filter );
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+
+		/*
+		 * Also permit other search parameters to be reset. One thing
+	 	 * this doesn't (yet) deal with is plugins that change a root
+		 * DSE search to a non-root DSE search...
+		 */
+		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_TARGET, (void **)&op->o_req_dn.bv_val );
+		op->o_req_dn.bv_len = strlen( op->o_req_dn.bv_val );
+
+		if( op->o_req_ndn.bv_val != NULL) {
+			sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+		}
+		rc = dnNormalize2( NULL, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+
+		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_SCOPE, (void **)&op->ors_scope );
+		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_DEREF, (void **)&op->ors_deref );
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 
