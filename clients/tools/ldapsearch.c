@@ -717,7 +717,7 @@ main( int argc, char **argv )
 	}
 
 	if (version == -1 ) {
-		version = 3;
+		version = LDAP_VERSION3;
 	}
 
 	if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version )
@@ -1291,7 +1291,9 @@ static int print_result(
 	return err;
 }
 
-void print_ctrls( LDAPControl **ctrls ) {
+static void print_ctrls(
+	LDAPControl **ctrls )
+{
 	int i;
 	for(i=0; ctrls[i] != NULL; i++ ) {
 		/* control: OID criticality base64value */

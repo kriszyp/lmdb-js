@@ -533,7 +533,6 @@ main( int argc, char *argv[] )
 
 	if (want_bindpw && passwd.bv_val == NULL ) {
 		/* handle bind password */
-		fprintf( stderr, "Bind DN: %s\n", binddn );
 		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
 		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
@@ -589,7 +588,7 @@ main( int argc, char *argv[] )
 	}
 
 	/* LDAPv3 only */
-	version = 3;
+	version = LDAP_VERSION3;
 	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 
 	if(rc != LDAP_OPT_SUCCESS ) {
