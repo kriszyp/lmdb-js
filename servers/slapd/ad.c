@@ -364,15 +364,18 @@ done:;
 }
 
 static int is_ad_sublang(
-	const char *sublang, 
-	const char *suplang )
+	struct berval *sublangbv, 
+	struct berval *suplangbv )
 {
-	const char *supp, *supdelimp;
-	const char *subp, *subdelimp;
+	const char *suplang, *supp, *supdelimp;
+	const char *sublang, *subp, *subdelimp;
 	int  suplen, sublen;
 
-	if( suplang == NULL ) return 1;
-	if( sublang == NULL ) return 0;
+	if( suplangbv->bv_len == 0 ) return 1;
+	if( sublangbv->bv_len == 0 ) return 0;
+
+	sublang =sublangbv->bv_val;
+	suplang =suplangbv->bv_val;
 
 	for( supp=suplang ; supp; supp=supdelimp ) {
 		supdelimp = strchrlen( supp, ';', &suplen );
@@ -413,7 +416,7 @@ int is_ad_subtype(
 	}
 
 	/* check for language tags */
-	if ( !is_ad_sublang( sub->ad_lang.bv_val, super->ad_lang.bv_val )) {
+	if ( !is_ad_sublang( &sub->ad_lang, &super->ad_lang )) {
 		return 0;
 	}
 
