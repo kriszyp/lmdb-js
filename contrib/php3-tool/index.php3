@@ -1,7 +1,7 @@
 <!DOCTYPE PUBLIC HTML "-//W3C//HTML3.2 Final//En">
 <html>
 <head>
-	<!-- copyright, (C) Predrag Balorda, OpenLDAP Foundation, 1998 -->
+	<!-- copyright, (C) Predrag Balorda, OpenLDAP Foundation, 1998,1999,2000 -->
 	<title>PHP3 Thingy</title>
 	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
