@@ -1032,7 +1032,7 @@ int slapd_daemon_init( const char *urls )
 	for( i=0; u[i] != NULL; i++ ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, DETAIL1, 
-			"slap_daemon_init: listen on %s\n.", u[i], 0, 0 );
+			"slap_daemon_init: listen on %s\n", u[i], 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "daemon_init: listen on %s\n",
 			u[i], 0, 0 );
