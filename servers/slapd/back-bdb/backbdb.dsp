@@ -187,6 +187,10 @@ SOURCE=.\filterindex.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\group.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\id2entry.c
 # End Source File
 # Begin Source File
