@@ -963,6 +963,16 @@ backend_group(
 	if (i)
 		return SLAPD_ABANDON;
 
+	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
+		/* we won't attempt to send it to a different backend */
+		
+		be = select_backend(gr_ndn, 0);
+
+		if (be == NULL) {
+			return LDAP_NO_SUCH_OBJECT;
+		}
+	} 
+
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 	for (g = conn->c_groups; g; g=g->next) {
 		if (g->be != be || g->oc != group_oc || g->at != group_at ||
@@ -974,16 +984,6 @@ backend_group(
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	if (g)
 		return g->res;
-
-	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
-		/* we won't attempt to send it to a different backend */
-		
-		be = select_backend(gr_ndn, 0);
-
-		if (be == NULL) {
-			return LDAP_NO_SUCH_OBJECT;
-		}
-	} 
 
 	if( be->be_group ) {
 		int res = be->be_group( be, conn, op,
