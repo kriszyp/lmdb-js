@@ -1,6 +1,6 @@
 ## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
 ## COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 ##
-## doc Makefile.in for OpenLDAP
+## contrib Makefile.in for OpenLDAP
 
 SUBDIRS= saucer web_ldap
