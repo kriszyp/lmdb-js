@@ -52,7 +52,7 @@ static char *tls_opt_randfile = NULL;
 
 static void tls_report_error( void );
 
-static void tls_info_cb( SSL *ssl, int where, int ret );
+static void tls_info_cb( const SSL *ssl, int where, int ret );
 static int tls_verify_cb( int ok, X509_STORE_CTX *ctx );
 static int tls_verify_ok( int ok, X509_STORE_CTX *ctx );
 static RSA * tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length );
@@ -1371,11 +1371,11 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 
 /* Derived from openssl/apps/s_cb.c */
 static void
-tls_info_cb( SSL *ssl, int where, int ret )
+tls_info_cb( const SSL *ssl, int where, int ret )
 {
 	int w;
 	char *op;
-	char *state = SSL_state_string_long( ssl );
+	char *state = (char *) SSL_state_string_long( ssl );
 
 	w = where & ~SSL_ST_MASK;
 	if ( w & SSL_ST_CONNECT ) {
@@ -1403,8 +1403,8 @@ tls_info_cb( SSL *ssl, int where, int ret )
 #endif
 
 	} else if ( where & SSL_CB_ALERT ) {
-		char *atype = SSL_alert_type_string_long( ret );
-		char *adesc = SSL_alert_desc_string_long( ret );
+		char *atype = (char *) SSL_alert_type_string_long( ret );
+		char *adesc = (char *) SSL_alert_desc_string_long( ret );
 		op = ( where & SSL_CB_READ ) ? "read" : "write";
 #ifdef HAVE_EBCDIC
 		if ( atype ) {
