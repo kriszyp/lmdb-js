@@ -79,14 +79,9 @@ int ldbm_modify_internal(
  			mod->mod_op = LDAP_MOD_ADD;
 #endif
 			err = add_values( e, mod, op->o_ndn );
+
  			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
  				err = LDAP_SUCCESS;
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-				mod->sm_op = SLAP_MOD_SOFTADD;
-#else
-				mod->mod_op = SLAP_MOD_SOFTADD;
-#endif
- 
  			}
  			break;
 		}
