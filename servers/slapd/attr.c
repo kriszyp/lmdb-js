@@ -23,7 +23,9 @@
 #include "slap.h"
 
 #ifdef LDAP_DEBUG
-static void at_index_print( void ) {};
+static void at_index_print( void ) 
+{
+}
 #endif
 
 void
