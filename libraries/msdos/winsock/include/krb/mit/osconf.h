@@ -1,7 +1,7 @@
 /*
- * $Source: F:/DOSDEV/NEWKRB/INCLUDE/RCS/osconf.h $
- * $Author: pbh $
- * $Header: F:/DOSDEV/NEWKRB/INCLUDE/RCS/osconf.h 1.2 1994/08/16 18:43:42 pbh Exp $
+ * $Source: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/mit/osconf.h,v $
+ * $Author: kurt $
+ * $Header: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/mit/osconf.h,v 1.1.4.1 1998/08/08 23:05:25 kurt Exp $
  *
  * Copyright 1988 by the Massachusetts Institute of Technology.
  *

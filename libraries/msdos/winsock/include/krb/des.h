@@ -1,7 +1,7 @@
 /*
- * $Source: Q:/SRC/KRB/MIT/ORIGINAL/INCLUDE/RCS/DES.H $
- * $Author: shabby $
- * $Header: Q:/SRC/KRB/MIT/ORIGINAL/INCLUDE/RCS/DES.H 1.3 1994/08/31 07:02:28 shabby Exp $
+ * $Source: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/des.h,v $
+ * $Author: kurt $
+ * $Header: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/des.h,v 1.1.4.1 1998/08/08 23:05:24 kurt Exp $
  *
  * Copyright 1987, 1988 by the Massachusetts Institute of Technology.
  *

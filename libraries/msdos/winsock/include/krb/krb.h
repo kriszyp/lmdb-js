@@ -1,7 +1,7 @@
 /*
- * $Source: Q:/SRC/KRB/MIT/ORIGINAL/RCS/KRB.H $
- * $Author: pbh $
- * $Header: Q:/SRC/KRB/MIT/ORIGINAL/RCS/KRB.H 1.5 1994/09/08 22:47:00 pbh Exp $
+ * $Source: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/krb.h,v $
+ * $Author: kurt $
+ * $Header: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/krb.h,v 1.1.4.1 1998/08/08 23:05:24 kurt Exp $
  *
  * Copyright 1987, 1988 by the Massachusetts Institute of Technology.
  *
