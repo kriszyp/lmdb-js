@@ -31,8 +31,8 @@ attributetype ( 2.16.840.1.113730.3.1.47
 	SINGLE-VALUE )
 
 # I-D leaves this OID TBD.
-# iPlanet uses 2.16.840.1.113.730.3.2.147 but that appears to be
-# an improperly delegated OID.  A typo is suspected.
+# iPlanet uses 2.16.840.1.113.730.3.2.147 but that is an
+# improperly delegated OID.  A typo is likely.
 objectclass ( 2.16.840.1.113730.3.2.147
 	NAME 'inetLocalMailRecipient'
 	DESC 'Internet local mail recipient'
