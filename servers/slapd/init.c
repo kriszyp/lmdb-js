@@ -216,7 +216,7 @@ int slap_shutdown( Backend *be )
 
 #ifdef LDAP_SLAPI
 	pb = slapi_pblock_new( );
-	(void) doPluginFNs( NULL, SLAPI_PLUGIN_START_FN, pb );
+	(void) doPluginFNs( NULL, SLAPI_PLUGIN_CLOSE_FN, pb );
 	slapi_pblock_destroy( pb );
 #endif /* LDAP_SLAPI */
 
