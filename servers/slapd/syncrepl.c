@@ -101,65 +101,63 @@ init_syncrepl(syncinfo_t *si)
 			attrs[i + 1] = NULL;
 		}
 
-		if ( !si->si_allopattrs ) {
-			for ( i = 0; sync_descs[i] != NULL; i++ ) {
-				j = 0;
-				while ( attrs[j] ) {
-					if ( !strcmp( attrs[j], sync_descs[i]->ad_cname.bv_val )) {
-						for ( k = j; attrs[k] != NULL; k++ ) {
-							if ( k == j )
-								ch_free( attrs[k] );
-							attrs[k] = attrs[k+1];
-						}
-					} else {
-						j++;
+		for ( i = 0; sync_descs[i] != NULL; i++ ) {
+			j = 0;
+			while ( attrs[j] ) {
+				if ( !strcmp( attrs[j], sync_descs[i]->ad_cname.bv_val )) {
+					for ( k = j; attrs[k] != NULL; k++ ) {
+						if ( k == j )
+							ch_free( attrs[k] );
+						attrs[k] = attrs[k+1];
 					}
+				} else {
+					j++;
 				}
+			}
+		}
 
-			}
-			for ( n = 0; attrs[ n ] != NULL; n++ ) /* empty */;
+		for ( n = 0; attrs[ n ] != NULL; n++ ) /* empty */;
+
+		if ( si->si_allopattrs ) {
+			attrs = ( char ** ) ch_realloc( attrs, (n + 2)*sizeof( char * ));
+		} else {
 			attrs = ( char ** ) ch_realloc( attrs, (n + 4)*sizeof( char * ));
-			if ( attrs == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
-			}
-	
-			/* Add Attributes */
+		}
+
+		if ( attrs == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0,0,0 );
+		}
+
+		/* Add Attributes */
+		if ( si->si_allopattrs ) {
+			attrs[n++] = ch_strdup( sync_descs[0]->ad_cname.bv_val );
+		} else {
 			for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
 				attrs[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
 			}
-			attrs[ n ] = NULL;
 		}
+		attrs[ n ] = NULL;
 
 	} else {
-		for ( n = 0; sync_descs[ n ] != NULL; n++ ) ;
 
-		attrs = ( char ** ) ch_malloc((
-					(si->si_allattrs   ? 1 : ( si->si_allopattrs ? 0 : 1)) +
-					(si->si_allopattrs ? 1 : ( si->si_allattrs   ? n : 1))
-					+ 1 ) * sizeof( char * ) );
-		if ( attrs == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "out of memory\n", 0, 0, 0 );
-		}
-		
 		i = 0;
-		if ( si->si_allattrs ) {
+		if ( si->si_allattrs == si->si_allopattrs ) {
+			attrs = (char**) ch_malloc( 3 * sizeof(char*) );
 			attrs[i++] = ch_strdup( "*" );
-		}
-
-		if ( si->si_allopattrs ) {
 			attrs[i++] = ch_strdup( "+" );
-		} else {
-			for ( j = 0; sync_descs[ j ] != NULL; j++ ) {
-				attrs[ i++ ] = ch_strdup ( sync_descs[j]->ad_cname.bv_val );
+		} else if ( si->si_allattrs && !si->si_allopattrs ) {
+			for ( n = 0; sync_descs[ n ] != NULL; n++ ) ;
+			attrs = (char**) ch_malloc( (n+1)* sizeof(char*) );
+			attrs[i++] = ch_strdup( "*" );
+			for ( j = 1; sync_descs[ j ] != NULL; j++ ) {
+				attrs[i++] = ch_strdup ( sync_descs[j]->ad_cname.bv_val );
 			}
+		} else if ( !si->si_allattrs && si->si_allopattrs ) {
+			attrs = (char**) ch_malloc( 3 * sizeof(char*) );
+			attrs[i++] = ch_strdup( "+" );
+			attrs[i++] = ch_strdup( sync_descs[0]->ad_cname.bv_val );
 		}
 		attrs[i] = NULL;
-
-		if ( !si->si_allattrs && !si->si_allopattrs ) {
-			attrs[0] = ch_strdup( "*" );
-			attrs[1] = ch_strdup( "+" );
-			attrs[2] = NULL;
-		}
 	}
 	
 	si->si_attrs = attrs;
