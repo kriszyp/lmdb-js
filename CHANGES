@@ -1,5 +1,9 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.16 Engineering
+	Build Environment
+		Regenerated configure script
+
 OpenLDAP 2.1.15 Release
 	Fixed slapd saslauthz null backend crash
 	Fixed libldap IPv6 SASL host bug (ITS#2347)
