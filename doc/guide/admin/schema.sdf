@@ -203,11 +203,11 @@ specifier (e.g {{EX:{10}}}).
 For example, the attribute types {{EX:name}} and {{EX:cn}} are defined
 in {{F:core.schema}} as:
 
->	attributeType: ( 2.5.4.41 NAME 'name'
+>	attributeType ( 2.5.4.41 NAME 'name'
 >		EQUALITY caseIgnoreMatch
 >		SUBSTR caseIgnoreSubstringsMatch
 >		SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
->	attributeType: ( 2.5.4.3 NAME
+>	attributeType ( 2.5.4.3 NAME
 >		( 'cn' $ 'commonName' ) SUP name )
 
 Notice that each defines the attribute's OID and descriptive
