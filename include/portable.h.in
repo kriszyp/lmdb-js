@@ -16,13 +16,6 @@
 /* end of preamble */
 
 
-/* Define if on AIX 3.
-   System headers sometimes define this.
-   We just want to avoid a redefinition error message.  */
-#ifndef _ALL_SOURCE
-#undef _ALL_SOURCE
-#endif
-
 /* Define to empty if the keyword does not work.  */
 #undef const
 
@@ -43,16 +36,6 @@
 
 /* Define if you have the vprintf function.  */
 #undef HAVE_VPRINTF
-
-/* Define if on MINIX.  */
-#undef _MINIX
-
-/* Define if the system does not provide POSIX.1 features except
-   with this defined.  */
-#undef _POSIX_1_SOURCE
-
-/* Define if you need to in order for stat and other things to work.  */
-#undef _POSIX_SOURCE
 
 /* Define as the return type of signal handlers (int or void).  */
 #undef RETSIGTYPE
@@ -367,6 +350,9 @@
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
+/* Define if you have the <dlfcn.h> header file.  */
+#undef HAVE_DLFCN_H
+
 /* Define if you have the <errno.h> header file.  */
 #undef HAVE_ERRNO_H
 
@@ -432,9 +418,6 @@
 
 /* Define if you have the <memory.h> header file.  */
 #undef HAVE_MEMORY_H
-
-/* Define if you have the <minix/config.h> header file.  */
-#undef HAVE_MINIX_CONFIG_H
 
 /* Define if you have the <ncurses.h> header file.  */
 #undef HAVE_NCURSES_H
