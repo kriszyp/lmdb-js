@@ -117,7 +117,7 @@ static int ldap_is_desc ( const char *str )
 	return 0;
 
 options:
-	if( !LDAP_LDH( str[i] )) {
+	if( !LDAP_LDH( str[0] )) {
 		return 0;
 	}
 	for( i=1; str[i]; i++ ) {
@@ -508,19 +508,16 @@ put_simple_filter(
 	case '<':
 		ftype = LDAP_FILTER_LE;
 		*s = '\0';
-		if(! ldap_is_desc( str ) ) goto done;
 		break;
 
 	case '>':
 		ftype = LDAP_FILTER_GE;
 		*s = '\0';
-		if(! ldap_is_desc( str ) ) goto done;
 		break;
 
 	case '~':
 		ftype = LDAP_FILTER_APPROX;
 		*s = '\0';
-		if(! ldap_is_desc( str ) ) goto done;
 		break;
 
 	case ':':
@@ -535,11 +532,7 @@ put_simple_filter(
 			char *dn = strchr( str, ':' );
 			char *rule = NULL;
 
-			if( dn == NULL ) {
-				if(! ldap_is_desc( str ) ) goto done;
-
-			} else {
-
+			if( dn != NULL ) {
 				*dn++ = '\0';
 				rule = strchr( dn, ':' );
 
@@ -626,6 +619,8 @@ put_simple_filter(
 			}
 		} break;
 	}
+
+	if( !ldap_is_desc( str ) ) goto done;
 
 	if ( ftype == LDAP_FILTER_PRESENT ) {
 		rc = ber_printf( ber, "ts", ftype, str );
