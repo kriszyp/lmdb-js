@@ -679,6 +679,21 @@ glue_db_open (
 }
 
 static int
+glue_db_close( 
+	BackendDB *be
+)
+{
+	slap_overinst	*on = (slap_overinst *)be->bd_info;
+	int rc = 0;
+
+	if ( on->on_info->oi_orig->bi_db_close ) {
+		rc = on->on_info->oi_orig->bi_db_close( be );
+		on->on_info->oi_orig->bi_db_close = NULL;
+	}
+	return rc;
+}
+
+static int
 glue_db_config(
 	BackendDB	*be,
 	const char	*fname,
@@ -741,6 +756,7 @@ glue_init()
 	glue.on_bi.bi_db_init = glue_db_init;
 	glue.on_bi.bi_db_config = glue_db_config;
 	glue.on_bi.bi_db_open = glue_db_open;
+	glue.on_bi.bi_db_close = glue_db_close;
 	glue.on_bi.bi_db_destroy = glue_db_destroy;
 
 	glue.on_bi.bi_op_search = glue_op_search;
