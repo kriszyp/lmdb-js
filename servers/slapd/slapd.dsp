@@ -147,6 +147,10 @@ SOURCE=.\main.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\nt_svc.c
+# End Source File
+# Begin Source File
+
 SOURCE=".\proto-slap.h"
 # End Source File
 # Begin Source File

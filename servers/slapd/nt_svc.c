@@ -40,7 +40,7 @@ char *GetLastErrorString( void );
 int srv_install( char* service, char* filename );
 int srv_remove ( char* service, char* filename );
 
-void nt_main( DWORD argc, LPTSTR *argv )
+void main( DWORD argc, LPTSTR *argv )
 {
 	int		length;
 	char	filename[MAX_PATH], *fname_start;
