@@ -107,42 +107,55 @@ static struct slap_daemon {
  */
 #include <slp.h>
 
-#define MAX_HOSTNAME_LEN 256
 #define LDAP_SRVTYPE_PREFIX "service:ldap://"
-static char** slapd_srvurls = 0;
+#define LDAPS_SRVTYPE_PREFIX "service:ldaps://"
+static char** slapd_srvurls = NULL;
 static SLPHandle slapd_hslp = 0;
 
 void slapd_slp_init( const char* urls ) {
 	int i;
-	struct hostent* he;
-	char hn[MAX_HOSTNAME_LEN];
 
 	slapd_srvurls = str2charray( urls, " " );
 
-	for( i=0; slapd_srvurls[i]!=NULL; i++ ) {
+	if( slapd_srv_urls == NULL ) return;
+
+	/* find and expand INADDR_ANY URLs */
+	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
 		if( strcmp( slapd_srvurls[i], "ldap:///" ) == 0) {
-			/* INADDR_ANY urls should be marked up with host.domainname */
-			if ( gethostname( hn, MAX_HOSTNAME_LEN ) == 0) {
-				he = gethostbyname( hn );
-				if( he ) {
-					slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
-						strlen( he->h_name ) +
-						strlen( LDAP_SRVTYPE_PREFIX ) + 1);
-					strcpy( slapd_srvurls[i], LDAP_SRVTYPE_PREFIX );
-					strcat( slapd_srvurls[i], he->h_name );
-				}
+			char *host = ldap_pvt_get_fqdn( NULL );
+			if ( host != NULL ) {
+				slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
+					strlen( host ) +
+					sizeof( LDAP_SRVTYPE_PREFIX ) );
+				strcpy( slapd_srvurls[i], LDAP_SRVTYPE_PREFIX );
+				strcat( slapd_srvurls[i], host );
+
+				ch_free( host );
+			}
+
+		} else if ( strcmp( slapd_srvurls[i], "ldaps:///" ) == 0) {
+			char *host = ldap_pvt_get_fqdn( NULL );
+			if ( host != NULL ) {
+				slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
+					strlen( host ) +
+					sizeof( LDAPS_SRVTYPE_PREFIX ) );
+				strcpy( slapd_srvurls[i], LDAPS_SRVTYPE_PREFIX );
+				strcat( slapd_srvurls[i], host );
+
+				ch_free( host );
 			}
 		}
 	}
 
 	/* open the SLP handle */
-	SLPOpen("en", 0, &slapd_hslp);
+	SLPOpen( "en", 0, &slapd_hslp );
 }
 
 void slapd_slp_deinit() {
-	if ( slapd_srvurls ) {
-		charray_free( slapd_srvurls );
-	}
+	if( slapd_srv_urls == NULL ) return;
+
+	charray_free( slapd_srvurls );
+	slapd_srvurls = NULL;
 
 	/* close the SLP handle */
 	SLPClose( slapd_hslp );
@@ -160,14 +173,20 @@ void slapd_slp_reg() {
 	int i;
 
 	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
-		SLPReg( slapd_hslp,
-			slapd_srvurls[i],
-			SLP_LIFETIME_MAXIMUM,
-			"ldap",
-			"",
-			1,
-			slapd_slp_regreport,
-			NULL );
+		if( strncmp( slapd_srvurls[i], LDAP_SRVTYPE_PREFIX,
+				sizeof( LDAP_SRVTYPE_PREFIX ) - 1 ) == 0 ||
+		    strncmp( slapd_srvurls[i], LDAPS_SRVTYPE_PREFIX,
+				sizeof( LDAPS_SRVTYPE_PREFIX ) - 1 ) == 0 )
+		{
+			SLPReg( slapd_hslp,
+				slapd_srvurls[i],
+				SLP_LIFETIME_MAXIMUM,
+				"ldap",
+				"",
+				1,
+				slapd_slp_regreport,
+				NULL );
+		}
 	}
 }
 
