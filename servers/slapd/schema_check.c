@@ -873,9 +873,9 @@ entry_naming_check(
 		}
 
 		if ( value_find_ex( desc,
-			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-			attr->a_nvals,
-			&ava->la_value, NULL ) != 0 )
+			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX|
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+			attr->a_nvals, &ava->la_value, NULL ) != 0 )
 		{
 			snprintf( textbuf, textlen, 
 				"value of naming attribute '%s' is not present in entry",

@@ -495,7 +495,7 @@ slap_modrdn2mods(
 		if( desc->ad_type->sat_equality->smr_normalize) {
 			mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
 			(void) (*desc->ad_type->sat_equality->smr_normalize)(
-				SLAP_MR_EQUALITY,
+				SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 				desc->ad_type->sat_syntax,
 				desc->ad_type->sat_equality,
 				&mod_tmp->sml_values[0],
@@ -564,7 +564,7 @@ slap_modrdn2mods(
 			if( desc->ad_type->sat_equality->smr_normalize) {
 				mod_tmp->sml_nvalues = &mod_tmp->sml_values[2];
 				(void) (*desc->ad_type->sat_equality->smr_normalize)(
-					SLAP_MR_EQUALITY,
+					SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 					desc->ad_type->sat_syntax,
 					desc->ad_type->sat_equality,
 					&mod_tmp->sml_values[0],

@@ -734,7 +734,7 @@ int slap_mods_check(
 
 				for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
 					rc = ad->ad_type->sat_equality->smr_normalize(
-						0,
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 						ad->ad_type->sat_syntax,
 						ad->ad_type->sat_equality,
 						&ml->sml_values[nvals], &ml->sml_nvalues[nvals], ctx );

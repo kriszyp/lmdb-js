@@ -314,7 +314,7 @@ LDAPDN_rewrite( LDAPDN dn, unsigned flags, void *ctx )
 				 *	if value is empty, use empty_bv
 				 */
 				rc = ( *normf )(
-					0,
+					SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 					ad->ad_type->sat_syntax,
 					mr,
 					ava->la_value.bv_len

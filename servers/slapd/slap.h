@@ -451,11 +451,18 @@ typedef struct slap_matching_rule {
  */
 #define SLAP_MR_VALUE_OF_ASSERTION_SYNTAX	0x0001U
 #define SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX	0x0002U
+#define SLAP_MR_VALUE_OF_SYNTAX				0x0003U
 
 #define SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX( usage ) \
 	((usage) & SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX )
 #define SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( usage ) \
 	((usage) & SLAP_MR_VALUE_OF_ASSERTION_SYNTAX )
+#ifdef LDAP_DEBUG
+#define SLAP_MR_IS_VALUE_OF_SYNTAX( usage ) \
+	((usage) & SLAP_MR_VALUE_OF_SYNTAX)
+#else
+#define SLAP_MR_IS_VALUE_OF_SYNTAX( usage )	(1)
+#endif
 
 /* either or both the asserted value or attribute value
  * may be provided in normalized form

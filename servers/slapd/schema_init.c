@@ -861,6 +861,8 @@ uniqueMemberNormalize(
 	struct berval out;
 	int rc;
 
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ));
+
 	ber_dupbv( &out, val );
 	if( out.bv_len != 0 ) {
 		struct berval uid = { 0, NULL };
@@ -1170,6 +1172,8 @@ UTF8StringNormalize(
 	int flags;
 	int i, wasspace;
 
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ));
+
 	if( val->bv_val == NULL ) {
 		/* assume we're dealing with a syntax (e.g., UTF8String)
 		 * which allows empty strings
@@ -1463,6 +1467,8 @@ telephoneNumberNormalize(
 {
 	char *p, *q;
 
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ));
+
 	/* validator should have refused an empty string */
 	assert( val->bv_len );
 
@@ -1711,6 +1717,8 @@ IA5StringNormalize(
 	int casefold = SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
 
 	assert( val->bv_len );
+
+	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( use ));
 
 	p = val->bv_val;
 
@@ -2119,10 +2127,11 @@ certificateExactNormalize(
 
 	if( val->bv_len == 0 ) goto done;
 
-	if( val->bv_val[0] != LBER_SEQUENCE ) {
-		/* assume serialNumberAndIssuer */
+	if( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX(usage) ) {
 		return serialNumberAndIssuerNormalize(0,NULL,NULL,val,normalized,ctx);
 	}
+
+	assert( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) );
 
 	p = val->bv_val;
 	xcert = d2i_X509( NULL, &p, val->bv_len);
