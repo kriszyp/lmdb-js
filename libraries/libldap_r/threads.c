@@ -52,7 +52,7 @@ int ldap_pvt_thread_destroy( void )
 #ifndef LDAP_THREAD_HAVE_TPOOL
 	(void) ldap_int_thread_pool_shutdown();
 #endif
-	(void) ldap_int_thread_destroy();
+	return ldap_int_thread_destroy();
 }
 
 #ifndef LDAP_THREAD_HAVE_GETCONCURRENCY

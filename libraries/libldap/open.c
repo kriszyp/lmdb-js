@@ -230,7 +230,7 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 }
 
 int
-ldap_start_tls ( LDAP *ld,
+ldap_start_tls_s ( LDAP *ld,
 				LDAPControl **serverctrls,
 				LDAPControl **clientctrls )
 {
@@ -249,8 +249,10 @@ ldap_start_tls ( LDAP *ld,
 	for (lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next) {
 		if (ldap_pvt_tls_inplace(lc->lconn_sb) != 0)
 			return LDAP_OPERATIONS_ERROR;
+
 		rc = ldap_extended_operation_s(ld, LDAP_EXOP_START_TLS,
 							NULL, serverctrls, clientctrls, &rspoid, &rspdata);
+
 		if (rc != LDAP_SUCCESS)
 			return rc;
 		if (rspoid != NULL)

@@ -351,6 +351,10 @@ SOURCE=.\tls.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\tmplout.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ufn.c
 # End Source File
 # Begin Source File
