@@ -536,8 +536,8 @@ objectclass ( 2.16.840.1.113730.3.2.6 NAME 'referral'
 # LDAPsubEntry
 #	likely to change!
 objectclass ( 2.16.840.1.113719.2.142.6.1.1 NAME 'LDAPsubEntry'
-	DESC 'Limited X.501 Subentry class, named by cn'
-	SUP top STRUCTURAL MUST ( cn ) )
+	DESC 'LDAP Subentry class'
+	SUP top STRUCTURAL MAY ( cn ) )
 
 #
 # LDAProotDSE
