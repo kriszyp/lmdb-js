@@ -34,7 +34,7 @@ void
 read_config( char *fname, Backend **bep, FILE *pfp )
 {
 	FILE	*fp;
-	char	*line, *savefname, *dn;
+	char	*line, *savefname;
 	int	cargc, savelineno;
 	char	*cargv[MAXARGS];
 	int	lineno, i;
@@ -128,7 +128,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: suffix line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				dn = ch_strdup( cargv[1] );
+				char *dn = ch_strdup( cargv[1] );
 				(void) dn_normalize( dn );
 				charray_add( &be->be_suffix, dn );
 			}
@@ -155,7 +155,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: suffixAlias line must appear inside a database definition (ignored)\n",
                                     fname, lineno, 0 );
                         } else {
-                                dn = ch_strdup( cargv[1] );
+                                char *dn = ch_strdup( cargv[1] );
                                 (void) dn_normalize( dn );
                                 charray_add( &be->be_suffixAlias, dn );
 
@@ -194,9 +194,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: rootdn line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				dn = ch_strdup( cargv[1] );
-				(void) dn_normalize( dn );
-				be->be_rootdn = dn;
+				be->be_rootdn = dn_normalize_case( ch_strdup( cargv[1] ) );
 			}
 
 		/* set super-secret magic database password */

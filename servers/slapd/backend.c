@@ -225,13 +225,18 @@ be_issuffix(
 int
 be_isroot( Backend *be, char *dn )
 {
-	if ( dn == NULL ) {
+	int rc;
+	char *ndn;
+
+	if ( dn == NULL || be->be_rootdn == NULL ) {
 		return( 0 );
 	}
 
-	return( be->be_rootdn != NULL
-		? strcasecmp( be->be_rootdn, dn ) == 0
-	    : 0 );
+	ndn = dn_normalize_case( ch_strdup( dn ) );
+	rc = strcmp( be->be_rootdn, ndn ) ? 0 : 1;
+
+	free(ndn);
+	return(rc);
 }
 
 int
