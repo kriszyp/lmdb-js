@@ -46,7 +46,14 @@ int passwd_extop(
 		} else if( conn->c_authz_backend->be_update_ndn != NULL ) {
 			/* we SHOULD return a referral in this case */
 			*refs = conn->c_authz_backend->be_update_refs;
-			rc = LDAP_REFERRAL;
+
+			if( *refs ) {
+				rc = LDAP_REFERRAL;
+
+			} else {
+				rc = LDAP_UNWILLING_TO_PERFORM;
+				*text = "authorization database is a read-only replica";
+			}
 
 		} else {
 			rc = conn->c_authz_backend->be_extended(
