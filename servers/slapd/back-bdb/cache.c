@@ -26,7 +26,11 @@
 
 #include "back-bdb.h"
 
-static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e);
+#ifdef BDB_HIER
+#define bdb_cache_lru_add	hdb_cache_lru_add
+#endif
+
+static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 #ifdef LDAP_DEBUG
 static void	bdb_lru_print(Cache *cache);
 #endif
@@ -372,6 +376,7 @@ hdb_cache_find_parent(
 
 	ei.bei_id = id;
 	ei.bei_kids = NULL;
+	ei.bei_ckids = 0;
 
 	for (;;) {
 		rc = hdb_dn2id_parent( op, txn, &ei, &eip.bei_id );
@@ -386,6 +391,8 @@ hdb_cache_find_parent(
 		ein->bei_kids = ei.bei_kids;
 		ein->bei_nrdn = ei.bei_nrdn;
 		ein->bei_rdn = ei.bei_rdn;
+		ein->bei_ckids = ei.bei_ckids;
+		ei.bei_ckids = 0;
 		
 		/* This node is not fully connected yet */
 		ein->bei_state = CACHE_ENTRY_NOT_LINKED;
@@ -407,6 +414,7 @@ hdb_cache_find_parent(
 				bdb_cache_entryinfo_lock( ein );
 				avl_insert( &ein->bei_kids, (caddr_t)ei2,
 					bdb_rdn_cmp, avl_dup_error );
+				ein->bei_ckids++;
 				bdb_cache_entryinfo_unlock( ein );
 			}
 
@@ -438,6 +446,7 @@ hdb_cache_find_parent(
 			ein->bei_parent = ei2;
 			avl_insert( &ei2->bei_kids, (caddr_t)ein, bdb_rdn_cmp,
 				avl_dup_error);
+			ei2->bei_ckids++;
 			bdb_cache_entryinfo_unlock( ei2 );
 			bdb_cache_entryinfo_lock( eir );
 
@@ -449,6 +458,7 @@ hdb_cache_find_parent(
 		}
 		ei.bei_kids = NULL;
 		ei.bei_id = eip.bei_id;
+		ei.bei_ckids = 1;
 		avl_insert( &ei.bei_kids, (caddr_t)ein, bdb_rdn_cmp,
 			avl_dup_error );
 	}
@@ -556,7 +566,7 @@ bdb_cache_lru_add(
 				/* Else free the entry and its entryinfo.
 				 */
 				} else {
-					bdb_cache_delete_internal( &bdb->bi_cache, elru );
+					bdb_cache_delete_internal( &bdb->bi_cache, elru, 0 );
 					bdb_cache_delete_cleanup( &bdb->bi_cache, elru->bei_e );
 
 					/* break the loop, unsafe to muck with more than one */
@@ -1022,7 +1032,7 @@ bdb_cache_delete(
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
-	rc = bdb_cache_delete_internal( cache, e->e_private );
+	rc = bdb_cache_delete_internal( cache, e->e_private, 1 );
 	/* free lru mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
@@ -1065,7 +1075,8 @@ bdb_cache_delete_cleanup(
 static int
 bdb_cache_delete_internal(
     Cache	*cache,
-    EntryInfo		*e )
+    EntryInfo		*e,
+    int		decr )
 {
 	int rc = 0;	/* return code */
 
@@ -1077,7 +1088,7 @@ bdb_cache_delete_internal(
 
 #ifdef BDB_HIER
 	e->bei_parent->bei_ckids--;
-	if ( e->bei_parent->bei_dkids ) e->bei_parent->bei_dkids--;
+	if ( decr && e->bei_parent->bei_dkids ) e->bei_parent->bei_dkids--;
 #endif
 	/* dn tree */
 	if ( avl_delete( &e->bei_parent->bei_kids, (caddr_t) e, bdb_rdn_cmp )
