@@ -1,7 +1,6 @@
 /* $OpenLDAP$ */
-/* $Novell: /ldap/src/cldap/include/ldap_utf8.h,v 1.3 2000/12/04 20:23:20 dsteck Exp $ 
 /*
- * Copyright 2000 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 2000-2001 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -9,6 +8,7 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  */
+/* $Novell: /ldap/src/cldap/include/ldap_utf8.h,v 1.3 2000/12/04 20:23:20 dsteck Exp $ 
 /******************************************************************************
  * This notice applies to changes, created by or for Novell, Inc.,
  * to preexisting works for which notices appear elsewhere in this file.
@@ -31,17 +31,16 @@
 LDAP_BEGIN_DECL
 
 /*  
- * UTF-8 Utility Routines (in utf-8.c)
+ * UTF-8 Utility Routines
  */
 
 #define LDAP_UCS4_INVALID (0x80000000U)
 
 /* LDAP_MAX_UTF8_LEN is 3 or 6 depending on size of wchar_t */
-#define LDAP_MAX_UTF8_LEN  sizeof(wchar_t)*3/2
-
+#define LDAP_MAX_UTF8_LEN  ( sizeof(wchar_t) * 3/2 )
 
 /*
- * UTF-8 Conversion Routines.   (in utfconv.c)
+ * Wide Char / UTF-8 Conversion Routines
  */
 
 /* UTF-8 character to Wide Char */
@@ -60,6 +59,9 @@ ldap_x_wc_to_utf8 ( char *utf8char, wchar_t wchar, size_t count );
 LDAP_F(int)
 ldap_x_wcs_to_utf8s ( char *utf8str, const wchar_t *wcstr, size_t count );
 
+/*
+ * MultiByte Char / UTF-8 Conversion Routines
+ */
 
 /* UTF-8 character to MultiByte character */
 LDAP_F(int)
