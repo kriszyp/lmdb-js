@@ -364,6 +364,17 @@ static void openldap_ldap_init_w_env(
 	}
 }
 
+#if defined(__GNUC__)
+/* Declare this function as a destructor so that it will automatically be
+ * invoked either at program exit (if libldap is a static library) or
+ * at unload time (if libldap is a dynamic library).
+ *
+ * Sorry, don't know how to handle this for non-GCC environments.
+ */
+static void ldap_int_destroy_global_options(void)
+	__attribute__ ((destructor));
+#endif
+
 static void
 ldap_int_destroy_global_options(void)
 {
@@ -396,11 +407,16 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_tm_api = (struct timeval *)NULL;
 	gopts->ldo_tm_net = (struct timeval *)NULL;
 
-	/* ldo_defludp wll be freed by the atexit() handler
+	/* ldo_defludp will be freed by the termination handler
 	 */
 	ldap_url_parselist(&gopts->ldo_defludp, "ldap://localhost/");
 	gopts->ldo_defport = LDAP_PORT;
+#if !defined(__GNUC__) && !defined(PIC)
+	/* Do this only for a static library, and only if we can't
+	 * arrange for it to be executed as a library destructor
+	 */
 	atexit(ldap_int_destroy_global_options);
+#endif
 
 	gopts->ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
 	gopts->ldo_rebind_proc = NULL;
