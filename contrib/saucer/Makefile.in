@@ -20,4 +20,4 @@ install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 saucer $(bindir)
 	-test -d $(MANDIR) || $(MKDIR) $(mandir) $(MANDIR)
-	$(INSTALL) $(INSTALLFLAGS) -m 644 saucer.1 $(MANDIR)/saucer.1
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/saucer.1 $(MANDIR)/saucer.1
