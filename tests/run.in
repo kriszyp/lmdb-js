@@ -32,6 +32,7 @@ AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@
 
 # overlays
+AC_glue=glue@BUILD_GLUE@
 AC_pcache=pcache@BUILD_PROXYCACHE@
 AC_ppolicy=ppolicy@BUILD_PPOLICY@
 AC_refint=refint@BUILD_REFINT@
@@ -45,7 +46,7 @@ AC_WITH_TLS=@WITH_TLS@
 AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 
 export AC_bdb AC_hdb AC_ldap AC_ldbm AC_monitor AC_relay AC_sql 
-export AC_pcache AC_ppolicy AC_refint AC_unique AC_rwm AC_syncprov
+export AC_glue AC_pcache AC_ppolicy AC_refint AC_unique AC_rwm AC_syncprov
 export AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED
 
 if test ! -x ../servers/slapd/slapd ; then

@@ -16,6 +16,11 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test $GLUE = glueno; then 
+	echo "Backend glue overlay not available, test skipped"
+	exit 0
+fi 
+
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR1C
 
 echo "Starting slapd on TCP/IP port $PORT..."
