@@ -63,7 +63,7 @@ doargs(
 	g->myname = strdup( g->myname + 1 );
     }
 
-    while ( (i = getopt( argc, argv, "hd:f:r:t:o" )) != EOF ) {
+    while ( (i = getopt( argc, argv, "d:f:or:t:" )) != EOF ) {
 	switch ( i ) {
 	case 'd':	/* set debug level and 'do not detach' flag */
 	    g->no_detach = 1;
@@ -105,6 +105,9 @@ doargs(
 	case 'f':	/* slapd config file */
 	    g->slapd_configfile = strdup( optarg );
 	    break;
+	case 'o':
+	    g->one_shot_mode = 1;
+	    break;
 	case 'r':	/* slapd replog file */
 	    strncpy( g->slapd_replogfile, optarg,
 			sizeof(g->slapd_replogfile)-1 );
@@ -114,12 +117,6 @@ doargs(
 	case 't':	/* dir to use for our copies of replogs */
 	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + strlen("/replica") + 1);
 	    sprintf(g->slurpd_rdir, "%s/replica", optarg);
-	    break;
-	case 'h':
-	    usage( g->myname );
-	    return( -1 );
-	case 'o':
-	    g->one_shot_mode = 1;
 	    break;
 	default:
 	    usage( g->myname );
