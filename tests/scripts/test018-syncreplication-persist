@@ -94,8 +94,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Waiting 10 seconds for syncrepl to receive changes..."
-sleep 10
+echo "Waiting 20 seconds for syncrepl to receive changes..."
+sleep 20
 
 echo "Using ldapmodify to modify master directory..."
 
@@ -176,8 +176,8 @@ changetype: delete
 
 EOMODS
 
-echo "Waiting 10 seconds for syncrepl to receive changes..."
-sleep 10
+echo "Waiting 20 seconds for syncrepl to receive changes..."
+sleep 20
 
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
