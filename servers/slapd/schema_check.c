@@ -79,7 +79,7 @@ entry_schema_check(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			if( oc == slap_schema.si_oc_extensibleObject )
 #else
-			if( !strcmp( aoc->a_vals[i], "extensibleObject" ) == 0 )
+			if( !strcmp( aoc->a_vals[i]->bv_val, "extensibleObject" ) == 0 )
 #endif
 			{
 				extensible=1;
