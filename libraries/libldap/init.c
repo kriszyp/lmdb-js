@@ -267,18 +267,30 @@ void openldap_ldap_initialize( void )
 	gopts.ldo_defhost = ldap_strdup("localhost");
 	gopts.ldo_defport = LDAP_PORT;
 
+	openldap_ldap_initialized = 1;
+
+	if( getenv("LDAPNOINIT") != NULL ) {
+		return;
+	}
+
 	openldap_ldap_init_w_conf(DEFAULT_LDAP_CONF_FILE);
 	openldap_ldap_init_w_userconf(DEFAULT_LDAP_USERRC_FILE);
 
 	{
-		char *altfile = getenv("LDAPRC");
+		char *altfile = getenv("LDAPCONF");
 
 		if( altfile != NULL ) {
 			openldap_ldap_init_w_conf( altfile );
 		}
 	}
 
-	openldap_ldap_init_w_env(NULL);
+	{
+		char *altfile = getenv("LDAPRC");
 
-	openldap_ldap_initialized = 1;
+		if( altfile != NULL ) {
+			openldap_ldap_init_w_userconf( altfile );
+		}
+	}
+
+	openldap_ldap_init_w_env(NULL);
 }

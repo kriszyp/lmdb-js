@@ -7,13 +7,14 @@ Changes included in OpenLDAP 1.1.x
 	Fixed slapd/delete bugs (ITS#39)
 	Fixed slapd/strtok needs mutex bug
 	Fixed slapd/tcpd DoS bug
-	Fixed ud bogus msgfree bug (ITS#43)
 	Fixed slapd/add,delete,modrdn parent lock bug
+	Fixed ud bogus msgfree bug (ITS#43)
+	Updated ldap.conf to support LDAPNOINIT
+	Updated lthread to provide sched_yield() if missing
 	Updated slapd/modrdn ACL handling
 	Updated slapd/search deallocation
 	Updated slapd to use pthread_detach()
 	Updated slapd thread initialization
-	Updated lthread to provide sched_yield() if missing
 	Updated slapd shutdown code to use condition wait
 	Build environment
 		Added DB2 patch information
