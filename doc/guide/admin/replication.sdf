@@ -8,8 +8,8 @@ insufficient to handle the number of clients requiring
 directory service via LDAP. It may become necessary to
 run more than one slapd instance.  Many sites,
 for instance, there are multiple slapd servers, one
-master and one or more slaves.  DNS can be setup such that
-a lookup of ldap.example.com returns the IP addresses
+master and one or more slaves.  {{TERM:DNS}} can be setup such that
+a lookup of ldap.example.com returns the {{TERM:IP}} addresses
 of these servers, distributing the load among them (or
 just the slaves). This master/slave arrangement provides
 a simple and effective way to increase capacity, availability
@@ -60,13 +60,13 @@ returns a success code to the slurpd process.
 H2: Replication Logs
 
 When slapd is configured to generate a replication logfile,
-it writes out a file containing LDIF change records.
+it writes out a file containing {{TERM:LDIF}} change records.
 The replication log gives the replication site(s), a
 timestamp, the DN of the entry being modified, and a series
 of lines which specify the changes to make. In the
 example below, Barbara (bjensen) has replaced the {{EX:description}}
 value.  The change is to be propagated
-to the slapd instance running on slave.example.net
+to the slapd instance running on {{EX:slave.example.net}}
 Changes to various operational attributes, such as {{EX:modifiersName}}
 and {{EX:modifyTimestamp}}, are included in the change record and
 will be propagated to the slave slapd.
@@ -252,16 +252,16 @@ To configure slapd to generate a replication logfile, you
 add a "{{EX: replica}}" configuration option to the master slapd's
 config file. For example, if we wish to propagate changes
 to the slapd instance running on host
-slave.openldap.org:
+slave.example.com:
 
 E: replica host=slave.example.com:389
-E:	binddn="cn=Replicator, dc=example, dc=com"
+E:	binddn="cn=Replicator,dc=example,dc=com"
 E:	bindmethod=simple credentials=secret
 
 In this example, changes will be sent to port 389 (the
 standard LDAP port) on host slave.example.com. The slurpd
 process will bind to the slave slapd as 
-"cn=Replicator, dc=example, dc=com" using simple authentication
+"cn=Replicator,dc=example,dc=com" using simple authentication
 with password "secret".  Note that the DN given by the binddn=
 directive must either exist in the slave slapd's database (or be
 the rootdn specified in the slapd config file) in order for the
@@ -303,15 +303,15 @@ error and the replication record to a reject file. The reject
 file is located in the same directory with the per-replica
 replication logfile, and has the same name, but with the
 string ".rej" appended. For example, for a replica running
-on host slave.openldap.org, port 389, the reject file, if it
+on host slave.example.com, port 389, the reject file, if it
 exists, will be named
 
-E: /usr/local/var/openldap/replog.slave.openldap.org:389.
+E: /usr/local/var/openldap/replog.slave.example.com:389.
 
 A sample rejection log entry follows:
 
 E: ERROR: No such attribute
-E: replica: slave.openldap.org:389
+E: replica: slave.example.com:389
 E: time: 809618633
 E: dn: uid=bjensen, dc=example, dc=com
 E: changetype: modify
@@ -319,7 +319,7 @@ E: replace: description
 E: description: A dreamer...
 E: -
 E: replace: modifiersName
-E: modifiersName: uid=bjensen, dc=openldap, dc=com
+E: modifiersName: uid=bjensen, dc=example, dc=com
 E: -
 E: replace: modifyTimestamp
 E: modifyTimestamp: 20000805073308Z
@@ -346,10 +346,10 @@ To use one-shot mode, specify the name of the rejection
 log on the command line as the argument to the -r flag,
 and specify one-shot mode with the -o flag. For example,
 to process the rejection log file
-{{F:/usr/local/var/openldap/replog.slave.openldap.org:389}}
+{{F:/usr/local/var/openldap/replog.slave.example.com:389}}
 and exit, use the command
 
-E: slurpd -r /usr/tmp/replog.slave.openldap.org:389 -o
+E: slurpd -r /usr/tmp/replog.slave.example.com:389 -o
 
 
 H2: Replication from a slapd directory server to an X.500 DSA
@@ -377,15 +377,15 @@ slapd directory server and the X.500 DSA. At present,
 slapd and slurpd do not support selective replication of
 attributes, nor do they support translation of attribute
 names and values. For example, slurpd will attempt to
-update the "modifiersName" and "modifyTimeStamp"
+update the {{EX:modifiersName}} and {{EX:modifyTimeStamp}}
 attributes on the slave it connects to. However, the X.500
 DSA may expect these attributes to be named
-"lastModifiedBy" and "lastModifiedTime".
+{{EX:lastModifiedBy}} and {{EX:lastModifiedTime}}.
 
 A solution to this attribute naming problem is to have the
-ldapd read oidtables that map "modifiersName" to the
-objectID (OID) for the "lastModifiedBy" attribute and
-"modifyTimeStamp" to the OID for the "lastModifiedTime"
+ldapd read oidtables that map {{EX:modifiersName}} to the
+objectID (OID) for the {{EX:lastModifiedBy}} attribute and
+{{EX:modifyTimeStamp}} to the OID for the {{EX:lastModifiedTime}}
 attribute. Since attribute names are carried as OIDs over
 DAP, this should perform the appropriate translation of
 attribute names.
