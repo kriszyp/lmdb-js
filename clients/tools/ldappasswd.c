@@ -235,8 +235,7 @@ main( int argc, char *argv[] )
 
 			assert( authzid == NULL );
 			authzid = control;
-			break;
-			
+
 		} else if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
 			if( manageDSAit ) {
 				fprintf( stderr, "manageDSAit control previously specified\n");
@@ -249,8 +248,7 @@ main( int argc, char *argv[] )
 			}
 
 			manageDSAit = 1 + crit;
-			break;
-			
+
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
 			if( cvalue != NULL ) {
 				fprintf( stderr, "noop: no control value expected\n" );
@@ -259,13 +257,13 @@ main( int argc, char *argv[] )
 			}
 
 			noop = 1 + crit;
-			break;
 
 		} else {
 			fprintf( stderr, "Invalid general control name: %s\n", control );
 			usage(prog);
 			return EXIT_FAILURE;
 		}
+		break;
 	case 'h':	/* ldap host */
 		if( ldapuri != NULL ) {
 			fprintf( stderr, "%s: -h incompatible with -H\n", prog );
@@ -421,7 +419,8 @@ main( int argc, char *argv[] )
 				prog );
 			usage( prog );
 			return( EXIT_FAILURE );
-		} break;
+		}
+		break;
 	case 'Q':
 #ifdef HAVE_CYRUS_SASL
 		if( version == LDAP_VERSION2 ) {
