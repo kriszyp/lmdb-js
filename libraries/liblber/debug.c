@@ -167,6 +167,7 @@ void lutil_log_int(
 #ifdef HAVE_VSYSLOG
 		vsyslog( debug2syslog(level), fmt, vl );
 #else
+		char data[4096];
 		vsnprintf( data, sizeof(data), fmt, vl );
 		syslog( debug2syslog(level), data );
 #endif
