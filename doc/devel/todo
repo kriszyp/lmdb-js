@@ -31,7 +31,6 @@ OpenLDAP 2.x Projects
 Large projects
 --------------
 Redesign slapd memory allocation fault handling
-Update to latest autoconf and friends
 Localize slapd
 
 
