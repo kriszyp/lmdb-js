@@ -123,5 +123,4 @@ next_id( Backend *be )
 
 	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 	return id;
-
 }
