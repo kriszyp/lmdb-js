@@ -57,7 +57,8 @@ MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 LIBTOOL = @LIBTOOL@
 LIBVERSION = @OPENLDAP_LIBVERSION@
 LTVERSION = -version-info $(LIBVERSION)
-LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS)
+LTLINK  = $(LIBTOOL) --mode=link -rpath $(libdir) \
+	$(CC) $(CFLAGS) $(LDFLAGS)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
 # Misc UNIX commands used in build environment

@@ -14,8 +14,8 @@ NT_DYN_LT_NO_UNDEF = -no-undefined
 LT_NO_UNDEF = $(@PLAT@_@LIB_LINKAGE@_LT_NO_UNDEF)
 
 COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(EXTRA_DEFS) -c
-LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) \
-		$(LTVERSION) $(LT_NO_UNDEF)
+LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link -rpath $(libdir) \
+	$(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
 
 MKDEPFLAG = -l
 
@@ -31,7 +31,7 @@ MKDEPFLAG = -l
 DYN_EXT=@DYN_EXT@
 
 $(LIBRARY):  version.lo
-	$(LTLIBLINK) -rpath $(libdir) -o $@ $(OBJS) version.lo $(EXTRA_LIBS)
+	$(LTLIBLINK) -o $@ $(OBJS) version.lo $(EXTRA_LIBS)
 	$(RM) ../$@
 	d=`$(PWD)`; d=`$(BASENAME) $$d`; cd ..; $(LN_S) $$d/$@ $@; \
 	t=`$(BASENAME) $@ .la`.a; $(RM) $$t; $(LN_S) $$d/.libs/$$t $$t
