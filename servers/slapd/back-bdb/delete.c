@@ -162,12 +162,32 @@ retry:	/* transaction retry */
 		ch_free( pdn );
 
 		/* no parent, must be root to delete */
-		if( ! be_isroot( be, op->o_ndn ) && ! be_issuffix( be, "" ) ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_delete: no parent and not root\n",
-				0, 0, 0);
-			rc = LDAP_INSUFFICIENT_ACCESS;
-			goto return_results;
+		if( ! be_isroot( be, op->o_ndn ) ) {
+			if ( be_issuffix( be, "" ) ) {
+				static const Entry rootp = { NOID, "", "", NULL, NULL };
+
+				p = (Entry *)&rootp;
+
+				/* check parent for "children" acl */
+				rc = access_allowed( be, conn, op, p,
+					children, NULL, ACL_WRITE );
+				p = NULL;
+
+				if ( !rc  ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"<=- bdb_delete: no access "
+						"to parent\n", 0, 0, 0 );
+					rc = LDAP_INSUFFICIENT_ACCESS;
+					goto return_results;
+				}
+
+			} else {
+				Debug( LDAP_DEBUG_TRACE,
+					"<=- bdb_delete: no parent "
+					"and not root\n", 0, 0, 0);
+				rc = LDAP_INSUFFICIENT_ACCESS;
+				goto return_results;
+			}
 		}
 	}
 

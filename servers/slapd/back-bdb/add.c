@@ -148,7 +148,7 @@ retry:	rc = txn_abort( ltid );
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: no write access to parent\n",
 				0, 0, 0 );
 			rc = LDAP_INSUFFICIENT_ACCESS;
-			text = "no write access to parent", NULL, NULL;
+			text = "no write access to parent";
 			goto return_results;;
 		}
 
@@ -195,11 +195,31 @@ retry:	rc = txn_abort( ltid );
 		 *  or with parent ""
 		 */
 		if ( !be_isroot( be, op->o_ndn )) {
-			Debug( LDAP_DEBUG_TRACE, "bdb_add: %s denied\n",
-				pdn == NULL ? "suffix" : "entry at root",
-				0, 0 );
-			rc = LDAP_INSUFFICIENT_ACCESS;
-			goto return_results;
+			if ( be_issuffix( be, "" ) ) {
+				static const Entry rootp = { NOID, "", "", NULL, NULL };
+
+				p = (Entry *)&rootp;
+
+				/* check parent for "children" acl */
+				rc = access_allowed( be, conn, op, p,
+					children, NULL, ACL_WRITE );
+				p = NULL;
+
+				if ( ! rc ) {
+					Debug( LDAP_DEBUG_TRACE, "bdb_add: no write access to parent\n",
+						0, 0, 0 );
+					rc = LDAP_INSUFFICIENT_ACCESS;
+					text = "no write access to parent";
+					goto return_results;;
+				}
+
+			} else {
+				Debug( LDAP_DEBUG_TRACE, "bdb_add: %s denied\n",
+					pdn == NULL ? "suffix" : "entry at root",
+					0, 0 );
+				rc = LDAP_INSUFFICIENT_ACCESS;
+				goto return_results;
+			}
 		}
 	}
 
