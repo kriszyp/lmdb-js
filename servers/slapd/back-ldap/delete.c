@@ -105,5 +105,5 @@ ldap_back_delete(
 		free( mdn.bv_val );
 	}
 	
-	return( ldap_back_op_result( li, lc, conn, op, msgid, rc ) );
+	return( ldap_back_op_result( li, lc, conn, op, msgid, rc, 1 ) );
 }

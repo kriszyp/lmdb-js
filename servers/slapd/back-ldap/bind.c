@@ -116,7 +116,7 @@ ldap_back_bind(
 	/* method is always LDAP_AUTH_SIMPLE if we got here */
 	rc = ldap_sasl_bind(lc->ld, mdn.bv_val, LDAP_SASL_SIMPLE,
 		cred, op->o_ctrls, NULL, &msgid);
-	rc = ldap_back_op_result( li, lc, conn, op, msgid, rc );
+	rc = ldap_back_op_result( li, lc, conn, op, msgid, rc, 1 );
 	if (rc == LDAP_SUCCESS) {
 		lc->bound = 1;
 		if ( mdn.bv_val != dn->bv_val ) {
@@ -419,7 +419,7 @@ ldap_back_dobind( struct ldapinfo *li, struct ldapconn *lc, Connection *conn, Op
 	if ( !lc->bound ) {
 		rc = ldap_sasl_bind(lc->ld, lc->bound_dn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->cred, NULL, NULL, &msgid);
-		rc = ldap_back_op_result( li, lc, conn, op, msgid, rc );
+		rc = ldap_back_op_result( li, lc, conn, op, msgid, rc, 0 );
 		if (rc == LDAP_SUCCESS) {
 			lc->bound = 1;
 		}
@@ -493,10 +493,11 @@ ldap_back_map_result(int err)
 
 int
 ldap_back_op_result(struct ldapinfo *li, struct ldapconn *lc,
-	Connection *conn, Operation *op, ber_int_t msgid, int err)
+	Connection *conn, Operation *op, ber_int_t msgid, int err, int sendok)
 {
 	char *msg = NULL;
 	char *match = NULL;
+	char *mmatch = NULL;
 	LDAPMessage *res;
 	int rc;
 
@@ -514,7 +515,6 @@ ldap_back_op_result(struct ldapinfo *li, struct ldapconn *lc,
 
 		/* internal ops must not reply to client */
 		if ( conn && !op->o_do_not_cache ) {
-			char *mmatch = NULL;
 #ifdef ENABLE_REWRITE
 			if (match) {
 				
@@ -535,10 +535,12 @@ ldap_back_op_result(struct ldapinfo *li, struct ldapconn *lc,
 				mmatch = mdn.bv_val;
 			}
 #endif
-			send_ldap_result( conn, op, err, mmatch, msg, NULL, NULL );
-			if (mmatch != match) free(mmatch);
 		}
 	}
+	if (sendok || err != LDAP_SUCCESS) {
+		send_ldap_result( conn, op, err, mmatch, msg, NULL, NULL );
+	}
+	if (mmatch != match) free(mmatch);
 	if ( match ) free( match );
 	if ( msg ) free( msg );
 	return( (err==LDAP_SUCCESS) ? 0 : -1 );

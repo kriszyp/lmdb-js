@@ -265,7 +265,7 @@ ldap_back_search(
 			: NULL, slimit, &msgid);
 	if ( rc != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result(li, lc, conn, op, msgid, rc);
+		rc = ldap_back_op_result(li, lc, conn, op, msgid, rc, 0);
 		goto finish;
 	}
 

@@ -171,6 +171,6 @@ cleanup:;
 		ch_free(modv[i]->mod_bvalues);
 	ch_free(mods);
 	ch_free(modv);
-	return( ldap_back_op_result( li, lc, conn, op, msgid, rc ));
+	return( ldap_back_op_result( li, lc, conn, op, msgid, rc, 1 ));
 }
 
