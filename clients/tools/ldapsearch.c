@@ -919,7 +919,9 @@ getNextPage:
 #ifdef HAVE_CYRUS_SASL
 	sasl_done();
 #endif
+#ifdef HAVE_TLS
 	ldap_pvt_tls_destroy();
+#endif
 	return( rc );
 }
 
