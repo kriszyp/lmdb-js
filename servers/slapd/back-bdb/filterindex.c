@@ -482,24 +482,24 @@ substring_candidates(
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_substring_candidates: index_param failed (%d)\n",
 			rc, 0, 0 );
-		return 0;
+		return rc;
 	}
 
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= bdb_substring_candidates not indexed\n",
 			0, 0, 0 );
-		return 0;
+		return -1;
 	}
 
 	mr = sub->sa_desc->ad_type->sat_substr;
 
 	if( !mr ) {
-		return 0;
+		return -1;
 	}
 
 	if( !mr->smr_filter ) {
-		return 0;
+		return -1;
 	}
 
 	rc = (mr->smr_filter)(
@@ -515,7 +515,7 @@ substring_candidates(
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_substring_candidates: (%s) MR filter failed (%d)\n",
 			sub->sa_desc->ad_cname.bv_val, rc, 0 );
-		return 0;
+		return rc;
 	}
 
 	if( keys == NULL ) {
