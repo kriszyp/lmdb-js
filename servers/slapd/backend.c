@@ -866,6 +866,15 @@ backend_check_restrictions(
 			return LDAP_CONFIDENTIALITY_REQUIRED;
 		}
 
+
+		if( op->o_tag == LDAP_REQ_BIND && opdata == NULL ) {
+			/* simple bind specific check */
+			if( op->o_ssf < ssf->sss_simple_bind ) {
+				*text = "confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
+		}
+
 		if( op->o_tag != LDAP_REQ_BIND || opdata == NULL ) {
 			/* these checks don't apply to SASL bind */
 

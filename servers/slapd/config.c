@@ -1317,9 +1317,6 @@ read_config( const char *fname, int depth )
 				} else if( strcasecmp( cargv[i], "bind_simple" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_SIMPLE;
 
-				} else if( strcasecmp( cargv[i], "bind_simple_unprotected" ) == 0 ) {
-					disallows |= SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED;
-
 				} else if( strcasecmp( cargv[i], "bind_krbv4" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_KRBV4;
 
@@ -1479,6 +1476,12 @@ read_config( const char *fname, int depth )
 				{
 					set->sss_update_sasl =
 						atoi( &cargv[i][sizeof("update_sasl")] );
+
+				} else if( strncasecmp( cargv[i], "simple_bind=",
+					sizeof("simple_bind") ) == 0 )
+				{
+					set->sss_simple_bind =
+						atoi( &cargv[i][sizeof("simple_bind")] );
 
 				} else {
 #ifdef NEW_LOGGING

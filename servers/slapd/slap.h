@@ -164,6 +164,7 @@ typedef struct slap_ssf_set {
 	slap_ssf_t sss_update_transport;
 	slap_ssf_t sss_update_tls;
 	slap_ssf_t sss_update_sasl;
+	slap_ssf_t sss_simple_bind;
 } slap_ssf_set_t;
 
 /*

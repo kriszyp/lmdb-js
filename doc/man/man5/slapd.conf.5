@@ -180,13 +180,12 @@ disables acceptance of anonymous bind requests.
 disables simple (bind) authentication.
 .B bind_simple_unprotected
 disables simple (bind) authentication when confidentiality
-protection (e.g. TLS) is not in place.  The level of confidential
-protection to require can be adjusted using the
-.I overall security strength factor
-using the
+protection (e.g. TLS) is not in place.  The
 .B security
-directive.  If this factor is not set (or set to integrity only),
-any confidentiality protection is sufficient.
+directive's
+.B simple_bind
+option provides fine grain control over the confidentiality
+protection required for simple bind.
 .B bind_krbv4
 disables Kerberos V4 (bind) authentication.
 .B tls_2_anon
@@ -701,6 +700,10 @@ directory updates.
 .B update_sasl=<n>
 specifies the SASL security strength factor to require for
 directory updates.
+.B simple_bind=<n>
+specifies the security strength factor required for
+.I simple
+username/password authentication.
 Note that the
 .B transport
 factor is measure of security provided by the underlying transport,
