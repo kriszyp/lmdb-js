@@ -537,7 +537,7 @@ octetStringSubstringsFilter (
 		if ( sa->sa_initial.bv_len > index_substr_if_maxlen &&
 			( flags & SLAP_INDEX_SUBSTR_ANY ))
 		{
-			nkeys += (sa->sa_initial.bv_len - index_substr_if_maxlen) / index_substr_any_step;
+			nkeys += 1 + (sa->sa_initial.bv_len - index_substr_if_maxlen) / index_substr_any_step;
 		}
 	}
 
@@ -560,7 +560,7 @@ octetStringSubstringsFilter (
 		if ( sa->sa_final.bv_len > index_substr_if_maxlen &&
 			( flags & SLAP_INDEX_SUBSTR_ANY ))
 		{
-			nkeys += (sa->sa_final.bv_len - index_substr_if_maxlen) / index_substr_any_step;
+			nkeys += 1 + (sa->sa_final.bv_len - index_substr_if_maxlen) / index_substr_any_step;
 		}
 	}
 
