@@ -195,7 +195,7 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "nbackends", vals );
 
-#ifdef HAVE_LWP_THR
+#ifdef HAVE_THR
 	sprintf( buf, "%d", thr_getconcurrency() );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );

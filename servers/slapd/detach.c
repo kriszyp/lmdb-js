@@ -47,7 +47,7 @@ detach()
 	if ( ldap_debug == 0 ) {
 #endif
 		for ( i = 0; i < 5; i++ ) {
-#if defined( HAVE_LWP_THR )
+#if defined( HAVE_THR )
 			switch ( fork1() ) {
 #else
 			switch ( fork() ) {

@@ -58,7 +58,7 @@ typedef struct globals {
     /* Default name of kerberos srvtab file */
     char *default_srvtab;
 #endif /* HAVE_KERBEROS */
-#if defined( HAVE_LWP )  && !defined( HAVE_LWP_THR )
+#if defined( HAVE_LWP )  && !defined( HAVE_THR )
     tl_t *tsl_list;
     mon_t tsl_mon;
 #endif /* THREAD_SUNOS4_LWP */
