@@ -928,11 +928,13 @@ IA5StringConvert(
 	struct berval *in,
 	struct berval **out )
 {
+	typedef ldap_ucs4_t ldap_unicode_t;	/* TEMPORARY */
+	int i;
 	struct berval *bv = ch_malloc( sizeof(struct berval) );
 	bv->bv_len = (in->bv_len+1) * sizeof( ldap_unicode_t );
 	bv->bv_val = ch_malloc( bv->bv_len );
 
-	for(i=0; i < val->bv_len; i++ ) {
+	for(i=0; i < in->bv_len; i++ ) {
 		/*
 		 * IA5StringValidate should have been called to ensure
 		 * input is limited to IA5.
