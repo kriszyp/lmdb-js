@@ -39,6 +39,8 @@ ldbm_back_db_config(
 			free( li->li_directory );
 		li->li_directory = ch_strdup( argv[1] );
 
+		if ( li->li_nextid_file )
+			free( li->li_nextid_file );
 		li->li_nextid_file =
 			ch_malloc( strlen(li->li_directory) + sizeof("/NEXTID") + 1 );
 
