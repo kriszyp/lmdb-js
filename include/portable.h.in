@@ -409,6 +409,9 @@
 /* Define if you have the <ndir.h> header file.  */
 #undef HAVE_NDIR_H
 
+/* Define if you have the <netinet/tcp.h> header file.  */
+#undef HAVE_NETINET_TCP_H
+
 /* Define if you have the <psap.h> header file.  */
 #undef HAVE_PSAP_H
 

@@ -26,6 +26,11 @@
 #endif
 
 #include <netinet/in.h>
+
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+
 #include <arpa/inet.h>
 
 #ifdef HAVE_ARPA_NAMESER_H

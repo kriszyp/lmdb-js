@@ -1308,6 +1308,7 @@ AC_CHECK_HEADERS(	\
 	limits.h		\
 	malloc.h		\
 	memory.h		\
+	netinet/tcp.h	\
 	regex.h			\
 	psap.h			\
 	pwd.h			\

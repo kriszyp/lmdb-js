@@ -122,6 +122,17 @@ slapd_daemon(
 	}
 #endif
 
+#ifdef TCP_NODELAY
+	i = 1;
+	if ( setsockopt( tcps, IPPROTO_TCP, TCP_NODELAY, (char *) &i,
+	    sizeof(i) ) == -1 ) {
+		int err = errno;
+		Debug( LDAP_DEBUG_ANY, "setsockopt(TCP_NODELAY) failed errno %d (%s)",
+		    err, err > -1 && err < sys_nerr ? sys_errlist[err] :
+		    "unknown", 0 );
+	}
+#endif
+
 	(void) memset( (void *) &addr, '\0', sizeof(addr) );
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = INADDR_ANY;
