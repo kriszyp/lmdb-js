@@ -37,7 +37,7 @@
 LDAP_BEGIN_DECL
 
 #define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
-#define SLAPD_ANONYMOUS "<anonymous>"
+#define SLAPD_ANONYMOUS "cn=anonymous"
 
 #ifdef f_next
 #undef f_next /* name conflict between sys/file.h on SCO and struct filter */
