@@ -594,6 +594,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 		} else if ( !BER_BVISNULL( &op->orb_edn ) ) {
 			free( op->orb_edn.bv_val );
+			BER_BVZERO( &op->orb_edn );
 		}
 
 	} else {
