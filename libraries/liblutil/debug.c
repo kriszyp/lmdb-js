@@ -113,9 +113,11 @@ int lutil_debug_file( FILE *file )
 	return 0;
 }
 
-void lutil_log_int(FILE* file, char *subsys, int level, const char *fmt, va_list vl )
+void lutil_log_int(
+	FILE* file,
+	char *subsys, int level,
+	const char *fmt, va_list vl )
 {
-	char buffer[4096];
 	time_t now;
 	struct tm *today;
 	int i;
@@ -141,38 +143,11 @@ void lutil_log_int(FILE* file, char *subsys, int level, const char *fmt, va_list
 		return;
 	}
 
-#ifdef HAVE_WINSOCK
-#define BUFOFFSET 18
-	/*
-	 * Stick the time in the buffer to output when using Winsock
-	 * as NT can't pipe to a timestamp program like Unix can.
-	 * This, of course, makes some logs hard to read.
-     */
-	time( &now );
-	today = localtime( &now );
-	sprintf( buffer, "%4d%02d%02d:%02d:%02d:%02d ",
-		today->tm_year + 1900, today->tm_mon + 1,
-		today->tm_mday, today->tm_hour,
-		today->tm_min, today->tm_sec );
-#else
-#define BUFOFFSET 0
-#endif
-
-	/*
-	 * format the output data.
-	 */
-#ifdef HAVE_VSNPRINTF
-	vsnprintf( &buffer[BUFOFFSET], sizeof(buffer)-BUFOFFSET, fmt, vl );
-#else
-	vsprintf( &buffer[BUFOFFSET], fmt, vl );
-#endif
-	buffer[sizeof(buffer)-1] = '\0';
-
 #if 0
 #ifdef LDAP_SYSLOG
 	/* we're configured to use syslog */
 	if( use_syslog ) {
-		syslog( debug2syslog(level), buffer );
+		vsyslog( debug2syslog(level), fmt, vl );
 		return;
 	}
 #endif
@@ -202,7 +177,24 @@ void lutil_log_int(FILE* file, char *subsys, int level, const char *fmt, va_list
 		file = stderr;
 	}
 
-    fputs( buffer, file );
+#ifdef HAVE_WINSOCK
+	/*
+	 * Stick the time in the buffer to output when using Winsock
+	 * as NT can't pipe to a timestamp program like Unix can.
+	 * This, of course, makes some logs hard to read.
+     */
+	time( &now );
+	today = localtime( &now );
+	fprintf( file, "%4d%02d%02d:%02d:%02d:%02d ",
+		today->tm_year + 1900, today->tm_mon + 1,
+		today->tm_mday, today->tm_hour,
+		today->tm_min, today->tm_sec );
+#endif
+
+	/*
+	 * format the output data.
+	 */
+	vfprintf( file, fmt, vl );
 }
 
 /*
