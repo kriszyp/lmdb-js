@@ -434,7 +434,7 @@ des_debug = 1;
 				LIBS="$save_LIBS"
 			])
 
-			if test $ol_cv_var_des_debug= yes ; then
+			if test $ol_cv_var_des_debug = yes ; then
 				AC_DEFINE(HAVE_DES_DEBUG,1,
 					[define if you have Kerberos des_debug])
 			fi
@@ -585,11 +585,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl 	pthread_create() in $LIBS
 		dnl
 		dnl Check special pthread (final) flags
+		dnl 	pthread_create() with -mt (Solaris)
 		dnl 	pthread_create() with -kthread (FreeBSD)
 		dnl 	pthread_create() with -pthread (FreeBSD/Digital Unix)
 		dnl 	pthread_create() with -pthreads (?)
 		dnl 	pthread_create() with -thread (?)
-		dnl 	pthread_create() with -mt (Solaris)
 		dnl
 		dnl Check pthread (final) libraries
 		dnl 	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
@@ -611,6 +611,26 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 
 		dnl pthread_create in $LIBS
 		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
+
+		if test $ol_link_threads = no ; then
+			dnl try -mt
+			AC_CACHE_CHECK([for pthread_create with -mt],
+				[ol_cv_thread_flag], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="-mt $LIBS"
+				AC_TRY_LINK([char pthread_create();],
+					[pthread_create();],
+					[ol_cv_thread_flag=yes], [ol_cv_thread_flag=no])
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_thread_flag = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -mt"
+				ol_link_threads=posix
+			fi
+		fi
 
 		if test $ol_link_threads = no ; then
 			dnl try -kthread
@@ -703,26 +723,6 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 
 			if test $ol_cv_thread_flag = yes ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -thread"
-				ol_link_threads=posix
-			fi
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -mt
-			AC_CACHE_CHECK([for pthread_create with -mt],
-				[ol_cv_thread_flag], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-mt $LIBS"
-				AC_TRY_LINK([char pthread_create();],
-					[pthread_create();],
-					[ol_cv_thread_flag=yes], [ol_cv_thread_flag=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
-
-			if test $ol_cv_thread_flag = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -mt"
 				ol_link_threads=posix
 			fi
 		fi

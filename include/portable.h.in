@@ -549,7 +549,7 @@
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET
 
-/* define if you have -lxtpp */
+/* define if you have -lxttp */
 #undef HAVE_XTPP
 
 /* define if you have -ldsap */
@@ -566,9 +566,6 @@
 
 /* define if you have Kerberos */
 #undef HAVE_KERBEROS
-
-/* define if you have -lreadline */
-#undef HAVE_READLINE
 
 /* define if you have SSLeay or OpenSSL */
 #undef HAVE_SSLEAY
@@ -641,6 +638,9 @@
 
 /* define if you have no termcap support */
 #undef NO_TERMCAP
+
+/* define if you have -lreadline */
+#undef HAVE_READLINE
 
 /* Define if TIOCGWINSZ requires sys/ioctl.h */
 #undef GWINSZ_IN_SYS_IOCTL
