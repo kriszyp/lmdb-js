@@ -149,12 +149,14 @@ ldbm_back_exop_passwd(
 			*text = "entry modify failed";
 			goto done;
 		}
-	}
 
-	/* change the entry itself */
-	if( id2entry_add( be, e ) != 0 ) {
-		*text = "entry update failed";
-		rc = LDAP_OTHER;
+		/* change the entry itself */
+		if( id2entry_add( be, e ) != 0 ) {
+			*text = "entry update failed";
+			rc = LDAP_OTHER;
+		}
+
+		replog( be, op, e->e_dn, &ml );
 	}
 	
 done:

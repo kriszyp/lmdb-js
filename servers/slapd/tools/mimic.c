@@ -163,3 +163,8 @@ void connection2anonymous( Connection *c )
 	assert(0);
 }
 
+void replog( Backend *be, Operation *op, char *dn, void *change)
+{
+	assert(0);
+}
+

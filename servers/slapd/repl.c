@@ -54,6 +54,11 @@ replog(
 	fprintf( fp, "dn: %s\n", dn );
 
 	switch ( op->o_tag ) {
+	case LDAP_REQ_EXTENDED:
+		/* quick hack for extended operations */
+		/* assume change parameter is a Modfications* */
+		/* fall thru */
+
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
 		ml = change;
