@@ -118,6 +118,8 @@ ldap_pvt_tls_init( void )
 int
 ldap_pvt_tls_init_def_ctx( void )
 {
+	STACK_OF(X509_NAME) *cacert;
+
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &tls_def_ctx_mutex );
 #endif
@@ -147,6 +149,16 @@ ldap_pvt_tls_init_def_ctx( void )
 			tls_report_error();
 			goto error_exit;
 		}
+		/* FIXME: Load from tls_opt_cacertdir too */
+		cacert = SSL_load_client_CA_file( tls_opt_cacertfile );
+		if ( !cacert ) {
+			Debug( LDAP_DEBUG_ANY,
+	 	"TLS: could not load CA certificate file `%s'.\n",
+			       tls_opt_cacertfile,0,0);
+			tls_report_error();
+			goto error_exit;
+		}
+		SSL_CTX_set_client_CA_list( tls_def_ctx, cacert );
 		if ( tls_opt_keyfile &&
 		     !SSL_CTX_use_PrivateKey_file( tls_def_ctx,
 						   tls_opt_keyfile,
@@ -202,7 +214,7 @@ alloc_handle( Sockbuf *sb, void *ctx_arg )
 	} else {
 		if ( ldap_pvt_tls_init_def_ctx() < 0 )
 			return NULL;
-		ctx=tls_def_ctx;
+		ctx = tls_def_ctx;
 	}
 
 	ssl = SSL_new( ctx );
@@ -494,6 +506,37 @@ tls_close( Sockbuf *sb )
 static int
 tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 {
+	X509 *cert;
+	int errnum;
+	int errdepth;
+	X509_NAME *subject;
+	X509_NAME *issuer;
+	char *sname;
+	char *iname;
+
+	cert = X509_STORE_CTX_get_current_cert( ctx );
+	errnum = X509_STORE_CTX_get_error( ctx );
+	errdepth = X509_STORE_CTX_get_error_depth( ctx );
+
+	/*
+	 * X509_get_*_name return pointers to the internal copies of
+	 * those things requested.  So do not free them.
+	 */
+	subject = X509_get_subject_name( cert );
+	issuer = X509_get_issuer_name( cert );
+	/* X509_NAME_oneline, if passed a NULL buf, allocate memomry */
+	sname = X509_NAME_oneline( subject, NULL, 0 );
+	iname = X509_NAME_oneline( issuer, NULL, 0 );
+	Debug( LDAP_DEBUG_TRACE,
+	       "TLS certificate verification: depth: %d, subject: %s, issuer: %s\n",
+	       errdepth,
+	       sname ? sname : "-unknown-",
+	       iname ? iname : "-unknown-" );
+	if ( sname )
+		free ( sname );
+	if ( iname )
+		free ( iname );
+
 	return 1;
 }
 
