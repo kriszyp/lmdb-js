@@ -334,7 +334,7 @@ typedef struct lookup_info {
 	sasl_server_params_t *sparams;
 } lookup_info;
 
-static slap_response sasl_ap_lookup, sasl_cb_checkpass;
+static slap_response sasl_ap_lookup;
 
 static int
 sasl_ap_lookup( Operation *op, SlapReply *rs )
@@ -615,116 +615,6 @@ slap_auxprop_init(
 	*out_version = SASL_AUXPROP_PLUG_VERSION;
 	*plug = &slap_auxprop_plugin;
 	return SASL_OK;
-}
-
-typedef struct checkpass_info {
-	int rc;
-	struct berval cred;
-} checkpass_info;
-
-static int
-sasl_cb_checkpass( Operation *op, SlapReply *rs )
-{
-	slap_callback *tmp = op->o_callback;
-	checkpass_info *ci = tmp->sc_private;
-	Attribute *a;
-	struct berval *bv;
-	
-	if (rs->sr_type != REP_SEARCH) return 0;
-
-	ci->rc = SASL_NOVERIFY;
-
-	a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_userPassword );
-	if ( !a ) return 0;
-	if ( ! access_allowed( op, rs->sr_entry, slap_schema.si_ad_userPassword,
-		NULL, ACL_AUTH, NULL ) )
-	{
-		return 0;
-	}
-
-	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
-		if ( !lutil_passwd( bv, &ci->cred, NULL, &rs->sr_text ) ) {
-			ci->rc = SASL_OK;
-			break;
-		}
-	}
-	return 0;
-}
-
-static int
-slap_sasl_checkpass(
-	sasl_conn_t *sconn,
-	void *context,
-	const char *username,
-	const char *pass,
-	unsigned passlen,
-	struct propctx *propctx)
-{
-	Connection *conn = (Connection *)context;
-	Operation op = {0};
-	int rc;
-	checkpass_info ci;
-
-	ci.rc = SASL_NOUSER;
-
-	/* SASL will fallback to its own mechanisms if we don't
-	 * find an answer here.
-	 */
-
-	rc = slap_sasl_getdn( conn, NULL, (char *)username, 0, NULL, &op.o_req_ndn,
-		SLAP_GETDN_AUTHCID );
-	if ( rc != LDAP_SUCCESS ) {
-		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
-		return SASL_NOUSER;
-	}
-
-	if ( op.o_req_ndn.bv_len == 0 ) {
-		sasl_seterror( sconn, 0,
-			"No password is associated with the Root DSE" );
-		if ( op.o_req_ndn.bv_val != NULL ) {
-			ch_free( op.o_req_ndn.bv_val );
-		}
-		return SASL_NOUSER;
-	}
-
-	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
-	if ( op.o_bd && op.o_bd->be_search ) {
-		slap_callback cb = { NULL, sasl_cb_checkpass, NULL, NULL };
-		SlapReply rs = {REP_RESULT};
-
-		ci.cred.bv_val = (char *)pass;
-		ci.cred.bv_len = passlen;
-
-		cb.sc_private = &ci;
-		op.o_tag = LDAP_REQ_SEARCH;
-		op.o_protocol = LDAP_VERSION3;
-		op.o_ndn = conn->c_ndn;
-		op.o_callback = &cb;
-		op.o_time = slap_get_time();
-		op.o_do_not_cache = 1;
-		op.o_is_auth_check = 1;
-		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
-		op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
-		op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
-		op.o_conn = conn;
-		op.o_connid = conn->c_connid;
-		op.o_req_dn = op.o_req_ndn;
-		op.ors_scope = LDAP_SCOPE_BASE;
-		op.ors_deref = LDAP_DEREF_NEVER;
-		op.ors_slimit = 1;
-		op.ors_filter = &generic_filter;
-		op.ors_filterstr = generic_filterstr;
-
-		op.o_bd->be_search( &op, &rs );
-	}
-	if ( ci.rc != SASL_OK ) {
-		sasl_seterror( sconn, 0,
-			ldap_err2string( LDAP_INVALID_CREDENTIALS ) );
-	}
-
-	ch_free( op.o_req_ndn.bv_val );
-
-	return ci.rc;
 }
 
 /* Convert a SASL authcid or authzid into a DN. Store the DN in an
@@ -1264,11 +1154,6 @@ int slap_sasl_open( Connection *conn, int reopen )
 #if SASL_VERSION_MAJOR >= 2
 		session_callbacks[cb].id = SASL_CB_CANON_USER;
 		session_callbacks[cb].proc = &slap_sasl_canonicalize;
-		session_callbacks[cb++].context = conn;
-
-		/* XXXX: this should be conditional */
-		session_callbacks[cb].id = SASL_CB_SERVER_USERDB_CHECKPASS;
-		session_callbacks[cb].proc = &slap_sasl_checkpass;
 		session_callbacks[cb++].context = conn;
 #endif
 
