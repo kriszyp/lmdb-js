@@ -11,8 +11,8 @@ TMP_SUFFIX=tmp
 
 all-common: FORCE
 	VERSION=`$(CAT) $(VERSIONFILE)`; \
-	cd $(srcdir); \
-	for page in *.$(MANSECT); do \
+	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
+	for page in $$PAGES; do \
 		$(SED) -e "s%LDVERSION%$$VERSION%" \
 			-e 's%ETCDIR%$(sysconfdir)%' \
 			-e 's%LOCALSTATEDIR%$(localstatedir)%' \
@@ -22,18 +22,19 @@ all-common: FORCE
 			-e 's%BINDIR%$(bindir)%' \
 			-e 's%LIBDIR%$(libdir)%' \
 			-e 's%LIBEXECDIR%$(libexecdir)%' \
-			$$page > $$page.$(TMP_SUFFIX); \
+			$(srcdir)/$$page > $$page.$(TMP_SUFFIX); \
 	done
 	touch all-common
 
 install-common:
-	-$(MKDIR) -p $(MANDIR)
-	for page in *.$(MANSECT); do \
+	-$(MKDIR) $(MANDIR)
+	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
+	for page in $$PAGES; do \
 		echo "installing $(MANDIR)/$$page"; \
 		$(RM) $(MANDIR)/$$page; \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$page.$(TMP_SUFFIX) $(MANDIR)/$$page; \
-		if [ -f "$$page.links" ]; then \
-			for link in `$(CAT) $$page.links`; do \
+		if [ -f "$(srcdir)/$$page.links" ]; then \
+			for link in `$(CAT) $(srcdir)/$$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
 				$(LN_S) -f $$page $(MANDIR)/$$link; \
 			done; \
