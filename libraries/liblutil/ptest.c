@@ -20,10 +20,16 @@
 
 #include "lutil.h"
 
+/*
+ * Password Test Program
+ */
 
 char *hash[] = {
 	"{SMD5}", "{SSHA}",
 	"{MD5}", "{SHA}",
+#ifdef SLAPD_CRYPT
+	"{CRYPT}",
+#endif
 	NULL
 };
 
@@ -41,7 +47,7 @@ main( int argc, char *argv[] )
 
 	for( i= 0; hash[i]; i++ ) {
 		for( j = 0; pw[j].bv_len; j++ ) {
-			passwd = lutil_passwd_generate( &pw[j], hash[i] );
+			passwd = lutil_passwd_hash( &pw[j], hash[i] );
 			rc = lutil_passwd( passwd, &pw[j], NULL );
 
 			printf("%s (%d): %s (%d) %s\n",
