@@ -350,20 +350,26 @@ struct {								\
 #define LDAP_TAILQ_FOREACH(var, head, field)				\
 	for (var = LDAP_TAILQ_FIRST(head); var; var = TAILQ_NEXT(var, field))
 
-#define LDAP_TAILQ_FOREACH_REVERSE(var, head, headname, field)		\
-	for ((var) = LDAP_TAILQ_LAST((head), headname);			\
+#define LDAP_TAILQ_FOREACH_REVERSE(var, head, type, field)		\
+	for ((var) = LDAP_TAILQ_LAST((head), type, field);		\
 	     (var);							\
-	     (var) = LDAP_TAILQ_PREV((var), headname, field))
+	     (var) = LDAP_TAILQ_PREV((var), head, type, field))
 
 #define	LDAP_TAILQ_FIRST(head) ((head)->tqh_first)
 
-#define	LDAP_TAILQ_LAST(head, headname) \
-	(*(((struct headname *)((head)->tqh_last))->tqh_last))
+#define LDAP_TAILQ_LAST(head, type, field)				\
+	(LDAP_TAILQ_EMPTY(head) ?					\
+	 	NULL :							\
+		((struct type *)					\
+		((char *)((head)->tqh_last) - offsetof(struct type, field))))
 
 #define	LDAP_TAILQ_NEXT(elm, field) ((elm)->field.tqe_next)
 
-#define LDAP_TAILQ_PREV(elm, headname, field) \
-	(*(((struct headname *)((elm)->field.tqe_prev))->tqh_last))
+#define LDAP_TAILQ_PREV(elm, head, type, field) 			\
+	((struct type *)((elm)->field.tqe_prev) == LDAP_TAILQ_FIRST(head) ? \
+	NULL :								\
+	((struct type *)						\
+	((char *)((elm)->field.tqe_prev) - offsetof(struct type, field))))
 
 #define	LDAP_TAILQ_INIT(head) do {					\
 	(head)->tqh_first = NULL;					\
