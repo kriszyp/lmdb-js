@@ -86,8 +86,7 @@ do_read( char *host, int port, char *entry, int maxloop )
 {
 	LDAP	*ld;
 	int  	i;
-	char	*attrs[] = { "cn", "sn", NULL };
-	char	*filter = "(objectclass=*)";
+	char	*attrs[] = { "1.1", NULL };
 	pid_t	pid = getpid();
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
@@ -109,7 +108,7 @@ do_read( char *host, int port, char *entry, int maxloop )
 		int         rc;
 
 		if (( rc = ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
-				filter, attrs, 0, &res )) != LDAP_SUCCESS ) {
+				NULL, attrs, 1, &res )) != LDAP_SUCCESS ) {
 
 			ldap_perror( ld, "ldap_read" );
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
