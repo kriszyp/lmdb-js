@@ -20,27 +20,28 @@
 
 int bvptr2obj( struct berval **bvptr, struct berval **bvobj );
 
-int
+static void
 internal_result_v3(
-	Connection *conn, 
-	Operation *op, 
-	int err,
-	char *matched, 
-	char *text, 
-	char **referrals )
+	Connection	*conn, 
+	Operation	*op, 
+	ber_int_t	err,
+	const char	*matched, 
+	const char	*text, 
+	BerVarray	referrals,
+	LDAPControl	**ctrls )
 {
-	return LDAP_SUCCESS;
+	return;
 }
 
-int
+static int
 internal_search_entry(
-	Backend *be, 
-	Connection *conn, 
-	Operation *op, 
-	Entry *e, 
-	char **attrs, 
-	int attrsonly, 
-	char **denied_attrs ) 
+	Backend		*be, 
+	Connection	*conn, 
+	Operation	*op, 
+	Entry		*e, 
+	AttributeName	*attrs, 
+	int		attrsonly, 
+	LDAPControl	**ctrls ) 
 {
 	char *ent2str = NULL;
 	int nentries = 0, len = 0, i = 0;
@@ -90,37 +91,47 @@ internal_search_entry(
 	return LDAP_SUCCESS;
 }
 
-int
+static void
 internal_search_result(
-	Connection *conn, 
-	Operation *op,
-	int err, 
-	char *matched, 
-	char *text, 
-	int nentries ) 
+	Connection	*conn, 
+	Operation	*op,
+	ber_int_t	err, 
+	const char	*matched, 
+	const char	*text, 
+	BerVarray	refs,
+	LDAPControl	**ctrls,
+	int		nentries ) 
 {
 	slapi_pblock_set( (Slapi_PBlock *)op->o_pb,
 			SLAPI_NENTRIES, (void *)nentries );
 
-	return LDAP_SUCCESS;
+	return;
 }
 
-int
+static void
 internal_result_ext(
-	Connection *conn, 
-	Operation *op, 
-	int  errnum, 
-	char *respname, 
-	struct berval *response )
+	Connection	*conn, 
+	Operation	*op, 
+	ber_int_t	errnum, 
+	const char	*matched,
+	const char	*text,
+	BerVarray	refs,
+	const char	*rspoid,
+	struct berval	*rspdata,
+	LDAPControl	**ctrls )
 {
-	return LDAP_SUCCESS;
+	return;
 }
 
-int
+static int
 internal_search_reference(
-	Connection *conn, 
-	Operation *op, 
-	char **ref ) 
+	Backend		*be,
+	Connection	*conn, 
+	Operation	*op, 
+	Entry		*e,
+	BerVarray	refs,
+	LDAPControl	**ctrls,
+	BerVarray	*v2refs )
 {
 	return LDAP_SUCCESS;
 }
@@ -220,16 +231,11 @@ fakeConnection(
 
 	backend_connection_init( c );
 
-	pConn->c_send_ldap_result =
-		(SEND_LDAP_RESULT) internal_result_v3;
-	pConn->c_send_search_entry =
-		(SEND_SEARCH_ENTRY) internal_search_entry;
-	pConn->c_send_search_result =
-		(SEND_SEARCH_RESULT) internal_search_result;
-	pConn->c_send_ldap_extended =
-		(SEND_LDAP_EXTENDED) internal_result_ext;
-	pConn->c_send_search_reference =
-		(SEND_SEARCH_REFERENCE) internal_search_reference;
+	pConn->c_send_ldap_result = internal_result_v3;
+	pConn->c_send_search_entry = internal_search_entry;
+	pConn->c_send_search_result = internal_search_result;
+	pConn->c_send_ldap_extended = internal_result_ext;
+	pConn->c_send_search_reference = internal_search_reference;
 
 	return pConn;
 }

@@ -39,9 +39,10 @@ LDAP_INCDIR= ../../include -Islapi
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
-SLAPD_STATIC_DEPENDS=@SLAPD_SLAPI_DEPEND@ @SLAPD_NO_STATIC@ libbackends.a
+SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a
 SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
 SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
+SLAPD_SLAPI_DEPEND=@SLAPD_SLAPI_DEPEND@
 
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
@@ -224,12 +225,12 @@ slapd.exp: libslapd.a
 	dlltool --dllname slapd.exe --input-def slapd.def \
 		--base-file slapd.base --output-exp $@
 
-.slapi: FORCE
-	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
-	(cd slapi; $(MAKE) $(MFLAGS) all)
-
 libslapi.a: .slapi
 	cp slapi/.libs/libslapi.a .
+
+.slapi: slapd
+	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
+	(cd slapi; $(MAKE) $(MFLAGS) all)
 
 slapd: $(SLAPD_DEPENDS)
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
@@ -238,7 +239,7 @@ slapd: $(SLAPD_DEPENDS)
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
-tools $(SLAPD_DYNAMIC_BACKENDS): slapd
+tools $(SLAPD_DYNAMIC_BACKENDS) $(SLAPD_SLAPI_DEPEND): slapd
 	cd $@; $(MAKE) $(MFLAGS) all
 	@touch $@
 

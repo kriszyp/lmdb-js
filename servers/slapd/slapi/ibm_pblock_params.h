@@ -65,4 +65,4 @@
 #define SLAPI_IBM_EVENT_SENTREG						(FIRST_PARAM - 45)
 #define SLAPI_IBM_CONN_DN_ORIG						(FIRST_PARAM - 46)
 #define SLAPI_PLUGIN_DB_DELETE_PROGRESS_FN			(FIRST_PARAM - 47) 
-#endif
+#endif /* _ibm_pblock_params_H */

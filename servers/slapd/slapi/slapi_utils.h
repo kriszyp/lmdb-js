@@ -28,16 +28,16 @@ typedef int (*SLAPI_FUNC)(Slapi_PBlock *pb);
 #define TCPIPPATH "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"
 
 typedef struct _slapi_control {
-        int           s_ctrl_num;
-        char          **s_ctrl_oids;
-        unsigned long *s_ctrl_ops;
+        int			s_ctrl_num;
+        char			**s_ctrl_oids;
+        unsigned long		*s_ctrl_ops;
 } Slapi_Control;
 
 typedef struct _ExtendedOp {
-	struct berval ext_oid;
-        SLAPI_FUNC ext_func;
-        Backend    *ext_be;
-        struct _ExtendedOp *ext_next;
+	struct berval		ext_oid;
+        SLAPI_FUNC		ext_func;
+        Backend			*ext_be;
+        struct _ExtendedOp	*ext_next;
 } ExtendedOp;
 
 int slapi_log_error( int severity, char *subsystem, char *fmt, ... );
@@ -111,7 +111,7 @@ int slapi_audit_send_record( Slapi_PBlock *pb, Connection *conn,
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_printmessage_mutex; 
-extern const char		*slapi_log_file;
+extern char			*slapi_log_file;
 extern int			slapi_log_level;
 
 #endif /* _SLAPI_UTILS_H */

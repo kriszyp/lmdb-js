@@ -28,8 +28,7 @@
 extern int slap_debug;
 
 int
-dn_check(char *, int  *);
-
+dn_check(char *, int *);
 
 typedef struct strlist {
 	char *string;

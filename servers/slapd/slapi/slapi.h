@@ -26,7 +26,9 @@ typedef Filter			Slapi_Filter;
 #endif /* NO_PBLOCK_CLASS */
 #include <plugin.h>
 #include <slapi_ops.h>
+#if 0 /* unused (yet?) */
 #include <slapi_cl.h>
+#endif /* 0 */
 
 /*
  * types of plugins
