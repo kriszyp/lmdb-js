@@ -35,15 +35,17 @@ LDAP_LIBDIR= ../../libraries
 
 XLIBS = -lldap -llber -llutil
 XXLIBS = $(SECURITY_LIBS) $(TLS_LIBS)
-UNIX_XXLIBS = $(XXLIBS)
 
 LINKAGE = @LT_LIB_LINKAGE@
 
-NT_DYN_LIB_LIBS  = -llber $(AC_LIBS)
+NT_DYN_LIB_LIBS  = -llber -llutil $(AC_LIBS)
 NT_DYN_LIB_DEFS  = -DLIBLBER_DECL=dllimport
 NT_DYN_TEST_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
 
 NT_XXLIBS = $(SECURITY_LIBS)
+
+UNIX_DYN_LIB_LIBS  = -llber $(AC_LIBS)
+UNIX_XXLIBS = $(SECURITY_LIBS)
 
 # Extras for building the library
 EXTRA_DEFS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
