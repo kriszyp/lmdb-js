@@ -899,16 +899,20 @@ acl_check_modlist(
 
 		switch ( mlist->sml_op ) {
 		case LDAP_MOD_REPLACE:
-			if ( mlist->sml_bvalues == NULL ) {
-				if ( ! access_allowed( be, conn, op, e,
-					mlist->sml_desc, NULL, ACL_WRITE ) )
-				{
-					return( 0 );
-				}
-				break;
+			/*
+			 * We must check both permission to delete the whole
+			 * attribute and permission to add the specific attributes.
+			 * This prevents abuse from selfwriters.
+			 */
+			if ( ! access_allowed( be, conn, op, e,
+				mlist->sml_desc, NULL, ACL_WRITE ) )
+			{
+				return( 0 );
 			}
 
-			/* fall thru */
+			if ( mlist->sml_bvalues == NULL ) break;
+
+			/* fall thru to check value to add */
 
 		case LDAP_MOD_ADD:
 			assert( mlist->sml_bvalues != NULL );
