@@ -335,13 +335,39 @@ int
 bdb_abandon( Operation *op, SlapReply *rs )
 {
 	Operation	*ps;
+	void		*saved_tmpmemctx;
 
 	ps = bdb_drop_psearch( op, op->oq_abandon.rs_msgid );
 	if ( ps ) {
-		if ( ps->o_tmpmemctx ) {
-			sl_mem_destroy( NULL, ps->o_tmpmemctx );
+		if ( ps->o_savmemctx ) {
+			ps->o_tmpmemctx = ps->o_savmemctx;
+			ps->o_tmpmfuncs = &sl_mfuncs;
+			ber_set_option(ps->o_ber, LBER_OPT_BER_MEMCTX, &ps->o_savmemctx);
 		}
+		saved_tmpmemctx = ps->o_tmpmemctx;
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			ps->o_tmpfree(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x(ps, ps->ors_filter);
+		}
+		if (ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
 		slap_op_free ( ps );
+
+		if ( saved_tmpmemctx ) {
+			sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
+
 		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
@@ -351,15 +377,41 @@ int
 bdb_cancel( Operation *op, SlapReply *rs )
 {
 	Operation	*ps;
+	void		*saved_tmpmemctx;
 
 	ps = bdb_drop_psearch( op, op->oq_cancel.rs_msgid );
 	if ( ps ) {
+		if ( ps->o_savmemctx ) {
+			ps->o_tmpmemctx = ps->o_savmemctx;
+			ps->o_tmpmfuncs = &sl_mfuncs;
+			ber_set_option(ps->o_ber, LBER_OPT_BER_MEMCTX, &ps->o_savmemctx);
+		}
+		saved_tmpmemctx = ps->o_tmpmemctx;
 		rs->sr_err = LDAP_CANCELLED;
 		send_ldap_result( ps, rs );
-		if ( ps->o_tmpmemctx ) {
-			sl_mem_destroy( NULL, ps->o_tmpmemctx );
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
 		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			ps->o_tmpfree(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x(ps, ps->ors_filter);
+		}
+		if (ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
 		slap_op_free ( ps );
+
+		if ( saved_tmpmemctx ) {
+			sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
+
 		return LDAP_SUCCESS;
 	}
 	return LDAP_UNAVAILABLE;
@@ -375,10 +427,7 @@ int bdb_psearch( Operation *op, SlapReply *rs, Operation *sop,
 {
 	int	rc;
 
-	sop->o_private = op->o_private;
 	rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
-	sop->o_private = NULL;
-
 	return rc;
 }
 
@@ -432,6 +481,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	struct	bdb_op_info	*opinfo = NULL;
 	DB_TXN			*ltid = NULL;
 
+	void *memctx_null = NULL;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "bdb_search\n", 0, 0, 0 );
 #else
@@ -450,6 +501,15 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 					break;
 				}
 			}
+		}
+	}
+
+	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
+		if ( sop->o_tmpmemctx ) {
+			sop->o_savmemctx = sop->o_tmpmemctx;
+			sop->o_tmpmemctx = NULL;
+			sop->o_tmpmfuncs = &ch_mfuncs;
+			ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 		}
 	}
 

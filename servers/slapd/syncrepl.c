@@ -45,6 +45,9 @@ static int dn_callback( struct slap_op *, struct slap_rep * );
 static int nonpresent_callback( struct slap_op *, struct slap_rep * );
 static int null_callback( struct slap_op *, struct slap_rep * );
 
+static int si_refreshDelete = 0;
+static int si_refreshPresent = 0;
+
 static AttributeDescription *sync_descs[4];
 
 struct runqueue_s syncrepl_rq;
@@ -576,10 +579,10 @@ do_syncrep2(
 			case LDAP_RES_SEARCH_REFERENCE:
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR,
-					"do_syncrep2 : reference received\n", 0, 0, 0 );
+					"do_syncrep2: reference received error\n", 0, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"do_syncrep2 : reference received\n", 0, 0, 0 );
+					"do_syncrep2: reference received error\n", 0, 0, 0 );
 #endif
 				break;
 
@@ -647,8 +650,6 @@ do_syncrep2(
 				rc = ldap_parse_intermediate( si->si_ld, msg,
 					&retoid, &retdata, NULL, 0 );
 				if ( !rc && !strcmp( retoid, LDAP_SYNC_INFO ) ) {
-					int		si_refreshDelete = 0;
-					int		si_refreshPresent = 0;
 					ber_init2( ber, retdata, LBER_USE_DER );
 
 					switch ( si_tag = ber_peek_tag( ber, &len )) {
@@ -659,6 +660,7 @@ do_syncrep2(
 					case LDAP_TAG_SYNC_REFRESH_DELETE:
 						si_refreshDelete = 1;
 					case LDAP_TAG_SYNC_REFRESH_PRESENT:
+						si_refreshPresent = 1;
 						si_refreshPresent = 1;
 						ber_scanf( ber, "t{", &tag );
 						if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE )
@@ -880,6 +882,8 @@ do_syncrepl(
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
 		first = 1;
+		si_refreshDelete = 0;
+		si_refreshPresent = 0;
 		rc = do_syncrep1( &op, si );
 	}
 
@@ -1160,9 +1164,11 @@ syncrepl_entry(
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ))
 	{
-		syncuuid_bv = ber_dupbv( NULL, syncUUID );
-		avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
-			syncuuid_cmp, avl_dup_error );
+		if (!si_refreshPresent) {
+			syncuuid_bv = ber_dupbv( NULL, syncUUID );
+			avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
+				syncuuid_cmp, avl_dup_error );
+		}
 	}
 
 	if ( syncstate == LDAP_SYNC_PRESENT ) {

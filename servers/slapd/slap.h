@@ -2138,6 +2138,7 @@ typedef struct slap_op {
 
 	void	*o_threadctx;		/* thread pool thread context */
 	void	*o_tmpmemctx;		/* slab malloc context */
+	void	*o_savmemctx;
 	BerMemoryFunctions *o_tmpmfuncs;
 #define	o_tmpalloc	o_tmpmfuncs->bmf_malloc
 #define o_tmpcalloc	o_tmpmfuncs->bmf_calloc

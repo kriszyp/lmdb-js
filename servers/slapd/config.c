@@ -3126,7 +3126,7 @@ parse_syncrepl_line(
 #else /* HAVE_CYRUS_SASL */
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"not compiled with SASL support\n" );
-				return 1;
+				return -1;
 #endif /* HAVE_CYRUS_SASL */
 			} else {
 				si->si_bindmethod = -1;
@@ -3195,7 +3195,7 @@ parse_syncrepl_line(
 			ber_str2bv( val, 0, 0, &bv );
 			if ( dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL )) {
 				fprintf( stderr, "Invalid base DN \"%s\"\n", val );
-				return 1;
+				return -1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 			SCOPESTR, sizeof( SCOPESTR ) - 1 ) )
@@ -3216,7 +3216,7 @@ parse_syncrepl_line(
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"unknown scope \"%s\"\n", val);
-				return 1;
+				return -1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 			ATTRSONLYSTR, sizeof( ATTRSONLYSTR ) - 1 ) )
@@ -3246,7 +3246,7 @@ parse_syncrepl_line(
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"unknown sync type \"%s\"\n", val);
-				return 1;
+				return -1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 			INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) )
@@ -3265,21 +3265,21 @@ parse_syncrepl_line(
 				if ( hstr == NULL ) {
 					fprintf( stderr, "Error: parse_syncrepl_line: "
 						"invalid interval \"%s\"\n", val );
-					return 1;
+					return -1;
 				}
 				*hstr++ = '\0';
 				mstr = strchr( hstr, ':' );
 				if ( mstr == NULL ) {
 					fprintf( stderr, "Error: parse_syncrepl_line: "
 						"invalid interval \"%s\"\n", val );
-					return 1;
+					return -1;
 				}
 				*mstr++ = '\0';
 				sstr = strchr( mstr, ':' );
 				if ( sstr == NULL ) {
 					fprintf( stderr, "Error: parse_syncrepl_line: "
 						"invalid interval \"%s\"\n", val );
-					return 1;
+					return -1;
 				}
 				*sstr++ = '\0';
 
@@ -3292,7 +3292,7 @@ parse_syncrepl_line(
 					( ss > 60 ) || ( ss < 0 ) || ( dd < 0 )) {
 					fprintf( stderr, "Error: parse_syncrepl_line: "
 						"invalid interval \"%s\"\n", val );
-					return 1;
+					return -1;
 				}
 				si->si_interval = (( dd * 24 + hh ) * 60 + mm ) * 60 + ss;
 			}
@@ -3300,7 +3300,7 @@ parse_syncrepl_line(
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"invalid interval \"%ld\"\n",
 					(long) si->si_interval);
-				return 1;
+				return -1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
 			RETRYSTR, sizeof( RETRYSTR ) - 1 ) )
@@ -3367,6 +3367,7 @@ parse_syncrepl_line(
 		} else {
 			fprintf( stderr, "Error: parse_syncrepl_line: "
 				"unknown keyword \"%s\"\n", cargv[ i ] );
+			return -1;
 		}
 	}
 

@@ -500,6 +500,9 @@ bdb_db_destroy( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	Operation *ps = NULL;
+	Operation *psn = NULL;
+	void *saved_tmpmemctx = NULL;
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
@@ -544,6 +547,74 @@ bdb_db_destroy( BackendDB *be )
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
+	}
+
+	ps = LDAP_LIST_FIRST( &bdb->bi_psearch_list );
+
+	if ( ps ) {
+		psn = LDAP_LIST_NEXT( ps, o_ps_link );
+		if ( ps->o_savmemctx ) {
+			ps->o_tmpmemctx = ps->o_savmemctx;
+			ps->o_tmpmfuncs = &sl_mfuncs;
+			ber_set_option(ps->o_ber, LBER_OPT_BER_MEMCTX, &ps->o_savmemctx);
+		}
+		saved_tmpmemctx = ps->o_tmpmemctx;
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx);
+		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx);
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			slap_sl_free( ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x( ps, ps->ors_filter );
+		}
+		if (ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
+		slap_op_free( ps );
+
+		if ( saved_tmpmemctx ) {
+			sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
+	}
+
+	while ( psn ) {
+		ps = psn;
+		psn = LDAP_LIST_NEXT( ps, o_ps_link );
+
+		if ( ps->o_savmemctx ) {
+			ps->o_tmpmemctx = ps->o_savmemctx;
+			ps->o_tmpmfuncs = &sl_mfuncs;
+			ber_set_option(ps->o_ber, LBER_OPT_BER_MEMCTX, &ps->o_savmemctx);
+		}
+		saved_tmpmemctx = ps->o_tmpmemctx;
+
+		if (!BER_BVISNULL(&ps->o_req_dn)) {
+			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx);
+		}
+		if (!BER_BVISNULL(&ps->o_req_ndn)) {
+			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx);
+		}
+		if (!BER_BVISNULL(&ps->ors_filterstr)) {
+			slap_sl_free( ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
+		}
+		if (ps->ors_filter != NULL) {
+			filter_free_x( ps, ps->ors_filter );
+		}
+		if (ps->ors_attrs != NULL) {
+			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
+		}
+
+		slap_op_free( ps );
+
+		if ( saved_tmpmemctx ) {
+			sl_mem_destroy( NULL, saved_tmpmemctx );
+		}
 	}
 
 	ch_free( bdb );
