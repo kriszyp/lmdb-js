@@ -1622,7 +1622,7 @@ syncrepl_updateCookie(
 	ber_dupbv( &cnbva[0], (struct berval *) &slap_syncrepl_bvc );
 	assert( si->si_rid < 1000 );
 	cnbva[0].bv_len = snprintf( cnbva[0].bv_val,
-		slap_syncrepl_bvc.bv_len,
+		slap_syncrepl_bvc.bv_len + 1,
 		"syncrepl%ld", si->si_rid );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
@@ -1675,7 +1675,7 @@ syncrepl_updateCookie(
 	slap_syncrepl_cn_bv.bv_val = syncrepl_cbuf;
 	assert( si->si_rid < 1000 );
 	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
-		slap_syncrepl_cn_bvc.bv_len,
+		slap_syncrepl_cn_bvc.bv_len + 1,
 		"cn=syncrepl%ld", si->si_rid );
 
 	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv,
