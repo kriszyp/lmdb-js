@@ -618,6 +618,93 @@ idl_insert( IDList **idl, ID id, int maxids )
 	return( i == 0 ? 1 : 0 );	/* inserted - first id changed or not */
 }
 
+int
+idl_delete_key (
+	Backend         *be,
+	struct dbcache  *db,
+	Datum           key,
+	ID              id
+)
+{
+	Datum  k2;
+	IDList *idl, *tmp;
+	int i, j, nids;
+	char	*kstr;
+
+	if ( (idl = idl_fetch_one( be, db, key ) ) == NULL )
+	{
+		/* It wasn't found.  Hmm... */
+		return -1;
+	}
+
+	if ( ! INDIRECT_BLOCK( idl ) )
+	{
+		for ( i=0; i < idl->b_nids; i++ )
+		{
+			if ( idl->b_ids[i] == id )
+			{
+				memcpy ( &idl->b_ids[i], &idl->b_ids[i+1], sizeof(ID)*(idl->b_nids-(i+1)));
+				idl->b_ids[idl->b_nids-1] = NOID;
+				idl->b_nids--;
+				if ( idl->b_nids )
+					idl_store( be, db, key, idl );
+				else
+					ldbm_cache_delete( db, key );
+				return 0;
+			}
+			/*  We didn't find the ID.  Hmmm... */
+		}
+		return -1;
+	}
+	
+	/* We have to go through an indirect block and find the ID
+	   in the list of IDL's
+	   */
+	for ( nids = 0; idl->b_ids[nids] != NOID; nids++ )
+		;	/* NULL */
+	kstr = (char *) ch_malloc( key.dsize + 20 );
+	for ( j = 0; idl->b_ids[j] != NOID; j++ ) 
+	{
+		memset( &k2, 0, sizeof(k2) );
+		sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr, idl->b_ids[j] );
+		k2.dptr = kstr;
+		k2.dsize = strlen( kstr ) + 1;
+
+		if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "idl_fetch of (%s) returns NULL\n", k2.dptr, 0, 0 );
+			continue;
+		}
+		/*
+		   Now try to find the ID in tmp
+		*/
+		for ( i=0; i < tmp->b_nids; i++ )
+		{
+			if ( tmp->b_ids[i] == id )
+			{
+				memcpy ( &tmp->b_ids[i], &tmp->b_ids[i+1], sizeof(ID)*(tmp->b_nids-(i+1)));
+				tmp->b_ids[tmp->b_nids-1] = NOID;
+				tmp->b_nids--;
+				if ( tmp->b_nids )
+					idl_store ( be, db, k2, tmp );
+				else
+				{
+					ldbm_cache_delete( db, k2 );
+					memcpy ( &idl->b_ids[j], &idl->b_ids[j+1], sizeof(ID)*(nids-(j+1)));
+					idl->b_ids[nids-1] = NOID;
+					nids--;
+					if ( ! nids )
+						ldbm_cache_delete( db, key );
+					else
+						idl_store( be, db, key, idl );
+				}
+				return 0;
+			}
+		}
+	}
+	return -1;
+}
+
 static IDList *
 idl_dup( IDList *idl )
 {
