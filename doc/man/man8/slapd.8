@@ -1,4 +1,4 @@
-.TH SLAPD 8C "19 September 1999" "OpenLDAP LDVERSION"
+.TH SLAPD 8C "11 August 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -10,6 +10,7 @@ slapd \- Stand-alone LDAP Daemon
 .B [\-h URLs]
 .B [\-d debug\-level]
 .B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
+.B [\-r directory]
 .B [\-u user] [\-g group]
 .B 
 .SH DESCRIPTION
@@ -117,6 +118,12 @@ may be specified by name or IPv4 and IPv6 address formats.
 Ports, if specfied, must be numeric.  The default ldap:// port is 389
 and the default ldaps:// port is 636.
 .TP
+.BI \-r " directory"
+Specifies a run-time directory.  slapd will
+.BR chroot (2)
+to this directory after opening listeners but before any reading
+any configuration file or initializing any backend.
+.TP
 .BI \-u " user"
 .B slapd
 will run slapd with the specified user name or id, and that user's
@@ -159,7 +166,7 @@ on voluminous debugging which will be printed on standard error, type:
 .BR slapd.conf (5),
 .BR slurpd (8)
 .LP
-"The SLAPD and SLURPD Administrator's Guide"
+"OpenLDAP Administrator's Guide"
 .SH BUGS
 See http://www.openldap.org/its/
 .SH ACKNOWLEDGEMENTS
