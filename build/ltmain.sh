@@ -1420,14 +1420,14 @@ compiler."
 	    continue
 	  fi
 	  name=`$echo "X$deplib" | $Xsed -e 's/^-l//'`
-	  for searchdir in $newlib_search_path $lib_search_path $sys_lib_search_path $shlib_search_path; do
-	    # Search the libtool library
-	    lib="$searchdir/lib${name}.la"
-	    if test -f "$lib"; then
-	      found=yes
-	      break
-	    fi
-	  done
+#	  for searchdir in $newlib_search_path $lib_search_path $sys_lib_search_path $shlib_search_path; do
+#	    # Search the libtool library
+#	    lib="$searchdir/lib${name}.la"
+#	    if test -f "$lib"; then
+#	      found=yes
+#	      break
+#	    fi
+#	  done
 	  if test "$found" != yes; then
 	    # deplib doesn't seem to be a libtool library
 	    if test "$linkmode,$pass" = "prog,link"; then

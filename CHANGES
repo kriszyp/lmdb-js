@@ -5,7 +5,9 @@ OpenLDAP 2.2.11 Engineering
 	Fixed slapd acl dn="" bug
 	Updated slapd limits handling
 	Build Environment
-		Fix MacOSX sl_free interop bug (ITS#3092)
+		Fixed MacOSX sl_free interop bug (ITS#3092)
+		Fixed libtool -static bug
+		Added Berkeley DB mismatch check
 
 OpenLDAP 2.2.10 Release
 	Build Environment
