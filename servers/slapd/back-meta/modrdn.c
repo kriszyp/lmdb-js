@@ -75,7 +75,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		int nsCandidate, version = LDAP_VERSION3;
 
 		nsCandidate = meta_back_select_unique_candidate( li,
-				op->oq_modrdn.rs_newSup );
+				op->oq_modrdn.rs_nnewSup );
 
 		if ( nsCandidate != candidate ) {
 			/*
