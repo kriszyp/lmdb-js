@@ -42,7 +42,7 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )
@@ -194,7 +194,7 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )
@@ -361,12 +361,12 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )
 {
-	return( thr_create( NULL, 0, func, arg, attr, tid ) );
+	return( thr_create( NULL, 0, func, arg, *attr, tid ) );
 }
 #endif /* ! sunos56 */
 
@@ -543,7 +543,7 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )
