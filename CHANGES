@@ -1,5 +1,9 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.X Engineering
+	Build Environment
+		Fixed $(DESTDIR) install (ITS#806)
+
 OpenLDAP 2.0.6 Release
 	Build Environment
 		Fixed schema install (ITS#802)
