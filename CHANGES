@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.17 Engineering
+OpenLDAP 2.0.17 Release
 	Fixed ldbm BerkeleyDB2 compat bug (ITS#1390)
 
 OpenLDAP 2.0.16 Release
