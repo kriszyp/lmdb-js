@@ -13,7 +13,8 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* This file was initially created by Hallvard B. Furuseth based (in
+/* ACKNOWLEDGEMENTS:
+ * This file was initially created by Hallvard B. Furuseth based (in
  * part) upon argument parsing code for individual tools located in
  * this directory. 
  */

@@ -1,14 +1,18 @@
 dnl $OpenLDAP$
 dnl
-dnl Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
-dnl 
+dnl Copyright 1998-2003 The OpenLDAP Foundation.
+dnl All rights reserved.
+dnl
 dnl Redistribution and use in source and binary forms, with or without
 dnl modification, are permitted only as authorized by the OpenLDAP
-dnl Public License.  A copy of this license is available at
-dnl http://www.OpenLDAP.org/license.html or in file LICENSE in the
-dnl top-level directory of the distribution.
+dnl Public License.
+dnl
+dnl A copy of this license is available in the file LICENSE in the
+dnl top-level directory of the distribution or, alternatively, at
+dnl <http://www.OpenLDAP.org/license.html>.
 dnl
 dnl ----------------------------------------------------------------
+dnl
 dnl Redefine AC_INIT_BINSH to provide RCS IDs and copyright notice
 dnl at top of generated configure script.  Prints simple copyright.
 define([AC_INIT_BINSH],
@@ -16,15 +20,18 @@ define([AC_INIT_BINSH],
 # $]OpenLDAP[$
 # from] translit([$OpenLDAP$], $")] [
 
-# Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
-# 
+# Copyright 1998-2003 The OpenLDAP Foundation.
+# All rights reserved.
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted only as authorized by the OpenLDAP
-# Public License.  A copy of this license is available at
-# http://www.OpenLDAP.org/license.html or in file LICENSE in the
-# top-level directory of the distribution.
+# Public License.
+#
+# A copy of this license is available in the file LICENSE in the
+# top-level directory of the distribution or, alternatively, at
+# <http://www.OpenLDAP.org/license.html>.
 
-echo "Copyright 1998-2003 The OpenLDAP Foundation,  All Rights Reserved."
+echo "Copyright 1998-2003 The OpenLDAP Foundation. All rights reserved."
 echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------

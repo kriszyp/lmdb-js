@@ -26,7 +26,8 @@
  * from this software without specific prior written permission.  This
  * software is provided ``as is'' without express or implied warranty.
  */
-/* The original ldappasswd(1) tool was developed by Dave Storey (F5
+/* ACKNOWLEDGEMENTS:
+ * The original ldappasswd(1) tool was developed by Dave Storey (F5
  * Network), based on other OpenLDAP client tools (which are, of
  * course, based on U-MICH LDAP).  This version was rewritten
  * by Kurt D. Zeilenga (based on other OpenLDAP client tools).

@@ -2,9 +2,9 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright YEAR The OpenLDAP Foundation
- * Portions Copyright YEAR Secondary Rights Holder 
- * Portions Copyright YEAR Another Rights Holder
+ * Copyright YEAR The OpenLDAP Foundation.
+ * Portions Copyright YEAR Secondary Rights Holder.
+ * Portions Copyright YEAR Another Rights Holder.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -19,7 +19,8 @@
  *  Please consult Kurt Zeilenga <kurt@openldap.org> before adding
  *  additional notices.
  */
-/* This work was initially developed by John Doe (of FOO Corporation).
- * This work was (SIGNIFICANTLY) modify by:
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by John Doe (of FOO Corporation).
+ * Additional significant contributors include:
  *   Jane Doe of BAR, Inc. (added this and that)
  */

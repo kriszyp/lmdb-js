@@ -34,7 +34,8 @@
  * from this software without specific prior written permission.  This
  * software is provided ``as is'' without express or implied warranty.
  */
-/* This work was originally developed by the University of Michigan
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
  * (as part of U-MICH LDAP).  Additional significant contributors
  * include:
  *    Kurt D. Zeilenga

@@ -1,4 +1,4 @@
-Copyright 1998-2003 The OpenLDAP Foundation.
+Copyright 1998-2003 The OpenLDAP Foundation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -16,12 +16,12 @@ other parties and subject to additional restrictions.
 
 This work is derived from the University of Michigan LDAP v3.3
 distribution.  Information concerning this software is available
-at: http://www.umich.edu/~dirsvcs/ldap/
+at <http://www.umich.edu/~dirsvcs/ldap/>.
 
 This work also contains materials derived from public sources.
 
-Additional information about OpenLDAP can be obtained at:
-    http://www.openldap.org/
+Additional information about OpenLDAP can be obtained at
+<http://www.openldap.org/>.
 
 ---
 

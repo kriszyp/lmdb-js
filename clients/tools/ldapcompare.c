@@ -31,8 +31,9 @@
  * This is free software; you can redistribute and use it
  * under the same terms as OpenLDAP itself.
  */
-/* This work was originally developed by Jeff Costlow (F5 Networks)
- * based, in part, on existing LDAP tools.  Adaption for inclusion
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by Jeff Costlow (F5 Networks)
+ * based, in part, on existing LDAP tools and adapted for inclusion
  * into OpenLDAP Software by Kurt D. Zeilenga.
  */
 

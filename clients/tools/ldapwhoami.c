@@ -26,7 +26,8 @@
  * from this software without specific prior written permission.  This
  * software is provided ``as is'' without express or implied warranty.
  */
-/* This work was originally developed by Kurt D. Zeilenga for inclusion
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by Kurt D. Zeilenga for inclusion
  * in OpenLDAP Software based, in part, on other client tools.
  */
 

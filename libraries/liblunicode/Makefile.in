@@ -1,9 +1,16 @@
+# Makefile.in for LDAP -llunicode
 # $OpenLDAP$
-## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
-## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+## Copyright 1998-2003 The OpenLDAP Foundation.
+## All rights reserved.
 ##
-## Makefile.in for LDAP -lldap
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
 ##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
+
 LIBRARY = liblunicode.a
 
 XXDIR = $(srcdir)/*/
