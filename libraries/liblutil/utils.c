@@ -17,11 +17,11 @@ char* lutil_progname( const char* name, int argc, char *argv[] )
 	char *progname;
 
 	if(argc == 0) {
-		return strdup( name );
+		return ber_strdup( name );
 	}
 
 	progname = strrchr ( argv[0], *LDAP_DIRSEP );
-	progname = strdup( progname ? &progname[1] : argv[0] );
+	progname = ber_strdup( progname ? &progname[1] : argv[0] );
 
 	return progname;
 }

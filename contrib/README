@@ -1,10 +1,10 @@
 OpenLDAP Contributed Software README
 
 OpenLDAP provides a number of freely-distributable LDAP software
-packages.  Though distributed with OpenLDAP, they are not
-part of OpenLDAP.  Each package in this directory has it's
-own use and redistribution restrictions as documented within
-the package.
+packages.  Though distributed with OpenLDAP, they are not part of
+OpenLDAP.  Some packages may be out of date.  Each package in
+this directory has it's own use and redistribution restrictions
+as documented within the package.
 
 Current contributions:
 	gtk-tool
@@ -35,4 +35,5 @@ Current contributions:
 		See whois++/README for more information.
 
 
-Please send your contributions to info@OpenLDAP.Org
+Please submit your contributions using the OpenLDAP Issue
+Tracking System <http://www.openldap.org/>.

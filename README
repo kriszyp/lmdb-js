@@ -73,18 +73,14 @@ DOCUMENTATION
 		http://www.openldap.org/faq/index.cgi?file=2
 
 
-FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
-	We would appreciate any feedback you can provide.  If you have
-	problems, report them using our Issue Tracking System:
+SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
+	OpenLDAP is user supported.  If you have problems, please
+	review the OpenLDAP FAQ <http://www.openldap.org/faq/> and
+	archives of the OpenLDAP-software and OpenLDAP-bugs mailing
+	lists <http://www.openldap.org/lists/>.
 
-		http://www.OpenLDAP.com/its/
-
-	or by sending e-mail to:
-
-		OpenLDAP-its@OpenLDAP.org
-
-	Additional mailing lists are available for discussion proposes.
-	Please see:
-
-		http://www.OpenLDAP.com/lists/
-
+	Issues, such as bug reports, should be reported using our
+	our Issue Tracking System <http://www.OpenLDAP.com/its/> or
+	by sending mail to OpenLDAP-its@OpenLDAP.org.  Do not use
+	this system for general or software equiries.  Please direct
+	these to the appropriate mailing list.
