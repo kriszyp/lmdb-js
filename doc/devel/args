@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        CD*  HI K M OPQR  U*WXYZ  cd*f h  k  n p     vwx
-ldapmodify        CD*F HI K M OPQR  U*WXYZabcd*f h  k  n p r t vwx
-ldapmodrdn        CD*  HI K M OPQR  U*WXYZ  cd*f h  k  n p rs  vwx
-ldappasswd      A CD*  HI     O QRS U*WXYZa  d*  h          s  vwx   
-ldapsearch      A CD*  HI KLM OPQRSTU*WXYZab*d*f h  kl n p  stuvwx z
+ldapdelete       *CDE *HI*K M*OPQR  U*WXYZ  cdef*h**k *n*p*    vwx*
+ldapmodify       *CDEF*HI*K M*OPQR  U*WXYZabcdef*h**k *n*p*r t vwx*
+ldapmodrdn       *CDE *HI*K M*OPQR  U*WXYZ  cdef*h**k *n*p*rs  vwx*
+ldappasswd      A*CDE *HI*   *O QRS U*WXYZa  de *h**  * * * s  vwx*  
+ldapsearch      A*CDE *HI*KLM*OPQRSTU*WXYZab*def*h**kl*n*p* stuvwx*z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                               *         f h    m
