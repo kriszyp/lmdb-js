@@ -230,9 +230,6 @@ meta_back_db_destroy(
 					( AVL_FREE )conn_free );
 		}
 
-		ldap_pvt_thread_mutex_unlock( &li->cache.mutex );
-		ldap_pvt_thread_mutex_destroy( &li->cache.mutex );
-
 		/*
 		 * Destroy the per-target stuff (assuming there's at
 		 * least one ...)
@@ -253,7 +250,8 @@ meta_back_db_destroy(
 		ldap_pvt_thread_mutex_unlock( &li->cache.mutex );
 		ldap_pvt_thread_mutex_destroy( &li->cache.mutex );
 
-						
+		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );
 	}
 
 	free( be->be_private );

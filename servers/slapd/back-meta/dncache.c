@@ -270,7 +270,7 @@ meta_dncache_delete_entry(
 	ldap_pvt_thread_mutex_lock( &cache->mutex );
 	entry = avl_delete( &cache->tree, ( caddr_t )&tmp_entry,
  			meta_dncache_cmp );
-	ldap_pvt_thread_mutex_lock( &cache->mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->mutex );
 
 	if ( entry != NULL ) {
 		meta_dncache_free( ( void * )entry );
