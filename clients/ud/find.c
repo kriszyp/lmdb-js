@@ -247,8 +247,7 @@ int quiet;
 			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 			return(res);
 		} else if (matches > 1 ) {
-			return( disambiguate( ld, res, matches, read_attrs,
-			    who ) );
+			return disambiguate( res, matches, read_attrs, who );
 		}
 		ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 	}
