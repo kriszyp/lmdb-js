@@ -25,8 +25,8 @@ struct ldbm_entry_info {
 #define CACHE_ENTRY_DELETED		3
 
 	int		lei_refcnt;	/* # threads ref'ing this entry */
-	struct entry	*lei_lrunext;	/* for cache lru list */
-	struct entry	*lei_lruprev;
+	Entry	*lei_lrunext;	/* for cache lru list */
+	Entry	*lei_lruprev;
 };
 #define LEI(e)	((struct ldbm_entry_info *) ((e)->e_private))
 
