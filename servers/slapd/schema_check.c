@@ -36,6 +36,8 @@ entry_schema_check(
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	int extensible = 0;
 
+	*text = textbuf;
+
 	/* check single-valued attrs for multiple values */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		/* there should be at least one value */
@@ -62,14 +64,11 @@ entry_schema_check(
 			    e->e_dn, textbuf, 0 );
 #endif
 
-			*text = textbuf;
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
 
 	if( !global_schemacheck ) return LDAP_SUCCESS;
-
-	*text = textbuf;
 
 	/* find the object class attribute - could error out here */
 	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
