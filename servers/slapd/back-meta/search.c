@@ -185,6 +185,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 				goto new_candidate;
 			}
 
+		} else {
+			is_scope++;
 		}
 
 		/*
@@ -586,7 +588,7 @@ meta_send_entry(
 	 * FIXME: should we log anything, or delegate to dnNormalize?
 	 */
 	if ( dnNormalize( 0, NULL, NULL, &ent.e_name, &ent.e_nname,
-		&op->o_tmpmemctx ) != LDAP_SUCCESS )
+		op->o_tmpmemctx ) != LDAP_SUCCESS )
 	{
 		return LDAP_INVALID_DN_SYNTAX;
 	}
@@ -704,7 +706,7 @@ meta_send_entry(
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
-					op->o_tmpmemctx );
+					NULL );
 			}
 			attr->a_nvals[i].bv_val = NULL;
 			attr->a_nvals[i].bv_len = 0;
