@@ -645,7 +645,8 @@ retry_ber:
 	 * go through the following code.  This code also chases V2 referrals
 	 * and checks if all referrals have been chased.
 	 */
-	if ( (tag != LDAP_RES_SEARCH_ENTRY) && (v3ref > -1) ) {
+	if ( (tag != LDAP_RES_SEARCH_ENTRY) && (v3ref > -1) &&
+	     (tag != LDAP_RES_INTERMEDIATE_RESP ) ) {
 		/* For a v3 search referral/reference, only come here if already chased it */
 		if ( ld->ld_version >= LDAP_VERSION2 &&
 			( lr->lr_parent != NULL ||

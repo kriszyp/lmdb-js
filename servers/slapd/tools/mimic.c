@@ -58,6 +58,22 @@ slap_send_ldap_extended(
 }
 
 void
+slap_send_ldap_intermediate_resp(
+	Connection  *conn,
+	Operation   *op,
+	ber_int_t   err,
+	const char  *matched,
+	const char  *text,
+	BerVarray refs,
+	const char  *rspoid,
+	struct berval *rspdata,
+	LDAPControl **ctrls
+)
+{
+	assert(0);
+}
+
+void
 send_ldap_sasl(
     Connection	*conn,
     Operation	*op,

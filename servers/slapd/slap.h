@@ -1800,6 +1800,22 @@ typedef void (*SEND_LDAP_EXTENDED)(
 #define send_ldap_extended( conn, op, err, matched, text, refs, rspoid, rspdata, ctrls) \
 (*conn->c_send_ldap_extended)( conn, op, err, matched, text, refs, rspoid, rspdata, ctrls )
 
+typedef void (*SEND_LDAP_INTERMEDIATE_RESP)(
+				struct slap_conn *conn,
+				struct slap_op *op,
+				ber_int_t   err,
+				const char  *matched,
+				const char  *text,
+				BerVarray   refs,
+				const char      *rspoid,
+				struct berval *rspdata,
+				LDAPControl **ctrls
+				);
+
+#define send_ldap_intermediate_resp( conn, op, err, matched, text, refs, \
+				     rspoid, rspdata, ctrls) \
+	(*conn->c_send_ldap_intermediate_resp)( conn, op, err, matched, text, \
+						refs, rspoid, rspdata, ctrls )
 
 /*
  * Caches the result of a backend_group check for ACL evaluation
@@ -1894,6 +1910,7 @@ typedef struct slap_conn {
 	SEND_SEARCH_RESULT c_send_search_result;
 	SEND_SEARCH_REFERENCE c_send_search_reference;
 	SEND_LDAP_EXTENDED c_send_ldap_extended;
+	SEND_LDAP_INTERMEDIATE_RESP c_send_ldap_intermediate_resp;
 	
 } Connection;
 

@@ -416,6 +416,7 @@ long connection_init(
 		c->c_send_search_result = slap_send_search_result;
 		c->c_send_search_reference = slap_send_search_reference;
 		c->c_send_ldap_extended = slap_send_ldap_extended;
+		c->c_send_ldap_intermediate_resp = slap_send_ldap_intermediate_resp;
 
 		c->c_authmech.bv_val = NULL;
 		c->c_authmech.bv_len = 0;

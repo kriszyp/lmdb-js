@@ -582,6 +582,38 @@ slap_send_ldap_extended(
 		rspoid, rspdata, NULL, ctrls );
 }
 
+void
+slap_send_ldap_intermediate_resp(
+	Connection  *conn,
+	Operation   *op,
+	ber_int_t   err,
+	const char  *matched,
+	const char  *text,
+	BerVarray   refs,
+	const char  *rspoid,
+	struct berval *rspdata,
+	LDAPControl **ctrls )
+{
+	ber_tag_t tag;
+	ber_int_t msgid;
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ENTRY,
+		"send_ldap_intermediate: err=%d oid=%s len=%ld\n",
+		err, rspoid ? rspoid : "",
+		rspdata != NULL ? rspdata->bv_len : 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE,
+		"send_ldap_intermediate: err=%d oid=%s len=%ld\n",
+		err,
+		rspoid ? rspoid : "",
+		rspdata != NULL ? rspdata->bv_len : 0 );
+#endif
+	tag = LDAP_RES_INTERMEDIATE_RESP;
+	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
+	send_ldap_response( conn, op, tag, msgid,
+		err, matched, text, refs,
+		rspoid, rspdata, NULL, ctrls );
+}
 
 void
 slap_send_search_result(

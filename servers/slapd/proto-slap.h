@@ -821,6 +821,13 @@ LDAP_SLAPD_F (void) slap_send_ldap_extended LDAP_P((
 	const char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
+LDAP_SLAPD_F (void) slap_send_ldap_intermediate_resp LDAP_P((
+	Connection *conn, Operation *op,
+	ber_int_t err, const char *matched,
+	const char *text, BerVarray refs,
+	const char *rspoid, struct berval *rspdata,
+	LDAPControl **ctrls ));
+
 LDAP_SLAPD_F (void) send_ldap_partial LDAP_P((
 	Connection *conn, Operation *op,
 	const char *rspoid, struct berval *rspdata,
