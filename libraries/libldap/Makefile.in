@@ -15,7 +15,7 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	getfilter.c sasl.c sbind.c kbind.c unbind.c friendly.c cldap.c \
 	free.c disptmpl.c srchpref.c dsparse.c tmplout.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
-	request.c getdxbyname.c os-ip.c url.c charset.c \
+	request.c os-ip.c url.c charset.c \
 	init.c options.c print.c string.c util-int.c schema.c \
 	charray.c digest.c tls.c dn.c os-local.c dnssrv.c \
 	utf-8.c
@@ -25,7 +25,7 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
 	free.lo disptmpl.lo srchpref.lo dsparse.lo tmplout.lo sort.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
-	request.lo getdxbyname.lo os-ip.lo url.lo charset.lo \
+	request.lo os-ip.lo url.lo charset.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
 	charray.lo digest.lo tls.lo dn.lo os-local.lo dnssrv.lo \
 	utf-8.lo
