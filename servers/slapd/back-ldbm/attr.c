@@ -173,7 +173,7 @@ attr_index_config(
 static void
 ainfo_free( void *attr )
 {
-	struct attrinfo *ai = attr;
+	AttrInfo *ai = attr;
 	free( ai->ai_type );
 	free( ai );
 }
