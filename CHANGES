@@ -10,6 +10,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Build environment
 		Added closesocket detection/use of BeOS (ITS#195)
 		Added IRIX #define _SGI_MP_SOURCE for enable per-thread errno
+		Added ac/time.h to slap.h for IRIX (ITS#223)
 		Added sys/select.h detection
 
 Changes included in OpenLDAP 1.2.3
