@@ -127,9 +127,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		ldap_getfilter_free( lfdp );
 		fprintf( stderr, "bad regular expresssion %s, %s\n",
 			nextflp->lfl_pattern, error );
-#if !defined( MACOS ) && !defined( DOS )
 		errno = EINVAL;
-#endif
 #endif /* LDAP_LIBUI */
 		free_strarray( tok );
 		return( NULL );
@@ -179,9 +177,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		    } else {
 			free_strarray( tok );
 			ldap_getfilter_free( lfdp );
-#if !defined( MACOS ) && !defined( DOS )
 			errno = EINVAL;
-#endif
 			return( NULL );
 		    }
 		    free( tok[ 2 ] );
@@ -198,9 +194,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	default:
 	    free_strarray( tok );
 	    ldap_getfilter_free( lfdp );
-#if !defined( MACOS ) && !defined( DOS )
 	    errno = EINVAL;
-#endif
 	    return( NULL );
 	}
     }

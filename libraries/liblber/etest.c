@@ -11,9 +11,9 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
-#endif /* MACOS */
+#endif /* HAVE_CONSOLE_H */
 
 #include "lber.h"
 
@@ -43,7 +43,7 @@ main( int argc, char **argv )
 	sb.sb_sd = 1;
 	sb.sb_ber.ber_buf = NULL;
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
 

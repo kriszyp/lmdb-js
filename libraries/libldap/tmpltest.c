@@ -6,7 +6,7 @@
 #include <ac/socket.h>
 #include <ac/time.h>
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
 #endif /* MACOS */
 
@@ -27,7 +27,7 @@ main( int argc, char **argv )
     struct ldap_searchobj	*so, *sop;
     int				err;
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	for ( argc = 0; argv[ argc ] != NULL; ++argc ) {
 	    ;

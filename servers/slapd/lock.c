@@ -27,10 +27,10 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 	}
 
 	/* acquire the lock */
-#ifdef USE_LOCKF
-	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 ) {
-#else
+#ifdef HAVE_FLOCK
 	while ( flock( fileno( *lfp ), LOCK_EX ) != 0 ) {
+#else
+	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 ) {
 #endif
 		;	/* NULL */
 	}
@@ -38,10 +38,10 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 	/* open the log file */
 	if ( (fp = fopen( fname, type )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "could not open \"%s\"\n", fname, 0, 0 );
-#ifdef USE_LOCKF
-		lockf( fileno( *lfp ), F_ULOCK, 0 );
-#else
+#ifdef HAVE_FLOCK
 		flock( fileno( *lfp ), LOCK_UN );
+#else
+		lockf( fileno( *lfp ), F_ULOCK, 0 );
 #endif
 		return( NULL );
 	}

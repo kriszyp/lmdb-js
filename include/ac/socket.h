@@ -39,6 +39,10 @@
 #define INADDR_LOOPBACK	((unsigned long) 0x7f000001)
 #endif
 
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN  64
+#endif
+
 #ifdef MACOS
 #define tcp_close( s )		tcpclose( s )
 #else /* MACOS */

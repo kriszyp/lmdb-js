@@ -28,10 +28,6 @@ static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the Universi
 #define DEF_CLDAP_TIMEOUT	3
 #define DEF_CLDAP_TRIES		4
 
-#ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK	((unsigned long) 0x7f000001)
-#endif
-
 
 struct cldap_retinfo {
 	int		cri_maxtries;

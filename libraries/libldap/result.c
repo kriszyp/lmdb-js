@@ -170,12 +170,8 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 		if ( ld->ld_sb.sb_ber.ber_ptr >= ld->ld_sb.sb_ber.ber_end ) {
 			rc = ldap_select1( ld, tvp );
 
-#if !defined( MACOS ) && !defined( DOS )
 			if ( rc == 0 || ( rc == -1 && (( ld->ld_options &
 			    LDAP_OPT_RESTART ) == 0 || errno != EINTR ))) {
-#else
-			if ( rc == -1 || rc == 0 ) {
-#endif
 				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				    LDAP_TIMEOUT);
 				return( rc );
@@ -207,7 +203,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			rc = do_ldap_select( ld, tvp );
 
 
-#if defined( LDAP_DEBUG ) && !defined( MACOS ) && !defined( DOS )
+#ifdef LDAP_DEBUG
 			if ( rc == -1 ) {
 			    Debug( LDAP_DEBUG_TRACE,
 				    "do_ldap_select returned -1: errno %d\n",
@@ -215,12 +211,8 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			}
 #endif
 
-#if !defined( MACOS ) && !defined( DOS )
 			if ( rc == 0 || ( rc == -1 && (( ld->ld_options &
 			    LDAP_OPT_RESTART ) == 0 || errno != EINTR ))) {
-#else
-			if ( rc == -1 || rc == 0 ) {
-#endif
 				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				    LDAP_TIMEOUT);
 				return( rc );
@@ -589,7 +581,7 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 
 
 #if defined( LDAP_CONNECTIONLESS ) || !defined( LDAP_REFERRALS )
-#if !defined( MACOS ) && !defined( DOS ) && !defined( _WIN32 )
+
 static int
 ldap_select1( LDAP *ld, struct timeval *timeout )
 {
@@ -616,77 +608,7 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 
 	return( select( tblsize, &readfds, 0, 0, timeout ) );
 }
-#endif /* !MACOS */
 
-
-#ifdef MACOS
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-	return( tcpselect( ld->ld_sb.sb_sd, timeout ));
-}
-#endif /* MACOS */
-
-
-#if ( defined( DOS ) && defined( WINSOCK )) || defined( _WIN32 )
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-    fd_set          readfds;
-    int             rc;
-
-    FD_ZERO( &readfds );
-    FD_SET( ld->ld_sb.sb_sd, &readfds );
-
-    rc = select( 1, &readfds, 0, 0, timeout );
-    return( rc == SOCKET_ERROR ? -1 : rc );
-}
-#endif /* WINSOCK || _WIN32 */
-
-
-#ifdef DOS
-#ifdef PCNFS
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-	fd_set	readfds;
-	int	res;
-
-	FD_ZERO( &readfds );
-	FD_SET( ld->ld_sb.sb_sd, &readfds );
-
-	res = select( FD_SETSIZE, &readfds, NULL, NULL, timeout );
-	if ( res == -1 && errno == EINTR) {
-		/* We've been CTRL-C'ed at this point.  It'd be nice to
-		   carry on but PC-NFS currently won't let us! */
-		printf("\n*** CTRL-C ***\n");
-		exit(-1);
-	}
-	return( res );
-}
-#endif /* PCNFS */
-
-#ifdef NCSA
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-	int rc;
-	clock_t	endtime;
-
-	if ( timeout != NULL ) {
-		endtime = timeout->tv_sec * CLK_TCK +
-			timeout->tv_usec * CLK_TCK / 1000000 + clock();
-	}
-
-	do {
-		Stask();
-		rc = netqlen( ld->ld_sb.sb_sd );
-	} while ( rc <= 0 && ( timeout == NULL || clock() < endtime ));
-
-	return( rc > 0 ? 1 : 0 );
-}
-#endif /* NCSA */
-#endif /* DOS */
 #endif /* !LDAP_REFERRALS */
 
 

@@ -30,14 +30,6 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 int	ldap_debug;
 #endif
 
-#ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK	((unsigned long) 0x7f000001)
-#endif
-
-#ifndef MAXHOSTNAMELEN
-#define MAXHOSTNAMELEN  64
-#endif
-
 
 /*
  * ldap_open - initialize and connect to an ldap server.  A magic cookie to

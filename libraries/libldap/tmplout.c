@@ -911,11 +911,6 @@ time2text( char *ldtimestr, int dateonly )
 
 
 /* gtime.c - inverse gmtime */
-
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( DOS )
-#include <sys/time.h>
-#endif /* !MACOS */
-
 /* gtime(): the inverse of localtime().
 	This routine was supplied by Mike Accetta at CMU many years ago.
  */

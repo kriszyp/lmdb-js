@@ -29,10 +29,6 @@
  */
 #include "ldap-int.h"
 
-#if !defined( PCNFS ) && !defined( WINSOCK ) && !defined( MACOS )
-#define MOD_USE_BVALS
-#endif /* !PCNFS && !WINSOCK && !MACOS */
-
 static void handle_result LDAP_P(( LDAP *ld, LDAPMessage *lm ));
 static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm, char *s ));
 static void print_search_entry LDAP_P(( LDAP *ld, LDAPMessage *res ));
@@ -42,7 +38,7 @@ static void free_list LDAP_P(( char **list ));
 
 char *dnsuffix;
 
-#ifndef WINSOCK
+#ifndef HAVE_GETLINE
 static char *
 getline( char *line, int len, FILE *fp, char *prompt )
 {
@@ -55,7 +51,7 @@ getline( char *line, int len, FILE *fp, char *prompt )
 
 	return( line );
 }
-#endif /* WINSOCK */
+#endif
 
 static char **
 get_list( char *prompt )
@@ -103,7 +99,6 @@ free_list( char **list )
 }
 
 
-#ifdef MOD_USE_BVALS
 static int
 file_read( char *path, struct berval *bv )
 {
@@ -148,7 +143,6 @@ file_read( char *path, struct berval *bv )
 
 	return( bv->bv_len );
 }
-#endif /* MOD_USE_BVALS */
 
 
 static LDAPMod **
@@ -158,9 +152,7 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 	int		num;
 	LDAPMod		tmp;
 	LDAPMod		**result;
-#ifdef MOD_USE_BVALS
 	struct berval	**bvals;
-#endif /* MOD_USE_BVALS */
 
 	num = 0;
 	result = NULL;
@@ -179,7 +171,7 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 		tmp.mod_type = strdup( buf );
 
 		tmp.mod_values = get_list( prompt3 );
-#ifdef MOD_USE_BVALS
+
 		if ( tmp.mod_values != NULL ) {
 			int	i;
 
@@ -205,7 +197,6 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 			tmp.mod_bvalues = bvals;
 			tmp.mod_op |= LDAP_MOD_BVALUES;
 		}
-#endif /* MOD_USE_BVALS */
 
 		if ( result == NULL )
 			result = (LDAPMod **) malloc( sizeof(LDAPMod *) );
@@ -265,12 +256,7 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 
 
 int
-#ifdef WINSOCK
-ldapmain(
-#else /* WINSOCK */
-main(
-#endif /* WINSOCK */
-	int argc, char **argv )
+main( int argc, char **argv )
 {
 	LDAP		*ld = NULL;
 	int		i, c, port, cldapflg, errflg, method, id, msgtype;
@@ -289,15 +275,6 @@ main(
 
 	extern char	*optarg;
 	extern int	optind;
-
-#ifdef MACOS
-	if (( argv = get_list( "cmd line arg?" )) == NULL ) {
-		exit( 1 );
-	}
-	for ( argc = 0; argv[ argc ] != NULL; ++argc ) {
-		;
-	}
-#endif /* MACOS */
 
 	host = NULL;
 	port = LDAP_PORT;
@@ -337,7 +314,6 @@ main(
 			port = atoi( optarg );
 			break;
 
-#if !defined(MACOS) && !defined(DOS)
 		case 't':	/* copy ber's to given file */
 			copyfname = strdup( optarg );
 			copyoptions = LBER_TO_FILE;
@@ -347,7 +323,6 @@ main(
 			copyfname = strdup( optarg );
 			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY);
 			break;
-#endif
 
 		default:
 		    ++errflg;
@@ -380,7 +355,6 @@ main(
 		exit(1);
 	}
 
-#if !defined(MACOS) && !defined(DOS)
 	if ( copyfname != NULL ) {
 		if ( (ld->ld_sb.sb_fd = open( copyfname, O_WRONLY | O_CREAT,
 		    0600 ))  == -1 ) {
@@ -389,7 +363,6 @@ main(
 		}
 		ld->ld_sb.sb_options = copyoptions;
 	}
-#endif
 
 	bound = 0;
 	timeout.tv_sec = 0;
@@ -947,13 +920,9 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 
 		ufn = ldap_dn2ufn( dn );
 		printf( "\tUFN: %s\n", ufn );
-#ifdef WINSOCK
-		ldap_memfree( dn );
-		ldap_memfree( ufn );
-#else /* WINSOCK */
+
 		free( dn );
 		free( ufn );
-#endif /* WINSOCK */
 
 		for ( a = ldap_first_attribute( ld, e, &ber ); a != NULL;
 		    a = ldap_next_attribute( ld, e, ber ) ) {
@@ -992,23 +961,3 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 	    || res->lm_chain != NULLMSG )
 		print_ldap_result( ld, res, "search" );
 }
-
-
-#ifdef WINSOCK
-void
-ldap_perror( LDAP *ld, char *s )
-{
-	char	*errs;
-
-	if ( ld == NULL ) {
-		perror( s );
-		return;
-	}
-
-	errs = ldap_err2string( ld->ld_errno );
-	printf( "%s: %s\n", s, errs == NULL ? "unknown error" : errs );
-	if ( ld->ld_error != NULL && *ld->ld_error != '\0' ) {
-		printf( "%s: additional info: %s\n", s, ld->ld_error );
-	}
-}
-#endif /* WINSOCK */

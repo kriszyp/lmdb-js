@@ -19,7 +19,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
 #endif /* MACOS */
 
@@ -39,7 +39,7 @@ main( int argc, char **argv )
 	Sockbuf		sb;
 	extern char	*optarg;
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
 #endif /* MACOS */

@@ -32,9 +32,7 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 	char	buf[BUFSIZ];
 
 	if ( map == NULL ) {
-#if !defined( MACOS ) && !defined( DOS )
 		errno = EINVAL;
-#endif
 		return( uname );
 	}
 
