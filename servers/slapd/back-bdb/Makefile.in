@@ -1,0 +1,33 @@
+# $OpenLDAP$
+
+SRCS = init.c
+OBJS = init.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-bdb"
+BUILD_MOD = @BUILD_BDB@
+LINKAGE = @BUILD_BDB_DYNAMIC@
+
+DYN_DEFS = -DLBER_DECL=dllimport -DLDAP_DECL=dllimport
+
+# TODO
+#NT_mod_DYN_MODDEFS	=
+#NT_mod_STAT_MODDEFS	=
+
+NT_yes_DYN_MODDEFS	= $(DYN_DEFS)
+NT_yes_STAT_MODDEFS	=
+
+MODDEFS = $(@PLAT@_@BUILD_LDBM@_@LIB_LINKAGE@_MODDEFS)
+
+LIBBASE = back_bdb
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+

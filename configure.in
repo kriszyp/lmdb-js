@@ -159,6 +159,9 @@ OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)
 OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 
 dnl SLAPD Backend options
+OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], no)dnl
+OL_ARG_WITH(bdb_module,[    --with-bdb-module  module type], static,
+	[static dynamic])
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
 OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type], static,
 	[static dynamic])
@@ -205,6 +208,9 @@ dnl General "enable" options
 # validate options
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
+	if test $ol_enable_bdb = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-bdb argument])
+	fi
 	if test $ol_enable_dnssrv = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-dnssrv argument])
 	fi
@@ -253,6 +259,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_ldbm_type != auto ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-type argument])
 	fi
+	if test $ol_with_bdb_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-bdb-module argument])
+	fi
 	if test $ol_with_dnssrv_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-dnssrv-module argument])
 	fi
@@ -282,6 +291,7 @@ if test $ol_enable_slapd = no ; then
 	fi
 
 	# force settings to no
+	ol_enable_bdb=no
 	ol_enable_dnssrv=no
 	ol_enable_ldap=no
 	ol_enable_ldbm=no
@@ -302,6 +312,7 @@ if test $ol_enable_slapd = no ; then
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
 
+	ol_with_bdb_module=static
 	ol_with_dnssrv_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
@@ -329,6 +340,7 @@ elif test $ol_enable_ldbm = no ; then
 	fi
 
 	if test $ol_enable_modules != yes -a \
+		$ol_enable_bdb = no -a \
 		$ol_enable_dnssrv = no -a \
 		$ol_enable_ldap = no -a \
 		$ol_enable_passwd = no -a \
@@ -403,6 +415,7 @@ BUILD_SLURPD=no
 
 BUILD_THREAD=no
 
+BUILD_BDB=no
 BUILD_DNSSRV=no
 BUILD_LDAP=no
 BUILD_LDBM=no
@@ -412,6 +425,7 @@ BUILD_SHELL=no
 BUILD_SQL=no
 BUILD_TCL=no
 
+BUILD_BDB_DYNAMIC=static
 BUILD_DNSSRV_DYNAMIC=static
 BUILD_LDAP_DYNAMIC=static
 BUILD_LDBM_DYNAMIC=static
@@ -644,6 +658,7 @@ if test $ol_enable_modules != no ; then
 	fi
 	ol_link_modules=yes
 else
+	ol_with_bdb_module=static
 	ol_with_dnssrv_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
@@ -2215,6 +2230,19 @@ if test "$ol_link_modules" != no ; then
 	SLAPD_MODULES_LDFLAGS="-dlopen self"
 fi
 
+if test "$ol_enable_bdb" != no ; then
+	AC_DEFINE(SLAPD_BDB,1,[define to support BDB backend])
+	BUILD_SLAPD=yes
+	BUILD_BDB=yes
+	if test "$ol_with_bdb_module" != static ; then
+		AC_DEFINE(SLAPD_BDB_DYNAMIC,1,
+			[define to support dynamic BDB backend])
+		BUILD_BDB=mod
+		BUILD_BDB_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-bdb/back_bdb.la"
+	fi
+fi
+
 if test "$ol_link_dnssrv" != no ; then
 	AC_DEFINE(SLAPD_DNSSRV,1,[define to support DNS SRV backend])
 	BUILD_SLAPD=yes
@@ -2350,6 +2378,7 @@ AC_SUBST(LT_LIB_LINKAGE)
 AC_SUBST(DYN_EXT)
 
 AC_SUBST(BUILD_SLAPD)
+  AC_SUBST(BUILD_BDB)
   AC_SUBST(BUILD_DNSSRV)
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_LDBM)
@@ -2433,6 +2462,7 @@ libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:bu
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
+servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk \
 servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \
 servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \

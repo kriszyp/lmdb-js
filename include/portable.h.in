@@ -888,6 +888,12 @@
 /* define to support modules */
 #undef SLAPD_MODULES
 
+/* define to support BDB backend */
+#undef SLAPD_BDB
+
+/* define to support dynamic BDB backend */
+#undef SLAPD_BDB_DYNAMIC
+
 /* define to support DNS SRV backend */
 #undef SLAPD_DNSSRV
 
