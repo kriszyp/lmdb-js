@@ -49,6 +49,7 @@
 #define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
 #define generalizedTimeMatch			numericStringMatch
 #define generalizedTimeOrderingMatch	numericStringMatch
+#define uniqueMemberMatch				dnMatch
 
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
@@ -65,7 +66,6 @@
 #define caseIgnoreListSubstringsMatch	NULL
 #define bitStringMatch					NULL
 #define presentationAddressMatch		NULL
-#define uniqueMemberMatch				NULL
 #define protocolInformationMatch		NULL
 #define integerFirstComponentMatch		NULL
 
