@@ -98,7 +98,7 @@ int ber_pvt_log_printf( int errlvl, int loglvl, const char *fmt, ... )
 	(*ber_pvt_log_print)( buf );
 	return 1;
 }
-
+#if 0
 static int ber_log_puts(int errlvl, int loglvl, char *buf)
 {
 	assert( buf != NULL );
@@ -110,7 +110,7 @@ static int ber_log_puts(int errlvl, int loglvl, char *buf)
 	(*ber_pvt_log_print)( buf );
 	return 1;
 }
-
+#endif
 /*
  * Print arbitrary stuff, for debugging.
  */
