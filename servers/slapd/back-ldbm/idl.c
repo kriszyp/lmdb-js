@@ -17,32 +17,32 @@
 
 static ID_BLOCK* idl_dup( ID_BLOCK *idl );
 
-static void cont_alloc( Datum cont, Datum key )
+static void cont_alloc( Datum *cont, Datum *key )
 {
-	ldbm_datum_init( cont );
-	cont.dsize = 1 + sizeof(ID) + key.dsize;
-	cont.dptr = ch_malloc( cont.dsize );
+	ldbm_datum_init( *cont );
+	cont->dsize = 1 + sizeof(ID) + key->dsize;
+	cont->dptr = ch_malloc( cont->dsize );
 
-	* (unsigned char *) cont.dptr = SLAP_INDEX_CONT_PREFIX;
+	* (unsigned char *) cont->dptr = SLAP_INDEX_CONT_PREFIX;
 
-	memcpy( &((unsigned char *)cont.dptr)[1 + sizeof(ID)],
-		key.dptr, key.dsize );
+	memcpy( &((unsigned char *)cont->dptr)[1 + sizeof(ID)],
+		key->dptr, key->dsize );
 }
 
-static void cont_id( Datum cont, ID id )
+static void cont_id( Datum *cont, ID id )
 {
 	int i;
 
 	for( i=1; i <= sizeof(id); i++) {
-		((unsigned char *)cont.dptr)[i] = (unsigned char)(id & 0xFF);
+		((unsigned char *)cont->dptr)[i] = (unsigned char)(id & 0xFF);
 		id >>= 8;
 	}
 
 }
 
-static void cont_free( Datum cont )
+static void cont_free( Datum *cont )
 {
-	ch_free( cont.dptr );
+	ch_free( cont->dptr );
 }
 
 /* Allocate an ID_BLOCK with room for nids ids */
@@ -168,10 +168,10 @@ idl_fetch(
 	tmp = (ID_BLOCK **) ch_malloc( (i + 1) * sizeof(ID_BLOCK *) );
 
 	/* read in all the blocks */
-	cont_alloc( data, key );
+	cont_alloc( &data, &key );
 	nids = 0;
 	for ( i = 0; !ID_BLOCK_NOID(idl, i); i++ ) {
-		cont_id( data, ID_BLOCK_ID(idl, i) );
+		cont_id( &data, ID_BLOCK_ID(idl, i) );
 
 		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -182,7 +182,7 @@ idl_fetch(
 		nids += ID_BLOCK_NIDS(tmp[i]);
 	}
 	tmp[i] = NULL;
-	cont_free( data );
+	cont_free( &data );
 	idl_free( idl );
 
 	/* allocate space for the big block */
@@ -321,7 +321,7 @@ idl_change_first(
 	}
 
 	/* write block with new key */
-	cont_id( bkey, ID_BLOCK_ID(b, 0) );
+	cont_id( &bkey, ID_BLOCK_ID(b, 0) );
 
 	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -403,15 +403,15 @@ idl_insert_key(
 			/* store it */
 			rc = idl_store( be, db, key, idl );
 
-			cont_alloc( k2, key );
-			cont_id( k2, ID_BLOCK_ID(tmp, 0) );
+			cont_alloc( &k2, &key );
+			cont_id( &k2, ID_BLOCK_ID(tmp, 0) );
 
 			rc = idl_store( be, db, k2, tmp );
 
-			cont_id( k2, ID_BLOCK_ID(tmp2, 0) );
+			cont_id( &k2, ID_BLOCK_ID(tmp2, 0) );
 			rc = idl_store( be, db, k2, tmp2 );
 
-			cont_free( k2 );
+			cont_free( &k2 );
 
 			idl_free( tmp );
 			idl_free( tmp2 );
@@ -442,13 +442,13 @@ idl_insert_key(
 	}
 
 	/* get the block */
-	cont_alloc( k2, key );
-	cont_id( k2, ID_BLOCK_ID(idl, i) );
+	cont_alloc( &k2, &key );
+	cont_id( &k2, ID_BLOCK_ID(idl, i) );
 
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "idl_insert_key: nonexistent continuation block\n",
 		    0, 0, 0 );
-		cont_free( k2 );
+		cont_free( &k2 );
 		idl_free( idl );
 		return( -1 );
 	}
@@ -487,14 +487,14 @@ idl_insert_key(
 		/* is there a next block? */
 		if ( !first && !ID_BLOCK_NOID(idl, i + 1) ) {
 			/* read it in */
-			cont_alloc( k2, key );
-			cont_id( k2, ID_BLOCK_ID(idl, i) );
+			cont_alloc( &k2, &key );
+			cont_id( &k2, ID_BLOCK_ID(idl, i) );
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 				    "idl_insert_key: idl_fetch_one returned NULL\n",
 				    0, 0, 0 );
 				/* split the original block */
-				cont_free( k2 );
+				cont_free( &k2 );
 				goto split;
 			}
 
@@ -589,7 +589,7 @@ split:
 
 			/* delete all indirect blocks */
 			for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) {
-				cont_id( k2, ID_BLOCK_ID(idl, j) );
+				cont_id( &k2, ID_BLOCK_ID(idl, j) );
 
 				rc = ldbm_cache_delete( db, k2 );
 			}
@@ -599,7 +599,7 @@ split:
 			idl = idl_allids( be );
 			rc = idl_store( be, db, key, idl );
 
-			cont_free( k2 );
+			cont_free( &k2 );
 			idl_free( idl );
 			idl_free( tmp );
 			return( rc );
@@ -629,11 +629,11 @@ split:
 		rc = idl_store( be, db, key, tmp );
 
 		/* store the first id block */
-		cont_id( k2, ID_BLOCK_ID(tmp2, 0) );
+		cont_id( &k2, ID_BLOCK_ID(tmp2, 0) );
 		rc = idl_store( be, db, k2, tmp2 );
 
 		/* store the second id block */
-		cont_id( k2, ID_BLOCK_ID(tmp3, 0) );
+		cont_id( &k2, ID_BLOCK_ID(tmp3, 0) );
 		rc = idl_store( be, db, k2, tmp3 );
 
 		idl_free( tmp2 );
@@ -641,7 +641,7 @@ split:
 		break;
 	}
 
-	cont_free( k2 );
+	cont_free( &k2 );
 	idl_free( tmp );
 	idl_free( idl );
 	return( rc );
@@ -760,12 +760,12 @@ idl_delete_key (
 	for ( nids = 0; !ID_BLOCK_NOID(idl, nids); nids++ )
 		;	/* NULL */
 
-	cont_alloc( data, key );
+	cont_alloc( &data, &key );
 
 	for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) 
 	{
 		ID_BLOCK *tmp;
-		cont_id( data, ID_BLOCK_ID(idl, j) );
+		cont_id( &data, ID_BLOCK_ID(idl, j) );
 
 		if ( (tmp = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -803,7 +803,7 @@ idl_delete_key (
 						idl_store( be, db, key, idl );
 				}
 				idl_free( tmp );
-				cont_free( data );
+				cont_free( &data );
 				idl_free( idl );
 				return 0;
 			}
@@ -811,7 +811,7 @@ idl_delete_key (
 		idl_free( tmp );
 	}
 
-	cont_free( data );
+	cont_free( &data );
 	idl_free( idl );
 	return -1;
 }
