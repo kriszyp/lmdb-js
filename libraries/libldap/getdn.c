@@ -151,22 +151,20 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 		return values;
 	}
 
-	for ( iRDN = 0; tmpDN[ iRDN ]; iRDN++ ) {
-		char	*str, **v = NULL;
-		
-		ldap_rdn2str( tmpDN[ iRDN ][ 0 ], &str, flag );
+	for ( iRDN = 0; tmpDN[ iRDN ]; iRDN++ );
 
-		v = LDAP_REALLOC( values, sizeof( char * ) * ( 2 + iRDN ) );
-		if ( v == NULL ) {
-			LBER_VFREE( values );
-			ldap_dnfree( tmpDN );
-			return NULL;
-		}
-		values = v;
-		values[ iRDN ] = str;
+	values = LDAP_MALLOC( sizeof( char * ) * ( 1 + iRDN ) );
+	if ( values == NULL ) {
+		ldap_dnfree( tmpDN );
+		return NULL;
 	}
 
+	for ( iRDN = 0; tmpDN[ iRDN ]; iRDN++ ) {
+		ldap_rdn2str( tmpDN[ iRDN ][ 0 ], &values[ iRDN ], flag );
+	}
+	ldap_dnfree( tmpDN );
 	values[ iRDN ] = NULL;
+
 	return values;
 }
 
@@ -190,16 +188,17 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 		return( NULL );
 	}
 
+	for ( iAVA = 0; tmpRDN[ iAVA ]; iAVA++ ) ;
+	values = LDAP_MALLOC( sizeof( char * ) * ( 1 + iAVA ) );
+	if ( values == NULL ) {
+		ldap_rdnfree( tmpRDN );
+		return( NULL );
+	}
+
 	for ( iAVA = 0; tmpRDN[ iAVA ]; iAVA++ ) {
 		ber_len_t	l = 0, vl, al = 0;
-		char		*str, **v = NULL;
+		char		*str;
 		LDAPAVA		*ava = tmpRDN[ iAVA ][ 0 ];
-		
-		v = LDAP_REALLOC( values, sizeof( char * ) * ( 2 + iAVA ) );
-		if ( v == NULL ) {
-			goto error_return;
-		}
-		values = v;
 		
 		if ( ava->la_flags == LDAP_AVA_BINARY ) {
 			vl = 1 + 2 * ava->la_value->bv_len;
