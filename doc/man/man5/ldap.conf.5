@@ -49,6 +49,20 @@ in the
 .SH OPTIONS
 The different configuration options are:
 .TP
+.B URI <ldap[s]://[name[:port]] ...>
+Specifies the URI(s) of an LDAP server(s) to which the
+.I LDAP 
+library should connect.  The URI scheme may be either
+.BR ldap or
+.B ldaps 
+which refer to LDAP over TCP and LDAP over SSL (TLS) respectively.
+Each server's name can be specified as a
+domain-style name or an IP address literal.  Optionally, the
+server's name can followed by a ':' and the port number the LDAP
+server is listening on.  If no port number is provided, the default
+port for the scheme is used (389 for ldap://, 636 for ldaps://).
+A space separated list of URIs may be provided.
+.TP
 .B BASE <base>
 Specifies the default base DN to use when performing ldap operations.
 The base must be specified as a Distinguished Name in LDAP format.
@@ -60,15 +74,70 @@ This is a user\-only option.
 .TP
 .B HOST <name[:port] ...>
 Specifies the name(s) of an LDAP server(s) to which the
-.I ldap 
+.I LDAP 
 library should connect.  Each server's name can be specified as a
 domain-style name or an IP address and optionally followed by a ':' and
 the port number the ldap server is listening on.  A space separated
 list of hosts may be provided.
+.B HOST
+is deprecated in favor of
+.BR URI.
 .TP
 .B PORT <port>
 Specifies the default port used when connecting to LDAP servers(s).
 The port may be specified as a number.
+.B PORT
+is deprecated in favor of
+.BR URI.
+.TP
+.B SIZELIMIT <integer>
+Specifies a size limit to use when performing searches.  The
+number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
+specifies unlimited search size.
+.TP
+.B TIMELIMIT <integer>
+Specifies a time limit to use when performing searches.  The
+number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
+specifies unlimited search time to be used.
+.TP
+.B DEREF <when>
+Specifies how alias dereferencing is done when performing a search. The
+.B <when>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+Aliases are never dereferenced. This is the default.
+.TP
+.B searching
+Aliases are dereferenced in subordinates of the base object, but
+not in locating the base object of the search.
+.TP
+.B finding
+Aliases are only dereferenced when locating the base object of the search.
+.TP
+.B always
+Aliases are dereferenced both in searching and in locating the base object
+of the search.
+.SH SASL OPTIONS
+If OpenLDAP is built with Simple Authentication and Security Layer support,
+there are more options you can specify.
+.TP
+.B SASL_MECH <mechanism>
+Specifies the SASL mechanism to use.
+This is a user\-only option.
+.TP
+.B SASL_REALM <realm>
+Specifies the SASL realm.
+This is a user\-only option.
+.TP
+.B SASL_AUTHCID <authcid>
+Specifies the authentication identity.
+This is a user\-only option.
+.TP
+.B SASL_AUTHZID <authcid>
+Specifies the proxy authorization identity.
+This is a user\-only option.
 .TP
 .B SASL_SECPROPS <properties>
 Specifies Cyrus SASL security properties. The 
@@ -120,38 +189,8 @@ description).  The default is
 specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .RE
-.TP
-.B SIZELIMIT <integer>
-Specifies a size limit to use when performing searches.  The
-number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
-specifies unlimited search size.
-.TP
-.B TIMELIMIT <integer>
-Specifies a time limit to use when performing searches.  The
-number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
-specifies unlimited search time to be used.
-.TP
-.B DEREF <when>
-Specifies how alias dereferencing is done when performing a search. The
-.B <when>
-can be specified as one of the following keywords:
-.RS
-.TP
-.B never
-Aliases are never dereferenced. This is the default.
-.TP
-.B searching
-Aliases are dereferenced in subordinates of the base object, but
-not in locating the base object of the search.
-.TP
-.B finding
-Aliases are only dereferenced when locating the base object of the search.
-.TP
-.B always
-Aliases are dereferenced both in searching and in locating the base object
-of the search.
 .SH TLS OPTIONS
-If OpenLDAP is built with support for Transport Layer Security, there
+If OpenLDAP is built with Transport Layer Security support, there
 are more options you can specify.
 .TP
 .B TLS <level>
@@ -183,8 +222,8 @@ is always used before
 .B TLS_CACERTDIR.
 .TP
 .B TLS_CERT <filename>
-Specifies the file that contains the client certificate. This is
-a user\-only option.
+Specifies the file that contains the client certificate.
+This is a user\-only option.
 .TP
 .B TLS_KEY <filename>
 Specifies the file that contains the private key that matches the certificate
