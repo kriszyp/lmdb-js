@@ -14,6 +14,26 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
+#define IDL_DEBUG
+#ifdef IDL_DEBUG
+void idl_dump( ID *ids )
+{
+	if( BDB_IDL_IS_RANGE( ids ) ) {
+		fprintf( stderr, "IDL: range %ld - %ld\n", (long) ids[0] );
+	} else {
+		ID i;
+		fprintf( stderr, "IDL: size %ld", (long) ids[0] );
+
+		for( i=1; i<=ids[0]; i++ ) {
+			if( i % 16 ) fprintf( stderr, "\n" );
+			fprintf( stderr, "  %02lx" );
+		}
+
+		fprintf( stderr, "\n" );
+	}
+}
+#endif
+
 unsigned bdb_idl_search( ID *ids, ID id )
 {
 #if BDB_IDL_BINARY_SEARCH
@@ -66,6 +86,11 @@ static int idl_insert( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
 
+#ifdef IDL_DEBUG
+	fprintf( stderr, "insert: %04lx at %d\n", id, x );
+	idl_dump( ids );
+#endif
+
 	assert( x > 0 );
 
 	if( x < 1 ) {
@@ -96,12 +121,21 @@ static int idl_insert( ID *ids, ID id )
 		ids[x] = id;
 	}
 
+#ifdef IDL_DEBUG
+	idl_dump( ids );
+#endif
+
 	return 0;
 }
 
 static int idl_delete( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
+
+#ifdef IDL_DEBUG
+	fprintf( stderr, "delete: %04lx at %d\n", id, x );
+	idl_dump( ids );
+#endif
 
 	assert( x > 0 );
 
@@ -122,6 +156,10 @@ static int idl_delete( ID *ids, ID id )
 	} else {
 		AC_MEMCPY( &ids[x], &ids[x+1], (1+ids[0]-x) * sizeof(ID) );
 	}
+
+#ifdef IDL_DEBUG
+	idl_dump( ids );
+#endif
 
 	return 0;
 }
