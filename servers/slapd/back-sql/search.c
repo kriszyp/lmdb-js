@@ -1459,7 +1459,9 @@ backsql_search( Operation *op, SlapReply *rs )
 		}
 
 		/* check time limit */
-		if ( op->ors_tlimit != -1 && slap_get_time() > stoptime ) {
+		if ( op->ors_tlimit != SLAP_NO_LIMIT
+				&& slap_get_time() > stoptime )
+		{
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			rs->sr_ctrls = NULL;
 			rs->sr_ref = rs->sr_v2ref;
@@ -1601,8 +1603,9 @@ backsql_search( Operation *op, SlapReply *rs )
 		}
 		entry_free( entry );
 
-		if ( op->ors_slimit != -1 
-				&& rs->sr_nentries >= op->ors_slimit ) {
+		if ( op->ors_slimit != SLAP_NO_LIMIT
+				&& rs->sr_nentries >= op->ors_slimit )
+		{
 			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 			send_ldap_result( op, rs );
 			goto end_of_search;

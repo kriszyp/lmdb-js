@@ -1312,6 +1312,9 @@ struct slap_limits_set {
 	int	lms_s_pr_total;
 };
 
+/* Note: this is different from LDAP_NO_LIMIT (0); slapd internal use only */
+#define SLAP_NO_LIMIT			-1
+
 struct slap_limits {
 	unsigned		lm_flags;	/* type of pattern */
 #define SLAP_LIMITS_UNDEFINED		0x0000U
@@ -1508,6 +1511,8 @@ struct slap_backend_db {
 #define SLAP_RESTRICT_OP_RENAME		0x0040U
 #define SLAP_RESTRICT_OP_SEARCH		0x0080U
 #define SLAP_RESTRICT_OP_MASK		0x00FFU
+
+#define	SLAP_RESTRICT_READONLY		0x80000000U
 
 #define SLAP_RESTRICT_EXOP_START_TLS		0x0100U
 #define	SLAP_RESTRICT_EXOP_MODIFY_PASSWD	0x0200U

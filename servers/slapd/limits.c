@@ -1001,11 +1001,11 @@ limits_check( Operation *op, SlapReply *rs )
 		op->ors_limit = NULL;
 
 		if ( op->ors_tlimit == 0 ) {
-			op->ors_tlimit = -1;
+			op->ors_tlimit = SLAP_NO_LIMIT;
 		}
 
 		if ( op->ors_slimit == 0 ) {
-			op->ors_slimit = -1;
+			op->ors_slimit = SLAP_NO_LIMIT;
 		}
 
 	/* if not root, get appropriate limits */
@@ -1084,7 +1084,7 @@ limits_check( Operation *op, SlapReply *rs )
 			if ( pr_total == -1 ) {
 				slimit = -1;
 
-			} else if ( pr_total > 0 && ( op->ors_slimit == -1 || op->ors_slimit > pr_total ) ) {
+			} else if ( pr_total > 0 && ( op->ors_slimit == SLAP_NO_LIMIT || op->ors_slimit > pr_total ) ) {
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 				send_ldap_result( op, rs );
 				rs->sr_err = LDAP_SUCCESS;

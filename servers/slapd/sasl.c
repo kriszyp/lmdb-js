@@ -482,6 +482,7 @@ slap_auxprop_lookup(
 			op.o_req_dn = op.o_req_ndn;
 			op.ors_scope = LDAP_SCOPE_BASE;
 			op.ors_deref = LDAP_DEREF_NEVER;
+			op.ors_tlimit = SLAP_NO_LIMIT;
 			op.ors_slimit = 1;
 			op.ors_filter = &generic_filter;
 			op.ors_filterstr = generic_filterstr;

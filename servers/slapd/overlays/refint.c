@@ -551,8 +551,8 @@ refint_response(
 	nop.o_tag	= LDAP_REQ_SEARCH;
 	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
 	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_slimit	= -1;
-	nop.ors_tlimit	= -1;
+	nop.ors_slimit	= SLAP_NO_LIMIT;
+	nop.ors_tlimit	= SLAP_NO_LIMIT;
 	nop.o_req_ndn = id->dn;
 	nop.o_req_dn = id->dn;
 

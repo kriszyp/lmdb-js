@@ -194,7 +194,9 @@ glue_back_response ( Operation *op, SlapReply *rs )
 
 	switch(rs->sr_type) {
 	case REP_SEARCH:
-		if ( gs->slimit != -1 && rs->sr_nentries >= gs->slimit ) {
+		if ( gs->slimit != SLAP_NO_LIMIT
+				&& rs->sr_nentries >= gs->slimit )
+		{
 			rs->sr_err = gs->err = LDAP_SIZELIMIT_EXCEEDED;
 			return -1;
 		}
@@ -313,14 +315,14 @@ glue_back_search ( Operation *op, SlapReply *rs )
 				continue;
 			if (!dnIsSuffix(&gi->n[i].be->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
-			if (tlimit0 != -1) {
+			if (tlimit0 != SLAP_NO_LIMIT) {
 				op->ors_tlimit = stoptime - slap_get_time ();
 				if (op->ors_tlimit <= 0) {
 					rs->sr_err = gs.err = LDAP_TIMELIMIT_EXCEEDED;
 					break;
 				}
 			}
-			if (slimit0 != -1) {
+			if (slimit0 != SLAP_NO_LIMIT) {
 				op->ors_slimit = slimit0 - rs->sr_nentries;
 				if (op->ors_slimit < 0) {
 					rs->sr_err = gs.err = LDAP_SIZELIMIT_EXCEEDED;

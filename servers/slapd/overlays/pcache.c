@@ -869,8 +869,8 @@ remove_query_data (
 	op->o_req_ndn = op->o_bd->be_nsuffix[0];
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
 	op->ors_deref = LDAP_DEREF_NEVER;
-	op->ors_slimit = -1;
-	op->ors_tlimit = -1;
+	op->ors_slimit = SLAP_NO_LIMIT;
+	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_filter = &filter;
 	op->ors_filterstr.bv_val = filter_str;
 	op->ors_filterstr.bv_len = strlen(filter_str);

@@ -881,7 +881,9 @@ loop_begin:
 		}
 
 		/* check time limit */
-		if ( sop->ors_tlimit != -1 && slap_get_time() > stoptime ) {
+		if ( sop->ors_tlimit != SLAP_NO_LIMIT
+				&& slap_get_time() > stoptime )
+		{
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			rs->sr_ref = rs->sr_v2ref;
 			send_ldap_result( sop, rs );

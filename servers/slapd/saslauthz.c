@@ -1049,7 +1049,7 @@ exact_match:
 	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
 	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
 	op.oq_search.rs_slimit = 1;
-	op.oq_search.rs_tlimit = -1;
+	op.oq_search.rs_tlimit = SLAP_NO_LIMIT;
 	op.o_sync_slog_size = -1;
 
 	op.o_bd->be_search( &op, &rs );
@@ -1234,7 +1234,7 @@ void slap_sasl2dn( Operation *opx,
 #endif
 	op.oq_search.rs_deref = LDAP_DEREF_NEVER;
 	op.oq_search.rs_slimit = 1;
-	op.oq_search.rs_tlimit = -1;
+	op.oq_search.rs_tlimit = SLAP_NO_LIMIT;
 	op.oq_search.rs_attrsonly = 1;
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
 	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );

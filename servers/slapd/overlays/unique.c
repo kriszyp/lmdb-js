@@ -349,8 +349,8 @@ static int unique_add(
 	nop.o_tag	= LDAP_REQ_SEARCH;
 	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
 	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_slimit	= -1;
-	nop.ors_tlimit	= -1;
+	nop.ors_slimit	= SLAP_NO_LIMIT;
+	nop.ors_tlimit	= SLAP_NO_LIMIT;
 	nop.o_req_ndn	= ud->dn;
 	nop.o_ndn = op->o_bd->be_rootndn;
 
@@ -482,8 +482,8 @@ static int unique_modify(
 	nop.o_tag	= LDAP_REQ_SEARCH;
 	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
 	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_slimit	= -1;
-	nop.ors_tlimit	= -1;
+	nop.ors_slimit	= SLAP_NO_LIMIT;
+	nop.ors_tlimit	= SLAP_NO_LIMIT;
 	nop.o_req_ndn	= ud->dn;
 	nop.o_ndn = op->o_bd->be_rootndn;
 
@@ -612,8 +612,8 @@ static int unique_modrdn(
 	nop.o_tag	= LDAP_REQ_SEARCH;
 	nop.ors_scope	= LDAP_SCOPE_SUBTREE;
 	nop.ors_deref	= LDAP_DEREF_NEVER;
-	nop.ors_slimit	= -1;
-	nop.ors_tlimit	= -1;
+	nop.ors_slimit	= SLAP_NO_LIMIT;
+	nop.ors_tlimit	= SLAP_NO_LIMIT;
 	nop.o_req_ndn	= ud->dn;
 	nop.o_ndn = op->o_bd->be_rootndn;
 

@@ -77,7 +77,7 @@ ldap_back_search(
 	/* should we check return values? */
 	if (op->ors_deref != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_DEREF, (void *)&op->ors_deref);
-	if (op->ors_tlimit != -1) {
+	if (op->ors_tlimit != SLAP_NO_LIMIT) {
 		tv.tv_sec = op->ors_tlimit;
 		tv.tv_usec = 0;
 	} else {
