@@ -296,12 +296,12 @@ done2:;
 			send_ldap_result( op, rs );
 		}
 
-		if ( op->oq_extended.rs_reqoid.bv_val != NULL ) {
-			slapi_ch_free( (void **)&op->oq_extended.rs_reqoid.bv_val );
+		if ( rs->sr_rspoid != NULL ) {
+			ch_free( (char *)rs->sr_rspoid );
 		}
 
-		if ( op->oq_extended.rs_reqdata != NULL ) {
-			ber_bvfree( op->oq_extended.rs_reqdata );
+		if ( rs->sr_rspdata != NULL ) {
+			ber_bvfree( rs->sr_rspdata );
 		}
 
 	} /* end of Netscape extended operation */
