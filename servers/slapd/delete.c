@@ -33,6 +33,7 @@ do_delete(
 {
 	char *dn, *ndn = NULL;
 	const char *text;
+	struct berval **urls = NULL;
 	Backend	*be;
 	int rc;
 
@@ -81,10 +82,18 @@ do_delete(
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
-
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
+		goto cleanup;
+	}
+
+	/* check for referrals */
+	rc = backend_check_referrals( be, conn, op, &urls, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, urls, NULL );
+		ber_bvecfree( urls );
 		goto cleanup;
 	}
 

@@ -18,7 +18,6 @@
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/socket.h>
@@ -45,6 +44,7 @@ do_add( Connection *conn, Operation *op )
 	Modifications *mods = NULL;
 	const char *text;
 	int			rc = LDAP_SUCCESS;
+	struct berval **urls = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 
@@ -134,8 +134,7 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	} 
 
-	if ( modlist == NULL )
-	{
+	if ( modlist == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "no attributes provided", NULL, NULL );
 		goto done;
@@ -158,10 +157,18 @@ do_add( Connection *conn, Operation *op )
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
-
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
+		goto done;
+	}
+
+	/* check for referrals */
+	rc = backend_check_referrals( be, conn, op, &urls, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, urls, NULL );
+		ber_bvecfree( urls );
 		goto done;
 	}
 

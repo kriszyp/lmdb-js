@@ -615,6 +615,23 @@ backend_check_controls(
 	return LDAP_SUCCESS;
 }
 
+int backend_check_referrals(
+	Backend *be,
+	Connection *conn,
+	Operation *op,
+	struct berval ***bv,
+	const char **text )
+{
+	*bv = NULL;
+
+	if( be->be_chk_referrals ) {
+		return be->be_chk_referrals( be,
+			conn, op, bv, text );
+	}
+
+	return LDAP_SUCCESS;
+}
+
 int 
 backend_group(
 	Backend	*be,

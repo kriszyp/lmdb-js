@@ -54,6 +54,7 @@ do_modrdn(
 	ber_len_t	length;
 	int rc;
 	const char *text;
+	struct berval **urls = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 
@@ -167,10 +168,18 @@ do_modrdn(
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
-
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
+		goto cleanup;
+	}
+
+	/* check for referrals */
+	rc = backend_check_referrals( be, conn, op, &urls, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, urls, NULL );
+		ber_bvecfree( urls );
 		goto cleanup;
 	}
 

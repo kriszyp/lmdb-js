@@ -25,13 +25,11 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-
 int
 do_search(
     Connection	*conn,	/* where to send results 		       */
     Operation	*op	/* info about the op to which we're responding */
-)
-{
+) {
 	int		i;
 	ber_int_t		scope, deref, attrsonly;
 	ber_int_t		sizelimit, timelimit;
@@ -41,6 +39,7 @@ do_search(
 	Backend		*be;
 	int			rc;
 	const char		*text;
+	struct berval **urls = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 
@@ -218,10 +217,18 @@ do_search(
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
-
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
+		goto return_results;
+	}
+
+	/* check for referrals */
+	rc = backend_check_referrals( be, conn, op, &urls, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, urls, NULL );
+		ber_bvecfree( urls );
 		goto return_results;
 	}
 

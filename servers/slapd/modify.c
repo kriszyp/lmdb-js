@@ -27,12 +27,10 @@
 #include "slap.h"
 
 
-
 int
 do_modify(
     Connection	*conn,
-    Operation	*op
-)
+    Operation	*op )
 {
 	char		*dn, *ndn = NULL;
 	char		*last;
@@ -47,6 +45,7 @@ do_modify(
 	Backend		*be;
 	int rc;
 	const char	*text;
+	struct berval **urls;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 
@@ -129,8 +128,6 @@ do_modify(
 		}
 
 		(*modtail)->ml_op = mop;
-		
-
 		modtail = &(*modtail)->ml_next;
 	}
 	*modtail = NULL;
@@ -159,7 +156,6 @@ do_modify(
 	}
 #endif
 
-
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, 0, 0 );
 
@@ -183,11 +179,20 @@ do_modify(
 		goto cleanup;
 	}
 
+	/* check for referrals */
+	rc = backend_check_referrals( be, conn, op, &urls, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, urls, NULL );
+		ber_bvecfree( urls );
+		goto cleanup;
+	}
+
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: database is read-only\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "directory is read-only", NULL, NULL );
+			NULL, "directory is read-only", NULL, NULL );
 		goto cleanup;
 	}
 
