@@ -944,6 +944,9 @@
 /* define if struct msghdr has msg_accrights */
 #undef HAVE_MSGHDR_MSG_ACCRIGHTS
 
+/* define if struct msghdr has msg_control */
+#undef HAVE_MSGHDR_MSG_CONTROL
+
 /* define to snprintf routine */
 #undef snprintf
 
