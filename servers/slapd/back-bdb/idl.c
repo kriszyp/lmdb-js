@@ -304,15 +304,19 @@ bdb_idl_fetch_key(
 	bdb_idl_cache_entry_t idl_tmp;
 #endif
 
-	/* buf must be large enough to grab the entire IDL in one
-	 * get(), otherwise BDB 4 will leak resources on subsequent
-	 * get's. We can safely call get() twice - once for the data,
-	 * and once to get the DB_NOTFOUND result meaning there's
-	 * no more data. See ITS#2040 for details. This bug is fixed
-	 * in BDB 4.1 so a smaller buffer will work if stack space is
-	 * too limited.
+	/* If using BerkeleyDB 4.0, the buf must be large enough to
+	 * grab the entire IDL in one get(), otherwise BDB will leak
+	 * resources on subsequent get's.  We can safely call get()
+	 * twice - once for the data, and once to get the DB_NOTFOUND
+	 * result meaning there's no more data. See ITS#2040 for details.
+	 * This bug is fixed in BDB 4.1 so a smaller buffer will work if
+	 * stack space is too limited.
+	 *
+	 * configure now requires Berkeley DB 4.1.
+	 * if using 4.0, set BDB_ENOUGH to 5
 	 */
-	ID buf[BDB_IDL_DB_SIZE*5];
+#define BDB_ENOUGH 1
+	ID buf[BDB_IDL_DB_SIZE*BDB_ENOUGH];
 
 	char keybuf[16];
 
