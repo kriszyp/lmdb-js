@@ -1564,7 +1564,11 @@ struct slap_backend_db {
  */
 #define		be_has_subordinates bd_info->bi_has_subordinates
 
-#define		be_controls	bd_info->bi_controls
+	/* supported controls */
+	/* NOTE: this stores a duplicate of the control OIDs as listed
+	 * in bd_info->bi_controls at database startup; later on,
+	 * controls may be added run-time, e.g. by overlays */
+	char		**be_controls;
 
 #define		be_connection_init	bd_info->bi_connection_init
 #define		be_connection_destroy	bd_info->bi_connection_destroy

@@ -541,6 +541,16 @@ ldap_chain_db_init(
 	return rc;
 }
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+static int
+ldap_chain_db_open(
+	BackendDB *be
+)
+{
+	return overlay_register_control( be, LDAP_CONTROL_X_CHAINING_BEHAVIOR );
+}
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
 static int
 ldap_chain_db_destroy(
 	BackendDB *be
@@ -694,7 +704,7 @@ chain_init( void )
 	int	rc;
 
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,
-			SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
+			SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
 			ldap_chain_parse_ctrl, &sc_chainingBehavior );
 	if ( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "Failed to register chaining behavior control: %d\n", rc );
@@ -704,6 +714,9 @@ chain_init( void )
 
 	ldapchain.on_bi.bi_type = "chain";
 	ldapchain.on_bi.bi_db_init = ldap_chain_db_init;
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+	ldapchain.on_bi.bi_db_open = ldap_chain_db_open;
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 	ldapchain.on_bi.bi_db_config = ldap_chain_db_config;
 	ldapchain.on_bi.bi_db_destroy = ldap_chain_db_destroy;
 	

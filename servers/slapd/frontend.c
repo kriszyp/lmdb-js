@@ -42,8 +42,8 @@
 #include "slapi/slapi.h"
 #endif
 
-BackendInfo	slap_frontendInfo;
-BackendDB	slap_frontendDB;
+static BackendInfo	slap_frontendInfo;
+static BackendDB	slap_frontendDB;
 BackendDB	*frontendDB;
 
 int
@@ -87,6 +87,7 @@ frontend_init( void )
 
 	/* known controls */
 	frontendDB->bd_info->bi_controls = slap_known_controls;
+	frontendDB->be_controls = ldap_charray_dup( slap_known_controls );
 
 	/* calls */
 	frontendDB->bd_info->bi_op_abandon = fe_op_abandon;

@@ -467,6 +467,66 @@ overlay_is_inst( BackendDB *be, const char *over_type )
 	return 0;
 }
 
+#if 0
+int
+overlay_is_global( BackendDB *be )
+{
+	BackendInfo	*frontendBI;
+
+	if ( !overlay_is_over( be ) ) {
+		return 0;
+	}
+
+	frontendBI = frontendDB->bd_info;
+	if ( overlay_is_over( frontendDB ) ) {
+		frontendBI = ((slap_overinfo *)frontendBI->bi_private)->oi_orig;
+	}
+
+	return ((slap_overinfo *)be->bd_info->bi_private)->oi_orig == frontendBI;
+}
+#endif
+
+int
+overlay_register_control( BackendDB *be, const char *oid )
+{
+	int		rc = 0;
+	int		gotit = 0;
+
+#if 0
+	if ( overlay_is_global( be ) ) {
+		int	i;
+		
+		/* add to all backends... */
+		for ( i = 0; i < nBackendDB; i++ ) {
+			BackendDB	*bd = &backendDB[i];
+			
+			if ( be == bd ) {
+				gotit = 1;
+			}
+
+			if ( bd->be_controls == NULL ||
+				!ldap_charray_inlist( bd->be_controls, oid ) )
+			{
+				rc = ldap_charray_add( &be->be_controls, oid );
+				if ( rc ) {
+					break;
+				}
+			}
+		}
+
+	}
+#endif
+	
+	if ( rc == 0 && !gotit && !ldap_charray_inlist( be->be_controls, oid ) ) {
+		rc = ldap_charray_add( &be->be_controls, oid );
+		if ( rc ) {
+			return rc;
+		}
+	}
+
+	return rc;
+}
+
 /* add an overlay to a particular backend. */
 int
 overlay_config( BackendDB *be, const char *ov )

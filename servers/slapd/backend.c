@@ -410,6 +410,9 @@ int backend_destroy(void)
 			free( bd->be_rootpw.bv_val );
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
+		if ( bd->be_controls ) {
+			ldap_charray_free( bd->be_controls );
+		}
 	}
 	free( backendDB );
 
@@ -500,6 +503,11 @@ backend_db_init(
 	be = &backends[nbackends++];
 
 	be->bd_info = bi;
+
+	if ( bi->bi_controls ) {
+		be->be_controls = ldap_charray_dup( bi->bi_controls );
+	}
+
 	be->be_def_limit = frontendDB->be_def_limit;
 	be->be_dfltaccess = frontendDB->be_dfltaccess;
 

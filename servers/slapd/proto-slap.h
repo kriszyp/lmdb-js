@@ -315,6 +315,9 @@ LDAP_SLAPD_F (slap_overinst *) overlay_next LDAP_P(( slap_overinst *on ));
 LDAP_SLAPD_F (slap_overinst *) overlay_find LDAP_P(( const char *name ));
 LDAP_SLAPD_F (int) overlay_is_over LDAP_P(( BackendDB *be ));
 LDAP_SLAPD_F (int) overlay_is_inst LDAP_P(( BackendDB *be, const char *name ));
+LDAP_SLAPD_F (int) overlay_register_control LDAP_P((
+	BackendDB *be,
+	const char *oid ));
 
 /*
  * ch_malloc.c
