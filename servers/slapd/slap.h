@@ -1681,6 +1681,10 @@ typedef struct slap_op {
 #define get_manageDSAit(op)				((int)(op)->o_managedsait)
 #define get_subentries(op)				((int)(op)->o_subentries)
 #define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+#define get_pagedresults(op)				((int)(op)->o_pagedresults)
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+
 
 /*
  * Caches the result of a backend_group check for ACL evaluation

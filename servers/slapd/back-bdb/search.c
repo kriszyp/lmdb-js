@@ -26,6 +26,13 @@ static int search_candidates(
 	int scope,
 	int deref,
 	ID	*ids );
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+static void send_pagerequest_response( 
+	Connection	*conn,
+	Operation *op,
+	ID  lastid,
+	int nentries );			
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 int
 bdb_search(
@@ -55,6 +62,10 @@ bdb_search(
 	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
 	int		manageDSAit;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	int		pagedresults;
+	ID		lastid = NOID;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #ifdef LDAP_CLIENT_UPDATE
 	Filter lcupf, csnfnot, csnfeq, csnfand, csnfge;
@@ -87,6 +98,10 @@ bdb_search(
 
 
 	manageDSAit = get_manageDSAit( op );
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	pagedresults = get_pagedresults( op );
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 	rc = LOCK_ID (bdb->bi_dbenv, &locker );
 	switch(rc) {
@@ -338,6 +353,34 @@ dn2entry_retry:
 		}
 	}
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	if ( pagedresults ) {
+		if ( op->o_pagedresults_state.ps_cookie == 0 ) {
+			id = 0;
+		} else {
+			for ( id = bdb_idl_first( candidates, &cursor );
+				id != NOID && id <= (ID)( op->o_pagedresults_state.ps_cookie );
+				id = bdb_idl_next( candidates, &cursor ) );
+		}
+		if ( cursor == NOID ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, RESULTS, 
+				"bdb_search: no paged results candidates\n", 
+			0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE, 
+				"bdb_search: no paged results candidates\n",
+				0, 0, 0 );
+#endif
+			send_pagerequest_response( conn, op, lastid, 0 );
+
+			rc = 1;
+			goto done;
+		}
+		goto loop_begin;
+	}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+
 #ifdef LDAP_CLIENT_UPDATE
 	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
 		lcupf.f_choice = LDAP_FILTER_AND;
@@ -369,7 +412,12 @@ dn2entry_retry:
 		id != NOID;
 		id = bdb_idl_next( candidates, &cursor ) )
 	{
+
 		int		scopeok = 0;
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+loop_begin:
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
@@ -573,6 +621,15 @@ id2entry_retry:
 						v2refs, NULL, nentries );
 					goto done;
 				}
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+				if ( pagedresults ) {
+					if ( nentries >= op->o_pagedresults_size ) {
+						send_pagerequest_response( conn, op, lastid, nentries );
+						goto done;
+					}
+					lastid = id;
+				}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 				if (e) {
 					int result;
@@ -1022,4 +1079,72 @@ static int search_candidates(
 
 	return rc;
 }
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+static void
+send_pagerequest_response( 
+	Connection	*conn,
+	Operation	*op,
+	ID		lastid,
+	int		nentries )
+{
+	LDAPControl	ctrl, *ctrls[2];
+	BerElement	*ber;
+	struct berval	*bvalp, cookie = { 0, NULL };
+	PagedResultsCookie respcookie;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY,
+		"send_pagerequest_response: lastid: (0x%08lx) "
+		"nentries: (0x%081x)\n", 
+		lastid, nentries );
+#else
+	Debug(LDAP_DEBUG_ARGS, "send_pagerequest_response: lastid: (0x%08lx) "
+			"nentries: (0x%081x)\n", lastid, nentries, NULL );
+#endif
+
+	ctrl.ldctl_value.bv_val = NULL;
+	ctrls[0] = &ctrl;
+	ctrls[1] = NULL;
+
+	if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+		goto done;
+	}
+
+	respcookie = ( PagedResultsCookie )lastid;
+	conn->c_pagedresults_state.ps_cookie = respcookie;
+	cookie.bv_len = sizeof( respcookie );
+#if 0
+	cookie.bv_val = ber_memalloc( sizeof( respcookie ) );
+	AC_MEMCPY( cookie.bv_val, &respcookie, sizeof( respcookie ) );
+#else
+	cookie.bv_val = (char *)&respcookie;
+#endif
+/*
+	conn->c_pagedresults_state.ps_cookie = cookie.bv_val;
+*/
+
+	ber_printf( ber, "{iO}", 0, &cookie ); 
+#if 0
+	ber_memfree( cookie.bv_val );
+#endif
+
+	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+		goto done;
+	}
+
+	ctrls[0]->ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
+	ctrls[0]->ldctl_value = ( *bvalp );
+	ctrls[0]->ldctl_iscritical = 0;
+
+	send_search_result( conn, op,
+		LDAP_SUCCESS,
+		NULL, NULL, NULL, ctrls, nentries );
+
+done:
+	if ( ctrls[0]->ldctl_value.bv_val ) {
+		ch_free( ctrls[0]->ldctl_value.bv_val );
+	}
+}			
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 

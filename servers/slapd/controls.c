@@ -76,11 +76,11 @@ static struct slap_control {
 		SLAP_CTRL_ACCESS, NULL,
 		parseNoOp },
 #endif
-#ifdef LDAP_CONTROL_PAGEDRESULTS_REQUEST
-	{ LDAP_CONTROL_PAGEDRESULTS_REQUEST,
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	{ LDAP_CONTROL_PAGEDRESULTS,
 		SLAP_CTRL_SEARCH, NULL,
 		parsePagedResults },
-#endif
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 #ifdef LDAP_CONTROL_VALUESRETURNFILTER
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
@@ -155,7 +155,12 @@ int get_ctrls(
 	}
 
 	/* one for first control, one for termination */
+#ifndef LDAP_CONTROL_PAGEDRESULTS
 	op->o_ctrls = ch_malloc( 2 * sizeof(LDAPControl *) );
+#else /* LDAP_CONTROL_PAGEDRESULTS */
+	/* FIXME: are we sure we need this? */
+	op->o_ctrls = ch_malloc( 3 * sizeof(LDAPControl *) );
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #if 0
 	if( op->ctrls == NULL ) {
@@ -470,7 +475,7 @@ static int parseNoOp (
 }
 #endif
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS_REQUEST
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 static int parsePagedResults (
 	Connection *conn,
 	Operation *op,
@@ -537,9 +542,12 @@ static int parsePagedResults (
 			*text = "paged results cookie is invalid or old";
 			return LDAP_UNWILLING_TO_PERFORM;
 		}
+	} else {
+		/* Initial request.  Initialize state. */
+		op->o_pagedresults_state.ps_cookie = 0;
+		op->o_pagedresults_state.ps_id = NOID;
 	}
 
-	op->o_pagedresults_state.ps_cookie = op->o_opid;
 	op->o_pagedresults_size = size;
 
 	op->o_pagedresults = ctrl->ldctl_iscritical
@@ -548,7 +556,7 @@ static int parsePagedResults (
 
 	return LDAP_SUCCESS;
 }
-#endif
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #ifdef LDAP_CONTROL_VALUESRETURNFILTER
 int parseValuesReturnFilter (

@@ -56,6 +56,9 @@ usage( const char *s )
 "  -b basedn  base dn for search\n"
 "  -E [!]<ctrl>[=<ctrlparam>] search controls (! indicates criticality)\n"
 "             [!]mv=<filter>              (matched values filter)\n"
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+"             [!]pr=<size>                (paged results)\n"
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 #ifdef LDAP_CONTROL_SUBENTRIES
 "             [!]subentries[=true|false]  (subentries)\n"
 #endif
@@ -150,6 +153,13 @@ static int dosearch LDAP_P((
 	struct timeval *timeout,
 	int	sizelimit ));
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+static int parse_page_control(
+	LDAP *ld,
+	LDAPMessage *result,
+	struct berval *cookie );
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+
 static char *tmpdir = NULL;
 static char *urlpre = NULL;
 static char *prog = NULL;
@@ -170,6 +180,17 @@ static char	*sasl_secprops = NULL;
 static int	use_tls = 0;
 static char	*sortattr = NULL;
 static int	verbose, not, includeufn, vals2tmp, ldif;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+static int pageSize;
+static ber_int_t searchControlSize = 0;
+static ber_int_t morePagedResults = 1;
+static struct berval cookie = { 0, NULL };
+static int npagedresponses;
+static int npagedentries;
+static int npagedreferences;
+static int npagedextended;
+static int npagedpartial;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 static void
 urlize(char *url)
@@ -198,12 +219,22 @@ main( int argc, char **argv )
 	struct berval 	*bvalp = NULL;
 	char	*vrFilter  = NULL, *control = NULL, *cvalue;
 	char	*pw_file = NULL;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	BerElement	*pageber = NULL;
+	struct berval	*bvalptr = NULL;
+	int		num = 0, moreEntries, searchControlCrit = 0;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 
 	infile = NULL;
 	debug = verbose = not = vals2tmp = referrals =
 		subentries = valuesReturnFilter =
 		attrsonly = manageDSAit = noop = ldif = want_bindpw = 0;
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	npagedresponses = npagedentries = npagedreferences =
+		npagedextended = npagedpartial = 0;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 	prog = lutil_progname( "ldapsearch", argc, argv );
 
@@ -301,6 +332,25 @@ main( int argc, char **argv )
 			vrFilter = cvalue;
 			version = LDAP_VERSION3;
 			break;
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+		} else if ( strcasecmp( control, "pr" ) == 0 ) {
+			/* PagedResults control */
+			if ( searchControlSize !=0 ) {
+				fprintf( stderr, "PagedResultsControl previously specified" );
+				return EXIT_FAILURE;
+			}
+			
+			num = sscanf( cvalue, "%d", &pageSize );
+			if ( num != 1 ) {
+				fprintf( stderr, "Invalid value for PagedResultsControl, %s.\n", cvalue);
+				return EXIT_FAILURE;
+
+			}
+			searchControlSize = (ber_int_t)pageSize;
+			searchControlCrit = crit;
+			break;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
@@ -973,11 +1023,17 @@ main( int argc, char **argv )
 		}
 	}
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+getNextPage:
+	if ( manageDSAit || noop || valuesReturnFilter || searchControlSize ) {
+		int critical = 0;
+#else /* !LDAP_CONTROL_PAGEDRESULTS */
 	if ( manageDSAit || noop || valuesReturnFilter ) {
+#endif /* !LDAP_CONTROL_PAGEDRESULTS */
 		int err;
 		int i=0;
-		LDAPControl c1,c2,c3,c4;
-		LDAPControl *ctrls[5];
+		LDAPControl c1,c2,c3,c4,c5;
+		LDAPControl *ctrls[6];
 		
 		if ( manageDSAit ) {
 			ctrls[i++]=&c1;
@@ -987,6 +1043,9 @@ main( int argc, char **argv )
 			c1.ldctl_value.bv_val = NULL;
 			c1.ldctl_value.bv_len = 0;
 			c1.ldctl_iscritical = manageDSAit > 1;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			if ( c1.ldctl_iscritical ) critical = 1;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 		}
 
 		if ( noop ) {
@@ -997,6 +1056,9 @@ main( int argc, char **argv )
 			c2.ldctl_value.bv_val = NULL;
 			c2.ldctl_value.bv_len = 0;
 			c2.ldctl_iscritical = noop > 1;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			if ( c2.ldctl_iscritical ) critical = 1;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 		}
 
 #ifdef LDAP_CONTROL_SUBENTRIES
@@ -1006,6 +1068,9 @@ main( int argc, char **argv )
 
 			c3.ldctl_oid = LDAP_CONTROL_SUBENTRIES;
 			c3.ldctl_iscritical = subentries < 1;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			if ( c3.ldctl_iscritical ) critical = 1;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 		    
 	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
@@ -1032,6 +1097,9 @@ main( int argc, char **argv )
 
 			c4.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
 			c4.ldctl_iscritical = valuesReturnFilter > 1;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			if ( c4.ldctl_iscritical ) critical = 1;
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 		    
 	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
@@ -1050,11 +1118,46 @@ main( int argc, char **argv )
 			c4.ldctl_value=(*bvalp);
 		}
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+		if ( searchControlSize ) {
+			if (( pageber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+				return EXIT_FAILURE;
+			}
+
+			ber_printf( pageber, "{iO}", searchControlSize, &cookie );
+			if ( ber_flatten( pageber, &bvalptr ) == LBER_ERROR) {
+				return EXIT_FAILURE;
+			}
+			
+			ctrls[i++]=&c5;
+			ctrls[i] = NULL;
+
+			c5.ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
+			c5.ldctl_value = ( *bvalptr );
+			c5.ldctl_iscritical = searchControlCrit;
+			if ( c5.ldctl_iscritical ) critical = 1;
+		}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
 
 		ber_bvfree(bvalp);
 		ber_free( ber, 1 );
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+		ber_free( pageber, 1 );
+		ber_bvfree( bvalptr );
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+		if( err != LDAP_OPT_SUCCESS ) {
+			if ( critical ) {
+				fprintf( stderr, "Could not set controls\n");
+				return EXIT_FAILURE;
+			} else {
+				fprintf( stderr, "Could not set critical controls\n" );
+			}
+		}
+#else /* !LDAP_CONTROL_PAGEDRESULTS */
 		if( err != LDAP_OPT_SUCCESS ) {
 			fprintf( stderr, "Could not set %scontrols\n",
 				(c1.ldctl_iscritical || c2.ldctl_iscritical)
@@ -1063,6 +1166,7 @@ main( int argc, char **argv )
 				return EXIT_FAILURE;
 			}
 		}
+#endif /* !LDAP_CONTROL_PAGEDRESULTS */
 	}
 	
 	if ( verbose ) {
@@ -1148,6 +1252,22 @@ main( int argc, char **argv )
 			fclose( fp );
 		}
 	}
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	if ( ( searchControlSize != 0 ) && ( morePagedResults != 0 ) ) { 
+		/* Loop to get the next pages when 
+		 * enter is pressed on the terminal.
+		 */
+		printf( "Press Enter for the next %d entries.\n",
+			(int)searchControlSize ); 
+		moreEntries = getchar();
+		while ( moreEntries != EOF && moreEntries != '\n' ) { 
+			moreEntries = getchar();
+		}
+
+		goto getNextPage;	
+	}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 	ldap_unbind( ld );
 	return( rc );
@@ -1262,6 +1382,11 @@ static int dosearch(
 
 			case LDAP_RES_SEARCH_RESULT:
 				rc = print_result( ld, msg, 1 );
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+				if ( searchControlSize != 0 ) { 
+					rc = parse_page_control( ld, msg, &cookie );
+				}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 				goto done;
 			}
 		}
@@ -1275,6 +1400,30 @@ static int dosearch(
 	}
 
 done:
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+	if ( searchControlSize == 0 ) { 
+		if ( ldif < 2 ) {
+			printf( "\n# numResponses: %d\n", nresponses );
+			if( nentries ) printf( "# numEntries: %d\n", nentries );
+			if( nextended ) printf( "# numExtended: %d\n", nextended );
+			if( npartial ) printf( "# numPartial: %d\n", npartial );
+			if( nreferences ) printf( "# numReferences: %d\n", nreferences );
+		}
+	} else {
+		npagedresponses = npagedresponses + nresponses;
+		npagedentries = npagedentries + nentries;
+		npagedreferences = npagedreferences + nreferences;
+		npagedextended = npagedextended + nextended;
+		npagedpartial = npagedpartial + npartial;
+		if ( ( morePagedResults == 0 ) && ( ldif < 2 ) ) {
+			printf( "\n# numResponses: %d\n", npagedresponses );
+			if( nentries ) printf( "# numEntries: %d\n", npagedentries );
+			if( nextended ) printf( "# numExtended: %d\n", npagedextended );
+			if( npartial ) printf( "# numPartial: %d\n", npagedpartial );
+			if( nreferences ) printf( "# numReferences: %d\n", npagedreferences );
+		}
+	}
+#else /* !LDAP_CONTROL_PAGEDRESULTS */
 	if ( ldif < 2 ) {
 		printf( "\n# numResponses: %d\n", nresponses );
 		if( nentries ) printf( "# numEntries: %d\n", nentries );
@@ -1282,6 +1431,7 @@ done:
 		if( npartial ) printf( "# numPartial: %d\n", npartial );
 		if( nreferences ) printf( "# numReferences: %d\n", nreferences );
 	}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 	return( rc );
 }
@@ -1759,3 +1909,72 @@ write_ldif( int type, char *name, char *value, ber_len_t vallen )
 
 	return( 0 );
 }
+
+
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+static int 
+parse_page_control(
+	LDAP *ld,
+	LDAPMessage *result,
+	struct berval *cookie )
+{
+	int rc;
+	int err;
+	LDAPControl **ctrl = NULL;
+	LDAPControl *ctrlp = NULL;
+	BerElement *ber;
+	ber_tag_t tag;
+	ber_int_t entriesLeft;
+	struct berval servercookie = { 0, NULL };
+
+
+	rc = ldap_parse_result( ld, result,
+		&err, NULL, NULL, NULL, &ctrl, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror(ld, "ldap_parse_result");
+		exit( EXIT_FAILURE );
+	}
+
+	if ( err != LDAP_SUCCESS ) {
+		fprintf( stderr, "%s (%d)\n", ldap_err2string(err), err );
+	}
+
+	if( ctrl ) {
+		/* Parse the control value
+		 * searchResult ::= SEQUENCE {
+		 *		size	INTEGER (0..maxInt),
+		 *				-- result set size estimate from server - unused
+		 *		cookie	OCTET STRING
+		 */
+		ctrlp = *ctrl;
+		ber = ber_init( &ctrlp->ldctl_value );
+		if ( ber == NULL ) {
+			fprintf( stderr, "Internal error.\n" );
+			return EXIT_FAILURE;
+		}
+
+		tag = ber_scanf( ber, "{im}", &entriesLeft, &servercookie );
+		ber_dupbv( cookie, &servercookie );
+		(void) ber_free( ber, 1 );
+
+		if( tag == LBER_ERROR ) {
+			fprintf( stderr, "Paged results response control could not be decoded.\n" );
+			return EXIT_FAILURE;
+		}
+
+		if( entriesLeft < 0 ) {
+			fprintf( stderr, "Invalid entries estimate in paged results response.\n" );
+			return EXIT_FAILURE;
+		}
+
+
+		ldap_controls_free( ctrl );
+	} else {
+		morePagedResults = 0;
+	}
+
+	return err;
+}
+#endif /* LDAP_CONTROL_PAGEDRESULTS */
+
