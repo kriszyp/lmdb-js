@@ -300,9 +300,12 @@ LDAP_SLAPD_F (int) glue_sub_init( void );
  * backover.c
  */
 
-LDAP_SLAPD_F (int) overlay_register( slap_overinst *on );
-LDAP_SLAPD_F (int) overlay_config( BackendDB *be, const char *ov );
-LDAP_SLAPD_F (slap_overinst *) overlay_next( slap_overinst *on );
+LDAP_SLAPD_F (int) overlay_register LDAP_P(( slap_overinst *on ));
+LDAP_SLAPD_F (int) overlay_config LDAP_P(( BackendDB *be, const char *ov ));
+LDAP_SLAPD_F (slap_overinst *) overlay_next LDAP_P(( slap_overinst *on ));
+LDAP_SLAPD_F (slap_overinst *) overlay_find LDAP_P(( const char *name ));
+LDAP_SLAPD_F (int) overlay_is_over LDAP_P(( BackendDB *be ));
+LDAP_SLAPD_F (int) overlay_is_inst LDAP_P(( BackendDB *be, const char *name ));
 
 /*
  * ch_malloc.c

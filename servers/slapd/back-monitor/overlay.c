@@ -114,20 +114,8 @@ monitor_subsys_overlay_init(
 			BackendDB	*be = &backendDB[ j ];
 			char		buf[ SLAP_LDAPDN_MAXLEN ];
 			struct berval	dn;
-			slap_overinst	*on2;
 
-			if ( strcmp( be->bd_info->bi_type, "over" ) != 0 ) {
-				continue;
-			}
-
-			on2 = ((slap_overinfo *)be->bd_info->bi_private)->oi_list;
-			for ( ; on2; on2 = on2->on_next ) {
-				if ( on2->on_bi.bi_type == on->on_bi.bi_type ) {
-					break;
-				}
-			}
-
-			if ( on2 == NULL ) {
+			if ( !overlay_is_inst( be, on->on_bi.bi_type ) ) {
 				continue;
 			}
 

@@ -258,6 +258,37 @@ ldap_back_db_config(
 		}
 		load_extop( (struct berval *)&slap_EXOP_WHOAMI,
 				0, ldap_back_exop_whoami );
+
+	/* FIXME: legacy: intercept old rewrite/remap directives
+	 * and try to start the rwm overlay */
+	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0
+			|| strcasecmp( argv[0], "map" ) == 0
+			|| strncasecmp( argv[0], "rewrite", STRLENOF( "rewrite" ) ) == 0 )
+	{
+		if ( li->rwm_started == 0 && !overlay_is_inst( be, "rwm" ) ) {
+			if ( overlay_config( be, "rwm" ) ) {
+				fprintf( stderr, "%s: line %d: "
+					"unable to configure the \"rwm\" "
+					"overlay, required by directive "
+					"\"%s\".\n",
+					fname, lineno, argv[0] );
+#if SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC
+				fprintf( stderr, "\thint: try loading the \"rwm.la\" dynamic module.\n" );
+#endif /* SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC */
+				return( 1 );
+			}
+
+			fprintf( stderr, "%s: line %d: back-ldap: "
+				"automatically starting \"rwm\" overlay, "
+				"triggered by \"%s\" directive.\n",
+				fname, lineno, argv[ 0 ] );
+
+			li->rwm_started = 1;
+
+			return ( *be->bd_info->bi_db_config )( be, fname, lineno, argc, argv );
+		}
+
+		return SLAP_CONF_UNKNOWN;
 	
 	/* anything else */
 	} else {

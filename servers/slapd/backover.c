@@ -315,6 +315,13 @@ overlay_register(
 	return 0;
 }
 
+/*
+ * iterator on registered overlays; overlay_next( NULL ) returns the first
+ * overlay; * subsequent calls with the previously returned value allow to 
+ * iterate * over the entire list; returns NULL when no more overlays are 
+ * registered.
+ */
+
 slap_overinst *
 overlay_next(
 	slap_overinst *on
@@ -327,7 +334,66 @@ overlay_next(
 	return on->on_next;
 }
 
+/*
+ * returns a specific registered overlay based on the type; NULL if not
+ * registered.
+ */
+
+slap_overinst *
+overlay_find( const char *over_type )
+{
+	slap_overinst *on = overlays;
+
+	assert( over_type );
+
+	for ( ; on; on = on->on_next ) {
+		if ( strcmp( on->on_bi.bi_type, over_type ) == 0 ) {
+			break;
+		}
+	}
+
+	return on;
+}
+
 static const char overtype[] = "over";
+
+/*
+ * returns TRUE (1) if the database is actually an overlay instance;
+ * FALSE (0) otherwise.
+ */
+
+int
+overlay_is_over( BackendDB *be )
+{
+	return be->bd_info->bi_type == overtype;
+}
+
+/*
+ * returns TRUE (1) if the given database is actually an overlay
+ * instance and, somewhere in the list, contains the requested overlay;
+ * FALSE (0) otherwise.
+ */
+
+int
+overlay_is_inst( BackendDB *be, const char *over_type )
+{
+	slap_overinst	*on;
+
+	assert( be );
+
+	if ( !overlay_is_over( be ) ) {
+		return 0;
+	}
+	
+	on = ((slap_overinfo *)be->bd_info->bi_private)->oi_list;
+	for ( ; on; on = on->on_next ) {
+		if ( strcmp( on->on_bi.bi_type, over_type ) == 0 ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
 
 /* add an overlay to a particular backend. */
 int
@@ -337,10 +403,7 @@ overlay_config( BackendDB *be, const char *ov )
 	slap_overinfo *oi = NULL;
 	BackendInfo *bi = NULL;
 
-	for ( on = overlays; on; on=on->on_next ) {
-		if (!strcmp( ov, on->on_bi.bi_type ) )
-			break;
-	}
+	on = overlay_find( ov );
 	if (!on) {
 		Debug( LDAP_DEBUG_ANY, "overlay %s not found\n", ov, 0, 0 );
 		return 1;
@@ -349,7 +412,7 @@ overlay_config( BackendDB *be, const char *ov )
 	/* If this is the first overlay on this backend, set up the
 	 * overlay info structure
 	 */
-	if ( be->bd_info->bi_type != overtype ) {
+	if ( !overlay_is_over( be ) ) {
 		oi = ch_malloc( sizeof(slap_overinfo) );
 		oi->oi_orig = be->bd_info;
 		oi->oi_bi = *be->bd_info;

@@ -159,7 +159,7 @@ monitor_subsys_database_init(
 
 		bi = be->bd_info;
 
-		if ( strcmp( be->bd_info->bi_type, "over" ) == 0 ) {
+		if ( overlay_is_over( be ) ) {
 			oi = (slap_overinfo *)be->bd_info->bi_private;
 			bi = oi->oi_orig;
 		}
@@ -228,6 +228,7 @@ monitor_subsys_database_init(
 				attr_merge_normalize_one( e, mi->mi_ad_monitorOverlay,
 						&bv, NULL );
 
+				/* find the overlay number, j */
 				for ( on2 = overlay_next( NULL ), j = 0; on2; on2 = overlay_next( on2 ), j++ ) {
 					if ( on2->on_bi.bi_type == on->on_bi.bi_type ) {
 						break;

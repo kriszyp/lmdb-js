@@ -156,7 +156,7 @@ ldap_back_db_open( BackendDB *be )
 	}
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
-#ifdef SLAPD_MONITOR
+#if 0 && defined(SLAPD_MONITOR)
 	{
 		struct berval	filter,
 				base = BER_BVC( "cn=Databases,cn=Monitor" );

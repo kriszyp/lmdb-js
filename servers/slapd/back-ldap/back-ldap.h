@@ -98,8 +98,10 @@ struct ldapinfo {
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	ldap_pvt_thread_mutex_t		conn_mutex;
-	int savecred;
-	Avlnode *conntree;
+	int		savecred;
+	Avlnode		*conntree;
+
+	int		rwm_started;
 };
 
 int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
