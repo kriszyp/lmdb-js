@@ -49,7 +49,7 @@ static struct berval bvtext;
 static int put_lineno;
 static int put_rc;
 
-static int use_thread = 0;	/*FIXME need a new switch for this */
+static int use_thread = 1;	/*FIXME need a new switch for this */
 
 static void *do_put(void *ptr)
 {
@@ -399,13 +399,16 @@ slapadd( int argc, char **argv )
 	}
 
 	if ( use_thread ) {
+		ldap_pvt_thread_mutex_lock( &put_mutex );
+		/* Tell child thread to stop if it hasn't aborted */
 		if ( !put_rc ) {
 			put_rc = EXIT_FAILURE;
-			ldap_pvt_thread_mutex_lock( &put_mutex );
 			ldap_pvt_thread_cond_signal( &put_cond );
-			ldap_pvt_thread_mutex_unlock( &put_mutex );
 		}
+		ldap_pvt_thread_mutex_unlock( &put_mutex );
 		ldap_pvt_thread_join( put_tid, NULL );
+		ldap_pvt_thread_mutex_destroy( &put_mutex );
+		ldap_pvt_thread_cond_destroy( &put_cond );
 	}
 
 	bvtext.bv_len = textlen;
