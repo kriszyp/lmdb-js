@@ -73,6 +73,29 @@ $LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT "objectclass=*" \
 $LDAPSEARCH -b "$JAJDN" -h $LOCALHOST -p $PORT \
 	-D "$BABSDN" -w bjensen "objectclass=*"  >> $SEARCHOUT 2>&1
 
+#
+# Check group access. Try to modify Babs' entry. Two attempts:
+# 1) bound as "James A Jones 1" - should fail
+# 2) bound as "Bjorn Jensen" - should succeed
+
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS5
+dn: $BABSDN
+changetype: modify
+replace: drink
+drink: wine
+
+EOMODS5
+
+
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT -w bjorn >> \
+	$TESTOUT 2>&1 << EOMODS6
+dn: $BABSDN
+changetype: modify
+add: homephone
+homephone: +1 313 555 5444
+
+EOMODS6
 
 #
 # Try to add a "member" attribute to the "All Staff" group.  It should
