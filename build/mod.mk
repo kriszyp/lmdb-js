@@ -21,7 +21,7 @@ version.c: $(OBJS)
 	$(MKVERSION) $(LIBBASE) > $@
 
 $(LIBRARY): version.lo
-	$(LTLIBLINK) -module -rpath $(moduledir) -o $@ $(OBJS) version.lo
+	$(LTLIBLINK) -module -rpath $(moduledir) -o $@ $(OBJS) version.lo $(MODLIBS)
 
 $(LIBSTAT): version.lo
 	$(AR) ruv $@ `echo $(OBJS) | sed 's/\.lo/.o/g'` version.o

@@ -33,7 +33,7 @@ XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 # $(LTHREAD_LIBS) must be last
 XLIBS = libbackends.a -lavl -lldbm -lldif -lldap_r -llber -llutil
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
-	$(PERL_LDFLAGS) $(SECURITY_LIBS) \
+	$(SLAPD_PERL_LDFLAGS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 

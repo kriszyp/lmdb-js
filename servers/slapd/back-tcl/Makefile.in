@@ -25,6 +25,7 @@ BUILD_MOD = @BUILD_TCL@
 LINKAGE = @BUILD_TCL_DYNAMIC@
 
 LIBBASE = back_tcl
+MODLIBS = @MOD_TCL_LIB@
 
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
@@ -34,4 +35,3 @@ all-local-lib:	../.backend
 
 ../.backend: lib$(LIBBASE).a
 	@touch $@
-

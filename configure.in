@@ -418,8 +418,10 @@ SLAPD_MODULES_CPPFLAGS=
 SLAPD_MODULES_LIST=
 
 SLAPD_PERL_LDFLAGS=
-SLAPD_PERL_CPPFLAGS=
+MOD_PERL_LDFLAGS=
+PERL_CPPFLAGS=
 
+MOD_TCL_LIB=
 KRB_LIBS=
 READLINE_LIBS=
 SASL_LIBS=
@@ -516,9 +518,12 @@ if test $ol_enable_perl != no ; then
 		fi
 
 	else
-		SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
-		SLAPD_PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
-
+		PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
+		if test x"$ol_with_perl_module" == "xstatic" ; then
+			SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+		else
+			MOD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+		fi
 		dnl should check perl version
 		ol_link_perl=yes
 	fi
@@ -1654,21 +1659,15 @@ if test $ol_enable_tcl != no ; then
 	if test $ac_cv_header_tcl_h != yes ; then
 		have_tcl=no
 	else
-		AC_CHECK_LIB(tcl,main,
-			[have_tcl=yes; SLAPD_LIBS="$SLAPD_LIBS -ltcl"],
-			[have_tcl=no])
-
-		if test $have_tcl != yes; then
-			AC_CHECK_LIB(tcl7.6,main,
-				[have_tcl=yes; SLAPD_LIBS="$SLAPD_LIBS -ltcl7.6"],
-				[have_tcl=no])
-		fi
-
-		if test $have_tcl != yes; then
-			AC_CHECK_LIB(tcl8.0,main,
-				[have_tcl=yes; SLAPD_LIBS="$SLAPD_LIBS -ltcl8.0"],
-				[have_tcl=no])
-		fi
+		for lib in tcl tcl7.6 tcl8.0 tcl8.2 ; do
+			AC_CHECK_LIB($lib,main,
+			  [have_tcl=yes
+			   if test x"$ol_with_tcl_module" == "xstatic" ; then
+			       SLAPD_LIBS="$SLAPD_LIBS -l${lib}"
+			   else
+			       MOD_TCL_LIB="-l${lib}"
+			   fi;break],[have_tcl=no])
+		done
 	fi
 
 	if test $have_tcl != yes ; then
@@ -2133,13 +2132,15 @@ AC_SUBST(LDBM_LIBS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
 AC_SUBST(WRAP_LIBS)
+AC_SUBST(MOD_TCL_LIB)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)
 AC_SUBST(SLAPD_MODULES_LIST)
 
-AC_SUBST(SLAPD_PERL_CPPFLAGS)
+AC_SUBST(PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)
+AC_SUBST(MOD_PERL_LDFLAGS)
 
 AC_SUBST(KRB_LIBS)
 AC_SUBST(READLINE_LIBS)
