@@ -58,11 +58,8 @@
 # ifndef USE_CTIME_R
 	static ldap_pvt_thread_mutex_t ldap_int_ctime_mutex;
 # endif
-# ifndef HAVE_GETHOSTBYNAME_R
-	static ldap_pvt_thread_mutex_t ldap_int_gethostbyname_mutex;
-# endif
-# ifndef HAVE_GETHOSTBYADDR_R
-	static ldap_pvt_thread_mutex_t ldap_int_gethostbyaddr_mutex;
+# if !defined( HAVE_GETHOSTBYNAME_R ) || !defined( HAVE_GETHOSTBYADDR_R )
+	static ldap_pvt_thread_mutex_t ldap_int_gethostby_mutex;
 # endif
 # ifdef HAVE_RES_QUERY
 	ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
@@ -146,7 +143,7 @@ int ldap_pvt_gethostbyname_a(
 	struct hostent *he;
 	int	retval;
 	
-	ldap_pvt_thread_mutex_lock( &ldap_int_gethostbyname_mutex );
+	ldap_pvt_thread_mutex_lock( &ldap_int_gethostby_mutex );
 	
 	he = gethostbyname( name );
 	
@@ -161,7 +158,7 @@ int ldap_pvt_gethostbyname_a(
 		retval = 0;
 	}
 	
-	ldap_pvt_thread_mutex_unlock( &ldap_int_gethostbyname_mutex );
+	ldap_pvt_thread_mutex_unlock( &ldap_int_gethostby_mutex );
 	
 	return retval;
 #else	
@@ -225,7 +222,7 @@ int ldap_pvt_gethostbyaddr_a(
 	struct hostent *he;
 	int	retval;
 	
-	ldap_pvt_thread_mutex_lock( &ldap_int_gethostbyaddr_mutex );
+	ldap_pvt_thread_mutex_lock( &ldap_int_gethostby_mutex );
 	
 	he = gethostbyaddr( addr, len, type );
 	
@@ -240,7 +237,7 @@ int ldap_pvt_gethostbyaddr_a(
 		retval = 0;
 	}
 	
-	ldap_pvt_thread_mutex_unlock( &ldap_int_gethostbyaddr_mutex );
+	ldap_pvt_thread_mutex_unlock( &ldap_int_gethostby_mutex );
 	
 	return retval;   
 #else /* gethostbyaddr() */
@@ -269,12 +266,8 @@ void ldap_int_utils_init( void )
 	ldap_pvt_thread_mutex_init( &ldap_int_ctime_mutex );
 #endif
 
-#if !defined( HAVE_GETHOSTBYNAME_R )
-	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyname_mutex );
-#endif
-
-#if !defined( HAVE_GETHOSTBYADDR_R )
-	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyaddr_mutex );
+#if !defined( HAVE_GETHOSTBYNAME_R ) || !defined( HAVE_GETHOSTBYADDR_R )
+	ldap_pvt_thread_mutex_init( &ldap_int_gethostby_mutex );
 #endif
 
 #ifdef HAVE_RES_QUERY
