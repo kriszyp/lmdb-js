@@ -425,6 +425,48 @@ or the (even more silly) example
 .LP
 which grants everybody search and compare privileges, and adds read
 privileges to authenticated clients.
+.SH CAVEATS
+It is strongly recommended to explicitly use the most appropriate
+DN 
+.BR style ,
+for performance (avoid unrequired regex matching when
+an exact match suffices) but also to avoid possible 
+misimplementations of the access rules.
+In fact, a rule of the form
+.LP
+.nf
+	access to dn="dc=example,dc=com"
+		by ...
+.fi
+.LP
+implies that all the subtree "dc=example,dc=com" matches, and the
+match is done using a regex. 
+.LP
+.nf
+access to dn.subtree="dc=example,dc=com"
+	by ...
+.fi
+.LP
+would be far more appropriate.
+.LP
+Another quirk is related to the 
+.B by
+clause:
+a rule of the form
+.LP
+.nf
+	access to *
+		by dn="cn=User,dc=example,dc=com" write
+.fi
+.LP
+gives write access to every DN below "cn=User,dc=example,dc=com";
+if only that DN should have write access, the correct rule would be
+.LP
+.nf
+	access to *
+		by dn.exact="cn=User,dc=example,dc=com" write
+.fi
+.LP
 .SH FILES
 .TP
 ETCDIR/slapd.conf
