@@ -355,7 +355,7 @@ See the chapter entitled {{SECT:Replication with slurpd}} for more
 information on how to use this directive.
 
 
-H4: rootdn <dn>
+H4: rootdn <DN>
 
 This directive specifies the DN that is not subject to
 access control or administrative limit restrictions for
@@ -414,36 +414,6 @@ order they appear in the file. Thus, if one database suffix is a
 prefix of another, it must appear after it in the config file.
 
 
-H4: updatedn <dn>
-
-This directive is only applicable in a slave slapd. It specifies
-the DN allowed to make changes to the replica.  This may be the DN
-{{slurpd}}(8) binds as when making changes to the replica or the DN
-associated with a SASL identity.
-
-Entry-based Example:
-
->	updatedn "cn=Update Daemon,dc=example,dc=com"
-
-SASL-based Example:
-
->	updatedn "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
-
-See the {{SECT:Replication with slurpd}} chapter for more information
-on how to use this directive.
-
-H4: updateref <URL>
-
-This directive is only applicable in a slave slapd. It
-specifies the URL to return to clients which submit update
-requests upon the replica.
-If specified multiple times, each {{TERM:URL}} is provided.
-
-\Example:
-
->	updateref	ldap://master.example.net
-
-
 H4: syncrepl
 
 >	syncrepl id=<replica ID>
@@ -458,9 +428,9 @@ H4: syncrepl
 >		[sizelimit=<limit>]
 >		[timelimit=<limit>]
 >		[schemachecking=on|off]
->		[updatedn=<dn>]
+>		[updatedn=<DN>]
 >		[bindmethod=simple|sasl]
->		[binddn=<dn>]
+>		[binddn=<DN>]
 >		[saslmech=<mech>]
 >		[authcid=<identity>]
 >		[authzid=<identity>]
@@ -468,57 +438,67 @@ H4: syncrepl
 >		[realm=<realm>]
 >		[secprops=<properties>]
 
+
 This directive specifies the current database as a replica of the
-master database at the provider site. The replica database at the
-replication consumer site is kept up-to-date with the master database
-using the LDAP Content Synchronization protocol.  See
-{{EX:draft-zeilenga-ldup-sync-xx.txt}} ({{a work in progress}}) for
-more information on the protocol.
+master content by establishing the current {{slapd}}(8) as a
+replication consumer site running a syncrepl replication engine.
+The master database is located at the replication provider site
+specified by the {{EX:provider}} parameter. The replica database is
+kept up-to-date with the master content using the LDAP Content
+Synchronization protocol. See {{EX:draft-zeilenga-ldup-sync-xx.txt}}
+({{a work in progress}}) for more information on the protocol.
 
 The {{EX:id}} parameter is used for identification of the current
-syncrepl directive in the database, where the three-digit integer
-{{EX:<replica ID>}} uniquely identifies the syncrepl specification
-described by the current syncrepl directive.
+{{EX:syncrepl}} directive in the database, where {{EX:<replica ID>}}
+uniquely identifies the syncrepl specification described by the current
+{{EX:syncrepl}} directive. {{EX:<replica ID>}} is non-negative and is no
+more than three digits in length.
 
 The {{EX:provider}} parameter specifies the replication provider site
-containing the master database as an LDAP URI. The {{EX:provider}}
+containing the master content as an LDAP URI. The {{EX:provider}}
 parameter specifies a scheme, a host and optionally a port where the
 provider slapd instance can be found. Either a domain name or IP
 address may be used for <hostname>. Examples are
 {{EX:ldap://provider.example.com:389}} or {{EX:ldaps://192.168.1.1:636}}.
 If <port> is not given, the standard LDAP port number (389 or 636) is used.
-Note that syncrepl uses a consumer-initiated protocol, and hence its
+Note that the syncrepl uses a consumer-initiated protocol, and hence its
 specification is located at the consumer site, whereas the {{EX:replica}}
 specification is located at the provider site. {{EX:syncrepl}} and
-{{EX:replica}} are two independent replication mechanisms and they do
-not represent the replication peers of each other.
+{{EX:replica}} directives define two independent replication
+mechanisms. They do not represent the replication peers of each other.
 
-The content of the {{EX:syncrepl}} replica is defined using a search
-specification as its result set. The consumer {{slapd}}(8) will
+The content of the syncrepl replica is defined using a search
+specification as its result set. The consumer slapd will
 send search requests to the provider slapd according to the search
 specification. The search specification includes {{EX:searchbase}},
 {{EX:scope}}, {{EX:filter}}, {{EX:attrs}}, {{EX:attrsonly}},
 {{EX:sizelimit}}, and {{EX:timelimit}} parameters as in the normal
-search specification. The {{EX:syncrepl}} search specification has
+search specification. The syncrepl search specification has
 the same value syntax and the same default values as in the
 {{ldapsearch}}(1) client search tool.
 
 The LDAP Content Synchronization protocol has two operation
 types: {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
 The operation type is specified by the {{EX:type}} parameter.
-In the {{EX:refreshOnly}} mode, the next synchronization search operation
+In the {{EX:refreshOnly}} operation, the next synchronization search operation
 is periodically rescheduled at an interval time after each
 synchronization operation finishes. The interval is specified
 by the {{EX:interval}} parameter. It is set to one day by default.
-In the {{EX:refreshAndPersist}} mode, a synchronization search
+In the {{EX:refreshAndPersist}} operation, a synchronization search
 remains persistent in the provider slapd. Further updates to the
-master replica will generate searchResultEntry to the consumer slapd
+master replica will generate {{EX:searchResultEntry}} to the consumer slapd
 as the search responses to the persistent synchronization search.
 
 The schema checking can be enforced at the LDAP Sync consumer site
-by turning on the {{EX:schemachecking}} parameter. The default is off.
+by turning on the {{EX:schemachecking}} parameter.
+If it is turned on, every replicated entry will be checked for its
+schema as the entry is stored into the replica content.
+Every entry in the replica should contain those attributes
+required by the schema definition.
+If it is turned off, entries will be stored without checking
+schema conformance. The default is off.
 
-The {{EX:updatedn}} paramter specifies the DN in the consumer site
+The {{EX:updatedn}} parameter specifies the DN in the consumer site
 which is allowed to make changes to the replica. This DN is used
 locally by the syncrepl engine when updating the replica with
 the entries received from the provider site by using the
@@ -561,6 +541,36 @@ See the {{SECT:LDAP Sync Replication}} chapter of the admin guide
 for more information on how to use this directive.
 
 
+H4: updatedn <DN>
+
+This directive is only applicable in a slave slapd. It specifies
+the DN allowed to make changes to the replica.  This may be the DN
+{{slurpd}}(8) binds as when making changes to the replica or the DN
+associated with a SASL identity.
+
+Entry-based Example:
+
+>	updatedn "cn=Update Daemon,dc=example,dc=com"
+
+SASL-based Example:
+
+>	updatedn "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
+
+See the {{SECT:Replication with slurpd}} chapter for more information
+on how to use this directive.
+
+H4: updateref <URL>
+
+This directive is only applicable in a slave slapd. It
+specifies the URL to return to clients which submit update
+requests upon the replica.
+If specified multiple times, each {{TERM:URL}} is provided.
+
+\Example:
+
+>	updateref	ldap://master.example.net
+
+
 H3: BDB Database Directives
 
 Directives in this category only apply to a {{TERM:BDB}} database.
@@ -581,27 +591,28 @@ containing the database and associated indices live.
 
 H4: sessionlog <sid> <limit>
 
-This directive specifies a session log store in the provider site
-which contains the information on the entries which has been
-scoped out of the content of the {{EX:<sid>}} replication session.
+This directive specifies a session log store in the syncrepl 
+replication provider site which contains information on
+the entries that have been scoped out of the content of the
+replication session identified by {{EX:<sid>}}.
 The first syncrepl search request having the same sid value in the
 cookie establishes the session log store in the provider site.
 The number of the entries in the session log store is limited
 by {{EX:<limit>}}. Excessive entries are removed from the store
-in the FIFO order. Both {{EX:<sid>}} and {{EX:<limit>}} are integers.
-{{EX:<sid>}} has no more than three digits.
+in the FIFO order. Both {{EX:<sid>}} and {{EX:<limit>}} are
+non-negative integers. {{EX:<sid>}} has no more than three digits.
 
-The LDAP Content Synchronization operation of a pre-existing
+The LDAP Content Synchronization operation that falls into a pre-existing
 session uses the session log store in order to reduce the amount
 of synchronization traffic. If the replica is not so outdated that
 it can be made up-to-date by the information in the session store,
-the provider slapd will send the in-scope entries added to or modified
-within the replication content together with the identities of the
-scoped-out entries to the consumer slapd. If the replica status is
+the provider slapd will send the consumer slapd the identities of the
+scoped-out entries together with the in-scope entries added to or
+modified within the replication content. If the replica status is
 beyond the coverage of the history store, then the provider slapd will
-send the changed in-scope entries together with the identities of the
-unchanged in-scope entries. The consumer slapd will then remove those
-entries in the replica which is not identified as present in the
+send the identities of the unchanged in-scope entries along with the
+changed in-scope entries. The consumer slapd will then remove those
+entries in the replica which are not identified as present in the
 master content.
 
 An access control mechanism is to be further provided to
