@@ -17,8 +17,9 @@ VPATH = @srcdir@
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 
+ldap_subdir = @ldap_subdir@
 bindir = @bindir@
-datadir = @datadir@/@ldap_subdir@
+datadir = @datadir@/$(ldap_subdir)
 includedir = @includedir@
 infodir = @infodir@
 libdir = @libdir@
@@ -27,7 +28,7 @@ localstatedir = @localstatedir@
 mandir = @mandir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
-sysconfdir = @sysconfdir@/@ldap_subdir@
+sysconfdir = @sysconfdir@/$(ldap_subdir)
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@

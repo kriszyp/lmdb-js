@@ -29,6 +29,14 @@ AC_SUBST(top_builddir)dnl
 ldap_subdir="openldap"
 AC_SUBST(ldap_subdir)dnl
 
+AC_ARG_WITH(subdir, [  --with-subdir=DIR change default subdirectory used for installs], [
+	if test "$withval" = "no"; then
+		ldap_subdir=""
+	elif test "$withval" != "yes"; then
+		ldap_subdir="$withval"
+	fi
+])dnl
+
 OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
