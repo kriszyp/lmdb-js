@@ -64,6 +64,9 @@ usage( void )
 "  -A         retrieve attribute names only (no values)\n"
 "  -b basedn  base dn for search\n"
 "  -E [!]<ctrl>[=<ctrlparam>] search controls (! indicates criticality)\n"
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+"             [!]domainScope              (domain scope)\n"
+#endif
 "             [!]mv=<filter>              (matched values filter)\n"
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 "             [!]pr=<size>                (paged results)\n"
@@ -72,15 +75,15 @@ usage( void )
 "             [!]subentries[=true|false]  (subentries)\n"
 #endif
 #ifdef LDAP_CLIENT_UPDATE
-"             [!]lcup= p/<cint>/<cookie>/<slimit>  (client update)\n"
+"             [!]lcup=p/<cint>/<cookie>/<slimit> (LDAP client update)\n"
 /*
- * "                      s/<cint>/<cookie>  (client update)\n"
+ * "                      s/<cint>/<cookie>  (LDAP client update)\n"
  * "                     sp/<cint>/<cookie>/<slimit>\n"
  * */
 #endif
 #ifdef LDAP_SYNC
-"             [!]sync= ro[/<cookie>] (ldap sync - refreshOnly)\n"
-"                      rp[/<cookie>][/<slimit>] (ldap sync - refreshAndPersist)\n"
+"             [!]sync=ro[/<cookie>]            (LDAP Sync refreshOnly)\n"
+"                     rp[/<cookie>][/<slimit>] (LDAP Sync refreshAndPersist)\n"
 #endif
 "  -F prefix  URL prefix for files (default: %s)\n"
 "  -l limit   time limit (in seconds) for search\n"
@@ -152,6 +155,10 @@ static int  includeufn, vals2tmp = 0, ldif = 0;
 
 static int subentries = 0, valuesReturnFilter = 0;
 static char	*vrFilter = NULL;
+
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+static int domainScope = 0;
+#endif
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 static int lcup = 0;
@@ -288,6 +295,21 @@ handle_private_option( int i )
 			pageSize = (ber_int_t) tmp;
 			pagedResults = 1 + crit;
 
+#endif
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+		} else if ( strcasecmp( control, "domainScope" ) == 0 ) {
+			if( domainScope ) {
+				fprintf( stderr,
+					"domainScope control previously specified\n");
+				exit( EXIT_FAILURE );
+			}
+			if( cvalue != NULL ) {
+				fprintf( stderr,
+			         "domainScope: no control value expected\n" );
+				usage();
+			}
+
+			domainScope = 1 + crit;
 #endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
@@ -609,6 +631,9 @@ main( int argc, char **argv )
 
 getNextPage:
 	if ( manageDSAit || noop || subentries || valuesReturnFilter
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+			|| domainScope
+#endif
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 			|| pageSize
 #endif
@@ -621,7 +646,17 @@ getNextPage:
 			) {
 		int err;
 		int i=0;
-		LDAPControl c[3];
+		LDAPControl c[6];
+
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+	if ( domainScope ) {
+		c[i].ldctl_oid = LDAP_CONTROL_X_DOMAIN_SCOPE;
+		c[i].ldctl_value.bv_val = NULL;
+		c[i].ldctl_value.bv_len = 0;
+		c[i].ldctl_iscritical = domainScope > 1;
+		i++;
+	}
+#endif
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		if ( subentries ) {

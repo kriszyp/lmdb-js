@@ -653,7 +653,7 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 	int i = 0, j, crit = 0, err;
 	LDAPControl c[3], **ctrls;
 
-	ctrls = (LDAPControl **)malloc( sizeof(c) + (count + 1)*sizeof(LDAPControl *) );
+	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
 		fprintf( stderr, "No memory\n" );
 		exit( EXIT_FAILURE );
