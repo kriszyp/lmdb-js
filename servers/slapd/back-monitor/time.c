@@ -95,7 +95,7 @@ monitor_subsys_time_init(
 	local_time( tms, -timezone, tmbuf, sizeof( tmbuf ) );
 #else /* !HACK_LOCAL_TIME */
 	tms = gmtime( &starttime );
-	strftime( tmbuf, sizeof(tmbuf), "%Y%m%d%H%M%SZ", tms );
+	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
 #endif /* !HACK_LOCAL_TIME */
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 	snprintf( buf, sizeof( buf ),
@@ -251,7 +251,7 @@ monitor_subsys_time_update(
 		local_time( stm, -timezone, stmbuf, sizeof( stmbuf ) );
 #else /* !HACK_LOCAL_TIME */
 		stm = gmtime( &starttime );
-		strftime( stmbuf, sizeof( stmbuf ), "%Y%m%d%H%M%SZ", stm );
+		lutil_gentime( stmbuf, sizeof( stmbuf ), stm );
 #endif /* !HACK_LOCAL_TIME */
 	}
 
@@ -262,7 +262,7 @@ monitor_subsys_time_update(
 		local_time( ctm, -timezone, ctmbuf, sizeof( ctmbuf ) );
 #else /* !HACK_LOCAL_TIME */
 		ctm = gmtime( &currentTime );
-		strftime( ctmbuf, sizeof( ctmbuf ), "%Y%m%d%H%M%SZ", ctm );
+		lutil_gentime( ctmbuf, sizeof( ctmbuf ), ctm );
 #endif /* !HACK_LOCAL_TIME */
 	}
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );

@@ -292,10 +292,10 @@ conn_create(
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	
 	ltm = gmtime( &c->c_starttime );
-	strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+	lutil_gentime( buf2, sizeof(buf2), ltm );
 			
 	ltm = gmtime( &c->c_activitytime );
-	strftime( buf3, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+	lutil_gentime( buf3, sizeof(buf2), ltm );
 			
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 

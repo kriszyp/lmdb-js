@@ -563,7 +563,7 @@ int slap_mods_opattrs(
 
 		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 		ltm = gmtime( &now );
-		strftime( timebuf, sizeof(timebuf), "%Y%m%d%H%M%SZ", ltm );
+		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 
 		csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), 0, 0 );
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
