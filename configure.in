@@ -1669,6 +1669,7 @@ AC_REPLACE_FUNCS(getopt tempnam)
 
 dnl ----------------------------------------------------------------
 # Check Configuration
+OL_SYS_EBCDIC
 OL_SYS_ERRLIST
 
 dnl ----------------------------------------------------------------

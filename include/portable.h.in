@@ -663,6 +663,9 @@
 /* define if cross compiling */
 #undef CROSS_COMPILING
 
+/* define if system uses EBCDIC instead of ASCII */
+#undef HAVE_EBCDIC
+
 /* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 

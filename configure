@@ -10016,14 +10016,58 @@ done
 
 # Check Configuration
 
+echo $ac_n "checking for EBCDIC""... $ac_c" 1>&6
+echo "configure:10021: checking for EBCDIC" >&5
+if eval "test \"`echo '$''{'ol_cv_sys_ebcdic'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	if test "$cross_compiling" = yes; then
+    { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
+else
+  cat > conftest.$ac_ext <<EOF
+#line 10030 "configure"
+#include "confdefs.h"
+
+main()
+{
+	if ('M' == 0xd4)
+		exit(1);
+	else
+		exit(0);
+}
+EOF
+if { (eval echo configure:10041: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+then
+  ol_cv_sys_ebcdic=no
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -fr conftest*
+  ol_cv_sys_ebcdic=yes
+fi
+rm -fr conftest*
+fi
+
+fi
+
+echo "$ac_t""$ol_cv_sys_ebcdic" 1>&6
+if test $ol_cv_sys_ebcdic != no ; then
+	cat >> confdefs.h <<\EOF
+#define HAVE_EBCDIC 1
+EOF
+
+fi
+
+
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:10021: checking declaration of sys_errlist" >&5
+echo "configure:10065: checking declaration of sys_errlist" >&5
 if eval "test \"`echo '$''{'ol_cv_dcl_sys_errlist'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 10027 "configure"
+#line 10071 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -10033,7 +10077,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:10037: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:10081: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 else
@@ -10053,20 +10097,20 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 EOF
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:10057: checking existence of sys_errlist" >&5
+echo "configure:10101: checking existence of sys_errlist" >&5
 	if eval "test \"`echo '$''{'ol_cv_have_sys_errlist'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 10063 "configure"
+#line 10107 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:10070: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10114: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else
@@ -10090,13 +10134,13 @@ fi
 
 
 echo $ac_n "checking strdup declaration""... $ac_c" 1>&6
-echo "configure:10094: checking strdup declaration" >&5
+echo "configure:10138: checking strdup declaration" >&5
 if eval "test \"`echo '$''{'ol_cv_dcl_strdup'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 10100 "configure"
+#line 10144 "configure"
 #include "confdefs.h"
 
 #include <string.h> 
@@ -10104,7 +10148,7 @@ int main() {
 extern char *strdup();
 ; return 0; }
 EOF
-if { (eval echo configure:10108: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:10152: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_strdup=yes
 else

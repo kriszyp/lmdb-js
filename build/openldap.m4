@@ -394,6 +394,28 @@ fi
 ])
 dnl
 dnl ====================================================================
+dnl Check if system uses EBCDIC instead of ASCII
+AC_DEFUN([OL_SYS_EBCDIC],
+[
+AC_MSG_CHECKING([for EBCDIC])
+AC_CACHE_VAL(ol_cv_sys_ebcdic,[
+	AC_TRY_RUN([
+main()
+{
+	if ('M' == 0xd4)
+		exit(1);
+	else
+		exit(0);
+}],
+	[ol_cv_sys_ebcdic=no],
+	[ol_cv_sys_ebcdic=yes])])
+AC_MSG_RESULT($ol_cv_sys_ebcdic)
+if test $ol_cv_sys_ebcdic != no ; then
+	AC_DEFINE(HAVE_EBCDIC,1, [define if system uses EBCDIC instead of ASCII])
+fi
+])
+dnl
+dnl ====================================================================
 dnl Check for declaration of sys_errlist in one of stdio.h and errno.h.
 dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
 dnl Reported by Keith Bostic.
