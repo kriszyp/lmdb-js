@@ -221,6 +221,12 @@ LDAP_LUTIL_F( int ) getpeereid( int s, uid_t *, gid_t * );
 # ifndef INFTIM
 #  define INFTIM (-1)
 # endif
+#undef POLL_OTHER
+#define POLL_OTHER   (POLLERR|POLLHUP)
+#undef POLL_READ
+#define POLL_READ    (POLLIN|POLLPRI|POLL_OTHER)
+#undef POLL_WRITE              
+#define POLL_WRITE   (POLLOUT|POLL_OTHER)
 #endif
 
 #endif /* _AC_SOCKET_H_ */

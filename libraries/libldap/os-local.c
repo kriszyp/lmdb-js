@@ -223,7 +223,7 @@ sendcred:
 		if( opt_tv != NULL ) timeout = TV2MILLISEC( &tv );
 
 		fd.fd = s;
-		fd.events = POLLOUT;
+		fd.events = POLL_WRITE;
 
 		do {
 			fd.revents = 0;
@@ -233,7 +233,7 @@ sendcred:
 
 		if( rc == AC_SOCKET_ERROR ) return rc;
 
-		if( fd.revents & POLLOUT ) {
+		if( fd.revents & POLL_WRITE ) {
 			if ( ldap_pvt_is_socket_ready(ld, s) == -1 ) return -1;
 			if ( ldap_pvt_ndelay_off(ld, s) == -1 ) return -1;
 #ifdef DO_SENDMSG
