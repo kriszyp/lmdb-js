@@ -2507,7 +2507,7 @@ if test "$ol_enable_slapi" != no ; then
 	fi
 	AC_CHECK_LIB(ltdl, lt_dlinit, [
 		SLAPI_LIBS=-lltdl
-		LIBSLAPI=./libslapi.a
+		LIBSLAPI=libslapi.a
 		LIBSLAPITOOLS=../libslapi.a
 		AC_DEFINE(HAVE_LIBLTDL,1,[define if you have libtool -ltdl])
 	],[AC_MSG_ERROR([could not locate libtool -lltdl])])

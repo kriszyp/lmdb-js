@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.476 2003/05/23 03:22:44 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.477 2003/05/23 03:27:34 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -23009,7 +23009,7 @@ if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
   
 		SLAPI_LIBS=-lltdl
-		LIBSLAPI=./libslapi.a
+		LIBSLAPI=libslapi.a
 		LIBSLAPITOOLS=../libslapi.a
 		cat >> confdefs.h <<\EOF
 #define HAVE_LIBLTDL 1

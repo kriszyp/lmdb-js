@@ -230,7 +230,7 @@ libslapi.a: .slapi
 	(cd slapi; $(MAKE) $(MFLAGS) all)
 	cp slapi/.libs/libslapi.a .
 
-.slapi: $(SLAPD_OBJECTS)
+.slapi: FORCE
 	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
 	(cd slapi; $(MAKE) $(MFLAGS) all)
 
