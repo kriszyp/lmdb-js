@@ -328,6 +328,7 @@ at_add(
 	}
 
 	code = at_insert(sat,err);
+	return code;
 }
 
 #ifdef LDAP_DEBUG
