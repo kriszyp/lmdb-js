@@ -43,10 +43,10 @@ rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
 
 install-local:	$(PROGRAMS)
-	@-$(MKDIR) $(DESTDIR)$(moduledir)
-	@for i in $? ; do \
-		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$i $(DESTDIR)$(moduledir);\
-	done
+	@if test -n "$?" ; then \
+		$(MKDIR) $(DESTDIR)$(moduledir); \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $? $(DESTDIR)$(moduledir);\
+	fi
 
 MKDEPFLAG = -l
 
