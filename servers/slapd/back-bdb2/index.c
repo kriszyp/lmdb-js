@@ -38,7 +38,11 @@ bdb2i_index_add_entry(
 	bvals[1] = NULL;
 
 	/* add the dn to the indexes */
-	bdb2i_index_add_values( be, "dn", bvals, e->e_id );
+	{
+		char *dn = ch_strdup( "dn" );
+		bdb2i_index_add_values( be, dn, bvals, e->e_id );
+		free( dn );
+	}
 
 	free( bv.bv_val );
 
