@@ -880,7 +880,7 @@ void connection_done( Connection *c )
 static void *
 connection_operation( void *ctx, void *arg_v )
 {
-	int rc;
+	int rc = SLAPD_DISCONNECT;
 	Operation *op = arg_v;
 	SlapReply rs = {REP_RESULT};
 	ber_tag_t tag = op->o_tag;
