@@ -395,6 +395,9 @@
 /* Define if you have the tempnam function.  */
 #undef HAVE_TEMPNAM
 
+/* Define if you have the thr_getconcurrency function.  */
+#undef HAVE_THR_GETCONCURRENCY
+
 /* Define if you have the thr_setconcurrency function.  */
 #undef HAVE_THR_SETCONCURRENCY
 

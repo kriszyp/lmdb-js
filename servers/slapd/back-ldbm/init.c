@@ -19,9 +19,8 @@ ldbm_back_init(
 	char		*argv[ 4 ];
 	int		i;
 
-#ifdef HAVE_BERKELEY_DB2
-	extern pthread_mutex_t   dbEnvInit_mutex;
-#endif
+	/* initialize the underlying database system */
+	ldbm_initialize();
 
 	/* allocate backend-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
@@ -77,15 +76,6 @@ ldbm_back_init(
 	pthread_mutex_init( &li->li_nextid_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &li->li_dbcache_mutex, pthread_mutexattr_default );
 	pthread_cond_init( &li->li_dbcache_cv, pthread_condattr_default );
-	for ( i = 0; i < MAXDBCACHE; i++ ) {
-		pthread_mutex_init( &li->li_dbcache[i].dbc_mutex,
-		    pthread_mutexattr_default );
-		pthread_cond_init( &li->li_dbcache[i].dbc_cv,
-		    pthread_condattr_default );
-	}
-#ifdef HAVE_BERKELEY_DB2
-	pthread_mutex_init( &dbEnvInit_mutex, pthread_mutexattr_default );
-#endif
 
 	be->be_private = li;
 }

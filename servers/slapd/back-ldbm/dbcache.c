@@ -160,9 +160,7 @@ ldbm_cache_flush_all( Backend *be )
 		if ( li->li_dbcache[i].dbc_name != NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "ldbm flushing db (%s)\n",
 			    li->li_dbcache[i].dbc_name, 0, 0 );
-			pthread_mutex_lock( &li->li_dbcache[i].dbc_mutex );
 			ldbm_sync( li->li_dbcache[i].dbc_db );
-			pthread_mutex_unlock( &li->li_dbcache[i].dbc_mutex );
 		}
 	}
 	pthread_mutex_unlock( &li->li_dbcache_mutex );
@@ -178,23 +176,7 @@ ldbm_cache_fetch(
 
 	ldbm_datum_init( data );
 
-	pthread_mutex_lock( &db->dbc_mutex );
-#ifdef reentrant_database
-	/* increment reader count */
-	db->dbc_readers++
-	pthread_mutex_unlock( &db->dbc_mutex );
-#endif
-
 	data = ldbm_fetch( db->dbc_db, key );
-
-#ifdef reentrant_database
-	pthread_mutex_lock( &db->dbc_mutex );
-	/* decrement reader count & signal any waiting writers */
-	if ( --db->dbc_readers == 0 ) {
-		pthread_cond_signal( &db->dbc_cv );
-	}
-#endif
-	pthread_mutex_unlock( &db->dbc_mutex );
 
 	return( data );
 }
@@ -208,14 +190,6 @@ ldbm_cache_store(
 )
 {
 	int	rc;
-
-	pthread_mutex_lock( &db->dbc_mutex );
-#ifdef reentrant_database
-	/* wait for reader count to drop to zero */
-	while ( db->dbc_readers > 0 ) {
-		pthread_cond_wait( &db->dbc_cv, &db->dbc_mutex );
-	}
-#endif
 
 #ifdef LDBM_DEBUG
 	Statslog( LDAP_DEBUG_STATS,
@@ -237,8 +211,6 @@ ldbm_cache_store(
 
 	rc = ldbm_store( db->dbc_db, key, data, flags );
 
-	pthread_mutex_unlock( &db->dbc_mutex );
-
 	return( rc );
 }
 
@@ -250,17 +222,7 @@ ldbm_cache_delete(
 {
 	int	rc;
 
-	pthread_mutex_lock( &db->dbc_mutex );
-#ifdef reentrant_database
-	/* wait for reader count to drop to zero - then write */
-	while ( db->dbc_readers > 0 ) {
-		pthread_cond_wait( &db->dbc_cv, &db->dbc_mutex );
-	}
-#endif
-
 	rc = ldbm_delete( db->dbc_db, key );
-
-	pthread_mutex_unlock( &db->dbc_mutex );
 
 	return( rc );
 }

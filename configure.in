@@ -808,21 +808,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				ol_with_yielding_select=yes
 			fi
 
-			AC_CACHE_CHECK([for misplaced posix thread in headers],
-				[ol_cv_header_misplaced_pthreads], [
-				AC_TRY_COMPILE([
-#include <sys/types.h>
-typedef double pthread_t;
-				], [
-				pthread_t thread = 0.0;
-				],
-				[ol_cv_header_misplaced_pthreads=no],
-				[ol_cv_header_misplaced_pthreads=yes])
-			])
-
-			if test "$ol_cv_header_misplaced_pthreads" = yes ; then
-				AC_MSG_ERROR([pthread types are misplaced, use --with-threads=posix]);
-			fi
+			dnl Check for setconcurreny functions
+			AC_CHECK_FUNCS(	\
+				thr_setconcurrency \
+				thr_getconcurrency \
+			)
 		fi
 	fi
 
@@ -903,22 +893,6 @@ if test $ol_link_threads = no ; then
 	if test $ol_with_threads = auto ; then
 		AC_MSG_WARN([no suitable thread support, disabling threads])
 		ol_with_threads=no
-	fi
-
-	AC_CACHE_CHECK([for misplaced posix thread in headers],
-		[ol_cv_header_misplaced_pthreads], [
-		AC_TRY_COMPILE([
-#include <sys/types.h>
-typedef double pthread_t;
-			], [
-				pthread_t thread = 0.0;
-			],
-			[ol_cv_header_misplaced_pthreads=no],
-			[ol_cv_header_misplaced_pthreads=yes])
-	])
-
-	if test "$ol_cv_header_misplaced_pthreads" = yes ; then
-		AC_MSG_ERROR([pthread types are misplaced, use --with-threads=posix]);
 	fi
 
 	AC_DEFINE(NO_THREADS,1)

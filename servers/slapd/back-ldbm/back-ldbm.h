@@ -71,16 +71,13 @@ struct cache {
 
 /* for the cache of open index files */
 struct dbcache {
-	char		*dbc_name;
 	int		dbc_refcnt;
-	time_t		dbc_lastref;
-	pthread_mutex_t	dbc_mutex;
-	pthread_cond_t	dbc_cv;
-	int		dbc_readers;
-	long		dbc_blksize;
 	int		dbc_maxids;
 	int		dbc_maxindirect;
-	LDBM		dbc_db;
+	time_t	dbc_lastref;
+	long	dbc_blksize;
+	char	*dbc_name;
+	LDBM	dbc_db;
 };
 
 /* for the cache of attribute information (which are indexed, etc.) */
