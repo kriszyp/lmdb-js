@@ -395,8 +395,6 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	int		entry_sync_state = -1;
 	AttributeName	null_attr;
 	int		no_sync_state_change = 0;
-	struct slap_limits_set *limit = NULL;
-	int isroot = 0;
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
@@ -647,82 +645,8 @@ dn2entry_retry:
 		return 1;
 	}
 
-	/* if not root, get appropriate limits */
-	if ( be_isroot( op->o_bd, &sop->o_ndn ) ) {
-		isroot = 1;
-	} else {
-		( void ) get_limits( op, &sop->o_ndn, &limit );
-	}
-
-	/* The time/size limits come first because they require very little
-	 * effort, so there's no chance the candidates are selected and then 
-	 * the request is not honored only because of time/size constraints
-	 */
-
-	/* if no time limit requested, use soft limit (unless root!) */
-	if ( isroot ) {
-		if ( sop->oq_search.rs_tlimit == 0 ) {
-			sop->oq_search.rs_tlimit = -1;	/* allow root to set no limit */
-		}
-
-		if ( sop->oq_search.rs_slimit == 0 ) {
-			sop->oq_search.rs_slimit = -1;
-		}
-
-	} else {
-		/* if no limit is required, use soft limit */
-		if ( sop->oq_search.rs_tlimit <= 0 ) {
-			sop->oq_search.rs_tlimit = limit->lms_t_soft;
-
-		/* if requested limit higher than hard limit, abort */
-		} else if ( sop->oq_search.rs_tlimit > limit->lms_t_hard ) {
-			/* no hard limit means use soft instead */
-			if ( limit->lms_t_hard == 0
-					&& limit->lms_t_soft > -1
-					&& sop->oq_search.rs_tlimit > limit->lms_t_soft ) {
-				sop->oq_search.rs_tlimit = limit->lms_t_soft;
-
-			/* positive hard limit means abort */
-			} else if ( limit->lms_t_hard > 0 ) {
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_ldap_result( sop, rs );
-				rs->sr_err = LDAP_SUCCESS;
-				goto done;
-			}
-		
-			/* negative hard limit means no limit */
-		}
-		
-		/* if no limit is required, use soft limit */
-		if ( sop->oq_search.rs_slimit <= 0 ) {
-			if ( get_pagedresults(sop) && limit->lms_s_pr != 0 ) {
-				sop->oq_search.rs_slimit = limit->lms_s_pr;
-			} else {
-				sop->oq_search.rs_slimit = limit->lms_s_soft;
-			}
-
-		/* if requested limit higher than hard limit, abort */
-		} else if ( sop->oq_search.rs_slimit > limit->lms_s_hard ) {
-			/* no hard limit means use soft instead */
-			if ( limit->lms_s_hard == 0
-					&& limit->lms_s_soft > -1
-					&& sop->oq_search.rs_slimit > limit->lms_s_soft ) {
-				sop->oq_search.rs_slimit = limit->lms_s_soft;
-
-			/* positive hard limit means abort */
-			} else if ( limit->lms_s_hard > 0 ) {
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_ldap_result( sop, rs );
-				rs->sr_err = LDAP_SUCCESS;	
-				goto done;
-			}
-			
-			/* negative hard limit means no limit */
-		}
-	}
-
 	/* compute it anyway; root does not use it */
-	stoptime = op->o_time + sop->oq_search.rs_tlimit;
+	stoptime = op->o_time + sop->ors_tlimit;
 
 	/* need normalized dn below */
 	ber_dupbv( &realbase, &e->e_nname );
@@ -809,16 +733,18 @@ dn2entry_retry:
 	}
 
 	/* if not root and candidates exceed to-be-checked entries, abort */
-	if ( !isroot && limit->lms_s_unchecked != -1 ) {
-		if ( BDB_IDL_N(candidates) > (unsigned) limit->lms_s_unchecked ) {
-			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-			send_ldap_result( sop, rs );
-			rs->sr_err = LDAP_SUCCESS;
-			goto done;
-		}
+	if ( sop->ors_limit	/* isroot == TRUE */
+			&& sop->ors_limit->lms_s_unchecked != -1
+			&& BDB_IDL_N(candidates) > (unsigned) sop->ors_limit->lms_s_unchecked )
+	{
+		rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+		send_ldap_result( sop, rs );
+		rs->sr_err = LDAP_SUCCESS;
+		goto done;
 	}
 
-	if ( isroot || !limit->lms_s_pr_hide ) {
+	if ( sop->ors_limit == NULL	/* isroot == FALSE */
+			|| !sop->ors_limit->lms_s_pr_hide ) {
 		tentries = BDB_IDL_N(candidates);
 	}
 
@@ -943,7 +869,7 @@ loop_begin:
 		}
 
 		/* check time limit */
-		if ( sop->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
+		if ( sop->ors_tlimit != -1 && slap_get_time() > stoptime ) {
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			rs->sr_ref = rs->sr_v2ref;
 			send_ldap_result( sop, rs );
@@ -1172,7 +1098,7 @@ id2entry_retry:
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
-            if ( --sop->oq_search.rs_slimit == -1 &&
+            if ( --sop->ors_slimit == -1 &&
 				sop->o_sync_slog_size == -1 )
 			{
 				if (!IS_PSEARCH) {

@@ -1570,6 +1570,8 @@ typedef struct req_search_s {
 	int rs_deref;
 	int rs_slimit;
 	int rs_tlimit;
+	/* NULL means be_isroot evaluated to TRUE */
+	struct slap_limits_set *rs_limit;
 	int rs_attrsonly;
 	AttributeName *rs_attrs;
 	Filter *rs_filter;
@@ -1965,6 +1967,7 @@ typedef struct slap_op {
 #define ors_deref oq_search.rs_deref
 #define ors_slimit oq_search.rs_slimit
 #define ors_tlimit oq_search.rs_tlimit
+#define ors_limit oq_search.rs_limit
 #define ors_attrsonly oq_search.rs_attrsonly
 #define ors_attrs oq_search.rs_attrs
 #define ors_filter oq_search.rs_filter
