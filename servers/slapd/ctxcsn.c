@@ -157,31 +157,21 @@ slap_create_context_csn_entry(
 	ber_str2bv( "subentry", strlen("subentry"), 1, &ocbva[1] );
 	ber_str2bv( "syncProviderSubentry",
 			strlen("syncProviderSubentry"), 1, &ocbva[2] );
-	ocbva[3].bv_len = 0;
-	ocbva[3].bv_val = NULL;
 
-	mod = (Modifications *) ch_malloc( sizeof( Modifications ));
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_next = NULL;
-	mod->sml_desc = NULL;
 	ber_str2bv( "objectClass", strlen("objectClass"), 1, &mod->sml_type );
 	mod->sml_bvalues = ocbva;
-	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
 	ber_str2bv( "syncProviderSubentry",
 			strlen("syncProviderSubentry"), 1, &socbva[0] );
-	socbva[1].bv_len = 0;
-	socbva[1].bv_val = NULL;
 
-	mod = (Modifications *) ch_malloc( sizeof( Modifications ));
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_next = NULL;
-	mod->sml_desc = NULL;
 	ber_str2bv( "structuralObjectClass", strlen("structuralObjectClass"), 1, &mod->sml_type );
 	mod->sml_bvalues = socbva;
-	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -189,44 +179,29 @@ slap_create_context_csn_entry(
 	sprintf( rdnstr, "cn=%s", substr );
 	ber_str2bv( substr, strlen( substr ), 1, &cnbva[0] );
 	ber_str2bv( rdnstr, strlen( rdnstr ), 1, &psubrdn );
-	cnbva[1].bv_len = 0;
-	cnbva[1].bv_val = NULL;
-	mod = (Modifications *) ch_malloc( sizeof( Modifications ));
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_next = NULL;
-	mod->sml_desc = NULL;
 	ber_str2bv( "cn", strlen("cn"), 1, &mod->sml_type );
 	mod->sml_bvalues = cnbva;
-	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
 	if ( context_csn ) {
 		ber_dupbv( &scbva[0], context_csn );
-		scbva[1].bv_len = 0;
-		scbva[1].bv_val = NULL;
-		mod = (Modifications *) ch_malloc( sizeof( Modifications ));
+		mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 		mod->sml_op = LDAP_MOD_REPLACE;
-		mod->sml_next = NULL;
-		mod->sml_desc = NULL;
 		ber_str2bv( "contextCSN", strlen("contextCSN"), 1, &mod->sml_type );
 		mod->sml_bvalues = scbva;
-		mod->sml_nvalues = NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}
 
 	ber_str2bv( "{}", strlen("{}"), 1, &ssbva[0] );
-	ssbva[1].bv_len = 0;
-	ssbva[1].bv_val = NULL;
-	mod = (Modifications *) ch_malloc( sizeof( Modifications ));
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	mod->sml_next = NULL;
-	mod->sml_desc = NULL;
 	ber_str2bv( "subtreeSpecification",
 			strlen("subtreeSpecification"), 1, &mod->sml_type );
 	mod->sml_bvalues = ssbva;
-	mod->sml_nvalues = NULL;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -288,7 +263,7 @@ slap_contextcsn_callback(
 int
 slap_get_csn(
 	Operation *op,
-	const char *csnbuf,
+	char *csnbuf,
 	int	len,
 	struct berval *csn,
 	int manage_ctxcsn
