@@ -1287,6 +1287,12 @@ typedef BackendDB Backend;
 #define nbackends nBackendDB
 #define backends backendDB
 
+/*
+ * syncinfo structure for syncrepl
+ */
+
+#define SLAP_SYNC_SID_SIZE	3
+
 struct nonpresent_entry {
 	struct berval *npe_name;
 	struct berval *npe_nname;
@@ -1299,9 +1305,6 @@ struct sync_cookie {
 	struct berval *octet_str;
 };
 
-/*
- * syncinfo structure for syncrepl
- */
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
         unsigned int		si_id;

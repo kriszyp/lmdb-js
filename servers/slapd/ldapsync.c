@@ -356,8 +356,10 @@ slap_parse_sync_cookie(
 {
 	char *csn_ptr;
 	char *csn_str;
+	char *csn_str_val;
 	char *sid_ptr;
 	char *sid_str;
+	char *sid_str_val;
 	char *cval;
 	struct berval *ctxcsn;
 
@@ -365,11 +367,12 @@ slap_parse_sync_cookie(
 		return -1;
 
 	if (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
-		csn_str = (char *) strndup( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
+		csn_str = (char *) SLAP_STRNDUP( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
+		csn_str_val = csn_str + sizeof("csn=") - 1;
 		if ( cval = strchr( csn_str, ',' )) {
 			*cval = '\0';
 		}
-		ctxcsn = ber_str2bv( csn_str + 4, strlen(csn_str) - 4, 1, NULL );
+		ctxcsn = ber_str2bv( csn_str_val, strlen(csn_str_val), 1, NULL );
 		ch_free( csn_str );
 		ber_bvarray_add( &cookie->ctxcsn, ctxcsn );
 		ch_free( ctxcsn );
@@ -378,11 +381,13 @@ slap_parse_sync_cookie(
 	}
 
 	if (( sid_ptr = strstr( cookie->octet_str->bv_val, "sid=" )) != NULL ) {
-		sid_str = (char *) strndup( sid_ptr, 7 );
+		sid_str = (char *) SLAP_STRNDUP( sid_ptr,
+							SLAP_SYNC_SID_SIZE + sizeof("sid=") - 1 );
+		sid_str_val = sid_str + sizeof("sid=") - 1;
 		if ( cval = strchr( sid_str, ',' )) {
 			*cval = '\0';
 		}
-		cookie->sid = atoi( sid_str+4 );
+		cookie->sid = atoi( sid_str_val );
 		ch_free( sid_str );
 	} else {
 		cookie->sid = -1;
