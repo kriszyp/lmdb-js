@@ -679,15 +679,15 @@ been written:
 .fi
 .LP
 with the advantage of saving one rewrite pass ...)
-.SH PROXY CACHE EXTENSION
-The proxy cache extension to 
-.B meta 
-backend allows caching of LDAP search requests (queries). For an incoming query, the
+.SH PROXY CACHE OVERLAY
+The proxy cache overlay 
+allows caching of LDAP search requests (queries) in a local database.
+For an incoming query, the
 proxy cache determines its corresponding \fBtemplate\fP. If the template was
-specified as cacheable using the \fBaddtemplate\fP directive and the request is
+specified as cacheable using the \fBproxytemplate\fP directive and the request is
 contained in a cached request, it is answered from the proxy cache. Otherwise,
-the proxy cache obtains and caches results from target(s) specified by the
-\fBuri\fP directive. 
+the search is performed as usual and cacheable search results are saved in the
+cache for use in future queries.
 .LP
 
 A template is defined by a filter string and an index identifying a set of
@@ -700,28 +700,39 @@ projected attributes correspond to a cacheable template. Examples of template st
 The following cache specific directives can be used to configure the proxy
 cache: 
 .TP
-.B cacheparams <lo_thresh> <hi_thresh> <numattrsets> <max_entries> <cc_period> 
-The directive enables proxy caching in the \fBmeta\fP backend and sets general
-cache parameters. Cache replacement is invoked when the cache size crosses the 
-<hi_thresh> bytes and continues till the cache size is greater than <lo_thresh>
-bytes. <numattrsets> should be equal to the number of following \fBattrset\fP
+.B overlay proxycache
+This directive adds the proxycache overlay to the current backend. The
+proxycache overlay may be used with any backend but is intended for use
+with the
+.B ldap
+and
+.B meta
+backends.
+.TP
+.B proxycache <database> <max_entries> <numattrsets> <entry_limit> <cc_period> 
+The directive enables proxy caching in the current backend and sets general
+cache parameters. A <database> backend will be used internally to maintain
+the cached entries. The chosen database will need to be configured as well,
+as shown below. Cache replacement is invoked when the cache size grows to 
+<max_entries> entries and continues till the cache size drops below this size.
+<numattrsets> should be equal to the number of following \fBproxyattrset\fP
 directives. Queries are cached only if they correspond to a cacheable template
-(specified by the \fBaddtemplate\fP directive) and the number of entries
-returned is less than <max_entries>. Consistency check is performed every
+(specified by the \fBproxytemplate\fP directive) and the number of entries
+returned is less than <entry_limit>. Consistency check is performed every
 <cc_period> duration (specified in secs). In each cycle queries with expired
 "time to live(\fBTTL\fP)" are removed. A sample cache configuration is: 
 .LP
 .RS
-cacheparams \fB10000 150000 1 50 100\fP
+proxycache \fBbdb 10000 1 50 100\fP
 .RE
 .TP
-.B attrset <index> <attrs...>
+.B proxyattrset <index> <attrs...>
 Used to associate a set of attributes <attrs..> with an <index>. Each attribute
 set is associated with an integer from 0 to <numattrsets>-1. These indices are
-used by the \fBaddtemplate\fP directive to define cacheable templates. 
+used by the \fBproxytemplate\fP directive to define cacheable templates. 
 
 .TP
-.B addtemplate <template_string> <attrset_index> <ttl> 
+.B proxytemplate <template_string> <attrset_index> <ttl> 
 Specifies a cacheable template and "time to live" (in sec) <ttl> of queries 
 belonging to the template. 
 
@@ -730,10 +741,22 @@ The following adds a template with filter string (&sn=)(givenName=)) and attribu
 .LP
 .RS
 .nf
-attrset \fB0 mail postaladdress telephonenumber\fP
-addtemplate \fB(&(sn=)(givenName=)) 0 3600\fP
+proxyattrset \fB0 mail postaladdress telephonenumber\fP
+proxytemplate \fB(&(sn=)(givenName=)) 0 3600\fP
 .fi
 .RE
+.LP
+Directives for configuring the underlying database must also be given, as
+shown here:
+.LP
+.RS
+.nf
+directory /var/tmp/cache
+cachesize 100
+.fi
+.RE
+.LP
+Any valid directives for the chosen database type may be used.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
