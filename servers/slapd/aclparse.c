@@ -62,6 +62,11 @@ static void		print_acl(Backend *be, AccessControl *a);
 static void		print_access(Access *b);
 #endif
 
+#ifdef LDAP_DEVEL
+static int
+check_scope( BackendDB *be, AccessControl *a );
+#endif /* LDAP_DEVEL */
+
 static void
 regtest(const char *fname, int lineno, char *pat) {
 	int e;
@@ -115,6 +120,127 @@ regtest(const char *fname, int lineno, char *pat) {
 	}
 	regfree(&re);
 }
+
+#ifdef LDAP_DEVEL
+
+/*
+ * Experimental
+ *
+ * Check if the pattern of an ACL, if any, matches the scope
+ * of the backend it is defined within.
+ */
+#define	ACL_SCOPE_UNKNOWN	(-2)
+#define	ACL_SCOPE_ERR		(-1)
+#define	ACL_SCOPE_OK		(0)
+#define	ACL_SCOPE_PARTIAL	(1)
+#define	ACL_SCOPE_WARN		(2)
+
+static int
+check_scope( BackendDB *be, AccessControl *a )
+{
+	int		patlen;
+	struct berval	dn;
+
+	dn = be->be_nsuffix[ 0 ];
+
+	if ( a->acl_dn_pat.bv_len || ( a->acl_dn_style != ACL_STYLE_REGEX ) ) {
+		slap_style_t	style = a->acl_dn_style;
+
+		if ( style == ACL_STYLE_REGEX ) {
+			char	dnbuf[ SLAP_LDAPDN_MAXLEN + 2 ];
+			char	rebuf[ SLAP_LDAPDN_MAXLEN + 1 ];
+			regex_t	re;
+			int	rc;
+			
+			/* add trailing '$' */
+			AC_MEMCPY( dnbuf, be->be_nsuffix[ 0 ].bv_val,
+					be->be_nsuffix[ 0 ].bv_len );
+			dnbuf[ be->be_nsuffix[ 0 ].bv_len ] = '$';
+			dnbuf[ be->be_nsuffix[ 0 ].bv_len + 1 ] = '\0';
+
+			if ( regcomp( &re, dnbuf, REG_EXTENDED|REG_ICASE ) ) {
+				return ACL_SCOPE_WARN;
+			}
+
+			/* remove trailing '$' */
+			AC_MEMCPY( rebuf, a->acl_dn_pat.bv_val,
+					a->acl_dn_pat.bv_len + 1 );
+			if ( a->acl_dn_pat.bv_val[ a->acl_dn_pat.bv_len - 1 ] == '$' ) {
+				rebuf[ a->acl_dn_pat.bv_len - 1 ] = '\0';
+			}
+
+			/* not a clear indication of scoping error, though */
+			rc = regexec( &re, rebuf, 0, NULL, 0 )
+				? ACL_SCOPE_WARN : ACL_SCOPE_OK;
+
+			regfree( &re );
+
+			return rc;
+		}
+
+		patlen = a->acl_dn_pat.bv_len;
+		/* If backend suffix is longer than pattern,
+		 * it is a potential mismatch (in the sense
+		 * that a superior naming context could
+		 * match */
+		if ( dn.bv_len > patlen ) {
+			/* base is blatantly wrong */
+			if ( style == ACL_STYLE_BASE ) {
+				return ACL_SCOPE_ERR;
+			}
+
+			/* one can be wrong if there is more
+			 * than one level between the suffix
+			 * and the pattern */
+			if ( style == ACL_STYLE_ONE ) {
+				int	rdnlen = -1, sep = 0;
+
+				if ( patlen > 0 ) {
+					if ( !DN_SEPARATOR( dn.bv_val[ dn.bv_len - patlen - 1 ] ) )
+						return ACL_SCOPE_ERR;
+					sep = 1;
+				}
+
+				rdnlen = dn_rdnlen( NULL, &dn );
+				if ( rdnlen != dn.bv_len - patlen - sep )
+					return ACL_SCOPE_ERR;
+			}
+
+			/* if the trailing part doesn't match,
+			 * then it's an error */
+			if ( strcmp( a->acl_dn_pat.bv_val, &dn.bv_val[ dn.bv_len - patlen ] ) != 0 ) {
+				return ACL_SCOPE_ERR;
+			}
+
+			return ACL_SCOPE_PARTIAL;
+		}
+
+		switch ( style ) {
+		case ACL_STYLE_BASE:
+		case ACL_STYLE_ONE:
+		case ACL_STYLE_CHILDREN:
+		case ACL_STYLE_SUBTREE:
+			break;
+
+		default:
+			assert( 0 );
+			break;
+		}
+
+		if ( dn.bv_len < patlen && !DN_SEPARATOR( a->acl_dn_pat.bv_val[ patlen -dn.bv_len - 1 ] ) ) {
+			return ACL_SCOPE_ERR;
+		}
+
+		if ( strcmp( &a->acl_dn_pat.bv_val[ patlen - dn.bv_len ], dn.bv_val ) != 0 ) {
+			return ACL_SCOPE_ERR;
+		}
+
+		return ACL_SCOPE_OK;
+	}
+
+	return ACL_SCOPE_UNKNOWN;
+}
+#endif /* LDAP_DEVEL */
 
 void
 parse_acl(
@@ -1367,6 +1493,44 @@ parse_acl(
 		}
 
 		if ( be != NULL ) {
+#ifdef LDAP_DEVEL
+			switch ( check_scope( be, a ) ) {
+			case ACL_SCOPE_UNKNOWN:
+				fprintf( stderr, "%s: line %d: warning: "
+						"cannot assess the validity "
+						"of the ACL scope within "
+						"backend naming context\n",
+						fname, lineno );
+				break;
+
+			case ACL_SCOPE_WARN:
+				fprintf( stderr, "%s: line %d: warning: "
+						"ACL could be out of "
+						"scope within "
+						"backend naming context\n",
+						fname, lineno );
+				break;
+
+			case ACL_SCOPE_PARTIAL:
+				fprintf( stderr, "%s: line %d: warning: "
+						"ACL appears to be partially "
+						"out of scope within "
+						"backend naming context\n",
+						fname, lineno );
+				break;
+
+			case ACL_SCOPE_ERR:
+				fprintf( stderr, "%s: line %d: warning: "
+						"ACL appears to be out of "
+						"scope within "
+						"backend naming context\n",
+						fname, lineno );
+				break;
+
+			default:
+				break;
+			}
+#endif /* LDAP_DEVEL */
 			acl_append( &be->be_acl, a );
 		} else {
 			acl_append( &global_acl, a );
