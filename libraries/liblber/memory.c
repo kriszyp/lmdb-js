@@ -5,6 +5,7 @@
 #include "portable.h"
 
 #include <stdlib.h>
+#include <ac/string.h>
 
 #include "lber-int.h"
 

@@ -66,7 +66,7 @@ oc_check_required( Entry *e, char *ocname )
 {
 	ObjectClass	*oc;
 	AttributeType	*at;
-	int		i, j;
+	int		i;
 	Attribute	*a;
 	char		**pp;
 

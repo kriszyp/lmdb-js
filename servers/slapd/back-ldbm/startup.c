@@ -51,11 +51,11 @@ ldbm_back_startup(
 
 	/*  if the data directory is not an absolute path, have it relative
         to the current working directory (which should not be configured !)  */
-	if ( *li->li_directory != *DEFAULT_DIRSEP ) {
+	if ( *li->li_directory != *DIRSEP ) {
 		char   cwd[MAXPATHLEN];
 
 		(void) getcwd( cwd, MAXPATHLEN );
-		sprintf( cwd, "%s%s%s", cwd, DEFAULT_DIRSEP, li->li_directory );
+		sprintf( cwd, "%s%s%s", cwd, DIRSEP, li->li_directory );
 		free( li->li_directory );
 		li->li_directory = strdup( cwd );
 

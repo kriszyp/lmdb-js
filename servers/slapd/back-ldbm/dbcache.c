@@ -35,7 +35,7 @@ ldbm_cache_open(
 	struct stat	st;
 #endif
 
-	sprintf( buf, "%s%s%s%s", li->li_directory, DEFAULT_DIRSEP, name, suffix );
+	sprintf( buf, "%s%s%s%s", li->li_directory, DIRSEP, name, suffix );
 
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );

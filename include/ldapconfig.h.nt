@@ -31,7 +31,6 @@
 /*
  * SHARED DEFINITIONS - things you should change
  */
-#define DEFAULT_DIRSEP		"\\"
 #define DEFAULT_BINDIR		"C:\\OpenLDAP\\bin"
 #define DEFAULT_SBINDIR		"C:\\OpenLDAP\\sbin"
 #define DEFAULT_DATADIR		"C:\\OpenLDAP\\share"

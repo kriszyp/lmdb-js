@@ -21,6 +21,7 @@
 #define OPENLDAP_PACKAGE "OpenLDAP"
 #define OPENLDAP_VERSION "-devel"
 #define EXEEXT ".exe"
+#define DIRSEP "\\"
 
 #if defined( _DEBUG ) && !defined( LDAP_DEBUG )
 #define LDAP_DEBUG 1
