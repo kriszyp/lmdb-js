@@ -103,8 +103,8 @@ meta_back_search(
 		const char	*nbase,
 		int		scope,
 		int		deref,
-		int		size,
-		int		time,
+		int		slimit,
+		int		tlimit,
 		Filter		*filter,
 		const char	*filterstr,
 		char		**attrs,
@@ -122,6 +122,7 @@ meta_back_search(
 		*mapped_filter = NULL, **mapped_attrs = NULL;
 		
 	int i, last = 0, candidates = 0, nbaselen, op_type;
+	struct slap_limits_set *limit = NULL;
 
 	if ( scope == LDAP_SCOPE_BASE ) {
 		op_type = META_OP_REQUIRE_SINGLE;
@@ -144,6 +145,51 @@ meta_back_search(
 	
 	nbaselen = strlen( nbase );
 
+	/* limits */
+	( void ) get_limits( be, op->o_ndn, &limit );
+
+	/* if no time limit requested, use soft limit */
+	if ( tlimit <= 0 ) {
+		tlimit = limit->lms_t_soft;
+	
+	/* if requested limit higher than hard limit, abort */
+	} else if ( tlimit > limit->lms_t_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_t_hard == 0 ) {
+			tlimit = limit->lms_t_soft;
+			
+		/* positive hard limit means abort */
+		} else if ( limit->lms_t_hard > 0 ) {
+			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;
+			goto finish;
+		}
+		
+		/* negative hard limit means no limit */
+	}
+	
+	/* if no size limit requested, use soft limit (unless root!) */
+	if ( slimit == 0 ) {
+		slimit = limit->lms_s_soft;
+		
+	/* if requested limit higher than hard limit, abort */
+	} else if ( slimit > limit->lms_s_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_s_hard == 0 ) {
+			slimit = limit->lms_s_soft;
+			
+		/* positive hard limit means abort */
+		} else if ( limit->lms_s_hard > 0 ) {
+			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;
+			goto finish;
+		}
+		
+		/* negative hard limit means no limit */
+	}
+
 	/*
 	 * Inits searches
 	 */
@@ -160,13 +206,13 @@ meta_back_search(
 			ldap_set_option( lsc[ 0 ]->ld, LDAP_OPT_DEREF,
 					( void * )&deref);
 		}
-		if ( time != -1 ) {
+		if ( tlimit != -1 ) {
 			ldap_set_option( lsc[ 0 ]->ld, LDAP_OPT_TIMELIMIT,
-					( void * )&time);
+					( void * )&tlimit);
 		}
-		if ( size != -1 ) {
+		if ( slimit != -1 ) {
 			ldap_set_option( lsc[ 0 ]->ld, LDAP_OPT_SIZELIMIT,
-					( void * )&size);
+					( void * )&slimit);
 		}
 
 		/*
@@ -354,6 +400,13 @@ meta_back_search(
 				ldap_abandon( lsc[ 0 ]->ld, msgid[ i ] );
 				rc = 0;
 				break;
+			}
+
+			if ( slimit > 0 && count == slimit ) {
+				send_search_result( conn, op,
+						LDAP_SIZELIMIT_EXCEEDED,
+						NULL, NULL, NULL, NULL, count );
+				goto finish;
 			}
 
 			rc = ldap_result( lsc[ 0 ]->ld, msgid[ i ],
