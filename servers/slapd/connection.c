@@ -88,7 +88,7 @@ int connections_init(void)
 	/* should check return of every call */
 	ldap_pvt_thread_mutex_init( &connections_mutex );
 
-	connections = (Connection *) calloc( dtblsize, sizeof(Connection) );
+	connections = (Connection *) ch_calloc( dtblsize, sizeof(Connection) );
 
 	if( connections == NULL ) {
 #ifdef NEW_LOGGING
