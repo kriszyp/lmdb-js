@@ -137,9 +137,9 @@ int bdb2i_index_add_values LDAP_P(( BackendDB *be, char *type, struct berval **v
  * modify rdn which are implemented in different files. 
  */
 
-int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+int bdb2i_add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+int bdb2i_delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+int bdb2i_replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 
 /*
  * nextid.c
