@@ -353,7 +353,7 @@ int bdb_search( Operation *op, SlapReply *rs )
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	ID		scopes[BDB_IDL_DB_SIZE];
-	Entry		*e = NULL, dummy;
+	Entry		*e = NULL, base;
 	Entry	*matched = NULL;
 	EntryInfo	*ei;
 	struct berval	realbase = { 0, NULL };
@@ -654,8 +654,11 @@ dn2entry_retry:
 	/* need normalized dn below */
 	ber_dupbv( &realbase, &e->e_nname );
 
-	dummy.e_nname = realbase;
-	dummy.e_id = e->e_id;
+	/* Copy info to base, must free entry before accessing the database
+	 * in search_candidates, to avoid deadlocks.
+	 */
+	base.e_nname = realbase;
+	base.e_id = e->e_id;
 
 	if ( e != &slap_entry_root ) {
 		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
@@ -664,12 +667,12 @@ dn2entry_retry:
 
 	/* select candidates */
 	if ( sop->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
-		rs->sr_err = base_candidate( op->o_bd, &dummy, candidates );
+		rs->sr_err = base_candidate( op->o_bd, &base, candidates );
 
 	} else {
 		BDB_IDL_ALL( bdb, candidates );
 		BDB_IDL_ZERO( scopes );
-		rs->sr_err = search_candidates( op, sop, rs, &dummy, locker, candidates, scopes );
+		rs->sr_err = search_candidates( op, sop, rs, &base, locker, candidates, scopes );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -921,6 +924,37 @@ id2entry_retry:
 		}
 #endif
 
+		/* Does this candidate actually satisfy the search scope?
+		 *
+		 * Note that we don't lock access to the bei_parent pointer.
+		 * Since only leaf nodes can be deleted, the parent of any
+		 * node will always be a valid node. Also since we have
+		 * a Read lock on the data, it cannot be renamed out of the
+		 * scope while we are looking at it, and unless we're using
+		 * BDB_HIER, its parents cannot be moved either.
+		 */
+		switch( op->ors_scope ) {
+		case LDAP_SCOPE_BASE:
+			/* This is always true, yes? */
+			if ( id == base.e_id )
+				scopeok = 1;
+			break;
+		case LDAP_SCOPE_ONELEVEL:
+			if ( ei->bei_parent->bei_id == base.e_id )
+				scopeok = 1;
+			break;
+		case LDAP_SCOPE_SUBTREE:
+			{ EntryInfo *tmp;
+			for ( tmp = BEI(e); tmp->bei_parent;
+				tmp = tmp->bei_parent ) {
+				if ( tmp->bei_id == base.e_id ) {
+					scopeok = 1;
+					break;
+				}
+			} }
+			break;
+		}
+
 #ifdef BDB_ALIASES
 		/* aliases were already dereferenced in candidate list */
 		if ( sop->ors_deref & LDAP_DEREF_SEARCHING ) {
@@ -935,7 +969,7 @@ id2entry_retry:
 			}
 
 			/* scopes is only non-empty for onelevel or subtree */
-			if ( BDB_IDL_N(scopes) ) {
+			if ( !scopeok && BDB_IDL_N(scopes) ) {
 				unsigned x;
 				if ( sop->ors_scope == LDAP_SCOPE_ONELEVEL ) {
 					x = bdb_idl_search( scopes,
@@ -958,59 +992,41 @@ id2entry_retry:
 			}
 		}
 #endif
+
+		/* Not in scope, ignore it */
+		if ( !scopeok ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, RESULTS,
+				"bdb_search: %ld scope not okay\n",
+				(long) id, 0, 0);
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_search: %ld scope not okay\n",
+				(long) id, 0, 0 );
+#endif
+			goto loop_continue;
+		}
+
 		/*
 		 * if it's a referral, add it to the list of referrals. only do
 		 * this for non-base searches, and don't check the filter
 		 * explicitly here since it's only a candidate anyway.
 		 */
-		if ( !manageDSAit && sop->oq_search.rs_scope != LDAP_SCOPE_BASE &&
-			is_entry_referral( e ) )
+		if ( !manageDSAit && sop->oq_search.rs_scope != LDAP_SCOPE_BASE
+			&& is_entry_referral( e ) )
 		{
-			struct berval	dn;
+			BerVarray erefs = get_entry_referrals( sop, e );
+			rs->sr_ref = referral_rewrite( erefs,
+				&e->e_name, NULL,
+				sop->oq_search.rs_scope == LDAP_SCOPE_SUBTREE
+					? LDAP_SCOPE_SUBTREE
+					: LDAP_SCOPE_BASE );
 
-			/* check scope */
-			if ( !scopeok && sop->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( !be_issuffix( op->o_bd, &e->e_nname ) ) {
-					dnParent( &e->e_nname, &dn );
-					scopeok = dn_match( &dn, &realbase );
-				} else {
-					scopeok = (realbase.bv_len == 0);
-				}
+			send_search_reference( sop, rs );
 
-			} else if ( !scopeok
-				&& sop->oq_search.rs_scope == LDAP_SCOPE_SUBTREE )
-			{
-				scopeok = dnIsSuffix( &e->e_nname, &realbase );
-
-			} else {
-				scopeok = 1;
-			}
-
-			if( scopeok ) {
-				BerVarray erefs = get_entry_referrals( sop, e );
-				rs->sr_ref = referral_rewrite( erefs,
-					&e->e_name, NULL,
-					sop->oq_search.rs_scope == LDAP_SCOPE_SUBTREE
-						? LDAP_SCOPE_SUBTREE
-						: LDAP_SCOPE_BASE );
-
-				send_search_reference( sop, rs );
-
-				ber_bvarray_free( rs->sr_ref );
-				ber_bvarray_free( erefs );
-				rs->sr_ref = NULL;
-
-			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG(OPERATION, DETAIL2, 
-					"bdb_search: candidate referral %ld scope not okay\n",
-					id, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_TRACE,
-					"bdb_search: candidate referral %ld scope not okay\n",
-					id, 0, 0 );
-#endif
-			}
+			ber_bvarray_free( rs->sr_ref );
+			ber_bvarray_free( erefs );
+			rs->sr_ref = NULL;
 
 			goto loop_continue;
 		}
@@ -1053,106 +1069,85 @@ id2entry_retry:
 #endif
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
-			struct berval	dn;
-
-			/* check scope */
-			if ( !scopeok && sop->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( be_issuffix( op->o_bd, &e->e_nname ) ) {
-					scopeok = (realbase.bv_len == 0);
-				} else {
-					dnParent( &e->e_nname, &dn );
-					scopeok = dn_match( &dn, &realbase );
-				}
-
-			} else if ( !scopeok &&
-				sop->oq_search.rs_scope == LDAP_SCOPE_SUBTREE )
-			{
-				scopeok = dnIsSuffix( &e->e_nname, &realbase );
-
-			} else {
-				scopeok = 1;
+			/* check size limit */
+			if ( --sop->oq_search.rs_slimit == -1 ) {
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+				if (!IS_PSEARCH)
+#endif
+				bdb_cache_return_entry_r( bdb->bi_dbenv,
+					&bdb->bi_cache, e, &lock );
+				e = NULL;
+				rs->sr_entry = NULL;
+				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+				rs->sr_ref = rs->sr_v2ref;
+				send_ldap_result( sop, rs );
+				goto done;
 			}
 
-			if ( scopeok ) {
-				/* check size limit */
-				if ( --sop->oq_search.rs_slimit == -1 ) {
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-					if (!IS_PSEARCH)
-#endif
-					bdb_cache_return_entry_r( bdb->bi_dbenv,
-						&bdb->bi_cache, e, &lock );
-					e = NULL;
-					rs->sr_entry = NULL;
-					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-					rs->sr_ref = rs->sr_v2ref;
-					send_ldap_result( sop, rs );
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+			if ( get_pagedresults(sop) ) {
+				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
+					send_pagerequest_response( sop, rs,
+						lastid, tentries );
 					goto done;
 				}
-
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-				if ( get_pagedresults(sop) ) {
-					if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
-						send_pagerequest_response( sop, rs,
-							lastid, tentries );
-						goto done;
-					}
-					lastid = id;
-				}
+				lastid = id;
+			}
 #endif
 
-				if (e) {
-					/* safe default */
-					int result = -1;
-					
+			if (e) {
+				/* safe default */
+				int result = -1;
+				
 #if 0	/* noop is masked SLAP_CTRL_UPDATE */
-					if( op->o_noop ) {
-						result = 0;
-					} else
+				if( op->o_noop ) {
+					result = 0;
+				} else
 #endif
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-					if (IS_PSEARCH) {
+				if (IS_PSEARCH) {
 #ifdef LDAP_SYNC
-						int premodify_found = 0;
-						int entry_sync_state;
+					int premodify_found = 0;
+					int entry_sync_state;
 #endif
 
-						if ( ps_type == LDAP_PSEARCH_BY_ADD ||
-							 ps_type == LDAP_PSEARCH_BY_DELETE ||
-							 ps_type == LDAP_PSEARCH_BY_MODIFY ||
-							 ps_type == LDAP_PSEARCH_BY_SCOPEOUT )
-						{
-							if ( ps_type == LDAP_PSEARCH_BY_MODIFY ) {
-								struct psid_entry* psid_e;
-								LDAP_LIST_FOREACH( psid_e,
-									&op->o_pm_list, ps_link)
-								{
-									if( psid_e->ps_op == sop ) {
+					if ( ps_type == LDAP_PSEARCH_BY_ADD ||
+						 ps_type == LDAP_PSEARCH_BY_DELETE ||
+						 ps_type == LDAP_PSEARCH_BY_MODIFY ||
+						 ps_type == LDAP_PSEARCH_BY_SCOPEOUT )
+					{
+						if ( ps_type == LDAP_PSEARCH_BY_MODIFY ) {
+							struct psid_entry* psid_e;
+							LDAP_LIST_FOREACH( psid_e,
+								&op->o_pm_list, ps_link)
+							{
+								if( psid_e->ps_op == sop ) {
 #ifdef LDAP_SYNC
-										premodify_found = 1;
+									premodify_found = 1;
 #endif
-										LDAP_LIST_REMOVE(psid_e, ps_link);
-										break;
-									}
+									LDAP_LIST_REMOVE(psid_e, ps_link);
+									break;
 								}
-								if (psid_e != NULL) free (psid_e);
 							}
+							if (psid_e != NULL) free (psid_e);
+						}
 #ifdef LDAP_SYNC
-							if ( ps_type == LDAP_PSEARCH_BY_ADD ) {
+						if ( ps_type == LDAP_PSEARCH_BY_ADD ) {
+							entry_sync_state = LDAP_SYNC_ADD;
+						} else if ( ps_type == LDAP_PSEARCH_BY_DELETE ) {
+							entry_sync_state = LDAP_SYNC_DELETE;
+						} else if ( ps_type == LDAP_PSEARCH_BY_MODIFY ) {
+							if ( premodify_found ) {
+								entry_sync_state = LDAP_SYNC_MODIFY;
+							} else {
 								entry_sync_state = LDAP_SYNC_ADD;
-							} else if ( ps_type == LDAP_PSEARCH_BY_DELETE ) {
-								entry_sync_state = LDAP_SYNC_DELETE;
-							} else if ( ps_type == LDAP_PSEARCH_BY_MODIFY ) {
-								if ( premodify_found ) {
-									entry_sync_state = LDAP_SYNC_MODIFY;
-								} else {
-									entry_sync_state = LDAP_SYNC_ADD;
-								}
-							} else if ( ps_type == LDAP_PSEARCH_BY_SCOPEOUT )
-								entry_sync_state = LDAP_SYNC_DELETE;
-							else {
-								rs->sr_err = 1;
-								goto done;
 							}
+						} else if ( ps_type == LDAP_PSEARCH_BY_SCOPEOUT )
+							entry_sync_state = LDAP_SYNC_DELETE;
+						else {
+							rs->sr_err = 1;
+							goto done;
+						}
 #endif
 
 #ifdef LDAP_CLIENT_UPDATE
@@ -1212,73 +1207,63 @@ id2entry_retry:
 					}
 				} else {
 #ifdef LDAP_CLIENT_UPDATE
-						if ( sop->o_clientupdate_type & SLAP_LCUP_SYNC ) {
-							rs->sr_err = bdb_build_lcup_update_ctrl( sop,
-								rs, e, ++entry_count, ctrls,
-								num_ctrls++, &latest_entrycsn_bv,
-								SLAP_LCUP_ENTRY_DELETED_FALSE );
-							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
-							rs->sr_ctrls = ctrls;
-							rs->sr_attrs = sop->oq_search.rs_attrs;
-							result = send_search_entry( sop, rs );
-							ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
-							ch_free( ctrls[--num_ctrls] );
-							ctrls[num_ctrls] = NULL;
-							rs->sr_ctrls = NULL;
-						} else
+					if ( sop->o_clientupdate_type & SLAP_LCUP_SYNC ) {
+						rs->sr_err = bdb_build_lcup_update_ctrl( sop,
+							rs, e, ++entry_count, ctrls,
+							num_ctrls++, &latest_entrycsn_bv,
+							SLAP_LCUP_ENTRY_DELETED_FALSE );
+						if ( rs->sr_err != LDAP_SUCCESS ) goto done;
+						rs->sr_ctrls = ctrls;
+						rs->sr_attrs = sop->oq_search.rs_attrs;
+						result = send_search_entry( sop, rs );
+						ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
+						ch_free( ctrls[--num_ctrls] );
+						ctrls[num_ctrls] = NULL;
+						rs->sr_ctrls = NULL;
+					} else
 #endif
 #ifdef LDAP_SYNC
-						if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-							rs->sr_err = bdb_build_sync_state_ctrl( sop,
-								rs, e, entry_sync_state, ctrls,
-								num_ctrls++, 0, &latest_entrycsn_bv );
-							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
+					if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
+						rs->sr_err = bdb_build_sync_state_ctrl( sop,
+							rs, e, entry_sync_state, ctrls,
+							num_ctrls++, 0, &latest_entrycsn_bv );
+						if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 
-							rs->sr_ctrls = ctrls;
-							if ( rc_sync == LDAP_COMPARE_TRUE ) { /* ADD */
-								rs->sr_attrs = sop->oq_search.rs_attrs;
-							} else { /* PRESENT */
-								rs->sr_attrs = &null_attr;
-							}
-							result = send_search_entry( sop, rs );
-							ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
-							ch_free( ctrls[--num_ctrls] );
-							ctrls[num_ctrls] = NULL;
-							rs->sr_ctrls = NULL;
-						} else
-#endif
-#endif
-						{
+						rs->sr_ctrls = ctrls;
+						if ( rc_sync == LDAP_COMPARE_TRUE ) { /* ADD */
 							rs->sr_attrs = sop->oq_search.rs_attrs;
-							rs->sr_ctrls = NULL;
-							result = send_search_entry( sop, rs );
+						} else { /* PRESENT */
+							rs->sr_attrs = &null_attr;
 						}
-					}
-
-					switch (result) {
-					case 0:		/* entry sent ok */
-						break;
-					case 1:		/* entry not sent */
-						break;
-					case -1:	/* connection closed */
-						if (!IS_PSEARCH)
-						bdb_cache_return_entry_r(bdb->bi_dbenv,
-							&bdb->bi_cache, e, &lock);
-						e = NULL;
-						rs->sr_entry = NULL;
-						rs->sr_err = LDAP_OTHER;
-						goto done;
+						result = send_search_entry( sop, rs );
+						ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
+						ch_free( ctrls[--num_ctrls] );
+						ctrls[num_ctrls] = NULL;
+						rs->sr_ctrls = NULL;
+					} else
+#endif
+#endif
+					{
+						rs->sr_attrs = sop->oq_search.rs_attrs;
+						rs->sr_ctrls = NULL;
+						result = send_search_entry( sop, rs );
 					}
 				}
-			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG ( OPERATION, RESULTS,
-					"bdb_search: %ld scope not okay\n", (long) id, 0, 0);
-#else
-				Debug( LDAP_DEBUG_TRACE,
-					"bdb_search: %ld scope not okay\n",
-					(long) id, 0, 0 );
-#endif
+
+				switch (result) {
+				case 0:		/* entry sent ok */
+					break;
+				case 1:		/* entry not sent */
+					break;
+				case -1:	/* connection closed */
+					if (!IS_PSEARCH)
+					bdb_cache_return_entry_r(bdb->bi_dbenv,
+						&bdb->bi_cache, e, &lock);
+					e = NULL;
+					rs->sr_entry = NULL;
+					rs->sr_err = LDAP_OTHER;
+					goto done;
+				}
 			}
 		} else {
 #ifdef NEW_LOGGING
@@ -1390,10 +1375,10 @@ static int base_candidate(
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY,
 		"base_candidate: base: \"%s\" (0x%08lx)\n",
-		e->e_dn, (long) e->e_id, 0);
+		e->e_nname.bv_val, (long) e->e_id, 0);
 #else
 	Debug(LDAP_DEBUG_ARGS, "base_candidates: base: \"%s\" (0x%08lx)\n",
-		e->e_dn, (long) e->e_id, 0);
+		e->e_nname.bv_val, (long) e->e_id, 0);
 #endif
 
 	ids[0] = 1;
@@ -1496,11 +1481,11 @@ static int search_candidates(
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n", 
-		e->e_dn, (long) e->e_id, op->oq_search.rs_scope);
+		e->e_nname.bv_val, (long) e->e_id, op->oq_search.rs_scope);
 #else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
-		e->e_dn, (long) e->e_id, op->oq_search.rs_scope );
+		e->e_nname.bv_val, (long) e->e_id, op->oq_search.rs_scope );
 #endif
 
 	xf.f_or = op->oq_search.rs_filter;
