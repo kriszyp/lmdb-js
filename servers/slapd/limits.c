@@ -81,7 +81,7 @@ get_limits(
 					 * if ndn is more that one rdn
 					 * below dn_pat, continue
 					 */
-					if ( dn_rdnlen( NULL, ndn ) != d - 1 ) {
+					if ( (size_t) dn_rdnlen( NULL, ndn ) != d - 1 ) {
 						break;
 					}
 				}

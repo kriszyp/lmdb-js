@@ -773,7 +773,7 @@ extern int num_subs;	/* config.c */
 int
 glue_sub_init( )
 {
-	int i, j, k;
+	int i, j;
 	int cont = num_subs;
 	BackendDB *b1, *be;
 	BackendInfo *bi;

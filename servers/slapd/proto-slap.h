@@ -218,7 +218,7 @@ LDAP_SLAPD_F (Attribute *) backend_operational(
  */
 
 LDAP_SLAPD_F (int) glue_back_initialize( BackendInfo *bi );
-
+LDAP_SLAPD_F (int) glue_sub_init( void );
 
 /*
  * ch_malloc.c

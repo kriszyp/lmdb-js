@@ -1131,6 +1131,7 @@ aci_bvstrdup( struct berval *bv )
 	return(s);
 }
 
+#ifdef SLAPD_ACI_ENABLED
 static int
 aci_strbvcmp(
 	const char *s,
@@ -1148,6 +1149,7 @@ aci_strbvcmp(
 		return(-1);
 	return(0);
 }
+#endif
 
 static int
 aci_get_part(

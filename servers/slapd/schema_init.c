@@ -1240,7 +1240,7 @@ approxMatch(
 	/* Work through the asserted value's words, to see if at least some
 	   of the words are there, in the same order. */
 	len = 0;
-	while ( nextchunk < avlen ) {
+	while ( (size_t) nextchunk < avlen ) {
 		len = strcspn( assertv + nextchunk, SLAPD_APPROX_DELIMITER);
 		if( len == 0 ) {
 			nextchunk++;

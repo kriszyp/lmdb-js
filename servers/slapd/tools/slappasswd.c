@@ -42,12 +42,10 @@ usage(const char *s)
 int
 main( int argc, char *argv[] )
 {
-	int rc;
 	char	*scheme = "{SSHA}";
 	char	*newpw = NULL;
 
 	int		i;
-	int		version = -1;
 	struct berval passwd;
 	struct berval *hash = NULL;
 
