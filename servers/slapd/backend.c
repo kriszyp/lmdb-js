@@ -229,56 +229,54 @@ int backend_init(void)
 
 int backend_add(BackendInfo *aBackendInfo)
 {
-   int rc = 0;
+	int rc = 0;
 
-   if ( aBackendInfo->bi_init == NULL ) {
+	if ( aBackendInfo->bi_init == NULL ) {
 #ifdef NEW_LOGGING
-       	LDAP_LOG( BACKEND, ERR, 
-                  "backend_add:  backend type \"%s\" does not have the "
-		  "(mandatory)init function\n",
-                  aBackendInfo->bi_type, 0, 0 );
+		LDAP_LOG( BACKEND, ERR, "backend_add: "
+			"backend type \"%s\" does not have the (mandatory)init function\n",
+			aBackendInfo->bi_type, 0, 0 );
 #else
-      Debug( LDAP_DEBUG_ANY,
-                  "backend_add:  backend type \"%s\" does not have the "
-		  "(mandatory)init function\n",
-                  aBackendInfo->bi_type, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "backend_add: "
+			"backend type \"%s\" does not have the (mandatory)init function\n",
+			aBackendInfo->bi_type, 0, 0 );
 #endif
-      return -1;
-   }
+		return -1;
+	}
 
    if ((rc = aBackendInfo->bi_init(aBackendInfo)) != 0) {
 #ifdef NEW_LOGGING
-       	LDAP_LOG( BACKEND, ERR, 
-                  "backend_add:  initialization for type \"%s\" failed\n",
-                  aBackendInfo->bi_type, 0, 0 );
+		LDAP_LOG( BACKEND, ERR, 
+			"backend_add:  initialization for type \"%s\" failed\n",
+			aBackendInfo->bi_type, 0, 0 );
 #else
-      Debug( LDAP_DEBUG_ANY,
-	     "backend_add: initialization for type \"%s\" failed\n",
-	     aBackendInfo->bi_type, 0, 0 );
+		Debug( LDAP_DEBUG_ANY,
+			"backend_add:  initialization for type \"%s\" failed\n",
+			aBackendInfo->bi_type, 0, 0 );
 #endif
-      return rc;
+		return rc;
    }
 
-   /* now add the backend type to the Backend Info List */
-   {
-      BackendInfo *newBackendInfo = 0;
+	/* now add the backend type to the Backend Info List */
+	{
+		BackendInfo *newBackendInfo = 0;
 
-      /* if backendInfo == binfo no deallocation of old backendInfo */
-      if (backendInfo == binfo) {
-	 newBackendInfo = ch_calloc(nBackendInfo + 1, sizeof(BackendInfo));
-	 AC_MEMCPY(newBackendInfo, backendInfo, sizeof(BackendInfo) * 
-		nBackendInfo);
-      } else {
-	 newBackendInfo = ch_realloc(backendInfo, sizeof(BackendInfo) * 
-				     (nBackendInfo + 1));
-      }
-      AC_MEMCPY(&newBackendInfo[nBackendInfo], aBackendInfo, 
-	     sizeof(BackendInfo));
-      backendInfo = newBackendInfo;
-      nBackendInfo++;
+		/* if backendInfo == binfo no deallocation of old backendInfo */
+		if (backendInfo == binfo) {
+			newBackendInfo = ch_calloc(nBackendInfo + 1, sizeof(BackendInfo));
+			AC_MEMCPY(newBackendInfo, backendInfo,
+				sizeof(BackendInfo) * nBackendInfo);
+		} else {
+			newBackendInfo = ch_realloc(backendInfo,
+				sizeof(BackendInfo) * (nBackendInfo + 1));
+		}
 
-      return 0;
-   }	    
+		AC_MEMCPY(&newBackendInfo[nBackendInfo], aBackendInfo,
+			sizeof(BackendInfo));
+		backendInfo = newBackendInfo;
+		nBackendInfo++;
+		return 0;
+	}
 }
 
 int backend_startup(Backend *be)
@@ -301,9 +299,9 @@ int backend_startup(Backend *be)
 
 	if(be != NULL) {
 		/* startup a specific backend database */
-
 		be->be_pending_csn_list = (struct be_pcl *)
-								ch_calloc( 1, sizeof( struct be_pcl ));
+			ch_calloc( 1, sizeof( struct be_pcl ));
+
 		LDAP_TAILQ_INIT( be->be_pending_csn_list );
 
 #ifdef NEW_LOGGING
@@ -321,7 +319,8 @@ int backend_startup(Backend *be)
 			rc = be->bd_info->bi_open( be->bd_info );
 			if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG( BACKEND, CRIT, "backend_startup: bi_open failed!\n", 0, 0, 0 );
+				LDAP_LOG( BACKEND, CRIT,
+					"backend_startup: bi_open failed!\n", 0, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: bi_open failed!\n",
@@ -407,7 +406,8 @@ int backend_startup(Backend *be)
 			if ( rc != 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACKEND, CRIT, 
-					"backend_startup: bi_db_open(%d) failed! (%d)\n", i, rc, 0 );
+					"backend_startup: bi_db_open(%d) failed! (%d)\n",
+					i, rc, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: bi_db_open(%d) failed! (%d)\n",
@@ -578,8 +578,7 @@ BackendInfo* backend_info(const char *type)
 
 BackendDB *
 backend_db_init(
-    const char	*type
-)
+    const char	*type )
 {
 	Backend	*be;
 	BackendInfo *bi = backend_info(type);
@@ -702,13 +701,15 @@ select_backend(
 
 int
 be_issuffix(
-    Backend	*be,
-    struct berval	*bvsuffix
-)
+    Backend *be,
+    struct berval *bvsuffix )
 {
 	int	i;
 
-	for ( i = 0; be->be_nsuffix != NULL && be->be_nsuffix[i].bv_val != NULL; i++ ) {
+	for ( i = 0;
+		be->be_nsuffix != NULL && be->be_nsuffix[i].bv_val != NULL;
+		i++ )
+	{
 		if ( bvmatch( &be->be_nsuffix[i], bvsuffix ) ) {
 			return( 1 );
 		}
@@ -740,29 +741,23 @@ be_sync_update( Operation *op )
 int
 be_slurp_update( Operation *op )
 {
-	return ( SLAP_SLURP_SHADOW( op->o_bd ) && be_isupdate_dn( op->o_bd, &op->o_ndn ));
+	return ( SLAP_SLURP_SHADOW( op->o_bd ) &&
+		be_isupdate_dn( op->o_bd, &op->o_ndn ));
 }
 
 int
 be_shadow_update( Operation *op )
 {
-#if 0
-	return ( be_sync_update( op ) || be_slurp_update( op ) );
-#endif
-	/* NOTE: this is slightly more efficient */
-	return ( SLAP_SHADOW( op->o_bd ) && ( syncrepl_isupdate( op ) || be_isupdate_dn( op->o_bd, &op->o_ndn ) ) );
+	return ( SLAP_SHADOW( op->o_bd ) &&
+		( syncrepl_isupdate( op ) || be_isupdate_dn( op->o_bd, &op->o_ndn )));
 }
 
 int
 be_isupdate_dn( Backend *be, struct berval *ndn )
 {
-	if ( !ndn->bv_len ) {
-		return( 0 );
-	}
+	if ( !ndn->bv_len ) return( 0 );
 
-	if ( !be->be_update_ndn.bv_len ) {
-		return( 0 );
-	}
+	if ( !be->be_update_ndn.bv_len ) return( 0 );
 
 	return dn_match( &be->be_update_ndn, ndn );
 }
@@ -839,19 +834,21 @@ backend_unbind( Operation *op, SlapReply *rs )
 			int rc;
 			if ( i == 0 ) slapi_int_pblock_set_operation( op->o_pb, op );
 			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)&backends[i] );
-			rc = slapi_int_call_plugins( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
-					(Slapi_PBlock *)op->o_pb );
+			rc = slapi_int_call_plugins( &backends[i],
+				SLAPI_PLUGIN_PRE_UNBIND_FN, (Slapi_PBlock *)op->o_pb );
 			if ( rc < 0 ) {
 				/*
 				 * A preoperation plugin failure will abort the
 				 * entire operation.
 				 */
 #ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, INFO, "do_bind: Unbind preoperation plugin "
-						"failed\n", 0, 0, 0);
+				LDAP_LOG( OPERATION, INFO,
+					"do_bind: Unbind preoperation plugin failed\n",
+					0, 0, 0);
 #else
-				Debug(LDAP_DEBUG_TRACE, "do_bind: Unbind preoperation plugin "
-						"failed.\n", 0, 0, 0);
+				Debug(LDAP_DEBUG_TRACE,
+					"do_bind: Unbind preoperation plugin failed\n",
+					0, 0, 0);
 #endif
 				return 0;
 			}
@@ -864,14 +861,17 @@ backend_unbind( Operation *op, SlapReply *rs )
 		}
 
 #if defined( LDAP_SLAPI )
-		if ( op->o_pb != NULL && slapi_int_call_plugins( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
-				(Slapi_PBlock *)op->o_pb ) < 0 ) {
+		if ( op->o_pb != NULL && slapi_int_call_plugins( &backends[i],
+			SLAPI_PLUGIN_POST_UNBIND_FN, (Slapi_PBlock *)op->o_pb ) < 0 )
+		{
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_unbind: Unbind postoperation plugins "
-					"failed\n", 0, 0, 0);
+			LDAP_LOG( OPERATION, INFO,
+				"do_unbind: Unbind postoperation plugins failed\n",
+				0, 0, 0);
 #else
-			Debug(LDAP_DEBUG_TRACE, "do_unbind: Unbind postoperation plugins "
-					"failed.\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE,
+				"do_unbind: Unbind postoperation plugins failed\n",
+				0, 0, 0);
 #endif
 		}
 #endif /* defined( LDAP_SLAPI ) */
@@ -882,8 +882,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 
 int
 backend_connection_init(
-	Connection   *conn
-)
+	Connection   *conn )
 {
 	int	i;
 
@@ -898,8 +897,7 @@ backend_connection_init(
 
 int
 backend_connection_destroy(
-	Connection   *conn
-)
+	Connection   *conn )
 {
 	int	i;
 
@@ -1045,12 +1043,16 @@ backend_check_restrictions(
 
 		rs->sr_err = LDAP_CONFIDENTIALITY_REQUIRED;
 		if( op->o_transport_ssf < ssf->sss_transport ) {
-			rs->sr_text = "transport confidentiality required";
+			rs->sr_text = op->o_transport_ssf
+				? "stronger transport confidentiality required"
+				: "transport confidentiality required";
 			return rs->sr_err;
 		}
 
 		if( op->o_tls_ssf < ssf->sss_tls ) {
-			rs->sr_text = "TLS confidentiality required";
+			rs->sr_text = op->o_tls_ssf
+				? "stronger TLS confidentiality required"
+				: "TLS confidentiality required";
 			return rs->sr_err;
 		}
 
@@ -1058,7 +1060,9 @@ backend_check_restrictions(
 		if( op->o_tag == LDAP_REQ_BIND && opdata == NULL ) {
 			/* simple bind specific check */
 			if( op->o_ssf < ssf->sss_simple_bind ) {
-				rs->sr_text = "confidentiality required";
+				rs->sr_text = op->o_ssf
+					? "stronger confidentiality required"
+					: "confidentiality required";
 				return rs->sr_err;
 			}
 		}
@@ -1067,34 +1071,46 @@ backend_check_restrictions(
 			/* these checks don't apply to SASL bind */
 
 			if( op->o_sasl_ssf < ssf->sss_sasl ) {
-				rs->sr_text = "SASL confidentiality required";
+				rs->sr_text = op->o_sasl_ssf
+					: "stronger SASL confidentiality required"
+					? "SASL confidentiality required";
 				return rs->sr_err;
 			}
 
 			if( op->o_ssf < ssf->sss_ssf ) {
-				rs->sr_text = "confidentiality required";
+				rs->sr_text = op->o_ssf
+					: "stronger confidentiality required"
+					? "confidentiality required";
 				return rs->sr_err;
 			}
 		}
 
 		if( updateop ) {
 			if( op->o_transport_ssf < ssf->sss_update_transport ) {
-				rs->sr_text = "transport update confidentiality required";
+				rs->sr_text = op->o_transport_ssf
+					: "stronger transport confidentiality required for update"
+					? "transport confidentiality required for update";
 				return rs->sr_err;
 			}
 
 			if( op->o_tls_ssf < ssf->sss_update_tls ) {
-				rs->sr_text = "TLS update confidentiality required";
+				rs->sr_text = op->o_tls_ssf
+					: "stronger TLS confidentiality required for update"
+					? "TLS confidentiality required for update";
 				return rs->sr_err;
 			}
 
 			if( op->o_sasl_ssf < ssf->sss_update_sasl ) {
-				rs->sr_text = "SASL update confidentiality required";
+				rs->sr_text = op->o_sasl_ssf
+					: "stronger SASL confidentiality required for update"
+					? "SASL confidentiality required for update";
 				return rs->sr_err;
 			}
 
 			if( op->o_ssf < ssf->sss_update_ssf ) {
-				rs->sr_text = "update confidentiality required";
+				rs->sr_text = op->o_ssf
+					: "stronger confidentiality required for update"
+					? "confidentiality required for update";
 				return rs->sr_err;
 			}
 
@@ -1173,7 +1189,9 @@ backend_check_restrictions(
 
 #ifdef SLAP_X_LISTENER_MOD
 		if ( !starttls && op->o_dn.bv_len == 0 ) {
-			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & S_IXOTH ) ) {
+			if ( op->o_conn->c_listener &&
+				!( op->o_conn->c_listener->sl_perms & S_IXOTH ))
+		{
 				/* no "x" mode means bind required */
 				rs->sr_text = "bind required on this listener";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
@@ -1182,7 +1200,10 @@ backend_check_restrictions(
 		}
 
 		if ( !starttls && !updateop ) {
-			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & ( op->o_dn.bv_len > 0 ? S_IRUSR : S_IROTH ) ) ) {
+			if ( op->o_conn->c_listener &&
+				!( op->o_conn->c_listener->sl_perms &
+					( op->o_dn.bv_len > 0 ? S_IRUSR : S_IROTH )))
+			{
 				/* no "r" mode means no read */
 				rs->sr_text = "read not allowed on this listener";
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -1256,8 +1277,7 @@ backend_group(
 	struct berval *gr_ndn,
 	struct berval *op_ndn,
 	ObjectClass *group_oc,
-	AttributeDescription *group_at
-)
+	AttributeDescription *group_at )
 {
 	Entry *e;
 	Attribute *a;
@@ -1294,7 +1314,9 @@ backend_group(
 			/* If the attribute is a subtype of labeledURI, treat this as
 			 * a dynamic group ala groupOfURLs
 			 */
-			if (is_at_subtype( group_at->ad_type, slap_schema.si_ad_labeledURI->ad_type ) ) {
+			if (is_at_subtype( group_at->ad_type,
+				slap_schema.si_ad_labeledURI->ad_type ) )
+			{
 				int i;
 				LDAPURLDesc *ludp;
 				struct berval bv, nbase;
@@ -1312,17 +1334,25 @@ backend_group(
 				if ( rc == 0 ) {
 					rc = 1;
 					for (i=0; a->a_vals[i].bv_val; i++) {
-						if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) != LDAP_SUCCESS )
+						if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) !=
+							LDAP_SUCCESS )
+						{
 							continue;
+						}
 						nbase.bv_val = NULL;
 						/* host part must be empty */
 						/* attrs and extensions parts must be empty */
-						if (( ludp->lud_host && *ludp->lud_host )
-							|| ludp->lud_attrs || ludp->lud_exts )
+						if (( ludp->lud_host && *ludp->lud_host ) ||
+							ludp->lud_attrs || ludp->lud_exts )
+						{
 							goto loopit;
+						}
 						ber_str2bv( ludp->lud_dn, 0, 0, &bv );
-						if ( dnNormalize( 0, NULL, NULL, &bv, &nbase, op->o_tmpmemctx ) != LDAP_SUCCESS )
+						if ( dnNormalize( 0, NULL, NULL, &bv, &nbase,
+							op->o_tmpmemctx ) != LDAP_SUCCESS )
+						{
 							goto loopit;
+						}
 						switch(ludp->lud_scope) {
 						case LDAP_SCOPE_BASE:
 							if ( !dn_match( &nbase, op_ndn )) goto loopit;
@@ -1345,13 +1375,14 @@ backend_group(
 						}
 						filter = str2filter_x( op, ludp->lud_filter );
 						if ( filter ) {
-							if ( test_filter( NULL, user, filter ) == LDAP_COMPARE_TRUE )
+							if ( test_filter( NULL, user, filter ) ==
+								LDAP_COMPARE_TRUE )
 							{
 								rc = 0;
 							}
 							filter_free_x( op, filter );
 						}
-	loopit:
+loopit:
 						ldap_free_urldesc( ludp );
 						if ( nbase.bv_val ) {
 							op->o_tmpfree( nbase.bv_val, op->o_tmpmemctx );
@@ -1380,7 +1411,8 @@ backend_group(
 	}
 
 	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
-		g = op->o_tmpalloc(sizeof(GroupAssertion) + gr_ndn->bv_len, op->o_tmpmemctx);
+		g = op->o_tmpalloc(sizeof(GroupAssertion) + gr_ndn->bv_len,
+			op->o_tmpmemctx);
 		g->ga_be = op->o_bd;
 		g->ga_oc = group_oc;
 		g->ga_at = group_at;
@@ -1401,8 +1433,7 @@ backend_attribute(
 	Entry	*target,
 	struct berval	*edn,
 	AttributeDescription *entry_at,
-	BerVarray *vals
-)
+	BerVarray *vals )
 {
 	Entry *e;
 	Attribute *a;
@@ -1432,7 +1463,8 @@ backend_attribute(
 
 			for ( i=0; a->a_vals[i].bv_val; i++ ) ;
 			
-			v = op->o_tmpalloc( sizeof(struct berval) * (i+1), op->o_tmpmemctx );
+			v = op->o_tmpalloc( sizeof(struct berval) * (i+1),
+				op->o_tmpmemctx );
 			for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
 				if ( op->o_conn && access_allowed( op,
 					e, entry_at,
@@ -1482,7 +1514,9 @@ Attribute *backend_operational(
 		ap = &(*ap)->a_next;
 	}
 
-	if ( ( opattrs || op->ors_attrs ) && op->o_bd && op->o_bd->be_operational != NULL ) {
+	if ( ( opattrs || op->ors_attrs ) && op->o_bd &&
+		op->o_bd->be_operational != NULL )
+	{
 		( void )op->o_bd->be_operational( op, rs, opattrs, ap );
 	}
 
