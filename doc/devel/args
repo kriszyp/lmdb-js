@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        *DE   I K M  P    U WXYZ  cd f h  k  n p     vw
-ldapmodify        *DEF  I K M  P    U WXYZabcd f h  k  n p r t vw
-ldapmodrdn        *DE   I K M  P    U WXYZ  cd f h  k  n p rs  vw
-ldappasswd      A *DE   I         S U WXYZa  d   h          s  vw    
-ldapsearch      A *DE   I KLM  P RSTUVWXYZab*d f h  kl n p  stuvw  z
+ldapdelete        CDE   I K M  P *  U WXYZ  cd f h  k  n p     vw
+ldapmodify        CDEF  I K M  P *  U WXYZabcd f h  k  n p r t vw
+ldapmodrdn        CDE   I K M  P *  U WXYZ  cd f h  k  n p rs  vw
+ldappasswd      A CDE   I        *S U WXYZa  d   h          s  vw    
+ldapsearch      A CDE   I KLM  P *STUVWXYZab*d f h  kl n p  stuvw  z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -20,8 +20,10 @@ ud                 D                 V      cd f     l  p   s uv
 	GHJNOegijmoqxy
 
 * General flags:
+	-C Chase Referrals
 	-D bind DN
 	-P protocol version
+	-R old don't chase referrals
 	-W prompt for bind password
 	-d debug
 	-h host
@@ -41,9 +43,6 @@ ud                 D                 V      cd f     l  p   s uv
 	-U SASL Authentication Identity (username)
 	-X SASL Authorization Identity
 	-Y SASL Mechanism
-
-	/* to be implemented */
-	-C Chase Referrals
 
 * LDAPv2+ Only
 	-K LDAPv2 Kerberos Bind (Step 1 only) (depecated)
