@@ -1388,24 +1388,26 @@ print_entry(
 		ber_free( ber, 0 );
 	}
 }
-#else /* This is the proposed new way of doing things. */
+#else
+/* This is the proposed new way of doing things.
+ * It is more * efficient, but the API is non-standard.
+ */
 static void
 print_entry(
 	LDAP	*ld,
 	LDAPMessage	*entry,
 	int		attrsonly)
 {
-	char		*ufn;
+	char		*ufn = NULL;
 	char	tmpfname[ 256 ];
 	char	url[ 256 ];
 	int			i, rc;
 	BerElement		*ber = NULL;
-	struct berval	*bvals, bv;
+	struct berval		bv, *bvals, **bvp = &bvals;
 	LDAPControl **ctrls = NULL;
 	FILE		*tmpfp;
 
 	rc = ldap_get_dn_ber( ld, entry, &ber, &bv );
-	ufn = NULL;
 
 	if ( ldif < 2 ) {
 		ufn = ldap_dn2ufn( bv.bv_val );
@@ -1435,17 +1437,17 @@ print_entry(
 
 	if( ufn != NULL ) ldap_memfree( ufn );
 
-	for ( rc = ldap_get_attribute_ber( ld, entry, ber, &bv ); rc == LDAP_SUCCESS;
-		rc = ldap_get_attribute_ber( ld, entry, ber, &bv ) )
+	if ( attrsonly ) bvp = NULL;
+
+	for ( rc = ldap_get_attribute_ber( ld, entry, ber, &bv, bvp ); rc == LDAP_SUCCESS;
+		rc = ldap_get_attribute_ber( ld, entry, ber, &bv, bvp ) )
 	{
 		if (bv.bv_val == NULL) break;
 
 		if ( attrsonly ) {
 			write_ldif( LDIF_PUT_NOVALUE, bv.bv_val, NULL, 0 );
-			/* skip values */
-			ber_scanf( ber, "x}" );
 
-		} else if (( rc = ldap_get_values_ber( ld, entry, ber, &bvals )) == LDAP_SUCCESS ) {
+		} else {
 			for ( i = 0; bvals[i].bv_val != NULL; i++ ) {
 				if ( vals2tmp > 1 || ( vals2tmp
 					&& ldif_is_not_printable( bvals[i].bv_val, bvals[i].bv_len ) ))

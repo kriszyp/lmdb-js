@@ -1306,11 +1306,8 @@ ldap_get_dn_ber LDAP_P((
 
 LDAP_F( int )
 ldap_get_attribute_ber LDAP_P((
-	LDAP *ld, LDAPMessage *e, BerElement *ber, struct berval *attr ));
-
-LDAP_F( int )
-ldap_get_values_ber LDAP_P((
-	LDAP *ld, LDAPMessage *e, BerElement *ber, struct berval **bv ));
+	LDAP *ld, LDAPMessage *e, BerElement *ber, struct berval *attr,
+	struct berval **vals ));
 
 /*
  * in getattr.c

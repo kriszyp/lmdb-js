@@ -121,10 +121,11 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	return attr;
 }
 
+/* Fetch attribute type and optionally fetch values */
 /* ARGSUSED */
 int
 ldap_get_attribute_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber,
-	BerValue *attr )
+	BerValue *attr, BerVarray *vals )
 {
 	ber_tag_t tag;
 	int rc = LDAP_SUCCESS;
@@ -146,7 +147,7 @@ ldap_get_attribute_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber,
 
 	if ( ber_pvt_ber_remaining( ber ) ) {
 		/* skip sequence, snarf attribute type */
-		tag = ber_scanf( ber, "{m", attr ); 
+		tag = ber_scanf( ber, vals ? "{mW}" : "{mx}", attr, vals ); 
 		if( tag == LBER_ERROR ) {
 			rc = ld->ld_errno = LDAP_DECODING_ERROR;
 		}
