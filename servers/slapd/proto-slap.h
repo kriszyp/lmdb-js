@@ -323,6 +323,12 @@ void send_ldap_disconnect LDAP_P((
 	Connection *conn, Operation *op,
 	int err, const char *text ));
 
+void send_ldap_extended LDAP_P((
+	Connection *conn, Operation *op,
+	ber_int_t err, const char *matched,
+	const char *text, char *rspoid,
+	struct berval *rspdata ));
+
 void send_search_result LDAP_P((
 	Connection *conn, Operation *op,
 	int err, const char *matched, const char *text,
@@ -512,6 +518,8 @@ extern int	do_modrdn LDAP_P((Connection *conn, Operation *op));
 extern int	do_search LDAP_P((Connection *conn, Operation *op));
 extern int	do_unbind LDAP_P((Connection *conn, Operation *op));
 extern int	do_extended LDAP_P((Connection *conn, Operation *op));
+
+extern int	load_extension LDAP_P((char *oid, char *libpath, int argc, char **argv));
 
 
 extern ber_socket_t dtblsize;
