@@ -736,16 +736,9 @@ backend_check_controls(
 	Operation *op,
 	const char **text )
 {
-	LDAPControl **ctrls;
-	ctrls = op->o_ctrls;
-	if( ctrls == NULL ) {
-		return LDAP_SUCCESS;
-	}
+	LDAPControl **ctrls = op->o_ctrls;
 
-	if ( be->be_controls == NULL ) {
-		*text = "control unavailable in context";
-		return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
-	}
+	if( ctrls == NULL ) return LDAP_SUCCESS;
 
 	for( ; *ctrls != NULL ; ctrls++ ) {
 		if( (*ctrls)->ldctl_iscritical &&
