@@ -647,6 +647,8 @@ typedef struct slap_attribute_type {
 #endif
 #define	SLAP_AT_DYNAMIC		0x0400U	/* dynamically generated */
 
+#define	SLAP_AT_ORDERED		0x0001U /* values are ordered */
+
 	slap_mask_t					sat_flags;
 
 	LDAP_SLIST_ENTRY(slap_attribute_type) sat_next;

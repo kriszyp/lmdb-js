@@ -438,6 +438,19 @@ at_add(
 		sat->sat_substr = sat->sat_sup->sat_substr;
 	}
 
+	/*
+	 * check for X-ORDERED attributes
+	 */
+	if ( sat->sat_extensions ) {
+		for (i=0; sat->sat_extensions[i]; i++) {
+			if (!strcasecmp( sat->sat_extensions[i]->lsei_name,
+				"X-ORDERED" )) {
+				sat->sat_flags |= SLAP_AT_ORDERED;
+				break;
+			}
+		}
+	}
+
 	if ( at->at_syntax_oid ) {
 		syn = syn_find(sat->sat_syntax_oid);
 		if ( syn == NULL ) {

@@ -260,7 +260,7 @@ ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgAt:9 NAME 'olcBackend' "
 			"DESC 'A type of backend' "
 			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "concurrency", "level", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_CONCUR,
 		&config_generic, "( OLcfgAt:10 NAME 'olcConcurrency' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -273,7 +273,7 @@ ConfigTable config_back_cf_table[] = {
 	{ "database", "type", 2, 2, 0, ARG_MAGIC|CFG_DATABASE,
 		&config_generic, "( OLcfgAt:13 NAME 'olcDatabase' "
 			"DESC 'The backend type for a database instance' "
-			"SUP olcBackend )", NULL, NULL },
+			"SUP olcBackend X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_MAGIC,
 		&config_search_base, "( OLcfgAt:14 NAME 'olcDefaultSearchBase' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
@@ -353,7 +353,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "overlay", "overlay", 2, 2, 0, ARG_MAGIC,
 		&config_overlay, "( OLcfgAt:34 NAME 'olcOverlay' "
-			"SUP olcDatabase )", NULL, NULL },
+			"SUP olcDatabase X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "password-crypt-salt-format", "salt", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_SALT,
 		&config_generic, "( OLcfgAt:35 NAME 'olcPasswordCryptSaltFormat' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
