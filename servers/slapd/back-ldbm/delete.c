@@ -32,6 +32,7 @@ ldbm_back_delete(
 	int	rc = -1;
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_delete: %s\n", dn->bv_val, 0, 0 );
@@ -78,6 +79,27 @@ ldbm_back_delete(
 		return( -1 );
 	}
 
+	/* check entry for "entry" acl */
+	if ( ! access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL ) )
+	{
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_LDBM, ERR, 
+			"ldbm_back_delete: no write access to entry of (%s)\n", 
+			dn->bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"<=- ldbm_back_delete: no write access to entry\n", 0,
+			0, 0 );
+#endif
+
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			NULL, "no write access to entry", NULL, NULL );
+
+		rc = 1;
+		goto return_results;
+	}
+
     if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
@@ -100,7 +122,6 @@ ldbm_back_delete(
 		rc = 1;
 		goto return_results;
 	}
-
 
 	if ( has_children( be, e ) ) {
 #ifdef NEW_LOGGING
@@ -149,7 +170,7 @@ ldbm_back_delete(
 #endif
 
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
+				NULL, "no write access to parent", NULL, NULL );
 			goto return_results;
 		}
 
@@ -175,9 +196,8 @@ ldbm_back_delete(
 						"access to parent\n", 0, 0, 0 );
 #endif
 
-					send_ldap_result( conn, op, 
-						LDAP_INSUFFICIENT_ACCESS,
-						NULL, NULL, NULL, NULL );
+					send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+						NULL, "no write access to parent", NULL, NULL );
 					goto return_results;
 				}
 

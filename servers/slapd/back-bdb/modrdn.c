@@ -28,6 +28,7 @@ bdb_modrdn(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	AttributeDescription *children = slap_schema.si_ad_children;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 	struct berval	p_dn, p_ndn;
 	struct berval	new_dn = {0, NULL}, new_ndn = {0, NULL};
 	int		isroot = -1;
@@ -175,6 +176,28 @@ retry:	/* transaction retry */
 		free( matched_dn );
 
 		goto done;
+	}
+
+	/* check write on old entry */
+	rc = access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL );
+
+	switch( opinfo.boi_err ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	}
+
+	if ( ! rc ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"==>bdb_modrdn: no access to entry\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE, "no access to entry\n", 0,
+			0, 0 );
+#endif
+		rc = LDAP_INSUFFICIENT_ACCESS;
+		goto return_results;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
@@ -536,7 +559,7 @@ retry:	/* transaction retry */
 
 		new_parent_dn = np_dn;
 	}
-	
+
 	/* Build target dn and make sure target entry doesn't exist already. */
 	build_new_dn( &new_dn, new_parent_dn, newrdn ); 
 

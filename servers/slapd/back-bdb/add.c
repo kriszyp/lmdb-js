@@ -28,6 +28,7 @@ bdb_add(
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	AttributeDescription *children = slap_schema.si_ad_children;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 #ifdef BDB_SUBENTRIES
@@ -86,6 +87,11 @@ bdb_add(
 
 	if( 0 ) {
 retry:	/* transaction retry */
+		if( p ) {
+			/* free parent and reader lock */
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
+			p = NULL;
+		}
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -208,9 +214,6 @@ retry:	/* transaction retry */
 		switch( opinfo.boi_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
-			/* free parent and reader lock */
-			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
-			p = NULL;
 			goto retry;
 		}
 
@@ -298,12 +301,14 @@ retry:	/* transaction retry */
 		 */
 		if ( !be_isroot( be, &op->o_ndn )) {
 			if ( be_issuffix( be, (struct berval *)&slap_empty_bv )
-				|| be_isupdate( be, &op->o_ndn ) ) {
+				|| be_isupdate( be, &op->o_ndn ) )
+			{
 				p = (Entry *)&slap_entry_root;
 
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,
 					children, NULL, ACL_WRITE, NULL );
+
 				p = NULL;
 
 				switch( opinfo.boi_err ) {
@@ -364,6 +369,28 @@ retry:	/* transaction retry */
 				DB_LOCK_WRITE, &lock);
 		}
 #endif
+	}
+
+	rc = access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL );
+
+	switch( opinfo.boi_err ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	}
+
+	if ( ! rc ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"bdb_add: no write access to entry\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE, "bdb_add: no write access to entry\n",
+			0, 0, 0 );
+#endif
+		rc = LDAP_INSUFFICIENT_ACCESS;
+		text = "no write access to entry";
+		goto return_results;;
 	}
 
 	/* dn2id index */

@@ -31,6 +31,7 @@ bdb_delete(
 	const char *text;
 	int		manageDSAit = get_manageDSAit( op );
 	AttributeDescription *children = slap_schema.si_ad_children;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 
@@ -165,13 +166,14 @@ retry:	/* transaction retry */
 		if ( !rc  ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
-				"<=- bdb_delete: no access to parent\n", 0, 0, 0 );
+				"<=- bdb_delete: no write access to parent\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_delete: no access to parent\n",
+				"<=- bdb_delete: no write access to parent\n",
 				0, 0, 0 );
 #endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
+			text = "no write access to parent";
 			goto return_results;
 		}
 
@@ -185,6 +187,7 @@ retry:	/* transaction retry */
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,
 					children, NULL, ACL_WRITE, NULL );
+
 				p = NULL;
 
 				switch( opinfo.boi_err ) {
@@ -203,6 +206,7 @@ retry:	/* transaction retry */
 						"to parent\n", 0, 0, 0 );
 #endif
 					rc = LDAP_INSUFFICIENT_ACCESS;
+					text = "no write access to parent";
 					goto return_results;
 				}
 
@@ -284,6 +288,29 @@ retry:	/* transaction retry */
 
 		rc = -1;
 		goto done;
+	}
+
+	rc = access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL );
+
+	switch( opinfo.boi_err ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	}
+
+	if ( !rc  ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"<=- bdb_delete: no write access to entry\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"<=- bdb_delete: no write access to entry\n",
+			0, 0, 0 );
+#endif
+		rc = LDAP_INSUFFICIENT_ACCESS;
+		text = "no write access to entry";
+		goto return_results;
 	}
 
 	if ( !manageDSAit && is_entry_referral( e ) ) {
