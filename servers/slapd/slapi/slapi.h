@@ -20,6 +20,8 @@ LDAP_BEGIN_DECL
 typedef struct	slapi_pblock	Slapi_PBlock;
 typedef struct	slap_entry	Slapi_Entry;
 typedef struct	slap_attr	Slapi_Attr;
+typedef BerVarray		Slapi_ValueSet;
+typedef struct berval		Slapi_Value;
 typedef Filter			Slapi_Filter;
 
 LDAP_END_DECL

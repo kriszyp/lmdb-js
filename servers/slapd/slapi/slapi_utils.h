@@ -54,8 +54,65 @@ Slapi_Entry *slapi_entry_dup( Slapi_Entry *e );
 Slapi_Entry *slapi_entry_alloc();
 void slapi_entry_free( Slapi_Entry *e );
 int slapi_attr_get_values( Slapi_Attr *attr, struct berval ***vals );
-int slapi_attr_get_flags( Slapi_Attr *attr, unsigned long *flags );
-int slapi_attr_flag_is_set( Slapi_Attr *attr, unsigned long flag );
+
+/* DS 5.x SLAPI */
+Slapi_Attr *slapi_attr_new( void );
+Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type );
+void slapi_attr_free( Slapi_Attr **a );
+Slapi_Attr *slapi_attr_dup( const Slapi_Attr *attr );
+int slapi_attr_add_value( Slapi_Attr *a, const Slapi_Value *v );
+int slapi_attr_type2plugin( const char *type, void **pi );
+int slapi_attr_get_type( const Slapi_Attr *attr, char **type );
+int slapi_attr_get_oid_copy( const Slapi_Attr *attr, char **oidp );
+int slapi_attr_get_flags( const Slapi_Attr *attr, unsigned long *flags );
+int slapi_attr_flag_is_set( const Slapi_Attr *attr, unsigned long flag );
+int slapi_attr_value_cmp( const Slapi_Attr *attr, const struct berval *v1, const struct berval *v2 );
+int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v );
+#define SLAPI_TYPE_CMP_EXACT	0
+#define SLAPI_TYPE_CMP_BASE	1
+#define SLAPI_TYPE_CMP_SUBTYPE	2
+int slapi_attr_type_cmp( const char *t1, const char *t2, int opt );
+int slapi_attr_types_equivalent( const char *t1, const char *t2 );
+int slapi_attr_first_value( Slapi_Attr *a, Slapi_Value **v );
+int slapi_attr_next_value( Slapi_Attr *a, int hint, Slapi_Value **v );
+int slapi_attr_get_numvalues( const Slapi_Attr *a, int *numValues );
+int slapi_attr_get_valueset( const Slapi_Attr *a, Slapi_ValueSet **vs );
+int slapi_attr_get_bervals_copy( Slapi_Attr *a, struct berval ***vals );
+char *slapi_attr_syntax_normalize( const char *s );
+
+Slapi_Value *slapi_value_new( void );
+Slapi_Value *slapi_value_new_berval(const struct berval *bval);
+Slapi_Value *slapi_value_new_value(const Slapi_Value *v);
+Slapi_Value *slapi_value_new_string(const char *s);
+Slapi_Value *slapi_value_init(Slapi_Value *v);
+Slapi_Value *slapi_value_init_berval(Slapi_Value *v, struct berval *bval);
+Slapi_Value *slapi_value_init_string(Slapi_Value *v,const char *s);
+Slapi_Value *slapi_value_dup(const Slapi_Value *v);
+void slapi_value_free(Slapi_Value **value);
+const struct berval *slapi_value_get_berval( const Slapi_Value *value );
+Slapi_Value *slapi_value_set_berval( Slapi_Value *value, const struct berval *bval );
+Slapi_Value *slapi_value_set_value( Slapi_Value *value, const Slapi_Value *vfrom);
+Slapi_Value *slapi_value_set( Slapi_Value *value, void *val, unsigned long len);
+int slapi_value_set_string(Slapi_Value *value, const char *strVal);
+int slapi_value_set_int(Slapi_Value *value, int intVal);
+const char*slapi_value_get_string(const Slapi_Value *value);
+int slapi_value_get_int(const Slapi_Value *value); 
+unsigned int slapi_value_get_uint(const Slapi_Value *value); 
+long slapi_value_get_long(const Slapi_Value *value); 
+unsigned long slapi_value_get_ulong(const Slapi_Value *value); 
+size_t slapi_value_get_length(const Slapi_Value *value);
+int slapi_value_compare(const Slapi_Attr *a,const Slapi_Value *v1,const Slapi_Value *v2);
+
+Slapi_ValueSet *slapi_valueset_new( void );
+void slapi_valueset_free(Slapi_ValueSet *vs);
+void slapi_valueset_init(Slapi_ValueSet *vs);
+void slapi_valueset_done(Slapi_ValueSet *vs);
+void slapi_valueset_add_value(Slapi_ValueSet *vs, const Slapi_Value *addval);
+int slapi_valueset_first_value( Slapi_ValueSet *vs, Slapi_Value **v );
+int slapi_valueset_next_value( Slapi_ValueSet *vs, int index, Slapi_Value **v);
+int slapi_valueset_count( const Slapi_ValueSet *vs);
+void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2);
+
 char *slapi_ch_malloc( unsigned long size );
 void slapi_ch_free( void **ptr );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );

@@ -13,11 +13,12 @@
 #include "portable.h"
 #include "slapi_common.h"
 
+#include <ac/string.h>
+
 #include <slap.h>
 #include <slapi.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <slap.h>
 #include <unistd.h>
 #include <ldap_pvt.h>
 
@@ -1330,7 +1331,11 @@ int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
 #endif /* defined(LDAP_SLAPI) */
 }
 
-int slapi_attr_get_flags( Slapi_Attr *attr, unsigned long *flags )
+/*
+ * DS 5.x compatability API follow
+ */
+
+int slapi_attr_get_flags( const Slapi_Attr *attr, unsigned long *flags )
 {
 #if defined( LDAP_SLAPI )
 	AttributeType *at;
@@ -1359,7 +1364,7 @@ int slapi_attr_get_flags( Slapi_Attr *attr, unsigned long *flags )
 #endif /* defined(LDAP_SLAPI) */
 }
 
-int slapi_attr_flag_is_set( Slapi_Attr *attr, unsigned long flag )
+int slapi_attr_flag_is_set( const Slapi_Attr *attr, unsigned long flag )
 {
 #if defined( LDAP_SLAPI )
 	unsigned long flags;
@@ -1371,3 +1376,664 @@ int slapi_attr_flag_is_set( Slapi_Attr *attr, unsigned long flag )
 	return 0;
 #endif /* defined(LDAP_SLAPI) */
 }
+
+Slapi_Attr *slapi_attr_new( void )
+{
+#ifdef LDAP_SLAPI
+	Attribute *ad;
+
+	ad = (Attribute  *)slapi_ch_calloc( 1, sizeof(*ad) );
+
+	return ad;
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type )
+{
+#ifdef LDAP_SLAPI
+	const char *text;
+	AttributeDescription *ad;
+
+	if( slap_str2ad( type, &ad, &text ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	a->a_desc = ad;
+	a->a_vals = NULL;
+	a->a_next = NULL;
+	a->a_flags = 0;
+
+	return a;
+#else
+	return NULL;
+#endif
+}
+
+void slapi_attr_free( Slapi_Attr **a )
+{
+#ifdef LDAP_SLAPI
+	attr_free( *a );
+	*a = NULL;
+#endif
+}
+
+Slapi_Attr *slapi_attr_dup( const Slapi_Attr *attr )
+{
+#ifdef LDAP_SLAPI
+	return attr_dup( (Slapi_Attr *)attr );
+#else
+	return NULL;
+#endif
+}
+
+int slapi_attr_add_value( Slapi_Attr *a, const Slapi_Value *v )
+{
+#ifdef LDAP_SLAPI
+	return value_add_one( &a->a_vals, (Slapi_Value *)v );
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_type2plugin( const char *type, void **pi )
+{
+	*pi = NULL;
+
+	return LDAP_OTHER;
+}
+
+int slapi_attr_get_type( const Slapi_Attr *attr, char **type )
+{
+#ifdef LDAP_SLAPI
+	if ( attr == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	*type = attr->a_desc->ad_cname.bv_val;
+
+	return LDAP_SUCCESS;
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_get_oid_copy( const Slapi_Attr *attr, char **oidp )
+{
+#ifdef LDAP_SLAPI
+	if ( attr == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
+	*oidp = attr->a_desc->ad_type->sat_oid;
+
+	return LDAP_SUCCESS;
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_value_cmp( const Slapi_Attr *a, const struct berval *v1, const struct berval *v2 )
+{
+#ifdef LDAP_SLAPI
+	MatchingRule *mr;
+	int ret;
+	int rc;
+	const char *text;
+
+	mr = a->a_desc->ad_type->sat_equality;
+	rc = value_match( &ret, a->a_desc, mr, SLAP_MR_ASSERTION_SYNTAX_MATCH,
+		(struct berval *)v1, (void *)v2, &text );
+	if ( rc != LDAP_SUCCESS ) 
+		return -1;
+
+	return ( ret == 0 ) ? 0 : -1;
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v )
+{
+#ifdef LDAP_SLAPI
+	MatchingRule *mr;
+	struct berval *bv;
+	int j;
+	const char *text;
+	int rc;
+	int ret;
+
+	mr = a->a_desc->ad_type->sat_equality;
+	for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
+		rc = value_match( &ret, a->a_desc, mr,
+			SLAP_MR_ASSERTION_SYNTAX_MATCH, bv, v, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			return -1;
+		}
+		if ( ret == 0 ) {
+			return 0;
+		}
+	}
+#endif
+	return -1;
+}
+
+int slapi_attr_type_cmp( const char *t1, const char *t2, int opt )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *a1;
+	AttributeDescription *a2;
+	const char *text;
+	int ret;
+
+	if ( slap_str2ad( t1, &a1, &text ) != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	if ( slap_str2ad( t2, &a2, &text ) != LDAP_SUCCESS ) {
+		return 1;
+	}
+
+#define ad_base_cmp(l,r) (((l)->ad_type->sat_cname.bv_len < (r)->ad_type->sat_cname.bv_len) \
+	? -1 : (((l)->ad_type->sat_cname.bv_len > (r)->ad_type->sat_cname.bv_len) \
+		? 1 : strcasecmp((l)->ad_type->sat_cname.bv_val, (r)->ad_type->sat_cname.bv_val )))
+
+	switch ( opt ) {
+	case SLAPI_TYPE_CMP_EXACT:
+		ret = ad_cmp( a1, a2 );
+		break;
+	case SLAPI_TYPE_CMP_BASE:
+		ret = ad_base_cmp( a1, a2 );
+		break;
+	case SLAPI_TYPE_CMP_SUBTYPE:
+		ret = is_ad_subtype( a2, a2 );
+		break;
+	default:
+		ret = -1;
+		break;
+	}
+
+	return ret;
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_types_equivalent( const char *t1, const char *t2 )
+{
+#ifdef LDAP_SLAPI
+	return slapi_attr_type_cmp( t1, t2, SLAPI_TYPE_CMP_EXACT );
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_first_value( Slapi_Attr *a, Slapi_Value **v )
+{
+#ifdef LDAP_SLAPI
+	return slapi_valueset_first_value( &a->a_vals, v );
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_next_value( Slapi_Attr *a, int hint, Slapi_Value **v )
+{
+#ifdef LDAP_SLAPI
+	return slapi_valueset_next_value( &a->a_vals, hint, v );
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_get_numvalues( const Slapi_Attr *a, int *numValues )
+{
+#ifdef LDAP_SLAPI
+	*numValues = slapi_valueset_count( &a->a_vals );
+
+	return 0;
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_get_valueset( const Slapi_Attr *a, Slapi_ValueSet **vs )
+{
+#ifdef LDAP_SLAPI
+	*vs = &((Slapi_Attr *)a)->a_vals;
+
+	return 0;
+#else
+	return -1;
+#endif
+}
+
+int slapi_attr_get_bervals_copy( Slapi_Attr *a, struct berval ***vals )
+{
+#ifdef LDAP_SLAPI
+	return slapi_attr_get_values( a, vals );
+#else
+	return -1;
+#endif
+}
+
+char *slapi_attr_syntax_normalize( const char *s )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad;
+	const char *text;
+
+	if ( slap_str2ad( s, &ad, &text ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	return ad->ad_cname.bv_val;
+#else
+	return -1;
+#endif
+}
+
+Slapi_Value *slapi_value_new( void )
+{
+#ifdef LDAP_SLAPI
+	struct berval *bv;
+
+	bv = (struct berval *)slapi_ch_malloc( sizeof(*bv) );
+
+	return bv;
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_new_berval(const struct berval *bval)
+{
+#ifdef LDAP_SLAPI
+	return ber_dupbv( NULL, (struct berval *)bval );
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_new_value(const Slapi_Value *v)
+{
+#ifdef LDAP_SLAPI
+	return slapi_value_new_berval( v );
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_new_string(const char *s)
+{
+#ifdef LDAP_SLAPI
+	struct berval bv;
+
+	bv.bv_val = (char *)s;
+	bv.bv_len = strlen( s );
+
+	return slapi_value_new_berval( &bv );
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_init(Slapi_Value *val)
+{
+#ifdef LDAP_SLAPI
+	val->bv_val = NULL;
+	val->bv_len = 0;
+
+	return val;
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_init_berval(Slapi_Value *v, struct berval *bval)
+{
+#ifdef LDAP_SLAPI
+	return ber_dupbv( v, bval );
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_init_string(Slapi_Value *v, const char *s)
+{
+#ifdef LDAP_SLAPI
+	v->bv_val = slapi_ch_strdup( (char *)s );
+	v->bv_len = strlen( s );
+
+	return v;
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_dup(const Slapi_Value *v)
+{
+#ifdef LDAP_SLAPI
+	return slapi_value_new_value( v );
+#else
+	return NULL;
+#endif
+}
+
+void slapi_value_free(Slapi_Value **value)
+{
+#ifdef LDAP_SLAPI	
+	if ( value == NULL ) {
+		return;
+	}
+	if ( *value != NULL ) {
+		Slapi_Value *v;
+
+		slapi_ch_free( (void **)&v->bv_val );
+		slapi_ch_free( (void **)&v );
+	}
+#endif
+}
+
+const struct berval *slapi_value_get_berval( const Slapi_Value *value )
+{
+#ifdef LDAP_SLAPI
+	return value;
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_set_berval( Slapi_Value *value, const struct berval *bval )
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) {
+		return NULL;
+	}
+	if ( value->bv_val != NULL ) {
+		slapi_ch_free( (void **)&value->bv_val );
+	}
+	slapi_value_init_berval( value, (struct berval *)bval );
+
+	return value;
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_set_value( Slapi_Value *value, const Slapi_Value *vfrom)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) {
+		return NULL;
+	}
+	return slapi_value_set_berval( value, vfrom );
+#else
+	return NULL;
+#endif
+}
+
+Slapi_Value *slapi_value_set( Slapi_Value *value, void *val, unsigned long len)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) {
+		return NULL;
+	}
+	if ( value->bv_val != NULL ) {
+		slapi_ch_free( (void **)&value->bv_val );
+	}
+	value->bv_val = slapi_ch_malloc( len );
+	value->bv_len = len;
+	AC_MEMCPY( value->bv_val, val, len );
+
+	return value;
+#else
+	return NULL;
+#endif
+}
+
+int slapi_value_set_string(Slapi_Value *value, const char *strVal)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) {
+		return -1;
+	}
+	slapi_value_set( value, (void *)strVal, strlen( strVal ) );
+	return 0;
+#else
+	return NULL;
+#endif
+}
+
+int slapi_value_set_int(Slapi_Value *value, int intVal)
+{
+#ifdef LDAP_SLAPI
+	char buf[64];
+
+	snprintf( buf, sizeof( buf ), "%d", intVal );
+
+	return slapi_value_set_string( value, buf );
+#else
+	return -1;
+#endif
+}
+
+const char *slapi_value_get_string(const Slapi_Value *value)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) {
+		return NULL;
+	}
+	return value->bv_val;
+#else
+	return NULL;
+#endif
+}
+
+#ifdef LDAP_SLAPI
+static int checkBVString(const struct berval *bv)
+{
+	int i;
+
+	for ( i = 0; i < bv->bv_len; i++ ) {
+		if ( bv->bv_val[i] == '\0' )
+			return 0;
+	}
+	if ( bv->bv_val[i] != '\0' )
+		return 0;
+
+	return 1;
+}
+#endif
+
+int slapi_value_get_int(const Slapi_Value *value)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) return 0;
+	if ( !checkBVString( value ) ) return 0;
+
+	return (int)strtol( value->bv_val, NULL, 10 );
+#else
+	return NULL;
+#endif
+}
+
+unsigned int slapi_value_get_uint(const Slapi_Value *value)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) return 0;
+	if ( !checkBVString( value ) ) return 0;
+
+	return (unsigned int)strtoul( value->bv_val, NULL, 10 );
+#else
+	return NULL;
+#endif
+}
+
+long slapi_value_get_long(const Slapi_Value *value)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) return 0;
+	if ( !checkBVString( value ) ) return 0;
+
+	return strtol( value->bv_val, NULL, 10 );
+#else
+	return NULL;
+#endif
+}
+
+unsigned long slapi_value_get_ulong(const Slapi_Value *value)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL ) return 0;
+	if ( !checkBVString( value ) ) return 0;
+
+	return strtoul( value->bv_val, NULL, 10 );
+#else
+	return NULL;
+#endif
+}
+
+size_t slapi_value_get_length(const Slapi_Value *value)
+{
+#ifdef LDAP_SLAPI
+	if ( value == NULL )
+		return 0;
+
+	return (size_t) value->bv_len;
+#else
+	return 0;
+#endif
+}
+
+int slapi_value_compare(const Slapi_Attr *a, const Slapi_Value *v1, const Slapi_Value *v2)
+{
+#ifdef LDAP_SLAPI
+	return slapi_attr_value_cmp( a, v1, v2 );
+#else
+	return -1;
+#endif
+}
+
+/* A ValueSet is a container for a BerVarray. */
+Slapi_ValueSet *slapi_valueset_new( void )
+{
+#ifdef LDAP_SLAPI
+	Slapi_ValueSet *vs;
+
+	vs = (Slapi_ValueSet *)slapi_ch_malloc( sizeof( *vs ) );
+	*vs = NULL;
+
+	return vs;
+#else
+	return NULL;
+#endif
+}
+
+void slapi_valueset_free(Slapi_ValueSet *vs)
+{
+#ifdef LDAP_SLAPI
+	if ( vs != NULL ) {
+		ber_bvarray_free( *vs );
+		*vs = NULL;
+	}
+#endif
+}
+
+void slapi_valueset_init(Slapi_ValueSet *vs)
+{
+#ifdef LDAP_SLAPI
+	if ( vs != NULL && *vs == NULL ) {
+		*vs = (Slapi_ValueSet)slapi_ch_calloc( 1, sizeof(struct berval) );
+		(*vs)->bv_val = NULL;
+		(*vs)->bv_len = 0;
+	}
+#endif
+}
+
+void slapi_valueset_done(Slapi_ValueSet *vs)
+{
+#ifdef LDAP_SLAPI
+	BerVarray vp;
+
+	if ( vs == NULL )
+		return;
+
+	for ( vp = *vs; vp->bv_val != NULL; vp++ ) {
+		vp->bv_len = 0;
+		slapi_ch_free( (void **)&vp->bv_val );
+	}
+	/* but don't free *vs or vs */
+#endif
+}
+
+void slapi_valueset_add_value(Slapi_ValueSet *vs, const Slapi_Value *addval)
+{
+#ifdef LDAP_SLAPI
+	ber_bvarray_add( vs, (Slapi_Value *)addval );
+#endif
+}
+
+int slapi_valueset_first_value( Slapi_ValueSet *vs, Slapi_Value **v )
+{
+#ifdef LDAP_SLAPI
+	return slapi_valueset_next_value( vs, 0, v );
+#else
+	return -1;
+#endif
+}
+
+int slapi_valueset_next_value( Slapi_ValueSet *vs, int index, Slapi_Value **v)
+{
+#ifdef LDAP_SLAPI
+	int i;
+	BerVarray vp;
+
+	if ( vs == NULL )
+		return -1;
+
+	vp = *vs;
+
+	for ( i = 0; vp[i].bv_val != NULL; i++ ) {
+		if ( i == index ) {
+			*v = &vp[i];
+			return index + 1;
+		}
+	}
+#endif
+
+	return -1;
+}
+
+int slapi_valueset_count( const Slapi_ValueSet *vs )
+{
+#ifdef LDAP_SLAPI
+	int i;
+	BerVarray vp;
+
+	if ( vs == NULL )
+		return 0;
+
+	vp = *vs;
+
+	for ( i = 0; vp[i].bv_val != NULL; i++ )
+		;
+
+	return i;
+#else
+	return 0;
+#endif
+
+}
+
+void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2)
+{
+#ifdef LDAP_SLAPI
+	BerVarray vp;
+
+	for ( vp = *vs2; vp->bv_val != NULL; vp++ ) {
+		slapi_valueset_add_value( vs1, vp );
+	}
+#endif
+}
+
