@@ -7,7 +7,7 @@
 LIBRARY = libldap.la
 XLIBRARY = ../libldap.a
 
-PROGRAMS = apitest ltest ttest dntest
+PROGRAMS = apitest ltest dntest
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	controls.c messages.c references.c extended.c cyrus.c \

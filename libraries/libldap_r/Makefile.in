@@ -7,7 +7,7 @@
 LIBRARY = libldap_r.la
 XLIBRARY = ../libldap_r.a
 
-PROGRAMS = apitest ltest ttest
+PROGRAMS = apitest ltest
 
 XXDIR = $(srcdir)/../libldap
 XXSRCS	= apitest.c test.c tmpltest.c extended.c \
