@@ -452,6 +452,283 @@ slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value )
 #endif
 }
 
+void
+slapi_entry_attr_set_charptr(Slapi_Entry* e, const char *type, const char *value)
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription	*ad = NULL;
+	const char		*text;
+	int			rc;
+	struct berval		bv;
+	
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return;
+	}
+	
+	attr_delete ( &e->e_attrs, ad );
+	if ( value != NULL ) {
+		bv.bv_val = (char *)value;
+		bv.bv_len = strlen(value);
+		attr_merge_one ( e, ad, &bv );
+	}
+#endif /* LDAP_SLAPI */
+}
+
+void
+slapi_entry_attr_set_int( Slapi_Entry* e, const char *type, int l)
+{
+#ifdef LDAP_SLAPI
+	char buf[64];
+
+	snprintf( buf, sizeof( buf ), "%d", l );
+	slapi_entry_attr_set_charptr( e, type, buf );
+#endif /* LDAP_SLAPI */
+}
+
+void
+slapi_entry_attr_set_uint( Slapi_Entry* e, const char *type, unsigned int l)
+{
+#ifdef LDAP_SLAPI
+	char buf[64];
+
+	snprintf( buf, sizeof( buf ), "%u", l );
+	slapi_entry_attr_set_charptr( e, type, buf );
+#endif /* LDAP_SLAPI */
+}
+
+void
+slapi_entry_attr_set_long(Slapi_Entry* e, const char *type, long l)
+{
+#ifdef LDAP_SLAPI
+	char buf[64];
+
+	snprintf( buf, sizeof( buf ), "%ld", l );
+	slapi_entry_attr_set_charptr( e, type, buf );
+#endif /* LDAP_SLAPI */
+}
+
+void
+slapi_entry_attr_set_ulong(Slapi_Entry* e, const char *type, unsigned long l)
+{
+#ifdef LDAP_SLAPI
+	char buf[64];
+
+	snprintf( buf, sizeof( buf ), "%lu", l );
+	slapi_entry_attr_set_charptr( e, type, buf );
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_is_rootdse( const char *dn )
+{
+#ifdef LDAP_SLAPI
+	return ( dn == NULL || dn[0] == '\0' );
+#else
+	return 0;
+#endif
+}
+
+/*
+ * Add values to entry.
+ *
+ * Returns:
+ *	LDAP_SUCCESS			Values added to entry
+ *	LDAP_TYPE_OR_VALUE_EXISTS	One or more values exist in entry already
+ *	LDAP_CONSTRAINT_VIOLATION	Any other error (odd, but it's the spec)
+ */
+int
+slapi_entry_add_values( Slapi_Entry *e, const char *type, struct berval **vals )
+{
+#ifdef LDAP_SLAPI
+	Modification		mod;
+	const char		*text;
+	int			rc;
+	char			textbuf[SLAP_TEXT_BUFLEN];
+
+	mod.sm_op = LDAP_MOD_ADD;
+	mod.sm_desc = NULL;
+	mod.sm_type.bv_val = (char *)type;
+	mod.sm_type.bv_len = strlen( type );
+
+	rc = slap_str2ad( type, &mod.sm_desc, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	if ( vals == NULL ) {
+		/* Apparently vals can be NULL */ 
+		mod.sm_bvalues = (BerVarray)ch_malloc( sizeof(struct berval) );
+		mod.sm_bvalues->bv_val = NULL;
+	} else {
+		rc = bvptr2obj( vals, &mod.sm_bvalues );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_CONSTRAINT_VIOLATION;
+		}
+	}
+
+	rc = modify_add_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
+
+	ch_free( mod.sm_bvalues );
+
+	return (rc == LDAP_SUCCESS) ? LDAP_SUCCESS : LDAP_CONSTRAINT_VIOLATION;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_add_values_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
+{
+#ifdef LDAP_SLAPI
+	return slapi_entry_add_values( e, type, vals );
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_add_valueset(Slapi_Entry *e, const char *type, Slapi_ValueSet *vs)
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription	*ad = NULL;
+	const char		*text;
+	int			rc;
+	BerVarray		bv;
+	
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	return attr_merge( e, ad, *vs );
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **vals )
+{
+#ifdef LDAP_SLAPI
+	Modification		mod;
+	const char		*text;
+	int			rc;
+	char			textbuf[SLAP_TEXT_BUFLEN];
+
+	mod.sm_op = LDAP_MOD_DELETE;
+	mod.sm_desc = NULL;
+	mod.sm_type.bv_val = (char *)type;
+	mod.sm_type.bv_len = strlen( type );
+
+	if ( vals == NULL ) {
+		/* If vals is NULL, this is a NOOP. */
+		return LDAP_SUCCESS;
+	}
+	
+	rc = slap_str2ad( type, &mod.sm_desc, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	if ( vals[0] == NULL ) {
+		/* SLAPI doco says LDAP_OPERATIONS_ERROR */
+		return attr_delete( &e->e_attrs, mod.sm_desc ) ? LDAP_OPERATIONS_ERROR : LDAP_SUCCESS;
+	}
+
+	rc = bvptr2obj( vals, &mod.sm_bvalues );
+	if ( rc != LDAP_SUCCESS ) {
+		return LDAP_CONSTRAINT_VIOLATION;
+	}
+
+	rc = modify_delete_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
+
+	ch_free( mod.sm_bvalues );
+
+	return rc;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_delete_values_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
+{
+#ifdef LDAP_SLAPI
+	return slapi_entry_delete_values( e, type, vals );
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_merge_values_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
+{
+#ifdef LDAP_SLAPI
+	return slapi_entry_attr_merge( e, (char *)type, vals );
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_add_value(Slapi_Entry *e, const char *type, const Slapi_Value *value)
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription	*ad = NULL;
+	int 			rc;
+	const char		*text;
+
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	rc = attr_merge_one( e, ad, (Slapi_Value *)value );
+	if ( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	return 0;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_add_string(Slapi_Entry *e, const char *type, const char *value)
+{
+#ifdef LDAP_SLAPI
+	Slapi_Value val;
+
+	val.bv_val = (char *)value;
+	val.bv_len = strlen( value );
+
+	return slapi_entry_add_value( e, type, &val );
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
+slapi_entry_delete_string(Slapi_Entry *e, const char *type, const char *value)
+{
+#ifdef LDAP_SLAPI
+	Slapi_Value *vals[2];
+	Slapi_Value val;
+
+	val.bv_val = (char *)value;
+	val.bv_len = strlen( value );
+	vals[0] = &val;
+	vals[1] = NULL;
+
+	return slapi_entry_delete_values_sv( e, type, vals );	
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+
 int
 slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
 {
