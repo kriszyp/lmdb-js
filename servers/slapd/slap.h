@@ -807,6 +807,11 @@ LDAP_SLAPD_F (int) slapMode;
 
 #define SLAP_TRUNCATE_MODE	0x0100
 
+struct slap_replica_info {
+	char   *ri_host;	/* supersedes be_replica */
+	char  **ri_nsuffix;	/* array of suffixes this replica accepts */
+};
+
 /* temporary aliases */
 typedef BackendDB Backend;
 #define nbackends nBackendDB
@@ -906,7 +911,7 @@ struct slap_backend_db {
 	int	be_timelimit;	/* time limit for this backend       	   */
 	AccessControl *be_acl;	/* access control list for this backend	   */
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
-	char	**be_replica;	/* replicas of this backend (in master)	   */
+	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	char	*be_update_ndn;	/* allowed to make changes (in replicas) */
 	struct berval **be_update_refs;	/* where to refer modifying clients to */

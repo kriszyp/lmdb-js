@@ -931,11 +931,13 @@ read_config( const char *fname )
 "%s: line %d: replica line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
+				int nr = -1;
+
 				for ( i = 1; i < cargc; i++ ) {
 					if ( strncasecmp( cargv[i], "host=", 5 )
 					    == 0 ) {
-						charray_add( &be->be_replica,
-							     cargv[i] + 5 );
+						nr = add_replica_info( be, 
+							cargv[i] + 5 );
 						break;
 					}
 				}
@@ -943,6 +945,31 @@ read_config( const char *fname )
 					Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing host in \"replica\" line (ignored)\n",
 					    fname, lineno, 0 );
+
+				} else if ( nr == -1 ) {
+					Debug( LDAP_DEBUG_ANY,
+		"%s: line %d: unable to add replica \"%s\" (ignored)\n",
+						fname, lineno, cargv[i] + 5 );
+				} else {
+					for ( i = 1; i < cargc; i++ ) {
+						if ( strncasecmp( cargv[i], "suffix=", 7 ) == 0 ) {
+							char *nsuffix = ch_strdup( cargv[i] + 7 );
+							if ( dn_normalize( nsuffix ) != NULL ) {
+								if ( be_issuffix( be, nsuffix ) ) {
+									charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
+								} else {
+									Debug( LDAP_DEBUG_ANY,
+											"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
+											fname, lineno, cargv[i] + 7 );
+								}
+							} else {
+								Debug( LDAP_DEBUG_ANY,
+										 "%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
+										 fname, lineno, 0 );
+							}
+							free( nsuffix );
+						}
+					}
 				}
 			}
 

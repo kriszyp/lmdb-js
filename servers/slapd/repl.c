@@ -19,6 +19,31 @@
 
 #include "slap.h"
 
+int
+add_replica_info(
+    Backend     *be,
+    const char  *host 
+)
+{
+	int i = 0;
+
+	assert( be );
+	assert( host );
+
+	if ( be->be_replica != NULL ) {
+		for ( ; be->be_replica[ i ] != NULL; i++ );
+	}
+		
+	be->be_replica = ch_realloc( be->be_replica, 
+		sizeof( struct slap_replica_info * )*( i + 2 ) );
+
+	be->be_replica[ i ] 
+		= ch_calloc( sizeof( struct slap_replica_info ), 1 );
+	be->be_replica[ i ]->ri_host = ch_strdup( host );
+	be->be_replica[ i + 1 ] = NULL;
+
+	return( i );
+}
 
 void
 replog(
@@ -33,7 +58,7 @@ replog(
 	struct replog_moddn *moddn;
 	char *tmp;
 	FILE	*fp, *lfp;
-	int	len, i;
+	int	len, i, count = 0;
 
 	if ( be->be_replogfile == NULL && replogfile == NULL ) {
 		return;
@@ -46,10 +71,48 @@ replog(
 		return;
 	}
 
+	tmp = ch_strdup( dn );
+	if ( dn_normalize( tmp ) == NULL ) {
+		/* something has gone really bad */
+		ch_free( tmp );
+
+		lock_fclose( fp, lfp );
+		ldap_pvt_thread_mutex_unlock( &replog_mutex );
+		return;
+	}
+
 	for ( i = 0; be->be_replica != NULL && be->be_replica[i] != NULL;
 	    i++ ) {
-		fprintf( fp, "replica: %s\n", be->be_replica[i] );
+		/* check if dn's suffix matches legal suffixes, if any */
+		if ( be->be_replica[i]->ri_nsuffix != NULL ) {
+			int j;
+
+			for ( j = 0; be->be_replica[i]->ri_nsuffix[j]; j++ ) {
+				if ( dn_issuffix( tmp, be->be_replica[i]->ri_nsuffix[j] ) ) {
+					break;
+				}
+			}
+
+			if ( !be->be_replica[i]->ri_nsuffix[j] ) {
+				/* do not add "replica:" line */
+				continue;
+			}
+		}
+
+		fprintf( fp, "replica: %s\n", be->be_replica[i]->ri_host );
+		++count;
 	}
+
+	ch_free( tmp );
+	if ( count == 0 ) {
+		/* if no replicas matched, drop the log 
+		 * (should we log it anyway?) */
+		lock_fclose( fp, lfp );
+		ldap_pvt_thread_mutex_unlock( &replog_mutex );
+
+		return;
+	}
+
 	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
 	fprintf( fp, "dn: %s\n", dn );
 
