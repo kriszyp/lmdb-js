@@ -160,12 +160,26 @@ slapd_opt_slp( const char *val, void *arg )
 #endif
 }
 
+/*
+ * Option helper structure:
+ * 
+ * oh_nam	is left-hand part of <option>[=<value>]
+ * oh_fnc	is handler function
+ * oh_arg	is an optional arg to oh_fnc
+ * oh_usage	is the one-line usage string related to the option,
+ *		which is assumed to start with <option>[=<value>]
+ *
+ * please leave valid options in the structure, and optionally #ifdef
+ * their processing inside the helper, so that reasonable and helpful
+ * error messages can be generated if a disabled option is requested.
+ */
 struct option_helper {
 	struct berval	oh_name;
 	int		(*oh_fnc)(const char *val, void *arg);
 	void		*oh_arg;
+	const char	*oh_usage;
 } option_helpers[] = {
-	{ BER_BVC("slp"),	slapd_opt_slp,	NULL },
+	{ BER_BVC("slp"),	slapd_opt_slp,	NULL, "slp[={on|off}] enable/disable SLP" },
 	{ BER_BVNULL }
 };
 
@@ -190,10 +204,18 @@ usage( char *name )
 		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tService name\n"
-		"\t-o <opt>[=val]\tGeneric means to specify options; supported options:\n"
-#ifdef HAVE_SLP
-		"\t\t\t\tslp[={on|off}]\n"
-#endif
+		"\t-o <opt>[=val] Generic means to specify options" );
+	if ( !BER_BVISNULL( &option_helpers[0].oh_name ) ) {
+		int	i;
+
+		fprintf( stderr, "; supported options:\n" );
+		for ( i = 0; !BER_BVISNULL( &option_helpers[i].oh_name ); i++) {
+			fprintf( stderr, "\t\t%s\n", option_helpers[i].oh_usage );
+		}
+	} else {
+		fprintf( stderr, "\n" );
+	}
+	fprintf( stderr,	
 #ifdef HAVE_CHROOT
 		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
