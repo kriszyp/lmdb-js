@@ -4,10 +4,10 @@
 
 H1: Schema Specification
 
-This chapter describes how to extend {{slapd}}(8) schema.  The
-first section details how to extend schema using provided
-schema files.  The second section details how to define
-new schema items.
+This chapter describes how to extend the schema used by {{slapd}}(8).
+The first section details optional schema definitions provided
+in the distribution and where to obtain other definitions.  The
+second section details how to define new schema items.
 
 H2: Distributed Schema Files
 
@@ -46,11 +46,11 @@ in provided files.
 
 H2: Extending Schema
 
-Schema used by {{slapd}}(8) can be extended to support additional
+Schema used by {{slapd}}(8) may be extended to support additional
 syntaxes, matching rules, attribute types, and object classes.
 This chapter details how to add attribute types and object classes
 using the syntaxes and matching rules already support by slapd.
-slapd(8) can also be extended to support additional syntaxes
+slapd can also be extended to support additional syntaxes
 and matching rules, but this requires some programming and hence
 is not discussed here.
 
@@ -64,11 +64,11 @@ There are five steps to defining new schema:
 H3: Object Identifiers
 
 Each schema element is identified by a globally unique
-{{TERM[expand]OID}} ({{TERM:OID}}).  OIDs are also used to identify
+{{TERM[expand]OID}} (OID).  OIDs are also used to identify
 other objects.
 They are commonly found in protocols described by {{TERM:ASN.1}}.  In
-particular, they are heavy used by {{Simple Network Management
-Protocol}} (SNMP).  As OIDs are hierarchical, your organization
+particular, they are heavy used by {{TERM[expand]SNMP}} (SNMP).
+As OIDs are hierarchical, your organization
 can obtain one OID and branch it as needed.  For example,
 if your organization were assigned OID {{EX:1.1}}, you could branch
 the tree as follows:
@@ -98,10 +98,10 @@ service) see {{URL:http://www.alvestrand.no/harald/objectid/}}.
 .{{Under no circumstances should you use a fictious OID!}} 
 
 To obtain a fully registered OID at {{no cost}}, apply for
-a OID under {{ORG[expand]IANA}} maintained
+a OID under {{ORG[expand]IANA}} (IANA) maintained
 {{Private Enterprise}} arch.  Any private enterprise (organization)
 may request an OID to be assigned under this arch.  Just fill
-out the form at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}}
+out the {{ORG:IANA}} form at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}}
 and your official OID will be sent to you usually within a few days.
 Your base OID will be something like {{EX:1.3.6.1.4.1.X}} were {{EX:X}}
 is an integer.
@@ -210,22 +210,49 @@ the first listed name when returning results.
 The first attribute, {{EX:name}}, has a syntax of directory string
 (a UTF-8 encoded Unicode string) with a recommend maximun length.
 Note that syntaxes is specified by OID.  In addition, the equality
-and substring matching uses case ignore rules.  Below are tables of
-{{slapd}}(8) supported syntax and matching rules.
+and substring matching uses case ignore rules.  Below are tables 
+listing commonly used supported syntax and matching rules.
 
 !block table; align=Center; coltags="EX,EX,N"; \
 	title="Table 6.3: Supported Syntaxes"
-Name		OID				Description
-directoryString	1.3.6.1.4.1.1466.115.121.1.15	A directory string
+Name			OID				Description
+binary			1.3.6.1.4.1.1466.115.121.1.5	BER/DER data
+boolean			1.3.6.1.4.1.1466.115.121.1.7	boolean value
+distinguishedName	1.3.6.1.4.1.1466.115.121.1.15	DN
+directoryString		1.3.6.1.4.1.1466.115.121.1.15	UTF-8 string
+IA5String		1.3.6.1.4.1.1466.115.121.1.26	ASCII string
+Integer			1.3.6.1.4.1.1466.115.121.1.27	integer
+Name and Optional UID	1.3.6.1.4.1.1466.115.121.1.34	DN plus UID
+Numeric String		1.3.6.1.4.1.1466.115.121.1.36	numeric string
+OID			1.3.6.1.4.1.1466.115.121.1.38	object identifier
+Octet String		1.3.6.1.4.1.1466.115.121.1.40	arbitary octets
+Printable String	1.3.6.1.4.1.1466.115.121.1.44	printable string
 !endblock
 
->
+> 
 
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 6.4: Supported Matching Rules"
-Name		Description
-caseIgnoreMatch	case insensitive, space insensitive matching
-caseExactMatch	case sensitive, space insensitive matching
+Name				Type		Description
+booleanMatch			equality	boolean
+objectIdentiferMatch		equality	OID
+distinguishedNameMatch		equality	DN
+uniqueMemberMatch		equality	DN with optional UID
+numericStringMatch		equality	numerical
+numericStringOrderingMatch	ordering	numerical
+numericStringSubstringsMatch	substrings	numerical
+caseIgnoreMatch			equality	case insensitive, space insensitive
+caseIgnoreOrderingMatch		ordering	case insensitive, space insensitive
+caseIgnoreSubstringsMatch	substrings	case insensitive, space insensitive
+caseExactMatch			equality	case sensitive, space insensitive
+caseExactOrderingMatch		ordering	case sensitive, space insensitive
+caseExactSubstringsMatch	substrings	case sensitive, space insensitive
+caseIgnoreIA5Match		equality	case insensitive, space insensitive
+caseIgnoreOrderingIA5Match	ordering	case insensitive, space insensitive
+caseIgnoreSubstringsIA5Match	substrings	case insensitive, space insensitive
+caseExactIA5Match		equality	case sensitive, space insensitive
+caseExactOrderingIA5Match	ordering	case sensitive, space insensitive
+caseExactSubstringsIA5Match	substrings	case sensitive, space insensitive
 !endblock
 
 The second attribute, {{EX:cn}}, is a subtype of {{EX:name}} hence

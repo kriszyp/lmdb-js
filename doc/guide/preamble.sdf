@@ -47,7 +47,7 @@ OpenSSL  OpenSSL				http://www.openssl.org/
 Cyrus	 Cyrus					http://asg.web.cmu.edu/cyrus/
 Sleepy	 Sleepycat Software			http://www.sleepycat.com/
 FSF	 Free Software Foundation		http://www.fsf.org/
-GNU	 Gnu Not Unix 				http://www.gnu.org/
+GNU	 GNU Not Unix 				http://www.gnu.org/
 !endblock
 
 !block products; data
@@ -78,11 +78,12 @@ BNF	BNF
 CLDAP	Connection-less LDAP
 DAP	Directory Access Protocol
 DER	Distinguished Encoding Rules
+DIT	Directory Information Tree
 DN	Distinguished Name
-DSE	DSA-specific Entry
 DNS	Domain Name System
 DS	Draft Standard
-DSA	Directory System Agent
+DSA	Directory Service Agent
+DSE	DSA-specific Entry
 DUA	Directory User Agent
 FAQ	Frequently Asked Questions
 FYI	For Your Information
@@ -95,6 +96,7 @@ LBER	Lightweight BER
 LDAP	Lightweight Directory Access Protocol
 LDIF	LDAP Data Interchange Format
 LDBM	LDAP Database Manager
+MIB	Management Information Base
 OID	Object Identifier
 OSI	OSI
 PS	Proposed Standard
@@ -103,6 +105,8 @@ RFC	Request for Comments
 TCP	Transmission Control Protocol
 TLS	Transport Security Layer
 SASL	Simple Authentication and Security Layer
+SMTP	Simple Mail Transfer Protocol
+SNMP	Simple Network Management Protocol
 STD	Internet Standard
 UDP	User Datagram Protocol
 URI	Uniform Resource Identifier

@@ -380,9 +380,9 @@ DSA may expect these attributes to be named
 {{EX:lastModifiedBy}} and {{EX:lastModifiedTime}}.
 
 A solution to this attribute naming problem is to have the
-ldapd read oidtables that map {{EX:modifiersName}} to the
-Object Identifier ({{TERM:OID}}) for the {{EX:lastModifiedBy}} attribute and
-{{EX:modifyTimeStamp}} to the OID for the {{EX:lastModifiedTime}}
-attribute. Since attribute names are carried as OIDs over
-DAP, this should perform the appropriate translation of
-attribute names.
+LDAP/DAP gateway to map {{EX:modifiersName}} to the Object
+Identifier ({{TERM:OID}}) for the {{EX:lastModifiedBy}}
+attribute and {{EX:modifyTimeStamp}} to the OID for the
+{{EX:lastModifiedTime}} attribute. Since attribute names
+are carried as OIDs over DAP, this should perform the
+appropriate translation of attribute names.

@@ -7,7 +7,7 @@ H1: The slapd Configuration File
 Once the software has been built and installed, you are ready
 to configure {{slapd}}(8) for use at your site. The slapd
 runtime configuration is primarily accomplished through the
-{{I:slapd.conf}}(5) file, normally installed in the
+{{slapd.conf}}(5) file, normally installed in the
 {{EX:/usr/local/etc/openldap}} directory.
 
 An alternate configuration file can be specified via a
@@ -143,13 +143,13 @@ loop detection is done.
 H4: loglevel <integer>
 
 This directive specifies the level at which debugging statements
-and operation statistics should be syslogged (currently
-logged to the {{syslogd}}(8) LOG_LOCAL4 facility). You must
-have compiled slapd with -DLDAP_DEBUG for this to work
-(except for the two statistics levels, which are always enabled).
-Log levels are additive. To display what numbers correspond
-to what kind of debugging, invoke slapd with the  ? flag or
-consult the table below. The possible values for <integer> are:
+and operation statistics should be syslogged (currently logged to
+the {{syslogd}}(8) {EX:LOG_LOCAL4}} facility). You must have
+configured OpenLDAP {{EX:--enable-debug}} (the default) for this
+to work (except for the two statistics levels, which are always
+enabled).  Log levels are additive. To display what numbers
+correspond to what kind of debugging, invoke slapd with {{EX:-?}}
+or consult the table below. The possible values for <integer> are:
 
 !block table; colaligns="RL"; align=Center; \
 	title="Table 5.1: Debugging Levels"
@@ -262,8 +262,11 @@ perform" error.
 H4: replica
 
 >	replica host=<hostname>[:<port>]
->		"binddn=<DN>"
->		[bindmethod={ simple | kerberos }]
+>		[bindmethod={ simple | kerberos | sasl }]
+>		["binddn=<DN>"]
+>		[mech=<mech>]
+>		[authcid=<identity>]
+>		[authzid=<identity>]
 >		[credentials=<password>]
 >		[srvtab=<filename>]
 
@@ -277,23 +280,31 @@ The {{EX:binddn=}} parameter gives the DN to bind as for updates to
 the slave slapd. It should be a DN which has read/write
 access to the slave slapd's database, typically given as a
 {{EX:rootdn}} in the slave's config file. It must also match the
-updatedn directive in the slave slapd's config file. Since DNs are
+{{EX:updatedn}} directive in the slave slapd's config file. Since DNs are
 likely to contain embedded spaces, the entire {{EX:"binddn=<DN>"}}
 string should be enclosed in double quotes.
 
-The {{EX:bindmethod}} is either simple or Kerberos, depending on
-whether simple password-based authentication or Kerberos
-authentication is to be used when connecting to the slave
-slapd. Simple authentication requires a valid password be
-given. Kerberos authentication requires a valid srvtab file.
+The {{EX:bindmethod}} is {{EX:simple}} or {{EX:kerberos}} or {{EX:sasl}},
+depending on whether simple password-based authentication or Kerberos
+authentication or {{TERM:SASL}} authentication is to be used when connecting
+to the slave slapd.
 
-The {{EX:credentials=}} parameter, which is only required if using
-simple authentication, gives the password for {{EX:binddn}} on the
-slave slapd.  Simple authentication is deprecated in favor of
-{{TERM:SASL}} based authentication services.
+Simple authentication should not be used unless adequate integrity
+and privacy protections are in place (e.g. TLS or IPSEC).  Simple
+authentication requires specification of {{EX:binddn}} and
+{{EX:credentials}} parameters.
 
-The {{EX:srvtab=}} parameter is deprecated in favor of SASL
-based authentication services.
+Kerberos authentication is deprecated in favor of SASL authentication
+mechanisms, in particular the {EX:KERBEROS_V4}} and {{EX:GSSAPI}}
+mechanisms.  Kerberos authentication requires {{EX:binddn}} and
+{{EX:srvtab}} parameters.
+
+SASL authentication is generally recommended.  SASL authentication
+requires specification of a mechanism using the {{EX:mech}} parameter.
+Depending on the mechanism, an authentication identity and/or
+credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
+respectively.  The {{EX:authzid}} parameter may be used to specify
+an authorization identity.
 
 See the {{SECT:Replication}} chapter for more information on how to
 use this directive.

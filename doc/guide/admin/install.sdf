@@ -11,8 +11,9 @@ Building and installing OpenLDAP requires several steps: installing
 prerequisite software, configuring OpenLDAP itself, making, and finally
 installing.  The following sections describe this process in detail.
 
-In case you haven't already obtained OpenLDAP it is available at the following
-location: {{URL: ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}
+In case you haven't already obtained OpenLDAP it is available at
+the following location:
+{{URL: ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}.
 
 The {{ORG[expand]OLP}} also maintains an extensive site
 ({{URL:http://www.OpenLDAP.org/}}) on the World Wide Web.  The site
@@ -22,6 +23,7 @@ properly install OpenLDAP Software.  This includes:
 !block table; align=Center; coltags="N,URL"; \
 	title="Table 4.1: Other OpenLDAP resources"
 Resource			URL
+Document Catalog		http://www.OpenLDAP.org/doc/
 Frequently Asked Questions	http://www.OpenLDAP.org/faq/
 Issue Tracking System		http://www.OpenLDAP.org/its/
 Mailing Lists			http://www.OpenLDAP.org/lists/
@@ -31,13 +33,14 @@ Support Page 			http://www.OpenLDAP.org/support/
  
 H2: Prerequisite software
 
-OpenLDAP relies a number of software packages distributed by third
-parties.  Depending on the features you intend to use, you may have
-to download and install a number of additional software packages.
-This section details commonly needed third party software packages
-you might have to install.  Note that some of these third party
-packages may depend on additional software packages.  Install each
-package per installation instructions provided with it.
+OpenLDAP Software relies upon a number of software packages distributed
+by third parties.  Depending on the features you intend to use,
+you may have to download and install a number of additional
+software packages.  This section details commonly needed third party
+software packages you might have to install.  Note that some of
+these third party packages may depend on additional software
+packages.  Install each package per installation instructions
+provided with it.
 
 H3: {{TERM[expand]TLS}}
 
@@ -243,6 +246,6 @@ source directory, type:
 
 You should examine the output of this command carefully to make sure
 everything is installed correctly. You will find the configuration files
-for slapd in {{F:/usr/local/etc/openldap}} by default.  See chapter 5 for more
-information on the configuration files.
+for slapd in {{F:/usr/local/etc/openldap}} by default.  See the
+{{SECT:The slapd Configuration File}} chapter for additional information.
 
