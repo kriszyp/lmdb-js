@@ -226,7 +226,9 @@ controls_destroy( void )
 		if ( sc->sc_extendedops != NULL ) {
 			ldap_charray_free( sc->sc_extendedops );
 		}
+		ch_free( sc );
 	}
+	ldap_charray_free( slap_known_controls );
 }
 
 /*
