@@ -22,7 +22,7 @@
 
 #include <ac/stdlib.h>
 
-#ifdef HAVE_SYS_UUID_H
+#ifdef HAVE_UUID_TO_STR
 #  include <sys/uuid.h>
 #elif defined( _WIN32 )
 #  include <rpc.h>
@@ -43,7 +43,7 @@
 #include <lutil.h>
 
 /* not needed for Windows */
-#if !defined(HAVE_SYS_UUID_H) && !defined(_WIN32)
+#if !defined(HAVE_UUID_TO_STR) && !defined(_WIN32)
 static unsigned char *
 lutil_eaddr( void )
 {
@@ -182,7 +182,7 @@ lutil_eaddr( void )
 size_t
 lutil_uuidstr( char *buf, size_t len )
 {
-#ifdef HAVE_SYS_UUID_H
+#ifdef HAVE_UUID_TO_STR
 	uuid_t uu = {0};
 	unsigned rc;
 	char *s;
@@ -283,7 +283,7 @@ main(int argc, char **argv)
 {
 	char buf1[8], buf2[64];
 
-#ifndef HAVE_SYS_UUID_H
+#ifndef HAVE_UUID_TO_STR
 	unsigned char *p = lutil_eaddr();
 
 	if( p ) {

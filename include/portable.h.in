@@ -536,6 +536,9 @@
 /* Define if you have the <sys/un.h> header file.  */
 #undef HAVE_SYS_UN_H
 
+/* Define if you have the <sys/uuid.h> header file.  */
+#undef HAVE_SYS_UUID_H
+
 /* Define if you have the <sysexits.h> header file.  */
 #undef HAVE_SYSEXITS_H
 
@@ -640,6 +643,9 @@
 
 /* define if you have winsock2 */
 #undef HAVE_WINSOCK2
+
+/* define if you have uuid_to_str() */
+#undef HAVE_UUID_TO_STR
 
 /* define if you have res_query() */
 #undef HAVE_RES_QUERY
