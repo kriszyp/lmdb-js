@@ -107,26 +107,26 @@ int cancel_extop(
 #endif
 	}
 
-	if ( op->o_cancel != LDAP_CANCEL_NONE ) {
+	if ( op->o_cancel != SLAP_CANCEL_NONE ) {
 		*text = "message ID already being cancelled";
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	op->o_cancel = LDAP_CANCEL_REQ;
+	op->o_cancel = SLAP_CANCEL_REQ;
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
-	while ( op->o_cancel == LDAP_CANCEL_REQ ) {
+	while ( op->o_cancel == SLAP_CANCEL_REQ ) {
 		ldap_pvt_thread_yield();
 	}
 
-	if ( op->o_cancel == LDAP_CANCEL_ACK ) {
+	if ( op->o_cancel == SLAP_CANCEL_ACK ) {
 		rc = LDAP_SUCCESS;
 	} else {
 		rc = op->o_cancel;
 	}
 
-	op->o_cancel = LDAP_CANCEL_DONE;
+	op->o_cancel = SLAP_CANCEL_DONE;
 
 	return rc;
 }

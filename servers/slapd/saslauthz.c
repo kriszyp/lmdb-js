@@ -463,7 +463,6 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 		rc = LDAP_INAPPROPRIATE_AUTH;
 		goto CONCLUDED;
 	}
-	suffix_alias( be, &searchbase );
 
 	sm.dn = assertDN;
 	sm.match = 0;
@@ -628,7 +627,6 @@ void slap_sasl2dn( Connection *conn,
 	if(( be == NULL ) || ( be->be_search == NULL)) {
 		goto FINISHED;
 	}
-	suffix_alias( be, &dn );
 
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;

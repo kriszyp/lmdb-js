@@ -500,11 +500,11 @@ loop_begin:
 
 #ifdef LDAP_EXOP_X_CANCEL
 		if ( op->o_cancel ) {
-			assert( op->o_cancel == LDAP_CANCEL_REQ );
+			assert( op->o_cancel == SLAP_CANCEL_REQ );
 			rc = 0;
 			send_search_result( conn, op, LDAP_CANCELLED,
 					NULL, NULL, NULL, NULL, 0 );
-			op->o_cancel = LDAP_CANCEL_ACK;
+			op->o_cancel = SLAP_CANCEL_ACK;
 			goto done;
 		}
 #endif
@@ -1049,7 +1049,8 @@ static int search_candidates(
 	 * these clauses are redundant.
 	 */
 	if (!oc_filter(filter, 1, &depth) && !get_subentries_visibility(op) ) {
-		if( !get_manageDSAit(op) ) { /* match referrals */
+		if( !get_manageDSAit(op) && !get_domainScope(op) ) {
+			/* match referral objects */
 			struct berval bv_ref = { sizeof("referral")-1, "referral" };
 			rf.f_choice = LDAP_FILTER_EQUALITY;
 			rf.f_ava = &aa_ref;
@@ -1060,7 +1061,8 @@ static int search_candidates(
 		}
 
 #ifdef BDB_ALIASES
-		if( deref & LDAP_DEREF_SEARCHING ) { /* match aliases */
+		if( deref & LDAP_DEREF_SEARCHING ) {
+			/* match alias objects */
 			struct berval bv_alias = { sizeof("alias")-1, "alias" };
 			af.f_choice = LDAP_FILTER_EQUALITY;
 			af.f_ava = &aa_alias;
@@ -1261,7 +1263,7 @@ bdb_build_lcup_update_ctrl(
 			"{bb{sON}N}",
 			SLAP_LCUP_STATE_UPDATE_FALSE,
 			isdeleted,
-			LDAP_LCUP_COOKIE_OID, &entrycsn_bv );
+			LDAP_CUP_COOKIE_OID, &entrycsn_bv );
 	else /* Do not send cookie */
 		ber_printf( ber,
 			"{bbN}",
@@ -1311,7 +1313,7 @@ bdb_build_lcup_done_ctrl(
 
 	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
 
-	ber_printf( ber, "{sO", LDAP_LCUP_COOKIE_OID, latest_entrycsn_bv );
+	ber_printf( ber, "{sO", LDAP_CUP_COOKIE_OID, latest_entrycsn_bv );
 	ber_printf( ber, "N}" );
 
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE_DONE;

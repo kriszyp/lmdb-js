@@ -1322,7 +1322,6 @@ struct slap_backend_db {
 	/* these should be renamed from be_ to bd_ */
 	BerVarray	be_suffix;	/* the DN suffixes of data in this backend */
 	BerVarray	be_nsuffix;	/* the normalized DN suffixes in this backend */
-	BerVarray	be_suffixAlias; /* pairs of DN suffix aliases and deref values */
 	struct berval be_schemadn;	/* per-backend subschema subentry DN */
 	struct berval be_schemandn;	/* normalized subschema DN */
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
@@ -1663,7 +1662,11 @@ typedef struct slap_op {
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
 
 	volatile sig_atomic_t o_abandon;	/* abandon flag */
-	volatile sig_atomic_t o_cancel;         /* cancel flag */
+	volatile sig_atomic_t o_cancel;		/* cancel flag */
+#define SLAP_CANCEL_NONE				0x00
+#define SLAP_CANCEL_REQ					0x01
+#define SLAP_CANCEL_ACK					0x02
+#define SLAP_CANCEL_DONE				0x03
 
 	char o_do_not_cache;	/* don't cache from this op */
 
@@ -1683,15 +1686,18 @@ typedef struct slap_op {
 
 	char o_valuesreturnfilter;
 
-#ifdef LDAP_CONTROL_PERMITMODIFY
-	char o_permitmodify;
-#define get_permitmodify(op)			((int)(op)->o_permitmodify)
+#ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
+	char o_permissive_modify;
+#define get_permissiveModify(op)		((int)(op)->o_permissive_modify)
 #else
-#define get_permitmodify(op)			(0)
+#define get_permissiveModify(op)		(0)
 #endif
 
-#ifdef LDAP_CONTROL_NOREFERRALS
-	char o_noreferrals;
+#ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
+	char o_domain_scope;
+#define get_domainScope(op)				((int)(op)->o_domain_scope)
+#else
+#define get_domainScope(op)				(0)
 #endif
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS

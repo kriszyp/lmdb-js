@@ -323,13 +323,7 @@ do_modrdn(
 
 			goto cleanup;
 		}
-
-		/* deref suffix alias if appropriate */
-		suffix_alias( be, &nnewSuperior );
 	}
-
-	/* deref suffix alias if appropriate */
-	suffix_alias( be, &ndn );
 
 #if defined( LDAP_SLAPI )
 	slapi_x_backend_set_pb( pb, be );
