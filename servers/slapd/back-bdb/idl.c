@@ -49,14 +49,32 @@ static int idl_insert( ID *ids, ID id )
 		ids[0]++;
 		ids[ids[0]] = id;
 
-	} else if ( ids[0]+1 >= BDB_IDL_MAX ) {
+	} else if ( ++ids[0] >= BDB_IDL_MAX ) {
 		ids[0] = NOID;
 	
 	} else {
 		/* insert id */
-		AC_MEMCPY( &ids[x+1], &ids[x], (1+ids[0]-x) * sizeof(ID) );
+		AC_MEMCPY( &ids[x+1], &ids[x], (ids[0]-x) * sizeof(ID) );
 		ids[0]++;
 		ids[x] = id;
+	}
+
+	return 0;
+}
+
+static int idl_delete( ID *ids, ID id )
+{
+	int x = idl_search( ids, id );
+
+	if( x == 0 || ids[x] != id ) {
+		/* not found */
+		return -1;
+
+	} else if ( --ids[0] == 0 ) {
+		if( x != 1 ) return -1;
+
+	} else {
+		AC_MEMCPY( &ids[x], &ids[x+1], (1+ids[0]-x) * sizeof(ID) );
 	}
 
 	return 0;
@@ -106,6 +124,61 @@ bdb_idl_insert_key(
 		rc = idl_insert( ids, id );
 
 		if( rc != 0 ) return rc;
+
+		data.size = (ids[0]+1) * sizeof( ID );
+	}
+
+	/* store the key */
+	rc = db->put( db, tid, key, &data, 0 );
+
+	return rc;
+}
+
+int
+bdb_idl_delete_key(
+    BackendDB	*be,
+    DB			*db,
+	DB_TXN		*tid,
+    DBT			*key,
+    ID			id )
+{
+	int	rc;
+	ID ids[BDB_IDL_SIZE];
+	DBT data;
+
+	assert( id != NOID );
+
+	data.data = ids;
+	data.ulen = sizeof( ids );
+	data.flags = DB_DBT_USERMEM;
+
+	/* fetch the key and grab a write lock */
+	rc = db->get( db, tid, key, &data, DB_RMW );
+
+	if ( rc != 0 ) {
+		return rc;
+
+	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
+		/* size not multiple of ID size */
+		return -1;
+	
+	} else if ( BDB_IS_ALLIDS(ids) ) {
+		return 0;
+
+	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {
+		/* size mismatch */
+		return -1;
+
+	} else {
+		rc = idl_delete( ids, id );
+
+		if( rc != 0 ) return rc;
+
+		if( BDB_IS_ALLIDS(ids) ) {
+			/* delete the key */
+			rc = db->del( db, tid, key, 0 );
+			return rc;
+		}
 
 		data.size = (ids[0]+1) * sizeof( ID );
 	}
