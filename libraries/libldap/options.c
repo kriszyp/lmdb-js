@@ -132,7 +132,6 @@ ldap_get_option(
 			}
 
 			info->ldapai_api_version = LDAP_API_VERSION;
-			info->ldapai_api_version = LDAP_API_VERSION;
 			info->ldapai_protocol_version = LDAP_VERSION_MAX;
 
 			if(features[0].ldapaif_name == NULL) {
