@@ -11,7 +11,7 @@ dyngroup.schema			Dynamic Group (experimental)
 inetorgperson.schema    InetOrgPerson
 java.schema             Java Object
 misc.schema             Miscellaneous Schema (experimental)
-nis.schema              Network Information Service
+nis.schema              Network Information Service (experimental)
 openldap.schema         OpenLDAP Project (FYI)
 ppolicy.schema          Password Policy Schema (work in progress)
 

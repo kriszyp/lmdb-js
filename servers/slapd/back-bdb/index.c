@@ -283,20 +283,21 @@ static int index_at_values(
 		if( rc ) return rc;
 	}
 
-#ifdef LDAP_COMP_MATCH
-	/* component indexing */
-	bdb_attr_comp_ref ( op->o_bd->be_private, type->sat_ad, &cr_list );
-	if ( cr_list ) {
-		for( cr = cr_list ; cr ; cr = cr->cr_next ) {
-			rc = indexer( op, txn, cr->cr_ad, &type->sat_cname,
-				cr->cr_nvals, id, opid,
-				cr->cr_indexmask );
-		}
-	}
-#endif
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
+#ifdef LDAP_COMP_MATCH
+		/* component indexing */
+		bdb_attr_mask_cr( op->o_bd->be_private, type->sat_ad, &mask, &cr_list );
+		if ( cr_list ) {
+			for( cr = cr_list ; cr ; cr = cr->cr_next ) {
+				rc = indexer( op, txn, cr->cr_ad, &type->sat_cname,
+					cr->cr_nvals, id, opid,
+					cr->cr_indexmask );
+			}
+		}
+#else
 		bdb_attr_mask( op->o_bd->be_private, type->sat_ad, &mask );
+#endif
 		ad = type->sat_ad;
 	}
 

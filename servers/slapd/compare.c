@@ -208,7 +208,9 @@ fe_op_compare( Operation *op, SlapReply *rs )
 
 		rs->sr_err = LDAP_REFERRAL;
 		if (!rs->sr_ref) rs->sr_ref = default_referral;
+		op->o_bd = frontendDB;
 		send_ldap_result( op, rs );
+		op->o_bd = NULL;
 
 		if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		rs->sr_err = 0;

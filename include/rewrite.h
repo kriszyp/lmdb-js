@@ -38,8 +38,7 @@
  * Rewrite internal status returns
  */
 #define REWRITE_SUCCESS			LDAP_SUCCESS
-#define REWRITE_ERR			LDAP_OPERATIONS_ERROR
-#define REWRITE_NO_SUCH_OBJECT		LDAP_NO_SUCH_OBJECT
+#define REWRITE_ERR			LDAP_OTHER
 
 /*
  * Rewrite modes (input values for rewrite_info_init); determine the
@@ -66,11 +65,11 @@
  * 	REWRITE_REGEXEC_UNWILLING	the server should issue an 'unwilling
  * 					to perform' error
  */
-#define REWRITE_REGEXEC_OK              0x0000
-#define REWRITE_REGEXEC_ERR             0x0001
-#define REWRITE_REGEXEC_STOP            0x0002
-#define REWRITE_REGEXEC_UNWILLING       0x0003
-#define REWRITE_REGEXEC_USER		0x0004 /* and above ... */
+#define REWRITE_REGEXEC_OK              (0)
+#define REWRITE_REGEXEC_ERR             (-1)
+#define REWRITE_REGEXEC_STOP            (-2)
+#define REWRITE_REGEXEC_UNWILLING       (-3)
+#define REWRITE_REGEXEC_USER		(1)	/* and above: LDAP errors */
 
 /*
  * Rewrite variable flags

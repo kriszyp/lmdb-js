@@ -158,7 +158,7 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 		return NULL;
 	}
 
-	e = str2entry( data.dptr );
+	e = str2entry2( data.dptr, 0 );
 	ldbm_datum_free( id2entry->dbc_db, data );
 
 	if( e != NULL ) {

@@ -464,7 +464,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		/* don't return referral for bind requests */
 		/* noSuchObject is not allowed to be returned by bind */
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+		op->o_bd = frontendDB;
 		send_ldap_result( op, rs );
+		op->o_bd = NULL;
 		goto cleanup;
 	}
 

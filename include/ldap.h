@@ -234,10 +234,9 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
 /* Password policy Controls *//* work in progress */
-#ifdef LDAP_DEVEL
+/* ITS#3458: released, but not to latest draft; disabled by default */
 #define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
 #define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
-#endif
 
 /* LDAP Sync -- draft-zeilenga-ldup-sync *//* submitted for publication */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"

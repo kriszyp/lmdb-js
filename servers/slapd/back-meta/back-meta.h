@@ -85,15 +85,6 @@ typedef struct dncookie {
 #define META_BIND_NRETRIES	3
 #define META_BIND_TIMEOUT	1000
 
-int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
-struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
-int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
-int ldap_back_retry(struct ldapconn *lc, Operation *op, SlapReply *rs);
-int ldap_back_map_result(SlapReply *rs);
-int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
-	ber_int_t msgid, int sendok);
-int	back_ldap_LTX_init_module(int argc, char *argv[]);
-
 int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
 	struct berval *res);
 
@@ -106,6 +97,8 @@ int mapping_cmp (const void *, const void *);
 int mapping_dup (void *, void *);
 
 void ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping ** );
+int ldap_back_mapping ( struct ldapmap *map, struct berval *s,
+	struct ldapmapping **m, int remap );
 void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
 #define BACKLDAP_MAP	0

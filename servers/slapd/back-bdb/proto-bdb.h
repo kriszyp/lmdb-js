@@ -36,8 +36,13 @@ LDAP_BEGIN_DECL
 
 #ifdef LDAP_COMP_MATCH
 #define bdb_attr_comp_ref			BDB_SYMBOL(attr_comp_ref)
+#define bdb_attr_mask_cr			BDB_SYMBOL(attr_mask_cr)
 void bdb_attr_comp_ref( struct bdb_info *bdb,
 	AttributeDescription *desc,
+	ComponentReference **cr );
+void bdb_attr_mask_cr( struct bdb_info *bdb,
+	AttributeDescription *desc,
+	slap_mask_t *indexmask,
 	ComponentReference **cr );
 #endif
 

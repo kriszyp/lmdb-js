@@ -79,8 +79,8 @@ The URI list is space- or comma-separated.
 .TP
 .B acl-authcDN "<administrative DN for access control purposes>"
 DN which is used to query the target server for acl checking; it
-should have read access on the target server to attributes used on the
-proxy for acl checking.
+is supposed to have read access on the target server to attributes used
+on the proxy for acl checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
 .B The acl-authcDN identity is by no means implicitly used by the proxy 
@@ -90,7 +90,10 @@ See the
 feature instead.
 .TP
 .B acl-passwd <password>
-Password used with the bind DN above.
+Password used with the
+.B 
+acl-authcDN
+above.
 .TP
 .B idassert-authcdn "<administrative DN for proxyAuthz purposes>"
 DN which is used to propagate the client's identity to the target

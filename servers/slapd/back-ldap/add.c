@@ -46,14 +46,14 @@ ldap_back_add(
 	int		isupdate;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
-	int		rc = LDAP_SUCCESS;
 
+	rs->sr_err = LDAP_SUCCESS;
+	
 	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_add(\"%s\")\n",
 			op->o_req_dn.bv_val, 0, 0 );
 
-	lc = ldap_back_getconn( op, rs );
-	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
-		rc = -1;
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
+	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		goto cleanup;
 	}
 
@@ -89,20 +89,19 @@ ldap_back_add(
 	attrs[ i ] = NULL;
 
 	ctrls = op->o_ctrls;
-	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
-	if ( rc != LDAP_SUCCESS ) {
+	rs->sr_err = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
-		rc = -1;
 		goto cleanup;
 	}
 
 retry:
 	rs->sr_err = ldap_add_ext( lc->lc_ld, op->o_req_dn.bv_val, attrs,
 			ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
+	rs->sr_err = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry( lc, op, rs ) ) {
+		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}
@@ -118,8 +117,8 @@ cleanup:
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "<== ldap_back_add(\"%s\"): %d\n",
-			op->o_req_dn.bv_val, rc, 0 );
+			op->o_req_dn.bv_val, rs->sr_err, 0 );
 
-	return rc;
+	return rs->sr_err;
 }
 

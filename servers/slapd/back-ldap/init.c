@@ -144,10 +144,10 @@ ldap_back_db_open( BackendDB *be )
 		/* FIXME: disabled because namingContexts doesn't have
 		 * a matching rule, and using an MRA filter doesn't work
 		 * because the normalized assertion is compared to the 
-		 * non-normalized value, which in general differ.
-		 * See ITS#3406 */
+		 * non-normalized value, which in general differs from
+		 * the normalized one.  See ITS#3406 */
 		struct berval	filter,
-				base = BER_BVC( "cn=Databases,cn=Monitor" );
+				base = BER_BVC( "cn=Databases," SLAPD_MONITOR );
 		struct berval	vals[ 2 ];
 		Attribute	a = { 0 };
 

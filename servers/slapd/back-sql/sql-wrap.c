@@ -126,7 +126,7 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 			0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-	return SQLPrepare( *sth, query, SQL_NTS );
+	return SQLPrepare( *sth, (SQLCHAR *)query, SQL_NTS );
 }
 
 RETCODE
@@ -174,7 +174,7 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 					(SQLUINTEGER)( sizeof( colname ) - 1 ),
 					&name_len, &col_type,
 					&col_prec, &col_scale, &col_null );
-			ber_str2bv( colname, 0, 1, &row->col_names[ i - 1 ] );
+			ber_str2bv( (char *)colname, 0, 1, &row->col_names[ i - 1 ] );
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 				"col_name=%s, col_prec[%d]=%d\n",

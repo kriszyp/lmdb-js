@@ -365,6 +365,10 @@ pager: +1 313 555 7671
 facsimileTelephoneNumber: +1 313 555 7762
 telephoneNumber: +1 313 555 4177
 
+dn: ou=Other,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Other
+
 dn: ou=People,dc=example,dc=com
 objectClass: organizationalUnit
 objectClass: extensibleObject

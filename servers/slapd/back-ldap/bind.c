@@ -16,7 +16,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS:
- * This work was initially developed by the Howard Chu for inclusion
+ * This work was initially developed by Howard Chu for inclusion
  * in OpenLDAP Software and subsequently enhanced by Pierangelo
  * Masarati.
  */
@@ -41,6 +41,9 @@ static LDAP_REBIND_PROC	ldap_back_rebind;
 static int
 ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs );
 
+static int
+ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok );
+
 int
 ldap_back_bind( Operation *op, SlapReply *rs )
 {
@@ -50,9 +53,9 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	int rc = 0;
 	ber_int_t msgid;
 
-	lc = ldap_back_getconn( op, rs );
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc ) {
-		return( -1 );
+		return rs->sr_err;
 	}
 
 	if ( !BER_BVISNULL( &lc->lc_bound_ndn ) ) {
@@ -65,7 +68,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = ldap_sasl_bind( lc->lc_ld, op->o_req_dn.bv_val,
 			LDAP_SASL_SIMPLE,
 			&op->orb_cred, op->o_ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
+	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
 
 	if ( rc == LDAP_SUCCESS ) {
 		/* If defined, proxyAuthz will be used also when
@@ -84,7 +87,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 		lc->lc_bound = 1;
 		ber_dupbv( &lc->lc_bound_ndn, &op->o_req_ndn );
 
-		if ( li->savecred ) {
+		if ( li->flags & LDAP_BACK_F_SAVECRED ) {
 			if ( !BER_BVISNULL( &lc->lc_cred ) ) {
 				memset( lc->lc_cred.bv_val, 0,
 						lc->lc_cred.bv_len );
@@ -219,12 +222,76 @@ ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 	return 0;
 }
 
+static int
+ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
+{
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+	int		vers = op->o_protocol;
+	LDAP		*ld = NULL;
+
+	assert( lcp != NULL );
+
+	rs->sr_err = ldap_initialize( &ld, li->url );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		goto error_return;
+	}
+
+	/* Set LDAP version. This will always succeed: If the client
+	 * bound with a particular version, then so can we.
+	 */
+	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
+
+	/* Set LDAP version. This will always succeed: If the client
+	 * bound with a particular version, then so can we.
+	 */
+	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
+			(const void *)&vers );
+
+	/* FIXME: configurable? */
+	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
+
+	if ( ( li->flags & LDAP_BACK_F_USE_TLS )
+			&& !ldap_is_ldaps_url( li->url )
+			&& ( rs->sr_err = ldap_start_tls_s( ld, NULL, NULL ) ) != LDAP_SUCCESS )
+	{
+		/* if StartTLS is requested, only attempt it if the URL
+		 * is not "ldaps://"; this may occur not only in case
+		 * of misconfiguration, but also when used in the chain 
+		 * overlay, where the "uri" can be parsed out of a referral */
+		if ( rs->sr_err == LDAP_SERVER_DOWN
+				|| ( li->flags & LDAP_BACK_F_TLS_CRITICAL ) )
+		{
+			ldap_unbind_ext_s( ld, NULL, NULL );
+			goto error_return;
+		}
+	}
+
+	if ( *lcp == NULL ) {
+		*lcp = (struct ldapconn *)ch_malloc( sizeof( struct ldapconn ) );
+		memset( *lcp, 0, sizeof( struct ldapconn ) );
+	}
+	(*lcp)->lc_ld = ld;
+
+error_return:;
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		rs->sr_err = slap_map_api2result( rs );
+		if ( sendok & LDAP_BACK_SENDERR ) {
+			if ( rs->sr_text == NULL ) {
+				rs->sr_text = "ldap_initialize() failed";
+			}
+			send_ldap_result( op, rs );
+			rs->sr_text = NULL;
+		}
+	}
+
+	return rs->sr_err;
+}
+
 struct ldapconn *
-ldap_back_getconn( Operation *op, SlapReply *rs )
+ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
 	struct ldapconn	*lc, lc_curr;
-	LDAP		*ld;
 	int		is_priv = 0;
 
 	/* Searches for a ldapconn in the avl tree */
@@ -258,31 +325,12 @@ ldap_back_getconn( Operation *op, SlapReply *rs )
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if ( !lc ) {
-		int vers = op->o_protocol;
-		rs->sr_err = ldap_initialize( &ld, li->url );
-		
-		if ( rs->sr_err != LDAP_SUCCESS ) {
-			rs->sr_err = slap_map_api2result( rs );
-			if ( rs->sr_text == NULL ) {
-				rs->sr_text = "ldap_initialize() failed";
-			}
-			if ( op->o_conn ) {
-				send_ldap_result( op, rs );
-			}
-			rs->sr_text = NULL;
-			return( NULL );
+		/* lc here must be NULL */
+		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
+			return NULL;
 		}
-		/* Set LDAP version. This will always succeed: If the client
-		 * bound with a particular version, then so can we.
-		 */
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION,
-				(const void *)&vers );
-		/* FIXME: configurable? */
-		ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
 
-		lc = (struct ldapconn *)ch_malloc( sizeof( struct ldapconn ) );
 		lc->lc_conn = lc_curr.lc_conn;
-		lc->lc_ld = ld;
 		ber_dupbv( &lc->lc_local_ndn, &lc_curr.lc_local_ndn );
 
 		ldap_pvt_thread_mutex_init( &lc->lc_mutex );
@@ -320,18 +368,18 @@ ldap_back_getconn( Operation *op, SlapReply *rs )
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( rs->sr_err != 0 ) {
 			ldap_back_conn_free( lc );
-			if ( op->o_conn ) {
+			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
 				send_ldap_error( op, rs, LDAP_OTHER,
 				"internal server error" );
 			}
-			return( NULL );
+			return NULL;
 		}
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %p fetched\n", (void *) lc, 0, 0 );
 	}
 	
-	return( lc );
+	return lc;
 }
 
 /*
@@ -341,11 +389,18 @@ ldap_back_getconn( Operation *op, SlapReply *rs )
  * it from all the callers, and I made the function return the flag, so
  * it can be used to simplify the check.
  */
-int
-ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
+static int
+ldap_back_dobind_int(
+	struct ldapconn		*lc,
+	Operation		*op,
+	SlapReply		*rs,
+	ldap_back_send_t	sendok,
+	int			retries )
 {	
 	int		rc;
 	ber_int_t	msgid;
+
+	assert( retries >= 0 );
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( !lc->lc_bound ) {
@@ -373,12 +428,33 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 			goto done;
 		}
 
+retry:;
 		rs->sr_err = ldap_sasl_bind( lc->lc_ld,
 				lc->lc_bound_ndn.bv_val,
 				LDAP_SASL_SIMPLE, &lc->lc_cred,
 				NULL, NULL, &msgid );
-		
-		rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
+
+		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
+			if ( retries > 0 ) {
+				ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+				lc->lc_ld = NULL;
+
+				/* lc here must be the regular lc, reset and ready for init */
+				if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
+					return 0;
+				}
+
+				retries--;
+				goto retry;
+			}
+
+			ldap_back_freeconn( op, lc );
+			rs->sr_err = slap_map_api2result( rs );
+
+			return 0;
+		}
+
+		rc = ldap_back_op_result( lc, op, rs, msgid, sendok );
 		if ( rc == LDAP_SUCCESS ) {
 			lc->lc_bound = 1;
 		}
@@ -388,6 +464,12 @@ done:;
 	rc = lc->lc_bound;
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	return rc;
+}
+
+int
+ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
+{
+	return ldap_back_dobind_int( lc, op, rs, sendok, 1 );
 }
 
 /*
@@ -400,7 +482,9 @@ static int
 ldap_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 	ber_int_t msgid, void *params )
 {
-	struct ldapconn *lc = params;
+	struct ldapconn *lc = (struct ldapconn *)params;
+
+	/* FIXME: add checks on the URL/identity? */
 
 	return ldap_sasl_bind_s( ld, lc->lc_bound_ndn.bv_val,
 			LDAP_SASL_SIMPLE, &lc->lc_cred, NULL, NULL, NULL );
@@ -408,11 +492,11 @@ ldap_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 
 int
 ldap_back_op_result(
-		struct ldapconn	*lc,
-		Operation	*op,
-		SlapReply	*rs,
-		ber_int_t	msgid,
-		int		sendok )
+		struct ldapconn		*lc,
+		Operation		*op,
+		SlapReply		*rs,
+		ber_int_t		msgid,
+		ldap_back_send_t	sendok )
 {
 	char		*match = NULL;
 	LDAPMessage	*res = NULL;
@@ -474,7 +558,10 @@ retry:;
 			rs->sr_matched = match;
 		}
 	}
-	if ( op->o_conn && ( sendok || rs->sr_err != LDAP_SUCCESS ) ) {
+	if ( op->o_conn &&
+			( ( sendok & LDAP_BACK_SENDOK ) 
+			  || ( ( sendok & LDAP_BACK_SENDERR ) && rs->sr_err != LDAP_SUCCESS ) ) )
+	{
 		send_ldap_result( op, rs );
 	}
 	if ( match ) {
@@ -493,37 +580,20 @@ retry:;
 
 /* return true if bound, false if failed */
 int
-ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs )
+ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
-	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
-	int vers = op->o_protocol;
-	LDAP *ld;
-
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+	lc->lc_ld = NULL;
 	lc->lc_bound = 0;
-	rs->sr_err = ldap_initialize( &ld, li->url );
-		
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		rs->sr_err = slap_map_api2result( rs );
-		if ( rs->sr_text == NULL ) {
-			rs->sr_text = "ldap_initialize() failed";
-		}
-		if ( op->o_conn ) {
-			send_ldap_result( op, rs );
-		}
-		rs->sr_text = NULL;
+
+	/* lc here must be the regular lc, reset and ready for init */
+	if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 		return 0;
 	}
-	/* Set LDAP version. This will always succeed: If the client
-	 * bound with a particular version, then so can we.
-	 */
-	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, (const void *)&vers );
-	/* FIXME: configurable? */
-	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
-	lc->lc_ld = ld;
+
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
-	return ldap_back_dobind( lc, op, rs );
+	return ldap_back_dobind_int( lc, op, rs, sendok, 0 );
 }
 
 static int
@@ -695,7 +765,7 @@ ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
+	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
 	if ( rc == LDAP_SUCCESS ) {
 		lc->lc_bound = 1;
 	}

@@ -186,7 +186,7 @@ id2entry_rw( Backend *be, ID id, int rw )
 		return( NULL );
 	}
 
-	e = str2entry( data.dptr );
+	e = str2entry2( data.dptr, 0 );
 	ldbm_datum_free( db->dbc_db, data );
 	ldbm_cache_close( be, db );
 

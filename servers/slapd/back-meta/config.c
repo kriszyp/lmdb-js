@@ -302,7 +302,9 @@ meta_back_db_config(
 		li->network_timeout = atol(argv[ 1 ]);
 
 	/* name to use for meta_back_group */
-	} else if ( strcasecmp( argv[ 0 ], "binddn" ) == 0 ) {
+	} else if ( strcasecmp( argv[ 0 ], "acl-authcDN" ) == 0
+			|| strcasecmp( argv[ 0 ], "binddn" ) == 0 )
+	{
 		int 		i = li->ntargets-1;
 		struct berval	dn;
 
@@ -320,6 +322,14 @@ meta_back_db_config(
 			return 1;
 		}
 
+		if ( strcasecmp( argv[ 0 ], "binddn" ) == 0 ) {
+			fprintf( stderr, "%s: line %d: "
+				"\"binddn\" statement is deprecated; "
+				"use \"acl-authcDN\" instead\n",
+				fname, lineno );
+			/* FIXME: some day we'll need to throw an error */
+		}
+
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
 		if ( dnNormalize( 0, NULL, NULL, &dn, &li->targets[ i ]->mt_binddn,
@@ -332,7 +342,9 @@ meta_back_db_config(
 		}
 
 	/* password to use for meta_back_group */
-	} else if ( strcasecmp( argv[ 0 ], "bindpw" ) == 0 ) {
+	} else if ( strcasecmp( argv[ 0 ], "acl-passwd" ) == 0
+			|| strcasecmp( argv[ 0 ], "bindpw" ) == 0 )
+	{
 		int 		i = li->ntargets-1;
 
 		if ( i < 0 ) {
@@ -348,6 +360,15 @@ meta_back_db_config(
 			    fname, lineno );
 			return 1;
 		}
+
+		if ( strcasecmp( argv[ 0 ], "bindpw" ) == 0 ) {
+			fprintf( stderr, "%s: line %d: "
+				"\"bindpw\" statement is deprecated; "
+				"use \"acl-passwd\" instead\n",
+				fname, lineno );
+			/* FIXME: some day we'll need to throw an error */
+		}
+
 		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->mt_bindpw );
 		
 	/* save bind creds for referral rebinds? */

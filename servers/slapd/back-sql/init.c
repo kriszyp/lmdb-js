@@ -456,8 +456,9 @@ backsql_db_open(
 	bb.bb_val.bv_len = 0;
 	bb.bb_len = 0;
 	backsql_strfcat( &bb, "sb",
-			"SELECT COUNT(distinct subordinates.id) FROM ldap_entries,ldap_entries subordinates WHERE subordinates.parent=ldap_entries.id AND ",
-
+			"SELECT COUNT(distinct subordinates.id) "
+			"FROM ldap_entries,ldap_entries " BACKSQL_ALIASING "subordinates "
+			"WHERE subordinates.parent=ldap_entries.id AND ",
 			&bi->sql_children_cond );
 	bi->sql_has_children_query = bb.bb_val.bv_val;
  

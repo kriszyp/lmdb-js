@@ -245,8 +245,9 @@ typedef struct {
  * in quotes.  This is especially true for those that do not
  * allow keywords used as aliases.
  */
-/* #define BACKSQL_ALIASING_QUOTE	'"' */
-/* #define BACKSQL_ALIASING_QUOTE	'\'' */
+#define BACKSQL_ALIASING_QUOTE	""
+/* #define BACKSQL_ALIASING_QUOTE	"\"" */
+/* #define BACKSQL_ALIASING_QUOTE	"'" */
 
 /*
  * API

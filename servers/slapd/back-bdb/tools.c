@@ -307,6 +307,7 @@ ID bdb_tool_entry_put(
 	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_tool_entry_put)
 		"( %ld, \"%s\" )\n", (long) e->e_id, e->e_dn, 0 );
 
+	if (! (slapMode & SLAP_TOOL_QUICK)) {
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
 		bdb->bi_db_opflags );
 	if( rc != 0 ) {
@@ -317,6 +318,7 @@ ID bdb_tool_entry_put(
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
 			 text->bv_val, 0, 0 );
 		return NOID;
+	}
 	}
 
 	op.o_hdr = &ohdr;
@@ -356,6 +358,7 @@ ID bdb_tool_entry_put(
 
 done:
 	if( rc == 0 ) {
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
 		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
 			snprintf( text->bv_val, text->bv_len,
@@ -366,8 +369,10 @@ done:
 				text->bv_val, 0, 0 );
 			e->e_id = NOID;
 		}
+		}
 
 	} else {
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
 		TXN_ABORT( tid );
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
@@ -375,6 +380,7 @@ done:
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_put) ": %s\n",
 			text->bv_val, 0, 0 );
+		}
 		e->e_id = NOID;
 	}
 
@@ -420,6 +426,7 @@ int bdb_tool_entry_reindex(
 		return -1;
 	}
 
+	if (! (slapMode & SLAP_TOOL_QUICK)) {
 	rc = TXN_BEGIN( bi->bi_dbenv, NULL, &tid, bi->bi_db_opflags );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -427,6 +434,7 @@ int bdb_tool_entry_reindex(
 			"txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		goto done;
+	}
 	}
  	
 	/*
@@ -445,22 +453,11 @@ int bdb_tool_entry_reindex(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-#if 0 /* ndef BDB_HIER */
-	/* add dn2id indices */
-	rc = bdb_dn2id_add( &op, tid, NULL, e );
-	if( rc != 0 && rc != DB_KEYEXIST ) {
-		Debug( LDAP_DEBUG_ANY,
-			"=> " LDAP_XSTRING(bdb_tool_entry_reindex)
-			": dn2id_add failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		goto done;
-	}
-#endif
-
 	rc = bdb_index_entry_add( &op, tid, e );
 
 done:
 	if( rc == 0 ) {
+		if (! (slapMode & SLAP_TOOL_QUICK)) {
 		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -469,13 +466,16 @@ done:
 				db_strerror(rc), rc, 0 );
 			e->e_id = NOID;
 		}
+		}
 
 	} else {
+		if (! (slapMode & SLAP_TOOL_QUICK)) {
 		TXN_ABORT( tid );
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_reindex)
 			": txn_aborted! %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+		}
 		e->e_id = NOID;
 	}
 	bdb_entry_release( &op, e, 0 );
@@ -508,6 +508,7 @@ ID bdb_tool_entry_modify(
 		"=> " LDAP_XSTRING(bdb_tool_entry_modify) "( %ld, \"%s\" )\n",
 		(long) e->e_id, e->e_dn, 0 );
 
+	if (! (slapMode & SLAP_TOOL_QUICK)) {
 	rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &tid, 
 		bdb->bi_db_opflags );
 	if( rc != 0 ) {
@@ -518,6 +519,7 @@ ID bdb_tool_entry_modify(
 			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
 			 text->bv_val, 0, 0 );
 		return NOID;
+	}
 	}
 
 	op.o_hdr = &ohdr;
@@ -561,6 +563,7 @@ ID bdb_tool_entry_modify(
 
 done:
 	if( rc == 0 ) {
+		if (! (slapMode & SLAP_TOOL_QUICK)) {
 		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
 			snprintf( text->bv_val, text->bv_len,
@@ -571,8 +574,10 @@ done:
 				"%s\n", text->bv_val, 0, 0 );
 			e->e_id = NOID;
 		}
+		}
 
 	} else {
+		if (! (slapMode & SLAP_TOOL_QUICK)) {
 		TXN_ABORT( tid );
 		snprintf( text->bv_val, text->bv_len,
 			"txn_aborted! %s (%d)",
@@ -580,6 +585,7 @@ done:
 		Debug( LDAP_DEBUG_ANY,
 			"=> " LDAP_XSTRING(bdb_tool_entry_modify) ": %s\n",
 			text->bv_val, 0, 0 );
+		}
 		e->e_id = NOID;
 	}
 

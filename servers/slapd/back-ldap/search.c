@@ -60,17 +60,17 @@ ldap_back_search(
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
 
-	lc = ldap_back_getconn( op, rs );
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc ) {
-		return -1;
+		return rs->sr_err;
 	}
 
 	/*
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	if ( !ldap_back_dobind( lc, op, rs ) ) {
-		return -1;
+	if ( !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+		return rs->sr_err;
 	}
 
 	/* should we check return values? */
@@ -120,7 +120,7 @@ retry:
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
+		rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
 		if ( freeconn ) {
 			ldap_back_freeconn( op, lc );
 			lc = NULL;
@@ -249,7 +249,7 @@ fail:;
 	if ( rc == -1 ) {
 		if ( do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( lc, op, rs ) ) {
+			if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 				goto retry;
 			}
 		}
@@ -500,7 +500,6 @@ ldap_back_entry_get(
 			*e = NULL;
 	char		*gattr[3];
 	char		*filter = NULL;
-	Connection	*oconn;
 	SlapReply	rs;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
@@ -508,16 +507,12 @@ ldap_back_entry_get(
 	/* Tell getconn this is a privileged op */
 	do_not_cache = op->o_do_not_cache;
 	op->o_do_not_cache = 1;
-	lc = ldap_back_getconn( op, &rs );
-	oconn = op->o_conn;
-	op->o_conn = NULL;
-	if ( !lc || !ldap_back_dobind( lc, op, &rs ) ) {
+	lc = ldap_back_getconn( op, &rs, LDAP_BACK_DONTSEND );
+	if ( !lc || !ldap_back_dobind( lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 		op->o_do_not_cache = do_not_cache;
-		op->o_conn = oconn;
-		return 1;
+		return rs.sr_err;
 	}
 	op->o_do_not_cache = do_not_cache;
-	op->o_conn = oconn;
 
 	if ( at ) {
 		if ( oc && at != slap_schema.si_ad_objectClass ) {
@@ -555,7 +550,7 @@ retry:
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry( lc, op, &rs ) ) {
+			if ( ldap_back_retry( lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
 				goto retry;
 			}
 		}

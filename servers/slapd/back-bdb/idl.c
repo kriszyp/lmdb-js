@@ -482,8 +482,6 @@ bdb_idl_fetch_key(
 	data.ulen = sizeof(buf);
 	data.flags = DB_DBT_USERMEM;
 
-	if ( tid ) flags |= DB_RMW;
-
 	/* If we're not reusing an existing cursor, get a new one */
 	if( opflag != DB_NEXT ) {
 		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
@@ -646,7 +644,7 @@ bdb_idl_insert_key(
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
+	rc = cursor->c_get( cursor, key, &data, DB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
 		if ( nlo != 0 ) {
@@ -690,42 +688,30 @@ bdb_idl_insert_key(
 				/* Update hi/lo if needed, then delete all the items
 				 * between lo and hi
 				 */
-				data.data = &nid;
-				if ( id > hi ) {
-					rc = cursor->c_del( cursor, 0 );
-					if ( rc != 0 ) {
-						err = "c_del hi";
-						goto fail;
-					}
-					rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-					if ( rc != 0 ) {
-						err = "c_put hi";
-						goto fail;
-					}
+				if ( id < lo ) {
+					lo = id;
+					nlo = nid;
+				} else if ( id > hi ) {
+					hi = id;
+					nhi = nid;
 				}
+				data.data = &nid;
 				/* Don't fetch anything, just position cursor */
 				data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 				data.dlen = data.ulen = 0;
-				rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
+				rc = cursor->c_get( cursor, key, &data, DB_SET );
 				if ( rc != 0 ) {
 					err = "c_get 2";
 					goto fail;
 				}
-				if ( id < lo ) {
-					rc = cursor->c_del( cursor, 0 );
-					if ( rc != 0 ) {
-						err = "c_del lo";
-						goto fail;
-					}
-					rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
-					if ( rc != 0 ) {
-						err = "c_put lo";
-						goto fail;
-					}
+				rc = cursor->c_del( cursor, 0 );
+				if ( rc != 0 ) {
+					err = "c_del range1";
+					goto fail;
 				}
-				/* Delete all the records between lo and hi */
-				for ( i=2; i<count; i++ ) {
-					rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_DUP | DB_RMW );
+				/* Delete all the records */
+				for ( i=1; i<count; i++ ) {
+					rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_DUP );
 					if ( rc != 0 ) {
 						err = "c_get next_dup";
 						goto fail;
@@ -743,6 +729,18 @@ bdb_idl_insert_key(
 				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 				if ( rc != 0 ) {
 					err = "c_put range";
+					goto fail;
+				}
+				nid = nlo;
+				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
+				if ( rc != 0 ) {
+					err = "c_put lo";
+					goto fail;
+				}
+				nid = nhi;
+				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
+				if ( rc != 0 ) {
+					err = "c_put hi";
 					goto fail;
 				}
 			} else {
@@ -854,7 +852,7 @@ bdb_idl_delete_key(
 	/* Fetch the first data item for this key, to see if it
 	 * exists and if it's a range.
 	 */
-	rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
+	rc = cursor->c_get( cursor, key, &data, DB_SET );
 	err = "c_get";
 	if ( rc == 0 ) {
 		if ( tmp != 0 ) {
@@ -862,8 +860,7 @@ bdb_idl_delete_key(
 			if (tmp != nid) {
 				/* position to correct item */
 				tmp = nid;
-				rc = cursor->c_get( cursor, key, &data, 
-					DB_GET_BOTH | DB_RMW  );
+				rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH );
 				if ( rc != 0 ) {
 					err = "c_get id";
 					goto fail;

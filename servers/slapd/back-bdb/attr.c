@@ -67,6 +67,24 @@ bdb_attr_comp_ref(
 	
 	*cr = a != NULL ? a->ai_cr : 0 ;
 }
+void
+bdb_attr_mask_cr(
+	struct bdb_info *bdb,
+	AttributeDescription *desc,
+	slap_mask_t *indexmask,
+	ComponentReference** cr )
+{
+	AttrInfo	*a;
+
+	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
+	if ( a ) {
+		*indexmask = a->ai_indexmask;
+		*cr = a->ai_cr;
+	} else {
+		*indexmask = NULL;
+		*cr = NULL;
+	}
+}
 #endif
 
 void

@@ -1439,7 +1439,8 @@ backend_attribute(
 
 			rc = backend_operational( op, &rs );
 
-			if ( rc == LDAP_SUCCESS ) {
+			if ( rc == LDAP_SUCCESS && rs.sr_operational_attrs ) {
+				freeattr = 1;
 				a = rs.sr_operational_attrs;
 			}
 		}

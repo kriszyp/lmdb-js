@@ -1714,10 +1714,12 @@ slapd_daemon_task(
 
 		case 0:		/* timeout - let threads run */
 			ebadf = 0;
+#ifndef HAVE_YIELDING_SELECT
 			Debug( LDAP_DEBUG_CONNS, "daemon: select timeout - yielding\n",
 			    0, 0, 0 );
 
 			ldap_pvt_thread_yield();
+#endif
 			continue;
 
 		default:	/* something happened - deal with it */
@@ -1770,7 +1772,9 @@ slapd_daemon_task(
 
 		/* bypass the following tests if no descriptors left */
 		if ( ns <= 0 ) {
+#ifndef HAVE_YIELDING_SELECT
 			ldap_pvt_thread_yield();
+#endif
 			continue;
 		}
 
@@ -1966,7 +1970,9 @@ slapd_daemon_task(
 		}
 #endif	/* SLAP_EVENTS_ARE_INDEXED */
 
+#ifndef HAVE_YIELDING_SELECT
 		ldap_pvt_thread_yield();
+#endif
 	}
 
 	if( slapd_shutdown == 1 ) {

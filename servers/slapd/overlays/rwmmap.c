@@ -321,40 +321,46 @@ rwm_map_attrs(
 		return LDAP_SUCCESS;
 	}
 
-	for ( i = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
+	for ( i = 0; !BER_BVISNULL( &an[ i ].an_name ); i++ ) {
 		/*  */
 	}
 
 	na = (char **)ch_calloc( i + 1, sizeof( char * ) );
-	if (na == NULL) {
+	if ( na == NULL ) {
 		*mapped_attrs = NULL;
 		return LDAP_NO_MEMORY;
 	}
 
 	for ( i = j = 0; !BER_BVISNULL( &an[i].an_name ); i++ ) {
-		struct ldapmapping	*m;
+		struct ldapmapping	*mapping;
 		
-		if ( rwm_mapping( at_map, &an[i].an_name, &m, remap ) ) {
+		if ( rwm_mapping( at_map, &an[i].an_name, &mapping, remap ) ) {
 			continue;
 		}
 
-		if ( !m || ( m && !BER_BVISNULL( &m->m_dst ) ) ) {
-			na[j++] = m->m_dst.bv_val;
+		if ( !mapping ) {
+			na[ j++ ] = an[ i ].an_name.bv_val;
+			
+		} else if ( !BER_BVISNULL( &mapping->m_dst ) ) {
+			na[ j++ ] = mapping->m_dst.bv_val;
 		}
 	}
+
 	if ( j == 0 && i != 0 ) {
-		na[j++] = LDAP_NO_ATTRS;
+		na[ j++ ] = LDAP_NO_ATTRS;
 	}
-	na[j] = NULL;
+
+	na[ j ] = NULL;
 
 	*mapped_attrs = na;
+
 	return LDAP_SUCCESS;
 }
 
 static int
 map_attr_value(
 		dncookie		*dc,
-		AttributeDescription 	*ad,
+		AttributeDescription 	**adp,
 		struct berval		*mapped_attr,
 		struct berval		*value,
 		struct berval		*mapped_value,
@@ -362,65 +368,72 @@ map_attr_value(
 {
 	struct berval		vtmp = BER_BVNULL;
 	int			freeval = 0;
+	AttributeDescription	*ad = *adp;
+	struct ldapmapping	*mapping = NULL;
 
-	rwm_map( &dc->rwmap->rwm_at, &ad->ad_cname, mapped_attr, remap );
-	if ( BER_BVISNULL( mapped_attr ) || BER_BVISEMPTY( mapped_attr ) ) {
-		/*
-		 * FIXME: are we sure we need to search oc_map if at_map fails?
-		 */
-		rwm_map( &dc->rwmap->rwm_oc, &ad->ad_cname, mapped_attr, remap );
-		if ( BER_BVISNULL( mapped_attr ) || BER_BVISEMPTY( mapped_attr ) )
-		{
-			*mapped_attr = ad->ad_cname;
-		}
-	}
-
-	if ( value == NULL ) {
-		return 0;
-	}
-
-	if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
-	{
-		dncookie 	fdc = *dc;
-		int		rc;
-
-#ifdef ENABLE_REWRITE
-		fdc.ctx = "searchFilterAttrDN";
-#endif /* ENABLE_REWRITE */
-
-		vtmp = *value;
-		rc = rwm_dn_massage_normalize( &fdc, value, &vtmp );
-		switch ( rc ) {
-		case LDAP_SUCCESS:
-			if ( vtmp.bv_val != value->bv_val ) {
-				freeval = 1;
-			}
-			break;
-		
-		case LDAP_UNWILLING_TO_PERFORM:
-		case LDAP_OTHER:
-		default:
+	rwm_mapping( &dc->rwmap->rwm_at, &ad->ad_cname, &mapping, remap );
+	if ( mapping == NULL ) {
+		if ( dc->rwmap->rwm_at.drop_missing ) {
 			return -1;
 		}
 
-	} else if ( ad == slap_schema.si_ad_objectClass
-			|| ad == slap_schema.si_ad_structuralObjectClass )
-	{
-		rwm_map( &dc->rwmap->rwm_oc, value, &vtmp, remap );
-		if ( BER_BVISNULL( &vtmp ) || BER_BVISEMPTY( &vtmp ) ) {
+		*mapped_attr = ad->ad_cname;
+
+	} else {
+		*mapped_attr = mapping->m_dst;
+	}
+
+	if ( value != NULL ) {
+		assert( mapped_value != NULL );
+
+		if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
+		{
+			dncookie 	fdc = *dc;
+			int		rc;
+
+#ifdef ENABLE_REWRITE
+			fdc.ctx = "searchFilterAttrDN";
+#endif /* ENABLE_REWRITE */
+
+			vtmp = *value;
+			rc = rwm_dn_massage_normalize( &fdc, value, &vtmp );
+			switch ( rc ) {
+			case LDAP_SUCCESS:
+				if ( vtmp.bv_val != value->bv_val ) {
+					freeval = 1;
+				}
+				break;
+		
+			case LDAP_UNWILLING_TO_PERFORM:
+			case LDAP_OTHER:
+			default:
+				return -1;
+			}
+
+		} else if ( ad == slap_schema.si_ad_objectClass
+				|| ad == slap_schema.si_ad_structuralObjectClass )
+		{
+			rwm_map( &dc->rwmap->rwm_oc, value, &vtmp, remap );
+			if ( BER_BVISNULL( &vtmp ) || BER_BVISEMPTY( &vtmp ) ) {
+				vtmp = *value;
+			}
+		
+		} else {
 			vtmp = *value;
 		}
-		
-	} else {
-		vtmp = *value;
-	}
 
-	filter_escape_value( &vtmp, mapped_value );
+		filter_escape_value( &vtmp, mapped_value );
 
-	if ( freeval ) {
-		ch_free( vtmp.bv_val );
+		if ( freeval ) {
+			ch_free( vtmp.bv_val );
+		}
 	}
 	
+	if ( mapping != NULL ) {
+		assert( mapping->m_dst_ad != NULL );
+		*adp = mapping->m_dst_ad;
+	}
+
 	return 0;
 }
 
@@ -451,7 +464,7 @@ rwm_int_filter_map_rewrite(
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
+		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			return -1;
@@ -467,7 +480,7 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_GE:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
+		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			return -1;
@@ -483,7 +496,7 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_LE:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
+		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			return -1;
@@ -499,7 +512,7 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_APPROX:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
+		if ( map_attr_value( dc, &f->f_av_desc, &atmp,
 					&f->f_av_value, &vtmp, RWM_MAP ) )
 		{
 			return -1;
@@ -515,7 +528,7 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		if ( map_attr_value( dc, f->f_sub_desc, &atmp,
+		if ( map_attr_value( dc, &f->f_sub_desc, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
 			return -1;
@@ -577,7 +590,7 @@ rwm_int_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_PRESENT:
-		if ( map_attr_value( dc, f->f_desc, &atmp,
+		if ( map_attr_value( dc, &f->f_desc, &atmp,
 					NULL, NULL, RWM_MAP ) )
 		{
 			return -1;
@@ -621,7 +634,7 @@ rwm_int_filter_map_rewrite(
 
 	case LDAP_FILTER_EXT: {
 		if ( f->f_mr_desc ) {
-			if ( map_attr_value( dc, f->f_mr_desc, &atmp,
+			if ( map_attr_value( dc, &f->f_mr_desc, &atmp,
 						&f->f_mr_value, &vtmp, RWM_MAP ) )
 			{
 				return -1;

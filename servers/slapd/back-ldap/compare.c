@@ -42,9 +42,8 @@ ldap_back_compare(
 	LDAPControl	**ctrls = NULL;
 	int		rc = LDAP_SUCCESS;
 
-	lc = ldap_back_getconn( op, rs );
-	if (!lc || !ldap_back_dobind( lc, op, rs ) ) {
-		rc = -1;
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
+	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		goto cleanup;
 	}
 
@@ -52,7 +51,6 @@ ldap_back_compare(
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
-		rc = -1;
 		goto cleanup;
 	}
 
@@ -61,10 +59,10 @@ retry:
 			op->orc_ava->aa_desc->ad_cname.bv_val,
 			&op->orc_ava->aa_value, 
 			ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
-	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
+	if ( rc == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry(lc, op, rs ) ) {
+		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}
@@ -72,5 +70,5 @@ retry:
 cleanup:
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 	
-	return rc;
+	return rs->sr_err;
 }

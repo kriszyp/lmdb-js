@@ -29,6 +29,14 @@ objectclass: extensibleobject
 ou: Groups
 ref: @URI2@ou=Groups,dc=example,dc=com
 
+dn: ou=Other,dc=example,dc=com
+objectclass: referral
+objectclass: extensibleobject
+ou: Other
+# invalid URI first to test failover capabilities (search only)
+ref: @URI3@ou=Other,dc=example,dc=com
+ref: @URI2@ou=Other,dc=example,dc=com
+
 dn: ou=Alumni Association,ou=People,dc=example,dc=com
 objectclass: organizationalUnit
 ou: Alumni Association

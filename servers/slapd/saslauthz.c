@@ -1101,8 +1101,7 @@ void slap_sasl2dn( Operation *opx,
 		"converting SASL name %s to a DN\n",
 		saslname->bv_val, 0,0 );
 
-	sasldn->bv_val = NULL;
-	sasldn->bv_len = 0;
+	BER_BVZERO( sasldn );
 	cb.sc_private = sasldn;
 
 	/* Convert the SASL name into a minimal URI */
