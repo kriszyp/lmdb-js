@@ -49,6 +49,7 @@ usage( char *s )
 #endif
     fprintf( stderr, "    -h host\tldap server\n" );
     fprintf( stderr, "    -p port\tport on ldap server\n" );
+    fprintf( stderr, "    -P version\tprocotol version (2 or 3)\n" );
     exit( 1 );
 }
 
@@ -88,7 +89,7 @@ main( int argc, char **argv )
     FILE		*fp;
     int			rc, i, first, scope, deref, attrsonly;
     int			referrals, timelimit, sizelimit, debug;
-	int			authmethod, want_bindpw;
+	int		authmethod, version, want_bindpw;
     LDAP		*ld;
 
     infile = NULL;
@@ -98,8 +99,9 @@ main( int argc, char **argv )
     sizelimit = timelimit = debug = 0;
     scope = LDAP_SCOPE_SUBTREE;
     authmethod = LDAP_AUTH_SIMPLE;
+	version = LDAP_VERSION2;
 
-    while (( i = getopt( argc, argv, "WKknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:")) != EOF ) {
+    while (( i = getopt( argc, argv, "WKknuvtRABLD:s:f:h:b:d:P:p:F:a:w:l:z:S:")) != EOF ) {
 	switch( i ) {
 	case 'n':	/* do Not do any searches */
 	    ++not;
@@ -203,6 +205,17 @@ main( int argc, char **argv )
 	case 'W':
 		want_bindpw++;
 		break;
+	case 'P':
+		switch(optarg[0])
+		{
+		case '2':
+			version = LDAP_VERSION2;
+			break;
+		case '3':
+			version = LDAP_VERSION3;
+			break;
+		}
+		break;
 	default:
 	    usage( argv[0] );
 	}
@@ -265,6 +278,10 @@ main( int argc, char **argv )
 		/* set option error */
 	}
 	if (ldap_set_option( ld, LDAP_OPT_REFERRALS, (void *) referrals ) == -1 ) {
+		/* set option error */
+	}
+
+	if (ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == -1) {
 		/* set option error */
 	}
 

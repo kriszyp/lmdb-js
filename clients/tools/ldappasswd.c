@@ -331,6 +331,7 @@ usage (char *s)
 #endif
 	fprintf (stderr, "  -l time\ttime limit\n");
 	fprintf (stderr, "  -n\t\tmake no modifications\n");
+	fprintf (stderr, "  -P version\tprotocol version (2 or 3)\n");
 	fprintf (stderr, "  -p port\tldap port\n");
 	fprintf (stderr, "  -s scope\tsearch scope: base, one, sub (default: sub)\n");
 	fprintf (stderr, "  -t targetdn\tdn to change password\n");
@@ -362,6 +363,7 @@ main (int argc, char *argv[])
 	int		scope = LDAP_SCOPE_SUBTREE;
 	int		sizelimit = LDAP_NO_LIMIT;
 	int		timelimit = LDAP_NO_LIMIT;
+	int		version = LDAP_VERSION2;
 	int		want_bindpw = 0;
 	int		want_newpw = 0;
 	LDAP	       *ld;
@@ -373,7 +375,7 @@ main (int argc, char *argv[])
 	if (argc == 1)
 		usage (argv[0]);
 
-	while ((i = getopt (argc, argv, "a:b:C:D:d:Ee:g:H:h:Kkl:np:s:t:vWw:Y:y:z:")) != EOF)
+	while ((i = getopt (argc, argv, "a:b:C:D:d:Ee:g:H:h:Kkl:nP:p:s:t:vWw:Y:y:z:")) != EOF)
 	{
 		switch (i)
 		{
@@ -452,6 +454,18 @@ main (int argc, char *argv[])
 
 		case 'n':	/* don't update entry(s) */
 			noupdates++;
+			break;
+
+		case 'P':
+			switch(optarg[0])
+			{
+			case '2':
+				version = LDAP_VERSION2;
+				break;
+			case '3':
+				version = LDAP_VERSION3;
+				break;
+			}
 			break;
 
 		case 'p':	/* ldap port */
@@ -554,6 +568,7 @@ main (int argc, char *argv[])
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
 	}
 
+	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 
 	/* authenticate to server */
 	if (ldap_bind_s (ld, binddn, bindpw, authmethod) != LDAP_SUCCESS)

@@ -30,6 +30,8 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BR \-n ]
 [\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
 .BI \-p \ ldapport\fR]
 [\c
 .BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR]
@@ -114,6 +116,9 @@ Specify a maximum query time in seconds.
 Make no modifications. (Can be useful when used in conjunction with
 .BR \-v \ or
 .BR \-d )
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
 .TP
 .BI \-p \ ldapport
 Specify an alternate port on which the ldap server is running.

@@ -32,18 +32,19 @@ static int domodrdn LDAP_P((
 int
 main(int argc, char **argv)
 {
-    char		*usage = "usage: %s [-nvkWc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
+	char		*usage = "usage: %s [-nvkWc] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
-    int			rc, i, remove, havedn, authmethod, want_bindpw, debug;
+	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug;
 
     infile = NULL;
     not = contoper = verbose = remove = want_bindpw = debug = 0;
     authmethod = LDAP_AUTH_SIMPLE;
+	version = LDAP_VERSION2;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
-    while (( i = getopt( argc, argv, "WkKcnvrh:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WkKcnvrh:P:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef HAVE_KERBEROS
@@ -91,6 +92,17 @@ main(int argc, char **argv)
 	    break;
 	case 'W':
 		want_bindpw++;
+		break;
+	case 'P':
+		switch(optarg[0])
+		{
+		case '2':
+			version = LDAP_VERSION2;
+			break;
+		case '3':
+			version = LDAP_VERSION3;
+			break;
+		}
 		break;
 	default:
 	    fprintf( stderr, usage, argv[0] );
@@ -142,6 +154,8 @@ main(int argc, char **argv)
 
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
+
+	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );

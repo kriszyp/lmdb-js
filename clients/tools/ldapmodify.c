@@ -68,8 +68,8 @@ main( int argc, char **argv )
 {
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;
-    int			rc, i, use_ldif, authmethod, want_bindpw, debug;
-    char		*usage = "usage: %s [-abcknrvWF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
+	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug;
+	char		*usage = "usage: %s [-abcknrvWF] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
 
     if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
 	prog = argv[ 0 ];
@@ -81,6 +81,7 @@ main( int argc, char **argv )
     infile = NULL;
     not = verbose = valsfromfiles = want_bindpw = debug = 0;
     authmethod = LDAP_AUTH_SIMPLE;
+	version = LDAP_VERSION2;
 
     while (( i = getopt( argc, argv, "WFabckKnrtvh:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
@@ -140,6 +141,17 @@ main( int argc, char **argv )
 	case 'W':
 		want_bindpw++;
 		break;
+	case 'P':
+		switch(optarg[0])
+		{
+		case '2':
+			version = LDAP_VERSION2;
+			break;
+		case '3':
+			version = LDAP_VERSION3;
+			break;
+		}
+		break;
 	default:
 	    fprintf( stderr, usage, prog );
 	    exit( 1 );
@@ -180,6 +192,8 @@ main( int argc, char **argv )
 
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
+
+	ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 
 	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_bind" );

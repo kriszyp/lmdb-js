@@ -40,6 +40,8 @@ ldapsearch \- ldap search tool
 [\c
 .BI \-p \ ldapport\fR]
 [\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
 .BI \-b \ searchbase\fR]
 [\c
 .BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR]
@@ -188,6 +190,9 @@ or
 to specify that aliases are never dereferenced, always dereferenced,
 dereferenced when searching, or dereferenced only when locating the
 base object for the search.  The default is to never dereference aliases.
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
 .TP
 .BI \-l \ timelimit
 wait at most \fItimelimit\fP seconds for a search to complete.

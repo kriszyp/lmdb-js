@@ -26,6 +26,8 @@ ldapdelete \- ldap delete entry tool
 [\c
 .BI \-h \ ldaphost\fR]
 [\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
 .BI \-p \ ldapport\fR]
 [\c
 .IR dn ]...
@@ -96,6 +98,9 @@ Specify an alternate host on which the ldap server is running.
 .TP
 .BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
 .SH EXAMPLE
 The following command:
 .LP

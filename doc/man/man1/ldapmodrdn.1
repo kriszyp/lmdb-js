@@ -28,6 +28,8 @@ ldapmodrdn \- ldap modify entry RDN tool
 [\c
 .BI \-p \ ldapport\fR]
 [\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
 .BI \-f \ file\fR]
 [\c
 .I dn  rdn\fR]
@@ -98,6 +100,9 @@ Specify an alternate host on which the ldap server is running.
 .TP
 .B \-p ldapport
 Specify an alternate TCP port where the ldap server is listening.
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
 .SH INPUT FORMAT
 If the command-line arguments \fIdn\fP and \fIrdn\fP are given, \fIrdn\fP
 will replace the RDN of the entry specified by the DN, \fIdn\fP.
