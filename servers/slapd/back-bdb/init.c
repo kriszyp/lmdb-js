@@ -393,6 +393,11 @@ bdb_db_open( BackendDB *be )
 					bv.bv_len--;
 					bv.bv_val[bv.bv_len] = '\0';
 				}
+				/* shouldn't need this, but ... */
+				if ( bv.bv_val[bv.bv_len-1] == '\r' ) {
+					bv.bv_len--;
+					bv.bv_val[bv.bv_len] = '\0';
+				}
 				ber_bvarray_add( &bdb->bi_db_config, &bv );
 			}
 			fclose( f );
