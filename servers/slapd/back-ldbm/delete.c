@@ -140,6 +140,7 @@ ldbm_back_delete(
 		rootlock = 1;
 	}
 
+#ifndef DN_INDICES
 	if ( id2children_remove( be, p, e ) != 0 ) {
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
@@ -148,6 +149,7 @@ ldbm_back_delete(
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
+#endif
 
 	/* delete from dn2id mapping */
 	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {

@@ -149,6 +149,8 @@ typedef struct slap_filter {
 			char	*f_un_sub_final;
 		} f_un_sub;
 	} f_un;
+
+#define f_dn		f_un.f_un_type  /* used for DN indices */
 #define f_type		f_un.f_un_type
 #define f_ava		f_un.f_un_ava
 #define f_avtype	f_un.f_un_ava.ava_type

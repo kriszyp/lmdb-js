@@ -25,9 +25,12 @@ LDAP_BEGIN_DECL
 #define SUBLEN			3
 
 /* #undef DN_INDICES *//* generate dn eq, subtree, and parent indices */
-#define DN_ENTRY_PREFIX		'='
+#define DN_BASE_PREFIX		'='
+#define DN_ONE_PREFIX	 	'@'
 #define DN_SUBTREE_PREFIX 	'?'
-#define DN_PARENT_PREFIX 	'@'
+
+#define SLAPD_FILTER_DN_ONE		((ber_tag_t) -2)
+#define SLAPD_FILTER_DN_SUBTREE	((ber_tag_t) -3)
 
 /*
  * there is a single index for each attribute.  these prefixes ensure
@@ -111,12 +114,12 @@ typedef struct ldbm_dbcache {
 typedef struct ldbm_attrinfo {
 	char	*ai_type;	/* type name (cn, sn, ...)	*/
 	int	ai_indexmask;	/* how the attr is indexed	*/
-#define INDEX_PRESENCE	0x01
-#define INDEX_EQUALITY	0x02
-#define INDEX_APPROX	0x04
-#define INDEX_SUB	0x08
-#define INDEX_UNKNOWN	0x10
-#define INDEX_FROMINIT	0x20
+#define INDEX_PRESENCE		0x0001
+#define INDEX_EQUALITY		0x0002
+#define INDEX_APPROX		0x0004
+#define INDEX_SUB			0x0008
+#define INDEX_UNKNOWN		0x0010
+#define INDEX_FROMINIT		0x1000
 	int	ai_syntaxmask;	/* what kind of syntax		*/
 /* ...from slap.h...
 #define SYNTAX_CIS      0x01

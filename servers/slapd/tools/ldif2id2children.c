@@ -24,7 +24,10 @@ main( int argc, char **argv )
 	int		lineno, elineno;
 	int         lmax;
 	ID		id;
-	DBCache	*db, *db2;
+	DBCache	*db;
+#ifndef DN_INDICES
+	DBCache *db2;
+#endif
 	Backend		*be = NULL;
 	struct ldbminfo *li;
 	struct berval	bv;
@@ -92,7 +95,7 @@ main( int argc, char **argv )
 #else
 					key.dsize = strlen( val ) + 2;
 					key.dptr = ch_malloc( key.dsize );
-					sprintf( key.dptr, "%c%s", DN_ENTRY_PREFIX, val );
+					sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, val );
 #endif
 					data.dptr = (char *) &id;
 					data.dsize = sizeof(ID);
@@ -112,7 +115,7 @@ main( int argc, char **argv )
 							key.dsize = strlen( pdn ) + 2;
 							key.dptr = ch_malloc( key.dsize );
 							sprintf( key.dptr, "%c%s",
-								DN_PARENT_PREFIX, pdn );
+								DN_ONE_PREFIX, pdn );
 							rc = idl_insert_key( be, db, key, id );
 							free( key.dptr );
 						}
@@ -155,6 +158,8 @@ main( int argc, char **argv )
 	if ( buf )
 		free( buf );
 
+
+#ifndef DN_INDICES
 	/*
 	 * next, make the id2children index
 	 */
@@ -240,6 +245,12 @@ main( int argc, char **argv )
 	ldbm_cache_close( be, db2 );
 	ldbm_cache_close( be, db );
 #endif
+#else
+#ifdef SLAP_CLEANUP
+	ldbm_cache_close( be, db );
+#endif
+#endif
+
 
 	slap_shutdown(dbnum);
 	slap_destroy();

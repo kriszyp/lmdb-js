@@ -76,6 +76,7 @@ int ldbm_cache_delete LDAP_P(( DBCache *db, Datum key ));
 
 int dn2id_add LDAP_P(( Backend *be, char *dn, ID id ));
 ID dn2id LDAP_P(( Backend *be, char *dn ));
+ID_BLOCK *dn2idl LDAP_P(( Backend *be, char *dn, int prefix ));
 int dn2id_delete LDAP_P(( Backend *be, char *dn ));
 
 Entry * dn2entry_rw LDAP_P(( Backend *be, char *dn, Entry **matched, int rw ));

@@ -226,10 +226,10 @@ ldbm_back_add(
 
 	rc = -1;
 
+#ifndef DN_INDICES
 	/*
 	 * add it to the id2children index for the parent
 	 */
-
 	if ( id2children_add( be, p, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "id2children_add failed\n", 0,
 		    0, 0 );
@@ -238,6 +238,7 @@ ldbm_back_add(
 
 		goto return_results;
 	}
+#endif
 
 	/*
 	 * Add the entry to the attribute indexes, then add it to
