@@ -78,7 +78,7 @@
 #define ETIMEDOUT	WSAETIMEDOUT
 
 #define	sock_errno()	WSAGetLastError()
-#define	sock_errstr(err)	WSAGetLastErrorString()
+#define	sock_errstr()	WSAGetLastErrorString()
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
@@ -97,7 +97,7 @@
 #else
 #	define tcp_close( s )		close( s )
 #	define sock_errno()	errno
-#	define sock_errstr(err)	strerror(err)
+#	define sock_errstr()	strerror(errno)
 #endif /* MACOS */
 
 #ifndef ioctl_t
