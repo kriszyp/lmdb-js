@@ -365,6 +365,9 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 
 	memset( pp, 0, sizeof(PassPolicy) );
 
+	/* Users can change their own password by default */
+    	pp->pwdAllowUserChange = 1;
+
 	if ((a = attr_find( e->e_attrs, ad_pwdPolicySubentry )) == NULL) {
 		/*
 		 * entry has no password policy assigned - use default
@@ -1447,7 +1450,8 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		}
 	}
 
-	if (delmod && (pa = attr_find( e->e_attrs, pp.ad )) != NULL) {
+	/* pa is used in password history check below, be sure it's set */
+	if ((pa = attr_find( e->e_attrs, pp.ad )) != NULL && delmod) {
 		/*
 		 * we have a password to check
 		 */
