@@ -27,6 +27,7 @@ OpenLDAP 2.0 Projects
 		schema rules <jsanchez@openldap.org>
 	clients
 		update to use ldap_*_ext routines
+		add -C/-CC/-R referral chasing options
 	SLAPD/SLURD Admin Guide <willb@openldap.org>
 
 Other projects:
