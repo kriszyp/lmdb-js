@@ -85,7 +85,6 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	int rtn;
 #if defined( HAVE_PTHREADS_FINAL )
 	pthread_attr_t attr;
-
 	pthread_attr_init(&attr);
 
 #if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
@@ -100,11 +99,11 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 #endif
 	}
+#endif
 
 #if defined(LDAP_PVT_THREAD_STACK_SIZE) && LDAP_PVT_THREAD_STACK_SIZE > 0
 	/* this should be tunable */
 	pthread_attr_setstacksize( &attr, LDAP_PVT_THREAD_STACK_SIZE );
-#endif
 #endif
 
 	rtn = pthread_create( thread, &attr, start_routine, arg );
@@ -117,7 +116,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 
 #else
 	rtn = pthread_create( thread, LDAP_INT_THREAD_ATTR_DEFAULT,
-				  start_routine, arg );
+		start_routine, arg );
 
 	if( detach ) {
 		pthread_detach( thread );
