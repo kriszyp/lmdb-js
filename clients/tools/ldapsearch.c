@@ -382,6 +382,7 @@ static int dosearch(
 
     matches = 0;
     first = 1;
+    res = NULL;
     while ( (rc = ldap_result( ld, LDAP_RES_ANY, sortattr ? 1 : 0, NULL, &res ))
 	    == LDAP_RES_SEARCH_ENTRY ) {
 	matches++;
@@ -393,6 +394,7 @@ static int dosearch(
 	}
 	print_entry( ld, e, attrsonly );
 	ldap_msgfree( res );
+	res = NULL;
     }
     if ( rc == -1 ) {
 	ldap_perror( ld, "ldap_result" );

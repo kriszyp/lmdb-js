@@ -139,7 +139,7 @@ ber_peek_tag(
 
 	tag = ber_skip_tag( ber, len );
 
-	ber_free( ber, 1 );
+	ber_free( ber, 0 );
 	return( tag );
 }
 

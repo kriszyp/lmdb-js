@@ -443,7 +443,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	 */
 	
 	if (ber->ber_rwptr == NULL) {
-		/* assert( ber->ber_buf == NULL ); */
+		assert( ber->ber_buf == NULL );
 		ber->ber_rwptr = (char *) &ber->ber_tag;
 		ber->ber_tag = 0;
 	}
