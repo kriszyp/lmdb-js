@@ -1,5 +1,5 @@
-OpenLDAP To Do List
--------------------
+OpenLDAP Software To Do List
+----------------------------
 
 This is a list of projects that need getting done.  They are defined
 by scale of the effort as opposed to priority.  Contribute to
@@ -60,7 +60,6 @@ For additional TODO items, see:
 
 JLDAP TODO items, see:
   http://www.openldap.org/devel/cvsweb.cgi/~checkout~/design/todo.txt?rev=1&cvsroot=JLDAP
-
 
 ---
 $OpenLDAP$
