@@ -107,6 +107,14 @@ Entry * str2entry( char	*s );
 char * entry2str( Entry *e, int *len, int printid );
 void entry_free( Entry *e );
 
+int entry_rdwr_lock( Entry *e, int rw );
+int entry_rdwr_rlock( Entry *e );
+int entry_rdwr_wlock( Entry *e );
+int entry_rdwr_unlock( Entry *e, int rw );
+int entry_rdwr_runlock( Entry *e );
+int entry_rdwr_wunlock( Entry *e );
+int entry_rdwr_init( Entry *e );
+
 /*
  * filter.c
  */

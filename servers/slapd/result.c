@@ -221,8 +221,7 @@ send_search_entry(
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 			"ber_alloc" );
-		free(edn);
-		return( 1 );
+		goto error_return;
 	}
 
 #ifdef COMPAT30
@@ -241,8 +240,7 @@ send_search_entry(
 		ber_free( ber, 1 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
 		    "ber_printf dn" );
-		free(edn);
-		return( 1 );
+		goto error_return;
 	}
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
@@ -277,8 +275,7 @@ send_search_entry(
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			    NULL, "ber_printf type" );
-			free(edn);
-			return( 1 );
+			goto error_return;
 		}
 
 		if ( ! attrsonly ) {
@@ -300,8 +297,7 @@ send_search_entry(
 					send_ldap_result( conn, op,
 					    LDAP_OPERATIONS_ERROR, NULL,
 					    "ber_printf value" );
-                                        free(edn);
-					return( 1 );
+					goto error_return;
 				}
 			}
 		}
@@ -311,8 +307,7 @@ send_search_entry(
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			    NULL, "ber_printf type end" );
-                        free(edn);
-			return( 1 );
+			goto error_return;
 		}
 	}
 
@@ -390,6 +385,10 @@ send_search_entry(
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
 
 	return( rc );
+
+error_return:;
+	free(edn);
+	return( 1 );
 }
 
 int

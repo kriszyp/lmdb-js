@@ -205,8 +205,8 @@ LDBMLIB?=
 #	-DTHREAD_SUNOS4_LWP
 #	-DTHREAD_SUNOS5_LWP
 # and select the appropriate library.
-#THREADS?=-DNO_THREADS
-#THREADSLIB?=
+THREADS?=-DNO_THREADS
+THREADSLIB?=
 
 # Locations of auxilary programs
 # (excepts to below are generally defined in Make-platform)

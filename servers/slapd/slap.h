@@ -8,11 +8,14 @@
 #include <syslog.h>
 #include <sys/types.h>
 #include <regex.h>
+#undef NDEBUG
+#include <assert.h>
 
 #include "avl.h"
 #include "lber.h"
 #include "ldap.h"
 #include "lthread.h"
+#include "lthread_rdwr.h"
 #include "ldif.h"
 
 #define DN_DNS	0
@@ -109,6 +112,9 @@ typedef struct entry {
 	ID		e_id;		/* id of this entry - this should */
 					/* really be private to back-ldbm */
 	char		e_state;	/* for the cache		  */
+
+	pthread_rdwr_t	e_rdwr;	/* reader/writer lock             */
+
 #define ENTRY_STATE_DELETED	1
 #define ENTRY_STATE_CREATING	2
 	int		e_refcnt;	/* # threads ref'ing this entry   */

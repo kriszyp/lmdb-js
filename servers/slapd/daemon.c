@@ -195,6 +195,9 @@ slapd_daemon(
 		FD_ZERO( &readfds );
 		FD_SET( tcps, &readfds );
 
+		zero.tv_sec = 0;
+		zero.tv_usec = 0;
+
 		pthread_mutex_lock( &active_threads_mutex );
 		Debug( LDAP_DEBUG_CONNS,
 		    "listening for connections on %d, activity on:",
@@ -215,8 +218,6 @@ slapd_daemon(
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
 		pthread_mutex_unlock( &new_conn_mutex );
 
-		zero.tv_sec = 0;
-		zero.tv_usec = 0;
 		Debug( LDAP_DEBUG_CONNS, "before select active_threads %d\n",
 		    active_threads, 0, 0 );
 #if	defined(PTHREAD_PREEMPTIVE) || defined(NO_THREADS)

@@ -60,6 +60,8 @@ monitor_info( Connection *conn, Operation *op )
 	vals[1] = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	/* initialize reader/writer lock */
+	entry_rdwr_init(e);
 	e->e_attrs = NULL;
 	e->e_dn = strdup( SLAPD_MONITOR_DN );
 

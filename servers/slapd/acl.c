@@ -25,7 +25,6 @@ static int	regex_matches();
 static string_expand(char *newbuf, int bufsiz, char *pattern,
 	char *match, regmatch_t *matches);
 
-extern Entry * be_dn2entry(Backend *be, char *bdn, char **matched);
 
 /*
  * access_allowed - check whether dn is allowed the requested access
@@ -549,7 +548,7 @@ regex_matches(
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));
 
-		Debug( LDAP_DEBUG_ANY,
+		Debug( LDAP_DEBUG_TRACE,
 		    "compile( \"%s\", \"%s\") failed %s\n",
 			pat, str, error );
 		return( 0 );

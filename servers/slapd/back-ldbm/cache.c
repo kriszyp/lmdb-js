@@ -52,7 +52,7 @@ cache_set_state( struct cache *cache, Entry *e, int state )
 	pthread_mutex_unlock( &cache->c_mutex );
 }
 
-void
+static void
 cache_return_entry( struct cache *cache, Entry *e )
 {
 	/* set cache mutex */
@@ -65,6 +65,28 @@ cache_return_entry( struct cache *cache, Entry *e )
 	/* free cache mutex */
 	pthread_mutex_unlock( &cache->c_mutex );
 }
+
+static void
+cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
+{
+	Debug( LDAP_DEBUG_TRACE, "====> cache_return_entry_%s\n",
+		rw ? "w" : "r", 0, 0);
+	entry_rdwr_unlock(e, rw);;
+	cache_return_entry(cache, e);
+}
+
+void
+cache_return_entry_r( struct cache *cache, Entry *e )
+{
+	cache_return_entry_rw(cache, e, 0);
+}
+
+void
+cache_return_entry_w( struct cache *cache, Entry *e )
+{
+	cache_return_entry_rw(cache, e, 1);
+}
+
 
 #define LRU_DELETE( cache, e ) { \
 	if ( e->e_lruprev != NULL ) { \
@@ -113,8 +135,8 @@ cache_add_entry_lock(
 	if ( avl_insert( &cache->c_dntree, e, cache_entrydn_cmp, avl_dup_error )
 	    != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-		    "entry %20s id %d already in dn cache\n", e->e_dn,
-		    e->e_id, 0 );
+			"====> cache_add_entry lock: entry %20s id %d already in dn cache\n",
+		    e->e_dn, e->e_id, 0 );
 
 		/* free cache mutex */
 		pthread_mutex_unlock( &cache->c_mutex );
@@ -124,13 +146,14 @@ cache_add_entry_lock(
 	/* id tree */
 	if ( avl_insert( &cache->c_idtree, e, cache_entryid_cmp, avl_dup_error )
 	    != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "entry %20s id %d already in id cache\n",
+		Debug( LDAP_DEBUG_ANY,
+			"====> entry %20s id %d already in id cache\n",
 		    e->e_dn, e->e_id, 0 );
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, e, cache_entrydn_cmp )
 		    == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "can't delete from dn cache\n",
+			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
 		}
 
@@ -168,6 +191,9 @@ cache_add_entry_lock(
                     == 0 && cache->c_cursize > cache->c_maxsize ) {
 			e = cache->c_lrutail;
 
+			/* XXX check for writer lock - should also check no readers pending */
+			assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+
 			/* delete from cache and lru q */
 			rc = cache_delete_entry_internal( cache, e );
 
@@ -181,44 +207,85 @@ cache_add_entry_lock(
 }
 
 /*
- * cache_find_entry_dn - find an entry in the cache, given dn
+ * cache_find_entry_dn2id - find an entry in the cache, given dn
  */
 
-Entry *
-cache_find_entry_dn(
+ID
+cache_find_entry_dn2id(
+	Backend		*be,
     struct cache	*cache,
     char		*dn
 )
 {
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	Entry		e, *ep;
+	ID			id;
 
 	/* set cache mutex */
 	pthread_mutex_lock( &cache->c_mutex );
 
 	e.e_dn = dn;
+
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, &e, cache_entrydn_cmp ))
-	    != NULL ) {
+		!= NULL ) {
+
+		Debug(LDAP_DEBUG_TRACE, "====> cache_find_entry_dn2id: found dn: %s\n",
+			dn, 0, 0);
+
 		/*
 		 * entry is deleted or not fully created yet
 		 */
 		if ( ep->e_state == ENTRY_STATE_DELETED ||
-		    ep->e_state == ENTRY_STATE_CREATING )
+			ep->e_state == ENTRY_STATE_CREATING )
 		{
 			/* free cache mutex */
 			pthread_mutex_unlock( &cache->c_mutex );
-			return( NULL );
+			return( NOID );
 		}
+
+		/* XXX is this safe without writer lock? */
 		ep->e_refcnt++;
 
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
+
+		/* acquire reader lock */
+		entry_rdwr_lock(ep, 0);
+
+		/* re-check */
+		if ( ep->e_state == ENTRY_STATE_DELETED ||
+			ep->e_state == ENTRY_STATE_CREATING )
+		{
+			/* XXX check that is is required */
+			ep->e_refcnt--;
+
+			/* free reader lock */
+			entry_rdwr_unlock(ep, 0);
+			/* free cache mutex */
+			pthread_mutex_unlock( &cache->c_mutex );
+
+			return( NOID );
+		}
+
+		/* save id */
+		id = ep->e_id;
+
+		/* free reader lock */
+		entry_rdwr_unlock(ep, 0);
+
+		/* free cache mutex */
+		pthread_mutex_unlock( &cache->c_mutex );
+
+		cache_return_entry( &li->li_cache, ep );
+
+		return( id );
 	}
 
 	/* free cache mutex */
 	pthread_mutex_unlock( &cache->c_mutex );
 
-	return( ep );
+	return( NOID );
 }
 
 /*
@@ -227,8 +294,9 @@ cache_find_entry_dn(
 
 Entry *
 cache_find_entry_id(
-    struct cache	*cache,
-    ID			id
+	struct cache	*cache,
+	ID				id,
+	int				rw
 )
 {
 	Entry	e;
@@ -238,29 +306,64 @@ cache_find_entry_id(
 	pthread_mutex_lock( &cache->c_mutex );
 
 	e.e_id = id;
+
 	if ( (ep = (Entry *) avl_find( cache->c_idtree, &e, cache_entryid_cmp ))
-	    != NULL ) {
+		!= NULL ) {
+
+		Debug(LDAP_DEBUG_TRACE,
+			"====> cache_find_entry_dn2id: found id: %ld rw: %d\n",
+			id, rw, 0);
+
 		/*
 		 * entry is deleted or not fully created yet
 		 */
 		if ( ep->e_state == ENTRY_STATE_DELETED ||
-		    ep->e_state == ENTRY_STATE_CREATING )
+			ep->e_state == ENTRY_STATE_CREATING )
 		{
 			/* free cache mutex */
 			pthread_mutex_unlock( &cache->c_mutex );
 			return( NULL );
 		}
+		/* XXX is this safe without writer lock? */
 		ep->e_refcnt++;
 
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
+                
+		/* acquire reader lock */
+		entry_rdwr_lock(ep, 0);
+
+		/* re-check */
+		if ( ep->e_state == ENTRY_STATE_DELETED ||
+			ep->e_state == ENTRY_STATE_CREATING ) {
+
+			/* XXX check that is is required */
+			ep->e_refcnt--;
+
+			/* free reader lock */
+			entry_rdwr_unlock(ep, 0);
+
+			/* free cache mutex */
+			pthread_mutex_unlock( &cache->c_mutex );
+			return( NULL );
+		}
+
+		if ( rw ) {
+			entry_rdwr_unlock(ep, 0);
+			entry_rdwr_lock(ep, 1);
+		}
+
+		/* free cache mutex */
+		pthread_mutex_unlock( &cache->c_mutex );
+
+		return( ep );
 	}
 
 	/* free cache mutex */
 	pthread_mutex_unlock( &cache->c_mutex );
 
-	return( ep );
+	return( NULL );
 }
 
 /*
@@ -281,6 +384,11 @@ cache_delete_entry(
 )
 {
 	int	rc;
+
+	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry:\n", 0, 0, 0 );
+
+	/* XXX check for writer lock - should also check no readers pending */
+	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
 
 	/* set cache mutex */
 	pthread_mutex_lock( &cache->c_mutex );
@@ -340,3 +448,4 @@ lru_print( struct cache *cache )
 }
 
 #endif
+

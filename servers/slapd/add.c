@@ -53,6 +53,8 @@ do_add( conn, op )
 	 */
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	/* initialize reader/writer lock */
+	entry_rdwr_init(e);
 
 	/* get the name */
 	if ( ber_scanf( ber, "{a", &dn ) == LBER_ERROR ) {

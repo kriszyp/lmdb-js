@@ -109,4 +109,4 @@ int pthread_rdwr_rwchk_np(pthread_rdwr_t *rdwrp)
 	return(pthread_rdwr_rchk_np(rdwrp) || pthread_rdwr_wchk_np(rdwrp));
 }
 
-#endif LDAP_DEBUG
+#endif /* LDAP_DEBUG */
