@@ -138,6 +138,12 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_ON		((void *) 1)
 #define LDAP_OPT_OFF	((void *) 0)
 
+/*
+ * ldap_get_option() and ldap_set_option() return values.
+ * As later versions may return other values indicating
+ * failure, current applications should only compare returned
+ * value against LDAP_OPT_SUCCESS.
+ */
 #define LDAP_OPT_SUCCESS	0
 #define	LDAP_OPT_ERROR		(-1)
 
