@@ -5,6 +5,6 @@
 #
 # Plain Copyright for Software Distribution
 #
-!define HTML_TITLE "OpenLDAP Copyright Notices"
+!define HTML_TITLE "OpenLDAP Public License"
 !include "../plain.sdf"
-!include "copyright.sdf"; plain
+!include "license.sdf"; plain

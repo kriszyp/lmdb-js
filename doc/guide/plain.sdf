@@ -11,8 +11,10 @@
 !macro HTML_HEADER
 !endmacro
 !macro HTML_FOOTER
-{{INLINE:<SMALL>______<BR>}}
-Copyright 1999-2000, The OpenLDAP Foundation. {{EMAIL:info@openldap.org}}
-All Rights Reserved.
-{{INLINE:</SMALL>}}
+{{INLINE:<FONT COLOR="#808080" FACE="Arial,Verdana,Helvetica" SIZE="1">}}
+{{INLINE:<B>______________<BR><SMALL>}}
+[[c]]  Copyright 2000,
+{{INLINE:<A HREF="/foundation/">OpenLDAP Foundation</A>}},
+{{EMAIL: info@OpenLDAP.org}}
+{{INLINE:</SMALL><BR></B></FONT>}}
 !endmacro

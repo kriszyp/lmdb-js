@@ -18,8 +18,8 @@
 
 !define DOC_LOGO	"../images/LDAPwww.gif"
 # should create a smaller logo for HTML and TOPIC purposes
-#!define DOC_HTML_LOGO	"../images/LDAPwww.gif"
-#!define DOC_TOPIC_LOGO	"../images/LDAPwww.gif"
+#!define DOC_HTML_LOGO	"../images/LDAPlogo.gif"
+!define DOC_TOPIC_LOGO	"../images/LDAPlogo.gif"
 
 !define DOC_LOF_TITLE	"Figures"
 !define DOC_LOF
