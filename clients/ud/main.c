@@ -461,9 +461,7 @@ change_base( int type, char **base, char *s )
 			 *  codes to recognizable names for printing.
 			 */
 			choices[i] = ldap_get_dn(ld, ep);
-			rdns = ldap_explode_dn(choices[i], TRUE);
-			printf(" %2d. %s\n", i, friendly_name(*rdns));
-			(void) ldap_value_free(rdns);
+			printf(" %2d. %s\n", i, choices[i]);
 			i++;
 			if ((rest++ > (lpp - 3)) && (i < matches)) {
 				printf("More? ");
