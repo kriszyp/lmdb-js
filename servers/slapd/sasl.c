@@ -97,8 +97,16 @@ slap_sasl_authorize(
 		authzid ? authzid : "<empty>" );
 
 	if ( authzid == NULL || *authzid == '\0' ||
+		( authzid[0] == 'u' && authzid[1] == ':' &&
+			strcmp( authcid, &authzid[2] ) == 0 ) ||
 		strcmp( authcid, authzid ) == 0 )
 	{
+		/* authzid is:
+		 *		empty
+		 *		u:authcid
+		 *		authcid
+		 */
+	
 		size_t len = sizeof("u:") + strlen( authcid );
 
 		cuser = ch_malloc( len );
@@ -116,11 +124,17 @@ slap_sasl_authorize(
 	}
 
 	rc = slap_sasl_authorized( conn, authcid, authzid );
-	Debug( LDAP_DEBUG_TRACE, "SASL Authorization returned %d\n", rc,0,0);
 	if( rc ) {
+		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+			" authorization disallowed (%d)\n",
+			(long) (conn ? conn->c_connid : -1), rc, 0 );
 		*errstr = "not authorized";
 		return SASL_NOAUTHZ;
 	}
+
+	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+		" authorization allowed\n",
+		(long) (conn ? conn->c_connid : -1), 0, 0 );
 
 	cuser = ch_strdup( authzid );
 	dn_normalize( cuser );
@@ -465,10 +479,9 @@ int slap_sasl_bind(
 					0, 0, 0);
 
 			} else if ( username[0] == 'u' && username[1] == ':'
-				&& username[2] != '\0'
-				&& strpbrk( &username[2], "+=,;\"\\ \t") == NULL )
+				&& username[2] != '\0' )
 			{
-				*edn = ch_malloc( sizeof( "uid= + realm=" )
+				*edn = ch_malloc( sizeof( "uid=,cn=" )
 					+ strlen( &username[2] )
 					+ ( realm ? strlen( realm ) : 0 ) );
 
@@ -476,13 +489,52 @@ int slap_sasl_bind(
 				strcat( *edn, &username[2] );
 
 				if( realm && *realm ) {
-					strcat( *edn, " + realm=" );
+					strcat( *edn, ",cn=" );
 					strcat( *edn, realm );
 				}
 
-				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: authzdn: \"%s\"\n",
-					*edn, 0, 0);
+				if( dn_normalize( *edn ) == NULL ) {
+					Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: "
+						"authzid (\"%s\") to authzdn failed: \"%s\"\n",
+						username, *edn, 0);
+					ch_free( *edn );
+					*edn = NULL;
+					rc = LDAP_INAPPROPRIATE_AUTH;
+					errstr = "could not form a valid DN from authzid";
 
+				}  else {
+					Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: "
+						"authzdn: \"%s\"\n",
+						*edn, 0, 0);
+				}
+
+			} else if ( username[0] == 'd' && username[1] == 'n'
+				&& username[2] != ':' && username[3] != '\0' )
+			{
+				*edn = ch_strdup( &username[3] );
+
+				if( dn_normalize( *edn ) == NULL ) {
+					Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: "
+						"authzid (\"%s\") to authzdn failed: \"%s\"\n",
+						username, *edn, 0);
+
+					ch_free( *edn );
+					*edn = NULL;
+					rc = LDAP_INAPPROPRIATE_AUTH;
+					errstr = "could not form a valid DN from authzid";
+
+				}  else {
+					Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: "
+						"authzdn: \"%s\"\n",
+						*edn, 0, 0);
+				}
+
+			} else {
+				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: "
+					"authzid (\"%s\") inappropriate form\n",
+					username, 0, 0);
+				rc = LDAP_INAPPROPRIATE_AUTH;
+				errstr = "inappropriate authorization identity form";
 			}
 
 			if( rc == LDAP_SUCCESS ) {

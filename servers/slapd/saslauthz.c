@@ -251,7 +251,7 @@ char *slap_sasl_regexp( char *saslname )
 
 
 /*
- * Given a SASL name (e.g. "UID=name+REALM=company,cn=GSSAPI,cn=AUTHZ")
+ * Given a SASL name (e.g. "UID=name+cn=REALM,cn=MECH,cn=AUTHZ")
  * return the LDAP DN to which it matches. The SASL regexp rules in the config
  * file turn the SASL name into an LDAP URI. If the URI is just a DN (or a
  * search with scope=base), just return the URI (or its searchbase). Otherwise
@@ -504,7 +504,7 @@ int slap_sasl_authorized( Connection *conn,
 	sasl_getprop( conn->c_sasl_context, SASL_REALM, (void **)&realm );
 
 	/* Allocate space */
-	rc = strlen("uid=+realm=,cn=,cn=AUTHZ ");
+	rc = strlen("uid=,cn=,cn=,cn=AUTHZ ");
 	if ( realm ) rc += strlen( realm );
 	if ( authcid ) rc += strlen( authcid );
 	rc += strlen( conn->c_sasl_bind_mech );
@@ -516,7 +516,7 @@ int slap_sasl_authorized( Connection *conn,
 	if ( authcid )
 		rc += sprintf( saslname+rc, "%sUID=%s", rc?",":"", authcid);
 	if ( realm )
-		rc += sprintf( saslname+rc, "%sREALM=%s", rc?"+":"", realm);
+		rc += sprintf( saslname+rc, "%sCN=%s", rc?",":"", realm);
 	if ( conn->c_sasl_bind_mech )
 		rc += sprintf( saslname+rc, "%sCN=%s", rc?",":"",
 		   conn->c_sasl_bind_mech);

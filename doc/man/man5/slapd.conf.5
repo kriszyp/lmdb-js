@@ -302,7 +302,7 @@ form
 .RS
 .RS
 .TP
-.B uid=<UID>[+realm=<REALM>][,cn=<MECH>],cn=AUTHZ
+.B uid=<UID>[,cn=<REALM>][,cn=<MECH>],cn=AUTHZ
 
 .RE
 This SASL name is then compared against the
@@ -345,7 +345,7 @@ appear in the file, stopping at the first successful match.
 .B Caution:
 Because the plus sign + is a character recognized by the regular expression engine,
 and it will appear in SASL names that include a REALM, be careful to escape the
-plus sign with a double backslash \\\\+ to remove the character's special meaning.
+plus sign with a backslash \\+ to remove the character's special meaning.
 .RE
 .TP
 .B sasl-secprops <properties>
