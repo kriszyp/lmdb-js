@@ -171,8 +171,8 @@ rwm_op_add( Operation *op, SlapReply *rs )
 				}
 			}
 
-			if ( (*ap)->a_desc->ad_type->sat_syntax
-					== slap_schema.si_syn_distinguishedName )
+			if ( (*ap)->a_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
+					|| ( mapping != NULL && mapping->m_dst_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 			{
 				/*
 				 * FIXME: rewrite could fail; in this case
@@ -327,7 +327,8 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			ad = mapping->m_dst_ad;
 		}
 
-		if ( op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
+		if ( op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
+				|| ( mapping != NULL && mapping->m_dst_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 		{
 			struct berval	*mapped_valsp[2];
 			
@@ -436,11 +437,11 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 				last--;
 
 				for ( j = 0; !BER_BVISNULL( &(*mlp)->sml_values[ j ] ); j++ ) {
-					struct ldapmapping	*mapping = NULL;
-
+					struct ldapmapping	*oc_mapping = NULL;
+		
 					( void )rwm_mapping( &rwmap->rwm_oc, &(*mlp)->sml_values[ j ],
-							&mapping, RWM_MAP );
-					if ( mapping == NULL ) {
+							&oc_mapping, RWM_MAP );
+					if ( oc_mapping == NULL ) {
 						if ( rwmap->rwm_at.drop_missing ) {
 							/* FIXME: we allow to remove objectClasses as well;
 							 * if the resulting entry is inconsistent, that's
@@ -457,13 +458,13 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	
 					} else {
 						ch_free( (*mlp)->sml_values[ j ].bv_val );
-						ber_dupbv( &(*mlp)->sml_values[ j ], &mapping->m_dst );
+						ber_dupbv( &(*mlp)->sml_values[ j ], &oc_mapping->m_dst );
 					}
 				}
 
 			} else {
-				if ( (*mlp)->sml_desc->ad_type->sat_syntax ==
-						slap_schema.si_syn_distinguishedName )
+				if ( (*mlp)->sml_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
+						|| ( mapping != NULL && mapping->m_dst_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 				{
 #ifdef ENABLE_REWRITE
 					rc = rwm_dnattr_rewrite( op, rs, "modifyAttrDN",
@@ -516,7 +517,6 @@ cleanup_mod:;
 		free( ml );
 	}
 
-	/* TODO: rewrite attribute types, values of DN-valued attributes ... */
 	return SLAP_CB_CONTINUE;
 }
 

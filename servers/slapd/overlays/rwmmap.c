@@ -386,7 +386,8 @@ map_attr_value(
 	if ( value != NULL ) {
 		assert( mapped_value != NULL );
 
-		if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
+		if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
+				|| ( mapping != NULL && mapping->m_dst_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 		{
 			dncookie 	fdc = *dc;
 			int		rc;
