@@ -63,8 +63,8 @@ ldbm_back_modrdn(
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
-	LDAPRDN		*new_rdn;
-	LDAPRDN		*old_rdn;
+	LDAPRDN		*new_rdn = NULL;
+	LDAPRDN		*old_rdn = NULL;
 	int             a_cnt, d_cnt;
 	/* Added to support newSuperior */ 
 	Entry		*np = NULL;	/* newSuperior Entry */
