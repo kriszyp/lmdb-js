@@ -273,6 +273,11 @@ main( int argc, char **argv )
 	}
 	}
 
+#ifdef LDAP_LDIF
+	/* no alternative format */
+	if( ldif < 1 ) ldif = 1;
+#endif
+
 	if( authmethod != LDAP_AUTH_SIMPLE ) {
 		if( version == LDAP_VERSION3 ) {
 			fprintf(stderr, "Kerberos requires LDAPv2\n");
