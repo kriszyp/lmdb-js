@@ -39,11 +39,12 @@ bdb_modrdn(
 	struct bdb_op_info opinfo;
 
 	ID			id;
-	char		*new_rdn_val = NULL;	/* Val of new rdn */
-	char		*new_rdn_type = NULL;	/* Type of new rdn */
-	char		*old_rdn = NULL;		/* Old rdn's attr type & val */
-	char		*old_rdn_type = NULL;	/* Type of old rdn attr. */
-	char		*old_rdn_val = NULL;	/* Old rdn attribute value */
+	char		**new_rdn_vals = NULL;	/* Vals of new rdn */
+	char		**new_rdn_types = NULL;	/* Types of new rdn */
+	int		a_cnt, d_cnt;
+	char		*old_rdn = NULL;	/* Old rdn's attr type & val */
+	char		**old_rdn_types = NULL;	/* Types of old rdn attr. */
+	char		**old_rdn_vals = NULL;	/* Old rdn attribute values */
 
 	Entry		*np = NULL;				/* newSuperior Entry */
 	char		*np_dn = NULL;			/* newSuperior dn */
@@ -51,11 +52,7 @@ bdb_modrdn(
 	char		*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
 
 	/* Used to interface with bdb_modify_internal() */
-	struct berval	add_bv;				/* Stores new rdn att */
-	struct berval	*add_bvals[2];		/* Stores new rdn att */
-	struct berval	del_bv;				/* Stores old rdn att */
-	struct berval	*del_bvals[2];		/* Stores old rdn att */
-	Modifications	mod[2];				/* Used to delete old rdn */
+	Modifications	*mod = NULL;		/* Used to delete old rdn */
 
 	int		manageDSAit = get_manageDSAit( op );
 
@@ -332,33 +329,21 @@ retry:	/* transaction retry */
 	 * need to add that to our new entry
 	 */
 
-	new_rdn_type = rdn_attr_type( newrdn );
-	if ( new_rdn_type == NULL ) {
+	if ( rdn_attrs( newrdn, &new_rdn_types, &new_rdn_vals ) ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: can't figure out type of newrdn\n",
-			0, 0, 0 );
+			"bdb_modrdn: can't figure out type(s)/values(s) "
+			"of newrdn\n", 0, 0, 0 );
 		rc = LDAP_OPERATIONS_ERROR;
-		text = "unknown type used in RDN";
-		goto return_results;		
-	}
-
-	new_rdn_val = rdn_attr_value( newrdn );
-	if ( new_rdn_val == NULL ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: could not figure out val of newrdn\n",
-			0, 0, 0 );
-		rc = LDAP_OPERATIONS_ERROR;
-		text = "could not parse RDN value";
+		text = "unknown type(s) used in RDN";
 		goto return_results;		
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_modrdn: new_rdn_val=\"%s\", new_rdn_type=\"%s\"\n",
-		new_rdn_val, new_rdn_type, 0 );
+		new_rdn_vals[ 0 ], new_rdn_types[ 0 ], 0 );
 
 	/* Retrieve the old rdn from the entry's dn */
-
-	if ( (old_rdn = dn_rdn( be, dn )) == NULL ) {
+	if ( ( old_rdn = dn_rdn( be, dn ) ) == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: can't figure out old_rdn from dn\n",
 			0, 0, 0 );
@@ -367,77 +352,118 @@ retry:	/* transaction retry */
 		goto return_results;		
 	}
 
-	if ( (old_rdn_type = rdn_attr_type( old_rdn )) == NULL ) {
+	if ( rdn_attrs( old_rdn, &old_rdn_types, &old_rdn_vals ) ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_back_modrdn: can't figure out the old_rdn type\n",
-			0, 0, 0 );
+			"bdb_back_modrdn: can't figure out the old_rdn "
+			"type(s)/value(s)\n", 0, 0, 0 );
 		rc = LDAP_OTHER;
 		text = "cannot parse RDN from old DN";
 		goto return_results;		
 	}
 	
-	if ( strcasecmp( old_rdn_type, new_rdn_type ) != 0 ) {
+	if ( newSuperior == NULL
+		&& charray_strcasecmp( ( const char ** )old_rdn_types, 
+				( const char ** )new_rdn_types ) != 0 ) {
 		/* Not a big deal but we may say something */
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",
-			old_rdn_type, new_rdn_type, 0 );
+			"bdb_modrdn: old_rdn_type(s)=%s, new_rdn_type(s)=%s "
+			"do not match\n", 
+			old_rdn_types[ 0 ], new_rdn_types[ 0 ], 0 );
 	}		
 
-	/* Add new attribute value to the entry */
-	add_bvals[0] = &add_bv;		/* Array of bervals */
-	add_bvals[1] = NULL;
+	/* Add new attribute values to the entry */
+	for ( a_cnt = 0; new_rdn_types[ a_cnt ]; a_cnt++ ) {
+		int 			rc;
+		AttributeDescription	*desc = NULL;
+		Modifications 		*mod_tmp;
+		struct berval 		val;
 
-	add_bv.bv_val = new_rdn_val;
-	add_bv.bv_len = strlen(new_rdn_val);
-		
-	mod[0].sml_desc = NULL;
-	rc = slap_str2ad( new_rdn_type, &mod[0].sml_desc, &text );
+		rc = slap_str2ad( new_rdn_types[ a_cnt ], &desc, &text );
 
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: %s: %s (new)\n",
-			text, new_rdn_type, 0 );
-		goto return_results;		
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_modrdn: %s: %s (new)\n",
+				text, new_rdn_types[ a_cnt ], 0 );
+			goto return_results;		
+		}
+
+		/* ACL check of newly added attrs */
+		val.bv_val = new_rdn_vals[ a_cnt ];
+		val.bv_len = strlen( val.bv_val );
+		if ( !access_allowed( be, conn, op, p, 
+				desc, &val, ACL_WRITE ) ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_modrdn: access to attr \"%s\" "
+				"(new) not allowed\n", 
+				new_rdn_types[ a_cnt ], 0, 0 );
+			ad_free( desc, 1);
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			goto return_results;
+		}
+
+		/* Apply modification */
+		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
+		mod_tmp->sml_desc = desc;
+		mod_tmp->sml_bvalues = ( struct berval ** )ch_malloc( 2*sizeof( struct berval * ) );
+		mod_tmp->sml_bvalues[ 0 ] = ber_bvstrdup( new_rdn_vals[ a_cnt ] );
+		mod_tmp->sml_bvalues[ 1 ] = NULL;
+		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
+		mod_tmp->sml_next = mod;
+		mod = mod_tmp;
 	}
-	mod[0].sml_bvalues = add_bvals;
-	mod[0].sml_op = SLAP_MOD_SOFTADD;
-	mod[0].sml_next = NULL;
 
 	/* Remove old rdn value if required */
-
-	if (deleteoldrdn) {
+	if ( deleteoldrdn ) {
 		/* Get value of old rdn */
-		old_rdn_val = rdn_attr_value( old_rdn );
-		if ( old_rdn_val == NULL) {
+		if ( old_rdn_vals == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_modrdn: can't figure out old_rdn_val from old_rdn\n",
-				0, 0, 0 );
+				"bdb_modrdn: can't figure out old RDN value(s) "
+				"from old RDN\n", 0, 0, 0 );
 			rc = LDAP_OTHER;
-			text = "could not parse value from old RDN";
+			text = "could not parse value(s) from old RDN";
 			goto return_results;		
 		}
 
-		del_bvals[0] = &del_bv;		/* Array of bervals */
-		del_bvals[1] = NULL;
+		for ( d_cnt = 0; old_rdn_types[ d_cnt ]; d_cnt++ ) {
+			int 			rc;
+			AttributeDescription	*desc = NULL;
+			Modifications 		*mod_tmp;
+			struct berval 		val;
 
-		/* Remove old value of rdn as an attribute. */
-		del_bv.bv_val = old_rdn_val;
-		del_bv.bv_len = strlen(old_rdn_val);
+			rc = slap_str2ad( old_rdn_types[ d_cnt ],
+					&desc, &text );
 
-		mod[1].sml_desc = NULL;
-		rc = slap_str2ad( old_rdn_type, &mod[1].sml_desc, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"bdb_modrdn: %s: %s (old)\n",
+					text, old_rdn_types[ d_cnt ], 0 );
+				goto return_results;		
+			}
 
-		if( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"bdb_modrdn: %s: %s (old)\n",
-				text, old_rdn_type, 0 );
-			goto return_results;		
+			/* ACL check of newly added attrs */
+			val.bv_val = new_rdn_vals[ d_cnt ];
+			val.bv_len = strlen( val.bv_val );
+			if ( !access_allowed( be, conn, op, p, 
+					desc, &val, ACL_WRITE ) ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"bdb_modrdn: access to attr \"%s\" "
+					"(old) not allowed\n", 
+					old_rdn_types[ d_cnt ], 0, 0 );
+				ad_free( desc, 1);
+				rc = LDAP_INSUFFICIENT_ACCESS;
+				goto return_results;
+			}
+
+			/* Apply modification */
+			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
+			mod_tmp->sml_desc = desc;
+			mod_tmp->sml_bvalues = ( struct berval ** )ch_malloc( 2*sizeof( struct berval * ) );
+			mod_tmp->sml_bvalues[ 0 ] = ber_bvstrdup( old_rdn_vals[ d_cnt ] );
+			mod_tmp->sml_bvalues[ 1 ] = NULL;
+			mod_tmp->sml_op = LDAP_MOD_DELETE;
+			mod_tmp->sml_next = mod;
+			mod = mod_tmp;
 		}
-
-		mod[0].sml_next = &mod[1];
-		mod[1].sml_bvalues = del_bvals;
-		mod[1].sml_op = LDAP_MOD_DELETE;
-		mod[1].sml_next = NULL;
 	}
 	
 	/* delete old one */
@@ -539,12 +565,12 @@ done:
 	if( p_ndn != NULL ) free( p_ndn );
 
 	/* LDAP v2 supporting correct attribute handling. */
-	if( new_rdn_type != NULL ) free(new_rdn_type);
-	if( new_rdn_val != NULL ) free(new_rdn_val);
+	if( new_rdn_types != NULL ) charray_free(new_rdn_types);
+	if( new_rdn_vals != NULL ) charray_free(new_rdn_vals);
 	if( old_rdn != NULL ) free(old_rdn);
-	if( old_rdn_type != NULL ) free(old_rdn_type);
-	if( old_rdn_val != NULL ) free(old_rdn_val);
-
+	if( old_rdn_types != NULL ) charray_free(old_rdn_types);
+	if( old_rdn_vals != NULL ) charray_free(old_rdn_vals);
+	if( mod != NULL ) slap_mods_free(mod);
 
 	/* LDAP v3 Support */
 	if ( np_dn != NULL ) free( np_dn );
