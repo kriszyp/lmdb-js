@@ -467,22 +467,28 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 		case LDAP_OPT_X_TLS_ALLOW:
 		case LDAP_OPT_X_TLS_TRY:
 		case LDAP_OPT_X_TLS_HARD:
-			if (lo != NULL)
+			if (lo != NULL) {
 				lo->ldo_tls_mode = *(int *)arg;
+			}
+
 			return 0;
-		default:
-			return -1;
 		}
-		break;
-	case LDAP_OPT_X_TLS_CERT:
-		if ( lo == NULL )
-			tls_def_ctx = (SSL_CTX *) arg;
-		else
-			lo->ldo_tls_ctx = arg;
-		break;
-	}
-	if ( lo != NULL )
 		return -1;
+
+	case LDAP_OPT_X_TLS_CERT:
+		if ( lo == NULL ) {
+			tls_def_ctx = (SSL_CTX *) arg;
+
+		} else {
+			lo->ldo_tls_ctx = arg;
+		}
+		return 0;
+	}
+
+	if ( lo != NULL ) {
+		return -1;
+	}
+
 	switch( option ) {
 	case LDAP_OPT_X_TLS_CACERTFILE:
 		if ( tls_opt_cacertfile ) free( tls_opt_cacertfile );
