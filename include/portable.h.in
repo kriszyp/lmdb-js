@@ -297,6 +297,12 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the getdtablesize function.  */
 #undef HAVE_GETDTABLESIZE
 
+/* Define if you have the gethostbyaddr_r function.  */
+#undef HAVE_GETHOSTBYADDR_R
+
+/* Define if you have the gethostbyname_r function.  */
+#undef HAVE_GETHOSTBYNAME_R
+
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 

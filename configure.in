@@ -646,14 +646,12 @@ int main(argc, argv)
 			dnl       with $LTHREAD_LIBS
 			dnl
 			AC_CHECK_FUNCS(	\
-				feof_unlocked \
-				unlocked_feof \
-				putc_unlocked \
-				unlocked_putc \
-				ftrylockfile \
-				flockfile \
-				gmtime_r \
 				strtok_r \
+				gmtime_r \
+				gethostbyaddr_r gethostbyname_r \
+				feof_unlocked unlocked_feof \
+				putc_unlocked unlocked_putc \
+				flockfile ftrylockfile \
 			)
 
 			dnl restore flags
