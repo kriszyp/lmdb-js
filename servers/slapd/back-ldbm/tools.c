@@ -225,7 +225,7 @@ int ldbm_tool_index_attr(
 #endif
 
 	assert( desc != NULL );
-	attr_mask( be->be_private, desc, &indexmask );
+	attr_mask( be->be_private, at_cname, &indexmask );
 
 	if ( (db = ldbm_cache_open( be, at_cname, LDBM_SUFFIX, LDBM_NEWDB ))
 	    == NULL )
@@ -259,9 +259,9 @@ int ldbm_tool_index_change(
 #else
 	index_change_values( be,
 		desc, bv, id, op );
+#endif
 
 	return 0;
-#endif
 }
 
 int ldbm_tool_sync( BackendDB *be )
