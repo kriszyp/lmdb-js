@@ -253,7 +253,7 @@ ldap_getfirstfilter(
 			continue;
 
 		/* compile flp->ifl_pattern, continue if we fail */
-		if (regcomp(&re, flp->lfl_pattern, 0) != 0)
+		if (regcomp(&re, flp->lfl_pattern, REG_EXTENDED) != 0)
 			continue;
 
 		/* match ifl_pattern and lfd_curval, continue if we fail */

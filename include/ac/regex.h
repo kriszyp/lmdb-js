@@ -25,6 +25,10 @@
 	For NT: http://people.delphi.com/gjc/hs_regex.html
 */
 #error "No POSIX REGEX available."
+
+#elif HAVE_GNUREGEX_H
+	/* system has GNU gnuregex.h */ 
+#	include <gnuregex.h>
 #else
 	/* have regex.h, assume it's POSIX compliant */
 #	include <regex.h>
