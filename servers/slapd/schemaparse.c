@@ -57,6 +57,7 @@ parse_oc_old(
     char	**argv
 )
 {
+#ifdef SLAPD_SCHEMA_COMPAT
 	int		i;
 	char		last;
 	LDAP_OBJECT_CLASS	*oc;
@@ -117,27 +118,23 @@ parse_oc_old(
 	 * out of thin air.
 	 */
 	if ( oc->oc_at_oids_must ) {
-		namep = oc->oc_at_oids_must;
-		while ( *namep ) {
+		for( namep = oc->oc_at_oids_must; *namep ; namep++ ) {
 			code = at_fake_if_needed( *namep );
 			if ( code ) {
 				fprintf( stderr, "%s: line %d: %s %s\n",
 					 fname, lineno, scherr2str(code), *namep);
 				exit( EXIT_FAILURE );
 			}
-			namep++;
 		}
 	}
 	if ( oc->oc_at_oids_may ) {
-		namep = oc->oc_at_oids_may;
-		while ( *namep ) {
+		for( namep = oc->oc_at_oids_may; *namep; namep++ ) {
 			code = at_fake_if_needed( *namep );
 			if ( code ) {
 				fprintf( stderr, "%s: line %d: %s %s\n",
 					 fname, lineno, scherr2str(code), *namep);
 				exit( EXIT_FAILURE );
 			}
-			namep++;
 		}
 	}
 	
@@ -148,6 +145,12 @@ parse_oc_old(
 		exit( EXIT_FAILURE );
 	}
 	ldap_memfree(oc);
+
+#else
+	fprintf( stderr, "%s: line %d: %s %s\n",
+		 fname, lineno, "not built with -DSLAPD_SCHEMA_COMPAT\n");
+	exit( EXIT_FAILURE );
+#endif
 }
 
 /* OID Macros */

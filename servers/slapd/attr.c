@@ -266,6 +266,7 @@ attr_syntax_config(
     char	**argv
 )
 {
+#ifdef SLAPD_SCHEMA_COMPAT
 	char			*save;
 	LDAP_ATTRIBUTE_TYPE	*at;
 	int			lasti;
@@ -344,8 +345,14 @@ attr_syntax_config(
 		exit( EXIT_FAILURE );
 	}
 	ldap_memfree(at);
+#else
+	fprintf( stderr, "%s: line %d: %s\n",
+		 fname, lineno, "not built with -DSLAPD_SCHEMA_COMPAT\n");
+	exit( EXIT_FAILURE );
+#endif
 }
 
+#ifdef SLAPD_SCHEMA_COMPAT
 int
 at_fake_if_needed(
     char	*name
@@ -363,6 +370,7 @@ at_fake_if_needed(
 		return 0;
 	}
 }
+#endif
 
 struct aindexrec {
 	char		*air_name;
@@ -407,14 +415,17 @@ at_find(
 		tmpname = ch_malloc( p-name+1 );
 		strncpy( tmpname, name, p-name );
 		tmpname[p-name] = '\0';
-	} else
+	} else {
 		tmpname = (char *)name;
+	}
+
 	if ( (air = (struct aindexrec *) avl_find( attr_index, tmpname,
             (AVL_CMP) attr_index_name_cmp )) != NULL ) {
 		if ( tmpname != name )
 			ldap_memfree( tmpname );
 		return( air->air_at );
 	}
+
 	if ( tmpname != name )
 		ldap_memfree( tmpname );
 	return( NULL );
@@ -621,6 +632,7 @@ at_add(
 			return SLAP_SCHERR_SYN_NOT_FOUND;
 		}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 		if ( !strcmp(at->at_syntax_oid, SYNTAX_DS_OID) ) {
 			if ( at->at_equality_oid && (
 				!strcmp(at->at_equality_oid, SYNTAX_DSCE_OID) ) )
@@ -651,6 +663,7 @@ at_add(
 		} else {
 			sat->sat_syntax_compat = DEFAULT_SYNTAX;
 		}
+#endif
 
 	} else if ( sat->sat_syntax == NULL ) {
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
@@ -695,30 +708,22 @@ at_canonical_name( char * a_type )
 	AttributeType	*atp;
 
 	if ( (atp=at_find(a_type)) == NULL ) {
-
 		return a_type;
 
-	} else  if ( atp->sat_names 
-		     && atp->sat_names[0]
-		     && (*(atp->sat_names[0]) != '\0') ) {
-	    
+	} else if ( atp->sat_names
+		&& atp->sat_names[0] && (*(atp->sat_names[0]) != '\0') )
+	{
 		return atp->sat_names[0];
 
 	} else if (atp->sat_oid && (*atp->sat_oid != '\0')) {
-
 		return atp->sat_oid;
 		
 	} else {
-
 		return a_type;
-
 	}
-
-}/* char * at_canonica_name() */
-
+}
 
 #if defined( SLAPD_SCHEMA_DN )
-
 int
 at_schema_info( Entry *e )
 {
@@ -746,12 +751,13 @@ at_schema_info( Entry *e )
 #endif
 
 #ifdef LDAP_DEBUG
-
 static int
 at_index_printnode( struct aindexrec *air )
 {
 
-	printf( "%s = %s\n", air->air_name, ldap_attributetype2str(&air->air_at->sat_atype) );
+	printf("%s = %s\n",
+		air->air_name,
+		ldap_attributetype2str(&air->air_at->sat_atype) );
 	return( 0 );
 }
 
@@ -762,5 +768,4 @@ at_index_print( void )
 	(void) avl_apply( attr_index, (AVL_APPLY) at_index_printnode,
 		0, -1, AVL_INORDER );
 }
-
 #endif
