@@ -1,12 +1,11 @@
-dnl $Id$
-dnl
+dnl $Id: configure.in,v 1.248 1999/08/28 04:00:47 kdz Exp $
+
 dnl Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
 dnl Redistribution and use in source and binary forms are permitted only
 dnl as authorized by the OpenLDAP Public License.  A copy of this
 dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
-dnl
 
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
@@ -145,7 +144,7 @@ OL_ARG_WITH(tcl_module,[      --with-tcl-module	module type], static,
 	[static dynamic])
 
 dnl SLURPD OPTIONS
-AC_ARG_WITH(xxslurpdoptions,[SLURPD Options:])
+AC_ARG_WITH(xxslurpdoptions,[SLURPD (Replication Daemon) Options:])
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
 AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
@@ -404,7 +403,6 @@ dnl AC_PROG_INSTALL
 
 AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
 
-
 dnl
 dnl Determine which C translator to use
 dnl
@@ -629,9 +627,7 @@ dnl		-lsocket [ -lnsl_s | -lnsl ]
 dnl		-linet
 
 AC_CHECK_FUNC(socket, :, [	
-dnl
 dnl hopefully we won't include too many libraries
-dnl
 	AC_CHECK_LIB(socket, main)
 	AC_CHECK_LIB(net, main)
 	AC_CHECK_LIB(net, socket)
@@ -641,6 +637,7 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
+dnl require select
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
 
 dnl Select arg types
@@ -649,6 +646,7 @@ dnl should be done before the yielding select test)
 AC_FUNC_SELECT_ARGTYPES
 
 
+dnl require POSIX regex
 AC_CHECK_HEADERS( regex.h )
 if test "$ac_cv_header_regex_h" != yes ; then
 	AC_MSG_ERROR([POSIX regex.h required.])
@@ -659,7 +657,6 @@ OL_POSIX_REGEX
 if test "$ol_cv_c_posix_regex" = no ; then
 	AC_MSG_ERROR([broken POSIX regex!])
 fi
-
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
