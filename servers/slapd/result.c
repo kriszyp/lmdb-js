@@ -450,8 +450,9 @@ send_search_result(
 		}
 
 		tmp = v2ref( refs );
-		text = tmp;
 		refs = NULL;
+
+		if( tmp != NULL ) text = tmp;
 
 	} else {
 		/* don't send references in search results */
@@ -503,7 +504,6 @@ send_search_entry(
 	BerElement	*ber;
 	Attribute	*a;
 	int		i, rc=-1, bytes;
-	AccessControl	*acl;
 	char            *edn;
 	int		userattrs;
 	int		opattrs;
@@ -549,8 +549,6 @@ send_search_entry(
 		: charray_inlist( attrs, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		regmatch_t       matches[MAXREMATCHES];
-
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
 			if( !opattrs && oc_check_operational_attr( a->a_type ) ) {
@@ -625,8 +623,6 @@ send_search_entry(
 	a = backend_subschemasubentry( be );
 	
 	do {
-		regmatch_t       matches[MAXREMATCHES];
-
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
 			if( !opattrs && oc_check_operational_attr( a->a_type ) ) {
