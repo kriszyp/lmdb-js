@@ -46,14 +46,22 @@ AC_PREFIX_DEFAULT(/usr/local)
 top_builddir=`pwd`
 AC_SUBST(top_builddir)dnl
 
-ldap_subdir="openldap"
+ldap_subdir="/openldap"
 
-AC_ARG_WITH(subdir, [  --with-subdir=DIR change default subdirectory used for installs], [
-	if test "$withval" = "no"; then
-		ldap_subdir=""
-	elif test "$withval" != "yes"; then
+AC_ARG_WITH(subdir,
+[  --with-subdir=DIR change default subdirectory used for installs],
+[case "$withval" in
+	no) ldap_subdir=""
+		;;
+	yes)
+		;;
+	/*|\\*)
 		ldap_subdir="$withval"
-	fi
+		;;
+	*)
+		ldap_subdir="/$withval"
+		;;
+esac
 ])dnl
 
 AC_SUBST(ldap_subdir)dnl

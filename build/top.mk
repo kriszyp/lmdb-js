@@ -22,17 +22,17 @@ exec_prefix = @exec_prefix@
 ldap_subdir = @ldap_subdir@
 
 bindir = $(TMPROOT)@bindir@
-datadir = $(TMPROOT)@datadir@/$(ldap_subdir)
+datadir = $(TMPROOT)@datadir@$(ldap_subdir)
 includedir = $(TMPROOT)@includedir@
 infodir = $(TMPROOT)@infodir@
 libdir = $(TMPROOT)@libdir@
 libexecdir = $(TMPROOT)@libexecdir@
 localstatedir = $(TMPROOT)@localstatedir@
 mandir = $(TMPROOT)@mandir@
-moduledir = $(TMPROOT)@libexecdir@/$(ldap_subdir)
+moduledir = $(TMPROOT)@libexecdir@$(ldap_subdir)
 sbindir = $(TMPROOT)@sbindir@
 sharedstatedir = $(TMPROOT)@sharedstatedir@
-sysconfdir = $(TMPROOT)@sysconfdir@/$(ldap_subdir)
+sysconfdir = $(TMPROOT)@sysconfdir@$(ldap_subdir)
 
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@
