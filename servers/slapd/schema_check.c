@@ -152,7 +152,7 @@ entry_schema_check(
 			e->e_dn, textbuf, 0 );
 #endif
 
-		return LDAP_OBJECT_CLASS_VIOLATION;
+		return LDAP_OTHER;
 	}
 
 	/* find the object class attribute */
@@ -189,7 +189,7 @@ entry_schema_check(
 
 	} else if ( sc != oc ) {
 		snprintf( textbuf, textlen, 
-			"structuralObjectClass modification from '%s' to '%s' not allowed",
+			"structural object class modification from '%s' to '%s' not allowed",
 			asc->a_vals[0].bv_val, nsc.bv_val );
 		return LDAP_NO_OBJECT_CLASS_MODS;
 	}
