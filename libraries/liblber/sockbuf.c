@@ -749,7 +749,7 @@ sb_debug_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 
 	sbiod->sbiod_pvt = LBER_MALLOC( strlen( arg ) + 1 );
 	if ( sbiod->sbiod_pvt == NULL )
-   return -1;
+		return -1;
 	strcpy( (char *)sbiod->sbiod_pvt, (char *)arg );
 	return 0;
 }
