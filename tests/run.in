@@ -125,9 +125,6 @@ fi
 if test ! -r schema/core.schema ; then
 	${LN_S} ${TOPSRCDIR}/servers/slapd/schema schema
 fi
-if test ! -r ucdata/UnicodeData.txt ; then
-	${LN_S} ../libraries/liblunicode ucdata
-fi
 
 if test -d testrun ; then
 	if test $PRESERVE = no ; then
@@ -159,7 +156,7 @@ if test $CLEAN = yes ; then
 	echo "Cleaning up test run directory from this run."
 	/bin/rm -rf testrun
 	echo "Cleaning up symlinks."
-	/bin/rm -f testdata schema ucdata
+	/bin/rm -f testdata schema
 fi
 
 exit $RC
