@@ -250,6 +250,12 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 /* connection  structure params*/
 #define SLAPI_CONN_DN        			143
 #define SLAPI_CONN_AUTHTYPE    			144
+#define SLAPI_CONN_CLIENTIP			145
+#define SLAPI_CONN_SERVERIP			146
+/* OpenLDAP extensions */
+#define SLAPI_X_CONN_CLIENTPATH			1300
+#define SLAPI_X_CONN_SERVERPATH			1301
+#define SLAPI_X_CONN_IS_UDP			1302
 
 /*  Authentication types */
 #define SLAPD_AUTH_NONE   "none"
