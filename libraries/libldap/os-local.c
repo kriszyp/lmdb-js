@@ -5,11 +5,17 @@
  */
 /*  Portions
  *  Copyright (c) 1995 Regents of the University of Michigan.
- *  All rights reserved.
- *  Copyright (c) 1999 PADL Software Pty Ltd.
- *  os-ip.c -- platform-specific domain socket code
+ *  All rights reserved. 
+ *
+ *  os-local.c -- platform-specific domain socket code
  */
-
+/*
+ * Portions (C) Copyright PADL Software Pty Ltd. 1999
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is
+ * given to PADL Software Pty Ltd. This software is provided ``as is''
+ * without express or implied warranty.
+ */
 
 #include "portable.h"
 
