@@ -187,12 +187,14 @@ check_scope( BackendDB *be, AccessControl *a )
 		slap_style_t	style = a->acl_dn_style;
 
 		if ( style == ACL_STYLE_REGEX ) {
-			char	dnbuf[SLAP_LDAPDN_MAXLEN + 2];
-			char	rebuf[SLAP_LDAPDN_MAXLEN + 1];
-			regex_t	re;
-			int	rc;
+			char		dnbuf[SLAP_LDAPDN_MAXLEN + 2];
+			char		rebuf[SLAP_LDAPDN_MAXLEN + 1];
+			ber_len_t	rebuflen;
+			regex_t		re;
+			int		rc;
 			
-			/* add trailing '$' */
+			/* add trailing '$' to database suffix to form
+			 * a simple trial regex pattern "<suffix>$" */
 			AC_MEMCPY( dnbuf, be->be_nsuffix[0].bv_val,
 				be->be_nsuffix[0].bv_len );
 			dnbuf[be->be_nsuffix[0].bv_len] = '$';
@@ -202,17 +204,26 @@ check_scope( BackendDB *be, AccessControl *a )
 				return ACL_SCOPE_WARN;
 			}
 
-			/* remove trailing '$' */
-			AC_MEMCPY( rebuf, a->acl_dn_pat.bv_val,
-				a->acl_dn_pat.bv_len + 1 );
-			if ( a->acl_dn_pat.bv_val[a->acl_dn_pat.bv_len - 1] == '$' ) {
-				rebuf[a->acl_dn_pat.bv_len - 1] = '\0';
+			/* remove trailing ')$', if any, from original
+			 * regex pattern */
+			rebuflen = a->acl_dn_pat.bv_len;
+			AC_MEMCPY( rebuf, a->acl_dn_pat.bv_val, rebuflen + 1 );
+			if ( rebuf[rebuflen - 1] == '$' ) {
+				rebuf[--rebuflen] = '\0';
+			}
+			while ( rebuflen > be->be_nsuffix[0].bv_len && rebuf[rebuflen - 1] == ')' ) {
+				rebuf[--rebuflen] = '\0';
+			}
+			if ( rebuflen == be->be_nsuffix[0].bv_len ) {
+				rc = ACL_SCOPE_WARN;
+				goto regex_done;
 			}
 
 			/* not a clear indication of scoping error, though */
 			rc = regexec( &re, rebuf, 0, NULL, 0 )
 				? ACL_SCOPE_WARN : ACL_SCOPE_OK;
 
+regex_done:;
 			regfree( &re );
 			return rc;
 		}
@@ -226,8 +237,8 @@ check_scope( BackendDB *be, AccessControl *a )
 			/* base is blatantly wrong */
 			if ( style == ACL_STYLE_BASE ) return ACL_SCOPE_ERR;
 
-			/* one can be wrong if there is more
-			 * than one level between the suffix
+			/* a style of one can be wrong if there is
+			 * more than one level between the suffix
 			 * and the pattern */
 			if ( style == ACL_STYLE_ONE ) {
 				int	rdnlen = -1, sep = 0;
@@ -1643,6 +1654,14 @@ parse_acl(
 
 		if ( be != NULL ) {
 #ifdef LDAP_DEVEL
+			if ( !BER_BVISNULL( &be->be_nsuffix[ 1 ] ) ) {
+				fprintf( stderr, "%s: line %d: warning: "
+					"scope checking only applies to single-valued "
+					"suffix databases\n",
+					fname, lineno );
+				/* go ahead, since checking is not authoritative */
+			}
+
 			switch ( check_scope( be, a ) ) {
 			case ACL_SCOPE_UNKNOWN:
 				fprintf( stderr, "%s: line %d: warning: "
