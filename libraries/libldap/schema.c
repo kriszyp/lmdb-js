@@ -1017,6 +1017,7 @@ void
 ldap_syntax_free( LDAP_SYNTAX * syn )
 {
 	LDAP_FREE(syn->syn_oid);
+	LDAP_VFREE(syn->syn_names);
 	LDAP_FREE(syn->syn_desc);
 	free_extensions(syn->syn_extensions);
 	LDAP_FREE(syn);
