@@ -67,7 +67,7 @@ int use_reverse_lookup = 0;
 
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
-static int	fp_parse_line(char *line, int *argcp, char **argv);
+static int	fp_parse_line(int lineno, char *line, int *argcp, char **argv);
 
 static char	*strtok_quote(char *line, char *sep);
 static int      load_ucdata(char *path);
@@ -119,18 +119,10 @@ read_config( const char *fname )
 			continue;
 		}
 
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_DETAIL1,
-			   "line %d (%s)\n", lineno, line ));
-#else
-		Debug( LDAP_DEBUG_CONFIG, "line %d (%s)\n", lineno, line, 0 );
-#endif
-
-
 		/* fp_parse_line is destructive, we save a copy */
 		saveline = ch_strdup( line );
 
-		if ( fp_parse_line( line, &cargc, cargv ) != 0 ) {
+		if ( fp_parse_line( lineno, line, &cargc, cargv ) != 0 ) {
 			return( 1 );
 		}
 
@@ -2360,16 +2352,27 @@ read_config( const char *fname )
 
 static int
 fp_parse_line(
+    int		lineno,
     char	*line,
     int		*argcp,
     char	**argv
 )
 {
 	char *	token;
+	char *	logline;
 
 	*argcp = 0;
-	for ( token = strtok_quote( line, " \t" ); token != NULL;
-	    token = strtok_quote( NULL, " \t" ) ) {
+	token = strtok_quote( line, " \t" );
+
+	logline = (!token || strcasecmp(token, "rootpw") ? line : "rootpw *");
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "config", LDAP_LEVEL_DETAIL1,
+		   "line %d (%s)\n", lineno, logline ));
+#else
+	Debug( LDAP_DEBUG_CONFIG, "line %d (%s)\n", lineno, logline, 0 );
+#endif
+
+	for ( ; token != NULL; token = strtok_quote( NULL, " \t" ) ) {
 		if ( *argcp == MAXARGS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
