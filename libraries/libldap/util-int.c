@@ -41,13 +41,13 @@ char *ldap_int_strtok( char *str, const char *delim, char **pos )
 
 char *ldap_int_ctime( const time_t *tp, char *buf )
 {
-#ifdef HAVE_CTIME_R
-# if defined( ARGS_CTIME_R_2 )
-	return ctime_r(tp,buf);
-# elif defined( ARGS_CTIME_R_3 )
+#if defined( HAVE_CTIME_R ) && defined( CTIME_R_NARGS )
+# if (CTIME_R_NARGS > 3) || (CTIME_R_NARGS < 2)
+	choke me!  nargs should have 2 or 3
+# elif CTIME_R_NARGS > 2
 	return ctime_r(tp,buf,26);
 # else
-	Do not know how many arguments ctime_r takes, so generating error
+	return ctime_r(tp,buf);
 # endif	  
 #else
 	return ctime(tp);

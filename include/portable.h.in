@@ -107,6 +107,9 @@
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 
+/* define this to the number of arguments ctime_r() expects
+#undef CTIME_R_NARGS
+
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
@@ -273,12 +276,6 @@
 
 /* Define if you have the ctime_r function.  */
 #undef HAVE_CTIME_R
-
-/* Define if ctime_r takes two arguments */
-#undef ARGS_CTIME_R_2
-
-/* Define if ctime_r takes three arguments */
-#undef ARGS_CTIME_R_3
 
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
