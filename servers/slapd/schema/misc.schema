@@ -8,14 +8,14 @@ attributetype ( 2.16.840.1.113730.3.1.13
 	NAME 'mailLocalAddress'
 	DESC 'RFC822 email address of this recipient'
 	EQUALITY caseIgnoreIA5Match
-	SYNTAX '1.3.6.1.4.1.1466.115.121.1.26{256}' )
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} )
 
 attributetype ( 2.16.840.1.113730.3.1.18
 	NAME 'mailHost'
 	DESC 'fully-qualified hostname of the MTA that is the final 
 		SMTP destination of messages to this recipient'
 	EQUALITY caseIgnoreIA5Match
-	SYNTAX '1.3.6.1.4.1.1466.115.121.1.26{256}'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256}
 	SINGLE-VALUE )
 
 attributetype ( 2.16.840.1.113730.3.1.47
@@ -23,12 +23,12 @@ attributetype ( 2.16.840.1.113730.3.1.47
 	DESC 'RFC822 address to use when routing messages to 
 		the SMTP MTA of this recipient'
 	EQUALITY caseIgnoreIA5Match
-	SYNTAX '1.3.6.1.4.1.1466.115.121.1.26{256}'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256}
 	SINGLE-VALUE )
 
 objectclass ( 2.16.840.1.113730.3.2.TBD
 	NAME 'inetLocalMailRecipient'
 	DESC 'Internet local mail recipient'
 	SUP top AUXILIARY
-	MAY	( mailLocalAddress $ mailHost $ mailRoutingAddress )
+	MAY	( mailLocalAddress $ mailHost $ mailRoutingAddress ) )
 

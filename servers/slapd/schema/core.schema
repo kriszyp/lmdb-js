@@ -179,7 +179,7 @@ attributetype ( 2.5.4.15 NAME 'businessCategory'
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} )
 
-attribute ( 2.5.4.16 NAME 'postalAddress'
+attributetype ( 2.5.4.16 NAME 'postalAddress'
 	EQUALITY caseIgnoreListMatch
 	SUBSTR caseIgnoreListSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )
