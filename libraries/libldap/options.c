@@ -142,6 +142,9 @@ ldap_get_option(
 		return 0;
 
 	case LDAP_OPT_SERVER_CONTROLS:
+		/* not yet supported */
+		break;
+
 	case LDAP_OPT_CLIENT_CONTROLS:
 		/* not yet supported */
 		break;
@@ -165,7 +168,6 @@ ldap_get_option(
 		return 0;
 
 	case LDAP_OPT_ERROR_STRING:
-		/* not yet supported */
 		if(ld == NULL) {
 			/* bad param */
 			break;
@@ -181,7 +183,7 @@ ldap_get_option(
 		} else {
 			* (char **) outvalue = ldap_strdup(ld->ld_error);
 		}
-		break;
+		return 0;
 
 	case LDAP_OPT_API_FEATURE_INFO: {
 			LDAPAPIFeatureInfo *info = (LDAPAPIFeatureInfo *) outvalue;
@@ -202,7 +204,7 @@ ldap_get_option(
 
 	case LDAP_OPT_DEBUG_LEVEL:
 		* (int *) outvalue = lo->ldo_debug;
-		break;
+		return 0;
 
 	default:
 		/* bad param */
@@ -278,13 +280,16 @@ ldap_set_option(
 			ld->ld_version = vers;
 		} return 0;
 
-	case LDAP_OPT_SERVER_CONTROLS:
-	case LDAP_OPT_CLIENT_CONTROLS:
-		/* not yet supported */
-		break;
+	case LDAP_OPT_SERVER_CONTROLS: {
+			/* not yet supported */
+		} break;
+
+	case LDAP_OPT_CLIENT_CONTROLS: {
+			/* not yet supported */
+		} break;
 
 	case LDAP_OPT_HOST_NAME: {
-			char* host = * (char **) invalue;
+			char* host = (char *) invalue;
 
 			if(lo->ldo_defhost != NULL) {
 				free(lo->ldo_defhost);
@@ -325,7 +330,7 @@ ldap_set_option(
 		} return 0;
 
 	case LDAP_OPT_ERROR_STRING: {
-			char* err = * (char **) invalue;
+			char* err = (char *) invalue;
 
 			if(ld == NULL) {
 				/* need a struct ldap */
