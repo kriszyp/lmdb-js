@@ -195,7 +195,7 @@ hash_crypt (const char *pw_in, Salt * salt)
 		free (lsalt.salt);
 	}
 
-	if( crypted_pw == NULL || crypted_pw[0] = '\0' )
+	if( crypted_pw == NULL || crypted_pw[0] == '\0' )
 		return NULL;
 
 	return STRDUP(crypted_pw);
