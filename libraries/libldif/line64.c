@@ -341,11 +341,12 @@ ldif_sput(
 			len++;
 		}
 
-#ifdef LDAP_DEBUG
-	} else {
-		assert( type == LDIF_PUT_COMMENT );
-#endif
 	}
+#ifdef LDAP_DEBUG
+	else {
+		assert( type == LDIF_PUT_COMMENT );
+	}
+#endif
 
 	switch( type ) {
 	case LDIF_PUT_NOVALUE:
@@ -552,7 +553,7 @@ ldif_read_record(
 	char        **bufp,     /* ptr to malloced output buffer           */
 	int         *buflenp )  /* ptr to length of *bufp                  */
 {
-	char        linebuf[BUFSIZ], *line;
+	char        linebuf[BUFSIZ], *line, *nbufp;
 	ber_len_t   lcur = 0, len, linesize;
 	int         last_ch = '\n', found_entry = 0, stop;
 
@@ -588,7 +589,8 @@ ldif_read_record(
 		}
 
 		if ( *buflenp - lcur <= len ) {
-			char *nbufp = ber_memrealloc( *bufp, *buflenp += len + BUFSIZ );
+			*buflenp += len + BUFSIZ;
+			nbufp = ber_memrealloc( *bufp, *buflenp );
 			if( nbufp == NULL ) {
 				return 0;
 			}
