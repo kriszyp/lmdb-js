@@ -207,7 +207,8 @@ glue_back_response ( Operation *op, SlapReply *rs )
 			rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ||
 			rs->sr_err == LDAP_TIMELIMIT_EXCEEDED ||
 			rs->sr_err == LDAP_ADMINLIMIT_EXCEEDED ||
-				gs->err != LDAP_SUCCESS)
+			rs->sr_err == LDAP_NO_SUCH_OBJECT ||
+			gs->err != LDAP_SUCCESS)
 			gs->err = rs->sr_err;
 		if (gs->err == LDAP_SUCCESS && gs->matched) {
 			ch_free (gs->matched);
@@ -252,6 +253,7 @@ static int
 glue_back_search ( Operation *op, SlapReply *rs )
 {
 	BackendDB *b0 = op->o_bd;
+	BackendDB *b1 = NULL;
 	glueinfo *gi = (glueinfo *) b0->bd_info;
 	int i;
 	long stoptime = 0;
@@ -266,10 +268,10 @@ glue_back_search ( Operation *op, SlapReply *rs )
 
 	stoptime = slap_get_time () + op->ors_tlimit;
 
+	op->o_bd = glue_back_select (b0, op->o_req_ndn.bv_val);
+
 	switch (op->ors_scope) {
 	case LDAP_SCOPE_BASE:
-		op->o_bd = glue_back_select (b0, op->o_req_ndn.bv_val);
-
 		if (op->o_bd && op->o_bd->be_search) {
 			rs->sr_err = op->o_bd->be_search( op, rs );
 		} else {
@@ -285,8 +287,6 @@ glue_back_search ( Operation *op, SlapReply *rs )
 #endif
 
 		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
-			op->o_bd = glue_back_select (b0, op->o_req_ndn.bv_val);
-
 			if (op->o_bd && op->o_bd->be_search) {
 				rs->sr_err = op->o_bd->be_search( op, rs );
 			} else {
@@ -303,12 +303,15 @@ glue_back_search ( Operation *op, SlapReply *rs )
 		tlimit0 = op->ors_tlimit;
 		dn = op->o_req_dn;
 		ndn = op->o_req_ndn;
+		b1 = op->o_bd;
 
 		/*
 		 * Execute in reverse order, most general first 
 		 */
 		for (i = gi->nodes-1; i >= 0; i--) {
 			if (!gi->n[i].be || !gi->n[i].be->be_search)
+				continue;
+			if (!dnIsSuffix(&gi->n[i].be->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
 			if (tlimit0 != -1) {
 				op->ors_tlimit = stoptime - slap_get_time ();
@@ -364,6 +367,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			case LDAP_SIZELIMIT_EXCEEDED:
 			case LDAP_TIMELIMIT_EXCEEDED:
 			case LDAP_ADMINLIMIT_EXCEEDED:
+			case LDAP_NO_SUCH_OBJECT:
 				goto end_of_loop;
 			
 			default:
