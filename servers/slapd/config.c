@@ -322,6 +322,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 	c->value_int = c->value_long = c->value_ber_t = 0;
 	c->value_string = NULL;
 	if(arg_type & ARGS_NUMERIC) {
+		int j;
 		iarg = 0; larg = 0; barg = 0;
 		switch(arg_type & ARGS_NUMERIC) {
 			case ARG_INT:		iarg = atoi(c->argv[1]);		break;
@@ -340,9 +341,9 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 				}
 				break;
 		}
-		i = (arg_type & ARG_NONZERO) ? 1 : 0;
+		j = (arg_type & ARG_NONZERO) ? 1 : 0;
 		rc = (Conf == SystemConfiguration) ? ((arg_type & ARG_SPECIAL) && (larg < index_substr_if_maxlen)) : 0;
-		if(iarg < i || larg < i || barg < i || rc) {
+		if(iarg < j || larg < j || barg < j || rc) {
 			larg = larg ? larg : (barg ? barg : iarg);
 			Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: " , c->fname, c->lineno, 0);
 			Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%ld) in <%s> line\n", Conf[i].what, larg, Conf[i].name);
