@@ -104,16 +104,6 @@ ldap_ld_free(
 		ld->ld_host = NULL;
 	}
 
-	if ( ld->ld_ufnprefix != NULL ) {
-		LDAP_FREE( ld->ld_ufnprefix );
-		ld->ld_ufnprefix = NULL;
-	}
-
-	if ( ld->ld_filtd != NULL ) {
-		ldap_getfilter_free( ld->ld_filtd );
-		ld->ld_filtd = NULL;
-	}
-
 	if ( ld->ld_abandoned != NULL ) {
 		LDAP_FREE( ld->ld_abandoned );
 		ld->ld_abandoned = NULL;

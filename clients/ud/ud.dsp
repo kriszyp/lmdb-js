@@ -174,10 +174,6 @@ SOURCE=.\print.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\string_to_key.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ud.h
 # End Source File
 # Begin Source File

@@ -19,6 +19,8 @@
 /* comment this out if you don't have Cyrus SASL */
 #define HAVE_CYRUS_SASL 1
 
+// #define SLAPD_BDB 1
+
 /* --------------------------------------------------- */
 /* begin of MSVC5 specific entries */
 
@@ -742,7 +744,7 @@ typedef signed int ssize_t;
 #endif
 
 #ifndef OLD_LOGGING
-#  define NEW_LOGGING 1
+// #  define NEW_LOGGING 1
 #endif
 
 #include "ldap_cdefs.h"

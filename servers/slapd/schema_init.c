@@ -510,8 +510,8 @@ UTF8oncasecmp(
 	ber_len_t offset )
 {
 	ber_len_t r, l;
-	int rlen, llen;
-	int rslen, lslen;
+	ber_len_t rlen, llen;
+	ber_len_t rslen, lslen;
 	ldap_unicode_t ru, lu;
 	ldap_unicode_t ruu, luu;
 

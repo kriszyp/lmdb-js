@@ -354,10 +354,6 @@ SOURCE=.\tpool.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libldap\ufn.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\libldap\unbind.c
 # End Source File
 # Begin Source File

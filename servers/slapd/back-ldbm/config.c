@@ -25,7 +25,6 @@ ldbm_back_config(
     char	**argv
 )
 {
-	int rc;
 	struct ldbm_backend_info *lbi =
 		(struct ldbm_backend_info *) bi->bi_private;
 

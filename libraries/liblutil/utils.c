@@ -26,3 +26,10 @@ char* lutil_progname( const char* name, int argc, char *argv[] )
 
 	return progname;
 }
+
+#ifndef HAVE_MKSTEMP
+int mkstemp( char * template )
+{
+	return -1;
+}
+#endif
