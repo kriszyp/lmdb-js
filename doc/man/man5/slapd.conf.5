@@ -349,7 +349,10 @@ name can also be used with a suffix of the form ":xx" in which case the
 value "oid.xx" will be used.
 .TP
 .B password-hash <hash>
-The <hash> to use for userPassword generation.  One of
+This option sets the hash to be used in generation of user
+passwords, stored in userPassword, during processing of
+LDAP Password Modify Extended Operations (RFC 3052).
+The <hash> must be one of
 .BR {SSHA} ,
 .BR {SHA} ,
 .BR {SMD5} ,
@@ -358,11 +361,17 @@ and
 .BR {CRYPT} .
 The default is
 .BR {SSHA} .
+
+Note that this option does not alter the normal user applications
+handling of userPassword during LDAP Add, Modify, or other LDAP operations.
 .TP
-.B password-crypt-salt-format <format>
+.B password\-crypt\-salt\-format <format>
 Specify the format of the salt passed to
 .BR crypt (3)
-when generating {CRYPT} passwords.  
+when generating {CRYPT} passwords (see
+.BR password\-hash )
+during processing of LDAP Password Modify Extended Operations (RFC 3062).
+
 This string needs to be in
 .BR sprintf (3)
 format and may include one (and only one) %s conversion.
