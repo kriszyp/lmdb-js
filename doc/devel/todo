@@ -25,7 +25,7 @@ OpenLDAP 2.0 Projects
 	SLAPD
 		Schema Enforcement <kurt@openldap.org>
 	clients
-		don't use deprecated routines
+		use _ext API, avoid deprecated routines
 		-C/-CC/-R referral chasing options
 	SLAPD/SLURD Admin Guide
 	Update manual pages
