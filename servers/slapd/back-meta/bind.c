@@ -221,25 +221,25 @@ meta_back_do_single_bind(
 		int			candidate
 )
 {
-	char *mdn = NULL;
+	struct berval mdn = { 0, NULL };
 	int rc;
 	
 	/*
 	 * Rewrite the bind dn if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"bindDn", dn->bv_val, lc->conn, &mdn ) ) {
+				"bindDn", dn->bv_val, lc->conn, &mdn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = ( char * )dn->bv_val;
+		if ( mdn.bv_val == NULL ) {
+			mdn = *dn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn ));
+				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn: \"%s\" -> \"%s\"\n%s",
-				dn->bv_val, mdn, "" );
+				dn->bv_val, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -250,7 +250,7 @@ meta_back_do_single_bind(
 		return LDAP_OPERATIONS_ERROR;
 	}
 
-	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn, cred->bv_val, method );
+	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn.bv_val, cred->bv_val, method );
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
 	} else {
@@ -261,12 +261,12 @@ meta_back_do_single_bind(
 		if ( li->cache.ttl != META_DNCACHE_DISABLED
 				&& ndn->bv_len != 0 ) {
 			( void )meta_dncache_update_entry( &li->cache,
-					ber_bvdup( ndn ), candidate );
+					ndn, candidate );
 		}
 	}
 	
-	if ( mdn != dn->bv_val ) {
-		free( mdn );
+	if ( mdn.bv_val != dn->bv_val ) {
+		free( mdn.bv_val );
 	}
 
 	return rc;

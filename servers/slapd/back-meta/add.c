@@ -89,7 +89,7 @@ meta_back_add(
 	int i, candidate = -1;
 	Attribute *a;
 	LDAPMod **attrs;
-	char *mdn = NULL, *mapped;
+	struct berval mdn = { 0, NULL }, mapped;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY, "meta_back_add: %s\n",
@@ -113,19 +113,21 @@ meta_back_add(
 	 * Rewrite the add dn, if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"addDn", e->e_dn, conn, &mdn )) {
+				"addDn", e->e_dn, conn, &mdn.bv_val )) {
 	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = e->e_dn;
+		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
+			mdn.bv_len = strlen( mdn.bv_val );
+		} else {
+			mdn = e->e_name;
 		}
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] addDn: \"%s\" -> \"%s\"\n",
-				e->e_dn, mdn ));
+				e->e_dn, mdn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
-				e->e_dn, mdn, "" );
+				e->e_dn, mdn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
  		
@@ -166,9 +168,9 @@ meta_back_add(
 		}
 #endif
 		
-		mapped = ldap_back_map( &li->targets[ candidate ]->at_map,
-				a->a_desc->ad_cname.bv_val, 0);
-		if ( mapped == NULL ) {
+		ldap_back_map( &li->targets[ candidate ]->at_map,
+				&a->a_desc->ad_cname, &mapped, 0);
+		if ( mapped.bv_val == NULL ) {
 			continue;
 		}
 
@@ -177,7 +179,7 @@ meta_back_add(
 			continue;
 		}
 		attrs[ i ]->mod_op = LDAP_MOD_BVALUES;
-		attrs[ i ]->mod_type = mapped;
+		attrs[ i ]->mod_type = mapped.bv_val;
 
 		/*
 		 * FIXME: dn-valued attrs should be rewritten
@@ -195,13 +197,13 @@ meta_back_add(
 	}
 	attrs[ i ] = NULL;
 
-	ldap_add_s( lc->conns[ candidate ]->ld, mdn, attrs );
+	ldap_add_s( lc->conns[ candidate ]->ld, mdn.bv_val, attrs );
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ] );
 	}
 	free( attrs );
-	if ( mdn != e->e_dn ) {
-		free( mdn );
+	if ( mdn.bv_val != e->e_dn ) {
+		free( mdn.bv_val );
 	}
 	return meta_back_op_result( lc, op );
 }

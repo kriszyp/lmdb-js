@@ -104,8 +104,8 @@ new_target( void )
 		free( lt );
 		return NULL;
 	}
-	mapping->src = ch_strdup( "objectClass" );
-	mapping->dst = ch_strdup( "objectClass" );
+	ber_str2bv( "objectClass", 0, 1, &mapping->src );
+	ber_str2bv( "objectClass", 0, 1, &mapping->dst );
 	mapping[ 1 ].src = mapping->src;
 	mapping[ 1 ].dst = mapping->dst;
 
@@ -567,8 +567,8 @@ meta_back_db_config(
 				fname, lineno );
 			return 1;
 		}
-		mapping->src = ch_strdup( src );
-		mapping->dst = ch_strdup( dst );
+		ber_str2bv( src, 0, 1, &mapping->src );
+		ber_str2bv( dst, 0, 1, &mapping->dst );
 		if ( *dst != 0 ) {
 			mapping[ 1 ].src = mapping->dst;
 			mapping[ 1 ].dst = mapping->src;

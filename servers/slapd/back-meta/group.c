@@ -98,17 +98,21 @@ meta_back_group(
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	LDAPMessage	*result;
 	char *gattr[ 2 ];
-	char *filter;
+	char *filter, *ptr;
 	LDAP *ld;
-	char *mop_ndn, *mgr_ndn;
+	struct berval mop_ndn = { 0, NULL }, mgr_ndn = { 0, NULL };
 
-	char *group_oc_name = NULL;
-	char *group_at_name = group_at->ad_cname.bv_val;
+	struct berval group_oc_name = { 0, NULL };
+	struct berval group_at_name = group_at->ad_cname;
 
 	if ( group_oc->soc_names && group_oc->soc_names[ 0 ] ) {
-		group_oc_name = group_oc->soc_names[ 0 ];
+		group_oc_name.bv_val = group_oc->soc_names[ 0 ];
 	} else {
-		group_oc_name = group_oc->soc_oid;
+		group_oc_name.bv_val = group_oc->soc_oid;
+	}
+
+	if ( group_oc_name.bv_val ) {
+		group_oc_name.bv_len = strlen( group_oc_name.bv_val );
 	}
 
 	if ( target != NULL && strcmp( target->e_nname.bv_val, gr_ndn->bv_val ) == 0 ) {
@@ -152,28 +156,30 @@ meta_back_group(
 
 	candidate = meta_back_select_unique_candidate( li, gr_ndn );
 	if ( candidate == -1 ) {
-		return 1;
+		goto cleanup;
 	}
 
 	/*
 	 * Rewrite the op ndn if needed
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo, "bindDn",
-				op_ndn->bv_val, conn, &mop_ndn ) ) {
+				op_ndn->bv_val, conn, &mop_ndn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mop_ndn == NULL ) {
-			mop_ndn = ( char * )op_ndn->bv_val;
+		if ( mop_ndn.bv_val != NULL && mop_ndn.bv_val[ 0 ] != '\0' ) {
+			mop_ndn.bv_len = strlen( mop_ndn.bv_val );
+		} else {
+			mop_ndn = *op_ndn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] bindDn (op ndn in group):"
 				 \"%s\" -> \"%s\"\n",
-				 op_ndn->bv_val, mop_ndn));
+				 op_ndn->bv_val, mop_ndn.bv_val));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn (op ndn in group):"
 				" \"%s\" -> \"%s\"\n%s",
-				op_ndn->bv_val, mop_ndn, "" );
+				op_ndn->bv_val, mop_ndn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -189,21 +195,23 @@ meta_back_group(
 	 */
 	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
 				"searchBase",
-				gr_ndn->bv_val, conn, &mgr_ndn ) ) {
+				gr_ndn->bv_val, conn, &mgr_ndn.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( mgr_ndn == NULL ) {
-			mgr_ndn = ( char * )gr_ndn->bv_val;
+		if ( mgr_ndn.bv_val != NULL && mgr_ndn.bv_val[ 0 ] != '\0' ) {
+			mgr_ndn.bv_len = strlen( mgr_ndn.bv_val );
+		} else {
+			mgr_ndn = *gr_ndn;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchBase (gr ndn in group):"
 				" \"%s\" -> \"%s\"\n",
-				gr_ndn->bv_val, mgr_ndn ));
+				gr_ndn->bv_val, mgr_ndn.bv_val ));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> searchBase (gr ndn in group):"
 				" \"%s\" -> \"%s\"\n%s",
-				gr_ndn->bv_val, mgr_ndn, "" );
+				gr_ndn->bv_val, mgr_ndn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -211,24 +219,24 @@ meta_back_group(
 		/* continues to next case */
 		
 	case REWRITE_REGEXEC_ERR:
-		return 1;
+		goto cleanup;
 	}
 	
-	group_oc_name = ldap_back_map( &li->targets[ candidate ]->oc_map,
-			group_oc_name, 0 );
-	if ( group_oc_name == NULL ) {
-		return 1;
+	ldap_back_map( &li->targets[ candidate ]->oc_map,
+			&group_oc_name, &group_oc_name, 0 );
+	if ( group_oc_name.bv_val == NULL ) {
+		goto cleanup;
 	}
-	group_at_name = ldap_back_map( &li->targets[ candidate ]->at_map,
-			group_at_name, 0 );
-	if ( group_at_name == NULL ) {
-		return 1;
+	ldap_back_map( &li->targets[ candidate ]->at_map,
+			&group_at_name, &group_at_name, 0 );
+	if ( group_at_name.bv_val == NULL ) {
+		goto cleanup;
 	}
 
 	filter = ch_malloc( sizeof( "(&(objectclass=)(=))" )
-			+ strlen( group_oc_name )
-			+ strlen( group_at_name )
-			+ strlen( mop_ndn ) + 1 );
+			+ group_oc_name.bv_len
+			+ group_at_name.bv_len
+			+ mop_ndn.bv_len + 1 );
 	if ( filter == NULL ) {
 		goto cleanup;
 	}
@@ -245,18 +253,18 @@ meta_back_group(
 		goto cleanup;
 	}
 
-	strcpy( filter, "(&(objectclass=" );
-	strcat( filter, group_oc_name );
-	strcat( filter, ")(" );
-	strcat( filter, group_at_name );
-	strcat( filter, "=" );
-	strcat( filter, mop_ndn );
-	strcat( filter, "))" );
+	ptr = slap_strcopy( filter, "(&(objectclass=" );
+	ptr = slap_strcopy( ptr , group_oc_name.bv_val );
+	ptr = slap_strcopy( ptr , ")(" );
+	ptr = slap_strcopy( ptr , group_at_name.bv_val );
+	ptr = slap_strcopy( ptr , "=" );
+	ptr = slap_strcopy( ptr , mop_ndn.bv_val );
+	strcpy( ptr , "))" );
 
 	gattr[ 0 ] = "objectclass";
 	gattr[ 1 ] = NULL;
 	rc = 1;
-	if ( ldap_search_ext_s( ld, mgr_ndn, LDAP_SCOPE_BASE, filter,
+	if ( ldap_search_ext_s( ld, mgr_ndn.bv_val, LDAP_SCOPE_BASE, filter,
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result ) == LDAP_SUCCESS ) {
 		if ( ldap_first_entry( ld, result ) != NULL ) {
@@ -272,11 +280,11 @@ cleanup:;
 	if ( filter != NULL ) {
 		ch_free( filter );
 	}
-	if ( mop_ndn != op_ndn->bv_val ) {
-		free( mop_ndn );
+	if ( mop_ndn.bv_val != op_ndn->bv_val ) {
+		free( mop_ndn.bv_val );
 	}
-	if ( mgr_ndn != gr_ndn->bv_val ) {
-		free( mgr_ndn );
+	if ( mgr_ndn.bv_val != gr_ndn->bv_val ) {
+		free( mgr_ndn.bv_val );
 	}
 
 	return rc;

@@ -109,8 +109,8 @@ meta_back_compare(
 	 */
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
 		char *mdn = NULL;
-		char *mapped_attr = ava->aa_desc->ad_cname.bv_val;
-		char *mapped_value = ava->aa_value.bv_val;
+		struct berval mapped_attr = ava->aa_desc->ad_cname;
+		struct berval mapped_value = ava->aa_value;
 
 		if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
 			continue;
@@ -155,10 +155,10 @@ meta_back_compare(
 		 */
 		if ( ava->aa_desc->ad_type->sat_oid 
 			== slap_schema.si_ad_objectClass->ad_type->sat_oid ) {
-			mapped_value = ldap_back_map( &li->targets[ i ]->oc_map,
-					ava->aa_value.bv_val, 0 );
+			ldap_back_map( &li->targets[ i ]->oc_map,
+					&ava->aa_value, &mapped_value, 0 );
 
-			if ( mapped_value == NULL ) {
+			if ( mapped_value.bv_val == NULL ) {
 				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
 				continue;
 			}
@@ -166,9 +166,9 @@ meta_back_compare(
 		 * else try to remap the attribute
 		 */
 		} else {
-			mapped_attr = ldap_back_map( &li->targets[ i ]->at_map,
-				ava->aa_desc->ad_cname.bv_val, 0 );
-			if ( mapped_attr == NULL ) {
+			ldap_back_map( &li->targets[ i ]->at_map,
+				&ava->aa_desc->ad_cname, &mapped_attr, 0 );
+			if ( mapped_attr.bv_val == NULL ) {
 				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
 				continue;
 			}
@@ -180,7 +180,7 @@ meta_back_compare(
 		 * of the result ought to be enforced
 		 */
 		msgid[ i ] = ldap_compare( lc->conns[ i ]->ld, mdn,
-				mapped_attr, mapped_value );
+				mapped_attr.bv_val, mapped_value.bv_val );
 		if ( msgid[ i ] == -1 ) {
 			lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
 			continue;
@@ -189,11 +189,11 @@ meta_back_compare(
 		if ( mdn != dn->bv_val ) {
 			free( mdn );
 		}
-		if ( mapped_attr != ava->aa_desc->ad_cname.bv_val ) {
-			free( mapped_attr );
+		if ( mapped_attr.bv_val != ava->aa_desc->ad_cname.bv_val ) {
+			free( mapped_attr.bv_val );
 		}
-		if ( mapped_value != ava->aa_value.bv_val ) {
-			free( mapped_value );
+		if ( mapped_value.bv_val != ava->aa_value.bv_val ) {
+			free( mapped_value.bv_val );
 		}
 
 		++candidates;
@@ -244,7 +244,7 @@ meta_back_compare(
 					 * sending to cache ...
 					 */
 					if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
-						( void )meta_dncache_update_entry( &li->cache, ber_bvdup( ndn ), i );
+						( void )meta_dncache_update_entry( &li->cache, ndn, i );
 					}
 
 					count++;

@@ -91,7 +91,8 @@ meta_back_modify(
 	LDAPMod *mods;
 	Modifications *ml;
 	int candidate = -1, i;
-	char *mdn, *mapped;
+	char *mdn;
+	struct berval mapped;
 
 	lc = meta_back_getconn( li, conn, op, META_OP_REQUIRE_SINGLE,
 			ndn, &candidate );
@@ -167,15 +168,15 @@ meta_back_modify(
 		}
 #endif
 
-		mapped = ldap_back_map( &li->targets[ candidate ]->at_map,
-				ml->sml_desc->ad_cname.bv_val, 0 );
-		if ( mapped == NULL ) {
+		ldap_back_map( &li->targets[ candidate ]->at_map,
+				&ml->sml_desc->ad_cname, &mapped, 0 );
+		if ( mapped.bv_val == NULL ) {
 			continue;
 		}
 
 		modv[ i ] = &mods[ i ];
 		mods[ i ].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
-		mods[ i ].mod_type = mapped;
+		mods[ i ].mod_type = mapped.bv_val;
 
 		/*
 		 * FIXME: dn-valued attrs should be rewritten

@@ -76,6 +76,7 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 #include "ldap_pvt.h"
+#include "../../../libraries/libldap/ldap-int.h"
 
 static void
 meta_send_entry(
@@ -106,7 +107,7 @@ meta_back_search(
 		int		slimit,
 		int		tlimit,
 		Filter		*filter,
-		const char	*filterstr,
+		struct berval	*filterstr,
 		AttributeName	*attrs,
 		int		attrsonly
 )
@@ -118,8 +119,9 @@ meta_back_search(
 	LDAPMessage	*res, *e;
 	int	count, rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
 	char *match = NULL, *err = NULL;
-	char *mbase = NULL, *mfilter = NULL, *mmatch = NULL, 
+	char *mbase = NULL, *mmatch = NULL, 
 		*mapped_filter = NULL, **mapped_attrs = NULL;
+	struct berval mfilter;
 		
 	int i, last = 0, candidates = 0, op_type;
 	struct slap_limits_set *limit = NULL;
@@ -303,22 +305,24 @@ meta_back_search(
 		 */
 		switch ( rewrite_session( li->targets[ i ]->rwinfo,
 					"searchFilter",
-					filterstr, conn, &mfilter ) ) {
+					filterstr->bv_val, conn, &mfilter.bv_val ) ) {
 		case REWRITE_REGEXEC_OK:
-			if ( mfilter == NULL || mfilter[ 0 ] == '\0') {
-				if ( mfilter != NULL ) {
-					free( mfilter );
+			if ( mfilter.bv_val != NULL && mfilter.bv_val[ 0 ] != '\0') {
+				mfilter.bv_len = strlen( mfilter.bv_val );
+			} else {
+				if ( mfilter.bv_val != NULL ) {
+					free( mfilter.bv_val );
 				}
-				mfilter = ( char * )filterstr;
+				mfilter = *filterstr;
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] searchFilter: \"%s\" -> \"%s\"\n",
-					filterstr, mfilter ));
+					filterstr->bv_val, mfilter.bv_val ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				"rw> searchFilter: \"%s\" -> \"%s\"\n%s",
-				filterstr, mfilter, "" );
+				filterstr->bv_val, mfilter.bv_val, "" );
 #endif /* !NEW_LOGGING */
 			break;
 		
@@ -339,10 +343,9 @@ meta_back_search(
 		 * Maps attributes in filter
 		 */
 		mapped_filter = ldap_back_map_filter( &li->targets[ i ]->at_map,
-				&li->targets[ i ]->oc_map,
-				( char * )mfilter, 0 );
+				&li->targets[ i ]->oc_map, &mfilter, 0 );
 		if ( mapped_filter == NULL ) {
-			mapped_filter = ( char * )mfilter;
+			mapped_filter = ( char * )mfilter.bv_val;
 		}
 	
 		/*
@@ -374,13 +377,14 @@ meta_back_search(
 			free( mapped_attrs );
 			mapped_attrs = NULL;
 		}
-		if ( mapped_filter != mfilter ) {
+		if ( mapped_filter != mfilter.bv_val ) {
 			free( mapped_filter );
 			mapped_filter = NULL;
 		}
-		if ( mfilter != filterstr ) {
-			free( mfilter );
-			mfilter = NULL;
+		if ( mfilter.bv_val != filterstr->bv_val ) {
+			free( mfilter.bv_val );
+			mfilter.bv_val = NULL;
+			mfilter.bv_len = 0;
 		}
 		if ( mbase != realbase ) {
 			free( mbase );
@@ -441,7 +445,7 @@ meta_back_search(
 				/* anything else needs be done? */
 				goto finish;
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
-				e = ldap_first_entry( lsc[ 0 ]->ld,res );
+				e = ldap_first_entry( lsc[ 0 ]->ld, res );
 				meta_send_entry(be, op, lc, i, e, attrs,
 						attrsonly);
 				count++;
@@ -578,20 +582,15 @@ meta_send_entry(
 )
 {
 	struct metainfo 	*li = ( struct metainfo * )be->be_private;
-	char 			*a, *mapped;
+	struct berval		a, mapped;
 	Entry 			ent;
-	BerElement 		*ber = NULL;
+	BerElement 		ber = *e->lm_ber;
 	Attribute 		*attr, **attrp;
-	struct berval 		*dummy = NULL;
-	struct berval 		*bv;
+	struct berval 		dummy = { 0, NULL };
+	struct berval 		*bv, bdn;
 	const char 		*text;
-	char 			*dn, *edn = NULL;
-	struct berval		tdn;
 
-	struct metasingleconn *lsc = lc->conns[ target ];
-
-	dn = ldap_get_dn( lsc->ld, e );
-	if ( dn == NULL ) {
+	if ( ber_scanf( &ber, "{o", &bdn ) == LBER_ERROR ) {
 		return;
 	}
 
@@ -599,43 +598,40 @@ meta_send_entry(
 	 * Rewrite the dn of the result, if needed
 	 */
 	switch ( rewrite_session( li->targets[ target ]->rwinfo,
-				"searchResult", dn, lc->conn, &edn ) ) {
+				"searchResult", bdn.bv_val, lc->conn, &ent.e_name.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
-		if ( edn == NULL ) {
-			edn = dn;
+		if ( ent.e_name.bv_val == NULL ) {
+			ent.e_name = bdn;
 
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] searchResult[%d]:"
 					" \"%s\" -> \"%s\"\n",
-					target, dn, edn ));
+					target, bdn.bv_val, ent.e_name.bv_val ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult[%d]: \"%s\""
- 					" -> \"%s\"\n", target, dn, edn );
+ 					" -> \"%s\"\n", target, bdn.bv_val, ent.e_name.bv_val );
 #endif /* !NEW_LOGGING */
-			free( dn );
-			dn = NULL;
+			free( bdn.bv_val );
+			bdn.bv_val = NULL;
+			ent.e_name.bv_len = strlen( ent.e_name.bv_val );
 		}
 		break;
 		
 	case REWRITE_REGEXEC_ERR:
 	case REWRITE_REGEXEC_UNWILLING:
-		free( dn );
 		return;
 	}
 
-	tdn.bv_val = edn;
-	tdn.bv_len = strlen( edn );
-
-	dnPrettyNormal( NULL, &tdn, &ent.e_name, &ent.e_nname );
+	dnNormalize2( NULL, &ent.e_name, &ent.e_nname );
 
 	/*
 	 * cache dn
 	 */
 	if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
 		( void )meta_dncache_update_entry( &li->cache,
-						   ber_bvdup( &ent.e_nname ),
+						   &ent.e_nname,
 						   target );
 	}
 
@@ -644,12 +640,10 @@ meta_send_entry(
 	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
-	for ( a = ldap_first_attribute( lsc->ld, e, &ber );
-			a != NULL;
-			a = ldap_next_attribute( lsc->ld, e, ber ) )
-	{
-		mapped = ldap_back_map( &li->targets[ target ]->at_map, a, 1 );
-		if ( mapped == NULL ) {
+	while ( ber_scanf( &ber, "{{o", &a ) != LBER_ERROR ) {
+		ldap_back_map( &li->targets[ target ]->at_map, 
+				&a, &mapped, 1 );
+		if ( mapped.bv_val == NULL ) {
 			continue;
 		}
 		attr = ( Attribute * )ch_malloc( sizeof( Attribute ) );
@@ -658,47 +652,45 @@ meta_send_entry(
 		}
 		attr->a_next = 0;
 		attr->a_desc = NULL;
-		if ( slap_str2ad( mapped, &attr->a_desc, &text )
+		if ( slap_bv2ad( &mapped, &attr->a_desc, &text )
 				!= LDAP_SUCCESS) {
-			if (slap_str2undef_ad(mapped, &attr->a_desc, &text) 
+			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text ) 
 					!= LDAP_SUCCESS) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-						"slap_str2undef_ad(%s): "
-						"%s\n", mapped, text ));
+						"slap_bv2undef_ad(%s): "
+						"%s\n", mapped.bv_val, text ));
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY,
-						"slap_str2undef_ad(%s): "
-						"%s\n%s", mapped, text, "" );
+						"slap_bv2undef_ad(%s): "
+						"%s\n%s", mapped.bv_val, text, "" );
 #endif /* !NEW_LOGGING */
-				ch_free(attr);
+				ch_free( attr );
 				continue;
 			}
 		}
-		attr->a_vals = ldap_get_values_len( lsc->ld, e, a );
-		if ( !attr->a_vals ) {
+
+		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR ) {
 			attr->a_vals = &dummy;
-		} else if ( strcasecmp( mapped, "objectClass" ) == 0 ) {
+		} else if ( strcasecmp( mapped.bv_val, "objectClass" ) == 0 ) {
 			int i, last;
-			for ( last = 0; attr->a_vals[ last ]; ++last ) ;
-			for ( i = 0; ( bv = attr->a_vals[ i ] ); i++ ) {
-				mapped = ldap_back_map(
-						&li->targets[ target]->oc_map,
-						bv->bv_val, 1 );
-				if ( mapped == NULL ) {
-					ber_bvfree( attr->a_vals[ i ] );
-					attr->a_vals[ i ] = NULL;
+			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
+			for ( i = 0; ( bv = &attr->a_vals[ i ] ); i++ ) {
+				ldap_back_map( &li->targets[ target]->oc_map,
+						bv, &mapped, 1 );
+				if ( mapped.bv_val == NULL ) {
+					free( attr->a_vals[ i ].bv_val );
+					attr->a_vals[ i ].bv_val = NULL;
 					if ( --last < 0 ) {
 						break;
 					}
 					attr->a_vals[ i ] = 
 						attr->a_vals[ last ];
-					attr->a_vals[ last ] = NULL;
+					attr->a_vals[ last ].bv_val = NULL;
 					--i;
-				} else if ( mapped != bv->bv_val ) {
+				} else if ( mapped.bv_val != bv->bv_val ) {
 					ch_free( bv->bv_val );
-					bv->bv_val = ch_strdup( mapped );
-					bv->bv_len = strlen( mapped );
+					ber_dupbv( bv, &mapped );
 				}
 			}
 		/*
@@ -715,7 +707,7 @@ meta_send_entry(
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
-			for ( i = 0; ( bv = attr->a_vals[ i ] ); i++ ) {
+			for ( i = 0; ( bv = &attr->a_vals[ i ] ); i++ ) {
 				char *newval;
 
 				switch ( rewrite_session( li->targets[ target ]->rwinfo,
@@ -769,12 +761,9 @@ meta_send_entry(
 		attr = ent.e_attrs;
 		ent.e_attrs = attr->a_next;
 		if ( attr->a_vals != &dummy ) {
-			ber_bvecfree(attr->a_vals);
+			bvarray_free( attr->a_vals );
 		}
 		free( attr );
-	}
-	if ( ber ) {
-		ber_free( ber, 0 );
 	}
 	
 	if ( ent.e_dn ) {
