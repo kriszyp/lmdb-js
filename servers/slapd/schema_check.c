@@ -52,8 +52,6 @@ entry_schema_check(
 	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
 		    e->e_dn, 0, 0 );
-		assert(0);
-
 		*text = "no objectclass attribute";
 		return oldattrs != NULL
 			? LDAP_OBJECT_CLASS_VIOLATION
@@ -66,8 +64,8 @@ entry_schema_check(
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
 		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"Objectclass \"%s\" not defined\n",
-				aoc->a_vals[i]->bv_val, 0, 0 );
+				"entry_check_schema(%s): objectclass \"%s\" not defined\n",
+				e->e_dn, aoc->a_vals[i]->bv_val, 0 );
 
 		} else {
 			char *s = oc_check_required( e, aoc->a_vals[i] );
