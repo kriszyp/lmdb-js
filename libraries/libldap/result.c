@@ -808,9 +808,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 				ldap_free_request( ld, lr );
 			}
 
+#if 0
 			if ( lc != NULL ) {
 				ldap_free_connection( ld, lc, 0, 1 );
 			}
+#endif
 		}
 	}
 

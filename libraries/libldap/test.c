@@ -59,7 +59,6 @@ get_line( char *line, int len, FILE *fp, const char *prompt )
 
 	return( line );
 }
-#endif
 
 static char **
 get_list( const char *prompt )
