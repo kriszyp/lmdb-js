@@ -6,7 +6,9 @@
  * All Rights Reserved
  */
 
-#include <stdio.h>
+#include "portable.h"
+
+#include <stdlib.h>
 #include "rcpt500.h"
 
 struct command cmds[] = {

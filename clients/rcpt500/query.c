@@ -6,18 +6,21 @@
  * All Rights Reserved
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <syslog.h>
-#include <string.h>
 #include <ctype.h>
-#include <sys/time.h>
+
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
-#include "portable.h"
-#include "ldapconfig.h"
 #include "disptmpl.h"
+
 #include "rcpt500.h"
+#include "ldapconfig.h"
 
 extern int dosyslog;
 extern int do_cldap;

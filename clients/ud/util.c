@@ -10,44 +10,24 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ac/string.h>
+#include <ctype.h>
 #include <signal.h>
 
-#ifdef DOS
-#include <malloc.h>
-#endif
-#include <memory.h>
-#if defined( NeXT )
-#endif
-#include <ctype.h>
+#include <ac/string.h>
+#include <ac/termios.h>
 #include <ac/time.h>
-#include <errno.h>
+#include <ac/errno.h>
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>
-
 #include <ldapconfig.h>
 
-#if !defined(DOS) && !defined( VMS)
-#include <sys/types.h>
-#endif
-#include "portable.h"
-#ifdef USE_TERMIOS
-#include <termios.h>
-#else /* USE_TERMIOS */
-#include <sgtty.h>
-#endif /* USE_TERMIOS */
-
 #include "ud.h"
-
-#if defined(VMS)
-#define getch getchar
-#endif
 
 #ifdef DEBUG
 extern int debug;
@@ -81,7 +61,7 @@ char *prompt;
 	register char *p;
 	register int c;
 	FILE *fi;
-	SIG_FN (*sig)();
+	RETSIGTYPE (*sig)();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)

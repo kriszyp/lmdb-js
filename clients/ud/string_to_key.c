@@ -1,3 +1,5 @@
+#include "portable.h"
+
 #if defined(KERBEROS) && !defined(openbsd)
 /*
  * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $

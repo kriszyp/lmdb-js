@@ -10,6 +10,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 char	**Argv;		/* pointer to original (main's) argv */
 int	Argc;		/* original argc */
 

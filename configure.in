@@ -755,6 +755,7 @@ AC_CHECK_FUNCS(		\
 	strtol			\
 	strtoul			\
 	sysconf			\
+	waitpid			\
 )
 
 AC_REPLACE_FUNCS(getopt strdup)

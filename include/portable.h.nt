@@ -319,6 +319,9 @@ typedef char * caddr_t;
 /* Define if you have the sysconf function.  */
 /* #undef HAVE_SYSCONF */
 
+/* Define if you have the waitpid function.  */
+#define HAVE_WAITPID 1
+
 /* Define if you have the <db.h> header file.  */
 /* #undef HAVE_DB_H */
 

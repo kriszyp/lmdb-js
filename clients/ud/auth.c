@@ -10,18 +10,21 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <pwd.h>
-#include <string.h>
+#include <time.h>
 #include <ctype.h>
+
+#include <ac/string.h>
+#include <ac/krb.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
+
 #include "ud.h"
-#ifdef KERBEROS
-#include <sys/types.h>
-#include <krb.h>
-#endif
 
 extern LDAP *ld;		/* our LDAP descriptor */
 extern int verbose;		/* verbosity indicator */
@@ -48,7 +51,7 @@ int implicit;
 	int name_provided;	/* was a name passed in? */
 	struct passwd *pw;	/* for getting user id */
 	char uidname[20];
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	char **krbnames;	/* for kerberos names */
 	int kinited, ikrb;
 	char buf[5];
@@ -130,7 +133,7 @@ int implicit;
 	rdns = ldap_explode_dn(Entry.DN, TRUE);
 	printf("  Authenticating to the directory as \"%s\"...\n", *rdns );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	/*
 	 * First, if the user has a choice of auth methods, ask which
 	 * one they want to use.  if they want kerberos, ask which
@@ -155,7 +158,7 @@ int implicit;
 
 		if ( hassimple && !kinited ) {
 			printf("  Which password would you like to use?\n");
-			printf("    1 -> X.500 password\n");
+			printf("    1 -> LDAP password\n");
 #ifdef UOFM
 			printf("    2 -> UMICH password (aka Uniqname or Kerberos password)\n");
 #else
@@ -221,7 +224,7 @@ int implicit;
 	} else {
 #endif
 		authmethod = LDAP_AUTH_SIMPLE;
-		sprintf(prompt, "  Enter your X.500 password: ");
+		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
 			passwd = mygetpass(prompt);
 		} while (passwd != NULL && *passwd == '\0');
@@ -229,7 +232,7 @@ int implicit;
 			(void) ldap_value_free(rdns);
 			return(0);
 		}
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	}
 	(void) ldap_value_free(krbnames);
 #endif
@@ -239,19 +242,19 @@ int implicit;
 		if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			fprintf(stderr, "  Entry has no password\n");
 		else if (ld->ld_errno == LDAP_INVALID_CREDENTIALS)
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");
 			} else {
 #endif
 				fprintf(stderr, "  The password you provided is incorrect.\n");
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			}
 #endif
 		else
 			ldap_perror(ld, "ldap_bind_s" );
 		(void) ldap_bind_s(ld, default_bind_object,
-			 (char *) UD_PASSWD, LDAP_AUTH_SIMPLE);
+			 (char *) UD_BIND_CRED, LDAP_AUTH_SIMPLE);
 		if (default_bind_object == NULL)
 			set_bound_dn(NULL);
 		else
@@ -274,12 +277,12 @@ int implicit;
 	return(0);
 }
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"
 
-str2upper( s )
+static void str2upper( s )
     char	*s;
 {
 	char	*p;
@@ -307,12 +310,12 @@ static valid_tgt( names )
 			return( 0 );
 		}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 		/*
 		 * realm must be uppercase for krb_ routines
 		 */
 		str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 		/*
 		* check ticket file for a valid ticket granting ticket
@@ -351,7 +354,7 @@ krbgetpass( user, inst, realm, pw, key )
 		return(-1);
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	strcpy( lcrealm, realm );
 	for ( p = lcrealm; *p != '\0'; ++p ) {
 		if ( isupper( *p )) {
@@ -360,9 +363,9 @@ krbgetpass( user, inst, realm, pw, key )
 	}
 
 	ka_StringToKey( passwd, lcrealm, key );
-#else /* AFSKERBEROS */
+#else /* HAVE_AFS_KERBEROS */
 	string_to_key( passwd, key );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	return( 0 );
 }
@@ -382,12 +385,12 @@ static kinit( kname )
 		return( -1 );
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	/*
 	 * realm must be uppercase for krb_ routines
 	 */
 	str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,
 	    DEFAULT_TKT_LIFE, krbgetpass, NULL, NULL );
@@ -407,7 +410,7 @@ static kinit( kname )
 	return( 0 );
 }
 
-destroy_tickets()
+void destroy_tickets(void)
 {
 	if ( *tktpath != '\0' ) {
 		unlink( tktpath );
@@ -415,13 +418,12 @@ destroy_tickets()
 }
 #endif
 
-static void set_bound_dn(s)
-char *s;
+static void set_bound_dn(char *s)
 {
 	extern void Free();
 	extern char *bound_dn;
 
 	if (bound_dn != NULL)
 		Free(bound_dn);
-	bound_dn = strdup(s);
+	bound_dn = (s == NULL) ? NULL : strdup(s);
 }

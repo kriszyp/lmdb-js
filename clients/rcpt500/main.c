@@ -6,24 +6,24 @@
  * All Rights Reserved
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
-#include <string.h>
 #include <ctype.h>
 
-#include "portable.h"
+#include <ac/syslog.h>
+#include <ac/string.h>
+
+
 #include "ldapconfig.h"
 #include "rcpt500.h"
 
-#ifdef ultrix
-extern char *strdup();
-#endif
-
 int dosyslog = 0;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 int do_cldap = 0;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
+
 int derefaliases = 1;
 int sizelimit = RCPT500_SIZELIMIT;
 int rdncount = RCPT500_RDNCOUNT;
@@ -78,11 +78,12 @@ main( argc, argv )
 	    dosyslog = 1;
 	    break;
 	case 'U':
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	    do_cldap = 1;
-#else /* CLDAP */
-	    fprintf( stderr, "Compile with -DCLDAP for -U support\n" );
-#endif /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
+	    fprintf( stderr,
+			"Compile with -DLDAP_CONNECTIONLESS for -U support\n" );
+#endif /* LDAP_CONNECTIONLESS */
 	    break;	
 	case 'b':
 	    searchbase = optarg;

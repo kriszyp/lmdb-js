@@ -6,12 +6,17 @@
  * All Rights Reserved
  */
 
-#include <stdio.h>
-#include <syslog.h>
-#include <string.h>
-#include <fcntl.h>
-
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/syslog.h>
+#include <ac/string.h>
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
 #include "ldapconfig.h"
 #include "rcpt500.h"
 

@@ -12,6 +12,10 @@
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <arpa/nameser.h>

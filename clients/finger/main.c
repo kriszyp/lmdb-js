@@ -10,31 +10,27 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
+#include <stdio.h>
+#include <ctype.h>
+#include <signal.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#include <sys/resource.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "disptmpl.h"
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#ifdef aix
-#include <sys/select.h>
-#endif /* aix */
-#include <signal.h>
-#include "portable.h"
+
 #include "ldapconfig.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
 
 int	dosyslog = 1;
 char	*ldaphost = LDAPHOST;
@@ -166,7 +162,9 @@ static do_query()
 	ld->ld_sizelimit = FINGER_SIZELIMIT;
 	ld->ld_deref = deref;
 
-	if ( ldap_simple_bind_s( ld, FINGER_BINDDN, NULL ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, FINGER_BINDDN, FINGER_BIND_CRED )
+		!= LDAP_SUCCESS )
+	{
 		fprintf( stderr, FINGER_UNAVAILABLE );
 		ldap_perror( ld, "ldap_simple_bind_s" );
 		exit( 1 );
@@ -177,6 +175,12 @@ static do_query()
 #else /* USE_SYSCONF */
 	tblsize = getdtablesize();
 #endif /* USE_SYSCONF */
+
+#ifdef FD_SETSIZE
+	if (tblsize > FD_SETSIZE) {
+		tblsize = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
 
 	timeout.tv_sec = FINGER_TIMEOUT;
 	timeout.tv_usec = 0;

@@ -16,4 +16,10 @@
 # define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
 #endif
 
+#ifdef WCONTINUED
+# define WAIT_FLAGS ( WNOHANG | WUNTRACED | WCONTINUED )
+#else
+# define WAIT_FLAGS ( WNOHANG | WUNTRACED )
+#endif
+
 #endif /* _AC_WAIT_H */

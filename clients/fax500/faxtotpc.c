@@ -19,15 +19,13 @@
  * faxtotpc() returns a pointer to a string allocated with malloc(3).
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
+
 #include <sys/types.h>
-
-#ifdef ultrix
-extern char *strdup();
-#endif
-
+#include <ac/string.h>
 
 #define	TPCDOMAIN	"tpc.int"
 

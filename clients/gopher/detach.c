@@ -10,28 +10,35 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
+#include <signal.h>
+
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
-#include <signal.h>
-#include "portable.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
+#include <ac/unistd.h>
 
 detach( debug )
 int	debug;
 {
 	int	i, sd, nbits;
 
-#ifdef USE_SYSCONF
+#if defined( HAVE_SYSCONF )
 	nbits = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif defined( HAVE_GETDTABLESIZE )
 	nbits = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	nbits = 32;
+#endif
+
+#ifdef FD_SETSIZE
+	if (nbits > FD_SETSIZE) {
+		nbits = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
 
 	if ( debug == 0 || !(isatty( 1 )) ) {
 		for ( i = 0; i < 5; i++ ) {

@@ -11,10 +11,15 @@
  *
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include <ldapconfig.h>
 #include "ud.h"
 
@@ -175,7 +180,7 @@ char *name;
 #endif
 
 	/*
-	 *  Now add this to the X.500 Directory.
+	 *  Now add this to the LDAP Directory.
 	 */
 	if (ldap_add_s(ld, dn, attrs) != 0) {
 		ldap_perror(ld, "  ldap_add_s");
@@ -225,7 +230,7 @@ char *name;
 		return;
 
 	/*
-	 *  Now remove this from the X.500 Directory.
+	 *  Now remove this from the LDAP Directory.
 	 */
 	if (ldap_delete_s(ld, dn) != 0) {
 		if (ld->ld_errno == LDAP_INSUFFICIENT_ACCESS)
@@ -452,7 +457,7 @@ char *group;
 		}
 
 		/*
-		 *  Add the X.500 style names.
+		 *  Add the LDAP style names.
 		 */
 		if (count_x500 > 0) {
 			mods[0] = &mod;
@@ -562,7 +567,7 @@ char *group;
 	vp = Entry.attrs[attr_to_index("member")].values;
 	if (vp == NULL) {
 		if (verbose)
-			printf("  \"%s\" has no X.500 members.  There is nothing to purge.\n", group);
+			printf("  \"%s\" has no LDAP members.  There is nothing to purge.\n", group);
 		return;
 	}
 	for (; *vp != NULL; vp++) {
@@ -805,7 +810,7 @@ int offset;
 	}
 	if (verbose) {
 		printf("\n");
-		format("Values may be specified as a name (which is then looked up in the X.500 Directory) or as a domain-style (i.e., user@domain) e-mail address.  Simply hit the RETURN key at the prompt when finished.\n", 75, 2);
+		format("Values may be specified as a name (which is then looked up in the LDAP Directory) or as a domain-style (i.e., user@domain) e-mail address.  Simply hit the RETURN key at the prompt when finished.\n", 75, 2);
 		printf("\n");
 	}
 

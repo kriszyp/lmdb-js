@@ -501,6 +501,10 @@ typedef struct ldap_url_desc {
 #define LDAP_URL_ERR_BADSCOPE	3	/* URL scope string is invalid */
 #define LDAP_URL_ERR_MEM	4	/* can't allocate memory space */
 
+/* this typedef is never used, only exists to rid of declaration
+ in function param list warning */
+typedef struct timeval LDAPtv;
+
 /*
  * in abandon.c:
  */
