@@ -11,6 +11,7 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
+#include "ldap_defaults.h"
 #include "slap.h"
 
 /* we need LBER internals */
@@ -501,16 +502,21 @@ send_search_entry(
 	char            *edn;
 	int		allattrs;
 
-	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry (%s)\n", e->e_dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: \"%s\"\n", e->e_dn, 0, 0 );
 
 #if defined( SLAPD_SCHEMA_DN )
 	{
 		/* this could be backend specific */
-		struct	berval	val;
+		struct berval val;
+		struct berval *vals[2];
+
+		vals[0] = &val;
+		vals[1] = NULL;
+
 		val.bv_val = SLAPD_SCHEMA_DN;
 		val.bv_len = strlen( val.bv_val );
+
 		attr_merge( e, "subschemaSubentry", vals );
-		ldap_memfree( val.bv_val );
 	}
 #endif
 
