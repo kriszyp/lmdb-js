@@ -78,7 +78,9 @@ and the "OpenLDAP's Administrator's Guide" for details.
 Specify a set of features (separated by white space) to
 allow (default none).
 .B bind_v2
-allows acceptance of LDAPv2 bind requests.
+allows acceptance of LDAPv2 bind requests.  Note that
+.BR slapd (8)
+does not truely implement LDAPv2 (RFC 1777), now Historic (RFC 3494).
 .B bind_anon_cred
 allows anonymous bind when credentials are not empty (e.g.
 when DN is empty).
