@@ -16,6 +16,12 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+echo "### This test needs the ldap backend."
+echo "### If available, and explicitly requested, it can use SASL bind;"
+echo "### note that SASL must be properly set up, and the requested"
+echo "### mechanism must be available.  Define SLAPD_USE_SASL={yes|<mech>},"
+echo "### wth \"yes\" defaulting to DIGEST-MD5 to enable SASL authc[/authz]."
+
 if test $BACKLDAP = "ldapno" ; then 
 	echo "LDAP backend not available, test skipped"
 	exit 0
@@ -28,13 +34,9 @@ if test $WITH_SASL = "yes" ; then
 		else
 			MECH="$USE_SASL"
 		fi
-		echo "Using SASL authc/authz with mech=$MECH; unset SLAPD_USE_SASL to disable"
+		echo "Using SASL authc[/authz] with mech=$MECH; unset SLAPD_USE_SASL to disable"
 	else
 		echo "Using proxyAuthz with simple authc..."
-		echo "        set SLAPD_USE_SASL={yes|<mech>} to enable SASL authc/authz"
-		echo "        if SLAPD_USE_SASL=\"yes\", <mech> defaults to DIGEST-MD5"
-		echo "        FIXME: should be mandatory, right?"
-		echo "        FIXME: authz with CRAM-MD5 does not work..."
 	fi
 else
 	echo "SASL not available; using proxyAuthz with simple authc..."
