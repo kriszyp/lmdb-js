@@ -258,7 +258,7 @@ fail:;
 	
 	for (	count=0, rc=0;
 			rc != -1;
-			rc = ldap_result(lc->ld, LDAP_RES_ANY, 0, &tv, &res))
+			rc = ldap_result(lc->ld, msgid, 0, &tv, &res))
 	{
 		/* check for abandon */
 		if (op->o_abandon) {
