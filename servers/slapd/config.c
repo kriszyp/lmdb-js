@@ -13,6 +13,7 @@
 #include <ac/ctype.h>
 #include <ac/socket.h>
 
+#include "lutil.h"
 #include "ldap_pvt.h"
 #include "slap.h"
 
@@ -801,6 +802,14 @@ read_config( const char *fname )
 			vals[0]->bv_len = strlen( vals[0]->bv_val );
 			value_add( &default_referral, vals );
 
+		} else if ( strcasecmp( cargv[0], "debug" ) == 0 ) {
+			if ( cargc < 3 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: Error in debug directive, \"debug subsys level\"\n",
+					fname, lineno, 0 );
+				return( 1 );
+			}
+			lutil_set_debug_level( cargv[1], atoi( cargv[2] ) );
 		/* specify an Object Identifier macro */
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
 			parse_oidm( fname, lineno, cargc, cargv );
