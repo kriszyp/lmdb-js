@@ -505,6 +505,8 @@ long connection_init(
 #endif
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_udp,
 		LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
+	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
+		LBER_SBIOD_LEVEL_PROVIDER, NULL );
 	} else
 #endif
 	{
@@ -515,8 +517,6 @@ long connection_init(
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_tcp,
 		LBER_SBIOD_LEVEL_PROVIDER, (void *)&s );
 	}
-	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_readahead,
-		LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
