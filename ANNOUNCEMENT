@@ -5,23 +5,20 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
     Access Protocol (v3) servers, clients, utilities, and
     development tools.
 
-    This release contains the following major enhancements:
+    This alpha release contains the following major enhancements:
 
         * Slapd(8) enhancements
-            - LDAP "sync" Engine with replication support
-            - Updated Transactional backend (back-bdb)
-            - Hierarchial backend (back-hdb)
-            - Enhanced native API with Overlay support
-                - Proxy Cache Overlay
-                - Dynamic Group Overlay
-            - NS SLAPI support
-        * Updated LDAP C API
+			- Updated slapd "overlay" interface, and numberous
+			  example (and mostly experimental) overlays.
+            - Updated LDAP "sync" Engine with replication support,
+			  provider now an "overlay"
         * LDAPv3 extensions, including:
-            - LDAP Content Synchronization ('Sync') Operation
-            - LDAP Cancel Operation
-            - LDAP Paged Results Control
-            - LDAP Pre/Post Read Controls
-            - LDAP Assertion Control
+			- LDAP Component Matching (requires OpenLDAP snacc)
+			- LDAP Modify Increment
+
+
+	Additional functionality is expected to be added prior to
+	general release.
 
     This release includes the following major components:
 
@@ -36,10 +33,8 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
 
         * LDAPC++ - a LDAP C++ SDK
         * LDAP SASL - An "auxprop" plugin for Cyrus SASL
+		* Various slapd modules and slapi plugins
 
-    This release contains a number of major code changes.  It
-    might be a bit rough around the edges.  Use with appropriate
-    caution.
 
 
 ACKNOWLEDGEMENTS

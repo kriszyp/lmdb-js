@@ -18,11 +18,11 @@ Current contributions:
 	slapd-modules
 		Native modules
 
-	slapi-plugins
-		SLAPI plugins
-
 	slapd-tools
 		Tools to use with slapd
+
+	slapi-plugins
+		SLAPI plugins
 
 
 OpenLDAP Contributing Guidelines are available at:
