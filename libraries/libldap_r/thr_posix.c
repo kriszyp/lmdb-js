@@ -19,6 +19,17 @@
 
 #if defined( HAVE_PTHREADS )
 
+#if HAVE_PTHREADS_D4
+#  define LDAP_PVT_THREAD_ATTR_DEFAULT		pthread_attr_default
+#  define LDAP_PVT_THREAD_CONDATTR_DEFAULT	pthread_condattr_default
+#  define LDAP_PVT_THREAD_MUTEXATTR_DEFAULT	pthread_mutexattr_default
+#else
+#  define LDAP_PVT_THREAD_ATTR_DEFAULT		NULL
+#  define LDAP_PVT_THREAD_CONDATTR_DEFAULT	NULL
+#  define LDAP_PVT_THREAD_MUTEXATTR_DEFAULT	NULL
+#endif
+
+
 int
 ldap_pvt_thread_initialize( void )
 {
@@ -62,7 +73,8 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void * ),
 	void *arg)
 {
-	int rtn = pthread_create( thread, NULL, start_routine, arg );
+	int rtn = pthread_create( thread, LDAP_PVT_THREAD_ATTR_DEFAULT,
+				  start_routine, arg );
 
 	if( detach ) {
 #ifdef HAVE_PTHREADS_FINAL
@@ -110,7 +122,8 @@ ldap_pvt_thread_yield( void )
 #ifdef HAVE_SCHED_YIELD
 	return sched_yield();
 #elif HAVE_PTHREAD_YIELD
-	return pthread_yield();
+	pthread_yield();
+	return 0;
 #elif HAVE_THR_YIELD
 	return thr_yield();
 #else
@@ -121,7 +134,7 @@ ldap_pvt_thread_yield( void )
 int 
 ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
-	return pthread_cond_init( cond, NULL );
+	return pthread_cond_init( cond, LDAP_PVT_THREAD_CONDATTR_DEFAULT );
 }
 
 int 
@@ -152,7 +165,7 @@ ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
 int 
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
-	return pthread_mutex_init( mutex, NULL );
+	return pthread_mutex_init( mutex, LDAP_PVT_THREAD_MUTEXATTR_DEFAULT );
 }
 
 int 
