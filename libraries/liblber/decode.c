@@ -245,10 +245,6 @@ ber_get_stringb(
 	ber_len_t	datalen;
 	ber_tag_t	tag;
 
-#ifdef STR_TRANSLATION
-	char		*transbuf;
-#endif /* STR_TRANSLATION */
-
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
@@ -261,25 +257,6 @@ ber_get_stringb(
 		return( LBER_DEFAULT );
 
 	buf[datalen] = '\0';
-
-#ifdef STR_TRANSLATION
-	if ( datalen > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	    && ber->ber_decode_translate_proc ) {
-		transbuf = buf;
-		++datalen;
-		if ( (*(ber->ber_decode_translate_proc))( &transbuf, &datalen,
-		    0 ) != 0 ) {
-			return( LBER_DEFAULT );
-		}
-		if ( datalen > *len ) {
-			LBER_FREE( transbuf );
-			return( LBER_DEFAULT );
-		}
-		SAFEMEMCPY( buf, transbuf, datalen );
-		LBER_FREE( transbuf );
-		--datalen;
-	}
-#endif /* STR_TRANSLATION */
 
 	*len = datalen;
 	return( tag );
@@ -310,19 +287,6 @@ ber_get_stringa( BerElement *ber, char **buf )
 		return( LBER_DEFAULT );
 	}
 	(*buf)[datalen] = '\0';
-
-#ifdef STR_TRANSLATION
-	if ( datalen > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	    && ber->ber_decode_translate_proc ) {
-		++datalen;
-		if ( (*(ber->ber_decode_translate_proc))( buf, &datalen, 1 )
-		    != 0 ) {
-			LBER_FREE( *buf );
-			*buf = NULL;
-			return( LBER_DEFAULT );
-		}
-	}
-#endif /* STR_TRANSLATION */
 
 	return( tag );
 }
@@ -359,20 +323,6 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 	}
 	((*bv)->bv_val)[len] = '\0';
 	(*bv)->bv_len = len;
-
-#ifdef STR_TRANSLATION
-	if ( len > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	    && ber->ber_decode_translate_proc ) {
-		++len;
-		if ( (*(ber->ber_decode_translate_proc))( &((*bv)->bv_val),
-		    &len, 1 ) != 0 ) {
-			ber_bvfree( *bv );
-			*bv = NULL;
-			return( LBER_DEFAULT );
-		}
-		(*bv)->bv_len = len - 1;
-	}
-#endif /* STR_TRANSLATION */
 
 	return( tag );
 }
@@ -778,17 +728,3 @@ ber_scanf ( BerElement *ber,
 
 	return( rc );
 }
-
-
-#ifdef STR_TRANSLATION
-void
-ber_set_string_translators( BerElement *ber, BERTranslateProc encode_proc,
-	BERTranslateProc decode_proc )
-{
-	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
-
-    ber->ber_encode_translate_proc = encode_proc;
-    ber->ber_decode_translate_proc = decode_proc;
-}
-#endif /* STR_TRANSLATION */

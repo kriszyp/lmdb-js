@@ -279,8 +279,6 @@ struct ldap {
    	void		**ld_cldapaddrs;/* addresses to send request to */
 
 	/* do not mess with the rest though */
-	BERTranslateProc ld_lber_encode_translate_proc;
-	BERTranslateProc ld_lber_decode_translate_proc;
 
 	LDAPConn	*ld_defconn;	/* default connection */
 	LDAPConn	*ld_conns;	/* list of server connections */
@@ -496,21 +494,6 @@ LIBLDAP_F (char *) ldap_url_list2urls LDAP_P((
 LIBLDAP_F (void) ldap_free_urllist LDAP_P((
 	LDAPURLDesc *ludlist ));
 
-
-
-#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
-/*
- * in charset.c
- *
- * added-in this stuff so that libldap.a would build, i.e. refs to 
- * these routines from open.c would resolve. 
- * hodges@stanford.edu 5-Feb-96
- */
-#if LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET
-LIBLDAP_F (int) ldap_t61_to_8859( char **bufp, ber_len_t *buflenp, int free_input );
-LIBLDAP_F (int) ldap_8859_to_t61( char **bufp, ber_len_t *buflenp, int free_input );
-#endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
-#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
 LDAP_END_DECL
 

@@ -278,9 +278,6 @@ ber_put_ostring(
 {
 	ber_len_t	taglen, lenlen;
 	int rc;
-#ifdef STR_TRANSLATION
-	int	free_str;
-#endif /* STR_TRANSLATION */
 
 	assert( ber != NULL );
 	assert( str != NULL );
@@ -293,18 +290,6 @@ ber_put_ostring(
 	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 )
 		return( -1 );
 
-#ifdef STR_TRANSLATION
-	if ( len > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0 &&
-	    ber->ber_encode_translate_proc ) {
-		if ( (*(ber->ber_encode_translate_proc))( &str, &len, 0 ) != 0 ) {
-			return( -1 );
-		}
-		free_str = 1;
-	} else {
-		free_str = 0;
-	}
-#endif /* STR_TRANSLATION */
-
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ||
 		(ber_len_t) ber_write( ber, str, len, 0 ) != len ) {
 		rc = -1;
@@ -312,12 +297,6 @@ ber_put_ostring(
 		/* return length of tag + length + contents */
 		rc = taglen + lenlen + len;
 	}
-
-#ifdef STR_TRANSLATION
-	if ( free_str ) {
-		LBER_FREE( str );
-	}
-#endif /* STR_TRANSLATION */
 
 	return( rc );
 }

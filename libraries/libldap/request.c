@@ -61,10 +61,6 @@ ldap_alloc_ber_with_options( LDAP *ld )
 
     if (( ber = ber_alloc_t( ld->ld_lberoptions )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
-#ifdef STR_TRANSLATION
-	} else {
-		ldap_set_ber_options( ld, ber );
-#endif /* STR_TRANSLATION */
 	}
 
 	return( ber );
@@ -75,13 +71,6 @@ void
 ldap_set_ber_options( LDAP *ld, BerElement *ber )
 {
 	ber->ber_options = ld->ld_lberoptions;
-#ifdef STR_TRANSLATION
-	if (( ld->ld_lberoptions & LBER_TRANSLATE_STRINGS ) != 0 ) {
-		ber_set_string_translators( ber,
-		    ld->ld_lber_encode_translate_proc,
-		    ld->ld_lber_decode_translate_proc );
-	}
-#endif /* STR_TRANSLATION */
 }
 
 

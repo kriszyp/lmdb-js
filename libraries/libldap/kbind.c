@@ -63,9 +63,6 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 	char		*cred;
 	int		rc;
 	ber_len_t credlen;
-#ifdef STR_TRANSLATION
-	int		str_translation_on;
-#endif /* STR_TRANSLATION */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1\n", 0, 0, 0 );
 
@@ -83,22 +80,9 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 		return( -1 );
 	}
 
-#ifdef STR_TRANSLATION
-	if (( str_translation_on = (( ber->ber_options &
-	    LBER_TRANSLATE_STRINGS ) != 0 ))) {	/* turn translation off */
-		ber->ber_options &= ~LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
 	/* fill it in */
 	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV41, cred, credlen );
-
-#ifdef STR_TRANSLATION
-	if ( str_translation_on ) {	/* restore translation */
-		ber->ber_options |= LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
 
 	if ( rc == -1 ) {
 		LDAP_FREE( cred );
@@ -157,9 +141,6 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	char		*cred;
 	int		rc;
 	ber_len_t credlen;
-#ifdef STR_TRANSLATION
-	int		str_translation_on;
-#endif /* STR_TRANSLATION */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2\n", 0, 0, 0 );
 
@@ -177,23 +158,10 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 		return( -1 );
 	}
 
-#ifdef STR_TRANSLATION
-	if (( str_translation_on = (( ber->ber_options &
-	    LBER_TRANSLATE_STRINGS ) != 0 ))) {	/* turn translation off */
-		ber->ber_options &= ~LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
 	/* fill it in */
 	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV42, cred, credlen );
 
-
-#ifdef STR_TRANSLATION
-	if ( str_translation_on ) {	/* restore translation */
-		ber->ber_options |= LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
 
 	LDAP_FREE( cred );
 

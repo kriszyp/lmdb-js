@@ -57,8 +57,6 @@ struct berelement {
 
 	struct seqorset	*ber_sos;
 	char		*ber_rwptr;
-	BERTranslateProc ber_encode_translate_proc;
-	BERTranslateProc ber_decode_translate_proc;
 };
 #define BER_VALID(ber)	((ber)->ber_valid==LBER_VALID_BERELEMENT)
 

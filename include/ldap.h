@@ -44,7 +44,7 @@ LDAP_BEGIN_DECL
 #define LDAP_API_VERSION	2004
 #define LDAP_VENDOR_NAME	"OpenLDAP"
 /* We'll eventually release as 200 */
-#define LDAP_VENDOR_VERSION	194
+#define LDAP_VENDOR_VERSION	19905
 
 /* OpenLDAP API Features */
 #define LDAP_API_FEATURE_X_OPENLDAP LDAP_VENDOR_VERSION
@@ -1573,49 +1573,6 @@ ldap_url_search_st LDAP_P((
 	int attrsonly,
 	struct timeval *timeout,
 	LDAPMessage **res ));
-
-
-/*
- * in charset.c
- *	DEPRECATED
- */
-LIBLDAP_F( void )
-ldap_set_string_translators LDAP_P((
-	LDAP *ld,
-	BERTranslateProc encode_proc,
-	BERTranslateProc decode_proc ));
-
-LIBLDAP_F( int )
-ldap_translate_from_t61 LDAP_P((
-	LDAP *ld,
-	char **bufp,
-	ber_len_t *lenp,
-	int free_input ));
-
-LIBLDAP_F( int )
-ldap_translate_to_t61 LDAP_P((
-	LDAP *ld,
-	char **bufp,
-	ber_len_t *lenp,
-	int free_input ));
-
-LIBLDAP_F( void )
-ldap_enable_translation LDAP_P((
-	LDAP *ld,
-	LDAPMessage *entry,
-	int enable ));
-
-LIBLDAP_F( int )
-ldap_t61_to_8859 LDAP_P((
-	char **bufp,
-	ber_len_t *buflenp,
-	int free_input ));
-
-LIBLDAP_F( int )
-ldap_8859_to_t61 LDAP_P((
-	char **bufp,
-	ber_len_t *buflenp,
-	int free_input ));
 
 LDAP_END_DECL
 

@@ -763,26 +763,6 @@ main( int argc, char **argv )
 
 			LDAP_BOOL_ZERO(&ld->ld_options);
 
-#ifdef STR_TRANSLATION
-			getline( line, sizeof(line), stdin,
-				"Automatic translation of T.61 strings (0=no, 1=yes)?" );
-			if ( atoi( line ) == 0 ) {
-				ld->ld_lberoptions &= ~LBER_TRANSLATE_STRINGS;
-			} else {
-				ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;
-#ifdef LDAP_CHARSET_8859
-				getline( line, sizeof(line), stdin,
-					"Translate to/from ISO-8859 (0=no, 1=yes?" );
-				if ( atoi( line ) != 0 ) {
-					ldap_set_string_translators( ld,
-					    ldap_8859_to_t61,
-					    ldap_t61_to_8859 );
-				}
-#endif /* LDAP_CHARSET_8859 */
-			}
-#endif /* STR_TRANSLATION */
-
-
 			getline( line, sizeof(line), stdin,
 				"Recognize and chase referrals (0=no, 1=yes)?" );
 			if ( atoi( line ) != 0 ) {

@@ -80,15 +80,9 @@ LDAP_BEGIN_DECL
 #define LBER_SEQUENCE		((ber_tag_t) 0x30UL)	/* constructed */
 #define LBER_SET			((ber_tag_t) 0x31UL)	/* constructed */
 
-typedef int (*BERTranslateProc) LDAP_P((
-	char **bufp,
-	ber_len_t *buflenp,
-	int free_input ));
-
 /* LBER BerElement options */
 #define LBER_USE_DER		0x01
 #define LBER_USE_INDEFINITE_LEN	0x02
-#define LBER_TRANSLATE_STRINGS	0x04	/* deprecated */
 
 /* get/set options for BerElement */
 #define LBER_OPT_BER_OPTIONS			0x01
@@ -305,12 +299,6 @@ ber_scanf LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *fmt,
 	... ));
-
-LIBLBER_F( void )
-ber_set_string_translators LDAP_P((
-	BerElement *ber,
-	BERTranslateProc encode_proc,
-	BERTranslateProc decode_proc ));
 
 /*
  * in encode.c

@@ -155,13 +155,6 @@ ldap_create( LDAP **ldp )
 
 	ld->ld_lberoptions = LBER_USE_DER;
 
-#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
-	ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;
-#if LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET
-	ldap_set_string_translators( ld, ldap_8859_to_t61, ldap_t61_to_8859 );
-#endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
-#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
-
 	ld->ld_sb = ber_sockbuf_alloc( );
 	if ( ld->ld_sb == NULL ) {
 		ldap_free_urllist( ld->ld_options.ldo_defludp );
