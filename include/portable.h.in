@@ -109,35 +109,8 @@
 #undef _THREAD_SAFE
 #endif
 
-/* define this if toupper() requires tolower() check */
-#undef C_UPPER_LOWER
-
-/* define this to the number of arguments ctime_r() expects */
-#undef CTIME_R_NARGS
-
-/* define this to the number of arguments gethostbyaddr_r expects */
-#undef GETHOSTBYADDR_R_NARGS
-
-/* define this to the number of arguments gethostbyname_r expects */
-#undef GETHOSTBYNAME_R_NARGS
-
-/* define this if sys_errlist is not defined in stdio.h or errno.h */
-#undef DECL_SYS_ERRLIST
-
-/* define if you have berkeley db */
-#undef HAVE_BERKELEY_DB
-
-/* define if you have berkeley db2 */
-#undef HAVE_BERKELEY_DB2
-
 /* define if you have crypt */
 #undef HAVE_CRYPT
-
-/* define if you have GDBM */
-#undef HAVE_GDBM
-
-/* define if you have NDBM */
-#undef HAVE_NDBM
 
 /* define if you have res_search() */
 #ifdef __notdef__
@@ -588,10 +561,10 @@
 /* define if you have Kerberos */
 #undef HAVE_KERBEROS
 
-/* define if you have SSLeay  */
+/* define if you have SSLeay or OpenSSL */
 #undef HAVE_SSLEAY
 
-/* define if you have TLS  */
+/* define if you have TLS */
 #undef HAVE_TLS
 
 /* define if pthreads API compatible with final spec */
@@ -624,6 +597,18 @@
 /* define if you have (or want) no threads */
 #undef NO_THREADS
 
+/* define if Berkeley DBv2 is available */
+#undef HAVE_BERKELEY_DB2
+
+/* define if Berkeley DB is available */
+#undef HAVE_BERKELEY_DB
+
+/* define if GNU DBM is available */
+#undef HAVE_GDBM
+
+/* define if NDBM is available */
+#undef HAVE_NDBM
+
 /* define if you have -lwrap */
 #undef HAVE_TCPD
 
@@ -645,8 +630,26 @@
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
 
+/* define if toupper() requires islower() */
+#undef C_UPPER_LOWER
+
 /* define if cross compiling */
 #undef CROSS_COMPILING
+
+/* set to the number of arguments ctime_r() expects */
+#undef CTIME_R_NARGS
+
+/* define if ctime_r() returns int */
+#undef CTIME_R_RETURNS_INT
+
+/* set to the number of arguments gethostbyname_r() expects */
+#undef GETHOSTBYNAME_R_NARGS
+
+/* set to the number of arguments gethostbyaddr_r() expects */
+#undef GETHOSTBYADDR_R_NARGS
+
+/* define if sys_errlist is declared in stdio.h or errno.h */
+#undef DECL_SYS_ERRLIST
 
 /* begin of postamble */
 
