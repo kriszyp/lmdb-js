@@ -147,6 +147,14 @@ lutil_progname LDAP_P((
 	int argc,
 	char *argv[] ));
 
+#ifdef _WIN32
+LDAP_LUTIL_F( void )
+lutil_slashpath LDAP_P(( char* path ));
+#define	LUTIL_SLASHPATH(p)	lutil_slashpath(p)
+#else
+#define	LUTIL_SLASHPATH(p)
+#endif
+
 LDAP_LUTIL_F( char* )
 lutil_strcopy LDAP_P(( char *dst, const char *src ));
 
