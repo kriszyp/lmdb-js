@@ -1,4 +1,8 @@
 /* ldbm.c - ldap dbm compatibility routines */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 /* Patched for Berkeley DB version 2.0; /KSp; 98/02/23
  *
