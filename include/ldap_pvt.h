@@ -77,6 +77,34 @@ ldap_str2charray LDAP_P((
 void ldap_pvt_hex_unescape LDAP_P(( char *s ));
 int ldap_pvt_unhex( int c );
 
+/* these macros assume 'x' is an ASCII x */
+#define LDAP_DNSEPARATOR(c)	((c) == ',' || (c) == ';')
+#define LDAP_SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
+#define LDAP_SPACE(c)		((c) == ' ' || (c) == '\n')
+
+#define LDAP_LOWER(c)		( (c) >= 'a' && (c) <= 'z' )
+#define LDAP_UPPER(c)		( (c) >= 'A' && (c) <= 'Z' )
+#define LDAP_ALPHA(c)		( LDAP_LOWER(c) || LDAP_UPPER(c) )
+#define LDAP_DIGIT(c)		( (c) >= '0' && (c) <= '9' )
+#define LDAP_ALNUM(c)		( LDAP_ALPHA(c) || LDAP_DIGIT(c) )
+
+#define LDAP_LEADKEYCHAR(c)	( LDAP_ALPHA(c) )
+#define LDAP_KEYCHAR(c)		( LDAP_ALNUM(c) || (c) == '-' )
+#define LDAP_LEADOIDCHAR(c)	( LDAP_DIGIT(c) )
+#define LDAP_OIDCHAR(c)		( LDAP_DIGIT(c) || (c) == '.' )
+
+#define LDAP_LEADATTRCHAR(c)	( LDAP_LEADKEYCHAR(c) || LDAP_LEADOIDCHAR(c) )
+#define LDAP_ATTRCHAR(c)		( LDAP_KEYCHAR((c)) || (c) == '.' )
+
+#define LDAP_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
+
+/* string.c */
+LDAP_F( char * )
+ldap_pvt_str2upper LDAP_P(( char *str ));
+
+LDAP_F( char * )
+ldap_pvt_str2lower LDAP_P(( char *str ));
+
 LDAP_END_DECL
 
 #endif

@@ -54,8 +54,13 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
-	if ( ldap_is_dns_dn( dn ) || ( p = strchr( dn, '=' )) == NULL )
+	if( dn == NULL ) {
+		return NULL;
+	}
+
+	if ( ldap_is_dns_dn( dn ) ) {
 		return( LDAP_STRDUP( dn ) );
+	}
 
 	ufn = LDAP_STRDUP( ++p );
 
@@ -279,7 +284,9 @@ explode_name( const char *name, int notypes, int is_dn )
 int
 ldap_is_dns_dn( LDAP_CONST char *dn )
 {
-	return( dn[ 0 ] != '\0' && strchr( dn, '=' ) == NULL &&
-	    strchr( dn, ',' ) == NULL );
+	return( dn[ 0 ] != '\0'
+		&& strchr( dn, '=' ) == NULL
+		&& strchr( dn, ',' ) == NULL
+		&& strchr( dn, ';' ) == NULL );
 }
 

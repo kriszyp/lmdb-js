@@ -179,6 +179,10 @@ SOURCE=..\..\include\disptmpl.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\dn.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\dsparse.c
 # End Source File
 # Begin Source File

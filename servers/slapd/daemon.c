@@ -15,6 +15,7 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
+#include "ldap_pvt.h"
 #include "ldap_defaults.h"
 #include "slap.h"
 
@@ -708,7 +709,7 @@ slapd_daemon_task(
 			    sizeof(from.sin_addr.s_addr), AF_INET );
 
 			if(hp) {
-				dnsname = str2lower( hp->h_name );
+				dnsname = ldap_pvt_str2lower( hp->h_name );
 
 			} else {
 				dnsname = NULL;

@@ -213,8 +213,6 @@ int dn_issuffix LDAP_P(( char *dn, char *suffix ));
 #ifdef DNS_DN
 int dn_type LDAP_P(( char *dn ));
 #endif
-char * str2upper LDAP_P(( char *str ));
-char * str2lower LDAP_P(( char *str ));
 int rdn_validate LDAP_P(( const char* str ));
 char * rdn_attr_value LDAP_P(( char * rdn ));
 char * rdn_attr_type LDAP_P(( char * rdn ));

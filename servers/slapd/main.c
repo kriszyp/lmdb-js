@@ -75,15 +75,15 @@ typedef struct _str2intDispatch {
 
 /* table to compute syslog-options to integer */
 static STRDISP  syslog_types[] = {
-    { "LOCAL0",         6, LOG_LOCAL0 },
-    { "LOCAL1",         6, LOG_LOCAL1 },
-    { "LOCAL2",         6, LOG_LOCAL2 },
-    { "LOCAL3",         6, LOG_LOCAL3 },
-    { "LOCAL4",         6, LOG_LOCAL4 },
-    { "LOCAL5",         6, LOG_LOCAL5 },
-    { "LOCAL6",         6, LOG_LOCAL6 },
-    { "LOCAL7",         6, LOG_LOCAL7 },
-    { NULL }
+	{ "LOCAL0", sizeof("LOCAL0"), LOG_LOCAL0 },
+	{ "LOCAL1", sizeof("LOCAL1"), LOG_LOCAL1 },
+	{ "LOCAL2", sizeof("LOCAL2"), LOG_LOCAL2 },
+	{ "LOCAL3", sizeof("LOCAL3"), LOG_LOCAL3 },
+	{ "LOCAL4", sizeof("LOCAL4"), LOG_LOCAL4 },
+	{ "LOCAL5", sizeof("LOCAL5"), LOG_LOCAL5 },
+	{ "LOCAL6", sizeof("LOCAL6"), LOG_LOCAL6 },
+	{ "LOCAL7", sizeof("LOCAL7"), LOG_LOCAL7 },
+	{ NULL }
 };
 
 static int   cnvt_str2int( char *, STRDISP_P, int );

@@ -8,6 +8,7 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/ctype.h>
 
 #include "ldap-int.h"
 
@@ -102,4 +103,30 @@ char *
 
 	memcpy( p, s, len );
 	return( p );
+}
+
+char *
+ldap_pvt_str2upper( char *str )
+{
+	char    *s;
+
+	/* to upper */
+	for ( s = str; *s; s++ ) {
+		*s = TOUPPER( (unsigned char) *s );
+	}
+
+	return( str );
+}
+
+char *
+ldap_pvt_str2lower( char *str )
+{
+	char    *s;
+
+	/* to lower */
+	for ( s = str; *s; s++ ) {
+		*s = TOLOWER( (unsigned char) *s );
+	}
+
+	return( str );
 }

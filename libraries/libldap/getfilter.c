@@ -243,17 +243,17 @@ ldap_getfirstfilter(
 
 	for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = flp->lfl_next ) {
 		/* compile tagpat, continue if we fail */
-		if (regcomp(&re, tagpat, 0) != 0)
+		if (regcomp(&re, tagpat, REG_EXTENDED|REG_NOSUB) != 0)
 			continue;
 
-		/* match tagpatern and tag, continue if we fail */
+		/* match tagpattern and tag, continue if we fail */
 		rc = regexec(&re, flp->lfl_tag, 0, NULL, 0);
 		regfree(&re);
 		if (rc != 0)
 			continue;
 
 		/* compile flp->ifl_pattern, continue if we fail */
-		if (regcomp(&re, flp->lfl_pattern, REG_EXTENDED) != 0)
+		if (regcomp(&re, flp->lfl_pattern, REG_EXTENDED|REG_NOSUB) != 0)
 			continue;
 
 		/* match ifl_pattern and lfd_curval, continue if we fail */

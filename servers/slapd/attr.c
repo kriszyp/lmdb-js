@@ -22,6 +22,7 @@
 #include <sys/param.h>
 #endif
 
+#include "ldap_pvt.h"
 #include "ldap_defaults.h"
 #include "slap.h"
 
@@ -111,7 +112,7 @@ attr_normalize( char *s )
 {
 	assert( s != NULL );
 
-	return( str2lower( s ) );
+	return( ldap_pvt_str2lower( s ) );
 }
 
 /*

@@ -15,6 +15,7 @@
 #include <ac/ctype.h>
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "ldap_defaults.h"
 #include "slap.h"
 
@@ -235,7 +236,7 @@ read_config( const char *fname )
 				char *dn = ch_strdup( cargv[1] );
 				(void) dn_normalize( dn );
 				charray_add( &be->be_suffix, dn );
-				(void) str2upper( dn );
+				(void) ldap_pvt_str2upper( dn );
 				charray_add( &be->be_nsuffix, dn );
 				free( dn );
 			}

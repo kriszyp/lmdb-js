@@ -414,19 +414,19 @@ ldap_pvt_tls_get_option( struct ldapoptions *lo, int option, void *arg )
 		break;
 	case LDAP_OPT_X_TLS_CACERTFILE:
 		*(char **)arg = tls_opt_cacertfile ?
-			strdup( tls_opt_cacertfile ) : NULL;
+			LDAP_STRDUP( tls_opt_cacertfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CACERTDIR:
 		*(char **)arg = tls_opt_cacertdir ?
-			strdup( tls_opt_cacertdir ) : NULL;
+			LDAP_STRDUP( tls_opt_cacertdir ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CERTFILE:
 		*(char **)arg = tls_opt_certfile ?
-			strdup( tls_opt_certfile ) : NULL;
+			LDAP_STRDUP( tls_opt_certfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_KEYFILE:
 		*(char **)arg = tls_opt_keyfile ?
-			strdup( tls_opt_keyfile ) : NULL;
+			LDAP_STRDUP( tls_opt_keyfile ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		*(int *)arg = tls_opt_require_cert;
@@ -466,26 +466,26 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 	switch( option ) {
 	case LDAP_OPT_X_TLS_CACERTFILE:
 		if ( tls_opt_cacertfile ) free( tls_opt_cacertfile );
-		tls_opt_cacertfile = arg ? strdup( (char *) arg ) : NULL;
+		tls_opt_cacertfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CACERTDIR:
 		if ( tls_opt_cacertdir ) free( tls_opt_cacertdir );
-		tls_opt_cacertdir = arg ? strdup( (char *) arg ) : NULL;
+		tls_opt_cacertdir = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CERTFILE:
 		if ( tls_opt_certfile ) free( tls_opt_certfile );
-		tls_opt_certfile = arg ? strdup( (char *) arg ) : NULL;
+		tls_opt_certfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_KEYFILE:
 		if ( tls_opt_keyfile ) free( tls_opt_keyfile );
-		tls_opt_keyfile = arg ? strdup( (char *) arg ) : NULL;
+		tls_opt_keyfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		tls_opt_require_cert = * (int *) arg;
 		break;
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 		if ( tls_opt_ciphersuite ) free( tls_opt_ciphersuite );
-		tls_opt_ciphersuite = arg ? strdup( (char *) arg ) : NULL;
+		tls_opt_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	default:
 		return -1;

@@ -13,6 +13,8 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "ldap_pvt.h"
+
 #include "slap.h"
 
 #define B4LEADTYPE		0
@@ -181,7 +183,7 @@ dn_normalize( char *dn )
 char *
 dn_normalize_case( char *dn )
 {
-	str2upper( dn );
+	ldap_pvt_str2upper( dn );
 
 	/* normalize format */
 	dn = dn_normalize( dn );
@@ -219,6 +221,7 @@ dn_parent(
 		return( NULL );
 	}
 
+#ifdef DNS_DN
 	/*
 	 * no =, assume it is a dns name, like blah@some.domain.name
 	 * if the blah@ part is there, return some.domain.name.  if
@@ -236,6 +239,7 @@ dn_parent(
 			return( ch_strdup( &s[1] ) );
 		}
 	}
+#endif
 
 	/*
 	 * else assume it is an X.500-style name, which looks like
@@ -406,33 +410,6 @@ dn_type( char *dn )
 	return( strchr( dn, '=' ) == NULL ? DN_DNS : DN_X500 );
 }
 #endif
-
-char *
-str2upper( char *str )
-{
-	char    *s;
-
-	/* normalize case */
-	for ( s = str; *s; s++ ) {
-		*s = TOUPPER( (unsigned char) *s );
-	}
-
-	return( str );
-}
-
-char *
-str2lower( char *str )
-{
-	char    *s;
-
-	/* normalize case */
-	for ( s = str; *s; s++ ) {
-		*s = TOLOWER( (unsigned char) *s );
-	}
-
-	return( str );
-}
-
 
 /*
  * get_next_substring(), rdn_attr_type(), rdn_attr_value(), and
