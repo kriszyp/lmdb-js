@@ -66,6 +66,18 @@ syn_find_desc( const char *syndesc, int *len )
 	return( NULL );
 }
 
+void
+syn_destroy( void )
+{
+	Syntax *s, *n;
+
+	avl_free(syn_index, ldap_memfree);
+	for (s=syn_list; s; s=n) {
+		n = s->ssyn_next;
+		ldap_syntax_free((LDAPSyntax *)s);
+	}
+}
+
 static int
 syn_insert(
     Syntax		*ssyn,

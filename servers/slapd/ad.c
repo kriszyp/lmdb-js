@@ -37,6 +37,16 @@ static int ad_keystring(
 	return 0;
 }
 
+void ad_destroy( void *in )
+{
+	AttributeDescription *ad = in, *n;
+
+	for (;ad;ad = n) {
+		n = ad->ad_next;
+		ldap_memfree(ad);
+	}
+}
+
 int slap_str2ad(
 	const char *str,
 	AttributeDescription **ad,

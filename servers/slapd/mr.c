@@ -55,6 +55,18 @@ mr_find( const char *mrname )
 	return( NULL );
 }
 
+void
+mr_destroy( void )
+{
+	MatchingRule *m, *n;
+
+	avl_free(mr_index, ldap_memfree);
+	for (m=mr_list; m; m=n) {
+		n = m->smr_next;
+		ldap_matchingrule_free((LDAPMatchingRule *)m);
+	}
+}
+
 static int
 mr_insert(
     MatchingRule	*smr,
@@ -90,7 +102,7 @@ mr_insert(
 		while ( *names ) {
 			mir = (struct mindexrec *)
 				ch_calloc( 1, sizeof(struct mindexrec) );
-			mir->mir_name = ch_strdup(*names);
+			mir->mir_name = *names;
 			mir->mir_mr = smr;
 			if ( avl_insert( &mr_index, (caddr_t) mir,
 					 (AVL_CMP) mr_index_cmp,

@@ -279,6 +279,22 @@ oc_add_sups(
 	return 0;
 }
 
+void
+oc_destroy( void )
+{
+	ObjectClass *o, *n;
+
+	avl_free(oc_index, ldap_memfree);
+	for (o=oc_list; o; o=n)
+	{
+		n = o->soc_next;
+		ldap_memfree(o->soc_sups);
+		ldap_memfree(o->soc_required);
+		ldap_memfree(o->soc_allowed);
+		ldap_objectclass_free((LDAPObjectClass *)o);
+	}
+}
+
 static int
 oc_insert(
     ObjectClass		*soc,
@@ -309,7 +325,6 @@ oc_insert(
 				 (AVL_DUP) avl_dup_error ) )
 		{
 			*err = soc->soc_oid;
-			ldap_memfree(oir->oir_name);
 			ldap_memfree(oir);
 			return SLAP_SCHERR_DUP_CLASS;
 		}
@@ -322,7 +337,7 @@ oc_insert(
 		while ( *names ) {
 			oir = (struct oindexrec *)
 				ch_calloc( 1, sizeof(struct oindexrec) );
-			oir->oir_name = ch_strdup(*names);
+			oir->oir_name = *names;
 			oir->oir_oc = soc;
 
 			assert( oir->oir_name );
@@ -333,7 +348,6 @@ oc_insert(
 					 (AVL_DUP) avl_dup_error ) )
 			{
 				*err = *names;
-				ldap_memfree(oir->oir_name);
 				ldap_memfree(oir);
 				return SLAP_SCHERR_DUP_CLASS;
 			}

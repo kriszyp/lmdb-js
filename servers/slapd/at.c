@@ -171,6 +171,20 @@ at_find_in_list(
 	return -1;
 }
 
+void
+at_destroy( void )
+{
+	AttributeType *a, *n;
+	avl_free(attr_index, ldap_memfree);
+
+	for (a=attr_list; a; a=n) {
+		n = a->sat_next;
+		ldap_memfree(a->sat_subtypes);
+		ad_destroy(a->sat_ad);
+		ldap_attributetype_free((LDAPAttributeType *)a);
+	}
+}
+
 static int
 at_insert(
     AttributeType	*sat,
@@ -207,13 +221,12 @@ at_insert(
 		while ( *names ) {
 			air = (struct aindexrec *)
 				ch_calloc( 1, sizeof(struct aindexrec) );
-			air->air_name = ch_strdup(*names);
+			air->air_name = *names;
 			air->air_at = sat;
 			if ( avl_insert( &attr_index, (caddr_t) air,
 					 (AVL_CMP) attr_index_cmp,
 					 (AVL_DUP) avl_dup_error ) ) {
 				*err = *names;
-				ldap_memfree(air->air_name);
 				ldap_memfree(air);
 				return SLAP_SCHERR_DUP_ATTR;
 			}

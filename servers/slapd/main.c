@@ -542,6 +542,8 @@ stop:
 #endif
 	slapd_daemon_destroy();
 
+	schema_destroy();
+
 #ifdef HAVE_TLS
 	ldap_pvt_tls_destroy();
 #endif

@@ -4726,3 +4726,12 @@ schema_init( void )
 	schema_init_done = 1;
 	return LDAP_SUCCESS;
 }
+
+void
+schema_destroy( void )
+{
+	oc_destroy();
+	at_destroy();
+	mr_destroy();
+	syn_destroy();
+}

@@ -369,8 +369,8 @@ typedef struct slap_matching_rule {
 struct slap_attr_desc;
 
 typedef struct slap_attribute_type {
-	char					*sat_cname;
 	LDAPAttributeType		sat_atype;
+	char				*sat_cname;
 	struct slap_attribute_type	*sat_sup;
 	struct slap_attribute_type	**sat_subtypes;
 	MatchingRule			*sat_equality;
