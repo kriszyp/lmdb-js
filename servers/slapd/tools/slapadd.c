@@ -28,7 +28,7 @@ main( int argc, char **argv )
 	int			rc = EXIT_SUCCESS;
 
 	const char *text;
-	char textbuf[SLAP_TEXT_BUFLEN];
+	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 
 	slap_tool_init( "slapadd", SLAPADD, argc, argv );
@@ -55,6 +55,8 @@ main( int argc, char **argv )
 	while( ldif_read_record( ldiffp, &lineno, &buf, &lmax ) ) {
 		ID id;
 		Entry *e = str2entry( buf );
+		char buf[1024];
+		struct berval bvtext = { textlen, textbuf };
 
 		if( e == NULL ) {
 			fprintf( stderr, "%s: could not parse entry (line=%d)\n",
@@ -146,10 +148,10 @@ main( int argc, char **argv )
 			}
 		}
 
-		id = be->be_entry_put( be, e );
+		id = be->be_entry_put( be, e, &bvtext );
 		if( id == NOID ) {
-			fprintf( stderr, "%s: could not add entry dn=\"%s\" (line=%d)\n",
-				progname, e->e_dn, lineno );
+			fprintf( stderr, "%s: could not add entry dn=\"%s\" (line=%d): %s\n",
+				progname, e->e_dn, lineno, bvtext.bv_val );
 			rc = EXIT_FAILURE;
 			entry_free( e );
 			if( continuemode ) continue;

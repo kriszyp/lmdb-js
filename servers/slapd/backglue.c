@@ -717,7 +717,8 @@ glue_tool_entry_get (
 static ID
 glue_tool_entry_put (
 	BackendDB *b0,
-	Entry *e
+	Entry *e,
+	struct berval *text
 )
 {
 	BackendDB *be;
@@ -742,7 +743,7 @@ glue_tool_entry_put (
 			return NOID;
 	}
 	glueBack = be;
-	return be->be_entry_put (be, e);
+	return be->be_entry_put (be, e, text);
 }
 
 static int

@@ -112,7 +112,8 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 
 ID bdb_tool_entry_put(
 	BackendDB *be,
-	Entry *e )
+	Entry *e,
+	struct berval *text )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -122,6 +123,10 @@ ID bdb_tool_entry_put(
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 
+	assert( text );
+	assert( text->bv_val );
+	assert( text->bv_val[0] == '\0' );
+
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
 		(long) e->e_id, e->e_dn, 0 );
 
@@ -129,18 +134,23 @@ ID bdb_tool_entry_put(
 		rc = txn_begin( bdb->bi_dbenv, NULL, &tid, 
 			bdb->bi_db_opflags );
 		if( rc != 0 ) {
+			snprintf( text->bv_val, text->bv_len,
+					"txn_begin failed: %s (%d)",
+					db_strerror(rc), rc );
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_tool_entry_put: txn_begin failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
+				"=> bdb_tool_entry_put: %s\n",
+				 text->bv_val, 0, 0 );
 			return NOID;
 		}
 	}
 
 	rc = bdb_next_id( be, tid, &e->e_id );
 	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+				"next_id failed: %s (%d)",
+				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: next_id failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 		goto done;
 	}
 
@@ -152,26 +162,32 @@ ID bdb_tool_entry_put(
 		pdn.bv_len = 0;
 	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len, 
+				"dn2id_add failed: %s (%d)",
+				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: dn2id_add failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 		goto done;
 	}
 
 	/* id2entry index */
 	rc = bdb_id2entry_add( be, tid, e );
 	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+				"id2entry_add failed: %s (%d)",
+				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: id2entry_add failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 		goto done;
 	}
 
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 	if( rc != 0 ) {
+		snprintf( text->bv_val, text->bv_len,
+				"index_entry_add failed: %s (%d)",
+				db_strerror(rc), rc );
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: index_entry_add failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 		goto done;
 	}
 
@@ -180,17 +196,23 @@ done:
 		if( rc == 0 ) {
 			rc = txn_commit( tid, 0 );
 			if( rc != 0 ) {
+				snprintf( text->bv_val, text->bv_len,
+						"txn_commit failed: %s (%d)",
+						db_strerror(rc), rc );
 				Debug( LDAP_DEBUG_ANY,
-					"=> bdb_tool_entry_put: txn_commit failed: %s (%d)\n",
-					db_strerror(rc), rc, 0 );
+					"=> bdb_tool_entry_put: %s\n",
+					text->bv_val, 0, 0 );
 				e->e_id = NOID;
 			}
 
 		} else {
 			txn_abort( tid );
+			snprintf( text->bv_val, text->bv_len,
+					"txn_aborted! %s (%d)",
+					db_strerror(rc), rc );
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_tool_entry_put: txn_aborted! %s (%d)\n",
-				db_strerror(rc), rc, 0 );
+				"=> bdb_tool_entry_put: %s\n",
+				text->bv_val, 0, 0 );
 			e->e_id = NOID;
 		}
 	}

@@ -166,7 +166,8 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 
 ID ldbm_tool_entry_put(
 	BackendDB *be,
-	Entry *e )
+	Entry *e,
+	struct berval *text )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	Datum key, data;
@@ -176,7 +177,12 @@ ID ldbm_tool_entry_put(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
+	assert( text );
+	assert( text->bv_val );
+	assert( text->bv_val[0] == '\0' );
+
 	if ( next_id_get( be, &id ) || id == NOID ) {
+		strncpy( text->bv_val, "unable to get nextid", text->bv_len );
 		return NOID;
 	}
 
@@ -192,6 +198,7 @@ ID ldbm_tool_entry_put(
 
 	if ( dn2id( be, &e->e_nname, &id ) ) {
 		/* something bad happened to ldbm cache */
+		strncpy( text->bv_val, "ldbm cache corrupted", text->bv_len );
 		return NOID;
 	}
 
@@ -205,16 +212,19 @@ ID ldbm_tool_entry_put(
 			"<= ldbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
 			e->e_ndn, id, 0 );
 #endif
+		strncpy( text->bv_val, "already exists", text->bv_len );
 		return NOID;
 	}
 
 	rc = index_entry_add( be, e, e->e_attrs );
 	if( rc != 0 ) {
+		strncpy( text->bv_val, "index add failed", text->bv_len );
 		return NOID;
 	}
 
 	rc = dn2id_add( be, &e->e_nname, e->e_id );
 	if( rc != 0 ) {
+		strncpy( text->bv_val, "dn2id add failed", text->bv_len );
 		return NOID;
 	}
 
@@ -237,6 +247,7 @@ ID ldbm_tool_entry_put(
 
 	if( rc != 0 ) {
 		(void) dn2id_delete( be, &e->e_nname, e->e_id );
+		strncpy( text->bv_val, "cache store failed", text->bv_len );
 		return NOID;
 	}
 
