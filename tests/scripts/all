@@ -32,6 +32,6 @@ for CMD in $SRCDIR/scripts/test*; do
 		exit $RC
 	fi
 	echo ">>>>> waiting 10 seconds for things to exit"
-	sleep 5
+	sleep 10
 	echo
 done
