@@ -9,6 +9,19 @@
 LDAP/X.500 string syntax / matching rules have a few oddities.  This
 comment attempts to detail how slapd(8) treats them.
 
+Summary:
+  StringSyntax		X.500	LDAP	Matching
+  DirectoryString	CHOICE	UTF8	i/e + ignore insignificant spaces
+  PrintableString	subset	subset	i/e + ignore insignificant spaces
+  NumericString		subset	subset  ignore all spaces
+  IA5String			ASCII	ASCII	i/e + ignore insignificant spaces
+  TeletexString		T.61	T.61	i/e + ignore insignificant spaces
+
+  TelephoneNumber subset  subset  i + ignore all spaces and "-"
+
+  See draft-ietf-ldapbis-strpro for details (once published).
+
+
 Directory String -
   In X.500(93), a directory string can be either a PrintableString,
   a bmpString, or a UniversalString (e.g., UCS (a subset of Unicode)).
@@ -58,8 +71,6 @@ IA5String
   same logic applies.  So we require them to be non-empty as well.
 
 ****/
-
-
 
 
 #include "portable.h"
