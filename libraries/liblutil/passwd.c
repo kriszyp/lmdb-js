@@ -17,16 +17,17 @@
 
 #include <stdio.h>
 #include <ac/stdlib.h>
-
 #include <ac/string.h>
+
+#ifdef SLAPD_KPASSWD
+#	include <ac/krb.h>
+#	include <ac/krb5.h>
+#endif
+
+#include <ac/param.h>
+
 #include <ac/unistd.h>
 #include <ac/crypt.h>
-
-#include <lber.h>
-
-#include "lutil_md5.h"
-#include "lutil_sha1.h"
-#include "lutil.h"
 
 #ifdef HAVE_SHADOW_H
 #	include <shadow.h>
@@ -34,6 +35,12 @@
 #ifdef HAVE_PWD_H
 #	include <pwd.h>
 #endif
+
+#include <lber.h>
+
+#include "lutil_md5.h"
+#include "lutil_sha1.h"
+#include "lutil.h"
 
 static const unsigned char crypt64[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./";
@@ -72,6 +79,11 @@ static int chk_ssha1(
 	const struct berval *cred );
 
 static int chk_sha1(
+	const struct pw_scheme *scheme,
+	const struct berval *passwd,
+	const struct berval *cred );
+
+static int chk_kerberos(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
@@ -116,6 +128,10 @@ static const struct pw_scheme pw_schemes[] =
 
 	{ {sizeof("{SMD5}")-1, "{SMD5}"},	chk_smd5, hash_smd5 },
 	{ {sizeof("{MD5}")-1, "{MD5}"},		chk_md5, hash_md5 },
+
+#ifdef SLAPD_KPASSWD
+	{ {sizeof("{KERBEROS}")-1, "{KERBEROS}"}, chk_kerberos, NULL },
+#endif
 
 #ifdef SLAPD_CRYPT
 	{ {sizeof("{CRYPT}")-1, "{CRYPT}"},	chk_crypt, hash_crypt },
@@ -521,6 +537,177 @@ static int chk_md5(
 	ber_memfree(orig_pass);
 	return rc;
 }
+
+#ifdef SLAPD_KPASSWD
+static int chk_kerberos(
+	const struct pw_scheme *sc,
+	const struct berval * passwd,
+	const struct berval * cred )
+{
+	int i;
+	int rtn;
+
+	for( i=0; i<cred->bv_len; i++) {
+		if(cred->bv_val[i] == '\0') {
+			return 1;	/* NUL character in password */
+		}
+	}
+
+	if( cred->bv_val[i] != '\0' ) {
+		return 1;	/* cred must behave like a string */
+	}
+
+	for( i=0; i<passwd->bv_len; i++) {
+		if(passwd->bv_val[i] == '\0') {
+			return 1;	/* NUL character in password */
+		}
+	}
+
+	if( passwd->bv_val[i] != '\0' ) {
+		return 1;	/* passwd must behave like a string */
+	}
+
+	rtn = 1;
+
+#ifdef HAVE_KRB5 /* HAVE_HEIMDAL_KRB5 */
+	{
+/* Portions:
+ * Copyright (c) 1997, 1998, 1999 Kungliga Tekniska H\xf6gskolan
+ * (Royal Institute of Technology, Stockholm, Sweden).
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the Institute nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+		krb5_context context;
+   		krb5_error_code ret;
+   		krb5_creds creds;
+   		krb5_get_init_creds_opt get_options;
+   		krb5_verify_init_creds_opt verify_options;
+		krb5_principal client, server;
+#ifdef notdef
+		krb5_preauthtype pre_auth_types[] = {KRB5_PADATA_ENC_TIMESTAMP};
+#endif
+
+		krb5_init_context( &context );
+		if (ret) {
+			return 1;
+		}
+
+#ifdef notdef
+		krb5_get_init_creds_opt_set_preauth_list(&get_options,
+			pre_auth_types, 1);
+#endif
+
+   		krb5_get_init_creds_opt_init( &get_options );
+
+		krb5_verify_init_creds_opt_init( &verify_options );
+	
+		ret = krb5_parse_name( context, passwd->bv_val, &client );
+
+		if (ret) {
+			krb5_free_context( context );
+			return 1;
+		}
+
+		ret = krb5_get_init_creds_password( context,
+			&creds, client, cred->bv_val, NULL,
+			NULL, 0, NULL, &get_options );
+
+		if (ret) {
+			krb5_free_principal( context, client );
+			krb5_free_context( context );
+			return 1;
+		}
+
+		{
+			char host[MAXHOSTNAMELEN];
+
+			if( gethostname( host, MAXHOSTNAMELEN ) != 0 ) {
+				krb5_free_principal( context, client );
+				krb5_free_context( context );
+				return 1;
+			}
+
+			ret = krb5_sname_to_principal( context,
+				host, "ldap", KRB5_NT_SRV_HST, &server );
+		}
+
+		if (ret) {
+			krb5_free_principal( context, client );
+			krb5_free_context( context );
+			return 1;
+		}
+
+		ret = krb5_verify_init_creds( context,
+			&creds, server, NULL, NULL, &verify_options );
+
+		krb5_free_principal( context, client );
+		krb5_free_principal( context, server );
+		krb5_free_creds_contents( context, &creds );
+		krb5_free_context( context );
+
+		rtn = !!ret;
+	}
+#elif	defined(HAVE_KRB4)
+	{
+		/* Borrowed from Heimdal kpopper */
+/* Portions:
+ * Copyright (c) 1989 Regents of the University of California.
+ * All rights reserved.  The Berkeley software License Agreement
+ * specifies the terms and conditions for redistribution.
+ */
+
+		int status;
+		char lrealm[REALM_SZ];
+		char tkt[MaxPathLen];
+
+		status = krb_get_lrealm(lrealm,1);
+		if (status == KFAILURE) {
+			return 1;
+		}
+
+		snprintf(tkt, sizeof(tkt), "%s_popper.%u",
+			TKT_ROOT, (unsigned)getpid());
+		krb_set_tkt_string (tkt);
+
+		status = krb_verify_user( passwd->bv_val, "", lrealm,
+			cred->bv_val, KRB_VERIFY_SECURE, "pop");
+
+		dest_tkt(); /* no point in keeping the tickets */
+
+		return status == KFAILURE;
+	}
+#endif
+
+	return rtn;
+}
+#endif /* SLAPD_KPASSWD */
 
 #ifdef SLAPD_CRYPT
 static int chk_crypt(

@@ -355,13 +355,13 @@ parse_replica_line(
 		strlen( BINDMETHSTR ))) {
 	    val = cargv[ i ] + strlen( BINDMETHSTR ) + 1;
 	    if ( !strcasecmp( val, KERBEROSSTR )) {
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		ri->ri_bind_method = AUTH_KERBEROS;
 		if ( ri->ri_srvtab == NULL ) {
 		    ri->ri_srvtab = strdup( sglob->default_srvtab );
 		}
 		gots |= GOT_METHOD;
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
 	    fprintf( stderr, "specified in the slapd configuration file,\n" );
 	    fprintf( stderr, "but slurpd was not built with kerberos.\n" );
@@ -369,7 +369,7 @@ parse_replica_line(
 	    fprintf( stderr, "kerberos support if you wish to use\n" );
 	    fprintf( stderr, "bindmethod=kerberos\n" );
 	    exit( EXIT_FAILURE );
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = AUTH_SIMPLE;
 		gots |= GOT_METHOD;

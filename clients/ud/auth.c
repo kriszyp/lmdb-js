@@ -37,7 +37,7 @@
 #include "ldap_defaults.h"
 #include "ud.h"
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 static char tktpath[20];	/* ticket file path */
 static int kinit();
 static int valid_tgt();
@@ -60,7 +60,7 @@ auth( char *who, int implicit )
 	char *user;
 #endif
 	char uidname[20];
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char **krbnames;	/* for kerberos names */
 	int kinited, ikrb;
 	char buf[5];
@@ -148,7 +148,7 @@ auth( char *who, int implicit )
 	rdns = ldap_explode_dn(Entry.DN, TRUE);
 	printf("  Authenticating to the directory as \"%s\"...\n", *rdns );
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	/*
 	 * First, if the user has a choice of auth methods, ask which
 	 * one they want to use.  if they want kerberos, ask which
@@ -247,7 +247,7 @@ auth( char *who, int implicit )
 			(void) ldap_value_free(rdns);
 			return(0);
 		}
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	}
 	(void) ldap_value_free(krbnames);
 #endif
@@ -259,13 +259,13 @@ auth( char *who, int implicit )
 		if (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			fprintf(stderr, "  Entry has no password\n");
 		else if (ld_errno == LDAP_INVALID_CREDENTIALS)
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");
 			} else {
 #endif
 				fprintf(stderr, "  The password you provided is incorrect.\n");
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			}
 #endif
 		else
@@ -294,7 +294,7 @@ auth( char *who, int implicit )
 	return(0);
 }
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"

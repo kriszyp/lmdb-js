@@ -1,6 +1,6 @@
 dnl $OpenLDAP$
 dnl
-dnl Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
+dnl Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
 dnl Redistribution and use in source and binary forms are permitted only
 dnl as authorized by the OpenLDAP Public License.  A copy of this
@@ -15,14 +15,14 @@ define([AC_INIT_BINSH],
 # $]OpenLDAP[$
 # from] translit([$OpenLDAP$], $")] [
 
-# Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
+# Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
 # Redistribution and use in source and binary forms are permitted only
 # as authorized by the OpenLDAP Public License.  A copy of this
 # license is available at http://www.OpenLDAP.org/license.html or
 # in file LICENSE in the top-level directory of the distribution.
 
-echo "Copyright 1998-1999 The OpenLDAP Foundation,  All Rights Reserved."
+echo "Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved."
 echo "Copying restrictions apply, see COPYRIGHT file."
 ])dnl
 dnl ----------------------------------------------------------------
@@ -96,6 +96,7 @@ OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
 OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DX Referrals extension], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
+OL_ARG_ENABLE(kbind,[  --enable-kbind	enable V2 Kerberos IV bind], auto)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(ldapi,[  --enable-ldapi	enable domain socket (PF_LOCAL) ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
@@ -109,8 +110,8 @@ OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	with Cyrus SASL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(fetch,[  --with-fetch		with fetch URL support],
 	auto, [auto yes no] )
-OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
-	auto, [auto k5 kth k4 afs yes no])
+OL_ARG_WITH(kerberos,[  --with-kerberos	with support],
+	auto, [auto k5 k5only k425 kth k4 afs yes no])
 OL_ARG_WITH(readline,[  --with-readline	with readline support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	use threads],
@@ -133,6 +134,7 @@ AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
+OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	enable kerberos password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
 OL_ARG_ENABLE(multimaster,[    --enable-multimaster	enable multimaster replication], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
@@ -380,6 +382,12 @@ if test $ol_enable_slurpd = yes ; then
 	fi
 fi
 
+if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
+	if test $ol_with_kerberos = no ; then
+		AC_MSG_ERROR([options require --with-kerberos])
+	fi
+fi
+
 AC_MSG_RESULT(done)
 
 dnl ----------------------------------------------------------------
@@ -425,7 +433,8 @@ MOD_PERL_LDFLAGS=
 PERL_CPPFLAGS=
 
 MOD_TCL_LIB=
-KRB_LIBS=
+KRB4_LIBS=
+KRB5_LIBS=
 READLINE_LIBS=
 SASL_LIBS=
 TERMCAP_LIBS=
@@ -818,28 +827,96 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Kerberos
-ol_link_kerberos=no
+ol_link_krb5=no
 
-if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
+if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 \
+	-o $ol_with_kerberos = k5only -o $ol_with_kerberos = k425 ; then
+
+	AC_CHECK_HEADERS(krb5.h)
+
+	if test $ac_cv_header_krb5_h = yes ; then
+		dnl lazy check for Heimdal Kerberos
+		AC_CHECK_HEADERS(heim_err.h)
+		if test $ac_cv_header_heim_err_h = yes ; then
+			krb5_impl=heimdal
+		else
+			krb5_impl=mit
+		fi
+
+		if test $krb5_impl = mit; then
+			AC_CHECK_LIB(krb5, main,
+				[have_krb5=yes
+				KRB5_LIBS="-lkrb5 -lcrypto -lcom_err"],
+				[have_krb5=no],
+				[-lcrypto -lcom_err])
+
+		elif test $krb5_impl = heimdal; then
+			AC_CHECK_LIB(krb5, main,
+				[have_krb5=yes
+				KRB5_LIBS="-lkrb5 -ldes -lasn1 -lroken -lcom_err"],
+				[have_krb5=no],
+				[-ldes -lasn1 -lroken -lcom_err])
+
+			AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1,
+				[define if you have HEIMDAL Kerberos])
+		else
+			have_krb5=no
+			AC_MSG_WARN([Unrecongized Kerberos5 Implementation])
+		fi
+
+		if test $have_krb5 = yes ; then
+			ol_link_krb5=yes
+
+			AC_DEFINE(HAVE_KRB5, 1,
+				[define if you have Kerberos V])
+
+			if test $ol_with_kerberos = k5only ; then
+				ol_with_kerberos=found
+			fi
+
+		elif test $ol_with_kerberos != auto ; then
+			AC_MSG_ERROR([Required Kerberos 5 support not available])
+		fi
+
+	fi
+fi
+
+ol_link_krb4=no
+if test $ol_link_krb5 = yes -a \
+	\( $ol_with_kerberos = auto -o $ol_with_kerberos = k425 \) ; then
+
 	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
 
 	if test $ac_cv_header_kerberosIV_krb_h = yes ; then
-		AC_CHECK_LIB(krb4, main, [have_k5=yes], [have_k5=no],
-			[-lkrb5 -ldes425 -lcrypto -lcom_err])
+		if test $krb5_impl = mit; then
+			AC_CHECK_LIB(krb4, main, [have_k425=yes
+				KRB4_LIBS="-lkrb4 -ldes425"], [have_k425=no],
+				[-ldes425 -lkrb5 -lcrypto -lcom_err])
 
-		if test $have_k5 = yes ; then
+		elif test $krb5_impl = heimdal; then
+			AC_CHECK_LIB(krb4, main, [have_k425=yes
+				KRB4_LIBS="-lkrb4"], [have_k425=no],
+				[-lkrb5 -ldes -lasn1 -lroken -lcom_err])
+
+		else
+			have_425=no
+			AC_MSG_WARN([Unrecongized Kerberos5 Implementation])
+		fi
+
+		if test $have_k425 = yes ; then
 			ol_with_kerberos=found
-			ol_link_kerberos=yes
+			ol_link_krb4=yes
 
-			KRB_LIBS="-lkrb4 -lkrb5 -ldes425 -lcrypto -lcom_err"
-
-			LIBS="$KRB_LIBS $LIBS"
+			AC_DEFINE(HAVE_KRB425, 1,
+				[define if you have Kerberos V with IV support])
+			AC_DEFINE(HAVE_KRB4, 1,
+				[define if you have Kerberos IV])
 
 			AC_CACHE_CHECK([for des_debug in Kerberos libraries],
 				[ol_cv_var_des_debug], [
 				dnl save the flags
 				save_LIBS="$LIBS"
-				LIBS="$KRB_LIBS $LIBS"
+				LIBS="$KRB4_LIBS $KRB5_LIBS $LIBS"
 				AC_TRY_LINK([
 #include <kerberosIV/krb.h>
 #include <kerberosIV/des.h>
@@ -861,6 +938,10 @@ des_debug = 1;
 	fi
 fi
 
+if test $ol_link_krb5 = yes ; then
+	ol_with_kerberos=found
+fi
+
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 \
 	-o $ol_with_kerberos = kth ; then
 
@@ -871,9 +952,12 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 \
 
 		if test $have_k4 = yes ; then
 			ol_with_kerberos=found
-			ol_link_kerberos=yes
+			ol_link_krb4=yes
 
-			KRB_LIBS="-lkrb -ldes"
+			AC_DEFINE(HAVE_KRB4, 1,
+				[define if you have Kerberos IV])
+
+			KRB4_LIBS="-lkrb -ldes"
 
 			if test $ac_cv_header_krb_archaeology_h = yes ; then
 				AC_DEFINE(HAVE_KTH_KERBEROS, 1,
@@ -883,11 +967,11 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 \
 	fi
 fi
 
-if test $ol_link_kerberos = yes ; then
+if test $ol_link_krb4 = yes -o $ol_link_krb5 = yes ; then
 	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
 
 elif test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
-	AC_ERROR([Kerberos detection failed.])
+	AC_MSG_ERROR([Kerberos detection failed.])
 fi
 
 dnl ----------------------------------------------------------------
@@ -2067,6 +2151,9 @@ if test "$ol_enable_cache" = no ; then
 	AC_DEFINE(LDAP_NOCACHE,1,
 		[define this to remove -lldap cache support])
 fi
+if test "$ol_enable_kbind" != no ; then
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION)
+fi
 if test "$ol_enable_dns" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_DNS,LDAP_VENDOR_VERSION)
 fi
@@ -2084,11 +2171,14 @@ if test "$ol_enable_ldapi" != no; then
 	AC_DEFINE(USE_PF_LOCAL,1,[define to support PF_LOCAL transport])
 fi
 
+if test "$ol_enable_cleartext" != no ; then
+	AC_DEFINE(SLAPD_CLEARTEXT,1,[define to support cleartext passwords])
+fi
 if test "$ol_enable_crypt" != no ; then
 	AC_DEFINE(SLAPD_CRYPT,1,[define to support crypt(3) passwords])
 fi
-if test "$ol_enable_cleartext" != no ; then
-	AC_DEFINE(SLAPD_CLEARTEXT,1,[define to support cleartext passwords])
+if test "$ol_enable_kpasswd" != no ; then
+	AC_DEFINE(SLAPD_KPASSWD,1,[define to support Kerberos passwords])
 fi
 if test "$ol_enable_multimaster" != no ; then
 	AC_DEFINE(SLAPD_MULTIMASTER,1,[define to support multimaster replication])
@@ -2276,7 +2366,8 @@ AC_SUBST(PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)
 AC_SUBST(MOD_PERL_LDFLAGS)
 
-AC_SUBST(KRB_LIBS)
+AC_SUBST(KRB4_LIBS)
+AC_SUBST(KRB5_LIBS)
 AC_SUBST(READLINE_LIBS)
 AC_SUBST(SASL_LIBS)
 AC_SUBST(TERMCAP_LIBS)

@@ -64,7 +64,7 @@ main(int argc, char **argv)
     while (( i = getopt( argc, argv, "WkKMcnvrh:P:p:D:w:d:f:s:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV4;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
@@ -72,7 +72,7 @@ main(int argc, char **argv)
 #endif
 	    break;
 	case 'K':	/* kerberos bind, part one only */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV41;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);

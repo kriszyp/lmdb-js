@@ -152,7 +152,7 @@ int bdb2i_index_add_values LDAP_P(( BackendDB *be, char *type, struct berval **v
  * kerberos.c
  */
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 /* bdb2i_krbv4_ldap_auth LDAP_P(( BackendDB *be, struct berval *cred, AUTH_DAT *ad )); */
 #endif
 

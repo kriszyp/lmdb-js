@@ -5,7 +5,7 @@
  */
 #include "portable.h"
 
-#if defined(HAVE_KERBEROS) && !defined(openbsd)
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) && !defined(openbsd)
 /*
  * Copyright 1985, 1986, 1987, 1988, 1989 by the Massachusetts Institute
  * of Technology.

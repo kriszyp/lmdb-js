@@ -16,7 +16,7 @@
  *		name		DistinguishedName,	 -- who
  *		authentication	CHOICE {
  *			simple		[0] OCTET STRING -- passwd
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
  *			krbv42ldap	[1] OCTET STRING
  *			krbv42dsa	[2] OCTET STRING
 #endif
@@ -33,7 +33,7 @@
 
 #include "portable.h"
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 #include <stdio.h>
 #include <ac/stdlib.h>
@@ -303,4 +303,4 @@ ldap_get_kerberosv4_credentials(
 }
 
 #endif /* !AUTHMAN */
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */

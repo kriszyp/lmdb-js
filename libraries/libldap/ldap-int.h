@@ -349,7 +349,7 @@ LIBLDAP_F (int) ldap_int_put_controls LDAP_P((
 LIBLDAP_F (int) next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
 LIBLDAP_F (void) free_strarray LDAP_P(( char **sap ));
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 /*
  * in kerberos.c
  */
@@ -359,7 +359,7 @@ LIBLDAP_F (char *) ldap_get_kerberosv4_credentials LDAP_P((
 	LDAP_CONST char *service,
 	ber_len_t *len ));
 
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 
 /*
@@ -377,9 +377,9 @@ LIBLDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb, const char *host, u
 
 LIBLDAP_F (void) ldap_close_connection( Sockbuf *sb );
 
-#if defined(HAVE_KERBEROS) || defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
 LIBLDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 LIBLDAP_F (void) ldap_int_ip_init( void );
 LIBLDAP_F (int) do_ldap_select( LDAP *ld, struct timeval *timeout );

@@ -36,7 +36,7 @@ ldbm_back_bind(
 	Attribute	*a;
 	int		rc;
 	Entry		*matched;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char		krbname[MAX_K_NAME_SZ + 1];
 	AUTH_DAT	ad;
 #endif
@@ -212,7 +212,7 @@ ldbm_back_bind(
 		rc = 0;
 		break;
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	case LDAP_AUTH_KRBV41:
 		if ( ! access_allowed( be, conn, op, e,
 			"krbname", NULL, ACL_AUTH ) )

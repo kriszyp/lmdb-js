@@ -68,9 +68,9 @@ init_globals( void )
 	fprintf( stderr, "Cannot initialize queue\n" );
 	exit( EXIT_FAILURE );
     }
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
     g->default_srvtab = SRVTAB;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
     return g;
 }

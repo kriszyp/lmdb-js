@@ -7,7 +7,7 @@
 
 #include "portable.h"
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 #include <stdio.h>
 

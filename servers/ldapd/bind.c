@@ -142,7 +142,7 @@ do_bind_real(
 	struct DSError		dse;
 	char			*dn = dsaconn->c_dn;
 	int			err;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	u_long			nonce;
 #endif
 	Debug( LDAP_DEBUG_TRACE, "do_bind_real\n", 0, 0, 0 );
@@ -175,7 +175,7 @@ do_bind_real(
 		ba.dba_version = DBA_VERSION_V1988;
 		break;
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 #ifdef LDAP_COMPAT20
 	case OLD_LDAP_AUTH_KRBV4:
 #endif
@@ -253,7 +253,7 @@ do_bind_real(
 
 	Debug( LDAP_DEBUG_TRACE, "dap_bind successful\n", 0, 0, 0 );
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 /* XXX why doesn't this work??
 	if ( dsaconn->c_method == LDAP_AUTH_KRBV42 &&
 	    kerberos_check_mutual( &br, nonce ) != 0 ) {

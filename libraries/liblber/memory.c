@@ -108,6 +108,7 @@ ber_memvfree( void **vec )
 void *
 ber_memalloc( ber_len_t s )
 {
+	void *new;
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
@@ -127,21 +128,26 @@ ber_memalloc( ber_len_t s )
 		mh->bm_junk = BER_MEM_JUNK;
 
 		BER_MEM_VALID( &mh[1] );
-		return &mh[1];
+		new = &mh[1];
 #else
-		return malloc( s );
+		new = malloc( s );
 #endif
+	} else {
+		new = (*ber_int_memory_fns->bmf_malloc)( s );
 	}
 
-	assert( ber_int_memory_fns->bmf_malloc );
+	if( new == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+	}
 
-	return (*ber_int_memory_fns->bmf_malloc)( s );
+	return new;
 }
 
 
 void *
 ber_memcalloc( ber_len_t n, ber_len_t s )
 {
+	void *new;
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
@@ -160,21 +166,27 @@ ber_memcalloc( ber_len_t n, ber_len_t s )
 		mh->bm_junk = BER_MEM_JUNK;
 
 		BER_MEM_VALID( &mh[1] );
-		return &mh[1];
+		new = &mh[1];
 #else
-		return calloc( n, s );
+		new = calloc( n, s );
 #endif
+
+	} else {
+		new = (*ber_int_memory_fns->bmf_calloc)( n, s );
 	}
 
-	assert( ber_int_memory_fns->bmf_calloc );
+	if( new == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+	}
 
-	return (*ber_int_memory_fns->bmf_calloc)( n, s );
+	return new;
 }
 
 
 void *
 ber_memrealloc( void* p, ber_len_t s )
 {
+	void *new;
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	/* realloc(NULL,s) -> malloc(s) */
@@ -198,22 +210,26 @@ ber_memrealloc( void* p, ber_len_t s )
 
 		p = realloc( mh, s + sizeof(struct ber_mem_hdr) );
 
-		if( p == NULL ) return NULL;
+		if( p != NULL ) {
+			mh = p;
 
-		mh = p;
+			assert( mh->bm_junk == BER_MEM_JUNK );
 
-		assert( mh->bm_junk == BER_MEM_JUNK );
-
-		BER_MEM_VALID( &mh[1] );
-		return &mh[1];
+			BER_MEM_VALID( &mh[1] );
+			new = &mh[1];
+		}
 #else
-		return realloc( p, s );
+		new = realloc( p, s );
 #endif
+	} else {
+		new = (*ber_int_memory_fns->bmf_realloc)( p, s );
 	}
 
-	assert( ber_int_memory_fns->bmf_realloc );
+	if( new == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+	}
 
-	return (*ber_int_memory_fns->bmf_realloc)( p, s );
+	return new;
 }
 
 
@@ -365,6 +381,7 @@ ber_strdup( LDAP_CONST char *s )
 #endif
 
 	if( s == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
 		return( NULL );
 	}
 

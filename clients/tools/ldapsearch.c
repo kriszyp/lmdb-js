@@ -63,7 +63,7 @@ usage( const char *s )
 "	-D binddn\tbind dn\n"
 "	-w passwd\tbind passwd (for simple authentication)\n"
 "	-W\t\tprompt for bind passwd\n"
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 "	-k\t\tuse Kerberos instead of Simple Password authentication\n"
 #endif
 "	-h host\tldap server\n"
@@ -143,14 +143,14 @@ main( int argc, char **argv )
 		debug |= atoi( optarg );
 		break;
 	case 'k':	/* use kerberos bind */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV4;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
 #endif
 		break;
 	case 'K':	/* use kerberos bind, 1st part only */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV41;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);

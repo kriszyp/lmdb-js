@@ -124,6 +124,7 @@
  LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
  LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
  LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+ LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
  LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 */
 
@@ -381,6 +382,9 @@
 /* Define if you have the <grp.h> header file.  */
 #undef HAVE_GRP_H
 
+/* Define if you have the <heim_err.h> header file.  */
+#undef HAVE_HEIM_ERR_H
+
 /* Define if you have the <io.h> header file.  */
 #undef HAVE_IO_H
 
@@ -395,6 +399,9 @@
 
 /* Define if you have the <krb.h> header file.  */
 #undef HAVE_KRB_H
+
+/* Define if you have the <krb5.h> header file.  */
+#undef HAVE_KRB5_H
 
 /* Define if you have the <libutil.h> header file.  */
 #undef HAVE_LIBUTIL_H
@@ -531,9 +538,6 @@
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
 
-/* Define if you have the <sys/un.h> header file.  */
-#undef HAVE_SYS_UN_H
-
 /* Define if you have the <sysexits.h> header file.  */
 #undef HAVE_SYSEXITS_H
 
@@ -633,8 +637,23 @@
 /* define if you have -lpp */
 #undef HAVE_PP
 
+/* define if you have HEIMDAL Kerberos */
+#undef HAVE_HEIMDAL_KERBEROS
+
+/* define if you have Kerberos V */
+#undef HAVE_KRB5
+
+/* define if you have Kerberos V with IV support */
+#undef HAVE_KRB425
+
+/* define if you have Kerberos IV */
+#undef HAVE_KRB4
+
 /* define if you have Kerberos des_debug */
 #undef HAVE_DES_DEBUG
+
+/* define if you have Kerberos IV */
+#undef HAVE_KRB4
 
 /* define if you have Kth Kerberos */
 #undef HAVE_KTH_KERBEROS
@@ -837,14 +856,17 @@
 /* define to support CLDAP */
 #undef LDAP_CONNECTIONLESS
 
-/* define to support domain sockets */
-#undef LDAP_PF_LOCAL
+/* define to support PF_LOCAL transport */
+#undef USE_PF_LOCAL
+
+/* define to support cleartext passwords */
+#undef SLAPD_CLEARTEXT
 
 /* define to support crypt(3) passwords */
 #undef SLAPD_CRYPT
 
-/* define to support cleartext passwords */
-#undef SLAPD_CLEARTEXT
+/* define to support Kerberos passwords */
+#undef SLAPD_KPASSWD
 
 /* define to support multimaster replication */
 #undef SLAPD_MULTIMASTER

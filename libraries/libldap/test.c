@@ -235,7 +235,7 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 	static char	dn[256], passwd[256];
 
 	if ( !freeit ) {
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		getline( dn, sizeof(dn), stdin,
 		    "re-bind method (0->simple, 1->krbv41, 2->krbv42, 3->krbv41&2)? " );
 		if (( *authmethodp = atoi( dn )) == 3 ) {
@@ -243,9 +243,9 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 		} else {
 			*authmethodp |= 0x80;
 		}
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 		*authmethodp = LDAP_AUTH_SIMPLE;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 		getline( dn, sizeof(dn), stdin, "re-bind dn? " );
 		strcat( dn, dnsuffix );
@@ -413,13 +413,13 @@ main( int argc, char **argv )
 			break;
 
 		case 'b':	/* asynch bind */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			getline( line, sizeof(line), stdin,
 			    "method (0->simple, 1->krbv41, 2->krbv42)? " );
 			method = atoi( line ) | 0x80;
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -439,7 +439,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'B':	/* synch bind */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			getline( line, sizeof(line), stdin,
 			    "method 0->simple 1->krbv41 2->krbv42 3->krb? " );
 			method = atoi( line );
@@ -447,9 +447,9 @@ main( int argc, char **argv )
 				method = LDAP_AUTH_KRBV4;
 			else
 				method = method | 0x80;
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 

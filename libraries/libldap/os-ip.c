@@ -333,7 +333,7 @@ ldap_close_connection( Sockbuf *sb )
 }
 
 
-#if defined( HAVE_KERBEROS ) || defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
+#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) || defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {
@@ -374,7 +374,7 @@ ldap_host_connected_to( Sockbuf *sb )
 }
 #undef DO_RETURN   
    
-#endif /* HAVE_KERBEROS || HAVE_TLS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND || HAVE_TLS */
 
 
 /* for UNIX */

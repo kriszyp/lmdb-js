@@ -10,24 +10,13 @@
  * in file LICENSE in the top-level directory of the distribution.
  */
 
-/* Kerberos IV */
+/* Kerberos V */
 
-#ifndef _AC_KRB_H
-#define _AC_KRB_H
+#ifndef _AC_KRB5_H
+#define _AC_KRB5_H
 
-#if defined( HAVE_KRB4 )
+#if defined( HAVE_KRB5 )
+#include <krb5.h>
+#endif /* HAVE_KRB5 */
 
-#if defined( HAVE_KERBEROSIV_KRB_H )
-#include <kerberosIV/krb.h>
-#elif defined( HAVE_KRB_H )
-#include <krb.h>
-#endif
-
-#if defined( HAVE_KERBEROSIV_DES_H )
-#include <kerberosIV/des.h>
-#elif defined( HAVE_DES_H )
-#include <des.h>
-#endif
-
-#endif /* HAVE_KRB4 */
-#endif /* _AC_KRB_H */
+#endif /* _AC_KRB5_H */

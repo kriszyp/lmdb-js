@@ -44,7 +44,7 @@ struct attribute attrlist[] = {
 #ifdef UOFM
 	{ "multiLineDescription", "Description", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_GROUP_MOD | ATTR_FLAG_IS_MULTILINE },
 #endif
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	{ "krbName", "Kerberos name", 0, ATTR_FLAG_PERSON | ATTR_FLAG_READ },
 #endif
 	{ "description", "Brief description", 0, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },

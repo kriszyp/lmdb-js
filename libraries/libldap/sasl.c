@@ -10,7 +10,7 @@
  *		name		DistinguishedName,	 -- who
  *		authentication	CHOICE {
  *			simple		[0] OCTET STRING -- passwd
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
  *			krbv42ldap	[1] OCTET STRING
  *			krbv42dsa	[2] OCTET STRING
 #endif

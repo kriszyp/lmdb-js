@@ -51,7 +51,7 @@ static void free_ldmarr LDAP_P(( LDAPMod ** ));
 static int getmodtype LDAP_P(( char * ));
 static void dump_ldm_array LDAP_P(( LDAPMod ** ));
 static char **read_krbnames LDAP_P(( Ri * ));
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 static void upcase LDAP_P(( char * ));
 #endif
 static int do_bind LDAP_P(( Ri *, int * ));
@@ -627,7 +627,7 @@ do_bind(
 )
 {
     int		ldrc;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
     int rc;
     int retval = 0;
     int kni, got_tgt;
@@ -636,7 +636,7 @@ do_bind(
     char realm[ REALM_SZ ];
     char name[ ANAME_SZ ];
     char instance[ INST_SZ ];
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
     *lderr = 0;
 
@@ -682,12 +682,12 @@ do_bind(
 
     switch ( ri->ri_bind_method ) {
     case AUTH_KERBEROS:
-#ifndef HAVE_KERBEROS
+#ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	Debug( LDAP_DEBUG_ANY,
 	    "Error: Kerberos bind for %s:%d, but not compiled w/kerberos\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
 	return( BIND_ERR_KERBEROS_FAILED );
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	/*
 	 * Bind using kerberos.
 	 * If "bindprincipal" was given in the config file, then attempt
@@ -763,7 +763,7 @@ kexit:	if ( krbnames != NULL ) {
 	}
 	return( retval);
 	break;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     case AUTH_SIMPLE:
 	/*
 	 * Bind with a plaintext password.
@@ -890,7 +890,7 @@ read_krbnames(
 }
 
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 /*
  * upcase a string
@@ -907,4 +907,4 @@ upcase(
     }
 }
 
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */

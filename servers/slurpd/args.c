@@ -36,11 +36,11 @@ usage( char *name )
 {
     fprintf( stderr, "usage: %s\t[-d debug-level] [-s syslog-level]\n", name );
     fprintf( stderr, "\t\t[-f slapd-config-file] [-r replication-log-file]\n" );
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
     fprintf( stderr, "\t\t[-t tmp-dir] [-o] [-k srvtab-file]\n" );
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     fprintf( stderr, "\t\t[-t tmp-dir] [-o]\n" );
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 }
 
 
@@ -114,11 +114,11 @@ doargs(
 	    g->slurpd_rdir = strdup( optarg );
 	    break;
 	case 'k':	/* name of kerberos srvtab file */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	    g->default_srvtab = strdup( optarg );
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    fprintf( stderr, "must compile with KERBEROS to use -k option\n" );
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    break;
 	case 'h':
 	    usage( g->myname );

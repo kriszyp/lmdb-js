@@ -31,7 +31,7 @@ bdb2i_back_bind_internal(
 	Attribute	*a;
 	int		rc;
 	Entry		*matched;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char		krbname[MAX_K_NAME_SZ + 1];
 	AUTH_DAT	ad;
 #endif
@@ -200,7 +200,7 @@ bdb2i_back_bind_internal(
 		rc = 0;
 		break;
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	case LDAP_AUTH_KRBV41:
 		if ( bdb2i_krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,

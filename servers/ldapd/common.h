@@ -92,7 +92,7 @@ extern int	do_udp;
 extern int	idletime;
 extern int	referral_connection_timeout;
 extern struct timeval	conn_start_tv;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 extern char	*krb_ldap_service;
 extern char	*krb_x500_service;
 extern char	*krb_x500_instance;

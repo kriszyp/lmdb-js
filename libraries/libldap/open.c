@@ -321,15 +321,15 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 #endif
 
 	if ( krbinstancep != NULL ) {
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		char *c;
 		if (( *krbinstancep = ldap_host_connected_to( sb )) != NULL &&
 		    ( c = strchr( *krbinstancep, '.' )) != NULL ) {
 			*c = '\0';
 		}
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 		*krbinstancep = NULL;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	}
 
 	return( 0 );

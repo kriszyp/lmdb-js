@@ -72,7 +72,7 @@ int	do_udp = 0;
 int	idletime = DEFAULT_TIMEOUT;
 int	referral_connection_timeout = DEFAULT_REFERRAL_TIMEOUT;
 struct timeval	conn_start_tv;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 char	*krb_ldap_service = "ldapserver";
 char	*krb_x500_service = "x500dsa";
 char	*krb_x500_instance;
@@ -93,7 +93,7 @@ usage( char *name )
 	fprintf( stderr, " [ -t timeout ]" );
 #endif
 	fprintf( stderr, " [-I]" );
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	fprintf( stderr, " [-i dsainstance]" );
 #endif
 	fprintf( stderr, "\n" );
@@ -139,7 +139,7 @@ main( int argc, char **argv )
         dsapargv[2] = 0;
         dsapargv[3] = 0;
         dsapargc = 1;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	kerberos_keyfile = "";
 #endif
 
@@ -180,7 +180,7 @@ main( int argc, char **argv )
 			idletime = atoi( optarg );
 			break;
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		case 'f':	/* kerberos key file */
 			kerberos_keyfile = strdup( optarg );
 			break;

@@ -104,7 +104,7 @@ fatal( char *s )
 {
 	if (errno != 0)
 		perror(s);
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	destroy_tickets();
 #endif
 	exit( EXIT_FAILURE );
