@@ -137,13 +137,13 @@ attributetype ( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes'
 #
 
 attributetype ( 2.5.4.41 NAME 'name'
-	DESC 'RFC2256: common supertype of name attributes' 
+	DESC 'RFC2256: common supertype of name attributes'
 	EQUALITY caseIgnoreMatch
 	SUBSTR caseIgnoreSubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
 attributetype ( 2.5.4.49 NAME 'distinguishedName'
-	DESC 'RFC2256: common supertype of distingushed name attributes' 
+	DESC 'RFC2256: common supertype of distingushed name attributes'
 	EQUALITY distinguishedNameMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
 
@@ -152,7 +152,7 @@ attributetype ( 2.5.4.49 NAME 'distinguishedName'
 #
 
 attributetype ( 2.5.4.0 NAME 'objectClass'
-	DESC 'RFC2256: object classes of the entity' 
+	DESC 'RFC2256: object classes of the entity'
 	EQUALITY objectIdentifierMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
@@ -162,7 +162,7 @@ attributetype ( 2.5.4.1 NAME ( 'aliasedObjectName' 'aliasedEntryName' )
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE )
 
 attributetype ( 2.5.4.2 NAME 'knowledgeInformation'
-	DESC 'RFC2256: knowledge information' 
+	DESC 'RFC2256: knowledge information'
 	EQUALITY caseIgnoreMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
@@ -368,7 +368,7 @@ attributetype ( 2.5.4.43 NAME 'initials'
 	DESC 'RFC2256: initials of some or all of names, but not the surname(s).'
 	SUP name )
 
-attributetype ( 2.5.4.44 NAME 'generationQualifier' 
+attributetype ( 2.5.4.44 NAME 'generationQualifier'
 	DESC 'RFC2256: name qualifier indicating a generation'
 	SUP name )
 
@@ -567,7 +567,8 @@ objectclass ( 2.5.6.19 NAME 'cRLDistributionPoint'
 	MAY ( certificateRevocationList $ authorityRevocationList $
 		deltaRevocationList ) )
 
-objectclass ( 2.5.6.20 NAME 'dmd' SUP top STRUCTURAL
+objectclass ( 2.5.6.20 NAME 'dmd'
+	SUP top STRUCTURAL
 	MUST ( dmdName )
 	MAY ( userPassword $ searchGuide $ seeAlso $ businessCategory $
 		x121Address $ registeredAddress $ destinationIndicator $
@@ -584,8 +585,9 @@ objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
 	DESC 'RFC2252: extensible object'
 	SUP top AUXILIARY )
 
-objectclass ( 2.5.20.1 NAME 'subschema' AUXILIARY
-	DESC 'RFC2252: controlling subschema (subentry)' 
+objectclass ( 2.5.20.1 NAME 'subschema'
+	DESC 'RFC2252: controlling subschema (subentry)'
+	AUXILIARY
 	MAY ( dITStructureRules $ nameForms $ ditContentRules $
 		objectClasses $ attributeTypes $ matchingRules $
 		matchingRuleUse ) )
@@ -599,13 +601,15 @@ objectclass ( 2.5.6.21 NAME 'pkiUser'
 	SUP top AUXILIARY
 	MUST userCertificate )
 
-objectclass ( 2.5.6.22 NAME 'pkiCA' SUP top AUXILIARY
+objectclass ( 2.5.6.22 NAME 'pkiCA'
 	DESC 'RFC2587: PKI certificate authority'
+	SUP top AUXILIARY
 	MAY ( authorityRevocationList $ certificateRevocationList $
 		cACertificate $ crossCertificatePair ) )
 
-objectclass ( 2.5.6.23 NAME 'deltaCRL' SUP top AUXILIARY
+objectclass ( 2.5.6.23 NAME 'deltaCRL'
 	DESC 'RFC2587: PKI user'
+	SUP top AUXILIARY
 	MAY deltaRevocationList )
 
 
@@ -699,7 +703,8 @@ objectclass ( 2.16.840.1.113730.3.2.6 NAME 'referral'
 #
 # LDAPsubEntry
 #	likely to change!
-objectclass ( 2.16.840.1.113719.2.142.6.1.1 NAME 'LDAPsubEntry'
+objectclass ( 2.16.840.1.113719.2.142.6.1.1
+	NAME 'LDAPsubEntry'
 	DESC 'LDAP Subentry'
 	SUP top STRUCTURAL MAY cn )
 
@@ -797,6 +802,8 @@ attributetype ( 1.3.6.1.4.1.4203.1.3.2
 	SYNTAX 1.3.6.1.4.1.4203.1.1.1
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
+# OpenLDAP Access Control Information
+#	Experimental
 attributetype ( 1.3.6.1.4.1.4203.666.1.5
 	NAME 'OpenLDAPaci'
 	DESC 'OpenLDAP access control information (experimental)'
@@ -804,19 +811,10 @@ attributetype ( 1.3.6.1.4.1.4203.666.1.5
 	SYNTAX 1.3.6.1.4.1.4203.666.2.1
 	USAGE directoryOperation )
 
-#
-# Author:	Ando <ando@OpenLDAP.org>
-# Subject:	Monitor schema items
-# Date:		2001/07/09
-# Status:	Work in Progress
-#
-
-#
 # monitorSubEntry
-#
-# Notes: in 'cn' (inherited from 'LDAPsubEntry') it holds the name 
-# of the subsystem it is monitoring
-#
+#   Notes: in 'cn' (inherited from 'LDAPsubEntry') it holds the name
+#   of the subsystem it is monitoring
+#	Experimental!
 #objectclass ( 1.3.6.1.4.1.4203.666.X.Y.Z
 #	NAME 'monitorSubEntry'
 # 	DESC 'OpenLDAP ancestor class for system monitoring'

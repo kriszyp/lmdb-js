@@ -1,7 +1,9 @@
+
+
 INTERNET-DRAFT                                         Michael P. Armijo
-<draft-ietf-ldapext-locate-04.txt>                          Levon Esibov
-August, 2000                                                  Paul Leach
-Expires: February, 2001                            Microsoft Corporation
+<draft-ietf-ldapext-locate-06.txt>                          Levon Esibov
+November 13, 2001                                             Paul Leach
+Expires: May 13, 2002                              Microsoft Corporation
 							     R.L. Morgan
 						University of Washington
 
@@ -32,8 +34,12 @@ Status of this Memo
    ietf-ldapext-locate-04.txt>, and expires on February 25, 2001.  
    Please send comments to the authors.
 
+   Copyright Notice
 
-1. Abstract
+   Copyright (C) The Internet Society (2001).  All Rights Reserved.
+
+
+Abstract
 
    A Lightweight Directory Access Protocol (LDAP) request must be
    directed to an appropriate server for processing.  This document
@@ -41,7 +47,20 @@ Status of this Memo
    the Domain Name System. 
 
 
-2. Introduction
+
+
+
+
+
+
+
+Armijo, Esibov, Leach and Morgan                                [Page 1]
+
+INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+
+
+
+1. Introduction
 
    The LDAPv3 protocol [1] is designed to be a lightweight access
    protocol for directory services supporting X.500 models.  As a
@@ -85,12 +104,19 @@ Status of this Memo
    names, and use of domain-name-based DNs is becoming common.
 
 
-3. Mapping Distinguished Names into Domain Names
+
+2. Mapping Distinguished Names into Domain Names
 
    This section defines a method of converting a DN into a DNS domain
    name for use in the server location method described below.  Some
    DNs cannot be converted into a domain name.  Converted DNs result 
    in a fully qualified domain name.
+
+Armijo, Esibov, Leach and Morgan                                [Page 2]
+
+INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+
+
 
    The output domain name is initially empty.  The DN is processed in
    right-to-left order (i.e., beginning with the first RDN in the
@@ -114,12 +140,13 @@ Status of this Memo
    example.net.
 
    The determined DNS name will be submitted as a DNS query using the 
-   algorithm defined in section 4.
+   algorithm defined in section 3.
 
 
-4. Locating LDAP servers through DNS
 
-   LDAP server location information is to be stored using DNS Service
+3. Locating LDAPv3 servers through DNS
+
+   LDAPv3 server location information is to be stored using DNS Service
    Location Record (SRV)[5].  The data in a SRV record contains the DNS
    name of the server that provides the LDAP service, corresponding
    Port number, and parameters that enable the client to choose an
@@ -128,17 +155,31 @@ Status of this Memo
 
       _<Service>._<Proto>.<Domain>
 
-   where <Service> is always "ldap", and <Proto> is a protocol that can
-   be either "udp" or "tcp".  <Domain> is the domain name formed by
-   converting the DN of a naming context mastered by the LDAP Server
-   into a domain name using the algorithm in Section 3.  Note that
-   "ldap" is the symbolic name for the LDAP service in Assigned
-   Numbers[6], as required by [5].
+   where <Service> is "ldap", and <Proto> is "tcp". <Domain> is the
+   domain name formed by converting the DN of a naming context mastered
+   by the LDAP Server into a domain name using the algorithm in
+   Section 2.  Note that "ldap" is the symbolic name for the LDAP
+   service in Assigned Numbers[6], as required by [5].
+
+
+
+
+
+
+
+
+
+
+Armijo, Esibov, Leach and Morgan                                [Page 3]
+
+INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+
+
 
    Presence of such records enables clients to find the LDAP servers
    using standard DNS query [4].  A client (or server) seeking an LDAP
    server for a particular DN converts that DN to a domain name using
-   the algorithm of Section 3, does a SRV record query using the DNS
+   the algorithm of Section 2, does a SRV record query using the DNS
    name formed as described in the preceding paragraph, and interprets
    the response as described in [5] to determine a host (or hosts) to
    contact. As an example, a client that searches for an LDAP server
@@ -160,6 +201,12 @@ Status of this Memo
    portion of the constructed fully qualified domain name.
 
 
+
+4.  IANA Considerations
+
+   This document does not require any IANA actions.
+
+
 5. Security Considerations
 
    DNS responses can typically be easily spoofed.  Clients using this
@@ -168,10 +215,22 @@ Status of this Memo
    intended to contact.  See [7] for more information on security
    threats and security mechanisms.
 
+   The client MUST use the server hostname it used to open the LDAP
+   connection as the value to compare against the server name as
+   expressed in the server's certificate.  The client MUST NOT use the
+   server's canonical DNS name or any other derived form of name.
+
    This document describes a method that uses DNS SRV records to 
    discover LDAP servers.  All security considerations related to DNS
    SRV records are inherited by this document.  See the security 
    considerations section in [5] for more details.
+
+
+
+
+Armijo, Esibov, Leach and Morgan                                [Page 4]
+
+INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
 
 
 6. References
@@ -196,8 +255,16 @@ Status of this Memo
    [6]  Reynolds, J. and J. Postel, "Assigned Numbers", STD 2, RFC
         1700, October 1994.
 
-   [7]  Wahl, M., Alvestrand, H., Hodges, J. and Morgan, R., 
+   [7]  Wahl, M., Alvestrand, H., Hodges, J. and Morgan, R.,
         "Authentication Methods for LDAP", RFC 2829, May 2000.
+
+   [8]  Hodges, J., Morgan, R., Wahl, M., "Lightweight Directory Access
+        Protocol (v3): Extension for Transport Layer Security", RFC 2830,
+        May 2000.
+
+
+
+
 
 
 7. Authors' Addresses
@@ -217,6 +284,12 @@ Status of this Memo
    Redmond, WA 98052
    levone@microsoft.com
 
+
+
+Armijo, Esibov, Leach and Morgan                                [Page 5]
+
+INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+
    RL "Bob" Morgan
    University of Washington
    4545 15th Ave NE
@@ -227,7 +300,63 @@ Status of this Memo
    EMail: rlmorgan@washington.edu
    URI:   http://staff.washington.edu/rlmorgan/
 
-   Expires February 25, 2001
+
+8.  Intellectual Property Statement
+
+The IETF takes no position regarding the validity or scope of any
+intellectual property or other rights that might be claimed to  pertain
+to the implementation or use of the technology described in this
+document or the extent to which any license under such rights might or
+might not be available; neither does it represent that it has made any
+effort to identify any such rights.  Information on the IETF's
+procedures with respect to rights in standards-track and standards-
+related documentation can be found in BCP-11.  Copies of claims of
+rights made available for publication and any assurances of licenses to
+be made available, or the result of an attempt made to obtain a general
+license or permission for the use of such proprietary rights by
+implementors or users of this specification can be obtained from the
+IETF Secretariat.
+
+The IETF invites any interested party to bring to its attention any
+copyrights, patents or patent applications, or other proprietary rights
+which may cover technology that may be required to practice this
+standard.  Please address the information to the IETF Executive
+Director.
 
 
+9.  Full Copyright Statement
 
+Copyright (C) The Internet Society (2001).  All Rights Reserved.
+This document and translations of it may be copied and furnished to
+others, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published and
+distributed, in whole or in part, without restriction of any kind,
+provided that the above copyright notice and this paragraph are included
+on all such copies and derivative works.  However, this document itself
+may not be modified in any way, such as by removing the copyright notice
+or references to the Internet Society or other Internet organizations,
+except as needed for the purpose of developing Internet standards in
+which case the procedures for copyrights defined in the Internet
+Standards process must be followed, or as required to translate it into
+languages other than English.  The limited permissions granted above are
+perpetual and will not be revoked by the Internet Society or its
+successors or assigns.  This document and the information contained
+herein is provided on an "AS IS" basis and THE INTERNET SOCIETY AND THE
+
+
+Armijo, Esibov, Leach and Morgan                                [Page 6]
+
+INTERNET-DRAFT   Discovering LDAP Services with DNS   Novemeber 13, 2001
+
+INTERNET ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE."
+
+
+10.  Expiration Date
+
+   This documentis filed as <draft-ietf-ldapext-locate-06.txt>, and 
+   expires May 13, 2002.
+
+Armijo, Esibov, Leach and Morgan                                [Page 7]

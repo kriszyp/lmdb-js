@@ -6,12 +6,12 @@
 #   Definition of an X.500 Attribute Type and an Object Class to Hold
 #   Uniform Resource Identifiers (URIs) [RFC2079]
 #	(core.schema)
-#   
+#
 #   A Summary of the X.500(96) User Schema for use with LDAPv3 [RFC2256]
 #	(core.schema)
 #
 #   The COSINE and Internet X.500 Schema [RFC1274] (cosine.schema)
-   
+
 # carLicense
 # This multivalued field is used to record the values of the license or
 # registration plate associated with an individual.
@@ -72,7 +72,7 @@ attributetype ( 2.16.840.1.113730.3.1.4
 # Interchange Format [JFIF].
 # Note that the jpegPhoto attribute type was defined for use in the
 # Internet X.500 pilots but no referencable definition for it could be
-# located.    
+# located.
 attributetype ( 0.9.2342.19200300.100.1.60
 	NAME 'jpegPhoto'
 	DESC 'RFC2798: a JPEG image'
@@ -139,4 +139,4 @@ objectclass	( 2.16.840.1.113730.3.2.2
 		photo $ roomNumber $ secretary $ uid $ userCertificate $
 		x500uniqueIdentifier $ preferredLanguage $
 		userSMIMECertificate $ userPKCS12 )
-	)  
+	)

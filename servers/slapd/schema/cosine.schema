@@ -10,7 +10,7 @@
 #
 # Note: It seems that the pilot schema evolved beyond what was
 # described in RFC1274.  However, this document attempts to describes
-# RFC1274 as published. 
+# RFC1274 as published.
 #
 # Depends on core.schema
 
@@ -1258,7 +1258,7 @@ objectclass ( 0.9.2342.19200300.100.4.14 NAME 'RFC822localPart'
 #
 objectclass ( 0.9.2342.19200300.100.4.15 NAME 'dNSDomain'
 	SUP 'domain' STRUCTURAL
-	MAY ( ARecord $ MDRecord $ MXRecord $ NSRecord $ 
+	MAY ( ARecord $ MDRecord $ MXRecord $ NSRecord $
 		SOARecord $ CNAMERecord )
 	)
 
@@ -1276,6 +1276,7 @@ objectclass ( 0.9.2342.19200300.100.4.15 NAME 'dNSDomain'
 #    ::= {pilotObjectClass 17}
 #
 objectclass ( 0.9.2342.19200300.100.4.17 NAME 'domainRelatedObject'
+	DESC 'RFC1274: an object related to an domain'
 	SUP top AUXILIARY
 	MUST associatedDomain )
 
