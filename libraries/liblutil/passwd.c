@@ -692,12 +692,12 @@ static int chk_kerberos(
 			return 1;
 		}
 
-		snprintf(tkt, sizeof(tkt), "%s_popper.%u",
+		snprintf(tkt, sizeof(tkt), "%s_slapd.%u",
 			TKT_ROOT, (unsigned)getpid());
 		krb_set_tkt_string (tkt);
 
 		status = krb_verify_user( passwd->bv_val, "", lrealm,
-			cred->bv_val, 1, "pop");
+			cred->bv_val, 1, "ldap");
 
 		dest_tkt(); /* no point in keeping the tickets */
 
