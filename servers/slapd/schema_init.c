@@ -59,7 +59,6 @@
 #define caseIgnoreOrderingMatch			caseIgnoreMatch
 #define caseExactOrderingMatch			caseExactMatch
 #define integerOrderingMatch			integerMatch
-#define	octetStringOrderingMatch		octetStringMatch
 
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
@@ -134,6 +133,26 @@ octetStringMatch(
 			value->bv_len );
 	}
 
+	*matchp = match;
+	return LDAP_SUCCESS;
+}
+
+static int
+octetStringOrderingMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	ber_len_t v_len  = value->bv_len;
+	ber_len_t av_len = ((struct berval *) assertedValue)->bv_len;
+	int match = memcmp( value->bv_val,
+		((struct berval *) assertedValue)->bv_val,
+		(v_len < av_len ? v_len : av_len) );
+	if( match == 0 )
+		match = v_len - av_len;
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
