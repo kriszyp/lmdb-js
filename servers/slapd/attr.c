@@ -233,7 +233,7 @@ attr_merge_normalize_one(
 	struct berval	*nvalp;
 	int		rc;
 
-	if ( desc->ad_type->sat_equality->smr_normalize ) {
+	if ( desc->ad_type->sat_equality && desc->ad_type->sat_equality->smr_normalize ) {
 		rc = (*desc->ad_type->sat_equality->smr_normalize)(
 				0,
 				desc->ad_type->sat_syntax,
