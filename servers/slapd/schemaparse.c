@@ -27,15 +27,15 @@ static void		at_usage(void)     LDAP_GCCATTR((noreturn));
 static char *const err2text[] = {
 	"",
 	"Out of memory",
-	"Objectclass not found",
-	"Attribute type not found",
-	"Duplicate objectclass",
-	"Duplicate attributetype",
-	"Duplicate syntax",
-	"Duplicate matchingrule",
+	"ObjectClass not found",
+	"AttributeType not found",
+	"Duplicate objectClass",
+	"Duplicate attributeType",
+	"Duplicate ldapSyntax",
+	"Duplicate matchingRule",
 	"OID or name required",
-	"Syntax or superior required",
-	"Matchingrule not found",
+	"SYNTAX or SUPerior required",
+	"MatchingRule not found",
 	"Syntax not found",
 	"Syntax required"
 };
@@ -123,7 +123,7 @@ parse_oc_old(
 		for( namep = oc->oc_at_oids_must; *namep ; namep++ ) {
 			code = at_fake_if_needed( *namep );
 			if ( code ) {
-				fprintf( stderr, "%s: line %d: %s %s\n",
+				fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 					 fname, lineno, scherr2str(code), *namep);
 				exit( EXIT_FAILURE );
 			}
@@ -133,7 +133,7 @@ parse_oc_old(
 		for( namep = oc->oc_at_oids_may; *namep; namep++ ) {
 			code = at_fake_if_needed( *namep );
 			if ( code ) {
-				fprintf( stderr, "%s: line %d: %s %s\n",
+				fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 					 fname, lineno, scherr2str(code), *namep);
 				exit( EXIT_FAILURE );
 			}
@@ -142,7 +142,7 @@ parse_oc_old(
 	
 	code = oc_add(oc,&err);
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s %s\n",
+		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
 		exit( EXIT_FAILURE );
 	}
@@ -298,7 +298,7 @@ parse_oc(
 	/* oc->oc_oid == NULL will be an error someday */
 	code = oc_add(oc,&err);
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s %s\n",
+		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
 		exit( EXIT_FAILURE );
 	}
@@ -428,7 +428,7 @@ parse_at(
 	}
 	code = at_add(at,&err);
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s %s\n",
+		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
 		exit( EXIT_FAILURE );
 	}

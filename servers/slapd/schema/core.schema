@@ -292,7 +292,7 @@ attributetype ( 2.5.4.40 NAME 'crossCertificatePair'
 
 # 2.5.4.41 is 'name', moved above since other attribute types derive from it
 
-attributetype ( 2.5.4.42 NAME 'givenName' SUP name )
+attributetype ( 2.5.4.42 NAME ( 'givenName' 'gn' ) SUP name )
 
 attributetype ( 2.5.4.43 NAME 'initials' SUP name )
 

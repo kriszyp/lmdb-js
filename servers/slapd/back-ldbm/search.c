@@ -138,6 +138,7 @@ ldbm_back_search(
 
 	/* need normalized dn below */
 	realbase = ch_strdup( e->e_ndn );
+
 	cache_return_entry_r( &li->li_cache, e );
 
 	if ( candidates == NULL ) {
@@ -400,15 +401,20 @@ search_candidates(
 )
 {
 	ID_BLOCK		*candidates;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	candidates = filter_candidates( be, filter );
+#else
+
 	Filter		rf, rf_or, af, af_or, lf, lf_and;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	struct berval rf_or_bv, af_or_bv;
-	static AttributeDescription *objectClass = NULL;
+	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 #endif
 
 	Debug(LDAP_DEBUG_TRACE, "search_candidates: base=\"%s\" s=%d d=%d\n",
 		e->e_ndn, scope, deref );
+#endif
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	if( !manageDSAit ) {
 		/* match referrals */
 		rf.f_next = NULL;
@@ -416,10 +422,8 @@ search_candidates(
 		rf.f_or = &rf_or;
 		rf.f_or->f_choice = LDAP_FILTER_EQUALITY;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		rf.f_or->f_av_desc = objectClass;
-		rf.f_or->f_av_value = &rf_or_bv;
-		rf.f_or->f_av_value->bv_val = ch_strdup( "REFERRAL" );
-		rf.f_or->f_av_value->bv_len = sizeof("REFERRAL")-1;
+		rf.f_or->f_av_desc = ad_objectClass;
+		rf.f_or->f_av_value = ber_bvstrdup("REFERRAL");
 #else
 		rf.f_or->f_avtype = ch_strdup( "objectclass" );
 		rf.f_or->f_avvalue.bv_val = ch_strdup( "REFERRAL" );
@@ -439,9 +443,7 @@ search_candidates(
 		af.f_or->f_choice = LDAP_FILTER_EQUALITY;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		af.f_or->f_av_desc = objectClass;
-		af.f_or->f_av_value = &af_or_bv;
-		af.f_or->f_av_value->bv_val = ch_strdup( "ALIAS" );
-		af.f_or->f_av_value->bv_len = sizeof("ALIAS")-1;
+		af.f_or->f_av_value = ber_bvstrdup("ALIAS");
 #else
 		af.f_or->f_avtype = ch_strdup( "objectclass" );
 		af.f_or->f_avvalue.bv_val = ch_strdup( "ALIAS" );
@@ -477,7 +479,7 @@ search_candidates(
 	/* free dynamically allocated bits */
 	if( af.f_or != NULL ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		free( af.f_or->f_av_value->bv_val );
+		ber_bvfree( af.f_or->f_av_value );
 #else
 		free( af.f_or->f_avtype );
 		free( af.f_or->f_avvalue.bv_val );
@@ -486,12 +488,13 @@ search_candidates(
 
 	if( rf.f_or != NULL ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		free( rf.f_or->f_av_value->bv_val );
+		ber_bvfree( rf.f_or->f_av_value );
 #else
 		free( rf.f_or->f_avtype );
 		free( rf.f_or->f_avvalue.bv_val );
 #endif
 	}
 
+#endif
 	return( candidates );
 }
