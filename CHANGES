@@ -1,8 +1,11 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.21 Engineering
+	Changed slapd ACL selfwrite replace logic (ITS#1530)
 	Build environment
+		Updated IPv6 configuration argument handling
 		Fix back-shell tools make depend bug (ITS#1518)
+		Removed extraneous files
 
 OpenLDAP 2.0.20 Release
 	Fixed slapd ACL empty replace bug (ITS#1530)
