@@ -32,17 +32,17 @@ struct monitor_ops_t {
 	struct berval	rdn;
 	struct berval	nrdn;
 } monitor_op[] = {
-	{ BER_BVC( "cn=Bind" ),		BER_BVC( "cn=bind" )		},
-	{ BER_BVC( "cn=Unbind" ),	BER_BVC( "cn=unbind" )		},
-	{ BER_BVC( "cn=Add" ),		BER_BVC( "cn=add" )		},
-	{ BER_BVC( "cn=Delete" ),	BER_BVC( "cn=delete" )		},
-	{ BER_BVC( "cn=Modrdn" ),	BER_BVC( "cn=modrdn" )		},
-	{ BER_BVC( "cn=Modify" ),	BER_BVC( "cn=modify" )		},
-	{ BER_BVC( "cn=Compare" ),	BER_BVC( "cn=compare" )		},
-	{ BER_BVC( "cn=Search" ),	BER_BVC( "cn=search" )		},
-	{ BER_BVC( "cn=Abandon" ),	BER_BVC( "cn=abandon" )		},
-	{ BER_BVC( "cn=Extended" ),	BER_BVC( "cn=extended" )	},
-	{ BER_BVNULL,			BER_BVNULL			}
+	{ BER_BVC( "cn=Bind" ),		BER_BVNULL },
+	{ BER_BVC( "cn=Unbind" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Add" ),		BER_BVNULL },
+	{ BER_BVC( "cn=Delete" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Modrdn" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Modify" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Compare" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Search" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Abandon" ),	BER_BVNULL },
+	{ BER_BVC( "cn=Extended" ),	BER_BVNULL },
+	{ BER_BVNULL,			BER_BVNULL }
 };
 
 int
@@ -52,7 +52,7 @@ monitor_subsys_ops_init(
 {
 	struct monitorinfo	*mi;
 	
-	Entry			*e, *e_tmp, *e_op;
+	Entry			*e_op, **ep;
 	struct monitorentrypriv	*mp;
 	char			buf[ BACKMONITOR_BUFSIZE ];
 	int 			i;
@@ -63,7 +63,8 @@ monitor_subsys_ops_init(
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi,
-			&monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn, &e_op ) ) {
+			&monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn, &e_op ) )
+	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
 			"unable to get entry \"%s\"\n",
@@ -75,9 +76,13 @@ monitor_subsys_ops_init(
 	attr_merge_one( e_op, mi->mi_ad_monitorOpInitiated, &bv_zero, NULL );
 	attr_merge_one( e_op, mi->mi_ad_monitorOpCompleted, &bv_zero, NULL );
 
-	e_tmp = NULL;
+	mp = ( struct monitorentrypriv * )e_op->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
 
-	for ( i = SLAP_OP_LAST; i-- > 0; ) {
+	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+		struct berval	rdn;
+		Entry		*e;
 
 		/*
 		 * Initiated ops
@@ -115,9 +120,13 @@ monitor_subsys_ops_init(
 			return( -1 );
 		}
 	
+		/* steal normalized RDN */
+		dnRdn( &e->e_nname, &rdn );
+		ber_dupbv( &monitor_op[i].nrdn, &rdn );
+	
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
-		mp->mp_next = e_tmp;
+		mp->mp_next = NULL;
 		mp->mp_children = NULL;
 		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_OPS];
 		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_OPS].mss_flags \
@@ -131,12 +140,10 @@ monitor_subsys_ops_init(
 				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
-	
-		e_tmp = e;
-	}
 
-	mp = ( struct monitorentrypriv * )e_op->e_private;
-	mp->mp_children = e_tmp;
+		*ep = e;
+		ep = &mp->mp_next;
+	}
 
 	monitor_cache_release( mi, e_op );
 
@@ -158,7 +165,6 @@ monitor_subsys_ops_update(
 #else /* ! HAVE_GMP */
 	unsigned long		nInitiated = 0,
 				nCompleted = 0;
-	char			buf[] = "+9223372036854775807L";
 #endif /* ! HAVE_GMP */
 	struct berval		rdn;
 	int 			i;
@@ -174,7 +180,7 @@ monitor_subsys_ops_update(
 #ifdef HAVE_GMP
 		mpz_init( nInitiated );
 		mpz_init( nCompleted );
-#endif /* ! HAVE_GMP */
+#endif /* HAVE_GMP */
 
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
@@ -213,46 +219,22 @@ monitor_subsys_ops_update(
 
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorOpInitiated );
 	assert ( a != NULL );
-	free( a->a_vals[ 0 ].bv_val );
+
+	/* NOTE: no minus sign is allowed in the counters... */
+	UI2BV( &a->a_vals[ 0 ], nInitiated );
 #ifdef HAVE_GMP
-	/* NOTE: there should be no minus sign allowed in the counters... */
-	a->a_vals[ 0 ].bv_len = mpz_sizeinbase( nInitiated, 10 );
-	a->a_vals[ 0 ].bv_val = ber_memalloc( a->a_vals[ 0 ].bv_len + 1 );
-	(void)mpz_get_str( a->a_vals[ 0 ].bv_val, 10, nInitiated );
 	mpz_clear( nInitiated );
-	/* NOTE: according to the documentation, the result 
-	 * of mpz_sizeinbase() can exceed the length of the
-	 * string representation of the number by 1
-	 */
-	if ( a->a_vals[ 0 ].bv_val[ a->a_vals[ 0 ].bv_len - 1 ] == '\0' ) {
-		a->a_vals[ 0 ].bv_len--;
-	}
-#else /* ! HAVE_GMP */
-	snprintf( buf, sizeof( buf ), "%ld", nInitiated );
-	ber_str2bv( buf, 0, 1, &a->a_vals[ 0 ] );
-#endif /* ! HAVE_GMP */
+#endif /* HAVE_GMP */
 	
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorOpCompleted );
 	assert ( a != NULL );
-	free( a->a_vals[ 0 ].bv_val );
+
+	/* NOTE: no minus sign is allowed in the counters... */
+	UI2BV( &a->a_vals[ 0 ], nCompleted );
 #ifdef HAVE_GMP
-	/* NOTE: there should be no minus sign allowed in the counters... */
-	a->a_vals[ 0 ].bv_len = mpz_sizeinbase( nCompleted, 10 );
-	a->a_vals[ 0 ].bv_val = ber_memalloc( a->a_vals[ 0 ].bv_len + 1 );
-	(void)mpz_get_str( a->a_vals[ 0 ].bv_val, 10, nCompleted );
 	mpz_clear( nCompleted );
-	/* NOTE: according to the documentation, the result 
-	 * of mpz_sizeinbase() can exceed the length of the
-	 * string representation of the number by 1
-	 */
-	if ( a->a_vals[ 0 ].bv_val[ a->a_vals[ 0 ].bv_len - 1 ] == '\0' ) {
-		a->a_vals[ 0 ].bv_len--;
-	}
-#else /* ! HAVE_GMP */
-	snprintf( buf, sizeof( buf ), "%ld", nCompleted );
-	ber_str2bv( buf, 0, 1, &a->a_vals[ 0 ] );
-#endif /* ! HAVE_GMP */
-	
+#endif /* HAVE_GMP */
+
 	return( 0 );
 }
 

@@ -28,8 +28,6 @@
 #include "lutil.h"
 #include "back-monitor.h"
 
-#define CONN_CN_PREFIX	"Connection"
-
 int
 monitor_subsys_conn_init(
 	BackendDB		*be
@@ -37,7 +35,7 @@ monitor_subsys_conn_init(
 {
 	struct monitorinfo	*mi;
 	
-	Entry			*e, *e_tmp, *e_conn;
+	Entry			*e, **ep, *e_conn;
 	struct monitorentrypriv	*mp;
 	char			buf[ BACKMONITOR_BUFSIZE ];
 	struct berval		bv;
@@ -47,16 +45,18 @@ monitor_subsys_conn_init(
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi,
-			&monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn, &e_conn ) ) {
+			&monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn, &e_conn ) )
+	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
-			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
-	e_tmp = NULL;
+	mp = ( struct monitorentrypriv * )e_conn->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
 
 	/*
 	 * Total conns
@@ -82,19 +82,17 @@ monitor_subsys_conn_init(
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
-			"unable to create entry 'cn=Total,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val,
-			"", "" );
+			"unable to create entry \"cn=Total,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
-	bv.bv_val = "0";
-	bv.bv_len = 1;
+	BER_BVSTR( &bv, "0" );
 	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
-	mp->mp_next = e_tmp;
+	mp->mp_next = NULL;
 	mp->mp_children = NULL;
 	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_CONN];
 	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_CONN].mss_flags \
@@ -104,14 +102,14 @@ monitor_subsys_conn_init(
 	if ( monitor_cache_add( mi, e ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
-			"unable to add entry 'cn=Total,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val,
-			"", "" );
+			"unable to add entry \"cn=Total,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
-	
-	e_tmp = e;
 
+	*ep = e;
+	ep = &mp->mp_next;
+	
 	/*
 	 * Current conns
 	 */
@@ -136,19 +134,17 @@ monitor_subsys_conn_init(
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
-			"unable to create entry 'cn=Current,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val,
-			"", "" );
+			"unable to create entry \"cn=Current,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
-	bv.bv_val = "0";
-	bv.bv_len = 1;
+	BER_BVSTR( &bv, "0" );
 	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
-	mp->mp_next = e_tmp;
+	mp->mp_next = NULL;
 	mp->mp_children = NULL;
 	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_CONN];
 	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_CONN].mss_flags \
@@ -158,16 +154,13 @@ monitor_subsys_conn_init(
 	if ( monitor_cache_add( mi, e ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
-			"unable to add entry 'cn=Current,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val,
-			"", "" );
+			"unable to add entry \"cn=Current,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
-	e_tmp = e;
-
-	mp = ( struct monitorentrypriv * )e_conn->e_private;
-	mp->mp_children = e_tmp;
+	*ep = e;
+	ep = &mp->mp_next;
 
 	monitor_cache_release( mi, e_conn );
 
@@ -180,18 +173,23 @@ monitor_subsys_conn_update(
 	Entry                   *e
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
-	long 		n = -1;
+	struct monitorinfo	*mi =
+		(struct monitorinfo *)op->o_bd->be_private;
+
+	long 			n = -1;
+	static struct berval	total_bv = BER_BVC( "cn=total" ),
+				current_bv = BER_BVC( "cn=current" );
+	struct berval		rdn;
 
 	assert( mi );
 	assert( e );
+
+	dnRdn( &e->e_nname, &rdn );
 	
-	if ( strncasecmp( e->e_ndn, "cn=total", 
-				sizeof("cn=total")-1 ) == 0 ) {
+	if ( dn_match( &rdn, &total_bv ) ) {
 		n = connections_nextid();
 
-	} else if ( strncasecmp( e->e_ndn, "cn=current", 
-				sizeof("cn=current")-1 ) == 0 ) {
+	} else if ( dn_match( &rdn, &current_bv ) ) {
 		Connection	*c;
 		int		connindex;
 
@@ -200,12 +198,13 @@ monitor_subsys_conn_update(
 				n++, c = connection_next( c, &connindex ) ) {
 			/* No Op */ ;
 		}
-		connection_done(c);
+		connection_done( c );
 	}
 
 	if ( n != -1 ) {
 		Attribute	*a;
 		char		buf[] = "+9223372036854775807L";
+		ber_len_t	len;
 
 		a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
 		if ( a == NULL ) {
@@ -213,8 +212,12 @@ monitor_subsys_conn_update(
 		}
 
 		snprintf( buf, sizeof( buf ), "%ld", n );
-		free( a->a_vals[ 0 ].bv_val );
-		ber_str2bv( buf, 0, 1, a->a_vals );
+		len = strlen( buf );
+		if ( len > a->a_vals[ 0 ].bv_len ) {
+			a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );
+		}
+		a->a_vals[ 0 ].bv_len = len;
+		AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 	}
 
 	return( 0 );
@@ -281,10 +284,10 @@ conn_create(
 #endif
 
 	snprintf( buf, sizeof( buf ),
-		"dn: cn=" CONN_CN_PREFIX " %ld,%s\n"
+		"dn: cn=Connection %ld,%s\n"
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
-		"cn: " CONN_CN_PREFIX " %ld\n"
+		"cn: Connection %ld\n"
 		"creatorsName: %s\n"
 		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
@@ -304,7 +307,7 @@ conn_create(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_create: "
 			"unable to create entry "
-			"'cn=" CONN_CN_PREFIX " %ld,%s' entry\n",
+			"\"cn=Connection %ld,%s\" entry\n",
 			c->c_connid, 
 			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val, 0 );
 		return( -1 );
@@ -334,16 +337,22 @@ conn_create(
 
 	/* monitored info */
 	sprintf( buf,
-		"%ld : %ld "
+		"%ld "
+		": %ld "
 		": %ld/%ld/%ld/%ld "
 		": %ld/%ld/%ld "
 		": %s%s%s%s%s%s "
-		": %s : %s : %s "
-		": %s : %s : %s : %s",
+		": %s "
+		": %s "
+		": %s "
+		": %s "
+		": %s "
+		": %s "
+		": %s",
 		c->c_connid,
 		(long) c->c_protocol,
 		c->c_n_ops_received, c->c_n_ops_executing,
-		c->c_n_ops_pending, c->c_n_ops_completed,
+			c->c_n_ops_pending, c->c_n_ops_completed,
 		
 		/* add low-level counters here */
 		c->c_n_get, c->c_n_read, c->c_n_write,
@@ -407,10 +416,13 @@ monitor_subsys_conn_create(
 	Entry			**ep
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
+	struct monitorinfo	*mi =
+		(struct monitorinfo *)op->o_bd->be_private;
+
 	Connection		*c;
 	int			connindex;
 	struct monitorentrypriv *mp;
+	int			rc = 0;
 
 	assert( mi != NULL );
 	assert( e_parent != NULL );
@@ -419,14 +431,14 @@ monitor_subsys_conn_create(
 	*ep = NULL;
 
 	if ( ndn == NULL ) {
-		Entry *e, *e_tmp = NULL;
+		Entry	*e = NULL,
+			*e_tmp = NULL;
 
 		/* create all the children of e_parent */
 		for ( c = connection_first( &connindex );
 				c != NULL;
 				c = connection_next( c, &connindex )) {
 			if ( conn_create( mi, c, &e ) || e == NULL ) {
-				connection_done(c);
 				for ( ; e_tmp != NULL; ) {
 					mp = ( struct monitorentrypriv * )e_tmp->e_private;
 					e = mp->mp_next;
@@ -437,44 +449,43 @@ monitor_subsys_conn_create(
 
 					e_tmp = e;
 				}
-				return( -1 );
+				rc = -1;
+				break;
 			}
 			mp = ( struct monitorentrypriv * )e->e_private;
 			mp->mp_next = e_tmp;
 			e_tmp = e;
 		}
 		connection_done(c);
-
 		*ep = e;
 
 	} else {
-		LDAPRDN		values = NULL;
-		const char	*text = NULL;
-		unsigned long 	connid;
-	       
-		/* create exactly the required entry */
+		unsigned long 		connid;
+		char			*next = NULL;
+		static struct berval	nconn_bv = BER_BVC( "cn=connection " );
 
-		if ( ldap_bv2rdn( ndn, &values, (char **)&text,
-			LDAP_DN_FORMAT_LDAP ) )
+	       
+		/* create exactly the required entry;
+		 * the normalized DN must start with "cn=connection ",
+		 * followed by the connection id, followed by
+		 * the RDN separator "," */
+		if ( ndn->bv_len <= nconn_bv.bv_len
+				|| strncmp( ndn->bv_val, nconn_bv.bv_val, nconn_bv.bv_len ) != 0 )
 		{
-			return( -1 );
+			return -1;
 		}
 		
-		assert( values );
-		assert( values[ 0 ] );
-
-		connid = atol( values[ 0 ]->la_value.bv_val
-				+ sizeof( CONN_CN_PREFIX ) );
-
-		ldap_rdnfree( values );
+		connid = strtol( &ndn->bv_val[ nconn_bv.bv_len ], &next, 10 );
+		if ( next[ 0 ] != ',' ) {
+			return -1;
+		}
 
 		for ( c = connection_first( &connindex );
 				c != NULL;
 				c = connection_next( c, &connindex )) {
 			if ( c->c_connid == connid ) {
 				if ( conn_create( mi, c, ep ) || *ep == NULL ) {
-					connection_done( c );
-					return( -1 );
+					rc = -1;
 				}
 
 				break;
@@ -482,9 +493,8 @@ monitor_subsys_conn_create(
 		}
 		
 		connection_done(c);
-	
 	}
 
-	return( 0 );
+	return rc;
 }
 

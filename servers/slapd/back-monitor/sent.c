@@ -54,7 +54,7 @@ monitor_subsys_sent_init(
 {
 	struct monitorinfo	*mi;
 	
-	Entry			*e_tmp, *e_sent;
+	Entry			**ep, *e_sent;
 	struct monitorentrypriv	*mp;
 	int			i;
 
@@ -66,15 +66,16 @@ monitor_subsys_sent_init(
 			&monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn, &e_sent ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_sent_init: "
-			"unable to get entry \"%s\"\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
-	e_tmp = NULL;
+	mp = ( struct monitorentrypriv * )e_sent->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
 
-	for ( i = MONITOR_SENT_LAST; --i >= 0; ) {
+	for ( i = 0; i < MONITOR_SENT_LAST; i++ ) {
 		char			buf[ BACKMONITOR_BUFSIZE ];
 		struct berval		rdn, bv;
 		Entry			*e;
@@ -117,7 +118,7 @@ monitor_subsys_sent_init(
 	
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
-		mp->mp_next = e_tmp;
+		mp->mp_next = NULL;
 		mp->mp_children = NULL;
 		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_SENT];
 		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_SENT].mss_flags \
@@ -126,17 +127,15 @@ monitor_subsys_sent_init(
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_sent_init: "
-				"unable to add entry \"%s,%s\"\n%s%s",
+				"unable to add entry \"%s,%s\"\n",
 				monitor_sent[i].rdn.bv_val,
 				monitor_subsys[SLAPD_MONITOR_SENT].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 	
-		e_tmp = e;
+		*ep = e;
+		ep = &mp->mp_next;
 	}
-
-	mp = ( struct monitorentrypriv * )e_sent->e_private;
-	mp->mp_children = e_tmp;
 
 	monitor_cache_release( mi, e_sent );
 
@@ -159,9 +158,6 @@ monitor_subsys_sent_update(
 	unsigned long 		n;
 #endif /* ! HAVE_GMP */
 	Attribute		*a;
-#ifndef HAVE_GMP
-	char			buf[] = "+9223372036854775807L";
-#endif /* ! HAVE_GMP */
 	int			i;
 
 	assert( mi );
@@ -219,28 +215,13 @@ monitor_subsys_sent_update(
 	ldap_pvt_thread_mutex_unlock(&slap_counters.sc_sent_mutex);
 	
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
-	if ( a == NULL ) {
-		return -1;
-	}
+	assert( a );
 
-	free( a->a_vals[ 0 ].bv_val );
+	/* NOTE: no minus sign is allowed in the counters... */
+	UI2BV( &a->a_vals[ 0 ], n );
 #ifdef HAVE_GMP
-	/* NOTE: there should be no minus sign allowed in the counters... */
-	a->a_vals[ 0 ].bv_len = mpz_sizeinbase( n, 10 );
-	a->a_vals[ 0 ].bv_val = ber_memalloc( a->a_vals[ 0 ].bv_len + 1 );
-	(void)mpz_get_str( a->a_vals[ 0 ].bv_val, 10, n );
 	mpz_clear( n );
-	/* NOTE: according to the documentation, the result 
-	 * of mpz_sizeinbase() can exceed the length of the
-	 * string representation of the number by 1
-	 */
-	if ( a->a_vals[ 0 ].bv_val[ a->a_vals[ 0 ].bv_len - 1 ] == '\0' ) {
-		a->a_vals[ 0 ].bv_len--;
-	}
-#else /* ! HAVE_GMP */
-	snprintf( buf, sizeof( buf ), "%lu", n );
-	ber_str2bv( buf, 0, 1, &a->a_vals[ 0 ] );
-#endif /* ! HAVE_GMP */
+#endif /* HAVE_GMP */
 
 	return 0;
 }

@@ -37,7 +37,7 @@ monitor_subsys_backend_init(
 )
 {
 	struct monitorinfo	*mi;
-	Entry			*e, *e_backend, *e_tmp;
+	Entry			*e_backend, **ep;
 	int			i;
 	struct monitorentrypriv	*mp;
 
@@ -45,21 +45,25 @@ monitor_subsys_backend_init(
 
 	if ( monitor_cache_get( mi, 
 				&monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn, 
-				&e_backend ) ) {
+				&e_backend ) )
+	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_backend_init: "
-			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
-	e_tmp = NULL;
-	for ( i = nBackendInfo; i--; ) {
+	mp = ( struct monitorentrypriv * )e_backend->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
+
+	for ( i = 0; i < nBackendInfo; i++ ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
 		BackendInfo 	*bi;
 		struct berval 	bv;
 		int		j;
+		Entry		*e;
 
 		bi = &backendInfo[i];
 
@@ -86,10 +90,8 @@ monitor_subsys_backend_init(
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_backend_init: "
-				"unable to create entry 'cn=Backend %d,%s'\n%s",
-				i, 
-				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val,
-				"" );
+				"unable to create entry \"cn=Backend %d,%s\"\n",
+				i, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 		
@@ -131,7 +133,7 @@ monitor_subsys_backend_init(
 		
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
-		mp->mp_next = e_tmp;
+		mp->mp_next = NULL;
 		mp->mp_children = NULL;
 		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_BACKEND];
 		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_BACKEND].mss_flags
@@ -140,19 +142,16 @@ monitor_subsys_backend_init(
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_backend_init: "
-				"unable to add entry 'cn=Backend %d,%s'\n%s",
+				"unable to add entry \"cn=Backend %d,%s\"\n",
 				i,
-			       	monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val,
-			    	"" );
+			       	monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
-		e_tmp = e;
+		*ep = e;
+		ep = &mp->mp_next;
 	}
 	
-	mp = ( struct monitorentrypriv * )e_backend->e_private;
-	mp->mp_children = e_tmp;
-
 	monitor_cache_release( mi, e_backend );
 
 	return( 0 );

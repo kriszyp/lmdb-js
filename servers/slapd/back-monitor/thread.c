@@ -36,31 +36,128 @@ monitor_subsys_thread_init(
 )
 {
 	struct monitorinfo      *mi;
-	Entry                   *e;
+	struct monitorentrypriv	*mp;
+	Entry                   *e, **ep, *e_thread;
 	static char		buf[ BACKMONITOR_BUFSIZE ];
-	struct berval		bv;
 
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi, 
-		&monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn, &e ) )
+		&monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn, &e_thread ) )
 	{
 		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_thread_init: unable to get entry '%s'\n",
+			"monitor_subsys_thread_init: unable to get entry \"%s\"\n",
 			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn.bv_val, 
 			0, 0 );
 		return( -1 );
 	}
 
-	/* initialize the thread number */
-	snprintf( buf, sizeof( buf ), "max=%d", connection_pool_max );
+	mp = ( struct monitorentrypriv * )e_thread->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
 
-	bv.bv_val = buf;
-	bv.bv_len = strlen( bv.bv_val );
+	/*
+	 * Max
+	 */
+	snprintf( buf, sizeof( buf ),
+			"dn: cn=Max,%s\n"
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
+			"cn: Max\n"
+			"%s: %d\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n", 
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_dn.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_ad_monitoredInfo->ad_cname.bv_val,
+			connection_pool_max,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
 
-	attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+	e = str2entry( buf );
+	if ( e == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to create entry \"cn=Max,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+	
+	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	e->e_private = ( void * )mp;
+	mp->mp_next = NULL;
+	mp->mp_children = NULL;
+	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_THREAD];
+	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_THREAD].mss_flags \
+		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
-	monitor_cache_release( mi, e );
+	if ( monitor_cache_add( mi, e ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to add entry \"cn=Max,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+	
+	*ep = e;
+	ep = &mp->mp_next;
+
+	/*
+	 * Backload
+	 */
+	snprintf( buf, sizeof( buf ),
+			"dn: cn=Backload,%s\n"
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
+			"cn: Backload\n"
+			"%s: 0\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n",
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_dn.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_ad_monitoredInfo->ad_cname.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
+
+	e = str2entry( buf );
+	if ( e == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to create entry \"cn=Backload,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+
+	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	e->e_private = ( void * )mp;
+	mp->mp_next = NULL;
+	mp->mp_children = NULL;
+	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_THREAD];
+	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_THREAD].mss_flags \
+		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+
+	if ( monitor_cache_add( mi, e ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to add entry \"cn=Backload,%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+	
+	*ep = e;
+	ep = &mp->mp_next;
+
+	monitor_cache_release( mi, e_thread );
 
 	return( 0 );
 }
@@ -71,36 +168,34 @@ monitor_subsys_thread_update(
 	Entry 			*e
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
+	struct monitorinfo	*mi =
+		(struct monitorinfo *)op->o_bd->be_private;
 	Attribute		*a;
-	struct berval           *b = NULL;
 	char 			buf[ BACKMONITOR_BUFSIZE ];
+	static struct berval	backload_bv = BER_BVC( "cn=backload" );
+	struct berval		rdn;
+	ber_len_t		len;
 
 	assert( mi != NULL );
 
-	snprintf( buf, sizeof( buf ), "backload=%d", 
-			ldap_pvt_thread_pool_backload( &connection_pool ) );
+	dnRdn( &e->e_nname, &rdn );
+	if ( !dn_match( &rdn, &backload_bv ) ) {
+		return 0;
+	}
 
 	a = attr_find( e->e_attrs, mi->mi_ad_monitoredInfo );
-	if ( a != NULL ) {
-		for ( b = a->a_vals; b[0].bv_val != NULL; b++ ) {
-			if ( strncmp( b[0].bv_val, "backload=", 
-					sizeof( "backload=" ) - 1 ) == 0 ) {
-				free( b[0].bv_val );
-				ber_str2bv( buf, 0, 1, &b[0] );
-				break;
-			}
-		}
+	if ( a == NULL ) {
+		return -1;
 	}
 
-	if ( b == NULL || b[0].bv_val == NULL ) {
-		struct berval	bv;
-
-		bv.bv_val = buf;
-		bv.bv_len = strlen( buf );
-		attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
-				&bv, NULL );
+	snprintf( buf, sizeof( buf ), "%d", 
+			ldap_pvt_thread_pool_backload( &connection_pool ) );
+	len = strlen( buf );
+	if ( len > a->a_vals[ 0 ].bv_len ) {
+		a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );
 	}
+	a->a_vals[ 0 ].bv_len = len;
+	AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 
 	return( 0 );
 }

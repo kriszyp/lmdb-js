@@ -35,7 +35,7 @@ monitor_subsys_rww_init(
 {
 	struct monitorinfo	*mi;
 	
-	Entry			*e, *e_tmp, *e_conn;
+	Entry			*e, **ep, *e_conn;
 	struct monitorentrypriv	*mp;
 	char			buf[ BACKMONITOR_BUFSIZE ];
 	struct berval		bv;
@@ -48,13 +48,14 @@ monitor_subsys_rww_init(
 			&monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn, &e_conn ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_rww_init: "
-			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
-	e_tmp = NULL;
+	mp = ( struct monitorentrypriv * )e_conn->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
 
 	/*
 	 * Total conns
@@ -80,7 +81,7 @@ monitor_subsys_rww_init(
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_rww_init: "
-			"unable to create entry 'cn=Read,%s'\n",
+			"unable to create entry \"cn=Read,%s\"\n",
 			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
@@ -91,7 +92,7 @@ monitor_subsys_rww_init(
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
-	mp->mp_next = e_tmp;
+	mp->mp_next = NULL;
 	mp->mp_children = NULL;
 	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_RWW];
 	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_RWW].mss_flags \
@@ -100,12 +101,13 @@ monitor_subsys_rww_init(
 	if ( monitor_cache_add( mi, e ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_rww_init: "
-			"unable to add entry 'cn=Read,%s'\n",
+			"unable to add entry \"cn=Read,%s\"\n",
 			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
-	e_tmp = e;
+	*ep = e;
+	ep = &mp->mp_next;
 
 	/*
 	 * Current conns
@@ -131,7 +133,7 @@ monitor_subsys_rww_init(
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_rww_init: "
-			"unable to create entry 'cn=Write,%s'\n",
+			"unable to create entry \"cn=Write,%s\"\n",
 			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
@@ -142,7 +144,7 @@ monitor_subsys_rww_init(
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
-	mp->mp_next = e_tmp;
+	mp->mp_next = NULL;
 	mp->mp_children = NULL;
 	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_RWW];
 	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_RWW].mss_flags \
@@ -151,15 +153,13 @@ monitor_subsys_rww_init(
 	if ( monitor_cache_add( mi, e ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_rww_init: "
-			"unable to add entry 'cn=Write,%s'\n",
+			"unable to add entry \"cn=Write,%s\"\n",
 			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
-	e_tmp = e;
-
-	mp = ( struct monitorentrypriv * )e_conn->e_private;
-	mp->mp_children = e_tmp;
+	*ep = e;
+	ep = &mp->mp_next;
 
 	monitor_cache_release( mi, e_conn );
 

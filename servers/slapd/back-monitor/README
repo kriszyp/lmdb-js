@@ -20,7 +20,7 @@ configure directive
 The suffix "cn=Monitor" is implicitly activated (it cannot be given
 as a suffix of the database as usually done for conventional backends).
 Note that the "cn=Monitor" naming context appears in the rootDSE
-(FIXME: do we really want this?)
+in the attribute monitorContext
 
 A bind operation is provided; at present it allows to bind as the
 backend rootdn.  As a result, the backend supports the rootdn/rootpw 
@@ -81,34 +81,19 @@ partially useful information is provided.
 
 The subsystems are:
 
-	Listener
-	Databases
 	Backends
-	Threads
-	SASL
-	TLS
 	Connections
-	Read Waiters
-	Write Waiters
+	Databases
+	Listener
 	Log
 	Operations
+	Overlays
+	SASL
 	Statistics
+	Threads
 	Time
-
-
-
-LISTENER SUBSYSTEM
-
-It contains the description of the devices the server is currently 
-listening on
-
-
-
-DATABASES SUBSYSTEM
-
-The main entry contains the naming context of each configured database; 
-the subentries contain, for each database, the type and the naming
-context.
+	TLS
+	Read/Write Waiters
 
 
 
@@ -118,25 +103,6 @@ The main entry contains the type of backends enabled at compile time;
 the subentries, for each backend, contain the type of the backend.
 It should also contain the modules that have been loaded if dynamic 
 backends are enabled.
-
-
-
-THREADS SUBSYSTEM
-
-It contains the maximum number of threads enabled at startup and the 
-current backload.
-
-
-
-SASL
-
-Currently empty.
-
-
-
-TLS
-
-Currently empty.
 
 
 
@@ -151,15 +117,18 @@ current connections respectively.
 
 
 
-READ WAITERS SUBSYSTEM
+DATABASES SUBSYSTEM
 
-It contains the number of current read waiters.
+The main entry contains the naming context of each configured database; 
+the subentries contain, for each database, the type and the naming
+context.
 
 
 
-WRITE WAITERS SUBSYSTEM
+LISTENER SUBSYSTEM
 
-It contains the number of current write waiters.
+It contains the description of the devices the server is currently 
+listening on
 
 
 
@@ -196,16 +165,51 @@ It shows some statistics on the operations performed by the server:
 	Initiated
 	Completed
 
+and for each operation type, i.e.:
+
+	Bind
+        Unbind
+        Add
+        Delete
+        Modrdn
+        Modify
+        Compare
+        Search
+        Abandon
+        Extended
 
 
-SENT SUBSYSTEM
+
+OVERLAYS SUBSYSTEM
+
+The main entry contains the type of overlays available at run-time;
+the subentries, for each overlay, contain the type of the overlay.
+It should also contain the modules that have been loaded if dynamic 
+overlays are enabled.
+
+
+
+SASL
+
+Currently empty.
+
+
+
+STATISTICS SUBSYSTEM
 
 It shows some statistics on the data sent by the server:
 
 	Bytes
 	PDU
-	Referrals
 	Entries
+	Referrals
+
+
+
+THREADS SUBSYSTEM
+
+It contains the maximum number of threads enabled at startup and the 
+current backload.
 
 
 
@@ -213,6 +217,18 @@ TIME SUBSYSTEM
 
 It contains two subentries with the start time and the current time 
 of the server.
+
+
+
+TLS
+
+Currently empty.
+
+
+
+READ/WRITE WAITERS SUBSYSTEM
+
+It contains the number of current read waiters.
 
 
 

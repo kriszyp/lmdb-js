@@ -36,7 +36,7 @@ monitor_subsys_overlay_init(
 )
 {
 	struct monitorinfo	*mi;
-	Entry			*e, *e_overlay, *e_tmp;
+	Entry			*e_overlay, **ep;
 	int			i;
 	struct monitorentrypriv	*mp;
 	slap_overinst		*on;
@@ -45,20 +45,24 @@ monitor_subsys_overlay_init(
 
 	if ( monitor_cache_get( mi, 
 				&monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_ndn, 
-				&e_overlay ) ) {
+				&e_overlay ) )
+	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_overlay_init: "
-			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
-	e_tmp = NULL;
+	mp = ( struct monitorentrypriv * )e_overlay->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
+
 	for ( on = overlay_next( NULL ), i = 0; on; on = overlay_next( on ), i++ ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
 		struct berval 	bv;
 		int		j;
+		Entry		*e;
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Overlay %d,%s\n"
@@ -83,10 +87,8 @@ monitor_subsys_overlay_init(
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_overlay_init: "
-				"unable to create entry 'cn=Overlay %d,%s'\n%s",
-				i, 
-				monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_ndn.bv_val,
-				"" );
+				"unable to create entry \"cn=Overlay %d,%s\"\n",
+				i, monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 		
@@ -130,7 +132,7 @@ monitor_subsys_overlay_init(
 		
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
-		mp->mp_next = e_tmp;
+		mp->mp_next = NULL;
 		mp->mp_children = NULL;
 		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_OVERLAY];
 		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_flags
@@ -139,19 +141,15 @@ monitor_subsys_overlay_init(
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_overlay_init: "
-				"unable to add entry 'cn=Overlay %d,%s'\n%s",
-				i,
-			       	monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_ndn.bv_val,
-			    	"" );
+				"unable to add entry \"cn=Overlay %d,%s\"\n",
+				i, monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
-		e_tmp = e;
+		*ep = e;
+		ep = &mp->mp_next;
 	}
 	
-	mp = ( struct monitorentrypriv * )e_overlay->e_private;
-	mp->mp_children = e_tmp;
-
 	monitor_cache_release( mi, e_overlay );
 
 	return( 0 );

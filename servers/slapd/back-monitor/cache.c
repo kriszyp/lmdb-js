@@ -22,6 +22,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include "ac/string.h"
 
 #include "slap.h"
 
@@ -165,7 +166,7 @@ monitor_cache_dn2entry(
 {
 	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	int 			rc;
-	struct berval		p_ndn = { 0L, NULL };
+	struct berval		p_ndn = BER_BVNULL;
 	Entry 			*e_parent;
 	struct monitorentrypriv *mp;
 		
@@ -182,21 +183,15 @@ monitor_cache_dn2entry(
 	}
 
 	/* try with parent/ancestors */
-	if ( ndn->bv_len ) {
+	if ( BER_BVISNULL( ndn ) ) {
+		BER_BVSTR( &p_ndn, "" );
+
+	} else {
 		dnParent( ndn, &p_ndn );
 	}
 
-	if ( p_ndn.bv_val == NULL ) {
-		p_ndn.bv_val = "";
-		p_ndn.bv_len = 0;
-		
-	} else {
-		p_ndn.bv_len = ndn->bv_len 
-			- ( ber_len_t ) ( p_ndn.bv_val - ndn->bv_val );
-	}
-
 	rc = monitor_cache_dn2entry( op, &p_ndn, &e_parent, matched );
-	if ( rc || e_parent == NULL) {
+	if ( rc || e_parent == NULL ) {
 		return( -1 );
 	}
 

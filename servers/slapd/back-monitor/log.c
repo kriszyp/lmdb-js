@@ -90,15 +90,13 @@ monitor_subsys_log_init(
 				&e ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_log_init: "
-			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
 	/* initialize the debug level(s) */
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
-
 		if ( mi->mi_ad_managedInfo->ad_type->sat_equality->smr_normalize ) {
 			int	rc;
 

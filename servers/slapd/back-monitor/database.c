@@ -100,7 +100,7 @@ monitor_subsys_database_init(
 )
 {
 	struct monitorinfo	*mi;
-	Entry			*e, *e_database, *e_tmp;
+	Entry			*e_database, **ep;
 	int			i;
 	struct monitorentrypriv	*mp;
 
@@ -110,24 +110,28 @@ monitor_subsys_database_init(
 
 	if ( monitor_cache_get( mi, 
 				&monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn, 
-				&e_database ) ) {
+				&e_database ) )
+	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_database_init: "
-			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
 	(void)init_readOnly( mi, e_database, frontendDB->be_restrictops );
 	(void)init_restrictedOperation( mi, e_database, frontendDB->be_restrictops );
 
-	e_tmp = NULL;
-	for ( i = nBackendDB; i--; ) {
+	mp = ( struct monitorentrypriv * )e_database->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
+
+	for ( i = 0; i < nBackendDB; i++ ) {
 		char		buf[ BACKMONITOR_BUFSIZE ];
 		int		j;
 		slap_overinfo	*oi = NULL;
 		BackendInfo	*bi;
+		Entry		*e;
 
 		be = &backendDB[i];
 
@@ -170,10 +174,8 @@ monitor_subsys_database_init(
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
-				"unable to create entry 'cn=Database %d,%s'\n%s",
-				i, 
-				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val,
-				"" );
+				"unable to create entry \"cn=Database %d,%s\"\n",
+				i, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 		
@@ -233,7 +235,7 @@ monitor_subsys_database_init(
 		}
 #endif /* defined(SLAPD_LDAP) */
 
-		for ( j = nBackendInfo; j--; ) {
+		for ( j = 0; j < nBackendInfo; j++ ) {
 			if ( backendInfo[ j ].bi_type == bi->bi_type ) {
 				struct berval 		bv;
 
@@ -252,7 +254,7 @@ monitor_subsys_database_init(
 
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
-		mp->mp_next = e_tmp;
+		mp->mp_next = NULL;
 		mp->mp_children = NULL;
 		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_DATABASE];
 		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_DATABASE].mss_flags
@@ -261,10 +263,8 @@ monitor_subsys_database_init(
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
-				"unable to add entry 'cn=Database %d,%s'\n",
-				i, 
-				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val,
-				0 );
+				"unable to add entry \"cn=Database %d,%s\"\n",
+				i, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
@@ -272,12 +272,10 @@ monitor_subsys_database_init(
 		monitor_back_add_plugin( be, e );
 #endif /* defined(LDAP_SLAPI) */
 
-		e_tmp = e;
+		*ep = e;
+		ep = &mp->mp_next;
 	}
 	
-	mp = ( struct monitorentrypriv * )e_database->e_private;
-	mp->mp_children = e_tmp;
-
 	monitor_cache_release( mi, e_database );
 
 	return( 0 );

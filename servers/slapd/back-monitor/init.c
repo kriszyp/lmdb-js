@@ -41,23 +41,7 @@ BackendDB *be_monitor = NULL;
  */
 struct monitorsubsys monitor_subsys[] = {
 	{ 
-		SLAPD_MONITOR_LISTENER, SLAPD_MONITOR_LISTENER_NAME, 	
-		BER_BVNULL, BER_BVNULL, BER_BVNULL,
-		MONITOR_F_PERSISTENT_CH,
-		monitor_subsys_listener_init,
-		NULL,	/* update */
-		NULL,	/* create */
-		NULL	/* modify */
-       	}, { 
-		SLAPD_MONITOR_DATABASE, SLAPD_MONITOR_DATABASE_NAME, 	
-		BER_BVNULL, BER_BVNULL, BER_BVNULL,
-		MONITOR_F_PERSISTENT_CH,
-		monitor_subsys_database_init,
-		NULL,   /* update */
-		NULL,   /* create */
-		monitor_subsys_database_modify
-       	}, { 
-		SLAPD_MONITOR_BACKEND, SLAPD_MONITOR_BACKEND_NAME, 
+		SLAPD_MONITOR_BACKEND_NAME, 
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_backend_init,
@@ -65,31 +49,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL,   /* create */
 		NULL	/* modify */
        	}, { 
-		SLAPD_MONITOR_THREAD, SLAPD_MONITOR_THREAD_NAME, 	
-		BER_BVNULL, BER_BVNULL, BER_BVNULL,
-		MONITOR_F_NONE,
-		monitor_subsys_thread_init,
-		monitor_subsys_thread_update,
-		NULL,   /* create */
-		NULL	/* modify */
-       	}, { 
-		SLAPD_MONITOR_SASL, SLAPD_MONITOR_SASL_NAME, 	
-		BER_BVNULL, BER_BVNULL, BER_BVNULL,
-		MONITOR_F_NONE,
-		NULL,   /* init */
-		NULL,   /* update */
-		NULL,   /* create */
-		NULL	/* modify */
-       	}, { 
-		SLAPD_MONITOR_TLS, SLAPD_MONITOR_TLS_NAME,
-		BER_BVNULL, BER_BVNULL, BER_BVNULL,
-		MONITOR_F_NONE,
-		NULL,   /* init */
-		NULL,   /* update */
-		NULL,   /* create */
-		NULL	/* modify */
-       	}, { 
-		SLAPD_MONITOR_CONN, SLAPD_MONITOR_CONN_NAME,
+		SLAPD_MONITOR_CONN_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_VOLATILE_CH,
 		monitor_subsys_conn_init,
@@ -97,15 +57,23 @@ struct monitorsubsys monitor_subsys[] = {
 		monitor_subsys_conn_create,
 		NULL	/* modify */
        	}, { 
-		SLAPD_MONITOR_RWW, SLAPD_MONITOR_RWW_NAME,
+		SLAPD_MONITOR_DATABASE_NAME, 	
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_PERSISTENT_CH,
-		monitor_subsys_rww_init,
-		monitor_subsys_rww_update,
-		NULL, 	/* create */
+		monitor_subsys_database_init,
+		NULL,   /* update */
+		NULL,   /* create */
+		monitor_subsys_database_modify
+       	}, { 
+		SLAPD_MONITOR_LISTENER_NAME, 	
+		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		MONITOR_F_PERSISTENT_CH,
+		monitor_subsys_listener_init,
+		NULL,	/* update */
+		NULL,	/* create */
 		NULL	/* modify */
        	}, { 
-		SLAPD_MONITOR_LOG, SLAPD_MONITOR_LOG_NAME,
+		SLAPD_MONITOR_LOG_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_NONE,
 		monitor_subsys_log_init,
@@ -113,7 +81,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL,   /* create */
 		monitor_subsys_log_modify
        	}, { 
-		SLAPD_MONITOR_OPS, SLAPD_MONITOR_OPS_NAME,
+		SLAPD_MONITOR_OPS_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_ops_init,
@@ -121,7 +89,23 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL,   /* create */
 		NULL,	/* modify */
        	}, { 
-		SLAPD_MONITOR_SENT, SLAPD_MONITOR_SENT_NAME,
+		SLAPD_MONITOR_OVERLAY_NAME,
+		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		MONITOR_F_PERSISTENT_CH,
+		monitor_subsys_overlay_init,
+		NULL,	/* update */
+		NULL,   /* create */
+		NULL,	/* modify */
+	}, { 
+		SLAPD_MONITOR_SASL_NAME, 	
+		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		MONITOR_F_NONE,
+		NULL,   /* init */
+		NULL,   /* update */
+		NULL,   /* create */
+		NULL	/* modify */
+       	}, { 
+		SLAPD_MONITOR_SENT_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_sent_init,
@@ -129,7 +113,15 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL,   /* create */
 		NULL,	/* modify */
        	}, { 
-		SLAPD_MONITOR_TIME, SLAPD_MONITOR_TIME_NAME,
+		SLAPD_MONITOR_THREAD_NAME, 	
+		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		MONITOR_F_PERSISTENT_CH,
+		monitor_subsys_thread_init,
+		monitor_subsys_thread_update,
+		NULL,   /* create */
+		NULL	/* modify */
+       	}, { 
+		SLAPD_MONITOR_TIME_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_time_init,
@@ -137,14 +129,22 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL,   /* create */
 		NULL,	/* modify */
        	}, { 
-		SLAPD_MONITOR_OVERLAY, SLAPD_MONITOR_OVERLAY_NAME,
+		SLAPD_MONITOR_TLS_NAME,
+		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		MONITOR_F_NONE,
+		NULL,   /* init */
+		NULL,   /* update */
+		NULL,   /* create */
+		NULL	/* modify */
+       	}, { 
+		SLAPD_MONITOR_RWW_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
 		MONITOR_F_PERSISTENT_CH,
-		monitor_subsys_overlay_init,
-		NULL,	/* update */
-		NULL,   /* create */
-		NULL,	/* modify */
-	}, { -1, NULL }
+		monitor_subsys_rww_init,
+		monitor_subsys_rww_update,
+		NULL, 	/* create */
+		NULL	/* modify */
+       	}, { NULL }
 };
 
 #if SLAPD_MONITOR == SLAPD_MOD_DYNAMIC
@@ -515,14 +515,14 @@ monitor_back_db_init(
 			&err, LDAP_SCHEMA_ALLOW_ALL );
 		if ( !at ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
-				"in AttributeType '%s' %s before %s\n",
+				"in AttributeType \"%s\" %s before %s\n",
 				mat[i].name, ldap_scherr2str(code), err );
 			return -1;
 		}
 
 		if ( at->at_oid == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
-				"null OID for attributeType '%s'\n",
+				"null OID for attributeType \"%s\"\n",
 				mat[i].name, 0, 0 );
 			return -1;
 		}
@@ -530,7 +530,7 @@ monitor_back_db_init(
 		code = at_add(at, &err);
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY, "monitor_back_db_init: "
-				"%s in attributeType '%s'\n",
+				"%s in attributeType \"%s\"\n",
 				scherr2str(code), mat[i].name, 0 );
 			return -1;
 		}
@@ -557,7 +557,7 @@ monitor_back_db_init(
 				LDAP_SCHEMA_ALLOW_ALL );
 		if ( !oc ) {
 			Debug( LDAP_DEBUG_ANY,
-				"unable to parse monitor objectclass '%s': "
+				"unable to parse monitor objectclass \"%s\": "
 				"%s before %s\n" , moc[i].name,
 				ldap_scherr2str(code), err );
 			return -1;
@@ -565,7 +565,7 @@ monitor_back_db_init(
 
 		if ( oc->oc_oid == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"objectclass '%s' has no OID\n" ,
+				"objectclass \"%s\" has no OID\n" ,
 				moc[i].name, 0, 0 );
 			return -1;
 		}
@@ -573,7 +573,7 @@ monitor_back_db_init(
 		code = oc_add(oc, 0, &err);
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"objectclass '%s': %s \"%s\"\n" ,
+				"objectclass \"%s\": %s \"%s\"\n" ,
 				moc[i].name, scherr2str(code), err );
 			return -1;
 		}
@@ -603,7 +603,7 @@ monitor_back_db_open(
 {
 	struct monitorinfo 	*mi = (struct monitorinfo *)be->be_private;
 	struct monitorsubsys	*ms;
-	Entry 			*e, *e_tmp;
+	Entry 			*e, **ep;
 	struct monitorentrypriv	*mp;
 	int			i;
 	char 			buf[ BACKMONITOR_BUFSIZE ], *end_of_line;
@@ -648,10 +648,90 @@ monitor_back_db_open(
 		mi->mi_creatorsName = be->be_rootdn;
 	}
 
+	/*
+	 * creates the "cn=Monitor" entry 
+	 */
+	snprintf( buf, sizeof( buf ), 
+		"dn: %s\n"
+		"objectClass: %s\n"
+		"structuralObjectClass: %s\n"
+		"cn: Monitor\n"
+		"%s: This subtree contains monitoring/managing objects.\n"
+		"%s: This object contains information about this server.\n"
+#if 0
+		"%s: createTimestamp reflects the time this server instance was created.\n"
+		"%s: modifyTimestamp reflects the time this server instance was last accessed.\n"
+#endif
+		"creatorsName: %s\n"
+		"modifiersName: %s\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
+		SLAPD_MONITOR_DN,
+		mi->mi_oc_monitorServer->soc_cname.bv_val,
+		mi->mi_oc_monitorServer->soc_cname.bv_val,
+		mi->mi_ad_description->ad_cname.bv_val,
+		mi->mi_ad_description->ad_cname.bv_val,
+#if 0
+		mi->mi_ad_description->ad_cname.bv_val,
+		mi->mi_ad_description->ad_cname.bv_val,
+#endif
+		mi->mi_creatorsName.bv_val,
+		mi->mi_creatorsName.bv_val,
+		mi->mi_startTime.bv_val,
+		mi->mi_startTime.bv_val );
+
+	e = str2entry( buf );
+	if ( e == NULL) {
+		Debug( LDAP_DEBUG_ANY,
+			"unable to create \"%s\" entry\n",
+			SLAPD_MONITOR_DN, 0, 0 );
+		return( -1 );
+	}
+
+	bv.bv_val = (char *) Versionstr;
+	end_of_line = strchr( Versionstr, '\n' );
+	if ( end_of_line ) {
+		bv.bv_len = end_of_line - Versionstr;
+	} else {
+		bv.bv_len = strlen( Versionstr );
+	}
+
+	if ( attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
+				&bv, NULL ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"unable to add monitoredInfo to \"%s\" entry\n",
+			SLAPD_MONITOR_DN, 0, 0 );
+		return( -1 );
+	}
+
+	if ( mi->mi_l.bv_len ) {
+		if ( attr_merge_normalize_one( e, mi->mi_ad_l, &mi->mi_l, NULL ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"unable to add locality to \"%s\" entry\n",
+				SLAPD_MONITOR_DN, 0, 0 );
+			return( -1 );
+		}
+	}
+
+	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	e->e_private = ( void * )mp;
+
+	mp->mp_info = NULL;
+	mp->mp_children = NULL;
+	mp->mp_next = NULL;
+
+	ep = &mp->mp_children;
+
+	if ( monitor_cache_add( mi, e ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"unable to add entry \"%s\" to cache\n",
+			SLAPD_MONITOR_DN, 0, 0 );
+		return -1;
+	}
+
 	/*	
 	 * Create all the subsystem specific entries
 	 */
-	e_tmp = NULL;
 	for ( i = 0; monitor_subsys[ i ].mss_name != NULL; i++ ) {
 		int 		len = strlen( monitor_subsys[ i ].mss_name );
 		struct berval	dn;
@@ -706,111 +786,33 @@ monitor_back_db_open(
 		
 		if ( e == NULL) {
 			Debug( LDAP_DEBUG_ANY,
-				"unable to create '%s' entry\n", 
+				"unable to create \"%s\" entry\n", 
 				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
 			return( -1 );
 		}
 
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
+		mp->mp_next = NULL;
 		mp->mp_info = &monitor_subsys[ i ];
 		mp->mp_children = NULL;
-		mp->mp_next = e_tmp;
 		mp->mp_flags = monitor_subsys[ i ].mss_flags;
 
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
-				"unable to add entry '%s' to cache\n",
+				"unable to add entry \"%s\" to cache\n",
 				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
 			return -1;
 		}
 
-		e_tmp = e;
+		*ep = e;
+		ep = &mp->mp_next;
 	}
 
-	/*
-	 * creates the "cn=Monitor" entry 
-	 */
-	snprintf( buf, sizeof( buf ), 
-		"dn: %s\n"
-		"objectClass: %s\n"
-		"structuralObjectClass: %s\n"
-		"cn: Monitor\n"
-		"%s: This subtree contains monitoring/managing objects.\n"
-		"%s: This object contains information about this server.\n"
-#if 0
-		"%s: createTimestamp reflects the time this server instance was created.\n"
-		"%s: modifyTimestamp reflects the time this server instance was last accessed.\n"
-#endif
-		"creatorsName: %s\n"
-		"modifiersName: %s\n"
-		"createTimestamp: %s\n"
-		"modifyTimestamp: %s\n",
-		SLAPD_MONITOR_DN,
-		mi->mi_oc_monitorServer->soc_cname.bv_val,
-		mi->mi_oc_monitorServer->soc_cname.bv_val,
-		mi->mi_ad_description->ad_cname.bv_val,
-		mi->mi_ad_description->ad_cname.bv_val,
-#if 0
-		mi->mi_ad_description->ad_cname.bv_val,
-		mi->mi_ad_description->ad_cname.bv_val,
-#endif
-		mi->mi_creatorsName.bv_val,
-		mi->mi_creatorsName.bv_val,
-		mi->mi_startTime.bv_val,
-		mi->mi_startTime.bv_val );
-
-	e = str2entry( buf );
-	if ( e == NULL) {
-		Debug( LDAP_DEBUG_ANY,
-			"unable to create '%s' entry\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-		return( -1 );
-	}
-
-	bv.bv_val = (char *) Versionstr;
-	end_of_line = strchr( Versionstr, '\n' );
-	if ( end_of_line ) {
-		bv.bv_len = end_of_line - Versionstr;
-	} else {
-		bv.bv_len = strlen( Versionstr );
-	}
-
-	if ( attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
-				&bv, NULL ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"unable to add monitoredInfo to '%s' entry\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-		return( -1 );
-	}
-
-	if ( mi->mi_l.bv_len ) {
-		if ( attr_merge_normalize_one( e, mi->mi_ad_l, &mi->mi_l, NULL ) ) {
-			Debug( LDAP_DEBUG_ANY,
-				"unable to add locality to '%s' entry\n",
-				SLAPD_MONITOR_DN, 0, 0 );
-			return( -1 );
-		}
-	}
-
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
-	e->e_private = ( void * )mp;
-
-	mp->mp_info = NULL;
-	mp->mp_children = e_tmp;
-	mp->mp_next = NULL;
-
-	if ( monitor_cache_add( mi, e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"unable to add entry '%s' to cache\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-		return -1;
-	}
+	assert( be );
 
 	be->be_private = mi;
 	
-	assert( be );
-
 	/*
 	 * opens the monitor backend
 	 */

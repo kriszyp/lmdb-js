@@ -32,7 +32,7 @@ monitor_subsys_listener_init(
 )
 {
 	struct monitorinfo	*mi;
-	Entry			*e, *e_listener, *e_tmp;
+	Entry			*e_listener, **ep;
 	int			i;
 	struct monitorentrypriv	*mp;
 	Listener		**l;
@@ -54,19 +54,22 @@ monitor_subsys_listener_init(
 
 	if ( monitor_cache_get( mi, 
 				&monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn, 
-				&e_listener ) ) {
+				&e_listener ) )
+	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_listener_init: "
-			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 
-			"", "" );
+			"unable to get entry \"%s\"\n",
+			monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
-	e_tmp = NULL;
-	for ( i = 0; l[i]; i++ );
-	for ( ; i--; ) {
+	mp = ( struct monitorentrypriv * )e_listener->e_private;
+	mp->mp_children = NULL;
+	ep = &mp->mp_children;
+
+	for ( i = 0; l[i]; i++ ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
+		Entry		*e;
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Listener %d,%s\n"
@@ -96,10 +99,8 @@ monitor_subsys_listener_init(
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
-				"unable to create entry 'cn=Listener %d,%s'\n%s",
-				i,
-				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val,
-				"" );
+				"unable to create entry \"cn=Listener %d,%s\"\n",
+				i, monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
@@ -118,9 +119,7 @@ monitor_subsys_listener_init(
 		if ( l[i]->sl_is_udp ) {
 			struct berval bv;
 
-			bv.bv_val = "UDP";
-			bv.bv_len = sizeof("UDP")-1;
-
+			BER_BVSTR( &bv, "UDP" );
 			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 					&bv, NULL );
 		}
@@ -128,7 +127,7 @@ monitor_subsys_listener_init(
 
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
-		mp->mp_next = e_tmp;
+		mp->mp_next = NULL;
 		mp->mp_children = NULL;
 		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_LISTENER];
 		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_LISTENER].mss_flags
@@ -137,19 +136,15 @@ monitor_subsys_listener_init(
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
-				"unable to add entry 'cn=Listener %d,%s'\n",
-				i,
-				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val,
-				0 );
+				"unable to add entry \"cn=Listener %d,%s\"\n",
+				i, monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
-		e_tmp = e;
+		*ep = e;
+		ep = &mp->mp_next;
 	}
 	
-	mp = ( struct monitorentrypriv * )e_listener->e_private;
-	mp->mp_children = e_tmp;
-
 	monitor_cache_release( mi, e_listener );
 
 	return( 0 );

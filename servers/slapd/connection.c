@@ -315,13 +315,12 @@ static Connection* connection_get( ber_socket_t s )
 		assert( c->c_conn_state != SLAP_C_INVALID );
 		assert( sd != AC_SOCKET_INVALID );
 
-#ifdef SLAPD_MONITOR
-		c->c_activitytime = slap_get_time();
-#else
-		if( global_idletimeout > 0 ) {
+#ifndef SLAPD_MONITOR
+		if ( global_idletimeout > 0 )
+#endif /* ! SLAPD_MONITOR */
+		{
 			c->c_activitytime = slap_get_time();
 		}
-#endif
 	}
 
 	return c;
@@ -514,13 +513,12 @@ long connection_init(
 	/* set to zero until bind, implies LDAP_VERSION3 */
 	c->c_protocol = 0;
 
-#ifdef SLAPD_MONITOR
-	c->c_activitytime = c->c_starttime = slap_get_time();
-#else
-	if( global_idletimeout > 0 ) {
+#ifndef SLAPD_MONITOR
+	if ( global_idletimeout > 0 )
+#endif /* ! SLAPD_MONITOR */
+	{
 		c->c_activitytime = c->c_starttime = slap_get_time();
 	}
-#endif
 
 #ifdef LDAP_CONNECTIONLESS
 	c->c_is_udp = 0;
