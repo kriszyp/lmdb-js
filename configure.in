@@ -398,6 +398,31 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 			ol_link_kerberos=yes
 
 			KRB_LIBS="-lkrb4 -lkrb5 -ldes425"
+
+			LIBS="$KRB_LIBS $LIBS"
+
+			AC_CACHE_CHECK([for des_debug in Kerberos libraries],
+				[ol_cv_var_des_debug], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="$KRB_LIBS $LIBS"
+				AC_TRY_LINK([
+#include <kerberosIV/krb.h>
+#include <kerberosIV/des.h>
+extern int des_debug;
+],[
+des_debug = 1;
+],				ol_cv_var_des_debug=yes, ol_cv_var_des_debug=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_var_des_debug= yes ; then
+				AC_DEFINE(HAVE_DES_DEBUG,1,
+					[define if you have Kerberos des_debug])
+			fi
+
+			LIBS="$save_LIBS"
 		fi
 	fi
 fi
@@ -1334,6 +1359,7 @@ if test $am_cv_sys_posix_termios = yes ; then
 fi
 
 AC_CHECK_HEADERS(	\
+	arpa/nameser.h	\
 	crypt.h			\
 	errno.h			\
 	fcntl.h			\
@@ -1346,6 +1372,7 @@ AC_CHECK_HEADERS(	\
 	regex.h			\
 	psap.h			\
 	pwd.h			\
+	resolv.h		\
 	sgtty.h			\
 	stdarg.h		\
 	stddef.h		\

@@ -3,7 +3,7 @@
 #if defined(HAVE_KERBEROS) && !defined(openbsd)
 /*
  * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $
- * $Author: hallvard $
+ * $Author: kdz $
  *
  * Copyright 1985, 1986, 1987, 1988, 1989 by the Massachusetts Institute
  * of Technology.
@@ -29,8 +29,11 @@
 #include <stdio.h>
 #include <ac/krb.h>
 
+#if defined( DEBUG ) && defined( HAVE_DES_DEBUG )
+#define USE_DES_DEBUG
 extern int des_debug;
-extern int des_debug_print();
+#endif
+
 extern void des_fixup_key_parity();
 
 #ifndef HAVE_AFS_KERBEROS
@@ -64,7 +67,7 @@ des_string_to_key( char *str, register des_cblock *key )
     /* init key array for bits */
     memset(k_char, 0, sizeof(k_char));
 
-#ifdef DEBUG
+#ifdef USE_DES_DEBUG
     if (des_debug)
 	fprintf(stdout,
 		"\n\ninput str length = %d  string = %s\nstring = 0x ",
@@ -75,7 +78,7 @@ des_string_to_key( char *str, register des_cblock *key )
     for (i = 1; i <= length; i++) {
 	/* get next input key byte */
 	temp = (unsigned int) *str++;
-#ifdef DEBUG
+#ifdef USE_DES_DEBUG
 	if (des_debug)
 	    fprintf(stdout,"%02x ",temp & 0xff);
 #endif
@@ -116,11 +119,13 @@ des_string_to_key( char *str, register des_cblock *key )
     /* now fix up key parity again */
     des_fixup_key_parity(key);
 
+#ifdef USE_DES_DEBUG
     if (des_debug)
 	fprintf(stdout,
 		"\nResulting string_to_key = 0x%x 0x%x\n",
 		*((unsigned long *) key),
 		*((unsigned long *) key+1));
+#endif
 }
 
 #endif /* HAVE_KERBEROS_V */

@@ -366,6 +366,9 @@
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID
 
+/* Define if you have the <arpa/nameser.h> header file.  */
+#undef HAVE_ARPA_NAMESER_H
+
 /* Define if you have the <crypt.h> header file.  */
 #undef HAVE_CRYPT_H
 
@@ -446,6 +449,9 @@
 
 /* Define if you have the <regex.h> header file.  */
 #undef HAVE_REGEX_H
+
+/* Define if you have the <resolv.h> header file.  */
+#undef HAVE_RESOLV_H
 
 /* Define if you have the <sched.h> header file.  */
 #undef HAVE_SCHED_H
@@ -566,6 +572,9 @@
 
 /* define if you have -lpp */
 #undef HAVE_PP
+
+/* define if you have Kerberos des_debug */
+#undef HAVE_DES_DEBUG
 
 /* define if you have Kerberos */
 #undef HAVE_KERBEROS
