@@ -829,6 +829,7 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	slap_callback cb = { NULL, sasl_sc_smatch, NULL, NULL };
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
+	struct berval base = BER_BVNULL;
 
 	sm.dn = assertDN;
 	sm.match = 0;
@@ -838,7 +839,7 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n",
 		assertDN->bv_val, rule->bv_val, 0 );
 
-	rc = slap_parseURI( opx, rule, &op.o_req_dn,
+	rc = slap_parseURI( opx, rule, &base,
 		&op.o_req_ndn, &op.ors_scope, &op.ors_filter,
 		&op.ors_filterstr );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
@@ -998,7 +999,11 @@ exact_match:
 	op.o_conn = opx->o_conn;
 	op.o_connid = opx->o_connid;
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
-	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
+	if( !BER_BVISNULL( &base ) ) {
+		ch_free( base.bv_val );
+		/* just in case... */
+		BER_BVZERO( &base );
+	}
 	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
 	op.ors_slimit = 1;
 	op.ors_tlimit = SLAP_NO_LIMIT;
@@ -1081,6 +1086,7 @@ void slap_sasl2dn( Operation *opx,
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
 	struct berval regout = BER_BVNULL;
+	struct berval base = BER_BVNULL;
 
 	Debug( LDAP_DEBUG_TRACE, "==>slap_sasl2dn: "
 		"converting SASL name %s to a DN\n",
@@ -1095,7 +1101,7 @@ void slap_sasl2dn( Operation *opx,
 		goto FINISHED;
 	}
 
-	rc = slap_parseURI( opx, &regout, &op.o_req_dn,
+	rc = slap_parseURI( opx, &regout, &base,
 		&op.o_req_ndn, &op.ors_scope, &op.ors_filter,
 		&op.ors_filterstr );
 	if ( !BER_BVISNULL( &regout ) ) slap_sl_free( regout.bv_val, opx->o_tmpmemctx );
@@ -1165,7 +1171,11 @@ void slap_sasl2dn( Operation *opx,
 	op.ors_attrsonly = 1;
 	op.o_sync_slog_size = -1;
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
-	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
+	if( !BER_BVISNULL( &base ) ) {
+		ch_free( base.bv_val );
+		/* just in case... */
+		BER_BVZERO( &base );
+	}
 	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
 
 	op.o_bd->be_search( &op, &rs );
