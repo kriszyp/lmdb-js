@@ -222,7 +222,7 @@ monitor_back_db_init(
 	char 			buf[1024], *end_of_line;
 	struct berval		dn, *ndn;
 	const char 		*text;
-	struct berval		val, *bv[2] = { &val, NULL };
+	struct berval		bv[2];
 
 	/*
 	 * database monitor can be defined once only
@@ -403,12 +403,13 @@ monitor_back_db_init(
 #endif
 		return( -1 );
 	}
-	val.bv_val = (char *) Versionstr;
+	bv[1].bv_val = NULL;
+	bv[0].bv_val = (char *) Versionstr;
 	end_of_line = strchr( Versionstr, '\n' );
 	if ( end_of_line ) {
-		val.bv_len = end_of_line - Versionstr;
+		bv[0].bv_len = end_of_line - Versionstr;
 	} else {
-		val.bv_len = strlen( Versionstr );
+		bv[0].bv_len = strlen( Versionstr );
 	}
 	if ( attr_merge( e, monitor_ad_desc, bv ) ) {
 #ifdef NEW_LOGGING
