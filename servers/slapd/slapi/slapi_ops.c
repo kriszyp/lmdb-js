@@ -520,8 +520,6 @@ slapi_delete_internal(
 	op->o_dn = pConn->c_dn = be->be_rootdn;
 	op->o_ndn = pConn->c_ndn = be->be_rootndn;
 
-	suffix_alias( be, &ndn );
-
 	if ( be->be_delete ) {
 		int repl_user = be_isupdate( be, &op->o_ndn );
 		if ( !be->be_update_ndn.bv_len || repl_user ) {
@@ -793,8 +791,6 @@ slapi_modrdn_internal(
 	op->o_dn = pConn->c_dn = be->be_rootdn;
 	op->o_ndn = pConn->c_ndn = be->be_rootndn;
 
-	suffix_alias( be, &ndn );
-
 	if ( be->be_modrdn ) {
 		int repl_user = be_isupdate( be, &op->o_ndn );
 		if ( !be->be_update_ndn.bv_len || repl_user ) {
@@ -921,8 +917,6 @@ slapi_modify_internal(
 
 	op->o_dn = pConn->c_dn = be->be_rootdn;
 	op->o_ndn = pConn->c_ndn = be->be_rootndn;
-
-    	suffix_alias( be, &ndn );
 
 	for ( i = 0, pMod = mods[0]; rc == LDAP_SUCCESS && pMod != NULL; 
 			pMod = mods[++i] ) {

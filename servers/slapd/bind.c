@@ -603,9 +603,6 @@ do_bind(
 	if ( be->be_bind ) {
 		int ret;
 
-		/* deref suffix alias if appropriate */
-		suffix_alias( be, &ndn );
-
 		ret = (*be->be_bind)( be, conn, op,
 			&pdn, &ndn, method, &cred, &edn );
 

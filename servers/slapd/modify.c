@@ -329,9 +329,6 @@ do_modify(
 		goto cleanup;
 	}
 
-	/* deref suffix alias if appropriate */
-	suffix_alias( be, &ndn );
-
 #if defined( LDAP_SLAPI )
 	slapi_x_backend_set_pb( pb, be );
 	slapi_x_connection_set_pb( pb, conn );

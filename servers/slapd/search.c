@@ -382,9 +382,6 @@ do_search(
 		goto return_results;
 	}
 
-	/* deref the base if needed */
-	suffix_alias( be, &nbase );
-
 #ifdef LDAP_SLAPI
 	attrs = anlist2charray( an );
 	pb = initSearchPlugin( be, conn, op, &pbase,

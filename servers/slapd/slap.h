@@ -1322,7 +1322,6 @@ struct slap_backend_db {
 	/* these should be renamed from be_ to bd_ */
 	BerVarray	be_suffix;	/* the DN suffixes of data in this backend */
 	BerVarray	be_nsuffix;	/* the normalized DN suffixes in this backend */
-	BerVarray	be_suffixAlias; /* pairs of DN suffix aliases and deref values */
 	struct berval be_schemadn;	/* per-backend subschema subentry DN */
 	struct berval be_schemandn;	/* normalized subschema DN */
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
