@@ -1,8 +1,8 @@
-.TH SLURPD 8C "6 November 1995" "U-M LDAP LDVERSION"
+.TH SLURPD 8C "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 slurpd \- Standalone LDAP Update Replication Daemon
 .SH SYNOPSIS
-.B ETCDIR/slurpd [\-d debug\-level]
+.B LIBEXECDIR/slurpd [\-d debug\-level]
 .B [\-f slapd\-config\-file] [\-r slapd\-replog\-file]
 .B [\-t temp\-dir] [\-o] [\-k srvtab\-file]
 .B 
@@ -126,7 +126,7 @@ just type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slurpd
+	LIBEXECDIR/slurpd
 .ft
 .fi
 .LP
@@ -139,7 +139,7 @@ on voluminous debugging which will be printed on standard error, type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slurpd -f /usr/local/etc/slapd.conf -d 255
+	LIBEXECDIR/slurpd -f ETCDIR/slapd.conf -d 255
 .ft
 .fi
 .LP
@@ -149,3 +149,8 @@ on voluminous debugging which will be printed on standard error, type:
 .BR slapd (8)
 .LP
 "The SLAPD and SLURPD Administrator's Guide"
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

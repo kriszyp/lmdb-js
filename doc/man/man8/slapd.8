@@ -1,8 +1,8 @@
-.TH SLAPD 8C "6 November 1995" "U-M LDAP LDVERSION"
+.TH SLAPD 8C "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
-.B ETCDIR/slapd [\-d debug\-level]
+.B LIBEXECDIR/slapd [\-d debug\-level]
 .B [\-f slapd\-config\-file] [\-p port\-number]
 .B [\-s syslog\-level] [\-i]
 .B 
@@ -78,7 +78,7 @@ the LDAP databases defined in the default config file, just type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd
+	LIBEXECDIR/slapd
 .ft
 .fi
 .LP
@@ -89,7 +89,7 @@ on voluminous debugging which will be printed on standard error, type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd -f /usr/local/slapd/slapd.conf -d 255
+	LIBEXECDIR/slapd -f ETCDIR/slapd.conf -d 255
 .ft
 .fi
 .LP
@@ -102,3 +102,8 @@ on voluminous debugging which will be printed on standard error, type:
 .SH BUGS
 When using the LDBM database backend, the Modify RDN operation does not
 update the attribute values in the entry that are affected by the change.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  
