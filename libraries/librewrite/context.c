@@ -296,7 +296,7 @@ rewrite_context_apply(
 
 				if ( do_continue ) {
 					if ( rule->lr_next == NULL ) {
-						res = ( s == string ? strdup( s ) : s );
+						res = s;
 					}
 					goto rc_continue;
 				}
@@ -321,7 +321,7 @@ rewrite_context_apply(
 			if ( res != NULL ) {
 				struct rewrite_action *action;
 				
-				if (s != string ) {
+				if ( s != string && s != res ) {
 					free( s );
 				}
 				s = res;
@@ -381,7 +381,7 @@ rewrite_context_apply(
 			 * result back to the string
 			 */
 			} else if ( rule->lr_next == NULL ) {
-				res = ( s == string ? strdup( s ) : s );
+				res = s;
 			}
 			
 			break;

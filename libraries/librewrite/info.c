@@ -261,7 +261,9 @@ rewrite_session(
 	case REWRITE_REGEXEC_UNWILLING:
 	case REWRITE_REGEXEC_ERR:
 		if ( *result != NULL ) {
-			free( *result );
+			if ( *result != string ) {
+				free( *result );
+			}
 			*result = NULL;
 		}
 

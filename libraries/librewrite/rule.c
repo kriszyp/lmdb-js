@@ -419,9 +419,8 @@ recurse:;
 	
 	op->lo_num_passes++;
 	if ( regexec( &rule->lr_regex, string, nmatch, match, 0 ) != 0 ) {
-		if ( *result == NULL && strcnt > 0 ) {
+		if ( *result == NULL && string != arg ) {
 			free( string );
-			string = NULL;
 		}
 
 		/*
@@ -435,7 +434,7 @@ recurse:;
 
 	*result = val.bv_val;
 	val.bv_val = NULL;
-	if ( strcnt > 0 ) {
+	if ( string != arg ) {
 		free( string );
 		string = NULL;
 	}
