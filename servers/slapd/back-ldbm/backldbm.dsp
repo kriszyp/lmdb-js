@@ -144,6 +144,10 @@ SOURCE=.\attr.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\attribute.c
+# End Source File
+# Begin Source File
+
 SOURCE=".\back-ldbm.h"
 # End Source File
 # Begin Source File
@@ -236,6 +240,10 @@ SOURCE=.\nextid.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\operational.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\passwd.c
 # End Source File
 # Begin Source File
@@ -257,10 +265,6 @@ SOURCE=.\tools.c
 # Begin Source File
 
 SOURCE=.\unbind.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\attribute.c
 # End Source File
 # End Target
 # End Project
