@@ -505,6 +505,33 @@ feature.  The default is 0.
 .B include <filename>
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
+.TP
+.B index_substr_if_minlen <integer>
+Specify the minimum length for subinitial and subfinal indices. An
+attribute value must have at least this many characters in order to be
+processed by the indexing functions. The default is 2.
+.TP
+.B index_substr_if_maxlen <integer>
+Specify the maximum length for subinitial and subfinal indices. Only
+this many characters of an attribute value will be processed by the
+indexing functions; any excess characters are ignored. The default is 4.
+.TP
+.B index_substr_any_len <integer>
+Specify the length used for subany indices. An attribute value must have
+at least this many characters in order to be processed. Attribute values
+longer than this length will be processed in segments of this length. The
+default is 4. The subany index will also be used in subinitial and
+subfinal index lookups when the filter string is longer than the
+.I index_substr_if_maxlen
+value.
+.TP
+.B index_substr_any_step <integer>
+Specify the steps used in subany index lookups. This value sets the offset
+for the segments of a filter string that are processed for a subany index
+lookup. The default is 2. For example, with the default values, a search
+using this filter "cn=*abcdefgh*" would generate index lookups for
+"abcd", "cdef", and "efgh".
+
 .\"-- NEW_LOGGING option --
 .\".TP
 .\".B logfile <filename>
