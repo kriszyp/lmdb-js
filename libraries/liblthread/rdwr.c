@@ -1,3 +1,10 @@
+/*
+** This basic implementation of Reader/Writer locks does not
+** protect writers from starvation.  That is, if a writer is
+** currently waiting on a reader, any new reader will get
+** the lock before the writer.
+*/
+
 /********************************************************
  * An example source module to accompany...
  *
