@@ -28,8 +28,10 @@ int
 oc_schema_check( Entry *e )
 {
 	Attribute	*a, *aoc;
+	ObjectClass *oc;
 	int		i;
 	int		ret = 0;
+
 
 	/* find the object class attribute - could error out here */
 	if ( (aoc = attr_find( e->e_attrs, "objectclass" )) == NULL ) {
@@ -40,13 +42,22 @@ oc_schema_check( Entry *e )
 
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
-		char *s = oc_check_required( e, aoc->a_vals[i]->bv_val );
-
-		if (s != NULL) {
+		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), oc \"%s\" requires attr \"%s\"\n",
-			    e->e_dn, aoc->a_vals[i]->bv_val, s );
+				"Objectclass \"%s\" not defined",
+				aoc->a_vals[i]->bv_val, 0, 0 );
 			ret = 1;
+		}
+		else
+		{
+			char *s = oc_check_required( e, aoc->a_vals[i]->bv_val );
+
+			if (s != NULL) {
+				Debug( LDAP_DEBUG_ANY,
+					"Entry (%s), oc \"%s\" requires attr \"%s\"\n",
+					e->e_dn, aoc->a_vals[i]->bv_val, s );
+				ret = 1;
+			}
 		}
 	}
 
