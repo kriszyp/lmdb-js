@@ -1720,12 +1720,12 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, integerMatch, NULL, NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, bitStringMatch, NULL, NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
@@ -1745,17 +1745,17 @@ struct mrule_defs_rec mrule_defs[] = {
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, presentationAddressMatch, NULL, NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, uniqueMemberMatch, NULL, NULL},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
-		SLAP_MR_NONE | SLAP_MR_EXT,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL, protocolInformationMatch, NULL, NULL},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
