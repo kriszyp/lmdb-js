@@ -112,6 +112,8 @@ lutil_strcopy LDAP_P(( char *dst, const char *src ));
 LDAP_LUTIL_F( char* )
 lutil_strncopy LDAP_P(( char *dst, const char *src, size_t n ));
 
+struct tm;
+
 LDAP_LUTIL_F( size_t )
 lutil_gentime LDAP_P(( char *s, size_t max, const struct tm *tm ));
 
