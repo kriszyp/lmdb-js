@@ -1117,6 +1117,10 @@ typedef struct slap_ldap_modlist {
 #define ml_values	ml_mod.mod_values
 } LDAPModList;
 
+#ifdef LDAP_DEVEL
+#define SLAP_ACL_HONOR_DISCLOSE
+#endif /* LDAP_DEVEL */
+
 /*
  * represents an access control list
  */

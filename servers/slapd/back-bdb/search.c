@@ -313,6 +313,7 @@ bdb_search( Operation *op, SlapReply *rs )
 	Entry		*matched = NULL;
 	EntryInfo	*ei, ei_root = {0};
 	struct berval	realbase = BER_BVNULL;
+	slap_mask_t	mask;
 	int		manageDSAit;
 	int		tentries = 0;
 	ID		lastid = NOID;
@@ -396,13 +397,18 @@ dn2entry_retry:
 		if ( matched != NULL ) {
 			BerVarray erefs = NULL;
 
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+			/* return referral only if "disclose"
+			 * is granted on the object */
 			if ( ! access_allowed( op, matched,
 						slap_schema.si_ad_entry,
 						NULL, ACL_DISCLOSE, NULL ) )
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-			} else {
+			} else
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+			{
 				ber_dupbv( &matched_dn, &matched->e_name );
 
 				erefs = is_entry_referral( matched )
@@ -449,10 +455,17 @@ dn2entry_retry:
 		return rs->sr_err;
 	}
 
-	if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
-				NULL, ACL_DISCLOSE, NULL ) )
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+	/* NOTE: __NEW__ "search" access is required
+	 * on searchBase object */
+	if ( ! access_allowed_mask( op, e, slap_schema.si_ad_entry,
+				NULL, ACL_SEARCH, NULL, &mask ) )
 	{
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		if ( !ACL_GRANT( mask, ACL_DISCLOSE ) ) {
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else {
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		}
 
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
@@ -463,6 +476,7 @@ dn2entry_retry:
 		send_ldap_result( op, rs );
 		return 1;
 	}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	if ( !manageDSAit && e != &e_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */

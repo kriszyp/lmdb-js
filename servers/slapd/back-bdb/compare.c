@@ -65,12 +65,17 @@ dn2entry_retry:
 	e = ei->bei_e;
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if ( e != NULL ) {
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+			/* return referral only if "disclose"
+			 * is granted on the object */
 			if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
 						NULL, ACL_DISCLOSE, NULL ) )
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-			} else {
+			} else
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+			{
 				rs->sr_matched = ch_strdup( e->e_dn );
 				rs->sr_ref = is_entry_referral( e )
 					? get_entry_referrals( op, e )
@@ -97,22 +102,26 @@ dn2entry_retry:
 		goto done;
 	}
 
-	rs->sr_err = access_allowed( op, e, slap_schema.si_ad_entry,
-		NULL, ACL_DISCLOSE, NULL );
-	if ( ! rs->sr_err ) {
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-		goto return_results;
-	}
-
 	if (!manageDSAit && is_entry_referral( e ) ) {
-		/* entry is a referral, don't allow add */
-		rs->sr_ref = get_entry_referrals( op, e );
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+		/* return referral only if "disclose"
+		 * is granted on the object */
+		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
+					NULL, ACL_DISCLOSE, NULL ) )
+		{
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+		{
+			/* entry is a referral, don't allow compare */
+			rs->sr_ref = get_entry_referrals( op, e );
+			rs->sr_err = LDAP_REFERRAL;
+			rs->sr_matched = e->e_name.bv_val;
+		}
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
 
-		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_matched = e->e_name.bv_val;
 		send_ldap_result( op, rs );
 
 		ber_bvarray_free( rs->sr_ref );
@@ -128,18 +137,29 @@ dn2entry_retry:
 		goto return_results;
 	}
 
-	rs->sr_err = access_allowed( op, e, op->oq_compare.rs_ava->aa_desc,
-		&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
-	if ( ! rs->sr_err ) {
-		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+	if ( !access_allowed( op, e, op->oq_compare.rs_ava->aa_desc,
+		&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL ) )
+	{
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+		/* return error only if "disclose"
+		 * is granted on the object */
+		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
+					NULL, ACL_DISCLOSE, NULL ) )
+		{
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+		{
+			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		}
 		goto return_results;
 	}
 
 	rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 
-	for(a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
+	for ( a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
 		a != NULL;
-		a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc ))
+		a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc ) )
 	{
 		rs->sr_err = LDAP_COMPARE_FALSE;
 
@@ -156,14 +176,18 @@ dn2entry_retry:
 return_results:
 	send_ldap_result( op, rs );
 
-	if( rs->sr_err == LDAP_COMPARE_FALSE || rs->sr_err == LDAP_COMPARE_TRUE ) {
+	switch ( rs->sr_err ) {
+	case LDAP_COMPARE_FALSE:
+	case LDAP_COMPARE_TRUE:
 		rs->sr_err = LDAP_SUCCESS;
+		break;
 	}
 
 done:
 	/* free entry */
-	if( e != NULL ) {
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+	if ( e != NULL ) {
+		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
+				e, &lock );
 	}
 
 	LOCK_ID_FREE ( bdb->bi_dbenv, locker );
