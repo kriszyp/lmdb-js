@@ -32,21 +32,27 @@
 
 /*
  * Set real and effective user id and group id, and group access list
+ * The user and group arguments are freed.
  */
 
 void
 slap_init_user( char *user, char *group )
 {
-    uid_t	uid = (uid_t) 0;
-    gid_t	gid = (gid_t) 0;
+    uid_t	uid;
+    gid_t	gid;
+    int  	got_uid = 0, got_gid = 0;
 
     if ( user ) {
 	struct passwd *pwd;
 	if ( isdigit( (unsigned char) *user )) {
+	    got_uid = 1;
 	    uid = atoi( user );
 #ifdef HAVE_GETPWUID
 	    pwd = getpwuid( uid );
 	    goto did_getpw;
+#else
+	    free( user );
+	    user = NULL;
 #endif
 	} else {
 	    pwd = getpwnam( user );
@@ -56,12 +62,14 @@ slap_init_user( char *user, char *group )
 		       user, 0, 0 );
 		exit( 1 );
 	    }
-	    if ( uid > 0 ) {
+	    if ( got_uid ) {
 		free( user );
 		user = (pwd != NULL ? ch_strdup( pwd->pw_name ) : NULL);
 	    } else {
+		got_uid = 1;
 		uid = pwd->pw_uid;
 	    }
+	    got_gid = 1;
 	    gid = pwd->pw_gid;
 #ifdef HAVE_ENDPWENT
 	    endpwent();
@@ -89,6 +97,7 @@ slap_init_user( char *user, char *group )
 	    }
 	}
 	free( group );
+	got_gid = 1;
     }
 
     if ( user ) {
@@ -104,7 +113,7 @@ slap_init_user( char *user, char *group )
     endgrent();
 #endif
 
-    if ( gid > 0 ) {
+    if ( got_gid ) {
 	if ( setgid( gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real group id to %d\n",
 		   gid, 0, 0 );
@@ -119,7 +128,7 @@ slap_init_user( char *user, char *group )
 #endif
     }
 
-    if ( uid > 0 ) {
+    if ( got_uid ) {
 	if ( setuid( uid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real user id to %d\n",
 		   uid, 0, 0 );
