@@ -39,6 +39,9 @@
 #ifdef SLAPD_TCL
 #include "back-tcl/external.h"
 #endif
+#ifdef SLAPD_NTDOMAIN
+#include "back-domain/external.h"
+#endif
 
 static BackendInfo binfo[] = {
 #if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
@@ -61,6 +64,9 @@ static BackendInfo binfo[] = {
 #endif
 #if defined(SLAPD_TCL) && !defined(SLAPD_TCL_DYNAMIC)
 	{"tcl",		tcl_back_initialize},
+#endif
+#if defined(SLAPD_NTDOMAIN) && !defined(SLAPD_NTDOMAIN_DYNAMIC)
+	{"ntdom",	domain_back_initialize},
 #endif
 	{NULL}
 };
