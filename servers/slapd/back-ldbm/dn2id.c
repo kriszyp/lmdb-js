@@ -133,6 +133,7 @@ dn2id_delete(
 		return( -1 );
 	}
 
+	dn = ch_strdup( dn );
 	dn_normalize_case( dn );
 	key.dptr = dn;
 	key.dsize = strlen( dn ) + 1;
