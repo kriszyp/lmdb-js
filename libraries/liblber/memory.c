@@ -529,7 +529,7 @@ ber_bvstrdup(
 
 	new = ber_bvstr( p );
 
-	if( new == NULL || *p == '\0' ) {
+	if( new == NULL ) {
 		LBER_FREE( p );
 	}
 
