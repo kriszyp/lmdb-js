@@ -993,6 +993,9 @@ limits_check( Operation *op, SlapReply *rs )
 {
 	assert( op );
 	assert( rs );
+	/* protocol only allows 0..maxInt */
+	assert( op->ors_tlimit >= 0 );
+	assert( op->ors_slimit >= 0 );
 	/* FIXME: should this be always true? */
 	assert( op->o_tag == LDAP_REQ_SEARCH);
 	
@@ -1022,7 +1025,7 @@ limits_check( Operation *op, SlapReply *rs )
 		} else {
 			if ( op->ors_limit->lms_t_hard == 0 ) {
 				if ( op->ors_limit->lms_t_soft > 0
-						&& ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_soft ) ) {
+						&& ( op->ors_tlimit > op->ors_limit->lms_t_soft ) ) {
 					op->ors_tlimit = op->ors_limit->lms_t_soft;
 				}
 
@@ -1030,7 +1033,7 @@ limits_check( Operation *op, SlapReply *rs )
 				if ( op->ors_tlimit == SLAP_MAX_LIMIT ) {
 					op->ors_tlimit = op->ors_limit->lms_t_hard;
 
-				} else if ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+				} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
 					/* error if exceeding hard limit */
 					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
@@ -1106,14 +1109,11 @@ limits_check( Operation *op, SlapReply *rs )
 				if ( op->ors_slimit == SLAP_MAX_LIMIT ) {
 					slimit2 = op->ors_slimit = pr_total;
 
-				} else if ( op->ors_slimit > 0 ) {
-					slimit2 = op->ors_slimit;
-
 				} else if ( op->ors_slimit == 0 ) {
 					slimit2 = pr_total;
 
 				} else {
-					slimit2 = -1;
+					slimit2 = op->ors_slimit;
 				}
 
 				total = slimit2 - op->o_pagedresults_state.ps_count;
@@ -1148,7 +1148,7 @@ limits_check( Operation *op, SlapReply *rs )
 		
 			/* if got any limit, use it */
 			if ( slimit != -2 ) {
-				if ( op->ors_slimit <= 0 ) {
+				if ( op->ors_slimit == 0 ) {
 					op->ors_slimit = slimit;
 
 				} else if ( slimit > 0 ) {
