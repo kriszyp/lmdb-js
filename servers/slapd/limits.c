@@ -985,7 +985,7 @@ limits_check( Operation *op, SlapReply *rs )
 				pr_total = op->ors_limit->lms_s_pr_total;
 			}
 
-			if ( op->ors_limit->lms_s_pr_total == -1 ) {
+			if ( pr_total == -1 ) {
 				slimit = -1;
 
 			} else if ( pr_total > 0 && ( op->ors_slimit == -1 || op->ors_slimit > pr_total ) ) {
@@ -1047,19 +1047,19 @@ limits_check( Operation *op, SlapReply *rs )
 				if ( op->ors_slimit <= 0 ) {
 					op->ors_slimit = slimit;
 
-				} else if ( op->ors_slimit - op->o_pagedresults_state.ps_count > slimit ) {
-					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-					send_ldap_result( op, rs );
-					rs->sr_err = LDAP_SUCCESS;
-					return -1;
-
-				} else {
+				} else if ( slimit > 0 ) {
+					if ( op->ors_slimit - op->o_pagedresults_state.ps_count > slimit ) {
+						rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+						send_ldap_result( op, rs );
+						rs->sr_err = LDAP_SUCCESS;
+						return -1;
+					}
 					op->ors_slimit = slimit;
 				}
 
 			} else {
 				/* use the standard hard/soft limit if any */
-				op->ors_slimit = op->ors_limit->lms_s_hard;
+				op->ors_slimit = pr_total;
 			}
 
 		/* no limit requested: use soft, whatever it is */
