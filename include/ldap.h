@@ -289,7 +289,7 @@ typedef struct ldapmod {
  * possible error codes we can return
  */
 
-#define LDAP_RANGE(n,x,y)	(((x) >= (n)) && ((n) <= (y)))
+#define LDAP_RANGE(n,x,y)	(((x) <= (n)) && ((n) <= (y)))
 
 #define LDAP_SUCCESS			0x00
 #define LDAP_OPERATIONS_ERROR		0x01
