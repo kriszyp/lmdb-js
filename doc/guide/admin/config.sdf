@@ -14,7 +14,7 @@ In this configuration, you run a {{I:slapd}} which provides directory service
 for your local domain only. It does not interact with other directory
 servers in any way. This configuration is shown in Figure 2.
 
-!import "figure_2.gif"; align="center"; title="Local service via slapd configuration"
+!import "config_local.gif"; align="center"; title="Local service via slapd configuration"
 FT: Figure 2: Local service via slapd configuration.
 
 Use this configuration if you are just starting out (it's the one the
@@ -32,7 +32,7 @@ X.500 world (you don't have to run the ldapd yourself - you can just
 point to somebody else who does and doesn't mind you pointing to
 their service). This configuration is shown in Figure 3.
 
-!import "figure_3.gif"; align="center"; title="Local service via slapd + X.500 referrals configuration"
+!import "config_x500ref.gif"; align="center"; title="Local service via slapd + X.500 referrals configuration"
 FT: Figure 3: Local service via slapd + X.500 referrals configuration
 
 Use this configuration if you want to provide local service but still want
@@ -50,7 +50,7 @@ rest of the X.500 world. LDAP clients gain access to the directory
 through an ldapd which runs at your site. This configuration is shown
 in Figure 4.
 
-!import "figure_4.gif"; align="center"; title="Local service via X.500 and ldapd configuration"
+!import "config_x500fe.gif"; align="center"; title="Local service via X.500 and ldapd configuration"
 FT: Figure 4: Local service via X.500 and ldapd configuration
 
 Use this configuration if you are already running an X.500 service.
@@ -65,7 +65,7 @@ The slurpd daemon is used to propagate changes from a master slapd
 to one or more slave slapds. An example master-slave configuration
 is shown in figure 5.
 
-!import "figure_5.gif"; align="center"; title="Master slapd with two slaves replicated with slurpd"
+!import "config_repl.gif"; align="center"; title="Master slapd with two slaves replicated with slurpd"
 FT: Figure 5: Master slapd with two slaves replicated with slurpd
 
 This configuration can be used in conjunction with the first two

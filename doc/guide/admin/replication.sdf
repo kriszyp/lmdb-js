@@ -381,7 +381,7 @@ X.500 DSA, slurpd runs on the master slapd host, and
 sends changes to an ldapd which acts as a gateway to
 the X.500 DSA:
 
-!import "figure_1.gif"; align="center"; title="Replication from slapd to an X.500 DSA"
+!import "replication.gif"; align="center"; title="Replication from slapd to an X.500 DSA"
 FT: Figure 6: Replication from slapd to an X.500 DSA
 
 Note that the X.500 DSA must be a read-only copy. Since

@@ -1,0 +1,6 @@
+#
+# Generic Autoconf INSTALL
+#
+
+H1: General Configure Instructions
+!include "autoconf-install.txt" ; verbatim

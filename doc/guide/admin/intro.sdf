@@ -69,7 +69,7 @@ think of. Figure 1 shows an example LDAP directory tree, which should help
 make things clear.
 
 
-!import "figure_1.gif"; align="center"; title="An example LDAP directory tree"
+!import "intro_tree.gif"; align="center"; title="An example LDAP directory tree"
 FT: Figure 1: An example LDAP directory tree.
 
 

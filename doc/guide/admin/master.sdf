@@ -1,0 +1,31 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+#
+# SDF master file for the OpenLDAP Administrator's guide
+# master.sdf 
+
+# title information
+!include "title.sdf"
+
+# Document copyright, publishing info, acknowledgements, preface
+!include "preamble.sdf"; plain
+
+# Chapters
+!include "intro.sdf"; chapter
+!include "quickstart.sdf"; chapter
+!include "config.sdf"; chapter
+!include "install.sdf"; chapter
+!include "slapdconfig.sdf"; chapter
+!include "runningslapd.sdf"; chapter
+!include "monitoringslapd.sdf"; chapter
+!include "dbtools.sdf"; chapter
+!include "tuning.sdf"; chapter
+!include "referrals.sdf"; chapter
+!include "replication.sdf"; chapter
+
+# Appendices 
+!include "../release/autoconf.sdf"; appendix
+
+# Software Copyright/License
+!include "../release/copyright.sdf"; appendix
+!include "../release/license.sdf"; appendix
