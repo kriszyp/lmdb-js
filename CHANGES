@@ -1,5 +1,10 @@
 OpenLDAP Change Log
 
+Changes included in OpenLDAP 1.1.x
+	CVS Tag: OPENLDAP_REL_ENG_1_1
+	Build environment
+		Fixed doc/man reinstall bug
+
 Changes included in OpenLDAP 1.1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_1_2
 	Fixed slapd/back-ldbm/search matched initialization bug (ITS#23)
