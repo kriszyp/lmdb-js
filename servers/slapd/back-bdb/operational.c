@@ -97,10 +97,10 @@ bdb_operational(
 	if ( SLAP_OPATTRS( rs->sr_attr_flags ) ||
 			ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) )
 	{
-		int	hasSubordinates;
+		int	hasSubordinates, rc;
 
-		rs->sr_err = bdb_hasSubordinates( op, rs->sr_entry, &hasSubordinates );
-		if ( rs->sr_err == LDAP_SUCCESS ) {
+		rc = bdb_hasSubordinates( op, rs->sr_entry, &hasSubordinates );
+		if ( rc == LDAP_SUCCESS ) {
 			*ap = slap_operational_hasSubordinate( hasSubordinates == LDAP_COMPARE_TRUE );
 			assert( *ap );
 
@@ -108,6 +108,6 @@ bdb_operational(
 		}
 	}
 
-	return rs->sr_err;
+	return LDAP_SUCCESS;
 }
 
