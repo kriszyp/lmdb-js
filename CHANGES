@@ -1,5 +1,8 @@
 OpenLDAP Change Log
 
+Changes included in OpenLDAP 1.2.9 Engineering
+	CVS Tag: OPENLDAP_REL_ENG_1_2
+
 Changes included in OpenLDAP 1.2.8
 	CVS Tag: OPENLDAP_REL_ENG_1_2_8
 	Fixed slapd lint
