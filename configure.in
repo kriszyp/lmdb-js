@@ -1034,6 +1034,7 @@ if test $ol_link_threads != no ; then
 	AC_DEFINE(_THREAD_SAFE,1)
 	AC_DEFINE(THREADSAFE,1)
 	AC_DEFINE(_THREADSAFE,1)
+        AC_DEFINE(_SGI_MP_SOURCE,1)
 
 	dnl this might cause the errno symbol to be
 	dnl replaced with a function to get a thread specific errno.
