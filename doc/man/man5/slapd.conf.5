@@ -58,7 +58,7 @@ backslash character.
 The specific configuration options available are discussed below in the
 Global Configuration Options, General Backend Options, LDBM
 Backend-Specific Options, Shell Backend-Specific Options, and Password
-Backend-Specific Options sections.  Refer to "The SLAPD and SLURPD
+Backend-Specific Options sections.  Refer to the "OpenLDAP
 Administrator's Guide" for more details on the slapd configuration
 file.
 .SH GLOBAL CONFIGURATION OPTIONS
@@ -289,7 +289,7 @@ default, readonly is off.
 .B [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [authcId=<authentication ID>]
 .RS
-Specify a replication site for this database.  Refer to "The OpenLDAP 
+Specify a replication site for this database.  Refer to the "OpenLDAP 
 Administrator's Guide" for detailed information on setting up a replicated
 .B slapd
 directory service. A
@@ -419,9 +419,7 @@ front-end.
 .TP
 .B abandon <pathname>
 These options specify the pathname of the command to execute in response 
-to the given LDAP operation. The command given should understand and 
-follow the input/output conventions described in Appendix B of "The SLAPD
-and SLURPD Administrator's Guide."
+to the given LDAP operation.
 .LP
 Note that you need only supply configuration lines for those commands you
 want the backend to handle. Operations for which a command is not
