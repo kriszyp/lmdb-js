@@ -164,6 +164,10 @@ phonetic( char *s )
 #elif defined(SLAPD_METAPHONE)
 
 /*
+ * Metaphone was originally developed by Lawrence Philips and
+ * published in the "Computer Language" magazine in 1990.
+ */
+/*
  * Metaphone copied from C Gazette, June/July 1991, pp 56-57,
  * author Gary A. Parker, with changes by Bernard Tiffany of the
  * University of Michigan, and more changes by Tim Howes of the
