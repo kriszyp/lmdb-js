@@ -27,7 +27,6 @@
 #include <sys/types.h>
 
 #include "slap.h"
-#include "ldap_pvt.h"
 #include "proto-sql.h"
 
 #define MAX_ATTR_LEN 16384

@@ -31,7 +31,6 @@
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
-#include "ldap_pvt.h"
 #undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "ldap_log.h"
 #include "../../../libraries/libldap/ldap-int.h"

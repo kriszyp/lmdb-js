@@ -448,13 +448,8 @@ send_ldap_response(
 #endif /* LDAP_SLAPI */
 
 	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-#ifdef HAVE_GMP
-	mpz_add_ui( slap_counters.sc_pdu, slap_counters.sc_pdu, 1 );
-	mpz_add_ui( slap_counters.sc_bytes, slap_counters.sc_bytes, bytes );
-#else /* ! HAVE_GMP */
-	slap_counters.sc_bytes += bytes;
-	slap_counters.sc_pdu++;
-#endif /* ! HAVE_GMP */
+	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, bytes );
 	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 
 cleanup:;
@@ -1181,15 +1176,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		rs->sr_nentries++;
 
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-#ifdef HAVE_GMP
-		mpz_add_ui( slap_counters.sc_bytes, slap_counters.sc_bytes, bytes );
-		mpz_add_ui( slap_counters.sc_entries, slap_counters.sc_entries, 1 );
-		mpz_add_ui( slap_counters.sc_pdu, slap_counters.sc_pdu, 1 );
-#else /* ! HAVE_GMP */
-		slap_counters.sc_bytes += bytes;
-		slap_counters.sc_entries++;
-		slap_counters.sc_pdu++;
-#endif /* ! HAVE_GMP */
+		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, bytes );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_entries, 1 );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 	}
 
@@ -1376,15 +1365,9 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	ber_free_buf( ber );
 
 	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
-#ifdef HAVE_GMP
-	mpz_add_ui( slap_counters.sc_bytes, slap_counters.sc_bytes, bytes );
-	mpz_add_ui( slap_counters.sc_refs, slap_counters.sc_refs, 1 );
-	mpz_add_ui( slap_counters.sc_pdu, slap_counters.sc_pdu, 1 );
-#else /* ! HAVE_GMP */
-	slap_counters.sc_bytes += bytes;
-	slap_counters.sc_refs++;
-	slap_counters.sc_pdu++;
-#endif /* ! HAVE_GMP */
+	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, bytes );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
 	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 #ifdef LDAP_CONNECTIONLESS
 	}

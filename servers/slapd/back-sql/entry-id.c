@@ -26,8 +26,6 @@
 #include <sys/types.h>
 #include "ac/string.h"
 
-#include "lber_pvt.h"
-#include "ldap_pvt.h"
 #include "slap.h"
 #include "proto-sql.h"
 

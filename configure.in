@@ -171,6 +171,10 @@ OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
 	auto, [auto ssleay openssl yes no] )
 OL_ARG_WITH(yielding_select,[  --with-yielding-select  with implicitly yielding select],
 	auto, [auto yes no manual] )
+OL_ARG_WITH(multiple_precision,[  --with-multiple-precision
+                          multiple precision support for statistics
+			  auto|bignum|gmp],
+	auto, [auto bignum gmp yes no] )
 
 dnl ----------------------------------------------------------------
 dnl Server options
@@ -1207,10 +1211,11 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl TLS/SSL
+	
 ol_link_tls=no
 if test $ol_with_tls != no ; then
 	AC_CHECK_HEADERS(openssl/ssl.h ssl.h)
-	
+
 	if test $ac_cv_header_openssl_ssl_h = yes \
 		-o $ac_cv_header_ssl_h = yes ; then
 		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
@@ -2230,15 +2235,96 @@ if test $ol_enable_slp != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl Check for GMP API Library
-AC_CHECK_HEADERS( gmp.h )
+dnl Check for multiple precision support
+if test "$ol_with_multiple_precision" != "no" ; then
+	ol_have_bignum=no
+	ol_have_gmp=no
 
-if test $ac_cv_header_gmp_h = yes ; then
-	AC_CHECK_LIB(gmp, __gmpz_add_ui, [have_gmp=yes], [have_gmp=no])
-	if test $have_gmp = yes ; then
+	AC_CHECK_HEADERS(openssl/bn.h bn.h)
+	AC_CHECK_HEADERS(openssl/crypto.h crypto.h)
+	AC_CHECK_HEADERS( gmp.h )
+
+	if test "$ol_with_tls" = "found" ; then
+		ol_have_bn_h=no
+		ol_have_crypto_h=no
+
+		if test "$ac_cv_header_openssl_bn_h" = "yes" \
+				-o "$ac_cv_header_bn_h" = "yes" ; then
+			ol_have_bn_h=yes
+		fi
+
+		if test "$ac_cv_header_openssl_crypto_h" = "yes" \
+				-o "$ac_cv_header_crypto_h" = "yes" ; then
+			ol_have_crypto_h=yes
+		fi
+
+		if test "$ol_have_bn_h" = "yes" \
+				-a "$ol_have_crypto_h" = "yes" ; then
+			ol_have_bignum=yes
+		fi
+	fi
+
+	if test $ac_cv_header_gmp_h = yes ; then
+		AC_CHECK_LIB(gmp, __gmpz_add_ui, [have_gmp=yes], [have_gmp=no])
+		if test $have_gmp = yes ; then
+			ol_have_gmp=yes
+		fi
+	fi
+
+	AC_MSG_CHECKING([for multiple precision support])
+
+	ol_mp_support="none"
+	case "$ol_with_multiple_precision" in
+	auto)
+		dnl preferred sequence:
+		dnl - OpenSSL's BIGNUM (if libssl is already linked)
+		dnl - GNU's MP
+		dnl - unsigned long
+		if test "$ol_have_bignum" = "yes" ; then
+			ol_mp_support="bignum"
+		else
+			if test "$ol_have_gmp" = "yes" ; then
+				ol_mp_support="gmp"
+			fi
+		fi
+		;;
+	bignum)
+		if test "$ol_have_bignum" != "yes" ; then
+			AC_MSG_ERROR([OpenSSL's BIGNUM not available])
+		fi
+		ol_mp_support="bignum"
+		;;
+	gmp)
+		if test "$ol_have_gmp" != "yes" ; then
+			AC_MSG_ERROR([GMP not available])
+		fi
+		ol_mp_support="gmp"
+		;;
+	yes)
+		if test "$ol_have_bignum" = "yes" ; then
+			ol_mp_support="bignum"
+		elif test "$ol_have_gmp" = "yes" ; then
+			ol_mp_support="gmp"
+		else
+			AC_MSG_ERROR([not available])
+		fi
+		;;
+	esac
+
+	case "$ol_mp_support" in
+	bignum)
+		AC_DEFINE(HAVE_BIGNUM, 1,
+			[define if you have SSLeay or OpenSSL's BIGNUM])
+		;;
+	gmp)
 		AC_DEFINE(HAVE_GMP, 1, [define if you have -lgmp])
 		SLAPD_GMP_LIBS=-lgmp
-	fi
+		;;
+	none)
+		;;
+	esac
+
+	AC_MSG_RESULT($ol_mp_support)
 fi
 
 dnl ----------------------------------------------------------------

@@ -121,36 +121,20 @@ slap_init( int mode, const char *name )
 
 		ldap_pvt_thread_mutex_init( &slap_counters.sc_sent_mutex );
 		ldap_pvt_thread_mutex_init( &slap_counters.sc_ops_mutex );
-#ifdef HAVE_GMP
-		mpz_init( slap_counters.sc_bytes );
-		mpz_init( slap_counters.sc_pdu );
-		mpz_init( slap_counters.sc_entries );
-		mpz_init( slap_counters.sc_refs );
+		ldap_pvt_mp_init( slap_counters.sc_bytes );
+		ldap_pvt_mp_init( slap_counters.sc_pdu );
+		ldap_pvt_mp_init( slap_counters.sc_entries );
+		ldap_pvt_mp_init( slap_counters.sc_refs );
 
-		mpz_init( slap_counters.sc_ops_completed );
-		mpz_init( slap_counters.sc_ops_initiated );
+		ldap_pvt_mp_init( slap_counters.sc_ops_completed );
+		ldap_pvt_mp_init( slap_counters.sc_ops_initiated );
 
 #ifdef SLAPD_MONITOR
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			mpz_init( slap_counters.sc_ops_initiated_[ i ] );
-			mpz_init( slap_counters.sc_ops_completed_[ i ] );
+			ldap_pvt_mp_init( slap_counters.sc_ops_initiated_[ i ] );
+			ldap_pvt_mp_init( slap_counters.sc_ops_completed_[ i ] );
 		}
 #endif /* SLAPD_MONITOR */
-#else /* ! HAVE_GMP */
-		slap_counters.sc_bytes = 0;
-		slap_counters.sc_pdu = 0;
-		slap_counters.sc_entries = 0;
-		slap_counters.sc_refs = 0;
-
-		slap_counters.sc_ops_completed = 0;
-		slap_counters.sc_ops_initiated = 0;
-#ifdef SLAPD_MONITOR
-		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			slap_counters.sc_ops_initiated_[ i ] = 0;
-			slap_counters.sc_ops_completed_[ i ] = 0;
-		}
-#endif /* SLAPD_MONITOR */
-#endif /* ! HAVE_GMP */
 
 #ifndef HAVE_GMTIME_R
 		ldap_pvt_thread_mutex_init( &gmtime_mutex );
@@ -251,21 +235,19 @@ int slap_destroy(void)
 
 		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_sent_mutex );
 		ldap_pvt_thread_mutex_destroy( &slap_counters.sc_ops_mutex );
-#ifdef HAVE_GMP
-		mpz_clear( slap_counters.sc_bytes );
-		mpz_clear( slap_counters.sc_pdu );
-		mpz_clear( slap_counters.sc_entries );
-		mpz_clear( slap_counters.sc_refs );
-		mpz_clear( slap_counters.sc_ops_completed );
-		mpz_clear( slap_counters.sc_ops_initiated );
+		ldap_pvt_mp_clear( slap_counters.sc_bytes );
+		ldap_pvt_mp_clear( slap_counters.sc_pdu );
+		ldap_pvt_mp_clear( slap_counters.sc_entries );
+		ldap_pvt_mp_clear( slap_counters.sc_refs );
+		ldap_pvt_mp_clear( slap_counters.sc_ops_completed );
+		ldap_pvt_mp_clear( slap_counters.sc_ops_initiated );
 
 #ifdef SLAPD_MONITOR
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			mpz_clear( slap_counters.sc_ops_initiated_[ i ] );
-			mpz_clear( slap_counters.sc_ops_completed_[ i ] );
+			ldap_pvt_mp_clear( slap_counters.sc_ops_initiated_[ i ] );
+			ldap_pvt_mp_clear( slap_counters.sc_ops_completed_[ i ] );
 		}
 #endif /* SLAPD_MONITOR */
-#endif /* HAVE_GMP */
 		break;
 
 	default:

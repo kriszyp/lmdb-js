@@ -99,7 +99,26 @@ int monitor_subsys_time_update LDAP_P(( Operation *op, Entry *e ));
 
 /* NOTE: this macro assumes that bv has been allocated
  * by ber_* malloc functions or is { 0L, NULL } */
-#ifdef HAVE_GMP
+#if defined(HAVE_BIGNUM)
+#define UI2BV(bv,ui) \
+	do { \
+		char		*val; \
+		ber_len_t	len; \
+		val = BN_bn2dec(ui); \
+		if (val) { \
+			len = strlen(val); \
+			if ( len > (bv)->bv_len ) { \
+				(bv)->bv_val = ber_memrealloc( (bv)->bv_val, len + 1 ); \
+			} \
+			AC_MEMCPY((bv)->bv_val, val, len + 1); \
+			(bv)->bv_len = len; \
+			OPENSSL_free(val); \
+		} else { \
+			ber_memfree( (bv)->bv_val ); \
+			BER_BVZERO( (bv) ); \
+		} \
+	} while ( 0 )
+#elif defined(HAVE_GMP)
 /* NOTE: according to the documentation, the result 
  * of mpz_sizeinbase() can exceed the length of the
  * string representation of the number by 1
@@ -116,7 +135,7 @@ int monitor_subsys_time_update LDAP_P(( Operation *op, Entry *e ));
 		} \
 		(bv)->bv_len = len; \
 	} while ( 0 )
-#else /* ! HAVE_GMP */
+#else /* ! HAVE_BIGNUM && ! HAVE_GMP */
 #define UI2BV(bv,ui) \
 	do { \
 		char		buf[] = "+9223372036854775807L"; \

@@ -35,7 +35,6 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
-#include "ldap_pvt.h"
 #include "ldap_pvt_thread.h"
 #include "lutil.h"
 

@@ -45,7 +45,6 @@
 
 #include "slap.h"
 #include "back-passwd.h"
-#include <ldap_pvt.h>
 
 static void pw_start( Backend *be );
 

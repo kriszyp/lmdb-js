@@ -18,8 +18,6 @@
 #include <stdio.h>
 #include <ac/socket.h>
 
-#include <ldap_pvt.h>
-
 #include "slap.h"
 
 #ifdef HAVE_TLS

@@ -34,8 +34,6 @@
 #include <ac/wait.h>
 #include <ac/errno.h>
 
-#include "ldap_pvt.h"
-
 #include "slap.h"
 #include "lutil.h"
 #include "ldif.h"

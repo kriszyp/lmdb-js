@@ -30,7 +30,6 @@
 #include <ac/time.h>
 #include <ac/socket.h>
 
-#include "ldap_pvt.h"
 #include "slap.h"
 
 #ifdef LDAP_SLAPI

@@ -34,7 +34,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include "ldap_pvt.h"
 #include "lutil.h"
 #include "slap.h"
 
@@ -863,38 +862,20 @@ void connection_done( Connection *c )
  */
 
 #ifdef SLAPD_MONITOR
-#ifdef HAVE_GMP
+/* FIXME: returns 0 in case of failure */
 #define INCR_OP_INITIATED(index) \
 	do { \
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		mpz_add_ui(slap_counters.sc_ops_initiated_[(index)], \
-				slap_counters.sc_ops_initiated_[(index)], 1); \
+		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_initiated_[(index)], 1); \
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
 	} while (0)
 #define INCR_OP_COMPLETED(index) \
 	do { \
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		mpz_add_ui(slap_counters.sc_ops_completed, \
-				slap_counters.sc_ops_completed, 1); \
-		mpz_add_ui(slap_counters.sc_ops_completed_[(index)], \
-				slap_counters.sc_ops_completed_[(index)], 1); \
+		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed, 1); \
+		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed_[(index)], 1); \
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
 	} while (0)
-#else /* ! HAVE_GMP */
-#define INCR_OP_INITIATED(index) \
-	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		slap_counters.sc_ops_initiated_[(index)]++; \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
-	} while (0)
-#define INCR_OP_COMPLETED(index) \
-	do { \
-		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
-		slap_counters.sc_ops_completed++; \
-		slap_counters.sc_ops_completed_[(index)]++; \
-		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
-	} while (0)
-#endif /* ! HAVE_GMP */
 #else /* !SLAPD_MONITOR */
 #define INCR_OP_INITIATED(index) 
 #define INCR_OP_COMPLETED(index) 
@@ -916,11 +897,8 @@ connection_operation( void *ctx, void *arg_v )
 	ber_len_t memsiz;
 
 	ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
-#ifdef HAVE_GMP
-	mpz_add_ui(slap_counters.sc_ops_initiated, slap_counters.sc_ops_initiated, 1);
-#else /* ! HAVE_GMP */
-	slap_counters.sc_ops_initiated++;
-#endif /* ! HAVE_GMP */
+	/* FIXME: returns 0 in case of failure */
+	ldap_pvt_mp_add_ulong(slap_counters.sc_ops_initiated, 1);
 	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 
 	op->o_threadctx = ctx;

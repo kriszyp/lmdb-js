@@ -33,7 +33,6 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include <ldap_pvt.h>
 
 #if 0 /* unused */
 static char	*find_matching_paren( const char *s );

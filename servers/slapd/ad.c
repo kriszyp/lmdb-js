@@ -24,7 +24,6 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "ldap_pvt.h"
 #include "slap.h"
 #include "lutil.h"
 
@@ -793,6 +792,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	}
 
 	an = ch_realloc( an, ( i + j + 1 ) * sizeof( AttributeName ) );
+	BER_BVZERO( &an[i + j].an_name );
 	anew = an + i;
 	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
 		s != NULL;

@@ -23,8 +23,6 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "ldap_pvt.h"
-#include "ldap_pvt_uc.h"
 
 #define OCDEBUG 0
 

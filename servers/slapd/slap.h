@@ -40,10 +40,6 @@
 #include <ac/time.h>
 #include <ac/param.h>
 
-#ifdef HAVE_GMP
-#include <gmp.h>
-#endif /* HAVE_GMP */
-
 #include "avl.h"
 
 #ifndef ldap_debug
@@ -56,6 +52,7 @@
 #include <ldap_schema.h>
 
 #include "lber_pvt.h"
+#include "ldap_pvt.h"
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
@@ -2434,46 +2431,19 @@ enum {
 
 typedef struct slap_counters_t {
 	ldap_pvt_thread_mutex_t	sc_sent_mutex;
-#ifdef HAVE_GMP
-	mpz_t			sc_bytes;
-	mpz_t			sc_pdu;
-	mpz_t			sc_entries;
-	mpz_t			sc_refs;
-#else /* ! HAVE_GMP */
-	unsigned long		sc_bytes;
-	unsigned long		sc_pdu;
-	unsigned long		sc_entries;
-	unsigned long		sc_refs;
-#endif /* ! HAVE_GMP */
+	ldap_pvt_mp_t		sc_bytes;
+	ldap_pvt_mp_t		sc_pdu;
+	ldap_pvt_mp_t		sc_entries;
+	ldap_pvt_mp_t		sc_refs;
 
 	ldap_pvt_thread_mutex_t	sc_ops_mutex;
-#ifdef HAVE_GMP
-	mpz_t			sc_ops_completed;
-	mpz_t			sc_ops_initiated;
+	ldap_pvt_mp_t		sc_ops_completed;
+	ldap_pvt_mp_t		sc_ops_initiated;
 #ifdef SLAPD_MONITOR
-	mpz_t			sc_ops_completed_[SLAP_OP_LAST];
-	mpz_t			sc_ops_initiated_[SLAP_OP_LAST];
+	ldap_pvt_mp_t		sc_ops_completed_[SLAP_OP_LAST];
+	ldap_pvt_mp_t		sc_ops_initiated_[SLAP_OP_LAST];
 #endif /* SLAPD_MONITOR */
-#else /* ! HAVE_GMP */
-	unsigned long		sc_ops_completed;
-	unsigned long		sc_ops_initiated;
-#ifdef SLAPD_MONITOR
-	unsigned long		sc_ops_completed_[SLAP_OP_LAST];
-	unsigned long		sc_ops_initiated_[SLAP_OP_LAST];
-#endif /* SLAPD_MONITOR */
-#endif /* ! HAVE_GMP */
 } slap_counters_t;
-
-#define	num_sent_mutex		slap_counters.sc_sent_mutex
-#define	num_bytes_sent		slap_counters.sc_bytes
-#define	num_pdu_sent		slap_counters.sc_pdu
-#define	num_entries_sent	slap_counters.sc_entries
-#define	num_refs_sent		slap_counters.sc_refs
-#define	num_ops_mutex		slap_counters.sc_ops_mutex
-#define num_ops_completed	slap_counters.sc_ops_completed
-#define num_ops_initiated	slap_counters.sc_ops_initiated
-#define num_ops_completed_	slap_counters.sc_ops_completed_
-#define num_ops_initiated_	slap_counters.sc_ops_initiated_
 
 /*
  * Better know these all around slapd

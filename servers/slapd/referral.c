@@ -25,8 +25,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include <ldap_pvt.h>
-
 #include "slap.h"
 
 /*

@@ -27,8 +27,6 @@
 #include "ac/string.h"
 
 #include "slap.h"
-#include "lber_pvt.h"
-#include "ldap_pvt.h"
 #include "proto-sql.h"
 
 #define BACKSQL_DUPLICATE	(-1)

@@ -60,8 +60,6 @@ typedef struct sasl_ctx {
 
 #endif
 
-#include "ldap_pvt.h"
-#include "lber_pvt.h"
 #include <lutil.h>
 
 static struct berval ext_bv = BER_BVC( "EXTERNAL" );

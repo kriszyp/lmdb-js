@@ -29,8 +29,6 @@
 #include "ac/stdarg.h"
 
 #include "slap.h"
-#include "lber_pvt.h"
-#include "ldap_pvt.h"
 #include "proto-sql.h"
 
 #define BACKSQL_MAX(a,b) ((a)>(b)?(a):(b))

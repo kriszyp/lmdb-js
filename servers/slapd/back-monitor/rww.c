@@ -28,6 +28,22 @@
 #include "lutil.h"
 #include "back-monitor.h"
 
+enum {
+	MONITOR_RWW_READ = 0,
+	MONITOR_RWW_WRITE,
+
+	MONITOR_RWW_LAST
+};
+
+struct monitor_rww_t {
+	struct berval	rdn;
+	struct berval	nrdn;
+} monitor_rww[] = {
+	{ BER_BVC("cn=Read"),		BER_BVNULL },
+	{ BER_BVC("cn=Write"),		BER_BVNULL },
+	{ BER_BVNULL,			BER_BVNULL }
+};
+
 int
 monitor_subsys_rww_init(
 	BackendDB		*be
@@ -35,10 +51,9 @@ monitor_subsys_rww_init(
 {
 	struct monitorinfo	*mi;
 	
-	Entry			*e, **ep, *e_conn;
+	Entry			**ep, *e_conn;
 	struct monitorentrypriv	*mp;
-	char			buf[ BACKMONITOR_BUFSIZE ];
-	struct berval		bv;
+	int			i;
 
 	assert( be != NULL );
 
@@ -57,109 +72,66 @@ monitor_subsys_rww_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	/*
-	 * Total conns
-	 */
-	snprintf( buf, sizeof( buf ),
-		"dn: cn=Read,%s\n"
-		"objectClass: %s\n"
-		"structuralObjectClass: %s\n"
-		"cn: Read\n"
-		"creatorsName: %s\n"
-		"modifiersName: %s\n"
-		"createTimestamp: %s\n"
-		"modifyTimestamp: %s\n",
-		monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
-		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
-		mi->mi_creatorsName.bv_val,
-		mi->mi_creatorsName.bv_val,
-		mi->mi_startTime.bv_val,
-		mi->mi_startTime.bv_val );
-	
-	e = str2entry( buf );
-	if ( e == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_rww_init: "
-			"unable to create entry \"cn=Read,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-	
-	bv.bv_val = "0";
-	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
-	
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
-	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
-	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_RWW];
-	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_RWW].mss_flags \
-		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
-
-	if ( monitor_cache_add( mi, e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_rww_init: "
-			"unable to add entry \"cn=Read,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-	
-	*ep = e;
-	ep = &mp->mp_next;
-
-	/*
-	 * Current conns
-	 */
-	snprintf( buf, sizeof( buf ),
-			"dn: cn=Write,%s\n"
+	for ( i = 0; i < MONITOR_RWW_LAST; i++ ) {
+		char			buf[ BACKMONITOR_BUFSIZE ];
+		struct berval		nrdn, bv;
+		Entry			*e;
+		
+		snprintf( buf, sizeof( buf ),
+			"dn: %s,%s\n"
 			"objectClass: %s\n"
 			"structuralObjectClass: %s\n"
-			"cn: Write\n"
+			"cn: %s\n"
 			"creatorsName: %s\n"
 			"modifiersName: %s\n"
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
+			monitor_rww[i].rdn.bv_val,
 			monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
+			&monitor_rww[i].rdn.bv_val[STRLENOF("cn")],
 			mi->mi_creatorsName.bv_val,
 			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
 			mi->mi_startTime.bv_val );
 	
-	e = str2entry( buf );
-	if ( e == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_rww_init: "
-			"unable to create entry \"cn=Write,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
-	
-	bv.bv_val = "0";
-	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
-	
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
-	e->e_private = ( void * )mp;
-	mp->mp_next = NULL;
-	mp->mp_children = NULL;
-	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_RWW];
-	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_RWW].mss_flags \
-		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+		e = str2entry( buf );
+		if ( e == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_rww_init: "
+				"unable to create entry \"cn=Read,%s\"\n",
+				monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
+			return( -1 );
+		}
 
-	if ( monitor_cache_add( mi, e ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_rww_init: "
-			"unable to add entry \"cn=Write,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
-		return( -1 );
-	}
+		/* steal normalized RDN */
+		dnRdn( &e->e_nname, &nrdn );
+		ber_dupbv( &monitor_rww[i].nrdn, &nrdn );
 	
-	*ep = e;
-	ep = &mp->mp_next;
+		BER_BVSTR( &bv, "0" );
+		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	
+		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		e->e_private = ( void * )mp;
+		mp->mp_next = NULL;
+		mp->mp_children = NULL;
+		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_RWW];
+		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_RWW].mss_flags \
+			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+
+		if ( monitor_cache_add( mi, e ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_rww_init: "
+				"unable to add entry \"%s,%s\"\n",
+				monitor_rww[i].rdn.bv_val,
+				monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0 );
+			return( -1 );
+		}
+	
+		*ep = e;
+		ep = &mp->mp_next;
+	}
 
 	monitor_cache_release( mi, e_conn );
 
@@ -177,49 +149,51 @@ monitor_subsys_rww_update(
 	int                     connindex;
 	long			nconns, nwritewaiters, nreadwaiters;
 
-#define RWW_NONE	0
-#define RWW_READ	1
-#define RWW_WRITE	2
-	int			type = RWW_NONE;
-	
+	int			i;
+	struct berval		nrdn;
+
 	Attribute		*a;
 	char 			buf[] = "+9223372036854775807L";
 	long			num = 0;
+	ber_len_t		len;
 
 	assert( mi != NULL );
 	assert( e != NULL );
-	
-	if ( strncasecmp( e->e_ndn, "cn=read", 
-				sizeof("cn=read")-1 ) == 0 ) {
-		type = RWW_READ;
 
-	} else if ( strncasecmp( e->e_ndn, "cn=write", 
-				sizeof("cn=write")-1 ) == 0 ) {
-		type = RWW_WRITE;
+	dnRdn( &e->e_nname, &nrdn );
 
-	} else {
-		return( 0 );
+	for ( i = 0; !BER_BVISNULL( &monitor_rww[i].nrdn ); i++ ) {
+		if ( dn_match( &nrdn, &monitor_rww[i].nrdn ) ) {
+			break;
+		}
+	}
+
+	if ( i == MONITOR_RWW_LAST ) {
+		return 0;
 	}
 
 	nconns = nwritewaiters = nreadwaiters = 0;
 	for ( c = connection_first( &connindex );
 			c != NULL;
-			c = connection_next( c, &connindex ), nconns++ ) {
+			c = connection_next( c, &connindex ), nconns++ )
+	{
 		if ( c->c_writewaiter ) {
 			nwritewaiters++;
 		}
+
+		/* FIXME: ?!? */
 		if ( c->c_currentber != NULL ) {
 			nreadwaiters++;
 		}
 	}
 	connection_done(c);
 
-	switch ( type ) {
-	case RWW_READ:
+	switch ( i ) {
+	case MONITOR_RWW_READ:
 		num = nreadwaiters;
 		break;
 
-	case RWW_WRITE:
+	case MONITOR_RWW_WRITE:
 		num = nwritewaiters;
 		break;
 
@@ -231,8 +205,16 @@ monitor_subsys_rww_update(
 
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
 	assert( a );
-	free( a->a_vals[0].bv_val );
-	ber_str2bv( buf, 0, 1, &a->a_vals[ 0 ] );
+	len = strlen( buf );
+	if ( len > a->a_vals[0].bv_len ) {
+		a->a_vals[0].bv_val = ber_memrealloc( a->a_vals[0].bv_val, len + 1 );
+		if ( a->a_vals[0].bv_val == NULL ) {
+			BER_BVZERO( &a->a_vals[0] );
+			return( 0 );
+		}
+	}
+	AC_MEMCPY( a->a_vals[0].bv_val, buf, len + 1 );
+	a->a_vals[ 0 ].bv_len = len;
 
 	return( 0 );
 }

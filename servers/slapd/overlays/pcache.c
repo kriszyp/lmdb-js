@@ -29,7 +29,6 @@
 #include <ac/time.h>
 
 #include "slap.h"
-#include "ldap_pvt.h"
 #include "lutil.h"
 #include "ldap_rq.h"
 

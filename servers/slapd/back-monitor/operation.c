@@ -159,13 +159,8 @@ monitor_subsys_ops_update(
 	struct monitorinfo	*mi = 
 		(struct monitorinfo *)op->o_bd->be_private;
 
-#ifdef HAVE_GMP
-	mpz_t			nInitiated,
+	ldap_pvt_mp_t		nInitiated,
 				nCompleted;
-#else /* ! HAVE_GMP */
-	unsigned long		nInitiated = 0,
-				nCompleted = 0;
-#endif /* ! HAVE_GMP */
 	struct berval		rdn;
 	int 			i;
 	Attribute		*a;
@@ -177,20 +172,13 @@ monitor_subsys_ops_update(
 	dnRdn( &e->e_nname, &rdn );
 
 	if ( dn_match( &rdn, &bv_ops ) ) {
-#ifdef HAVE_GMP
-		mpz_init( nInitiated );
-		mpz_init( nCompleted );
-#endif /* HAVE_GMP */
+		ldap_pvt_mp_init( nInitiated );
+		ldap_pvt_mp_init( nCompleted );
 
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-#ifdef HAVE_GMP
-			mpz_add( nInitiated, nInitiated, slap_counters.sc_ops_initiated_[ i ] );
-			mpz_add( nCompleted, nCompleted, slap_counters.sc_ops_completed_[ i ] );
-#else /* ! HAVE_GMP */
-			nInitiated += slap_counters.sc_ops_initiated_[ i ];
-			nCompleted += slap_counters.sc_ops_completed_[ i ];
-#endif /* ! HAVE_GMP */
+			ldap_pvt_mp_add( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
+			ldap_pvt_mp_add( nCompleted, slap_counters.sc_ops_completed_[ i ] );
 		}
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 		
@@ -199,13 +187,8 @@ monitor_subsys_ops_update(
 			if ( dn_match( &rdn, &monitor_op[ i ].nrdn ) )
 			{
 				ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
-#ifdef HAVE_GMP
-				mpz_init_set( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
-				mpz_init_set( nCompleted, slap_counters.sc_ops_completed_[ i ] );
-#else /* ! HAVE_GMP */
-				nInitiated = slap_counters.sc_ops_initiated_[ i ];
-				nCompleted = slap_counters.sc_ops_completed_[ i ];
-#endif /* ! HAVE_GMP */
+				ldap_pvt_mp_init_set( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
+				ldap_pvt_mp_init_set( nCompleted, slap_counters.sc_ops_completed_[ i ] );
 				ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 				break;
 			}
@@ -222,18 +205,14 @@ monitor_subsys_ops_update(
 
 	/* NOTE: no minus sign is allowed in the counters... */
 	UI2BV( &a->a_vals[ 0 ], nInitiated );
-#ifdef HAVE_GMP
-	mpz_clear( nInitiated );
-#endif /* HAVE_GMP */
+	ldap_pvt_mp_clear( nInitiated );
 	
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorOpCompleted );
 	assert ( a != NULL );
 
 	/* NOTE: no minus sign is allowed in the counters... */
 	UI2BV( &a->a_vals[ 0 ], nCompleted );
-#ifdef HAVE_GMP
-	mpz_clear( nCompleted );
-#endif /* HAVE_GMP */
+	ldap_pvt_mp_clear( nCompleted );
 
 	return( 0 );
 }

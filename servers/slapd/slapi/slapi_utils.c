@@ -26,7 +26,6 @@
 #include <ac/stdarg.h>
 #include <ac/ctype.h>
 #include <ac/unistd.h>
-#include <ldap_pvt.h>
 
 #include <slap.h>
 #include <slapi.h>

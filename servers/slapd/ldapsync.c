@@ -22,7 +22,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "ldap_pvt.h"
 #include "lutil.h"
 #include "slap.h"
 #include "../../libraries/liblber/lber-int.h" /* get ber_strndup() */

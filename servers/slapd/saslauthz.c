@@ -26,7 +26,6 @@
 
 #include <limits.h>
 
-#include <ldap_pvt.h>
 #include "lutil.h"
 
 #define SASLREGEX_REPLACE 10

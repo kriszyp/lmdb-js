@@ -77,7 +77,7 @@ monitor_subsys_sent_init(
 
 	for ( i = 0; i < MONITOR_SENT_LAST; i++ ) {
 		char			buf[ BACKMONITOR_BUFSIZE ];
-		struct berval		rdn, bv;
+		struct berval		nrdn, bv;
 		Entry			*e;
 
 		snprintf( buf, sizeof( buf ),
@@ -110,8 +110,8 @@ monitor_subsys_sent_init(
 		}
 
 		/* steal normalized RDN */
-		dnRdn( &e->e_nname, &rdn );
-		ber_dupbv( &monitor_sent[i].nrdn, &rdn );
+		dnRdn( &e->e_nname, &nrdn );
+		ber_dupbv( &monitor_sent[i].nrdn, &nrdn );
 	
 		BER_BVSTR( &bv, "0" );
 		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
@@ -151,22 +151,18 @@ monitor_subsys_sent_update(
 	struct monitorinfo	*mi = 
 		(struct monitorinfo *)op->o_bd->be_private;
 	
-	struct berval		rdn;
-#ifdef HAVE_GMP
-	mpz_t			n;
-#else /* ! HAVE_GMP */
-	unsigned long 		n;
-#endif /* ! HAVE_GMP */
+	struct berval		nrdn;
+	ldap_pvt_mp_t		n;
 	Attribute		*a;
 	int			i;
 
 	assert( mi );
 	assert( e );
 
-	dnRdn( &e->e_nname, &rdn );
+	dnRdn( &e->e_nname, &nrdn );
 
 	for ( i = 0; i < MONITOR_SENT_LAST; i++ ) {
-		if ( dn_match( &rdn, &monitor_sent[i].nrdn ) ) {
+		if ( dn_match( &nrdn, &monitor_sent[i].nrdn ) ) {
 			break;
 		}
 	}
@@ -178,35 +174,19 @@ monitor_subsys_sent_update(
 	ldap_pvt_thread_mutex_lock(&slap_counters.sc_sent_mutex);
 	switch ( i ) {
 	case MONITOR_SENT_ENTRIES:
-#ifdef HAVE_GMP
-		mpz_init_set( n, slap_counters.sc_entries );
-#else /* ! HAVE_GMP */
-		n = slap_counters.sc_entries;
-#endif /* ! HAVE_GMP */
+		ldap_pvt_mp_init_set( n, slap_counters.sc_entries );
 		break;
 
 	case MONITOR_SENT_REFERRALS:
-#ifdef HAVE_GMP
-		mpz_init_set( n, slap_counters.sc_refs );
-#else /* ! HAVE_GMP */
-		n = slap_counters.sc_refs;
-#endif /* ! HAVE_GMP */
+		ldap_pvt_mp_init_set( n, slap_counters.sc_refs );
 		break;
 
 	case MONITOR_SENT_PDU:
-#ifdef HAVE_GMP
-		mpz_init_set( n, slap_counters.sc_pdu );
-#else /* ! HAVE_GMP */
-		n = slap_counters.sc_pdu;
-#endif /* ! HAVE_GMP */
+		ldap_pvt_mp_init_set( n, slap_counters.sc_pdu );
 		break;
 
 	case MONITOR_SENT_BYTES:
-#ifdef HAVE_GMP
-		mpz_init_set( n, slap_counters.sc_bytes );
-#else /* ! HAVE_GMP */
-		n = slap_counters.sc_bytes;
-#endif /* ! HAVE_GMP */
+		ldap_pvt_mp_init_set( n, slap_counters.sc_bytes );
 		break;
 
 	default:
@@ -219,9 +199,7 @@ monitor_subsys_sent_update(
 
 	/* NOTE: no minus sign is allowed in the counters... */
 	UI2BV( &a->a_vals[ 0 ], n );
-#ifdef HAVE_GMP
-	mpz_clear( n );
-#endif /* HAVE_GMP */
+	ldap_pvt_mp_clear( n );
 
 	return 0;
 }

@@ -34,7 +34,6 @@
 #include <ac/time.h>
 
 #include "slap.h"
-#include "ldap_pvt.h" /* must be after slap.h, to get ldap_bv2dn_x() & co */
 #include "lutil.h"
 
 /*

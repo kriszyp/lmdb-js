@@ -27,7 +27,6 @@
 #include "ac/string.h"
 
 #include "slap.h"
-#include "ldap_pvt.h"
 #include "proto-sql.h"
 
 /*

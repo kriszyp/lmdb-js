@@ -28,8 +28,6 @@
 #include "ac/ctype.h"
 
 #include "slap.h"
-#include "lber_pvt.h"
-#include "ldap_pvt.h"
 #include "proto-sql.h"
 
 static int backsql_process_filter( backsql_srch_info *bsi, Filter *f );
