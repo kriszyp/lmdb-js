@@ -37,7 +37,7 @@ over_db_func(
 	BI_db_open **func;
 	int rc = 0;
 
-	func = &oi->oi_bi.bi_db_open;
+	func = &oi->oi_bd.bd_info->bi_db_open;
 	if ( func[which] ) {
 		rc = func[which]( &oi->oi_bd );
 		if ( rc ) return rc;
@@ -69,8 +69,8 @@ over_db_config(
 	BackendDB bd;
 	int rc = 0;
 
-	if ( oi->oi_bi.bi_db_config ) {
-		rc = oi->oi_bi.bi_db_config( &oi->oi_bd, fname, lineno,
+	if ( oi->oi_bd.bd_info->bi_db_config ) {
+		rc = oi->oi_bd.bd_info->bi_db_config( &oi->oi_bd, fname, lineno,
 			argc, argv );
 		if ( rc ) return rc;
 	}
@@ -179,7 +179,7 @@ over_op_func(
 		}
 	}
 
-	func = &oi->oi_bi.bi_op_bind;
+	func = &oi->oi_bd.bd_info->bi_op_bind;
 	if ( func[which] ) {
 		rc = func[which]( op, rs );
 	}

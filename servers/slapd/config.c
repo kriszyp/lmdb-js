@@ -935,8 +935,8 @@ read_config( const char *fname, int depth )
 #endif
 				return 1;
 
-			} else {
-				return overlay_config( be, cargv[1] );
+			} else if ( overlay_config( be, cargv[1] )) {
+				return 1;
 			}
 
 		/* set database suffix */
