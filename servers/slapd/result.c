@@ -78,12 +78,12 @@ static void trim_refs_urls(
 	if( refs == NULL ) return;
 
 	for( i=0; refs[i] != NULL; i++ ) {
-		if(	refs[i]->bv_len > sizeof("ldap://") &&
+		if(	refs[i]->bv_len > sizeof("ldap://")-1 &&
 			strncasecmp( refs[i]->bv_val, "ldap://",
 				sizeof("ldap://")-1 ) == 0 )
 		{
 			unsigned j;
-			for( j=sizeof("ldap://"); j<refs[i]->bv_len ; j++ ) {
+			for( j=sizeof("ldap://")-1; j<refs[i]->bv_len ; j++ ) {
 				if( refs[i]->bv_val[j] == '/' ) {
 					refs[i]->bv_val[j] = '\0';
 					refs[i]->bv_len = j;
