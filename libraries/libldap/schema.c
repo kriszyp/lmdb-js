@@ -64,6 +64,7 @@ safe_string_free(safe_string * ss)
 static char *
 safe_string_val(safe_string * ss)
 {
+	ss->val[ss->pos] = '\0';
 	return(ss->val);
 }
 
@@ -119,7 +120,8 @@ print_whsp(safe_string *ss)
 static int
 print_numericoid(safe_string *ss, char *s)
 {
-	return(append_to_safe_string(ss,s));
+	if ( s )
+		return(append_to_safe_string(ss,s));
 }
 
 /* This one is identical to print_qdescr */
@@ -250,7 +252,7 @@ ldap_objectclass2str( LDAP_OBJECT_CLASS * oc )
 		print_qdstring(ss,oc->oc_desc);
 	}
 
-	if ( oc->oc_obsolete ) {
+	if ( oc->oc_obsolete == LDAP_SCHEMA_YES ) {
 		print_literal(ss, "OBSOLETE");
 		print_whsp(ss);
 	}
@@ -261,13 +263,13 @@ ldap_objectclass2str( LDAP_OBJECT_CLASS * oc )
 	}
 
 	switch (oc->oc_kind) {
-	case 0:
+	case LDAP_SCHEMA_ABSTRACT:
 		print_literal(ss,"ABSTRACT");
 		break;
-	case 1:
+	case LDAP_SCHEMA_STRUCTURAL:
 		print_literal(ss,"STRUCTURAL");
 		break;
-	case 2:
+	case LDAP_SCHEMA_AUXILIARY:
 		print_literal(ss,"AUXILIARY");
 		break;
 	default:
@@ -324,7 +326,7 @@ ldap_attributetype2str( LDAP_ATTRIBUTE_TYPE * at )
 		print_qdstring(ss,at->at_desc);
 	}
 
-	if ( at->at_obsolete ) {
+	if ( at->at_obsolete == LDAP_SCHEMA_YES ) {
 		print_literal(ss, "OBSOLETE");
 		print_whsp(ss);
 	}
@@ -351,35 +353,36 @@ ldap_attributetype2str( LDAP_ATTRIBUTE_TYPE * at )
 
 	if ( at->at_syntax_oid ) {
 		print_literal(ss,"SYNTAX");
+		print_whsp(ss);
 		print_noidlen(ss,at->at_syntax_oid,at->at_syntax_len);
 	}
 
-	if ( at->at_single_value ) {
+	if ( at->at_single_value == LDAP_SCHEMA_YES ) {
 		print_literal(ss,"SINGLE-VALUE");
 		print_whsp(ss);
 	}
 
-	if ( at->at_collective ) {
+	if ( at->at_collective == LDAP_SCHEMA_YES ) {
 		print_literal(ss,"COLLECTIVE");
 		print_whsp(ss);
 	}
 
-	if ( at->at_no_user_mod ) {
+	if ( at->at_no_user_mod == LDAP_SCHEMA_YES ) {
 		print_literal(ss,"NO-USER-MODIFICATION");
 		print_whsp(ss);
 	}
 
-	if ( at->at_usage ) {
+	if ( at->at_usage != LDAP_SCHEMA_USER_APPLICATIONS ) {
 		print_literal(ss,"USAGE");
 		print_whsp(ss);
 		switch (at->at_usage) {
-		case 1:
+		case LDAP_SCHEMA_DIRECTORY_OPERATION:
 			print_literal(ss,"directoryOperation");
 			break;
-		case 2:
+		case LDAP_SCHEMA_DISTRIBUTED_OPERATION:
 			print_literal(ss,"distributedOperation");
 			break;
-		case 3:
+		case LDAP_SCHEMA_DSA_OPERATION:
 			print_literal(ss,"dSAOperation");
 			break;
 		default:
@@ -891,7 +894,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_obsolete = 1;
-				at->at_obsolete = 1;
+				at->at_obsolete = LDAP_SCHEMA_YES;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"SUP") ) {
 				if ( seen_sup ) {
@@ -971,7 +974,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					free_at(at);
 					return(NULL);
 				}
-				at->at_single_value = 1;
+				at->at_single_value = LDAP_SCHEMA_YES;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"COLLECTIVE") ) {
 				if ( at->at_collective ) {
@@ -980,7 +983,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					free_at(at);
 					return(NULL);
 				}
-				at->at_collective = 1;
+				at->at_collective = LDAP_SCHEMA_YES;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"NO-USER-MODIFICATION") ) {
 				if ( at->at_no_user_mod ) {
@@ -989,7 +992,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					free_at(at);
 					return(NULL);
 				}
-				at->at_no_user_mod = 1;
+				at->at_no_user_mod = LDAP_SCHEMA_YES;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"USAGE") ) {
 				if ( seen_usage ) {
@@ -1008,13 +1011,13 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					return NULL;
 				}
 				if ( !strcasecmp(sval,"userApplications") )
-					at->at_usage = 0;
+					at->at_usage = LDAP_SCHEMA_USER_APPLICATIONS;
 				else if ( !strcasecmp(sval,"directoryOperation") )
-					at->at_usage = 1;
+					at->at_usage = LDAP_SCHEMA_DIRECTORY_OPERATION;
 				else if ( !strcasecmp(sval,"distributedOperation") )
-					at->at_usage = 2;
+					at->at_usage = LDAP_SCHEMA_DISTRIBUTED_OPERATION;
 				else if ( !strcasecmp(sval,"dSAOperation") )
-					at->at_usage = 3;
+					at->at_usage = LDAP_SCHEMA_DSA_OPERATION;
 				else {
 					*code = LDAP_SCHERR_UNEXPTOKEN;
 					*errp = ss;
@@ -1145,7 +1148,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_obsolete = 1;
-				oc->oc_obsolete = 1;
+				oc->oc_obsolete = LDAP_SCHEMA_YES;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"SUP") ) {
 				if ( seen_sup ) {
@@ -1172,7 +1175,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_kind = 1;
-				oc->oc_kind = 0;
+				oc->oc_kind = LDAP_SCHEMA_ABSTRACT;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"STRUCTURAL") ) {
 				if ( seen_kind ) {
@@ -1182,7 +1185,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_kind = 1;
-				oc->oc_kind = 1;
+				oc->oc_kind = LDAP_SCHEMA_STRUCTURAL;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"AUXILIARY") ) {
 				if ( seen_kind ) {
@@ -1192,7 +1195,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_kind = 1;
-				oc->oc_kind = 2;
+				oc->oc_kind = LDAP_SCHEMA_AUXILIARY;
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"MUST") ) {
 				if ( seen_must ) {

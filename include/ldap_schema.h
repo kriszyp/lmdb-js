@@ -60,6 +60,18 @@ typedef struct ldap_objectclass {
 	char **oc_at_oids_may;	/* OPTIONAL */
 } LDAP_OBJECT_CLASS;
 
+#define LDAP_SCHEMA_NO				0
+#define LDAP_SCHEMA_YES				1
+
+#define LDAP_SCHEMA_USER_APPLICATIONS		0
+#define LDAP_SCHEMA_DIRECTORY_OPERATION		1
+#define LDAP_SCHEMA_DISTRIBUTED_OPERATION	2
+#define LDAP_SCHEMA_DSA_OPERATION		3
+
+#define LDAP_SCHEMA_ABSTRACT			0
+#define LDAP_SCHEMA_STRUCTURAL			1
+#define LDAP_SCHEMA_AUXILIARY			2
+
 LDAP_F(LDAP_OBJECT_CLASS *) ldap_str2objectclass LDAP_P(( char * s, int * code, char ** errp ));
 LDAP_F(LDAP_ATTRIBUTE_TYPE *) ldap_str2attributetype LDAP_P(( char * s, int * code, char ** errp ));
 LDAP_F( char *) ldap_objectclass2str LDAP_P(( LDAP_OBJECT_CLASS * oc ));
