@@ -254,34 +254,32 @@ int backend_startup(Backend *be)
 
 		if ( be->bd_info->bi_open ) {
 			rc = be->bd_info->bi_open( be->bd_info );
-		}
-
-		if(rc != 0) {
+			if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, "backend_startup: bi_open failed!\n", 0, 0, 0 );
+				LDAP_LOG( BACKEND, CRIT, "backend_startup: bi_open failed!\n", 0, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_open failed!\n",
-				0, 0, 0 );
+				Debug( LDAP_DEBUG_ANY,
+					"backend_startup: bi_open failed!\n",
+					0, 0, 0 );
 #endif
 
-			return rc;
+				return rc;
+			}
 		}
 
 		if ( be->bd_info->bi_db_open ) {
 			rc = be->bd_info->bi_db_open( be );
-		}
-
-		if(rc != 0) {
+			if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: bi_db_open failed! (%d)\n", rc, 0, 0 );
+				LDAP_LOG( BACKEND, CRIT, 
+					"backend_startup: bi_db_open failed! (%d)\n", rc, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_db_open failed! (%d)\n",
-				rc, 0, 0 );
+				Debug( LDAP_DEBUG_ANY,
+					"backend_startup: bi_db_open failed! (%d)\n",
+					rc, 0, 0 );
 #endif
-			return rc;
+				return rc;
+			}
 		}
 
 		return rc;
@@ -297,18 +295,17 @@ int backend_startup(Backend *be)
 		if( backendInfo[i].bi_open ) {
 			rc = backendInfo[i].bi_open(
 				&backendInfo[i] );
-		}
-
-		if(rc != 0) {
+			if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: bi_open %d failed!\n", i, 0, 0 );
+				LDAP_LOG( BACKEND, CRIT, 
+					"backend_startup: bi_open %d failed!\n", i, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_open %d failed!\n",
-				i, 0, 0 );
+				Debug( LDAP_DEBUG_ANY,
+					"backend_startup: bi_open %d failed!\n",
+					i, 0, 0 );
 #endif
-			return rc;
+				return rc;
+			}
 		}
 	}
 
@@ -320,18 +317,17 @@ int backend_startup(Backend *be)
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
 				&backendDB[i] );
-		}
-
-		if(rc != 0) {
+			if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: bi_db_open(%d) failed! (%d)\n", i, rc, 0 );
+				LDAP_LOG( BACKEND, CRIT, 
+					"backend_startup: bi_db_open(%d) failed! (%d)\n", i, rc, 0 );
 #else
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_db_open(%d) failed! (%d)\n",
-				i, rc, 0 );
+				Debug( LDAP_DEBUG_ANY,
+					"backend_startup: bi_db_open(%d) failed! (%d)\n",
+					i, rc, 0 );
 #endif
-			return rc;
+				return rc;
+			}
 		}
 	}
 
@@ -744,6 +740,11 @@ backend_check_controls(
 	ctrls = op->o_ctrls;
 	if( ctrls == NULL ) {
 		return LDAP_SUCCESS;
+	}
+
+	if ( be->be_controls == NULL ) {
+		*text = "control unavailable in context";
+		return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 	}
 
 	for( ; *ctrls != NULL ; ctrls++ ) {
