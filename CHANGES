@@ -7,6 +7,7 @@ OpenLDAP 2.1.9 Engineering
 	Added "allow update_anon" feature (ITS#2155)
 	Build Environment
 		Add subordinate referral test
+		Updated whoami test
 		Fix configure shtool no bold handling
 
 OpenLDAP 2.1.8 Release

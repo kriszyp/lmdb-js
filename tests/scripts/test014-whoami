@@ -46,9 +46,18 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
-echo "Testing ldapwhoami ..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT \
-	-D "$MANAGERDN" -w $PASSWD
+echo "Testing ldapwhoami as anonymous..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo "Testing ldapwhoami as ${MANAGERDN}..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD
 
 RC=$?
 if test $RC != 0 ; then
