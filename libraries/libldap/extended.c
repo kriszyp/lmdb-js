@@ -138,8 +138,8 @@ ldap_extended_operation_s(
         return( ld->ld_errno );
 	}
 
-	*retoidp = NULL;
-	*retdatap = NULL;
+	if ( retoidp != NULL ) *retoidp = NULL;
+	if ( retdatap != NULL ) *retdatap = NULL;
 
 	rc = ldap_parse_extended_result( ld, res, retoidp, retdatap, 0 );
 
