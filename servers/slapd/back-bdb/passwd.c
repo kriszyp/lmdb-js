@@ -172,7 +172,7 @@ retry:	/* transaction retry */
 	}
 
 #ifdef BDB_SUBENTRIES
-	if( is_entry_subentries( e ) ) {
+	if( is_entry_subentry( e ) ) {
 		/* entry is an alias, don't allow operation */
 		*text = "authorization entry is subentry";
 		rc = LDAP_OTHER;
