@@ -1,7 +1,16 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -36,6 +45,10 @@
 # endif
 
 static sasl_security_properties_t sasl_secprops;
+
+#define SASL_VERSION_FULL	((SASL_VERSION_MAJOR << 16) |\
+	(SASL_VERSION_MINOR << 8) | SASL_VERSION_STEP)
+
 #endif /* HAVE_CYRUS_SASL */
 
 #include "ldap_pvt.h"
@@ -310,7 +323,7 @@ typedef struct lookup_info {
 	sasl_server_params_t *sparams;
 } lookup_info;
 
-static slap_response sasl_ap_lookup, sasl_cb_checkpass;
+static slap_response sasl_ap_lookup, sasl_ap_store, sasl_cb_checkpass;
 
 static int
 sasl_ap_lookup( Operation *op, SlapReply *rs )
@@ -445,9 +458,6 @@ slap_auxprop_lookup(
 			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 			op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
 			op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
-#ifdef LDAP_SLAPI
-			op.o_pb = conn->c_sasl_bindop->o_pb;
-#endif
 			op.o_conn = conn;
 			op.o_connid = conn->c_connid;
 			op.o_req_dn = op.o_req_ndn;
@@ -462,6 +472,114 @@ slap_auxprop_lookup(
 	}
 }
 
+#if SASL_VERSION_FULL >= 0x020110
+static int
+sasl_ap_store( Operation *op, SlapReply *rs )
+{
+	return 0;
+}
+
+static int
+slap_auxprop_store(
+	void *glob_context,
+	sasl_server_params_t *sparams,
+	struct propctx *prctx,
+	const char *user,
+	unsigned ulen)
+{
+	Operation op = {0};
+	SlapReply rs = {REP_RESULT};
+	int rc, i, j;
+	Connection *conn = NULL;
+	const struct propval *pr;
+	Modifications *modlist = NULL, **modtail = &modlist, *mod;
+	slap_callback cb = { sasl_ap_store, NULL };
+	char textbuf[SLAP_TEXT_BUFLEN];
+	const char *text;
+	size_t textlen = sizeof(textbuf);
+
+	/* just checking if we are enabled */
+	if (!prctx) return SASL_OK;
+
+	if (!sparams || !user) return SASL_BADPARAM;
+
+	pr = sparams->utils->prop_get( sparams->propctx );
+
+	/* Find our DN and conn first */
+	for( i = 0; pr[i].name; i++ ) {
+		if ( pr[i].name[0] == '*' ) {
+			if ( !strcmp( pr[i].name, slap_propnames[PROP_CONN] ) ) {
+				if ( pr[i].values && pr[i].values[0] )
+					AC_MEMCPY( &conn, pr[i].values[0], sizeof( conn ) );
+				continue;
+			}
+			if ( !strcmp( pr[i].name, slap_propnames[PROP_AUTHC] ) ) {
+				if ( pr[i].values && pr[i].values[0] ) {
+					AC_MEMCPY( &op.o_req_ndn, pr[i].values[0], sizeof( struct berval ) );
+				}
+			}
+		}
+	}
+	if (!conn || !op.o_req_ndn.bv_val) return SASL_BADPARAM;
+
+	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
+
+	if ( !op.o_bd || !op.o_bd->be_modify ) return SASL_FAIL;
+		
+	pr = sparams->utils->prop_get( prctx );
+	if (!pr) return SASL_BADPARAM;
+
+	for (i=0; pr[i].name; i++);
+	if (!i) return SASL_BADPARAM;
+
+	for (i=0; pr[i].name; i++) {
+		mod = (Modifications *)ch_malloc( sizeof(Modifications) );
+		mod->sml_op = LDAP_MOD_REPLACE;
+		ber_str2bv( pr[i].name, 0, 0, &mod->sml_type );
+		mod->sml_values = (struct berval *)ch_malloc( (pr[i].nvalues + 1) *
+			sizeof(struct berval));
+		for (j=0; j<pr[i].nvalues; j++) {
+			ber_str2bv( pr[i].values[j], 0, 1, &mod->sml_values[j]);
+		}
+		mod->sml_values[j].bv_val = NULL;
+		mod->sml_values[j].bv_len = 0;
+		mod->sml_nvalues = NULL;
+		mod->sml_desc = NULL;
+		*modtail = mod;
+		modtail = &mod->sml_next;
+	}
+	*modtail = NULL;
+
+	rc = slap_mods_check( modlist, 0, &text, textbuf, textlen, NULL );
+
+	if ( rc == LDAP_SUCCESS ) {
+		rc = slap_mods_opattrs( &op, modlist, modtail, &text, textbuf,
+			textlen );
+	}
+
+	if ( rc == LDAP_SUCCESS ) {
+		op.o_tag = LDAP_REQ_MODIFY;
+		op.o_protocol = LDAP_VERSION3;
+		op.o_ndn = op.o_req_ndn;
+		op.o_callback = &cb;
+		op.o_time = slap_get_time();
+		op.o_do_not_cache = 1;
+		op.o_is_auth_check = 1;
+		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+		op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
+		op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
+		op.o_conn = conn;
+		op.o_connid = conn->c_connid;
+		op.o_req_dn = op.o_req_ndn;
+		op.orm_modlist = modlist;
+
+		rc = op.o_bd->be_modify( &op, &rs );
+	}
+	slap_mods_free( modlist );
+	return rc ? SASL_FAIL : SASL_OK;
+}
+#endif /* SASL_VERSION_FULL >= 2.1.16 */
+
 static sasl_auxprop_plug_t slap_auxprop_plugin = {
 	0,	/* Features */
 	0,	/* spare */
@@ -469,7 +587,12 @@ static sasl_auxprop_plug_t slap_auxprop_plugin = {
 	NULL,	/* auxprop_free */
 	slap_auxprop_lookup,
 	"slapd",	/* name */
-	NULL	/* spare */
+#if SASL_VERSION_FULL >= 0x020110
+	slap_auxprop_store	/* the declaration of this member changed
+				 * in cyrus SASL from 2.1.15 to 2.1.16 */
+#else
+	NULL
+#endif
 };
 
 static int
@@ -575,9 +698,6 @@ slap_sasl_checkpass(
 		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 		op.o_tmpmemctx = conn->c_sasl_bindop->o_tmpmemctx;
 		op.o_tmpmfuncs = conn->c_sasl_bindop->o_tmpmfuncs;
-#ifdef LDAP_SLAPI
-		op.o_pb = conn->c_sasl_bindop->o_pb;
-#endif
 		op.o_conn = conn;
 		op.o_connid = conn->c_connid;
 		op.o_req_dn = op.o_req_ndn;
@@ -1584,14 +1704,12 @@ done:
 #endif /* HAVE_CYRUS_SASL */
 
 /* Take any sort of identity string and return a DN with the "dn:" prefix. The
-   string returned in *dn is in its own allocated memory, and must be free'd 
-   by the calling process.
-   -Mark Adamson, Carnegie Mellon
-
-   The "dn:" prefix is no longer used anywhere inside slapd. It is only used
-   on strings passed in directly from SASL.
-   -Howard Chu, Symas Corp.
-*/
+ * string returned in *dn is in its own allocated memory, and must be free'd 
+ * by the calling process.  -Mark Adamson, Carnegie Mellon
+ *
+ * The "dn:" prefix is no longer used anywhere inside slapd. It is only used
+ * on strings passed in directly from SASL.  -Howard Chu, Symas Corp.
+ */
 
 #define SET_NONE	0
 #define	SET_DN		1

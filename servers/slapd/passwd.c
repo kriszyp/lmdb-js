@@ -1,8 +1,17 @@
-/* bind.c - ldbm backend bind and unbind routines */
+/* passwd.c - password extended operation routines */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -57,8 +66,13 @@ int passwd_extop(
 	} else if( op->o_bd->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = NULL;
-		if ( op->o_bd->be_syncinfo ) {
-			defref = op->o_bd->be_syncinfo->si_provideruri_bv;
+		if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+			syncinfo_t *si;
+			LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+				struct berval tmpbv;
+				ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
+				ber_bvarray_add( &defref, &tmpbv );
+			}
 		} else {
 			defref = referral_rewrite( op->o_bd->be_update_refs,
 				NULL, NULL, LDAP_SCOPE_DEFAULT );

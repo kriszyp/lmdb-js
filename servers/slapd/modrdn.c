@@ -1,10 +1,26 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Copyright (c) 1995 Regents of the University of Michigan.
+/* Portions Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ */
+/* Portions Copyright (c) 1995 Regents of the University of Michigan.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -13,19 +29,6 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
- */
-
-/*
- * LDAP v3 newSuperior support.
- *
- * Copyright 1999, Juan C. Gomez, All rights reserved.
- * This software is not subject to any license of Silicon Graphics 
- * Inc. or Purdue University.
- *
- * Redistribution and use in source and binary forms are permitted
- * without restriction or fee of any kind as long as this notice
- * is preserved.
- *
  */
 
 #include "portable.h"
@@ -353,10 +356,10 @@ do_modrdn(
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( !op->o_bd->be_syncinfo &&
+		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ) &&
 			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
 #else
-		if ( !op->o_bd->be_syncinfo )
+		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
 			op->orr_deleteoldrdn = deloldrdn;
@@ -370,8 +373,13 @@ do_modrdn(
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
-			if ( op->o_bd->be_syncinfo ) {
-				defref = op->o_bd->be_syncinfo->si_provideruri_bv;
+			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+				syncinfo_t *si;
+				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+					struct berval tmpbv;
+					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
+					ber_bvarray_add( &defref, &tmpbv );
+				}
 			} else {
 				defref = op->o_bd->be_update_refs
 					? op->o_bd->be_update_refs : default_referral;

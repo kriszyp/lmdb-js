@@ -1,8 +1,17 @@
 /* globals.c - various global variables */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -13,9 +22,9 @@
 
 
 /*
- * global variables, in general, should be declared in the file
+ * Global variables, in general, should be declared in the file
  * primarily responsible for its management.  Configurable globals
- * belong in config.c.  variables declared here have no other
+ * belong in config.c.  Variables declared here have no other
  * sensible home.
  */
 
@@ -26,4 +35,3 @@ const struct berval slap_unknown_bv = BER_BVC("unknown");
 const struct berval slap_true_bv = BER_BVC("TRUE");
 const struct berval slap_false_bv = BER_BVC("FALSE");
 
-struct sync_cookie *slap_sync_cookie = NULL;

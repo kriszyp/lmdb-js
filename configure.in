@@ -1,14 +1,19 @@
 dnl $OpenLDAP$
+dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
-dnl Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
-dnl 
+dnl Copyright 1998-2003 The OpenLDAP Foundation.
+dnl All rights reserved.
+dnl
 dnl Redistribution and use in source and binary forms, with or without
 dnl modification, are permitted only as authorized by the OpenLDAP
-dnl Public License.  A copy of this license is available at
-dnl http://www.OpenLDAP.org/license.html or in file LICENSE in the
-dnl top-level directory of the distribution.
+dnl Public License.
+dnl
+dnl A copy of this license is available in the file LICENSE in the
+dnl top-level directory of the distribution or, alternatively, at
+dnl <http://www.OpenLDAP.org/license.html>.
 dnl
 dnl ----------------------------------------------------------------
+dnl
 dnl Redefine AC_INIT_BINSH to provide RCS IDs and copyright notice
 dnl at top of generated configure script.  Prints simple copyright.
 define([AC_INIT_BINSH],
@@ -16,15 +21,20 @@ define([AC_INIT_BINSH],
 # $]OpenLDAP[$
 # from] translit([$OpenLDAP$], $")] [
 
-# Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
-# 
+# This work is part of OpenLDAP Software <http://www.openldap.org/>.
+#
+# Copyright 1998-2003 The OpenLDAP Foundation.
+# All rights reserved.
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted only as authorized by the OpenLDAP
-# Public License.  A copy of this license is available at
-# http://www.OpenLDAP.org/license.html or in file LICENSE in the
-# top-level directory of the distribution.
+# Public License.
+#
+# A copy of this license is available in the file LICENSE in the
+# top-level directory of the distribution or, alternatively, at
+# <http://www.OpenLDAP.org/license.html>.
 
-echo "Copyright 1998-2003 The OpenLDAP Foundation,  All Rights Reserved."
+echo "Copyright 1998-2003 The OpenLDAP Foundation. All rights reserved."
 echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------
@@ -508,7 +518,6 @@ AC_MSG_RESULT(done)
 dnl ----------------------------------------------------------------
 dnl Initialize vars
 LDAP_LIBS=
-LDIF_LIBS=
 LDBM_LIBS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
@@ -2232,7 +2241,7 @@ if test $ol_with_fetch != no ; then
 	OL_LIB_FETCH
 
 	if test $ol_cv_lib_fetch != no ; then
-		LDIF_LIBS="$LDIF_LIBS $ol_link_fetch"
+		LUTIL_LIBS="$LUTIL_LIBS $ol_link_fetch"
 		ol_link_fetch=freebsd
 
 	elif test $ol_with_fetch != auto ; then
@@ -2808,7 +2817,6 @@ AC_SUBST(BUILD_SLAPD)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
-AC_SUBST(LDIF_LIBS)
 AC_SUBST(SLAPD_LIBS)
 AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_LIBS)
@@ -2865,12 +2873,10 @@ clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
-libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk \

@@ -1,8 +1,28 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
+/* Portions Copyright (c) 1995 Regents of the University of Michigan.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is given
+ * to the University of Michigan at Ann Arbor. The name of the University
+ * may not be used to endorse or promote products derived from this
+ * software without specific prior written permission. This software
+ * is provided ``as is'' without express or implied warranty.
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -146,6 +166,8 @@ int main( int argc, char **argv )
 	int	    serverMode = SLAP_SERVER_MODE;
 
 	struct berval cookie = { 0, NULL };
+	struct sync_cookie *scp = NULL;
+	struct sync_cookie *scp_entry = NULL;
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -244,16 +266,31 @@ int main( int argc, char **argv )
 		case 'h':	/* listen URLs */
 			if ( urls != NULL ) free( urls );
 			urls = ch_strdup( optarg );
-	    break;
+			break;
 
 		case 'c':	/* provide sync cookie, override if exist in replica */
-			if ( slap_sync_cookie ) {
-				slap_sync_cookie_free( slap_sync_cookie, 1 );
-			}
-			slap_sync_cookie = (struct sync_cookie *) ch_calloc( 1,
-								sizeof( struct sync_cookie ));
+			scp = (struct sync_cookie *) ch_calloc( 1,
+										sizeof( struct sync_cookie ));
 			ber_str2bv( optarg, strlen( optarg ), 1, &cookie );
-			ber_bvarray_add( &slap_sync_cookie->octet_str, &cookie );
+			ber_bvarray_add( &scp->octet_str, &cookie );
+			slap_parse_sync_cookie( scp );
+
+			LDAP_STAILQ_FOREACH( scp_entry, &slap_sync_cookie, sc_next ) {
+				if ( scp->rid == scp_entry->rid ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, CRIT,
+							"main: duplicated replica id in cookies\n",
+							0, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						    "main: duplicated replica id in cookies\n",
+							0, 0, 0 );
+#endif
+					slap_sync_cookie_free( scp, 1 );
+					goto destroy;
+				}
+			}
+			LDAP_STAILQ_INSERT_TAIL( &slap_sync_cookie, scp, sc_next );
 			break;
 
 		case 'd':	/* set debug level and 'do not detach' flag */
@@ -604,6 +641,12 @@ shutdown:
 destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();
+
+	while ( !LDAP_STAILQ_EMPTY( &slap_sync_cookie )) {
+		scp = LDAP_STAILQ_FIRST( &slap_sync_cookie );
+		LDAP_STAILQ_REMOVE_HEAD( &slap_sync_cookie, sc_next );
+		ch_free( scp );
+	}
 
 #ifdef SLAPD_MODULES
 	module_kill();

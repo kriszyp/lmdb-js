@@ -1,14 +1,21 @@
+/* base64.c -- routines to encode/decode base64 data */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1998-2003 Kurt D. Zeilenga.
+ * Portions Copyright 1995 IBM Corporation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Modified by Kurt D. Zeilenga for inclusion into OpenLDAP
- */
-
-/*
- * Copyright (c) 1996, 1998 by Internet Software Consortium.
+/* Portions Copyright (c) 1996, 1998 by Internet Software Consortium.
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,30 +30,9 @@
  * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
  * SOFTWARE.
  */
-
-/*
- * Portions Copyright (c) 1995 by International Business Machines, Inc.
- *
- * International Business Machines, Inc. (hereinafter called IBM) grants
- * permission under its copyrights to use, copy, modify, and distribute this
- * Software with or without fee, provided that the above copyright notice and
- * all paragraphs of this notice appear in all copies, and that the name of IBM
- * not be used in connection with the marketing of any product incorporating
- * the Software or modifications thereof, without specific, written prior
- * permission.
- *
- * To the extent it has a right to do so, IBM grants an immunity from suit
- * under its patents, if any, for the use, sale or manufacture of products to
- * the extent that such products are used for performing Domain Name System
- * dynamic updates in TCP/IP networks by means of the Software.  No immunity is
- * granted for any product per se or for any other function of any product.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", AND IBM DISCLAIMS ALL WARRANTIES,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE.  IN NO EVENT SHALL IBM BE LIABLE FOR ANY SPECIAL,
- * DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING
- * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE, EVEN
- * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
+/* This work is based upon Base64 routines (developed by IBM) found
+ * Berkeley Internet Name Daemon (BIND) as distributed by ISC.  They
+ * were adapted for inclusion in OpenLDAP Software by Kurt D. Zeilenga.
  */
 
 #include "portable.h"

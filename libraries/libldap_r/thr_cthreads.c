@@ -1,27 +1,26 @@
+/* thr_cthreads.c - wrapper for mach cthreads */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms are permitted only
- * as authorized by the OpenLDAP Public License.  A copy of this
- * license is available at http://www.OpenLDAP.org/license.html or
- * in file LICENSE in the top-level directory of the distribution.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-
-/* thr_cthreads.c - wrapper for mach cthreads */
+/* This work was initially developed by Luke Howard for inclusion
+ * in U-MICH LDAP 3.3.
+ */
 
 #include "portable.h"
 
 #if defined( HAVE_MACH_CTHREADS )
 #include "ldap_pvt_thread.h"
-
-/***********************************************************************
- *                                                                     *
- * under NEXTSTEP or OPENSTEP use CThreads                             *
- * lukeh@xedoc.com.au                                                  *
- *                                                                     *
- ***********************************************************************/
 
 int
 ldap_int_thread_initialize( void )

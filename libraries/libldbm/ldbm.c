@@ -1,14 +1,31 @@
 /* ldbm.c - ldap dbm compatibility routines */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1998-2003 Kurt D. Zeilenga.
+ * Portions Copyright 1998-2001 Net Boolean Incorporated.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-
-/* Patched for Berkeley DB version 2.0; /KSp; 98/02/23
- *   - DB version 2.6.4b   ; 1998/12/28, /KSp
- *   - DB_DBT_MALLOC       ; 1998/03/22, /KSp
- *   - basic implementation; 1998/02/23, /KSp
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).  Additional significant contributors
+ * include:
+ *   Gary Williams
+ *   Howard Chu
+ *   Juan Gomez
+ *   Kurt D. Zeilenga
+ *   Kurt Spanier
+ *   Mark Whitehouse
+ *   Randy Kundee
  */
 
 #include "portable.h"

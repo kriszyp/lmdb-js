@@ -1,8 +1,17 @@
 /* search.c - search operation */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2000-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -1243,7 +1252,8 @@ id2entry_retry:
 							struct berval cookie;
 							slap_compose_sync_cookie( sop, &cookie,
 										search_context_csn,
-										sop->o_sync_state.sid );
+										sop->o_sync_state.sid,
+										sop->o_sync_state.rid );
 							rs->sr_err = slap_build_sync_state_ctrl( sop,
 								rs, e, entry_sync_state, ctrls,
 								num_ctrls++, 1, &cookie );
@@ -1388,7 +1398,8 @@ nochange:
 				struct berval cookie;
 				slap_compose_sync_cookie( sop, &cookie,
 										  search_context_csn,
-										  sop->o_sync_state.sid );
+										  sop->o_sync_state.sid,
+										  sop->o_sync_state.rid );
 
 				if ( sync_send_present_mode ) {
 					rs->sr_err = LDAP_SUCCESS;
@@ -1432,7 +1443,8 @@ nochange:
 				struct berval cookie;
 				slap_compose_sync_cookie( sop, &cookie,
 										  search_context_csn,
-										  sop->o_sync_state.sid );
+										  sop->o_sync_state.sid,
+										  sop->o_sync_state.rid );
 
 				if ( sync_send_present_mode ) {
 					slap_build_sync_done_ctrl( sop, rs, ctrls,

@@ -1,25 +1,28 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1998 A. Hartgers.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Bart Hartgers for inclusion in
+ * OpenLDAP Software.
+ */
+
 /*
  * util-int.c	Various functions to replace missing threadsafe ones.
- *				  Without the real *_r funcs, things will
- *				  work, but might not be threadsafe. 
- * 
- * Written by Bart Hartgers.
- *
- * Copyright 1998, A. Hartgers, All rights reserved.
- * This software is not subject to any license of Eindhoven University of
- * Technology, since it was written in my spare time.
- *			
- * Redistribution and use in source and binary forms are permitted only
- * as authorized by the OpenLDAP Public License.  A copy of this
- * license is available at http://www.OpenLDAP.org/license.html or
- * in file LICENSE in the top-level directory of the distribution.
- */ 
-
+ *				Without the real *_r funcs, things will
+ *				work, but might not be threadsafe. 
+ */
 
 #include "portable.h"
 

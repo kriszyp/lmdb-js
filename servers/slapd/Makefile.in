@@ -1,9 +1,18 @@
-# $OpenLDAP$
-## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
-## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
-##
 ## Makefile.in for slapd
+# $OpenLDAP$
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
+## Copyright 1998-2003 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
+
 PROGRAMS=slapd
 XPROGRAMS=sslapd libbackends.a .backend
 XSRCS=version.c
@@ -53,7 +62,7 @@ XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 
 XLIBS = $(SLAPD_STATIC_DEPENDS) $(SLAPD_L)
-XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
+XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(SLAPI_LIBS) $(MODULES_LIBS)
 
 BUILD_OPT = "--enable-slapd"
@@ -83,7 +92,7 @@ SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 # we want to export EVERY global symbol that it knows about (NOT including
 # symbols that are imported from other DLLs). The set of symbols to
 # export INCLUDES symbols from all static libraries that slapd gets
-# linked with, e.g. avl, ldbm, ldif, lunicode, lutil, etc. This list
+# linked with, e.g. avl, ldbm, lunicode, lutil, etc. This list
 # will also include liblber and libldap_r if they were built as static
 # libraries. ALSO included will be symbols from other STATIC libraries
 # outside the domain of the OpenLDAP source tree, e.g. regex, ltdl,

@@ -1,8 +1,17 @@
 /* modify.c - bdb backend modify routine */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2000-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -421,8 +430,17 @@ retry:	/* transaction retry */
 			e = NULL;
 
 		} else {
-			BerVarray deref = op->o_bd->be_syncinfo ?
-				op->o_bd->be_syncinfo->si_provideruri_bv : default_referral;
+			BerVarray deref = NULL;
+			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+				syncinfo_t *si;
+				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+					struct berval tmpbv;
+					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
+					ber_bvarray_add( &deref, &tmpbv );
+                }
+			} else {
+				deref = default_referral;
+			}
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
 				LDAP_SCOPE_DEFAULT );
 		}
@@ -430,7 +448,9 @@ retry:	/* transaction retry */
 		rs->sr_err = LDAP_REFERRAL;
 		send_ldap_result( op, rs );
 
-		ber_bvarray_free( rs->sr_ref );
+		if ( rs->sr_ref != default_referral ) {
+			ber_bvarray_free( rs->sr_ref );
+		}
 		free( (char *)rs->sr_matched );
 		rs->sr_ref = NULL;
 		rs->sr_matched = NULL;
@@ -576,7 +596,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	if ( !op->o_bd->be_syncinfo ) {
+	if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
 			&ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
@@ -599,7 +619,7 @@ retry:	/* transaction retry */
 
 		bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
 
-		if ( !op->o_bd->be_syncinfo ) {
+		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
 				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
 					(struct berval *)&slap_ldapsync_cn_bv, locker );

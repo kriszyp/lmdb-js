@@ -1,22 +1,14 @@
+/* $OpenLDAP$ */
 /* SASL LDAP auxprop implementation
  * Copyright (C) 2002,2003 Howard Chu, All rights reserved. <hyc@symas.com>
  *
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
  *
- * 1. The author is not responsible for the consequences of use of this
- *    software, no matter how awful, even if they arise from flaws in it.
- *
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- *
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- *
- * 4. This notice may not be removed or altered.
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include <config.h>
@@ -26,6 +18,9 @@
 #include "sasl.h"
 #include "saslutil.h"
 #include "saslplug.h"
+
+#define SASL_VERSION_FULL ((SASL_VERSION_MAJOR << 16) |\
+	(SASL_VERSION_MINOR << 8) |SASL_VERSION_STEP)
 
 #include "plugin_common.h"
 
@@ -41,16 +36,11 @@ typedef struct ldapctx {
 	int use_tls;		/* Issue StartTLS request? */
 } ldapctx;
 
-typedef struct gluectx {
-	ldapctx *lc;
-	sasl_server_params_t *lp;
-} gluectx;
-
 static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 	void *def, void *inter)
 {
 	sasl_interact_t *in = inter;
-	gluectx *gc = def;
+	ldapctx *ctx = def;
 	struct berval p;
 
 	for (;in->id != SASL_CB_LIST_END;in++)
@@ -63,10 +53,10 @@ static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 				if (p.bv_val) p.bv_len = strlen(p.bv_val);
 				break;		
 			case SASL_CB_AUTHNAME:
-				p = gc->lc->id;
+				p = ctx->id;
 				break;
 			case SASL_CB_PASS:
-				p = gc->lc->pw;
+				p = ctx->pw;
 				break;
 		}
 		if (p.bv_val)
@@ -78,6 +68,67 @@ static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 	return LDAP_SUCCESS;
 }
 
+typedef struct connparm {
+	LDAP *ld;
+	LDAPControl c;
+	LDAPControl *ctrl[2];
+	struct berval *dn;
+} connparm;
+
+static int ldapdb_connect(ldapctx *ctx, sasl_server_params_t *sparams,
+	const char *user, unsigned ulen, connparm *cp)
+{
+    int i;
+    char *authzid;
+
+    if((i=ldap_initialize(&cp->ld, ctx->uri))) {
+    	return i;
+    }
+
+    authzid = sparams->utils->malloc(ulen + sizeof("u:"));
+    if (!authzid) {
+    	return LDAP_NO_MEMORY;
+    } 
+    strcpy(authzid, "u:");
+    strcpy(authzid+2, user);
+    cp->c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+    cp->c.ldctl_value.bv_val = authzid;
+    cp->c.ldctl_value.bv_len = ulen + 2;
+    cp->c.ldctl_iscritical = 1;
+
+    i = LDAP_VERSION3;
+    ldap_set_option(cp->ld, LDAP_OPT_PROTOCOL_VERSION, &i);
+
+    /* If TLS is set and it fails, continue or bail out as requested */
+    if (ctx->use_tls && (i=ldap_start_tls_s(cp->ld, NULL, NULL)) != LDAP_SUCCESS
+    	&& ctx->use_tls > 1) {
+    	sparams->utils->free(authzid);
+	return i;
+    }
+
+    i = ldap_sasl_interactive_bind_s(cp->ld, NULL, ctx->mech.bv_val, NULL,
+    	NULL, LDAP_SASL_QUIET, ldapdb_interact, ctx);
+    if (i != LDAP_SUCCESS) {
+    	sparams->utils->free(authzid);
+	return i;
+    }
+    
+    cp->ctrl[0] = &cp->c;
+    cp->ctrl[1] = NULL;
+    i = ldap_whoami_s(cp->ld, &cp->dn, cp->ctrl, NULL);
+    if (i == LDAP_SUCCESS && cp->dn) {
+    	if (!cp->dn->bv_val || strncmp(cp->dn->bv_val, "dn:", 3)) {
+	    ber_bvfree(cp->dn);
+	    cp->dn = NULL;
+	    i = LDAP_INVALID_SYNTAX;
+	} else {
+    	    cp->c.ldctl_value = *(cp->dn);
+	}
+    }
+    sparams->utils->free(authzid);
+    return i;
+}
+
 static void ldapdb_auxprop_lookup(void *glob_context,
 				  sasl_server_params_t *sparams,
 				  unsigned flags,
@@ -85,14 +136,12 @@ static void ldapdb_auxprop_lookup(void *glob_context,
 				  unsigned ulen)
 {
     ldapctx *ctx = glob_context;
+    connparm cp;
     int ret, i, n, *aindx;
     const struct propval *pr;
-    LDAP *ld = NULL;
-    gluectx gc;
-    struct berval *dn = NULL, **bvals;
+    struct berval **bvals;
     LDAPMessage *msg, *res;
-    char **attrs = NULL, *authzid = NULL;
-    LDAPControl c, *ctrl[2];
+    char **attrs = NULL;
     
     if(!ctx || !sparams || !user) return;
 
@@ -128,56 +177,23 @@ static void ldapdb_auxprop_lookup(void *glob_context,
 	n++;
     }
     attrs[n] = NULL;
-    	
-    if(ldap_initialize(&ld, ctx->uri)) {
-    	sparams->utils->free(attrs);
-    	return;
+
+    if(ldapdb_connect(ctx, sparams, user, ulen, &cp)) {
+    	goto done;
     }
 
-    authzid = sparams->utils->malloc(ulen + sizeof("u:"));
-    if (!authzid) goto done;
-    strcpy(authzid, "u:");
-    strcpy(authzid+2, user);
-    c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-    c.ldctl_value.bv_val = authzid;
-    c.ldctl_value.bv_len = ulen + 2;
-    c.ldctl_iscritical = 1;
-
-    i = LDAP_VERSION3;
-    ret = ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &i);
-
-    /* If TLS is set and it fails, continue or bail out as requested */
-    if (ctx->use_tls && ldap_start_tls_s(ld, NULL, NULL) != LDAP_SUCCESS) {
-    	if (ctx->use_tls > 1) goto done;
-    }
-
-    gc.lc = ctx;
-    gc.lp = sparams;
-    ret = ldap_sasl_interactive_bind_s(ld, NULL, ctx->mech.bv_val, NULL, NULL,
-    	LDAP_SASL_QUIET, ldapdb_interact, &gc);
-    if (ret != LDAP_SUCCESS) goto done;
-    
-    ctrl[0] = &c;
-    ctrl[1] = NULL;
-    ret = ldap_whoami_s(ld, &dn, ctrl, NULL);
-    if (ret != LDAP_SUCCESS || !dn) goto done;
-    
-    if (!dn->bv_val || strncmp(dn->bv_val, "dn:", 3)) {
-    	ber_bvfree(dn);
-	goto done;
-    }
-    ret = ldap_search_s(ld, dn->bv_val+3, LDAP_SCOPE_BASE, "(objectclass=*)",
-    	attrs, 0, &res);
-    ber_bvfree(dn);
+    ret = ldap_search_ext_s(cp.ld, cp.dn->bv_val+3, LDAP_SCOPE_BASE,
+    	"(objectclass=*)", attrs, 0, cp.ctrl, NULL, NULL, 1, &res);
+    ber_bvfree(cp.dn);
 
     if (ret != LDAP_SUCCESS) goto done;
 
-    for(msg=ldap_first_message(ld, res); msg; msg=ldap_next_message(ld, msg))
+    for(msg=ldap_first_message(cp.ld, res); msg; msg=ldap_next_message(cp.ld, msg))
     {
     	if (ldap_msgtype(msg) != LDAP_RES_SEARCH_ENTRY) continue;
 	for (i=0; i<n; i++)
 	{
-	    bvals = ldap_get_values_len(ld, msg, attrs[i]);
+	    bvals = ldap_get_values_len(cp.ld, msg, attrs[i]);
 	    if (!bvals) continue;
 	    if (pr[aindx[i]].values)
 	    	sparams->utils->prop_erase(sparams->propctx, pr[aindx[i]].name);
@@ -189,10 +205,63 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     ldap_msgfree(res);
 
  done:
-    if(authzid) sparams->utils->free(authzid);
     if(attrs) sparams->utils->free(attrs);
-    if(ld) ldap_unbind(ld);
+    if(cp.ld) ldap_unbind(cp.ld);
 }
+
+#if SASL_VERSION_FULL >= 0x020110
+static int ldapdb_auxprop_store(void *glob_context,
+				  sasl_server_params_t *sparams,
+				  struct propctx *prctx,
+				  const char *user,
+				  unsigned ulen)
+{
+    ldapctx *ctx = glob_context;
+    connparm cp;
+    const struct propval *pr;
+    int i, n;
+    LDAPMod **mods;
+
+    /* just checking if we are enabled */
+    if (!prctx) return SASL_OK;
+
+    if (!sparams || !user) return SASL_BADPARAM;
+
+    pr = sparams->utils->prop_get(prctx);
+    if (!pr) return SASL_BADPARAM;
+
+    for (n=0; pr[n].name; n++);
+    if (!n) return SASL_BADPARAM;
+
+    mods = sparams->utils->malloc((n+1) * sizeof(LDAPMod*) + n * sizeof(LDAPMod));
+    if (!mods) return SASL_NOMEM;
+
+    if((i=ldapdb_connect(ctx, sparams, user, ulen, &cp)) == 0) {
+
+	for (i=0; i<n; i++) {
+	    mods[i] = (LDAPMod *)((char *)(mods+n+1) + i * sizeof(LDAPMod));
+	    mods[i]->mod_op = LDAP_MOD_REPLACE;
+	    mods[i]->mod_type = (char *)pr[i].name;
+	    mods[i]->mod_values = (char **)pr[i].values;
+	}
+	mods[i] = NULL;
+
+	i = ldap_modify_ext_s(cp.ld, cp.dn->bv_val+3, mods, cp.ctrl, NULL);
+	ber_bvfree(cp.dn);
+    }
+
+    sparams->utils->free(mods);
+
+    if (i) {
+    	sparams->utils->seterror(sparams->utils->conn, 0,
+	    ldap_err2string(i));
+	if (i == LDAP_NO_MEMORY) i = SASL_NOMEM;
+	else i = SASL_FAIL;
+    }
+    if (cp.ld) ldap_unbind(cp.ld);
+    return i;
+}
+#endif /* SASL_VERSION_FULL >= 2.1.16 */
 
 static void ldapdb_auxprop_free(void *glob_ctx, const sasl_utils_t *utils)
 {
@@ -204,9 +273,13 @@ static sasl_auxprop_plug_t ldapdb_auxprop_plugin = {
     0,           /* spare */
     NULL,        /* glob_context */
     ldapdb_auxprop_free,	/* auxprop_free */
-    ldapdb_auxprop_lookup, /* auxprop_lookup */
+    ldapdb_auxprop_lookup,	/* auxprop_lookup */
     ldapdb,    /* name */
-    NULL         /* spare */
+#if SASL_VERSION_FULL >=0x020110
+    ldapdb_auxprop_store	/* spare if <2.1.16*/
+#else
+    NULL
+#endif
 };
 
 static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,

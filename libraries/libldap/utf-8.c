@@ -1,16 +1,24 @@
+/* utf-8.c -- Basic UTF-8 routines */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Portions Copyright (C) The Internet Society (1998)
+/* Portions Copyright (C) The Internet Society (1998)
  * UTF-8 encodings are derived from those in RFC 2279;
  * see RFC for full legal notices.
  */
 
-/*
- * Basic UTF-8 routines
+/* Basic UTF-8 routines
  *
  * These routines are "dumb".  Though they understand UTF-8,
  * they don't grok Unicode.  That is, they can push bits,
@@ -34,10 +42,6 @@
 
 #include "ldap-int.h"
 #include "ldap_defaults.h"
-
-/*
- * Basic UTF-8 routines
- */
 
 /*
  * return the number of bytes required to hold the

@@ -1,14 +1,23 @@
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2002-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1997,2002-2003 IBM Corporation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- *  Copyright IBM Corp. 1997,2002
- *  Use of this source code is subject to the terms of The OpenLDAP Public 
- *  License (version 2.7 or later).
- *  No trademarks of the IBM Corporation are to be used to identify, endorse 
- *  or promote  any products derived from this code without the prior 
- *  written consent of IBM 
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by IBM Corporation for use in
+ * IBM products and subsequently ported to OpenLDAP Software by
+ * Steve Omrani.  Additional significant contributors include:
+ *   Luke Howard
  */
 
 #ifndef _PROTO_SLAPI_H

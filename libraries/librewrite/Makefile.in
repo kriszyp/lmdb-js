@@ -1,8 +1,17 @@
+# LIBREWRITE
 # $OpenLDAP$
-## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
-## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## LIBREWRITE
+## Copyright 1998-2003 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
 ##
 ## Copyright 2000-2001 Pierangelo Masarati <ando@sys-net.it>
 ##
@@ -19,9 +28,9 @@ LDAP_LIBDIR= ../../libraries
 
 LIBRARY = librewrite.a
 PROGRAMS	= rewrite
-XLIBS = $(LIBRARY) $(LDAP_LIBAVL_A) $(LDAP_LIBLUTIL_A) \
+XLIBS = $(LIBRARY) $(LDAP_LIBLUTIL_A) \
 	$(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
-XXLIBS  = $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
+XXLIBS  = $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
 rewrite:	$(XLIBS) rewrite.o parse.o

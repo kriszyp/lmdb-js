@@ -1,15 +1,17 @@
+dnl OpenLDAP Autoconf Macros
 dnl $OpenLDAP$
+dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
-dnl Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
+dnl Copyright 1998-2003 The OpenLDAP Foundation.
 dnl All rights reserved.
-dnl 
+dnl
 dnl Redistribution and use in source and binary forms, with or without
 dnl modification, are permitted only as authorized by the OpenLDAP
-dnl Public License.  A copy of this license is available at
-dnl http://www.OpenLDAP.org/license.html or in file LICENSE in the
-dnl top-level directory of the distribution.
+dnl Public License.
 dnl
-dnl OpenLDAP Autoconf Macros
+dnl A copy of this license is available in the file LICENSE in the
+dnl top-level directory of the distribution or, alternatively, at
+dnl <http://www.OpenLDAP.org/license.html>.
 dnl
 dnl --------------------------------------------------------------------
 dnl Restricted form of AC_ARG_ENABLE that limits user options
@@ -312,12 +314,17 @@ dnl Try to locate appropriate library
 AC_DEFUN([OL_BERKELEY_DB_LINK],
 [ol_cv_lib_db=no
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
+OL_BERKELEY_DB_TRY(ol_cv_db_db42,[-ldb42])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_42,[-ldb-42])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4_2,[-ldb-4-2])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
+OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
 OL_BERKELEY_DB_TRY(ol_cv_db_db41,[-ldb41])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_41,[-ldb-41])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_1,[-ldb-4.1])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_4_1,[-ldb-4-1])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
-OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
 OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
 OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_3,[-ldb-3])
@@ -442,8 +449,8 @@ AC_DEFUN([OL_BDB_COMPAT],
 #	define DB_VERSION_MINOR 0
 #endif
 
-/* require 4.1 or later */
-#if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 1)
+/* require 4.2 or later */
+#if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 2)
 	__db_version_compat
 #endif
 	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])

@@ -1,8 +1,17 @@
 /* modify.c - ldbm backend modify routine */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -324,10 +333,19 @@ ldbm_back_modify(
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			BerVarray deref = op->o_bd->be_syncinfo ?
-				op->o_bd->be_syncinfo->si_provideruri_bv : default_referral;
+			BerVarray deref = NULL;
+			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+				syncinfo_t *si;
+				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+					struct berval tmpbv;
+					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
+					ber_bvarray_add( &deref, &tmpbv );
+				}
+			} else {
+				deref = default_referral;
+			}
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
-				LDAP_SCOPE_DEFAULT );
+							LDAP_SCOPE_DEFAULT );
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);

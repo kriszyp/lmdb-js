@@ -37,7 +37,7 @@ init_module(
 	return 0;
 }
 
-#endif /* SLAPD_SHELL_DYNAMIC */
+#endif /* SLAPD_SQL_DYNAMIC */
 
 int
 sql_back_initialize(

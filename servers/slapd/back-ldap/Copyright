@@ -1,8 +1,17 @@
-Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
-COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+Copyright 1999-2003 The OpenLDAP Foundation.
+All rights reserved.
 
-This is an "altered version" of work originally develeped by
-Howard Chu.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted only as authorized by the OpenLDAP
+Public License.
+
+A copy of this license is available in the file LICENSE in the
+top-level directory of the distribution or, alternatively, at
+<http://www.OpenLDAP.org/license.html>.
+
+---
+This is an "altered version".
+---
 
 Portions Copyright 1999, Howard Chu, All rights reserved.
 <hyc@highlandsun.com>
@@ -24,7 +33,7 @@ to the following restrictions:
 
 4. This notice may not be removed or altered.
 
-
+---
 
 Portions Copyright 2000, Pierangelo Masarati, All rights reserved.
 <ando@sys-net.it>

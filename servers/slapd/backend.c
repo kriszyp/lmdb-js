@@ -1,9 +1,28 @@
-/* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
 /* backend.c - routines for dealing with back-end databases */
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* Portions Copyright (c) 1995 Regents of the University of Michigan.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is given
+ * to the University of Michigan at Ann Arbor. The name of the University
+ * may not be used to endorse or promote products derived from this
+ * software without specific prior written permission. This software
+ * is provided ``as is'' without express or implied warranty.
+ */
 
 
 #include "portable.h"
@@ -337,7 +356,7 @@ int backend_startup(Backend *be)
 #ifndef SLAPD_MULTIMASTER
 		if ( backendDB[i].be_update_ndn.bv_val && (
 			!backendDB[i].be_update_refs &&
-			!backendDB[i].be_syncinfo &&
+			LDAP_STAILQ_EMPTY( &backendDB[i].be_syncinfo ) &&
 			!default_referral ) )
 		{
 #ifdef NEW_LOGGING
@@ -375,14 +394,16 @@ int backend_startup(Backend *be)
 			}
 		}
 
-		if ( backendDB[i].be_syncinfo != NULL ) {
-			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].be_syncinfo;
-			si->si_be = &backendDB[i];
-			init_syncrepl(si);
-			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-			ldap_pvt_runqueue_insert( &syncrepl_rq, si->si_interval,
-				do_syncrepl, (void *) backendDB[i].be_syncinfo );
-			ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+		if ( !LDAP_STAILQ_EMPTY( &backendDB[i].be_syncinfo )) {
+			syncinfo_t *si;
+			LDAP_STAILQ_FOREACH( si, &backendDB[i].be_syncinfo, si_next ) {
+				si->si_be = &backendDB[i];
+				init_syncrepl( si );
+				ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_runqueue_insert( &syncrepl_rq,
+						si->si_interval, do_syncrepl, (void *) si );
+				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+			}
 		}
 	}
 
@@ -552,7 +573,7 @@ backend_db_init(
 	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
 	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
 
-	be->be_syncinfo = NULL;
+	LDAP_STAILQ_INIT( &be->be_syncinfo );
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 

@@ -1,8 +1,27 @@
 /* slap.h - stand alone ldap server include file */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* Portions Copyright (c) 1995 Regents of the University of Michigan.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is given
+ * to the University of Michigan at Ann Arbor. The name of the University
+ * may not be used to endorse or promote products derived from this
+ * software without specific prior written permission. This software
+ * is provided ``as is'' without express or implied warranty.
  */
 
 #ifndef _SLAP_H_
@@ -1292,6 +1311,7 @@ typedef BackendDB Backend;
  */
 
 #define SLAP_SYNC_SID_SIZE	3
+#define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
 struct nonpresent_entry {
@@ -1304,11 +1324,15 @@ struct sync_cookie {
 	struct berval *ctxcsn;
 	long sid;
 	struct berval *octet_str;
+	long rid;
+	LDAP_STAILQ_ENTRY(sync_cookie) sc_next;
 };
+
+LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
 
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
-        unsigned int		si_id;
+        long				si_rid;
         char				*si_provideruri;
         BerVarray			si_provideruri_bv;
 #define SYNCINFO_TLS_OFF		0
@@ -1341,6 +1365,7 @@ typedef struct syncinfo_s {
         Avlnode				*si_presentlist;
 		LDAP				*si_ld;
 		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
+		LDAP_STAILQ_ENTRY( syncinfo_s ) si_next;
 } syncinfo_t;
 
 struct slap_backend_db {
@@ -1495,7 +1520,7 @@ struct slap_backend_db {
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
-	syncinfo_t	*be_syncinfo;	/* For syncrepl */
+	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
 };
 
 struct slap_conn;

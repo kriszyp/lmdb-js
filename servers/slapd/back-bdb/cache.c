@@ -1,8 +1,17 @@
 /* cache.c - routines to maintain an in-core cache of entries */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2000-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -139,6 +148,8 @@ bdb_cache_entry_db_unlock
 	return 0;
 #else
 	int rc;
+
+	if ( !lock ) return 0;
 
 	rc = LOCK_PUT ( env, lock );
 	return rc;
@@ -489,7 +500,13 @@ bdb_cache_lru_add(
 	EntryInfo *ei
 )
 {
-	DB_LOCK		lock;
+	DB_LOCK		lock, *lockp;
+
+	if ( locker ) {
+		lockp = &lock;
+	} else {
+		lockp = NULL;
+	}
 
 	/* See if we're above the cache size limit */
 	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
@@ -507,20 +524,20 @@ bdb_cache_lru_add(
 			 * the object is idle.
 			 */
 			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, elru, 1, 1,
-				&lock ) == 0 ) {
+				lockp ) == 0 ) {
 				/* If there's no entry, or this node is in
 				 * the process of linking into the cache,
 				 * skip it.
 				 */
 				if ( !elru->bei_e || (elru->bei_state & CACHE_ENTRY_NOT_LINKED) ) {
-					bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
+					bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 					continue;
 				}
 				LRU_DELETE( &bdb->bi_cache, elru );
 				elru->bei_e->e_private = NULL;
 				bdb_entry_return( elru->bei_e );
 				elru->bei_e = NULL;
-				bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
+				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 				--bdb->bi_cache.c_cursize;
 				if (bdb->bi_cache.c_cursize < bdb->bi_cache.c_maxsize)
 					break;

@@ -1,27 +1,18 @@
+/* ldapsync.c -- LDAP Content Sync Routines */
 /* $OpenLDAP$ */
-/*
- * LDAP Content Sync Routines
- */
-/*
- * Copyright 2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
-/* Copyright (c) 2003 by International Business Machines, Inc.
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * International Business Machines, Inc. (hereinafter called IBM) grants
- * permission under its copyrights to use, copy, modify, and distribute this
- * Software with or without fee, provided that the above copyright notice and
- * all paragraphs of this notice appear in all copies, and that the name of IBM
- * not be used in connection with the marketing of any product incorporating
- * the Software or modifications thereof, without specific, written prior
- * permission.
+ * Copyright 2003 The OpenLDAP Foundation.
+ * Portions Copyright 2003 IBM Corporation.
+ * All rights reserved.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", AND IBM DISCLAIMS ALL WARRANTIES,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE.  IN NO EVENT SHALL IBM BE LIABLE FOR ANY SPECIAL,
- * DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING
- * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE, EVEN
- * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -34,7 +25,15 @@
 #include "ldap_pvt.h"
 #include "lutil.h"
 #include "slap.h"
+#include "../../libraries/liblber/lber-int.h" /* get ber_strndup() */
 #include "lutil_ldap.h"
+
+#if 0
+struct sync_cookie *slap_sync_cookie = NULL;
+#else
+struct slap_sync_cookie_s slap_sync_cookie =
+	LDAP_STAILQ_HEAD_INITIALIZER( slap_sync_cookie );
+#endif
 
 int
 slap_build_sync_state_ctrl(
@@ -306,23 +305,46 @@ slap_compose_sync_cookie(
 	Operation *op,
 	struct berval *cookie,
 	struct berval *csn,
-	int sid )
+	int sid,
+	int rid )
 {
-	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 10 ];
+	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 20 ];
 
 	if ( csn->bv_val == NULL ) {
 		if ( sid == -1 ) {
-			cookiestr[0] = '\0';
+			if ( rid == -1 ) {
+				cookiestr[0] = '\0';
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"rid=%03d", rid );
+			}
 		} else {
-			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
+			if ( rid == -1 ) {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
 						"sid=%03d", sid );
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"sid=%03d,rid=%03d", sid, rid );
+			}
 		}
-	} else if ( sid == -1 ) {
-		snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
-						"csn=%s", csn->bv_val );
 	} else {
-		snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
+		if ( sid == -1 ) {
+			if ( rid == -1 ) {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"csn=%s", csn->bv_val );
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"csn=%s,rid=%03d", csn->bv_val, rid );
+			}
+		} else {
+			if ( rid == -1 ) {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
 						"csn=%s,sid=%03d", csn->bv_val, sid );
+			} else {
+				snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 20,
+						"csn=%s,sid=%03d,rid=%03d", csn->bv_val, sid, rid );
+			}
+		}
 	}
 	ber_str2bv( cookiestr, strlen(cookiestr), 1, cookie );
 }
@@ -363,6 +385,8 @@ slap_parse_sync_cookie(
 	int csn_str_len;
 	char *sid_ptr;
 	char *sid_str;
+	char *rid_ptr;
+	char *rid_str;
 	char *cval;
 	struct berval *ctxcsn;
 
@@ -370,8 +394,8 @@ slap_parse_sync_cookie(
 		return -1;
 
 	if (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
-		csn_str = (char *) SLAP_STRNDUP( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
-		if ( cval = strchr( csn_str, ',' )) {
+		csn_str = SLAP_STRNDUP( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
+		if ( (cval = strchr( csn_str, ',' )) != NULL ) {
 			*cval = '\0';
 			csn_str_len = cval - csn_str - (sizeof("csn=") - 1);
 		} else {
@@ -389,15 +413,27 @@ slap_parse_sync_cookie(
 	}
 
 	if (( sid_ptr = strstr( cookie->octet_str->bv_val, "sid=" )) != NULL ) {
-		sid_str = (char *) SLAP_STRNDUP( sid_ptr,
+		sid_str = SLAP_STRNDUP( sid_ptr,
 							SLAP_SYNC_SID_SIZE + sizeof("sid=") - 1 );
-		if ( cval = strchr( sid_str, ',' )) {
+		if ( (cval = strchr( sid_str, ',' )) != NULL ) {
 			*cval = '\0';
 		}
 		cookie->sid = atoi( sid_str + sizeof("sid=") - 1 );
 		ch_free( sid_str );
 	} else {
 		cookie->sid = -1;
+	}
+
+	if (( rid_ptr = strstr( cookie->octet_str->bv_val, "rid=" )) != NULL ) {
+		rid_str = SLAP_STRNDUP( rid_ptr,
+							SLAP_SYNC_RID_SIZE + sizeof("rid=") - 1 );
+		if ( (cval = strchr( rid_str, ',' )) != NULL ) {
+			*cval = '\0';
+		}
+		cookie->rid = atoi( rid_str + sizeof("rid=") - 1 );
+		ch_free( rid_str );
+	} else {
+		cookie->rid = -1;
 	}
 }
 
@@ -457,6 +493,7 @@ slap_dup_sync_cookie(
 	}
 
 	new->sid = src->sid;
+	new->rid = src->rid;
 
 	if ( src->ctxcsn ) {
 		for ( i=0; src->ctxcsn[i].bv_val; i++ ) {

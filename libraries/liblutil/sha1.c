@@ -1,11 +1,24 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
+/* This work was derived from code developed by Steve Reid and
+ * adapted for use in OpenLDAP by Kurt D. Zeilenga.
+ */
+
+
 /*	Acquired from:
  *	$OpenBSD: sha1.c,v 1.9 1997/07/23 21:12:32 kstailey Exp $	*/
-
 /*
  * SHA-1 in C
  * By Steve Reid <steve@edmweb.com>
@@ -19,7 +32,6 @@
  * A million repetitions of "a"
  *   34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F
  */
-
 /*
  * This code assumes uint32 is 32 bits and char is 8 bits
  */

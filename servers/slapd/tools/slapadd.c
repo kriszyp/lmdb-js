@@ -1,29 +1,24 @@
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1998-2003 Kurt D. Zeilenga.
+ * Portions Copyright 2003 IBM Corporation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * Modified by Jong Hyuk Choi
- *
- * Modifications provided under the terms of the following condition:
- *
- * Copyright (c) 2003 by International Business Machines, Inc.
- *
- * International Business Machines, Inc. (hereinafter called IBM) grants
- * permission under its copyrights to use, copy, modify, and distribute this
- * Software with or without fee, provided that the above copyright notice and
- * all paragraphs of this notice appear in all copies, and that the name of IBM
- * not be used in connection with the marketing of any product incorporating
- * the Software or modifications thereof, without specific, written prior
- * permission.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", AND IBM DISCLAIMS ALL WARRANTIES,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE.  IN NO EVENT SHALL IBM BE LIABLE FOR ANY SPECIAL,
- * DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING
- * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE, EVEN
- * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Kurt Zeilenga for inclusion
+ * in OpenLDAP Software.  Additional signficant contributors include
+ *    Jong Hyuk Choi
+ *    Pierangelo Masarati
  */
 
 #include "portable.h"

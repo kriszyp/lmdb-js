@@ -1,17 +1,19 @@
-/*
- * Copyright 2001-2003 The OpenLDAP Foundation, Redwood City, California, USA
+/* ldap_queue.h -- queue macros */
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2001-2003 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP
- * Public License.  A copy of this license is available at
- * http://www.OpenLDAP.org/license.html or in file LICENSE in the
- * top-level directory of the distribution.
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/* stolen from FreeBSD for use in OpenLDAP */
-/* $OpenLDAP$ */
-/*
- * Copyright (c) 1991, 1993
+/* Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,8 +46,13 @@
  *
  *	@(#)queue.h	8.5 (Berkeley) 8/20/94
  * $FreeBSD: src/sys/sys/queue.h,v 1.32.2.5 2001/09/30 21:12:54 luigi Exp $
+ *
+ * See also: ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change
  */
-/* See also: ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change */
+/* ACKNOWLEDGEMENTS:
+ * This work is derived from FreeBSD queue.h work.  Adapted for use in
+ * OpenLDAP Software by Kurt D. Zeilenga.
+ */
 
 #ifndef _LDAP_QUEUE_H_
 #define	_LDAP_QUEUE_H_

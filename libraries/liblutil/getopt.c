@@ -1,12 +1,23 @@
+/* getopt.c -- replacement getopt(3) routines */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1998-2003 Kurt D. Zeilenga.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/*
- * getopt.c
- * modified public-domain AT&T getopt(3)
- * modified by Kurt Zeilenga for inclusion into OpenLDAP
+/* This work is based upon the public-domain getopt(3) routines
+ * developed by AT&T.  Modified by Kurt D. Zeilenga for inclusion
+ * into OpenLDAP Software.  Significant contributors include:
+ *   Howard Chu
  */
 
 #include "portable.h"

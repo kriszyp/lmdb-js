@@ -1,33 +1,19 @@
+/* syncrepl.c -- Replication Engine which uses the LDAP Sync protocol */
 /* $OpenLDAP$ */
-/*
- * Replication Engine which uses the LDAP Sync protocol
- */
-/*
- * Copyright 2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
-/* Copyright (c) 2003 by International Business Machines, Inc.
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * International Business Machines, Inc. (hereinafter called IBM) grants
- * permission under its copyrights to use, copy, modify, and distribute this
- * Software with or without fee, provided that the above copyright notice and
- * all paragraphs of this notice appear in all copies, and that the name of IBM
- * not be used in connection with the marketing of any product incorporating
- * the Software or modifications thereof, without specific, written prior
- * permission.
+ * Copyright 2003 The OpenLDAP Foundation.
+ * Portions Copyright 2003 by IBM Corporation.
+ * Portions Copyright 2003 by Howard Chu, Symas Corporation.
+ * All rights reserved.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", AND IBM DISCLAIMS ALL WARRANTIES,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE.  IN NO EVENT SHALL IBM BE LIABLE FOR ANY SPECIAL,
- * DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING
- * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE, EVEN
- * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
- */
-/* Modified by Howard Chu
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
  *
- * Copyright (c) 2003 by Howard Chu, Symas Corporation
- *
- * Modifications provided under the terms of the OpenLDAP public license.
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #include "portable.h"
@@ -187,10 +173,15 @@ do_syncrep1(
 	syncinfo_t *si )
 {
 	int	rc;
+	int cmdline_cookie_found = 0;
 
 	char syncrepl_cbuf[sizeof(CN_STR SYNCREPL_STR)];
 	struct berval syncrepl_cn_bv;
+	struct sync_cookie	*sc = NULL;
 	struct sync_cookie	syncCookie = { NULL, -1, NULL };
+	struct berval	*psub;
+
+	psub = &si->si_be->be_nsuffix[0];
 
 	/* Init connection to master */
 
@@ -305,22 +296,27 @@ do_syncrep1(
 
 	/* get syncrepl cookie of shadow replica from subentry */
 
-	assert( si->si_id < 1000 );
+	assert( si->si_rid < 1000 );
 	syncrepl_cn_bv.bv_val = syncrepl_cbuf;
 	syncrepl_cn_bv.bv_len = snprintf(syncrepl_cbuf, sizeof(syncrepl_cbuf),
-		CN_STR "syncrepl%d", si->si_id );
-	build_new_dn( &op->o_req_ndn, &si->si_base, &syncrepl_cn_bv,
-		op->o_tmpmemctx );
+		CN_STR "syncrepl%ld", si->si_rid );
+	build_new_dn( &op->o_req_ndn, psub, &syncrepl_cn_bv, op->o_tmpmemctx );
 	op->o_req_dn = op->o_req_ndn;
 
-	if ( slap_sync_cookie != NULL ) {
-		/* cookie is supplied in the command line */
+	LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
+		if ( si->si_rid == sc->rid ) {
+			cmdline_cookie_found = 1;
+			break;
+		}
+	}
 
+	if ( cmdline_cookie_found ) {
+		/* cookie is supplied in the command line */
 		BerVarray cookie = NULL;
 		struct berval cookie_bv;
 
+		LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
-		slap_parse_sync_cookie( slap_sync_cookie );
 
 		/* read stored cookie if it exists */
 		backend_attribute( op, NULL, &op->o_req_ndn,
@@ -328,36 +324,47 @@ do_syncrep1(
 
 		if ( !cookie ) {
 			/* no stored cookie */
-			if ( slap_sync_cookie->ctxcsn == NULL ||
-				 slap_sync_cookie->ctxcsn->bv_val == NULL ) {
-				/* if slap_sync_cookie does not have ctxcsn component */
-				/* set it to an initial value */
-				slap_init_sync_cookie_ctxcsn( slap_sync_cookie );
+			if ( sc->ctxcsn == NULL ||
+				 sc->ctxcsn->bv_val == NULL ) {
+				/* if cmdline cookie does not have ctxcsn */
+				/* component, set it to an initial value */
+				slap_init_sync_cookie_ctxcsn( sc );
 			}
-			slap_dup_sync_cookie( &si->si_syncCookie, slap_sync_cookie );
-			slap_sync_cookie_free( slap_sync_cookie, 1 );
-			slap_sync_cookie = NULL;
+			slap_dup_sync_cookie( &si->si_syncCookie, sc );
+			slap_sync_cookie_free( sc, 1 );
+			sc = NULL;
 		} else {
 			/* stored cookie */
+			struct berval newcookie = { 0, NULL };
 			ber_dupbv( &cookie_bv, &cookie[0] );
 			ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );
 			slap_parse_sync_cookie( &si->si_syncCookie );
+			ber_bvarray_free( si->si_syncCookie.octet_str );
+			si->si_syncCookie.octet_str = NULL;
 			ber_bvarray_free_x( cookie, op->o_tmpmemctx );
-			if ( slap_sync_cookie->sid != -1 ) {
+			if ( sc->sid != -1 ) {
 				/* command line cookie wins */
-				si->si_syncCookie.sid = slap_sync_cookie->sid;
+				si->si_syncCookie.sid = sc->sid;
 			}
-			if ( slap_sync_cookie->ctxcsn != NULL ) {
+			if ( sc->ctxcsn != NULL ) {
 				/* command line cookie wins */
 				if ( si->si_syncCookie.ctxcsn ) {
 					ber_bvarray_free( si->si_syncCookie.ctxcsn );
 					si->si_syncCookie.ctxcsn = NULL;
 				}
-				ber_dupbv( &cookie_bv, &slap_sync_cookie->ctxcsn[0] );
+				ber_dupbv( &cookie_bv, &sc->ctxcsn[0] );
 				ber_bvarray_add( &si->si_syncCookie.ctxcsn, &cookie_bv );
 			}
-			slap_sync_cookie_free( slap_sync_cookie, 1 );
-			slap_sync_cookie = NULL;
+			if ( sc->rid != -1 ) {
+				/* command line cookie wins */
+				si->si_syncCookie.rid = sc->rid;
+			}
+			slap_sync_cookie_free( sc, 1 );
+			sc = NULL;
+			slap_compose_sync_cookie( NULL, &newcookie,
+					&si->si_syncCookie.ctxcsn[0],
+					si->si_syncCookie.sid, si->si_syncCookie.rid );
+			ber_bvarray_add( &si->si_syncCookie.octet_str, &newcookie );
 		}
 	} else {
 		/* no command line cookie is specified */
@@ -660,12 +667,12 @@ do_syncrep2(
 					default:
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, ERR,
-						"do_syncrep2 : unknown syncinfo tag (%d)\n",
-						si_tag, 0, 0 );
+						"do_syncrep2 : unknown syncinfo tag (%ld)\n",
+						(long) si_tag, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-						"do_syncrep2 : unknown syncinfo tag (%d)\n",
-						si_tag, 0, 0 );
+						"do_syncrep2 : unknown syncinfo tag (%ld)\n",
+						(long) si_tag, 0, 0 );
 #endif
 						ldap_memfree( retoid );
 						ber_bvfree( retdata );
@@ -1471,10 +1478,10 @@ syncrepl_updateCookie(
 	modtail = &mod->sml_next;
 
 	ber_dupbv( &cnbva[0], (struct berval *) &slap_syncrepl_bvc );
-	assert( si->si_id < 1000 );
+	assert( si->si_rid < 1000 );
 	cnbva[0].bv_len = snprintf( cnbva[0].bv_val,
 		slap_syncrepl_bvc.bv_len,
-		"syncrepl%d", si->si_id );
+		"syncrepl%ld", si->si_rid );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_cn;
@@ -1524,10 +1531,10 @@ syncrepl_updateCookie(
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
 	slap_syncrepl_cn_bv.bv_val = syncrepl_cbuf;
-	assert( si->si_id < 1000 );
+	assert( si->si_rid < 1000 );
 	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
 		slap_syncrepl_cn_bvc.bv_len,
-		"cn=syncrepl%d", si->si_id );
+		"cn=syncrepl%ld", si->si_rid );
 
 	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv,
 		op->o_tmpmemctx );

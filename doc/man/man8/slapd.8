@@ -170,6 +170,30 @@ any shell back-ends will run as the specified non-privileged user.
 will read the configuration file (the default if none is given with the 
 \fI\-f\fP switch) and check its syntax, without opening any listener 
 or database.
+.TP
+.BI \-c " cookie"
+This option provides a cookie for a syncrepl replication consumer.
+The cookie is a comma separated list of name=value pairs.
+Currently supported syncrepl cookie fields are
+.B csn,
+.B sid,
+and
+.B rid.
+.B csn
+is the commit sequence number of the master content at the provider site
+and represents the state of the content to which the replica content
+was synchronized most recently.
+.B sid
+is the identity of the session which this replication thread belongs to.
+The replication provider site may maintain a session history store
+for each replication session to reduce synchronization traffic.
+.B rid
+identifies a replication thread within a replication consumer site
+and is used to find the replication thread specification of 
+.BR slapd.conf (5)
+having the same
+.B rid
+value as the cookie.
 .SH EXAMPLES
 To start 
 .I slapd

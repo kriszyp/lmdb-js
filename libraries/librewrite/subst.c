@@ -389,8 +389,7 @@ rewrite_subst_apply(
 	}
 	
 	/*
-         * Alloc result buffer as big as the constant part 
-         * of the subst pattern and initialize it
+         * Alloc result buffer
          */
 	l += subst->lt_subs_len;
 	res = malloc( l + 1 );
@@ -400,7 +399,7 @@ rewrite_subst_apply(
 	}
 
 	/*
-	 * Apply submatches (possibly resolved thru maps
+	 * Apply submatches (possibly resolved thru maps)
 	 */
         for ( n = 0, cl = 0; n < subst->lt_num_submatch; n++ ) {
 		if ( subst->lt_subs[ n ].bv_val != NULL ) {
