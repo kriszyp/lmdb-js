@@ -7,6 +7,9 @@ HDRS= rcpt500.h
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS)
+
 rcpt500 : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
 
@@ -22,4 +25,4 @@ install-local: $(PROGRAMS) rcpt500.help FORCE
 	-$(MKDIR) $(libexecdir) $(datadir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(libexecdir)
 	-$(MV) $(datadir)/rcpt500.help $(datadir)/rcpt500.help-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 rcpt500.help $(datadir)
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/rcpt500.help $(datadir)

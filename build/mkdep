@@ -26,12 +26,24 @@ set -e				# exit immediately if any errors occur
 MAKE=Makefile			# default makefile name is "Makefile"
 NOSLASH="no"			# by default, / dependencies are included
 CC=${CC-cc}				# default compiler is cc
+SRCDIR=""
+SED=cat
 
 while :
 	do case "$1" in
+		# the -s flag removes dependencies to files that begin with /
+		-s)
+			NOSLASH=yes;
+			shift ;;
+
 		# -f allows you to select a makefile name
 		-f)
 			MAKE=$2
+			shift; shift ;;
+
+		# -d allows you to select a VPATH directory
+		-d)
+			SRCDIR=$2
 			shift; shift ;;
 
 		# -c allows you to select a compiler to use (default is cc)
@@ -42,18 +54,13 @@ while :
 		# the -p flag produces "program: program.c" style dependencies
 		# so .o's don't get produced
 		-p)
-			SED='s;\.o;;'
+			SED='sed -e s;\.o;;'
 			shift ;;
 
 
 		# the -l flag produces libtool compatible dependencies
 		-l)
-			SED='s;\.o:;.lo:;'
-			shift ;;
-
-		# the -s flag removes dependencies to files that begin with /
-		-s)
-			NOSLASH=yes;
+			SED='sed -e s;\.o:;.lo:;'
 			shift ;;
 
 #		-*)	shift ;;
@@ -64,7 +71,7 @@ while :
 done
 
 if [ $# = 0 ] ; then
-	echo 'usage: mkdep [-p] [-s] [-c cc] [-f makefile] [flags] file ...'
+	echo 'usage: mkdep [-p] [-s] [-c cc] [-f makefile] [-d srcdir] [flags] file ...'
 	exit 1
 fi
 
@@ -95,10 +102,34 @@ _EOF_
 # egrep '^#include[ 	]*".*"' /dev/null $* |
 # sed -e 's/:[^"]*"\([^"]*\)".*/: \1/' -e 's/\.c/.o/' |
 
-$CC -M $* |
-sed "
-	s; \./; ;g
-	$SED" |
+if test "x$SRCDIR" = "x" ; then
+	files=$*
+else
+	files=
+	for i in $* ; do
+		if test -f $i ; then
+			files="$files $i"
+		elif test -f $SRCDIR/$i ; then
+			files="$files $SRCDIR/$i"
+		else
+			files="$files $i"
+		fi
+	done
+	CC="$CC -I$SRCDIR"
+fi
+
+cat << _EOF_ >> $TMP
+
+#
+# files: $*
+# command: $CC -M $files
+#
+
+_EOF_
+
+$CC -M $files | \
+	sed -e 's; \./; ;g' | \
+	$SED | \
 awk '
 $1 ~ /:/ {
 	filenm=$1
@@ -108,25 +139,13 @@ $1 !~ /:/ {
 	dep=$1
 }
 /.*/ {
-	if ( noslash = "yes" && dep ~ /^\// ) next
-	if (filenm != prev) {
-		if (rec != "")
-			print rec;
-		rec = filenm " " dep;
-		prev = filenm;
-	}
-	else {
-		if (length(rec dep) > 78) {
-			print rec;
-			rec = filenm " " dep;
-		}
-		else
-			rec = rec " " dep
-	}
+	if (( noslash == "yes") && (dep ~ /^\// )) next
+	if ( length(dep) < 2 ) next
+	rec = filenm " " dep;
+	print rec;
     }
-END {
-	print rec
-}' noslash="$NOSLASH" >> $TMP
+' noslash="$NOSLASH" >> $TMP
+
 
 cat << _EOF_ >> $TMP
 

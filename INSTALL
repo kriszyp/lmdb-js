@@ -37,7 +37,8 @@ these steps:
 		CC			C Compiler	(cc, ecgs)
 		CFLAGS		C Flags		(-ansi)
 		CPPFLAGS	CPP Flags	(-I/path/include -Ddef)
-		LDFLAGS		LDFLAGS		(-L/path/lib -llib)
+		LDFLAGS		LDFLAGS		(-L/path/lib)
+		LIBS		LIBS		(-llib)
 
 	See the 'USING ENVIRONMENT VARIABLES' section for information
 	on how to use the variables. 
@@ -154,8 +155,8 @@ Supported Environmental Variables
 	CC			C compiler		(cc, egcc)
 	CFLAGS		C flags			(-ansi)
 	CPPFLAGS	cpp flags		(-I/path/include -Ddef)
-	LDFLAGS		ld flags		(-s)
-	LIBS		libraries		(-L/usr/local/lib -llib)
+	LDFLAGS		ld flags		(-L/usr/local/lib)
+	LIBS		libraries		(-llib)
 	PATH		command path	/usr/local/bin:/usr/bin:/bin
 
 * Including alternative compilers

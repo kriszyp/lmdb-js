@@ -1,0 +1,4 @@
+If Berkeley DB 2.x should be used with thread support activated, read the
+file build/db.2.x.README carefully. The Berkeley package must be build
+appropriately to support threaded applications as expected.
+

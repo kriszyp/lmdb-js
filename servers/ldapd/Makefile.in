@@ -18,15 +18,16 @@ LDAP_LIBDIR= ../../libraries
 BUILD_OPT = "--enable-ldapd"
 BUILD_SRV = @BUILD_LDAPD@
 
-XLIBS= @LDAPD_LIBS@ $(KRB_LIBS) -llutil @LUTIL_LIBS@
+XLIBS= -llber -llutil
+XXLIBS= $(LDAPD_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
 
 ldapd:	version.o
 	$(LDLINK) -o $@ $(OBJS) version.o $(LIBS)
 
 sldapd:	version.o
-	$(LDLINK) -static -o $@ $(OBJS) version.o $(LDFLAGS) $(LIBS) -lresolv
+	$(LDLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
-version.c: $(OBJS) $(LDAP_LIBDIR)/liblber/liblber.a
+version.c: $(OBJS) $(LDAP_LIBLBER_DEPEND)
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
 	 t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \

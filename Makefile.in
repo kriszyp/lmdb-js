@@ -46,3 +46,5 @@ clean-local: FORCE
 
 veryclean-local: FORCE
 	$(RM) config.cache config.status libtool stamp-h stamp-h.in
+
+distclean: veryclean FORCE

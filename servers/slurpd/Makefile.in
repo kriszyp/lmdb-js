@@ -24,7 +24,10 @@ BUILD_SRV = @BUILD_SLURPD@
 
 all-local-srv: 	slurpd
 
-XLIBS = @SLURPD_LIBS@ -llthread @LTHREAD_LIBS@ $(KRB_LIBS) -llutil @LUTIL_LIBS@
+# $(LTHREAD_LIBS) must be last!
+XLIBS = -lldif -lldap -llber -llthread -llutil
+XXLIBS = $(SLURPD_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
 
 slurpd:	version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
@@ -32,7 +35,7 @@ slurpd:	version.o
 sslurpd:	version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
-version.c: $(OBJS) $(LDAP_LIBDEPEND)
+version.c: $(OBJS) $(LDAP_LIBDEPEND) $(LDAP_LIBTHREAD_DEPEND)
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \

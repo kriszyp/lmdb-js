@@ -22,6 +22,12 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
+# $(LTHREAD_LIBS) must be last
+XLIBS = libbackends.a -lavl -lldbm -lldif -lldap -llber -llthread -llutil
+XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
+	$(KRB_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
+
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
@@ -29,10 +35,6 @@ all-local-srv: FORCE
 	$(MAKE) $(MFLAGS) backendslib
 	$(MAKE) $(MFLAGS) slapd
 	(cd tools; $(MAKE) $(MFLAGS) all)
-
-XLIBS = @SLAPD_LIBS@ libbackends.a \
-	-lavl -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ \
-	$(KRB_LIBS) -llutil @LUTIL_LIBS@
 
 slapd: version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
@@ -115,7 +117,7 @@ install-conf: FORCE
 	@-$(MKDIR) $(sysconfdir)
 	@for i in $(CFFILES); do \
 		tmpcf=/tmp/$$i.$$ ; \
-		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' $$i > $$tmpcf ; \
+		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' $(srcdir)/$$i > $$tmpcf ; \
 		if test ! -f $(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
 			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i"; \
@@ -124,7 +126,7 @@ install-conf: FORCE
 			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
 		fi; \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i.default; \
-		$(RM) -f /tmp/slapd.$$ ; \
+		$(RM) -f $$tmpcf ; \
 	done
 
 install-tools: FORCE

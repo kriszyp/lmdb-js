@@ -3,17 +3,16 @@
 ##
 ## tests Makefile.in for OpenLDAP
 
-
-SCRIPTSDIR=./scripts
-
 all-local:	FORCE
+	@-$(LN_S) $(srcdir)/data .
 	@echo "Initiating LDAP tests..."; \
-	$(MKDIR) -p test-db test-repl ; \
-	$(SCRIPTSDIR)/all $(SCRIPTSDIR)
+	$(MKDIR) test-db test-repl ; \
+	$(srcdir)/scripts/all $(srcdir)
 
 clean-local:	FORCE
 	$(RM) test-db/[!C]* test-repl/[!C]* *core
 
 veryclean-local: FORCE
+	$(RM) -f data
 	$(RM) -r test-db test-repl
 
