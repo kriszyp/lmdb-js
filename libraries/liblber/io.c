@@ -137,9 +137,8 @@ ber_filbuf( Sockbuf *sb, long len )
 #endif /* LDAP_CONNECTIONLESS */
 	} else {
 		rc = read( sb->sb_sd, sb->sb_ber.ber_buf,
-		    ((sb->sb_options & LBER_NO_READ_AHEAD) &&
-		    (len < READBUFSIZ)) ?
-		    len : READBUFSIZ );
+			((sb->sb_options & LBER_NO_READ_AHEAD) && (len < READBUFSIZ)) ?
+				len : READBUFSIZ );
 	}
 
 	if ( rc > 0 ) {
@@ -164,7 +163,7 @@ BerRead( Sockbuf *sb, char *buf, long len )
 				break;
 			return( c );
 		}
-		*buf++ = c;
+		*buf++ = (char) c;
 		nread++;
 		len--;
 	}
@@ -335,7 +334,7 @@ ber_alloc_t( int options )
 	if ( (ber = (BerElement *) calloc( 1, sizeof(BerElement) )) == NULLBER )
 		return( NULLBER );
 	ber->ber_tag = LBER_DEFAULT;
-	ber->ber_options = options;
+	ber->ber_options = (char) options;
 
 	return( ber );
 }
@@ -371,7 +370,7 @@ ber_init( BerElement *ber, int options )
 {
 	(void) memset( (char *)ber, '\0', sizeof( BerElement ));
 	ber->ber_tag = LBER_DEFAULT;
-	ber->ber_options = options;
+	ber->ber_options = (char) options;
 }
 
 

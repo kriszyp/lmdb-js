@@ -127,7 +127,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 		if ( len & mask )
 			break;
 	}
-	lenlen = ++i;
+	lenlen = (unsigned char) ++i;
 	if ( lenlen > 4 )
 		return( -1 );
 	lenlen |= 0x80;

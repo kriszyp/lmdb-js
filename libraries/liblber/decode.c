@@ -160,7 +160,7 @@ ber_getnint( BerElement *ber, long *num, int len )
         sign = (0x80 & *(p+diff) );
         if ( sign && len < sizeof(long) ) {
                 for ( i = 0; i < diff; i++ ) {
-                        *(p+i) = (char) 0xff;
+                        *(p+i) = (unsigned char) 0xff;
 		}
 	}
 	*num = AC_NTOHL( netnum );
