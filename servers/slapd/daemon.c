@@ -23,9 +23,29 @@ int deny_severity = LOG_NOTICE;
 /* globals */
 int dtblsize;
 
+#ifdef HAVE_WINSOCK2
+/* forward reference */
+void hit_socket();
+/* In wsa_err.c */
+char *WSAGetLastErrorString();
+
+#define WAKE_LISTENER \
+    if( wake ) {\
+        ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
+        hit_socket();\
+    }
+#else
+#define WAKE_LISTENER \
+    if( wake ) {\
+        ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
+    }
+#endif
+
+static int daemon_initialized = 0;
 static ldap_pvt_thread_t	listener_tid;
 static volatile sig_atomic_t slapd_shutdown = 0;
 static volatile sig_atomic_t slapd_listener = 0;
+void sockinit();
 
 struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
@@ -96,9 +116,7 @@ void slapd_clr_write(int s, int wake) {
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+	WAKE_LISTENER;
 }
 
 void slapd_set_write(int s, int wake) {
@@ -109,9 +127,7 @@ void slapd_set_write(int s, int wake) {
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+    WAKE_LISTENER;
 }
 
 void slapd_clr_read(int s, int wake) {
@@ -122,9 +138,7 @@ void slapd_clr_read(int s, int wake) {
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+    WAKE_LISTENER;
 }
 
 void slapd_set_read(int s, int wake) {
@@ -135,9 +149,7 @@ void slapd_set_read(int s, int wake) {
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+    WAKE_LISTENER;
 }
 
 static void slapd_close(int s) {
@@ -151,6 +163,7 @@ int
 set_socket( struct sockaddr_in *addr )
 {
 	int	tcps = -1;
+    if ( !daemon_initialized ) sockinit();
 
 #ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
@@ -170,11 +183,18 @@ set_socket( struct sockaddr_in *addr )
 		int	tmp;
 
 		if ( (tcps = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
+#ifndef WIN32
 			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: socket() failed errno %d (%s)\n", err,
 		    	err > -1 && err < sys_nerr ? sys_errlist[err] :
 		    	"unknown", 0 );
+#endif
+#ifdef WIN32
+			Debug( LDAP_DEBUG_ANY, 
+				"daemon: socket() failed errno %d (%s)\n", WSAGetLastError(),
+		    	WSAGetLastErrorString(), 0 );
+#endif
 			exit( 1 );
 		}
 
@@ -220,6 +240,8 @@ slapd_daemon_task(
 	int inetd = ((int *)ptr) [0];
 	int tcps  = ((int *)ptr) [1];
 	free( ptr );
+
+    if ( !daemon_initialized ) sockinit();
 
 	slapd_listener=1;
 
@@ -594,14 +616,7 @@ int slapd_daemon( int inetd, int tcps )
 	args[0] = inetd;
 	args[1] = tcps;
 
-#ifdef HAVE_WINSOCK
-	{
-		WORD    vers = MAKEWORD( 2, 0);
-		int     err;
-		WSADATA wsaData;
-		err = WSAStartup( vers, &wsaData );
-	}
-#endif
+    if ( !daemon_initialized ) sockinit();
 
 	connections_init();
 
@@ -637,15 +652,82 @@ destory:
 	return rc;
 }
 
+#ifdef HAVE_WINSOCK2
+void sockinit()
+{
+    WORD wVersionRequested;
+	WSADATA wsaData;
+	int err;
+ 
+	wVersionRequested = MAKEWORD( 2, 0 );
+ 
+	err = WSAStartup( wVersionRequested, &wsaData );
+	if ( err != 0 ) {
+		/* Tell the user that we couldn't find a usable */
+		/* WinSock DLL.                                  */
+		return;
+	}
+ 
+	/* Confirm that the WinSock DLL supports 2.0.*/
+	/* Note that if the DLL supports versions greater    */
+	/* than 2.0 in addition to 2.0, it will still return */
+	/* 2.0 in wVersion since that is the version we      */
+	/* requested.                                        */
+ 
+	if ( LOBYTE( wsaData.wVersion ) != 2 ||
+		HIBYTE( wsaData.wVersion ) != 0 )
+	{
+	    /* Tell the user that we couldn't find a usable */
+	    /* WinSock DLL.                                  */
+	    WSACleanup( );
+	    return; 
+	}
+    daemon_initialized = 1;
+}	/* The WinSock DLL is acceptable. Proceed. */
+
+void hit_socket( void )
+{
+	int s, on = 1;
+	extern struct sockaddr_in	bind_addr;
+
+	/* throw something at the socket to terminate the select() in the daemon thread. */
+	if (( s = socket( AF_INET, SOCK_STREAM, 0 )) == INVALID_SOCKET )
+		Debug( LDAP_DEBUG_TRACE, "slap_set_shutdown: socket failed\n\tWSAGetLastError=%d (%s)\n", WSAGetLastError(), WSAGetLastErrorString(), 0 );
+	if ( ioctlsocket( s, FIONBIO, &on ) == -1 ) 
+		Debug( LDAP_DEBUG_TRACE, "slap_set_shutdown:FIONBIO ioctl on %d faled\n\tWSAGetLastError=%d (%s)\n", s, WSAGetLastError(), WSAGetLastError() );
+
+	bind_addr.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+	if ( connect( s, (struct sockaddr *)&bind_addr, sizeof( struct sockaddr_in )) == SOCKET_ERROR ) {
+		/* we can probably expect some error to occur here, mostly WSAEWOULDBLOCK */
+	}
+}
+#elif HAVE_WINSOCK
+void sockinit()
+{	WSADATA wsaData;
+	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
+	    return( NULL );
+	}
+    daemon_initialized = 1;
+}
+else
+void sockinit()
+{
+    daemon_initialized = 1;
+    return;
+}
+#endif
+
 void
 slap_set_shutdown( int sig )
 {
 	slapd_shutdown = sig;
-
+#ifndef WIN32
 	if(slapd_listener) {
 		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 	}
-
+#else
+	hit_socket();
+#endif
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_set_shutdown );
 }
