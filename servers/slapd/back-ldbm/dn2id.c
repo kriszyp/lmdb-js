@@ -41,7 +41,11 @@ dn2id_add(
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
+#ifdef LDBM_PESSIMISTIC
 	rc = ldbm_cache_store( db, key, data, LDBM_INSERT | LDBM_SYNC );
+#else
+	rc = ldbm_cache_store( db, key, data, LDBM_INSERT );
+#endif
 
 	free( dn );
 	ldbm_cache_close( be, db );
@@ -62,10 +66,10 @@ dn2id(
 	ID		id;
 	Datum		key, data;
 
-	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
 
 	dn = strdup( dn );
 	dn_normalize_case( dn );
+	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
 
 	/* first check the cache */
 	if ( (e = cache_find_entry_dn( &li->li_cache, dn )) != NULL ) {

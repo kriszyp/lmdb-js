@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include "slap.h"
 #include "ldapconfig.h"
 #include "back-ldbm.h"
@@ -172,7 +171,11 @@ idl_store(
 	data.dptr = (char *) idl;
 	data.dsize = (2 + idl->b_nmax) * sizeof(ID);
 
+#ifdef LDBM_PESSIMISTIC
 	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE | LDBM_SYNC );
+#else
+	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE );
+#endif
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */
 	return( rc );

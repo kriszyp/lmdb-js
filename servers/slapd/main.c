@@ -20,7 +20,7 @@ extern char Versionstr[];
  * read-only global variables or variables only written by the listener
  * thread (after they are initialized) - no need to protect them with a mutex.
  */
-int		ldap_debug;
+int		ldap_debug = 0;
 #ifdef LDAP_DEBUG
 int		ldap_syslog = LDAP_DEBUG_STATS;
 #else
@@ -64,7 +64,7 @@ static
 usage( name )
     char	*name;
 {
-	fprintf( stderr, "usage: %s [-d debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]\n", name );
+	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]\n", name );
 }
 
 main( argc, argv )
@@ -106,19 +106,19 @@ main( argc, argv )
 				    LDAP_DEBUG_CONFIG );
 				printf( "\tLDAP_DEBUG_ACL\t\t%d\n",
 				    LDAP_DEBUG_ACL );
-				printf( "\tLDAP_DEBUG_STATS\t\t%d\n",
+				printf( "\tLDAP_DEBUG_STATS\t%d\n",
 				    LDAP_DEBUG_STATS );
-				printf( "\tLDAP_DEBUG_STATS2\t\t%d\n",
+				printf( "\tLDAP_DEBUG_STATS2\t%d\n",
 				    LDAP_DEBUG_STATS2 );
-				printf( "\tLDAP_DEBUG_SHELL\t\t%d\n",
+				printf( "\tLDAP_DEBUG_SHELL\t%d\n",
 				    LDAP_DEBUG_SHELL );
-				printf( "\tLDAP_DEBUG_PARSE\t\t%d\n",
+				printf( "\tLDAP_DEBUG_PARSE\t%d\n",
 				    LDAP_DEBUG_PARSE );
 				printf( "\tLDAP_DEBUG_ANY\t\t%d\n",
 				    LDAP_DEBUG_ANY );
 				exit( 0 );
 			} else {
-				ldap_debug = atoi( optarg );
+				ldap_debug |= atoi( optarg );
 				lber_debug = (ldap_debug & LDAP_DEBUG_BER);
 			}
 			break;

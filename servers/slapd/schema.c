@@ -76,6 +76,11 @@ oc_check_required( Entry *e, char *ocname )
 		return( 0 );
 	}
 
+	/* check for empty oc_required */
+	if(oc->oc_required == NULL) {
+		return( 0 );
+	}
+
 	/* for each required attribute */
 	for ( i = 0; oc->oc_required[i] != NULL; i++ ) {
 		/* see if it's in the entry */

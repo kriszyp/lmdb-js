@@ -206,7 +206,7 @@ dn_parent(
 		}
 	}
 
-	return( NULL );
+	return( strdup("") );
 }
 
 /*
