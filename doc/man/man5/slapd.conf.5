@@ -398,8 +398,9 @@ synchronized with in memory changes.  Enabling this option may improve
 performance at the expense of data security.
 .TP
 .B directory <directory>
-Specify the directory where the LDBM files containing the database and
-associated indexes live.  The default is
+Specify the directory where the LDBM files containing this database and
+associated indexes live.  A separate directory must be specified for
+each database.  The default is
 .B /usr/tmp.
 .TP
 .B
