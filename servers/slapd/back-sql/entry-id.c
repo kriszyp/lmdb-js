@@ -25,14 +25,11 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
+
 #include "lber_pvt.h"
 #include "ldap_pvt.h"
 #include "slap.h"
-#include "back-sql.h"
-#include "sql-wrap.h"
-#include "schema-map.h"
-#include "entry-id.h"
-#include "util.h"
+#include "proto-sql.h"
 
 backsql_entryID *
 backsql_free_entryID( backsql_entryID *id, int freeit )
@@ -367,7 +364,6 @@ Entry *
 backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 {
 	int			i;
-	backsql_at_map_rec	*at;
 	int			rc;
 	AttributeDescription	*ad_oc = slap_schema.si_ad_objectClass;
 
@@ -391,23 +387,29 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 			"custom attribute list\n", 0, 0, 0 );
 		for ( i = 0; bsi->bsi_attrs[ i ].an_name.bv_val; i++ ) {
-			AttributeName *attr = &bsi->bsi_attrs[ i ];
+			backsql_at_map_rec	**vat;
+			AttributeName		*attr = &bsi->bsi_attrs[ i ];
+			int			j;
 
 			if ( attr->an_desc == ad_oc ) {
 				continue;
 			}
 
-			at = backsql_ad2at( bsi->bsi_oc, attr->an_desc );
-			if ( at != NULL ) {
-    				backsql_get_attr_vals( at, bsi );
-
-			} else {
+			rc = backsql_supad2at( bsi->bsi_oc, attr->an_desc, &vat );
+			if ( rc != 0 ) {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
-					"attribute '%s' is not defined "
-					"for objectlass '%s'\n",
-					attr->an_name.bv_val, 
-					BACKSQL_OC_NAME( bsi->bsi_oc ), 0 );
+						"attribute '%s' is not defined "
+						"for objectlass '%s'\n",
+						attr->an_name.bv_val, 
+						BACKSQL_OC_NAME( bsi->bsi_oc ), 0 );
+				continue;
 			}
+
+			for ( j = 0; vat[j]; j++ ) {
+    				backsql_get_attr_vals( vat[j], bsi );
+			}
+
+			ch_free( vat );
 		}
 
 	} else {

@@ -25,12 +25,10 @@
 #include <stdio.h>
 #include "ac/string.h"
 #include <sys/types.h>
+
 #include "slap.h"
 #include "ldap_pvt.h"
-#include "back-sql.h"
-#include "sql-types.h"
-#include "sql-wrap.h"
-#include "schema-map.h"
+#include "proto-sql.h"
 
 #define MAX_ATTR_LEN 16384
 

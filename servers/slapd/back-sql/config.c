@@ -25,10 +25,9 @@
 #include <stdio.h>
 #include "ac/string.h"
 #include <sys/types.h>
+
 #include "slap.h"
-#include "back-sql.h"
-#include "sql-wrap.h"
-#include "util.h"
+#include "proto-sql.h"
 
 int
 backsql_db_config(

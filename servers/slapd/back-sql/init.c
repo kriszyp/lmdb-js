@@ -24,12 +24,10 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+
 #include "slap.h"
 #include "ldap_pvt.h"
-#include "back-sql.h"
-#include "sql-wrap.h"
-#include "schema-map.h"
-#include "util.h"
+#include "proto-sql.h"
 
 #ifdef SLAPD_SQL_DYNAMIC
 
