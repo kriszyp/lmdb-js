@@ -762,7 +762,7 @@ static int chk_ns_mta_md5(
 	char buffer[LUTIL_MD5_BYTES*2];
 	int i;
 
-	if( passwd.bv_len != LUTIL_MD5_BYTES*2 ) {
+	if( passwd->bv_len != LUTIL_MD5_BYTES*2 ) {
 		return 1;
 	}
 
