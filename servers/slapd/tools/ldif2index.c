@@ -58,6 +58,7 @@ main( int argc, char **argv )
 	int		dbnum;
 	unsigned long	id;
 	Backend		*be = NULL;
+	struct ldbminfo *li;
 	struct berval	bv;
 	struct berval	*vals[2];
 
@@ -120,6 +121,10 @@ main( int argc, char **argv )
 		exit( 1 );
 	}
 	be = &backends[dbnum];
+
+	/* disable write sync'ing */
+	li = (struct ldbminfo *) be->be_private;
+	li->li_dbcachewsync = 0;
 
 	attr_masks( be->be_private, attr, &indexmask, &syntaxmask );
 	if ( indexmask == 0 ) {
