@@ -201,9 +201,13 @@ LDAPv3 adds the following features to LDAP:
  - Schema Discovery
  - Extensibility (controls, extended operations, and more)
 
-LDAPv2 is considered historical.  As deploying both LDAPv2 and
-LDAPv3 simultaneously can be quite problematic, LDAPv2 should be
-avoided.  LDAPv2 is disabled by default.
+LDAPv2 is historic ({{REF:RFC3494}}).  As most implementations
+(including {{slapd}}(8)) of LDAPv2 do not conform to the LDAPv2
+technical specification, interoperatibility amongst implementations
+claiming LDAPv2 support will be limited.  As LDAPv2 differs
+significantly from LDAPv3, deploying both LDAPv2 and LDAPv3
+simultaneously can be quite problematic.  LDAPv2 should be avoided.
+LDAPv2 is disabled by default.
 
 
 H2: What is slapd and what can it do?

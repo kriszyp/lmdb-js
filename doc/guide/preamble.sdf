@@ -221,5 +221,7 @@ RFC3088|X|OpenLDAP Root Service|ftp://ftp.isi.edu/in-notes/rfc3088.txt
 RFC3296|PS|Named Subordinate References in LDAP|ftp://ftp.isi.edu/in-notes/rfc3296.txt
 RFC3377|PS|Lightweight Directory Access Protocol (v3): Technical Specification
 RFC3383|BCP|Internet Assigned Numbers Authority (IANA) Considerations for the Lightweight Directory Access Protocol (LDAP)
-RFC3384|INFO|Lightweight Directory Access Procotol (version 3) Replication Requirements
+RFC3384|INFO|Lightweight Directory Access Protocol (version 3) Replication Requirements
+RFC3494:INFO|Lightweight Directory Access Protocol version 2 (LDAPv2) to Historic Status
+
 !endblock
