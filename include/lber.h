@@ -23,8 +23,6 @@
 #ifndef _LBER_H
 #define _LBER_H
 
-#include <stdio.h>
-
 #include <lber_types.h>
 
 LDAP_BEGIN_DECL
