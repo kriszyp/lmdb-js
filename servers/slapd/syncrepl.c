@@ -1051,9 +1051,11 @@ syncrepl_entry(
 		}
 
 		ber_dupbv( &op->o_sync_csn, syncCookie_req->ctxcsn );
-		subseq_ptr = strstr( op->o_sync_csn.bv_val, "#0000" );
-		subseq_ptr += 4;
-		*subseq_ptr = '1';
+		if ( op->op_sync_csn.bv_val ) {
+			subseq_ptr = strstr( op->o_sync_csn.bv_val, "#0000" );
+			subseq_ptr += 4;
+			*subseq_ptr = '1';
+		}
 		
 		op->o_req_dn = si->si_syncUUID_ndn;
 		op->o_req_ndn = si->si_syncUUID_ndn;
