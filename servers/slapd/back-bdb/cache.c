@@ -35,7 +35,7 @@ static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e, int decr);
 static void	bdb_lru_print(Cache *cache);
 #endif
 
-static int bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn );
+static int bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset );
 
 static EntryInfo *
 bdb_cache_entryinfo_new( Cache *cache )
@@ -93,15 +93,9 @@ bdb_cache_entry_db_relock(
 		list, 2, NULL );
 
 	if (rc && !tryOnly) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CACHE, DETAIL1, 
-			"bdb_cache_entry_db_relock: entry %ld, rw %d, rc %d\n",
-			ei->bei_id, rw, rc );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_cache_entry_db_relock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
-#endif
 	} else {
 		*lock = list[1].lock;
 	}
@@ -133,15 +127,9 @@ bdb_cache_entry_db_lock( DB_ENV *env, u_int32_t locker, EntryInfo *ei,
 	rc = LOCK_GET(env, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
 					&lockobj, db_rw, lock);
 	if (rc && !tryOnly) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CACHE, DETAIL1, 
-			"bdb_cache_entry_db_lock: entry %ld, rw %d, rc %d\n",
-			ei->bei_id, rw, rc );
-#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_cache_entry_db_lock: entry %ld, rw %d, rc %d\n",
 			ei->bei_id, rw, rc );
-#endif
 	}
 	return rc;
 #endif /* NO_THREADS */
@@ -583,8 +571,8 @@ bdb_cache_find_info(
 	struct bdb_info *bdb,
 	ID id )
 {
-	EntryInfo ei = { 0 };
-	EntryInfo *ei2;
+	EntryInfo	ei = { 0 },
+			*ei2;
 
 	ei.bei_id = id;
 
@@ -701,7 +689,7 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 					 * we use a long-lived per-thread txn for this step.
 					 */
 					if ( !ep && !tid ) {
-						rc = bdb_txn_get( op, bdb->bi_dbenv, &ltid );
+						rc = bdb_txn_get( op, bdb->bi_dbenv, &ltid, 0 );
 						if ( ltid )
 							locker2 = TXN_ID( ltid );
 					} else {
@@ -743,6 +731,12 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 						list.obj = NULL;
 						bdb->bi_dbenv->lock_vec( bdb->bi_dbenv, locker2,
 							0, &list, 1, NULL );
+						/* If this txn was deadlocked, we must abort it
+						 * and invalidate this per-thread txn.
+						 */
+						if ( rc == DB_LOCK_DEADLOCK ) {
+							bdb_txn_get( op, bdb->bi_dbenv, &ltid, 1 );
+						}
 					}
 				} else if ( !(*eip)->bei_e ) {
 					/* Some other thread is trying to load the entry,
@@ -1142,11 +1136,7 @@ bdb_cache_release_all( Cache *cache )
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG( CACHE, ENTRY, "bdb_cache_release_all: enter\n", 0, 0, 0 );
-#else
 	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_release_all\n", 0, 0, 0 );
-#endif
 
 	avl_free( cache->c_dntree.bei_kids, NULL );
 	avl_free( cache->c_idtree, bdb_entryinfo_release );
@@ -1189,12 +1179,13 @@ bdb_txn_free( void *key, void *data )
 	TXN_ABORT( txn );
 }
 
-/* Obtain a long-lived transaction for the current thread */
+/* Obtain a long-lived transaction for the current thread.
+ * If reset == 1, remove the current transaction. */
 static int
-bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
+bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 {
 	int i, rc, lockid;
-	void *ctx, *data;
+	void *ctx, *data = NULL;
 
 	/* If no op was provided, try to find the ctx anyway... */
 	if ( op ) {
@@ -1209,7 +1200,13 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 		return 0;
 	}
 
-	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ) {
+	if ( reset ) {
+		TXN_ABORT( *txn );
+		return ldap_pvt_thread_pool_setkey( ctx, ((char *)env)+1, NULL, NULL );
+	}
+
+	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ||
+		data == NULL ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
 			rc = TXN_BEGIN( env, NULL, txn, 0 );
 			if (rc) ldap_pvt_thread_yield();
@@ -1220,13 +1217,8 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, ((char *)env)+1,
 			*txn, bdb_txn_free ) ) ) {
 			TXN_ABORT( *txn );
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_BDB, ERR, "bdb_txn_get: err %s(%d)\n",
-				db_strerror(rc), rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "bdb_txn_get: err %s(%d)\n",
 				db_strerror(rc), rc, 0 );
-#endif
 
 			return rc;
 		}
@@ -1247,15 +1239,9 @@ bdb_locker_id_free( void *key, void *data )
 	rc = XLOCK_ID_FREE( env, lockid );
 	if ( rc == EINVAL ) {
 		DB_LOCKREQ lr;
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, ERR,
-			"bdb_locker_id_free: %d err %s(%d)\n",
-			lockid, db_strerror(rc), rc );
-#else
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_locker_id_free: %d err %s(%d)\n",
 			lockid, db_strerror(rc), rc );
-#endif
 		/* release all locks held by this locker. */
 		lr.op = DB_LOCK_PUT_ALL;
 		lr.obj = NULL;
@@ -1298,13 +1284,8 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 		if ( ( rc = ldap_pvt_thread_pool_setkey( ctx, env,
 			data, bdb_locker_id_free ) ) ) {
 			XLOCK_ID_FREE( env, lockid );
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_BDB, ERR, "bdb_locker_id: err %s(%d)\n",
-				db_strerror(rc), rc, 0 );
-#else
 			Debug( LDAP_DEBUG_ANY, "bdb_locker_id: err %s(%d)\n",
 				db_strerror(rc), rc, 0 );
-#endif
 
 			return rc;
 		}
