@@ -85,7 +85,7 @@ usage( const char *prog )
 	     "       v    - verbose mode\n"
 	     "       w    - password\n"
 	     , prog, (strcmp( prog, "ldapadd" ) ? " is to replace" : "") );
-    exit( 1 );
+    exit( EXIT_FAILURE );
 }
 
 
@@ -96,8 +96,7 @@ main( int argc, char **argv )
     FILE		*fp;
 	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug;
 
-    if (( prog = strrchr( argv[ 0 ], '/'  )) == NULL &&
-        ( prog = strrchr( argv[ 0 ], '\\' )) == NULL   ) { /*for Windows/DOS*/
+    if (( prog = strrchr( argv[ 0 ], *DIRSEP )) == NULL ) {
 	prog = argv[ 0 ];
     } else {
 	++prog;
@@ -133,6 +132,8 @@ main( int argc, char **argv )
 		authmethod = LDAP_AUTH_KRBV4;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		usage( argv[0] );
+		return( EXIT_FAILURE );
 #endif
 	    break;
 	case 'K':	/* kerberos bind, part 1 only */
@@ -140,6 +141,8 @@ main( int argc, char **argv )
 		authmethod = LDAP_AUTH_KRBV41;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		usage( argv[0] );
+		return( EXIT_FAILURE );
 #endif
 	    break;
 	case 'F':	/* force all changes records to be used */
@@ -173,14 +176,17 @@ main( int argc, char **argv )
 		want_bindpw++;
 		break;
 	case 'P':
-		switch(optarg[0])
+		switch( atoi(optarg) )
 		{
-		case '2':
+		case 2:
 			version = LDAP_VERSION2;
 			break;
-		case '3':
+		case 3:
 			version = LDAP_VERSION3;
 			break;
+		default:
+			fprintf( stderr, "protocol version should be 2 or 3\n" );
+			usage( argv[0] );
 		}
 		break;
 	default:
@@ -194,15 +200,19 @@ main( int argc, char **argv )
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
 	    perror( infile );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     } else {
 	fp = stdin;
     }
 
 	if ( debug ) {
-		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
-		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
+		}
 		ldif_debug = debug;
 	}
 
@@ -213,7 +223,7 @@ main( int argc, char **argv )
     if ( !not ) {
 	if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
 	    perror( "ldap_init" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
 
 	/* this seems prudent */
@@ -225,13 +235,15 @@ main( int argc, char **argv )
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
 
-	if( version != -1 ) {
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if (version != -1 &&
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == LDAP_OPT_ERROR)
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
 	}
 
 	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_bind" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     }
 
@@ -279,10 +291,7 @@ main( int argc, char **argv )
 	ldap_unbind( ld );
     }
 
-    exit( rc );
-
-	/* UNREACHABLE */
-	return(0);
+	return( rc );
 }
 
 

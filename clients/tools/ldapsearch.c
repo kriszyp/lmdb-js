@@ -51,7 +51,7 @@ usage( char *s )
     fprintf( stderr, "    -h host\tldap server\n" );
     fprintf( stderr, "    -p port\tport on ldap server\n" );
     fprintf( stderr, "    -P version\tprocotol version (2 or 3)\n" );
-    exit( 1 );
+    exit( EXIT_FAILURE );
 }
 
 static void print_entry LDAP_P((
@@ -146,11 +146,11 @@ main( int argc, char **argv )
 	    ++allow_binary;
 	    break;
 	case 's':	/* search scope */
-	    if ( strncasecmp( optarg, "base", 4 ) == 0 ) {
+	    if ( strcasecmp( optarg, "base" ) == 0 ) {
 		scope = LDAP_SCOPE_BASE;
-	    } else if ( strncasecmp( optarg, "one", 3 ) == 0 ) {
+	    } else if ( strcasecmp( optarg, "one" ) == 0 ) {
 		scope = LDAP_SCOPE_ONELEVEL;
-	    } else if ( strncasecmp( optarg, "sub", 3 ) == 0 ) {
+	    } else if ( strcasecmp( optarg, "sub" ) == 0 ) {
 		scope = LDAP_SCOPE_SUBTREE;
 	    } else {
 		fprintf( stderr, "scope should be base, one, or sub\n" );
@@ -159,13 +159,13 @@ main( int argc, char **argv )
 	    break;
 
 	case 'a':	/* set alias deref option */
-	    if ( strncasecmp( optarg, "never", 5 ) == 0 ) {
+	    if ( strcasecmp( optarg, "never" ) == 0 ) {
 		deref = LDAP_DEREF_NEVER;
-	    } else if ( strncasecmp( optarg, "search", 5 ) == 0 ) {
+	    } else if ( strcasecmp( optarg, "search" ) == 0 ) {
 		deref = LDAP_DEREF_SEARCHING;
-	    } else if ( strncasecmp( optarg, "find", 4 ) == 0 ) {
+	    } else if ( strcasecmp( optarg, "find" ) == 0 ) {
 		deref = LDAP_DEREF_FINDING;
-	    } else if ( strncasecmp( optarg, "always", 6 ) == 0 ) {
+	    } else if ( strcasecmp( optarg, "always" ) == 0 ) {
 		deref = LDAP_DEREF_ALWAYS;
 	    } else {
 		fprintf( stderr, "alias deref should be never, search, find, or always\n" );
@@ -207,14 +207,17 @@ main( int argc, char **argv )
 		want_bindpw++;
 		break;
 	case 'P':
-		switch(optarg[0])
+		switch( atoi( optarg ) )
 		{
-		case '2':
+		case 2:
 			version = LDAP_VERSION2;
 			break;
-		case '3':
+		case 3:
 			version = LDAP_VERSION3;
 			break;
+		default:
+			fprintf( stderr, "protocol version should be 2 or 3\n" );
+			usage( argv[0] );
 		}
 		break;
 	default:
@@ -250,13 +253,17 @@ main( int argc, char **argv )
 	    fp = stdin;
 	} else if (( fp = fopen( infile, "r" )) == NULL ) {
 	    perror( infile );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     }
 
 	if ( debug ) {
-		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
-		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
+		}
 		ldif_debug = debug;
 	}
 
@@ -265,42 +272,43 @@ main( int argc, char **argv )
 #endif
 
     if ( verbose ) {
-	printf( "ldap_init( %s, %d )\n",
+	fprintf( stderr, "ldap_init( %s, %d )\n",
 		(ldaphost != NULL) ? ldaphost : "<DEFAULT>",
 		ldapport );
     }
 
     if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
 	perror( "ldap_init" );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
 
 	if (deref != -1 &&
-		ldap_set_option( ld, LDAP_OPT_DEREF, (void *) &deref ) == -1 )
+		ldap_set_option( ld, LDAP_OPT_DEREF, (void *) &deref ) == LDAP_OPT_ERROR )
 	{
-		/* set option error */
+		fprintf( stderr, "Could not set LDAP_OPT_DEREF %d\n", deref );
 	}
 	if (timelimit != -1 &&
-		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) == -1 )
+		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) == LDAP_OPT_ERROR )
 	{
-		/* set option error */
+		fprintf( stderr, "Could not set LDAP_OPT_TIMELIMIT %d\n", timelimit );
 	}
 	if (sizelimit != -1 &&
-		ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) == -1 )
+		ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) == LDAP_OPT_ERROR )
 	{
-		/* set option error */
+		fprintf( stderr, "Could not set LDAP_OPT_SIZELIMIT %d\n", sizelimit );
 	}
 	if (referrals != -1 &&
 		ldap_set_option( ld, LDAP_OPT_REFERRALS,
-				 (referrals ? LDAP_OPT_ON : LDAP_OPT_OFF) ) == -1 )
+				 (referrals ? LDAP_OPT_ON : LDAP_OPT_OFF) ) == LDAP_OPT_ERROR )
 	{
-		/* set option error */
+		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
+			referrals ? "on" : "off" );
 	}
 
 	if (version != -1 &&
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == -1)
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == LDAP_OPT_ERROR)
 	{
-		/* set option error */
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
 	}
 
 	if (want_bindpw)
@@ -308,19 +316,19 @@ main( int argc, char **argv )
 
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
 
     if ( verbose ) {
-	printf( "filter pattern: %s\nreturning: ", filtpattern );
+	fprintf( stderr, "filter pattern: %s\nreturning: ", filtpattern );
 	if ( attrs == NULL ) {
 	    printf( "ALL" );
 	} else {
 	    for ( i = 0; attrs[ i ] != NULL; ++i ) {
-		printf( "%s ", attrs[ i ] );
+		fprintf( stderr, "%s ", attrs[ i ] );
 	    }
 	}
-	putchar( '\n' );
+	fprintf( stderr, "\n" );
     }
 
     if ( infile == NULL ) {
@@ -344,10 +352,9 @@ main( int argc, char **argv )
     }
 
     ldap_unbind( ld );
-    exit( rc );
 
-	/* UNREACHABLE */
-	return(0);
+
+	return( rc );
 }
 
 
@@ -367,7 +374,7 @@ static int dosearch(
     sprintf( filter, filtpatt, value );
 
     if ( verbose ) {
-	printf( "filter is: (%s)\n", filter );
+	fprintf( stderr, "filter is: (%s)\n", filter );
     }
 
     if ( not ) {

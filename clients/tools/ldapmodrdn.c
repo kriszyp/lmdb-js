@@ -63,6 +63,7 @@ main(int argc, char **argv)
 		authmethod = LDAP_AUTH_KRBV4;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		return( EXIT_FAILURE );
 #endif
 	    break;
 	case 'K':	/* kerberos bind, part one only */
@@ -70,6 +71,7 @@ main(int argc, char **argv)
 		authmethod = LDAP_AUTH_KRBV41;
 #else
 		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		return( EXIT_FAILURE );
 #endif
 	    break;
 	case 'c':	/* continuous operation mode */
@@ -110,60 +112,72 @@ main(int argc, char **argv)
 		want_bindpw++;
 		break;
 	case 'P':
-		switch(optarg[0])
+		switch( atoi(optarg) )
 		{
-		case '2':
+		case 2:
 			version = LDAP_VERSION2;
 			break;
-		case '3':
+		case 3:
 			version = LDAP_VERSION3;
 			break;
+		default:
+			fprintf( stderr, "protocol version should be 2 or 3\n" );
+		    fprintf( stderr, usage, argv[0] );
+		    return( EXIT_FAILURE );
 		}
 		break;
 	default:
 	    fprintf( stderr, usage, argv[0] );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     }
 
-    if ((newSuperior != NULL) && (version != LDAP_VERSION3))
-    {
-	fprintf( stderr,
-		 "%s: version conflict!, -s newSuperior requires LDAP v3\n",
-		 myname);
-	fprintf( stderr, usage, argv[0] );
-	exit( 1 );
+    if (newSuperior != NULL) {
+		if (version == LDAP_VERSION2) {
+			fprintf( stderr,
+				"%s: version conflict!, -s newSuperior requires LDAPv3\n",
+				myname);
+			fprintf( stderr, usage, argv[0] );
+			return( EXIT_FAILURE );
+		}
+
+		/* promote to LDAPv3 */
+		version = LDAP_VERSION3;
     }
     
     havedn = 0;
     if (argc - optind == 2) {
 	if (( rdn = strdup( argv[argc - 1] )) == NULL ) {
 	    perror( "strdup" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
         if (( entrydn = strdup( argv[argc - 2] )) == NULL ) {
 	    perror( "strdup" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
         }
 	++havedn;
     } else if ( argc - optind != 0 ) {
 	fprintf( stderr, "%s: invalid number of arguments, only two allowed\n", myname);
 	fprintf( stderr, usage, argv[0] );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
 
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
 	    perror( infile );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     } else {
 	fp = stdin;
     }
 
 	if ( debug ) {
-		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
-		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
+		}
 	}
 
 #ifdef SIGPIPE
@@ -172,7 +186,7 @@ main(int argc, char **argv)
 
     if (( ld = ldap_init( ldaphost, ldapport )) == NULL ) {
 	perror( "ldap_init" );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
 
 	/* this seems prudent */
@@ -184,13 +198,15 @@ main(int argc, char **argv)
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
 
-	if( version != -1) {
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if (version != -1 &&
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == LDAP_OPT_ERROR)
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
 	}
 
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
-	exit( 1 );
+	return( EXIT_FAILURE );
     }
 
     rc = 0;
@@ -203,14 +219,14 @@ main(int argc, char **argv)
 	    if ( havedn ) {	/* have DN, get RDN */
 		if (( rdn = strdup( buf )) == NULL ) {
                     perror( "strdup" );
-                    exit( 1 );
+                    return( EXIT_FAILURE );
 		}
 		rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
 		havedn = 0;
 	    } else if ( !havedn ) {	/* don't have DN yet */
 	        if (( entrydn = strdup( buf )) == NULL ) {
 		    perror( "strdup" );
-		    exit( 1 );
+		    return( EXIT_FAILURE );
 	        }
 		++havedn;
 	    }
@@ -219,10 +235,8 @@ main(int argc, char **argv)
 
     ldap_unbind( ld );
 
-    exit( rc );
-
 	/* UNREACHABLE */
-	return(0);
+	return( rc );
 }
 
 static int domodrdn(

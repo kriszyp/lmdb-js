@@ -35,10 +35,9 @@
 
 /* local macros */
 #define CEILING(x)	((double)(x) > (int)(x) ? (int)(x) + 1 : (int)(x))
-#define STRDUP(x)	((x) ? strcpy(malloc(strlen(x) + 1), x) : NULL)
 
 #define LDAP_PASSWD_ATTRIB "userPassword"
-#define LDAP_PASSWD_CONF   DEFAULT_SYSCONFDIR"/passwd.conf"
+#define LDAP_PASSWD_CONF   DEFAULT_SYSCONFDIR DIRSEP "passwd.conf"
 
 #define HS_NONE  0
 #define HS_PLAIN 1
@@ -159,7 +158,7 @@ gen_pass (unsigned int len)
 char *
 hash_none (const char *pw_in, Salt * salt)
 {
-	return (STRDUP (pw_in));
+	return (strdup (pw_in));
 }
 #endif
 
@@ -390,11 +389,11 @@ main (int argc, char *argv[])
 		switch (i)
 		{
 		case 'a':	/* password attribute */
-			pwattr = STRDUP (optarg);
+			pwattr = strdup (optarg);
 			break;
 
 		case 'b':	/* base search dn */
-			base = STRDUP (optarg);
+			base = strdup (optarg);
 			break;
 
 		case 'C':
@@ -402,7 +401,7 @@ main (int argc, char *argv[])
 			break;
 
 		case 'D':	/* bind distinguished name */
-			binddn = STRDUP (optarg);
+			binddn = strdup (optarg);
 			break;
 
 		case 'd':	/* debugging option */
@@ -414,7 +413,7 @@ main (int argc, char *argv[])
 			break;
 
 		case 'e':	/* new password */
-			newpw = STRDUP (optarg);
+			newpw = strdup (optarg);
 			break;
 
 		case 'g':
@@ -439,7 +438,7 @@ main (int argc, char *argv[])
 			break;
 
 		case 'h':	/* ldap host */
-			ldaphost = STRDUP (optarg);
+			ldaphost = strdup (optarg);
 			break;
 
 		case 'K':	/* use kerberos bind, 1st part only */
@@ -447,6 +446,7 @@ main (int argc, char *argv[])
 			authmethod = LDAP_AUTH_KRBV41;
 #else
 			fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+			usage (argv[0]);
 #endif
 			break;
 
@@ -455,6 +455,7 @@ main (int argc, char *argv[])
 			authmethod = LDAP_AUTH_KRBV4;
 #else
 			fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+			usage (argv[0]);
 #endif
 			break;
 
@@ -467,14 +468,16 @@ main (int argc, char *argv[])
 			break;
 
 		case 'P':
-			switch(optarg[0])
-			{
-			case '2':
+			switch( atoi( optarg ) ) {
+			case 2:
 				version = LDAP_VERSION2;
 				break;
-			case '3':
+			case 3:
 				version = LDAP_VERSION3;
 				break;
+			default:
+				fprintf( stderr, "protocol version should be 2 or 3\n" );
+				usage( argv[0] );
 			}
 			break;
 
@@ -483,11 +486,11 @@ main (int argc, char *argv[])
 			break;
 
 		case 's':	/* scope */
-			if (strncasecmp (optarg, "base", 4) == 0)
+			if (strcasecmp (optarg, "base") == 0)
 				scope = LDAP_SCOPE_BASE;
-			else if (strncasecmp (optarg, "one", 3) == 0)
+			else if (strcasecmp (optarg, "one") == 0)
 				scope = LDAP_SCOPE_ONELEVEL;
-			else if (strncasecmp (optarg, "sub", 3) == 0)
+			else if (strcasecmp (optarg, "sub") == 0)
 				scope = LDAP_SCOPE_SUBTREE;
 			else
 			{
@@ -497,7 +500,7 @@ main (int argc, char *argv[])
 			break;
 
 		case 't':	/* target dn */
-			targetdn = STRDUP (optarg);
+			targetdn = strdup (optarg);
 			break;
 
 		case 'v':	/* verbose */
@@ -509,7 +512,7 @@ main (int argc, char *argv[])
 			break;
 
 		case 'w':	/* bind password */
-			bindpw = STRDUP (optarg);
+			bindpw = strdup (optarg);
 			break;
 
 		case 'Y':	/* salt length */
@@ -518,7 +521,7 @@ main (int argc, char *argv[])
 
 		case 'y':	/* user specified salt */
 			salt.len = strlen (optarg);
-			salt.salt = (unsigned char *)STRDUP (optarg);
+			salt.salt = (unsigned char *)strdup (optarg);
 			break;
 
 		case 'z':	/* time limit */
@@ -532,7 +535,7 @@ main (int argc, char *argv[])
 
 	/* grab filter */
 	if (!(argc - optind < 1))
-		filtpattern = STRDUP (argv[optind]);
+		filtpattern = strdup (argv[optind]);
 
 	/* check for target(s) */
 	if (!filtpattern && !targetdn)
@@ -552,13 +555,17 @@ main (int argc, char *argv[])
 		if (strncmp (newpw, cknewpw, strlen (newpw)))
 		{
 			fprintf (stderr, "passwords do not match\n");
-			exit (1);
+			return ( EXIT_FAILURE );
 		}
 	}
 
 	if ( debug ) {
-		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
-		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_ERROR ) {
+			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
+		}
 	}
 
 #ifdef SIGPIPE
@@ -584,15 +591,19 @@ main (int argc, char *argv[])
 	if ((ld = ldap_init (ldaphost, ldapport)) == NULL)
 	{
 		perror ("ldap_init");
-		exit (1);
+		return ( EXIT_FAILURE );
 	}
 
 	/* set options */
-	if( timelimit != -1 ) {
-		ldap_set_option (ld, LDAP_OPT_TIMELIMIT, (void *)&timelimit);
+	if (timelimit != -1 &&
+		ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *) &timelimit ) == LDAP_OPT_ERROR )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_TIMELIMIT %d\n", timelimit );
 	}
-	if( sizelimit != -1 ) {
-		ldap_set_option (ld, LDAP_OPT_SIZELIMIT, (void *)&sizelimit);
+	if (sizelimit != -1 &&
+		ldap_set_option( ld, LDAP_OPT_SIZELIMIT, (void *) &sizelimit ) == LDAP_OPT_ERROR )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_SIZELIMIT %d\n", sizelimit );
 	}
 
 	/* this seems prudent */
@@ -601,15 +612,17 @@ main (int argc, char *argv[])
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
 	}
 
-	if( version != -1 ) {
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if (version != -1 &&
+		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) == LDAP_OPT_ERROR)
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
 	}
 
 	/* authenticate to server */
 	if (ldap_bind_s (ld, binddn, bindpw, authmethod) != LDAP_SUCCESS)
 	{
 		ldap_perror (ld, "ldap_bind");
-		exit (1);
+		return ( EXIT_FAILURE );
 	}
 
 	if (targetdn)
@@ -639,7 +652,7 @@ main (int argc, char *argv[])
 		    i != LDAP_SIZELIMIT_EXCEEDED)
 		{
 			ldap_perror (ld, "ldap_search");
-			exit (1);
+			return ( EXIT_FAILURE );
 		}
 
 		for (e = ldap_first_entry (ld, result); e; e = ldap_next_entry (ld, e))
@@ -658,8 +671,6 @@ main (int argc, char *argv[])
 
 	/* disconnect from server */
 	ldap_unbind (ld);
-	exit(0);
 
-	/* unreached */
-	return (0);
+	return ( EXIT_SUCCESS );
 }
