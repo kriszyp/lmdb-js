@@ -1621,7 +1621,7 @@ static int connection_op_activate( Operation *op )
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, ERR, 
 			"connection_op_activate: conn %lu	 thread pool submit failed.\n",
-			op->o_conn->c_connid, 0, 0 );
+			op->o_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		"ldap_pvt_thread_pool_submit failed (%d)\n", status, 0, 0 );
