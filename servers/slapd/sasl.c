@@ -355,6 +355,7 @@ slap_sasl_checkpass(
 	return rc;
 }
 
+#if 0	/* CANON isn't for what you think it does. */
 static int
 slap_sasl_canonicalize(
 	sasl_conn_t *sconn,
@@ -421,14 +422,17 @@ slap_sasl_canonicalize(
 
 	return SASL_OK;
 }
+#endif
+
+#define	CANON_BUF_SIZE	256	/* from saslint.h */
 
 static int
 slap_sasl_authorize(
 	sasl_conn_t *sconn,
 	void *context,
-	const char *requested_user,
+	char *requested_user,
 	unsigned rlen,
-	const char *auth_identity,
+	char *auth_identity,
 	unsigned alen,
 	const char *def_realm,
 	unsigned urlen,
@@ -436,25 +440,69 @@ slap_sasl_authorize(
 {
 	Connection *conn = (Connection *)context;
 	struct berval authcDN, authzDN;
-	int rc;
-
-	authcDN.bv_val = (char *)auth_identity;
-	authcDN.bv_len = alen;
-
-	authzDN.bv_val = (char *)requested_user;
-	authzDN.bv_len = rlen;
+	char *realm;
+	int rc, equal = 1;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_authorize: conn %d authcDN=\"%s\" authzDN=\"%s\"\n",
-			conn ? conn->c_connid : -1, authcDN.bv_val, authzDN.bv_val));
+		"slap_sasl_authorize: conn %d authcid=\"%s\" authzid=\"%s\"\n",
+			conn ? conn->c_connid : -1, auth_identity, requested_user));
 #else
 	Debug( LDAP_DEBUG_ARGS, "SASL Authorize [conn=%ld]: "
-		"authcDN=\"%s\" authzDN=\"%s\"\n",
-		conn ? conn->c_connid : -1, authcDN.bv_val, authzDN.bv_val );
+		"authcid=\"%s\" authzid=\"%s\"\n",
+		conn ? conn->c_connid : -1, auth_identity, requested_user );
 #endif
 
+	if ( requested_user )
+		equal = !strcmp( auth_identity, requested_user );
+
+	realm = strchr( auth_identity, '@' );
+	if ( realm )
+		*realm++ = '\0';
+
+	rc = slap_sasl_getdn( conn, auth_identity, realm ? realm : (char *)def_realm,
+		&authcDN, FLAG_GETDN_AUTHCID );
+	if ( realm )
+		realm[-1] = '@';
+
+	if ( rc != LDAP_SUCCESS ) {
+		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
+		return SASL_NOAUTHZ;
+	}		
+
+	if ( equal ) {
+		if ( authcDN.bv_len > CANON_BUF_SIZE ) {
+			free( authcDN.bv_val );
+			return SASL_BUFOVER;
+		}
+		AC_MEMCPY( requested_user, authcDN.bv_val, authcDN.bv_len );
+
+		return SASL_OK;
+	}
+
+	realm = strchr( requested_user, '@' );
+	if ( realm )
+		*realm++ = '\0';
+
+	rc = slap_sasl_getdn( conn, requested_user, realm ? realm : (char *)def_realm,
+		&authzDN, FLAG_GETDN_AUTHZID );
+	if ( realm )
+		realm[-1] = '@';
+
+	if ( rc != LDAP_SUCCESS ) {
+		free( authcDN.bv_val );
+		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
+		return SASL_NOAUTHZ;
+	}
+
+	if (authzDN.bv_len > CANON_BUF_SIZE) {
+		free( authcDN.bv_val );
+		free( authzDN.bv_val );
+		return SASL_BUFOVER;
+	}
+
 	rc = slap_sasl_authorized( &authcDN, &authzDN );
+	free( authcDN.bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
@@ -467,8 +515,11 @@ slap_sasl_authorize(
 #endif
 
 		sasl_seterror( sconn, 0, "not authorized" );
+		free( authzDN.bv_val );
 		return SASL_NOAUTHZ;
 	}
+	AC_MEMCPY( requested_user, authzDN.bv_val, authzDN.bv_len );
+	free( authzDN.bv_val );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -728,9 +779,11 @@ int slap_sasl_open( Connection *conn )
 	session_callbacks[cb++].context = conn;
 
 #if SASL_VERSION_MAJOR >= 2
+#if 0	/* CANON isn't for what you think it does. */
 	session_callbacks[cb].id = SASL_CB_CANON_USER;
 	session_callbacks[cb].proc = &slap_sasl_canonicalize;
 	session_callbacks[cb++].context = conn;
+#endif
 
 	/* XXXX: this should be conditional */
 	session_callbacks[cb].id = SASL_CB_SERVER_USERDB_CHECKPASS;
@@ -1053,6 +1106,9 @@ int slap_sasl_bind(
 					response.bv_len ? &response : NULL );
 
 			} else {
+#if SASL_VERSION_MAJOR >= 2
+				errstr = sasl_errdetail( ctx );
+#endif
 				send_ldap_result( conn, op, rc,
 					NULL, errstr, NULL, NULL );
 			}
@@ -1063,6 +1119,9 @@ int slap_sasl_bind(
 			NULL, NULL, NULL, NULL, &response );
 
 	} else {
+#if SASL_VERSION_MAJOR >= 2
+		errstr = sasl_errdetail( ctx );
+#endif
 		send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
 			NULL, errstr, NULL, NULL );
 	}
