@@ -12,7 +12,6 @@ The OpenLDAP Installation FAQ is available at:
 .{{URL:http://www.openldap.org/faq/index.cgi?file=8}}
 
 You should also check for platform specific hints.
-These are located in doc/install/hints or:
 
 .{{URL:http://www.openldap.org/faq/index.cgi?file=9}}
 
@@ -59,12 +58,6 @@ E:	% [env settings] ./configure [options]
 appropriate settings.  Use configure enable/with options and/or
 environment variables to obtain desired results.
 
-+ Review the file include/ldapconfig.h.edit.
-
-.You generally do not need to modify this file.  
-
-E:	% view include/ldapconfig.h.edit
-
 + Build dependencies
 
 E:	% make depend
@@ -74,30 +67,26 @@ E:	% make depend
 E:	% make
 
 .If all goes well, the system will build as configured.  If not,
-return to step 4 after reviewing the configuration settings.
+return to step 3 after reviewing the configuration settings.
 
-.You may want to consult the doc/install/hints file for your
-platform.
+.You may want to consult the Platform Hints section of the FAQ .
 
 + Test the standalone system
 
 .This step requires the standalone LDAP server (slapd) with
 LDBM support.
 
-E:	% cd tests
-E:	% make
-E:	% cd ..
+E:	% make test
 
 .If all goes well, the system has been built as configured.  If not,
 return to step 4 after reviewing your configuration settings.
 
-.You may want to consult the doc/install/hints file for your
-platform.
+.You may want to consult the Platform Hints section of the FAQ.
 
 + install the binaries and man pages.  You may need to be superuser to
 do this (depending on where you are installing things):
 
-E:	% su root -c make install
+E:	% su root -c 'make install'
 
 + That's it!
 
@@ -112,17 +101,18 @@ configuration directory (normally /usr/local/etc/openldap).
 >	ldapsearchprefs.conf	search object definitions
 >	ldaptemplates.conf	display template definitions
 >	slapd.conf		Standalone LDAP daemon
+>	schema/*.schema		Schema Definitions
 
-.There are section 5 man pages for all of these files.
+.There are section 5 man pages for these configuration files.
 
 
 P2: Building OpenLDAP For More Than One Platform
 
 .You can build OpenLDAP for more than one platform from the
 same source tree.
-This is accomplished by using make(1) VPATH support.
-If your make(1) program is old and doesn't have VPATH support,
-install GNU Make.
+This is accomplished by using {{make}}(1) VPATH support.
+If your {{make}}(1) program is old and doesn't have VPATH
+support, install {{BSD Make}} or {{GNU Make}}.
 
 .Follow these steps for each different platform:
 
@@ -159,8 +149,9 @@ The configure script will also use your environmental
 variables for determining compiler/linker options.   This can
 be used to manual specify features and compilation options.
 
-Note: If you change environment setting, be sure to remove
-any config.cache before running ./configure.
+.WARNING: Executables built in your environment may not run
+in your users' environments.  The portability of executables
+between environments is {{your responsibility}}.
 
 Supported Environmental Variables:
 
@@ -174,10 +165,10 @@ Supported Environmental Variables:
 * Including alternative compilers
 
 .Use the CC environment variable to tell configure to
-use a specific compiler.  For example, to use ecgs
-instead of the compiler configure choose, use:
+use a specific compiler.  For example, to use {{GNU C
+Compiler}} instead of the default compiler, use:
 
-E:	% [env] CC=egcc ./configure 
+E:	% [env] CC=gcc ./configure 
 
 .You can also use CC use specific flags with the
 specified compiler.  For example, to require strict
@@ -191,7 +182,7 @@ E:	% [env] CC="gcc -ansi -pedantic" ./configure
 
 .You may specify additional preprocessor flags by setting
 CPPFLAGS.  For example, if you would like to use headers
-installed in /usr/local/include, use:
+installed in {{F:/usr/local/include}}, use:
 
 E:	% [env] CPPFLAGS="-I/usr/local/include" ./configure
 
@@ -203,7 +194,7 @@ E:	% [env] CPPFLAGS="-D__SPECIAL_FLAG__" ./configure
 
 .You may specify additional linker flags by setting LDFLAGS.
 For example, if you would like to use libraries installed
-in /usr/local/lib, use:
+in {{F:/usr/local/lib}}, use:
 
 E:	% [env] LDFLAGS="-L/usr/local/lib" ./configure
 
@@ -215,7 +206,7 @@ E:	% [env] LDFLAGS="-Bstatic" ./configure
 
 .You may alter your path to affect configure ability to
 find (or not find) commands.  For example, to have configure
-additionally look in /usr/css/bin for commands, use:
+additionally look in {{F:/usr/css/bin}} for commands, use:
 
 E:	% [env] PATH="/usr/css/bin:$PATH" ./configure
 	
@@ -223,6 +214,16 @@ E:	% [env] PATH="/usr/css/bin:$PATH" ./configure
 * Use local software
 
 E:	% [env] \
+E:		CPPFLAGS="-I/usr/local/include" \
+E:		LDFLAGS="-L/usr/local/lib" \
+E:		./configure
+
+
+HINTS
+
+* Use software under installed under {{F:/usr/local}}.
+
+E:	[env] \
 E:		CPPFLAGS="-I/usr/local/include" \
 E:		LDFLAGS="-L/usr/local/lib" \
 E:		./configure
