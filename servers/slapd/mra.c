@@ -27,14 +27,11 @@ void
 mra_free(
 	Operation *op,
 	MatchingRuleAssertion *mra,
-	int	freeit
-)
+	int	freeit )
 {
 	/* op->o_tmpfree( mra->ma_value.bv_val, op->o_tmpmemctx ); */
 	ch_free( mra->ma_value.bv_val );
-	if ( freeit ) {
-		op->o_tmpfree( (char *) mra, op->o_tmpmemctx );
-	}
+	if ( freeit ) op->o_tmpfree( (char *) mra, op->o_tmpmemctx );
 }
 
 int
@@ -42,8 +39,7 @@ get_mra(
 	Operation *op,
 	BerElement	*ber,
 	MatchingRuleAssertion	**mra,
-	const char **text
-)
+	const char **text )
 {
 	int rc;
 	ber_tag_t tag, rtag;

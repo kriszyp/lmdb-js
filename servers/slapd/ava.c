@@ -38,13 +38,10 @@ void
 ava_free(
 	Operation *op,
 	AttributeAssertion *ava,
-	int	freeit
-)
+	int	freeit )
 {
 	op->o_tmpfree( ava->aa_value.bv_val, op->o_tmpmemctx );
-	if ( freeit ) {
-		op->o_tmpfree( (char *) ava, op->o_tmpmemctx );
-	}
+	if ( freeit ) op->o_tmpfree( (char *) ava, op->o_tmpmemctx );
 }
 
 int
@@ -107,6 +104,5 @@ get_ava(
 	}
 
 	*ava = aa;
-
 	return LDAP_SUCCESS;
 }
