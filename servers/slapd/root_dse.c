@@ -45,6 +45,9 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		}
 	}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* we shouldn't publish subentries as naming contexts */
+#else
 #if defined( SLAPD_MONITOR_DN )
 	val.bv_val = SLAPD_MONITOR_DN;
 	val.bv_len = strlen( val.bv_val );
@@ -62,6 +65,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	val.bv_val = SLAPD_SCHEMA_DN;
 	val.bv_len = strlen( val.bv_val );
 	attr_merge( e, "namingContexts", vals );
+#endif
 #endif
 
 	/* altServer unsupported */

@@ -65,7 +65,7 @@ attr_syntax( const char *type )
  */
 
 void
-attr_syntax_config(
+at_config(
     const char	*fname,
     int		lineno,
     int		argc,
@@ -166,7 +166,7 @@ at_fake_if_needed(
 		argv[0] = (char*) name;
 		argv[1] = "cis";
 		argv[2] = NULL;
-		attr_syntax_config( "implicit", 0, 2, argv );
+		at_config( "implicit", 0, 2, argv );
 		return 0;
 	}
 }

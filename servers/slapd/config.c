@@ -485,7 +485,7 @@ read_config( const char *fname )
     "%s: line %d: old attribute type format not supported.\n",
 				    fname, lineno, 0 );
 #else
-				attr_syntax_config( fname, lineno, cargc - 1,
+				at_config( fname, lineno, cargc - 1,
 				    &cargv[1] );
 #endif
 			}

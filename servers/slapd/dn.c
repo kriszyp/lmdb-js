@@ -45,13 +45,13 @@ dn_validate( char *dn )
 		switch ( state ) {
 		case B4LEADTYPE:
 		case B4TYPE:
-			if ( LEADOIDCHAR(*s) ) {
+			if ( OID_LEADCHAR(*s) ) {
 				state = INOIDTYPE;
 				*d++ = *s;
-			} else if ( LEADKEYCHAR(*s) ) {
+			} else if ( ATTR_LEADCHAR(*s) ) {
 				state = INKEYTYPE;
 				*d++ = *s;
-			} else if ( ! SPACE( *s ) ) {
+			} else if ( ! ASCII_SPACE( *s ) ) {
 				dn = NULL;
 				state = INKEYTYPE;
 				*d++ = *s;
@@ -59,12 +59,12 @@ dn_validate( char *dn )
 			break;
 
 		case INOIDTYPE:
-			if ( OIDCHAR(*s) ) {
+			if ( OID_CHAR(*s) ) {
 				*d++ = *s;
 			} else if ( *s == '=' ) {
 				state = B4VALUE;
 				*d++ = *s;
-			} else if ( SPACE( *s ) ) {
+			} else if ( ASCII_SPACE( *s ) ) {
 				state = B4EQUAL;
 			} else {
 				dn = NULL;
@@ -73,12 +73,12 @@ dn_validate( char *dn )
 			break;
 
 		case INKEYTYPE:
-			if ( KEYCHAR(*s) ) {
+			if ( ATTR_CHAR(*s) ) {
 				*d++ = *s;
 			} else if ( *s == '=' ) {
 				state = B4VALUE;
 				*d++ = *s;
-			} else if ( SPACE( *s ) ) {
+			} else if ( ASCII_SPACE( *s ) ) {
 				state = B4EQUAL;
 			} else {
 				dn = NULL;
@@ -90,7 +90,7 @@ dn_validate( char *dn )
 			if ( *s == '=' ) {
 				state = B4VALUE;
 				*d++ = *s;
-			} else if ( ! SPACE( *s ) ) {
+			} else if ( ! ASCII_SPACE( *s ) ) {
 				/* not a valid dn - but what can we do here? */
 				*d++ = *s;
 				dn = NULL;
@@ -101,15 +101,15 @@ dn_validate( char *dn )
 			if ( *s == '"' ) {
 				state = INQUOTEDVALUE;
 				*d++ = *s;
-			} else if ( ! SPACE( *s ) ) { 
+			} else if ( ! ASCII_SPACE( *s ) ) { 
 				state = INVALUE;
 				*d++ = *s;
 			}
 			break;
 
 		case INVALUE:
-			if ( !gotesc && SEPARATOR( *s ) ) {
-				while ( SPACE( *(d - 1) ) )
+			if ( !gotesc && RDN_SEPARATOR( *s ) ) {
+				while ( ASCII_SPACE( *(d - 1) ) )
 					d--;
 				state = B4TYPE;
 				if ( *s == '+' ) {
@@ -117,8 +117,8 @@ dn_validate( char *dn )
 				} else {
 					*d++ = ',';
 				}
-			} else if ( gotesc && !NEEDSESCAPE( *s ) &&
-			    !SEPARATOR( *s ) ) {
+			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) &&
+			    !RDN_SEPARATOR( *s ) ) {
 				*--d = *s;
 				d++;
 			} else {
@@ -130,7 +130,7 @@ dn_validate( char *dn )
 			if ( !gotesc && *s == '"' ) {
 				state = B4SEPARATOR;
 				*d++ = *s;
-			} else if ( gotesc && !NEEDSESCAPE( *s ) ) {
+			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) ) {
 				*--d = *s;
 				d++;
 			} else {
@@ -138,7 +138,7 @@ dn_validate( char *dn )
 			}
 			break;
 		case B4SEPARATOR:
-			if ( SEPARATOR( *s ) ) {
+			if ( RDN_SEPARATOR( *s ) ) {
 				state = B4TYPE;
 				*d++ = *s;
 			}
@@ -210,7 +210,7 @@ dn_parent(
 		return NULL;
 	}
 
-	while(*dn && SPACE(*dn)) {
+	while(*dn != '\0' && ASCII_SPACE(*dn)) {
 		dn++;
 	}
 
@@ -223,7 +223,7 @@ dn_parent(
 	}
 
 	/*
-	 * else assume it is an X.500-style name, which looks like
+	 * assume it is an X.500-style name, which looks like
 	 * foo=bar,sha=baz,...
 	 */
 
@@ -242,7 +242,7 @@ dn_parent(
 		} else {
 			if ( *s == '"' ) {
 				inquote = 1;
-			} else if ( DNSEPARATOR( *s ) ) {
+			} else if ( DN_SEPARATOR( *s ) ) {
 				return( ch_strdup( &s[1] ) );
 			}
 		}
@@ -262,7 +262,7 @@ char * dn_rdn(
 		return NULL;
 	}
 
-	while(*dn && SPACE(*dn)) {
+	while(*dn && ASCII_SPACE(*dn)) {
 		dn++;
 	}
 
@@ -292,7 +292,7 @@ char * dn_rdn(
 		} else {
 			if ( *s == '"' ) {
 				inquote = 1;
-			} else if ( DNSEPARATOR( *s ) ) {
+			} else if ( DN_SEPARATOR( *s ) ) {
 				*s = '\0';
 				return( dn );
 			}
@@ -387,7 +387,7 @@ get_next_substring( char * s, char d )
 
 	/* Skip leading spaces */
 	
-	while ( *s && SPACE(*s) ) {
+	while ( *s && ASCII_SPACE(*s) ) {
 	    
 		s++;
 	    

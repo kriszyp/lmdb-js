@@ -54,7 +54,7 @@ LDAP_BEGIN_DECL
  * JCG 05/1999 (gomez@engr.sgi.com)
  */
 #define SLAP_MOD_SOFTADD	0x1000
-#undef LDAP_MOD_BVALUES
+#undef LDAP_MOD_BVALUES /* we always use BVALUES */
 
 #define ON	1
 #define OFF	(-1)
@@ -65,26 +65,28 @@ LDAP_BEGIN_DECL
 /* psuedo error code to indicating abandoned operation */
 #define SLAPD_ABANDON -1
 
-/* XXYYZ: these macros assume 'x' is an ASCII x */
-#define DNSEPARATOR(c)	((c) == ',' || (c) == ';')
-#define SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
-#define SPACE(c)	((c) == ' ' || (c) == '\n')
-
+/* We assume "C" locale, that is US-ASCII */
+#define ASCII_SPACE(c)	( (c) == ' ' )
 #define ASCII_LOWER(c)	( (c) >= 'a' && (c) <= 'z' )
 #define ASCII_UPPER(c)	( (c) >= 'A' && (c) <= 'Z' )
 #define ASCII_ALPHA(c)	( ASCII_LOWER(c) || ASCII_UPPER(c) )
 #define ASCII_DIGIT(c)	( (c) >= '0' && (c) <= '9' )
 #define ASCII_ALNUM(c)	( ASCII_ALPHA(c) || ASCII_DIGIT(c) )
 
-#define LEADKEYCHAR(c)	( ASCII_ALPHA(c) )
-#define KEYCHAR(c)	( ASCII_ALNUM(c) || (c) == '-' )
-#define LEADOIDCHAR(c)	( ASCII_DIGIT(c) )
-#define OIDCHAR(c)	( ASCII_DIGIT(c) || (c) == '.' )
+#define DN_SEPARATOR(c)	((c) == ',' || (c) == ';')
+#define RDN_SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
+#define RDN_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
-#define LEADATTRCHAR(c)	( LEADKEYCHAR(c) || LEADOIDCHAR(c) )
-#define ATTRCHAR(c)	( KEYCHAR((c)) || (c) == '.' )
+#define DESC_LEADCHAR(c)	( ASCII_ALPHA(c) )
+#define DESC_CHAR(c)	( ASCII_ALNUM(c) || (c) == '-' )
+#define OID_LEADCHAR(c)	( ASCII_DIGIT(c) )
+#define OID_CHAR(c)	( ASCII_DIGIT(c) || (c) == '.' )
 
-#define NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
+#define ATTR_LEADCHAR(c)	( DESC_LEADCHAR(c) || OID_LEADCHAR(c) )
+#define ATTR_CHAR(c)	( DESC_CHAR((c)) || (c) == '.' )
+
+#define AD_LEADCHAR(c)	( ATTR_CHAR(c) )
+#define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
 #define SLAPD_ACI_DEFAULT_ATTR		"aci"
 
@@ -122,15 +124,14 @@ LIBSLAPD_F (int) slap_debug;
 #define SLAP_SCHERR_MR_INCOMPLETE	12
 
 typedef struct slap_oid_macro {
-	char *som_name;
 	struct berval som_oid;
+	char **som_names;
 	struct slap_oid_macro *som_next;
 } OidMacro;
 
 /* forward declarations */
 struct slap_syntax;
 struct slap_matching_rule;
-
 
 typedef int slap_syntax_validate_func LDAP_P((
 	struct slap_syntax *syntax,
@@ -166,6 +167,7 @@ typedef int slap_mr_convert_func LDAP_P((
 
 /* Normalizer */
 typedef int slap_mr_normalize_func LDAP_P((
+	unsigned use,
 	struct slap_syntax *syntax, /* NULL if in is asserted value */
 	struct slap_matching_rule *mr,
 	struct berval * in,
@@ -173,13 +175,15 @@ typedef int slap_mr_normalize_func LDAP_P((
 
 /* Match (compare) function */
 typedef int slap_mr_match_func LDAP_P((
+	unsigned use,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval * value,
-	struct berval * assertValue ));
+	void * assertValue ));
 
 /* Index generation function */
 typedef int slap_mr_indexer_func LDAP_P((
+	unsigned use,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval **values,
@@ -188,6 +192,7 @@ typedef int slap_mr_indexer_func LDAP_P((
 struct slap_filter; 	/* forward declaration */
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
+	unsigned use,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct slap_filter *filter,
@@ -195,6 +200,13 @@ typedef int slap_mr_filter_func LDAP_P((
 
 typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
+	unsigned				smr_usage;
+#define SLAP_MR_NONE		0x00U
+#define SLAP_MR_EQUALITY	0x01U
+#define SLAP_MR_APPROX		0x02U
+#define SLAP_MR_ORDERING	0x04U
+#define SLAP_MR_SUBSTR		0x08U
+#define SLAP_MR_EXT			0x10U
 	Syntax					*smr_syntax;
 	slap_mr_convert_func	*smr_convert;
 	slap_mr_normalize_func	*smr_normalize;
@@ -571,7 +583,7 @@ typedef struct slap_access {
 
 	char		*a_dn_pat;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType	*a_dn_at;
+	AttributeDescription	*a_dn_at;
 #else
 	char		*a_dn_at;
 #endif
@@ -585,7 +597,7 @@ typedef struct slap_access {
 
 #ifdef SLAPD_ACI_ENABLED
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType	*a_aci_at;
+	AttributeDescription	*a_aci_at;
 #else
 	char		*a_aci_at;
 #endif
@@ -595,7 +607,7 @@ typedef struct slap_access {
 	char		*a_group_pat;
 	char		*a_group_oc;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeType	*a_group_at;
+	AttributeDescription	*a_group_at;
 #else
 	char		*a_group_at;
 #endif
@@ -846,7 +858,7 @@ struct slap_backend_info {
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,
 		const char *objectclassValue,
-		AttributeType *group_at ));
+		AttributeDescription *group_at ));
 #else
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,

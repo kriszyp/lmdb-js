@@ -110,6 +110,7 @@ mr_insert(
 int
 mr_add(
     LDAP_MATCHING_RULE		*mr,
+	unsigned usage,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
     slap_mr_match_func	*match,
@@ -125,6 +126,7 @@ mr_add(
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
 	memcpy( &smr->smr_mrule, mr, sizeof(LDAP_MATCHING_RULE));
 
+	smr->smr_usage = usage;
 	smr->smr_convert = convert;
 	smr->smr_normalize = normalize;
 	smr->smr_match = match;
@@ -150,6 +152,7 @@ mr_add(
 int
 register_matching_rule(
 	char * desc,
+	unsigned usage,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match,
@@ -160,6 +163,12 @@ register_matching_rule(
 	int		code;
 	const char	*err;
 
+	if( usage == SLAP_MR_NONE ) {
+		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
+		    desc, 0, 0 );
+		return -1;
+	}
+
 	mr = ldap_str2matchingrule( desc, &code, &err);
 	if ( !mr ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s before %s in %s\n",
@@ -167,7 +176,7 @@ register_matching_rule(
 		return( -1 );
 	}
 
-	code = mr_add( mr, convert, normalize, match, indexer, filter, &err );
+	code = mr_add( mr, usage, convert, normalize, match, indexer, filter, &err );
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
 		    scherr2str(code), err, desc );

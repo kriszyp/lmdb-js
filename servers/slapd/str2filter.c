@@ -16,18 +16,14 @@
 #include "slap.h"
 #include <ldap_pvt.h>
 
-static char	*find_matching_paren(char *s);
-static Filter	*str2list(char *str, long unsigned int ftype);
-static Filter	*str2simple(char *str);
-static int	str2subvals(char *val, Filter *f);
+static char	*find_matching_paren( const char *s );
+static Filter	*str2list( const char *str, long unsigned int ftype);
+static Filter	*str2simple( const char *str);
+static int	str2subvals( const char *val, Filter *f);
 
 Filter *
-str2filter( char *str )
+str2filter( const char *str )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-	return NULL;
-#else
 	Filter	*f = NULL;
 	char	*end, *freeme;
 
@@ -94,16 +90,14 @@ str2filter( char *str )
 
 	free( freeme );
 	return( f );
-#endif
 }
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
 /*
  * Put a list of filters like this "(filter1)(filter2)..."
  */
 
 static Filter *
-str2list( char *str, unsigned long ftype )
+str2list( const char *str, unsigned long ftype )
 {
 	Filter	*f;
 	Filter	**fp;
@@ -146,7 +140,7 @@ str2list( char *str, unsigned long ftype )
 }
 
 static Filter *
-str2simple( char *str )
+str2simple( const char *str )
 {
 	Filter		*f;
 	char		*s;
@@ -157,7 +151,7 @@ str2simple( char *str )
 	if ( (s = strchr( str, '=' )) == NULL ) {
 		return( NULL );
 	}
-	value = s + 1;
+	value = &s[1];
 	*s-- = '\0';
 	savechar = *s;
 
@@ -176,6 +170,11 @@ str2simple( char *str )
 		f->f_choice = LDAP_FILTER_APPROX;
 		*s = '\0';
 		break;
+	case ':':
+		f->f_choice = LDAP_FILTER_EXT;
+		*s = '\0';
+		break;
+
 	default:
 		if ( ldap_pvt_find_wildcard( value ) == NULL ) {
 			f->f_choice = LDAP_FILTER_EQUALITY;
@@ -183,6 +182,7 @@ str2simple( char *str )
 			f->f_choice = LDAP_FILTER_PRESENT;
 		} else {
 			f->f_choice = LDAP_FILTER_SUBSTRINGS;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 			f->f_sub_type = ch_strdup( str );
 			if ( str2subvals( value, f ) != 0 ) {
 				filter_free( f );
@@ -191,10 +191,12 @@ str2simple( char *str )
 			}
 			*(value-1) = '=';
 			return( f );
+#endif
 		}
 		break;
 	}
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	if ( f->f_choice == LDAP_FILTER_PRESENT ) {
 		f->f_type = ch_strdup( str );
 	} else {
@@ -206,20 +208,21 @@ str2simple( char *str )
 
 	*s = savechar;
 	*(value-1) = '=';
+#endif
 	return( f );
 }
 
 static int
-str2subvals( char *val, Filter *f )
+str2subvals( const char *in, Filter *f )
 {
-	char	*nextstar, *freeme;
+	char	*nextstar, *val, *freeme;
 	int	gotstar;
 
-	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", val, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", in, 0, 0 );
 
-	if( val == NULL ) return 0;
+	if( in == NULL ) return 0;
 
-	val = freeme = ch_strdup( val );
+	val = freeme = ch_strdup( in );
 	gotstar = 0;
 
 	while ( *val ) {
@@ -252,7 +255,7 @@ str2subvals( char *val, Filter *f )
  */
 
 static char *
-find_matching_paren( char *s )
+find_matching_paren( const char *s )
 {
 	int	balance, escape;
 
@@ -266,7 +269,7 @@ find_matching_paren( char *s )
 				balance--;
 		}
 		if ( balance == 0 ) {
-			return( s );
+			return (char *) s;
 		}
 		if ( *s == '\\' && ! escape )
 			escape = 1;
@@ -274,7 +277,5 @@ find_matching_paren( char *s )
 			escape = 0;
 	}
 
-	return( NULL );
+	return NULL;
 }
-
-#endif

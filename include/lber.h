@@ -466,6 +466,11 @@ LIBLBER_F( void )
 ber_bvecfree LDAP_P((
 	struct berval **bv ));
 
+LIBLBER_F( int )
+ber_bvecadd LDAP_P((
+	struct berval ***bvec,
+	struct berval *bv ));
+
 LIBLBER_F( struct berval * )
 ber_bvdup LDAP_P((
 	LDAP_CONST struct berval *bv ));

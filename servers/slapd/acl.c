@@ -18,20 +18,37 @@
 static AccessControl * acl_get(
 	AccessControl *ac, int *count,
 	Backend *be, Operation *op,
-	Entry *e, char *attr,
+	Entry *e,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType *type,
+#else
+	const char *attr,
+#endif
 	int nmatches, regmatch_t *matches );
 
 static slap_control_t acl_mask(
 	AccessControl *ac, slap_access_mask_t *mask,
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e, char *attr, struct berval *val,
+	Entry *e,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType *type,
+#else
+	const char *attr,
+#endif
+	struct berval *val,
 	regmatch_t *matches );
 
 #ifdef SLAPD_ACI_ENABLED
 static int aci_mask(
 	Backend *be,
 	Operation *op,
-	Entry *e, char *attr, struct berval *val, struct berval *aci,
+	Entry *e,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType *type,
+#else
+	const char *attr,
+#endif
+	struct berval *val, struct berval *aci,
 	regmatch_t *matches, slap_access_t *grant, slap_access_t *deny );
 
 char *supportedACIMechs[] = {
@@ -41,8 +58,10 @@ char *supportedACIMechs[] = {
 };
 #endif
 
-static int	regex_matches(char *pat, char *str, char *buf, regmatch_t *matches);
-static void	string_expand(char *newbuf, int bufsiz, char *pattern,
+static int	regex_matches(
+	char *pat, char *str, char *buf, regmatch_t *matches);
+static void	string_expand(
+	char *newbuf, int bufsiz, char *pattern,
 	char *match, regmatch_t *matches);
 
 
@@ -67,10 +86,13 @@ access_allowed(
     Connection		*conn,
     Operation		*op,
     Entry		*e,
-    char		*attr,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType	*attr,
+#else
+    const char		*attr,
+#endif
     struct berval	*val,
-    slap_access_t	access
-)
+    slap_access_t	access )
 {
 	int				count;
 	AccessControl	*a;
@@ -105,7 +127,12 @@ access_allowed(
 	 * by ACL_WRITE checking as any found here are not provided
 	 * by the user
 	 */
-	if ( access >= ACL_WRITE && oc_check_op_no_usermod_attr( attr ) ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	if ( access >= ACL_WRITE && is_at_no_user_mod( attr ) )
+#else
+	if ( access >= ACL_WRITE && oc_check_op_no_usermod_attr( attr ) )
+#endif
+	{
  		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 			" %s access granted\n",
 			attr, 0, 0 );
@@ -202,10 +229,13 @@ acl_get(
     Backend		*be,
     Operation	*op,
     Entry		*e,
-    char		*attr,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType *attr,
+#else
+    const char	*attr,
+#endif
     int			nmatch,
-    regmatch_t	*matches
-)
+    regmatch_t	*matches )
 {
 	assert( e != NULL );
 	assert( count != NULL );
@@ -282,7 +312,11 @@ acl_mask(
     Connection	*conn,
     Operation	*op,
     Entry		*e,
-    char		*attr,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeType *attr,
+#else
+    const char	*attr,
+#endif
     struct berval	*val,
 	regmatch_t	*matches
 )
@@ -398,7 +432,6 @@ acl_mask(
 		}
 
 		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
-			char *dn_at;
 			Attribute	*at;
 			struct berval	bv;
 
@@ -408,14 +441,8 @@ acl_mask(
 			bv.bv_val = op->o_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			dn_at = at_canonical_name( b->a_dn_at );
-#else
-			dn_at = b->a_dn_at;
-#endif
-
 			/* see if asker is listed in dnattr */ 
-			if ( (at = attr_find( e->e_attrs, dn_at )) != NULL
+			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 				/* not yet implemented */
 #else
@@ -714,7 +741,7 @@ acl_check_modlist(
 
 #ifdef SLAPD_ACI_ENABLED
 static char *
-aci_bvstrdup (struct berval *bv)
+aci_bvstrdup( struct berval *bv )
 {
 	char *s;
 
@@ -727,7 +754,9 @@ aci_bvstrdup (struct berval *bv)
 }
 
 static int
-aci_strbvcmp (char *s, struct berval *bv)
+aci_strbvcmp(
+	const char *s,
+	struct berval *bv )
 {
 	int res, len;
 
@@ -743,7 +772,11 @@ aci_strbvcmp (char *s, struct berval *bv)
 }
 
 static int
-aci_get_part (struct berval *list, int ix, char sep, struct berval *bv)
+aci_get_part(
+	struct berval *list,
+	int ix,
+	char sep,
+	struct berval *bv )
 {
 	int len;
 	char *p;
@@ -778,8 +811,8 @@ aci_get_part (struct berval *list, int ix, char sep, struct berval *bv)
 }
 
 static int
-aci_list_map_rights (
-	struct berval *list)
+aci_list_map_rights(
+	struct berval *list )
 {
 	struct berval bv;
 	slap_access_t mask;
@@ -823,7 +856,10 @@ aci_list_map_rights (
 }
 
 static int
-aci_list_has_attr (struct berval *list, char *attr, struct berval *val)
+aci_list_has_attr(
+	struct berval *list,
+	const char *attr,
+	struct berval *val )
 {
 	struct berval bv, left, right;
 	int i;
@@ -869,7 +905,10 @@ aci_list_has_attr (struct berval *list, char *attr, struct berval *val)
 }
 
 static slap_access_t
-aci_list_get_attr_rights (struct berval *list, char *attr, struct berval *val)
+aci_list_get_attr_rights(
+	struct berval *list,
+	const char *attr,
+	struct berval *val )
 {
     struct berval bv;
     slap_access_t mask;
@@ -888,12 +927,12 @@ aci_list_get_attr_rights (struct berval *list, char *attr, struct berval *val)
 }
 
 static int
-aci_list_get_rights (
+aci_list_get_rights(
 	struct berval *list,
-	char *attr,
+	const char *attr,
 	struct berval *val,
 	slap_access_t *grant,
-	slap_access_t *deny)
+	slap_access_t *deny )
 {
     struct berval perm, actn;
     slap_access_t *mask;
@@ -974,11 +1013,11 @@ aci_group_member (
 }
 
 static int
-aci_mask (
+aci_mask(
     Backend			*be,
     Operation		*op,
     Entry			*e,
-    char			*attr,
+    const char		*attr,
     struct berval	*val,
     struct berval	*aci,
 	regmatch_t		*matches,
@@ -1063,8 +1102,12 @@ aci_mask (
 			bv.bv_val = op->o_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
 			if (value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
 				return(1);
+#endif
 		}
 
 	} else if (aci_strbvcmp( "group", &bv ) == 0) {
@@ -1080,7 +1123,8 @@ aci_mask (
 }
 
 char *
-get_supported_acimech (int index)
+get_supported_acimech(
+	int index )
 {
 	if (index < 0 || index >= (sizeof(supportedACIMechs) / sizeof(char *)))
 		return(NULL);

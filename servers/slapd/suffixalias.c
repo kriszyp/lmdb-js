@@ -50,7 +50,7 @@ char *suffix_alias(
 			/* alias is longer than dn */
 			continue;
 		} else if ( diff > 0 ) {
-			if ( ! DNSEPARATOR(dn[diff-1]) ) {
+			if ( ! DN_SEPARATOR(dn[diff-1]) ) {
 				/* boundary is not at a DN separator */
 				continue;
 			}

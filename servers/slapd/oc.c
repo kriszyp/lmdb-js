@@ -22,6 +22,11 @@ int is_entry_objectclass(
 {
 	Attribute *attr;
 	struct berval bv;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *objectClass = NULL;
+#else
+	static const char *objectClass = "objectclass";
+#endif
 
 	if( e == NULL || oc == NULL || *oc == '\0' )
 		return 0;
@@ -29,7 +34,7 @@ int is_entry_objectclass(
 	/*
 	 * find objectClass attribute
 	 */
-	attr = attr_find(e->e_attrs, "objectclass");
+	attr = attr_find(e->e_attrs, objectClass);
 
 	if( attr == NULL ) {
 		/* no objectClass attribute */

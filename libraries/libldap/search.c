@@ -424,12 +424,12 @@ static int hex2value( int c )
 }
 
 char *
-ldap_pvt_find_wildcard( char *s )
+ldap_pvt_find_wildcard( const char *s )
 {
 	for( ; *s != '\0' ; s++ ) {
 		switch( *s ) {
 		case '*':	/* found wildcard */
-			return s;
+			return (char *) s;
 
 		case '\\':
 			s++; /* skip over escape */

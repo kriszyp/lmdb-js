@@ -282,8 +282,9 @@ ldbm_back_search(
 				}
 
 				if (e) {
-					/* Tack on subordinates attr */
 					int result;
+#ifdef BROKEN_NUM_SUBORDINATES
+					/* Tack on subordinates attr */
 					ID_BLOCK *idl = NULL;
 					char CATTR_SUBS[] = "numsubordinates";
 
@@ -311,6 +312,7 @@ ldbm_back_search(
 							   vals);
 					    }
 					}
+#endif
 
 					result = send_search_entry(be,
 								   conn,
@@ -319,12 +321,15 @@ ldbm_back_search(
 								   attrs,
 								   attrsonly,
 								   NULL);
+
+#ifdef BROKEN_NUM_SUBORDINATES
 					if (idl)
 					{
 					    idl_free(idl);
 					    attr_delete(&e->e_attrs,
 							CATTR_SUBS);
 					}
+#endif
 
 					switch (result)
 					{
@@ -400,104 +405,97 @@ search_candidates(
 )
 {
 	ID_BLOCK		*candidates;
-	Filter		*f, *rf, *af, *lf;
+	Filter		rf, rf_or, af, af_or, lf, lf_and;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	struct berval rf_or_bv, af_or_bv;
+	static AttributeDescription *objectClass = NULL;
+#endif
 
 	Debug(LDAP_DEBUG_TRACE, "search_candidates: base=\"%s\" s=%d d=%d\n",
 		e->e_ndn, scope, deref );
 
-	f = NULL;
-
 	if( !manageDSAit ) {
 		/* match referrals */
-		rf = (Filter *) ch_malloc( sizeof(Filter) );
-		rf->f_next = NULL;
-		rf->f_choice = LDAP_FILTER_OR;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		rf->f_or = (Filter *) ch_malloc( sizeof(Filter) );
-		rf->f_or->f_choice = LDAP_FILTER_EQUALITY;
-		rf->f_or->f_avtype = ch_strdup( "objectclass" );
-		rf->f_or->f_avvalue.bv_val = ch_strdup( "REFERRAL" );
-		rf->f_or->f_avvalue.bv_len = sizeof("REFERRAL")-1;
-		rf->f_or->f_next = filter;
+		rf.f_next = NULL;
+		rf.f_choice = LDAP_FILTER_OR;
+		rf.f_or = &rf_or;
+		rf.f_or->f_choice = LDAP_FILTER_EQUALITY;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		rf.f_or->f_av_desc = objectClass;
+		rf.f_or->f_av_value = &rf_or_bv;
+		rf.f_or->f_av_value->bv_val = ch_strdup( "REFERRAL" );
+		rf.f_or->f_av_value->bv_len = sizeof("REFERRAL")-1;
+#else
+		rf.f_or->f_avtype = ch_strdup( "objectclass" );
+		rf.f_or->f_avvalue.bv_val = ch_strdup( "REFERRAL" );
+		rf.f_or->f_avvalue.bv_len = sizeof("REFERRAL")-1;
 #endif
-		f = rf;
+		rf.f_or->f_next = filter;
+		filter = &rf;
 	} else {
-		rf = NULL;
-		f = filter;
+		rf.f_or = NULL;
 	}
 
 	if( deref & LDAP_DEREF_SEARCHING ) {
 		/* match aliases */
-		af = (Filter *) ch_malloc( sizeof(Filter) );
-		af->f_next = NULL;
-		af->f_choice = LDAP_FILTER_OR;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		af->f_or = (Filter *) ch_malloc( sizeof(Filter) );
-		af->f_or->f_choice = LDAP_FILTER_EQUALITY;
-		af->f_or->f_avtype = ch_strdup( "objectclass" );
-		af->f_or->f_avvalue.bv_val = ch_strdup( "ALIAS" );
-		af->f_or->f_avvalue.bv_len = sizeof("ALIAS")-1;
-		af->f_or->f_next = f;
+		af.f_next = NULL;
+		af.f_choice = LDAP_FILTER_OR;
+		af.f_or = &af_or;
+		af.f_or->f_choice = LDAP_FILTER_EQUALITY;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		af.f_or->f_av_desc = objectClass;
+		af.f_or->f_av_value = &af_or_bv;
+		af.f_or->f_av_value->bv_val = ch_strdup( "ALIAS" );
+		af.f_or->f_av_value->bv_len = sizeof("ALIAS")-1;
+#else
+		af.f_or->f_avtype = ch_strdup( "objectclass" );
+		af.f_or->f_avvalue.bv_val = ch_strdup( "ALIAS" );
+		af.f_or->f_avvalue.bv_len = sizeof("ALIAS")-1;
 #endif
-		f = af;
+		af.f_or->f_next = filter;
+		filter = &af;
 	} else {
-		af = NULL;
+		af.f_or = NULL;
 	}
 
 	if ( scope == LDAP_SCOPE_SUBTREE ) {
-		lf = (Filter *) ch_malloc( sizeof(Filter) );
-		lf->f_next = NULL;
-		lf->f_choice = LDAP_FILTER_AND;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
-
-		lf->f_and->f_choice = SLAPD_FILTER_DN_SUBTREE;
-		lf->f_and->f_dn = e->e_ndn;
-
-		lf->f_and->f_next = f;
-#endif
-		f = lf;
+		lf.f_next = NULL;
+		lf.f_choice = LDAP_FILTER_AND;
+		lf.f_and = &lf_and;
+		lf.f_and->f_choice = SLAPD_FILTER_DN_SUBTREE;
+		lf.f_and->f_dn = e->e_ndn;
+		lf.f_and->f_next = filter;
+		filter = &lf;
 
 	} else if ( scope == LDAP_SCOPE_ONELEVEL ) {
-		lf = (Filter *) ch_malloc( sizeof(Filter) );
-		lf->f_next = NULL;
-		lf->f_choice = LDAP_FILTER_AND;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
-
-		lf->f_and->f_choice = SLAPD_FILTER_DN_ONE;
-		lf->f_and->f_dn = e->e_ndn;
-
-		lf->f_and->f_next = f;
-#endif
-		f = lf;
-
-	} else {
-		lf = NULL;
+		lf.f_next = NULL;
+		lf.f_choice = LDAP_FILTER_AND;
+		lf.f_and = &lf_and;
+		lf.f_and->f_choice = SLAPD_FILTER_DN_ONE;
+		lf.f_and->f_dn = e->e_ndn;
+		lf.f_and->f_next = filter;
+		filter = &lf;
 	}
 
-	candidates = filter_candidates( be, f );
+	candidates = filter_candidates( be, filter );
 
-	/* free up filter additions we allocated above */
-	if( lf != NULL ) {
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		free( lf->f_and );
+	/* free dynamically allocated bits */
+	if( af.f_or != NULL ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		free( af.f_or->f_av_value->bv_val );
+#else
+		free( af.f_or->f_avtype );
+		free( af.f_or->f_avvalue.bv_val );
 #endif
-		free( lf );
 	}
 
-	if( af != NULL ) {
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		af->f_or->f_next = NULL;
+	if( rf.f_or != NULL ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		free( rf.f_or->f_av_value->bv_val );
+#else
+		free( rf.f_or->f_avtype );
+		free( rf.f_or->f_avvalue.bv_val );
 #endif
-		filter_free( af );
-	}
-
-	if( rf != NULL ) {
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-		rf->f_or->f_next = NULL;
-#endif
-		filter_free( rf );
 	}
 
 	return( candidates );

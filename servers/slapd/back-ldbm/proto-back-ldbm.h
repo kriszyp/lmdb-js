@@ -168,10 +168,6 @@ extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
  * 
  */
 
-int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-
 /* returns LDAP error code indicating error OR SLAPD_ABANDON */
 int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,

@@ -270,6 +270,57 @@ ber_bvecfree( struct berval **bv )
 	LBER_FREE( (char *) bv );
 }
 
+int
+ber_bvecadd( struct berval ***bvec, struct berval *bv )
+{
+	ber_len_t i;
+	struct berval **new;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if( bvec == NULL ) {
+		if( bv == NULL ) {
+			/* nothing to add */
+			return 0;
+		}
+
+		*bvec = ber_memalloc( 2 * sizeof(struct berval *) );
+
+		if( *bvec == NULL ) {
+			return -1;
+		}
+
+		(*bvec)[0] = bv;
+		(*bvec)[1] = NULL;
+
+		return 1;
+	}
+
+	BER_MEM_VALID( bvec );
+
+	/* count entries */
+	for ( i = 0; bvec[i] != NULL; i++ ) {
+		/* EMPTY */;
+	}
+
+	if( bv == NULL ) {
+		return i;
+	}
+
+	new = ber_memrealloc( *bvec, (i+2) * sizeof(struct berval *));
+
+	if( new == NULL ) {
+		return -1;
+	}
+
+	*bvec = new;
+
+	(*bvec)[i++] = bv;
+	(*bvec)[i] = NULL;
+
+	return i;
+}
+
 
 struct berval *
 ber_bvdup(

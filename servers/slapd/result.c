@@ -128,7 +128,13 @@ struct berval **get_entry_referrals(
 	struct berval **refs;
 	unsigned i, j;
 
-	attr = attr_find( e->e_attrs, "ref" );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *ref = NULL;
+#else
+	static const char *ref = "ref";
+#endif
+
+	attr = attr_find( e->e_attrs, ref );
 
 	if( attr == NULL ) return NULL;
 
@@ -622,10 +628,16 @@ send_search_entry(
 	int		userattrs;
 	int		opattrs;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *entry = NULL;
+#else
+	static const char *entry = "entry";
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: \"%s\"\n", e->e_dn, 0, 0 );
 
 	if ( ! access_allowed( be, conn, op, e,
-		"entry", NULL, ACL_READ ) )
+		entry, NULL, ACL_READ ) )
 	{
 		Debug( LDAP_DEBUG_ACL, "acl: access to entry not allowed\n",
 		    0, 0, 0 );
@@ -663,28 +675,36 @@ send_search_entry(
 		: charray_inlist( attrs, LDAP_ALL_OPERATIONAL_ATTRIBUTES );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		char *desc;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		desc = a->a_desc.ad_type->sat_cname;
+		AttributeDescription *desc = &a->a_desc;
 #else
-		desc = a->a_type;
+		char *desc = a->a_type;
 #endif
 
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( !opattrs && oc_check_op_attr( desc ) ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			if( is_at_operational( desc->ad_type ) )
+#else
+			if( oc_check_op_attr( desc ) )
+#endif
+			{
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			if ( is_at_operational( desc->ad_type ) )
+#else
 			if ( oc_check_op_attr( desc ) )
+#endif
 			{
-				if( !opattrs && !charray_inlist( attrs, desc ) ) {
+				if( !opattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
 				}
 			} else {
-				if (!userattrs && !charray_inlist( attrs, desc ) ) {
+				if (!userattrs && !ad_inlist( desc, attrs ) ) {
 					continue;
 				}
 			}
@@ -740,28 +760,37 @@ send_search_entry(
 	aa = backend_operational( be, e );
 	
 	for (a = aa ; a == NULL; a = a->a_next ) {
-		char *desc;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		desc = a->a_desc.ad_type->sat_cname;
+		AttributeDescription *desc = &a->a_desc;
 #else
-		desc = a->a_type;
+		char *desc = a->a_type;
 #endif
 
 		if ( attrs == NULL ) {
 			/* all addrs request, skip operational attributes */
-			if( !opattrs && oc_check_op_attr( desc ) ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			if( is_at_operational( desc->ad_type ) )
+#else
+			if( oc_check_op_attr( desc ) )
+#endif
+			{
 				continue;
 			}
 
 		} else {
 			/* specific addrs requested */
-			if (  oc_check_op_attr( desc ) ) {
-				if( !opattrs && !charray_inlist( attrs, desc ) )
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			if( is_at_operational( desc->ad_type ) )
+#else
+			if( oc_check_op_attr( desc ) )
+#endif
+			{
+				if( !opattrs && !ad_inlist( desc, attrs ) )
 				{
 					continue;
 				}
 			} else {
-				if (!userattrs && !charray_inlist( attrs, desc ) )
+				if (!userattrs && !ad_inlist( desc, attrs ) )
 				{
 					continue;
 				}
@@ -869,10 +898,18 @@ send_search_reference(
 	int rc;
 	int bytes;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *ref = NULL;
+	static AttributeDescription *entry = NULL;
+#else
+	static const char *ref = "ref";
+	static const char *entry = "entry";
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_reference (%s)\n", e->e_dn, 0, 0 );
 
 	if ( ! access_allowed( be, conn, op, e,
-		"entry", NULL, ACL_READ ) )
+		entry, NULL, ACL_READ ) )
 	{
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to entry not allowed\n",
@@ -881,7 +918,7 @@ send_search_reference(
 	}
 
 	if ( ! access_allowed( be, conn, op, e,
-		"ref", NULL, ACL_READ ) )
+		ref, NULL, ACL_READ ) )
 	{
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to reference not allowed\n",

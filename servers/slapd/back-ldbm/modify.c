@@ -17,6 +17,10 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
+static int add_values LDAP_P(( Entry *e, Modification *mod, char *dn ));
+static int delete_values LDAP_P(( Entry *e, Modification *mod, char *dn ));
+static int replace_values LDAP_P(( Entry *e, Modification *mod, char *dn ));
+
 /* We need this function because of LDAP modrdn. If we do not 
  * add this there would be a bunch of code replication here 
  * and there and of course the likelihood of bugs increases.
@@ -33,9 +37,8 @@ int ldbm_modify_internal(
 )
 {
 	int err;
-	LDAPMod		*mod;
+	Modification	*mod;
 	Modifications	*ml;
-	Attribute	*a;
 	Attribute	*save_attrs;
 
 	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
@@ -48,7 +51,12 @@ int ldbm_modify_internal(
 	for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
 		mod = &ml->ml_mod;
 
-		switch ( mod->mod_op ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		switch ( mod->sm_op )
+#else
+		switch ( mod->mod_op )
+#endif
+		{
 		case LDAP_MOD_ADD:
 			err = add_values( e, mod, op->o_ndn );
 			break;
@@ -65,12 +73,19 @@ int ldbm_modify_internal(
  			/* Avoid problems in index_add_mods()
  			 * We need to add index if necessary.
  			 */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+ 			mod->sm_op = LDAP_MOD_ADD;
+#else
  			mod->mod_op = LDAP_MOD_ADD;
- 			if ( (err = add_values( e, mod, op->o_ndn ))
- 				==  LDAP_TYPE_OR_VALUE_EXISTS ) {
- 
+#endif
+			err = add_values( e, mod, op->o_ndn );
+ 			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
  				err = LDAP_SUCCESS;
- 				mod->mod_op = SLAP_MOD_SOFTADD;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				mod->sm_op = SLAP_MOD_SOFTADD;
+#else
+				mod->mod_op = SLAP_MOD_SOFTADD;
+#endif
  
  			}
  			break;
@@ -116,9 +131,17 @@ int ldbm_modify_internal(
 	if( save_attrs != NULL ) {
 		for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
 			mod = &ml->ml_mod;
-			if ( mod->mod_op == LDAP_MOD_REPLACE ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			if ( mod->sm_op == LDAP_MOD_REPLACE )
+#else
+			if ( mod->mod_op == LDAP_MOD_REPLACE )
+#endif
+			{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				/* not yet implemented */
+#else
 				/* Need to remove all values from indexes */
-				a = attr_find( save_attrs, mod->mod_type );
+				Attribute *a = attr_find( save_attrs, mod->mod_type );
 
 				if( a != NULL ) {
 					(void) index_change_values( be,
@@ -127,6 +150,7 @@ int ldbm_modify_internal(
 						e->e_id,
 						SLAP_INDEX_DELETE_OP);
 				}
+#endif
 			}
 		}
 		attrs_free( save_attrs );
@@ -233,27 +257,26 @@ error_return:;
 	return( -1 );
 }
 
-int
+static int
 add_values(
     Entry	*e,
-    LDAPMod	*mod,
+    Modification	*mod,
     char	*dn
 )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	int		i;
 	Attribute	*a;
 
 	/* check if the values we're adding already exist */
 	if ( (a = attr_find( e->e_attrs, mod->mod_type )) != NULL ) {
 		for ( i = 0; mod->mod_bvalues[i] != NULL; i++ ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
 			if ( value_find( a->a_vals, mod->mod_bvalues[i],
 			    a->a_syntax, 3 ) == 0 ) {
 				return( LDAP_TYPE_OR_VALUE_EXISTS );
 			}
-#endif
 		}
 	}
 
@@ -261,17 +284,21 @@ add_values(
 	if( attr_merge( e, mod->mod_type, mod->mod_bvalues ) != 0 ) {
 		return( LDAP_CONSTRAINT_VIOLATION );
 	}
+#endif
 
 	return( LDAP_SUCCESS );
 }
 
-int
+static int
 delete_values(
     Entry	*e,
-    LDAPMod	*mod,
+    Modification	*mod,
     char	*dn
 )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	int		i, j, k, found;
 	Attribute	*a;
 
@@ -294,14 +321,10 @@ delete_values(
 	for ( i = 0; mod->mod_bvalues[i] != NULL; i++ ) {
 		found = 0;
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
-#else
 			if ( value_cmp( mod->mod_bvalues[i], a->a_vals[j],
 			    a->a_syntax, 3 ) != 0 ) {
 				continue;
 			}
-#endif
 			found = 1;
 
 			/* found a matching value - delete it */
@@ -332,17 +355,21 @@ delete_values(
 			return( LDAP_NO_SUCH_ATTRIBUTE );
 		}
 	}
+#endif
 
 	return( LDAP_SUCCESS );
 }
 
-int
+static int
 replace_values(
     Entry	*e,
-    LDAPMod	*mod,
+    Modification	*mod,
     char	*dn
 )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	(void) attr_delete( &e->e_attrs, mod->mod_type );
 
 	if ( mod->mod_bvalues != NULL &&
@@ -350,6 +377,7 @@ replace_values(
 	{
 		return( LDAP_CONSTRAINT_VIOLATION );
 	}
+#endif
 
 	return( LDAP_SUCCESS );
 }

@@ -199,7 +199,6 @@ test_ava_filter(
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		ava->aa_desc->ad_type->sat_cname, ava->aa_value, ACL_SEARCH ) )
 #else
-	int rc;
 
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		ava->ava_type, &ava->ava_value, ACL_SEARCH ) )
@@ -227,12 +226,23 @@ test_ava_filter(
 
 	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
-		int rc;
+		int rc = -1;
+
+		switch ( type ) {
+		case LDAP_FILTER_EQUALITY:
+			break;
+		case LDAP_FILTER_APPROX:
+			break;
+
+		case LDAP_FILTER_GE:
+		case LDAP_FILTER_LE:
+			break;
+		}
+
+		if( rc == LDAP_COMPARE_TRUE ) return LDAP_COMPARE_TRUE;
 #else
 		int rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
 		    3 );
-#endif
 
 		switch ( type ) {
 		case LDAP_FILTER_EQUALITY:
@@ -254,6 +264,7 @@ test_ava_filter(
 			}
 			break;
 		}
+#endif
 	}
 
 	return( LDAP_COMPARE_FALSE );
@@ -472,9 +483,7 @@ test_substring_filter(
     Filter	*f
 )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	Attribute	*a;
 	int		i, rc;
 	char		*p, *end, *realval, *tmp;

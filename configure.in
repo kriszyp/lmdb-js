@@ -141,7 +141,6 @@ OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(quipu,[    --enable-quipu	build quipu migration tools], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	enable per-object ACIs], no)dnl
-OL_ARG_ENABLE(discreteaci,[    --enable-discreteaci	enable discrete rights in ACIs], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
 OL_ARG_ENABLE(dynamic,[    --enable-dynamic	enable linking built binaries with dynamic libs], no)dnl
 
@@ -242,9 +241,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_aci = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
 	fi
-	if test $ol_enable_discreteaci = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-discreteaci argument])
-	fi
 	if test $ol_with_ldbm_api != auto ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-api argument])
 	fi
@@ -291,7 +287,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_quipu=no
 	ol_enable_rlookups=no
 	ol_enable_aci=no
-	ol_enable_discreteaci=no
 	ol_enable_wrappers=no
 	ol_enable_dynamic=no
 
@@ -2205,9 +2200,6 @@ if test "$ol_enable_rlookups" != no ; then
 fi
 if test "$ol_enable_aci" != no ; then
 	AC_DEFINE(SLAPD_ACI_ENABLED,1,[define to support per-object ACIs])
-fi
-if test "$ol_enable_discreteaci" != no ; then
-	AC_DEFINE(SLAPD_ACI_DISCRETE_RIGHTS,1,[define to support discrete rights in ACIs])
 fi
 
 if test "$ol_link_modules" != no ; then

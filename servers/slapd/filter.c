@@ -290,10 +290,9 @@ get_substring_filter(
 #else
 		/* we should call a substring syntax normalization routine */
 		value_normalize( val->bv_val, syntax );
-#endif
-
 		/* this is bogus, value_normalize should take a berval */
 		val->bv_len = strlen( val->bv_val );
+#endif
 
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
@@ -313,7 +312,10 @@ get_substring_filter(
 
 		case LDAP_SUBSTRING_ANY:
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
-			charray_add( (char ***) &f->f_sub_any, (char *) val );
+			if( ber_bvecadd( &f->f_sub_any, val ) < 0 ) {
+				ber_bvfree( val );
+				goto return_error;
+			}
 
 			if( fstr ) {
 				*fstr = ch_realloc( *fstr,

@@ -32,6 +32,11 @@ ldbm_back_delete(
 	int rootlock = 0;
 	int	rc = -1;
 	int		manageDSAit = get_manageDSAit( op );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *children = NULL;
+#else
+	static const char *children = "children";
+#endif
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn, 0, 0);
 
@@ -117,7 +122,7 @@ ldbm_back_delete(
 
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
-			"children", NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: no access to parent\n", 0,

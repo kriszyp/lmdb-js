@@ -30,7 +30,6 @@ void
 attr_free( Attribute *a )
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
 	ad_free( &a->a_desc, 0 );
 #else
 	free( a->a_type );
@@ -80,7 +79,6 @@ Attribute *attr_dup( Attribute *a )
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
 	tmp->a_desc = a->a_desc;
 	tmp->a_desc.ad_cname = ber_bvdup( a->a_desc.ad_cname );
 	tmp->a_desc.ad_lang = ch_strdup( a->a_desc.ad_lang );
@@ -183,8 +181,7 @@ int
 attr_merge(
     Entry		*e,
     const char		*type,
-    struct berval	**vals
-)
+    struct berval	**vals )
 {
 	Attribute	**a;
 

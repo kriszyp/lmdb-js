@@ -39,11 +39,17 @@ schema_check_entry( Entry *e )
 	ObjectClass *oc;
 	int		i;
 	int		ret = 0;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *objectClass = NULL;
+#else
+	static const char *objectClass = "objectclass";
+#endif
+
 
 	if( !global_schemacheck ) return 0;
 
 	/* find the object class attribute - could error out here */
-	if ( (aoc = attr_find( e->e_attrs, "objectclass" )) == NULL ) {
+	if ( (aoc = attr_find( e->e_attrs, objectClass )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
 		    e->e_dn, 0, 0 );
 		return( 1 );

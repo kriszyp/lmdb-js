@@ -20,6 +20,35 @@
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 
+static int ad_keystring(
+	struct berval *bv )
+{
+	ber_len_t i;
+
+	if( !AD_CHAR( bv->bv_val[0] ) ) {
+		return 1;
+	}
+
+	for( i=1; i<bv->bv_len; i++ ) {
+		if( !AD_CHAR( bv->bv_val[i] ) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int slap_str2ad(
+	const char *str,
+	AttributeDescription **ad,
+	char **text )
+{
+	struct berval bv;
+	bv.bv_val = (char *) str;
+	bv.bv_len = strlen( str );
+
+	return slap_bv2ad( &bv, ad, text );
+}
+
 int slap_bv2ad(
 	struct berval *bv,
 	AttributeDescription **ad,
@@ -39,8 +68,8 @@ int slap_bv2ad(
 	}
 
 	/* make sure description is IA5 */
-	if( IA5StringValidate( NULL, bv ) != 0 ) {
-		*text = "attribute description contains non-IA5 characters";
+	if( ad_keystring( bv ) ) {
+		*text = "attribute description contains inappropriate characters";
 		return LDAP_UNDEFINED_TYPE;
 	}
 

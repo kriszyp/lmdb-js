@@ -82,7 +82,7 @@ ldbm_back_compare(
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if ( ! access_allowed( be, conn, op, e,
-		ava->aa_desc->ad_type->sat_cname, ava->aa_value, ACL_COMPARE ) )
+		ava->aa_desc, ava->aa_value, ACL_COMPARE ) )
 #else
 	if ( ! access_allowed( be, conn, op, e,
 		ava->ava_type, &ava->ava_value, ACL_COMPARE ) )
@@ -95,7 +95,7 @@ ldbm_back_compare(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	if ( (a = attr_find( e->e_attrs, ava->aa_desc->ad_cname->bv_val )) == NULL )
+	if ( (a = attr_find( e->e_attrs, ava->aa_desc )) == NULL )
 #else
 	if ( (a = attr_find( e->e_attrs, ava->ava_type )) == NULL )
 #endif

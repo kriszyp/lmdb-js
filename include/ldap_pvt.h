@@ -119,7 +119,7 @@ LIBLDAP_F (int) ldap_pvt_sasl_bind LDAP_P(( LDAP *, LDAP_CONST char *, LDAP_CONS
 
 /* search.c */
 LIBLDAP_F( char * )
-ldap_pvt_find_wildcard LDAP_P((	char *s ));
+ldap_pvt_find_wildcard LDAP_P((	const char *s ));
 
 LIBLDAP_F( ber_slen_t )
 ldap_pvt_filter_value_unescape LDAP_P(( char *filter ));

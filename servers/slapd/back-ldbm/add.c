@@ -30,6 +30,13 @@ ldbm_back_add(
 	int			rootlock = 0;
 	int			rc; 
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *children = NULL;
+#else
+	static const char *children = "children";
+#endif
+
+
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
 
 	/* nobody else can add until we lock our parent */
@@ -109,7 +116,7 @@ ldbm_back_add(
 		free(pdn);
 
 		if ( ! access_allowed( be, conn, op, p,
-			"children", NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE ) )
 		{
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 

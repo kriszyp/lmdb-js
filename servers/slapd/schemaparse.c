@@ -178,31 +178,38 @@ static char *
 find_oidm(char *oid)
 {
 	OidMacro *om;
-	char *new;
-	int pos, suflen;
 
 	/* OID macros must start alpha */
-	if ( !isdigit( *oid ) )
-	{
-	    for (om = om_list; om; om=om->som_next)
-	    {
-		if ((pos = dscompare(om->som_name, oid, ':')))
-		{
-			suflen = strlen(oid + pos);
-			new = ch_calloc(1, om->som_oid.bv_len + suflen + 1);
-			strcpy(new, om->som_oid.bv_val);
-			if (suflen)
-			{
-				suflen = om->som_oid.bv_len;
-				new[suflen++] = '.';
-				strcpy(new+suflen, oid+pos+1);
-			}
-			return new;
-		}
-	    }
-	    return NULL;
+	if ( isdigit( *oid ) )	{
+		return oid;
 	}
-	return oid;
+
+    for (om = om_list; om; om=om->som_next) {
+		char **names = om->som_names;
+
+		if( names == NULL ) {
+			continue;
+		}
+
+		for( ; *names != NULL ; names++ ) {
+			int pos = dscompare(*names, oid, ':');
+
+			if( pos ) {
+				int suflen = strlen(oid + pos);
+				char *new = ch_calloc(1,
+					om->som_oid.bv_len + suflen + 1);
+				strcpy(new, om->som_oid.bv_val);
+
+				if( suflen ) {
+					suflen = om->som_oid.bv_len;
+					new[suflen++] = '.';
+					strcpy(new+suflen, oid+pos+1);
+				}
+				return new;
+			}
+		}
+	}
+	return NULL;
 }
 
 void
@@ -213,15 +220,29 @@ parse_oidm(
     char 	**argv
 )
 {
+	char *oid;
 	OidMacro *om;
 
 	if (argc != 3) {
-usage:	fprintf( stderr, "ObjectIdentifier <name> <oid>\n");
+		fprintf( stderr, "%s: line %d: too many arguments\n",
+			fname, lineno );
+usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
+		exit( EXIT_FAILURE );
+	}
+
+	oid = find_oidm( argv[1] );
+	if( oid != NULL ) {
+		fprintf( stderr,
+			"%s: line %d: "
+			"ObjectIdentifier \"%s\" previously defined \"%s\"",
+			fname, lineno, argv[1], oid );
 		exit( EXIT_FAILURE );
 	}
 
 	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
-	om->som_name = ch_strdup( argv[1] );
+
+	om->som_names = NULL;
+	charray_add( &om->som_names, argv[1] );
 	om->som_oid.bv_val = find_oidm( argv[2] );
 
 	if (!om->som_oid.bv_val) {

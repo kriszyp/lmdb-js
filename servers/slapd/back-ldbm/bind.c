@@ -41,6 +41,14 @@ ldbm_back_bind(
 	AUTH_DAT	ad;
 #endif
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *userPassword = NULL;
+	static AttributeDescription *entry = NULL;
+#else
+	static const char *userPassword = "userpassword";
+	static const char *entry = "entry";
+#endif
+
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
 
 	*edn = NULL;
@@ -120,7 +128,7 @@ ldbm_back_bind(
 	/* check for deleted */
 
 	if ( ! access_allowed( be, conn, op, e,
-		"entry", NULL, ACL_AUTH ) )
+		entry, NULL, ACL_AUTH ) )
 	{
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			NULL, NULL, NULL, NULL );
@@ -184,7 +192,7 @@ ldbm_back_bind(
 		}
 
 		if ( ! access_allowed( be, conn, op, e,
-			"userpassword", NULL, ACL_AUTH ) )
+			userPassword, NULL, ACL_AUTH ) )
 		{
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
@@ -192,7 +200,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
+		if ( (a = attr_find( e->e_attrs, userPassword )) == NULL ) {
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
 			    NULL, NULL, NULL, NULL );
 

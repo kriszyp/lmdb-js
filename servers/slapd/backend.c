@@ -648,7 +648,7 @@ Attribute *backend_operational(
 	/* Should be backend specific */
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
 	a->a_vals[0] = ch_malloc( sizeof( struct berval ) );
-	a->a_vals[0]->bv_val = strdup( SLAPD_SCHEMA_DN );
+	a->a_vals[0]->bv_val = ch_strdup( SLAPD_SCHEMA_DN );
 	a->a_vals[0]->bv_len = sizeof( SLAPD_SCHEMA_DN ) - 1;
 	a->a_vals[1] = NULL;
 

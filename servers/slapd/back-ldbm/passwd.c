@@ -40,6 +40,12 @@ ldbm_back_exop_passwd(
 
 	char *dn;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *entry = NULL;
+#else
+	static const char *entry = "entry";
+#endif
+
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
 
@@ -92,7 +98,7 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	if( ! access_allowed( be, conn, op, e, "entry", NULL, ACL_WRITE ) ) {
+	if( ! access_allowed( be, conn, op, e, entry, NULL, ACL_WRITE ) ) {
 		*text = ch_strdup("access to authorization entry denied");
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto done;

@@ -44,6 +44,11 @@ ldbm_back_modrdn(
     char	*newSuperior
 )
 {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	static AttributeDescription *children = NULL;
+#else
+	static const char *children = "children";
+#endif
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
@@ -145,7 +150,7 @@ ldbm_back_modrdn(
 
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
-			"children", NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
@@ -211,7 +216,7 @@ ldbm_back_modrdn(
 		       np, np->e_id, 0 );
 	    
 		/* check newSuperior for "children" acl */
-		if ( !access_allowed( be, conn, op, np, "children", NULL,
+		if ( !access_allowed( be, conn, op, np, children, NULL,
 				      ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,

@@ -1,4 +1,4 @@
-/* acl.c - routines to parse and check acl's */
+/* aclparse.c - routines to parse and check acl's */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
@@ -95,6 +95,12 @@ parse_acl(
 	char		*left, *right;
 	AccessControl	*a;
 	Access	*b;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	int rc;
+	char *text;
+	static AttributeDescription *member = NULL;
+	static AttributeDescription *aci = NULL;
+#endif
 
 	a = NULL;
 	for ( i = 1; i < argc; i++ ) {
@@ -321,17 +327,17 @@ parse_acl(
 					}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-					b->a_dn_at = at_find( right );
+					rc = slap_str2ad( right, &b->a_dn_at, &text );
 
-					if( b->a_dn_at == NULL ) {
+					if( rc != LDAP_SUCCESS ) {
 						fprintf( stderr,
-							"%s: line %d: dnattr attribute type undefined.\n",
-							fname, lineno );
+							"%s: line %d: dnattr \"%s\": %s\n",
+							fname, lineno, right, text );
 						acl_usage();
 					}
 
 #ifdef SLAPD_OID_DN_SYNTAX
-					if( strcmp( b->a_dn_at->sat_syntax_oid,
+					if( strcmp( b->a_dn_at->ad_type->sat_syntax_oid,
 						SLAPD_OID_DN_SYNTAX ) != 0 )
 					{
 						fprintf( stderr,
@@ -379,7 +385,14 @@ parse_acl(
 
 					if (name && *name) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-						b->a_group_at = at_find( name );
+						rc = slap_str2ad( right, &b->a_group_at, &text );
+
+						if( rc != LDAP_SUCCESS ) {
+							fprintf( stderr,
+								"%s: line %d: group \"%s\": %s\n",
+								fname, lineno, right, text );
+							acl_usage();
+						}
 #else
 						b->a_group_at = ch_strdup(name);
 #endif
@@ -387,7 +400,7 @@ parse_acl(
 
 					} else {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-						b->a_group_at = at_find("member");
+						b->a_group_at = member;
 #else
 						b->a_group_at = ch_strdup("member");
 #endif
@@ -402,7 +415,7 @@ parse_acl(
 					}
 
 #ifdef SLAPD_OID_DN_SYNTAX
-					if( strcmp( b->a_group_at->sat_syntax_oid,
+					if( strcmp( b->a_group_at->ad_type->sat_syntax_oid,
 						SLAPD_OID_DN_SYNTAX ) != 0 )
 					{
 						fprintf( stderr,
@@ -478,9 +491,16 @@ parse_acl(
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 					if ( right != NULL && *right != '\0' ) {
-						b->a_aci_at = at_find( right );
+						rc = slap_str2ad( right, &b->a_aci_at, &text );
+
+						if( rc != LDAP_SUCCESS ) {
+							fprintf( stderr,
+								"%s: line %d: aci \"%s\": %s\n",
+								fname, lineno, right, text );
+							acl_usage();
+						}
 					} else {
-						b->a_aci_at = at_find( SLAPD_ACI_DEFAULT_ATTR );
+						b->a_aci_at = aci;
 					}
 
 					if( b->a_aci_at == NULL ) {
@@ -490,7 +510,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( strcmp( b->a_aci_at->sat_syntax_oid,
+					if( strcmp( b->a_aci_at->ad_type->sat_syntax_oid,
 						SLAPD_OID_ACI_SYNTAX ) != 0 )
 					{
 						fprintf( stderr,

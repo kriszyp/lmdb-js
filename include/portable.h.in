@@ -886,9 +886,6 @@
 /* define to support per-object ACIs */
 #undef SLAPD_ACI_ENABLED
 
-/* define to support discrete rights in ACIs */
-#undef SLAPD_ACI_DISCRETE_RIGHTS
-
 /* define to support modules */
 #undef SLAPD_MODULES
 
