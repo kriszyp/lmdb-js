@@ -52,7 +52,6 @@
 
 #define integerNormalize							NULL
 #define integerFirstComponentNormalize				NULL
-#define numericStringNormalize						NULL
 #define objectIdentifierNormalize					NULL
 #define objectIdentifierFirstComponentNormalize		NULL
 #define generalizedTimeNormalize					NULL
@@ -3709,13 +3708,20 @@ numericStringValidate(
 	return LDAP_SUCCESS;
 }
 
-#ifndef SLAP_NVALUES
-
 static int
+#ifdef SLAP_NVALUES
+numericStringNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized )
+#else
 xnumericStringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
+#endif
 {
 	/* removal all spaces */
 	char *p, *q;
@@ -3754,6 +3760,7 @@ xnumericStringNormalize(
 	return LDAP_SUCCESS;
 }
 
+#ifndef SLAP_NVALUES
 static int
 objectIdentifierFirstComponentMatch(
 	int *matchp,
