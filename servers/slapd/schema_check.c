@@ -322,6 +322,24 @@ entry_schema_check(
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
 
+		if ( oc->soc_obsolete ) {
+			/* disallow obsolete classes */
+			snprintf( textbuf, textlen, 
+				"objectClass '%s' is OBSOLETE",
+				aoc->a_vals[i].bv_val );
+
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, 
+				"entry_schema_check: dn (%s), %s\n", e->e_dn, textbuf, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"entry_check_schema(%s): %s\n",
+				e->e_dn, textbuf, 0 );
+#endif
+
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+
 		if ( oc->soc_check ) {
 			int rc = (oc->soc_check)( be, e, oc,
 				text, textbuf, textlen );
