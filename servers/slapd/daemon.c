@@ -1329,8 +1329,10 @@ slapd_daemon_task(
 
 		ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-		if ( !at )
-			at = ldap_pvt_thread_pool_backload(&connection_pool);
+		if ( !at ) {
+			at = ldap_pvt_thread_pool_backload(&connection_pool) -
+				 ldap_pvt_runqueue_persistent_backload( &syncrepl_rq );
+		}
 
 		tvp = at ? &tv : NULL;
 

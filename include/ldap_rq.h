@@ -61,4 +61,9 @@ ldap_pvt_runqueue_resched(
 	struct re_s* entry
 );
 
+LDAP_F( int )
+ldap_pvt_runqueue_persistent_backload(
+	struct runqueue_s* rq
+);
+
 #endif

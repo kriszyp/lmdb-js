@@ -69,6 +69,9 @@ ldap_pvt_runqueue_next_sched(
 	if ( entry == NULL ) {
 		*next_run = NULL;
 		return NULL;
+	} else if ( entry->next_sched.tv_sec == 0 ) {
+		*next_run = NULL;
+		return NULL;
 	} else {
 		*next_run = &entry->next_sched;
 		return entry;
@@ -127,22 +130,54 @@ ldap_pvt_runqueue_resched(
 
 	LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
 
-	entry->next_sched.tv_sec = time( NULL ) + entry->interval.tv_sec;
+	if ( entry->interval.tv_sec ) {
+		entry->next_sched.tv_sec = time( NULL ) + entry->interval.tv_sec;
+	} else {
+		entry->next_sched.tv_sec = 0;
+	}
+
 	if ( LDAP_STAILQ_EMPTY( &rq->task_list )) {
 		LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
+	} else if ( entry->next_sched.tv_sec == 0 ) {
+		LDAP_STAILQ_INSERT_TAIL( &rq->task_list, entry, tnext );
 	} else {
 		prev = NULL;
 		LDAP_STAILQ_FOREACH( e, &rq->task_list, tnext ) {
-			if ( e->next_sched.tv_sec > entry->next_sched.tv_sec ) {
+			if ( e->next_sched.tv_sec == 0 ) {
 				if ( prev == NULL ) {
 					LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
 				} else {
 					LDAP_STAILQ_INSERT_AFTER( &rq->task_list, prev, entry, tnext );
 				}
+				break;
+			} else if ( e->next_sched.tv_sec > entry->next_sched.tv_sec ) {
+				if ( prev == NULL ) {
+					LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
+				} else {
+					LDAP_STAILQ_INSERT_AFTER( &rq->task_list, prev, entry, tnext );
+				}
+				break;
 			}
 			prev = e;
 		}
 	}
+}
+
+int
+ldap_pvt_runqueue_persistent_backload(
+	struct runqueue_s* rq
+)
+{
+	struct re_s* e;
+	int count = 0;
+
+	if ( !LDAP_STAILQ_EMPTY( &rq->task_list )) {
+		LDAP_STAILQ_FOREACH( e, &rq->task_list, tnext ) {
+			if ( e->next_sched.tv_sec == 0 )
+				count++;
+		}
+	}
+	return count;
 }
 
 #endif
