@@ -647,7 +647,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	struct	bdb_op_info	*opinfo = NULL;
 	DB_TXN			*ltid = NULL;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_search\n", 0, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_search) "\n", 0, 0, 0);
 	attrs = sop->oq_search.rs_attrs;
 
 	opinfo = (struct bdb_op_info *) op->o_private;
@@ -874,7 +874,8 @@ dn2entry_retry:
 			ber_bvarray_free( erefs );
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_search) ": entry is referral\n",
 			0, 0, 0 );
 
 		if (!rs->sr_ref) rs->sr_text = "bad_referral object";
@@ -975,7 +976,8 @@ dn2entry_retry:
 	}
 
 	if ( candidates[0] == 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "bdb_search: no candidates\n",
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_search) ": no candidates\n",
 			0, 0, 0 );
 
 		goto nochange;
@@ -1027,7 +1029,8 @@ dn2entry_retry:
 
 		if ( cursor == NOID ) {
 			Debug( LDAP_DEBUG_TRACE, 
-				"bdb_search: no paged results candidates\n",
+				LDAP_XSTRING(bdb_search)
+				": no paged results candidates\n",
 				0, 0, 0 );
 			send_paged_response( sop, rs, &lastid, 0 );
 
@@ -1219,7 +1222,8 @@ id2entry_retry:
 				} else if( !BDB_IDL_IS_RANGE(candidates) ) {
 					/* only complain for non-range IDLs */
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_search: candidate %ld not found\n",
+						LDAP_XSTRING(bdb_search)
+						": candidate %ld not found\n",
 						(long) id, 0, 0 );
 				}
 
@@ -1328,7 +1332,8 @@ id2entry_retry:
 		/* Not in scope, ignore it */
 		if ( !IS_POST_SEARCH && !scopeok ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_search: %ld scope not okay\n",
+				LDAP_XSTRING(bdb_search)
+				": %ld scope not okay\n",
 				(long) id, 0, 0 );
 			goto loop_continue;
 		}
@@ -1377,7 +1382,7 @@ id2entry_retry:
 						if ( rc_sync == LDAP_COMPARE_TRUE ) {
 							if ( no_sync_state_change ) {
 								Debug( LDAP_DEBUG_TRACE,
-									"bdb_search: "
+									LDAP_XSTRING(bdb_search) ": "
 									"error in context csn management\n",
 									0, 0, 0 );
 							}
@@ -1528,7 +1533,8 @@ post_search_no_entry:
 
 					} else {
 						Debug( LDAP_DEBUG_TRACE,
-							"bdb_search: invalid ps_type (%d) \n",
+							LDAP_XSTRING(bdb_search)
+							": invalid ps_type (%d) \n",
 							ps_type, 0, 0);
 					}
 
@@ -1613,7 +1619,8 @@ post_search_no_entry:
 
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_search: %ld does not match filter\n",
+				LDAP_XSTRING(bdb_search)
+				": %ld does not match filter\n",
 				(long) id, 0, 0 );
 		}
 

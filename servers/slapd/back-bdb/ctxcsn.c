@@ -157,7 +157,8 @@ bdb_csn_commit(
 		rs->sr_err = bdb_next_id( op->o_bd, tid, &ctxcsn_id );
 		if ( rs->sr_err != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_add: next_id failed (%d)\n", rs->sr_err, 0, 0 );
+				"bdb_csn_commit: next_id failed (%d)\n",
+				rs->sr_err, 0, 0 );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "internal error";
 			return BDB_CSN_ABORT;

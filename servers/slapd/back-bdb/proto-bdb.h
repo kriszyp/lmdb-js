@@ -20,8 +20,10 @@ LDAP_BEGIN_DECL
 
 #ifdef BDB_HIER
 #define	BDB_SYMBOL(x)	LDAP_CONCAT(hdb_,x)
+#define BDB_UCTYPE	"HDB"
 #else
 #define BDB_SYMBOL(x)	LDAP_CONCAT(bdb_,x)
+#define BDB_UCTYPE	"BDB"
 #endif
 
 /*

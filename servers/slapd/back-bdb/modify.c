@@ -289,7 +289,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
 
-	Debug( LDAP_DEBUG_ARGS, "bdb_modify: %s\n",
+	Debug( LDAP_DEBUG_ARGS, LDAP_XSTRING(bdb_modify) ": %s\n",
 		op->o_req_dn.bv_val, 0, 0 );
 
 	ctrls[num_ctrls] = NULL;
@@ -305,7 +305,7 @@ retry:	/* transaction retry */
 			e = NULL;
 		}
 		Debug(LDAP_DEBUG_TRACE,
-			"bdb_modify: retrying...\n", 0, 0, 0);
+			LDAP_XSTRING(bdb_modify) ": retrying...\n", 0, 0, 0);
 
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
@@ -334,8 +334,8 @@ retry:	/* transaction retry */
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: txn_begin failed: %s (%d)\n",
-			db_strerror(rs->sr_err), rs->sr_err, 0 );
+			LDAP_XSTRING(bdb_modify) ": txn_begin failed: "
+			"%s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
@@ -356,7 +356,7 @@ retry:	/* transaction retry */
 
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: dn2entry failed (%d)\n",
+			LDAP_XSTRING(bdb_modify) ": dn2entry failed (%d)\n",
 			rs->sr_err, 0, 0 );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -425,7 +425,7 @@ retry:	/* transaction retry */
 		rs->sr_ref = get_entry_referrals( op, e );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: entry is referral\n",
+			LDAP_XSTRING(bdb_modify) ": entry is referral\n",
 			0, 0, 0 );
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -454,7 +454,8 @@ retry:	/* transaction retry */
 				goto retry;
 			} else if ( rc ) {
 				Debug( LDAP_DEBUG_TRACE,
-					"bdb_modify: persistent search failed (%d,%d)\n",
+					LDAP_XSTRING(bdb_modify)
+					": persistent search failed (%d,%d)\n",
 					rc, rs->sr_err, 0 );
 			}
 		}
@@ -470,7 +471,8 @@ retry:	/* transaction retry */
 			&slap_pre_read_bv, preread_ctrl ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_modify: pre-read failed!\n", 0, 0, 0 );
+				"<=- " LDAP_XSTRING(bdb_modify)
+				": pre-read failed!\n", 0, 0, 0 );
 			goto return_results;
 		}
 	}
@@ -481,7 +483,8 @@ retry:	/* transaction retry */
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: txn_begin(2) failed: %s (%d)\n",
+			LDAP_XSTRING(bdb_modify) ": txn_begin(2) failed: "
+			"%s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
@@ -494,7 +497,7 @@ retry:	/* transaction retry */
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: modify failed (%d)\n",
+			LDAP_XSTRING(bdb_modify) ": modify failed (%d)\n",
 			rs->sr_err, 0, 0 );
 		if ( (rs->sr_err == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
 			rs->sr_err = opinfo.boi_err;
@@ -513,8 +516,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: id2entry update failed (%d)\n",
-			rs->sr_err, 0, 0 );
+			LDAP_XSTRING(bdb_modify) ": id2entry update failed "
+			"(%d)\n", rs->sr_err, 0, 0 );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -550,7 +553,8 @@ retry:	/* transaction retry */
 			&slap_post_read_bv, postread_ctrl ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_modify: post-read failed!\n", 0, 0, 0 );
+				"<=- " LDAP_XSTRING(bdb_modify)
+				": post-read failed!\n", 0, 0, 0 );
 			goto return_results;
 		}
 	}
@@ -585,7 +589,9 @@ retry:	/* transaction retry */
 				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
 				if ( rc ) {
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_modify: persistent search failed (%d,%d)\n",
+						LDAP_XSTRING(bdb_modify)
+						": persistent search failed "
+						"(%d,%d)\n",
 						rc, rs->sr_err, 0 );
 				}
 			}
@@ -595,7 +601,9 @@ retry:	/* transaction retry */
 							e, LDAP_PSEARCH_BY_SCOPEOUT);
 				if ( rc ) {
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_modify: persistent search failed (%d,%d)\n",
+						LDAP_XSTRING(bdb_modify)
+						": persistent search failed "
+						"(%d,%d)\n",
 						rc, rs->sr_err, 0 );
 				}
 				LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -613,7 +621,7 @@ retry:	/* transaction retry */
 
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: txn_%s failed: %s (%d)\n",
+			LDAP_XSTRING(bdb_modify) ": txn_%s failed: %s (%d)\n",
 			op->o_noop ? "abort (no-op)" : "commit",
 			db_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
@@ -623,7 +631,7 @@ retry:	/* transaction retry */
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-		"bdb_modify: updated%s id=%08lx dn=\"%s\"\n",
+		LDAP_XSTRING(bdb_modify) ": updated%s id=%08lx dn=\"%s\"\n",
 		op->o_noop ? " (no-op)" : "",
 		dummy.e_id, op->o_req_dn.bv_val );
 

@@ -67,7 +67,8 @@ dn2entry_retry:
 		goto dn2entry_retry;
 	default:
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_referrals: dn2entry failed: %s (%d)\n",
+			LDAP_XSTRING(bdb_referrals)
+			": dn2entry failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 ); 
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
@@ -79,7 +80,8 @@ dn2entry_retry:
 		rs->sr_matched = NULL;
 		if ( e != NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+				LDAP_XSTRING(bdb_referrals)
+				": op=%ld target=\"%s\" matched=\"%s\"\n",
 				(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 
 			if( is_entry_referral( e ) ) {
@@ -126,7 +128,8 @@ dn2entry_retry:
 			refs, &e->e_name, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+			LDAP_XSTRING(bdb_referrals)
+			": op=%ld target=\"%s\" matched=\"%s\"\n",
 			(long) op->o_tag, op->o_req_dn.bv_val, e->e_name.bv_val );
 
 		rs->sr_matched = e->e_name.bv_val;

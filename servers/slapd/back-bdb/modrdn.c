@@ -76,7 +76,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	ctrls[num_ctrls] = NULL;
 
-	Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn(%s,%s,%s)\n",
+	Debug( LDAP_DEBUG_TRACE, "==>" LDAP_XSTRING(bdb_modrdn) "(%s,%s,%s)\n",
 		op->o_req_dn.bv_val,op->oq_modrdn.rs_newrdn.bv_val,
 		op->oq_modrdn.rs_newSup ? op->oq_modrdn.rs_newSup->bv_val : "NULL" );
 
@@ -98,7 +98,8 @@ retry:	/* transaction retry */
 			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, np);
 			np = NULL;
 		}
-		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "==>" LDAP_XSTRING(bdb_modrdn)
+				": retrying...\n", 0, 0, 0 );
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
 			LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -128,8 +129,8 @@ retry:	/* transaction retry */
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_delete: txn_begin failed: %s (%d)\n",
-			db_strerror(rs->sr_err), rs->sr_err, 0 );
+			LDAP_XSTRING(bdb_modrdn) ": txn_begin failed: "
+			"%s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
@@ -239,14 +240,16 @@ retry:	/* transaction retry */
 			goto retry;
 		case 0:
 			Debug(LDAP_DEBUG_ARGS,
-				"<=- bdb_modrdn: non-leaf %s\n",
+				"<=- " LDAP_XSTRING(bdb_modrdn)
+				": non-leaf %s\n",
 				op->o_req_dn.bv_val, 0, 0);
 			rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
 			rs->sr_text = "subtree rename not supported";
 			break;
 		default:
 			Debug(LDAP_DEBUG_ARGS,
-				"<=- bdb_modrdn: has_children failed: %s (%d)\n",
+				"<=- " LDAP_XSTRING(bdb_modrdn)
+				": has_children failed: %s (%d)\n",
 				db_strerror(rs->sr_err), rs->sr_err, 0 );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "internal error";
@@ -260,8 +263,8 @@ retry:	/* transaction retry */
 		/* parent is a referral, don't allow add */
 		rs->sr_ref = get_entry_referrals( op, e );
 
-		Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry %s is referral\n",
-			e->e_dn, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modrdn)
+			": entry %s is referral\n", e->e_dn, 0, 0 );
 
 		rs->sr_err = LDAP_REFERRAL,
 		rs->sr_matched = e->e_name.bv_val;
@@ -305,8 +308,8 @@ retry:	/* transaction retry */
 
 		p = eip->bei_e;
 		if( p == NULL) {
-			Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: parent does not exist\n",
-				0, 0, 0);
+			Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modrdn)
+				": parent does not exist\n", 0, 0, 0);
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "old entry's parent does not exist";
 			goto return_results;
@@ -331,8 +334,8 @@ retry:	/* transaction retry */
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: wr to children of entry %s OK\n",
-			p_ndn.bv_val, 0, 0 );
+			LDAP_XSTRING(bdb_modrdn) ": wr to children "
+			"of entry %s OK\n", p_ndn.bv_val, 0, 0 );
 		
 		if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
 			p_dn = slap_empty_bv;
@@ -341,7 +344,7 @@ retry:	/* transaction retry */
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: parent dn=%s\n",
+			LDAP_XSTRING(bdb_modrdn) ": parent dn=%s\n",
 			p_dn.bv_val, 0, 0 );
 
 	} else {
@@ -375,19 +378,22 @@ retry:	/* transaction retry */
 				}
 
 				Debug( LDAP_DEBUG_TRACE,
-					"bdb_modrdn: wr to children of entry \"\" OK\n",
+					LDAP_XSTRING(bdb_modrdn)
+					": wr to children of entry \"\" OK\n",
 					0, 0, 0 );
 		
 				p_dn.bv_val = "";
 				p_dn.bv_len = 0;
 
 				Debug( LDAP_DEBUG_TRACE,
-					"bdb_modrdn: parent dn=\"\"\n",
+					LDAP_XSTRING(bdb_modrdn)
+					": parent dn=\"\"\n",
 					0, 0, 0 );
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
-					"bdb_modrdn: no parent, not root "
+					LDAP_XSTRING(bdb_modrdn)
+					": no parent, not root "
 					"& \"\" is not suffix\n",
 					0, 0, 0);
 				rs->sr_text = "no write access to old parent";
@@ -401,7 +407,8 @@ retry:	/* transaction retry */
 
 	if ( op->oq_modrdn.rs_newSup != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, 
-			"bdb_modrdn: new parent \"%s\" requested...\n",
+			LDAP_XSTRING(bdb_modrdn)
+			": new parent \"%s\" requested...\n",
 			op->oq_modrdn.rs_newSup->bv_val, 0, 0 );
 
 		/*  newSuperior == oldParent? */
@@ -443,7 +450,8 @@ retry:	/* transaction retry */
 
 			if( np == NULL) {
 				Debug( LDAP_DEBUG_TRACE,
-					"bdb_modrdn: newSup(ndn=%s) not here!\n",
+					LDAP_XSTRING(bdb_modrdn)
+					": newSup(ndn=%s) not here!\n",
 					np_ndn->bv_val, 0, 0);
 				rs->sr_text = "new superior not found";
 				rs->sr_err = LDAP_OTHER;
@@ -451,7 +459,8 @@ retry:	/* transaction retry */
 			}
 
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_modrdn: wr to new parent OK np=%p, id=%ld\n",
+				LDAP_XSTRING(bdb_modrdn)
+				": wr to new parent OK np=%p, id=%ld\n",
 				(void *) np, (long) np->e_id, 0 );
 
 			/* check newSuperior for "children" acl */
@@ -466,7 +475,8 @@ retry:	/* transaction retry */
 				}
 
 				Debug( LDAP_DEBUG_TRACE,
-					"bdb_modrdn: no wr to newSup children\n",
+					LDAP_XSTRING(bdb_modrdn)
+					": no wr to newSup children\n",
 					0, 0, 0 );
 				rs->sr_text = "no write access to new superior's children";
 				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -475,7 +485,9 @@ retry:	/* transaction retry */
 
 			if ( is_entry_alias( np ) ) {
 				/* parent is an alias, don't allow add */
-				Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry is alias\n",
+				Debug( LDAP_DEBUG_TRACE,
+					LDAP_XSTRING(bdb_modrdn)
+					": entry is alias\n",
 					0, 0, 0 );
 				rs->sr_text = "new superior is an alias";
 				rs->sr_err = LDAP_ALIAS_PROBLEM;
@@ -484,7 +496,9 @@ retry:	/* transaction retry */
 
 			if ( is_entry_referral( np ) ) {
 				/* parent is a referral, don't allow add */
-				Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry is referral\n",
+				Debug( LDAP_DEBUG_TRACE,
+					LDAP_XSTRING(bdb_modrdn)
+					": entry is referral\n",
 					0, 0, 0 );
 				rs->sr_text = "new superior is a referral";
 				rs->sr_err = LDAP_OTHER;
@@ -527,14 +541,17 @@ retry:	/* transaction retry */
 					}
 
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_modrdn: wr to children of entry \"\" OK\n",
+						LDAP_XSTRING(bdb_modrdn)
+						": wr to children "
+						"of entry \"\" OK\n",
 						0, 0, 0 );
 		
 				} else {
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_modrdn: new superior=\"\", not root "
+						LDAP_XSTRING(bdb_modrdn)
+						": new superior=\"\", not root "
 						"& \"\" is not suffix\n",
-						0, 0, 0);
+						0, 0, 0 );
 					rs->sr_text = "no write access to new superior's children";
 					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 					goto return_results;
@@ -542,12 +559,14 @@ retry:	/* transaction retry */
 			}
 
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_modrdn: new superior=\"\"\n",
+				LDAP_XSTRING(bdb_modrdn)
+				": new superior=\"\"\n",
 				0, 0, 0 );
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: wr to new parent's children OK\n",
+			LDAP_XSTRING(bdb_modrdn)
+			": wr to new parent's children OK\n",
 			0, 0, 0 );
 
 		new_parent_dn = np_dn;
@@ -564,7 +583,7 @@ retry:	/* transaction retry */
 		ber_dupbv( &new_ndn, &bv );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
+	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_modrdn) ": new ndn=%s\n",
 		new_ndn.bv_val, 0, 0 );
 
 	/* Shortcut the search */
@@ -593,7 +612,7 @@ retry:	/* transaction retry */
 		(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: can't figure out "
+			LDAP_XSTRING(bdb_modrdn) ": can't figure out "
 			"type(s)/values(s) of newrdn\n", 
 			0, 0, 0 );
 		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
@@ -602,15 +621,17 @@ retry:	/* transaction retry */
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-		"bdb_modrdn: new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n",
-		new_rdn[ 0 ]->la_attr.bv_val, new_rdn[ 0 ]->la_value.bv_val, 0 );
+		LDAP_XSTRING(bdb_modrdn)
+		": new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n",
+		new_rdn[ 0 ]->la_attr.bv_val,
+		new_rdn[ 0 ]->la_value.bv_val, 0 );
 
 	if ( op->oq_modrdn.rs_deleteoldrdn ) {
 		if ( !old_rdn && ldap_bv2rdn_x( &op->o_req_dn, &old_rdn,
 			(char **)&rs->sr_text, LDAP_DN_FORMAT_LDAP, op->o_tmpmemctx ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_modrdn: can't figure out "
+				LDAP_XSTRING(bdb_modrdn) ": can't figure out "
 				"the old_rdn type(s)/value(s)\n", 
 				0, 0, 0 );
 			rs->sr_err = LDAP_OTHER;
@@ -636,7 +657,8 @@ retry:	/* transaction retry */
 			&slap_pre_read_bv, preread_ctrl ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,        
-				"<=- bdb_modrdn: post-read failed!\n", 0, 0, 0 );
+				"<=- " LDAP_XSTRING(bdb_modrdn)
+				": post-read failed!\n", 0, 0, 0 );
 			goto return_results;
 		}                   
 	}
@@ -646,7 +668,8 @@ retry:	/* transaction retry */
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modrdn: txn_begin(2) failed: %s (%d)\n",
+			LDAP_XSTRING(bdb_modrdn)
+			": txn_begin(2) failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
@@ -657,7 +680,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2id_delete( op, lt2, eip, e );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
-			"<=- bdb_modrdn: dn2id del failed: %s (%d)\n",
+			"<=- " LDAP_XSTRING(bdb_modrdn)
+			": dn2id del failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -679,7 +703,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2id_add( op, lt2, neip ? neip : eip, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
-			"<=- bdb_modrdn: dn2id add failed: %s (%d)\n",
+			"<=- " LDAP_XSTRING(bdb_modrdn)
+			": dn2id add failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -699,7 +724,8 @@ retry:	/* transaction retry */
 			rc = bdb_psearch( op, rs, ps_list, &dummy, LDAP_PSEARCH_BY_PREMODIFY );
 			if ( rc ) {
 				Debug( LDAP_DEBUG_TRACE,
-					"bdb_modrdn: persistent search failed (%d,%d)\n",
+					LDAP_XSTRING(bdb_modrdn)
+					": persistent search failed (%d,%d)\n",
 					rc, rs->sr_err, 0 );
 			}
 		}
@@ -712,7 +738,8 @@ retry:	/* transaction retry */
 		&rs->sr_text, textbuf, textlen );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug(LDAP_DEBUG_TRACE,
-			"<=- bdb_modrdn: modify failed: %s (%d)\n",
+			"<=- " LDAP_XSTRING(bdb_modrdn)
+			": modify failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		if ( ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) && opinfo.boi_err ) {
 			rs->sr_err = opinfo.boi_err;
@@ -730,7 +757,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug(LDAP_DEBUG_TRACE,
-			"<=- bdb_modrdn: id2entry failed: %s (%d)\n",
+			"<=- " LDAP_XSTRING(bdb_modrdn)
+			": id2entry failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -754,7 +782,8 @@ retry:	/* transaction retry */
 				break;
 			default:
 				Debug(LDAP_DEBUG_ARGS,
-					"<=- bdb_modrdn: has_children failed: %s (%d)\n",
+					"<=- " LDAP_XSTRING(bdb_modrdn)
+					": has_children failed: %s (%d)\n",
 					db_strerror(rs->sr_err), rs->sr_err, 0 );
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "internal error";
@@ -792,7 +821,8 @@ retry:	/* transaction retry */
 			&slap_post_read_bv, postread_ctrl ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,        
-				"<=- bdb_modrdn: post-read failed!\n", 0, 0, 0 );
+				"<=- " LDAP_XSTRING(bdb_modrdn)
+				": post-read failed!\n", 0, 0, 0 );
 			goto return_results;
 		}                   
 	}
@@ -831,7 +861,9 @@ retry:	/* transaction retry */
 				rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
 				if ( rc ) {
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_modrdn: persistent search failed (%d,%d)\n",
+						LDAP_XSTRING(bdb_modrdn)
+						": persistent search failed "
+						"(%d,%d)\n",
 						rc, rs->sr_err, 0 );
 			}
 			}
@@ -841,7 +873,9 @@ retry:	/* transaction retry */
 							e, LDAP_PSEARCH_BY_SCOPEOUT);
 				if ( rc ) {
 					Debug( LDAP_DEBUG_TRACE,
-						"bdb_modrdn: persistent search failed (%d,%d)\n",
+						LDAP_XSTRING(bdb_modrdn)
+						": persistent search failed "
+						"(%d,%d)\n",
 						rc, rs->sr_err, 0 );
 				}
 				pm_prev = pm_list;
@@ -863,7 +897,8 @@ retry:	/* transaction retry */
 	op->o_private = NULL;
  
 	if( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: %s : %s (%d)\n",
+		Debug( LDAP_DEBUG_TRACE,
+			LDAP_XSTRING(bdb_modrdn) ": %s : %s (%d)\n",
 			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
 		rs->sr_err = LDAP_OTHER;
 
@@ -871,7 +906,8 @@ retry:	/* transaction retry */
 	}
 
 	Debug(LDAP_DEBUG_TRACE,
-		"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
+		LDAP_XSTRING(bdb_modrdn)
+		": rdn modified%s id=%08lx dn=\"%s\"\n",
 		op->o_noop ? " (no-op)" : "",
 		dummy.e_id, op->o_req_dn.bv_val );
 	rs->sr_text = NULL;

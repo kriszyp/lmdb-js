@@ -67,8 +67,8 @@ bdb_db_init( BackendDB *be )
 	struct bdb_info	*bdb;
 
 	Debug( LDAP_DEBUG_ANY,
-		"bdb_db_init: Initializing %s database\n",
-		be->bd_info->bi_type, 0, 0 );
+		LDAP_XSTRING(bdb_db_init) ": Initializing "
+		BDB_UCTYPE " database\n", 0, 0, 0 );
 
 	/* allocate backend-database-specific stuff */
 	bdb = (struct bdb_info *) ch_calloc( 1, sizeof(struct bdb_info) );
@@ -545,8 +545,9 @@ bdb_back_initialize(
 	};
 
 	/* initialize the underlying database system */
-	Debug( LDAP_DEBUG_TRACE, "bdb_back_initialize: initialize BDB backend\n",
-		0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,
+		LDAP_XSTRING(bdb_back_initialize) ": initialize " 
+		BDB_UCTYPE " backend\n", 0, 0, 0 );
 
 	bi->bi_flags |=
 		SLAP_BFLAG_INCREMENT |
@@ -577,13 +578,14 @@ bdb_back_initialize(
 		if( ver < DB_VERSION_FULL )
 		{
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_back_initialize: BDB library version mismatch:"
+				LDAP_XSTRING(bdb_back_initialize) ": "
+				"BDB library version mismatch:"
 				" expected " DB_VERSION_STRING ","
 				" got %s\n", version, 0, 0 );
 		}
 
-		Debug( LDAP_DEBUG_ANY, "bdb_back_initialize: %s\n",
-			version, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_back_initialize)
+			": %s\n", version, 0, 0 );
 	}
 
 	db_env_set_func_free( ber_memfree );
