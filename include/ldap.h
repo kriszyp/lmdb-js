@@ -202,9 +202,7 @@ typedef struct ldapcontrol {
 #define LDAP_CUP_COOKIE_OID				"1.3.6.1.4.1.4203.666.10.1"
 #endif
 
-#ifdef LDAP_DEVEL
 #define LDAP_SYNC 2
-#endif
 #ifdef LDAP_SYNC
 #define LDAP_SYNCREPL 1
 #define LDAP_CONTROL_SYNC		"1.3.6.1.4.1.4203.666.5.6"
