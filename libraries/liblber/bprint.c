@@ -141,8 +141,8 @@ ber_bprint(
 	    out[ i+1 ] = *data;
 	} else {
 #endif
-	    out[ i ] = hexdig[ ( *data & 0xf0 ) >> 4 ];
-	    out[ i+1 ] = hexdig[ *data & 0x0f ];
+	    out[ i ] = hexdig[ ( *data & 0xf0U ) >> 4 ];
+	    out[ i+1 ] = hexdig[ *data & 0x0fU ];
 #ifndef LDAP_HEX
 	}
 #endif

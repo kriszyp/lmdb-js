@@ -104,8 +104,8 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 	*len = netlen = 0;
 	if ( ber_read( ber, (char *) &lc, 1 ) != 1 )
 		return( LBER_DEFAULT );
-	if ( lc & 0x80 ) {
-		noctets = (lc & 0x7f);
+	if ( lc & 0x80U ) {
+		noctets = (lc & 0x7fU);
 		if ( (unsigned) noctets > sizeof(unsigned long) )
 			return( LBER_DEFAULT );
 		diff = sizeof(unsigned long) - noctets;
@@ -694,8 +694,10 @@ va_dcl
 		case 'v':	/* sequence of strings */
 			sss = va_arg( ap, char *** );
 			if ( *sss ) {
-				for (j = 0;  (*sss)[j];  j++)
+				for (j = 0;  (*sss)[j];  j++) {
 					free( (*sss)[j] );
+					(*sss)[j] = NULL;
+				}
 				free( *sss );
 				*sss = NULL;
 			}

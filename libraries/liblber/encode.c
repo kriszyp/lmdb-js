@@ -42,11 +42,11 @@ static int
 ber_calc_taglen( unsigned long tag )
 {
 	int	i;
-	long	mask;
+	unsigned long	mask;
 
 	/* find the first non-all-zero byte in the tag */
 	for ( i = sizeof(long) - 1; i > 0; i-- ) {
-		mask = (0xffL << (i * 8));
+		mask = (0xffUL << (i * 8));
 		/* not all zero */
 		if ( tag & mask )
 			break;
@@ -77,7 +77,7 @@ ber_calc_lenlen( unsigned long len )
 	 * with bit 8 0.
 	 */
 
-	if ( len <= 0x7F )
+	if ( len <= 0x7FUL )
 		return( 1 );
 
 	/*
@@ -85,11 +85,11 @@ ber_calc_lenlen( unsigned long len )
 	 * length of the length, followed by the length itself.
 	 */
 
-	if ( len <= 0xFF )
+	if ( len <= 0xffUL )
 		return( 2 );
-	if ( len <= 0xFFFFL )
+	if ( len <= 0xffffUL )
 		return( 3 );
-	if ( len <= 0xFFFFFFL )
+	if ( len <= 0xffffffUL )
 		return( 4 );
 
 	return( 5 );
@@ -100,7 +100,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 {
 	int		i;
 	char		lenlen;
-	long		mask;
+	unsigned long	mask;
 	unsigned long	netlen;
 
 	assert( ber != NULL );
@@ -123,7 +123,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 
 	/* find the first non-all-zero byte */
 	for ( i = sizeof(long) - 1; i > 0; i-- ) {
-		mask = (0xffL << (i * 8));
+		mask = (0xffUL << (i * 8));
 		/* not all zero */
 		if ( len & mask )
 			break;
@@ -131,7 +131,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 	lenlen = (unsigned char) ++i;
 	if ( lenlen > 4 )
 		return( -1 );
-	lenlen |= 0x80;
+	lenlen |= 0x80UL;
 
 	/* write the length of the length */
 	if ( ber_write( ber, &lenlen, 1, nosos ) != 1 )
@@ -162,7 +162,7 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 	 * high bit is clear - look for first non-all-zero byte
 	 */
 	for ( i = sizeof(long) - 1; i > 0; i-- ) {
-		mask = (0xffL << (i * 8));
+		mask = (0xffUL << (i * 8));
 
 		if ( sign ) {
 			/* not all ones */
@@ -179,7 +179,7 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 	 * we now have the "leading byte".  if the high bit on this
 	 * byte matches the sign bit, we need to "back up" a byte.
 	 */
-	mask = (num & (0x80L << (i * 8)));
+	mask = (num & (0x80UL << (i * 8)));
 	if ( (mask && !sign) || (sign && !mask) )
 		i++;
 
@@ -355,8 +355,8 @@ int
 ber_put_boolean( BerElement *ber, int boolval, unsigned long tag )
 {
 	int		taglen;
-	unsigned char	trueval = 0xff;
-	unsigned char	falseval = 0x00;
+	unsigned char	trueval = 0xffU;
+	unsigned char	falseval = 0x00U;
 
 	assert( ber != NULL );
 
@@ -431,7 +431,7 @@ ber_put_seqorset( BerElement *ber )
 {
 	unsigned long	len, netlen;
 	int		taglen, lenlen;
-	unsigned char	ltag = 0x80 + FOUR_BYTE_LEN - 1;
+	unsigned char	ltag = 0x80U + FOUR_BYTE_LEN - 1;
 	Seqorset	*next;
 	Seqorset	**sos = &ber->ber_sos;
 
@@ -447,7 +447,7 @@ ber_put_seqorset( BerElement *ber )
 
 	len = (*sos)->sos_clen;
 	netlen = AC_HTONL( len );
-	if ( sizeof(long) > 4 && len > 0xFFFFFFFFL )
+	if ( sizeof(long) > 4 && len > 0xffffffffUL )
 		return( -1 );
 
 	if ( ber->ber_options & LBER_USE_DER ) {
@@ -502,7 +502,7 @@ ber_put_seqorset( BerElement *ber )
 		if ( ber->ber_options & LBER_USE_DER ) {
 			ltag = (lenlen == 1)
 				? (unsigned char) len
-				: 0x80 + (lenlen - 1);
+				: 0x80UL + (lenlen - 1);
 		}
 
 		/* one byte of length length */

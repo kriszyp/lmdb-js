@@ -327,9 +327,10 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		ber_clear( ber, 1 );	/* gack! */
 		return( -2 );	/* continue looking */
 	}
-	Debug( LDAP_DEBUG_TRACE, "got %s msgid %ld, original id %d\n",
-	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : "result", id,
-	    lr->lr_origid );
+	Debug( LDAP_DEBUG_TRACE, "ldap_read: %s msgid %ld, original id %d\n",
+	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : 
+		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
+		id, lr->lr_origid );
 	id = lr->lr_origid;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 

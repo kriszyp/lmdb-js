@@ -170,6 +170,7 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 	} else {
 		rc = ber_scanf( &ber, "{ia}", &along, &ld->ld_error );
 	}
+
 	if ( rc == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 	} else {

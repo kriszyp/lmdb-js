@@ -274,12 +274,15 @@ int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *reque
 /*
  * in controls.c
  */
-LDAPControl *ldap_control_dup LDAP_P(( const LDAPControl *ctrl ));
-LDAPControl **ldap_controls_dup LDAP_P(( const LDAPControl **ctrls ));
+LDAPControl *ldap_control_dup LDAP_P((
+	const LDAPControl *ctrl ));
+
+LDAPControl **ldap_controls_dup LDAP_P((
+	const LDAPControl **ctrls ));
 
 int ldap_int_get_controls LDAP_P((
 	BerElement *be,
-	LDAPControl ***cp));
+	LDAPControl ***ctrlsp));
 
 int ldap_int_put_controls LDAP_P((
 	LDAP *ld,

@@ -906,7 +906,7 @@ print_ldap_result( LDAP *ld, LDAPMessage *lm, char *s )
 /*
 	if ( ld->ld_error != NULL && *ld->ld_error != '\0' )
 		fprintf( stderr, "Additional info: %s\n", ld->ld_error );
-	if ( NAME_ERROR( ld->ld_errno ) && ld->ld_matched != NULL )
+	if ( LDAP_NAME_ERROR( ld->ld_errno ) && ld->ld_matched != NULL )
 		fprintf( stderr, "Matched DN: %s\n", ld->ld_matched );
 */
 }

@@ -480,8 +480,8 @@ get_lenbyte:
 		unsigned char c;
 		if (ber_pvt_sb_read( sb, (char *) &c, 1)<=0)
 			return LBER_DEFAULT;
-		if (c & 0x80) {
-			int len = c & 0x7f;
+		if (c & 0x80U) {
+			int len = c & 0x7fU;
 			if ( (len==0) || ((unsigned) len>sizeof( ber->ber_len ) ) ) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
