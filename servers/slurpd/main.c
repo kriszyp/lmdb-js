@@ -30,6 +30,7 @@
 #include "globals.h"
 #include "lutil.h"
 
+#include <ldap_pvt.h>
 
 int
 main(
@@ -47,13 +48,6 @@ main(
 
     /* initialize thread package */
     ldap_pvt_thread_initialize();
-
-#ifdef HAVE_TLS
-	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx() ) {
-		fprintf( stderr, "TLS Initialization failed.\n" );
-		exit( EXIT_FAILURE);
-	}
-#endif
 
     /* 
      * Create and initialize globals.  init_globals() also initializes
@@ -80,6 +74,13 @@ main(
 		sglob->slapd_configfile );
 	exit( EXIT_FAILURE );
     }
+
+#ifdef HAVE_TLS
+	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx() ) {
+		fprintf( stderr, "TLS Initialization failed.\n" );
+		exit( EXIT_FAILURE);
+	}
+#endif
 
     /* 
      * Make sure our directory exists
