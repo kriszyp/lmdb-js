@@ -91,7 +91,7 @@ do_abandon(
 	 * flag and abort the operation at a convenient time.
 	 */
 
-	for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
+	STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
 		if ( o->o_msgid == id ) {
 			ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
 			o->o_abandon = 1;
@@ -102,16 +102,13 @@ do_abandon(
 		}
 	}
 
-	for ( oo = &conn->c_pending_ops;
-		(*oo != NULL) && ((*oo)->o_msgid != id);
-		oo = &(*oo)->o_next )
-	{
-		/* EMPTY */ ;
+	STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
+		if ( o->o_msgid == id )
+			break;
 	}
 
-	if( *oo != NULL ) {
-		o = *oo;
-		*oo = (*oo)->o_next;
+	if( o != NULL ) {
+		STAILQ_REMOVE( &conn->c_pending_ops, o, slap_op, o_next );
 		slap_op_free( o );
 		notfound = 0;
 	}

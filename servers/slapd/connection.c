@@ -425,8 +425,8 @@ long connection_init(
 		c->c_peer_name = NULL;
 		c->c_sock_name = NULL;
 
-		c->c_ops = NULL;
-		c->c_pending_ops = NULL;
+		STAILQ_INIT(&c->c_ops);
+		STAILQ_INIT(&c->c_pending_ops);
 
 		c->c_sasl_bind_mech = NULL;
 		c->c_sasl_context = NULL;
@@ -461,8 +461,8 @@ long connection_init(
     assert( c->c_peer_domain == NULL );
     assert( c->c_peer_name == NULL );
     assert( c->c_sock_name == NULL );
-    assert( c->c_ops == NULL );
-    assert( c->c_pending_ops == NULL );
+    assert( STAILQ_EMPTY(&c->c_ops) );
+    assert( STAILQ_EMPTY(&c->c_pending_ops) );
 	assert( c->c_sasl_bind_mech == NULL );
 	assert( c->c_sasl_context == NULL );
 	assert( c->c_sasl_extra == NULL );
@@ -621,7 +621,7 @@ connection_destroy( Connection *c )
     assert( c != NULL );
     assert( c->c_struct_state != SLAP_C_UNUSED );
     assert( c->c_conn_state != SLAP_C_INVALID );
-    assert( c->c_ops == NULL );
+    assert( STAILQ_EMPTY(&c->c_ops) );
 
     backend_connection_destroy(c);
 
@@ -720,17 +720,16 @@ static void connection_abandon( Connection *c )
 
 	Operation *o;
 
-	for( o = c->c_ops; o != NULL; o = o->o_next ) {
+	STAILQ_FOREACH(o, &c->c_ops, o_next) {
 		ldap_pvt_thread_mutex_lock( &o->o_abandonmutex );
 		o->o_abandon = 1;
 		ldap_pvt_thread_mutex_unlock( &o->o_abandonmutex );
 	}
 
 	/* remove pending operations */
-	for( o = slap_op_pop( &c->c_pending_ops );
-		o != NULL;
-		o = slap_op_pop( &c->c_pending_ops ) )
-	{
+	while ( (o = STAILQ_FIRST( &c->c_pending_ops )) != NULL) {
+		STAILQ_REMOVE_HEAD( &c->c_pending_ops, o_next );
+		STAILQ_NEXT(o, o_next) = NULL;
 		slap_op_free( o );
 	}
 }
@@ -784,7 +783,7 @@ static void connection_close( Connection *c )
 	/* note: connections_mutex and c_mutex should be locked by caller */
 
 	ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
-	if( c->c_ops != NULL ) {
+	if( !STAILQ_EMPTY(&c->c_ops) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
 			   "connection_close: conn %d  deferring sd %d\n",
@@ -987,7 +986,8 @@ operations_error:
 	conn->c_n_ops_executing--;
 	conn->c_n_ops_completed++;
 
-	slap_op_remove( &conn->c_ops, arg->co_op );
+	STAILQ_REMOVE( &conn->c_ops, arg->co_op, slap_op, o_next);
+	STAILQ_NEXT(arg->co_op, o_next) = NULL;
 	slap_op_free( arg->co_op );
 	arg->co_op = NULL;
 	arg->co_conn = NULL;
@@ -1351,7 +1351,7 @@ connection_input(
 		Debug( LDAP_DEBUG_ANY, "deferring operation\n", 0, 0, 0 );
 #endif
 		conn->c_n_ops_pending++;
-		slap_op_add( &conn->c_pending_ops, op );
+		STAILQ_INSERT_TAIL( &conn->c_pending_ops, op, o_next );
 
 	} else {
 		conn->c_n_ops_executing++;
@@ -1434,10 +1434,9 @@ connection_resched( Connection *conn )
 		return 0;
 	}
 
-	for( op = slap_op_pop( &conn->c_pending_ops );
-		op != NULL;
-		op = slap_op_pop( &conn->c_pending_ops ) )
-	{
+	while ((op = STAILQ_FIRST( &conn->c_pending_ops )) != NULL) {
+		STAILQ_REMOVE_HEAD( &conn->c_pending_ops, o_next );
+		STAILQ_NEXT(op, o_next) = NULL;
 		/* pending operations should not be marked for abandonment */
 		assert(!op->o_abandon);
 
@@ -1484,7 +1483,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	}
 	arg->co_op->o_connid = conn->c_connid;
 
-	slap_op_add( &conn->c_ops, arg->co_op );
+	STAILQ_INSERT_TAIL( &conn->c_ops, arg->co_op, o_next );
 
 	status = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_operation, (void *) arg );
@@ -1587,9 +1586,8 @@ int connection_internal_open( Connection **conn, LDAP **ldp, const char *id )
 	op->o_protocol = LDAP_VERSION3;
 
 	(*conn) = connection_get( fd[1] );
-	(*conn)->c_ops = op;
-    (*conn)->c_conn_state = SLAP_C_ACTIVE;
-
+	STAILQ_INSERT_HEAD( &(*conn)->c_ops, op, o_next);
+	(*conn)->c_conn_state = SLAP_C_ACTIVE;
 
 	/* Create the client side of the connection */
 	rc = ldap_open_internal_connection( ldp, &(fd[0]) );
@@ -1607,9 +1605,10 @@ int connection_internal_open( Connection **conn, LDAP **ldp, const char *id )
 
 void connection_internal_close( Connection *conn )
 {
-	Operation *op = conn->c_ops;
+	Operation *op = STAILQ_FIRST(&conn->c_ops);
 
-	slap_op_remove( &conn->c_ops, op );
+	STAILQ_REMOVE_HEAD(&conn->c_ops, o_next);
+	STAILQ_NEXT(op, o_next) = NULL;
 	slap_op_free( op );
 	connection_closing( conn );
 	connection_close( conn );

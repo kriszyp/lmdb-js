@@ -18,7 +18,7 @@
 void
 slap_op_free( Operation *op )
 {
-	assert( op->o_next == NULL );
+	assert( STAILQ_NEXT(op, o_next) == NULL );
 
 	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );
@@ -54,26 +54,18 @@ slap_op_alloc(
 	op = (Operation *) ch_calloc( 1, sizeof(Operation) );
 
 	ldap_pvt_thread_mutex_init( &op->o_abandonmutex );
-	op->o_abandon = 0;
 
 	op->o_ber = ber;
 	op->o_msgid = msgid;
 	op->o_tag = tag;
 
-	op->o_dn.bv_val = NULL;
-	op->o_dn.bv_len = 0;
-	op->o_ndn.bv_val = NULL;
-	op->o_ndn.bv_len = 0;
-	op->o_authmech = NULL;
-	op->o_ctrls = NULL;
-
 	op->o_time = slap_get_time();
 	op->o_opid = id;
-	op->o_next = NULL;
 
 	return( op );
 }
 
+#if 0
 int slap_op_add(
     Operation		**olist,
 	Operation		*op
@@ -127,4 +119,4 @@ Operation * slap_op_pop( Operation **olist )
 
 	return tmp;
 }
-
+#endif

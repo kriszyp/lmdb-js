@@ -32,6 +32,7 @@
 #include <ldap_schema.h>
 
 #include "ldap_pvt_thread.h"
+#include "queue-compat.h"
 
 LDAP_BEGIN_DECL
 
@@ -1285,7 +1286,7 @@ typedef struct slap_op {
 	slap_response	*o_response;	/* callback function */
 	slap_sresult	*o_sresult;	/* search result callback */
 
-	struct slap_op	*o_next;	/* next operation in list	  */
+	STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 	void	*o_private;	/* anything the backend needs	  */
 	void	*o_glue;	/* for the glue backend */
 } Operation;
@@ -1339,8 +1340,8 @@ typedef struct slap_conn {
 
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
 
-	Operation	*c_ops;			/* list of operations being processed */
-	Operation	*c_pending_ops;	/* list of pending operations */
+	STAILQ_HEAD(c_o, slap_op) c_ops;	/* list of operations being processed */
+	STAILQ_HEAD(c_po, slap_op) c_pending_ops;	/* list of pending operations */
 
 	ldap_pvt_thread_mutex_t	c_write_mutex;	/* only one pdu written at a time */
 	ldap_pvt_thread_cond_t	c_write_cv;		/* used to wait for sd write-ready*/
