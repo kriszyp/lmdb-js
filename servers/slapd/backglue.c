@@ -58,7 +58,7 @@ glue_back_select (
 	int i;
 
 	bv.bv_len = strlen(dn);
-	bv.bv_val = dn;
+	bv.bv_val = (char *) dn;
 
 	for (i = 0; be->be_nsuffix[i]; i++) {
 		if (dn_issuffixbv (&bv, be->be_nsuffix[i]))
@@ -321,7 +321,7 @@ glue_back_search (
 		op->o_sresult = glue_back_sresult;
 		op->o_response = glue_back_response;
 		bv.bv_len = strlen(ndn);
-		bv.bv_val = ndn;
+		bv.bv_val = (char *) ndn;
 
 		/*
 		 * Execute in reverse order, most general first 

@@ -262,7 +262,7 @@ bdb_search(
 
 	/* if not root and candidates exceed to-be-checked entries, abort */
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
-		if ( BDB_IDL_N(candidates) > limit->lms_s_unchecked ) {
+		if ( BDB_IDL_N(candidates) > (unsigned) limit->lms_s_unchecked ) {
 			send_search_result( conn, op, 
 					LDAP_UNWILLING_TO_PERFORM,
 					NULL, NULL, NULL, NULL, 0 );

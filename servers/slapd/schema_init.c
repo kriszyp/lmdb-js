@@ -21,7 +21,6 @@
 #include "ldap_utf8.h"
 
 #include "lutil_hash.h"
-/* We should replace MD5 with a faster hash */
 #define HASH_BYTES				LUTIL_HASH_BYTES
 #define HASH_CONTEXT			lutil_HASH_CTX
 #define HASH_Init(c)			lutil_HASHInit(c)
