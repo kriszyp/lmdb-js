@@ -21,7 +21,7 @@ int ldif_debug = 0;
 #define RIGHT4			0x0f
 #define CONTINUED_LINE_MARKER	'\001'
 
-static const char nib2b64[0x40f] =
+static const char nib2b64[0x40] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static const unsigned char b642nib[0x80] = {
@@ -176,26 +176,29 @@ ldif_parse_line(
 char *
 ldif_getline( char **next )
 {
-	char		*l;
+	char *line;
 
-	if ( *next == NULL || **next == '\n' || **next == '\0' ) {
-		return( NULL );
-	}
-
-	l = *next;
-	while ( (*next = strchr( *next, '\n' )) != NULL ) {
-		unsigned char c = *(*next + 1);
-		if ( isspace( c ) && c != '\n' ) {
-			**next = CONTINUED_LINE_MARKER;
-			*(*next+1) = CONTINUED_LINE_MARKER;
-		} else {
-			*(*next)++ = '\0';
-			break;
+	do {
+		if ( *next == NULL || **next == '\n' || **next == '\0' ) {
+			return( NULL );
 		}
-		(*next)++;
-	}
 
-	return( l );
+		line = *next;
+
+		while ( (*next = strchr( *next, '\n' )) != NULL ) {
+			unsigned char c = *(*next + 1);
+			if ( isspace( c ) && c != '\n' ) {
+				**next = CONTINUED_LINE_MARKER;
+				*(*next+1) = CONTINUED_LINE_MARKER;
+			} else {
+				*(*next)++ = '\0';
+				break;
+			}
+			(*next)++;
+		}
+	} while( *line == '#' );
+
+	return( line );
 }
 
 void
