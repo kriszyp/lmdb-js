@@ -6,10 +6,10 @@ LIBRARY	= liblthread.a
 XSRCS	= version.c
 
 SRCS	= rdwr.c thr_sleep.c thr_stub.c \
-	thr_cthreads.c thr_lwp.c thr_nt.c thr_posix.c thr_thr.c
+	thr_cthreads.c thr_lwp.c thr_nt.c thr_posix.c thr_thr.c thr_pth.c
 
 OBJS	= rdwr.o thr_sleep.o thr_stub.o \
-	thr_cthreads.o thr_lwp.o thr_nt.o thr_posix.o thr_thr.o
+	thr_cthreads.o thr_lwp.o thr_nt.o thr_posix.o thr_thr.o thr_pth.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
