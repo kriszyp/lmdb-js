@@ -437,6 +437,7 @@ slap_mods2entry(
 				/* trim the mods array */
 				ch_free( mods->sml_nvalues );
 				mods->sml_nvalues = NULL;
+
 			} else {
 				attr->a_nvals = attr->a_vals;
 			}
@@ -475,14 +476,20 @@ slap_mods2entry(
 				int		rc = LDAP_SUCCESS;
 				int match;
 
-				for ( i = 0; mods->sml_nvalues[i].bv_val != NULL; i++ ) {
+				for ( i = 0; mods->sml_values[i].bv_val != NULL; i++ ) {
 					/* test asserted values against themselves */
 					for( j = 0; j < i; j++ ) {
 						rc = value_match( &match, mods->sml_desc, mr,
 							SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
 							| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
 							| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-							&mods->sml_nvalues[i], &mods->sml_nvalues[j], text );
+							mods->sml_nvalues
+								? &mods->sml_nvalues[i]
+								: &mods->sml_values[i],
+							mods->sml_nvalues
+								? &mods->sml_nvalues[j]
+								: &mods->sml_values[j],
+							text );
 						if ( rc == LDAP_SUCCESS && match == 0 ) {
 							/* value exists already */
 							snprintf( textbuf, textlen,

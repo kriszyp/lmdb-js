@@ -660,6 +660,8 @@ int slap_mods_check(
 
 				ml->sml_nvalues[nvals].bv_val = NULL;
 				ml->sml_nvalues[nvals].bv_len = 0;
+
+			} else {
 			}
 		}
 	}

@@ -205,7 +205,6 @@ value_match(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-
 	rc = (mr->smr_match)( match, flags,
 		ad->ad_type->sat_syntax,
 		mr,
