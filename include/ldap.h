@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -434,8 +434,9 @@ typedef struct ldapcontrol {
 #define LDAP_IS_LEAF			0x23 /* not LDAPv3 */
 #define LDAP_ALIAS_DEREF_PROBLEM	0x24
 
-#define LDAP_SECURITY_ERROR(n)	LDAP_RANGE((n),0x30,0x32) /* 48-50 */
+#define LDAP_SECURITY_ERROR(n)	LDAP_RANGE((n),0x2F,0x32) /* 47-50 */
 
+#define LDAP_PROXY_AUTHZ_FAILURE	0x2F /* LDAPv3 proxy authorization */
 #define LDAP_INAPPROPRIATE_AUTH		0x30
 #define LDAP_INVALID_CREDENTIALS	0x31
 #define LDAP_INSUFFICIENT_ACCESS	0x32
@@ -712,6 +713,14 @@ ldap_parse_extended_partial LDAP_P((
 	LDAPControl		***serverctrls,
 	int				freeit ));
 
+LDAP_F( int )
+ldap_parse_intermediate_resp_result LDAP_P((
+	LDAP                    *ld,
+	LDAPMessage             *res,
+	char                    **retoidp,
+	struct berval   **retdatap,
+	int                             freeit ));
+
 /*
  * in abandon.c:
  */
@@ -909,6 +918,24 @@ ldap_uncache_entry LDAP_P(( LDAP *ld, LDAP_CONST char *dn ));
 LDAP_F( void )
 ldap_uncache_request LDAP_P(( LDAP *ld, int msgid ));
 
+
+/*
+ * LDAP Cancel Extended Operation <draft-zeilenga-ldap-cancel-xx.txt>
+ */
+
+LDAP_F( int )
+ldap_cancel LDAP_P(( LDAP *ld,
+	int cancelid,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_cancel_s LDAP_P((
+	LDAP *ld,
+	int cancelid,
+	LDAPControl **sctrl,
+	LDAPControl **cctrl ));
 
 /*
  * in compare.c:
@@ -1686,6 +1713,28 @@ ldap_parse_vlv_control LDAP_P((
 	struct berval **contextp,
 	int           *errcodep ));
 
+/*
+ * LDAP Who Am I? (whoami.c)
+ */
+
+LDAP_F( int )
+ldap_parse_whoami LDAP_P((
+	LDAP *ld,
+	LDAPMessage *res,
+	struct berval **authzid ));
+
+LDAP_F( int )
+ldap_whoami LDAP_P(( LDAP *ld,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_whoami_s LDAP_P((
+	LDAP *ld,
+	struct berval **authzid,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
 
 LDAP_END_DECL
 #endif /* _LDAP_H */

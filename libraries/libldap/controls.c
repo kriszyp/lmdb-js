@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -360,7 +360,7 @@ ldap_control_dup( const LDAPControl *c )
 }
 
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* Adapted for inclusion into OpenLDAP by Kurt D. Zeilenga */
@@ -410,7 +410,6 @@ ldap_create_control(
 	LDAPControl **ctrlp )
 {
 	LDAPControl *ctrl;
-	struct berval *bvalp;
 
 	assert( requestOID != NULL );
 	assert( ber != NULL );
@@ -421,13 +420,10 @@ ldap_create_control(
 		return LDAP_NO_MEMORY;
 	}
 
-	if ( ber_flatten( ber, &bvalp ) == -1 ) {
+	if ( ber_flatten2( ber, &ctrl->ldctl_value, 1 ) == -1 ) {
 		LDAP_FREE( ctrl );
 		return LDAP_NO_MEMORY;
 	}
-
-	ctrl->ldctl_value = *bvalp;
-	ber_memfree( bvalp );
 
 	ctrl->ldctl_oid = LDAP_STRDUP( requestOID );
 	ctrl->ldctl_iscritical = iscritical;
