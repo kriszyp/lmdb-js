@@ -2492,7 +2492,11 @@ aci_mask(
 		return 0;
 	}
 
-	/* note: this may fail if a DN contains a valid '#' (unescaped) */
+	/* NOTE: this may fail if a DN contains a valid '#' (unescaped);
+	 * just grab all the berval up to its end.
+	 * NOTE: the problem could be solved by providing the DN with
+	 * the embedded '#' encoded as hexpairs: "cn=Foo#Bar" would 
+	 * become "cn=Foo\23Bar" and be safely used by aci_mask(). */
 #if 0
 	if ( aci_get_part( aci, 4, '#', &sdn ) < 0 ) {
 		return 0;
