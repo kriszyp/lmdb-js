@@ -17,7 +17,7 @@
 
 topbuilddir = ../../../../build
 topsrcdir = ../../..
-snaccdir = /usr/local/snacc
+snaccdir = /home/slim/snacc
 
 LIBTOOL=$(topbuilddir)/libtool
 OPT=-g -O2 -DLDAP_COMPONENT

@@ -201,8 +201,8 @@ comp_convert_attr_to_comp LDAP_P (( Attribute* a, Syntax *syn, struct berval* bv
         int mode, bytesDecoded, size, rc;
         void* component;
 	char* oid = a->a_desc->ad_type->sat_atype.at_oid ;
-        GenBuf* b;
-        ExpBuf* buf;
+        GenBuf* b = NULL;
+        ExpBuf* buf = NULL;
 	OidDecoderMapping* odm;
 	
 	/* look for the decoder registered for the given attribute */
@@ -233,6 +233,7 @@ comp_convert_attr_to_comp LDAP_P (( Attribute* a, Syntax *syn, struct berval* bv
 	}
 
 	ExpBufFreeBuf( buf );
+	GenBufFreeBuf( b );
 	if ( rc == -1 ) {
 		ShutdownNibbleMemLocal ( a->a_comp_data->cd_mem_op );
 		free ( a->a_comp_data );
@@ -273,6 +274,7 @@ comp_convert_assert_to_comp (
 
 	rc = (*decoder)( mem_op, genBuf, csi, len, mode );
 	ExpBufFreeBuf ( buf );
+	GenBufFreeBuf( genBuf );
 }
 
 int intToAscii( int value, char* buf ) {
@@ -662,20 +664,10 @@ comp_test_components( void* attr_nm, void* assert_nm, ComponentSyntaxInfo* csi_a
 			mode = DEC_ALLOC_MODE_2;
 
 			/* Try to decode with BER/DER decoder */
-#if 0
-			rc =BDecComponentTop( odm->BER_Decode, attr_nm, b, 0,0, &contained_comp,&bytesDecoded, mode );
-#endif
 			rc = odm->BER_Decode ( attr_nm, b, (ComponentSyntaxInfo*)&contained_comp, &bytesDecoded, mode );
 
-#if 0
-			if ( rc != LDAP_SUCCESS ) {
-				/* If fails with BER/DER decoder, try with GSER */
-				bytesDecoded = 0;
-				BufResetInReadMode( b );
-				rc = odm->GSER_decoder( attr_nm, b, contained_comp, &bytesDecoded, mode);
-			}
-#endif
 			ExpBufFreeBuf( buf );
+			GenBufFreeBuf( b );
 
 			if ( rc != LDAP_SUCCESS ) return LDAP_PROTOCOL_ERROR;
 
