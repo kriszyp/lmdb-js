@@ -455,9 +455,50 @@ tool_args( int argc, char **argv )
 		}
     }
 
-	if (version) {
-		fprintf( stderr, "%s: %s", prog, __Version );
-		if (version > 1) exit( EXIT_SUCCESS );
+	{
+		/* prevent bad linking */
+		LDAPAPIInfo api;
+		api.ldapai_info_version = LDAP_API_INFO_VERSION;
+
+		if ( ldap_get_option(NULL, LDAP_OPT_API_INFO, &api) != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: ldap_get_option(API_INFO) failed\n", prog );
+			exit( EXIT_FAILURE );
+		}
+
+		if (api.ldapai_info_version != LDAP_API_INFO_VERSION) {
+			fprintf( stderr, "LDAP APIInfo version mismatch: "
+				"got %d, expected %d\n",
+				api.ldapai_info_version, LDAP_API_INFO_VERSION );
+			exit( EXIT_FAILURE );
+    	}
+
+		if( api.ldapai_api_version != LDAP_API_VERSION ) {
+			fprintf( stderr, "LDAP API version mismatch: "
+				"got %d, expected %d\n",
+				api.ldapai_api_version, LDAP_API_VERSION );
+			exit( EXIT_FAILURE );
+		}
+
+		if( strcmp(api.ldapai_vendor_name, LDAP_VENDOR_NAME ) != 0 ) {
+			fprintf( stderr, "LDAP vendor name mismatch: "
+				"got %s, expected %s\n",
+				api.ldapai_vendor_name, LDAP_VENDOR_NAME );
+			exit( EXIT_FAILURE );
+		}
+
+		if( api.ldapai_vendor_version != LDAP_VENDOR_VERSION ) {
+			fprintf( stderr, "LDAP vendor version mismatch: "
+				"got %d, expected %d\n",
+				api.ldapai_vendor_version, LDAP_VENDOR_VERSION );
+			exit( EXIT_FAILURE );
+		}
+
+		if (version) {
+			fprintf( stderr, "%s: %s\t(LDAP library: %s %d)\n",
+				prog, __Version,
+				LDAP_VENDOR_NAME, LDAP_VENDOR_VERSION );
+			if (version > 1) exit( EXIT_SUCCESS );
+		}
 	}
 
 	if (protocol == -1)
