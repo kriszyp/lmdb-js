@@ -469,6 +469,12 @@ ber_flatten LDAP_P((
 	BerElement *ber,
 	struct berval **bvPtr ));
 
+LBER_F( int )
+ber_flatten2 LDAP_P((
+	BerElement *ber,
+	struct berval *bv,
+	int alloc ));
+
 /*
  * LBER ber accessor functions
  */

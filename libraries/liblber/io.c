@@ -362,24 +362,21 @@ ber_init( struct berval *bv )
 
 /* New C-API ber_flatten routine */
 /* This routine allocates a struct berval whose contents are a BER
-** encoding taken from the ber argument.  The bvPtr pointer pointers to
+** encoding taken from the ber argument.  The bvPtr pointer points to
 ** the returned berval.
+**
+** ber_flatten2 is the same, but uses a struct berval passed by
+** the caller. If alloc is 0 the returned bv uses the ber buf directly.
 */
-int ber_flatten(
+int ber_flatten2(
 	BerElement *ber,
-	struct berval **bvPtr)
+	struct berval *bv,
+	int alloc )
 {
-	struct berval *bv;
- 
-	assert( bvPtr != NULL );
+	assert( bv != NULL );
 
-    ber_int_options.lbo_valid = LBER_INITIALIZED;
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
-	if(bvPtr == NULL) {
-		return -1;
-	}
-
-	bv = LBER_MALLOC( sizeof(struct berval) );
 	if ( bv == NULL ) {
 		return -1;
 	}
@@ -393,19 +390,47 @@ int ber_flatten(
 		/* copy the berval */
 		ber_len_t len = ber_pvt_ber_write( ber );
 
-		bv->bv_val = (char *) LBER_MALLOC( len + 1 );
-		if ( bv->bv_val == NULL ) {
-			LBER_FREE( bv );
-			return -1;
+		if ( alloc ) {
+			bv->bv_val = (char *) LBER_MALLOC( len + 1 );
+			if ( bv->bv_val == NULL ) {
+				return -1;
+			}
+			AC_MEMCPY( bv->bv_val, ber->ber_buf, len );
+		} else {
+			bv->bv_val = ber->ber_buf;
 		}
-
-		AC_MEMCPY( bv->bv_val, ber->ber_buf, len );
 		bv->bv_val[len] = '\0';
 		bv->bv_len = len;
 	}
-    
-	*bvPtr = bv;
 	return 0;
+}
+
+int ber_flatten(
+	BerElement *ber,
+	struct berval **bvPtr)
+{
+	struct berval *bv;
+	int rc;
+ 
+	assert( bvPtr != NULL );
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if(bvPtr == NULL) {
+		return -1;
+	}
+
+	bv = LBER_MALLOC( sizeof(struct berval) );
+	if ( bv == NULL ) {
+		return -1;
+	}
+	rc = ber_flatten2(ber, bv, 1);
+	if (rc == -1) {
+		LBER_FREE(bv);
+	} else {
+		*bvPtr = bv;
+	}
+	return rc;
 }
 
 void
