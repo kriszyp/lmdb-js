@@ -545,6 +545,7 @@ UTF8StringNormalize(
 	 */
 
 	if ( s != NULL ) {
+		len = q - s;
 		q = s;
 	}
 
