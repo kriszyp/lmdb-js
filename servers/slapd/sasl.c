@@ -1083,13 +1083,7 @@ int slap_sasl_bind(
 
 	if ( sc == SASL_OK ) {
 		char *username = NULL;
-		char *realm = NULL;
 
-#if SASL_VERSION_MAJOR >= 2
-		sc = sasl_getprop( ctx, SASL_DEFUSERREALM, (const void **)&realm );
-#else
-		sc = sasl_getprop( ctx, SASL_REALM, (void **)&realm );
-#endif
 		sc = sasl_getprop( ctx,
 			SASL_USERNAME, (SASL_CONST void **)&username );
 
