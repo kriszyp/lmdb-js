@@ -1,0 +1,14 @@
+The OpenLDAP build environment relies on non-standard versions of
+configuration tools:
+	Autoconf 1.13.1
+	Automake 1.4a
+	Libtool 1.3.5 w/ patches
+
+The autoconf/automake releases used are available at:
+	ftp://ftp.openldap.org/pub/tools/
+
+The libtool release used is available from:
+	ftp://ftp.gnu.org/
+
+but with ltconfig and ltmain.sh replaced with versions found in
+this directory.
