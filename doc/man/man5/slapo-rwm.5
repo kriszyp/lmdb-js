@@ -69,15 +69,24 @@ and a real naming context by means of the
 .B rwm-suffixmassage
 directive.
 .TP
-.B rwm-suffixmassage "<virtual naming context>" "<real naming context>"
+.B rwm-suffixmassage "[<virtual naming context>]" "<real naming context>"
 Shortcut to implement naming context rewriting; the trailing part
 of the DN is rewritten from the virtual to the real naming context
 in the bindDN, searchDN, searchFilterAttrDN, compareDN, compareAttrDN,
 addDN, addAttrDN, modifyDN, modifyAttrDN, modrDN, newSuperiorDN,
 deleteDN, exopPasswdDN, and from the real to the virtual naming context
 in the searchEntryDN, searchAttrDN and matchedDN rewrite contexts.
-By default no rewriting occurs for the searchFilter rewrite context.
-This directive implies setting the
+By default no rewriting occurs for the searchFilter 
+and for the referralAttrDN and referralDN rewrite contexts.
+If no \fI<virtual naming context>\fP is given, the first suffix of the
+database is used; this requires the 
+.B rwm-suffixmassage
+directive be defined \fIafter\fP the database
+.B suffix
+directive.
+The
+.B rwm-suffixmassage
+directive automatically sets the
 .B rwm-rewriteEngine
 to
 .BR ON .
@@ -195,7 +204,7 @@ and/or
 .SH "Substitution Pattern Syntax"
 Everything starting with `$' requires substitution;
 .LP
-the only obvious exception is `$$', which is left as is;
+the only obvious exception is `$$', which is turned into a single `$';
 .LP
 the basic substitution is `$<d>', where `<d>' is a digit;
 0 means the whole string, while 1-9 is a submatch, as discussed in 
@@ -374,7 +383,7 @@ The count applies to the rewriting operation as a whole, not
 to any single rule; an optional per-rule limit can be set.
 This limit is overridden by setting specific per-rule limits
 with the `M{n}' flag.
-.SH "Configuration Examples"
+.SH "REWRITE CONFIGURATION EXAMPLES"
 .nf
 # set to `off' to disable rewriting
 rwm-rewriteEngine on
@@ -501,6 +510,35 @@ rwm-rewriteContext searchEntryDN
 rwm-rewriteRule ".+,ou=People,dc=example,dc=com$" "$0" ":@"
 rwm-rewriteRule ".*" "" "#"
 .fi
+.SH "MAPPING EXAMPLES"
+The following directives map the object class `groupOfNames' to
+the object class `groupOfUniqueNames' and the attribute type
+`member' to the attribute type `uniqueMember':
+.LP
+.RS
+.nf
+map objectclass groupOfNames groupOfUniqueNames
+map attribute uniqueMember member
+.fi
+.RE
+.LP
+This presents a limited attribute set from the foreign
+server:
+.LP
+.RS
+.nf
+map attribute cn *
+map attribute sn *
+map attribute manager *
+map attribute description *
+map attribute *
+.fi
+.RE
+.LP
+These lines map cn, sn, manager, and description to themselves, and 
+any other attribute gets "removed" from the object before it is sent 
+to the client (or sent up to the LDAP server).  This is obviously a 
+simplistic example, but you get the point.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
