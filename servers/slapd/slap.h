@@ -93,10 +93,15 @@ LDAP_BEGIN_DECL
 #define AD_LEADCHAR(c)	( ATTR_CHAR(c) )
 #define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
-/* must match syntaxes in schema_init.c */
-#define SLAPD_OID_ACI_SYNTAX "1.3.6.1.4.1.4203.666.2.1"
-#define SLAPD_OID_DN_SYNTAX "1.3.6.1.4.1.1466.115.121.1.12"
-#define SLAPD_ACI_DEFAULT_ATTR		"aci"
+/* must match in schema_init.c */
+#define SLAPD_DN_SYNTAX			"1.3.6.1.4.1.1466.115.121.1.12"
+#define SLAPD_GROUP_ATTR		"member"
+#define SLAPD_GROUP_CLASS		"groupOfNames"
+#define SLAPD_ROLE_ATTR			"roleOccupant"
+#define SLAPD_ROLE_CLASS		"organizationalRole"
+
+#define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
+#define SLAPD_ACI_ATTR			"aci"
 
 LIBSLAPD_F (int) slap_debug;
 

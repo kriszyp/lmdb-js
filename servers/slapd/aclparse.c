@@ -336,7 +336,7 @@ parse_acl(
 
 
 					if( !is_at_syntax( b->a_dn_at->ad_type,
-						SLAPD_OID_DN_SYNTAX ) )
+						SLAPD_DN_SYNTAX ) )
 					{
 						fprintf( stderr,
 							"%s: line %d: dnattr \"%s\": "
@@ -393,17 +393,17 @@ parse_acl(
 						}
 					} else {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-						b->a_group_oc = oc_find("groupOfNames");
+						b->a_group_oc = oc_find(SLAPD_GROUP_CLASS);
 
 						if( b->a_group_oc == NULL ) {
 							fprintf( stderr,
 								"%s: line %d: group default objectclass "
 								"\"%s\" unknown\n",
-								fname, lineno, "groupOfNames" );
+								fname, lineno, SLAPD_GROUP_CLASS );
 							acl_usage();
 						}
 #else
-						b->a_group_oc = ch_strdup("groupOfNames");
+						b->a_group_oc = ch_strdup(SLAPD_GROUP_CLASS);
 #endif
 					}
 
@@ -447,22 +447,22 @@ parse_acl(
 						*--name = '/';
 					} else {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-						rc = slap_str2ad( "member", &b->a_group_at, &text );
+						rc = slap_str2ad( SLAPD_GROUP_ATTR, &b->a_group_at, &text );
 
 						if( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
 								"%s: line %d: group \"%s\": %s\n",
-								fname, lineno, "member", text );
+								fname, lineno, SLAPD_GROUP_ATTR, text );
 							acl_usage();
 						}
 #else
-						b->a_group_at = ch_strdup( "member" );
+						b->a_group_at = ch_strdup( SLAPD_GROUP_ATTR );
 #endif
 					}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 					if( !is_at_syntax( b->a_group_at->ad_type,
-						SLAPD_OID_DN_SYNTAX ) )
+						SLAPD_DN_SYNTAX ) )
 					{
 						fprintf( stderr,
 							"%s: line %d: group \"%s\": inappropriate syntax: %s\n",
@@ -570,23 +570,24 @@ parse_acl(
 							acl_usage();
 						}
 
-						if( b->a_aci_at->ad_type->sat_syntax
-							!= ad_aci->ad_type->sat_syntax )
-						{
+					} else {
+						rc = slap_str2ad( SLAPD_ACI_ATTR, &b->a_aci_at, &text );
+
+						if( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
-								"%s: line %d: aci \"%s\": inappropriate syntax: %s\n",
-								fname, lineno, right,
-								b->a_aci_at->ad_type->sat_syntax_oid );
+								"%s: line %d: aci \"%s\": %s\n",
+								fname, lineno, SLAPD_ACI_ATTR, text );
 							acl_usage();
 						}
-					} else {
-						b->a_aci_at = ad_dup( ad_aci );
 					}
 
-					if( b->a_aci_at == NULL ) {
+					if( !is_at_syntax( b->a_aci_at->ad_type,
+						SLAPD_ACI_SYNTAX) )
+					{
 						fprintf( stderr,
-							"%s: line %d: aci attribute type undefined.\n",
-							fname, lineno );
+							"%s: line %d: aci \"%s\": inappropriate syntax: %s\n",
+							fname, lineno, right,
+							b->a_aci_at->ad_type->sat_syntax_oid );
 						acl_usage();
 					}
 
@@ -594,7 +595,7 @@ parse_acl(
 					if ( right != NULL && *right != '\0' ) {
 						b->a_aci_at = ch_strdup( right );
 					} else {
-						b->a_aci_at = ch_strdup( SLAPD_ACI_DEFAULT_ATTR );
+						b->a_aci_at = ch_strdup( SLAPD_ACI_ATTR );
 					}
 #endif
 					continue;

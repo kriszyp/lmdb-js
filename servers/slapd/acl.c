@@ -1179,11 +1179,11 @@ aci_mask(
 #endif
 
 	} else if (aci_strbvcmp( "group", &bv ) == 0) {
-		if (aci_group_member(&sdn, "groupOfNames", "member", be, e, op, matches))
+		if (aci_group_member(&sdn, SLAPD_GROUP_CLASS, SLAPD_GROUP_ATTR, be, e, op, matches))
 			return(1);
 
 	} else if (aci_strbvcmp( "role", &bv ) == 0) {
-		if (aci_group_member(&sdn, "organizationalRole", "roleOccupant", be, e, op, matches))
+		if (aci_group_member(&sdn, SLAPD_ROLE_CLASS, SLAPD_ROLE_ATTR, be, e, op, matches))
 			return(1);
 	}
 
