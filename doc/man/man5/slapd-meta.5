@@ -513,20 +513,22 @@ client -> server:
 .LP
 .RS
 .nf
-(default)      if defined and no specific context 
-               is available
-bindDN         bind
-searchBase     search
-searchFilter   search
-compareDN      compare
-compareAttrDN  compare AVA
-addDN          add
-addAttrDN      add AVA
-modifyDN       modify
-modifyAttrDN   modify AVA
-modrDN         modrdn
-newSuperiorDN  modrdn
-deleteDN       delete
+(default)            if defined and no specific context 
+                     is available
+bindDN               bind
+searchBase           search
+searchFilter         search
+searchFilterAttrDN   search
+compareDN            compare
+compareAttrDN        compare AVA
+addDN                add
+addAttrDN            add AVA
+modifyDN             modify
+modifyAttrDN         modify AVA
+modrDN               modrdn
+newSuperiorDN        modrdn
+deleteDN             delete
+exopPasswdDN         passwd exop DN if proxy
 .fi
 .RE
 .LP
@@ -534,11 +536,11 @@ server -> client:
 .LP
 .RS
 .nf
-searchResult   search (only if defined; no default;
-               acts on DN and DN-syntax attributes 
-               of search results)
-searchAttrDN   search AVA
-matchedDN      all ops (only if applicable)
+searchResult         search (only if defined; no default;
+                     acts on DN and DN-syntax attributes 
+                     of search results)
+searchAttrDN         search AVA
+matchedDN            all ops (only if applicable)
 .fi
 .RE
 .LP
@@ -627,10 +629,10 @@ rewriteRule     ".*" "%{>addBlanks(%0)}" ":"
 .\" 
 .\" # Finally, in a bind, if one uses a `uid=username' DN,
 .\" # it is rewritten in `cn=name surname' if possible.
-.\" rewriteContext  bindDn
+.\" rewriteContext  bindDN
 .\" rewriteRule     ".*" "%{>addBlanks(%{>uid2Gecos(%0)})}" ":"
 .\" 
-# Rewrite the search base  according to `default' rules.
+# Rewrite the search base according to `default' rules.
 rewriteContext  searchBase alias default
 
 # Search results with OpenLDAP DN are rewritten back with
@@ -652,7 +654,7 @@ rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
 # to real naming contexts, we also need to rewrite
 # regular DNs, because the definition of a bindDn
 # rewrite context overrides the default definition.
-rewriteContext bindDn
+rewriteContext bindDN
 rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" ":@I"
 
 # This is a rather sophisticated example. It massages a
@@ -661,7 +663,7 @@ rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" ":@I"
 # track of the bind DN of the incoming request, which is
 # stored in a variable called `binddn' with session scope,
 # and left in place to allow regular binding:
-rewriteContext  bindDn
+rewriteContext  bindDN
 rewriteRule     ".+" "%{&&binddn(%0)}%0" ":"
 
 # A search filter containing `uid=' is rewritten only

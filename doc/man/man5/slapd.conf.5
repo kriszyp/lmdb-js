@@ -298,7 +298,7 @@ anonymous | users | [dn[.<style>]=]<pattern> | group[/oc[/at]]=<pattern>
 with
 .RS
 .TP
-<style> ::= exact | base | one | subtree | children | regex | anonymous
+<style> ::= exact | base | onelevel | subtree | children | regex | anonymous
 
 .RE
 The term
@@ -317,11 +317,11 @@ with
 or
 .B base
 (which are synonyms), to require an exact match; with
-.BR one, 
+.BR onelevel , 
 to require exactly one level of depth match; with
-.BR subtree,
+.BR subtree ,
 to allow any level of depth match, including the exact match; with
-.BR children,
+.BR children ,
 to allow any level of depth match, not including the exact match;
 .BR regex
 explicitly requires the (default) match based on regular expression
@@ -359,7 +359,7 @@ whose DN exactly matches
 The currently supported limits are 
 .B size
 and 
-.BR time.
+.BR time .
 
 The syntax for time limits is 
 .BR time[.{soft|hard}]=<integer> ,
@@ -370,11 +370,17 @@ If no time limit is explicitly requested by the client, the
 .BR soft
 limit is used; if the requested time limit exceeds the
 .BR hard
-limit, an "Administrative limit exceeded" is returned.
+limit, an
+.I \"Administrative limit exceeded\"
+is returned.
 If the
 .BR hard
-limit is set to 0 or to the keyword "soft", the soft limit is used 
-in either case; if it is set to -1 or to the keyword "none", 
+limit is set to 0 or to the keyword 
+.IR soft ,
+the soft limit is used in either case; if it is set to 
+.I -1 
+or to the keyword 
+.IR none , 
 no hard limit is enforced.
 Explicit requests for time limits smaller or equal to the
 .BR hard 
@@ -395,11 +401,17 @@ If no size limit is explicitly requested by the client, the
 .BR soft
 limit is used; if the requested size limit exceeds the
 .BR hard
-limit, an "Administrative limit exceeded" is returned.
+limit, an 
+.I \"Administrative limit exceeded\"
+is returned.
 If the 
 .BR hard
-limit is set to 0 or to the keyword "soft", the soft limit is used 
-in either case; if it is set to -1 or to the keyword "none", 
+limit is set to 0 or to the keyword 
+.IR soft , 
+the soft limit is used in either case; if it is set to 
+.I -1 
+or to the keyword
+.IR none , 
 no hard limit is enforced.
 Explicit requests for size limits smaller or equal to the
 .BR hard
@@ -410,8 +422,13 @@ flag sets a limit on the number of candidates a search request is allowed
 to examine.
 If the selected candidates exceed the 
 .BR unchecked
-limit, the search will abort with "Unwilling to perform".
-If it is set to -1 or to the keyword "none", no limit is applied (the default).
+limit, the search will abort with 
+.IR \"Unwilling to perform\" .
+If it is set to
+.I -1 
+or to the keyword 
+.IR none , 
+no limit is applied (the default).
 If no flag is set, the value is assigned to the
 .BR soft 
 limit, and the
@@ -420,7 +437,7 @@ limit is set to zero, to preserve the original behavior.
 
 In case of no match, the global limits are used.
 The default values are the same of
-.BR sizelimit
+.B sizelimit
 and
 .BR timelimit ;
 no limit is set on 
@@ -433,7 +450,7 @@ control is defined, additional size limits may be enforced; the syntax is
 where
 .BR integer
 is the max page size if no explicit limit is set; the keyword
-.BR noEstimate
+.IR noEstimate
 inhibits the server to return an estimate of the total number
 of entries that will be returned.
 .RE
@@ -529,9 +546,9 @@ in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
 value "oid.xx" will be used.
 .TP
-.B password-hash <hash>
-This option sets the hash to be used in generation of user
-passwords, stored in userPassword, during processing of
+.B password-hash <hash> [<hash>...]
+This option configures one or more hashes to be used in generation of user
+passwords stored in the userPassword attribute during processing of
 LDAP Password Modify Extended Operations (RFC 3062).
 The <hash> must be one of
 .BR {SSHA} ,
@@ -684,6 +701,87 @@ In general the
 .I saslAuthzTo
 attribute must be protected with ACLs such that
 only privileged users can modify it.
+The value of
+.I saslAuthzFrom
+and
+.I saslAuthzTo
+describes an 
+.B identity 
+or a set of identities; it can take three forms:
+.RS
+.RS
+.TP
+.B ldap:///<base>??[<scope>]?<filter>
+.RE
+.RS
+.B dn[.<dnstyle>]:<pattern>
+.RE
+.RS
+.B u[<mech>[<realm>]]:<pattern>
+.RE
+.RS
+.B <pattern>
+.RE
+.RS
+
+.B <dnstyle>:={exact|onelevel|children|subtree|regex}
+
+.RE
+The first form is a valid LDAP
+.B uri
+where the 
+.IR <host>:<port> ,
+the
+.I <attrs>
+and the
+.I <extensions>
+portions must be absent, so that the search occurs locally on either
+.I saslAuthzFrom
+or 
+.IR saslAuthzTo .
+The second form is a 
+.BR DN ,
+with the optional style modifiers
+.IR exact ,
+.IR onelevel ,
+.IR children ,
+and
+.I subtree
+for exact, onelevel, children and subtree matches, which cause 
+.I <pattern>
+to be normalized according to the DN normalization rules, or the special
+.I regex
+style, which causes
+.I <pattern>
+to be compiled according to 
+.BR regex (7).
+The third form is a SASL
+.BR id ,
+with the optional fields
+.I <mech>
+and
+.I <realm>
+that allow to specify a SASL
+.BR mechanism ,
+and eventually a SASL
+.BR realm ,
+for those mechanisms that support one.
+The need to allow the specification of a mechanism is still debated, 
+and users are strongly discouraged to rely on this possibility.
+For backwards compatibility, if no identity type is provided, i.e. only
+.B <pattern>
+is present, an
+.I exact DN
+is assumed; as a consequence, 
+.B <pattern>
+is subjected to DN normalization.
+Since the interpretation of
+.I saslAuthzFrom
+and
+.I saslAuthzTo
+can impact security, users are strongly encouraged 
+to explicitly set the type of identity specification that is being used.
+.RE
 .TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.
@@ -1028,6 +1126,14 @@ createTimestamp attributes for entries.  By default, lastmod is on.
 .B maxderefdepth <depth>
 Specifies the maximum number of aliases to dereference when trying to
 resolve an entry, used to avoid infinite alias loops. The default is 1.
+.TP
+.B overlay <overlay-name>
+Add the specified overlay to this database. An overlay is a piece of
+code that intercepts database operations in order to extend or change
+them. Overlays are pushed onto
+a stack over the database, and so they will execute in the reverse
+of the order in which they were configured and the database itself
+will receive control last of all.
 .TP
 .B readonly on | off
 This option puts the database into "read-only" mode.  Any attempts to 

@@ -7,6 +7,7 @@ slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slapd 
 .B [\-[4|6]]
+.B [\-T (a|c|i|p)]
 .B [\-d debug\-level]
 .B [\-f slapd\-config\-file]
 .B [\-h URLs]
@@ -63,6 +64,14 @@ Listen on IPv4 addresses only.
 .TP
 .B \-6
 Listen on IPv6 addresses only.
+.TP
+.B \-T (a|c|i|p)
+Run in Tool mode. The additional argument selects whether to run as
+slapadd, slapcat, slapindex, or slappasswd. This option should be the first
+option specified when it is used. Any remaining options will be interpreted
+by the corresponding slap tool program. Note that these tool programs will
+usually be symbolic links to slapd. This option is provided for situations
+where symbolic links are not provided or not usable.
 .TP
 .BI \-d " debug\-level"
 Turn on debugging as defined by
@@ -228,6 +237,10 @@ To test whether the configuration file is correct or not, type:
 .BR ldap (3),
 .BR slapd.conf (5),
 .BR slapd.access (5),
+.BR slapadd (8),
+.BR slapcat (8),
+.BR slapindex (8),
+.BR slappasswd (8),
 .BR slurpd (8)
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
