@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.557 2004/11/25 20:16:55 hyc Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.558 2004/11/29 19:21:42 slim Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -1797,11 +1797,9 @@ if test "${enable_modules+set}" = set; then
 		{ echo "configure: error: bad value $enableval for --enable-modules" 1>&2; exit 1; }
 	fi
 	ol_enable_modules="$ol_arg"
-	WITH_MODULES_ENABLED=yes
 
 else
   	ol_enable_modules="no"
-	WITH_MODULES_ENABLED=no
 fi
 # end --enable-modules
 ol_enable_multimaster=${ol_enable_multimaster-no}
@@ -24841,7 +24839,6 @@ EOF
 
 fi
 
-WITH_MODULES_ENABLED=no
 if test "$ol_link_modules" != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_MODULES 1
