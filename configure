@@ -121,7 +121,7 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-null	  enable null backend [no]"
 ac_help="$ac_help
-    --with-null-module	module type [static]"
+    --with-null-module	  module type [static]"
 ac_help="$ac_help
     --enable-passwd	  enable passwd backend [no]"
 ac_help="$ac_help
