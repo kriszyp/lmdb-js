@@ -416,10 +416,9 @@ modify_add_values(
 
 		if ( mod->sm_bvalues[1].bv_val == 0 ) {
 			if ( a != NULL ) {
-				struct berval	asserted;
 				int		i;
-
 #ifndef SLAP_NVALUES
+				struct berval	asserted;
 				rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
 					&mod->sm_bvalues[ 0 ], &asserted, text );
 				if ( rc != LDAP_SUCCESS ) {
@@ -463,7 +462,9 @@ modify_add_values(
 							matched++;
 							continue;
 						}
+#ifndef SLAP_NVALUES
 						free( asserted.bv_val );
+#endif
 						*text = textbuf;
 						snprintf( textbuf, textlen,
 							"modify/%s: %s: value #0 already exists",
@@ -471,6 +472,9 @@ modify_add_values(
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
 				}
+#ifndef SLAP_NVALUES
+				free( asserted.bv_val );
+#endif
 				if ( permissive && matched == i ) {
 					/* values already exist; do nothing */
 					return LDAP_SUCCESS;
