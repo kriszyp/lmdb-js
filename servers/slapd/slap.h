@@ -1531,7 +1531,7 @@ struct slap_backend_db {
 	void	*be_private;	/* anything the backend database needs 	   */
 
 	void    *be_pb;         /* Netscape plugin */
-	LDAP_TAILQ_HEAD( pcl, slap_csn_entry )	be_pending_csn_list;
+	LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry )	be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
