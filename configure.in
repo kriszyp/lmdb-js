@@ -1653,6 +1653,7 @@ if test $ol_with_cyrus_sasl != no ; then
 
 		if test $have_cyrus_sasl != no ; then
 			LUTIL_LIBS="$LUTIL_LIBS -lsasl"
+			AC_DEFINE(HAVE_CRYUS_SASL,1,[define if you have Cyrus SASL])
 			ol_link_sasl=yes
 		fi
 	fi

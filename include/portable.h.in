@@ -699,6 +699,9 @@
 /* define if you have no termcap support */
 #undef NO_TERMCAP
 
+/* define if you have Cyrus SASL */
+#undef HAVE_CRYUS_SASL
+
 /* define if you actually have FreeBSD fetch(3) */
 #undef HAVE_FETCH
 
