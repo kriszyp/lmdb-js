@@ -581,7 +581,7 @@ acl_mask(
 			 */
 			for ( i = 0; at->a_vals[i] != NULL; i++ ) {
 				if (aci_mask( be, op,
-					e, attr, val, at->a_vals[i],
+					e, desc, val, at->a_vals[i],
 					matches, &grant, &deny ) != 0)
 				{
 					tgrant |= grant;
