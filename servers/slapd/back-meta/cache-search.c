@@ -1068,6 +1068,8 @@ add_filter_attrs(
 	if (attrs == NULL) { 
 		(*new_attrs)[0].an_name.bv_val = "*"; 
 		(*new_attrs)[0].an_name.bv_len = 1; 
+		(*new_attrs)[1].an_name.bv_val = NULL;
+		(*new_attrs)[1].an_name.bv_len = 0; 
 		alluser = 1; 
 		allop = 0; 
 	} else {  
@@ -1075,11 +1077,11 @@ add_filter_attrs(
 			(*new_attrs)[i].an_name = attrs[i].an_name; 
 			(*new_attrs)[i].an_desc = attrs[i].an_desc;  
 		}
+		(*new_attrs)[count].an_name.bv_val = NULL; 
+		(*new_attrs)[count].an_name.bv_len = 0; 
 		alluser = an_find(*new_attrs, &all_user); 
 		allop = an_find(*new_attrs, &all_op); 
 	}
-	(*new_attrs)[count].an_name.bv_val = NULL; 
-	(*new_attrs)[count].an_name.bv_len = 0; 
 
 	for ( i=0; filter_attrs[i].an_name.bv_val; i++ ) {
 		if ( an_find(*new_attrs, &filter_attrs[i].an_name ))
