@@ -702,7 +702,7 @@ new_group( char *dn, Group ***list, int *nlist )
 	Group	*this_group;
 
 	for ( i = 0; i < *nlist; i++ ) {
-		if ( strcmp( dn, (*list)[i]->g_dn ) == 0 ) {
+		if ( strcasecmp( dn, (*list)[i]->g_dn ) == 0 ) {
 			syslog( LOG_ALERT, "group loop 2 detected (%s)", dn );
 			return NULL;
 		}
@@ -1317,6 +1317,13 @@ entry_engine(
 			} else {
 				current_group = new_group( dn, togroups,
 							   ngroups );
+				if ( ! current_group )
+					/*
+					 * We have already considered
+					 * this group, so we just
+					 * return resolved.
+					 */
+					return 1;
 				current_to = &current_group->g_members;
 				current_nto = &current_group->g_nmembers;
 				split_address( address,
