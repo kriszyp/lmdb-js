@@ -441,11 +441,6 @@ bdb_cache_find_parent(
 		/* This node is not fully connected yet */
 		ein->bei_state = CACHE_ENTRY_NOT_LINKED;
 
-		/* If this is the first time, save this node
-		 * to be returned later.
-		 */
-		if ( eir == NULL ) eir = ein;
-
 		/* Insert this node into the ID tree */
 		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		if ( avl_insert( &bdb->bi_cache.c_idtree, (caddr_t)ein,
@@ -460,6 +455,11 @@ bdb_cache_find_parent(
 				avl_dup_error );
 			bdb_cache_entryinfo_unlock( ein );
 		}
+
+		/* If this is the first time, save this node
+		 * to be returned later.
+		 */
+		if ( eir == NULL ) eir = ein;
 
 		/* If there was a previous node, link it to this one */
 		if ( ei2 ) ei2->bei_parent = ein;
