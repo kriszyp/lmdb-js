@@ -102,10 +102,11 @@ struct berval * UTF8bvnormalize(
 	char *out, *outtmp, *s;
 	unsigned long *ucs, *p, *ucsout;
 
+	static unsigned char mask[] = {
+		0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
+
 	unsigned casefold = flags & LDAP_UTF8_CASEFOLD;
 	unsigned approx = flags & LDAP_UTF8_APPROX;
-	static unsigned char mask[] = {
-                0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
 
 	if ( bv == NULL ) {
 		return NULL;
@@ -118,9 +119,9 @@ struct berval * UTF8bvnormalize(
 		return ber_dupbv_x( newbv, bv, ctx );
 	}
 	
-	/* FIXME: Should first check to see if string is already in
-	 * proper normalized form. This is almost as time consuming
-	 * as the normalization though.
+	/* Should first check to see if string is already in proper
+	 * normalized form. This is almost as time consuming as
+	 * the normalization though.
 	 */
 
 	/* finish off everything up to character before first non-ascii */
@@ -137,7 +138,7 @@ struct berval * UTF8bvnormalize(
 				out[outpos++] = TOLOWER( s[i-1] );
 			}
 			if ( i == len ) {
-				out[outpos++] = TOLOWER( s[len - 1] );
+				out[outpos++] = TOLOWER( s[len-1] );
 				out[outpos] = '\0';
 				return ber_str2bv( out, outpos, 0, newbv);
 			}
@@ -176,7 +177,7 @@ struct berval * UTF8bvnormalize(
 
 	/* convert character before first non-ascii to ucs-4 */
 	if ( i > 0 ) {
-		*p = casefold ? TOLOWER( s[i - 1] ) : s[i - 1];
+		*p = casefold ? TOLOWER( s[i-1] ) : s[i-1];
 		p++;
 	}
 
@@ -211,7 +212,7 @@ struct berval * UTF8bvnormalize(
 				*p = uctolower( *p );
 			}
 			p++;
-                }
+		}
 		/* normalize ucs of length p - ucs */
 		uccompatdecomp( ucs, p - ucs, &ucsout, &ucsoutlen, ctx );
 		if ( approx ) {
@@ -256,14 +257,15 @@ struct berval * UTF8bvnormalize(
 			out[outpos++] = casefold ? TOLOWER( s[i-1] ) : s[i-1];
 		}
 		if ( i == len ) {
-			out[outpos++] = casefold ? TOLOWER( s[len - 1] ) : s[len - 1];
+			out[outpos++] = casefold ? TOLOWER( s[len-1] ) : s[len-1];
 			break;
 		}
 
 		/* convert character before next non-ascii to ucs-4 */
-		*ucs = casefold ? TOLOWER( s[i - 1] ) : s[i - 1];
+		*ucs = casefold ? TOLOWER( s[i-1] ) : s[i-1];
 		p = ucs + 1;
-	}		
+	}
+
 	free( ucs );
 	out[outpos] = '\0';
 	return ber_str2bv( out, outpos, 0, newbv );
@@ -280,12 +282,14 @@ int UTF8bvnormcmp(
 	int i, l1, l2, len, ulen, res = 0;
 	char *s1, *s2, *done;
 	unsigned long *ucs, *ucsout1, *ucsout2;
+
 	unsigned casefold = flags & LDAP_UTF8_CASEFOLD;
 	unsigned norm1 = flags & LDAP_UTF8_ARG1NFC;
 	unsigned norm2 = flags & LDAP_UTF8_ARG2NFC;
 
 	if (bv1 == NULL) {
 		return bv2 == NULL ? 0 : -1;
+
 	} else if (bv2 == NULL) {
 		return 1;
 	}
@@ -306,7 +310,7 @@ int UTF8bvnormcmp(
 		if (casefold) {
 			char c1 = TOLOWER(*s1);
 			char c2 = TOLOWER(*s2);
-		    	res = c1 - c2;
+			res = c1 - c2;
 		} else {
 			res = *s1 - *s2;
 		}			
@@ -319,7 +323,8 @@ int UTF8bvnormcmp(
 					break;
 				}
 			} else if (((len < l1) && !LDAP_UTF8_ISASCII(s1)) ||
-				   ((len < l2) && !LDAP_UTF8_ISASCII(s2))) {
+				((len < l2) && !LDAP_UTF8_ISASCII(s2)))
+			{
 				break;
 			}
 			return res;
@@ -346,10 +351,9 @@ int UTF8bvnormcmp(
 		l2 -= i - 1;
 	}
 			
-	/* FIXME: Should first check to see if strings are already in
+	/* Should first check to see if strings are already in
 	 * proper normalized form.
 	 */
-
 	ucs = malloc( ( ( norm1 || l1 > l2 ) ? l1 : l2 ) * sizeof(*ucs) );
 	if ( ucs == NULL ) {
 		return l1 > l2 ? 1 : -1; /* what to do??? */
@@ -362,11 +366,11 @@ int UTF8bvnormcmp(
 	
 	/* convert and normalize 1st string */
 	for ( i = 0, ulen = 0; i < l1; i += len, ulen++ ) {
-                ucs[ulen] = ldap_x_utf8_to_ucs4( s1 + i );
-                if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
+		ucs[ulen] = ldap_x_utf8_to_ucs4( s1 + i );
+		if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
 			free( ucs );
-                        return -1; /* what to do??? */
-                }
+			return -1; /* what to do??? */
+		}
 		len = LDAP_UTF8_CHARLEN( s1 + i );
 	}
 
@@ -384,12 +388,12 @@ int UTF8bvnormcmp(
 
 	/* convert and normalize 2nd string */
 	for ( i = 0, ulen = 0; i < l2; i += len, ulen++ ) {
-                ucs[ulen] = ldap_x_utf8_to_ucs4( s2 + i );
-                if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
+		ucs[ulen] = ldap_x_utf8_to_ucs4( s2 + i );
+		if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
 			free( ucsout1 );
 			free( ucs );
-                        return 1; /* what to do??? */
-                }
+			return 1; /* what to do??? */
+		}
 		len = LDAP_UTF8_CHARLEN( s2 + i );
 	}
 
