@@ -224,7 +224,7 @@ retry:          /* transaction retry */
 				matched_dn, NULL, refs, NULL );
 
 			ber_bvarray_free( refs );
-			bdb_cache_return_entry_r( be, p );
+			bdb_cache_return_entry_r( &bdb->bi_cache, p );
 			p = NULL;
 			goto done;
 		}
@@ -235,7 +235,7 @@ retry:          /* transaction retry */
 		}
 
 		/* free parent and reader lock */
-		bdb_cache_return_entry_r( be, p );
+		bdb_cache_return_entry_r( &bdb->bi_cache, p );
 		p = NULL;
 
 	} else {

@@ -225,7 +225,8 @@ bdb_dn2id(
 
 	assert (id);
  
-	if ((*id = bdb_cache_find_entry_ndn2id(be,&bdb->bi_cache,dn)) != NOID) {
+	*id = bdb_cache_find_entry_ndn2id(be, &bdb->bi_cache, dn);
+	if (*id != NOID) {
 		return 0;
 	}
 
@@ -268,7 +269,8 @@ bdb_dn2id_matched(
 	DBT		key, data;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
-	char 		*buf, *dn;
+	char 		*buf;
+	struct	berval dn;
 	ID		cached_id;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_matched( \"%s\" )\n", in->bv_val, 0, 0 );
@@ -277,8 +279,9 @@ bdb_dn2id_matched(
 	key.size = in->bv_len + 2;
 	buf = ch_malloc( key.size );
 	key.data = buf;
-	dn = buf+1;
-	AC_MEMCPY( dn, in->bv_val, key.size - 1 );
+	dn.bv_val = buf+1;
+	dn.bv_len = key.size - 2;
+	AC_MEMCPY( dn.bv_val, in->bv_val, key.size - 1 );
 
 	/* store the ID */
 	DBTzero( &data );
@@ -287,17 +290,17 @@ bdb_dn2id_matched(
 	data.flags = DB_DBT_USERMEM;
 
 	while(1) {
-		dn[-1] = DN_BASE_PREFIX;
+		dn.bv_val[-1] = DN_BASE_PREFIX;
 
 		*id = NOID;
 
 		/* lookup cache */
-		cached_id = bdb_cache_find_entry_ndn2id(be,&bdb->bi_cache,dn);
+		cached_id = bdb_cache_find_entry_ndn2id(be, &bdb->bi_cache, &dn);
  
 		if (cached_id != NOID) {
 			rc = 0;
 			*id = cached_id;
-			if ( dn != buf+1 ) {
+			if ( dn.bv_val != buf+1 ) {
 				*id2 = *id;
 			}
 			break;
@@ -309,8 +312,8 @@ bdb_dn2id_matched(
 		if( rc == DB_NOTFOUND ) {
 			char 	*pdn = NULL;
 
-			if ( ! be_issuffix( be, dn ) ) {
-				rc = dnParent( dn, &pdn );
+			if ( ! be_issuffix( be, dn.bv_val ) ) {
+				rc = dnParent( dn.bv_val, &pdn );
 				if ( rc != LDAP_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
 						"<= bdb_dn2id_matched: dnParent(\"%s\") failed\n",
@@ -326,8 +329,9 @@ bdb_dn2id_matched(
 				break;
 			}
 
-			key.size -= pdn - dn;
-			dn = pdn;
+			key.size -= pdn - dn.bv_val;
+			dn.bv_val = pdn;
+			dn.bv_len = key.size - 2;
 			key.data = pdn - 1;
 
 		} else if ( rc == 0 ) {
@@ -338,7 +342,7 @@ bdb_dn2id_matched(
 					(long) sizeof(ID), (long) data.size, 0 );
 			}
 
-			if( dn != buf+1 ) {
+			if( dn.bv_val != buf+1 ) {
 				*id2 = *id;
 			}
 
