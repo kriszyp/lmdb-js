@@ -1,9 +1,10 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.x Engineering
+OpenLDAP 2.0.6 Engineering
 	Build Environment
+		Fixed schema install (ITS#802)
 		Added libtool customizations
-		Enabled module support
+		Re-enabled module support
 	Documentation
 		Update ldapsearch(1)
 
