@@ -48,6 +48,7 @@ get_ava(
 	}
 
 	aa = ch_malloc( sizeof( AttributeAssertion ) );
+	aa->aa_desc = NULL;
 
 	rc = slap_bv2ad( &type, &aa->aa_desc, &text );
 
@@ -59,6 +60,7 @@ get_ava(
 	}
 
 	aa->aa_value = value;
+	*ava = aa;
 
 	return LDAP_SUCCESS;
 }

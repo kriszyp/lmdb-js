@@ -99,6 +99,8 @@ get_filter(
 			break;
 		}
 
+		assert( f->f_ava != NULL );
+
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		*fstr = ch_malloc( sizeof("(=)")
 			+ f->f_av_desc->ad_cname->bv_len
