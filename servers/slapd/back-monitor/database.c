@@ -36,10 +36,10 @@ static int monitor_back_add_plugin( Backend *be, Entry *e );
 #include "../back-ldap/back-ldap.h"
 #endif /* defined(SLAPD_LDAP) */
 
-static struct restrict_ops_t {
+static struct restricted_ops_t {
 	struct berval	op;
 	unsigned int	tag;
-} restrict_ops[] = {
+} restricted_ops[] = {
 	{ BER_BVC( "add" ),			SLAP_RESTRICT_OP_ADD },
 	{ BER_BVC( "bind" ),			SLAP_RESTRICT_OP_BIND },
 	{ BER_BVC( "compare" ),			SLAP_RESTRICT_OP_COMPARE },
@@ -49,7 +49,7 @@ static struct restrict_ops_t {
 	{ BER_BVC( "rename" ),			SLAP_RESTRICT_OP_RENAME },
 	{ BER_BVC( "search" ),			SLAP_RESTRICT_OP_SEARCH },
 	{ BER_BVNULL,				0 }
-}, restrict_exops[] = {
+}, restricted_exops[] = {
 	{ BER_BVC( LDAP_EXOP_START_TLS ),	SLAP_RESTRICT_EXOP_START_TLS },
 	{ BER_BVC( LDAP_EXOP_MODIFY_PASSWD ),	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
 	{ BER_BVC( LDAP_EXOP_X_WHO_AM_I ),	SLAP_RESTRICT_EXOP_WHOAMI },
@@ -71,20 +71,20 @@ init_restrictedOperation( struct monitorinfo *mi, Entry *e, slap_mask_t restrict
 {
 	int	i, rc;
 
-	for ( i = 0; restrict_ops[ i ].op.bv_val; i++ ) {
-		if ( restrictops & restrict_ops[ i ].tag ) {
+	for ( i = 0; restricted_ops[ i ].op.bv_val; i++ ) {
+		if ( restrictops & restricted_ops[ i ].tag ) {
 			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
-					&restrict_ops[ i ].op, &restrict_ops[ i ].op );
+					&restricted_ops[ i ].op, &restricted_ops[ i ].op );
 			if ( rc ) {
 				return rc;
 			}
 		}
 	}
 
-	for ( i = 0; restrict_exops[ i ].op.bv_val; i++ ) {
-		if ( restrictops & restrict_exops[ i ].tag ) {
+	for ( i = 0; restricted_exops[ i ].op.bv_val; i++ ) {
+		if ( restrictops & restricted_exops[ i ].tag ) {
 			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
-					&restrict_exops[ i ].op, &restrict_exops[ i ].op );
+					&restricted_exops[ i ].op, &restricted_exops[ i ].op );
 			if ( rc ) {
 				return rc;
 			}
@@ -300,6 +300,52 @@ monitor_subsys_database_init(
 	return( 0 );
 }
 
+/*
+ * v: array of values
+ * cur: must not contain the tags corresponding to the values in v
+ * delta: will contain the tags corresponding to the values in v
+ */
+static int
+value_mask( BerVarray v, slap_mask_t cur, slap_mask_t *delta )
+{
+	for ( ; !BER_BVISNULL( v ); v++ ) {
+		struct restricted_ops_t		*rops;
+		int				i;
+
+		if ( OID_LEADCHAR( v->bv_val[ 0 ] ) ) {
+			rops = restricted_exops;
+
+		} else {
+			rops = restricted_ops;
+		}
+
+		for ( i = 0; !BER_BVISNULL( &rops[ i ].op ); i++ ) {
+			if ( ber_bvstrcasecmp( v, &rops[ i ].op ) != 0 ) {
+				continue;
+			}
+
+			if ( rops[ i ].tag & *delta ) {
+				return LDAP_OTHER;
+			}
+
+			if ( rops[ i ].tag & cur ) {
+				return LDAP_OTHER;
+			}
+
+			cur |= rops[ i ].tag;
+			*delta |= rops[ i ].tag;
+
+			break;
+		}
+
+		if ( BER_BVISNULL( &rops[ i ].op ) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
 int
 monitor_subsys_database_modify(
 	Operation	*op,
@@ -308,11 +354,13 @@ monitor_subsys_database_modify(
 {
 	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	int rc = LDAP_OTHER;
-	Attribute *save_attrs;
+	Attribute *save_attrs, *a;
 	Modifications *modlist = op->oq_modify.rs_modlist;
 	Modifications *ml;
 	Backend *be;
-	int gotval = 1, i, n, cur;
+	int ro_gotval = 1, i, n;
+	slap_mask_t	rp_add = 0, rp_delete = 0, rp_cur;
+	struct berval *tf;
 	
 	i = sscanf( e->e_nname.bv_val, "cn=database %d,", &n );
 	if ( i != 1 )
@@ -321,11 +369,12 @@ monitor_subsys_database_modify(
 	if ( n < 0 || n >= nBackendDB )
 		return LDAP_NO_SUCH_OBJECT;
 
+	/* do not allow some changes on back-monitor (needs work)... */
 	be = &backendDB[n];
-	if ( SLAP_MONITOR(be) )
+	if ( SLAP_MONITOR( be ) )
 		return LDAP_UNWILLING_TO_PERFORM;
 		
-	cur = (be->be_restrictops & SLAP_RESTRICT_OP_WRITES) ? 1 : 0;
+	rp_cur = be->be_restrictops;
 
 	save_attrs = e->e_attrs;
 	e->e_attrs = attrs_dup( e->e_attrs );
@@ -334,51 +383,122 @@ monitor_subsys_database_modify(
 		Modification *mod = &ml->sml_mod;
 
 		if ( mod->sm_desc == mi->mi_ad_readOnly ) {
-			int val = -1;
+			int	val = -1;
 
 			if ( mod->sm_values ) {
-				/* single-valued */
-				if ( !BER_BVISNULL(&mod->sm_values[1]) ) {
+				if ( !BER_BVISNULL( &mod->sm_values[ 1 ] ) ) {
 					rc = LDAP_CONSTRAINT_VIOLATION;
-					break;
+					goto done;
 				}
+
 				if ( bvmatch( &slap_true_bv, mod->sm_values )) {
 					val = 1;
+
 				} else if ( bvmatch( &slap_false_bv, mod->sm_values )) {
 					val = 0;
+
+				} else {
+					rc = LDAP_INVALID_SYNTAX;
+					goto done;
 				}
 			}
-			switch( mod->sm_op ) {
+
+			switch ( mod->sm_op ) {
 			case LDAP_MOD_DELETE:
-				if ( val < 0 || val == cur ) {
-					gotval--;
-					cur = -1;
-				} else {
+				if ( ro_gotval < 1 ) {
+					rc = LDAP_CONSTRAINT_VIOLATION;
+					goto done;
+				}
+				ro_gotval--;
+
+				if ( val == 0 && ( rp_cur & SLAP_RESTRICT_OP_WRITES ) == SLAP_RESTRICT_OP_WRITES ) {
+					rc = LDAP_NO_SUCH_ATTRIBUTE;
+					goto done;
+				}
+				
+				if ( val == 1 && ( rp_cur & SLAP_RESTRICT_OP_WRITES ) != SLAP_RESTRICT_OP_WRITES ) {
+					rc = LDAP_NO_SUCH_ATTRIBUTE;
+					goto done;
+				}
+				
+				break;
+
+			case LDAP_MOD_REPLACE:
+				ro_gotval = 0;
+				/* fall thru */
+
+			case LDAP_MOD_ADD:
+				if ( ro_gotval > 0 ) {
+					rc = LDAP_CONSTRAINT_VIOLATION;
+					goto done;
+				}
+				ro_gotval++;
+
+				if ( val == 1 ) {
+					rp_add |= (~rp_cur) & SLAP_RESTRICT_OP_WRITES;
+					rp_cur |= SLAP_RESTRICT_OP_WRITES;
+					rp_delete &= ~SLAP_RESTRICT_OP_WRITES;
+					
+				} else if ( val == 0 ) {
+					rp_delete |= rp_cur & SLAP_RESTRICT_OP_WRITES;
+					rp_cur &= ~SLAP_RESTRICT_OP_WRITES;
+					rp_add &= ~SLAP_RESTRICT_OP_WRITES;
+				}
+				break;
+
+			default:
+				rc = LDAP_OTHER;
+				goto done;
+			}
+
+		} else if ( mod->sm_desc == mi->mi_ad_restrictedOperation ) {
+			slap_mask_t	mask = 0;
+
+			switch ( mod->sm_op ) {
+			case LDAP_MOD_DELETE:
+				if ( mod->sm_values == NULL ) {
+					rp_delete = rp_cur;
+					rp_cur = 0;
+					rp_add = 0;
+					break;
+				}
+				rc = value_mask( mod->sm_values, ~rp_cur, &mask );
+				if ( rc == LDAP_SUCCESS ) {
+					rp_delete |= mask;
+					rp_add &= ~mask;
+					rp_cur &= ~mask;
+
+				} else if ( rc == LDAP_OTHER ) {
 					rc = LDAP_NO_SUCH_ATTRIBUTE;
 				}
 				break;
+
 			case LDAP_MOD_REPLACE:
-				gotval--;
-				cur = -1;
-				/* FALLTHRU */
+				rp_delete = rp_cur;
+				rp_cur = 0;
+				rp_add = 0;
+				/* fall thru */
+
 			case LDAP_MOD_ADD:
-				if ( val < 0 ) {
-					rc = LDAP_INVALID_SYNTAX;
-				} else {
-					gotval++;
-					cur = val;
+				rc = value_mask( mod->sm_values, rp_cur, &mask );
+				if ( rc == LDAP_SUCCESS ) {
+					rp_add |= mask;
+					rp_cur |= mask;
+					rp_delete &= ~mask;
+
+				} else if ( rc == LDAP_OTHER ) {
+					rc = LDAP_TYPE_OR_VALUE_EXISTS;
 				}
 				break;
+
 			default:
 				rc = LDAP_OTHER;
 				break;
 			}
-			if ( rc ) {
-				break;
-			}
 
-		} else if ( mod->sm_desc == mi->mi_ad_restrictedOperation ) {
-			/* TODO */
+			if ( rc != LDAP_SUCCESS ) {
+				goto done;
+			}
 
 		} else if ( is_at_operational( mod->sm_desc->ad_type )) {
 		/* accept all operational attributes */
@@ -396,25 +516,128 @@ monitor_subsys_database_modify(
 		}
 	}
 
-	if ( gotval == 1 && cur >= 0 ) {
-		struct berval *tf;
-		tf = cur ? (struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv;
+	/* sanity checks: */
+	if ( ro_gotval < 1 ) {
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		goto done;
+	}
+
+	if ( ( rp_cur & SLAP_RESTRICT_OP_EXTENDED ) && ( rp_cur & SLAP_RESTRICT_EXOP_MASK ) ) {
+		rc = LDAP_CONSTRAINT_VIOLATION;
+		goto done;
+	}
+
+	if ( rp_delete & rp_add ) {
+		rc = LDAP_OTHER;
+		goto done;
+	}
+
+	/* check current value of readOnly */
+	if ( ( rp_cur & SLAP_RESTRICT_OP_WRITES ) == SLAP_RESTRICT_OP_WRITES ) {
+		tf = (struct berval *)&slap_true_bv;
+
+	} else {
+		tf = (struct berval *)&slap_false_bv;
+	}
+
+	a = attr_find( e->e_attrs, mi->mi_ad_readOnly );
+	if ( a == NULL ) {
+		rc = LDAP_OTHER;
+		goto done;
+	}
+
+	if ( !bvmatch( &a->a_vals[0], tf ) ) {
 		attr_delete( &e->e_attrs, mi->mi_ad_readOnly );
 		rc = attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
-		if ( rc == LDAP_SUCCESS ) {
-			if ( cur ) {
-				be->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
-			} else {
-				be->be_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
-			}
-		} else {
-			rc = LDAP_OTHER;
-		}
-	} else {
-		rc = LDAP_CONSTRAINT_VIOLATION;
 	}
+
+	if ( rc == LDAP_SUCCESS ) {
+		if ( rp_delete ) {
+			if ( rp_delete == be->be_restrictops ) {
+				attr_delete( &e->e_attrs, mi->mi_ad_restrictedOperation );
+
+			} else {
+				a = attr_find( e->e_attrs, mi->mi_ad_restrictedOperation );
+				if ( a == NULL ) {
+					rc = LDAP_OTHER;
+					goto done;
+				}
+
+				for ( i = 0; !BER_BVISNULL( &restricted_ops[ i ].op ); i++ ) {
+					if ( rp_delete & restricted_ops[ i ].tag ) {
+						int	j;
+					
+						for ( j = 0; !BER_BVISNULL( &a->a_nvals[ j ] ); j++ ) {
+							int		k;
+
+							if ( !bvmatch( &a->a_nvals[ j ], &restricted_ops[ i ].op ) ) {
+								continue;
+							}
+
+							ch_free( a->a_vals[ j ].bv_val );
+							ch_free( a->a_nvals[ j ].bv_val );
+
+							for ( k = j + 1; !BER_BVISNULL( &a->a_nvals[ k ] ); k++ ) {
+								a->a_vals[ k - 1 ] = a->a_vals[ k ];
+								a->a_nvals[ k - 1 ] = a->a_nvals[ k ];
+							}
+	
+							BER_BVZERO( &a->a_vals[ k - 1 ] );
+							BER_BVZERO( &a->a_nvals[ k - 1 ] );
+						}
+					}
+				}
+				
+				for ( i = 0; !BER_BVISNULL( &restricted_exops[ i ].op ); i++ ) {
+					if ( rp_delete & restricted_exops[ i ].tag ) {
+						int	j;
+					
+						for ( j = 0; !BER_BVISNULL( &a->a_nvals[ j ] ); j++ ) {
+							int		k;
+
+							if ( !bvmatch( &a->a_nvals[ j ], &restricted_exops[ i ].op ) ) {
+								continue;
+							}
+
+							ch_free( a->a_vals[ j ].bv_val );
+							ch_free( a->a_nvals[ j ].bv_val );
+
+							for ( k = j + 1; !BER_BVISNULL( &a->a_nvals[ k ] ); k++ ) {
+								a->a_vals[ k - 1 ] = a->a_vals[ k ];
+								a->a_nvals[ k - 1 ] = a->a_nvals[ k ];
+							}
+	
+							BER_BVZERO( &a->a_vals[ k - 1 ] );
+							BER_BVZERO( &a->a_nvals[ k - 1 ] );
+						}
+					}
+				}
+			}
+		}
+
+		if ( rp_add ) {
+			for ( i = 0; !BER_BVISNULL( &restricted_ops[ i ].op ); i++ ) {
+				if ( rp_add & restricted_ops[ i ].tag ) {
+					attr_merge_one( e, mi->mi_ad_restrictedOperation,
+							&restricted_ops[ i ].op, &restricted_ops[ i ].op );
+				}
+			}
+
+			for ( i = 0; !BER_BVISNULL( &restricted_exops[ i ].op ); i++ ) {
+				if ( rp_add & restricted_exops[ i ].tag ) {
+					attr_merge_one( e, mi->mi_ad_restrictedOperation,
+							&restricted_exops[ i ].op, &restricted_exops[ i ].op );
+				}
+			}
+		}
+	}
+
+	be->be_restrictops = rp_cur;
+
+done:;
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
+
 	} else {
 		Attribute *tmp = e->e_attrs;
 		e->e_attrs = save_attrs;
