@@ -425,10 +425,6 @@ Specify the srvtab file in which the kerberos keys necessary for
 authenticating clients using kerberos can be found. This option is only
 meaningful if you are using Kerberos authentication.
 .TP
-.B timelimit <integer>
-Specify the maximum number of seconds (in real time)
-require forward secrecy between sessions.
-.TP
 .B schemacheck { on | off }
 Turn schema checking on or off. The default is on.
 .TP
@@ -440,6 +436,10 @@ The default size limit is 500.
 Specify the srvtab file in which the kerberos keys necessary for
 authenticating clients using kerberos can be found. This option is only
 meaningful if you are using Kerberos authentication.
+.TP
+.B threads <integer>
+Specify the maximum size of the primary thread pool.
+The default is 32.
 .TP
 .B timelimit <integer>
 Specify the maximum number of seconds (in real time)
