@@ -43,7 +43,7 @@ char *suffix_alias(
 		be->be_suffixAlias != NULL && be->be_suffixAlias[i] != NULL;
 		i += 2 )
 	{
-		int aliasLength = strlen (be->be_suffixAlias[i]);
+		int aliasLength = be->be_suffixAlias[i]->bv_len;
 		int diff = dnLength - aliasLength;
 
 		if ( diff < 0 ) {
@@ -58,11 +58,11 @@ char *suffix_alias(
 			/* XXX or an escaped separator... oh well */
 		}
 
-		if (!strcmp(be->be_suffixAlias[i], &dn[diff])) {
+		if (!strcmp(be->be_suffixAlias[i]->bv_val, &dn[diff])) {
 			char *oldDN = dn;
-			dn = ch_malloc( diff + strlen(be->be_suffixAlias[i+1]) + 1 );
+			dn = ch_malloc( diff + be->be_suffixAlias[i+1]->bv_len + 1 );
 			strncpy( dn, oldDN, diff );
-			strcpy( &dn[diff], be->be_suffixAlias[i+1] );
+			strcpy( &dn[diff], be->be_suffixAlias[i+1]->bv_val );
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				   "suffix_alias: converted \"%s\" to \"%s\"\n",

@@ -1045,11 +1045,10 @@ read_config( const char *fname )
 				aliased_dn = ch_strdup( cargv[2] );
 				(void) dn_normalize( aliased_dn );
 
-				charray_add( &be->be_suffixAlias, alias );
-				charray_add( &be->be_suffixAlias, aliased_dn );
-
-				free(alias);
-				free(aliased_dn);
+				ber_bvecadd( &be->be_suffixAlias, 
+					ber_bvstr( alias ) );
+				ber_bvecadd( &be->be_suffixAlias,
+					ber_bvstr( aliased_dn ) );
 			}
 
                /* set max deref depth */
