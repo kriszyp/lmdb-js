@@ -54,4 +54,23 @@ extern char* getpass LDAP_P((const char *getpass));
 
 /* use _POSIX_VERSION for POSIX.1 code */
 
+/* Setup file locking macros */
+#if HAVE_LOCKF
+#	define ldap_lockf(x) lockf(fileno(x),F_LOCK, 0)
+#	define ldap_unlockf(x) lockf(fileno(x),F_ULOCK, 0)
+#elif HAVE_FCNTL_H
+#	ifndef  NEED_FCNTL_LOCKING
+#		define NEED_FCNTL_LOCKING
+#	endif
+#	include <lutil_lockf.h>
+#	define ldap_lockf(x) lutil_ldap_lockf(x)
+#	define ldap_unlockf(x) lutil_ldap_unlockf(x)
+#elif HAVE_FLOCK
+#	if HAVE_SYS_FILE_H
+#		include <sys/file.h>
+#	endif
+#	define ldap_lockf(x) flock(fileno(x),LOCK_EX)
+#	define ldap_unlockf(x) flock(fileno(x),LOCK_UN)
+#endif
+
 #endif /* _AC_UNISTD_H */
