@@ -614,6 +614,7 @@ ldap_back_entry_get(
 	Connection *oconn;
 	SlapReply rs;
 	dncookie dc;
+	int do_retry = 1;
 
 	/* Tell getconn this is a privileged op */
 	is_oc = op->o_do_not_cache;
@@ -674,10 +675,17 @@ ldap_back_entry_get(
 		*ptr++ = '\0';
 	}
 
-	if ( ldap_search_ext_s( lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
+retry:
+	rc = ldap_search_ext_s( lc->ld, mdn.bv_val, LDAP_SCOPE_BASE, filter,
 				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
-				LDAP_NO_LIMIT, &result) != LDAP_SUCCESS )
+				LDAP_NO_LIMIT, &result);
+	if ( rc != LDAP_SUCCESS )
 	{
+		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
+			do_retry = 0;
+				if ( ldap_back_retry( lc, op, &rs ))
+					goto retry;
+		}
 		goto cleanup;
 	}
 
