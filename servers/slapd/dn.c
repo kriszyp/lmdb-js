@@ -569,14 +569,13 @@ dnParent(
 	struct berval	*dn, 
 	struct berval	*pdn )
 {
-	const char	*p;
+	char	*p;
 
 	p = strchr( dn->bv_val, ',' );
 
 	/* one-level dn */
 	if ( p == NULL ) {
-		pdn->bv_val = "";
-		pdn->bv_len = 0;
+		*pdn = slap_empty_bv;
 		return LDAP_SUCCESS;
 	}
 
@@ -645,8 +644,7 @@ dn_parent(
 	Backend		*be,
 	const char	*dn )
 {
-	const char	*pdn;
-	struct berval	bv;
+	struct berval	bv, pdn;
 
 	if ( dn == NULL ) {
 		return NULL;
@@ -660,17 +658,17 @@ dn_parent(
 		return NULL;
 	}
 
-	bv.bv_val = dn;
+	bv.bv_val = (char *)dn;
 	bv.bv_len = strlen(bv.bv_val);
 	if ( be != NULL && be_issuffix( be, &bv ) ) {
 		return NULL;
 	}
 
-	if ( dnParent( dn, &pdn ) != LDAP_SUCCESS ) {
+	if ( dnParent( &bv, &pdn ) != LDAP_SUCCESS ) {
 		return NULL;
 	}
 	
-	return ( char * )pdn;
+	return pdn.bv_val;
 }
 #endif /* SLAP_DN_MIGRATION */
 
