@@ -513,15 +513,6 @@ typedef struct ldap LDAP;
 #define LDAP_MSG_RECEIVED	0x02
 
 /*
- * structure for ldap friendly mapping routines
- */
-
-typedef struct ldap_friendly {
-	char	*lf_unfriendly;
-	char	*lf_friendly;
-} LDAPFriendlyMap;
-
-/*
  * types for ldap URL handling
  */
 typedef struct ldap_url_desc {
@@ -1496,21 +1487,6 @@ LDAP_F( void )
 ldap_mods_free LDAP_P((
 	LDAPMod **mods,
 	int freemods ));
-
-
-/*
- * in friendly.c
- *	(deprecated)
- */
-LDAP_F( char * )
-ldap_friendly_name LDAP_P(( /* deprecated */
-	LDAP_CONST char *filename,
-	LDAP_CONST char *uname,
-	LDAPFriendlyMap **map ));
-
-LDAP_F( void )
-ldap_free_friendlymap LDAP_P(( /* deprecated */
-	LDAPFriendlyMap **map ));
 
 
 /*
