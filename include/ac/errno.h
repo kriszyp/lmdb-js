@@ -28,9 +28,11 @@
 	extern char     *sys_errlist[];
 #endif
 
-#ifndef HAVE_STRERROR
-#define	strerror(err) \
-	(err) > -1 && (err) < sys_nerr ? sys_errlist[(err)] : "unknown"
+#ifdef HAVE_STRERROR
+#define	STRERROR(err)	strerror(err)
+#else
+#define	STRERROR(err) \
+	((err) > -1 && (err) < sys_nerr ? sys_errlist[(err)] : "unknown")
 #endif
 
 extern char* strerror_r();

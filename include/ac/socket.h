@@ -97,7 +97,7 @@
 #else
 #	define tcp_close( s )		close( s )
 #	define sock_errno()	errno
-#	define sock_errstr()	strerror(errno)
+#	define sock_errstr()	STRERROR(errno)
 #endif /* MACOS */
 
 #ifndef ioctl_t

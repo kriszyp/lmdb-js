@@ -186,7 +186,7 @@ static long send_ldap_ber(
 		 */
 
 		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno=%d reason=\"%s\"\n",
-		    err, strerror(err) );
+		    err, STRERROR(err) );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			connection_closing( conn );

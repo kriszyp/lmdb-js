@@ -921,7 +921,7 @@ connection_input(
 
 		Debug( LDAP_DEBUG_TRACE,
 			"ber_get_next on fd %d failed errno=%d (%s)\n",
-			ber_pvt_sb_get_desc( conn->c_sb ), err, strerror(err) );
+			ber_pvt_sb_get_desc( conn->c_sb ), err, STRERROR(err) );
 		Debug( LDAP_DEBUG_TRACE,
 			"\t*** got %ld of %lu so far\n",
 			(long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf),
