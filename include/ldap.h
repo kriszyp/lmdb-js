@@ -241,6 +241,7 @@ typedef struct ldapcontrol {
 /* controls for MSAD compatibility */
 #define LDAP_CONTROL_X_DOMAIN_SCOPE			"1.2.840.113556.1.4.1339"
 #define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
+#define LDAP_CONTORL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
 
 /* not implemented in slapd(8) */
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
