@@ -202,8 +202,9 @@ connection_activity(
 	active_threads++;
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
-	if ( status = ldap_pvt_thread_create( &arg->co_op->o_tid, 1,
-	    connection_operation, (void *) arg ) != 0 ) {
+	status = ldap_pvt_thread_create( &arg->co_op->o_tid, 1,
+					 connection_operation, (void *) arg );
+	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
 	}
 }

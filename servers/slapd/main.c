@@ -220,8 +220,9 @@ main( int argc, char **argv )
 
 		time( &starttime );
 
-		if ( status = ldap_pvt_thread_create( &listener_tid, 0,
-			slapd_daemon, (void *) port ) != 0 )
+		status = ldap_pvt_thread_create( &listener_tid, 0,
+						 slapd_daemon, (void *) port );
+		if ( status != 0 )
 		{
 			Debug( LDAP_DEBUG_ANY,
 			    "listener ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
