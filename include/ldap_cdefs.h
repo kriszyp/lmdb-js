@@ -48,21 +48,14 @@
 
 #endif /* no prototypes */
 
-#if _WIN32 && _DLL
-#	define LDAP_F_IMPORT	extern __declspec( dllimport )
-#	define LDAP_F_EXPORT	extern __declspec( dllexport )
-#else
-#	define LDAP_F_IMPORT	extern
-#	define LDAP_F_EXPORT	extern
-#endif
-
 #if (__GNUC__) * 1000 + (__GNUC_MINOR__) >= 2006
 #	define LDAP_GCCATTR(attrs)	__attribute__(attrs)
 #else
 #	define LDAP_GCCATTR(attrs)
 #endif
 
-/* Proper support for NT dynamic libraries. */
+
+/* Support for NT dynamic libraries. */
 
 /*
  * C library. Mingw32 links with the C run-time library by default,
