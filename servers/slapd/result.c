@@ -294,6 +294,7 @@ send_ldap_response(
 
 	if (op->o_callback) {
 		slap_callback *sc = op->o_callback;
+		rc = SLAP_CB_CONTINUE;
 		for ( ; op->o_callback; ) {
 			if ( op->o_callback->sc_response ) {
 				rc = op->o_callback->sc_response( op, rs );
@@ -304,7 +305,7 @@ send_ldap_response(
 		op->o_callback = sc;
 		if ( rc != SLAP_CB_CONTINUE ) goto cleanup;
 	}
-		
+
 #ifdef LDAP_CONNECTIONLESS
 	if (op->o_conn && op->o_conn->c_is_udp)
 		ber = op->o_res_ber;
@@ -719,6 +720,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rs->sr_type = REP_SEARCH;
 	if (op->o_callback) {
 		slap_callback *sc = op->o_callback;
+		rc = SLAP_CB_CONTINUE;
 		for ( ; op->o_callback; ) {
 			if ( op->o_callback->sc_response ) {
 				rc = op->o_callback->sc_response( op, rs );
@@ -1327,6 +1329,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	rs->sr_type = REP_SEARCHREF;
 	if (op->o_callback) {
 		slap_callback *sc = op->o_callback;
+		rc = SLAP_CB_CONTINUE;
 		for ( ; op->o_callback; ) {
 			if ( op->o_callback->sc_response ) {
 				rc = op->o_callback->sc_response( op, rs );
