@@ -36,6 +36,7 @@ LDAPAsynConnection::LDAPAsynConnection(const string& hostname, int port,
 LDAPAsynConnection::~LDAPAsynConnection(){
     DEBUG(LDAP_DEBUG_DESTROY,
             "LDAPAsynConnection::~LDAPAsynConnection()" << endl);
+    delete m_constr;        
     unbind();
 }
 

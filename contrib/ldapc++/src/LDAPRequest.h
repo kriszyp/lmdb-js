@@ -7,9 +7,9 @@
 #ifndef LDAP_REQUEST_H
 #define LDAP_REQUEST_H
 
-#include "LDAPConstraints.h"
-#include "LDAPAsynConnection.h"
-#include "LDAPMessageQueue.h"
+#include <LDAPConstraints.h>
+#include <LDAPAsynConnection.h>
+#include <LDAPMessageQueue.h>
 
 class LDAPUrl;
 

@@ -3,6 +3,8 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+#include "config.h"
+#include "ac/time.h"
 #include "debug.h"
 #include "LDAPSearchRequest.h"
 #include "LDAPException.h"

@@ -6,7 +6,7 @@
 #ifndef LDAP_DELETE_REQUEST_H
 #define LDAP_DELETE_REQUEST_H
 
-#include "LDAPRequest.h"
+#include <LDAPRequest.h>
 class LDAPMessageQueue;
 
 class LDAPDeleteRequest : public LDAPRequest{

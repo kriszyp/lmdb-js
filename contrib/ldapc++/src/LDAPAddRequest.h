@@ -6,8 +6,8 @@
 #ifndef LDAP_ADD_REQUEST_H
 #define  LDAP_ADD_REQUEST_H
 
-#include "LDAPRequest.h"
-#include "LDAPEntry.h"
+#include <LDAPRequest.h>
+#include <LDAPEntry.h>
 
 class LDAPMessageQueue;
 

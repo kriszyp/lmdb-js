@@ -6,9 +6,9 @@
 #ifndef LDAP_CONNECTION_H
 #define LDAP_CONNECTION_H
 
-#include "LDAPSearchResults.h"
-#include "LDAPExtResult.h"
-#include "LDAPAsynConnection.h" 
+#include <LDAPSearchResults.h>
+#include <LDAPExtResult.h>
+#include <LDAPAsynConnection.h> 
 
 /** Main class for synchronous LDAP-Communication
  *
@@ -48,7 +48,7 @@ class LDAPConnection : private LDAPAsynConnection {
          *      this connection
          */
         LDAPConnection(const string& hostname="localhost", int port=389,
-                LDAPConstraints* cons=0);
+                LDAPConstraints* cons=new LDAPConstraints());
         
         /**
          * Destructor

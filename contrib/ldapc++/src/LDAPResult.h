@@ -9,9 +9,9 @@
 
 #include<iostream>
 #include<ldap.h>
-#include "LDAPMessage.h"
-#include "LDAPControlSet.h"
-#include "LDAPUrlList.h"
+#include <LDAPMessage.h>
+#include <LDAPControlSet.h>
+#include <LDAPUrlList.h>
 
 class LDAPRequest;
 class LDAPAsynConnection;

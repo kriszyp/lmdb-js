@@ -19,9 +19,9 @@ typedef list<LDAPEntry> EntryList;
  * LDAPEntry-Objects
  */
 class LDAPEntryList{
-    typedef EntryList::const_iterator const_iterator;
-
     public:
+	typedef EntryList::const_iterator const_iterator;
+
         /**
          * Copy-Constructor
          */

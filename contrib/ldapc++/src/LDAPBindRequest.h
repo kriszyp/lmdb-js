@@ -6,7 +6,7 @@
 #ifndef LDAP_BIND_REQUEST_H
 #define LDAP_BIND_REQUEST_H
 
-#include "LDAPRequest.h"
+#include <LDAPRequest.h>
 
 class LDAPBindRequest : LDAPRequest {
     private:

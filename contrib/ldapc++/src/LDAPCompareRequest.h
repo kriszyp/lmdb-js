@@ -6,7 +6,7 @@
 #ifndef LDAP_COMPARE_REQUEST_H
 #define LDAP_COMPARE_REQUEST_H
 
-#include "LDAPRequest.h"
+#include <LDAPRequest.h>
 
 class LDAPMessageQueue;
 

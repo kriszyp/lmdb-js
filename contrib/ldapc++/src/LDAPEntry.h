@@ -8,8 +8,8 @@
 #define LDAP_ENTRY_H
 #include <ldap.h>
 
-#include "LDAPAsynConnection.h"
-#include "LDAPAttributeList.h"
+#include <LDAPAsynConnection.h>
+#include <LDAPAttributeList.h>
 
 /**
  * This class is used to store every kind of LDAP Entry.

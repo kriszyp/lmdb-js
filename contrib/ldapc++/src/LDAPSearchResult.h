@@ -7,8 +7,8 @@
 #ifndef LDAP_SEARCH_RESULT_H
 #define LDAP_SEARCH_RESULT_H
 
-#include "LDAPMessage.h"
-#include "LDAPEntry.h"
+#include <LDAPMessage.h>
+#include <LDAPEntry.h>
 
 class LDAPRequest;
 

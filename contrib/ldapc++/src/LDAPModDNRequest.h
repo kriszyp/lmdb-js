@@ -6,7 +6,7 @@
 #ifndef LDAP_MOD_DN_REQUEST_H
 #define LDAP_MOD_DN_REQUEST_H
 
-#include "LDAPRequest.h"
+#include <LDAPRequest.h>
 
 class LDAPModDNRequest : LDAPRequest {
 

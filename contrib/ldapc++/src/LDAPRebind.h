@@ -7,7 +7,7 @@
 #define LDAP_REBIND_H
 
 #include <string>
-#include "LDAPRebindAuth.h"
+#include <LDAPRebindAuth.h>
 
 /**
  * Just an abstract class to provide a mechnism for rebind to another

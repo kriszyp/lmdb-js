@@ -13,12 +13,12 @@
 #include<ldap.h>
 #include<lber.h>
 
-#include "LDAPMessageQueue.h"
-#include "LDAPConstraints.h"
-#include "LDAPModification.h"
-#include "LDAPModList.h"
-#include "LDAPUrl.h"
-#include "LDAPUrlList.h"
+#include <LDAPMessageQueue.h>
+#include <LDAPConstraints.h>
+#include <LDAPModification.h>
+#include <LDAPModList.h>
+#include <LDAPUrl.h>
+#include <LDAPUrlList.h>
 
 class LDAPEntry;
 class LDAPAttribute;

@@ -8,7 +8,7 @@
 #define LDAP_MSG_H
 #include <ldap.h>
 
-#include "LDAPControlSet.h"
+#include <LDAPControlSet.h>
 
 class LDAPRequest;
 /**

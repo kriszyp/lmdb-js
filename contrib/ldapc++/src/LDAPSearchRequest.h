@@ -7,7 +7,7 @@
 #define LDAP_SEARCH_REQUEST_H
 
 #include <queue>
-#include "LDAPRequest.h"
+#include <LDAPRequest.h>
 
 class LDAPSearchReference;
 class LDAPReferral;

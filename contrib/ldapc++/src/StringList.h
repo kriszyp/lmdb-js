@@ -14,12 +14,12 @@ typedef list<string> ListType;
  * Container class to store multiple string-objects
  */
 class StringList{
-    typedef ListType::const_iterator const_iterator;
-   
     private:
         ListType m_data;
 
     public:
+	typedef ListType::const_iterator const_iterator;
+   
         /**
          * Constructs an empty list.
          */   

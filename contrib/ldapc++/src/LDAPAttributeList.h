@@ -18,12 +18,12 @@ typedef list<LDAPAttribute> AttrList;
  * This container class is used to store multiple LDAPAttribute-objects.
  */
 class LDAPAttributeList{
-    typedef AttrList::const_iterator const_iterator;
-
 	private :
 		AttrList m_attrs;
 
 	public :
+	        typedef AttrList::const_iterator const_iterator;
+
 
         /**
          * Copy-constructor

@@ -50,6 +50,7 @@ void LDAPConnection::bind(const string& dn, const string& passwd,
         }
     }
     delete res;
+    delete msg;   // memcheck
 }
 
 void LDAPConnection::unbind(){
@@ -243,11 +244,12 @@ LDAPSearchResults* LDAPConnection::search(const string& base, int scope,
     LDAPSearchResults* results= 0;
     
     try{
+        results = new LDAPSearchResults();
         msgq = LDAPAsynConnection::search(base,scope, filter, attrs, attrsOnly,
                 cons);
-        results = new LDAPSearchResults();
         res = results->readMessageQueue(msgq);
     }catch(LDAPException e){
+        delete results; // memcheck
         delete msgq;
         throw;
     }
@@ -262,12 +264,14 @@ LDAPSearchResults* LDAPConnection::search(const string& base, int scope,
             case LDAPResult::REFERRAL :
             {
                 LDAPUrlList urls = res->getReferralUrls();
+                delete results; // memcheck
                 delete res;
                 delete msgq;
                 throw LDAPReferralException(urls);
             }
             break;
             default :
+                delete results; // memcheck
                 delete res;
                 delete msgq;
                 throw LDAPException(resCode);

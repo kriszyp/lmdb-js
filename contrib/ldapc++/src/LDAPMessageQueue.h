@@ -9,7 +9,7 @@
 
 #include <stack>
 
-#include "LDAPUrlList.h"
+#include <LDAPUrlList.h>
 
 class LDAPAsynConnection;
 class LDAPMsg;

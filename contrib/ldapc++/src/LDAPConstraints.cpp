@@ -5,6 +5,8 @@
 
 
 #include "debug.h"
+#include "config.h"
+#include "ac/time.h"
 #include "LDAPConstraints.h"
 #include "LDAPControlSet.h"
 

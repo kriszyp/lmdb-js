@@ -9,7 +9,7 @@
 
 #include <ldap.h>
 #include <list>
-#include "LDAPModification.h"
+#include <LDAPModification.h>
 
 typedef list<LDAPModification> ModList;
 

@@ -8,7 +8,7 @@
 #define LDAP_MODIFICATION_H
 
 #include <ldap.h>
-#include "LDAPAttribute.h"
+#include <LDAPAttribute.h>
 
 class LDAPModification{
 	public:

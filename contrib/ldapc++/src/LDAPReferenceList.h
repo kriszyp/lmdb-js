@@ -18,9 +18,9 @@ typedef list<LDAPSearchReference> RefList;
  * Used internally only by LDAPSearchResults
  */
 class LDAPReferenceList{
-    typedef RefList::const_iterator const_iterator;
-
     public:
+	typedef RefList::const_iterator const_iterator;
+
         /**
          * Constructs an empty list.
          */   

@@ -8,7 +8,7 @@
 
 #include <list>
 #include <ldap.h>
-#include "LDAPControl.h"
+#include <LDAPControl.h>
 
 typedef list<LDAPCtrl> CtrlList;
 

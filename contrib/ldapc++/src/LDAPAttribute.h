@@ -12,7 +12,7 @@
 #include<ldap.h>
 #include<lber.h> 
 
-#include "StringList.h"
+#include <StringList.h>
 
 /**
  * Represents the name an value(s) of an Attribute 

@@ -8,7 +8,7 @@
 #define LDAP_URL_H
 
 #include <ldap.h>
-#include "StringList.h"
+#include <StringList.h>
 
 /**
  * This class is used to analyze and store LDAP-Urls as returned by a

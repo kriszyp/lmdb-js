@@ -80,10 +80,9 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ./src/config.h
 CONFIG_CLEAN_FILES = 
-DIST_COMMON =  README AUTHORS INSTALL Makefile.am Makefile.in TODO \
-acconfig.h aclocal.m4 config.guess config.sub configure configure.in \
-install-sh ltconfig ltmain.sh missing mkinstalldirs src/config.h.in \
-src/stamp-h.in
+DIST_COMMON =  README AUTHORS Makefile.am Makefile.in TODO acconfig.h \
+aclocal.m4 config.guess config.sub configure configure.in install-sh \
+ltconfig ltmain.sh missing mkinstalldirs src/config.h.in src/stamp-h.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)

@@ -8,7 +8,7 @@
 
 #include <ldap.h>
 
-#include "LDAPResult.h"
+#include <LDAPResult.h>
 
 class LDAPRequest;
 

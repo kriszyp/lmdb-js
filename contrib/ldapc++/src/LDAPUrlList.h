@@ -7,7 +7,7 @@
 #define LDAP_URL_LIST_H
 
 #include <list>
-#include "LDAPUrl.h"
+#include <LDAPUrl.h>
 
 typedef list<LDAPUrl> UrlList;
 
@@ -15,9 +15,9 @@ typedef list<LDAPUrl> UrlList;
  * This container class is used to store multiple LDAPUrl-objects.
  */
 class LDAPUrlList{
-    typedef UrlList::const_iterator const_iterator;
-
     public:
+	typedef UrlList::const_iterator const_iterator;
+
         /**
          * Constructs an empty list.
          */   

@@ -6,12 +6,12 @@
 #ifndef LDAP_SEARCH_RESULTS_H
 #define LDAP_SEARCH_RESULTS_H
 
-#include "LDAPEntry.h"
-#include "LDAPEntryList.h"
-#include "LDAPMessage.h"
-#include "LDAPMessageQueue.h"
-#include "LDAPReferenceList.h"
-#include "LDAPSearchReference.h"
+#include <LDAPEntry.h>
+#include <LDAPEntryList.h>
+#include <LDAPMessage.h>
+#include <LDAPMessageQueue.h>
+#include <LDAPReferenceList.h>
+#include <LDAPSearchReference.h>
 
 class LDAPResult;
 

@@ -8,8 +8,8 @@
 #define LDAP_REFERRAL_EXCEPTION_H
 
 #include <list>
-#include "LDAPMessage.h"
-#include "LDAPUrlList.h"
+#include <LDAPMessage.h>
+#include <LDAPUrlList.h>
 
 class LDAPUrlList;
 

@@ -7,12 +7,10 @@
 #ifndef LDAP_CONSTRAINTS_H
 #define LDAP_CONSTRAINTS_H 
 #include <list>
-#include "config.h"
-#include "ac/time.h"
 
-#include "LDAPControl.h"
-#include "LDAPControlSet.h"
-#include "LDAPRebind.h"
+#include <LDAPControl.h>
+#include <LDAPControlSet.h>
+#include <LDAPRebind.h>
 
 //TODO!!
 // * implement the Alias-Handling Option (OPT_DEREF)
