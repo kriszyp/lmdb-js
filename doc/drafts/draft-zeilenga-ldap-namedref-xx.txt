@@ -4,15 +4,16 @@
 
 
 
-INTERNET-DRAFT                                      Kurt D. Zeilenga
+INTERNET-DRAFT                              Editor: Kurt D. Zeilenga
 Intended Category: Standard Track                   OpenLDAP Foundation
-Expires: 4 January 2001                             4 July 2000
+Expires: 20 January 2002                            20 July 2001
 
 
-                   Named References in LDAP Directories
-                  <draft-zeilenga-ldap-namedref-00.txt>
+             Named Subordinate References in LDAP Directories
+                  <draft-zeilenga-ldap-namedref-04.txt>
 
-1.      Status of this Memo
+
+Status of this Memo
 
   This document is an Internet-Draft and is in full conformance with all
   provisions of Section 10 of RFC2026.
@@ -33,613 +34,675 @@ Expires: 4 January 2001                             4 July 2000
   material or to cite them other than as ``work in progress.''
 
   The list of current Internet-Drafts can be accessed at
-  http://www.ietf.org/ietf/1id-abstracts.txt The list of Internet-Draft
-  Shadow Directories can be accessed at http://www.ietf.org/shadow.html.
+  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
+  Internet-Draft Shadow Directories can be accessed at
+  <http://www.ietf.org/shadow.html>.
 
-  Copyright 2000, The Internet Society.  All Rights Reserved.
+  Copyright 2001, The Internet Society.  All Rights Reserved.
 
   Please see the Copyright section near the end of this document for
   more information.
 
-2.  Abstract
 
-  This document defines schema and protocol elements for representing
-  and manipulating generic knowledge information in LDAP [RFC2251]
-  directories.  An attribute type "ref" is used to store URIs [RFC1738]
-  which may refer to LDAP and non-LDAP services.  An object class
-  "referral" is used to construct entries in an LDAP directory which
-  references to other directories or services.  An control, ManageDsaIT,
-  is defined to allow clients to manipulate referral objects as normal
-  entries.  The document describes procedures directory servers should
-  follow when supporting these elements.
+Abstract
+
+  This document details schema and protocol elements for representing
+  and manipulating named subordinate references in LDAP [RFC2251]
+  directories.  A referral object is used to hold subordinate reference
+  information in the directory.  These referral objects hold one or more
+  URIs [RFC2396] contained in values of the ref attribute type and are
+  used to generate protocol referrals and continuations.  A control,
 
 
 
-Zeilenga                                                        [Page 1]
+Zeilenga                      LDAP NamedRef                     [Page 1]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
 
 
-3.  Background and intended usage
+  ManageDsaIT, is defined to allow manipulation of referral objects as
+  normal objects.
+
+
+1.  Background and Intended Usage
 
   The broadening of interest in LDAP directories beyond their use as
-  front ends to X.500 directories has created a need to represent
-  knowledge information in a more general way. Knowledge information is
-  information about one or more servers maintained in another server,
-  used to link servers and services together.
+  front ends to X.500 [X.500] directories has created a need to
+  represent knowledge information in a more general way.  Knowledge
+  information is information about one or more servers maintained in
+  another server, used to link servers and services together.
 
-  This document defines a general method of representing knowledge
-  information in LDAP directories, based on URIs.
+  This document defines a specific method of representing subordinate
+  knowledge references in LDAP directories.  Other forms of knowledge
+  information are not detailed by this document.  These forms may be
+  described in subsequent documents.
 
-  This document does not detail client processing of referral and search
-  reference responses.  This is detailed in RFC 2251 or subsequent
-  documents.
+  This document details subordinate referral processing requirements for
+  servers.  This document does not describe protocol syntax and
+  semantics.  This is detailed in RFC 2251 [RFC2251].
+
+  This document does not detail use of subordinate knowledge references
+  to support replicated environments nor distributed operations (e.g.,
+  chaining of operations from one server to other servers).
 
   The key words "SHALL", "SHALL NOT", "MUST", "MUST NOT", "SHOULD",
   "SHOULD NOT", "MAY" and "MAY NOT" used in this document are to be
-  interpreted as described in [RFC2119].
+  interpreted as described in BCP 14 [RFC2119].
 
 
-4.  Schema
+2.  Schema
 
-4.1  The ref attribute type
-
-  This section defines the ref attribute type for holding general
-  knowledge reference information.
-
-      ( 2.16.840.1.113730.3.1.34
-          NAME 'ref'
-          DESC 'URI reference'
-          EQUALITY caseExactIA5Match
-          SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-          USAGE distributedOperation )
-
-  The ref attribute type has IA5 syntax and is case sensitive.  The ref
-  attribute is multi valued. Values placed in the attribute MUST conform
-  to the specification given for the labeledURI attribute defined in
-  [RFC2079].  The labeledURI specification defines a format that is a
-  URI, optionally followed by whitespace and a label. This document does
-  not make use of the label portion of the syntax.  Future documents MAY
-  enable new functionality by imposing additional structure on the label
-  portion of the syntax as it appears in the ref attribute.
-
-  If the URI contained in a ref attribute value refers to an LDAPv3
-  server, it MUST be in the LDAP URI scheme described in [RFC2255].
-  Other URI schemes MAY be used but MUST refer to services which are
-  capable of completing operations referred to the services.  The URI
-  values, regardless of scheme, contained in a ref attribute must point
+  The schema definitions are defined in terms of RFC 2252 [RFC2252].
 
 
+2.1.  The referral Object Class
 
-Zeilenga                                                        [Page 2]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
-
-
-  to services which are equally capable of handling operations refer to
-  said services.
-
-  The integrity of the URI SHALL NOT be validated by the server holding
-  or returning the reference.
-
-  When returning a referral result, the server MUST NOT return the label
-  portion of the labeledURI as part of the referral. Only the URI
-  portion of the ref attribute SHOULD be returned.
-
-  The ref attribute SHOULD NOT be used for naming.
-
-
-4.2.  The referral object class
-
-  The referral object class is defined as follows.
+  A referral object is a directory entry whose structural object class
+  is (or is derived from) the referral object class.
 
       ( 2.16.840.1.113730.3.2.6
           NAME 'referral'
-          DESC 'named reference object'
-          STRUCTURAL MUST ref )
+          DESC 'named subordinate reference object'
+          STRUCTURAL
+          MUST ref )
 
   The referral object class is a structural object class used to
-  represent a named reference in the directory.  The referral object
-  class SHOULD be used in conjunction with the extensibleObject object
-  class to support the naming attributes used in the entry's
-  distinguished name.
+  represent a subordinate reference in the directory.  The referral
+
+
+
+Zeilenga                      LDAP NamedRef                     [Page 2]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
+
+
+  object class SHOULD be used in conjunction with the extensibleObject
+  object class to support the naming attributes used in the entry's
+  Distinguished Name (DN) [RFC2253].  Referral objects are directory
+  entries whose structural object class is (or is derived from)
+  referral.
+
+  Referral objects MUST only be instantiated at DSEs immediately
+  subordinate to leaf object entries within a naming context held by the
+  DSA.  Referral objects correspond to X.500 subordinate knowledge
+  (subr) DSEs [X.501].
 
   In the presence of a ManageDsaIT control, referral objects are treated
-  as normal entries.  Note that the ref attribute is operational and
-  will only returned in a search entry response when requested.
+  as normal entries as described in section 3.  Note that the ref
+  attribute is operational and will only returned in a search entry
+  response when requested.
 
-  In the absence of a ManageDsaIT control, referral objects contents are
-  used to construct referrals and search references and, as such, the
-  referral entries themselves are general visible to clients.
-
-
-5.  Use of the ref attribute
-
-  Two uses the ref attribute is defined in this document.  The first
-  use, in conjunction with the referral object class, represents a named
-  reference.  The second use, in conjunction with the Root DSE,
-  represents superior reference.  The following sections detail these
-  usages of the ref attribute.
-
-  Other uses of the ref attribute MAY be defined in subsequent
-  documents, or by bilateral agreement between cooperating clients and
-  servers and SHOULD be defined in conjunction with an object class
+  In the absence of a ManageDsaIT control, the content of referral
+  objects are used to construct referrals and search references as
+  described in section 4 and, as such, the referral entries are not
+  themselves visible to clients.
 
 
+2.2  The ref Attribute Type
 
-Zeilenga                                                        [Page 3]
+      ( 2.16.840.1.113730.3.1.34
+          NAME 'ref'
+          DESC 'named reference - a labeledURI'
+          EQUALITY caseExactMatch
+          SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+          USAGE distributedOperation )
+
+  The ref attribute type has directoryString syntax and is case
+  sensitive.  The ref attribute is multi-valued. Values placed in the
+  attribute MUST conform to the specification given for the labeledURI
+  attribute [RFC2079].  The labeledURI specification defines a format
+  that is a URI, optionally followed by whitespace and a label. This
+  document does not make use of the label portion of the syntax.  Future
+  documents MAY enable new functionality by imposing additional
+  structure on the label portion of the syntax as it appears in the ref
+  attribute.
+
+  If the URI contained in a ref attribute value refers to a LDAP
+  [RFC2251] server, it MUST be in the form of a LDAP URL [RFC2255].  The
+  LDAP URL SHOULD NOT contain an explicit scope specifier, filter,
+  attribute description list, or any extensions.  The LDAP URL SHOULD
+  contain a non-empty DN.  The handling of LDAP URLs with absent or
+  empty DN parts or with explicit scope specifier is not defined by this
+  specification.
+
+
+
+Zeilenga                      LDAP NamedRef                     [Page 3]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
 
 
-  indicating the usage.
+  Other URI schemes MAY be used so long as all operations returning
+  referrals based upon the value could be performed.  This document does
+  not detail use of non-LDAP URIs.  This is left to future
+  specifications.
 
+  All values of a ref attribute MUST point to services which are equally
+  capable of handling operations referred to these services.
 
-5.1.  Named reference
+  The referential integrity of the URI SHOULD NOT be validated by the
+  server holding or returning the URI (whether as part of the value of
+  the attribute or as part of a referral result or search reference
+  response).
 
-  A named reference is used to facilitate distributed name resolution or
-  search across multiple servers.  The ref attribute appears in an
-  referral object (an entry with object class of referral) named in the
-  referencing server.  The value of the ref attribute points to the
-  corresponding entry maintained in the referenced server.
+  When returning a referral result or search continuation, the server
+  MUST NOT return the separator or label portions of the attribute
+  values as part of the reference.  When the attribute contains multiple
+  values, the URI part of each value is used to construct the referral
+  result or search continuation.
 
-  While the distinguished name in a value of the ref attribute is
-  typically that of an entry in a naming context below the naming
-  context held by the referencing server, it is permitted to be the
-  distinguished name of any entry.  If the ref attribute is multi-valued
-  all the DNs in the values of the ref attribute SHOULD have the same
-  value.  Administrators SHOULD avoid configuring naming loops using
-  referrals.
+  The ref attribute values SHOULD NOT be used as a relative
+  name-component of an entry's DN [RFC2253].
 
-  The URI SHOULD NOT explicitly define a scope and the server SHOULD NOT
-  explicitly add a scope to the URI before returning it to the client as
-  a referral or search reference as the scope is implied by the
-  operation.
+  This document uses the ref attribute in conjunction with the referral
+  object class to represent subordinate references.  The ref attribute
+  may be used for other purposes as defined by other documents.
 
-  Named references MUST be treated as normal entries if the request
-  includes the ManageDsaIT control.  The remainder of this section
-  describes processing of requests which do not include the ManageDsaIT
-  control.
 
+3.  The ManageDsaIT Control
 
-5.1.1.  Scenarios
-
-  The following sections contain specifications of how referral objects
-  should be used in different scenarios followed by examples that
-  illustrate that usage. The scenarios described consist of referral
-  operation when finding target of a non-search operation, when finding
-  the base of a search operation, and when generating search references.
-
-  It is to be noted that, in this document, a search operation is
-  conceptually divided into two distinct, sequential phases: (1) finding
-  the base object where the search is to begin, and (2) performing the
-  search itself. The operation of the server with respect to referrals
-  in phase (1) is similar to the operation of the server while finding
-  the target object for a non-search operations.
-
-  It is to also be noted that the ref attribute may have multiple values
-  and, where these sections refer to a single ref attribute value,
-  multiple ref attribute values may be substituted and SHOULD be
-
-
-
-Zeilenga                                                        [Page 4]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
-
-
-  processed and returned as a group in a referral or search reference in
-  the same way as described for a single ref attribute value.
-
-  Search references returned for a given request may be returned in any
-  order.
-
-
-5.1.1.1.  Example configuration
-
-
-   |------------------------------------------------------------|
-   |                    Server A                                |
-   | dn: o=abc,c=us                dn: o=xyz,c=us               |
-   | o: abc                        o: xyz                       |
-   | ref: ldap://hostB/o=abc,c=us  ref: ldap://hostD/o=xyz,c=us |
-   | ref: ldap://hostC/o=abc,c=us  objectclass: referral        |
-   | objectclass: referral         objectclass: extensibleObject|
-   | objectclass: extensibleObject                              |
-   |____________________________________________________________|
-
-   |------------------| |------------------| |------------------|
-   |       Server B   | |       Server D   | |      Server C    |
-   | dn: o=abc,c=us   | | dn: o=xyz,c=us   | | dn: o=abc,c=us   |
-   | o: abc           | | o: xyz           | | o: abc           |
-   | other attributes | | other attributes | | other attributes |
-   |__________________| |__________________| |__________________|
-
-  In this example, Server A holds references for two entries:
-  "o=abc,c=us" and "o=xyz,c=us". For the "o=abc,c=us" entry, Server A
-  holds two references, one to Server B and one to Server C.  The
-  entries referenced are replicas of each other. For the "o=xyz,c=us"
-  entry, Server A holds a single reference to the entry contained in
-  Server D.
-
-  In the following protocol interaction examples, the client has
-  contacted Server A.  Server A holds the naming context "c=us".
-
-
-5.1.1.2.  Base or Target object considerations
-
-  As previously described, the process of generating referrals for a
-  search can be described in two phases. The first, which is described
-  in this section, is generating referrals based on the base object
-  specified in the search. This process is similar to the process of
-  generating referrals based on the target object while processing other
-  operations (modify, add, delete, modify DN, and compare) with the sole
-  exception that for these other operations, the DN in the referral must
-  be modified in some cases.
-
-
-
-Zeilenga                                                        [Page 5]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
-
-
-  If a client requests any of these operations, there are four cases
-  that the server must handle with respect to the base or target object
-  specified in the request.
-
-  Case 1: The base or target object is not held by the server and is not
-  within or subordinate to any naming context nor is subordinate to any
-  referral object held by the server.
-
-  The handling of this case is described in section 6.
-
-  Case 2: The base or target object is held by the server and is a
-  referral object.
-
-  In this case, if the type of operation requested is a search or the
-  URI contained in the ref attribute of the requested base object is NOT
-  an LDAP URI, the server SHOULD return the URI value contained in the
-  ref attribute of the base object whose DN is the DN requested by the
-  client as the base for the operation.
-
-  Example:
-
-  If the client issues a search in which the base object is
-  "o=xyz,c=us", server A will return
-
-      SearchResultDone "referral" {
-          ldap://hostD/o=xyz,c=us
-      }
-
-  If the type of operation requested is not a search and the URI
-  contained in the ref attribute of the requested target object is an
-  LDAP URI, the server SHOULD return a modified form of this URI.  The
-  returned URI MUST have only the protocol, host, port, and trailing "/"
-  portion of the URI contained in the ref attribute.  The server SHOULD
-  strip any DN, attributes, scope, and filter parts of the URI.
-
-  Example:
-
-  If the client issues a modify request for the target object of
-  "o=abc,c=us", server A will return
-
-      ModifyResponse "referral" {
-          ldap://hostB/
-          ldap://hostC/
-      }
-
-  Case 3: The base or target object is not held by the server, but is
-  object where the nearest naming context contains no referral object
-  which the base or target object is subordinate to.
-
-
-
-Zeilenga                                                        [Page 6]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
-
-
-  In the context of this document, the nearest naming context means the
-  deepest context which the object is within.  That is, if the object is
-  within multiple naming contexts, the nearest naming context the one
-  which is subordinate to all other naming contexts the object is
-  within.
-
-  If the nearest naming context contains no referral object which the
-  base or target object is subordinate to the request, request SHOULD be
-  process normally as appropriate for a nonexistent base or target
-  object (generally return noSuchObject).
-
-  Case 4: The base or target object is not held by the server, but is
-  object where the nearest naming context contains a referral object
-  which the base or target object is subordinate to.
-
-  As noted above, the nearest naming context means the deepest context
-  which the object is within.
-
-  If a client requests an operation for which the base or target object
-  is not held by the server but the nearest naming context contains a
-  referral object which the base or target object is subordinate to, the
-  server MUST return a referral response which contains referral values
-  constructed from the URI components of ref attribute values of the
-  referral object.
-
-  For each ref attribute value, if the URI component is not an LDAP
-  URIs, it SHOULD be returned as-is.  If URI component is an LDAP URI,
-  the URI MUST be modified, regardless of the type of operation, as case
-  2 describes for a non-search request. That is, the DN, attributes,
-  scope, and filter parts of the URI MUST be stripped from the returned
-  URI.
-
-  Example:
-
-  If the client issues an add request where the target object has a DN
-  of "cn=Chris Lukas,o=abc,c=us", server A will return
-
-      AddResponse "referral" {
-          ldap://hostB/
-          ldap://hostC/
-      }
-
-
-5.1.1.3.  Search with one level or subtree scope
-
-  For search operations, once the base object has been found and
-  determined not to be a referral object, the search may progress.  Any
-  entries matching the filter and scope of the search which is not a
-
-
-
-Zeilenga                                                        [Page 7]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
-
-
-  referral object are returned to the client normally as described in
-  [RFC2251].
-
-  For each referral object within the requested scope, regardless of the
-  filter, the server SHOULD return a SearchResultReference which is
-  constructed from the URI component of values of the ref attribute.  If
-  the URI component is not an LDAP URI, it should be returned as is.  If
-  the URI component is an LDAP URI, the URI must be modified to remove
-  any explicit scope specifier.
-
-  One Level Example:
-
-  If a client requests a one level search of "c=US" then, in addition to
-  any entries one level below the "c=US" naming context matching the
-  filter (shown below as "... SearchResultEntry responses ..."), the
-  server will also return search references for any referral object
-  within the scope of the search.
-
-  The order of the SearchResultEntry responses and the
-  SearchResultReference responses is undefined.  One possible sequence
-  is shown.
-
-      ... SearchResultEntry responses ...
-
-      SearchResultReference {
-          ldap://hostB/o=abc,c=us
-          ldap://hostC/o=abc,c=us
-      }
-
-      SearchResultReference {
-          ldap://hostD/o=xyz,c=us
-      }
-
-      SearchResultDone "success"
-
-
-  Subtree Example:
-
-  If a client requests a subtree search of "c=us", then in addition to
-  any entries in the "c=us" naming context which match the filter,
-  Server A will also return two continuation references. As described in
-  the preceding section, the order of the responses is not defined.
-
-  One possible response might be:
-
-      SearchResultReference {
-          ldap://hostB/o=abc,c=us
-          ldap://hostC/o=abc,c=us
-
-
-
-Zeilenga                                                        [Page 8]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
-
-
-      }
-
-      ... SearchResultEntry responses ...
-
-      SearchResultReference {
-          ldap://hostD/o=xyz,c=us
-      }
-
-      SearchResultDone "success"
-
-
-6.  Superior Reference
-
-  An LDAP server may be configured to return a superior reference in the
-  case where the requested base or target object is not contained within
-  or subordinate to a naming context held by the server or referral
-  object.
-
-  An LDAP server's root DSE MAY contain a ref attribute. The values of
-  the ref attribute in the root DSE that are LDAP URIs SHOULD NOT
-  contain any DN part nor other search parameters (scope, filter,
-  attribute list).  They MUST include the URI hostpart.
-
-  If the LDAP server's root DSE contains a ref attribute and a client
-  requests a target or base object not held by the server and not
-  contained within or subordinate to any naming context held by the
-  server or referral object, the server MUST return the URI component of
-  the values in the ref attribute of the root DSE as illustrated in the
-  example.
-
-  If the LDAP server's root DSE does not contain a ref attribute, the
-  server may return referral result with or more URIs determined via an
-  appropriate method, return noSuchObject, or other appropriate
-  resultCode.
-
-  The presence of the ref attribute within the root DSE SHALL NOT cause
-  operations upon the root DSE to generate a referral.
-
-  Example:
-
-  If a client requests a subtree search of "c=de" from server A in the
-  example configuration, and server A has the following ref attribute
-  defined in it's root DSE:
-
-      ref: ldap://hostG/
-
-  then server A will return
-
-
-
-
-Zeilenga                                                        [Page 9]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
-
-
-      SearchResultDone "referral" {
-          ldap://hostG/
-      }
-
-
-8.  The ManageDsaIT control
-
-  The ManageDsaIT control indicates that the operation has been
-  requested so that the DSA (server) Information Tree is managed.  The
-  controls causes DSEs, regardless of type, to be treated as normal
-  entries allowing clients to interrogate and update these entries using
-  LDAP operations.  This control is analogous to the ManageDsaIT option
-  described in X.511(93) [X.511].
+  The client may provide the ManageDsaIT control with an operation to
+  indicate that the operation is intended to manage objects within the
+  DSA (server) Information Tree.  The control causes Directory-specific
+  entries (DSEs), regardless of type, to be treated as normal entries
+  allowing clients to interrogate and update these entries using LDAP
+  operations.  This control is analogous to the ManageDsaIT option
+  described in X.511 [X.511].
 
   A client MAY specify the following control when issuing an add,
   compare, delete, modify, modifyDN, search request or an extended
   operation for which the control is defined.
 
   The control type is 2.16.840.1.113730.3.4.2.  The control criticality
-  may be TRUE or FALSE.  There is no value; the controlValue field is
-  absent.
+  may be TRUE or, if FALSE, absent.  The control value is absent.
 
-  When present in the request, the server SHALL NOT generate a referral
-  or continuation reference for any referral object and instead perform
-  treat the referral object as an normal entry.  When not present,
-  referral objects SHALL be handled as described above.
+  When the control is present in the request, the server SHALL NOT
+  generate a referral or continuation reference for any referral object
+  and instead treat the referral object as a normal entry.  When not
+  present, referral objects SHALL be handled as described above.
+
+
+
+Zeilenga                      LDAP NamedRef                     [Page 4]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
+
 
   The control MAY cause other objects to be treated as normal entries as
   defined by subsequent documents.
 
 
-9.  Relationship to X.500 Knowledge References
+4.  Named Subordinate References
 
-  The X.500 standard defines several types of knowledge references, used
-  to bind together different parts of the X.500 namespace. In X.500,
-  knowledge references can be associated with a set of unnamed entries
-  (e.g., a reference, associated with an entry, to a server containing
-  the descendants of that entry).
+  A named subordinate reference is constructed by instantiating a
+  referral object in the referencing server with ref attribute values
+  which point to the corresponding subtree maintained in the referenced
+  server.  In general, the name of the referral object is the same as
+  the referenced object and this referenced object is a context prefix
+  [X.501].
 
-  This creates a potential problem for LDAP clients resolving an LDAPv3
-  URI referral referring to an LDAP directory back-ended by X.500.
-  Suppose the search is a subtree search, and that server A holds the
-  base object of the search, and server B holds the descendants of the
-  base object. The behavior of X.500(1993) subordinate references is
-  that the base object on server A is searched, and a single
-  continuation reference is returned pointing to all of the descendants
-  held on server B.
+  That is, if server A holds "DC=example,DC=net" and server B holds
+  "DC=sub,DC=example,DC=net", server A may contain a referral object
+  named "DC=sub,DC=example,DC=net" which contains a ref attribute with
+  value of "ldap://B/DC=sub,DC=example,DC=net".
+
+      dn: DC=sub,DC=example,DC=net
+      dc: sub
+      ref: ldap://B/DC=sub,DC=example,DC=net
+      objectClass: referral
+      objectClass: extensibleObject
+
+  While typically the DN of the referral object and the DN of the object
+  in the referenced server are the same, they need not be the same.
+
+  If the ref attribute has multiple values, all the DNs contained within
+  the LDAP URLs SHOULD be equivalent.  Administrators SHOULD avoid
+  configuring naming loops using referrals.
+
+  Named references MUST be treated as normal entries if the request
+  includes the ManageDsaIT control as described in section 3.
+
+
+5.  Scenarios
+
+  The following sections contain specifications of how referral objects
+  should be used in different scenarios followed by examples that
+  illustrate that usage.  The scenarios described consist of referral
+  operation when finding target of a non-search operation, when finding
+  the base of a search operation, and when generating search references.
+  Lastly, other operation processing considerations are presented.
+
+  It is to be noted that, in this document, a search operation is
+  conceptually divided into two distinct, sequential phases: (1) finding
+  the base object where the search is to begin, and (2) performing the
+  search itself.  The first phase is similar to, but not the same as,
 
 
 
-
-Zeilenga                                                       [Page 10]
+Zeilenga                      LDAP NamedRef                     [Page 5]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
 
 
-  An LDAP URI only allows the base object to be specified.  It is not
-  possible using standard LDAP URIs to indicate a search of several
-  entries whose names are not known to the server holding the superior
-  entry.
+  finding the target of a non-search operation.
 
-  X.500 solves this problem by having two fields, one indicating the
-  progress of name resolution and the other indicating the target of the
-  search. In the above example, name resolution would be complete by the
-  time the query reached server B, indicating that it should not refer
-  the request.
+  It should also be noted that the ref attribute may have multiple
+  values and, where these sections refer to a single ref attribute
+  value, multiple ref attribute values may be substituted and SHOULD be
+  processed and returned (in any order) as a group in a referral or
+  search reference in the same way as described for a single ref
+  attribute value.
 
-  This document does not address this problem.  This problem will be
-  addressed in separate documents which define the changes to the X.500
-  distribution model and LDAPv3 extensions to indicate the progress of
-  name resolution.
+  Search references returned for a given request may be returned in any
+  order.
 
 
-10.  Security Considerations
+5.1.  Example Configuration
 
-  This document defines mechanisms that can be used to "glue" LDAP (and
-  other) servers together. The information used to specify this glue
-  information should be protected from unauthorized modification.  If
-  the server topology information itself is not public information, the
-  information should be protected from unauthorized access as well.
+  For example, suppose the contacted server (hosta) holds the entry
+  "O=MNN,C=WW" and the entry "CN=Manager,O=MNN,C=WW" and the following
+  referral objects:
 
+      dn: OU=People,O=MNN,C=WW
+      ou: People
+      ref: ldap://hostb/OU=People,O=MNN,C=US
+      ref: ldap://hostc/OU=People,O=MNN,C=US
+      objectClass: referral
+      objectClass: extensibleObject
 
-11.  References
+      dn: OU=Roles,O=MNN,C=WW
+      ou: Roles
+      ref: ldap://hostd/OU=Roles,O=MNN,C=WW
+      objectClass: referral
+      objectClass: extensibleObject
 
-  [RFC1738] Berners-Lee, T., Masinter, L., and McCahill, M., "Uniform
-            Resource Locators (URL)", RFC 1738, CERN, Xerox Corporation,
-            University of Minnesota, December 1994.
+  The first referral object provides the server with the knowledge that
+  subtree "OU=People,O=MNN,C=WW" is held by hostb and hostc (e.g., one
+  is the master and the other a shadow).  The second referral object
+  provides the server with the knowledge that the subtree
+  "OU=Roles,O=MNN,C=WW" is held by hostd.
 
-  [RFC2079] M. Smith, "Definition of an X.500 Attribute Type and an
-            Object Class to Hold Uniform Resource Identifiers (URIs)",
-            RFC 2079, January 1997.
-
-  [RFC2119] S. Bradner, "Key Words for use in RFCs to Indicate
-            Requirement Levels", RFC 2119 (Also BCP0014), March 1997.
-
-  [RFC2251] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
-            Protocol (v3)", RFC 2251, December 1997.
-
-  [RFC2255] T. Howes, M. Smith, "The LDAP URL Format", RFC 2255,
-            December, 1997.
-
-  [X.500]   ITU-T Rec. X.501, "The Directory: Models", 1993.
-
-  [X.511]   ITU-T Rec. X.511, "The Directory: Abstract Service
-
+  Also, in the context of this document, the "nearest naming context"
+  means the deepest context which the object is within.  That is, if the
+  object is within multiple naming contexts, the nearest naming context
+  is the one which is subordinate to all other naming contexts the
+  object is within.
 
 
-Zeilenga                                                       [Page 11]
+5.2.  Target object considerations
+
+  This section details referral handling for add, compare, delete,
+
+
+
+Zeilenga                      LDAP NamedRef                     [Page 6]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
 
 
-            Definition", 1993.
+  modify, and modify DN operations.  If the client requests any of these
+  operations, there are four cases that the server must handle with
+  respect to the target object.
+
+  The DN part MUST be modified such that it refers to the appropriate
+  target in the referenced server (as detailed below).  Even where the
+  DN to be returned is the same as the target DN, the DN part SHOULD NOT
+  be trimmed.
+
+  In cases where the URI to be returned is a LDAP URL, the server SHOULD
+  trim any present scope, filter, or attribute list from the URI before
+  returning it.  Critical extensions MUST NOT be trimmed or modified.
+
+  Case 1: The target object is not held by the server and is not within
+      or subordinate to any naming context nor subordinate to any
+      referral object held by the server.
+
+      The server SHOULD process the request normally as appropriate for
+      a non-existent base which is not within any naming context of the
+      server (generally return noSuchObject or a referral based upon
+      superior knowledge reference information).  This document does not
+      detail management or processing of superior knowledge reference
+      information.
+
+  Case 2: The target object is held by the server and is a referral
+      object.
+
+      The server SHOULD return the URI value contained in the ref
+      attribute of the referral object.
+
+  Example: If the client issues a modify request for the target object
+      of "OU=People,O=MNN,c=WW", the server will return:
+
+          ModifyResponse (referral) {
+              ldap://hostb/OU=People,O=MNN,C=WW
+              ldap://hostc/OU=People,O=MNN,C=WW
+          }
+
+
+  Case 3: The target object is not held by the server, but the nearest
+      naming context contains no referral object which the target object
+      is subordinate to.
+
+      If the nearest naming context contains no referral object which
+      the target is subordinate to, the server SHOULD process the
+      request as appropriate for a nonexistent target (generally return
+      noSuchObject).
 
 
 
-12.  Acknowledgments
 
-  This document is borrows heavily from previous work by IETF LDAPext
-  working group.  In particular, this document is based upon "Named
-  Referral in LDAP Directories" (a work in progress) by Christopher
-  Lukes, Tim Howes, Michael Roszkowski, Mark C. Smith, and Mark Wahl.
+Zeilenga                      LDAP NamedRef                     [Page 7]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
 
 
-13.  Author's Address
+  Case 4: The target object is not held by the server, but the nearest
+      naming context contains a referral object which the target object
+      is subordinate to.
+
+      If a client requests an operation for which the target object is
+      not held by the server and the nearest naming context contains a
+      referral object which the target object is subordinate to, the
+      server SHOULD return a referral response constructed from the URI
+      portion of the ref value of the referral object.
+
+  Example: If the client issues an add request where the target object
+      has a DN of "CN=Manager,OU=Roles,O=MNN,C=WW", the server will
+      return
+
+          AddResponse (referral) {
+              ldap://hostd/CN=Manager,OU=Roles,O=MNN,C=WW"
+          }
+
+      Note that the DN part of the LDAP URL is modified such that it
+      refers to the appropriate entry in the referenced server.
+
+
+5.3.  Base Object Considerations
+
+  This section details referral handling for base object processing
+  within search operations.  Like target object considerations for non-
+  search operations, there are the four cases.
+
+  In cases where the URI to be returned is a LDAP URL, the server MUST
+  provide an explicit scope specifier from the LDAP URL prior to
+  returning it.  In addition, the DN part MUST be modified such that it
+  refers to the appropriate target in the referenced server (as detailed
+  below).
+
+  If aliasing dereferencing was necessary in finding the referral
+  object, the DN part of the URI MUST be replaced with the base DN as
+  modified by the alias dereferencing such that the return URL refers to
+  the new target object per [RFC2251, 4.1.11].
+
+  Critical extensions MUST NOT be trimmed nor modified.
+
+  Case 1: The base object is not held by the server and is not within
+      nor subordinate to any naming context held by the server.
+
+      The server SHOULD process the request normally as appropriate for
+      a non-existent base which not within any naming context of the
+      server (generally return a superior referral or noSuchObject).
+      This document does not detail management or processing of superior
+
+
+
+Zeilenga                      LDAP NamedRef                     [Page 8]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
+
+
+      knowledge references.
+
+  Case 2: The base object is held by the server and is a referral
+      object.
+
+      The server SHOULD return the URI value contained in the ref
+      attribute of the referral object.
+
+  Example: If the client issues a subtree search in which the base
+      object is "OU=Roles,O=MNN,C=WW", the server will return
+
+          SearchResultDone (referral) {
+              ldap://hostd/OU=Roles,O=MNN,C=WW??sub
+          }
+
+      If the client were to issue a base or oneLevel search instead of
+      subtree, the returned LDAP URL would explicitly specify "base" or
+      "one", respectively, instead of "sub".
+
+  Case 3: The base object is not held by the server, but the nearest
+      naming context contains no referral object which the base object
+      is subordinate to.
+
+      If the nearest naming context contains no referral object which
+      the base is subordinate to, the request SHOULD be processed
+      normally as appropriate for a nonexistent base (generally return
+      noSuchObject).
+
+  Case 4: The base object is not held by the server, but the nearest
+      naming context contains a referral object which the base object is
+      subordinate to.
+
+      If a client requests an operation for which the target object is
+      not held by the server and the nearest naming context contains a
+      referral object which the target object is subordinate to, the
+      server SHOULD return a referral response which is constructed from
+      the URI portion of the ref value of the referral object.
+
+  Example: If the client issues a base search request for
+      "CN=Manager,OU=Roles,O=MNN,C=WW", the server will return
+
+          SearchResultDone (referral) {
+              ldap://hostd/CN=Manager,OU=Roles,O=MNN,C=WW??base"
+          }
+
+      If the client were to issue a subtree or oneLevel search instead
+      of subtree, the returned LDAP URL would explicitly specify "sub"
+      or "one", respectively, instead of "base".
+
+
+
+Zeilenga                      LDAP NamedRef                     [Page 9]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
+
+
+      Note that the DN part of the LDAP URL is modified such that it
+      refers to the appropriate entry in the referenced server.
+
+
+5.4.  Search Continuation Considerations
+
+  For search operations, once the base object has been found and
+  determined not to be a referral object, the search may progress.  Any
+  entry matching the filter and scope of the search which is not a
+  referral object is returned to the client normally as described in
+  [RFC2251].
+
+  For each referral object within the requested scope, regardless of the
+  search filter, the server SHOULD return a SearchResultReference which
+  is constructed from the URI component of values of the ref attribute.
+  If the URI component is not a LDAP URL, it should be returned as is.
+  If the LDAP URL's DN part is absent or empty, the DN part must be
+  modified to contain the DN of the referral object.  If the URI
+  component is a LDAP URL, the URI SHOULD be modified to add an explicit
+  scope specifier.
+
+  Subtree Example:
+
+      If a client requests a subtree search of "O=MNN,C=WW", then in
+      addition to any entries within scope which match the filter, hosta
+      will also return two search references as the two referral objects
+      are within scope.  One possible response might be:
+
+          SearchEntry for O=MNN,C=WW
+          SearchResultReference {
+              ldap://hostb/OU=People,O=MNN,C=WW??sub
+              ldap://hostc/OU=People,O=MNN,C=WW??sub
+          }
+          SearchEntry for CN=Manager,O=MNN,C=WW
+          SearchResultReference {
+              ldap://hostd/OU=Roles,O=MNN,C=WW??sub
+          }
+          SearchResultDone (success)
+
+  One Level Example:
+
+      If a client requests a one level search of "O=MNN,C=WW" then, in
+      addition to any entries one level below the "O=MNN,C=WW" entry
+      matching the filter, the server will also return two search
+      references as the two referral objects are within scope.  One
+      possible sequence is shown:
+
+          SearchResultReference {
+
+
+
+Zeilenga                      LDAP NamedRef                    [Page 10]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
+
+
+              ldap://hostb/OU=People,O=MNN,C=WW??base
+              ldap://hostc/OU=People,O=MNN,C=WW??base
+          }
+          SearchEntry for CN=Manager,O=MNN,C=WW
+          SearchResultReference {
+              ldap://hostd/OU=Roles,O=MNN,C=WW??base
+          }
+          SearchResultDone (success)
+
+  Note: Unlike the examples in Section 4.5.3.1 of RFC 2251, the LDAP
+        URLs returned with the SearchResultReference messages contain,
+        as required by this specification, an explicit scope specifier.
+
+
+5.6.  Other Considerations
+
+  This section details processing considerations for other operations.
+
+
+5.6.1 Bind
+
+  Servers SHOULD NOT return referral result code if the bind name (or
+  other identity in the DN form) is (or is subordinate to) a referral
+  object but MAY use the knowledge information to process the bind
+  request (such as in support a future distributed operation
+  specification).  Where the server makes no use of the knowledge
+  information, the server processes the request normally as appropriate
+  for a non-existent authentication or authorization identity (e.g.
+  return invalidCredentials).
+
+
+5.6.2 Modify DN
+
+  If the newSuperior is a referral object or is subordinate to a
+  referral object, the server SHOULD return affectsMultipleDSAs.  If the
+  newRDN already exists but is a referral object, the server SHOULD
+  return affectsMultipleDSAs instead of entryAlreadyExists.
+
+
+6.  Security Considerations
+
+  This document defines mechanisms that can be used to tie LDAP (and
+  other) servers together.  The information used to tie services
+  together should be protected from unauthorized modification.  If the
+  server topology information is not public information, it should be
+  protected from unauthorized disclosure as well.
+
+
+
+
+
+Zeilenga                      LDAP NamedRef                    [Page 11]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
+
+
+7.  Acknowledgments
+
+  This document borrows heavily from previous work by IETF LDAPext
+  Working Group.  In particular, this document is based upon "Named
+  Referral in LDAP Directories" (an expired Internet Draft) by
+  Christopher Lukas, Tim Howes, Michael Roszkowski, Mark C. Smith, and
+  Mark Wahl.
+
+
+8.  Author's Address
 
   Kurt D. Zeilenga
   OpenLDAP Foundation
   <Kurt@OpenLDAP.org>
 
 
-  This draft expires 4 Jan. 2001.
+References
+
+  [RFC2079] M. Smith, "Definition of an X.500 Attribute Type and an
+            Object Class to Hold Uniform Resource Identifiers (URIs)",
+            RFC 2079, January 1997.
+
+  [RFC2119] S. Bradner, "Key Words for use in RFCs to Indicate
+            Requirement Levels", RFC 2119 (Also BCP 14), March 1997.
+
+  [RFC2251] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
+            Protocol (v3)", RFC 2251, December 1997.
+
+  [RFC2252] M. Wahl, A. Coulbeck, T. Howes, S. Kille, "Lightweight
+            Directory Access Protocol (v3):  Attribute Syntax
+            Definitions", RFC 2252, December 1997.
+
+  [RFC2253] M. Wahl, S. Kille, T. Howes, "Lightweight Directory Access
+            Protocol (v3): UTF-8 String Representation of Distinguished
+            Names", RFC 2253, December 1997.
+
+  [RFC2255] T. Howes, M. Smith, "The LDAP URL Format", RFC 2255,
+            December, 1997.
+
+  [RFC2396] Berners-Lee, T., R. Fielding, L. Masinter, "Uniform Resource
+            Identifiers (URI): Generic Syntax", RFC 2396, August 1998.
+
+  [X.500]   ITU-T Rec. X.500, "The Directory: Overview of Concepts,
+            Models, and Services", 1993.
+
+  [X.501]   ITU-T Rec. X.501, "The Directory: Models", 1993.
+
+  [X.511]   ITU-T Rec. X.511, "The Directory: Abstract Service
+
+
+
+Zeilenga                      LDAP NamedRef                    [Page 12]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-namedref-04        20 July 2001
+
+
+            Definition", 1993.
+
+
+Copyright 2001, The Internet Society.  All Rights Reserved.
+
+  This document and translations of it may be copied and furnished to
+  others, and derivative works that comment on or otherwise explain it
+  or assist in its implementation may be prepared, copied, published and
+  distributed, in whole or in part, without restriction of any kind,
+  provided that the above copyright notice and this paragraph are
+  included on all such copies and derivative works.  However, this
+  document itself may not be modified in any way, such as by removing
+  the copyright notice or references to the Internet Society or other
+  Internet organizations, except as needed for the  purpose of
+  developing Internet standards in which case the procedures for
+  copyrights defined in the Internet Standards process must be followed,
+  or as required to translate it into languages other than English.
+
+  The limited permissions granted above are perpetual and will not be
+  revoked by the Internet Society or its successors or assigns.
+
+  This document and the information contained herein is provided on an
+  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
@@ -664,12 +727,5 @@ INTERNET-DRAFT       draft-zeilenga-ldap-namedref-00         4 July 2000
 
 
 
-
-
-
-
-
-
-
-Zeilenga                                                       [Page 12]
+Zeilenga                      LDAP NamedRef                    [Page 13]
 

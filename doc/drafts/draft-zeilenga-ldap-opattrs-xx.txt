@@ -1,0 +1,227 @@
+
+
+
+
+
+
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Standard Track                   OpenLDAP Foundation
+Expires: 26 December 2001                           26 June 2001
+
+
+
+                    LDAPv3: All Operational Attributes
+                   <draft-zeilenga-ldap-opattrs-01.txt>
+
+
+Status of this Memo
+
+  This document is an Internet-Draft and is in full conformance with all
+  provisions of Section 10 of RFC2026.
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as a Standard Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extensions Working Group
+  mailing list <ietf-ldapext@netscape.com>.  Please send editorial
+  comments directly to the author <Kurt@OpenLDAP.org>.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups.  Note that other
+  groups may also distribute working documents as Internet-Drafts.
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time.  It is inappropriate to use Internet-Drafts as reference
+  material or to cite them other than as ``work in progress.''
+
+  The list of current Internet-Drafts can be accessed at
+  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
+  Internet-Draft Shadow Directories can be accessed at
+  <http://www.ietf.org/shadow.html>.
+
+  Copyright 2001, The Internet Society.  All Rights Reserved.
+
+  Please see the Copyright section near the end of this document for
+  more information.
+
+
+1.  Overview
+
+  X.500 [X.500] provides a mechanism for clients to request all
+  operational attributes be returned with entries provided in response
+  to a search operation.   This mechanism is often used by clients to
+  discover which operational attributes are present in an entry.
+
+
+
+
+Zeilenga                    LDAP All Op Attrs                   [Page 1]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-opattrs-01         26 June 2001
+
+
+  This documents updates LDAP [RFC2251] to provide a simple mechanism
+  which clients may use to request the return of all operation
+  attributes.  The mechanism is designed for use with existing general
+  purpose LDAP clients (including web browsers which support LDAP URLs)
+  and existing LDAP API.
+
+  The key words ``MUST'', ``MUST NOT'', ``REQUIRED'', ``SHALL'', ``SHALL
+  NOT'', ``SHOULD'', ``SHOULD NOT'', ``RECOMMENDED'',  and ``MAY'' in
+  this document are to be interpreted as described in RFC 2119
+  [RFC2119].
+
+
+2.  All Operational Attributes
+
+  The presence of the attribute description "+" (ASCII 43) in the list
+  of attributes in a Search Request SHALL signify a request for the
+  return of all operational attributes.
+
+  As with all search requests, client implementors should note that
+  results may not include all requested attributes due to access
+  controls or other restrictions.  Clients implementors should also note
+  that certain operational attributes may be returned only if requested
+  by name even when "+" is present.  This is because some operational
+  attributes are very expensive to return.
+
+  Servers supporting this feature SHOULD publish the Object Identifier
+  1.3.6.1.4.1.4203.1.5.1 as a value of supportedFeatures [FEATURES]
+  attribute in the root DSE.
+
+
+3.  Interoperability Considerations
+
+  This mechanism is specifically designed to allow users to request all
+  operational attributes using existing LDAP clients.  In particular,
+  the mechanism is designed to be compatible with existing general
+  purpose LDAP clients includes web browsers which support LDAP URLs
+  [RFC2255].
+
+  The addition of this mechanism to LDAPv3 is believed not to cause any
+  significant interoperability issues (this has been confirmed through
+  testing).   Servers which have yet to implement this specification
+  should ignore the "+" as an unrecognized attribute description per
+  [RFC2251, Section 4.5.1].  From the client's perspective, a server
+  which does not return all operational attributes when "+" is requested
+  should be viewed as having other restrictions.
+
+  It is also noted that this mechanism is believed to require no
+  modification of existing LDAP APIs.
+
+
+
+Zeilenga                    LDAP All Op Attrs                   [Page 2]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-opattrs-01         26 June 2001
+
+
+4.  Security Considerations
+
+  This document provides a mechanism which clients may use to discover
+  operational attributes.  Those relying on security by obscurity SHOULD
+  implement appropriate access controls to restricts access to
+  operational attributes per local policy.
+
+
+5.  Acknowledgment
+
+  The "+" mechanism is believed to have been first suggested by Bruce
+  Greenblatt in a November 1998 post to the IETF LDAPext Working Group
+  mailing list.
+
+
+7.  Author's Address
+
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+  <Kurt@OpenLDAP.org>
+
+
+References
+
+  [RFC2219] S. Bradner, "Key words for use in RFCs to Indicate
+            Requirement Levels", RFC 2119, March 1997.
+
+  [RFC2251] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
+            Protocol (v3)", RFC 2251, December 1997.
+
+  [RFC2255] T. Howes and M. Smith, "The LDAP URL Format", RFC 2255,
+            December 1997.
+
+  [FEATURES] K. Zeilenga, "Feature Discovery in LDAP", draft-zeilenga-
+            ldap-features-xx.txt (a work in progress).
+
+  [X.500]   ITU-T Rec. X.500, "The Directory: Overview of Concepts,
+            Models and Service",  1993.
+
+
+Copyright 2001, The Internet Society.  All Rights Reserved.
+
+            This document and translations of it may be copied and
+            furnished to others, and derivative works that comment on or
+            otherwise explain it or assist in its implementation may be
+            prepared, copied, published and distributed, in whole or in
+            part, without restriction of any kind, provided that the
+            above copyright notice and this paragraph are included on
+
+
+
+Zeilenga                    LDAP All Op Attrs                   [Page 3]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-opattrs-01         26 June 2001
+
+
+            all such copies and derivative works.  However, this
+            document itself may not be modified in any way, such as by
+            removing the copyright notice or references to the Internet
+            Society or other Internet organizations, except as needed
+            for the  purpose of developing Internet standards in which
+            case the procedures for copyrights defined in the Internet
+            Standards process must be followed, or as required to
+            translate it into languages other than English.
+
+            The limited permissions granted above are perpetual and will
+            not be revoked by the Internet Society or its successors or
+            assigns.
+
+            This document and the information contained herein is
+            provided on an "AS IS" basis and THE AUTHORS, THE INTERNET
+            SOCIETY, AND THE INTERNET ENGINEERING TASK FORCE DISCLAIMS
+            ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+            LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+            HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+            WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR
+            PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                    LDAP All Op Attrs                   [Page 4]
+
