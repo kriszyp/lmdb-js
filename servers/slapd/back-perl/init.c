@@ -28,6 +28,20 @@
 PerlInterpreter *perl_interpreter = NULL;
 ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
+#ifdef SLAPD_PERL_DYNAMIC
+#include <gmodule.h>
+
+G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+   BackendInfo bi;
+
+   bi.bi_type = "perl";
+   bi.bi_init = perl_back_initialize;
+
+   backend_add(&bi);
+}
+
+#endif /* SLAPD_PERL_DYNAMIC */
+
 
 /**********************************************************
  *

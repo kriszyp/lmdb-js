@@ -1,6 +1,6 @@
 /* tcl_init.c - tcl backend initialization
  *
- * $Id: tcl_init.c,v 1.6 1999/03/03 16:02:10 hallvard Exp $
+ * $Id: tcl_init.c,v 1.7 1999/06/23 10:31:37 bastiaan Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -20,6 +20,20 @@
 #include "tcl_back.h"
 
 ldap_pvt_thread_mutex_t tcl_interpreter_mutex;
+
+#ifdef SLAPD_TCL_DYNAMIC
+#include <gmodule.h>
+
+G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+   BackendInfo bi;
+
+   bi.bi_type = "tcl";
+   bi.bi_init = tcl_back_initialize;
+
+   backend_add(&bi);
+}
+
+#endif /* SLAPD_TCL_DYNAMIC */
 
 int
 tcl_back_initialize (

@@ -9,6 +9,20 @@
 #include "slap.h"
 #include "external.h"
 
+#ifdef SLAPD_PASSWD_DYNAMIC
+#include <gmodule.h>
+
+G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+   BackendInfo bi;
+
+   bi.bi_type = "passwd";
+   bi.bi_init = passwd_back_initialize;
+
+   backend_add(&bi);
+}
+
+#endif /* SLAPD_PASSWD_DYNAMIC */
+
 int
 passwd_back_initialize(
     BackendInfo	*bi

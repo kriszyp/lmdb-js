@@ -170,6 +170,9 @@
 /* define this to use SLAPD Berkeley DB2 backend */
 #undef SLAPD_BDB2
 
+/* define this to compile SLAPD DB2 backend as a dynamic module*/
+#undef SLAPD_BDB2_DYNAMIC
+
 /* define this for ClearText password support */
 #undef SLAPD_CLEARTEXT
 
@@ -179,8 +182,14 @@
 /* define this to use SLAPD LDAP backend */
 #undef SLAPD_LDAP
 
+/* define this to compile SLAPD LDAP backend as a dynamic module*/
+#undef SLAPD_LDAP_DYNAMIC
+
 /* define this to use SLAPD LDBM backend */
 #undef SLAPD_LDBM
+
+/* define this to compile SLAPD LDBM backend as a dynamic module*/
+#undef SLAPD_LDBM_DYNAMIC
 
 /* define this to use SLAPD Modules */
 #undef SLAPD_MODULES
@@ -188,8 +197,14 @@
 /* define this to use SLAPD passwd backend */
 #undef SLAPD_PASSWD
 
+/* define this to compile SLAPD passwd backend as a dynamic module*/
+#undef SLAPD_PASSWD_DYNAMIC
+
 /* define this to use SLAPD Perl backend */
 #undef SLAPD_PERL
+
+/* define this to compile SLAPD Perl backend as a dynamic module*/
+#undef SLAPD_PERL_DYNAMIC
 
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
@@ -200,8 +215,14 @@
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
 
+/* define this to compile SLAPD shell backend as a dynamic module*/
+#undef SLAPD_SHELL_DYNAMIC
+
 /* define this to use SLAPD TCL backend */
 #undef SLAPD_TCL
+
+/* define this to compile SLAPD TCL backend as a dynamic module*/
+#undef SLAPD_TCL_DYNAMIC
 
 /* define this to be empty if your compiler doesn't support volatile */
 #undef volatile

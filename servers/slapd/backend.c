@@ -36,25 +36,25 @@
 #endif
 
 static BackendInfo binfo[] = {
-#ifdef SLAPD_LDAP
+#if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
 	{"ldap",	ldap_back_initialize},
 #endif
-#ifdef SLAPD_LDBM
+#if defined(SLAPD_LDBM) && !defined(SLAPD_LDBM_DYNAMIC)
 	{"ldbm",	ldbm_back_initialize},
 #endif
-#ifdef SLAPD_BDB2
+#if defined(SLAPD_BDB2) && !defined(SLAPD_BDB2_DYNAMIC)
 	{"bdb2",	bdb2_back_initialize},
 #endif
-#ifdef SLAPD_PASSWD
+#if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
 	{"passwd",	passwd_back_initialize},
 #endif
-#ifdef SLAPD_PERL
+#if defined(SLAPD_PERL) && !defined(SLAPD_PERL_DYNAMIC)
 	{"perl",	perl_back_initialize},
 #endif
-#ifdef SLAPD_SHELL
+#if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
 	{"shell",	shell_back_initialize},
 #endif
-#ifdef SLAPD_TCL
+#if defined(SLAPD_TCL) && !defined(SLAPD_LDAP_TCL)
 	{"tcl",		tcl_back_initialize},
 #endif
 	{NULL}
@@ -108,11 +108,48 @@ int backend_init(void)
 		return 0;
 	}
 
+#ifdef SLAPD_MODULES	
+	return 0;
+#else
 	Debug( LDAP_DEBUG_ANY,
 		"backend_init: failed\n",
 		0, 0, 0 );
 
 	return rc;
+#endif /* SLAPD_MODULES */
+}
+
+int backend_add(BackendInfo *aBackendInfo)
+{
+   int rc = 0;
+
+   if ((rc = aBackendInfo->bi_init(aBackendInfo)) != 0) {
+      Debug( LDAP_DEBUG_ANY,
+	     "backend_add: initialization for type \"%s\" failed\n",
+	     aBackendInfo->bi_type, 0, 0 );
+      return rc;
+   }
+
+   /* now add the backend type to the Backend Info List */
+   {
+      BackendInfo *newBackendInfo = 0;
+
+      /* if backendInfo == binfo no deallocation of old backendInfo */
+      if (backendInfo == binfo) {
+	 newBackendInfo = ch_calloc(nBackendInfo + 1, sizeof(BackendInfo));
+	 memcpy(newBackendInfo, backendInfo, sizeof(BackendInfo) * 
+		nBackendInfo);
+      } else {
+	 newBackendInfo = ch_realloc(backendInfo, sizeof(BackendInfo) * 
+				     (nBackendInfo + 1));
+      }
+      memcpy(&newBackendInfo[nBackendInfo], aBackendInfo, 
+	     sizeof(BackendInfo));
+      backendInfo = newBackendInfo;
+      nBackendInfo++;
+
+      return 0;
+   }	    
 }
 
 int backend_startup(int n)
@@ -294,6 +331,15 @@ int backend_destroy(void)
 				&backendInfo[i] );
 		}
 	}
+
+#ifdef SLAPD_MODULES
+	if (backendInfo != binfo) {
+	   free(backendInfo);
+	}
+#endif /* SLAPD_MODULES */
+
+	nBackendInfo = 0;
+	backendInfo = NULL;
 
 	return 0;
 }

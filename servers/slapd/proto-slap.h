@@ -69,6 +69,7 @@ void ava_free LDAP_P(( Ava *ava, int freeit ));
  */
 
 int backend_init LDAP_P((void));
+int backend_add LDAP_P((BackendInfo *aBackendInfo));
 int backend_startup LDAP_P((int dbnum));
 int backend_shutdown LDAP_P((int dbnum));
 int backend_destroy LDAP_P((void));
@@ -197,6 +198,14 @@ int test_filter LDAP_P(( Backend *be, Connection *conn, Operation *op, Entry *e,
 
 FILE * lock_fopen LDAP_P(( char *fname, char *type, FILE **lfp ));
 int lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
+
+/*
+ * module.c
+ */
+
+#ifdef SLAPD_MODULES
+int load_module LDAP_P(( const char* file_name, int argc, char *argv[] ));
+#endif /* SLAPD_MODULES */
 
 /*
  * monitor.c

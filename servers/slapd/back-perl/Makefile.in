@@ -24,7 +24,8 @@ BUILD_SRV = @BUILD_PERL@
 PROGRAMS =		libback-perl.a
 
 XINCPATH = -I.. -I$(srcdir)/..
-XDEFS = $(PERL_CPPFLAGS)
+XDEFS = $(PERL_CPPFLAGS) $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
 
 all-local-srv:	FORCE
 	$(MAKE) $(MFLAGS) libback-perl.a

@@ -13,6 +13,8 @@ BUILD_SRV = @BUILD_SHELL@
 PROGRAMS =		libback-shell.a
 
 XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
 
 all-local-srv:	FORCE
 	$(MAKE) $(MFLAGS) libback-shell.a

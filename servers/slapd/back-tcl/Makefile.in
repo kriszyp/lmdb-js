@@ -25,6 +25,8 @@ BUILD_SRV = @BUILD_TCL@
 
 PROGRAMS =		libback-tcl.a
 
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
 XINCPATH = -I.. -I$(srcdir)/..
 
 all-local-srv:	FORCE

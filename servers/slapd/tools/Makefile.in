@@ -19,6 +19,9 @@ BUILD_BDB2 = @BUILD_BDB2@
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+
 XLIBS = -lavl -lldif -lldbm -lldap_r -llber -llutil
 XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
 	$(PERL_LDFLAGS) $(LDBM_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
@@ -44,7 +47,7 @@ EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o
 
 OBJS2	= mimic.o \
 		../config.o ../ch_malloc.o ../backend.o ../charray.o \
-		../aclparse.o ../schema.o ../filterentry.o \
+		../module.o ../aclparse.o ../schema.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
 		../schemaparse.o

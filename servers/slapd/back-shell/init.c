@@ -9,6 +9,20 @@
 #include "slap.h"
 #include "shell.h"
 
+#ifdef SLAPD_SHELL_DYNAMIC
+#include <gmodule.h>
+
+G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+   BackendInfo bi;
+
+   bi.bi_type = "shell";
+   bi.bi_init = shell_back_initialize;
+
+   backend_add(&bi);
+}
+
+#endif /* SLAPD_SHELL_DYNAMIC */
+
 int
 shell_back_initialize(
     BackendInfo	*bi

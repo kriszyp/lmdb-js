@@ -10,6 +10,20 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+#ifdef SLAPD_LDBM_DYNAMIC
+#include <gmodule.h>
+
+G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+   BackendInfo bi;
+
+   bi.bi_type = "ldbm";
+   bi.bi_init = ldbm_back_initialize;
+
+   backend_add(&bi);
+}
+
+#endif /* SLAPD_LDBM_DYNAMIC */
+
 int
 ldbm_back_initialize(
     BackendInfo	*bi

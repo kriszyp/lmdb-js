@@ -13,7 +13,9 @@ BUILD_SRV = @BUILD_LDAP@
 PROGRAMS =		libback-ldap.a
 
 XINCPATH = -I.. -I$(srcdir)/..
-
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+ 
 all-local-srv:	FORCE
 	$(MAKE) $(MFLAGS) libback-ldap.a
 

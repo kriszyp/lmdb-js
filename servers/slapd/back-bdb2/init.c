@@ -10,6 +10,19 @@
 #include "slap.h"
 #include "back-bdb2.h"
 
+#ifdef SLAPD_BDB2_DYNAMIC
+#include <gmodule.h>
+
+G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+   BackendInfo bi;
+
+   bi.bi_type = "bdb2";
+   bi.bi_init = bdb2_back_initialize;
+
+   backend_add(&bi);
+}
+
+#endif /* SLAPD_BDB2_DYNAMIC */
 
 static int
 bdb2i_back_init_private(

@@ -30,6 +30,20 @@
 #include "slap.h"
 #include "back-ldap.h"
 
+#ifdef SLAPD_LDAP_DYNAMIC
+#include <gmodule.h>
+
+G_MODULE_EXPORT void init_module(int argc, char *argv[]) {
+   BackendInfo bi;
+
+   bi.bi_type = "ldap";
+   bi.bi_init = ldap_back_initialize;
+
+   backend_add(&bi);
+}
+
+#endif /* SLAPD_LDAP_DYNAMIC */
+
 int
 ldap_back_initialize(
     BackendInfo	*bi
