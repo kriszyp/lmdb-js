@@ -80,16 +80,21 @@ For example, to index the {{EX:cn}}, {{EX:sn}}, {{EX:uid}} and
 {{EX:objectclass}} attributes, the following {{EX:index}} directives
 could be used:
 
->	index cn,sn,uid
->	index objectClass pres,eq
+>	index cn,sn,uid pres,eq,approx,sub
+>	index objectClass eq
 
-Note that not all index types are available with all attribute types.
-See {{SECT:The slapd Configuration File}} section for more details on
-this option. Once you have configured things to your liking, start up
-slapd, connect with your LDAP client, and start adding entries.  For
-example, to add an organization entry and an organizational role entry
-using the {{I:ldapadd}} tool, you could create an {{TERM:LDIF}} file
-called {{EX:entries.ldif}} with the contents:
+This would create presence, equality, approximate, and substring
+indices for the {{EX:cn}}, {{EX:sn}}, and {{EX:uid}} attributes and
+an equality index for the {{EX:objectClass}} attribute.  Note that
+not all index types are available with all attribute types.  See
+{{SECT:The slapd Configuration File}} section for more information
+on this option.
+
+Once you have configured things to your liking, start up slapd,
+connect with your LDAP client, and start adding entries.  For
+example, to add an organization entry and an organizational role
+entry using the {{I:ldapadd}} tool, you could create an {{TERM:LDIF}}
+file called {{EX:entries.ldif}} with the contents:
 
 >	# Organization for Example Corporation
 >	dn: dc=example,dc=com
@@ -150,14 +155,15 @@ is done by one or more index options.
 
 For example:
 
->	index cn,sn,uid pres,eq,sub
+>	index cn,sn,uid pres,eq,approx,sub
 >	index objectClass eq
 
-This would create presence, equality and substring indices for
-the {{EX:cn}}, {{EX:sn}}, and {{EX:uid}} attributes and an equality
-index for the {{EX:objectClass}} attribute. See 
-{{SECT:The slapd Configuration File}} section
-for more information on this option.
+This would create presence, equality, approximate, and substring
+indices for the {{EX:cn}}, {{EX:sn}}, and {{EX:uid}} attributes and
+an equality index for the {{EX:objectClass}} attribute.  Note that
+not all index types are available with all attribute types.  See
+{{SECT:The slapd Configuration File}} section for more information
+on this option.
 
 H3: The {{EX:slapadd}} program
 
@@ -172,9 +178,9 @@ The arguments have the following meanings:
 
 >	-l <inputfile>
 
-Specifies the LDIF input file containing the entries to add in text
-form (described below in the {{SECT:The LDIF text entry format}}
-section).
+Specifies the {{TERM:LDIF}} input file containing the entries to
+add in text form (described below in the {{SECT:The LDIF text entry
+format}} section).
 
 >	-f <slapdconfigfile>
 
@@ -229,8 +235,8 @@ your database off-line.  The program is invoked like this:
 
 where {{EX:-n}} or {{EX:-b}} is used to select the database in the
 {{slapd.conf}}(5) specified using {{EX:-f}}.  The corresponding
-LDIF output is written to standard output or to the file specified
-using the {{EX:-l}} option.
+{{TERM:LDIF}} output is written to standard output or to the file
+specified using the {{EX:-l}} option.
 
 
 !if 0

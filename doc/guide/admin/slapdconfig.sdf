@@ -440,9 +440,10 @@ If specified multiple times, each {{TERM:URL}} is provided.
 
 H3: BDB Database Directives
 
-Directives in this category only apply to a BDB database. That is,
-they must follow a "database bdb" line and come before any
-subsequent "backend" or "database" line.
+Directives in this category only apply to a {{TERM:BDB}} database.
+That is, they must follow a "database bdb" line and come before any
+subsequent "backend" or "database" line.  For a complete reference
+of BDB configuration directives, see {{slapd-bdb}}(5).
 
 H4: directory <directory>
 
@@ -456,9 +457,10 @@ containing the database and associated indices live.
 
 H3: LDBM Database Directives
 
-Directives in this category only apply to a LDBM database. That is,
-they must follow a "database ldbm" line and come before any
-subsequent "backend" or "database" line.
+Directives in this category only apply to a {{TERM:LDBM}} database.
+That is, they must follow a "database ldbm" line and come before
+any subsequent "backend" or "database" line.  For a complete reference
+of LDBM configuration directives, see {{slapd-ldbm}}(5).
 
 H4: cachesize <integer>
 

@@ -13,7 +13,6 @@ to directory services and, in particular, the directory services
 provided by {{slapd}}(8).
 
 
-
 H2: What is a directory service?
 
 A directory is a specialized database optimized for reading, browsing

@@ -12,7 +12,7 @@ and configure OpenLDAP software. It should be used in conjunction
 with the other chapters of this document, manual pages, and
 other materials provided with the distribution (e.g. the {{F:INSTALL}}
 document) or on the OpenLDAP web site (in particular, the
-OpenLDAP Software FAQ).
+OpenLDAP Software {{TERM:FAQ}}).
 
 If you intend to run OpenLDAP seriously, you should review all
 of this document before attempting to install the software.
