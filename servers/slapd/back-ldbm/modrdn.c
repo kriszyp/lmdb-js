@@ -131,6 +131,20 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
+	if ( has_children( be, e ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			   "ldbm_back_modrdn: entry %s has children\n", e->e_dn ));
+#else
+		Debug( LDAP_DEBUG_TRACE, "entry %s referral\n", 0,
+		    0, 0 );
+#endif
+
+		send_ldap_result( conn, op, LDAP_NOT_ALLOWED_ON_NONLEAF,
+		    NULL, "subtree rename not supported", NULL, NULL );
+		goto return_results;
+	}
+
 	if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL ) {
 		/* Make sure parent entry exist and we can write its 
 		 * children.
@@ -146,7 +160,7 @@ ldbm_back_modrdn(
 #endif
 
 			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL );
+				NULL, "parent entry does not exist", NULL, NULL );
 
 			goto return_results;
 		}
@@ -265,7 +279,7 @@ ldbm_back_modrdn(
 #endif
 
 			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL );
+				NULL, "newSuperior not found", NULL, NULL );
 			goto return_results;
 		}
 
@@ -309,7 +323,7 @@ ldbm_back_modrdn(
 
 
 			send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-			    NULL, NULL, NULL, NULL );
+			    NULL, "newSuperior is an alias", NULL, NULL );
 
 			goto return_results;
 		}
@@ -327,7 +341,7 @@ ldbm_back_modrdn(
 #endif
 
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			    NULL, NULL, NULL, NULL );
+			    NULL, "newSuperior is a referral", NULL, NULL );
 
 			goto return_results;
 		}
