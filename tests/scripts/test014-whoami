@@ -84,8 +84,8 @@ $LDAPWHOAMI -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD \
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
-#	kill -HUP $PID
-#	exit $RC
+	kill -HUP $PID
+	exit $RC
 fi
 
 echo "Testing ldapwhoami as ${MANAGERDN} for u:ursula..."
@@ -95,8 +95,8 @@ $LDAPWHOAMI -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD \
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
-#	kill -HUP $PID
-#	exit $RC
+	kill -HUP $PID
+	exit $RC
 fi
 
 kill -HUP $PID

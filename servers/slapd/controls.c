@@ -509,7 +509,7 @@ static int parseProxyAuthz (
 		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
 #endif
 
-	rc = slap_sasl_authorized( conn, &op->o_dn, &dn );
+	rc = slap_sasl_authorized( conn, &op->o_ndn, &dn );
 
 	if( rc ) {
 		ch_free( dn.bv_val );
@@ -517,15 +517,14 @@ static int parseProxyAuthz (
 		return LDAP_PROXY_AUTHZ_FAILURE;
 	}
 
-#if 0
-	ch_free( op->o_dn );
-	ch_free( op->o_ndn );
+	ch_free( op->o_dn.bv_val );
+	ch_free( op->o_ndn.bv_val );
 
-	op->o_dn = dn;
-#endif
+	op->o_dn.bv_val = NULL;
+	op->o_ndn = dn;
+	ber_dupbv( &op->o_dn, &dn );
 
-	*text = "not (yet) implemented";
-	return LDAP_OTHER;
+	return LDAP_SUCCESS;
 }
 
 static int parseNoOp (
