@@ -1349,6 +1349,10 @@ ldap_memfree LDAP_P((
 	void* p ));
 
 LDAP_F( void )
+ldap_memvfree LDAP_P((
+	void** v ));
+
+LDAP_F( void )
 ldap_getfilter_free LDAP_P((
 	LDAPFiltDesc *lfdp ));
 
