@@ -498,7 +498,7 @@ va_dcl
 			j = 0;
 			for ( tag = ber_first_element( ber, &len, &last );
 			    tag != LBER_DEFAULT && 
-#ifdef LDAP_END_SEQORSET
+#ifdef LBER_END_SEQORSET
 					tag != LBER_END_SEQORSET &&
 #endif
 					rc != LBER_DEFAULT;
@@ -514,7 +514,7 @@ va_dcl
 				rc = ber_get_stringa( ber, &((*sss)[j]) );
 				j++;
 			}
-#ifdef LDAP_END_SEQORSET
+#ifdef LBER_END_SEQORSET
 			if (rc != LBER_DEFAULT && 
 				tag != LBER_END_SEQORSET )
 			{
@@ -531,7 +531,7 @@ va_dcl
 			j = 0;
 			for ( tag = ber_first_element( ber, &len, &last );
 			    tag != LBER_DEFAULT && 
-#ifdef LDAP_END_SEQORSET
+#ifdef LBER_END_SEQORSET
 					tag != LBER_END_SEQORSET &&
 #endif
 					rc != LBER_DEFAULT;
@@ -547,7 +547,7 @@ va_dcl
 				rc = ber_get_stringal( ber, &((*bv)[j]) );
 				j++;
 			}
-#ifdef LDAP_END_SEQORSET
+#ifdef LBER_END_SEQORSET
 			if (rc != LBER_DEFAULT && 
 				tag != LBER_END_SEQORSET )
 			{
