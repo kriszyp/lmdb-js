@@ -36,6 +36,119 @@ LDAP_BEGIN_DECL
 struct slap_conn;
 struct slap_op;
 
+/* from back-ldap.h before rwm removal */
+struct ldapmap {
+	int drop_missing;
+
+	Avlnode *map;
+	Avlnode *remap;
+};
+
+struct ldapmapping {
+	struct berval src;
+	struct berval dst;
+};
+
+struct ldaprwmap {
+	/*
+	 * DN rewriting
+	 */
+#ifdef ENABLE_REWRITE
+	struct rewrite_info *rwm_rw;
+#else /* !ENABLE_REWRITE */
+	/* some time the suffix massaging without librewrite
+	 * will be disabled */
+	BerVarray rwm_suffix_massage;
+#endif /* !ENABLE_REWRITE */
+
+	/*
+	 * Attribute/objectClass mapping
+	 */
+	struct ldapmap rwm_oc;
+	struct ldapmap rwm_at;
+};
+
+/* Whatever context ldap_back_dn_massage needs... */
+typedef struct dncookie {
+	struct ldaprwmap *rwmap;
+
+#ifdef ENABLE_REWRITE
+	Connection *conn;
+	char *ctx;
+	SlapReply *rs;
+#else
+	int normalized;
+	int tofrom;
+#endif
+} dncookie;
+
+int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
+struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
+int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
+int ldap_back_retry(struct ldapconn *lc, Operation *op, SlapReply *rs);
+int ldap_back_map_result(SlapReply *rs);
+int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
+	ber_int_t msgid, int sendok);
+int	back_ldap_LTX_init_module(int argc, char *argv[]);
+
+int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
+	struct berval *res);
+
+extern int ldap_back_conn_cmp( const void *c1, const void *c2);
+extern int ldap_back_conn_dup( void *c1, void *c2 );
+extern void ldap_back_conn_free( void *c );
+
+/* attributeType/objectClass mapping */
+int mapping_cmp (const void *, const void *);
+int mapping_dup (void *, void *);
+
+void ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping ** );
+void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
+	int remap );
+#define BACKLDAP_MAP	0
+#define BACKLDAP_REMAP	1
+char *
+ldap_back_map_filter(
+		struct ldapmap *at_map,
+		struct ldapmap *oc_map,
+		struct berval *f,
+		int remap
+);
+
+int
+ldap_back_map_attrs(
+		struct ldapmap *at_map,
+		AttributeName *a,
+		int remap,
+		char ***mapped_attrs
+);
+
+extern int ldap_back_map_config(
+		struct ldapmap	*oc_map,
+		struct ldapmap	*at_map,
+		const char	*fname,
+		int		lineno,
+		int		argc,
+		char		**argv );
+
+extern int
+ldap_back_filter_map_rewrite(
+		dncookie		*dc,
+		Filter			*f,
+		struct berval		*fstr,
+		int			remap );
+
+/* suffix massaging by means of librewrite */
+#ifdef ENABLE_REWRITE
+extern int suffix_massage_config( struct rewrite_info *info,
+		struct berval *pvnc, struct berval *nvnc,
+		struct berval *prnc, struct berval *nrnc);
+#endif /* ENABLE_REWRITE */
+extern int ldap_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
+extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
+
+/* (end of) from back-ldap.h before rwm removal */
+
 struct metasingleconn {
 	int			candidate;
 #define	META_NOT_CANDIDATE	0
