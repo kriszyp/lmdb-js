@@ -25,6 +25,14 @@
 #include "lutil.h"
 #include "slap.h"
 
+/* A queued result of a persistent search */
+typedef struct syncres {
+	struct syncres *s_next;
+	struct berval s_ndn;
+	struct berval s_uuid;
+	int result;
+} syncres;
+
 /* Record of a persistent search */
 typedef struct syncops {
 	struct syncops *s_next;
@@ -33,6 +41,9 @@ typedef struct syncops {
 	Operation	*s_op;		/* search op */
 	Filter	*s_filter;
 	int		s_flags;	/* search status */
+	struct syncres *s_res;
+	struct syncres *s_restail;
+	ldap_pvt_thread_mutex_t	s_mutex;
 } syncops;
 
 static int	sync_cid;
@@ -365,7 +376,8 @@ syncprov_findcsn( Operation *op, int mode )
 
 	if ( mode == FIND_CSN ) {
 		if ( !si->si_gotcsn ) {
-			ber_dupbv( &si->si_ctxcsn, &fcookie.maxcsn );
+			strcpy(si->si_ctxcsnbuf, fcookie.maxcsn.bv_val);
+			si->si_ctxcsn.bv_len = fcookie.maxcsn.bv_len;
 			si->si_gotcsn = 1;
 			ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
 			if ( fcookie.gotmatch ) return LDAP_SUCCESS;
@@ -731,24 +743,18 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
-		struct berval cookie;
-
-		Attribute *a = attr_find( rs->sr_entry->e_attrs,
-			slap_schema.si_ad_entryCSN );
-
 		if ( srs->sr_state.ctxcsn ) {
+			Attribute *a = attr_find( rs->sr_entry->e_attrs,
+				slap_schema.si_ad_entryCSN );
 			/* Don't send the ctx entry twice */
 			if ( bvmatch( &a->a_nvals[0], srs->sr_state.ctxcsn ))
 				return LDAP_SUCCESS;
 		}
-		slap_compose_sync_cookie( op, &cookie, a->a_nvals,
-			srs->sr_state.sid, srs->sr_state.rid );
-
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
 			op->o_tmpmemctx );
 		rs->sr_ctrls[1] = NULL;
 		rs->sr_err = slap_build_sync_state_ctrl( op, rs, rs->sr_entry,
-			LDAP_SYNC_ADD, rs->sr_ctrls, 0, 1, &cookie );
+			LDAP_SYNC_ADD, rs->sr_ctrls, 0, 0, NULL );
 	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		struct berval cookie;
 
@@ -833,6 +839,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		}
 		sop = ch_malloc( sizeof( syncops ));
 		*sop = so;
+		ldap_pvt_thread_mutex_init( &sop->s_mutex );
 		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 		sop->s_next = si->si_ops;
 		si->si_ops = sop;

@@ -1837,6 +1837,8 @@ syncrepl_updateCookie(
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
+	slap_queue_csn( op, si->si_syncCookie.ctxcsn );
+
 	mlnext = mod;
 
 	op->o_tag = LDAP_REQ_ADD;
@@ -1885,8 +1887,6 @@ syncrepl_updateCookie(
 	op->o_req_dn = e->e_name;
 	op->o_req_ndn = e->e_nname;
 
-	slap_queue_csn( op, syncCookie->ctxcsn );
-
 	/* update persistent cookie */
 update_cookie_retry:
 	op->o_tag = LDAP_REQ_MODIFY;
@@ -1921,13 +1921,13 @@ update_cookie_retry:
 				"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
 		}
 	}
-	slap_graduate_commit_csn( op );
-
 	if ( e != NULL ) {
 		entry_free( e );
 	}
 
 done :
+	slap_graduate_commit_csn( op );
+
 
 	if ( !BER_BVISNULL( &cnbva[0] ) ) {
 		ch_free( cnbva[0].bv_val );
