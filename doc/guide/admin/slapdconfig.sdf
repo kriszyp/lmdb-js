@@ -2,12 +2,12 @@
 # Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
-H1: The {{I: slapd}} Configuration File
+H1: The slapd Configuration File
 
 Once the software has been built and installed, you are ready to configure it
 for use at your site. All slapd runtime configuration is accomplished through
-the {{EX: slapd.conf}} file, installed in the {{EX: ETCDIR}}
-directory you specified in the {{EX: Make-common}} file.
+the {{I:slapd.conf}}(5) file, normally installed in the
+{{EX:/usr/local/etc/openldap}} directory.
 
 An alternate configuration file can be specified via a
 command-line option to slapd or slurpd (see Sections 5 and 8,
@@ -32,12 +32,15 @@ as follows:
 
 E: # comment - these options apply to every database
 E: <global config options>
+E:
 E: # first database definition & config options
 E: database <backend 1 type>
 E: <config options specific to backend 1>
+E:
 E: # second database definition & config options
 E: database <backend 2 type>
 E: <config options specific to backend 2>
+E:
 E: # subsequent database definitions & config options
 E: ...
 

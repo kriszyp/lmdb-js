@@ -17,7 +17,7 @@ you can retrieve from {{URL: http://www.openldap.org/software/download/}}
 or {{URL: ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}.
 If you are reading this guide, you have probably already done this.
 
-
+.{{S: }}
 +{{B:Unpack the distribution}}.
 
 .Pick a directory for the LDAP source to live under and change
@@ -31,6 +31,7 @@ directory there, and untar it. For example:
 name of the release.
 
 
+.{{S: }}
 +{{B: Configure the software}}.
 
 .You will need to run the configure script to configure slapd.
@@ -57,15 +58,17 @@ is installed into {{F:/usr/local}}.  This is typically done as root.
 ..{{EX:su root}}
 ..{{EX:make install}}
 
+
+.{{S: }}
 +{{B:Edit the configuration file}}.
 
 .Use this section as a brief guide.  For more details on the configuration
 file, see chapter 5.
 
 .Now we need to edit the default configuration file that was
-installed earlier.  By default the configuration file for slapd
-is located at {{F:/usr/local/etc/openldap/slapd.conf}}.  If
-you specified the {{EX:--prefix}} option when you ran configure,
+installed earlier.  The slapd configuration file {{I:slapd.conf}}(5)
+for is normally located at {{F:/usr/local/etc/openldap/slapd.conf}}.
+If you specified the {{EX:--prefix}} option when you ran configure,
 then replace {{F:/usr/local}} with the value you gave as the
 prefix.  For example, if you ran configure as
 
@@ -77,14 +80,16 @@ Now look in the configuration file for a line that begins with
 
 ..{{EX:database          ldbm}}
 
-.This marks the begining of the database configuration for slapd.  Everything 
-you will need to change for this example is located after this line.
+.This marks the begining of the database configuration for slapd.
+Everything you will need to change for this example is located
+after this line.
 
 .Listed below are the default settings for the database in
-{{F:slapd.conf}}(8).  Lines that begin with a # are considered
-to be comments by slapd, they have been removed from the listing
-below to save space.  If a line starts with white space it is
-considered a continuation of the preceeding line.
+{{F:slapd.conf}}(5).  Lines that begin with a sharp sign ('#')
+are considered to be comments by slapd, they have been removed
+from the listing below to save space.  If a line starts with
+white space it is considered a continuation of the preceeding
+line.
 
 ..{{EX:suffix          "dc=my-domain, dc=com"}}
 ..{{EX:rootdn          "cn=Manager, dc=my-domain, dc=com"}}
@@ -106,6 +111,8 @@ You may specify an alternate directory via the directory option
 in the {{F:slapd.conf}} file.  The directory must exist before
 you start the server.
 
+
+.{{S: }}
 +{{B:Starting the server}}.
 
 .You are now ready to start the server by running the command
@@ -127,6 +134,8 @@ special characters from interpreted by the shell.  This should return:
 ..{{EX:dn:}}
 ..{{EX:namingContexts: dc=example, dc=net}}
 
+
+.{{S: }}
 +{{B:Create a database}}.
 
 . This is a two-step process. The first step is to create a file
@@ -160,6 +169,7 @@ for your site.  By default ldapadd is installed as
 
 .Where {{F:example.ldif}} is the file you created above.
 
+.{{S: }}
 +{{B:See if it works}}.
 
 .Now we're ready to verify the added entries are in your directory.  

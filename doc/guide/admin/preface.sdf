@@ -9,20 +9,17 @@ P1: Preface
 # document's copyright
 P2[notoc] Copyright
 
-Copyright 1998-2000, The OpenLDAP Foundation, All Rights Reserved.
+Copyright 1998-2000, The {{ORG[expand]OLF}}, All Rights Reserved.
 
-Copyright 1992-1996, University of Michigan, All Rights Reserved.
+Copyright 1992-1996, Regents of the {{ORG[expand]UM}}, All Rights Reserved.
 
 
-# acknowledge U-M.  Probably should be placed in a separate file.
 P2[notoc] Acknowledgements
 
-The {{OpenLDAP Project}} ({{URL:http://www.openldap.org/}}) is comprised
-of a team of volunteers.  This document would not be possible
-without their contribution of time and energy.
+The {{ORG[expand]OLP}} is comprised of a team of volunteers.  This document
+would not be possible without their contribution of time and energy.
 
-The OpenLDAP Project would also like to thank the {{University of Michigan
-LDAP Team}} ({{URL::http://www.umich.edu/~dirsvcs/ldap/}}) for building
-the foundation of LDAP software and information
+The OpenLDAP Project would also like to thank the {{ORG[expand]UMLDAP}}
+for building the foundation of LDAP software and information
 to which we build upon.
 

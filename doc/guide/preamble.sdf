@@ -12,7 +12,7 @@
 # Paths are relative to the main subdirectories
 #
 
-!define DOC_AUTHOR	"OpenLDAP <{{URL:http://www.openldap.org/}}>"
+!define DOC_AUTHOR	"The OpenLDAP Project <{{URL:http://www.openldap.org/}}>"
 !define DOC_NAME    "OpenLDAP"
 !define DOC_TYPE    "Guide"
 
@@ -28,20 +28,41 @@
 !define HTML_URL_CATALOG	"../index.html"
 
 !block organisations; data
-Name		Long			Jump
-OpenLDAP	OpenLDAP		http://www.openldap.org/
-OLF		The OpenLDAP Foundation	http://www.openldap.org/foundation/
-OLP		The OpenLDAP Project	http://www.openldap.org/project/
-UM		University of Michigan	http://www.umich.edu/
-IETF		Internet Engineering Task Force	http://www.ietf.org/
+Name	 Long					Jump
+OpenLDAP OpenLDAP				http://www.openldap.org/
+OLF	 OpenLDAP Foundation			http://www.openldap.org/foundation/
+OLP	 OpenLDAP Project			http://www.openldap.org/project/
+UM	 University of Michigan			http://www.umich.edu/
+UMLDAP	 University of Michigan LDAP		http://www.umich.edu/~dirsrvs/ldap/
+IETF	 Internet Engineering Task Force	http://www.ietf.org/
+RFC	 RFC Editor				http://www.rfc-editor.org/
 !endblock
 
 !block terms; data
 Term	Definition
+BCP	Best Common Practice
+DAP	Directory Access Protocol
 FAQ	Frequently Asked Questions
+FYI	For Your Information
+I-D	Internet Draft
+IP	Internet Protocol
 ITS	Issue Tracking System
 LDAP	Lightweight Directory Access Protocol
+PS	Proposed Standard
 RFC	Request for Comments
+TCP	Transmission Control Protocol
+TLS	Transport Security Layer
+STD	Internet Standard
 URL	Uniform Resource Locator
 WWW	World Wide Web
+!endblock
+
+!block references; data
+Reference	Document	Jump
+RFC2251		RFC2251		http://www.rfc-editor.org/rfc2251.txt
+RFC2252		RFC2252		http://www.rfc-editor.org/rfc2252.txt
+RFC2253		RFC2253		http://www.rfc-editor.org/rfc2253.txt
+RFC2254		RFC2254		http://www.rfc-editor.org/rfc2254.txt
+RFC2255		RFC2255		http://www.rfc-editor.org/rfc2255.txt
+RFC2256		RFC2256		http://www.rfc-editor.org/rfc2256.txt
 !endblock

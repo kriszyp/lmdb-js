@@ -45,11 +45,11 @@ is an example of a globally distributed directory service.
 H2: What is LDAP?
 
 {{I:Slapd}}'s model for directory service is based on a global directory
-model called {{LDAP}}.  LDAP stands for the {{Lightweight Directory
-Access Protocol}}.  LDAP is a directory access protocol that runs over
-{{TCP/IP}}. The nitty-gritty details of LDAP are defined in RFC 2251
-"The Lightweight Directory Access Protocol (v3)."  This section gives
-an overview of LDAP from a user's perspective.
+model called {{TERM:LDAP}}.  LDAP stands for {{TERM[expand]LDAP}}.
+LDAP is a directory access protocol that runs over
+{{TCP/IP}}. The nitty-gritty details of LDAP are defined in
+{{REF:RFC2251}} "The Lightweight Directory Access Protocol (v3)."
+This section gives an overview of LDAP from a user's perspective.
 
 {{I:What kind of information can be stored in the directory?}}
 The LDAP information model is based on {{entries}}. An entry is a
@@ -62,7 +62,7 @@ name, or "{{EX:mail}}" for email address. The syntax of values depend
 on the attribute type is.  For example, {{EX:cn}} attribute might
 be the value {{EX: Babs Jensen}}.  A {{EX:mail}} attribute might
 contain the value "{{EX:babs@openldap.org}}". A {{EX:jpegPhoto}}
-attribute would contain a photograph in the JPEG/JFIF (binary) format.
+attribute would contain a photograph in the JPEG (binary) format.
 
 {{I:How is the information arranged?}}
 In LDAP, directory entries are arranged in a hierarchical tree-like
@@ -74,13 +74,15 @@ representing organizational units, people, printers, documents,
 or just about anything else you can think of.  Figure 1.1 shows an
 example LDAP directory tree using traditional naming.
 
-!import "intro_tree.gif"; align="center"; title="LDAP directory tree (traditional naming)"
+!import "intro_tree.gif"; align="center"; \
+	title="LDAP directory tree (traditional naming)"
 FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
 The tree may also be arranged based upon Internet domain names.
 Figure 1.2 shows an example using this increasing popular naming approach.
 
-!import "intro_dctree.gif"; align="center"; title="LDAP directory tree (Internet naming)"
+!import "intro_dctree.gif"; align="center"; \
+	title="LDAP directory tree (Internet naming)"
 FT[align="Center"] Figure 1.2: LDAP directory tree (Internet naming)
 
 In addition, LDAP allows you to control which attributes are required
@@ -95,7 +97,7 @@ name, or RDN) and concatenating the names of its ancestor entries. For
 example, the entry for Barbara Jensen in the Internet naming example
 above has an RDN of {{EX:uid=babs}} and a DN of
 {{EX:uid=babs, ou=People, dc=OpenLDAP, dc=com}}". The full DN format is
-described in RFC 2253, "Lightweight Directory Access Protocol (v3):
+described in {{REF:RFC2253}}, "Lightweight Directory Access Protocol (v3):
 UTF-8 String Representation of Distinguished Names."
 
 {{I:How is the information accessed?}}
@@ -234,6 +236,3 @@ replicas might be down or unreachable when a change comes through;
 {{I:slurpd}} handles retrying failed requests automatically. 
 {{I:Slapd}} and {{I:slurpd}} communicate through a simple text 
 file that is used to log changes.
-
-PB:
-
