@@ -1486,7 +1486,7 @@ integerValidate(
 		}
 
 	} else if ( val.bv_val[0] == '0' ) {
-		if( val.bv_len == 1 ) { /* "0<more>" */
+		if( val.bv_len > 1 ) { /* "0<more>" */
 			return LDAP_INVALID_SYNTAX;
 		}
 
