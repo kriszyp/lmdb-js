@@ -688,6 +688,7 @@ AC_CHECK_HEADERS( \
 	filio.h		\
 	limits.h	\
 	malloc.h	\
+	regex.h		\
 	sgtty.h		\
 	sys/file.h	\
 	sys/errno.h \

@@ -52,18 +52,18 @@
 #endif /* MACOS */
 
 #if !defined(__alpha) || defined(VMS)
-#define HTONL( l ) htonl( l )
-#define NTOHL( l ) ntohl( l )
+#define AC_HTONL( l ) htonl( l )
+#define AC_NTOHL( l ) ntohl( l )
 #else /* __alpha && !VMS */
 /*
  * htonl and ntohl on the DEC Alpha under OSF 1 seem to only swap the
  * lower-order 32-bits of a (64-bit) long, so we define correct versions
  * here.
  */ 
-#define HTONL( l )	(((long)htonl( (l) & 0x00000000FFFFFFFF )) << 32 \
+#define AC_HTONL( l )	(((long)htonl( (l) & 0x00000000FFFFFFFF )) << 32 \
 	| htonl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
 
-#define NTOHL( l ) (((long)ntohl( (l) & 0x00000000FFFFFFFF )) << 32 \
+#define AC_NTOHL( l ) (((long)ntohl( (l) & 0x00000000FFFFFFFF )) << 32 \
 	| ntohl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
 
 #endif /* __alpha && !VMS */
