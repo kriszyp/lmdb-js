@@ -451,6 +451,9 @@ retry:	/* transaction retry */
 			"bdb_modify: modify failed (%d)\n",
 			rc, 0, 0 );
 #endif
+		if ( (rc == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
+			rc = opinfo.boi_err;
+		}
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

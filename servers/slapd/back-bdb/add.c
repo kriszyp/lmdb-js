@@ -218,13 +218,13 @@ retry:	/* transaction retry */
 		rc = access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE, NULL );
 
-		switch( opinfo.boi_err ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		}
-
 		if ( ! rc ) {
+			switch( opinfo.boi_err ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			}
+
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"bdb_add: no write access to parent\n", 0, 0, 0 );
@@ -318,13 +318,13 @@ retry:	/* transaction retry */
 
 				p = NULL;
 
-				switch( opinfo.boi_err ) {
-				case DB_LOCK_DEADLOCK:
-				case DB_LOCK_NOTGRANTED:
-					goto retry;
-				}
-
 				if ( ! rc ) {
+					switch( opinfo.boi_err ) {
+					case DB_LOCK_DEADLOCK:
+					case DB_LOCK_NOTGRANTED:
+						goto retry;
+					}
+
 #ifdef NEW_LOGGING
 					LDAP_LOG ( OPERATION, DETAIL1, 
 						"bdb_add: no write access to parent\n", 0, 0, 0 );
@@ -381,13 +381,13 @@ retry:	/* transaction retry */
 	rc = access_allowed( be, conn, op, e,
 		entry, NULL, ACL_WRITE, NULL );
 
-	switch( opinfo.boi_err ) {
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-	}
-
 	if ( ! rc ) {
+		switch( opinfo.boi_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_add: no write access to entry\n", 0, 0, 0 );

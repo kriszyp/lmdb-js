@@ -193,13 +193,13 @@ retry:	/* transaction retry */
 	/* check write on old entry */
 	rc = access_allowed( be, conn, op, e, entry, NULL, ACL_WRITE, NULL );
 
-	switch( opinfo.boi_err ) {
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-	}
-
 	if ( ! rc ) {
+		switch( opinfo.boi_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
+
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
 			"==>bdb_modrdn: no access to entry\n", 0, 0, 0 );
@@ -278,13 +278,13 @@ retry:	/* transaction retry */
 		rc = access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE, NULL );
 
-		switch( opinfo.boi_err ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		}
-
 		if ( ! rc ) {
+			switch( opinfo.boi_err ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			}
+
 			rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, ERR, 
@@ -334,15 +334,15 @@ retry:	/* transaction retry */
 				rc = access_allowed( be, conn, op, p,
 					children, NULL, ACL_WRITE, NULL );
 
-				switch( opinfo.boi_err ) {
-				case DB_LOCK_DEADLOCK:
-				case DB_LOCK_NOTGRANTED:
-					goto retry;
-				}
-
 				p = NULL;
 
 				if ( ! rc ) {
+					switch( opinfo.boi_err ) {
+					case DB_LOCK_DEADLOCK:
+					case DB_LOCK_NOTGRANTED:
+						goto retry;
+					}
+
 					rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 					LDAP_LOG ( OPERATION, ERR, 
@@ -481,13 +481,13 @@ retry:	/* transaction retry */
 			rc = access_allowed( be, conn, op, np, children,
 				NULL, ACL_WRITE, NULL );
 
-			switch( opinfo.boi_err ) {
-			case DB_LOCK_DEADLOCK:
-			case DB_LOCK_NOTGRANTED:
-				goto retry;
-			}
-
 			if( ! rc ) {
+				switch( opinfo.boi_err ) {
+				case DB_LOCK_DEADLOCK:
+				case DB_LOCK_NOTGRANTED:
+					goto retry;
+				}
+
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, DETAIL1, 
 					"==>bdb_modrdn: no wr to newSup children\n", 0, 0, 0 );
@@ -548,15 +548,15 @@ retry:	/* transaction retry */
 					rc = access_allowed( be, conn, op, np,
 						children, NULL, ACL_WRITE, NULL );
 
-					switch( opinfo.boi_err ) {
-					case DB_LOCK_DEADLOCK:
-					case DB_LOCK_NOTGRANTED:
-						goto retry;
-					}
-
 					np = NULL;
 
 					if ( ! rc ) {
+						switch( opinfo.boi_err ) {
+						case DB_LOCK_DEADLOCK:
+						case DB_LOCK_NOTGRANTED:
+							goto retry;
+						}
+
 						rc = LDAP_INSUFFICIENT_ACCESS;
 #ifdef NEW_LOGGING
 						LDAP_LOG ( OPERATION, ERR, 
@@ -771,6 +771,9 @@ retry:	/* transaction retry */
 		&text, textbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {
+		if ( ( rc == LDAP_INSUFFICIENT_ACCESS ) && opinfo.boi_err ) {
+			rc = opinfo.boi_err;
+		}
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

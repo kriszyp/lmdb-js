@@ -227,6 +227,9 @@ retry:	/* transaction retry */
 		rc = bdb_modify_internal( be, conn, op, ltid,
 			&ml, e, text, textbuf, textlen );
 
+		if ( (rc == LDAP_INSUFFICIENT_ACCESS) && opinfo.boi_err ) {
+			rc = opinfo.boi_err;
+		}
 		switch(rc) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
