@@ -34,6 +34,8 @@ extern BI_op_add	backsql_add;
 extern BI_op_delete	backsql_delete;
 extern BI_op_abandon	backsql_abandon;
 
+extern BI_operational	backsql_operational;
+
 extern BI_connection_destroy	backsql_connection_destroy;
 
 LDAP_END_DECL

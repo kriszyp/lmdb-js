@@ -1,24 +1,27 @@
 --mappings 
 
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
-values (1,'inetOrgPerson','persons','id','insert into persons (name) values ('''');\n select last_insert_id();',NULL,0);
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
+values (1,'inetOrgPerson','persons','id','insert into persons (id,name,surname) values ((select max(id)+1 from persons),'''','''')','select max(id) from persons',NULL,0);
 
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
-values (2,'document','documents','id',NULL,NULL,0);
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
+values (2,'document','documents','id',NULL,NULL,NULL,0);
 
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
-values (3,'organization','institutes','id',NULL,NULL,0);
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
+values (3,'organization','institutes','id',NULL,NULL,NULL,0);
 
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (1,1,'cn','persons.name','persons',NULL,NULL,NULL,3,0);
+values (1,1,'cn','case when persons.name!='''' and persons.surname!='''' then persons.name||'' ''||persons.surname when persons.surname!='''' then persons.surname when persons.name!='''' then persons.name else '''' end','persons',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (2,1,'telephoneNumber','phones.phone','persons,phones',
         'phones.pers_id=persons.id',NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (3,1,'sn','persons.name','persons',NULL,NULL,NULL,3,0);
+values (3,1,'sn','persons.surname','persons',NULL,'update persons set surname=? where id=?',NULL,3,0);
+
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (6,1,'givenName','persons.name','persons',NULL,'update persons set name=? where id=?',NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
 values (4,2,'description','documents.abstract','documents',NULL,NULL,NULL,3,0);
@@ -35,7 +38,7 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 values (7,3,'o','institutes.name','institutes',NULL,NULL,NULL,3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
-values (8,1,'documentDN','ldap_entries.dn','ldap_entries,documents,authors_docs,persons',
+values (8,1,'documentAuthor','ldap_entries.dn','ldap_entries,documents,authors_docs,persons',
         'ldap_entries.keyval=documents.id AND ldap_entries.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',
 	NULL,NULL,3,0);
 

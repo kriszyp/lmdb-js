@@ -64,16 +64,16 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 		return rc;
 	}
 
-#if 0
+#ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>_SQLPrepare()\n", 0, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 
 	SQLGetInfo( dbh, SQL_DRIVER_NAME, drv_name, sizeof( drv_name ), &len );
 
-#if 0
+#ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "_SQLPrepare(): driver name='%s'\n",
 			drv_name, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 
 	ldap_pvt_str2upper( drv_name );
 	if ( !strncmp( drv_name, "SQLSRV32.DLL", sizeof( drv_name ) ) ) {
@@ -107,10 +107,10 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 		}
 	}
 
-#if 0
+#ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "<==_SQLPrepare() calling SQLPrepare()\n",
 			0, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 
 	return SQLPrepare( *sth, query, SQL_NTS );
 }
@@ -153,23 +153,23 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 		return SQL_ERROR;
 	}
 
-#if 0
+#ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==> backsql_BindRowAsStrings()\n", 0, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 	
 	rc = SQLNumResultCols( sth, &row->ncols );
 	if ( rc != SQL_SUCCESS ) {
-#if 0
+#ifdef BACKSQL_TRACE
 		Debug( LDAP_DEBUG_TRACE, "_SQLBindRowAsStrings(): "
 			"SQLNumResultCols() failed:\n", 0, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 		
 		backsql_PrintErrors( SQL_NULL_HENV, SQL_NULL_HDBC, sth, rc );
 	} else {
-#if 0
+#ifdef BACKSQL_TRACE
 		Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 			"ncols=%d\n", (int)row->ncols, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 
 		row->col_names = (BerVarray)ch_calloc( row->ncols + 1, 
 				sizeof( struct berval ) );
@@ -185,11 +185,11 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 					&name_len, &col_type,
 					&col_prec, &col_scale, &col_null );
 			ber_str2bv( colname, 0, 1, &row->col_names[ i - 1 ] );
-#if 0
+#ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 				"col_name=%s, col_prec[%d]=%d\n",
 				colname, (int)i, (int)col_prec );
-#endif
+#endif /* BACKSQL_TRACE */
 			if ( col_type == SQL_LONGVARCHAR 
 					|| col_type == SQL_LONGVARBINARY) {
 #if 0
@@ -229,9 +229,10 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 		row->col_names[ i - 1 ].bv_len = 0;
 		row->cols[ i - 1 ] = NULL;
 	}
-#if 0
+
+#ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "<== backsql_BindRowAsStrings()\n", 0, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 
 	return rc;
 }
@@ -305,10 +306,11 @@ int
 backsql_free_db_env( backsql_info *si )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_env()\n", 0, 0, 0 );
-#if 0
+
+#ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "free_db_env(): delete AVL tree here!!!\n",
 			0, 0, 0 );
-#endif
+#endif /* BACKSQL_TRACE */
 
 	/*
 	 * stop, if frontend waits for all threads to shutdown 
@@ -366,7 +368,8 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
 	 * See if this connection is to TimesTen.  If it is,
 	 * remember that fact for later use.
 	 */
-	si->isTimesTen = 0;	/* Assume until proven otherwise */
+	/* Assume until proven otherwise */
+	si->bsql_flags &= ~BSQLF_USE_REVERSE_DN;
 	DBMSName[ 0 ] = '\0';
 	rc = SQLGetInfo( dbc->dbh, SQL_DBMS_NAME, (PTR)&DBMSName,
 			sizeof( DBMSName ), NULL );
@@ -375,7 +378,7 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
 				strcmp( DBMSName, "Front-Tier" ) == 0 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 				"TimesTen database!\n", 0, 0, 0 );
-			si->isTimesTen = 1;
+			si->bsql_flags |= BSQLF_USE_REVERSE_DN;
 		}
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
@@ -454,11 +457,12 @@ backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh )
 	}
 
 	ldap_pvt_thread_mutex_lock( &si->schema_mutex );
-	if ( !si->schema_loaded ) {
+	if ( !BACKSQL_SCHEMA_LOADED( si ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
 			"first call -- reading schema map\n", 0, 0, 0 );
 		rc = backsql_load_schema_map( si, dbc->dbh );
 		if ( rc != LDAP_SUCCESS ) {
+			ldap_pvt_thread_mutex_unlock( &si->schema_mutex );
 			backsql_free_db_conn( be, ldapc );
 			return rc;
 		}
