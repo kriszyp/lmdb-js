@@ -43,9 +43,13 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-U \ authcid\fR]
 [\c
+.BI \-R \ authcid\fR]
+[\c
 .BR \-x ]
 [\c
 .BI \-X \ authzid\fR]
+[\c
+.BI \-R \ realm\fR]
 [\c
 .BI \-Y \ mech\fR]
 [\c
@@ -139,6 +143,10 @@ Enable SASL Quiet mode.  Never prompt.
 .TP
 .BI \-U \ authcid
 Specify the authentication ID for SASL bind. The form of the ID
+depends on the actual SASL mechanism used.
+.TP
+.BI \-R \ realm
+Specify the realm of authentication ID for SASL bind. The form of the realm
 depends on the actual SASL mechanism used.
 .TP
 .BI \-X \ authzid
