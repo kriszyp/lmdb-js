@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/socket.h>
-#include <slap.h>
+#include "slap.h"
 
 extern pthread_mutex_t	replog_mutex;
 extern pthread_mutex_t	entry2str_mutex;
