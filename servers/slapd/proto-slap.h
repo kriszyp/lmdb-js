@@ -715,7 +715,7 @@ LDAP_SLAPD_F (int) add_replica_info LDAP_P(( Backend *be,
 LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be,
 	int nr, const char *suffix ));
 LDAP_SLAPD_F (int) add_replica_attrs LDAP_P(( Backend *be,
-	int nr, char *attrs ));
+	int nr, char *attrs, int exclude ));
 LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op,
 	struct berval *dn, struct berval *ndn, void *change ));
 

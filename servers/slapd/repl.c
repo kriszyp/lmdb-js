@@ -41,6 +41,8 @@ add_replica_info(
 	be->be_replica[ i ] 
 		= ch_calloc( sizeof( struct slap_replica_info ), 1 );
 	be->be_replica[ i ]->ri_host = ch_strdup( host );
+	be->be_replica[ i ]->ri_nsuffix = NULL;
+	be->be_replica[ i ]->ri_attrs = NULL;
 	be->be_replica[ i + 1 ] = NULL;
 
 	return( i );
@@ -77,9 +79,19 @@ int
 add_replica_attrs(
 	Backend	*be,
 	int	nr,
-	char	*attrs
+	char	*attrs,
+	int	exclude
 )
 {
+	if ( be->be_replica[nr]->ri_attrs != NULL ) {
+		if ( be->be_replica[nr]->ri_exclude != exclude ) {
+			fprintf( stderr, "attr selective replication directive '%s' conflicts with previous one (discarded)\n", attrs );
+			ch_free( be->be_replica[nr]->ri_attrs );
+			be->be_replica[nr]->ri_attrs = NULL;
+		}
+	}
+
+	be->be_replica[nr]->ri_exclude = exclude;
 	be->be_replica[nr]->ri_attrs = str2anlist( be->be_replica[nr]->ri_attrs,
 		attrs, "," );
 	return ( be->be_replica[nr]->ri_attrs == NULL );
@@ -203,7 +215,16 @@ replog(
 				/* fall thru */
 			case LDAP_REQ_MODIFY:
 				for ( ml = change; ml != NULL; ml = ml->sml_next ) {
-					if ( ad_inlist( ml->sml_desc, be->be_replica[i]->ri_attrs ) ) {
+					int is_in, exclude;
+
+   					is_in = ad_inlist( ml->sml_desc, be->be_replica[i]->ri_attrs );
+					exclude = be->be_replica[i]->ri_exclude;
+					
+					/*
+					 * there might be a more clever way to do this test,
+					 * but this way, at least, is comprehensible :)
+					 */
+					if ( ( is_in && !exclude ) || ( !is_in && exclude ) ) {
 						subsets = 1;
 						first = ml;
 						break;
@@ -216,7 +237,12 @@ replog(
 			case LDAP_REQ_ADD:
 				e = change;
 				for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-					if ( ad_inlist( a->a_desc, be->be_replica[i]->ri_attrs ) ) {
+					int is_in, exclude;
+
+   					is_in = ad_inlist( a->a_desc, be->be_replica[i]->ri_attrs );
+					exclude = be->be_replica[i]->ri_exclude;
+					
+					if ( ( is_in && !exclude ) || ( !is_in && exclude ) ) {
 						subsets = 1;
 						first = a;
 						break;
@@ -267,8 +293,12 @@ replog1(
 		ml = first ? first : change;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
-			if ( ri && ri->ri_attrs && !ad_inlist( ml->sml_desc, ri->ri_attrs ) ) {
-				continue;
+			if ( ri && ri->ri_attrs ) {
+				int is_in = ad_inlist( ml->sml_desc, ri->ri_attrs );
+
+				if ( ( !is_in && !ri->ri_exclude ) || ( is_in && ri->ri_exclude ) ) {
+					continue;
+				}
 			}
 			type = ml->sml_desc->ad_cname.bv_val;
 			switch ( ml->sml_op ) {
@@ -296,7 +326,8 @@ replog1(
 		a = first ? first : e->e_attrs;
 		for ( ; a != NULL; a=a->a_next ) {
 			if ( ri && ri->ri_attrs ) {
-				if ( !ad_inlist( a->a_desc, ri->ri_attrs ) ) {
+				int is_in = ad_inlist( a->a_desc, ri->ri_attrs );
+				if ( ( !is_in && !ri->ri_exclude ) || ( is_in && ri->ri_exclude ) ) {
 					continue;
 				}
 				/* If the list includes objectClass names,

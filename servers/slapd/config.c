@@ -1830,16 +1830,29 @@ read_config( const char *fname )
 #endif
 								break;
 							}
-						} else if ( strncasecmp( cargv[i], "attr=", 5 ) == 0 ) {
-							if ( add_replica_attrs( be, nr, cargv[i] + 5 ) ) {
+
+						} else if ( strncasecmp( cargv[i], "attr", 4 ) == 0 ) {
+							int exclude = 0;
+							char *arg = cargv[i] + 4;
+
+							if ( arg[0] == '!' ) {
+								arg++;
+								exclude = 1;
+							}
+
+							if ( arg[0] != '=' ) {
+								continue;
+							}
+
+							if ( add_replica_attrs( be, nr, arg + 1, exclude ) ) {
 #ifdef NEW_LOGGING
 								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 										"%s: line %d: attribute \"%s\" in \"replica\" line is unknown\n",
-										fname, lineno, cargv[i] + 5 ));
+										fname, lineno, arg + 1 ));
 #else
 								Debug( LDAP_DEBUG_ANY,
 										"%s: line %d: attribute \"%s\" in \"replica\" line is unknown\n",
-										fname, lineno, cargv[i] + 5 );
+										fname, lineno, arg + 1 );
 #endif
 								return( 1 );
 							}

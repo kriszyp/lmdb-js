@@ -201,7 +201,7 @@ int add_replica_suffix( Backend *be, int nr, const char *suffix )
 	return 0;
 }
 
-int add_replica_attrs( Backend *be, int nr, char *attrs )
+int add_replica_attrs( Backend *be, int nr, char *attrs, int exclude )
 {
 	return 0;
 }
