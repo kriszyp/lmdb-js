@@ -366,8 +366,8 @@ acl_mask(
 		e->e_dn, attr, 0 );
 
 	Debug( LDAP_DEBUG_ACL,
-		"=> acl_mask: to value \"%s\" by \"%s\", (%s) \n",
-		val ? val->bv_val : "*",
+		"=> acl_mask: to %s by \"%s\", (%s) \n",
+		val ? "value" : "all values",
 		op->o_ndn ?  op->o_ndn : "",
 		accessmask2str( *mask, accessmaskbuf ) );
 
