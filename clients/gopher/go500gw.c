@@ -553,7 +553,7 @@ isnonleaf( LDAP *ld, char **oclist, char *dn )
 		timeout.tv_usec = 0;
 		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
 		if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_ONELEVEL,
-		    "(objectClass=*)", attrs, 0, &timeout, &res ))
+		    NULL, attrs, 0, &timeout, &res ))
 		    == LDAP_SUCCESS || rc == LDAP_SIZELIMIT_EXCEEDED ) {
 			sizelimit = LDAP_NO_LIMIT;
 			ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
@@ -703,7 +703,7 @@ make_scope( LDAP *ld, char *dn )
 
 	timeout.tv_sec = GO500GW_TIMEOUT;
 	timeout.tv_usec = 0;
-	if ( ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
+	if ( ldap_search_st( ld, dn, LDAP_SCOPE_BASE, NULL,
 	    attrs, 0, &timeout, &res ) != LDAP_SUCCESS ) {
 		return( -1 );
 	}

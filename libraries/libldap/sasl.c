@@ -546,7 +546,7 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, LDAP_CONST char *desired, char **pmechlist )
 	int rc;
 
 	rc = ldap_search_s( ld, NULL, LDAP_SCOPE_BASE,
-		"(objectclass=*)", attrs, 0, &res );
+		NULL, attrs, 0, &res );
 
 	if ( rc != LDAP_SUCCESS ) {
 		return ld->ld_errno;

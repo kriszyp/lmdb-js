@@ -284,7 +284,7 @@ static int deletechildren( LDAP *ld,
     /*
      * Do a one level search at dn for children.  For each, delete its children.
      */
-    if ( ldap_search_s( ld, dn, LDAP_SCOPE_ONELEVEL, "(objectclass=*)", NULL, 0, &res ) == -1 )
+    if ( ldap_search_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, NULL, 0, &res ) == -1 )
     {
         ldap_perror( ld, "ldap_search" );
 		ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );

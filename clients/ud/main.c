@@ -435,7 +435,7 @@ change_base( int type, char **base, char *s )
 		 *  the user if they want to see more.  They can also just
 		 *  type a number at that point too.
 		 */
-		if (ldap_search_s(ld, *base, LDAP_SCOPE_ONELEVEL, "(|(objectClass=quipuNonLeafObject)(objectClass=externalNonLeafObject))", attrs, FALSE, &mp) != LDAP_SUCCESS) {
+		if (ldap_search_s(ld, *base, LDAP_SCOPE_ONELEVEL, NULL, attrs, FALSE, &mp) != LDAP_SUCCESS) {
 			int ld_errno = 0;
 			ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
 			if ((ld_errno == LDAP_TIMELIMIT_EXCEEDED) ||

@@ -830,7 +830,7 @@ add_member(
 
 	timeout.tv_sec = FAX_TIMEOUT;
 	timeout.tv_usec = 0;
-	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "(objectclass=*)",
+	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, NULL,
 	    attrs, 0, &timeout, &res )) != LDAP_SUCCESS ) {
 		if ( rc == LDAP_NO_SUCH_OBJECT ) {
 			add_error( err, nerr, E_BADMEMBER, dn, NULL );
@@ -1464,7 +1464,7 @@ get_attributes_mail_dn( LDAPMessage *e, char *attr1, char *attr2 )
 
 		for ( i = 0; dnlist[i] != NULL; i++ ) {
 			if ( (rc = ldap_search_st( ld, dnlist[i],
-			    LDAP_SCOPE_BASE, "(objectclass=*)", attrs, 0,
+			    LDAP_SCOPE_BASE, NULL, attrs, 0,
 			    &timeout, &res )) != LDAP_SUCCESS ) {
 				if ( rc != LDAP_NO_SUCH_OBJECT ) {
 					unbind_and_exit( EX_TEMPFAIL );

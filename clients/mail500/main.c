@@ -772,7 +772,7 @@ dn_search(
 	timeout.tv_usec = 0;
 	for ( i = 0; dnlist[i]; i++ ) {
 		if ( (rc = ldap_search_st( ld, dnlist[i], LDAP_SCOPE_BASE,
-			"(objectclass=*)", def_attr, 0,
+			NULL, def_attr, 0,
 			 &timeout, &res )) != LDAP_SUCCESS ) {
 			if ( rc == LDAP_NO_SUCH_OBJECT ) {
 				add_error( err, nerr, E_BADMEMBER, dnlist[i], NULL );

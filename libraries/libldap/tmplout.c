@@ -478,11 +478,11 @@ do_entry2text_search(
 #ifdef LDAP_CONNECTIONLESS
 	    if ( LDAP_IS_CLDAP( ld ))
 		    err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE,
-			"objectClass=*", ocattrs, 0, &ldmp, NULL );
+			NULL, ocattrs, 0, &ldmp, NULL );
 	    else
 #endif /* LDAP_CONNECTIONLESS */
 		    err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE,
-			    "objectClass=*", ocattrs, 0, &timeout, &ldmp );
+			    NULL, ocattrs, 0, &timeout, &ldmp );
 
 	    if ( err == LDAP_SUCCESS ) {
 		entry = ldap_first_entry( ld, ldmp );
@@ -511,11 +511,11 @@ do_entry2text_search(
 
 #ifdef LDAP_CONNECTIONLESS
     if ( LDAP_IS_CLDAP( ld ))
-	err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
+	err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE, NULL,
 		fetchattrs, 0, &ldmp, NULL );
     else
 #endif /* LDAP_CONNECTIONLESS */
-	err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
+	err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, NULL,
 		fetchattrs, 0, &timeout, &ldmp );
 
     if ( freedn ) {

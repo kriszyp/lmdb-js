@@ -857,7 +857,7 @@ read_krbnames(
 	return( NULL );
     }
     rc = ldap_search_st( ri->ri_ldp, ri->ri_bind_dn, LDAP_SCOPE_BASE,
-	    "objectclass=*", kattrs, 0, &kst, &result );
+	    NULL, kattrs, 0, &kst, &result );
     if ( rc != LDAP_SUCCESS ) {
 	Debug( LDAP_DEBUG_ANY,
 		"Error: search failed getting krbnames for %s:%d: %s\n",
