@@ -20,11 +20,13 @@ str2entry( char	*s )
 {
 	int			id = 0;
 	Entry		*e;
-	Attribute	**a;
+	Attribute	**a = NULL;
 	char		*type;
 	char		*value;
 	char		*next;
-	int		vlen, nvals, maxvals;
+	int		vlen;
+	int		nvals = 0;
+	int		maxvals = 0;
 	struct berval	bval;
 	struct berval	*vals[2];
 	char		ptype[64];
