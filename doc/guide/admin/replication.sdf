@@ -3,18 +3,19 @@
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 H1: Replication with slurpd
 
-In certain configurations, a single slapd instance may be
+In certain configurations, a single {{slapd}}(8) instance may be
 insufficient to handle the number of clients requiring
 directory service via LDAP. It may become necessary to
 run more than one slapd instance.  Many sites,
 for instance, there are multiple slapd servers, one
-master and one or slaves.  DNS can be setup such that
-a lookup of ldap.openldap.org returns the IP addresses
-of these servers, distributing the load among them. This
-master/slave arrangement provides a simple and effective
-way to increase capacity, availability and reliability.
+master and one or more slaves.  DNS can be setup such that
+a lookup of ldap.example.com returns the IP addresses
+of these servers, distributing the load among them (or
+just the slaves). This master/slave arrangement provides
+a simple and effective way to increase capacity, availability
+and reliability.
 
-Slurpd provides the capability for a master slapd to
+{{slurpd}}(8) provides the capability for a master slapd to
 propagate changes to slave slapd instances,
 implementing the master/slave replication scheme
 described above. Slurpd runs on the same host as the
@@ -24,7 +25,7 @@ master slapd instance.
 
 H2: Overview
 
-Slurpd provides replication services "in band". That is, it
+{{slurpd}}(8) provides replication services "in band". That is, it
 uses the LDAP protocol to update a slave database from
 the master. Perhaps the easiest way to illustrate this is
 with an example. In this example, we trace the propagation
@@ -34,76 +35,64 @@ client to its distribution to the slave slapd instance.
 
 {{B: Sample replication scenario:}}
 
-* Step 1: An LDAP client starts up and connects to a slave
-slapd. 
+^ The LDAP client submits an LDAP modify operation to
+the slave slapd.
 
-* Step 2: The LDAP client submits an LDAP modify
-. operation to the slave slapd.
++ The slave slapd returns a referral to the LDAP
+client referring the client to the master slapd.
 
-* Step 3: The slave slapd returns a referral to the LDAP
-. client, which causes the client to send the modify
-. operation to the master slapd. 
++ The LDAP client submits the LDAP modify operation to
+the master slapd.
 
-* Step 4: The master slapd performs the modify operation,
-. writes out the change to its replication log file and returns
-. a success code to the client. 
++ The master slapd performs the modify operation,
+writes out the change to its replication log file and returns
+a success code to the client. 
 
-* Step 5: The slurpd process notices that a new entry has
-. been appended to the replication log file, reads the
-. replication log entry, and sends the change to the slave
-. slapd via LDAP. 
++ The slurpd process notices that a new entry has
+been appended to the replication log file, reads the
+replication log entry, and sends the change to the slave
+slapd via LDAP. 
 
-* Step 6: The slave slapd performs the modify operation and
-. returns a success code to the slurpd process. 
-
-Note: if the LDAP client happened to connect to the
-master slapd to begin with, Step 3 is omitted, but the rest
-of the scenario remains the same.
-
++ The slave slapd performs the modify operation and
+returns a success code to the slurpd process. 
 
 
 H2: Replication Logs
 
 When slapd is configured to generate a replication logfile,
-it writes out a file in a format which is a variant of the LDIF
-format. The replication log gives the replication site(s), a
+it writes out a file containing LDIF change records.
+The replication log gives the replication site(s), a
 timestamp, the DN of the entry being modified, and a series
 of lines which specify the changes to make. In the
-example below, "Barbara Jensen" has replaced a line of
-her multiLineDescription. The change is to be propagated
-to the slapd instance running on slave.openldap.org
-The lastModifiedBy and lastModified Time attributes are
-also propagated to the slave slapd.
+example below, Barbara (bjensen) has replaced the {{EX:description}}
+value.  The change is to be propagated
+to the slapd instance running on slave.example.net
+Changes to various operational attributes, such as {{EX:modifiersName}}
+and {{EX:modifyTimestamp}}, are included in the change record and
+will be propagated to the slave slapd.
 
-E: replica: slave.openldap.org:389
+E: replica: slave.example.com:389
 E: time: 809618633
-E: dn: cn=Barbara Jensen, ou=People, o=OpenLDAP Project,c=US
+E: dn: uid=bjensen, dc=example, dc=com
 E: changetype: modify
-E: delete: multiLineDescription
-E: multiLineDescription: I enjoy sailing in my spare time
+E: replace: multiLineDescription
+E: description: A dreamer...
 E: -
-E: add: multiLineDescription
-E: multiLineDescription: A dreamer...
+E: replace: modifiersName
+E: modifiersName: uid=bjensen, dc=example, dc=com
 E: -
-E: delete: lastModifiedBy
-E: -
-E: add: lastModifiedBy
-E: lastModifiedBy: cn=Barbara Jensen, ou=People, o=OpenLDAP Project, c=US
-E: -
-E: delete: lastModifiedTime
-E: -
-E: add: lastModifiedTime
-E: lastModifiedTime: 950825073308Z
+E: replace: modifyTimestamp
+E: modifyTimestamp: 20000805073308Z
 E: -
 
-The modifications to {{EX: lastModifiedBy}} and {{EX: lastModifiedTime}}
-were initiated by the master {{I: slapd}}.
+The modifications to {{EX:modifiersName}} and {{EX:modifyTimestamp}}
+operational attributes were added by the master {{slapd}}.
 
 
 
 H2: Command-Line Options
 
-Slurpd supports the following command-line options.
+{{slurpd}}(8) supports the following command-line options.
 
 E: -d <level> | ?
 
@@ -190,14 +179,14 @@ before proceeding. Be sure to do the following in the
 master slapd configuration file.
 
 ^ Add a replica directive for each replica. The binddn=
-. parameter should match the updatedn option in the
-. corresponding slave slapd configuration file, and should
-. name an entry with write permission to the slave database
-. (e.g., an entry listed as rootdn, or allowed access via
-. access directives in the slave slapd configuration file).
+parameter should match the {{F:updatedn}} option in the
+corresponding slave slapd configuration file, and should
+name an entry with write permission to the slave database
+(e.g., an entry listed as rootdn, or allowed access via
+access directives in the slave slapd configuration file).
 
 + Add a replogfile directive, which tells slapd where to log
-. changes. This file will be read by slurpd.
+changes. This file will be read by slurpd.
 
 
 
@@ -209,19 +198,19 @@ should be identical to that of the master, with the following
 exceptions:
 
 ^ Do not include a replica directive. While it is possible to
-. create "chains" of replicas, in most cases this is
-. inappropriate.
+create "chains" of replicas, in most cases this is
+inappropriate.
 
 + Do not include a replogfile directive.
 
 + Do include an updatedn line. The DN given should
-. match the DN given in the {{EX: binddn=}} parameter of the
-. corresponding {{EX: replica=}} directive in the master slapd
-. config file.
+match the DN given in the {{EX: binddn=}} parameter of the
+corresponding {{EX: replica=}} directive in the master slapd
+config file.
 
 + Make sure the DN given in the {{EX: updatedn}} directive has
-. permission to write the database (e.g., it is listed as rootdn
-. or is allowed access by one or more access directives).
+permission to write the database (e.g., it is listed as rootdn
+or is allowed access by one or more access directives).
 
 
 
@@ -243,20 +232,18 @@ error to clients that attempt to modify data.
 H3: Copy the master slapd's database to the slave
 
 Copy the master's database(s) to the slave. For an
-LDBM-based database, you must copy all index files as
-well as the "NEXTID" file. Index files will have a different
-suffix depending on the underlying database package
-used. The current possibilities are
+{{TERM:LDBM}}-based database, you must copy all database
+files located in the database {{EX:directory}} specified in
+{{slapd.conf}}(5).  Database files will have a different
+suffix depending on the underlying database package used.
+The current possibilities are
 
 * {{EX: dbb}} Berkeley DB B-tree backend
 * {{EX: dbh}} Berkeley DB hash backend
 * {{EX: gdbm}} GNU DBM backend
-* {{EX: pag}} UNIX NBDM backend
-* {{EX: dir}} UNIX NBDM backend
 
-You should copy all files with such a suffix that are located
-in the index directory specified in your slapd config file.
-
+In general, you should copy all files found in the database
+{{EX: directory}} unless you know it not used by {{slapd}}(8).
 
 
 H3: Configure the master slapd for replication
@@ -267,20 +254,23 @@ config file. For example, if we wish to propagate changes
 to the slapd instance running on host
 slave.openldap.org:
 
-E: replica host=slave.openldap.org:389
-E:	binddn="cn=Replicator, o=OpenLDAP Project, c=US"
+E: replica host=slave.example.com:389
+E:	binddn="cn=Replicator, dc=example, dc=com"
 E:	bindmethod=simple credentials=secret
 
 In this example, changes will be sent to port 389 (the
-standard LDAP port) on host truelies. The slurpd process
-will bind to the slave slapd as 
-"cn=Replicator, o=OpenLDAP Project, c=US"
-using simple authentication with password "secret".
-Note that the entry given by the binddn= directive must
-exist in the slave slapd's database (or be the rootdn
-specified in the slapd config file) in order for the bind
-operation to succeed.
+standard LDAP port) on host slave.example.com. The slurpd
+process will bind to the slave slapd as 
+"cn=Replicator, dc=example, dc=com" using simple authentication
+with password "secret".  Note that the DN given by the binddn=
+directive must either exist in the slave slapd's database (or be
+the rootdn specified in the slapd config file) in order for the
+bind operation to succeed.  The DN should also be listed as
+the {{EX:updatedn}} for the database in the slave's slapd.conf(5).
 
+Note: use of simple authentication is discouraged.  Use
+of strong SASL mechanisms such as DIGEST-MD5 or GSSAPI is
+recommended.
 
 
 H3: Restart the master slapd and start the slave slapd
@@ -316,30 +306,23 @@ string ".rej" appended. For example, for a replica running
 on host slave.openldap.org, port 389, the reject file, if it
 exists, will be named
 
-E: /usr/tmp/replog.slave.openldap.org:389.
+E: /usr/local/var/openldap/replog.slave.openldap.org:389.
 
 A sample rejection log entry follows:
 
 E: ERROR: No such attribute
 E: replica: slave.openldap.org:389
 E: time: 809618633
-E: dn: cn=Barbara Jensen, ou=People, o=OpenLDAP Project, c=US
+E: dn: uid=bjensen, dc=example, dc=com
 E: changetype: modify
-E: delete: multiLineDescription
-E: multiLineDescription: I enjoy sailing in my spare time
+E: replace: description
+E: description: A dreamer...
 E: -
-E: add: multiLineDescription
-E: multiLineDescription: A dreamer...
+E: replace: modifiersName
+E: modifiersName: uid=bjensen, dc=openldap, dc=com
 E: -
-E: delete: lastModifiedBy
-E: -
-E: add: lastModifiedBy
-E: lastModifiedBy: cn=Barbara Jensen, ou=People, o=OpenLDAP Project, c=US
-E: -
-E: delete: lastModifiedTime
-E: -
-E: add: lastModifiedTime
-E: lastModifiedTime: 950825073308Z
+E: replace: modifyTimestamp
+E: modifyTimestamp: 20000805073308Z
 E: -
 
 Note that this is precisely the same format as the original
@@ -355,7 +338,7 @@ its "one-shot mode." In normal operation, slurpd watches
 for more replication records to be appended to the
 replication log file. In one-shot mode, by contrast, slurpd
 processes a single log file and exits. Slurpd ignores
-ERROR lines at the beginning of replication log entries, so
+{{EX:ERROR}} lines at the beginning of replication log entries, so
 it's not necessary to edit them out before feeding it the
 rejection log.
 
@@ -363,8 +346,8 @@ To use one-shot mode, specify the name of the rejection
 log on the command line as the argument to the -r flag,
 and specify one-shot mode with the -o flag. For example,
 to process the rejection log file
-/usr/tmp/replog.slave.openldap.org:389 and exit, use the
-command
+{{F:/usr/local/var/openldap/replog.slave.openldap.org:389}}
+and exit, use the command
 
 E: slurpd -r /usr/tmp/replog.slave.openldap.org:389 -o
 
@@ -406,5 +389,3 @@ objectID (OID) for the "lastModifiedBy" attribute and
 attribute. Since attribute names are carried as OIDs over
 DAP, this should perform the appropriate translation of
 attribute names.
-
-

@@ -4,11 +4,11 @@
 H1: Introduction to slapd and slurpd
 
 This document describes how to build, configure, and run the stand-alone
-{{TERM:LDAP}} daemon ({{slapd}}) and the stand-alone LDAP update replication
-daemon ({{slurpd}}). It is intended for newcomers and experienced
+{{TERM:LDAP}} daemon, {{slapd}}(8) and the stand-alone LDAP update replication
+daemon, {{slurpd}}(8). It is intended for newcomers and experienced
 administrators alike. This section provides a basic introduction to
 directory services and, in particular, the directory services provided
-by {{slapd}}.
+by {{slapd}}(8).
 
 
 
@@ -223,7 +223,7 @@ H2: What about X.500?
 Technically, LDAP is a directory access protocol to an {{TERM:X.500}}
 directory service, the {{TERM:OSI}} directory service.  Initial
 LDAP servers were were gateway between LDAP and the X.500
-{{TERM[expand]DAP}} (DAP).
+{{TERM[expand]DAP}} ({{TERM:DAP}}).
 DAP is a heavyweight protocol that runs over a full OSI protocol stack
 and requires a significant amount of computing resources to run.
 LDAP is designed to operate over {{TERM:TCP}}/{{TERM:IP}} and provides
