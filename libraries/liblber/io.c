@@ -543,10 +543,10 @@ ber_get_next(
 					return LBER_DEFAULT;
 				}
 			}
+			if (sblen == 1) continue;
+
 			ber->ber_tag = tag;
 			ber->ber_ptr = (char *)p;
-
-			if (sblen == 1) continue;
 		}
 
 		/* Now look for the length */
@@ -559,6 +559,11 @@ ber_get_next(
 			}
 			/* Not enough bytes? */
 			if (ber->ber_rwptr - ber->ber_ptr < llen) {
+#if defined( EWOULDBLOCK )
+				errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+				errno = EAGAIN;
+#endif			
 				return LBER_DEFAULT;
 			}
 			for (i=0;
