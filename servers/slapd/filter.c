@@ -578,7 +578,9 @@ return_error:
 			ber_bvfree( f->f_sub_initial );
 			ber_bvecfree( f->f_sub_any );
 			ber_bvfree( f->f_sub_final );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 			ch_free( f->f_sub );
+#endif
 			return rc;
 		}
 	}
