@@ -26,7 +26,7 @@ LDAP_BEGIN_DECL
  *
  *	bitsof(short) == 2
  *	bitsof(int)	== 4
- *	bitsof(long) == 4	/* or larger */
+ *	bitsof(long) == 4	(or larger)
  *
  *  typedef unsigned int size_t;
  *	typedef unsigned int SOCKET;
