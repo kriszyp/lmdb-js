@@ -778,6 +778,7 @@ else
 
   # FreeBSD 3, at last, uses gcc -shared to do shared libraries.
   freebsd3*)
+  freebsd*)
     archive_cmds='$CC -shared -o $lib$libobjs'
     hardcode_libdir_flag_spec='-R$libdir'
     hardcode_direct=yes
@@ -1131,6 +1132,7 @@ freebsd2*)
   ;;
 
 freebsd3*)
+freebsd*)
   version_type=freebsd
   library_names_spec='${libname}${release}.so.$versuffix $libname.so'
   if [ -x `/usr/bin/objformat` ]; then
