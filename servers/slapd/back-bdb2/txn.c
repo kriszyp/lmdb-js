@@ -25,7 +25,7 @@ bdb2i_txn_head_init( BDB2_TXN_HEAD *head )
 
 		}
 
-		sprintf( fileName, "%s%s", bdb2i_fixed_filenames[dbFile], LDBM_SUFFIX );
+		sprintf( fileName, "%s%s", bdb2i_fixed_filenames[dbFile], BDB2_SUFFIX );
 		(*fileNodeH)->dbc_name = strdup( fileName );
 
 		fileNodeH = &(*fileNodeH)->next;
@@ -81,7 +81,7 @@ bdb2i_txn_attr_config(
 		BDB2_TXN_FILES  **fileNodeH;
 		char            fileName[MAXPATHLEN];
 
-		sprintf( fileName, "%s%s", attr,  LDBM_SUFFIX );
+		sprintf( fileName, "%s%s", attr,  BDB2_SUFFIX );
 
 		/*  search for the end of the list or a node describing
 			the current attribute  */
@@ -261,12 +261,12 @@ bdb2i_check_additional_attr_index( struct ldbminfo *li )
 		strcpy( filename, file->d_name );
 		namelen = strlen( filename );
 
-		if ( namelen > strlen( LDBM_SUFFIX )) {
+		if ( namelen > strlen( BDB2_SUFFIX )) {
 
-			if ( !strcasecmp( filename + namelen - strlen( LDBM_SUFFIX ),
-							LDBM_SUFFIX )) {
+			if ( !strcasecmp( filename + namelen - strlen( BDB2_SUFFIX ),
+							BDB2_SUFFIX )) {
 
-				*(filename + namelen - strlen( LDBM_SUFFIX )) = '\0';
+				*(filename + namelen - strlen( BDB2_SUFFIX )) = '\0';
 				bdb2i_txn_attr_config( li, filename, 0 );
 
 				Debug( LDAP_DEBUG_TRACE, "INDEX FILE: %s\n", filename, 0, 0 );

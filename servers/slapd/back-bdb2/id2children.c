@@ -28,11 +28,11 @@ bdb2i_id2children_add(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2children_add( %lu, %lu )\n",
 	       p ? p->e_id : 0, e->e_id, 0 );
 
-	if ( (db = bdb2i_cache_open( be, "id2children", LDBM_SUFFIX,
+	if ( (db = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= bdb2i_id2children_add -1 could not open \"id2children%s\"\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    BDB2_SUFFIX, 0, 0 );
 		return( -1 );
 	}
 
@@ -70,11 +70,11 @@ bdb2i_id2children_remove(
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2children_remove( %lu, %lu )\n",
 		p ? p->e_id : 0, e->e_id, 0 );
 
-	if ( (db = bdb2i_cache_open( be, "id2children", LDBM_SUFFIX,
+	if ( (db = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= bdb2i_id2children_remove -1 could not open \"id2children%s\"\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    BDB2_SUFFIX, 0, 0 );
 		return( -1 );
 	}
 
@@ -112,11 +112,11 @@ bdb2i_has_children(
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_has_children( %lu )\n", p->e_id , 0, 0 );
 
-	if ( (db = bdb2i_cache_open( be, "id2children", LDBM_SUFFIX,
+	if ( (db = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= bdb2i_has_children -1 could not open \"id2children%s\"\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    BDB2_SUFFIX, 0, 0 );
 		return( 0 );
 	}
 

@@ -28,10 +28,10 @@ bdb2i_dn2id_add(
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 
-	if ( (db = bdb2i_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open/create dn2id%s\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    BDB2_SUFFIX, 0, 0 );
 		return( -1 );
 	}
 
@@ -81,11 +81,11 @@ bdb2i_dn2id(
 		return( id );
 	}
 
-	if ( (db = bdb2i_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
 		free( dn );
 		Debug( LDAP_DEBUG_ANY, "<= bdb2i_dn2id could not open dn2id%s\n",
-			LDBM_SUFFIX, 0, 0 );
+			BDB2_SUFFIX, 0, 0 );
 		return( NOID );
 	}
 
@@ -125,10 +125,10 @@ bdb2i_dn2id_delete(
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_dn2id_delete( \"%s\" )\n", dn, 0, 0 );
 
-	if ( (db = bdb2i_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= bdb2i_dn2id_delete could not open dn2id%s\n", LDBM_SUFFIX,
+		    "<= bdb2i_dn2id_delete could not open dn2id%s\n", BDB2_SUFFIX,
 		    0, 0 );
 		return( -1 );
 	}

@@ -112,7 +112,7 @@ main( int argc, char **argv )
 	li = (struct ldbminfo *) be->be_private;
 	li->li_dbcachewsync = 0;
 
-	if ( (db = bdb2i_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_NEWDB ))
+	if ( (db = bdb2i_cache_open( be, "id2entry", BDB2_SUFFIX, LDBM_NEWDB ))
 	    == NULL ) {
 		perror( "id2entry file" );
 		exit( 1 );

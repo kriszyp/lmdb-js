@@ -117,7 +117,7 @@ main( int argc, char **argv )
 	 * first, make the dn2id index
 	 */
 
-	if ( (db = bdb2i_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_NEWDB ))
+	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_NEWDB ))
 	    == NULL ) {
 		perror( "dn2id file" );
 		exit( 1 );
@@ -202,7 +202,7 @@ main( int argc, char **argv )
 	 * next, make the id2children index
 	 */
 
-	if ( (db2 = bdb2i_cache_open( be, "id2children", LDBM_SUFFIX,
+	if ( (db2 = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
 	    LDBM_NEWDB )) == NULL ) {
 		perror( "id2children file" );
 		exit( 1 );

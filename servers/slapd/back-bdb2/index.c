@@ -117,11 +117,11 @@ bdb2i_index_read(
 	}
 
 	attr_normalize( type );
-	if ( (db = bdb2i_cache_open( be, type, LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, type, BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= bdb2i_index_read NULL (could not open %s%s)\n", type,
-		    LDBM_SUFFIX, 0 );
+		    BDB2_SUFFIX, 0 );
 		return( NULL );
 	}
 
@@ -236,11 +236,11 @@ bdb2i_index_add_values(
 		return( 0 );
 	}
 
-	if ( (db = bdb2i_cache_open( be, type, LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, type, BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= bdb2i_index_add_values -1 (could not open/create %s%s)\n",
-		    type, LDBM_SUFFIX, 0 );
+		    type, BDB2_SUFFIX, 0 );
 		return( -1 );
 	}
 

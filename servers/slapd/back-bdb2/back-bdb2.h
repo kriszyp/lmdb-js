@@ -20,6 +20,9 @@ LDAP_BEGIN_DECL
 
 #define SUBLEN			3
 
+#define BDB2_SUFFIX     ".dbb"
+
+
 /*
  * there is a single index for each attribute.  these prefixes insure
  * that there is no collision among keys.

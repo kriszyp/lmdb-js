@@ -86,7 +86,7 @@ int
 bdb2i_next_id_save( BackendDB *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	ID id = next_id_get( be );
+	ID id = bdb2i_next_id_get( be );
 	int rc = next_id_write( be, id );
 
 	if (rc == 0) {

@@ -23,10 +23,10 @@ bdb2i_id2entry_add( BackendDB *be, Entry *e )
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_id2entry_add( %lu, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
-	if ( (db = bdb2i_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, "id2entry", BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    BDB2_SUFFIX, 0, 0 );
 		return( -1 );
 	}
 
@@ -71,10 +71,10 @@ bdb2i_id2entry_delete( BackendDB *be, Entry *e )
 
 	ldbm_datum_init( key );
 
-	if ( (db = bdb2i_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, "id2entry", BDB2_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    BDB2_SUFFIX, 0, 0 );
 		return( -1 );
 	}
 
@@ -115,10 +115,10 @@ bdb2i_id2entry( BackendDB *be, ID id, int rw )
 		return( e );
 	}
 
-	if ( (db = bdb2i_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = bdb2i_cache_open( be, "id2entry", BDB2_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open id2entry%s\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    BDB2_SUFFIX, 0, 0 );
 		return( NULL );
 	}
 

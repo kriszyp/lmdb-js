@@ -179,20 +179,6 @@ int backend_startup(int n)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
-		BackendInfo  *bi;
-
-		/* open the backend type, if not done already */
-		bi =  backendDB[i].bd_info;
-
-		if( bi->bi_nDB == 0) {
-			/* no database of this type, don't open */
-			Debug(LDAP_DEBUG_ANY, 
-				"backend_startup: there should be no database (%d) of %s type.!\n",
-				i, bi->bi_type, 0 );
-
-			return -1;
-		}
-
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
 				&backendDB[i] );
