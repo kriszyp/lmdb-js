@@ -33,15 +33,18 @@ DYN_EXT=@DYN_EXT@
 $(LIBRARY):  version.lo
 	$(LTLIBLINK) -rpath $(libdir) -o $@ $(OBJS) version.lo $(EXTRA_LIBS)
 	$(RM) ../$@
-	(d=`$(PWD)` ; $(LN_S) `$(BASENAME) $$d`/$@ ../$@)
-	$(RM) ../`$(BASENAME) $@ .la`.a;	\
-	(d=`$(PWD)`; t=`$(BASENAME) $@ .la`.a; $(LN_S) `$(BASENAME) $$d`/.libs/$$t ../$$t)
-	# If we want our binaries to link dynamically with libldap{,_r} liblber...
-	# We also symlink the .so.# so we can run the tests without installing
+	d=`$(PWD)`; d=`$(BASENAME) $$d`; cd ..; $(LN_S) $$d/$@ $@; \
+	t=`$(BASENAME) $@ .la`.a; $(RM) $$t; $(LN_S) $$d/.libs/$$t $$t
+	@# If we want our binaries to link dynamically with libldap{,_r} liblber
+	@# We also symlink the .so, so we can run the tests without installing
 	if test "$(LINK_BINS_DYNAMIC)" = "yes"; then \
-		(d=`$(PWD)`; b=`$(BASENAME) $@ .la`; t=`ls $$d/.libs/$$b*.$(DYN_EXT)`; t=`$(BASENAME) $$t`; $(LN_S) `$(BASENAME) $$d`/.libs/$$t ../$$t); \
+		d=`$(PWD)`; d=`$(BASENAME) $$d`; b=`$(BASENAME) $@ .la`; \
+		 cd .libs; t=`echo $$b*.$(DYN_EXT)`; (cd ../.. ; $(RM) $$t; \
+		 $(LN_S) $$d/.libs/$$t $$t); \
 		if test "$(DYN_EXT)" != dll; then \
-		    (d=`$(PWD)`; b=`$(BASENAME) $@ .la`; t=`ls $$d/.libs/$$b.$(DYN_EXT).?`; $(LN_S) `$(BASENAME) $$d`/.libs/`$(BASENAME) $$t` ../`$(BASENAME) $$t`); \
+		    t=`echo $$b.$(DYN_EXT).?`; cd ../.. ; \
+		    $(RM) $$t; \
+		    $(LN_S) $$d/.libs/$$t $$t; \
 		fi \
 	fi
 
