@@ -201,7 +201,9 @@ where valid method values are
 .RE
 .RS
 .B <saslargs>=[mech=<mech>] [realm=<realm>] [authcid=<authcid>] [cred=<cred>]
+
 .RE
+.RS
 If method is 
 .IR sasl ,
 extra parameters can be given a described above.
@@ -214,6 +216,7 @@ uses a SASL bind with the above parameters; if required,
 .I authorization
 is performed by means of native SASL mechanism, and no proxyAuthz
 is used for subsequent operations.
+.RE
 .TP
 .B proxy-whoami
 Turns on proxying of the WhoAmI extended operation. If this option is
