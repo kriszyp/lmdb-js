@@ -23,8 +23,11 @@
 void
 ldbm_datum_free( LDBM ldbm, Datum data )
 {
-	free( data.dptr );
-	data.dptr = NULL;
+	if ( data.dptr ) {
+		free( data.dptr );
+		data.dptr = NULL;
+		data.size = 0;
+	}
 }
 
 
@@ -32,6 +35,8 @@ Datum
 ldbm_datum_dup( LDBM ldbm, Datum data )
 {
 	Datum	dup;
+
+	ldbm_datum_init( dup );
 
 	if ( data.dsize == 0 ) {
 		dup.dsize = 0;
@@ -96,7 +101,8 @@ ldbm_db_errcall( const char *prefix, char *message )
 }
 
 /*  a dbEnv for BERKELEYv2  */
-DB_ENV           ldbm_Env;
+static DB_ENV    ldbm_Env_internal;
+DB_ENV           *ldbm_Env = NULL;
 
 /* Berkeley DB 2.x is reentrant */
 #define LDBM_LOCK	((void)0)
@@ -109,14 +115,15 @@ int ldbm_initialize( void )
 
 	if(ldbm_initialized++) return 1;
 
-	memset( &ldbm_Env, 0, sizeof( ldbm_Env ));
+	memset( &ldbm_Env_internal, 0, sizeof( DB_ENV ));
+	ldbm_Env = &ldbm_Env_internal;
 
-	ldbm_Env.db_errcall   = ldbm_db_errcall;
-	ldbm_Env.db_errpfx    = "==>";
+	ldbm_Env->db_errcall   = ldbm_db_errcall;
+	ldbm_Env->db_errpfx    = "==>";
 
 	envFlags = DB_CREATE | DB_THREAD;
 
-	if ( ( err = db_appinit( NULL, NULL, &ldbm_Env, envFlags )) ) {
+	if ( ( err = db_appinit( NULL, NULL, ldbm_Env, envFlags )) ) {
 		char  error[BUFSIZ];
 
 		if ( err < 0 ) {
@@ -138,7 +145,7 @@ int ldbm_shutdown( void )
 {
 	if( !ldbm_initialized ) return 1;
 
-	db_appexit( &ldbm_Env );
+	db_appexit( ldbm_Env );
 
 	return 0;
 }
@@ -162,13 +169,13 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	DB_INFO dbinfo;
 
 	memset( &dbinfo, 0, sizeof( dbinfo ));
-	if ( ldbm_Env.mp_info == NULL )
+	if (( ldbm_Env == NULL ) || ( ldbm_Env->mp_info == NULL ))
 		dbinfo.db_cachesize = dbcachesize;
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
 
 	LDBM_LOCK;
-    (void) db_open( name, DB_TYPE, rw, mode, &ldbm_Env, &dbinfo, &ret );
+    (void) db_open( name, DB_TYPE, rw, mode, ldbm_Env, &dbinfo, &ret );
 	LDBM_UNLOCK;
 
 #else
@@ -231,7 +238,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	data.flags = DB_DBT_MALLOC;
 
 	if ( (rc = (*ldbm->get)( ldbm, NULL, &key, &data, 0 )) != 0 ) {
-		if ( data.dptr ) free( data.dptr );
+		ldbm_datum_free( ldbm, data );
 #else
 	if ( (rc = (*ldbm->get)( ldbm, &key, &data, 0 )) == 0 ) {
 		/* Berkeley DB 1.85 don't malloc the data for us */
@@ -320,13 +327,13 @@ ldbm_firstkey( LDBM ldbm )
 	if ( (*ldbm->cursor)( ldbm, NULL, &dbci, 0 ))
 #  endif
 	{
+		key.flags = 0;
+		key.dptr = NULL;
 		return( key );
 	} else {
 		*dbch = dbci;
 		if ( (*dbci->c_get)( dbci, &key, &data, DB_NEXT ) == 0 ) {
-			if ( data.dptr ) {
-				free( data.dptr );
-			}	
+			ldbm_datum_free( ldbm, data );
 		}
 #else
 	int	rc;
@@ -338,6 +345,7 @@ ldbm_firstkey( LDBM ldbm )
 	}
 #endif
 	else {
+		key.flags = 0;
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
@@ -361,16 +369,15 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 	Datum	data;
 
 #ifdef HAVE_BERKELEY_DB2
-	void *oldKey = key.dptr;
-
 	ldbm_datum_init( data );
 
-	data.flags = DB_DBT_MALLOC;
+	ldbm_datum_free( ldbm, key );
+	key.flags = data.flags = DB_DBT_MALLOC;
 
 	LDBM_LOCK;
 
 	if ( (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT ) == 0 ) {
-		if ( data.dptr ) free( data.dptr );
+		ldbm_datum_free( ldbm, data );
 	}
 #else
 	int	rc;
@@ -382,15 +389,12 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 	}
 #endif
 	else {
+		key.flags = 0;
 		key.dptr = NULL;
 		key.dsize = 0;
 	}
 
 	LDBM_UNLOCK;
-
-#ifdef HAVE_BERKELEY_DB2
-	if ( oldKey ) free( oldKey );
-#endif
 
 	return( key );
 }

@@ -204,9 +204,6 @@ LDAP_BEGIN_DECL
 
 int ldbm_initialize( void );
 int ldbm_shutdown( void );
-#if HAVE_BERKELEY_DB2
-extern DB_ENV  ldbm_Env;
-#endif
 
 int	ldbm_errno( LDBM ldbm );
 LDBM	ldbm_open( char *name, int rw, int mode, int dbcachesize );
