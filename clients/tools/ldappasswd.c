@@ -44,7 +44,7 @@ usage(const char *s)
 "  -h host    LDAP server(s)\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
 "  -I         use SASL Interactive mode\n"
-"  -n         show what would be done but don't actually search\n"
+"  -n         show what would be done but don't actually do it\n"
 "  -O props   SASL security properties\n"
 "  -p port    port on LDAP server\n"
 "  -Q         use SASL Quiet mode\n"
@@ -560,7 +560,7 @@ main( int argc, char *argv[] )
 
 		ld = ldap_init( ldaphost, ldapport );
 		if( ld == NULL ) {
-			perror("ldapsearch: ldap_init");
+			perror("ldappasswd: ldap_init");
 			return EXIT_FAILURE;
 		}
 

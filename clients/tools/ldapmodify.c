@@ -114,7 +114,7 @@ usage( const char *prog )
 "  -k         use Kerberos authentication\n"
 "  -K         like -k, but do only step 1 of the Kerberos bind\n"
 "  -M         enable Manage DSA IT control (-MM to make critical)\n"
-"  -n         show what would be done but don't actually search\n"
+"  -n         show what would be done but don't actually update\n"
 "  -O props   SASL security properties\n"
 "  -p port    port on LDAP server\n"
 "  -P version procotol version (default: 3)\n"
@@ -570,7 +570,7 @@ main( int argc, char **argv )
 
 		ld = ldap_init( ldaphost, ldapport );
 		if( ld == NULL ) {
-			perror("ldapsearch: ldap_init");
+			perror("ldapmodify: ldap_init");
 			return EXIT_FAILURE;
 		}
 
