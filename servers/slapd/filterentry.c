@@ -171,7 +171,7 @@ test_filter(
 #if SLAPD_SCHEMA_NOT_COMPAT
 		rc = test_mra_filter( be, conn, op, e, f->f_mra );
 #else
-		rc = -1;
+		rc = LDAP_UNWILLING_TO_PERFORM;
 #endif
 		break;
 #endif
@@ -179,7 +179,7 @@ test_filter(
 	default:
 		Debug( LDAP_DEBUG_ANY, "    unknown filter type %lu\n",
 		    f->f_choice, 0, 0 );
-		rc = -1;
+		rc = LDAP_PROTOCOL_ERROR;
 	}
 
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter %d\n", rc, 0, 0 );
@@ -213,7 +213,7 @@ test_ava_filter(
 		ava->ava_type, &ava->ava_value, ACL_SEARCH ) )
 #endif
 	{
-		return( -2 );
+		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -308,7 +308,7 @@ test_presence_filter(
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		desc, NULL, ACL_SEARCH ) )
 	{
-		return( -2 );
+		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -336,7 +336,7 @@ test_approx_filter(
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		ava->ava_type, NULL, ACL_SEARCH ) )
 	{
-		return( -2 );
+		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	a = attr_find( e->e_attrs, ava->ava_type );
@@ -510,7 +510,7 @@ test_substring_filter(
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		f->f_sub_type, NULL, ACL_SEARCH ) )
 	{
-		return( -2 );
+		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	if ( (a = attr_find( e->e_attrs, f->f_sub_type )) == NULL ) {
@@ -520,7 +520,7 @@ test_substring_filter(
 	if ( a->a_syntax & SYNTAX_BIN ) {
 		Debug( LDAP_DEBUG_FILTER, "test_substring_filter bin attr\n",
 		    0, 0, 0 );
-		return( -1 );
+		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
 	/*
@@ -538,7 +538,7 @@ test_substring_filter(
 		if ( p + 2 * f->f_sub_initial->bv_len > end ) {
 			Debug( LDAP_DEBUG_ANY, "not enough pattern space\n",
 			    0, 0, 0 );
-			return( -1 );
+			return LDAP_OTHER;
 		}
 		strcpy_regex( p, f->f_sub_initial->bv_val );
 		p = strchr( p, '\0' );
@@ -549,7 +549,7 @@ test_substring_filter(
 			if ( p + 2 * f->f_sub_any[i]->bv_len + 2 > end ) {
 				Debug( LDAP_DEBUG_ANY,
 				    "not enough pattern space\n", 0, 0, 0 );
-				return( -1 );
+				return LDAP_OTHER;
 			}
 			strcpy( p, ".*" );
 			p = strchr( p, '\0' );
@@ -580,7 +580,7 @@ test_substring_filter(
 		regerror(rc, &re, error, sizeof(error));
 		Debug( LDAP_DEBUG_ANY, "regcomp failed (%s) %s\n",
 			p, error, 0 );
-		return( -1 );
+		return LDAP_OTHER;
 	}
 
 	/* for each value in the attribute see if regex matches */
