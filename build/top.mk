@@ -29,6 +29,7 @@ libdir = $(TMPROOT)@libdir@
 libexecdir = $(TMPROOT)@libexecdir@
 localstatedir = $(TMPROOT)@localstatedir@
 mandir = $(TMPROOT)@mandir@
+moduledir = $(TMPROOT)@libexecdir@/$(ldap_subdir)
 sbindir = $(TMPROOT)@sbindir@
 sharedstatedir = $(TMPROOT)@sharedstatedir@
 sysconfdir = $(TMPROOT)@sysconfdir@/$(ldap_subdir)
@@ -126,6 +127,7 @@ SECURITY_LIBS = @SASL_LIBS@ @KRB_LIBS@ @TLS_LIBS@
 
 MODULES_CPPFLAGS = @SLAPD_MODULES_CPPFLAGS@
 MODULES_LDFLAGS = @SLAPD_MODULES_LDFLAGS@
+MODULES_LIBS = @MODULES_LIBS@
 PERL_CPPFLAGS = @SLAPD_PERL_CPPFLAGS@
 PERL_LDFLAGS = @SLAPD_PERL_LDFLAGS@
 TERMCAP_LIBS = @TERMCAP_LIBS@

@@ -366,6 +366,7 @@ BUILD_TCL_DYNAMIC=no
 
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
+SLAPD_MODULES_LIST=
 
 SLAPD_PERL_LDFLAGS=
 SLAPD_PERL_CPPFLAGS=
@@ -375,6 +376,7 @@ READLINE_LIBS=
 SASL_LIBS=
 TERMCAP_LIBS=
 TLS_LIBS=
+MODULES_LIBS=
 
 dnl ----------------------------------------------------------------
 dnl Checks for programs
@@ -437,6 +439,7 @@ dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl (for now, let autoconf sort this out)
 dnl CFLAGS=${CFLAGS-""}
 
+AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 dnl AC_PROG_MAKE_SET
 
@@ -512,36 +515,6 @@ OL_MKDEPEND
 if test "${ol_cv_mkdep}" = no ; then
 	# this will soon become an error
 	AC_MSG_WARN([do not know how to generate dependencies])
-fi
-
-dnl
-dnl Check for module support
-dnl
-ol_link_modules=no
-if test $ol_enable_modules != no ; then
-	AC_PATH_PROG(GLIBCONFIG, glib-config)
-
-	if test "no$GLIBCONFIG" = "no" ; then
-		if test $ol_enable_modules = yes ; then
-			AC_MSG_ERROR([could not locate glib-config])
-		fi
-
-	else
-		SLAPD_MODULES_VERSION="`$GLIBCONFIG --version gmodule`"
-		SLAPD_MODULES_CPPFLAGS="`$GLIBCONFIG --cflags gmodule`"
-		SLAPD_MODULES_LDFLAGS="`$GLIBCONFIG --libs gmodule`"
-
-		dnl should check glib version
-		ol_link_modules=yes
-	fi
-else
-	ol_with_bdb2_module=static
-	ol_with_ldap_module=static
-	ol_with_ldbm_module=static
-	ol_with_passwd_module=static
-	ol_with_perl_module=static
-	ol_with_shell_module=static
-	ol_with_tcl_module=static
 fi
 
 dnl ----------------------------------------------------------------
@@ -1941,9 +1914,11 @@ if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
 fi
 
-if test "$ol_link_modules" != no ; then
+if test "$ol_enable_modules" != no ; then
 	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
 	BUILD_SLAPD=yes
+	MODULES_LIBS=-lltdl
+	SLAPD_MODULES_LDFLAGS="-dlopen self"
 fi
 
 if test "$ol_link_bdb2" != no ; then
@@ -1954,6 +1929,7 @@ if test "$ol_link_bdb2" != no ; then
 		AC_DEFINE(SLAPD_BDB2_DYNAMIC,1,
 			[define to support dynamic BDB2 backend])
 		BUILD_BDB2_DYNAMIC=yes
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-bdb2/back_bdb2.la"
 	fi
 fi
 
@@ -1965,6 +1941,7 @@ if test "$ol_enable_ldap" != no ; then
 		AC_DEFINE(SLAPD_LDAP_DYNAMIC,1,
 			[define to support dynamic LDAP backend])
 		BUILD_LDAP_DYNAMIC=yes
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldap/back_ldap.la"
 	fi
 fi
 
@@ -1976,6 +1953,7 @@ if test "$ol_link_ldbm" != no ; then
 		AC_DEFINE(SLAPD_LDBM_DYNAMIC,1,
 			[define to support dynamic LDBM backend])
 		BUILD_LDBM_DYNAMIC=yes
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldbm/back_ldbm.la"
 	fi
 fi
 
@@ -1987,6 +1965,7 @@ if test "$ol_enable_passwd" != no ; then
 		AC_DEFINE(SLAPD_PASSWD_DYNAMIC,1,
 			[define to support dynamic PASSWD backend])
 		BUILD_PASSWD_DYNAMIC=yes
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-passwd/back_passwd.la"
 	fi
 fi
 
@@ -1998,6 +1977,7 @@ if test "$ol_link_perl" != no ; then
 		AC_DEFINE(SLAPD_PERL_DYNAMIC,1,
 			[define to support dynamic PERL backend])
 		BUILD_PERL_DYNAMIC=yes
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-perl/back_perl.la"
 	fi
 fi
 
@@ -2009,6 +1989,7 @@ if test "$ol_enable_shell" != no ; then
 		AC_DEFINE(SLAPD_SHELL_DYNAMIC,1,
 			[define to support dynamic SHELL backend])
 		BUILD_SHELL_DYNAMIC=yes
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-shell/back_shell.la"
 	fi
 fi
 
@@ -2020,6 +2001,7 @@ if test "$ol_enable_tcl" != no ; then
 		AC_DEFINE(SLAPD_TCL_DYNAMIC,1,
 			[define to support dynamic TCL backend])
 		BUILD_TCL_DYNAMIC=yes
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-tcl/back_tcl.la"
 	fi
 fi
 
@@ -2064,6 +2046,7 @@ AC_SUBST(LUTIL_LIBS)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)
+AC_SUBST(SLAPD_MODULES_LIST)
 
 AC_SUBST(SLAPD_PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)
@@ -2073,6 +2056,7 @@ AC_SUBST(READLINE_LIBS)
 AC_SUBST(SASL_LIBS)
 AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
+AC_SUBST(MODULES_LIBS)
 
 dnl ----------------------------------------------------------------
 dnl final output

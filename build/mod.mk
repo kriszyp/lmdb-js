@@ -6,9 +6,8 @@
 ## Makefile Template for Server Modules
 ##
 
-LIBRARY = lib$(LIBBASE).la
+LIBRARY = $(LIBBASE).la
 LIBSTAT = lib$(LIBBASE).a
-MODULE = $(LIBBASE).so
 
 all-common: FORCE
 	@if test "$(BUILD_MOD)" = "yes"; then \
@@ -24,10 +23,7 @@ version.c: $(OBJS)
 	$(MKVERSION) $(LIBBASE) > $@
 
 $(LIBRARY): version.lo
-	$(LTLIBLINK) -rpath $(libdir) -o $@ $(OBJS) version.lo
-
-$(MODULE): $(LIBRARY)
-	ln .libs/lib$(LIBBASE).so.0.0.0 $@
+	$(LTLIBLINK) -module -rpath $(moduledir) -o $@ $(OBJS) version.lo
 
 $(LIBSTAT): version.lo
 	$(AR) ruv $@ `echo $(OBJS) | sed s/\.lo/.o/g` version.o
@@ -58,17 +54,23 @@ depend-common: FORCE
 	fi
 
 install-common: FORCE
-	@if test "$(BUILD_LIB)" = "yes" ; then \
+	@if test "$(BUILD_MOD)" = "yes" ; then \
+		$(MAKE) $(MFLAGS) install-mod; \
+	elif test "$(BUILD_LIB)" = "yes" ; then \
 		$(MAKE) $(MFLAGS) install-lib; \
 	else \
 		echo "run configure with $(BUILD_OPT) to install $(LIBBASE)"; \
 	fi
 
 all-local-mod:
-all-mod: $(MODULE) all-local-mod FORCE
+all-mod: $(LIBRARY) all-local-mod FORCE
 
 all-local-lib:
 all-lib: $(LIBSTAT) all-local-lib FORCE
+
+install-mod: $(LIBRARY)
+	@-$(MKDIR) $(moduledir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 $(LIBRARY) $(moduledir)
 
 install-local-lib:
 install-lib: install-local-lib FORCE
