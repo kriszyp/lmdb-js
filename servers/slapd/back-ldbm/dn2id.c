@@ -113,20 +113,17 @@ dn2id_add(
 	return( rc );
 }
 
-ID
+int
 dn2id(
     Backend	*be,
     const char	*dn,
-    int         *rc
+    ID          *idp
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	DBCache	*db;
-	ID		id;
 	Datum		key, data;
 
-	*rc = 0;
-	
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "dn2id: (%s)\n", dn ));
@@ -134,18 +131,19 @@ dn2id(
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
 #endif
 
+	assert( idp );
 
 	/* first check the cache */
-	if ( (id = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
+	if ( (*idp = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "dn2id: (%s)%ld in cache.\n", dn, id ));
+			   "dn2id: (%s)%ld in cache.\n", dn, *idp ));
 #else
-		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", id,
+		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", *idp,
 			0, 0 );
 #endif
 
-		return( id );
+		return( 0 );
 	}
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
@@ -161,8 +159,8 @@ dn2id(
 		 * return code !0 if ldbm cache open failed;
 		 * callers should handle this
 		 */
-		*rc = -1;
-		return( NOID );
+		*idp = NOID;
+		return( -1 );
 	}
 
 	ldbm_datum_init( key );
@@ -185,23 +183,24 @@ dn2id(
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id NOID\n", 0, 0, 0 );
 #endif
 
-		return( NOID );
+		*idp = NOID;
+		return( 0 );
 	}
 
-	AC_MEMCPY( (char *) &id, data.dptr, sizeof(ID) );
+	AC_MEMCPY( (char *) idp, data.dptr, sizeof(ID) );
 
-	assert( id != NOID );
+	assert( *idp != NOID );
 
 	ldbm_datum_free( db->dbc_db, data );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "dn2id: %ld\n", id ));
+		   "dn2id: %ld\n", *idp ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", id, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", *idp, 0, 0 );
 #endif
 
-	return( id );
+	return( 0 );
 }
 
 ID_BLOCK *
@@ -363,7 +362,6 @@ dn2entry_rw(
 	ID		id;
 	Entry		*e = NULL;
 	char		*pdn;
-	int             rc_id = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -380,13 +378,16 @@ dn2entry_rw(
 		*matched = NULL;
 	}
 
-	if ( (id = dn2id( be, dn, &rc_id )) != NOID &&
-		(e = id2entry_rw( be, id, rw )) != NULL )
-	{
-		return( e );
-	}
+	if ( dn2id( be, dn, &id ) ) {
+		/* something bad happened to ldbm cache */
+		return( NULL );
 
-	if ( id != NOID ) {
+	} else if ( id != NOID ) {
+		/* try to return the entry */
+		if ((e = id2entry_rw( be, id, rw )) != NULL ) {
+			return( e );
+		}
+
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 			   "dn2entry_rw: no entry for valid id (%ld), dn (%s)\n",
@@ -399,9 +400,6 @@ dn2entry_rw(
 
 		/* must have been deleted from underneath us */
 		/* treat as if NOID was found */
-	} else if ( rc_id ) {
-		/* something bad happened to ldbm cache */
-		return NULL;
 	}
 
 	/* caller doesn't care about match */

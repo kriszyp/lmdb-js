@@ -28,7 +28,8 @@ ldbm_back_add(
 	char		*pdn;
 	Entry		*p = NULL;
 	int			rootlock = 0;
-	int			rc, rc_id; 
+	int			rc;
+	ID               id = NOID;
 	const char	*text = NULL;
 	AttributeDescription *children = slap_schema.si_ad_children;
 	char textbuf[SLAP_TEXT_BUFLEN];
@@ -45,11 +46,11 @@ ldbm_back_add(
 	/* nobody else can add until we lock our parent */
 	ldap_pvt_thread_mutex_lock(&li->li_add_mutex);
 
-	if ( ( dn2id( be, e->e_ndn, &rc_id ) ) != NOID || rc_id ) {
-		/* if (rc_id) something bad happened to ldbm cache */
+	if ( ( rc = dn2id( be, e->e_ndn, &id ) ) || id != NOID ) {
+		/* if (rc) something bad happened to ldbm cache */
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 		send_ldap_result( conn, op, 
-			rc_id ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
+			rc ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}
