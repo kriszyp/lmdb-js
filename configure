@@ -7195,7 +7195,7 @@ EOF
 fi
 if test $ol_enable_dns != no ; then
 	cat >> confdefs.h <<\EOF
-#define LDAP_API_FEATURE_X_OPENLDAP_V2_DNS LDAP_API_VENDOR_VERSION
+#define LDAP_API_FEATURE_X_OPENLDAP_V2_DNS 1
 EOF
 
 fi
@@ -7207,7 +7207,7 @@ EOF
 fi
 if test $ol_enable_referrals != no ; then
 	cat >> confdefs.h <<\EOF
-#define LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS LDAP_API_VENDOR_VERSION
+#define LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS 1
 EOF
 
 fi
