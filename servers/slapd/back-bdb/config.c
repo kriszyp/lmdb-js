@@ -126,7 +126,7 @@ bdb_db_config(
 		if( rc != LDAP_SUCCESS ) return 1;
 
 	/* size of the cache in entries */
-         } else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {
+        } else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {
                  if ( argc < 2 ) {
                          fprintf( stderr,
                  "%s: line %d: missing size in \"cachesize <size>\" line\n",
