@@ -415,33 +415,37 @@ slap_passwd_check(
 	struct berval		*bv;
 	AccessControlState	acl_state = ACL_STATE_INIT;
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-	ldap_pvt_thread_mutex_lock( &passwd_mutex );
-#ifdef SLAPD_SPASSWD
-	lutil_passwd_sasl_conn = op->o_conn->c_sasl_authctx;
-#endif
-#endif
-
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
+		int	rc;
+
 		/* if e is provided, check access */
 		if ( e && access_allowed( op, e, a->a_desc, bv,
 					ACL_AUTH, &acl_state ) == 0 )
 		{
 			continue;
 		}
-		
-		if ( !lutil_passwd( bv, cred, NULL, text ) ) {
+
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
+		ldap_pvt_thread_mutex_lock( &passwd_mutex );
+#ifdef SLAPD_SPASSWD
+		lutil_passwd_sasl_conn = op->o_conn->c_sasl_authctx;
+#endif
+#endif
+	
+		rc = lutil_passwd( bv, cred, NULL, text );
+
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
+#ifdef SLAPD_SPASSWD
+		lutil_passwd_sasl_conn = NULL;
+#endif
+		ldap_pvt_thread_mutex_unlock( &passwd_mutex );
+#endif
+
+		if ( !rc ) {
 			result = 0;
 			break;
 		}
 	}
-
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-#ifdef SLAPD_SPASSWD
-	lutil_passwd_sasl_conn = NULL;
-#endif
-	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
-#endif
 
 	return result;
 }
