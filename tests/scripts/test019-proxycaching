@@ -1,4 +1,5 @@
 #! /bin/sh
+# $OpenLDAP$
 
 CACHETTL=60
 CACHE_ENTRY_LIMIT=10
@@ -8,12 +9,15 @@ if test $# -ge 1 ; then
 	SRCDIR=$1; shift
 fi
 
-. $SRCDIR/scripts/args.sh
+. $SRCDIR/scripts/args.sh $*
+
+if test "$BACKEND" != "ldbm"; then
+	echo "Test only valid for back-ldbm"
+	exit 0
+fi
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
-
-BACKEND=ldbm
 
 # Test proxy caching:
 # - start master
@@ -50,12 +54,16 @@ echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER < $CACHEMASTERCONF > $DBCONF
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL > $MASTERLOG 2>&1 &
 PID=$!
+if test $WAIT != 0 ; then
+	echo PID $PID
+	read foo
+fi
 
 sleep 5
 
 echo "Using ldapadd to populate the master directory..."
 $LDAPADD -x -D "$MANAGERDN" -h $LOCALHOST -p $PORT -w $PASSWD < \
-	$LDIFORDERED > out 2>&1
+	$LDIFORDERED > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
@@ -67,6 +75,11 @@ echo "Starting proxy cache on TCP/IP port $SLAVEPORT..."
 . $CONFFILTER < $PROXYCACHECONF > $CACHECONF
 $SLAPD -f $CACHECONF -h $SLAVEURI -d $LVL > $SLAVELOG 2>&1 &
 CACHEPID=$!
+WAIT=1
+if test $WAIT != 0 ; then
+	echo CACHEPID $CACHEPID
+	read foo
+fi
 
 sleep 8
 echo "Making queries on the proxy cache..." 
