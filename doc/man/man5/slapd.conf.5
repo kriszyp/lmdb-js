@@ -1132,19 +1132,17 @@ of entries to be returned.
 However, the size limit applies to the total count of entries returned within
 the search, and not to a single page.
 Additional size limits may be enforced; the syntax is
-.BR size.pr={<integer>|noEstimate|disabled|none} ,
+.BR size.pr={<integer>|noEstimate|none} ,
 where
 .B integer
 is the max page size if no explicit limit is set; the keyword
 .I noEstimate
 inhibits the server to return an estimate of the total number
 of entries that will be returned; the keyword
-.I disabled
-disables the control, i.e. no paged results can be returned; the keyword
 .I none
 indicates that no limit is applied to the pagedResults control page size.
 The syntax
-.B size.prtotal={<integer>|none}
+.B size.prtotal={<integer>|none|disabled}
 allows to set a limit on the total number of entries that a pagedResults
 control allows to return.
 By default it is set to the 
@@ -1158,7 +1156,9 @@ Use
 .B none
 to allow unlimited number of entries to be returned, i.e. to use 
 pagedResults as a means to allow clients to circumvent size limitations 
-on regular searches.
+on regular searches; the keyword
+.I disabled
+disables the control, i.e. no paged results can be returned.
 Note that the total number of entries returned when the pagedResults control 
 is requested cannot exceed the 
 .B hard 
