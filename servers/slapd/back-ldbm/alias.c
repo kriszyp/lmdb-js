@@ -264,7 +264,7 @@ static char* get_alias_dn(
 	return dn;
 }
 
-char* new_superior(
+static char* new_superior(
 	const char *dn,
 	const char *oldSup,
 	const char *newSup )
