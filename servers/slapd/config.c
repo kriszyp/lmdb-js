@@ -2163,7 +2163,7 @@ read_config( const char *fname )
                    }
                    if (module_path( cargv[1] )) {
 #ifdef NEW_LOGGING
-			   LDAP_LOG(( "cofig", LDAP_LEVEL_CRIT,
+			   LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
 				      "%s: line %d: failed to set module search path to %s.\n",
 				      fname, lineno, cargv[1] ));
 #else

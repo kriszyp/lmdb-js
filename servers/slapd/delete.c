@@ -66,7 +66,7 @@ do_delete(
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "oepration", LDAP_LEVEL_ERR,
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_delete: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );

@@ -522,7 +522,7 @@ monitor_back_db_config(
 )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "config", LDAP_DEBUG_CONFIG,
+	LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 		"line %d of file '%s' will be ignored\n", lineno, fname ));
 #else
 	Debug( LDAP_DEBUG_CONFIG, 
