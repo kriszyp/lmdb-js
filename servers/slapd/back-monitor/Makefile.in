@@ -1,12 +1,12 @@
 # $OpenLDAP$
 
-SRCS = init.c search.c compare.c abandon.c \
+SRCS = init.c search.c compare.c abandon.c modify.c bind.c \
 	cache.c entry.c \
-	backend.c database.c thread.c conn.c rww.c \
+	backend.c database.c thread.c conn.c rww.c log.c \
 	dummy.c
-OBJS = init.o search.o compare.o abandon.o \
+OBJS = init.o search.o compare.o abandon.o modify.o bind.o \
 	cache.o entry.o \
-	backend.o database.o thread.o conn.o rww.o \
+	backend.o database.o thread.o conn.o rww.o log.o \
 	dummy.o
 
 LDAP_INCDIR= ../../../include       

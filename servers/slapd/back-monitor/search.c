@@ -127,7 +127,7 @@ monitor_back_search(
 {
 	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
 	int		rc;
-	Entry		*e;
+	Entry		*e, *matched = NULL;
 	int		nentries = 0;
 
 #ifdef NEW_LOGGING
@@ -139,10 +139,14 @@ monitor_back_search(
 
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( mi, nbase, &e );
+	monitor_cache_dn2entry( mi, nbase, &e, &matched );
 	if ( e == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			NULL, NULL, NULL, NULL );
+			matched ? matched->e_dn : NULL, 
+			NULL, NULL, NULL );
+		if ( matched ) {
+			monitor_cache_release( mi, matched );
+		}
 
 		return( 0 );
 	}

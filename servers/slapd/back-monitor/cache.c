@@ -174,7 +174,8 @@ int
 monitor_cache_dn2entry(
 		struct monitorinfo      *mi,
 		const char		*ndn,
-		Entry			**ep
+		Entry			**ep,
+		Entry			**matched
 )
 {
 	int rc;
@@ -186,6 +187,9 @@ monitor_cache_dn2entry(
 	assert( mi != NULL );
 	assert( ndn != NULL );
 	assert( ep != NULL );
+	assert( matched != NULL );
+
+	*matched = NULL;
 
 	rc = monitor_cache_get( mi, ndn, ep );
        	if ( !rc && *ep != NULL ) {
@@ -194,7 +198,7 @@ monitor_cache_dn2entry(
 
 	/* try with parent/ancestors */
 	p_ndn = dn_parent( NULL, ndn );
-	rc = monitor_cache_dn2entry( mi, p_ndn, &e_parent );
+	rc = monitor_cache_dn2entry( mi, p_ndn, &e_parent, matched );
 	if ( rc || e_parent == NULL) {
 		return( -1 );
 	}
@@ -205,7 +209,12 @@ monitor_cache_dn2entry(
 		/* parent entry generates volatile children */
 		rc = monitor_entry_create( mi, ndn, e_parent, ep );
 	}
-	monitor_cache_release( mi, e_parent );
+
+	if ( !rc ) {
+		monitor_cache_release( mi, e_parent );
+	} else {
+		*matched = e_parent;
+	}
 	
 	return( rc );
 }

@@ -51,6 +51,55 @@ monitor_back_compare(
 	AttributeAssertion 	*ava
 )
 {
-	return( 0 );
+	struct monitorinfo      *mi = (struct monitorinfo *) be->be_private;	        int             rc;
+	Entry           *e, *matched = NULL;
+	Attribute	*a;
+
+	/* get entry with reader lock */
+	monitor_cache_dn2entry( mi, ndn, &e, &matched );
+	if ( e == NULL ) {
+		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
+				matched ? matched->e_dn : NULL,
+				NULL, NULL, NULL );
+		if ( matched ) {
+			monitor_cache_release( mi, matched );
+		}
+		
+		return( 0 );
+	}
+
+	rc = access_allowed( be, conn, op, e, ava->aa_desc, 
+			ava->aa_value, ACL_COMPARE );
+	if ( !rc ) {
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+				NULL, NULL, NULL, NULL );
+		rc = 1;
+		goto return_results;
+	}
+
+	rc = LDAP_NO_SUCH_ATTRIBUTE;
+	
+	for ( a = attrs_find( e->e_attrs, ava->aa_desc );
+			a != NULL;
+			a = attrs_find( a->a_next, ava->aa_desc )) {
+		rc = LDAP_COMPARE_FALSE;
+		
+		if ( value_find( ava->aa_desc, a->a_vals, ava->aa_value ) == 0 ) {
+									
+			rc = LDAP_COMPARE_TRUE;
+			break;
+		}
+	}
+	
+	send_ldap_result( conn, op, rc, NULL, NULL, NULL, NULL );
+	
+	if( rc != LDAP_NO_SUCH_ATTRIBUTE ) {
+		rc = 0;
+	}
+	
+return_results:;
+	monitor_cache_release( mi, e );
+
+	return( rc );
 }
 

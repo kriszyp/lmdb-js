@@ -921,6 +921,7 @@ LDAP_SLAPD_V (time_t)		starttime;
 #define slap_get_time()	time( NULL )
 
 LDAP_SLAPD_V (ldap_pvt_thread_pool_t)	connection_pool;
+LDAP_SLAPD_V (int)			connection_pool_max;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;

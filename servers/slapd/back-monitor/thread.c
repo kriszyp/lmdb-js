@@ -41,6 +41,52 @@
 #include "slap.h"
 #include "back-monitor.h"
 
+/*
+*  * initializes log subentry
+*   */
+int
+monitor_subsys_thread_init(
+	BackendDB       *be
+)
+{
+	struct monitorinfo      *mi;
+	Entry                   *e;
+	struct monitorentrypriv *mp;
+	struct berval           val, *bv[2] = { &val, NULL };
+	static char		buf[1024];
+
+	mi = ( struct monitorinfo * )be->be_private;
+
+	if ( monitor_cache_get( mi, 
+				monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn,
+				&e ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+					"monitor_subsys_thread_init: "
+					"unable to get entry '%s'\n",
+					monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_thread_init: "
+				"unable to get entry '%s'\n%s%s",
+				monitor_subsys[SLAPD_MONITOR_THREAD].mss_ndn,
+				"", "" );
+#endif
+		return( -1 );
+	}
+
+	/* initialize the thread number */
+	snprintf( buf, sizeof( buf ), "max=%d", connection_pool_max );
+
+	val.bv_val = buf;
+	val.bv_len = strlen( val.bv_val );
+
+	attr_merge( e, monitor_ad_desc, bv );
+
+	monitor_cache_release( mi, e );
+
+	return( 0 );
+}
 
 int 
 monitor_subsys_thread_update( 
@@ -55,15 +101,15 @@ monitor_subsys_thread_update(
 	bv[0] = &val;
 	bv[1] = NULL;
 
-	snprintf( buf, sizeof( buf ), "threads=%d", 
+	snprintf( buf, sizeof( buf ), "backload=%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
 
 	if ( ( a = attr_find( e->e_attrs, monitor_ad_desc ) ) != NULL ) {
 
 		for ( b = a->a_vals; b[0] != NULL; b++ ) {
-			if ( strncmp( b[0]->bv_val, "threads=", 
-					sizeof( "threads=" ) - 1 ) == 0 ) {
-				free( b[0]->bv_val );
+			if ( strncmp( b[0]->bv_val, "backload=", 
+					sizeof( "backload=" ) - 1 ) == 0 ) {
+				ber_bvfree( b[0] );
 				b[0] = ber_bvstrdup( buf );
 				break;
 			}

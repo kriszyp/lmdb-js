@@ -39,6 +39,7 @@ char		**g_argv;
  * global variables that need mutex protection
  */
 ldap_pvt_thread_pool_t	connection_pool;
+int			connection_pool_max = SLAP_MAX_WORKER_THREADS;
 ldap_pvt_thread_mutex_t	gmtime_mutex;
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 ldap_pvt_thread_mutex_t	passwd_mutex;
@@ -106,7 +107,7 @@ slap_init( int mode, const char *name )
 	
 			(void) ldap_pvt_thread_initialize();
 
-			ldap_pvt_thread_pool_init(&connection_pool, SLAP_MAX_WORKER_THREADS, 0);
+			ldap_pvt_thread_pool_init(&connection_pool, connection_pool_max, 0);
 
 			ldap_pvt_thread_mutex_init( &entry2str_mutex );
 			ldap_pvt_thread_mutex_init( &replog_mutex );

@@ -86,6 +86,28 @@ monitor_entry_create(
 }
 
 int
+monitor_entry_modify(
+	struct monitorinfo 	*mi, 
+	Entry 			*e,
+	Modifications		*modlist
+)
+{
+	struct monitorentrypriv *mp;
+
+	assert( mi != NULL );
+	assert( e != NULL );
+	assert( e->e_private != NULL );
+
+	mp = ( struct monitorentrypriv * )e->e_private;
+
+	if ( mp->mp_info && mp->mp_info->mss_modify ) {
+		return ( *mp->mp_info->mss_modify )( mi, e, modlist );
+	}
+
+	return( 0 );
+}
+
+int
 monitor_entry_test_flags(
 	struct monitorentrypriv	*mp,
 	int			cond

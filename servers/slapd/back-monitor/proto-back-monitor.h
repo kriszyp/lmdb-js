@@ -60,6 +60,7 @@ int monitor_subsys_database_init LDAP_P(( BackendDB *be ));
 /*
  * threads
  */
+int monitor_subsys_thread_init LDAP_P(( BackendDB *be ));
 int monitor_subsys_thread_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
 
 /*
@@ -78,6 +79,12 @@ int monitor_subsys_readw_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
  * write waiters
  */
 int monitor_subsys_writew_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
+
+/*
+ * log
+ */
+int monitor_subsys_log_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_log_modify LDAP_P(( struct monitorinfo *mi, Entry *e, Modifications *modlist	));
 
 LDAP_END_DECL
 #endif

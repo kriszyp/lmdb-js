@@ -446,6 +446,9 @@ read_config( const char *fname )
 
 			ldap_pvt_thread_pool_maxthreads( &connection_pool, c );
 
+			/* save for later use */
+			connection_pool_max = c;
+
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
 			if ( cargc < 2 ) {

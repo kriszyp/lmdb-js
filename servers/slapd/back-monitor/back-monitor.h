@@ -144,6 +144,13 @@ struct monitorinfo {
 #define SLAPD_MONITOR_WRITEW_DN	\
 	SLAPD_MONITOR_WRITEW_RDN "," SLAPD_MONITOR_DN
 
+#define SLAPD_MONITOR_LOG		9
+#define SLAPD_MONITOR_LOG_NAME		"Log"
+#define SLAPD_MONITOR_LOG_RDN	\
+	"cn=" SLAPD_MONITOR_LOG_NAME
+#define SLAPD_MONITOR_LOG_DN	\
+	SLAPD_MONITOR_LOG_RDN "," SLAPD_MONITOR_DN
+
 struct monitorsubsys {
 	int		mss_type;
 	char		*mss_name;
@@ -155,9 +162,16 @@ struct monitorsubsys {
 #define MONITOR_HAS_VOLATILE_CH( mp ) \
 	( ( mp )->mp_flags & MONITOR_F_VOLATILE_CH )
 
+	/* initialize entry and subentries */
 	int		( *mss_init )( BackendDB * );
+	/* update existing dynamic entry and subentries */
 	int		( *mss_update )( struct monitorinfo *, Entry * );
-	int		( *mss_create )( struct monitorinfo *, const char *ndn, Entry *, Entry ** );
+	/* create new dynamic subentries */
+	int		( *mss_create )( struct monitorinfo *, const char *ndn, 
+				Entry *, Entry ** );
+	/* modify entry and subentries */
+	int		( *mss_modify )( struct monitorinfo *, Entry *, 
+				Modifications *modlist );
 };
 
 extern struct monitorsubsys monitor_subsys[];
@@ -172,7 +186,7 @@ extern int monitor_cache_cmp LDAP_P(( const void *c1, const void *c2 ));
 extern int monitor_cache_dup LDAP_P(( void *c1, void *c2 ));
 extern int monitor_cache_add LDAP_P(( struct monitorinfo *mi, Entry *e ));
 extern int monitor_cache_get LDAP_P(( struct monitorinfo *mi, const char *ndn, Entry **ep ));
-extern int monitor_cache_dn2entry LDAP_P(( struct monitorinfo *mi, const char *ndn, Entry **ep ));
+extern int monitor_cache_dn2entry LDAP_P(( struct monitorinfo *mi, const char *ndn, Entry **ep, Entry **matched ));
 extern int monitor_cache_lock LDAP_P(( Entry *e ));
 extern int monitor_cache_release LDAP_P(( struct monitorinfo *mi, Entry *e ));
 
@@ -182,6 +196,7 @@ extern int monitor_cache_release LDAP_P(( struct monitorinfo *mi, Entry *e ));
 
 extern int monitor_entry_update LDAP_P(( struct monitorinfo *mi, Entry *e ));
 extern int monitor_entry_create LDAP_P(( struct monitorinfo *mi, const char *ndn, Entry *e_parent, Entry **ep ));
+extern int monitor_entry_modify LDAP_P(( struct monitorinfo *mi, Entry *e, Modifications *modlist ));
 
 LDAP_END_DECL
 

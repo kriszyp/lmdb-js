@@ -61,63 +61,80 @@ struct monitorsubsys monitor_subsys[] = {
 		MONITOR_F_NONE,
 		NULL,	/* init */
 		NULL,	/* update */
-		NULL	/* create */
+		NULL,	/* create */
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_DATABASE, SLAPD_MONITOR_DATABASE_NAME, 	
 		NULL, NULL, NULL,
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_database_init,
 		NULL,   /* update */
-		NULL    /* create */
+		NULL,   /* create */
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_BACKEND, SLAPD_MONITOR_BACKEND_NAME, 
 		NULL, NULL, NULL,
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_backend_init,
 		NULL,   /* update */
-		NULL    /* create */
+		NULL,   /* create */
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_THREAD, SLAPD_MONITOR_THREAD_NAME, 	
 		NULL, NULL, NULL,
 		MONITOR_F_NONE,
-		NULL,   /* init */
+		monitor_subsys_thread_init,
 		monitor_subsys_thread_update,
-		NULL    /* create */
+		NULL,   /* create */
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_SASL, SLAPD_MONITOR_SASL_NAME, 	
 		NULL, NULL, NULL,
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		NULL,   /* update */
-		NULL    /* create */
+		NULL,   /* create */
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_TLS, SLAPD_MONITOR_TLS_NAME,
 		NULL, NULL, NULL,
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		NULL,   /* update */
-		NULL    /* create */
+		NULL,   /* create */
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_CONN, SLAPD_MONITOR_CONN_NAME,
 		NULL, NULL, NULL,
 		MONITOR_F_VOLATILE_CH,
 		monitor_subsys_conn_init,
 		monitor_subsys_conn_update,
-		monitor_subsys_conn_create
+		monitor_subsys_conn_create,
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_READW, SLAPD_MONITOR_READW_NAME,
 		NULL, NULL, NULL,
 		MONITOR_F_NONE,
 		NULL,	/* init */
 		monitor_subsys_readw_update,
-		NULL    /* create */
+		NULL, 	/* create */
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_WRITEW, SLAPD_MONITOR_WRITEW_NAME,
 		NULL, NULL, NULL,
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		monitor_subsys_writew_update,
-		NULL    /* create */
+		NULL,   /* create */
+		NULL	/* modify */
+       	}, { 
+		SLAPD_MONITOR_LOG, SLAPD_MONITOR_LOG_NAME,
+		NULL, NULL, NULL,
+		MONITOR_F_NONE,
+		monitor_subsys_log_init,
+		NULL,	/* update */
+		NULL,   /* create */
+		monitor_subsys_log_modify
 	}, { -1, NULL }
 };
 
@@ -145,11 +162,11 @@ monitor_back_initialize(
 	bi->bi_db_close = NULL;
 	bi->bi_db_destroy = monitor_back_db_destroy;
 
-	bi->bi_op_bind = NULL;
+	bi->bi_op_bind = monitor_back_bind;
 	bi->bi_op_unbind = NULL;
 	bi->bi_op_search = monitor_back_search;
 	bi->bi_op_compare = monitor_back_compare;
-	bi->bi_op_modify = NULL;
+	bi->bi_op_modify = monitor_back_modify;
 	bi->bi_op_modrdn = NULL;
 	bi->bi_op_add = NULL;
 	bi->bi_op_delete = NULL;
@@ -189,7 +206,7 @@ monitor_back_db_init(
 	Entry 			*e, *e_tmp;
 	struct monitorentrypriv	*mp;
 	int			i;
-	char 			buf[1024];
+	char 			buf[1024], *ndn;
 	const char 		*text;
 
 	if ( monitor_defined ) {
@@ -205,8 +222,11 @@ monitor_back_db_init(
 	}
 	monitor_defined++;
 
-	charray_add( &be->be_suffix, SLAPD_MONITOR_DN );
-	ber_bvecadd( &be->be_nsuffix, ber_bvstr( SLAPD_MONITOR_NDN ));
+	ndn = ch_strdup( SLAPD_MONITOR_DN );
+	charray_add( &be->be_suffix, ndn );
+	dn_normalize( ndn );
+	ber_bvecadd( &be->be_nsuffix, ber_bvstr( ndn ) );
+	ch_free( ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
@@ -358,11 +378,15 @@ monitor_back_open(
 {
 	BackendDB		*be;
 	struct monitorsubsys	*ms;
+	char			*ndn;
 
 	/*
 	 * adds the monitor backend
 	 */
-	be = select_backend( SLAPD_MONITOR_NDN, 0 );
+	ndn = ch_strdup( SLAPD_MONITOR_DN );
+	dn_normalize( ndn );
+	be = select_backend( ndn , 0 );
+	ch_free( ndn );
 	if ( be == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
