@@ -17,6 +17,12 @@
 
 #include "slap.h"
 
+static char *supportedFeatures[] = {
+	"1.3.6.1.4.1.4203.1.5.1", /* All Operational Attributes ("+") */
+	NULL
+};
+
+
 int
 root_dse_info(
 	Connection *conn,
@@ -36,6 +42,7 @@ root_dse_info(
 	AttributeDescription *ad_supportedExtension = slap_schema.si_ad_supportedExtension;
 	AttributeDescription *ad_supportedLDAPVersion = slap_schema.si_ad_supportedLDAPVersion;
 	AttributeDescription *ad_supportedSASLMechanisms = slap_schema.si_ad_supportedSASLMechanisms;
+	AttributeDescription *ad_supportedFeatures = slap_schema.si_ad_supportedFeatures;
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 
 	vals[0] = &val;
@@ -78,6 +85,13 @@ root_dse_info(
 	for ( i=0; (val.bv_val = get_supported_extop(i)) != NULL; i++ ) {
 		val.bv_len = strlen( val.bv_val );
 		attr_merge( e, ad_supportedExtension, vals );
+	}
+
+	/* supportedFeatures */
+	for ( i=0; supportedFeatures[i] != NULL; i++ ) {
+		val.bv_val = supportedFeatures[i];
+		val.bv_len = strlen( val.bv_val );
+		attr_merge( e, ad_supportedFeatures, vals );
 	}
 
 	/* supportedLDAPVersion */
