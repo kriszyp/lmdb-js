@@ -13,7 +13,7 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BR \-C ]
 [\c
-.BI \-D \ binddn\fR
+.BI \-D \ binddn\fR]
 [\c
 .BI \-d \ debuglevel\fR]
 [\c
@@ -86,8 +86,6 @@ Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
 Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
-This flag is not optional.  The user DN will be used if the
-bind DN is not provided.
 .TP
 .BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
