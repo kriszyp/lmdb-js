@@ -26,7 +26,8 @@
 
 #ifndef SYSV
 #if defined( hpux ) || defined( sunos5 ) || defined ( sgi ) || defined( SVR4 )
-#define SYSV
+#	define SYSV
+#endif
 #endif
 
 
@@ -72,29 +73,35 @@
 /*
  * define the wait status argument type
  */
+#if !defined( WAITSTATUSTYPE )
 #if !defined( HAVE_SYS_WAIT_H )
 #define WAITSTATUSTYPE	union wait
 #else
 #define WAITSTATUSTYPE	int
 #endif
+#endif
 
 /*
  * define the flags for wait
  */
+#if !defined( WAIT_FLAGS )
 #ifdef sunos5
 #define WAIT_FLAGS	( WNOHANG | WUNTRACED | WCONTINUED )
 #else
 #define WAIT_FLAGS	( WNOHANG | WUNTRACED )
+#endif
 #endif
 
 
 /*
  * defined the options for openlog (syslog)
  */
+#if !defined( OPENLOG_OPTIONS )
 #ifdef ultrix
 #define OPENLOG_OPTIONS		LOG_PID
 #else
 #define OPENLOG_OPTIONS		( LOG_PID | LOG_NOWAIT )
+#endif
 #endif
 
 
@@ -104,7 +111,7 @@
  */
 #ifdef NOTDEF
 #ifndef HAVE_SETPWFILE
-if defined( sunos4 ) || defined( ultrix ) || defined( __osf__ )
+#if defined( sunos4 ) || defined( ultrix ) || defined( __osf__ )
 #define HAVE_SETPWFILE
 #endif
 #endif
@@ -144,30 +151,21 @@ if defined( sunos4 ) || defined( ultrix ) || defined( __osf__ )
 /*
  * for signal() -- what do signal handling functions return?
  */
-#ifndef SIG_FN
-#ifdef sunos5
-#   define SIG_FN void          /* signal-catching functions return void */
-#else /* sunos5 */
-# ifdef BSD
-#  if (BSD >= 199006) || defined(NeXT) || defined(__osf__) || defined(sun) || defined(ultrix) || defined(apollo) || defined(POSIX_SIGNALS)
-#   define SIG_FN void          /* signal-catching functions return void */
-#  else
-#   define SIG_FN int           /* signal-catching functions return int */
-#  endif
-# else /* BSD */
-#  define SIG_FN void           /* signal-catching functions return void */
-# endif /* BSD */
-#endif /* sunos5 */
-#endif /* SIG_FN */
+#ifdef RETSIGTYPE
+#define SIG_FN RETSIGTYPE
+#endif
+
 
 /*
  * call signal or sigset (signal does not block the signal while
  * in the handler on sys v and sigset does not exist on bsd)
  */
+#ifndef SIGNAL
 #ifdef HAVE_SIGSET
 #define SIGNAL sigset
 #else
 #define SIGNAL signal
+#endif
 #endif
 
 /*

@@ -4724,6 +4724,7 @@ for ac_func in \
 	select			\
 	setpwfile		\
 	setsid			\
+	sigaction		\
 	signal			\
 	sigset			\
 	socket			\
