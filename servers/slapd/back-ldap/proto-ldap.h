@@ -18,8 +18,8 @@
  * Masarati.
  */
 
-#ifndef _LDAP_EXTERNAL_H
-#define _LDAP_EXTERNAL_H
+#ifndef PROTO_LDAP_H
+#define PROTO_LDAP_H
 
 LDAP_BEGIN_DECL
 
@@ -48,4 +48,4 @@ extern BI_entry_get_rw		ldap_back_entry_get;
 
 LDAP_END_DECL
 
-#endif /* _LDAP_EXTERNAL_H */
+#endif /* PROTO_LDAP_H */
