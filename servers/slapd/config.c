@@ -15,12 +15,12 @@
 #include <ac/socket.h>
 #include <ac/errno.h>
 
-#include "lutil.h"
 #include "ldap_pvt.h"
 #include "slap.h"
 #ifdef LDAP_SLAPI
 #include "slapi.h"
 #endif
+#include "lutil.h"
 
 #define ARGS_STEP	512
 
