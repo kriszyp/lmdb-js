@@ -352,9 +352,9 @@ meta_back_search(
 				attrs, 0 );
 		if ( mapped_attrs == NULL && attrs) {
 			AttributeName *an;
-			for ( count=0, an=attrs; an; an=an->an_next, count++ );
+			for ( count=0, an=attrs; an->an_name.bv_val; an++, count++ );
 			mapped_attrs = ch_malloc( ( count + 1 ) * sizeof(char *));
-			for ( count=0, an=attrs; an; an=an->an_next, count++ ) {
+			for ( count=0, an=attrs; an->an_name.bv_val; an++, count++ ) {
 				mapped_attrs[ count ] = an->an_name.bv_val;
 			}
 			mapped_attrs[ count ] = NULL;

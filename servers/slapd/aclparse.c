@@ -1275,9 +1275,10 @@ acl_free( AccessControl *a )
 		filter_free( a->acl_filter );
 	if ( a->acl_dn_pat.bv_len )
 		free ( a->acl_dn_pat.bv_val );
-	for (; a->acl_attrs; a->acl_attrs = an) {
-		an = a->acl_attrs->an_next;
-		free( a->acl_attrs->an_name.bv_val );
+	if ( a->acl_attrs ) {
+		for ( an = a->acl_attrs; an->an_name.bv_val; an++ ) {
+			free( an->an_name.bv_val );
+		}
 		free( a->acl_attrs );
 	}
 	for (; a->acl_access; a->acl_access = n) {
@@ -1489,7 +1490,7 @@ print_acl( Backend *be, AccessControl *a )
 		to++;
 
 		fprintf( stderr, " attrs=" );
-		for ( an = a->acl_attrs; an; an=an->an_next ) {
+		for ( an = a->acl_attrs; an && an->an_name.bv_val; an++ ) {
 			if ( ! first ) {
 				fprintf( stderr, "," );
 			}

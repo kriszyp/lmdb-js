@@ -225,11 +225,10 @@ ldap_back_search(
 
 	mapped_attrs = ldap_back_map_attrs(&li->at_map, attrs, 0);
 	if ( mapped_attrs == NULL && attrs) {
-		AttributeName *an;
-		for (count=0, an=attrs; an; an=an->an_next,count++);
+		for (count=0; attrs[count].an_name.bv_val; count++);
 		mapped_attrs = ch_malloc( (count+1) * sizeof(char *));
-		for (count=0, an=attrs; an; an=an->an_next,count++) {
-			mapped_attrs[count] = an->an_name.bv_val;
+		for (count=0; attrs[count].an_name.bv_val; count++) {
+			mapped_attrs[count] = attrs[count].an_name.bv_val;
 		}
 		mapped_attrs[count] = NULL;
 	}

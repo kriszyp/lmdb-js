@@ -284,7 +284,9 @@ int ad_inlist(
 	AttributeDescription *desc,
 	AttributeName *attrs )
 {
-	for( ; attrs; attrs=attrs->an_next ) {
+	if (! attrs ) return 0;
+
+	for( ; attrs->an_name.bv_val; attrs++ ) {
 		ObjectClass *oc;
 		int rc;
 		
@@ -415,7 +417,7 @@ an_find(
 {
 	if( a == NULL ) return 0;
 
-	for ( ; a; a=a->an_next ) {
+	for ( ; a->an_name.bv_val; a++ ) {
 		if ( a->an_name.bv_len != s->bv_len) continue;
 		if ( strcasecmp( s->bv_val, a->an_name.bv_val ) == 0 ) {
 			return( 1 );
@@ -434,31 +436,36 @@ str2anlist( AttributeName *an, const char *in, const char *brkstr )
 	char	*str;
 	char	*s;
 	char	*lasts;
+	int	i, j;
 	const char *text;
-	AttributeName *a, *anew;
+	AttributeName *anew;
 
+	/* find last element in list */
+	for (i = 0; an && an[i].an_name.bv_val; i++);
+	
 	/* protect the input string from strtok */
 	str = ch_strdup( in );
 
-	/* find last element in list */
-	for (a = an; a && a->an_next; a=a->an_next);
-	
+	/* Count words in string */
+	j=1;
+	for ( s = str; *s; s++ ) {
+		if ( strchr( brkstr, *s ) != NULL ) {
+			j++;
+		}
+	}
+
+	an = ch_realloc( an, ( i + j + 1 ) * sizeof( AttributeName ) );
+	anew = an + i;
 	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
 		s != NULL;
 		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
 	{
-		anew = ch_malloc( sizeof( AttributeName ) );
-		anew->an_next = NULL;
 		anew->an_desc = NULL;
 		ber_str2bv(s, 0, 1, &anew->an_name);
 		slap_bv2ad(&anew->an_name, &anew->an_desc, &text);
-		if (!an) {
-			an = anew;
-		} else {
-			a->an_next = anew;
-		}
-		a = anew;
+		anew++;
 	}
+	anew->an_name.bv_val = NULL;
 
 	free( str );
 	return( an );

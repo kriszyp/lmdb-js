@@ -457,7 +457,6 @@ typedef struct slap_attr_desc {
 } AttributeDescription;
 
 typedef struct slap_attr_name {
-	struct slap_attr_name *an_next;
 	struct berval an_name;
 	AttributeDescription *an_desc;
 } AttributeName;

@@ -438,19 +438,18 @@ ldap_back_map_filter(
 char **
 ldap_back_map_attrs(
 		struct ldapmap *at_map,
-		AttributeName *a,
+		AttributeName *an,
 		int remap
 )
 {
 	int i;
 	char **na;
-	AttributeName *an;
 	struct berval mapped;
 
-	if (a == NULL)
+	if (an == NULL)
 		return(NULL);
 
-	for (i = 0, an=a; an; an=an->an_next, i++) {
+	for (i = 0; an[i].an_name.bv_val; i++) {
 		/*  */
 	}
 
@@ -458,8 +457,8 @@ ldap_back_map_attrs(
 	if (na == NULL)
 		return(NULL);
 
-	for (i = 0, an=a; an; an=an->an_next) {
-		ldap_back_map(at_map, &an->an_name, &mapped, remap);
+	for (i = 0; an[i].an_name.bv_val; i++) {
+		ldap_back_map(at_map, &an[i].an_name, &mapped, remap);
 		if (mapped.bv_val != NULL) {
 			na[i] = mapped.bv_val;
 			i++;

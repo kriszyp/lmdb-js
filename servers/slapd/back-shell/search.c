@@ -62,7 +62,7 @@ shell_back_search(
 	fprintf( wfp, "filter: %s\n", filterstr );
 	fprintf( wfp, "attrsonly: %d\n", attrsonly ? 1 : 0 );
 	fprintf( wfp, "attrs:%s", attrs == NULL ? " all" : "" );
-	for ( an = attrs; an; an=an->an_next ) {
+	for ( an = attrs; an && an->an_name.bv_val; an++ ) {
 		fprintf( wfp, " %s", an->an_name.bv_val );
 	}
 	fprintf( wfp, "\n" );
