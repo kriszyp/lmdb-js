@@ -66,7 +66,11 @@ bdb_db_config(
 	/* slapadd/slapindex logging configuration */
 	} else if ( strcasecmp( argv[0], "fasttool" ) == 0 ) {
 		if ( slapMode & SLAP_TOOL_MODE )
+#if DB_VERSION_FULL >= 0x04030015
+		bdb->bi_dbenv_xflags |= DB_LOG_INMEMORY;
+#else
 		bdb->bi_dbenv_xflags |= DB_TXN_NOT_DURABLE;
+#endif
 
 	/* slapindex algorithm tuning */
 	} else if ( strcasecmp( argv[0], "linearindex" ) == 0 ) {
