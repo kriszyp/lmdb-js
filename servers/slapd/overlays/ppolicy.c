@@ -1827,6 +1827,7 @@ ppolicy_config(
 			return 1;
 		}
 		return 0;
+
 	} else if ( strcasecmp( argv[0], "ppolicy_use_lockout" ) == 0 ) {
 		if ( argc != 1 ) {
 			fprintf( stderr, "%s: line %d: ppolicy_use_lockout "
@@ -1834,6 +1835,7 @@ ppolicy_config(
 			return ( 1 );
 		}
 		pi->use_lockout = 1;
+		return 0;
 	}
 	return SLAP_CONF_UNKNOWN;
 }
