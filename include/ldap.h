@@ -1836,6 +1836,47 @@ ldap_parse_vlv_control LDAP_P((
 	int           *errcodep ));
 
 /*
+ * LDAP Transactions
+ *	in txn.c
+ */
+LDAP_F( int )
+ldap_parse_txn_create LDAP_P((
+	LDAP *ld,
+	LDAPMessage *res,
+	struct berval **cookie ));
+
+LDAP_F( int )
+ldap_txn_create LDAP_P((
+	LDAP *ld,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_txn_create_s LDAP_P((
+	LDAP *ld,
+	struct berval **cookie,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
+
+LDAP_F( int )
+ldap_txn_end LDAP_P((
+	LDAP *ld,
+	struct berval *cookie,
+	int commit,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_txn_end_s LDAP_P((
+	LDAP *ld,
+	struct berval *cookie,
+	int commit,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
+
+/*
  * LDAP Who Am I?
  *	in whoami.c
  */
