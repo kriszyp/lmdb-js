@@ -307,7 +307,11 @@ ldap_build_search_req(
 		return( NULL );
 	}
 
-	filter = LDAP_STRDUP( filter_in );
+	if( filter_in != NULL ) {
+		filter = LDAP_STRDUP( filter_in );
+	} else {
+		filter = LDAP_STRDUP( "(objectclass=*)" );
+	}
 	err = put_filter( ber, filter );
 	LDAP_FREE( filter );
 
