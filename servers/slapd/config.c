@@ -2147,7 +2147,7 @@ read_config( const char *fname )
                    if (module_load(cargv[1], cargc - 2, (cargc > 2) ? cargv + 2 : NULL)) {
 #ifdef NEW_LOGGING
 			   LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-				      "%s: line %d: failed to load or initialize module %s\n"<
+				      "%s: line %d: failed to load or initialize module %s\n",
 				      fname, lineno, cargv[1] ));
 #else
                       Debug( LDAP_DEBUG_ANY,

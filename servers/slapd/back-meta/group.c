@@ -173,7 +173,7 @@ meta_back_group(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] bindDn (op ndn in group):"
-				 \"%s\" -> \"%s\"\n",
+				" \"%s\" -> \"%s\"\n",
 				 op_ndn->bv_val, mop_ndn.bv_val));
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,

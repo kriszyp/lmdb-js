@@ -776,7 +776,7 @@ check_cache_memused( LDAPCache *lc )
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
 		"check_cache_memused: reduced usage to %ld bytes\n",
-		lc->lm_memused ));
+		lc->lc_memused ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "ccm: reduced usage to %ld bytes\n",
 	    lc->lc_memused, 0, 0 );

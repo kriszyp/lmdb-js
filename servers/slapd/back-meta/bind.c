@@ -424,7 +424,7 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 			err = ldap_back_map_result( err );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_DEBUG_NOTICE,
+			LDAP_LOG(( "backend", LDAP_DEBUG_ANY,
 					"meta_back_op_result: target"
 					" <%d> sending msg \"%s\""
 					" (matched \"%s\")\n",
