@@ -1383,6 +1383,9 @@ slapd_daemon_task(
 			long id;
 			slap_ssf_t ssf = 0;
 			char *authid = NULL;
+#ifdef SLAPD_RLOOKUPS
+			char *hebuf = NULL;
+#endif
 
 			char	*dnsname = NULL;
 			char	*peeraddr = NULL;
@@ -1614,23 +1617,21 @@ slapd_daemon_task(
 				if ( use_reverse_lookup ) {
 					struct hostent he;
 					int herr;
-					char *ha = NULL;
-					hp = NULL;
+					struct hostent *hp = NULL;
 #  ifdef LDAP_PF_INET6
 					if ( from.sa_addr.sa_family == AF_INET6 )
 						ldap_pvt_gethostbyaddr_a(
 							(char *)&(from.sa_in6_addr.sin6_addr),
 							sizeof(from.sa_in6_addr.sin6_addr),
-							AF_INET6, &he, &ha,
+							AF_INET6, &he, &hebuf,
 							&hp, &herr );
 					else
 #  endif /* LDAP_PF_INET6 */
 					ldap_pvt_gethostbyaddr_a(
 						(char *) &(from.sa_in_addr.sin_addr),
 						sizeof(from.sa_in_addr.sin_addr),
-						AF_INET, &he, &ha, &hp, &herr );
+						AF_INET, &he, &hebuf, &hp, &herr );
 					dnsname = hp ? ldap_pvt_str2lower( hp->h_name ) : NULL;
-					if (ha) ldap_memfree( ha );
 				}
 #else
 				dnsname = NULL;
@@ -1668,6 +1669,9 @@ slapd_daemon_task(
 				authid );
 
 			if( authid ) ch_free(authid);
+#ifdef SLAPD_RLOOKUPS
+			if( hebuf ) ldap_memfree(hebuf);
+#endif
 
 			if( id < 0 ) {
 #ifdef NEW_LOGGING
