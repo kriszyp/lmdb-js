@@ -210,11 +210,17 @@ attribute ( 2.5.4.30 NAME 'supportedApplicationContext'
       EQUALITY objectIdentifierMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
-# Placed here because others derive from it
-# We had a dn definition in slapd.at.conf and Netscape lists both
-# names for that OID
+# Placed here because others derive from it.
 
-attribute ( 2.5.4.49 NAME ( 'distinguishedName' 'dn' )
+# We had a dn definition in slapd.at.conf and Netscape lists both
+# names for that OID.  This is wrong, 'dn' is used internally in slapd
+# as the name of a pseudo-attribute type that contains the
+# distinguished name of an entry.  On the other hand, the attribute
+# type distinguishedName is meant to be an "abstract" type and other
+# dn-valued attribute types derive from it.  So at most, 'dn' would
+# be a subtype of distinguishedName.
+
+attribute ( 2.5.4.49 NAME 'distinguishedName'
       EQUALITY distinguishedNameMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
 
