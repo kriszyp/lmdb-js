@@ -274,7 +274,7 @@ void slap_init_user LDAP_P(( char *username, char *groupname ));
 
 extern char		*default_referral;
 extern char		*replogfile;
-extern char		Versionstr[];
+extern const char Versionstr[];
 extern int		active_threads;
 extern int		defsize;
 extern int		deftime;

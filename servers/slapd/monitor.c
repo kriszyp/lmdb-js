@@ -50,7 +50,7 @@ monitor_info( Connection *conn, Operation *op )
 	e->e_ndn = dn_normalize_case( ch_strdup(SLAPD_MONITOR_DN) );
 	e->e_private = NULL;
 
-	val.bv_val = Versionstr;
+	val.bv_val = (char *) Versionstr;
 	if (( p = strchr( Versionstr, '\n' )) == NULL ) {
 		val.bv_len = strlen( Versionstr );
 	} else {
