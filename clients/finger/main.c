@@ -52,7 +52,7 @@ static void do_read(LDAP *ld, LDAPMessage *e);
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-l] [-x ldaphost] [-p ldapport] [-f filterfile] [-t templatefile] [-c rdncount]\r\n", name );
+	fprintf( stderr, "usage: %s [-l] [-x ldaphost] [-p ldapport] [-b searchbase] [-f filterfile] [-t templatefile] [-c rdncount]\r\n", name );
 	exit( EXIT_FAILURE );
 }
 
@@ -67,7 +67,7 @@ main( int argc, char **argv )
 	int			interactive = 0;
 
 	deref = FINGER_DEREF;
-	while ( (i = getopt( argc, argv, "f:ilp:t:x:p:c:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "f:ilp:t:x:p:b:c:" )) != EOF ) {
 		switch( i ) {
 		case 'f':	/* ldap filter file */
 			filterfile = strdup( optarg );
@@ -92,6 +92,10 @@ main( int argc, char **argv )
 		case 'p':	/* specify ldap port */
 			ldapport = atoi( optarg );
 			break;
+
+		case 'b':	/* specify search base */
+			base = strdup( optarg );
+			break; 
 
 		case 'c':	/* specify number of DN components to show */
 			rdncount = atoi( optarg );
