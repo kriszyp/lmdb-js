@@ -17,13 +17,13 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-/* All functions except put_nextid() obey ldbm_ignore_nextid_file. */
+/* All functions except put_nextid() obey slapMode == SLAP_TOOL_MODE. */
 
 static ID  next_id_read( Backend *be );
 static ID  next_id_get_save( Backend *be, int do_save );
 
 #define    next_id_write( be, id ) \
-	(ldbm_ignore_nextid_file ? (be, id, 0) : put_nextid( be, id ))
+	(slapMode == SLAP_TOOL_MODE ? (be, id, 0) : put_nextid( be, id ))
 
 static ID
 next_id_read( Backend *be )
@@ -34,7 +34,7 @@ next_id_read( Backend *be )
 	char*	file = li->li_nextid_file; 
 	FILE*	fp;
 
-	if ( ldbm_ignore_nextid_file )
+	if ( slapMode == SLAP_TOOL_MODE )
 		return NOID;
 
 	if ( (fp = fopen( file, "r" )) == NULL ) {

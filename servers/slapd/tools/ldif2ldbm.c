@@ -50,8 +50,6 @@ main( int argc, char **argv )
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
 
-	ldbm_ignore_nextid_file = 1;
-
 	slap_ldif_init( argc, argv, LDIF2LDBM, "ldbm", SLAP_TOOL_MODE );
 
 	slap_startup(dbnum);

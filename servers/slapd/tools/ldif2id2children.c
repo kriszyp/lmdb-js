@@ -33,8 +33,6 @@ main( int argc, char **argv )
 	struct berval	bv;
 	struct berval	*vals[2];
 
-	ldbm_ignore_nextid_file = 1;
-
 	slap_ldif_init( argc, argv, LDIF2ID2CHILDREN, "ldbm", SLAP_TOOL_MODE );
 
 	slap_startup(dbnum);
