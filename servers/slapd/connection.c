@@ -169,8 +169,6 @@ int connections_timeout_idle(time_t now)
 	int connindex;
 	Connection* c;
 
-	ldap_pvt_thread_mutex_lock( &connections_mutex );
-
  	for( c = connection_first( &connindex );
 		c != NULL;
 		c = connection_next( c, &connindex ) )
@@ -183,8 +181,6 @@ int connections_timeout_idle(time_t now)
 		}
 	}
 	connection_done( c );
-
-	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 
 	return i;
 }
