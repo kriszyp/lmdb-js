@@ -856,7 +856,6 @@ slapd_daemon_task(
 		{
 			ber_socket_t rd;
 			int is_listener = 0;
-			int rc;
 
 #ifdef HAVE_WINSOCK
 			rd = readfds.fd_array[i];

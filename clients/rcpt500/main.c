@@ -112,7 +112,7 @@ main( int argc, char **argv )
     }
     if ( errflg || optind < argc ) {
 	fprintf( stderr, usage, prog );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
 #ifdef SIGPIPE
@@ -243,7 +243,7 @@ read_hdr( FILE *fp, int offset, char *buf, int MAXSIZEe, char **linep )
 	if ( dosyslog ) {
 	    syslog( LOG_ERR, "strdup: %m" );
 	}
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     while ( 1 ) {
@@ -257,7 +257,7 @@ read_hdr( FILE *fp, int offset, char *buf, int MAXSIZEe, char **linep )
 	    if ( dosyslog ) {
 		syslog( LOG_ERR, "realloc: %m" );
 	    }
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
 	strcat( hdr, "\n" );
 	strcat( hdr, *linep );

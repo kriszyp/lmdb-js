@@ -137,7 +137,7 @@ main( int argc, char **argv )
 	    } else if (( always_addvals = read_file( optarg, &always_addlen ))
 		    == NULL ) {
 		print_err( optarg );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	    break;
 
@@ -161,7 +161,7 @@ main( int argc, char **argv )
 	    }
 	    if ( file_attr_directory == NULL ) {
 		print_err( "malloc" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 #else /* HAVE_FILE_ATTR_DIR */
 	    fprintf( stderr, "Ignoring -f:  this option requires a newer version of ISODE.\n" );
@@ -181,7 +181,7 @@ main( int argc, char **argv )
 	    }
 	    if ( ignore_attr == NULL ) {
 		print_err( "malloc/realloc" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	    ignore_attr[ ignore_count ] = optarg;
 	    ignore_attr[ ++ignore_count ] = NULL;
@@ -194,7 +194,7 @@ main( int argc, char **argv )
 
     if ( errflg ) {
 	fprintf( stderr, usage, progname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if ( basedn == NULL ) {
@@ -213,7 +213,7 @@ main( int argc, char **argv )
     if ( init_syntaxes() < 0 ) {
 	fprintf( stderr, "%s: init_syntaxes failed -- check your oid tables \n",
 	    progname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
 
@@ -242,7 +242,7 @@ main( int argc, char **argv )
     fprintf( stderr, "edb2ldif: exit( %d )\n", ( rc < 0 ) ? 1 : 0 );
 #endif
 
-    exit( ( rc < 0 ) ? 1 : 0 );
+    exit( ( rc < 0 ) ? EXIT_FAILURE : EXIT_SUCCESS );
 }
 
 

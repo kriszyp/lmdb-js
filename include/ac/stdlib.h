@@ -12,16 +12,16 @@
 #ifndef _AC_STDLIB_H
 #define _AC_STDLIB_H
 
-#	include <stdlib.h>
+#include <stdlib.h>
 
-	/* Not sure if !STDC_HEADERS is needed */
-#	if defined(HAVE_MALLOC_H) && !defined(STDC_HEADERS)
-#		include <malloc.h>
-#	endif
+/* Ignore malloc.h if we have STDC_HEADERS */
+#if defined(HAVE_MALLOC_H) && !defined(STDC_HEADERS)
+#	include <malloc.h>
+#endif
 
-#	ifndef EXIT_SUCCESS
-#		define EXIT_SUCCESS 0
-#		define EXIT_FAILURE 1
-#	endif
+#ifndef EXIT_SUCCESS
+#	define EXIT_SUCCESS 0
+#	define EXIT_FAILURE 1
+#endif
 
 #endif /* _AC_STDLIB_H */

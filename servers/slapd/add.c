@@ -195,7 +195,6 @@ add_created_attrs( Operation *op, Entry *e )
 	struct berval	bv;
 	struct berval	*bvals[2];
 	Attribute	*a;
-	Attribute	*tmp;
 	struct tm	*ltm;
 	time_t		currenttime;
 

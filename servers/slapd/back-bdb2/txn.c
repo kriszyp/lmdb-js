@@ -128,7 +128,7 @@ bdb2i_txn_attr_config(
 				if ( open ) {
 					pthread_kill( pthread_self(), LDAP_SIGUSR1 );
 				} else {
-					exit( 1 );
+					exit( EXIT_FAILURE );
 				}
 			}
 

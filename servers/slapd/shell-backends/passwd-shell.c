@@ -68,7 +68,7 @@ main( int argc, char **argv )
 
     if ( errflg || optind < argc ) {
 	fprintf( stderr, "usage: %s [-d]\n", progname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     debug_printf( "started\n" );
@@ -76,13 +76,13 @@ main( int argc, char **argv )
     (void) memset( (char *)&op, '\0', sizeof( op ));
 
     if ( parse_input( stdin, stdout, &op ) < 0 ) {
-	exit( 0 );
+	exit( EXIT_SUCCESS );
     }
 
     if ( op.ldop_op != LDOP_SEARCH ) {
 	write_result( stdout, LDAP_UNWILLING_TO_PERFORM, NULL,
 		"Command Not Implemented" );
-	exit( 0 );
+	exit( EXIT_SUCCESS );
     }
 
 #ifdef LDAP_DEBUG
@@ -91,7 +91,7 @@ main( int argc, char **argv )
 
     pwdfile_search( &op, stdout );
 
-    exit( 0 );
+    exit( EXIT_SUCCESS );
 }
 
 

@@ -35,7 +35,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-j #jobs] [-n databasenumber] [-s sbindir]\n", name );
-    exit( 1 );
+    exit( EXIT_FAILURE );
 }
 
 int
@@ -101,7 +101,7 @@ main( int argc, char **argv )
 	} else {
 		if ( freopen( inputfile, "r", stdin ) == NULL ) {
 			perror( inputfile );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 
@@ -112,7 +112,7 @@ main( int argc, char **argv )
 	rc = slap_init(SLAP_TOOL_MODE, "ldif2ldbm");
 	if (rc != 0 ) {
 		fprintf( stderr, "ldif2ldbm: slap_init failed!\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	read_config( tailorfile );
@@ -126,15 +126,15 @@ main( int argc, char **argv )
 		}
 		if ( dbnum == nbackends ) {
 			fprintf( stderr, "No ldbm database found in config file\n" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr, "Database number selected via -n is out of range\n" );
 		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else if ( strcasecmp( backends[dbnum].be_type, "ldbm" ) != 0 ) {
 		fprintf( stderr, "Database number %d selected via -n is not an ldbm database\n", dbnum );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	slap_startup(dbnum);
@@ -315,7 +315,7 @@ fork_child( char *prog, char *args[] )
     {
         fprintf( stderr, "Could not create %s: ", prog );
         perror( "CreateProcess" );
-        exit (-1);
+        exit (EXIT_FAILURE);
     }
 
     processes[nkids] = proc_info.hProcess;
@@ -357,7 +357,7 @@ fork_child( char *prog, char *args[] )
 		execvp( prog, args );
 		fprintf( stderr, "%s: ", prog );
 		perror( "execv" );
-		exit( -1 );
+		exit( EXIT_FAILURE );
 		break;
 
 	case -1:	/* trouble */

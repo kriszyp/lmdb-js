@@ -14,8 +14,7 @@
 #include <sys/param.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
 
 #define LOOPS	100
 
@@ -27,7 +26,7 @@ usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-h <host>] -p port -b <searchbase> -f <searchfiter> [-l <loops>]\n",
 			name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -75,13 +74,13 @@ main( int argc, char **argv )
 
 		fprintf( stderr, "%s: invalid EMPTY search filter.\n",
 				argv[0] );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	}
 
 	do_search( host, port, sbase, filter, ( 4 * loops ));
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }
 
 
@@ -95,12 +94,12 @@ do_search( char *host, int port, char *sbase, char *filter, int maxloop )
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
 		perror( "ldap_init" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( ldap_bind_s( ld, NULL, NULL, LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_bind" );
-		 exit( 1 );
+		 exit( EXIT_FAILURE );
 	}
 
 

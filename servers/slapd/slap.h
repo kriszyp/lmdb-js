@@ -20,10 +20,8 @@
 
 #include "ldap_log.h"
 
-#include "lber.h"
-#include "ldap.h"
-
-#include "ldap_schema.h"
+#include <ldap.h>
+#include <ldap_schema.h>
 
 #include "ldap_pvt_thread.h"
 #include "ldif.h"

@@ -24,7 +24,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-n databasenumber]\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -73,7 +73,7 @@ main( int argc, char **argv )
 	} else {
 		if ( freopen( inputfile, "r", stdin ) == NULL ) {
 			perror( inputfile );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 
@@ -93,15 +93,15 @@ main( int argc, char **argv )
 		}
 		if ( dbnum == nbackends ) {
 			fprintf( stderr, "No bdb2 database found in config file\n" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr, "Database number selected via -n is out of range\n" );
 		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else if ( strcasecmp( backends[dbnum].be_type, "bdb2" ) != 0 ) {
 		fprintf( stderr, "Database number %d selected via -n is not an bdb2 database\n", dbnum );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	slap_startup(dbnum);
@@ -118,7 +118,7 @@ main( int argc, char **argv )
 	if ( (db = bdb2i_cache_open( be, "dn2id", BDB2_SUFFIX, LDBM_NEWDB ))
 	    == NULL ) {
 		perror( "dn2id file" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	id = 0;
@@ -185,7 +185,7 @@ main( int argc, char **argv )
 					if ( ldbm_store( db->dbc_db, key, data,
 					    LDBM_REPLACE ) != 0 ) {
 						perror( "dn2id ldbm_store..." );
-						exit( 1 );
+						exit( EXIT_FAILURE );
 					}
 				}
 			}
@@ -204,7 +204,7 @@ main( int argc, char **argv )
 	if ( (db2 = bdb2i_cache_open( be, "id2children", BDB2_SUFFIX,
 	    LDBM_NEWDB )) == NULL ) {
 		perror( "id2children file" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	rewind( stdin );
@@ -297,7 +297,7 @@ main( int argc, char **argv )
 					if ( bdb2i_idl_insert_key( be, db2, key, id )
 					    != 0 ) {
 						perror( "bdb2i_idl_insert_key" );
-						exit( 1 );
+						exit( EXIT_FAILURE );
 					}
 				}
 			}
@@ -315,5 +315,5 @@ main( int argc, char **argv )
 	slap_shutdown(dbnum);
 	slap_destroy();
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }

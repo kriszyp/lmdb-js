@@ -473,13 +473,13 @@ main( int argc, char **argv )
 	    break;
 	default:
 	    usage( progname );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
     }
 
     if (( dn_suffix == NULL ) || ( nreplicas == 0 )) {
 	usage( progname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if ( ofile == NULL ) {
@@ -494,12 +494,12 @@ main( int argc, char **argv )
     if (( std_ps = ps_alloc( std_open )) == NULLPS ||
 	    std_setup( std_ps, ofp ) != OK ) {
 	fprintf( stderr, "std_ps setup failed - help!\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     if (( rps = ps_alloc( str_open )) == NULLPS ||
 	    str_setup( rps, NULLCP, 0, 0 ) != OK ) {
 	fprintf( stderr, "rps setup failed - help!\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
 
@@ -569,7 +569,7 @@ main( int argc, char **argv )
 	    if ( ofile != NULL ) {
 		if (( ofp = lock_fopen( ofile, "a", &lfp )) == NULL ) {
 		    perror( "open" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 	    }
 	    /*
@@ -697,5 +697,5 @@ main( int argc, char **argv )
 	sprintf( nbuf, "%s.lock", ofile );
 	(void) unlink( nbuf );
     }
-    exit( 0 );
+    exit( EXIT_SUCCESS );
 }

@@ -10,8 +10,8 @@
 #include <ac/unistd.h>
 
 #include <ldap.h>
-#include <ldif.h>
 
+#include "ldif.h"
 #include "ldap_defaults.h"
 
 #define DEFSEP		"="

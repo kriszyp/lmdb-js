@@ -26,9 +26,9 @@
 
 #include <lber.h>
 #include <ldap.h>
-#include <ldif.h>
 
-#include <ldap_defaults.h>
+#include "ldif.h"
+#include "ldap_defaults.h"
 
 static char	*prog;
 static char	*binddn = NULL;
@@ -405,7 +405,7 @@ process_ldif_rec( char *rbuf, int count )
 	    } else if ( strcasecmp( type, T_DN_STR ) == 0 ) {
 		if (( dn = strdup( value )) == NULL ) {
 		    perror( "strdup" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 		expect_ct = 1;
 	    }
@@ -471,7 +471,7 @@ process_ldif_rec( char *rbuf, int count )
 	    if ( strcasecmp( type, T_NEWRDNSTR ) == 0 ) {
 		if (( newrdn = strdup( value )) == NULL ) {
 		    perror( "strdup" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 		expect_deleteoldrdn = 1;
 		expect_newrdn = 0;
@@ -495,7 +495,7 @@ process_ldif_rec( char *rbuf, int count )
 	    if ( strcasecmp( type, T_NEWSUPSTR ) == 0 ) {
 		if (( newsup = strdup( value )) == NULL ) {
 		    perror( "strdup" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 		expect_newsup = 0;
 	    } else {
@@ -579,7 +579,7 @@ process_ldapmod_rec( char *rbuf )
 	if ( dn == NULL ) {	/* first line contains DN */
 	    if (( dn = strdup( line )) == NULL ) {
 		perror( "strdup" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	} else {
 	    if (( p = strchr( line, '=' )) == NULL ) {
@@ -682,19 +682,19 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 	if (( pmods = (LDAPMod **)ber_memrealloc( pmods, (i + 2) *
 		sizeof( LDAPMod * ))) == NULL ) {
 	    perror( "realloc" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
 	*pmodsp = pmods;
 	pmods[ i + 1 ] = NULL;
 	if (( pmods[ i ] = (LDAPMod *)ber_memcalloc( 1, sizeof( LDAPMod )))
 		== NULL ) {
 	    perror( "calloc" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
 	pmods[ i ]->mod_op = modop;
 	if (( pmods[ i ]->mod_type = ber_strdup( attr )) == NULL ) {
 	    perror( "strdup" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
     }
 
@@ -709,25 +709,25 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 		(struct berval **)ber_memrealloc( pmods[ i ]->mod_bvalues,
 		(j + 2) * sizeof( struct berval * ))) == NULL ) {
 	    perror( "ber_realloc" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
 	pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
 	if (( bvp = (struct berval *)ber_memalloc( sizeof( struct berval )))
 		== NULL ) {
 	    perror( "ber_memalloc" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
 	pmods[ i ]->mod_bvalues[ j ] = bvp;
 
 	if ( valsfromfiles && *value == '/' ) {	/* get value from file */
 	    if ( fromfile( value, bvp ) < 0 ) {
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	} else {
 	    bvp->bv_len = vlen;
 	    if (( bvp->bv_val = (char *)ber_memalloc( vlen + 1 )) == NULL ) {
 		perror( "malloc" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	    SAFEMEMCPY( bvp->bv_val, value, vlen );
 	    bvp->bv_val[ vlen ] = '\0';
@@ -926,7 +926,7 @@ read_one_record( FILE *fp )
 
 			if (( buf = (char *)realloc( buf, lmax )) == NULL ) {
 				perror( "realloc" );
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 		}
 

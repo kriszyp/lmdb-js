@@ -2,6 +2,7 @@
 
 #ifdef HAVE_CYRUS_SASL
 
+#include <ac/stdlib.h>
 #include <stdio.h>
 
 #include "slap.h"
@@ -32,7 +33,7 @@ int sasl_init( void )
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
 			0, 0, 0 );
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 
 	rc = sasl_server_new( "ldap", NULL, NULL, NULL,
@@ -42,7 +43,7 @@ int sasl_init( void )
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_server_new failed\n",
 			0, 0, 0 );
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 
 	memset(&secprops, 0, sizeof(secprops));
@@ -55,7 +56,7 @@ int sasl_init( void )
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_setprop failed\n",
 			0, 0, 0 );
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 
 	rc = sasl_listmech( server, NULL, NULL, ",", NULL,
@@ -64,13 +65,13 @@ int sasl_init( void )
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_listmech failed: %d\n",
 			rc, 0, 0 );
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "SASL mechanisms: %s\n",
 		data, 0, 0 );
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 int sasl_destory( void )

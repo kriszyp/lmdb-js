@@ -8,8 +8,6 @@
 
 #include "portable.h"
 
-#include <stdio.h>
-
 #include <ac/stdlib.h>
 
 #include <ac/ctype.h>
@@ -17,10 +15,10 @@
 #include <ac/syslog.h>
 #include <ac/time.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <stdio.h>
 
-#include "disptmpl.h"
+#include <ldap.h>
+#include <disptmpl.h>
 
 #include "rcpt500.h"
 #include "ldap_defaults.h"

@@ -26,7 +26,8 @@
 
 #include <lber.h>
 #include <ldap.h>
-#include <ldap_defaults.h>
+
+#include "ldap_defaults.h"
 #include "ud.h"
 
 static char * bind_and_fetch(char *name);

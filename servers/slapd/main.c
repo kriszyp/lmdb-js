@@ -273,7 +273,7 @@ int main( int argc, char **argv )
 		case 'c':	/* do connectionless (udp) */
 			/* udp = 1; */
 			fprintf( stderr, "connectionless support not supported");
-			exit( -1 );
+			exit( EXIT_FAILURE );
 			break;
 #endif
 

@@ -12,12 +12,11 @@
  */
 #include "portable.h"
 
-#include <stdio.h>
-
 #include <ac/stdlib.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <stdio.h>
+
+#include <ldap.h>
 
 int
 main(int argc, char **argv)

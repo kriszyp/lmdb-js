@@ -50,13 +50,13 @@ forkandexec(
 		close( c2p[0] );
 		if ( dup2( p2c[0], 0 ) == -1 || dup2( c2p[1], 1 ) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "dup2 failed\n", 0, 0, 0 );
-			exit( -1 );
+			exit( EXIT_FAILURE );
 		}
 
 		execv( args[0], args );
 
 		Debug( LDAP_DEBUG_ANY, "execv failed\n", 0, 0, 0 );
-		exit( -1 );
+		exit( EXIT_FAILURE );
 
 	case -1:	/* trouble */
 		Debug( LDAP_DEBUG_ANY, "fork failed\n", 0, 0, 0 );

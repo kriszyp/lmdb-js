@@ -26,8 +26,8 @@
 
 #include <lber.h>
 #include <ldap.h>
-#include <ldap_defaults.h>
 
+#include "ldap_defaults.h"
 #include "ud.h"
 
 void
@@ -102,7 +102,7 @@ fatal( char *s )
 #ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
-	exit(-1);
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -451,7 +451,7 @@ Malloc( unsigned int size )
 	void_ptr = (void *) malloc(size);
 	if (void_ptr == NULL) {
 		perror("malloc");
-		exit(-1);
+		exit( EXIT_FAILURE );
 		/*NOTREACHED*/
 	}
 	return(void_ptr);

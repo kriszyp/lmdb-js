@@ -33,8 +33,7 @@
 #include <ldap.h>
 
 #include "fax500.h"
-
-#include <ldap_defaults.h>
+#include "ldap_defaults.h"
 
 #define DEFAULT_PORT		79
 #define DEFAULT_SIZELIMIT	50
@@ -219,7 +218,7 @@ main( int argc, char **argv )
 
 		if ( fgets( buf, sizeof(buf), stdin ) == NULL
 		    || buf[0] == '\n' ) {
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 		i = atoi( buf ) - 1;
 		e = ldap_first_entry( ld, result );
@@ -228,13 +227,13 @@ main( int argc, char **argv )
 		}
 		if ( e == NULL ) {
 			fprintf( stderr, "Invalid choice!\n" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		print_entry( ld, e );
 	} else if ( matches == 0 ) {
 		fprintf( stderr, "No matches found for \"%s\"\n", key );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else {
 		fprintf( stderr, "Error return from ldap_count_entries\n" );
 		exit( -1 );
@@ -260,7 +259,7 @@ print_entry( LDAP *ld, LDAPMessage *e )
 	if ( (fax = ldap_get_values( ld, e, "facsimileTelephoneNumber" ))
 	    == NULL ) {
 		fprintf( stderr, "Entry \"%s\" has no fax number.\n", dn );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	faxmail = faxtotpc( fax[0], NULL );
 	title = ldap_get_values( ld, e, "title" );

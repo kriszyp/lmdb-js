@@ -299,7 +299,7 @@ main (int  argc, char **argv )
 	if (argc < 2)
 	{
 		fprintf (stderr, "usage: %s string-to-hash\n", argv[0]);
-		exit (1);
+		return EXIT_FAILURE;
 	}
 	for (j = 1; j < argc; ++j)
 	{
@@ -313,6 +313,6 @@ main (int  argc, char **argv )
 		}
 		printf ("\n");
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
 #endif /* TEST */

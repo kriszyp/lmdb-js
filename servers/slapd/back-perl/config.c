@@ -125,7 +125,7 @@ perl_back_db_config(
 		if ( return_code != 0 ) {
 			fprintf( stderr,
 				 "Unknown perl backeng config: %s\n", argv[0]);
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 

@@ -48,13 +48,13 @@ main( int argc, char **argv )
 */
 	if ( (ld = ldap_init( "vertigo:5555", 0 )) == NULL ) {
 		perror( "ldap_init" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( ldap_search( ld, "cn=index", LDAP_SCOPE_ONELEVEL, "(objectclass=*)",
 	  attrs, 0 ) == -1 ) {
 		ldap_perror( ld, "ldap_search" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	printf( "attr\tdn\tnentries\tvcount\tvsize\twcount\twsize\tpcount\tpsize\tscount\tssize\n" );
@@ -82,7 +82,7 @@ main( int argc, char **argv )
 			  DB_FLAGS, MODE, CACHE_SIZE )) == NULL || (sldbm = ldbm_open(
 			  "scount.ldbm", DB_FLAGS, MODE, CACHE_SIZE )) == NULL ) {
 				perror( "ldbm_open" );
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 			vcount = 0; vsize = 0;
 			wcount = 0; wsize = 0;
@@ -164,7 +164,7 @@ main( int argc, char **argv )
 	(void) unlink( "pcount.ldbm" );
 	(void) unlink( "scount.ldbm" );
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }
 
 static void

@@ -29,8 +29,7 @@
 #endif
 #include <sys/types.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
 
 #define ldap_debug slurp_debug
 #include "ldap_log.h"

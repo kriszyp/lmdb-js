@@ -275,7 +275,7 @@ estrdup( char *s )
 
     if (( p = strdup( s )) == NULL ) {
 	debug_printf( "strdup failed\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -295,7 +295,7 @@ erealloc( void *s, unsigned size )
 
     if ( p == NULL ) {
 	debug_printf( "realloc( p, %d ) failed\n", size );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -309,7 +309,7 @@ ecalloc( unsigned nelem, unsigned elsize )
 
     if (( p = calloc( nelem, elsize )) == NULL ) {
 	debug_printf( "calloc( %d, %d ) failed\n", nelem, elsize );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );

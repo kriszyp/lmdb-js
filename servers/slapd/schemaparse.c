@@ -113,7 +113,7 @@ parse_oc_old(
 			if ( code ) {
 				fprintf( stderr, "%s: line %d: %s %s\n",
 					 fname, lineno, scherr2str(code), *namep);
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 			namep++;
 		}
@@ -125,7 +125,7 @@ parse_oc_old(
 			if ( code ) {
 				fprintf( stderr, "%s: line %d: %s %s\n",
 					 fname, lineno, scherr2str(code), *namep);
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 			namep++;
 		}
@@ -135,7 +135,7 @@ parse_oc_old(
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s %s\n",
 			 fname, lineno, scherr2str(code), err);
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	ldap_memfree(oc);
 }
@@ -161,7 +161,7 @@ parse_oc(
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s %s\n",
 			 fname, lineno, scherr2str(code), err);
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	ldap_memfree(oc);
 }
@@ -180,7 +180,7 @@ oc_usage( void )
 	fprintf( stderr, "  [ \"MUST\" oids ]      ; AttributeTypes\n");
 	fprintf( stderr, "  [ \"MAY\" oids ]       ; AttributeTypes\n");
 	fprintf( stderr, "whsp \")\"\n");
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 static void
@@ -189,7 +189,7 @@ oc_usage_old( void )
 	fprintf( stderr, "<oc clause> ::= objectclass <ocname>\n" );
 	fprintf( stderr, "                [ requires <attrlist> ]\n" );
 	fprintf( stderr, "                [ allows <attrlist> ]\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 static void
@@ -215,7 +215,7 @@ at_usage( void )
 	fprintf( stderr, "                                 ; distributedOperation\n");
 	fprintf( stderr, "                                 ; dSAOperation\n");
 	fprintf( stderr, "whsp \")\"\n");
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 void
@@ -239,7 +239,7 @@ parse_at(
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s %s\n",
 			 fname, lineno, scherr2str(code), err);
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	ldap_memfree(at);
 }

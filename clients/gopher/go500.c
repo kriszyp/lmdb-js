@@ -35,16 +35,16 @@
 #include <sys/resource.h>
 #endif
 
+#include <ldap.h>
+#include <disptmpl.h>
+
 #include "ldap_defaults.h"
-#include "lber.h"
-#include "ldap.h"
 
 #define ldap_debug debug
 #include "ldap_log.h"
 
 #include "lutil.h"
 
-#include "disptmpl.h"
 
 int	debug;
 int	dosyslog;
@@ -74,7 +74,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d debuglevel] [-f filterfile] [-t templatefile]\r\n\t[-a] [-l] [-p port] [-x ldaphost] [-b searchbase] [-c rdncount]\r\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -144,7 +144,7 @@ main( int argc, char **argv )
 	if ( myhost[0] == '\0' && gethostname( myhost, sizeof(myhost) )
 	    == -1 ) {
 		perror( "gethostname" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 #endif
 
@@ -222,7 +222,7 @@ main( int argc, char **argv )
 
 		do_queries( 0 );
 
-		exit( 0 );
+		exit( EXIT_SUCCESS );
 	}
 
 	for ( ;; ) {
@@ -243,7 +243,7 @@ main( int argc, char **argv )
 		if ( (ns = accept( s, (struct sockaddr *) &from, &fromlen ))
 		    == -1 ) {
 			if ( debug ) perror( "accept" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
@@ -287,7 +287,7 @@ set_socket( int port )
 
 	if ( (s = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
                 perror( "socket" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
 
         /* set option so clients can't keep us from coming back up */
@@ -295,7 +295,7 @@ set_socket( int port )
         if ( setsockopt( s, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
 	    sizeof(one) ) < 0 ) {
                 perror( "setsockopt" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
 
         /* bind to a name */
@@ -304,13 +304,13 @@ set_socket( int port )
         addr.sin_port = htons( port );
         if ( bind( s, (struct sockaddr *) &addr, sizeof(addr) ) ) {
                 perror( "bind" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
 
 	/* listen for connections */
         if ( listen( s, 5 ) == -1 ) {
                 perror( "listen" );
-                exit( 1 );
+                exit( EXIT_FAILURE );
         }
 
         if ( debug ) printf("tcp socket allocated, bound, and listening\n");
@@ -350,7 +350,7 @@ do_queries( int s )
 	LDAP		*ld;
 
 	if ( (fp = fdopen( s, "a+")) == NULL ) {
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	timeout.tv_sec = GO500_TIMEOUT;
@@ -359,10 +359,10 @@ do_queries( int s )
 	FD_SET( fileno( fp ), &readfds );
 
 	if ( (rc = select( dtblsize, &readfds, 0, 0, &timeout )) <= 0 )
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	if ( fgets( buf, sizeof(buf), fp ) == NULL )
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	len = strlen( buf );
 	if ( debug ) {
@@ -398,7 +398,7 @@ do_queries( int s )
 			LDAP_SERVER_DOWN, myhost, myport );
 		fprintf( fp, ".\r\n" );
 		rewind(fp);
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else {
 		int deref = GO500_DEREF;
 		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
@@ -410,7 +410,7 @@ do_queries( int s )
 			    rc, myhost, myport );
 			fprintf( fp, ".\r\n" );
 			rewind(fp);
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 
@@ -443,7 +443,7 @@ do_queries( int s )
 		ldap_unbind( ld );
 	}
 
-	exit( 1 );
+	exit( EXIT_FAILURE );
 	/* NOT REACHED */
 }
 
@@ -493,7 +493,7 @@ do_search( LDAP *ld, FILE *fp, char *buf )
 		if ( (filtd = ldap_init_getfilter( filterfile )) == NULL ) {
 			fprintf( stderr, "Cannot open filter file (%s)\n",
 			    filterfile );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		tv.tv_sec = GO500_TIMEOUT;
@@ -585,7 +585,7 @@ do_read( LDAP *ld, FILE *fp, char *dn )
 	    entry2textwrite, (void *) fp, "\r\n", rdncount,
 	    LDAP_DISP_OPT_DOSEARCHACTIONS ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_entry2text_search" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( tmpllist != NULL ) {

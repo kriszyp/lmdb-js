@@ -123,6 +123,10 @@ LIB32=link.exe -lib
 # Name "libldif - Win32 Single Release"
 # Begin Source File
 
+SOURCE=.\fetch.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldif.h
 # End Source File
 # Begin Source File

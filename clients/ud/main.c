@@ -46,7 +46,7 @@
 #include <lber.h>
 #include <ldap.h>
 
-#include <ldap_defaults.h>
+#include "ldap_defaults.h"
 #include "ud.h"
 
 /*
@@ -139,10 +139,10 @@ main( int argc, char **argv )
 			printf("   64  authentication information\n");
 			printf("  128  initialization information\n\n");
 			format("These are masks, and may be added to form multiple debug levels.  For example, '-d 35' would perform a function trace, print out information about the find() function, and would print out information about the output routines too.", 75, 2);
-			exit(0);
+			exit( EXIT_SUCCESS );
 		default:
 			fprintf(stderr, "Usage: %s [-c filter-config-file] [-d debug-level] [-l ldap-debug-level] [-s server] [-p port] [-V]\n", argv[0]);
-			exit(-1);
+			exit( EXIT_FAILURE);
 			/* NOTREACHED */
 		}
 	}
@@ -282,7 +282,7 @@ do_commands( void )
 #ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
-	exit(0);
+	exit( EXIT_SUCCESS );
 	/* NOTREACHED */
 }
 
@@ -650,7 +650,7 @@ initialize_client( void )
 	 */
 	if ((ld = ldap_init(server, ldap_port)) == NULL) {
 		fprintf(stderr, "  Initialization of LDAP session failed.\n");
-		exit(0);
+		exit( EXIT_FAILURE );
 		/* NOTREACHED */
 	}
 	if (ldap_bind_s(ld, (char *) default_bind_object, NULL,
@@ -661,7 +661,7 @@ initialize_client( void )
 		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
 		if (ld_errno != LDAP_UNAVAILABLE)
 			ldap_perror(ld, "  ldap_bind_s");
-		exit(0);
+		exit( EXIT_FAILURE );
 		/* NOTREACHED */
 	}
 	{

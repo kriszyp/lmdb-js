@@ -77,8 +77,7 @@ main( int argc, char **argv )
 			fprintf( stderr,
 			    "usage: %s [-d level] [-f slapdconfigfile]\n",
 			    argv[0] );
-			exit( -1 );
-			break;
+			exit( EXIT_FAILURE );
 		}
 	}
 
@@ -294,7 +293,7 @@ main( int argc, char **argv )
 			printf( "suffix: " );
 			fflush( stdout );
 			if ( fgets( buf, sizeof(buf), stdin ) == NULL ) {
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			} else {
 				buf[strlen( buf ) - 1] = '\0';
 			}
@@ -542,7 +541,7 @@ edit_entry( char c, Datum *data )
 		}
 		execl( editor, editor, tmpname, NULL );
 		perror( "execl" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	fclose( fp );
@@ -579,12 +578,12 @@ openfile( char *name, int namesiz, int mode, int verbose, char c )
 		if ( c == 'f' ) {
 			printf( "  file: " );
 			if ( fgets( name, namesiz, stdin ) == NULL )
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			name[strlen( name ) - 1] = '\0';
 		} else {
 			printf( "  attr: " );
 			if ( fgets( name, namesiz, stdin ) == NULL )
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			name[strlen( name ) - 1] = '\0';
 		}
 	}
@@ -744,7 +743,7 @@ get_keydata( FILE *fp, char c, Datum *key, Datum *data )
 			if ( tty )
 				printf( "  dn: " );
 			if ( fgets( kbuf, sizeof(kbuf), fp ) == NULL ) {
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			}
 			kbuf[strlen( kbuf ) - 1] = '\0';
 			key->dptr = strdup( kbuf );
@@ -755,7 +754,7 @@ get_keydata( FILE *fp, char c, Datum *key, Datum *data )
 			if ( tty )
 				printf( "  dnid: " );
 			if ( fgets( dbuf, sizeof(dbuf), fp ) == NULL ) {
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			}
 			n = atol( dbuf );
 			data->dptr = (char *) malloc( sizeof(n) );
@@ -769,7 +768,7 @@ get_keydata( FILE *fp, char c, Datum *key, Datum *data )
 			if ( tty )
 				printf( "  dnid: " );
 			if ( fgets( kbuf, sizeof(kbuf), fp ) == NULL ) {
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			}
 			n = atol( kbuf );
 			key->dptr = (char *) malloc( sizeof(n) );
@@ -788,7 +787,7 @@ get_keydata( FILE *fp, char c, Datum *key, Datum *data )
 			if ( tty )
 				printf( "  key: " );
 			if ( fgets( kbuf, sizeof(kbuf), fp ) == NULL ) {
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			}
 			kbuf[strlen( kbuf ) - 1] = '\0';
 			key->dptr = strdup( kbuf );

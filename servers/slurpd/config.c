@@ -64,7 +64,7 @@ slurpd_read_config(
 
     if ( (fp = fopen( fname, "r" )) == NULL ) {
 	perror( fname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     lineno = 0;
@@ -96,7 +96,7 @@ slurpd_read_config(
 			"line %d: missing filename in \"replogfile ",
 			lineno );
 		    fprintf( stderr, "<filename>\" line\n" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		} else if ( cargc > 2 && *cargv[2] != '#' ) {
 		    fprintf( stderr,
 			"line %d: extra cruft at the end of \"replogfile %s\"",
@@ -258,13 +258,13 @@ add_replica(
 	    ( nr + 1 )  * sizeof( Re * ));
     if ( sglob->replicas == NULL ) {
 	fprintf( stderr, "out of memory, add_replica\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     sglob->replicas[ nr ] = NULL; 
 
     if ( Ri_init( &(sglob->replicas[ nr - 1 ])) < 0 ) {
 	fprintf( stderr, "out of memory, Ri_init\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     if ( parse_replica_line( cargv, cargc,
 	    sglob->replicas[ nr - 1] ) < 0 ) {
@@ -287,7 +287,7 @@ add_replica(
 		sglob->replicas[ nr - 1 ] );
 	if ( sglob->replicas[ nr - 1]->ri_stel == NULL ) {
 	    fprintf( stderr, "Failed to add status element structure\n" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
     }
 }
@@ -367,7 +367,7 @@ parse_replica_line(
 	    fprintf( stderr, "You must rebuild the LDAP release with\n" );
 	    fprintf( stderr, "kerberos support if you wish to use\n" );
 	    fprintf( stderr, "bindmethod=kerberos\n" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 #endif /* HAVE_KERBEROS */
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = AUTH_SIMPLE;

@@ -1006,7 +1006,7 @@ schema_init( void )
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering syntax %s\n",
 				 syntax_defs[i].sd_desc );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
@@ -1018,7 +1018,7 @@ schema_init( void )
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 	schema_init_done = 1;

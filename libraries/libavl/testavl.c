@@ -47,7 +47,7 @@ main( int argc, char **argv )
 		case 'f':	/* find */
 			printf( "data? " );
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			name[ strlen( name ) - 1 ] = '\0';
 			if ( (p = (char *) avl_find( tree, name, (AVL_CMP) strcmp ))
 			    == NULL )
@@ -58,7 +58,7 @@ main( int argc, char **argv )
 		case 'i':	/* insert */
 			printf( "data? " );
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			name[ strlen( name ) - 1 ] = '\0';
 			if ( avl_insert( &tree, strdup( name ), (AVL_CMP) strcmp, 
 			    avl_dup_error ) != 0 )
@@ -67,13 +67,13 @@ main( int argc, char **argv )
 		case 'd':	/* delete */
 			printf( "data? " );
 			if ( fgets( name, sizeof( name ), stdin ) == NULL )
-				exit( 0 );
+				exit( EXIT_SUCCESS );
 			name[ strlen( name ) - 1 ] = '\0';
 			if ( avl_delete( &tree, name, (AVL_CMP) strcmp ) == NULL )
 				printf( "\nNot found!\n" );
 			break;
 		case 'q':	/* quit */
-			exit( 0 );
+			exit( EXIT_SUCCESS );
 			break;
 		case '\n':
 			break;

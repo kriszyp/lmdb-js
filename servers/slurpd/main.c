@@ -47,14 +47,14 @@ main(
      */
     if (( sglob = init_globals()) == NULL ) {
 	fprintf( stderr, "Out of memory initializing globals\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
      * Process command-line args and fill in globals.
      */
     if ( doargs( argc, argv, sglob ) < 0 ) {
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
@@ -64,7 +64,7 @@ main(
 	fprintf( stderr,
 		"Errors encountered while processing config file \"%s\"\n",
 		sglob->slapd_configfile );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
@@ -73,7 +73,7 @@ main(
     if ( sglob->st->st_read( sglob->st )) {
 	fprintf( stderr, "Malformed slurpd status file \"%s\"\n",
 		sglob->slurpd_status_file, 0, 0 );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
@@ -81,7 +81,7 @@ main(
      * Check for any fatal error conditions before we get started
      */
      if ( sanity() < 0 ) {
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
@@ -110,7 +110,7 @@ main(
 	{
 	Debug( LDAP_DEBUG_ANY, "file manager ldap_pvt_thread_create failed\n",
 		0, 0, 0 );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 
     }
 

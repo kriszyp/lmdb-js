@@ -40,8 +40,6 @@ static const char* skip_url_prefix LDAP_P((
 	const char *url,
 	int *enclosedp,
 	int *ldaps ));
-static void hex_unescape LDAP_P(( char *s ));
-static int unhex( char c );
 
 
 int
@@ -229,7 +227,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	if (( q = strchr( url, ':' )) != NULL ) {
 		*q++ = '\0';
-		hex_unescape( q );
+		ldap_pvt_hex_unescape( q );
 
 		if( *q == '\0' ) {
 			LDAP_FREE( url );
@@ -240,7 +238,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		ludp->lud_port = atoi( q );
 	}
 
-	hex_unescape( url );
+	ldap_pvt_hex_unescape( url );
 	ludp->lud_host = LDAP_STRDUP( url );
 
 	if( ludp->lud_host == NULL ) {
@@ -265,7 +263,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	if( *p != '\0' ) {
 		/* parse dn part */
-		hex_unescape( p );
+		ldap_pvt_hex_unescape( p );
 		ludp->lud_dn = LDAP_STRDUP( p );
 	} else {
 		ludp->lud_dn = LDAP_STRDUP( "" );
@@ -295,7 +293,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	if( *p != '\0' ) {
 		/* parse attributes */
-		hex_unescape( p );
+		ldap_pvt_hex_unescape( p );
 		ludp->lud_attrs = ldap_str2charray( p, "," );
 
 		if( ludp->lud_attrs == NULL ) {
@@ -323,7 +321,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	if( *p != '\0' ) {
 		/* parse the scope */
-		hex_unescape( p );
+		ldap_pvt_hex_unescape( p );
 		ludp->lud_scope = str2scope( p );
 
 		if( ludp->lud_scope == -1 ) {
@@ -351,7 +349,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	if( *p != '\0' ) {
 		/* parse the filter */
-		hex_unescape( p );
+		ldap_pvt_hex_unescape( p );
 
 		if( ! *p ) {
 			/* missing filter */
@@ -398,7 +396,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	}
 
 	for( i=0; ludp->lud_exts[i] != NULL; i++ ) {
-		hex_unescape( ludp->lud_exts[i] );
+		ldap_pvt_hex_unescape( ludp->lud_exts[i] );
 	}
 
 	if( i == 0 ) {
@@ -544,8 +542,8 @@ ldap_url_search_s(
 }
 
 
-static void
-hex_unescape( char *s )
+void
+ldap_pvt_hex_unescape( char *s )
 {
 /*
  * Remove URL hex escapes from s... done in place.  The basic concept for
@@ -556,10 +554,10 @@ hex_unescape( char *s )
 	for ( p = s; *s != '\0'; ++s ) {
 		if ( *s == '%' ) {
 			if ( *++s != '\0' ) {
-				*p = unhex( *s ) << 4;
+				*p = ldap_pvt_unhex( *s ) << 4;
 			}
 			if ( *++s != '\0' ) {
-				*p++ += unhex( *s );
+				*p++ += ldap_pvt_unhex( *s );
 			}
 		} else {
 			*p++ = *s;
@@ -570,8 +568,8 @@ hex_unescape( char *s )
 }
 
 
-static int
-unhex( char c )
+int
+ldap_pvt_unhex( int c )
 {
 	return( c >= '0' && c <= '9' ? c - '0'
 	    : c >= 'A' && c <= 'F' ? c - 'A' + 10

@@ -351,7 +351,7 @@ usage (char *s)
 	fprintf (stderr, "  -Y saltlen\tsalt length to use\n");
 /*      fprintf (stderr, "  -y salt\tsalt to use\n"); */
 	fprintf (stderr, "  -z size\tsize limit\n");
-	exit (1);
+	exit( EXIT_FAILURE );
 }
 
 int

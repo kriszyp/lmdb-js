@@ -79,7 +79,7 @@ ldbm_back_startup(
 		fprintf( stderr,
 				"ldbm_back_startup(): FATAL error in db_appinit() : %s\n",
 				error );
-	 	exit( 1 );
+	 	exit( EXIT_FAILURE );
 
 	}
 #endif

@@ -29,10 +29,8 @@
 #include <sys/resource.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
-
-#include "disptmpl.h"
+#include <ldap.h>
+#include <disptmpl.h>
 
 #include "ldap_defaults.h"
 
@@ -54,7 +52,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-l] [-x ldaphost] [-p ldapport] [-f filterfile] [-t templatefile] [-c rdncount]\r\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -108,7 +106,7 @@ main( int argc, char **argv )
 		if ( getpeername( 0, (struct sockaddr *)&peername,
 		    &peernamelen ) != 0 ) {
 			perror( "getpeername" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 
@@ -161,7 +159,7 @@ do_query( void )
 	if ( (ld = ldap_init( ldaphost, ldapport )) == NULL ) {
 		fprintf( stderr, FINGER_UNAVAILABLE );
 		perror( "ldap_init" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	{
@@ -175,7 +173,7 @@ do_query( void )
 	{
 		fprintf( stderr, FINGER_UNAVAILABLE );
 		ldap_perror( ld, "ldap_simple_bind_s" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 #ifdef HAVE_SYSCONF
@@ -202,11 +200,11 @@ do_query( void )
 			perror( "select" );
 		else
 			fprintf( stderr, "connection timed out on input\r\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( fgets( buf, sizeof(buf), stdin ) == NULL )
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	len = strlen( buf );
 
@@ -279,7 +277,7 @@ do_search( LDAP *ld, char *buf )
 		    != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED ) {
 			fprintf( stderr, FINGER_UNAVAILABLE );
 			ldap_perror( ld, "ldap_search_st" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		matches = ldap_count_entries( ld, result );
@@ -290,7 +288,7 @@ do_search( LDAP *ld, char *buf )
 		    == NULL ) {
 			fprintf( stderr, "Cannot open filter file (%s)\n",
 			    filterfile );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 
 		for ( fi = ldap_getfirstfilter( fd, "finger", buf );
@@ -306,7 +304,7 @@ do_search( LDAP *ld, char *buf )
 			{
 				fprintf( stderr, FINGER_UNAVAILABLE );
 				ldap_perror( ld, "ldap_search_st" );
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 
 			if ( (matches = ldap_count_entries( ld, result )) != 0 )
@@ -330,7 +328,7 @@ do_search( LDAP *ld, char *buf )
 		fflush( stdout );
 	} else if ( matches < 0 ) {
 		fprintf( stderr, "error return from ldap_count_entries\r\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else if ( matches <= FINGER_LISTLIMIT ) {
 		printf( "%d %s match%s found for \"%s\":\r\n", matches,
 		    ufn ? "UFN" : fi->lfi_desc, matches > 1 ? "es" : "", buf );
@@ -431,7 +429,7 @@ do_read( LDAP *ld, LDAPMessage *e )
 	    defvals, entry2textwrite, (void *)stdout, "\r\n", rdncount,
 	    LDAP_DISP_OPT_DOSEARCHACTIONS ) != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_entry2text_search" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( tmpllist != NULL ) {

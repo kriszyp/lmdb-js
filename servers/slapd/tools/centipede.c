@@ -167,7 +167,7 @@ main( int argc, char **argv )
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
 				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 			break;
 
@@ -179,7 +179,7 @@ main( int argc, char **argv )
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
 				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
-				exit( 1 );
+				exit( EXIT_FAILURE );
 			}
 			break;
 
@@ -197,12 +197,12 @@ main( int argc, char **argv )
 
 		default:
 			usage( argv[0] );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 	if ( optind == argc || ldapsrcurl == NULL || ldapdesturl == NULL ) {
 		usage( argv[0] );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	attrs = &argv[optind];
 
@@ -213,12 +213,12 @@ main( int argc, char **argv )
 
 	if ( (ld = start_ldap_search( ldapsrcurl, ldapfilter, attrs )) == NULL ) {
 		fprintf( stderr, "could not initiate ldap search\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( create_tmp_files( attrs, &tmpfile, &ldbm ) != 0 ) {
 		fprintf( stderr, "could not create temp files\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	/*
@@ -229,10 +229,10 @@ main( int argc, char **argv )
 	if ( (count = generate_new_centroids( ld, attrs, ldbm )) < 1 ) {
 		if ( count == 0 ) {
 		    fprintf( stderr, "no entries matched\n" );
-		    exit( 0 );
+		    exit( EXIT_SUCCESS );
 		} else {
 		    fprintf( stderr, "could not generate new centroid\n" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 	}
 
@@ -246,7 +246,7 @@ main( int argc, char **argv )
 	if ( (ld = bind_to_destination_ldap( ldapsrcurl, ldapdesturl )) == NULL ) {
 		fprintf( stderr,
 		  "could not bind to index server, or could not create index entry\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	for ( i = 0; ldbm[i] != NULL; i++ ) {
@@ -338,7 +338,7 @@ main( int argc, char **argv )
 	free( ldbm );
 	free( tmpfile );
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }
 
 /*
@@ -591,7 +591,7 @@ diff_centroids(
 		 (vals[0] = (char *) malloc( 20 )) == NULL )
 	{
 		perror( "malloc" );
-		exit( -1 );
+		exit( EXIT_FAILURE );
 	}
 	/* add values in mods[0] */
 	mods[0]->mod_op = LDAP_MOD_ADD;
@@ -855,7 +855,7 @@ full_centroid(
 	     (vals[0] = (char *) malloc( 20 )) == NULL )
 	{
 		perror( "malloc" );
-		exit( -1 );
+		exit( EXIT_FAILURE );
 	}
 	mods[0]->mod_op = LDAP_MOD_REPLACE;
 	mods[0]->mod_type = attr;

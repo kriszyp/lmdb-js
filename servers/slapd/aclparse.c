@@ -439,7 +439,7 @@ acl_usage( void )
 			"\t[domain=<regex>] [sockurl=<regex>]\n"
 		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
 		);
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 static void

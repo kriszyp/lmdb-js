@@ -41,8 +41,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include "syslog.h"
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
 
 #define	EQ(x,y)		(strcasecmp(x,y) == 0)
 

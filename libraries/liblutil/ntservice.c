@@ -9,7 +9,7 @@
 #include <windows.h>
 #include <winsvc.h>
 
-#include "ldap.h"
+#include <ldap.h>
 
 #define ldap_debug slap_debug
 extern int slap_debug;

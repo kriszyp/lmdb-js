@@ -16,6 +16,7 @@
 
 #include "ldap_log.h"
 #include "lber_pvt.h"
+#include "ldap_pvt.h"
 #include "ldif.h"
 
 int
@@ -25,12 +26,39 @@ ldif_fetch_url(
     ber_len_t *vlenp
 )
 {
-#ifdef HAVE_FETCH
-	FILE *url = fetchGetURL( (char*) urlstr, "" );
+	FILE *url;
 	char buffer[1024];
 	char *p = NULL;
 	size_t total;
 	size_t bytes;
+
+	*valuep = NULL;
+	*vlenp = 0;
+
+#ifdef HAVE_FETCH
+	url = fetchGetURL( (char*) urlstr, "" );
+
+#else
+	if( strncasecmp( "file://", urlstr, sizeof("file://")-1 ) == 0 ) {
+		p = strchr( &urlstr[sizeof("file://")-1], '/' );
+		if( p == NULL ) {
+			return -1;
+		}
+
+		if( *p != *LDAP_DIRSEP ) {
+			/* skip over false root */
+			p++;
+		}
+
+		p = ber_strdup( p );
+		ldap_pvt_hex_unescape( p );
+
+		url = fopen( p, "r" );
+
+	} else {
+		return -1;
+	}
+#endif
 
 	if( url == NULL ) {
 		return -1;
@@ -56,11 +84,5 @@ ldif_fetch_url(
 	*vlenp = total;
 
 	return 0;
-
-#else
-	*valuep = NULL;
-	*vlenp = 0;
-	return -1;
-#endif
 }
 

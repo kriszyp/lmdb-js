@@ -21,11 +21,10 @@
 #include <sys/file.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
+#include <disptmpl.h>
 
 #include "ldap_log.h"
-#include "disptmpl.h"
 
 #include "ldap-int.h"
 #include "ldap_defaults.h"

@@ -324,7 +324,7 @@ attr_syntax_config(
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s %s\n",
 			 fname, lineno, scherr2str(code), err);
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	ldap_memfree(at);
 }

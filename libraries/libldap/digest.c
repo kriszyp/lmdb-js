@@ -6,14 +6,14 @@
  *	DIGEST-MD5 routines
  */
 
-#include <portable.h>
+#include "portable.h"
 
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
 
 #include "ldap-int.h"
-#include <ldap_pvt.h>
+#include "ldap_pvt.h"
 
 #define TK_NOENDQUOTE	-2
 #define TK_OUTOFMEM	-1

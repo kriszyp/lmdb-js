@@ -343,7 +343,7 @@ main( int argc, char **argv )
 
 	if ( errflg || optind < argc - 1 ) {
 		fprintf( stderr, usage, argv[ 0 ] );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	
 	printf( "%s( %s, %d )\n",
@@ -360,14 +360,14 @@ main( int argc, char **argv )
 
 	if ( ld == NULL ) {
 		perror( cldapflg ? "cldap_open" : "ldap_init" );
-		exit(1);
+		exit( EXIT_FAILURE );
 	}
 
 	if ( copyfname != NULL ) {
 		if ( (ld->ld_sb.sb_fd = open( copyfname, O_WRONLY | O_CREAT,
 		    0600 ))  == -1 ) {
 			perror( copyfname );
-			exit ( 1 );
+			exit ( EXIT_FAILURE );
 		}
 		ld->ld_sb.sb_options = copyoptions;
 	}
@@ -549,7 +549,7 @@ main( int argc, char **argv )
 			if ( !cldapflg ) {
 				ldap_unbind( ld );
 			}
-			exit( 0 );
+			exit( EXIT_SUCCESS );
 			break;
 
 		case 'r':	/* result or remove */

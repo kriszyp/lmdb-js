@@ -42,7 +42,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-h <host>] -p <port> -D <manager> -w <passwd> -d <datadir> -b <baseDN> [-j <maxchild>] [-l <loops>] -P <progdir>\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -130,7 +130,7 @@ main( int argc, char **argv )
 
 		fprintf( stderr, "%s: couldn't open data directory \"%s\".\n",
 					argv[0], dirname );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	}
 
@@ -246,7 +246,7 @@ main( int argc, char **argv )
 
 	wait4kids( -1 );
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }
 
 static char *
@@ -319,7 +319,7 @@ fork_child( char *prog, char *args[] )
 		execvp( prog, args );
 		fprintf( stderr, "%s: ", prog );
 		perror( "execv" );
-		exit( -1 );
+		exit( EXIT_FAILURE );
 		break;
 
 	case -1:	/* trouble */

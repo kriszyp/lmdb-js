@@ -13,12 +13,11 @@
 
 #ifdef HAVE_CONSOLE_H
 #include <console.h>
-#endif /* MACOS */
+#endif /* HAVE_CONSOLE_H */
 
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
-#include "srchpref.h"
+#include <ldap.h>
+#include <disptmpl.h>
+#include <srchpref.h>
 
 static void dump_tmpl	 ( struct ldap_disptmpl *tmpl );
 static void dump_srchpref( struct ldap_searchobj *sp );
@@ -43,13 +42,13 @@ main( int argc, char **argv )
     if (( err = ldap_init_templates( "ldaptemplates.conf", &templates ))
 	    != 0 ) {
 	fprintf( stderr, "ldap_init_templates failed (%d)\n", err );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if (( err = ldap_init_searchprefs( "ldapsearchprefs.conf", &so ))
 	    != 0 ) {
 	fprintf( stderr, "ldap_init_searchprefs failed (%d)\n", err );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     if ( argc == 1 ) {
@@ -79,7 +78,7 @@ main( int argc, char **argv )
     ldap_free_templates( templates );
     ldap_free_searchprefs( so );
 
-    exit( 0 );
+    exit( EXIT_SUCCESS );
 }
 
 

@@ -59,12 +59,12 @@ init_globals( void )
     g->srpos = 0L;
     if ( St_init( &(g->st)) < 0 ) {
 	fprintf( stderr, "Cannot initialize status data\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     ldap_pvt_thread_mutex_init( &(g->rej_mutex) );
     if ( Rq_init( &(g->rq)) < 0 ) {
 	fprintf( stderr, "Cannot initialize queue\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 #ifdef HAVE_KERBEROS
     g->default_srvtab = SRVTAB;

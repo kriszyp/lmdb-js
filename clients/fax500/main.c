@@ -34,12 +34,10 @@
 #include <sys/resource.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
 
 #include "fax500.h"
-
-#include <ldap_defaults.h>
+#include "ldap_defaults.h"
 
 #define USER		0
 #define GROUP_ERRORS	1

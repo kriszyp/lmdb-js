@@ -73,6 +73,10 @@ ldap_str2charray LDAP_P((
 	char *str,
 	char *brkstr ));
 
+/* url.c */
+void ldap_pvt_hex_unescape LDAP_P(( char *s ));
+int ldap_pvt_unhex( int c );
+
 LDAP_END_DECL
 
 #endif

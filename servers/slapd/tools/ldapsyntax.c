@@ -24,8 +24,8 @@
 /* #include <quipu/dap2.h> */
 #include <quipu/dua.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
+
 #include "ldif.h"
 #include "ldapsyntax.h"
 

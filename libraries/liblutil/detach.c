@@ -65,7 +65,7 @@ lutil_detach( int debug, int do_close )
 				break;
 
 			default:
-				_exit( 0 );
+				_exit( EXIT_SUCCESS );
 			}
 			break;
 		}
@@ -78,7 +78,7 @@ lutil_detach( int debug, int do_close )
 
 		if ( (sd = open( "/dev/null", O_RDWR )) == -1 ) {
 			perror( "/dev/null" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 		for ( i = 0;  i < 3;  i++ )
 			if ( sd != i && isatty( i ) )

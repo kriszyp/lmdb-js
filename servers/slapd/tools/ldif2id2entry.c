@@ -22,7 +22,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-n databasenumber]\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -74,7 +74,7 @@ main( int argc, char **argv )
 	} else {
 		if ( freopen( inputfile, "r", stdin ) == NULL ) {
 			perror( inputfile );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	}
 
@@ -94,15 +94,15 @@ main( int argc, char **argv )
 		}
 		if ( dbnum == nbackends ) {
 			fprintf( stderr, "No ldbm database found in config file\n" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 		}
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr, "Database number selected via -n is out of range\n" );
 		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	} else if ( strcasecmp( backends[dbnum].be_type, "ldbm" ) != 0 ) {
 		fprintf( stderr, "Database number %d selected via -n is not an ldbm database\n", dbnum );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	slap_startup(dbnum);
@@ -116,7 +116,7 @@ main( int argc, char **argv )
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_NEWDB ))
 	    == NULL ) {
 		perror( "id2entry file" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	id = 0;
@@ -180,7 +180,7 @@ main( int argc, char **argv )
 				    LDBM_INSERT ) != 0 ) {
 					fputs("id2entry ldbm_store failed\n",
 					      stderr);
-					exit( 1 );
+					exit( EXIT_FAILURE );
 				}
 			}
 			*buf = '\0';

@@ -14,8 +14,7 @@
 #include <sys/param.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
 
 #define LOOPS	100
 
@@ -31,7 +30,7 @@ usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-h <host>] -p port -D <managerDN> -w <passwd> -f <addfile> [-l <loops>]\n",
 			name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -88,7 +87,7 @@ main( int argc, char **argv )
 
 		fprintf( stderr, "%s: invalid entry DN in file \"%s\".\n",
 				argv[0], filename );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	}
 
@@ -96,13 +95,13 @@ main( int argc, char **argv )
 
 		fprintf( stderr, "%s: invalid attrs in file \"%s\".\n",
 				argv[0], filename );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 
 	}
 
 	do_addel( host, port, manager, passwd, entry, attrs, loops );
 
-	exit( 0 );
+	exit( EXIT_SUCCESS );
 }
 
 
@@ -130,19 +129,19 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 		if (( pmods = (LDAPMod **)realloc( pmods, (i + 2) *
 			sizeof( LDAPMod * ))) == NULL ) {
 	    		perror( "realloc" );
-	    		exit( 1 );
+	    		exit( EXIT_FAILURE );
 		}
 		*pmodsp = pmods;
 		pmods[ i + 1 ] = NULL;
 		if (( pmods[ i ] = (LDAPMod *)calloc( 1, sizeof( LDAPMod )))
 			== NULL ) {
 	    		perror( "calloc" );
-	    		exit( 1 );
+	    		exit( EXIT_FAILURE );
 		}
 		pmods[ i ]->mod_op = modop;
 		if (( pmods[ i ]->mod_type = strdup( attr )) == NULL ) {
 	    	perror( "strdup" );
-	    	exit( 1 );
+	    	exit( EXIT_FAILURE );
 		}
     }
 
@@ -157,20 +156,20 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 			(struct berval **)ber_memrealloc( pmods[ i ]->mod_bvalues,
 			(j + 2) * sizeof( struct berval * ))) == NULL ) {
 	    		perror( "ber_realloc" );
-	    		exit( 1 );
+	    		exit( EXIT_FAILURE );
 		}
 		pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
 		if (( bvp = (struct berval *)ber_memalloc( sizeof( struct berval )))
 			== NULL ) {
 	    		perror( "malloc" );
-	    		exit( 1 );
+	    		exit( EXIT_FAILURE );
 		}
 		pmods[ i ]->mod_bvalues[ j ] = bvp;
 
 	    bvp->bv_len = vlen;
 	    if (( bvp->bv_val = (char *)malloc( vlen + 1 )) == NULL ) {
 			perror( "malloc" );
-			exit( 1 );
+			exit( EXIT_FAILURE );
 	    }
 	    SAFEMEMCPY( bvp->bv_val, value, vlen );
 	    bvp->bv_val[ vlen ] = '\0';
@@ -237,13 +236,13 @@ do_addel(
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
 		perror( "ldap_init" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 
 	if ( ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE )
 				!= LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_bind" );
-		 exit( 1 );
+		 exit( EXIT_FAILURE );
 	}
 
 

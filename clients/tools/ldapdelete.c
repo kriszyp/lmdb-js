@@ -81,7 +81,7 @@ main( int argc, char **argv )
 	case 'f':	/* read DNs from a file */
 	    if (( fp = fopen( optarg, "r" )) == NULL ) {
 		perror( optarg );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	    }
 	    break;
 	case 'd':

@@ -634,7 +634,7 @@ int main(int argc, char **argv)
 	if (error_flag) {
 		fprintf(stderr, "usage: %s [-h host] [-p portnumber] [-u X500UserName]\n\t[-c credentials] [-d debug-level]\n",
 				progname);
-		exit(2);
+		exit( EXIT_FAILURE );
 	}
 
 	rc = user_tailor();
@@ -642,7 +642,7 @@ int main(int argc, char **argv)
 	if (!(ld = ldap_init(hostname, portnum))) {
 		fprintf(stderr, "%s: unable to initialize LDAP session (%s:%d)\n",
 				progname, hostname, portnum);
-		exit(2);
+		exit( EXIT_FAILURE );
 	}
 
 	if (!bind_user())

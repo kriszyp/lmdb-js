@@ -19,7 +19,7 @@
 
 #include <lber.h>
 #include <ldap.h>
-#include <ldif.h> 
+#include "ldif.h"
 #include "maint_form.h" /* for HTML Form manipulations */
 
 /* default values */
@@ -178,12 +178,12 @@ main(int argc, char ** argv) {
       if (strcompare(getenv("REQUEST_METHOD"),"POST"))
 	{
 	   printf("<p>++ Error - This script should be referenced with a METHOD of POST.\n");
-	   exit(1);
+	   exit( EXIT_FAILURE );
 	}
       if (strcompare(getenv("CONTENT_TYPE"),"application/x-www-form-urlencoded"))
 	{
 	   printf("<p>++ Error - This script can only be used to decode form results. \n");
-	   exit(1);
+	   exit( EXIT_FAILURE );
 	}
       cl = atoi(getenv("CONTENT_LENGTH"));
       
@@ -209,7 +209,7 @@ main(int argc, char ** argv) {
 	   printf("%s%s%s", "This script expected a 'FORM' value returned ",
 		  "and did not get one.  Make sure the HTML used for this ",
 		  "script is correct.");
-	   exit(1);
+	   exit( EXIT_FAILURE );
 	} 
       
       /* Looking for:
@@ -341,7 +341,7 @@ main(int argc, char ** argv) {
 	   }
 	}
 	printf("</body>\n</html>\n");
-	exit(1);
+	exit( EXIT_FAILURE );
      }
    
    /*authenticate as nobody */
@@ -373,7 +373,7 @@ main(int argc, char ** argv) {
 	   }
 	}
 	printf("</body>\n</html>\n");
-	exit(1);
+	exit( EXIT_FAILURE );
      }
    
    printf("<b>Directory Lookup Results</b>\n<pre>\n");

@@ -655,13 +655,13 @@ read_config( char *fname )
                       Debug( LDAP_DEBUG_ANY,
                              "%s: line %d: missing filename in \"loadmodule <filename>\" line\n",
                              fname, lineno, 0 );
-                      exit( 1 );
+                      exit( EXIT_FAILURE );
                    }
                    if (!load_module(cargv[1], cargc - 2, (cargc > 2) ? cargv + 2 : NULL)) {
                       Debug( LDAP_DEBUG_ANY,
                              "%s: line %d: failed to load or initialize module %s\n",
                              fname, lineno, cargv[1]);
-                      exit( 1 );
+                      exit( EXIT_FAILURE );
                    }
 		   
 #endif /*SLAPD_MODULES*/

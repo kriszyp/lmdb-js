@@ -12,15 +12,15 @@
 #include <io.h>
 #endif
 
-#include "lber.h"
-#include "ldap.h"
+#include <ldap.h>
+
 #include "ldif.h"
 
 static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-b] <attrtype>\n", name );
-	exit( 1 );
+	exit( EXIT_FAILURE );
 }
 
 int
@@ -54,7 +54,7 @@ main( int argc, char **argv )
 
 		if (( val = (char *) malloc( BUFSIZ )) == NULL ) {
 			perror( "malloc" );
-			exit( 1 );
+			return EXIT_FAILURE;
 		}
 		max = BUFSIZ;
 		cur = 0;
@@ -64,7 +64,7 @@ main( int argc, char **argv )
 				if (( val = (char *) realloc( val, max )) ==
 				    NULL ) {
 					perror( "realloc" );
-					exit( 1 );
+					return EXIT_FAILURE;
 				}
 			}
 			memcpy( val + cur, buf, nread );
@@ -72,14 +72,14 @@ main( int argc, char **argv )
 		}
 
 		if (( out = ldif_put( LDIF_PUT_BINARY, type, val, cur )) == NULL ) {
-		    	perror( "ldif_type_and_value" );
-			exit( 1 );
+		    perror( "ldif_type_and_value" );
+			return EXIT_FAILURE;
 		}
 
 		fputs( out, stdout );
 		ber_memfree( out );
 		free( val );
-		exit( 0 );
+		return EXIT_SUCCESS;
 	}
 
 	/* not binary:  one value per line... */
@@ -89,12 +89,11 @@ main( int argc, char **argv )
 		if (( out = ldif_put( LDIF_PUT_VALUE, type, buf, strlen( buf ) ))
 		    == NULL ) {
 		    	perror( "ldif_type_and_value" );
-			exit( 1 );
+			return EXIT_FAILURE;
 		}
 		fputs( out, stdout );
 		ber_memfree( out );
 	}
 
-	exit( 0 );
-	return( 0 ); /* NOT REACHED */
+	return EXIT_SUCCESS;
 }
