@@ -339,7 +339,7 @@ ber_put_ostring LDAP_P((
 LBER_F( int )
 ber_put_berval LDAP_P((
 	BerElement *ber,
-	LDAP_CONST struct berval *bv,
+	struct berval *bv,
 	ber_tag_t tag ));
 
 LBER_F( int )
@@ -556,11 +556,11 @@ ber_bvecadd LDAP_P((
 
 LBER_F( struct berval * )
 ber_dupbv LDAP_P((
-	struct berval *dst, LDAP_CONST struct berval *src ));
+	struct berval *dst, struct berval *src ));
 
 LBER_F( struct berval * )
 ber_bvdup LDAP_P((
-	LDAP_CONST struct berval *src ));
+	struct berval *src ));
 
 LBER_F( struct berval * )
 ber_str2bv LDAP_P((

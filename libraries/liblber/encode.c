@@ -305,7 +305,7 @@ ber_put_ostring(
 int
 ber_put_berval(
 	BerElement *ber,
-	LDAP_CONST struct berval *bv,
+	struct berval *bv,
 	ber_tag_t tag )
 {
 	assert( ber != NULL );

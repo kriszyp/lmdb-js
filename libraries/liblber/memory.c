@@ -447,7 +447,7 @@ ber_bvecadd( struct berval ***bvec, struct berval *bv )
 
 struct berval *
 ber_dupbv(
-	struct berval *dst, LDAP_CONST struct berval *src )
+	struct berval *dst, struct berval *src )
 {
 	struct berval *new;
 
@@ -490,7 +490,7 @@ ber_dupbv(
 
 struct berval *
 ber_bvdup(
-	LDAP_CONST struct berval *src )
+	struct berval *src )
 {
 	return ber_dupbv( NULL, src );
 }
