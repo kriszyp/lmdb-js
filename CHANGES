@@ -6,6 +6,7 @@ OpenLDAP 2.0.X Engineering
 	Updated -lldap SASL error reporting
 	Updated -lldap TLS error reporting
 	Updated slapadd error reporting
+	Updated slapd chroot handling (ITS#810)
 	Added slapd numericString indexing
 	Build Environment
 		Fixed make comment bug (ITS#811)
