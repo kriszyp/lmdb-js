@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.13 Engineering
+OpenLDAP 2.1.13 Release
 	Fixed back-bdb group ACL deadlock bug (ITS#2195)
 	Fixed back-bdb passwd hang bug (ITS#2122)
 	Fixed slapd RDN handling (ITS#2243)
