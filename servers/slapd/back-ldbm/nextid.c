@@ -13,6 +13,11 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+static ID  next_id_read( Backend *be );
+static int next_id_write( Backend *be, ID id );
+static ID  next_id_get_save( Backend *be, int do_save );
+
+
 static ID
 next_id_read( Backend *be )
 {
@@ -84,15 +89,7 @@ next_id_write( Backend *be, ID id )
 int
 next_id_save( Backend *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	ID id = next_id_get( be );
-	int rc = next_id_write( be, id );
-
-	if (rc == 0) {
-		li->li_nextid_wrote = id;
-	}
-
-	return rc;
+	return( next_id_get_save( be, 1 ) == NOID ? -1 : 0 );
 }
 
 ID
@@ -157,6 +154,12 @@ next_id_return( Backend *be, ID id )
 ID
 next_id_get( Backend *be )
 {
+	return next_id_get_save( be, 0 );
+}
+
+static ID
+next_id_get_save( Backend *be, int do_save )
+{
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID		id;
 
@@ -176,6 +179,14 @@ next_id_get( Backend *be )
 	}
 
 	id = li->li_nextid;
+
+	if ( do_save ) {
+		if ( next_id_write( be, id ) == 0 ) {
+			li->li_nextid_wrote = id;
+		} else {
+			id = NOID;
+		}
+	}
 
 	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 
