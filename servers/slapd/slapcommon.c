@@ -297,6 +297,9 @@ slap_tool_init(
 		break;
 
 	case SLAPACL:
+		if ( argc == optind ) {
+			usage( tool, progname );
+		}
 		if ( !BER_BVISNULL( &authcDN ) && !BER_BVISNULL( &authcID ) ) {
 			usage( tool, progname );
 		}
