@@ -130,14 +130,19 @@ chkResponseList( LDAP *ld,
 	 * wait until it arrives or timeout occurs.
 	 */
 
+	Debug( LDAP_DEBUG_TRACE, "chkResponseList for msgid %d, all %d\n",
+	    msgid, all, 0 );
 	lastlm = NULL;
 	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
 
 		if ( ldap_abandoned( ld, lm->lm_msgid ) ) {
+			Debug( LDAP_DEBUG_TRACE, "chkResponseList msg abandoned, msgid %d\n",
+			    msgid, 0, 0 );
 			ldap_mark_abandoned( ld, lm->lm_msgid );
 
 			if ( lastlm == NULL ) {
+				/* Remove first entry in list */
 				ld->ld_responses = lm->lm_next;
 			} else {
 				lastlm->lm_next = nextlm;
@@ -172,6 +177,7 @@ chkResponseList( LDAP *ld,
 		lastlm = lm;
 	}
     if ( lm != NULL ) {
+		/* Found an entry, remove it from the list */
 	    if ( lastlm == NULL ) {
 		    ld->ld_responses = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
 		        ? lm->lm_chain : lm->lm_next);
@@ -186,6 +192,15 @@ chkResponseList( LDAP *ld,
 	    }
 	    lm->lm_next = NULL;
     }
+
+#ifdef LDAP_DEBUG
+	if( lm == NULL) {
+		Debug( LDAP_DEBUG_TRACE, "chkResponseList returns NULL\n", 0, 0, 0);
+	} else {
+		Debug( LDAP_DEBUG_TRACE, "chkResponseList returns msgid %d, type %lu\n",
+			    lm->lm_msgid, (unsigned long) lm->lm_msgtype, 0);
+	}
+#endif
     return lm;
 }
 static int
@@ -226,61 +241,65 @@ wait4msg(
 	rc = -2;
 	while ( rc == -2 ) {
 #ifdef LDAP_DEBUG
+		Debug( LDAP_DEBUG_TRACE, "wait4msg continue, msgid %d, all %d\n",
+		    msgid, all, 0 );
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
 			ldap_dump_connection( ld, ld->ld_conns, 1 );
 			ldap_dump_requests_and_responses( ld );
 		}
 #endif /* LDAP_DEBUG */
-		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-			if ( ber_sockbuf_ctrl( lc->lconn_sb,
-					LBER_SB_OPT_DATA_READY, NULL ) ) {
-                if( (*result = chkResponseList(ld, msgid, all)) == NULL ) {
-				    rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
-				        lc, result );
-                } else {
-                    rc = (*result)->lm_msgtype;
-                }
-			    break;
-			}
-		}
 
-		if ( lc == NULL ) {
-			rc = do_ldap_select( ld, tvp );
+        if( (*result = chkResponseList(ld, msgid, all)) != NULL ) {
+            rc = (*result)->lm_msgtype;
+        } else {
+
+			for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
+				if ( ber_sockbuf_ctrl( lc->lconn_sb,
+						LBER_SB_OPT_DATA_READY, NULL ) ) {
+					    rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
+					        lc, result );
+				    break;
+				}
+	        }
+
+		    if ( lc == NULL ) {
+			    rc = do_ldap_select( ld, tvp );
 
 
 #ifdef LDAP_DEBUG
-			if ( rc == -1 ) {
-			    Debug( LDAP_DEBUG_TRACE,
-				    "do_ldap_select returned -1: errno %d\n",
-				    errno, 0, 0 );
-			}
+			    if ( rc == -1 ) {
+			        Debug( LDAP_DEBUG_TRACE,
+				        "do_ldap_select returned -1: errno %d\n",
+				        errno, 0, 0 );
+			    }
 #endif
 
-			if ( rc == 0 || ( rc == -1 && (
-				!LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
-				|| errno != EINTR )))
-			{
-				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
-				    LDAP_TIMEOUT);
-				return( rc );
-			}
+			    if ( rc == 0 || ( rc == -1 && (
+				    !LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
+				    || errno != EINTR )))
+			    {
+				    ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
+				        LDAP_TIMEOUT);
+				    return( rc );
+			    }
 
-			if ( rc == -1 ) {
-				rc = -2;	/* select interrupted: loop */
-			} else {
-				rc = -2;
-				for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
-				    lc = nextlc ) {
-					nextlc = lc->lconn_next;
-					if ( lc->lconn_status ==
-					    LDAP_CONNST_CONNECTED &&
-					    ldap_is_read_ready( ld,
-					    lc->lconn_sb )) {
-						rc = try_read1msg( ld, msgid, all,
-						    lc->lconn_sb, lc, result );
-					}
-				}
-			}
+			    if ( rc == -1 ) {
+				    rc = -2;	/* select interrupted: loop */
+			    } else {
+				    rc = -2;
+				    for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
+				        lc = nextlc ) {
+					    nextlc = lc->lconn_next;
+					    if ( lc->lconn_status ==
+					        LDAP_CONNST_CONNECTED &&
+					        ldap_is_read_ready( ld,
+					        lc->lconn_sb )) {
+						    rc = try_read1msg( ld, msgid, all,
+						        lc->lconn_sb, lc, result );
+					    }
+				    }
+			    }
+		    }
 		}
 
 		if ( rc == -2 && tvp != NULL ) {
