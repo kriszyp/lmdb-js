@@ -141,7 +141,7 @@ ldbm_back_delete(
 	}
 
 	/* delete from dn2id mapping */
-	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
+	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);

@@ -280,7 +280,7 @@ ldbm_back_modrdn(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* delete old one */
-	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
+	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			NULL, NULL, NULL, NULL );
 		goto return_results;
