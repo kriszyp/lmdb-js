@@ -184,7 +184,6 @@ parse_at(
 	LDAPAttributeType *at;
 	int		code;
 	const char	*err;
-	char		*oid = NULL;
 
 	at = ldap_str2attributetype( line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
 	if ( !at ) {

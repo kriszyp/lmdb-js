@@ -456,10 +456,10 @@ int slap_sasl_match( char *rule, struct berval *assertDN, char *authc )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		"slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule ));
+		"slap_sasl_match: comparing DN %s to rule %s\n", assertDN->bv_val, rule ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule, 0 );
+	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN->bv_val, rule, 0 );
 #endif
 
 	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
@@ -557,11 +557,11 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, struct berval *attr, char 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl_check_authz: does %s match %s rule in %s?\n",
-		   assertDN, attr, searchDN ));
+		   assertDN, attr->bv_val, searchDN ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_check_authz: does %s match %s rule in %s?\n",
-	   assertDN, attr, searchDN);
+	   assertDN, attr->bv_val, searchDN);
 #endif
 
 	rc = slap_bv2ad( attr, &ad, &errmsg );
@@ -589,10 +589,10 @@ COMPLETE:
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_check_authz: %s check returning %s\n", attr, rc ));
+		   "slap_sasl_check_authz: %s check returning %s\n", attr->bv_val, rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "<==slap_sasl_check_authz: %s check returning %d\n", attr, rc, 0);
+	   "<==slap_sasl_check_authz: %s check returning %d\n", attr->bv_val, rc, 0);
 #endif
 
 	return( rc );
