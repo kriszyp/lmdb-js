@@ -129,8 +129,15 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID id ));
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
 int index_add_mods LDAP_P(( Backend *be, LDAPModList *ml, ID id ));
 ID_BLOCK * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
-int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id ));
-int index_delete_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id ));
+/* Possible operations supported (op) by index_change_values() */
+#define __INDEX_ADD_OP		0x0001
+#define __INDEX_DELETE_OP	0x0002
+int index_change_values LDAP_P(( Backend *be,
+				 char *type,
+				 struct berval **vals,
+				 ID  id,
+				 unsigned int op ));
+
 
 /*
  * kerberos.c

@@ -161,8 +161,11 @@ main( int argc, char **argv )
 					if ( strcasecmp( type, attr ) == 0 ) {
 						bv.bv_val = val;
 						bv.bv_len = vlen;
-						index_add_values( be, attr,
-						    vals, id );
+						index_change_values( be,
+								     attr,
+								     vals,
+								     id,
+							       __INDEX_ADD_OP);
 					}
 				}
 			}

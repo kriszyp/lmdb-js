@@ -150,8 +150,11 @@ int ldbm_modify_internal(
 			    && ((a = attr_find( e->e_attrs, mod->mod_type ))
 			   != NULL) ) {
 
-			    (void) index_delete_values( be, mod->mod_type,
-							a->a_vals, e->e_id );
+			    (void) index_change_values( be,
+							mod->mod_type,
+							a->a_vals,
+							e->e_id,
+							__INDEX_DELETE_OP);
 			}
 
 			err = replace_values( e, mod, op->o_ndn );
