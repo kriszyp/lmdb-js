@@ -248,3 +248,8 @@ void syncrepl_add_glue( syncinfo_t *si, LDAP *ld, Operation *op, Entry *e,
 {
 	return;
 }
+
+int slap_entry2mods( Entry *e, Modifications **mods, const char **text )
+{
+	return -1;
+}
