@@ -1503,18 +1503,23 @@ slapi_filter_dup( Slapi_Filter *filter )
 		f->f_mra->ma_desc = filter->f_mra->ma_desc;
 		f->f_mra->ma_dnattrs = filter->f_mra->ma_dnattrs;
 		ber_dupbv( &f->f_mra->ma_value, &filter->f_mra->ma_value );
+		break;
 	case LDAP_FILTER_SUBSTRINGS: {
 		int i;
 
 		f->f_sub = (SubstringsAssertion *)slapi_ch_malloc( sizeof(SubstringsAssertion) );
 		ber_dupbv( &f->f_sub_initial, &filter->f_sub_initial );
-		for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ )
-			;
-		f->f_sub_any = (BerVarray)slapi_ch_malloc( (i + 1) * (sizeof(struct berval)) );
-		for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ ) {
-			ber_dupbv( &f->f_sub_any[i], &filter->f_sub_any[i] );
+		if ( filter->f_sub_any != NULL ) {
+			for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ )
+				;
+			f->f_sub_any = (BerVarray)slapi_ch_malloc( (i + 1) * (sizeof(struct berval)) );
+			for ( i = 0; filter->f_sub_any[i].bv_val != NULL; i++ ) {
+				ber_dupbv( &f->f_sub_any[i], &filter->f_sub_any[i] );
+			}
+			f->f_sub_any[i].bv_val = NULL;
+		} else {
+			f->f_sub_any = NULL;
 		}
-		f->f_sub_any[i].bv_val = NULL;
 		ber_dupbv( &f->f_sub_final, &filter->f_sub_final );
 		break;
 	}
