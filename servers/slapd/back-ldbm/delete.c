@@ -153,20 +153,49 @@ ldbm_back_delete(
 
 	} else {
 		/* no parent, must be root to delete */
-		if( ! be_isroot( be, op->o_ndn ) && ! be_issuffix( be, "" )  ) {
+		if( ! be_isroot( be, op->o_ndn ) ) {
+			if ( be_issuffix( be, "" )  ) {
+				static const Entry rootp = { NOID, "", "", NULL, NULL };
+				p = (Entry *)&rootp;
+				
+				rc = access_allowed( be, conn, op, p,
+						children, NULL, ACL_WRITE );
+				p = NULL;
+								
+				/* check parent for "children" acl */
+				if ( ! rc ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-				   "ldbm_back_delete: (%s) has no parent & not a root.\n",
-				   dn ));
+					LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+						"ldbm_back_delete: no access "
+						"to parent of ("")\n" ));
 #else
-			Debug( LDAP_DEBUG_TRACE,
-				"<=- ldbm_back_delete: no parent & not root\n",
-				0, 0, 0);
+					Debug( LDAP_DEBUG_TRACE,
+						"<=- ldbm_back_delete: no "
+						"access to parent\n", 0, 0, 0 );
 #endif
 
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
-			goto return_results;
+					send_ldap_result( conn, op, 
+						LDAP_INSUFFICIENT_ACCESS,
+						NULL, NULL, NULL, NULL );
+					goto return_results;
+				}
+
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+					   "ldbm_back_delete: (%s) has no "
+					   "parent & not a root.\n", dn ));
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"<=- ldbm_back_delete: no parent & "
+					"not root\n", 0, 0, 0);
+#endif
+
+				send_ldap_result( conn, op, 
+					LDAP_INSUFFICIENT_ACCESS,
+					NULL, NULL, NULL, NULL );
+				goto return_results;
+			}
 		}
 
 		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);

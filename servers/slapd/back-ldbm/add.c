@@ -209,24 +209,57 @@ ldbm_back_add(
 		}
 
 		/* no parent, must be adding entry to root */
-		if ( !be_isroot( be, op->o_ndn ) && !be_issuffix( be, "" ) ) {
-			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+		if ( !be_isroot( be, op->o_ndn ) ) {
+			if ( be_issuffix( be, "" ) ) {
+				static const Entry rootp = { NOID, "", "", NULL, NULL };
+				p = (Entry *)&rootp;
+				
+				rc = access_allowed( be, conn, op, p,
+					children, NULL, ACL_WRITE );
+				p = NULL;
+				
+				if ( ! rc ) {
+					ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-				   "ldbm_back_add: %s add denied.\n",
-				   pdn == NULL ? "suffix" : "entry at root" ));
+					LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+						"ldbm_back_add: No write "
+						"access to parent (\"\").\n" ));
 #else
-			Debug( LDAP_DEBUG_TRACE, "%s add denied\n",
-					pdn == NULL ? "suffix" : "entry at root",
-					0, 0 );
+					Debug( LDAP_DEBUG_TRACE, 
+						"no write access to parent\n", 
+						0, 0, 0 );
 #endif
 
+					send_ldap_result( conn, op, 
+						LDAP_INSUFFICIENT_ACCESS,
+			    			NULL, 
+						"no write access to parent", 
+						NULL, NULL );
 
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			    NULL, NULL, NULL, NULL );
+					return -1;
+				}
 
-			return -1;
+			} else {
+				ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
+
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+					   "ldbm_back_add: %s add denied.\n",
+					   pdn == NULL ? "suffix" 
+					   : "entry at root" ));
+#else
+				Debug( LDAP_DEBUG_TRACE, "%s add denied\n",
+						pdn == NULL ? "suffix" 
+						: "entry at root", 0, 0 );
+#endif
+
+				send_ldap_result( conn, op, 
+						LDAP_INSUFFICIENT_ACCESS,
+			  			NULL, NULL, NULL, NULL );
+
+				return -1;
+			}
 		}
 
 		/*
