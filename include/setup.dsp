@@ -32,7 +32,7 @@ CFG=setup - Win32 Debug
 # PROP BASE Intermediate_Dir "Release"
 # PROP BASE Cmd_Line "NMAKE /f setup.mak"
 # PROP BASE Rebuild_Opt "/a"
-# PROP BASE Target_File "setup.exe"
+# PROP BASE Target_File "setup.txt"
 # PROP BASE Bsc_Name "setup.bsc"
 # PROP BASE Target_Dir ""
 # PROP Use_Debug_Libraries 0
@@ -40,7 +40,7 @@ CFG=setup - Win32 Debug
 # PROP Intermediate_Dir "Release"
 # PROP Cmd_Line "NMAKE /f setup.mak"
 # PROP Rebuild_Opt "/a"
-# PROP Target_File "setup.exe"
+# PROP Target_File "setup.txt"
 # PROP Bsc_Name "setup.bsc"
 # PROP Target_Dir ""
 
@@ -51,7 +51,7 @@ CFG=setup - Win32 Debug
 # PROP BASE Intermediate_Dir "Debug"
 # PROP BASE Cmd_Line "NMAKE /f setup.mak"
 # PROP BASE Rebuild_Opt "/a"
-# PROP BASE Target_File "setup.exe"
+# PROP BASE Target_File "setup.txt"
 # PROP BASE Bsc_Name "setup.bsc"
 # PROP BASE Target_Dir ""
 # PROP Use_Debug_Libraries 1
@@ -76,5 +76,9 @@ CFG=setup - Win32 Debug
 
 !ENDIF 
 
+# Begin Source File
+
+SOURCE=.\setup.mak
+# End Source File
 # End Target
 # End Project
