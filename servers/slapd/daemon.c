@@ -1385,7 +1385,7 @@ slapd_daemon_task(
 		for ( i = 0; i < readfds.fd_count; i++ ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-				   " %d%s", readfs.fd_array[i], "r", 0 );
+				   " %d%s", readfds.fd_array[i], "r", 0 ));
 #else
 			Debug( LDAP_DEBUG_CONNS, " %d%s",
 				readfds.fd_array[i], "r", 0 );
