@@ -436,6 +436,9 @@ long connection_init(
     if ( use_tls ) {
 	    c->c_is_tls = 1;
 	    c->c_needs_tls_accept = 1;
+    } else {
+	    c->c_is_tls = 0;
+	    c->c_needs_tls_accept = 0;
     }
 #endif
 
