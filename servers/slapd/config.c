@@ -24,7 +24,7 @@ int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
 int		global_default_access = ACL_READ;
 char		*replogfile;
-int		global_lastmod;
+int		global_lastmod = ON;
 int		global_idletimeout = 0;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
