@@ -347,6 +347,9 @@ int slap_modlist2mods(
 				ad->ad_type->sat_syntax->ssyn_validate;
 
 			if( !validate ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"modlist2mods: no validator for syntax %s\n",
+					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
 				slap_mods_free( mod );
 				*text = "no validator for syntax";
 				return LDAP_INVALID_SYNTAX;

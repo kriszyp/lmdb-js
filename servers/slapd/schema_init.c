@@ -35,7 +35,7 @@ UTF8StringValidate(
 	int len;
 	unsigned char *u = in->bv_val;
 
-	for( count = in->bv_len; count > 0; count+=len, u+=len ) {
+	for( count = in->bv_len; count > 0; count-=len, u+=len ) {
 		/* get the length indicated by the first byte */
 		len = LDAP_UTF8_CHARLEN( u );
 
@@ -129,6 +129,42 @@ UTF8StringNormalize(
 	normalized = &newval;
 
 	return 0;
+}
+
+static int
+oidValidate(
+	Syntax *syntax,
+	struct berval *val )
+{
+	ber_len_t i;
+
+	if( val->bv_len == 0 ) return 0;
+
+	if( isdigit(val->bv_val[0]) ) {
+		int dot = 0;
+		for(i=1; i < val->bv_len; i++) {
+			if( val->bv_val[i] == '.' ) {
+				if( dot++ ) return 1;
+			} else if ( isdigit(val->bv_val[i]) ) {
+				dot = 0;
+			} else {
+				return 1;
+			}
+		}
+
+		return !dot ? 0 : 1;
+
+	} else if( isalpha(val->bv_val[0]) ) {
+		for(i=1; i < val->bv_len; i++) {
+			if( !isalpha(val->bv_val[i] ) ) {
+				return 1;
+			}
+		}
+
+		return 0;
+	}
+	
+	return 1;
 }
 
 static int
@@ -303,7 +339,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )",
-		0, NULL, NULL, NULL},
+		0, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
@@ -353,13 +389,13 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
-		0, NULL, NULL, NULL},
+		0, oidValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
 		0, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )",
-		0, NULL, NULL, NULL},
+		0, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
@@ -370,7 +406,7 @@ struct syntax_defs_rec syntax_defs[] = {
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, NULL, NULL, NULL},
+		0, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
