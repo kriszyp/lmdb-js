@@ -57,12 +57,7 @@ lutil_entropy LDAP_P((
 	ber_len_t nbytes ));
 
 /* passfile.c */
-#ifndef _LBER_H
-struct berval { /* avoid pulling in lber.h */
-	ber_len_t	bv_len;
-	char		*bv_val;
-};
-#endif
+struct berval;	/* avoid pulling in lber.h */
 
 LDAP_LUTIL_F( int )
 lutil_get_filed_password LDAP_P((
@@ -72,23 +67,20 @@ lutil_get_filed_password LDAP_P((
 /* passwd.c */
 struct lutil_pw_scheme;
 
-typedef int (*LUTIL_PASSWD_CHK_FUNC)(
-	const struct lutil_pw_scheme *scheme,
+typedef int (LUTIL_PASSWD_CHK_FUNC)(
+	const struct berval *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 
-typedef struct berval * (*LUTIL_PASSWD_HASH_FUNC) (
-	const struct lutil_pw_scheme *scheme,
+typedef struct berval * (LUTIL_PASSWD_HASH_FUNC) (
+	const struct berval *scheme,
 	const struct berval *passwd );
 
-struct lutil_pw_scheme {
-	struct berval name;
-	LUTIL_PASSWD_CHK_FUNC chk_fn;
-	LUTIL_PASSWD_HASH_FUNC hash_fn;
-};
-
 LDAP_LUTIL_F( int )
-lutil_passwd_add LDAP_P(( struct lutil_pw_scheme *s ));
+lutil_passwd_add LDAP_P((
+	struct berval *scheme,
+	LUTIL_PASSWD_CHK_FUNC *chk_fn,
+	LUTIL_PASSWD_HASH_FUNC *hash_fn ));
 
 LDAP_LUTIL_F( void )
 lutil_passwd_init LDAP_P(( void ));
