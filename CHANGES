@@ -1,8 +1,11 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.23 Engineering
+	Fixed ldapmodify NULL dn bug (ITS#2645)
 	Fixed ldappasswd -y handling bug (ITS#2696)
+	Fixed slapd subordinate replication bug (ITS#2130)
 	Fixed slapd deferring Abandon (ITS#2649)
+	Fixed slapd slave without updateref bug (ITS#2678)
 	Fixed slapd ACL caching (ITS#2679)
 	Fixed back-bdb cache crash (ITS#2682, ITS#2759)
 	Fixed portability issue in ldapsasl (ITS#2691)
