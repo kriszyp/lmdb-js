@@ -9,6 +9,19 @@ BUILD_LDBM=@BUILD_LDBM@
 test: tests
 tests: ldbm
 
+bdb: test-bdb
+test-bdb:	FORCE
+	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode/ucdata .
+	@if test "$(BUILD_LDBM)" = "yes" ; then \
+		echo "Initiating LDAP tests for BDB..." ; \
+		$(MKDIR) test-db test-repl || true; \
+		$(srcdir)/scripts/all $(srcdir) bdb ; \
+	else \
+		echo "run configure with --enable-bdb" ; \
+	fi
+
 ldbm: test-ldbm
 test-ldbm:	FORCE
 	@-$(LN_S) $(srcdir)/data .
