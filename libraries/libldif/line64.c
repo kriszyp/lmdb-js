@@ -116,7 +116,7 @@ ldif_parse_line(
 
 	if ( *s == '\0' ) {
 		/* no value */
-		value = NULL;
+		value = "";
 		vlen = 0;
 		goto done;
 	}

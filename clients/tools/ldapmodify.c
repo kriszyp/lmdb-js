@@ -1022,6 +1022,16 @@ domodify(
 	fprintf( stderr, "%s: no attributes to change or add (entry=\"%s\")\n",
 		prog, dn );
 	return( LDAP_PARAM_ERROR );
+    } 
+
+    for ( i = 0; pmods[ i ] != NULL; ++i ) {
+	op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
+	if( op == LDAP_MOD_ADD && ( pmods[i]->mod_bvalues == NULL )) {
+		fprintf( stderr,
+			"%s: attribute \"%s\" has no values (entry=\"%s\")\n",
+			prog, pmods[i]->mod_type, dn );
+		return LDAP_PARAM_ERROR;
+	}
     }
 
     if ( verbose ) {
