@@ -226,7 +226,6 @@ retry:	/* transaction retry */
 				0, 0, 0 );
 #endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
-			text = "no write access to parent";
 			goto return_results;;
 		}
 
@@ -327,7 +326,6 @@ retry:	/* transaction retry */
 						0, 0, 0 );
 #endif
 					rc = LDAP_INSUFFICIENT_ACCESS;
-					text = "no write access to parent";
 					goto return_results;;
 				}
 
@@ -389,7 +387,6 @@ retry:	/* transaction retry */
 			0, 0, 0 );
 #endif
 		rc = LDAP_INSUFFICIENT_ACCESS;
-		text = "no write access to entry";
 		goto return_results;;
 	}
 

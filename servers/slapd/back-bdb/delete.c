@@ -233,15 +233,6 @@ retry:	/* transaction retry */
 #endif
 	}
 
-	rc = access_allowed( be, conn, op, e,
-		entry, NULL, ACL_WRITE, NULL );
-
-	switch( opinfo.boi_err ) {
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-	}
-
 	/* get entry for read/modify/write */
 	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, DB_RMW, locker, &lock );
 
@@ -295,6 +286,28 @@ retry:	/* transaction retry */
 
 		rc = -1;
 		goto done;
+	}
+
+	rc = access_allowed( be, conn, op, e,
+		entry, NULL, ACL_WRITE, NULL );
+
+	switch( opinfo.boi_err ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	}
+
+	if ( !rc  ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"<=- bdb_delete: no access to entry\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"<=- bdb_delete: no access to entry\n",
+			0, 0, 0 );
+#endif
+		rc = LDAP_INSUFFICIENT_ACCESS;
+		goto return_results;
 	}
 
 	if ( !manageDSAit && is_entry_referral( e ) ) {
