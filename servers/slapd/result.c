@@ -1267,7 +1267,8 @@ send_search_reference(
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		/* save the references for the result */
 		if( refs[0].bv_val != NULL ) {
-			value_add( v2refs, refs );
+			if( value_add( v2refs, refs ) )
+				return LDAP_OTHER;
 		}
 		return 0;
 	}

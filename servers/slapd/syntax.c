@@ -222,7 +222,8 @@ syn_schema_info( Entry *e )
 #endif
 
 #endif
-		attr_merge( e, ad_ldapSyntaxes, vals );
+		if( attr_merge( e, ad_ldapSyntaxes, vals ) )
+			return -1;
 		ldap_memfree( vals[0].bv_val );
 	}
 	return 0;
