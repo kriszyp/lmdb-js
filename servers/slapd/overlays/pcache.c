@@ -23,6 +23,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_OVER_PROXYCACHE
+
 #include <stdio.h>
 
 #include <ac/string.h>
@@ -757,6 +759,7 @@ static void cache_replacement(query_manager* qm, struct berval *result)
 			"Cache replacement invoked without "
 			"any query in LRU list\n", 0, 0, 0 );
 #endif
+		return;
 	}
 
 	temp_id = bottom->template_id;
@@ -1993,7 +1996,7 @@ compare_sets(struct attr_set* set, int i, int j)
 
 static slap_overinst proxy_cache;
 
-int init_module()
+int pcache_init()
 {
 	LDAPAttributeType *at;
 	int code;
@@ -2027,3 +2030,11 @@ int init_module()
 
 	return overlay_register( &proxy_cache );
 }
+
+#if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_DYNAMIC
+int init_module(int argc, char *argv[]) {
+	return pcache_init();
+}
+#endif
+
+#endif	/* defined(SLAPD_OVER_PROXYCACHE) */

@@ -3,6 +3,7 @@
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2003 The OpenLDAP Foundation.
+ * Copyright 2003 by Howard Chu.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -13,33 +14,14 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* This is an altered version */
-/*
- * Copyright 2003, Howard Chu, All rights reserved. <hyc@symas.com>
- * 
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
- * 
- * 1. The author is not responsible for the consequences of use of this
- *    software, no matter how awful, even if they arise from flaws in it.
- * 
- * 2. The origin of this software must not be misrepresented, either by
- *    explicit claim or by omission.  Since few users ever read sources,
- *    credits should appear in the documentation.
- * 
- * 3. Altered versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.  Since few users
- *    ever read sources, credits should appear in the documentation.
- * 
- * 4. This notice may not be removed or altered.
- */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Howard Chu for inclusion in
  * OpenLDAP Software.
  */
 
 #include "portable.h"
+
+#ifdef SLAPD_OVER_DYNGROUP
 
 #include <stdio.h>
 
@@ -161,7 +143,7 @@ static slap_overinst dyngroup;
  * initialized and registered by some other function inside slapd.
  */
 
-int init_module(int argc, char *argv[]) {
+int dyngroup_init() {
 	dyngroup.on_bi.bi_type = "dyngroup";
 	dyngroup.on_bi.bi_db_config = dyngroup_config;
 	dyngroup.on_bi.bi_db_close = dyngroup_close;
@@ -169,3 +151,11 @@ int init_module(int argc, char *argv[]) {
 
 	return overlay_register( &dyngroup );
 }
+
+#if SLAPD_OVER_DYNGROUP == SLAPD_MOD_DYNAMIC
+int init_module(int argc, char *argv[]) {
+	return dyngroup_init();
+}
+#endif
+
+#endif /* defined(SLAPD_OVER_DYNGROUP) */

@@ -956,6 +956,12 @@
 /* define to support modules */
 #undef SLAPD_MODULES
 
+/* statically linked module */
+#undef SLAPD_MOD_STATIC
+
+/* dynamically linked module */
+#undef SLAPD_MOD_DYNAMIC
+
 /* define to support BDB backend */
 #undef SLAPD_BDB
 
@@ -1033,6 +1039,12 @@
 
 /* define to support dynamic SQL backend */
 #undef SLAPD_SQL_DYNAMIC
+
+/* define for Dynamic Group overlay */
+#undef SLAPD_OVER_DYNGROUP
+
+/* define for Proxy Cache overlay */
+#undef SLAPD_OVER_PROXYCACHE
 
 /* define to enable rewriting in back-ldap and back-meta */
 #undef ENABLE_REWRITE

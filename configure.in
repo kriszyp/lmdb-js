@@ -243,6 +243,15 @@ OL_ARG_WITH(tcl_module,[    --with-tcl-module	  module type static|dynamic], sta
 	[static dynamic])
 
 dnl ----------------------------------------------------------------
+dnl SLAPD Overlay Options
+AC_ARG_WITH(xxslapoverlays,[
+SLAPD Overlay Options:])
+OL_ARG_WITH(dyngroup,[    --with-dyngroup	  Dynamic Group overlay no|yes|mod], no,
+	[no yes mod])
+OL_ARG_WITH(proxycache,[    --with-proxycache	  Proxy Cache overlay no|yes|mod], no,
+	[no yes mod])
+
+dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
 AC_ARG_WITH(xxslurpdoptions,[
 SLURPD (Replication Daemon) Options:])
@@ -368,6 +377,12 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_rewrite = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
 	fi
+	if test $ol_with_dyngroup != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-dyngroup argument])
+	fi
+	if test $ol_with_proxycache != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-proxycache argument])
+	fi
 
 	# force settings to no
 	ol_enable_slapi=no
@@ -412,6 +427,9 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_slurpd=no
 
 	ol_enable_rewrite=no
+
+	ol_with_dyngroup=no
+	ol_with_proxycache=no
 
 elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
@@ -573,6 +591,11 @@ BUILD_PERL_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
 BUILD_TCL_DYNAMIC=static
 BUILD_SQL_DYNAMIC=static
+
+BUILD_DYNGROUP=no
+BUILD_PROXYCACHE=no
+
+SLAPD_DYNAMIC_OVERLAYS=
 
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
@@ -802,6 +825,14 @@ else
 	ol_with_shell_module=static
 	ol_with_tcl_module=static
 	ol_with_sql_module=static
+	if test $ol_with_dyngroup = mod ; then
+		AC_MSG_WARN([building static dyngroup overlay])
+		ol_with_dyngroup = yes
+	fi
+	if test $ol_with_proxycache = mod ; then
+		AC_MSG_WARN([building static proxycache overlay])
+		ol_with_proxycache = yes
+	fi
 fi
 
 dnl ----------------------------------------------------------------
@@ -2596,6 +2627,9 @@ if test "$ol_link_modules" != no ; then
 	SLAPD_MODULES_LDFLAGS="-dlopen self"
 fi
 
+AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])
+AC_DEFINE(SLAPD_MOD_DYNAMIC,2,[dynamically linked module])
+
 if test "$ol_enable_bdb" != no ; then
 	AC_DEFINE(SLAPD_BDB,1,[define to support BDB backend])
 	BUILD_SLAPD=yes
@@ -2805,6 +2839,28 @@ if test "$ol_link_sql" != no ; then
 	fi
 fi
 
+if test "$ol_with_dyngroup" != no ; then
+	BUILD_DYNGROUP=$ol_with_dyngroup
+	if test "$ol_with_dyngroup" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS dyngroup.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNGROUP,$MFLAG,[define for Dynamic Group overlay])
+fi
+
+if test "$ol_with_proxycache" != no ; then
+	BUILD_PROXYCACHE=$ol_with_proxycache
+	if test "$ol_with_proxycache" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS pcache.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_PROXYCACHE,$MFLAG,[define for Proxy Cache overlay])
+fi
+
 if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
@@ -2876,6 +2932,8 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
   AC_SUBST(BUILD_SQL_DYNAMIC)
   AC_SUBST(BUILD_TCL_DYNAMIC)
+  AC_SUBST(BUILD_DYNGROUP)
+  AC_SUBST(BUILD_PROXYCACHE)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
@@ -2893,6 +2951,7 @@ AC_SUBST(SLAPD_MODULES_LDFLAGS)
 AC_SUBST(SLAPD_NO_STATIC)
 AC_SUBST(SLAPD_STATIC_BACKENDS)
 AC_SUBST(SLAPD_DYNAMIC_BACKENDS)
+AC_SUBST(SLAPD_DYNAMIC_OVERLAYS)
 
 AC_SUBST(PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)
@@ -2959,6 +3018,7 @@ servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:
 servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk  \
+servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk:build/lib-shared.mk  \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
