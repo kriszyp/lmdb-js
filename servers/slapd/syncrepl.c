@@ -1457,11 +1457,11 @@ retry_add:;
 			assert( *modlist );
 
 			/* Delete all the old attrs */
-			for ( i=0; i<dni.attrs; i++) {
-				mod = ch_malloc( sizeof(Modifications));
+			for ( i = 0; i < dni.attrs; i++ ) {
+				mod = ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = LDAP_MOD_DELETE;
 				mod->sml_desc = dni.ads[i];
-				mod->sml_type =mod->sml_desc->ad_cname;
+				mod->sml_type = mod->sml_desc->ad_cname;
 				mod->sml_values = NULL;
 				mod->sml_nvalues = NULL;
 				if ( !modhead ) modhead = mod;
