@@ -3,18 +3,30 @@
 ldapdelete \- ldap delete entry tool
 .SH SYNOPSIS
 .B ldapdelete
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-K]
-.B [\-c]
-.B [\-d debuglevel]
-.B [\-f file]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [dn]...
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BR \-c ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-f \ file\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.IR dn ]...
 .SH DESCRIPTION
 .I ldapdelete
 is a shell-accessible interface to the
@@ -55,28 +67,28 @@ Continuous operation mode.  Errors  are  reported,  but
 will  continue  with  deletions.   The default is to exit after
 reporting an error.
 .TP
-.B \-d debuglevel
+.BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldapdelete
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
-.B \-f file
+.BI \-f \ file
 Read a series of lines from \fIfile\fP, performing one LDAP search for
 each line.  In this case, the \fIfilter\fP given on the command line
 is treated as a pattern where the first occurrence of \fB%s\fP is
 replaced with a line from \fIfile\fP.
 .TP
-.B \-D binddn
+.BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
 .TP
-.B \-w passwd
+.BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
 .TP
-.B \-h ldaphost
+.BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
 .TP
-.B \-p ldapport
+.BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
 .SH EXAMPLE
 The following command:

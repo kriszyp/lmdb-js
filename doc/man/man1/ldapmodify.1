@@ -3,34 +3,60 @@
 ldapmodify, ldapadd \- ldap modify entry and ldap add entry tools
 .SH SYNOPSIS
 .B ldapmodify
-.B [\-a]
-.B [\-b]
-.B [\-c]
-.B [\-r]
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-d debuglevel]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [\-f file]
+[\c
+.BR \-a ]
+[\c
+.BR \-b ]
+[\c
+.BR \-c ]
+[\c
+.BR \-r ]
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.BI \-f \ file\fR]
 .LP
 .B ldapadd
-.B [\-b]
-.B [\-c]
-.B [\-r]
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-K]
-.B [\-d debuglevel]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [\-f file]
+[\c
+.BR \-b ]
+[\c
+.BR \-c ]
+[\c
+.BR \-r ]
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.BI \-f \ file\fR]
 .SH DESCRIPTION
 .B ldapmodify
 is a shell-accessible interface to the
@@ -94,26 +120,26 @@ lines that begin with
 (by default, replica: lines are compared against the LDAP server host
 and port in use to decide if a replog record should actually be applied).
 .TP
-.B \-d debuglevel
+.BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldapmodify
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
-.B \-f file
+.BI \-f \ file
 Read the entry modification information from \fIfile\fP instead of from
 standard input.
 .TP
-.B \-D binddn
+.BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
 .TP
-.B \-w passwd
+.BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
 .TP
-.B \-h ldaphost
+.BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
 .TP
-.B \-p ldapport
+.BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
 .SH INPUT FORMAT
 The contents of \fIfile\fP (or standard input if no \-f flag is given on
