@@ -3,7 +3,7 @@
 .\" Copyright 1998-2001 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_parse \- Extract referrals and controls from a reference message
+ldap_parse_reference \- Extract referrals and controls from a reference message
 .SH SYNOPSIS
 .nf
 .ft B
@@ -22,7 +22,7 @@ call to
 .BR ldap_first_reference (3) ,
 .BR ldap_next_reference (3) ,
 .BR ldap_first_message (3) ,
-.BR ldap_next_message (3)
+.BR ldap_next_message (3) ,
 or
 .BR ldap_result (3) .
 .LP
@@ -48,12 +48,12 @@ routine can also be used to free the message later.
 Upon success LDAP_SUCCESS is returned. Otherwise the values of the
 \fIreferralsp\fP and \fIserverctrlsp\fP parameters are undefined.
 .SH SEE ALSO
-.BR ldap(3),
-.BR ldap_first_reference(3),
-.BR ldap_first_message(3),
-.BR ldap_result(3),
-.BR ldap_get_values(3),
-.BR ldap_controls_free(3)
+.BR ldap (3),
+.BR ldap_first_reference (3),
+.BR ldap_first_message (3),
+.BR ldap_result (3),
+.BR ldap_get_values (3),
+.BR ldap_controls_free (3)
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
