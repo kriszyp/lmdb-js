@@ -103,13 +103,6 @@ main(
 	lutil_detach( 0, 0 );
 
     /*
-     * Start threads - one thread for each replica
-     */
-    for ( i = 0; sglob->replicas[ i ] != NULL; i++ ) {
-	start_replica_thread( sglob->replicas[ i ]);
-    }
-
-    /*
      * Start the main file manager thread (in fm.c).
      */
     if ( ldap_pvt_thread_create( &(sglob->fm_tid),
@@ -122,9 +115,25 @@ main(
     }
 
     /*
+     * wait for fm to finish if in oneshot mode
+     */
+    if ( sglob->one_shot_mode ) {
+	ldap_pvt_thread_join( sglob->fm_tid, (void *) NULL );
+    }
+
+    /*
+     * Start threads - one thread for each replica
+     */
+    for ( i = 0; sglob->replicas[ i ] != NULL; i++ ) {
+	start_replica_thread( sglob->replicas[ i ]);
+    }
+
+    /*
      * Wait for the fm thread to finish.
      */
-    ldap_pvt_thread_join( sglob->fm_tid, (void *) NULL );
+    if ( !sglob->one_shot_mode ) {
+	ldap_pvt_thread_join( sglob->fm_tid, (void *) NULL );
+    }
 
     /*
      * Wait for the replica threads to finish.
@@ -133,8 +142,8 @@ main(
 	ldap_pvt_thread_join( sglob->replicas[ i ]->ri_tid, (void *) NULL );
     }
 
-	/* destroy the thread package */
-	ldap_pvt_thread_destroy();
+    /* destroy the thread package */
+    ldap_pvt_thread_destroy();
 
     Debug( LDAP_DEBUG_ANY, "slurpd: terminated.\n", 0, 0, 0 );
 	return 0;
