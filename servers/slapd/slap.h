@@ -380,27 +380,33 @@ struct backend_info {
  */
 
 typedef struct slap_op {
+	long	o_opid;		/* id of this operation		  */
+	long	o_msgid;	/* msgid of the request		  */
+
+	ldap_pvt_thread_t	o_tid;		/* thread handling this op	  */
+
 	BerElement	*o_ber;		/* ber of the request		  */
-	long		o_msgid;	/* msgid of the request		  */
+
 	unsigned long	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 	char		*o_dn;		/* dn bound when op was initiated */
 	char		*o_ndn;		/* normalized dn bound when op was initiated */
-	int		o_authtype;	/* auth method used to bind dn	  */
+	int			o_authtype;	/* auth method used to bind dn	  */
 					/* values taken from ldap.h	  */
 					/* LDAP_AUTH_*			  */
-	int		o_opid;		/* id of this operation		  */
-	int		o_connid;	/* id of conn initiating this op  */
+
+/*	 long	o_connid;	*//* id of conn initiating this op  */
+
 #ifdef LDAP_CONNECTIONLESS
 	int		o_cldap;	/* != 0 if this came in via CLDAP */
 	struct sockaddr	o_clientaddr;	/* client address if via CLDAP	  */
 	char		o_searchbase;	/* search base if via CLDAP	  */
 #endif
-	struct slap_op	*o_next;	/* next operation in list	  */
-	ldap_pvt_thread_t	o_tid;		/* thread handling this op	  */
-	int		o_abandon;	/* signals op has been abandoned  */
-	ldap_pvt_thread_mutex_t	o_abandonmutex;	/* signals op has been abandoned  */
 
+	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
+	int		o_abandon;	/* abandon flag */
+
+	struct slap_op	*o_next;	/* next operation in list	  */
 	void	*o_private;	/* anything the backend needs	  */
 } Operation;
 
@@ -408,41 +414,56 @@ typedef struct slap_op {
  * represents a connection from an ldap client
  */
 
-#define SLAP_C_INACTIVE	0x0
-#define SLAP_C_ACTIVE	0x1
-#define SLAP_C_BINDING	0x2
-#define SLAP_C_CLOSING	0x3
+ 
+/* structure state (protected by connections_mutex) */
+#define SLAP_C_UNINITIALIZED	0x0	/* MUST BE ZERO (0) */
+#define SLAP_C_UNUSED			0x1
+#define SLAP_C_USED				0x2
+
+/* connection state (protected by c_mutex ) */
+#define SLAP_C_INVALID			0x0	/* MUST BE ZERO (0) */
+#define SLAP_C_INACTIVE			0x1	/* zero threads */
+#define SLAP_C_ACTIVE			0x2 /* one or more threads */
+#define SLAP_C_BINDING			0x3	/* binding */
+#define SLAP_C_CLOSING			0x4	/* closing */
 
 typedef struct slap_conn {
-	int			c_state;	/* connection state */
+	int			c_struct_state; /* structure management state */
+	int			c_conn_state;	/* connection state */
+
+	ldap_pvt_thread_mutex_t	c_mutex; /* protect the connection */
 	Sockbuf		c_sb;		/* ber connection stuff		  */
-	char		*c_cdn;		/* DN provided by the client */
-	char		*c_dn;		/* DN bound to this conn  */
-	ldap_pvt_thread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */
+
+	/* only can be changed by connect_init */
+	time_t		c_starttime;	/* when the connection was opened */
+	long		c_connid;	/* id of this connection for stats*/
+	char		*c_client_addr;	/* address of client */
+	char		*c_client_name;	/* name of client */
+
+	/* only can be changed by binding thread */
+	char	*c_cdn;		/* DN provided by the client */
+	char	*c_dn;		/* DN bound to this conn  */
 	int		c_protocol;	/* version of the LDAP protocol used by client */
 	int		c_authtype;	/* auth method used to bind c_dn  */
 #ifdef LDAP_COMPAT
 	int		c_version;	/* for compatibility w/2.0, 3.0	  */
 #endif
-	char		*c_addr;	/* address of client on this conn */
-	char		*c_domain;	/* domain of client on this conn  */
+
 	Operation	*c_ops;			/* list of operations being processed */
 	Operation	*c_pending_ops;	/* list of pending operations */
-	ldap_pvt_thread_mutex_t	c_opsmutex;	/* mutex for c_ops list & stats	  */
-	ldap_pvt_thread_mutex_t	c_pdumutex;	/* only one pdu written at a time */
-	ldap_pvt_thread_cond_t	c_wcv;		/* used to wait for sd write-ready*/
-	int		c_gettingber;	/* in the middle of ber_get_next  */
-	BerElement	*c_currentber;	/* ber we're getting              */
-	int		c_writewaiter;	/* signals write-ready sd waiter  */
-	int		c_pduwaiters;	/* signals threads waiting 4 pdu  */
-	time_t		c_starttime;	/* when the connection was opened */
 
-	long	c_connid;	/* id of this connection for stats*/
+	ldap_pvt_thread_mutex_t	c_write_mutex;	/* only one pdu written at a time */
+	ldap_pvt_thread_cond_t	c_write_cv;		/* used to wait for sd write-ready*/
 
-	long	c_ops_received;		/* num of ops received (next op_id) */
-	long	c_ops_executing;	/* num of ops currently executing */
-	long	c_ops_pending;		/* num of ops pending execution */
-	long	c_ops_completed;	/* num of ops completed */
+	BerElement	*c_currentber;	/* ber we're attempting to read */
+	int		c_writewaiter;	/* true if writer is waiting */
+
+	long	c_n_ops_received;		/* num of ops received (next op_id) */
+#ifdef LDAP_COUNTERS
+	long	c_n_ops_executing;	/* num of ops currently executing */
+	long	c_n_ops_pending;		/* num of ops pending execution */
+	long	c_n_ops_completed;	/* num of ops completed */
+#endif
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)

@@ -46,7 +46,7 @@ replog(
 	    i++ ) {
 		fprintf( fp, "replica: %s\n", be->be_replica[i] );
 	}
-	fprintf( fp, "time: %ld\n", (long) currenttime );
+	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
 	fprintf( fp, "dn: %s\n", dn );
 
 	switch ( optype ) {

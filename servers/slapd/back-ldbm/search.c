@@ -139,6 +139,7 @@ ldbm_back_search(
 	rcur = strchr( rbuf, '\0' );
 	for ( id = idl_firstid( candidates ); id != NOID;
 	    id = idl_nextid( candidates, id ) ) {
+
 		/* check for abandon */
 		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 		if ( op->o_abandon ) {
@@ -153,10 +154,7 @@ ldbm_back_search(
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		/* check time limit */
-		ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-		time( &currenttime );
-		if ( tlimit != -1 && currenttime > stoptime ) {
-			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+		if ( tlimit != -1 && slap_get_time() > stoptime ) {
 			send_ldap_search_result( conn, op,
 			    LDAP_TIMELIMIT_EXCEEDED, NULL, nrefs > 0 ? rbuf :
 			    NULL, nentries );
@@ -167,7 +165,6 @@ ldbm_back_search(
 			}
 			return( 0 );
 		}
-		ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 		/* get the entry with reader lock */
 		if ( (e = id2entry_r( be, id )) == NULL ) {

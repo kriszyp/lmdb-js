@@ -8,7 +8,6 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "portable.h"
 #include "slap.h"
 
 /*
@@ -25,8 +24,6 @@ int		ldap_syslog;
 
 int		ldap_syslog_level = LOG_DEBUG;
 char		*default_referral;
-time_t		starttime;
-ldap_pvt_thread_t	listener_tid;
 int		g_argc;
 char		**g_argv;
 
@@ -37,11 +34,7 @@ int				active_threads;
 ldap_pvt_thread_mutex_t	active_threads_mutex;
 ldap_pvt_thread_cond_t	active_threads_cond;
 
-time_t			currenttime;
-ldap_pvt_thread_mutex_t	currenttime_mutex;
-
-ldap_pvt_thread_mutex_t	new_conn_mutex;
-
+ldap_pvt_thread_mutex_t	gmtime_mutex;
 #ifdef SLAPD_CRYPT
 ldap_pvt_thread_mutex_t	crypt_mutex;
 #endif
@@ -63,6 +56,9 @@ ldap_pvt_thread_mutex_t	replog_mutex;
 
 static char* slap_name;
 int slapMode = SLAP_UNDEFINED_MODE;
+
+static time_t			currenttime;
+static ldap_pvt_thread_mutex_t	currenttime_mutex;
 
 int
 slap_init( int mode, char *name )
@@ -98,12 +94,13 @@ slap_init( int mode, char *name )
 			ldap_pvt_thread_mutex_init( &active_threads_mutex );
 			ldap_pvt_thread_cond_init( &active_threads_cond );
 
-			ldap_pvt_thread_mutex_init( &new_conn_mutex );
 			ldap_pvt_thread_mutex_init( &currenttime_mutex );
 			ldap_pvt_thread_mutex_init( &entry2str_mutex );
 			ldap_pvt_thread_mutex_init( &replog_mutex );
 			ldap_pvt_thread_mutex_init( &ops_mutex );
 			ldap_pvt_thread_mutex_init( &num_sent_mutex );
+
+			ldap_pvt_thread_mutex_init( &gmtime_mutex );
 #ifdef SLAPD_CRYPT
 			ldap_pvt_thread_mutex_init( &crypt_mutex );
 #endif
@@ -162,3 +159,20 @@ int slap_destroy(void)
 	return rc;
 }
 
+/* should create a utils.c for these */
+
+void slap_set_time(void)
+{
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
+	time( &currenttime );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+}
+
+time_t slap_get_time(void)
+{
+	time_t t;
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
+	t = currenttime;
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+	return t;
+}

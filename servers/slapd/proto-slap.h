@@ -109,8 +109,20 @@ int read_config LDAP_P(( char *fname ));
 /*
  * connection.c
  */
+int connections_init LDAP_P((void));
 
-void connection_activity LDAP_P(( Connection *conn ));
+long connection_init LDAP_P((
+	int s,
+	const char* name, const char* addr));
+
+int connection_write LDAP_P((int s));
+int connection_read LDAP_P((int s));
+
+long connections_nextid(void);
+
+Connection* connection_first LDAP_P((void));
+Connection* connection_next LDAP_P((Connection *));
+void connection_done LDAP_P((Connection *));
 
 /*
  * dn.c
@@ -173,7 +185,7 @@ void monitor_info LDAP_P(( Connection *conn, Operation *op ));
 void slap_op_free LDAP_P(( Operation *op ));
 Operation * slap_op_alloc LDAP_P((
 	BerElement *ber, unsigned long msgid,
-	unsigned long tag, int id, int connid ));
+	unsigned long tag, long id ));
 
 int slap_op_add LDAP_P(( Operation **olist, Operation *op ));
 int slap_op_remove LDAP_P(( Operation **olist, Operation *op ));
@@ -202,7 +214,8 @@ void send_ldap_result LDAP_P(( Connection *conn, Operation *op, int err, char *m
 	char *text ));
 void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
 	char *matched, char *text, int nentries ));
-void close_connection LDAP_P(( Connection *conn, int opconnid, int opid ));
+
+void do_close( Connection *conn, long opid );
 
 /*
  * schema.c
@@ -244,7 +257,6 @@ char *suffixAlias LDAP_P(( char *dn, Operation *op, Backend *be ));
  * Other...
  */
 
-extern char		**g_argv;
 extern char		*default_referral;
 extern char		*replogfile;
 extern char		Versionstr[];
@@ -257,35 +269,48 @@ extern int		global_lastmod;
 extern int		global_schemacheck;
 extern int		lber_debug;
 extern int		ldap_syslog;
-extern int		num_conns;
+
+#ifdef LDAP_COUNTERS
+extern ldap_pvt_thread_mutex_t	num_sent_mutex;
 extern long		num_bytes_sent;
+
 extern long		num_entries_sent;
+
+extern ldap_pvt_thread_mutex_t	ops_mutex;
 extern long		ops_completed;
 extern long		ops_initiated;
+#endif
+
+extern char   *slapd_pid_file;
+extern char   *slapd_args_file;
+extern char		**g_argv;
+extern time_t	starttime;
+
+time_t slap_get_time LDAP_P((void));
+void slap_set_time LDAP_P((void));
 
 extern ldap_pvt_thread_mutex_t	active_threads_mutex;
 extern ldap_pvt_thread_cond_t	active_threads_cond;
 
-extern ldap_pvt_thread_mutex_t	currenttime_mutex;
 extern ldap_pvt_thread_mutex_t	entry2str_mutex;
-extern ldap_pvt_thread_mutex_t	new_conn_mutex;
-extern ldap_pvt_thread_mutex_t	num_sent_mutex;
-extern ldap_pvt_thread_mutex_t	ops_mutex;
 extern ldap_pvt_thread_mutex_t	replog_mutex;
+
 #ifdef SLAPD_CRYPT
 extern ldap_pvt_thread_mutex_t	crypt_mutex;
 #endif
-extern ldap_pvt_thread_t	listener_tid;
+extern ldap_pvt_thread_mutex_t	gmtime_mutex;
+
 extern struct acl	*global_acl;
 extern struct objclass	*global_oc;
-extern time_t		currenttime;
 
 extern int	slap_init LDAP_P((int mode, char* name));
 extern int	slap_startup LDAP_P((int dbnum));
 extern int	slap_shutdown LDAP_P((int dbnum));
 extern int	slap_destroy LDAP_P((void));
 
-extern void * slapd_daemon LDAP_P((void *port));
+struct sockaddr_in;
+extern int slapd_daemon LDAP_P((struct sockaddr_in *addr));
+
 extern void	slap_set_shutdown LDAP_P((int sig));
 extern void	slap_do_nothing   LDAP_P((int sig));
 
@@ -303,11 +328,7 @@ extern void	do_unbind LDAP_P((Connection *conn, Operation *op));
 extern int send_search_entry LDAP_P((Backend *be, Connection *conn, Operation *op, Entry *e, char **attrs, int attrsonly));
 extern int str2result LDAP_P(( char *s, int *code, char **matched, char **info ));
 
-#if defined( SLAPD_MONITOR_DN )
-extern Connection	*c;
-extern int		dtblsize;
-extern time_t		starttime;
-#endif
+extern int dtblsize;
 
 #endif /* _proto_slap */
 

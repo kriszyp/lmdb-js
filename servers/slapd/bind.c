@@ -135,7 +135,7 @@ do_bind(
 			free( cred.bv_val );
 		}
 
-		ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		conn->c_protocol = version;
 
@@ -149,7 +149,7 @@ do_bind(
 			conn->c_dn = NULL;
 		}
 
-		ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 		return;
@@ -168,7 +168,7 @@ do_bind(
 			free( cred.bv_val );
 		}
 		if ( cred.bv_len == 0 ) {
-			ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_protocol = version;
 
@@ -182,7 +182,7 @@ do_bind(
 				conn->c_dn = NULL;
 			}
 
-			ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL );
@@ -203,7 +203,7 @@ do_bind(
 		ndn = suffixAlias( ndn, op, be );
 
 		if ( (*be->be_bind)( be, conn, op, ndn, method, &cred, &edn ) == 0 ) {
-			ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_protocol = version;
 
@@ -228,7 +228,7 @@ do_bind(
 			Debug( LDAP_DEBUG_TRACE, "do_bind: bound \"%s\" to \"%s\"\n",
 	    		conn->c_cdn, conn->c_dn, method );
 
-			ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 			/* send this here to avoid a race condition */
 			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );

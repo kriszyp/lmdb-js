@@ -13,7 +13,6 @@
 
 #include "slap.h"
 
-
 static void
 send_ldap_result2(
     Connection	*conn,
@@ -25,7 +24,7 @@ send_ldap_result2(
 )
 {
 	BerElement	*ber;
-	int		rc;
+	int		rc, tmp;
 	unsigned long	tag, bytes;
 
 	if ( err == LDAP_PARTIAL_RESULTS && (text == NULL || *text == '\0') )
@@ -52,12 +51,14 @@ send_ldap_result2(
 		break;
 	}
 
+
 #ifdef LDAP_COMPAT30
 	if ( (ber = ber_alloc_t( conn->c_version == 30 ? 0 : LBER_USE_DER ))
-	    == NULLBER ) {
+	    == NULLBER )
 #else
-	if ( (ber = der_alloc()) == NULLBER ) {
+	if ( (ber = der_alloc()) == NULLBER )
 #endif
+	{
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
 		return;
 	}
@@ -83,14 +84,15 @@ send_ldap_result2(
 	}
 
 	/* write only one pdu at a time - wait til it's our turn */
-	ldap_pvt_thread_mutex_lock( &conn->c_pdumutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_write_mutex );
+
+	/* lock the connection */
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	/* write the pdu */
 	bytes = ber->ber_ptr - ber->ber_buf;
-	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
-	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
-	    1 ) != 0 ) {
-		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
+
+	while ( ber_flush( &conn->c_sb, ber, 1 ) != 0 ) {
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
@@ -102,35 +104,29 @@ send_ldap_result2(
 		    : "unknown", 0 );
 
 		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
-			close_connection( conn, op->o_connid, op->o_opid );
+			conn->c_conn_state = SLAP_C_CLOSING;
 
-			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
 			return;
 		}
 
 		/* wait for socket to be write-ready */
-		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-		active_threads--;
 		conn->c_writewaiter = 1;
+		slapd_set_write( conn->c_sb.sb_sd, 1 );
 
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-
-		ldap_pvt_thread_cond_wait( &conn->c_wcv, &active_threads_mutex );
-
-		if( active_threads < 1 ) {
-			ldap_pvt_thread_cond_signal(&active_threads_cond);
-		}
-		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
-
-		ldap_pvt_thread_yield();
-		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
+		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
+		conn->c_writewaiter = 0;
 	}
-	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
-	ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
 
+	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+
+#ifdef LDAP_COUNTERS
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
+#endif
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%d op=%d RESULT err=%d tag=%lu nentries=%d\n", conn->c_connid,
@@ -186,7 +182,7 @@ send_search_entry(
 {
 	BerElement	*ber;
 	Attribute	*a;
-	int		i, rc, bytes;
+	int		i, rc=-1, bytes;
 	struct acl	*acl;
 	char            *edn;
 
@@ -261,7 +257,7 @@ send_search_entry(
 			continue;
 		}
 
-		if ( ber_printf( ber, "{s[", a->a_type ) == -1 ) {
+		if (( rc = ber_printf( ber, "{s[", a->a_type )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -278,9 +274,9 @@ send_search_entry(
 					continue;
 				}
 
-				if ( ber_printf( ber, "o",
+				if (( rc = ber_printf( ber, "o",
 				    a->a_vals[i]->bv_val,
-				    a->a_vals[i]->bv_len ) == -1 )
+				    a->a_vals[i]->bv_len )) == -1 )
 				{
 					Debug( LDAP_DEBUG_ANY,
 					    "ber_printf failed\n", 0, 0, 0 );
@@ -293,7 +289,7 @@ send_search_entry(
 			}
 		}
 
-		if ( ber_printf( ber, "]}" ) == -1 ) {
+		if (( rc = ber_printf( ber, "]}" )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -317,14 +313,16 @@ send_search_entry(
 		return( 1 );
 	}
 
-	/* write only one pdu at a time - wait til it's our turn */
-	ldap_pvt_thread_mutex_lock( &conn->c_pdumutex );
-
 	bytes = ber->ber_ptr - ber->ber_buf;
-	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
-	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
-	    1 ) != 0 ) {
-		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
+
+	/* write only one pdu at a time - wait til it's our turn */
+	ldap_pvt_thread_mutex_lock( &conn->c_write_mutex );
+
+	/* lock the connection */ 
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+	/* write the pdu */
+	while ( ber_flush( &conn->c_sb, ber, 1 ) != 0 ) {
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
@@ -336,51 +334,40 @@ send_search_entry(
 		    : "unknown", 0 );
 
 		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
-			close_connection( conn, op->o_connid, op->o_opid );
+			conn->c_conn_state = SLAP_C_CLOSING;
 
-			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
 			return( -1 );
 		}
 
 		/* wait for socket to be write-ready */
-		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-		active_threads--;
 		conn->c_writewaiter = 1;
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-		ldap_pvt_thread_cond_wait( &conn->c_wcv, &active_threads_mutex );
+		slapd_set_write( conn->c_sb.sb_sd, 1 );
 
-		if( active_threads < 1 ) {
-			ldap_pvt_thread_cond_signal(&active_threads_cond);
-		}
-		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
-
-		ldap_pvt_thread_yield();
-		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
+		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
+		conn->c_writewaiter = 0;
 	}
-	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
-	ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
 
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+
+#ifdef LDAP_COUNTERS
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
 	num_entries_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
+#endif
 
-	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
-	if ( conn->c_connid == op->o_connid ) {
-		rc = 0;
-		Statslog( LDAP_DEBUG_STATS2, "conn=%d op=%d ENTRY dn=\"%s\"\n",
-		    conn->c_connid, op->o_opid, e->e_dn, 0, 0 );
-	} else {
-		rc = -1;
-	}
-	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
+	Statslog( LDAP_DEBUG_STATS2, "conn=%d op=%d ENTRY dn=\"%s\"\n",
+	    conn->c_connid, op->o_opid, e->e_dn, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
 
-	return( rc );
+	rc = 0;
 
 error_return:;
-	return( 1 );
+	return( rc );
 }
 
 int
@@ -435,27 +422,4 @@ str2result(
 	}
 
 	return( rc );
-}
-
-/*
- * close_connection - close a connection. takes the connection to close,
- * the connid associated with the operation generating the close (so we
- * don't accidentally close a connection that's not ours), and the opid
- * of the operation generating the close (for logging purposes).
- */
-void
-close_connection( Connection *conn, int opconnid, int opid )
-{
-	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
-	if ( lber_pvt_sb_in_use(&conn->c_sb) && conn->c_connid == opconnid ) {
-		Statslog( LDAP_DEBUG_STATS,
-		    "conn=%d op=%d fd=%d closed errno=%d\n", conn->c_connid,
-		    opid, lber_pvt_sb_get_desc(&conn->c_sb), errno, 0 );
-	   	lber_pvt_sb_close( &conn->c_sb );
-	   	lber_pvt_sb_destroy( &conn->c_sb );
-		conn->c_version = 0;
-		conn->c_protocol = 0;
-		conn->c_state = SLAP_C_INACTIVE;
-	}
-	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 }

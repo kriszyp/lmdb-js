@@ -41,9 +41,7 @@ ldbm_cache_open(
 	    flags, li->li_mode );
 
 	lru = 0;
-	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-	curtime = currenttime;
-	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+	curtime = slap_get_time();
 	oldtime = curtime;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );

@@ -15,8 +15,6 @@ slap_op_free( Operation *op )
 {
 	assert( op->o_next == NULL );
 
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-
 	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );
 	}
@@ -27,8 +25,8 @@ slap_op_free( Operation *op )
 		free( op->o_ndn );
 	}
 
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 	ldap_pvt_thread_mutex_destroy( &op->o_abandonmutex );
+
 	free( (char *) op );
 }
 
@@ -37,8 +35,7 @@ slap_op_alloc(
     BerElement		*ber,
     unsigned long	msgid,
     unsigned long	tag,
-    int				id,
-    int				connid
+    long			id
 )
 {
 	Operation	*op;
@@ -46,19 +43,17 @@ slap_op_alloc(
 	op = (Operation *) ch_calloc( 1, sizeof(Operation) );
 
 	ldap_pvt_thread_mutex_init( &op->o_abandonmutex );
+	op->o_abandon = 0;
+
 	op->o_ber = ber;
 	op->o_msgid = msgid;
 	op->o_tag = tag;
-	op->o_abandon = 0;
 
 	op->o_dn = NULL;
 	op->o_ndn = NULL;
 
-	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-	op->o_time = currenttime;
-	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+	op->o_time = slap_get_time();
 	op->o_opid = id;
-	op->o_connid = connid;
 	op->o_next = NULL;
 
 	return( op );

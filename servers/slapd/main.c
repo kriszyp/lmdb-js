@@ -56,13 +56,15 @@ usage( char *name )
     fprintf( stderr, "\n" );
 }
 
+time_t starttime;
+
 int
 main( int argc, char **argv )
 {
 	int		i;
 	int		inetd = 0;
-	int		rc = 0;
-	struct sockaddr_in	bind_addr;
+	int		status, rc;
+	struct sockaddr_in	bind_addr, *slapd_addr;
 	int		udp;
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
@@ -207,130 +209,61 @@ main( int argc, char **argv )
 		goto destroy;
 	}
 
-	if ( slap_startup(-1)  != 0 ) {
-		rc = 1;
-		goto shutdown;
-	}
-
-	if ( ! inetd ) {
-		int		status;
-
-		(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
-		(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
+	(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
+	(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
 #ifdef SIGPIPE
-		(void) SIGNAL( SIGPIPE, SIG_IGN );
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 #ifdef SIGHUP
-		(void) SIGNAL( SIGHUP, slap_set_shutdown );
+	(void) SIGNAL( SIGHUP, slap_set_shutdown );
 #endif
-		(void) SIGNAL( SIGINT, slap_set_shutdown );
-		(void) SIGNAL( SIGTERM, slap_set_shutdown );
+	(void) SIGNAL( SIGINT, slap_set_shutdown );
+	(void) SIGNAL( SIGTERM, slap_set_shutdown );
 
+	if(!inetd) {
 #ifdef LDAP_DEBUG
 		lutil_detach( ldap_debug, 0 );
 #else
 		lutil_detach( 0, 0 );
 #endif
+	}
 
-		time( &starttime );
+	if ( slap_startup(-1)  != 0 ) {
+		rc = 1;
+		goto shutdown;
+	}
 
-		status = ldap_pvt_thread_create( &listener_tid, 0,
-						 slapd_daemon, &bind_addr );
-		if ( status != 0 )
+	if(!inetd) {
+		FILE *fp;
+
+		slapd_addr = &bind_addr;
+
+		Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
+
+		if (( slapd_pid_file != NULL ) &&
+			(( fp = fopen( slapd_pid_file, "w" )) != NULL ))
 		{
-			Debug( LDAP_DEBUG_ANY,
-			    "listener ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
+			fprintf( fp, "%d\n", (int) getpid() );
+			fclose( fp );
+		}
 
-			rc = 1;
-
-		} else {
-			/* wait for the listener thread to complete */
-			ldap_pvt_thread_join( listener_tid, (void *) NULL );
+		if (( slapd_args_file != NULL ) &&
+			(( fp = fopen( slapd_args_file, "w" )) != NULL ))
+		{
+			for ( i = 0; i < g_argc; i++ ) {
+				fprintf( fp, "%s ", g_argv[i] );
+			}
+			fprintf( fp, "\n" );
+			fclose( fp );
 		}
 
 	} else {
-		Connection		c;
-		BerElement		ber;
-		unsigned long		len, tag;
-		long			msgid;
-		int			flen;
-		struct sockaddr_in	from;
-		struct hostent		*hp;
-
-		c.c_dn = NULL;
-		c.c_cdn = NULL;
-		c.c_ops = NULL;
-	   
-		lber_pvt_sb_init( &c.c_sb );
-		lber_pvt_sb_set_desc( &c.c_sb, 0 );
-		lber_pvt_sb_set_io( &c.c_sb, 
-			(udp) ? &lber_pvt_sb_io_udp : &lber_pvt_sb_io_tcp, 
-			NULL );
-	   	/* FIXME: handle udp here */
-
-		ldap_pvt_thread_mutex_init( &c.c_dnmutex );
-		ldap_pvt_thread_mutex_init( &c.c_opsmutex );
-		ldap_pvt_thread_mutex_init( &c.c_pdumutex );
-#ifdef notdefcldap
-		c.c_sb.sb_addrs = (void **) saddrlist;
-		c.c_sb.sb_fromaddr = &faddr;
-		c.c_sb.sb_useaddr = saddrlist[ 0 ] = &saddr;
-#endif
-		flen = sizeof(from);
-		if ( getpeername( 0, (struct sockaddr *) &from, &flen ) == 0 ) {
-#ifdef SLAPD_RLOOKUPS
-			hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-			    sizeof(from.sin_addr.s_addr), AF_INET );
-#else
-			hp = NULL;
-#endif
-
-			Debug( LDAP_DEBUG_ARGS, "connection from %s (%s)\n",
-			    hp == NULL ? "unknown" : hp->h_name,
-			    inet_ntoa( from.sin_addr ), 0 );
-
-			c.c_addr = inet_ntoa( from.sin_addr );
-			c.c_domain = ch_strdup( hp == NULL ? "" : hp->h_name );
-		} else {
-			Debug( LDAP_DEBUG_ARGS, "connection from unknown\n",
-			    0, 0, 0 );
-		}
-
-		c.c_state = SLAP_C_ACTIVE;
-
-		ber_init_w_nullc( &ber, 0 );
-
-		while ( (tag = ber_get_next( &c.c_sb, &len, &ber ))
-		    == LDAP_TAG_MESSAGE ) {
-			ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-			time( &currenttime );
-			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
-
-			if ( (tag = ber_get_int( &ber, &msgid ))
-			    != LDAP_TAG_MSGID ) {
-				/* log and send error */
-				Debug( LDAP_DEBUG_ANY,
-				   "ber_get_int returns 0x%lx\n", tag, 0, 0 );
-				ber_free( &ber, 1 );
-				return 1;
-			}
-
-			if ( (tag = ber_peek_tag( &ber, &len ))
-			    == LBER_ERROR ) {
-				/* log, close and send error */
-				Debug( LDAP_DEBUG_ANY,
-				   "ber_peek_tag returns 0x%lx\n", tag, 0, 0 );
-				ber_free( &ber, 1 );
-			   	lber_pvt_sb_close( &c.c_sb );
-			   	lber_pvt_sb_destroy( &c.c_sb );
-				return 1;
-			}
-
-			connection_activity( &c );
-
-			ber_free( &ber, 1 );
-		}
+		slapd_addr = NULL;
 	}
+
+	time( &starttime );
+
+	rc = slapd_daemon( slapd_addr );
 
 shutdown:
 	/* remember an error during shutdown */

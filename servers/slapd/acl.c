@@ -287,7 +287,9 @@ acl_access_allowed(
 			}
 		}
 		if ( b->a_addrpat != NULL ) {
-			if ( regex_matches( b->a_addrpat, conn->c_addr, edn, matches ) ) {
+			if ( regex_matches( b->a_addrpat, conn->c_client_addr,
+				edn, matches ) )
+			{
 				Debug( LDAP_DEBUG_ACL,
 				    "<= acl_access_allowed: matched by clause #%d access %s\n",
 				    i, (b->a_access & ~ACL_SELF) >= access ?
@@ -299,7 +301,8 @@ acl_access_allowed(
 		if ( b->a_domainpat != NULL ) {
 			Debug( LDAP_DEBUG_ARGS, "<= check a_domainpath: %s\n",
 				b->a_domainpat, 0, 0 );
-			if ( regex_matches( b->a_domainpat, conn->c_domain, edn, matches ) ) 
+			if ( regex_matches( b->a_domainpat, conn->c_client_name,
+				edn, matches ) ) 
 			{
 				Debug( LDAP_DEBUG_ACL,
 				    "<= acl_access_allowed: matched by clause #%d access %s\n",

@@ -31,7 +31,8 @@ PROGRAMS2=ldif2index-bdb2 ldif2ldbm-bdb2 \
 	ldif2id2entry-bdb2 ldif2id2children-bdb2
 
 SRCS = centipede.c ldbmcat.c ldbmtest.c sizecount.c \
-	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c
+	ldif.c ldif2id2children.c ldif2id2entry.c ldif2index.c ldif2ldbm.c \
+	mimic.c
 
 SRCS2 = ldif2id2children-bdb2.c ldif2id2entry-bdb2.c \
 	ldif2index-bdb2.c ldif2ldbm-bdb2.c
@@ -41,8 +42,9 @@ XSRCS = edb2-vers.c
 EDB2LDIFSRCS	= edb2ldif.c ldapsyntax.c
 EDB2LDIFOBJS	= edb2ldif.o ldapsyntax.o
 
-OBJS2	= ../config.o ../ch_malloc.o ../backend.o ../charray.o \
-		../aclparse.o ../schema.o ../result.o ../filterentry.o \
+OBJS2	= mimic.o \
+		../config.o ../ch_malloc.o ../backend.o ../charray.o \
+		../aclparse.o ../schema.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
 		../schemaparse.o
