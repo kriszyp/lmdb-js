@@ -360,6 +360,7 @@ int main( int argc, char **argv )
 #endif
 
 	extops_init();
+	lutil_passwd_init();
 
 #ifdef SLAPD_MODULES
 	if ( module_init() != 0 ) {
@@ -613,6 +614,8 @@ stop:
 	controls_destroy();
 
 	schema_destroy();
+
+	lutil_passwd_destroy();
 
 #ifdef HAVE_TLS
 	ldap_pvt_tls_destroy();
