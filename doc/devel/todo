@@ -21,6 +21,7 @@ Larger than life projects
 -------------------------
 LDAPv3 support <kurt@openldap.org>
 LDAP C API (draft-ietf-ldapext-ldap-c-api-xx) support <kurt@openldap.org>
+Redesign slapd memory allocation failure handling
 Schema Repository
 
 
