@@ -51,9 +51,7 @@ value_add(
 	return LDAP_SUCCESS;
 }
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not used */
-#else
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 int
 value_add_fast( 
     struct berval	***vals,

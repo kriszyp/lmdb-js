@@ -119,7 +119,6 @@ attr_normalize( char *s )
 
 	return( ldap_pvt_str2lower( s ) );
 }
-#endif
 
 /*
  * attr_merge_fast - merge the given type and value with the list of
@@ -129,9 +128,6 @@ attr_normalize( char *s )
  *		-1	trouble
  */
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not used */
-#else
 int
 attr_merge_fast(
     Entry		*e,
