@@ -446,25 +446,25 @@ H4: syncrepl
 
 >	syncrepl id=<replica ID>
 >		provider=ldap[s]://<hostname>[:port]
->		[binddn=<dn>]
->		[bindmethod=simple|sasl]
->		[binddn=<simple DN>]
->		[credentials=<simple passwd>]
->		[saslmech=<SASL mech>]
->		[secprops=<properties>]
->		[realm=<realm>]
->		[authcId=<authentication ID>]
->		[authzId=<authorization ID>]
->		[updatedn=<dn>]
+>		[type=refreshOnly|refreshAndPersist]
+>		[interval=dd:hh:mm:ss]
 >		[searchbase=<base DN>]
 >		[filter=<filter str>]
->		[attrs=<attr list>]
 >		[scope=sub|one|base]
+>		[attrs=<attr list>]
+>		[attrsonly]
 >		[sizelimit=<limit>]
 >		[timelimit=<limit>]
 >		[schemachecking=on|off]
->		[type=refreshOnly|refreshAndPersist]
->		[interval=dd:hh:mm:ss]
+>		[updatedn=<dn>]
+>		[bindmethod=simple|sasl]
+>		[binddn=<dn>]
+>		[saslmech=<mech>]
+>		[authcid=<identity>]
+>		[authzid=<identity>]
+>		[credentials=<passwd>]
+>		[realm=<realm>]
+>		[secprops=<properties>]
 
 This directive specifies the current database as a replica of the
 master database at the provider site. The replica database at the
@@ -494,51 +494,66 @@ not represent the replication peers of each other.
 The content of the syncrepl replica is defined using a search
 specification as its result set. The consumer slapd will send
 search requests to the provider slapd according to the search
-specification. The search specification consists of {{EX:searchbase}},
-{{EX:scope}}, {{EX:filter}}, and {{EX:attrs}} parameters
-as in the normal search specification. The search requests
-for the LDAP Content Synchronization operation is attached 
-a special control for synchronization and replica management.
+specification. The search specification includes {{EX:searchbase}},
+{{EX:scope}}, {{EX:filter}}, {{EX:attrs}}, {{EX:attrsonly}},
+{{EX:sizelimit}}, and {{EX:timelimit}} parameters as in the normal
+search specification. The syncrepl search specification 
+has the same default value semantics as the {{REF:ldapsearch(1)}}
+client search tool.
 
-The LDAP Content Synchronization protocol has two types of operation
-modes : {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
+The LDAP Content Synchronization protocol has two operation
+types: {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
 The operation type is specified by the {{EX:type}} parameter.
 In the {{EX:refreshOnly}} mode, the next synchronization search operation
-is rescheduled periodically at the interval time after the current
+is periodically rescheduled at an interval time after each
 synchronization operation finishes. The interval is specified
 by the {{EX:interval}} parameter. It is set to one day by default.
 In the {{EX:refreshAndPersist}} mode, a synchronization search
 remains persistent in the provider slapd. Further updates to the
-master replica will make searchResultEntry search responses
-to the persistent synchronization search delivered to the consumer
-slapd in order to synchronize the replica.
+master replica will generate searchResultEntry to the consumer slapd
+as the search responses to the persistent synchronization search.
 
 The schema checking can be enforced at the LDAP Sync consumer site
 by turning on the {{EX:schemachecking}} parameter. The default is off.
 
-The {{EX:binddn}} parameter gives the DN for a LDAP Content Synchronization
-search to bind as to the provider slapd. The search result, i.e., the
-content of the replica, will be subject to the access control privileges
-of the DN.
+The {{EX:updatedn}} paramter specifies the DN in the consumer site
+which is allowed to make changes to the replica. This DN is used
+locally by the syncrepl engine when updating the replica with
+the entries received from the provider site by using the
+internal operation mechanism. The update of the replica content
+is subject to the access control privileges of the DN.
+The DN should have read/write access to the replica database.
+It is typically given as a {{EX:rootdn}} in the consumer site's
+config file.
 
-The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}}, depending
-on whether simple password-based authentication or SASL authentication
-is to be used when connecting to the provider slapd.
+The {{EX:binddn}} parameter gives the DN to bind as for the
+syncrepl searches to the provider slapd. It should be a DN
+which has read access to the replication content in the
+master database. 
+
+The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}},
+depending on whether simple password-based authentication or
+{{TERM:SASL}} authentication is to be used when connecting
+to the provider slapd.
 
 Simple authentication should not be used unless adequate integrity
-and data confidential protections are in place (e.g. TLS or IPSEC).
-Simple authentication requires specification of {{EX:binddn}} and
+and privacy protections are in place (e.g. TLS or IPSEC). Simple
+authentication requires specification of {{EX:binddn}} and
 {{EX:credentials}} parameters.
 
-SASL authentication is generally recommended. SASL authentication
-requires specification of a mechanism using the {{EX:mech}} parameter.
+SASL authentication is generally recommended.  SASL authentication
+requires specification of a mechanism using the {{EX:saslmech}} parameter.
 Depending on the mechanism, an authentication identity and/or
-credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
+credentials can be specified using {{EX:authcid}} and {{EX:credentials}},
 respectively.  The {{EX:authzid}} parameter may be used to specify
-a proxy authorization identity.
+an authorization identity.
 
-The syncrepl replication mechanism is supported in the three native backends:
-back-bdb, back-hdb, and back-ldbm.
+The {{EX:realm}} parameter specifies a realm which a certain
+mechanisms authenticate the identity within. The {{EX:secprops}}
+parameter specifies Cyrus SASL security properties.
+
+The syncrepl replication mechanism is supported by the
+three native backends: back-bdb, back-hdb, and back-ldbm.
 
 See the {{SECT:LDAP Sync Replication}} chapter of the admin guide
 for more information on how to use this directive.
