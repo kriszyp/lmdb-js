@@ -9,6 +9,7 @@
  * top-level directory of the distribution.
  */
 /* stolen from FreeBSD for use in OpenLDAP */
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -47,8 +48,6 @@
 
 #ifndef _SYS_QUEUE_H_
 #define	_SYS_QUEUE_H_
-
-#define __offsetof	offsetof
 
 /*
  * This file defines five types of data structures: singly-linked lists,
@@ -118,6 +117,9 @@
  * _REMOVE_HEAD		+	-	+	-	-
  * _REMOVE		+	+	+	+	+
  *
+ */
+/*
+ * see queue(3) for instructions on how to use
  */
 
 /*
@@ -212,7 +214,7 @@ struct {								\
 	(STAILQ_EMPTY(head) ?						\
 		NULL :							\
 	        ((struct type *)					\
-		((char *)((head)->stqh_last) - __offsetof(struct type, field))))
+		((char *)((head)->stqh_last) - offsetof(struct type, field))))
 
 #define STAILQ_FOREACH(var, head, field)				\
 	for((var) = (head)->stqh_first; (var); (var) = (var)->field.stqe_next)
