@@ -1,5 +1,8 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.15 Engineering
+	Fixed -ldap TLS external handling
+
 OpenLDAP 2.0.14 Release
 	Fixed slurpd billionth second bug (ITS#1323)
 
