@@ -585,8 +585,7 @@ refint_response(
 	dd.message	= "_dependent_modify";
 
 	/* See if the parent operation is going into the replog */
-	cbo = NULL;
-	for (cbp = op->o_callback->sc_next; cbp; cbo=cbp,cbp=cbp->sc_next) {
+	for (cbo=op->o_callback, cbp = cbo->sc_next; cbp; cbo=cbp,cbp=cbp->sc_next) {
 		if (cbp->sc_response == slap_replog_cb) {
 			/* Invoke replog now, arrange for our
 			 * dependent mods to also be logged
