@@ -815,15 +815,15 @@ else
 	ol_with_sql_module=static
 	if test $ol_with_dyngroup = mod ; then
 		AC_MSG_WARN([building static dyngroup overlay])
-		ol_with_dyngroup = yes
+		ol_with_dyngroup=yes
 	fi
 	if test $ol_with_proxycache = mod ; then
 		AC_MSG_WARN([building static proxycache overlay])
-		ol_with_proxycache = yes
+		ol_with_proxycache=yes
 	fi
 	if test $ol_with_rwm = mod ; then
 		AC_MSG_WARN([building static rwm overlay])
-		ol_with_rwm = yes
+		ol_with_rwm=yes
 	fi
 fi
 
