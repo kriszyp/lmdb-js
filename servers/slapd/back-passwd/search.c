@@ -183,9 +183,7 @@ passwd_back_search(
 			goto done;
 		}
 
-		for( s = user; *s ; s++ ) {
-			*s = TOLOWER( *s );
-		}
+		user = str2lower( user );
 
 		if ( (pw = getpwnam( user )) == NULL ) {
 			matched = parent;
@@ -270,8 +268,7 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 			strncpy(buf, val.bv_val, i);
 			s = buf+i;
 			strcpy(s, pw->pw_name);
-			if (islower(*s))
-				*s = toupper(*s);
+			*s = TOUPPER(*s);
 			strcat(s, val.bv_val+i+1);
 			val.bv_val = buf;
 		}

@@ -271,13 +271,20 @@ static void connection_return( Connection *c )
 
 long connection_init(
 	ber_socket_t s,
-	const char* name,
-	const char* addr,
+	const char* url,
+	const char* dnsname,
+	const char* peername,
+	const char* sockname,
 	int use_tls )
 {
 	unsigned long id;
 	Connection *c;
+
 	assert( connections != NULL );
+
+	assert( dnsname != NULL );
+	assert( peername != NULL );
+	assert( sockname != NULL );
 
 #ifndef HAVE_TLS
 	assert( !use_tls );
@@ -341,8 +348,12 @@ long connection_init(
     if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
         c->c_dn = NULL;
         c->c_cdn = NULL;
-        c->c_client_name = NULL;
-        c->c_client_addr = NULL;
+
+		c->c_listener_url = NULL;
+		c->c_peer_domain = NULL;
+        c->c_peer_name = NULL;
+        c->c_sock_name = NULL;
+
         c->c_ops = NULL;
         c->c_pending_ops = NULL;
 		c->c_authmech = NULL;
@@ -363,15 +374,19 @@ long connection_init(
     assert( c->c_struct_state == SLAP_C_UNUSED );
     assert(	c->c_dn == NULL );
     assert(	c->c_cdn == NULL );
-    assert( c->c_client_name == NULL );
-    assert( c->c_client_addr == NULL );
+    assert( c->c_listener_url == NULL );
+    assert( c->c_peer_domain == NULL );
+    assert( c->c_peer_name == NULL );
+    assert( c->c_sock_name == NULL );
     assert( c->c_ops == NULL );
     assert( c->c_pending_ops == NULL );
 	assert( c->c_authmech == NULL );
 	assert( c->c_authstate == NULL );
 
-    c->c_client_name = ch_strdup( name == NULL ? "" : name );
-    c->c_client_addr = ch_strdup( addr );
+	c->c_listener_url = ch_strdup( url  );
+	c->c_peer_domain = ch_strdup( dnsname  );
+    c->c_peer_name = ch_strdup( peername  );
+    c->c_sock_name = ch_strdup( sockname );
 
     c->c_n_ops_received = 0;
     c->c_n_ops_executing = 0;
@@ -389,8 +404,8 @@ long connection_init(
 
     if( ber_pvt_sb_set_nonblock( c->c_sb, 1 ) < 0 ) {
         Debug( LDAP_DEBUG_ANY,
-            "connection_init(%d, %s, %s): set nonblocking failed\n",
-            s, c->c_client_name, c->c_client_addr);
+            "connection_init(%d, %s): set nonblocking failed\n",
+            s, c->c_peer_name,0 );
     }
 
     id = c->c_connid = conn_nextid++;
@@ -439,13 +454,21 @@ connection_destroy( Connection *c )
 		free(c->c_cdn);
 		c->c_cdn = NULL;
 	}
-	if(c->c_client_name != NULL) {
-		free(c->c_client_name);
-		c->c_client_name = NULL;
+	if(c->c_listener_url != NULL) {
+		free(c->c_listener_url);
+		c->c_listener_url = NULL;
 	}
-	if(c->c_client_addr != NULL) {
-		free(c->c_client_addr);
-		c->c_client_addr = NULL;
+	if(c->c_peer_domain != NULL) {
+		free(c->c_peer_domain);
+		c->c_peer_domain = NULL;
+	}
+	if(c->c_peer_name != NULL) {
+		free(c->c_peer_name);
+		c->c_peer_name = NULL;
+	}
+	if(c->c_sock_name != NULL) {
+		free(c->c_sock_name);
+		c->c_sock_name = NULL;
 	}
 	if(c->c_authmech != NULL ) {
 		free(c->c_authmech);

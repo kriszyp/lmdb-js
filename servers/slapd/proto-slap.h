@@ -148,7 +148,10 @@ int connections_timeout_idle LDAP_P((time_t));
 
 long connection_init LDAP_P((
 	ber_socket_t s,
-	const char* name, const char* addr,
+	const char* url,
+	const char* dnsname,
+	const char* peername,
+	const char* sockname,
 	int use_tls ));
 
 void connection_closing LDAP_P(( Connection *c ));
@@ -174,7 +177,8 @@ char * dn_parent LDAP_P(( Backend *be, char *dn ));
 char * dn_rdn LDAP_P(( Backend *be, char *dn ));
 int dn_issuffix LDAP_P(( char *dn, char *suffix ));
 int dn_type LDAP_P(( char *dn ));
-char * dn_upcase LDAP_P(( char *dn ));
+char * str2upper LDAP_P(( char *str ));
+char * str2lower LDAP_P(( char *str ));
 char * rdn_attr_value LDAP_P(( char * rdn ));
 char * rdn_attr_type LDAP_P(( char * rdn ));
 void build_new_dn LDAP_P(( char ** new_dn, char *e_dn, char * p_dn,

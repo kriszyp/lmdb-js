@@ -222,7 +222,7 @@ read_config( char *fname )
 				char *dn = ch_strdup( cargv[1] );
 				(void) dn_normalize( dn );
 				charray_add( &be->be_suffix, dn );
-				(void) dn_upcase( dn );
+				(void) str2upper( dn );
 				charray_add( &be->be_nsuffix, dn );
 				free( dn );
 			}

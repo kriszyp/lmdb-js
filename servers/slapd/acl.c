@@ -123,15 +123,17 @@ acl_get_applicable(
 
 	/* check for a backend-specific acl that matches the entry */
 	for ( i = 1, a = be->be_acl; a != NULL; a = a->acl_next, i++ ) {
-		if (a->acl_dnpat != NULL) {
+		if (a->acl_dn_pat != NULL) {
 			Debug( LDAP_DEBUG_TRACE, "=> dnpat: [%d] %s nsub: %d\n", 
-				i, a->acl_dnpat, (int) a->acl_dnre.re_nsub);
+				i, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub);
 
-			if (regexec(&a->acl_dnre, edn, nmatch, matches, 0))
+			if (regexec(&a->acl_dn_re, edn, nmatch, matches, 0)) {
 				continue;
-			else
+
+			} else {
 				Debug( LDAP_DEBUG_TRACE, "=> acl_get:[%d]  backend ACL match\n",
 					i, 0, 0);
+			}
 		}
 
 		if ( a->acl_filter != NULL ) {
@@ -154,12 +156,13 @@ acl_get_applicable(
 
 	/* check for a global acl that matches the entry */
 	for ( i = 1, a = global_acl; a != NULL; a = a->acl_next, i++ ) {
-		if (a->acl_dnpat != NULL) {
-			Debug( LDAP_DEBUG_TRACE, "=> dnpat: [%d] %s nsub: %d\n", 
-				i, a->acl_dnpat, (int) a->acl_dnre.re_nsub);
+		if (a->acl_dn_pat != NULL) {
+			Debug( LDAP_DEBUG_TRACE, "=> dn pat: [%d] %s nsub: %d\n", 
+				i, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub);
 
-			if (regexec(&a->acl_dnre, edn, nmatch, matches, 0)) {
+			if (regexec(&a->acl_dn_re, edn, nmatch, matches, 0)) {
 				continue;
+
 			} else {
 				Debug( LDAP_DEBUG_TRACE, "=> acl_get: [%d] global ACL match\n",
 					i, 0, 0);
@@ -213,8 +216,6 @@ acl_access_allowed(
 {
 	int		i;
 	Access	*b;
-	Attribute	*at;
-	struct berval	bv;
 	int		default_access;
 
 	Debug( LDAP_DEBUG_ACL,
@@ -243,83 +244,97 @@ acl_access_allowed(
 		return( default_access >= access );
 	}
 
-	if ( op->o_ndn != NULL ) {
-		bv.bv_val = op->o_ndn;
-		bv.bv_len = strlen( bv.bv_val );
-	}
-
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
-		if ( b->a_dnpat != NULL ) {
-			Debug( LDAP_DEBUG_TRACE, "<= check a_dnpat: %s\n",
-				b->a_dnpat, 0, 0);
+		/* AND <who> clauses */
+		if ( b->a_dn_pat != NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "<= check a_dn_pat: %s\n",
+				b->a_dn_pat, 0, 0);
 			/*
 			 * if access applies to the entry itself, and the
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( strcasecmp( b->a_dnpat, "anonymous" ) == 0 && 
-				(op->o_ndn == NULL || *(op->o_ndn) == '\0' ) ) 
-			{
-				Debug( LDAP_DEBUG_ACL,
-				"<= acl_access_allowed: matched by clause #%d access %s\n",
-				    i, ACL_GRANT(b->a_access, access)
-						? "granted" : "denied", 0 );
-
-				return ACL_GRANT(b->a_access, access );
-
-			} else if ( strcasecmp( b->a_dnpat, "self" ) == 0 && 
-				op->o_ndn != NULL && *(op->o_ndn) && e->e_dn != NULL ) 
-			{
-				if ( strcmp( edn, op->o_ndn ) == 0 ) {
-					Debug( LDAP_DEBUG_ACL,
-					"<= acl_access_allowed: matched by clause #%d access %s\n",
-					    i, ACL_GRANT(b->a_access, access)
-							? "granted" : "denied", 0 );
-
-					return ACL_GRANT(b->a_access, access );
+			if ( strcasecmp( b->a_dn_pat, "anonymous" ) == 0 ) {
+				if (op->o_ndn != NULL && op->o_ndn[0] != '\0' ) {
+					continue;
 				}
-			} else {
-				if ( regex_matches( b->a_dnpat, op->o_ndn, edn, matches ) ) {
-					Debug( LDAP_DEBUG_ACL,
-				    "<= acl_access_allowed: matched by clause #%d access %s\n",
-				    i, ACL_GRANT(b->a_access, access)
-						? "granted" : "denied", 0 );
 
-					return ACL_GRANT(b->a_access, access );
+			} else if ( strcasecmp( b->a_dn_pat, "self" ) == 0 ) {
+				if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+					continue;
 				}
+				
+				if ( e->e_dn == NULL || strcmp( edn, op->o_ndn ) != 0 ) {
+					continue;
+				}
+
+			} else if ( strcmp( b->a_dn_pat, ".*" ) != 0 &&
+				!regex_matches( b->a_dn_pat, op->o_ndn, edn, matches ) )
+			{
+				continue;
 			}
 		}
-		if ( b->a_addrpat != NULL ) {
-			if ( regex_matches( b->a_addrpat, conn->c_client_addr,
-				edn, matches ) )
-			{
-				Debug( LDAP_DEBUG_ACL,
-				    "<= acl_access_allowed: matched by clause #%d access %s\n",
-				    i, ACL_GRANT(b->a_access, access)
-						? "granted" : "denied", 0 );
 
-				return ACL_GRANT(b->a_access, access );
-			}
-		}
-		if ( b->a_domainpat != NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "<= check a_domainpath: %s\n",
-				b->a_domainpat, 0, 0 );
-			if ( regex_matches( b->a_domainpat, conn->c_client_name,
+		if ( b->a_url_pat != NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "<= check a_url_pat: %s\n",
+				b->a_url_pat, 0, 0 );
+
+			if ( strcmp( b->a_url_pat, ".*" ) != 0 &&
+				!regex_matches( b->a_url_pat, conn->c_listener_url,
 				edn, matches ) ) 
 			{
-				Debug( LDAP_DEBUG_ACL,
-				    "<= acl_access_allowed: matched by clause #%d access %s\n",
-				    i, ACL_GRANT(b->a_access, access)
-						? "granted" : "denied", 0 );
-
-				return ACL_GRANT(b->a_access, access );
+				continue;
 			}
 		}
-		if ( b->a_dnattr != NULL && op->o_ndn != NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "<= check a_dnattr: %s\n",
-				b->a_dnattr, 0, 0);
-			/* see if asker is listed in dnattr */
-			if ( (at = attr_find( e->e_attrs, b->a_dnattr )) != NULL && 
+
+		if ( b->a_domain_pat != NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "<= check a_domain_pat: %s\n",
+				b->a_domain_pat, 0, 0 );
+
+			if ( strcmp( b->a_domain_pat, ".*" ) != 0 &&
+				!regex_matches( b->a_domain_pat, conn->c_peer_domain,
+				edn, matches ) ) 
+			{
+				continue;
+			}
+		}
+
+		if ( b->a_peername_pat != NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "<= check a_peername_path: %s\n",
+				b->a_peername_pat, 0, 0 );
+
+			if ( strcmp( b->a_peername_pat, ".*" ) != 0 &&
+				!regex_matches( b->a_peername_pat, conn->c_peer_name,
+				edn, matches ) )
+			{
+				continue;
+			}
+		}
+
+		if ( b->a_sockname_pat != NULL ) {
+			Debug( LDAP_DEBUG_ARGS, "<= check a_sockname_path: %s\n",
+				b->a_sockname_pat, 0, 0 );
+
+			if ( strcmp( b->a_sockname_pat, ".*" ) != 0 &&
+				!regex_matches( b->a_sockname_pat, conn->c_sock_name,
+				edn, matches ) )
+			{
+				continue;
+			}
+		}
+
+		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
+			Attribute	*at;
+			struct berval	bv;
+
+			Debug( LDAP_DEBUG_ARGS, "<= check a_dn_at: %s\n",
+				b->a_dn_at, 0, 0);
+
+			bv.bv_val = op->o_ndn;
+			bv.bv_len = strlen( bv.bv_val );
+
+			/* see if asker is listed in dnattr */ 
+			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL &&
 				value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
 			{
 				if ( ACL_IS_SELF(b->a_access) && 
@@ -328,30 +343,15 @@ acl_access_allowed(
 					continue;
 				}
 
-				Debug( LDAP_DEBUG_ACL,
-				    "<= acl_acces_allowed: matched by clause #%d access %s\n",
-				    i, ACL_GRANT(b->a_access, access)
-						? "granted" : "denied", 0 );
-
-				return ACL_GRANT(b->a_access, access );
-			}
-
 			/* asker not listed in dnattr - check for self access */
-			if ( ! ACL_IS_SELF(b->a_access) || val == NULL ||
+			} else if ( ! ACL_IS_SELF(b->a_access) || val == NULL ||
 				value_cmp( &bv, val, at->a_syntax, 2 ) != 0 )
 			{
 				continue;
 			}
-
-			Debug( LDAP_DEBUG_ACL,
-				"<= acl_access_allowed: matched by clause #%d (self) access %s\n",
-			    i, ACL_GRANT(b->a_access, access)
-					? "granted" : "denied", 0 );
-
-			return ACL_GRANT(b->a_access, access );
 		}
 
-		if ( b->a_group != NULL && op->o_ndn != NULL ) {
+		if ( b->a_group_pat != NULL && op->o_ndn != NULL ) {
 			char buf[1024];
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
@@ -359,18 +359,23 @@ acl_access_allowed(
 			 * the values in the attribute group
 			 */
 			/* see if asker is listed in dnattr */
-			string_expand(buf, sizeof(buf), b->a_group, edn, matches);
+			string_expand(buf, sizeof(buf), b->a_group_pat, edn, matches);
 			(void) dn_normalize_case(buf);
 
 			if (backend_group(be, e, buf, op->o_ndn,
-				b->a_group_oc, b->a_group_at) == 0)
+				b->a_group_oc, b->a_group_at) != 0)
 			{
-				Debug( LDAP_DEBUG_ACL,
-					"<= acl_access_allowed: matched by clause #%d (group) access granted\n",
-					i, 0, 0 );
-				return ACL_GRANT(b->a_access, access );
+				continue;
 			}
 		}
+
+		Debug( LDAP_DEBUG_ACL,
+			"<= acl_access_allowed: matched by clause #%d access %s\n",
+			i,
+			ACL_GRANT(b->a_access, access) ? "granted" : "denied",
+			0 );
+
+		return ACL_GRANT(b->a_access, access );
 	}
 
 	Debug( LDAP_DEBUG_ACL,

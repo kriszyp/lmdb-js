@@ -315,7 +315,7 @@ void *getRegParam( char *svc, char *value )
 	return (void*)NULL;
 }
 
-void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, short port, int udp )
+void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls )
 {
 	char *Inserts[5];
 	WORD i = 0, j;
@@ -326,12 +326,11 @@ void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, short po
 	Inserts[i] = (char *)malloc( 20 );
 	itoa( slap_debug, Inserts[i++], 10 );
 	Inserts[i++] = ldap_pvt_strdup( configfile );
-	Inserts[i] = (char *)malloc( 20 );
-	itoa( port, Inserts[i++], 10 );
-	Inserts[i++] = ldap_pvt_strdup( udp ? "udp" : "tcp" );
+	Inserts[i++] = ldap_pvt_strdup( urls );
 	Inserts[i++] = ldap_pvt_strdup( is_NT_Service ? "svc" : "cmd" );
 
-	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0, MSG_SLAPD_STARTED, NULL, i, 0, Inserts, NULL );
+	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0,
+		MSG_SLAPD_STARTED, NULL, i, 0, Inserts, NULL );
 
 	for ( j = 0; j < i; j++ )
 		ldap_memfree( Inserts[j] );
@@ -345,7 +344,8 @@ void LogSlapdStoppedEvent( char *svc )
 	HANDLE hEventLog;
 	
 	hEventLog = RegisterEventSource( NULL, svc );
-	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0, MSG_SLAPD_STOPPED, NULL, 0, 0, NULL, NULL );
+	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0,
+		MSG_SLAPD_STOPPED, NULL, 0, 0, NULL, NULL );
 	DeregisterEventSource( hEventLog );
 }
 

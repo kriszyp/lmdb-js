@@ -104,7 +104,7 @@ monitor_info( Connection *conn, Operation *op )
 			": %ld/%ld/%ld "
 			": %s%s%s%s%s%s "
 			": %s : %s : %s "
-			": %s : %s",
+			": %s : %s : %s : %s ",
 
 			c->c_connid,
 			(long) c->c_protocol,
@@ -123,8 +123,11 @@ monitor_info( Connection *conn, Operation *op )
 			c->c_bind_in_progress ? "S" : "",
 
 		    c->c_cdn ? c->c_cdn : "<anonymous>",
-		    c->c_client_addr ? c->c_client_addr : "unknown",
-		    c->c_client_name ? c->c_client_name : "unknown",
+
+			c->c_listener_url,
+		    c->c_peer_domain,
+		    c->c_peer_name,
+		    c->c_sock_name,
 
 		    buf2,
 			buf3

@@ -15,7 +15,7 @@ Severity=Informational
 SymbolicName=MSG_SLAPD_STARTED
 Facility=Application
 Language=English
-OpenLDAP SLAPD service started. debuglevel=%1, conffile=%2, port=%3, ip=%4, mode=%5
+OpenLDAP SLAPD service started. debuglevel=%1, conffile=%2, urls=%3, mode=%4
 .
 
 

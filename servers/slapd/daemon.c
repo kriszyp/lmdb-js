@@ -26,6 +26,7 @@ ber_socket_t dtblsize;
 
 typedef struct slap_listener {
 	char* sl_url;
+	char* sl_name;
 #ifdef HAVE_TLS
 	int		sl_is_tls;
 #endif
@@ -204,6 +205,7 @@ open_listener(
 	Listener l;
 	Listener *li;
 	LDAPURLDesc *lud;
+	char *s;
 
 	rc = ldap_url_parse( url, &lud );
 
@@ -235,6 +237,8 @@ open_listener(
 	}
 #endif
 
+	port = lud->lud_port;
+
 	(void) memset( (void*) &l.sl_addr, '\0', sizeof(l.sl_addr) );
 
 	l.sl_addr.sin_family = AF_INET;
@@ -248,20 +252,12 @@ open_listener(
 	} else {
 		/* host or address was specified */
 
-		if( isdigit( lud->lud_host[0] ) ) {
 #ifdef HAVE_WINSOCK
-			if(!(l.sl_addr.sin_addr.S_un.S_addr = inet_addr(lud->lud_host)))
+		if((l.sl_addr.sin_addr.S_un.S_addr = inet_addr(lud->lud_host)) == INADDR_NONE)
 #else
-			if(!inet_aton(lud->lud_host, &l.sl_addr.sin_addr))
+		if(!inet_aton(lud->lud_host, &l.sl_addr.sin_addr))
 #endif  
-			{
-				Debug( LDAP_DEBUG_ANY, "invalid address (%s) in URL: %s",
-					lud->lud_host, url, 0);
-				ldap_free_urldesc( lud );
-				return NULL;
-			}
-
-		} else {
+		{
 			struct hostent *he = gethostbyname( lud->lud_host );
 			if( he == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "invalid host (%s) in URL: %s",
@@ -347,6 +343,11 @@ open_listener(
 	}
 
 	l.sl_url = ch_strdup( url );
+
+	l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65336") );
+	s = inet_ntoa( l.sl_addr.sin_addr );
+	sprintf( l.sl_name, "IP=%s:%d",
+		s != NULL ? s : "unknown" , port );
 
 	li = ch_malloc( sizeof( Listener ) );
 	*li = l;
@@ -505,9 +506,6 @@ slapd_daemon_task(
 		struct timeval		zero;
 		struct timeval		*tvp;
 
-		char	*client_name;
-		char	*client_addr;
-
 		if( global_idletimeout > 0 && difftime(
 			last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT,
 			now ) < 0 )
@@ -624,6 +622,11 @@ slapd_daemon_task(
 			socklen_t len = sizeof(from);
 			long id;
 
+			char	*dnsname;
+			char	*peeraddr;
+
+			char	peername[sizeof("IP:255.255.255.255:65336")];
+
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 				continue;
 
@@ -669,47 +672,50 @@ slapd_daemon_task(
 				(long) s, 0, 0 );
 
 			len = sizeof(from);
-			if ( getpeername( s, (struct sockaddr *) &from, &len ) == 0 ) {
-				client_addr = inet_ntoa( from.sin_addr );
 
-#if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
-				hp = gethostbyaddr( (char *)
-				    &(from.sin_addr.s_addr),
-				    sizeof(from.sin_addr.s_addr), AF_INET );
-
-				if(hp) {
-					char *p;
-					client_name = hp->h_name;
-
-					/* normalize the domain */
-					for ( p = client_name; *p; p++ ) {
-						*p = TOLOWER( (unsigned char) *p );
-					}
-
-				} else {
-					client_name = NULL;
-				}
-#else
-				client_name = NULL;
-#endif
-
-			} else {
-				client_name = NULL;;
-				client_addr = NULL;
+			if ( getpeername( s, (struct sockaddr *) &from, &len ) != 0 ) {
+				int err = errno;
+				Debug( LDAP_DEBUG_ANY,
+					"daemon: getpeername( %ld ) failed: errno=%d (%s)\n",
+					(long) s, err,
+				    err >= 0 && err < sys_nerr ?
+				    sys_errlist[err] : "unknown" );
+				slapd_close(s);
+				continue;
 			}
 
+			peeraddr = inet_ntoa( from.sin_addr );
+			sprintf( peername, "IP:%s:%d",
+				peeraddr != NULL ? peeraddr : "unknown",
+				(unsigned) ntohs( from.sin_port ) );
+
+#if defined(SLAPD_RLOOKUPS) || defined(HAVE_TCPD)
+			hp = gethostbyaddr( (char *)
+			    &(from.sin_addr.s_addr),
+			    sizeof(from.sin_addr.s_addr), AF_INET );
+
+			if(hp) {
+				dnsname = str2lower( hp->h_name );
+
+			} else {
+				dnsname = NULL;
+			}
+#else
+			dnsname = NULL;
+#endif
+
 #ifdef HAVE_TCPD
-			if(!hosts_ctl("slapd",
-				client_name != NULL ? client_name : STRING_UNKNOWN,
-				client_addr != NULL ? client_addr : STRING_UNKNOWN,
-				STRING_UNKNOWN))
+			if( !hosts_ctl("slapd",
+				dnsname != NULL ? dnsname : STRING_UNKNOWN,
+				peeraddr != NULL ? peeraddr : STRING_UNKNOWN,
+				STRING_UNKNOWN ))
 			{
 				/* DENY ACCESS */
 				Statslog( LDAP_DEBUG_ANY,
 			   	 "fd=%ld connection from %s (%s) denied.\n",
 			   	 	(long) s,
-					client_name == NULL ? "unknown" : client_name,
-					client_addr == NULL ? "unknown" : client_addr,
+					dnsname != NULL ? dnsname : "unknown",
+					peeraddr != NULL ? peeraddr : "unknown",
 			   	  0, 0 );
 
 				slapd_close(s);
@@ -717,7 +723,10 @@ slapd_daemon_task(
 			}
 #endif /* HAVE_TCPD */
 
-			if( (id = connection_init(s, client_name, client_addr,
+			if( (id = connection_init(s,
+				slap_listeners[l]->sl_url,
+				dnsname, peername,
+				slap_listeners[l]->sl_name,
 #ifdef HAVE_TLS
 				slap_listeners[l]->sl_is_tls
 #else
@@ -728,8 +737,8 @@ slapd_daemon_task(
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: connection_init(%ld, %s, %s) failed.\n",
 					(long) s,
-					client_name == NULL ? "unknown" : client_name,
-					client_addr == NULL ? "unknown" : client_addr);
+					peername,
+					slap_listeners[l]->sl_name );
 				slapd_close(s);
 				continue;
 			}
@@ -737,8 +746,8 @@ slapd_daemon_task(
 			Statslog( LDAP_DEBUG_STATS,
 				"daemon: conn=%d fd=%ld connection from %s (%s) accepted.\n",
 				id, (long) s,
-				client_name == NULL ? "unknown" : client_name,
-				client_addr == NULL ? "unknown" : client_addr,
+				peername,
+				slap_listeners[l]->sl_name,
 				0 );
 
 			slapd_add( s );

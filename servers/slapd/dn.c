@@ -131,17 +131,11 @@ dn_normalize( char *dn )
 char *
 dn_normalize_case( char *dn )
 {
-	char	*s;
-
 	/* normalize format */
 	dn_normalize( dn );
 
-	/* normalize case */
-	for ( s = dn; *s; s++ ) {
-		*s = TOUPPER( (unsigned char) *s );
-	}
-
-	return( dn );
+	/* and upper case it */
+	return( str2upper( dn ) );
 }
 
 /*
@@ -331,16 +325,29 @@ dn_type( char *dn )
 }
 
 char *
-dn_upcase( char *dn )
+str2upper( char *str )
 {
 	char    *s;
 
 	/* normalize case */
-	for ( s = dn; *s; s++ ) {
+	for ( s = str; *s; s++ ) {
 		*s = TOUPPER( (unsigned char) *s );
 	}
 
-	return( dn );
+	return( str );
+}
+
+char *
+str2lower( char *str )
+{
+	char    *s;
+
+	/* normalize case */
+	for ( s = str; *s; s++ ) {
+		*s = TOLOWER( (unsigned char) *s );
+	}
+
+	return( str );
 }
 
 

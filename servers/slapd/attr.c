@@ -40,15 +40,9 @@ attr_free( Attribute *a )
 char *
 attr_normalize( char *s )
 {
-	char	*save;
-
 	assert( s != NULL );
 
-	for ( save = s; *s; s++ ) {
-		*s = TOLOWER( (unsigned char) *s );
-	}
-
-	return( save );
+	return( str2lower( s ) );
 }
 
 /*

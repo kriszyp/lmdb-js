@@ -230,13 +230,17 @@ typedef struct slap_access {
 
 	int			a_access;
 
-	char		*a_dnpat;
-	char		*a_addrpat;
-	char		*a_domainpat;
-	char		*a_dnattr;
+	char		*a_dn_pat;
+	char		*a_dn_at;
+
+	char		*a_peername_pat;
+	char		*a_sockname_pat;
+
+	char		*a_domain_pat;
+	char		*a_url_pat;
 
 	/* ACL Groups */
-	char		*a_group;
+	char		*a_group_pat;
 	char		*a_group_oc;
 	char		*a_group_at;
 
@@ -247,8 +251,8 @@ typedef struct slap_access {
 typedef struct slap_acl {
 	/* "to" part: the entries this acl applies to */
 	Filter		*acl_filter;
-	regex_t		acl_dnre;
-	char		*acl_dnpat;
+	regex_t		acl_dn_re;
+	char		*acl_dn_pat;
 	char		**acl_attrs;
 
 	/* "by" part: list of who has what access to the entries */
@@ -579,8 +583,11 @@ typedef struct slap_conn {
 	time_t		c_starttime;	/* when the connection was opened */
 	time_t		c_activitytime;	/* when the connection was last used */
 	unsigned long		c_connid;	/* id of this connection for stats*/
-	char		*c_client_addr;	/* address of client */
-	char		*c_client_name;	/* name of client */
+
+	char		*c_listener_url;	/* listener URL */
+	char		*c_peer_domain;	/* DNS name of client */
+	char		*c_peer_name;	/* peer name (trans=addr:port) */
+	char		*c_sock_name;	/* sock name (trans=addr:port) */
 
 	/* only can be changed by binding thread */
 	int		c_bind_in_progress;	/* multi-op bind in progress */
