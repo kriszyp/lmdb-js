@@ -5,3 +5,7 @@
 LIBRARY	= libldif.a
 SRCS	= line64.c
 OBJS	= line64.o
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+

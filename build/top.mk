@@ -59,10 +59,12 @@ SENDMAIL = @SENDMAIL@
 # Version
 VERSIONFILE = $(top_srcdir)/build/version
 
-INCLUDEDIR = -I$(top_srcdir)/include
+INCLUDEDIR = $(top_srcdir)/include
+LDAP_INCPATH = -I$(LDAP_INCDIR) -I$(INCLUDEDIR)
+LDAP_LIBPATH = -L$(LDAP_LIBDIR)
 
-LDAP_LIBS = -lldif -lldap -llber
-LDAP_LIBDEPEND = $(VLIBDIR)/libldif.a $(VLIBDIR)/libldap.a $(VLIBDIR)/liblber.a
+LDAP_LIBS = $(LDAP_LIBPATH) -lldif -lldap -llber
+LDAP_LIBDEPEND = $(LDAP_LIBDIR)/libldif.a $(LDAP_LIBDIR)/libldap.a $(LDAP_LIBDIR)/liblber.a
 
 # AutoConfig generated 
 AC_CC	= @CC@
@@ -75,8 +77,8 @@ LIBTERMCAP = @LIBTERMCAP@
 
 # Our Defaults
 CC = $(AC_CC)
-DEFS = $(LDAP_DEFS) $(VINCLUDEDIR) $(INCLUDEDIR) $(XDEFS) $(AC_DEFS) 
-LIBS = $(VLIBS) $(LDAP_LIBS) $(XLIBS) $(AC_LIBS)
+DEFS = $(LDAP_DEFS) $(LDAP_INCPATH) $(XINCPATH) $(XDEFS) $(AC_DEFS) 
+LIBS = $(LDAP_LIBS) $(XLIBS) $(AC_LIBS)
 
 CFLAGS = $(AC_CFLAGS) $(DEFS) $(DEFINES)
 LDFLAGS = $(AC_LDFLAGS)

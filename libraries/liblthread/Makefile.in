@@ -7,5 +7,10 @@ XSRCS	= version.c
 SRCS	= thread.c stack.c
 OBJS	= thread.o stack.o
 
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
 XDEFS	= @LTHREAD_DEFS@
 XLIBS	= @LTHREAD_LIBS@
+
+

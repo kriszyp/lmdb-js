@@ -4,9 +4,8 @@ XSRCS= version.c
 OBJS= main.o cmds.o help.o query.o
 HDRS= rcpt500.h
 
-VINCLUDEDIR= -I../../include
-VLIBDIR= ../../libraries
-VLIBS= -L$(VLIBDIR)
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
 
 rcpt500 : version.o
 	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)

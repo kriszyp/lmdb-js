@@ -3,13 +3,15 @@ SRCS	= init.c config.c fork.c search.c bind.c unbind.c add.c delete.c \
 OBJS	= init.o config.o fork.o search.o bind.o unbind.o add.o delete.o \
 		modify.o modrdn.o compare.o abandon.o result.o
 
-VINCLUDEDIR= -I../../../include
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-shell"
 BUILD_SRV = @BUILD_SHELL@
 
 PROGRAMS =		libback-shell.a
-XINCLUDEDIR =	-I..
+
+XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = @LTHREAD_DEFS@
 
 all-local:	FORCE
@@ -20,7 +22,7 @@ libback-shell.a:	version.o
 	@$(RANLIB) $@
 	@touch ../.backend
 
-version.c: $(OBJS)
+version.c: $(OBJS) $(LDAP_LIBDEPEND)
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \

@@ -1,13 +1,15 @@
 SRCS	= search.c config.c
 OBJS	= search.o config.o
 
-VINCLUDEDIR= -I../../../include
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-passwd"
 BUILD_SRV = @BUILD_PASSWD@
 
 PROGRAMS= libback-passwd.a
-XINCLUDEDIR= -I..
+
+XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = @LTHREAD_DEFS@
 
 all-local: 	FORCE	
@@ -18,7 +20,7 @@ libback-passwd.a:	version.o
 	@$(RANLIB) $@
 	@touch ../.backend
 
-version.c: $(OBJS)
+version.c: $(OBJS) $(LDAP_LIBDEPEND)
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
 	 t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \

@@ -8,9 +8,9 @@ XSRCS= gwversion.o goversion.o
 GOOBJS =  go500.o detach.o setproctitle.o
 GWOBJS =  go500gw.o detach.o setproctitle.o
 
-VINCLUDEDIR= -I../../include
-VLIBDIR= ../../libraries
-VLIBS= -L$(VLIBDIR)
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
 
 go500 : goversion.o
 	$(CC) $(LDFLAGS) -o $@ $(GOOBJS) goversion.o $(LIBS)

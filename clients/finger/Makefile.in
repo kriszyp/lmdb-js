@@ -2,9 +2,9 @@ SRCS=	main.c
 XSRCS=	version.c
 OBJS=	main.o
 PROGRAMS= in.xfingerd
-VINCLUDEDIR= -I../../include
-VLIBDIR= ../../libraries
-VLIBS= -L$(VLIBDIR)
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
 
 in.xfingerd : version.o
 	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)

@@ -4,9 +4,8 @@ SRCS=	main.c
 XSRCS= version.c
 OBJS=	main.o
 
-VINCLUDEDIR= -I../../include
-VLIBDIR= ../../libraries
-VLIBS= -L$(VLIBDIR)
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
 
 mail500 : version.o
 	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)

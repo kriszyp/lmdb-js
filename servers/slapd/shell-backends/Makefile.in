@@ -4,12 +4,13 @@ SRCS = passwd-shell.c shellutil.c
 XSRCS = pwd-version.c
 OBJS = passwd-shell.o shellutil.o
 
-VINCLUDEDIR= -I../../../include
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
 
 passwd-shell:	pwd-version.o
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) pwd-version.o $(LIBS)
 
-pwd-version.c: $(OBJS)
+pwd-version.c: $(OBJS) $(LDAP_LIBDEPEND)
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
 	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \

@@ -7,12 +7,13 @@ OBJS	= idl.o add.o search.o cache.o dbcache.o dn2id.o id2entry.o \
 		modify.o modrdn.o delete.o init.o config.o bind.o attr.o \
 		filterindex.o unbind.o kerberos.o close.o
 
-VINCLUDEDIR= -I../../../include -I$(srcdir)/..
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
 
 BUILD_OPT = "--enable-ldbm"
 BUILD_SRV = @BUILD_LDBM@
 
-XINCLUDEDIR = -I..
+XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@ @LUTIL_DEFS@
 
 PROGRAMS = libback-ldbm.a
@@ -25,7 +26,7 @@ libback-ldbm.a:	version.o
 	@$(RANLIB) $@
 	@touch ../.backend
 
-version.c:	$(OBJS)
+version.c:	$(OBJS) $(LDAP_LIBDEPEND)
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` \
 	 h=`$(HOSTNAME)` t=`$(DATE)`; \

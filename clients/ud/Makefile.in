@@ -6,9 +6,8 @@ OBJS=	main.o find.o mod.o print.o auth.o util.o help.o \
 HDRS=	ud.h
 PROGRAMS= ud
 
-VINCLUDEDIR= -I../../include
-VLIBDIR= ../../libraries
-VLIBS= -L$(VLIBDIR)
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
 
 XLIBS = $(LIBTERMCAP)
 

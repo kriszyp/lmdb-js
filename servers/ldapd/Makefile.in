@@ -11,9 +11,8 @@ OBJS	= main.o detach.o setproctitle.o request.o bind.o result.o error.o \
 	abandon.o syntax.o association.o kerberos.o LDAP_tables.o \
 	certificate.o
 
-VINCLUDEDIR= -I../../include
-VLIBDIR= ../../libraries
-VLIBS= -L$(VLIBDIR)
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
 
 BUILD_OPT = "--enable-ldapd"
 BUILD_SRV = @BUILD_LDAPD@

@@ -18,9 +18,8 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		detach.o strdup.o tempnam.o repl.o lock.o \
 		schema.o schemaparse.o monitor.o configinfo.o
 
-VINCLUDEDIR= -I../../include
-VLIBDIR= ../../libraries
-VLIBS= -L$(VLIBDIR)
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
 
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
@@ -70,7 +69,7 @@ libbackends.a: .backend
 	fi
 	@ls -l libbackends.a
 
-version.c: libbackends.a $(OBJS) \
+version.c: libbackends.a $(OBJS) $(LDAP_LIBDEPEND) \
 		$(LDAP_LIBDIR)/liblber.a \
 		$(LDAP_LIBDIR)/liblldbm.a \
 		$(LDAP_LIBDIR)/liblavl.a \
