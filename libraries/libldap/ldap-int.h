@@ -50,6 +50,9 @@
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
 	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
 
+#define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 )\
+	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
+
 #include "ldap.h"
 
 #include "ldap_pvt.h"
