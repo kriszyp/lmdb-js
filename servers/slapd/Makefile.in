@@ -265,7 +265,7 @@ slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
-$(SLAPD_DYNAMIC_BACKENDS): slapd
+dummy $(SLAPD_DYNAMIC_BACKENDS): slapd
 	cd $@; $(MAKE) $(MFLAGS) all
 	@touch $@
 
