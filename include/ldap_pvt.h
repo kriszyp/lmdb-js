@@ -45,6 +45,8 @@ ldap_pvt_ctime LDAP_P((
 	const time_t *tp,
 	char *buf ));
 
+LDAP_F( char *) ldap_pvt_get_fqdn LDAP_P(( char * ));
+
 LDAP_F( int )
 ldap_pvt_gethostbyname_a LDAP_P((
 	const char *name, 

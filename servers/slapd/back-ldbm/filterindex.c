@@ -133,6 +133,7 @@ presence_candidates(
 
 	if( dbname == NULL ) {
 		/* not indexed */
+		ber_bvfree( prefix );
 		return idl;
 	}
 
@@ -142,6 +143,7 @@ presence_candidates(
 		Debug( LDAP_DEBUG_ANY,
 		    "<= presense_candidates db open failed (%s%s)\n",
 			dbname, LDBM_SUFFIX, 0 );
+		ber_bvfree( prefix );
 		return idl;
 	}
 
@@ -152,17 +154,19 @@ presence_candidates(
 		rc = key_read( be, db, prefix, &idl );
 
 		if( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE, "<= presense_candidates key read failed (%d)\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"<= presense_candidates key read failed (%d)\n",
 			    rc, 0, 0 );
 
 		} else if( idl == NULL ) {
-			Debug( LDAP_DEBUG_TRACE, "<= presense_candidates NULL\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"<= presense_candidates NULL\n",
 			    0, 0, 0 );
 		}
 	}
 
 	ldbm_cache_close( be, db );
-
+	ber_bvfree( prefix );
 
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -198,16 +202,19 @@ equality_candidates(
 
 	if( dbname == NULL ) {
 		/* not indexed */
+		ber_bvfree( prefix );
 		return idl;
 	}
 
 	mr = ava->aa_desc->ad_type->sat_equality;
 	if( !mr ) {
+		ber_bvfree( prefix );
 		/* return LDAP_INAPPROPRIATE_MATCHING; */
 		return idl;
 	}
 
 	if( !mr->smr_filter ) {
+		ber_bvfree( prefix );
 		return idl;
 	}
 
@@ -218,6 +225,8 @@ equality_candidates(
 		prefix,
 		ava->aa_value,
 		&keys );
+
+	ber_bvfree( prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		return idl;
@@ -241,7 +250,8 @@ equality_candidates(
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
 			idl = NULL;
-			Debug( LDAP_DEBUG_TRACE, "<= equality_candidates key read failed (%d)\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"<= equality_candidates key read failed (%d)\n",
 			    rc, 0, 0 );
 			break;
 		}
@@ -249,7 +259,8 @@ equality_candidates(
 		if( tmp == NULL ) {
 			idl_free( idl );
 			idl = NULL;
-			Debug( LDAP_DEBUG_TRACE, "<= equality_candidates NULL\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"<= equality_candidates NULL\n",
 			    0, 0, 0 );
 			break;
 		}
@@ -257,6 +268,7 @@ equality_candidates(
 		save = idl;
 		idl = idl_intersection( be, idl, tmp );
 		idl_free( save );
+		idl_free( tmp );
 
 		if( idl == NULL ) break;
 	}
@@ -300,6 +312,7 @@ approx_candidates(
 
 	if( dbname == NULL ) {
 		/* not indexed */
+		ber_bvfree( prefix );
 		return idl;
 	}
 
@@ -310,11 +323,13 @@ approx_candidates(
 	}
 
 	if( !mr ) {
+		ber_bvfree( prefix );
 		/* return LDAP_INAPPROPRIATE_MATCHING; */
 		return idl;
 	}
 
 	if( !mr->smr_filter ) {
+		ber_bvfree( prefix );
 		return idl;
 	}
 
@@ -325,6 +340,8 @@ approx_candidates(
 		prefix,
 		ava->aa_value,
 		&keys );
+
+	ber_bvfree( prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		return idl;

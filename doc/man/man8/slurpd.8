@@ -1,4 +1,4 @@
-.TH SLURPD 8C "22 September 1998" "OpenLDAP LDVERSION"
+.TH SLURPD 8C "13 August 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -109,7 +109,7 @@ processes a replication log and exits.
 copies the replication log to a working directory before processing it.
 This option allows you to specify the location of these temporary files. 
 The default is
-.BR /usr/tmp .
+.BR LOCALSTATEDIR/openldap-slurp .
 .TP
 .BI \-k " srvtab\-file"
 Specify the location of the kerberos srvtab file which contains keys
@@ -151,7 +151,7 @@ on voluminous debugging which will be printed on standard error, type:
 .BR slapd.replog (5),
 .BR slapd (8)
 .LP
-"The SLAPD and SLURPD Administrator's Guide"
+"OpenLDAP Administrator's Guide"
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).

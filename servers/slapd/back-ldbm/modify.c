@@ -379,25 +379,16 @@ delete_values(
 			if( rc == LDAP_SUCCESS && match != 0 ) {
 				continue;
 			}
+
+			/* found a matching value */
 			found = 1;
 
-			/* found a matching value - delete it */
+			/* delete it */
 			ber_bvfree( a->a_vals[j] );
 			for ( k = j + 1; a->a_vals[k] != NULL; k++ ) {
 				a->a_vals[k - 1] = a->a_vals[k];
 			}
 			a->a_vals[k - 1] = NULL;
-
-			/* delete the entire attribute, if no values remain */
-			if ( a->a_vals[0] == NULL) {
-				Debug( LDAP_DEBUG_ARGS,
-					"removing entire attribute %s\n",
-					desc, 0, 0 );
-				if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
-					ber_bvfree( asserted );
-					return LDAP_NO_SUCH_ATTRIBUTE;
-				}
-			}
 
 			break;
 		}
@@ -409,6 +400,16 @@ delete_values(
 			Debug( LDAP_DEBUG_ARGS,
 			    "ldbm_modify_delete: could not find value for attr %s\n",
 			    desc, 0, 0 );
+			return LDAP_NO_SUCH_ATTRIBUTE;
+		}
+	}
+
+	/* if no values remain, delete the entire attribute */
+	if ( a->a_vals[0] == NULL ) {
+		Debug( LDAP_DEBUG_ARGS,
+			"removing entire attribute %s\n",
+			desc, 0, 0 );
+		if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
 			return LDAP_NO_SUCH_ATTRIBUTE;
 		}
 	}

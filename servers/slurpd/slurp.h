@@ -40,7 +40,7 @@
 
 
 /* Default directory for slurpd's private copy of replication logs */
-#define	DEFAULT_SLURPD_REPLICA_DIR	"/usr/tmp"
+#define	DEFAULT_SLURPD_REPLICA_DIR	LDAP_RUNDIR LDAP_DIRSEP "openldap-slurp"
 
 /* Default name for slurpd's private copy of the replication log */
 #define	DEFAULT_SLURPD_REPLOGFILE	"slurpd.replog"
@@ -49,7 +49,7 @@
 #define	DEFAULT_SLURPD_STATUS_FILE	"slurpd.status"
 
 /* slurpd dump file - contents of rq struct are written here (debugging) */
-#define	SLURPD_DUMPFILE			"/tmp/slurpd.dump"
+#define	SLURPD_DUMPFILE			LDAP_TMPDIR LDAP_DIRSEP "slurpd.dump"
 
 /* default srvtab file.  Can be overridden */
 #define	SRVTAB				"/etc/srvtab"

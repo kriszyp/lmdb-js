@@ -1,4 +1,4 @@
-.TH IN.XFINGERD 8C "22 September 1998" "OpenLDAP LDVERSION"
+.TH IN.XFINGERD 8C "16 August 200" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -7,7 +7,7 @@ in.xfingerd \- Finger to LDAP/X.500 gateway daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/in.xfingerd [\-f filterfile] [\-i]
 .B [\-l] [\-t templatefile] [\-c rdncount] [\-x hostname]
-.B [\-p port]
+.B [\-b searchbase] [\-p port]
 .SH DESCRIPTION
 .B in.xfingerd
 is the LDAP/X.500 finger daemon.  It runs from
@@ -66,6 +66,9 @@ Specify an alternate host on which the ldap server is running.
 .TP
 .BI \-p " port"
 Specify an alternate port on which the ldap server is listening.
+.TP
+.BI \-b " searchbase"
+Specify an alternate search base for queries.
 .SH NOTES
 The default values for most of the things you can specify with
 options are configured at compile time in the
