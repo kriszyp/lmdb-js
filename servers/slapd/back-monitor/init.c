@@ -306,7 +306,7 @@ monitor_back_db_init(
 		}
 
 		dn.bv_len += sizeof( SLAPD_MONITOR_DN ); /* 1 for the , */
-		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
+		dn.bv_val = ch_malloc( dn.bv_len + 1 );
 		strcpy( dn.bv_val , monitor_subsys[ i ].mss_rdn->bv_val );
 		strcat( dn.bv_val, "," SLAPD_MONITOR_DN );
 		rc = dnPrettyNormal( NULL, &dn, &monitor_subsys[ i ].mss_dn,

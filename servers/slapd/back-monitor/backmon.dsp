@@ -127,10 +127,6 @@ LIB32=link.exe -lib
 # Name "backmon - Win32 Single Release"
 # Begin Source File
 
-SOURCE=.\abandon.c
-# End Source File
-# Begin Source File
-
 SOURCE=".\back-monitor.h"
 # End Source File
 # Begin Source File
