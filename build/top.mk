@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998-2002 The OpenLDAP Foundation, Redwood City, California, USA
+## Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -91,8 +91,10 @@ LTFLAGS_MOD = $(@PLAT@_LTFLAGS_MOD)
 # LINK_LIBS referenced in library and module link commands.
 LINK_LIBS = $(@PLAT@_LINK_LIBS)
 
+LTSTATIC = @LTSTATIC@
+
 LTLINK   = $(LIBTOOL) --mode=link \
-	$(CC) -static $(LT_CFLAGS) $(LDFLAGS) $(LTFLAGS)
+	$(CC) $(LTSTATIC) $(LT_CFLAGS) $(LDFLAGS) $(LTFLAGS)
 
 LTCOMPILE_LIB = $(LIBTOOL) $(LTONLY_LIB) --mode=compile \
 	$(CC) $(LT_CFLAGS) $(LT_CPPFLAGS) $(LIB_DEFS) -c
@@ -111,7 +113,6 @@ LTFINISH = $(LIBTOOL) --mode=finish
 
 # Misc UNIX commands used in build environment
 AR = @AR@
-AWK = @AWK@
 BASENAME = basename
 CAT = cat
 CHMOD = chmod
@@ -127,10 +128,6 @@ PWD = pwd
 RANLIB = @RANLIB@
 RM = rm -f
 SED = sed
-
-# Misc UNIX commands used in programs
-EDITOR = @EDITOR@
-SENDMAIL = @SENDMAIL@
 
 # For manual pages
 # MANCOMPRESS=@MANCOMPRESS@
