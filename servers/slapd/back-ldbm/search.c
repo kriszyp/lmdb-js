@@ -348,13 +348,50 @@ searchit:
 		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
-			struct berval **refs = get_entry_referrals(
-				be, conn, op, e );
+			char	*dn;
 
-			send_search_reference( be, conn, op,
-				e, refs, scope, NULL, &v2refs );
+			/* check scope */
+			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
+				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
+					(void) dn_normalize( dn );
+					scopeok = (dn == realbase)
+						? 1
+						: (strcmp( dn, realbase ) ? 0 : 1 );
+					free( dn );
 
-			ber_bvecfree( refs );
+				} else {
+					scopeok = (realbase == NULL || *realbase == '\0');
+				}
+
+			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
+				dn = ch_strdup( e->e_ndn );
+				scopeok = dn_issuffix( dn, realbase );
+				free( dn );
+
+			} else {
+				scopeok = 1;
+			}
+
+			if( scopeok ) {
+				struct berval **refs = get_entry_referrals(
+					be, conn, op, e );
+
+				send_search_reference( be, conn, op,
+					e, refs, scope, NULL, &v2refs );
+
+				ber_bvecfree( refs );
+
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
+					"ldbm_search: candidate referral %ld scope not okay\n",
+					id ));
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"ldbm_search: candidate referral %ld scope not okay\n",
+					id, 0, 0 );
+#endif
+			}
 
 			goto loop_continue;
 		}
