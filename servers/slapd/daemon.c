@@ -2075,9 +2075,9 @@ slap_sig_shutdown( int sig )
 	 * SIGBREAK is generated when a user logs out.
 	 */
 
+#if 0
 #if HAVE_NT_SERVICE_MANAGER && SIGBREAK
 	if (is_NT_Service && sig == SIGBREAK)
-#if 0
 #ifdef NEW_LOGGING
 	    LDAP_LOG( CONNECTION, CRIT,
 		    "slap_sig_shutdown: SIGBREAK ignored.\n", 0, 0, 0 );
@@ -2085,8 +2085,8 @@ slap_sig_shutdown( int sig )
 	    Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: SIGBREAK ignored.\n",
 		  0, 0, 0);
 #endif
-#endif
 	else
+#endif
 #endif
 #ifdef SIGHUP
 	if (sig == SIGHUP && global_gentlehup && slapd_gentle_shutdown == 0)
