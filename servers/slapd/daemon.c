@@ -553,17 +553,12 @@ slapd_daemon_task(
 				"daemon: write active on %d\n",
 				wd, 0, 0 );
 
-			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-			active = FD_ISSET( wd, &slap_daemon.sd_actives );
-			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-			if( ! active ) {
-				/* descriptor no longer in FD set, should be closed */
-				Debug( LDAP_DEBUG_CONNS,
-			   		"daemon: write %d inactive, closing.\n", wd, 0, 0 );
-				slapd_close( wd );
-				continue;
-			}
+			/*
+			 * NOTE: it is possible that the connection was closed
+			 * and that the stream is now inactive.
+			 * connection_write() must valid the stream is still
+			 * active.
+			 */
 
 			if ( connection_write( wd ) < 0 ) {
 				FD_CLR( (unsigned) wd, &readfds );
@@ -595,17 +590,13 @@ slapd_daemon_task(
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
 
-			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-			active = FD_ISSET( rd, &slap_daemon.sd_actives );
-			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
-			if( ! active ) {
-				/* descriptor no longer in FD set, should be closed */
-				Debug( LDAP_DEBUG_CONNS,
-			   		"daemon: read %d inactive, closing.\n", rd, 0, 0 );
-				slapd_close( rd );
-				continue;
-			}
+			/*
+			 * NOTE: it is possible that the connection was closed
+			 * and that the stream is now inactive.
+			 * connection_read() must valid the stream is still
+			 * active.
+			 */
 
 			if ( connection_read( rd ) < 0 ) {
 				slapd_close( rd );
