@@ -61,7 +61,7 @@ ldap_pvt_thread_mutex_t	num_sent_mutex;
 ldap_pvt_thread_mutex_t	entry2str_mutex;
 ldap_pvt_thread_mutex_t	replog_mutex;
 
-static char* slap_name;
+static char* slap_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
 
 static ldap_pvt_thread_mutex_t	currenttime_mutex;

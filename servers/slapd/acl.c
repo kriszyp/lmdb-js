@@ -620,12 +620,11 @@ aci_list_has_right (struct berval *list, int access, int action)
 			right = 0;
 			break;
 		}
+
 #ifdef SLAPD_ACI_DISCRETE_RIGHTS
 		if (right & access) {
 			return(action);
 		}
-	}
-	return(!action);
 #else
 		if (action != 0) {
 			/* check granted */
@@ -636,7 +635,12 @@ aci_list_has_right (struct berval *list, int access, int action)
 			if (right <= access)
 				return(1);
 		}
+#endif
 	}
+
+#ifdef SLAPD_ACI_DISCRETE_RIGHTS
+	return(!action);
+#else
 	return(0);
 #endif
 }
