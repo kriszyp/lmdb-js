@@ -39,6 +39,12 @@ ldap_pvt_thread_initialize( void )
 	return 0;
 }
 
+int
+ldap_pvt_thread_destroy( void )
+{
+	return 0;
+}
+
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
 int
 ldap_pvt_thread_set_concurrency(int n)

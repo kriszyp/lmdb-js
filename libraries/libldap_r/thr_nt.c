@@ -22,6 +22,12 @@ ldap_pvt_thread_initialize( void )
 	return 0;
 }
 
+int
+ldap_pvt_thread_destroy( void )
+{
+	return 0;
+}
+
 int 
 ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
 	int detach,

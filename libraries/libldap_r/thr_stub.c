@@ -28,6 +28,12 @@ ldap_pvt_thread_initialize( void )
 	return 0;
 }
 
+int
+ldap_pvt_thread_destroy( void )
+{
+	return 0;
+}
+
 static void* ldap_int_status = NULL;
 
 int 

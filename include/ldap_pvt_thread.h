@@ -163,6 +163,8 @@ LDAP_BEGIN_DECL
 
 LDAP_F int
 ldap_pvt_thread_initialize LDAP_P(( void ));
+LDAP_F int
+ldap_pvt_thread_destory LDAP_P(( void ));
 
 LDAP_F unsigned int
 ldap_pvt_thread_sleep LDAP_P(( unsigned int s ));

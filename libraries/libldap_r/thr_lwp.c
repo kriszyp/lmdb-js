@@ -25,6 +25,9 @@
  * SunOS LWP *
  *           *
  *************/
+
+/* This implementation NEEDS WORK.   It currently does not compile */
+
 #include <stdio.h>
 
 #include <ac/time.h>
@@ -58,6 +61,14 @@ ldap_pvt_thread_initialize( void )
 	return 0;
 }
 
+int
+ldap_pvt_thread_destroy( void )
+{
+	/* need to destory lwp_scheduler thread and clean up private
+		variables */
+	return 0;
+}
+
 struct stackinfo {
 	int		stk_inuse;
 	stkalign_t	*stk_stack;
@@ -65,7 +76,7 @@ struct stackinfo {
 
 static struct stackinfo	*stacks;
 
-stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
+static stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
 {
 	int	i;
 
@@ -98,7 +109,7 @@ stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
 	return( stacks[i].stk_stack + MAX_STACK / sizeof(stkalign_t) );
 }
 
-void
+static void
 ldap_pvt_thread_free_stack( int	stackno )
 {
 	if ( stackno < 0 || stackno > MAX_THREADS ) {
@@ -109,7 +120,7 @@ ldap_pvt_thread_free_stack( int	stackno )
 	stacks[stackno].stk_inuse = 0;
 }
 
-static void
+static static void
 lwp_create_stack( void *(*func)(), void *arg, int stackno )
 {
 	(*func)( arg );
@@ -137,6 +148,106 @@ void
 ldap_pvt_thread_exit( void *retval )
 {
 	lwp_destroy( SELF );
+}
+
+unsigned int
+ldap_pvt_thread_sleep(
+	unsigned int interval
+)
+{
+	thread_t		mylwp;
+	tl_t		*t, *nt;
+	time_t		now;
+
+
+	if ( lwp_self( &mylwp ) < 0 ) {
+		return -1;
+	}
+
+	time( &now );
+
+	mon_enter( &sglob->tsl_mon );
+
+	if ( sglob->tsl_list != NULL ) {
+		for ( t = sglob->tsl_list; t != NULL; t = t->tl_next ) {
+			if ( SAMETHREAD( t->tl_tid, mylwp )) {
+				/* We're already sleeping? */
+				t->tl_wake = now + interval;
+				mon_exit( &sglob->tsl_mon );
+				lwp_suspend( mylwp );
+				return 0;
+			}
+		}
+	}
+
+	nt = (tl_t *) malloc( sizeof( tl_t ));
+
+	nt->tl_next = sglob->tsl_list;
+	nt->tl_wake = now + interval;
+	nt->tl_tid = mylwp;
+	sglob->tsl_list = nt;
+
+	mon_exit( &sglob->tsl_mon );
+
+	lwp_suspend( mylwp );
+	return 0;
+}
+
+/*
+ * The lwp_scheduler thread periodically checks to see if any threads
+ * are due to be resumed.  If there are, it resumes them.  Otherwise,
+ * it computes the lesser of ( 1 second ) or ( the minimum time until
+ * a thread need to be resumed ) and puts itself to sleep for that amount
+ * of time.
+ */
+static void
+lwp_scheduler(
+	int		stackno
+)
+{
+	time_t			now, min;
+	struct timeval		interval;
+	tl_t			*t;
+
+	while ( !sglob->slurpd_shutdown ) {
+		mon_enter( &sglob->tsl_mon );
+
+		time( &now );
+		min = 0L;
+		if ( sglob->tsl_list != NULL ) {
+			for ( t = sglob->tsl_list; t != NULL; t = t->tl_next ) {
+				if (( t->tl_wake  > 0L ) && ( t->tl_wake < now )) {
+					lwp_resume( t->tl_tid );
+					t->tl_wake = 0L;
+				}
+
+				if (( t->tl_wake > now ) && ( t->tl_wake < min )) {
+					min =  t->tl_wake;
+				}
+			}
+		}
+
+		mon_exit( &sglob->tsl_mon );
+
+		interval.tv_usec = 0L;
+		if ( min == 0L ) {
+			interval.tv_sec = 1L;
+		} else {
+			interval.tv_sec = min;
+		}
+
+		lwp_sleep( &interval );
+	}
+
+	mon_enter( &sglob->tsl_mon );
+
+	for ( t = sglob->tsl_list; t != NULL; t = t->tl_next ) {
+		lwp_resume( t->tl_tid );
+	}
+
+	mon_exit( &sglob->tsl_mon );
+
+	free_stack( stackno );
 }
 
 int 

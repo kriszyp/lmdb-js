@@ -125,6 +125,10 @@ main(
     for ( i = 0; sglob->replicas[ i ] != NULL; i++ ) {
 	ldap_pvt_thread_join( sglob->replicas[ i ]->ri_tid, (void *) NULL );
     }
+
+	/* destroy the thread package */
+	ldap_pvt_thread_destroy();
+
     Debug( LDAP_DEBUG_ANY, "slurpd: terminating normally\n", 0, 0, 0 );
     sglob->slurpd_shutdown = 1;
 
