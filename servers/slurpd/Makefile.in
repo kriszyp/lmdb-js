@@ -25,8 +25,9 @@ BUILD_SRV = @BUILD_SLURPD@
 all-local-srv: 	slurpd
 
 # $(LTHREAD_LIBS) must be last!
-XLIBS = $(SLURPD_LIBS) $(LDAP_LIBS)
-XXLIBS = $(KRB_LIBS) $(LDAP_LIBLTHREAD)
+XLIBS = -lldif -lldap -llber -llthread -llutil
+XXLIBS = $(SLURPD_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
 
 slurpd:	version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)

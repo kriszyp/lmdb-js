@@ -9,8 +9,8 @@ PROGRAMS= ud
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XLIBS = $(LDAP_LIBS)
-XXLIBS	= $(TERMCAP_LIBS) $(KRB_LIBS)
+XLIBS =  -lldif -lldap -llber -llutil
+XXLIBS	= $(TERMCAP_LIBS) $(KRB_LIBS) $(LUTIL_LIBS)
 
 ud : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)

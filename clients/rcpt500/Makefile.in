@@ -7,8 +7,8 @@ HDRS= rcpt500.h
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XLIBS = $(LDAP_LIBS)
-XXLIBS	= $(KRB_LIBS)
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS)
 
 rcpt500 : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)

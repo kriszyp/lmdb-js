@@ -27,7 +27,8 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XDEFS = -DLDAP_R_COMPILE -I$(XXDIR)
-XXLIBS = $(LDAP_LIBPATH) $(LDAP_LIBLDAP) $(LDAP_LIBLBER)
+XLIBS = -lldap_r -llber
+XXLIBS = 
 
 .links : FORCE
 	@for i in $(XXSRCS); do \

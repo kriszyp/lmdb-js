@@ -28,7 +28,8 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XXLIBS = $(LDAP_LIBPATH) $(LDAP_LIBLDAP) $(LDAP_LIBLBER)
+XLIBS = -lldap -llber
+XXLIBS = 
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)

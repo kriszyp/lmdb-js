@@ -6,8 +6,8 @@ PROGRAMS= in.xfingerd
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
-XLIBS = $(LDAP_LIBS)
-XXLIBS	= $(KRB_LIBS)
+XLIBS =  -lldap -llber -llutil
+XXLIBS	= $(KRB_LIBS) $(LUTIL_LIBS)
 
 in.xfingerd : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
