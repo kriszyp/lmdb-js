@@ -75,4 +75,10 @@ int (strncasecmp)();
 #	endif
 #endif
 
+#define AC_MEMCPY( d, s, n ) (SAFEMEMCPY((d),(s),(n)))
+#define AC_FMEMCPY( d, s, n ) do { \
+		if((n) == 1) *((char*)(d)) = *((char*)(s)); \
+		else AC_MEMCPY( (d), (s), (n) ); \
+	} while(0)
+
 #endif /* _AC_STRING_H */
