@@ -19,12 +19,15 @@ fi
 
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 
+CLIENTDIR=../clients/tools
+#CLIENTDIR=/usr/local/bin
+
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd
-LDAPSEARCH=../clients/tools/ldapsearch
-LDAPMODIFY=../clients/tools/ldapmodify
-LDAPADD=../clients/tools/ldapadd
-LDAPMODRDN=../clients/tools/ldapmodrdn
+LDAPSEARCH=$CLIENTDIR/ldapsearch
+LDAPMODIFY=$CLIENTDIR/ldapmodify
+LDAPADD=$CLIENTDIR/ldapadd
+LDAPMODRDN=$CLIENTDIR/ldapmodrdn
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=${SLAPD_DEBUG-5}
 ADDR=127.0.0.1
