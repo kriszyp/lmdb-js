@@ -33,9 +33,9 @@ LDAP_BEGIN_DECL
 #define LDAP_VERSION2	2
 #define LDAP_VERSION3	3
 
-#define LDAP_VERSION		LDAP_VERSION2
 #define LDAP_VERSION_MIN	LDAP_VERSION2
-#define LDAP_VERSION_MAX	LDAP_VERSION2
+#define	LDAP_VERSION		LDAP_VERSION2
+#define LDAP_VERSION_MAX	LDAP_VERSION3
 
 /*
  * We'll use 2000+draft revision for our API version number
@@ -109,7 +109,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_DEBUG_LEVEL		0x5001	/* debug level */
 #define LDAP_OPT_TIMEOUT			0x5002	/* default timeout */
 #define LDAP_OPT_REFHOPLIMIT		0x5003	/* ref hop limit */
-#define LDAP_OPT_MATCH_STRING		0x5004	/* should have been in draft */
+#define LDAP_OPT_MATCHED_DN			0x5004	/* should have been in draft */
 
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
@@ -118,7 +118,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_SUCCESS	0
 #define	LDAP_OPT_ERROR		(-1)
 
-#define LDAP_API_INFO_VERSION	1
+#define LDAP_API_INFO_VERSION	(1)
 typedef struct ldapapiinfo {
 	int		ldapai_info_version;		/* version of LDAPAPIInfo (1) */
 	int		ldapai_api_version;			/* revision of API supported */
@@ -142,6 +142,8 @@ typedef struct ldapcontrol {
 } LDAPControl;
 
 /* LDAP "Standard" Controls */
+
+	/* chase referrals controls */
 #define LDAP_CONTROL_REFERRALS	"1.2.840.113666.1.4.616"
 #define LDAP_CHASE_SUBORDINATE_REFERRALS	0x0020
 #define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040
