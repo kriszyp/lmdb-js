@@ -1,5 +1,22 @@
 /* SASL LDAP auxprop implementation
- * Copyright (C) 2002 Howard Chu, hyc@symas.com
+ * Copyright (C) 2002,2003 Howard Chu, hyc@symas.com
+ *
+ * Permission is granted to anyone to use this software for any purpose
+ * on any computer system, and to alter it and redistribute it, subject
+ * to the following restrictions:
+ *
+ * 1. The author is not responsible for the consequences of use of this
+ *    software, no matter how awful, even if they arise from flaws in it.
+ *
+ * 2. The origin of this software must not be misrepresented, either by
+ *    explicit claim or by omission.  Since few users ever read sources,
+ *    credits should appear in the documentation.
+ *
+ * 3. Altered versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.  Since few users
+ *    ever read sources, credits should appear in the documentation.
+ *
+ * 4. This notice may not be removed or altered.
  */
 
 #include <config.h>
@@ -16,19 +33,17 @@
 
 static char ldapdb[] = "ldapdb";
 
-SASL_AUXPROP_PLUG_INIT( ldapdb )
-
 typedef struct ldapctx {
 	const char *uri;	/* URI of LDAP server */
-	const char *id;	/* SASL authcid to bind as */
-	const char *pw;	/* password for bind */
-	const char *mech;	/* SASL mech */
+	struct berval id;	/* SASL authcid to bind as */
+	struct berval pw;	/* password for bind */
+	struct berval mech;	/* SASL mech */
 } ldapctx;
 
 typedef struct gluectx {
 	ldapctx *lc;
 	sasl_server_params_t *lp;
-	const char *user;
+	struct berval user;
 } gluectx;
 
 static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
@@ -36,15 +51,16 @@ static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 {
 	sasl_interact_t *in = inter;
 	gluectx *gc = def;
-	const char *p;
+	struct berval p;
 
 	for (;in->id != SASL_CB_LIST_END;in++)
 	{
-		p = NULL;
+		p.bv_val = NULL;
 		switch(in->id)
 		{
 			case SASL_CB_GETREALM:
-				ldap_get_option(ld, LDAP_OPT_X_SASL_REALM, &p);
+				ldap_get_option(ld, LDAP_OPT_X_SASL_REALM, &p.bv_val);
+				if (p.bv_val) p.bv_len = strlen(p.bv_val);
 				break;		
 			case SASL_CB_AUTHNAME:
 				p = gc->lc->id;
@@ -56,14 +72,13 @@ static int ldapdb_interact(LDAP *ld, unsigned flags __attribute__((unused)),
 				p = gc->user;
 				break;
 		}
-		if (p)
+		if (p.bv_val)
 		{
-			int l = strlen(p);
-			in->result = gc->lp->utils->malloc(l+1);
+			in->result = gc->lp->utils->malloc(p.bv_len+1);
 			if (!in->result)
 				return LDAP_NO_MEMORY;
-			strcpy((char *)in->result, p);
-			in->len = l;
+			strcpy((char *)in->result, p.bv_val);
+			in->len = p.bv_len;
 		}
 	}
 	return LDAP_SUCCESS;
@@ -79,7 +94,7 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     int ret, i, n, *aindx;
     const struct propval *pr;
     LDAP *ld = NULL;
-    gluectx gc = { ctx, sparams, NULL };
+    gluectx gc;
     struct berval *dn = NULL, **bvals;
     LDAPMessage *msg, *res;
     char **attrs = NULL, *authzid = NULL;
@@ -126,14 +141,17 @@ static void ldapdb_auxprop_lookup(void *glob_context,
 
     authzid = sparams->utils->malloc(ulen + sizeof("u:"));
     if (!authzid) goto done;
+	gc.lc = ctx;
+	gc.lp = sparams;
     strcpy(authzid, "u:");
     strcpy(authzid+2, user);
-    gc.user = authzid;
+    gc.user.bv_val = authzid;
+	gc.user.bv_len = ulen + sizeof("u:") - 1;
 
     i = LDAP_VERSION3;
     ret = ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &i);
 
-    ret = ldap_sasl_interactive_bind_s(ld, NULL, ctx->mech, NULL, NULL,
+    ret = ldap_sasl_interactive_bind_s(ld, NULL, ctx->mech.bv_val, NULL, NULL,
     	LDAP_SASL_QUIET, ldapdb_interact, &gc);
     if (ret != LDAP_SUCCESS) goto done;
     
@@ -201,9 +219,12 @@ int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_uri", &tmp.uri, NULL);
     if(!tmp.uri) return SASL_BADPARAM;
 
-    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_id", &tmp.id, NULL);
-    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_pw", &tmp.pw, NULL);
-    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech", &tmp.mech, NULL);
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_id",
+		(const char **)&tmp.id.bv_val, (unsigned *)tmp.id.bv_len);
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_pw",
+		(const char **)&tmp.pw.bv_val, (unsigned *)&tmp.pw.bv_len);
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech",
+		(const char **)&tmp.mech.bv_val, (unsigned *)&tmp.mech.bv_len);
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_rc", &s, NULL);
     if(s && setenv("LDAPRC", s, 1)) return SASL_BADPARAM;
 
@@ -218,3 +239,6 @@ int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
 
     return SASL_OK;
 }
+
+SASL_AUXPROP_PLUG_INIT( ldapdb )
+
