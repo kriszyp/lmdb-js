@@ -121,6 +121,9 @@ int ldbm_initialize( void )
 #endif
 
 	envFlags = 
+#if defined( DB_PRIVATE )
+		DB_PRIVATE |
+#endif
 #if defined( HAVE_BERKELEY_DB_THREAD )
 		DB_THREAD |
 #endif
