@@ -11,7 +11,7 @@ listed, post to OpenLDAP Developer's List (you must be subscribed
 to post). http://www.openldap.org/lists
 
 If you have a project you'd like added to the list, talk it up
-on Developer's list.or just do it.
+on Developer's list or just do it.
 
 Please read:
 	http://www.OpenLDAP.org/devel/programming.html
@@ -60,6 +60,8 @@ Add compare of RootDSE, cn=subschema, etc.
 Add user configurable attributes to RootDSE
 Create ldapcompare (from ldapsearch) to support compare operations
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
+Update saucer(1) to support LDAPv3 features (and bring into clients)
+Update ud(1) to support LDAPv3 features
 Update any manual page
 
 
