@@ -218,7 +218,7 @@ do_add( Connection *conn, Operation *op )
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
 
-		bvarray_free( ref );
+		if ( ref ) bvarray_free( ref );
 		goto done;
 	}
 
@@ -309,7 +309,7 @@ do_add( Connection *conn, Operation *op )
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
 
-			bvarray_free( ref );
+			if ( ref ) bvarray_free( ref );
 #endif
 		}
 	} else {

@@ -229,7 +229,11 @@ slap_strcopy(
 	return a-1;
 }
 
-void
+/* Unlike charray_add, bvarray_add does not make a new copy of the
+ * source string. Typically it is used where ber_bvecadd was before,
+ * and ber_bvecadd didn't duplicate its source either.
+ */
+int
 bvarray_add(
     struct berval **a,
     struct berval *bv
@@ -248,10 +252,12 @@ bvarray_add(
 		*a = (struct berval *) ch_realloc( (char *) *a,
 		    (n + 2) * sizeof(struct berval) );
 	}
+	if ( *a == NULL ) return -1;
 
-	ber_dupbv( (*a)+n, bv );
-	n++;
+	(*a)[n++] = *bv;
 	(*a)[n].bv_val = NULL;
+
+	return 0;
 }
 
 void
