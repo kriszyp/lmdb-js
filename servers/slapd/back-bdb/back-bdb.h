@@ -16,7 +16,7 @@
 LDAP_BEGIN_DECL
 
 #define BDB_FILTER_INDICES 1
-/* #define BDB_IDL_MULTI		1 */
+#define BDB_IDL_MULTI		1
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -50,9 +50,16 @@ LDAP_BEGIN_DECL
  * fit into a single database page, more is better. 64K is BDB's
  * upper bound. The same issues arise with IDLs in the index databases,
  * but it's nearly impossible to avoid overflows there.
+ * 
+ * When using BDB_IDL_MULTI, the IDL size is no longer an issue. Smaller
+ * pages are better for concurrency.
  */
 #ifndef BDB_PAGESIZE
+#ifdef BDB_IDL_MULTI
+#define	BDB_PAGESIZE	4096	/* BDB's original default */
+#else
 #define	BDB_PAGESIZE	16384
+#endif
 #endif
 
 #define BDB_INDICES		128
