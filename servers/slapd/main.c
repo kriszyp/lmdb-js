@@ -13,44 +13,12 @@
 
 #include "ldapconfig.h"
 #include "slap.h"
-#ifndef HAVE_WINSOCK
 #include "lutil.h"			/* Get lutil_detach() */
-#endif
 
 #ifdef LDAP_SIGCHLD
 static RETSIGTYPE wait4child( int sig );
 #endif
 
-#ifdef HAVE_WINSOCK
-#define SERVICE_NAME "OpenLDAP"
-
-struct sockaddr_in	bind_addr;
-
-// in nt_main.c
-extern SERVICE_STATUS			SLAPDServiceStatus;
-extern SERVICE_STATUS_HANDLE	hSLAPDServiceStatus;
-extern ldap_pvt_thread_cond_t	started_event,		stopped_event;
-extern int	  is_NT_Service;
-
-void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, short port, int udp );
-void LogSlapdStoppedEvent( char *svc );
-
-void CommenceStartupProcessing( LPCTSTR serviceName,
-							   void(*stopper)(int));
-void ReportSlapdShutdownComplete( void );
-void *getRegParam( char *svc, char *value );
-
-#define SERVICE_EXIT( e, n ) \
-		if ( is_NT_Service ) \
-{ \
-			SLAPDServiceStatus.dwWin32ExitCode				= e; \
-			SLAPDServiceStatus.dwServiceSpecificExitCode	= n; \
-} 
-#else
-#define SERVICE_EXIT( e, n )
-#endif
-
-short port = LDAP_PORT;
 /*
  * when more than one slapd is running on one machine, each one might have
  * it's own LOCAL for syslogging and must have its own pid/args files
@@ -94,7 +62,7 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]", name );
-    fprintf( stderr, "\n        [-a bind-address] [-i] [-u]" );
+    fprintf( stderr, "\n        [-a bind-address] [-i]" );
 #if LDAP_CONNECTIONLESS
 	fprintf( stderr, " [-c]" );
 #endif
@@ -112,73 +80,39 @@ usage( char *name )
 
 time_t starttime;
 struct sockaddr_in	bind_addr;
-int tcps;
 
-#ifdef HAVE_WINSOCK
-void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
+int
+main( int argc, char **argv )
 {
-#else
-void main( int argc, char **argv )
-{
-#endif
-
 	int		i;
 	int		inetd = 0;
 	int		rc;
-	struct sockaddr_in	*slapd_addr;
+	int		tcps;
+#ifdef LDAP_CONNECTIONLESS
 	int		udp;
+#endif
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
-#ifdef HAVE_WINSOCK
-	char		*configfile = ".\\slapd.conf";
-#else
-	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
+#if defined(HAVE_SETUID) && defined(HAVE_SETGID)
+	char		*username = NULL, *groupname = NULL;
 #endif
+	char		*configfile;
 	char        *serverName;
 	int         serverMode = SLAP_SERVER_MODE;
+
+	configfile = SLAPD_DEFAULT_CONFIGFILE;
 
 	(void) memset( (void*) &bind_addr, '\0', sizeof(bind_addr));
 	bind_addr.sin_family = AF_INET;
 	bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	bind_addr.sin_port = htons(port);
+	bind_addr.sin_port = htons(LDAP_PORT);
 
 	g_argc = argc;
 	g_argv = argv;
 
-#ifdef HAVE_WINSOCK
-	//if ( is_NT_Service )
-	{
-		int *newPort;
-		int *newDebugLevel;
-		char *newConfigFile;
-		ldap_debug = 0xffff;
-		if ( is_NT_Service ) CommenceStartupProcessing( SERVICE_NAME, slap_set_shutdown );
-		newPort = (int*)getRegParam( NULL, "Port" );
-		if ( newPort != NULL )
-		{
-			port = *newPort;
-			bind_addr.sin_port = htons(port);
-			Debug ( LDAP_DEBUG_ANY, "new port from registry is: %d\n", port, 0, 0 );
-		}
-		newDebugLevel = (int*)getRegParam( NULL, "DebugLevel" );
-		if ( newDebugLevel != NULL ) 
-		{
-			slap_debug = *newDebugLevel;
-			Debug( LDAP_DEBUG_ANY, "new debug level from registry is: %d\n", slap_debug, 0, 0 );
-		}
-		newConfigFile = (char*)getRegParam( NULL, "ConfigFile" );
-		if ( newConfigFile != NULL ) 
-		{
-			configfile = newConfigFile;
-			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
-		}
-	}
-		
-#endif
-
 	while ( (i = getopt( argc, argv,
-			     "d:f:ia:p:s:u"
+			     "d:f:ia:p:s:"
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
@@ -255,7 +189,7 @@ void main( int argc, char **argv )
 			break;
 
 		case 'p': {	/* port on which to listen */
-				port = (short)atoi( optarg );
+				short port = (short)atoi( optarg );
 				if(! port ) {
 					fprintf(stderr, "-p %s must be numeric\n", optarg);
 				} else {
@@ -300,9 +234,7 @@ void main( int argc, char **argv )
 
 		default:
 			usage( argv[0] );
-			rc = 1;
-			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 15 );
-			goto stop;
+			exit( 1 );
 		}
 	}
 
@@ -324,6 +256,8 @@ void main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
+	tcps = set_socket( inetd ? NULL : &bind_addr );
+
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 	if ( username != NULL || groupname != NULL )
 		slap_init_user( username, groupname );
@@ -331,18 +265,13 @@ void main( int argc, char **argv )
 
 	if ( slap_init( serverMode, serverName ) != 0 ) {
 		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
 		goto destroy;
 	}
 
 	if ( read_config( configfile ) != 0 ) {
 		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
 		goto destroy;
 	}
-
-
-	tcps = set_socket( inetd ? NULL : &bind_addr );
 
 	(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
 	(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
@@ -357,12 +286,8 @@ void main( int argc, char **argv )
 #ifdef LDAP_SIGCHLD
 	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
-#ifdef HAVE_WINSOCK
-	// SIGBREAK is generated when Ctrl-Break is pressed.
-	(void) SIGNAL( SIGBREAK, slap_set_shutdown );
-#endif
 
-#ifndef HAVE_WINSOCK
+#ifndef WIN32
 	if(!inetd) {
 #ifdef LDAP_DEBUG
 		lutil_detach( ldap_debug, 0 );
@@ -370,18 +295,15 @@ void main( int argc, char **argv )
 		lutil_detach( 0, 0 );
 #endif
 	}
-#endif /* HAVE_WINSOC */
+#endif /* WIN32 */
 
 	if ( slap_startup(-1)  != 0 ) {
 		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
 		goto shutdown;
 	}
 
 	if(!inetd) {
 		FILE *fp;
-
-		slapd_addr = &bind_addr;
 
 		Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
@@ -401,23 +323,11 @@ void main( int argc, char **argv )
 			fprintf( fp, "\n" );
 			fclose( fp );
 		}
-
-	} else {
-		slapd_addr = NULL;
 	}
 
 	time( &starttime );
-#ifdef HAVE_WINSOCK
-	LogSlapdStartedEvent( SERVICE_NAME, slap_debug, configfile, port, udp );
-#endif
-	rc = slapd_daemon( slapd_addr, tcps );
 
-#ifdef HAVE_WINSOCK
-	// Throw away the event that we used during the startup process.
-	if ( is_NT_Service )
-		ldap_pvt_thread_cond_destroy( &started_event );
-#endif
-
+	rc = slapd_daemon( inetd, tcps );
 
 shutdown:
 	/* remember an error during shutdown */
@@ -426,18 +336,11 @@ destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();
 
-stop:
-#ifdef HAVE_WINSOCK
-	LogSlapdStoppedEvent( SERVICE_NAME );
-#endif
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
-#ifdef HAVE_WINSOCK
-	ReportSlapdShutdownComplete();
-#endif
 
-    closelog();
+	closelog();
 
-	return;
+	return rc;
 }
 
 
