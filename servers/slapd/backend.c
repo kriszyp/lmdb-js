@@ -615,6 +615,30 @@ backend_check_controls(
 	return LDAP_SUCCESS;
 }
 
+int backend_check_referrals(
+	Backend *be,
+	Connection *conn,
+	Operation *op,
+	const char *dn,
+	const char *ndn )
+{
+	int rc = LDAP_SUCCESS;
+
+	if( be->be_chk_referrals ) {
+		const char *text;
+
+		rc = be->be_chk_referrals( be,
+			conn, op, dn, ndn, &text );
+
+		if( rc != LDAP_SUCCESS && rc != LDAP_REFERRAL ) {
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+		}
+	}
+
+	return rc;
+}
+
 int 
 backend_group(
 	Backend	*be,

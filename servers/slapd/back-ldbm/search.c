@@ -38,8 +38,7 @@ ldbm_back_search(
     Filter	*filter,
     const char	*filterstr,
     char	**attrs,
-    int		attrsonly
-)
+    int		attrsonly )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		rc, err;
@@ -111,6 +110,11 @@ ldbm_back_search(
 		free( matched_dn );
 
 		return 1;
+	}
+
+	if ( is_entry_alias( e ) ) {
+		/* don't deref */
+		deref = LDAP_DEREF_NEVER;
 	}
 
 	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
@@ -283,52 +287,10 @@ ldbm_back_search(
 				}
 
 				if (e) {
-					int result;
-#ifdef BROKEN_NUM_SUBORDINATES
-					/* Tack on subordinates attr */
-					ID_BLOCK *idl = NULL;
-					char CATTR_SUBS[] = "numsubordinates";
-
-					if (attrs &&
-					    charray_inlist(attrs,
-							   CATTR_SUBS))
-					{
-					    idl = dn2idl(be, e->e_ndn,
-							 DN_ONE_PREFIX);
-					    if (idl)
-					    {
-						char buf[30];
-						struct berval val, *vals[2];
-
-						vals[0] = &val;
-						vals[1] = NULL;
-
-						sprintf(buf, "%lu",
-							ID_BLOCK_NIDS(idl));
-
-						val.bv_val = buf;
-						val.bv_len = strlen(buf);
-
-						attr_merge(e, CATTR_SUBS,
-							   vals);
-					    }
-					}
-#endif
-
-					result = send_search_entry(be, conn, op,
+					int result = send_search_entry(be, conn, op,
 						e, attrs, attrsonly, NULL);
 
-#ifdef BROKEN_NUM_SUBORDINATES
-					if (idl)
-					{
-					    idl_free(idl);
-					    attr_delete(&e->e_attrs,
-							CATTR_SUBS);
-					}
-#endif
-
-					switch (result)
-					{
+					switch (result) {
 					case 0:		/* entry sent ok */
 						nentries++;
 						break;
@@ -376,8 +338,7 @@ done:
 static ID_BLOCK *
 base_candidate(
     Backend	*be,
-	Entry	*e
-)
+	Entry	*e )
 {
 	ID_BLOCK		*idl;
 
@@ -397,11 +358,51 @@ search_candidates(
     Filter	*filter,
     int		scope,
 	int		deref,
-	int		manageDSAit
-)
+	int		manageDSAit )
 {
 	ID_BLOCK		*candidates;
-	candidates = filter_candidates( be, filter );
+	Filter		f, fand, rf, af, xf;
+    AttributeAssertion aa_ref, aa_alias;
+	static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
+	static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
+
+	Debug(LDAP_DEBUG_TRACE, "search_candidates: base=\"%s\" s=%d d=%d\n",
+		e->e_ndn, scope, deref );
+
+	xf.f_or = filter;
+	xf.f_choice = LDAP_FILTER_OR;
+	xf.f_next = NULL;
+
+	if( !manageDSAit ) {
+		/* match referrals */
+		rf.f_choice = LDAP_FILTER_EQUALITY;
+		rf.f_ava = &aa_ref;
+		rf.f_av_desc = slap_schema.si_ad_objectClass;
+		rf.f_av_value = &bv_ref;
+		rf.f_next = xf.f_or;
+		xf.f_or = &rf;
+	}
+
+	if( deref & LDAP_DEREF_SEARCHING ) {
+		/* match aliases */
+		af.f_choice = LDAP_FILTER_EQUALITY;
+		af.f_ava = &aa_alias;
+		af.f_av_desc = slap_schema.si_ad_objectClass;
+		af.f_av_value = &bv_alias;
+		af.f_next = xf.f_or;
+		xf.f_or = &af;
+	}
+
+	f.f_next = NULL;
+	f.f_choice = LDAP_FILTER_AND;
+	f.f_and = &fand;
+	fand.f_choice = scope == LDAP_SCOPE_SUBTREE
+		? SLAPD_FILTER_DN_SUBTREE
+		: SLAPD_FILTER_DN_ONE;
+	fand.f_dn = e->e_ndn;
+	fand.f_next = xf.f_or == filter ? filter : &xf ;
+
+	candidates = filter_candidates( be, &f );
 
 	return( candidates );
 }

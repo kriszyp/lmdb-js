@@ -18,6 +18,8 @@ void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
 int srv_install( char* service, char * displayName, char* filename,
 		 BOOL auto_start );
 int srv_remove ( char* service, char* filename );
+DWORD svc_installed (LPTSTR lpszServiceName, LPTSTR lpszBinaryPathName);
+DWORD svc_running (LPTSTR lpszServiceName);
 
 int main( int argc, LPTSTR *argv )
 {
@@ -99,7 +101,9 @@ int main( int argc, LPTSTR *argv )
 	}
 
 	puts( "starting slapd..." );
-	if ( !StartServiceCtrlDispatcher(DispatchTable) )
+	if (svc_installed(SERVICE_NAME, NULL) != 0
+		|| svc_running(SERVICE_NAME) == 1
+		|| StartServiceCtrlDispatcher(DispatchTable) != 0 )
 	{
 		is_NT_Service = 0;
 		ServiceMain( argc, argv );

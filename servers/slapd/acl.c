@@ -532,7 +532,7 @@ acl_mask(
 		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
-			int match;
+			int match = 0;
 			const char *text;
 			const char *desc = b->a_dn_at->ad_cname->bv_val;
 
@@ -544,8 +544,8 @@ acl_mask(
 
 			/* see if asker is listed in dnattr */
 			for( at = attrs_find( e->e_attrs, b->a_dn_at );
-				at == NULL;
-				at = attrs_find( e->e_attrs->a_next, b->a_dn_at ) )
+				at != NULL;
+				at = attrs_find( at->a_next, b->a_dn_at ) )
 			{
 				if( value_find( b->a_dn_at, at->a_vals, &bv ) == 0 ) {
 					/* found it */
@@ -1109,6 +1109,7 @@ aci_group_member (
 	}
 	rc = 0;
 
+	grp_oc = oc_find( grpoc );
 	grpdn = (char *)ch_malloc(1024);
 
 	if (grp_oc != NULL && grp_ad != NULL && grpdn != NULL) {
@@ -1240,6 +1241,7 @@ aci_mask(
 	} else if (aci_strbvcmp( "role", &bv ) == 0) {
 		if (aci_group_member(&sdn, SLAPD_ROLE_CLASS, SLAPD_ROLE_ATTR, be, e, op, matches))
 			return(1);
+
 	}
 
 	return(0);

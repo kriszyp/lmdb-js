@@ -3,7 +3,7 @@
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap - Lightweight Directory Access Protocol package
+ldap - OpenLDAP Lightweight Directory Access Protocol API
 .SH SYNOPSIS
 .nf
 .ft B
@@ -22,7 +22,7 @@ overview of the LDAP library routines.
 .LP
 Both synchronous and asynchronous APIs are provided.  Also included are
 various routines to parse the results returned from these routines.
-These routines are found in the libldap.a library.
+These routines are found in the \-lldap library.
 .LP
 The basic interaction is as follows.  A connection is made to an LDAP
 server by calling
@@ -108,10 +108,7 @@ the ldap search routines.  The
 .BR ldap_friendly (3)
 routines are
 used to map from short two letter country codes (or other strings)
-to longer "friendlier" names.  The
-.BR ldap_charset (3)
-routines can be used to translate to and from the T.61 character
-set used for many character strings in the LDAP protocol.
+to longer "friendlier" names.
 .SH CONNECTIONLESS ACCESS
 The
 .BR cldap_search_s (3)

@@ -39,23 +39,10 @@ extern int	dnssrv_back_compare LDAP_P((BackendDB *bd,
 	Connection *conn, Operation *op,
 	const char *dn, const char *ndn, AttributeAssertion *ava ));
 
-extern int	dnssrv_back_modify LDAP_P(( BackendDB *bd,
+extern int	dnssrv_back_referrals LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
 	const char *dn, const char *ndn,
-	Modifications *ml ));
-
-extern int	dnssrv_back_modrdn LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn,
-	const char *newrdn, int deleteoldrdn,
-	const char *newSuperior ));
-
-extern int	dnssrv_back_add LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, Entry *e ));
-
-extern int	dnssrv_back_delete LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *dn, const char *ndn ));
+	const char **text ));
 
 LDAP_END_DECL
 

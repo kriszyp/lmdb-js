@@ -205,12 +205,12 @@ Please try again later.\r\n"
 #define SLAPD_LDBM_MIN_MAXIDS		(8192-4)
 
 /* the following DNs must be normalized! */
-	/* dn of the special "schema" entry */
-#define SLAPD_SCHEMA_DN			"cn=Schema"
+	/* dn of the default subschema subentry */
+#define SLAPD_SCHEMA_DN			"cn=Subschema"
 #if 0
-	/* dn of the special "monitor" entry */
+	/* dn of the default "monitor" subentry */
 #define SLAPD_MONITOR_DN		"cn=Monitor"
-	/* dn of the special "config" entry */
+	/* dn of the default "config" subentry */
 #define SLAPD_CONFIG_DN			"cn=Config"
 #endif
 

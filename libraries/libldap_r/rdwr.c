@@ -80,6 +80,11 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rwlock )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
+
 	/* active threads? */
 	if( rw->ltrw_r_active > 0 || rw->ltrw_w_active > 0) {
 		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
@@ -120,6 +125,11 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rwlock )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
+
 	if( rw->ltrw_w_active > 0 ) {
 		/* writer is active */
 
@@ -131,6 +141,7 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rwlock )
 		} while( rw->ltrw_w_active > 0 );
 
 		rw->ltrw_r_wait--;
+		assert( rw->ltrw_r_wait >= 0 ); 
 	}
 
 	rw->ltrw_r_active++;
@@ -154,6 +165,11 @@ int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rwlock )
 		return LDAP_PVT_THREAD_EINVAL;
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
 
 	if( rw->ltrw_w_active > 0) {
 		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
@@ -184,6 +200,11 @@ int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rwlock )
 
 	rw->ltrw_r_active--;
 
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
+
 	if (rw->ltrw_r_active == 0 && rw->ltrw_w_wait > 0 ) {
 		ldap_pvt_thread_cond_signal( &rw->ltrw_write );
 	}
@@ -208,6 +229,11 @@ int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rwlock )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
+
 	if ( rw->ltrw_w_active > 0 || rw->ltrw_r_active > 0 ) {
 		rw->ltrw_w_wait++;
 
@@ -217,6 +243,7 @@ int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rwlock )
 		} while ( rw->ltrw_w_active > 0 || rw->ltrw_r_active > 0 );
 
 		rw->ltrw_w_wait--;
+		assert( rw->ltrw_w_wait >= 0 ); 
 	}
 
 	rw->ltrw_w_active++;
@@ -240,6 +267,11 @@ int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rwlock )
 		return LDAP_PVT_THREAD_EINVAL;
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
 
 	if ( rw->ltrw_w_active > 0 || rw->ltrw_r_active > 0 ) {
 		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
@@ -269,6 +301,11 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rwlock )
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
 	rw->ltrw_w_active--;
+
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
 
 	if (rw->ltrw_r_wait > 0) {
 		ldap_pvt_thread_cond_broadcast( &rw->ltrw_read );
@@ -303,6 +340,10 @@ int ldap_pvt_thread_rdwr_readers(ldap_pvt_thread_rdwr_t *rwlock)
 
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
 
 	return( rw->ltrw_r_active );
 }
@@ -316,6 +357,10 @@ int ldap_pvt_thread_rdwr_writers(ldap_pvt_thread_rdwr_t *rwlock)
 
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
 
 	return( rw->ltrw_w_active );
 }
@@ -329,6 +374,10 @@ int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rwlock)
 
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+	assert( rw->ltrw_w_active >= 0 ); 
+	assert( rw->ltrw_w_wait >= 0 ); 
+	assert( rw->ltrw_r_active >= 0 ); 
+	assert( rw->ltrw_r_wait >= 0 ); 
 
 	return(ldap_pvt_thread_rdwr_readers(rw) +
 	       ldap_pvt_thread_rdwr_writers(rw));

@@ -137,18 +137,21 @@ dn_validate( char *dn )
 				*d++ = *s;
 			}
 			break;
+
 		case B4SEPARATOR:
 			if ( RDN_SEPARATOR( *s ) ) {
 				state = B4TYPE;
 				*d++ = *s;
 			}
 			break;
+
 		default:
 			dn = NULL;
 			Debug( LDAP_DEBUG_ANY,
 			    "dn_validate - unknown state %d\n", state, 0, 0 );
 			break;
 		}
+
 		if ( *s == '\\' ) {
 			gotesc = 1;
 		} else {
@@ -263,7 +266,7 @@ char * dn_rdn(
 	}
 
 	while(*dn_in && ASCII_SPACE(*dn_in)) {
-		dn++;
+		dn_in++;
 	}
 
 	if( *dn_in == '\0' ) {

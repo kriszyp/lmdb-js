@@ -92,6 +92,7 @@ typedef struct ldbm_dbcache {
 	int		dbc_maxids;
 	int		dbc_maxindirect;
 	int		dbc_dirty;
+	int		dbc_flags;
 	time_t	dbc_lastref;
 	long	dbc_blksize;
 	char	*dbc_name;

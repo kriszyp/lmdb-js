@@ -231,9 +231,9 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 
 	if ( sb->sb_debug ) {
 		ber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
-			"ber_flush: %ld bytes to sd %ld%s\n", towrite,
-		    (long) sb->sb_fd, ber->ber_rwptr != ber->ber_buf ?
-		    " (re-flush)" : "" );
+			"ber_flush: %ld bytes to sd %ld%s\n",
+			towrite, (long) sb->sb_fd,
+			ber->ber_rwptr != ber->ber_buf ?  " (re-flush)" : "" );
 		ber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
 			ber->ber_rwptr, towrite );
 	}
@@ -523,8 +523,10 @@ ber_get_next(
 		}
 		do {
 			/* reading the tag... */
-			if (ber_int_sb_read( sb, ber->ber_rwptr, 1)<=0)
+			if (ber_int_sb_read( sb, ber->ber_rwptr, 1)<=0) {
 				return LBER_DEFAULT;
+			}
+
 			if (! (ber->ber_rwptr[0] & LBER_MORE_TAG_MASK) ) {
 				ber->ber_tag>>=sizeof(ber->ber_tag) -
 				  ((char *) &ber->ber_tag - ber->ber_rwptr);
@@ -532,6 +534,7 @@ ber_get_next(
 				goto get_lenbyte;
 			}
 		} while( PTR_IN_VAR(ber->ber_rwptr, ber->ber_tag ));
+
 		errno = ERANGE; /* this is a serious error. */
 		return LBER_DEFAULT;
 	}

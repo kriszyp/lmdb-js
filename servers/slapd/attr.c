@@ -109,9 +109,9 @@ Attribute *attrs_dup( Attribute *a )
 
 int
 attr_merge(
-    Entry		*e,
+	Entry		*e,
 	AttributeDescription *desc,
-    struct berval	**vals )
+	struct berval	**vals )
 {
 	Attribute	**a;
 

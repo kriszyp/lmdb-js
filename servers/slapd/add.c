@@ -18,7 +18,6 @@
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/socket.h>
@@ -86,7 +85,7 @@ do_add( Connection *conn, Operation *op )
 	e->e_attrs = NULL;
 	e->e_private = NULL;
 
-	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -134,8 +133,7 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	} 
 
-	if ( modlist == NULL )
-	{
+	if ( modlist == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "no attributes provided", NULL, NULL );
 		goto done;
@@ -158,10 +156,15 @@ do_add( Connection *conn, Operation *op )
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
-
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
+		goto done;
+	}
+
+	/* check for referrals */
+	rc = backend_check_referrals( be, conn, op, e->e_dn, e->e_ndn );
+	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
 

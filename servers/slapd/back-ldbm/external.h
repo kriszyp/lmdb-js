@@ -96,7 +96,11 @@ extern int ldbm_tool_index_change LDAP_P(( BackendDB *be,
 	struct berval **bv, ID id, int op ));
 extern int ldbm_tool_sync LDAP_P(( BackendDB *be ));
 
-	
+extern int ldbm_back_referrals LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
+	const char *dn, const char *ndn,
+	const char **text ));
+
 LDAP_END_DECL
 
 #endif /* _LDBM_EXTERNAL_H */

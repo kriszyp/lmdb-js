@@ -14,7 +14,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-dnssrv.h"
+#include "external.h"
 
 int
 dnssrv_back_bind(
@@ -25,8 +25,7 @@ dnssrv_back_bind(
     const char		*ndn,
     int			method,
     struct berval	*cred,
-	char		**edn
-)
+	char		**edn )
 {
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: bind %s (%d)\n",
 		dn == NULL ? "" : dn, 

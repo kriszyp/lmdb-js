@@ -453,8 +453,8 @@ IA5StringNormalize(
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( isspace( *p++ ) ) {
-		/* EMPTY */  ;
+	while ( isspace( *p ) ) {
+		p++;
 	}
 
 	if( *p != '\0' ) {
@@ -470,8 +470,8 @@ IA5StringNormalize(
 			*q++ = *p++;
 
 			/* Ignore the extra whitespace */
-			while ( isspace( *p++ ) ) {
-				/* EMPTY */  ;
+			while ( isspace( *p ) ) {
+				p++;
 			}
 		} else {
 			*q++ = *p++;
@@ -536,24 +536,25 @@ caseExactIA5SubstringsMatch(
 	int i;
 	ber_len_t inlen=0;
 
+	/* Add up asserted input length */
 	if( sub->sa_initial ) {
 		inlen += sub->sa_initial->bv_len;
 	}
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i]; i++) {
-			inlen += sub->sa_final->bv_len;
+		for(i=0; sub->sa_any[i] != NULL; i++) {
+			inlen += sub->sa_any[i]->bv_len;
 		}
 	}
 	if( sub->sa_final ) {
 		inlen += sub->sa_final->bv_len;
 	}
 
-	if( inlen > value->bv_len ) {
-		match = 1;
-		goto done;
-	}
-
 	if( sub->sa_initial ) {
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
+
 		match = strncmp( sub->sa_initial->bv_val, left.bv_val,
 			sub->sa_initial->bv_len );
 
@@ -567,6 +568,11 @@ caseExactIA5SubstringsMatch(
 	}
 
 	if( sub->sa_final ) {
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
+
 		match = strncmp( sub->sa_final->bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
 			sub->sa_final->bv_len );
@@ -576,7 +582,7 @@ caseExactIA5SubstringsMatch(
 		}
 
 		left.bv_len -= sub->sa_final->bv_len;
-		inlen -= sub->sa_initial->bv_len;
+		inlen -= sub->sa_final->bv_len;
 	}
 
 	if( sub->sa_any ) {
@@ -585,7 +591,7 @@ caseExactIA5SubstringsMatch(
 			char *p;
 
 retry:
-			if( inlen < left.bv_len ) {
+			if( inlen > left.bv_len ) {
 				/* not enough length */
 				match = 1;
 				goto done;
@@ -623,13 +629,15 @@ retry:
 				sub->sa_any[i]->bv_val,
 				sub->sa_any[i]->bv_len );
 
-
 			if( match != 0 ) {
+				left.bv_val++;
+				left.bv_len--;
 				goto retry;
 			}
 
 			left.bv_val += sub->sa_any[i]->bv_len;
 			left.bv_len -= sub->sa_any[i]->bv_len;
+			inlen -= sub->sa_any[i]->bv_len;
 		}
 	}
 
@@ -681,24 +689,25 @@ caseIgnoreIA5SubstringsMatch(
 	int i;
 	ber_len_t inlen=0;
 
+	/* Add up asserted input length */
 	if( sub->sa_initial ) {
 		inlen += sub->sa_initial->bv_len;
 	}
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i]; i++) {
-			inlen += sub->sa_final->bv_len;
+		for(i=0; sub->sa_any[i] != NULL; i++) {
+			inlen += sub->sa_any[i]->bv_len;
 		}
 	}
 	if( sub->sa_final ) {
 		inlen += sub->sa_final->bv_len;
 	}
 
-	if( inlen > value->bv_len ) {
-		match = 1;
-		goto done;
-	}
-
 	if( sub->sa_initial ) {
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
+
 		match = strncasecmp( sub->sa_initial->bv_val, left.bv_val,
 			sub->sa_initial->bv_len );
 
@@ -708,9 +717,15 @@ caseIgnoreIA5SubstringsMatch(
 
 		left.bv_val += sub->sa_initial->bv_len;
 		left.bv_len -= sub->sa_initial->bv_len;
+		inlen -= sub->sa_initial->bv_len;
 	}
 
 	if( sub->sa_final ) {
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
+
 		match = strncasecmp( sub->sa_final->bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
 			sub->sa_final->bv_len );
@@ -720,6 +735,7 @@ caseIgnoreIA5SubstringsMatch(
 		}
 
 		left.bv_len -= sub->sa_final->bv_len;
+		inlen -= sub->sa_final->bv_len;
 	}
 
 	if( sub->sa_any ) {
@@ -728,7 +744,7 @@ caseIgnoreIA5SubstringsMatch(
 			char *p;
 
 retry:
-			if( inlen < left.bv_len ) {
+			if( inlen > left.bv_len ) {
 				/* not enough length */
 				match = 1;
 				goto done;
@@ -766,13 +782,16 @@ retry:
 				sub->sa_any[i]->bv_val,
 				sub->sa_any[i]->bv_len );
 
-
 			if( match != 0 ) {
+				left.bv_val++;
+				left.bv_len--;
+
 				goto retry;
 			}
 
 			left.bv_val += sub->sa_any[i]->bv_len;
 			left.bv_len -= sub->sa_any[i]->bv_len;
+			inlen -= sub->sa_any[i]->bv_len;
 		}
 	}
 
@@ -886,7 +905,7 @@ int caseIgnoreIA5Filter(
 }
 
 static int
-NumericStringNormalize(
+numericStringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval **normalized )
@@ -900,8 +919,8 @@ NumericStringNormalize(
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( isspace( *p++ ) ) {
-		/* EMPTY */  ;
+	while ( isspace( *p ) ) {
+		p++;
 	}
 
 	if( *p != '\0' ) {
@@ -940,6 +959,244 @@ NumericStringNormalize(
 	return LDAP_SUCCESS;
 }
 
+static int
+check_time_syntax (struct berval *val,
+	int start,
+	int *parts)
+{
+	static int ceiling[9] = { 99, 99, 11, 30, 23, 59, 59, 12, 59 };
+	static int mdays[12] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+	char *p, *e;
+	int part, c, neg = 0;
+
+	if( val->bv_len == 0 )
+		return LDAP_INVALID_SYNTAX;
+
+	p = (char *)val->bv_val;
+	e = p + val->bv_len;
+
+	/* Ignore initial whitespace */
+	while ( ( p < e ) && isspace( *p ) ) {
+		p++;
+	}
+
+	if (e - p < 13 - (2 * start))
+		return LDAP_INVALID_SYNTAX;
+
+	for (part = 0; part < 9; part++)
+		parts[part] = 0;
+
+	for (part = start; part < 7; part++) {
+		c = *p;
+		if ((part == 6)
+			&& (c == 'Z'
+				|| c == '+'
+				|| c == '-'))
+		{
+			part++;
+			break;
+		}
+		p++;
+		c -= '0';
+		if (p == e)
+			return LDAP_INVALID_SYNTAX;
+		if (c < 0 || c > 9)
+			return LDAP_INVALID_SYNTAX;
+		parts[part] = c;
+
+		c = *p++ - '0';
+		if (p == e)
+			return LDAP_INVALID_SYNTAX;
+		if (c < 0 || c > 9)
+			return LDAP_INVALID_SYNTAX;
+		parts[part] *= 10;
+		parts[part] += c;
+
+		if (part == 2 || part == 3)
+			parts[part]--;
+		if (parts[part] < 0)
+			return LDAP_INVALID_SYNTAX;
+		if (parts[part] > ceiling[part])
+			return LDAP_INVALID_SYNTAX;
+	}
+	if (parts[2] == 1) {
+		if (parts[3] > mdays[parts[2]])
+			return LDAP_INVALID_SYNTAX;
+		if (parts[1] & 0x03) {
+			/* FIXME:  This is an incomplete leap-year
+			 * check that fails in 2100, 2200, 2300,
+			 * 2500, 2600, 2700, ...
+			 */
+			if (parts[3] > mdays[parts[2]] - 1)
+				return LDAP_INVALID_SYNTAX;
+		}
+	}
+	c = *p++;
+	if (c == 'Z') {
+		/* all done */
+	} else if (c != '+' && c != '-') {
+		return LDAP_INVALID_SYNTAX;
+	} else {
+		if (c == '-')
+			neg = 1;
+		if (p > e - 4)
+			return LDAP_INVALID_SYNTAX;
+		for (part = 7; part < 9; part++) {
+			c = *p++ - '0';
+			if (c < 0 || c > 9)
+				return LDAP_INVALID_SYNTAX;
+			parts[part] = c;
+
+			c = *p++ - '0';
+			if (c < 0 || c > 9)
+				return LDAP_INVALID_SYNTAX;
+			parts[part] *= 10;
+			parts[part] += c;
+			if (parts[part] < 0 || parts[part] > ceiling[part])
+				return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	/* Ignore trailing whitespace */
+	while ( ( p < e ) && isspace( *p ) ) {
+		p++;
+	}
+	if (p != e)
+		return LDAP_INVALID_SYNTAX;
+
+	if (neg == 0) {
+		parts[4] += parts[7];
+		parts[5] += parts[8];
+		for (part = 7; --part > 0; ) {
+			if (part != 3)
+				c = ceiling[part];
+			else {
+				/* FIXME:  This is an incomplete leap-year
+				 * check that fails in 2100, 2200, 2300,
+				 * 2500, 2600, 2700, ...
+				 */
+				c = mdays[parts[2]];
+				if (parts[2] == 1)
+					c--;
+			}
+			if (parts[part] > c) {
+				parts[part] -= c + 1;
+				parts[part - 1]++;
+			}
+		}
+	} else {
+		parts[4] -= parts[7];
+		parts[5] -= parts[8];
+		for (part = 7; --part > 0; ) {
+			if (part != 3)
+				c = ceiling[part];
+			else {
+				/* FIXME:  This is an incomplete leap-year
+				 * check that fails in 2100, 2200, 2300,
+				 * 2500, 2600, 2700, ...
+				 */
+				c = mdays[(parts[2] - 1) % 12];
+				if (parts[2] == 2)
+					c--;
+			}
+			if (parts[part] < 0) {
+				parts[part] += c + 1;
+				parts[part - 1]--;
+			}
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
+utcTimeNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	struct berval *out;
+	int parts[9], rc;
+
+	rc = check_time_syntax(val, 1, parts);
+	if (rc != LDAP_SUCCESS) {
+		return rc;
+	}
+
+	*normalized = NULL;
+	out = ch_malloc( sizeof(struct berval) );
+	if( out == NULL )
+		return LBER_ERROR_MEMORY;
+
+	out->bv_val = ch_malloc( 14 );
+	if ( out->bv_val == NULL ) {
+		ch_free( out );
+		return LBER_ERROR_MEMORY;
+	}
+
+	sprintf( out->bv_val, "%02ld%02ld%02ld%02ld%02ld%02ldZ",
+				parts[1], parts[2] + 1, parts[3] + 1,
+				parts[4], parts[5], parts[6] );
+	out->bv_len = 13;
+	*normalized = out;
+
+	return LDAP_SUCCESS;
+}
+
+static int
+utcTimeValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int parts[9];
+
+	return check_time_syntax(in, 1, parts);
+}
+
+static int
+generalizedTimeNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	struct berval *out;
+	int parts[9], rc;
+
+	rc = check_time_syntax(val, 0, parts);
+	if (rc != LDAP_SUCCESS) {
+		return rc;
+	}
+
+	*normalized = NULL;
+	out = ch_malloc( sizeof(struct berval) );
+	if( out == NULL )
+		return LBER_ERROR_MEMORY;
+
+	out->bv_val = ch_malloc( 16 );
+	if ( out->bv_val == NULL ) {
+		ch_free( out );
+		return LBER_ERROR_MEMORY;
+	}
+
+	sprintf( out->bv_val, "%02ld%02ld%02ld%02ld%02ld%02ld%02ldZ",
+				parts[0], parts[1], parts[2] + 1, parts[3] + 1,
+				parts[4], parts[5], parts[6] );
+	out->bv_len = 15;
+	*normalized = out;
+
+	return LDAP_SUCCESS;
+}
+
+static int
+generalizedTimeValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int parts[9];
+
+	return check_time_syntax(in, 0, parts);
+}
+
 struct syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
@@ -955,6 +1212,10 @@ struct syntax_defs_rec {
 #define X_HIDE "X-HIDE 'TRUE' "
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
+
+#define faxNumberNormalize numericStringNormalize
+#define phoneNumberNormalize numericStringNormalize
+#define telexNumberNormalize numericStringNormalize
 
 struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' " X_BINARY X_NOT_H_R ")",
@@ -1001,11 +1262,11 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
-		0, blobValidate, NULL, NULL},
+		0, IA5StringValidate, faxNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
-		0, NULL, NULL, NULL},
+		0, generalizedTimeValidate, generalizedTimeNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
@@ -1029,7 +1290,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
-		0, IA5StringValidate, NumericStringNormalize, NULL},
+		0, IA5StringValidate, numericStringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
@@ -1050,13 +1311,13 @@ struct syntax_defs_rec syntax_defs[] = {
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, blobValidate, NULL, NULL},
+		0, IA5StringValidate, phoneNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
-		0, NULL, NULL, NULL},
+		0, IA5StringValidate, telexNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
-		0, NULL, NULL, NULL},
+		0, utcTimeValidate, utcTimeNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.55 DESC 'Modify Rights' )",
@@ -1070,7 +1331,7 @@ struct syntax_defs_rec syntax_defs[] = {
 
 	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
-		0, NULL, NULL, NULL},
+		0, IA5StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */, NULL, NULL},
 	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.4203.666.2.3 DESC 'OpenLDAP void' " X_HIDE ")" ,
@@ -1140,8 +1401,8 @@ struct mrule_defs_rec {
 #define presentationAddressMatch NULL
 #define uniqueMemberMatch NULL
 #define protocolInformationMatch NULL
-#define generalizedTimeMatch NULL
-#define generalizedTimeOrderingMatch NULL
+#define generalizedTimeMatch caseExactIA5Match
+#define generalizedTimeOrderingMatch caseExactIA5Match
 #define integerFirstComponentMatch NULL
 #define objectIdentifierFirstComponentMatch NULL
 

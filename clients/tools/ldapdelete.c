@@ -317,9 +317,10 @@ main( int argc, char **argv )
 		}
 	}
 
-	if (want_bindpw)
+	if (want_bindpw) {
 		passwd.bv_val = getpassphrase("Enter LDAP Password: ");
 		passwd.bv_len = strlen( passwd.bv_val );
+	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
 #ifdef HAVE_CYRUS_SASL

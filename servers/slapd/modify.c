@@ -27,12 +27,10 @@
 #include "slap.h"
 
 
-
 int
 do_modify(
     Connection	*conn,
-    Operation	*op
-)
+    Operation	*op )
 {
 	char		*dn, *ndn = NULL;
 	char		*last;
@@ -129,8 +127,6 @@ do_modify(
 		}
 
 		(*modtail)->ml_op = mop;
-		
-
 		modtail = &(*modtail)->ml_next;
 	}
 	*modtail = NULL;
@@ -159,7 +155,6 @@ do_modify(
 	}
 #endif
 
-
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, 0, 0 );
 
@@ -176,10 +171,15 @@ do_modify(
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
-
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
+		goto cleanup;
+	}
+
+	/* check for referrals */
+	rc = backend_check_referrals( be, conn, op, dn, ndn );
+	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
@@ -187,7 +187,7 @@ do_modify(
 		Debug( LDAP_DEBUG_ANY, "do_modify: database is read-only\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "directory is read-only", NULL, NULL );
+			NULL, "directory is read-only", NULL, NULL );
 		goto cleanup;
 	}
 
