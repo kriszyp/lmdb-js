@@ -1,0 +1,101 @@
+.TH SLAPACL 8C "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+slapacl \- Check access to a list of attributes.
+.SH SYNOPSIS
+.B SBINDIR/slapacl
+.B [\-v]
+.B [\-d level]
+.B [\-f slapd.conf]
+.B [\-D authcDN | \-U authcID]
+.B \-b DN
+.B attr[/level][:value] [...]
+.LP
+.SH DESCRIPTION
+.LP
+.B Slapacl
+is used to check the behavior of the slapd in verifying access to data
+according to ACLs, as specified in 
+.BR slapd.access (5).
+It opens the
+.BR slapd.conf (5)
+configuration file, reads in the 
+.B access
+and
+.B defaultaccess
+directives, and then parses the 
+.B attr
+list given on the command-line.
+.LP
+.SH OPTIONS
+.TP
+.B \-v
+enable verbose mode.
+.TP
+.BI \-d " level"
+enable debugging messages as defined by the specified
+.IR level .
+.TP
+.BI \-f " slapd.conf"
+specify an alternative
+.BR slapd.conf (5)
+file.
+.TP
+.BI \-D " authcDN"
+specify a DN to be used as identity through the test session
+when selecting appropriate
+.B <by> 
+clauses in access lists.
+.TP
+.BI \-U " authcID"
+specify an ID to be mapped to a 
+.B DN 
+as by means of 
+.B authz-regexp
+or
+.B authz-rewrite
+rules (see 
+.BR slapd.conf (5)
+for details); mutually exclusive with
+.BR \-D .
+.TP
+.BI \-b " DN"
+specify the 
+.B DN 
+access to is requested; the corresponding entry is not fetched 
+from the database, and thus it must not exist.
+However, a database must be selected to determine what rules 
+apply; thus, it must be in the naming context of a configured database.
+.SH EXAMPLES
+The command
+.LP
+.nf
+.ft tt
+	SBINDIR/slapacl -f /ETCDIR/slapd.conf -v \\
+            -U bjorn -b "o=University of Michigan,c=US" \\
+	    "o/read:University of Michigan"
+
+.ft
+.fi
+tests whether the user
+.I bjorn
+can access the attribute 
+.I o
+of the entry
+.I o=University of Michigan,c=US
+at
+.I read
+level.
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR slapd (8)
+.BR slaptest (8)
+.BR slapauth (8)
+.LP
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
+.SH ACKNOWLEDGEMENTS
+.B OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  
