@@ -1936,12 +1936,16 @@ restrict_unknown:;
 
 			if ( rc )
 				return rc;
+#ifdef HAVE_OPENSSL_CRL
 		} else if ( !strcasecmp( cargv[0], "TLSCRLCheck" ) ) {
 			rc = ldap_int_tls_config( NULL,
 						LDAP_OPT_X_TLS_CRLCHECK,
 						cargv[1] );
-
+			if ( rc )
+				return rc;
 #endif
+
+#endif /* HAVE_TLS */
 
 		} else if ( !strcasecmp( cargv[0], "reverse-lookup" ) ) {
 #ifdef SLAPD_RLOOKUPS

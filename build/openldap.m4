@@ -1327,3 +1327,18 @@ AC_DEFUN(OL_MSGHDR_MSG_ACCRIGHTS,
 		[define if struct msghdr has msg_accrights])
   fi
 ])dnl
+AC_DEFUN([OL_SSL_COMPAT],
+[AC_CACHE_CHECK([OpenSSL library version (CRL checking capability)], [ol_cv_ssl_crl_compat],[
+	AC_EGREP_CPP(__ssl_compat,[
+#ifdef HAVE_OPENSSL_SSL_H
+#include <openssl/ssl.h>
+#else
+#include <ssl.h>
+#endif
+
+/* Require 0.9.7d+ */
+#if OPENSSL_VERSION_NUMBER >= 0x0090704fL
+	char *__ssl_compat = "0.9.7d";
+#endif
+	],	[ol_cv_ssl_crl_compat=yes], [ol_cv_ssl_crl_compat=no])])
+])

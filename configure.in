@@ -1258,6 +1258,13 @@ if test $ol_with_tls != no ; then
 				TLS_LIBS="-lssl -lcrypto"
 			fi
 		fi
+		OL_SSL_COMPAT
+		if test $ol_cv_ssl_crl_compat = no ; then
+			ol_link_ssl=no
+                else 
+			AC_DEFINE(HAVE_OPENSSL_CRL, 1, 
+				[define if you have OpenSSL with CRL checking capability])
+		fi
 	fi
 
 else

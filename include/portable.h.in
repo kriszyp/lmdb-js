@@ -476,6 +476,9 @@
 /* Define if you have the <openssl/bn.h> header file.  */
 #undef HAVE_OPENSSL_BN_H
 
+/* Define if you have OpenSSL with CRL checking capability. */
+#undef HAVE_OPENSSL_CRL
+
 /* Define if you have the <openssl/crypto.h> header file.  */
 #undef HAVE_OPENSSL_CRYPTO_H
 
