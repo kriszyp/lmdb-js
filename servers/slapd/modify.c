@@ -562,7 +562,7 @@ int slap_mods_check(
 		/*
 		 * check values
 		 */
-		if( ml->sml_bvalues != NULL ) {
+		if( ml->sml_nvalues != NULL ) {
 			ber_len_t nvals;
 			slap_syntax_validate_func *validate =
 				ad->ad_type->sat_syntax->ssyn_validate;
@@ -583,14 +583,14 @@ int slap_mods_check(
 			 * check that each value is valid per syntax
 			 *	and pretty if appropriate
 			 */
-			for( nvals = 0; ml->sml_bvalues[nvals].bv_val; nvals++ ) {
+			for( nvals = 0; ml->sml_nvalues[nvals].bv_val; nvals++ ) {
 				struct berval pval;
 				if( pretty ) {
 					rc = pretty( ad->ad_type->sat_syntax,
-						&ml->sml_bvalues[nvals], &pval );
+						&ml->sml_nvalues[nvals], &pval );
 				} else {
 					rc = validate( ad->ad_type->sat_syntax,
-						&ml->sml_bvalues[nvals] );
+						&ml->sml_nvalues[nvals] );
 				}
 
 				if( rc != 0 ) {
@@ -602,16 +602,46 @@ int slap_mods_check(
 				}
 
 				if( pretty ) {
-					ber_memfree( ml->sml_bvalues[nvals].bv_val );
-					ml->sml_bvalues[nvals] = pval;
+					ber_memfree( ml->sml_nvalues[nvals].bv_val );
+					ml->sml_nvalues[nvals] = pval;
 				}
 			}
+
+#ifdef SLAP_NVALUES
+			if( nvals && ad->ad_type->sat_equality &&
+				ad->ad_type->sat_equality->smr_match &&
+				ad->ad_type->sat_syntax->ssyn_normalize )
+			{
+				ml->sml_nvalues = ch_malloc( (nvals+1)*sizeof(struct berval) );
+				for( nvals = 0; ml->sml_nvalues[nvals].bv_val; nvals++ ) {
+					rc = ad->ad_type->sat_syntax->ssyn_normalize(
+						ad->ad_type->sat_syntax,
+						&ml->sml_values[nvals], &ml->sml_nvalues[nvals] );
+					if( rc ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( OPERATION, DETAIL1,
+							"str2entry:  NULL (ssyn_normalize %d)\n",
+							rc, 0, 0 );
+#else
+						Debug( LDAP_DEBUG_ANY,
+							"<= str2entry NULL (ssyn_normalize %d)\n",
+							rc, 0, 0 );
+#endif
+						snprintf( textbuf, textlen,
+							"%s: value #%ld normalization failed",
+							ml->sml_type.bv_val, (long) nvals );
+						*text = textbuf;
+						return rc;
+					}
+				}
+			}
+#endif
 
 			/*
 			 * a rough single value check... an additional check is needed
 			 * to catch add of single value to existing single valued attribute
 			 */
-			if( ( ml->sml_op == LDAP_MOD_ADD || ml->sml_op == LDAP_MOD_REPLACE )
+			if ((ml->sml_op == LDAP_MOD_ADD || ml->sml_op == LDAP_MOD_REPLACE)
 				&& nvals > 1 && is_at_single_value( ad->ad_type ))
 			{
 				snprintf( textbuf, textlen,

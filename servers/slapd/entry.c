@@ -696,10 +696,12 @@ int entry_decode(struct berval *bv, Entry **e)
 				if( rc ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, DETAIL1,
-						"str2entry:  NULL (ssyn_normalize %d)\n" , rc, 0, 0 );
+						"entry_decode: NULL (ssyn_normalize %d)\n",
+						rc, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-				   		"<= str2entry NULL (ssyn_normalize %d)\n", rc, 0, 0 );
+				   		"<= entry_decode NULL (ssyn_normalize %d)\n",
+						rc, 0, 0 );
 #endif
 
 					return rc;
