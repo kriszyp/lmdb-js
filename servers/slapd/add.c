@@ -469,7 +469,7 @@ slap_mods2entry(
 					/* test asserted values against themselves */
 					for( j = 0; j < i; j++ ) {
 						rc = value_match( &match, mods->sml_desc, mr,
-							SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
+							SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
 							| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
 							| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 							&mods->sml_nvalues[i], &mods->sml_nvalues[j], text );
