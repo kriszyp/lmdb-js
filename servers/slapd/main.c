@@ -4,7 +4,6 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
-#include "slapi_common.h"
 
 #include <stdio.h>
 

@@ -6,7 +6,6 @@
  */
 
 #include "portable.h"
-#include "slapi_common.h"
 
 #include <stdio.h>
 

@@ -11,16 +11,15 @@
  */
 
 #include "portable.h"
-#include "slapi_common.h"
 
 #include <stdio.h>
+
 #include <ac/string.h>
 
 #include "slap.h"
 #include "slapi.h"
 #include <ldif.h>
 #include "lber_pvt.h"
-#include "slapi/slapi_utils.h"
 
 struct berval *ns_get_supported_extop (int);
 
