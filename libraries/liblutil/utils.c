@@ -8,6 +8,7 @@
 
 #include <ac/stdlib.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
@@ -33,6 +34,10 @@ char* lutil_progname( const char* name, int argc, char *argv[] )
 #ifndef HAVE_MKSTEMP
 int mkstemp( char * template )
 {
+#ifdef HAVE_MKTEMP
 	return open ( mktemp ( template ), O_RDWR|O_CREAT|O_EXCL, 0600 );
+#else
+	return -1
+#endif
 }
 #endif

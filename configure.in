@@ -2337,6 +2337,8 @@ AC_CHECK_FUNCS(		\
 	lockf			\
 	memcpy			\
 	memmove			\
+	mkstemp			\
+	mktemp			\
 	pipe			\
 	read			\
 	recv			\
