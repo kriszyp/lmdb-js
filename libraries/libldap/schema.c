@@ -53,7 +53,7 @@ new_safe_string(int size)
 	return ss;
 }
 
-void
+static void
 safe_string_free(safe_string * ss)
 {
 	if ( !ss )
