@@ -117,8 +117,13 @@ ldap_pvt_prepare_socket(LDAP *ld, int fd)
 #ifdef TCP_NODELAY
 {
 	int dummy = 1;
-	if ( setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, (char*) &dummy, sizeof(dummy) ) == -1 )
-		return -1;
+	if ( setsockopt( fd, IPPROTO_TCP, TCP_NODELAY,
+		(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
+	{
+		osip_debug(ld, "ldap_prepare_socket: "
+			"setsockopt(%d, TCP_NODELAY) failed (ignored).\n",
+			fd, 0, 0);
+	}
 }
 #endif
 	return 0;
