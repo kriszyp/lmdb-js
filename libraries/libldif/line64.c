@@ -111,7 +111,7 @@ str_parse_line(
 		stop = strchr( s, '\0' );
 		byte = s;
 		for ( p = s, *vlen = 0; p < stop; p += 4, *vlen += 3 ) {
-			for ( i = 0; i < 3; i++ ) {
+			for ( i = 0; i < 4; i++ ) {
 				if ( p[i] != '=' && (p[i] & 0x80 ||
 				    b642nib[ p[i] & 0x7f ] > 0x3f) ) {
 					Debug( LDAP_DEBUG_ANY,
