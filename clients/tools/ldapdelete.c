@@ -197,9 +197,9 @@ main( int argc, char **argv )
 		}
 	}
 
-	ldap_unbind_ext( ld, NULL, NULL );
-
-    return( retval );
+	tool_unbind( ld );
+	tool_destroy();
+    return retval;
 }
 
 

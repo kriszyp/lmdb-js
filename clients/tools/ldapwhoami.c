@@ -193,7 +193,8 @@ main( int argc, char *argv[] )
 
 skip:
 	/* disconnect from server */
-	ldap_unbind (ld);
+	tool_unbind( ld );
+	tool_destroy();
 
 	return rc == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE;
 }

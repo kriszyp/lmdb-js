@@ -98,6 +98,17 @@ tool_init( void )
 }
 
 void
+tool_destroy( void )
+{
+#ifdef HAVE_CYRUS_SASL
+	sasl_done();
+#endif
+#ifdef HAVE_TLS
+	ldap_pvt_tls_destroy();
+#endif
+}
+
+void
 tool_common_usage( void )
 {
 	static const char *const descriptions[] = {
@@ -916,6 +927,18 @@ tool_bind( LDAP *ld )
 			}
 		}
 	}
+}
+
+void
+tool_unbind( LDAP *ld )
+{
+	int err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, NULL );
+
+	if ( err != LDAP_OPT_SUCCESS ) {
+		fprintf( stderr, "Could not unset controls\n");
+	}
+
+	(void) ldap_unbind_ext( ld, NULL, NULL );
 }
 
 

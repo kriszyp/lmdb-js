@@ -77,6 +77,8 @@ void tool_common_usage LDAP_P(( void ));
 void tool_args LDAP_P(( int, char ** ));
 LDAP *tool_conn_setup LDAP_P(( int dont, void (*private_setup)( LDAP * ) ));
 void tool_bind LDAP_P(( LDAP * ));
+void tool_unbind LDAP_P(( LDAP * ));
+void tool_destroy LDAP_P(( void ));
 void tool_server_controls LDAP_P(( LDAP *, LDAPControl *, int ));
 
 LDAP_END_DECL

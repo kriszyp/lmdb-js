@@ -405,13 +405,14 @@ main( int argc, char **argv )
 #endif
 
 	if ( !not ) {
-		ldap_unbind_ext( ld, NULL, NULL );
+		tool_unbind( ld );
 	}
 
 	if ( rejfp != NULL ) {
 		fclose( rejfp );
 	}
 
+	tool_destroy();
 	return( retval );
 }
 

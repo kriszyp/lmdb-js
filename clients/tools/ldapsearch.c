@@ -363,6 +363,7 @@ handle_private_option( int i )
 
 			domainScope = 1 + crit;
 #endif
+
 #ifdef LDAP_CONTROL_SUBENTRIES
 		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
 			if( subentries ) {
@@ -708,7 +709,7 @@ getNextPage:
 			}
 
 			err = ber_printf( seber, "b", abs(subentries) == 1 ? 0 : 1 );
-		    	if ( err == -1 ) {
+			if ( err == -1 ) {
 				ber_free( seber, 1 );
 				fprintf( stderr, _("Subentries control encoding error!\n") );
 				return EXIT_FAILURE;
@@ -942,13 +943,8 @@ getNextPage:
 	}
 #endif
 
-	ldap_unbind_ext( ld, NULL, NULL );
-#ifdef HAVE_CYRUS_SASL
-	sasl_done();
-#endif
-#ifdef HAVE_TLS
-	ldap_pvt_tls_destroy();
-#endif
+	tool_unbind( ld );
+	tool_destroy();
 	return( rc );
 }
 
