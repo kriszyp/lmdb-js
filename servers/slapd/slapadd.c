@@ -94,7 +94,12 @@ slapadd( int argc, char **argv )
 	{
 		fprintf( stderr, "%s: database doesn't support necessary operations.\n",
 			progname );
-		exit( EXIT_FAILURE );
+		if ( dryrun ) {
+			fprintf( stderr, "\t(dry) continuing...\n" );
+
+		} else {
+			exit( EXIT_FAILURE );
+		}
 	}
 
 	lmax = 0;
@@ -725,12 +730,18 @@ done:;
 
 	ch_free( buf );
 
-	if( be->be_entry_close( be )) rc = EXIT_FAILURE;
+	if ( !dryrun ) {
+		if( be->be_entry_close( be ) ) {
+			rc = EXIT_FAILURE;
+		}
 
-	if( be->be_sync ) {
-		be->be_sync( be );
+		if( be->be_sync ) {
+			be->be_sync( be );
+		}
 	}
 
 	slap_tool_destroy();
+
 	return rc;
 }
+
