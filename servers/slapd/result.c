@@ -23,8 +23,14 @@ static char *v2ref( struct berval **ref, const char *text )
 	size_t len = 0, i = 0;
 	char *v2;
 
-	if(ref == NULL) return (char *)text;
-
+	if(ref == NULL)
+	{
+	    if (text)
+		return ch_strdup(text);
+	    else
+		return NULL;
+	}
+	
 	if (text) {
 		len = strlen( text );
 		if (text[len-1] != '\n')
@@ -428,7 +434,7 @@ send_ldap_result(
 		(long) tag, (long) err, text ? text : "" );
 
 	if( tmp != NULL ) {
-		free(tmp);
+		ch_free(tmp);
 	}
 }
 
@@ -499,6 +505,8 @@ send_search_result(
 		(long) op->o_connid, (long) op->o_opid,
 		(long) tag, (long) err, text ? text : "" );
 
+	if (tmp != NULL)
+	    ch_free(tmp);
 }
 
 
