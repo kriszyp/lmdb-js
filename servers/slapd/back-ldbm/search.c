@@ -157,8 +157,8 @@ ldbm_back_search(
 			int	i, len;
 
 			if ( ref->a_vals == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "null ref in (%s)\n", 0,
-					0, 0 );
+				Debug( LDAP_DEBUG_ANY, "null ref in (%s)\n", 
+					e->e_dn, 0, 0 );
 			} else {
 				for ( i = 0; ref->a_vals[i] != NULL; i++ ) {
 					/* referral + newline + null */
