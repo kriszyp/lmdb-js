@@ -54,6 +54,27 @@ the <min> argument is non-zero, an internal task will run every <min>
 minutes to perform the checkpoint.
 See the Berkeley DB reference guide for more details.
 .TP
+.B dbconfig <Berkeley DB setting>
+Specify a configuration directive to be placed in the
+.B DB_CONFIG
+file of the database directory. The
+.B dbconfig
+directive is just a convenience
+to allow all necessary configuration to be set in the
+.B slapd.conf
+file.
+The options set using this directive will only be written to the DB_CONFIG
+file if no such file existed at server startup time. This allows one
+to set initial values without overwriting/destroying a DB_CONFIG file
+that was already customized through other means. This directive may
+be specified multiple times, as needed. For example
+.RS
+.nf
+	dbconfig set_cachesize 0 1048576 0
+	dbconfig set_lg_bsize 2097152
+.fi
+.RE
+.TP
 .B dbnosync
 Specify that on-disk database contents should not be immediately
 synchronized with in memory changes.
