@@ -386,11 +386,27 @@ at_find(
 )
 {
 	struct aindexrec	*air = NULL;
+	char			*p, *tmpname = NULL;
 
-	if ( (air = (struct aindexrec *) avl_find( attr_index, name,
+	/*
+	 * The name may actually be an AttributeDescription, i.e. it may
+	 * contain options.  Let's deal with it.
+	 */
+	p = strchr( name, ';' );
+	if ( p ) {
+		tmpname = ch_malloc( p-name+1 );
+		strncpy( tmpname, name, p-name );
+		tmpname[p-name] = '\0';
+	} else
+		tmpname = (char *)name;
+	if ( (air = (struct aindexrec *) avl_find( attr_index, tmpname,
             (AVL_CMP) attr_index_name_cmp )) != NULL ) {
+		if ( tmpname != name )
+			ldap_memfree( tmpname );
 		return( air->air_at );
 	}
+	if ( tmpname != name )
+		ldap_memfree( tmpname );
 	return( NULL );
 }
 
