@@ -541,17 +541,19 @@ acl_get(
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
-					int	rdnlen = -1,
-						off = patlen > 0 ? 1 : 0;
+					int	rdnlen = -1, sep = 0;
 
 					if ( dnlen <= patlen )
 						continue;
 
-					if ( patlen > 0 && !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
-						continue;
+					if ( patlen > 0 ) {
+						if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
+							continue;
+						sep = 1;
+					}
 
 					rdnlen = dn_rdnlen( NULL, &e->e_nname );
-					if ( rdnlen != dnlen - patlen - off )
+					if ( rdnlen != dnlen - patlen - sep )
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
