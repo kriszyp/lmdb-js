@@ -311,7 +311,7 @@ slap_sasl_authorize(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl_authorize: conn %d authorization allowed\n",
-		   (long)(conn ? conn->c_connid : -1 ) );
+		   (long)(conn ? conn->c_connid : -1 ) ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 		" authorization allowed\n",

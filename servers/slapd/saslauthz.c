@@ -142,7 +142,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	if ( rc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-			   "slap_sasl_regexp_config: \"%s\" could not be compiled.\n"
+			   "slap_sasl_regexp_config: \"%s\" could not be compiled.\n",
 			   reg->match ));
 #else
 		Debug( LDAP_DEBUG_ANY,
@@ -429,7 +429,7 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule );
+		   "slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule, 0 );
@@ -640,7 +640,7 @@ int slap_sasl_authorized( char *authcDN, char *authzDN )
 DONE:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_authorized: return %s\n", rc ));
+		   "slap_sasl_authorized: return %d\n", rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<== slap_sasl_authorized: return %d\n",rc,0,0 );
 #endif
