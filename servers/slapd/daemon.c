@@ -1,5 +1,4 @@
 #include "portable.h"
-//#include "portable_err.h"
 
 #include <stdio.h>
 
@@ -26,7 +25,7 @@ int dtblsize;
 static int tcps;
 
 #ifdef HAVE_WINSOCK2
-// in nt_main.c
+/* in nt_main.c */
 extern ldap_pvt_thread_cond_t			started_event;
 /* forward reference */
 void hit_socket();
@@ -219,7 +218,7 @@ set_socket( struct sockaddr_in *addr )
 				WSAGetLastError(),
 		    	WSAGetLastErrorString(), 0 );
 #endif
-			exit( 1 );
+			return( -1 );
 		}
 
 #ifndef HAVE_WINSOCK
@@ -227,7 +226,7 @@ set_socket( struct sockaddr_in *addr )
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listener descriptor %d is too great\n",
 				tcps, dtblsize, 0 );
-			exit( 1 );
+			return -1;
 		}
 #endif
 
@@ -265,7 +264,7 @@ set_socket( struct sockaddr_in *addr )
 		    	tcps, err,
 				err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
-			exit( 1 );
+			return -1;
 		}
 	}
 
@@ -282,7 +281,7 @@ slapd_daemon_task(
 	struct sockaddr_in *slapd_addr = args->addr;
 
 	tcps  = args->tcps;
-	free( ptr );
+	/*free( ptr );  This seems to be wrong unless I hosed something */
 
 	inetd = ( slapd_addr == NULL);
     if ( !daemon_initialized ) sockinit();
@@ -301,7 +300,7 @@ slapd_daemon_task(
 			    tcps, err,
 				err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
-			exit( 1 );
+			return( (void*)-1 );
 		}
 
 		slapd_add( tcps );
@@ -311,8 +310,7 @@ slapd_daemon_task(
 			Debug( LDAP_DEBUG_ANY,
 				"connection_init(%d) failed.\n",
 				0, 0, 0 );
-
-			exit( 1 );
+			return( (void*)-1 );
 		}
 
 		slapd_add( 0 );
@@ -322,7 +320,7 @@ slapd_daemon_task(
 	if ( started_event != NULL )
 		ldap_pvt_thread_cond_signal( &started_event );
 #endif
-	// initialization complete. Here comes the loop.
+	/* initialization complete. Here comes the loop. */
 	while ( !slapd_shutdown ) {
 		unsigned int i;
 		int ns, nfds;
@@ -800,9 +798,9 @@ slap_set_shutdown( int sig )
 	}
 #else
 	Debug( LDAP_DEBUG_TRACE, "Shutdown %d ordered", sig, 0 );
-	// trying to "hit" the socket seems to always get a
-	// EWOULDBLOCK error, so just close the listen socket to
-	// break out of the select since we're shutting down anyway
+	/* trying to "hit" the socket seems to always get a */
+	/* EWOULDBLOCK error, so just close the listen socket to */
+	/* break out of the select since we're shutting down anyway */
 	tcp_close( tcps );
 #endif
 	/* reinstall self */
