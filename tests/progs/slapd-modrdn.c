@@ -93,14 +93,16 @@ main( int argc, char **argv )
 
 
 static void
-do_modrdn( char *uri, char *host, int port, char *manager, char *passwd, char *entry, int maxloop )
+do_modrdn( char *uri, char *host, int port, char *manager,
+	char *passwd, char *entry, int maxloop )
 {
 	LDAP	*ld = NULL;
 	int  	i;
 	pid_t	pid = getpid();
-	char *DNs[2] = { entry, NULL };
+	char *DNs[2];
 	char *rdns[2];
 
+	DNs[0] = entry;
 	DNs[1] = strdup( entry );
 
 	/* reverse the RDN, make new DN */

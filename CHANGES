@@ -2,9 +2,13 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.15 Engineering
 	Fixed slapd saslauthz null backend crash
-	Fixed liblutil getpeereid replacement function
-	Fixed liblber 64bit len/tag bug
+	Fixed libldap IPv6 SASL host bug (ITS#2347)
+	Fixed liblber 64bit len/tag bug (ITS#2344)
+	Fixed liblutil getpeereid replacement function (ITS#2333)
+	Fixed slapd illegal schema crash (ITS#2342)
+	Updated slaptools default backend (ITS#2343)
 	Updated liblber ber_get_stringbv handling
+	Removed lint
 	Build Environment
 		Updated NT build environment w/ slurpd support
 		Updated test suite

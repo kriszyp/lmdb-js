@@ -512,7 +512,7 @@ ber_get_next(
 	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
 		(char *)&ber->ber_len + LENSIZE*2) {
 		ber_slen_t sblen;
-		char buf[LENSIZE-1];
+		char buf[sizeof(ber->ber_len)-1];
 		ber_len_t tlen = 0;
 
 		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
@@ -574,11 +574,11 @@ ber_get_next(
 		}
 
 		/* Are there leftover data bytes inside ber->ber_len? */
-		if (ber->ber_ptr < (char *)&ber->ber_len+LENSIZE) {
-			if (ber->ber_rwptr < (char *)&ber->ber_len+LENSIZE)
+		if (ber->ber_ptr < (char *)&ber->ber_usertag) {
+			if (ber->ber_rwptr < (char *)&ber->ber_usertag)
 				sblen = ber->ber_rwptr - ber->ber_ptr;
 			else
-				sblen = ((char *)&ber->ber_len+LENSIZE) - ber->ber_ptr;
+				sblen = (char *)&ber->ber_usertag - ber->ber_ptr;
 			AC_MEMCPY(buf, ber->ber_ptr, sblen);
 			ber->ber_ptr += sblen;
 		} else {

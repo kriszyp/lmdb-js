@@ -499,7 +499,6 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {
-	struct hostent	*hp;
 	socklen_t		len;
 #ifdef LDAP_PF_INET6
 	struct sockaddr_storage sabuf;
@@ -507,13 +506,9 @@ ldap_host_connected_to( Sockbuf *sb )
 	struct sockaddr sabuf;
 #endif
 	struct sockaddr	*sa = (struct sockaddr *) &sabuf;
-	char			*addr;
-	char			*host;
-
-   	/* buffers for gethostbyaddr_r */
-   	struct hostent	he_buf;
-	int				local_h_errno;
-   	char			*ha_buf=NULL;
+	char			*host = NULL, *herr;
+	char hbuf[NI_MAXHOST];
+	int rc;
 	ber_socket_t	sd;
 
 	(void)memset( (char *)sa, '\0', sizeof sabuf );
@@ -537,31 +532,32 @@ ldap_host_connected_to( Sockbuf *sb )
 #endif
 #ifdef LDAP_PF_INET6
 	case AF_INET6:
-		addr = (char *) &((struct sockaddr_in6 *)sa)->sin6_addr;
-		len = sizeof( struct in6_addr );
+		{
+			struct in6_addr localhost = IN6ADDR_LOOPBACK_INIT;
+			if( memcmp ( &((struct sockaddr_in6 *)sa)->sin6_addr,
+				&localhost, sizeof(localhost)) == 0 )
+			{
+				return LDAP_STRDUP( ldap_int_hostname );
+			}
+		}
 		break;
 #endif
 	case AF_INET:
-		addr = (char *) &((struct sockaddr_in *)sa)->sin_addr;
-		len = sizeof( struct in_addr );
-
 		{
-			struct sockaddr_in localhost;
-			localhost.sin_addr.s_addr = htonl( INADDR_ANY );
+			struct in_addr localhost;
+			localhost.s_addr = htonl( INADDR_ANY );
 
-			if( memcmp ( &localhost.sin_addr,
-				&((struct sockaddr_in *)sa)->sin_addr,
-				sizeof(localhost.sin_addr) ) == 0 )
+			if( memcmp ( &((struct sockaddr_in *)sa)->sin_addr,
+				&localhost, sizeof(localhost) ) == 0 )
 			{
 				return LDAP_STRDUP( ldap_int_hostname );
 			}
 
 #ifdef INADDR_LOOPBACK
-			localhost.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+			localhost.s_addr = htonl( INADDR_LOOPBACK );
 
-			if( memcmp ( &localhost.sin_addr,
-				&((struct sockaddr_in *)sa)->sin_addr,
-				sizeof(localhost.sin_addr) ) == 0 )
+			if( memcmp ( &((struct sockaddr_in *)sa)->sin_addr,
+				&localhost, sizeof(localhost) ) == 0 )
 			{
 				return LDAP_STRDUP( ldap_int_hostname );
 			}
@@ -574,15 +570,13 @@ ldap_host_connected_to( Sockbuf *sb )
 		break;
 	}
 
-	host = NULL;
-	if ((ldap_pvt_gethostbyaddr_a( addr, len, sa->sa_family,
-		&he_buf, &ha_buf, &hp, &local_h_errno ) == 0 ) &&
-		(hp != NULL) && ( hp->h_name != NULL ) )
+	hbuf[0] = 0;
+	if (ldap_pvt_get_hname( sa, len, hbuf, sizeof(hbuf), &herr ) == 0 &&
+		hbuf[0] ) 
 	{
-		host = LDAP_STRDUP( hp->h_name );   
+		host = LDAP_STRDUP( hbuf );   
 	}
 
-	LDAP_FREE( ha_buf );
 	return host;
 }
 #endif

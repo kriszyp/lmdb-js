@@ -205,4 +205,9 @@ LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 LDAP_LUTIL_F( int ) getpeereid( int s, uid_t *, gid_t * );
 #endif
 
+/* DNS RFC defines max host name as 255. New systems seem to use 1024 */
+#ifndef NI_MAXHOST
+#define	NI_MAXHOST	256
+#endif
+
 #endif /* _AC_SOCKET_H_ */

@@ -998,7 +998,7 @@ fi
 dnl ----------------------------------------------------------------
 dnl PF_INET6 support requires getaddrinfo and INET6_ADDRSTRLEN
 dnl PF_LOCAL may use getaddrinfo in available
-AC_CHECK_FUNCS( getaddrinfo gai_strerror inet_ntop )
+AC_CHECK_FUNCS( getaddrinfo getnameinfo gai_strerror inet_ntop )
 
 ol_link_ipv6=no
 if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop = no ; then
@@ -1095,7 +1095,7 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 
 		else
 			have_krb5=no
-			AC_MSG_WARN([Unrecongized Kerberos5 Implementation])
+			AC_MSG_WARN([Unrecognized Kerberos5 Implementation])
 		fi
 
 		if test $have_krb5 = yes ; then

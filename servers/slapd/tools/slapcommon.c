@@ -250,17 +250,45 @@ slap_tool_init(
 		/* If the named base is a glue master, operate on the
 		 * entire context
 		 */
-		if (be->be_flags & SLAP_BFLAG_GLUE_INSTANCE)
+		if (SLAP_GLUE_INSTANCE(be)) {
 			nosubordinates = 1;
+		}
 
 	} else if ( dbnum == -1 ) {
+		if ( nbackends <= 0 ) {
+			fprintf( stderr, "No available databases\n" );
+			exit( EXIT_FAILURE );
+		}
+		
 		be = &backends[dbnum=0];
 		/* If just doing the first by default and it is a
 		 * glue subordinate, find the master.
 		 */
-		while (be->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE) {
-			nosubordinates = 1;
+		while (SLAP_GLUE_SUBORDINATE(be) || SLAP_MONITOR(be)) {
+			if (SLAP_GLUE_SUBORDINATE(be)) {
+				nosubordinates = 1;
+			}
 			be++;
+			dbnum++;
+		}
+
+
+		if ( dbnum >= nbackends ) {
+			fprintf( stderr, "Available database(s) "
+					"do not allow %s\n", name );
+			exit( EXIT_FAILURE );
+		}
+		
+		if ( nosubordinates == 0 && dbnum > 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACKEND, ERR, 
+"The first database does not allow %s; using the first available one (%d)\n",
+				name, dbnum + 1, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+"The first database does not allow %s; using the first available one (%d)\n",
+				name, dbnum + 1, 0 );
+#endif
 		}
 
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
