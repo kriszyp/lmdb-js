@@ -16,36 +16,42 @@
 
 #define BACKSQL_CONCAT
 
-struct berval * backsql_strcat( struct berval *dest, ber_len_t *buflen, ... );
-struct berval * backsql_strfcat( struct berval *dest, ber_len_t *buflen,
-		const char *fmt, ... );
+typedef struct berbuf {
+	struct berval	bb_val;
+	ber_len_t	bb_len;
+} BerBuffer;
+#define BB_NULL		{ { 0, NULL }, 0 }
+
+struct berbuf * backsql_strcat( struct berbuf *dest, ... );
+struct berbuf * backsql_strfcat( struct berbuf *dest, const char *fmt, ... );
 
 int backsql_entry_addattr( Entry *e, struct berval *at_name, 
 		struct berval *at_val, void *memctx );
 
 typedef struct backsql_srch_info {
+	Operation		*op;
+
+	int			bsi_flags;
+#define	BSQL_SF_ALL_OPER		0x0001
+#define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
+
 	struct berval		*base_dn;
 	int			scope;
 	Filter			*filter;
 	int			slimit, tlimit;
 	time_t			stoptime;
+
 	backsql_entryID		*id_list, *c_eid;
 	int			n_candidates;
 	int			abandon;
-	backsql_info		*bi;
-	backsql_oc_map_rec	*oc;
-	struct berval		sel, from, join_where, flt_where;
-	ber_len_t		sel_len, from_len, jwhere_len, fwhere_len;
-	SQLHDBC			dbh;
 	int			status;
-	Operation		*op;
+
+	backsql_oc_map_rec	*oc;
+	struct berbuf		sel, from, join_where, flt_where;
+	SQLHDBC			dbh;
 	AttributeName		*attrs;
-	int			bsi_flags;
-#define	BSQL_SF_ALL_OPER		0x0001
-#define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
+
 	Entry			*e;
-	/* 1 if the db is TimesTen; 0 if it's not */
-	int			use_reverse_dn; 
 } backsql_srch_info;
 
 void backsql_init_search( backsql_srch_info *bsi, 
@@ -68,7 +74,7 @@ extern char
 extern char 
 	backsql_check_dn_ru_query[];
 
-int backsql_merge_from_clause( struct berval *dest_from, ber_len_t *dest_len, 
+int backsql_merge_from_clause( struct berbuf *dest_from, 
 		struct berval *src_from );
 
 int backsql_split_pattern( const char *pattern, BerVarray *split_pattern,

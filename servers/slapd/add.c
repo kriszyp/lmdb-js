@@ -299,7 +299,6 @@ do_add( Operation *op, SlapReply *rs )
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref;
-			BerVarray ref;
 #ifdef LDAP_SLAPI
 			/*
 			 * SLAPI_ADD_ENTRY will be empty, but this may be acceptable
@@ -457,7 +456,7 @@ slap_mods2entry(
 				}
 
 			} else {
-				int		rc;
+				int		rc = LDAP_SUCCESS;
 				int match;
 
 				for ( i = 0; mods->sml_nvalues[i].bv_val != NULL; i++ ) {

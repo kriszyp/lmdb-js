@@ -43,7 +43,7 @@ do_bind(
 	struct berval mech = { 0, NULL };
 	struct berval dn = { 0, NULL };
 	ber_tag_t tag;
-	Backend *be;
+	Backend *be = NULL;
 
 #ifdef LDAP_SLAPI
 	Slapi_PBlock *pb = op->o_pb;

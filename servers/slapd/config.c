@@ -572,6 +572,12 @@ read_config( const char *fname, int depth )
 
 			slapd_args_file = ch_strdup( cargv[1] );
 
+		} else if ( strcasecmp( cargv[0], "replica-pidfile" ) == 0 ) {
+			/* ignore */ ;
+
+		} else if ( strcasecmp( cargv[0], "replica-argsfile" ) == 0 ) {
+			/* ignore */ ;
+
 		/* default password hash */
 		} else if ( strcasecmp( cargv[0], "password-hash" ) == 0 ) {
 			if ( cargc < 2 ) {

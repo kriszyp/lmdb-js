@@ -54,10 +54,9 @@ backsql_make_attr_query(
 	backsql_oc_map_rec 	*oc_map,
 	backsql_at_map_rec 	*at_map )
 {
-	struct berval	tmps = BER_BVNULL;
-	ber_len_t	tmpslen = 0;
+	struct berbuf	bb = BB_NULL;
 
-	backsql_strfcat( &tmps, &tmpslen, "lblblblbcbl", 
+	backsql_strfcat( &bb, "lblblblbcbl", 
 			(ber_len_t)sizeof( "SELECT " ) - 1, "SELECT ", 
 			&at_map->sel_expr, 
 			(ber_len_t)sizeof( " AS " ) - 1, " AS ", 
@@ -71,12 +70,12 @@ backsql_make_attr_query(
 			(ber_len_t)sizeof( "=?" ) - 1, "=?" );
 
 	if ( at_map->join_where.bv_val != NULL ) {
-		backsql_strfcat( &tmps, &tmpslen, "lb",
+		backsql_strfcat( &bb, "lb",
 				(ber_len_t)sizeof( " AND ") - 1, " AND ", 
 				&at_map->join_where );
 	}
 
-	at_map->query = tmps.bv_val;
+	at_map->query = bb.bb_val.bv_val;
 	
 	return 0;
 }
@@ -85,8 +84,9 @@ static int
 backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 {
 	backsql_at_map_rec	*at_map;
-	char			s[ 30 ];
-	ber_len_t		len, slen;
+	char			s[] = "+9223372036854775807L";
+	ber_len_t		slen;
+	struct berbuf		bb;
 	
 
 	snprintf( s, sizeof( s ), "%ld", oc_map->id );
@@ -98,13 +98,16 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	ber_str2bv( "ldap_entry_objclasses.oc_name", 0, 1, &at_map->sel_expr );
 	ber_str2bv( "ldap_entry_objclasses,ldap_entries", 0, 1, 
 			&at_map->from_tbls );
-	len = at_map->from_tbls.bv_len + 1;
-	backsql_merge_from_clause( &at_map->from_tbls, &len, &oc_map->keytbl );
+	
+	bb.bb_len = at_map->from_tbls.bv_len + 1;
+	bb.bb_val = at_map->from_tbls;
+	backsql_merge_from_clause( &bb, &oc_map->keytbl );
+	at_map->from_tbls = bb.bb_val;
 
-	len = 0;
-	at_map->join_where.bv_val = NULL;
-	at_map->join_where.bv_len = 0;
-	backsql_strfcat( &at_map->join_where, &len, "lbcbll",
+	bb.bb_val.bv_val = NULL;
+	bb.bb_val.bv_len = 0;
+	bb.bb_len = 0;
+	backsql_strfcat( &bb, "lbcbll",
 			(ber_len_t)sizeof( "ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=" ) - 1,
 				"ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=",
 			&oc_map->keytbl, 
@@ -114,10 +117,12 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 				" and ldap_entries.oc_map_id=", 
 			slen, s );
 
+	at_map->join_where = bb.bb_val;
 	at_map->add_proc = NULL;
 	at_map->delete_proc = NULL;
 	at_map->param_order = 0;
 	at_map->expect_return = 0;
+
 	backsql_make_attr_query( oc_map, at_map );
 	avl_insert( &oc_map->attrs, at_map, backsql_cmp_attr, NULL );
 
@@ -126,13 +131,17 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	at_map->ad = slap_schema.si_ad_ref;
 	ber_str2bv( "ldap_referrals.url", 0, 1, &at_map->sel_expr );
 	ber_str2bv( "ldap_referrals,ldap_entries", 0, 1, &at_map->from_tbls );
-	len = at_map->from_tbls.bv_len + 1;
-	backsql_merge_from_clause( &at_map->from_tbls, &len, &oc_map->keytbl );
+	
+	bb.bb_val.bv_val = NULL;
+	bb.bb_val.bv_len = 0;
+	bb.bb_len = at_map->from_tbls.bv_len + 1;
+	backsql_merge_from_clause( &bb, &oc_map->keytbl );
+	at_map->from_tbls = bb.bb_val;
 
-	len = 0;
-	at_map->join_where.bv_val = NULL;
-	at_map->join_where.bv_len = 0;
-	backsql_strfcat( &at_map->join_where, &len, "lbcbll",
+	bb.bb_val.bv_val = NULL;
+	bb.bb_val.bv_len = 0;
+	bb.bb_len = 0;
+	backsql_strfcat( &bb, "lbcbll",
 			(ber_len_t)sizeof( "ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=" ) - 1,
 				"ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=",
 			&oc_map->keytbl, 
@@ -142,10 +151,12 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 				" and ldap_entries.oc_map_id=", 
 			slen, s );
 
+	at_map->join_where = bb.bb_val;
 	at_map->add_proc = NULL;
 	at_map->delete_proc = NULL;
 	at_map->param_order = 0;
 	at_map->expect_return = 0;
+
 	backsql_make_attr_query( oc_map, at_map );
 	avl_insert( &oc_map->attrs, at_map, backsql_cmp_attr, NULL );
 
@@ -301,7 +312,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		for ( ; BACKSQL_SUCCESS(rc); rc = SQLFetch( at_sth ) ) {
 			const char	*text = NULL;
 			struct berval	bv;
-			ber_len_t	tmpslen;
+			struct berbuf	bb = BB_NULL;
 
 			Debug( LDAP_DEBUG_TRACE, "********'%s'\n",
 				at_row.cols[ 0 ], 0, 0 );
@@ -338,10 +349,10 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 				ber_str2bv( at_row.cols[ 8 ], 0, 1, 
 						&at_map->sel_expr_u );
 			}
-			tmpslen = 0;
+
 			ber_str2bv( at_row.cols[ 2 ], 0, 0, &bv );
-			backsql_merge_from_clause( &at_map->from_tbls, 
-					&tmpslen, &bv );
+			backsql_merge_from_clause( &bb, &bv );
+			at_map->from_tbls = bb.bb_val;
 			if ( at_row.value_len[ 3 ] < 0 ) {
 				at_map->join_where.bv_val = NULL;
 				at_map->join_where.bv_len = 0;

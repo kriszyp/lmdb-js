@@ -266,12 +266,13 @@ backsql_has_children(
 static int
 backsql_get_attr_vals( void *v_at, void *v_bsi )
 {
-	backsql_at_map_rec *at  = v_at;
-	backsql_srch_info  *bsi = v_bsi;
-	RETCODE		rc;
-	SQLHSTMT	sth;
-	BACKSQL_ROW_NTS	row;
-	int		i;
+	backsql_at_map_rec	*at = v_at;
+	backsql_srch_info	*bsi = v_bsi;
+	backsql_info		*bi = (backsql_info *)bsi->op->o_bd->be_private;
+	RETCODE			rc;
+	SQLHSTMT		sth;
+	BACKSQL_ROW_NTS		row;
+	int			i;
 
 	assert( at );
 	assert( bsi );
@@ -285,7 +286,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
 			"error preparing query: %s\n", at->query, 0, 0 );
-		backsql_PrintErrors( bsi->bi->db_env, bsi->dbh, sth, rc );
+		backsql_PrintErrors( bi->db_env, bsi->dbh, sth, rc );
 		return 1;
 	}
 
@@ -301,7 +302,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_values(): "
 			"error executing attribute query '%s'\n",
 			at->query, 0, 0 );
-		backsql_PrintErrors( bsi->bi->db_env, bsi->dbh, sth, rc );
+		backsql_PrintErrors( bi->db_env, bsi->dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return 1;
 	}
@@ -363,7 +364,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		return NULL;
 	}
 
-	bsi->oc = backsql_id2oc( bsi->bi, eid->oc_id );
+	bsi->oc = backsql_id2oc( bsi->op->o_bd->be_private, eid->oc_id );
 	bsi->e = e;
 	bsi->c_eid = eid;
 	e->e_attrs = NULL;

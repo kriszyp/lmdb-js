@@ -163,7 +163,7 @@ backsql_db_open(
 	backsql_info 	*si = (backsql_info*)bd->be_private;
 	SQLHDBC 	dbh;
 	ber_len_t	idq_len;
-	struct berval	bv;
+	struct berbuf	bb = BB_NULL;
 
 	Operation	otmp;
 		
@@ -228,12 +228,12 @@ backsql_db_open(
 		 * Prepare concat function for subtree search condition
 		 */
 		struct berval	concat;
-		ber_len_t	len = 0;
 		struct berval	values[] = {
 			{ sizeof( "'%'" ) - 1,	"'%'" },
 			{ sizeof( "?" ) - 1,	"?" },
 			{ 0,			NULL }
 		};
+		struct berbuf	bb = BB_NULL;
 
 		if ( backsql_prepare_pattern( si->concat_func, values, 
 				&concat ) ) {
@@ -247,16 +247,13 @@ backsql_db_open(
 			"(use \"subtree_cond\" directive in slapd.conf)\n", 
 			0, 0, 0);
 
-		si->subtree_cond.bv_val = NULL;
-		si->subtree_cond.bv_len = 0;
-
 		if ( si->upper_func.bv_val ) {
 
 			/*
 			 * UPPER(ldap_entries.dn) LIKE UPPER(CONCAT('%',?))
 			 */
 
-			backsql_strfcat( &si->subtree_cond, &len, "blbbb",
+			backsql_strfcat( &bb, "blbbb",
 					&si->upper_func,
 					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE " ) - 1,
 						"(ldap_entries.dn) LIKE ",
@@ -270,11 +267,13 @@ backsql_db_open(
 			 * ldap_entries.dn LIKE CONCAT('%',?)
 			 */
 
-			backsql_strfcat( &si->subtree_cond, &len, "lb",
+			backsql_strfcat( &bb, "lb",
 					(ber_len_t)sizeof( "ldap_entries.dn LIKE " ) - 1,
 						"ldap_entries.dn LIKE ",
 					&concat );
 		}
+
+		si->subtree_cond = bb.bb_val;
 			
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"setting '%s' as default\n",
@@ -282,7 +281,7 @@ backsql_db_open(
 	}
 
 	if ( si->children_cond.bv_val == NULL ) {
-		ber_len_t	len = 0;
+		struct berbuf	bb = BB_NULL;
 
 		if ( si->upper_func.bv_val ) {
 
@@ -290,7 +289,7 @@ backsql_db_open(
 			 * UPPER(ldap_entries.dn) LIKE UPPER(CONCAT('%,',?))
 			 */
 
-			backsql_strfcat( &si->children_cond, &len, "blbl",
+			backsql_strfcat( &bb, "blbl",
 					&si->upper_func,
 					(ber_len_t)sizeof( "(ldap_entries.dn)=" ) - 1,
 						"(ldap_entries.dn)=",
@@ -303,10 +302,12 @@ backsql_db_open(
 			 * ldap_entries.dn LIKE CONCAT('%,',?)
 			 */
 
-			backsql_strfcat( &si->children_cond, &len, "l",
+			backsql_strfcat( &bb, "l",
 					(ber_len_t)sizeof( "ldap_entries.dn=?" ) - 1,
 						"ldap_entries.dn=?");
 		}
+
+		si->children_cond = bb.bb_val;
 			
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"setting '%s' as default\n",
@@ -377,23 +378,20 @@ backsql_db_open(
 	si->id_query = NULL;
 	idq_len = 0;
 
-	bv.bv_val = NULL;
-	bv.bv_len = 0;
 	if ( si->upper_func.bv_val == NULL ) {
-		backsql_strcat( &bv, &idq_len, backsql_id_query, 
-				"dn=?", NULL );
+		backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
 	} else {
 		if ( BACKSQL_HAS_LDAPINFO_DN_RU( si ) ) {
-			backsql_strcat( &bv, &idq_len, backsql_id_query,
+			backsql_strcat( &bb, backsql_id_query,
 					"dn_ru=?", NULL );
 		} else {
 			if ( BACKSQL_USE_REVERSE_DN( si ) ) {
-				backsql_strfcat( &bv, &idq_len, "sbl",
+				backsql_strfcat( &bb, "sbl",
 						backsql_id_query,
 						&si->upper_func, 
 						(ber_len_t)sizeof( "(dn)=?" ) - 1, "(dn)=?" );
 			} else {
-				backsql_strfcat( &bv, &idq_len, "sblbcb",
+				backsql_strfcat( &bb, "sblbcb",
 						backsql_id_query,
 						&si->upper_func, 
 						(ber_len_t)sizeof( "(dn)=" ) - 1, "(dn)=",
@@ -403,21 +401,21 @@ backsql_db_open(
 			}
 		}
 	}
-	si->id_query = bv.bv_val;
+	si->id_query = bb.bb_val.bv_val;
 
        	/*
 	 * Prepare children ID selection query
 	 */
 	si->has_children_query = NULL;
-	idq_len = 0;
 
-	bv.bv_val = NULL;
-	bv.bv_len = 0;
-	backsql_strfcat( &bv, &idq_len, "sb",
+	bb.bb_val.bv_val = NULL;
+	bb.bb_val.bv_len = 0;
+	bb.bb_len = 0;
+	backsql_strfcat( &bb, "sb",
 			"SELECT COUNT(distinct subordinates.id) FROM ldap_entries,ldap_entries AS subordinates WHERE subordinates.parent=ldap_entries.id AND ",
 
 			&si->children_cond );
-	si->has_children_query = bv.bv_val;
+	si->has_children_query = bb.bb_val.bv_val;
  
 	backsql_free_db_conn( &otmp );
 	if ( !BACKSQL_SCHEMA_LOADED( si ) ) {
