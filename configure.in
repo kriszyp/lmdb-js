@@ -464,30 +464,6 @@ if test $ol_link_kerberos = yes ; then
 fi
 
 dnl
-dnl Check for GNU readline
-dnl
-ol_link_readline=no
-if test $ol_with_readline != no ; then
-	AC_CHECK_HEADERS(readline/readline.h readline/history.h)
-
-	if test $ac_cv_header_readline_readline_h = yes ; then
-		AC_CHECK_LIB(readline, readline, 
-			[have_readline=yes], [have_readline=no])
-			
-		if test $have_readline = yes ; then
-			ol_with_readline=found
-			ol_link_readline=yes
-
-			READLINE_LIBS="-lreadline"
-		fi
-	fi
-fi
-
-if test $ol_link_readline = yes ; then
-	AC_DEFINE(HAVE_READLINE, 1, [define if you have -lreadline])
-fi
-
-dnl
 dnl Check for SSL/TLS
 dnl
 ol_link_tls=no
@@ -1492,6 +1468,34 @@ if test $ol_link_termcap = no ; then
 	AC_DEFINE(NO_TERMCAP,1, [define if you have no termcap support])
 	TERMCAP_LIBS=
 fi
+
+dnl
+dnl Check for GNU readline
+dnl
+ol_link_readline=no
+if test $ol_with_readline != no ; then
+	AC_CHECK_HEADERS(readline/readline.h readline/history.h)
+
+	if test $ac_cv_header_readline_readline_h = yes ; then
+		save_LIBS="$LIBS"
+		LIBS="$TERMCAP_LIBS $LIBS"
+		AC_CHECK_LIB(readline, readline, 
+			[have_readline=yes], [have_readline=no])
+		LIBS="$save_LIBS"
+			
+		if test $have_readline = yes ; then
+			ol_with_readline=found
+			ol_link_readline=yes
+
+			READLINE_LIBS="-lreadline"
+		fi
+	fi
+fi
+
+if test $ol_link_readline = yes ; then
+	AC_DEFINE(HAVE_READLINE, 1, [define if you have -lreadline])
+fi
+
 
 # FreeBSD (and others) have crypt(3) in -lcrypt
 if test $ol_enable_crypt != no ; then
