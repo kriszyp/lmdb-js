@@ -230,6 +230,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 
+/* Define if you have the getopt function.  */
+#undef HAVE_GETOPT
+
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
@@ -322,6 +325,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the <gdbm.h> header file.  */
 #undef HAVE_GDBM_H
+
+/* Define if you have the <getopt.h> header file.  */
+#undef HAVE_GETOPT_H
 
 /* Define if you have the <kerberosIV/des.h> header file.  */
 #undef HAVE_KERBEROSIV_DES_H
