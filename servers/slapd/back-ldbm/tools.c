@@ -217,7 +217,7 @@ int ldbm_tool_index_attr(
 
 	at_cn = at_canonical_name( at );
 
-	if( at_cn ) {
+	if( at_cn == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= index_attr NULL (attribute type %s (%s) has no canonical name)\n",
 			at->sat_oid, type, 0 );
@@ -227,7 +227,7 @@ int ldbm_tool_index_attr(
 	attr_normalize( type );
 	at_cn = at_canonical_name( type );
 
-	if( at_cn ) {
+	if( at_cn == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"<= index_attr NULL (attribute type %s has no canonical name)\n",
 			type, 0, 0 );
