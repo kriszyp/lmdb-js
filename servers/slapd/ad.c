@@ -32,8 +32,13 @@ AttributeDescription *ad_dup(
 
 	*ad = *desc;
 
-	ad->ad_cname = ber_bvdup( ad->ad_cname );
-	ad->ad_lang = ch_strdup( ad->ad_lang );
+	if( ad->ad_cname != NULL ) {
+		ad->ad_cname = ber_bvdup( ad->ad_cname );
+	}
+
+	if( ad->ad_lang != NULL ) {
+		ad->ad_lang = ch_strdup( ad->ad_lang );
+	}
 
 	return ad;
 }
@@ -43,7 +48,10 @@ ad_free( AttributeDescription *ad, int freeit )
 {
 	if( ad == NULL ) return;
 
-	ber_bvfree( ad->ad_cname );
+	if( ad->ad_cname != NULL ) {
+		ber_bvfree( ad->ad_cname );
+	}
+
 	free( ad->ad_lang );
 
 	if( freeit ) free( ad );

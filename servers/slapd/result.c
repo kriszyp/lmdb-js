@@ -677,8 +677,10 @@ send_search_entry(
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		AttributeDescription *desc = a->a_desc;
+		char *type = desc->ad_cname->bv_val;
 #else
 		char *desc = a->a_type;
+		char *type = a->a_type;
 #endif
 
 		if ( attrs == NULL ) {
@@ -716,7 +718,7 @@ send_search_entry(
 			continue;
 		}
 
-		if (( rc = ber_printf( ber, "{s[" /*]}*/ , desc )) == -1 ) {
+		if (( rc = ber_printf( ber, "{s[" /*]}*/ , type )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,

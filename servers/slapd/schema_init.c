@@ -635,6 +635,10 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_modifiersName) },
 	{ "modifyTimestamp",
 		offsetof(struct slap_internal_schema, si_ad_modifyTimestamp) },
+
+	{ "subschemaSubentry",
+		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
+
 	{ "namingContexts",
 		offsetof(struct slap_internal_schema, si_ad_namingContexts) },
 	{ "supportedControl",

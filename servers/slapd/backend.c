@@ -657,7 +657,7 @@ Attribute *backend_operational(
 {
 	Attribute *a = ch_malloc( sizeof( Attribute ) );
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
+	a->a_desc = slap_schema.si_ad_subschemaSubentry;
 #else
 	a->a_type = ch_strdup("subschemasubentry");
 	a->a_syntax = SYNTAX_DN | SYNTAX_CIS;
