@@ -491,7 +491,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 				if ( ct ) {
 					rc = config_add_vals( ct, c );
 				}
-			} else if ( c->bi->bi_config ) {
+			}
+			if ( c->bi->bi_config && rc == SLAP_CONF_UNKNOWN ) {
 				rc = (*c->bi->bi_config)(c->bi, c->fname, c->lineno,
 					c->argc, c->argv);
 			}
@@ -514,7 +515,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 				if ( ct ) {
 					rc = config_add_vals( ct, c );
 				}
-			} else if ( c->be->be_config ) {
+			}
+			if ( c->be->be_config && rc == SLAP_CONF_UNKNOWN ) {
 				rc = (*c->be->be_config)(c->be, c->fname, c->lineno,
 					c->argc, c->argv);
 			}
