@@ -899,7 +899,7 @@ anlist2attrs( AttributeName * anlist )
 	attrs = anlist2charray( anlist, 1 );
                                                                                 
 	for ( i = 0; anlist[i].an_name.bv_val; i++ ) {
-		if ( oc = anlist[i].an_oc ) {
+		if ( ( oc = anlist[i].an_oc ) ) {
 			for ( j = 0; oc->soc_required && oc->soc_required[j]; j++ ) ;
 			k += j;
 			for ( j = 0; oc->soc_allowed && oc->soc_allowed[j]; j++ ) ;
@@ -916,7 +916,7 @@ anlist2attrs( AttributeName * anlist )
 		attrs = (char **) ch_realloc( attrs, (i + k + 1) * sizeof( char * ));
 
    	for ( i = 0; anlist[i].an_name.bv_val; i++ ) {
-		if ( oc = anlist[i].an_oc ) {
+		if ( ( oc = anlist[i].an_oc ) ) {
 			for ( j = 0; oc->soc_required && oc->soc_required[j]; j++ ) {
 				attrs[n++] = ch_strdup(
 								oc->soc_required[j]->sat_cname.bv_val );
@@ -995,7 +995,7 @@ file2anlist( AttributeName *an, const char *fname, const char *brkstr )
 	while ( fgets( lcur, LBUFSIZ, fp ) != NULL ) {
 		char *str, *s, *next;
 		const char *delimstr = brkstr;
-		if (c = strchr( lcur, '\n' )) {
+		if ( ( c = strchr( lcur, '\n' ) ) ) {
 			if ( c == line ) {
 				*c = '\0';
 			} else if ( *(c-1) == '\r' ) {
