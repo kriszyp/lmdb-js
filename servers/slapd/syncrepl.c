@@ -179,6 +179,9 @@ do_syncrep1(
 	struct sync_cookie	*sc = NULL;
 	struct sync_cookie	syncCookie = { NULL, -1, NULL };
 	struct berval	*psub;
+#ifdef HAVE_TLS
+	void	*ssl;
+#endif
 
 	psub = &si->si_be->be_nsuffix[0];
 
@@ -303,8 +306,18 @@ do_syncrep1(
 		}
 	}
 
-	/* set SSF for local authorization */
-	ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &op->o_ssf );
+	/* Set SSF to strongest of TLS, SASL SSFs */
+	op->o_sasl_ssf = 0;
+	op->o_tls_ssf = 0;
+#ifdef HAVE_TLS
+	if ( ldap_get_option( si->si_ld, LDAP_OPT_X_TLS_SSL_CTX, &ssl ) == LDAP_SUCCESS &&
+	     ssl != NULL ) {
+		op->o_tls_ssf = ldap_pvt_tls_get_strength( ssl );
+	}
+#endif /* HAVE_TLS */
+	ldap_get_option( si->si_ld, LDAP_OPT_X_SASL_SSF, &op->o_sasl_ssf );
+	op->o_transport_ssf = op->o_ssf = ( op->o_sasl_ssf > op->o_tls_ssf ) ?
+		op->o_sasl_ssf : op->o_tls_ssf;
 
 	/* get syncrepl cookie of shadow replica from subentry */
 	assert( si->si_rid < 1000 );
