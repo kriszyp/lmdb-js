@@ -1145,7 +1145,7 @@ send_search_entry(
 		return( 1 );
 	}
 
-	bytes = send_ldap_ber( conn, ber );
+	bytes = op->o_noop ? 0 : send_ldap_ber( conn, ber );
 	ber_free_buf( ber );
 
 	if ( bytes < 0 ) {
@@ -1301,7 +1301,7 @@ send_search_reference(
 		return -1;
 	}
 
-	bytes = send_ldap_ber( conn, ber );
+	bytes = op->o_noop ? 0 : send_ldap_ber( conn, ber );
 	ber_free_buf( ber );
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );

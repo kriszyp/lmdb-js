@@ -19,18 +19,19 @@
 
 #include "../../libraries/liblber/lber-int.h"
 
-#define SLAP_CTRL_FRONTEND	0x80000000U
+#define SLAP_CTRL_FRONTEND			0x80000000U
+#define SLAP_CTRL_FRONTEND_SEARCH	0x01000000U	/* for NOOP */
 
-#define SLAP_CTRL_OPFLAGS	0x0000FFFFU
-#define SLAP_CTRL_ABANDON	0x00000001U
-#define SLAP_CTRL_ADD		0x00002002U
-#define SLAP_CTRL_BIND		0x00000004U
-#define SLAP_CTRL_COMPARE	0x00001008U
-#define SLAP_CTRL_DELETE	0x00002010U
-#define SLAP_CTRL_MODIFY	0x00002020U
-#define SLAP_CTRL_RENAME	0x00002040U
-#define SLAP_CTRL_SEARCH	0x00001080U
-#define SLAP_CTRL_UNBIND	0x00000100U
+#define SLAP_CTRL_OPFLAGS			0x0000FFFFU
+#define SLAP_CTRL_ABANDON			0x00000001U
+#define SLAP_CTRL_ADD				0x00002002U
+#define SLAP_CTRL_BIND				0x00000004U
+#define SLAP_CTRL_COMPARE			0x00001008U
+#define SLAP_CTRL_DELETE			0x00002010U
+#define SLAP_CTRL_MODIFY			0x00002020U
+#define SLAP_CTRL_RENAME			0x00002040U
+#define SLAP_CTRL_SEARCH			0x00001080U
+#define SLAP_CTRL_UNBIND			0x00000100U
 
 #define SLAP_CTRL_INTROGATE	(SLAP_CTRL_COMPARE|SLAP_CTRL_SEARCH)
 #define SLAP_CTRL_UPDATE \
@@ -68,7 +69,7 @@ static struct slap_control {
 #endif
 #ifdef LDAP_CONTROL_NOOP
 	{ LDAP_CONTROL_NOOP,
-		SLAP_CTRL_UPDATE, NULL,
+		SLAP_CTRL_ACCESS, NULL,
 		parseNoOp },
 #endif
 #ifdef LDAP_CONTROL_PAGEDRESULTS_REQUEST
@@ -331,7 +332,13 @@ int get_ctrls(
 
 				if( rc != LDAP_SUCCESS ) goto return_results;
 
-				if( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
+				if ( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
+					/* kludge to disable backend_control() check */
+					c->ldctl_iscritical = 0;
+
+				} else if ( tagmask == SLAP_CTRL_SEARCH &&
+					sc->sc_mask & SLAP_CTRL_FRONTEND_SEARCH )
+				{
 					/* kludge to disable backend_control() check */
 					c->ldctl_iscritical = 0;
 				}
