@@ -1823,6 +1823,7 @@ servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
 tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
+contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
 ,[
 date > stamp-h

@@ -10,7 +10,7 @@
 ##
 
 SUBDIRS= include libraries clients servers tests doc # contrib
-CLEANDIRS= contrib/saucer
+CLEANDIRS= contrib
 INSTALLDIRS=
 
 makefiles:	FORCE
