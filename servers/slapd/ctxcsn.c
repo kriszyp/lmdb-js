@@ -94,6 +94,12 @@ slap_graduate_commit_csn( Operation *op )
 {
 	struct slap_csn_entry *csne = NULL;
 
+	if ( op == NULL )
+		return;
+
+	if ( op->o_bd == NULL )
+		return;
+
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
 	LDAP_TAILQ_FOREACH( csne, &op->o_bd->be_pending_csn_list, csn_link ) {
