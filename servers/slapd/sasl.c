@@ -105,6 +105,7 @@ int sasl_init( void )
 		slap_sasl_mutex_unlock,
 		slap_sasl_mutex_dispose );
 
+	/* server name should be configurable */
 	rc = sasl_server_init( NULL, "slapd" );
 
 	if( rc != SASL_OK ) {
@@ -134,6 +135,7 @@ int sasl_init( void )
 
 #ifndef SLAPD_IGNORE_RFC2829
 	{
+		/* security flags should be configurable */
 		sasl_security_properties_t secprops;
 		memset(&secprops, '\0', sizeof(secprops));
 		secprops.security_flags = SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS;
@@ -237,13 +239,15 @@ int sasl_bind(
 			callbacks, SASL_SECURITY_LAYER, &conn->c_sasl_bind_context );
 
 		if( sc != SASL_OK ) {
-			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, NULL, NULL, NULL );
+			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
+				NULL, "could not create new SASL context", NULL, NULL );
+
 		} else {
 			unsigned reslen;
 			conn->c_authmech = ch_strdup( mech );
 
-			sc = sasl_server_start( conn->c_sasl_bind_context, conn->c_authmech,
+			sc = sasl_server_start( conn->c_sasl_bind_context,
+				conn->c_authmech,
 				cred->bv_val, cred->bv_len,
 				(char **)&response.bv_val, &reslen, &errstr );
 
@@ -254,9 +258,11 @@ int sasl_bind(
 					NULL, errstr, NULL, NULL );
 			}
 		}
+
 	} else {
 		unsigned reslen;
-		sc = sasl_server_step( conn->c_sasl_bind_context, cred->bv_val, cred->bv_len,
+		sc = sasl_server_step( conn->c_sasl_bind_context,
+			cred->bv_val, cred->bv_len,
 			(char **)&response.bv_val, &reslen, &errstr );
 
 		response.bv_len = reslen;
@@ -270,10 +276,12 @@ int sasl_bind(
 	if ( sc == SASL_OK ) {
 		char *authzid;
 
-		if ( ( sc = sasl_getprop( conn->c_sasl_bind_context, SASL_USERNAME,
-			(void **)&authzid ) ) != SASL_OK ) {
+		sc = sasl_getprop( conn->c_sasl_bind_context, SASL_USERNAME,
+			(void **)&authzid );
+
+		if ( sc != SASL_OK ) {
 			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
-				NULL, NULL, NULL, NULL );
+				NULL, "no SASL username", NULL, NULL );
 
 		} else {
 			Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: username=%s\n",
@@ -288,8 +296,8 @@ int sasl_bind(
 				strcat( *edn, authzid );
 			}
 
-			send_ldap_result( conn, op, rc = LDAP_SUCCESS,
-				NULL, NULL, NULL, NULL );
+			send_ldap_sasl( conn, op, rc = LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL, &response );
 		}
 
 	} else if ( sc == SASL_CONTINUE ) {
