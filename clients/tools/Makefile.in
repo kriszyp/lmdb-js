@@ -3,9 +3,9 @@
 ## Makefile for LDAP tools
 ##
 SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c \
-		ldappasswd.c ldapwhoami.c
+		ldappasswd.c ldapwhoami.c ldapcompare.c
 OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o \
-		ldappasswd.o ldapwhoami.o
+		ldappasswd.o ldapwhoami.o ldapcompare.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
