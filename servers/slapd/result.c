@@ -250,19 +250,8 @@ send_search_entry(
 			continue;
 		}
 
-		/* the lastmod attributes are ignored by ACL checking */
-		if ( strcasecmp( a->a_type, "modifiersname" ) == 0 ||
-			strcasecmp( a->a_type, "modifytimestamp" ) == 0 ||
-			strcasecmp( a->a_type, "creatorsname" ) == 0 ||
-			strcasecmp( a->a_type, "createtimestamp" ) == 0 ) 
-		{
-			Debug( LDAP_DEBUG_ACL, "LASTMOD attribute: %s access DEFAULT\n",
-				a->a_type, 0, 0 );
-			acl = NULL;
-		} else {
-			acl = acl_get_applicable( be, op, e, a->a_type,
-				MAXREMATCHES, matches );
-		}
+		acl = acl_get_applicable( be, op, e, a->a_type,
+			MAXREMATCHES, matches );
 
 		if ( ! acl_access_allowed( acl, be, conn, e,
 			NULL, op, ACL_READ, edn, matches ) ) 
