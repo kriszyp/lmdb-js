@@ -165,6 +165,7 @@ FAQ|Frequently Asked Questions
 FTP|File Transfer Protocol
 FYI|For Your Information
 GSSAPI|Generic Security Services Application Program Interface
+HDB|Heirarchial Database
 I-D|Internet Draft
 IP|Internet Protocol
 IPSEC|Internet Protocol Security
@@ -203,25 +204,24 @@ X.509|X.509 Public Key and Attribute Certificate Frameworks
 
 !block references; data
 Reference|Status|Document|Jump
-RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|ftp://ftp.isi.edu/in-notes/rfc2079.txt
-RFC2222|PS|Simple Authentication and Security Layer|ftp://ftp.isi.edu/in-notes/rfc2222.txt
-RFC2251|PS|Lightweight Directory Access Protocol (v3)|ftp://ftp.isi.edu/in-notes/rfc2251.txt
-RFC2252|PS|LDAPv3: Attribute Syntax Definitions|ftp://ftp.isi.edu/in-notes/rfc2252.txt
-RFC2253|PS|LDAPv3: UTF-8 String Representation of Distinguished Names|ftp://ftp.isi.edu/in-notes/rfc2253.txt
-RFC2254|PS|The String Representation of LDAP Search Filters|ftp://ftp.isi.edu/in-notes/rfc2254.txt
-RFC2255|PS|The LDAP URL Format|ftp://ftp.isi.edu/in-notes/rfc2255.txt
-RFC2256|PS|A Summary of the X.500(96) User Schema for use with LDAPv3|ftp://ftp.isi.edu/in-notes/rfc2256.txt
-RFC2296|PS|Use of Language Codes in LDAP|ftp://ftp.isi.edu/in-notes/rfc2296.txt
-RFC2798|INFO|Definition of the inetOrgPerson LDAP Object Class|ftp://ftp.isi.edu/in-notes/rfc2798.txt
-RFC2829|PS|Authentication Methods for LDAP|ftp://ftp.isi.edu/in-notes/rfc2829.txt
-RFC2830|PS|LDAPv3: Extension for Transport Layer Security|ftp://ftp.isi.edu/in-notes/rfc2830.txt
-RFC2831|PS|Using Digest Authentication as a SASL Mechanism|ftp://ftp.isi.edu/in-notes/rfc2831.txt
-RFC2849|PS|The LDAP Data Interchange Format|ftp://ftp.isi.edu/in-notes/rfc2849.txt
-RFC3088|X|OpenLDAP Root Service|ftp://ftp.isi.edu/in-notes/rfc3088.txt
-RFC3296|PS|Named Subordinate References in LDAP|ftp://ftp.isi.edu/in-notes/rfc3296.txt
-RFC3377|PS|Lightweight Directory Access Protocol (v3): Technical Specification
-RFC3383|BCP|Internet Assigned Numbers Authority (IANA) Considerations for the Lightweight Directory Access Protocol (LDAP)
-RFC3384|INFO|Lightweight Directory Access Protocol (version 3) Replication Requirements
-RFC3494:INFO|Lightweight Directory Access Protocol version 2 (LDAPv2) to Historic Status
-
+RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|http://www.rfc-editor.org/rfc/rfc2079.txt
+RFC2222|PS|Simple Authentication and Security Layer|http://www.rfc-editor.org/rfc/rfc2222.txt
+RFC2251|PS|Lightweight Directory Access Protocol (v3)|http://www.rfc-editor.org/rfc/rfc2251.txt
+RFC2252|PS|LDAPv3: Attribute Syntax Definitions|http://www.rfc-editor.org/rfc/rfc2252.txt
+RFC2253|PS|LDAPv3: UTF-8 String Representation of Distinguished Names|http://www.rfc-editor.org/rfc/rfc2253.txt
+RFC2254|PS|The String Representation of LDAP Search Filters|http://www.rfc-editor.org/rfc/rfc2254.txt
+RFC2255|PS|The LDAP URL Format|http://www.rfc-editor.org/rfc/rfc2255.txt
+RFC2256|PS|A Summary of the X.500(96) User Schema for use with LDAPv3|http://www.rfc-editor.org/rfc/rfc2256.txt
+RFC2296|PS|Use of Language Codes in LDAP|http://www.rfc-editor.org/rfc/rfc2296.txt
+RFC2798|INFO|Definition of the inetOrgPerson LDAP Object Class|http://www.rfc-editor.org/rfc/rfc2798.txt
+RFC2829|PS|Authentication Methods for LDAP|http://www.rfc-editor.org/rfc/rfc2829.txt
+RFC2830|PS|LDAPv3: Extension for Transport Layer Security|http://www.rfc-editor.org/rfc/rfc2830.txt
+RFC2831|PS|Using Digest Authentication as a SASL Mechanism|http://www.rfc-editor.org/rfc/rfc2831.txt
+RFC2849|PS|The LDAP Data Interchange Format|http://www.rfc-editor.org/rfc/rfc2849.txt
+RFC3088|X|OpenLDAP Root Service|http://www.rfc-editor.org/rfc/rfc3088.txt
+RFC3296|PS|Named Subordinate References in LDAP|http://www.rfc-editor.org/rfc/rfc3296.txt
+RFC3377|PS|Lightweight Directory Access Protocol (v3): Technical Specification|http://www.rfc-editor.org/rfc/rfc3377.txt
+RFC3383|BCP|Internet Assigned Numbers Authority (IANA) Considerations for the Lightweight Directory Access Protocol (LDAP)|http://www.rfc-editor.org/rfc/rfc3383.txt
+RFC3384|INFO|Lightweight Directory Access Protocol (version 3) Replication Requirements|http://www.rfc-editor.org/rfc/rfc3384.txt
+RFC3494|INFO|Lightweight Directory Access Protocol version 2 (LDAPv2) to Historic Status|http://www.rfc-editor.org/rfc/rfc3494.txt
 !endblock
