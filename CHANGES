@@ -4,6 +4,8 @@ Changes included in OpenLDAP 1.2.10 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Add slapd -DSLAPD_UNDEFINED_OC_IS_NOT_EXTENSIBLE macro disable
 		undefined object classes implies extensible object behavior.
+	Build Environment
+		Do no list unsupported LDBM API option NDBM
 
 Changes included in OpenLDAP 1.2.9
 	CVS Tag: OPENLDAP_REL_ENG_1_2_9

@@ -81,7 +81,7 @@ OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 dnl SLAPD Backend options
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
-	[auto db2 db mdbm gdbm ndbm manual])
+	[auto db2 db mdbm gdbm manual])
 OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
 	[auto btree hash])
 
