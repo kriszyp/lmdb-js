@@ -1,0 +1,25 @@
+# $OpenLDAP$
+
+SRCS	= init.c config.c search.c bind.c other.c \
+		entry-id.c schema-map.c sql-wrap.c modify.c util.c
+OBJS	= init.lo config.lo search.lo bind.lo other.lo \
+		entry-id.lo schema-map.lo sql-wrap.lo modify.lo util.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-sql"
+BUILD_MOD = @BUILD_SQL@
+LINKAGE = @BUILD_SQL_DYNAMIC@
+
+LIBBASE = back_sql
+
+XINCPATH = -I.. -I$(srcdir)/.. $(SLAPD_SQL_INCLUDES)
+XDEFS = $(MODULES_CPPFLAGS)
+XLDFLAGS = $(MODULES_LDFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+

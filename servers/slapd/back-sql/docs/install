@@ -1,0 +1,38 @@
+1. Build
+To build slapd with back-sql under Unix you need to build and install
+iODBC 2.50.3 (later versions should probably work). Then, run 
+"configure <options you need> --enable-sql [--with-iodbc-includes=<path>] [--with-iodbc-libs=<path>]",
+this should build back-sql-enabled slapd.
+
+Under Win32/MSVC++, I modified the workspace so that back-sql is built into
+slapd automatically, since MS odbc32 is included in standard library pack,
+and it does no bad even if you don't plan to use it. I also could provide
+precompiled executables for those who don't have MSVC later (when back-sql
+comes into some stable state).
+
+2. Tune datasources and slapd.conf
+Next, you need to define ODBC datasource with data you want to publish
+with help of back-sql. Assuming that you have your data in some SQL-compliant
+RDBMS, and have installed proper ODBC driver for this RDBMS, this is as simple
+as adding a record into odbc.ini (for iODBC), or using ODBC wizard in
+Control Panel (for odbc32). Next, you need to add appropriate "database"
+record to your slapd.conf. See
+sample provided in "back-sql/RDBMS_DEPENDENT/" subdirectory. The only thing
+worth noting about this is that "dbname" directive stands for ODBC datasource
+name, not the name of your database in RDBMS context.
+
+3. Creating and using back-sql metatables
+See SQL scripts and slapd.conf files in sample directory .
+Create db/user whatever for test, execute create.sql, create_testdb.sql,
+test_data.sql,test_metadata.sql from appropriate directory (use 
+"mysql < xxx.sql" for mySQL, Query Analyzer+Open query file for MS SQL,
+sqlplus and "@xxx.sql" for Oracle)
+
+4. Testing
+To diagnose back-sql, run slapd with debug level TRACE ("slapd -d 5" will go).
+Then, use some LDAP client to query corresponding subtree (for test database,
+you could for instance search one level from "o=sql,c=RU"). I personally used
+saucer, which is included in OpenLDAP package (it builds automatically under
+Unix/GNU configure and for MSVC I added appropriate project to workspace).
+And also Java LDAP browser-editor (see link somewhere on OpenLDAP site) to
+test ADD/DELETE/MODIFY operations on Oracle and MS SQL

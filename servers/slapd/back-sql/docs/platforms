@@ -1,0 +1,18 @@
+Platforms and configurations it has been tested on (for now I included only
+ configurations I've tested personally):
+
+1) slapd on redhat linux 6.0/6.1 (glibc 2.1.1/2.1.2), built with egcs
+   (versions packaged with appropriate red hat):
+ iODBC 2.50.3 (on 6.0), 3.0beta (on 6.1),
+ mySQL (on same linux) 3.22.25,3.22.30 trough myODBC 2.50.23,
+ MSSQL (on WinNT 4/sp3) 7.0 through OpenLink driver suite 3 (broker on NT),
+ Personal Oracle (on WinNT4/sp3) 8.0.3 through OpenLink driver suite 3 (broker on NT),
+ Oracle (on linux 6.0) 8.0.5 through  OpenLink driver suite 3 (broker on linux)
+ 
+2) slapd on WinNT4/sp3, Win98 second edition, Windows2000pre,
+   built with MSVC++ 5,6:
+  ODBC32.DLL shipped with appropriate system,
+  MSSQL (on WinNT4/sp3,Win98,Win2000) 7.0, through its native driver,
+  Personal Oracle (on WinNT4/sp3,Win98) 8.0.3, through its native driver,
+  Oracle 7 (on Solaris/Sparc 2.6) through its native driver
+  
