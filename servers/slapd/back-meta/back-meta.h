@@ -82,6 +82,9 @@ typedef struct dncookie {
 #endif
 } dncookie;
 
+#define META_BIND_NRETRIES	3
+#define META_BIND_TIMEOUT	1000
+
 int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
 struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
 int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);

@@ -47,9 +47,14 @@ meta_back_delete( Operation *op, SlapReply *rs )
 		return -1;
 	}
 	
-	if ( !meta_back_dobind( lc, op )
-			|| !meta_back_is_valid( lc, candidate ) ) {
+	if ( !meta_back_dobind( lc, op ) ) {
+		rs->sr_err = LDAP_UNAVAILABLE;
+
+	} else if ( !meta_back_is_valid( lc, candidate ) ) {
 		rs->sr_err = LDAP_OTHER;
+	}
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
  		send_ldap_result( op, rs );
 		return -1;
 	}

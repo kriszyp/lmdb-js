@@ -57,7 +57,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 
 	if ( !meta_back_dobind( lc, op )
 			|| !meta_back_is_valid( lc, candidate ) ) {
-		rs->sr_err = LDAP_OTHER;
+		rs->sr_err = LDAP_UNAVAILABLE;
  		send_ldap_result( op, rs );
 		return -1;
 	}

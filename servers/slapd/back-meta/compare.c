@@ -58,7 +58,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	}
 	
 	if ( !meta_back_dobind( lc, op ) ) {
-		rs->sr_err = LDAP_OTHER;
+		rs->sr_err = LDAP_UNAVAILABLE;
  		send_ldap_result( op, rs );
 		return -1;
 	}

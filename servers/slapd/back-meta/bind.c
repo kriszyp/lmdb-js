@@ -118,6 +118,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		if ( lerr != LDAP_SUCCESS ) {
 			rs->sr_err = lerr;
 			( void )meta_clear_one_candidate( &lc->mc_conns[ i ], 1 );
+
 		} else {
 			rc = LDAP_SUCCESS;
 		}
@@ -210,6 +211,7 @@ meta_back_do_single_bind(
 		LDAPMessage	*res;
 		struct timeval	tv = { 0, 0 };
 		int		rc;
+		int		nretries = 0;
 
 		/*
 		 * handle response!!!
@@ -217,10 +219,14 @@ meta_back_do_single_bind(
 retry:;
 		switch ( ldap_result( lsc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
-			ldap_pvt_thread_yield();
-			tv.tv_sec = 0;
-			tv.tv_usec = 100000;	/* 0.1 s */
-			goto retry;
+			if ( ++nretries <= META_BIND_NRETRIES ) {
+				ldap_pvt_thread_yield();
+				tv.tv_sec = 0;
+				tv.tv_usec = META_BIND_TIMEOUT;
+				goto retry;
+			}
+			rs->sr_err = LDAP_BUSY;
+			break;
 
 		case -1:
 			ldap_get_option( lsc->msc_ld, LDAP_OPT_ERROR_NUMBER,
@@ -312,7 +318,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 				continue;
 			}
 		}
-	
+
 		/*
 		 * If the target is already bound it is skipped
 		 */
@@ -346,6 +352,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			LDAPMessage	*res;
 			struct timeval	tv = { 0, 0 };
 			int		err;
+			int		nretries = 0;
 
 			/*
 			 * handle response!!!
@@ -353,10 +360,15 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 retry:;
 			switch ( ldap_result( lsc->msc_ld, msgid, 0, &tv, &res ) ) {
 			case 0:
-				ldap_pvt_thread_yield();
-				tv.tv_sec = 0;
-				tv.tv_usec = 100000;	/* 0.1 s */
-				goto retry;
+				if ( ++nretries <= META_BIND_NRETRIES ) {
+					ldap_pvt_thread_yield();
+					tv.tv_sec = 0;
+					tv.tv_usec = META_BIND_TIMEOUT;
+					goto retry;
+				}
+
+				rc = LDAP_BUSY;
+				break;
 
 			case -1:
 				ldap_get_option( lsc->msc_ld, LDAP_OPT_ERROR_NUMBER,

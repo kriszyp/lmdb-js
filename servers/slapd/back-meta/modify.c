@@ -52,10 +52,14 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 	
-	if ( !meta_back_dobind( lc, op )
-			|| !meta_back_is_valid( lc, candidate ) )
-	{
+	if ( !meta_back_dobind( lc, op ) ) {
+		rs->sr_err = LDAP_UNAVAILABLE;
+
+	} else if ( !meta_back_is_valid( lc, candidate ) ) {
 		rs->sr_err = LDAP_OTHER;
+	}
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		rc = -1;
 		goto cleanup;
 	}
