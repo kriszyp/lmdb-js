@@ -100,9 +100,11 @@ int connections_destroy(void)
 	}
 
 	for ( i = 0; i < dtblsize; i++ ) {
-		ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
-		ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
-		ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
+		if( connections[i].c_struct_state != SLAP_C_UNINITIALIZED ) {
+			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
+			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
+			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
+		}
 
 		free( &connections[i] );
 	}
