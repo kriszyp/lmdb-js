@@ -109,7 +109,7 @@ ldap_pvt_tls_init( void )
 	static int tls_initialized = 0;
 
 	if ( tls_initialized )
-		return -1;
+		return 0;
 	tls_initialized = 1;
 #ifdef LDAP_R_COMPILE
 	tls_init_threads();
@@ -266,11 +266,26 @@ alloc_handle( Sockbuf *sb, void *ctx_arg )
 	return ssl;
 }
 
-static void
-update_flags( Sockbuf *sb, SSL * ssl )
+static int
+update_flags( Sockbuf *sb, SSL * ssl, int rc )
 {
-	sb->sb_trans_needs_read  = (SSL_want_read(ssl) ? 1 : 0);
-	sb->sb_trans_needs_write = (SSL_want_write(ssl) ? 1 : 0);
+	int err = SSL_get_error(ssl, rc);
+
+	sb->sb_trans_needs_read  = 0;
+	sb->sb_trans_needs_write = 0;
+	if (err == SSL_ERROR_WANT_READ)
+	{
+	    sb->sb_trans_needs_read  = 1;
+	    return 1;
+	} else if (err == SSL_ERROR_WANT_WRITE)
+	{
+	    sb->sb_trans_needs_write = 1;
+	    return 1;
+	} else if (err == SSL_ERROR_WANT_CONNECT)
+	{
+	    return 1;
+	}
+	return 0;
 }
 
 /*
@@ -305,17 +320,8 @@ ldap_pvt_tls_connect( Sockbuf *sb, void *ctx_arg )
 	err = SSL_connect( ssl );
 
 	if ( err <= 0 ) {
-		if (
-#ifdef EWOULDBLOCK
-		    (errno==EWOULDBLOCK) ||
-#endif
-#ifdef EAGAIN
-		    (errno==EAGAIN) ||
-#endif
-		    (0)) {
-			update_flags( sb, ssl );
+		if ( update_flags( sb, ssl, err ))
 			return 1;
-		}
 		Debug( LDAP_DEBUG_ANY,"TLS: can't connect.\n",0,0,0);
 		ber_pvt_sb_clear_io( sb );
 		ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
@@ -347,10 +353,8 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 	err = SSL_accept( ssl );
 
 	if ( err <= 0 ) {
-		if ( !SSL_want_nothing( ssl ) ) {
-			update_flags( sb, ssl );
+		if ( update_flags( sb, ssl, err ))
 			return 1;
-		}
 		Debug( LDAP_DEBUG_ANY,"TLS: can't accept.\n",0,0,0 );
 		tls_report_error();
 		ber_pvt_sb_clear_io( sb );
@@ -546,7 +550,7 @@ tls_write( Sockbuf *sb, void *buf, ber_len_t sz )
 {
 	int ret = SSL_write( (SSL *)sb->sb_iodata, buf, sz );
 
-	update_flags(sb, (SSL *)sb->sb_iodata );
+	update_flags(sb, (SSL *)sb->sb_iodata, ret );
 #ifdef WIN32
 	if (sb->sb_trans_needs_write)
 		errno = EWOULDBLOCK;
@@ -559,7 +563,7 @@ tls_read( Sockbuf *sb, void *buf, ber_len_t sz )
 {
 	int ret = SSL_read( (SSL *)sb->sb_iodata, buf, sz );
 
-	update_flags(sb, (SSL *)sb->sb_iodata );
+	update_flags(sb, (SSL *)sb->sb_iodata, ret );
 #ifdef WIN32
 	if (sb->sb_trans_needs_read)
 		errno = EWOULDBLOCK;
@@ -644,9 +648,9 @@ tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 	       sname ? sname : "-unknown-",
 	       iname ? iname : "-unknown-" );
 	if ( sname )
-		free ( sname );
+		CRYPTO_free ( sname );
 	if ( iname )
-		free ( iname );
+		CRYPTO_free ( iname );
 
 	return 1;
 }
