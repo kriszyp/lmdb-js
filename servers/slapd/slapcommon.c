@@ -289,6 +289,8 @@ slap_tool_init(
 		break;
 	}
 
+	ldap_syslog = 0;
+
 	if ( ldiffile == NULL ) {
 		ldiffp = tool == SLAPCAT ? stdout : stdin;
 
@@ -342,7 +344,6 @@ slap_tool_init(
 	}
 
 	at_oc_cache = 1;
-	ldap_syslog = 0;
 
 	switch ( tool ) {
 	case SLAPADD:
