@@ -497,8 +497,8 @@ do_bind(
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_cdn = pdn->bv_val;
-			dn.bv_val = NULL;
-			dn.bv_len = 0;
+			pdn->bv_val = NULL;
+			pdn->bv_len = 0;
 
 			if(edn != NULL) {
 				conn->c_dn = edn;
