@@ -97,7 +97,7 @@ static void tls_init_threads( void )
 #endif /* LDAP_R_COMPILE */
 
 /*
- * Initialize tls system. Should be called only once.
+ * Initialize TLS subsystem. Should be called only once.
  */
 int
 ldap_pvt_tls_init( void )
@@ -105,15 +105,17 @@ ldap_pvt_tls_init( void )
 	static int tls_initialized = 0;
 
 	if ( tls_initialized ) return 0;
+	tls_initialized = 1;
 
 	(void) tls_seed_PRNG( tls_opt_randfile );
 
-	tls_initialized = 1;
 #ifdef LDAP_R_COMPILE
 	tls_init_threads();
 #endif
+
 	SSL_load_error_strings();
 	SSLeay_add_ssl_algorithms();
+
 	/* FIXME: mod_ssl does this */
 	X509V3_add_standard_extensions();
 	return 0;
@@ -651,7 +653,8 @@ ldap_pvt_tls_sb_handle( Sockbuf *sb )
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&p );
 		return p;
 	}
-		return NULL;
+
+	return NULL;
 }
 
 void *
@@ -858,9 +861,6 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
-	/* Make sure tls is initialized, including PRNG properly seeded. */
-	ldap_pvt_tls_init();
-
 	/*
 	 * Fortunately, the lib uses blocking io...
 	 */
@@ -1039,40 +1039,36 @@ tls_tmp_dh_cb( SSL *ssl, int is_export, int key_length )
 
 int
 ldap_start_tls_s ( LDAP *ld,
-				LDAPControl **serverctrls,
-				LDAPControl **clientctrls )
+	LDAPControl **serverctrls,
+	LDAPControl **clientctrls )
 {
 #ifdef HAVE_TLS
-	LDAPConn *lc;
 	int rc;
 	char *rspoid = NULL;
 	struct berval *rspdata = NULL;
 
-	if (ld->ld_conns == NULL) {
-		rc = ldap_open_defconn( ld );
-		if (rc != LDAP_SUCCESS)
-			return(rc);
+	/* XXYYZ: this initiates operaton only on default connection! */
+
+	if ( ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
+		return LDAP_LOCAL_ERROR;
 	}
 
-	for (lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next) {
-		if (ldap_pvt_tls_inplace(lc->lconn_sb) != 0)
-			return LDAP_OPERATIONS_ERROR;
-
-		/* XXYYZ: this initiates operaton only on default connection! */
-		rc = ldap_extended_operation_s(ld, LDAP_EXOP_START_TLS,
-			NULL, serverctrls, clientctrls, &rspoid, &rspdata);
-
-		if (rc != LDAP_SUCCESS)
-			return rc;
-		if (rspoid != NULL)
-			LDAP_FREE(rspoid);
-		if (rspdata != NULL)
-			ber_bvfree(rspdata);
-		rc = ldap_pvt_tls_start( ld, lc->lconn_sb, ld->ld_options.ldo_tls_ctx );
-		if (rc != LDAP_SUCCESS)
-			return rc;
+	rc = ldap_extended_operation_s( ld, LDAP_EXOP_START_TLS,
+		NULL, serverctrls, clientctrls, &rspoid, &rspdata );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
-	return LDAP_SUCCESS;
+
+	if ( rspoid != NULL ) {
+		LDAP_FREE(rspoid);
+	}
+
+	if ( rspdata != NULL ) {
+		ber_bvfree( rspdata );
+	}
+
+	rc = ldap_pvt_tls_start( ld, ld->ld_sb, ld->ld_options.ldo_tls_ctx );
+	return rc;
 #else
 	return LDAP_NOT_SUPPORTED;
 #endif
