@@ -340,6 +340,9 @@ sasl_err2ldap( int saslerr )
 		case SASL_CONTINUE:
 			rc = LDAP_MORE_RESULTS_TO_RETURN;
 			break;
+		case SASL_INTERACT:
+			rc = LDAP_LOCAL_ERROR;
+			break;
 		case SASL_OK:
 			rc = LDAP_SUCCESS;
 			break;
@@ -528,9 +531,10 @@ ldap_int_sasl_bind(
 		}
 
 		if( saslrc == SASL_INTERACT ) {
+			int res;
 			if( !interact ) break;
-			rc = (interact)( ld, flags, defaults, prompts );
-			if( rc != LDAP_SUCCESS ) {
+			res = (interact)( ld, flags, defaults, prompts );
+			if( res != LDAP_SUCCESS ) {
 				break;
 			}
 		}
@@ -578,7 +582,7 @@ ldap_int_sasl_bind(
 			if( saslrc == SASL_INTERACT ) {
 				int res;
 				if( !interact ) break;
-				rc = (interact)( ld, flags, defaults, prompts );
+				res = (interact)( ld, flags, defaults, prompts );
 				if( res != LDAP_SUCCESS ) {
 					break;
 				}
