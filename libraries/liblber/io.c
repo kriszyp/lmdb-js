@@ -34,34 +34,6 @@
 
 #include "lber-int.h"
 
-static ber_slen_t
-BerRead(
-	Sockbuf *sb,
-	unsigned char *buf,
-	ber_len_t len )
-{
-	ber_slen_t	c;
-	ber_slen_t	nread = 0;
-
-	assert( sb != NULL );
-	assert( buf != NULL );
-
-	assert( SOCKBUF_VALID( sb ) );
-
-	while ( len > 0 ) {
-		if ( (c = ber_int_sb_read( sb, buf, len )) <= 0 ) {
-			if ( nread > 0 )
-				break;
-			return( c );
-		}
-		buf+=c;
-		nread+=c;
-		len-=c;
-	}
-
-	return( nread );
-}
-
 ber_slen_t
 ber_read(
 	BerElement *ber,
@@ -476,131 +448,126 @@ ber_get_next(
 	 *	2) definite lengths
 	 *	3) primitive encodings used whenever possible
 	 */
-	
+
 	if (ber->ber_rwptr == NULL) {
 		/* XXYYZ
 		 * dtest does like this assert.
 		 */
 		/* assert( ber->ber_buf == NULL ); */
-		ber->ber_rwptr = (char *) &ber->ber_tag;
+		ber->ber_rwptr = (char *) &ber->ber_len-1;
+		ber->ber_ptr = ber->ber_rwptr;
 		ber->ber_tag = 0;
 	}
 
-#undef PTR_IN_VAR
-#define PTR_IN_VAR( ptr, var ) \
-	(((ptr)>=(char *) &(var)) && ((ptr)< (char *) &(var)+sizeof(var)))
-	
-	if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_tag)) {
-		if (ber->ber_rwptr == (char *) &ber->ber_tag) {
-			if (ber_int_sb_read( sb, ber->ber_rwptr, 1)<=0)
-				return LBER_DEFAULT;
+	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
+		(char *)(&ber->ber_usertag + 1)) {
+		int i;
+		char buf[sizeof(ber->ber_len)-1];
+		ber_len_t tlen = 0;
 
-			if ((ber->ber_rwptr[0] & LBER_BIG_TAG_MASK)
-				!= LBER_BIG_TAG_MASK)
-			{
-				ber->ber_tag = ber->ber_rwptr[0];
-				ber->ber_rwptr = (char *) &ber->ber_usertag;
-				goto get_lenbyte;
-			}
-			ber->ber_rwptr++;
-		}
-		do {
-			/* reading the tag... */
-			if (ber_int_sb_read( sb, ber->ber_rwptr, 1)<=0) {
-				return LBER_DEFAULT;
-			}
-
-			if (! (ber->ber_rwptr[0] & LBER_MORE_TAG_MASK) ) {
-				ber->ber_tag>>=sizeof(ber->ber_tag) -
-				  ((char *) &ber->ber_tag - ber->ber_rwptr);
-				ber->ber_rwptr = (char *) &ber->ber_usertag;
-				goto get_lenbyte;
-			}
-		} while( PTR_IN_VAR(ber->ber_rwptr, ber->ber_tag ));
-
-		errno = ERANGE; /* this is a serious error. */
-		return LBER_DEFAULT;
-	}
-
-get_lenbyte:
-	if (ber->ber_rwptr==(char *) &ber->ber_usertag) {
-		unsigned char c;
-		if (ber_int_sb_read( sb, (char *) &c, 1)<=0) {
+		if ((i=ber_int_sb_read( sb, ber->ber_rwptr,
+			(char *)(&ber->ber_usertag+1)-ber->ber_rwptr))<=0) {
 			return LBER_DEFAULT;
 		}
 
-		if (c & 0x80U) {
-			int len = c & 0x7fU;
-			if ( (len==0) || ( len>sizeof( ber->ber_len ) ) ) {
+		ber->ber_rwptr += i;
+
+		/* We got at least one byte, try to parse the tag. */
+		if (ber->ber_ptr == (char *)&ber->ber_len-1) {
+			ber_tag_t tag;
+			unsigned char *p = (unsigned char *)ber->ber_ptr;
+			tag = *p++;
+			if ((tag & LBER_BIG_TAG_MASK) == LBER_BIG_TAG_MASK) {
+				for (i=1; (char *)p<ber->ber_rwptr; i++,p++) {
+					tag <<= 8;
+					tag |= *p;
+					if (!(*p & LBER_MORE_TAG_MASK))
+						break;
+					/* Is the tag too big? */
+					if (i == sizeof(ber_tag_t)-1) {
+						errno = ERANGE;
+						return LBER_DEFAULT;
+					}
+				}
+				/* Did we run out of bytes? */
+				if ((char *)p == ber->ber_rwptr) {
+					return LBER_DEFAULT;
+				}
+				p++;
+			}
+			ber->ber_tag = tag;
+			ber->ber_ptr = (char *)p;
+		}
+
+		/* Now look for the length */
+		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
+			int llen = *(unsigned char *)ber->ber_ptr++ & 0x7f;
+			if (llen > sizeof(ber_len_t)) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}
-
-			ber->ber_rwptr = (char *) &ber->ber_len +
-				sizeof(ber->ber_len) - len;
-			ber->ber_len = 0;
-
+			/* Not enough bytes? */
+			if (ber->ber_rwptr - ber->ber_ptr < llen) {
+				return LBER_DEFAULT;
+			}
+			for (i=0; i<llen && ber->ber_ptr<ber->ber_rwptr; i++,ber->ber_ptr++) {
+				tlen <<=8;
+				tlen |= *(unsigned char *)ber->ber_ptr;
+			}
 		} else {
-			ber->ber_len = c;
-			goto fill_buffer;
+			tlen = *(unsigned char *)ber->ber_ptr++;
 		}
-	}
+		/* Are there leftover data bytes inside ber->ber_len? */
+		if (ber->ber_ptr < (char *)&ber->ber_usertag) {
+			i = (char *)&ber->ber_usertag - ber->ber_ptr;
+			AC_MEMCPY(buf, ber->ber_ptr, i);
+			ber->ber_ptr += i;
+		} else {
+			i = 0;
+		}
+		ber->ber_len = tlen;
 
-	if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_len)) {
-		unsigned char netlen[sizeof(ber_len_t)];
+		/* now fill the buffer. */
 
-		ber_slen_t res;
-		ber_slen_t to_go;
-		to_go = (char *) &ber->ber_len + sizeof( ber->ber_len ) -
-			ber->ber_rwptr;
-		assert( to_go > 0 );
-
-		res = BerRead( sb, netlen, to_go );
-		if (res <= 0) {
+		/* make sure length is reasonable */
+		if ( ber->ber_len == 0 ) {
+			errno = ERANGE;
 			return LBER_DEFAULT;
-		}
-		ber->ber_rwptr += res;
-
-		/* convert length. */
-		for( to_go = 0; to_go < res ; to_go++ ) {
-			ber->ber_len <<= 8;
-			ber->ber_len |= netlen[to_go];
-		}
-
-		if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_len)) {
-			return LBER_DEFAULT;
-		}
-	}
-
-fill_buffer:	
-	/* now fill the buffer. */
-
-	/* make sure length is reasonable */
-	if ( ber->ber_len == 0 ) {
-		errno = ERANGE;
-		return LBER_DEFAULT;
-	} else if ( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ) {
+		} else if ( sb->sb_max_incoming && ber->ber_len > sb->sb_max_incoming ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "liblber", LDAP_LEVEL_ERR, 
-			"ber_get_next: sockbuf_max_incoming limit hit "
-			"(%d > %d)\n", ber->ber_len, sb->sb_max_incoming ));
+			LDAP_LOG(( "liblber", LDAP_LEVEL_ERR, 
+				"ber_get_next: sockbuf_max_incoming limit hit "
+				"(%d > %d)\n", ber->ber_len, sb->sb_max_incoming ));
 #else
-		ber_log_printf( LDAP_DEBUG_CONNS, ber->ber_debug,
-			"ber_get_next: sockbuf_max_incoming limit hit "
-			"(%ld > %ld)\n", ber->ber_len, sb->sb_max_incoming );
+			ber_log_printf( LDAP_DEBUG_CONNS, ber->ber_debug,
+				"ber_get_next: sockbuf_max_incoming limit hit "
+				"(%ld > %ld)\n", ber->ber_len, sb->sb_max_incoming );
 #endif
-		errno = ERANGE;
-		return LBER_DEFAULT;
-	}
-
-	if (ber->ber_buf==NULL) {
-		ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len + 1 );
-		if (ber->ber_buf==NULL) {
+			errno = ERANGE;
 			return LBER_DEFAULT;
 		}
-		ber->ber_rwptr = ber->ber_buf;
-		ber->ber_ptr = ber->ber_buf;
-		ber->ber_end = ber->ber_buf + ber->ber_len;
+
+		if (ber->ber_buf==NULL) {
+			ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len + 1 );
+			if (ber->ber_buf==NULL) {
+				return LBER_DEFAULT;
+			}
+			ber->ber_end = ber->ber_buf + ber->ber_len;
+			if (i) {
+				AC_MEMCPY(ber->ber_buf, buf, i);
+			}
+			if (ber->ber_ptr < ber->ber_rwptr) {
+				AC_MEMCPY(ber->ber_buf + i, ber->ber_ptr, ber->ber_rwptr-
+					ber->ber_ptr);
+				i += ber->ber_rwptr - ber->ber_ptr;
+			}
+			ber->ber_ptr = ber->ber_buf;
+			ber->ber_usertag = 0;
+			if (i == ber->ber_len) {
+				goto done;
+			}
+			ber->ber_rwptr = ber->ber_buf + i;
+		}
 	}
 
 	if ((ber->ber_rwptr>=ber->ber_buf) && (ber->ber_rwptr<ber->ber_end)) {
@@ -623,7 +590,7 @@ fill_buffer:
 #endif			
 			return LBER_DEFAULT;
 		}
-		
+done:
 		ber->ber_rwptr = NULL;
 		*len = ber->ber_len;
 		if ( ber->ber_debug ) {

@@ -69,10 +69,10 @@ struct berelement {
 #define ber_options		ber_opts.lbo_options
 #define ber_debug		ber_opts.lbo_debug
 
-	ber_tag_t	ber_usertag;
-
+	/* Do not change the order of these 3 fields! see ber_get_next */
 	ber_tag_t	ber_tag;
 	ber_len_t	ber_len;
+	ber_tag_t	ber_usertag;
 
 	char		*ber_buf;
 	char		*ber_ptr;
