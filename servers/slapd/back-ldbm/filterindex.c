@@ -155,7 +155,7 @@ presence_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -266,7 +266,7 @@ equality_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -397,7 +397,7 @@ approx_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -562,7 +562,7 @@ substring_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
