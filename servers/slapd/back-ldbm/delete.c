@@ -207,6 +207,9 @@ ldbm_back_delete(
 		goto return_results;
 	}
 
+	/* delete attribute indices */
+	(void) index_entry_del( be, e, e->e_attrs );
+
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
 	rc = 0;
