@@ -45,10 +45,10 @@ void (lutil_debug)( int level, int debug, const char *fmt, ... )
 #ifdef HAVE_WINSOCK
 	if( log_file == NULL )
     {
-		log_file = fopen( LDAP_RUNDIR LDAP_DIRSEP "slapd.log", "w" );
+		log_file = fopen( LDAP_RUNDIR LDAP_DIRSEP "openldap.log", "w" );
 
         if ( log_file == NULL )
-			log_file = fopen( "slapd.log", "w" );
+			log_file = fopen( "openldap.log", "w" );
 
 		if ( log_file == NULL )
 			return;

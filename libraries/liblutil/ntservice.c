@@ -1,13 +1,22 @@
-// ntservice.c
+/* ntservice.c */
 #include "portable.h"
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+
 #include <stdio.h>
+
 #include <windows.h>
+#include <winsvc.h>
+
 #include "ldap.h"
+
+#define ldap_debug slap_debug
+extern int slap_debug;
+
 #include "ldap_log.h"
 #include "ldap_pvt_thread.h"
-#include <winsvc.h>
-#include <sys/types.h>
-#include <ac/string.h>
+
 
 #include "ldap_defaults.h"
 
@@ -26,13 +35,6 @@ ldap_pvt_thread_cond_t	started_event,		stopped_event;
 ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
 
 void (*stopfunc)(int);
-
-/* in main.c */
-void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
-
-
-/* in wsa_err.c */
-char *WSAGetLastErrorString( void );
 
 /* in nt_err.c */
 char *GetLastErrorString( void );
@@ -167,7 +169,7 @@ static void *start_status_routine( void *ptr )
 				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
 				break;
 			case WAIT_FAILED:
-				/* theres been some proble with WaitForSingleObject so tell the Service
+				/* theres been some problem with WaitForSingleObject so tell the Service
 				 * Control Manager to wait 30 seconds before deploying its assasin and 
 				 * then leave the thread. */
 				SLAPDServiceStatus.dwCheckPoint++;
@@ -209,7 +211,7 @@ static void *stop_status_routine( void *ptr )
 				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
 				break;
 			case WAIT_FAILED:
-				/* theres been some proble with WaitForSingleObject so tell the Service
+				/* theres been some problem with WaitForSingleObject so tell the Service
 				 * Control Manager to wait 30 seconds before deploying its assasin and 
 				 * then leave the thread. */
 				SLAPDServiceStatus.dwCheckPoint++;
@@ -232,7 +234,7 @@ void WINAPI SLAPDServiceCtrlHandler( IN DWORD Opcode)
 	case SERVICE_CONTROL_STOP:
 	case SERVICE_CONTROL_SHUTDOWN:
 
-		Debug( LDAP_DEBUG_TRACE, "Service Shutdown ordered\n", 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "Service Shutdown ordered\n", 0, 0, 0 );
 		SLAPDServiceStatus.dwCurrentState	= SERVICE_STOP_PENDING;
 		SLAPDServiceStatus.dwCheckPoint++;
 		SLAPDServiceStatus.dwWaitHint		= SCM_NOTIFICATION_INTERVAL * 2;

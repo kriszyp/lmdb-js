@@ -1,8 +1,6 @@
 #include <windows.h>
 #include <winerror.h>
 
-#define __RETSTR( x ) case x: return #x;
-
 char *GetErrorString( int err )
 {
 	static char msgBuf[1024];
