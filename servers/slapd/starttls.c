@@ -28,6 +28,11 @@ starttls_extop (
 	struct berval ** rspdata,
 	char ** text )
 {
+	if ( reqdata != NULL ) {
+		/* no request data should be provided */
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	/* can't start TLS if it is already started */
 	if (conn->c_is_tls != 0)
 		return(LDAP_OPERATIONS_ERROR);
