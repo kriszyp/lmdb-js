@@ -6,16 +6,15 @@
 slappasswd \- OpenLDAP password utility
 .SH SYNOPSIS
 .B SBINDIR/slappasswd
-.B [\-u]
 .B [\-v]
 .B [\-s secret]
-.B [\-h hash]
+.B [\-u hash]
 .B 
 .LP
 .SH DESCRIPTION
 .LP
 .B Slappasswd
-is used to generate an authPassword (or userPassword) value
+is used to generate an userPassword value
 suitable for use with
 .BR ldapmodify (1)
 or
@@ -24,9 +23,6 @@ or
 coniguration directive.
 .SH OPTIONS
 .TP
-.B \-u
-generate RFC2307 userPassword values instead of authPassword values.
-.TP
 .B \-v
 enable verbose mode.
 .TP
@@ -34,14 +30,6 @@ enable verbose mode.
 The secret to hash.  If not provided, the user will be prompted
 for the secret to hash.
 .TP
-.BI \-h " scheme"
-The hash scheme to use.  One of the following authPassword schemes
-may be specified:
-.IR MD5 ,
-.IR SHA1 ", and"
-.IR X-CRYPT .
-The default is
-.IR SHA1 .
 If -u is specified, one of the following RFC2307 schemes may
 be specified:
 .IR {CRYPT} ,
@@ -53,9 +41,9 @@ The default is
 .IR {SSHA} .
 .LP
 .SH LIMITATIONS
-The authPassword attribute type is not yet widely supported.
 The practice storing hashed passwords in userPassword violates
-Standard Track schema and may hinder interoperability.  
+Standard Track (RFC2256) schema specifications and may hinder
+interoperability.  
 .SH "SECURITY CONSIDERATIONS"
 Use of hashed passwords does not protect passwords during
 protocol transfer.  TLS or other eavesdropping protections

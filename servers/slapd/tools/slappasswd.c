@@ -29,7 +29,7 @@ usage(const char *s)
 {
 	fprintf(stderr,
 		"Usage: %s [options]\n"
-		"  -h hash\tpassword scheme\n"
+		"  -u hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
 		"  -v\t\tincrease verbosity\n"
 		, s );
@@ -50,10 +50,10 @@ main( int argc, char *argv[] )
 	struct berval *hash = NULL;
 
 	while( (i = getopt( argc, argv,
-		"d:h:s:v" )) != EOF )
+		"d:u:s:v" )) != EOF )
 	{
 		switch (i) {
-		case 'h':	/* scheme */
+		case 'u':	/* scheme */
 			scheme = strdup (optarg);
 
 		case 's':	/* new password (secret) */
@@ -88,7 +88,7 @@ main( int argc, char *argv[] )
 		cknewpw = getpassphrase("Re-enter new password: ");
 
 		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
-			fprintf( stderr, "passwords do not match\n" );
+			fprintf( stderr, "Password values do not match\n" );
 			return EXIT_FAILURE;
 		}
 	}
@@ -104,7 +104,7 @@ main( int argc, char *argv[] )
 	}
 
 	if( lutil_passwd( hash, &passwd, NULL ) ) {
-		fprintf( stderr, "Password verificaiton failed.\n");
+		fprintf( stderr, "Password verification failed.\n");
 		return EXIT_FAILURE;
 	}
 
