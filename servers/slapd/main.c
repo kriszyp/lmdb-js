@@ -57,6 +57,10 @@ static void
 usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]", name );
+    fprintf( stderr, "\n        [-a bind-address] [-i] [-u]" );
+#ifdef SLAPD_BDB2
+    fprintf( stderr, " [-t]" );
+#endif
 #ifdef LOG_LOCAL4
     fprintf( stderr, " [-l sysloguser]" );
 #endif
@@ -90,11 +94,15 @@ main( int argc, char **argv )
 	g_argc = argc;
 	g_argv = argv;
 
-#ifdef SLAPD_BDB2
-	while ( (i = getopt( argc, argv, "d:f:ia:p:s:ut" )) != EOF ) {
-#else
-	while ( (i = getopt( argc, argv, "d:f:ia:p:s:u" )) != EOF ) {
+	while ( (i = getopt( argc, argv,
+			     "d:f:ia:p:s:u"
+#ifdef LOG_LOCAL4
+			     "l:"
 #endif
+#ifdef SLAPD_BDB2
+			     "t"
+#endif
+			     )) != EOF ) {
 		switch ( i ) {
 		case 'a':	/* bind address */
 #ifdef HAVE_WINSOCK
