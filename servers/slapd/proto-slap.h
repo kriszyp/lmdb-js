@@ -1410,9 +1410,7 @@ LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
 /*
  * frontend operations
  */
-#if 0
 LDAP_SLAPD_F (int) fe_op_abandon LDAP_P((Operation *op, SlapReply *rs));
-#endif
 LDAP_SLAPD_F (int) fe_op_add LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) fe_op_bind LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) fe_op_compare LDAP_P((Operation *op, SlapReply *rs));

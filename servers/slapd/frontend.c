@@ -83,6 +83,7 @@ frontend_init( void )
 	frontendDB->bd_info->bi_controls = slap_known_controls;
 
 	/* calls */
+	frontendDB->bd_info->bi_op_abandon = fe_op_abandon;
 	frontendDB->bd_info->bi_op_add = fe_op_add;
 	frontendDB->bd_info->bi_op_bind = fe_op_bind;
 	frontendDB->bd_info->bi_op_compare = fe_op_compare;
