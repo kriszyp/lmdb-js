@@ -203,10 +203,7 @@ typedef signed int ssize_t;
 #define HAVE_SYS_ERRLIST 1 
 
 /* define if you have berkeley db */
-/* #undef HAVE_BERKELEY_DB */
-
-/* define if you have berkeley db2 */
-#define HAVE_BERKELEY_DB2 1
+#define HAVE_BERKELEY_DB 1
 
 /* define if you have crypt */
 /* #undef HAVE_CRYPT */
