@@ -1747,11 +1747,10 @@ void slapi_value_free(Slapi_Value **value)
 	if ( value == NULL ) {
 		return;
 	}
-	if ( *value != NULL ) {
-		Slapi_Value *v;
 
-		slapi_ch_free( (void **)&v->bv_val );
-		slapi_ch_free( (void **)&v );
+	if ( (*value) != NULL ) {
+		slapi_ch_free( (void **)&(*value)->bv_val );
+		slapi_ch_free( (void **)value );
 	}
 #endif
 }
