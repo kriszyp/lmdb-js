@@ -16,6 +16,8 @@
 
 #include "portable.h"
 
+#include <stdio.h>
+
 #include "slap.h"
 
 void
