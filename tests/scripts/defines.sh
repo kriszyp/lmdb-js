@@ -59,7 +59,7 @@ BASEDN="o=University of Michigan, c=US"
 MANAGERDN="cn=Manager, o=University of Michigan, c=US"
 UPDATEDN="cn=Replica, o=University of Michigan, c=US"
 PASSWD=secret
-BABSDN="cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US"
+BABSDN="cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=University of  Michigan , c = US "
 BJORNSDN="cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US"
 JAJDN="cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US"
 MASTERLOG=$DBDIR/master.log
