@@ -74,39 +74,39 @@ LDAP_BEGIN_DECL
 #define LDAP_ROOT_DSE				""
 #define LDAP_NO_ATTRS				"1.1"
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
-#define LDAP_ALL_OPERATIONAL_ATTRIBUTES	"+" /* OpenLDAP extension */
+#define LDAP_ALL_OPERATIONAL_ATTRIBUTES	"+" /* RFC 3673 */
 
 /*
- * LDAP_OPTions defined by draft-ldapext-ldap-c-api-02
- * 0x0000 - 0x0fff reserved for api options
- * 0x1000 - 0x3fff reserved for api extended options
- * 0x4000 - 0x7fff reserved for private and experimental options
+ * LDAP_OPTions
+ *	0x0000 - 0x0fff reserved for api options
+ *	0x1000 - 0x3fff reserved for api extended options
+ *	0x4000 - 0x7fff reserved for private and experimental options
  */
+
 #define LDAP_OPT_API_INFO			0x0000
-#define LDAP_OPT_DESC				0x0001 /* deprecated */
+#define LDAP_OPT_DESC				0x0001 /* historic */
 #define LDAP_OPT_DEREF				0x0002
 #define LDAP_OPT_SIZELIMIT			0x0003
 #define LDAP_OPT_TIMELIMIT			0x0004
-/* 0x05 - 0x07 not defined by current draft */
+/* 0x05 - 0x07 not defined */
 #define LDAP_OPT_REFERRALS			0x0008
 #define LDAP_OPT_RESTART			0x0009
-/* 0x0a - 0x10 not defined by current draft */
+/* 0x0a - 0x10 not defined */
 #define LDAP_OPT_PROTOCOL_VERSION	0x0011
 #define LDAP_OPT_SERVER_CONTROLS	0x0012
 #define LDAP_OPT_CLIENT_CONTROLS	0x0013
-/* 0x14 not defined by current draft */
+/* 0x14 not defined */
 #define LDAP_OPT_API_FEATURE_INFO	0x0015
-
-/* 0x16 - 0x2f not defined by current draft */
+/* 0x16 - 0x2f not defined */
 #define LDAP_OPT_HOST_NAME			0x0030
 #define LDAP_OPT_RESULT_CODE		0x0031
 #define LDAP_OPT_ERROR_NUMBER		LDAP_OPT_RESULT_CODE
 #define LDAP_OPT_ERROR_STRING		0x0032
 #define LDAP_OPT_MATCHED_DN			0x0033
+/* 0x0034 - 0x3fff not defined */
 
-/* 0x34 - 0x0fff not defined by current draft */
-
-#define LDAP_OPT_PRIVATE_EXTENSION_BASE 0x4000  /* to 0x7FFF inclusive */
+/* API Extensions */
+#define LDAP_OPT_API_EXTENSION_BASE 0x4000  /* API extensions */
 
 /* private and experimental options */
 /* OpenLDAP specific options */
@@ -130,10 +130,10 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_RANDOM_FILE	0x6009
 #define LDAP_OPT_X_TLS_SSL_CTX		0x600a
 
-#define LDAP_OPT_X_TLS_NEVER		0
+#define LDAP_OPT_X_TLS_NEVER	0
 #define LDAP_OPT_X_TLS_HARD		1
-#define LDAP_OPT_X_TLS_DEMAND		2
-#define LDAP_OPT_X_TLS_ALLOW		3
+#define LDAP_OPT_X_TLS_DEMAND	2
+#define LDAP_OPT_X_TLS_ALLOW	3
 #define LDAP_OPT_X_TLS_TRY		4
 
 /* OpenLDAP SASL options */
@@ -148,9 +148,8 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_SASL_SSF_MAX			0x6108
 #define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
 
-/* on/off values */
-#define LDAP_OPT_ON		((void *) &ber_pvt_opt_on)
-#define LDAP_OPT_OFF	((void *) 0)
+/* Private API Extensions -- reserved for application use */
+#define LDAP_OPT_PRIVATE_EXTENSION_BASE 0x7000  /* Private API inclusive */
 
 /*
  * ldap_get_option() and ldap_set_option() return values.
@@ -161,9 +160,13 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_SUCCESS	0
 #define	LDAP_OPT_ERROR		(-1)
 
-#define LDAP_API_INFO_VERSION	(1)
+/* option on/off values */
+#define LDAP_OPT_ON		((void *) &ber_pvt_opt_on)
+#define LDAP_OPT_OFF	((void *) 0)
+
 typedef struct ldapapiinfo {
-	int		ldapai_info_version;		/* version of LDAPAPIInfo (1) */
+	int		ldapai_info_version;		/* version of LDAPAPIInfo */
+#define LDAP_API_INFO_VERSION	(1)
 	int		ldapai_api_version;			/* revision of API supported */
 	int		ldapai_protocol_version;	/* highest LDAP version supported */
 	char	**ldapai_extensions;		/* names of API extensions */
@@ -171,39 +174,35 @@ typedef struct ldapapiinfo {
 	int		ldapai_vendor_version;		/* supplier-specific version * 100 */
 } LDAPAPIInfo;
 
-#define LDAP_FEATURE_INFO_VERSION (1) /* version of api feature structure */
 typedef struct ldap_apifeature_info {
-	int		ldapaif_info_version; /* version of this struct (1) */
-	char*	ldapaif_name;    /* matches LDAP_API_FEATURE_... less the prefix */
-	int		ldapaif_version; /* matches the value LDAP_API_FEATURE_... */
+	int		ldapaif_info_version;		/* version of LDAPAPIFeatureInfo */
+#define LDAP_FEATURE_INFO_VERSION (1)	/* apifeature_info struct version */
+	char*	ldapaif_name;				/* LDAP_API_FEATURE_* (less prefix) */
+	int		ldapaif_version;			/* value of LDAP_API_FEATURE_... */
 } LDAPAPIFeatureInfo;
 
+/*
+ * LDAP Control structure
+ */
 typedef struct ldapcontrol {
-	char *			ldctl_oid;
-	struct berval	ldctl_value;
-	char			ldctl_iscritical;
+	char *			ldctl_oid;			/* numericoid of control */
+	struct berval	ldctl_value;		/* encoded value of control */
+	char			ldctl_iscritical;	/* criticality */
 } LDAPControl;
 
 /* LDAP Controls */
+#define LDAP_CONTROL_MANAGEDSAIT		"2.16.840.1.113730.3.4.2" /* RFC 3296 */
+#define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1" /* RFC 3672 */
+#define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"  /* RFC 2696 */
+
+#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.1.10.2"
+#define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
+#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"
+
 #define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
 #define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
 #define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
 #define LDAP_CONTROL_MODIFY_INCREMENT	"1.3.6.1.4.1.4203.666.5.11"
-
-#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"
-#define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1"
-#define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.1.10.2"
-#define LDAP_CONTROL_MANAGEDSAIT		"2.16.840.1.113730.3.4.2"
-#define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
-
-#if 0
-#define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
-#define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
-#define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
-#define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
-#endif
-
-#define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"
 
 #define LDAP_CONTROL_SYNC		"1.3.6.1.4.1.4203.666.5.6"
 #define LDAP_CONTROL_SYNC_STATE	"1.3.6.1.4.1.4203.666.5.7"
@@ -233,23 +232,33 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_MODIFY				2
 #define LDAP_SYNC_DELETE				3
 
-#define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
-#define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474"
+#if 0
+#define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
+#define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
+#define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
+#define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
+#endif
+
+/* controls for MSAD compatibility */
+#define LDAP_CONTROL_X_DOMAIN_SCOPE			"1.2.840.113556.1.4.1339"
+#define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
+
+/* not implemented in slapd(8) */
+#define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
+#define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474" /* RFC 2891 */
+
+/* not implemented in slapd(8) */
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
-/* controls for MSAD compatibility */
-#define LDAP_CONTROL_X_DOMAIN_SCOPE "1.2.840.113556.1.4.1339"
-#define LDAP_CONTROL_X_PERMISSIVE_MODIFY "1.2.840.113556.1.4.1413"
-
 /* LDAP Unsolicited Notifications */
-#define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036"
+#define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
 
 /* LDAP Extended Operations */
-#define LDAP_EXOP_START_TLS	"1.3.6.1.4.1.1466.20037"
+#define LDAP_EXOP_START_TLS		"1.3.6.1.4.1.1466.20037"	/* RFC 2830 */
 
-#define LDAP_EXOP_MODIFY_PASSWD	"1.3.6.1.4.1.4203.1.11.1"
+#define LDAP_EXOP_MODIFY_PASSWD	"1.3.6.1.4.1.4203.1.11.1"	/* RFC 3062 */
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_ID	((ber_tag_t) 0x80U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_OLD	((ber_tag_t) 0x81U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
@@ -259,13 +268,17 @@ typedef struct ldapcontrol {
 #define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
 
 /* LDAP Features */
-#define LDAP_FEATURE_ALL_OPERATIONAL_ATTRS "1.3.6.1.4.1.4203.1.5.1"  /* + */
+#define LDAP_FEATURE_ALL_OP_ATTRS	"1.3.6.1.4.1.4203.1.5.1"	/* RFC 3673 */
 #define LDAP_FEATURE_OBJECTCLASS_ATTRS \
 	"1.3.6.1.4.1.4203.1.5.2" /*  @objectClass - new number to be assigned */
 #define LDAP_FEATURE_ABSOLUTE_FILTERS "1.3.6.1.4.1.4203.1.5.3"  /* (&) (|) */
 #define LDAP_FEATURE_LANGUAGE_TAG_OPTIONS "1.3.6.1.4.1.4203.1.5.4"
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"
-#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.5.6"
+
+#define LDAP_FEATURE_SUBORDINATE_SCOPE \
+	"1.3.6.1.4.1.4203.666.8.1" /* "children" */
+#define LDAP_FEATURE_CHILDREN_SCOPE LDAP_FEATURE_SUBORDINATE_SCOPE
+#define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.8.2"
 
 /*
  * specific LDAP instantiations of BER types we know about
@@ -346,24 +359,24 @@ typedef struct ldapcontrol {
 
 
 /* authentication methods available */
-#define LDAP_AUTH_NONE	((ber_tag_t) 0x00U)	/* no authentication		  */
-#define LDAP_AUTH_SIMPLE	((ber_tag_t) 0x80U)	/* context specific + primitive */
-#define LDAP_AUTH_SASL	((ber_tag_t) 0xa3U)	/* context specific + constructed */
-#define LDAP_AUTH_KRBV4	((ber_tag_t) 0xffU)	/* means do both of the following */
-#define LDAP_AUTH_KRBV41	((ber_tag_t) 0x81U)	/* context specific + primitive */
-#define LDAP_AUTH_KRBV42	((ber_tag_t) 0x82U)	/* context specific + primitive */
+#define LDAP_AUTH_NONE   ((ber_tag_t) 0x00U) /* no authentication */
+#define LDAP_AUTH_SIMPLE ((ber_tag_t) 0x80U) /* context specific + primitive */
+#define LDAP_AUTH_SASL   ((ber_tag_t) 0xa3U) /* context specific + constructed */
+#define LDAP_AUTH_KRBV4  ((ber_tag_t) 0xffU) /* means do both of the following */
+#define LDAP_AUTH_KRBV41 ((ber_tag_t) 0x81U) /* context specific + primitive */
+#define LDAP_AUTH_KRBV42 ((ber_tag_t) 0x82U) /* context specific + primitive */
 
 
 /* filter types */
 #define LDAP_FILTER_AND	((ber_tag_t) 0xa0U)	/* context specific + constructed */
 #define LDAP_FILTER_OR	((ber_tag_t) 0xa1U)	/* context specific + constructed */
 #define LDAP_FILTER_NOT	((ber_tag_t) 0xa2U)	/* context specific + constructed */
-#define LDAP_FILTER_EQUALITY	((ber_tag_t) 0xa3U)	/* context specific + constructed */
-#define LDAP_FILTER_SUBSTRINGS	((ber_tag_t) 0xa4U)	/* context specific + constructed */
-#define LDAP_FILTER_GE	((ber_tag_t) 0xa5U)	/* context specific + constructed */
-#define LDAP_FILTER_LE	((ber_tag_t) 0xa6U)	/* context specific + constructed */
-#define LDAP_FILTER_PRESENT	((ber_tag_t) 0x87U)	/* context specific + primitive   */
-#define LDAP_FILTER_APPROX	((ber_tag_t) 0xa8U)	/* context specific + constructed */
+#define LDAP_FILTER_EQUALITY ((ber_tag_t) 0xa3U) /* context specific + constructed */
+#define LDAP_FILTER_SUBSTRINGS ((ber_tag_t) 0xa4U) /* context specific + constructed */
+#define LDAP_FILTER_GE ((ber_tag_t) 0xa5U) /* context specific + constructed */
+#define LDAP_FILTER_LE ((ber_tag_t) 0xa6U) /* context specific + constructed */
+#define LDAP_FILTER_PRESENT ((ber_tag_t) 0x87U) /* context specific + primitive   */
+#define LDAP_FILTER_APPROX ((ber_tag_t) 0xa8U)	/* context specific + constructed */
 #define LDAP_FILTER_EXT	((ber_tag_t) 0xa9U)	/* context specific + constructed */
 
 /* extended filter component types */
@@ -378,10 +391,15 @@ typedef struct ldapcontrol {
 #define LDAP_SUBSTRING_FINAL	((ber_tag_t) 0x82U)	/* context specific */
 
 /* search scopes */
-#define LDAP_SCOPE_DEFAULT	((ber_int_t) -1)
-#define LDAP_SCOPE_BASE		((ber_int_t) 0x0000)
-#define LDAP_SCOPE_ONELEVEL	((ber_int_t) 0x0001)
-#define LDAP_SCOPE_SUBTREE	((ber_int_t) 0x0002)
+#define LDAP_SCOPE_DEFAULT		((ber_int_t) -1)	 /* OpenLDAP extension */
+#define LDAP_SCOPE_BASE			((ber_int_t) 0x0000)
+#define LDAP_SCOPE_BASEOBJECT	LDAP_SCOPE_BASE
+#define LDAP_SCOPE_ONELEVEL		((ber_int_t) 0x0001)
+#define LDAP_SCOPE_ONE			LDAP_SCOPE_ONELEVEL
+#define LDAP_SCOPE_SUBTREE		((ber_int_t) 0x0002)
+#define LDAP_SCOPE_SUB			LDAP_SCOPE_SUBTREE
+#define LDAP_SCOPE_SUBORDINATE	((ber_int_t) 0x0003) /* OpenLDAP extension */
+#define LDAP_SCOPE_CHILDREN		LDAP_SCOPE_SUBORDINATE
 
 /* substring filter component types */
 #define LDAP_SUBSTRING_INITIAL	((ber_tag_t) 0x80U)	/* context specific */
@@ -478,7 +496,7 @@ typedef struct ldapcontrol {
 /* API Error Codes
  *
  * Based on draft-ietf-ldap-c-api-xx
- * but with new (negative) codes
+ * but with new negative code values
  */
 #define LDAP_API_ERROR(n)		((n)<0)
 #define LDAP_API_RESULT(n)		((n)<=0)
@@ -518,7 +536,7 @@ typedef struct ldapmod {
 #define LDAP_MOD_ADD		(0x0000)
 #define LDAP_MOD_DELETE		(0x0001)
 #define LDAP_MOD_REPLACE	(0x0002)
-#define LDAP_MOD_INCREMENT	(0x0003)
+#define LDAP_MOD_INCREMENT	(0x0003) /* OpenLDAP extension */
 #define LDAP_MOD_BVALUES	(0x0080)
 /* IMPORTANT: do not use code 0x1000 (or above),
  * it is used internally by the backends!
@@ -870,24 +888,6 @@ ldap_kerberos_bind2_s LDAP_P((	/* deprecated */
 
 
 /*
- * LDAP Cancel Extended Operation <draft-zeilenga-ldap-cancel-xx.txt>
- */
-
-LDAP_F( int )
-ldap_cancel LDAP_P(( LDAP *ld,
-	int cancelid,
-	LDAPControl		**sctrls,
-	LDAPControl		**cctrls,
-	int				*msgidp ));
-
-LDAP_F( int )
-ldap_cancel_s LDAP_P((
-	LDAP *ld,
-	int cancelid,
-	LDAPControl **sctrl,
-	LDAPControl **cctrl ));
-
-/*
  * in compare.c:
  */
 LDAP_F( int )
@@ -1223,8 +1223,8 @@ typedef struct ldap_ava {
 #define LDAP_AVA_STRING				0x0001U
 #define LDAP_AVA_BINARY				0x0002U
 #define LDAP_AVA_NONPRINTABLE		0x0004U
-#define LDAP_AVA_FREE_ATTR		0x0010U
-#define LDAP_AVA_FREE_VALUE		0x0020U
+#define LDAP_AVA_FREE_ATTR			0x0010U
+#define LDAP_AVA_FREE_VALUE			0x0020U
 
 	void *la_private;
 } LDAPAVA;
@@ -1615,6 +1615,26 @@ ldap_free_urldesc LDAP_P((
 
 
 /*
+ * LDAP Cancel Extended Operation <draft-zeilenga-ldap-cancel-xx.txt>
+ *  in cancel.c
+ */
+#define LDAP_API_FEATURE_CANCEL 1000
+
+LDAP_F( int )
+ldap_cancel LDAP_P(( LDAP *ld,
+	int cancelid,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_cancel_s LDAP_P((
+	LDAP *ld,
+	int cancelid,
+	LDAPControl **sctrl,
+	LDAPControl **cctrl ));
+
+/*
  * LDAP Server Side Sort
  *	in sortctrl.c
  */
@@ -1688,6 +1708,7 @@ ldap_parse_vlv_control LDAP_P((
  * LDAP Who Am I?
  *	in whoami.c
  */
+#define LDAP_API_FEATURE_WHOAMI 1000
 
 LDAP_F( int )
 ldap_parse_whoami LDAP_P((
@@ -1712,6 +1733,7 @@ ldap_whoami_s LDAP_P((
  * LDAP Password Modify
  *	in passwd.c
  */
+#define LDAP_API_FEATURE_PASSWD_MODIFY 1000
 
 LDAP_F( int )
 ldap_parse_passwd LDAP_P((

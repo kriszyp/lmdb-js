@@ -406,12 +406,16 @@ handle_private_option( int i )
 		++ldif;
 		break;
 	case 's':	/* search scope */
-		if ( strcasecmp( optarg, "base" ) == 0 ) {
-		scope = LDAP_SCOPE_BASE;
+		if ( strncasecmp( optarg, "base", sizeof("base"-1) ) == 0 ) {
+			scope = LDAP_SCOPE_BASE;
 		} else if ( strncasecmp( optarg, "one", sizeof("one")-1 ) == 0 ) {
-		scope = LDAP_SCOPE_ONELEVEL;
+			scope = LDAP_SCOPE_ONELEVEL;
+		} else if (( strcasecmp( optarg, "subordinate" ) == 0 )
+			|| ( strcasecmp( optarg, "children" ) == 0 ))
+		{
+			scope = LDAP_SCOPE_SUBORDINATE;
 		} else if ( strncasecmp( optarg, "sub", sizeof("sub")-1 ) == 0 ) {
-		scope = LDAP_SCOPE_SUBTREE;
+			scope = LDAP_SCOPE_SUBTREE;
 		} else {
 		fprintf( stderr, _("scope should be base, one, or sub\n") );
 		usage();
@@ -716,8 +720,11 @@ getNextPage:
 		printf( "#\n" );
 		printf(_("# LDAPv%d\n"), protocol);
 		printf(_("# base <%s> with scope %s\n"),
-			base ? base : "", (scope == LDAP_SCOPE_BASE) ? "base"
-		       : ((scope == LDAP_SCOPE_ONELEVEL) ? "one" : "sub"));
+			base ? base : "",
+			((scope == LDAP_SCOPE_BASE) ? "baseObject"
+				: ((scope == LDAP_SCOPE_ONELEVEL) ? "oneLevel"
+				: ((scope == LDAP_SCOPE_SUBORDINATE) ? "children"
+				: "subtree"))));
 		printf(_("# filter%s: %s\n"), infile != NULL ? _(" pattern") : "",
 		       filtpattern);
 		printf(_("# requesting: "));

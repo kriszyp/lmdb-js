@@ -859,6 +859,7 @@ void slap_sasl2dn( Operation *opx,
 
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
+	case LDAP_SCOPE_SUBORDINATE:
 		/* do a search */
 		break;
 

@@ -234,7 +234,7 @@ static int str2scope( const char *p )
 	if ( strcasecmp( p, "one" ) == 0 ) {
 		return LDAP_SCOPE_ONELEVEL;
 
-	} else if ( strcasecmp( p, "onetree" ) == 0 ) {
+	} else if ( strcasecmp( p, "onelevel" ) == 0 ) {
 		return LDAP_SCOPE_ONELEVEL;
 
 	} else if ( strcasecmp( p, "base" ) == 0 ) {
@@ -245,6 +245,12 @@ static int str2scope( const char *p )
 
 	} else if ( strcasecmp( p, "subtree" ) == 0 ) {
 		return LDAP_SCOPE_SUBTREE;
+
+	} else if ( strcasecmp( p, "subordinate" ) == 0 ) {
+		return LDAP_SCOPE_SUBORDINATE;
+
+	} else if ( strcasecmp( p, "children" ) == 0 ) {
+		return LDAP_SCOPE_SUBORDINATE;
 	}
 
 	return( -1 );
@@ -341,10 +347,11 @@ char * ldap_url_desc2str( LDAPURLDesc *u )
 	if ( len ) len++; /* ? */
 
 	switch( u->lud_scope ) {
+		case LDAP_SCOPE_BASE:
 		case LDAP_SCOPE_ONELEVEL:
 		case LDAP_SCOPE_SUBTREE:
-		case LDAP_SCOPE_BASE:
-			len += sizeof("base");
+		case LDAP_SCOPE_SUBORDINATE:
+			len += sizeof("subordinate");
 			if( !sep ) sep = 3;
 			break;
 
@@ -412,6 +419,10 @@ char * ldap_url_desc2str( LDAPURLDesc *u )
 	case LDAP_SCOPE_SUBTREE:
 		strcpy( &s[sofar], "sub" );
 		sofar += sizeof("sub") - 1;
+		break;
+	case LDAP_SCOPE_SUBORDINATE:
+		strcpy( &s[sofar], "children" );
+		sofar += sizeof("children") - 1;
 		break;
 	}
 

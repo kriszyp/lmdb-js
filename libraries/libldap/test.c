@@ -587,7 +587,7 @@ main( int argc, char **argv )
 			get_line( dn, sizeof(dn), stdin, "searchbase? " );
 			strcat( dn, dnsuffix );
 			get_line( line, sizeof(line), stdin,
-			    "scope (0=Base, 1=One Level, 2=Subtree)? " );
+			    "scope (0=baseObject, 1=oneLevel, 2=subtree, 3=children)? " );
 			scope = atoi( line );
 			get_line( filter, sizeof(filter), stdin,
 			    "search filter (e.g. sn=jones)? " );
@@ -636,9 +636,12 @@ main( int argc, char **argv )
 				    printf( " <%s>", ludp->lud_attrs[ i ] );
 				}
 			    }
-			    printf( "\n\t scope: %s\n", ludp->lud_scope == LDAP_SCOPE_ONELEVEL ?
-				"ONE" : ludp->lud_scope == LDAP_SCOPE_BASE ? "BASE" :
-				ludp->lud_scope == LDAP_SCOPE_SUBTREE ? "SUB" : "**invalid**" );
+			    printf( "\n\t scope: %s\n",
+					ludp->lud_scope == LDAP_SCOPE_BASE ? "baseObject"
+					: ludp->lud_scope == LDAP_SCOPE_ONELEVEL ? "oneLevel"
+					: ludp->lud_scope == LDAP_SCOPE_SUBTREE ? "subtree"
+					: ludp->lud_scope == LDAP_SCOPE_SUBORDINATE ? "children"
+					: "**invalid**" );
 			    printf( "\tfilter: <%s>\n", ludp->lud_filter );
 			    ldap_free_urldesc( ludp );
 			}

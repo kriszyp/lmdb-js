@@ -36,8 +36,11 @@
  *
  *	ld		LDAP descriptor
  *	base		DN of the base object
- *	scope		the search scope - one of LDAP_SCOPE_BASE,
- *			    LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE
+ *	scope		the search scope - one of
+ *				LDAP_SCOPE_BASE (baseObject),
+ *			    LDAP_SCOPE_ONELEVEL (oneLevel),
+ *				LDAP_SCOPE_SUBTREE (subtree), or
+ *				LDAP_SCOPE_SUBORDINATE (children) -- OpenLDAP extension
  *	filter		a string containing the search filter
  *			(e.g., "(|(cn=bob)(sn=bob))")
  *	attrs		list of attribute types to return for matches
@@ -160,8 +163,11 @@ ldap_search_ext_s(
  *
  *	ld		LDAP descriptor
  *	base		DN of the base object
- *	scope		the search scope - one of LDAP_SCOPE_BASE,
- *			    LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE
+ *	scope		the search scope - one of
+ *				LDAP_SCOPE_BASE (baseObject),
+ *			    LDAP_SCOPE_ONELEVEL (oneLevel),
+ *				LDAP_SCOPE_SUBTREE (subtree), or
+ *				LDAP_SCOPE_SUBORDINATE (children) -- OpenLDAP extension
  *	filter		a string containing the search filter
  *			(e.g., "(|(cn=bob)(sn=bob))")
  *	attrs		list of attribute types to return for matches

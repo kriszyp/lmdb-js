@@ -1215,12 +1215,24 @@ re_encode_request( LDAP *ld,
 			/* use the scope provided in reference */
 			scope = srv->lud_scope;
 
-		} else if ( sref && scope != LDAP_SCOPE_SUBTREE ) {
-			/* use scope implied by previous operation */
-			/*   base -> base */
-			/*   one -> base */
-			/*   subtree -> subtree */
-			scope = LDAP_SCOPE_BASE;
+		} else if ( sref ) {
+			/* use scope implied by previous operation
+			 *   base -> base
+			 *   one -> base
+			 *   subtree -> subtree
+			 *   subordinate -> subtree
+			 */
+			switch( scope ) {
+			default:
+			case LDAP_SCOPE_BASE:
+			case LDAP_SCOPE_ONELEVEL:
+				scope = LDAP_SCOPE_BASE;
+				break;
+			case LDAP_SCOPE_SUBTREE:
+			case LDAP_SCOPE_SUBORDINATE:
+				scope = LDAP_SCOPE_SUBTREE;
+				break;
+			}
 		}
 
 	} else {

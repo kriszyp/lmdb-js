@@ -871,9 +871,10 @@ typedef struct slap_mr_assertion {
  */
 typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
-#define SLAPD_FILTER_COMPUTED	((ber_tag_t) -1)
-#define SLAPD_FILTER_DN_ONE		((ber_tag_t) -2)
-#define SLAPD_FILTER_DN_SUBTREE	((ber_tag_t) -3)
+#define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
+#define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
+#define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
+#define SLAPD_FILTER_DN_CHILDREN	((ber_tag_t) -4)
 
 	union f_un_u {
 		/* precomputed result */
@@ -1281,15 +1282,15 @@ struct slap_limits_set {
 struct slap_limits {
 	int     lm_type;	/* type of pattern */
 #define SLAP_LIMITS_UNDEFINED	0x0000
-#define SLAP_LIMITS_EXACT	0x0001
-#define SLAP_LIMITS_BASE	SLAP_LIMITS_EXACT
-#define SLAP_LIMITS_ONE		0x0002
-#define SLAP_LIMITS_SUBTREE	0x0003
+#define SLAP_LIMITS_EXACT		0x0001
+#define SLAP_LIMITS_BASE		SLAP_LIMITS_EXACT
+#define SLAP_LIMITS_ONE			0x0002
+#define SLAP_LIMITS_SUBTREE		0x0003
 #define SLAP_LIMITS_CHILDREN	0x0004
-#define SLAP_LIMITS_REGEX	0x0005
+#define SLAP_LIMITS_REGEX		0x0005
 #define SLAP_LIMITS_ANONYMOUS	0x0006
-#define SLAP_LIMITS_USERS	0x0007
-#define SLAP_LIMITS_ANY		0x0008
+#define SLAP_LIMITS_USERS		0x0007
+#define SLAP_LIMITS_ANY			0x0008
 	regex_t	lm_dn_regex;		/* regex data for REGEX */
 
 	/*

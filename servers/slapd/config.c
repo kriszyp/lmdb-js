@@ -3079,6 +3079,10 @@ parse_syncrepl_line(
 				si->si_scope = LDAP_SCOPE_BASE;
 			} else if ( !strncasecmp( val, "one", sizeof( "one" ) - 1 )) {
 				si->si_scope = LDAP_SCOPE_ONELEVEL;
+			} else if ( !strcasecmp( val, "subordinate" ) ||
+				!strcasecmp( val, "children" ))
+			{
+				si->si_scope = LDAP_SCOPE_SUBORDINATE;
 			} else if ( !strncasecmp( val, "sub", sizeof( "sub" ) - 1 )) {
 				si->si_scope = LDAP_SCOPE_SUBTREE;
 			} else {

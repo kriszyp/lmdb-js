@@ -70,7 +70,8 @@ do_search(
 	 *		scope		ENUMERATED {
 	 *			baseObject	(0),
 	 *			singleLevel	(1),
-	 *			wholeSubtree	(2)
+	 *			wholeSubtree (2),
+	 *          subordinate (3)  -- OpenLDAP extension
 	 *		},
 	 *		derefAliases	ENUMERATED {
 	 *			neverDerefaliases	(0),
@@ -100,6 +101,7 @@ do_search(
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
+	case LDAP_SCOPE_SUBORDINATE:
 		break;
 	default:
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "invalid scope" );
@@ -355,7 +357,8 @@ do_search(
 		be_manageDSAit = manageDSAit;
 	}
 
-	if ( (op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 )) == NULL ) {
+	op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 );
+	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, op->ors_scope );
 

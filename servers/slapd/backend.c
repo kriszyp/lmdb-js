@@ -1233,15 +1233,21 @@ backend_group(
 							goto loopit;
 						switch(ludp->lud_scope) {
 						case LDAP_SCOPE_BASE:
-							if ( !dn_match(&nbase, op_ndn)) goto loopit;
+							if ( !dn_match( &nbase, op_ndn )) goto loopit;
 							break;
 						case LDAP_SCOPE_ONELEVEL:
 							dnParent(op_ndn, &bv );
-							if ( !dn_match(&nbase, &bv)) goto loopit;
+							if ( !dn_match( &nbase, &bv )) goto loopit;
 							break;
 						case LDAP_SCOPE_SUBTREE:
-							if ( !dnIsSuffix(op_ndn, &nbase)) goto loopit;
+							if ( !dnIsSuffix( op_ndn, &nbase )) goto loopit;
 							break;
+						case LDAP_SCOPE_SUBORDINATE:
+							if ( dn_match( &nbase, op_ndn ) &&
+								!dnIsSuffix(op_ndn, &nbase ))
+							{
+								goto loopit;
+							}
 						}
 						filter = str2filter_x( op, ludp->lud_filter );
 						if ( filter ) {
