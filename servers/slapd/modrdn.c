@@ -82,22 +82,20 @@ do_modrdn(
 		return -1;
 	}
 
-	if( dn_normalize( dn ) == NULL ) {
+	ndn = ch_strdup( dn );
+
+	if( dn_normalize_case( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( dn );
-		free( newrdn );
-		return rc;
+		goto cleanup;
 	}
 
 	if( !rdn_validate( newrdn ) ) {
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid RDN", NULL, NULL );
-		free( dn );
-		free( newrdn );
-		return rc;
+		goto cleanup;
 	}
 
 	/* Check for newSuperior parameter, if present scan it */
@@ -112,21 +110,19 @@ do_modrdn(
 			       0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
-			free( dn );
-			free( newrdn );
-			return -1;
+			rc = -1;
+			goto cleanup;
 		}
 
 		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
 		     == LBER_ERROR ) {
 
-		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
+			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
 			   0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
-			free( dn );
-			free( newrdn );
-		    return -1;
+			rc = -1;
+			goto cleanup;
 		}
 
 		nnewSuperior = ch_strdup( newSuperior );
@@ -136,7 +132,7 @@ do_modrdn(
 				newSuperior, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 				"invalid (new superior) DN", NULL, NULL );
-			goto done;
+			goto cleanup;
 		}
 
 	}
@@ -147,20 +143,17 @@ do_modrdn(
 		newSuperior != NULL ? newSuperior : "" );
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
-		free( dn );
-		free( newrdn );	
-		free( newSuperior );
-		free( nnewSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		rc = -1;
+		goto cleanup;
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
 		/* get_ctrls has sent results.  Now clean up. */
-		goto done;
+		goto cleanup;
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
@@ -172,18 +165,10 @@ do_modrdn(
 	 * if we don't hold it.
 	 */
 
-	ndn = ch_strdup( dn );
-	ldap_pvt_str2upper( ndn );
-
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( dn );
-		free( ndn );
-		free( newrdn );	
-		free( newSuperior );
-		free( nnewSuperior );
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		return rc;
+		goto cleanup;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
@@ -191,7 +176,7 @@ do_modrdn(
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 		                  NULL, "database is read-only", NULL, NULL );
-		goto done;
+		goto cleanup;
 	}
 
 	/* Make sure that the entry being changed and the newSuperior are in 
@@ -207,13 +192,7 @@ do_modrdn(
 			send_ldap_result( conn, op, rc,
 				NULL, NULL, NULL, NULL );
 
-			free( dn );
-			free( ndn );
-			free( newrdn );
-			free( newSuperior );
-			free( nnewSuperior );
-
-			return rc;
+			goto cleanup;
 		}
 
 		/* deref suffix alias if appropriate */
@@ -261,11 +240,13 @@ do_modrdn(
 			NULL, "Function not implemented", NULL, NULL );
 	}
 
-done:
+cleanup:
 	free( dn );
 	free( ndn );
 	free( newrdn );	
-	free( newSuperior );
-	free( nnewSuperior );
+	if ( newSuperior != NULL )
+		free( newSuperior );
+	if ( nnewSuperior != NULL )
+		free( nnewSuperior );
 	return rc;
 }

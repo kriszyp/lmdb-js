@@ -105,7 +105,9 @@ do_search(
 		goto return_results;
 	}
 
-	if( dn_normalize( base ) == NULL ) {
+	nbase = ch_strdup( base );
+
+	if( dn_normalize_case( nbase ) == NULL ) {
 		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
 			NULL, "invalid DN", NULL, NULL );
 		rc = -1;
@@ -160,9 +162,6 @@ do_search(
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    op->o_connid, op->o_opid, base, scope, fstr );
-
-	nbase = ch_strdup( base );
-	ldap_pvt_str2upper( nbase );
 
 	if ( scope == LDAP_SCOPE_BASE ) {
 #if defined( SLAPD_MONITOR_DN )

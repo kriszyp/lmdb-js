@@ -109,15 +109,14 @@ do_bind(
 		goto cleanup;
 	}
 
-	if ( dn_normalize( dn ) == NULL ) {
+	ndn = ch_strdup( dn );
+
+	if ( dn_normalize_case( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
 		goto cleanup;
 	}
-
-	ndn = ch_strdup( dn );
-	ldap_pvt_str2upper( ndn );
 
 	op->o_protocol = version;
 

@@ -29,7 +29,7 @@ do_compare(
     Operation	*op
 )
 {
-	char	*dn, *ndn;
+	char	*dn = NULL, *ndn=NULL;
 	Ava	ava;
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
@@ -64,20 +64,19 @@ do_compare(
 		return -1;
 	}
 
-	if( dn_normalize( dn ) == NULL ) {
+	ndn = ch_strdup( dn );
+
+
+	if( dn_normalize_case( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( dn );
-		ava_free( &ava, 0 );
-		return rc;
+		goto cleanup;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( dn );
-		ava_free( &ava, 0 );
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		goto cleanup;
 	} 
 
 	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
@@ -88,22 +87,16 @@ do_compare(
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, ava.ava_type, 0 );
 
-	ndn = ch_strdup( dn );
-	ldap_pvt_str2upper( ndn );
-
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( dn );
-		free( ndn );
-		ava_free( &ava, 0 );
-
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		return 1;
+		rc = 1;
+		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
@@ -115,7 +108,7 @@ do_compare(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "Function not implemented", NULL, NULL );
 	}
-
+cleanup:
 	free( dn );
 	free( ndn );
 	ava_free( &ava, 0 );

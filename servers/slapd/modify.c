@@ -39,8 +39,8 @@ do_modify(
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
-	LDAPModList	*modlist;
-	LDAPModList	**modtail;
+	LDAPModList	*modlist = NULL;
+	LDAPModList	**modtail = &modlist;
 #ifdef LDAP_DEBUG
 	LDAPModList *tmp;
 #endif
@@ -85,17 +85,16 @@ do_modify(
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
 
-	if(	dn_normalize( dn ) == NULL ) {
+	ndn = ch_strdup( ndn );
+
+	if(	dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( dn );
-		return rc;
+		goto cleanup;
 	}
 
 	/* collect modifications & save for later */
-	modlist = NULL;
-	modtail = &modlist;
 
 	for ( tag = ber_first_element( op->o_ber, &len, &last );
 	    tag != LBER_DEFAULT;
@@ -111,11 +110,8 @@ do_modify(
 		{
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding modlist error" );
-			free( dn );
-			free( *modtail );
-			*modtail = NULL;
-			modlist_free( modlist );
-			return -1;
+			rc = -1;
+			goto cleanup;
 		}
 
 		(*modtail)->ml_op = mop;
@@ -129,9 +125,8 @@ do_modify(
 				(long) (*modtail)->ml_op, 0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "unrecognized modify operation", NULL, NULL );
-			free( dn );
-			modlist_free( modlist );
-			return LDAP_PROTOCOL_ERROR;
+			rc = LDAP_PROTOCOL_ERROR;
+			goto cleanup;
 		}
 
 		if ( (*modtail)->ml_bvalues == NULL && (
@@ -144,9 +139,8 @@ do_modify(
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "unrecognized modify operation without values",
 				NULL, NULL );
-			free( dn );
-			modlist_free( modlist );
-			return LDAP_PROTOCOL_ERROR;
+			rc = LDAP_PROTOCOL_ERROR;
+			goto cleanup;
 		}
 		attr_normalize( (*modtail)->ml_type );
 
@@ -165,17 +159,12 @@ do_modify(
 #endif
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( dn );
-		modlist_free( modlist );
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		goto cleanup;
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, 0, 0 );
-
-	ndn = ch_strdup( ndn );
-	ldap_pvt_str2upper( ndn );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -183,12 +172,9 @@ do_modify(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( dn );
-		free( ndn );
-		modlist_free( modlist );
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		return rc;
+		goto cleanup;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
@@ -196,7 +182,7 @@ do_modify(
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 		                  NULL, "database is read-only", NULL, NULL );
-		goto done;
+		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
@@ -224,13 +210,10 @@ do_modify(
 				rc = add_modified_attrs( op, &modlist );
 
 				if( rc != LDAP_SUCCESS ) {
-					free( dn );
-					free( ndn );
-					modlist_free( modlist );
 					send_ldap_result( conn, op, rc,
 						NULL, "no-user-modification attribute type",
 						NULL, NULL );
-					return rc;
+					goto cleanup;
 				}
 			}
 
@@ -257,10 +240,13 @@ do_modify(
 		    NULL, "Function not implemented", NULL, NULL );
 	}
 
-done:
+cleanup:
 	free( dn );
 	free( ndn );
-	modlist_free( modlist );
+	if ( modtail != NULL && *modtail != NULL )
+		free( *modtail );
+	if ( modlist != NULL )
+		modlist_free( modlist );
 	return rc;
 }
 

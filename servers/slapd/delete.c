@@ -57,25 +57,22 @@ do_delete(
 		return -1;
 	}
 
-	if(	dn_normalize( dn ) == NULL ) {
+	ndn = ch_strdup( dn );
+
+	if(	dn_normalize_case( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
-		free( dn );
-		return rc;
+		goto cleanup;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
-		free( dn );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		goto cleanup;
 	} 
 
 	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", dn, 0, 0 );
 	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", dn, 0, 0 );
-
-	ndn = ch_strdup( dn );
-	ldap_pvt_str2upper( ndn );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -85,19 +82,16 @@ do_delete(
 	if ( (be = select_backend( ndn )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		free( dn );
-		free( ndn );
-		return rc;
+		goto cleanup;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_delete: database is read-only\n",
 		       0, 0, 0 );
-		free( dn );
-		free( ndn );
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 		                  NULL, "database is read-only", NULL, NULL );
-		return LDAP_UNWILLING_TO_PERFORM;
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
@@ -136,8 +130,8 @@ do_delete(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "Function not implemented", NULL, NULL );
 	}
-
-	free( dn );
+cleanup:
 	free( ndn );
+	free( dn );
 	return rc;
 }
