@@ -48,6 +48,33 @@ extern BI_connection_destroy	ldap_back_conn_destroy;
 
 extern BI_entry_get_rw		ldap_back_entry_get;
 
+int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
+struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
+int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
+int ldap_back_retry(struct ldapconn *lc, Operation *op, SlapReply *rs);
+int ldap_back_map_result(SlapReply *rs);
+int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
+	ber_int_t msgid, int sendok);
+int	back_ldap_LTX_init_module(int argc, char *argv[]);
+
+extern int ldap_back_conn_cmp( const void *c1, const void *c2);
+extern int ldap_back_conn_dup( void *c1, void *c2 );
+extern void ldap_back_conn_free( void *c );
+
+extern int
+ldap_back_proxy_authz_ctrl(
+		struct ldapconn	*lc,
+		Operation	*op,
+		SlapReply	*rs,
+		LDAPControl	***pctrls );
+
+extern int
+ldap_back_proxy_authz_ctrl_free(
+		Operation	*op,
+		LDAPControl	***pctrls );
+
+extern int chain_init( void );
+
 LDAP_END_DECL
 
 #endif /* PROTO_LDAP_H */

@@ -105,13 +105,11 @@ ldap_back_search(
 	}
 
 	ctrls = op->o_ctrls;
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		dontfreetext = 1;
 		goto finish;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 	
 retry:
 	rs->sr_err = ldap_search_ext( lc->lc_ld, op->o_req_ndn.bv_val,
@@ -274,9 +272,7 @@ fail:;
 finish:;
 	send_ldap_result( op, rs );
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	if ( rs->sr_ctrls ) {
 		ldap_controls_free( rs->sr_ctrls );
@@ -547,12 +543,10 @@ ldap_back_entry_get(
 	}
 
 	ctrls = op->o_ctrls;
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, &rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 	
 retry:
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
@@ -583,9 +577,7 @@ retry:
 	}
 
 cleanup:
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	if ( result ) {
 		ldap_msgfree( result );

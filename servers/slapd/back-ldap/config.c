@@ -235,12 +235,14 @@ ldap_back_db_config(
 		}
 		ber_str2bv( argv[1], 0, 1, &li->acl_passwd );
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	/* identity assertion stuff... */
 	} else if ( strncasecmp( argv[0], "idassert-", STRLENOF( "idassert-" ) ) == 0
-			|| strncasecmp( argv[0], "proxyauthz", STRLENOF( "proxyauthz" ) ) == 0 ) {
+			|| strncasecmp( argv[0], "proxyauthz", STRLENOF( "proxyauthz" ) ) == 0 )
+	{
+		/* NOTE: "proxyauthz{DN,pw}" was initially used; it's now
+		 * deprected and undocumented, it can be dropped at some
+		 * point, since nobody should be really using it */
 		return parse_idassert( be, fname, lineno, argc, argv );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	/* save bind creds for referral rebinds? */
 	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
@@ -393,7 +395,6 @@ retry:
 }
 
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 static int
 parse_idassert(
     BackendDB	*be,
@@ -557,7 +558,7 @@ parse_idassert(
 		}
 
 		if ( strcasecmp( argv[1], "none" ) == 0 ) {
-			/* FIXME: is this useful? */
+			/* FIXME: is this at all useful? */
 			li->idassert_authmethod = LDAP_AUTH_NONE;
 
 			if ( argc != 2 ) {
@@ -697,4 +698,3 @@ parse_idassert(
 
 	return 0;
 }
-#endif /* LDAP_BACK_PROXY_AUTHZ */

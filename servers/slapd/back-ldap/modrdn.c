@@ -56,14 +56,12 @@ ldap_back_modrdn(
 	}
 
 	ctrls = op->o_ctrls;
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		rc = -1;
 		goto cleanup;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
 	rs->sr_err = ldap_rename( lc->lc_ld, op->o_req_ndn.bv_val,
@@ -78,9 +76,7 @@ retry:
 	}
 
 cleanup:
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	return rc;
 }

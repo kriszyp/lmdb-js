@@ -24,12 +24,6 @@
 #ifndef SLAPD_LDAP_H
 #define SLAPD_LDAP_H
 
-#include "proto-ldap.h"
-
-#ifdef LDAP_DEVEL
-#define LDAP_BACK_PROXY_AUTHZ
-#endif
-
 LDAP_BEGIN_DECL
 
 struct slap_conn;
@@ -71,7 +65,6 @@ struct ldapinfo {
 #define	acl_authcDN	acl_la.la_authcDN
 #define	acl_passwd	acl_la.la_passwd
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	/* ID assert stuff */
 	int		idassert_mode;
 #define	LDAP_BACK_IDASSERT_LEGACY	0
@@ -95,7 +88,6 @@ struct ldapinfo {
 	
 	int		idassert_ppolicy;
 	/* end of ID assert stuff */
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	int		savecred;
@@ -104,33 +96,8 @@ struct ldapinfo {
 	int		rwm_started;
 };
 
-int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
-struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs);
-int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs);
-int ldap_back_retry(struct ldapconn *lc, Operation *op, SlapReply *rs);
-int ldap_back_map_result(SlapReply *rs);
-int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
-	ber_int_t msgid, int sendok);
-int	back_ldap_LTX_init_module(int argc, char *argv[]);
-
-extern int ldap_back_conn_cmp( const void *c1, const void *c2);
-extern int ldap_back_conn_dup( void *c1, void *c2 );
-extern void ldap_back_conn_free( void *c );
-
-#ifdef LDAP_BACK_PROXY_AUTHZ
-extern int
-ldap_back_proxy_authz_ctrl(
-		struct ldapconn	*lc,
-		Operation	*op,
-		SlapReply	*rs,
-		LDAPControl	***pctrls );
-
-extern int
-ldap_back_proxy_authz_ctrl_free(
-		Operation	*op,
-		LDAPControl	***pctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
-
 LDAP_END_DECL
+
+#include "proto-ldap.h"
 
 #endif /* SLAPD_LDAP_H */

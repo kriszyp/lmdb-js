@@ -49,7 +49,6 @@ ldap_back_delete(
 		goto cleanup;
 	}
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
@@ -57,7 +56,6 @@ ldap_back_delete(
 		rc = -1;
 		goto cleanup;
 	}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
 	rs->sr_err = ldap_delete_ext( lc->lc_ld, op->o_req_ndn.bv_val,
@@ -65,13 +63,13 @@ retry:
 	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry (lc, op, rs )) goto retry;
+		if ( ldap_back_retry (lc, op, rs ) ) {
+			goto retry;
+		}
 	}
 
 cleanup:
-#ifdef LDAP_BACK_PROXY_AUTHZ
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 	return rc;
 }

@@ -38,10 +38,8 @@
 
 static LDAP_REBIND_PROC	ldap_back_rebind;
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 static int
 ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs );
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 int
 ldap_back_bind( Operation *op, SlapReply *rs )
@@ -70,7 +68,11 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 
 	if ( rc == LDAP_SUCCESS ) {
-#if defined(LDAP_BACK_PROXY_AUTHZ)
+		/* If defined, proxyAuthz will be used also when
+		 * back-ldap is the authorizing backend; for this
+		 * purpose, a successful bind is followed by a
+		 * bind with the configured identity assertion */
+		/* NOTE: use with care */
 		if ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
 			ldap_back_proxy_authz_bind( lc, op, rs );
 			if ( lc->lc_bound == 0 ) {
@@ -78,7 +80,6 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 				goto done;
 			}
 		}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 		lc->lc_bound = 1;
 		ber_dupbv( &lc->lc_bound_ndn, &op->o_req_ndn );
@@ -348,7 +349,6 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( !lc->lc_bound ) {
-#ifdef LDAP_BACK_PROXY_AUTHZ
 		/*
 		 * FIXME: we need to let clients use proxyAuthz
 		 * otherwise we cannot do symmetric pools of servers;
@@ -363,16 +363,15 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 */
 		/*
 		 * if no bind took place yet, but the connection is bound
-		 * and the "proxyauthzdn" is set, then bind as 
-		 * "proxyauthzdn" and explicitly add the proxyAuthz 
-		 * control to every operation with the dn bound 
-		 * to the connection as control value.
+		 * and the "idassert-authcDN" (or other ID) is set, 
+		 * then bind as the asserting ideintity and explicitly 
+		 * add the proxyAuthz control to every operation with the
+		 * dn bound to the connection as control value.
 		 */
 		if ( op->o_conn != NULL && BER_BVISNULL( &lc->lc_bound_ndn ) ) {
 			(void)ldap_back_proxy_authz_bind( lc, op, rs );
 			goto done;
 		}
-#endif /* LDAP_BACK_PROXY_AUTHZ */
 
 		rs->sr_err = ldap_sasl_bind( lc->lc_ld,
 				lc->lc_bound_ndn.bv_val,
@@ -527,7 +526,6 @@ ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs )
 	return ldap_back_dobind( lc, op, rs );
 }
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 static int
 ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 {
@@ -927,6 +925,9 @@ ldap_back_proxy_authz_ctrl_free( Operation *op, LDAPControl ***pctrls )
 {
 	LDAPControl	**ctrls = *pctrls;
 
+	/* we assume that the first control is the proxyAuthz
+	 * added by back-ldap, so it's the only one we explicitly 
+	 * free */
 	if ( ctrls && ctrls != op->o_ctrls ) {
 		assert( ctrls[ 0 ] );
 
@@ -942,4 +943,3 @@ ldap_back_proxy_authz_ctrl_free( Operation *op, LDAPControl ***pctrls )
 
 	return 0;
 }
-#endif /* LDAP_BACK_PROXY_AUTHZ */
