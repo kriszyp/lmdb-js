@@ -7,171 +7,151 @@
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
- *  getvalues.c
+ *  getattr.c
  */
 
 #include "portable.h"
 
 #include <stdio.h>
-
 #include <ac/stdlib.h>
 
-#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
 
 #include "ldap-int.h"
 
-char **
-ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
+char *
+ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 {
-	BerElement	ber;
-	char		*attr;
-	int		found = 0;
-	char		**vals;
+	int rc;
+	ber_tag_t tag;
+	ber_len_t len = 0;
+	char *attr;
+	BerElement *ber;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_first_attribute\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
+#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( entry != NULL );
-	assert( target != NULL );
+	assert( berout != NULL );
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_values\n", 0, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "ldap_get_values\n", 0, 0, 0 );
-#endif
+	*berout = NULL;
 
-	ber = *entry->lm_ber;
-
-	/* skip sequence, dn, sequence of, and snag the first attr */
-	if ( ber_scanf( &ber, "{x{{a" /*}}}*/, &attr ) == LBER_ERROR ) {
-		ld->ld_errno = LDAP_DECODING_ERROR;
-		return( NULL );
+	ber = ldap_alloc_ber_with_options( ld );
+	if( ber == NULL ) {
+		return NULL;
 	}
 
-	if ( strcasecmp( target, attr ) == 0 )
-		found = 1;
-
-	/* break out on success, return out on error */
-	while ( ! found ) {
-		LDAP_FREE(attr);
-		attr = NULL;
-
-		if ( ber_scanf( &ber, /*{*/ "x}{a" /*}*/, &attr ) == LBER_ERROR ) {
-			ld->ld_errno = LDAP_DECODING_ERROR;
-			return( NULL );
-		}
-
-		if ( strcasecmp( target, attr ) == 0 )
-			break;
-
-	}
-
-	LDAP_FREE(attr);
-	attr = NULL;
+	*ber = *entry->lm_ber;
 
 	/* 
-	 * if we get this far, we've found the attribute and are sitting
-	 * just before the set of values.
+	 * Skip past the sequence, dn, sequence of sequence leaving
+	 * us at the first attribute.
 	 */
 
-	if ( ber_scanf( &ber, "[v]", &vals ) == LBER_ERROR ) {
+	tag = ber_scanf( ber, "{xl{" /*}}*/, &len );
+	if( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		return( NULL );
+		ber_free( ber, 0 );
+		return NULL;
 	}
 
-	return( vals );
+	/* set the length to avoid overrun */
+	rc = ber_set_option( ber, LBER_OPT_REMAINING_BYTES, &len );
+	if( rc != LBER_OPT_SUCCESS ) {
+		ld->ld_errno = LDAP_LOCAL_ERROR;
+		ber_free( ber, 0 );
+		return NULL;
+	}
+
+	if ( ber_pvt_ber_remaining( ber ) == 0 ) {
+		assert( len == 0 );
+		ber_free( ber, 0 );
+		return NULL;
+	}
+	assert( len != 0 );
+
+	/* snatch the first attribute */
+	tag = ber_scanf( ber, "{ax}", &attr );
+	if( tag == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free( ber, 0 );
+		return NULL;
+	}
+
+	*berout = ber;
+	return attr;
 }
 
-struct berval **
-ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
+/* ARGSUSED */
+char *
+ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 {
-	BerElement	ber;
-	char		*attr;
-	int		found = 0;
-	struct berval	**vals;
+	ber_tag_t tag;
+	char *attr;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_next_attribute\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
+#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( entry != NULL );
-	assert( target != NULL );
+	assert( ber != NULL );
+
+	if ( ber_pvt_ber_remaining( ber ) == 0 ) {
+		return NULL;
+	}
+
+	/* skip sequence, snarf attribute type, skip values */
+	tag = ber_scanf( ber, "{ax}", &attr ); 
+	if( tag == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		return NULL;
+	}
+
+	return attr;
+}
+
+/* Fetch attribute type and optionally fetch values */
+/* ARGSUSED */
+int
+ldap_get_attribute_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber,
+	BerValue *attr, BerVarray *vals )
+{
+	ber_tag_t tag;
+	int rc = LDAP_SUCCESS;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_values_len\n", 0, 0, 0 );
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_attribute_ber\n", 0, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "ldap_get_values_len\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_get_attribute_ber\n", 0, 0, 0 );
 #endif
 
-	ber = *entry->lm_ber;
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( entry != NULL );
+	assert( ber != NULL );
+	assert( attr != NULL );
 
-	/* skip sequence, dn, sequence of, and snag the first attr */
-	if ( ber_scanf( &ber, "{x{{a" /* }}} */, &attr ) == LBER_ERROR ) {
-		ld->ld_errno = LDAP_DECODING_ERROR;
-		return( NULL );
-	}
+	attr->bv_val = NULL;
+	attr->bv_len = 0;
 
-	if ( strcasecmp( target, attr ) == 0 )
-		found = 1;
-
-	/* break out on success, return out on error */
-	while ( ! found ) {
-		LDAP_FREE( attr );
-		attr = NULL;
-
-		if ( ber_scanf( &ber, /*{*/ "x}{a" /*}*/, &attr ) == LBER_ERROR ) {
-			ld->ld_errno = LDAP_DECODING_ERROR;
-			return( NULL );
+	if ( ber_pvt_ber_remaining( ber ) ) {
+		/* skip sequence, snarf attribute type */
+		tag = ber_scanf( ber, vals ? "{mW}" : "{mx}", attr, vals ); 
+		if( tag == LBER_ERROR ) {
+			rc = ld->ld_errno = LDAP_DECODING_ERROR;
 		}
-
-		if ( strcasecmp( target, attr ) == 0 )
-			break;
 	}
 
-	LDAP_FREE( attr );
-	attr = NULL;
-
-	/* 
-	 * if we get this far, we've found the attribute and are sitting
-	 * just before the set of values.
-	 */
-
-	if ( ber_scanf( &ber, "[V]", &vals ) == LBER_ERROR ) {
-		ld->ld_errno = LDAP_DECODING_ERROR;
-		return( NULL );
-	}
-
-	return( vals );
-}
-
-int
-ldap_count_values( char **vals )
-{
-	int	i;
-
-	if ( vals == NULL )
-		return( 0 );
-
-	for ( i = 0; vals[i] != NULL; i++ )
-		;	/* NULL */
-
-	return( i );
-}
-
-int
-ldap_count_values_len( struct berval **vals )
-{
-	return( ldap_count_values( (char **) vals ) );
-}
-
-void
-ldap_value_free( char **vals )
-{
-	LDAP_VFREE( vals );
-}
-
-void
-ldap_value_free_len( struct berval **vals )
-{
-	ber_bvecfree( vals );
+	return rc;
 }
