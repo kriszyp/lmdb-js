@@ -149,13 +149,6 @@ static int indexer(
 
 	assert( mask );
 
-	rc = slap_str2ad( atname, &ad, &text );
-
-	if( rc != LDAP_SUCCESS ) return rc;
-
-	prefix.bv_val = atname;
-	prefix.bv_len = strlen( atname );
-
 	rc = bdb_db_cache( be, dbname, &db );
 	
 	if ( rc != LDAP_SUCCESS ) {
@@ -167,13 +160,20 @@ static int indexer(
 			"<= bdb_index_read NULL (could not open %s)\n",
 			dbname, 0, 0 );
 #endif
-
-		ad_free( ad, 1 );
 		return LDAP_OTHER;
 	}
 
+	rc = slap_str2ad( atname, &ad, &text );
+	if( rc != LDAP_SUCCESS ) return rc;
+
+	prefix.bv_val = atname;
+	prefix.bv_len = strlen( atname );
+
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
 		rc = bdb_key_change( be, db, txn, &prefix, id, op );
+		if( rc ) {
+			goto done;
+		}
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
@@ -187,9 +187,14 @@ static int indexer(
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
 				rc = bdb_key_change( be, db, txn, keys[i], id, op );
+				if( rc ) {
+					ber_bvecfree( keys );
+					goto done;
+				}
 			}
 			ber_bvecfree( keys );
 		}
+		rc = LDAP_SUCCESS;
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) ) {
@@ -203,9 +208,15 @@ static int indexer(
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
 				rc = bdb_key_change( be, db, txn, keys[i], id, op );
+				if( rc ) {
+					ber_bvecfree( keys );
+					goto done;
+				}
 			}
 			ber_bvecfree( keys );
 		}
+
+		rc = LDAP_SUCCESS;
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_SUBSTR ) ) {
@@ -219,13 +230,20 @@ static int indexer(
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i] != NULL; i++ ) {
 				bdb_key_change( be, db, txn, keys[i], id, op );
+				if( rc ) {
+					ber_bvecfree( keys );
+					goto done;
+				}
 			}
 			ber_bvecfree( keys );
 		}
+
+		rc = LDAP_SUCCESS;
 	}
 
+done:
 	ad_free( ad, 1 );
-	return LDAP_SUCCESS;
+	return rc;
 }
 
 static int index_at_values(
@@ -250,6 +268,8 @@ static int index_at_values(
 			type->sat_sup, lang,
 			vals, id, op,
 			dbnamep, &tmpmask );
+
+		if( rc ) return rc;
 	}
 
 	bdb_attr_mask( be->be_private, type->sat_cname, &mask );
@@ -265,6 +285,8 @@ static int index_at_values(
 			type->sat_cname,
 			vals, id, op,
 			mask );
+
+		if( rc ) return rc;
 	}
 
 	if( lang ) {
@@ -288,6 +310,11 @@ static int index_at_values(
 			rc = indexer( be, txn, dbname, lname,
 				vals, id, op,
 				tmpmask );
+
+			if( rc ) {
+				ch_free( lname );
+				return rc;
+			}
 		}
 
 		ch_free( lname );

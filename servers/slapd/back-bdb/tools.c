@@ -177,10 +177,10 @@ done:
 		}
 
 	} else {
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: txn_aborted!\n",
-			0, 0, 0 );
 		txn_abort( tid );
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_tool_entry_put: txn_aborted! %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		e->e_id = NOID;
 	}
 
@@ -200,22 +200,23 @@ int bdb_tool_entry_reindex(
 	Debug( LDAP_DEBUG_ARGS, "=> bdb_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
 
-#if 0
-	rc = txn_begin( bi->bi_dbenv, NULL, &tid, 0 );
-#endif
- 	
 	e = bdb_tool_entry_get( be, id );
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_tool_entry_reindex:: could not locate id=%ld\n",
 			(long) id, 0, 0 );
-#if 0
-		txn_abort( tid );
-#endif
 		return -1;
 	}
 
+	rc = txn_begin( bi->bi_dbenv, NULL, &tid, 0 );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_tool_entry_reindex: txn_begin failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+		goto done;
+	}
+ 	
 	/*
 	 * just (re)add them for now
 	 * assume that some other routine (not yet implemented)
@@ -228,8 +229,25 @@ int bdb_tool_entry_reindex(
 
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 
-	entry_free( e );
+	if( rc == 0 ) {
+		rc = txn_commit( tid, 0 );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_tool_entry_reindex: txn_commit failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			e->e_id = NOID;
+		}
 
+	} else {
+		txn_abort( tid );
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_tool_entry_reindex: txn_aborted! %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+		e->e_id = NOID;
+	}
+
+done:
+	entry_free( e );
 	return rc;
 }
 #endif

@@ -36,8 +36,7 @@ bdb_key_read(
 #endif
 
 	DBzero( &key );
-	key.data = k->bv_val;
-	key.size = k->bv_len;
+	bv2DBT(k,&key);
 
 	rc = bdb_idl_fetch_key( be, db, txn, key, ids );
 
@@ -90,8 +89,7 @@ bdb_key_change(
 #endif
 
 	DBTzero( &key );
-	key.data = k->bv_val;
-	key.size = k->bv_len;
+	bv2DBT(k,&key);
 
 	if (op == SLAP_INDEX_ADD_OP) {
 	    /* Add values */

@@ -18,10 +18,11 @@ static struct bdbi_database {
 	char *name;
 	int type;
 	int flags;
-} bdbi_databases[BDB_INDICES] = {
+} bdbi_databases[] = {
 	{ "nextid" BDB_SUFFIX, "nextid", DB_BTREE, 0 },
 	{ "dn2entry" BDB_SUFFIX, "dn2entry", DB_BTREE, 0 },
 	{ "id2entry" BDB_SUFFIX, "id2entry", DB_BTREE, 0 },
+	{ NULL, NULL, 0, 0 }
 };
 
 #if 0
@@ -181,7 +182,7 @@ bdb_db_open( BackendDB *be )
 		BDB_INDICES * sizeof(struct bdb_db_info *) );
 
 	/* open (and create) main database */
-	for( i = 0; i < BDB_INDICES; i++ ) {
+	for( i = 0; bdbi_databases[i].name; i++ ) {
 		struct bdb_db_info *db;
 
 		db = (struct bdb_db_info *) ch_calloc(1, sizeof(struct bdb_db_info));
@@ -208,8 +209,12 @@ bdb_db_open( BackendDB *be )
 			return rc;
 		}
 
+		db->bdi_name = bdbi_databases[i].name;
 		bdb->bi_databases[i] = db;
 	}
+
+	bdb->bi_databases[i] = NULL;
+	bdb->bi_ndatabases = i;
 
 	/* get nextid */
 	rc = bdb_last_id( be, NULL );

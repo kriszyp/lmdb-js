@@ -29,9 +29,13 @@ Entry *bdb_deref_internal_r LDAP_P((
  * attr.c
  */
 
-void bdb_attr_mask LDAP_P(( struct bdb_info *bdb,
-	const char *desc,
-	slap_mask_t *indexmask ));
+void bdb_attr_mask( struct bdb_info *bdb,
+#ifdef SLAPD_USE_AD
+	AttributeDescription *desc,
+#else
+    const char *desc,
+#endif
+	slap_mask_t *indexmask );
 
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
@@ -46,7 +50,7 @@ int
 bdb_db_cache(
     Backend	*be,
     const char *name,
-	DB *db );
+	DB **db );
 
 /*
  * dn2entry.c

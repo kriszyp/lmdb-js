@@ -19,6 +19,7 @@ LDAP_BEGIN_DECL
 /* #define BDB_REINDEX 1 */
 /* #define BDB_FILTER_INDICES 1 */
 #define BDB_CONFIG_INDICES 1
+/* #define SLAPD_USE_AD 1 */
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -46,9 +47,12 @@ LDAP_BEGIN_DECL
 #define BDB_NEXTID		0
 #define BDB_DN2ID		1
 #define BDB_ID2ENTRY	2
-#define BDB_INDICES		3
+#define BDB_NDB			3
+
+#define BDB_INDICES		128
 
 struct bdb_db_info {
+	char		*bdi_name;
 	DB			*bdi_db;
 };
 
