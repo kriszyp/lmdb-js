@@ -223,7 +223,6 @@ do_bind(
 			conn->c_authmech = conn->c_sasl_bind_mech;
 			conn->c_sasl_bind_mech = NULL;
 			conn->c_sasl_bind_in_progress = 0;
-			if( ssf ) conn->c_sasl_layers++;
 			conn->c_sasl_ssf = ssf;
 			if( ssf > conn->c_ssf ) {
 				conn->c_ssf = ssf;
