@@ -1672,7 +1672,7 @@ slapd_daemon_task(
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
-		if ( cat != NULL ) {
+		if ( cat && cat->tv_sec ) {
 			time_t diff = difftime( cat->tv_sec, now );
 			if ( diff == 0 )
 				diff = tdelta;
