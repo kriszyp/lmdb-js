@@ -1650,6 +1650,10 @@ print_access( Access *b )
 		fprintf( stderr, " sockurl=\"%s\"", b->a_sockurl_pat.bv_val );
 	}
 
+	if ( b->a_set_pat.bv_len != 0 ) {
+		fprintf( stderr, " set=\"%s\"", b->a_set_pat.bv_val );
+	}
+
 #ifdef SLAPD_ACI_ENABLED
 	if ( b->a_aci_at != NULL ) {
 		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname.bv_val );
