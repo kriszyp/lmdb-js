@@ -86,7 +86,7 @@ ldap_back_db_config(
 	/* URI of server to query (preferred over "server" directive) */
 	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
 		LDAPURLDesc	*tmpludp;
-		int		urlrc;
+		int		urlrc, i;
 
 		if ( argc != 2 ) {
 			fprintf( stderr, "%s: line %d: "
@@ -152,7 +152,10 @@ ldap_back_db_config(
 			return 1;
 		}
 
-		for ( tmpludp = li->lud; tmpludp; tmpludp = tmpludp->lud_next ) {
+		for ( i = 0, tmpludp = li->lud;
+				tmpludp;
+				i++, tmpludp = tmpludp->lud_next )
+		{
 			if ( ( tmpludp->lud_dn != NULL
 						&& tmpludp->lud_dn[0] != '\0' )
 					|| tmpludp->lud_attrs != NULL
@@ -163,8 +166,8 @@ ldap_back_db_config(
 						"warning, only protocol, "
 						"host and port allowed "
 						"in \"uri <uri>\" statement "
-						"for \"%s\"\n",
-						fname, lineno, argv[1] );
+						"for uri #%d of \"%s\"\n",
+						fname, lineno, i, argv[1] );
 			}
 		}
 
