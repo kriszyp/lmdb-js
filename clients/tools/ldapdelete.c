@@ -508,7 +508,7 @@ main( int argc, char **argv )
 		(void) ldap_initialize( &ld, ldapuri );
 	}
 
-	if( ld != NULL ) {
+	if( ld == NULL ) {
 		fprintf( stderr, "Could not create LDAP session handle (%d): %s\n", rc );
 		return EXIT_FAILURE;
 	}
