@@ -13,18 +13,19 @@
  *	 in file LICENSE in the top-level directory of the distribution.
  */
 
-#include "portable.h"
- /* init.c - initialize shell backend */
-	
-#include <stdio.h>
+#include <EXTERN.h>
+#include <perl.h>
+#undef _ /* #defined used by both Perl and ac/localize.h */
 
-#include "slap.h"
 #ifdef HAVE_WIN32_ASPERL
 #include "asperl_undefs.h"
 #endif
 
-#include <EXTERN.h>
-#include <perl.h>
+#include "portable.h"
+	
+#include <stdio.h>
+
+#include "slap.h"
 
 #include "perl_back.h"
 
