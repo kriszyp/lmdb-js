@@ -314,7 +314,7 @@ BerVarray get_entry_referrals(
 
 		/* trim the label */
 		for( k=0; k<jv->bv_len; k++ ) {
-			if( isspace(jv->bv_val[k]) ) {
+			if( isspace( (unsigned char) jv->bv_val[k] ) ) {
 				jv->bv_val[k] = '\0';
 				jv->bv_len = k;
 				break;

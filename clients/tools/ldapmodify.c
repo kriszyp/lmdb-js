@@ -812,7 +812,7 @@ process_ldif_rec( char *rbuf, int count )
 
 		int icnt;
 		for ( icnt = val.bv_len; --icnt > 0; ) {
-		    if ( !isspace( val.bv_val[icnt] ) ) {
+		    if ( !isspace( (unsigned char) val.bv_val[icnt] ) ) {
 			break;
 		    }
 		}
@@ -857,7 +857,7 @@ process_ldif_rec( char *rbuf, int count )
 	    
 	    int icnt;
 	    for ( icnt = val.bv_len; --icnt > 0; ) {
-		if ( !isspace( val.bv_val[icnt] ) ) {
+		if ( !isspace( (unsigned char) val.bv_val[icnt] ) ) {
 		    break;
 		}
 	    }

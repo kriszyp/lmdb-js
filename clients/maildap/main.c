@@ -419,9 +419,9 @@ get_config_line( FILE *cf, int *lineno)
 		(*lineno)++;
 		if ( pos > 0 ) {
 			/* Delete whitespace at the beginning of new data */
-			if ( isspace( buf[pos] ) ) {
+			if ( isspace( (unsigned char) buf[pos] ) ) {
 				char *s, *d;
-				for ( s = buf+pos; isspace(*s); s++ )
+				for ( s = buf+pos; isspace((unsigned char) *s); s++ )
 					;
 				for ( d = buf+pos; *s; s++, d++ ) {
 					*d = *s;
@@ -518,20 +518,20 @@ add_attr_semantics( char *s )
 	as = calloc( 1, sizeof( AttrSemantics ) );
 	as->as_priority = current_priority;
 	p = s;
-	while ( isspace ( *p ) )
+	while ( isspace ( (unsigned char) *p ) )
 		p++;
 	q = p;
-	while ( !isspace ( *q ) && *q != '\0' )
+	while ( !isspace ( (unsigned char) *q ) && *q != '\0' )
 		q++;
 	*q = '\0';
 	as->as_name = strdup( p );
 	p = q + 1;
 
 	while ( *p ) {
-		while ( isspace ( *p ) )
+		while ( isspace ( (unsigned char) *p ) )
 			p++;
 		q = p;
-		while ( !isspace ( *q ) && *q != '\0' )
+		while ( !isspace ( (unsigned char) *q ) && *q != '\0' )
 			q++;
 		*q = '\0';
 		if ( !strcasecmp( p, "multivalued" ) ) {
@@ -554,7 +554,7 @@ add_attr_semantics( char *s )
 			q = strchr( p, '=' );
 			if ( q ) {
 				p = q + 1;
-				while ( *q && !isspace( *q ) ) {
+				while ( *q && !isspace( (unsigned char) *q ) ) {
 					q++;
 				}
 				if ( *q ) {

@@ -98,11 +98,11 @@ static const struct MatchingRulePtr {
 };
 
 
-static char *bvcasechr( struct berval *bv, int c, ber_len_t *len )
+static char *bvcasechr( struct berval *bv, unsigned char c, ber_len_t *len )
 {
 	ber_len_t i;
-	int lower = TOLOWER( c );
-	int upper = TOUPPER( c );
+	char lower = TOLOWER( c );
+	char upper = TOUPPER( c );
 
 	if( c == 0 ) return NULL;
 	

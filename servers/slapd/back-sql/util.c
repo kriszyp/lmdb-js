@@ -115,7 +115,14 @@ char* backsql_get_table_spec(char **p)
  if (**p)
   *(*p)++='\0';
 
-#define BACKSQL_NEXT_WORD  {while (*s && isspace(*s)) s++; if (!*s) return res; q=s; while (*q && !isspace(*q)) q++; if (*q) *q++='\0';}
+#define BACKSQL_NEXT_WORD { \
+  while (*s && isspace((unsigned char)*s)) s++; \
+  if (!*s) return res; \
+  q=s; \
+  while (*q && !isspace((unsigned char)*q)) q++; \
+  if (*q) *q++='\0'; \
+ }
+
  BACKSQL_NEXT_WORD;
  res=backsql_strcat(res,&res_len,s,NULL);/*table name*/
  s=q;

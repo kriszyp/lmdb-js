@@ -325,7 +325,7 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 			strncpy(buf, vals[0].bv_val, i);
 			s = buf+i;
 			strcpy(s, pw->pw_name);
-			*s = TOUPPER(*s);
+			*s = TOUPPER((unsigned char)*s);
 			strcat(s, vals[0].bv_val+i+1);
 			vals[0].bv_val = buf;
 		}

@@ -2222,7 +2222,7 @@ read_config( const char *fname )
 			if ( rc )
 				return rc;
 		} else if ( !strcasecmp( cargv[0], "TLSVerifyClient" ) ) {
-			if ( isdigit( cargv[1][0] ) ) {
+			if ( isdigit( (unsigned char) cargv[1][0] ) ) {
 				i = atoi(cargv[1]);
 				rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_REQUIRE_CERT,

@@ -1191,19 +1191,19 @@ str2accessmask( const char *str )
 		}
 
 		for( i=1; str[i] != '\0'; i++ ) {
-			if( TOLOWER(str[i]) == 'w' ) {
+			if( TOLOWER((unsigned char) str[i]) == 'w' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
 
-			} else if( TOLOWER(str[i]) == 'r' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 'r' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_READ);
 
-			} else if( TOLOWER(str[i]) == 's' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 's' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_SEARCH);
 
-			} else if( TOLOWER(str[i]) == 'c' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 'c' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_COMPARE);
 
-			} else if( TOLOWER(str[i]) == 'x' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 'x' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
 
 			} else if( str[i] != '0' ) {
