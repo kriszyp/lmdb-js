@@ -686,7 +686,7 @@ read_config( const char *fname, int depth )
 #ifdef SLAP_SASL_REWRITE
 		/* use authid rewrite instead of sasl regexp */
 		} else if ( strncasecmp( cargv[0], "auth-rewrite",
-			sizeof("auth-rewrite") - 1 ) == 0 )
+			STRLENOF("auth-rewrite") ) == 0 )
 		{
 			int rc = slap_sasl_rewrite_config( fname, lineno,
 					cargc, cargv );
@@ -696,8 +696,8 @@ read_config( const char *fname, int depth )
 #endif /* SLAP_SASL_REWRITE */
 
 		/* Auth + SASL config options */
-		} else if ( !strncasecmp( cargv[0], "auth", sizeof("auth")-1 ) ||
-			!strncasecmp( cargv[0], "sasl", sizeof("sasl")-1 ))
+		} else if ( !strncasecmp( cargv[0], "auth", STRLENOF("auth") ) ||
+			!strncasecmp( cargv[0], "sasl", STRLENOF("sasl") ))
 		{
 			if ( slap_sasl_config( cargc, cargv, line, fname, lineno ) )
 				return 1;
@@ -2879,7 +2879,7 @@ add_syncrepl(
 	}
 	si->si_bindmethod = LDAP_AUTH_SIMPLE;
 	si->si_schemachecking = 0;
-	ber_str2bv( "(objectclass=*)", sizeof("(objectclass=*)")-1, 0,
+	ber_str2bv( "(objectclass=*)", STRLENOF("(objectclass=*)"), 0,
 		&si->si_filterstr );
 	si->si_base.bv_val = NULL;
 	si->si_scope = LDAP_SCOPE_SUBTREE;
@@ -3118,9 +3118,9 @@ parse_syncrepl_line(
 				SCHEMASTR, sizeof( SCHEMASTR ) - 1 ) )
 		{
 			val = cargv[ i ] + sizeof( SCHEMASTR );
-			if ( !strncasecmp( val, "on", sizeof( "on" ) - 1 )) {
+			if ( !strncasecmp( val, "on", STRLENOF( "on" ) )) {
 				si->si_schemachecking = 1;
-			} else if ( !strncasecmp( val, "off", sizeof( "off" ) - 1 ) ) {
+			} else if ( !strncasecmp( val, "off", STRLENOF( "off" ) ) ) {
 				si->si_schemachecking = 0;
 			} else {
 				si->si_schemachecking = 1;
@@ -3147,9 +3147,9 @@ parse_syncrepl_line(
 			SCOPESTR, sizeof( SCOPESTR ) - 1 ) )
 		{
 			val = cargv[ i ] + sizeof( SCOPESTR );
-			if ( !strncasecmp( val, "base", sizeof( "base" ) - 1 )) {
+			if ( !strncasecmp( val, "base", STRLENOF( "base" ) )) {
 				si->si_scope = LDAP_SCOPE_BASE;
-			} else if ( !strncasecmp( val, "one", sizeof( "one" ) - 1 )) {
+			} else if ( !strncasecmp( val, "one", STRLENOF( "one" ) )) {
 				si->si_scope = LDAP_SCOPE_ONELEVEL;
 #ifdef LDAP_SCOPE_SUBORDINATE
 			} else if ( !strcasecmp( val, "subordinate" ) ||
@@ -3157,7 +3157,7 @@ parse_syncrepl_line(
 			{
 				si->si_scope = LDAP_SCOPE_SUBORDINATE;
 #endif
-			} else if ( !strncasecmp( val, "sub", sizeof( "sub" ) - 1 )) {
+			} else if ( !strncasecmp( val, "sub", STRLENOF( "sub" ) )) {
 				si->si_scope = LDAP_SCOPE_SUBTREE;
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
@@ -3177,10 +3177,10 @@ parse_syncrepl_line(
 			TYPESTR, sizeof( TYPESTR ) - 1 ) )
 		{
 			val = cargv[ i ] + sizeof( TYPESTR );
-			if ( !strncasecmp( val, "refreshOnly", sizeof("refreshOnly")-1 )) {
+			if ( !strncasecmp( val, "refreshOnly", STRLENOF("refreshOnly") )) {
 				si->si_type = LDAP_SYNC_REFRESH_ONLY;
 			} else if ( !strncasecmp( val, "refreshAndPersist",
-				sizeof("refreshAndPersist")-1 ))
+				STRLENOF("refreshAndPersist") ))
 			{
 				si->si_type = LDAP_SYNC_REFRESH_AND_PERSIST;
 				si->si_interval = 60;
