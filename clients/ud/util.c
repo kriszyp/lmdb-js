@@ -29,7 +29,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include <lber.h>
 #include <ldap.h>
 
 #include "ldap_defaults.h"
