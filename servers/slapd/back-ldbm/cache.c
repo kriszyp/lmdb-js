@@ -35,8 +35,8 @@ cache_entry_cmp( Entry *e1, Entry *e2 )
 static int
 cache_entrydn_cmp( Entry *e1, Entry *e2 )
 {
-	/* compare their normalized dn's */
-	return( strcasecmp( e1->e_ndn, e2->e_ndn ) );
+	/* compare their normalized UPPERCASED dn's */
+	return( strcmp( e1->e_ndn, e2->e_ndn ) );
 }
 
 static int
@@ -235,7 +235,7 @@ cache_find_entry_dn2id(
 	pthread_mutex_lock( &cache->c_mutex );
 
 	e.e_dn = dn;
-	e.e_ndn = dn_normalize( ch_strdup( dn ) );
+	e.e_ndn = dn_normalize_case( ch_strdup( dn ) );
 
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
 		cache_entrydn_cmp )) != NULL )

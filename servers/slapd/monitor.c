@@ -49,7 +49,7 @@ monitor_info( Connection *conn, Operation *op )
 	entry_rdwr_init(e);
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
-	e->e_ndn = NULL;
+	e->e_ndn = dn_normalize_case( ch_strdup(SLAPD_MONITOR_DN) );
 
 	val.bv_val = Versionstr;
 	if (( p = strchr( Versionstr, '\n' )) == NULL ) {
