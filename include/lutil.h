@@ -26,7 +26,7 @@ LDAP_BEGIN_DECL
 /* Avoid floating point math by through extra padding */
 
 #define LUTIL_BASE64_ENCODE_LEN(n)	((n)/3 * 4 + 4)
-#define LUTIL_BASE64_DECODE_LEN(n)	((n)/4 * 3)
+#define LUTIL_BASE64_DECODE_LEN(n)	(((n)+3)/4 * 3)
 
 /* ISC Base64 Routines */
 /* base64.c */
