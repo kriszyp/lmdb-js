@@ -68,6 +68,7 @@ access_allowed(
 {
 	int				count;
 	AccessControl	*a;
+	char accessmaskbuf[ACCESSMASK_MAXLEN];
 	slap_access_mask_t mask;
 	slap_control_t control;
 
@@ -171,7 +172,7 @@ access_allowed(
 		"=> access_allowed: %s access %s by %s\n",
 		access2str( access ),
 		ACL_GRANT(mask, access) ? "granted" : "denied",
-		accessmask2str( mask ) );
+		accessmask2str( mask, accessmaskbuf ) );
 
 	return ACL_GRANT(mask, access);
 }
@@ -195,7 +196,6 @@ acl_get(
 )
 {
 	AccessControl	*next;
-
 	assert( e != NULL );
 	assert( count != NULL );
 
@@ -277,6 +277,7 @@ acl_mask(
 {
 	int		i;
 	Access	*b;
+	char accessmaskbuf[ACCESSMASK_MAXLEN];
 
 	assert( a != NULL );
 	assert( mask != NULL );
@@ -289,7 +290,7 @@ acl_mask(
 		"=> acl_mask: to value \"%s\" by \"%s\", (%s) \n",
 		val ? val->bv_val : "*",
 		op->o_ndn ?  op->o_ndn : "",
-		accessmask2str( *mask ) );
+		accessmask2str( *mask, accessmaskbuf ) );
 
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
 		slap_access_mask_t oldmask, modmask;
@@ -482,7 +483,7 @@ acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] applying %s (%s)\n",
-			i, accessmask2str( modmask ), 
+			i, accessmask2str( modmask, accessmaskbuf ), 
 			b->a_type == ACL_CONTINUE
 				? "continue"
 				: b->a_type == ACL_BREAK
@@ -512,8 +513,8 @@ acl_mask(
 		}
 
 		Debug( LDAP_DEBUG_ACL,
-			"<= acl_mask: [%d] old: %s new: %s\n",
-			i, accessmask2str(oldmask), accessmask2str(*mask));
+			"<= acl_mask: [%d] mask: %s\n",
+			i, accessmask2str(*mask, accessmaskbuf), 0 );
 
 		if( b->a_type == ACL_CONTINUE ) {
 			continue;
@@ -528,7 +529,7 @@ acl_mask(
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
-		accessmask2str(*mask), 0, 0 );
+		accessmask2str(*mask, accessmaskbuf), 0, 0 );
 	return ACL_STOP;
 }
 
@@ -984,6 +985,7 @@ string_expand(
 
 	size = 0;
 	newbuf[0] = '\0';
+	bufsiz--; /* leave space for lone $ */
 
 	flag = 0;
 	for ( dp = newbuf, sp = pat; size < bufsiz && *sp ; sp++) {
@@ -1017,6 +1019,13 @@ string_expand(
 			}
 		}
 	}
+
+	if (flag) {
+		/* must have ended with a single $ */
+		*dp++ = '$';
+		size++;
+	}
+
 	*dp = '\0';
 
 	Debug( LDAP_DEBUG_TRACE, "=> string_expand: pattern:  %s\n", pat, 0, 0 );

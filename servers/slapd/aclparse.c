@@ -469,10 +469,11 @@ parse_acl(
 }
 
 char *
-accessmask2str( slap_access_mask_t mask )
+accessmask2str( slap_access_mask_t mask, char *buf )
 {
-	static char	buf[sizeof("unknown (+wrscan)")]; 
 	int none=1;
+
+	assert( buf != NULL );
 
 	if ( ACL_IS_INVALID( mask ) ) {
 		return "invalid";
@@ -689,6 +690,8 @@ acl_append( AccessControl **l, AccessControl *a )
 static void
 print_access( Access *b )
 {
+	char maskbuf[ACCESSMASK_MAXLEN];
+
 	fprintf( stderr, "\tby" );
 
 	if ( b->a_dn_pat != NULL ) {
@@ -743,7 +746,7 @@ print_access( Access *b )
 
 	fprintf( stderr, " %s%s",
 		b->a_dn_self ? "self" : "",
-		accessmask2str( b->a_mask ) );
+		accessmask2str( b->a_mask, maskbuf ) );
 
 	if( b->a_type == ACL_BREAK ) {
 		fprintf( stderr, " break" );

@@ -38,7 +38,8 @@ void parse_acl LDAP_P(( Backend *be,
 char * access2str LDAP_P(( slap_access_t access ));
 slap_access_t str2access LDAP_P(( const char *str ));
 
-char * accessmask2str LDAP_P(( slap_access_mask_t mask ));
+#define ACCESSMASK_MAXLEN	sizeof("unknown (+wrscan)")
+char * accessmask2str LDAP_P(( slap_access_mask_t mask, char* ));
 slap_access_mask_t str2accessmask LDAP_P(( const char *str ));
 
 /*
