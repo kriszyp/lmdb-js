@@ -179,6 +179,8 @@ int bdb_idl_fetch_key(
 	DBT *key,
 	ID *ids );
 
+int bdb_idl_insert( ID *ids, ID id );
+
 int bdb_idl_insert_key(
 	BackendDB *be,
 	DB *db,

@@ -46,7 +46,6 @@ static Entry * deref_base (
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct berval ndn;
-	unsigned x;
 	DB_LOCK lockr;
 
 	rs->sr_err = LDAP_ALIAS_DEREF_PROBLEM;
@@ -356,7 +355,9 @@ int bdb_search( Operation *op, SlapReply *rs )
 	Filter 		cookief, csnfnot, csnfeq, csnfand, csnfge;
 	AttributeAssertion aa_ge, aa_eq;
 	int		entry_count = 0;
+#if 0
 	struct berval	entrycsn_bv = { 0, NULL };
+#endif
 	struct berval	latest_entrycsn_bv = { 0, NULL };
 	LDAPControl	*ctrls[SLAP_SEARCH_MAX_CTRLS];
 	int		num_ctrls = 0;
@@ -1067,7 +1068,8 @@ id2entry_retry:
 #endif
 
 				if (e) {
-					int result;
+					/* safe default */
+					int result = -1;
 					
 #if 0	/* noop is masked SLAP_CTRL_UPDATE */
 					if( op->o_noop ) {
@@ -1421,7 +1423,7 @@ static void *search_stack(
 
 	if ( !ret ) {
 		ret = ch_malloc( bdb->bi_search_stack_depth * BDB_IDL_UM_SIZE
-			* sizeof ID );
+			* sizeof( ID ) );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx, search_stack,
 				ret, search_stack_free );
@@ -1641,7 +1643,6 @@ bdb_build_lcup_update_ctrl(
 	Attribute* a;
 	int ret;
 	int res;
-	int rc;
 	const char *text = NULL;
 
 	char berbuf[LBER_ELEMENT_SIZEOF];
@@ -1732,7 +1733,7 @@ bdb_build_lcup_done_ctrl(
 	int		num_ctrls,
 	struct berval	*latest_entrycsn_bv	)
 {
-	int ret, rc;
+	int ret;
 	char berbuf[LBER_ELEMENT_SIZEOF];
 	BerElement *ber = (BerElement *)berbuf;
 
@@ -1780,7 +1781,6 @@ bdb_build_sync_state_ctrl(
 	Attribute* a;
 	int ret;
 	int res;
-	int rc;
 	const char *text = NULL;
 
 	char berbuf[LBER_ELEMENT_SIZEOF];
@@ -1871,7 +1871,7 @@ bdb_build_sync_done_ctrl(
 	int		send_cookie,
 	struct berval	*latest_entrycsn_bv	)
 {
-	int ret,rc;
+	int ret;
 	char berbuf[LBER_ELEMENT_SIZEOF];
 	BerElement *ber = (BerElement *)berbuf;
 
@@ -1919,7 +1919,7 @@ bdb_send_ldap_intermediate(
 	BerElement *ber = (BerElement *)berbuf;
 	struct berval rspdata;
 
-	int ret, rc;
+	int ret;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
 
