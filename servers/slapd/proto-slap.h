@@ -287,14 +287,12 @@ LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
 /*
  * controls.c
  */
-#define SLAP_NO_CONTROL 0
-#define SLAP_NONCRITICAL_CONTROL 1
-#define SLAP_CRITICAL_CONTROL 2
-
 LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 	Connection *co,
 	Operation *op,
 	int senderrors ));
+
+LDAP_SLAPD_F (char *) get_supported_ctrl LDAP_P((int index));
 
 LDAP_SLAPD_F (int) get_manageDSAit LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (int) get_subentries LDAP_P(( Operation *op, int *visibility ));
@@ -564,11 +562,6 @@ LDAP_SLAPD_F (void) *module_resolve LDAP_P((
 	const void *module, const char *name));
 
 #endif /* SLAPD_MODULES */
-
-/*
- * controls.c
- */
-LDAP_SLAPD_V (char *) supportedControls[];
 
 /*
  * mra.c

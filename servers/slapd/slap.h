@@ -1315,7 +1315,17 @@ typedef struct slap_op {
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 	void	*o_private;	/* anything the backend needs	  */
 	void	*o_glue;	/* for the glue backend */
+
+#define SLAP_NO_CONTROL 0
+#define SLAP_NONCRITICAL_CONTROL 1
+#define SLAP_CRITICAL_CONTROL 2
+
+	char o_managedsait;
+	char o_subentries;
+	char o_subentries_visibility;
 } Operation;
+
+#define get_manageDSAit(op)	((int)(op)->o_managedsait)
 
 /*
  * Caches the result of a backend_group check for ACL evaluation

@@ -155,7 +155,6 @@ do_search(
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n", fstr.bv_val, 0, 0 );
 #endif
 
-
 	/* attributes */
 	siz = sizeof(AttributeName);
 	off = 0;
@@ -180,9 +179,7 @@ do_search(
 #endif
 
 		goto return_results;
-	} 
-
-	rc = LDAP_SUCCESS;
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
@@ -190,7 +187,6 @@ do_search(
 #else
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
 #endif
-
 
 	if ( siz != 0 ) {
 		for ( i = 0; i<siz; i++ ) {
@@ -218,9 +214,9 @@ do_search(
 	if ( scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
-		if ( strcasecmp( nbase.bv_val, LDAP_ROOT_DSE ) == 0 ) {
+		if ( nbase.bv_len == 0 ) {
 #ifdef LDAP_CONNECTIONLESS
-			/* Ignore LDAPv2 CLDAP DSE queries */
+			/* Ignore LDAPv2 CLDAP Root DSE queries */
 			if (op->o_protocol==LDAP_VERSION2 && conn->c_is_udp) {
 				goto return_results;
 			}
@@ -320,7 +316,8 @@ do_search(
 		    timelimit, filter, &fstr, an, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "operation not supported within namingContext", NULL, NULL );
+			NULL, "operation not supported within namingContext",
+			NULL, NULL );
 	}
 
 return_results:;

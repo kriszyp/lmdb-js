@@ -646,7 +646,7 @@ dnParent(
 	const char	*p;
 	int		rc;
 
-	rc = ldap_str2rdn( dn, NULL, &p, LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
+	rc = ldap_str2rdn( dn, NULL, & (char *) p, LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
@@ -719,7 +719,7 @@ dnExtractRdn(
 		return LDAP_OTHER;
 	}
 
-	rc = ldap_str2rdn( dn->bv_val, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_str2rdn( dn->bv_val, &tmpRDN, &(char *)p, LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
@@ -758,7 +758,7 @@ dn_rdnlen(
 		return 0;
 	}
 
-	rc = ldap_str2rdn( dn_in->bv_val, NULL, &p, 
+	rc = ldap_str2rdn( dn_in->bv_val, NULL, &(char *)p, 
 			LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
 	if ( rc != LDAP_SUCCESS ) {
 		return 0;
@@ -904,7 +904,7 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 	assert( *values == NULL );
 	assert( types == NULL || *types == NULL );
 
-	rc = ldap_str2rdn( rdn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_str2rdn( rdn, &tmpRDN, &(char *)p, LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}

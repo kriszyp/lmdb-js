@@ -98,8 +98,7 @@ root_dse_info(
 	/* altServer unsupported */
 
 	/* supportedControl */
-	for ( i=0; supportedControls[i] != NULL; i++ ) {
-		vals[0].bv_val = supportedControls[i];
+	for ( i=0; (vals[0].bv_val = get_supported_ctrl(i)) != NULL; i++ ) {
 		vals[0].bv_len = strlen( vals[0].bv_val );
 		attr_merge( e, ad_supportedControl, vals );
 	}

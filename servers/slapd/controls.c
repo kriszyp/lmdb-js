@@ -19,11 +19,63 @@
 
 #include "../../libraries/liblber/lber-int.h"
 
-char *supportedControls[] = {
-	LDAP_CONTROL_MANAGEDSAIT,
-	LDAP_CONTROL_SUBENTRIES,
-	NULL
+#define SLAP_CTRL_ABANDON	0x0001
+#define SLAP_CTRL_ADD		0x2002
+#define SLAP_CTRL_BIND		0x0004
+#define SLAP_CTRL_COMPARE	0x1008
+#define SLAP_CTRL_DELETE	0x2010
+#define SLAP_CTRL_MODIFY	0x2020
+#define SLAP_CTRL_RENAME	0x2040
+#define SLAP_CTRL_SEARCH	0x1080
+#define SLAP_CTRL_UNBIND	0x0100
+
+#define SLAP_CTRL_INTROGATE	(SLAP_CTRL_COMPARE|SLAP_CTRL_SEARCH)
+#define SLAP_CTRL_UPDATE \
+	(SLAP_CTRL_ADD|SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME)
+#define SLAP_CTRL_ACCESS	(SLAP_CTRL_INTROGATE|SLAP_CTRL_UPDATE)
+
+typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text ));
+
+static SLAP_CTRL_PARSE_FN parseManageDSAit;
+static SLAP_CTRL_PARSE_FN parseSubentries;
+
+static struct slap_control {
+	char *sc_oid;
+	int sc_ops_mask;
+	char **sc_extendedops;
+	SLAP_CTRL_PARSE_FN *sc_parse;
+
+} supportedControls[] = {
+	{ LDAP_CONTROL_MANAGEDSAIT,
+		SLAP_CTRL_ACCESS, NULL,
+		parseManageDSAit },
+	{ LDAP_CONTROL_SUBENTRIES,
+		SLAP_CTRL_SEARCH, NULL,
+		parseSubentries },
+	{ NULL }
 };
+
+char *
+get_supported_ctrl(int index)
+{
+	return supportedControls[index].sc_oid;
+}
+
+static struct slap_control *
+find_ctrl( const char *oid )
+{
+	int i;
+	for( i=0; supportedControls[i].sc_oid; i++ ) {
+		if( strcmp( oid, supportedControls[i].sc_oid ) == 0 ) {
+			return &supportedControls[i];
+		}
+	}
+	return NULL;
+}
 
 int get_ctrls(
 	Connection *conn,
@@ -36,6 +88,7 @@ int get_ctrls(
 	char *opaque;
 	BerElement *ber = op->o_ber;
 	LDAPControl ***ctrls = &op->o_ctrls;
+	struct slap_control *c;
 	int rc = LDAP_SUCCESS;
 	char *errmsg = NULL;
 
@@ -192,11 +245,69 @@ int get_ctrls(
 			}
 		}
 
-		if( tctrl->ldctl_iscritical &&
-			!charray_inlist( supportedControls, tctrl->ldctl_oid ) )
-		{
+		c = find_ctrl( tctrl->ldctl_oid );
+		if( c != NULL ) {
+			/* recongized control */
+			int tagmask = -1;
+			switch( op->o_tag ) {
+			case LDAP_REQ_ADD:
+				tagmask = SLAP_CTRL_ADD;
+				break;
+			case LDAP_REQ_BIND:
+				tagmask = SLAP_CTRL_BIND;
+				break;
+			case LDAP_REQ_COMPARE:
+				tagmask = SLAP_CTRL_COMPARE;
+				break;
+			case LDAP_REQ_DELETE:
+				tagmask = SLAP_CTRL_DELETE;
+				break;
+			case LDAP_REQ_MODIFY:
+				tagmask = SLAP_CTRL_MODIFY;
+				break;
+			case LDAP_REQ_RENAME:
+				tagmask = SLAP_CTRL_RENAME;
+				break;
+			case LDAP_REQ_SEARCH:
+				tagmask = SLAP_CTRL_SEARCH;
+				break;
+			case LDAP_REQ_UNBIND:
+				tagmask = SLAP_CTRL_UNBIND;
+				break;
+			case LDAP_REQ_EXTENDED:
+				/* FIXME: check list of extended operations */
+				tagmask = -1;
+				break;
+			default:
+				rc = LDAP_OTHER;
+				errmsg = "controls internal error";
+				goto return_results;
+			}
+
+			if (( c->sc_ops_mask & tagmask ) == tagmask ) {
+				/* available extension */
+
+				if( !c->sc_parse ) {
+					rc = LDAP_OTHER;
+					errmsg = "not yet implemented";
+					goto return_results;
+				}
+
+				rc = c->sc_parse( conn, op, tctrl, &errmsg );
+
+				if( rc != LDAP_SUCCESS ) goto return_results;
+
+			} else if( tctrl->ldctl_iscritical ) {
+				/* unavailable CRITICAL control */
+				rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+				errmsg = "critical extension is unavailable";
+				goto return_results;
+			}
+
+		} else if( tctrl->ldctl_iscritical ) {
+			/* unrecongized CRITICAL control */
 			rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
-			errmsg = "critical extension is unavailable ";
+			errmsg = "critical extension is not recongized";
 			goto return_results;
 		}
 
@@ -225,46 +336,54 @@ return_results:
 	return rc;
 }
 
-
-int get_manageDSAit( Operation *op )
+static int parseManageDSAit (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
 {
-	int i;
-	if( op == NULL || op->o_ctrls == NULL ) {
-		return SLAP_NO_CONTROL;
+	if ( op->o_managedsait != SLAP_NO_CONTROL ) {
+		*text = "manageDSAit control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
 	}
 
-	for( i=0; op->o_ctrls[i] != NULL; i++ ) {
-		if( strcmp( LDAP_CONTROL_MANAGEDSAIT,
-			op->o_ctrls[i]->ldctl_oid )	== 0 )
-		{
-			return op->o_ctrls[i]->ldctl_iscritical
-				? SLAP_CRITICAL_CONTROL
-				: SLAP_NONCRITICAL_CONTROL;
-		}
+	if ( ctrl->ldctl_value.bv_len ) {
+		*text = "manageDSAit control value not empty";
+		return LDAP_PROTOCOL_ERROR;
 	}
 
-	return SLAP_NO_CONTROL;
+	op->o_managedsait = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
 }
 
-int get_subentries( Operation *op, int *visibility )
+static int parseSubentries (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
 {
-	int i;
-	if( op == NULL || op->o_ctrls == NULL ) {
-		return SLAP_NO_CONTROL;
+	if ( op->o_subentries != SLAP_NO_CONTROL ) {
+		*text = "subentries control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
 	}
 
-	for( i=0; op->o_ctrls[i] != NULL; i++ ) {
-		if( strcmp( LDAP_CONTROL_SUBENTRIES,
-			op->o_ctrls[i]->ldctl_oid )	== 0 )
-		{
-			/* need to parse the value */
-			*visibility = 0;
-
-			return op->o_ctrls[i]->ldctl_iscritical
-				? SLAP_CRITICAL_CONTROL
-				: SLAP_NONCRITICAL_CONTROL;
-		}
+	/* FIXME: should use BER library */
+	if( ( ctrl->ldctl_value.bv_len != 3 )
+		&& ( ctrl->ldctl_value.bv_val[0] != 0x01 )
+		&& ( ctrl->ldctl_value.bv_val[1] != 0x01 ))
+	{
+		*text = "subentries control value encoding is bogus";
+		return LDAP_PROTOCOL_ERROR;
 	}
 
-	return SLAP_NO_CONTROL;
+	op->o_subentries = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	op->o_subentries_visibility = (ctrl->ldctl_value.bv_val[2] != 0x00);
+
+	return LDAP_SUCCESS;
 }
