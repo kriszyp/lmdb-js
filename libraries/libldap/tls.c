@@ -343,6 +343,7 @@ get_ca_list( char * bundle, char * dir )
 	if ( bundle ) {
 		ca_list = SSL_load_client_CA_file( bundle );
 	}
+#if defined(HAVE_DIRENT_H) || defined(dirent)
 	if ( dir ) {
 		DIR *dirp;
 		struct dirent *d;
@@ -379,6 +380,7 @@ get_ca_list( char * bundle, char * dir )
 			ca_list = NULL;
 		}
 	}
+#endif
 done:
 	return ca_list;
 }
