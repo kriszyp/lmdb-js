@@ -137,13 +137,20 @@ bdb_db_config(
 
 	/* depth of search stack cache in units of (IDL)s */
         } else if ( strcasecmp( argv[0], "searchstack" ) == 0 ) {
-                 if ( argc < 2 ) {
-                         fprintf( stderr,
-                 "%s: line %d: missing depth in \"searchstack <depth>\" line\n",
-                             fname, lineno );
-                         return( 1 );
-                 }
-                 bdb->bi_search_stack_depth = atoi( argv[1] );
+		if ( argc < 2 ) {
+			fprintf( stderr,
+		"%s: line %d: missing depth in \"searchstack <depth>\" line\n",
+			fname, lineno );
+			return( 1 );
+		}
+		bdb->bi_search_stack_depth = atoi( argv[1] );
+		if ( bdb->bi_search_stack_depth < MINIMUM_SEARCH_STACK_DEPTH ) {
+			fprintf( stderr,
+		"%s: line %d: depth %d too small, using %d\n",
+			fname, lineno, bdb->bi_search_stack_depth,
+			MINIMUM_SEARCH_STACK_DEPTH );
+			bdb->bi_search_stack_depth = MINIMUM_SEARCH_STACK_DEPTH;
+		}
 
 #ifdef SLAP_IDL_CACHE
 	/* size of the IDL cache in entries */

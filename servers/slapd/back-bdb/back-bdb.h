@@ -65,6 +65,9 @@ LDAP_BEGIN_DECL
 /* The default search IDL stack cache depth */
 #define DEFAULT_SEARCH_STACK_DEPTH	16
 
+/* The minimum we can function with */
+#define MINIMUM_SEARCH_STACK_DEPTH	8
+
 /* for the IDL cache */
 #define SLAP_IDL_CACHE	1
 
