@@ -53,6 +53,7 @@ char	**argv;
 	struct hostent		*hp;
 	static struct sockaddr	sa;
 	struct sockaddr_in	*sin = (struct sockaddr_in *) (&sa);
+	/* #### length should be socklen_t when we include portable.h #### */
 	int			length = sizeof(sa);
 	static char		options[] = "[-b searchbase] [-d debug ] \
 [-h ldaphost ] [-i] [-l] [-s sizelimit] [-t timelimit] [-T tailorfile ] \
