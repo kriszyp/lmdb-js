@@ -650,9 +650,11 @@ cleanup:
 
 	if( op->o_req_dn.bv_val != NULL ) {
 		free( op->o_req_dn.bv_val );
+		op->o_req_dn.bv_val = NULL;
 	}
 	if( op->o_req_ndn.bv_val != NULL ) {
 		free( op->o_req_ndn.bv_val );
+		op->o_req_ndn.bv_val = NULL;
 	}
 
 	return rs->sr_err;
