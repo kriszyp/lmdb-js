@@ -98,8 +98,8 @@ ldap_back_db_init(
  		return -1;
  	}
 
-	BER_BVZERO( &li->binddn );
-	BER_BVZERO( &li->bindpw );
+	BER_BVZERO( &li->acl_authcDN );
+	BER_BVZERO( &li->acl_passwd );
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
@@ -210,13 +210,13 @@ ldap_back_db_destroy(
 			ldap_free_urldesc( li->lud );
 			li->lud = NULL;
 		}
-		if ( !BER_BVISNULL( &li->binddn ) ) {
-			ch_free( li->binddn.bv_val );
-			BER_BVZERO( &li->binddn );
+		if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
+			ch_free( li->acl_authcDN.bv_val );
+			BER_BVZERO( &li->acl_authcDN );
 		}
-		if ( !BER_BVISNULL( &li->bindpw ) ) {
-			ch_free( li->bindpw.bv_val );
-			BER_BVZERO( &li->bindpw );
+		if ( !BER_BVISNULL( &li->acl_passwd ) ) {
+			ch_free( li->acl_passwd.bv_val );
+			BER_BVZERO( &li->acl_passwd );
 		}
 #ifdef LDAP_BACK_PROXY_AUTHZ
 		if ( !BER_BVISNULL( &li->idassert_authcID ) ) {

@@ -368,12 +368,15 @@ ldap_build_entry(
 	 * 
 	 * FIXME: should we log anything, or delegate to dnNormalize?
 	 */
+	/* Note: if the distinguished values or the naming attributes
+	 * change, should we massage them as well?
+	 */
 	if ( dnNormalize( 0, NULL, NULL, &ent->e_name, &ent->e_nname,
 		op->o_tmpmemctx ) != LDAP_SUCCESS )
 	{
 		return LDAP_INVALID_DN_SYNTAX;
 	}
-	
+
 	attrp = &ent->e_attrs;
 
 #ifdef ENABLE_REWRITE

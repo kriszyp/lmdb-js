@@ -133,24 +133,26 @@ ldap_back_db_config(
 #endif
 
 	/* name to use for ldap_back_group */
-	} else if ( strcasecmp( argv[0], "binddn" ) == 0 ) {
+	} else if ( strcasecmp( argv[0], "acl-authcdn" ) == 0
+			|| strcasecmp( argv[0], "binddn" ) == 0 ) {
 		if (argc != 2) {
 			fprintf( stderr,
-	"%s: line %d: missing name in \"binddn <name>\" line\n",
-			    fname, lineno );
+	"%s: line %d: missing name in \"%s <name>\" line\n",
+			    fname, lineno, argv[0] );
 			return( 1 );
 		}
-		ber_str2bv( argv[1], 0, 1, &li->binddn );
+		ber_str2bv( argv[1], 0, 1, &li->acl_authcDN );
 
 	/* password to use for ldap_back_group */
-	} else if ( strcasecmp( argv[0], "bindpw" ) == 0 ) {
+	} else if ( strcasecmp( argv[0], "acl-passwd" ) == 0
+			|| strcasecmp( argv[0], "bindpw" ) == 0 ) {
 		if (argc != 2) {
 			fprintf( stderr,
-	"%s: line %d: missing password in \"bindpw <password>\" line\n",
-			    fname, lineno );
+	"%s: line %d: missing password in \"%s <password>\" line\n",
+			    fname, lineno, argv[0] );
 			return( 1 );
 		}
-		ber_str2bv( argv[1], 0, 1, &li->bindpw );
+		ber_str2bv( argv[1], 0, 1, &li->acl_passwd );
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	/* identity assertion stuff... */
@@ -721,7 +723,8 @@ parse_idassert(
 					return 1;
 				}
 
-				li->idassert_authzID.bv_val = ch_malloc( STRLENOF( "dn:" ) + dn.bv_len + 1 );
+				li->idassert_authzID.bv_len = STRLENOF( "dn:" ) + dn.bv_len;
+				li->idassert_authzID.bv_val = ch_malloc( li->idassert_authzID.bv_len + 1 );
 				AC_MEMCPY( li->idassert_authzID.bv_val, "dn:", STRLENOF( "dn:" ) );
 				AC_MEMCPY( &li->idassert_authzID.bv_val[ STRLENOF( "dn:" ) ], dn.bv_val, dn.bv_len + 1 );
 				ch_free( dn.bv_val );
@@ -733,17 +736,13 @@ parse_idassert(
 	/* name to use for proxyAuthz propagation */
 	} else if ( strcasecmp( argv[0], "idassert-authcdn" ) == 0
 			|| strcasecmp( argv[0], "proxyauthzdn" ) == 0 ) {
+		struct berval	dn;
+		int		rc;
+
 		if ( argc != 2 ) {
 			fprintf( stderr,
 	"%s: line %d: missing name in \"%s <name>\" line\n",
 			    fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
-			fprintf( stderr,
-	"%s: line %d: authcDN incompatible with previously defined authcID\n",
-			    fname, lineno );
 			return( 1 );
 		}
 
@@ -754,7 +753,20 @@ parse_idassert(
 			ch_free( li->idassert_authcDN.bv_val );
 		}
 		
-		ber_str2bv( argv[1], 0, 1, &li->idassert_authcDN );
+		ber_str2bv( argv[1], 0, 0, &dn );
+		rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_authcDN, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, CRIT, 
+				"%s: line %d: idassert ID \"%s\" is not a valid DN.\n",
+				fname, lineno, argv[1] );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: idassert ID \"%s\" is not a valid DN\n",
+				fname, lineno, argv[1] );
+#endif
+			return 1;
+		}
 
 	/* password to use for proxyAuthz propagation */
 	} else if ( strcasecmp( argv[0], "idassert-passwd" ) == 0
@@ -837,15 +849,38 @@ parse_idassert(
 					}
 					ber_str2bv( val, 0, 1, &li->idassert_sasl_realm );
 
-				} else if ( strncasecmp( argv[arg], "authcid=", STRLENOF( "authcid=" ) ) == 0 ) {
-					char	*val = argv[arg] + STRLENOF( "authcid=" );
+				} else if ( strncasecmp( argv[arg], "authcdn=", STRLENOF( "authcdn=" ) ) == 0 ) {
+					char		*val = argv[arg] + STRLENOF( "authcdn=" );
+					struct berval	dn;
+					int		rc;
 
 					if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
-						fprintf( stderr,
-				"%s: line %d: SASL authcID incompatible with previously defined authcDN\n",
-								fname, lineno );
-						return( 1 );
+						fprintf( stderr, "%s: line %d: "
+								"SASL authcDN already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->idassert_authcDN.bv_val );
 					}
+					if ( strncasecmp( argv[arg], "dn:", STRLENOF( "dn:" ) ) == 0 ) {
+						val += STRLENOF( "dn:" );
+					}
+
+					ber_str2bv( val, 0, 0, &dn );
+					rc = dnNormalize( 0, NULL, NULL, &dn, &li->idassert_authcDN, NULL );
+					if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( CONFIG, CRIT, 
+							"%s: line %d: SASL authcdn \"%s\" is not a valid DN.\n",
+							fname, lineno, val );
+#else
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: SASL authcdn \"%s\" is not a valid DN\n",
+							fname, lineno, val );
+#endif
+						return 1;
+					}
+
+				} else if ( strncasecmp( argv[arg], "authcid=", STRLENOF( "authcid=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "authcid=" );
 
 					if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
 						fprintf( stderr, "%s: line %d: "

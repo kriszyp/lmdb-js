@@ -77,14 +77,17 @@ The URI list is space- or comma-separated.
 .B server <hostport>
 Obsolete option; same as `uri ldap://<hostport>/'.
 .TP
-.B binddn "<administrative DN for access control purposes>"
+.B acl-authcDN "<administrative DN for access control purposes>"
 DN which is used to query the target server for acl checking; it
 should have read access on the target server to attributes used on the
 proxy for acl checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
+.B The acl-authcDN identity is by no means implicitly used by the proxy 
+.B when the client connects anonymously, so it cannot be used to
+.B anonymously query Active Directory.
 .TP
-.B bindpw <password>
+.B acl-passwd <password>
 Password used with the bind DN above.
 .TP
 .B idassert-authcdn "<administrative DN for proxyAuthz purposes>"
@@ -94,7 +97,7 @@ belong to the DIT fragment that is being proxyied by back-ldap.
 This is useful when operations performed by users bound to another 
 backend are propagated through back-ldap.
 This requires the entry with 
-.B proxyauthzdn 
+.B idassert-authcdn
 identity on the remote server to have
 .B proxyAuthz
 privileges on a wide set of DNs, e.g.
@@ -130,11 +133,11 @@ The supported modes are:
 The default is 
 .BR legacy ,
 which implies that the proxy will bind as
-.I proxyauthzdn
+.I idassert-authcdn
 and assert the client's identity when it is not anonymous.
 Direct binds are always proxied.
 The other modes imply that the proxy will always bind as 
-.IR proxyauthzdn ,
+.IR idassert-authcdn ,
 unless restricted by
 .BR idassert-authz
 rules (see below), in which case the operation will fail;
@@ -152,7 +155,7 @@ identity
 will be asserted;
 .BR none ,
 which means that no proxyAuthz control will be used, so the
-.I proxyauthzdn
+.I idassert-authcdn
 identity will be asserted.
 Moreover, if a string prefixed with
 .B u:

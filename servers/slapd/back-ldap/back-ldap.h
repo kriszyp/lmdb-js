@@ -82,12 +82,27 @@ struct ldaprwmap {
 	struct ldapmap rwm_at;
 };
 
+struct ldapauth {
+	struct berval	la_authcID;
+	struct berval	la_authcDN;
+	struct berval	la_passwd;
+
+	struct berval	la_authzID;
+	
+	int		la_authmethod;
+	int		la_sasl_flags;
+	struct berval	la_sasl_mech;
+	struct berval	la_sasl_realm;
+};
+
 struct ldapinfo {
 	struct slap_backend_db	*be;
 	char		*url;
 	LDAPURLDesc	*lud;
-	struct berval binddn;
-	struct berval bindpw;
+	struct ldapauth acl_la;
+#define	acl_authcDN	acl_la.la_authcDN
+#define	acl_passwd	acl_la.la_passwd
+
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	/* ID assert stuff */
 	int		idassert_mode;
@@ -98,18 +113,17 @@ struct ldapinfo {
 #define	LDAP_BACK_IDASSERT_OTHERDN	4
 #define	LDAP_BACK_IDASSERT_OTHERID	5
 
-	struct berval idassert_authcID;
-	struct berval idassert_authcDN;
-	struct berval idassert_passwd;
-
-	struct berval	idassert_authzID;
+	struct ldapauth	idassert_la;
+#define	idassert_authcID	idassert_la.la_authcID
+#define	idassert_authcDN	idassert_la.la_authcDN
+#define	idassert_passwd		idassert_la.la_passwd
+#define	idassert_authzID	idassert_la.la_authzID
+#define	idassert_authmethod	idassert_la.la_authmethod
+#define	idassert_sasl_flags	idassert_la.la_sasl_flags
+#define	idassert_sasl_mech	idassert_la.la_sasl_mech
+#define	idassert_sasl_realm	idassert_la.la_sasl_realm
 	BerVarray	idassert_authz;
 	
-	int		idassert_authmethod;
-	int		idassert_sasl_flags;
-	struct berval	idassert_sasl_mech;
-	struct berval	idassert_sasl_realm;
-
 	int		idassert_ppolicy;
 	/* end of ID assert stuff */
 #endif /* LDAP_BACK_PROXY_AUTHZ */
