@@ -407,6 +407,10 @@ fi
 
 dnl AM_C_PROTOTYPES
 
+dnl Check cc depend flags
+OL_CC_DEPEND
+
+
 dnl Checks for libraries
 
 dnl Find socket()

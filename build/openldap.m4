@@ -79,6 +79,34 @@ AC_SUBST(LN_H)dnl
 ])dnl
 dnl
 dnl ====================================================================
+dnl Check for dependency generation flag
+AC_DEFUN([OL_CC_DEPEND], [# test for cc depend flag
+AC_CACHE_CHECK([for ${CC-cc} depend flag], ol_cv_cc_depend,
+[	ol_cv_cc_depend=no
+	if test $GCC = yes ; then
+		ol_cv_cc_depend="-M"
+	else
+		for flag in "-M" "-xM"; do
+			cat > conftest.c <<EOF
+ noCode;
+EOF
+			if AC_TRY_COMMAND(${CC-cc} $flag conftest.c) \
+				| egrep '^conftest\.'"${ac_objext}" >/dev/null 2>&1
+			then
+				cc_cv_cc_depend=$flag
+				break
+			fi
+		done
+		rm -f conftest*
+	fi])
+if test "${ol_cv_cc_depend}" != no ; then
+	CC_DEPEND_FLAGS="${ol_cv_cc_depend}"
+	AC_SUBST(CC_DEPEND_FLAGS)
+else
+	AC_MSG_WARN([do not know how to generate dependencies])
+fi])
+dnl
+dnl ====================================================================
 dnl Check if system uses EBCDIC instead of ASCII
 AC_DEFUN([OL_CPP_EBCDIC], [# test for EBCDIC
 AC_MSG_CHECKING([for EBCDIC])
