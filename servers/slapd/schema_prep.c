@@ -476,8 +476,8 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_superiorUUID) },
 
 #ifdef LDAP_CACHING 
-	/* LDAP cache specific operation attribute */
-	{ "queryid", "( 2.5.18.16 NAME 'queryid' "   
+	/* LDAP cache specific operational attribute */
+	{ "queryid", "( 1.3.6.1.4.1.4203.666.1.12 NAME 'queryid' "
 			"DESC 'list of queries the entry belongs to' "
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
