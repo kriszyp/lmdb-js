@@ -5,6 +5,7 @@ OpenLDAP 2.1.29 Release
 	Fixed slapd sasl-regexp debug crash (ITS#3033)
 	Fixed back-bdb empty suffix bug (ITS#2970)
 	Fixed back-bdb IDL avl_delete failure bug (ITS#3004)
+	Fixed libldap assert failure (ITS#2982)
 
 OpenLDAP 2.1.28 Release
 	Fixed back-bdb slapadd crash (ITS#2974)
