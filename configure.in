@@ -18,184 +18,177 @@ AC_CONFIG_AUX_DIR(build)
 AC_CONFIG_HEADER(include/portable.h)dnl
 dnl
 dnl Start Args
-AC_MSG_CHECKING(arguments)
+AC_MSG_CHECKING(configure arguments)
 AC_PREFIX_DEFAULT(/usr/local)
 
 dnl General "enable" options
-CF_ARG_OPTION(debug,[  --enable-debug	enable debugging (yes)],[
-	LDAP_DEBUG=no],[LDAP_DEBUG=yes],yes)dnl
-CF_ARG_OPTION(syslog,[  --enable-syslog	enable syslog support (no)],[
-	LDAP_CLDAP=yes],[LDAP_CLDAP=no],no)dnl
-CF_ARG_OPTION(libui,[  --enable-libui	enable library user interface (yes)],[
-	LDAP_LIBUI=no],[LDAP_LIBUI=yes],yes)dnl
-CF_ARG_OPTION(cache,[  --enable-cache	enable caching (yes)],[
-	LDAP_CACHE=no],[LDAP_CACHE=yes],yes)dnl
-CF_ARG_OPTION(dns,[  --enable-dns	enable dns support (no)],[
-	LDAP_DNS=yes],[LDAP_DNS=no],no)dnl
-CF_ARG_OPTION(referrals,[  --enable-referrals	enable referrals (yes)],[
-	LDAP_REFERRALS=no],[LDAP_REFERRALS=yes],yes)dnl
-
-CF_ARG_OPTION(cldap,[  --enable-clapd	enable connectionless ldap (no)],[
-	LDAP_CLDAP=yes],[LDAP_CLDAP=no],no)dnl
+OL_ARG_ENABLE(debug,[  --enable-debug	enable debugging], yes)dnl
+#OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
+OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
+OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
+OL_ARG_ENABLE(dns,[  --enable-dns	enable dns support], auto)dnl
+OL_ARG_ENABLE(referrals,[  --enable-referrals	enable referrals], yes)dnl
+OL_ARG_ENABLE(cldap,[  --enable-clapd	enable connectionless ldap], no)dnl
 
 dnl General "with" options
-AC_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos (no)],[
-	opt_kerberos=yes],[opt_kerberos=no])
-AC_ARG_WITH(kerberos-afs,[  --with-kerberos-afs	use AFS Kerberos (no)],[
-	opt_kerberos_afs=yes],[opt_kerberos_afs=no])
-AC_ARG_WITH(threads,[  --with-threads	use threads (yes)],[
-	opt_threads=yes],[opt_threads=no])
+OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
+	auto, [auto k5 k4 afs yes no])
+OL_ARG_WITH(threads,[  --with-threads	use threads],
+	auto, [auto posix dce mach yes no] )
 
 dnl Server options
 
 dnl LDAPD OPTIONS
-CF_ARG_OPTION(ldapd,[  --enable-ldapd	enable building ldapd (no)],[
-	BUILD_LDAPD=yes],[BUILD_LDAPD=no],no)dnl
+OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 
 dnl SLAPD OPTIONS
-CF_ARG_OPTION(slapd,[  --enable-slapd	enable building slapd (yes)],[
-	BUILD_SLAPD=no],[BUILD_SLAPD=yes],yes)dnl
-CF_ARG_OPTION(aclgroup,[    --enable-aclgroup	enable ACL group support (yes)],[
-	SLAPD_ACLGROUP=no],[SLAPD_ALCGROUP=yes],yes)dnl
-CF_ARG_OPTION(crypt,[    --enable-crypt	enable crypt(3) passwords (yes)],[
-	SLAPD_CRYPT=no],[SLAPD_CRYPT=yes],yes)dnl
-CF_ARG_OPTION(md5,[    --enable-md5	enable MD5 passwords (yes)],[
-	SLAPD_MD5=no],[SLAPD_MD5=yes],yes)dnl
-CF_ARG_OPTION(sha1,[    --enable-sha1	enable SHA1 passwords (yes)],[
-	SLAPD_SHA1=no],[SLAPD_SHA1=yes],yes)dnl
-CF_ARG_OPTION(wrappers,[    --enable-wrappers	enable tcp wrapper support (no)],[
-	SLAPD_TCP_WRAPPERS=yes],[SLAPD_TCP_WRAPPERS=no],no)dnl
-CF_ARG_OPTION(phonetic,[    --enable-phonetic	enable phonetic/soundex  (no)],[
-	SLAPD_PHONETIC=yes],[SLAPD_PHONETIC=no],no)dnl
-CF_ARG_OPTION(rlookups,[    --enable-rlookups	enable reverse lookups (yes)],[
-	SLAPD_RLOOKUP=no],[SLAPD_RLOOKUP=yes],yes)dnl
+OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
+OL_ARG_ENABLE(aclgroup,[    --enable-aclgroup	enable ACL group support], auto)dnl
+OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
+OL_ARG_ENABLE(md5,[    --enable-md5	enable MD5 passwords], auto)dnl
+OL_ARG_ENABLE(sha1,[    --enable-sha1	enable SHA1 passwords], auto)dnl
+OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
+OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
+OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 
 dnl SLAPD Backend options
-CF_ARG_OPTION(ldbm,[    --enable-ldbm	enable ldbm backend (yes)],[
-	SLAPD_LDBM=no],[SLAPD_LDBM=yes],yes)dnl
-CF_ARG_OPTION(passwd,[    --enable-passwd	enable passwd backend (yes)],[
-	SLAPD_PASSWD=no],[SLAPD_PASSWD=yes],yes)dnl
-CF_ARG_OPTION(shell,[    --enable-shell	enable shell backend (yes)],[
-	SLAPD_SHELL=no],[SLAPD_SHELL=yes],yes)dnl
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
+OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
+	[auto db2 db gdbm ndbm])
+OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
+	[auto btree hash])
 
-AC_ARG_WITH(ndbm,[    --with-ndbm		use NDB for LDBM backend (any)],[
-	opt_ndbm=yes],[opt_ndbm=no])
-AC_ARG_WITH(gdbm,[    --with-gdbm		use GDBM for LDBM backend (any)],[
-	opt_gdbm=yes],[opt_gdbm=no])
-AC_ARG_WITH(dbhash,[    --with-dbhash	use Berkeley DB Hash for LDBM backend (any)],[
-	opt_dbhash=yes],[opt_dbhash=no])
-AC_ARG_WITH(dbbtree,[    --with-dbbtree	use Berkeley DB Btrees for LDBM backend (any)],[
-	opt_dbbtree=yes],[opt_dbbtree=no])
-AC_ARG_WITH(db2,[    --with-db2		use Berkeley DB2 API (any)],[
-	opt_db2=yes],[opt_db2=no])
+OL_ARG_ENABLE(passwd,[    --enable-passwd	enable passwd backend], no)dnl
+OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
 
 dnl SLURPD OPTIONS
-CF_ARG_OPTION(slurpd,[  --enable-slurpd	enable building slurpd (yes)],[
-	BUILD_SLURPD=no],[BUILD_SLURPD=yes],yes)dnl
+OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
+
+if test $ol_enable_slapd = no ; then
+	dnl SLAPD was specificallly disabled
+	if test $ol_enable_ldbm = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_ldbm argument]);
+	fi
+	if test $ol_enable_passwd = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_passwd argument]);
+	fi
+	if test $ol_enable_shell = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_shell argument]);
+	fi
+	if test $ol_enable_aclgroup = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_aclgroup argument]);
+	fi
+	if test $ol_enable_crypt = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_crypt argument]);
+	fi
+	if test $ol_enable_md5 = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_md5 argument]);
+	fi
+	if test $ol_enable_sha1 = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_sha1 argument]);
+	fi
+	if test $ol_enable_wrappers = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_wrappers argument]);
+	fi
+	if test $ol_enable_phonetic = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_phonetic argument]);
+	fi
+	if test $ol_enable_rlookups = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_rlookups argument]);
+	fi
+	if test $ol_with_ldbm_api != auto ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_api argument]);
+	fi
+	if test $ol_with_ldbm_type != auto ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_type argument]);
+	fi
+	if test $ol_enable_slurpd = yes ; then
+		AC_MSG_ERROR([slurpd requires slapd]);
+	fi
+
+	# force settings to no
+	ol_enable_ldbm=no
+	ol_enable_shell=no
+	ol_enable_passwd=no
+	ol_enable_aclgroup=no
+	ol_enable_crypt=no
+	ol_enable_md5=no
+	ol_enable_sha1=no
+	ol_enable_wrappers=no
+	ol_enable_phonetic=no
+	ol_enable_rlookups=no
+	ol_with_ldbm_api=no
+	ol_with_ldbm_type=no
+	ol_enable_slurpd=no
+
+elif test $ol_enable_ldbm = no ; then
+	dnl SLAPD without LDBM
+
+	if test $ol_with_ldbm_api != auto ; then
+		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_api argument]);
+	fi
+
+	if test $ol_with_ldbm_type != auto ; then
+		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_type argument]);
+	fi
+
+	if test $ol_enable_passwd = no -a $ol_enable_shell = no ; then
+		AC_MSG_ERROR([slapd requires a backend]);
+	fi
+
+	ol_with_ldbm_api=no
+	ol_with_ldbm_type=no
+
+else
+	dnl SLAPD with LDBM
+
+	if test $ol_with_ldbm_api = gdbm -a \
+		$ol_with_ldbm_type = btree ; then
+		AC_MSG_ERROR([GDBM only supports LDBM type hash]);
+	fi
+	if test $ol_with_ldbm_api = ndbm -a \
+		$ol_with_ldbm_type = btree ; then
+		AC_MSG_ERROR([NDBM only supports LDBM type hash]);
+	fi
+fi
+
+if test $ol_enable_slurpd = yes ; then
+	dnl SLURPD was specifically enabled
+	if test $ol_with_threads = no ; then
+		AC_MSG_ERROR([slurpd requires threads]);
+	fi
+fi
 
 AC_MSG_RESULT(done)
 
-AC_MSG_CHECKING(LDBM preferences)
-ldbm_prefer=any
-
-if test "$opt_ndbm" = yes ; then
-	ldbm_prefer=ndbm
-fi
-if test "$opt_gdbm" = yes ; then
-	ldbm_prefer=gdbm
-fi
-if test "$opt_dbhash" = yes ; then
-	ldbm_prefer=dbhash
-fi
-if test "$opt_dbbtree" = yes ; then
-	ldbm_prefer=dbbtree
-fi
-AC_MSG_RESULT($ldbm_prefer)
-
-if test "$BUILD_SLAPD" != "yes" ; then
-	BUILD_SLURPD="no"
-	SLAPD_LDBM="no"
-	SLAPD_PASSWD="no"
-	SLAPD_SHELL="no"
-	ldbm_prefer="none"
-fi
-
-## general LDAP arguments
+## Initialize vars
 LDAP_DEFS=
 LDAP_LIBS=
 LDBM_DEFS=
 LDBM_LIBS=
+LTHREAD_DEFS=
+LTHREAD_LIBS=
 LUTIL_DEFS=
 LUTIL_LIBS=
 
-if test "$LDAP_DEBUG" = "yes" ; then
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
-fi
-if test "$LDAP_SYSLOG" = "yes" ; then
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_SYSLOG"
-fi
-if test "$LDAP_DNS" = "yes" ; then
-dnl	AC_DEFINE(LDAP_DNS,1)
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_DNS"
-fi
-if test "$LDAP_REFERRALS" = "yes" ; then
-dnl	AC_DEFINE(LDAP_REFERRALS,1)
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_REFERRALS"
-fi
-if test "$LDAP_CACHE" = "no" ; then
-	AC_DEFINE(LDAP_NOCACHE,1)
-	LDAP_DEFS="$LDAP_DEFS -DNO_CACHE"
-fi
-if test "$LDAP_CLDAP" = "yes" ; then
-	AC_DEFINE(LDAP_CONNECTIONLESS,1)
-	LDAP_DEFS="$LDAP_DEFS -DCLDAP"
-fi
-
-## ldapd arguments
 LDAPD_DEFS=
 LDAPD_LIBS=
-
-## slapd arguments
 SLAPD_DEFS=
 SLAPD_LIBS=
-if test "$SLAPD_PHONETIC" = "yes" ; then
-	AC_DEFINE(SLAPD_PHONETIC,1)
-	SLAPD_DEFS="$SLAPD_DEFS -DSOUNDEX"
-fi
-
-if test "$SLAPD_MD5" = "yes" ; then
-dnl	AC_DEFINE(SLAPD_MD5,1)
-	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_MD5"
-fi
-
-if test "$SLAPD_SHA1" = "yes" ; then
-dnl	AC_DEFINE(SLAPD_SHA1,1)
-	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_SHA1"
-fi
-
-BUILD_LDBM=no
-if test "$SLAPD_LDBM" = "yes" ; then
-dnl	AC_DEFINE(SLAPD_LDBM,1)
-	BUILD_LDBM=yes
-	LDBM_DEFS="$LDBM_DEFS -DLDAP_LDBM"
-fi
-if test "$SLAPD_PASSWD" = "yes" ; then
-dnl	AC_DEFINE(SLAPD_PASSWD,1)
-	SLAPD_DEFS="$SLAPD_DEFS -DLDAP_PASSWD"
-fi
-if test "$SLAPD_SHELL" = "yes" ; then
-dnl	AC_DEFINE(SLAPD_SHELL,1)
-	SLAPD_DEFS="$SLAPD_DEFS -DLDAP_SHELL"
-fi
-
-dnl slurpd arguments
 SLURPD_DEFS=
 SLURPD_LIBS=
 
-dnl End Args
+BUILD_LDAPD=no
+BUILD_SLAPD=no
+BUILD_SLURPD=no
+
+BUILD_LDBM=no
+BUILD_PASSWD=no
+BUILD_SHELL=no
 
 dnl ----------------------------------------------------------------
 dnl Checks for programs
+
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 
@@ -212,59 +205,27 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
-LTHREAD_LIBS=
-if test "$opt_thread" = "no" ; then
-	LTHREAD_DEFS="-DNO_THREADS"
-	BUILD_SLURPD=no
-else
+ol_link_threads=no
+if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 	AC_CHECK_HEADERS(pthread.h sched.h)
 
 	if test "$ac_cv_header_pthread_h" = yes ; then
-		dnl We have some form of pthreads
-		AC_CACHE_CHECK([POSIX thread version],cf_cv_pthread_version,[
-			AC_EGREP_CPP(final,[
-#include <pthread.h>
-/* this check could be improved */
-#ifdef PTHREAD_ONCE_INIT
-	final
-#endif
-			], pthread_final=yes, pthread_final=no)
+		OL_POSIX_THREAD_VERSION
 
-			AC_EGREP_CPP(draft4,[
-#include <pthread.h>
-/* this check could be improved */
-#ifdef pthread_once_init
-	draft4
-#endif
-			], pthread_draft4=yes, pthread_draft4=no)
-
-			if test $pthread_final = yes -a $pthread_draft4 = no; then
-				cf_cv_pthread_version=final
-			elif test $pthread_final = no -a $pthread_draft4 = yes; then
-				cf_cv_pthread_version=draft4
-			else
-				cf_cv_pthread_version=unknown
-			fi
-		])
-		
-		if test $cf_cv_pthread_version = final ; then
+		if test $ol_cv_pthread_version = final ; then
 			LTHREAD_DEFS="$LTHREAD_DEFS -DPOSIX_THREADS"
-		elif test $cf_cv_pthread_version = draft4 ; then
+		elif test $ol_cv_pthread_version = draft4 ; then
 			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_MIT_PTHREADS"
 		else
-			AC_MSG_ERROR(unknown pthread version)
+			AC_MSG_ERROR([unknown pthread version])
 		fi
 
-		AC_CACHE_CHECK([for LinuxThreads], cf_cv_linux_threads, [
-			res=`grep Linuxthreads /usr/include/pthread.h 2>/dev/null | wc -l`
-			if test "$res" -gt 0 ; then
-				cf_cv_linux_threads=yes
-			else
-				cf_cv_linux_threads=no
-			fi
-		])
+		# consider threads found
+		ol_with_threads="posix"
 
-		if test $cf_cv_linux_threads = yes ; then
+		OL_LINUX_THREADS
+
+		if test $ol_cv_linux_threads = yes ; then
 dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 			LTHREAD_DEFS="$LTHREAD_DEFS -DHAVE_LINUX_THREADS"
 		fi
@@ -272,170 +233,212 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 		dnl Now the hard part, how to link
 
 		dnl A few platforms have pthread support in standard libraries
-		AC_CHECK_FUNC(pthread_create,pthread_link=yes,pthread_link=no)
+		AC_CHECK_FUNC(pthread_create,ol_link_threads=yes)
 
-		if test $pthread_link = no ; then
+		if test $ol_link_threads = no ; then
 			dnl try -pthread
 			AC_CACHE_CHECK([for pthread_create with -pthread],
-				cf_cv_pthread_flag, [
+				[ol_cv_pthread_flag], [
 				dnl save the CPPFLAGS
 				save_LIBS="$LIBS"
 				LIBS="-pthread $LIBS"
 				AC_TRY_LINK([#include <pthread.h>],[
 					pthread_create((pthread_t*) 0,
 						(pthread_attr_t*) 0, 0, 0);
-					], cf_cv_pthread_flag=yes, cf_cv_pthread_flag=no)
+					], ol_cv_pthread_flag=yes, ol_cv_pthread_flag=no)
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
 
-			if test $cf_cv_pthread_flag = yes ; then
+			if test $ol_cv_pthread_flag = yes ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
-				pthread_link=yes
+				ol_link_threads=yes
 			fi
 		fi
 
-		if test $pthread_link = no ; then
+		if test $ol_link_threads = no ; then
 			dnl try -lpthread
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthread, pthread_create, [
-				pthread_link=yes
+				ol_link_threads=yes
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"])
 			LIBS="$save_LIBS"
 		fi
 
-		if test $pthread_link = no ; then
+		if test $ol_link_threads = no ; then
 			dnl try -lc_r
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(c_r, pthread_create, [
-				pthread_link=yes
+				ol_link_threads=yes
 				LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"])
 			LIBS="$save_LIBS"
 		fi
 
-		if test $pthread_link = no ; then
+		if test $ol_link_threads = no ; then
 			dnl try DEC Threads
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthread, pthread_create, [
-				pthread_link=yes
+				ol_link_threads=yes
 				LTHREAD_DEFS="$LTHREAD_DEFS -DDEC_THREADS"
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
 				[-lmach -lexc -lc])
 			LIBS="$save_LIBS"
 		fi
 
-	else
-		LTHREAD_DEFS="-DNO_THREADS"
-	fi
-fi
-
-# check for strtok_r (and presumely other reentrant functions)
-save_LIBS="$LIBS"
-LIBS="$save_LIBS $LTHREAD_LIBS"
-AC_CHECK_LIB(pthread,strtok_r)
-
-if test $ac_cv_lib_pthread_strtok_r = no ; then
-	LIBS="$save_LIBS $LTHREAD_LIBS"
-	AC_CHECK_LIB(c_r,strtok_r)
-	AC_CHECK_FUNCS(strtok_r sched_yield)
-	if test $ac_cv_lib_c_r_strtok_r = yes ; then
-		LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"
-	fi
-else
-	AC_CHECK_FUNCS(strtok_r sched_yield)
-fi
-
-LIBS="$save_LIBS"
-
-
-ldbm_use="none"
-if test "$SLAPD_LDBM" = "yes" ; then
-	if test $ldbm_prefer = any -o $ldbm_prefer = dbbtree \
-			-o $ldbm_prefer = dbhash ; then
-		AC_CHECK_FUNC(dbopen,[
-			ldbm_use=$ldbm_prefer
-			ldbm_prefer=found],[
-			AC_CHECK_LIB(db,dbopen,[
-				ldbm_use=$ldbm_prefer
-				ldbm_prefer=found
-				LDBM_LIBS="$LDBM_LIBS -ldb"
-			]) 
-		])
-
-		if test $ldbm_prefer = found ; then
-			if test $ldbm_use = dbhash ; then
-dnl				AC_DEFINE(LDBM_USE_DBHASH,1)
-				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBHASH"
-			else
-dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
-				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
-			fi
+		if test $ol_link_threads = no ; then
+			AC_MSG_ERROR([could not link with POSIX Threads])
 		fi
+	elif test $ol_with_threads = posix ; then
+		AC_MSG_ERROR([could not locate POSIX Threads])
+	fi
+fi
 
-		AC_CACHE_CHECK(for db2, cf_cv_db2,[
-			AC_EGREP_CPP(__db_version_2,[
-#include <db.h>
-/* this check could be improved */
-#ifdef DB_VERSION_MAJOR
-#if DB_VERSION_MAJOR == 2
-	__db_version_2
-#endif
-#endif
-			], cf_cv_db2=yes, cf_cv_db2=no)])
+if test $ol_link_threads = no ; then
+	if test $ol_with_threads = yes ; then
+		AC_MSG_ERROR([no suitable thread support])
+	fi
 
-		if test $cf_cv_db2 = yes ; then
-			if test $opt_db2 = yes ; then
-				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2"
-			else
-				AC_CHECK_HEADERS(db_185.h)
-				if test $ac_cv_header_db_185_h = no ; then
-					AC_MSG_ERROR([select --with-db2 or install db2 with 1.85 compatibility])
-				fi
+	if test $ol_with_threads = auto ; then
+		AC_MSG_WARN([no suitable thread support, disabling threads])
+		$ol_with_threads = no
+	fi
 
-				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2_COMPAT185"
-			fi
+	LTHREAD_DEFS="-DNO_THREADS"
+	LTHREAD_LIBS=""
+fi
+
+dnl	# check for strtok_r (and presumely other reentrant functions)
+dnl	save_LIBS="$LIBS"
+dnl	LIBS="$save_LIBS $LTHREAD_LIBS"
+dnl	AC_CHECK_LIB(pthread,strtok_r)
+dnl 
+dnl	if test $ac_cv_lib_pthread_strtok_r = no ; then
+dnl	LIBS="$save_LIBS $LTHREAD_LIBS"
+dnl	AC_CHECK_LIB(c_r,strtok_r)
+dnl	AC_CHECK_FUNCS(strtok_r sched_yield)
+dnl	if test $ac_cv_lib_c_r_strtok_r = yes ; then
+dnl		LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"
+dnl	fi
+dnl	else
+dnl	AC_CHECK_FUNCS(strtok_r sched_yield)
+dnl	fi
+dnl
+dnl	LIBS="$save_LIBS"
+
+
+ol_link_ldbm=no 
+if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
+	OL_BERKELEY_DB2
+
+	if test $ol_cv_berkeley_db2 = yes ; then
+		ol_link_ldbm=db2
+		ol_with_ldbm_api=db2
+
+		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2"
+
+		if test $ol_with_ldbm_type = hash ; then
+			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBHASH"
 		else
-			if test $opt_db2 = yes ; then
-				AC_MSG_ERROR(could not local DB2)
-			fi
+			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
 		fi
-	fi
 
-	if test $ldbm_prefer = any -o $ldbm_prefer = gdbm ; then
-		AC_CHECK_LIB(gdbm, gdbm_open,[
-			ldbm_use=$ldbm_prefer
-			ldbm_prefer=found
-			LDBM_LIBS="$LDBM_LIBS -lgdbm"
-dnl			AC_DEFINE(LDBM_USE_GDBM,1)
-			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_GDBM"
-		]) 
-	fi
-	if test $ldbm_prefer = any -o $ldbm_prefer = ndbm ; then
-		AC_CHECK_LIB(dbm,dbm_open,[
-			ldbm_use=ndbm
-			ldbm_prefer=found
-			LDBM_LIBS="$LDBM_LIBS -ldbm"
-dnl			AC_DEFINE(LDBM_USE_NDBM,1)
-			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_NDBM"
-		]) 
-	fi
-
-	if test $ldbm_prefer != found ; then
-		AC_MSG_ERROR(could not find suitable db for $ldbm_prefer backend)
-	fi
-
-	if test $ldbm_use = ndbm ; then
-		AC_MSG_WARN(LDBM using NDBM, functionality will be limited)
+		if test $ol_cv_lib_db2 != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db2"
+		fi
 	fi
 fi
 
-if test "$SLAPD_TCP_WRAPPERS" = "yes" ; then
-	AC_CHECK_LIB(wrap, hosts_access, [
+if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
+	OL_BERKELEY_DB
+
+	if test $ol_cv_berkeley_db = yes ; then
+		ol_link_ldbm=db
+		ol_with_ldbm_api=db
+
+		if test $ac_cv_header_db_185_h = yes ; then
+			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2_COMPAT185"
+		fi
+
+		if test $ol_with_ldbm_type = hash ; then
+			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBHASH"
+		else
+			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
+		fi
+
+		if test $ol_cv_lib_db != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db"
+		fi
+	fi
+fi
+
+if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
+	AC_MSG_WARN(Could not find LDBM with BTREE support);
+	$ol_with_ldbm_api=none
+fi
+
+if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
+	OL_GDBM
+
+	if test $ol_cv_gdbm = yes ; then
+		ol_link_ldbm=gdbm
+		ol_with_ldbm_api=gdbm
+
+		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_GDBM"
+
+		if test $ol_cv_lib_db != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_gdbm"
+		fi
+	fi
+fi
+
+if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = ndbm ; then
+	OL_NDBM
+
+	if test $ol_cv_ndbm = yes ; then
+		ol_link_ldbm=ndbm
+		ol_with_ldbm_api=ndbm
+
+		if test $ol_with_ldbm_api = ndbm ; then
+			AC_WARN([Attempting to use NDBM.  Functionality will be limited.])
+		fi
+
+		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_NDBM"
+
+		if test $ol_cv_lib_db != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_ndbm"
+		fi
+	fi
+fi
+
+if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
+	AC_MSG_WARN(could not find suitable LDBM backend)
+	if test $ol_enable_ldbm = yes ; then
+		AC_MSG_ERROR(select appropriate LDBM options or disable)
+	fi
+
+	AC_MSG_WARN(disabling LDBM)
+	$ol_enable_ldbm=no
+fi
+
+if test $ol_enable_wrappers = yes ; then
+	AC_CHECK_LIB(wrap, hosts_access,
+		[have_wrappers=yes], [have_wrappers=no])
+
+	if test $have_wrappers = yes ; then
 dnl		LIBTCPD="-lwrap"
 dnl		AC_DEFINE(HAVE_TCPD)
 		SLAPD_DEFS="$SLAPD_DEFS -DTCP_WRAPPERS"
 		SLAPD_LIBS="$SLAPD_LIBS -lwrap"
-	])
+	else
+		AC_MSG_WARN(could not find -lwrap)
+		if test $ol_enable_wrappers = yes ; then
+			AC_MSG_ERROR(could not find wrappers, select appropriate options or disable)
+		fi
+
+		AC_MSG_WARN(disabling wrappers support)
+		ol_enable_wrappers=no
+	fi
+
 fi
 
 # ud needs termcap (should insert check here)
@@ -443,7 +446,7 @@ LIBTERMCAP="-ltermcap"
 AC_SUBST(LIBTERMCAP)
 
 # FreeBSD (and others) have crypt(3) in -lcrypt
-if test "$SLAPD_CRYPT" = "yes" ; then
+if test $ol_enable_crypt != no ; then
 	AC_CHECK_FUNC(crypt, have_crypt=yes, [
 		AC_CHECK_LIB(crypt, crypt, [LUTIL_LIBS="$LUTIL_LIBS -lcrypt"
 			have_crypt=yes], [have_crypt=no])])
@@ -452,7 +455,13 @@ if test "$SLAPD_CRYPT" = "yes" ; then
 dnl		AC_DEFINE(SLAPD_CRYPT,1)
 		LUTIL_DEFS="$LUTIL_DEFS -DLDAP_CRYPT"
 	else
-		AC_MSG_WARN(could not find crypt, disabling crypt support)
+		AC_MSG_WARN(could not find crypt)
+		if test $ol_enable_crypt = yes ; then
+			AC_MSG_ERROR(could not find crypt, select appropriate options or disable)
+		fi
+
+		AC_MSG_WARN(disabling crypt support)
+		ol_enable_crypt=no
 	fi
 fi
 
@@ -520,9 +529,86 @@ AC_REPLACE_FUNCS(strdup)
 
 dnl ----------------------------------------------------------------
 # Check Configuration
-CF_SYS_ERRLIST
+OL_SYS_ERRLIST
 
 dnl ----------------------------------------------------------------
+dnl Sort out defines
+
+if test $ol_enable_debug != no ; then
+	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
+fi
+#if test $ol_enable_syslog != no ; then
+#	LDAP_DEFS="$LDAP_DEFS -DLDAP_SYSLOG"
+#fi
+if test $ol_enable_libui = no ; then
+	LDAP_DEFS="$LDAP_DEFS -DNO_USERINTERFACE"
+fi
+if test $ol_enable_cache = no ; then
+	LDAP_DEFS="$LDAP_DEFS -DNO_CACHE"
+fi
+if test $ol_enable_dns != no ; then
+	LDAP_DEFS="$LDAP_DEFS -DLDAP_DNS"
+fi
+if test $ol_enable_referrals != no ; then
+	LDAP_DEFS="$LDAP_DEFS -DLDAP_REFERRALS"
+fi
+if test $ol_enable_cldap != no ; then
+	LDAP_DEFS="$LDAP_DEFS -DCLDAP"
+fi
+
+if test $ol_enable_aclgroup != no ; then
+	AC_DEFINE(SLAPD_ACLGROUP,1)
+	SLAPD_DEFS="$SLAPD_DEFS -DACLGROUP"
+fi
+
+if test $ol_enable_md5 != no ; then
+dnl	AC_DEFINE(SLAPD_MD5,1)
+	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_MD5"
+fi
+
+if test $ol_enable_sha1 != no ; then
+dnl	AC_DEFINE(SLAPD_SHA1,1)
+	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_SHA1"
+fi
+
+if test $ol_enable_phonetic != no ; then
+	AC_DEFINE(SLAPD_PHONETIC,1)
+	SLAPD_DEFS="$SLAPD_DEFS -DSOUNDEX"
+fi
+
+if test $ol_enable_rlookups != no ; then
+	AC_DEFINE(SLAPD_RLOOKUPS,1)
+	SLAPD_DEFS="$SLAPD_DEFS -DREVERSE_LOOKUPS"
+fi
+
+if test $ol_link_ldbm != no ; then
+dnl	AC_DEFINE(SLAPD_LDBM,1)
+	BUILD_SLAPD=yes
+	BUILD_LDBM=yes
+	LDBM_DEFS="-DLDAP_LDBM $LDBM_DEFS"
+fi
+
+if test $ol_enable_passwd != no ; then
+dnl	AC_DEFINE(SLAPD_PASSWD,1)
+	BUILD_SLAPD=yes
+	BUILD_PASSWD=yes
+	SLAPD_DEFS="-DLDAP_PASSWD $SLAPD_DEFS"
+fi
+
+if test $ol_enable_shell != no ; then
+dnl	AC_DEFINE(SLAPD_SHELL,1)
+	BUILD_SLAPD=yes
+	BUILD_SHELL=yes
+	SLAPD_DEFS="-DLDAP_SHELL $SLAPD_DEFS"
+fi
+
+if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
+	$BUILD_SLAPD = yes ; then
+	BUILD_SLURPD=yes
+fi
+
+dnl ----------------------------------------------------------------
+
 AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDBM)
@@ -537,9 +623,6 @@ AC_SUBST(LDAPD_DEFS)
 AC_SUBST(LDAPD_LIBS)
 AC_SUBST(SLAPD_DEFS)
 AC_SUBST(SLAPD_LIBS)
-  AC_SUBST(SLAPD_LDBM)
-  AC_SUBST(SLAPD_PASSWD)
-  AC_SUBST(SLAPD_SHELL)
 AC_SUBST(SLURPD_DEFS)
 AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_DEFS)

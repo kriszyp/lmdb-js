@@ -2,7 +2,7 @@ SRCS	= search.c config.c
 OBJS	= search.o config.o
 
 BUILD_OPT = "--enable-passwd"
-BUILD_SRV = @SLAPD_PASSWD@
+BUILD_SRV = @BUILD_PASSWD@
 
 PROGRAMS= libback-passwd.a
 XINCLUDEDIR= -I..

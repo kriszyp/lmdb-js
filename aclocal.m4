@@ -1,50 +1,266 @@
-dnl --------------------------------------------------------------------
-dnl Restricted form of AC_ARG_ENABLE that ensures user doesn't give bogus
-dnl values.
 dnl
-dnl Parameters:
+dnl OpenLDAP Autoconf Macros
+dnl
+dnl --------------------------------------------------------------------
+dnl Restricted form of AC_ARG_ENABLE that limits user options
+dnl
 dnl $1 = option name
 dnl $2 = help-string
-dnl $3 = action to perform if option is not default
-dnl $4 = action if perform if option is default
-dnl $5 = default option value (either 'yes' or 'no')
-AC_DEFUN([CF_ARG_OPTION],
-[AC_ARG_ENABLE($1,[$2],[test "$enableval" != ifelse($5,no,yes,no) && enableval=ifelse($5,no,no,yes)
-  if test "$enableval" != "$5" ; then
-ifelse($3,,[    :]dnl
-,[    $3]) ifelse($4,,,[
-  else
-    $4])
-  fi],[enableval=$5 ifelse($4,,,[
-  $4
+dnl $3 = default value	(auto)
+dnl $4 = allowed values (auto yes no)
+AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
+	AC_ARG_ENABLE($1,[$2 (]ifelse($3,,auto,$3)[)],[
+	ol_arg=invalid
+	for ol_val in ifelse($4,,[auto yes no],[$4]) ; do
+		if test "$enableval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		AC_MSG_ERROR(bad value $enableval for --enable-$1)
+	fi
+	ol_enable_$1="$ol_arg"
+],
+[	ol_enable_$1=ifelse($3,,"auto","$3")])dnl
+dnl AC_VERBOSE(OpenLDAP -enable-$1 $ol_enable_$1)
+# end --enable-$1
 ])dnl
-  ])])dnl
+dnl
 dnl --------------------------------------------------------------------
+dnl Restricted form of AC_ARG_WITH that limits user options
+dnl
+dnl $1 = option name
+dnl $2 = help-string
+dnl $3 = default value (no)
+dnl $4 = allowed values (yes or no)
+AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
+	AC_ARG_WITH($1,[$2 (]ifelse($3,,yes,$3)[)],[
+	ol_arg=invalid
+	for ol_val in ifelse($4,,[yes no],[$4]) ; do
+		if test "$withval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		AC_MSG_ERROR(bad value $withval for --with-$1)
+	fi
+	ol_with_$1="$ol_arg"
+],
+[	ol_with_$1=ifelse($3,,"no","$3")])dnl
+dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
+# end --with-$1
+])dnl
+dnl
+dnl ====================================================================
+dnl Check if db.h is Berkeley DB2
+AC_DEFUN([OL_HEADER_BERKELEY_DB2],
+[AC_CHECK_HEADERS(db.h)
+if test $ac_cv_header_db_h = yes ; then
+	AC_CACHE_CHECK(if db.h is DB2, [ol_cv_header_db2],[
+		AC_EGREP_CPP(__db_version_2,[
+#			include <db.h>
+			/* this check could be improved */
+#			ifdef DB_VERSION_MAJOR
+#				if DB_VERSION_MAJOR == 2
+					__db_version_2
+#				endif
+#			endif
+		], ol_cv_header_db2=yes, ol_cv_header_db2=no)])
+fi
+])dnl
+dnl --------------------------------------------------------------------
+dnl Check if Berkeley DB2 library exists
+dnl Check for dbopen in standard libraries or -ldb
+AC_DEFUN([OL_LIB_BERKELEY_DB2],
+[AC_CACHE_CHECK(for DB2 library, [ol_cv_lib_db2],
+[	ol_LIBS="$LIBS"
+	AC_CHECK_LIB(db,db_open,[ol_cv_lib_db2=-ldb],[ol_cv_lib_db2=no])
+	LIBS="$ol_LIBS"
+])
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if Berkeley db2 exists
+AC_DEFUN([OL_BERKELEY_DB2],
+[AC_REQUIRE([OL_LIB_BERKELEY_DB2])
+ AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
+ AC_CACHE_CHECK(for Berkeley DB2, [ol_cv_berkeley_db2], [
+	if test $ol_cv_lib_db2 = no -o $ol_cv_header_db2 = no ; then
+		ol_cv_berkeley_db2=no
+	else
+		ol_cv_berkeley_db2=yes
+	fi
+])
+])dnl
+dnl
+dnl ====================================================================
+dnl Check for db.h/db_185.h is Berkeley DB
+AC_DEFUN([OL_HEADER_BERKELEY_DB],
+[AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
+AC_CHECK_HEADERS(db_185.h)
+if test $ol_cv_header_db2 = yes ; then
+	dnl db.h is db2! 
+
+	ol_cv_header_db=$ac_cv_header_db_185_h
+else
+	ol_cv_header_db=$ac_cv_header_db_h
+fi
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if Berkeley DB library exists
+dnl Check for dbopen in standard libraries or -ldb
+AC_DEFUN([OL_LIB_BERKELEY_DB],
+[AC_CACHE_CHECK(for Berkeley DB library, [ol_cv_lib_db],
+[	ol_LIBS="$LIBS"
+	AC_CHECK_FUNC(dbopen,[ol_cv_lib_db=yes], [
+		AC_CHECK_LIB(db,dbopen,[ol_cv_lib_db=-ldb],[ol_cv_lib_db=no])
+	])
+	LIBS="$ol_LIBS"
+])
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if db exists
+AC_DEFUN([OL_BERKELEY_DB],
+[AC_REQUIRE([OL_LIB_BERKELEY_DB])
+ AC_REQUIRE([OL_HEADER_BERKELEY_DB])
+ AC_CACHE_CHECK(for Berkeley DB, [ol_cv_berkeley_db], [
+	if test $ol_cv_lib_db = no -o $ol_cv_header_db = no ; then
+		ol_cv_berkeley_db=no
+	else
+		ol_cv_berkeley_db=yes
+	fi
+])
+])dnl
+dnl
+dnl ====================================================================
+dnl Check if GDBM library exists
+dnl Check for gdbm_open in standard libraries or -lgdbm
+AC_DEFUN([OL_LIB_GDBM],
+[AC_CACHE_CHECK(for GDBM library, [ol_cv_lib_gdbm],
+[	ol_LIBS="$LIBS"
+	AC_CHECK_FUNC(gdbm_open,[ol_cv_lib_gdbm=yes], [
+		AC_CHECK_LIB(gdbm,gdbm_open,[ol_cv_lib_gdbm=-lgdbm],[ol_cv_lib_gdbm=no])
+	])
+	LIBS="$ol_LIBS"
+])
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if GDBM exists
+AC_DEFUN([OL_GDBM],
+[AC_REQUIRE([OL_LIB_GDBM])
+ AC_CHECK_HEADERS(gdbm.h)
+ AC_CACHE_CHECK(for db, [ol_cv_gdbm], [
+	if test $ol_cv_lib_gdbm = no -o $ac_cv_header_gdbm_h = no ; then
+		ol_cv_gdbm=no
+	else
+		ol_cv_gdbm=yes
+	fi
+])
+])dnl
+dnl
+dnl ====================================================================
+dnl Check if NDBM library exists
+dnl Check for dbm_open in standard libraries or -lndbm or -ldbm
+AC_DEFUN([OL_LIB_NDBM],
+[AC_CACHE_CHECK(for NDBM library, [ol_cv_lib_ndbm],
+[	ol_LIBS="$LIBS"
+	AC_CHECK_FUNC(dbm_open,[ol_cv_lib_ndbm=yes], [
+		AC_CHECK_LIB(ndbm,dbm_open,[ol_cv_lib_ndbm=-lndbm], [
+			AC_CHECK_LIB(dbm,dbm_open,[ol_cv_lib_ndbm=-ldbm],
+				[ol_cv_lib_ndbm=no])dnl
+		])
+	])
+	LIBS="$ol_LIBS"
+])
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if NDBM exists
+AC_DEFUN([OL_NDBM],
+[AC_REQUIRE([OL_LIB_NDBM])
+ AC_CHECK_HEADERS(ndbm.h)
+ AC_CACHE_CHECK(for db, [ol_cv_ndbm], [
+	if test $ol_cv_lib_ndbm = no -o $ac_cv_header_ndbm_h = no ; then
+		ol_cv_ndbm=no
+	else
+		ol_cv_ndbm=yes
+	fi
+])
+])dnl
+dnl
+dnl ====================================================================
+dnl Check POSIX Thread version 
+AC_DEFUN([OL_POSIX_THREAD_VERSION],
+[AC_CACHE_CHECK([POSIX thread version],[ol_cv_pthread_version],[
+	AC_EGREP_CPP(final,[
+#		include <pthread.h>
+		/* this check could be improved */
+#		ifdef PTHREAD_ONCE_INIT
+			final
+#		endif
+	], ol_pthread_final=yes, ol_pthread_final=no)
+
+	AC_EGREP_CPP(draft4,[
+#		include <pthread.h>
+		/* this check could be improved */
+#		ifdef pthread_once_init
+			draft4
+#		endif
+	], ol_pthread_draft4=yes, ol_pthread_draft4=no)
+
+	if test $ol_pthread_final = yes -a $ol_pthread_draft4 = no; then
+		ol_cv_pthread_version=final
+	elif test $ol_pthread_final = no -a $ol_pthread_draft4 = yes; then
+		ol_cv_pthread_version=draft4
+	else
+		ol_cv_pthread_version=unknown
+	fi
+])
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check LinuxThread
+AC_DEFUN([OL_LINUX_THREADS],
+[
+AC_CACHE_CHECK([for LinuxThreads], [ol_cv_linux_threads], [
+	res=`grep Linuxthreads /usr/include/pthread.h 2>/dev/null | wc -l`
+	if test "$res" -gt 0 ; then
+		ol_cv_linux_threads=yes
+	else
+		ol_cv_linux_threads=no
+	fi
+])
+])dnl
+dnl
+dnl ====================================================================
 dnl Check for declaration of sys_errlist in one of stdio.h and errno.h.
 dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
 dnl Reported by Keith Bostic.
-AC_DEFUN([CF_SYS_ERRLIST],
+AC_DEFUN([OL_SYS_ERRLIST],
 [
 AC_MSG_CHECKING([declaration of sys_errlist])
-AC_CACHE_VAL(cf_cv_dcl_sys_errlist,[
+AC_CACHE_VAL(ol_cv_dcl_sys_errlist,[
 	AC_TRY_COMPILE([
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h> ],
 	[char *c = (char *) *sys_errlist],
-	[cf_cv_dcl_sys_errlist=yes],
-	[cf_cv_dcl_sys_errlist=no])])
-AC_MSG_RESULT($cf_cv_dcl_sys_errlist)
+	[ol_cv_dcl_sys_errlist=yes],
+	[ol_cv_dcl_sys_errlist=no])])
+AC_MSG_RESULT($ol_cv_dcl_sys_errlist)
 
 # It's possible (for near-UNIX clones) that sys_errlist doesn't exist
-if test $cf_cv_dcl_sys_errlist = no ; then
+if test $ol_cv_dcl_sys_errlist = no ; then
 	AC_DEFINE(DECL_SYS_ERRLIST)
 	AC_MSG_CHECKING([existence of sys_errlist])
-	AC_CACHE_VAL(cf_cv_have_sys_errlist,[
+	AC_CACHE_VAL(ol_cv_have_sys_errlist,[
 		AC_TRY_LINK([#include <errno.h>],
 			[char *c = (char *) *sys_errlist],
-			[cf_cv_have_sys_errlist=yes],
-			[cf_cv_have_sys_errlist=no])])
-	AC_MSG_RESULT($cf_cv_have_sys_errlist)
+			[ol_cv_have_sys_errlist=yes],
+			[ol_cv_have_sys_errlist=no])])
+	AC_MSG_RESULT($ol_cv_have_sys_errlist)
 fi
 ])dnl

@@ -1,17 +1,17 @@
 SRCS	= idl.c add.c search.c cache.c dbcache.c dn2id.c id2entry.c \
-		index.c id2children.c nextid.c abandon.c compare.c \
+		index.c id2children.c nextid.c abandon.c compare.c group.c \
 		modify.c modrdn.c delete.c init.c config.c bind.c attr.c \
 		filterindex.c unbind.c kerberos.c close.c
 OBJS	= idl.o add.o search.o cache.o dbcache.o dn2id.o id2entry.o \
-		index.o id2children.o nextid.o abandon.o compare.o \
+		index.o id2children.o nextid.o abandon.o compare.o group.o \
 		modify.o modrdn.o delete.o init.o config.o bind.o attr.o \
 		filterindex.o unbind.o kerberos.o close.o
 
 BUILD_OPT = "--enable-ldbm"
-BUILD_SRV = @SLAPD_LDBM@
+BUILD_SRV = @BUILD_LDBM@
 
 XINCLUDEDIR = -I..
-XDEFS = @LDBM_DEFS@ @LTHREAD_DEFS@ @LUTIL_DEFS@
+XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@ @LUTIL_DEFS@
 
 PROGRAMS = libback-ldbm.a
 
