@@ -603,9 +603,9 @@ uccomp_hangul(unsigned long *str, int len)
 
         /* check if two current characters are L and V */
         lindex = last - LBase;
-        if (0 <= lindex && lindex < (unsigned long) LCount) {
+        if (lindex < (unsigned long) LCount) {
             unsigned long vindex = ch - VBase;
-            if (0 <= vindex && vindex < (unsigned long) VCount) {
+            if (vindex < (unsigned long) VCount) {
                 /* make syllable of form LV */
                 last = SBase + (lindex * VCount + vindex) * TCount;
                 str[rlen-1] = last; /* reset last */
@@ -615,11 +615,11 @@ uccomp_hangul(unsigned long *str, int len)
         
         /* check if two current characters are LV and T */
         sindex = last - SBase;
-        if (0 <= sindex && sindex < (unsigned long) SCount
+        if (sindex < (unsigned long) SCount
 			&& (sindex % TCount) == 0)
 		{
             unsigned long tindex = ch - TBase;
-            if (0 <= tindex && tindex <= (unsigned long) TCount) {
+            if (tindex <= (unsigned long) TCount) {
                 /* make syllable of form LVT */
                 last += tindex;
                 str[rlen-1] = last; /* reset last */

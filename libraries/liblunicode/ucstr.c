@@ -167,7 +167,7 @@ struct berval * UTF8bvnormalize(
 		i = 0;
 	}
 
-	p = ucs = (long *) malloc( len * sizeof(*ucs) );
+	p = ucs = malloc( len * sizeof(*ucs) );
 	if ( ucs == NULL ) {
 		free(out);
 		return NULL;
@@ -342,7 +342,7 @@ int UTF8bvnormcmp(
 	 * proper normalized form.
 	 */
 
-	ucs = (long *) malloc( ( ( norm1 || l1 > l2 ) ? l1 : l2 ) * sizeof(*ucs) );
+	ucs = malloc( ( ( norm1 || l1 > l2 ) ? l1 : l2 ) * sizeof(*ucs) );
 	if ( ucs == NULL ) {
 		return l1 > l2 ? 1 : -1; /* what to do??? */
 	}
@@ -365,7 +365,7 @@ int UTF8bvnormcmp(
 	if ( norm1 ) {
 		ucsout1 = ucs;
 		l1 = ulen;
-		ucs = (long *) malloc( l2 * sizeof(*ucs) );
+		ucs = malloc( l2 * sizeof(*ucs) );
 		if ( ucs == NULL ) {
 			return l1 > l2 ? 1 : -1; /* what to do??? */
 		}

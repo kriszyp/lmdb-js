@@ -739,7 +739,7 @@ add_number(unsigned long code, short num, short denom)
      * Handle the case of the codes matching and simply replace the number
      * that was there before.
      */
-    if (ncodes_used > 0 && code == ncodes[i].code) {
+    if (i < ncodes_used && code == ncodes[i].code) {
         ncodes[i].idx = make_number(num, denom);
         return;
     }
