@@ -12,11 +12,13 @@ ldap - OpenLDAP Lightweight Directory Access Protocol API
 .fi
 .SH DESCRIPTION
 .LP
-The Lightweight Directory Access Protocol provides access to
-X.500 directory services.  The services may be stand\-alone
-or part of a distributed directory service.  This API supports
-LDAP over TCP (RFC2251), LDAP over SSL, and LDAP over IPC (UNIX domain
-sockets).  This API supports SASL (RFC2829) and Start TLS (RFC2830).
+The Lightweight Directory Access Protocol provides access to X.500
+directory services.  The services may be stand\-alone or part of
+a distributed directory service.  This API supports LDAP over TCP
+(RFC2251), LDAP over SSL, and LDAP over IPC (UNIX domain sockets).
+This API supports SASL (RFC2829) and Start TLS (RFC2830).  This
+API is based upon IETF C LDAP API draft specification, a work in
+progress.
 .LP
 The OpenLDAP Software package includes a stand-alone server in
 .BR slapd (8),
@@ -399,8 +401,13 @@ sort a list of attribute values
 case insensitive string comparison
 .SH SEE ALSO
 .BR slapd (8)
+.BR draft-ietf-ldapext-ldap-c-api-xx.txt \ <http://www.ietf.org>
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
 .B	OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  
+.LP
+These API manual pages are based upon descriptions provided in the
+IETF C LDAP API Internet Draft, a work in progress, edited by
+Mark Smith.
