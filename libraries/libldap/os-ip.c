@@ -31,7 +31,11 @@
 int ldap_int_tblsize = 0;
 
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+#  ifdef LDAP_PF_INET6
 int ldap_int_inet4or6 = AF_UNSPEC;
+#  else
+int ldap_int_inet4or6 = AF_INET;
+#  endif
 #endif
 
 /*

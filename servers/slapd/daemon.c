@@ -33,7 +33,11 @@ int deny_severity = LOG_NOTICE;
 #define LDAPI_MOD_URLEXT		"x-mod"
 #endif /* LDAP_PF_LOCAL */
 
+#ifdef LDAP_PF_INET6
 int slap_inet4or6 = AF_UNSPEC;
+#else
+int slap_inet4or6 = AF_INET;
+#endif
 
 /* globals */
 time_t starttime;
