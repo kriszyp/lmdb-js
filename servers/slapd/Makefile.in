@@ -418,7 +418,9 @@ install-conf: FORCE
 
 install-tools: FORCE
 	-$(MKDIR) $(DESTDIR)$(sbindir)
-	cd $(DESTDIR)$(sbindir); rm -f $(SLAPTOOLS); \
+	cd $(DESTDIR)$(sbindir); \
+	rm -f $(SLAPTOOLS); \
 	for i in $(SLAPTOOLS); do \
-		$(LN_S) $(DESTDIR)$(libexecdir)/slapd $$i; done
+		$(LN_S) $(libexecdir)/slapd $$i \
+	done
 
