@@ -8,6 +8,16 @@
 
 #include "ldap-int.h"
 
+static const char* features[] = {
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+	"X_OPENLDAP_V2_DNS",
+#endif
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+	"X_OPENLDAP_V2_REFERRALS",
+#endif
+	NULL
+};
+
 int
 ldap_get_option(
 	LDAP	*ld,
@@ -49,7 +59,19 @@ ldap_get_option(
 			info->ldapai_api_version = LDAP_API_VERSION;
 			info->ldapai_api_version = LDAP_API_VERSION;
 			info->ldapai_protocol_version = LDAP_VERSION_MAX;
-			info->ldapai_extensions = NULL;
+			if(features[0] == NULL) {
+				info->ldapai_extensions = NULL;
+			} else {
+				int i;
+				info->ldapai_extensions = malloc(sizeof(features));
+
+				for(i=0; features[i] != NULL; i++) {
+					info->ldapai_extensions[i] = strdup(features[i]);
+				}
+
+				info->ldapai_extensions[i] = NULL;
+			}
+
 			info->ldapai_vendor_name = strdup(LDAP_VENDOR_NAME);
 			info->ldapai_vendor_version = LDAP_VENDOR_VERSION;
 
