@@ -979,8 +979,21 @@ read_config( const char *fname, int depth )
 #endif
 				return 1;
 
-			} else if ( overlay_config( be, cargv[1] )) {
-				return 1;
+			} else {
+				if ( cargv[1][0] == '-' && overlay_config( be, &cargv[1][1] ) ) {
+					/* log error */
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, INFO, "%s: line %d: "
+						"(optional) overlay \"%s\" configuration "
+						"failed (ignored)\n", fname, lineno, &cargv[1][1] );
+#else
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"(optional) overlay \"%s\" configuration "
+						"failed (ignored)\n", fname, lineno, &cargv[1][1] );
+#endif
+				} else if ( overlay_config( be, cargv[1] ) ) {
+					return 1;
+				}
 			}
 
 		/* set database suffix */
