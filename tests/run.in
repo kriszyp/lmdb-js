@@ -1,0 +1,56 @@
+#!/bin/sh
+
+USAGE="$0 [-d <db>] <script>"
+
+# configure generated
+SRCDIR=@srcdir@
+AC_BDB=@BUILD_BDB@
+AC_HDB=@BUILD_HDB@
+AC_LDBM=@BUILD_LDBM@
+AC_MONITOR=@BUILD_MONITOR@
+AC_CACHE=@BUILD_CACHE@
+AC_WITH_TLS=@WITH_TLS@
+
+if test $AC_BDB = yes ; then
+	BACKEND=bdb
+elif test $AC_LDBM = yes ; then
+	BACKEND=ldbm
+elif test $AC_HDB = yes ; then
+	BACKEND=hdbm
+else
+	echo "Not configured with a suitable database backend"
+	exit 1
+fi
+
+while test $# -gt 0 ; do
+	case "$1" in
+		-d | -database)
+			$BACKEND="$2"
+			shift; shift ;;
+
+		-)
+			shift
+			break ;;
+
+		-*)
+			echo "$USAGE"; exit 1
+			;;
+
+		*)
+			break ;;
+	esac
+done
+
+if test $# != 1 ; then
+	echo "$USAGE"; exit 1
+fi
+SCRIPT="${SRCDIR}/scripts/$1"
+
+if test ! -x "${SCRIPT}" ; then
+	echo "run: ${SCRIPT} not found (or not executable)"
+	exit 1;
+fi
+
+echo "Running ${SCRIPT}..."
+$SCRIPT
+exit 0
