@@ -1,5 +1,4 @@
 /* include/portable.h.in.  Generated automatically from configure.in by autoheader.  */
-/* portable.h.top begin */
 /*
  * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
@@ -13,7 +12,7 @@
 #ifndef _LDAP_PORTABLE_H
 #define _LDAP_PORTABLE_H
 
-/* portable.h.top end */
+/* end of preamble */
 
 /* Define if on AIX 3.
    System headers sometimes define this.
@@ -110,9 +109,6 @@
 #undef _THREAD_SAFE
 #endif
 
-/* define this if cross compiling */
-#undef CROSS_COMPILING
-
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 
@@ -131,47 +127,11 @@
 /* define if you have crypt */
 #undef HAVE_CRYPT
 
-/* define if you have DSAP */
-#undef HAVE_DSAP
-
 /* define if you have GDBM */
 #undef HAVE_GDBM
 
-/* define if you have ISODE */
-#undef HAVE_ISODE
-
-/* define if you have Kerberos */
-#undef HAVE_KERBEROS
-
-/* define if you have LinuxThreads */
-#undef HAVE_LINUX_THREADS
-
-/* define if you have Sun LWP (SunOS style) */
-#undef HAVE_LWP
-
-/* define if you have -lncurses */
-#undef HAVE_NCURSES
-
 /* define if you have NDBM */
 #undef HAVE_NDBM
-
-/* define if you have Mach CThreads */
-#undef HAVE_MACH_CTHREADS
-
-/* define if you have POSIX termios */
-#undef HAVE_POSIX_TERMIOS
-
-/* define if you have PP */
-#undef HAVE_PP
-
-/* define if you have POSIX Threads */
-#undef HAVE_PTHREADS
-
-/* define if your POSIX Threads implementation is circa Final Draft */
-#undef HAVE_PTHREADS_FINAL
-
-/* define if your POSIX Threads implementation is circa Draft 4 */
-#undef HAVE_PTHREADS_D4
 
 /* define if you have res_search() */
 #ifdef __notdef__
@@ -187,21 +147,6 @@
 
 /* define if you have setproctitle() */
 #undef HAVE_SETPROCTITLE
-
-/* define if you have -lwrap */
-#undef HAVE_TCPD
-
-/* define if you have -ltermcap */
-#undef HAVE_TERMCAP
-
-/* define if you have Sun LWP (Solaris style) */
-#undef HAVE_THR
-
-/* define if you have XTPP */
-#undef HAVE_XTPP
-
-/* define this if select() implicitly yields in thread environments */
-#undef HAVE_YIELDING_SELECT
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
@@ -226,12 +171,6 @@
 
 /* define this to use DBHASH w/ LDBM backend */
 #undef LDBM_USE_DBHASH
-
-/* define this if you want no termcap support */
-#undef NO_TERMCAP
-
-/* define this if you want no thread support */
-#undef NO_THREADS
 
 /* define this for ACL Group support */
 #undef SLAPD_ACLGROUPS
@@ -616,28 +555,73 @@
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET
 
+/* define if you have -lxttp */
+#undef HAVE_XTPP
+
+/* define if you have -ldsap */
+#undef HAVE_DSAP
+
+/* define if you have -lisode */
+#undef HAVE_ISODE
+
+/* define if you have -lpp */
+#undef HAVE_PP
+
+/* define if you have Kerberos */
+#undef HAVE_KERBEROS
+
+/* define if pthreads API compatible with final spec */
+#undef HAVE_PTHREADS_FINAL
+
+/* define if pthreads API compatible with draft4 spec */
+#undef HAVE_PTHREADS_D4
+
+/* define if you have LinuxThreads */
+#undef HAVE_LINUX_THREADS
+
+/* define if you have POSIX Threads */
+#undef HAVE_PTHREADS
+
+/* define if you have Mach Cthreads */
+#undef HAVE_MACH_CTHREADS
+
+/* if you have Solaris LWP (thr) package */
+#undef HAVE_THR
+
+/* if you have SunOS LWP package */
+#undef HAVE_LWP
+
+/* define if select implicitly yields */
+#undef HAVE_YIELDING_SELECT
+
+/* define if you have (or want) no threads */
+#undef NO_THREADS
+
+/* define if you have -lwrap */
+#undef HAVE_TCPD
+
+/* define if you have -ltermcap */
+#undef HAVE_TERMCAP
+
+/* define if you have -lncurses */
+#undef HAVE_NCURSES
+
+/* define if you have no termcap support */
+#undef NO_TERMCAP
+
 /* Define if TIOCGWINSZ requires sys/ioctl.h */
 #undef GWINSZ_IN_SYS_IOCTL
+
+/* define if you have POSIX termios */
+#undef HAVE_POSIX_TERMIOS
 
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
 
-/* 1 */
-#undef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+/* define if cross compiling */
+#undef CROSS_COMPILING
 
-/* 1 */
-#undef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-
-/* portable.h.bot begin */
-/*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms are permitted only
- * as authorized by the OpenLDAP Public License.  A copy of this
- * license is available at http://www.OpenLDAP.org/license.html or
- * in file LICENSE in the top-level directory of the distribution.
- */
+/* begin of postamble */
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
@@ -647,5 +631,3 @@
 #include "ldap_features.h"
 
 #endif /* _LDAP_PORTABLE_H */
-
-/* portable.h.bot end */

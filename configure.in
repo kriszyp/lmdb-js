@@ -357,24 +357,24 @@ if test $ol_enable_ldapd != no ; then
 	dnl look for ISODE libraries
 	AC_CHECK_LIB(xtpp, main, [
 		ol_link_isode=yes
-		AC_DEFINE(HAVE_XTPP,1)
+		AC_DEFINE(HAVE_XTPP,1, [define if you have -lxttp])
 		LDAPD_LIBS="$LDAPD_LIBS -lxtpp -lxtdsap -lxtisode -losi"
 		],:,[-lxtdsap -lxtisode -losi])
 	AC_CHECK_LIB(dsap, main, [
 		ol_link_isode=yes
-		AC_DEFINE(HAVE_DSAP,1)
+		AC_DEFINE(HAVE_DSAP,1, [define if you have -ldsap])
 		LDAPD_LIBS="$LDAPD_LIBS -ldsap"
 		],:,[-lisode])
 	AC_CHECK_LIB(isode, main, [
 		ol_link_isode=yes
-		AC_DEFINE(HAVE_ISODE,1)
+		AC_DEFINE(HAVE_ISODE,1, [define if you have -lisode])
 		LDAPD_LIBS="$LDAPD_LIBS -lisode"
 		],:)
 fi
 
 if test $ol_link_isode != no; then
 	AC_CHECK_LIB(pp, main, [
-		AC_DEFINE(HAVE_PP,1)
+		AC_DEFINE(HAVE_PP,1, [define if you have -lpp])
 		LDAPD_LIBS="-lpp $LDAPD_LIBS"
 		],:)
 
@@ -397,7 +397,6 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 			ol_with_kerberos=found
 			ol_link_kerberos=yes
 
-			AC_DEFINE(HAVE_KERBEROS)
 			KRB_LIBS="-lkrb4 -lkrb5 -ldes425"
 		fi
 	fi
@@ -413,18 +412,14 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 			ol_with_kerberos=found
 			ol_link_kerberos=yes
 
-			AC_DEFINE(HAVE_KERBEROS)
 			KRB_LIBS="-lkrb -ldes"
 		fi
 	fi
 fi
 
-dnl	if test $ol_link_kerberos = yes ; then
-dnl		save_LIBS=$LIBS
-dnl		LIBS="$KRB_LIBS $LIBS"
-dnl		AC_CHECK_FUNCS(des_string_to_key)
-dnl		LIBS=$save_LIBS
-dnl fi
+if test $ol_link_kerberos = yes ; then
+	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
+fi
 
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
@@ -436,9 +431,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		OL_POSIX_THREAD_VERSION
 
 		if test $ol_cv_pthread_version = final ; then
-			AC_DEFINE(HAVE_PTHREADS_FINAL)
+			AC_DEFINE(HAVE_PTHREADS_FINAL,1,
+				[define if pthreads API compatible with final spec])
 		elif test $ol_cv_pthread_version = draft4 ; then
-			AC_DEFINE(HAVE_PTHREADS_D4)
+			AC_DEFINE(HAVE_PTHREADS_D4,1,
+				[define if pthreads API compatible with draft4 spec])
 		else
 			AC_MSG_ERROR([unknown pthread version])
 		fi
@@ -449,7 +446,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		OL_LINUX_THREADS
 
 		if test $ol_cv_linux_threads = yes ; then
-			AC_DEFINE(HAVE_LINUX_THREADS,1)
+			AC_DEFINE(HAVE_LINUX_THREADS,1,
+				[define if you have LinuxThreads])
 		fi
 
 		dnl Now the hard part, how to link?
@@ -734,7 +732,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		fi
 
 		if test $ol_link_threads != no ; then
-			AC_DEFINE(HAVE_PTHREADS)
+			AC_DEFINE(HAVE_PTHREADS,1,
+				[define if you have POSIX Threads])
 
 			dnl save flags
 			save_CPPFLAGS="$CPPFLAGS"
@@ -944,7 +943,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 
 		if test $ol_link_threads != no ; then
 			: check for cthread specific functionality here
-			AC_DEFINE(HAVE_MACH_CTHREADS,1)
+			AC_DEFINE(HAVE_MACH_CTHREADS,1,
+				[define if you have Mach Cthreads])
 		else
 			AC_MSG_ERROR([could not link with Mach CThreads])
 		fi
@@ -964,7 +964,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		AC_CHECK_LIB(thread, thr_create, [have_thr=yes], [have_thr=no])
 
 		if test $have_thr = yes ; then
-			AC_DEFINE(HAVE_THR)
+			AC_DEFINE(HAVE_THR,1,
+				[if you have Solaris LWP (thr) package])
 			LTHREAD_LIBS="$LTHREAD_LIBS -lthread"
 			ol_link_threads=thr
 
@@ -986,7 +987,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		AC_CHECK_LIB(lwp, lwp_create, [have_lwp=yes], [have_lwp=no])
 
 		if test $have_lwp = yes ; then
-			AC_DEFINE(HAVE_LWP)
+			AC_DEFINE(HAVE_LWP,1,
+				[if you have SunOS LWP package])
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 			ol_link_threads=lwp
 
@@ -998,7 +1000,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 fi
 
 if test $ol_with_yielding_select = yes ; then
-	AC_DEFINE(HAVE_YIELDING_SELECT,1)
+	AC_DEFINE(HAVE_YIELDING_SELECT,1,
+		[define if select implicitly yields])
 fi
 
 if test $ol_with_threads = manual ; then
@@ -1111,7 +1114,8 @@ if test $ol_link_threads = no ; then
 		ol_with_threads=no
 	fi
 
-	AC_DEFINE(NO_THREADS,1)
+	AC_DEFINE(NO_THREADS,1,
+		[define if you have (or want) no threads])
 	LTHREAD_LIBS=""
 fi
 
@@ -1226,7 +1230,7 @@ if test $ol_enable_wrappers != no ; then
 	fi
 
 	if test $have_wrappers = yes ; then
-		AC_DEFINE(HAVE_TCPD)
+		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
 		SLAPD_LIBS="$SLAPD_LIBS -lwrap"
 	else
 		AC_MSG_WARN(could not find -lwrap)
@@ -1259,7 +1263,7 @@ AC_CHECK_HEADERS(termcap.h ncurses.h)
 if test $ol_link_termcap = no ; then
 	AC_CHECK_LIB(termcap, tputs, [have_termcap=yes], [have_termcap=no])
 	if test $have_termcap = yes ; then
-		AC_DEFINE(HAVE_TERMCAP)
+		AC_DEFINE(HAVE_TERMCAP, 1, [define if you have -ltermcap])
 		ol_link_termcap=yes
 		TERMCAP_LIBS=-ltermcap
 	fi
@@ -1268,14 +1272,14 @@ fi
 if test $ol_link_termcap = no ; then
 	AC_CHECK_LIB(ncurses, initscr, [have_ncurses=yes], [have_ncurses=no])
 	if test $have_ncurses = yes ; then
-		AC_DEFINE(HAVE_NCURSES)
+		AC_DEFINE(HAVE_NCURSES, 1, [define if you have -lncurses])
 		ol_link_termcap=yes
 		TERMCAP_LIBS=-lncurses
 	fi
 fi
 
 if test $ol_link_termcap = no ; then
-	AC_DEFINE(NO_TERMCAP,1)
+	AC_DEFINE(NO_TERMCAP,1, [define if you have no termcap support])
 	TERMCAP_LIBS=
 fi
 
@@ -1324,7 +1328,8 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
 if test $am_cv_sys_posix_termios = yes ; then
-	AC_DEFINE(HAVE_POSIX_TERMIOS,1)
+	AC_DEFINE(HAVE_POSIX_TERMIOS,1,
+		[define if you have POSIX termios])
 fi
 
 AC_CHECK_HEADERS(	\
@@ -1380,7 +1385,7 @@ AC_C_CONST
 OL_C_VOLATILE
 
 if test $cross_compiling = yes ; then
-	AC_DEFINE(CROSS_COMPILING, 1)
+	AC_DEFINE(CROSS_COMPILING, 1, [define if cross compiling])
 else
 	AC_C_BIGENDIAN
 	AC_CHECK_SIZEOF(short) 
@@ -1484,13 +1489,13 @@ if test "$ol_enable_cache" = no ; then
 	AC_DEFINE(LDAP_NOCACHE,1)
 fi
 if test "$ol_enable_dns" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_DNS,LDAP_VENDOR_VERSION,1)
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_DNS,LDAP_VENDOR_VERSION)
 fi
 if test "$ol_enable_proctitle" != no ; then
 	AC_DEFINE(LDAP_PROCTITLE,1)
 fi
 if test "$ol_enable_referrals" != no ; then
-	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION,1)
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION)
 fi
 if test "$ol_enable_cldap" != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1)
