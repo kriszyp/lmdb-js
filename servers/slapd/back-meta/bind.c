@@ -124,7 +124,7 @@ meta_back_bind(
 				"meta_back_bind: no target for dn %s.\n%s%s",
 				dn->bv_val, "", "");
 #endif /* !NEW_LOGGING */
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, 
+		send_ldap_result( conn, op, LDAP_OTHER, 
 				NULL, NULL, NULL, NULL );
 		return -1;
 	}
@@ -260,7 +260,7 @@ meta_back_do_single_bind(
 		return LDAP_UNWILLING_TO_PERFORM;
 
 	case REWRITE_REGEXEC_ERR:
-		return LDAP_OPERATIONS_ERROR;
+		return LDAP_OTHER;
 	}
 
 	rc = ldap_bind_s( lc->conns[ candidate ]->ld, mdn.bv_val, cred->bv_val, method );

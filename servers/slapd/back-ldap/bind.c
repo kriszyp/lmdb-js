@@ -98,7 +98,7 @@ ldap_back_bind(
 		return( -1 );
 
 	case REWRITE_REGEXEC_ERR:
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "Operations error", NULL, NULL );
 		return( -1 );
 	}
@@ -281,7 +281,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 				
 			case REWRITE_REGEXEC_ERR:
 				send_ldap_result( conn, op,
-						LDAP_OPERATIONS_ERROR,
+						LDAP_OTHER,
 						NULL, "Operations error",
 						NULL, NULL );
 				return( NULL );
@@ -322,7 +322,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( err != 0 ) {
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "internal server error", NULL, NULL );
 			/* better destroy the ldapconn struct? */
 			return( NULL );
@@ -389,7 +389,7 @@ ldap_back_map_result(int err)
 	case LDAP_SERVER_DOWN:
 		return LDAP_UNAVAILABLE;
 	case LDAP_LOCAL_ERROR:
-		return LDAP_OPERATIONS_ERROR;
+		return LDAP_OTHER;
 	case LDAP_ENCODING_ERROR:
 	case LDAP_DECODING_ERROR:
 		return LDAP_PROTOCOL_ERROR;
@@ -398,13 +398,13 @@ ldap_back_map_result(int err)
 	case LDAP_AUTH_UNKNOWN:
 		return LDAP_AUTH_METHOD_NOT_SUPPORTED;
 	case LDAP_FILTER_ERROR:
-		return LDAP_OPERATIONS_ERROR;
+		return LDAP_OTHER;
 	case LDAP_USER_CANCELLED:
-		return LDAP_OPERATIONS_ERROR;
+		return LDAP_OTHER;
 	case LDAP_PARAM_ERROR:
 		return LDAP_PROTOCOL_ERROR;
 	case LDAP_NO_MEMORY:
-		return LDAP_OPERATIONS_ERROR;
+		return LDAP_OTHER;
 	case LDAP_CONNECT_ERROR:
 		return LDAP_UNAVAILABLE;
 	case LDAP_NOT_SUPPORTED:

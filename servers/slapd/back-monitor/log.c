@@ -180,7 +180,7 @@ monitor_subsys_log_modify(
 			break;
 
 		default:
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 			break;
 		}
 

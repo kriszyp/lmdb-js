@@ -144,7 +144,7 @@ meta_back_search(
 	 */
 	msgid = ch_calloc( sizeof( int ), li->ntargets );
 	if ( msgid == NULL ) {
-		send_search_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_search_result( conn, op, LDAP_OTHER,
 				NULL, NULL, NULL, NULL, 0 );
 		return -1;
 	}
@@ -294,8 +294,8 @@ meta_back_search(
 			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-					NULL, "Operations error",
+			send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "Rewrite error",
 					NULL, NULL );
 			rc = -1;
 			goto finish;
@@ -334,7 +334,7 @@ meta_back_search(
 			goto finish;
 
 		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 					NULL, NULL, NULL, NULL );
 			rc = -1;
 			goto finish;
@@ -438,7 +438,7 @@ meta_back_search(
 				( void )meta_clear_unused_candidates( li,
 						lc, -1, 0 );
 				send_search_result( conn, op,
-						LDAP_OPERATIONS_ERROR,
+						LDAP_OTHER,
 						"", "", NULL, NULL, count );
 				
 				/* anything else needs be done? */
@@ -538,7 +538,7 @@ meta_back_search(
 			goto finish;
 			
 		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 					NULL, NULL, NULL, NULL );
 			rc = -1;
 			goto finish;

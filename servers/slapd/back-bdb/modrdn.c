@@ -449,7 +449,7 @@ retry:	/* transaction retry */
 					0, 0, 0 );
 #endif
 
-				rc = LDAP_OPERATIONS_ERROR;
+				rc = LDAP_OTHER;
 				goto return_results;
 			}
 
@@ -588,7 +588,7 @@ retry:	/* transaction retry */
 			"bdb_modrdn: can't figure out type(s)/values(s) "
 			"of newrdn\n", 0, 0, 0 );
 #endif
-		rc = LDAP_OPERATIONS_ERROR;
+		rc = LDAP_INVALID_DN_SYNTAX;
 		text = "unknown type(s) used in RDN";
 		goto return_results;		
 	}

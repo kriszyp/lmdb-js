@@ -47,7 +47,7 @@ ldbm_back_add(
 		/* if (rc) something bad happened to ldbm cache */
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		send_ldap_result( conn, op, 
-			rc ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
+			rc ? LDAP_OTHER : LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		return( -1 );
 	}

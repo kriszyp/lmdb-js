@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  shellutil.c - common routines useful when building shell-based backends
 		 for the standalone ldap server
@@ -14,12 +15,18 @@
 */
 
 
-#include <sys/types.h>
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
+#include <ac/stdarg.h>
+
 #include <pwd.h>
-#include <varargs.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include "shellutil.h"
@@ -82,7 +89,8 @@ write_entry( struct ldop *op, struct ldentry *entry, FILE *ofp )
 int
 test_filter( struct ldop *op, struct ldentry *entry )
 {
-    return (( random() & 0x07 ) == 0x07 );	/* XXX random for now */
+    return ((random() & 0x07 ) == 0x07) /* XXX random for now */
+		? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 }
 
 
@@ -133,7 +141,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
     struct inputparams	*ip;
 
     if ( fgets( line, MAXLINELEN, ifp ) == NULL ) {
-	write_result( ofp, LDAP_OPERATIONS_ERROR, NULL, "Empty Input" );
+	write_result( ofp, LDAP_OTHER, NULL, "Empty Input" );
     }
     line[ strlen( line ) - 1 ] = '\0';
     if ( strncasecmp( line, STR_OP_SEARCH, sizeof( STR_OP_SEARCH ) - 1 )
@@ -166,7 +174,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
 	    if (( op->ldop_srch.ldsp_scope = atoi( args )) != LDAP_SCOPE_BASE &&
 		    op->ldop_srch.ldsp_scope != LDAP_SCOPE_ONELEVEL &&
 		    op->ldop_srch.ldsp_scope != LDAP_SCOPE_SUBTREE ) {
-		write_result( ofp, LDAP_OPERATIONS_ERROR, NULL, "Bad scope" );
+		write_result( ofp, LDAP_OTHER, NULL, "Bad scope" );
 		return( -1 );
 	    }
 	    break;
@@ -192,7 +200,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
 		while ( args != NULL ) {
 		    if (( p = strchr( args, ' ' )) != NULL ) {
 			*p++ = '\0';
-			while ( isspace( *p )) {
+			while ( isspace( (unsigned char) *p )) {
 			    ++p;
 			}
 		    }
@@ -206,7 +214,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
 
     if ( op->ldop_suffixes == NULL || op->ldop_dn == NULL ||
 		op->ldop_srch.ldsp_filter == NULL ) {
-	write_result( ofp, LDAP_OPERATIONS_ERROR, NULL,
+	write_result( ofp, LDAP_OTHER, NULL,
 		"Required suffix:, base:, or filter: missing" );
 	return( -1 );
     }
@@ -227,7 +235,7 @@ find_input_tag( char **linep )	/* linep is set to start of args */
 
     for ( i = 0; ips[ i ].ip_type != 0; ++i ) {
 	if ( strncasecmp( *linep, ips[ i ].ip_tag, p - *linep ) == 0 ) {
-	    while ( isspace( *(++p) )) {
+	    while ( isspace( (unsigned char) *(++p) )) {
 		;
 	    }
 	    *linep = p;
@@ -269,7 +277,7 @@ estrdup( char *s )
 
     if (( p = strdup( s )) == NULL ) {
 	debug_printf( "strdup failed\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -289,7 +297,7 @@ erealloc( void *s, unsigned size )
 
     if ( p == NULL ) {
 	debug_printf( "realloc( p, %d ) failed\n", size );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -303,7 +311,7 @@ ecalloc( unsigned nelem, unsigned elsize )
 
     if (( p = calloc( nelem, elsize )) == NULL ) {
 	debug_printf( "calloc( %d, %d ) failed\n", nelem, elsize );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     return( p );
@@ -314,19 +322,16 @@ ecalloc( unsigned nelem, unsigned elsize )
 
 /* VARARGS */
 void
-debug_printf( va_alist /* char *fmt, args... */ )
-    va_dcl
+debug_printf( const char *fmt, ... )
 {
-    char	*fmt;
     va_list	ap;
 
-    if ( debugflg ) {
-	va_start( ap );
-	fmt = va_arg( ap, char * );
-	fprintf( stderr, "%s: ", progname );
-	vfprintf( stderr, fmt, ap );
-	va_end( ap );
-    }
+	if ( debugflg ) {
+		va_start( ap, fmt );
+		fprintf( stderr, "%s: ", progname );
+		vfprintf( stderr, fmt, ap );
+		va_end( ap );
+	}
 }
 
 

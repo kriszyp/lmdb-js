@@ -35,7 +35,7 @@ shell_back_delete(
 
 	if ( (op->o_private = (void *) forkandexec( si->si_delete, &rfp, &wfp ))
 	    == (void *) -1 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
+		send_ldap_result( conn, op, LDAP_OTHER, NULL,
 		    "could not fork/exec", NULL, NULL );
 		return( -1 );
 	}
