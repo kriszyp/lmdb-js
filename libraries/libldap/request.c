@@ -653,15 +653,12 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			continue;
 		}
 
-		/* NOTE! This code treats "ldap://host/" differently
-		 * from "ldap://host". The behavior is wrong, but is
-		 * left here intentionally to maintain compatibility
-		 * with OpenLDAP 1.x and UMich 3.3 clients.
-		 */
 		*hadrefp = 1;
+
 		if (( refdn = strchr( tmpref, '/' )) != NULL ) {
 			*refdn++ = '\0';
-			newdn = 1;
+			newdn = refdn[0] != '?' && refdn[0] != '\0';
+
 		} else {
 			newdn = 0;
 		}
