@@ -174,10 +174,10 @@ typedef char * caddr_t;
 #undef HAVE_TERMCAP
 
 /* define this for connectionless LDAP support */
-#define LDAP_CONNECTIONLESS
+#undef LDAP_CONNECTIONLESS
 
 /* define this to add debugging code */
-#define LDAP_DEBUG
+#define LDAP_DEBUG 1
 
 /* define this for LDAP DNS support */
 #undef LDAP_DNS
@@ -186,10 +186,10 @@ typedef char * caddr_t;
 #undef LDAP_NOCACHE
 
 /* define this for LDAP referrals support */
-#define LDAP_REFERRALS
+#define LDAP_REFERRALS 1
 
 /* define this for LDAP User Interface support */
-#undef LDAP_LIBUI
+#define LDAP_LIBUI 1
 
 /* define this to use DBBTREE w/ LDBM backend */
 #undef LDBM_USE_DBBTREE
