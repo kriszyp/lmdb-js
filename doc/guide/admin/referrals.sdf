@@ -1,41 +1,106 @@
 # $OpenLDAP$
 # Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
-H1: Distributing {{I: slapd}} DATA
 
-For many sites, running one or more {{I: slapds}} that hold an
-entire subtree of data is sufficient. But sometimes it may be
-desirable to have one slapd refer to other {{I: slapds}} for a
-certain part of the tree. This can be accomplished by
-creating a referral entry in one {{I:slapd}}'s database pointing
-to another {{I: slapd}}. For those familiar with X.500, a {{I:slapd}}
-{{I: referral}} entry is similar to an X.500 knowledge reference.
+H1: Constructing a Distributed Directory Service
 
-The referral entry acts as a mount point, glueing two slapd
-databases together. A referral entry has an {{I: objectclass}} of
-"referral" and is named by a {{I: ref}} attribute containing a URL
-pointing to the slapd holding the data below the mount
-point. This mechanism is very general and allows slapd
-databases that are not normally hierarchical to be grafted
+For many sites, running one or more {{slapd}}(8) that hold an
+entire subtree of data is sufficient. But often it is desirable
+to have one {{slapd}}} refer to other directory services for a
+certain part of the tree (which may or may not be running {{slapd}}).
+
+!if 0
+{{slapd}} supports {{subordinate}}, {{immediate superior}},
+and {{superior}} knowledge information.
+!else
+{{slapd}} supports {{subordinate}} and {{superior}} knowledge information.
+!endif
+
+
+H2: Subordinate Knowledge Information
+
+Subordinate knowledge information may be provided to delegate
+a subtree.
+Subordinate knowledge information is maintained in the directory
+as a special {{referral}} object at the delegate point.
+The referral object acts as a delegation point, gluing two servcies
 together.
+This mechanism allows for hierarchial directory services to to be
+constructed.
 
-An example should help illustrate things. Suppose your
-company is running a slapd and just purchased a new
-company, also running a slapd. You can easily connect
-the two databases by creating an entry like this in your
-slapd's database.
+A referral object has an structural object class of
+{{EX:referral}} and has the same {{TERM[expand]DN}} as the
+delegated subtree.  Generally, the referral object will also
+provide the auxiliary object class {{EX:extensibleObject}}.
+This allows the entry to contain appropriate {{TERM[expand]RDN}}
+values.  This is best demonstrated by example.
 
-E: dn: ref="ldap://new.host/o=New Company,c=US", o=Your 
+If the server {{EX:a.example.net}} holds {{EX:dc=example,dc=net}}
+and wished to delegate the subtree {{EX:ou=subtree,dc=example,dc=net}}
+to another server {{EX:b.example.net}}, the following named referral
+object would be added to {{a.example.net}}:
 
-company, c=US
+E:	dn: dc=subtree, dc=example, dc=net
+E:	objectClass: referral
+E:	objectClass: extensibleObject
+E:	dc: sub
+E:	ref: ldap://b.example.net/dc=subtree,dc=example,dc=net/
 
-E: objectclass: referral
+The server uses this information to generate referrals and
+search continuations to subordinate servers.
 
-Now any subtree search that has this entry in its scope
-will return a referral to the new company, in addition to any
-entries matched in your database. Referral-aware clients
-will continue the search at the new company's server.
+For those familiar with X.500, a {{named referral}} object is
+similar to an X.500 knowledge reference held in a {{subr}}
+{{TERM:DSE}}.
 
-A mechanism similar to this is used to support distributed
-indexing, described in Appendix C.
 
+!if 0
+H2: Immediate Superior Knowledge Information
+
+Immediate superior knowledge information may be provided in the
+entry at the root of a delegated subtree.  The knowledge information
+is contained with {{ref}} operational attribute.
+
+Extending the example above, a {{ref}} attribute can be added
+to the entry {{EX:dc=subtree,dc=example,dc=net}} in server B indicating
+that A holds the immediate superior naming context.
+
+E:	dn: dc=subtree, dc=example, dc=net
+E:	changetype: modify
+E:	add: ref
+E:	ref: ldap://a.example.net/
+
+The server uses this information to generate referrals to
+managment operations.
+
+For those familiar with X.500, this use of the {{ref}} attribute
+is similar to an X.500 knowledge reference held in a
+{{immSupr}} {{TERM:DSE}}.
+!endif
+
+
+H2: Superior Knowledge Information
+
+Superior knowledge information may be specified using the
+{{EX:referral}} directive.  The value is a list of {{TERM:URI}}s
+referring to superior directory services.  For servers
+without immediate superiors, such as for {{EX:a.example.net}}
+in the example above, the server can be configured to use
+directory service with {{global knowledge}}, such as the
+OpenLDAP Root Service.
+
+E:	referral	ldap://root.openldap.org/
+
+However, as {{EX:a.example.net}} is the {{immediate superior}}
+to {{EX:b.example.net}}, {{a.example.net}} would be configured
+as follows:
+
+E:	referral	ldap://a.example.net/
+
+The server uses this information to generate referrals to
+operations acting upon operations not within or subordinate
+to any of the naming contexts held by the server.
+
+For those familiar with X.500, this use of the {{ref}} attribute
+is similar to an X.500 knowledge reference held in a
+{{Supr}} {{TERM:DSE}}.
