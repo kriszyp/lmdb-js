@@ -790,7 +790,7 @@ int slap_mods_check(
 					}
 
 				} else {
-					int rc = LDAP_SUCCESS;
+					int rc;
 					int match;
 
 					for ( i = 1; ml->sml_values[i].bv_val != NULL; i++ ) {
@@ -815,11 +815,12 @@ int slap_mods_check(
 									ml->sml_desc->ad_cname.bv_val, j );
 								*text = textbuf;
 								return LDAP_TYPE_OR_VALUE_EXISTS;
+
+							} else if ( rc != LDAP_SUCCESS ) {
+								return rc;
 							}
 						}
 					}
-
-					if ( rc != LDAP_SUCCESS ) return rc;
 				}
 			}
 
