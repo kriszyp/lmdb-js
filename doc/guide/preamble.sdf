@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2001, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
  
 #
@@ -53,7 +53,7 @@
 	!block inline; expand
 <P>
 <FONT COLOR="#808080" FACE="Arial,Verdana,Helvetica" SIZE="1"><B>
-______________<BR>
+________________<BR>
 <SMALL>&copy; Copyright 2001, <A HREF="http://www.OpenLDAP.org/foundation/">OpenLDAP Foundation</A>, <A HREF="mailto:info@OpenLDAP.org">info@OpenLDAP.org</A></SMALL></B></FONT>
 
 	!endblock
@@ -89,7 +89,7 @@ ______________<BR>
 	!block inline; expand
 <P>
 <FONT COLOR="#808080" FACE="Arial,Verdana,Helvetica" SIZE="1"><B>
-______________<BR>
+________________<BR>
 <SMALL>&copy; Copyright 2001, <A HREF="http://www.OpenLDAP.org/foundation/">OpenLDAP Foundation</A>, <A HREF="mailto:info@OpenLDAP.org">info@OpenLDAP.org</A></SMALL></B></FONT>
 
 	!endblock

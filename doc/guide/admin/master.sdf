@@ -33,6 +33,9 @@ PB:
 !include "config.sdf"; chapter
 PB:
 
+!include "security.sdf"; chapter
+PB:
+
 !include "install.sdf"; chapter
 PB:
 

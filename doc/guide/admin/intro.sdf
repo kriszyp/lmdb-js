@@ -285,8 +285,7 @@ reasonable defaults, making your job much easier.
 
 {{slapd}} also has its limitations, of course.  The main LDBM
 database backend does not handle range queries or negation queries
-very well.  These features and more will be coming in a future
-release.
+very well.
 
 
 H2: What is slurpd and what can it do?

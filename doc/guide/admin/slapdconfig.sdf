@@ -663,36 +663,35 @@ to grant specific permissions.
 
 H3: Access Control Evaluation
 
-When evaluating whether some requester should be given
-access to an entry and/or attribute, slapd compares the entry
-and/or attribute to the {{EX:<what>}} selectors given in the
-configuration file. Access directives local to the current
-database are examined first, followed by global access
-directives. Within this priority, access directives are
-examined in the order in which they appear in the config file.
-Slapd stops with the first {{EX:<what>}} selector that matches the
-entry and/or attribute. The corresponding access directive is
-the one slapd will use to evaluate access.
+When evaluating whether some requester should be given access to
+an entry and/or attribute, slapd compares the entry and/or attribute
+to the {{EX:<what>}} selectors given in the configuration file.
+For each entry, access control provided in the database which holds
+the entry (or the first database if not held in any database) apply
+first, followed by the global access directivies.  Within this
+priority, access directives are examined in the order in which they
+appear in the config file.  Slapd stops with the first {{EX:<what>}}
+selector that matches the entry and/or attribute. The corresponding
+access directive is the one slapd will use to evaluate access.
 
-Next, slapd compares the entity requesting access to the
-{{EX:<who>}} selectors within the access directive selected above
-in the order in which they appear. It stops with the first {{EX:<who>}}
-selector that matches the requester. This determines the
-access the entity requesting access has to the entry and/or
-attribute.
+Next, slapd compares the entity requesting access to the {{EX:<who>}}
+selectors within the access directive selected above in the order
+in which they appear. It stops with the first {{EX:<who>}} selector
+that matches the requester. This determines the access the entity
+requesting access has to the entry and/or attribute.
 
 Finally, slapd compares the access granted in the selected
-{{EX:<access>}} clause to the access requested by the client. If it
-allows greater or equal access, access is granted. Otherwise,
+{{EX:<access>}} clause to the access requested by the client. If
+it allows greater or equal access, access is granted. Otherwise,
 access is denied.
 
-The order of evaluation of access directives makes their
-placement in the configuration file important. If one access
-directive is more specific than another in terms of the entries
-it selects, it should appear first in the config file. Similarly, if
-one {{EX:<who>}} selector is more specific than another it should
-come first in the access directive. The access control
-examples given below should help make this clear.
+The order of evaluation of access directives makes their placement
+in the configuration file important. If one access directive is
+more specific than another in terms of the entries it selects, it
+should appear first in the config file. Similarly, if one {{EX:<who>}}
+selector is more specific than another it should come first in the
+access directive. The access control examples given below should
+help make this clear.
 
 
 
@@ -809,10 +808,9 @@ means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
 standard port (389) at the host {{EX:root.openldap.org}}.
 
-Line 4 is a global access control.  It is used only if
-no database access controls match or when the target
-objects are not under the control of any database (such as
-the Root DSE).
+Line 4 is a global access control.  It applies to all
+entries (after any applicable database-specific access
+controls).
 
 The next section of the configuration file defines an LDBM
 backend that will handle queries for things in the
@@ -851,40 +849,41 @@ E: 30.		by self write
 E: 31.		by dn="cn=Admin,dc=example,dc=com" write
 E: 32.		by * read
 
-Line 5 is a comment. The start of the database definition is
-marked by the database keyword on line 6. Line 7 specifies
-the DN suffix for queries to pass to this database. Line 8
-specifies the directory in which the database files will live.
+Line 5 is a comment. The start of the database definition is marked
+by the database keyword on line 6. Line 7 specifies the DN suffix
+for queries to pass to this database. Line 8 specifies the directory
+in which the database files will live.
 
-Lines 9 and 10 identify the database "super user" entry and
-associated password. This entry is not subject to access
-control or size or time limit restrictions.
+Lines 9 and 10 identify the database "super user" entry and associated
+password. This entry is not subject to access control or size or
+time limit restrictions.
 
 Lines 11 through 18 are for replication. Line 11 specifies the
-replication log file (where changes to the database are logged
-\- this file is written by slapd and read by slurpd). Lines 12 
-through 14 specify the hostname and port for a replicated
-host, the DN to bind as when performing updates, the bind
-method (simple) and the credentials (password) for the
-binddn. Lines 15 through 18 specify a second replication site.
-See the {{SECT:Replication with slurpd}} chapter for more
-information on these directives.
+replication log file (where changes to the database are logged \-
+this file is written by slapd and read by slurpd). Lines 12 through
+14 specify the hostname and port for a replicated host, the DN to
+bind as when performing updates, the bind method (simple) and the
+credentials (password) for the binddn. Lines 15 through 18 specify
+a second replication site.  See the {{SECT:Replication with slurpd}}
+chapter for more information on these directives.
 
-Lines 20 through 22 indicate the indexes to maintain for
-various attributes.
+Lines 20 through 22 indicate the indexes to maintain for various
+attributes.
 
-Lines 24 through 32 specify access control for entries in the
-database. For all entries, the {{EX:userPassword}} attribute is
-writable by the entry itself and by the "admin" entry.  It may be
-used for authentication/authorization purposes, but is otherwise
-not readable.  All other attributes are writable by the entry and
-the "admin" entry, but may be read by authenticated users.
+Lines 24 through 32 specify access control for entries in the this
+database.  As this is the first database, the controls also apply
+to entries not held in any database (such as the Root DSE).  For
+all applicable entries, the {{EX:userPassword}} attribute is writable
+by the entry itself and by the "admin" entry.  It may be used for
+authentication/authorization purposes, but is otherwise not readable.
+All other attributes are writable by the entry and the "admin"
+entry, but may be read by authenticated users.
 
-The next section of the example configuration file defines
-another LDBM database. This one handles queries involving
-the {{EX:dc=example,dc=net}} subtree.  Note that without
-line 38, the read access would be allowed due to the
-global access rule at line 4.
+The next section of the example configuration file defines another
+LDBM database. This one handles queries involving the
+{{EX:dc=example,dc=net}} subtree.  Note that without line 38, the
+read access would be allowed due to the global access rule at line
+4.
 
 E: 33.	# ldbm definition for example.net
 E: 34.	database ldbm
