@@ -25,8 +25,6 @@
 #ifndef REWRITE_H
 #define REWRITE_H
 
-LDAP_BEGIN_DECL
-
 /*
  * Default rewrite context
  */
@@ -82,6 +80,8 @@ LDAP_BEGIN_DECL
 struct rewrite_info;
 
 struct berval; /* avoid include */
+
+LDAP_BEGIN_DECL
 
 /*
  * Inits the info
