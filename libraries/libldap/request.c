@@ -788,8 +788,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 
 	len = strlen( *errstrp );
 	for ( p = *errstrp; len >= LDAP_REF_STR_LEN; ++p, --len ) {
-		if (( *p == 'R' || *p == 'r' ) && strncasecmp( p,
-		    LDAP_REF_STR, LDAP_REF_STR_LEN ) == 0 ) {
+		if ( strncasecmp( p, LDAP_REF_STR, LDAP_REF_STR_LEN ) == 0 ) {
 			*p = '\0';
 			p += LDAP_REF_STR_LEN;
 			break;
@@ -826,6 +825,9 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			p = NULL;
 		}
 
+		/* copy the complete referral for rebind process */
+		rinfo.ri_url = LDAP_STRDUP( ref );
+
 		ldap_pvt_hex_unescape( ref );
 		len = strlen( ref );
 
@@ -841,11 +843,10 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
+			LDAP_FREE( rinfo.ri_url );
+			rinfo.ri_url = NULL;
 			continue;
 		}
-
-		/* copy the complete referral for rebind process */
-		rinfo.ri_url = LDAP_STRDUP( ref );
 
 		*hadrefp = 1;
 
