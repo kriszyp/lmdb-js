@@ -730,6 +730,16 @@ connection_operation( void *arg_v )
 	num_ops_initiated++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
+	if( conn->c_bind_in_progress == 1 && tag != LDAP_REQ_BIND ) {
+		Debug( LDAP_DEBUG_ANY,
+			"connection_operation: SASL bind in progress.\n",
+			0, 0, 0 );
+		send_ldap_result( conn, arg->co_op, LDAP_OPERATIONS_ERROR,
+			NULL, "SASL bind in progress", NULL, NULL );
+		rc = LDAP_OPERATIONS_ERROR;
+		goto operations_error;
+	}
+
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
 		rc = do_bind( conn, arg->co_op );
@@ -783,6 +793,7 @@ connection_operation( void *arg_v )
 
 	if( rc == SLAPD_DISCONNECT ) tag = LBER_ERROR;
 
+operations_error:
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_completed++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
@@ -1074,8 +1085,6 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg = (struct co_arg *) ch_malloc( sizeof(struct co_arg) );
 	arg->co_conn = conn;
 	arg->co_op = op;
-
-	arg->co_op->o_bind_in_progress = conn->c_bind_in_progress;
 
 	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );

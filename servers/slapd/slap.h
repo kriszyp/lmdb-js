@@ -957,7 +957,6 @@ typedef struct slap_op {
 	ber_tag_t	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 
-	int		o_bind_in_progress;	/* multi-step bind in progress */
 #ifdef SLAP_AUTHZID
 	/* should only be used for reporting purposes */
 	char	*o_authc_dn;	/* authentication DN */

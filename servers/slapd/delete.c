@@ -37,14 +37,6 @@ do_delete(
 
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 
-	if( op->o_bind_in_progress ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: SASL bind in progress.\n",
-			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, "SASL bind in progress", NULL, NULL );
-		return LDAP_SASL_BIND_IN_PROGRESS;
-	}
-
 	/*
 	 * Parse the delete request.  It looks like this:
 	 *
