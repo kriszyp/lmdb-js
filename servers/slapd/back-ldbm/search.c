@@ -55,11 +55,25 @@ ldbm_back_search(
 
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
 
-	/* get entry with reader lock */
-	if ( deref & LDAP_DEREF_FINDING ) {
+	if ( *nbase == '\0' ) {
+		/* DIT root special case */
+		static const Entry root = { NOID, "", "", NULL, NULL };
+		e = (Entry *) &root;
+
+		/* need normalized dn below */
+		realbase = ch_strdup( e->e_ndn );
+
+		candidates = search_candidates( be, e, filter,
+		    scope, deref, manageDSAit );
+
+		goto searchit;
+		
+	} else if ( deref & LDAP_DEREF_FINDING ) {
+		/* deref dn and get entry with reader lock */
 		e = deref_dn_r( be, nbase, &err, &matched, &text );
 
 	} else {
+		/* get entry with reader lock */
 		e = dn2entry_r( be, nbase, &matched );
 		err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
 		text = NULL;
@@ -118,21 +132,6 @@ ldbm_back_search(
 		deref = LDAP_DEREF_NEVER;
 	}
 
-	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
-		tlimit = -1;	/* allow root to set no limit */
-	} else {
-		tlimit = (tlimit > be->be_timelimit || tlimit < 1) ?
-		    be->be_timelimit : tlimit;
-		stoptime = op->o_time + tlimit;
-	}
-
-	if ( slimit == 0 && be_isroot( be, op->o_ndn ) ) {
-		slimit = -1;	/* allow root to set no limit */
-	} else {
-		slimit = (slimit > be->be_sizelimit || slimit < 1) ?
-		    be->be_sizelimit : slimit;
-	}
-
 	if ( scope == LDAP_SCOPE_BASE ) {
 		candidates = base_candidate( be, e );
 
@@ -146,6 +145,7 @@ ldbm_back_search(
 
 	cache_return_entry_r( &li->li_cache, e );
 
+searchit:
 	if ( candidates == NULL ) {
 		/* no candidates */
 		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
@@ -157,6 +157,21 @@ ldbm_back_search(
 
 		rc = 1;
 		goto done;
+	}
+
+	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
+		tlimit = -1;	/* allow root to set no limit */
+	} else {
+		tlimit = (tlimit > be->be_timelimit || tlimit < 1) ?
+		    be->be_timelimit : tlimit;
+		stoptime = op->o_time + tlimit;
+	}
+
+	if ( slimit == 0 && be_isroot( be, op->o_ndn ) ) {
+		slimit = -1;	/* allow root to set no limit */
+	} else {
+		slimit = (slimit > be->be_sizelimit || slimit < 1) ?
+		    be->be_sizelimit : slimit;
 	}
 
 	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
