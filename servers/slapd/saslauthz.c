@@ -31,7 +31,8 @@
 
 #define LDAP_X_SCOPE_EXACT	((ber_int_t) 0x0010)
 #define LDAP_X_SCOPE_REGEX	((ber_int_t) 0x0020)
-#define LDAP_X_SCOPE_EXACTREGEX	(LDAP_X_SCOPE_EXACT|LDAP_X_SCOPE_REGEX)
+#define LDAP_X_SCOPE_CHILDREN	((ber_int_t) 0x0030)
+#define LDAP_X_SCOPE_SUBTREE	((ber_int_t) 0x0040)
 
 /*
  * IDs in DN form can now have a type specifier, that influences
@@ -114,55 +115,76 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 #endif
 
-	/* If it does not look like a URI, assume it is a DN */
-	/* explicitly set to exact: will skip regcomp/regexec */
-	if( !strncasecmp( uri->bv_val, "dn.exact:", sizeof("dn.exact:")-1 ) ) {
-		bv.bv_val = uri->bv_val + sizeof("dn.exact:")-1;
-		bv.bv_val += strspn( bv.bv_val, " " );
+	if ( !strncasecmp( uri->bv_val, "dn", sizeof( "dn" ) - 1 ) ) {
+		rc = LDAP_PROTOCOL_ERROR;
+		bv.bv_val = uri->bv_val + sizeof( "dn" ) - 1;
 
-is_dn_exact:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
+		if ( bv.bv_val[ 0 ] == '.' ) {
+			bv.bv_val++;
 
-		rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
-		if( rc == LDAP_SUCCESS ) {
-			*scope = LDAP_X_SCOPE_EXACT;
+			if ( !strncasecmp( bv.bv_val, "exact:", sizeof( "exact:" ) - 1 ) ) {
+				bv.bv_val += sizeof( "exact" ) - 1;
+				*scope = LDAP_X_SCOPE_EXACT;
+
+			} else if ( !strncasecmp( bv.bv_val, "regex:", sizeof( "regex:" ) - 1 ) ) {
+				bv.bv_val += sizeof( "regex" ) - 1;
+				*scope = LDAP_X_SCOPE_REGEX;
+
+			} else if ( !strncasecmp( bv.bv_val, "children:", sizeof( "chldren:" ) - 1 ) ) {
+				bv.bv_val += sizeof( "children" ) - 1;
+				*scope = LDAP_X_SCOPE_CHILDREN;
+
+			} else if ( !strncasecmp( bv.bv_val, "subtree:", sizeof( "subtree:" ) - 1 ) ) {
+				bv.bv_val += sizeof( "subtree" ) - 1;
+				*scope = LDAP_X_SCOPE_SUBTREE;
+
+			} else {
+				return LDAP_PROTOCOL_ERROR;
+			}
 		}
 
-		return( rc );
+		if ( bv.bv_val[ 0 ] != ':' ) {
+			return LDAP_PROTOCOL_ERROR;
+		}
+		bv.bv_val++;
 
-	/* unqualified: to be liberal, it is left to the caller
-	 * whether to normalize or regcomp() it */
-	} else if( !strncasecmp( uri->bv_val, "dn:", sizeof("dn:")-1 ) ) {
-		bv.bv_val = uri->bv_val + sizeof("dn:")-1;
 		bv.bv_val += strspn( bv.bv_val, " " );
-
+		/* jump here in case no type specification was present
+		 * and uir was not an URI... HEADS-UP: assuming EXACT */
 is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
-#if 0
-		rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
-		if( rc == LDAP_SUCCESS ) {
-			*scope = LDAP_X_SCOPE_EXACTREGEX;
+		switch ( *scope ) {
+		case LDAP_X_SCOPE_EXACT:
+		case LDAP_X_SCOPE_CHILDREN:
+		case LDAP_X_SCOPE_SUBTREE:
+			rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
+			if( rc != LDAP_SUCCESS ) {
+				*scope = -1;
+			}
+			break;
+
+		case LDAP_X_SCOPE_REGEX:
+			ber_dupbv_x( nbase, &bv, op->o_tmpmemctx );
+			rc = LDAP_SUCCESS;
+			break;
+
+		default:
+			*scope = -1;
+			break;
 		}
-#endif
-		*scope = LDAP_X_SCOPE_EXACTREGEX;
-		rc = LDAP_SUCCESS;
 
 		return( rc );
 
-	/* explicitly set to regex: it will be regcomp'd/regexec'd */
-	} else if ( !strncasecmp( uri->bv_val, "dn.regex:", sizeof("dn.regex:")-1 ) ) {
-		bv.bv_val = uri->bv_val + sizeof("dn.regex:")-1;
-		bv.bv_val += strspn( bv.bv_val, " " );
-
-is_dn_regex:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
-
-		ber_dupbv_x( nbase, &bv, op->o_tmpmemctx );
-		*scope = LDAP_X_SCOPE_REGEX;
-		return LDAP_SUCCESS;
+	} else if ( !strncasecmp( uri->bv_val, "u:", sizeof( "u:" ) - 1 ) ) {
+		/* FIXME: I'll handle this later ... */
+		return LDAP_PROTOCOL_ERROR;
 	}
-
+		
 	rc = ldap_url_parse( uri->bv_val, &ludp );
 	if ( rc == LDAP_URL_ERR_BADSCHEME ) {
+		/* last chance: assume it's a(n exact) DN ... */
 		bv.bv_val = uri->bv_val;
+		*scope = LDAP_X_SCOPE_EXACT;
 		goto is_dn;
 	}
 
@@ -175,7 +197,7 @@ is_dn_regex:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	{
 		/* host part must be empty */
 		/* attrs and extensions parts must be empty */
-		rc =  LDAP_PROTOCOL_ERROR;
+		rc = LDAP_PROTOCOL_ERROR;
 		goto done;
 	}
 
@@ -482,6 +504,7 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	switch ( op.oq_search.rs_scope ) {
 	case LDAP_SCOPE_BASE:
 	case LDAP_X_SCOPE_EXACT:
+exact_match:
 		if ( dn_match( &op.o_req_ndn, assertDN ) ) {
 			rc = LDAP_SUCCESS;
 		} else {
@@ -489,8 +512,27 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 		}
 		goto CONCLUDED;
 
+	case LDAP_X_SCOPE_CHILDREN:
+	case LDAP_X_SCOPE_SUBTREE:
+	{
+		int	d = assertDN->bv_len - op.o_req_ndn.bv_len;
+
+		rc = LDAP_INAPPROPRIATE_AUTH;
+
+		if ( d == 0 && op.oq_search.rs_scope == LDAP_X_SCOPE_SUBTREE ) {
+			goto exact_match;
+
+		} else if ( d > 0 ) {
+			struct berval bv = { op.o_req_ndn.bv_len, assertDN->bv_val + d };
+
+			if ( bv.bv_val[ -1 ] == ',' && dn_match( &op.o_req_ndn, &bv ) ) {
+				rc = LDAP_SUCCESS;
+			}
+		}
+		goto CONCLUDED;
+	}
+
 	case LDAP_X_SCOPE_REGEX:
-	case LDAP_X_SCOPE_EXACTREGEX:
 		rc = regcomp(&reg, op.o_req_ndn.bv_val,
 			REG_EXTENDED|REG_ICASE|REG_NOSUB);
 		if ( rc == 0 ) {
@@ -683,27 +725,6 @@ void slap_sasl2dn( Operation *opx,
 
 	/* Massive shortcut: search scope == base */
 	switch ( op.oq_search.rs_scope ) {
-	case LDAP_X_SCOPE_EXACTREGEX:
-		/*
-		 * this occurs when "dn:<dn>" was used, which means
-		 * it is not specified whether the DN is an exact value
-		 * or a regular expression, and thus it has not been
-		 * normalized yet.  slap_parseURI() clears the op.o_req_dn
-		 * field and stores its result in op.o_req_ndn, so we first
-		 * swap them and then normalize the value
-		 */
-		assert( op.o_req_dn.bv_val == NULL );
-
-		op.o_req_dn = op.o_req_ndn;
-		rc = dnNormalize( 0, NULL, NULL, &op.o_req_dn, &op.o_req_ndn, opx->o_tmpmemctx );
-		op.o_req_dn.bv_len = 0;
-		op.o_req_dn.bv_val = NULL;
-
-		if( rc != LDAP_SUCCESS ) {
-			goto FINISHED;
-		}
-		/* intentionally continue to next case */
-
 	case LDAP_SCOPE_BASE:
 	case LDAP_X_SCOPE_EXACT:
 		*sasldn = op.o_req_ndn;
@@ -712,11 +733,19 @@ void slap_sasl2dn( Operation *opx,
 		/* intentionally continue to next case */
 
 	case LDAP_X_SCOPE_REGEX:
-		/* illegal */
+	case LDAP_X_SCOPE_SUBTREE:
+	case LDAP_X_SCOPE_CHILDREN:
+		/* correctly parsed, but illegal */
 		goto FINISHED;
 
-	default:
+	case LDAP_SCOPE_ONELEVEL:
+	case LDAP_SCOPE_SUBTREE:
+		/* do a search */
 		break;
+
+	default:
+		/* catch unhandled cases (there shouldn't be) */
+		assert( 0 );
 	}
 
 #ifdef NEW_LOGGING
