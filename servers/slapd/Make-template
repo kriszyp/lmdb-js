@@ -21,14 +21,14 @@ SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
 		value.c ava.c bind.c unbind.c abandon.c filterentry.c \
-		phonetic.c regex.c acl.c str2filter.c aclparse.c init.c \
+		phonetic.c acl.c str2filter.c aclparse.c init.c \
 		detach.c strdup.c tempnam.c repl.c lock.c \
 		schema.c schemaparse.c monitor.c configinfo.c
 OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		attr.o entry.o config.o backend.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
 		value.o ava.o bind.o unbind.o abandon.o filterentry.o \
-		phonetic.o regex.o acl.o str2filter.o aclparse.o init.o \
+		phonetic.o acl.o str2filter.o aclparse.o init.o \
 		detach.o strdup.o tempnam.o repl.o lock.o \
 		schema.o schemaparse.o monitor.o configinfo.o
 
@@ -36,8 +36,9 @@ INCLUDES= -I. -I$(HDIR) $(KRBINCLUDEFLAG)
 DEFINES = $(DEFS) $(SERVERDEFS)
 CFLAGS	= $(INCLUDES) $(THREADSINCLUDE) $(DEFINES) $(ACFLAGS) $(THREADS)
 LDFLAGS	= -L$(LDIR) $(KRBLIBFLAG)
-LIBS	= $(KRBLIBS) -llber -lldbm -lavl -llthread -lldif $(THREADSLIB) \
-		$(LDBMLIB) $(ALIBS)
+LIBS	= $(KRBLIBS) -llber -lldbm -lavl -llthread -lldif \
+		$(REGEXLIB) $(THREADSLIB) \
+		$(LDBMLIB) $(LDAP_CRYPT_LIB) $(LDAP_TCP_WRAPPERS_LIB) $(ALIBS)
 
 all: FORCE
 	@if [ -z "$(MAKESLAPD)" ]; then \
@@ -100,26 +101,34 @@ version.c: libbackends.a $(OBJS) $(LDIR)/liblber/liblber.a \
 	-e "s|%VERSION%|$${v}|" \
 	< Version.c > $@)
 
-install: all $(ETCDIR) $(ETCDIR)/slapd $(ETCDIR)/slapd.conf \
-		$(ETCDIR)/slapd.at.conf $(ETCDIR)/slapd.oc.conf \
+install: all $(LDAP_LIBEXECDIR) $(LDAP_LIBEXECDIR)/slapd \
+		$(LDAP_ETCDIR) $(LDAP_ETCDIR)/slapd.conf \
+		$(LDAP_ETCDIR)/slapd.at.conf $(LDAP_ETCDIR)/slapd.oc.conf \
 		install-tools
 
-$(ETCDIR)/slapd:	slapd
-	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(ETCDIR)
+$(LDAP_LIBEXECDIR): FORCE
+	@-$(MKDIR) $(LDAP_LIBEXECDIR)
 
-$(ETCDIR)/slapd.conf:	slapd.conf
-	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' slapd.conf > /tmp/slapd.$$
-	-$(MV) $(ETCDIR)/slapd.conf $(ETCDIR)/slapd.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(ETCDIR)/slapd.conf
+$(LDAP_ETCDIR): FORCE
+	@-$(MKDIR) $(LDAP_ETCDIR)
+
+$(LDAP_LIBEXECDIR)/slapd:	slapd
+	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(LDAP_LIBEXECDIR)
+
+$(LDAP_ETCDIR)/slapd.conf:	slapd.conf
+	$(SED) -e 's;%ETCDIR%;$(LDAP_ETCDIR);' slapd.conf > /tmp/slapd.$$
+	-$(MV) $(LDAP_ETCDIR)/slapd.conf $(LDAP_ETCDIR)/slapd.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(LDAP_ETCDIR)/slapd.conf
 	$(RM) -f /tmp/slapd.$$
 
-$(ETCDIR)/slapd.at.conf:	slapd.at.conf
-	-$(MV) $(ETCDIR)/slapd.at.conf $(ETCDIR)/slapd.at.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.at.conf $(ETCDIR)
+$(LDAP_ETCDIR)/slapd.at.conf:	slapd.at.conf
+	-$(MV) $(LDAP_ETCDIR)/slapd.at.conf $(LDAP_ETCDIR)/slapd.at.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.at.conf $(LDAP_ETCDIR)
 
-$(ETCDIR)/slapd.oc.conf:	slapd.oc.conf
-	-$(MV) $(ETCDIR)/slapd.oc.conf $(ETCDIR)/slapd.oc.conf-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.oc.conf $(ETCDIR)
+$(LDAP_ETCDIR)/slapd.oc.conf:	slapd.oc.conf
+	@$(MKDIR) $(LDAP_ETCDIR)
+	-$(MV) $(LDAP_ETCDIR)/slapd.oc.conf $(LDAP_ETCDIR)/slapd.oc.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.oc.conf $(LDAP_ETCDIR)
 
 install-tools: FORCE
 	(cd tools; $(MAKE) $(MFLAGS) install)
@@ -164,103 +173,3 @@ links:
 	    fi; \
 	done; 
 
-
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-main.o: main.c ../../include/portable.h slap.h ../../include/avl.h
-main.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-main.o: ../../include/ldif.h ../../include/ldapconfig.h
-daemon.o: daemon.c slap.h ../../include/avl.h ../../include/lber.h
-daemon.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-daemon.o: ../../include/portable.h ../../include/ldapconfig.h
-connection.o: connection.c ../../include/portable.h slap.h ../../include/avl.h
-connection.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-connection.o: ../../include/ldif.h
-search.o: search.c slap.h ../../include/avl.h ../../include/lber.h
-search.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-search.o: ../../include/ldapconfig.h
-filter.o: filter.c slap.h ../../include/avl.h ../../include/lber.h
-filter.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-add.o: add.c slap.h ../../include/avl.h ../../include/lber.h
-add.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-charray.o: charray.c slap.h ../../include/avl.h ../../include/lber.h
-charray.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-attr.o: attr.c ../../include/portable.h slap.h ../../include/avl.h
-attr.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-attr.o: ../../include/ldif.h
-entry.o: entry.c slap.h ../../include/avl.h ../../include/lber.h
-entry.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-config.o: config.c slap.h ../../include/avl.h ../../include/lber.h
-config.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-config.o: ../../include/ldapconfig.h
-backend.o: backend.c slap.h ../../include/avl.h ../../include/lber.h
-backend.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-result.o: result.c ../../include/portable.h slap.h ../../include/avl.h
-result.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-result.o: ../../include/ldif.h
-operation.o: operation.c slap.h ../../include/avl.h ../../include/lber.h
-operation.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-dn.o: dn.c ../../include/portable.h slap.h ../../include/avl.h
-dn.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-dn.o: ../../include/ldif.h
-compare.o: compare.c slap.h ../../include/avl.h ../../include/lber.h
-compare.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-modify.o: modify.c slap.h ../../include/avl.h ../../include/lber.h
-modify.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-delete.o: delete.c slap.h ../../include/avl.h ../../include/lber.h
-delete.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-modrdn.o: modrdn.c slap.h ../../include/avl.h ../../include/lber.h
-modrdn.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-ch_malloc.o: ch_malloc.c slap.h ../../include/avl.h ../../include/lber.h
-ch_malloc.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-value.o: value.c ../../include/portable.h slap.h ../../include/avl.h
-value.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-value.o: ../../include/ldif.h
-ava.o: ava.c slap.h ../../include/avl.h ../../include/lber.h
-ava.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-bind.o: bind.c slap.h ../../include/avl.h ../../include/lber.h
-bind.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-unbind.o: unbind.c slap.h ../../include/avl.h ../../include/lber.h
-unbind.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-abandon.o: abandon.c slap.h ../../include/avl.h ../../include/lber.h
-abandon.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-filterentry.o: filterentry.c ../../include/regex.h slap.h ../../include/avl.h
-filterentry.o: ../../include/lber.h ../../include/ldap.h
-filterentry.o: ../../include/lthread.h ../../include/ldif.h
-phonetic.o: phonetic.c ../../include/portable.h slap.h ../../include/avl.h
-phonetic.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-phonetic.o: ../../include/ldif.h
-regex.o: regex.c ../../include/portable.h
-acl.o: acl.c ../../include/regex.h slap.h ../../include/avl.h
-acl.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-acl.o: ../../include/ldif.h
-str2filter.o: str2filter.c slap.h ../../include/avl.h ../../include/lber.h
-str2filter.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-aclparse.o: aclparse.c ../../include/regex.h slap.h ../../include/avl.h
-aclparse.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-aclparse.o: ../../include/ldif.h ../../include/portable.h
-init.o: init.c ../../include/portable.h slap.h ../../include/avl.h
-init.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-init.o: ../../include/ldif.h
-detach.o: detach.c ../../include/portable.h
-strdup.o: strdup.c
-tempnam.o: tempnam.c
-repl.o: repl.c slap.h ../../include/avl.h ../../include/lber.h
-repl.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-lock.o: lock.c ../../include/portable.h slap.h ../../include/avl.h
-lock.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-lock.o: ../../include/ldif.h
-schema.o: schema.c slap.h ../../include/avl.h ../../include/lber.h
-schema.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-schemaparse.o: schemaparse.c slap.h ../../include/avl.h ../../include/lber.h
-schemaparse.o: ../../include/ldap.h ../../include/lthread.h
-schemaparse.o: ../../include/ldif.h
-monitor.o: monitor.c slap.h ../../include/avl.h ../../include/lber.h
-monitor.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-monitor.o: ../../include/ldapconfig.h
-configinfo.o: configinfo.c slap.h ../../include/avl.h ../../include/lber.h
-configinfo.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h
-configinfo.o: ../../include/ldapconfig.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY

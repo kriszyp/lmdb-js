@@ -24,15 +24,15 @@ OBJS2	= ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../aclparse.o ../schema.o ../result.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
-		../schemaparse.o ../regex.o ../strdup.o
+		../schemaparse.o ../strdup.o
 
 INCLUDES= -I. -I$(HDIR) $(EXINCLUDES)
-DEFINES = $(DEFS) $(SERVERDEFS) $(THREADS)
+DEFINES = $(DEFS) $(LDAP_CRYPT) $(SERVERDEFS) $(THREADS)
 CFLAGS	= $(INCLUDES) $(DEFINES) $(ACFLAGS)
 LDFLAGS	= -L$(LDIR) $(EXLDFLAGS)
 LIBS	= -lldif -lldap -llber -lldbm -lavl $(LDBMLIB) $(EXLIBS) $(ALIBS)
 LIBS2	= -lldif -lldbm -lavl $(LDBMLIB) -llber $(KRBLIBFLAG) $(KRBLIBS) \
-		-llthread $(THREADSLIB) $(ALIBS)
+		-llthread $(THREADSLIB) $(ALIBS) $(LDAP_CRYPT_LIB)
 
 all:	build-edb2ldif ldif2index ldif2ldbm ldbmcat ldif2id2entry \
 		ldif2id2children centipede ldbmtest ldif
@@ -73,12 +73,9 @@ ldif2index:	ldif2index.o ../libbackends.a $(OBJS2)
 	$(CC) $(ALDFLAGS) -o $@ ldif2index.o $(OBJS2) \
 		../libbackends.a $(LDFLAGS) $(LIBS2)
 
-ldif2ldbm:	ldif2ldbm.sed.o ../libbackends.a $(OBJS2)
-	$(CC) $(ALDFLAGS) -o $@ ldif2ldbm.sed.o $(OBJS2) \
+ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2)
+	$(CC) $(ALDFLAGS) -o $@ ldif2ldbm.o $(OBJS2) \
 		../libbackends.a $(LDFLAGS) $(LIBS2)
-
-ldif2ldbm.sed.c: ldif2ldbm.c
-	$(SED) -e 's;%ETCDIR%;$(RUNTIMEETCDIR);' ldif2ldbm.c > ldif2ldbm.sed.c
 
 ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2)
 	$(CC) $(ALDFLAGS) -o $@ ldif2id2entry.o $(OBJS2) \
@@ -106,49 +103,52 @@ ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2)
 	$(CC) $(ALDFLAGS) -o ldbmtest ldbmtest.o $(OBJS2) \
 		../libbackends.a $(LDFLAGS) $(LIBS2)
 
-install: $(ETCDIR) $(ETCDIR)/edb2ldif $(ETCDIR)/ldif2ldbm \
-	$(ETCDIR)/ldif2index $(ETCDIR)/ldif2id2entry \
-	$(ETCDIR)/ldif2id2children $(ETCDIR)/ldbmcat \
-	$(ETCDIR)/centipede $(ETCDIR)/ldbmtest \
-	$(ETCDIR)/ldif
+install: $(LDAP_SBINDIR) $(LDAP_SBINDIR)/edb2ldif $(LDAP_SBINDIR)/ldif2ldbm \
+	$(LDAP_SBINDIR)/ldif2index $(LDAP_SBINDIR)/ldif2id2entry \
+	$(LDAP_SBINDIR)/ldif2id2children $(LDAP_SBINDIR)/ldbmcat \
+	$(LDAP_SBINDIR)/centipede $(LDAP_SBINDIR)/ldbmtest \
+	$(LDAP_SBINDIR)/ldif
 
-$(ETCDIR)/edb2ldif:	build-edb2ldif
+$(LDAP_SBINDIR): FORCE
+	@-$(MKDIR) $(LDAP_SBINDIR)
+
+$(LDAP_SBINDIR)/edb2ldif:	build-edb2ldif
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(ETCDIR); \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(LDAP_SBINDIR); \
 	else \
 		exit 0; \
 	fi
 
-$(ETCDIR)/chlog2replog:	build-chlog2replog
+$(LDAP_SBINDIR)/chlog2replog:	build-chlog2replog
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(ETCDIR); \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(LDAP_SBINDIR); \
 	else \
 		exit 0; \
 	fi
 
-$(ETCDIR)/ldif2ldbm:	ldif2ldbm
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(ETCDIR)
+$(LDAP_SBINDIR)/ldif2ldbm:	ldif2ldbm
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(LDAP_SBINDIR)
 
-$(ETCDIR)/ldif2index:	ldif2index
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(ETCDIR)
+$(LDAP_SBINDIR)/ldif2index:	ldif2index
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(LDAP_SBINDIR)
 
-$(ETCDIR)/ldif2id2entry:	ldif2id2entry
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(ETCDIR)
+$(LDAP_SBINDIR)/ldif2id2entry:	ldif2id2entry
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(LDAP_SBINDIR)
 
-$(ETCDIR)/ldif2id2children:	ldif2id2children
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(ETCDIR)
+$(LDAP_SBINDIR)/ldif2id2children:	ldif2id2children
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(LDAP_SBINDIR)
 
-$(ETCDIR)/ldbmcat:	ldbmcat
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(ETCDIR)
+$(LDAP_SBINDIR)/ldbmcat:	ldbmcat
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(LDAP_SBINDIR)
 
-$(ETCDIR)/ldif:	ldif
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(ETCDIR)
+$(LDAP_SBINDIR)/ldif:	ldif
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(LDAP_SBINDIR)
 
-$(ETCDIR)/centipede:	centipede
-	$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(ETCDIR)
+$(LDAP_SBINDIR)/centipede:	centipede
+	$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(LDAP_SBINDIR)
 
-$(ETCDIR)/ldbmtest:	ldbmtest
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(ETCDIR)
+$(LDAP_SBINDIR)/ldbmtest:	ldbmtest
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(LDAP_SBINDIR)
 
 lint:	FORCE
 	$(LINT) $(INCLUDES) $(DEFINES) $(SRCS)
@@ -160,60 +160,17 @@ clean:	FORCE
 	@echo "making clean in `$(PWD)`"
 	$(RM) edb2ldif ldif2index *.o core a.out edb2-vers.c \
 		ldif2ldbm ldif2id2entry ldif2id2children ldbmcat ldif \
-		centipede chlog2replog sizecount ldif2ldbm.sed.c ldbmtest
+		centipede chlog2replog sizecount ldbmtest
 
-depend:	ldif2ldbm.sed.c FORCE
+depend:	FORCE
 	@if [ ! -z "$(HAVEISODE)" ]; then \
 	    DEPENDEXTRAS="$(ISODEINCLUDEFLAG) chlog2replog.c $(EDB2LDIFSRCS)"; \
 	fi; \
 	$(MKDEP) $(INCLUDES) $(DEFINES) $$DEPENDEXTRAS ldif2index.c \
 	    ldif2ldbm.c ldif2id2entry.c ldif2id2children.c ldbmcat.c \
-	    centipede.c sizecount.c ldif2ldbm.sed.c ldbmtest.c ldif.c
+	    centipede.c sizecount.c ldbmtest.c ldif.c
 
 links:
 	@echo "making links in `$(PWD)`"
 	@$(LN) .src/*.[ch] .
 
-
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-chlog2replog.o: chlog2replog.c ../../../include/ldif.h
-edb2ldif.o: edb2ldif.c
-ldapsyntax.o: ldapsyntax.c ../../../include/lber.h ../../../include/ldap.h
-ldapsyntax.o: ../../../include/ldif.h ldapsyntax.h
-ldif2index.o: ldif2index.c ../slap.h ../../../include/avl.h
-ldif2index.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2index.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2ldbm.o: ldif2ldbm.c ../slap.h ../../../include/avl.h
-ldif2ldbm.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2ldbm.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2ldbm.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldif2id2entry.o: ldif2id2entry.c ../slap.h ../../../include/avl.h
-ldif2id2entry.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2id2entry.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2id2entry.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldif2id2children.o: ldif2id2children.c ../slap.h ../../../include/avl.h
-ldif2id2children.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2id2children.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2id2children.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldbmcat.o: ldbmcat.c ../../../include/ldbm.h ../slap.h ../../../include/avl.h
-ldbmcat.o: ../../../include/lber.h ../../../include/ldap.h
-ldbmcat.o: ../../../include/lthread.h ../../../include/ldif.h
-centipede.o: centipede.c ../../../include/lber.h ../../../include/ldap.h
-centipede.o: ../../../include/ldapconfig.h ../../../include/ldbm.h
-sizecount.o: sizecount.c ../../../include/ldbm.h ../../../include/lber.h
-sizecount.o: ../../../include/ldap.h ../../../include/portable.h
-ldif2ldbm.sed.o: ldif2ldbm.sed.c ../slap.h ../../../include/avl.h
-ldif2ldbm.sed.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2ldbm.sed.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2ldbm.sed.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldbmtest.o: ldbmtest.c ../../../include/portable.h
-ldbmtest.o: ../../../include/ldapconfig.h ../slap.h ../../../include/avl.h
-ldbmtest.o: ../../../include/lber.h ../../../include/ldap.h
-ldbmtest.o: ../../../include/lthread.h ../../../include/ldif.h
-ldbmtest.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldif.o: ldif.c ../../../include/lber.h ../../../include/ldap.h
-ldif.o: ../../../include/ldif.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY
