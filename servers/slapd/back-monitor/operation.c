@@ -58,17 +58,17 @@ monitor_subsys_ops_init(
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi,
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn, &e_op ) ) {
+			&monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn, &e_op ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
 			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val, 
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val, 
 			"", "" );
 #endif
 		return( -1 );
@@ -89,7 +89,7 @@ monitor_subsys_ops_init(
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 			"cn: Initiated\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn->bv_val );
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -97,12 +97,12 @@ monitor_subsys_ops_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to create entry 'cn=Initiated,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
 			"unable to create entry 'cn=Initiated,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val,
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -126,12 +126,12 @@ monitor_subsys_ops_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to add entry 'cn=Initiated,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
 			"unable to add entry 'cn=Initiated,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val,
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -152,7 +152,7 @@ monitor_subsys_ops_init(
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 			"cn: Completed\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn->bv_val );
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -160,12 +160,12 @@ monitor_subsys_ops_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to create entry 'cn=Completed,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
 			"unable to create entry 'cn=Completed,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val,
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
 			"", "" );
 #endif
 		return( -1 );
@@ -188,12 +188,12 @@ monitor_subsys_ops_init(
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to add entry 'cn=Completed,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
 			"unable to add entry 'cn=Completed,%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn->bv_val,
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
 			"", "" );
 #endif
 		return( -1 );

@@ -53,7 +53,7 @@ AttributeDescription *monitor_ad_desc = NULL;
 struct monitorsubsys monitor_subsys[] = {
 	{ 
 		SLAPD_MONITOR_LISTENER, SLAPD_MONITOR_LISTENER_NAME, 	
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		NULL,	/* init */
 		NULL,	/* update */
@@ -61,7 +61,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_DATABASE, SLAPD_MONITOR_DATABASE_NAME, 	
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_database_init,
 		NULL,   /* update */
@@ -69,7 +69,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_BACKEND, SLAPD_MONITOR_BACKEND_NAME, 
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_backend_init,
 		NULL,   /* update */
@@ -77,7 +77,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_THREAD, SLAPD_MONITOR_THREAD_NAME, 	
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		monitor_subsys_thread_init,
 		monitor_subsys_thread_update,
@@ -85,7 +85,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_SASL, SLAPD_MONITOR_SASL_NAME, 	
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		NULL,   /* update */
@@ -93,7 +93,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_TLS, SLAPD_MONITOR_TLS_NAME,
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		NULL,   /* update */
@@ -101,7 +101,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_CONN, SLAPD_MONITOR_CONN_NAME,
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_VOLATILE_CH,
 		monitor_subsys_conn_init,
 		monitor_subsys_conn_update,
@@ -109,7 +109,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_READW, SLAPD_MONITOR_READW_NAME,
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		NULL,	/* init */
 		monitor_subsys_readw_update,
@@ -117,7 +117,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_WRITEW, SLAPD_MONITOR_WRITEW_NAME,
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		monitor_subsys_writew_update,
@@ -125,7 +125,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_LOG, SLAPD_MONITOR_LOG_NAME,
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		monitor_subsys_log_init,
 		NULL,	/* update */
@@ -133,7 +133,7 @@ struct monitorsubsys monitor_subsys[] = {
 		monitor_subsys_log_modify
        	}, { 
 		SLAPD_MONITOR_OPS, SLAPD_MONITOR_OPS_NAME,
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		monitor_subsys_ops_init,
 		monitor_subsys_ops_update,
@@ -141,7 +141,7 @@ struct monitorsubsys monitor_subsys[] = {
 		NULL,	/* modify */
        	}, { 
 		SLAPD_MONITOR_SENT, SLAPD_MONITOR_SENT_NAME,
-		NULL, NULL, NULL,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
 		MONITOR_F_NONE,
 		monitor_subsys_sent_init,
 		monitor_subsys_sent_update,
@@ -307,7 +307,7 @@ monitor_back_db_init(
 
 		dn.bv_len += sizeof( SLAPD_MONITOR_DN ); /* 1 for the , */
 		dn.bv_val = ch_malloc( dn.bv_len + 1 );
-		strcpy( dn.bv_val , monitor_subsys[ i ].mss_rdn->bv_val );
+		strcpy( dn.bv_val , monitor_subsys[ i ].mss_rdn.bv_val );
 		strcat( dn.bv_val, "," SLAPD_MONITOR_DN );
 		rc = dnPrettyNormal( NULL, &dn, &monitor_subsys[ i ].mss_dn,
 			&monitor_subsys[ i ].mss_ndn );
@@ -335,7 +335,7 @@ monitor_back_db_init(
 				"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
 				"cn: %s\n",
-				monitor_subsys[ i ].mss_dn->bv_val,
+				monitor_subsys[ i ].mss_dn.bv_val,
 				monitor_subsys[ i ].mss_name );
 		
 		e = str2entry( buf );
@@ -344,11 +344,11 @@ monitor_back_db_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"unable to create '%s' entry\n", 
-				monitor_subsys[ i ].mss_dn->bv_val ));
+				monitor_subsys[ i ].mss_dn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to create '%s' entry\n", 
-				monitor_subsys[ i ].mss_dn->bv_val, 0, 0 );
+				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
 #endif
 			return( -1 );
 		}
@@ -364,11 +364,11 @@ monitor_back_db_init(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 				"unable to add entry '%s' to cache\n",
-				monitor_subsys[ i ].mss_dn->bv_val ));
+				monitor_subsys[ i ].mss_dn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to add entry '%s' to cache\n",
-				monitor_subsys[ i ].mss_dn->bv_val, 0, 0 );
+				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
 #endif
 			return -1;
 		}

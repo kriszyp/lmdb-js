@@ -95,18 +95,18 @@ monitor_subsys_log_init(
 
 	mi = ( struct monitorinfo * )be->be_private;
 
-	if ( monitor_cache_get( mi, monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn, 
+	if ( monitor_cache_get( mi, &monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn, 
 				&e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_log_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn->bv_val ));
+			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_log_init: "
 			"unable to get entry '%s'\n%s%s",
-			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn->bv_val, 
+			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn.bv_val, 
 			"", "" );
 #endif
 		return( -1 );

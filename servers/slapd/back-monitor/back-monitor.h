@@ -168,9 +168,9 @@ struct monitorinfo {
 struct monitorsubsys {
 	int		mss_type;
 	char		*mss_name;
-	struct berval	*mss_rdn;
-	struct berval	*mss_dn;
-	struct berval	*mss_ndn;
+	struct berval	mss_rdn;
+	struct berval	mss_dn;
+	struct berval	mss_ndn;
 	int		mss_flags;
 
 #define MONITOR_HAS_VOLATILE_CH( mp ) \
