@@ -266,7 +266,6 @@ static int bdb_tool_next_id(
 		unsigned i;
 
 		e->e_id = ei->bei_id;
-		rc = DB_KEYEXIST;
 
 		for ( i=0; i<nholes; i++) {
 			if ( holes[i].id == e->e_id ) {
@@ -275,7 +274,6 @@ static int bdb_tool_next_id(
 				for (j=i;j<nholes;j++) holes[j] = holes[j+1];
 				holes[j].id = 0;
 				nholes--;
-				rc = 0;
 				break;
 			} else if ( holes[i].id > e->e_id ) {
 				break;
