@@ -198,6 +198,8 @@ int slap_sasl_init( void )
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
 			0, 0, 0 );
+		/* A no-op used to make sure we linked with Cyrus 1.5 */
+		sasl_client_auth(NULL, NULL, NULL, 0, NULL, NULL);
 		return -1;
 	}
 
