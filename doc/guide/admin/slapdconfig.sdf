@@ -387,10 +387,10 @@ prefix of another, it must appear after it in the config file.
 
 H4: updatedn <dn>
 
-This directive is only applicable in a slave slapd. It specifies the
-DN allowed to make changes to the replica.  This may be the
-the DN slurpd binds as when making changes to the replica or
-the DN associated with a SASL identity.
+This directive is only applicable in a slave slapd. It specifies
+the DN allowed to make changes to the replica.  This may be the DN
+{{slurpd}}(8) binds as when making changes to the replica or the DN
+associated with a SASL identity.
 
 Entry-based Example:
 

@@ -302,7 +302,7 @@ string "{{F:.rej}}" appended. For example, for a replica running
 on host {{EX:slave.example.com}}, port 389, the reject file, if it
 exists, will be named
 
->	/usr/local/var/openldap/replog.slave.example.com:389.
+>	/usr/local/var/openldap/replog.slave.example.com:389.rej
 
 A sample rejection log entry follows:
 

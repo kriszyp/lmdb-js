@@ -209,22 +209,22 @@ in the {{slapd}}(8) manual page and the
 ..{{EX:objectclass: organization}}
 ..{{EX:o: <MY ORGANIZATION>}}
 ..{{EX:dc: <MY-DOMAIN>}}
-..{{EX: }}
+..{{EX:}}
 ..{{EX:dn: cn=Manager, dc=<MY-DOMAIN>, dc=<COM>}}
 ..{{EX:objectclass: organizationalRole}}
 ..{{EX:cn: Manager}}
 
 . Be sure to replace <MY-DOMAIN> and <COM> with the appropriate domain
 components of your domain name.  <MY ORGANIZATION> should be replaced
-with the name of your organization. If you cut and paste, be sure
-to trim any leading whitespace from the example:
+with the name of your organization.  If you cut and paste, be sure
+to trim any leading and trailing whitespace from the example.
 
 ..{{EX:dn: dc=example, dc=com}}
 ..{{EX:objectclass: dcObject}}
 ..{{EX:objectclass: organization}}
 ..{{EX:o: Example Company}}
 ..{{EX:dc: example}}
-..{{EX: }}
+..{{EX:}}
 ..{{EX:dn: cn=Manager, dc=example, dc=com}}
 ..{{EX:objectclass: organizationalRole}}
 ..{{EX:cn: Manager}}
