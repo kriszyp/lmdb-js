@@ -53,7 +53,7 @@ extern int ldap_debug;
 extern struct globals *init_globals	LDAP_P((void));
 
 /* ldap_op.c */
-int do_ldap	LDAP_P((Ri *ri, Re *re, char **errmsg));
+int do_ldap	LDAP_P((Ri *ri, Re *re, char **errmsg, int *errfree));
 
 /* lock.c */
 FILE *lock_fopen	LDAP_P((const char *fname, const char *type, FILE **lfp));

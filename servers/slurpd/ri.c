@@ -51,6 +51,7 @@ Ri_process(
     Re		*re = NULL, *new_re = NULL;
     int		rc ;
     char	*errmsg;
+    int		errfree;
 
     (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
 #ifdef SIGPIPE
@@ -113,7 +114,7 @@ Ri_process(
 			ri->ri_hostname, ri->ri_port, re->re_dn );
 #endif
 	    } else {
-		rc = do_ldap( ri, re, &errmsg );
+		rc = do_ldap( ri, re, &errmsg, &errfree );
 		switch ( rc ) {
 		case DO_LDAP_ERR_RETRYABLE:
 		    ldap_pvt_thread_sleep( RETRY_SLEEP_TIME );
@@ -144,6 +145,9 @@ Ri_process(
 		    /* ... and write to disk */
 		    (void) sglob->st->st_write( sglob->st );
 		    break;
+		}
+		if ( errfree && errmsg ) {
+		    ch_free( errmsg );
 		}
 	    }
 	} else {

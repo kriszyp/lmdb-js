@@ -37,10 +37,10 @@
 
 /* Forward references */
 static struct berval **make_singlevalued_berval LDAP_P(( char	*, int ));
-static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
-static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
-static int op_ldap_delete LDAP_P(( Ri *, Re *, char ** ));
-static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_add LDAP_P(( Ri *, Re *, char **, int * ));
+static int op_ldap_modify LDAP_P(( Ri *, Re *, char **, int * ));
+static int op_ldap_delete LDAP_P(( Ri *, Re *, char **, int * ));
+static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char **, int * ));
 static LDAPMod *alloc_ldapmod LDAP_P(( void ));
 static void free_ldapmod LDAP_P(( LDAPMod * ));
 static void free_ldmarr LDAP_P(( LDAPMod ** ));
@@ -64,11 +64,13 @@ int
 do_ldap(
 	Ri		*ri,
 	Re		*re,
-	char	**errmsg
+	char	**errmsg,
+	int	*errfree
 )
 {
 	int	retry = 2;
 	*errmsg = NULL;
+	*errfree = 0;
 
 	do {
 		int lderr;
@@ -82,7 +84,7 @@ do_ldap(
 
 		switch ( re->re_changetype ) {
 		case T_ADDCT:
-			lderr = op_ldap_add( ri, re, errmsg );
+			lderr = op_ldap_add( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -99,7 +101,7 @@ do_ldap(
 			break;
 
 		case T_MODIFYCT:
-			lderr = op_ldap_modify( ri, re, errmsg );
+			lderr = op_ldap_modify( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -116,7 +118,7 @@ do_ldap(
 			break;
 
 		case T_DELETECT:
-			lderr = op_ldap_delete( ri, re, errmsg );
+			lderr = op_ldap_delete( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -133,7 +135,7 @@ do_ldap(
 			break;
 
 		case T_MODRDNCT:
-			lderr = op_ldap_modrdn( ri, re, errmsg );
+			lderr = op_ldap_modrdn( ri, re, errmsg, errfree );
 			if ( lderr != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, "do_ldap: "
@@ -192,7 +194,8 @@ static int
 op_ldap_add(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     Mi		*mi;
@@ -235,6 +238,8 @@ op_ldap_add(
 	rc = ldap_add_s( ri->ri_ldp, re->re_dn, ldmarr );
 
 	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	*errfree = 1;
 
     } else {
 	*errmsg = "No modifications to do";
@@ -261,7 +266,8 @@ static int
 op_ldap_modify(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     Mi		*mi;
@@ -397,6 +403,8 @@ op_ldap_modify(
 		ri->ri_hostname, ri->ri_port, re->re_dn );
 #endif
 	rc = ldap_modify_s( ri->ri_ldp, re->re_dn, ldmarr );
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	*errfree = 1;
     }
     free_ldmarr( ldmarr );
     return( rc );
@@ -412,7 +420,8 @@ static int
 op_ldap_delete(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     int		rc;
@@ -426,6 +435,8 @@ op_ldap_delete(
 	    ri->ri_hostname, ri->ri_port, re->re_dn );
 #endif
     rc = ldap_delete_s( ri->ri_ldp, re->re_dn );
+    ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+    *errfree = 1;
 
     return( rc );
 }
@@ -446,7 +457,8 @@ static int
 op_ldap_modrdn(
     Ri		*ri,
     Re		*re,
-    char	**errmsg
+    char	**errmsg,
+    int		*errfree
 )
 {
     int		rc = 0;
@@ -603,6 +615,8 @@ op_ldap_modrdn(
     rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, newrdn, newsup, drdnflag );
 
 	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_STRING, errmsg);
+	*errfree = 1;
     return( lderr );
 }
 
