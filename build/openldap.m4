@@ -311,7 +311,7 @@ dnl Try to locate appropriate library
 AC_DEFUN([OL_RESOLVER_LINK],
 [ol_cv_lib_resolver=no
 OL_RESOLVER_TRY(ol_cv_resolver_none)
-OL_RESOLVER_TRY(ol_cv_resolver_resolv,[-lresol])
+OL_RESOLVER_TRY(ol_cv_resolver_resolv,[-lresolv])
 OL_RESOLVER_TRY(ol_cv_resolver_bind,[-lbind])
 ])
 dnl

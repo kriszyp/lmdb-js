@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.573 2005/03/18 16:07:16 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.574 2005/04/02 18:52:23 kurt Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -10323,13 +10323,13 @@ echo "$ac_t""$ol_cv_resolver_none" 1>&6
 fi
 
 if test $ol_cv_lib_resolver = no ; then
-	echo $ac_n "checking for resolver link (-lresol)""... $ac_c" 1>&6
-echo "configure:10328: checking for resolver link (-lresol)" >&5
+	echo $ac_n "checking for resolver link (-lresolv)""... $ac_c" 1>&6
+echo "configure:10328: checking for resolver link (-lresolv)" >&5
 if eval "test \"\${ol_cv_resolver_resolv+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	ol_RESOLVER_LIB=-lresol
+	ol_RESOLVER_LIB=-lresolv
 	ol_LIBS=$LIBS
 	LIBS="$ol_RESOLVER_LIB $LIBS"
 
@@ -10399,7 +10399,7 @@ fi
 echo "$ac_t""$ol_cv_resolver_resolv" 1>&6
 
 	if test $ol_cv_resolver_resolv = yes ; then
-		ol_cv_lib_resolver=-lresol
+		ol_cv_lib_resolver=-lresolv
 	fi
 fi
 
