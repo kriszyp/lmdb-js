@@ -965,9 +965,11 @@ AC_CHECK_HEADERS(	\
 	sys/resource.h	\
 	sys/socket.h	\
 	sys/syslog.h	\
+	sys/time.h		\
 	sys/types.h		\
 	syslog.h		\
 	termios.h		\
+	unistd.h		\
 )
 
 dnl ----------------------------------------------------------------

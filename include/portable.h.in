@@ -536,6 +536,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <sys/syslog.h> header file.  */
 #undef HAVE_SYS_SYSLOG_H
 
+/* Define if you have the <sys/time.h> header file.  */
+#undef HAVE_SYS_TIME_H
+
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
 
@@ -550,6 +553,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the <thread.h> header file.  */
 #undef HAVE_THREAD_H
+
+/* Define if you have the <unistd.h> header file.  */
+#undef HAVE_UNISTD_H
 
 /* Define if you have the V3 library (-lV3).  */
 #undef HAVE_LIBV3
