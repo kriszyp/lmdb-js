@@ -790,7 +790,10 @@ struct slap_internal_schema {
 
 	/* Matching Rules */
 	MatchingRule	*si_mr_distinguishedNameMatch;
+	MatchingRule    *si_mr_caseExactMatch;
+	MatchingRule    *si_mr_caseExactSubstringsMatch;
 	MatchingRule	*si_mr_integerMatch;
+	MatchingRule    *si_mr_integerFirstComponentMatch;
 
 	/* Syntaxes */
 	Syntax		*si_syn_octetString;

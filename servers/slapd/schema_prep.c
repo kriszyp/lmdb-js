@@ -796,10 +796,17 @@ static struct slap_schema_mr_map {
 	char *ssmm_name;
 	size_t ssmm_offset;
 } mr_map[] = {
+	{ "caseExactMatch",
+		offsetof(struct slap_internal_schema, si_mr_caseExactMatch) },
+	{ "caseExactSubstringsMatch",
+		offsetof(struct slap_internal_schema, si_mr_caseExactSubstringsMatch) },
 	{ "distinguishedNameMatch",
 		offsetof(struct slap_internal_schema, si_mr_distinguishedNameMatch) },
 	{ "integerMatch",
 		offsetof(struct slap_internal_schema, si_mr_integerMatch) },
+	{ "integerFirstComponentMatch",
+		offsetof(struct slap_internal_schema,
+			si_mr_integerFirstComponentMatch) },
 	{ NULL, 0 }
 };
 

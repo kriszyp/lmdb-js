@@ -87,21 +87,6 @@
 #define telephoneNumberSubstringsIndexer	caseIgnoreIA5SubstringsIndexer
 #define telephoneNumberSubstringsFilter		caseIgnoreIA5SubstringsFilter
 
-static MatchingRule *caseExactMatchingRule;
-static MatchingRule *caseExactSubstringsMatchingRule;
-static MatchingRule *integerFirstComponentMatchingRule;
-
-static const struct MatchingRulePtr {
-	const char   *oid;
-	MatchingRule **mr;
-} mr_ptr [] = {
-	/* must match OIDs below */
-	{ "2.5.13.5",  &caseExactMatchingRule },
-	{ "2.5.13.7",  &caseExactSubstringsMatchingRule },
-	{ "2.5.13.29", &integerFirstComponentMatchingRule }
-};
-
-
 static char *bvcasechr( struct berval *bv, unsigned char c, ber_len_t *len )
 {
 	ber_len_t i;
@@ -1102,7 +1087,7 @@ caseExactIgnoreSubstringsMatch(
 	char *nav = NULL;
 	unsigned casefold;
 
-	casefold = ( mr != caseExactSubstringsMatchingRule )
+	casefold = ( mr != slap_schema.si_mr_caseExactSubstringsMatch )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	if ( UTF8bvnormalize( value, &left, casefold ) == NULL ) {
@@ -1272,7 +1257,7 @@ static int caseExactIgnoreIndexer(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	casefold = ( mr != caseExactMatchingRule )
+	casefold = ( mr != slap_schema.si_mr_caseExactMatch )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
@@ -1349,7 +1334,7 @@ static int caseExactIgnoreFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	casefold = ( mr != caseExactMatchingRule )
+	casefold = ( mr != slap_schema.si_mr_caseExactMatch )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	UTF8bvnormalize( (struct berval *) assertedValue, &value, casefold );
@@ -1415,7 +1400,7 @@ static int caseExactIgnoreSubstringsIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	casefold = ( mr != caseExactSubstringsMatchingRule )
+	casefold = ( mr != slap_schema.si_mr_caseExactSubstringsMatch )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	tvalues = ch_malloc( sizeof( struct berval ) * (i+1) );
@@ -1616,7 +1601,7 @@ static int caseExactIgnoreSubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
-	casefold = ( mr != caseExactSubstringsMatchingRule )
+	casefold = ( mr != slap_schema.si_mr_caseExactSubstringsMatch )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	sa = UTF8SubstringsassertionNormalize( assertedValue, casefold );
@@ -1875,7 +1860,7 @@ integerMatch(
 	/* Skip leading space/sign/zeroes, and get the sign of the *value number */
 	v = value->bv_val;
 	vlen = value->bv_len;
-	if( mr == integerFirstComponentMatchingRule ) {
+	if( mr == slap_schema.si_mr_integerFirstComponentMatch ) {
 		char *tmp = memchr( v, '$', vlen );
 		if( tmp )
 			vlen = tmp - v;
@@ -4847,7 +4832,7 @@ slap_schema_init( void )
 			mrule_defs[i].mrd_compat_syntaxes == NULL )
 		{
 			fprintf( stderr,
-				"slap_schema_init: Ingoring unusable matching rule %s\n",
+				"slap_schema_init: Ignoring unusable matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
 			continue;
 		}
@@ -4862,9 +4847,6 @@ slap_schema_init( void )
 		}
 	}
 
-	for ( i=0; i < (int)(sizeof(mr_ptr)/sizeof(mr_ptr[0])); i++ )
-		*mr_ptr[i].mr = mr_find( mr_ptr[i].oid );
-
 	res = slap_schema_load();
 	schema_init_done = 1;
 	return res;
@@ -4877,8 +4859,6 @@ schema_destroy( void )
 	oidm_destroy();
 	oc_destroy();
 	at_destroy();
-	for ( i=0; i < (int)(sizeof(mr_ptr)/sizeof(mr_ptr[0])); i++ )
-		*mr_ptr[i].mr = NULL;
 	mr_destroy();
 	mru_destroy();
 	syn_destroy();
