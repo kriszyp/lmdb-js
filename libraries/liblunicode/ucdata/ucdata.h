@@ -120,7 +120,7 @@ LDAP_BEGIN_DECL
  * call this function with some set of masks.
  */
 LDAP_LUNICODE_F (int)
-ucisprop LDAP_P((ac_uint4 code, unsigned long mask1, ac_uint4 mask2));
+ucisprop LDAP_P((ac_uint4 code, ac_uint4 mask1, ac_uint4 mask2));
 
 #define ucisalpha(cc) ucisprop(cc, UC_LU|UC_LL|UC_LM|UC_LO|UC_LT, 0)
 #define ucisdigit(cc) ucisprop(cc, UC_ND, 0)
@@ -209,9 +209,9 @@ ucisprop LDAP_P((ac_uint4 code, unsigned long mask1, ac_uint4 mask2));
  *
  **************************************************************************/
 
-LDAP_LUNICODE_F (ac_uint4) uctoupper LDAP_P((unsigned long code));
-LDAP_LUNICODE_F (ac_uint4) uctolower LDAP_P((unsigned long code));
-LDAP_LUNICODE_F (ac_uint4) uctotitle LDAP_P((unsigned long code));
+LDAP_LUNICODE_F (ac_uint4) uctoupper LDAP_P((ac_uint4 code));
+LDAP_LUNICODE_F (ac_uint4) uctolower LDAP_P((ac_uint4 code));
+LDAP_LUNICODE_F (ac_uint4) uctotitle LDAP_P((ac_uint4 code));
 
 /**************************************************************************
  *
@@ -224,7 +224,7 @@ LDAP_LUNICODE_F (ac_uint4) uctotitle LDAP_P((unsigned long code));
  * If it returns 0, there is no composition.  Any other value indicates a
  * composition was returned in comp.
  */
-LDAP_LUNICODE_F (int) uccomp LDAP_P((ac_uint4 node1, unsigned long node2,
+LDAP_LUNICODE_F (int) uccomp LDAP_P((ac_uint4 node1, ac_uint4 node2,
 		      ac_uint4 *comp));
 
 /*
@@ -251,7 +251,7 @@ LDAP_LUNICODE_F (int) uccanoncomp LDAP_P((ac_uint4 *str, int len));
  * returned.
  */
 LDAP_LUNICODE_F (int)
-ucdecomp LDAP_P((ac_uint4 code, unsigned long *num,
+ucdecomp LDAP_P((ac_uint4 code, ac_uint4 *num,
 		 ac_uint4 **decomp));
 
 /*
@@ -259,7 +259,7 @@ ucdecomp LDAP_P((ac_uint4 code, unsigned long *num,
  * decompositions.
  */
 LDAP_LUNICODE_F (int)
-uckdecomp LDAP_P((ac_uint4 code, unsigned long *num,
+uckdecomp LDAP_P((ac_uint4 code, ac_uint4 *num,
 		 ac_uint4 **decomp));
 
 /*
@@ -267,7 +267,7 @@ uckdecomp LDAP_P((ac_uint4 code, unsigned long *num,
  * passed.  The array size should be at least 3.
  */
 LDAP_LUNICODE_F (int)
-ucdecomp_hangul LDAP_P((ac_uint4 code, unsigned long *num,
+ucdecomp_hangul LDAP_P((ac_uint4 code, ac_uint4 *num,
 			ac_uint4 decomp[]));
 
 /*  
@@ -298,7 +298,7 @@ uccompatdecomp LDAP_P((const ac_uint4 *in, int inlen,
  * This will return the combining class for a character to be used with the
  * Canonical Ordering algorithm.
  */
-LDAP_LUNICODE_F (ac_uint4) uccombining_class LDAP_P((unsigned long code));
+LDAP_LUNICODE_F (ac_uint4) uccombining_class LDAP_P((ac_uint4 code));
 
 /**************************************************************************
  *
