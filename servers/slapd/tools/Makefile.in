@@ -31,7 +31,7 @@ XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
-PROGRAMS=ldif slapadd slapcat slapindex
+PROGRAMS=ldif slappasswd slapadd slapcat slapindex
 LDBMPROGRAMS=centipede sizecount
 BDB2PROGRAMS=
 QUIPUPROGRAMS=chlog2replog edb2ldif
@@ -56,7 +56,7 @@ SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../controls.o ../schemaparse.o ../kerberos.o ../passwd.o \
 		../extended.o ../starttls.o
 
-SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o 
+SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
 
 EDB2LDIFSRCS    = edb2ldif.c ldapsyntax.c
 EDB2LDIFOBJS    = edb2ldif.o ldapsyntax.o
@@ -99,6 +99,9 @@ slapindex:	slapindex.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND)
 
 ldif:		ldif.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif.o $(LIBS)
+
+slappasswd:		slappasswd.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ slappasswd.o $(LIBS)
 
 #
 # LDBM Specific Tools

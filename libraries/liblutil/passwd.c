@@ -740,7 +740,7 @@ static struct berval *hash_crypt(
 
 	hash.bv_val = crypt( passwd->bv_val, salt );
 
-	if( hash.bv_val = NULL ) return NULL;
+	if( hash.bv_val == NULL ) return NULL;
 	hash.bv_len = strlen( hash.bv_val );
 
 	return pw_string( scheme, &hash );
