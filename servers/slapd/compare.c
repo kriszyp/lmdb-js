@@ -23,12 +23,20 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
+static int compare_entry(
+	Connection *conn,
+	Operation *op,
+	Entry *e,
+	AttributeAssertion *ava );
+
 int
 do_compare(
     Connection	*conn,
     Operation	*op
 )
 {
+	Entry *entry = NULL;
+	Attribute	*a = NULL;
 	char	*dn = NULL, *ndn=NULL;
 	struct berval desc;
 	struct berval value;
@@ -124,16 +132,87 @@ do_compare(
 		goto cleanup;
 	}
 
-	if( *ndn == '\0' ) {
+	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
+		return rc;
+	}
+
+	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &nvalue, &text );
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
+		return rc;
+	}
+
+	ava.aa_value = nvalue;
+
+	if( strcasecmp( ndn, LDAP_ROOT_DSE ) == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			   "do_compare: conn %d  compare to root DSE!\n",
-			   conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
+			conn->c_connid, dn, ava.aa_desc->ad_cname.bv_val,
+			ava.aa_value->bv_val ));
 #else
-		Debug( LDAP_DEBUG_ANY, "do_compare: root dse!\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
+			dn, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
 #endif
-		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "compare upon the root DSE not supported", NULL, NULL );
+
+		Statslog( LDAP_DEBUG_STATS,
+			"conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
+			op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname.bv_val, 0 );
+
+		rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
+			goto cleanup;
+		}
+
+		rc = root_dse_info( conn, &entry, &text );
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
+			goto cleanup;
+		}
+
+	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+			"do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
+			conn->c_connid, dn, ava.aa_desc->ad_cname->bv_val,
+			ava.aa_value->bv_val ));
+#else
+		Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
+			dn, ava.aa_desc->ad_cname.bv_val, ava.aa_value->bv_val );
+#endif
+
+		Statslog( LDAP_DEBUG_STATS,
+			"conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
+			op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname.bv_val, 0 );
+
+		rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
+			rc = 0;
+			goto cleanup;
+		}
+
+		rc = schema_info( &entry, &text );
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
+			rc = 0;
+			goto cleanup;
+		}
+	}
+
+	if( entry ) {
+		rc = compare_entry( conn, op, entry, &ava );
+		entry_free( entry );
+
+		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
+
+		if( rc == LDAP_COMPARE_TRUE || rc == LDAP_COMPARE_FALSE ) {
+			rc = 0;
+		}
+
 		goto cleanup;
 	}
 
@@ -147,7 +226,7 @@ do_compare(
 	if ( (be = select_backend( ndn, manageDSAit )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		rc = 1;
+		rc = 0;
 		goto cleanup;
 	}
 
@@ -164,30 +243,6 @@ do_compare(
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
-
-	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
-	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc, NULL,
-		    text, NULL, NULL );
-		goto cleanup;
-	}
-
-	if( !ava.aa_desc->ad_type->sat_equality ) {
-		/* no equality matching rule */
-		send_ldap_result( conn, op, rc = LDAP_INAPPROPRIATE_MATCHING, NULL,
-		    "no equality matching rule defined", NULL, NULL );
-		goto cleanup;
-	}
-
-	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &nvalue, &text );
-
-	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc, NULL,
-		    text, NULL, NULL );
-		goto cleanup;
-	}
-
-	ava.aa_value = nvalue;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
@@ -218,6 +273,39 @@ cleanup:
 	free( ndn );
 	free( desc.bv_val );
 	free( value.bv_val );
+
+	return rc;
+}
+
+static int compare_entry(
+	Connection *conn,
+	Operation *op,
+	Entry *e,
+	AttributeAssertion *ava )
+{
+	int rc = LDAP_NO_SUCH_ATTRIBUTE;
+	Attribute *a;
+
+	if ( ! access_allowed( NULL, conn, op, e,
+		ava->aa_desc, ava->aa_value, ACL_COMPARE ) )
+	{	
+		return LDAP_INSUFFICIENT_ACCESS;
+	}
+
+	for(a = attrs_find( e->e_attrs, ava->aa_desc );
+		a != NULL;
+		a = attrs_find( a->a_next, ava->aa_desc ))
+	{
+		rc = LDAP_COMPARE_FALSE;
+
+		if ( value_find_ex( ava->aa_desc,
+			SLAP_MR_VALUE_IS_IN_MR_SYNTAX,
+			a->a_vals, ava->aa_value ) == 0 )
+		{
+			rc = LDAP_COMPARE_TRUE;
+			break;
+		}
+	}
 
 	return rc;
 }
