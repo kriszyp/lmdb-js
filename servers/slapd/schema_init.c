@@ -115,7 +115,7 @@ int octetStringIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -787,7 +787,7 @@ int caseExactIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -888,7 +888,7 @@ int caseExactSubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -1357,7 +1357,7 @@ int caseIgnoreIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -1465,7 +1465,7 @@ int caseIgnoreSubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -2141,7 +2141,7 @@ int caseExactIA5Indexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -2242,7 +2242,7 @@ int caseExactIA5SubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -2707,7 +2707,7 @@ int caseIgnoreIA5Indexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
@@ -2815,7 +2815,7 @@ int caseIgnoreIA5SubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	struct berval digest;
 	digest.bv_val = MD5digest;
 	digest.bv_len = sizeof(MD5digest);
