@@ -66,7 +66,7 @@ typedef DBC	LDBMCursor;
 # endif
 
 #else
-typedef int LDBMCursor;
+typedef void LDBMCursor;
 #	define LDBM_READER	O_RDONLY
 #	define LDBM_WRITER	O_RDWR
 #	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
@@ -107,7 +107,7 @@ LDAP_END_DECL
 LDAP_BEGIN_DECL
 
 typedef datum		Datum;
-typedef int LDBMCursor;
+typedef Datum LDBMCursor;
 typedef GDBM_FILE	LDBM;
 
 extern gdbm_error	gdbm_errno;

@@ -529,6 +529,11 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbcp )
 	d = gdbm_firstkey( ldbm );
 	LDBM_UNLOCK;
 
+	if ( d.dptr != NULL ) {
+		*dbcp = (Datum *) malloc( sizeof( Datum ) );
+		**dbcp = ldbm_datum_dup( ldbm, d );
+	}
+
 	return d;
 }
 
@@ -538,8 +543,16 @@ ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 	Datum d;
 
 	LDBM_LOCK;
-	d = gdbm_nextkey( ldbm, key );
+	d = gdbm_nextkey( ldbm, *dbcp );
 	LDBM_UNLOCK;
+
+	ldbm_datum_free( ldbm, *dbcp );
+
+	if ( d.dptr != NULL ) {
+		*dbcp = ldbm_datum_dup( ldbm, d );
+	} else {
+		free( dbcp );
+	}
 
 	return d;
 }
