@@ -778,6 +778,15 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, eip, e,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"<=- bdb_modrdn: dn2id del failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"<=- bdb_modrdn: dn2id del failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -815,6 +824,15 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, neip ? neip : eip, e,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"<=- bdb_modrdn: dn2id add failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"<=- bdb_modrdn: dn2id add failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -838,6 +856,15 @@ retry:	/* transaction retry */
 		&rs->sr_text, textbuf, textlen );
 
 	if( rs->sr_err != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"<=- bdb_modrdn: modify failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"<=- bdb_modrdn: modify failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
 		if ( ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) && opinfo.boi_err ) {
 			rs->sr_err = opinfo.boi_err;
 		}
@@ -852,6 +879,15 @@ retry:	/* transaction retry */
 	/* id2entry index */
 	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, e );
 	if ( rs->sr_err != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"<=- bdb_modrdn: id2entry failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"<=- bdb_modrdn: id2entry failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:

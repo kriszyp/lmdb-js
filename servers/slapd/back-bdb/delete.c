@@ -361,19 +361,20 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2id_delete( op->o_bd, lt2, eip, e,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"<=- bdb_delete: dn2id failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"<=- bdb_delete: dn2id failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		}
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, ERR, 
-			"<=- bdb_delete: dn2id failed %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
-#else
-		Debug(LDAP_DEBUG_ARGS,
-			"<=- bdb_delete: dn2id failed: %s (%d)\n",
-			db_strerror(rs->sr_err), rs->sr_err, 0 );
-#endif
 		rs->sr_text = "DN index delete failed";
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
@@ -382,20 +383,20 @@ retry:	/* transaction retry */
 	/* delete from id2entry */
 	rs->sr_err = bdb_id2entry_delete( op->o_bd, lt2, e );
 	if ( rs->sr_err != 0 ) {
-		switch( rs->sr_err ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
 			"<=- bdb_delete: id2entry failed: %s (%d)\n", 
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
-		Debug(LDAP_DEBUG_ARGS,
+		Debug(LDAP_DEBUG_TRACE,
 			"<=- bdb_delete: id2entry failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #endif
+		switch( rs->sr_err ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		}
 		rs->sr_text = "entry delete failed";
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
@@ -404,18 +405,20 @@ retry:	/* transaction retry */
 	/* delete indices for old attributes */
 	rs->sr_err = bdb_index_entry_del( op, lt2, e );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ERR, 
+			"<=- bdb_delete: index failed: %s (%d)\n", 
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"<=- bdb_delete: index failed: %s (%d)\n", 
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
+#endif
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		}
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, ERR, 
-			"<=- bdb_delete: entry index delete failed!\n", 0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "entry index delete failed!\n",
-			0, 0, 0 );
-#endif
 		rs->sr_text = "entry index delete failed";
 		rs->sr_err = LDAP_OTHER;
 		goto return_results;
