@@ -336,8 +336,9 @@ ldap_control_dup( const LDAPControl *c )
 		new->ldctl_oid = NULL;
 	}
 
-	if( c->ldctl_value.bv_len > 0 ) {
-		new->ldctl_value.bv_val = (char *) LDAP_MALLOC( c->ldctl_value.bv_len );
+	if( c->ldctl_value.bv_val != NULL ) {
+		new->ldctl_value.bv_val =
+			(char *) LDAP_MALLOC( c->ldctl_value.bv_len + 1 );
 
 		if(new->ldctl_value.bv_val == NULL) {
 			if(new->ldctl_oid != NULL) {
@@ -347,10 +348,12 @@ ldap_control_dup( const LDAPControl *c )
 			return NULL;
 		}
 		
+		new->ldctl_value.bv_len = c->ldctl_value.bv_len;
+
 		AC_MEMCPY( new->ldctl_value.bv_val, c->ldctl_value.bv_val, 
 			c->ldctl_value.bv_len );
 
-		new->ldctl_value.bv_len = c->ldctl_value.bv_len;
+		new->ldctl_value.bv_val[new->ldctl_value.bv_len] = '\0';
 
 	} else {
 		new->ldctl_value.bv_len = 0;
@@ -410,7 +413,7 @@ ldap_create_control(
 	LDAPControl *ctrl;
 	struct berval *bvalp;
 
-	if ( requestOID == NULL || ber == NULL || ctrlp == NULL ) {
+	if ( requestOID == NULL || ctrlp == NULL ) {
 		return LDAP_PARAM_ERROR;
 	}
 
