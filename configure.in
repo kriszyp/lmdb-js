@@ -136,6 +136,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_bdb2 = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_bdb2 argument])
 	fi
+	if test $ol_enable_ldap = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_ldap argument])
+	fi
 	if test $ol_enable_ldbm = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_ldbm argument])
 	fi
@@ -178,6 +181,7 @@ if test $ol_enable_slapd = no ; then
 
 	# force settings to no
 	ol_enable_bdb2=no
+	ol_enable_ldap=no
 	ol_enable_ldbm=no
 	ol_enable_passwd=no
 	ol_enable_perl=no
@@ -211,6 +215,7 @@ elif test $ol_enable_ldbm = no ; then
 	fi
 
 	if test $ol_enable_modules != yes -a \
+		$ol_enable_ldap = no -a \
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
@@ -1663,7 +1668,7 @@ if test "$ol_link_bdb2" != no ; then
 	BUILD_BDB2=yes
 fi
 
-if test "$ol_link_ldap" != no ; then
+if test "$ol_enable_ldap" != no ; then
 	AC_DEFINE(SLAPD_LDAP,1)
 	BUILD_SLAPD=yes
 	BUILD_LDAP=yes
