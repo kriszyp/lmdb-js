@@ -1963,7 +1963,6 @@ typedef struct slap_op {
 #define SLAP_SYNC_REFRESH_AND_PERSIST		(0x3)
 	struct berval o_sync_state;
 
-	int o_ps_protocol;
 	int o_ps_entries;
 	LDAP_LIST_ENTRY(slap_op) o_ps_link;
 	LDAP_LIST_HEAD(pe, psid_entry) o_pm_list;

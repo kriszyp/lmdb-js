@@ -420,7 +420,6 @@ int bdb_search( Operation *op, SlapReply *rs )
 	/* psearch needs to be registered before refresh begins */
 	/* psearch and refresh transmission is serialized in send_ldap_ber() */
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
-		sop->o_ps_protocol = LDAP_SYNC;
 		LDAP_LIST_INSERT_HEAD( &bdb->bi_psearch_list, sop, o_ps_link );
 	}
 	null_attr.an_desc = NULL;
@@ -434,17 +433,11 @@ int bdb_search( Operation *op, SlapReply *rs )
 	num_ctrls = 0;
 
 	if ( IS_PSEARCH && IS_BDB_REPLACE(ps_type)) {
-		if (sop->o_ps_protocol == LDAP_SYNC ) {
-			attrs = uuid_attr;
-			attrs[0].an_desc = NULL;
-			attrs[0].an_oc = NULL;
-			attrs[0].an_name.bv_len = 0;
-			attrs[0].an_name.bv_val = NULL;
-		} else
-		{
-			rs->sr_err = 1;
-			goto done;
-		}
+		attrs = uuid_attr;
+		attrs[0].an_desc = NULL;
+		attrs[0].an_oc = NULL;
+		attrs[0].an_name.bv_len = 0;
+		attrs[0].an_name.bv_val = NULL;
 	}
 #endif
 
@@ -852,8 +845,7 @@ ctxcsn_retry :
 #endif
 
 #ifdef LDAP_SYNC
-	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) ||
-		( IS_PSEARCH && sop->o_ps_protocol == LDAP_SYNC ))
+	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) || IS_PSEARCH )
 	{
 		MatchingRule	*mr;
 		const char		*text;
@@ -1250,23 +1242,17 @@ id2entry_retry:
 							rs->sr_err = 1;
 							goto done;
 						}
-						if ( sop->o_ps_protocol == LDAP_SYNC ) {
-							rs->sr_err = bdb_build_sync_state_ctrl( sop,
-								rs, e, entry_sync_state, ctrls,
-								num_ctrls++, 1, search_context_csn );
-							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
-							rs->sr_attrs = attrs;
-							rs->sr_ctrls = ctrls;
-							result = send_search_entry( sop, rs );
-							ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
-							ch_free( ctrls[--num_ctrls] );
-							ctrls[num_ctrls] = NULL;
-							rs->sr_ctrls = NULL;
-						} else
-						{
-							rs->sr_err = 1;
-							goto done;
-						}
+						rs->sr_err = bdb_build_sync_state_ctrl( sop,
+							rs, e, entry_sync_state, ctrls,
+							num_ctrls++, 1, search_context_csn );
+						if ( rs->sr_err != LDAP_SUCCESS ) goto done;
+						rs->sr_attrs = attrs;
+						rs->sr_ctrls = ctrls;
+						result = send_search_entry( sop, rs );
+						ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
+						ch_free( ctrls[--num_ctrls] );
+						ctrls[num_ctrls] = NULL;
+						rs->sr_ctrls = NULL;
 
 					} else if ( ps_type == LDAP_PSEARCH_BY_PREMODIFY ) {
 						struct psid_entry* psid_e;
