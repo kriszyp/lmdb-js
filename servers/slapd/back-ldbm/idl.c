@@ -48,17 +48,29 @@ static void cont_free( Datum *cont )
 #ifdef LDBM_DEBUG_IDL
 static void idl_check(ID_BLOCK *idl)
 {
-	int i;
+	int i, max;
 	ID_BLOCK last;
 
-	if( ID_BLOCK_INDIRECT(idl) || ID_BLOCK_ALLIDS(idl)
-		|| ID_BLOCK_NIDS(idl) <= 1 )
+	if( ID_BLOCK_ALLIDS(idl) )
+	{
+		return;
+	}
+#ifndef USE_INDIRECT_NIDS
+	if( ID_BLOCK_INDIRECT(idl) )
+	{
+		for ( max = 0; !ID_BLOCK_BOID(idl, max); max++ ) ;
+	} else
+#endif
+	{
+		max = ID_BLOCK_NIDS(idl);
+	}
+	if ( max <= 1 )
 	{
 		return;
 	}
 
 	for( last = ID_BLOCK_ID(idl, 0), i = 1;
-		i < ID_BLOCK_NIDS(idl);
+		i < max;
 		last = ID_BLOCK_ID(idl, i), i++ )
 	{
 		assert (last < ID_BLOCK_ID(idl, i) );
@@ -628,7 +640,7 @@ idl_insert_key(
 #endif
 			/* read it in */
 			cont_alloc( &k2, &key );
-			cont_id( &k2, ID_BLOCK_ID(idl, i) );
+			cont_id( &k2, ID_BLOCK_ID(idl, i + 1) );
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( INDEX, ERR,
