@@ -51,20 +51,17 @@ usage( const char *s )
 "		\tdereferencing)\n"
 "	-A\t\tretrieve attribute names only (no values)\n"
 "	-b basedn\tbase dn for search\n"
-"	-B\t\tdo not suppress printing of binary values\n"
 "	-d level\tset LDAP debugging level to `level'\n"
 "	-D binddn\tbind DN\n"
 "	-E\t\trequest SASL privacy (-EE to make it critical)\n"
 "	-f file\t\tperform sequence of searches listed in `file'\n"
-"	-F sep\t\tprint `sep' instead of `=' between attribute names and\n"
-"		\tvalues\n"
 "	-h host\t\tLDAP server\n"
 "	-I\t\trequest SASL integrity checking (-II to make it\n"
 "		\tcritical)\n"
 "	-k\t\tuse Kerberos authentication\n"
 "	-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
 "	-l limit\ttime limit (in seconds) for search\n"
-"	-L\t\tprint entries in LDIF format (implies -B)\n"
+"	-L\t\tprint entries in LDIF format (default)\n"
 "	-LL\t\tprint entries in LDIF format without comments\n"
 "	-LLL\t\tprint entries in LDIF format without comments and\n"
 "		\tversion\n"
@@ -88,7 +85,7 @@ usage( const char *s )
 "	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
 "	-Y mech\t\tSASL mechanism\n"
 "	-z limit\tsize limit (in entries) for search\n"
-"	-Z\t\trequest the use of TLS (-ZZ to make it critical)\n"
+"	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
 ,		s );
 
 	exit( EXIT_FAILURE );
@@ -369,9 +366,10 @@ main( int argc, char **argv )
 	}
 	}
 
+#define LDAP_LDIF 1
 #ifdef LDAP_LDIF
 	/* no alternative format */
-	if( ldif < 1 ) ldif = 1;
+	if( ldif == 0 ) ldif = 1;
 #endif
 
 	if ( ( authmethod == LDAP_AUTH_KRBV4 ) || ( authmethod ==

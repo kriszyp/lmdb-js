@@ -85,7 +85,7 @@ usage( const char *s )
 "	-W\t\tprompt for bind passwd\n"
 "	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
 "	-Y mech\t\tSASL mechanism\n"
-"	-Z\t\trequest the use of TLS (-ZZ to make it critical)\n"
+"	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
 ,		s );
 
 	exit( EXIT_FAILURE );
