@@ -16,6 +16,7 @@
 
 #include <lber.h>
 #include <ldif.h>
+#include <lutil.h>
 
 #include "slapcommon.h"
 
@@ -99,7 +100,7 @@ main( int argc, char **argv )
 			break;
 		}
 
-		{
+		if( global_schemacheck ) {
 			Attribute *sc = attr_find( e->e_attrs,
 				slap_schema.si_ad_structuralObjectClass );
 			Attribute *oc = attr_find( e->e_attrs,
@@ -118,13 +119,12 @@ main( int argc, char **argv )
 			if( sc == NULL ) {
 				struct berval vals[2];
 
-				/* int ret = */ 
-					structural_class( oc->a_vals, vals,
+				rc = structural_class( oc->a_vals, vals,
 					NULL, &text, textbuf, textlen );
 
-				if( vals[0].bv_len == 0 ) {
-					fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
-					progname, e->e_dn, lineno, text );
+				if( rc != LDAP_SUCCESS ) {
+					fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
+						progname, e->e_dn, lineno, rc, text );
 					rc = EXIT_FAILURE;
 					entry_free( e );
 					if( continuemode ) continue;
@@ -135,20 +135,99 @@ main( int argc, char **argv )
 				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
 					vals );
 			}
-		}
 
-		if( global_schemacheck ) {
 			/* check schema */
-
 			rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
-					progname, e->e_dn, lineno, text );
+				fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",
+					progname, e->e_dn, lineno, rc, text );
 				rc = EXIT_FAILURE;
 				entry_free( e );
 				if( continuemode ) continue;
 				break;
+			}
+		}
+
+		if ( SLAP_LASTMOD(be) ) {
+			struct tm *ltm;
+			time_t now = slap_get_time();
+			char uuidbuf[40];
+			struct berval vals[2];
+
+			struct berval name, timestamp, csn;
+			char timebuf[22];
+			char csnbuf[64];
+
+			ltm = gmtime(&now);
+			lutil_gentime( timebuf, sizeof(timebuf), ltm );
+
+			csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), 0, 0 );
+			csn.bv_val = csnbuf;
+
+			timestamp.bv_val = timebuf;
+			timestamp.bv_len = strlen(timebuf);
+
+			if ( be->be_rootndn.bv_len == 0 ) {
+				name.bv_val = SLAPD_ANONYMOUS;
+				name.bv_len = sizeof(SLAPD_ANONYMOUS) - 1;
+			} else {
+				name = be->be_rootndn;
+			}
+
+			if( attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )
+				== NULL )
+			{
+				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+				vals[0].bv_val = uuidbuf;
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_entryUUID, vals );
+			}
+
+			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &name );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_creatorsName, vals);
+			}
+
+			if( attr_find( e->e_attrs, slap_schema.si_ad_modifiersName )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &name );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_modifiersName, vals);
+			}
+
+			if( attr_find( e->e_attrs, slap_schema.si_ad_createTimestamp )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &timestamp );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_createTimestamp, vals );
+			}
+
+			if( attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &timestamp );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals );
+			}
+
+			if( attr_find( e->e_attrs, slap_schema.si_ad_entryCSN )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &csn );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_entryCSN, vals );
 			}
 		}
 
