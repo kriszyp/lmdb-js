@@ -240,13 +240,13 @@ int ldap_pvt_get_hname(
 		alen = sizeof(sin->sin_addr);
 	} else {
 		rc = NO_RECOVERY;
-		*err = hp_strerror( rc );
+		*err = (char *)hp_strerror( rc );
 		return rc;
 	}
 #if defined( HAVE_GETHOSTBYADDR_R )
 	for(;buflen<BUFMAX;) {
 		if (safe_realloc( &buf, buflen )==NULL) {
-			*err = STRERROR( ENOMEM );
+			*err = (char *)STRERROR( ENOMEM );
 			return ENOMEM;
 		}
 #if (GETHOSTBYADDR_R_NARGS < 8)
@@ -272,7 +272,7 @@ int ldap_pvt_get_hname(
 	if (hp) {
 		strncpy( name, hp->h_name, namelen );
 	} else {
-		*err = hp_strerror( h_errno );
+		*err = (char *)hp_strerror( h_errno );
 	}
 	LDAP_FREE(buf);
 #else /* HAVE_GETHOSTBYADDR_R */
@@ -286,7 +286,7 @@ int ldap_pvt_get_hname(
 		rc = 0;
 	} else {
 		rc = h_errno;
-		*err = hp_strerror( h_errno );
+		*err = (char *)hp_strerror( h_errno );
 	}
 #if defined( LDAP_R_COMPILE )
 	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
