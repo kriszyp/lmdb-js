@@ -1,3 +1,4 @@
+# $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
 ## Copyright 1998-2004 The OpenLDAP Foundation.
@@ -33,6 +34,34 @@
 #                  A Configuration Schema for LDAP Based
 #                          Directory User Agents
 #                   <draft-joslin-config-schema-07.txt>
+#
+#Status of this Memo
+#
+#    This memo provides information for the Internet community.  This
+#    memo does not specify an Internet standard of any kind.  Distribu-
+#    tion of this memo is unlimited.
+#         
+#    This document is an Internet-Draft and is in full conformance with
+#    all provisions of Section 10 of RFC2026.
+#    
+#    This document is an Internet-Draft. Internet-Drafts are working  
+#    documents of the Internet Engineering Task Force (IETF), its areas,
+#    and its working groups. Note that other groups may also distribute
+#    working documents as Internet-Drafts.
+#    
+#    Internet-Drafts are draft documents valid for a maximum of six
+#    months.  Internet-Drafts may be updated, replaced, or made obsolete
+#    by other documents at any time. It is not appropriate to use 
+#    Internet-Drafts as reference material or to cite them other than as
+#    a "working draft" or "work in progress".                
+#         
+#    To learn the current status of any Internet-Draft, please check the
+#    1id-abstracts.txt listing contained in the Internet-Drafts Shadow 
+#    Directories on ds.internic.net (US East Coast), nic.nordu.net      
+#    (Europe), ftp.isi.edu (US West Coast), or munnari.oz.au (Pacific
+#    Rim).
+#    
+#    Distribution of this document is unlimited.
 # 
 # 
 # Abstract

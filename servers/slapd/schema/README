@@ -3,20 +3,22 @@ with slapd(8).
 
 File                    Description
 ----                    -----------
-collective.schema		Collective attributes
+collective.schema       Collective attributes (experimental)
 corba.schema            Corba Object (RFC 2714)
 core.schema             OpenLDAP "core"
 cosine.schema           COSINE Pilot
+duaconf.schema          Client Configuration (experimental)
 inetorgperson.schema    InetOrgPerson
 java.schema             Java Object (RFC 2713)
 krb5-kdc.schema         Kerberos V KDC (experimental)
 microsoft.ext.schema    Microsoft (FYI)
 microsoft.schema        Microsoft (FYI)
 microsoft.std.schema    Microsoft (FYI)
-misc.schema             misc (experimental)
+misc.schema             Miscellaneous Schema (experimental)
 nadf.schema             North American Directory Forum (obsolete)
 nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project (FYI)
+ppolicy.schema          Password Policy Schema (experimental)
 
 Additional "generally useful" schema definitions can be submitted
 using the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
@@ -41,7 +43,7 @@ top-level directory of the distribution.
 This notice applies to all schema in this directory which are derived
 from RFCs and other Internet Standards documents.
 
-Portions Copyright 1991-2003, The Internet Society.  All Rights Reserved.
+Portions Copyright 1991-2004, The Internet Society.  All Rights Reserved.
 
 This document and translations of it may be copied and furnished
 to others, and derivative works that comment on or otherwise explain
