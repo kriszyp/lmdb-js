@@ -2009,14 +2009,10 @@ typedef struct slap_op {
 	AttributeName *o_preread_attrs;
 	AttributeName *o_postread_attrs;
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	char o_pagedresults;
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
 	ber_int_t o_pagedresults_size;
 	PagedResultsState o_pagedresults_state;
-#else
-#define get_pagedresults(op)			(0)
-#endif
 
 	char o_sync;
 	char o_sync_mode;

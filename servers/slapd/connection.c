@@ -1567,10 +1567,7 @@ connection_input(
 	op->o_preread_attrs = NULL;
 	op->o_postread_attrs = NULL;
 	op->o_vrFilter = NULL;
-
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	op->o_pagedresults_state = conn->c_pagedresults_state;
-#endif
 
 	op->o_res_ber = NULL;
 

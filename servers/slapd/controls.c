@@ -89,11 +89,9 @@ static struct slap_control control_defs[] = {
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
 		parseValuesReturnFilter, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	{ LDAP_CONTROL_PAGEDRESULTS,
 		SLAP_CTRL_SEARCH, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
 		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
@@ -819,7 +817,6 @@ static int parseNoOp (
 	return LDAP_SUCCESS;
 }
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 static int parsePagedResults (
 	Operation *op,
 	SlapReply *rs,
@@ -900,7 +897,6 @@ static int parsePagedResults (
 
 	return LDAP_SUCCESS;
 }
-#endif
 
 static int parseAssert (
 	Operation *op,

@@ -812,7 +812,6 @@ dn2entry_retry:
 		tentries = BDB_IDL_N(candidates);
 	}
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	if ( get_pagedresults(sop) ) {
 		if ( sop->o_pagedresults_state.ps_cookie == 0 ) {
 			id = 0;
@@ -844,7 +843,6 @@ dn2entry_retry:
 		}
 		goto loop_begin;
 	}
-#endif
 
 	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) || IS_PSEARCH )
 	{
@@ -1184,7 +1182,6 @@ id2entry_retry:
 				goto done;
 			}
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 			if ( get_pagedresults(sop) ) {
 				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
 					send_pagerequest_response( sop, rs,
@@ -1193,7 +1190,6 @@ id2entry_retry:
 				}
 				lastid = id;
 			}
-#endif
 
 			if (e) {
 				/* safe default */
@@ -1737,7 +1733,6 @@ static int search_candidates(
 	return rc;
 }
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 static void
 send_pagerequest_response( 
 	Operation	*op,
@@ -1792,4 +1787,3 @@ send_pagerequest_response(
 done:
 	(void) ber_free_buf( ber );
 }			
-#endif
