@@ -241,11 +241,11 @@ int backend_startup(Backend *be)
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			   "backend_startup:  starting \"%s\"\n",
-			   be->be_suffix[0] ));
+			   be->be_suffix[0]->bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"backend_startup: starting \"%s\"\n",
-			be->be_suffix[0], 0, 0 );
+			be->be_suffix[0]->bv_val, 0, 0 );
 #endif
 
 		if ( be->bd_info->bi_open ) {
@@ -417,7 +417,7 @@ int backend_destroy(void)
 			backendDB[i].bd_info->bi_db_destroy(
 				&backendDB[i] );
 		}
-		charray_free( backendDB[i].be_suffix );
+		ber_bvecfree( backendDB[i].be_suffix );
 		ber_bvecfree( backendDB[i].be_nsuffix );
 		free( backendDB[i].be_rootdn.bv_val );
 		free( backendDB[i].be_rootndn.bv_val );
@@ -594,11 +594,9 @@ be_issuffix(
 }
 
 int
-be_isroot( Backend *be, const char *ndn )
+be_isroot( Backend *be, struct berval *ndn )
 {
-	int rc;
-
-	if ( ndn == NULL || *ndn == '\0' ) {
+	if ( !ndn->bv_len ) {
 		return( 0 );
 	}
 
@@ -606,9 +604,7 @@ be_isroot( Backend *be, const char *ndn )
 		return( 0 );
 	}
 
-	rc = strcmp( be->be_rootndn.bv_val, ndn ) ? 0 : 1;
-
-	return(rc);
+	return strcmp( be->be_rootndn.bv_val, ndn->bv_val ) ? 0 : 1;
 }
 
 int
@@ -638,12 +634,16 @@ be_root_dn( Backend *be )
 int
 be_isroot_pw( Backend *be,
 	Connection *conn,
-	const char *ndn,
+	const char *dn,
 	struct berval *cred )
 {
 	int result;
 
-	if ( ! be_isroot( be, ndn ) ) {
+	struct berval ndn;
+	ndn.bv_val = (char *) dn;
+	ndn.bv_len = dn ? strlen( dn ) : 0;
+
+	if ( ! be_isroot( be, &ndn ) ) {
 		return 0;
 	}
 
@@ -960,8 +960,8 @@ int backend_check_referrals(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn )
+	struct berval *dn,
+	struct berval *ndn )
 {
 	int rc = LDAP_SUCCESS;
 
@@ -969,7 +969,7 @@ int backend_check_referrals(
 		const char *text;
 
 		rc = be->be_chk_referrals( be,
-			conn, op, dn, ndn, &text );
+			conn, op, dn->bv_val, ndn->bv_val, &text );
 
 		if( rc != LDAP_SUCCESS && rc != LDAP_REFERRAL ) {
 			send_ldap_result( conn, op, rc,
@@ -987,7 +987,7 @@ backend_group(
 	Operation *op,
 	Entry	*target,
 	const char	*gr_ndn,
-	const char	*op_ndn,
+	struct berval *op_ndn,
 	ObjectClass *group_oc,
 	AttributeDescription *group_at
 )
@@ -1029,7 +1029,7 @@ backend_group(
 
 	if( be->be_group ) {
 		int res = be->be_group( be, conn, op,
-			target, gr_ndn, op_ndn,
+			target, gr_ndn, op_ndn->bv_val,
 			group_oc, group_at );
 		
 		if (op->o_tag != LDAP_REQ_BIND) {
@@ -1109,8 +1109,7 @@ Attribute *backend_operational(
 	 * add them to the attribute list
 	 */
 	if ( ( opattrs || attrs ) && be && be->be_operational != NULL ) {
-		( void )be->be_operational( be, conn, op, e, 
-					    attrs, opattrs, ap );
+		( void )be->be_operational( be, conn, op, e, attrs, opattrs, ap );
 	}
 
 	return a;

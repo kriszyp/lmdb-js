@@ -255,7 +255,7 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, e->e_dn, e->e_ndn );
+	rc = backend_check_referrals( be, conn, op, &e->e_name, &e->e_nname );
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}

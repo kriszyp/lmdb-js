@@ -212,7 +212,7 @@ retry:	/* transaction retry */
 
 	} else {
 		/* no parent, modrdn entry directly under root */
-		isroot = be_isroot( be, op->o_ndn.bv_val );
+		isroot = be_isroot( be, &op->o_ndn );
 		if ( ! isroot ) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 
@@ -328,7 +328,7 @@ retry:	/* transaction retry */
 
 		} else {
 			if ( isroot == -1 ) {
-				isroot = be_isroot( be, op->o_ndn.bv_val );
+				isroot = be_isroot( be, &op->o_ndn );
 			}
 			
 			np_dn = ch_strdup( "" );

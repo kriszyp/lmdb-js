@@ -206,8 +206,8 @@ ldbm_back_modrdn(
 
 	} else {
 		/* no parent, must be root to modify rdn */
-		isroot = be_isroot( be, op->o_ndn.bv_val );
-		if ( ! be_isroot ) {
+		isroot = be_isroot( be, &op->o_ndn );
+		if ( ! isroot ) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				
@@ -382,10 +382,10 @@ ldbm_back_modrdn(
 
 			/* no parent, must be root to modify newSuperior */
 			if ( isroot == -1 ) {
-				isroot = be_isroot( be, op->o_ndn.bv_val );
+				isroot = be_isroot( be, &op->o_ndn );
 			}
 
-			if ( ! be_isroot ) {
+			if ( ! isroot ) {
 				if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 					np = (Entry *)&slap_entry_root;
 				

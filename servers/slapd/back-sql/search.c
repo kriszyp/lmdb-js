@@ -547,7 +547,7 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
  /* TimesTen : Pass it along to the lower level routines */ 
  srch_info.isTimesTen = bi->isTimesTen; 
  
- if (tlimit == 0 && be_isroot(be,op->o_ndn.bv_val))
+ if (tlimit == 0 && be_isroot(be,&op->o_ndn))
   {
    tlimit = -1;	/* allow root to set no limit */
   } 
@@ -558,7 +558,7 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
    stoptime = op->o_time + tlimit;
   }
   
- if (slimit == 0 && be_isroot(be,op->o_ndn.bv_val))
+ if (slimit == 0 && be_isroot(be,&op->o_ndn))
   {
    slimit = -1;	/* allow root to set no limit */
   }

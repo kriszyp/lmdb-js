@@ -317,7 +317,7 @@ do_search(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, pbase->bv_val, nbase->bv_val );
+	rc = backend_check_referrals( be, conn, op, pbase, nbase );
 	if ( rc != LDAP_SUCCESS ) {
 		goto return_results;
 	}

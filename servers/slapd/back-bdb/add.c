@@ -192,7 +192,7 @@ retry:	rc = txn_abort( ltid );
 		 *	must be adding entry to at suffix
 		 *  or with parent ""
 		 */
-		if ( !be_isroot( be, op->o_ndn.bv_val )) {
+		if ( !be_isroot( be, &op->o_ndn )) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 

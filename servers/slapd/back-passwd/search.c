@@ -191,7 +191,7 @@ passwd_back_search(
 			int i;
 			for( i=0; be->be_nsuffix[i] != NULL; i++ ) {
 				if( dn_issuffix( nbase, be->be_nsuffix[i]->bv_val ) ) {
-					matched = be->be_suffix[i];
+					matched = be->be_suffix[i]->bv_val;
 					break;
 				}
 			}
@@ -293,10 +293,13 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	attr_merge( e, ad_objectClass, vals );
 
 	/* rdn attribute type should be a configuratable item */
-	sprintf( buf, "uid=%s,%s", pw->pw_name, be->be_suffix[0] );
-	e->e_dn = ch_strdup( buf );
-	e->e_ndn = ch_strdup( buf );
-	(void) dn_normalize( e->e_ndn );
+	sprintf( buf, "uid=%s,%s", pw->pw_name, be->be_suffix[0]->bv_val );
+	e->e_name.bv_val = ch_strdup( buf );
+	e->e_name.bv_len = strlen( e->e_name.bv_val );
+
+	e->e_nname.bv_val = ch_strdup( buf );
+	(void) dn_normalize( e->e_nname );
+	e->e_nname.bv_len = strlen( e->e_name.bv_val );
 
 	val.bv_val = pw->pw_name;
 	val.bv_len = strlen( pw->pw_name );

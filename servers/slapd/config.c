@@ -979,11 +979,11 @@ read_config( const char *fname )
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffix already served by a preceding "
 					"backend \"%s\"\n", fname, lineno,
-					tmp_be->be_suffix[0] ));
+					tmp_be->be_suffix[0]->bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix "
 					"already served by a preceeding backend \"%s\"\n",
-				    fname, lineno, tmp_be->be_suffix[0] );
+				    fname, lineno, tmp_be->be_suffix[0]->bv_val );
 #endif
 				ber_bvfree( pdn );
 				ber_bvfree( ndn );
@@ -1003,7 +1003,7 @@ read_config( const char *fname )
 #endif
 			}
 
-			charray_add( &be->be_suffix, pdn->bv_val );
+			ber_bvecadd( &be->be_suffix, pdn );
 			ber_bvecadd( &be->be_nsuffix, ndn );
 
 		/* set database suffixAlias */
@@ -1107,12 +1107,12 @@ read_config( const char *fname )
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffixAlias served by a preceeding "
 					"backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0] ));
+					fname, lineno, tmp_be->be_suffix[0]->bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias served by"
 					"  a preceeding backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0] );
+					fname, lineno, tmp_be->be_suffix[0]->bv_val );
 #endif
 				ber_bvfree( palias );
 				return -1;
@@ -1158,13 +1158,13 @@ read_config( const char *fname )
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					"%s: line %d: suffixAlias derefs to a different backend "
-					"a preceeding backend \"%s\" (ignored)\n",
-					fname, lineno, tmp_be->be_suffix[0] ));
+					"a preceeding backend \"%s\"\n",
+					fname, lineno, tmp_be->be_suffix[0]->bv_val ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias derefs to differnet backend"
-					"  a preceeding backend \"%s\" (ignored)\n",
-					fname, lineno, tmp_be->be_suffix[0] );
+					"  a preceeding backend \"%s\"\n",
+					fname, lineno, tmp_be->be_suffix[0]->bv_val );
 #endif
 				ber_bvfree( palias );
 				ber_bvfree( paliased );

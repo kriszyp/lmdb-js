@@ -850,7 +850,7 @@ typedef struct slap_backend_db BackendDB;		/* per backend database */
 
 LDAP_SLAPD_V (int) nBackendInfo;
 LDAP_SLAPD_V (int) nBackendDB;
-LDAP_SLAPD_V (BackendInfo	*) backendInfo;
+LDAP_SLAPD_V (BackendInfo *) backendInfo;
 LDAP_SLAPD_V (BackendDB *) backendDB;
 
 LDAP_SLAPD_V (int) slapMode;	
@@ -889,9 +889,13 @@ struct slap_limits {
 #define SLAP_LIMITS_ANONYMOUS	0x0006
 #define SLAP_LIMITS_USERS	0x0007
 	regex_t	lm_dn_regex;		/* regex data for REGEX */
-	struct berval *lm_dn_pat;	/* ndn for EXACT, BASE, ONE, SUBTREE,
-					 * CHILDREN; pattern for REGEX; NULL
-					 * for ANONYMOUS, USERS */
+
+	/*
+	 * normalized DN for EXACT, BASE, ONE, SUBTREE, CHILDREN;
+	 * pattern for REGEX; NULL for ANONYMOUS, USERS
+	 */
+	struct berval *lm_dn_pat;
+
 	struct slap_limits_set	lm_limits;
 };
 
@@ -981,7 +985,7 @@ struct slap_backend_db {
 	slap_ssf_set_t be_ssf_set;
 
 	/* these should be renamed from be_ to bd_ */
-	char	**be_suffix;	/* the DN suffixes of data in this backend */
+	struct berval **be_suffix;	/* the DN suffixes of data in this backend */
 	struct berval **be_nsuffix;	/* the normalized DN suffixes in this backend */
 	struct berval **be_suffixAlias; /* pairs of DN suffix aliases and deref values */
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
@@ -998,6 +1002,7 @@ struct slap_backend_db {
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	struct berval **be_update_refs;	/* where to refer modifying clients to */
+	char	*be_realm;
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 
 #define	SLAP_GLUE_INSTANCE	0x01	/* a glue backend */
@@ -1005,9 +1010,6 @@ struct slap_backend_db {
 #define	SLAP_GLUE_LINKED	0x04	/* child is connected to parent */
 
 	int	be_glueflags;	/* */
-
-	char	*be_realm;
-
 	void	*be_private;	/* anything the backend database needs 	   */
 };
 

@@ -578,7 +578,7 @@ int bdb_build_tree(
 	 * Note that this code always uses be_suffix[0], so defining
 	 * multiple suffixes for a single backend won't work!
 	 */
-	bdb->bi_sufflen = strlen(be->be_suffix[0]);
+	bdb->bi_sufflen = be->be_suffix[0]->bv_len;
 
 	rdns = ldap_explode_dn(be->be_nsuffix[0]->bv_val, 0);
 	for (i=0; rdns[i]; i++);
@@ -639,7 +639,7 @@ int bdb_fix_dn(
 
 	ptr--;
 	nptr--;
-	strcpy(ptr, be->be_suffix[0]);
+	strcpy(ptr, be->be_suffix[0]->bv_val);
 	strcpy(nptr, be->be_nsuffix[0]->bv_val);
 
 	return 0;

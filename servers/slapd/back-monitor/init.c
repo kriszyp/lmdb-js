@@ -218,8 +218,9 @@ monitor_back_db_init(
 	struct monitorinfo 	*mi;
 	Entry 			*e, *e_tmp;
 	struct monitorentrypriv	*mp;
-	int			i;
-	char 			buf[1024], *ndn, *end_of_line;
+	int			i, rc;
+	char 			buf[1024], *end_of_line;
+	struct berval	dn, *ndn;
 	const char 		*text;
 	struct berval		val, *bv[2] = { &val, NULL };
 
@@ -241,10 +242,24 @@ monitor_back_db_init(
 	}
 	monitor_defined++;
 
-	ndn = ch_strdup( SLAPD_MONITOR_DN );
-	charray_add( &be->be_suffix, ndn );
-	dn_normalize( ndn );
-	ber_bvecadd( &be->be_nsuffix, ber_bvstr( ndn ) );
+	ndn = NULL;
+	dn.bv_val = SLAPD_MONITOR_DN;
+	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
+
+	rc = dnNormalize( NULL, &dn, &ndn );
+	if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			"monitor DN \"" SLAPD_MONITOR_DN "\" backend is allowed\n" ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor DN \"" SLAPD_MONITOR_DN "\" backend is allowed\n",
+			0, 0, 0 );
+#endif
+		return -1;
+	}
+
+	ber_bvecadd( &be->be_nsuffix, ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );

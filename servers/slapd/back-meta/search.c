@@ -149,7 +149,7 @@ meta_back_search(
 	nbaselen = strlen( nbase );
 
 	/* if not root, get appropriate limits */
-	if ( be_isroot( be, op->o_ndn.bv_val ) ) {
+	if ( be_isroot( be, &op->o_ndn ) ) {
 		isroot = 1;
 	} else {
 		( void ) get_limits( be, op->o_ndn.bv_val, &limit );

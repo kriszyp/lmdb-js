@@ -87,8 +87,7 @@ root_dse_info(
 		if ( backends[i].be_glueflags & SLAP_GLUE_SUBORDINATE )
 			continue;
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
-			val.bv_val = backends[i].be_suffix[j];
-			val.bv_len = strlen( val.bv_val );
+			val = *backends[i].be_suffix[j];
 			attr_merge( e, ad_namingContexts, vals );
 		}
 	}

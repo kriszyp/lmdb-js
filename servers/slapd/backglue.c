@@ -328,7 +328,7 @@ glue_back_search (
 			if (scope == LDAP_SCOPE_ONELEVEL && 
 				!strcmp (gi->n[i].pdn, ndn)) {
 				rc = be->be_search (be, conn, op,
-						    be->be_suffix[0],
+						    be->be_suffix[0]->bv_val,
 						    be->be_nsuffix[0]->bv_val,
 						    LDAP_SCOPE_BASE, deref,
 					s2limit, t2limit, filter, filterstr,
@@ -336,7 +336,7 @@ glue_back_search (
 			} else if (scope == LDAP_SCOPE_SUBTREE &&
 				dnIsSuffix(be->be_nsuffix[0], &bv)) {
 				rc = be->be_search (be, conn, op,
-						    be->be_suffix[0],
+						    be->be_suffix[0]->bv_val,
 						    be->be_nsuffix[0]->bv_val,
 						    scope, deref,
 					s2limit, t2limit, filter, filterstr,

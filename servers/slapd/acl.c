@@ -117,7 +117,7 @@ access_allowed(
 	assert( be != NULL );
 
 	/* grant database root access */
-	if ( be != NULL && be_isroot( be, op->o_ndn.bv_val ) ) {
+	if ( be != NULL && be_isroot( be, &op->o_ndn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
 		       "access_allowed: conn %d root access granted\n",
@@ -764,7 +764,7 @@ acl_mask(
 				buf[sizeof(buf) - 1] = 0;
 			}
 
-			if (backend_group(be, conn, op, e, buf, op->o_ndn.bv_val,
+			if (backend_group(be, conn, op, e, buf, &op->o_ndn,
 				b->a_group_oc, b->a_group_at) != 0)
 			{
 				continue;
@@ -1013,7 +1013,7 @@ acl_check_modlist(
 	assert( be != NULL );
 
 	/* short circuit root database access */
-	if ( be_isroot( be, op->o_ndn.bv_val ) ) {
+	if ( be_isroot( be, &op->o_ndn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 			   "acl_check_modlist: conn %d  access granted to root user\n",
@@ -1213,9 +1213,8 @@ aci_set_gather (void *cookie, char *name, char *attr)
 			const char *text;
 			AttributeDescription *desc = NULL;
 			if (slap_str2ad(attr, &desc, &text) == LDAP_SUCCESS) {
-				backend_attribute(cp->be, NULL /*cp->conn*/,
-									NULL /*cp->op*/, cp->e,
-									ndn, desc, &bvals);
+				backend_attribute(cp->be, NULL, NULL,
+					cp->e, ndn, desc, &bvals);
 				if (bvals != NULL) {
 					for (i = 0; bvals[i] != NULL; i++) { }
 					vals = ch_calloc(i + 1, sizeof(char *));
@@ -1283,7 +1282,7 @@ aci_match_set (
 				&& slap_str2ad(setat, &desc, &text) == LDAP_SUCCESS )
 			{
 				backend_attribute(be, NULL, NULL, e,
-								subjdn, desc, &bvals);
+					subjdn, desc, &bvals);
 				if ( bvals != NULL ) {
 					if ( bvals[0] != NULL )
 						set = ch_strdup(bvals[0]->bv_val);
@@ -1517,7 +1516,7 @@ aci_group_member (
 	if (grp_oc != NULL && grp_ad != NULL && grpdn != NULL) {
 		string_expand(grpdn, 1024, subjdn, e->e_ndn, matches);
 		if ( dn_normalize(grpdn) != NULL ) {
-			rc = (backend_group(be, conn, op, e, grpdn, op->o_ndn.bv_val, grp_oc, grp_ad) == 0);
+			rc = (backend_group(be, conn, op, e, grpdn, &op->o_ndn, grp_oc, grp_ad) == 0);
 		}
 	}
 

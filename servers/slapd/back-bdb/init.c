@@ -142,7 +142,7 @@ bdb_db_open( BackendDB *be )
 
 	Debug( LDAP_DEBUG_ARGS,
 		"bdb_db_open: %s\n",
-		be->be_suffix[0], 0, 0 );
+		be->be_suffix[0]->bv_val, 0, 0 );
 
 	/* we should check existance of dbenv_home and db_directory */
 
@@ -164,7 +164,7 @@ bdb_db_open( BackendDB *be )
 		bdb->bi_txn_cp = 0;
 	}
 
-	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0] );
+	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0]->bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 
 #ifdef BDB_SUBDIRS

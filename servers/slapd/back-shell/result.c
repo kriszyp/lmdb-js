@@ -111,6 +111,6 @@ print_suffixes(
 	int	i;
 
 	for ( i = 0; be->be_suffix[i] != NULL; i++ ) {
-		fprintf( fp, "suffix: %s\n", be->be_suffix[i] );
+		fprintf( fp, "suffix: %s\n", be->be_suffix[i].bv_val );
 	}
 }

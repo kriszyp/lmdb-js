@@ -317,7 +317,7 @@ do_modify(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, pdn->bv_val, ndn->bv_val );
+	rc = backend_check_referrals( be, conn, op, pdn, ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}

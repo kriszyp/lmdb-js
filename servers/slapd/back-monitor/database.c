@@ -121,8 +121,7 @@ monitor_subsys_database_init(
 		attr_merge( e, monitor_ad_desc, bv );
 		
 		for ( j = 0; be->be_suffix[j]; j++ ) {
-			val.bv_val = be->be_suffix[j];
-			val.bv_len = strlen( val.bv_val );
+			val = *be->be_suffix[j];
 
 			attr_merge( e, ad_nc, bv );
 			attr_merge( e_database, ad_nc, bv );

@@ -81,7 +81,7 @@ config_info(
 		strcpy( buf, backends[i].be_type );
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
 			strcat( buf, " : " );
-			strcat( buf, backends[i].be_suffix[j] );
+			strcat( buf, backends[i].be_suffix[j]->bv_val );
 		}
 		val.bv_val = buf;
 		val.bv_len = strlen( buf );
