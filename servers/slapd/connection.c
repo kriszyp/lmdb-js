@@ -213,7 +213,7 @@ long connection_init(
 	if( s < 0 ) {
         Debug( LDAP_DEBUG_ANY,
 			"connection_init(%d): invalid.\n",
-			s );
+			s, 0, 0 );
 		return -1;
 	}
 
