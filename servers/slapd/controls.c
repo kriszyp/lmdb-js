@@ -75,7 +75,7 @@ int get_ctrls(
 	}
 #endif
 
-	ctrls[nctrls] = NULL;
+	*ctrls[nctrls] = NULL;
 
 	for( tag = ber_first_element( ber, &len, &opaque );
 		tag != LBER_ERROR;

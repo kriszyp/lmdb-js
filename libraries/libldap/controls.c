@@ -151,7 +151,7 @@ int ldap_int_get_controls(
 		return LDAP_NO_MEMORY;
 	}
 
-	ctrls[nctrls] = NULL;
+	*ctrls[nctrls] = NULL;
 
 	for( tag = ber_first_element( ber, &len, &opaque );
 		tag != LBER_ERROR;
