@@ -121,6 +121,12 @@ struct sockbuf {
 	int		sb_trans_ready:1;
    	int		sb_sec_ready:1;
       
+   	/* these bits indicate if the transport layer 
+	 * needs to read or write 
+	 */
+   	int		sb_trans_needs_read:1;
+   	int		sb_trans_needs_write:1;
+
    	int		sb_fd;
    
 	void		*sb_iodata;	/* transport-layer data pointer */
@@ -158,6 +164,10 @@ struct sockbuf {
 #define ber_pvt_sb_data_ready( sb ) \
 (((sb)->sb_buf_ready) || ((sb)->sb_trans_ready))
 #endif
+#define ber_pvt_sb_needs_read( sb ) \
+((sb)->sb_trans_needs_read)
+#define ber_pvt_sb_needs_write( sb ) \
+((sb)->sb_trans_needs_write)
 
 #define READBUFSIZ	8192
 
