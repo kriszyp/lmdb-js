@@ -1255,19 +1255,24 @@ static int parseLDAPsync (
 
 	tag = ber_peek_tag( ber, &len );
 
-	if ( tag == LDAP_SYNC_TAG_COOKIE ) {
+	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
 		struct berval tmp_bv;	
-		if (( ber_scanf( ber, /*{*/ "o}", &tmp_bv )) == LBER_ERROR ) {
+		if (( ber_scanf( ber, /*{*/ "o", &tmp_bv )) == LBER_ERROR ) {
 			rs->sr_text = "LDAP Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
 		ber_bvarray_add( &op->o_sync_state.octet_str, &tmp_bv );
 		slap_parse_sync_cookie( &op->o_sync_state );
-	} else {
-		if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
-			rs->sr_text = "LDAP Sync control : decoding error";
+	}
+	if ( tag == LDAP_TAG_RELOAD_HINT ) {
+		if (( ber_scanf( ber, /*{*/ "b", &op->o_sync_rhint )) == LBER_ERROR ) {
+			rs->sr_text = "LDAP Sync control : rhint decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
+	}
+	if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
+			rs->sr_text = "LDAP Sync control : decoding error";
+			return LDAP_PROTOCOL_ERROR;
 	}
 
 	(void) ber_free( ber, 1 );

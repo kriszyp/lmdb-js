@@ -584,10 +584,13 @@ LDAP_SLAPD_F (int) slap_build_sync_state_ctrl LDAP_P((
 				int, int, struct berval * ));
 LDAP_SLAPD_F (int) slap_build_sync_done_ctrl LDAP_P((
 				Operation *, SlapReply *, LDAPControl **,
-				int, int, struct berval * ));
+				int, int, struct berval *, int ));
 LDAP_SLAPD_F (int) slap_build_sync_state_ctrl_from_slog LDAP_P((
 				Operation *, SlapReply *, struct slog_entry *, int,
 				LDAPControl **, int, int, struct berval * ));
+LDAP_SLAPD_F (int) slap_send_syncinfo LDAP_P((
+				Operation *, SlapReply *, int,
+				struct berval *, int, BerVarray, int ));
 LDAP_SLAPD_F (void) slap_compose_sync_cookie LDAP_P((
 				Operation *, struct berval *, struct berval *, int ));
 LDAP_SLAPD_F (void) slap_sync_cookie_free LDAP_P((
@@ -1077,7 +1080,7 @@ LDAP_SLAPD_F (Entry*) syncrepl_message_to_entry LDAP_P((
 LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
 					syncinfo_t *, Operation*, Entry*,
 					Modifications*,int, struct berval*,
-					struct sync_cookie *, int ));
+					struct sync_cookie * ));
 LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
 					syncinfo_t *, Operation *, struct berval *,
 					struct sync_cookie * ));

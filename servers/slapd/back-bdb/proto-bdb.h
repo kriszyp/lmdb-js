@@ -548,15 +548,6 @@ int bdb_do_search(
 );
 #define	bdb_psearch(op, rs, sop, e, ps_type)	bdb_do_search(op, rs, sop, e, ps_type)
 
-#define bdb_send_ldap_intermediate	BDB_SYMBOL(send_ldap_intermediate)
-
-int
-bdb_send_ldap_intermediate(
-	Operation   *op,
-	SlapReply	*rs,
-	int         state,
-	struct berval *cookie );
-
 /*
  * trans.c
  */

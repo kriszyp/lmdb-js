@@ -1303,10 +1303,7 @@ struct sync_cookie {
  * syncinfo structure for syncrepl
  */
 typedef struct syncinfo_s {
-//        struct slap_conn *si_conn;
         struct slap_backend_db *si_be;
-//        struct slap_entry *si_e;
-//        void				*si_ctx;
         unsigned int		si_id;
         char				*si_provideruri;
         BerVarray			si_provideruri_bv;
@@ -1332,16 +1329,12 @@ typedef struct syncinfo_s {
         char				**si_attrs;
         int					si_type;
         time_t				si_interval;
-//		struct sync_cookie	*si_syncCookie;
 		struct sync_cookie	si_syncCookie;
         int					si_manageDSAit;
         int					si_slimit;
 		int					si_tlimit;
-//        struct berval		*si_syncUUID;
-//		struct berval		*si_syncUUID_ndn;
 		struct berval		si_syncUUID_ndn;
         Avlnode				*si_presentlist;
-		int					si_sync_mode;
 		LDAP				*si_ld;
 		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
 } syncinfo_t;
@@ -1998,6 +1991,7 @@ typedef struct slap_op {
 #define SLAP_SYNC_PERSIST				(0x2)
 #define SLAP_SYNC_REFRESH_AND_PERSIST	(0x3)
 	struct sync_cookie	o_sync_state;
+	int					o_sync_rhint;
 	struct berval		o_sync_cid;
 	int					o_sync_slog_size;
 	struct berval		o_sync_csn;

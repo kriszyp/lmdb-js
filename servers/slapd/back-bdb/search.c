@@ -443,28 +443,20 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		if ( slog_found ) {
 			if ( ps_list->o_sync_slog_omitcsn.bv_len != 0 ) {
 				mr = slap_schema.si_ad_entryCSN->ad_type->sat_ordering;
-				if ( sop->o_sync_state.ctxcsn && sop->o_sync_state.ctxcsn->bv_val != NULL ) {
+				if ( sop->o_sync_state.ctxcsn &&
+					 sop->o_sync_state.ctxcsn->bv_val != NULL ) {
 					 value_match( &match, slap_schema.si_ad_entryCSN, mr,
 								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-								sop->o_sync_state.ctxcsn, &ps_list->o_sync_slog_omitcsn,
+								sop->o_sync_state.ctxcsn,
+								&ps_list->o_sync_slog_omitcsn,
 								&text );
 				} else {
 					match = -1;
 				}
 				if ( match >= 0 ) {
-					rs->sr_err = LDAP_SUCCESS;
-					rs->sr_rspoid = LDAP_SYNC_INFO;
-					rs->sr_ctrls = NULL;
-					bdb_send_ldap_intermediate( sop, rs,
-							LDAP_SYNC_STATE_MODE_DONE, NULL );
 					sync_send_present_mode = 0;
 				}
 			} else {
-				rs->sr_err = LDAP_SUCCESS;
-				rs->sr_rspoid = LDAP_SYNC_INFO;
-				rs->sr_ctrls = NULL;
-				bdb_send_ldap_intermediate( sop, rs,
-						LDAP_SYNC_STATE_MODE_DONE, NULL );
 				sync_send_present_mode = 0;
 			}
 		} else if ( sop->o_sync_slog_size >= 0 ) {
@@ -1284,13 +1276,10 @@ id2entry_retry:
 					}
 				} else {
 					if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-						struct berval cookie;
-						slap_compose_sync_cookie( sop, &cookie,
-									search_context_csn,
-									sop->o_sync_state.sid );
 						rs->sr_err = slap_build_sync_state_ctrl( sop,
 							rs, e, entry_sync_state, ctrls,
-							num_ctrls++, 0, &cookie );
+							num_ctrls++, 0, NULL );
+
 						if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 
 						rs->sr_ctrls = ctrls;
@@ -1306,8 +1295,6 @@ id2entry_retry:
 							}
 						}
 
-						if ( cookie.bv_val )
-							ch_free( cookie.bv_val );	
 						ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
 						ch_free( ctrls[--num_ctrls] );
 						ctrls[num_ctrls] = NULL;
@@ -1368,43 +1355,38 @@ nochange:
 			rs->sr_err = LDAP_SUCCESS;
 			rs->sr_rspoid = LDAP_SYNC_INFO;
 			rs->sr_ctrls = NULL;
-			if ( sync_send_present_mode ) {
-				struct berval cookie;
-				slap_compose_sync_cookie( sop, &cookie,
-										  search_context_csn,
-										  sop->o_sync_state.sid );
-				bdb_send_ldap_intermediate( sop, rs,
-					LDAP_SYNC_STATE_MODE_DONE, &cookie );
-				if ( cookie.bv_val )
-					ch_free( cookie.bv_val );
-			}
-
-			if ( !sync_send_present_mode && !no_sync_state_change ) {
-				int slog_found = 0;
-				ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
-				LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-					if ( ps_list->o_sync_slog_size > 0 ) {
-						if ( ps_list->o_sync_state.sid == sop->o_sync_state.sid ) {
-							slog_found = 1;
-							break;
-						}
-					}
-				}
-
-				if ( slog_found ) {
-					slap_send_session_log( op, ps_list, rs );
-				}
-				ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
-			}
 
 			if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
-				/* refreshAndPersist mode */
 				struct berval cookie;
 				slap_compose_sync_cookie( sop, &cookie,
 										  search_context_csn,
 										  sop->o_sync_state.sid );
-				bdb_send_ldap_intermediate( sop, rs,
-					LDAP_SYNC_LOG_MODE_DONE, &cookie );
+
+				if ( sync_send_present_mode ) {
+					slap_send_syncinfo( sop, rs,
+						LDAP_TAG_SYNC_REFRESH_PRESENT, &cookie, 1, NULL, 0 );
+				} else {
+					if ( !no_sync_state_change ) {
+						int slog_found = 0;
+						ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+						LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+							if ( ps_list->o_sync_slog_size > 0 ) {
+								if ( ps_list->o_sync_state.sid == sop->o_sync_state.sid ) {
+									slog_found = 1;
+									break;
+								}
+							}
+						}
+		
+						if ( slog_found ) {
+							slap_send_session_log( op, ps_list, rs );
+						}
+						ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+					}
+					slap_send_syncinfo( sop, rs,
+						LDAP_TAG_SYNC_REFRESH_DELETE, &cookie, 1, NULL, 0 );
+				}
+
 				if ( cookie.bv_val ) {
 					ch_free( cookie.bv_val );
 				}
@@ -1414,8 +1396,34 @@ nochange:
 				slap_compose_sync_cookie( sop, &cookie,
 										  search_context_csn,
 										  sop->o_sync_state.sid );
-				slap_build_sync_done_ctrl( sop, rs, ctrls,
-					num_ctrls++, 1, &cookie );
+
+				if ( sync_send_present_mode ) {
+					slap_build_sync_done_ctrl( sop, rs, ctrls,
+						num_ctrls++, 1, &cookie, LDAP_SYNC_REFRESH_PRESENTS );
+				} else {
+					if ( !no_sync_state_change ) {
+						int slog_found = 0;
+						ldap_pvt_thread_mutex_lock( &bdb->bi_pslist_mutex );
+						LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list,
+								o_ps_link ) {
+							if ( ps_list->o_sync_slog_size > 0 ) {
+								if ( ps_list->o_sync_state.sid ==
+										sop->o_sync_state.sid ) {
+									slog_found = 1;
+									break;
+								}
+							}
+						}
+		
+						if ( slog_found ) {
+							slap_send_session_log( op, ps_list, rs );
+						}
+						ldap_pvt_thread_mutex_unlock( &bdb->bi_pslist_mutex );
+					}
+					slap_build_sync_done_ctrl( sop, rs, ctrls,
+						num_ctrls++, 1, &cookie, LDAP_SYNC_REFRESH_DELETES );
+				}
+
 				rs->sr_ctrls = ctrls;
 				rs->sr_ref = rs->sr_v2ref;
 				rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
@@ -1732,48 +1740,3 @@ done:
 	(void) ber_free_buf( ber );
 }			
 #endif
-
-int
-bdb_send_ldap_intermediate(
-	Operation   *op,
-	SlapReply   *rs,
-	int	    state,
-	struct berval *cookie )
-{
-	BerElementBuffer berbuf;
-	BerElement *ber = (BerElement *)&berbuf;
-	struct berval rspdata;
-
-	int ret;
-
-	ber_init2( ber, NULL, LBER_USE_DER );
-
-	if ( cookie == NULL ) {
-		ber_printf( ber, "{eN}", state );
-	} else {
-		ber_printf( ber, "{eON}", state, cookie );
-	}
-
-	ret = ber_flatten2( ber, &rspdata, 0 );
-
-	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_send_ldap_intermediate: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_send_ldap_intermediate: ber_flatten2 failed\n",
-			0, 0, 0 );
-#endif
-		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
-	}
-
-	rs->sr_rspdata = &rspdata;
-	send_ldap_intermediate( op, rs );
-	rs->sr_rspdata = NULL;
-	ber_free_buf( ber );
-
-	return LDAP_SUCCESS;
-}

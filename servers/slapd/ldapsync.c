@@ -45,7 +45,7 @@ slap_build_sync_state_ctrl(
 	LDAPControl	**ctrls,
 	int			num_ctrls,
 	int			send_cookie,
-	struct berval	*csn)
+	struct berval	*cookie)
 {
 	Attribute* a;
 	int ret;
@@ -68,9 +68,9 @@ slap_build_sync_state_ctrl(
 		}
 	}
 
-	if ( send_cookie && csn ) {
+	if ( send_cookie && cookie ) {
 		ber_printf( ber, "{eOON}",
-			entry_sync_state, &entryuuid_bv, csn );
+			entry_sync_state, &entryuuid_bv, cookie );
 	} else {
 		ber_printf( ber, "{eON}",
 			entry_sync_state, &entryuuid_bv );
@@ -107,9 +107,10 @@ slap_build_sync_done_ctrl(
 	Operation	*op,
 	SlapReply	*rs,
 	LDAPControl	**ctrls,
-	int		num_ctrls,
-	int		send_cookie,
-	struct berval	*csn )
+	int			num_ctrls,
+	int			send_cookie,
+	struct berval *cookie,
+	int			refreshDeletes )
 {
 	int ret;
 	BerElementBuffer berbuf;
@@ -119,11 +120,14 @@ slap_build_sync_done_ctrl(
 
 	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
 
-	if ( send_cookie && csn ) {
-		ber_printf( ber, "{ON}", csn );
-	} else {
-		ber_printf( ber, "{N}" );
+	ber_printf( ber, "{" );
+	if ( send_cookie && cookie ) {
+		ber_printf( ber, "O", cookie );
 	}
+	if ( refreshDeletes == LDAP_SYNC_REFRESH_DELETES ) {
+		ber_printf( ber, "b", refreshDeletes );
+	}
+	ber_printf( ber, "N}" );	
 
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
 	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
@@ -158,7 +162,7 @@ slap_build_sync_state_ctrl_from_slog(
 	LDAPControl	**ctrls,
 	int			num_ctrls,
 	int			send_cookie,
-	struct berval	*csn)
+	struct berval	*cookie)
 {
 	Attribute* a;
 	int ret;
@@ -176,9 +180,9 @@ slap_build_sync_state_ctrl_from_slog(
 
 	ber_dupbv( &entryuuid_bv, &slog_e->sl_uuid );
 
-	if ( send_cookie && csn ) {
+	if ( send_cookie && cookie ) {
 		ber_printf( ber, "{eOON}",
-			entry_sync_state, &entryuuid_bv, csn );
+			entry_sync_state, &entryuuid_bv, cookie );
 	} else {
 		ber_printf( ber, "{eON}",
 			entry_sync_state, &entryuuid_bv );
@@ -206,6 +210,89 @@ slap_build_sync_state_ctrl_from_slog(
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		return ret;
 	}
+
+	return LDAP_SUCCESS;
+}
+
+int
+slap_send_syncinfo(
+	Operation	*op,
+	SlapReply	*rs,
+	int			type,
+	struct berval *cookie,
+	int			refreshDone,
+	BerVarray	syncUUIDs,
+	int			refreshDeletes )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+	struct berval rspdata;
+
+	int ret;
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+
+	if ( type ) {
+		switch ( type ) {
+		case LDAP_TAG_SYNC_NEW_COOKIE:
+			ber_printf( ber, "tO", type, cookie );
+			break;
+		case LDAP_TAG_SYNC_REFRESH_DELETE:
+		case LDAP_TAG_SYNC_REFRESH_PRESENT:
+			ber_printf( ber, "t{", type );
+			if ( cookie ) {
+				ber_printf( ber, "O", cookie );
+			}
+			if ( refreshDone == 0 ) {
+				ber_printf( ber, "b", refreshDone );
+			}
+			ber_printf( ber, "N}" );
+			break;
+		case LDAP_TAG_SYNC_ID_SET:
+			ber_printf( ber, "t{", type );
+			if ( cookie ) {
+				ber_printf( ber, "O", cookie );
+			}
+			if ( refreshDeletes == 1 ) {
+				ber_printf( ber, "b", refreshDeletes );
+			}
+			ber_printf( ber, "[W]", syncUUIDs );
+			ber_printf( ber, "N}" );
+			break;
+		default:
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, RESULTS,
+				"slap_send_syncinfo: invalid syncinfo type (%d)\n",
+				type, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"slap_send_syncinfo: invalid syncinfo type (%d)\n",
+				type, 0, 0 );
+#endif
+			return LDAP_OTHER;
+		}
+	}
+
+	ret = ber_flatten2( ber, &rspdata, 0 );
+
+	if ( ret < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, RESULTS,
+			"slap_send_syncinfo: ber_flatten2 failed\n",
+			0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_send_syncinfo: ber_flatten2 failed\n",
+			0, 0, 0 );
+#endif
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	rs->sr_rspdata = &rspdata;
+	send_ldap_intermediate( op, rs );
+	rs->sr_rspdata = NULL;
+	ber_free_buf( ber );
 
 	return LDAP_SUCCESS;
 }

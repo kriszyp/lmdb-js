@@ -206,10 +206,18 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_SYNC_DONE	"1.3.6.1.4.1.4203.666.5.8"
 #define LDAP_SYNC_INFO			"1.3.6.1.4.1.4203.666.10.2"
 
-#define LDAP_SYNC_NEW_COOKIE		0
-#define LDAP_SYNC_STATE_MODE_DONE	1
-#define	LDAP_SYNC_LOG_MODE_DONE		2
-#define LDAP_SYNC_REFRESH_DONE		3
+#define LDAP_SYNC_REFRESH_PRESENTS	0
+#define LDAP_SYNC_REFRESH_DELETES   1
+
+#define LDAP_TAG_SYNC_NEW_COOKIE		((ber_tag_t) 0x80U)
+#define LDAP_TAG_SYNC_REFRESH_DELETE	((ber_tag_t) 0xa1U)
+#define LDAP_TAG_SYNC_REFRESH_PRESENT	((ber_tag_t) 0xa2U)
+#define	LDAP_TAG_SYNC_ID_SET			((ber_tag_t) 0xa3U)
+
+#define LDAP_TAG_SYNC_COOKIE	((ber_tag_t) 0x04U)
+#define LDAP_TAG_REFRESHDELETES	((ber_tag_t) 0x01U)
+#define LDAP_TAG_REFRESHDONE	((ber_tag_t) 0x01U)
+#define LDAP_TAG_RELOAD_HINT	((ber_tag_t) 0x01U)
 
 #define LDAP_SYNC_STATE_MODE		0
 #define LDAP_SYNC_LOG_MODE			1
@@ -292,9 +300,6 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_RES_VALUE ((ber_tag_t) 0x8bU)	/* context specific + primitive */
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
-
-#define LDAP_SYNC_TAG_COOKIE	((ber_tag_t) 0x04U)	/* octet string */
-
 
 /* possible operations a client can invoke */
 #define LDAP_REQ_BIND		((ber_tag_t) 0x60U)	/* application + constructed */
