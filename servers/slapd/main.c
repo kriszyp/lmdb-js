@@ -373,12 +373,6 @@ int main( int argc, char **argv )
 	}
 #endif
 
-	if ( slap_init( serverMode, serverName ) != 0 ) {
-		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
-		goto destroy;
-	}
-
 	if ( slap_schema_init( ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT, "main: schema initialization error\n", 0, 0, 0 );
@@ -388,6 +382,12 @@ int main( int argc, char **argv )
 		    0, 0, 0 );
 #endif
 
+		goto destroy;
+	}
+
+	if ( slap_init( serverMode, serverName ) != 0 ) {
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
 		goto destroy;
 	}
 
