@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.6 Engineering
+OpenLDAP 2.1.6 Release
 	Fixed slapd unsupported non-critical control handling
 	Fixed slapd value_find() uninitialized variable bug (ITS#2097)
 	Fixed back-dnssrv default referral handling (ITS#2116)
@@ -10,13 +10,14 @@ OpenLDAP 2.1.6 Engineering
 	Updated slapd adlist support
 	Updated slapd disallow bind_simple_unprotected
 	Updated back-bdb/ldbm add/delete/rename ACLs
+	Updated back-shell surrogate parent code
 	Updated libldap_r Pth support (ITS#724) (ITS#1033)
 	Added libldap get referral option (ITS#2121)
 	Added libldap DIT content rule routines
 	Added back-shell "entry" ACLs
-	Added slapd obsolete checks
+	Added slapd obsolete schema checks
 	Disable suffixAlias feature (ITS#2117)
-	Removed lint
+	Misc minor fixes and cleanup
 	Build Environment
 		Fixed back-bdb module linking problem
 		Fixed misc. portability bugs
@@ -25,7 +26,7 @@ OpenLDAP 2.1.6 Engineering
 		Updated shtool
 		Updated test suite
 	Documentation
-		Misc. updates
+		Misc. updates (ITS#2093) (ITS#2105) (ITS#2106)
 
 OpenLDAP 2.1.5 Release
 	Fixed back-ldbm indirect IDL bug (ITS#2039)
