@@ -23,7 +23,10 @@ OpenLDAP 2.0 Projects
 	client API update
 		Implement LDAP errno draft (deferred)
 	SLAPD
-		Schema Enforcement <kurt@openldap.org>
+		Complete schema codes <kurt@openldap.org>
+		Update back-perl
+		Update back-sql
+		Update back-tcl
 	clients
 		use _ext API, avoid deprecated routines
 		-C/-CC/-R referral chasing options
