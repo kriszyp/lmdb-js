@@ -210,8 +210,7 @@ int ldap_domain2hostlist(
 
     request = LDAP_MALLOC(strlen(domain) + sizeof("_ldap._tcp."));
     if (request == NULL) {
-	rc = LDAP_NO_MEMORY;
-	goto out;
+		return LDAP_NO_MEMORY;
     }
     sprintf(request, "_ldap._tcp.%s", domain);
 
