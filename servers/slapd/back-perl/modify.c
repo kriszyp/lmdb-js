@@ -69,7 +69,7 @@ perl_back_modify(
 			}
 
 			
-			XPUSHs(sv_2mortal(newSVpv( mods->sm_desc.ad_cname.bv_val, 0 )));
+			XPUSHs(sv_2mortal(newSVpv( mods->sm_desc->ad_cname.bv_val, 0 )));
 
 			for ( i = 0;
 				mods->sm_bvalues != NULL && mods->sm_bvalues[i].bv_val != NULL;

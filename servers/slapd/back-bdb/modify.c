@@ -356,7 +356,7 @@ retry:	/* transaction retry */
 		ber_bvarray_free( refs );
 		free( matched_dn );
 
-		return rc;
+		goto done;
 	}
 
 	if ( !manageDSAit && is_entry_referral( e ) ) {

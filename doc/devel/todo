@@ -21,9 +21,9 @@ OpenLDAP 2.x Projects
 ---------------------
 	SLAPD
 		Complete Unicode Support (ACLs, etc.)
-	client API update
+	client C API update
 		Implement per referral/continuation callback
-	clients
+	clients (e.g. ldapsearch(1))
 		Implement referral chasing options w/ referral callback
 	Update manual pages
 
@@ -39,28 +39,30 @@ Medium projects
 Implement LDAP Transactions
 Implement authPassword (RFC 3112)
 Implement localization
-Implement Proxy Authorization Group extension
-Implement LCUP
-Add LDIFv1 control support
+Implement Proxy Authorization Control extension
 Update to latest autoconf and friends
 
 
 Small projects
 --------------
+Add LDIFv1 control support
 Populate matchingRuleUse attribute in the subschema
 Implement -V version options
-Implement Proxy Authorization Control extension
-Complete Simple Paged Results Control
-Add No-Op Control support to ldap client tools
+Add No-Op Control support to client tools (e.g. ldapsearch(1))
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
 Add support for Cyrus pwcheckd/saslauthd
-Create ldapbind (from ldapcompare?) to support bind operations
+Recode linked-list structs to use <ldap_queue.h> macros
+Create ldapbind(1) to support bind operations
 Convert utfconv.txt into man page(s).
 Update any manual page
 
 
 For additional TODO items, see:
   http://www.openldap.org/its/index.cgi/Software%20Enhancements
+  http://www.openldap.org/its/index.cgi/Software%20Bugs
+
+JLDAP TODO items, see:
+  http://www.openldap.org/devel/cvsweb.cgi/~checkout~/design/todo.txt?rev=1&cvsroot=JLDAP
 
 
 ---

@@ -37,7 +37,13 @@ static struct berval
 	aci_bv_set		= BER_BVC("set"),
 	aci_bv_set_ref		= BER_BVC("set-ref"),
 	aci_bv_grant		= BER_BVC("grant"),
-	aci_bv_deny		= BER_BVC("deny");
+	aci_bv_deny		= BER_BVC("deny"),
+	
+	aci_bv_group_class 	= BER_BVC(SLAPD_GROUP_CLASS),
+	aci_bv_group_attr 	= BER_BVC(SLAPD_GROUP_ATTR),
+	aci_bv_role_class	= BER_BVC(SLAPD_ROLE_CLASS),
+	aci_bv_role_attr	= BER_BVC(SLAPD_ROLE_ATTR);
+
 
 static AccessControl * acl_get(
 	AccessControl *ac, int *count,
@@ -1328,21 +1334,6 @@ acl_check_modlist(
 	return( 1 );
 }
 
-#if 0 /* not used any more */
-static char *
-aci_bvstrdup( struct berval *bv )
-{
-	char *s;
-
-	s = (char *)ch_malloc(bv->bv_len + 1);
-	if (s != NULL) {
-		AC_MEMCPY(s, bv->bv_val, bv->bv_len);
-		s[bv->bv_len] = 0;
-	}
-	return(s);
-}
-#endif
-
 static int
 aci_get_part(
 	struct berval *list,
@@ -1680,7 +1671,7 @@ aci_group_member (
 		char buf[ACL_BUF_SIZE];
 		struct berval bv, ndn;
 		bv.bv_len = sizeof( buf );
-		bv.bv_val = &buf;
+		bv.bv_val = (char *)&buf;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
 		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
 			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn, grp_oc, grp_ad) == 0);
@@ -1691,15 +1682,6 @@ aci_group_member (
 done:
 	return(rc);
 }
-
-static struct berval GroupClass = {
-	sizeof(SLAPD_GROUP_CLASS)-1, SLAPD_GROUP_CLASS };
-static struct berval GroupAttr = {
-	sizeof(SLAPD_GROUP_ATTR)-1, SLAPD_GROUP_ATTR };
-static struct berval RoleClass = {
-	sizeof(SLAPD_ROLE_CLASS)-1, SLAPD_ROLE_CLASS };
-static struct berval RoleAttr = {
-	sizeof(SLAPD_ROLE_ATTR)-1, SLAPD_ROLE_ATTR };
 
 static int
 aci_mask(
@@ -1768,10 +1750,9 @@ aci_mask(
 				rc = 0;
 			free(ndn.bv_val);
 		}
-		return(rc);
-	}
+		return (rc);
 
-	if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
+	} else if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
 		if (dn_match(&op->o_ndn, &e->e_nname))
 			return(1);
 
@@ -1804,11 +1785,11 @@ aci_mask(
 
 
 	} else if (ber_bvstrcasecmp( &aci_bv_group, &bv ) == 0) {
-		if (aci_group_member(&sdn, &GroupClass, &GroupAttr, be, e, conn, op, matches))
+		if (aci_group_member(&sdn, &aci_bv_group_class, &aci_bv_group_attr, be, e, conn, op, matches))
 			return(1);
 
 	} else if (ber_bvstrcasecmp( &aci_bv_role, &bv ) == 0) {
-		if (aci_group_member(&sdn, &RoleClass, &RoleAttr, be, e, conn, op, matches))
+		if (aci_group_member(&sdn, &aci_bv_role_class, &aci_bv_role_attr, be, e, conn, op, matches))
 			return(1);
 
 	} else if (ber_bvstrcasecmp( &aci_bv_set, &bv ) == 0) {

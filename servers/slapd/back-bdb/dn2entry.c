@@ -44,9 +44,9 @@ bdb_dn2entry_rw(
 
 	if( matched != NULL ) {
 		*matched = NULL;
-		rc = bdb_dn2id_matched( be, tid, dn, &id, &id2 );
+		rc = bdb_dn2id_matched( be, tid, dn, &id, &id2, flags );
 	} else {
-		rc = bdb_dn2id( be, tid, dn, &id );
+		rc = bdb_dn2id( be, tid, dn, &id, flags );
 	}
 
 	if( rc != 0 ) {

@@ -305,6 +305,8 @@ entry2str(
 	int		i;
 	ber_len_t tmplen;
 
+	assert( e != NULL );
+
 	/*
 	 * In string format, an entry looks like this:
 	 *	dn: <dn>\n

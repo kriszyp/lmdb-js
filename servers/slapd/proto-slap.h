@@ -830,6 +830,24 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	struct berval *cred,
 	struct berval *edn, slap_ssf_t *ssf ));
 
+LDAP_SLAPD_F (int) slap_sasl_setpass(
+	Connection      *conn,
+	Operation       *op,
+	const char      *reqoid,
+	struct berval   *reqdata,
+	char            **rspoid,
+	struct berval   **rspdata,
+	LDAPControl     *** rspctrls,
+	const char      **text );
+
+LDAP_SLAPD_F (int) slap_sasl_config(
+	int cargc,
+	char **cargv,
+	char *line,
+	const char *fname,
+	int lineno );
+
+
 /*
  * saslauthz.c
  */
@@ -842,6 +860,8 @@ LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 	struct berval *authzid ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
+LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
+
 
 /*
  * schema.c
@@ -1027,9 +1047,6 @@ LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;
 LDAP_SLAPD_V (struct berval)	default_search_base;
 LDAP_SLAPD_V (struct berval)	default_search_nbase;
-
-LDAP_SLAPD_V (int)		nSaslRegexp;
-LDAP_SLAPD_V (SaslRegexp_t*) SaslRegexp;
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_sent_mutex;
 LDAP_SLAPD_V (unsigned long)		num_bytes_sent;

@@ -339,6 +339,15 @@ static struct slap_schema_ad_map {
 			"USAGE dSAOperation )",
 		rootDseAttribute, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedFeatures) },
+	{ "monitorContext", "( 1.3.6.1.4.1.4203.666.1.10 "
+			"NAME 'monitorContext' "
+			"DESC 'monitor context' "
+			"EQUALITY objectIdentifierMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
+			"SINGLE-VALUE NO-USER-MODIFICATION "
+			"USAGE dSAOperation )",
+		rootDseAttribute, SLAP_AT_HIDE, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_monitorContext) },
 	{ "vendorName", "( 1.3.6.1.1.4 NAME 'vendorName' "
 			"DESC 'RFC3045: name of implementation vendor' "
 			"EQUALITY 1.3.6.1.4.1.1466.109.114.1 "
@@ -453,7 +462,22 @@ static struct slap_schema_ad_map {
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )",
 		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
-
+	{ "saslAuthzTo", "( 1.3.6.1.4.1.4203.666.1.8 "
+			"NAME 'saslAuthzTo' "
+			"DESC 'SASL proxy authorization targets' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
+			"USAGE distributedOperation )",
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_saslAuthzTo) },
+	{ "saslAuthzFrom", "( 1.3.6.1.4.1.4203.666.1.9 "
+			"NAME 'saslAuthzFrom' "
+			"DESC 'SASL proxy authorization sources' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
+			"USAGE distributedOperation )",
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_saslAuthzFrom) },
 #ifdef SLAPD_ACI_ENABLED
 	{ "OpenLDAPaci", "( 1.3.6.1.4.1.4203.666.1.5 "
 			"NAME 'OpenLDAPaci' "

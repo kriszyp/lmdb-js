@@ -22,6 +22,7 @@ static void		oc_usage(void);
 static void		at_usage(void);
 
 static char *const err2text[] = {
+	"Success",
 	"Out of memory",
 	"ObjectClass not found",
 	"ObjectClass inappropriate SUPerior",
@@ -46,7 +47,7 @@ static char *const err2text[] = {
 char *
 scherr2str(int code)
 {
-	if ( code < 0 || SLAP_SCHERR_LAST < code ) {
+	if ( code < 0 || SLAP_SCHERR_LAST <= code ) {
 		return "Unknown error";
 	} else {
 		return err2text[code];

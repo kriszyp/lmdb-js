@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5 "2 May 2002" "OpenLDAP LDVERSION"
+.TH SLAPD.CONF 5 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -195,6 +195,9 @@ disallow (default none).
 disables acceptance of anonymous bind requests.
 .B bind_simple
 disables simple (bind) authentication.
+.B bind_simple_unprotected
+disables simple (bind) authentication when confidentiality
+protections (e.g. TLS) are not in place.
 .B bind_krbv4
 disables Kerberos V4 (bind) authentication.
 .B tls_2_anon
@@ -208,7 +211,8 @@ disables StartTLS if authenticated (see also
 A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
 .B Slapd
 will stop listening for new connections, but will not close the
-connections to the current clients.  It terminates when all clients
+connections to the current clients.  Future write operations return
+unwilling-to-perform, though.  Slapd terminates when all clients
 have closed their connections (if they ever do), or \- as before \-
 if it receives a SIGTERM signal.  This can be useful if you wish to
 terminate the server and start a new
@@ -447,12 +451,18 @@ The <hash> must be one of
 .BR {SHA} ,
 .BR {SMD5} ,
 .BR {MD5} ,
+.BR {CRYPT} ,
 and
-.BR {CRYPT} .
+.BR {CLEARTEXT} .
 The default is
 .BR {SSHA} .
 
-Note that this option does not alter the normal user applications
+Note that
+.B {CLEARTEXT}
+indicates that the new password should be
+added to userPassword as clear text.
+
+Also, note that this option does not alter the normal user applications
 handling of userPassword during LDAP Add, Modify, or other LDAP operations.
 .TP
 .B password\-crypt\-salt\-format <format>
@@ -499,11 +509,8 @@ requires authentication prior to directory operations.
 requires SASL authentication prior to directory operations.
 .B strong
 requires strong authentication prior to directory operations.
-The
-.B SASL
-and
-.B strong
-conditions are currently same.
+The strong keyword allows protected "simple" authentication
+as well as SASL authentication.
 .B none
 may be used to require no conditions (useful for clearly globally
 set conditions within a particular database).
@@ -517,6 +524,43 @@ if compiled with --enable-rlookups).
 Specify the name of an LDIF(5) file containing user defined attributes
 for the root DSE.  These attributes are returned in addition to the
 attributes normally produced by slapd.
+.TP
+.B sasl-authz-policy <policy>
+Used to specify which rules to use for SASL Proxy Authorization. Proxy
+authorization allows a client to authenticate to the server using one
+user's credentials, but specify a different identity to use for authorization
+and access control purposes. It essentially allows user A to login as user
+B, using user A's password.
+The
+.B none
+flag disables proxy authorization. This is the default setting.
+The
+.B from
+flag will use rules in the
+.I saslAuthzFrom
+attribute of the authorization DN.
+The
+.B to
+flag will use rules in the
+.I saslAuthzTo
+attribute of the authentication DN.
+The
+.B both
+flag will allow both of the above. The rules are simply regular expressions
+specifying which DNs are allowed to perform proxy authorization. The
+.I saslAuthzFrom
+attribute in an entry specifies which other users
+are allowed to proxy login to this entry. The
+.I saslAuthzTo
+attribute in
+an entry specifies which other users this user can authorize as.  Use of
+.I saslAuthzTo
+rules can be easily
+abused if users are allowed to write arbitrary values to this attribute.
+In general the
+.I saslAuthzTo
+attribute must be protected with ACLs such that
+only privileged users can modify it.
 .TP
 .B sasl-host <fqdn>
 Used to specify the fully qualified domain name used for SASL processing.

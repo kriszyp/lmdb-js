@@ -270,7 +270,8 @@ bdb_dn2id(
 	BackendDB	*be,
 	DB_TXN *txn,
 	struct berval	*dn,
-	ID *id )
+	ID *id,
+	int flags )
 {
 	int		rc;
 	DBT		key, data;
@@ -304,7 +305,7 @@ bdb_dn2id(
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch it */
-	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
+	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags | flags);
 
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -335,7 +336,8 @@ bdb_dn2id_matched(
 	DB_TXN *txn,
 	struct berval	*in,
 	ID *id,
-	ID *id2 )
+	ID *id2,
+	int flags )
 {
 	int		rc;
 	DBT		key, data;
@@ -383,7 +385,7 @@ bdb_dn2id_matched(
 			break;
 		} else {
 			/* fetch it */
-			rc = db->get(db, txn, &key, &data, bdb->bi_db_opflags );
+			rc = db->get(db, txn, &key, &data, bdb->bi_db_opflags | flags );
 		}
 
 		if( rc == DB_NOTFOUND ) {
@@ -459,7 +461,8 @@ int
 bdb_dn2id_children(
 	BackendDB	*be,
 	DB_TXN *txn,
-	struct berval *dn )
+	struct berval *dn, 
+	int flags )
 {
 	int		rc;
 	DBT		key, data;
@@ -489,7 +492,7 @@ bdb_dn2id_children(
 	data.doff = 0;
 	data.dlen = sizeof(id);
 
-	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
+	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags | flags );
 	free( key.data );
 
 #ifdef NEW_LOGGING

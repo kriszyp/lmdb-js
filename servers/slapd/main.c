@@ -96,6 +96,8 @@ usage( char *name )
 	fprintf( stderr,
 		"usage: %s options\n", name );
 	fprintf( stderr,
+		"\t-4\t\tIPv4 only\n"
+		"\t-6\t\tIPv6 only\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
@@ -216,6 +218,9 @@ int main( int argc, char **argv )
 
 	while ( (i = getopt( argc, argv,
 			     "d:f:h:s:n:t"
+#if LDAP_PF_INET6
+				"46"
+#endif
 #ifdef HAVE_CHROOT
 				"r:"
 #endif
@@ -227,6 +232,15 @@ int main( int argc, char **argv )
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
+#ifdef LDAP_PF_INET6
+		case '4':
+			slap_inet4or6 = AF_INET;
+			break;
+		case '6':
+			slap_inet4or6 = AF_INET6;
+			break;
+#endif
+
 		case 'h':	/* listen URLs */
 			if ( urls != NULL ) free( urls );
 			urls = ch_strdup( optarg );

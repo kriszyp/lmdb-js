@@ -9,6 +9,10 @@ BACKEND=bdb
 if test $# -ge 1 ; then
 	BACKEND=$1; shift
 fi
+MONITORDB=no
+if test $# -ge 1 ; then
+	MONITORDB=$1; shift
+fi
 WAIT=0
 if test $# -ge 1 ; then
 	WAIT=1; shift
@@ -39,7 +43,7 @@ echo "Cleaning up in $REPLDIR..."
 rm -f $REPLDIR/[!C]*
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND < $MASTERCONF > $DBCONF
+. $CONFFILTER $BACKEND $MONITORDB < $MASTERCONF > $DBCONF
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -48,7 +52,7 @@ if test $WAIT != 0 ; then
 fi
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-. $CONFFILTER $BACKEND < $SLAVECONF > $REPLCONF
+. $CONFFILTER $BACKEND $MONITORDB < $SLAVECONF > $REPLCONF
 $SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then

@@ -404,6 +404,27 @@ do_bind(
 				version, ndn.bv_val, 0 );
 #endif
 			goto cleanup;
+
+		} else if (( global_disallows & SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED )
+			&& ( op->o_ssf < global_ssf_set.sss_ssf ))
+		{
+			rc = LDAP_CONFIDENTIALITY_REQUIRED;
+			text = "unwilling to perform simple authentication "
+				"without confidentilty protection";
+
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: conn %d  "
+				"v%d unprotected simple bind(%s) disallowed\n",
+				conn->c_connid, version, ndn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"do_bind: v%d unprotected simple bind(%s) disallowed\n",
+				version, ndn.bv_val, 0 );
+#endif
+			goto cleanup;
 		}
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
@@ -478,8 +499,6 @@ do_bind(
 		goto cleanup;
 	}
 
-	conn->c_authz_backend = be;
-
 	if ( be->be_bind ) {
 		int ret;
 
@@ -492,14 +511,17 @@ do_bind(
 		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
+			if( conn->c_authz_backend == NULL ) {
+				conn->c_authz_backend = be;
+			}
+
 			if(edn.bv_len) {
 				conn->c_dn = edn;
 			} else {
-				ber_dupbv( &conn->c_dn, &pdn );
+				conn->c_dn = pdn;
+				pdn.bv_val = NULL;
+				pdn.bv_len = 0;
 			}
-			conn->c_cdn = pdn;
-			pdn.bv_val = NULL;
-			pdn.bv_len = 0;
 
 			conn->c_ndn = ndn;
 			ndn.bv_val = NULL;
@@ -514,11 +536,11 @@ do_bind(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 				"do_bind: conn %d  v%d bind: \"%s\" to \"%s\" \n",
-				conn->c_connid, version, conn->c_cdn.bv_val, conn->c_dn.bv_val ));
+				conn->c_connid, version, dn.bv_val, conn->c_dn.bv_val ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d bind: \"%s\" to \"%s\"\n",
-				version, conn->c_cdn.bv_val, conn->c_dn.bv_val );
+				version, dn.bv_val, conn->c_dn.bv_val );
 #endif
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );

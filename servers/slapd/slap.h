@@ -250,6 +250,10 @@ typedef union slap_sockaddr {
 #endif
 } Sockaddr;
 
+#ifdef LDAP_PF_INET6
+extern int slap_inet4or6;
+#endif
+
 typedef struct slap_oid_macro {
 	struct berval som_oid;
 	char **som_names;
@@ -590,6 +594,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_supportedLDAPVersion;
 	AttributeDescription *si_ad_supportedSASLMechanisms;
 	AttributeDescription *si_ad_supportedFeatures;
+	AttributeDescription *si_ad_monitorContext;
 	AttributeDescription *si_ad_vendorName;
 	AttributeDescription *si_ad_vendorVersion;
 
@@ -614,6 +619,8 @@ struct slap_internal_schema {
 	/* Access Control Internals */
 	AttributeDescription *si_ad_entry;
 	AttributeDescription *si_ad_children;
+	AttributeDescription *si_ad_saslAuthzTo;
+	AttributeDescription *si_ad_saslAuthzFrom;
 #ifdef SLAPD_ACI_ENABLED
 	AttributeDescription *si_ad_aci;
 #endif
@@ -1161,7 +1168,9 @@ struct slap_backend_db {
 
 #define SLAP_DISALLOW_BIND_ANON		0x0001U /* no anonymous */
 #define SLAP_DISALLOW_BIND_SIMPLE	0x0002U	/* simple authentication */
-#define SLAP_DISALLOW_BIND_KRBV4	0x0004U /* Kerberos V4 authentication */
+#define SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED \
+									0x0004U	/* unprotected simple auth */
+#define SLAP_DISALLOW_BIND_KRBV4	0x0008U /* Kerberos V4 authentication */
 
 #define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
 #define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */
@@ -1541,7 +1550,7 @@ typedef struct slap_conn {
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	struct berval	c_sasl_bind_mech;			/* mech in progress */
-	struct berval	c_cdn;
+	struct berval	c_sasl_dn;	/* temporary storage */
 
 	/* authorization backend */
 	Backend *c_authz_backend;
@@ -1595,26 +1604,6 @@ typedef struct slap_conn {
 #else
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #endif
-
-
-#define SASLREGEX_REPLACE 10
-#define SASL_AUTHZ_SOURCE_ATTR "saslAuthzTo"
-#define SASL_AUTHZ_DEST_ATTR "saslAuthzFrom"
-
-typedef struct sasl_uri {
-  struct berval dn;
-  struct berval filter;
-  int scope;
-} SaslUri_t;
-
-typedef struct sasl_regexp {
-  char *sr_match;							/* regexp match pattern */
-  SaslUri_t sr_replace; 						/* regexp replace pattern */
-  regex_t sr_workspace;						/* workspace for regexp engine */
-  regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
-  int sr_dn_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
-  int sr_fi_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
-} SaslRegexp_t;
 
 /*
  * listener; need to access it from monitor backend

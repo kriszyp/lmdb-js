@@ -309,7 +309,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	rc = bdb_dn2id_children( be, ltid, &e->e_nname );
+	rc = bdb_dn2id_children( be, ltid, &e->e_nname, 0 );
 	if( rc != DB_NOTFOUND ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:

@@ -1,4 +1,4 @@
-.TH SLAPD-LDAP 5 "2 May 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-LDAP 5 "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -64,17 +64,16 @@ them to the client.
 The <suffix> field must be defined as a valid suffix (or suffixAlias?)
 for the current database.
 .TP
-.B map "{attribute | objectclass} {<local name> | *} [<foreign name> | *]"
+.B map "{attribute | objectclass} [<local name> | *] {<foreign name> | *}"
 Map attribute names and object classes from the foreign server to
 different values on the local slapd.
 The reason is that some attributes might not be part of the local
 slapd's schema, some attribute names might be different but serve the
 same purpose, etc.
 If local or foreign name is `*', the name is preserved.
-If foreign name is missing, the name is dropped.
-Local name `*' and no foreign name means unmapped attributes are
-removed, while local name = foreign name = `*' means unmapped
-attributes are preserved.
+If local name is omitted, the foreign name is removed.
+Unmapped names are preseved if both local and foreign name are `*',
+and removed if local name is omitted and foreign name is `*'.
 .TP
 .B rewrite*
 The rewrite options are described in the "REWRITING" section of the

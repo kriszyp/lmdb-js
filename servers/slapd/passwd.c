@@ -29,6 +29,7 @@ int passwd_extop(
 	const char **text,
 	BerVarray *refs )
 {
+	Backend *be;
 	int rc;
 
 	assert( reqoid != NULL );
@@ -39,31 +40,44 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	if( conn->c_authz_backend == NULL || !conn->c_authz_backend->be_extended ) {
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	be = conn->c_authz_backend;
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+	if( be && !be->be_extended ) {
 		*text = "operation not supported for current user";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
 	{
 		struct berval passwd = BER_BVC( LDAP_EXOP_MODIFY_PASSWD );
-
-		rc = backend_check_restrictions( conn->c_authz_backend,
-			conn, op, &passwd, text );
+		rc = backend_check_restrictions( be, conn, op, &passwd, text );
 	}
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	if( conn->c_authz_backend->be_update_ndn.bv_len ) {
+	if( be == NULL ) {
+#ifdef HAVE_CYRUS_SASL
+		rc = slap_sasl_setpass( conn, op,
+			reqoid, reqdata,
+			rspoid, rspdata, rspctrls,
+			text );
+#else
+		*text = "no authz backend";
+		rc = LDAP_OTHER;
+#endif
+
+	} else if( be->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
-		*refs = referral_rewrite( conn->c_authz_backend->be_update_refs,
+		*refs = referral_rewrite( be->be_update_refs,
 			NULL, NULL, LDAP_SCOPE_DEFAULT );
 			rc = LDAP_REFERRAL;
 
 	} else {
-		rc = conn->c_authz_backend->be_extended(
-			conn->c_authz_backend, conn, op,
+		rc = be->be_extended(
+			be, conn, op,
 			reqoid, reqdata,
 			rspoid, rspdata, rspctrls,
 			text, refs );
@@ -86,6 +100,11 @@ int slap_passwd_parse( struct berval *reqdata,
 
 	if( reqdata == NULL ) {
 		return LDAP_SUCCESS;
+	}
+
+	if( reqdata->bv_len == 0 ) {
+		*text = "empty request data field";
+		return LDAP_PROTOCOL_ERROR;
 	}
 
 	/* ber_init2 uses reqdata directly, doesn't allocate new buffers */
@@ -203,7 +222,6 @@ decoding_error:
 			"slap_passwd_parse: decoding error, len=%ld\n",
 			(long) len, 0, 0 );
 #endif
-
 
 		*text = "data decoding error";
 		rc = LDAP_PROTOCOL_ERROR;

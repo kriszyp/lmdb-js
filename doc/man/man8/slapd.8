@@ -1,11 +1,12 @@
 .\" $OpenLDAP$
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
-.TH SLAPD 8C "5 Novemeber 2000" "OpenLDAP LDVERSION"
+.TH SLAPD 8C "RELEASEDATE" "OpenLDAP LDVERSION"
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slapd 
+.B [\-[4|6]]
 .B [\-d debug\-level]
 .B [\-f slapd\-config\-file]
 .B [\-h URLs]
@@ -56,6 +57,12 @@ for details.
 See the "OpenLDAP Administrator's Guide" for more details on
 .BR slapd .
 .SH OPTIONS
+.TP
+.B \-4
+Listen on IPv4 addresses only.
+.TP
+.B \-6
+Listen on IPv6 addresses only.
 .TP
 .BI \-d " debug\-level"
 Turn on debugging as defined by

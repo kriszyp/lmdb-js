@@ -899,6 +899,9 @@
 /* define to support SASL passwords */
 #undef SLAPD_SPASSWD
 
+/* define to support multimaster replication */
+#undef SLAPD_MULTIMASTER
+
 /* define to support phonetic */
 #undef SLAPD_PHONETIC
 

@@ -180,6 +180,11 @@ static struct berval *hash_crypt(
 	const struct berval *passwd );
 #endif
 
+#ifdef SLAPD_CLEARTEXT
+static struct berval *hash_clear(
+	const struct pw_scheme *scheme,
+	const struct berval *passwd );
+#endif
 
 static const struct pw_scheme pw_schemes[] =
 {
@@ -212,7 +217,7 @@ static const struct pw_scheme pw_schemes[] =
 
 #ifdef SLAPD_CLEARTEXT
 	/* psuedo scheme */
-	{ {0, "{CLEARTEXT}"}, NULL, NULL },
+	{ {0, "{CLEARTEXT}"}, NULL, hash_clear },
 #endif
 
 	{ {0, NULL}, NULL, NULL }
@@ -224,11 +229,9 @@ static const struct pw_scheme *get_scheme(
 	int i;
 
 	for( i=0; pw_schemes[i].name.bv_val; i++) {
-		if( pw_schemes[i].name.bv_len == 0 ) continue;
+		if( pw_schemes[i].name.bv_val == NULL ) continue;
 
-		if( strncasecmp(scheme, pw_schemes[i].name.bv_val,
-			pw_schemes[i].name.bv_len) == 0 )
-		{
+		if( strcasecmp(scheme, pw_schemes[i].name.bv_val ) == 0 ) {
 			return &pw_schemes[i];
 		}
 	}
@@ -1257,3 +1260,14 @@ int lutil_salt_format(const char *format)
 
 	return 0;
 }
+
+#ifdef SLAPD_CLEARTEXT
+static struct berval *hash_clear(
+	const struct pw_scheme *scheme,
+	const struct berval  *passwd )
+{
+	return ber_bvdup( (struct berval *) passwd );
+}
+#endif
+
+

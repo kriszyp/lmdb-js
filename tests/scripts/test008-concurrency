@@ -1,0 +1,97 @@
+#! /bin/sh
+# $OpenLDAP$
+
+SRCDIR="."
+if test $# -ge 1 ; then
+	SRCDIR=$1; shift
+fi
+BACKEND=bdb
+if test $# -ge 1 ; then
+	BACKEND=$1; shift
+fi
+MONITORDB=no
+if test $# -ge 1 ; then
+	MONITORDB=$1; shift
+fi
+WAIT=0
+if test $# -ge 1 ; then
+	WAIT=1; shift
+fi
+
+echo "running defines.sh"
+. $SRCDIR/scripts/defines.sh
+
+echo "Datadir is $DATADIR"
+
+echo "Cleaning up in $DBDIR..."
+
+rm -f $DBDIR/[!C]*
+
+echo "Running slapadd to build slapd database..."
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
+$SLAPADD -f $DBCONF -l $LDIFORDERED
+RC=$?
+if test $RC != 0 ; then
+	echo "slapadd failed ($RC)!"
+	exit $RC
+fi
+
+echo "Waiting 5 seconds for slapadd to build slapd database..."
+sleep 5
+
+echo "Starting slapd on TCP/IP port $PORT..."
+$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+
+echo "Using ldapsearch to check that slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 1 ; then
+		echo "Waiting 5 seconds for slapd to start..."
+		sleep 5
+	fi
+done
+
+echo "Using tester for concurrent server access..."
+$SLAPDTESTER -b "$BASEDN" -P "$PROGDIR" -d "$DATADIR" -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD -l 50
+RC=$?
+
+if test $RC != 0 ; then
+	echo "slapd-tester failed ($RC)!"
+	exit $RC
+fi 
+
+echo "Using ldapsearch to retrieve all the entries..."
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
+			'objectClass=*' > $SEARCHOUT 2>&1
+RC=$?
+
+kill -HUP $PID
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	exit $RC
+fi
+
+echo "Filtering ldapsearch results..."
+. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $LDIFFILTER < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
+
+if test $? != 0 ; then
+	echo "comparison failed - database was not created correctly"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
+
+
+exit 0

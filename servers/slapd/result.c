@@ -236,14 +236,14 @@ send_ldap_response(
 	    }
 	}
 	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
-	    rc = ber_printf( ber, "{is{t{ess",
+	    rc = ber_printf( ber, "{is{t{ess" /*"}}}"*/,
 		msgid, "", tag, err,
 		matched == NULL ? "" : matched,
 		text == NULL ? "" : text );
 	} else
 #endif
 	{
-	    rc = ber_printf( ber, "{it{ess",
+	    rc = ber_printf( ber, "{it{ess" /*"}}"*/,
 		msgid, tag, err,
 		matched == NULL ? "" : matched,
 		text == NULL ? "" : text );
@@ -275,11 +275,11 @@ send_ldap_response(
 	}
 
 	if( rc != -1 ) {
-		rc = ber_printf( ber, "N}N}" );
+		rc = ber_printf( ber, /*"{{"*/ "N}N}" );
 	}
 #ifdef LDAP_CONNECTIONLESS
 	if( conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1 ) {
-		rc = ber_printf( ber, "N}" );
+		rc = ber_printf( ber, /*"{"*/ "N}" );
 	}
 #endif
 
@@ -1139,11 +1139,11 @@ send_search_entry(
 	if ( bytes < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "send_ldap_response: conn %lu  ber write failed.\n",
+			   "send_search_entry: conn %lu  ber write failed.\n",
 			   op->o_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"send_ldap_response: ber write failed\n",
+			"send_search_entry: ber write failed\n",
 			0, 0, 0 );
 #endif
 

@@ -232,7 +232,7 @@ ldap_back_db_config(
 
 		if ( argc < 3 || argc > 4 ) {
 			fprintf( stderr,
-	"%s: line %d: syntax is \"map {objectclass | attribute} {<source> | *} [<dest> | *]\"\n",
+	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
 				fname, lineno );
 			return( 1 );
 		}
@@ -243,32 +243,24 @@ ldap_back_db_config(
 			map = &li->at_map;
 		} else {
 			fprintf( stderr, "%s: line %d: syntax is "
-				"\"map {objectclass | attribute} {<source> | *} "
-					"[<dest> | *]\"\n",
+				"\"map {objectclass | attribute} [<local> | *] "
+				"{<foreign> | *}\"\n",
 				fname, lineno );
 			return( 1 );
 		}
 
-		if ( strcasecmp( argv[2], "*" ) != 0 ) {
-			src = argv[2];
-			if ( argc < 4 )
-				dst = "";
-			else if ( strcasecmp( argv[3], "*" ) == 0 )
-				dst = src;
-			else
-				dst = argv[3];
+		if ( strcmp( argv[2], "*" ) == 0 ) {
+			if ( argc < 4 || strcmp( argv[3], "*" ) == 0 ) {
+				map->drop_missing = ( argc < 4 );
+				return 0;
+			}
+			src = dst = argv[3];
+		} else if ( argc < 4 ) {
+			src = "";
+			dst = argv[2];
 		} else {
-			if ( argc < 4 ) {
-				map->drop_missing = 1;
-				return 0;
-			}
-			if ( strcasecmp( argv[3], "*" ) == 0 ) {
-				map->drop_missing = 0;
-				return 0;
-			}
-
-			src = argv[3];
-			dst = src;
+			src = argv[2];
+			dst = ( strcmp( argv[3], "*" ) == 0 ? src : argv[3] );
 		}
 
 		if ( ( map == &li->at_map )
@@ -290,15 +282,11 @@ ldap_back_db_config(
 		}
 		ber_str2bv( src, 0, 1, &mapping->src );
 		ber_str2bv( dst, 0, 1, &mapping->dst );
-		if ( *dst != 0 ) {
-			mapping[1].src = mapping->dst;
-			mapping[1].dst = mapping->src;
-		} else {
-			mapping[1].src = mapping->src;
-			mapping[1].dst = mapping->dst;
-		}
+		mapping[1].src = mapping->dst;
+		mapping[1].dst = mapping->src;
 
-		if ( avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL ||
+		if ( (*src != '\0' &&
+			  avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL) ||
 			avl_find( map->remap, (caddr_t)&mapping[1], mapping_cmp ) != NULL)
 		{
 			fprintf( stderr,
@@ -307,8 +295,9 @@ ldap_back_db_config(
 			return 0;
 		}
 
-		avl_insert( &map->map, (caddr_t)mapping,
-					mapping_cmp, mapping_dup );
+		if ( *src != '\0' )
+			avl_insert( &map->map, (caddr_t)mapping,
+						mapping_cmp, mapping_dup );
 		avl_insert( &map->remap, (caddr_t)&mapping[1],
 					mapping_cmp, mapping_dup );
 

@@ -48,6 +48,7 @@ monitor_subsys_database_init(
 	int			i;
 	struct monitorentrypriv	*mp;
 	AttributeDescription 	*ad_nc = slap_schema.si_ad_namingContexts;
+	AttributeDescription 	*ad_mc = slap_schema.si_ad_monitorContext;
 	AttributeDescription 	*ad_seeAlso = NULL;
 	const char		*text = NULL;
 
@@ -114,8 +115,13 @@ monitor_subsys_database_init(
 			return( -1 );
 		}
 		
-		attr_merge( e, ad_nc, be->be_suffix );
-		attr_merge( e_database, ad_nc, be->be_suffix );
+		if ( be->be_flags & SLAP_BFLAG_MONITOR ) {
+			attr_merge( e, ad_mc, be->be_suffix );
+			attr_merge( e_database, ad_mc, be->be_suffix );
+		} else {
+			attr_merge( e, ad_nc, be->be_suffix );
+			attr_merge( e_database, ad_nc, be->be_suffix );
+		}
 
 		for ( j = nBackendInfo; j--; ) {
 			if ( &backendInfo[ j ] == be->bd_info ) {

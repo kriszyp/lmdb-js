@@ -7,6 +7,7 @@
  */
 
 #include "portable.h"
+#include "ldap_config.h"
 
 #include <stdio.h>
 
@@ -17,6 +18,7 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/param.h>
+#include <ac/dirent.h>
 
 #include "ldap-int.h"
 
@@ -339,10 +341,43 @@ get_ca_list( char * bundle, char * dir )
 	if ( bundle ) {
 		ca_list = SSL_load_client_CA_file( bundle );
 	}
-	/*
-	 * FIXME: We have now to go over all files in dir, load them
-	 * and add every certificate there to ca_list.
-	 */
+	if ( dir ) {
+		DIR *dirp;
+		struct dirent *d;
+		char buf[MAXPATHLEN];
+		int l = strlen(dir), freeit = 0;
+
+		if (l > sizeof(buf))
+			goto done;
+
+		dirp = opendir( dir );
+
+		if ( !ca_list ) {
+			ca_list = sk_X509_NAME_new_null();
+			freeit = 1;
+		}
+
+		strcpy(buf, dir);
+
+		while ( dirp ) {
+			if ( ( d = readdir( dirp )) == NULL) {
+				closedir( dirp );
+				break;
+			}
+			if (l + sizeof(LDAP_DIRSEP) + NAMLEN(d) > sizeof(buf))
+				continue;
+
+			sprintf( buf+l, LDAP_DIRSEP "%s", d->d_name );
+			if ( SSL_add_file_cert_subjects_to_stack(ca_list, buf)) {
+				freeit = 0;
+			}
+		}
+		if ( freeit ) {
+			sk_X509_NAME_free( ca_list );
+			ca_list = NULL;
+		}
+	}
+done:
 	return ca_list;
 }
 

@@ -1,7 +1,20 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.2 Engineering
-	<insert changes here>
+OpenLDAP 2.1.3 Engineering
+	Fix slapd schema error alignment bug
+	Update slapd SASL proxy policy code
+	Update slapd require "strong" check
+	Update back-bdb entry locking
+	Add slapd disallow bind_simple_unprotected directive
+	Add back-monitor added monitorContext support
+	Add slapd IPv4/v6 only options
+	Ass slapd SASL setpass support
+	Remove lint
+	Build Environment
+		Add monitor backend test
+		Update <ac/socket.h> SHUT_RDWR 
+		Fix SASL-less build issues
+		Fix back-perl build issues
 
 OpenLDAP 2.1.2 Release
 	Initial release for "general" use.

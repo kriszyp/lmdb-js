@@ -58,6 +58,8 @@ root_dse_info(
 		= slap_schema.si_ad_supportedSASLMechanisms;
 	AttributeDescription *ad_supportedFeatures
 		= slap_schema.si_ad_supportedFeatures;
+	AttributeDescription *ad_monitorContext
+		= slap_schema.si_ad_monitorContext;
 	AttributeDescription *ad_ref
 		= slap_schema.si_ad_ref;
 
@@ -77,10 +79,6 @@ root_dse_info(
 
 	e->e_private = NULL;
 
-	vals[0].bv_val = "OpenLDAProotDSE";
-	vals[0].bv_len = sizeof("OpenLDAProotDSE")-1;
-	attr_merge( e, ad_structuralObjectClass, vals );
-
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
 	attr_merge( e, ad_objectClass, vals );
@@ -88,8 +86,14 @@ root_dse_info(
 	vals[0].bv_val = "OpenLDAProotDSE";
 	vals[0].bv_len = sizeof("OpenLDAProotDSE")-1;
 	attr_merge( e, ad_objectClass, vals );
+	attr_merge( e, ad_structuralObjectClass, vals );
 
 	for ( i = 0; i < nbackends; i++ ) {
+		if ( backends[i].be_flags & SLAP_BFLAG_MONITOR ) {
+			vals[0] = backends[i].be_suffix[0];
+			attr_merge( e, ad_monitorContext, vals );
+			continue;
+		}
 		if ( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE ) {
 			continue;
 		}

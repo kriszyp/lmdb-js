@@ -130,7 +130,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, 0, locker, &lock );
+	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, DB_RMW, locker, &lock );
 
 	switch( rc ) {
 	case 0:
@@ -520,7 +520,7 @@ retry:	/* transaction retry */
 		new_ndn.bv_val, 0, 0 );
 #endif
 
-	rc = bdb_dn2id ( be, ltid, &new_ndn, &id );
+	rc = bdb_dn2id ( be, ltid, &new_ndn, &id, 0 );
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:

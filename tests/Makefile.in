@@ -1,0 +1,64 @@
+# $OpenLDAP$
+## Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+##
+## tests Makefile.in for OpenLDAP
+SUBDIRS= progs
+BUILD_LDBM=@BUILD_LDBM@
+BUILD_BDB=@BUILD_BDB@
+BUILD_MONITOR=@BUILD_MONITOR@
+
+test: tests
+tests: bdb ldbm
+
+bdb: test-bdb
+test-bdb:	FORCE
+	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode ucdata
+	@if test "$(BUILD_BDB)" = "yes" ; then \
+		echo "Initiating LDAP tests for BDB..." ; \
+		$(MKDIR) test-db test-repl || true; \
+		$(srcdir)/scripts/all $(srcdir) bdb $(BUILD_MONITOR) ; \
+	else \
+		echo "run configure with --enable-bdb" ; \
+	fi
+
+ldbm: test-ldbm
+test-ldbm:	FORCE
+	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode ucdata
+	@if test "$(BUILD_LDBM)" = "yes" ; then \
+		echo "Initiating LDAP tests for LDBM..." ; \
+		$(MKDIR) test-db test-repl || true; \
+		$(srcdir)/scripts/all $(srcdir) ldbm $(BUILD_MONITOR); \
+	else \
+		echo "run configure with --enable-ldbm" ; \
+	fi
+
+passwd: test-passwd
+test-passwd: FORCE
+	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode ucdata
+	@echo "Initiating LDAP tests..."
+	@-$(MKDIR) test-db test-repl || true
+	@$(srcdir)/scripts/passwd-search $(srcdir) passwd
+
+test-nis-schema:        test-nis-schema-ldbm
+test-nis-schema-ldbm:
+	@-$(LN_S) $(srcdir)/data .
+	@-$(LN_S) $(top_srcdir)/servers/slapd/schema .
+	@-$(LN_S) ../libraries/liblunicode ucdata
+	@echo "Initiating LDAP server with NIS schema & ldbm backend..."; \
+	$(MKDIR) test-db test-repl ; \
+	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
+
+clean-local:	FORCE
+	-$(RM) -r test-db/[!C]* test-repl/[!C]* *leak *gmon *core
+
+veryclean-local: FORCE
+	@-$(RM) data schema ucdata
+	-$(RM) -r test-db test-repl
+
