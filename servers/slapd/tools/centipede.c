@@ -11,7 +11,6 @@
 #include <lber.h>
 #include <ldap.h>
 
-#include <ldapconfig.h>
 #include <ldbm.h>
 
 #define DEFAULT_LDAPFILTER	"(objectclass=*)"
@@ -89,8 +88,8 @@ main( int argc, char **argv )
 
 	ldapsrcurl = NULL;
 	ldapdesturl = NULL;
-	ldaphost = LDAPHOST;
-	ldapbase = DEFAULT_BASE;
+	ldaphost = NULL;
+	ldapbase = NULL;
 	srcldapauthmethod = LDAP_AUTH_SIMPLE;
 	destldapauthmethod = LDAP_AUTH_SIMPLE;
 	srcldapbinddn = NULL;

@@ -308,7 +308,7 @@ connect_to_x500()
 	int sizelimit = FAX_MAXAMBIGUOUS;
 	int deref = LDAP_DEREF_ALWAYS;
 
-	if ( (ld = ldap_open( LDAPHOST, LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_open( NULL, 0 )) == NULL ) {
 		syslog( LOG_ALERT, "ldap_open failed" );
 		return( -1 );
 	}
@@ -316,7 +316,7 @@ connect_to_x500()
 	ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
 	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
-	if ( ldap_simple_bind_s( ld, FAX_BINDDN, FAX_BIND_CRED ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		syslog( LOG_ALERT, "ldap_simple_bind_s failed" );
 		return( -1 );
 	}

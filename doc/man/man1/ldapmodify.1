@@ -1,4 +1,4 @@
-.TH LDAPMODIFY 1 "22 September 1998" "OpenLDAP LDVERSION"
+.TH LDAPMODIFY 1 "10 November 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldapmodify, ldapadd \- ldap modify entry and ldap add entry tools
 .SH SYNOPSIS
@@ -104,7 +104,7 @@ Read the entry modification information from \fIfile\fP instead of from
 standard input.
 .TP
 .B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
 .TP
 .B \-w passwd
@@ -285,6 +285,7 @@ status and a diagnostic message being written to standard error.
 .BR ldapdelete (1),
 .BR ldapmodrdn (1),
 .BR ldapsearch (1),
+.BR ldap.conf (5),
 .BR ldap (3),
 .BR ldap_add (3),
 .BR ldap_delete (3),

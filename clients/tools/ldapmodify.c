@@ -22,13 +22,11 @@
 #include <ldap.h>
 #include <ldif.h>
 
-#include "ldapconfig.h"
-
 static char	*prog;
-static char	*binddn = LDAPMODIFY_BINDDN;
-static char	*passwd = LDAPMODIFY_BIND_CRED;
-static char	*ldaphost = LDAPHOST;
-static int	ldapport = LDAP_PORT;
+static char	*binddn = NULL;
+static char	*passwd = NULL;
+static char	*ldaphost = NULL;
+static int	ldapport = 0;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 static LDAP	*ld;
 

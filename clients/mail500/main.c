@@ -56,7 +56,7 @@ char	*vacationhost = NULL;
 char	*errorsfrom = NULL;
 char	*mailfrom = NULL;
 char	*host = NULL;
-char	*ldaphost = LDAPHOST;
+char	*ldaphost = NULL;
 int	hostlen = 0;
 int	debug;
 
@@ -356,7 +356,7 @@ connect_to_x500()
 	opt = LDAP_DEREF_ALWAYS;
 	ldap_set_option(ld, LDAP_OPT_DEREF, &opt);
 
-	if ( ldap_simple_bind_s( ld, MAIL500_BINDDN, NULL ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		syslog( LOG_ALERT, "ldap_simple_bind_s failed" );
 		return( -1 );
 	}

@@ -98,8 +98,11 @@ ldap_ld_free( LDAP *ld, int close )
 		ldap_free_select_info( ld->ld_selectinfo );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
-	if ( ld->ld_defhost != NULL )
-		free( ld->ld_defhost );
+	if ( ld->ld_options.ldo_defbase != NULL )
+		free( ld->ld_options.ldo_defbase );
+
+	if ( ld->ld_options.ldo_defhost != NULL )
+		free( ld->ld_options.ldo_defhost );
 
 	free( (char *) ld );
 

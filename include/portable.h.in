@@ -541,6 +541,7 @@ is provided ``as is'' without express or implied warranty.
 #endif
 
 #include "ldap_cdefs.h"
+#include "ldap_features.h"
 
 #endif /* _LDAP_PORTABLE_H */
 

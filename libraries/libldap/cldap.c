@@ -65,10 +65,6 @@ cldap_open( char *host, int port )
 
     Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
 
-    if ( port == 0 ) {
-	    port = LDAP_PORT;
-    }
-
     if ( (s = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 ) {
 	return( NULL );
     }
@@ -87,8 +83,8 @@ cldap_open( char *host, int port )
     }
     if ( (ld->ld_sb.sb_fromaddr = (void *) calloc( 1,
 	    sizeof( struct sockaddr ))) == NULL ) {
-	free( ld );
-	close( s );
+
+	ldap_ld_free(ld, 1);
 	return( NULL );
     }	
     ld->ld_sb.sb_sd = s;
@@ -120,8 +116,7 @@ cldap_open( char *host, int port )
 			    (char *)hp->h_addr_list[ i ],
 			    sizeof(sock.sin_addr.s_addr));
 		    if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
-			close( s );
-			free( ld );
+			ldap_ld_free( ld, 1 );
 			return( NULL );
 		    }
 		}
@@ -129,8 +124,7 @@ cldap_open( char *host, int port )
 	    } else {
 		sock.sin_addr.s_addr = address;
 		if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
-		    close( s );
-		    free( ld );
+		    ldap_ld_free( ld, 1 );
 		    return( NULL );
 		}
 	    }
@@ -144,8 +138,7 @@ cldap_open( char *host, int port )
 	address = INADDR_LOOPBACK;
 	sock.sin_addr.s_addr = htonl( address );
 	if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
-	    close( s );
-	    free( ld );
+	    ldap_ld_free( ld, 1 );
 	    return( NULL );
 	}
     }
@@ -155,7 +148,7 @@ cldap_open( char *host, int port )
 	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,0 )) == NULL
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	    ) {
-	free( ld );
+	ldap_ld_free( ld, 0 );
 	return( NULL );
     }
 

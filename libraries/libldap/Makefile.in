@@ -33,7 +33,7 @@ ltest:	$(LIBRARY) test.o $(LIBLBER)
 ttest:	$(LIBRARY) tmpltest.o $(LIBLBER)
 	$(CC) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
 
-CFFILES= ldapfilter.conf ldapfriendly ldaptemplates.conf ldapsearchprefs.conf
+CFFILES= ldap.conf ldapfilter.conf ldapfriendly ldaptemplates.conf ldapsearchprefs.conf
 
 install-local: $(LIBRARY) $(CFFILES) FORCE
 	-$(MKDIR) -p $(libdir)

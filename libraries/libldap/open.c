@@ -53,6 +53,9 @@ ldap_open( char *host, int port )
 		return( NULL );
 	}
 
+	/* we'll assume we're talking version 2 for now */
+	ld->ld_version = LDAP_VERSION2;
+
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
@@ -88,11 +91,11 @@ ldap_open( char *host, int port )
 /*
  * ldap_init - initialize the LDAP library.  A magic cookie to be used for
  * future communication is returned on success, NULL on failure.
- * "defhost" may be a space-separated list of hosts or IP addresses
+ * "host" may be a space-separated list of hosts or IP addresses
  *
  * Example:
  *	LDAP	*ld;
- *	ld = ldap_open( default_hostname, default_port );
+ *	ld = ldap_open( host, port );
  */
 LDAP *
 ldap_init( char *defhost, int defport )
@@ -146,38 +149,42 @@ ldap_init( char *defhost, int defport )
 		return( NULL );
 	}
 
+	/* copy the global options */
+	memcpy(&ld->ld_options, &openldap_ldap_global_options,
+		sizeof(ld->ld_options));
+
+	/* but not pointers to malloc'ed strings */
+	ld->ld_options.ldo_defbase = NULL;
+	ld->ld_options.ldo_defhost = NULL;
+
+	if ( defhost != NULL ) {
+		ld->ld_options.ldo_defhost = strdup( defhost );
+	} else {
+		ld->ld_options.ldo_defhost = strdup(
+			openldap_ldap_global_options.ldo_defhost);
+	}
+
+	if ( ld->ld_options.ldo_defhost == NULL ) {
+		free( (char*)ld );
+	    WSACleanup( );
+		return( NULL );
+	}
+
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
-		free( (char*)ld );
+		free( (char*) ld->ld_options.ldo_defhost );
+		free( (char*) ld->ld_options.ldo_defbase );
+		free( (char*) ld );
 	    WSACleanup( );
 		return( NULL );
 	}
-
-	LDAP_BOOL_ZERO(&ld->ld_options);
-	LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_REFERRALS);
-#else
-	LDAP_BOOL_ZERO(&ld->ld_options);
 #endif
 
-	if ( defhost != NULL &&
-	    ( ld->ld_defhost = strdup( defhost )) == NULL ) {
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-		ldap_free_select_info( ld->ld_selectinfo );
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-		free( (char*)ld );
-	    WSACleanup( );
-		return( NULL );
+	if(defport != 0) {
+		ld->ld_defport = defport;
 	}
 
-
-	ld->ld_defport = ( defport == 0 ) ? LDAP_PORT : defport;
-	ld->ld_version = LDAP_VERSION;
 	ld->ld_lberoptions = LBER_USE_DER;
-	ld->ld_options.ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-	LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_REFERRALS);
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
 	ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;

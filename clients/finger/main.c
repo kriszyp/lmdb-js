@@ -34,9 +34,9 @@
 
 
 int	dosyslog = 1;
-char	*ldaphost = LDAPHOST;
-int	ldapport = LDAP_PORT;
-char	*base = FINGER_BASE;
+char	*ldaphost = NULL;
+int	ldapport = 0;
+char	*base = NULL;
 int	deref;
 char	*filterfile = FILTERFILE;
 char	*templatefile = TEMPLATEFILE;
@@ -167,7 +167,7 @@ static do_query()
 	}
 	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
-	if ( ldap_simple_bind_s( ld, FINGER_BINDDN, FINGER_BIND_CRED )
+	if ( ldap_simple_bind_s( ld, NULL, NULL )
 		!= LDAP_SUCCESS )
 	{
 		fprintf( stderr, FINGER_UNAVAILABLE );

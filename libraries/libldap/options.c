@@ -112,12 +112,11 @@ ldap_get_option(
 		return 0;
 
 	case LDAP_OPT_PROTOCOL_VERSION:
-		if(ld == NULL) {
-			/* bad param */
-			break;
-		} 
-
-		* (int *) outvalue = ld->ld_version;
+		if ((ld != NULL) && ld->ld_version) {
+			* (int *) outvalue = ld->ld_version;
+		} else { 
+			* (int *) outvalue = lo->ldo_version;
+		}
 		return 0;
 
 	case LDAP_OPT_SERVER_CONTROLS:
@@ -126,11 +125,13 @@ ldap_get_option(
 		break;
 
 	case LDAP_OPT_HOST_NAME:
-		if(ld == NULL) {
-			/* bad param */
-			break;
-		} 
-		* (char **) outvalue = ld->ld_host;
+		/*
+		 * draft-ietf-ldapext-ldap-c-api-01 doesn't state
+		 * whether client to have to free host names or no,
+		 * we do
+		 */
+
+		* (char **) outvalue = strdup(lo->ldo_defhost);
 		return 0;
 
 	case LDAP_OPT_ERROR_NUMBER:
@@ -147,6 +148,17 @@ ldap_get_option(
 			/* bad param */
 			break;
 		} 
+
+		/*
+		 * draft-ietf-ldapext-ldap-c-api-01 doesn't require
+		 *	the client to have to free error strings, we do
+		 */
+
+		if( ld->ld_error == NULL ) {
+			* (char **) outvalue = NULL;
+		} else {
+			* (char **) outvalue = strdup(ld->ld_error);
+		}
 		break;
 
 	default:
@@ -225,11 +237,73 @@ ldap_set_option(
 
 	case LDAP_OPT_SERVER_CONTROLS:
 	case LDAP_OPT_CLIENT_CONTROLS:
-	case LDAP_OPT_HOST_NAME:
-	case LDAP_OPT_ERROR_NUMBER:
-	case LDAP_OPT_ERROR_STRING:
 		/* not yet supported */
 		break;
+
+	case LDAP_OPT_HOST_NAME: {
+			char* host = * (char **) invalue;
+
+			if(lo->ldo_defhost != NULL) {
+				free(lo->ldo_defhost);
+				lo->ldo_defhost = NULL;
+			}
+
+			if(host != NULL) {
+				lo->ldo_defhost = strdup(host);
+				return 0;
+			}
+
+			if(ld == NULL) {
+				/*
+				 * must want global default returned
+				 * to initial condition.
+				 */
+				lo->ldo_defhost = strdup("localhost");
+
+			} else {
+				/*
+				 * must want the session default
+				 *   updated to the current global default
+				 */
+				lo->ldo_defhost = strdup(
+					openldap_ldap_global_options.ldo_defhost);
+			}
+		} return 0;
+
+	case LDAP_OPT_ERROR_NUMBER: {
+			int err = * (int *) invalue;
+
+			if (err != 0 ) {
+				/* not supported */
+				/* we only allow ld_errno to be cleared. */
+				break;
+			}
+
+			if(ld == NULL) {
+				/* need a struct ldap */
+				break;
+			}
+
+			ld->ld_errno = err;
+		} return 0;
+
+	case LDAP_OPT_ERROR_STRING: {
+			char* err = * (char **) invalue;
+
+			if (err != NULL ) {
+				/* not supported */
+				/* we only allow ld_error to be cleared. */
+				break;
+			}
+
+			if(ld == NULL) {
+				/* need a struct ldap */
+				break;
+			}
+
+			ld->ld_error = err;
+		} return 0;
+
 	default:
 		/* bad param */
 		break;

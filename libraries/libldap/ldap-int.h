@@ -67,6 +67,7 @@ struct ldapoptions {
 	int		ldo_timelimit;
 	int		ldo_sizelimit;
 
+	char*	ldo_defbase;
 	char*	ldo_defhost;
 	int		ldo_defport;
 
@@ -89,6 +90,10 @@ struct ldap {
 #define ld_deref		ld_options.ldo_deref
 #define ld_timelimit	ld_options.ldo_timelimit
 #define ld_sizelimit	ld_options.ldo_sizelimit
+
+#define ld_defbase		ld_options.ldo_defbase
+#define ld_defhost		ld_options.ldo_defhost
+#define ld_defport		ld_options.ldo_defport
 
 #define ld_cldaptries	ld_options.ldo_cldaptries
 #define ld_cldaptimeout	ld_options.ldo_cldaptimeout
@@ -121,8 +126,6 @@ struct ldap {
 	char		*ld_cldapdn;	/* DN used in connectionless search */
 
 	/* do not mess with the rest though */
-	char		*ld_defhost;	/* full name of default server */
-	int		ld_defport;	/* port of default server */
 	BERTranslateProc ld_lber_encode_translate_proc;
 	BERTranslateProc ld_lber_decode_translate_proc;
 

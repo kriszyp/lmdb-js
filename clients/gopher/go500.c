@@ -44,8 +44,8 @@ int	dosyslog;
 int	inetd;
 int	dtblsize;
 
-char	*ldaphost = LDAPHOST;
-char	*base = GO500_BASE;
+char	*ldaphost = NULL;
+char	*base = NULL;
 int	rdncount = GO500_RDNCOUNT;
 char	*filterfile = FILTERFILE;
 char	*templatefile = TEMPLATEFILE;
@@ -391,7 +391,7 @@ int	s;
 		int deref = GO500_DEREF;
 		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
-		rc = ldap_simple_bind_s( ld, GO500_BINDDN, GO500_BIND_CRED );
+		rc = ldap_simple_bind_s( ld, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",

@@ -32,8 +32,8 @@
 #define DEFAULT_SIZELIMIT	50
 
 int		debug;
-char	*ldaphost = LDAPHOST;
-char	*base = RP_BASE;
+char	*ldaphost = NULL;
+char	*base = NULL;
 int		deref = LDAP_DEREF_ALWAYS;
 int		sizelimit = DEFAULT_SIZELIMIT;
 LDAPFiltDesc	*filtd;
@@ -116,7 +116,7 @@ main (argc, argv)
 	ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &sizelimit);
 	ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
 
-	if ( ldap_simple_bind_s( ld, RP_BINDDN, RP_BIND_CRED ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		fprintf( stderr, "X.500 is temporarily unavailable.\n" );
 		ldap_perror( ld, "ldap_simple_bind_s" );
 		exit( -1 );

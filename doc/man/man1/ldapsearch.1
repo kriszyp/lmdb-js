@@ -1,4 +1,4 @@
-.TH LDAPSEARCH 1 "22 September 1998" "OpenLDAP LDVERSION"
+.TH LDAPSEARCH 1 "10 November 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldapsearch \- ldap search tool
 .SH SYNOPSIS
@@ -123,7 +123,7 @@ replaced with a line from \fIfile\fP.  If \fIfile\fP is a single \fI-\fP
 character, then the lines are read from standard input.
 .TP
 .B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
 .TP
 .B \-w bindpasswd
@@ -275,6 +275,7 @@ status and a diagnostic message being written to standard error.
 .BR ldapdelete (1),
 .BR ldapmodify (1),
 .BR ldapmodrdn (1),
+.BR ldap.conf (5),
 .BR ldap (3),
 .BR ldap_search (3)
 .LP
