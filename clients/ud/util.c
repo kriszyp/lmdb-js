@@ -206,7 +206,7 @@ fetch_buffer( char *buffer, int length, FILE *where )
 		if ( isprint( *p )) {
 			++p;
 		} else {
-			strcpy( p, p + 1 ); 
+			SAFEMEMCPY( p, p + 1, strlen( p + 1 ) + 1 ); 
 		}
 	}
 
