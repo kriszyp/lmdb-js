@@ -157,7 +157,7 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 		
 		ldap_rdn2str( tmpDN[ iRDN ][ 0 ], &str, flag );
 
-		v = LDAP_REALLOC( values, sizeof( char * ) * ( iRDN + 1 ) );
+		v = LDAP_REALLOC( values, sizeof( char * ) * ( 2 + iRDN ) );
 		if ( v == NULL ) {
 			LBER_VFREE( values );
 			ldap_dnfree( tmpDN );
@@ -531,8 +531,10 @@ ldap_avafree( LDAPAVA *ava )
 	assert( ava );
 
 #if 0
-	/* ava's private must be freed by caller */
-	assert( ava->la_private != NULL );
+	/* ava's private must be freed by caller
+	 * (at present let's skip this check because la_private
+	 * basically holds static data) */
+	assert( ava->la_private == NULL );
 #endif
 
 	ber_bvfree( ava->la_attr );
