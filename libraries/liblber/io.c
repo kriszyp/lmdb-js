@@ -530,8 +530,10 @@ ber_get_next(
 				for (i=1; (char *)p<ber->ber_rwptr; i++,p++) {
 					tag <<= 8;
 					tag |= *p;
-					if (!(*p & LBER_MORE_TAG_MASK))
+					if (!(*p & LBER_MORE_TAG_MASK)) {
+						p++;
 						break;
+					}
 					/* Is the tag too big? */
 					if (i == sizeof(ber_tag_t)-1) {
 						errno = ERANGE;
@@ -542,7 +544,6 @@ ber_get_next(
 				if ((char *)p == ber->ber_rwptr) {
 					return LBER_DEFAULT;
 				}
-				p++;
 			}
 			ber->ber_tag = tag;
 			ber->ber_ptr = (char *)p;
