@@ -91,12 +91,6 @@ The
 routines can be used test a URL to see if it is an LDAP URL, to parse LDAP
 URLs into their component pieces, and to initiate searches directly using
 an LDAP URL.
-.SH USER FRIENDLY NAMING
-The
-.BR ldap_ufn (3)
-routines implement a user friendly naming
-scheme via LDAP.  This scheme allows you to look up entries
-using fuzzy, untyped names like "john smith, example corp, ca, us".
 .SH CACHING
 The
 .BR ldap_cache (3)
@@ -310,9 +304,6 @@ convert a DN into its component parts
 .SM ldap_explode_rdn(3)
 convert a RDN into its component parts
 .TP
-.SM ldap_dn2ufn(3)
-convert a DN into user friendly form
-.TP
 .SM ldap_get_values(3)
 return an attribute's values
 .TP
@@ -390,24 +381,6 @@ synchronously search the directory
 .TP
 .SM ldap_search_st(3)
 synchronously search the directory with timeout
-.TP
-.SM ldap_ufn_search_s(3)
-user friendly search the directory
-.TP
-.SM ldap_ufn_search_c(3)
-user friendly search the directory with cancel
-.TP
-.SM ldap_ufn_search_ct(3)
-user friendly search the directory with cancel and timeout
-.TP
-.SM ldap_ufn_setfilter(3)
-set filter file used by ldap_ufn(3) routines
-.TP
-.SM ldap_ufn_setprefix(3)
-set prefix used by ldap_ufn(3) routines
-.TP
-.SM ldap_ufn_timeout(3)
-set timeout used by ldap_ufn(3) routines
 .TP
 .SM ldap_is_ldap_url(3)
 check a URL string to see if it is an LDAP URL
