@@ -5,8 +5,8 @@
  */
 
 /*
- * locate using DNS SRV records. Location code based on
- * MIT Kerberos KDC location code.
+ * locate LDAP servers using DNS SRV records.
+ * Location code based on MIT Kerberos KDC location code.
  */
 #include "portable.h"
 
@@ -33,7 +33,17 @@
 #define T_SRV            33
 #endif				/* T_SRV */
 
-int ldap_pvt_domain2dn(LDAP_CONST char *domain_in, char **dnp)
+int ldap_dn2domain(
+	LDAP_CONST char *dn_in,
+	char **domainp)
+{
+	/* not yet implemented */
+	return LDAP_NOT_SUPPORTED;
+}
+
+int ldap_domain2dn(
+	LDAP_CONST char *domain_in,
+	char **dnp)
 {
     char *domain, *s, *tok_r, *dn;
     size_t loc;
@@ -53,7 +63,7 @@ int ldap_pvt_domain2dn(LDAP_CONST char *domain_in, char **dnp)
 	 s = ldap_pvt_strtok(NULL, ".", &tok_r)) {
 	size_t len = strlen(s);
 
-	dn = (char *) LDAP_REALLOC(dn, loc + len + 4);
+	dn = (char *) LDAP_REALLOC(dn, loc + sizeof(",dc=") + len );
 	if (dn == NULL) {
 	    LDAP_FREE(domain);
 	    return LDAP_NO_MEMORY;
@@ -64,7 +74,7 @@ int ldap_pvt_domain2dn(LDAP_CONST char *domain_in, char **dnp)
 	    loc++;
 	}
 	strcpy(dn + loc, "dc=");
-	loc += 3;
+	loc += sizeof("dc=")-1;
 
 	strcpy(dn + loc, s);
 	loc += len;
@@ -78,20 +88,27 @@ int ldap_pvt_domain2dn(LDAP_CONST char *domain_in, char **dnp)
 }
 
 /*
- * Lookup LDAP servers for domain (using the DNS
- * SRV record _ldap._tcp.domain), set the default
- * base using an algorithmic mapping of the domain,
- * and return a session.
+ * Lookup and return LDAP servers for domain (using the DNS
+ * SRV record _ldap._tcp.domain).
  */
-int ldap_dnssrv_init(LDAP ** ldp, LDAP_CONST char *domain)
+int ldap_domain2hostlist(
+	LDAP_CONST char *domain,
+	char **list )
 {
 #ifdef HAVE_RES_SEARCH
     char *request;
     char *dn;
     char *hostlist = NULL;
-    LDAP *ld = NULL;
     int rc, len, cur = 0;
     unsigned char reply[1024];
+
+	if( domain == NULL || *domain == '\0' ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	if( list == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
 
     request = LDAP_MALLOC(strlen(domain) + sizeof("_ldap._tcp."));
     if (request == NULL) {
@@ -110,7 +127,7 @@ int ldap_dnssrv_init(LDAP ** ldp, LDAP_CONST char *domain)
 	char host[1024];
 	int status;
 	u_short port;
-	int priority, weight;
+	/* int priority, weight; */
 
 	/* Parse out query */
 	p = reply;
@@ -143,11 +160,12 @@ int ldap_dnssrv_init(LDAP ** ldp, LDAP_CONST char *domain)
 		if (status < 0) {
 		    goto out;
 		}
-		priority = (p[0] << 8) | p[1];
-		weight = (p[2] << 8) | p[3];
+		/* ignore priority and weight for now */
+		/* priority = (p[0] << 8) | p[1]; */
+		/* weight = (p[2] << 8) | p[3]; */
 		port = (p[4] << 8) | p[5];
 
-		buflen = strlen(host) + /* :XXXXX\0 */ 7;
+		buflen = strlen(host) + sizeof(":65355");
 		hostlist = (char *) LDAP_REALLOC(hostlist, cur + buflen);
 		if (hostlist == NULL) {
 		    rc = LDAP_NO_MEMORY;
@@ -167,26 +185,9 @@ int ldap_dnssrv_init(LDAP ** ldp, LDAP_CONST char *domain)
 	rc = LDAP_UNAVAILABLE;
 	goto out;
     }
-    rc = ldap_create(&ld);
-    if (rc != LDAP_SUCCESS) {
-	goto out;
-    }
-    rc = ldap_set_option(ld, LDAP_OPT_HOST_NAME, hostlist);
-    if (rc != LDAP_SUCCESS) {
-	goto out;
-    }
-    rc = ldap_pvt_domain2dn(domain, &dn);
-    if (rc != LDAP_SUCCESS) {
-	goto out;
-    }
-    if (ld->ld_options.ldo_defbase != NULL) {
-	LDAP_FREE(ld->ld_options.ldo_defbase);
-    }
-    ld->ld_options.ldo_defbase = dn;
-
-    *ldp = ld;
 
     rc = LDAP_SUCCESS;
+	*list = hostlist;
 
   out:
 #ifdef LDAP_R_COMPILE
@@ -196,11 +197,8 @@ int ldap_dnssrv_init(LDAP ** ldp, LDAP_CONST char *domain)
     if (request != NULL) {
 	LDAP_FREE(request);
     }
-    if (hostlist != NULL) {
+    if (rc != LDAP_SUCCESS && hostlist != NULL) {
 	LDAP_FREE(hostlist);
-    }
-    if (rc != LDAP_SUCCESS && ld != NULL) {
-	ldap_ld_free(ld, 1, NULL, NULL);
     }
     return rc;
 #else

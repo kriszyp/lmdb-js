@@ -562,9 +562,19 @@ ldap_controls_free LDAP_P((
  * in dnssrv.c:
  */
 LIBLDAP_F( int )
-ldap_dnssrv_init LDAP_P((
-	LDAP **ldp,
-	LDAP_CONST char *domain ));
+ldap_domain2dn LDAP_P((
+	LDAP_CONST char* domain,
+	char** dn ));
+
+LIBLDAP_F( int )
+ldap_dn2domain LDAP_P((
+	LDAP_CONST char* dn,
+	char** domain ));
+
+LIBLDAP_F( int )
+ldap_domain2hostlist LDAP_P((
+	LDAP_CONST char *domain,
+	char** hostlist ));
 
 /*
  * in extended.c:
