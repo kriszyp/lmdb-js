@@ -480,3 +480,10 @@ objectclass ( 2.16.840.1.113730.3.2.6 NAME 'referral'
 objectclass ( LDAPsubEntryOID NAME 'LDAPsubEntry'
 	DESC 'Limited X.501 Subentry class, named by cn'
 	SUP top STRUCTURAL MUST ( cn ) )
+
+#
+# LDAProotDSE
+#
+objectclass ( LDAProotDSEOID NAME 'LDAProotDSE'
+	DESC 'Root DSE object class'
+	SUP top STRUCTURAL )
