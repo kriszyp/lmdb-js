@@ -177,8 +177,6 @@ entry_schema_check(
 	rc = structural_class( aoc->a_vals, &nsc, &oc, text, textbuf, textlen );
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
-	} else if ( nsc.bv_len == 0 ) {
-		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
 	*text = textbuf;
@@ -541,8 +539,9 @@ int structural_class(
 		}
 	}
 
-	if( scp )
+	if( scp ) {
 		*scp = sc;
+	}
 
 	if( sc == NULL ) {
 		*text = "no structural object classes provided";
@@ -550,6 +549,12 @@ int structural_class(
 	}
 
 	*scbv = ocs[scn];
+
+	if( scbv->bv_len ) {
+		*text = "invalid structural object class";
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
 	return LDAP_SUCCESS;
 }
 
