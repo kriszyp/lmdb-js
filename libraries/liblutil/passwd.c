@@ -268,6 +268,8 @@ static char * pw_string64(
 		memcpy( string, hash, len );
 		memcpy( &string[len], salt, saltlen );
 
+		len += saltlen;
+
 	} else {
 		string = (char *) hash;
 	}
