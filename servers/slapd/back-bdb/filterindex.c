@@ -236,7 +236,6 @@ list_candidates(
 #else
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_list_candidates 0x%x\n", ftype, 0, 0 );
 #endif
-
 	for ( f = flist; f != NULL; f = f->f_next ) {
 		/* ignore precomputed scopes */
 		if ( f->f_choice == SLAPD_FILTER_COMPUTED &&
@@ -319,8 +318,9 @@ presence_candidates(
 			desc->ad_cname.bv_val, 0, 0 );
 #endif
 
+	BDB_IDL_ALL( bdb, ids );
+
 	if( desc == slap_schema.si_ad_objectClass ) {
-		BDB_IDL_ALL( bdb, ids );
 		return 0;
 	}
 
@@ -339,7 +339,7 @@ presence_candidates(
 			"returned=%d\n",
 			desc->ad_cname.bv_val, rc, 0 );
 #endif
-		return rc;
+		return 0;
 	}
 
 	if( db == NULL ) {
@@ -353,7 +353,7 @@ presence_candidates(
 			"<= bdb_presence_candidates: (%s) not indexed\n",
 			desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return -1;
+		return 0;
 	}
 
 	if( prefix.bv_val == NULL ) {
@@ -412,6 +412,7 @@ equality_candidates(
 	ID *ids,
 	ID *tmp )
 {
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB	*db;
 	int i;
 	int rc;
@@ -428,6 +429,8 @@ equality_candidates(
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 #endif
 
+	BDB_IDL_ALL( bdb, ids );
+
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
 
@@ -443,7 +446,7 @@ equality_candidates(
 			"index_param failed (%d)\n",
 			ava->aa_desc->ad_cname.bv_val, rc, 0 );
 #endif
-		return rc;
+		return 0;
 	}
 
 	if ( db == NULL ) {
@@ -456,16 +459,16 @@ equality_candidates(
 			"<= bdb_equality_candidates: (%s) not indexed\n", 
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return -1;
+		return 0;
 	}
 
 	mr = ava->aa_desc->ad_type->sat_equality;
 	if( !mr ) {
-		return -1;
+		return 0;
 	}
 
 	if( !mr->smr_filter ) {
-		return -1;
+		return 0;
 	}
 
 	rc = (mr->smr_filter)(
@@ -489,7 +492,7 @@ equality_candidates(
 			"MR filter failed (%d)\n",
 			prefix.bv_val, ava->aa_desc->ad_cname.bv_val, rc );
 #endif
-		return rc;
+		return 0;
 	}
 
 	if( keys == NULL ) {
@@ -502,7 +505,7 @@ equality_candidates(
 			"<= bdb_equality_candidates: (%s) no keys\n",
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return -1;
+		return 0;
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
@@ -576,6 +579,7 @@ approx_candidates(
 	ID *ids,
 	ID *tmp )
 {
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB	*db;
 	int i;
 	int rc;
@@ -592,6 +596,8 @@ approx_candidates(
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 #endif
 
+	BDB_IDL_ALL( bdb, ids );
+
 	rc = bdb_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_APPROX,
 		&db, &mask, &prefix );
 
@@ -607,7 +613,7 @@ approx_candidates(
 			"index_param failed (%d)\n",
 			ava->aa_desc->ad_cname.bv_val, rc, 0 );
 #endif
-		return rc;
+		return 0;
 	}
 
 	if ( db == NULL ) {
@@ -620,7 +626,7 @@ approx_candidates(
 			"<= bdb_approx_candidates: (%s) not indexed\n",
 			ava->aa_desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return -1;
+		return 0;
 	}
 
 	mr = ava->aa_desc->ad_type->sat_approx;
@@ -630,11 +636,11 @@ approx_candidates(
 	}
 
 	if( !mr ) {
-		return -1;
+		return 0;
 	}
 
 	if( !mr->smr_filter ) {
-		return -1;
+		return 0;
 	}
 
 	rc = (mr->smr_filter)(
@@ -658,7 +664,7 @@ approx_candidates(
 			"MR filter failed (%d)\n",
 			prefix.bv_val, ava->aa_desc->ad_cname.bv_val, rc );
 #endif
-		return rc;
+		return 0;
 	}
 
 	if( keys == NULL ) {
@@ -671,7 +677,7 @@ approx_candidates(
 			"<= bdb_approx_candidates: (%s) no keys (%s)\n",
 			prefix.bv_val, ava->aa_desc->ad_cname.bv_val, 0 );
 #endif
-		return -1;
+		return 0;
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
@@ -743,6 +749,7 @@ substring_candidates(
 	ID *ids,
 	ID *tmp )
 {
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB	*db;
 	int i;
 	int rc;
@@ -759,6 +766,8 @@ substring_candidates(
 			sub->sa_desc->ad_cname.bv_val, 0, 0 );
 #endif
 
+	BDB_IDL_ALL( bdb, ids );
+
 	rc = bdb_index_param( op->o_bd, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
 		&db, &mask, &prefix );
 
@@ -774,7 +783,7 @@ substring_candidates(
 			"index_param failed (%d)\n",
 			sub->sa_desc->ad_cname.bv_val, rc, 0 );
 #endif
-		return rc;
+		return 0;
 	}
 
 	if ( db == NULL ) {
@@ -787,17 +796,17 @@ substring_candidates(
 			"<= bdb_substring_candidates: (%s) not indexed\n",
 			sub->sa_desc->ad_cname.bv_val, 0, 0 );
 #endif
-		return -1;
+		return 0;
 	}
 
 	mr = sub->sa_desc->ad_type->sat_substr;
 
 	if( !mr ) {
-		return -1;
+		return 0;
 	}
 
 	if( !mr->smr_filter ) {
-		return -1;
+		return 0;
 	}
 
 	rc = (mr->smr_filter)(
@@ -821,7 +830,7 @@ substring_candidates(
 			"MR filter failed (%d)\n",
 			sub->sa_desc->ad_cname.bv_val, rc, 0 );
 #endif
-		return rc;
+		return 0;
 	}
 
 	if( keys == NULL ) {
@@ -834,7 +843,7 @@ substring_candidates(
 			"<= bdb_substring_candidates: (0x%04lx) no keys (%s)\n",
 			mask, sub->sa_desc->ad_cname.bv_val, 0 );
 #endif
-		return -1;
+		return 0;
 	}
 
 	for ( i= 0; keys[i].bv_val != NULL; i++ ) {
