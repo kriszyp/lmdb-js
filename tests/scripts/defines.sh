@@ -17,6 +17,8 @@ else
 	SLAVECONF=$DATADIR/slapd-repl-slave.conf
 fi
 
+PASSWDCONF=$DATADIR/slapd-passwd.conf
+
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd
 LDAPSEARCH=../clients/tools/ldapsearch

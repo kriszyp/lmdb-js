@@ -169,7 +169,7 @@ dn_parent(
 		return( NULL );
 	}
 
-	if ( be_issuffix( be, dn ) ) {
+	if ( be != NULL && be_issuffix( be, dn ) ) {
 		return( NULL );
 	}
 
@@ -239,7 +239,7 @@ char * dn_rdn(
 		return( NULL );
 	}
 
-	if ( be_issuffix( be, dn ) ) {
+	if ( be != NULL && be_issuffix( be, dn ) ) {
 		return( NULL );
 	}
 

@@ -27,6 +27,13 @@ test-ldbm:	FORCE
 	@-$(MKDIR) test-db test-repl || true
 	@$(srcdir)/scripts/all $(srcdir) ldbm
 
+passwd: test-passwd
+test-passwd: FORCE
+	@-$(LN_S) $(srcdir)/data .
+	@echo "Initiating LDAP tests..."
+	@-$(MKDIR) test-db test-repl || true
+	@$(srcdir)/scripts/passwd-search $(srcdir) passwd
+
 clean-local:	FORCE
 	-$(RM) test-db/[!C]* test-repl/[!C]* *core
 
