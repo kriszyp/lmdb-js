@@ -41,6 +41,7 @@ entry_schema_check(
 #else
 	static const char *ad_objectClass = "objectclass";
 #endif
+	int extensible = 0;
 
 	if( !global_schemacheck ) return LDAP_SUCCESS;
 
@@ -74,11 +75,25 @@ entry_schema_check(
 				ret = LDAP_OBJECT_CLASS_VIOLATION;
 				break;
 			}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			if( oc == slap_schema.si_oc_extensibleObject )
+#else
+			if( !strcmp( aoc->a_vals[i], "extensibleObject" ) == 0 )
+#endif
+			{
+				extensible=1;
+			}
+
 		}
 	}
 
 	if ( ret != LDAP_SUCCESS ) {
 	    return ret;
+	}
+
+	if( extensible ) {
+		return LDAP_SUCCESS;
 	}
 
 	/* check that each attr in the entry is allowed by some oc */

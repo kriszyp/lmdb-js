@@ -42,6 +42,7 @@ struct slap_schema_oc_map {
 	size_t ssom_offset;
 } oc_map[] = {
 	{ "top", offsetof(struct slap_internal_schema, si_oc_top) },
+	{ "extensibleObject", offsetof(struct slap_internal_schema, si_oc_extensibleObject) },
 	{ "alias", offsetof(struct slap_internal_schema, si_oc_alias) },
 	{ "referral", offsetof(struct slap_internal_schema, si_oc_referral) },
 	{ "LDAProotDSE", offsetof(struct slap_internal_schema, si_oc_rootdse) },

@@ -334,6 +334,7 @@ typedef struct slap_attr_desc {
 struct slap_internal_schema {
 	/* objectClass */
 	ObjectClass *si_oc_top;
+	ObjectClass *si_oc_extensibleObject;
 	ObjectClass *si_oc_alias;
 	ObjectClass *si_oc_referral;
 	ObjectClass *si_oc_subentry;
