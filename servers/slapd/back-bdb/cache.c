@@ -31,7 +31,7 @@ static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e);
 static void	bdb_lru_print(Cache *cache);
 #endif
 
-static int bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn );
+static int bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset );
 
 static EntryInfo *
 bdb_cache_entryinfo_new( Cache *cache )
@@ -672,7 +672,7 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 					 * we use a long-lived per-thread txn for this step.
 					 */
 					if ( !ep && !tid ) {
-						rc = bdb_txn_get( op, bdb->bi_dbenv, &ltid );
+						rc = bdb_txn_get( op, bdb->bi_dbenv, &ltid, 0 );
 						if ( ltid )
 							locker2 = TXN_ID( ltid );
 					} else {
@@ -714,6 +714,12 @@ load1:		if ( !(*eip)->bei_e && !((*eip)->bei_state & CACHE_ENTRY_LOADING)) {
 						list.obj = NULL;
 						bdb->bi_dbenv->lock_vec( bdb->bi_dbenv, locker2,
 							0, &list, 1, NULL );
+						/* If this txn was deadlocked, we must abort it
+						 * and invalidate this per-thread txn.
+						 */
+						if ( rc == DB_LOCK_DEADLOCK ) {
+							bdb_txn_get( op, bdb->bi_dbenv, &ltid, 1 );
+						}
 					}
 				} else if ( !(*eip)->bei_e ) {
 					/* Some other thread is trying to load the entry,
@@ -1144,12 +1150,13 @@ bdb_txn_free( void *key, void *data )
 	TXN_ABORT( txn );
 }
 
-/* Obtain a long-lived transaction for the current thread */
+/* Obtain a long-lived transaction for the current thread.
+ * If reset == 1, remove the current transaction. */
 static int
-bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
+bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 {
 	int i, rc, lockid;
-	void *ctx, *data;
+	void *ctx, *data = NULL;
 
 	/* If no op was provided, try to find the ctx anyway... */
 	if ( op ) {
@@ -1164,7 +1171,13 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 		return 0;
 	}
 
-	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ) {
+	if ( reset ) {
+		TXN_ABORT( *txn );
+		return ldap_pvt_thread_pool_setkey( ctx, ((char *)env)+1, NULL, NULL );
+	}
+
+	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ||
+		data == NULL ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
 			rc = TXN_BEGIN( env, NULL, txn, 0 );
 			if (rc) ldap_pvt_thread_yield();
