@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2004 The OpenLDAP Foundation.
+ * Copyright 1998-2003 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -201,10 +201,12 @@ access_allowed(
 	}
 
 #ifdef LDAP_SLAPI
-	if ( op->o_pb && 
-		!slapi_int_access_allowed( op, e, desc, val, access, state )) {
-		/* ACL plugin denied access */
-		goto done;
+	if ( op->o_pb != NULL ) {
+		ret = slapi_int_access_allowed( op, e, desc, val, access, state );
+		if ( ret == 0 ) {
+			/* ACL plugin denied access */
+			goto done;
+		}
 	}
 #endif /* LDAP_SLAPI */
 
