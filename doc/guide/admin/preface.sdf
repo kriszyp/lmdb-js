@@ -1,6 +1,10 @@
+# $OpenLDAP$
 # Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 # 
+
+P1: Preface
+
 
 # document's copyright
 P2[notoc] Copyright
