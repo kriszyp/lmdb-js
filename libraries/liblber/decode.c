@@ -585,8 +585,16 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
+				void *save = *sss;
+
 				*sss = (char **) LBER_REALLOC( *sss,
 					(j + 2) * sizeof(char *) );
+
+				if( *sss == NULL ) {
+					LBER_FREE( save );
+					rc = LBER_DEFAULT;
+					goto breakout;
+				}
 
 				rc = ber_get_stringa( ber, &((*sss)[j]) );
 				j++;
@@ -603,9 +611,17 @@ ber_scanf ( BerElement *ber,
 			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
+				void *save = *bv;
+
 				*bv = (struct berval **) LBER_REALLOC( *bv,
 					(j + 2) * sizeof(struct berval *) );
 		
+				if( *bv == NULL ) {
+					LBER_FREE( save );
+					rc = LBER_DEFAULT;
+					goto breakout;
+				}
+
 				rc = ber_get_stringal( ber, &((*bv)[j]) );
 				j++;
 			}
@@ -639,6 +655,7 @@ ber_scanf ( BerElement *ber,
 		}
 	}
 
+breakout:
 	va_end( ap );
 
 	if ( rc == LBER_DEFAULT ) {
