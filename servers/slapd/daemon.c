@@ -42,10 +42,10 @@ typedef struct slap_listener {
 
 Listener **slap_listeners = NULL;
 
-static int sel_exit_fds[2];
+static ber_socket_t wake_sds[2];
 
 #define WAKE_LISTENER(w) \
-do { if (w) tcp_write( sel_exit_fds[1], "0", 1 ); } while(0)
+do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 
 #ifdef HAVE_WINSOCK2
 /* in nt_main.c */
@@ -359,7 +359,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	 * loop will be select'ing on this socket, and will wake up when
 	 * this byte arrives.
 	 */
-	if( (rc = lutil_pair( sel_exit_fds )) < 0 )
+	if( (rc = lutil_pair( wake_sds )) < 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
@@ -422,8 +422,8 @@ int
 slapd_daemon_destroy(void)
 {
 	connections_destroy();
-	tcp_close( sel_exit_fds[1] );
-	tcp_close( sel_exit_fds[0] );
+	tcp_close( wake_sds[1] );
+	tcp_close( wake_sds[0] );
 	sockdestroy();
 	return 0;
 }
@@ -512,7 +512,7 @@ slapd_daemon_task(
 		memcpy( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
 		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
-		FD_SET( sel_exit_fds[0], &readfds );
+		FD_SET( wake_sds[0], &readfds );
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
@@ -588,12 +588,12 @@ slapd_daemon_task(
 			/* FALL THRU */
 		}
 
-		if( FD_ISSET( sel_exit_fds[0], &readfds ) )
-		{
+		if( FD_ISSET( wake_sds[0], &readfds ) ) {
 			char c;
-			tcp_read( sel_exit_fds[0], &c, 1 );
+			tcp_read( wake_sds[0], &c, 1 );
 			continue;
 		}
+
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			ber_int_t s;
 			socklen_t len = sizeof(from);
@@ -1015,19 +1015,21 @@ static int sockdestroy(void)
 }
 #endif
 
-void
-slap_set_shutdown( int sig )
+RETSIGTYPE
+slap_sig_shutdown( int sig )
 {
 	slapd_shutdown = sig;
 	WAKE_LISTENER(1);
 
 	/* reinstall self */
-	(void) SIGNAL( sig, slap_set_shutdown );
+	(void) SIGNAL( sig, slap_sig_shutdown );
 }
 
-void
-slap_do_nothing( int sig )
+RETSIGTYPE
+slap_sig_wake( int sig )
 {
+	WAKE_LISTENER(1);
+
 	/* reinstall self */
-	(void) SIGNAL( sig, slap_do_nothing );
+	(void) SIGNAL( sig, slap_sig_wake );
 }

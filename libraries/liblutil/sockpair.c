@@ -4,42 +4,50 @@
  */
 
 #include "portable.h"
-
 #include <ac/socket.h>
 
-/* Return a pair of descriptors that are connected to each other. The
- * returned descriptors are suitable for use with select(). The two
+#include <lutil.h>
+
+/* Return a pair of socket descriptors that are connected to each other.
+ * The returned descriptors are suitable for use with select(). The two
  * descriptors may or may not be identical; the function may return
  * the same descriptor number in both slots. It is guaranteed that
- * data written on fds[1] will be readable on fds[0]. The returned
+ * data written on sds[1] will be readable on sds[0]. The returned
  * descriptors may be datagram oriented, so data should be written
  * in reasonably small pieces and read all at once. On Unix systems
  * this function is best implemented using a single pipe() call.
  */
-int lutil_pair( int fds[2] )
+
+int lutil_pair( LBER_SOCKET_T sds[2] )
 {
 	struct sockaddr_in si;
 	int rc, len = sizeof(si);
-	int fd;
+	LBER_SOCKET_T sd;
 
-	fd = socket( AF_INET, SOCK_DGRAM, 0 );
-	if (fd < 0)
-		return fd;
+	sd = socket( AF_INET, SOCK_DGRAM, 0 );
+	if (sd < 0)
+		return sd;
 	
 	(void) memset( (void*) &si, 0, len );
 	si.sin_family = AF_INET;
 	si.sin_port = 0;
 	si.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
 
-	if ( rc = bind( fd, (struct sockaddr *)&si, len ) )
-	{
-fail:		tcp_close(fd);
+	if ( rc = bind( sd, (struct sockaddr *)&si, len ) ) {
+		tcp_close(sd);
 		return rc;
 	}
-	if ( rc = getsockname( fd, (struct sockaddr *)&si, &len ) )
-		goto fail;
-	if ( rc = connect( fd, (struct sockaddr *)&si, len ) )
-		goto fail;
-	fds[0] = fds[1] = fd;
+
+	if ( rc = getsockname( sd, (struct sockaddr *)&si, &len ) ) {
+		tcp_close(sd);
+		return rc;
+	}
+
+	if ( rc = connect( sd, (struct sockaddr *)&si, len ) ) {
+		tcp_close(sd);
+		return rc;
+	}
+
+	sds[0] = sds[1] = sd;
 	return 0;
 }

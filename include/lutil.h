@@ -13,6 +13,8 @@
 #define _LUTIL_H 1
 
 #include <ldap_cdefs.h>
+#include <lber_types.h>
+
 /*
  * Include file for LDAP utility routine
  */
@@ -55,6 +57,9 @@ lutil_progname LDAP_P((
 	int argc,
 	char *argv[] ));
 
+/* sockpair.c */
+LDAP_F( int )
+lutil_pair( LBER_SOCKET_T sd[2] );
 
 LDAP_END_DECL
 

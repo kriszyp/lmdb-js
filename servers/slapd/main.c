@@ -173,7 +173,11 @@ int main( int argc, char **argv )
 	{
 		int *i;
 		char *newConfigFile;
-		if ( is_NT_Service ) CommenceStartupProcessing( NTservice, slap_set_shutdown );
+
+		if ( is_NT_Service ) {
+			CommenceStartupProcessing( NTservice, slap_sig_shutdown );
+		}
+
 		i = (int*)getRegParam( NULL, "Port" );
 		if ( i != NULL )
 		{
@@ -366,22 +370,23 @@ int main( int argc, char **argv )
 	ldap_pvt_tls_init_def_ctx();
 #endif
 
-	(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
-	(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
+	(void) SIGNAL( LDAP_SIGUSR1, slap_sig_wake );
+	(void) SIGNAL( LDAP_SIGUSR2, slap_sig_shutdown );
+
 #ifdef SIGPIPE
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 #ifdef SIGHUP
-	(void) SIGNAL( SIGHUP, slap_set_shutdown );
+	(void) SIGNAL( SIGHUP, slap_sig_shutdown );
 #endif
-	(void) SIGNAL( SIGINT, slap_set_shutdown );
-	(void) SIGNAL( SIGTERM, slap_set_shutdown );
+	(void) SIGNAL( SIGINT, slap_sig_shutdown );
+	(void) SIGNAL( SIGTERM, slap_sig_shutdown );
 #ifdef LDAP_SIGCHLD
 	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
 #ifdef SIGBREAK
 	/* SIGBREAK is generated when Ctrl-Break is pressed. */
-	(void) SIGNAL( SIGBREAK, slap_set_shutdown );
+	(void) SIGNAL( SIGBREAK, slap_sig_shutdown );
 #endif
 
 #ifndef HAVE_WINSOCK

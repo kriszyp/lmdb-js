@@ -484,8 +484,8 @@ extern void slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 
 extern void slapd_remove LDAP_P((ber_socket_t s, int wake));
 
-extern void	slap_set_shutdown LDAP_P((int sig));
-extern void	slap_do_nothing   LDAP_P((int sig));
+extern RETSIGTYPE slap_sig_shutdown LDAP_P((int sig));
+extern RETSIGTYPE slap_sig_wake LDAP_P((int sig));
 
 extern void	config_info LDAP_P((
 	Connection *conn,
