@@ -125,23 +125,18 @@ meta_back_search(
 	struct berval mfilter;
 	BerVarray v2refs = NULL;
 		
-	int i, last = 0, candidates = 0, op_type;
+	int i, last = 0, candidates = 0;
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
-	if ( scope == LDAP_SCOPE_BASE ) {
-		op_type = META_OP_REQUIRE_SINGLE;
-	} else {
-		op_type = META_OP_ALLOW_MULTIPLE;
-	}
-	
 	/*
 	 * controls are set in ldap_back_dobind()
 	 * 
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	lc = meta_back_getconn( li, conn, op, op_type, nbase, NULL );
+	lc = meta_back_getconn( li, conn, op, META_OP_ALLOW_MULTIPLE, 
+			nbase, NULL );
 	if ( !lc || !meta_back_dobind( lc, op ) ) {
 		return -1;
 	}
@@ -211,7 +206,7 @@ meta_back_search(
 		int 	realscope = scope;
 		ber_len_t suffixlen;
 		char	*mapped_filter, **mapped_attrs;
-		
+
 		if ( lsc->candidate != META_CANDIDATE ) {
 			msgid[ i ] = -1;
 			continue;
@@ -252,7 +247,7 @@ meta_back_search(
 					 * this target is no longer candidate
 					 */
 					msgid[ i ] = -1;
-					continue;
+					goto new_candidate;
 				}
 				break;
 
@@ -275,7 +270,7 @@ meta_back_search(
 				 * this target is no longer candidate
 				 */
 				msgid[ i ] = -1;
-				continue;
+				goto new_candidate;
 			}
 
 		}
@@ -292,10 +287,12 @@ meta_back_search(
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] searchBase: \"%s\" -> \"%s\"\n", base->bv_val, mbase, 0 );
+			"[rw] searchBase [%d]: \"%s\" -> \"%s\"\n",
+			i, base->bv_val, mbase );
 #else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
-				base->bv_val, mbase, "" );
+		Debug( LDAP_DEBUG_ARGS,
+			"rw> searchBase [%d]: \"%s\" -> \"%s\"\n",
+				i, base->bv_val, mbase );
 #endif /* !NEW_LOGGING */
 		break;
 		
@@ -330,12 +327,12 @@ meta_back_search(
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] searchFilter: \"%s\" -> \"%s\"\n",
-				filterstr->bv_val, mfilter.bv_val, 0 );
+				"[rw] searchFilter [%d]: \"%s\" -> \"%s\"\n",
+				i, filterstr->bv_val, mfilter.bv_val );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
-				"rw> searchFilter: \"%s\" -> \"%s\"\n%s",
-				filterstr->bv_val, mfilter.bv_val, "" );
+				"rw> searchFilter [%d]: \"%s\" -> \"%s\"\n",
+				i, filterstr->bv_val, mfilter.bv_val );
 #endif /* !NEW_LOGGING */
 			break;
 		
@@ -406,6 +403,8 @@ meta_back_search(
 		}
 
 		++candidates;
+
+new_candidate:;
 	}
 
 	/* We pull apart the ber result, stuff it into a slapd entry, and
@@ -474,6 +473,19 @@ meta_back_search(
 				if ( meta_send_entry( be, op, lc, i, e, attrs,
 						attrsonly ) == LDAP_SUCCESS ) {
 					count++;
+				}
+
+				/*
+				 * If scope is BASE, we need to jump out
+				 * as soon as one entry is found; if
+				 * the target pool is properly crafted,
+				 * this should correspond to the sole
+				 * entry that has the base DN
+				 */
+				if ( scope == LDAP_SCOPE_BASE && count > 0 ) {
+					candidates = 0;
+					sres = LDAP_SUCCESS;
+					break;
 				}
 				ldap_msgfree( res );
 				gotit = 1;
@@ -599,11 +611,12 @@ meta_back_search(
 			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] matchedDn: \"%s\" -> \"%s\"\n", match, mmatch, 0 );
+				"[rw] matchedDn: \"%s\" -> \"%s\"\n",
+				match, mmatch, 0 );
 #else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
-				       " \"%s\" -> \"%s\"\n%s",
-				       match, mmatch, "" );
+			Debug( LDAP_DEBUG_ARGS,
+				"rw> matchedDn: \"%s\" -> \"%s\"\n",
+				match, mmatch, 0 );
 #endif /* !NEW_LOGGING */
 			break;
 			
