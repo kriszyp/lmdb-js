@@ -100,9 +100,15 @@ ldap_back_group(
 		if ( mop_ndn == NULL ) {
 			mop_ndn = ( char * )op_ndn;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] bindDn (op ndn in group):"
+				" \"%s\" -> \"%s\"\n", op_ndn, mop_ndn ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> bindDn (op ndn in group): \"%s\" -> \"%s\"\n%s",
 			op_ndn, mop_ndn, "" );
+#endif /* !NEW_LOGGING */
 		break;
 	
 	case REWRITE_REGEXEC_UNWILLING:
@@ -120,10 +126,16 @@ ldap_back_group(
 		if ( mgr_ndn == NULL ) {
 			mgr_ndn = ( char * )gr_ndn;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] searchBase (gr ndn in group):"
+				" \"%s\" -> \"%s\"\n%s", gr_ndn, mgr_ndn ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> searchBase (gr ndn in group):"
 			" \"%s\" -> \"%s\"\n%s",
 			gr_ndn, mgr_ndn, "" );
+#endif /* !NEW_LOGGING */
 		break;
 	
 	case REWRITE_REGEXEC_UNWILLING:

@@ -81,17 +81,28 @@ ldap_back_modrdn(
 			if ( mnewSuperior == NULL ) {
 				mnewSuperior = ( char * )newSuperior;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] newSuperiorDn:"
+					" \"%s\" -> \"%s\"\n",
+					newSuperior, mnewSuperior ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> newSuperiorDn:"
 					" \"%s\" -> \"%s\"\n%s",
 					newSuperior, mnewSuperior, "" );
+#endif /* !NEW_LOGGING */
 			break;
 
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 					NULL, "Unwilling to perform",
 					NULL, NULL );
+			return( -1 );
 
 		case REWRITE_REGEXEC_ERR:
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+					NULL, "Operations error",
+					NULL, NULL );
 			return( -1 );
 		}
 #else /* !ENABLE_REWRITE */
@@ -112,15 +123,23 @@ ldap_back_modrdn(
 		if ( mdn == NULL ) {
 			mdn = ( char * )dn;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] modrDn: \"%s\" -> \"%s\"\n", dn, mdn ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modrDn: \"%s\" -> \"%s\"\n%s",
 				dn, mdn, "" );
+#endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 				NULL, "Unwilling to perform", NULL, NULL );
+		return( -1 );
 
 	case REWRITE_REGEXEC_ERR:
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, "Operations error", NULL, NULL );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */

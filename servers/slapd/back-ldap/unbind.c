@@ -54,10 +54,15 @@ ldap_back_conn_destroy(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc, lc_curr;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+			"ldap_back_conn_destroy: fetching conn %d\n",
+			conn->c_connid ));
+#else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_TRACE,
 		"=>ldap_back_conn_destroy: fetching conn %d\n",
 		conn->c_connid, 0, 0 );
-	
+#endif /* !NEW_LOGGING */
 
 	lc_curr.conn = conn;
 	

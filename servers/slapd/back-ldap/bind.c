@@ -83,15 +83,23 @@ ldap_back_bind(
 		if ( mdn == NULL ) {
 			mdn = ( char * )dn;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn, mdn ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> bindDn: \"%s\" -> \"%s\"\n%s",
 				dn, mdn, "" );
+#endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 				NULL, "Unwilling to perform", NULL, NULL );
+		return( -1 );
 
 	case REWRITE_REGEXEC_ERR:
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, "Operations error", NULL, NULL );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
@@ -239,11 +247,19 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 					lc->bound_dn = 
 						ch_strdup( lc->conn->c_cdn );
 				}
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+						"[rw] bindDn: \"%s\" ->"
+						" \"%s\"\n%s",
+						lc->conn->c_cdn,
+						lc->bound_dn ));
+#else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ARGS,
 					       	"rw> bindDn: \"%s\" ->"
-					       " \"%s\"\n%s",
+						" \"%s\"\n%s",
 						lc->conn->c_cdn,
 						lc->bound_dn, "" );
+#endif /* !NEW_LOGGING */
 				break;
 				
 			case REWRITE_REGEXEC_UNWILLING:
@@ -251,8 +267,13 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 						LDAP_UNWILLING_TO_PERFORM,
 						NULL, "Unwilling to perform",
 						NULL, NULL );
+				return( NULL );
 				
 			case REWRITE_REGEXEC_ERR:
+				send_ldap_result( conn, op,
+						LDAP_OPERATIONS_ERROR,
+						NULL, "Operations error",
+						NULL, NULL );
 				return( NULL );
 			}
 #else /* !ENABLE_REWRITE */
@@ -275,9 +296,15 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+				"ldap_back_getconn: conn %ld inserted\n",
+				lc->conn->c_connid ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %ld inserted%s%s\n",
+			"=>ldap_back_getconn: conn %ld inserted\n%s%s",
 			lc->conn->c_connid, "", "" );
+#endif /* !NEW_LOGGING */
 		
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( err != 0 ) {
@@ -287,9 +314,15 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 			return( NULL );
 		}
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+				"ldap_back_getconn: conn %ld inserted\n",
+				lc->conn->c_connid ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %ld fetched%s%s\n",
 			lc->conn->c_connid, "", "" );
+#endif /* !NEW_LOGGING */
 	}
 	
 	return( lc );

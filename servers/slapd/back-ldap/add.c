@@ -60,6 +60,13 @@ ldap_back_add(
 	LDAPMod **attrs;
 	char *mdn = NULL, *mapped;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY, "ldap_back_add: %s\n",
+				e->e_dn ));
+#else /* !NEW_LOGGING */
+	Debug(LDAP_DEBUG_ARGS, "==> ldap_back_add: %s\n", e->e_dn, 0, 0);
+#endif /* !NEW_LOGGING */
+	
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc || !ldap_back_dobind( lc, op ) ) {
 		return( -1 );
@@ -71,18 +78,27 @@ ldap_back_add(
 #ifdef ENABLE_REWRITE
 	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, &mdn )) {
 	case REWRITE_REGEXEC_OK:
-	if ( mdn == NULL ) {
+		if ( mdn == NULL ) {
 			mdn = e->e_dn;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] addDn: \"%s\" -> \"%s\"\n",
+					e->e_dn, mdn ));		
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
 				e->e_dn, mdn, "" );
+#endif /* !NEW_LOGGING */
 		break;
  		
  	case REWRITE_REGEXEC_UNWILLING:
  		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
  				NULL, "Unwilling to perform", NULL, NULL );
+		return( -1 );
 	       	
 	case REWRITE_REGEXEC_ERR:
+ 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+ 				NULL, "Operations error", NULL, NULL );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
@@ -180,11 +196,18 @@ ldap_dnattr_rewrite(
 				/* no substitution */
 				continue;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] bindDn (in add of dn-valued"
+					" attr): \"%s\" -> \"%s\"\n",
+					a_vals[ j ]->bv_val, mattr ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 					"rw> bindDn (in add of dn-valued attr):"
 					" \"%s\" -> \"%s\"\n%s",
 					a_vals[ j ]->bv_val, mattr, "" );
-			
+#endif /* !NEW_LOGGING */
+
 			free( a_vals[ j ]->bv_val );
 			a_vals[ j ]->bv_val = mattr;
 			a_vals[ j ]->bv_len = strlen( mattr );

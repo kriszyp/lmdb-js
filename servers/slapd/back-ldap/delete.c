@@ -74,15 +74,23 @@ ldap_back_delete(
 	if ( mdn == NULL ) {
 			mdn = ( char * )dn;
 		}
-		Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
-				dn, mdn, "" );
-		break;
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+			"[rw] deleteDn: \"%s\" -> \"%s\"\n", dn, mdn ));
+#else /* !NEW_LOGGING */
+	Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
+			dn, mdn, "" );
+#endif /* !NEW_LOGGING */
+	break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 				NULL, "Unwilling to perform", NULL, NULL );
+		return( -1 );
 
 	case REWRITE_REGEXEC_ERR:
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, "Operations error", NULL, NULL );
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */

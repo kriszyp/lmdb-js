@@ -103,15 +103,25 @@ ldap_back_search(
 		if ( mbase == NULL ) {
 			mbase = ( char * )base;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] searchBase: \"%s\" -> \"%s\"\n%",
+				base, mbase ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
 				base, mbase, "" );
+#endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 				NULL, "Unwilling to perform", NULL, NULL );
+		rc = -1;
+		goto finish;
 
 	case REWRITE_REGEXEC_ERR:
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				NULL, "Operations error", NULL, NULL );
 		rc = -1;
 		goto finish;
 	}
@@ -128,9 +138,15 @@ ldap_back_search(
 			}
 			mfilter = ( char * )filterstr;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+				"[rw] searchFilter: \"%s\" -> \"%s\"\n",
+				filterstr, mfilter ));
+#else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> searchFilter: \"%s\" -> \"%s\"\n%s",
 				filterstr, mfilter, "" );
+#endif /* !NEW_LOGGING */
 		break;
 		
 	case REWRITE_REGEXEC_UNWILLING:
@@ -226,9 +242,16 @@ fail:
 			if ( mmatch == NULL ) {
 				mmatch = ( char * )match;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw]  matchedDn:"
+					" \"%s\" -> \"%s\"\n",
+					match, mmatch ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
-				       " \"%s\" -> \"%s\"\n%s",
-				       match, mmatch, "" );
+					" \"%s\" -> \"%s\"\n%s",
+					match, mmatch, "" );
+#endif /* !NEW_LOGGING */
 			break;
 			
 		case REWRITE_REGEXEC_UNWILLING:
@@ -325,8 +348,14 @@ ldap_send_entry(
 		if ( ent.e_dn == NULL ) {
 			ent.e_dn = dn;
 		} else {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+					"[rw] searchResult: \"%s\""
+					" -> \"%s\"\n", dn, ent.e_dn ));
+#else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult: \"%s\""
  					" -> \"%s\"\n%s", dn, ent.e_dn, "" );
+#endif /* !NEW_LOGGING */
 			free( dn );
 			dn = NULL;
 		}
@@ -414,10 +443,20 @@ ldap_send_entry(
 					if ( newval == NULL ) {
 						break;
 					}
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "backend",
+							LDAP_LEVEL_DETAIL1,
+							"[rw] searchResult on"
+							" attr=%s:"
+							" \"%s\" -> \"%s\"\n",
+							attr->a_desc->ad_type->sat_cname,
+							bv->bv_val, newval ));
+#else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ARGS,
 		"rw> searchResult on attr=%s: \"%s\" -> \"%s\"\n",
 						attr->a_desc->ad_type->sat_cname,
 						bv->bv_val, newval );
+#endif /* !NEW_LOGGING */
 					
 					free( bv->bv_val );
 					bv->bv_val = newval;
