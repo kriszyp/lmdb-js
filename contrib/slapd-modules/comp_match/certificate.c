@@ -18,7 +18,7 @@ BDecComponentCertificateTop( void* mem_op, GenBuf* b, void **v, AsnLen* bytesDec
 		return (-1);
 	}
 		
-	return BDecComponentCertificate( mem_op, b, tag, elmtLen, (ComponentSyntaxInfo*)v,(int*)bytesDecoded, mode );
+	return BDecComponentCertificate( mem_op, b, tag, elmtLen, (ComponentCertificate**)v,(AsnLen*)bytesDecoded, mode );
 }
 
 void init_module_AuthenticationFramework() {
@@ -90,7 +90,7 @@ MatchingComponentAlgorithmIdentifier ( char* oid, ComponentSyntaxInfo* csi_attr,
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	rc =	SetAnyTypeByComponentOid ((ComponentSyntaxInfo*)&((ComponentAlgorithmIdentifier*)csi_attr)->parameters, (&((ComponentAlgorithmIdentifier*)csi_attr)->algorithm));
-	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentSyntaxInfo*)&((ComponentAlgorithmIdentifier*)csi_attr)->parameters, (ComponentSyntaxInfo*)&((ComponentAlgorithmIdentifier*)csi_assert)->parameters);
+	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentAny*)&((ComponentAlgorithmIdentifier*)csi_attr)->parameters, (ComponentAny*)&((ComponentAlgorithmIdentifier*)csi_assert)->parameters);
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	return LDAP_COMPARE_TRUE;
@@ -792,7 +792,7 @@ MatchingComponentAttributeTypeAndValue ( char* oid, ComponentSyntaxInfo* csi_att
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	rc =	SetAnyTypeByComponentOid ((ComponentSyntaxInfo*)&((ComponentAttributeTypeAndValue*)csi_attr)->value, (&((ComponentAttributeTypeAndValue*)csi_attr)->type));
-	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentSyntaxInfo*)&((ComponentAttributeTypeAndValue*)csi_attr)->value, (ComponentSyntaxInfo*)&((ComponentAttributeTypeAndValue*)csi_assert)->value);
+	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentAny*)&((ComponentAttributeTypeAndValue*)csi_attr)->value, (ComponentAny*)&((ComponentAttributeTypeAndValue*)csi_assert)->value);
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	return LDAP_COMPARE_TRUE;
@@ -1514,7 +1514,7 @@ ExtractingComponentExtensions ( void* mem_op, ComponentReference* cr, ComponentE
 	case LDAP_COMPREF_COUNT :
 		k = (ComponentInt*)CompAlloc( mem_op, sizeof(ComponentInt));
 		k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-		k->comp_desc->cd_tag = NULL;
+		k->comp_desc->cd_tag = (-1);
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
 		k->comp_desc->cd_extract_i = (extract_component_from_id_func*)NULL;
@@ -1757,7 +1757,7 @@ ExtractingComponentRelativeDistinguishedName ( void* mem_op, ComponentReference*
 	case LDAP_COMPREF_COUNT :
 		k = (ComponentInt*)CompAlloc( mem_op, sizeof(ComponentInt));
 		k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-		k->comp_desc->cd_tag = NULL;
+		k->comp_desc->cd_tag = (-1);
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
 		k->comp_desc->cd_extract_i = (extract_component_from_id_func*)NULL;
@@ -1833,6 +1833,10 @@ int mode)
 		free ( t );
 		return -1;
 	}
+
+	t->comp_desc->cd_gser_encoder = (encoder_func*)NULL;
+	t->comp_desc->cd_ber_encoder = (encoder_func*)NULL;
+	t->comp_desc->cd_ldap_encoder = (encoder_func*)ConvertRDN2RFC2253;
 	t->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentRelativeDistinguishedName ;
 	t->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentRelativeDistinguishedName ;
 	t->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -1991,7 +1995,7 @@ ExtractingComponentRDNSequence ( void* mem_op, ComponentReference* cr, Component
 	case LDAP_COMPREF_COUNT :
 		k = (ComponentInt*)CompAlloc( mem_op, sizeof(ComponentInt));
 		k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-		k->comp_desc->cd_tag = NULL;
+		k->comp_desc->cd_tag = (-1);
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
 		k->comp_desc->cd_extract_i = (extract_component_from_id_func*)NULL;
@@ -2067,6 +2071,10 @@ int mode)
 		free ( t );
 		return -1;
 	}
+
+	t->comp_desc->cd_gser_encoder = (encoder_func*)NULL;
+	t->comp_desc->cd_ber_encoder = (encoder_func*)NULL;
+	t->comp_desc->cd_ldap_encoder = (encoder_func*) ConvertRDNSequence2RFC2253;
 	t->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentRDNSequence ;
 	t->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentRDNSequence ;
 	t->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -2140,6 +2148,9 @@ int mode)
 		free ( t );
 		return -1;
 	}
+	t->comp_desc->cd_gser_encoder = (encoder_func*)NULL;
+	t->comp_desc->cd_ber_encoder = (encoder_func*)NULL;
+	t->comp_desc->cd_ldap_encoder = (encoder_func*)ConvertRDNSequence2RFC2253;
 	t->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentRDNSequence ;
 	t->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentRDNSequence ;
 	t->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -2969,7 +2980,7 @@ MatchingComponentCertificate ( char* oid, ComponentSyntaxInfo* csi_attr, Compone
 	}
 
 	rc = 1;
-	rc =	MatchingComponentTBSCertificate ( oid, (ComponentSyntaxInfo*)((ComponentCertificate*)csi_attr)->tbsCertificate, (ComponentSyntaxInfo*)((ComponentCertificate*)csi_assert)->tbsCertificate );
+	rc =	MatchingComponentTBSCertificate ( oid, (ComponentSyntaxInfo*)((ComponentCertificate*)csi_attr)->toBeSigned, (ComponentSyntaxInfo*)((ComponentCertificate*)csi_assert)->toBeSigned );
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	rc =	MatchingComponentAlgorithmIdentifier ( oid, (ComponentSyntaxInfo*)((ComponentCertificate*)csi_attr)->signatureAlgorithm, (ComponentSyntaxInfo*)((ComponentCertificate*)csi_assert)->signatureAlgorithm );
@@ -2985,12 +2996,12 @@ void*
 ExtractingComponentCertificate ( void* mem_op, ComponentReference* cr, ComponentCertificate *comp )
 {
 
-	if ( ( comp->tbsCertificate->identifier.bv_val && strncmp(comp->tbsCertificate->identifier.bv_val, cr->cr_curr->ci_val.ci_identifier.bv_val,cr->cr_curr->ci_val.ci_identifier.bv_len) == 0 ) || ( strncmp(comp->tbsCertificate->id_buf, cr->cr_curr->ci_val.ci_identifier.bv_val,cr->cr_curr->ci_val.ci_identifier.bv_len) == 0 ) ) {
+	if ( ( comp->toBeSigned->identifier.bv_val && strncmp(comp->toBeSigned->identifier.bv_val, cr->cr_curr->ci_val.ci_identifier.bv_val,cr->cr_curr->ci_val.ci_identifier.bv_len) == 0 ) || ( strncmp(comp->toBeSigned->id_buf, cr->cr_curr->ci_val.ci_identifier.bv_val,cr->cr_curr->ci_val.ci_identifier.bv_len) == 0 ) ) {
 		if ( cr->cr_curr->ci_next == NULL )
-			return comp->tbsCertificate;
+			return comp->toBeSigned;
 		else {
 			cr->cr_curr = cr->cr_curr->ci_next;
-			return 	ExtractingComponentTBSCertificate ( mem_op, cr, comp->tbsCertificate );
+			return 	ExtractingComponentTBSCertificate ( mem_op, cr, comp->toBeSigned );
 		}
 	}
 	if ( ( comp->signatureAlgorithm->identifier.bv_val && strncmp(comp->signatureAlgorithm->identifier.bv_val, cr->cr_curr->ci_val.ci_identifier.bv_val,cr->cr_curr->ci_val.ci_identifier.bv_len) == 0 ) || ( strncmp(comp->signatureAlgorithm->id_buf, cr->cr_curr->ci_val.ci_identifier.bv_val,cr->cr_curr->ci_val.ci_identifier.bv_len) == 0 ) ) {
@@ -3045,11 +3056,11 @@ int mode)
     if (((tagId1 == MAKE_TAG_ID (UNIV, CONS, SEQ_TAG_CODE))))
     {
     elmtLen1 = BDecLen (b, &totalElmtsLen1 );
-	rc = BDecComponentTBSCertificate (mem_op, b, tagId1, elmtLen1, (&k->tbsCertificate), &totalElmtsLen1, mode);
+	rc = BDecComponentTBSCertificate (mem_op, b, tagId1, elmtLen1, (&k->toBeSigned), &totalElmtsLen1, mode);
 		if ( rc != LDAP_SUCCESS ) return rc;
-		(k->tbsCertificate)->identifier.bv_val = (k->tbsCertificate)->id_buf;
-		(k->tbsCertificate)->identifier.bv_len = strlen("tbsCertificate");
-		strcpy( (k->tbsCertificate)->identifier.bv_val, "tbsCertificate");
+		(k->toBeSigned)->identifier.bv_val = (k->toBeSigned)->id_buf;
+		(k->toBeSigned)->identifier.bv_len = strlen("toBeSigned");
+		strcpy( (k->toBeSigned)->identifier.bv_val, "toBeSigned");
     tagId1 = BDecTag (b, &totalElmtsLen1);
     }
     else
@@ -3151,11 +3162,11 @@ int mode)
 		Asn1Error("Error during Reading identifier");
 		return LDAP_PROTOCOL_ERROR;
 	}
-	if ( strncmp( peek_head, "tbsCertificate", strlen("tbsCertificate") ) == 0 ) {
-		rc = 	GDecComponentTBSCertificate (mem_op, b, (&k->tbsCertificate), bytesDecoded, mode);
+	if ( strncmp( peek_head, "toBeSigned", strlen("toBeSigned") ) == 0 ) {
+		rc = 	GDecComponentTBSCertificate (mem_op, b, (&k->toBeSigned), bytesDecoded, mode);
 		if ( rc != LDAP_SUCCESS ) return rc;
-	( k->tbsCertificate)->identifier.bv_val = peek_head;
-	( k->tbsCertificate)->identifier.bv_len = strLen;
+	( k->toBeSigned)->identifier.bv_val = peek_head;
+	( k->toBeSigned)->identifier.bv_len = strLen;
 	if( !(strLen = LocateNextGSERToken(mem_op,b,&peek_head,GSER_NO_COPY)) ){
 		Asn1Error("Error during Reading , ");
 		return LDAP_PROTOCOL_ERROR;

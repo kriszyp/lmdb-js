@@ -34,12 +34,13 @@
  */
 alloc_nibble_func* nibble_mem_allocator = NULL;
 free_nibble_func* nibble_mem_free = NULL;
-convert_attr_to_comp_func* attr_converter = NULL ;
+convert_attr_to_comp_func* attr_converter = NULL;
 convert_assert_to_comp_func* assert_converter = NULL ;
 free_component_func* component_destructor = NULL ;
 test_component_func* test_components = NULL;
 test_membership_func* is_aliased_attribute = NULL;
-
+component_encoder_func* component_encoder = NULL;
+get_component_info_func* get_component_description = NULL;
 #define OID_ALL_COMP_MATCH "1.2.36.79672281.1.13.6"
 #define OID_COMP_FILTER_MATCH "1.2.36.79672281.1.13.2"
 #define MAX_LDAP_STR_LEN 128
@@ -159,7 +160,7 @@ slapd_ber2cav( struct berval* bv, ComponentAssertionValue* cav )
 	return LDAP_SUCCESS;
 }
 
-static ComponentReference*
+ComponentReference*
 dup_comp_ref ( Operation* op, ComponentReference* cr )
 {
 	int rc, count = 0;
@@ -511,6 +512,8 @@ comp_next_id( ComponentAssertionValue* cav )
 	else return LDAP_COMPREF_UNDEFINED;
 }
 
+
+
 static int
 get_component_reference( Operation *op, ComponentAssertionValue* cav,
 			ComponentReference** cr, const char** text )
@@ -519,12 +522,13 @@ get_component_reference( Operation *op, ComponentAssertionValue* cav,
 	ber_int_t type;
 	ComponentReference* ca_comp_ref;
 	ComponentId** cr_list;
+	char* start, *end;
 
 	eat_whsp( cav );
 
+	start = cav->cav_ptr;
 	if ( ( rc = strip_cav_str( cav,"\"") ) != LDAP_SUCCESS )
 		return rc;
-
 	if ( op )
 		ca_comp_ref = op->o_tmpalloc( sizeof( ComponentReference ), op->o_tmpmemctx );
 	else
@@ -545,7 +549,7 @@ get_component_reference( Operation *op, ComponentAssertionValue* cav,
 			return rc;
 	}
 	ca_comp_ref->cr_len = count;
-
+	end = cav->cav_ptr;
 	if ( ( rc = strip_cav_str( cav,"\"") ) != LDAP_SUCCESS ) {
 		if ( op )
 			op->o_tmpfree( ca_comp_ref , op->o_tmpmemctx );
@@ -563,9 +567,80 @@ get_component_reference( Operation *op, ComponentAssertionValue* cav,
 	else
 		 free( ca_comp_ref ) ;
 
+	(*cr)->cr_string.bv_val = start;
+	(*cr)->cr_string.bv_len = end - start + 1;
+	
 	return rc;
 }
 
+int
+insert_component_reference( ComponentReference *cr, ComponentReference** cr_list) {
+	if ( !cr )
+		return LDAP_PARAM_ERROR;
+	if ( !(*cr_list) ) {
+		*cr_list = cr;
+		cr->cr_next = NULL;
+	} else {
+		cr->cr_next = *cr_list;
+		*cr_list = cr;
+	}
+	return LDAP_SUCCESS;
+}
+
+/*
+ * If there is '.' in the name of a given attribute
+ * the first '.'- following characters are considered
+ * as a component reference of the attribute
+ * EX) userCertificate.toBeSigned.serialNumber
+ * attribute : userCertificate
+ * component reference : toBeSigned.serialNumber
+ */
+int
+is_component_reference( char* attr ) {
+	int i;
+	for ( i=0; attr[i] != '\0' ; i++ ) {
+		if ( attr[i] == '.' )
+			return (1);
+	}
+	return (0);
+}
+
+int
+extract_component_reference( char* attr, ComponentReference** cr ) {
+        int i, rc;
+        char* cr_ptr;
+        int cr_len;
+        ComponentAssertionValue cav;
+	char text[1][128];
+
+        for ( i=0; attr[i] != '\0' ; i++ ) {
+                if ( attr[i] == '.' ) break;
+        }
+
+        if (attr[i] != '.' )
+                return LDAP_PARAM_ERROR;
+        else
+                attr[i] = '\0';
+        cr_ptr = attr + i + 1 ;
+        cr_len = strlen ( cr_ptr );
+        if ( cr_len <= 0 )
+                return LDAP_PARAM_ERROR;
+
+	/* enclosed between double quotes*/
+	cav.cav_ptr = cav.cav_buf = ch_malloc (cr_len+2);
+	memcpy( cav.cav_buf+1, cr_ptr, cr_len );
+	cav.cav_buf[0] = '"';
+	cav.cav_buf[cr_len+1] = '"';
+        cav.cav_end = cr_ptr + cr_len + 2;
+
+        rc = get_component_reference ( NULL, &cav, cr, (const char**)text );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+	(*cr)->cr_string.bv_val = cav.cav_buf;
+	(*cr)->cr_string.bv_len = cr_len + 2;
+
+	return LDAP_SUCCESS;
+}
 static int
 get_ca_use_default( Operation *op, ComponentAssertionValue* cav,
 		int* ca_use_def, const char**  text )
@@ -701,7 +776,7 @@ get_GSER_value( ComponentAssertionValue* cav, struct berval* bv )
 		succeed = 1;
 		/*Find  following white space where the value is ended*/
 		for( count = 1 ; ; count++ ) {
-			if ( cav->cav_ptr[count] == '\0' || cav->cav_ptr[count] == ' ' || (cav->cav_ptr+count) > cav->cav_end ) {
+			if ( cav->cav_ptr[count] == '\0' || cav->cav_ptr[count] == ' ' || cav->cav_ptr[count] == '}' || cav->cav_ptr[count] == '{' || (cav->cav_ptr+count) > cav->cav_end ) {
 				break;
 			}
 		}
@@ -826,10 +901,11 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 				free( _ca );
 			return LDAP_INVALID_SYNTAX;
 		}
+		if ( ( rc = strip_cav_str( cav,",") ) != LDAP_SUCCESS )
+			return rc;
+	} else {
+		_ca->ca_comp_ref = NULL;
 	}
-
-	if ( ( rc = strip_cav_str( cav,",") ) != LDAP_SUCCESS )
-		return rc;
 
 	rc = peek_cav_str( cav, "useDefaultValues");
 	if ( rc == LDAP_SUCCESS ) {
@@ -875,9 +951,9 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 
 		value.bv_val[value.bv_len] = '\0';
 		rc = mr->smr_normalize (
-		SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
-		NULL, mr,
-		&value, &_ca->ca_ma_value, op->o_tmpmemctx );
+			SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+			NULL, mr,
+			&value, &_ca->ca_ma_value, op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
@@ -1131,7 +1207,7 @@ test_comp_filter_item(
 	if ( !a->a_comp_data && attr_converter && nibble_mem_allocator ) {
 		a->a_comp_data = malloc( sizeof( ComponentData ) );
 		/* Memory chunk pre-allocation for decoders */
-		a->a_comp_data->cd_mem_op = (void*) nibble_mem_allocator ( 1024, 128 );
+		a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024, 128 );
 		a->a_comp_data->cd_tree = attr_converter (a, syn, bv);
 	}
 
@@ -1160,7 +1236,8 @@ test_comp_filter_item(
 	}
 
 	/* component reference initialization */
-	ca->ca_comp_ref->cr_curr = ca->ca_comp_ref->cr_list;
+	if ( ca->ca_comp_ref )
+		ca->ca_comp_ref->cr_curr = ca->ca_comp_ref->cr_list;
 	rc = test_components( attr_nm, assert_nm, (ComponentSyntaxInfo*)a->a_comp_data->cd_tree, ca );
 
 	/* free memory used for storing extracted attribute value */
@@ -1216,7 +1293,7 @@ static void
 free_comp_filter_list( ComponentFilter* f )
 {
 	ComponentFilter* tmp;
-	for ( tmp = f ; tmp; tmp = tmp->cf_next );
+	for ( tmp = f; tmp; tmp = tmp->cf_next )
 	{
 		free_comp_filter( tmp );
 	}
@@ -1225,6 +1302,10 @@ free_comp_filter_list( ComponentFilter* f )
 static void
 free_comp_filter( ComponentFilter* f )
 {
+	if ( !f ) {
+		Debug( LDAP_DEBUG_FILTER, "free_comp_filter:Invalid filter so failed to release memory\n", 0, 0, 0 );
+		return;
+	}
 	switch ( f->cf_choice ) {
 	case LDAP_COMP_FILTER_AND:
 	case LDAP_COMP_FILTER_OR:

@@ -82,7 +82,7 @@ cat /dev/null > $SEARCHOUT
 echo "Testing Component Filter Match RFC3687 Certificate searching:"
 echo "# Testing Component Filter Match RFC3687 Certificate searching:" >> $SEARCHOUT
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.serialNumber\", rule allComponentsMatch, value 0 })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.serialNumber\", rule allComponentsMatch, value 0 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -95,7 +95,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.version\", rule allComponentsMatch, value 2 })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.version\", rule allComponentsMatch, value 2 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -108,7 +108,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence.1.1.value\", rule caseExactMatch, value \"US\" })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.issuer.rdnSequence.1.1.value\", rule caseExactMatch, value \"US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -121,7 +121,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence.1.1.value\", rule allComponentsMatch, value \"US\" })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.issuer.rdnSequence.1.1.value\", rule allComponentsMatch, value \"US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -134,7 +134,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence\", rule allComponentsMatch, value { { { type 2.5.4.6 , value \"US\" } } } })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.issuer.rdnSequence\", rule allComponentsMatch, value { { { type 2.5.4.6 , value \"US\" } } } })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -147,7 +147,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.extensions.0\", rule integerMatch, value 3 })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.extensions.0\", rule integerMatch, value 3 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -160,7 +160,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{component \"tbsCertificate.extensions.\2a.extnID\",rule allComponentsMatch, value 2.5.29.14 })"
+FILTER="(userCertificate:componentFilterMatch:=item:{component \"toBeSigned.extensions.\2a.extnID\",rule allComponentsMatch, value 2.5.29.14 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -173,7 +173,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=not:item:{component \"tbsCertificate.extensions.\2a\",rule allComponentsMatch, value { extnID 2.5.29.19 , extnValue '30030101FF'H })"
+FILTER="(userCertificate:componentFilterMatch:=not:item:{component \"toBeSigned.extensions.\2a\",rule allComponentsMatch, value { extnID 2.5.29.19 , extnValue '30030101FF'H })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -186,7 +186,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence\", rule distinguishedNameMatch, value \"c=US\" })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.issuer.rdnSequence\", rule distinguishedNameMatch, value \"c=US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -199,7 +199,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence.1\", rule rdnMatch, value \"c=US\" })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.issuer.rdnSequence.1\", rule rdnMatch, value \"c=US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -212,7 +212,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.extensions.\2a.extnValue.content.\282.5.29.35\29.authorityCertSerialNumber\", rule integerMatch, value 0 })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.extensions.\2a.extnValue.content.\282.5.29.35\29.authorityCertSerialNumber\", rule integerMatch, value 0 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -226,7 +226,7 @@ if test $RC != 0 ; then
 fi
 
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.subject.rdnSequence.\2a\", rule rdnMatch, value \"c=US\" })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.subject.rdnSequence.\2a\", rule rdnMatch, value \"c=US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -239,7 +239,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(userCertificate:componentFilterMatch:=item:{ component \"tbsCertificate.subject.rdnSequence.\2a.\2a.value.\282.5.4.6\29\", rule caseExactMatch, value \"US\" })"
+FILTER="(userCertificate:componentFilterMatch:=item:{ component \"toBeSigned.subject.rdnSequence.\2a.\2a.value.\282.5.4.6\29\", rule caseExactMatch, value \"US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \

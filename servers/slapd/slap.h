@@ -2700,6 +2700,12 @@ typedef struct slap_component_reference {
 	ComponentId	*cr_curr;
 	struct berval	cr_string;
 	int cr_len;
+	/* Component Indexing */
+	int		cr_asn_type_id;
+	slap_mask_t	cr_indexmask;
+	AttributeDescription* cr_ad;
+	BerVarray	cr_nvals;
+	struct slap_component_reference* cr_next;
 } ComponentReference;
 
 typedef struct slap_component_assertion {
@@ -2736,11 +2742,9 @@ typedef struct slap_component_assertion_value {
 	char* cav_end;
 } ComponentAssertionValue;
 
-#if 0
 typedef int encoder_func LDAP_P((
 	void* b,
 	void* comp));
-#endif
 
 struct slap_component_syntax_info;
 
@@ -2788,7 +2792,8 @@ typedef void free_nibble_func LDAP_P ((
 	void* nm ));
 
 struct slap_component_syntax_info;                                                                          
-typedef void* convert_assert_to_comp_func LDAP_P ((
+typedef void convert_assert_to_comp_func LDAP_P ((
+	void *mem_op,
         struct slap_component_syntax_info* csi_attr,
         struct berval* bv,
         struct slap_component_syntax_info** csi,
@@ -2811,16 +2816,33 @@ typedef int test_component_func LDAP_P ((
 typedef void* test_membership_func LDAP_P ((
 	void* in ));
 
+typedef void* get_component_info_func LDAP_P ((
+	int in ));
+
+struct slap_component_syntax_info;
+
+typedef int component_encoder_func LDAP_P ((
+	void* mem_op,
+	struct slap_component_syntax_info* csi,
+	struct berval* nvals ));
+	
 typedef int allcomponent_matching_func LDAP_P((
 	char* oid,
 	struct slap_component_syntax_info* comp1,
 	struct slap_component_syntax_info* comp));
 
-typedef struct slap_component_desc{
+typedef struct slap_component_desc {
+	/* Don't change the order of following four fields */
 	int		cd_tag;
+	AttributeType	*cd_comp_type;
+	struct berval	cd_padding[2];/* ad_type, ad_cname */
+	unsigned	cd_flags; /*ad_flags*/
 	int		cd_type;
 	int		cd_type_id;
 	int		cd_compref_type;
+	encoder_func		*cd_ldap_encoder;
+	encoder_func		*cd_gser_encoder;
+	encoder_func		*cd_ber_encoder;
 	gser_decoder_func	*cd_gser_decoder;
 	ber_decoder_func	*cd_ber_decoder;
 	comp_free_func		*cd_free;

@@ -67,9 +67,12 @@ FreeComponentBits ( ComponentBits* v ) {
 int
 GEncComponentBits ( GenBuf *b, ComponentBits *in )
 {
-    if ( !in )
-	return (-1);
-    return GEncAsnBitsContent ( b, &in->value );
+	GAsnBits bits = {0};
+
+	bits.value = in->value;
+	if ( !in )
+		return (-1);
+	return GEncAsnBitsContent ( b, &bits);
 }
 
 
@@ -105,6 +108,7 @@ GDecComponentBits ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		if ( k ) CompFree( mem_op,  k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBits;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBits;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBits;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBits;
@@ -165,6 +169,7 @@ BDecComponentBits ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 		if ( k ) CompFree( mem_op,  k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBits;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBits;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBits;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBits;
@@ -181,12 +186,16 @@ BDecComponentBits ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 /*
  * Component GSER BMPString Encoder
  */
- int
- GEncComponentBMPString ( GenBuf *b, ComponentBMPString *in )
- {
-    if ( !in || in->value.octetLen <= 0 ) return (-1);
-    return GEncBMPStringContent ( b, &in->value );
- }
+int
+GEncComponentBMPString ( GenBuf *b, ComponentBMPString *in )
+{
+	GBMPString t = {0};
+
+	if ( !in || in->value.octetLen <= 0 )
+		return (-1);
+	t.value = in->value;
+	return GEncBMPStringContent ( b, &t );
+}
 
 /*
  * Component GSER BMPString Decoder
@@ -223,6 +232,7 @@ GDecComponentBMPString ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded,
 		if ( k ) CompFree( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBMPString;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBMPString;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBMPString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBMPString;
@@ -283,6 +293,7 @@ BDecComponentBMPString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBMPString;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBMPString;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBMPString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBMPString;
@@ -303,9 +314,11 @@ BDecComponentBMPString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void
 int
 GEncComponentUTF8String ( GenBuf *b, ComponentUTF8String *in )
 {
-    if ( !in || in->value.octetLen <= 0 )
-        return (-1);
-    return GEncUTF8StringContent ( b, &in->value );
+	GUTF8String t = {0};
+	if ( !in || in->value.octetLen <= 0 )
+		return (-1);
+	t.value = in->value;
+	return GEncUTF8StringContent ( b, &t );
 }
 
 /*
@@ -343,6 +356,7 @@ GDecComponentUTF8String ( void* mem_op, GenBuf *b, void *v,
 		if ( k ) CompFree( mem_op,  k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentUTF8String;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentUTF8String;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentUTF8String;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentUTF8String;
@@ -401,6 +415,7 @@ BDecComponentUTF8String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentUTF8String;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentUTF8String;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentUTF8String;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentUTF8String;
@@ -418,9 +433,12 @@ BDecComponentUTF8String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len,
 int
 GEncComponentTeletexString ( GenBuf *b, ComponentTeletexString *in )
 {
-    if ( !in || in->value.octetLen <= 0 )
-        return (-1);
-    return GEncTeletexStringContent ( b, &in->value );
+	GTeletexString t = {0};
+
+	if ( !in || in->value.octetLen <= 0 )
+		return (-1);
+	t.value = in->value;
+	return GEncTeletexStringContent ( b, &t );
 }
 
 /*
@@ -458,6 +476,7 @@ GDecComponentTeletexString  ( void* mem_op, GenBuf *b, void *v,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentTeletexString;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentTeletexString;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentTeletexString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentTeletexString;
@@ -500,9 +519,12 @@ MatchingComponentBool(char* oid, ComponentSyntaxInfo* csi_attr,
 int
 GEncComponentBool ( GenBuf *b, ComponentBool *in )
 {
-    if ( !in )
-        return (-1);
-    return GEncAsnBoolContent ( b, &in->value );
+	GAsnBool t = {0};
+
+	if ( !in )
+		return (-1);
+	t.value = in->value;
+	return GEncAsnBoolContent ( b, &t );
 }
 
 /*
@@ -537,6 +559,7 @@ GDecComponentBool ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBool;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBool;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBool;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -594,6 +617,7 @@ BDecComponentBool ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBool;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBool;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBool;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -636,9 +660,12 @@ MatchingComponentEnum ( char* oid, ComponentSyntaxInfo *csi_attr,
 int
 GEncComponentEnum ( GenBuf *b, ComponentEnum *in )
 {
-    if ( !in )
-	return (-1);
-    return GEncAsnEnumContent ( b, &in->value );
+	GAsnEnum t = {0};
+
+	if ( !in )
+		return (-1);
+	t.value = in->value;
+	return GEncAsnEnumContent ( b, &t );
 }
 
 /*
@@ -675,6 +702,7 @@ GDecComponentEnum ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentEnum;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentEnum;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentEnum;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -733,6 +761,7 @@ BDecComponentEnum ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 		if ( k  ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentEnum;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentEnum;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentEnum;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -752,8 +781,10 @@ BDecComponentEnum ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 int
 GEncComponentIA5Stirng ( GenBuf *b, ComponentIA5String* in )
 {
-    if ( !in || in->value.octetLen <= 0 ) return (-1);
-    return GEncIA5StringContent( b, &in->value );
+	GIA5String t = {0};
+	t.value = in->value;
+	if ( !in || in->value.octetLen <= 0 ) return (-1);
+	return GEncIA5StringContent( b, &t );
 }
 
 /*
@@ -801,6 +832,7 @@ BDecComponentIA5String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentIA5String;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentIA5String;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentIA5String;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentIA5String;
@@ -844,8 +876,12 @@ function*/
 int
 GEncComponentInt ( GenBuf *b, ComponentInt* in )
 {
-    if ( !in ) return (-1);
-    return GEncAsnIntContent ( b, &in->value );
+	GAsnInt t = {0};
+
+	if ( !in )
+		return (-1);
+	t.value = in->value;
+	return GEncAsnIntContent ( b, &t );
 }
 
 /*
@@ -880,6 +916,7 @@ GDecComponentInt( void* mem_op, GenBuf * b, void *v, AsnLen *bytesDecoded, int m
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentInt;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -933,6 +970,7 @@ BDecComponentInt ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentInt;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -973,8 +1011,12 @@ MatchingComponentNull ( char *oid, ComponentSyntaxInfo *csi_attr,
 int
 GEncComponentNull ( GenBuf *b, ComponentNull *in )
 {
-    if ( !in ) return (-1);
-    return GEncAsnNullContent ( b, &in->value );
+	GAsnNull t = {0};
+
+	if ( !in )
+		return (-1);
+	t.value = in->value;
+	return GEncAsnNullContent ( b, &t );
 }
 
 /*
@@ -1009,6 +1051,7 @@ GDecComponentNull ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentNull;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentNull;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentNull;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentNull;
@@ -1068,6 +1111,7 @@ BDecComponentNull ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentNull;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentNull;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentNull;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentNull;
@@ -1123,6 +1167,7 @@ BDecComponentNumericString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentNumericString;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentNumericString;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentNumericString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentNumericString;
@@ -1177,9 +1222,12 @@ MatchingComponentOcts ( char* oid, ComponentSyntaxInfo* csi_attr,
 int
 GEncComponentOcts ( GenBuf* b, ComponentOcts *in )
 {
-    if ( !in || in->value.octetLen <= 0 )
-        return (-1);
-    return GEncAsnOctsContent ( b, &in->value );
+	GAsnOcts t = {0};
+	if ( !in || in->value.octetLen <= 0 )
+		return (-1);
+
+	t.value = in->value;
+	return GEncAsnOctsContent ( b, &t );
 }
 
 /*
@@ -1214,6 +1262,7 @@ GDecComponentOcts ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentOcts;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOcts;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOcts;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOcts;
@@ -1271,6 +1320,7 @@ BDecComponentOcts ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentOcts;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOcts;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOcts;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOcts;
@@ -1314,8 +1364,12 @@ MatchingComponentOid ( char *oid, ComponentSyntaxInfo *csi_attr ,
  */
 GEncComponentOid ( GenBuf *b, ComponentOid *in )
 {
-    if ( !in || in->value.octetLen <= 0 ) return (-1);
-    return GEncAsnOidContent( b, &in->value );
+	GAsnOid t = {0};
+
+	if ( !in || in->value.octetLen <= 0 )
+		return (-1);
+	t.value = in->value;
+	return GEncAsnOidContent( b, (GAsnOcts*)&t );
 }
 
 /*
@@ -1340,7 +1394,7 @@ GDecAsnDescOidContent ( void* mem_op, GenBuf *b, GAsnOid *result, AsnLen *bytesD
 	peek_head = ad_type->sat_atype.at_oid;
 	strLen = strlen ( peek_head );
 
-	result->value.octs = EncodeComponentOid ( mem_op, peek_head , &strLen );
+	result->value.octs = (char*)EncodeComponentOid ( mem_op, peek_head , &strLen );
 	result->value.octetLen = strLen;
 	return LDAP_SUCCESS;
 }
@@ -1400,6 +1454,7 @@ GDecComponentOid ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int m
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentOid;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOid;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOid;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOid;
@@ -1457,6 +1512,7 @@ BDecComponentOid ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentOid;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOid;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOid;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOid;
@@ -1514,6 +1570,7 @@ BDecComponentPrintableString( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len,
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentPrintableString;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentPrintableString;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentPrintableString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentPrintableString;
@@ -1555,9 +1612,11 @@ MatchingComponentReal (char* oid, ComponentSyntaxInfo *csi_attr,
 int
 GEncComponentReal ( GenBuf *b, ComponentReal *in )
 {
-    if ( !in )
-	return (-1);
-    return GEncAsnRealContent ( b, &in->value );
+	GAsnReal t = {0};
+	if ( !in )
+		return (-1);
+	t.value = in->value;
+	return GEncAsnRealContent ( b, &t );
 }
 
 /*
@@ -1592,6 +1651,7 @@ GDecComponentReal ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentReal;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentReal;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentReal;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -1648,6 +1708,7 @@ BDecComponentReal ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v, 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentReal;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentReal;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentReal;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
@@ -1694,9 +1755,12 @@ MatchingComponentRelativeOid ( char* oid, ComponentSyntaxInfo *csi_attr,
 int
 GEncComponentRelativeOid ( GenBuf *b, ComponentRelativeOid *in )
 {
-    if ( !in || in->value.octetLen <= 0 )
-	return (-1);
-    return GEncAsnRelativeOidContent ( b , &in->value );
+	GAsnRelativeOid t = {0};
+
+	if ( !in || in->value.octetLen <= 0 )
+		return (-1);
+	t.value = in->value;
+	return GEncAsnRelativeOidContent ( b , (GAsnOcts*)&t );
 }
 
 /*
@@ -1731,6 +1795,7 @@ GDecComponentRelativeOid ( void* mem_op, GenBuf *b,void *v, AsnLen *bytesDecoded
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentRelativeOid;
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentRelativeOid;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentRelativeOid;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentRelativeOid;
@@ -1787,6 +1852,7 @@ BDecComponentRelativeOid ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, vo
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentRelativeOid;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentRelativeOid;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentRelativeOid;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentRelativeOid;
@@ -1805,9 +1871,11 @@ BDecComponentRelativeOid ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, vo
 int
 GEncComponentUniversalString ( GenBuf *b, ComponentUniversalString *in )
 {
-    if ( !in || in->value.octetLen <= 0 )
-	return (-1);
-    return GEncUniversalStringContent( b, &in->value );
+	GUniversalString t = {0};
+	if ( !in || in->value.octetLen <= 0 )
+		return (-1);
+	t.value = in->value;
+	return GEncUniversalStringContent( b, &t );
 }
 
 /*
@@ -1870,6 +1938,7 @@ BDecComponentUniversalString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentUniversalString;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentUniversalString;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentUniversalString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentUniversalString;
@@ -1921,6 +1990,7 @@ BDecComponentVisibleString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, 
 		if ( k ) CompFree ( mem_op, k );
 		return LDAP_DECODING_ERROR;
 	}
+	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentVisibleString;
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentVisibleString;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentVisibleString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentVisibleString;
@@ -2003,9 +2073,10 @@ SetAnyTypeByComponentInt( ComponentAny *v, ComponentInt id) {
 int
 GEncComponentAny ( GenBuf *b, ComponentAny *in )
 {
-    if ( in->cai != NULL  && in->cai->Encode != NULL )
-        return in->cai->Encode(b, &in->value );
-    else return (-1);
+	if ( in->cai != NULL  && in->cai->Encode != NULL )
+		return in->cai->Encode(b, &in->value );
+	else
+		return (-1);
 }
 
 int
@@ -2034,6 +2105,7 @@ BEncComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
 			if ( k ) CompFree ( mem_op, k );
 			return LDAP_DECODING_ERROR;
 		}
+		k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentAny;
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentAny;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentAny;
 		k->comp_desc->cd_free = (comp_free_func*)FreeComponentAny;
@@ -2072,7 +2144,7 @@ BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
 		result->value = (void*) CompAlloc ( mem_op, result->cai->size );
 		if ( !result->value ) return 0;
 #endif
-		result->cai->BER_Decode ( mem_op, b, &result->value, (int*)bytesDecoded, DEC_ALLOC_MODE_0 );
+		result->cai->BER_Decode ( mem_op, b, (ComponentSyntaxInfo*)&result->value, (int*)bytesDecoded, DEC_ALLOC_MODE_0 );
 #if 0
 		rc = BDecComponentTop( result->cai->BER_Decode, mem_op, 0, 0, &result->value, bytesDecoded, DEC_ALLOC_MODE_0 );
 		if ( rc != LDAP_SUCCESS ) return rc;
@@ -2083,6 +2155,7 @@ BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
 			if ( k ) CompFree ( mem_op, k );
 			return LDAP_DECODING_ERROR;
 		}
+		k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentAny;
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentAny;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentAny;
 		k->comp_desc->cd_free = (comp_free_func*)FreeComponentAny;
@@ -2121,6 +2194,7 @@ GDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
 			if ( k ) CompFree ( mem_op, k );
 			return LDAP_DECODING_ERROR;
 		}
+		k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentAny;
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentAny;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentAny;
 		k->comp_desc->cd_free = (comp_free_func*)FreeComponentAny;
@@ -2310,7 +2384,7 @@ RetrieveOidDecoderMappingbyDesc( char* desc, int desc_len ) {
 
 	mem_op = comp_nibble_memory_allocator ( 128, 16 );
 
-	oid.octs = EncodeComponentOid ( mem_op, oid.octs , &oid.octetLen );
+	oid.octs = EncodeComponentOid ( mem_op, oid.octs , (int*)&oid.octetLen );
 	if( oid.octetLen <= 0 ) {
 		comp_nibble_memory_free( mem_op );
 		return (OidDecoderMapping*) NULL;

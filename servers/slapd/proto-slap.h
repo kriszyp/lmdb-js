@@ -380,6 +380,15 @@ LDAP_SLAPD_V (test_membership_func*) is_aliased_attribute;
 
 LDAP_SLAPD_V (free_component_func*) component_destructor;
 
+LDAP_SLAPD_V (get_component_info_func*) get_component_description;
+
+LDAP_SLAPD_V (component_encoder_func*) component_encoder;
+
+LDAP_SLAPD_V (convert_attr_to_comp_func*) attr_converter;
+
+LDAP_SLAPD_V (alloc_nibble_func*) nibble_mem_allocator;
+
+LDAP_SLAPD_V (free_nibble_func*) nibble_mem_free;
 #endif
 
 /*

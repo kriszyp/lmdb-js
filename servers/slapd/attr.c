@@ -57,9 +57,9 @@ comp_tree_free( Attribute *a )
 
 	for( ; a != NULL ; a = next ) {
 		next = a->a_next;
-		if ( component_destructor && a->a_comp_data &&
-					a->a_comp_data->cd_mem_op ) {
-			component_destructor( a->a_comp_data->cd_mem_op );
+		if ( component_destructor && a->a_comp_data ) {
+			if ( a->a_comp_data->cd_mem_op )
+				component_destructor( a->a_comp_data->cd_mem_op );
 			free ( a->a_comp_data );
 		}
 	}

@@ -28,6 +28,9 @@
 typedef struct bdb_attrinfo {
 	AttributeDescription *ai_desc; /* attribute description cn;lang-en */
 	slap_mask_t ai_indexmask;	/* how the attr is indexed	*/
+#ifdef LDAP_COMP_MATCH
+	ComponentReference* ai_cr; /*component indexing*/
+#endif
 } AttrInfo;
 
 static int
@@ -50,6 +53,18 @@ ainfo_cmp(
 	const AttrInfo *a = v_a, *b = v_b;
 	return SLAP_PTRCMP(a->ai_desc, b->ai_desc);
 }
+
+#ifdef LDAP_COMP_MATCH
+void
+bdb_attr_comp_ref( struct bdb_info *bdb, AttributeDescription *desc, ComponentReference** cr )
+{
+	AttrInfo	*a;
+
+	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
+	
+	*cr = a != NULL ? a->ai_cr : 0 ;
+}
+#endif
 
 void
 bdb_attr_mask(
@@ -130,14 +145,39 @@ bdb_attr_index_config(
 		AttrInfo	*a;
 		AttributeDescription *ad;
 		const char *text;
+#ifdef LDAP_COMP_MATCH
+		ComponentReference* cr = NULL;
+		AttrInfo *a_cr = NULL;
+#endif
 
 		if( strcasecmp( attrs[i], "default" ) == 0 ) {
-			bdb->bi_defaultmask = mask;
+			bdb->bi_defaultmask |= mask;
 			continue;
 		}
 
+#ifdef LDAP_COMP_MATCH
+		if ( is_component_reference( attrs[i] ) ) {
+			rc = extract_component_reference( attrs[i], &cr );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr, "%s: line %d: "
+					"index component reference\"%s\" undefined\n",
+					fname, lineno, attrs[i] );
+				return rc;
+			}
+			cr->cr_indexmask = mask;
+			/*
+			 * After extracting a component reference
+			 * only the name of a attribute will be remaining
+			 */
+		} else {
+			cr = NULL;
+		}
+#endif
 		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
 
+#ifdef LDAP_COMP_MATCH
+		a->ai_cr = NULL;
+#endif
 		ad = NULL;
 		rc = slap_str2ad( attrs[i], &ad, &text );
 
@@ -191,10 +231,32 @@ bdb_attr_index_config(
 		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04lx\n",
 			ad->ad_cname.bv_val, mask, 0 ); 
 
-
 		a->ai_desc = ad;
 		a->ai_indexmask = mask;
-
+#ifdef LDAP_COMP_MATCH
+		if ( cr ) {
+			a_cr = avl_find( bdb->bi_attrs, ad, ainfo_type_cmp );
+			if ( a_cr ) {
+				/*
+				 * AttrInfo is already in AVL
+				 * just add the extracted component reference
+				 * in the AttrInfo
+				 */
+				rc = insert_component_reference( cr, &a_cr->ai_cr );
+				if ( rc != LDAP_SUCCESS) {
+					fprintf( stderr, " error during inserting component reference in %s ", attrs[i]);
+					return LDAP_PARAM_ERROR;
+				}
+				continue;
+			} else {
+				rc = insert_component_reference( cr, &a->ai_cr );
+				if ( rc != LDAP_SUCCESS) {
+					fprintf( stderr, " error during inserting component reference in %s ", attrs[i]);
+					return LDAP_PARAM_ERROR;
+				}
+			}
+		}
+#endif
 		rc = avl_insert( &bdb->bi_attrs, (caddr_t) a,
 		                 ainfo_cmp, avl_dup_error );
 

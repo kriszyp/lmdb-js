@@ -29,6 +29,24 @@
 #define MAX_IDENTIFIER_LEN	128
 #define COMPONENTNOT_NULL(ptr)  ((ptr) != NULL)
 
+typedef struct slap_component_type {
+        /*
+         * Don't change the order of following fields
+         * They are identical the first 9 fields of
+         * AttributeType
+         */
+        LDAPAttributeType               ct_atype;
+        struct berval                   ct_cname;
+        struct slap_attribute_type      *ct_sup;
+        struct slap_attribute_type      **ct_subtypes;
+        MatchingRule                    *ct_equality;
+        MatchingRule                    *ct_approx;
+        MatchingRule                    *ct_ordering;
+        MatchingRule                    *ct_substr;
+        Syntax                          *ct_syntax;
+} ComponentType;
+
+
 /*
  * BIT STRING
  */
@@ -447,6 +465,25 @@ typedef struct asntype_to_syntax {
 	Syntax		*ats_syn;
 } AsnTypetoSyntax;
 
+typedef struct asntype_to_comp_matchingrule {
+	AsnTypeId	atc_typeId;
+	char*	atc_equality;
+	char*	atc_approx;
+	char*	atc_ordering;
+	char*	atc_substr;
+} AsnTypetoCompMatchingRule;
+
+typedef struct asntype_to_comp_desc {
+	AsnTypeId	atcd_typeId;
+	ComponentDesc	atcd_cd;
+} AsnTypetoCompDesc;
+
+typedef struct asntype_to_comp_type {
+	AsnTypeId	ac_asn_id;
+	ComponentType   ac_comp_type;
+} AsnTypetoCompType;
+
+/* refined matching purpose */
 typedef struct asntype_to_matchingrule {
 	AsnTypeId	atmr_typeId;
 	char*		atmr_mr_name;
@@ -460,8 +497,6 @@ typedef struct asntype_to_matchingrule_table {
 	struct asntype_to_matchingrule atmr_table[ASNTYPE_END];
 	struct asntype_to_matchingrule_table* atmr_table_next;
 } AsnTypetoMatchingRuleTable;
-
-extern AsnTypetoSyntax asn_to_syntax_mapping_tbl[];
 
 #define MAX_OID_LEN 256
 #define MAX_OD_ENTRY 8
@@ -543,4 +578,13 @@ typedef struct comp_irAttributeTypeAndValue /* SEQUENCE */
 #define RDN_MATCH_OID "1.2.36.79672281.1.13.3"
 #define DN_MATCH_OID "2.5.13.1"
 
+extern AsnTypetoSyntax asn_to_syntax_mapping_tbl[];
+extern AsnTypetoCompMatchingRule asntype_to_compMR_mapping_tbl[];
+extern AsnTypetoCompType asntype_to_compType_mapping_tbl[];
+extern AsnTypetoCompDesc asntype_to_compdesc_mapping_tbl[];
+
+int ConvertRDN2RFC2253 ( irRelativeDistinguishedName* in, struct berval *out );
+int ConvertRDNSequence2RFC2253( irRDNSequence *in, struct berval* out );
+	
+void* comp_nibble_memory_allocator ( int init_mem, int inc_mem );
 #endif

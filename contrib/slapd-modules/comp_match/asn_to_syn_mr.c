@@ -1,8 +1,8 @@
-#include "component.h"
+#include <component.h>
 #include "asn.h"
 #include "componentlib.h"
 
-AsnTypetoMatchingRuleTable directory_component_matching_table = {
+AsnTypetoMatchingRuleTable directory_component_matching_table[] = {
 	"1.2.36.79672281.1.13.7",
 {
 	{ BASICTYPE_BOOLEAN,NULL,"1.3.6.1.4.1.1466.115.121.1.7", NULL },
@@ -41,7 +41,7 @@ AsnTypetoMatchingRuleTable directory_component_matching_table = {
 	NULL
 }; 
 
-struct asntype_to_syntax asn_to_syntax_mapping_tbl[] = {
+AsnTypetoSyntax asn_to_syntax_mapping_tbl[] = {
 { BASICTYPE_BOOLEAN,"Boolean","1.3.6.1.4.1.1466.115.121.1.7", NULL },
 { BASICTYPE_INTEGER,"Integer","1.3.6.1.4.1.1466.115.121.1.27", NULL },
 { BASICTYPE_BITSTRING,"Bit String","1.3.6.1.4.1.1466.115.121.1.6", NULL },
@@ -77,3 +77,124 @@ struct asntype_to_syntax asn_to_syntax_mapping_tbl[] = {
 { ASN_COMP_CERTIFICATE, "componentCertificate", "1.2.36.79672281.1.5.2" , NULL },
 { ASNTYPE_END , NULL , NULL, NULL }
 }; 
+
+/*
+ * This table describes relationship between an ASN.1 type and its
+ * potential matching rules such as equality, approx, ordering, and substring
+ * Based on the description of this table, the following ComponentType
+ * table is initialized
+ */
+AsnTypetoCompMatchingRule asntype_to_compMR_mapping_tbl[] = {
+{ BASICTYPE_BOOLEAN, "booleanMatch", NULL, NULL, NULL },
+{ BASICTYPE_INTEGER, "integerMatch", NULL, "integerOrderingMatch", NULL },
+{ BASICTYPE_BITSTRING, "bitStringMatch", NULL, NULL, NULL },
+{ BASICTYPE_OCTETSTRING, "octetStringMatch", NULL, "octetStringOrderingMatch", NULL },
+{ BASICTYPE_NULL, NULL, NULL, NULL, NULL },
+{ BASICTYPE_OID, "objectIdentifierMatch", NULL, NULL, NULL },
+{ BASICTYPE_REAL,  NULL, NULL, NULL, NULL },
+{ BASICTYPE_ENUMERATED,  "integerMatch", NULL, "integerOrderingMatch", NULL },
+{ BASICTYPE_NUMERIC_STR,  "numericStringMatch", NULL, "numericStringOrderingMatch", "numericStringSubstringsMatch"},
+{ BASICTYPE_PRINTABLE_STR, "caseIgnoreMatch", "directoryStringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch" },
+{ BASICTYPE_UNIVERSAL_STR, "caseIgnoreMatch", "directoryStringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch" },
+{ BASICTYPE_IA5_STR, "caseIgnoreMatch", "IA5StringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch" },
+{ BASICTYPE_BMP_STR, "caseIgnoreMatch", "directoryStringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch" },
+{ BASICTYPE_UTF8_STR, "caseIgnoreMatch", "directoryStringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch" },
+{ BASICTYPE_UTCTIME, NULL, NULL, NULL, NULL },
+{ BASICTYPE_GENERALIZEDTIME,  NULL, NULL, NULL, NULL },
+{ BASICTYPE_GRAPHIC_STR, NULL, NULL, NULL, NULL },
+{ BASICTYPE_VISIBLE_STR, "caseIgnoreMatch", "directoryStringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch" },
+{ BASICTYPE_GENERAL_STR, NULL, NULL, NULL, NULL },
+{ BASICTYPE_OBJECTDESCRIPTOR, "objectIdentifierFirstComponentMatch", NULL, NULL, NULL },
+{ BASICTYPE_VIDEOTEX_STR, NULL, NULL, NULL, NULL },
+{ BASICTYPE_T61_STR, NULL, NULL, NULL, NULL },
+{ BASICTYPE_OCTETCONTAINING,  NULL, NULL, NULL, NULL },
+{ BASICTYPE_BITCONTAINING,  NULL, NULL, NULL, NULL },
+{ BASICTYPE_RELATIVE_OID,  "objectIdentifierFirstComponentMatch", NULL, NULL, NULL },
+{ BASICTYPE_ANY, NULL, NULL, NULL, NULL },
+{ COMPOSITE_ASN1_TYPE,  NULL, NULL, NULL, NULL },
+{ RDNSequence,  "distinguishedNameMatch", NULL, NULL, NULL },
+{ RelativeDistinguishedName, "rdnMatch" , NULL, NULL, NULL },
+{ TelephoneNumber, NULL, NULL, NULL, NULL },
+{ FacsimileTelephoneNumber__telephoneNumber,  "caseIgnoreMatch", "directoryStringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch" },
+{ DirectoryString, "caseIgnoreMatch", "directoryStringApproxMatch", "caseIgnoreOrderingMatch", "caseIgnoreSubstringsMatch"},
+{ ASN_COMP_CERTIFICATE, "componentFilterMatch", NULL, NULL, NULL },
+{ ASNTYPE_END, NULL, NULL, NULL, NULL }
+};
+
+/*
+ * This table mapps an ASN type to a corresponding ComponentType which has
+ * equivalent contents of an existing AttributeType
+ */
+AsnTypetoCompType asntype_to_compType_mapping_tbl[] = {
+{ BASICTYPE_BOOLEAN,{}},
+{ BASICTYPE_INTEGER, {}},
+{ BASICTYPE_BITSTRING, {}},
+{ BASICTYPE_OCTETSTRING, {}},
+{ BASICTYPE_NULL, {}},
+{ BASICTYPE_OID, {}},
+{ BASICTYPE_REAL, {}},
+{ BASICTYPE_ENUMERATED, {}},
+{ BASICTYPE_NUMERIC_STR, {}},
+{ BASICTYPE_PRINTABLE_STR, {}},
+{ BASICTYPE_UNIVERSAL_STR, {}},
+{ BASICTYPE_IA5_STR, {}},
+{ BASICTYPE_BMP_STR, {}},
+{ BASICTYPE_UTF8_STR, {}},
+{ BASICTYPE_UTCTIME, {}},
+{ BASICTYPE_GENERALIZEDTIME, {}},
+{ BASICTYPE_GRAPHIC_STR, {}},
+{ BASICTYPE_VISIBLE_STR, {}},
+{ BASICTYPE_GENERAL_STR,{}},
+{ BASICTYPE_OBJECTDESCRIPTOR, {}},
+{ BASICTYPE_VIDEOTEX_STR, {}},
+{ BASICTYPE_T61_STR, {}},
+{ BASICTYPE_OCTETCONTAINING, {}},
+{ BASICTYPE_BITCONTAINING, {}},
+{ BASICTYPE_RELATIVE_OID, {}},
+{ BASICTYPE_ANY, {}},
+{ COMPOSITE_ASN1_TYPE, {}},
+{ RDNSequence, {}},
+{ RelativeDistinguishedName, {}}, 
+{ TelephoneNumber, {}},
+{ FacsimileTelephoneNumber__telephoneNumber, {}},
+{ DirectoryString, {}},
+{ ASN_COMP_CERTIFICATE, {}},
+{ ASNTYPE_END , {}}
+};
+
+AsnTypetoCompDesc asntype_to_compdesc_mapping_tbl[] = {
+{ BASICTYPE_BOOLEAN,{}},
+{ BASICTYPE_INTEGER, {}},
+{ BASICTYPE_BITSTRING, {}},
+{ BASICTYPE_OCTETSTRING, {}},
+{ BASICTYPE_NULL, {}},
+{ BASICTYPE_OID, {}},
+{ BASICTYPE_REAL, {}},
+{ BASICTYPE_ENUMERATED, {}},
+{ BASICTYPE_NUMERIC_STR, {}},
+{ BASICTYPE_PRINTABLE_STR, {}},
+{ BASICTYPE_UNIVERSAL_STR, {}},
+{ BASICTYPE_IA5_STR, {}},
+{ BASICTYPE_BMP_STR, {}},
+{ BASICTYPE_UTF8_STR, {}},
+{ BASICTYPE_UTCTIME, {}},
+{ BASICTYPE_GENERALIZEDTIME, {}},
+{ BASICTYPE_GRAPHIC_STR, {}},
+{ BASICTYPE_VISIBLE_STR, {}},
+{ BASICTYPE_GENERAL_STR,{}},
+{ BASICTYPE_OBJECTDESCRIPTOR, {}},
+{ BASICTYPE_VIDEOTEX_STR, {}},
+{ BASICTYPE_T61_STR, {}},
+{ BASICTYPE_OCTETCONTAINING, {}},
+{ BASICTYPE_BITCONTAINING, {}},
+{ BASICTYPE_RELATIVE_OID, {}},
+{ BASICTYPE_ANY, {}},
+{ COMPOSITE_ASN1_TYPE, {}},
+{ RDNSequence, {}},
+{ RelativeDistinguishedName, {}}, 
+{ TelephoneNumber, {}},
+{ FacsimileTelephoneNumber__telephoneNumber, {}},
+{ DirectoryString, {}},
+{ ASN_COMP_CERTIFICATE, {}},
+{ ASNTYPE_END , {}}
+};

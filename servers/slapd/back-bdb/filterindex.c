@@ -57,6 +57,16 @@ static int list_candidates(
 	ID *tmp,
 	ID *stack );
 
+#ifdef LDAP_COMP_MATCH
+int
+ext_candidates(
+        Operation *op,
+        MatchingRuleAssertion *mra,
+        ID *ids,
+        ID *tmp,
+        ID *stack);
+#endif
+
 int
 bdb_filter_candidates(
 	Operation *op,
@@ -147,7 +157,12 @@ bdb_filter_candidates(
 		rc = list_candidates( op, 
 			f->f_or, LDAP_FILTER_OR, ids, tmp, stack );
 		break;
-
+#ifdef LDAP_COMP_MATCH
+	case LDAP_FILTER_EXT:
+                Debug( LDAP_DEBUG_FILTER, "\tEXT\n", 0, 0, 0 );
+                rc = ext_candidates( op, f->f_mra, ids, tmp, stack );
+                break;
+#endif
 	default:
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %lu\n",
 			(unsigned long) f->f_choice, 0, 0 );
@@ -165,6 +180,242 @@ bdb_filter_candidates(
 
 	return rc;
 }
+
+#ifdef LDAP_COMP_MATCH
+static int
+comp_list_candidates(
+	Operation *op,
+	MatchingRuleAssertion* mra,
+	ComponentFilter	*flist,
+	int	ftype,
+	ID *ids,
+	ID *tmp,
+	ID *save )
+{
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	int rc = 0;
+	ComponentFilter	*f;
+
+	Debug( LDAP_DEBUG_FILTER, "=> comp_list_candidates 0x%x\n", ftype, 0, 0 );
+	for ( f = flist; f != NULL; f = f->cf_next ) {
+		/* ignore precomputed scopes */
+		if ( f->cf_choice == SLAPD_FILTER_COMPUTED &&
+		     f->cf_result == LDAP_SUCCESS ) {
+			continue;
+		}
+		BDB_IDL_ZERO( save );
+		rc = comp_candidates( op, mra, f, save, tmp, save+BDB_IDL_UM_SIZE );
+
+		if ( rc != 0 ) {
+			if ( ftype == LDAP_COMP_FILTER_AND ) {
+				rc = 0;
+				continue;
+			}
+			break;
+		}
+		
+		if ( ftype == LDAP_COMP_FILTER_AND ) {
+			if ( f == flist ) {
+				BDB_IDL_CPY( ids, save );
+			} else {
+				bdb_idl_intersection( ids, save );
+			}
+			if( BDB_IDL_IS_ZERO( ids ) )
+				break;
+		} else {
+			if ( f == flist ) {
+				BDB_IDL_CPY( ids, save );
+			} else {
+				bdb_idl_union( ids, save );
+			}
+		}
+	}
+
+	if( rc == LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_FILTER,
+			"<= comp_list_candidates: id=%ld first=%ld last=%ld\n",
+			(long) ids[0],
+			(long) BDB_IDL_FIRST(ids),
+			(long) BDB_IDL_LAST(ids) );
+
+	} else {
+		Debug( LDAP_DEBUG_FILTER,
+			"<= comp_list_candidates: undefined rc=%d\n",
+			rc, 0, 0 );
+	}
+
+	return rc;
+}
+
+int
+comp_equality_candidates (
+        Operation *op,
+        MatchingRuleAssertion *mra,
+	ComponentAssertion *ca,
+        ID *ids,
+        ID *tmp,
+        ID *stack)
+{
+       struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+        DB      *db;
+        int i;
+        int rc;
+        slap_mask_t mask;
+        struct berval prefix = {0, NULL};
+        struct berval *keys = NULL;
+        MatchingRule *mr = mra->ma_rule;
+        Syntax *sat_syntax;
+	ComponentReference* cr_list, *cr;
+
+        BDB_IDL_ALL( bdb, ids );
+
+	bdb_attr_comp_ref ( op->o_bd->be_private, mra->ma_desc, &cr_list );
+	if( !cr_list || !ca->ca_comp_ref )
+		return 0;
+	/* find a component reference to be indexed */
+	sat_syntax = ca->ca_ma_rule->smr_syntax;
+	for ( cr = cr_list ; cr ; cr = cr->cr_next ) {
+		if ( cr->cr_string.bv_len == ca->ca_comp_ref->cr_string.bv_len &&
+			strncmp( cr->cr_string.bv_val, ca->ca_comp_ref->cr_string.bv_val,cr->cr_string.bv_len ) == 0 )
+			break;
+	}
+	
+	if ( !cr )
+		return 0;
+
+        rc = bdb_index_param( op->o_bd, mra->ma_desc, LDAP_FILTER_EQUALITY,
+                &db, &mask, &prefix );
+
+        if( rc != LDAP_SUCCESS ) {
+                return 0;
+        }
+        if ( db == NULL ) {
+                return 0;
+        }
+
+        if( !mr ) {
+                return 0;
+        }
+
+        if( !mr->smr_filter ) {
+                return 0;
+        }
+
+	rc = (ca->ca_ma_rule->smr_filter)(
+                LDAP_FILTER_EQUALITY,
+                cr->cr_indexmask,
+                sat_syntax,
+                ca->ca_ma_rule,
+                &prefix,
+                &ca->ca_ma_value,
+                &keys, op->o_tmpmemctx );
+
+        if( rc != LDAP_SUCCESS ) {
+                return 0;
+        }
+
+        if( keys == NULL ) {
+                return 0;
+        }
+        for ( i= 0; keys[i].bv_val != NULL; i++ ) {
+                rc = bdb_key_read( op->o_bd, db, NULL, &keys[i], tmp, NULL, 0 );
+
+                if( rc == DB_NOTFOUND ) {
+                        BDB_IDL_ZERO( ids );
+                        rc = 0;
+                        break;
+                } else if( rc != LDAP_SUCCESS ) {
+                        break;
+                }
+
+                if( BDB_IDL_IS_ZERO( tmp ) ) {
+                        BDB_IDL_ZERO( ids );
+                        break;
+                }
+
+                if ( i == 0 ) {
+                        BDB_IDL_CPY( ids, tmp );
+                } else {
+                        bdb_idl_intersection( ids, tmp );
+                }
+
+                if( BDB_IDL_IS_ZERO( ids ) )
+                        break;
+        }
+        ber_bvarray_free_x( keys, op->o_tmpmemctx );
+
+        Debug( LDAP_DEBUG_TRACE,
+                "<= comp_equality_candidates: id=%ld, first=%ld, last=%ld\n",
+                (long) ids[0],
+                (long) BDB_IDL_FIRST(ids),
+                (long) BDB_IDL_LAST(ids) );
+        return( rc );
+}
+
+int
+comp_candidates (
+	Operation *op,
+	MatchingRuleAssertion *mra,
+	ComponentFilter *f,
+	ID *ids,
+	ID *tmp,
+	ID *stack)
+{
+	int	rc;
+
+	if ( !f ) return LDAP_PROTOCOL_ERROR;
+
+	Debug( LDAP_DEBUG_FILTER, "comp_candidates\n", 0, 0, 0 );
+	switch ( f->cf_choice ) {
+	case SLAPD_FILTER_COMPUTED:
+		rc = f->cf_result;
+		break;
+	case LDAP_COMP_FILTER_AND:
+		rc = comp_list_candidates( op, mra, f->cf_and, LDAP_COMP_FILTER_AND, ids, tmp, stack );
+		break;
+	case LDAP_COMP_FILTER_OR:
+		rc = comp_list_candidates( op, mra, f->cf_or, LDAP_COMP_FILTER_OR, ids, tmp, stack );
+		break;
+	case LDAP_COMP_FILTER_NOT:
+		/* No component indexing supported for NOT filter */
+		Debug( LDAP_DEBUG_FILTER, "\tComponent NOT\n", 0, 0, 0 );
+		{
+			struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+			BDB_IDL_ALL( bdb, ids );
+		}
+		rc = LDAP_PROTOCOL_ERROR;
+		break;
+	case LDAP_COMP_FILTER_ITEM:
+		rc = comp_equality_candidates( op, mra, f->cf_ca, ids, tmp, stack );
+		break;
+	default:
+		{
+			struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+			BDB_IDL_ALL( bdb, ids );
+		}
+		rc = LDAP_PROTOCOL_ERROR;
+	}
+
+	return( rc );
+}
+
+int
+ext_candidates(
+        Operation *op,
+        MatchingRuleAssertion *mra,
+        ID *ids,
+        ID *tmp,
+        ID *stack)
+{
+	/*
+	 * Currently Only Component Indexing for componentFilterMatch is supported
+	 * Indexing for an extensible filter is not supported yet
+	 */
+	if ( !mra->ma_cf )
+		return 0;
+	return comp_candidates ( op, mra, mra->ma_cf, ids, tmp, stack);
+}
+#endif
 
 static int
 list_candidates(

@@ -269,6 +269,10 @@ static int index_at_values(
 {
 	int rc;
 	slap_mask_t mask = 0;
+#ifdef LDAP_COMP_MATCH
+	ComponentReference* cr_list, *cr;
+	AttributeDescription *comp_ad;
+#endif
 
 	if( type->sat_sup ) {
 		/* recurse */
@@ -279,6 +283,17 @@ static int index_at_values(
 		if( rc ) return rc;
 	}
 
+#ifdef LDAP_COMP_MATCH
+	/* component indexing */
+	bdb_attr_comp_ref ( op->o_bd->be_private, type->sat_ad, &cr_list );
+	if ( cr_list ) {
+		for( cr = cr_list ; cr ; cr = cr->cr_next ) {
+			rc = indexer( op, txn, cr->cr_ad, &type->sat_cname,
+				cr->cr_nvals, id, opid,
+				cr->cr_indexmask );
+		}
+	}
+#endif
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
 		bdb_attr_mask( op->o_bd->be_private, type->sat_ad, &mask );
@@ -343,6 +358,17 @@ bdb_index_entry(
 {
 	int rc;
 	Attribute *ap = e->e_attrs;
+#ifdef LDAP_COMP_MATCH
+	ComponentReference *cr_list = NULL;
+	ComponentReference *cr = NULL, *dupped_cr = NULL;
+	void* decoded_comp, *extracted_comp;
+	ComponentSyntaxInfo* csi_attr;
+	Syntax* syn;
+	AttributeType* at;
+	int i, num_attr;
+	void* mem_op;
+	struct berval value = {0};
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		opid == SLAP_INDEX_ADD_OP ? "add" : "del",
@@ -350,6 +376,58 @@ bdb_index_entry(
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
+#ifdef LDAP_COMP_MATCH
+		/* see if attribute has components to be indexed */
+		bdb_attr_comp_ref( op->o_bd->be_private, ap->a_desc->ad_type->sat_ad, &cr_list );
+		if ( attr_converter && cr_list ) {
+			syn = ap->a_desc->ad_type->sat_syntax;
+			ap->a_comp_data = op->o_tmpalloc( sizeof( ComponentData ), op->o_tmpmemctx );
+                	/* Memory chunk(nibble) pre-allocation for decoders */
+                	mem_op = nibble_mem_allocator ( 1024*16, 1024*4 );
+			ap->a_comp_data->cd_mem_op = mem_op;
+			for( cr = cr_list ; cr ; cr = cr->cr_next ) {
+				/* count how many values in an attribute */
+				for( num_attr=0; ap->a_vals[num_attr].bv_val != NULL; num_attr++ );
+				num_attr++;
+				cr->cr_nvals = (BerVarray)op->o_tmpalloc( sizeof( struct berval )*num_attr, op->o_tmpmemctx );
+				for( i=0; ap->a_vals[i].bv_val != NULL; i++ ) {
+					/* decoding attribute value */
+					decoded_comp = attr_converter ( ap, syn, &ap->a_vals[i] );
+					if ( !decoded_comp )
+						return LDAP_DECODING_ERROR;
+					/* extracting the referenced component */
+					dupped_cr = dup_comp_ref( op, cr );
+					csi_attr = ((ComponentSyntaxInfo*)decoded_comp)->csi_comp_desc->cd_extract_i( mem_op, dupped_cr, decoded_comp );
+					if ( !csi_attr )
+						return LDAP_DECODING_ERROR;
+					cr->cr_asn_type_id = csi_attr->csi_comp_desc->cd_type_id;
+					cr->cr_ad = (AttributeDescription*)get_component_description ( cr->cr_asn_type_id );
+					if ( !cr->cr_ad )
+						return LDAP_INVALID_SYNTAX;
+					at = cr->cr_ad->ad_type;
+					/* encoding the value of component in GSER */
+					rc = component_encoder( mem_op, csi_attr, &value );
+					if ( rc != LDAP_SUCCESS )
+						return LDAP_ENCODING_ERROR;
+					/* Normalize the encoded component values */
+					if ( at->sat_equality && at->sat_equality->smr_normalize ) {
+						rc = at->sat_equality->smr_normalize (
+							SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+							at->sat_syntax, at->sat_equality,
+							&value, &cr->cr_nvals[i], op->o_tmpmemctx );
+					} else {
+						cr->cr_nvals[i] = value;
+					}
+				}
+				/* The end of BerVarray */
+				cr->cr_nvals[num_attr-1].bv_val = NULL;
+				cr->cr_nvals[num_attr-1].bv_len = 0;
+			}
+			op->o_tmpfree( ap->a_comp_data, op->o_tmpmemctx );
+			nibble_mem_free ( mem_op );
+			ap->a_comp_data = NULL;
+		}
+#endif
 		rc = bdb_index_values( op, txn, ap->a_desc,
 			ap->a_nvals, e->e_id, opid );
 

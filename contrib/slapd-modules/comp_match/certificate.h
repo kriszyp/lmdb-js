@@ -346,7 +346,7 @@ typedef struct Certificate /* SEQUENCE */
 	ComponentDesc* comp_desc;
 	struct berval identifier;
 	char id_buf[MAX_IDENTIFIER_LEN];
-	ComponentTBSCertificate* tbsCertificate; /* TBSCertificate */
+	ComponentTBSCertificate* toBeSigned; /* TBSCertificate */
 	ComponentAlgorithmIdentifier* signatureAlgorithm; /* AlgorithmIdentifier */
 	ComponentBits signature; /* BIT STRING */
 } ComponentCertificate;

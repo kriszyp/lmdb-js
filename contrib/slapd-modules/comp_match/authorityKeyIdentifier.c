@@ -18,7 +18,7 @@ BDecComponentAuthorityKeyIdentifierTop( void* mem_op, GenBuf* b, void *v, AsnLen
 		return (-1);
 	}
 		
-	return BDecComponentAuthorityKeyIdentifier( mem_op, b, tag, elmtLen, (ComponentSyntaxInfo*)v,(int*)bytesDecoded, mode );
+	return BDecComponentAuthorityKeyIdentifier( mem_op, b, tag, elmtLen, ( ComponentAuthorityKeyIdentifier**)v, (AsnLen*)bytesDecoded, mode );
 }
 
 
@@ -45,7 +45,7 @@ MatchingComponentOtherName ( char* oid, ComponentSyntaxInfo* csi_attr, Component
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	rc =	SetAnyTypeByComponentOid ((ComponentSyntaxInfo*)&((ComponentOtherName*)csi_attr)->value, (&((ComponentOtherName*)csi_attr)->type_id));
-	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentSyntaxInfo*)&((ComponentOtherName*)csi_attr)->value, (ComponentSyntaxInfo*)&((ComponentOtherName*)csi_assert)->value);
+	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentAny*)&((ComponentOtherName*)csi_attr)->value, (ComponentAny*)&((ComponentOtherName*)csi_assert)->value);
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	return LDAP_COMPARE_TRUE;
@@ -267,7 +267,7 @@ MatchingComponentORAddress ( char* oid, ComponentSyntaxInfo* csi_attr, Component
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	rc =	SetAnyTypeByComponentOid ((ComponentSyntaxInfo*)&((ComponentORAddress*)csi_attr)->value, (&((ComponentORAddress*)csi_attr)->type_id));
-	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentSyntaxInfo*)&((ComponentORAddress*)csi_attr)->value, (ComponentSyntaxInfo*)&((ComponentORAddress*)csi_assert)->value);
+	rc = MatchingComponentAnyDefinedBy ( oid, (ComponentAny*)&((ComponentORAddress*)csi_attr)->value, (ComponentAny*)&((ComponentORAddress*)csi_assert)->value);
 	if ( rc != LDAP_COMPARE_TRUE )
 		return rc;
 	rc =	MatchingComponentOcts ( oid, (ComponentSyntaxInfo*)&((ComponentORAddress*)csi_attr)->extension, (ComponentSyntaxInfo*)&((ComponentORAddress*)csi_assert)->extension );
@@ -1615,7 +1615,7 @@ ExtractingComponentGeneralNames ( void* mem_op, ComponentReference* cr, Componen
 	case LDAP_COMPREF_COUNT :
 		k = (ComponentInt*)CompAlloc( mem_op, sizeof(ComponentInt));
 		k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-		k->comp_desc->cd_tag = NULL;
+		k->comp_desc->cd_tag = (-1);
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
 		k->comp_desc->cd_extract_i = (extract_component_from_id_func*)NULL;

@@ -3,7 +3,7 @@ BEGIN
 -- based on RFC 3280 and X.509
 
 Certificate ::=	SEQUENCE {
-	tbsCertificate TBSCertificate,
+	toBeSigned TBSCertificate,
 	signatureAlgorithm AlgorithmIdentifier,
 	signature BIT STRING
 }
