@@ -827,30 +827,30 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 
 	switch( option ) {
 	case LDAP_OPT_X_TLS_CACERTFILE:
-		if ( tls_opt_cacertfile ) free( tls_opt_cacertfile );
+		if ( tls_opt_cacertfile ) LDAP_FREE( tls_opt_cacertfile );
 		tls_opt_cacertfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CACERTDIR:
-		if ( tls_opt_cacertdir ) free( tls_opt_cacertdir );
+		if ( tls_opt_cacertdir ) LDAP_FREE( tls_opt_cacertdir );
 		tls_opt_cacertdir = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_CERTFILE:
-		if ( tls_opt_certfile ) free( tls_opt_certfile );
+		if ( tls_opt_certfile ) LDAP_FREE( tls_opt_certfile );
 		tls_opt_certfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_KEYFILE:
-		if ( tls_opt_keyfile ) free( tls_opt_keyfile );
+		if ( tls_opt_keyfile ) LDAP_FREE( tls_opt_keyfile );
 		tls_opt_keyfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		tls_opt_require_cert = * (int *) arg;
 		break;
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
-		if ( tls_opt_ciphersuite ) free( tls_opt_ciphersuite );
+		if ( tls_opt_ciphersuite ) LDAP_FREE( tls_opt_ciphersuite );
 		tls_opt_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
-		if (tls_opt_randfile ) free (tls_opt_randfile );
+		if (tls_opt_randfile ) LDAP_FREE (tls_opt_randfile );
 		tls_opt_randfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
 	default:

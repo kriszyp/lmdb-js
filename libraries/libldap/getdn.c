@@ -72,7 +72,7 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 
 	ufn = ldap_charray2str( vals, ", " );
 
-	ldap_memvfree( vals );
+	LDAP_VFREE( vals );
 	return ufn;
 }
 
