@@ -179,62 +179,6 @@ attr_delete(
 
 #define DEFAULT_SYNTAX	SYNTAX_CIS
 
-/* Force compilation errors by commenting out this
-struct asyntaxinfo {
-	char	**asi_names;
-	int	asi_syntax;
-};
-static Avlnode	*attr_syntaxes = NULL;
-
-static int
-attr_syntax_cmp(
-    struct asyntaxinfo        *a1,
-    struct asyntaxinfo        *a2
-)
-{
-      return( strcasecmp( a1->asi_names[0], a2->asi_names[0] ) );
-}
-
-static int
-attr_syntax_name_cmp(
-    char		*type,
-    struct asyntaxinfo	*a
-)
-{
-	return( strcasecmp( type, a->asi_names[0] ) );
-}
-
-static int
-attr_syntax_names_cmp(
-    char		*type,
-    struct asyntaxinfo	*a
-)
-{
-	int	i;
-
-	for ( i = 0; a->asi_names[i] != NULL; i++ ) {
-		if ( strcasecmp( type, a->asi_names[i] ) == 0 ) {
-			return( 0 );
-		}
-	}
-	return( 1 );
-}
-
-static int
-attr_syntax_dup(
-    struct asyntaxinfo        *a1,
-    struct asyntaxinfo        *a2
-)
-{
-	if ( a1->asi_syntax != a2->asi_syntax ) {
-		return( -1 );
-	}
-
-	return( 1 );
-}
-
-*/
-
 /*
  * attr_syntax - return the syntax of attribute type
  */
@@ -552,25 +496,32 @@ at_add(
 				return SLAP_SCHERR_OUTOFMEM;
 			}
 		} else {
-			*err = errattr;
+			*err = at->at_sup_oid;
 			return SLAP_SCHERR_ATTR_NOT_FOUND;
 		}
 	}
 
-	if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.15") ) {
-		if ( !strcmp(at->at_equality_oid,
-			     "1.3.6.1.4.1.1466.109.114.1") ) {
-			sat->sat_syntax_compat = SYNTAX_CES;
+	if ( at->at_syntax_oid ) {
+		if ( !strcmp(at->at_syntax_oid,
+			     "1.3.6.1.4.1.1466.115.121.1.15") ) {
+			if ( at->at_equality_oid &&
+			     !strcmp(at->at_equality_oid,
+				     "1.3.6.1.4.1.1466.109.114.1") ) {
+				sat->sat_syntax_compat = SYNTAX_CES;
+			} else {
+				sat->sat_syntax_compat = SYNTAX_CIS;
+			}
+		} else if ( !strcmp(at->at_syntax_oid,
+				    "1.3.6.1.4.1.1466.115.121.1.50") ) {
+			sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_TEL;
+		} else if ( !strcmp(at->at_syntax_oid,
+				    "1.3.6.1.4.1.1466.115.121.1.12") ) {
+			sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_DN;
+		} else if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.5") ) {
+			sat->sat_syntax_compat = SYNTAX_BIN;
 		} else {
-			sat->sat_syntax_compat = SYNTAX_CIS;
+			sat->sat_syntax_compat = DEFAULT_SYNTAX;
 		}
-	} else if ( !strcmp(at->at_syntax_oid,
-			    "1.3.6.1.4.1.1466.115.121.1.50") ) {
-		sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_TEL;
-	} else if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.12") ) {
-		sat->sat_syntax_compat = SYNTAX_CIS | SYNTAX_DN;
-	} else if ( !strcmp(at->at_syntax_oid, "1.3.6.1.4.1.1466.115.121.1.5") ) {
-		sat->sat_syntax_compat = SYNTAX_BIN;
 	} else {
 		sat->sat_syntax_compat = DEFAULT_SYNTAX;
 	}
