@@ -399,7 +399,7 @@ do_bind(
 			{
 				/* DN is not empty, disallow */
 				rc = LDAP_UNWILLING_TO_PERFORM;
-				text = "unwilling to allow anonymous bind with non-empty DN";
+				text = "unauthenticated bind (DN with no password) disallowed";
 
 			} else if ( global_disallows & SLAP_DISALLOW_BIND_ANON ) {
 				/* disallow */
