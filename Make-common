@@ -45,10 +45,10 @@ RUNTIMEETCDIR= $(ETCDIR)
 ## General compiler options                                                ##
 #############################################################################
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
-#EXTRACFLAGS=-g
-EXTRACFLAGS=-O
+EXTRACFLAGS=-O -g
+# EXTRACFLAGS=-O
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
-#EXTRALDFLAGS=-g
+EXTRALDFLAGS=-g
 
 #############################################################################
 ## If you are NOT using Kerberos authentication, you can skip this section.##
@@ -140,8 +140,8 @@ LDBMINCLUDE=-I/usr/include
 #LDBMBACKEND=-DLDBM_USE_NDBM
 #
 # if you want to use a non-default threads package change these lines
-#THREADS=-DNO_THREADS
-#THREADSLIB=
+#THREADS=-DPOSIX_THREADS
+#THREADSLIB= -pthread
 
 #############################################################################
 ## The following options are used by the xax500 client.  If you haven't    ##
