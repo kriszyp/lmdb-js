@@ -145,7 +145,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Query 6: filter:(mail=*@example.com) cn sn title uid"  
+echo "Query 6: filter:(mail=*@mail.alumni.example.com) cn sn title uid"  
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'mail=*@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
 RC=$?
