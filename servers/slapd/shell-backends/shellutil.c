@@ -321,7 +321,7 @@ ecalloc( unsigned nelem, unsigned elsize )
 /* VARARGS */
 void
 debug_printf
-#ifdef STDC_HEADERS
+#if HAVE_STDARG
 	( char *fmt, ... )
 #else
 	( va_alist )
@@ -329,12 +329,12 @@ debug_printf
 #endif
 {
     va_list	ap;
-#ifndef STDC_HEADERS
+#if !HAVE_STDARG
     char	*fmt;
 #endif
 
 	if ( debugflg ) {
-#ifdef STDC_HEADERS
+#if HAVE_STDARG
 		va_start( ap, fmt );
 #else
 		va_start( ap );
