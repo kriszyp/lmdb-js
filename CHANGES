@@ -17,7 +17,9 @@ OpenLDAP 2.2.6 Release
 	Updated slapd syncrepl support (multiple)
 	Updated slapd connection deferred logging (ITS#2959)
 	Updated slapd filter logging
-	Updated slapd back-ldap
+	Updated back-ldap
+	Updated back-bdb to use Btree indices instead of Hashes
+		Requires recreation of indices for existing databases
 	Added slapd limit groups (ITS#2967)
 	Build Environment
 		Fixed test021 portable echo bug (ITS#2933, ITS#2879)
