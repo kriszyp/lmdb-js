@@ -276,8 +276,10 @@ get_mra(
 		/*
 		 * Need to normalize, but how?
 		 */
-		ma->ma_value = value;
-		rc = value_validate( ma->ma_rule, &ma->ma_value, text );
+		rc = value_validate( ma->ma_rule, &value, text );
+		if ( rc == LDAP_SUCCESS ) {
+			ber_dupbv( &ma->ma_value, &value );
+		}
 
 	}
 #endif /* SLAP_X_MRA_MATCH_DNATTRS */

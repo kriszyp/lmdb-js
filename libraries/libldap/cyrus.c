@@ -257,7 +257,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 			continue;
 #endif
 		if ( ret <= 0 )
-			return ret;
+			return bufptr ? bufptr : ret;
 
 		p->sec_buf_in.buf_ptr += ret;
 	}
@@ -287,7 +287,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 			continue;
 #endif
 		if ( ret <= 0 )
-			return ret;
+			return bufptr ? bufptr : ret;
 
 		p->sec_buf_in.buf_ptr += ret;
    	}
@@ -335,7 +335,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 			return ret;
 		/* Still have something left?? */
 		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
-			errno = EWOULDBLOCK;
+			errno = EAGAIN;
 			return 0;
 		}
 	}

@@ -326,7 +326,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 		out->bv_len ? out->bv_val : "", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "slap_sasl_regexp: converted SASL name to ldap:///%s??%s?%s\n",
+		"slap_sasl_regexp: converted SASL name to %s\n",
 		out->bv_len ? out->bv_val : "", 0, 0 );
 #endif
 
