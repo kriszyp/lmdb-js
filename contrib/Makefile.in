@@ -4,4 +4,4 @@
 ##
 ## contrib Makefile.in for OpenLDAP
 
-SUBDIRS= saucer web_ldap
+SUBDIRS= saucer

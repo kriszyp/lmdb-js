@@ -13,6 +13,7 @@ OpenLDAP 2.0.X Engineering
 	Build Environment
 		Added test000-rootdse
 		Fixed Kerberos detection (ITS#717)
+		Remove incompatible contribWare
 	Documentation
 		Fixed ldappasswd(1) user argument usage
 		Fixed ldapmodify(1) (ITS#719)
