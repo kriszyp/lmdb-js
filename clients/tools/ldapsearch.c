@@ -108,7 +108,7 @@ usage( void )
 #endif
 	fprintf( stderr, _("             [!]mv=<filter>              (matched values filter)\n"));
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	fprintf( stderr, _("             [!]pr=<size>                (paged results)\n"));
+	fprintf( stderr, _("             [!]pr=<size>[/true|false]   (paged results/prompt)\n"));
 #endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 	fprintf( stderr, _("             [!]subentries[=true|false]  (subentries)\n"));
@@ -195,6 +195,7 @@ static int sync_slimit = -1;
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 static int pagedResults = 0;
+static int pagePrompt = 1;
 static ber_int_t pageSize = 0;
 static ber_int_t entriesLeft = 0;
 static ber_int_t morePagedResults = 1;
@@ -304,6 +305,20 @@ handle_private_option( int i )
 			}
 
 			if( cvalue != NULL ) {
+				char *promptp;
+
+				promptp = strchr( cvalue, '/' );
+				if ( promptp != NULL ) {
+					*promptp++ = '\0';
+					if ( strcasecmp( promptp, "true" ) == 0 ) {
+						pagePrompt = 1;
+					} else if ( strcasecmp( promptp, "false" ) == 0) {
+						pagePrompt = 0;
+					} else {
+						fprintf( stderr, _("Invalid value for PagedResultsControl, %s/%s.\n"), cvalue, promptp);
+						exit( EXIT_FAILURE );
+					}
+				}
 				num = sscanf( cvalue, "%d", &tmp );
 				if ( num != 1 ) {
 					fprintf( stderr, _("Invalid value for PagedResultsControl, %s.\n"), cvalue);
@@ -805,30 +820,32 @@ getNextPage:
 		/* Loop to get the next pages when 
 		 * enter is pressed on the terminal.
 		 */
-		if ( entriesLeft > 0 ) {
-			printf( _("Estimate entries: %d\n"), entriesLeft );
-		}
-		printf( _("Press [size] Enter for the next {%d|size} entries.\n"),
-			(int)pageSize ); 
-		i = 0;
-		moreEntries = getchar();
-		while ( moreEntries != EOF && moreEntries != '\n' ) { 
-			if ( i < (int)sizeof(buf) - 1 ) {
-				buf[i] = moreEntries;
-				i++;
+		if ( pagePrompt != 0 ) {
+			if ( entriesLeft > 0 ) {
+				printf( _("Estimate entries: %d\n"), entriesLeft );
 			}
+			printf( _("Press [size] Enter for the next {%d|size} entries.\n"),
+				(int)pageSize );
+			i = 0;
 			moreEntries = getchar();
-		}
-		buf[i] = '\0';
-
-		if ( i > 0 && isdigit( (unsigned char)buf[0] ) ) {
-			int num = sscanf( buf, "%d", &tmpSize );
-			if ( num != 1 ) {
-				fprintf( stderr, _("Invalid value for PagedResultsControl, %s.\n"), buf);
-				return EXIT_FAILURE;
-
+			while ( moreEntries != EOF && moreEntries != '\n' ) { 
+				if ( i < (int)sizeof(buf) - 1 ) {
+					buf[i] = moreEntries;
+					i++;
+				}
+				moreEntries = getchar();
 			}
-			pageSize = (ber_int_t)tmpSize;
+			buf[i] = '\0';
+
+			if ( i > 0 && isdigit( (unsigned char)buf[0] ) ) {
+				int num = sscanf( buf, "%d", &tmpSize );
+				if ( num != 1 ) {
+					fprintf( stderr, _("Invalid value for PagedResultsControl, %s.\n"), buf);
+					return EXIT_FAILURE;
+	
+				}
+				pageSize = (ber_int_t)tmpSize;
+			}
 		}
 
 		goto getNextPage;	
