@@ -46,12 +46,12 @@
 /* recycled matching routines */
 #define bitStringMatch					octetStringMatch
 #define integerMatch					caseIgnoreIA5Match
-#define numericStringMatch				caseIgnoreMatch
-#define objectIdentifierMatch			numericStringMatch
-#define telephoneNumberMatch			numericStringMatch
+#define numericStringMatch				caseIgnoreIA5Match
+#define objectIdentifierMatch			caseIgnoreIA5Match
+#define telephoneNumberMatch			caseIgnoreIA5Match
 #define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
-#define generalizedTimeMatch			numericStringMatch
-#define generalizedTimeOrderingMatch	numericStringMatch
+#define generalizedTimeMatch			caseIgnoreIA5Match
+#define generalizedTimeOrderingMatch	caseIgnoreIA5Match
 #define uniqueMemberMatch				dnMatch
 
 /* approx matching rules */
@@ -3035,7 +3035,7 @@ caseIgnoreIA5Match(
 {
 	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
 
-	if( match == 0 ) {
+	if( match == 0 && value->bv_len ) {
 		match = strncasecmp( value->bv_val,
 			((struct berval *) assertedValue)->bv_val,
 			value->bv_len );
@@ -3609,31 +3609,38 @@ int caseIgnoreIA5SubstringsFilter(
 }
 	
 static int
+numericStringValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	ber_len_t i;
+
+	/* disallow empty numeric strings */
+
+	for(i=0; i < in->bv_len; i++) {
+		if( !SLAP_NUMERIC(in->bv_val[i]) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int
 numericStringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval **normalized )
 {
-	/* similiar to IA5StringNormalize except removes all spaces */
+	/* removal all spaces */
 	struct berval *newval;
 	char *p, *q;
 
 	newval = ch_malloc( sizeof( struct berval ) );
+	newval->bv_val = ch_malloc( val->bv_len + 1 );
 
 	p = val->bv_val;
-
-	/* Ignore initial whitespace */
-	while ( ASCII_SPACE( *p ) ) {
-		p++;
-	}
-
-	if( *p == '\0' ) {
-		ch_free( newval );
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	newval->bv_val = ch_strdup( p );
-	p = q = newval->bv_val;
+	q = newval->bv_val;
 
 	while ( *p ) {
 		if ( ASCII_SPACE( *p ) ) {
@@ -3644,15 +3651,8 @@ numericStringNormalize(
 		}
 	}
 
-	assert( *newval->bv_val );
 	assert( newval->bv_val < p );
 	assert( q <= p );
-
-	/* cannot start with a space */
-	assert( !ASCII_SPACE(*newval->bv_val) );
-
-	/* cannot end with a space */
-	assert( !ASCII_SPACE( q[-1] ) );
 
 	/* null terminate */
 	*q = '\0';
@@ -4206,7 +4206,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
-		0, IA5StringValidate, numericStringNormalize, NULL},
+		0, numericStringValidate, numericStringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
@@ -4310,7 +4310,8 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
 		NULL, NULL,
-		directoryStringApproxMatch, directoryStringApproxIndexer, 
+		directoryStringApproxMatch,
+		directoryStringApproxIndexer, 
 		directoryStringApproxFilter,
 		NULL},
 
@@ -4318,7 +4319,8 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
 		NULL, NULL,
-		IA5StringApproxMatch, IA5StringApproxIndexer, 
+		IA5StringApproxMatch,
+		IA5StringApproxIndexer, 
 		IA5StringApproxFilter,
 		NULL},
 

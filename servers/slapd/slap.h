@@ -101,11 +101,12 @@ LDAP_BEGIN_DECL
 #define AD_LEADCHAR(c)	( ATTR_CHAR(c) )
 #define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
+#define SLAP_NUMERIC(c) ( ASCII_DIGIT(c) || ASCII_SPACE(c) )
+
 #define SLAP_PRINTABLE(c)	( ASCII_ALNUM(c) || (c) == '\'' || \
 	(c) == '(' || (c) == ')' || (c) == '+' || (c) == ',' || \
 	(c) == '-' || (c) == '.' || (c) == '/' || (c) == ':' || \
 	(c) == '?' || (c) == ' ' )
-
 #define SLAP_PRINTABLES(c)	( SLAP_PRINTABLE(c) || (c) == '$' )
 
 /* must match in schema_init.c */
