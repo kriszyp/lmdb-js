@@ -48,7 +48,7 @@
 	(SASL_VERSION_MINOR << 8) | SASL_VERSION_STEP)
 
 static sasl_security_properties_t sasl_secprops;
-#else
+#elif defined( SLAP_BUILTIN_SASL )
 /*
  * built-in SASL implementation
  *	only supports EXTERNAL
@@ -1339,7 +1339,7 @@ int slap_sasl_open( Connection *conn, int reopen )
 
 	sc = slap_sasl_err2ldap( sc );
 
-#else
+#elif defined(SLAP_BUILTIN_SASL)
 	/* built-in SASL implementation */
 	SASL_CTX *ctx = (SASL_CTX *) SLAP_MALLOC(sizeof(SASL_CTX));
 	if( ctx == NULL ) return -1;
@@ -1399,7 +1399,7 @@ int slap_sasl_external(
 	if ( sc != SASL_OK ) {
 		return LDAP_OTHER;
 	}
-#else
+#elif defined(SLAP_BUILTIN_SASL)
 	/* built-in SASL implementation */
 	SASL_CTX *ctx = conn->c_sasl_authctx;
 	if ( ctx == NULL ) return LDAP_UNAVAILABLE;
@@ -1458,7 +1458,7 @@ char ** slap_sasl_mechs( Connection *conn )
 		ch_free( mechstr );
 #endif
 	}
-#else
+#elif defined(SLAP_BUILTIN_SASL)
 	/* builtin SASL implementation */
 	SASL_CTX *ctx = conn->c_sasl_authctx;
 	if ( ctx != NULL && ctx->sc_external_id.bv_val ) {
@@ -1492,7 +1492,7 @@ int slap_sasl_close( Connection *conn )
 	free( conn->c_sasl_extra );
 	conn->c_sasl_extra = NULL;
 
-#else
+#elif defined(SLAP_BUILTIN_SASL)
 	SASL_CTX *ctx = conn->c_sasl_authctx;
 	if( ctx ) {
 		if( ctx->sc_external_id.bv_val ) {
@@ -1659,8 +1659,7 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 	Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: rc=%d\n", rs->sr_err, 0, 0);
 #endif
 
-
-#else
+#elif defined(SLAP_BUILTIN_SASL)
 	/* built-in SASL implementation */
 	SASL_CTX *ctx = op->o_conn->c_sasl_authctx;
 
@@ -1687,6 +1686,9 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, LDAP_AUTH_METHOD_NOT_SUPPORTED,
 			"requested SASL mechanism not supported" );
 	}
+#else
+	send_ldap_error( op, rs, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+		"SASL not supported" );
 #endif
 
 	return rs->sr_err;

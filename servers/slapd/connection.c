@@ -1169,7 +1169,7 @@ int connection_client_setup(
 {
 	Connection *c;
 
-	if ( connection_init( s, l, "", "", CONN_IS_CLIENT, 0, "" ) < 0 ) {
+	if ( connection_init( s, l, "", "", CONN_IS_CLIENT, 0, NULL ) < 0 ) {
 		return -1;
 	}
 
