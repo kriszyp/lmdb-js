@@ -49,7 +49,9 @@ static char *v2ref( struct berval **ref, const char *text )
 		v2 = ch_realloc( v2, len + ref[i]->bv_len + 1 );
 		v2[len-1] = '\n';
 		memcpy(&v2[len], ref[i]->bv_val, ref[i]->bv_len );
-		len += ref[i]->bv_len + 1;
+		len += ref[i]->bv_len;
+		if (ref[i]->bv_val[ref[i]->bv_len-1] != '/')
+			++len;
 	}
 
 	v2[len-1] = '\0';
@@ -867,7 +869,7 @@ send_search_reference(
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		/* save the references for the result */
-		if( *refs == NULL ) {
+		if( *refs != NULL ) {
 			value_add( v2refs, refs );
 		}
 		return 0;
