@@ -38,8 +38,8 @@ int ldap_dn2domain(
 	char **domainp)
 {
 	int i;
-	char* domain = NULL;
-	char ** dn;
+	char *domain = NULL;
+	char **dn;
 
 	if( dn_in == NULL || domainp == NULL ) {
 		return -1;
@@ -79,7 +79,7 @@ int ldap_dn2domain(
 				dc = &rdn[0][sizeof(LDAP_DCOID)-1];
 
 			} else {
-				dc == NULL;
+				dc = NULL;
 			}
 
 			if( dc != NULL ) {
