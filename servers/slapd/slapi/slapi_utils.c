@@ -431,6 +431,65 @@ slapi_ch_free_string( char **ptr )
 #endif /* defined(LDAP_SLAPI) */
 }
 
+void
+slapi_ch_array_free( char **arrayp )
+{
+#ifdef LDAP_SLAPI
+	char **p;
+
+	if ( arrayp != NULL ) {
+		for ( p = arrayp; *p != NULL; p++ ) {
+			slapi_ch_free( (void **)p );
+		}
+		slapi_ch_free( (void **)&arrayp );
+	}
+#endif
+}
+
+struct berval *
+slapi_ch_bvdup(const struct berval *v)
+{
+#ifdef LDAP_SLAPI
+	struct berval *bv;
+
+	bv = (struct berval *) slapi_ch_malloc( sizeof(struct berval) );
+	bv->bv_len = v->bv_len;
+	bv->bv_val = slapi_ch_malloc( bv->bv_len );
+	AC_MEMCPY( bv->bv_val, v->bv_val, bv->bv_len );
+
+	return bv;
+#else
+	return NULL;
+#endif
+}
+
+struct berval **
+slapi_ch_bvecdup(const struct berval **v)
+{
+#ifdef LDAP_SLAPI
+	int i;
+	struct berval **rv;
+
+	if ( v == NULL ) {
+		return NULL;
+	}
+
+	for ( i = 0; v[i] != NULL; i++ )
+		;
+
+	rv = (struct berval **) slapi_ch_malloc( (i + 1) * sizeof(struct berval *) );
+
+	for ( i = 0; v[i] != NULL; i++ ) {
+		rv[i] = slapi_ch_bvdup( v[i] );
+	}
+	rv[i] = NULL;
+
+	return rv;
+#else
+	return NULL;
+#endif
+}
+
 char *
 slapi_ch_calloc(
 	unsigned long nelem, 

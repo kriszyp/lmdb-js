@@ -134,6 +134,10 @@ void slapi_ch_free_string( char **s );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );
 char *slapi_ch_realloc( char *block, unsigned long size );
 char *slapi_ch_strdup( char *s );
+void slapi_ch_array_free( char **arrayp );
+struct berval *slapi_ch_bvdup(const struct berval *v);
+struct berval **slapi_ch_bvecdup(const struct berval **v);
+
 /*
  * FIXME: these two were missing, but widely used in a couple of .c files
  */
