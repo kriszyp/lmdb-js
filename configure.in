@@ -485,6 +485,15 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			LIBS="$save_LIBS"
 		fi
 
+		if test $ol_link_threads = no ; then
+			dnl try -lpthreads
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthreads, pthread_create, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"])
+			LIBS="$save_LIBS"
+		fi
+
 		if test $ol_link_threads != no ; then
 			AC_DEFINE(HAVE_PTHREADS)
 
@@ -602,10 +611,10 @@ static void *task(p)
 
 	if(i < 0) {
 		perror("select");
-		exit(0);
+		exit(10);
 	}
 
-	exit(1); /* if we exit here, the select blocked the whole process */
+	exit(0); /* if we exit here, the select blocked the whole process */
 }
 
 int main(argc, argv)
@@ -617,7 +626,7 @@ int main(argc, argv)
 	/* create a pipe to select */
 	if(pipe(&fildes[0])) {
 		perror("select");
-		exit(0);
+		exit(1);
 	}
 
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
@@ -638,10 +647,11 @@ int main(argc, argv)
 	pthread_yield();	/* make sure task runs first */
 #endif
 #endif
-	exit(0);
+
+	exit(2);
 }],
-				[ol_cv_pthread_select_yields=yes],
-				[ol_cv_pthread_select_yields=no], [
+				[ol_cv_pthread_select_yields=no],
+				[ol_cv_pthread_select_yields=yes], [
 				AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])])])
 				AC_MSG_RESULT($ol_cv_pthread_select_yields)
 
@@ -649,20 +659,6 @@ int main(argc, argv)
 					ol_with_yielding_select=yes
 				fi
 			fi
-
-			dnl check for reentrant/threadsafe functions
-			dnl
-			dnl note: these should only be used when linking
-			dnl       with $LTHREAD_LIBS
-			dnl
-			AC_CHECK_FUNCS(	\
-				strtok_r \
-				gmtime_r \
-				gethostbyaddr_r gethostbyname_r \
-				feof_unlocked unlocked_feof \
-				putc_unlocked unlocked_putc \
-				flockfile ftrylockfile \
-			)
 
 			dnl restore flags
 			CPPFLAGS="$save_CPPFLAGS"
@@ -806,6 +802,25 @@ int x = errno;
 		LIBS="$LTHREAD_LIBS $LIBS"
 		LTHREAD_LIBS=""
 	fi
+
+	dnl check for reentrant/threadsafe functions
+	dnl
+	dnl note: these should only be used when linking
+	dnl       with $LTHREAD_LIBS
+	dnl
+	save_CPPFLAGS="$CPPFLAGS"
+	save_LIBS="$LIBS"
+	LIBS="$LTHREAD_LIBS $LIBS"
+	AC_CHECK_FUNCS(	\
+		strtok_r \
+		gmtime_r \
+		gethostbyaddr_r gethostbyname_r \
+		feof_unlocked unlocked_feof \
+		putc_unlocked unlocked_putc \
+		flockfile ftrylockfile \
+	)
+	CPPFLAGS="$save_CPPFLAGS"
+	LIBS="$save_LIBS"
 fi  
 
 dnl ----------------------------------------------------------------
