@@ -228,6 +228,10 @@ isOkNetscapeParam( int param )
 static int
 isValidParam( Slapi_PBlock *pb, int param ) 
 {
+	if ( !pb ) {
+		return INVALID_PARAM;
+	}
+	
 	if ( pb->ckParams == TRUE ) {
 		if ( IBM_RESERVED( param ) ) return LDAP_SUCCESS;
 		if (param == SLAPI_PLUGIN_AUDIT_FN ||
