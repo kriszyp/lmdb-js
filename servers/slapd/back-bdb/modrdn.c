@@ -268,7 +268,7 @@ retry:	/* transaction retry */
 
 	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
-	if ( newSuperior != NULL ) {
+	if ( newSuperior->bv_val != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, 
 			"bdb_modrdn: new parent \"%s\" requested...\n",
 			newSuperior->bv_val, 0, 0 );
