@@ -445,7 +445,6 @@ try_again:
 		 * we do not need to lock the entry if we only
 		 * check the state, refcnt, LRU, and id.
 		 */
-		free(e.e_ndn);
 
 #ifdef LDAP_DEBUG
 		assert( ep->e_private );
@@ -477,11 +476,8 @@ try_again:
                 
 		/* save id */
 		id = ep->e_id;
-
-		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-
-		return( id );
+	} else {
+		id = NOID;
 	}
 
 	free(e.e_ndn);
@@ -489,7 +485,7 @@ try_again:
 	/* free cache mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
-	return( NOID );
+	return( id );
 }
 
 /*
