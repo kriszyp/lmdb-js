@@ -43,6 +43,7 @@ CPP=cl.exe
 # PROP Output_Dir "..\..\Release"
 # PROP Intermediate_Dir "..\..\Release\liblber"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -64,6 +65,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "..\..\Debug"
 # PROP Intermediate_Dir "..\..\Debug\liblber"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -85,6 +87,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "..\..\Sdebug"
 # PROP Intermediate_Dir "..\..\SDebug\liblber"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -106,6 +109,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "..\..\SRelease"
 # PROP Intermediate_Dir "..\..\SRelease\liblber"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -127,6 +131,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "..\..\DLLDebug"
 # PROP Intermediate_Dir "..\..\DLLDebug\liblber"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 # ADD CPP /nologo /MDd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -148,6 +153,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "liblber0"
 # PROP Intermediate_Dir "liblber0"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe

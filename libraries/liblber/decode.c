@@ -39,7 +39,6 @@ ber_get_tag( BerElement *ber )
 {
 	unsigned char	xbyte;
 	ber_tag_t	tag;
-	char		*tagp;
 	unsigned int	i;
 
 	assert( ber != NULL );
@@ -48,16 +47,17 @@ ber_get_tag( BerElement *ber )
 	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
 
-	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
-		return( (ber_tag_t) xbyte );
+	tag = xbyte;
 
-	tagp = (char *) &tag;
-	tagp[0] = xbyte;
+	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
+		return tag;
+
 	for ( i = 1; i < sizeof(ber_tag_t); i++ ) {
 		if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 			return( LBER_DEFAULT );
 
-		tagp[i] = xbyte;
+		tag << 8;
+		tag &= 0x00ffUL & (ber_tag_t) xbyte;
 
 		if ( ! (xbyte & LBER_MORE_TAG_MASK) )
 			break;
@@ -68,7 +68,7 @@ ber_get_tag( BerElement *ber )
 		return( LBER_DEFAULT );
 
 	/* want leading, not trailing 0's */
-	return( tag >> (sizeof(ber_tag_t) - i - 1) );
+	return tag;
 }
 
 ber_tag_t
