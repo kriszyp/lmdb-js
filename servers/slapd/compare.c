@@ -119,10 +119,10 @@ do_compare(
 	ava.aa_value = nvalue;
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    dn, ava.aa_desc->ad_cname, ava.aa_value->bv_val );
+	    dn, ava.aa_desc->ad_cname->bv_val, ava.aa_value->bv_val );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-	    op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname, 0 );
+	    op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname->bv_val, 0 );
 
 
 
