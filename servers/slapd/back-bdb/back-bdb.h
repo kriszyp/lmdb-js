@@ -15,9 +15,13 @@
 
 LDAP_BEGIN_DECL
 
-#define BDB_IDL_SIZE	(1<<16)
-#define BDB_IDL_MAX		(BDB_IDL_SIZE-32)
-/* #define BDB_IDL_ALLOC	(BDB_IDL_SIZE * sizeof(ID)) */
+#define BDB_IDL_DB_SIZE		(1<<16) /* 64K IDL on disk */
+#define BDB_IDL_DB_MAX		(BDB_IDL_DB_SIZE-32)
+/* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
+
+#define BDB_IDL_SIZE		(1<<17) /* 128K IDL in memory */
+#define BDB_IDL_MAX			(BDB_IDL_DB_SIZE-32)
+/* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
 
 #define BDB_IS_ALLIDS(ids)	((ids)[0] == NOID)
 

@@ -14,7 +14,7 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
-static int idl_search( ID *ids, ID id )
+int bdb_idl_search( ID *ids, ID id )
 {
 	/*
 	 * binary search of id in ids
@@ -22,7 +22,7 @@ static int idl_search( ID *ids, ID id )
 	 * if not found, returns first postion greater than id
 	 */
 	int base = 0;
-	int cursor;
+	int cursor = 0;
 	int val;
 	int n = ids[0];
 
@@ -43,16 +43,16 @@ static int idl_search( ID *ids, ID id )
 		}
 	}
 	
-	if( val < 0 ) {
-		return cursor + 1;
-	} else {
+	if( val > 0 ) {
 		return cursor + 2;
+	} else {
+		return cursor + 1;
 	}
 }
 
 static int idl_insert( ID *ids, ID id )
 {
-	int x = idl_search( ids, id );
+	int x = bdb_idl_search( ids, id );
 
 	if( ids[x] == id ) {
 		/* duplicate */
@@ -64,7 +64,7 @@ static int idl_insert( ID *ids, ID id )
 		ids[0]++;
 		ids[ids[0]] = id;
 
-	} else if ( ++ids[0] >= BDB_IDL_MAX ) {
+	} else if ( ++ids[0] >= BDB_IDL_DB_MAX ) {
 		ids[0] = NOID;
 	
 	} else {
@@ -79,7 +79,7 @@ static int idl_insert( ID *ids, ID id )
 
 static int idl_delete( ID *ids, ID id )
 {
-	int x = idl_search( ids, id );
+	int x = bdb_idl_search( ids, id );
 
 	if( x == 0 || ids[x] != id ) {
 		/* not found */
@@ -104,7 +104,7 @@ bdb_idl_insert_key(
     ID			id )
 {
 	int	rc;
-	ID ids[BDB_IDL_SIZE];
+	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
 
 	assert( id != NOID );
@@ -158,7 +158,7 @@ bdb_idl_delete_key(
     ID			id )
 {
 	int	rc;
-	ID ids[BDB_IDL_SIZE];
+	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
 
 	assert( id != NOID );

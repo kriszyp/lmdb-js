@@ -46,6 +46,7 @@ bdb_dn2entry(
 	if( matchedDN == NULL ) {
 		rc = bdb_id2entry( be, tid, id, e );
 	} else {
+		ch_free( matchedDN );
 		rc = bdb_id2entry( be, tid, id, matched );
 	}
 

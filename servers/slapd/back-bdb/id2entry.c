@@ -53,6 +53,8 @@ int bdb_id2entry(
 	struct berval bv;
 	int rc;
 
+	*e = NULL;
+
 	DBTzero( &key );
 	key.data = (char *) &id;
 	key.size = sizeof(ID);

@@ -57,7 +57,7 @@ retry:	if( tid != NULL ) {
 		goto retry;
 
 	case DB_NOTFOUND:
-		id = NOID;
+		id = 0;
 		break;
 
 	case 0:
