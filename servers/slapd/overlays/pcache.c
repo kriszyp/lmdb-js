@@ -789,7 +789,11 @@ remove_query_data (
 {
 	struct query_info	*qi, *qnext;
 	char			filter_str[64];
-	AttributeAssertion	ava;
+#ifdef LDAP_COMP_MATCH
+	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
+#else
+	AttributeAssertion	ava = { NULL, BER_BVNULL };
+#endif
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
 	slap_callback cb = { NULL, remove_func, NULL, NULL };

@@ -604,7 +604,11 @@ syncprov_findcsn( Operation *op, int mode )
 	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	struct berval fbuf, maxcsn;
 	Filter cf, af;
-	AttributeAssertion eq;
+#ifdef LDAP_COMP_MATCH
+	AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
+#else
+	AttributeAssertion eq = { NULL, BER_BVNULL };
+#endif
 	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
 	sync_control *srs = NULL;
@@ -1241,7 +1245,11 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		SlapReply frs = { REP_RESULT };
 		int rc;
 		Filter mf, af;
+#ifdef LDAP_COMP_MATCH
+		AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
+#else
 		AttributeAssertion eq;
+#endif
 		slap_callback cb = {0};
 
 		fop = *op;
@@ -1868,6 +1876,9 @@ shortcut:
 	fava->f_choice = LDAP_FILTER_LE;
 	fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
 	fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
+#ifdef LDAP_COMP_MATCH
+	fava->f_ava->aa_cf = NULL;
+#endif
 	ber_dupbv_x( &fava->f_ava->aa_value, &ctxcsn, op->o_tmpmemctx );
 	fand->f_and = fava;
 	if ( gotstate ) {
@@ -1876,6 +1887,9 @@ shortcut:
 		fava->f_choice = LDAP_FILTER_GE;
 		fava->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
 		fava->f_ava->aa_desc = slap_schema.si_ad_entryCSN;
+#ifdef LDAP_COMP_MATCH
+		fava->f_ava->aa_cf = NULL;
+#endif
 		ber_dupbv_x( &fava->f_ava->aa_value, &srs->sr_state.ctxcsn, op->o_tmpmemctx );
 	}
 	fava->f_next = op->ors_filter;

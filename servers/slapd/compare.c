@@ -47,7 +47,11 @@ do_compare(
 	struct berval dn = BER_BVNULL;
 	struct berval desc = BER_BVNULL;
 	struct berval value = BER_BVNULL;
+#ifdef LDAP_COMP_MATCH
 	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
+#else
+	AttributeAssertion ava = { NULL, BER_BVNULL };
+#endif
 
 	ava.aa_desc = NULL;
 
