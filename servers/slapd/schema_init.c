@@ -42,6 +42,7 @@
 #define xintegerNormalize NULL
 #define xnumericStringNormalize NULL
 #define xnameUIDNormalize NULL
+#define xdnNormalize NULL
 
 /* (new) normalization routines */
 #define caseExactIA5Normalize						IA5StringNormalize
@@ -49,7 +50,6 @@
 #define caseExactNormalize							UTF8StringNormalize
 #define caseIgnoreNormalize							UTF8StringNormalize
 
-#define distinguishedNameNormalize					NULL
 #define integerNormalize							NULL
 #define integerFirstComponentNormalize				NULL
 #define numericStringNormalize						NULL
@@ -60,6 +60,7 @@
 #define bitStringNormalize							NULL
 #define telephoneNumberNormalize					NULL
 
+#define distinguishedNameNormalize	dnNormalize
 #define distinguishedNameMatch  	dnMatch
 #define distinguishedNameIndexer	octetStringIndexer
 #define distinguishedNameFilter		octetStringFilter
@@ -89,7 +90,7 @@
 #define caseIgnoreIndexer	octetStringIndexer
 #define caseIgnoreFilter	octetStringFilter
 
-#define caseIgnoreSubstringsMatch		NULL
+#define caseIgnoreSubstringsMatch		SubstringsMatch
 #define caseIgnoreSubstringsIndexer		NULL
 #define caseIgnoreSubstringsFilter		NULL
 
@@ -155,6 +156,8 @@
 #endif
 
 #ifndef SLAP_NVALUES
+
+#define xdnNormalize dnNormalize
 
 /* (new) normalization routines */
 #define caseExactNormalize							NULL
@@ -2491,7 +2494,12 @@ caseExactIA5Match(
 }
 
 static int
-caseExactIA5SubstringsMatch(
+caseExactIA5SubstringsMatch
+#else
+static int
+SubstringsMatch
+#endif
+(
 	int *matchp,
 	slap_mask_t flags,
 	Syntax *syntax,
@@ -2613,6 +2621,8 @@ done:
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
+
+#ifndef SLAP_NVALUES
 
 /* Index generation function */
 static int caseExactIA5Indexer(
@@ -4582,7 +4592,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, countryStringValidate, xIA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, dnValidate, dnNormalize2, dnPretty2},
+		0, dnValidate, xdnNormalize, dnPretty2},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",

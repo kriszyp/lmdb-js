@@ -147,9 +147,6 @@ int asserted_value_validate_normalize(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	assert( mr->smr_syntax );
-	assert( mr->smr_syntax->ssyn_validate );
-
 	rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
 
 	if( rc != LDAP_SUCCESS ) {

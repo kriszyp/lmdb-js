@@ -32,10 +32,11 @@ static RETSIGTYPE wait4child( int sig );
 #define MAIN_RETURN(x) return
 static struct sockaddr_in	bind_addr;
 
-void CommenceStartupProcessing( LPCTSTR serverName,
-							   void(*stopper)(int));
-void ReportSlapdShutdownComplete( void );
-void *getRegParam( char *svc, char *value );
+/* FIXME: no externs should appear in a .c, should be in a .h instead */
+extern void CommenceStartupProcessing( LPCTSTR serverName,
+	void(*stopper)(int));
+extern void ReportSlapdShutdownComplete( void );
+extern void *getRegParam( char *svc, char *value );
 
 #define SERVICE_EXIT( e, n )	do { \
 	if ( is_NT_Service ) { \

@@ -393,15 +393,21 @@ LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 
 	struct berval *val ));
 
+#ifdef SLAP_NVALUES
+LDAP_SLAPD_F (int) dnNormalize LDAP_P((
+	slap_mask_t use,
+	Syntax *syntax, 
+	MatchingRule *mr,
+	struct berval *val, 
+	struct berval *normalized ));
+#define dnNormalize2(s,v,n)		dnNormalize(0,(s),NULL,(v),(n))
+#else
 LDAP_SLAPD_F (int) dnNormalize LDAP_P((
 	Syntax *syntax, 
 	struct berval *val, 
-	struct berval **normalized ));
-
-LDAP_SLAPD_F (int) dnNormalize2 LDAP_P((
-	Syntax *syntax, 
-	struct berval *val, 
 	struct berval *normalized ));
+#define dnNormalize2(s,v,n)		dnNormalize((s),(v),(n))
+#endif
 
 LDAP_SLAPD_F (int) dnPretty LDAP_P(( 
 	Syntax *syntax, 

@@ -20,8 +20,6 @@
 
 #include "lutil.h"
 
-const struct berval slap_empty_bv = { 0, "" };
-
 /*
  * The DN syntax-related functions take advantage of the dn representation
  * handling functions ldap_str2dn/ldap_dn2str.  The latter are not schema-
@@ -361,34 +359,20 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 	return LDAP_SUCCESS;
 }
 
-/*
- * dn normalize routine
- */
 int
+#ifdef SLAP_NVALUES
 dnNormalize(
-	Syntax *syntax,
-	struct berval *val,
-	struct berval **normalized )
-{
-	struct berval *out;
-	int rc;
-
-	assert( normalized && *normalized == NULL );
-
-	out = ch_malloc( sizeof( struct berval ) );
-	rc = dnNormalize2( syntax, val, out );
-	if ( rc != LDAP_SUCCESS )
-		free( out );
-	else
-		*normalized = out;
-	return rc;
-}
-
-int
-dnNormalize2(
-	Syntax *syntax,
-	struct berval *val,
-	struct berval *out )
+    slap_mask_t use,
+    Syntax *syntax,
+    MatchingRule *mr,
+    struct berval *val,
+    struct berval *out )
+#else
+dnNormalize(
+    Syntax *syntax,
+    struct berval *val,
+    struct berval *out )
+#endif
 {
 	assert( val );
 	assert( out );
@@ -437,6 +421,7 @@ dnNormalize2(
 	return LDAP_SUCCESS;
 }
 
+#if 0
 /*
  * dn "pretty"ing routine
  */
@@ -459,6 +444,7 @@ dnPretty(
 		*pretty = out;
 	return rc;
 }
+#endif
 
 int
 dnPretty2(

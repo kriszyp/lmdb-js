@@ -230,17 +230,17 @@ slap_tool_init(
 	}
 
 	if( base.bv_val != NULL ) {
-		struct berval *nbase = NULL;
+		struct berval nbase;
 
-		rc = dnNormalize( NULL, &base, &nbase );
+		rc = dnNormalize2( NULL, &base, &nbase );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: slap_init invalid suffix (\"%s\")\n",
 				progname, base.bv_val );
 			exit( EXIT_FAILURE );
 		}
 
-		be = select_backend( nbase, 0, 0 );
-		ber_bvfree( nbase );
+		be = select_backend( &nbase, 0, 0 );
+		ber_bvfree( nbase.bv_val );
 
 		if( be == NULL ) {
 			fprintf( stderr, "%s: slap_init no backend for \"%s\"\n",
