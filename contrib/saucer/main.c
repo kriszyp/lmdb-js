@@ -40,9 +40,9 @@
 #define DN_MAXLEN	4096
 
 typedef struct {
-	char	*cmd;
-	int	(*func) (char **, int);
-	char	*help_msg;
+	const char	*cmd;
+	int		(*func) (char **, int);
+	const char	*help_msg;
 } CMDTABLE;
 
 typedef enum {
@@ -87,12 +87,14 @@ void		show_syntax(int cmdnum);
 char		*skip_to_char(register char *s, register int c);
 char		*skip_to_whitespace(register char *s);
 char		*skip_whitespace(register char *s);
-int		table_lookup(char *word, char **table, int table_count);
+int		table_lookup(const char *, const char *const *, int);
 FILE		*user_tailor(void);
 
-static char	*binary_attrs[] = { "audio", "jpegPhoto", "personalSignature", "photo" };
+static const char *const binary_attrs[] = {
+	"audio", "jpegPhoto", "personalSignature", "photo"
+};
 
-CMDTABLE	cmdtable[] = {
+const CMDTABLE	cmdtable[] = {
 	"help"  , cmd_help  , "[command]",
 	"list"  , cmd_list  , "[RDN-or-DN] [-absolute]",
 	"moveto", cmd_moveto, "[RDN-or-DN] [-absolute]",
@@ -150,7 +152,7 @@ int cmd_list(char **cmdargv, int cmdargc)
 	char		*dn      = NULL;
 	int			errflag  = 0;
 	int			i;
-	static char	*opts[]  = { "absolute" };
+	static const char *const opts[]  = { "absolute" };
 	int			relative = 1;
 	LDAPMessage	*result;
 
@@ -198,7 +200,7 @@ int cmd_moveto(char **cmdargv, int cmdargc)
 	int			errflag  = 0;
 	char		**exploded_dn;
 	int			i;
-	static char	*opts[]  = { "absolute" };
+	static const char *const opts[]  = { "absolute" };
 	int			relative = 1;
 
 	for (i = 1; i < cmdargc; i++) {
@@ -274,11 +276,11 @@ int cmd_search(char **cmdargv, int cmdargc)
 	int			errflag       = 0;
 	char		*filter       = NULL;
 	int			i, j;
-	static char	*opts[]       = { "absolute", "object", "scope" };
+	static const char *const opts[] = { "absolute", "object", "scope" };
 	int			relative      = 1;
 	LDAPMessage	*result;
-	static char	*scope_opts[] = { "base", "onelevel", "subtree" };
-	static int	scope_vals[]  = { LDAP_SCOPE_BASE, LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE };
+	static const char *const scope_opts[]= { "base","onelevel","subtree" };
+	static const int scope_vals[] = { LDAP_SCOPE_BASE, LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE };
 	static int	search_scope  = LDAP_SCOPE_ONELEVEL;
 
 	for (i = 1; i < cmdargc; i++) {
@@ -333,10 +335,14 @@ int cmd_search(char **cmdargv, int cmdargc)
 
 int cmd_set(char **cmdargv, int cmdargc)
 {
-	static char	*alias_opts[] = { "never", "search", "find", "always" };
+	static const char *const alias_opts[] = {
+		"never", "search", "find", "always"
+	};
 	int			errflag       = 0;
 	int			i, j;
-	static char	*opts[]       = { "aliasderef", "sizelimit", "timelimit" };
+	static const char *const opts[] = {
+		"aliasderef", "sizelimit", "timelimit"
+	};
 
 	for (i = 1; i < cmdargc; i++) {
 		if (cmdargv[i][0] == '-') {
@@ -391,7 +397,7 @@ int cmd_show(char **cmdargv, int cmdargc)
 	LDAPMessage	*entry;
 	int			errflag  = 0;
 	int			i;
-	static char	*opts[]  = { "absolute" };
+	static const char *const opts[] = { "absolute" };
 	int			relative = 1;
 	LDAPMessage	*result;
 
@@ -708,7 +714,7 @@ char *skip_whitespace(register char *s)
 	return s;
 }
 
-int table_lookup(char *word, char **table, int table_count)
+int table_lookup(const char *word, const char *const *table, int table_count)
 {
 	register int	i;
 	int				wordlen;
