@@ -888,7 +888,7 @@ else
   	ol_enable_debug="yes"
 fi
 # end --enable-debug
-ol_enable_syslog=no
+ol_enable_syslog=auto
 # OpenLDAP --enable-proctitle
 	# Check whether --enable-proctitle or --disable-proctitle was given.
 if test "${enable_proctitle+set}" = set; then

@@ -39,8 +39,8 @@ AC_ARG_WITH(subdir, [  --with-subdir=DIR change default subdirectory used for in
 AC_SUBST(ldap_subdir)dnl
 
 OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
-ol_enable_syslog=no
-dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
+dnl ol_enable_syslog=no
+OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
 OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DNS  extension], no)dnl
