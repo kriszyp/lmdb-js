@@ -540,7 +540,6 @@ BUILD_SQL_DYNAMIC=static
 
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
-SLAPD_MODULES_LIST=
 
 SLAPD_STATIC_BACKENDS=
 SLAPD_DYNAMIC_BACKENDS=
@@ -2536,7 +2535,6 @@ if test "$ol_enable_bdb" != no ; then
 			[define to support dynamic BDB backend])
 		BUILD_BDB=mod
 		BUILD_BDB_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-bdb/back_bdb.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-bdb"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-bdb"
@@ -2552,7 +2550,6 @@ if test "$ol_link_dnssrv" != no ; then
 			[define to support dynamic DNS SRV backend])
 		BUILD_DNSSRV=mod
 		BUILD_DNSSRV_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-dnssrv/back_dnssrv.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-dnssrv"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-dnssrv"
@@ -2568,7 +2565,6 @@ if test "$ol_enable_ldap" != no ; then
 			[define to support dynamic LDAP backend])
 		BUILD_LDAP=mod
 		BUILD_LDAP_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldap/back_ldap.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldap"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldap"
@@ -2585,7 +2581,6 @@ if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
 			[define to support dynamic LDBM backend])
 		BUILD_LDBM=mod
 		BUILD_LDBM_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldbm/back_ldbm.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldbm"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldbm"
@@ -2609,7 +2604,6 @@ if test "$ol_enable_meta" != no ; then
 			[define to support dynamic LDAP Metadirectory backend])
 		BUILD_META=mod
 		BUILD_META_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-meta/back_meta.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-meta"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-meta"
@@ -2625,7 +2619,6 @@ if test "$ol_enable_monitor" != no ; then
 			[define to support dynamic cn=Monitor backend])
 		BUILD_MONITOR=mod
 		BUILD_MONITOR_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-monitor/back_monitor.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
@@ -2641,7 +2634,6 @@ if test "$ol_enable_null" != no ; then
 			[define to support dynamic NULL backend])
 		BUILD_NULL=mod
 		BUILD_NULL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-null/back_null.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-null"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-null"
@@ -2657,7 +2649,6 @@ if test "$ol_enable_passwd" != no ; then
 			[define to support dynamic PASSWD backend])
 		BUILD_PASSWD=mod
 		BUILD_PASSWD_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-passwd/back_passwd.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-passwd"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-passwd"
@@ -2673,7 +2664,6 @@ if test "$ol_link_perl" != no ; then
 			[define to support dynamic PERL backend])
 		BUILD_PERL=mod
 		BUILD_PERL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-perl/back_perl.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-perl"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-perl"
@@ -2689,7 +2679,6 @@ if test "$ol_enable_shell" != no ; then
 			[define to support dynamic SHELL backend])
 		BUILD_SHELL=mod
 		BUILD_SHELL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-shell/back_shell.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-shell"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-shell"
@@ -2705,7 +2694,6 @@ if test "$ol_enable_tcl" != no ; then
 			[define to support dynamic TCL backend])
 		BUILD_TCL=mod
 		BUILD_TCL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-tcl/back_tcl.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-tcl"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-tcl"
@@ -2721,7 +2709,6 @@ if test "$ol_link_sql" != no ; then
 			[define to support dynamic SQL backend])
 		BUILD_SQL=mod
 		BUILD_SQL_DYNAMIC=shared
-		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-sql/back_sql.la"
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-sql"
 	else
 		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-sql"
@@ -2748,7 +2735,6 @@ dnl
 if test "$ac_cv_mingw32" = yes ; then
 	PLAT=NT
 	SLAPD_MODULES_LDFLAGS=
-	SLAPD_MODULES_LIST=
 else
 	PLAT=UNIX
 fi
@@ -2798,7 +2784,6 @@ AC_SUBST(MOD_TCL_LIB)
 
 AC_SUBST(SLAPD_MODULES_CPPFLAGS)
 AC_SUBST(SLAPD_MODULES_LDFLAGS)
-AC_SUBST(SLAPD_MODULES_LIST)
 
 AC_SUBST(SLAPD_STATIC_BACKENDS)
 AC_SUBST(SLAPD_DYNAMIC_BACKENDS)
