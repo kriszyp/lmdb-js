@@ -45,6 +45,7 @@ bdb_filter_candidates(
 	Filter	*f,
 	ID *ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc = -1;
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_filter_candidates\n", 0, 0, 0 );
 
@@ -94,6 +95,8 @@ bdb_filter_candidates(
 	case LDAP_FILTER_NOT:
 		/* no indexing to support NOT filters */
 		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
+		BDB_IDL_ALL( bdb, ids );
+		rc = 0;
 		break;
 
 	case LDAP_FILTER_AND:
@@ -111,6 +114,7 @@ bdb_filter_candidates(
 	default:
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN %d\n",
 			f->f_choice, 0, 0 );
+		BDB_IDL_ALL( bdb, ids );
 	}
 
 	Debug( LDAP_DEBUG_FILTER,
@@ -129,6 +133,7 @@ list_candidates(
 	int		ftype,
 	ID *ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc = 0;
 	Filter	*f;
 	ID tmp[BDB_IDL_UM_SIZE];
@@ -144,8 +149,10 @@ list_candidates(
 	i2 = save;
 	i3 = tmp;
 
+	BDB_IDL_ZERO( tmp );
+
 	for ( f = flist; f != NULL; f = f->f_next ) {
-		BDB_IDL_ZERO( i1 );
+		BDB_IDL_ZERO( i2 );
 		rc = bdb_filter_candidates( be, f, i2 );
 
 		if ( rc != 0 ) {
@@ -195,13 +202,14 @@ presence_candidates(
 	AttributeDescription *desc,
 	ID *ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db;
 	int rc;
 	slap_mask_t mask;
 	struct berval prefix = {0};
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_presence_candidates\n", 0, 0, 0 );
-	BDB_IDL_ZERO( ids );
+	BDB_IDL_ALL( bdb, ids );
 
 	rc = bdb_index_param( be, desc, LDAP_FILTER_PRESENT,
 		&db, &mask, &prefix );
@@ -210,7 +218,7 @@ presence_candidates(
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_presence_candidates: index_param returned=%d\n",
 			rc, 0, 0 );
-		return rc;
+		return 0;
 	}
 
 	if( db == NULL ) {
@@ -218,16 +226,14 @@ presence_candidates(
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_presence_candidates: not indexed\n",
 			0, 0, 0 );
-		rc = -1;
-		goto done;
+		return 0;
 	}
 
 	if( prefix.bv_val == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_presence_candidates: no prefix\n",
 			0, 0, 0 );
-		rc = -1;
-		goto done;
+		return 0;
 	}
 
 	rc = bdb_key_read( be, db, NULL, &prefix, ids );
@@ -258,6 +264,7 @@ equality_candidates(
 	AttributeAssertion *ava,
 	ID *ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB	*db;
 	int i;
 	int rc;
@@ -270,7 +277,7 @@ equality_candidates(
 	ID *i1, *i2, *i3, *t;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_equality_candidates\n", 0, 0, 0 );
-	BDB_IDL_ZERO( ids );
+	BDB_IDL_ALL( bdb, ids );
 
 	rc = bdb_index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
@@ -326,6 +333,9 @@ equality_candidates(
 	i1 = ids;
 	i2 = save;
 	i3 = tmp;
+
+	BDB_IDL_ALL( bdb, tmp );
+
 	for ( i= 0; keys[i] != NULL; i++ ) {
 		rc = bdb_key_read( be, db, NULL, keys[i], i2 );
 
@@ -397,6 +407,7 @@ approx_candidates(
 	AttributeAssertion *ava,
 	ID *ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB	*db;
 	int i;
 	int rc;
@@ -409,7 +420,7 @@ approx_candidates(
 	ID *i1, *i2, *i3, *t;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_approx_candidates\n", 0, 0, 0 );
-	BDB_IDL_ZERO( ids );
+	BDB_IDL_ALL( bdb, ids );
 
 	rc = bdb_index_param( be, ava->aa_desc, LDAP_FILTER_APPROX,
 		&db, &mask, &prefix );
@@ -470,6 +481,9 @@ approx_candidates(
 	i1 = ids;
 	i2 = save;
 	i3 = tmp;
+
+	BDB_IDL_ALL( bdb, tmp );
+
 	for ( i= 0; keys[i] != NULL; i++ ) {
 		rc = bdb_key_read( be, db, NULL, keys[i], i2 );
 
@@ -529,6 +543,7 @@ substring_candidates(
 	SubstringsAssertion	*sub,
 	ID *ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB	*db;
 	int i;
 	int rc;
@@ -541,7 +556,7 @@ substring_candidates(
 	ID *i1, *i2, *i3, *t;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_substring_candidates\n", 0, 0, 0 );
-	BDB_IDL_ZERO( ids );
+	BDB_IDL_ALL( bdb, ids );
 
 	rc = bdb_index_param( be, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
 		&db, &mask, &prefix );
@@ -599,6 +614,9 @@ substring_candidates(
 	i1 = ids;
 	i2 = save;
 	i3 = tmp;
+
+	BDB_IDL_ALL( bdb, tmp );
+
 	for ( i= 0; keys[i] != NULL; i++ ) {
 		rc = bdb_key_read( be, db, NULL, keys[i], i2 );
 

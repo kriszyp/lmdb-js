@@ -28,8 +28,8 @@
 #define BDB_IDL_IS_RANGE(ids)	((ids)[0] == NOID)
 #define BDB_IDL_RANGE_SIZE		(3)
 #define BDB_IDL_RANGE_SIZEOF	(BDB_IDL_RANGE_SIZE * sizeof(ID))
-#define BDB_IDL_SIZEOF(ids)		(BDB_IDL_IS_RANGE(ids) \
-	? BDB_IDL_RANGE_SIZE : ((ids)[0]+1) * sizeof(ID))
+#define BDB_IDL_SIZEOF(ids)		((BDB_IDL_IS_RANGE(ids) \
+	? BDB_IDL_RANGE_SIZE : ((ids)[0]+1)) * sizeof(ID))
 
 #define BDB_IDL_RANGE_FIRST(ids)	((ids)[1])
 #define BDB_IDL_RANGE_LAST(ids)		((ids)[2])

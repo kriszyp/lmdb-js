@@ -323,10 +323,16 @@ bdb_idl_insert_key(
 	} else {
 		rc = idl_insert( ids, id );
 
+		if( rc == -1 ) {
+			Debug( LDAP_DEBUG_TRACE, "=> bdb_idl_insert_key: dup\n",
+				0, 0, 0 );
+			return 0;
+		}
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
 				"idl_insert failed (%d)\n",
 				rc, 0, 0 );
+			
 			return rc;
 		}
 
@@ -471,7 +477,7 @@ bdb_idl_intersection(
 
 	ids[0] = 0;
 
-	while( ida != NOID && idb != NOID ) {
+	while( ida != NOID || idb != NOID ) {
 		if( ida == idb ) {
 			ids[++ids[0]] = ida;
 			ida = bdb_idl_next( a, &cursora );
@@ -529,7 +535,7 @@ bdb_idl_union(
 
 	ids[0] = 0;
 
-	while( ida != NOID && idb != NOID ) {
+	while( ida != NOID || idb != NOID ) {
 		if( ++ids[0] > BDB_IDL_UM_MAX ) {
 			ids[0] = NOID;
 			ids[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
