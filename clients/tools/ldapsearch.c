@@ -33,6 +33,7 @@
 #include "lutil.h"
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
+#include "ldap_log.h"
 
 static char *def_tmpdir;
 static char *def_urlpre;
@@ -181,7 +182,6 @@ main( int argc, char **argv )
 {
 	char		*infile, *filtpattern, **attrs = NULL, line[BUFSIZ];
 	FILE		*fp = NULL;
-	FILE		*log = NULL;
 	int			rc, i, first, scope, deref, attrsonly, manageDSAit;
 	int			referrals, timelimit, sizelimit, debug;
 	int		authmethod, version, want_bindpw;
