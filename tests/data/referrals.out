@@ -1,0 +1,227 @@
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectClass=referral)
+# requesting: * ref 
+# with manageDSAit critical control
+#
+
+# ABC, US
+dn: o=ABC,c=US
+o: ABC
+ref: ldap://hostA/o=abc,c=us HostA
+ref: ldap://hostB/o=abc,c=us HostB
+objectClass: referral
+objectClass: extensibleObject
+
+# XYZ, US
+dn: o=XYZ,c=US
+o: XYZ
+ref: ldap://hostC/o=xyz,c=us HostC
+objectClass: referral
+objectClass: extensibleObject
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 3
+# numEntries: 2
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectClass=referral)
+# requesting: * ref 
+# with manageDSAit critical control
+#
+
+# ABC, US
+dn: o=ABC,c=US
+o: ABC
+ref: ldap://hostA/o=abc,c=us HostA
+ref: ldap://hostB/o=abc,c=us HostB
+objectClass: referral
+objectClass: extensibleObject
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 2
+# numEntries: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectClass=referral)
+# requesting: * ref 
+# with manageDSAit critical control
+#
+
+# search result
+search: 2
+result: 10 Referral
+matchedDN: o=ABC,c=US
+ref: ldap://hostA/uid=xxx,o=abc,c=us??sub
+ref: ldap://hostB/uid=xxx,o=abc,c=us??sub
+
+# numResponses: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# US
+dn: c=US
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 2
+# numEntries: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search reference
+ref: ldap://hostA/o=abc,c=us??base
+ref: ldap://hostB/o=abc,c=us??base
+
+# search reference
+ref: ldap://hostC/o=xyz,c=us??base
+
+# University of Michigan, US
+dn: o=University of Michigan,c=US
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 4
+# numEntries: 1
+# numReferences: 2
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search reference
+ref: ldap://hostA/o=abc,c=us??sub
+ref: ldap://hostB/o=abc,c=us??sub
+
+# search reference
+ref: ldap://hostC/o=xyz,c=us??sub
+
+# US
+dn: c=US
+
+# University of Michigan, US
+dn: o=University of Michigan,c=US
+
+# Manager, University of Michigan, US
+dn: cn=Manager,o=University of Michigan,c=US
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 6
+# numEntries: 3
+# numReferences: 2
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search result
+search: 2
+result: 10 Referral
+matchedDN: o=ABC,c=US
+ref: ldap://hostA/o=abc,c=us??base
+ref: ldap://hostB/o=abc,c=us??base
+
+# numResponses: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search result
+search: 2
+result: 10 Referral
+matchedDN: o=ABC,c=US
+ref: ldap://hostA/o=abc,c=us??one
+ref: ldap://hostB/o=abc,c=us??one
+
+# numResponses: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search result
+search: 2
+result: 10 Referral
+matchedDN: o=ABC,c=US
+ref: ldap://hostA/o=abc,c=us??sub
+ref: ldap://hostB/o=abc,c=us??sub
+
+# numResponses: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search result
+search: 2
+result: 10 Referral
+matchedDN: o=ABC,c=US
+ref: ldap://hostA/uid=xxx,o=abc,c=us??base
+ref: ldap://hostB/uid=xxx,o=abc,c=us??base
+
+# numResponses: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search result
+search: 2
+result: 10 Referral
+matchedDN: o=ABC,c=US
+ref: ldap://hostA/uid=xxx,o=abc,c=us??one
+ref: ldap://hostB/uid=xxx,o=abc,c=us??one
+
+# numResponses: 1
+# extended LDIF
+#
+# LDAPv3
+# filter: (objectclass=*)
+# requesting: 1.1 
+#
+
+# search result
+search: 2
+result: 10 Referral
+matchedDN: o=ABC,c=US
+ref: ldap://hostA/uid=xxx,o=abc,c=us??sub
+ref: ldap://hostB/uid=xxx,o=abc,c=us??sub
+
+# numResponses: 1

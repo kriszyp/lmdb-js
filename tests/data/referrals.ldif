@@ -4,21 +4,15 @@ objectclass: country
 
 dn: o=ABC,c=US
 o: ABC
-ref: ldap//hostA/o=abc,c=us	HostA
-ref: ldap//hostB/o=abc,c=us	HostB
+ref: ldap://hostA/o=abc,c=us HostA
+ref: ldap://hostB/o=abc,c=us HostB
 objectclass: referral
 objectclass: extensibleObject
 
 dn: o=XYZ,c=US
 o: XYZ
-ref: ldap//hostC/o=xyz,c=us	HostC
+ref: ldap://hostC/o=xyz,c=us HostC
 objectclass: referral
-objectclass: extensibleObject
-
-dn: o=Alias,c=US
-o: Alias
-aliasedObjectName: o=University of Michigan,c=US
-objectclass: alias
 objectclass: extensibleObject
 
 dn: o=University of Michigan,c=US
@@ -33,18 +27,3 @@ sn: Manager
 description: Manager of the directory
 userpassword:: c2VjcmV0
 objectclass: person
-
-dn: cn=Alias,o=University of Michigan,c=US
-cn: Alias
-aliasedobjectname: cn=Manager,o=University of Michigan,c=US
-objectclass: extensibleObject
-
-dn: cn=Circular,o=University of Michigan,c=US
-cn: Circular
-aliasedobjectname: cn=Circular,o=University of Michigan,c=US
-objectclass: extensibleObject
-
-dn: cn=Subordinate,o=University of Michigan,c=US
-cn: Subordinate
-aliasedobjectname: cn=Subordinate,cn=Alias,o=University of Michigan,c=US
-objectclass: extensibleObject
