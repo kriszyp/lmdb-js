@@ -31,6 +31,9 @@
 #include "slap.h"
 #include "back-ldap.h"
 #include "lutil.h"
+#undef ldap_debug
+/* for advanced URL parsing */
+#include "../../../libraries/libldap/ldap-int.h"
 
 static SLAP_EXTOP_MAIN_FN ldap_back_exop_whoami;
 
@@ -101,7 +104,7 @@ ldap_back_db_config(
 #else
 		urlrc =  ldap_url_parselist( &li->lud, argv[ 1 ] );
 #endif
-		if ( urlrc != LDAP_SUCCESS ) {
+		if ( urlrc != LDAP_URL_SUCCESS ) {
 			char	*why;
 
 			switch ( urlrc ) {
