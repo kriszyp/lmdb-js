@@ -194,7 +194,7 @@ ldbm_back_delete(
 
 	} else {
 		/* no parent, must be root to delete */
-		if( ! be_isroot_dn( op ) ) {
+		if( ! be_isroot( op ) ) {
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op->o_bd, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				

@@ -246,7 +246,7 @@ ldbm_back_modrdn(
 
 	} else {
 		/* no parent, must be root to modify rdn */
-		isroot = be_isroot_dn( op );
+		isroot = be_isroot( op );
 		if ( ! isroot ) {
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op->o_bd, &op->o_ndn ) ) {
 				int	can_access;
@@ -418,7 +418,7 @@ ldbm_back_modrdn(
 
 			/* no parent, must be root to modify newSuperior */
 			if ( isroot == -1 ) {
-				isroot = be_isroot_dn( op );
+				isroot = be_isroot( op );
 			}
 
 			if ( ! isroot ) {

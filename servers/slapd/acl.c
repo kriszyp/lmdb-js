@@ -228,7 +228,7 @@ access_allowed(
 #endif /* LDAP_SLAPI */
 
 	/* grant database root access */
-	if ( be != NULL && be_isroot( be, &op->o_ndn ) ) {
+	if ( be != NULL && be_isroot( op ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, INFO, 
 			"access_allowed: conn %lu root access granted\n", 
@@ -1568,7 +1568,7 @@ acl_check_modlist(
 	assert( be != NULL );
 
 	/* short circuit root database access */
-	if ( be_isroot_dn( op ) ) {
+	if ( be_isroot( op ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( ACL, DETAIL1, 
 			   "acl_check_modlist: conn %lu  access granted to root user\n",

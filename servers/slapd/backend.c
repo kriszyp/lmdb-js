@@ -714,7 +714,7 @@ be_issuffix(
 }
 
 int
-be_isroot( Backend *be, struct berval *ndn )
+be_isroot_dn( Backend *be, struct berval *ndn )
 {
 	if ( !ndn->bv_len ) {
 		return( 0 );
@@ -748,9 +748,9 @@ be_root_dn( Backend *be )
 }
 
 int
-be_isroot_dn( Operation *op )
+be_isroot( Operation *op )
 {
-	return be_isroot( op->o_bd, &op->o_ndn );
+	return be_isroot_dn( op->o_bd, &op->o_ndn );
 }
 
 int
@@ -759,7 +759,7 @@ be_isroot_pw( Operation *op )
 	int result;
 	char *errmsg;
 
-	if ( ! be_isroot( op->o_bd, &op->o_req_ndn ) ) {
+	if ( ! be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
 		return 0;
 	}
 

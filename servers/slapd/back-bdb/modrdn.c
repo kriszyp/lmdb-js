@@ -390,7 +390,7 @@ retry:	/* transaction retry */
 
 	} else {
 		/* no parent, modrdn entry directly under root */
-		isroot = be_isroot_dn( op );
+		isroot = be_isroot( op );
 		if ( ! isroot ) {
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
 				|| be_isupdate( op->o_bd, &op->o_ndn ) ) {
@@ -600,7 +600,7 @@ retry:	/* transaction retry */
 
 		} else {
 			if ( isroot == -1 ) {
-				isroot = be_isroot_dn( op );
+				isroot = be_isroot( op );
 			}
 			
 			np_dn = NULL;

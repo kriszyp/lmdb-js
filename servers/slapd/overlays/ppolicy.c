@@ -1053,7 +1053,7 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 
 	/* Root bypasses policy */
-	if ( !be_isroot( op->o_bd, &op->o_req_ndn )) {
+	if ( !be_isroot_dn( op->o_bd, &op->o_req_ndn )) {
 		Entry *e;
 		int i, rc;
 		ppbind *ppb;
@@ -1081,7 +1081,9 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 
 		/* Did we receive a password policy request control? */
 		for ( i=0; op->o_ctrls && op->o_ctrls[i]; i++ ) {
-			if ( !strcmp( op->o_ctrls[i]->ldctl_oid, LDAP_CONTROL_PASSWORDPOLICYREQUEST ) ) {
+			if ( !strcmp( op->o_ctrls[i]->ldctl_oid,
+				LDAP_CONTROL_PASSWORDPOLICYREQUEST ) )
+			{
 				ppb->send_ctrl = 1;
 				break;
 			}
@@ -1172,14 +1174,16 @@ ppolicy_add(
 		return rs->sr_err;
 
 	/* Check for password in entry */
-	if ((pa = attr_find( op->oq_add.rs_e->e_attrs, slap_schema.si_ad_userPassword ))) {
+	if ((pa = attr_find( op->oq_add.rs_e->e_attrs,
+		slap_schema.si_ad_userPassword )))
+	{
 		/*
 		 * new entry contains a password - if we're not the root user
 		 * then we need to check that the password fits in with the
 		 * security policy for the new entry.
 		 */
 		ppolicy_get( op, op->oq_add.rs_e, &pp );
-		if (pp.pwdCheckQuality > 0 && !be_isroot_dn( op )) {
+		if (pp.pwdCheckQuality > 0 && !be_isroot( op )) {
 			struct berval *bv = &(pa->a_vals[0]);
 			int rc, i, send_ctrl = 0; 
 			LDAPPasswordPolicyError pErr = PP_noError;
@@ -1389,7 +1393,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		for(p=tl; p; p=p->next, hsize++); /* count history size */
 	}
 
-	if (be_isroot_dn( op )) goto do_modify;
+	if (be_isroot( op )) goto do_modify;
 
 	/* This is a pwdModify exop that provided the old pw.
 	 * We need to create a Delete mod for this old pw and 
