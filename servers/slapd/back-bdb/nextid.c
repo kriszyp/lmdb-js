@@ -86,6 +86,8 @@ retry:	if( tid != NULL ) {
 		goto done;
 	}
 
+	if( bdb->bi_lastid > id ) id = bdb_lastid;
+
 	id++;
 	data.size = sizeof( id );
 
@@ -139,16 +141,11 @@ int bdb_last_id( BackendDB *be, DB_TXN *tid )
 	data.ulen = sizeof( id );
 	data.flags = DB_DBT_USERMEM;
 
-retry:
 	/* get existing value for read/modify/write */
 	rc = bdb->bi_nextid->bdi_db->get( bdb->bi_nextid->bdi_db,
 		tid, &key, &data, 0 );
 
 	switch(rc) {
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-
 	case DB_NOTFOUND:
 		id = 0;
 		rc = 0;
