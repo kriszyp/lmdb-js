@@ -621,7 +621,7 @@ ldap_int_sasl_bind(
 	/* Check for TLS */
 	ssl = ldap_pvt_tls_sb_ctx( ld->ld_sb );
 	if ( ssl ) {
-		struct berval authid = { 0, NULL };
+		struct berval authid = BER_BVNULL;
 		ber_len_t fac;
 
 		fac = ldap_pvt_tls_get_strength( ssl );
