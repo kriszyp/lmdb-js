@@ -717,3 +717,9 @@ ber_rewind ( BerElement * ber )
 	ber->ber_end = ber->ber_ptr;
 	ber->ber_ptr = ber->ber_buf;
 }
+
+int
+ber_remaining( BerElement * ber )
+{
+	return ber_pvt_ber_remaining( ber );
+}

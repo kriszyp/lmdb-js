@@ -39,6 +39,9 @@ if test $WAIT != 0 ; then
     read foo
 fi
 
+echo "Waiting 5 seconds to wait for master to start..."
+sleep 5
+
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRSLAVECONF > $REPLCONF
 $SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &

@@ -500,7 +500,7 @@ do_syncrepl(
 					entry_free( entry );
 				for ( ml = modlist; ml != NULL; ml = mlnext ) {
 					mlnext = ml->sml_next;
-					free( ml );
+					ber_memfree( ml );
 				}
 				break;
 
@@ -699,6 +699,8 @@ syncrepl_message_to_entry(
 	LDAPControl**	rctrls = NULL;
 	BerElement*	ctrl_ber;
 
+	ber_tag_t	tag;
+
 	*modlist = NULL;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
@@ -732,10 +734,10 @@ syncrepl_message_to_entry(
 
 	e->e_attrs = NULL;
 
-	for ( rc = ldap_get_attribute_ber( ld, msg, ber, &tmp.sml_type, &tmp.sml_bvalues);
-		  rc == LDAP_SUCCESS;
-		  rc = ldap_get_attribute_ber( ld, msg, ber, &tmp.sml_type, &tmp.sml_bvalues))
-	{
+	while ( ber_remaining( ber ) ) {
+		tag = ber_scanf( ber, "{mW}", &tmp.sml_type, &tmp.sml_values );
+
+		if ( tag == LBER_ERROR ) break;
 		if ( tmp.sml_type.bv_val == NULL ) break;
 
 		mod  = (Modifications *) ch_malloc( sizeof( Modifications ));
@@ -862,7 +864,7 @@ done:
 	return e;
 }
 
-int 
+int
 syncuuid_cmp( const void* v_uuid1, const void* v_uuid2 )
 {
 	const struct berval *uuid1 = v_uuid1;
