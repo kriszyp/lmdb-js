@@ -74,7 +74,7 @@ passwd_back_search(
 		vals[0] = &val;
 		vals[1] = NULL;
 
-		matched = base;
+		matched = (char *) base;
 
 		if( scope != LDAP_SCOPE_ONELEVEL ) {
 			char *type;

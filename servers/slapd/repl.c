@@ -213,7 +213,7 @@ replog(
 	case LDAP_REQ_MODRDN:
 		moddn = change;
 		fprintf( fp, "changetype: modrdn\n" );
-		fprintf( fp, "newrdn: %s\n", moddn->newrdn );
+		fprintf( fp, "newrdn: %s\n", moddn->newrdn->bv_val );
 		fprintf( fp, "deleteoldrdn: %d\n", moddn->deloldrdn ? 1 : 0 );
 		if( moddn->newsup != NULL ) {
 			fprintf( fp, "newsuperior: %s\n", moddn->newsup->bv_val );
