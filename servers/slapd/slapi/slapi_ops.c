@@ -1152,6 +1152,7 @@ slapi_search_internal_bind(
 		for (i = 0; attrs[i] != 0; i++) {
 			an[i].an_desc = NULL;
 			an[i].an_oc = NULL;
+			an[i].an_oc_exclude = 0;
 			an[i].an_name.bv_val = slapi_ch_strdup(attrs[i]);
 			an[i].an_name.bv_len = strlen(attrs[i]);
 			slap_bv2ad( &an[i].an_name, &an[i].an_desc, &text );

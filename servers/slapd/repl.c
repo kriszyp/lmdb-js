@@ -344,6 +344,7 @@ replog1(
 				if ( ( !is_in && !ri->ri_exclude ) || ( is_in && ri->ri_exclude ) ) {
 					continue;
 				}
+
 				/* If the list includes objectClass names,
 				 * only include those classes in the
 				 * objectClass attribute
@@ -357,11 +358,27 @@ replog1(
 					for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
 						if ( an->an_oc ) {
 							int i;
+
+							/* FIXME: need to 
+							 * handle 
+							 * an_oc_exclude */
 							for ( i=0; a->a_vals[i].bv_val; i++ ) {
-								if ( a->a_vals[i].bv_len == an->an_name.bv_len
-									&& !strcasecmp(a->a_vals[i].bv_val,
-										an->an_name.bv_val ) ) {
-									ocs = 1;
+								if ( an->an_oc_exclude ) {
+									if ( a->a_vals[i].bv_len != an->an_name.bv_len
+										|| strcasecmp(a->a_vals[i].bv_val,
+											an->an_name.bv_val ) ) {
+										ocs = 1;
+									}
+
+								} else {
+									if ( a->a_vals[i].bv_len == an->an_name.bv_len
+										&& !strcasecmp(a->a_vals[i].bv_val,
+											an->an_name.bv_val ) ) {
+										ocs = 1;
+									}
+								}
+
+								if ( ocs )  {
 									vals[0] = an->an_name;
 									print_vals( fp, &a->a_desc->ad_cname, vals );
 									break;

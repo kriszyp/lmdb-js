@@ -279,7 +279,33 @@ parse_acl(
 						}
 						a->acl_attrval_style = ACL_STYLE_REGEX;
 					} else {
-						a->acl_attrval_style = ACL_STYLE_BASE;
+						/* FIXME: if the attribute has DN syntax,
+						 * we might allow subtree and children styles as well */
+						if ( !strcasecmp( style, "exact" ) ) {
+							a->acl_attrval_style = ACL_STYLE_BASE;
+
+						} else if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+							if ( !strcasecmp( style, "base" ) ) {
+								a->acl_attrval_style = ACL_STYLE_BASE;
+							} else if ( !strcasecmp( style, "children" ) ) {
+								a->acl_attrval_style = ACL_STYLE_CHILDREN;
+							} else if ( !strcasecmp( style, "onelevel" ) || !strcasecmp( style, "one" ) ) {
+								a->acl_attrval_style = ACL_STYLE_ONE;
+							} else if ( !strcasecmp( style, "subtree" ) || !strcasecmp( style, "sub" ) ) {
+								a->acl_attrval_style = ACL_STYLE_SUBTREE;
+							} else {
+								fprintf( stderr, 
+									"%s: line %d: unknown val.<style>, got \"%s\" (ignored)\n",
+									    fname, lineno, style );
+								a->acl_attrval_style = ACL_STYLE_BASE;
+							}
+							
+						} else {
+							fprintf( stderr, 
+								"%s: line %d: unknown val.<style>, got \"%s\" (ignored)\n",
+								    fname, lineno, style );
+							a->acl_attrval_style = ACL_STYLE_BASE;
+						}
 					}
 					
 				} else {
@@ -1691,6 +1717,9 @@ print_acl( Backend *be, AccessControl *a )
 		for ( an = a->acl_attrs; an && an->an_name.bv_val; an++ ) {
 			if ( ! first ) {
 				fprintf( stderr, "," );
+			}
+			if (an->an_oc) {
+				fputc( an->an_oc_exclude ? '!' : '+', stderr);
 			}
 			fputs( an->an_name.bv_val, stderr );
 			first = 0;

@@ -720,6 +720,7 @@ typedef struct slap_attr_desc {
 typedef struct slap_attr_name {
 	struct berval an_name;
 	AttributeDescription *an_desc;
+	int an_oc_exclude;
 	ObjectClass *an_oc;
 } AttributeName;
 

@@ -668,11 +668,70 @@ acl_mask(
 				"acl_get: val %s\n",
 				a->acl_attrval.bv_val, 0, 0 );
 #endif
-			if (value_match( &match, desc,
-				desc->ad_type->sat_equality, 0,
-				val, &a->acl_attrval, &text ) != LDAP_SUCCESS ||
-					match )
-				return ACL_BREAK;
+
+			if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName ) {
+				if (value_match( &match, desc,
+					desc->ad_type->sat_equality, 0,
+					val, &a->acl_attrval, &text ) != LDAP_SUCCESS ||
+						match )
+					return ACL_BREAK;
+				
+			} else {
+				int		patlen, vdnlen, rc, got_match = 0;
+				struct berval	vdn = { 0, NULL };
+
+				/* it is a DN */
+				assert( a->acl_attrs[0].an_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName );
+
+				rc = dnNormalize( 0, NULL, NULL, val, &vdn,
+					       	op->o_tmpmemctx );
+				if ( rc != LDAP_SUCCESS ) {
+					/* error */
+					return ACL_BREAK;
+				}
+
+				patlen = a->acl_attrval.bv_len;
+				vdnlen = vdn.bv_len;
+
+				if ( vdnlen < patlen )
+					goto attrval_cleanup;
+
+				if ( a->acl_dn_style == ACL_STYLE_BASE ) {
+					if ( vdnlen > patlen )
+						goto attrval_cleanup;
+
+				} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
+					int rdnlen = -1;
+
+					if ( !DN_SEPARATOR( vdn.bv_val[vdnlen - patlen - 1] ) )
+						goto attrval_cleanup;
+
+					rdnlen = dn_rdnlen( NULL, &vdn );
+					if ( rdnlen != vdnlen - patlen - 1 )
+						goto attrval_cleanup;
+
+				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
+					if ( vdnlen > patlen && !DN_SEPARATOR( vdn.bv_val[vdnlen - patlen - 1] ) )
+						goto attrval_cleanup;
+
+				} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
+					if ( vdnlen <= patlen )
+						goto attrval_cleanup;
+
+					if ( !DN_SEPARATOR( vdn.bv_val[vdnlen - patlen - 1] ) )
+						goto attrval_cleanup;
+				}
+
+				got_match = strcmp( a->acl_attrval.bv_val, vdn.bv_val + vdnlen - patlen );
+
+attrval_cleanup:;
+				if ( vdn.bv_val )
+					free( vdn.bv_val );
+
+				if ( !got_match )
+					return ACL_BREAK;
+				
+			}
 		}
 	}
 

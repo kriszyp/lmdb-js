@@ -1018,10 +1018,17 @@ static int parsePreRead (
 	}
 
 	for( i=0; i<siz; i++ ) {
-		const char *dummy;
+		int		rc = LDAP_SUCCESS;
+		const char	*dummy = NULL;
+
 		an[i].an_desc = NULL;
 		an[i].an_oc = NULL;
-		slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		an[i].an_oc_exclude = 0;
+		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		if ( rc != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
+			rs->sr_text = dummy ? dummy : "postread control: unknown attributeType";
+			return rc;
+		}
 	}
 
 	op->o_preread = ctrl->ldctl_iscritical
@@ -1067,10 +1074,17 @@ static int parsePostRead (
 	}
 
 	for( i=0; i<siz; i++ ) {
-		const char *dummy;
+		int		rc = LDAP_SUCCESS;
+		const char	*dummy = NULL;
+
 		an[i].an_desc = NULL;
 		an[i].an_oc = NULL;
-		slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		an[i].an_oc_exclude = 0;
+		rc = slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		if ( rc != LDAP_SUCCESS && ctrl->ldctl_iscritical ) {
+			rs->sr_text = dummy ? dummy : "postread control: unknown attributeType";
+			return rc;
+		}
 	}
 
 	op->o_postread = ctrl->ldctl_iscritical

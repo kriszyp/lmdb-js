@@ -537,12 +537,18 @@ int ad_inlist(
 		oc = attrs->an_oc;
 		if( oc == NULL && attrs->an_name.bv_val ) {
 			switch( attrs->an_name.bv_val[0] ) {
-			case '+': { /* new way */
+			case '+': /* new way */
+			case '!': { /* exclude */
 					struct berval ocname;
 					ocname.bv_len = attrs->an_name.bv_len - 1;
 					ocname.bv_val = &attrs->an_name.bv_val[1];
 					oc = oc_bvfind( &ocname );
+					attrs->an_oc_exclude = 0;
+					if ( oc && attrs->an_name.bv_val[0] == '!' ) {
+						attrs->an_oc_exclude = 1;
+					}
 				} break;
+
 			default: /* old (deprecated) way */
 				oc = oc_bvfind( &attrs->an_name );
 			}
@@ -689,7 +695,8 @@ an_find(
  * add on to an existing list if it was given.  If the string
  * is not a valid attribute name, if a '-' is prepended it is 
  * skipped and the remaining name is tried again; if a '+' is
- * prepended, an objectclass name is searched instead.
+ * prepended, an objectclass name is searched instead; if a
+ * '!' is prepended, the objectclass name is negated.
  * 
  * NOTE: currently, if a valid attribute name is not found,
  * the same string is also checked as valid objectclass name;
@@ -727,6 +734,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	{
 		anew->an_desc = NULL;
 		anew->an_oc = NULL;
+		anew->an_oc_exclude = 0;
 		ber_str2bv(s, 0, 1, &anew->an_name);
 		slap_bv2ad(&anew->an_name, &anew->an_desc, &text);
 		if ( !anew->an_desc ) {
@@ -747,7 +755,8 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 					}
 				} break;
 
-			case '+': {
+			case '+':
+			case '!': {
 					struct berval ocname;
 					ocname.bv_len = anew->an_name.bv_len - 1;
 					ocname.bv_val = &anew->an_name.bv_val[1];
@@ -760,6 +769,10 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 						 */
 						strcpy( in, s );
 						return NULL;
+					}
+
+					if ( anew->an_name.bv_val[0] == '!' ) {
+						anew->an_oc_exclude = 1;
 					}
 				} break;
 

@@ -74,7 +74,7 @@ It can have the forms
 	*
 	[dn[.<dnstyle>]=<DN>] 
 	[filter=<ldapfilter>]
-	[attrs=<attrlist>]
+	[attrs=<attrlist>[ val[.<style>]=<attrval>]]
 .fi
 .LP
 The wildcard
@@ -124,6 +124,20 @@ indicating access to the entry itself, and
 indicating access to the entry's children. ObjectClass names may also
 be specified in this list, which will affect all the attributes that
 are required and/or allowed by that objectClass.
+Actually, names in 
+.B <attrlist>
+that are prefixed by
+.B +
+are directly treated as objectClass names, while names that 
+do not correspond to an attribute type are also searched 
+in the objectclass set.
+This latter behavior is deprecated and might not be supported
+in future releases.
+A name prefixed by
+.B !
+is also treated as an objectClass, but in this case the access rule
+affects the attributes that are not required nor allowed 
+by that objectClass.
 .LP
 Using the form
 .B attrs=<attr> val[.<style>]=<value>
@@ -133,11 +147,20 @@ In this case, only a single attribute type may be given. A value
 of
 .B exact
 (the default) uses the attribute's equality matching rule to compare the
-value. If the
+value. If the value
 .B <style>
 is
 .BR regex ,
 the provided value is used as a regular expression pattern.
+If the attribute has DN syntax, the value
+.B <style>
+can be any of
+.BR base ,
+.BR onelevel ,
+.B subtree
+or
+.BR children ,
+resulting in base, onelevel, subtree or children match, respectively.
 .LP
 The dn, filter, and attrs statements are additive; they can be used in sequence 
 to select entities the access rule applies to based on naming context,
