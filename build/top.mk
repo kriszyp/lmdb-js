@@ -148,8 +148,11 @@ LDAP_LIBLBER_LA = $(LDAP_LIBDIR)/liblber/liblber.la
 LDAP_LIBLDAP_LA = $(LDAP_LIBDIR)/libldap/libldap.la
 LDAP_LIBLDAP_R_LA = $(LDAP_LIBDIR)/libldap_r/libldap_r.la
 
+LDAP_LIBLDBM_A_no =
+LDAP_LIBLDBM_A_yes = $(LDAP_LIBDIR)/libldbm/libldbm.a
+
 LDAP_LIBAVL_A = $(LDAP_LIBDIR)/libavl/libavl.a
-LDAP_LIBLDBM_A = $(LDAP_LIBDIR)/libldbm/libldbm.a
+LDAP_LIBLDBM_A = $(LDAP_LIBLDBM_A_@BUILD_LDBM@)
 LDAP_LIBLDIF_A = $(LDAP_LIBDIR)/libldif/libldif.a
 LDAP_LIBREWRITE_A = $(LDAP_LIBDIR)/librewrite/librewrite.a
 LDAP_LIBLUNICODE_A = $(LDAP_LIBDIR)/liblunicode/liblunicode.a
