@@ -30,9 +30,6 @@
 
 #define SLAP_NVALUES 1
 
-#define SLAP_MR_ASSOCIATED(mr, with) \
-	((mr) == (with) || (mr)->smr_associated == (with))
-
 /* not yet implemented */
 #define objectIdentifierNormalize NULL
 #define integerOrderingMatch NULL
@@ -998,7 +995,7 @@ UTF8StringNormalize(
 		return LDAP_SUCCESS;
 	}
 
-	flags = SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactMatch )
+	flags = (mr == slap_schema.si_mr_caseExactMatch)
 		? LDAP_UTF8_NOCASEFOLD : LDAP_UTF8_CASEFOLD;
 	flags |= ( ( use & SLAP_MR_EQUALITY_APPROX ) == SLAP_MR_EQUALITY_APPROX )
 		? LDAP_UTF8_APPROX : 0;
@@ -1686,7 +1683,7 @@ IA5StringNormalize(
 	struct berval *normalized )
 {
 	char *p, *q;
-	int casefold = !SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
+	int casefold = (mr != slap_schema.si_mr_caseExactIA5Match);
 
 	assert( val->bv_len );
 
@@ -2887,25 +2884,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL,
-		objectIdentifierNormalize, octetStringMatch,
+		NULL, objectIdentifierNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL,
-		dnNormalize, dnMatch,
+		NULL, dnNormalize, dnMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-			directoryStringSyntaxes,
-		NULL,
-		UTF8StringNormalize, octetStringMatch,
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, directoryStringSyntaxes,
+		NULL, UTF8StringNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		directoryStringApproxMatchOID },
 
