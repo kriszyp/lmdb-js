@@ -18,11 +18,6 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
-#ifndef IDL_DEBUG
-	/* enable basic checks for now */
-#define IDL_DEBUG 1
-#endif
-
 #if IDL_DEBUG > 0
 static void idl_check( ID *ids )
 {
