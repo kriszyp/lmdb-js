@@ -300,6 +300,7 @@ extern int		deftime;
 extern int		g_argc;
 extern int		global_default_access;
 extern int		global_lastmod;
+extern int		global_idletimeout;
 extern int		global_schemacheck;
 extern int		lber_debug;
 extern int		ldap_syslog;

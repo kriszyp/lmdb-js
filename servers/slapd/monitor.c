@@ -36,6 +36,7 @@ monitor_info( Connection *conn, Operation *op )
 #ifdef LDAP_COUNTERS
     int        i;
     char       buf2[22]
+    char       buf3[22]
 	Connection *c;
 	int			connindex;
 #endif
@@ -88,19 +89,27 @@ monitor_info( Connection *conn, Operation *op )
 #ifndef LDAP_LOCALTIME
 		ltm = gmtime( &c->c_starttime );
 		strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+
+		ltm = gmtime( &c->.c_activitytime );
+		strftime( buf3, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
 #else
 		ltm = localtime( &c->.c_starttime );
 		strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
+
+		ltm = localtime( &c->.c_activitytime );
+		strftime( buf3, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
 #endif
+
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
-		sprintf( buf, "%d : %s : %d : %d : %s : %s%s%s%s", i,
+		sprintf( buf, "%d : %s : %d : %d : %s : %s%s%s%s : %s", i,
 		    buf2, c[i].c_n_ops_received, c[i].c_n_ops_completed,
 		    c[i].c_cdn ? c[i].c_cdn : "NULLDN",
 		    c[i].c_currentber ? "r" : "",
 		    c[i].c_writewaiter ? "w" : "",
 		    c[i].c_ops != NULL ? "x" : "",
 		    c[i].c_pending_ops != NULL ? "p" : ""
+			buf3
 		);
 
 		val.bv_val = buf;

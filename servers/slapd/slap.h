@@ -509,6 +509,7 @@ typedef struct slap_conn {
 
 	/* only can be changed by connect_init */
 	time_t		c_starttime;	/* when the connection was opened */
+	time_t		c_activitytime;	/* when the connection was last used */
 	long		c_connid;	/* id of this connection for stats*/
 	char		*c_client_addr;	/* address of client */
 	char		*c_client_name;	/* name of client */

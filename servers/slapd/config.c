@@ -25,6 +25,7 @@ struct acl	*global_acl = NULL;
 int		global_default_access = ACL_READ;
 char		*replogfile;
 int		global_lastmod;
+int		global_idletimeout = 0;
 char		*ldap_srvtab = "";
 
 char   *slapd_pid_file  = NULL;
@@ -507,6 +508,27 @@ read_config( char *fname )
 				else
 					global_lastmod = OFF;
 			}
+
+		/* set idle timeout value */
+		} else if ( strcasecmp( cargv[0], "idletimeout" ) == 0 ) {
+			int i;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing timeout value in \"idletimeout <seconds>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			i = atoi( cargv[1] );
+
+			if( i < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: timeout value (%d) invalid \"idletimeout <seconds>\" line\n",
+				    fname, lineno, i );
+				return( 1 );
+			}
+
+			global_idletimeout = i;
 
 		/* include another config file */
 		} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {

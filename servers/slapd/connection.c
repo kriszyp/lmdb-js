@@ -212,6 +212,8 @@ static Connection* connection_get( int s )
 		assert( c->c_struct_state == SLAP_C_USED );
 		assert( c->c_conn_state != SLAP_C_INVALID );
 		assert( ber_pvt_sb_in_use( c->c_sb ) );
+
+    	c->c_activitytime = slap_get_time();
 	}
 
 	return c;
@@ -324,7 +326,7 @@ long connection_init(
     c->c_n_ops_completed = 0;
 #endif
 
-    c->c_starttime = slap_get_time();
+    c->c_activitytime = c->c_starttime = slap_get_time();
 
     ber_pvt_sb_set_desc( c->c_sb, s );
     ber_pvt_sb_set_io( c->c_sb, &ber_pvt_sb_io_tcp, NULL );
@@ -362,7 +364,7 @@ connection_destroy( Connection *c )
 #endif
     c->c_protocol = 0;
 
-    c->c_starttime = 0;
+    c->c_activitytime = c->c_starttime = 0;
 
     if(c->c_dn != NULL) {
         free(c->c_dn);
