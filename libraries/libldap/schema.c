@@ -262,6 +262,52 @@ ldap_syntax2str( const LDAP_SYNTAX * syn )
 }
 
 char *
+ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
+{
+	safe_string * ss;
+	char * retstring;
+	
+	ss = new_safe_string(256);
+	if ( !ss )
+		return NULL;
+
+	print_literal(ss,"(");
+	print_whsp(ss);
+
+	print_numericoid(ss, mr->mr_oid);
+	print_whsp(ss);
+
+	if ( mr->mr_names ) {
+		print_literal(ss,"NAME");
+		print_qdescrs(ss,mr->mr_names);
+	}
+
+	if ( mr->mr_desc ) {
+		print_literal(ss,"DESC");
+		print_qdstring(ss,mr->mr_desc);
+	}
+
+	if ( mr->mr_obsolete == LDAP_SCHEMA_YES ) {
+		print_literal(ss, "OBSOLETE");
+		print_whsp(ss);
+	}
+
+	if ( mr->mr_syntax_oid ) {
+		print_literal(ss,"SYNTAX");
+		print_whsp(ss);
+		print_literal(ss, mr->mr_syntax_oid);
+		print_whsp(ss);
+	}
+
+	print_whsp(ss);
+	print_literal(ss,")");
+
+	retstring = LDAP_STRDUP(safe_string_val(ss));
+	safe_string_free(ss);
+	return(retstring);
+}
+
+char *
 ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 {
 	safe_string * ss;
@@ -561,12 +607,19 @@ parse_whsp(const char **sp)
 
 /* Parse a sequence of dot-separated decimal strings */
 static char *
-parse_numericoid(const char **sp, int *code)
+parse_numericoid(const char **sp, int *code, const int allow_quoted)
 {
 	char * res;
 	const char * start = *sp;
 	int len;
+	int quoted = 0;
 
+	/* Netscape puts the SYNTAX value in quotes (incorrectly) */
+	if ( allow_quoted && **sp == '\'' ) {
+		quoted = 1;
+		(*sp)++;
+		start++;
+	}
 	/* Each iteration of this loop gets one decimal string */
 	while (**sp) {
 		if ( !isdigit(**sp) ) {
@@ -594,6 +647,15 @@ parse_numericoid(const char **sp, int *code)
 	}
 	strncpy(res,start,len);
 	res[len] = '\0';
+	if ( allow_quoted && quoted ) {
+		if ( **sp == '\'' ) {
+			(*sp)++;
+		} else {
+			*code = LDAP_SCHERR_UNEXPTOKEN;
+			LDAP_FREE(res);
+			return NULL;
+		}
+	}
 	return(res);
 }
 
@@ -682,7 +744,7 @@ parse_woid(const char **sp, int *code)
 
 /* Parse a noidlen */
 static char *
-parse_noidlen(const char **sp, int *code, int *len, int be_liberal)
+parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
 {
 	char * sval;
 	int kind;
@@ -690,11 +752,11 @@ parse_noidlen(const char **sp, int *code, int *len, int be_liberal)
 
 	*len = 0;
 	/* Netscape puts the SYNTAX value in quotes (incorrectly) */
-	if ( be_liberal && **sp == '\'' ) {
+	if ( allow_quoted && **sp == '\'' ) {
 		quoted = 1;
 		(*sp)++;
 	}
-	sval = parse_numericoid(sp, code);
+	sval = parse_numericoid(sp, code, 0);
 	if ( !sval ) {
 		return NULL;
 	}
@@ -710,7 +772,7 @@ parse_noidlen(const char **sp, int *code, int *len, int be_liberal)
 		}
 		(*sp)++;
 	}		
-	if ( be_liberal && quoted ) {
+	if ( allow_quoted && quoted ) {
 		if ( **sp == '\'' ) {
 			(*sp)++;
 		} else {
@@ -724,14 +786,14 @@ parse_noidlen(const char **sp, int *code, int *len, int be_liberal)
 
 /*
  * Next routine will accept a qdstring in place of an oid if
- * be_liberal is set.  This is necessary to interoperate with Netscape
- * Directory server that will improperly quote each oid (at least
- * those of the descr kind) in the SUP clause.
+ * allow_quoted is set.  This is necessary to interoperate with
+ * Netscape Directory server that will improperly quote each oid (at
+ * least those of the descr kind) in the SUP clause.
  */
 
 /* Parse a woid or a $-separated list of them enclosed in () */
 static char **
-parse_oids(const char **sp, int *code, const int be_liberal)
+parse_oids(const char **sp, int *code, const int allow_quoted)
 {
 	char ** res;
 	char ** res1;
@@ -760,7 +822,7 @@ parse_oids(const char **sp, int *code, const int be_liberal)
 		parse_whsp(sp);
 		kind = get_token(sp,&sval);
 		if ( kind == TK_BAREWORD ||
-		     ( be_liberal && kind == TK_QDSTRING ) ) {
+		     ( allow_quoted && kind == TK_QDSTRING ) ) {
 			res[pos] = sval;
 			pos++;
 		} else {
@@ -777,7 +839,8 @@ parse_oids(const char **sp, int *code, const int be_liberal)
 				parse_whsp(sp);
 				kind = get_token(sp,&sval);
 				if ( kind == TK_BAREWORD ||
-				     ( be_liberal && kind == TK_QDSTRING ) ) {
+				     ( allow_quoted &&
+				       kind == TK_QDSTRING ) ) {
 					if ( pos == size-2 ) {
 						size++;
 						res1 = LDAP_REALLOC(res,size*sizeof(char *));
@@ -806,7 +869,7 @@ parse_oids(const char **sp, int *code, const int be_liberal)
 		parse_whsp(sp);
 		return(res);
 	} else if ( kind == TK_BAREWORD ||
-		    ( be_liberal && kind == TK_QDSTRING ) ) {
+		    ( allow_quoted && kind == TK_QDSTRING ) ) {
 		res = LDAP_CALLOC(2,sizeof(char *));
 		if ( !res ) {
 			*code = LDAP_SCHERR_OUTOFMEM;
@@ -862,7 +925,7 @@ ldap_str2syntax( const char * s, int * code, const char ** errp )
 	}
 
 	parse_whsp(&ss);
-	syn->syn_oid = parse_numericoid(&ss,code);
+	syn->syn_oid = parse_numericoid(&ss,code,0);
 	if ( !syn->syn_oid ) {
 		*errp = ss;
 		ldap_syntax_free(syn);
@@ -922,6 +985,180 @@ ldap_str2syntax( const char * s, int * code, const char ** errp )
 			*code = LDAP_SCHERR_UNEXPTOKEN;
 			*errp = ss;
 			ldap_syntax_free(syn);
+			return NULL;
+		}
+	}
+}
+
+void
+ldap_matchingrule_free( LDAP_MATCHING_RULE * mr )
+{
+	LDAP_FREE(mr->mr_oid);
+	LDAP_VFREE(mr->mr_names);
+	LDAP_FREE(mr->mr_desc);
+	LDAP_FREE(mr->mr_syntax_oid);
+	LDAP_FREE(mr);
+}
+
+LDAP_MATCHING_RULE *
+ldap_str2matchingrule( const char * s, int * code, const char ** errp )
+{
+	int kind;
+	const char * ss = s;
+	char * sval;
+	int be_liberal = 1;	/* Future additional argument */
+	int seen_name = 0;
+	int seen_desc = 0;
+	int seen_obsolete = 0;
+	int seen_syntax = 0;
+	LDAP_MATCHING_RULE * mr;
+	char ** ssdummy;
+	const char * savepos;
+
+	if ( !s ) {
+		*code = LDAP_SCHERR_EMPTY;
+		*errp = "";
+		return NULL;
+	}
+
+	*errp = s;
+	mr = LDAP_CALLOC(1,sizeof(LDAP_MATCHING_RULE));
+
+	if ( !mr ) {
+		*code = LDAP_SCHERR_OUTOFMEM;
+		return NULL;
+	}
+
+	kind = get_token(&ss,&sval);
+	if ( kind != TK_LEFTPAREN ) {
+		*code = LDAP_SCHERR_NOLEFTPAREN;
+		ldap_matchingrule_free(mr);
+		return NULL;
+	}
+
+	parse_whsp(&ss);
+	savepos = ss;
+	mr->mr_oid = parse_numericoid(&ss,code,be_liberal);
+	if ( !mr->mr_oid ) {
+		if ( be_liberal ) {
+			/* Backtracking */
+			ss = savepos;
+			kind = get_token(&ss,&sval);
+			if ( kind == TK_BAREWORD ) {
+				if ( !strcmp(sval, "NAME") ||
+				     !strcmp(sval, "DESC") ||
+				     !strcmp(sval, "OBSOLETE") ||
+				     !strcmp(sval, "SYNTAX") ||
+				     !strncmp(sval, "X-", 2) ) {
+					/* Missing OID, backtrack */
+					ss = savepos;
+				} else {
+					/* Non-numerical OID, ignore */
+				}
+			  }
+		} else {
+			*errp = ss;
+			ldap_matchingrule_free(mr);
+			return NULL;
+		}
+	}
+	parse_whsp(&ss);
+
+	/*
+	 * Beyond this point we will be liberal and accept the items
+	 * in any order.
+	 */
+	while (1) {
+		kind = get_token(&ss,&sval);
+		switch (kind) {
+		case TK_EOS:
+			*code = LDAP_SCHERR_NORIGHTPAREN;
+			*errp = ss;
+			ldap_matchingrule_free(mr);
+			return NULL;
+		case TK_RIGHTPAREN:
+			return mr;
+		case TK_BAREWORD:
+			if ( !strcmp(sval,"NAME") ) {
+				if ( seen_name ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return(NULL);
+				}
+				seen_name = 1;
+				mr->mr_names = parse_qdescrs(&ss,code);
+				if ( !mr->mr_names ) {
+					if ( *code != LDAP_SCHERR_OUTOFMEM )
+						*code = LDAP_SCHERR_BADNAME;
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"DESC") ) {
+				if ( seen_desc ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return(NULL);
+				}
+				seen_desc = 1;
+				parse_whsp(&ss);
+				kind = get_token(&ss,&sval);
+				if ( kind != TK_QDSTRING ) {
+					*code = LDAP_SCHERR_UNEXPTOKEN;
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return NULL;
+				}
+				mr->mr_desc = sval;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"OBSOLETE") ) {
+				if ( seen_obsolete ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return(NULL);
+				}
+				seen_obsolete = 1;
+				mr->mr_obsolete = LDAP_SCHEMA_YES;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"SYNTAX") ) {
+				if ( seen_syntax ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return(NULL);
+				}
+				seen_syntax = 1;
+				parse_whsp(&ss);
+				mr->mr_syntax_oid =
+					parse_numericoid(&ss,code,be_liberal);
+				if ( !mr->mr_syntax_oid ) {
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return NULL;
+				}
+				parse_whsp(&ss);
+			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
+				/* Should be parse_qdstrings */
+				ssdummy = parse_qdescrs(&ss, code);
+				if ( !ssdummy ) {
+					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return NULL;
+				}
+			} else {
+				*code = LDAP_SCHERR_UNEXPTOKEN;
+				*errp = ss;
+				ldap_matchingrule_free(mr);
+				return NULL;
+			}
+			break;
+		default:
+			*code = LDAP_SCHERR_UNEXPTOKEN;
+			*errp = ss;
+			ldap_matchingrule_free(mr);
 			return NULL;
 		}
 	}
@@ -994,7 +1231,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 	 */
 	parse_whsp(&ss);
 	savepos = ss;
-	at->at_oid = parse_numericoid(&ss,code);
+	at->at_oid = parse_numericoid(&ss,code,0);
 	if ( !at->at_oid ) {
 		if ( be_liberal ) {
 			/* Backtracking */
@@ -1152,7 +1389,11 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 				}
 				seen_syntax = 1;
 				parse_whsp(&ss);
-				at->at_syntax_oid = parse_noidlen(&ss,code,&at->at_syntax_len,be_liberal);
+				at->at_syntax_oid =
+					parse_noidlen(&ss,
+						      code,
+						      &at->at_syntax_len,
+						      be_liberal);
 				if ( !at->at_syntax_oid ) {
 					*errp = ss;
 					ldap_attributetype_free(at);
@@ -1305,7 +1546,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 	 */
 	parse_whsp(&ss);
 	savepos = ss;
-	oc->oc_oid = parse_numericoid(&ss,code);
+	oc->oc_oid = parse_numericoid(&ss,code,0);
 	if ( !oc->oc_oid ) {
 		if ( be_liberal ) {
 			/* Backtracking */
@@ -1402,7 +1643,9 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 					return(NULL);
 				}
 				seen_sup = 1;
-				oc->oc_sup_oids = parse_oids(&ss,code,be_liberal);
+				oc->oc_sup_oids = parse_oids(&ss,
+							     code,
+							     be_liberal);
 				if ( !oc->oc_sup_oids ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
