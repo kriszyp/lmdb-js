@@ -106,6 +106,29 @@ int ldbm_initialize( const char* home )
 
 	if(ldbm_initialized++) return 1;
 
+	{
+		char *version;
+		int major, minor, patch;
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor >= DB_VERSION_MINOR )
+		{
+#ifdef LDAP_SYSLOG
+			char error[BUFSIZ];
+
+			sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
+			syslog( LOG_INFO,
+				"ldbm_initialize(): versoin mismatch\nexpected: %s\ngot: %s\n",
+				DB_VERSION_STRING,
+				version );
+#endif
+
+			return 1;
+		}
+	}
+
 #ifndef HAVE_BERKELEY_DB_THREAD
 	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 #endif
