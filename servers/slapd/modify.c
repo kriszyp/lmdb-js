@@ -458,7 +458,7 @@ int slap_modlist2mods(
 				if( rc != 0 ) {
 					slap_mods_free( mod );
 					snprintf( textbuf, textlen,
-						"%s: value #%ld contains invalid data",
+						"%s: value #%ld invalid per syntax",
 						ml->ml_type, (long) nvals );
 					*text = textbuf;
 					return LDAP_INVALID_SYNTAX;
