@@ -917,7 +917,7 @@ int main(argc, argv)
 			AC_MSG_RESULT($ol_cv_pthread_create_works)
 
 			if test $ol_cv_pthread_create_works = no ; then
-				AC_MSG_ERROR([pthread.h and pthread_create are not compatible])
+				AC_MSG_ERROR([pthread_create is not usable, check environment settings])
 			fi
 
 			dnl Check if select causes an yield
