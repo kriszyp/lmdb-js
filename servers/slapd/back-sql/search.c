@@ -271,40 +271,50 @@ backsql_init_search(
 	if ( BACKSQL_IS_GET_ID( flags ) ) {
 		int	matched = BACKSQL_IS_MATCHED( flags );
 		int	getentry = BACKSQL_IS_GET_ENTRY( flags );
+		int	gotit = 0;
 
 		assert( op->o_bd->be_private );
 
 		rc = backsql_dn2id( op, rs, dbh, nbase, &bsi->bsi_base_id,
 				matched, 1 );
-		
+
+		/* the entry is collected either if requested for by getentry
+		 * or if get noSuchObject and requested to climb the tree,
+		 * so that a matchedDN or a referral can be returned */
 		if ( ( rc == LDAP_NO_SUCH_OBJECT && matched ) || getentry ) {
 			if ( !BER_BVISNULL( &bsi->bsi_base_id.eid_ndn ) ) {
 				assert( bsi->bsi_e != NULL );
-
+				
+				if ( dn_match( nbase, &bsi->bsi_base_id.eid_ndn ) )
+				{
+					gotit = 1;
+				}
+			
 				/*
 				 * let's see if it is a referral and, in case, get it
 				 */
 				backsql_attrlist_add( bsi, slap_schema.si_ad_ref );
 				rc = backsql_id2entry( bsi, &bsi->bsi_base_id );
-				if ( rc == LDAP_SUCCESS && is_entry_referral( bsi->bsi_e ) )
-				{
-					BerVarray erefs = get_entry_referrals( op, bsi->bsi_e );
-					if ( erefs ) {
-						rc = rs->sr_err = LDAP_REFERRAL;
-						rs->sr_ref = referral_rewrite( erefs,
-								&bsi->bsi_e->e_nname,
-								&op->o_req_dn,
-								scope );
-						ber_bvarray_free( erefs );
+				if ( rc == LDAP_SUCCESS ) {
+					if ( is_entry_referral( bsi->bsi_e ) )
+					{
+						BerVarray erefs = get_entry_referrals( op, bsi->bsi_e );
+						if ( erefs ) {
+							rc = rs->sr_err = LDAP_REFERRAL;
+							rs->sr_ref = referral_rewrite( erefs,
+									&bsi->bsi_e->e_nname,
+									&op->o_req_dn,
+									scope );
+							ber_bvarray_free( erefs );
+	
+						} else {
+							rc = rs->sr_err = LDAP_OTHER;
+							rs->sr_text = "bad referral object";
+						}
 
-					} else {
-						rc = rs->sr_err = LDAP_OTHER;
-						rs->sr_text = "bad referral object";
+					} else if ( !gotit ) {
+						rc = rs->sr_err = LDAP_NO_SUCH_OBJECT;
 					}
-
-				} else {
-					rc = rs->sr_err = getentry ?
-						LDAP_SUCCESS : LDAP_NO_SUCH_OBJECT;
 				}
 
 			} else {
@@ -1868,18 +1878,27 @@ backsql_search( Operation *op, SlapReply *rs )
 	 * on searchBase object */
 	else {
 		slap_mask_t	mask;
-
-		/* FIXME: need the whole entry (ITS#3480) */
+		
+		if ( get_assert( op ) &&
+				( test_filter( op, &base_entry, get_assertion( op ) )
+				  != LDAP_COMPARE_TRUE ) )
+		{
+			rs->sr_err = LDAP_ASSERTION_FAILED;
+			
+		}
 		if ( ! access_allowed_mask( op, &base_entry,
 					slap_schema.si_ad_entry,
 					NULL, ACL_SEARCH, NULL, &mask ) )
 		{
+			if ( rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+			}
+		}
+
+		if ( rs->sr_err != LDAP_SUCCESS ) {
 			if ( !ACL_GRANT( mask, ACL_DISCLOSE ) ) {
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 				rs->sr_text = NULL;
-
-			} else {
-				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 			}
 			send_ldap_result( op, rs );
 			goto done;

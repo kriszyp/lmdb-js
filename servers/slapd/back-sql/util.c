@@ -245,44 +245,33 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 
 int
 backsql_entry_addattr(
-	Entry		*e,
-	struct berval	*at_name,
-	struct berval	*at_val,
-	void		*memctx )
+	Entry			*e,
+	AttributeDescription	*ad,
+	struct berval		*val,
+	void			*memctx )
 {
-	AttributeDescription	*ad;
 	int			rc;
-	const char		*text;
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-		"at_name=\"%s\", at_val=\"%s\"\n", 
-		at_name->bv_val, at_val->bv_val, 0 );
+	Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(\"%s\"): %s=%s\n", 
+		e->e_name.bv_val, ad->ad_cname->bv_val, val->bv_val );
 #endif /* BACKSQL_TRACE */
 
-	ad = NULL;
-	rc = slap_bv2ad( at_name, &ad, &text );
+	rc = attr_merge_normalize_one( e, ad, val, memctx );
+
 	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-			"failed to find AttributeDescription for \"%s\"\n",
-			at_name->bv_val, 0, 0 );
-		return 0;
-	}
-
-	rc = attr_merge_normalize_one( e, ad, at_val, memctx );
-
-	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
+		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(\"%s\"): "
 			"failed to merge value \"%s\" for attribute \"%s\"\n",
-			at_val->bv_val, at_name->bv_val, 0 );
-		return 0;
+			e->e_name.bv_val, val->bv_val, ad->ad_cname.bv_val );
+		return rc;
 	}
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_query_addattr()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_entry_addattr(\"%s\")\n",
+		e->e_name.bv_val, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-	return 1;
+	return LDAP_SUCCESS;
 }
 
 static char *

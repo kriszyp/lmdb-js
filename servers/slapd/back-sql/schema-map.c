@@ -154,7 +154,30 @@ backsql_make_attr_query(
 #endif /* ! BACKSQL_ALIASING_QUOTE */
 
 	at_map->bam_query = bb.bb_val.bv_val;
-	
+
+#ifdef BACKSQL_COUNTQUERY
+	/* Query to count how many rows will be returned. */
+	BER_BVZERO( &bb.bb_val );
+	bb.bb_len = 0;
+	backsql_strfcat( &bb, "lblbcbl", 
+			(ber_len_t)STRLENOF( "SELECT COUNT(*) FROM " ),
+				"SELECT COUNT(*) FROM ", 
+			&at_map->bam_from_tbls, 
+			(ber_len_t)STRLENOF( " WHERE " ), " WHERE ", 
+			&oc_map->bom_keytbl,
+			'.', 
+			&oc_map->bom_keycol,
+			(ber_len_t)STRLENOF( "=?" ), "=?" );
+
+	if ( !BER_BVISNULL( &at_map->bam_join_where ) ) {
+		backsql_strfcat( &bb, "lb",
+				(ber_len_t)STRLENOF( " AND " ), " AND ", 
+				&at_map->bam_join_where );
+	}
+
+	at_map->bam_countquery = bb.bb_val.bv_val;
+#endif /* BACKSQL_COUNTQUERY */
+
 	return 0;
 }
 
@@ -826,7 +849,7 @@ supad2at_f( void *v_at, void *v_arg )
 	struct supad2at_t	*va = (struct supad2at_t *)v_arg;
 
 	if ( is_at_subtype( at->bam_ad->ad_type, va->ad->ad_type ) ) {
-		backsql_at_map_rec	**ret;
+		backsql_at_map_rec	**ret = NULL;
 		unsigned		i;
 
 		/* if already listed, holler! (should never happen) */
@@ -843,9 +866,11 @@ supad2at_f( void *v_at, void *v_arg )
 		}
 
 		ret = ch_realloc( va->ret,
-				sizeof( backsql_at_map_rec *) * ( va->n + 2 ) );
+				sizeof( backsql_at_map_rec * ) * ( va->n + 2 ) );
 		if ( ret == NULL ) {
 			ch_free( va->ret );
+			va->ret = NULL;
+			va->n = 0;
 			return SUPAD2AT_STOP;
 		}
 
@@ -867,7 +892,7 @@ int
 backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
 		backsql_at_map_rec ***pret )
 {
-	struct supad2at_t	va;
+	struct supad2at_t	va = { 0 };
 	int			rc;
 
 	assert( objclass );
@@ -876,9 +901,7 @@ backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
 
 	*pret = NULL;
 
-	va.ret = NULL;
 	va.ad = supad;
-	va.n = 0;
 
 	rc = avl_apply( objclass->bom_attrs, supad2at_f, &va,
 			SUPAD2AT_STOP, AVL_INORDER );

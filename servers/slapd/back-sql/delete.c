@@ -87,14 +87,13 @@ backsql_delete( Operation *op, SlapReply *rs )
 	RETCODE			rc;
 	int			prc = LDAP_SUCCESS;
 	backsql_oc_map_rec	*oc = NULL;
-	backsql_srch_info	bsi;
+	backsql_srch_info	bsi = { 0 };
 	backsql_entryID		e_id = { 0 };
 	Entry			d = { 0 }, p = { 0 }, *e = NULL;
 	struct berval		pdn = BER_BVNULL;
 	int			manageDSAit = get_manageDSAit( op );
 	/* first parameter no */
 	SQLUSMALLINT		pno;
-	SQLUSMALLINT		CompletionType = SQL_ROLLBACK;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_delete(): deleting entry \"%s\"\n",
 			op->o_req_ndn.bv_val, 0, 0 );
@@ -114,12 +113,12 @@ backsql_delete( Operation *op, SlapReply *rs )
 	 * Get the entry
 	 */
 	bsi.bsi_e = &d;
-	rc = backsql_init_search( &bsi, &op->o_req_ndn,
+	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
-	switch ( rc ) {
+	switch ( rs->sr_err ) {
 	case LDAP_SUCCESS:
 		break;
 
@@ -144,6 +143,22 @@ backsql_delete( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
 			"could not retrieve deleteDN ID - no such entry\n", 
 			0, 0, 0 );
+		if ( !BER_BVISNULL( &d.e_nname ) ) {
+			/* FIXME: should always be true! */
+			e = &d;
+
+		} else {
+			e = NULL;
+		}
+		goto done;
+	}
+
+	if ( get_assert( op ) &&
+			( test_filter( op, &d, get_assertion( op ) )
+			  != LDAP_COMPARE_TRUE ) )
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		e = &d;
 		goto done;
 	}
 
@@ -204,12 +219,12 @@ backsql_delete( Operation *op, SlapReply *rs )
 	dnParent( &op->o_req_ndn, &pdn );
 	bsi.bsi_e = &p;
 	e_id = bsi.bsi_base_id;
-	rc = backsql_init_search( &bsi, &pdn,
+	rs->sr_err = backsql_init_search( &bsi, &pdn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
 			BACKSQL_ISF_GET_ENTRY );
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
 			"could not retrieve deleteDN ID - no such entry\n", 
 			0, 0, 0 );
@@ -471,22 +486,20 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 	rs->sr_err = LDAP_SUCCESS;
 
-done:;
-
 	/*
 	 * Commit only if all operations succeed
-	 *
-	 * FIXME: backsql_add() does not fail if add operations 
-	 * are not available for some attributes, or if
-	 * a multiple value add actually results in a replace, 
-	 * or if a single operation on an attribute fails 
-	 * for any reason
 	 */
-	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
-		CompletionType = SQL_COMMIT;
-	}
-	SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
+	if ( sth != SQL_NULL_HSTMT ) {
+		SQLUSMALLINT	CompletionType = SQL_ROLLBACK;
+	
+		if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+			CompletionType = SQL_COMMIT;
+		}
 
+		SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
+	}
+
+done:;
 #ifdef SLAP_ACL_HONOR_DISCLOSE
 	if ( e != NULL ) {
 		if ( !access_allowed( op, e, slap_schema.si_ad_entry, NULL,
@@ -501,7 +514,6 @@ done:;
 			}
 		}
 	}
-
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	send_ldap_result( op, rs );

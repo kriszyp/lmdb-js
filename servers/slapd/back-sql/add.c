@@ -952,7 +952,6 @@ backsql_add( Operation *op, SlapReply *rs )
 	RETCODE			rc;
 	backsql_oc_map_rec 	*oc = NULL;
 	backsql_srch_info	bsi;
-	backsql_entryID		parent_id = BACKSQL_ENTRYID_INIT;
 	Entry			p = { 0 }, *e = NULL;
 	Attribute		*at,
 				*at_objectClass = NULL;
@@ -1125,6 +1124,15 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	if ( get_assert( op ) &&
+		( test_filter( op, op->oq_add.rs_e, get_assertion( op ) )
+			!= LDAP_COMPARE_TRUE ) )
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		e = op->ora_e;
+		goto done;
+	}
+
 	if ( !access_allowed_mask( op, op->ora_e,
 				slap_schema.si_ad_entry,
 				NULL, ACL_WRITE, NULL, &mask ) )
@@ -1140,7 +1148,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	 * the id of the added row; otherwise the procedure
 	 * is expected to return the id as the first column of a select
 	 */
-	rc = SQLAllocStmt( dbh, &sth );
+	rc = backsql_Prepare( dbh, &sth, oc->bom_create_proc, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
@@ -1152,10 +1160,11 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
 		rc = backsql_BindParamInt( sth, 1, SQL_PARAM_OUTPUT, &new_keyval );
 		if ( rc != SQL_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"   backsql_add_attr(): "
-				"error binding keyval parameter for objectClass %s\n",
-				oc->bom_oc->soc_cname.bv_val, 0, 0 );
+			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+				"error binding keyval parameter "
+				"for objectClass %s\n",
+				op->ora_e->e_name.bv_val,
+				oc->bom_oc->soc_cname.bv_val, 0 );
 			backsql_PrintErrors( bi->sql_db_env, dbh, 
 				sth, rc );
 			SQLFreeStmt( sth, SQL_DROP );
@@ -1186,11 +1195,12 @@ backsql_add( Operation *op, SlapReply *rs )
 					oc->bom_create_hint->ad_cname.bv_val,
 					0, 0 );
 		}
+		colnum++;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): executing \"%s\"\n",
 		op->ora_e->e_name.bv_val, oc->bom_create_proc, 0 );
-	rc = SQLExecDirect( sth, oc->bom_create_proc, SQL_NTS );
+	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"create_proc execution failed\n",
@@ -1203,9 +1213,8 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if ( op->o_noop ) {
-		SQLTransact( SQL_NULL_HENV, dbh, SQL_ROLLBACK );
-	}
+	/* FIXME: after SQLExecute(), the row is already inserted
+	 * (at least with PostgreSQL and unixODBC); needs investigation */
 
 	if ( !BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
 		SWORD		ncols;
@@ -1213,7 +1222,8 @@ backsql_add( Operation *op, SlapReply *rs )
 
 		if ( BACKSQL_CREATE_NEEDS_SELECT( bi ) ) {
 			SQLFreeStmt( sth, SQL_DROP );
-			rc = SQLAllocStmt( dbh, &sth );
+
+			rc = backsql_Prepare( dbh, &sth, oc->bom_create_keyval, 0 );
 			if ( rc != SQL_SUCCESS ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "SQL-backend error";
@@ -1221,7 +1231,7 @@ backsql_add( Operation *op, SlapReply *rs )
 				goto done;
 			}
 
-			rc = SQLExecDirect( sth, oc->bom_create_keyval, SQL_NTS );
+			rc = SQLExecute( sth );
 			if ( rc != SQL_SUCCESS ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "SQL-backend error";
@@ -1340,10 +1350,10 @@ backsql_add( Operation *op, SlapReply *rs )
 	
 	rc = backsql_BindParamBerVal( sth, 1, SQL_PARAM_INPUT, &realdn );
 	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
+		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"error binding DN parameter for objectClass %s\n",
-			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+			op->ora_e->e_name.bv_val,
+			oc->bom_oc->soc_cname.bv_val, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
@@ -1356,10 +1366,11 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	rc = backsql_BindParamInt( sth, 2, SQL_PARAM_INPUT, &oc->bom_id );
 	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
-			"error binding objectClass ID parameter for objectClass %s\n",
-			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+			"error binding objectClass ID parameter "
+			"for objectClass %s\n",
+			op->ora_e->e_name.bv_val,
+			oc->bom_oc->soc_cname.bv_val, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
@@ -1370,12 +1381,13 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rc = backsql_BindParamID( sth, 3, SQL_PARAM_INPUT, &parent_id.eid_id );
+	rc = backsql_BindParamID( sth, 3, SQL_PARAM_INPUT, &bsi.bsi_base_id.eid_id );
 	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
-			"error binding parent ID parameter for objectClass %s\n",
-			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+			"error binding parent ID parameter "
+			"for objectClass %s\n",
+			op->ora_e->e_name.bv_val,
+			oc->bom_oc->soc_cname.bv_val, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
@@ -1388,10 +1400,11 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	rc = backsql_BindParamInt( sth, 4, SQL_PARAM_INPUT, &new_keyval );
 	if ( rc != SQL_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_add_attr(): "
-			"error binding entry ID parameter for objectClass %s\n",
-			oc->bom_oc->soc_cname.bv_val, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
+			"error binding entry ID parameter "
+			"for objectClass %s\n",
+			op->ora_e->e_name.bv_val,
+			oc->bom_oc->soc_cname.bv_val, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 			sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
@@ -1406,12 +1419,12 @@ backsql_add( Operation *op, SlapReply *rs )
 			bi->sql_insentry_stmt, op->ora_e->e_name.bv_val, 0 );
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
-			"parent_id=%s, keyval=%ld\n",
-			oc->bom_id, parent_id.eid_id.bv_val, new_keyval );
+			"p_id=%s, keyval=%ld\n",
+			oc->bom_id, bsi.bsi_base_id.eid_id.bv_val, new_keyval );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
-			"parent_id=%ld, keyval=%ld\n",
-			oc->bom_id, parent_id.eid_id, new_keyval );
+			"p_id=%ld, keyval=%ld\n",
+			oc->bom_id, bsi.bsi_base_id.eid_id, new_keyval );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 	rc = SQLExecute( sth );
 	if ( rc != SQL_SUCCESS ) {
@@ -1430,26 +1443,29 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	/* FIXME: need ldap_entries.id of newly added entry */
+	SQLFreeStmt( sth, SQL_DROP );
+
 	if ( at_objectClass ) {
-		rs->sr_err = backsql_add_attr( op, rs, dbh, oc, at_objectClass, new_keyval );
+		rs->sr_err = backsql_add_attr( op, rs, dbh, oc,
+				at_objectClass, new_keyval );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			e = op->ora_e;
 			goto done;
 		}
 	}
 
-	SQLFreeStmt( sth, SQL_DROP );
-
 done:;
 	/*
 	 * Commit only if all operations succeed
 	 */
-	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
-		SQLTransact( SQL_NULL_HENV, dbh, SQL_COMMIT );
+	if ( sth != SQL_NULL_HSTMT ) {
+		SQLUSMALLINT	CompletionType = SQL_ROLLBACK;
 
-	} else {
-		SQLTransact( SQL_NULL_HENV, dbh, SQL_ROLLBACK );
+		if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+			CompletionType = SQL_COMMIT;
+		}
+
+		SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 	}
 
 	/*
@@ -1497,7 +1513,10 @@ done:;
 	{
 		ch_free( realdn.bv_val );
 	}
-	(void)backsql_free_entryID( op, &parent_id, 0 );
+
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
+	}
 
 	if ( !BER_BVISNULL( &p.e_nname ) ) {
 		entry_clean( &p );

@@ -76,13 +76,16 @@
  * 1. id_query.patch		applied (with changes)
  * 2. shortcut.patch		applied (reworked)
  * 3. create_hint.patch		applied
- * 4. count_query.patch		rejected (conflicts with other features)
+ * 4. count_query.patch		applied (reworked)
  * 5. returncodes.patch		applied (with sanity checks)
  * 6. connpool.patch		under evaluation
- * 7. modoc.patch		under evaluation
- * 8. miscfixes.patch		applied (reworked; FIXME: other
- *				operations may need to load the
- *				entire entry for ACL purposes)
+ * 7. modoc.patch		under evaluation (requires
+ * 				manageDSAit and "manage"
+ * 				access privileges)
+ * 8. miscfixes.patch		applied (reworked; other
+ *				operations need to load the
+ *				entire entry for ACL purposes;
+ *				see ITS#3480, now fixed)
  *
  * original description:
 
@@ -194,6 +197,16 @@ typedef struct {
  * define to enable very extensive trace logging (debug only)
  */
 #undef BACKSQL_TRACE
+
+/*
+ * define to enable values counting for attributes
+ */
+#define BACKSQL_COUNTQUERY
+
+/*
+ * define to enable prettification/validation of values
+ */
+#define BACKSQL_PRETTY_VALIDATE
 
 /*
  * define to enable varchars as unique keys in user tables
@@ -333,6 +346,9 @@ typedef struct backsql_at_map_rec {
 	/* for optimization purposes attribute load query 
 	 * is preconstructed from parts on schemamap load time */
 	char		*bam_query;
+#ifdef BACKSQL_COUNTQUERY
+	char		*bam_countquery;
+#endif /* BACKSQL_COUNTQUERY */
 	/* following flags are bitmasks (first bit used for add_proc, 
 	 * second - for delete_proc) */
 	/* order of parameters for procedures above; 

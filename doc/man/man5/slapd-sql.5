@@ -301,6 +301,22 @@ in table \fIldap_entries\fP needs a subsequent select to collect
 the automatically assigned ID, instead of being returned 
 by a stored procedure.
 
+.LP
+.B fetch_attrs <attrlist>
+.br
+.B fetch_all_attrs { NO | yes }
+.RS
+The first statement allows to provide a list of attributes that
+must always be fetched in addition to those requested by any specific
+operation, because they are required for the proper usage of the
+backend.  For instance, all attributes used in ACLs should be listed
+here.  The second statement is a shortcut to require all attributes 
+to be always loaded.  Note that the dynamically generated attributes,
+e.g. \fIhasSubordinates\fP, \fIentryDN\fP and other implementation
+dependent attributes are \fBNOT\fP generated at this point, for
+consistency with the rest of slapd.  This may change in the future.
+.RE
+
 .TP
 .B sqllayer <name> [...]
 Loads the layer \fB<name>\fP onto a stack of helpers that are used 

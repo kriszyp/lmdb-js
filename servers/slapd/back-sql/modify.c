@@ -36,7 +36,9 @@ backsql_modify( Operation *op, SlapReply *rs )
 	SQLHDBC 		dbh = SQL_NULL_HDBC;
 	backsql_oc_map_rec	*oc = NULL;
 	backsql_srch_info	bsi = { 0 };
-	Entry			e = { 0 };
+	Entry			m = { 0 }, *e = NULL;
+	int			manageDSAit = get_manageDSAit( op );
+	SQLUSMALLINT		CompletionType = SQL_ROLLBACK;
 
 	/*
 	 * FIXME: in case part of the operation cannot be performed
@@ -60,19 +62,45 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	bsi.bsi_e = &e;
+	bsi.bsi_e = &m;
 	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs,
 			slap_anlist_all_attributes,
-			BACKSQL_ISF_GET_ENTRY );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
+			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
+	switch ( rs->sr_err ) {
+	case LDAP_SUCCESS:
+		break;
+
+	case LDAP_REFERRAL:
+		if ( !BER_BVISNULL( &bsi.bsi_e->e_nname ) &&
+				dn_match( &op->o_req_ndn, &bsi.bsi_e->e_nname )
+				&& manageDSAit )
+		{
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_text = NULL;
+			rs->sr_matched = NULL;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
+			break;
+		}
+		e = &m;
+		/* fallthru */
+
+	default:
 		Debug( LDAP_DEBUG_TRACE, "backsql_modify(): "
 			"could not retrieve modifyDN ID - no such entry\n", 
 			0, 0, 0 );
-		/* FIXME: we keep the error code
-		 * set by backsql_init_search() */
+		if ( !BER_BVISNULL( &m.e_nname ) ) {
+			/* FIXME: should always be true! */
+			e = &m;
+
+		} else {
+			e = NULL;
+		}
 		goto done;
 	}
 
@@ -86,6 +114,15 @@ backsql_modify( Operation *op, SlapReply *rs )
 		"modifying entry \"%s\" (id=%ld)\n", 
 		bsi.bsi_base_id.eid_dn.bv_val, bsi.bsi_base_id.eid_id, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	if ( get_assert( op ) &&
+			( test_filter( op, &m, get_assertion( op ) )
+			  != LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		e = &m;
+		goto done;
+	}
 
 	oc = backsql_id2oc( bi, bsi.bsi_base_id.eid_oc_id );
 	if ( oc == NULL ) {
@@ -102,28 +139,47 @@ backsql_modify( Operation *op, SlapReply *rs )
 		 */
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
+		e = NULL;
 		goto done;
 	}
 
 	/* FIXME: need the whole entry (ITS#3480) */
-	if ( !acl_check_modlist( op, &e, op->oq_modify.rs_modlist ) ) {
+	if ( !acl_check_modlist( op, &m, op->oq_modify.rs_modlist ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-
-	} else {
-		rs->sr_err = backsql_modify_internal( op, rs, dbh, oc,
-				&bsi.bsi_base_id,
-				op->oq_modify.rs_modlist );
+		e = &m;
+		goto done;
 	}
 
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		/*
-		 * Commit only if all operations succeed
-		 */
-		SQLTransact( SQL_NULL_HENV, dbh, 
-				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
+	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc,
+			&bsi.bsi_base_id,
+			op->oq_modify.rs_modlist );
+
+	/*
+	 * Commit only if all operations succeed
+	 */
+	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+		CompletionType = SQL_COMMIT;
 	}
+
+	SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 
 done:;
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+	if ( e != NULL ) {
+		if ( !access_allowed( op, e, slap_schema.si_ad_entry, NULL,
+					ACL_DISCLOSE, NULL ) )
+		{
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			rs->sr_text = NULL;
+			rs->sr_matched = NULL;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
+		}
+	}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+
 	send_ldap_result( op, rs );
 
 	(void)backsql_free_entryID( op, &bsi.bsi_base_id, 0 );
@@ -138,6 +194,6 @@ done:;
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n", 0, 0, 0 );
 
-	return rs->sr_err != LDAP_SUCCESS ? rs->sr_err : op->o_noop;
+	return rs->sr_err;
 }
 

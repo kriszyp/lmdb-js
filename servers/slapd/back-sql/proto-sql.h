@@ -237,7 +237,7 @@ extern char
 struct berbuf * backsql_strcat( struct berbuf *dest, ... );
 struct berbuf * backsql_strfcat( struct berbuf *dest, const char *fmt, ... );
 
-int backsql_entry_addattr( Entry *e, struct berval *at_name, 
+int backsql_entry_addattr( Entry *e, AttributeDescription *ad, 
 		struct berval *at_val, void *memctx );
 
 int backsql_merge_from_clause( struct berbuf *dest_from, 

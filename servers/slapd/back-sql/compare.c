@@ -79,6 +79,14 @@ backsql_compare( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
+	if ( get_assert( op ) &&
+			( test_filter( op, &e, get_assertion( op ) )
+			  != LDAP_COMPARE_TRUE ) )
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto return_results;
+	}
+
 	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
 		SlapReply	nrs = { 0 };
 
