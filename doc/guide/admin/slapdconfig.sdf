@@ -589,7 +589,8 @@ H3: What to control access to
 
 The <what> part of an access specification determines the entries
 and attributes to which the access control applies.  Entries are
-commonly selected in two ways: by DN and by filter.
+commonly selected in two ways: by DN and by filter.  The following
+qualifiers select entries by DN:
 
 >	by *
 >	by dn[.<basic-style>]=<regex>
