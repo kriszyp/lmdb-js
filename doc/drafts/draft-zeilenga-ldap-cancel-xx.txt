@@ -1,0 +1,395 @@
+
+
+
+
+
+
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Standard Track                OpenLDAP Foundation
+Expires in six months                                    17 May 2002
+
+
+                      LDAP Cancel Extended Operation
+                   <draft-zeilenga-ldap-cancel-05.txt>
+
+
+1.      Status of this Memo
+
+  This document is an Internet-Draft and is in full conformance with all
+  provisions of Section 10 of RFC2026.
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as a Standard Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extension Working Group
+  mailing list <ietf-ldapext@netscape.com>.  Please send editorial
+  comments directly to the author <Kurt@OpenLDAP.org>.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups.  Note that other
+  groups may also distribute working documents as Internet-Drafts.
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time.  It is inappropriate to use Internet-Drafts as reference
+  material or to cite them other than as ``work in progress.''
+
+  The list of current Internet-Drafts can be accessed at
+  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
+  Internet-Draft Shadow Directories can be accessed at
+  <http://www.ietf.org/shadow.html>.
+
+  Copyright 2002, The Internet Society.  All Rights Reserved.
+
+  Please see the Copyright section near the end of this document for
+  more information.
+
+
+Abstract
+
+  This specification describes an LDAP (Lightweight Directory Access
+  Protocol) extended operation to cancel (or abandon) an outstanding
+  operation.   Unlike the LDAP Abandon operation but like the X.511 DAP
+  Abandon operation, this operation has a response which provides an
+  indication of its outcome.
+
+
+
+
+Zeilenga                       LDAP Cancel                      [Page 1]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-cancel-05          17 May 2002
+
+
+Conventions
+
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in BCP 14 [RFC2119].
+
+  Protocol elements are described using ASN.1 [X.680].  The term
+  "BER-encoded" means the element is to be encoded using the Basic
+  Encoding Rules [X.690] under the restrictions detailed in Section 5.1
+  of [RFC2251].
+
+
+1. Background and Intent of Use
+
+  LDAP [RFC2251] provides an Abandon operation which clients may use to
+  cancel other operations.  The Abandon operation does not have a
+  response and also calls for there to be no response of the abandoned
+  operation.  These semantics provide the client with no clear
+  indication of the outcome of the Abandon operation.
+
+  X.511 DAP [X.511] provides an Abandon operation which does have a
+  response and also requires the abandoned operation to return a
+  response with indicating it was canceled.  The Cancel operation is
+  modeled after the DAP Abandon operation.
+
+  The Cancel operation SHOULD be used instead of the LDAP Abandon
+  operation when the client needs an indication of the outcome.  This
+  operation may be used to cancel both interrogation and update
+  operations.
+
+
+4. Cancel Operation
+
+  The Cancel operation is defined as a LDAPv3 Extended Operation
+  [RFC2251, Section 4.12] identified by the OBJECT IDENTIFIER cancelOID.
+  This section details the syntax of the Cancel request and response
+  messages and defines additional LDAP resultCodes.
+
+      cancelOID OBJECT IDENTIFIER ::= IANA-ASSIGNED
+
+      cancelRequestValue ::= SEQUENCE {
+          cancelID        MessageID
+      }
+
+
+4.1. Cancel Request
+
+  The Cancel request is an ExtendedRequest with the requestName field
+
+
+
+Zeilenga                       LDAP Cancel                      [Page 2]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-cancel-05          17 May 2002
+
+
+  containing cancelOID OID and a requestValue field which contains a
+  cancelRequestValue value encoded per [RFC2251, Section 5.1].  The
+  cancelID field contains the message id associated with the operation
+  to be canceled.
+
+
+4.2. Cancel Response
+
+  A Cancel response is an ExtendedResponse where the responseName and
+  response fields are absent.
+
+
+4.3. Additional Result Codes
+
+  Implementations of this specification SHALL recognize the following
+  additional resultCode values:
+
+      canceled        (IANA-ASSIGNED-1)
+      noSuchOperation (IANA-ASSIGNED-2)
+      tooLate         (IANA-ASSIGNED-3)
+      cannotCancel    (IANA-ASSIGNED-4)
+
+
+5. Operational Semantics
+
+  The function of the Cancel Operation is to request that the server
+  cancel an outstanding operation issued within the same session.
+
+  The client requests the cancelation of an outstanding operation by
+  issuing a Cancel Response with a cancelID with the message id
+  identifying the outstanding operation.  The Cancel Request itself has
+  a distinct message id.  Clients SHOULD NOT request cancelation of an
+  operation multiple times.
+
+  If the server is unable to parse the requestValue or the requestValue
+  is absent, the server shall return protocolError.
+
+  If the server is willing and able to cancel the outstanding operation
+  identified by the cancelId, the server SHALL return a Cancel Response
+  with a success resultCode and the canceled operation SHALL fail with
+  canceled resultCode.  Otherwise the Cancel Response SHALL have a
+  non-success resultCode and SHALL NOT have impact upon the outstanding
+  operation (if it exists).
+
+  The server SHALL return noSuchOperation if it has no knowledge of the
+  operation requested to be canceled.
+
+  The server SHALL return cannotCancel if the identified operation does
+
+
+
+Zeilenga                       LDAP Cancel                      [Page 3]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-cancel-05          17 May 2002
+
+
+  not support cancelation or the cancel operation could not be
+  performed.  The following classes of operations are not cancelable:
+
+    - operations which have no response,
+
+    - operations which associate or disassociate authentication and/or
+      authorization associations,
+
+    - operations which establish or tear-down security services, and
+
+    - operations which abandon or cancel other operations.
+
+  Specifically, Abandon, Bind, Start TLS [RFC2830], Unbind and Cancel
+  operations are not cancelable.
+
+  If the result of the outstanding operation has been determined by the
+  server, the outstanding operation SHALL NOT be canceled and the cancel
+  operation SHALL result in tooLate.
+
+  Servers SHOULD indicate their support for this extended operation by
+  providing cancelOID as a value of the supportedExtension attribute
+  type in their root DSE.  A server MAY choose to advertise this
+  extension only when the client is authorized and/or has established
+  the necessary security protections to use this operation.  Clients
+  SHOULD verify the server implements this extended operation prior to
+  attempting the operation by asserting the supportedExtension attribute
+  contains a value of cancelOID.
+
+
+6. Security Considerations
+
+  This operation is intended to allow a user to cancel operations they
+  previously issued.  No user should be allowed to cancel an operation
+  issued by another user (within the same session or not).  However, as
+  this operation may only be used to cancel within the same session and
+  LDAP requires operations to be abandoned upon bind requests, this is a
+  non-issue.
+
+  Some operations should not be cancelable for security reasons.  This
+  specification disallows cancelation of Bind operation and Start TLS
+  extended operation so as to avoid adding complexity to authentication,
+  authorization, and security layer semantics.  Designers of future
+  extended operations and/or controls SHOULD disallow abandonment and
+  cancelation when appropriate.
+
+
+7.  IANA Considerations
+
+
+
+
+Zeilenga                       LDAP Cancel                      [Page 4]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-cancel-05          17 May 2002
+
+
+7.1.  Object Identifiers
+
+  It is requested that IANA register a Directory Number OID for use in
+  this document upon Standards Action by the IESG.   This OID will be
+  used to identify the LDAP Cancel extended operation as indicated
+  above.  The following registration template is suggested:
+
+      Subject: Request for LDAP OID Registration
+      Person & email address to contact for further information:
+           Kurt Zeilenga <kurt@OpenLDAP.org>
+      Specification: RFCXXX
+      Author/Change Controller: IESG
+
+
+7.2.  LDAP Result Codes
+
+  It is requested that IANA register the LDAP result codes:
+
+      canceled        (IANA-ASSIGNED-1)
+      noSuchOperation (IANA-ASSIGNED-2)
+      tooLate         (IANA-ASSIGNED-3)
+      cannotCancel    (IANA-ASSIGNED-4)
+
+  upon Standards Action by the IESG.  The following registration
+  template is suggested:
+
+      Subject: LDAP Result Code Registration
+      Person & email address to contact for further information:
+           Kurt Zeilenga <kurt@OpenLDAP.org>
+      Result Code Name: canceled
+      Result Code Name: noSuchOperation
+      Result Code Name: tooLate
+      Result Code Name: cannotCancel
+      Specification: RFCXXXX
+      Author/Change Controller: IESG
+      Comments:  request four consecutive result codes be assigned
+
+
+8. Acknowledgment
+
+  This document is based upon input from the IETF LDAPext working group.
+
+
+9. Normative References
+
+  [RFC2119] S. Bradner, "Key words for use in RFCs to Indicate
+            Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+
+
+
+
+Zeilenga                       LDAP Cancel                      [Page 5]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-cancel-05          17 May 2002
+
+
+  [RFC2251] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
+            Protocol (v3)", RFC 2251, December 1997.
+
+  [RFC2830] J. Hodges, R. Morgan, and M. Wahl, "Lightweight Directory
+            Access Protocol (v3): Extension for Transport Layer
+            Security", RFC 2830, May 2000.
+
+  [X.680]   ITU-T, "Abstract Syntax Notation One (ASN.1) - Specification
+            of Basic Notation", X.680, 1994.
+
+  [X.690]   ITU-T, "Specification of ASN.1 encoding rules:  Basic,
+            Canonical, and Distinguished Encoding Rules", X.690, 1994.
+
+
+9. Informative References
+
+  [X.511]   ITU-T Rec. X.511, "The Directory: Abstract Service
+            Definition", 1993.
+
+
+11. Author's Address
+
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+  <Kurt@OpenLDAP.org>
+
+
+Copyright 2002, The Internet Society.  All Rights Reserved.
+
+  This document and translations of it may be copied and furnished to
+  others, and derivative works that comment on or otherwise explain it
+  or assist in its implementation may be prepared, copied, published and
+  distributed, in whole or in part, without restriction of any kind,
+  provided that the above copyright notice and this paragraph are
+  included on all such copies and derivative works.  However, this
+  document itself may not be modified in any way, such as by removing
+  the copyright notice or references to the Internet Society or other
+  Internet organizations, except as needed for the  purpose of
+  developing Internet standards in which case the procedures for
+  copyrights defined in the Internet Standards process must be followed,
+  or as required to translate it into languages other than English.
+
+  The limited permissions granted above are perpetual and will not be
+  revoked by the Internet Society or its successors or assigns.
+
+  This document and the information contained herein is provided on an
+  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+
+
+
+Zeilenga                       LDAP Cancel                      [Page 6]
+
+INTERNET-DRAFT        draft-zeilenga-ldap-cancel-05          17 May 2002
+
+
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                       LDAP Cancel                      [Page 7]
+
