@@ -17,7 +17,7 @@ ud                 D                 *      cd f     l  p   s uv
 
 
 * reserved
-	GJNgijmoqy
+	GJNgijmoqy01235789
 
 * General flags:
 	-C Chase Referrals
@@ -34,6 +34,8 @@ ud                 D                 *      cd f     l  p   s uv
 	-p port
 	-v verbose
 	-w Bind password
+	-4 IPv4 only
+	-6 IPv6 only
 
 
 * LDAPv3 Only 
