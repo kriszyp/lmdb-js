@@ -393,6 +393,11 @@ monitor_back_db_init(
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(struct monitorinfo, mi_ad_readOnly) },
+		{ "restrictedOperation", "( 1.3.6.1.4.1.4203.666.1.32 "
+			"NAME 'restrictedOperation' "
+			"DESC 'name of restricted operation for a given database' "
+			"SUP managedInfo )", SLAP_AT_HIDE,
+			offsetof(struct monitorinfo, mi_ad_restrictedOperation ) },
 #ifdef INTEGRATE_CORE_SCHEMA
 		{ NULL, NULL, 0, -1 },	/* description */
 		{ NULL, NULL, 0, -1 },	/* seeAlso */

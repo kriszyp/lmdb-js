@@ -36,6 +36,64 @@ static int monitor_back_add_plugin( Backend *be, Entry *e );
 #include "../back-ldap/back-ldap.h"
 #endif /* defined(SLAPD_LDAP) */
 
+static struct restrict_ops_t {
+	struct berval	op;
+	unsigned int	tag;
+} restrict_ops[] = {
+	{ BER_BVC( "add" ),			SLAP_RESTRICT_OP_ADD },
+	{ BER_BVC( "bind" ),			SLAP_RESTRICT_OP_BIND },
+	{ BER_BVC( "compare" ),			SLAP_RESTRICT_OP_COMPARE },
+	{ BER_BVC( "delete" ),			SLAP_RESTRICT_OP_DELETE },
+	{ BER_BVC( "extended" ),		SLAP_RESTRICT_OP_EXTENDED },
+	{ BER_BVC( "modify" ),			SLAP_RESTRICT_OP_MODIFY },
+	{ BER_BVC( "rename" ),			SLAP_RESTRICT_OP_RENAME },
+	{ BER_BVC( "search" ),			SLAP_RESTRICT_OP_SEARCH },
+	{ BER_BVNULL,				0 }
+}, restrict_exops[] = {
+	{ BER_BVC( LDAP_EXOP_START_TLS ),	SLAP_RESTRICT_EXOP_START_TLS },
+	{ BER_BVC( LDAP_EXOP_MODIFY_PASSWD ),	SLAP_RESTRICT_EXOP_MODIFY_PASSWD },
+	{ BER_BVC( LDAP_EXOP_X_WHO_AM_I ),	SLAP_RESTRICT_EXOP_WHOAMI },
+	{ BER_BVC( LDAP_EXOP_X_CANCEL ),	SLAP_RESTRICT_EXOP_CANCEL },
+	{ BER_BVNULL,				0 }
+};
+
+static int
+init_readOnly( struct monitorinfo *mi, Entry *e, slap_mask_t restrictops )
+{
+	struct berval	*tf = ( ( restrictops & SLAP_RESTRICT_OP_MASK ) == SLAP_RESTRICT_OP_WRITES ) ?
+		(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv;
+
+	return attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
+}
+
+static int
+init_restrictedOperation( struct monitorinfo *mi, Entry *e, slap_mask_t restrictops )
+{
+	int	i, rc;
+
+	for ( i = 0; restrict_ops[ i ].op.bv_val; i++ ) {
+		if ( restrictops & restrict_ops[ i ].tag ) {
+			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
+					&restrict_ops[ i ].op, &restrict_ops[ i ].op );
+			if ( rc ) {
+				return rc;
+			}
+		}
+	}
+
+	for ( i = 0; restrict_exops[ i ].op.bv_val; i++ ) {
+		if ( restrictops & restrict_exops[ i ].tag ) {
+			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
+					&restrict_exops[ i ].op, &restrict_exops[ i ].op );
+			if ( rc ) {
+				return rc;
+			}
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
 int
 monitor_subsys_database_init(
 	BackendDB	*be
@@ -45,7 +103,6 @@ monitor_subsys_database_init(
 	Entry			*e, *e_database, *e_tmp;
 	int			i;
 	struct monitorentrypriv	*mp;
-	struct berval *tf;
 
 	assert( be != NULL );
 
@@ -68,9 +125,9 @@ monitor_subsys_database_init(
 #endif
 		return( -1 );
 	}
-	tf = (global_restrictops & SLAP_RESTRICT_OP_WRITES) ?
-		(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv ; 
-	attr_merge_one( e_database, mi->mi_ad_readOnly, tf, tf );
+
+	(void)init_readOnly( mi, e_database, global_restrictops );
+	(void)init_restrictedOperation( mi, e_database, global_restrictops );
 
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {
@@ -141,9 +198,9 @@ monitor_subsys_database_init(
 			attr_merge( e_database, slap_schema.si_ad_namingContexts,
 					be->be_suffix, be->be_nsuffix );
 		}
-		tf = (be->be_restrictops & SLAP_RESTRICT_OP_WRITES) ?
-			(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv ; 
-		attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
+
+		(void)init_readOnly( mi, e, be->be_restrictops );
+		(void)init_restrictedOperation( mi, e, be->be_restrictops );
 
 		if ( oi != NULL ) {
 			slap_overinst *on = oi->oi_list;
@@ -319,6 +376,10 @@ monitor_subsys_database_modify(
 			if ( rc ) {
 				break;
 			}
+
+		} else if ( mod->sm_desc == mi->mi_ad_restrictedOperation ) {
+			/* TODO */
+
 		} else if ( is_at_operational( mod->sm_desc->ad_type )) {
 		/* accept all operational attributes */
 			attr_delete( &e->e_attrs, mod->sm_desc );
@@ -328,11 +389,13 @@ monitor_subsys_database_modify(
 				rc = LDAP_OTHER;
 				break;
 			}
+
 		} else {
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}
 	}
+
 	if ( gotval == 1 && cur >= 0 ) {
 		struct berval *tf;
 		tf = cur ? (struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv;
