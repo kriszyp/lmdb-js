@@ -676,8 +676,7 @@ dnExtractRdn(
 		return rc;
 	}
 
-	rc = ldap_rdn2bv( tmpRDN, rdn,
-		LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_FORMAT_PRETTY );
+	rc = ldap_rdn2bv( tmpRDN, rdn, LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY );
 
 	ldap_rdnfree( tmpRDN );
 	if ( rc != LDAP_SUCCESS ) {
