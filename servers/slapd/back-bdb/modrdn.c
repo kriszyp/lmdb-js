@@ -654,9 +654,9 @@ retry:	/* transaction retry */
 	}
 
 	/* Build target dn and make sure target entry doesn't exist already. */
-	build_new_dn( &new_dn, new_parent_dn, newrdn ); 
+	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, newrdn ); 
 
-	dnNormalize2( NULL, &new_dn, &new_ndn );
+	if (!new_ndn.bv_val) dnNormalize2( NULL, &new_dn, &new_ndn );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, RESULTS, 
@@ -685,7 +685,7 @@ retry:	/* transaction retry */
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-	if ( ldap_bv2rdn( newrdn, &new_rdn, (char **)&text,
+	if ( !new_rdn && ldap_bv2rdn( newrdn, &new_rdn, (char **)&text,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
 #ifdef NEW_LOGGING
@@ -719,7 +719,7 @@ retry:	/* transaction retry */
 #endif
 
 	if ( deleteoldrdn ) {
-		if ( ldap_bv2rdn( dn, &old_rdn, (char **)&text,
+		if ( !old_rdn && ldap_bv2rdn( dn, &old_rdn, (char **)&text,
 			LDAP_DN_FORMAT_LDAP ) )
 		{
 #ifdef NEW_LOGGING
@@ -740,10 +740,12 @@ retry:	/* transaction retry */
 	}
 
 	/* prepare modlist of modifications from old/new rdn */
-	rc = slap_modrdn2mods( be, conn, op, e, old_rdn, new_rdn, 
+	if (!mod) {
+		rc = slap_modrdn2mods( be, conn, op, e, old_rdn, new_rdn, 
 			deleteoldrdn, &mod );
-	if ( rc != LDAP_SUCCESS ) {
-		goto return_results;
+		if ( rc != LDAP_SUCCESS ) {
+			goto return_results;
+		}
 	}
 	
 	/* delete old one */
@@ -762,9 +764,16 @@ retry:	/* transaction retry */
 	(void) bdb_cache_delete_entry(&bdb->bi_cache, e);
 
 	/* Binary format uses a single contiguous block, cannot
-	 * free individual fields. Leave new_dn/new_ndn set so
-	 * they can be individually freed later.
+	 * free individual fields. But if a previous modrdn has
+	 * already happened, must free the names.
 	 */
+	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
+		e->e_bv.bv_val + e->e_bv.bv_len ) {
+		ch_free(e->e_name.bv_val);
+		ch_free(e->e_nname.bv_val);
+		e->e_name.bv_val = NULL;
+		e->e_nname.bv_val = NULL;
+	}
 	e->e_name = new_dn;
 	e->e_nname = new_ndn;
 

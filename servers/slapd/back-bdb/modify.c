@@ -262,6 +262,13 @@ int bdb_modify_internal(
 		}
 	}
 
+	/* If we've done repeated mods on a cached entry, then e_attrs
+	 * is no longer contiguous with the entry.
+	 */
+	if( (void *) save_attrs != (void *) (e+1)) {
+		attrs_free( save_attrs );
+	}
+
 	return rc;
 }
 
