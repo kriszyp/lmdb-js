@@ -103,5 +103,5 @@ install-local:	FORCE
 	    done							\
 	)
 	$(RM) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
-	$(LN) $(DESTDIR)$(bindir)/ldapmodify$(EXEEXT) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
+	$(LN_S) $(DESTDIR)$(bindir)/ldapmodify$(EXEEXT) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
 
