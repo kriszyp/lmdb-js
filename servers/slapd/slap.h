@@ -1351,7 +1351,7 @@ typedef struct slap_conn {
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	char	*c_sasl_bind_mech;			/* mech in progress */
-	char	*c_cdn;
+	struct berval	c_cdn;
 
 	/* authentication backend */
 	Backend *c_authc_backend;

@@ -226,7 +226,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		( void )rewrite_session_init( li->rwinfo, conn );
 #endif /* ENABLE_REWRITE */
 
-		if ( lc->conn->c_cdn != NULL && lc->conn->c_cdn[0] != '\0' ) {
+		if ( lc->conn->c_cdn.bv_len != 0 ) {
 			
 			/*
 			 * Rewrite the bind dn if needed
@@ -235,24 +235,23 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 			lc->bound_dn.bv_val = NULL;
 			lc->bound_dn.bv_len = 0;
 			switch ( rewrite_session( li->rwinfo, "bindDn",
-						lc->conn->c_cdn, conn,
+						lc->conn->c_cdn.bv_val, conn,
 						&lc->bound_dn.bv_val ) ) {
 			case REWRITE_REGEXEC_OK:
 				if ( lc->bound_dn.bv_val == NULL ) {
-					lc->bound_dn.bv_val = 
-						ch_strdup( lc->conn->c_cdn );
+					ber_dupbv( &lc->bound_dn, &lc->conn->c_cdn );
 				}
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 						"[rw] bindDn: \"%s\" ->"
 						" \"%s\"\n%s",
-						lc->conn->c_cdn,
+						lc->conn->c_cdn.bv_val,
 						lc->bound_dn.bv_val ));
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ARGS,
 					       	"rw> bindDn: \"%s\" ->"
 						" \"%s\"\n%s",
-						lc->conn->c_cdn,
+						lc->conn->c_cdn.bv_val,
 						lc->bound_dn.bv_val, "" );
 #endif /* !NEW_LOGGING */
 				break;
@@ -273,8 +272,11 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 			}
 #else /* !ENABLE_REWRITE */
 			struct berval bv;
-			ber_str2bv( lc->conn->c_cdn, 0, 0, &bv );
-			ldap_back_dn_massage( li, &bv, &lc->bound_dn, 0, 1 );
+			ldap_back_dn_massage( li, &lc->conn->c_cdn, &bv, 0, 1 );
+			if ( bv.bv_val == lc->conn->c_cdn.bv_val )
+				ber_dupbv( &lc->bound_dn, &bv );
+			else
+				lc->bound_dn = bv;
 #endif /* !ENABLE_REWRITE */
 		} else {
 			lc->bound_dn.bv_val = NULL;
