@@ -5,9 +5,10 @@ OpenLDAP 2.2.9 Engineering
 	Fixed back-meta compare return code (ITS#3042)
 	Build Environment
 		Fixed slapd dynamic backend build (ITS#3044)
+		Removed deprecated configure options
 
 OpenLDAP 2.2.8 Release
-	Fixed slapd/slapadd syncrepl bugs (ITS#2995)
+	Fixed slapd/slapadd syncrepl bugs (ITS#2948,2995)
 	Fixed slapd sasl-regexp multiple entry bug (ITS#3033)
 	Fixed slapd bind method portability bug (ITS#3038)
 	Fixed libldap try_read1msg bug (ITS#2982)
