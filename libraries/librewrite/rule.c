@@ -414,7 +414,7 @@ rewrite_rule_apply(
 recurse:;
 
 	Debug( LDAP_DEBUG_TRACE, "==> rewrite_rule_apply"
-			" rule='%s' string='%s' [%s pass(es)]\n", 
+			" rule='%s' string='%s' [%d pass(es)]\n", 
 			rule->lr_pattern, string, strcnt + 1 );
 	
 	op->lo_num_passes++;
