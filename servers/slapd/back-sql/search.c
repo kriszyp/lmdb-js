@@ -86,7 +86,10 @@ int backsql_process_filter_list(backsql_srch_info *bsi,Filter *f,int op)
  while(1)
  {
   res=backsql_process_filter(bsi,f);
-  
+  if (res < 0)
+    return -1;    /* TimesTen : If the query has no answers,
+                   don't bother to run the query. */
+ 
   f=f->f_next;
   if (f==NULL)
    break;
@@ -116,12 +119,21 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
   return 0;
 
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",NULL);
-
+ // TimesTen
+ Debug(LDAP_DEBUG_TRACE,"expr: '%s' '%s'\n",at->sel_expr,
+       at->sel_expr_u?at->sel_expr_u:"<NULL>",0);
  if (bsi->bi->upper_func)
  {
-  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,
-	  bsi->bi->upper_func,"(",at->sel_expr,")",
-				" LIKE '",NULL);
+   /* If a pre-upper-cased version of the column exists, use it. */
+   if (at->sel_expr_u) {
+     bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,
+                   at->sel_expr_u," LIKE '",NULL);
+   }
+   else {
+      bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,
+	     bsi->bi->upper_func,"(",at->sel_expr,")",
+		 " LIKE '",NULL);
+   }
  }
  else
  {
@@ -171,6 +183,7 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  backsql_at_map_rec oc_attr={"objectClass","","",NULL,NULL,NULL,NULL};
  char *at_name=NULL;
  int done=0,len=0;
+ int rc=0; // TimesTen
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_process_filter()\n",0,0,0);
  if (f==NULL || f->f_choice==SLAPD_FILTER_COMPUTED)
@@ -181,16 +194,16 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  switch(f->f_choice)
  {
   case LDAP_FILTER_OR:
-			backsql_process_filter_list(bsi,f->f_or,LDAP_FILTER_OR);
+			rc = backsql_process_filter_list(bsi,f->f_or,LDAP_FILTER_OR);
 			done=1;
 			break;
   case LDAP_FILTER_AND:
-			backsql_process_filter_list(bsi,f->f_and,LDAP_FILTER_AND);
+			rc = backsql_process_filter_list(bsi,f->f_and,LDAP_FILTER_AND);
 			done=1;
 			break;
   case LDAP_FILTER_NOT:
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"NOT (",NULL);
-			backsql_process_filter(bsi,f->f_not);
+			rc = backsql_process_filter(bsi,f->f_not);
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,")",NULL);
 			done=1;
 			break;
@@ -201,6 +214,9 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
 			 at_name=f->f_av_desc->ad_cname->bv_val;
 			break;
  }
+
+ if (rc == -1)
+   goto impossible;     /* TimesTen : Don't run the query */
  
  if (done)
   goto done;
@@ -217,7 +233,7 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
   Debug(LDAP_DEBUG_TRACE,"backsql_process_filter(): attribute '%s' is not defined for objectclass '%s'\n",
                       at_name,bsi->oc->name,0);
   bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len," 1=0 ",NULL);
-  return -1;
+  goto impossible;
  }
 			
  backsql_merge_from_clause(&bsi->from,&bsi->from_len,at->from_tbls);
@@ -237,10 +253,17 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
 			//to know whether upper_func is applicable, but for now
 			//upper_func stuff is made for Oracle, where UPPER is
 			//safely applicable to NUMBER etc.
-			if (bsi->bi->upper_func)
-			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
+			if (bsi->bi->upper_func) {
+				if (at->sel_expr_u)
+					bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
+                      at->sel_expr_u,"='",
+                      ldap_pvt_str2upper(f->f_av_value->bv_val),"')",
+                      NULL);
+      			else
+					bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
 					bsi->bi->upper_func,"(",at->sel_expr,")='",
-						ldap_pvt_str2upper(f->f_av_value->bv_val),"')",NULL);
+					ldap_pvt_str2upper(f->f_av_value->bv_val),"')",NULL);
+			}
 			else
 			 bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,"='",
 							f->f_av_value->bv_val,"')",NULL);
@@ -269,12 +292,20 @@ done:
   free(oc_attr.sel_expr);
  Debug(LDAP_DEBUG_TRACE,"<==backsql_process_filter()\n",0,0,0);
  return 1;
+
+impossible:
+ if (oc_attr.sel_expr!=NULL)
+  free(oc_attr.sel_expr);
+ Debug(LDAP_DEBUG_TRACE,"<==backsql_process_filter() returns -1\n",0,0,0);
+ return -1;
+
 }
 
 char* backsql_srch_query(backsql_srch_info *bsi)
 {
  char *query=NULL;
  int q_len=0;
+ int rc;
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_srch_query()\n",0,0,0);
  bsi->sel=NULL;
@@ -316,9 +347,19 @@ char* backsql_srch_query(backsql_srch_info *bsi)
 				bsi->bi->subtree_cond,NULL);
 		break;
  }
- if (backsql_process_filter(bsi,bsi->filter))
-  query=backsql_strcat(query,&q_len,bsi->sel,bsi->from,bsi->join_where," AND ",bsi->flt_where,NULL);
 
+ rc = backsql_process_filter(bsi, bsi->filter);
+ if (rc>0) {
+  query=backsql_strcat(query,&q_len,bsi->sel,bsi->from,bsi->join_where," AND ",bsi->flt_where,NULL);
+ }
+ else if (rc < 0) {
+    /* Indicates that there's no possible way the filter matches
+      anything.  No need to issue the query. */
+
+   Debug(LDAP_DEBUG_TRACE,"<==backsql_srch_query() returns NULL\n",0,0,0);
+   free(query);
+   query = NULL;
+ }
  
  free(bsi->sel);
  free(bsi->from);
@@ -337,7 +378,9 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
  backsql_entryID base_id,*res,*c_id;
  //Entry *e;
  BACKSQL_ROW_NTS row;
- //int i;
+ int i;
+ int j;
+ char temp_base_dn[BACKSQL_MAX_DN_LEN+1]; // TimesTen
  
  Debug(LDAP_DEBUG_TRACE,"==>backsql_oc_get_candidates(): oc='%s'\n",oc->name,0,0);
  bsi->oc=oc;
@@ -349,6 +392,7 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
  }
 
  Debug(LDAP_DEBUG_TRACE,"Constructed query: %s\n",query,0,0);
+
  if ((rc=backsql_Prepare(bsi->dbh,&sth,query,0)) != SQL_SUCCESS)
   {
    Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): error preparing query\n",0,0,0);
@@ -366,7 +410,6 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
  switch(bsi->scope)
  {
   case LDAP_SCOPE_BASE:
-  case LDAP_SCOPE_SUBTREE:
 		if ((rc=backsql_BindParamStr(sth,2,bsi->base_dn,BACKSQL_MAX_DN_LEN)) != SQL_SUCCESS)
 		{
          Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): error binding base_dn parameter\n",0,0,0);
@@ -374,6 +417,44 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
          return 1;
 		}
 		break;
+
+  case LDAP_SCOPE_SUBTREE:
+    /* Sets the parameters for the SQL built earlier */
+    /* NOTE that all the databases could actually use the TimesTen version,
+       which would be cleaner and would also eliminate the need for the
+       subtree_cond line in the configuration file.  For now, I'm leaving
+       it the way it is, so non-TimesTen databases use the original code.
+       But at some point this should get cleaned up. */
+     /* If "dn" is being used, do a suffix search.
+     If "dn_ru" is being used, do a prefix search. */
+
+    if (bsi->bi->has_ldapinfo_dn_ru) {
+       temp_base_dn[0] = '\0';
+       for ((i=0, j=strlen(bsi->base_dn)-1); j >= 0; (i++, j--)) {
+         *(temp_base_dn+i) = toupper(*(bsi->base_dn+j));
+       }
+       *(temp_base_dn+i) = '%';
+       *(temp_base_dn+i+1) = '\0';
+    }
+    else {
+        strcpy(temp_base_dn, "%");
+        for (i = 0; *(bsi->base_dn+i); i++) {
+          *(temp_base_dn+i+1) = toupper(*(bsi->base_dn+i));
+        }
+        *(temp_base_dn+i+1) = '\0';
+    }
+    Debug(LDAP_DEBUG_TRACE, "dn '%s'\n", temp_base_dn, 0, 0);
+
+    if ((rc=backsql_BindParamStr(sth,2,temp_base_dn,BACKSQL_MAX_DN_LEN)) !=
+SQL_SUCCESS)
+    {
+         Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): error binding base
+_dn parameter (2)\n",0,0,0);
+         backsql_PrintErrors(bsi->bi->db_env,bsi->dbh,sth,rc);
+         return 1;
+    }
+	break;
+
   case LDAP_SCOPE_ONELEVEL:
 		res=backsql_dn2id(bsi->bi,&base_id,bsi->dbh,bsi->base_dn);
 		if (res==NULL)
@@ -429,6 +510,7 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
   }
  backsql_FreeRow(&row);
  SQLFreeStmt(sth,SQL_DROP);
+
  Debug(LDAP_DEBUG_TRACE,"<==backsql_oc_get_candidates()\n",0,0,0);
  return 1;
 }
@@ -460,6 +542,9 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
   send_ldap_result(conn,op,LDAP_OTHER,"","SQL-backend error",NULL,NULL);
   return 1;
  }
+
+ /* TimesTen : Pass it along to the lower level routines */ 
+ srch_info.isTimesTen = bi->isTimesTen; 
  
  if (tlimit == 0 && be_isroot(be,op->o_dn))
   {

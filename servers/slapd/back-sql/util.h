@@ -43,6 +43,7 @@ typedef struct __backsql_srch_info
  Operation *op;
  char **attrs;
  Entry *e;
+ int isTimesTen; /* 1 if the db is TimesTen; 0 if it's not */
 }backsql_srch_info;
 
 int backsql_process_filter(backsql_srch_info *bsi,Filter *f);
@@ -54,6 +55,7 @@ Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* id);
 extern char backsql_def_oc_query[],backsql_def_at_query[],
 			backsql_def_delentry_query[],backsql_def_insentry_query[],
 			backsql_def_subtree_cond[],backsql_id_query[];
+extern char backsql_check_dn_ru_query[];
 
 int backsql_merge_from_clause(char **dest_from,int *dest_len,char *src_from);
 

@@ -35,6 +35,7 @@ typedef struct
  //following flags are bitmasks (first bit used for add_proc, second - for modify, third - for delete_proc)
  int param_order; //order of parameters for procedures above; 1 means "data then keyval", 0 means "keyval then data"
  int expect_return; //flags whether one or more of procedures is a function (whether back-sql should bind first parameter as output for return code)
+ char *sel_expr_u; // TimesTen
 }backsql_at_map_rec;
 
 //defines to support bitmasks above

@@ -195,6 +195,7 @@ int backsql_cmp_connid(backsql_db_conn *c1,backsql_db_conn *c2)
 int backsql_close_db_conn(backsql_db_conn *conn)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_close_db_conn()\n",0,0,0);
+ SQLTransact(NULL, conn->dbh, SQL_COMMIT);  // TimesTen
  SQLDisconnect(conn->dbh);
  SQLFreeConnect(conn->dbh);
  Debug(LDAP_DEBUG_TRACE,"<==backsql_close_db_conn()\n",0,0,0);
@@ -227,6 +228,8 @@ int backsql_free_db_env(backsql_info *si)
 
 backsql_db_conn* backsql_open_db_conn(backsql_info *si,int ldap_cid)
 {
+ char DBMSName[32]; // TimesTen
+
  backsql_db_conn *dbc=(backsql_db_conn*)ch_calloc(1,sizeof(backsql_db_conn));
  int rc;
  
@@ -249,7 +252,32 @@ backsql_db_conn* backsql_open_db_conn(backsql_info *si,int ldap_cid)
    if (rc != SQL_SUCCESS_WITH_INFO)
     return NULL;
   }
-					     
+
+ /* TimesTen : Turn off autocommit.  We must explicitly commit any transactions. */
+
+ SQLSetConnectOption(dbc->dbh, SQL_AUTOCOMMIT, SQL_AUTOCOMMIT_OFF);
+
+ /* See if this connection is to TimesTen.  If it is,
+    remember that fact for later use. */
+
+ si->isTimesTen = 0;        /* Assume until proven otherwise */
+
+ DBMSName[0] = '\0';
+ rc = SQLGetInfo(dbc->dbh, SQL_DBMS_NAME, (PTR) &DBMSName,
+         sizeof(DBMSName), NULL);
+ if (rc == SQL_SUCCESS) {
+   if (strcmp(DBMSName, "TimesTen") == 0 ||
+       strcmp(DBMSName, "Front-Tier") == 0) {
+     Debug(LDAP_DEBUG_TRACE,"backsql_open_db_conn: TimesTen database!\n",0,0,0);
+     si->isTimesTen = 1;
+   }
+ }
+ else {
+   Debug(LDAP_DEBUG_TRACE,"backsql_open_db_conn: SQLGetInfo() failed:\n",0,0,0);
+   backsql_PrintErrors(si->db_env,dbc->dbh,SQL_NULL_HENV,rc);
+ }  
+ // end TimesTen
+ 
  Debug(LDAP_DEBUG_TRACE,"backsql_open_db_conn(): connected, adding to tree\n",0,0,0);
  ldap_pvt_thread_mutex_lock(&si->dbconn_mutex);
  avl_insert(&si->db_conns,dbc,(AVL_CMP)backsql_cmp_connid,backsql_dummy);
@@ -293,7 +321,7 @@ SQLHDBC backsql_get_db_conn(Backend *be,Connection *ldapc)
  dbc=(backsql_db_conn*)avl_find(si->db_conns,&tmp,(AVL_CMP)backsql_cmp_connid);
  if (!dbc)
   dbc=backsql_open_db_conn(si,ldapc->c_connid);
-  
+ 
  if (!dbc)
  {
    Debug(LDAP_DEBUG_TRACE,"backsql_get_db_conn(): could not get connection handle -- returning NULL\n",0,0,0);

@@ -36,6 +36,8 @@ typedef struct
  ldap_pvt_thread_mutex_t dbconn_mutex;
  ldap_pvt_thread_mutex_t schema_mutex;
  SQLHENV db_env;
+ int   isTimesTen; // TimesTen
+ int   has_ldapinfo_dn_ru;  /* Does ldapinfo.dn_ru exist in schema? */
 }backsql_info;
 
 #endif

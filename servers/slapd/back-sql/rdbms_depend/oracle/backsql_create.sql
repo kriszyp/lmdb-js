@@ -25,6 +25,7 @@ create table ldap_attr_mappings (
 	oc_map_id number not null references ldap_oc_mappings(id),
 	name varchar2(255) not null,
 	sel_expr varchar2(255) not null,
+	sel_expr_u varchar2(255),
 	from_tbls varchar2(255) not null,
 	join_where varchar2(255),
 	add_proc varchar2(255),
@@ -43,6 +44,7 @@ alter table ldap_attr_mappings add
 create table ldap_entries (
 	id number not null ,
 	dn varchar2(255) not null ,
+	dn_ru varchar2(255),
 	oc_map_id number not null references ldap_oc_mappings(id),
 	parent number not null ,
 	keyval number not null 
@@ -84,3 +86,5 @@ create table ldap_entry_objclasses
 	entry_id number not null references ldap_entries(id),
 	oc_name varchar(64)
  );
+
+quit

@@ -37,15 +37,56 @@ backsql_entryID* backsql_dn2id(backsql_info *bi,backsql_entryID *id,SQLHDBC dbh,
  //SQLINTEGER nrows=0;
  RETCODE rc;
 
+ // TimesTen
+ char upperdn[BACKSQL_MAX_DN_LEN+1];
+ char* toBind;
+ int i, j, k;
+
  Debug(LDAP_DEBUG_TRACE,"==>backsql_dn2id(): dn='%s'\n",dn,0,0);
- backsql_Prepare(dbh,&sth,bi->id_query,0);
- if ((rc=backsql_BindParamStr(sth,1,dn,BACKSQL_MAX_DN_LEN)) != SQL_SUCCESS)
-  {
+ // begin TimesTen
+ Debug(LDAP_DEBUG_TRACE, "id_query '%s'\n", bi->id_query, 0, 0);
+ rc = backsql_Prepare(dbh,&sth,bi->id_query,0);
+ if (rc != SQL_SUCCESS) {
+   Debug(LDAP_DEBUG_TRACE, "backsql_dn2id(): error preparing SQL:\n", 0, 0, 0);
+   Debug(LDAP_DEBUG_TRACE, "%s\n", bi->id_query, 0, 0);
+   backsql_PrintErrors(SQL_NULL_HENV, dbh, sth, rc);
+   SQLFreeStmt(sth, SQL_DROP);
+   return NULL;
+ }
+
+ if (bi->has_ldapinfo_dn_ru) {
+   /* Prepare an upper cased, byte reversed version that can be
+      searched using indexes */
+
+   for ((i=0, j=strlen(dn)-1); *(dn+i); (i++, j--)) {
+     *(upperdn+i) = toupper(*(dn+j));
+   }   
+   *(upperdn+i) = '\0';
+   Debug(LDAP_DEBUG_TRACE,"==>backsql_dn2id(): upperdn='%s'\n",upperdn,0,0);
+   toBind = upperdn;
+ }
+ else {
+   if (bi->isTimesTen) {
+     for (i = 0; *(dn+i); i++) {
+       *(upperdn+i) = toupper(*(dn+i)); /* Copy while upper casing */
+     }
+     *(upperdn+i) = '\0';
+     Debug(LDAP_DEBUG_TRACE,"==>backsql_dn2id(): upperdn='%s'\n",upperdn,0,0);
+     toBind = upperdn;
+   }
+   else
+     toBind = dn;
+ }
+
+ if ((rc=backsql_BindParamStr(sth,1,toBind,
+                  BACKSQL_MAX_DN_LEN)) != SQL_SUCCESS)
+ // end TimesTen
+ {
    Debug(LDAP_DEBUG_TRACE,"backsql_dn2id(): error binding dn parameter:\n",0,0,0);
    backsql_PrintErrors(SQL_NULL_HENV,dbh,sth,rc);
    SQLFreeStmt(sth,SQL_DROP);
    return NULL;
-  }
+ }
  
  if ((rc=SQLExecute(sth)) != SQL_SUCCESS)
   {

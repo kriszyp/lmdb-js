@@ -178,6 +178,15 @@ int backsql_db_open (BackendDB *bd)
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_delentry_query,0,0);
   si->delentry_query=ch_strdup(backsql_def_delentry_query);
  }
+ tmp.c_connid=-1;
+ dbh=backsql_get_db_conn(bd,&tmp);
+ if (!dbh)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): connection failed, exiting\n",0,0,0
+);
+  return 1;
+ }
+
  si->id_query=NULL;
  idq_len=0;
  if (si->upper_func==NULL)
@@ -185,17 +194,22 @@ int backsql_db_open (BackendDB *bd)
   si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,"dn=?",NULL);
  }
  else
-  {
-   si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,si->upper_func,"(dn)=",si->upper_func,"(?)",NULL);
-  }
- tmp.c_connid=-1;
- dbh=backsql_get_db_conn(bd,&tmp);
- if (!dbh)
  {
-  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): connection failed, exiting\n",0,0,0);
-  return 1;
+    if (si->has_ldapinfo_dn_ru) {
+      si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,"dn_ru=
+?",NULL);
+    }
+    else {
+      if (si->isTimesTen) {
+    si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,si->upper_func,"(dn)=?",NULL);
+      }
+      else {
+   		si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,si->upper_func,"(dn)=",si->upper_func,"(?)",NULL);
+   	  }
+	}
  }
- backsql_free_db_conn(bd,&tmp);
+ 
+backsql_free_db_conn(bd,&tmp);
  if (!si->schema_loaded)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): test failed, schema map not loaded - exiting\n",0,0,0);

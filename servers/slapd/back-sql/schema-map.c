@@ -114,6 +114,21 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
  int tmpslen;
 
  Debug(LDAP_DEBUG_TRACE,"==>load_schema_map()\n",0,0,0);
+
+ /* TimesTen : See if the ldap_entries.dn_ru field exists in the schema. */
+
+ rc = backsql_Prepare(dbh, &oc_sth, backsql_check_dn_ru_query, 0);
+ if (rc == SQL_SUCCESS) {
+   si->has_ldapinfo_dn_ru = 1;  // Yes, the field exists 
+   Debug(LDAP_DEBUG_TRACE, "ldapinfo.dn_ru field exists in the schema\n", 0, 0,
+0);
+ }
+ else {
+   si->has_ldapinfo_dn_ru = 0;  // No such field exists 
+ }
+
+ SQLFreeStmt(oc_sth, SQL_DROP);
+
  rc=backsql_Prepare(dbh,&oc_sth,si->oc_query,0);
  if (rc != SQL_SUCCESS)
   {
@@ -121,6 +136,8 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
    backsql_PrintErrors(si->db_env,dbh,oc_sth,rc);
    return -1;
   }
+  Debug(LDAP_DEBUG_TRACE, "load_schema_map(): at_query '%s'\n", si->at_query,0,0);
+
  rc=backsql_Prepare(dbh,&at_sth,si->at_query,0);
  if (rc != SQL_SUCCESS)
   {
@@ -158,8 +175,15 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
    oc_id=oc_map->id;
    Debug(LDAP_DEBUG_TRACE,"load_schema_map(): objectclass '%s': keytbl='%s' keycol='%s' ",
 	   oc_map->name,oc_map->keytbl,oc_map->keycol);
-   Debug(LDAP_DEBUG_TRACE,"create_proc='%s' delete_proc='%s' expect_return=%d; attributes:\n",
-       oc_map->create_proc,oc_map->delete_proc,oc_map->expect_return);
+   if (oc_map->delete_proc) {
+     Debug(LDAP_DEBUG_TRACE,"delete_proc='%s'\n", oc_map->delete_proc, 0, 0);
+   }
+   if (oc_map->create_proc) {
+     Debug(LDAP_DEBUG_TRACE,"create_proc='%s'\n", oc_map->create_proc, 0, 0);
+   }
+   Debug(LDAP_DEBUG_TRACE,"expect_return=%d; attributes:\n",
+       oc_map->expect_return, 0, 0);
+
    Debug(LDAP_DEBUG_TRACE,"load_schema_map(): autoadding 'objectClass' and 'ref' mappings\n",0,0,0);
    backsql_add_sysmaps(oc_map);
    if ((rc=SQLExecute(at_sth)) != SQL_SUCCESS)
@@ -177,9 +201,12 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
 	 Debug(LDAP_DEBUG_TRACE,"join_where='%s',add_proc='%s' ",at_row.cols[3],
              at_row.cols[4],0);
 	 Debug(LDAP_DEBUG_TRACE,"delete_proc='%s'\n",at_row.cols[5],0,0);
+	 Debug(LDAP_DEBUG_TRACE,"sel_expr_u='%s'\n", at_row.cols[8],0,0); // TimesTen
      at_map=(backsql_at_map_rec*)ch_calloc(1,sizeof(backsql_at_map_rec));
      at_map->name=ch_strdup(at_row.cols[0]);
      at_map->sel_expr=ch_strdup(at_row.cols[1]);
+	 at_map->sel_expr_u = (at_row.is_null[8]<0)?NULL:ch_strdup(at_row.cols[8
+]);
 	 tmps=NULL;tmpslen=0;
 	 backsql_merge_from_clause(&tmps,&tmpslen,at_row.cols[2]);
      at_map->from_tbls=ch_strdup(tmps);
@@ -264,6 +291,8 @@ int backsql_free_attr(backsql_at_map_rec *at)
  if (at->query)
   ch_free(at->query);
  ch_free(at);
+ if (at->sel_expr_u)
+   ch_free(at->sel_expr_u); // TimesTen
  Debug(LDAP_DEBUG_TRACE,"<==free_attr()\n",0,0,0);
  return 1;
 }
