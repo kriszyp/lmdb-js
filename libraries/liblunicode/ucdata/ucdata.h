@@ -286,9 +286,9 @@ extern int ucgetdigit __((unsigned long code));
 /*
  * Functions to load, unload, and reload specific data files.
  */
-extern void ucdata_load __((char *paths, int mask));
+extern int ucdata_load __((char *paths, int mask));
 extern void ucdata_unload __((int mask));
-extern void ucdata_reload __((char *paths, int mask));
+extern int ucdata_reload __((char *paths, int mask));
 
 #ifdef UCDATA_DEPRECATED
 /*

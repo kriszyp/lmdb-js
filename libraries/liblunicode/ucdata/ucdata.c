@@ -110,7 +110,10 @@ static unsigned long  _ucprop_size;
 static unsigned short *_ucprop_offsets;
 static unsigned long  *_ucprop_ranges;
 
-static void
+/*
+ * Return -1 on error, 0 if okay
+ */
+static int
 _ucprop_load(char *paths, int reload)
 {
     FILE *in;
@@ -122,7 +125,7 @@ _ucprop_load(char *paths, int reload)
           /*
            * The character properties have already been loaded.
            */
-          return;
+          return 0;
 
         /*
          * Unload the current character property data in preparation for
@@ -135,7 +138,7 @@ _ucprop_load(char *paths, int reload)
     }
 
     if ((in = _ucopenfile(paths, "ctype.dat", "rb")) == 0)
-      return;
+      return -1;
 
     /*
      * Load the header.
@@ -149,7 +152,7 @@ _ucprop_load(char *paths, int reload)
 
     if ((_ucprop_size = hdr.cnt) == 0) {
         fclose(in);
-        return;
+        return -1;
     }
 
     /*
@@ -198,6 +201,7 @@ _ucprop_load(char *paths, int reload)
         for (i = 0; i < _ucprop_offsets[_ucprop_size]; i++)
           _ucprop_ranges[i] = endian_long(_ucprop_ranges[i]);
     }
+    return 0;
 }
 
 static void
@@ -284,7 +288,10 @@ static unsigned long _uccase_size;
 static unsigned short _uccase_len[2];
 static unsigned long *_uccase_map;
 
-static void
+/*
+ * Return -1 on error, 0 if okay
+ */
+static int
 _uccase_load(char *paths, int reload)
 {
     FILE *in;
@@ -296,14 +303,14 @@ _uccase_load(char *paths, int reload)
           /*
            * The case mappings have already been loaded.
            */
-          return;
+          return 0;
 
         free((char *) _uccase_map);
         _uccase_size = 0;
     }
 
     if ((in = _ucopenfile(paths, "case.dat", "rb")) == 0)
-      return;
+      return -1;
 
     /*
      * Load the header.
@@ -339,6 +346,7 @@ _uccase_load(char *paths, int reload)
         for (i = 0; i < _uccase_size; i++)
           _uccase_map[i] = endian_long(_uccase_map[i]);
     }
+    return 0;
 }
 
 static void
@@ -471,7 +479,10 @@ static unsigned long  _ucdcmp_size;
 static unsigned long *_ucdcmp_nodes;
 static unsigned long *_ucdcmp_decomp;
 
-static void
+/*
+ * Return -1 on error, 0 if okay
+ */
+static int
 _ucdcmp_load(char *paths, int reload)
 {
     FILE *in;
@@ -483,14 +494,14 @@ _ucdcmp_load(char *paths, int reload)
           /*
            * The decompositions have already been loaded.
            */
-          return;
+          return 0;
 
         free((char *) _ucdcmp_nodes);
         _ucdcmp_size = 0;
     }
 
     if ((in = _ucopenfile(paths, "decomp.dat", "rb")) == 0)
-      return;
+      return -1;
 
     /*
      * Load the header.
@@ -518,7 +529,8 @@ _ucdcmp_load(char *paths, int reload)
     if (hdr.bom == 0xfffe) {
         for (i = 0; i < size; i++)
           _ucdcmp_nodes[i] = endian_long(_ucdcmp_nodes[i]);
-    }        
+    }
+    return 0;
 }
 
 static void
@@ -587,7 +599,10 @@ ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
 static unsigned long  _uccmcl_size;
 static unsigned long *_uccmcl_nodes;
 
-static void
+/*
+ * Return -1 on error, 0 if okay
+ */
+static int
 _uccmcl_load(char *paths, int reload)
 {
     FILE *in;
@@ -599,14 +614,14 @@ _uccmcl_load(char *paths, int reload)
           /*
            * The combining classes have already been loaded.
            */
-          return;
+          return 0;
 
         free((char *) _uccmcl_nodes);
         _uccmcl_size = 0;
     }
 
     if ((in = _ucopenfile(paths, "cmbcl.dat", "rb")) == 0)
-      return;
+      return -1;
 
     /*
      * Load the header.
@@ -632,7 +647,8 @@ _uccmcl_load(char *paths, int reload)
     if (hdr.bom == 0xfffe) {
         for (i = 0; i < _uccmcl_size; i++)
           _uccmcl_nodes[i] = endian_long(_uccmcl_nodes[i]);
-    }        
+    }
+    return 0;
 }
 
 static void
@@ -676,7 +692,10 @@ static unsigned long *_ucnum_nodes;
 static unsigned long _ucnum_size;
 static short *_ucnum_vals;
 
-void
+/*
+ * Return -1 on error, 0 if okay
+ */
+static int
 _ucnumb_load(char *paths, int reload)
 {
     FILE *in;
@@ -688,14 +707,14 @@ _ucnumb_load(char *paths, int reload)
           /*
            * The numbers have already been loaded.
            */
-          return;
+          return 0;
 
         free((char *) _ucnum_nodes);
         _ucnum_size = 0;
     }
 
     if ((in = _ucopenfile(paths, "num.dat", "rb")) == 0)
-      return;
+      return -1;
 
     /*
      * Load the header.
@@ -732,7 +751,8 @@ _ucnumb_load(char *paths, int reload)
 
         for (i = 0; i < size; i++)
           _ucnum_vals[i] = endian_short(_ucnum_vals[i]);
-    }        
+    }
+    return 0;
 }
 
 static void
@@ -845,19 +865,24 @@ ucgetdigit(unsigned long code)
  *
  **************************************************************************/
 
-void
+/*
+ * Return 0 if okay, negative on error
+ */
+int
 ucdata_load(char *paths, int masks)
 {
+    int error = 0;
     if (masks & UCDATA_CTYPE)
-      _ucprop_load(paths, 0);
+	error |= _ucprop_load(paths, 0) < 0 ? UCDATA_CTYPE : 0;
     if (masks & UCDATA_CASE)
-      _uccase_load(paths, 0);
+    	error |= _uccase_load(paths, 0) < 0 ? UCDATA_CASE : 0;
     if (masks & UCDATA_DECOMP)
-      _ucdcmp_load(paths, 0);
+    	error |= _ucdcmp_load(paths, 0) < 0 ? UCDATA_DECOMP : 0;
     if (masks & UCDATA_CMBCL)
-      _uccmcl_load(paths, 0);
+    	error |= _uccmcl_load(paths, 0) < 0 ? UCDATA_CMBCL : 0;
     if (masks & UCDATA_NUM)
-      _ucnumb_load(paths, 0);
+    	error |= _ucnumb_load(paths, 0) < 0 ? UCDATA_NUM : 0;
+    return -error;
 }
 
 void
@@ -875,19 +900,24 @@ ucdata_unload(int masks)
       _ucnumb_unload();
 }
 
-void
+/*
+ * Return 0 if okay, negative on error
+ */
+int
 ucdata_reload(char *paths, int masks)
 {
+    int error = 0;
     if (masks & UCDATA_CTYPE)
-      _ucprop_load(paths, 1);
+	error |= _ucprop_load(paths, 1) < 0 ? UCDATA_CTYPE : 0;
     if (masks & UCDATA_CASE)
-      _uccase_load(paths, 1);
+    	error |= _uccase_load(paths, 1) < 0 ? UCDATA_CASE : 0;
     if (masks & UCDATA_DECOMP)
-      _ucdcmp_load(paths, 1);
+    	error |= _ucdcmp_load(paths, 1) < 0 ? UCDATA_DECOMP : 0;
     if (masks & UCDATA_CMBCL)
-      _uccmcl_load(paths, 1);
+    	error |= _uccmcl_load(paths, 1) < 0 ? UCDATA_CMBCL : 0;
     if (masks & UCDATA_NUM)
-      _ucnumb_load(paths, 1);
+    	error |= _ucnumb_load(paths, 1) < 0 ? UCDATA_NUM : 0;
+    return -error;
 }
 
 #ifdef TEST
