@@ -80,10 +80,9 @@ Re_free(
 		"Warning: freeing re (dn: %s) with nonzero refcnt\n",
 		re->re_dn, 0, 0 );
     }
-#if !defined( HAVE_LWP )
-    /* This seems to have problems under SunOS lwp */
+
     ldap_pvt_thread_mutex_destroy( &re->re_mutex );
-#endif /* HAVE_LWP */
+
     ch_free( re->re_timestamp );
     if (( rh = re->re_replicas ) != NULL ) {
 	for ( i = 0; rh[ i ].rh_hostname != NULL; i++ ) {

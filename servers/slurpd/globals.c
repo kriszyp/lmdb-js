@@ -68,10 +68,6 @@ init_globals( void )
 #ifdef HAVE_KERBEROS
     g->default_srvtab = SRVTAB;
 #endif /* HAVE_KERBEROS */
-#if defined( HAVE_LWP )
-    g->tsl_list = NULL;
-    mon_create( &g->tsl_mon ); 
-#endif /* HAVE_LWP */
 
     return g;
 }
