@@ -182,6 +182,25 @@ static int test_mra_filter(
 			return LDAP_INSUFFICIENT_ACCESS;
 		}
 
+		if ( mra->ma_desc == slap_schema.si_ad_entryDN ) {
+			struct berval *bv;
+			int ret, rc;
+			const char *text;
+
+			if( mra->ma_rule == a->a_desc->ad_type->sat_equality ) {
+				bv = &e->e_nname;
+			} else {
+				bv = &e->e_name;
+			}
+
+			rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+				bv, &mra->ma_value, &text );
+	
+			if( rc != LDAP_SUCCESS ) return rc;
+			if ( ret == 0 ) return LDAP_COMPARE_TRUE;
+			return LDAP_COMPARE_FALSE;
+		}
+
 		for(a = attrs_find( e->e_attrs, mra->ma_desc );
 			a != NULL;
 			a = attrs_find( a->a_next, mra->ma_desc ) )
