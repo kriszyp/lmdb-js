@@ -1269,6 +1269,13 @@ typedef BackendDB Backend;
 #define backends backendDB
 
 #ifdef LDAP_SYNCREPL
+
+struct nonpresent_entry {
+	struct berval *dn;
+	struct berval *ndn;
+	LDAP_LIST_ENTRY(nonpresent_entry) np_link;
+};
+
  /*
   * syncinfo structure for syncrepl
   */
@@ -1314,6 +1321,7 @@ typedef struct syncinfo_s {
         struct berval   *syncUUID;
         struct berval   *syncCookie;
         Avlnode         *presentlist;
+		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;
 } syncinfo_t;
 
 #define IDSTR           "id"
