@@ -339,13 +339,17 @@ fi
 if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
 	if test $ol_with_kerberos = no ; then
 		AC_MSG_ERROR([options require --with-kerberos])
+	elif $ol_with_kerberos = auto ; then
+		ol_with_kerberos=yes
 	fi
-	ol_with_kerberos=yes
+
 elif test $ol_enable_kbind = no -o $ol_enable_kpasswd = no ; then
-	if test $ol_with_kerberos != no -a $ol_with_kerberos != auto ; then
+	if test $ol_with_kerberos = auto ; then
+		ol_with_kerberos=no
+	elif test $ol_with_kerberos != no ; then
 		AC_MSG_WARN([Kerberos detection enabled unnecessarily]);
+		ol_with_kerberos=no
 	fi
-	ol_with_kerberos=no
 fi
 
 if test $ol_enable_spasswd = yes ; then
@@ -793,11 +797,15 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 		fi
 
 		if test $krb5_impl = mit; then
+			AC_CHECK_LIB(k5crypto, main,
+				[krb5crypto=k5crypto],
+				[krb5crypto=crypto])
+
 			AC_CHECK_LIB(krb5, main,
 				[have_krb5=yes
-				KRB5_LIBS="-lkrb5 -lcrypto -lcom_err"],
+				KRB5_LIBS="-lkrb5 -l$krb5crypto -lcom_err"],
 				[have_krb5=no],
-				[-lcrypto -lcom_err])
+				[-l$krb5crypto -lcom_err])
 
 		elif test $krb5_impl = heimdal; then
 			AC_CHECK_LIB(krb5, main,
@@ -808,6 +816,7 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 
 			AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1,
 				[define if you have HEIMDAL Kerberos])
+
 		else
 			have_krb5=no
 			AC_MSG_WARN([Unrecongized Kerberos V Implementation])
@@ -843,7 +852,7 @@ if test $ol_link_krb5 = yes -a \( $ol_with_kerberos = yes -o \
 		if test $krb5_impl = mit; then
 			AC_CHECK_LIB(krb4, main, [have_k425=yes
 				KRB4_LIBS="-lkrb4 -ldes425"], [have_k425=no],
-				[-ldes425 -lkrb5 -lcrypto -lcom_err])
+				[-ldes425 -lkrb5 -l$krb5crypto -lcom_err])
 
 		elif test $krb5_impl = heimdal; then
 			AC_CHECK_LIB(krb4, main, [have_k425=yes

@@ -12,15 +12,22 @@ OpenLDAP 2.0.16 Engineering
 	Updated slapd/-lldap getaddrinfo handling
 	Updated -lldap_r pthread stack size
 	Updated slapd acl assert checks
+	Updated slurpd ManageDSAIT handling
+	Updated slapd root/subschema dse update error handling
 	Removed -lldbm use of Berkeley CDB
 	Updated -lldbm to use r/w lock with DB_THREAD
+	Updated ldbm update attribute indices on delete
 	Added back-ldbm idl_check() code
 	Build environment
 		Updated ltconfig for MacOS X 10.1 (ITS#1361)
 		Updated slapd.conf with ACL example
 		Updated pthread detection
+		Updated Kerberos detection
 		Updated test005 /dev/null diff for Tru64 compat
-		Updated test007 read/write ratio
+		Updated test007 modrdn test
+		Updated test008 read/write ratio
+	Documentation
+		Update slapcat/add pages
 
 OpenLDAP 2.0.15 Release
 	Fixed -lldap TLS external handling
