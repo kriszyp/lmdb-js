@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -188,6 +189,13 @@ main( int argc, char **argv )
 
 	if ( ! inetd ) {
 		int		status;
+
+		(void) SIGNAL( SIGPIPE, SIG_IGN );
+		(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
+		(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
+		(void) SIGNAL( SIGTERM, slap_set_shutdown );
+		(void) SIGNAL( SIGINT, slap_set_shutdown );
+		(void) SIGNAL( SIGHUP, slap_set_shutdown );
 
 		time( &starttime );
 

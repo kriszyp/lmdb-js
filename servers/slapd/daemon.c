@@ -37,8 +37,6 @@ int		dtblsize;
 Connection	*c;
 
 static int slapd_shutdown = 0;
-static void	set_shutdown(int sig);
-static void	do_nothing  (int sig);
 
 /* a link to the slapd.conf configuration parameters */
 extern char *slapd_pid_file;
@@ -128,13 +126,6 @@ slapd_daemon(
 		    "unknown", 0 );
 		exit( 1 );
 	}
-
-	(void) SIGNAL( SIGPIPE, SIG_IGN );
-	(void) SIGNAL( LDAP_SIGUSR1, do_nothing );
-	(void) SIGNAL( LDAP_SIGUSR2, set_shutdown );
-	(void) SIGNAL( SIGTERM, set_shutdown );
-	(void) SIGNAL( SIGINT, set_shutdown );
-	(void) SIGNAL( SIGHUP, set_shutdown );
 
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
@@ -392,24 +383,26 @@ slapd_daemon(
 	    0 );
 	be_close();
 	Debug( LDAP_DEBUG_ANY, "slapd stopping\n", 0, 0, 0 );
+
 	return NULL;
 }
 
-static void
-set_shutdown( int sig )
+void
+slap_set_shutdown( int sig )
 {
 	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal %d\n", sig, 0, 0 );
 	slapd_shutdown = 1;
 	ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	(void) SIGNAL( LDAP_SIGUSR2, set_shutdown );
-	(void) SIGNAL( SIGTERM, set_shutdown );
-	(void) SIGNAL( SIGINT, set_shutdown );
-	(void) SIGNAL( SIGHUP, set_shutdown );
+
+	/* reinstall self */
+	(void) SIGNAL( sig, slap_set_shutdown );
 }
 
-static void
-do_nothing( int sig )
+void
+slap_do_nothing( int sig )
 {
 	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal %d\n", sig, 0, 0 );
-	(void) SIGNAL( LDAP_SIGUSR1, do_nothing );
+
+	/* reinstall self */
+	(void) SIGNAL( sig, slap_do_nothing );
 }

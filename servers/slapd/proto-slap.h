@@ -269,6 +269,11 @@ extern int	be_group LDAP_P((Backend *be, Entry *target,
 	char *objectclassValue, char *groupattrName));
 extern void	init LDAP_P((void));
 extern void	be_unbind LDAP_P((Connection *conn, Operation *op));
+
+extern void * slapd_daemon LDAP_P((void *port));
+extern void	slap_set_shutdown LDAP_P((int sig));
+extern void	slap_do_nothing   LDAP_P((int sig));
+
 extern void	config_info LDAP_P((Connection *conn, Operation *op));
 extern void	do_abandon LDAP_P((Connection *conn, Operation *op));
 extern void	do_add LDAP_P((Connection *conn, Operation *op));
