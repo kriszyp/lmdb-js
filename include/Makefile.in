@@ -50,6 +50,7 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 	    sbindir=$(sbindir); \
 	    libexecdir=$(libexecdir); \
 	    localstatedir=$(localstatedir); \
+	    localedir=$(localedir); \
 	fi; \
 	$(SED) \
 			-e "s;%SYSCONFDIR%;$$sysconfdir;" \
@@ -58,6 +59,7 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 			-e "s;%SBINDIR%;$$sbindir;" \
 			-e "s;%LIBEXECDIR%;$$libexecdir;" \
 			-e "s;%RUNDIR%;$$localstatedir;" \
+			-e "s;%LOCALEDIR%;$$localedir;" \
 			 $(LDAP_CONFIG) >> $@; \
 	$(CHMOD) 444 $@
 

@@ -59,5 +59,9 @@
 #ifndef LDAP_RUNDIR
 #define LDAP_RUNDIR			"%RUNDIR%"
 #endif
+#ifndef LDAP_LOCALEDIR
+#define LDAP_LOCALEDIR		"%LOCALEDIR%"
+#endif
+
 
 #endif /* _LDAP_CONFIG_H */
