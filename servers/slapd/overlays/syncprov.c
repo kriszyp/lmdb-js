@@ -257,9 +257,9 @@ syncprov_findcsn( Operation *op, int mode )
 		} else {
 			if ( locked ) {
 				ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
-				locked = 1;
+				locked = 0;
 			}
-			cf.f_choice = LDAP_FILTER_EQUALITY;
+			cf.f_choice = LDAP_FILTER_LE;
 			fop.ors_attrsonly = 1;
 			fop.ors_attrs = slap_anlist_no_attrs;
 			fop.ors_slimit = 1;
