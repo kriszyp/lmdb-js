@@ -123,6 +123,7 @@ slap_tool_init(
 		case 'b':
 			base.bv_val = strdup( optarg );
 			base.bv_len = strlen( base.bv_val );
+			break;
 
 		case 'c':	/* enable continue mode */
 			continuemode++;
