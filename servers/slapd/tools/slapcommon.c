@@ -181,6 +181,13 @@ slap_tool_init(
 	 * initialize stuff and figure out which backend we're dealing with
 	 */
 
+#ifdef SLAPD_MODULES
+	if ( module_init() != 0 ) {
+		fprintf( stderr, "%s: module_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+#endif
+		
 	rc = slap_init( mode, progname );
 
 	if (rc != 0 ) {
@@ -278,6 +285,9 @@ void slap_tool_destroy( void )
 {
 	slap_shutdown( be );
 	slap_destroy();
+#ifdef SLAPD_MODULES
+	module_kill();
+#endif
 	schema_destroy();
 #ifdef HAVE_TLS
 	ldap_pvt_tls_destroy();
