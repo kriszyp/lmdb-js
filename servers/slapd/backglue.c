@@ -905,8 +905,8 @@ glue_sub_init( )
 					!= LDAP_SUCCESS ) {
 				return -1;
 			}
-			bv.bv_len = be->be_nsuffix[0]->bv_len - (bv.bv_val -
-				be->be_nsuffix[0]->bv_val);
+			bv.bv_len = b1->be_nsuffix[0]->bv_len - (bv.bv_val -
+				b1->be_nsuffix[0]->bv_val);
 			gi->n[gi->nodes].pdn = bv;
 			gi->nodes++;
 			b1->be_private = gi;
