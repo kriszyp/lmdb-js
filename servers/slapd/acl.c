@@ -142,6 +142,9 @@ access_allowed(
 
 	assert( attr != NULL );
 
+	if( op && op->o_is_auth_check && (access == ACL_SEARCH || access == ACL_READ)) {
+		access = ACL_AUTH;
+	}
 	if( state && state->as_recorded && state->as_vd_ad==desc) { 
 		if( state->as_recorded & ACL_STATE_RECORDED_NV &&
 			val == NULL )
