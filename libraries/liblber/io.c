@@ -240,13 +240,13 @@ ber_alloc_t( int options )
 }
 
 BerElement *
-ber_alloc( void )
+ber_alloc( void )	/* deprecated */
 {
 	return( ber_alloc_t( 0 ) );
 }
 
 BerElement *
-der_alloc( void )
+der_alloc( void )	/* deprecated */
 {
 	return( ber_alloc_t( LBER_USE_DER ) );
 }
@@ -258,8 +258,9 @@ ber_dup( LDAP_CONST BerElement *ber )
 
 	assert( ber != NULL );
 
-	if ( (new = ber_alloc()) == NULL )
+	if ( (new = ber_alloc_t( ber->ber_options )) == NULL ) {
 		return( NULL );
+	}
 
 	*new = *ber;
 
@@ -276,6 +277,7 @@ ber_init_w_nullc( BerElement *ber, int options )
 	(void) memset( (char *)ber, '\0', sizeof( BerElement ));
 	ber->ber_tag = LBER_DEFAULT;
 	ber->ber_options = (char) options;
+	ber->ber_debug = ber_int_debug;
 }
 
 /* New C-API ber_init() */

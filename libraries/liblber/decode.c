@@ -127,7 +127,11 @@ ber_peek_tag(
 	unsigned long *len )
 {
 	unsigned long	tag;
-	BerElement *ber = ber_dup( ber_in );
+	BerElement *ber;
+
+	assert( ber_in != NULL );
+
+	ber = ber_dup( ber_in );
 
 	if( ber == NULL ) {
 		return LBER_ERROR;
@@ -183,6 +187,8 @@ ber_get_int( BerElement *ber, long *num )
 {
 	unsigned long	tag, len;
 
+	assert( ber != NULL );
+
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
 
@@ -199,6 +205,8 @@ ber_get_stringb( BerElement *ber, char *buf, unsigned long *len )
 #ifdef STR_TRANSLATION
 	char		*transbuf;
 #endif /* STR_TRANSLATION */
+
+	assert( ber != NULL );
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
@@ -238,6 +246,9 @@ ber_get_stringa( BerElement *ber, char **buf )
 {
 	unsigned long	datalen, tag;
 
+	assert( ber != NULL );
+	assert( buf != NULL );
+
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		*buf = NULL;
 		return( LBER_DEFAULT );
@@ -273,6 +284,9 @@ unsigned long
 ber_get_stringal( BerElement *ber, struct berval **bv )
 {
 	unsigned long	len, tag;
+
+	assert( ber != NULL );
+	assert( bv != NULL );
 
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
 		*bv = NULL;
@@ -319,6 +333,10 @@ ber_get_bitstringa( BerElement *ber, char **buf, unsigned long *blen )
 	unsigned long	datalen, tag;
 	unsigned char	unusedbits;
 
+	assert( ber != NULL );
+	assert( buf != NULL );
+	assert( blen != NULL );
+
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		*buf = NULL;
 		return( LBER_DEFAULT );
@@ -349,6 +367,8 @@ ber_get_null( BerElement *ber )
 {
 	unsigned long	len, tag;
 
+	assert( ber != NULL );
+
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
 
@@ -364,6 +384,9 @@ ber_get_boolean( BerElement *ber, int *boolval )
 	long	longbool;
 	int	rc;
 
+	assert( ber != NULL );
+	assert( boolval != NULL );
+
 	rc = ber_get_int( ber, &longbool );
 	*boolval = longbool;
 
@@ -373,6 +396,10 @@ ber_get_boolean( BerElement *ber, int *boolval )
 unsigned long
 ber_first_element( BerElement *ber, unsigned long *len, char **last )
 {
+	assert( ber != NULL );
+	assert( len != NULL );
+	assert( last != NULL );
+
 	/* skip the sequence header, use the len to mark where to stop */
 	if ( ber_skip_tag( ber, len ) == LBER_DEFAULT ) {
 		*last = NULL;
@@ -395,6 +422,10 @@ ber_first_element( BerElement *ber, unsigned long *len, char **last )
 unsigned long
 ber_next_element( BerElement *ber, unsigned long *len, char *last )
 {
+	assert( ber != NULL );
+	assert( len != NULL );
+	assert( last != NULL );
+
 	if ( ber->ber_ptr == last ) {
 #ifdef LBER_END_SEQORSET 
 		return( LBER_END_SEQORSET );
@@ -430,8 +461,6 @@ va_dcl
 	int		*i, j;
 	long		*l;
 	unsigned long	rc, tag, len;
-
-	assert( ber != NULL );
 
 #ifdef HAVE_STDARG
 	va_start( ap, fmt );
