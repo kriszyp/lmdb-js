@@ -74,7 +74,7 @@ ldif_fetch_url(
 	total = 0;
 
 	while( (bytes = fread( buffer, 1, sizeof(buffer), url )) != 0 ) {
-		char *newp = ber_memrealloc( p, total + bytes );
+		char *newp = ber_memrealloc( p, total + bytes + 1 );
 		if( newp == NULL ) {
 			ber_memfree( p );
 			fclose( url );
@@ -96,6 +96,7 @@ ldif_fetch_url(
 		p = newp;
 	}
 
+	p[total] = '\0';
 	*valuep = p;
 	*vlenp = total;
 
