@@ -278,6 +278,7 @@ print_extensions(safe_string *ss, LDAP_SCHEMA_EXTENSION_ITEM **extensions)
 		for ( ext = extensions; *ext != NULL; ext++ ) {
 			print_literal(ss, (*ext)->lsei_name);
 			print_whsp(ss);
+			/* Should be print_qdstrings */
 			print_qdescrs(ss, (*ext)->lsei_values);
 			print_whsp(ss);
 		}
@@ -1031,7 +1032,7 @@ ldap_str2syntax( const char * s, int * code, const char ** errp )
 	char * sval;
 	int seen_desc = 0;
 	LDAP_SYNTAX * syn;
-	char ** ssdummy;
+	char ** ext_vals;
 
 	if ( !s ) {
 		*code = LDAP_SCHERR_EMPTY;
@@ -1100,11 +1101,18 @@ ldap_str2syntax( const char * s, int * code, const char ** errp )
 				syn->syn_desc = sval;
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_syntax_free(syn);
+					return NULL;
+				}
+				if ( add_extension(&syn->syn_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_syntax_free(syn);
 					return NULL;
 				}
@@ -1149,7 +1157,7 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp )
 	int seen_obsolete = 0;
 	int seen_syntax = 0;
 	LDAP_MATCHING_RULE * mr;
-	char ** ssdummy;
+	char ** ext_vals;
 	const char * savepos;
 
 	if ( !s ) {
@@ -1285,11 +1293,18 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp )
 				}
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return NULL;
+				}
+				if ( add_extension(&mr->mr_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_matchingrule_free(mr);
 					return NULL;
 				}
@@ -1687,7 +1702,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 	int seen_must = 0;
 	int seen_may = 0;
 	LDAP_OBJECT_CLASS * oc;
-	char ** ssdummy;
+	char ** ext_vals;
 	const char * savepos;
 
 	if ( !s ) {
@@ -1898,11 +1913,18 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 				}
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_objectclass_free(oc);
+					return NULL;
+				}
+				if ( add_extension(&oc->oc_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_objectclass_free(oc);
 					return NULL;
 				}
