@@ -16,9 +16,9 @@ AC_INIT(include/ldap.h)dnl
 AC_CONFIG_AUX_DIR(build)dnl
 AM_INIT_AUTOMAKE(openldap,[1.2], [no ac_define])dnl
 
-dnl We use autoconf features new to 2.13.
+dnl We use autoconf features new to 2.13.1
 dnl 	aclocal.m4 should be built using aclocal from automake 1.4
-AC_PREREQ(2.13)dnl Required Autoconf version
+AC_PREREQ(2.13.1)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h)dnl
 
