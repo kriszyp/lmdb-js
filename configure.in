@@ -9,7 +9,7 @@ dnl ----
 dnl Configure.in for OpenLDAP
 AC_INIT(include/ldap.h)dnl
 AC_CONFIG_AUX_DIR(build)dnl
-AM_INIT_AUTOMAKE(OpenLDAP,[1.1-alpha3], [no ac_define])dnl
+AM_INIT_AUTOMAKE(OpenLDAP,[1.1-beta], [no ac_define])dnl
 
 dnl Do not use AutoConf 2.12; it produces a configuration script
 dnl that causes an "internal 2K buffer" error on HPUX when run
@@ -28,7 +28,6 @@ top_builddir=`pwd`
 AC_SUBST(top_builddir)dnl
 
 ldap_subdir="openldap"
-AC_SUBST(ldap_subdir)dnl
 
 AC_ARG_WITH(subdir, [  --with-subdir=DIR change default subdirectory used for installs], [
 	if test "$withval" = "no"; then
@@ -37,6 +36,8 @@ AC_ARG_WITH(subdir, [  --with-subdir=DIR change default subdirectory used for in
 		ldap_subdir="$withval"
 	fi
 ])dnl
+
+AC_SUBST(ldap_subdir)dnl
 
 OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl

@@ -48,7 +48,7 @@ LINT = lint
 MKDEP = $(top_srcdir)/build/mkdep $(MKDEPFLAG) -c "$(CC)"
 
 LIBTOOL = @LIBTOOL@
-LIBVERSION = 0:0:0
+LIBVERSION = 1:0:0
 LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LFLAGS)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
