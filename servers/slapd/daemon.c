@@ -679,7 +679,7 @@ static int slap_open_listener(
 	if ( lud->lud_exts ) {
 		err = get_url_perms( lud->lud_exts, &l.sl_perms, &crit );
 	} else {
-		l.sl_perms = S_IWUSR | S_IXUSR; /* "r" means readonly ... */
+		l.sl_perms = S_IRWXU;
 	}
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
@@ -826,6 +826,7 @@ static int slap_open_listener(
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL: {
 		char *addr = ((struct sockaddr_un *)*sal)->sun_path;
+#if 0 /* don't muck with socket perms */
 		if ( chmod( addr, l.sl_perms ) < 0 && crit ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
@@ -840,6 +841,7 @@ static int slap_open_listener(
 			slap_free_listener_addresses(psal);
 			return -1;
 		}
+#endif
 		l.sl_name.bv_len = strlen(addr) + sizeof("PATH=") - 1;
 		l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len + 1 );
 		snprintf( l.sl_name.bv_val, l.sl_name.bv_len + 1, 

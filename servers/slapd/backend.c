@@ -957,9 +957,8 @@ backend_check_restrictions(
 			}
 
 #ifdef SLAP_X_LISTENER_MOD
-			if ( op->o_conn->c_listener && ( op->o_conn->c_listener->sl_perms & S_IRUSR ) ) {
-				/* "r" mode means readonly ( "w" is required
-				 * to operate on a socket ...) */
+			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & ( op->o_ndn.bv_len > 0 ? S_IWUSR : S_IWOTH ) ) ) {
+				/* no "w" mode means readonly */
 				rs->sr_text = "modifications not allowed on this listener";
 				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				return rs->sr_err;
@@ -1023,10 +1022,19 @@ backend_check_restrictions(
 
 #ifdef SLAP_X_LISTENER_MOD
 		if ( !starttls && op->o_dn.bv_len == 0 ) {
-			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & S_IXUSR ) ) {
+			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & S_IXOTH ) ) {
 				/* no "x" mode means bind required */
 				rs->sr_text = "bind required on this listener";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
+				return rs->sr_err;
+			}
+		}
+
+		if ( !starttls && !updateop ) {
+			if ( op->o_conn->c_listener && ! ( op->o_conn->c_listener->sl_perms & ( op->o_dn.bv_len > 0 ? S_IRUSR : S_IROTH ) ) ) {
+				/* no "r" mode means no read */
+				rs->sr_text = "read not allowed on this listener";
+				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 				return rs->sr_err;
 			}
 		}
@@ -1102,7 +1110,7 @@ backend_group(
 {
 	Entry *e;
 	Attribute *a;
-	int i, j, rc;
+	int rc;
 	GroupAssertion *g;
 
 	if ( op->o_abandon ) return SLAPD_ABANDON;
@@ -1177,7 +1185,7 @@ backend_attribute(
 {
 	Entry *e;
 	Attribute *a;
-	int i, j, rc;
+	int i, j, rc = LDAP_SUCCESS;
 	AccessControlState acl_state = ACL_STATE_INIT;
 
 	if ( target && dn_match( &target->e_nname, edn ) ) {
