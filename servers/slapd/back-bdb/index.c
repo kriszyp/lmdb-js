@@ -195,7 +195,7 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				rc = bdb_key_change( op->o_bd, db, txn, &keys[i], id, opid );
 				if( rc ) {
-					ber_bvarray_free( keys );
+					ber_bvarray_free_x( keys, op->o_tmpmemctx );
 					goto done;
 				}
 			}
@@ -216,7 +216,7 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				rc = bdb_key_change( op->o_bd, db, txn, &keys[i], id, opid );
 				if( rc ) {
-					ber_bvarray_free( keys );
+					ber_bvarray_free_x( keys, op->o_tmpmemctx );
 					goto done;
 				}
 			}
@@ -238,7 +238,7 @@ static int indexer(
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
 				bdb_key_change( op->o_bd, db, txn, &keys[i], id, opid );
 				if( rc ) {
-					ber_bvarray_free( keys );
+					ber_bvarray_free_x( keys, op->o_tmpmemctx );
 					goto done;
 				}
 			}
