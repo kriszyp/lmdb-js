@@ -8,6 +8,8 @@ slapauth \- Check a list of string-represented IDs for authc/authz.
 .B [\-v]
 .B [\-d level]
 .B [\-f slapd.conf]
+.B [\-M mech]
+.B [\-R realm]
 .B [\-U authcID]
 .B [\-X authzID]
 .B ID [...]
@@ -41,6 +43,12 @@ enable debugging messages as defined by the specified
 specify an alternative
 .BR slapd.conf (5)
 file.
+.TP
+.BI \-M " mech"
+specify a mechanism.
+.TP
+.BI \-R " realm"
+specify a realm.
 .TP
 .BI \-U " authcID"
 specify an ID to be used as 

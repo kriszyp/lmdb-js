@@ -57,6 +57,8 @@ typedef struct tool_vars {
 	struct berval tv_baseDN;
 	struct berval tv_authcID;
 	struct berval tv_authzID;
+	struct berval tv_mech;
+	char	*tv_realm;
 } tool_vars;
 
 extern tool_vars tool_globals;
@@ -81,6 +83,8 @@ extern tool_vars tool_globals;
 #define baseDN tool_globals.tv_baseDN
 #define authcID tool_globals.tv_authcID
 #define authzID tool_globals.tv_authzID
+#define mech tool_globals.tv_mech
+#define realm tool_globals.tv_realm
 
 void slap_tool_init LDAP_P((
 	const char* name,

@@ -40,7 +40,7 @@ do_check( Connection *c, Operation *op, struct berval *id )
 	struct berval	authcdn;
 	int		rc;
 
-	rc = slap_sasl_getdn( c, op, id, NULL, &authcdn, SLAP_GETDN_AUTHCID );
+	rc = slap_sasl_getdn( c, op, id, realm, &authcdn, SLAP_GETDN_AUTHCID );
 	if ( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "ID: <%s> check failed %d (%s)\n",
 				id->bv_val, rc,
@@ -90,6 +90,8 @@ slapauth( int argc, char **argv )
 
 	op = (Operation *)opbuf;
 	connection_fake_init( &conn, op, &conn );
+
+	conn.c_sasl_bind_mech = mech;
 
 	if ( !BER_BVISNULL( &authzID ) ) {
 		struct berval	authzdn;

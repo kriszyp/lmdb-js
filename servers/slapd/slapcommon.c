@@ -72,7 +72,7 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPAUTH:
-		options = "\t[-U authcID] [-X authzID] ID [...]\n";
+		options = "\t[-U authcID] [-X authzID] [-R realm] [-M mech] ID [...]\n";
 		break;
 
 	case SLAPACL:
@@ -138,7 +138,7 @@ slap_tool_init(
 		break;
 
 	case SLAPAUTH:
-		options = "d:f:U:vX:";
+		options = "d:f:M:R:U:vX:";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -217,6 +217,10 @@ slap_tool_init(
 			retrieve_ctxcsn = 1;
 			break;
 
+		case 'M':
+			ber_str2bv( optarg, 0, 0, &mech );
+			break;
+
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg ) - 1;
 			break;
@@ -227,6 +231,10 @@ slap_tool_init(
 
 		case 'r':	/* replica demotion */
 			replica_demotion = 1;		
+			break;
+
+		case 'R':
+			realm = optarg;
 			break;
 
 		case 's':	/* dump subtree */
