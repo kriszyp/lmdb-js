@@ -91,14 +91,15 @@ objectSubClassMatch(
 	}
 
 #ifdef SLAP_NVALUES
-	assert(0 /* FIX ME */);
+	if( SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX( flags ) )
 #else
-	if( SLAP_IS_MR_ATTRIBUTE_SYNTAX_MATCH( flags ) ) {
+	if( SLAP_IS_MR_ATTRIBUTE_SYNTAX_MATCH( flags ) )
+#endif
+	{
 		*matchp = ( asserted != oc );
 	} else {
 		*matchp = !is_object_subclass( asserted, oc );
 	}
-#endif
 
 #if OCDEBUG
 #ifdef NEW_LOGGING
