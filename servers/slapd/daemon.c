@@ -155,6 +155,8 @@ void slapd_slp_regreport(
 void slapd_slp_reg() {
 	int i;
 
+	if( slapd_srvurls == NULL ) return;
+
 	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
 		if( strncmp( slapd_srvurls[i], LDAP_SRVTYPE_PREFIX,
 				sizeof( LDAP_SRVTYPE_PREFIX ) - 1 ) == 0 ||
