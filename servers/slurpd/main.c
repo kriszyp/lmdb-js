@@ -185,6 +185,12 @@ int main( int argc, char **argv )
 	lutil_detach( 0, 0 );
 #endif
 
+    if ( (rc = lutil_pair( sglob->wake_sds )) < 0 ) {
+	SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
+	rc = 1;
+	goto stop;
+    }
+	
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service) lutil_LogStartedEvent( sglob->serverName, ldap_debug, sglob->slapd_configfile, "n/a" );
 #endif
