@@ -1488,7 +1488,7 @@ aci_group_member (
 	char *grpat;
 	ObjectClass *grp_oc = NULL;
 	AttributeDescription *grp_ad = NULL;
-	char *text;
+	const char *text;
 	int rc;
 
 	/* format of string is "group/objectClassValue/groupAttrName" */
