@@ -87,6 +87,7 @@ value_normalize(
 	}
 
 	/* we only support equality matching of binary attributes */
+	/* This is suspect, flexible certificate matching will hit this */
 	if( slap_ad_is_binary( ad ) && usage != SLAP_MR_EQUALITY ) {
 		*text = "inappropriate binary matching";
 		return LDAP_INAPPROPRIATE_MATCHING;
