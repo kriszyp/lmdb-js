@@ -156,7 +156,9 @@ parse_acl(
 						|| strcmp(right, ".*") == 0 
 						|| strcmp(right, ".*$") == 0 
 						|| strcmp(right, "^.*") == 0 
-						|| strcmp(right, "^.*$") == 0 )
+						|| strcmp(right, "^.*$$") == 0
+						|| strcmp(right, ".*$$") == 0 
+						|| strcmp(right, "^.*$$") == 0 )
 					{
 						a->acl_dn_pat = ch_strdup( "*" );
 
@@ -274,14 +276,18 @@ parse_acl(
 					} else if ( strcmp( right, ".+" ) == 0
 						|| strcmp( right, "^.+" ) == 0
 						|| strcmp( right, ".+$" ) == 0
-						|| strcmp( right, "^.+$" ) == 0 )
+						|| strcmp( right, "^.+$" ) == 0
+						|| strcmp( right, ".+$$" ) == 0
+						|| strcmp( right, "^.+$$" ) == 0 )
 					{
 						pat = ch_strdup( "users" );
 
 					} else if ( strcmp( right, ".*" ) == 0
 						|| strcmp( right, "^.*" ) == 0
 						|| strcmp( right, ".*$" ) == 0
-						|| strcmp( right, "^.*$" ) == 0 )
+						|| strcmp( right, "^.*$" ) == 0
+						|| strcmp( right, ".*$$" ) == 0
+						|| strcmp( right, "^.*$$" ) == 0 )
 					{
 						pat = ch_strdup( "*" );
 
