@@ -265,7 +265,7 @@ int bdb_entry_get(
 #endif
 
 	if( op ) boi = (struct bdb_op_info *) op->o_private;
-	if( boi != NULL && op->o_bd == boi->boi_bdb ) {
+	if( boi != NULL && op->o_bd->be_private == boi->boi_bdb->be_private ) {
 		txn = boi->boi_txn;
 		locker = boi->boi_locker;
 	}
