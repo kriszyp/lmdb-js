@@ -79,7 +79,7 @@ extern int	  is_NT_Service;
 #endif
 
 #ifndef HAVE_WINSOCK
-static 
+static
 #endif
 volatile sig_atomic_t slapd_shutdown = 0;
 
@@ -97,7 +97,91 @@ static struct slap_daemon {
 	fd_set sd_actives;
 	fd_set sd_readers;
 	fd_set sd_writers;
-} slap_daemon; 
+} slap_daemon;
+
+
+
+#ifdef HAVE_SLP
+/*
+ * SLP related functions
+ */
+#include <slp.h>
+
+#define MAX_HOSTNAME_LEN 256
+#define LDAP_SRVTYPE_PREFIX "service:ldap://"
+static char** slapd_srvurls = 0;
+static SLPHandle slapd_hslp = 0;
+
+void slapd_slp_init( const char* urls ) {
+	int i;
+	struct hostent* he;
+	char hn[MAX_HOSTNAME_LEN];
+
+	slapd_srvurls = str2charray( urls, " " );
+
+	for( i=0; slapd_srvurls[i]!=NULL; i++ ) {
+		if( strcmp( slapd_srvurls[i], "ldap:///" ) == 0) {
+			/* INADDR_ANY urls should be marked up with host.domainname */
+			if ( gethostname( hn, MAX_HOSTNAME_LEN ) == 0) {
+				he = gethostbyname( hn );
+				if( he ) {
+					slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
+						strlen( he->h_name ) +
+						strlen( LDAP_SRVTYPE_PREFIX ) + 1);
+					strcpy( slapd_srvurls[i], LDAP_SRVTYPE_PREFIX );
+					strcat( slapd_srvurls[i], he->h_name );
+				}
+			}
+		}
+	}
+
+	/* open the SLP handle */
+	SLPOpen("en", 0, &slapd_hslp);
+}
+
+void slapd_slp_deinit() {
+	if ( slapd_srvurls ) {
+		charray_free( slapd_srvurls );
+	}
+
+	/* close the SLP handle */
+	SLPClose( slapd_hslp );
+}
+
+void slapd_slp_regreport(
+	SLPHandle hslp,
+	SLPError errcode,
+	void* cookie )
+{
+	/* empty report */
+}
+
+void slapd_slp_reg() {
+	int i;
+
+	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
+		SLPReg( slapd_hslp,
+			slapd_srvurls[i],
+			SLP_LIFETIME_MAXIMUM,
+			"ldap",
+			"",
+			1,
+			slapd_slp_regreport,
+			NULL );
+	}
+}
+
+void slapd_slp_dereg() {
+	int i;
+
+	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
+		SLPDereg( slapd_hslp,
+			slapd_srvurls[i],
+			slapd_slp_regreport,
+			NULL );
+	}
+}
+#endif /* HAVE_SLP */
 
 /*
  * Add a descriptor to daemon control
@@ -237,7 +321,7 @@ static int slap_get_listener_addresses(
 #ifdef HAVE_GETADDRINFO
 	struct addrinfo hints, *res, *sai;
 	int n, err;
-	
+
 	memset( &hints, '\0', sizeof(hints) );
 	hints.ai_flags = AI_PASSIVE;
 	hints.ai_socktype = SOCK_STREAM;
@@ -258,9 +342,9 @@ static int slap_get_listener_addresses(
 		}
 	} else
 #  endif
-	{		
+	{
 		char serv[7];
-	
+
 		snprintf(serv, sizeof serv, "%d", port);
 		hints.ai_family = AF_UNSPEC;
 		if (err = getaddrinfo(host, serv, &hints, &res)) {
@@ -300,7 +384,7 @@ static int slap_get_listener_addresses(
 				*((struct sockaddr_un *)sai->ai_addr);
 		} break;
 #  endif
-#  ifdef LDAP_PF_INET6			
+#  ifdef LDAP_PF_INET6
 		case AF_INET6: {
 			*sap = ch_malloc(sizeof(struct sockaddr_in6));
 			if (*sap == NULL) {
@@ -320,7 +404,7 @@ static int slap_get_listener_addresses(
 			*(struct sockaddr_in *)*sap =
 				*((struct sockaddr_in *)sai->ai_addr);
 		} break;
-		default: 
+		default:
 			*sap = NULL;
 			break;
 		}
@@ -360,7 +444,7 @@ static int slap_get_listener_addresses(
 		}
 		strcpy( ((struct sockaddr_un *)*sap)->sun_path, host );
 	} else
-#  endif		
+#  endif
 	{
 		struct in_addr in;
 
@@ -464,7 +548,7 @@ static Listener * slap_open_listener(
 #endif
 
 	port = (unsigned short) lud->lud_port;
-	
+
 	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
 #ifdef LDAP_PF_LOCAL
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
@@ -571,7 +655,7 @@ static Listener * slap_open_listener(
 			}
 #endif
 		}
-	
+
 		switch( (*sal)->sa_family ) {
 		case AF_INET:
 			addrlen = sizeof(struct sockaddr_in);
@@ -587,7 +671,7 @@ static Listener * slap_open_listener(
 			break;
 #endif
 		}
-	
+
 		if (!bind(l.sl_sd, *sal, addrlen))
 			break;
 		err = sock_errno();
@@ -640,14 +724,14 @@ static Listener * slap_open_listener(
 
 	case AF_INET: {
 		char *s;
-#ifdef HAVE_GETADDRINFO		
+#ifdef HAVE_GETADDRINFO
 		char addr[INET_ADDRSTRLEN];
 		inet_ntop( AF_INET, &((struct sockaddr_in *)*sal)->sin_addr,
 			   addr, sizeof(addr) );
 		s = addr;
 #else
 		s = inet_ntoa( l.sl_addr.sin_addr );
-#endif		
+#endif
 		l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65535") );
 		sprintf( l.sl_name, "IP=%s:%d",
 			 s != NULL ? s : "unknown" , port );
@@ -809,6 +893,12 @@ int slapd_daemon_init( const char *urls )
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened\n",
 		i, 0, 0 );
 #endif
+
+#ifdef HAVE_SLP
+	slapd_slp_init( urls );
+	slapd_slp_reg();
+#endif
+
 	charray_free( u );
 	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
 	return !i;
@@ -822,6 +912,12 @@ slapd_daemon_destroy(void)
 	tcp_close( wake_sds[1] );
 	tcp_close( wake_sds[0] );
 	sockdestroy();
+
+#ifdef HAVE_SLP
+	slapd_slp_dereg();
+	slapd_slp_deinit();
+#endif
+
 	return 0;
 }
 
@@ -968,7 +1064,7 @@ slapd_daemon_task(
 		case -1: {	/* failure - try again */
 				int err = sock_errno();
 
-				if( err == EBADF 
+				if( err == EBADF
 #ifdef WSAENOTSOCK
 					/* you'd think this would be EBADF */
 					|| err == WSAENOTSOCK
@@ -1191,7 +1287,7 @@ slapd_daemon_task(
 				continue;
 			}
 
-			if ( ( from.sa_addr.sa_family == AF_INET ) 
+			if ( ( from.sa_addr.sa_family == AF_INET )
 #ifdef LDAP_PF_INET6
 				|| ( from.sa_addr.sa_family == AF_INET6 )
 #endif
@@ -1548,29 +1644,29 @@ int sockinit(void)
     WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
- 
+
 	wVersionRequested = MAKEWORD( 2, 0 );
- 
+
 	err = WSAStartup( wVersionRequested, &wsaData );
 	if ( err != 0 ) {
 		/* Tell the user that we couldn't find a usable */
 		/* WinSock DLL.                                  */
 		return -1;
 	}
- 
+
 	/* Confirm that the WinSock DLL supports 2.0.*/
 	/* Note that if the DLL supports versions greater    */
 	/* than 2.0 in addition to 2.0, it will still return */
 	/* 2.0 in wVersion since that is the version we      */
 	/* requested.                                        */
- 
+
 	if ( LOBYTE( wsaData.wVersion ) != 2 ||
 		HIBYTE( wsaData.wVersion ) != 0 )
 	{
 	    /* Tell the user that we couldn't find a usable */
 	    /* WinSock DLL.                                  */
 	    WSACleanup();
-	    return -1; 
+	    return -1;
 	}
 
 	/* The WinSock DLL is acceptable. Proceed. */

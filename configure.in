@@ -146,8 +146,10 @@ dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
 AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
+OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs], no)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], auto)dnl
+OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
 OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], auto)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
@@ -155,9 +157,8 @@ OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups], no)dnl
-OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs], no)dnl
+OL_ARG_ENABLE(slp, [  --enable-slp            enable SLPv2 support], no)dnl     
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
-OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 
 dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], no)dnl
@@ -463,6 +464,8 @@ TERMCAP_LIBS=
 TLS_LIBS=
 MODULES_LIBS=
 AUTH_LIBS=
+
+SLAPD_SLP_LIBS=
 
 dnl ================================================================
 dnl Checks for programs
@@ -2062,6 +2065,23 @@ if test $ol_enable_proctitle != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl Check for SLPv2 Compliant API Library
+if test $ol_enable_slp != no ; then
+	AC_CHECK_HEADERS( slp.h )
+
+	if test ac_cv_header_slp_h = yes ; then
+		AC_CHECK_LIB(slp, SLPOpen, [have_slp=yes], [have_slp=no])
+		if test $have_slp = yes ; then
+			AC_DEFINE(HAVE_SLP, 1, [define if you have -lslp])
+			SLAPD_SLP_LIBS=-lslp
+		fi
+
+	elif test $ol_enable_slp = yes ; then
+		AC_MSG_ERROR([SLP not found])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
@@ -2462,6 +2482,8 @@ AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
 AC_SUBST(AUTH_LIBS)
+
+AC_SUBST(SLAPD_SLP_LIBS)
 
 AC_SUBST(SLAPD_SQL_LDFLAGS)
 AC_SUBST(SLAPD_SQL_LIBS)
