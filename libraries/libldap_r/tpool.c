@@ -119,12 +119,9 @@ ldap_pvt_thread_pool_init (
 	pool->ltp_state = LDAP_INT_THREAD_POOL_RUNNING;
 	pool->ltp_max_count = max_threads;
 	pool->ltp_max_pending = max_pending;
+	STAILQ_INIT(&pool->ltp_pending_list);
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
-	if (STAILQ_EMPTY(&ldap_int_thread_pool_list)) {
-		STAILQ_INSERT_HEAD(&ldap_int_thread_pool_list, pool, ltp_next);
-	} else {
-		STAILQ_INSERT_TAIL(&ldap_int_thread_pool_list, pool, ltp_next);
-	}
+	STAILQ_INSERT_TAIL(&ldap_int_thread_pool_list, pool, ltp_next);
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
 #if 0
@@ -210,11 +207,7 @@ ldap_pvt_thread_pool_submit (
 	ctx->ltc_arg = arg;
 
 	pool->ltp_pending_count++;
-	if (STAILQ_EMPTY(&pool->ltp_pending_list)) {
-		STAILQ_INSERT_HEAD(&pool->ltp_pending_list, ctx, ltc_next.q);
-	} else {
-		STAILQ_INSERT_TAIL(&pool->ltp_pending_list, ctx, ltc_next.q);
-	}
+	STAILQ_INSERT_TAIL(&pool->ltp_pending_list, ctx, ltc_next.q);
 	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 	if ((pool->ltp_open_count <= 0
 			|| pool->ltp_pending_count > 1
