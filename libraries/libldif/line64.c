@@ -290,7 +290,7 @@ ldif_sput(
 	LDAP_CONST char *val,
 	ber_len_t vlen )
 {
-	unsigned char	*byte, *stop;
+	const unsigned char *byte, *stop;
 	unsigned char	buf[3];
 	unsigned long	bits;
 	char		*save;
@@ -391,7 +391,7 @@ ldif_sput(
 		return;
 	}
 
-	stop = (unsigned char *) (val + vlen);
+	stop = (const unsigned char *) (val + vlen);
 
 	if ( type == LDIF_PUT_VALUE
 		&& isgraph( val[0] ) && val[0] != ':' && val[0] != '<'
@@ -401,7 +401,7 @@ ldif_sput(
 	) {
 		int b64 = 0;
 
-		for ( byte = (unsigned char *) val; byte < stop;
+		for ( byte = (const unsigned char *) val; byte < stop;
 		    byte++, len++ )
 		{
 			if ( !isascii( *byte ) || !isprint( *byte ) ) {
@@ -428,7 +428,7 @@ ldif_sput(
 	len = savelen + 2;
 
 	/* convert to base 64 (3 bytes => 4 base 64 digits) */
-	for ( byte = (unsigned char *) val;
+	for ( byte = (const unsigned char *) val;
 		byte < stop - 2;
 	    byte += 3 )
 	{

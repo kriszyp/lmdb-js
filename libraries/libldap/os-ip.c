@@ -73,7 +73,7 @@ ldap_int_timeval_dup( struct timeval **dest, const struct timeval *src )
 		return 1;
 	}
 
-	SAFEMEMCPY( (char *) new, (char *) src, sizeof(struct timeval));
+	SAFEMEMCPY( (char *) new, (const char *) src, sizeof(struct timeval));
 
 	*dest = new;
 	return 0;

@@ -381,7 +381,7 @@ ldap_set_option(
 
 	case LDAP_OPT_TIMEOUT: {
 			const struct timeval *tv = 
-				(struct timeval *) invalue;
+				(const struct timeval *) invalue;
 
 			if ( lo->ldo_tm_api != NULL ) {
 				LDAP_FREE( lo->ldo_tm_api );
@@ -395,7 +395,7 @@ ldap_set_option(
 
 	case LDAP_OPT_NETWORK_TIMEOUT: {
 			const struct timeval *tv = 
-				(struct timeval *) invalue;
+				(const struct timeval *) invalue;
 
 			if ( lo->ldo_tm_net != NULL ) {
 				LDAP_FREE( lo->ldo_tm_net );

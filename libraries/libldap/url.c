@@ -86,13 +86,13 @@ skip_url_prefix(
  * return non-zero if this looks like a LDAP URL; zero if not
  * if non-zero returned, *urlp will be moved past "ldap://" part of URL
  */
-	char* p;
+	const char *p;
 
 	if ( url == NULL ) {
 		return( NULL );
 	}
 
-	p = (char *) url;
+	p = url;
 
 	/* skip leading '<' (if any) */
 	if ( *p == '<' ) {

@@ -92,13 +92,14 @@ static const struct ldaperror ldap_errlist[] = {
 	{-1, 0 }
 };
 
-static struct ldaperror *ldap_int_error( int err )
+static const struct ldaperror *
+ldap_int_error( int err )
 {
 	int	i;
 
 	for ( i = 0; ldap_errlist[i].e_code != -1; i++ ) {
 		if ( err == ldap_errlist[i].e_code )
-			return (struct ldaperror *) &ldap_errlist[i];
+			return &ldap_errlist[i];
 	}
 
 	return NULL;
@@ -107,7 +108,7 @@ static struct ldaperror *ldap_int_error( int err )
 char *
 ldap_err2string( int err )
 {
-	struct ldaperror *e;
+	const struct ldaperror *e;
 	
 	Debug( LDAP_DEBUG_TRACE, "ldap_err2string\n", 0, 0, 0 );
 
@@ -121,7 +122,7 @@ void
 ldap_perror( LDAP *ld, LDAP_CONST char *str )
 {
 	const char *s;
-	struct ldaperror *e;
+	const struct ldaperror *e;
 	Debug( LDAP_DEBUG_TRACE, "ldap_perror\n", 0, 0, 0 );
 
 	assert( ld != NULL );
