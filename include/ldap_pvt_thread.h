@@ -108,11 +108,11 @@ LDAP_BEGIN_DECL
 
 typedef thread_t		ldap_pvt_thread_t;
 typedef mon_t			ldap_pvt_thread_mutex_t;
-struct lwpcv {
+struct ldap_pvt_thread_lwp_cv {
 	int		lcv_created;
 	cv_t		lcv_cv;
 };
-typedef struct lwpcv		ldap_pvt_thread_cond_t;
+typedef struct ldap_pvt_thread_lwp_cv ldap_pvt_thread_cond_t;
 
 #define HAVE_REENTRANT_FUNCTIONS 1
 
@@ -241,7 +241,7 @@ typedef struct ldap_pvt_thread_rdwr_var {
 	ldap_pvt_thread_cond_t ltrw_read;	/* wait for read */
 	ldap_pvt_thread_cond_t ltrw_write;	/* wait for write */
 	int ltrw_valid;
-#define LDAP_PVT_THREAD_RDWR_VALUE 0x0bad
+#define LDAP_PVT_THREAD_RDWR_VALID 0x0bad
 	int ltrw_r_active;
 	int ltrw_w_active;
 	int ltrw_r_wait;
