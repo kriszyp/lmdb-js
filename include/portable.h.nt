@@ -209,6 +209,9 @@ typedef char * caddr_t;
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 /* #undef DECL_SYS_ERRLIST */
 
+/* define this if sys_errlist is available */
+#define HAVE_SYS_ERRLIST 1 
+
 /* define if you have berkeley db */
 /* #undef HAVE_BERKELEY_DB */
 
