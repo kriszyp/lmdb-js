@@ -2242,10 +2242,6 @@ if test "$ac_cv_func_getopt" != yes; then
     LIBSRCS="$LIBSRCS getopt.c"
 fi
 
-if test "$ac_cv_func_tempnam" != yes; then
-    LIBSRCS="$LIBSRCS tempnam.c"
-fi
-
 dnl ----------------------------------------------------------------
 # Check Configuration
 OL_SYS_ERRLIST
