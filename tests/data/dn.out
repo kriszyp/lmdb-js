@@ -41,6 +41,14 @@ description: CN=\23John Smith\20,DC=example,DC=net
 description: CN=\#John Smith\ ,DC=example,DC=net
 description: CN=Lu\C4\8Di\C4\87
 
+dn: cn=Unescaped Equals,ou=LDAPv3,dc=example,dc=com
+objectClass: groupOfNames
+cn: Unescaped Equals
+member: cn=Unescaped Equals,ou=LDAPv3,dc=example,dc=com
+member: cn=A*x\3Db is a linear algebra problem,ou=LDAPv3,dc=example,dc=com
+description: cn=A*x=b is a linear algebra problem,ou=LDAPv3,dc=example,dc=com 
+ // unescaped EQUALS
+
 dn: ou=LDAPv2,dc=example,dc=com
 objectClass: organizationalUnit
 ou: LDAPv2
