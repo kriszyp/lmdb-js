@@ -155,21 +155,27 @@ newrdn: cn=Jane Q. Doe
 deleteoldrdn: 1
 newsuperior: ou=Information Technology Division,ou=People,$BASEDN
 
+dn: cn=Jane Q. Doe,ou=Information Technology Division,ou=People,$BASEDN
+changetype: modify
+add: cn
+cn: Jane Qissapaolo Doe
+-
+
 dn: ou=Referrals,$BASEDN
 changetype: add
 objectclass: referral
 objectclass: extensibleObject
 ou: Referrals
 ref: ldap://localhost.localdomain/ou=Referrals,$BASEDN
-description: Just added as ldap://localhost.localdomain/ou=Referrals,$BASEDN
+description: Just added as ldap://localhost.localdomain:389/ou=Referrals,$BASEDN
 
 dn: ou=Referrals,$BASEDN
 changetype: modify
 replace: ref
-ref: ldap://ldap.example.com/ou=Referrals,$BASEDN
+ref: ldap://ldap.example.com:389/ou=Referrals,$BASEDN
 -
 add: description
-description: ...and modified as ldap://ldap.example.com/ou=Referrals,$BASEDN
+description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,$BASEDN
 -
 EOMODS
 
@@ -204,6 +210,8 @@ fi
 FILTER="(objectClass=referral)"
 echo "searching filter=\"$FILTER\""
 echo "	attrs=\"'*' ref\""
+echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
+echo "# 	attrs=\"'*' ref\"" >> $SEARCHOUT
 
 BASEDN="dc=example,dc=com"
 echo "	base=\"$BASEDN\"..."

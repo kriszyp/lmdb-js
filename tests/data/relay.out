@@ -1965,6 +1965,7 @@ dn: cn=Jane Q. Doe,ou=Information Technology Division,ou=People,o=Beispiel,c=D
 objectClass: OpenLDAPperson
 cn: Jane Alverson
 cn: Jane Q. Doe
+cn: Jane Qissapaolo Doe
 sn: Doe
 uid: jdoe
 title: Programmer Analyst, UM Alumni Association
@@ -2053,7 +2054,7 @@ mail: auser@mail.alumni.example.com
 telephoneNumber: +49 1234-567-890
 description: Just added in o=Beispiel,c=DE naming context
 
-# refldap://ldap.example.com/ou=Referrals,o=Beispiel,c=DE??sub
+# refldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE??sub
 
 # searching base="o=Esempio,c=IT"...
 dn: o=Esempio,c=IT
@@ -2377,6 +2378,7 @@ dn: cn=Jane Q. Doe,ou=Information Technology Division,ou=People,o=Esempio,c=IT
 objectClass: OpenLDAPperson
 cn: Jane Alverson
 cn: Jane Q. Doe
+cn: Jane Qissapaolo Doe
 sn: Doe
 uid: jdoe
 title: Programmer Analyst, UM Alumni Association
@@ -2464,28 +2466,30 @@ mail: auser@mail.alumni.example.com
 telephoneNumber: +49 1234-567-890
 description: Just added in o=Beispiel,c=DE naming context
 
-# refldap://ldap.example.com/ou=Referrals,o=Beispiel,c=DE??sub
+# refldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE??sub
 
+# searching filter="(objectClass=referral)"
+# 	attrs="'*' ref"
 # 	base="dc=example,dc=com"...
 dn: ou=Referrals,dc=example,dc=com
 objectClass: referral
 objectClass: extensibleObject
 ou: Referrals
-description: Just added as ldap://localhost.localdomain/ou=Referrals,o=Beispie
- l,c=DE
-description: ...and modified as ldap://ldap.example.com/ou=Referrals,o=Beispie
- l,c=DE
-ref: ldap://ldap.example.com/ou=Referrals,o=Beispiel,c=DE
+description: Just added as ldap://localhost.localdomain:389/ou=Referrals,o=Bei
+ spiel,c=DE
+description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,o=Bei
+ spiel,c=DE
+ref: ldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE
 
 # 	base="o=Example,c=US"...
 dn: ou=Referrals,o=Example,c=US
 objectClass: referral
 objectClass: extensibleObject
 ou: Referrals
-description: Just added as ldap://localhost.localdomain/ou=Referrals,o=Beispie
- l,c=DE
-description: ...and modified as ldap://ldap.example.com/ou=Referrals,o=Beispie
- l,c=DE
+description: Just added as ldap://localhost.localdomain:389/ou=Referrals,o=Bei
+ spiel,c=DE
+description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,o=Bei
+ spiel,c=DE
 ref: ldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE??base
 
 # 	base="o=Esempio,c=IT"...
@@ -2493,10 +2497,10 @@ dn: ou=Referrals,o=Esempio,c=IT
 objectClass: referral
 objectClass: extensibleObject
 ou: Referrals
-description: Just added as ldap://localhost.localdomain/ou=Referrals,o=Beispie
- l,c=DE
-description: ...and modified as ldap://ldap.example.com/ou=Referrals,o=Beispie
- l,c=DE
+description: Just added as ldap://localhost.localdomain:389/ou=Referrals,o=Bei
+ spiel,c=DE
+description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,o=Bei
+ spiel,c=DE
 ref: ldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE??base
 
 # searching filter="(seeAlso=cn=all staff,ou=Groups,o=Example,c=US)"
@@ -2536,5 +2540,5 @@ seeAlso: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
 dn: cn=Added User,ou=Alumni Association,ou=People,o=Example,c=US
 seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 
-# refldap://ldap.example.com/ou=Referrals,o=Beispiel,c=DE??sub
+# refldap://ldap.example.com:389/ou=Referrals,o=Beispiel,c=DE??sub
 
