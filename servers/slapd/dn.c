@@ -155,7 +155,7 @@ dn_parent(
 )
 {
 	char	*s;
-	int	inquote, gotesc;
+	int	inquote;
 
 	if( dn == NULL ) {
 		return NULL;
@@ -225,7 +225,7 @@ char * dn_rdn(
     char	*dn )
 {
 	char	*s;
-	int	inquote, gotesc;
+	int	inquote;
 
 	if( dn == NULL ) {
 		return NULL;

@@ -15,7 +15,7 @@ static int	get_substring_filter(Connection *conn, BerElement *ber, Filter *f, ch
 int
 get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 {
-	unsigned long	tag, len;
+	unsigned long	len;
 	int		err;
 	Filter		*f;
 	char		*ftmp;

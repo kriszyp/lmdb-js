@@ -26,7 +26,6 @@ do_compare(
 {
 	char	*ndn;
 	Ava	ava;
-	int	rc;
 	Backend	*be;
 
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );

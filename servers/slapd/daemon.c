@@ -53,16 +53,12 @@ slapd_daemon(
     void *port
 )
 {
-	Operation		*o;
-	BerElement		ber;
-	unsigned long		len, tag, msgid;
 	int			i;
 	int			tcps, ns;
 	struct sockaddr_in	addr;
 	fd_set			readfds;
 	fd_set			writefds;
 	FILE			*fp;
-	int			on = 1;
 
 #ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
@@ -150,7 +146,7 @@ slapd_daemon(
 		struct hostent		*hp;
 		struct timeval		zero;
 		struct timeval		*tvp;
-		int			len, pid;
+		int			len;
 	   	int			data_ready;
 
 		char	*client_name;

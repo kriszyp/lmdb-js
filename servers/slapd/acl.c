@@ -107,7 +107,7 @@ acl_get_applicable(
     regmatch_t	*matches
 )
 {
-	int		i, j;
+	int		i;
 	struct acl	*a;
     char		*edn;
 
@@ -477,7 +477,6 @@ string_expand(
 			} else if (*sp >= '0' && *sp <= '9' ) {
 				int     n;
 				int     i;
-				char   *ep;
 				int     l;
 
 				n = *sp - '0';

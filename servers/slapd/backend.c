@@ -453,8 +453,6 @@ be_isroot( Backend *be, char *ndn )
 char *
 be_root_dn( Backend *be )
 {
-	int rc;
-
 	if ( be->be_root_dn == NULL ) {
 		return( "" );
 	}

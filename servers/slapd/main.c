@@ -38,7 +38,7 @@ static STRDISP  syslog_types[] = {
     { "LOCAL5",         6, LOG_LOCAL5 },
     { "LOCAL6",         6, LOG_LOCAL6 },
     { "LOCAL7",         6, LOG_LOCAL7 },
-    NULL
+    { NULL }
 };
 
 static int   cnvt_str2int( char *, STRDISP_P, int );
@@ -236,7 +236,6 @@ main( int argc, char **argv )
 
 	} else {
 		Connection		c;
-		Operation		*o;
 		BerElement		ber;
 		unsigned long		len, tag;
 		long			msgid;

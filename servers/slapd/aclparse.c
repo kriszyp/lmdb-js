@@ -87,7 +87,7 @@ parse_acl(
 )
 {
 	int		i;
-	char		*e, *left, *right;
+	char		*left, *right;
 	struct acl	*a;
 	struct access	*b;
 

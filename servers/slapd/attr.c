@@ -65,8 +65,6 @@ attr_merge_fast(
     Attribute		***a
 )
 {
-	int		i;
-
 	if ( *a == NULL ) {
 		for ( *a = &e->e_attrs; **a != NULL; *a = &(**a)->a_next ) {
 			if ( strcasecmp( (**a)->a_type, type ) == 0 ) {
@@ -101,7 +99,6 @@ attr_merge(
     struct berval	**vals
 )
 {
-	int		i;
 	Attribute	**a;
 
 	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
@@ -263,7 +260,7 @@ attr_syntax_config(
 {
 	char			*save;
 	struct asyntaxinfo	*a;
-	int			i, lasti;
+	int			lasti;
 
 	if ( argc < 2 ) {
 		Debug( LDAP_DEBUG_ANY,

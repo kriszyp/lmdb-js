@@ -217,7 +217,6 @@ entry2str(
 void
 entry_free( Entry *e )
 {
-	int		i;
 	Attribute	*a, *next;
 
 	if ( e->e_dn != NULL ) {

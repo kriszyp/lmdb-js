@@ -39,7 +39,7 @@ monitor_info( Connection *conn, Operation *op )
 	struct berval	*vals[2];
 	int		i, nconns, nwritewaiters, nreadwaiters;
 	struct tm	*ltm;
-	char		*p, *tmpdn;
+	char		*p;
 
 	vals[0] = &val;
 	vals[1] = NULL;

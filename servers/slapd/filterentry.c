@@ -179,7 +179,7 @@ test_approx_filter(
 )
 {
 	char		*w1, *w2, *c1, *c2;
-	int		i, rc, match;
+	int		i;
 	Attribute	*a;
 
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
@@ -256,7 +256,7 @@ test_filter_list(
     int		ftype
 )
 {
-	int	rc, nomatch;
+	int	nomatch;
 	Filter	*f;
 
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter_list\n", 0, 0, 0 );

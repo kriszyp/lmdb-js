@@ -26,7 +26,6 @@ do_abandon(
 )
 {
 	int		id;
-	Backend		*be;
 	Operation	*o;
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon\n", 0, 0, 0 );
