@@ -145,6 +145,13 @@ do_modify(
 		goto cleanup;
 	}
 
+	if( ndn == '\0' ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "modify upon the root DSE not supported", NULL, NULL );
+		goto cleanup;
+	}
+
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
 	for ( tmp = modlist; tmp != NULL; tmp = tmp->ml_next ) {
