@@ -162,6 +162,7 @@ is closed. The default is 100.
 .B conn_max_pending_auth <integer>
 Specify the maximum number of pending requests for an authenticated session.
 The default is 1000.
+.\"-- NEW_LOGGING option --
 .\".TP
 .\".B debug <subsys> <level>
 .\"Specify a logging level for a particular subsystem.  The subsystems include
@@ -429,6 +430,10 @@ If it is set to
 or to the keyword 
 .IR none , 
 no limit is applied (the default).
+If it is set to
+.IR disable ,
+the search is not even performed; this can be used to disallow searches
+for a specific set of users.
 If no flag is set, the value is assigned to the
 .BR soft 
 limit, and the
@@ -446,14 +451,29 @@ no limit is set on
 If 
 .B pagedResults
 control is defined, additional size limits may be enforced; the syntax is
-.BR size.pr={<integer>|noEstimate} ,
+.BR size.pr={<integer>|noEstimate|disabled|none} ,
 where
-.BR integer
+.B integer
 is the max page size if no explicit limit is set; the keyword
-.IR noEstimate
+.I noEstimate
 inhibits the server to return an estimate of the total number
-of entries that will be returned.
+of entries that will be returned; the keyword
+.I disabled
+disables the control; the keyword
+.I none
+indicates that no limit is applied to the pagedResults control page size.
+The syntax
+.B size.prtotal={<integer>|none}
+allows to set a limit on the total number of entries that a pagedResults
+control allows to return.
+By default it is unlimited, which is indicated by the keyword
+.IR none .
+When set, 
+.B integer
+is the max number of entries that the whole search with pagedResults control
+can return.
 .RE
+.\"-- NEW_LOGGING option --
 .\".TP
 .\".B logfile <filename>
 .\"Specify a file for recording debug log messages. By default these messages
@@ -1387,14 +1407,16 @@ option.
 .TP
 .B updatedn <dn>
 This option is only applicable in a slave
-.B slapd. 
+database updated using
+.BR slurpd(8). 
 It specifies the DN permitted to update (subject to access controls)
 the replica (typically, this is the DN
 .BR slurpd (8)
 binds to update the replica).  Generally, this DN
 .I should not
 be the same as the
-.BR rootdn .
+.B rootdn 
+used at the master.
 .TP
 .B updateref <url>
 Specify the referral to pass back when

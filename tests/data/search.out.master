@@ -39,6 +39,20 @@ pager: +1 313 555 4474
 facsimiletelephonenumber: +1 313 555 2177
 telephonenumber: +1 313 555 0355
 
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
+ y of Michigan,c=US
+cn: Barbara Jensen
+cn: Babs Jensen
+sn:: IEplbnNlbiA=
+title: Mythical Manager, Research Systems
+
+dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University 
+ of Michigan,c=US
+cn: Bjorn Jensen
+cn: Biiff Jensen
+sn: Jensen
+title: Director, Embedded Systems
+
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 member: cn=Manager,o=University of Michigan,c=US
 member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Unive

@@ -170,7 +170,8 @@ It has been obsoleted by the rewriting tools.
 However, both for backward compatibility and for ease of configuration
 when simple suffix massage is required, it has been preserved.
 It wraps the basic rewriting instructions that perform suffix
-massaging.
+massaging.  See the "REWRITING" section for a detailed list 
+of the rewrite rules it implies.
 .LP
 Note: this also fixes a flaw in suffix massaging, which operated
 on (case insensitive) DNs instead of normalized DNs,
@@ -587,6 +588,19 @@ with the `M{n}' flag.
 .nf
 # set to `off' to disable rewriting
 rewriteEngine on
+
+# the rules the "suffixmassage" directive implies
+rewriteEngine on
+# all dataflow from client to server referring to DNs
+rewriteContext default
+rewriteRule "(.*)<virtualnamingcontext>$" "%1<realnamingcontext>" ":"
+# empty filter rule
+rewriteContext searchFilter
+# all dataflow from server to client
+rewriteContext searchResult
+rewriteRule "(.*)<realnamingcontext>$" "%1<virtualnamingcontext>" ":"
+rewriteContext searchAttrDN alias searchResult
+rewriteContext matchedDN alias searchResult
 
 # Everything defined here goes into the `default' context.
 # This rule changes the naming context of anything sent
