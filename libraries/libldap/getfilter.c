@@ -122,14 +122,13 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 	    nextflp->lfl_tag = LDAP_STRDUP( tag );
 	    nextflp->lfl_pattern = tok[ 0 ];
 	    if ( (rc = regcomp( &re, nextflp->lfl_pattern, 0 )) != 0 ) {
-#ifdef LDAP_LIBUI
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));
 		ldap_getfilter_free( lfdp );
-		fprintf( stderr, "bad regular expression %s, %s\n",
-			nextflp->lfl_pattern, error );
+		Debug( LDAP_DEBUG_ANY, "ldap_init_get_filter_buf: "
+			"bad regular expression %s, %s\n",
+			nextflp->lfl_pattern, error, 0 );
 		errno = EINVAL;
-#endif /* LDAP_LIBUI */
 		LDAP_VFREE( tok );
 		return( NULL );
 	    }

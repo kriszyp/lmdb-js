@@ -2156,10 +2156,6 @@ if test "$ol_enable_syslog" = yes ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
 fi
-if test "$ol_enable_libui" = yes ; then
-	AC_DEFINE(LDAP_LIBUI,1,
-		[define this for LDAP User Interface support])
-fi
 if test "$ol_enable_cache" = no ; then
 	AC_DEFINE(LDAP_NOCACHE,1,
 		[define this to remove -lldap cache support])

@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.325 2000/09/12 19:19:16 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.326 2000/09/12 23:40:17 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -15825,12 +15825,6 @@ fi
 if test "$ol_enable_syslog" = yes ; then
 	cat >> confdefs.h <<\EOF
 #define LDAP_SYSLOG 1
-EOF
-
-fi
-if test "$ol_enable_libui" = yes ; then
-	cat >> confdefs.h <<\EOF
-#define LDAP_LIBUI 1
 EOF
 
 fi

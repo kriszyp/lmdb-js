@@ -837,9 +837,6 @@
 /* define this to add syslog code */
 #undef LDAP_SYSLOG
 
-/* define this for LDAP User Interface support */
-#undef LDAP_LIBUI
-
 /* define this to remove -lldap cache support */
 #undef LDAP_NOCACHE
 
