@@ -33,9 +33,6 @@
 
 LDAP_BEGIN_DECL
 
-#undef __
-#define __(x) x
-
 #define UCDATA_VERSION "2.4"
 
 /**************************************************************************
@@ -116,7 +113,7 @@ LDAP_BEGIN_DECL
  * of properties.  The macros that test for various character properties all
  * call this function with some set of masks.
  */
-extern int ucisprop __((unsigned long code, unsigned long mask1,
+extern int ucisprop LDAP_P((unsigned long code, unsigned long mask1,
                         unsigned long mask2));
 
 #define ucisalpha(cc) ucisprop(cc, UC_LU|UC_LL|UC_LM|UC_LO|UC_LT, 0)
@@ -206,9 +203,9 @@ extern int ucisprop __((unsigned long code, unsigned long mask1,
  *
  **************************************************************************/
 
-extern unsigned long uctoupper __((unsigned long code));
-extern unsigned long uctolower __((unsigned long code));
-extern unsigned long uctotitle __((unsigned long code));
+extern unsigned long uctoupper LDAP_P((unsigned long code));
+extern unsigned long uctolower LDAP_P((unsigned long code));
+extern unsigned long uctotitle LDAP_P((unsigned long code));
 
 /**************************************************************************
  *
@@ -221,20 +218,20 @@ extern unsigned long uctotitle __((unsigned long code));
  * If it returns 0, there is no composition.  Any other value indicates a
  * composition was returned in comp.
  */
-extern int uccomp __((unsigned long node1, unsigned long node2,
+extern int uccomp LDAP_P((unsigned long node1, unsigned long node2,
 		      unsigned long *comp));
 
 /*
  * Does Hangul composition on the string str with length len, and returns
  * the length of the composed string.
  */
-extern int uccomp_hangul __((unsigned long *str, int len));
+extern int uccomp_hangul LDAP_P((unsigned long *str, int len));
 
 /*
  * Does canonical composition on the string str with length len, and returns
  * the length of the composed string.
  */
-extern int uccanoncomp __((unsigned long *str, int len));
+extern int uccanoncomp LDAP_P((unsigned long *str, int len));
 
 /**************************************************************************
  *
@@ -247,14 +244,14 @@ extern int uccanoncomp __((unsigned long *str, int len));
  * there is no decomposition.  Any other value indicates a decomposition was
  * returned.
  */
-extern int ucdecomp __((unsigned long code, unsigned long *num,
+extern int ucdecomp LDAP_P((unsigned long code, unsigned long *num,
                         unsigned long **decomp));
 
 /*
  * If the code is a Hangul syllable, this routine decomposes it into the array
  * passed.  The array size should be at least 3.
  */
-extern int ucdecomp_hangul __((unsigned long code, unsigned long *num,
+extern int ucdecomp_hangul LDAP_P((unsigned long code, unsigned long *num,
                                unsigned long decomp[]));
 
 /*  
@@ -263,7 +260,7 @@ extern int ucdecomp_hangul __((unsigned long code, unsigned long *num,
  * The memory for out is allocated by this routine. It returns the length
  * of the decomposed string if okay, and -1 on error.
  */
-extern int uccanondecomp __((const unsigned long *in, int inlen,
+extern int uccanondecomp LDAP_P((const unsigned long *in, int inlen,
 			     unsigned long **out, int *outlen));
   
 /**************************************************************************
@@ -276,7 +273,7 @@ extern int uccanondecomp __((const unsigned long *in, int inlen,
  * This will return the combining class for a character to be used with the
  * Canonical Ordering algorithm.
  */
-extern unsigned long uccombining_class __((unsigned long code));
+extern unsigned long uccombining_class LDAP_P((unsigned long code));
 
 /**************************************************************************
  *
@@ -289,14 +286,14 @@ struct ucnumber {
     int denominator;
 };
 
-extern int ucnumber_lookup __((unsigned long code, struct ucnumber *num));
-extern int ucdigit_lookup __((unsigned long code, int *digit));
+extern int ucnumber_lookup LDAP_P((unsigned long code, struct ucnumber *num));
+extern int ucdigit_lookup LDAP_P((unsigned long code, int *digit));
 
 /*
  * For compatibility with John Cowan's "uctype" package.
  */
-extern struct ucnumber ucgetnumber __((unsigned long code));
-extern int ucgetdigit __((unsigned long code));
+extern struct ucnumber ucgetnumber LDAP_P((unsigned long code));
+extern int ucgetdigit LDAP_P((unsigned long code));
 
 /**************************************************************************
  *
@@ -321,9 +318,9 @@ extern int ucgetdigit __((unsigned long code));
 /*
  * Functions to load, unload, and reload specific data files.
  */
-extern int ucdata_load __((char *paths, int mask));
-extern void ucdata_unload __((int mask));
-extern int ucdata_reload __((char *paths, int mask));
+extern int ucdata_load LDAP_P((char *paths, int mask));
+extern void ucdata_unload LDAP_P((int mask));
+extern int ucdata_reload LDAP_P((char *paths, int mask));
 
 #ifdef UCDATA_DEPRECATED
 /*
@@ -332,8 +329,6 @@ extern int ucdata_reload __((char *paths, int mask));
 #define ucdata_setup(p) ucdata_load(p, UCDATA_ALL)
 #define ucdata_cleanup() ucdata_unload(UCDATA_ALL)
 #endif
-
-#undef __
 
 LDAP_END_DECL
 

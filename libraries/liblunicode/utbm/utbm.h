@@ -31,9 +31,6 @@
 
 LDAP_BEGIN_DECL
 
-#undef __
-#define __(x) x
-
 /*************************************************************************
  *
  * Types.
@@ -67,14 +64,14 @@ typedef struct _utbm_pattern_t *utbm_pattern_t;
  *
  *************************************************************************/
 
-extern utbm_pattern_t utbm_create_pattern __((void));
+extern utbm_pattern_t utbm_create_pattern LDAP_P((void));
 
-extern void utbm_free_pattern __((utbm_pattern_t pattern));
+extern void utbm_free_pattern LDAP_P((utbm_pattern_t pattern));
 
-extern void utbm_compile __((ucs2_t *pat, unsigned long patlen,
+extern void utbm_compile LDAP_P((ucs2_t *pat, unsigned long patlen,
                              unsigned long flags, utbm_pattern_t pattern));
 
-extern int utbm_exec __((utbm_pattern_t pat, ucs2_t *text,
+extern int utbm_exec LDAP_P((utbm_pattern_t pat, ucs2_t *text,
                          unsigned long textlen, unsigned long *match_start,
                          unsigned long *match_end));
 
@@ -84,19 +81,17 @@ extern int utbm_exec __((utbm_pattern_t pat, ucs2_t *text,
  *
  *************************************************************************/
 
-extern int _utbm_isspace __((ucs4_t c, int compress));
+extern int _utbm_isspace LDAP_P((ucs4_t c, int compress));
 
-extern int _utbm_iscntrl __((ucs4_t c));
+extern int _utbm_iscntrl LDAP_P((ucs4_t c));
 
-extern int _utbm_nonspacing __((ucs4_t c));
+extern int _utbm_nonspacing LDAP_P((ucs4_t c));
 
-extern ucs4_t _utbm_tolower __((ucs4_t c));
+extern ucs4_t _utbm_tolower LDAP_P((ucs4_t c));
 
-extern ucs4_t _utbm_toupper __((ucs4_t c));
+extern ucs4_t _utbm_toupper LDAP_P((ucs4_t c));
 
-extern ucs4_t _utbm_totitle __((ucs4_t c));
-
-#undef __
+extern ucs4_t _utbm_totitle LDAP_P((ucs4_t c));
 
 LDAP_END_DECL
 

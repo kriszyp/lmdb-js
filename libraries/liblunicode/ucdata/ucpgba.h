@@ -30,9 +30,6 @@
 
 LDAP_BEGIN_DECL
 
-#undef __
-#define __(x) x
-
 /***************************************************************************
  *
  * Macros and types.
@@ -108,7 +105,7 @@ typedef struct _ucstring_t {
  * of a string containing no strong direction characters and the default
  * cursor motion should be provided.
  */
-extern ucstring_t *ucstring_create __((unsigned long *source,
+extern ucstring_t *ucstring_create LDAP_P((unsigned long *source,
                                        unsigned long start,
                                        unsigned long end,
                                        int default_direction,
@@ -116,12 +113,12 @@ extern ucstring_t *ucstring_create __((unsigned long *source,
 /*
  * This releases the string.
  */
-extern void ucstring_free __((ucstring_t *string));
+extern void ucstring_free LDAP_P((ucstring_t *string));
 
 /*
  * This changes the cursor motion flag for the string.
  */
-extern int ucstring_set_cursor_motion __((ucstring_t *string,
+extern int ucstring_set_cursor_motion LDAP_P((ucstring_t *string,
                                           int cursor_motion));
 
 /*
@@ -131,7 +128,7 @@ extern int ucstring_set_cursor_motion __((ucstring_t *string,
  * A 0 is returned if no cursor motion is performed, otherwise a
  * 1 is returned.
  */
-extern int ucstring_cursor_right __((ucstring_t *string, int count));
+extern int ucstring_cursor_right LDAP_P((ucstring_t *string, int count));
 
 /*
  * This function will move the cursor to the left depending on the
@@ -140,16 +137,14 @@ extern int ucstring_cursor_right __((ucstring_t *string, int count));
  * A 0 is returned if no cursor motion is performed, otherwise a
  * 1 is returned.
  */
-extern int ucstring_cursor_left __((ucstring_t *string, int count));
+extern int ucstring_cursor_left LDAP_P((ucstring_t *string, int count));
 
 /*
  * This routine retrieves the direction of the run containing the cursor
  * and the actual position in the original text string.
  */
-extern void ucstring_cursor_info __((ucstring_t *string, int *direction,
+extern void ucstring_cursor_info LDAP_P((ucstring_t *string, int *direction,
                                      unsigned long *position));
-
-#undef __
 
 LDAP_END_DECL
 

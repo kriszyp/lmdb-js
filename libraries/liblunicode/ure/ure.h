@@ -38,9 +38,6 @@
 
 LDAP_BEGIN_DECL
 
-#undef __
-#define __(x) x
-
 /*
  * Set of character class flags.
  */
@@ -116,18 +113,18 @@ typedef struct _ure_dfa_t *ure_dfa_t;
  *
  *************************************************************************/
 
-extern ure_buffer_t ure_buffer_create __((void));
+extern ure_buffer_t ure_buffer_create LDAP_P((void));
 
-extern void ure_buffer_free __((ure_buffer_t buf));
+extern void ure_buffer_free LDAP_P((ure_buffer_t buf));
 
-extern ure_dfa_t ure_compile __((ucs2_t *re, unsigned long relen,
+extern ure_dfa_t ure_compile LDAP_P((ucs2_t *re, unsigned long relen,
                                  int casefold, ure_buffer_t buf));
 
-extern void ure_dfa_free __((ure_dfa_t dfa));
+extern void ure_dfa_free LDAP_P((ure_dfa_t dfa));
 
-extern void ure_write_dfa __((ure_dfa_t dfa, FILE *out));
+extern void ure_write_dfa LDAP_P((ure_dfa_t dfa, FILE *out));
 
-extern int ure_exec __((ure_dfa_t dfa, int flags,
+extern int ure_exec LDAP_P((ure_dfa_t dfa, int flags,
                         ucs2_t *text, unsigned long textlen,
                         unsigned long *match_start, unsigned long *match_end));
 
@@ -138,11 +135,9 @@ extern int ure_exec __((ure_dfa_t dfa, int flags,
  *
  *************************************************************************/
 
-extern ucs4_t _ure_tolower __((ucs4_t c));
+extern ucs4_t _ure_tolower LDAP_P((ucs4_t c));
 
-extern int _ure_matches_properties __((unsigned long props, ucs4_t c));
-
-#undef __
+extern int _ure_matches_properties LDAP_P((unsigned long props, ucs4_t c));
 
 LDAP_END_DECL
 
