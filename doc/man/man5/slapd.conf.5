@@ -1066,25 +1066,23 @@ If no time limit is explicitly requested by the client, the
 limit is used; if the requested time limit exceeds the
 .BR hard
 limit, an
-.I \"Administrative limit exceeded\"
+.I "Administrative limit exceeded"
 error is returned.
 If the
 .BR hard
-limit is set to 0 or to the keyword 
+limit is set to the keyword 
 .IR soft ,
-the soft limit is used in either case; if it is set to 
-.I -1 
-or to the keyword 
+the soft limit is used in either case; if it is set to the keyword 
 .IR none , 
 no hard limit is enforced.
 Explicit requests for time limits smaller or equal to the
 .BR hard 
 limit are honored.
-If no flag is set, the value is assigned to the 
+If no limit specifier is set, the value is assigned to the 
 .BR soft 
 limit, and the
 .BR hard
-limit is set to zero, to preserve the original behavior.
+limit is set to soft, to preserve the original behavior.
 
 The syntax for size limits is
 .BR size[.{soft|hard|unchecked}]=<integer> ,
@@ -1097,15 +1095,13 @@ If no size limit is explicitly requested by the client, the
 limit is used; if the requested size limit exceeds the
 .BR hard
 limit, an 
-.I \"Administrative limit exceeded\"
+.I "Administrative limit exceeded"
 error is returned.
 If the 
 .BR hard
-limit is set to 0 or to the keyword 
+limit is set to the keyword 
 .IR soft , 
-the soft limit is used in either case; if it is set to 
-.I -1 
-or to the keyword
+the soft limit is used in either case; if it is set to the keyword
 .IR none , 
 no hard limit is enforced.
 Explicit requests for size limits smaller or equal to the
@@ -1113,26 +1109,24 @@ Explicit requests for size limits smaller or equal to the
 limit are honored.
 The
 .BR unchecked
-flag sets a limit on the number of candidates a search request is allowed
+specifier sets a limit on the number of candidates a search request is allowed
 to examine.
 If the selected candidates exceed the 
 .BR unchecked
 limit, the search will abort with 
-.IR \"Unwilling to perform\" .
-If it is set to
-.I -1 
-or to the keyword 
+.IR "Unwilling to perform" .
+If it is set to the keyword 
 .IR none , 
 no limit is applied (the default).
 If it is set to
 .IR disable ,
 the search is not even performed; this can be used to disallow searches
 for a specific set of users.
-If no flag is set, the value is assigned to the
+If no limit specifier is set, the value is assigned to the
 .BR soft 
 limit, and the
 .BR hard
-limit is set to zero, to preserve the original behavior.
+limit is set to soft, to preserve the original behavior.
 
 In case of no match, the global limits are used.
 The default values are the same of
@@ -1147,7 +1141,7 @@ If
 control is requested, the 
 .B hard
 size limit is used by default, because the request of a specific page size
-is considered as an explicit request for a limitation on the number
+is considered an explicit request for a limitation on the number
 of entries to be returned.
 However, the size limit applies to the total count of entries returned within
 the search, and not to a single page.
@@ -1157,8 +1151,8 @@ where
 .B integer
 is the max page size if no explicit limit is set; the keyword
 .I noEstimate
-inhibits the server to return an estimate of the total number
-of entries that will be returned; the keyword
+inhibits the server from returning an estimate of the total number
+of entries that might be returned; the keyword
 .I none
 indicates that no limit is applied to the pagedResults control page size.
 The syntax
