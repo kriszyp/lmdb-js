@@ -27,6 +27,7 @@
 !define HTML_URL_HOME		"http://www.openldap.org/"
 !define HTML_URL_CATALOG	"../index.html"
 
+# OpenLDAP related organization
 !block organisations; data
 Name	 Long					Jump
 OpenLDAP OpenLDAP				http://www.openldap.org/
@@ -34,38 +35,80 @@ OLF	 OpenLDAP Foundation			http://www.openldap.org/foundation/
 OLP	 OpenLDAP Project			http://www.openldap.org/project/
 UM	 University of Michigan			http://www.umich.edu/
 UMLDAP	 University of Michigan LDAP		http://www.umich.edu/~dirsvcs/ldap/
+IAB	 Internet Architecture Board		http://www.iab.org/
 IETF	 Internet Engineering Task Force	http://www.ietf.org/
+IESG	 Internet Engineering Steering Group	http://www.ietf.org/iesg/
+IRTF	 Internet Research Task Force		http://www.irtf.org/
+ISO	 International Standards Organisation	http://www.iso.org/
+ITU	 International Telephone Union		http://www.itu.int/
 RFC	 RFC Editor				http://www.rfc-editor.org/
+OpenSSL  OpenSSL				http://www.openssl.org/
+Cyrus	 Cyrus					http://asg.cmu.edu/cyrus/
+Sleepy	 Sleepycat Software			http://www.sleepycat.com/
+FSF	 Free Software Foundation		http://www.fsf.org/
 !endblock
 
+!block products; data
+Name		Jump
+BerkeleyDB	http://www.sleepycat.org/
+CVS		http://www.cyclic.com/
+Cyrus		http://asg.cmu.edu/cyrus/sasl/
+GNU		http://www.gnu.org/software/
+GDBM		http://www.gnu.org/software/gdbm/
+OpenLDAP	http://www.openldap.org/software/
+OpenSSL		http://www.openssl.org/
+Perl		http://www.perl.com/
+SQL		http://www.sql.com/
+TCL		http://www.tcl.com/
+!endblock
+
+# Internet and X.500 terms
 !block terms; data
 Term	Definition
 BCP	Best Common Practice
+BER	Basic Encoding Rules
+CLDAP	Connection-less LDAP
 DAP	Directory Access Protocol
+DER	Distinguished Encoding Rules
+DN	Distinguished Name
+DSE	DSA-specific Entry
+DNS	Domain Name System
+DS	Draft Standard
+DSA	Directory System Agent
+DUA	Directory User Agent
 FAQ	Frequently Asked Questions
 FYI	For Your Information
 I-D	Internet Draft
 IP	Internet Protocol
+IPSEC	Internet Protocol Security
 ITS	Issue Tracking System
+LBER	Lightweight BER
 LDAP	Lightweight Directory Access Protocol
+LDBM	LDAP Database Manager
+OSI	OSI
 PS	Proposed Standard
+RDN	Relative Distinguished Name
 RFC	Request for Comments
 TCP	Transmission Control Protocol
 TLS	Transport Security Layer
+SASL	Simple Authentication and Security Layer
 STD	Internet Standard
+UDP	User Datagram Protocol
+URI	Uniform Resource Identifier
 URL	Uniform Resource Locator
 WWW	World Wide Web
+X.500	X.500 Directory Services
 !endblock
 
 !block references; data
-Reference	Document	Jump
-RFC2251		RFC2251		ftp://ftp.isi.edu/in-notes/rfc2251.txt
-RFC2252		RFC2252		ftp://ftp.isi.edu/in-notes/rfc2252.txt
-RFC2253		RFC2253		ftp://ftp.isi.edu/in-notes/rfc2253.txt
-RFC2254		RFC2254		ftp://ftp.isi.edu/in-notes/rfc2254.txt
-RFC2255		RFC2255		ftp://ftp.isi.edu/in-notes/rfc2255.txt
-RFC2256		RFC2256		ftp://ftp.isi.edu/in-notes/rfc2256.txt
-RFC2829		RFC2829		ftp://ftp.isi.edu/in-notes/rfc2829.txt
-RFC2830		RFC2830		ftp://ftp.isi.edu/in-notes/rfc2830.txt
-RFC2831		RFC2830		ftp://ftp.isi.edu/in-notes/rfc2831.txt
+Reference	Status	Document	Jump
+RFC2251		PS	RFC2251		ftp://ftp.isi.edu/in-notes/rfc2251.txt
+RFC2252		PS	RFC2252		ftp://ftp.isi.edu/in-notes/rfc2252.txt
+RFC2253		PS	RFC2253		ftp://ftp.isi.edu/in-notes/rfc2253.txt
+RFC2254		PS	RFC2254		ftp://ftp.isi.edu/in-notes/rfc2254.txt
+RFC2255		PS	RFC2255		ftp://ftp.isi.edu/in-notes/rfc2255.txt
+RFC2256		PS	RFC2256		ftp://ftp.isi.edu/in-notes/rfc2256.txt
+RFC2829		PS	RFC2829		ftp://ftp.isi.edu/in-notes/rfc2829.txt
+RFC2830		PS	RFC2830		ftp://ftp.isi.edu/in-notes/rfc2830.txt
+RFC2831		PS	RFC2830		ftp://ftp.isi.edu/in-notes/rfc2831.txt
 !endblock
