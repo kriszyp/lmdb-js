@@ -38,10 +38,9 @@ do_search(
 	struct berval	fstr = { 0, NULL };
 	Filter		*filter = NULL;
 	AttributeName	*an;
-	ber_len_t	siz, off;
+	ber_len_t	siz, off, i;
 	Backend		*be;
 	int			rc;
-	int			i;
 	const char	*text;
 	int			manageDSAit;
 
@@ -201,7 +200,6 @@ do_search(
 #else
 			Debug( LDAP_DEBUG_ARGS, " %s", an[i].an_name.bv_val, 0, 0 );
 #endif
-
 		}
 	}
 
