@@ -120,9 +120,13 @@ ldbm_back_bind(
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0; /* front end will send result */
 
-			} else {
+			} else if ( refs != NULL ) {
 				send_ldap_result( conn, op, LDAP_REFERRAL,
 					matched_dn, NULL, refs, NULL );
+
+			} else {
+				send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+					NULL, NULL, NULL, NULL );
 			}
 
 		} else if ( method == LDAP_AUTH_SASL ) {
@@ -136,9 +140,13 @@ ldbm_back_bind(
 					NULL, NULL, NULL, NULL );
 			}
 
-		} else {
+		} else if ( refs != NULL ) {
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
+
+		} else {
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, NULL, NULL, NULL );
 		}
 
 		if ( matched != NULL ) {
@@ -181,8 +189,14 @@ ldbm_back_bind(
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
 
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-		    e->e_dn, NULL, refs, NULL );
+		if( refs != NULL ) {
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+				e->e_dn, NULL, refs, NULL );
+
+		} else {
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, NULL, NULL, NULL );
+		}
 
 		ber_bvecfree( refs );
 

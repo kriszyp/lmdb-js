@@ -113,9 +113,13 @@ bdb2i_back_bind_internal(
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0;
 
-			} else {
+			} else if ( refs != NULL ) {
 				send_ldap_result( conn, op, LDAP_REFERRAL,
 					matched_dn, NULL, refs, NULL );
+
+			} else {
+				send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+					NULL, NULL, NULL, NULL );
 			}
 
 		} else if ( method == LDAP_AUTH_SASL ) {
@@ -129,10 +133,13 @@ bdb2i_back_bind_internal(
 					NULL, NULL, NULL, NULL );
 			}
 
-		} else {
+		} else if ( refs != NULL ) {
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
-			rc = 1;
+
+		} else {
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, NULL, NULL, NULL );
 		}
 
 		if ( matched != NULL ) {
@@ -157,7 +164,7 @@ bdb2i_back_bind_internal(
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is a alias, don't allow bind */
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
+		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
 			0, 0 );
 
 		send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
@@ -176,8 +183,13 @@ bdb2i_back_bind_internal(
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
 
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-			e->e_dn, NULL, refs, NULL );
+		if( refs != NULL ) {
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+				e->e_dn, NULL, refs, NULL );
+		} else {
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, NULL, NULL, NULL );
+		}
 
 		ber_bvecfree( refs );
 
