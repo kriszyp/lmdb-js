@@ -41,7 +41,8 @@ do_search(
 	const char		*text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
-
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY, "conn: %d do_search\n",
+		conn->c_connid));
 	/*
 	 * Parse the search request.  It looks like this:
 	 *
