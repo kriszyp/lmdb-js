@@ -165,6 +165,9 @@ extern int slapi_send_ldap_extended_response(Connection *conn, Operation *op,
 			int errornum, char *respName, struct berval *response);
 extern int slapi_send_ldap_search_entry( Slapi_PBlock *pb, Slapi_Entry *e, 
 			LDAPControl **ectrls, char **attrs, int attrsonly ); 
+extern int slapi_send_ldap_search_reference( Slapi_PBlock *pb, Slapi_Entry *e,
+	struct berval **references, LDAPControl **ectrls, struct berval **v2refs );
+
 extern void slapi_register_supported_control(char *controloid, 
 					unsigned long controlops);
 extern int slapi_get_supported_controls(char ***ctrloidsp, unsigned long **ctrlopsp);

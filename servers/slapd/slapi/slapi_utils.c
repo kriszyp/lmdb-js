@@ -1442,6 +1442,60 @@ slapi_send_ldap_search_entry(
 #endif /* LDAP_SLAPI */
 }
 
+int 
+slapi_send_ldap_search_reference(
+	Slapi_PBlock	*pb,
+	Slapi_Entry	*e,
+	struct berval	**references,
+	LDAPControl	**ectrls, 
+	struct berval	**v2refs
+	)
+{
+#ifdef LDAP_SLAPI
+	Operation	*pOp;
+	SlapReply	rs = { REP_SEARCHREF };
+	int		rc;
+
+	rs.sr_err = LDAP_SUCCESS;
+	rs.sr_matched = NULL;
+	rs.sr_text = NULL;
+
+	rc = bvptr2obj( references, &rs.sr_ref );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	rs.sr_ctrls = ectrls;
+	rs.sr_attrs = NULL;
+	rs.sr_entry = e;
+
+	if ( v2refs != NULL ) {
+		rc = bvptr2obj( v2refs, &rs.sr_v2ref );
+		if ( rc != LDAP_SUCCESS ) {
+			slapi_ch_free( (void **)&rs.sr_ref );
+			return rc;
+		}
+	} else {
+		rs.sr_v2ref = NULL;
+	}
+
+	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&pOp ) != 0 ) {
+		return LDAP_OTHER;
+	}
+
+	rc = send_search_reference( pOp, &rs );
+
+	if ( rs.sr_ref != NULL )
+		slapi_ch_free( (void **)&rs.sr_ref );
+
+	if ( rs.sr_v2ref != NULL )
+		slapi_ch_free( (void **)&rs.sr_v2ref );
+
+	return rc;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
 
 Slapi_Filter *
 slapi_str2filter( char *str ) 
