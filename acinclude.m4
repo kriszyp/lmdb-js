@@ -2,7 +2,7 @@ dnl OpenLDAP Autoconf Macros
 dnl $OpenLDAP$
 dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
-dnl Copyright 1998-2003 The OpenLDAP Foundation.
+dnl Copyright 1998-2004 The OpenLDAP Foundation.
 dnl All rights reserved.
 dnl
 dnl Redistribution and use in source and binary forms, with or without
