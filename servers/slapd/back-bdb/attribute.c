@@ -91,7 +91,6 @@ bdb_attribute(
 			entry_ndn->bv_val, 0, 0 );
 #endif
 
-
 	} else {
 dn2entry_retry:
 		/* can we find entry */
@@ -165,14 +164,6 @@ dn2entry_retry:
 		goto return_results;
 	}
 
-	if (conn != NULL && op != NULL
-		&& access_allowed( be, conn, op, e, slap_schema.si_ad_entry,
-			NULL, ACL_READ, &acl_state ) == 0 )
-	{
-		rc = LDAP_INSUFFICIENT_ACCESS;
-		goto return_results;
-	}
-
 	if ((attr = attr_find(e->e_attrs, entry_at)) == NULL) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_BDB, INFO, 
@@ -187,8 +178,8 @@ dn2entry_retry:
 	}
 
 	if (conn != NULL && op != NULL
-		&& access_allowed( be, conn, op, e, entry_at, NULL, ACL_READ, 
-			   &acl_state ) == 0 )
+		&& access_allowed( be, conn, op, e, entry_at, NULL,
+			ACL_AUTH, &acl_state ) == 0 )
 	{
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
@@ -204,7 +195,7 @@ dn2entry_retry:
 		if( conn != NULL
 			&& op != NULL
 			&& access_allowed(be, conn, op, e, entry_at,
-				&attr->a_vals[i], ACL_READ, &acl_state ) == 0)
+				&attr->a_vals[i], ACL_AUTH, &acl_state ) == 0)
 		{
 			continue;
 		}
