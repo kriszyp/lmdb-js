@@ -224,7 +224,6 @@ int read_root_dse_file( const char *fname )
 		if( e == NULL ) {
 			fprintf( stderr, "root_dse: could not parse entry (line=%d)\n",
 				lineno );
-			entry_free( e );
 			entry_free( usr_attr );
 			usr_attr = NULL;
 			return EXIT_FAILURE;
