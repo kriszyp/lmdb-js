@@ -33,9 +33,6 @@ static int addrdnvalues_preop_add(Slapi_PBlock *pb)
 {
 	int rc;
 	Slapi_Entry *e;
-	char *szDN;
-	LDAPDN dn;
-	int i;
 
 	if (slapi_pblock_get(pb, SLAPI_ADD_ENTRY, &e) != 0) {
 		slapi_log_error(SLAPI_LOG_PLUGIN, "addrdnvalues_preop_add",
@@ -43,8 +40,7 @@ static int addrdnvalues_preop_add(Slapi_PBlock *pb)
 		return -1;
 	}
 
-	szDN = slapi_entry_get_dn(e);
-	rc = ldap_str2dn(szDN, &dn, LDAP_DN_FORMAT_LDAPV3);
+	rc = slapi_entry_add_rdn_values(e);
 	if (rc != LDAP_SUCCESS) {
 		slapi_send_ldap_result(pb, LDAP_OTHER, NULL,
 			"Failed to parse distinguished name", 0, NULL);
@@ -53,32 +49,6 @@ static int addrdnvalues_preop_add(Slapi_PBlock *pb)
 			ldap_err2string(rc));
 		return -1;
 	}
-
-	if (dn[0] != NULL) {
-		LDAPRDN rdn = dn[0];
-
-		for (i = 0; rdn[i] != NULL; i++) {
-			LDAPAVA *ava = &rdn[0][i];
-			struct berval *vals[2];
-			Slapi_Attr *a = NULL;
-
-			/* 0 means attr exists */
-			if (slapi_entry_attr_find(e, ava->la_attr.bv_val, &a) == 0 &&
-			    a != NULL &&
-			    slapi_attr_value_find(a, &ava->la_value) == 0)
-			{
-				/* RDN in entry */
-				continue;
-			} /* else RDN not in entry */
-
-			vals[0] = &ava->la_value;
-			vals[1] = NULL;
-
-			slapi_entry_attr_merge(e, ava->la_attr.bv_val, vals);
-		}
-	}
-
-	ldap_dnfree(dn);
 
 	return 0;
 }
