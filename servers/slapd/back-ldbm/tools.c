@@ -94,7 +94,6 @@ ID ldbm_tool_entry_next(
 {
 	Datum key;
 	ID id;
-	int count;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
@@ -211,7 +210,7 @@ int ldbm_tool_index_attr(
 		Debug( LDAP_DEBUG_ANY,
 		    "<= index_read NULL (could not open %s%s)\n", at_cn,
 		    LDBM_SUFFIX, 0 );
-		return( NULL );
+		return 0;
 	}
 
 	ldbm_cache_close( be, db );
