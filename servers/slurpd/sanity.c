@@ -185,7 +185,7 @@ filecheck(
     char		*p;
     unsigned int	ret = 0;
 
-    strcpy( dir, f );
+	snprintf( dir, sizeof dir, "%s", f );
     p = strrchr( dir, LDAP_DIRSEP[0] );
     if ( p != NULL ) {
 	*p = '\0';
