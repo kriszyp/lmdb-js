@@ -44,10 +44,10 @@
 int
 monitor_back_compare(
 	Backend			*be,
-    	Connection		*conn,
-    	Operation		*op,
-    	const char		*dn,
-    	const char		*ndn,
+	Connection		*conn,
+	Operation		*op,
+	struct berval		*dn,
+	struct berval		*ndn,
 	AttributeAssertion 	*ava
 )
 {
@@ -56,7 +56,7 @@ monitor_back_compare(
 	Attribute	*a;
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( mi, ndn, &e, &matched );
+	monitor_cache_dn2entry( mi, ndn->bv_val, &e, &matched );
 	if ( e == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
 				matched ? matched->e_dn : NULL,
@@ -64,7 +64,7 @@ monitor_back_compare(
 		if ( matched ) {
 			monitor_cache_release( mi, matched );
 		}
-		
+
 		return( 0 );
 	}
 
@@ -78,21 +78,20 @@ monitor_back_compare(
 	}
 
 	rc = LDAP_NO_SUCH_ATTRIBUTE;
-	
+
 	for ( a = attrs_find( e->e_attrs, ava->aa_desc );
 			a != NULL;
 			a = attrs_find( a->a_next, ava->aa_desc )) {
 		rc = LDAP_COMPARE_FALSE;
-		
+
 		if ( value_find( ava->aa_desc, a->a_vals, ava->aa_value ) == 0 ) {
-									
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}
 	}
-	
+
 	send_ldap_result( conn, op, rc, NULL, NULL, NULL, NULL );
-	
+
 	if( rc != LDAP_NO_SUCH_ATTRIBUTE ) {
 		rc = 0;
 	}

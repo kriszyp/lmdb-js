@@ -18,8 +18,8 @@ bdb_compare(
 	BackendDB	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn,
+	struct berval	*dn,
+	struct berval	*ndn,
 	AttributeAssertion *ava
 )
 {
@@ -32,7 +32,7 @@ bdb_compare(
 	int		manageDSAit = get_manageDSAit( op );
 
 	/* get entry */
-	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry( be, NULL, ndn->bv_val, &e, &matched, 0 );
 
 	switch( rc ) {
 	case DB_NOTFOUND:
@@ -52,14 +52,14 @@ bdb_compare(
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			bdb_entry_return( be, matched );
 			matched = NULL;
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
@@ -74,7 +74,7 @@ bdb_compare(
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );

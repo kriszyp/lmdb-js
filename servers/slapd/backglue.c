@@ -397,22 +397,22 @@ glue_back_compare (
 	BackendDB *b0,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	AttributeAssertion *ava
 )
 {
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_compare) {
 		rc = be->be_compare (be, conn, op, dn, ndn, ava);
 	} else {
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		send_ldap_result (conn, op, rc, NULL, "No compare target found",
-				  NULL, NULL);
+			NULL, NULL);
 	}
 	return rc;
 }
@@ -497,14 +497,14 @@ glue_back_delete (
 	BackendDB *b0,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn
+	struct berval *dn,
+	struct berval *ndn
 )
 {
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_delete) {
 		rc = be->be_delete (be, conn, op, dn, ndn);

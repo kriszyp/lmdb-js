@@ -18,8 +18,8 @@ bdb_delete(
 	BackendDB	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn
+	struct berval	*dn,
+	struct berval	*ndn
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -33,11 +33,13 @@ bdb_delete(
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 
-	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n",
+		dn->bv_val, 0, 0 );
 
 	if( 0 ) {
 retry:	/* transaction retry */
-		Debug( LDAP_DEBUG_TRACE, "==> bdb_delete: retrying...\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "==> bdb_delete: retrying...\n",
+			0, 0, 0 );
 		rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -69,7 +71,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry for read/modify/write */
-	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, DB_RMW );
+	rc = bdb_dn2entry( be, ltid, ndn->bv_val, &e, &matched, DB_RMW );
 
 	switch( rc ) {
 	case 0:
@@ -96,14 +98,14 @@ retry:	/* transaction retry */
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			bdb_entry_return( be, matched );
 			matched = NULL;
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
@@ -116,7 +118,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	pdn = dn_parent( be, ndn );
+	pdn = dn_parent( be, ndn->bv_val );
 
 	if( pdn != NULL && *pdn != '\0' ) {
 		/* get parent */
@@ -192,7 +194,7 @@ retry:	/* transaction retry */
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: entry is referral\n",

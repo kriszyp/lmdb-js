@@ -184,7 +184,7 @@ do_delete(
 		if ( !be->be_update_ndn.bv_len || repl_user )
 #endif
 		{
-			if ( (*be->be_delete)( be, conn, op, pdn->bv_val, ndn->bv_val ) == 0 ) {
+			if ( (*be->be_delete)( be, conn, op, pdn, ndn ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if ( !be->be_update_ndn.bv_len || !repl_user )
 #endif

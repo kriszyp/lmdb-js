@@ -1048,7 +1048,7 @@ typedef int (BI_op_search) LDAP_P((BackendDB *bd,
 		struct berval **attrs, int attrsonly));
 typedef int (BI_op_compare)LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		const char *dn, const char *ndn,
+		struct berval *dn, struct berval *ndn,
 		AttributeAssertion *ava));
 typedef int (BI_op_modify) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
@@ -1063,7 +1063,7 @@ typedef int (BI_op_add)    LDAP_P((BackendDB *bd,
 		Entry *e));
 typedef int (BI_op_delete) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		const char *dn, const char *ndn));
+		struct berval *dn, struct berval *ndn));
 typedef int (BI_op_abandon) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		ber_int_t msgid));
@@ -1094,6 +1094,7 @@ typedef int (BI_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, const char *bdn, const char *edn,
 		ObjectClass *group_oc,
 		AttributeDescription *group_at ));
+
 typedef int (BI_acl_attribute)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, const char *edn,
