@@ -721,6 +721,27 @@ AC_DEFUN(OL_C_VOLATILE,
  ])dnl
 dnl
 dnl ====================================================================
+dnl Look for fetch(3)
+AC_DEFUN([OL_LIB_FETCH],
+[ol=$LIBS
+LIBS="-lfetch -lcom_err $LIBS"
+AC_CACHE_CHECK([fetch(3) library],ol_cv_lib_fetch,[
+	AC_TRY_LINK([
+#include <sys/param.h>
+#include <stdio.h>
+#include <fetch.h>],
+	[struct url *u = fetchParseURL("file:///"); ],
+	[ol_cv_lib_fetch=yes],
+	[ol_cv_lib_fetch=no])])
+LIBS=$ol_LIBS
+if test $ol_cv_lib_fetch != no ; then
+	ol_link_fetch="-lfetch -lcom_err"
+	AC_DEFINE(HAVE_FETCH,1,
+		[define if you actually have FreeBSD fetch(3)])
+fi
+])dnl
+dnl
+dnl ====================================================================
 dnl Define sig_atomic_t if not defined in signal.h
 AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
  [AC_CACHE_CHECK(for sig_atomic_t, ol_cv_type_sig_atomic_t,

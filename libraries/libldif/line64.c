@@ -275,18 +275,6 @@ ldif_getline( char **next )
 	return( line );
 }
 
-int
-ldif_fetch_url(
-    LDAP_CONST char	*url,
-    char	**valuep,
-    ber_len_t *vlenp
-)
-{
-	*valuep = NULL;
-	*vlenp = NULL;
-	return -1;
-}
-
 /* compatibility with U-Mich off by one bug */
 #define LDIF_KLUDGE 1
 

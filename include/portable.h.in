@@ -708,6 +708,9 @@
 /* define if setproctitle(3) is available */
 #undef HAVE_SETPROCTITLE
 
+/* define if you actually have FreeBSD fetch(3) */
+#undef HAVE_FETCH
+
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
 

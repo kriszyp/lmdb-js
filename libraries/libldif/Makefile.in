@@ -3,8 +3,8 @@
 ##
 
 LIBRARY	= libldif.a
-SRCS	= line64.c
-OBJS	= line64.o
+SRCS	= line64.c fetch.c
+OBJS	= line64.o fetch.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

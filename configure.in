@@ -319,6 +319,7 @@ AC_MSG_RESULT(done)
 
 ## Initialize vars
 LDAP_LIBS=
+LDIF_LIBS=
 LDBM_LIBS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
@@ -1696,6 +1697,12 @@ if test $ol_enable_proctitle != no ; then
 	fi
 fi
 
+OL_LIB_FETCH
+
+if test $ol_cv_lib_fetch != no ; then
+	LDIF_LIBS="$LDIF_LIBS $ol_link_fetch"
+fi 
+
 dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_GETGROUPS dnl requires AC_TYPE_UID_T
@@ -1975,6 +1982,7 @@ AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(LDAPD_LIBS)
+AC_SUBST(LDIF_LIBS)
 AC_SUBST(SLAPD_LIBS)
 AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_LIBS)

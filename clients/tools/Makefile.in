@@ -8,7 +8,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS =  -lldif -lldap -llber -llutil
-XXLIBS	= $(KRB_LIBS) $(TLS_LIBS) $(LUTIL_LIBS)
+XXLIBS	= $(KRB_LIBS) $(TLS_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c ldpversion.c
 
