@@ -85,21 +85,21 @@ backsql_make_attr_query(
 	struct berbuf	bb = BB_NULL;
 
 	backsql_strfcat( &bb, "lblblblbcbl", 
-			(ber_len_t)sizeof( "SELECT " ) - 1, "SELECT ", 
+			(ber_len_t)STRLENOF( "SELECT " ), "SELECT ", 
 			&at_map->bam_sel_expr, 
-			(ber_len_t)sizeof( " AS " ) - 1, " AS ", 
+			(ber_len_t)STRLENOF( " AS " ), " AS ", 
 			&at_map->bam_ad->ad_cname,
-			(ber_len_t)sizeof( " FROM " ) - 1, " FROM ", 
+			(ber_len_t)STRLENOF( " FROM " ), " FROM ", 
 			&at_map->bam_from_tbls, 
-			(ber_len_t)sizeof( " WHERE " ) - 1, " WHERE ", 
+			(ber_len_t)STRLENOF( " WHERE " ), " WHERE ", 
 			&oc_map->bom_keytbl,
 			'.', 
 			&oc_map->bom_keycol,
-			(ber_len_t)sizeof( "=?" ) - 1, "=?" );
+			(ber_len_t)STRLENOF( "=?" ), "=?" );
 
 	if ( at_map->bam_join_where.bv_val != NULL ) {
 		backsql_strfcat( &bb, "lb",
-				(ber_len_t)sizeof( " AND ") - 1, " AND ", 
+				(ber_len_t)STRLENOF( " AND " ), " AND ", 
 				&at_map->bam_join_where );
 	}
 
@@ -137,12 +137,12 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	bb.bb_val.bv_len = 0;
 	bb.bb_len = 0;
 	backsql_strfcat( &bb, "lbcbll",
-			(ber_len_t)sizeof( "ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=" ) - 1,
+			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=" ),
 				"ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
 			'.', 
 			&oc_map->bom_keycol,
-			(ber_len_t)sizeof( " and ldap_entries.oc_map_id=" ) - 1, 
+			(ber_len_t)STRLENOF( " and ldap_entries.oc_map_id=" ), 
 				" and ldap_entries.oc_map_id=", 
 			slen, s );
 
@@ -178,12 +178,12 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	bb.bb_val.bv_len = 0;
 	bb.bb_len = 0;
 	backsql_strfcat( &bb, "lbcbll",
-			(ber_len_t)sizeof( "ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=" ) - 1,
+			(ber_len_t)STRLENOF( "ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=" ),
 				"ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=",
 			&oc_map->bom_keytbl, 
 			'.', 
 			&oc_map->bom_keycol,
-			(ber_len_t)sizeof( " and ldap_entries.oc_map_id=" ) - 1, 
+			(ber_len_t)STRLENOF( " and ldap_entries.oc_map_id=" ), 
 				" and ldap_entries.oc_map_id=", 
 			slen, s );
 

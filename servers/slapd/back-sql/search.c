@@ -198,13 +198,13 @@ backsql_process_filter_list( backsql_srch_info *bsi, Filter *f, int op )
 		switch ( op ) {
 		case LDAP_FILTER_AND:
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( " AND " ) - 1, 
+					(ber_len_t)STRLENOF( " AND " ), 
 						" AND " );
 			break;
 
 		case LDAP_FILTER_OR:
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( " OR " ) - 1,
+					(ber_len_t)STRLENOF( " OR " ),
 						" OR " );
 			break;
 		}
@@ -329,13 +329,13 @@ backsql_process_sub_filter( backsql_srch_info *bsi, Filter *f,
 		backsql_strfcat( &bsi->bsi_flt_where, 
 				"bl",
 				&at->bam_sel_expr_u,
-				(ber_len_t)sizeof( " LIKE '" ) - 1,
+				(ber_len_t)STRLENOF( " LIKE '" ),
 					" LIKE '" );
 
 	} else {
 		backsql_strfcat( &bsi->bsi_flt_where, "bl",
 				&at->bam_sel_expr,
-				(ber_len_t)sizeof( " LIKE '" ) - 1, " LIKE '" );
+				(ber_len_t)STRLENOF( " LIKE '" ), " LIKE '" );
 	}
  
 	if ( f->f_sub_initial.bv_val != NULL ) {
@@ -462,7 +462,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			 * like '%attributeName=value%'"
 			 */
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+					(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 			bsi->bsi_status = LDAP_SUCCESS;
 			rc = 1;
 			goto done;
@@ -525,7 +525,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		case LDAP_FILTER_PRESENT:
 filter_oc_success:;
 			backsql_strfcat( &bsi->bsi_flt_where, "l",
-					(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+					(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 			bsi->bsi_status = LDAP_SUCCESS;
 			rc = 1;
 			goto done;
@@ -557,7 +557,7 @@ filter_oc_success:;
 		 * candidate.
 		 */
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 		if ( ad == slap_schema.si_ad_hasSubordinates ) {
 			/*
 			 * instruct candidate selection algorithm
@@ -590,7 +590,7 @@ filter_oc_success:;
 		/* search anyway; other parts of the filter
 		 * may succeeed */
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 		bsi->bsi_status = LDAP_SUCCESS;
 		rc = 1;
 		goto done;
@@ -613,7 +613,7 @@ next:;
 	/* if more definitions of the same attr, apply */
 	if ( vat[i]->bam_next ) {
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-			sizeof( " OR " ) - 1, " OR " );
+			STRLENOF( " OR " ), " OR " );
 		vat[i] = vat[i]->bam_next;
 		goto next;
 	}
@@ -622,7 +622,7 @@ next:;
 	i++;
 	if ( vat[i] ) {
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-			sizeof( " OR " ) - 1, " OR " );
+			STRLENOF( " OR " ), " OR " );
 		goto next;
 	}
 
@@ -661,7 +661,7 @@ backsql_process_filter_eq( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cbl",
 				'(', /* ) */
 				&at->bam_sel_expr_u, 
-				(ber_len_t)sizeof( "='" ) - 1,
+				(ber_len_t)STRLENOF( "='" ),
 					"='" );
 
 		start = bsi->bsi_flt_where.bb_val.bv_len;
@@ -677,7 +677,7 @@ backsql_process_filter_eq( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
 				'(', /* ) */
 				&at->bam_sel_expr,
-				(ber_len_t)sizeof( "='" ) - 1, "='",
+				(ber_len_t)STRLENOF( "='" ), "='",
 				filter_value,
 				(ber_len_t)sizeof( /* (' */ "')" ) - 1,
 					/* (' */ "')" );
@@ -702,7 +702,7 @@ backsql_process_filter_like( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cbl",
 				'(', /* ) */
 				&at->bam_sel_expr_u, 
-				(ber_len_t)sizeof( " LIKE '%" ) - 1,
+				(ber_len_t)STRLENOF( " LIKE '%" ),
 					" LIKE '%" );
 
 		start = bsi->bsi_flt_where.bb_val.bv_len;
@@ -718,7 +718,7 @@ backsql_process_filter_like( backsql_srch_info *bsi, backsql_at_map_rec *at,
 		backsql_strfcat( &bsi->bsi_flt_where, "cblbl",
 				'(', /* ) */
 				&at->bam_sel_expr,
-				(ber_len_t)sizeof( " LIKE '%" ) - 1,
+				(ber_len_t)STRLENOF( " LIKE '%" ),
 					" LIKE '%",
 				filter_value,
 				(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
@@ -751,7 +751,7 @@ backsql_process_filter_attr( backsql_srch_info *bsi, Filter *f, backsql_at_map_r
 	if ( at->bam_join_where.bv_val != NULL 
 			&& strstr( bsi->bsi_join_where.bb_val.bv_val, at->bam_join_where.bv_val ) == NULL ) {
 	       	backsql_strfcat( &bsi->bsi_join_where, "lb",
-				(ber_len_t)sizeof( " AND " ) - 1, " AND ",
+				(ber_len_t)STRLENOF( " AND " ), " AND ",
 				&at->bam_join_where );
 	}
 
@@ -894,7 +894,7 @@ equality_match:;
 		/* unhandled filter type; should not happen */
 		assert( 0 );
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
-				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+				(ber_len_t)STRLENOF( "1=1" ), "1=1" );
 		break;
 
 	}
@@ -930,7 +930,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	bsi->bsi_flt_where.bb_len = 0;
 
 	backsql_strfcat( &bsi->bsi_sel, "lbcbc",
-			(ber_len_t)sizeof( "SELECT DISTINCT ldap_entries.id," ) - 1,
+			(ber_len_t)STRLENOF( "SELECT DISTINCT ldap_entries.id," ),
 				"SELECT DISTINCT ldap_entries.id,", 
 			&bsi->bsi_oc->bom_keytbl, 
 			'.', 
@@ -952,20 +952,20 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 				'\'' );
 	}
 	backsql_strfcat( &bsi->bsi_sel, "l",
-			(ber_len_t)sizeof( " AS objectClass,ldap_entries.dn AS dn" ) - 1,
+			(ber_len_t)STRLENOF( " AS objectClass,ldap_entries.dn AS dn" ),
 			" AS objectClass,ldap_entries.dn AS dn" );
 
 	backsql_strfcat( &bsi->bsi_from, "lb",
-			(ber_len_t)sizeof( " FROM ldap_entries," ) - 1,
+			(ber_len_t)STRLENOF( " FROM ldap_entries," ),
 				" FROM ldap_entries,",
 			&bsi->bsi_oc->bom_keytbl );
 
 	backsql_strfcat( &bsi->bsi_join_where, "lbcbl",
-			(ber_len_t)sizeof( " WHERE " ) - 1, " WHERE ",
+			(ber_len_t)STRLENOF( " WHERE " ), " WHERE ",
 			&bsi->bsi_oc->bom_keytbl,
 			'.',
 			&bsi->bsi_oc->bom_keycol,
-			(ber_len_t)sizeof( "=ldap_entries.keyval AND ldap_entries.oc_map_id=? AND " ) - 1,
+			(ber_len_t)STRLENOF( "=ldap_entries.keyval AND ldap_entries.oc_map_id=? AND " ),
 				"=ldap_entries.keyval AND ldap_entries.oc_map_id=? AND " );
 
 	switch ( bsi->bsi_scope ) {
@@ -973,11 +973,11 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn)=?" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn)=?" ),
 						"(ldap_entries.dn)=?" );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn=?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn=?" ),
 						"ldap_entries.dn=?" );
 		}
 		break;
@@ -986,18 +986,18 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE ?" ),
 						"(ldap_entries.dn) LIKE ?" );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE ?" ),
 						"ldap_entries.dn LIKE ?" );
 		}
 		break;
 		
 	case LDAP_SCOPE_ONELEVEL:
 		backsql_strfcat( &bsi->bsi_join_where, "l",
-				(ber_len_t)sizeof( "ldap_entries.parent=?" ) - 1,
+				(ber_len_t)STRLENOF( "ldap_entries.parent=?" ),
 					"ldap_entries.parent=?" );
 		break;
 
@@ -1005,11 +1005,11 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		if ( BACKSQL_CANUPPERCASE( bi ) ) {
 			backsql_strfcat( &bsi->bsi_join_where, "bl",
 					&bi->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE ?" ),
 						"(ldap_entries.dn) LIKE ?"  );
 		} else {
 			backsql_strfcat( &bsi->bsi_join_where, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn LIKE ?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE ?" ),
 						"ldap_entries.dn LIKE ?" );
 		}
 
@@ -1027,7 +1027,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 				&bsi->bsi_sel.bb_val,
 				&bsi->bsi_from.bb_val, 
 				&bsi->bsi_join_where.bb_val,
-				(ber_len_t)sizeof( " AND " ) - 1, " AND ",
+				(ber_len_t)STRLENOF( " AND " ), " AND ",
 				&bsi->bsi_flt_where.bb_val );
 
 		*query = bb.bb_val;

@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include "ac/string.h"
 
 #include "slap.h"
 #include "ldap_pvt.h"
@@ -247,9 +248,9 @@ backsql_db_open(
 		 */
 		struct berval	concat;
 		struct berval	values[] = {
-			{ sizeof( "'%'" ) - 1,	"'%'" },
-			{ sizeof( "?" ) - 1,	"?" },
-			{ 0,			NULL }
+			BER_BVC( "'%'" ),
+			BER_BVC( "?" ),
+			BER_BVNULL
 		};
 		struct berbuf	bb = BB_NULL;
 
@@ -273,7 +274,7 @@ backsql_db_open(
 
 			backsql_strfcat( &bb, "blbbb",
 					&si->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE " ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn) LIKE " ),
 						"(ldap_entries.dn) LIKE ",
 					&si->upper_func_open,
 					&concat,
@@ -286,7 +287,7 @@ backsql_db_open(
 			 */
 
 			backsql_strfcat( &bb, "lb",
-					(ber_len_t)sizeof( "ldap_entries.dn LIKE " ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn LIKE " ),
 						"ldap_entries.dn LIKE ",
 					&concat );
 		}
@@ -309,10 +310,10 @@ backsql_db_open(
 
 			backsql_strfcat( &bb, "blbl",
 					&si->upper_func,
-					(ber_len_t)sizeof( "(ldap_entries.dn)=" ) - 1,
+					(ber_len_t)STRLENOF( "(ldap_entries.dn)=" ),
 						"(ldap_entries.dn)=",
 					&si->upper_func,
-					(ber_len_t)sizeof( "(?)" ) - 1, "(?)" );
+					(ber_len_t)STRLENOF( "(?)" ), "(?)" );
 
 		} else {
 
@@ -321,7 +322,7 @@ backsql_db_open(
 			 */
 
 			backsql_strfcat( &bb, "l",
-					(ber_len_t)sizeof( "ldap_entries.dn=?" ) - 1,
+					(ber_len_t)STRLENOF( "ldap_entries.dn=?" ),
 						"ldap_entries.dn=?");
 		}
 
@@ -407,12 +408,12 @@ backsql_db_open(
 				backsql_strfcat( &bb, "sbl",
 						backsql_id_query,
 						&si->upper_func, 
-						(ber_len_t)sizeof( "(dn)=?" ) - 1, "(dn)=?" );
+						(ber_len_t)STRLENOF( "(dn)=?" ), "(dn)=?" );
 			} else {
 				backsql_strfcat( &bb, "sblbcb",
 						backsql_id_query,
 						&si->upper_func, 
-						(ber_len_t)sizeof( "(dn)=" ) - 1, "(dn)=",
+						(ber_len_t)STRLENOF( "(dn)=" ), "(dn)=",
 						&si->upper_func_open, 
 						'?', 
 						&si->upper_func_close );
