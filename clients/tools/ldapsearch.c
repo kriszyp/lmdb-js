@@ -323,7 +323,6 @@ main( int argc, char **argv )
 
 			vrFilter = cvalue;
 			version = LDAP_VERSION3;
-			break;
 
 		} else if ( strcasecmp( control, "pr" ) == 0 ) {
 			int num, tmp;
@@ -341,7 +340,6 @@ main( int argc, char **argv )
 			}
 			pageSize = (ber_int_t) tmp;
 			pagedResults = 1 + crit;
-			break;
 
 #ifdef LDAP_CONTROL_SUBENTRIES
 		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
@@ -359,7 +357,6 @@ main( int argc, char **argv )
 				return EXIT_FAILURE;
 			}
 			if( crit ) subentries *= -1;
-			break;
 #endif
 
 		} else {
@@ -367,6 +364,8 @@ main( int argc, char **argv )
 			usage(prog);
 			return EXIT_FAILURE;
 		}
+		break;
+
 	case 'f':	/* input file */
 		if( infile != NULL ) {
 			fprintf( stderr, "%s: -f previously specified\n", prog );
