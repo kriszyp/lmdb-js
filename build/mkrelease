@@ -44,13 +44,6 @@ fi
 
 . $RELNAME/build/version.sh
 
-# Update the version for NT
-ed $RELNAME/include/portable.nt <<EOF
-/OPENLDAP_VERSION
-s;".*";"$ol_version";
-wq
-EOF
-
 tar cf $RELNAME.tar $RELNAME
 gzip -9 -c $RELNAME.tar > $RELNAME.tgz
 md5 $RELNAME.tgz > $RELNAME.md5
