@@ -61,7 +61,7 @@ version: 1
 
 # LEADING COMMENT AND WHITE SPACE
 
-dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 # EMBEDDED COMMENT
 changetype: modify
 add: drink
@@ -79,7 +79,7 @@ sn: Jones
 add: sn
 sn: Jones
 
-dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
+dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: modify
 # EMBEDDED COMMENT
  CONTINUED
@@ -90,51 +90,51 @@ replace: drink
 drink: Iced Tea
 drink: Mad Dog 20/20
 
-dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
+dn: cn=ITD Staff,ou=Groups,dc=example,dc=com
 changetype: modify
 delete: uniquemember
 uniquemember: cn=James A Jones 2,ou=Information Technology Division,
- ou=People,o=University of Michigan,c=US
+ ou=People,dc=example,dc=com
 uniquemember: cn=Bjorn Jensen,ou=Information Technology Division,
- ou=People,o=University of Michigan,c=US
+ ou=People,dc=example,dc=com
 -
 add: uniquemember
 uniquemember: cn=Dorothy Stevens,ou=Alumni Association,
- ou=People,o=University of Michigan,c=US
+ ou=People,dc=example,dc=com
 uniquemember: cn=James A Jones 1,ou=Alumni Association,
- ou=People,o=University of Michigan,c=US
+ ou=People,dc=example,dc=com
 
-dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
 changetype: modify
 delete: member
 -
 add: member
-member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
 -
 delete: description
 
-dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
+dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: add
 objectclass: OpenLDAPperson
 cn: Gern Jensen
 sn: Jensen
 uid: gjensen
 title: Chief Investigator, ITD
-postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
-seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
+postaladdress: ITD $ 535 W. William St $ Anytown, MI 48103
+seealso: cn=All Staff,ou=Groups,dc=example,dc=com
 drink: Coffee
-homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
+homepostaladdress: 844 Brown St. Apt. 4 $ Anytown, MI 48104
 description: Very odd
 facsimiletelephonenumber: +1 313 555 7557
 telephonenumber: +1 313 555 8343
 mail: gjensen@mailgw.example.com
 homephone: +1 313 555 8844
 
-dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
+dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: delete
 # TRAILING COMMENT AND WHITE SPACE
 
-dn: ou=People,o=University of Michigan,c=US
+dn: ou=People,dc=example,dc=com
 changetype: modify
 increment: uidNumber
 uidNumber: 1

@@ -127,13 +127,13 @@ LDIFUNIQUE=$DATADIR/test-unique.ldif
 LDIFLIMITS=$DATADIR/test-limits.ldif
 MONITOR=""
 REFDN="c=US"
-BASEDN="o=University of Michigan,c=US"
-MANAGERDN="cn=Manager,o=University of Michigan,c=US"
-UPDATEDN="cn=Replica,o=University of Michigan,c=US"
+BASEDN="dc=example,dc=com"
+MANAGERDN="cn=Manager,dc=example,dc=com"
+UPDATEDN="cn=Replica,dc=example,dc=com"
 PASSWD=secret
-BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,o=University of Michigan,c=us"
-BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,o=University of Michigan,c=us"
-JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michigan,c=US"
+BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
+BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
+JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 REFINTDN="cn=Manager,o=refint"
 UNIQUEDN="cn=Manager,o=unique"
 

@@ -25,6 +25,7 @@ mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+echo $SLAPADD -f $CONF1 -l $LDIFORDERED
 $SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
@@ -68,7 +69,7 @@ version: 1
 # LEADING COMMENT AND WHITE SPACE
 
 # should use certificationAuthority instead of extensibleObject
-dn: o=University of Michigan,c=US
+dn: dc=example,dc=com
 changetype: modify
 add: objectClass
 objectClass: extensibleObject
@@ -94,7 +95,7 @@ cAcertificate;binary::
  90ZZZh5Gbg5ZBxFRhDXN8K/fix3ewRSjASt40dGlEODkE+FsLMt04sYl6kX7RGKg
  9a46DkeG+uzZnN/3252uCgh+rjNMFAglueUTERv3EtUB1iXEoU3GyA==
 
-dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
 changetype: modify
 add: objectClass
 objectClass: strongAuthenticationUser
@@ -121,7 +122,7 @@ userCertificate;binary::
  Px1Ijnsjh60qVRy9HOsHCungIKlGcnXLKHmKu0y//5jds/HnaJsGcHI5JRG7CBJb
  W+wrwge3trJ1xHJI8prN
 
-dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
 changetype: modify
 add: objectClass
 objectClass: strongAuthenticationUser
@@ -148,7 +149,7 @@ userCertificate;binary::
  T8k50x4C7oE8HwZuEEB4FM7S1Zig3dfeJ8MJgdaLqt5/U9Ip/hZdzG2dsUsIceH/
  5MCKLu9bGJUjsKnGdm/KpaNwaNo=
 
-dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
 add: userCertificate;binary
 userCertificate;binary::
  MIIDjDCCAvWgAwIBAgIBAzANBgkqhkiG9w0BAQQFADB3MQswCQYDVQQGEwJVUzET

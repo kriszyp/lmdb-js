@@ -99,10 +99,10 @@ EOMODS6
 $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj > \
 	$TESTOUT 2>&1 << EOMODS1
 version: 1
-dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+dn: cn=ITD Staff, ou=Groups, dc=example, dc=com
 changetype: modify
 add: uniquemember
-uniquemember: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
+uniquemember: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 
 EOMODS1
 
@@ -110,10 +110,10 @@ $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS2
 version: 1
 
-dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+dn: cn=ITD Staff, ou=Groups, dc=example, dc=com
 changetype: modify
 add: uniquemember
-uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com
 EOMODS2
 
 #
@@ -124,7 +124,7 @@ EOMODS2
 $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS3
 
-dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+dn: cn=ITD Staff, ou=Groups, dc=example, dc=com
 changetype: modify
 delete: description
 
@@ -135,7 +135,7 @@ $LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
 # COMMENT
 version: 1
 # comment
-dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
+dn: cn=ITD Staff, ou=Groups, dc=example, dc=com
 # comment
 changetype: modify
 # comment

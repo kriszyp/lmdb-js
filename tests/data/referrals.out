@@ -93,8 +93,8 @@ result: 0 Success
 # requesting: 1.1 
 #
 
-# University of Michigan, US
-dn: o=University of Michigan,c=US
+# Example, Inc., US
+dn: o=Example,c=US
 
 # search reference
 ref: ldap://hostA/o=abc,c=us??base
@@ -118,11 +118,11 @@ result: 0 Success
 # requesting: 1.1 
 #
 
-# Manager, University of Michigan, US
-dn: cn=Manager,o=University of Michigan,c=US
+# Example, Inc., US
+dn: o=Example,c=US
 
-# University of Michigan, US
-dn: o=University of Michigan,c=US
+# Manager, Example, Inc., US
+dn: cn=Manager,o=Example,c=US
 
 # US
 dn: c=US

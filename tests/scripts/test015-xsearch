@@ -125,10 +125,9 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
-
 echo "Testing extended RFC2254 searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(:dn:caseExactMatch:=University of Michigan)' >> $SEARCHOUT 2>&1
+	'(:dn:caseIgnoreIA5Match:=example)' >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -139,8 +138,8 @@ fi
 
 echo "Testing values return filter searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	-E '!mv=(o=University of Michigan)' \
-	'(o=University of Michigan)' >> $SEARCHOUT 2>&1
+	-E '!mv=(o=Example, Inc.)' \
+	'(o=Example, Inc.)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"

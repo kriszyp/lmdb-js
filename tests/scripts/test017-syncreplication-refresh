@@ -119,7 +119,7 @@ echo "Using ldapmodify to modify master directory..."
 
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
-dn: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example,dc=com
 changetype: modify
 add: drink
 drink: Orange Juice
@@ -130,27 +130,27 @@ sn: Jones
 add: sn
 sn: Jones
 
-dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: modify
 replace: drink
 drink: Iced Tea
 drink: Mad Dog 20/20
 
-dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
+dn: cn=ITD Staff,ou=Groups,dc=example,dc=com
 changetype: modify
 delete: uniquemember
-uniquemember: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
-uniquemember: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+uniquemember: cn=James A Jones 2, ou=Information Technology Division, ou=People, dc=example,dc=com
+uniquemember: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, dc=example,dc=com
 -
 add: uniquemember
-uniquemember: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
-uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+uniquemember: cn=Dorothy Stevens, ou=Alumni Association, ou=People, dc=example,dc=com
+uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example,dc=com
 
-dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
+dn: cn=All Staff,ou=Groups,dc=example,dc=com
 changetype: modify
 delete: description
 
-dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: add
 objectclass: OpenLDAPperson
 cn: Gern Jensen
@@ -158,7 +158,7 @@ sn: Jensen
 uid: gjensen
 title: Chief Investigator, ITD
 postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
-seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
+seealso: cn=All Staff, ou=Groups, dc=example,dc=com
 drink: Coffee
 homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
 description: Very odd
@@ -167,25 +167,25 @@ telephonenumber: +1 313 555 8343
 mail: gjensen@mailgw.example.com
 homephone: +1 313 555 8844
 
-dn: ou=Retired, ou=People, o=University of Michigan, c=US
+dn: ou=Retired, ou=People, dc=example,dc=com
 changetype: add
 objectclass: organizationalUnit
 ou: Retired
 
-dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: add
 objectclass: OpenLDAPperson
 cn: Rosco P. Coltrane
 sn: Coltrane
 uid: rosco
 
-dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: modrdn
 newrdn: cn=Rosco P. Coltrane
 deleteoldrdn: 1
-newsuperior: ou=Retired, ou=People, o=University of Michigan, c=US
+newsuperior: ou=Retired, ou=People, dc=example,dc=com
 
-dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: delete
 
 EOMODS

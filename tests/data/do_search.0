@@ -1,10 +1,10 @@
-o=university of michigan,c=us
+dc=example,dc=com
 cn=Barbara Jensen
-ou=people,o=university of michigan,c=us
+ou=people,dc=example,dc=com
 cn=Bjorn Jensen
-ou=people,o=university of michigan,c=us
+ou=people,dc=example,dc=com
 cn=James A Jones 1
-o=university of michigan,c=us
+dc=example,dc=com
 cn=Bjorn Jensen
-o=university of michigan,c=us
+dc=example,dc=com
 cn=Alumni Assoc Staff

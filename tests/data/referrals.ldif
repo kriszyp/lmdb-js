@@ -15,11 +15,11 @@ ref: ldap://hostC/o=xyz,c=us HostC
 objectclass: referral
 objectclass: extensibleObject
 
-dn: o=University of Michigan,c=US
-o: University of Michigan
+dn: o=Example,c=US
+o: Example
 objectclass: organization
 
-dn: cn=Manager,o=University of Michigan,c=US
+dn: cn=Manager,o=Example,c=US
 cn: Manager
 cn: Directory Manager
 cn: Dir Man

@@ -60,7 +60,7 @@ fi
 
 echo "Testing modrdn(deleteoldrdn=0)..."
 $LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
-	$TESTOUT 2>&1 'cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones III'
+	$TESTOUT 2>&1 'cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones III'
 
 RC=$?
 if test $RC != 0 ; then
@@ -71,7 +71,7 @@ fi
 
 echo "Testing modrdn(deleteoldrdn=1)..."
 $LDAPMODRDN -D "$MANAGERDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
-	$TESTOUT 2>&1 'cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US' 'cn=James A Jones II'
+	$TESTOUT 2>&1 'cn=James A Jones 2, ou=Information Technology Division, ou=People, dc=example, dc=com' 'cn=James A Jones II'
 
 RC=$?
 if test $RC != 0 ; then
@@ -182,7 +182,7 @@ fi
 
 echo "Testing modrdn(deleteoldrdn=1), modrdn with new rdn already an att val..."
 $LDAPMODRDN -D "$MANAGERDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD > \
-	/dev/null 2>&1 'cn=James A Jones III, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones 1'
+	/dev/null 2>&1 'cn=James A Jones III, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones 1'
 
 RC=$?
 if test $RC != 0 ; then

@@ -1,10 +1,14 @@
 #LEAD COMMENT
-dn: o=University of Michigan,c=US
+dn: dc=example,dc=com
 #EMBEDDED COMMENT
+objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
+objectclass: dcobject
+dc: example
 l: Ann Arbor, Michigan
 st: Michigan
+o: Example, Inc.
 o: University of Michigan
 o: UMICH
 o: UM
@@ -16,121 +20,121 @@ postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
 telephonenumber: +1 313 764-1817
 associateddomain: example.com
 
-dn: ou=People,o=University of Michigan,c=US
+dn: ou=People,dc=example,dc=com
 objectclass: organizationalUnit
 ou: People
 
-dn: cn=Unlimited User,ou=People,o=University of Michigan,c=US
+dn: cn=Unlimited User,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Unlimited User
 sn: User
 uid: unlimited
 userpassword:: c2VjcmV0
 
-dn: cn=Soft Limited User,ou=People,o=University of Michigan,c=US
+dn: cn=Soft Limited User,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Soft Limited User
 sn: User
 uid: softlimited
 userpassword:: c2VjcmV0
 
-dn: cn=Hard Limited User,ou=People,o=University of Michigan,c=US
+dn: cn=Hard Limited User,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Hard Limited User
 sn: User
 uid: hardlimited
 userpassword:: c2VjcmV0
 
-dn: cn=Unchecked Limited User,ou=People,o=University of Michigan,c=US
+dn: cn=Unchecked Limited User,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Unchecked Limited User
 sn: User
 uid: uncheckedlimited
 userpassword:: c2VjcmV0
 
-dn: cn=Other User,ou=People,o=University of Michigan,c=US
+dn: cn=Other User,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Other User
 sn: User
 uid: other
 userpassword:: c2VjcmV0
 
-dn: cn=Foo User,ou=People,o=University of Michigan,c=US
+dn: cn=Foo User,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Foo User
 sn: User
 uid: foo
 userpassword:: c2VjcmV0
 
-dn: cn=Bar User,ou=People,o=University of Michigan,c=US
+dn: cn=Bar User,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Bar User
 sn: User
 uid: bar
 userpassword:: c2VjcmV0
 
-dn: cn=Unchecked Limited User 2,ou=People,o=University of Michigan,c=US
+dn: cn=Unchecked Limited User 2,ou=People,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Unchecked Limited User 2
 sn: User 2
 uid: uncheckedlimited2
 userpassword:: c2VjcmV0
 
-dn: ou=Groups,o=University of Michigan,c=US
+dn: ou=Groups,dc=example,dc=com
 objectclass: organizationalUnit
 ou: Groups
 
-dn: cn=Unchecked Limited Users,ou=Groups,o=University of Michigan,c=US
+dn: cn=Unchecked Limited Users,ou=Groups,dc=example,dc=com
 objectClass: groupOfNames
 objectClass: simpleSecurityObject
 cn: Unchecked Limited Users
 userpassword:: c2VjcmV0
-member: cn=Unchecked Limited User 2,ou=People,o=University of Michigan,c=US
+member: cn=Unchecked Limited User 2,ou=People,dc=example,dc=com
 
-dn: ou=Admin,o=University of Michigan,c=US
+dn: ou=Admin,dc=example,dc=com
 objectclass: organizationalUnit
 ou: Admin
 
-dn: cn=Unchecked Limited User 3,ou=Admin,o=University of Michigan,c=US
+dn: cn=Unchecked Limited User 3,ou=Admin,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Unchecked Limited User 3
 sn: User 3
 uid: uncheckedlimited3
 userpassword:: c2VjcmV0
 
-dn: cn=Special User,o=University of Michigan,c=US
+dn: cn=Special User,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Special User
 sn: User
 uid: special
 userpassword:: c2VjcmV0
 
-dn: ou=Paged Results Users,o=University of Michigan,c=US
+dn: ou=Paged Results Users,dc=example,dc=com
 objectclass: organizationalUnit
 ou: Paged Results Users
 
-dn: cn=Unlimited User,ou=Paged Results Users,o=University of Michigan,c=US
+dn: cn=Unlimited User,ou=Paged Results Users,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Unlimited User
 sn: User
 uid: unlimited
 userpassword:: c2VjcmV0
 
-dn: cn=Page Size Limited User,ou=Paged Results Users,o=University of Michigan,c=US
+dn: cn=Page Size Limited User,ou=Paged Results Users,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Page Size Limited User
 sn: User
 uid: pagesizelimited
 userpassword:: c2VjcmV0
 
-dn: cn=Paged Results Disabled User,ou=Paged Results Users,o=University of Michigan,c=US
+dn: cn=Paged Results Disabled User,ou=Paged Results Users,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Paged Results Disabled User
 sn: User
 uid: pagedresultsdisabled
 userpassword:: c2VjcmV0
 
-dn: cn=Paged Results Limited User,ou=Paged Results Users,o=University of Michigan,c=US
+dn: cn=Paged Results Limited User,ou=Paged Results Users,dc=example,dc=com
 objectclass: OpenLDAPperson
 cn: Paged Results Limited User
 sn: User

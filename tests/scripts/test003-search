@@ -87,7 +87,7 @@ fi
 
 echo "Testing OR searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(|(givenname=Xx*yY*Z)(cn=)(undef=*)(objectclass=groupofnames)(sn~=jones)(member=cn=Manager,o=University of Michigan,c=US)(uniqueMember=cn=Manager,o=University of Michigan,c=US))' >> $SEARCHOUT 2>&1
+	'(|(givenname=Xx*yY*Z)(cn=)(undef=*)(objectclass=groupofnames)(sn=jones)(member=cn=Manager,dc=example,dc=com)(uniqueMember=cn=Manager,dc=example,dc=com))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -97,7 +97,7 @@ fi
 
 echo "Testing AND matching and ends-with searching..."
 $LDAPSEARCH -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $PORT1 \
-	'(&(objectclass=groupofnames)(cn=A*)(member=cn=Mark Elliot,ou=Alumni Association,ou=People,o=University of Michigan,c=US))' >> $SEARCHOUT 2>&1
+	'(&(objectclass=groupofnames)(cn=A*)(member=cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -117,7 +117,7 @@ fi
 
 echo "Testing objectClass/attributeType inheritance ..."
 $LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(&(objectClass~=inetorgperson)(userid=uham))' \
+	'(&(objectClass=inetorgperson)(userid=uham))' \
 	"2.5.4.0" "userid" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
