@@ -672,16 +672,20 @@ static int doPreAddPluginFNs( Operation *op )
 		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_add: add preoperation plugin failed\n",
-				0, 0, 0);
+		LDAP_LOG( OPERATION, INFO,
+			"do_add: add preoperation plugin failed\n",
+			0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
-				0, 0, 0);
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 ) ||
-		     rc == LDAP_SUCCESS ) {
+		Debug(LDAP_DEBUG_TRACE,
+			"do_add: add preoperation plugin failed.\n",
+			0, 0, 0);
+#endif
+
+		if (( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
+			(void *)&rc ) != 0 ) || rc == LDAP_SUCCESS )
+		{
 			rc = LDAP_OTHER;
 		}
-#endif
 	} else {
 		rc = LDAP_SUCCESS;
 	}
@@ -696,11 +700,13 @@ static void doPostAddPluginFNs( Operation *op )
 	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_ADD_FN, op->o_pb );
 	if ( rc < 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_add: add postoperation plugin failed\n",
-				0, 0, 0);
+		LDAP_LOG( OPERATION, INFO,
+			"do_add: add postoperation plugin failed\n",
+			0, 0, 0);
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_add: add postoperation plugin failed.\n",
-				0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE,
+			"do_add: add postoperation plugin failed\n",
+			0, 0, 0);
 #endif
 	}
 }

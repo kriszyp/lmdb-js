@@ -1388,13 +1388,12 @@ int connection_read(ber_socket_t s)
 #define CONNECTION_INPUT_LOOP 1
 /* #define	DATA_READY_LOOP 1 */
 
-	do
-	{
+	do {
 		/* How do we do this without getting into a busy loop ? */
 		rc = connection_input( c );
 	}
 #ifdef DATA_READY_LOOP
-	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ) );
+	while( !rc && ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DATA_READY, NULL ));
 #elif CONNECTION_INPUT_LOOP
 	while(!rc);
 #else
