@@ -231,8 +231,14 @@ int slap_sasl_open( Connection *conn )
 
 #ifdef HAVE_CYRUS_SASL
 	sasl_conn_t *ctx = NULL;
-	sasl_callback_t *session_callbacks =
+	sasl_callback_t *session_callbacks;
+
+	assert( conn->c_sasl_context == NULL );
+	assert( conn->c_sasl_extra == NULL );
+
+	session_callbacks =
 		ch_calloc( 3, sizeof(sasl_callback_t));
+	conn->c_sasl_extra = session_callbacks;
 
 	session_callbacks[0].id = SASL_CB_LOG;
 	session_callbacks[0].proc = &sasl_cb_log;
@@ -363,6 +369,9 @@ int slap_sasl_close( Connection *conn )
 	}
 
 	conn->c_sasl_context = NULL;
+
+	free( conn->c_sasl_extra );
+	conn->c_sasl_extra = NULL;
 #endif
 	return LDAP_SUCCESS;
 }

@@ -1067,6 +1067,7 @@ typedef struct slap_conn {
 	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
 #endif
 	void	*c_sasl_context;	/* SASL session context */
+	void	*c_sasl_extra;		/* SASL session extra stuff */
 
 	long	c_n_ops_received;		/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */

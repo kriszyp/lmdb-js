@@ -379,6 +379,7 @@ long connection_init(
 
 		c->c_sasl_bind_mech = NULL;
 		c->c_sasl_context = NULL;
+		c->c_sasl_extra = NULL;
 
         c->c_sb = ber_sockbuf_alloc( );
 		c->c_currentber = NULL;
@@ -405,6 +406,7 @@ long connection_init(
     assert( c->c_pending_ops == NULL );
 	assert( c->c_sasl_bind_mech == NULL );
 	assert( c->c_sasl_context == NULL );
+	assert( c->c_sasl_extra == NULL );
 	assert( c->c_currentber == NULL );
 
 	c->c_listener_url = ch_strdup( url  );
