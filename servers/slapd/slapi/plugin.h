@@ -24,5 +24,7 @@ int netscape_plugin(Backend *be, const char *fname, int lineno,
 		int argc, char **argv );
 int slapi_init(void);
 
+#define SLAPI_PLUGIN_IS_POST_FN(x) ((x) >= SLAPI_PLUGIN_POST_BIND_FN && (x) <= SLAPI_PLUGIN_POST_RESULT_FN)
+
 #endif /* _PLUGIN_H_ */
 

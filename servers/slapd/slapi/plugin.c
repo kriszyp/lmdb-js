@@ -571,8 +571,6 @@ doPluginFNs(
 
 	for ( pGetPlugin = tmpPlugin ; *pGetPlugin != NULL; pGetPlugin++ ) {
 		/*
-		 * FIXME: operation stops at first non-success
-		 *
 		 * FIXME: we should provide here a sort of sandbox,
 		 * to protect from plugin faults; e.g. trap signals
 		 * and longjump here, marking the plugin as unsafe for
@@ -580,7 +578,11 @@ doPluginFNs(
 		 */
 		rc = (*pGetPlugin)(pPB);
 
-		if ( rc != LDAP_SUCCESS ) {
+		/*
+		 * Only non-postoperation plugins abort processing on
+		 * failure (confirmed with SLAPI specification).
+		 */
+		if ( !SLAPI_PLUGIN_IS_POST_FN( funcType ) && rc != 0 ) {
 			break;
 		}
 	}
