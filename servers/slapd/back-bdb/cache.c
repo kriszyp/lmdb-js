@@ -1181,7 +1181,7 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 	/* Shouldn't happen unless we're single-threaded */
 	if ( !ctx ) {
 		*txn = NULL;
-		return -1;
+		return 0;
 	}
 
 	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ) {
