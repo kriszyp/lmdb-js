@@ -265,6 +265,8 @@ static int bdb_tool_next_id(
 	} else if ( !hole ) {
 		unsigned i;
 
+		e->e_id = ei->bei_id;
+
 		for ( i=0; i<nholes; i++) {
 			if ( holes[i].id == e->e_id ) {
 				int j;

@@ -1,9 +1,15 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.5 Engineering
-	Fix back-bdb syncrepl psearch add bug
+	Fixed back-bdb syncrepl psearch add bug
+	Updated slappasswd error reporting (ITS#2906)
+	Fixed librewrite non-portable comments (ITS#2908)
 	Honour access denied return value from ACL plugins
 	Fixed back-ldap suffix massage when --enable-rewrite=no (ITS#2923)
+	Build environment
+		Fixed libldap/dnssrv.c building on MacOS X
+		Fixed CYGWIN/MINGWIN configure and threading issues 
+		Fixed z/OS configure issues
 
 OpenLDAP 2.2.4 Release
 	Initial release for "general" use.

@@ -321,7 +321,6 @@ static Connection* connection_get( ber_socket_t s )
 			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			return NULL;
 		}
-		if( c->c_conn_state == SLAP_C_CLIENT ) sd = 0;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, RESULTS, 
@@ -422,6 +421,10 @@ long connection_init(
 				assert( sd == AC_SOCKET_INVALID );
 				c = &connections[i];
 				break;
+			}
+
+			if( connections[i].c_conn_state == SLAP_C_CLIENT ) {
+				continue;
 			}
 
 			assert( connections[i].c_struct_state == SLAP_C_USED );
@@ -528,6 +531,7 @@ long connection_init(
 	if ( flags == CONN_IS_CLIENT ) {
 		c->c_conn_state = SLAP_C_CLIENT;
 		c->c_struct_state = SLAP_C_USED;
+		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_FD, &s );
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 

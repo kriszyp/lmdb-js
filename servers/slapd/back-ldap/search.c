@@ -146,7 +146,7 @@ ldap_back_search(
 	dc.tofrom = 1;
 	dc.normalized = 0;
 #endif
-	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mbase ) ) {
+	if ( ldap_back_dn_massage( &dc, &op->o_req_ndn, &mbase ) ) {
 		send_ldap_result( op, rs );
 		return -1;
 	}

@@ -76,6 +76,8 @@ glue_back_select (
 	bv.bv_val = (char *) dn;
 
 	for (i = 0; i<gi->nodes; i++) {
+		assert( gi->n[i].be->be_nsuffix );
+
 		if (dnIsSuffix(&bv, &gi->n[i].be->be_nsuffix[0])) {
 			return gi->n[i].be;
 		}
@@ -322,6 +324,10 @@ glue_back_search ( Operation *op, SlapReply *rs )
 				goto done;
 			}
 			op->o_bd = gi->n[i].be;
+
+			assert( op->o_bd->be_suffix );
+			assert( op->o_bd->be_nsuffix );
+			
 			if (scope0 == LDAP_SCOPE_ONELEVEL && 
 				dn_match(&gi->n[i].pdn, &ndn))
 			{
@@ -434,7 +440,8 @@ glue_tool_entry_first (
 		}
 
 	}
-	if (!glueBack || glueBack->be_entry_open (glueBack, glueMode) != 0)
+	if (!glueBack || !glueBack->be_entry_open || !glueBack->be_entry_first ||
+		glueBack->be_entry_open (glueBack, glueMode) != 0)
 		return NOID;
 
 	return glueBack->be_entry_first (glueBack);
@@ -455,7 +462,7 @@ glue_tool_entry_next (
 	rc = glueBack->be_entry_next (glueBack);
 
 	/* If we ran out of entries in one database, move on to the next */
-	if (rc == NOID) {
+	while (rc == NOID) {
 		glueBack->be_entry_close (glueBack);
 		for (i=0; i<gi->nodes; i++) {
 			if (gi->n[i].be == glueBack)
@@ -463,7 +470,7 @@ glue_tool_entry_next (
 		}
 		if (i == 0) {
 			glueBack = NULL;
-			rc = NOID;
+			break;
 		} else {
 			glueBack = gi->n[i-1].be;
 			rc = glue_tool_entry_first (b0);
@@ -572,6 +579,8 @@ glue_sub_init( )
 			if ( SLAP_GLUE_LINKED( be ) ) {
 				continue;
 			}
+			assert( be->be_nsuffix );
+			assert( b1->be_nsuffix );
 			if (!dnIsSuffix(&be->be_nsuffix[0], &b1->be_nsuffix[0])) {
 				continue;
 			}

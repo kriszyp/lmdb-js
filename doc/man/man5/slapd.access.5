@@ -185,7 +185,7 @@ It can have the forms
 	dnattr=<attrname>
 	group[/<objectclass>[/<attrname>]]
 		[.<style>]=<group>
-	peername[.<style>]=<peername>
+	peername[.<peernamestyle>]=<peername>
 	sockname[.<style>]=<sockname>
 	domain[.<domainstyle>[,<modifier>]]=<domain>
 	sockurl[.<style>]=<sockurl>
@@ -197,6 +197,16 @@ It can have the forms
 	sasl_ssf=<n>
 
 	aci=<attrname>
+.fi
+.LP
+with
+.LP
+.nf
+	<dnstyle>={{exact|base}|regex|sub(tree)|one(level)|children}
+	<style>={exact|regex}
+	<peernamestyle>={exact|regex|ip|path}
+	<domainstyle>={exact|regex|sub(tree)}
+	<modifier>={expand}
 .fi
 .LP
 They may be specified in combination.
@@ -250,6 +260,11 @@ even if
 .B dnstyle
 is not 
 .BR regex .
+It is perfectly useless to give any access privileges to a DN 
+that exactly matches the
+.B rootdn
+of the database the ACLs apply to, because it implicitly
+possesses write privileges for the entire tree of that database.
 .LP
 The statement
 .B dnattr=<attrname>
@@ -300,7 +315,11 @@ The statements
 .BR domain=<domain> ,
 and
 .BR sockurl=<sockurl>
-mean that the contacting host IP for
+mean that the contacting host IP (in the form 
+.BR "IP=<ip>:<port>" )
+or the contacting host named pipe file name (in the form
+.B "PATH=<path>"
+if connecting through a named pipe) for
 .BR peername ,
 the named pipe file name for
 .BR sockname ,
@@ -317,6 +336,58 @@ rules for pattern match described for the
 .B group
 case apply. 
 The
+.B exact
+style of the
+.BR peername
+clause (the default) implies a case-exact match on the client's
+.BR IP , 
+including the
+.B "IP="
+prefix and the trailing
+.BR ":<port>" , 
+or the client's 
+.BR path ,
+including the
+.B "PATH="
+prefix if connecting through a named pipe.
+The special
+.B ip
+style interprets the pattern as 
+.BR <peername>=<ip>[%<mask>][{<n>}] ,
+where
+.B <ip>
+and 
+.B <mask>
+are dotted digit representations of the IP and the mask, while
+.BR <n> ,
+delimited by curly brackets, is an optional port.
+When checking access privileges, the IP portion of the
+.BR peername 
+is extracted, eliminating the
+.B "IP="
+prefix and the
+.B ":<port>"
+part, and it is compared against the
+.B <ip>
+portion of the pattern after masking with
+.BR <mask> .
+As an example, 
+.B peername.ip=127.0.0.1
+alows connections only from localhost,
+.B peername.ip=192.168.1.0%255.255.255.0 
+allows connections from any IP in the 192.168.1 class C domain, and
+.B peername.ip=192.168.1.16%255.255.255.240{9009}
+allows connections from any IP in the 192.168.1.[16-31] range 
+of the same domain, only if port 9009 is used.
+The special 
+.B path
+style eliminates the 
+.B "PATH="
+prefix from the 
+.B peername
+when connecting through a named pipe, and performs an exact match 
+on the given pattern.
+The
 .BR domain 
 clause also allows the
 .B subtree
@@ -327,6 +398,9 @@ pattern, or its trailing part, after a
 exactly matches the 
 .BR domain
 pattern.
+As an example,
+.B domain.subtree=example.com
+will match www.example.com, but will not match www.anotherexample.com.
 The
 .B domain
 of the contacting host is determined by performing a DNS reverse lookup.
@@ -616,7 +690,7 @@ to avoid possible incorrect specifications of the access rules as well
 as for performance (avoid unrequired regex matching when an exact
 match suffices) reasons.
 .LP
-An adminisistrator might create a rule of the form:
+An administrator might create a rule of the form:
 .LP
 .nf
 	access to dn.regex="dc=example,dc=com"

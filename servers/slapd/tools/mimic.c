@@ -294,7 +294,7 @@ int slap_entry2mods( Entry *e, Modifications **mods, const char **text,
 	return -1;
 }
 
-volatile sig_atomic_t slapd_abrupt_shutdown;
+volatile sig_atomic_t slapd_shutdown;
 
 int slap_mods_check( Modifications *ml, int update, const char **text,
 		char *textbuf, size_t textlen, void *ctx )

@@ -172,6 +172,8 @@ int backend_init(void)
 		binfo[nBackendInfo].bi_type != NULL;
 		nBackendInfo++ )
 	{
+		assert( binfo[nBackendInfo].bi_init );
+
 		rc = binfo[nBackendInfo].bi_init( &binfo[nBackendInfo] );
 
 		if(rc != 0) {
@@ -222,6 +224,21 @@ int backend_init(void)
 int backend_add(BackendInfo *aBackendInfo)
 {
    int rc = 0;
+
+   if ( aBackendInfo->bi_init == NULL ) {
+#ifdef NEW_LOGGING
+       	LDAP_LOG( BACKEND, ERR, 
+                  "backend_add:  backend type \"%s\" does not have the "
+		  "(mandatory)init function\n",
+                  aBackendInfo->bi_type, 0, 0 );
+#else
+      Debug( LDAP_DEBUG_ANY,
+                  "backend_add:  backend type \"%s\" does not have the "
+		  "(mandatory)init function\n",
+                  aBackendInfo->bi_type, 0, 0 );
+#endif
+      return -1;
+   }
 
    if ((rc = aBackendInfo->bi_init(aBackendInfo)) != 0) {
 #ifdef NEW_LOGGING
@@ -283,11 +300,13 @@ int backend_startup(Backend *be)
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
-			   be->be_suffix[0].bv_val, 0, 0 );
+			be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
+			0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"backend_startup: starting \"%s\"\n",
-			be->be_suffix[0].bv_val, 0, 0 );
+			be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
+			0, 0 );
 #endif
 
 		if ( be->bd_info->bi_open ) {
@@ -357,6 +376,20 @@ int backend_startup(Backend *be)
 		acl_append( &backendDB[i].be_acl, global_acl );
 
 		LDAP_TAILQ_INIT( &backendDB[i].be_pending_csn_list );
+
+		if ( backendDB[i].be_suffix == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACKEND, CRIT, 
+				"backend_startup: warning, database %d (%s) "
+				"has no suffix\n",
+				i, backendDB[i].bd_info->bi_type, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"backend_startup: warning, database %d (%s) "
+				"has no suffix\n",
+				i, backendDB[i].bd_info->bi_type, 0 );
+#endif
+		}
 
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
@@ -1273,7 +1306,7 @@ backend_group(
 	}
 
 	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
-		g = sl_malloc(sizeof(GroupAssertion) + gr_ndn->bv_len, op->o_tmpmemctx);
+		g = op->o_tmpalloc(sizeof(GroupAssertion) + gr_ndn->bv_len, op->o_tmpmemctx);
 		g->ga_be = op->o_bd;
 		g->ga_oc = group_oc;
 		g->ga_at = group_at;

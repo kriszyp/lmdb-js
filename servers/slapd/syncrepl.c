@@ -450,7 +450,7 @@ do_syncrep2(
 	BerVarray syncUUIDs = NULL;
 	ber_tag_t si_tag;
 
-	if ( slapd_abrupt_shutdown ) {
+	if ( slapd_shutdown ) {
 		rc = -2;
 		goto done;
 	}
@@ -477,7 +477,7 @@ do_syncrep2(
 	while (( rc = ldap_result( si->si_ld, LDAP_RES_ANY, LDAP_MSG_ONE, tout_p, &res ))
 		> 0 )
 	{
-		if ( slapd_abrupt_shutdown ) {
+		if ( slapd_shutdown ) {
 			rc = -2;
 			goto done;
 		}
@@ -797,7 +797,7 @@ do_syncrepl(
 		return NULL;
 	}
 
-	if ( slapd_abrupt_shutdown && si->si_ld ) {
+	if ( slapd_shutdown && si->si_ld ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 		connection_client_stop( s );
 		ldap_unbind( si->si_ld );
