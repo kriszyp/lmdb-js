@@ -61,7 +61,7 @@ ldbm_back_initialize(
 	bi->bi_op_modrdn = ldbm_back_modrdn;
 	bi->bi_op_add = ldbm_back_add;
 	bi->bi_op_delete = ldbm_back_delete;
-	bi->bi_op_abandon = ldbm_back_abandon;
+	bi->bi_op_abandon = 0;
 
 	bi->bi_extended = ldbm_back_extended;
 

@@ -182,7 +182,7 @@ monitor_back_initialize(
 	bi->bi_op_modrdn = 0;
 	bi->bi_op_add = 0;
 	bi->bi_op_delete = 0;
-	bi->bi_op_abandon = monitor_back_abandon;
+	bi->bi_op_abandon = 0;
 
 	bi->bi_extended = 0;
 

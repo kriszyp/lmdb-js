@@ -48,7 +48,6 @@ extern BI_db_destroy	monitor_back_db_destroy;
 
 extern BI_op_search	monitor_back_search;
 extern BI_op_compare	monitor_back_compare;
-extern BI_op_abandon	monitor_back_abandon;
 extern BI_op_modify	monitor_back_modify;
 extern BI_op_bind	monitor_back_bind;
 extern BI_operational	monitor_back_operational;

@@ -21,15 +21,13 @@ extern BI_op_compare	bdb_compare;
 
 extern BI_op_delete	bdb_delete;
 
-extern BI_op_abandon	bdb_abandon;
-
 extern BI_op_modify	bdb_modify;
 
 extern BI_op_modrdn	bdb_modrdn;
 
 extern BI_op_search	bdb_search;
 
-extern BI_op_unbind	bdb_unbind;
+extern BI_op_extended	bdb_extended;
 
 extern BI_chk_referrals	bdb_referrals;
 

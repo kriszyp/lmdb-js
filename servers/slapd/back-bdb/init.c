@@ -436,13 +436,12 @@ bdb_initialize(
 	bi->bi_op_modrdn = bdb_modrdn;
 	bi->bi_op_search = bdb_search;
 
-#if 0
-	bi->bi_op_unbind = bdb_unbind;
-	bi->bi_op_abandon = bdb_abandon;
+	bi->bi_op_unbind = 0;
+	bi->bi_op_abandon = 0;
 
 	bi->bi_extended = bdb_extended;
 	bi->bi_acl_group = bdb_group;
-#endif
+
 	bi->bi_acl_attribute = bdb_attribute;
 	bi->bi_chk_referrals = bdb_referrals;
 
