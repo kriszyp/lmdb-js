@@ -267,16 +267,14 @@ extern int slapi_int_pblock_get_next( Slapi_PBlock **pb );
  * Was: plugin.h
  */
 
-extern Slapi_PBlock *newPlugin ( int type, const char *path, const char *initfunc,
-		int argc, char *argv[] );
-extern int insertPlugin(Backend *be, Slapi_PBlock *pPB);
-extern int doPluginFNs(Backend *be, int funcType, Slapi_PBlock * pPB);
-extern int getAllPluginFuncs(Backend *be, int functype, SLAPI_FUNC **ppFuncPtrs);
-extern int newExtendedOp(Backend *pBE, ExtendedOp **opList, Slapi_PBlock *pPB);
-extern int getPluginFunc(struct berval  *reqoid, SLAPI_FUNC *pFuncAddr );
-extern int netscape_plugin(Backend *be, const char *fname, int lineno,
+extern int slapi_int_register_plugin(Backend *be, Slapi_PBlock *pPB);
+extern int slapi_int_call_plugins(Backend *be, int funcType, Slapi_PBlock * pPB);
+extern int slapi_int_get_plugins(Backend *be, int functype, SLAPI_FUNC **ppFuncPtrs);
+extern int slapi_int_register_extop(Backend *pBE, ExtendedOp **opList, Slapi_PBlock *pPB);
+extern int slapi_int_get_extop_plugin(struct berval  *reqoid, SLAPI_FUNC *pFuncAddr );
+extern int slapi_int_read_config(Backend *be, const char *fname, int lineno,
 		int argc, char **argv );
-extern int slapi_init(void);
+extern int slapi_int_initialize(void);
 
 
 /*
@@ -285,9 +283,6 @@ extern int slapi_init(void);
 
 extern Slapi_PBlock *slapi_search_internal( char *base, int scope, char *filter, 
 		LDAPControl **controls, char **attrs, int attrsonly );
-extern Slapi_PBlock *slapi_search_internal_bind( char *bindDN, char *base,
-		int scope, char *filter, LDAPControl **controls,
-		char **attrs, int attrsonly ); /* d58508 */
 extern Slapi_PBlock *slapi_modify_internal( char *dn, LDAPMod **mods,
         LDAPControl **controls, int log_change );
 extern Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e,
@@ -300,14 +295,8 @@ extern Slapi_PBlock *slapi_delete_internal( char * dn,  LDAPControl **controls,
 		int log_change );
 extern Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
 		int deloldrdn, LDAPControl **controls, int log_change);
-#if 0
-extern Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
-		char *newParent, int deloldrdn, LDAPControl **controls,
-		int log_change);
-#endif
 extern char **slapi_get_supported_extended_ops(void);
-extern int duplicateBVMod( LDAPMod *pMod, LDAPMod **ppNewMod );
-
+extern struct berval *slapi_int_get_supported_extop( int );
 
 /*
  * Was: slapi_cl.h

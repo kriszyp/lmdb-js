@@ -62,6 +62,8 @@ apply(
 			rewriteContext != NULL;
 			rewriteContext = sep,
 			sep ? sep = strchr( rewriteContext, ',' ) : NULL ) {
+		char	*errmsg = "";
+
 		if ( sep != NULL ) {
 			sep[ 0 ] = '\0';
 			sep++;
@@ -70,8 +72,35 @@ apply(
 		rc = rewrite_session( info, rewriteContext, string,
 				cookie, &result );
 		
-		fprintf( stdout, "%s -> %s\n", string, 
-				( result ? result : "unwilling to perform" ) );
+		switch ( rc ) {
+		case REWRITE_REGEXEC_OK:
+			errmsg = "ok";
+			break;
+
+		case REWRITE_REGEXEC_ERR:
+			errmsg = "error";
+			break;
+
+		case REWRITE_REGEXEC_STOP:
+			errmsg = "stop";
+			break;
+
+		case REWRITE_REGEXEC_UNWILLING:
+			errmsg = "unwilling to perform";
+			break;
+
+		default:
+			if (rc >= REWRITE_REGEXEC_USER) {
+				errmsg = "user-defined";
+			} else {
+				errmsg = "unknown";
+			}
+			break;
+		}
+		
+		fprintf( stdout, "%s -> %s [%d:%s]\n", string, 
+				( result ? result : "(null)" ),
+				rc, errmsg );
 		if ( result == NULL ) {
 			break;
 		}

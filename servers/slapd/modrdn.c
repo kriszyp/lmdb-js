@@ -41,7 +41,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 int
@@ -324,7 +324,7 @@ do_modrdn(
 		slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
-		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
+		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
@@ -362,14 +362,17 @@ do_modrdn(
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 			op->orr_deleteoldrdn = deloldrdn;
-			if ( (op->o_bd->be_modrdn)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
-				&& ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
+			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
 #endif
-			) {
-				replog( op );
+			{
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
 			}
+			op->o_bd->be_modrdn( op, rs );
+
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
@@ -406,7 +409,7 @@ do_modrdn(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODRDN_FN, pb ) < 0 ) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_MODRDN_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn postoperation plugins "
 				"failed\n", 0, 0, 0 );

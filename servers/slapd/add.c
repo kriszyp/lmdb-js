@@ -34,11 +34,11 @@
 #include "slap.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
-static void initAddPlugin( Operation *op,
-	struct berval *dn, Entry *e, int manageDSAit );
-static int doPreAddPluginFNs( Operation *op );
-static void doPostAddPluginFNs( Operation *op );
+#include "slapi/slapi.h"
+
+static void init_add_pblock( Operation *op, struct berval *dn, Entry *e, int manageDSAit );
+static int call_add_preop_plugins( Operation *op );
+static void call_add_postop_plugins( Operation *op );
 #endif /* LDAP_SLAPI */
 
 int
@@ -239,7 +239,7 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_SLAPI
-	if ( op->o_pb ) initAddPlugin( op, &dn, e, manageDSAit );
+	if ( op->o_pb ) init_add_pblock( op, &dn, e, manageDSAit );
 #endif /* LDAP_SLAPI */
 
 	/*
@@ -261,6 +261,7 @@ do_add( Operation *op, SlapReply *rs )
 			int update = op->o_bd->be_update_ndn.bv_len;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
 										  textbuf, textlen, NULL );
@@ -299,7 +300,7 @@ do_add( Operation *op, SlapReply *rs )
 			 * will actually contain something.
 			 */
 			if ( op->o_pb ) {
-				rs->sr_err = doPreAddPluginFNs( op );
+				rs->sr_err = call_add_preop_plugins( op );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					/* plugin will have sent result */
 					goto done;
@@ -308,13 +309,14 @@ do_add( Operation *op, SlapReply *rs )
 #endif /* LDAP_SLAPI */
 
 			op->ora_e = e;
-			if ( (op->o_bd->be_add)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if ( !repl_user )
+			if ( !repl_user )
 #endif
-				{
-					replog( op );
-				}
+			{
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
+			}
+			if ( (op->o_bd->be_add)( op, rs ) == 0 ) {
 				be_entry_release_w( op, e );
 				e = NULL;
 			}
@@ -328,7 +330,7 @@ do_add( Operation *op, SlapReply *rs )
 			 * on replicas (for now, it involves the minimum code intrusion).
 			 */
 			if ( op->o_pb ) {
-				rs->sr_err = doPreAddPluginFNs( op );
+				rs->sr_err = call_add_preop_plugins( op );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					/* plugin will have sent result */
 					goto done;
@@ -367,7 +369,7 @@ do_add( Operation *op, SlapReply *rs )
 	} else {
 #ifdef LDAP_SLAPI
 		if ( op->o_pb ) {
-			rs->sr_err = doPreAddPluginFNs( op );
+			rs->sr_err = call_add_preop_plugins( op );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				/* plugin will have sent result */
 				goto done;
@@ -385,7 +387,7 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_SLAPI
-	if ( op->o_pb ) doPostAddPluginFNs( op );
+	if ( op->o_pb ) call_add_postop_plugins( op );
 #endif /* LDAP_SLAPI */
 
 done:
@@ -652,7 +654,7 @@ slap_entry2mods(
 }
 
 #ifdef LDAP_SLAPI
-static void initAddPlugin( Operation *op,
+static void init_add_pblock( Operation *op,
 	struct berval *dn, Entry *e, int manageDSAit )
 {
 	slapi_int_pblock_set_operation( op->o_pb, op );
@@ -661,11 +663,11 @@ static void initAddPlugin( Operation *op,
 	slapi_pblock_set( op->o_pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 }
 
-static int doPreAddPluginFNs( Operation *op )
+static int call_add_preop_plugins( Operation *op )
 {
 	int rc;
 
-	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_ADD_FN, op->o_pb );
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_ADD_FN, op->o_pb );
 	if ( rc < 0 ) {
 		/*
 		 * A preoperation plugin failure will abort the
@@ -693,11 +695,11 @@ static int doPreAddPluginFNs( Operation *op )
 	return rc;
 }
 
-static void doPostAddPluginFNs( Operation *op )
+static void call_add_postop_plugins( Operation *op )
 {
 	int rc;
 
-	rc = doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_ADD_FN, op->o_pb );
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_ADD_FN, op->o_pb );
 	if ( rc < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO,

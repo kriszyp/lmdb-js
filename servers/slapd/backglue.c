@@ -177,6 +177,8 @@ glue_back_db_destroy (
 
 typedef struct glue_state {
 	int err;
+	int is_slimit;
+	int slimit;
 	int matchlen;
 	char *matched;
 	int nrefs;
@@ -190,12 +192,23 @@ glue_back_response ( Operation *op, SlapReply *rs )
 
 	switch(rs->sr_type) {
 	case REP_SEARCH:
+		if ( gs->is_slimit && rs->sr_nentries >= gs->slimit ) {
+			gs->err = LDAP_SIZELIMIT_EXCEEDED;
+			return -1;
+		}
+		/* fallthru */
 	case REP_SEARCHREF:
 		return SLAP_CB_CONTINUE;
 
 	default:
-		if (rs->sr_err == LDAP_SUCCESS || gs->err != LDAP_SUCCESS)
+		if ( gs->is_slimit && rs->sr_err == LDAP_SIZELIMIT_EXCEEDED
+				&& rs->sr_nentries >= gs->slimit ) {
+			gs->err = LDAP_SIZELIMIT_EXCEEDED;
+			return -1;
+		}
+		if (rs->sr_err == LDAP_SUCCESS || gs->err != LDAP_SUCCESS) {
 			gs->err = rs->sr_err;
+		}
 		if (gs->err == LDAP_SUCCESS && gs->matched) {
 			ch_free (gs->matched);
 			gs->matched = NULL;
@@ -242,10 +255,12 @@ glue_back_search ( Operation *op, SlapReply *rs )
 	glueinfo *gi = (glueinfo *) b0->bd_info;
 	int i;
 	long stoptime = 0;
-	glue_state gs = {0, 0, NULL, 0, NULL};
+	glue_state gs = {0, 0, 0, 0, NULL, 0, NULL};
 	slap_callback cb = { NULL, glue_back_response, NULL, NULL };
 	int scope0, slimit0, tlimit0;
 	struct berval dn, ndn;
+
+	gs.is_slimit = ( op->ors_slimit > 0 );
 
 	cb.sc_private = &gs;
 
@@ -272,7 +287,9 @@ glue_back_search ( Operation *op, SlapReply *rs )
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;
 		scope0 = op->ors_scope;
-		slimit0 = op->ors_slimit;
+		if ( gs.is_slimit ) {
+			slimit0 = gs.slimit = op->ors_slimit;
+		}
 		tlimit0 = op->ors_tlimit;
 		dn = op->o_req_dn;
 		ndn = op->o_req_ndn;
@@ -290,9 +307,9 @@ glue_back_search ( Operation *op, SlapReply *rs )
 					break;
 				}
 			}
-			if (slimit0) {
+			if ( gs.is_slimit ) {
 				op->ors_slimit = slimit0 - rs->sr_nentries;
-				if (op->ors_slimit <= 0) {
+				if (op->ors_slimit < 0) {
 					rs->sr_err = gs.err = LDAP_SIZELIMIT_EXCEEDED;
 					break;
 				}
@@ -339,7 +356,9 @@ glue_back_search ( Operation *op, SlapReply *rs )
 		}
 end_of_loop:;
 		op->ors_scope = scope0;
-		op->ors_slimit = slimit0;
+		if ( gs.is_slimit ) {
+			op->ors_slimit = slimit0;
+		}
 		op->ors_tlimit = tlimit0;
 		op->o_req_dn = dn;
 		op->o_req_ndn = ndn;

@@ -38,12 +38,20 @@
 #include "slap.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 int slap_null_cb( Operation *op, SlapReply *rs )
 {
 	return 0;
+}
+
+int slap_replog_cb( Operation *op, SlapReply *rs )
+{
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		replog( op );
+	}
+	return SLAP_CB_CONTINUE;
 }
 
 static char *v2ref( BerVarray ref, const char *text )
@@ -248,7 +256,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 	 * plugin.
 	 */
 
-	if ( slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 ) {
+	if ( o->o_pb && slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 ) {
 		sctrls = NULL;
 	}
 
@@ -585,13 +593,13 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	 * should just set SLAPI_RESULT_CODE rather than sending a
 	 * result if they wish to change the result.
 	 */
-	if ( op->o_pb ) {
+	if ( op->o_pb != NULL ) {
 		slapi_int_pblock_set_operation( op->o_pb, op );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
 
-		(void) doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
+		(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
 	}
 #endif /* LDAP_SLAPI */
 

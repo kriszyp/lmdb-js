@@ -13,6 +13,7 @@ slapd \- Stand-alone LDAP Daemon
 .B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
 .B [\-r directory]
 .B [\-u user] [\-g group] [\-t]
+.B [\-c cookie]
 .B 
 .SH DESCRIPTION
 .LP
@@ -172,7 +173,7 @@ will read the configuration file (the default if none is given with the
 or database.
 .TP
 .BI \-c " cookie"
-This option provides a cookie for a syncrepl replication consumer.
+This option provides a cookie for the syncrepl replication consumer.
 The cookie is a comma separated list of name=value pairs.
 Currently supported syncrepl cookie fields are
 .B csn,
@@ -180,20 +181,18 @@ Currently supported syncrepl cookie fields are
 and
 .B rid.
 .B csn
-is the commit sequence number of the master content at the provider site
-and represents the state of the content to which the replica content
-was synchronized most recently.
+is the commit sequence number received by a previous synchronization
+and represents the state of the consumer replica content which the
+syncrepl engine will synchronize to the current provider content.
 .B sid
-is the identity of the session which this replication thread belongs to.
-The replication provider site may maintain a session history store
-for each replication session to reduce synchronization traffic.
+is the identity of the per-scope session log with which the 
+provider server can process this syncrepl request to reduce
+synchronization traffic.
 .B rid
-identifies a replication thread within a replication consumer site
-and is used to find the replication thread specification of 
+identifies a replication thread within the consumer server
+and is used to find the syncrepl specification in 
 .BR slapd.conf (5)
-having the same
-.B rid
-value as the cookie.
+having the matching replication identifier in its definition.
 .SH EXAMPLES
 To start 
 .I slapd

@@ -357,6 +357,15 @@ rewrite_context_apply(
 							goto rc_end_of_context;
 						}
 						break;
+
+					/*
+					 * This ends the rewrite context
+					 * and returns a user-defined
+					 * error code
+					 */
+					case REWRITE_ACTION_USER:
+						return_code = ((int *)action->la_args)[ 0 ];
+						goto rc_end_of_context;
 					
 					default:
 						/* ... */
@@ -385,8 +394,15 @@ rewrite_context_apply(
 		 * This will instruct the server to return
 		 * an `unwilling to perform' error message
 		 */
-		 case REWRITE_REGEXEC_UNWILLING:
+		case REWRITE_REGEXEC_UNWILLING:
 			return_code = REWRITE_REGEXEC_UNWILLING;
+			goto rc_end_of_context;
+
+		/*
+		 * A user-defined error code has propagated ...
+		 */
+		default:
+			assert( rc >= REWRITE_REGEXEC_USER );
 			goto rc_end_of_context;
 
 		}

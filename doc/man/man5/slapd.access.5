@@ -91,11 +91,15 @@ or
 .B exact 
 (an alias of 
 .BR base )
-indicates the entry whose DN is equal to the pattern.
+indicates the entry whose DN is equal to the pattern;
 .B one
+(synonym of
+.BR onelevel )
 indicates all the entries immediately below the
 .BR pattern ,
-.B subtree
+.B sub
+(synonym of
+.BR subtree )
 indicates all entries in the subtree at the pattern,
 .B children
 indicates all the entries below (subordinate to) the pattern.
@@ -370,7 +374,7 @@ Its component are defined as
 .LP
 .nf
 	<level> ::= none|auth|compare|search|read|write
-	<priv> ::= {=|+|-}{w|r|s|c|x}+
+	<priv> ::= {=|+|-}{w|r|s|c|x|0}+
 .fi
 .LP
 The modifier
@@ -434,7 +438,9 @@ for search,
 for compare, and
 .B x
 for authentication.
-More than one privilege can be added in one statement.
+More than one of the above privileges can be added in one statement.
+.B 0
+indicates no privileges and is used only by itself (e.g., +0).
 .LP
 The optional field
 .B <control>

@@ -34,7 +34,7 @@
 #include "slap.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 static ldap_pvt_thread_mutex_t	slap_op_mutex;

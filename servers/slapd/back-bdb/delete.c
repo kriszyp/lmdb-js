@@ -141,14 +141,61 @@ retry:	/* transaction retry */
 	if ( rs->sr_err == 0 ) {
 		e = ei->bei_e;
 		eip = ei->bei_parent;
-		bdb_cache_find_id( op, ltid, eip->bei_id, &eip,
-			0, locker, &plock );
 	} else {
 		matched = ei->bei_e;
 	}
-	if ( eip ) {
-		p = eip->bei_e;
+
+	/* FIXME : dn2entry() should return non-glue entry */
+	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, ARGS, 
+			"<=- bdb_delete: no such object %s\n", op->o_req_dn.bv_val, 0, 0);
+#else
+		Debug( LDAP_DEBUG_ARGS,
+			"<=- bdb_delete: no such object %s\n",
+			op->o_req_dn.bv_val, 0, 0);
+#endif
+
+		if ( matched != NULL ) {
+			rs->sr_matched = ch_strdup( matched->e_dn );
+			rs->sr_ref = is_entry_referral( matched )
+				? get_entry_referrals( op, matched )
+				: NULL;
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, matched);
+			matched = NULL;
+
+		} else {
+			BerVarray deref = NULL;
+			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+				syncinfo_t *si;
+				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+					struct berval tmpbv;
+					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
+					ber_bvarray_add( &deref, &tmpbv );
+				}
+			} else {
+				deref = default_referral;
+			}
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
+				LDAP_SCOPE_DEFAULT );
+		}
+
+		rs->sr_err = LDAP_REFERRAL;
+		send_ldap_result( op, rs );
+
+		if ( rs->sr_ref != default_referral ) {
+			ber_bvarray_free( rs->sr_ref );
+		}
+		free( (char *)rs->sr_matched );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
+
+		rs->sr_err = -1;
+		goto done;
 	}
+
+	bdb_cache_find_id( op, ltid, eip->bei_id, &eip, 0, locker, &plock );
+	if ( eip ) p = eip->bei_e;
 
 	if ( pdn.bv_len != 0 ) {
 		if( p == NULL || !bvmatch( &pdn, &p->e_nname )) {
@@ -238,55 +285,6 @@ retry:	/* transaction retry */
 				goto return_results;
 			}
 		}
-	}
-
-	/* FIXME : dn2entry() should return non-glue entry */
-	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, ARGS, 
-			"<=- bdb_delete: no such object %s\n", op->o_req_dn.bv_val, 0, 0);
-#else
-		Debug( LDAP_DEBUG_ARGS,
-			"<=- bdb_delete: no such object %s\n",
-			op->o_req_dn.bv_val, 0, 0);
-#endif
-
-		if ( matched != NULL ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
-			rs->sr_ref = is_entry_referral( matched )
-				? get_entry_referrals( op, matched )
-				: NULL;
-			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, matched);
-			matched = NULL;
-
-		} else {
-			BerVarray deref = NULL;
-			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				syncinfo_t *si;
-				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
-					struct berval tmpbv;
-					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
-					ber_bvarray_add( &deref, &tmpbv );
-				}
-			} else {
-				deref = default_referral;
-			}
-			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn,
-				LDAP_SCOPE_DEFAULT );
-		}
-
-		rs->sr_err = LDAP_REFERRAL;
-		send_ldap_result( op, rs );
-
-		if ( rs->sr_ref != default_referral ) {
-			ber_bvarray_free( rs->sr_ref );
-		}
-		free( (char *)rs->sr_matched );
-		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
-
-		rs->sr_err = -1;
-		goto done;
 	}
 
 	if ( get_assert( op ) &&

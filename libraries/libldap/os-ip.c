@@ -585,10 +585,15 @@ ldap_host_connected_to( Sockbuf *sb, const char *host )
 		break;
 	}
 
-#if 0
 	{
 		char *herr;
+#ifdef NI_MAXHOST
 		char hbuf[NI_MAXHOST];
+#elif defined( MAXHOSTNAMELEN
+		char hbuf[MAXHOSTNAMELEN];
+#else
+		char hbuf[256];
+#endif
 		hbuf[0] = 0;
 
 		if (ldap_pvt_get_hname( sa, len, hbuf, sizeof(hbuf), &herr ) == 0
@@ -597,7 +602,6 @@ ldap_host_connected_to( Sockbuf *sb, const char *host )
 			return LDAP_STRDUP( hbuf );   
 		}
 	}
-#endif
 
 	return host ? LDAP_STRDUP( host ) : NULL;
 }

@@ -332,8 +332,8 @@ server will possibly enforce additional restrictions to "foo".
 A string is rewritten according to a set of rules, called a `rewrite
 context'.
 The rules are based on Regular Expressions (POSIX regex) with
-substring matching; extensions are planned to allow basic variable
-substitution and map resolution of substrings.
+substring matching; basic variable substitution and map resolution 
+of substrings is allowed by specific mechanisms detailed in the following.
 The behavior of pattern matching/substitution can be altered by a set
 of flags.
 .LP
@@ -341,14 +341,17 @@ The underlying concept is to build a lightweight rewrite module
 for the slapd server (initially dedicated to the LDAP backend).
 .SH Passes
 An incoming string is matched agains a set of rules.
-Rules are made of a match pattern, a substitution pattern and a set of
-actions.
+Rules are made of a regex match pattern, a substitution pattern
+and a set of actions, described by a set of flags.
 In case of match a string rewriting is performed according to the
 substitution pattern that allows to refer to substrings matched in the
 incoming string.
 The actions, if any, are finally performed.
 The substitution pattern allows map resolution of substrings.
 A map is a generic object that maps a substitution pattern to a value.
+The flags are divided in "Pattern matching Flags" and "Action Flags";
+the former alter the regex match pattern behaviorm while the latter
+alter the action that is taken after substitution.
 .SH "Pattern Matching Flags"
 .TP
 .B `C'
@@ -356,31 +359,58 @@ honors case in matching (default is case insensitive)
 .TP
 .B `R'
 use POSIX Basic Regular Expressions (default is Extended)
+.TP
+.B `M{n}'
+allow no more than
+.B n
+recursive passes for a specific rule; does not alter the max total count
+of passes, so it can only enforce a stricter limit for a specific rule.
 .SH "Action Flags"
 .TP
 .B `:'
 apply the rule once only (default is recursive)
 .TP
 .B `@'
-stop applying rules in case of match.
+stop applying rules in case of match; the current rule is still applied 
+recursively; combine with `:' to apply the current rule only once 
+and then stop.
 .TP
 .B `#'
 stop current operation if the rule matches, and issue an `unwilling to
 perform' error.
 .TP
 .B `G{n}'
-jump n rules back and forth (watch for loops!).
+jump
+.B n
+rules back and forth (watch for loops!).
 Note that `G{1}' is implicit in every rule.
 .TP
 .B `I'
 ignores errors in rule; this means, in case of error, e.g. issued by a
 map, the error is treated as a missed match.
 The `unwilling to perform' is not overridden.
+.TP
+.B `U{n}'
+uses
+.B
+n
+as return code if the rule matches; the flag does not alter the recursive
+behavior of the rule, so, to have it performed only once, it must be used 
+in combination with `:', e.g.
+.B `:U{16}'
+returns the value `16' after exactly one execution of the rule, if the
+pattern matches.
+As a consequence, its behavior is equivalent to `@', with the return
+code set to
+.BR n ;
+or, in other words, `@' is equivalent to `U{0}'.
+By convention, the freely available codes are above 16 included;
+the others are reserved.
 .LP
-The ordering of the flags is significant.
+The ordering of the flags can be significant.
 For instance: `IG{2}' means ignore errors and jump two lines ahead
 both in case of match and in case of error, while `G{2}I' means ignore
-errors, but jump thwo lines ahead only in case of match.
+errors, but jump two lines ahead only in case of match.
 .LP
 More flags (mainly Action Flags) will be added as needed.
 .SH "Pattern matching:"
@@ -527,8 +557,8 @@ A context may aliase another one.
 In this case the alias context contains no rule, and any reference to
 it will result in accessing the aliased one.
 .TP
-.B rewriteRule "<regex pattern>" "<substitution pattern>" "[ <flags> ]"
-Determines how a tring can be rewritten if a pattern is matched.
+.B rewriteRule "<regex match pattern>" "<substitution pattern>" "[ <flags> ]"
+Determines how a string can be rewritten if a pattern is matched.
 Examples are reported below.
 .SH "Additional configuration syntax:"
 .TP
@@ -541,9 +571,16 @@ The map is referenced inside the substitution pattern of a rule.
 Sets a value with global scope, that can be dereferenced by the
 command `%{$paramName}'.
 .TP
-.B rewriteMaxPasses <number of passes>
+.B rewriteMaxPasses <number of passes> [<number of passes per rule>]
 Sets the maximum number of total rewriting passes that can be
 performed in a single rewrite operation (to avoid loops).
+A safe default is set to 100; note that reaching this limit is still
+treated as a success; recursive invocation of rules is simply 
+interrupted.
+The count applies to the rewriting operation as a whole, not 
+to any single rule; an optional per-rule limit can be set.
+This limit is overridden by setting specific per-rule limits
+with the `M{n}' flag.
 .SH "Configuration examples:"
 .nf
 # set to `off' to disable rewriting
@@ -616,7 +653,7 @@ rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
 # regular DNs, because the definition of a bindDn
 # rewrite context overrides the default definition.
 rewriteContext bindDn
-rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" "@I"
+rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" ":@I"
 
 # This is a rather sophisticated example. It massages a
 # search filter in case who performs the search has
@@ -645,7 +682,7 @@ rewriteRule "(.*\e\e()uid=([a-z0-9_]+)(\e\e).*)"
   "%{**binddn}<>%{&prefix(%1)}%{&arg(%2)}%{&suffix(%3)}"
   ":I"
 rewriteRule "[^,]+,ou=admin,dc=home,dc=net"
-  "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" "@I"
+  "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" ":@I"
 rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
 
 # This example shows how to strip unwanted DN-valued
@@ -655,7 +692,7 @@ rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
 # The second rule matches everything else and causes
 # the value to be rejected.
 rewriteContext searchResult
-rewriteRule ".*,ou=People,dc=example,dc=com" "%0" "@"
+rewriteRule ".*,ou=People,dc=example,dc=com" "%0" ":@"
 rewriteRule ".*" "" "#"
 .fi
 .SH "LDAP Proxy resolution (a possible evolution of slapd\-ldap(5)):"
@@ -666,16 +703,16 @@ E.g.:
 .LP
 .nf
   rewriteRule '^cn=root,.*' '%0'                     'G{3}'
-  rewriteRule '^cn=[a-l].*' 'ldap://ldap1.my.org/%0' '@'
-  rewriteRule '^cn=[m-z].*' 'ldap://ldap2.my.org/%0' '@'
-  rewriteRule '.*'          'ldap://ldap3.my.org/%0' '@'
+  rewriteRule '^cn=[a-l].*' 'ldap://ldap1.my.org/%0' ':@'
+  rewriteRule '^cn=[m-z].*' 'ldap://ldap2.my.org/%0' ':@'
+  rewriteRule '.*'          'ldap://ldap3.my.org/%0' ':@'
 .fi
 .LP
 (Rule 1 is simply there to illustrate the `G{n}' action; it could have
 been written:
 .LP
 .nf
-  rewriteRule '^cn=root,.*' 'ldap://ldap3.my.org/%0' '@'
+  rewriteRule '^cn=root,.*' 'ldap://ldap3.my.org/%0' ':@'
 .fi
 .LP
 with the advantage of saving one rewrite pass ...)

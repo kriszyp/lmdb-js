@@ -318,6 +318,7 @@ overlay_config( BackendDB *be, const char *ov )
 		be->bd_info = bi;
 	}
 
+#if 0
 	/* Walk to the end of the list of overlays, add the new
 	 * one onto the end
 	 */
@@ -332,6 +333,16 @@ overlay_config( BackendDB *be, const char *ov )
 	*on2 = *on;
 	on2->on_next = NULL;
 	on2->on_info = oi;
+#else
+	/* Insert new overlay on head of list. Overlays are executed
+	 * in reverse of config order...
+	 */
+	on2 = ch_calloc( 1, sizeof(slap_overinst) );
+	*on2 = *on;
+	on2->on_info = oi;
+	on2->on_next = oi->oi_list;
+	oi->oi_list = on2;
+#endif
 
 	/* Any initialization needed? */
 	if ( on->on_bi.bi_db_init ) {

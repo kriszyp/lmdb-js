@@ -1,26 +1,23 @@
-/******************************************************************************
+/* $OpenLDAP$
+ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright (C) 2000 Pierangelo Masarati, <ando@sys-net.it>
+ * Copyright 2000-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
  *
- * Permission is granted to anyone to use this software for any purpose
- * on any computer system, and to alter it and redistribute it, subject
- * to the following restrictions:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
  *
- * 1. The author is not responsible for the consequences of use of this
- * software, no matter how awful, even if they arise from flaws in it.
- *
- * 2. The origin of this software must not be misrepresented, either by
- * explicit claim or by omission.  Since few users ever read sources,
- * credits should appear in the documentation.
- *
- * 3. Altered versions must be plainly marked as such, and must not be
- * misrepresented as being the original software.  Since few users
- * ever read sources, credits should appear in the documentation.
- *
- * 4. This notice may not be removed or altered.
- *
- ******************************************************************************/
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* ACKNOWLEDGEMENT:
+ * This work was initially developed by Pierangelo Masarati for
+ * inclusion in OpenLDAP Software.
+ */
 
 #ifndef REWRITE_H
 #define REWRITE_H
@@ -72,7 +69,33 @@
 #define REWRITE_REGEXEC_OK              0x0000
 #define REWRITE_REGEXEC_ERR             0x0001
 #define REWRITE_REGEXEC_STOP            0x0002
-#define REWRITE_REGEXEC_UNWILLING       0x0004
+#define REWRITE_REGEXEC_UNWILLING       0x0003
+#define REWRITE_REGEXEC_USER		0x0004 /* and above ... */
+
+/*
+ * Rewrite variable flags
+ *	REWRITE_VAR_INSERT		insert mode (default) when adding
+ *					a variable; if not set during value
+ *					update, the variable is not inserted
+ *					if not present
+ *	REWRITE_VAR_UPDATE		update mode (default) when updating
+ *					a variable; if not set during insert,
+ *					the value is not updated if the
+ *					variable already exists
+ *	REWRITE_VAR_COPY_NAME		copy the variable name; if not set,
+ *					the name is not copied; be sure the
+ *					referenced string is available for
+ *					the entire life scope of the variable.
+ *	REWRITE_VAR_COPY_VALUE		copy the variable value; if not set,
+ *					the value is not copied; be sure the
+ *					referenced string is available for
+ *					the entire life scope of the variable.
+ */
+#define REWRITE_VAR_NONE		0x0000
+#define REWRITE_VAR_INSERT		0x0001
+#define REWRITE_VAR_UPDATE		0x0002
+#define REWRITE_VAR_COPY_NAME		0x0004
+#define REWRITE_VAR_COPY_VALUE		0x0008
 
 /*
  * Rewrite info
@@ -177,12 +200,17 @@ rewrite_session_init(
  * Defines and inits a variable with session scope
  */
 LDAP_REWRITE_F (int)
-rewrite_session_var_set(
+rewrite_session_var_set_f(
 		struct rewrite_info *info,
 		const void *cookie,
 		const char *name,
-		const char *value
+		const char *value,
+		int flags
 );
+
+#define rewrite_session_var_set(info, cookie, name, value) \
+	rewrite_session_var_set_f((info), (cookie), (name), (value), \
+			REWRITE_VAR_INSERT|REWRITE_VAR_UPDATE|REWRITE_VAR_COPY_NAME|REWRITE_VAR_COPY_VALUE)
 
 /*
  * Deletes a session

@@ -72,8 +72,6 @@ typedef struct strlist {
 } StrList;
 #endif
 
-extern struct berval *ns_get_supported_extop( int );
-
 /*
  * Was: slapi_utils.h
  */

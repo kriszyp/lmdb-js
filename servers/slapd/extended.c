@@ -40,7 +40,7 @@
 #include "lber_pvt.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 #define UNSUPPORTED_EXTENDEDOP "unsupported extended operation"
@@ -184,7 +184,7 @@ do_extended(
 	}
 
 #ifdef LDAP_SLAPI
-	getPluginFunc( &op->ore_reqoid, &funcAddr ); /* NS-SLAPI extended operation */
+	slapi_int_get_extop_plugin( &op->ore_reqoid, &funcAddr ); /* NS-SLAPI extended operation */
 	if( !funcAddr && !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
 #else
 	if( !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))

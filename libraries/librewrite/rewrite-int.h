@@ -71,6 +71,8 @@
 #define REWRITE_FLAG_STOP			'@'
 #define REWRITE_FLAG_UNWILLING			'#'
 #define REWRITE_FLAG_GOTO			'G'	/* requires an arg */
+#define REWRITE_FLAG_USER			'U'	/* requires an arg */
+#define REWRITE_FLAG_MAX_PASSES			'M'	/* requires an arg */
 #define REWRITE_FLAG_IGNORE_ERR			'I'
 
 /*
@@ -97,6 +99,7 @@ struct rewrite_action {
 #define REWRITE_ACTION_UNWILLING	0x0002
 #define REWRITE_ACTION_GOTO		0x0003
 #define REWRITE_ACTION_IGNORE_ERR	0x0004
+#define REWRITE_ACTION_USER		0x0005
 	int                             la_type;
 	void                           *la_args;
 };
@@ -217,6 +220,7 @@ struct rewrite_rule {
 #define REWRITE_RECURSE			0x0001
 #define REWRITE_EXEC_ONCE          	0x0002
 	int				lr_mode;
+	int				lr_max_passes;
 
 	struct rewrite_action          *lr_action;
 };
@@ -248,6 +252,7 @@ struct rewrite_session {
  */
 struct rewrite_var {
 	char                           *lv_name;
+	int				lv_flags;
 	struct berval                   lv_value;
 };
 
@@ -301,6 +306,7 @@ struct rewrite_info {
 	 */
 #define REWRITE_MAXPASSES		100
 	int                             li_max_passes;
+	int                             li_max_passes_per_rule;
 
 	/*
 	 * Behavior in case a NULL or non-existent context is required
@@ -459,11 +465,12 @@ rewrite_session_find(
  * Defines and inits a variable with session scope
  */
 LDAP_REWRITE_F (int)
-rewrite_session_var_set(
+rewrite_session_var_set_f(
                 struct rewrite_info *info,
                 const void *cookie,
                 const char *name,
-                const char *value
+                const char *value,
+		int flags
 );
 
 /*
@@ -509,25 +516,44 @@ rewrite_var_find(
 );
 
 /*
+ * Replaces the value of a variable
+ */
+LDAP_REWRITE_F (int)
+rewrite_var_replace(
+		struct rewrite_var *var,
+		const char *value,
+		int flags
+);
+
+/*
  * Inserts a newly created var
  */
 LDAP_REWRITE_F (struct rewrite_var *)
-rewrite_var_insert(
+rewrite_var_insert_f(
                 Avlnode **tree,
                 const char *name,
-                const char *value
+                const char *value,
+		int flags
 );
+
+#define rewrite_var_insert(tree, name, value) \
+	rewrite_var_insert_f((tree), (name), (value), \
+			REWRITE_VAR_UPDATE|REWRITE_VAR_COPY_NAME|REWRITE_VAR_COPY_VALUE)
 
 /*
  * Sets/inserts a var
  */
 LDAP_REWRITE_F (struct rewrite_var *)
-rewrite_var_set(
+rewrite_var_set_f(
                 Avlnode **tree,
                 const char *name,
                 const char *value,
-                int insert
+                int flags
 );
+
+#define rewrite_var_set(tree, name, value, insert) \
+	rewrite_var_set_f((tree), (name), (value), \
+			REWRITE_VAR_UPDATE|REWRITE_VAR_COPY_NAME|REWRITE_VAR_COPY_VALUE|((insert)? REWRITE_VAR_INSERT : 0))
 
 /*
  * Deletes a var tree

@@ -67,6 +67,7 @@ rewrite_info_init(
 
 	info->li_state = REWRITE_DEFAULT;
 	info->li_max_passes = REWRITE_MAX_PASSES;
+	info->li_max_passes_per_rule = REWRITE_MAX_PASSES;
 	info->li_rewrite_mode = mode;
 
 	/*
@@ -259,11 +260,13 @@ rewrite_session(
 	 */
 	case REWRITE_REGEXEC_UNWILLING:
 	case REWRITE_REGEXEC_ERR:
-	default:
 		if ( *result != NULL ) {
 			free( *result );
 			*result = NULL;
 		}
+
+	default:
+		break;
 	}
 
 rc_return:;

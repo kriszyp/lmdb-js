@@ -34,7 +34,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 #include "lutil.h"
 
@@ -398,7 +398,7 @@ do_modify(
 		modv = slapi_int_modifications2ldapmods( &modlist );
 		slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
-		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
@@ -472,6 +472,7 @@ do_modify(
 			int update = op->o_bd->be_update_ndn.bv_len;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
 				textbuf, textlen, NULL );
@@ -498,14 +499,15 @@ do_modify(
 			}
 
 			op->orm_modlist = modlist;
-			if ( (op->o_bd->be_modify)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
-				&& !repl_user
+			if ( !repl_user )
 #endif
-			) {
+			{
 				/* but we log only the ones not from a replicator user */
-				replog( op );
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
 			}
+			op->o_bd->be_modify( op, rs );
 
 #ifndef SLAPD_MULTIMASTER
 		/* send a referral */
@@ -547,7 +549,7 @@ do_modify(
 #if defined( LDAP_SLAPI )
 	} /* modlist != NULL */
 
-	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
 				"failed\n", 0, 0, 0 );

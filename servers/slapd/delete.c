@@ -36,7 +36,7 @@
 #include "lutil.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 int
@@ -168,7 +168,7 @@ do_delete(
 		slapi_pblock_set( pb, SLAPI_DELETE_TARGET, (void *)dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
-		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
+		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
@@ -206,6 +206,7 @@ do_delete(
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			if ( !repl_user ) {
 				struct berval csn = { 0 , NULL };
@@ -213,14 +214,14 @@ do_delete(
 				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 			}
 
-			if ( (op->o_bd->be_delete)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
+			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
 #endif
-				{
-					replog( op );
-				}
+			{
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
 			}
+			op->o_bd->be_delete( op, rs );
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
@@ -257,7 +258,7 @@ do_delete(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_DELETE_FN, pb ) < 0) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_DELETE_FN, pb ) < 0) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_delete: delete postoperation plugins "
 				"failed\n", 0, 0, 0 );

@@ -185,11 +185,12 @@ rewrite_session_return(
  * Defines and inits a var with session scope
  */
 int
-rewrite_session_var_set(
+rewrite_session_var_set_f(
 		struct rewrite_info *info,
 		const void *cookie,
 		const char *name,
-		const char *value
+		const char *value,
+		int flags
 )
 {
 	struct rewrite_session *session;
@@ -212,11 +213,11 @@ rewrite_session_var_set(
 	var = rewrite_var_find( session->ls_vars, name );
 	if ( var != NULL ) {
 		assert( var->lv_value.bv_val != NULL );
-		free( var->lv_value.bv_val );
-		var->lv_value.bv_val = strdup( value );
-		var->lv_value.bv_len = strlen( value );
+
+		(void)rewrite_var_replace( var, value, flags );
+
 	} else {
-		var = rewrite_var_insert( &session->ls_vars, name, value );
+		var = rewrite_var_insert_f( &session->ls_vars, name, value, flags );
 		if ( var == NULL ) {
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 			ldap_pvt_thread_rdwr_wunlock( &session->ls_vars_mutex );

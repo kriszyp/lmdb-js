@@ -184,7 +184,8 @@ parse_acl(
 						a->acl_dn_style = ACL_STYLE_BASE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 
-					} else if ( strcasecmp( style, "one" ) == 0 ) {
+					} else if ( strcasecmp( style, "onelevel" ) == 0
+						|| strcasecmp( style, "one" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_ONE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 
@@ -245,7 +246,8 @@ parse_acl(
 						acl_usage();
 					}
 
-				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
+				} else if ( strcasecmp( left, "attr" ) == 0
+						|| strcasecmp( left, "attrs" ) == 0 ) {
 					a->acl_attrs = str2anlist( a->acl_attrs,
 						right, "," );
 					if ( a->acl_attrs == NULL ) {
@@ -401,7 +403,8 @@ parse_acl(
 				{
 					sty = ACL_STYLE_BASE;
 
-				} else if ( strcasecmp( style, "one" ) == 0 ) {
+				} else if ( strcasecmp( style, "onelevel" ) == 0 ||
+					strcasecmp( style, "one" ) == 0 ) {
 					sty = ACL_STYLE_ONE;
 
 				} else if ( strcasecmp( style, "subtree" ) == 0 ||
@@ -1396,7 +1399,7 @@ acl_usage( void )
 		"<style> ::= regex | base | exact\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
 		"<level> ::= none | auth | compare | search | read | write\n"
-		"<priv> ::= {=|+|-}{w|r|s|c|x}+\n"
+		"<priv> ::= {=|+|-}{w|r|s|c|x|0}+\n"
 		"<control> ::= [ stop | continue | break ]\n"
 	);
 	exit( EXIT_FAILURE );

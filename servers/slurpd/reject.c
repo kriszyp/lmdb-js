@@ -108,11 +108,11 @@ write_reject(
 #endif
     } else {
 	fseek( rfp, 0, 2 );
-	if ( errmsg != NULL ) {
-	    fprintf( rfp, "%s: %s\n", ERROR_STR, errmsg );
-	} else {
-	    fprintf( rfp, "%s: %s\n", ERROR_STR, ldap_err2string( lderr ));
+	fprintf( rfp, "%s: %s", ERROR_STR, ldap_err2string( lderr ));
+	if ( errmsg && *errmsg ) {
+	    fprintf( rfp, ": %s", errmsg );
 	}
+	fprintf( rfp, "\n" );
 	if ((rc = re->re_write( ri, re, rfp )) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( SLURPD, ERR, "write_reject: "
