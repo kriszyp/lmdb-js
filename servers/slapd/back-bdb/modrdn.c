@@ -567,7 +567,9 @@ retry:	/* transaction retry */
 	 * they can be individually freed later.
 	 */
 	e->e_dn = new_dn;
+	e->e_name.bv_len = strlen( new_dn );
 	e->e_ndn = new_ndn;
+	e->e_nname.bv_len = strlen( new_ndn );
 
 	/* add new one */
 	rc = bdb_dn2id_add( be, ltid, np_ndn, e );

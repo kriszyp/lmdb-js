@@ -736,7 +736,9 @@ ldbm_back_modrdn(
 	free( e->e_dn );
 	free( e->e_ndn );
 	e->e_dn = new_dn;
+	e->e_name.bv_len = strlen( new_dn );
 	e->e_ndn = new_ndn;
+	e->e_nname.bv_len = strlen( new_ndn );
 	new_dn = NULL;
 	new_ndn = NULL;
 
