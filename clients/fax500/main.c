@@ -439,7 +439,7 @@ do_address(
 
 	/* no matches - bounce with user unknown */
 	if ( match == 0 ) {
-		add_error( err, nerr, E_USERUNKNOWN, name, NULLMSG );
+		add_error( err, nerr, E_USERUNKNOWN, name, NULL );
 		return;
 	}
 
@@ -775,7 +775,7 @@ do_group_members(
 
 						add_error( err, nerr,
 						    E_JOINMEMBERNOFAXNUM, ndn, 
-						    NULLMSG );
+						    NULL );
 
 						free( ndn );
 					}
@@ -793,7 +793,7 @@ do_group_members(
 
 						add_error( err, nerr,
 						    E_JOINMEMBERNOEMAIL, ndn, 
-						    NULLMSG );
+						    NULL );
 
 						free( ndn );
 					}
@@ -835,7 +835,7 @@ add_member(
 	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "(objectclass=*)",
 	    attrs, 0, &timeout, &res )) != LDAP_SUCCESS ) {
 		if ( rc == LDAP_NO_SUCH_OBJECT ) {
-			add_error( err, nerr, E_BADMEMBER, dn, NULLMSG );
+			add_error( err, nerr, E_BADMEMBER, dn, NULL );
 
 			return;
 		} else {
@@ -885,7 +885,7 @@ add_member(
 			ldap_value_free( mail );
 			ldap_msgfree( res );
 		} else {
-			add_error( err, nerr, E_MEMBERNOFAXNUM, ndn, NULLMSG );
+			add_error( err, nerr, E_MEMBERNOFAXNUM, ndn, NULL );
 		}
 		break;
 	case MAIL500 :
@@ -897,7 +897,7 @@ add_member(
 
 		/* else generate a bounce */
 		} else {
-			add_error( err, nerr, E_MEMBERNOEMAIL, ndn, NULLMSG );
+			add_error( err, nerr, E_MEMBERNOEMAIL, ndn, NULL );
 		}
 
 		free( ndn );
@@ -923,7 +923,7 @@ do_group_request(
 
 		ldap_value_free( requeststo );
 	} else {
-		add_error( err, nerr, E_NOREQUEST, dn, NULLMSG );
+		add_error( err, nerr, E_NOREQUEST, dn, NULL );
 	}
 }
 
@@ -945,7 +945,7 @@ do_group_errors(
 
 		ldap_value_free( errorsto );
 	} else {
-		add_error( err, nerr, E_NOERRORS, dn, NULLMSG );
+		add_error( err, nerr, E_NOERRORS, dn, NULL );
 	}
 }
 

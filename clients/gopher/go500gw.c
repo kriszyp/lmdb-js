@@ -396,7 +396,7 @@ do_queries( int s )
 	if ( debug ) {
 		fprintf( stderr, "got %d bytes\n", len );
 #ifdef LDAP_DEBUG
-		lber_bprint( buf, len );
+		ber_bprint( buf, len );
 #endif
 	}
 

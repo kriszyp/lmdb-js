@@ -514,9 +514,9 @@ do_address(
 	/* no matches - bounce with user unknown */
 	if ( match == 0 ) {
 		if ( type == USER ) {
-			add_error( err, nerr, E_USERUNKNOWN, name, NULLMSG );
+			add_error( err, nerr, E_USERUNKNOWN, name, NULL );
 		} else {
-			add_error( err, nerr, E_GROUPUNKNOWN, name, NULLMSG );
+			add_error( err, nerr, E_GROUPUNKNOWN, name, NULL );
 		}
 		return;
 	}
@@ -836,7 +836,7 @@ do_group_members(
 		if ( strcasecmp( joinable[0], "FALSE" ) == 0 ) {
 			if ( ! anymembers ) {
 				add_error( err, nerr, E_NOMEMBERS, dn,
-				    NULLMSG );
+				    NULL );
 			}
 
 			ldap_value_free( joinable );
@@ -903,7 +903,7 @@ do_group_members(
 					ndn = ldap_get_dn( ld, ee );
 
 					add_error( err, nerr,
-					    E_JOINMEMBERNOEMAIL, ndn, NULLMSG );
+					    E_JOINMEMBERNOEMAIL, ndn, NULL );
 
 					free( ndn );
 				}
@@ -916,7 +916,7 @@ do_group_members(
 	}
 
 	if ( ! anymembers ) {
-		add_error( err, nerr, E_NOMEMBERS, dn, NULLMSG );
+		add_error( err, nerr, E_NOMEMBERS, dn, NULL );
 	}
 }
 
@@ -944,7 +944,7 @@ add_member(
 	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "(objectclass=*)",
 	    attrs, 0, &timeout, &res )) != LDAP_SUCCESS ) {
 		if ( rc == LDAP_NO_SUCH_OBJECT ) {
-			add_error( err, nerr, E_BADMEMBER, dn, NULLMSG );
+			add_error( err, nerr, E_BADMEMBER, dn, NULL );
 
 			return;
 		} else {
@@ -983,7 +983,7 @@ add_member(
 	} else {
 		if ( suppress == NULL || strcasecmp( suppress[0], "FALSE" )
 		    == 0 ) {
-			add_error( err, nerr, E_MEMBERNOEMAIL, ndn, NULLMSG );
+			add_error( err, nerr, E_MEMBERNOEMAIL, ndn, NULL );
 		}
 	}
 
@@ -1008,7 +1008,7 @@ do_group_request(
 
 		ldap_value_free( requeststo );
 	} else {
-		add_error( err, nerr, E_NOREQUEST, dn, NULLMSG );
+		add_error( err, nerr, E_NOREQUEST, dn, NULL );
 	}
 }
 
@@ -1030,7 +1030,7 @@ do_group_errors(
 
 		ldap_value_free( errorsto );
 	} else {
-		add_error( err, nerr, E_NOERRORS, dn, NULLMSG );
+		add_error( err, nerr, E_NOERRORS, dn, NULL );
 	}
 }
 
@@ -1050,7 +1050,7 @@ do_group_owner(
 		add_to( to, nto, owner );
 		ldap_value_free( owner );
 	} else {
-		add_error( err, nerr, E_NOOWNER, dn, NULLMSG );
+		add_error( err, nerr, E_NOOWNER, dn, NULL );
 	}
 }
 

@@ -305,7 +305,7 @@ do_read( LDAP *ldp, char *dn, char *reply, struct ldap_disptmpl *tmpll )
     static char	**defvals[] = { maildefvals, NULL };
 
 
-    rc = ldap_entry2text_search( ldp, dn, searchbase, NULLMSG, tmpll,
+    rc = ldap_entry2text_search( ldp, dn, searchbase, NULL, tmpll,
 	    defattrs, defvals, append_text, (void *)reply, "\n",
 	    rdncount, LDAP_DISP_OPT_DOSEARCHACTIONS );
 

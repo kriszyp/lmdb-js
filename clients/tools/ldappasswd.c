@@ -570,9 +570,11 @@ main (int argc, char *argv[])
 	/* this is of questionable value
 	 * gettimeofday not provide much usec
 	 */
-	struct timeval  tv;
-	gettimeofday (&tv, NULL);
-	srand (tv.tv_usec);
+	{
+		struct timeval tv;
+		gettimeofday (&tv, NULL);
+		srand (tv.tv_usec);
+	}
 #else
 	/* The traditional seed */
 	srand((unsigned)time( NULL ));
