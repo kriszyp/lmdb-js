@@ -133,7 +133,8 @@ do_add( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
 				tmp.sml_type.bv_val, 0, 0 );
 #endif
-			send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "no values for attribute type" );
+			send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
+				"no values for attribute type" );
 			goto done;
 		}
 
@@ -172,7 +173,8 @@ do_add( Operation *op, SlapReply *rs )
 	} 
 
 	if ( modlist == NULL ) {
-		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "no attributes provided" );
+		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
+			"no attributes provided" );
 		goto done;
 	}
 
@@ -181,11 +183,13 @@ do_add( Operation *op, SlapReply *rs )
 
 	if( e->e_nname.bv_len == 0 ) {
 		/* protocolError may be a more appropriate error */
-		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS, "root DSE already exists" );
+		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS,
+			"root DSE already exists" );
 		goto done;
 
 	} else if ( bvmatch( &e->e_nname, &global_schemandn ) ) {
-		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS, "subschema subentry already exists" );
+		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS,
+			"subschema subentry already exists" );
 		goto done;
 	}
 
@@ -205,7 +209,9 @@ do_add( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
-			if ( rs->sr_ref != default_referral ) ber_bvarray_free( rs->sr_ref );
+			if ( rs->sr_ref != default_referral ) {
+				ber_bvarray_free( rs->sr_ref );
+			}
 		} else {
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 					"referral missing" );
@@ -337,9 +343,9 @@ do_add( Operation *op, SlapReply *rs )
 #ifdef LDAP_SLAPI
 	    rs->sr_err = doPreAddPluginFNs( op );
 	    if ( rs->sr_err != LDAP_SUCCESS ) {
-		/* plugin will have sent result */
-		goto done;
-	    }
+			/* plugin will have sent result */
+			goto done;
+		}
 #endif
 #ifdef NEW_LOGGING
 	    LDAP_LOG( OPERATION, INFO, 
@@ -348,7 +354,7 @@ do_add( Operation *op, SlapReply *rs )
 	    Debug( LDAP_DEBUG_ARGS, "	 do_add: no backend support\n", 0, 0, 0 );
 #endif
 	    send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			      "operation not supported within namingContext" );
+			"operation not supported within namingContext" );
 	}
 
 #ifdef LDAP_SLAPI

@@ -150,7 +150,8 @@ do_modify(
 		default: {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
-					"do_modify: invalid modify operation (%ld)\n", (long)mop, 0, 0 );
+					"do_modify: invalid modify operation (%ld)\n",
+					(long)mop, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: invalid modify operation (%ld)\n",
@@ -177,7 +178,8 @@ do_modify(
 		goto cleanup;
 	}
 
-	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
+		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: conn %d  invalid dn (%s)\n",
@@ -296,7 +298,8 @@ do_modify(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 )) == NULL ) {
+	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		if (!rs->sr_ref) rs->sr_ref = default_referral;
@@ -628,7 +631,9 @@ int slap_mods_check(
 			if( nvals && ad->ad_type->sat_equality &&
 				ad->ad_type->sat_equality->smr_normalize )
 			{
-				ml->sml_nvalues = ber_memalloc_x( (nvals+1)*sizeof(struct berval), ctx );
+				ml->sml_nvalues = ber_memalloc_x(
+					(nvals+1)*sizeof(struct berval), ctx );
+
 				for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
 					rc = ad->ad_type->sat_equality->smr_normalize(
 						0,
@@ -652,6 +657,7 @@ int slap_mods_check(
 						return rc;
 					}
 				}
+
 				ml->sml_nvalues[nvals].bv_val = NULL;
 				ml->sml_nvalues[nvals].bv_len = 0;
 			}
