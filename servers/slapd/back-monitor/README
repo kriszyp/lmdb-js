@@ -1,22 +1,55 @@
-back-monitor
+MONITOR BACKEND
 
-Backend for monitoring the server's activity.  It must be explicitly
-enabled by configuring with `--enable-monitor' set; then it must be
-activated by placing in slapd.conf the configure directive
+	NAME: 	back-monitor
 
-database	monitor
+	Backend for monitoring the server's activity.
+
+
+
+COMPILE AND CONFIGURATION OPTIONS
+
+It must be explicitly enabled by configuring with 
+
+	--enable-monitor
+
+set; then it must be activated by placing in slapd.conf the database
+configure directive
+
+	database	monitor
 
 The suffix "cn=Monitor" is implicitly activated (it cannot be given
 as a suffix of the database as usually done for conventional backends).
+Note that the "cn=Monitor" naming context appears in the rootDSE
+(FIXME: do we really want this?)
 
-The backend root is "cn=Monitor"; the first level entries represent
-the monitored subsystems.  It is being implemented in a modular way,
+A bind operation is provided; at present it allows to bind as the
+backend rootdn.  As a result, the backend supports the rootdn/rootpw 
+directives (only simple bind at present).
+
+
+
+NAMING CONTEXT AND TREE STRUCTURE
+
+The backend naming context is "cn=Monitor"; the first level entries 
+represent the monitored subsystems.  It is implemented in a modular way,
 to ease the addition of new subsystems.
+
+
+
+SCHEMA
+
 All the subsystems get a default "cn" attribute, represented by the
 subsystem's name, and they all have "top", "LDAPsubEntry" and
 "monitorSubEntry" objectclasses (the latter has not been defined yet,
 pending the design of the monitor schema and its registration under
 OpenLDAP's OID).
+At present "extensibleObject" is used, and the "description" attribute 
+is used to hold the monitor information of each entry.
+
+
+
+FUNCTIONALITY
+
 Most of the sybsystems contain an additional depth level, represented
 by detailed item monitoring.
 All the entries undergo an update operation, if a related method is
@@ -26,8 +59,139 @@ requested.  As an instance, the connection statistics are updated
 at each request, while each active connection data is created on the
 fly.
 
-This document is in a very early stage of maturity and will probably 
-be rewritten many times before the monitor backend is released.
+One nice feature of this solution is that granular ACLs can be applied 
+to each entry.
 
-Author:	Pierangelo Masarati <ando@OpenLDAP.org>
+
+
+OPERATIONS
+
+The backend currently supports:
+
+	bind
+	compare
+	modify
+	search
+
+
+
+SUBSYSTEMS
+
+Currently some subsystems are partially supported.  "Partially"
+means their entries are correctly generated, but sometimes only 
+partially useful information is provided.
+
+The subsystems are:
+
+	Listener
+	Databases
+	Backends
+	Threads
+	SASL
+	TLS
+	Connections
+	Read Waiters
+	Write Waiters
+	Log
+
+
+
+LISTENER SUBSYSTEM
+
+Currently empty, it will presumably contain the description of the
+devices the server is currently listening on
+
+
+
+DATABASES SUBSYSTEM
+
+The main entry contains the naming context of each configured database; 
+the subentries contain, for each database, the type and the naming
+context.
+
+
+
+BACKENDS SUBSYSTEMS
+
+The main entry contains the type of backends enabled at compile time;
+the subentries, for each backend, contain the type of the backend.
+It should also contain the modules that have been loaded if dynamic 
+backends are enabled.
+
+
+
+THREADS SUBSYSTEM
+
+It contains the maximum number of threads enabled at startup and the 
+current backload.
+
+
+
+SASL
+
+Currently empty.
+
+
+
+TLS
+
+Currently empty.
+
+
+
+CONNECTIONS
+
+The main entry is empty; it should contain some statistics on the number 
+of connections.
+Dynamic subentries are created for each open connection, with stats on
+the activity on that connection (the format will be detailed later).
+
+
+
+READ WAITERS SUBSYSTEM
+
+It contains the number of current read waiters.
+
+
+
+WRITE WAITERS SUBSYSTEM
+
+It contains the number of current write waiters.
+
+
+
+LOG SUBSYSTEM
+
+It contains the currently active log items.  The "Log" subsystem allows 
+user modify operations on the "description" attribute, whose values MUST 
+be in the list of admittable log switches:
+
+	Trace
+	Packets
+	Args
+	Conns
+	BER
+	Filter
+	Config		(useless)
+	ACL
+	Stats
+	Stats2
+	Shell
+	Parse
+	Cache		(deprecated)
+	Index
+
+These values can be added, replaced or deleted; they affect what 
+messages are sent to the syslog device.
+
+
+
+NOTES
+
+This document is in a very early stage of maturity and will 
+probably be rewritten many times before the monitor backend is released.
+
+
+
+AUTHOR:	Pierangelo Masarati <ando@OpenLDAP.org>
 
