@@ -42,7 +42,7 @@ if test ! -e $RELNAME/build/version.sh ; then
 	exit 1
 fi
 
-$RELNAME/build/version.sh
+. $RELNAME/build/version.sh
 
 tar cf $RELNAME.tar $RELNAME
 gzip -9 -c $RELNAME.tar > $RELNAME.tgz
@@ -50,4 +50,5 @@ md5 $RELNAME.tgz > $RELNAME.md5
 rm -f $RELNAME.tar
 
 ls -l $RELNAME.*
-cat $RELNAME/build/version
+
+echo "Made $OL_STRING as $RELNAME.tgz"
