@@ -86,7 +86,7 @@ internal_search_entry(
 			SLAPI_PLUGIN_INTOP_SEARCH_ENTRIES, (void *)tp );
 	slapi_pblock_set( (Slapi_PBlock *)op->o_pb,
 			SLAPI_NENTRIES, (void *)i );
-	slapi_ch_free( ent2str );
+	slapi_ch_free( (void **)&ent2str );
 
 	return LDAP_SUCCESS;
 }
@@ -154,15 +154,15 @@ fakeConnection(
 	pConn->c_pending_ops.stqh_first =
 		(Operation *) slapi_ch_calloc( 1, sizeof(Operation) );
 	if ( pConn->c_pending_ops.stqh_first == NULL ) { 
-		slapi_ch_free( pConn );
+		slapi_ch_free( (void **)&pConn );
 		return (Connection *)NULL;
 	}
 
 	pConn->c_pending_ops.stqh_first->o_pb = 
 		(Slapi_PBlock *) slapi_pblock_new();
 	if ( pConn->c_pending_ops.stqh_first->o_pb == NULL ) {
-		slapi_ch_free( pConn->c_pending_ops.stqh_first );
-		slapi_ch_free( pConn );
+		slapi_ch_free( (void **)&pConn->c_pending_ops.stqh_first );
+		slapi_ch_free( (void **)&pConn );
 		return (Connection *)NULL;
 	}
 
@@ -447,8 +447,8 @@ LDAPModToEntry(
 
 cleanup:
 
-	if ( dn.bv_val ) slapi_ch_free( dn.bv_val );
-	if ( op ) slapi_ch_free( op );
+	if ( dn.bv_val ) slapi_ch_free( (void **)&dn.bv_val );
+	if ( op ) slapi_ch_free( (void **)&op );
 	if ( modlist != NULL ) slap_mods_free( modlist );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( pEntry != NULL ) {
@@ -552,14 +552,14 @@ cleanup:
 	if (pPB != NULL) 
 		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
 
-	if (dn.bv_val) slapi_ch_free(dn.bv_val);
-	if (pdn.bv_val) slapi_ch_free(pdn.bv_val);
-	if (ndn.bv_val) slapi_ch_free(ndn.bv_val);
+	if (dn.bv_val) slapi_ch_free( (void **)&dn.bv_val );
+	if (pdn.bv_val) slapi_ch_free( (void **)&pdn.bv_val );
+	if (ndn.bv_val) slapi_ch_free( (void **)&ndn.bv_val );
 
 	if ( pConn != NULL ) {
-		if ( pConn->c_dn.bv_val ) slapi_ch_free( pConn->c_dn.bv_val );
-		if ( op->o_dn.bv_val ) slapi_ch_free( op->o_dn.bv_val );
-		if ( op ) slapi_ch_free( op );
+		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
+		if ( op->o_dn.bv_val ) slapi_ch_free( (void **)&op->o_dn.bv_val );
+		if ( op ) slapi_ch_free( (void **)&op );
 		pSavePB = pPB;
 		free( pConn );
 	}
@@ -640,10 +640,10 @@ cleanup:
 	}
 
 	if ( pConn != NULL ) {
-		if ( pConn->c_dn.bv_val ) slapi_ch_free( pConn->c_dn.bv_val );
+		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
 		if ( op ) {
 			if ( op->o_ndn.bv_val ) {
-				slapi_ch_free( op->o_ndn.bv_val );
+				slapi_ch_free( (void **)&op->o_ndn.bv_val );
 			}
 			free(op);
 		}
@@ -854,10 +854,10 @@ cleanup:
 	if ( nnewrdn.bv_val ) ch_free( newrdn.bv_val );
 
 	if ( pConn != NULL ) {
-		if ( pConn->c_dn.bv_val ) slapi_ch_free( pConn->c_dn.bv_val );
+		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
 		if ( op ) {
-			if ( op->o_dn.bv_val ) slapi_ch_free( op->o_dn.bv_val );
-			slapi_ch_free( op );
+			if ( op->o_dn.bv_val ) slapi_ch_free( (void **)&op->o_dn.bv_val );
+			slapi_ch_free( (void **)&op );
 		}
 		pSavePB = pPB;
 		free( pConn );
@@ -1066,10 +1066,10 @@ cleanup:
 	if ( modlist != NULL ) slap_mods_free( modlist );
 
 	if ( pConn != NULL ) {
-		if ( pConn->c_dn.bv_val ) slapi_ch_free( pConn->c_dn.bv_val );
+		if ( pConn->c_dn.bv_val ) slapi_ch_free( (void **)&pConn->c_dn.bv_val );
 		if ( op ) {
-			if ( op->o_dn.bv_val ) slapi_ch_free( op->o_dn.bv_val );
-			slapi_ch_free( op );
+			if ( op->o_dn.bv_val ) slapi_ch_free( (void **)&op->o_dn.bv_val );
+			slapi_ch_free( (void **)&op );
 		}
 		pSavePB = pPB;
 		free( pConn );
@@ -1244,9 +1244,9 @@ cleanup:
 	if ( an != NULL ) free( an );
 
 	if ( c != NULL ) {
-		if ( c->c_dn.bv_val ) slapi_ch_free( c->c_dn.bv_val );
+		if ( c->c_dn.bv_val ) slapi_ch_free( (void **)&c->c_dn.bv_val );
 		if ( op ) {
-			if ( op->o_ndn.bv_val ) slapi_ch_free( op->o_ndn.bv_val );
+			if ( op->o_ndn.bv_val ) slapi_ch_free( (void **)&op->o_ndn.bv_val );
 			free( op );
 		}
 		pSavePB = ptr;

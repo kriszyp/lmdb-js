@@ -87,7 +87,7 @@ slapi_str2entry(
 	pTmpS = slapi_ch_strdup( s );
 	if ( pTmpS != NULL ) {
 		e = str2entry( pTmpS ); 
-		slapi_ch_free( pTmpS );
+		slapi_ch_free( (void **)&pTmpS );
 	}
 
 	return e;
@@ -154,12 +154,12 @@ slapi_entry_dup( Slapi_Entry *e )
 
 	tmpEnt = (Slapi_Entry *)str2entry( tmp );
 	if ( tmpEnt == NULL ) { 
-		slapi_ch_free( tmp );
+		slapi_ch_free( (void **)&tmp );
 		return (Slapi_Entry *)NULL;
 	}
 	
 	if (tmp != NULL) {
-		slapi_ch_free( tmp );
+		slapi_ch_free( (void **)&tmp );
 	}
 
 	return tmpEnt;
@@ -397,13 +397,11 @@ slapi_ch_malloc( unsigned long size )
 }
 
 void 
-slapi_ch_free( void *ptr ) 
+slapi_ch_free( void **ptr ) 
 {
 #if defined(LDAP_SLAPI)
-#if 0
-	if ( ptr != NULL )	/* not required ... */
-#endif /* 0 */
-		ch_free( ptr );
+	ch_free( *ptr );
+	*ptr = NULL;
 #endif /* defined(LDAP_SLAPI) */
 }
 
@@ -496,7 +494,7 @@ slapi_control_present(
 				if ( val ) {
 					*val = pTmpBval;
 				} else {
-					slapi_ch_free( pTmpBval );
+					slapi_ch_free( (void **)&pTmpBval );
 					rc = 0;
 				}
 			}
@@ -963,7 +961,7 @@ slapi_get_hostname( void )
 	} else if ( sysinfo( SI_HOSTNAME, hn, MAX_HOSTNAME ) < 0 ) {
 		slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SYSINFO",
 				"can't get hostname\n" );
-		slapi_ch_free( hn );
+		slapi_ch_free( (void **)&hn );
 		hn = NULL;
 	}
 #else /* !_SPARC */
@@ -986,7 +984,7 @@ slapi_get_hostname( void )
 				slapi_log_error( SLAPI_LOG_FATAL,
 						"SLAPI_SYSINFO",
 						"can't get hostname\n" );
-				slapi_ch_free( static_hn );
+				slapi_ch_free( (void **)&static_hn );
 				static_hn = NULL;
 				ldap_pvt_thread_mutex_unlock( &slapi_hn_mutex );
 
@@ -1130,7 +1128,7 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 		slapi_entry_free( entries[k] );
 	}
 	
-	slapi_ch_free( entries );
+	slapi_ch_free( (void **)&entries );
 #endif /* defined(LDAP_SLAPI) */
 }
 
