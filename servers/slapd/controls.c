@@ -766,7 +766,7 @@ static int parseProxyAuthz (
 			ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len,
 			NULL, &dn, SLAP_GETDN_AUTHZID );
 
-	if( rc != LDAP_SUCCESS || !dn.bv_len ) {
+	if( rc != LDAP_SUCCESS ) {
 		if ( dn.bv_val ) {
 			ch_free( dn.bv_val );
 		}
