@@ -3,4 +3,4 @@
 #
 
 H1: General Configure Instructions
-!include "autoconf-install.txt" ; verbatim
+!include "../release/autoconf-install.txt" ; verbatim
