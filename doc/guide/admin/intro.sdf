@@ -62,7 +62,7 @@ The types are typically mnemonic strings, like "{{EX:cn}}" for common
 name, or "{{EX:mail}}" for email address. The syntax of values depend
 on the attribute type is.  For example, {{EX:cn}} attribute might
 be the value {{EX: Babs Jensen}}.  A {{EX:mail}} attribute might
-contain the value "{{EX:babs@openldap.org}}". A {{EX:jpegPhoto}}
+contain the value "{{EX:babs@example.com}}". A {{EX:jpegPhoto}}
 attribute would contain a photograph in the JPEG (binary) format.
 
 {{How is the information arranged?}}
@@ -97,7 +97,7 @@ by taking the name of the entry itself (called the {{TERM[expand]RDN}}
 or RDN) and concatenating the names of its ancestor entries. For
 example, the entry for Barbara Jensen in the Internet naming example
 above has an RDN of {{EX:uid=babs}} and a DN of
-{{EX:uid=babs, ou=People, dc=OpenLDAP, dc=com}}". The full DN format is
+{{EX:uid=babs, ou=People, dc=example, dc=com}}". The full DN format is
 described in {{REF:RFC2253}}, "Lightweight Directory Access Protocol (v3):
 UTF-8 String Representation of Distinguished Names."
 
@@ -112,7 +112,7 @@ by a search filter. Information can be requested from each entry that matches
 the criteria.
 
 For example, you might want to search the entire directory subtree at
-and below {{EX:dc=OpenLDAP,dc=org}} for people with the name {{EX:Barbara
+and below {{EX:dc=example,dc=com}} for people with the name {{EX:Barbara
 Jensen}}, retrieving the email address of each entry found. LDAP lets
 you do this easily.  Or you might want to search the entries directly
 below the {{EX:st=California, c=US}} entry for organizations with the
