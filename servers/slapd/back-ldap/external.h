@@ -67,7 +67,7 @@ extern int	ldap_back_attribute LDAP_P(( BackendDB *bd,
 	Entry *target,
 	const char* e_ndn,
 	AttributeDescription* entry_at,
-	const char ***vals));
+	struct berval ***vals));
 
 LDAP_END_DECL
 

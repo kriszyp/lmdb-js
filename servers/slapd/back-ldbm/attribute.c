@@ -116,8 +116,10 @@ ldbm_back_attribute(
 	v = (struct berval **) ch_malloc( sizeof(struct berval *) * (i+1) );
 
 	for ( i=0, j=0; attr->a_vals[i] != NULL; i++ ) {
-		if( access_allowed(be, conn, op, e, entry_at,
-			attr->a_vals[i], ACL_READ) == 0)
+		if( conn != NULL
+			&& op != NULL
+			&& access_allowed(be, conn, op, e, entry_at,
+				attr->a_vals[i], ACL_READ) == 0)
 		{
 			continue;
 		}

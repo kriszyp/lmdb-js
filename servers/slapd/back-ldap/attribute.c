@@ -27,14 +27,14 @@ ldap_back_attribute(
 	Entry	*target,
 	const char	*e_ndn,
 	AttributeDescription *entry_at,
-	const char ***vals
+	struct berval ***vals
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;    
-	int rc = 1, i, j;
+	int rc = 1, i, j, count;
 	Attribute *attr;
-	struct berval **abv;
-	char *s, **v;
+	struct berval **abv, **v;
+	char **vs;
 	LDAPMessage	*result, *e;
 	char *gattr[2];
 	LDAP *ld;
@@ -45,17 +45,14 @@ ldap_back_attribute(
 		if ((attr = attr_find(target->e_attrs, entry_at)) == NULL)
 			return(1);
 
-		for ( i = 0; attr->a_vals[i] != NULL; i++ ) { }
-		v = (char **) ch_calloc( (i + 1), sizeof(char *) );
+		for ( count = 0; attr->a_vals[count] != NULL; count++ ) { }
+		v = (struct berval **) ch_calloc( (count + 1), sizeof(struct berval *) );
 		if (v != NULL) {
-			for ( j = 0, abv = attr->a_vals; --i >= 0; abv++ ) {
+			for ( j = 0, abv = attr->a_vals; --count >= 0; abv++ ) {
 				if ( (*abv)->bv_len > 0 ) {
-					s = ch_malloc( (*abv)->bv_len + 1 );
-					if( s == NULL )
+					v[j] = ber_bvdup( *abv );
+					if( v[j] == NULL )
 						break;
-					memcpy(s, (*abv)->bv_val, (*abv)->bv_len);
-					s[(*abv)->bv_len] = 0;
-					v[j++] = s;
 				}
 			}
 			v[j] = NULL;
@@ -76,9 +73,26 @@ ldap_back_attribute(
 									LDAP_NO_LIMIT, &result) == LDAP_SUCCESS)
 			{
 				if ((e = ldap_first_entry(ld, result)) != NULL) {
-					*vals = ldap_get_values(ld, e, entry_at->ad_cname->bv_val);
-					if (*vals != NULL)
-						rc = 0;
+					vs = ldap_get_values(ld, e, entry_at->ad_cname->bv_val);
+					if (vs != NULL) {
+						for ( count = 0; vs[count] != NULL; count++ ) { }
+						v = (struct berval **) ch_calloc( (count + 1), sizeof(struct berval *) );
+						if (v == NULL) {
+							ldap_value_free(vs);
+						} else {
+							for ( i = 0, j = 0; i < count; i++) {
+								v[j] = ber_bvstr( vs[i] );
+								if( v[j] == NULL )
+									ch_free(vs[i]);
+								else
+									j++;
+							}
+							v[j] = NULL;
+							*vals = v;
+							rc = 0;
+							ch_free(vs);
+						}
+					}
 				}
 				ldap_msgfree(result);
 			}
