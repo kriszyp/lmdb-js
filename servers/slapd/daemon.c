@@ -485,18 +485,22 @@ slapd_daemon_task(
 		/* loop through the writers */
 #ifdef HAVE_WINSOCK
 		for ( i = 0; i < writefds.fd_count; i++ ) {
-			if ( writefds.fd_array[i] == tcps ) {
+			int wd = writefds.fd_array[i];
+
+			if ( wd == tcps ) {
 				continue;
 			}
+
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: signalling write waiter on %d\n",
-				writefds.fd_array[i], 0, 0 );
-			assert( FD_ISSET( 0, &slap_daemon.sd_actives) );
+				wd, 0, 0 );
 
-			slapd_clr_write( writefds.fd_array[i], 0 );
-			if ( connection_write( writefds.fd_array[i] ) < 0 ) {
-				FD_CLR( writefds.fd_array[i], &readfds );
-				slapd_close( writefds.fd_array[i] );
+			assert( FD_ISSET( wd, &slap_daemon.sd_actives) );
+
+			slapd_clr_write( wd, 0 );
+			if ( connection_write( wd ) < 0 ) {
+				FD_CLR( wd, &readfds );
+				slapd_close( wd );
 			}
 		}
 #else
@@ -508,7 +512,7 @@ slapd_daemon_task(
 				Debug( LDAP_DEBUG_CONNS,
 				    "daemon: signaling write waiter on %d\n", i, 0, 0 );
 
-				assert( FD_ISSET( 0, &slap_daemon.sd_actives) );
+				assert( FD_ISSET( i, &slap_daemon.sd_actives) );
 
 				/* clear the write flag */
 				slapd_clr_write( i, 0 );
@@ -523,15 +527,16 @@ slapd_daemon_task(
 
 #ifdef HAVE_WINSOCK
 		for ( i = 0; i < readfds.fd_count; i++ ) {
-			if ( readfds.fd_array[i] == tcps ) {
+			int rd = readfds.fd_array[i];
+			if ( rd == tcps ) {
 				continue;
 			}
 			Debug ( LDAP_DEBUG_CONNS,
-				"daemon: read activity on %d\n", readfds.fd_array[i], 0, 0 );
-			assert( FD_ISSET( readfds.fd_array[i], &slap_daemon.sd_actives) );
+				"daemon: read activity on %d\n", rd, 0, 0 );
+			assert( FD_ISSET( rd, &slap_daemon.sd_actives) );
 
-			if ( connection_read( readfds.fd_array[i] ) < 0 ) {
-				slapd_close( i );
+			if ( connection_read( rd ) < 0 ) {
+				slapd_close( rd );
 			}
 		}
 #else
@@ -593,17 +598,25 @@ int slapd_daemon( int inetd, int tcps )
 	args[0] = inetd;
 	args[1] = tcps;
 
-	status = ldap_pvt_thread_create( &listener_tid, 0,
-					 slapd_daemon_task, args );
+#define SLAPD_LISTENER_THREAD 1
+#if SLAPD_LISTENER_THREAD
+	/* listener as a separate THREAD */
+	status = ldap_pvt_thread_create( &listener_tid,
+		0, slapd_daemon_task, args );
 
 	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "listener ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
 		return -1;
-	} else {
-		/* wait for the listener thread to complete */
-		ldap_pvt_thread_join( listener_tid, (void *) NULL );
 	}
+
+	/* wait for the listener thread to complete */
+	ldap_pvt_thread_join( listener_tid, (void *) NULL );
+#else
+	/* expermimental code */
+	listener_tid = pthread_self();
+	slapd_daemon_task( args );
+#endif
 
 	return 0;
 }
