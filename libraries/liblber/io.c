@@ -1,7 +1,7 @@
 /* io.c - ber general i/o routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* Portions

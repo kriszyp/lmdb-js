@@ -1,6 +1,6 @@
 dnl $OpenLDAP$
 dnl
-dnl Copyright 1998-1999 The OpenLDAP Foundation,  All Rights Reserved.
+dnl Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved.
 dnl COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 dnl
 dnl OpenLDAP Autoconf Macros
