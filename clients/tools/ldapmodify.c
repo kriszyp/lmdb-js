@@ -610,7 +610,7 @@ addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
 	    exit( 1 );
 	}
 	pmods[ i ]->mod_op = modop;
-	if (( pmods[ i ]->mod_type = strdup( attr )) == NULL ) {
+	if (( pmods[ i ]->mod_type = ber_strdup( attr )) == NULL ) {
 	    perror( "strdup" );
 	    exit( 1 );
 	}
