@@ -14,8 +14,8 @@ REQUIRED SOFTWARE
 
     Base system (libraries and tools):
         Standard C compiler (required)
-        Cyrus SASL 2.1.16+ (recommended)
-        OpenSSL 0.9 (recommended)
+        Cyrus SASL 2.1.18+ (recommended)
+        OpenSSL 0.9.7+ (recommended)
         POSIX REGEX software (required)
 
     SLAPD:
