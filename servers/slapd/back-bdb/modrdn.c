@@ -41,7 +41,7 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	size_t textlen = sizeof textbuf;
 	DB_TXN		*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo;
-	Entry dummy, *save;
+	Entry dummy = {0};
 
 	ID			id;
 
@@ -89,6 +89,10 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	if( 0 ) {
 retry:	/* transaction retry */
+		if ( dummy.e_attrs ) {
+			attrs_free( dummy.e_attrs );
+			dummy.e_attrs = NULL;
+		}
 		if (e != NULL) {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 			e = NULL;
@@ -829,11 +833,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	dummy = *e;
-	save = e;
-	e = &dummy;
-
-	/* delete old one */
+	/* delete old DN */
 	rs->sr_err = bdb_dn2id_delete( op, lt2, eip, e );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
@@ -855,24 +855,14 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	/* Binary format uses a single contiguous block, cannot
-	 * free individual fields. But if a previous modrdn has
-	 * already happened, must free the names. The frees are
-	 * done in bdb_cache_modrdn().
-	 */
-	if( e->e_nname.bv_val < e->e_bv.bv_val ||
-		e->e_nname.bv_val > e->e_bv.bv_val + e->e_bv.bv_len )
-	{
-		e->e_name.bv_val = NULL;
-		e->e_nname.bv_val = NULL;
-	}
-	e->e_name = new_dn;
-	e->e_nname = new_ndn;
-	new_dn.bv_val = NULL;
-	new_ndn.bv_val = NULL;
+	/* copy the entry, then override some fields */
+	dummy = *e;
+	dummy.e_name = new_dn;
+	dummy.e_nname = new_ndn;
+	dummy.e_attrs = NULL;
 
-	/* add new one */
-	rs->sr_err = bdb_dn2id_add( op, lt2, neip ? neip : eip, e );
+	/* add new DN */
+	rs->sr_err = bdb_dn2id_add( op, lt2, neip ? neip : eip, &dummy );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -893,10 +883,12 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	dummy.e_attrs = e->e_attrs;
+
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop && !op->o_no_psearch ) {
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-			rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
+			rc = bdb_psearch( op, rs, ps_list, &dummy, LDAP_PSEARCH_BY_PREMODIFY );
 			if ( rc ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR,
@@ -912,8 +904,9 @@ retry:	/* transaction retry */
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 	}
 
+
 	/* modify entry */
-	rs->sr_err = bdb_modify_internal( op, lt2, &mod[0], e,
+	rs->sr_err = bdb_modify_internal( op, lt2, &mod[0], &dummy,
 		&rs->sr_text, textbuf, textlen );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -928,6 +921,7 @@ retry:	/* transaction retry */
 		if ( ( rs->sr_err == LDAP_INSUFFICIENT_ACCESS ) && opinfo.boi_err ) {
 			rs->sr_err = opinfo.boi_err;
 		}
+		if ( dummy.e_attrs == e->e_attrs ) dummy.e_attrs = NULL;
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -937,7 +931,7 @@ retry:	/* transaction retry */
 	}
 
 	/* id2entry index */
-	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, e );
+	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, &dummy );
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
@@ -1010,7 +1004,7 @@ retry:	/* transaction retry */
 			postread_ctrl = &ctrls[num_ctrls++];
 			ctrls[num_ctrls] = NULL;
 		}
-		if( slap_read_controls( op, rs, e,
+		if( slap_read_controls( op, rs, &dummy,
 			&slap_post_read_bv, postread_ctrl ) )
 		{
 #ifdef NEW_LOGGING                                   
@@ -1033,13 +1027,16 @@ retry:	/* transaction retry */
 		}
 
 	} else {
-		rc = bdb_cache_modrdn( save, &op->orr_nnewrdn, e, neip,
+		rc = bdb_cache_modrdn( e, &op->orr_nnewrdn, &dummy, neip,
 			bdb->bi_dbenv, locker, &lock );
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		}
+		dummy.e_attrs = NULL;
+		new_dn.bv_val = NULL;
+		new_ndn.bv_val = NULL;
 
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
@@ -1126,6 +1123,9 @@ retry:	/* transaction retry */
 	if( num_ctrls ) rs->sr_ctrls = ctrls;
 
 return_results:
+	if ( dummy.e_attrs ) {
+		attrs_free( dummy.e_attrs );
+	}
 	send_ldap_result( op, rs );
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
