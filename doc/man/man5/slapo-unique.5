@@ -1,0 +1,93 @@
+.TH SLAPO-UNIQUE 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapo-unique \- Attribute Uniqueness overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The Attribute Uniqueness overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to enforce the uniqueness of some or all attributes within a subtree. This
+subtree defaults to the base DN of the database for which the Uniqueness
+overlay is configured.
+.LP
+Uniqueness is enforced by searching the subtree to ensure that the values of
+all attributes presented with an
+.B add ,
+.B modify
+or
+.B modrdn
+operation are unique within the subtree.
+For example, if uniquness were enforced for the
+.B uid
+attribute, the subtree would be searched for any other records which also
+have a
+.B uid
+attribute containing the same value. If any are found, the request is
+rejected.
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the Attribute Uniqueness overlay.
+They should appear after the
+.B overlay
+directive and before any subsequent
+.B database
+directive.
+.TP
+.B unique_base <basedn>
+Configure the subtree against which uniqueness searches will be invoked.
+The
+.B basedn
+defaults to the base DN of the database for which uniqueness is configured.
+.TP
+.B unique_ignore <attribute...>
+Configure one or more attributes for which uniqueness will not be enforced.
+If not configured, all non-operational (eg, system) attributes must be
+unique. Note that the
+.B unique_ignore
+list should generally contain the
+.B objectClass ,
+.B dc ,
+.B ou
+and
+.B o
+attributes, as these will generally not be unique, nor are they operational
+attributes.
+.TP
+.B unique_attributes <attribute...>
+Specify one or more attributes which for which uniqueness will be enforced.
+If not specified, all attributes which are not operational (eg, system
+attributes such as
+.B entryUUID )
+or specified via the
+.B unique_ignore
+directive above must be unique within the subtree.
+.TP
+.B unique_strict
+By default, uniqueness is not enforced for null values. Enabling
+.B unique_strict
+mode extends the concept of uniqueness to include null values, such that
+only one attribute within a subtree will be allowed to have a null value.
+.SH CAVEATS
+.LP
+The search key is generated with attributes that are non-operational, not
+on the
+.B unique_ignore
+list, and included in the
+.B unique_attributes
+list, in that order. This makes it possible to create interesting and
+unusable configurations.
+.LP
+Typical attributes for the
+.B unique_ignore
+directive are intentionally not hardcoded into the overlay to allow for
+maximum flexibility in meeting site-specific requirements.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5).

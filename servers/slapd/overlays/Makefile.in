@@ -19,6 +19,8 @@ SRCS = overlays.c \
 	dyngroup.c \
 	lastmod.c \
 	pcache.c \
+	refint.c \
+	unique.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c
 OBJS = overlays.lo \
 	chain.lo \
@@ -26,6 +28,8 @@ OBJS = overlays.lo \
 	dyngroup.lo \
 	lastmod.lo \
 	pcache.lo \
+	refint.lo \
+	unique.lo \
 	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
 
 LDAP_INCDIR= ../../../include       
@@ -57,6 +61,12 @@ lastmod.la : lastmod.lo $(@PLAT@_LINK_LIBS)
 
 pcache.la : pcache.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)
+
+refint.la : refint.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ refint.lo version.lo $(LINK_LIBS)
+
+unique.la : unique.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ unique.lo version.lo $(LINK_LIBS)
 
 rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
