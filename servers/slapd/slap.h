@@ -432,8 +432,8 @@ typedef struct slap_attribute_type {
 	AttributeTypeSchemaCheckFN	*sat_check;
 	slap_mask_t					sat_flags;
 
-	struct slap_attr_desc		*sat_ad;
-	ldap_pvt_thread_mutex_t		sat_ad_mutex;
+	struct slap_attribute_type	*sat_next;
+
 #define sat_oid			sat_atype.at_oid
 #define sat_names		sat_atype.at_names
 #define sat_desc		sat_atype.at_desc
@@ -449,7 +449,8 @@ typedef struct slap_attribute_type {
 #define sat_usage		sat_atype.at_usage
 #define sat_extensions		sat_atype.at_extensions
 
-	struct slap_attribute_type	*sat_next;
+	struct slap_attr_desc		*sat_ad;
+	ldap_pvt_thread_mutex_t		sat_ad_mutex;
 } AttributeType;
 
 #define is_at_operational(at)	((at)->sat_usage)
@@ -487,7 +488,7 @@ typedef struct slap_object_class {
 	struct slap_object_class	*soc_next;
 } ObjectClass;
 
-#ifdef LDAP_DIT_CONTENT_RULES
+#ifdef LDAP_EXTENDED_SCHEMA
 /*
  * DIT content rule
  */

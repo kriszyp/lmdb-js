@@ -183,7 +183,7 @@ static struct slap_schema_oc_map {
 			"SUP top AUXILIARY )",
 		dynamicObjectClass, 0,
 		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
-	{ NULL, 0 }
+	{ NULL, NULL, NULL, 0, 0 }
 };
 
 static AttributeTypeSchemaCheckFN rootDseAttribute;
@@ -536,10 +536,9 @@ static AttributeType slap_at_undefined = {
 	NULL, /* subtypes */
 	NULL, NULL, NULL, NULL,	/* matching rules */
 	NULL, /* syntax (this may need to be defined) */
-	(AttributeTypeSchemaCheckFN *) 0, /* schema check function */
-	0, /* schema check flags */
-	NULL, /* attribute description */
+	(AttributeTypeSchemaCheckFN *) 0, 0, /* schema check function/mask */
 	NULL  /* next */
+	NULL, /* attribute description */
 	/* mutex (don't know how to initialize it :) */
 };
 
