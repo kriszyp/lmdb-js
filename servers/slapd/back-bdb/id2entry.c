@@ -169,17 +169,17 @@ int bdb_entry_return(
 		e->e_name.bv_val = NULL;
 		e->e_nname.bv_val = NULL;
 	}
+	/* In tool mode the e_bv buffer is realloc'd, leave it alone */
+	if( !(slapMode & SLAP_TOOL_MODE) ) {
+		free( e->e_bv.bv_val );
+	}
 #else
 	/* We had to construct the dn and ndn as well, in a single block */
 	if( e->e_name.bv_val ) {
 		free( e->e_name.bv_val );
 	}
+	free( e->e_bv.bv_val );
 #endif
-	/* In tool mode the e_bv buffer is realloc'd, leave it alone */
-	if( !(slapMode & SLAP_TOOL_MODE) ) {
-		free( e->e_bv.bv_val );
-	}
-
 	free( e );
 
 	return 0;
