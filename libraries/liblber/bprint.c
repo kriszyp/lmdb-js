@@ -208,28 +208,26 @@ ber_dump(
 	int inout )
 {
 	char buf[132];
+	ber_len_t len;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
-	sprintf( buf, "ber_dump: buf 0x%lx, ptr 0x%lx, end 0x%lx\n",
+	if ( inout == 1 ) {
+		len = ber_pvt_ber_remaining(ber);
+	} else {
+		len = ber_pvt_ber_write(ber);
+	}
+
+	sprintf( buf, "ber_dump: buf=0x%08lx ptr=0x%08lx end=0x%08lx len=%ld\n",
 	    (long) ber->ber_buf,
 		(long) ber->ber_ptr,
-		(long) ber->ber_end );
+		(long) ber->ber_end,
+		(long) len );
 
 	(*ber_pvt_log_print)( buf );
 
-	if ( inout == 1 ) {
-		sprintf( buf, "          current len %ld, contents:\n",
-		    (long) (ber->ber_end - ber->ber_ptr) );
-		ber_bprint( ber->ber_ptr, ber->ber_end - ber->ber_ptr );
-
-	} else {
-		sprintf( buf, "          current len %ld, contents:\n",
-		    (long) (ber->ber_ptr - ber->ber_buf) );
-
-		ber_bprint( ber->ber_buf, ber->ber_ptr - ber->ber_buf );
-	}
+	ber_bprint( ber->ber_ptr, len );
 }
 
 int

@@ -125,13 +125,12 @@ int ldap_int_get_controls(
 	}
 	*ctrls = NULL;
 
-	len = ber_pvt_ber_remaining(ber);
+	len = ber_pvt_ber_remaining( ber );
 
 	if( len == 0) {
 		/* no controls */
 		return LDAP_SUCCESS;
 	}
-
 
 	if(( tag = ber_peek_tag( ber, &len )) != LDAP_TAG_CONTROLS ) {
 		if( tag == LBER_ERROR ) {

@@ -89,9 +89,6 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 {
 	ber_tag_t rc;
 	char *attr;
-#if 0
-	ber_len_t len;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
 
@@ -101,14 +98,9 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	assert( ber != NULL );
 
 #if 0
-	rc = ber_get_option( ber, LBER_OPT_REMAINING_BYTES, &len );
-	if( rc != LDAP_OPT_SUCCESS ) {
-		ld->ld_errno = LDAP_LOCAL_ERROR;
+	if ( ber_pvt_ber_remaining( ber ) == 0 ) {
 		return NULL;
 	}
-
-	/* we're done */
-	if( len == 0 ) return NULL;
 #endif
 
 	/* skip sequence, snarf attribute type, skip values */

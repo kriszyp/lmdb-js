@@ -71,15 +71,15 @@ ber_get_option(
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_REMAINING_BYTES:
-		*((ber_len_t *) outvalue) = ber->ber_end - ber->ber_ptr;
+		*((ber_len_t *) outvalue) = ber_pvt_ber_remaining(ber);
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_TOTAL_BYTES:
-		*((ber_len_t *) outvalue) = ber->ber_end - ber->ber_buf;
+		*((ber_len_t *) outvalue) = ber_pvt_ber_total(ber);
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_BYTES_TO_WRITE:
-		*((ber_len_t *) outvalue) = ber->ber_ptr - ber->ber_buf;
+		*((ber_len_t *) outvalue) = ber_pvt_ber_write(ber);
 		return LBER_OPT_SUCCESS;
 
 	default:
