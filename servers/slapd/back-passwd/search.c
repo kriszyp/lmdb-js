@@ -98,7 +98,7 @@ passwd_back_search(
 			}
 
 			vals[0] = rdn[0][0]->la_value;
-			attr_merge( e, desc, vals );
+			attr_mergeit( e, desc, vals );
 
 			ldap_rdnfree(rdn);
 			rdn = NULL;
@@ -112,7 +112,7 @@ passwd_back_search(
 			 */
 			vals[0].bv_val = "organizationalUnit";
 			vals[0].bv_len = sizeof("organizationalUnit")-1;
-			attr_merge( e, ad_objectClass, vals );
+			attr_mergeit( e, ad_objectClass, vals );
 	
 			if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 				send_search_entry( be, conn, op,
@@ -306,21 +306,21 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 	/* objectclasses should be configurable items */
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
-	attr_merge( e, ad_objectClass, vals );
+	attr_mergeit( e, ad_objectClass, vals );
 
 	vals[0].bv_val = "person";
 	vals[0].bv_len = sizeof("person")-1;
-	attr_merge( e, ad_objectClass, vals );
+	attr_mergeit( e, ad_objectClass, vals );
 
 	vals[0].bv_val = "uidObject";
 	vals[0].bv_len = sizeof("uidObject")-1;
-	attr_merge( e, ad_objectClass, vals );
+	attr_mergeit( e, ad_objectClass, vals );
 
 	vals[0].bv_val = pw->pw_name;
 	vals[0].bv_len = pwlen;
-	attr_merge( e, ad_uid, vals );	/* required by uidObject */
-	attr_merge( e, ad_cn, vals );	/* required by person */
-	attr_merge( e, ad_sn, vals );	/* required by person */
+	attr_mergeit( e, ad_uid, vals );	/* required by uidObject */
+	attr_mergeit( e, ad_cn, vals );	/* required by person */
+	attr_mergeit( e, ad_sn, vals );	/* required by person */
 
 #ifdef HAVE_PW_GECOS
 	/*
@@ -333,7 +333,7 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 
 		vals[0].bv_val = pw->pw_gecos;
 		vals[0].bv_len = strlen(vals[0].bv_val);
-		attr_merge(e, ad_description, vals);
+		attr_mergeit(e, ad_description, vals);
 
 		s = strchr(vals[0].bv_val, ',');
 		if (s) *s = '\0';
@@ -355,13 +355,13 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 		vals[0].bv_len = strlen(vals[0].bv_val);
 
 		if ( vals[0].bv_len && strcasecmp( vals[0].bv_val, pw->pw_name )) {
-			attr_merge( e, ad_cn, vals );
+			attr_mergeit( e, ad_cn, vals );
 		}
 
 		if ( (s=strrchr(vals[0].bv_val, ' '))) {
 			vals[0].bv_val = s + 1;
 			vals[0].bv_len = strlen(vals[0].bv_val);
-			attr_merge(e, ad_sn, vals);
+			attr_mergeit(e, ad_sn, vals);
 		}
 	}
 #endif

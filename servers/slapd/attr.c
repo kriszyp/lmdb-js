@@ -171,7 +171,7 @@ attr_merge_one(
 	AttributeDescription *desc,
 	struct berval	*val
 #ifdef SLAP_NVALUES
-	, BerVarray	nval
+	, struct berval *nval
 #endif
 ) {
 	int rc;

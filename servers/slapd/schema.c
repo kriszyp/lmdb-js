@@ -118,6 +118,7 @@ schema_info( Entry **entry, const char **text )
 
 #ifdef SLAP_NVALUES
 		nvals[0].bv_val = strchr( global_schemandn.bv_val, '=' );
+		assert( nvals[0].bv_val );
 		nvals[0].bv_val++;
 		nvals[0].bv_len = global_schemandn.bv_len -
 			(nvals[0].bv_val - global_schemandn.bv_val);
