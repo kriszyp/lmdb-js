@@ -142,6 +142,7 @@ int ldap_pvt_gethostbyname_a(
 # define NEED_COPY_HOSTENT   
 	struct hostent *he;
 	int	retval;
+	*buf = NULL;
 	
 	ldap_pvt_thread_mutex_lock( &ldap_int_gethostby_mutex );
 	
@@ -162,6 +163,7 @@ int ldap_pvt_gethostbyname_a(
 	
 	return retval;
 #else	
+	*buf = NULL;
 	*result = gethostbyname( name );
 
 	if (*result!=NULL) {
@@ -221,6 +223,7 @@ int ldap_pvt_gethostbyaddr_a(
 # define NEED_COPY_HOSTENT   
 	struct hostent *he;
 	int	retval;
+	*buf = NULL;   
 	
 	ldap_pvt_thread_mutex_lock( &ldap_int_gethostby_mutex );
 	
@@ -241,6 +244,7 @@ int ldap_pvt_gethostbyaddr_a(
 	
 	return retval;   
 #else /* gethostbyaddr() */
+	*buf = NULL;   
 	*result = gethostbyaddr( addr, len, type );
 
 	if (*result!=NULL) {
@@ -377,4 +381,31 @@ static char *safe_realloc( char **buf, int len )
 }
 #endif
 
+char * ldap_pvt_get_fqdn( char *name )
+{
+	char *fqdn, *ha_buf;
+	char hostbuf[MAXHOSTNAMELEN+1];
+	struct hostent *hp, he_buf;
+	int rc, local_h_errno;
 
+	if( name == NULL ) {
+		if( gethostname( hostbuf, MAXHOSTNAMELEN ) == 0 ) {
+			hostbuf[MAXHOSTNAMELEN] = '\0';
+			name = hostbuf;
+		} else {
+			name = "localhost";
+		}
+	}
+
+	rc = ldap_pvt_gethostbyname_a( name,
+		&he_buf, &ha_buf, &hp, &local_h_errno );
+
+	if( rc < 0 || hp == NULL || hp->h_name == NULL ) {
+		fqdn = LDAP_STRDUP( name );
+	} else {
+		fqdn = LDAP_STRDUP( hp->h_name );
+	}
+
+	LDAP_FREE( ha_buf );
+	return fqdn;
+}

@@ -196,12 +196,7 @@ int slap_sasl_init( void )
 	}
 
 	if( sasl_host == NULL ) {
-		static char hostname[MAXHOSTNAMELEN+1];
-
-		if( gethostname( hostname, MAXHOSTNAMELEN ) == 0 ) {
-			hostname[MAXHOSTNAMELEN] = '\0';
-			sasl_host = hostname;
-		}
+		sasl_host = ldap_pvt_get_fqdn( NULL );
 	}
 
 	Debug( LDAP_DEBUG_TRACE,

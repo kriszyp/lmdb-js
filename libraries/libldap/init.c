@@ -427,7 +427,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
 	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
-char * ldap_int_hostname = "localhost";
+char * ldap_int_hostname = NULL;
 #endif
 
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
@@ -438,13 +438,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
 	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
-	{
-		static char hostbuf[MAXHOSTNAMELEN+1];
-		if( gethostname( hostbuf, MAXHOSTNAMELEN ) == 0 ) {
-			hostbuf[MAXHOSTNAMELEN] = '\0';
-			ldap_int_hostname = hostbuf;
-		}
-	}
+	ldap_int_hostname = ldap_pvt_get_fqdn( ldap_int_hostname );
 #endif
 
 	ldap_int_utils_init();

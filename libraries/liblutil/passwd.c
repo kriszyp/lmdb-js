@@ -726,18 +726,18 @@ static int chk_kerberos(
 		}
 
 		{
-			char host[MAXHOSTNAMELEN+1];
+			char *host = ldap_pvt_get_fqdn( NULL );
 
-			if( gethostname( host, MAXHOSTNAMELEN ) != 0 ) {
+			if( host == NULL ) {
 				krb5_free_principal( context, client );
 				krb5_free_context( context );
 				return 1;
 			}
 
-			host[MAXHOSTNAMELEN] = '\0';
-
 			ret = krb5_sname_to_principal( context,
 				host, "ldap", KRB5_NT_SRV_HST, &server );
+
+			ber_memfree( host );
 		}
 
 		if (ret) {
