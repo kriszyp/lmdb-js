@@ -138,7 +138,7 @@ meta_back_compare(
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Unwilling to perform",
+					NULL, "Operation not allowed",
 					NULL, NULL );
 			return -1;
 			
@@ -324,7 +324,7 @@ finish:;
 		
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Unwilling to perform",
+					NULL, "Operation not allowed",
 					NULL, NULL );
 			rc = -1;
 			goto cleanup;

@@ -286,7 +286,7 @@ init_one_conn(
 		case REWRITE_REGEXEC_UNWILLING:
 			send_ldap_result( conn, op,
 					LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Unwilling to perform",
+					NULL, "Operation not allowed",
 					NULL, NULL );
 			return LDAP_UNWILLING_TO_PERFORM;
 			

@@ -122,12 +122,12 @@ meta_back_modify(
 		
 	case REWRITE_REGEXEC_UNWILLING:
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-				NULL, NULL, NULL, NULL );
+				NULL, "Operation not allowed", NULL, NULL );
 		return -1;
 
 	case REWRITE_REGEXEC_ERR:
 		send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL );
+				NULL, "Rewrite error", NULL, NULL );
 		return -1;
 	}
 
