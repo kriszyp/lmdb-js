@@ -4,6 +4,7 @@ OpenLDAP 2.1.24 Engineering
 	Fixed slapd "exact" v "base" handling (ITS#2782)
 	Fixed slapd running as NT service (ITS#2769)
 	Fixed slapd SASL internal searches (ITS#2825)
+	Fixed slurpd memory leaks (ITS#2423, ITS#2620)
 	Fixed libldap_r pthread support (ITS#2820)
 	Added lutil_passwd extensions
 	Build Environment
