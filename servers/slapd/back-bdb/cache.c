@@ -23,7 +23,7 @@ typedef struct bdb_entry_info {
 
 	/*
 	 * remaining fields require backend cache lock to access
-	 * These items are specific to the LDBM backend and should
+	 * These items are specific to the BDB backend and should
 	 * be hidden.
 	 */
 	int		bei_state;	/* for the cache */
@@ -75,7 +75,6 @@ bdb_cache_entry_rdwr_trylock(Entry *e, int rw)
 		rw ? "w" : "r", e->e_id, 0);
 #endif
 
-
 	if (rw)
 		return ldap_pvt_thread_rdwr_wtrylock(&BEI(e)->bei_rdwr);
 	else
@@ -93,7 +92,6 @@ bdb_cache_entry_rdwr_unlock(Entry *e, int rw)
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
 #endif
-
 
 	if (rw)
 		return ldap_pvt_thread_rdwr_wunlock(&BEI(e)->bei_rdwr);
@@ -222,7 +220,6 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 				rw ? "w" : "r", id, refcnt );
 #endif
 
-
 		} else {
 			bdb_cache_entry_private_destroy( e );
 			if ( freeit ) {
@@ -241,7 +238,6 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 				"====> bdb_cache_return_entry_%s( %ld ): deleted (%d)\n",
 				rw ? "w" : "r", id, refcnt );
 #endif
-
 		}
 
 	} else {
@@ -257,7 +253,6 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 			"====> bdb_cache_return_entry_%s( %ld ): returned (%d)\n",
 			rw ? "w" : "r", id, refcnt);
 #endif
-
 	}
 }
 
@@ -346,7 +341,6 @@ bdb_cache_add_entry_rw(
 		    e->e_id, e->e_dn, 0 );
 #endif
 
-
 		bdb_cache_entry_private_destroy(e);
 
 		return( 1 );
@@ -366,8 +360,6 @@ bdb_cache_add_entry_rw(
 		    e->e_id, e->e_dn, 0 );
 #endif
 
-
-
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 			(AVL_CMP) entry_dn_cmp ) == NULL )
@@ -380,7 +372,6 @@ bdb_cache_add_entry_rw(
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
 #endif
-
 		}
 
 		bdb_cache_entry_private_destroy(e);
@@ -473,7 +464,6 @@ bdb_cache_update_entry(
 		    e->e_id, e->e_dn, 0 );
 #endif
 
-
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 		return( 1 );
@@ -493,7 +483,6 @@ bdb_cache_update_entry(
 		    e->e_id, e->e_dn, 0 );
 #endif
 
-
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 			(AVL_CMP) entry_dn_cmp ) == NULL )
@@ -506,7 +495,6 @@ bdb_cache_update_entry(
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
 #endif
-
 		}
 
 		/* free cache mutex */
@@ -639,7 +627,6 @@ try_again:
 			ndn->bv_val, id, count);
 #endif
 
-
 	} else {
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
@@ -705,7 +692,6 @@ try_again:
 				id, ep_id, state);
 #endif
 
-
 			ldap_pvt_thread_yield();
 			goto try_again;
 		}
@@ -729,7 +715,6 @@ try_again:
 				"====> bdb_cache_find_entry_id( %ld ): %ld (busy) %d\n",
 				id, ep_id, state);
 #endif
-
 
 			ldap_pvt_thread_yield();
 			goto try_again;
@@ -796,7 +781,6 @@ bdb_cache_delete_entry(
 		e->e_id, 0, 0 );
 #endif
 
-
 	rc = bdb_cache_delete_entry_internal( cache, e );
 
 	/* free cache mutex */
@@ -858,7 +842,6 @@ bdb_cache_release_all( Cache *cache )
 	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_release_all\n", 0, 0, 0 );
 #endif
 
-
 	while ( (e = cache->c_lrutail) != NULL && BEI(e)->bei_refcnt == 0 ) {
 #ifdef LDAP_RDWR_DEBUG
 		assert(!ldap_pvt_thread_rdwr_active(&BEI(e)->bei_rdwr));
@@ -886,7 +869,6 @@ bdb_cache_release_all( Cache *cache )
 }
 
 #ifdef LDAP_DEBUG
-
 static void
 bdb_lru_print( Cache *cache )
 {
@@ -903,5 +885,4 @@ bdb_lru_print( Cache *cache )
 			e->e_dn, e->e_id, BEI(e)->bei_refcnt );
 	}
 }
-
 #endif
