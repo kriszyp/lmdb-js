@@ -189,9 +189,9 @@ do_search(
 
 		sprintf(abuf, "scope=%d deref=%d", op->ors_scope, op->ors_deref);
 		Statslog( LDAP_DEBUG_STATS,
-		        "conn=%lu op=%lu SRCH base=\"%s\" %s filter=\"%s\"\n",
-		        op->o_connid, op->o_opid, op->o_req_dn.bv_val, abuf,
-		        op->ors_filterstr.bv_val );
+		        "%s SRCH base=\"%s\" %s filter=\"%s\"\n",
+		        op->o_log_prefix, op->o_req_dn.bv_val, abuf,
+		        op->ors_filterstr.bv_val, 0 );
 
 		for ( i = 0; i<siz; i++ ) {
 			alen = op->ors_attrs[i].an_name.bv_len;
@@ -199,8 +199,8 @@ do_search(
 				alen = sizeof(abuf)-1;
 			}
 			if (len && (len + 1 + alen >= sizeof(abuf))) {
-				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu SRCH attr=%s\n",
-				    op->o_connid, op->o_opid, abuf, 0, 0 );
+				Statslog( LDAP_DEBUG_STATS, "%s SRCH attr=%s\n",
+				    op->o_log_prefix, abuf, 0, 0, 0 );
 				len = 0;
 				ptr = abuf;
 			}
@@ -213,8 +213,8 @@ do_search(
 			*ptr = '\0';
 		}
 		if (len) {
-			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu SRCH attr=%s\n",
-	    			op->o_connid, op->o_opid, abuf, 0, 0 );
+			Statslog( LDAP_DEBUG_STATS, "%s SRCH attr=%s\n",
+	    			op->o_log_prefix, abuf, 0, 0, 0 );
 		}
 	}
 

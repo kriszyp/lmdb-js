@@ -59,25 +59,26 @@ do_bind(
 	if ( op->o_conn->c_sasl_bind_in_progress ) {
 		be = op->o_conn->c_authz_backend;
 	}
-	if ( op->o_conn->c_dn.bv_len ) {
+	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 		/* log authorization identity demotion */
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND anonymous mech=implicit ssf=0\n",
-			op->o_connid, op->o_opid, 0, 0, 0 );
+			"%s BIND anonymous mech=implicit ssf=0\n",
+			op->o_log_prefix, 0, 0, 0, 0 );
 	}
 	connection2anonymous( op->o_conn );
 	if ( op->o_conn->c_sasl_bind_in_progress ) {
 		op->o_conn->c_authz_backend = be;
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-	if ( op->o_dn.bv_val != NULL ) {
-		free( op->o_dn.bv_val );
-		op->o_dn.bv_val = ch_strdup( "" );
+	if ( !BER_BVISNULL( &op->o_dn ) ) {
+		/* NOTE: temporarily wasting few bytes
+		 * (until bind is completed), but saving
+		 * a couple of ch_free() and ch_strdup("") */ 
+		op->o_dn.bv_val[0] = '\0';
 		op->o_dn.bv_len = 0;
 	}
-	if ( op->o_ndn.bv_val != NULL ) {
-		free( op->o_ndn.bv_val );
-		op->o_ndn.bv_val = ch_strdup( "" );
+	if ( !BER_BVISNULL( &op->o_ndn ) ) {
+		op->o_ndn.bv_val[0] = '\0';
 		op->o_ndn.bv_len = 0;
 	}
 
@@ -171,9 +172,9 @@ do_bind(
 			(unsigned long) op->orb_method );
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu BIND dn=\"%s\" method=%ld\n",
-	    op->o_connid, op->o_opid, op->o_req_dn.bv_val,
-		(unsigned long) op->orb_method, 0 );
+	Statslog( LDAP_DEBUG_STATS, "%s BIND dn=\"%s\" method=%ld\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val,
+		(unsigned long) op->orb_method, 0, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 		Debug( LDAP_DEBUG_ANY, "do_bind: unknown version=%ld\n",
@@ -212,11 +213,11 @@ cleanup:
 
 	op->o_conn->c_sasl_bindop = NULL;
 
-	if( op->o_req_dn.bv_val != NULL ) {
+	if( !BER_BVISNULL( &op->o_req_dn ) ) {
 		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &op->o_req_dn );
 	}
-	if( op->o_req_ndn.bv_val != NULL ) {
+	if( !BER_BVISNULL( &op->o_req_ndn ) ) {
 		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 		BER_BVZERO( &op->o_req_ndn );
 	}
@@ -250,7 +251,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			goto cleanup;
 		}
 
-		if( mech.bv_len == 0 ) {
+		if( BER_BVISNULL( &mech ) || BER_BVISEMPTY( &mech ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
 				0, 0, 0 );
@@ -281,7 +282,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		if( rs->sr_err == LDAP_SUCCESS ) {
 			ber_dupbv(&op->o_conn->c_dn, &op->orb_edn);
-			if( op->orb_edn.bv_len != 0 ) {
+			if( !BER_BVISEMPTY( &op->orb_edn ) ) {
 				/* edn is always normalized already */
 				ber_dupbv( &op->o_conn->c_ndn, &op->o_conn->c_dn );
 			}
@@ -296,7 +297,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_conn->c_ssf = op->orb_ssf;
 			}
 
-			if( op->o_conn->c_dn.bv_len != 0 ) {
+			if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 				ber_len_t max = sockbuf_max_incoming_auth;
 				ber_sockbuf_ctrl( op->o_conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
@@ -304,22 +305,22 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=%d\n",
-				op->o_connid, op->o_opid,
-				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->o_conn->c_authmech.bv_val, op->orb_ssf );
+				"%s BIND dn=\"%s\" mech=%s ssf=%d\n",
+				op->o_log_prefix,
+				BER_BVISNULL( &op->o_conn->c_dn ) ? "<empty>" : op->o_conn->c_dn.bv_val,
+				op->o_conn->c_authmech.bv_val, op->orb_ssf, 0 );
 
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
 				op->o_conn->c_authmech.bv_val,
-				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
+				BER_BVISNULL( &op->o_conn->c_dn ) ? "<empty>" : op->o_conn->c_dn.bv_val,
 				op->orb_ssf );
 
 		} else if ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS ) {
 			op->o_conn->c_sasl_bind_in_progress = 1;
 
 		} else {
-			if ( op->o_conn->c_sasl_bind_mech.bv_val ) {
+			if ( !BER_BVISNULL( &op->o_conn->c_sasl_bind_mech ) ) {
 				free( op->o_conn->c_sasl_bind_mech.bv_val );
 				BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
 			}
@@ -355,8 +356,8 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		/* Not SASL, cancel any in-progress bind */
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
-		if ( op->o_conn->c_sasl_bind_mech.bv_val != NULL ) {
-			free(op->o_conn->c_sasl_bind_mech.bv_val);
+		if ( !BER_BVISNULL( &op->o_conn->c_sasl_bind_mech ) ) {
+			free( op->o_conn->c_sasl_bind_mech.bv_val );
 			BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
 		}
 		op->o_conn->c_sasl_bind_in_progress = 0;
@@ -366,18 +367,18 @@ fe_op_bind( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->orb_method == LDAP_AUTH_SIMPLE ) {
-		ber_str2bv( "SIMPLE", sizeof("SIMPLE")-1, 0, &mech );
+		BER_BVSTR( &mech, "SIMPLE" );
 		/* accept "anonymous" binds */
-		if ( op->orb_cred.bv_len == 0 || op->o_req_ndn.bv_len == 0 ) {
+		if ( BER_BVISEMPTY( &op->orb_cred ) || BER_BVISEMPTY( &op->o_req_ndn ) ) {
 			rs->sr_err = LDAP_SUCCESS;
 
-			if( op->orb_cred.bv_len &&
+			if( !BER_BVISEMPTY( &op->orb_cred ) &&
 				!( global_allows & SLAP_ALLOW_BIND_ANON_CRED ))
 			{
 				/* cred is not empty, disallow */
 				rs->sr_err = LDAP_INVALID_CREDENTIALS;
 
-			} else if ( op->o_req_ndn.bv_len &&
+			} else if ( !BER_BVISEMPTY( &op->o_req_ndn ) &&
 				!( global_allows & SLAP_ALLOW_BIND_ANON_DN ))
 			{
 				/* DN is not empty, disallow */
@@ -429,7 +430,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				op->o_protocol, 0, 0 );
 			goto cleanup;
 		}
-		ber_str2bv( "KRBV4", sizeof("KRBV4")-1, 0, &mech );
+		BER_BVSTR( &mech, "KRBV4" );
 
 	} else if ( op->orb_method == LDAP_AUTH_KRBV42 ) {
 		rs->sr_err = LDAP_AUTH_METHOD_NOT_SUPPORTED;
@@ -531,18 +532,18 @@ fe_op_bind( Operation *op, SlapReply *rs )
 				BER_BVZERO( &op->o_req_dn );
 				op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 				BER_BVZERO( &op->o_req_ndn );
-				if ( op->o_conn->c_dn.bv_len != 0 ) {
+				if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 					ber_len_t max = sockbuf_max_incoming_auth;
 					ber_sockbuf_ctrl( op->o_conn->c_sb,
 						LBER_SB_OPT_SET_MAX_INCOMING, &max );
 				}
 				/* log authorization identity */
 				Statslog( LDAP_DEBUG_STATS,
-					"conn=%lu op=%lu BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
-					op->o_connid, op->o_opid,
-					op->o_conn->c_dn.bv_val
-						? op->o_conn->c_dn.bv_val : "<empty>",
-					mech.bv_val, 0 );
+					"%s BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
+					op->o_log_prefix,
+					BER_BVISNULL( &op->o_conn->c_dn )
+						? "<empty>" : op->o_conn->c_dn.bv_val,
+					mech.bv_val, 0, 0 );
 				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 			}
 			goto cleanup;
@@ -562,7 +563,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			}
 
 			/* be_bind returns regular/global edn */
-			if( op->orb_edn.bv_len ) {
+			if( !BER_BVISEMPTY( &op->orb_edn ) ) {
 				op->o_conn->c_dn = op->orb_edn;
 			} else {
 				ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
@@ -570,7 +571,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 			ber_dupbv( &op->o_conn->c_ndn, &op->o_req_ndn );
 
-			if( op->o_conn->c_dn.bv_len != 0 ) {
+			if( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 				ber_len_t max = sockbuf_max_incoming_auth;
 				ber_sockbuf_ctrl( op->o_conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
@@ -578,9 +579,9 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=0\n",
-				op->o_connid, op->o_opid,
-				op->o_conn->c_dn.bv_val, mech.bv_val, 0 );
+				"%s BIND dn=\"%s\" mech=%s ssf=0\n",
+				op->o_log_prefix,
+				op->o_conn->c_dn.bv_val, mech.bv_val, 0, 0 );
 
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: v%d bind: \"%s\" to \"%s\"\n",
@@ -591,7 +592,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			/* send this here to avoid a race condition */
 			send_ldap_result( op, rs );
 
-		} else if (op->orb_edn.bv_val != NULL) {
+		} else if ( !BER_BVISNULL( &op->orb_edn ) ) {
 			free( op->orb_edn.bv_val );
 		}
 

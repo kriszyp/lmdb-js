@@ -103,9 +103,9 @@ dnssrv_back_search(
 	}
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%lu op=%lu DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
-	    op->o_connid, op->o_opid, op->o_protocol,
-		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "", urls[0].bv_val );
+	    "%s DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
+	    op->o_log_prefix, op->o_protocol,
+		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "", urls[0].bv_val, 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"DNSSRV: ManageDSAit scope=%d dn=\"%s\" -> url=\"%s\"\n",

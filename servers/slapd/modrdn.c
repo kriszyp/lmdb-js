@@ -219,8 +219,8 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MODRDN dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, op->o_req_dn.bv_val, 0, 0 );
+	Statslog( LDAP_DEBUG_STATS, "%s MODRDN dn=\"%s\"\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
 	manageDSAit = get_manageDSAit( op );
 

@@ -1597,6 +1597,19 @@ connection_resched( Connection *conn )
 	return 0;
 }
 
+static void
+connection_init_log_prefix( Operation *op )
+{
+	if ( op->o_connid == (unsigned long)(-1) ) {
+		snprintf( op->o_log_prefix, sizeof( op->o_log_prefix ),
+				"conn=-1 op=%lu", op->o_opid );
+
+	} else {
+		snprintf( op->o_log_prefix, sizeof( op->o_log_prefix ),
+				"conn=%lu op=%lu", op->o_connid, op->o_opid );
+	}
+}
+
 static int connection_op_activate( Operation *op )
 {
 	int status;
@@ -1625,6 +1638,7 @@ static int connection_op_activate( Operation *op )
 	}
 
 	op->o_connid = op->o_conn->c_connid;
+	connection_init_log_prefix( op );
 
 	LDAP_STAILQ_INSERT_TAIL( &op->o_conn->c_ops, op, o_next );
 
@@ -1701,6 +1715,7 @@ connection_fake_init(
 
 	op->o_conn = conn;
 	op->o_connid = op->o_conn->c_connid;
+	connection_init_log_prefix( op );
 
 	op->o_time = slap_get_time();
 }

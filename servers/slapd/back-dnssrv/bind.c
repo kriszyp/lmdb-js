@@ -43,9 +43,9 @@ dnssrv_back_bind(
 		op->oq_bind.rb_cred.bv_val != NULL && op->oq_bind.rb_cred.bv_len )
 	{
 		Statslog( LDAP_DEBUG_STATS,
-		   	"conn=%lu op=%lu DNSSRV BIND dn=\"%s\" provided passwd\n",
-	   		 op->o_connid, op->o_opid,
-			op->o_req_dn.bv_val == NULL ? "" : op->o_req_dn.bv_val , 0, 0 );
+		   	"%s DNSSRV BIND dn=\"%s\" provided passwd\n",
+	   		op->o_log_prefix,
+			op->o_req_dn.bv_val == NULL ? "" : op->o_req_dn.bv_val , 0, 0, 0 );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"DNSSRV: BIND dn=\"%s\" provided cleartext password\n",

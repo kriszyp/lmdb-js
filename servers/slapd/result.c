@@ -522,9 +522,9 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu DISCONNECT tag=%lu err=%d text=%s\n",
-			op->o_connid, op->o_opid, rs->sr_tag, rs->sr_err,
-			rs->sr_text ? rs->sr_text : "" );
+			"%s DISCONNECT tag=%lu err=%d text=%s\n",
+			op->o_log_prefix, rs->sr_tag, rs->sr_err,
+			rs->sr_text ? rs->sr_text : "", 0 );
 	}
 }
 
@@ -540,8 +540,8 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	assert( !LDAP_API_ERROR( rs->sr_err ));
 
 	Debug( LDAP_DEBUG_TRACE,
-		"send_ldap_result: conn=%lu op=%lu p=%d\n",
-		op->o_connid, op->o_opid, op->o_protocol );
+		"send_ldap_result: %s p=%d\n",
+		op->o_log_prefix, op->o_protocol, 0 );
 
 	Debug( LDAP_DEBUG_ARGS,
 		"send_ldap_result: err=%d matched=\"%s\" text=\"%s\"\n",
@@ -607,14 +607,14 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 				rs->sr_err, rs->sr_nentries );
 
 			Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu SEARCH RESULT tag=%lu err=%s text=%s\n",
-				op->o_connid, op->o_opid, rs->sr_tag, nbuf,
-				rs->sr_text ? rs->sr_text : "" );
+			"%s SEARCH RESULT tag=%lu err=%s text=%s\n",
+				op->o_log_prefix, rs->sr_tag, nbuf,
+				rs->sr_text ? rs->sr_text : "", 0 );
 		} else {
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu RESULT tag=%lu err=%d text=%s\n",
-				op->o_connid, op->o_opid, rs->sr_tag, rs->sr_err,
-				rs->sr_text ? rs->sr_text : "" );
+				"%s RESULT tag=%lu err=%d text=%s\n",
+				op->o_log_prefix, rs->sr_tag, rs->sr_err,
+				rs->sr_text ? rs->sr_text : "", 0 );
 		}
 	}
 
@@ -1182,8 +1182,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 	}
 
-	Statslog( LDAP_DEBUG_STATS2, "conn=%lu op=%lu ENTRY dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, rs->sr_entry->e_dn, 0, 0 );
+	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
+	    op->o_log_prefix, rs->sr_entry->e_dn, 0, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"<= send_search_entry: conn %lu exit.\n", op->o_connid, 0, 0 );
@@ -1373,8 +1373,9 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	}
 #endif
 
-	Statslog( LDAP_DEBUG_STATS2, "conn=%lu op=%lu REF dn=\"%s\"\n",
-		op->o_connid, op->o_opid, rs->sr_entry ? rs->sr_entry->e_dn : "(null)", 0, 0 );
+	Statslog( LDAP_DEBUG_STATS2, "%s REF dn=\"%s\"\n",
+		op->o_log_prefix, rs->sr_entry ? rs->sr_entry->e_dn : "(null)",
+		0, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 

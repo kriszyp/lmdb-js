@@ -88,8 +88,8 @@ do_delete(
 		goto cleanup;
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu DEL dn=\"%s\"\n",
-		op->o_connid, op->o_opid, op->o_req_dn.bv_val, 0, 0 );
+	Statslog( LDAP_DEBUG_STATS, "%s DEL dn=\"%s\"\n",
+		op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_delete( op, rs );

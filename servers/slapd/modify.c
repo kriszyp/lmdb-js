@@ -259,20 +259,20 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		char abuf[BUFSIZ/2], *ptr = abuf;
 		int len = 0;
 
-		Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD dn=\"%s\"\n",
-			op->o_connid, op->o_opid, op->o_req_dn.bv_val, 0, 0 );
+		Statslog( LDAP_DEBUG_STATS, "%s MOD dn=\"%s\"\n",
+			op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
 
 		for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
 			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
-				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
-				    op->o_connid, op->o_opid, abuf, 0, 0 );
+				Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
+				    op->o_log_prefix, abuf, 0, 0, 0 );
 
-	    		len = 0;
+	    			len = 0;
 				ptr = abuf;
 
 				if( 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
-					Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
-						op->o_connid, op->o_opid, tmp->sml_type.bv_val, 0, 0 );
+					Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
+						op->o_log_prefix, tmp->sml_type.bv_val, 0, 0, 0 );
 					continue;
 				}
 			}
@@ -284,8 +284,8 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			len += tmp->sml_type.bv_len;
 		}
 		if (len) {
-			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
-	    			op->o_connid, op->o_opid, abuf, 0, 0 );
+			Statslog( LDAP_DEBUG_STATS, "%s MOD attr=%s\n",
+	    			op->o_log_prefix, abuf, 0, 0, 0 );
 		}
 	}
 #endif	/* LDAP_DEBUG */

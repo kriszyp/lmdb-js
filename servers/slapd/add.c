@@ -146,8 +146,8 @@ do_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu ADD dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, e->e_name.bv_val, 0, 0 );
+	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
+	    op->o_log_prefix, e->e_name.bv_val, 0, 0, 0 );
 
 	if( e->e_nname.bv_len == 0 ) {
 		/* protocolError may be a more appropriate error */

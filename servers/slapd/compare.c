@@ -140,9 +140,9 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
-			op->o_connid, op->o_opid, op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, 0 );
+			"%s CMP dn=\"%s\" attr=\"%s\"\n",
+			op->o_log_prefix, op->o_req_dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, 0, 0 );
 
 		if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
@@ -161,9 +161,9 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
-			op->o_connid, op->o_opid, op->o_req_dn.bv_val,
-			ava.aa_desc->ad_cname.bv_val, 0 );
+			"%s CMP dn=\"%s\" attr=\"%s\"\n",
+			op->o_log_prefix, op->o_req_dn.bv_val,
+			ava.aa_desc->ad_cname.bv_val, 0, 0 );
 
 		if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
 			send_ldap_result( op, rs );
@@ -230,9 +230,9 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	    op->o_req_dn.bv_val,
 		ava.aa_desc->ad_cname.bv_val, ava.aa_value.bv_val );
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu CMP dn=\"%s\" attr=\"%s\"\n",
-	    op->o_connid, op->o_opid, op->o_req_dn.bv_val,
-		ava.aa_desc->ad_cname.bv_val, 0 );
+	Statslog( LDAP_DEBUG_STATS, "%s CMP dn=\"%s\" attr=\"%s\"\n",
+		op->o_log_prefix, op->o_req_dn.bv_val,
+		ava.aa_desc->ad_cname.bv_val, 0, 0 );
 
 #if defined( LDAP_SLAPI )
 #define	pb	op->o_pb

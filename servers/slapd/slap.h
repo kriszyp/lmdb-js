@@ -2055,6 +2055,7 @@ typedef struct slap_gacl {
 typedef struct slap_op {
 	unsigned long o_opid;	/* id of this operation */
 	unsigned long o_connid; /* id of conn initiating this op */
+	char		o_log_prefix[sizeof("conn=18446744073709551615 op=18446744073709551615")];
 	struct slap_conn *o_conn;	/* connection spawning this op */
 	BackendDB	*o_bd;	/* backend DB processing this op */
 

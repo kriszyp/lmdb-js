@@ -74,9 +74,9 @@ limits_get(
 	assert( op );
 	assert( limit );
 
-	Debug( LDAP_DEBUG_TRACE, "==> limits_get: conn=%lu op=%lu dn=\"%s\"\n",
-			op->o_connid, op->o_opid,
-			BER_BVISNULL( ndn ) ? "[anonymous]" : ndn->bv_val );
+	Debug( LDAP_DEBUG_TRACE, "==> limits_get: %s dn=\"%s\"\n",
+			op->o_log_prefix,
+			BER_BVISNULL( ndn ) ? "[anonymous]" : ndn->bv_val, 0 );
 	/*
 	 * default values
 	 */
