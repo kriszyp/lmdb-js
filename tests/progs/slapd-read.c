@@ -3,13 +3,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <ac/string.h>
 #include <ac/ctype.h>
 #include <ac/socket.h>
+#include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 
 #include "lber.h"
 #include "ldap.h"
