@@ -709,7 +709,7 @@ void sockinit()
 	}
     daemon_initialized = 1;
 }
-else
+#else
 void sockinit()
 {
     daemon_initialized = 1;
