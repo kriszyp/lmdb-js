@@ -165,7 +165,7 @@ over_op_func(
 	BI_op_bind **func;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
 	slap_callback cb = {over_back_response, NULL};
-	int rc = 0;
+	int rc = SLAP_CB_CONTINUE;
 
 	op->o_bd = &db;
 	cb.sc_private = op->o_callback;
@@ -176,15 +176,18 @@ over_op_func(
 		if ( func[which] ) {
 			db.bd_info = (BackendInfo *)on;
 			rc = func[which]( op, rs );
-			if ( rc ) break;
+			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
 
 	func = &oi->oi_bd.bd_info->bi_op_bind;
-	if ( func[which] ) {
+	if ( func[which] && rc == SLAP_CB_CONTINUE ) {
 		rc = func[which]( op, rs );
 	}
-
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = LDAP_UNWILLING_TO_PERFORM;
+	}
 	op->o_bd = be;
 	return rc;
 }
@@ -321,7 +324,7 @@ overlay_config( BackendDB *be, const char *ov )
 	 */
 	oi = (slap_overinfo *) be->bd_info;
 	for ( prev=NULL, on2 = oi->oi_list; on2; prev=on2, on2=on2->on_next );
-	on2 = ch_malloc( sizeof(slap_overinst) );
+	on2 = ch_calloc( 1, sizeof(slap_overinst) );
 	if ( !prev ) {
 		oi->oi_list = on2;
 	} else {
@@ -329,6 +332,7 @@ overlay_config( BackendDB *be, const char *ov )
 	}
 	*on2 = *on;
 	on2->on_next = NULL;
+	on2->on_info = oi;
 
 	/* Any initialization needed? */
 	if ( on->on_bi.bi_db_init ) {
