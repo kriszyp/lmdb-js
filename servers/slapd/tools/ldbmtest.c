@@ -545,10 +545,11 @@ edit_entry( char c, Datum *data )
 	fclose( fp );
  
 #ifdef HAVE_WAITPID
-	if ( waitpid( (pid_t) -1, NULL, WAIT_FLAGS ) < 0 ) {
+	if ( waitpid( (pid_t) -1, NULL, WAIT_FLAGS ) < 0 )
 #else
-	if ( wait4( (pid_t) -1, &status, WAIT_FLAGS, 0 ) < 0 ) {
+	if ( wait3( (pid_t) -1, &status, WAIT_FLAGS, 0 ) < 0 )
 #endif
+	{
 		perror( "wait" );
 		return;
 	}

@@ -106,10 +106,11 @@ main( int argc, char **argv )
 		switch ( i ) {
 		case 'a':	/* bind address */
 #ifdef HAVE_WINSOCK
-			if(!(bind_addr.sin_addr.S_un.S_addr = inet_addr(optarg))) {
+			if(!(bind_addr.sin_addr.S_un.S_addr = inet_addr(optarg)))
 #else
-			if(!inet_aton(optarg, &bind_addr.sin_addr)) {
+			if(!inet_aton(optarg, &bind_addr.sin_addr))
 #endif
+			{
 				fprintf(stderr, "invalid address (%s) for -a option", optarg);
 			}
             break;

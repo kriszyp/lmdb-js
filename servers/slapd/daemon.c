@@ -481,6 +481,7 @@ slapd_daemon_task(
 				FD_CLR( writefds.fd_array[i], &readfds );
 				slapd_close( writefds.fd_array[i] );
 			}
+		}
 #else
 		for ( i = 0; i < nfds; i++ ) {
 			if ( i == tcps ) {
@@ -500,9 +501,9 @@ slapd_daemon_task(
 					slapd_close( i );
 				}
 			}
+		}
 #endif
 
-		}
 #ifdef HAVE_WINSOCK
 		for ( i = 0; i < readfds.fd_count; i++ ) {
 			if ( readfds.fd_array[i] == tcps ) {
