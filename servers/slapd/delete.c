@@ -198,7 +198,7 @@ do_delete(
 
 cleanup:
 	free( dn.bv_val );
-	if( pdn.bv_val != NULL ) ber_bvfree( pdn.bv_val );
-	if( ndn.bv_val != NULL ) ber_bvfree( ndn.bv_val );
+	free( pdn.bv_val );
+	free( ndn.bv_val );
 	return rc;
 }
