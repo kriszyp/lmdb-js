@@ -1326,7 +1326,7 @@ typedef struct syncinfo_s {
 #define LASTMOD_REQ		0
 #define LASTMOD_GEN		1
 #define LASTMOD_NO		2
-	int		lastmod;
+        int             lastmod;
         /* TLS flags */
 #define TLS_OFF                 0
 #define TLS_ON                  1

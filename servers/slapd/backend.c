@@ -363,9 +363,10 @@ int backend_startup(Backend *be)
 #ifdef LDAP_SYNCREPL
 		if ( backendDB[i].syncinfo != NULL ) {
 			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].syncinfo;
+			si->be = &backendDB[i];
 			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 			ldap_pvt_runqueue_insert( &syncrepl_rq, si->interval,
-							do_syncrepl, (void *) &backendDB[i] );
+							do_syncrepl, (void *) backendDB[i].syncinfo );
 			ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 		}
 #endif

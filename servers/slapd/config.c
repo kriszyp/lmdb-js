@@ -2698,6 +2698,10 @@ add_syncrepl(
 
 	si = be->syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
+	/* set default values; FIXME : add others */
+	si->tlimit = NULL;
+	si->slimit = -1;
+
 	if ( si == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONFIG, ERR, "out of memory in add_syncrepl\n", 0, 0,0 );

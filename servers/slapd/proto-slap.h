@@ -1139,8 +1139,18 @@ LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P(());
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
-
-LDAP_SLAPD_F (char **) str2clist( char **, char *, const char * );
+LDAP_SLAPD_F (int) ldap_sync_search LDAP_P((
+							syncinfo_t *, LDAP *, LDAPControl **, LDAPControl **, int *));
+LDAP_SLAPD_F (Entry*) syncrepl_message_to_entry LDAP_P((
+							syncinfo_t *, LDAP *, Operation *, LDAPMessage *,
+							Modifications **, int*, struct berval *, struct berval * ));
+LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
+							syncinfo_t *, LDAP *, Operation*, Entry*,
+							Modifications*,int, struct berval*, struct berval*, int ));
+LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
+							syncinfo_t *, LDAP *, Operation *, struct berval *,
+							struct berval * ));
+LDAP_SLAPD_F (char **) str2clist LDAP_P(( char **, char *, const char * ));
 #endif
 
 LDAP_END_DECL
