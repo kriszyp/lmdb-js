@@ -12,10 +12,11 @@
 
 #include "back-bdb.h"
 
-int bdb_id2entry_add(
+int bdb_id2entry_put(
 	BackendDB *be,
 	DB_TXN *tid,
-	Entry *e )
+	Entry *e,
+	int flag )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
@@ -35,10 +36,18 @@ int bdb_id2entry_add(
 	DBTzero( &data );
 	bv2DBT( &bv, &data );
 
-	rc = db->put( db, tid, &key, &data, DB_NOOVERWRITE );
+	rc = db->put( db, tid, &key, &data, flag );
 
 	free( bv.bv_val );
 	return rc;
+}
+
+int bdb_id2entry_add(
+	BackendDB *be,
+	DB_TXN *tid,
+	Entry *e )
+{
+	return bdb_id2entry_put( be, tid, e, DB_NOOVERWRITE );
 }
 
 int bdb_id2entry_update(
@@ -46,28 +55,7 @@ int bdb_id2entry_update(
 	DB_TXN *tid,
 	Entry *e )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	DB *db = bdb->bi_id2entry->bdi_db;
-	DBT key, data;
-	struct berval bv;
-	int rc;
-
-	DBTzero( &key );
-	key.data = (char *) &e->e_id;
-	key.size = sizeof(ID);
-
-	rc = entry_encode( e, &bv );
-	if( rc != LDAP_SUCCESS ) {
-		return -1;
-	}
-
-	DBTzero( &data );
-	bv2DBT( &bv, &data );
-
-	rc = db->put( db, tid, &key, &data, 0 );
-
-	free( bv.bv_val );
-	return rc;
+	return bdb_id2entry_put( be, tid, e, 0 );
 }
 
 int bdb_id2entry(

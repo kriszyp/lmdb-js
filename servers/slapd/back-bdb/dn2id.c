@@ -17,8 +17,8 @@ int
 bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*dn,
-	ID		id )
+	const char	*pdn,
+	Entry		*e )
 {
 	int		rc;
 	DBT		key, data;
@@ -26,18 +26,18 @@ bdb_dn2id_add(
 	DB *db = bdb->bi_dn2id->bdi_db;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
-		dn, (long) id, 0 );
-	assert( id != NOID );
+		e->e_ndn, (long) e->e_id, 0 );
+	assert( e->e_id != NOID );
 
 	DBTzero( &key );
-	key.size = strlen( dn ) + 2;
+	key.size = strlen( e->e_ndn ) + 2;
 	key.data = ch_malloc( key.size );
 	((char *)key.data)[0] = DN_BASE_PREFIX;
-	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+	AC_MEMCPY( &((char *)key.data)[1], e->e_ndn, key.size - 1 );
 
 	DBTzero( &data );
-	data.data = (char *) &id;
-	data.size = sizeof( id );
+	data.data = (char *) &e->e_id;
+	data.size = sizeof( e->e_id );
 
 	/* store it -- don't override */
 	rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
@@ -48,7 +48,6 @@ bdb_dn2id_add(
 	}
 
 	{
-		char *pdn = dn_parent( NULL, dn );
 		((char *)(key.data))[0] = DN_ONE_PREFIX;
 
 		if( pdn != NULL ) {
@@ -56,21 +55,19 @@ bdb_dn2id_add(
 			AC_MEMCPY( &((char*)key.data)[1],
 				pdn, key.size - 1 );
 
-			rc = bdb_idl_insert_key( be, db, txn, &key, id );
+			rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
 
 			if( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
 					pdn, rc, 0 );
-				free( pdn );
 				goto done;
 			}
-			free( pdn );
 		}
 	}
 
 	{
-		char **subtree = dn_subtree( be, dn );
+		char **subtree = dn_subtree( be, e->e_ndn );
 
 		if( subtree != NULL ) {
 			int i;
@@ -80,7 +77,8 @@ bdb_dn2id_add(
 				AC_MEMCPY( &((char *)key.data)[1],
 					subtree[i], key.size - 1 );
 
-				rc = bdb_idl_insert_key( be, db, txn, &key, id );
+				rc = bdb_idl_insert_key( be, db, txn, &key,
+					e->e_id );
 
 				if( rc != 0 ) {
 					Debug( LDAP_DEBUG_ANY,
@@ -104,6 +102,7 @@ int
 bdb_dn2id_delete(
 	BackendDB	*be,
 	DB_TXN *txn,
+	const char	*pdn,
 	const char	*dn,
 	ID		id )
 {
@@ -121,7 +120,7 @@ bdb_dn2id_delete(
 	((char *)key.data)[0] = DN_BASE_PREFIX;
 	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
 
-	/* store it -- don't override */
+	/* delete it */
 	rc = db->del( db, txn, &key, 0 );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "=> bdb_dn2id_delete: delete failed: %s %d\n",
@@ -130,7 +129,6 @@ bdb_dn2id_delete(
 	}
 
 	{
-		char *pdn = dn_parent( NULL, dn );
 		((char *)(key.data))[0] = DN_ONE_PREFIX;
 
 		if( pdn != NULL ) {
@@ -144,10 +142,8 @@ bdb_dn2id_delete(
 				Debug( LDAP_DEBUG_ANY,
 					"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n",
 					pdn, rc, 0 );
-				free( pdn );
 				goto done;
 			}
-			free( pdn );
 		}
 	}
 

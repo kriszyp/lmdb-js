@@ -82,12 +82,13 @@ int bdb_dn2id_matched(
 int bdb_dn2id_add(
 	BackendDB *be,
 	DB_TXN *tid,
-	const char *dn,
-	ID id );
+	const char *pdn,
+	Entry *e );
 
 int bdb_dn2id_delete(
 	BackendDB *be,
 	DB_TXN *tid,
+	const char *pdn,
 	const char *dn,
 	ID id );
 

@@ -161,6 +161,7 @@ retry:	/* transaction retry */
 	}
 
 	p_ndn = dn_parent( be, e->e_ndn );
+	np_ndn = p_ndn;
 	if ( p_ndn != NULL && p_ndn[ 0 ] != '\0' ) {
 		/* Make sure parent entry exist and we can write its 
 		 * children.
@@ -550,7 +551,7 @@ retry:	/* transaction retry */
 	}
 	
 	/* delete old one */
-	rc = bdb_dn2id_delete( be, ltid, e->e_ndn, e->e_id );
+	rc = bdb_dn2id_delete( be, ltid, p_ndn, e->e_ndn, e->e_id );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -570,7 +571,7 @@ retry:	/* transaction retry */
 	e->e_ndn = new_ndn;
 
 	/* add new one */
-	rc = bdb_dn2id_add( be, ltid, e->e_ndn, e->e_id );
+	rc = bdb_dn2id_add( be, ltid, np_ndn, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -642,6 +643,7 @@ done:
 	if( new_dn != NULL ) free( new_dn );
 	if( new_ndn != NULL ) free( new_ndn );
 
+	if( np_ndn == p_ndn ) np_ndn = NULL;
 	if( p_dn != NULL ) free( p_dn );
 	if( p_ndn != NULL ) free( p_ndn );
 

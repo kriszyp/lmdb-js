@@ -100,7 +100,6 @@ retry:	rc = txn_abort( ltid );
 
 		/* get parent */
 		rc = bdb_dn2entry( be, ltid, pdn, &p, &matched, 0 );
-		ch_free( pdn );
 
 		switch( rc ) {
 		case 0:
@@ -188,10 +187,6 @@ retry:	rc = txn_abort( ltid );
 		p = NULL;
 
 	} else {
-		if( pdn != NULL ) {
-			free(pdn);
-		}
-
 		/*
 		 * no parent!
 		 *	must be adding entry to at suffix
@@ -227,7 +222,7 @@ retry:	rc = txn_abort( ltid );
 	}
 
 	/* dn2id index */
-	rc = bdb_dn2id_add( be, ltid, e->e_ndn, e->e_id );
+	rc = bdb_dn2id_add( be, ltid, pdn, e );
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: dn2id_add failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
@@ -309,6 +304,10 @@ return_results:
 	}
 
 done:
+	if( pdn != NULL ) {
+		free(pdn);
+	}
+
 	if (p != NULL) {
 		/* free parent and writer lock */
 		bdb_entry_return( be, p ); 

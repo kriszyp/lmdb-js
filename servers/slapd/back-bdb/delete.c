@@ -122,8 +122,6 @@ retry:	/* transaction retry */
 		/* get parent */
 		rc = bdb_dn2entry( be, ltid, pdn, &p, NULL, 0 );
 
-		ch_free( pdn );
-
 		switch( rc ) {
 		case 0:
 		case DB_NOTFOUND:
@@ -162,8 +160,6 @@ retry:	/* transaction retry */
 		}
 
 	} else {
-		ch_free( pdn );
-
 		/* no parent, must be root to delete */
 		if( ! be_isroot( be, op->o_ndn ) ) {
 			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
@@ -235,7 +231,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from dn2id */
-	rc = bdb_dn2id_delete( be, ltid, e->e_ndn, e->e_id );
+	rc = bdb_dn2id_delete( be, ltid, pdn, e->e_ndn, e->e_id );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -284,6 +280,15 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+
+#if 0	/* Do we want to reclaim deleted IDs? */
+	ldap_pvt_thread_mutex_lock( &bdb->bi_lastid_mutex );
+	if ( e->e_id == bdb->bi_lastid ) {
+		bdb_last_id( be, ltid );
+	}
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
+#endif
+
 	if( bdb->bi_txn ) {
 		rc = txn_commit( ltid, 0 );
 	}
@@ -316,6 +321,10 @@ return_results:
 	}
 
 done:
+	if( pdn != NULL ) {
+		free( pdn );
+	}
+
 	/* free entry */
 	if( e != NULL ) {
 		bdb_entry_return( be, e );

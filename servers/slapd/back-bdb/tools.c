@@ -113,6 +113,7 @@ ID bdb_tool_entry_put(
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB_TXN *tid = NULL;
+	char *pdn;
 
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -140,7 +141,9 @@ ID bdb_tool_entry_put(
 	}
 
 	/* add dn2id indices */
+	pdn = dn_parent( be, e->e_ndn );
 	rc = bdb_dn2id_add( be, tid, e->e_ndn, e->e_id );
+	if( pdn ) free( pdn );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: dn2id_add failed: %s (%d)\n",
@@ -196,6 +199,7 @@ int bdb_tool_entry_reindex(
 	int rc;
 	Entry *e;
 	DB_TXN *tid = NULL;
+	char *pdn;
 
 	Debug( LDAP_DEBUG_ARGS, "=> bdb_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
@@ -230,8 +234,10 @@ int bdb_tool_entry_reindex(
 		(long) id, e->e_dn, 0 );
 
 	/* add dn2id indices */
-	rc = bdb_dn2id_add( be, tid, e->e_ndn, e->e_id );
-	if( rc != 0 ) {
+	pdn = dn_parent( be, e->e_ndn );
+	rc = bdb_dn2id_add( be, tid, pdn, e );
+	if( pdn ) free( pdn );
+	if( rc != 0 && rc != DB_KEYEXIST ) {
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_reindex: dn2id_add failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
