@@ -10,7 +10,7 @@ test-bdb2:	FORCE
 	@-$(LN_S) $(srcdir)/data . 
 	@if test "$(BUILD_BDB2)" = "yes" ; then \
 		echo "Initiating LDAP tests..." ; \
-		$(MKDIR) test-db test-repl ; \
+		$(MKDIR) test-db test-repl || true; \
 		$(srcdir)/scripts/all $(srcdir) bdb2 ; \
 	else \
 		echo "run configure with --enable-bdb2" ; \
@@ -20,12 +20,12 @@ tests:		test-ldbm
 test:		test-ldbm
 test-ldbm:	FORCE
 	@-$(LN_S) $(srcdir)/data .
-	@echo "Initiating LDAP tests..."; \
-	$(MKDIR) test-db test-repl ; \
-	$(srcdir)/scripts/all $(srcdir) ldbm
+	@echo "Initiating LDAP tests..."
+	@-$(MKDIR) test-db test-repl || true
+	@$(srcdir)/scripts/all $(srcdir) ldbm
 
 clean-local:	FORCE
-	$(RM) test-db/[!C]* test-repl/[!C]* *core
+	-$(RM) test-db/[!C]* test-repl/[!C]* *core
 
 veryclean-local: FORCE
 	@-$(RM) data
