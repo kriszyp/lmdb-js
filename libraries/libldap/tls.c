@@ -250,8 +250,7 @@ alloc_handle( void *ctx_arg )
 	if ( ctx_arg ) {
 		ctx = (SSL_CTX *) ctx_arg;
 	} else {
-		if ( ldap_pvt_tls_init_def_ctx() < 0 )
-			return NULL;
+		if ( ldap_pvt_tls_init_def_ctx() < 0 ) return NULL;
 		ctx = tls_def_ctx;
 	}
 
@@ -557,23 +556,30 @@ static int
 ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 {
 	Sockbuf *sb = conn->lconn_sb;
-	void *ctx = ld->ld_defconn->lconn_tls_ctx;
-
 	int	err;
 	SSL	*ssl;
 
 	if ( HAS_TLS( sb ) ) {
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
+
 	} else {
+		void *ctx = ld->ld_defconn
+			? ld->ld_defconn->lconn_tls_ctx : NULL;
+
 		ssl = alloc_handle( ctx );
-		if ( ssl == NULL )
-			return -1;
+
+		if ( ssl == NULL ) return -1;
+
 #ifdef LDAP_DEBUG
 		ber_sockbuf_add_io( sb, &ber_sockbuf_io_debug,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)"tls_" );
 #endif
 		ber_sockbuf_add_io( sb, &ldap_pvt_sockbuf_io_tls,
 			LBER_SBIOD_LEVEL_TRANSPORT, (void *)ssl );
+
+		if( ctx == NULL ) {
+			conn->lconn_tls_ctx = tls_def_ctx;
+		}
 	}
 
 	err = SSL_connect( ssl );
@@ -582,8 +588,9 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 	errno = WSAGetLastError();
 #endif
 	if ( err <= 0 ) {
-		if ( update_flags( sb, ssl, err ))
+		if ( update_flags( sb, ssl, err )) {
 			return 1;
+		}
 		if ((err = ERR_peek_error())) {
 			char buf[256];
 			ld->ld_error = LDAP_STRDUP(ERR_error_string(err, buf));
@@ -597,6 +604,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 #endif
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -951,14 +959,19 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 }
 
 int
-ldap_int_tls_start ( LDAP *ld, LDAPConn *conn )
+ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 {
 	Sockbuf *sb = conn->lconn_sb;
-	char *host = conn->lconn_server->lud_host;
 	void *ctx = ld->ld_defconn->lconn_tls_ctx;
-
+	char *host;
 	char *peer_cert_cn;
 	void *ssl;
+
+	if( srv ) {
+		host = srv->lud_host;
+	} else {
+ 		host = conn->lconn_server->lud_host;
+	}
 
 	(void) ldap_pvt_tls_init();
 
@@ -1209,7 +1222,7 @@ ldap_start_tls_s ( LDAP *ld,
 		ber_bvfree( rspdata );
 	}
 
-	rc = ldap_int_tls_start( ld, ld->ld_defconn );
+	rc = ldap_int_tls_start( ld, ld->ld_defconn, NULL );
 #else
 	rc = LDAP_NOT_SUPPORTED;
 #endif

@@ -313,12 +313,6 @@ ldap_int_open_connection(
 			break;
 	}
 
-#ifdef HAVE_CYRUS_SASL
-	if( sasl_host != NULL ) {
-		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
-	}
-#endif
-
 	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
 		LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
@@ -333,13 +327,19 @@ ldap_int_open_connection(
 	{
 		++conn->lconn_refcnt;	/* avoid premature free */
 
-		rc = ldap_int_tls_start( ld, conn );
+		rc = ldap_int_tls_start( ld, conn, srv );
 
 		--conn->lconn_refcnt;
 
 		if (rc != LDAP_SUCCESS) {
 			return -1;
 		}
+	}
+#endif
+
+#ifdef HAVE_CYRUS_SASL
+	if( sasl_host != NULL ) {
+		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
 	}
 #endif
 
