@@ -35,6 +35,7 @@ int main(){
     
         LDAPAttributeList* attrs=new LDAPAttributeList();
         StringList values;
+        StringList s2;
         values.add("top");
         values.add("Person");
         attrs->addAttribute(LDAPAttribute("objectClass",values));

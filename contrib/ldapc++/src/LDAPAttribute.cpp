@@ -12,7 +12,7 @@
 
 
 #include <ldap.h> 
-#include <ctype.h>
+//#include <ctype.h>
 
 #include "debug.h"
 #include "StringList.h"

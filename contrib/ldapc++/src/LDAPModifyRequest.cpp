@@ -5,7 +5,7 @@
 
 #include <ldap.h>
 
-#include <debug.h>
+#include "debug.h"
 
 #include "LDAPModifyRequest.h"
 #include "LDAPException.h"

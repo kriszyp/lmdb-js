@@ -7,7 +7,7 @@
 #include <iostream>
 
 #include "debug.h"
-#include"LDAPSearchResult.h"
+#include "LDAPSearchResult.h"
 #include "LDAPRequest.h"
 
 LDAPSearchResult::LDAPSearchResult(const LDAPRequest *req,

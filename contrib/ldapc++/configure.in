@@ -24,7 +24,9 @@ dnl AC_PROG_MAKE_SET
 AC_ARG_ENABLE(debug,--enable-debug,[
 	CXXFLAGS="-g -O0 -Wall"
     AC_DEFINE(WITH_DEBUG)
-	]
+	],[
+	CXXFLAGS="-O0"
+    ]
 )
 
 AC_ARG_WITH(libldap,[  --with-libldap=DIR          Path to the libldap library [/usr/local/lib]],[
