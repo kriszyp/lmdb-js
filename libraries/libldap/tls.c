@@ -261,8 +261,8 @@ alloc_handle( Sockbuf *sb, void *ctx_arg )
 static void
 update_flags( Sockbuf *sb, SSL * ssl )
 {
-	sb->sb_trans_needs_read  = SSL_want_read(ssl) ? 1 : 0;
-	sb->sb_trans_needs_write = SSL_want_write(ssl) ? 1 : 0;
+	sb->sb_trans_needs_read  = (SSL_want_read(ssl) ? 1 : 0);
+	sb->sb_trans_needs_write = (SSL_want_write(ssl) ? 1 : 0);
 }
 
 /*
@@ -447,8 +447,9 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 		case LDAP_OPT_X_TLS_ALLOW:
 		case LDAP_OPT_X_TLS_TRY:
 		case LDAP_OPT_X_TLS_HARD:
-			lo->ldo_tls_mode = *(int *)arg;
-			break;
+			if (lo != NULL)
+				lo->ldo_tls_mode = *(int *)arg;
+			return 0;
 		default:
 			return -1;
 		}
@@ -512,6 +513,10 @@ tls_write( Sockbuf *sb, void *buf, ber_len_t sz )
 	int ret = SSL_write( (SSL *)sb->sb_iodata, buf, sz );
 
 	update_flags(sb, (SSL *)sb->sb_iodata );
+#ifdef WIN32
+	if (sb->sb_trans_needs_write)
+		errno = EWOULDBLOCK;
+#endif
 	return ret;
 }
 
@@ -521,6 +526,10 @@ tls_read( Sockbuf *sb, void *buf, ber_len_t sz )
 	int ret = SSL_read( (SSL *)sb->sb_iodata, buf, sz );
 
 	update_flags(sb, (SSL *)sb->sb_iodata );
+#ifdef WIN32
+	if (sb->sb_trans_needs_read)
+		errno = EWOULDBLOCK;
+#endif
 	return ret;
 }
 
