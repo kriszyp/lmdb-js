@@ -1654,9 +1654,6 @@ proxy_cache_config(
 	}
 	/* anything else */
 	else {
-		if ( argv0 != argv[0] ) {
-			return SLAP_CONF_UNKNOWN;
-		}
 		rc = cm->db.bd_info->bi_db_config( &cm->db, fname, lineno, argc, argv );
 	}
 
