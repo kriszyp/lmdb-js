@@ -37,6 +37,7 @@
 #define LDAP_X_SCOPE_SUBTREE	((ber_int_t) 0x0040)
 #define LDAP_X_SCOPE_ONELEVEL	((ber_int_t) 0x0050)
 #define LDAP_X_SCOPE_GROUP	((ber_int_t) 0x0060)
+#define LDAP_X_SCOPE_USERS	((ber_int_t) 0x0070)
 
 /*
  * IDs in DNauthzid form can now have a type specifier, that
@@ -264,6 +265,11 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 		 * and uri was not an URI... HEADS-UP: assuming EXACT */
 is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
+		/* a single '*' means any DN without using regexes */
+		if ( ber_bvccmp( &bv, '*' ) ) {
+			*scope = LDAP_X_SCOPE_USERS;
+		}
+
 		switch ( *scope ) {
 		case LDAP_X_SCOPE_EXACT:
 		case LDAP_X_SCOPE_CHILDREN:
@@ -277,6 +283,8 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		case LDAP_X_SCOPE_REGEX:
 			ber_dupbv_x( nbase, &bv, op->o_tmpmemctx );
+
+		case LDAP_X_SCOPE_USERS:
 			rc = LDAP_SUCCESS;
 			break;
 
@@ -546,8 +554,7 @@ int slap_sasl_regexp_rewrite_config(
 		const char	*context )
 {
 	int	rc;
-	char	*newreplace, *p;
-	char	*argvRule[] = { "rewriteRule", NULL, NULL, "@", NULL };
+	char	*argvRule[] = { "rewriteRule", NULL, NULL, ":@", NULL };
 
 	/* init at first call */
 	if ( sasl_rwinfo == NULL ) {
@@ -571,20 +578,9 @@ int slap_sasl_regexp_rewrite_config(
 		}
 	}
 
-	newreplace = ch_strdup( replace );
-	
-	for (p = strchr( newreplace, '$' ); p; p = strchr( p + 1, '$' ) ) {
-		if ( isdigit( p[1] ) ) {
-			p[0] = '%';
-		} else {
-			p++;
-		}
-	}
-
 	argvRule[1] = (char *)match;
-	argvRule[2] = newreplace;
+	argvRule[2] = (char *)replace;
  	rc = rewrite_parse( sasl_rwinfo, fname, lineno, 4, argvRule );
-	ch_free( newreplace );
 
 	return rc;
 }
@@ -1004,6 +1000,14 @@ exact_match:
 		break;
 		}
 
+	case LDAP_X_SCOPE_USERS:
+		if ( !BER_BVISEMPTY( assertDN ) ) {
+			rc = LDAP_SUCCESS;
+		} else {
+			rc = LDAP_INAPPROPRIATE_AUTH;
+		}
+		goto CONCLUDED;
+
 	default:
 		break;
 	}
@@ -1186,6 +1190,7 @@ void slap_sasl2dn( Operation *opx,
 	case LDAP_X_SCOPE_CHILDREN:
 	case LDAP_X_SCOPE_ONELEVEL:
 	case LDAP_X_SCOPE_GROUP:
+	case LDAP_X_SCOPE_USERS:
 		/* correctly parsed, but illegal */
 		goto FINISHED;
 
