@@ -49,8 +49,15 @@ bdb_bind(
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
 #endif
 
-	/* XXYYZ: need to check return value */
-	LOCK_ID(bdb->bi_dbenv, &locker);
+	rc = LOCK_ID(bdb->bi_dbenv, &locker);
+	switch(rc) {
+	case 0:
+		break;
+	default:
+		send_ldap_result( conn, op, rc=LDAP_OTHER,
+			NULL, "internal error", NULL, NULL );
+		return rc;
+	}
 
 dn2entry_retry:
 	/* get entry */

@@ -71,8 +71,15 @@ bdb_search(
 
 	manageDSAit = get_manageDSAit( op );
 
-	/* XXYYZ: need to check return value */
-	LOCK_ID (bdb->bi_dbenv, &locker );
+	rc = LOCK_ID (bdb->bi_dbenv, &locker );
+	switch(rc) {
+	case 0:
+		break;
+	default:
+		send_ldap_result( conn, op, rc=LDAP_OTHER,
+			NULL, "internal error", NULL, NULL );
+		return rc;
+	}
 
 	if ( nbase->bv_len == 0 ) {
 		/* DIT root special case */

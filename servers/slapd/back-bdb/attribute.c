@@ -70,8 +70,13 @@ bdb_attribute(
 	if ( txn != NULL ) {
 		locker = TXN_ID ( txn );
 	} else {
-		/* XXYYZ: need to check return value */
-		LOCK_ID ( bdb->bi_dbenv, &locker );
+		rc = LOCK_ID ( bdb->bi_dbenv, &locker );
+		switch(rc) {
+		case 0:
+			break;
+		default:
+			return LDAP_OTHER;
+		}
 	}
 
 	if (target != NULL && dn_match(&target->e_nname, entry_ndn)) {

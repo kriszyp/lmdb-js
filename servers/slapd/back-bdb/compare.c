@@ -34,8 +34,15 @@ bdb_compare(
 	u_int32_t	locker;
 	DB_LOCK		lock;
 
-	/* XXYYZ: need to check return value */
-	LOCK_ID ( bdb->bi_dbenv, &locker );
+	rc = LOCK_ID(bdb->bi_dbenv, &locker);
+	switch(rc) {
+	case 0:
+		break;
+	default:
+		send_ldap_result( conn, op, rc=LDAP_OTHER,
+			NULL, "internal error", NULL, NULL );
+		return rc;
+	}
 
 dn2entry_retry:
 	/* get entry */

@@ -82,8 +82,13 @@ bdb_group(
 	if ( txn ) {
 		locker = TXN_ID( txn );
 	} else {
-		/* XXYYZ: need to check return value */
 		LOCK_ID ( bdb->bi_dbenv, &locker );
+		switch(rc) {
+		case 0:
+			break;
+		default:
+			return 1;
+		}
 	}
 
 	if (dn_match(&target->e_name, gr_ndn)) {

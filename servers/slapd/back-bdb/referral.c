@@ -39,8 +39,13 @@ bdb_referrals(
 		return rc;
 	} 
 
-	/* XXYYZ: need to check return value */
-	LOCK_ID ( bdb->bi_dbenv, &locker );
+	rc = LOCK_ID(bdb->bi_dbenv, &locker);
+	switch(rc) {
+	case 0:
+		break;
+	default:
+		return LDAP_OTHER;
+	}
 
 dn2entry_retry:
 	/* get entry */
