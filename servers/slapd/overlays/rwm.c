@@ -744,25 +744,6 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			continue;
 		}
 
-		/* no subschemaSubentry */
-		if ( (*ap)->a_desc == slap_schema.si_ad_subschemaSubentry ) {
-
-			/* 
-			 * We eat target's subschemaSubentry because
-			 * a search for this value is likely not
-			 * to resolve to the appropriate backend;
-			 * later, the local subschemaSubentry is
-			 * added.
-			 */
-			Attribute	*a;
-
-			a = *ap;
-			*ap = (*ap)->a_next;
-
-			attr_free( a );
-			continue;
-		}
-		
 		for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
 			/* just count */ ;
 
@@ -811,8 +792,9 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 		 * http://www.OpenLDAP.org/faq/data/cache/452.html)
 		 * The problem can be overcome by moving the dn-based
 		 * ACLs to the target directory server, and letting
-		 * everything pass thru the ldap backend.
-		 */
+		 * everything pass thru the ldap backend. */
+		/* FIXME: handle distinguishedName-like syntaxes, like
+		 * nameAndOptionalUID */
 		} else if ( (*ap)->a_desc->ad_type->sat_syntax ==
 				slap_schema.si_syn_distinguishedName )
 		{
