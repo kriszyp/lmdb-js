@@ -3,15 +3,22 @@
 # 
 
 # document's copyright
-# !include "copyright.sdf"
+P2[notoc] Copyright
+
+Copyright 1998-1999, The OpenLDAP Foundation, All Rights Reserved.
+
+Copyright 1992-1996, University of Michigan, All Rights Reserved.
+
 
 # acknowledge U-M.  Probably should be placed in a separate file.
-P1: Acknowledgements
+P2[notoc] Acknowledgements
 
-The OpenLDAP Project would like to thank the {{University of Michigan
+The OpenLDAP Project is comprised of a team of volunteers.  This
+software would not be possible without their contribution of
+time and energy.
+
+The OpenLDAP Project would also like to thank the {{University of Michigan
 LDAP Team}} for building the foundation of LDAP software and information
 to which we build upon.
 
 
-# We should write a short preface...
-# !include preface.sdf
