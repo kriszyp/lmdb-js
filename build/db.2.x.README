@@ -2,9 +2,10 @@ Berkeley DB version 2.x and OpenLDAP running threads
 ====================================================
 
 Special care has to be taken when building Berkeley DB 2.x
-for use with OpenLDAP as an slapd backend.  If OpenLDAP is with
-threads, so must Berkeley DB.   If OpenLDAP is built without
-threads, so must Berkeley DB.
+for use with OpenLDAP as an slapd backend.  If OpenLDAP is used
+with threads, so must Berkeley DB.   If OpenLDAP is built without
+threads, so must Berkeley DB.  In general, you should use
+the latest Sleepycat version.
 
 The configuration tool of Sleepycat's Berkeley DB will automatically
 set appropriate options on IRIX, OSF/1, and SUN Solaris platforms
@@ -26,5 +27,6 @@ The OpenLDAP configure tool will most probably find the correct
 configuration itself.   No special action has to be taken
 while building the OpenLDAP package.
 
-Jan, 9th, 1999, /KSp (ksp@openldap.org)
+9 Jan 1999, KSp <ksp@openldap.org>
 
+Last updated: 29 July 1999 by Kdz <kurt@openldap.org>
