@@ -1,4 +1,4 @@
-.TH LDAP.CONF 5 "20 August 2000" "OpenLDAP LDVERSION"
+.TH LDAP.CONF 5 "6 May 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -18,9 +18,14 @@ clients.  If the environment variable \fBLDAPNOINIT\fP is defined, all
 defaulting is disabled.
 .LP
 Each user may specify an optional configuration file,
+.IR ldaprc
+or
 .IR .ldaprc ,
 in his/her home directory which will be used to override the system-wide
 defaults file.
+The file
+.IR ldaprc
+in the current working directory is also used.
 .LP
 Additional configuration files can be specified using
 the \fBLDAPCONF\fP and \fBLDAPRC\fP environment variables.
@@ -128,14 +133,31 @@ or
 to specify that aliases are never dereferenced, always dereferenced,
 dereferenced when searching, or dereferenced only when locating the
 base object for the search.  The default is to never dereference aliases.
+.SH "ENVIRONMENT VARIABLES"
+.TP
+LDAPNOINIT
+disable all defaulting
+.TP
+LDAPCONF
+path of a configuration file
+.TP
+LDAPRC
+basename of ldaprc file in $HOME or $CWD
+.TP
+LDAP<option-name>
+Set <option-name> as from ldap.conf
 .SH FILES
+.TP
 .I  ETCDIR/ldap.conf
-.LP
-.I  $HOME/.ldaprc
-.LP
-.I  $CWD/.ldaprc
+system-wide ldap configuration file
+.TP
+.I  $HOME/ldaprc, $HOME/.ldaprc
+user ldap configuration file
+.TP
+.I  $CWD/ldaprc
+local ldap configuration file
 .SH "SEE ALSO"
-ldap(3)
+.BR ldap (3)
 .SH AUTHOR
 Kurt Zeilenga, The OpenLDAP Project
 .SH ACKNOWLEDGEMENTS

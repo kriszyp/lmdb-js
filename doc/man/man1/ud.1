@@ -61,7 +61,12 @@ command.
 .B \-D
 Prints out a list of valid ud debug masks.
 .SH FILES
-ETCDIR/ud.conf		The ud configuration file.
+.TP
+.I  ETCDIR/ud.conf
+system-wide ud configuration file
+.TP
+.I  $HOME/.udrc
+personal ud configuration file, overriding system file
 .SH "SEE ALSO"
 .BR ud.conf (5),
 .BR ldap.conf (5),

@@ -91,10 +91,15 @@ For example,
 causes this algorithm to be applied when the number of fields is exactly equal
 to one.  If there is exactly one field, the token is looked up as a UID.
 .SH FILES
+.TP
 .I  ETCDIR/ud.conf
+system-wide ud configuration file
+.TP
+.I  $HOME/.udrc
+personal ud configuration file, overriding system file
 .SH "SEE ALSO"
-ud(1),
-ldap(3)
+.BR ud (1),
+.BR ldap (3)
 .SH AUTHOR
 Bryan Beecher, University of Michigan
 .SH ACKNOWLEDGEMENTS

@@ -73,7 +73,7 @@ routine is used to actually write the element to a socket
 (or file) descriptor, once it has been fully encoded (using
 .BR ber_printf ()
 and friends).  See
-.BR lber-sockbuf(3)
+.BR lber-sockbuf (3)
 for more details on the Sockbuf implementation of the \fIsb\fP parameter.
 If the \fIfreeit\fP parameter is non-zero, the supplied \fIber\fP will
 be freed after its contents have been flushed.
@@ -262,9 +262,9 @@ If an error occurs during encoding, generally these routines return LBER_ERROR.
 The return values for all of these functions are declared in the
 <lber.h> header file.
 .SH SEE ALSO
-.BR lber-decode (3)
-.BR lber-memory (3)
-.BR lber-sockbuf (3)
+.BR lber-decode (3),
+.BR lber-memory (3),
+.BR lber-sockbuf (3),
 .BR lber-types (3)
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP

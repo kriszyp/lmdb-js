@@ -10,7 +10,7 @@ slapd.replog.lock
 .SH DESCRIPTION
 .LP
 The file slapd.replog is produced by the stand-alone LDAP daemon,
-.IR slapd ,
+.BR slapd (8),
 when changes are made to its local database that are to be
 propagated to one or more replica
 .IR slapd s.
@@ -20,7 +20,7 @@ or deletion from the
 .I slapd
 database.  The file is meant to be read
 and processed by
-.IR slurpd ,
+.BR slurpd (8),
 the stand-alone LDAP update replication daemon.  The records are
 separated by a blank line.  Each record has the following format.
 .LP
@@ -152,8 +152,12 @@ on one of each type of change.
 	deleteoldrdn: 0
 .fi
 .SH FILES
+.TP
 slapd.replog
+slapd replication log file
+.TP
 slapd.replog.lock
+lockfile for slapd.replog
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldif (5),
