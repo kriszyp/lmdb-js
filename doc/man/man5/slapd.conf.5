@@ -73,8 +73,40 @@ information on using the
 access-control mechanisms.
 .TP
 .B
+attribute ( <oid> [NAME <name>] [DESC <description>] [OBSOLETE] \
+[SUP <oid>] [EQUALITY <oid>] [ORDERING <oid>] [SUBSTR <oid>] \
+[SYNTAX <oidlen>] [SINGLE-VALUE] [COLLECTIVE] [NO-USER-MODIFICATION] \
+[USAGE <attributeUsage>] )
+Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
+This is the preferred format for attribute type definitions. The slapd
+parser extends the RFC 2252 definition by allowing string forms as well
+as numeric OIDs to be used for the attribute OID and attribute syntax OID.
+(See the
+.B
+objectidentifier
+description.) Currently the syntax name parser is case-sensitive.
+The known syntax names are:
+.RS
+.RS
+.PD 0
+AttributeTypeDescription Audio Binary BitString Certificate CertificateList
+CertificatePair DN DeliveryMethod DirectoryString DITContentRuleDescription
+DITStructureRuleDescription EnhancedGuide FacsimileTelephoneNumber
+GeneralizedTime Guide IA5String Integer MatchingRuleDescription
+MatchingRuleUseDescription MailPreference NameAndOptionalUUID
+NameFormDescription NumericString ObjectClassDescription OID
+OtherMailbox OctetString PostalAddress ProtocolInformation
+PresentationAddress PrintableString SupportedAlgorithm TelephoneNumber
+TeletexTerminalIdentifier TelexNumber UTCTime LDAPSyntaxDescription
+SubstringAssertion NISnetgrouptriple Bootparameter
+.PD
+.RE
+.RE
+.TP
+.B 
 attribute <name> [<name2>] { bin | ces | cis | tel | dn }
-Associate a syntax with an attribute name. By default, an 
+Associate a syntax with an attribute name. This directive is deprecated
+in favor of the one above. By default, an 
 attribute is assumed to have syntax
 .BR cis .
 An optional alternate name can be 
@@ -189,9 +221,28 @@ entry parsing
 .RE
 .TP
 .B
+objectclass ( <oid> [NAME <name>] [DESC <description] [OBSOLETE] \
+[SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>] \
+[MAY <oids>] )
+Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
+This is the preferred format for object class definitions. The slapd
+parser extends the RFC 2252 definition by allowing string forms as well
+as numeric OIDs to be used for the object class OID. (See the
+.B
+objectidentifier
+description.) Object classes are "STRUCTURAL" by default.
+.TP
+.B
 objectclass <name> requires <attrs> allows <attrs>
 Define the schema rules for the object class named <name>.  These are
-used in conjunction with the schemacheck option.
+used in conjunction with the schemacheck option. This directive is
+deprecated in favor of the one above.
+.TP
+.B objectidentifier <name> { <oid> | <name>[:<suffix>] }
+Define a string name that equates to the given OID. The string can be used
+in place of the numeric OID in objectclass and attribute definitions. The
+name can also be used with a suffix of the form ":xx" in which case the
+value "oid.xx" will be used.
 .TP
 .B referral <url>
 Specify the referral to pass back when
