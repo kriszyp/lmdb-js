@@ -13,11 +13,6 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* Portions Copyright (C) The Internet Society (1998)
- * UTF-8 encodings are derived from those in RFC 2279;
- * see RFC for full legal notices.
- */
-
 /* Basic UTF-8 routines
  *
  * These routines are "dumb".  Though they understand UTF-8,
