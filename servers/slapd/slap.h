@@ -869,11 +869,9 @@ struct slap_internal_schema {
 	/* Matching Rules */
 	MatchingRule	*si_mr_distinguishedNameMatch;
 	MatchingRule	*si_mr_dnSubtreeMatch;
-#if 0
 	MatchingRule	*si_mr_dnOneLevelMatch;
 	MatchingRule	*si_mr_dnSubordinateMatch;
 	MatchingRule	*si_mr_dnSuperiorMatch;
-#endif
 	MatchingRule    *si_mr_caseExactMatch;
 	MatchingRule    *si_mr_caseExactSubstringsMatch;
 	MatchingRule    *si_mr_caseExactIA5Match;

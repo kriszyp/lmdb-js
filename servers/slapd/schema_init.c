@@ -3217,7 +3217,6 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL,
 		NULL },
 
-#if 0
 	{"( 1.3.6.1.4.1.4203.666.4.8 NAME 'dnOneLevelMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
 		SLAP_MR_HIDE | SLAP_MR_EXT, NULL,
@@ -3238,7 +3237,6 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, dnNormalize, dnRelativeMatch,
 		NULL, NULL,
 		NULL },
-#endif
 
 	{"( 1.2.36.79672281.1.13.3 NAME 'rdnMatch' "
 		"SYNTAX 1.2.36.79672281.1.5.0 )",

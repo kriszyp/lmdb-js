@@ -993,16 +993,12 @@ static struct slap_schema_mr_map {
 		offsetof(struct slap_internal_schema, si_mr_distinguishedNameMatch) },
 	{ "dnSubtreeMatch",
 		offsetof(struct slap_internal_schema, si_mr_dnSubtreeMatch) },
-
-#if 0
 	{ "dnOneLevelMatch",
 		offsetof(struct slap_internal_schema, si_mr_dnOneLevelMatch) },
 	{ "dnSubordinateMatch",
 		offsetof(struct slap_internal_schema, si_mr_dnSubordinateMatch) },
 	{ "dnSuperiorMatch",
 		offsetof(struct slap_internal_schema, si_mr_dnSuperiorMatch) },
-#endif
-
 	{ "integerMatch",
 		offsetof(struct slap_internal_schema, si_mr_integerMatch) },
 	{ "integerFirstComponentMatch",
