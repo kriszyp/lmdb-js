@@ -11,7 +11,7 @@ you can create the database on-line using LDAP. With this
 method, you simply start up slapd and add entries using the
 LDAP client of your choice. This method is fine for relatively
 small databases (a few hundred or thousand entries,
-depending on your requirements).  This method works for database
+depending on your requirements). This method works for database
 types which support updates.
 
 The second method of database creation is to do it off-line
@@ -19,7 +19,7 @@ using special utilities provided with slapd. This method is
 best if you have many thousands of entries to create, which
 would take an unacceptably long time using the LDAP method,
 or if you want to ensure the database is not accessed while
-it is being created.  Note that not all database types support
+it is being created. Note that not all database types support
 these utilitites.
 
 
@@ -30,44 +30,44 @@ With this method, you use the LDAP client of your choice
 once the database is created. You should be sure to set the
 following configuration options before starting slapd:
 
-E:	suffix <dn>
+>	suffix <dn>
 
 As described in the preceding section, this option says what
 entries are to be held by this database. You should set this
 to the DN of the root of the subtree you are trying to create.
 For example
 
-E: 	suffix "dc=example, dc=com"
+>	suffix "dc=example, dc=com"
 
 You should be sure to specify a directory where the index
 files should be created:
 
-E:	directory <directory>
+>	directory <directory>
 
 For example:
 
-E:	directory /usr/local/var/openldap-ldbm
+>	directory /usr/local/var/openldap-ldbm
 
 You need to create this directory with appropriate permissions
 such that slapd can write to it.
 
 You need to make it so you can connect to slapd as directory user
-with permission to add entries.  You can configure the directory
+with permission to add entries. You can configure the directory
 to support a special {{super-user}} or {{root}} user just for
-this purpose.   This is done through the following two options
+this purpose. This is done through the following two options
 in the database definition:
 
-E:	rootdn <dn>
-E:	rootpw <passwd>
+>	rootdn <dn>
+>	rootpw <passwd>
 
 For example:
 
-E:	rootdn "cn=Manager, dc=example, dc=com"
-E:	rootpw secret
+>	rootdn "cn=Manager, dc=example, dc=com"
+>	rootpw secret
 
 These options specify a DN and password that can be used
 to authenticate as the {{super-user}} entry of the database (i.e.,
-the entry allowed to do anything).  The DN and password
+the entry allowed to do anything). The DN and password
 specified here will always work, regardless of whether the
 entry named actually exists or has the password given. This
 solves the chicken-and-egg problem of how to authenticate
@@ -76,14 +76,14 @@ and add entries before any entries yet exist.
 Finally, you should make sure that the database definition
 contains the index definitions you want:
 
-E: 	index {<attrlist> | default} [pres,eq,approx,sub,none]
+>	index {<attrlist> | default} [pres,eq,approx,sub,none]
 
 For example, to index the cn, sn, uid and objectclass
 attributes the following index configuration lines could be
 used.
 
-E:	index cn,sn,uid
-E:	index objectclass pres,eq
+>	index cn,sn,uid
+>	index objectclass pres,eq
 
 See Section 4 on the configuration file for more details on
 this option. Once you have configured things to your liking,
@@ -93,22 +93,22 @@ followed by a Postmaster entry using the {{I:ldapadd}} tool, you
 could create an {{TERM:LDIF}} file called {{EX:entries.ldif}} with the
 contents:
 
-E: dc=example, dc=com
-E: objectClass=dcObject
-E: objectClass=organization
-E: dc=example
-E: o=Example Corporation
-E: description=The Example Corporation
-E:
-E: cn=Postmaster, dc=example, dc=com
-E: objectClass=organizationalRole
-E: cn=Postmaster
-E: description=OpenLDAP Postmaster <Postmaster@example.com>
+>	dc=example, dc=com
+>	objectClass=dcObject
+>	objectClass=organization
+>	dc=example
+>	o=Example Corporation
+>	description=The Example Corporation
+>
+>	cn=Postmaster, dc=example, dc=com
+>	objectClass=organizationalRole
+>	cn=Postmaster
+>	description=OpenLDAP Postmaster <Postmaster@example.com>
 
 and then use a command like this to actually create the
 entry:
 
-E: ldapadd -f entries.ldif -x -D "cn=Manager, dc=example, dc=com" -w secret
+>	ldapadd -f entries.ldif -x -D "cn=Manager,dc=example,dc=com" -w secret
 
 The above command assumes settings provided in the above
 examples.
@@ -122,206 +122,216 @@ best if you have many thousands of entries to create, which
 would take an unacceptably long time using
 the LDAP method described above. These tools read the
 slapd configuration file and an input file containing a text
-representation of the entries to add.  For database types which
+representation of the entries to add. For database types which
 support the tools, they produce the database files directly (otherwise
 you must use the on-line method above). There are several important
 configuration options you will want to be sure and set in the config
 file database definition first:
 
-E:	suffix <dn>
+>	suffix <dn>
 
 As described in the preceding section, this option says what
 entries are to be held by this database. You should set this
 to the DN of the root of the subtree you are trying to create.
 For example
 
-E:	suffix "dc=example, dc=com"
+>	suffix "dc=example, dc=com"
 
 You should be sure to specify a directory where the index
 files should be created:
 
-E:	directory <directory>
+>	directory <directory>
 
 For example:
 
-E:	directory /usr/local/var/openldap-ldbm
+>	directory /usr/local/var/openldap-ldbm
 
 Finally, you need to specify which indexes you want to build.
 This is done by one or more index options.
 
-E:	index {<attrlist> | default} [pres,eq,approx,sub,none]
+>	index {<attrlist> | default} [pres,eq,approx,sub,none]
 
 For example:
 
-E:	index cn,sn,uid pres,eq,approx
-E:	index objectClass eq
+>	index cn,sn,uid pres,eq,approx
+>	index objectClass eq
 
 This would create presence, equality and approximate
 indexes for the cn, sn, and uid attributes and an equality
-index for the objectClass attribute.  See the configuration
+index for the objectClass attribute. See the configuration
 file section for more information on this option.
 
-H3: The {{EX: slapadd}} program
+H3: The {{EX:slapadd}} program
 
 Once you've configured things to your liking, you create the
 primary database and associated indexes by running the
 {{slapadd}}(8) program:
 
-E:	slapadd -l <inputfile> -f <slapdconfigfile>
-E:		[-d <debuglevel>] [-n <integer>|-b <suffix>]
+>	slapadd -l <inputfile> -f <slapdconfigfile>
+>		[-d <debuglevel>] [-n <integer>|-b <suffix>]
 
 The arguments have the following meanings:
 
-E:	-l <inputfile>
+>	-l <inputfile>
 
 Specifies the LDIF input file containing the entries to add in
 text form (described below in Section 8.3).
 
-E:	-f <slapdconfigfile>
+>	-f <slapdconfigfile>
 
 Specifies the slapd configuration file that tells where to
 create the indexes, what indexes to create, etc.
 
-E:	-d <debuglevel>
+>	-d <debuglevel>
 
-Turn on debugging, as specified by {{EX: <debuglevel>}}. The
+Turn on debugging, as specified by {{EX:<debuglevel>}}. The
 debug levels are the same as for slapd (see Section 6.1).
 
-E: 	-n <databasenumber>
+> 	-n <databasenumber>
 
 An optional argument that specifies the configuration file
 database for which to build. The first database listed
 is "1", the second "2", etc. By default, the first ldbm database
-in the configuration file is used.  Should not be used in
+in the configuration file is used. Should not be used in
 conjunction with {{EX:-b}}.
 
-E: -b <suffix>
+>	-b <suffix>
 
 An optional argument that specifies the configuration file
-database for which to build.  The provided suffix is matched
+database for which to build. The provided suffix is matched
 against database {{EX:suffix}} to determine the database
-number.  Should not be used in conjunction with {{EX:-n}}.
+number. Should not be used in conjunction with {{EX:-n}}.
 
 
-H3: The {{EX: ldif2index}} program
+H3: The {{EX:slapindex}} program
 
 Sometimes it may be necessary to regenerate indices (such
-as after modifying {{slapd.conf}}(5)).  This is possible using
-the {{slapindex}}(8) program. {{EX: slapindex}} is invoked
+as after modifying {{slapd.conf}}(5)). This is possible using
+the {{slapindex}}(8) program. {{EX:slapindex}} is invoked
 like this
 
-E: 	slapindex -f <slapdconfigfile>
-E:		[-d <debuglevel>] [-n <databasenumber>|-b <suffix>]
+>	slapindex -f <slapdconfigfile>
+>		[-d <debuglevel>] [-n <databasenumber>|-b <suffix>]
 
 Where the -f, -d, -n and -b options are the same as for the
-{{slapadd}}(1) program.  slapindex rebuilds all indices based
+{{slapadd}}(1) program. slapindex rebuilds all indices based
 upon the current database contents.
 
 
-H3: The {{EX: slapcat}} program
+H3: The {{EX:slapcat}} program
 
-The {{EX: slapcat}} program is dump the database to a {{TERM:LDIF}}
-file.  This can be useful when you want to make a human-readable
+The {{EX:slapcat}} program is dump the database to a {{TERM:LDIF}}
+file. This can be useful when you want to make a human-readable
 backup of your database or for editing your database off-line.
 The program is invoked like this:
 
-E: 	slapcat -l <filename> -f <slapdconfigfile>
-E:		[-d <debuglevel>] [-n <databasenumber>|-b <suffix>]
+>	slapcat -l <filename> -f <slapdconfigfile>
+>		[-d <debuglevel>] [-n <databasenumber>|-b <suffix>]
 
 where -n or -b is used to select the database in the slapd.conf(5)
-specified using -f.  The corresponding LDIF output is written to
+specified using -f. The corresponding LDIF output is written to
 standard output or to the file specified using the -l option.
 
 
-H3: The {{EX: ldif}} program
+H3: The {{EX:ldif}} program
 
-The ldif program is used to convert arbitrary data values to
-LDIF format. This can be useful when writing a program or
-script to create the LDIF file you will feed into the ldif2ldbm
-program, or when writing a SHELL backend. ldif takes an
+The {{ldif}}(1) program is used to convert arbitrary data values to
+{{TERM:LDIF}} format. This can be useful when writing a program or
+script to create the LDIF file you will feed into the {{slapadd}}(8)
+or {{ldapadd}}(1) program, or when writing a SHELL backend. ldif takes an
 attribute name as an argument, and reads the attribute
 value(s) from standard input. It produces the LDIF formatted
 attribute line(s) on standard output. The usage is:
 
-E: 	ldif [-b] <attrname>
+> 	ldif [-b] <attrname>
 
-where {{EX: <attrname>}} is the name of the attribute. Without the
+where {{EX:<attrname>}} is the name of the attribute. Without the
 -b option, ldif considers each line of standard input to be a
 separate value of the attribute.
 
 The -b option can be used to force ldif to interpret its input
 as a single raw binary value. This option is useful when
-converting binary data such as a {{EX: jpegPhoto}} or {{EX: audio}}
+converting binary data such as a {{EX:jpegPhoto}} or {{EX:audio}}
 attribute.
 
 
 H2: The LDIF text entry format
 
-The LDAP Data Interchange Format (LDIF) is used to
-represent LDAP entries in a simple text format. The basic
-form of an entry is:
+The LDAP Data Interchange Format (LDIF) is used to represent LDAP
+entries in a simple text format. The basic form of an entry is:
 
-E:	[<id>]
-E:	dn: <distinguished name>
-E:	<attrtype>: <attrvalue>
-E:	<attrtype>: <attrvalue>
-E:
-E: 	...
+>	# comment
+>	dn: <distinguished name>
+>	<attrdesc>: <attrvalue>
+>	<attrdesc>: <attrvalue>
+>
+> 	...
 
-where {{EX: <id>}} is the optional entry ID (a positive decimal
-number). Normally, you would not supply the {{EX: <id>}}, allowing
-the database creation tools to do that for you. The ldbmcat
-program, however, produces an LDIF format that includes
-{{EX: <id>}} so that new indexes created will be consistent.
+Lines starting with '{{EX:#}}' character are
+comments.  An attribute description may be a simple attribute
+type like {{EX:cn}} or {{objectClass}} or {{1.2.3}} (an {{TERM:OID}}
+associated with an attribute type) or may include options such
+as {{EX:cn;lang_en_US}} or {{EX:userCertificate;binary}}.
 
 A line may be continued by starting the next line with a
-single space or tab character. e.g.,
+{{single}} space or tab character. e.g.,
 
-E:	dn: cn=Barbara J Jensen, dc=example, dc=com
+>	dn: cn=Barbara J Jensen, dc=example, dc=
+>	 com
+>	cn: Barbara J
+>	  Jensen
+
+which is equivalent to:
+>	dn: cn=Barbara J Jensen, dc=example, dc=com
+>	cn: Barbara J Jensen
 
 Multiple attribute values are specified on separate lines. e.g.,
 
-E:	cn: Barbara J Jensen
-E:	cn: Babs Jensen
+>	cn: Barbara J Jensen
+>	cn: Babs Jensen
 
-If an {{EX: <attrvalue>}} contains a non-printing character, or
-begins with a space or a colon `:', the {{EX: <attrtype>}} is followed
+If an {{EX:<attrvalue>}} contains a non-printing character, or
+begins with a space or a colon '{{EX::}}', the {{EX:<attrdesc>}} is followed
 by a double colon and the value is encoded in base 64
-notation. e.g., the value " begins with a space" would be
+notation. e.g., the value {{EX:" begins with a space"}} would be
 encoded like this:
 
-E:	cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
+>	cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
 
 Multiple entries within the same LDIF file are separated by
 blank lines. Here's an example of an LDIF file containing
 three entries.
 
-E:	dn: cn=Barbara J Jensen, dc=example, dc=com
-E:	cn: Barbara J Jensen
-E:	cn: Babs Jensen
-E:	objectclass: person
-E:	sn: Jensen
-E:
-E:	dn: cn=Bjorn J Jensen, dc=example, dc=com
-E:	cn: Bjorn J Jensen
-E:	cn: Bjorn Jensen
-E:	objectclass: person
-E:	sn: Jensen
-E:
-E:	dn: cn=Jennifer J Jensen, dc=example, dc=com
-E:	cn: Jennifer J Jensen
-E:	cn: Jennifer Jensen
-E:	objectclass: person
-E:	sn: Jensen
-E:	jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
-E:	A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
-E:	ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
-E:	
-E:	...
+>	# First Entry
+>	dn: cn=Barbara J Jensen, dc=example, dc=com
+>	cn: Barbara J Jensen
+>	cn: Babs Jensen
+>	objectclass: person
+>	sn: Jensen
+>
+>	# Second Entry
+>	dn: cn=Bjorn J Jensen, dc=example, dc=com
+>	cn: Bjorn J Jensen
+>	cn: Bjorn Jensen
+>	objectclass: person
+>	sn: Jensen
+>
+>	# Third Entry
+>	dn: cn=Jennifer J Jensen, dc=example, dc=com
+>	cn: Jennifer J Jensen
+>	cn: Jennifer Jensen
+>	objectclass: person
+>	sn: Jensen
+>	# Base64 encoded JPEG photo
+>	jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
+>	A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
+>	ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
 
-Notice that the {{EX: jpegPhoto}} in Jennifer Jensen's entry is
-encoded using base 64. The {{EX: ldif}} program (described in
-Section 8.2.6) can be used to produce the LDIF format.
+Notice that the {{EX:jpegPhoto}} in Jennifer Jensen's entry is
+encoded using base 64. The {{ldif}}(1) program (described in
+Section 8.2.6) can be used to produce an attribute
+description/base64-value pair suitable for inclusion in an
+LDIF file.
 
 Note: Trailing spaces are not trimmed from values in an
 LDIF file. Nor are multiple internal spaces compressed. If

@@ -31,33 +31,33 @@ are ignored.  If a line begins with white space, it is considered a
 continuation of the previous line. The general format of slapd.conf is
 as follows:
 
-E: # global configuration directives
-E: <global config directives>
-E:
-E: # backend definition
-E: backend <typeA>
-E: <backend-specific directives>
-E:
-E: # first database definition & config directives
-E: database <typeA>
-E: <database-specific directives>
-E:
-E: # second database definition & config directives
-E: database <typeB>
-E: <database-specific directives>
-E:
-E: # second database definition & config directives
-E: database <typeA>
-E: <database-specific directives>
-E:
-E: # subsequent backend & database definitions & config directives
-E: ...
+>	# global configuration directives
+>	<global config directives>
+>
+>	# backend definition
+>	backend <typeA>
+>	<backend-specific directives>
+>
+>	# first database definition & config directives
+>	database <typeA>
+>	<database-specific directives>
+>
+>	# second database definition & config directives
+>	database <typeB>
+>	<database-specific directives>
+>
+>	# second database definition & config directives
+>	database <typeA>
+>	<database-specific directives>
+>
+>	# subsequent backend & database definitions & config directives
+>	...
 
 A configuration directive may take arguments.  If so, they are
 separated by white space.  If an argument contains white space,
-the argument should be enclosed in double quotes "like this". If
-an argument contains a double quote or a backslash character `\',
-the character should be preceded by a backslash character `\'.
+the argument should be enclosed in double quotes {{EX:"like this"}}. If
+an argument contains a double quote or a backslash character `{{EX:\}}',
+the character should be preceded by a backslash character `{{EX:\}}'.
 
 The distribution contains an example configuration file that will
 be installed in the {{F: /usr/local/etc/openldap}} directory.
@@ -123,8 +123,8 @@ H4: loglevel <integer>
 
 This directive specifies the level at which debugging statements
 and operation statistics should be syslogged (currently
-logged to the syslogd(8) LOG_LOCAL4 facility). You must
-have compiled slapd with  DLDAP_DEBUG for this to work
+logged to the {{syslogd}}(8) LOG_LOCAL4 facility). You must
+have compiled slapd with -DLDAP_DEBUG for this to work
 (except for the two stats levels, which are always enabled).
 Log levels are additive. To display what numbers correspond
 to what kind of debugging, invoke slapd with the  ? flag or
@@ -165,7 +165,7 @@ cannot find a local database to handle a request.
 
 \Example:
 
-E: referral ldap://root.openldap.org
+>	referral ldap://root.openldap.org
 
 This will refer non-local queries to the global root LDAP server
 at the OpenLDAP Project. Smart LDAP clients can re-ask their
@@ -183,7 +183,7 @@ directive(s). If schema checking is off this check is not done.
 
 \Default:
 
-E: schemacheck on
+>	schemacheck on
 
 H4: sizelimit <integer>
 
@@ -192,7 +192,7 @@ from a search operation.
 
 \Default:
 
-E: sizelimit 500
+>	sizelimit 500
 
 
 H4: srvtab <filename>
@@ -202,11 +202,11 @@ kerberos keys necessary for authenticating clients using
 kerberos. This directive is only meaningful if you are using
 kerberos authentication, which must be enabled at compile
 time by including the appropriate definitions in the
-{{EX: Make-common}} file.
+{{EX:Make-common}} file.
 
 \Default:
 
-E: srvtab /etc/srvtab
+>	srvtab /etc/srvtab
 
 H4: timelimit <integer>
 
@@ -217,7 +217,7 @@ exceeded timelimit will be returned.
 
 \Default:
 
-E: timelimit 3600
+>	timelimit 3600
 
 
 H3: General Backend Directives
@@ -236,7 +236,7 @@ database.
 
 \Example:
 
-E: database ldbm
+>	database ldbm
 
 This marks the beginning of a new LDBM backend database
 instance definition.
@@ -249,7 +249,7 @@ createTimestamp attributes for entries.
 
 \Default:
 
-E: lastmod on
+>	lastmod on
 
 H4: readonly { on | off }
 
@@ -259,43 +259,43 @@ perform" error.
 
 \Default:
 
-E: readonly off
+>	readonly off
 
 H4: replica
 
-.{{EX:replica host=<hostname>[:<port>]}}
-..{{EX:"binddn=<DN>"}}
-..{{EX:bindmethod={ simple | kerberos }}}
-..{{EX:[credentials=<password>]}}
-..{{EX:[srvtab=<filename>]}}
+>	replica host=<hostname>[:<port>]
+>		"binddn=<DN>"
+>		[bindmethod={ simple | kerberos }]
+>		[credentials=<password>]
+>		[srvtab=<filename>]
 
 This directive specifies a replication site for this database. The
-{{EX: host=}} parameter specifies a host and optionally a port where
+{{EX:host=}} parameter specifies a host and optionally a port where
 the slave slapd instance can be found. Either a domain name
 or IP address may be used for <hostname>. If <port> is not
 given, the standard LDAP port number (389) is used.
 
-The {{EX: binddn=}} parameter gives the DN to bind as for updates to
+The {{EX:binddn=}} parameter gives the DN to bind as for updates to
 the slave slapd. It should be a DN which has read/write
 access to the slave slapd's database, typically given as a
-"rootdn" in the slave's config file. It must also match the
+{{EX:rootdn}} in the slave's config file. It must also match the
 updatedn directive in the slave slapd's config file. Since DNs are
-likely to contain embedded spaces, the entire "{{EX: binddn=<DN>}}"
-string should be enclosed in quotes.
+likely to contain embedded spaces, the entire {{EX:"binddn=<DN>"}}
+string should be enclosed in double quotes.
 
-{{EX: bindmethod}} is either simple or kerberos, depending on
+The {{EX:bindmethod}} is either simple or kerberos, depending on
 whether simple password-based authentication or kerberos
 authentication is to be used when connecting to the slave
 slapd. Simple authentication requires a valid password be
 given. Kerberos authentication requires a valid srvtab file.
 
-The {{EX: credentials=}} parameter, which is only required if using
-simple authentication, gives the password for binddn on the
+The {{EX:credentials=}} parameter, which is only required if using
+simple authentication, gives the password for {{EX:binddn}} on the
 slave slapd.
 
-The {{EX: srvtab=}} parameter, which is only required if using
+The {{EX:srvtab=}} parameter, which is only required if using
 kerberos, specifies the filename which holds the kerberos key
-for the slave slapd. If omitted, {{EX: /etc/srvtab}} is used.
+for the slave slapd. If omitted, {{F:/etc/srvtab}} is used.
 
 See Section 10 for more details on replication.
 
@@ -319,19 +319,19 @@ operations on this database.
 
 \Example:
 
-E: rootdn "cn=Manager, dc=example, dc=com"
+>	rootdn "cn=Manager, dc=example, dc=com"
 
 H4: rootkrbname <kerberosname>
 
 This directive specifies a kerberos name for the DN given above
 that will always work, regardless of whether an entry with the
-given DN exists or has a {{EX: krbName}} attribute. This directive is
+given DN exists or has a {{EX:krbName}} attribute. This directive is
 useful when creating a database and also when using slurpd
 to provide replication service (see Section 10).
 
 \Example:
 
-E: rootkrbname admin@openldap.org
+>	rootkrbname admin@openldap.org
 
 H4: rootpw <password>
 
@@ -343,7 +343,7 @@ replication service (see Section 10).
 
 \Example:
 
-E: rootpw secret
+>	rootpw secret
 
 H4: suffix <dn suffix>
 
@@ -354,7 +354,7 @@ definition.
 
 \Example:
 
-E: suffix "dc=example, dc=com"
+>	suffix "dc=example, dc=com"
 
 Queries with a DN ending in "dc=example, dc=com"
 will be passed to this backend.
@@ -385,7 +385,7 @@ cache maintained by the LDBM backend database instance.
 
 \Default:
 
-E: cachesize 1000
+>	cachesize 1000
 
 
 H4: dbcachesize <integer>
@@ -399,7 +399,7 @@ modifies or when building indexes.
 
 \Default:
 
-E: dbcachesize 100000
+>	dbcachesize 100000
 
 
 H4: directory <directory>
@@ -409,7 +409,7 @@ containing the database and associated indexes live.
 
 \Default:
 
-E: directory /usr/local/var/openldap-ldbm
+>	directory /usr/local/var/openldap-ldbm
 
 
 H4: index {<attrlist> | default} [pres,eq,approx,sub,none]
@@ -420,9 +420,9 @@ maintained.
 
 \Example:
 
-E: index default pres,eq
-E: index objectclass,uid
-E: index cn,sn eq,sub,approx
+>	index default pres,eq
+>	index objectclass,uid
+>	index cn,sn eq,sub,approx
 
 The first line sets the default to indices to maintain to present
 and equality.  The second line causes the default (pres,eq) set
@@ -437,29 +437,21 @@ created database index files should have.
 
 \Default:
 
-E: mode 0600
+>	mode 0600
 
 
 
 H3: Shell Backend-Specific Directives
 
-E: bind <pathname>
-
-E: unbind <pathname>
-
-E: search <pathname>
-
-E: compare <pathname>
-
-E: modify <pathname>
-
-E: modrdn <pathname>
-
-E: add <pathname>
-
-E: delete <pathname>
-
-E: abandon <pathname>
+>	bind <pathname>
+>	unbind <pathname>
+>	search <pathname>
+>	compare <pathname>
+>	modify <pathname>
+>	modrdn <pathname>
+>	add <pathname>
+>	delete <pathname>
+>	abandon <pathname>
 
 These directives specify the pathname of the command to
 execute in response to the given LDAP operation. The
@@ -468,7 +460,7 @@ conventions described in Appendix B.
 
 \Example:
 
-E: search /usr/local/bin/search.sh
+>	search /usr/local/bin/search.sh
 
 Note that you need only supply those commands you want the
 backend to handle. Operations for which a command is not
@@ -488,56 +480,48 @@ This directive specifies an alternate passwd file to use.
 
 \Default:
 
-E: file /etc/passwd
+>	file /etc/passwd
 
 
 
-H3: Tcl Backend-Specific Directives
+H3: TCL Backend-Specific Directives
 
 H4: scriptpath <pathname>
 
-This is the full path to a file containing the tcl command(s) to handle
+This is the full path to a file containing the TCL command(s) to handle
 the LDAP operations.
 
 H4: Proc specifiers
 
-E: bind <proc>
+>	bind <proc>
+>	unbind <proc>
+>	search <proc>
+>	compare <proc>
+>	modify <proc>
+>	modrdn <proc>
+>	add <proc>
+>	delete <proc>
+>	abandon <proc>
 
-E: unbind <proc>
-
-E: search <proc>
-
-E: compare <proc>
-
-E: modify <proc>
-
-E: modrdn <proc>
-
-E: add <proc>
-
-E: delete <proc>
-
-E: abandon <proc>
-
-These directives specify the name of the proc (function) in the tcl script
-specified in 'scriptpath' to execute in response to the given LDAP
-operation.
+These directives specify the name of the proc (function) in the
+TCL script specified in {{EX:scriptpath}} to execute in response to
+the given LDAP operation.
 
 \Example:
 
-E: search proc_search
+>	search proc_search
 
 Note that you need only supply those commands you want the
-tcl backend to handle. Operations for which a command is not
+TCL backend to handle. Operations for which a command is not
 supplied will be refused with an "unwilling to perform" error.
 
 H4: tclrealm <name>
 
-This is one of the biggest pluses of using the tcl backend.
+This is one of the biggest pluses of using the TCL backend.
 The realm let's you group several databases to the same interpretor.
 This basically means they share the same global variables and proc
 space. So global variables, as well as all the procs are callable
-between databases. If no tclrealm is specified, it is put into the
+between databases. If no {{EX:tclrealm}} is specified, it is put into the
 "default" realm.
 
 
@@ -548,32 +532,35 @@ Access to slapd entries and attributes is controlled by the
 access configuration file directive. The general form of an
 access line is:
 
-E: <access directive> ::= access to <what>
-E: 	[ by <who> <access> <control> ]+
-E: <what> ::= * | [ dn[.<target style>]=<regex> ] [ filter=<ldapfilter> ]
-E:	[ attrs=<attrlist> ]
-E: <target style> ::= regex | base | one | subtree | children
-E: <attrlist> ::= <attr> | <attr> , <attrlist>
-E: <attr> ::= <attrname> | entry | children
-E: <who> ::= [ * | anonymous | users | self | dn[.<subject style>]=<regex> ]
-E:	[ dnattr=<attrname> ]
-E:	[ group[/<objectclass>[/<attrname>][.<basic style>]]=<regex> ]
-E:	[ peername[.<basic style>]=<regex> ] [ sockname[.<basic style>]=<regex> ]
-E:	[ domain[.<basic style>]=<regex> ] [ sockurl[.<basic style>]=<regex> ]
-E:	[ set=<setspec> ]
-E:	[ aci=<attrname> ]
-E: <subject style> ::= regex | exact | base | one | subtree | children
-E: <basic style> ::= regex | exact
-E: <access> ::= [self]{<level>|<priv>}
-E: <level> ::= none | auth | compare | search | read | write
-E: <priv> ::= {=|+|-}{w|r|s|c|x}+
-E: <control> ::= [ stop | continue | break ]
+>	<access directive> ::= access to <what>
+>		[by <who> <access> <control>]+
+>	<what> ::= * | [ dn[.<target style>]=<regex>]
+>		[filter=<ldapfilter>] [attrs=<attrlist>]
+>	<target style> ::= regex | base | one | subtree | children
+>	<attrlist> ::= <attr> | <attr> , <attrlist>
+>	<attr> ::= <attrname> | entry | children
+>	<who> ::= [* | anonymous | users | self |
+>		dn[.<subject style>]=<regex>]
+>		[dnattr=<attrname> ]
+>		[group[/<objectclass>[/<attrname>][.<basic style>]]=<regex> ]
+>		[peername[.<basic style>]=<regex>]
+>		[sockname[.<basic style>]=<regex>]
+>		[domain[.<basic style>]=<regex>]
+>		[sockurl[.<basic style>]=<regex>]
+>		[set=<setspec>]
+>		[aci=<attrname>]
+>	<subject style> ::= regex | exact | base | one | subtree | children
+>	<basic style> ::= regex | exact
+>	<access> ::= [self]{<level>|<priv>}
+>	<level> ::= none | auth | compare | search | read | write
+>	<priv> ::= {=|+|-}{w|r|s|c|x}+
+>	<control> ::= [stop | continue | break]
 
 where the <what> part selects the entries and/or attributes to
-which the access applies, the <who> part specifies which
-entities are granted access, and the <access> part specifies
-the access granted. Multiple <who> <access> <control> triplets are
-supported, allowing many entities to be granted different
+which the access applies, the {{EX:<who>}} part specifies which
+entities are granted access, and the {{EX:<access>}} part specifies
+the access granted. Multiple {{EX:<who> <access> <control>}} triplets
+are supported, allowing many entities to be granted different
 access to the same set of entries and attributes.
 
 
@@ -584,7 +571,7 @@ entries and attributes to which the access control applies.
 Entries can be selected in two ways: by a regular expression
 matching the entry's distinguished name:
 
-E: dn=<regular expression>
+>	dn=<regular expression>
 
 Note: The DN pattern specified should be "normalized",
 meaning that there should be no extra spaces, and commas
@@ -596,7 +583,7 @@ An example of a non-normalized DN is
 Or, entries may be selected by a filter matching some
 attribute(s) in the entry:
 
-E: filter=<ldap filter>
+>	filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
 search filter, as described in RFC 2254.
@@ -608,7 +595,7 @@ Attributes within an entry are selected by including a
 comma-separated list of attribute names in the <what>
 selector:
 
-E: attrs=<attribute list>
+>	attrs=<attribute list>
 
 Access to the entry itself must be granted or denied using the
 special attribute name "{{EX:entry}}". Note that giving access to an
@@ -627,7 +614,7 @@ any entry, the keyword "self" matching the entry protected by
 the access, or by a regular expression matching an entry's
 distinguished name:
 
-E: dn=<regular expression>
+>	dn=<regular expression>
 
 Note:  The DN pattern specified should be "normalized",
 meaning that there should be no extra spaces, and commas
@@ -636,13 +623,13 @@ should be used to separate components.
 Or entities can be specified by a regular expression matching
 the client's IP address or domain name:
 
-E: addr=<regular expression>
-E: domain=<regular expression>
+>	addr=<regular expression>
+>	domain=<regular expression>
 
 or by an entry listed in a DN-valued attribute in the entry to
 which the access applies:
 
-E: dnattr=<dn-valued attribute name>
+>	dnattr=<dn-valued attribute name>
 
 The dnattr specification is used to give access to an entry
 whose DN is listed in an attribute of the entry (e.g., give
@@ -656,36 +643,35 @@ H3: The access to grant
 
 The kind of <access> granted can be one of the following:
 
-E: none | compare | search | read | write
+>	none | auth | compare | search | read | write
 
 Note that each level implies all lower levels of access. So, for
 example, granting someone write access to an entry also
-grants them read, search, and compare access.
-
+grants them read, search, compare, and auth access.
 
 
 H3: Access Control Evaluation
 
 When evaluating whether some requester should be given
 access to an entry and/or attribute, slapd compares the entry
-and/or attribute to the {{EX: <what>}} selectors given in the
+and/or attribute to the {{EX:<what>}} selectors given in the
 configuration file. Access directives local to the current
 database are examined first, followed by global access
 directives. Within this priority, access directives are
 examined in the order in which they appear in the config file.
-Slapd stops with the first {{EX: <what>}} selector that matches the
+Slapd stops with the first {{EX:<what>}} selector that matches the
 entry and/or attribute. The corresponding access directive is
 the one slapd will use to evaluate access.
 
 Next, slapd compares the entity requesting access to the
-{{EX: <who>}} selectors within the access directive selected above,
-in the order in which they appear. It stops with the first {{EX: <who>}}
+{{EX:<who>}} selectors within the access directive selected above,
+in the order in which they appear. It stops with the first {{EX:<who>}}
 selector that matches the requester. This determines the
 access the entity requesting access has to the entry and/or
 attribute.
 
 Finally, slapd compares the access granted in the selected
-{{EX: <access>}} clause to the access requested by the client. If it
+{{EX:<access>}} clause to the access requested by the client. If it
 allows greater or equal access, access is granted. Otherwise,
 access is denied.
 
@@ -693,7 +679,7 @@ The order of evaluation of access directives makes their
 placement in the configuration file important. If one access
 directive is more specific than another in terms of the entries
 it selects, it should appear first in the config file. Similarly, if
-one {{EX: <who>}} selector is more specific than another it should
+one {{EX:<who>}} selector is more specific than another it should
 come first in the access directive. The access control
 examples given below should help make this clear.
 
@@ -707,22 +693,28 @@ The access control facility described above is quite powerful.
 This section shows some examples of its use. First, some
 simple examples:
 
-E: access to * by * read
+>	access to * by * read
 
-This access directive grants read access to everyone. If it
-appears alone it is the same as the following defaultaccess
-line.
+This access directive grants read access to everyone.
 
-E: defaultaccess read
+>	access to *
+>		by self write
+>		by anonymous auth
+>		by * read
+
+This directive allows users to modify their own entries,
+allows authenticate, and allows authenticated users to read.
+Note that only the first {{EX:by <who>}} clause which matches applies.
+Hence, the anonymous users are granted {{EX:auth}}, not {{EX:read}}.
 
 The following example shows the use of a regular expression
 to select the entries by DN in two access directives where
 ordering is significant.
 
-E: access to dn=".*,dc=example,dc=com"
-E: 	by * search
-E: access to dn=".*,dc=com"
-E: 	by * read
+>	access to dn=".*,dc=example,dc=com"
+> 		by * search
+>	access to dn=".*,dc=com"
+> 		by * read
 
 Read access is granted to entries under the {{EX:dc=com}}
 subtree, except for those entries under the {{EX:dc=example,dc=com}} subtree,
@@ -731,28 +723,37 @@ order of these access directives was reversed, the
 trailing directive would never be reached, since all
 {{EX:dc=example,dc=com}} entries are also {{EX:dc=com}} entries.
 
-The next example again shows the importance of ordering,
-both of the access directives and the "by" clauses. It also
-shows the use of an attribute selector to grant access to a
-specific attribute and various <who> selectors.
+Also note that if no {{EX:access to}} directive matches or
+no {{EX:by <who>}} clause, {{B:access is denied}}.  That is, every
+{{EX:access to}} directive ends with a implicit {{EX:by * none}}
+clause and access list itself ends with {{EX:access to * by * none}}
+directive.  Only if no access controls are specified, is the
+defaultaccess granted.
 
-E:access to dn=".*, dc=example, dc=com" attr=homePhone
-E:	by self write
-E:	by dn=".*,dc=example,dc=com" search
-E:	by domain=.*\.example\.com read
-E:	by * compare
-E:access to dn=".*,dc=example,dc=com"
-E:	by self write
-E:	by dn=".*,dc=example,dc=com" search
-E:	by * none
+The next example again shows the importance of ordering,
+both of the access directives and the {{EX:by <who>}} clauses.
+It also shows the use of an attribute selector to grant access
+to a specific attribute and various <who> selectors.
+
+>	access to dn="(.*,)?dc=example,dc=com" attr=homePhone
+>		by self write
+>		by dn="(.*,)?dc=example,dc=com" search
+>		by domain=.*\.example\.com read
+>	access to dn="(.*,)?dc=example,dc=com"
+>		by self write
+>		by dn=".*,dc=example,dc=com" search
+>		by anonymous auth
 
 This example applies to entries in the "dc=example, dc=com"
 subtree. To all attributes except homePhone, the entry itself
 can write them, other Example.com entries can search by them,
-anybody else has no access. The homePhone attribute is
-writable by the entry, searchable by other Example.com entries,
-readable by clients connecting from somewhere in the
-example.com domain, and comparable by everybody else.
+anybody else has no access ((implicit {{EX:by * none}}) excepting for
+authentication/authorization (which is always done anonymously).
+The homePhone attribute is writable by the entry, searchable
+by other Example.com entries, readable by clients connecting
+from somewhere in the example.com domain, and otherwise not
+readable (implicit {{EX:by * none}}).  All other access
+is denied by the implicit {{EX:access to * by * none}}.
 
 Sometimes it is useful to permit a particular DN to add or
 remove itself from an attribute. For example, if you would like to
@@ -760,18 +761,18 @@ create a group and allow people too add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
-E: access to attr=member,entry
-E: 	by dnattr=member selfwrite
+>	access to attr=member,entry
+> 		by dnattr=member selfwrite
 
-The dnattr {{EX: <who>}} selector says that the access applies to
+The dnattr {{EX:<who>}} selector says that the access applies to
 entries listed in the member attribute. The selfwrite access
 selector says that such members can only add or delete their
 own DN from the attribute, not other values. The addition of
 the entry attribute is required because access to the entry is
 required to access any of the entry's attributes.
 
-Note that the attr=member construct in the {{EX: <what>}} clause is a
-shorthand for the clause "dn=* attr=member" (i.e., it matches
+Note that the attr=member construct in the {{EX:<what>}} clause is a
+shorthand for the clause "{{EX:dn=.* attr=member}}" (i.e., it matches
 the member attribute in all entries).
 
 
@@ -780,19 +781,19 @@ H2: Schema Enforcement
 
 
 
-The {{EX: objectclass}} and schemacheck configuration file directives
+The {{EX:objectclass}} and schemacheck configuration file directives
 can be used to enforce schema rules on entries in the
 directory. The schema rules are defined by one or more
 objectclass lines, and enforcement is turned on or off via the
-schemacheck directives. The format of an {{EX: objectclass}} line is:
+schemacheck directives. The format of an {{EX:objectclass}} line is:
 
-E: objectclass <RFC2252 Object Class Description>
+>	objectclass <RFC2252 Object Class Description>
 
 This directive defines the schema rules for the object class
-given by {{EX: <name>}}. Schema rules consist of the attributes the
-entry is required to have (given by the requires {{EX: <attrs>}}
+given by {{EX:<name>}}. Schema rules consist of the attributes the
+entry is required to have (given by the requires {{EX:<attrs>}}
 clause) and those attributes that it may optionally have (given
-by the allows {{EX: <attrs>}} clause). In both clauses, {{EX: <attrs>}} is a
+by the allows {{EX:<attrs>}} clause). In both clauses, {{EX:<attrs>}} is a
 comma-separated list of attribute names.
 
 Note that object class inheritance (that is, defining one object
@@ -803,9 +804,9 @@ in the objectclass definition.
 For example, to define an objectclass called myPerson, you
 might include a definition like this:
 
-E: objectclass myperson
-E: 	requires cn, sn, objectclass
-E: 	allows mail, phone, fax
+>	objectclass myperson
+>		requires cn, sn, objectclass
+>		allows mail, phone, fax
 
 To then enforce this rule (i.e., to make sure an entry with an
 objectclass of myperson contains the cn, sn and objectclass
@@ -813,7 +814,7 @@ attributes, and that it contains no other attributes besides
 mail, phone, and fax), turn on schema checking with a line like
 this:
 
-E: schemacheck on
+>	schemacheck on
 
 
 
@@ -834,17 +835,17 @@ E: 3. referral ldap://root.openldap.org
 
 Line 1 is a comment. Lines 2 include another config file
 which containing {{core}} schema definitions.
-The {{EX: referral}} directive on line 3
+The {{EX:referral}} directive on line 3
 means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
-standard port (389) at the host {{EX: root.openldap.org}}.
+standard port (389) at the host {{EX:root.openldap.org}}.
 
 The next section of the configuration file defines an LDBM
 backend that will handle queries for things in the
 "dc=example,dc=com" portion of the tree. The
 database is to be replicated to two slave slapds, one on
 truelies, the other on judgmentday. Indexes are to be
-maintained for several attributes, and the {{EX: userPassword}}
+maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
 E: 1. # ldbm definition for the U-M database
@@ -901,7 +902,7 @@ various attributes. The default is not to maintain any indexes
 (line 19).
 
 Lines 20 through 30 specify access control for entries in the
-database. For all entries, the {{EX: userPassword}} attribute is
+database. For all entries, the {{EX:userPassword}} attribute is
 writable by the entry and the "admin" entry, may be used for
 authentication/authorization purposes, but is otherwise not
 readable.  All other attributes by writable by the entry and

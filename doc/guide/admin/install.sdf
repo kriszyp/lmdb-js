@@ -160,7 +160,7 @@ LIBS    	Specify additional libraries
 Now run the configure script with any desired configure options or
 environment variables.
 
-.{{EX: [[env] settings] ./configure [options]}}
+>	[[env] settings] ./configure [options]
 
 As an example, lets assume that we want a copy of OpenLDAP configured to use the
 LDBM backend, and the shell backend.  The LDBM backend is turned on by default, so we don't need to do anything special to enable it.
@@ -176,9 +176,9 @@ The following example shows how to run {{EX:configure}} and specify where to
 find BerkeleyDB and turn on the DNSSRV backend.  The example should be 
 entered on a single line (it has been split onto seperate lines for clarity.)
 
-.{{EX: env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \ }}
-..{{EX: LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib" \ }}
-..{{EX: ./configure --enable-dnssrv}}
+>	env CPPFLAGS="-I/usr/local/BerkeleyDB.3.1/include" \
+>		LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib" \
+>		./configure --enable-dnssrv
 
 Note: Some shells, such as those derived from the Bourne {{sh}}(1),
 do not require use of the {{env}}(1) command.  In some cases, environmental
@@ -194,16 +194,16 @@ H2: Building the Software
 
 Once you have run the {{EX:configure}} script the last line of output
 should be:
-.{{EX:Please "make depend" to build dependencies}}
+>	Please "make depend" to build dependencies
 
 If the last line of output does not match, {{EX:configure}} has failed.
 You should not proceed until {{EX:configure}} completes sucessfuly.
 
 To build dependencies, run:
-.{{EX: make depend}}
+>	make depend
 
 Now build the software, this step will actually compile OpenLDAP.
-.{{EX: make}}
+>	make
 
 You should examine the output of this command carefully to make sure
 everything is built correctly. Note that this command builds the LDAP
@@ -214,7 +214,7 @@ H2: Testing the Software
 Once the software has been properly configured and successfully
 made, you should run the test suite to verify the build.
 
-.{{EX: make test}}
+>	make test
 
 The test will run a number of tests.
 
@@ -230,7 +230,7 @@ in the location you provided.
 Typically, the installation is done as {{root}}. From the top level OpenLDAP
 source directory, type:
 
-.{{EX: make install}}
+>	make install
 
 You should examine the output of this command carefully to make sure
 everything is installed correctly. You will find the configuration files

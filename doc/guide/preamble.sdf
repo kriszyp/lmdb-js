@@ -90,6 +90,7 @@ LBER	Lightweight BER
 LDAP	Lightweight Directory Access Protocol
 LDIF	LDAP Directory Interchange Format
 LDBM	LDAP Database Manager
+OID	Object Identifier
 OSI	OSI
 PS	Proposed Standard
 RDN	Relative Distinguished Name

@@ -71,19 +71,19 @@ Changes to various operational attributes, such as {{EX:modifiersName}}
 and {{EX:modifyTimestamp}}, are included in the change record and
 will be propagated to the slave slapd.
 
-E: replica: slave.example.com:389
-E: time: 809618633
-E: dn: uid=bjensen, dc=example, dc=com
-E: changetype: modify
-E: replace: multiLineDescription
-E: description: A dreamer...
-E: -
-E: replace: modifiersName
-E: modifiersName: uid=bjensen, dc=example, dc=com
-E: -
-E: replace: modifyTimestamp
-E: modifyTimestamp: 20000805073308Z
-E: -
+>	replica: slave.example.com:389
+>	time: 809618633
+>	dn: uid=bjensen, dc=example, dc=com
+>	changetype: modify
+>	replace: multiLineDescription
+>	description: A dreamer...
+>	-
+>	replace: modifiersName
+>	modifiersName: uid=bjensen, dc=example, dc=com
+>	-
+>	replace: modifyTimestamp
+>	modifyTimestamp: 20000805073308Z
+>	-
 
 The modifications to {{EX:modifiersName}} and {{EX:modifyTimestamp}}
 operational attributes were added by the master {{slapd}}.
@@ -94,7 +94,7 @@ H2: Command-Line Options
 
 {{slurpd}}(8) supports the following command-line options.
 
-E: -d <level> | ?
+>	-d <level> | ?
 
 This option sets the slurpd debug level to {{EX: <level>}}. When
 level is a `?' character, the various debugging levels are
@@ -102,24 +102,23 @@ printed and slapd exits, regardless of any other options
 you give it. Current debugging levels (a subset of slapd's
 debugging levels) are
 
-
-E:	    4 heavy trace debugging
-E:	   64 configuration file processing
-E:	65535 enable all debugging
+>	    4 heavy trace debugging
+>	   64 configuration file processing
+>	65535 enable all debugging
 
 Debugging levels are additive. That is, if you want heavy
 trace debugging and want to watch the config file being
 processed, you would set level to the sum of those two
 levels (in this case, 68).
 
-E: -f <filename>
+>	-f <filename>
 
 This option specifies an alternate slapd configuration file.
 Slurpd does not have its own configuration file. Instead, all
 configuration information is read from the slapd
 configuration file.
 
-E: -r <filename>
+>	-r <filename>
 
 This option specifies an alternate slapd replication log file.
 Under normal circumstances, slurpd reads the name of
@@ -129,7 +128,7 @@ cause slurpd to process a different replication log file. See
 section 10.5, Advanced slurpd Operation, for a discussion
 of how you might use this option.
 
-E: -o
+>	-o
 
 Operate in "one-shot" mode. Under normal
 circumstances, when slurpd finishes processing a
@@ -140,12 +139,12 @@ replication log and exits immediately. If the -o option is
 given, the replication log file must be explicitly specified
 with the -r option
 
-E: -t <directory>
+>	-t <directory>
 
 Specify an alternate directory for slurpd's temporary
 copies of replication logs. The default location is /usr/tmp.
 
-E: -k <filename>
+>	-k <filename>
 
 When slurpd uses kerberos to authenticate to slave slapd
 instances, it needs to have an appropriate srvtab file for
@@ -157,7 +156,6 @@ file's replica option. See the documentation on the srvtab
 directive in section 5.2.2, General Backend Options. A
 more complete discussion of using kerberos with slapd
 and slurpd may be found in Appendix D.
-
 
 
 H2: Configuring slurpd and a slave slapd instance
@@ -228,7 +226,6 @@ time, the master slapd will return an "unwilling to perform"
 error to clients that attempt to modify data.
 
 
-
 H3: Copy the master slapd's database to the slave
 
 Copy the master's database(s) to the slave. For an
@@ -254,9 +251,9 @@ config file. For example, if we wish to propagate changes
 to the slapd instance running on host
 slave.example.com:
 
-E: replica host=slave.example.com:389
-E:	binddn="cn=Replicator,dc=example,dc=com"
-E:	bindmethod=simple credentials=secret
+>	replica host=slave.example.com:389
+>		binddn="cn=Replicator,dc=example,dc=com"
+>		bindmethod=simple credentials=secret
 
 In this example, changes will be sent to port 389 (the
 standard LDAP port) on host slave.example.com. The slurpd
@@ -281,7 +278,6 @@ entry in the database, and check that data has been
 written to the log file.
 
 
-
 H3: Start slurpd
 
 Start the slurpd process. Slurpd should immediately send
@@ -289,7 +285,7 @@ the test modification you made to the slave slapd. Watch
 the slave slapd's logfile to be sure that the modification
 was sent.
 
-{{EX: slurpd -f <masterslapdconfigfile>}}
+>	slurpd -f <masterslapdconfigfile>
 
 
 
@@ -306,24 +302,24 @@ string ".rej" appended. For example, for a replica running
 on host slave.example.com, port 389, the reject file, if it
 exists, will be named
 
-E: /usr/local/var/openldap/replog.slave.example.com:389.
+>	/usr/local/var/openldap/replog.slave.example.com:389.
 
 A sample rejection log entry follows:
 
-E: ERROR: No such attribute
-E: replica: slave.example.com:389
-E: time: 809618633
-E: dn: uid=bjensen, dc=example, dc=com
-E: changetype: modify
-E: replace: description
-E: description: A dreamer...
-E: -
-E: replace: modifiersName
-E: modifiersName: uid=bjensen, dc=example, dc=com
-E: -
-E: replace: modifyTimestamp
-E: modifyTimestamp: 20000805073308Z
-E: -
+>	ERROR: No such attribute
+>	replica: slave.example.com:389
+>	time: 809618633
+>	dn: uid=bjensen, dc=example, dc=com
+>	changetype: modify
+>	replace: description
+>	description: A dreamer...
+>	-
+>	replace: modifiersName
+>	modifiersName: uid=bjensen, dc=example, dc=com
+>	-
+>	replace: modifyTimestamp
+>	modifyTimestamp: 20000805073308Z
+>	-
 
 Note that this is precisely the same format as the original
 replication log entry, but with an ERROR line prepended to
@@ -349,7 +345,7 @@ to process the rejection log file
 {{F:/usr/local/var/openldap/replog.slave.example.com:389}}
 and exit, use the command
 
-E: slurpd -r /usr/tmp/replog.slave.example.com:389 -o
+>	slurpd -r /usr/tmp/replog.slave.example.com:389 -o
 
 
 H2: Replication from a slapd directory server to an X.500 DSA
@@ -365,7 +361,8 @@ X.500 DSA, slurpd runs on the master slapd host, and
 sends changes to an ldapd which acts as a gateway to
 the X.500 DSA:
 
-!import "replication.gif"; align="center"; title="Replication from slapd to an X.500 DSA"
+!import "replication.gif"; align="center"; \
+	title="Replication from slapd to an X.500 DSA"
 FT: Figure 6: Replication from slapd to an X.500 DSA
 
 Note that the X.500 DSA must be a read-only copy. Since

@@ -14,20 +14,21 @@ H2: Command-Line Options
 {{slapd}}(8) supports a number of command-line options as detailed
 in manual page.  This section details a few commonly used options.
 
-E: -f <filename>
+>	-f <filename>
 
 This option specifies an alternate configuration file for slapd.
 The default is normally {{F:/usr/local/etc/openldap/slapd.conf}}.
 
 
-E: -d <level> | ?
+>	-d <level> | ?
 
 This option sets the slapd debug level to <level>. When level is a
 `?' character, the various debugging levels are printed and slapd
 exits, regardless of any other options you give it. Current
 debugging levels are
 
-!block table; colaligns="RL"; align=Center; title="Table 6.1: Debugging Levels"
+!block table; colaligns="RL"; align=Center; \
+	title="Table 6.1: Debugging Levels"
 Level	Description
 -1	enable all debugging
 0	no debugging
@@ -63,7 +64,7 @@ H2: Starting slapd
 
 In general, slapd is run like this:
 
-E: 	/usr/local/etc/libexec/slapd [<option>]*
+>	/usr/local/etc/libexec/slapd [<option>]*
 
 where {{F:/usr/local/etc/libexec}} is determined by {{EX:configure}}.
 and <option> is one of the options described above (or in {{slapd}}(8)).
@@ -75,7 +76,7 @@ H2: Stopping slapd
 
 To kill off slapd safely, you should give a command like this
 
-E: 	kill -TERM `cat /usr/local/var/slapd.pid`
+> 	kill -INT `cat /usr/local/var/slapd.pid`
 
 where {{F:/usr/local/var}} is determined by {{EX:configure}}.
 

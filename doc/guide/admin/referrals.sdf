@@ -40,11 +40,11 @@ and wished to delegate the subtree {{EX:ou=subtree,dc=example,dc=net}}
 to another server {{EX:b.example.net}}, the following named referral
 object would be added to {{a.example.net}}:
 
-E:	dn: dc=subtree, dc=example, dc=net
-E:	objectClass: referral
-E:	objectClass: extensibleObject
-E:	dc: subtree
-E:	ref: ldap://b.example.net/dc=subtree,dc=example,dc=net/
+>	dn: dc=subtree, dc=example, dc=net
+>	objectClass: referral
+>	objectClass: extensibleObject
+>	dc: subtree
+>	ref: ldap://b.example.net/dc=subtree,dc=example,dc=net/
 
 The server uses this information to generate referrals and
 search continuations to subordinate servers.
@@ -64,10 +64,10 @@ Extending the example above, a {{ref}} attribute can be added
 to the entry {{EX:dc=subtree,dc=example,dc=net}} in server B indicating
 that A holds the immediate superior naming context.
 
-E:	dn: dc=subtree, dc=example, dc=net
-E:	changetype: modify
-E:	add: ref
-E:	ref: ldap://a.example.net/
+>	dn: dc=subtree, dc=example, dc=net
+>	changetype: modify
+>	add: ref
+>	ref: ldap://a.example.net/
 
 The server uses this information to generate referrals to
 management operations.
@@ -88,13 +88,13 @@ above, the server can be configured to use directory service with
 {{global knowledge}}, such as the {{OpenLDAP Root Service}}
 (http://www.openldap.org/faq/index.cgi?file=393).
 
-E:	referral	ldap://root.openldap.org/
+>	referral	ldap://root.openldap.org/
 
 However, as {{EX:a.example.net}} is the {{immediate superior}}
 to {{EX:b.example.net}}, {{a.example.net}} would be configured
 as follows:
 
-E:	referral	ldap://a.example.net/
+>	referral	ldap://a.example.net/
 
 The server uses this information to generate referrals to
 operations acting upon operations not within or subordinate
@@ -115,11 +115,11 @@ for requests to introgating or updating referral objects.
 The -M option of {{ldapmodify}}(1) (and other tools) enables
 ManageDsaIT.  For example:
 
-E:  ldapmodify -M -f referral.ldif -x -D "cn=Manager,dc=example,dc=net" -W
+>	ldapmodify -M -f referral.ldif -x -D "cn=Manager,dc=example,dc=net" -W
 
-or with ldapsearch:
+or with {{ldapsearch}}(1):
 
-E:  ldapsearch -M -b "dc=example,dc=net" -x "(objectclass=referral)" '*' ref
+>	ldapsearch -M -b "dc=example,dc=net" -x "(objectclass=referral)" '*' ref
 
 Note: the {{EX:ref}} attribute is operational and must be explicitly
 requested when desired in search results.

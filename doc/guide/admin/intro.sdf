@@ -61,7 +61,7 @@ entry's attributes has a {{type}} and one or more {{values}}.
 The types are typically mnemonic strings, like "{{EX:cn}}" for common
 name, or "{{EX:mail}}" for email address. The syntax of values depend
 on the attribute type is.  For example, {{EX:cn}} attribute might
-be the value {{EX: Babs Jensen}}.  A {{EX:mail}} attribute might
+be the value {{EX:Babs Jensen}}.  A {{EX:mail}} attribute might
 contain the value "{{EX:babs@example.com}}". A {{EX:jpegPhoto}}
 attribute would contain a photograph in the JPEG (binary) format.
 
