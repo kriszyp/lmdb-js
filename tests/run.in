@@ -25,11 +25,13 @@ export SRCDIR TOPSRCDIR LN_S
 AC_bdb=@BUILD_BDB@
 AC_hdb=@BUILD_HDB@
 AC_ldbm=@BUILD_LDBM@
+AC_ldap=ldap@BUILD_LDAP@
+AC_meta=meta@BUILD_META@
 AC_MONITOR=@BUILD_MONITOR@
 AC_CACHE=@BUILD_CACHE@
 AC_WITH_TLS=@WITH_TLS@
 
-export AC_MONITOR AC_CACHE AC_WITH_TLS
+export AC_MONITOR AC_CACHE AC_WITH_TLS AC_ldap AC_meta
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"

@@ -17,12 +17,11 @@ if [ x"$MONITORDB" = x"yes" ] ; then
 else
 	MON=nomonitor
 fi
-if [ x"$BACKENDTYPE" = x"mod" ]; then
-	MODULELOAD="moduleload	back_${BACKEND}.la"
-fi
 sed -e "s/@BACKEND@/${BACKEND}/"	\
-	-e "s/@MODULELOAD@/${MODULELOAD}/" \
 	-e "s/^#${BACKEND}#//"			\
+	-e "s/^#${BACKENDTYPE}#//"			\
+	-e "s/^#${AC_ldap}#//"			\
+	-e "s/^#${AC_meta}#//"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/@CACHETTL@/${CACHETTL}/"   \
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   
