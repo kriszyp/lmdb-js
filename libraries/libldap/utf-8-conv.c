@@ -17,6 +17,10 @@
  * PUBLIC LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT
  * THE PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY. 
  ******************************************************************************/
+/* Note: A verbatim copy of version 2.0.1 of the OpenLDAP Public License 
+ * can be found in the file "build/LICENSE-2.0.1" in this distribution
+ * of OpenLDAP Software.
+ */
 
 /*
  * UTF-8 Conversion Routines
