@@ -539,6 +539,7 @@ LDAP_SLAPD_F( int ) slap_mods_check(
 	char *textbuf, size_t textlen );
 
 LDAP_SLAPD_F( int ) slap_mods_opattrs(
+	Backend *be,
 	Operation *op,
 	Modifications *mods,
 	Modifications **modlist,
