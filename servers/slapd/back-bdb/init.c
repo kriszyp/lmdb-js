@@ -259,7 +259,7 @@ bdb_db_open( BackendDB *be )
 				bdb_bt_compare );
 #elif defined(BDB_IDL_MULTI)
 			rc = db->bdi_db->set_flags( db->bdi_db, 
-				DB_DUP | DB_DUPSORT );
+				DB_DUP | DB_DUPSORT | DB_NODUPDATA );
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
 				bdb_bt_compare );
 #endif
