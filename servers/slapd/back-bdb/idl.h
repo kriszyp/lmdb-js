@@ -1,4 +1,4 @@
-/* back-bdb.h - ldap bdb back-end header file */
+/* idl.h - ldap bdb back-end ID list header file */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
