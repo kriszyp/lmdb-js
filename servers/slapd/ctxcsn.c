@@ -179,12 +179,12 @@ slap_get_csn(
 {
 	struct	slap_csn_entry *pending;
 
+	if ( csn == NULL )
+		return LDAP_OTHER;
+
 	if ( manage_ctxcsn ) {
 		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
 	}
-
-	if ( csn == NULL )
-		return LDAP_OTHER;
 
 	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
 	csn->bv_val = csnbuf;
