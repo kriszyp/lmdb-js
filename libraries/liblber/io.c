@@ -160,11 +160,11 @@ ber_free_buf( BerElement *ber )
 
 	assert( LBER_VALID( ber ) );
 
-	if ( ber->ber_buf) LBER_FREE( ber->ber_buf );
+	if ( ber->ber_buf) ber_memfree_x( ber->ber_buf, ber->ber_memctx );
 
 	for( s = ber->ber_sos ; s != NULL ; s = next ) {
 		next = s->sos_next;
-		LBER_FREE( s );
+		ber_memfree_x( s, ber->ber_memctx );
 	}
 
 	ber->ber_buf = NULL;
@@ -186,7 +186,7 @@ ber_free( BerElement *ber, int freebuf )
 	if( freebuf )
 		ber_free_buf( ber );
 
-	LBER_FREE( (char *) ber );
+	ber_memfree_x( (char *) ber, ber->ber_memctx );
 }
 
 int

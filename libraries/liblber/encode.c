@@ -442,7 +442,7 @@ ber_start_seqorset(
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
 
-	new = (Seqorset *) LBER_CALLOC( 1, sizeof(Seqorset) );
+	new = (Seqorset *) ber_memcalloc_x( 1, sizeof(Seqorset), ber->ber_memctx );
 
 	if ( new == NULL ) {
 		return -1;
@@ -649,7 +649,7 @@ ber_put_seqorset( BerElement *ber )
 	}
 
 	/* we're done with this seqorset, so free it up */
-	LBER_FREE( (char *) (*sos) );
+	ber_memfree_x( (char *) (*sos), ber->ber_memctx );
 	*sos = next;
 
 	return taglen + lenlen + len;
