@@ -44,20 +44,20 @@ static int debug2syslog(int l) {
 #endif
 
 static char *lutil_levels[] = {"emergency", "alert", "critical",
-                           "error", "warning", "notice",
-                           "information", "entry", "args",
-                           "results", "detail1", "detail2",
-                           NULL};
+			   "error", "warning", "notice",
+			   "information", "entry", "args",
+			   "results", "detail1", "detail2",
+			   NULL};
 
 int lutil_mnem2level( char *level )
 {
     int i;
     for( i = 0; lutil_levels[i] != NULL; i++ )
     {
-        if ( !strcasecmp( level, lutil_levels[i] ) )
-        {
-            return i;
-        }
+	if ( !strcasecmp( level, lutil_levels[i] ) )
+	{
+	    return i;
+	}
     }
     return 0;
 }
@@ -65,6 +65,9 @@ int lutil_mnem2level( char *level )
 static void addSubsys( const char *subsys, int level )
 {
 	int i, j;
+
+	if ( !strcasecmp( subsys, "global") ) global_level = level;
+
 	for( i = 0; i < numLevels; i++ )
 	{
 		if ( levelArray[i] == NULL )
@@ -192,7 +195,7 @@ void lutil_log_int(
 }
 
 /*
- * The primary logging routine.  Takes the subsystem being logged from, the
+ * The primary logging routine.	 Takes the subsystem being logged from, the
  * level of the log output and the format and data.  Send this on to the
  * internal routine with the print file, if any.
  */
@@ -222,27 +225,27 @@ void lutil_log_initialize(int argc, char **argv)
      */
     for( i = 0; i < argc; i++ )
     {
-        char *next = argv[i];
-        if ( i < argc-1 && next[0] == '-' && next[1] == 'd' )
-        {
-            char subsys[64];
-            int level;
-            char *optarg = argv[i+1];
-            char *index = strchr( optarg, '=' );
-            if ( index != NULL )
-            {
-                *index = 0;
-                strcpy ( subsys, optarg );
-                level = atoi( index+1 );
-                if ( level <= 0 ) level = lutil_mnem2level( index + 1 );
-                lutil_set_debug_level( subsys, level );
-                *index = '=';
-            }
-            else
-            {
-                global_level = atoi( optarg );
-            }
-        }
+	char *next = argv[i];
+	if ( i < argc-1 && next[0] == '-' && next[1] == 'd' )
+	{
+	    char subsys[64];
+	    int level;
+	    char *optarg = argv[i+1];
+	    char *index = strchr( optarg, '=' );
+	    if ( index != NULL )
+	    {
+		*index = 0;
+		strcpy ( subsys, optarg );
+		level = atoi( index+1 );
+		if ( level <= 0 ) level = lutil_mnem2level( index + 1 );
+		lutil_set_debug_level( subsys, level );
+		*index = '=';
+	    }
+	    else
+	    {
+		global_level = atoi( optarg );
+	    }
+	}
     }
 }
 
