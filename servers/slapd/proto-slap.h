@@ -160,8 +160,7 @@ LIBSLAPD_F( int )	backend_check_referrals LDAP_P((
 	Connection *conn,
 	Operation *op,
 	const char *dn,
-	const char *ndn,
-	const char **text ));
+	const char *ndn ));
 
 LIBSLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LIBSLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));

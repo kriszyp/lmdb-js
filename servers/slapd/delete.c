@@ -81,7 +81,6 @@ do_delete(
 
 	/* make sure this backend recongizes critical controls */
 	rc = backend_check_controls( be, conn, op, &text ) ;
-
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );
@@ -89,9 +88,7 @@ do_delete(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op,
-		dn, ndn, &text );
-
+	rc = backend_check_referrals( be, conn, op, dn, ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}

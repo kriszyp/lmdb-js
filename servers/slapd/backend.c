@@ -620,15 +620,15 @@ int backend_check_referrals(
 	Connection *conn,
 	Operation *op,
 	const char *dn,
-	const char *ndn,
-	const char **text )
+	const char *ndn )
 {
 	int rc = LDAP_SUCCESS;
-	*bv = NULL;
 
 	if( be->be_chk_referrals ) {
+		const char *text;
+
 		rc = be->be_chk_referrals( be,
-			conn, op, dn, ndn, text );
+			conn, op, dn, ndn, &text );
 
 		if( rc != LDAP_SUCCESS && rc != LDAP_REFERRAL ) {
 			send_ldap_result( conn, op, rc,
