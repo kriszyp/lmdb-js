@@ -114,13 +114,13 @@ char * ldap_scherr2str(code)
 int code;
 .SH DESCRIPTION
 These routines are used to parse schema definitions in the syntax
-defined in RFC2252 into structs and handle these structs.  These
+defined in RFC 2252 into structs and handle these structs.  These
 routines handle four kinds of definitions: syntaxes, matching rules,
 attribute types and objectclasses.  For each definition kind, four
 routines are provided.
 .LP
 .B ldap_str2xxx()
-takes a definition in RFC2252 format in argument
+takes a definition in RFC 2252 format in argument
 .IR s
 as a NUL-terminated string and returns, if possible, a pointer to a
 newly allocated struct of the appropriate kind.  The caller is
@@ -142,7 +142,7 @@ is a bit mask of parsing options controlling the relaxation of the
 syntax recognized.  The following values are defined:
 .TP
 .B LDAP_SCHEMA_ALLOW_NONE
-strict parsing according to RFC2252.
+strict parsing according to RFC 2252.
 .TP
 .B LDAP_SCHEMA_ALLOW_NO_OID
 permit definitions that do not contain an initial OID.
@@ -275,7 +275,7 @@ return a canonical name for the definition.
 .LP
 Routines
 .B ldap_xxx2str()
-return a string representation in the format described by RFC2252 of
+return a string representation in the format described by RFC 2252 of
 the struct passed in the argument.  The string is a newly allocated
 string that must be freed by the caller.  These routines may return
 NULL if no memory can be allocated for the string.
