@@ -852,9 +852,9 @@ slapi_register_supported_control(
 	unsigned long	controlops )
 {
 #if defined(LDAP_SLAPI)
-	/* FIXME -- can not add controls to openLDAP dynamically */
+	/* FIXME -- can not add controls to OpenLDAP dynamically */
 	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_CONTROLS",
-			"can not add controls to openLDAP dynamically\n" );
+			"OpenLDAP does not support dynamic registration of LDAP controls\n" );
 #endif /* defined(LDAP_SLAPI) */
 }
 
@@ -931,9 +931,9 @@ void
 slapi_register_supported_saslmechanism( char *mechanism )
 {
 #if defined(LDAP_SLAPI)
-	/* FIXME -- can not add saslmechanism to openLDAP dynamically */
+	/* FIXME -- can not add saslmechanism to OpenLDAP dynamically */
 	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SASL",
-			"can not add saslmechanism to openLDAP dynamically\n" );
+			"OpenLDAP does not support dynamic registration of SASL mechanisms\n" );
 #endif /* defined(LDAP_SLAPI) */
 }
 
