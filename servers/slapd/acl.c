@@ -887,7 +887,7 @@ acl_mask(
 
 dn_match_cleanup:;
 				if ( pat.bv_val != b->a_dn_pat.bv_val ) {
-					free( pat.bv_val );
+					slap_sl_free( pat.bv_val, op->o_tmpmemctx );
 				}
 
 				if ( !got_match ) {
@@ -1299,7 +1299,9 @@ dn_match_cleanup:;
 			rc = backend_group( op, e, &bv, &op->o_ndn,
 				b->a_group_oc, b->a_group_at );
 
-			if ( ndn.bv_val ) free( ndn.bv_val );
+			if ( ndn.bv_val ) {
+				slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+			}
 
 			if ( rc != 0 ) {
 				continue;
@@ -2039,10 +2041,10 @@ aci_group_member (
 			rc = LDAP_OTHER;
 			goto done;
 		}
-		if ( dnNormalize(0, NULL, NULL, &bv, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
-			rc = (backend_group(op, e, &ndn, &op->o_ndn,
-				grp_oc, grp_ad) == 0);
-			free( ndn.bv_val );
+		if ( dnNormalize( 0, NULL, NULL, &bv, &ndn, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
+			rc = ( backend_group( op, e, &ndn, &op->o_ndn,
+				grp_oc, grp_ad ) == 0 );
+			slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
 		}
 	}
 
@@ -2113,10 +2115,11 @@ aci_mask(
 	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
 		rc = 0;
-		if ( dnNormalize(0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
-			if (dn_match( &op->o_ndn, &ndn))
+		if ( dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
+			if ( dn_match( &op->o_ndn, &ndn ) ) {
 				rc = 1;
-			free(ndn.bv_val);
+			}
+			slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
 		}
 		return (rc);
 
