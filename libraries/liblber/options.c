@@ -57,7 +57,7 @@ int
 ber_set_option(
 	void	*item,
 	int		option,
-	void	*invalue)
+	LDAP_CONST void	*invalue)
 {
 	BerElement *ber;
 	Sockbuf *sb;
