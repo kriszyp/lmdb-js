@@ -205,5 +205,9 @@ SOURCE=.\sent.c
 
 SOURCE=.\thread.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\time.c
+# End Source File
 # End Target
 # End Project
