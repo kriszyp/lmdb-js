@@ -214,7 +214,8 @@ main( int argc, char **argv )
 	vals[1] = NULL;
 	while ( ! stop ) {
 		char		*type, *val, *s;
-		int		vlen, indexmask, syntaxmask;
+		ber_len_t		vlen;
+		int indexmask, syntaxmask;
 
 		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
 			int     len;

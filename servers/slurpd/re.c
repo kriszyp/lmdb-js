@@ -125,9 +125,9 @@ Re_parse(
     int			state;
     int			nml;
     char		*buf, *rp, *p;
-    long		buflen;
+    size_t		buflen;
     char		*type, *value;
-    int			len;
+    ber_len_t	len;
     int			nreplicas;
 
     if ( re == NULL ) {
@@ -158,7 +158,7 @@ Re_parse(
 	if ( strncmp( buf, ERROR_STR, strlen( ERROR_STR )) == 0 ) {
 	    continue;
 	}
-	buflen = ( long ) strlen( buf );
+	buflen = strlen( buf );
 	if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: Re_parse: malformed replog file\n",
@@ -208,7 +208,7 @@ Re_parse(
 	if (( buf = ldif_getline( &rp )) == NULL ) {
 	    break;
 	}
-	buflen = ( long ) strlen( buf );
+	buflen = strlen( buf );
 	if (( buflen == 1 ) && ( buf[ 0 ] == '-' )) {
 	    type = "-";
 	    value = NULL;
@@ -259,7 +259,8 @@ get_repl_hosts(
     char		buf[ LDIF_LINE_WIDTH + 1 ];
     char		*type, *value, *line, *p;
     Rh			*rh = NULL;
-    int			nreplicas, len;
+    int			nreplicas;
+	ber_len_t	len;
     int			port;
     int			repl_ok;
     int			i;
@@ -566,7 +567,8 @@ Re_write(
 	    }
 	} else {
 	    char *obuf;
-	    obuf = ldif_type_and_value( re->re_mods[ i ].mi_type,
+	    obuf = ldif_put( LDIF_PUT_VALUE,
+			re->re_mods[ i ].mi_type,
 		    re->re_mods[ i ].mi_val ? re->re_mods[ i ].mi_val : "",
 		    re->re_mods[ i ].mi_len );
 	    if ( fputs( obuf, fp ) < 0 ) {

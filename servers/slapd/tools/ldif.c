@@ -71,7 +71,7 @@ main( int argc, char **argv )
 			cur += nread;
 		}
 
-		if (( out = ldif_type_and_value( type, val, cur )) == NULL ) {
+		if (( out = ldif_put( LDIF_PUT_BINARY, type, val, cur )) == NULL ) {
 		    	perror( "ldif_type_and_value" );
 			exit( 1 );
 		}
@@ -86,7 +86,7 @@ main( int argc, char **argv )
 	while ( fgets( buf, sizeof(buf), stdin ) != NULL ) {
 		if( buf[len=strlen(buf)] == '\n') buf[len] = '\0';
 
-		if (( out = ldif_type_and_value( type, buf, strlen( buf ) ))
+		if (( out = ldif_put( LDIF_PUT_VALUE, type, buf, strlen( buf ) ))
 		    == NULL ) {
 		    	perror( "ldif_type_and_value" );
 			exit( 1 );

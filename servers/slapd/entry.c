@@ -24,7 +24,8 @@ str2entry( char	*s )
 	char		*type;
 	char		*value;
 	char		*next;
-	int		vlen, nvals, maxvals;
+	ber_len_t	vlen;
+	int		nvals, maxvals;
 	struct berval	bval;
 	struct berval	*vals[2];
 	char		ptype[64];
@@ -194,7 +195,7 @@ entry2str(
 		/* put "dn: <dn>" */
 		tmplen = strlen( e->e_dn );
 		MAKE_SPACE( LDIF_SIZE_NEEDED( 2, tmplen ));
-		ldif_put_type_and_value( (char **) &ecur, "dn", e->e_dn, tmplen );
+		ldif_sput( (char **) &ecur, LDIF_PUT_VALUE, "dn", e->e_dn, tmplen );
 	}
 
 	/* put the attributes */
@@ -204,7 +205,7 @@ entry2str(
 			bv = a->a_vals[i];
 			tmplen = strlen( a->a_type );
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
-			ldif_put_type_and_value( (char **) &ecur, a->a_type,
+			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE, a->a_type,
 			    bv->bv_val, bv->bv_len );
 		}
 	}

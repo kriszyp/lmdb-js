@@ -55,7 +55,7 @@ ldif_parse_line(
     LDAP_CONST char	*line,
     char	**type,
     char	**value,
-    int		*vlen
+    ber_len_t *vlen
 )
 {
 	char	*p, *s, *d, *byte, *stop;
@@ -69,7 +69,7 @@ ldif_parse_line(
 	*type = line;
 
 	for ( s = line; *s && *s != ':'; s++ )
-		;	/* NULL */
+		/* EMPTY */;
 	if ( *s == '\0' ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 			"ldif_parse_line missing ':'\n");
@@ -167,9 +167,11 @@ ldif_parse_line(
  * space character, it is a continuation of the previous line. the white
  * space character (nb: only one char), and preceeding newline are changed
  * into CONTINUED_LINE_MARKER chars, to be deleted later by the
- * str_parse_line() routine above.
+ * ldif_parse_line() routine above.
  *
- * it takes a pointer to a pointer to the buffer on the first call,
+ * ldif_getline will skip over any line which starts '#'.
+ *
+ * ldif_getline takes a pointer to a pointer to the buffer on the first call,
  * which it updates and must be supplied on subsequent calls.
  */
 
@@ -202,99 +204,198 @@ ldif_getline( char **next )
 	return( line );
 }
 
+/* compatibility with U-Mich off by one bug */
+#define LDIF_KLUDGE 1
+
 void
-ldif_put_type_and_value(
+ldif_sput(
 	char **out,
-	LDAP_CONST char *t,
+	int type,
+	LDAP_CONST char *name,
 	LDAP_CONST char *val,
-	int vlen )
+	ber_len_t vlen )
 {
-	unsigned char	*byte, *p, *stop;
+	unsigned char	*byte, *stop;
 	unsigned char	buf[3];
 	unsigned long	bits;
 	char		*save;
-	int		i, b64, pad, len, savelen;
-	len = 0;
+	int		pad;
 
-	/* put the type + ": " */
-	for ( p = (unsigned char *) t; *p; p++, len++ ) {
-		*(*out)++ = *p;
+	ber_len_t savelen;
+	ber_len_t len=0;
+	ber_len_t i;
+
+	/* prefix */
+	switch( type ) {
+	case LDIF_PUT_COMMENT:
+		if( name != NULL ) break;
+
+		*(*out)++ = '#';
+		len++;
+
+		if( vlen ) {
+			*(*out)++ = ' ';
+			len++;
+			break;
+		}
+
+		/* no value, fall-thru */
+
+	case LDIF_PUT_SEP:
+		*(*out)++ = '\n';
+		return;
 	}
-	*(*out)++ = ':';
-	len++;
+
+	/* name (attribute type) */
+	if( name != NULL ) {
+		/* put the name + ":" */
+		for ( i=0 ; name[i]; i++ ) {
+			*(*out)++ = name[i];
+			len++;
+		}
+
+		if( type != LDIF_PUT_COMMENT ) {
+			*(*out)++ = ':';
+			len++;
+		}
+
+#ifdef LDAP_DEBUG
+	} else {
+		assert( type == LDIF_PUT_COMMENT );
+#endif
+	}
+
+	switch( type ) {
+	case LDIF_PUT_NOVALUE:
+		*(*out)++ = '\n';
+		return;
+
+	case LDIF_PUT_URL: /* url value */
+		*(*out)++ = '<';
+		len++;
+		break;
+
+	case LDIF_PUT_B64: /* base64 value */
+		*(*out)++ = ':';
+		len++;
+		break;
+	}
+
+	switch( type ) {
+	case LDIF_PUT_TEXT:
+	case LDIF_PUT_URL:
+	case LDIF_PUT_B64:
+		*(*out)++ = ' ';
+		len++;
+		/* fall-thru */
+
+	case LDIF_PUT_COMMENT:
+		/* pre-encoded names */
+		for ( i=0; i < vlen; i++ ) {
+			if ( len > LDIF_LINE_WIDTH ) {
+				*(*out)++ = '\n';
+				*(*out)++ = ' ';
+				len = 1;
+			}
+
+			*(*out)++ = val[i];
+			len++;
+		}
+		*(*out)++ = '\n';
+		return;
+	}
+
 	save = *out;
 	savelen = len;
+
 	*(*out)++ = ' ';
-	b64 = 0;
+	len++;
+
+	if( vlen == 0 ) {
+		*(*out)++ = '\n';
+		return;
+	}
 
 	stop = (unsigned char *) (val + vlen);
-	if ( isascii( val[0] ) && (isspace( val[0] ) || val[0] == ':') ) {
-		b64 = 1;
-	} else {
+
+	if ( type == LDIF_PUT_VALUE &&
+		isgraph( val[0] ) && val[0] != ':' && val[0] != '<' &&
+		isgraph( val[vlen-1] ) )
+	{
+		int b64 = 0;
+
 		for ( byte = (unsigned char *) val; byte < stop;
-		    byte++, len++ ) {
+		    byte++, len++ )
+		{
 			if ( !isascii( *byte ) || !isprint( *byte ) ) {
 				b64 = 1;
 				break;
 			}
-			if ( len > LDIF_LINE_WIDTH ) {
+			if ( len > LDIF_LINE_WIDTH+LDIF_KLUDGE ) {
 				*(*out)++ = '\n';
 				*(*out)++ = ' ';
 				len = 1;
 			}
 			*(*out)++ = *byte;
 		}
-	}
-	if ( b64 ) {
-		*out = save;
-		*(*out)++ = ':';
-		*(*out)++ = ' ';
-		len = savelen + 2;
-		/* convert to base 64 (3 bytes => 4 base 64 digits) */
-		for ( byte = (unsigned char *) val; byte < stop - 2;
-		    byte += 3 ) {
-			bits = (byte[0] & 0xff) << 16;
-			bits |= (byte[1] & 0xff) << 8;
-			bits |= (byte[2] & 0xff);
 
-			for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
-				if ( len > LDIF_LINE_WIDTH ) {
-					*(*out)++ = '\n';
-					*(*out)++ = ' ';
-					len = 1;
-				}
-
-				/* get b64 digit from high order 6 bits */
-				*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
-			}
+		if( !b64 ) {
+			*(*out)++ = '\n';
+			return;
 		}
+	}
 
-		/* add padding if necessary */
-		if ( byte < stop ) {
-			for ( i = 0; byte + i < stop; i++ ) {
-				buf[i] = byte[i];
+	*out = save;
+	*(*out)++ = ':';
+	*(*out)++ = ' ';
+	len = savelen + 2;
+
+	/* convert to base 64 (3 bytes => 4 base 64 digits) */
+	for ( byte = (unsigned char *) val;
+		byte < stop - 2;
+	    byte += 3 )
+	{
+		bits = (byte[0] & 0xff) << 16;
+		bits |= (byte[1] & 0xff) << 8;
+		bits |= (byte[2] & 0xff);
+
+		for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
+			if ( len > LDIF_LINE_WIDTH+LDIF_KLUDGE ) {
+				*(*out)++ = '\n';
+				*(*out)++ = ' ';
+				len = 1;
 			}
-			for ( pad = 0; i < 3; i++, pad++ ) {
-				buf[i] = '\0';
+
+			/* get b64 digit from high order 6 bits */
+			*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
+		}
+	}
+
+	/* add padding if necessary */
+	if ( byte < stop ) {
+		for ( i = 0; byte + i < stop; i++ ) {
+			buf[i] = byte[i];
+		}
+		for ( pad = 0; i < 3; i++, pad++ ) {
+			buf[i] = '\0';
+		}
+		byte = buf;
+		bits = (byte[0] & 0xff) << 16;
+		bits |= (byte[1] & 0xff) << 8;
+		bits |= (byte[2] & 0xff);
+
+		for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
+			if ( len > LDIF_LINE_WIDTH+LDIF_KLUDGE ) {
+				*(*out)++ = '\n';
+				*(*out)++ = ' ';
+				len = 1;
 			}
-			byte = buf;
-			bits = (byte[0] & 0xff) << 16;
-			bits |= (byte[1] & 0xff) << 8;
-			bits |= (byte[2] & 0xff);
 
-			for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
-				if ( len > LDIF_LINE_WIDTH ) {
-					*(*out)++ = '\n';
-					*(*out)++ = ' ';
-					len = 1;
-				}
-
-				if( i + pad < 4 ) {
-					/* get b64 digit from low order 6 bits */
-					*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
-				} else {
-					*(*out)++ = '=';
-				}
+			if( i + pad < 4 ) {
+				/* get b64 digit from low order 6 bits */
+				*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
+			} else {
+				*(*out)++ = '=';
 			}
 		}
 	}
@@ -302,27 +403,57 @@ ldif_put_type_and_value(
 }
 
 
-char *
-ldif_type_and_value( LDAP_CONST char *type, LDAP_CONST char *val, int vlen )
 /*
- * return BER malloc'd, zero-terminated LDIF line
+ * ldif_type_and_value return BER malloc'd, zero-terminated LDIF line
  */
+char *
+ldif_put(
+	int type,
+	LDAP_CONST char *name,
+	LDAP_CONST char *val,
+	ber_len_t vlen )
 {
     char	*buf, *p;
-    int		tlen;
+    ber_len_t nlen;
 
-    tlen = strlen( type );
-    if (( buf = (char *) ber_memalloc( LDIF_SIZE_NEEDED( tlen, vlen ) + 1 ))
-		== NULL )
-	{
+    nlen = ( name != NULL ) ? strlen( name ) : 0;
+
+	buf = (char *) ber_memalloc( LDIF_SIZE_NEEDED( nlen, vlen ) + 1 );
+
+    if ( buf == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 			"ldif_type_and_value: malloc failed!" );
 		return NULL;
     }
 
     p = buf;
-    ldif_put_type_and_value( &p, type, val, vlen );
+    ldif_sput( &p, type, name, val, vlen );
     *p = '\0';
 
     return( buf );
+}
+
+int ldif_is_not_printable(
+	LDAP_CONST char *val,
+	ber_len_t vlen )
+{
+	if( vlen == 0 || val == NULL  ) {
+		return -1;
+	}
+
+	if( isgraph( val[0] ) && val[0] != ':' && val[0] != '<' &&
+		isgraph( val[vlen-1] ) )
+	{
+		ber_len_t i;
+
+		for ( i = 0; val[i]; i++ ) {
+			if ( !isascii( val[i] ) || !isprint( val[i] ) ) {
+				return 1;
+			}
+		}
+
+		return 0;
+	}
+
+	return 1;
 }

@@ -43,7 +43,7 @@ SLAVEPID=$!
 
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -54,7 +54,7 @@ done
 
 echo "Using ldapsearch to check that slave slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -147,7 +147,7 @@ echo "Waiting 15 seconds for slurpd to send changes..."
 sleep 15
 
 echo "Using ldapsearch to read all the entries from the master..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	'objectclass=*' > $MASTEROUT 2>&1
 
 if test $RC != 0 ; then
@@ -157,7 +157,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the slave..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'objectclass=*' > $SLAVEOUT 2>&1
 
 if test $RC != 0 ; then

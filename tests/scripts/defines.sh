@@ -30,7 +30,7 @@ CLIENTDIR=../clients/tools
 
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd
-LDAPSEARCH="$CLIENTDIR/ldapsearch $PROTO"
+LDAPSEARCH="$CLIENTDIR/ldapsearch $PROTO -LLL"
 LDAPMODIFY="$CLIENTDIR/ldapmodify $PROTO"
 LDAPADD="$CLIENTDIR/ldapadd $PROTO"
 LDAPMODRDN="$CLIENTDIR/ldapmodrdn $PROTO"

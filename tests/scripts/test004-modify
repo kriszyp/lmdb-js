@@ -30,7 +30,7 @@ PID=$!
 
 echo "Testing slapd modify operations..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -s base -b "$MONITOR" -h localhost -p $PORT \
+	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -116,7 +116,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
 	    'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID

@@ -340,7 +340,8 @@ static int
 process_ldif_rec( char *rbuf )
 {
     char	*line, *dn, *type, *value, *newrdn, *newsup, *p;
-    int		rc, linenum, vlen, modop, replicaport;
+    int		rc, linenum, modop, replicaport;
+	ber_len_t vlen;
     int		expect_modop, expect_sep, expect_ct, expect_newrdn, expect_newsup;
     int		expect_deleteoldrdn, deleteoldrdn;
     int		saw_replica, use_record, new_entry, delete_entry, got_all;

@@ -77,7 +77,8 @@ replog(
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
-				ldif_put_type_and_value( &bufp, ml->ml_type,
+				ldif_sput( &bufp, LDIF_PUT_VALUE,
+					ml->ml_type,
 				    ml->ml_bvalues[i]->bv_val,
 				    ml->ml_bvalues[i]->bv_len );
 				*bufp = '\0';

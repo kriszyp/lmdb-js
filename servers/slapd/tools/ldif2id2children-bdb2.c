@@ -130,7 +130,7 @@ main( int argc, char **argv )
 	vals[1] = NULL;
 	while ( ! stop ) {
 		char		*type, *val, *s;
-		int		vlen;
+		ber_len_t		vlen;
 		Datum		key, data;
 
 		ldbm_datum_init( key );

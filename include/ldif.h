@@ -7,6 +7,7 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  */
+
 /* Portions
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -32,10 +33,10 @@ extern int ldif_debug;
 
 /*
  * Macro to calculate maximum number of bytes that the base64 equivalent
- * of an item that is "vlen" bytes long will take up.  Base64 encoding
+ * of an item that is "len" bytes long will take up.  Base64 encoding
  * uses one byte for every six bits in the value plus up to two pad bytes.
  */
-#define LDIF_BASE64_LEN(vlen)	(((vlen) * 4 / 3 ) + 3)
+#define LDIF_BASE64_LEN(len)	(((len) * 4 / 3 ) + 3)
 
 /*
  * Macro to calculate maximum size that an LDIF-encoded type (length
@@ -43,31 +44,49 @@ extern int ldif_debug;
  * first newline + base64 value + continued lines.  Each continued line
  * needs room for a newline and a leading space character.
  */
-#define LDIF_SIZE_NEEDED(tlen,vlen) \
-    ((tlen) + 4 + LDIF_BASE64_LEN(vlen) \
-    + ((LDIF_BASE64_LEN(vlen) + (tlen) + 3) / LDIF_LINE_WIDTH * 2 ))
+#define LDIF_SIZE_NEEDED(nlen,vlen) \
+    ((nlen) + 4 + LDIF_BASE64_LEN(vlen) \
+    + ((LDIF_BASE64_LEN(vlen) + (nlen) + 3) / LDIF_LINE_WIDTH * 2 ))
 
 LDAP_F( int )
 ldif_parse_line LDAP_P((
 	LDAP_CONST char *line,
-	char **type, char **value, int *vlen));
+	char **name,
+	char **value,
+	ber_len_t *vlen));
 
 LDAP_F( char * )
 ldif_getline LDAP_P(( char **next ));
 
+#define LDIF_PUT_NOVALUE	0x0000	/* no value */
+#define LDIF_PUT_VALUE		0x0001	/* value w/ auto detection */
+#define LDIF_PUT_TEXT		0x0002	/* assume text */
+#define	LDIF_PUT_BINARY		0x0004	/* assume binary (convert to base64) */
+#define LDIF_PUT_B64		0x0008	/* pre-converted base64 value */
+
+#define LDIF_PUT_COMMENT	0x0010	/* comment */
+#define LDIF_PUT_URL		0x0020	/* url */
+#define LDIF_PUT_SEP		0x0040	/* separator */
+
 LDAP_F( void )
-ldif_put_type_and_value LDAP_P((
+ldif_sput LDAP_P((
 	char **out,
-	LDAP_CONST char *t,
+	int type,
+	LDAP_CONST char *name,
 	LDAP_CONST char *val,
-	int vlen ));
+	ber_len_t vlen ));
 
 LDAP_F( char * )
-ldif_type_and_value LDAP_P((
-	LDAP_CONST char *type,
+ldif_put LDAP_P((
+	int type,
+	LDAP_CONST char *name,
 	LDAP_CONST char *val,
-	int vlen ));
+	ber_len_t vlen ));
 
+LDAP_F( int )
+ldif_is_not_printable LDAP_P((
+	LDAP_CONST char *val,
+	ber_len_t vlen ));
 
 LDAP_END_DECL
 

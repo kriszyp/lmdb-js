@@ -17,7 +17,7 @@ userpassword: bjensen
 mail: bjensen@mailgw.umich.edu
 homepostaladdress: 123 Wesley $ Ann Arbor, MI 48103
 krbname: bjensen@umich.edu
-multilinedescription: Mythical manager of the rsdd unix project 
+multilinedescription: Mythical manager of the rsdd unix project
 nobatchupdates: TRUE
 notice: Off sailing this month.
 onvacation: FALSE
