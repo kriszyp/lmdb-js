@@ -36,7 +36,7 @@
 #include "lutil.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 int

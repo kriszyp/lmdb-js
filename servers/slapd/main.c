@@ -41,7 +41,7 @@
 #include "ldif.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 #ifdef LDAP_SIGCHLD

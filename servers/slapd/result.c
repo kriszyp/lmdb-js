@@ -38,7 +38,7 @@
 #include "slap.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 int slap_null_cb( Operation *op, SlapReply *rs )

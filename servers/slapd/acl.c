@@ -37,7 +37,7 @@
 #include "lber_pvt.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif /* LDAPI_SLAPI */
 
 #define ACL_BUF_SIZE 	1024	/* use most appropriate size */

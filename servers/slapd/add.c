@@ -34,9 +34,9 @@
 #include "slap.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
-static void init_add_pblock( Operation *op,
-	struct berval *dn, Entry *e, int manageDSAit );
+#include "slapi/slapi.h"
+
+static void init_add_pblock( Operation *op, struct berval *dn, Entry *e, int manageDSAit );
 static int call_add_preop_plugins( Operation *op );
 static void call_add_postop_plugins( Operation *op );
 #endif /* LDAP_SLAPI */

@@ -40,7 +40,7 @@
 #include "lber_pvt.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 #endif
 
 #define UNSUPPORTED_EXTENDEDOP "unsupported extended operation"

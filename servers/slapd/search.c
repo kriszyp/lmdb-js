@@ -35,7 +35,7 @@
 #include "slap.h"
 
 #ifdef LDAP_SLAPI
-#include "slapi.h"
+#include "slapi/slapi.h"
 
 static char **anlist2charray( Operation *op, AttributeName *an );
 static void init_search_pblock( Operation *op, char **attrs, int managedsait );
