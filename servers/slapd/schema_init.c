@@ -81,18 +81,20 @@
 #define caseExactMatchOID			"2.5.13.5"
 #define caseExactSubstringsMatchOID		"2.5.13.7"
 
-static char *strcasechr( const char *str, int c )
+static char *bvcasechr( struct berval *bv, int c, ber_len_t *len )
 {
-	char *lower = strchr( str, TOLOWER(c) );
-	char *upper = strchr( str, TOUPPER(c) );
-
-	if( lower && upper ) {
-		return lower < upper ? lower : upper;
-	} else if ( lower ) {
-		return lower;
-	} else {
-		return upper;
+	ber_len_t i;
+	int lower = TOLOWER( c );
+	int upper = TOUPPER( c );
+	
+	for( i=0; i < bv->bv_len; i++ ) {
+		if( upper == bv->bv_val[i] || lower == bv->bv_val[i] ) {
+			*len = i;
+			return &bv->bv_val[i];
+		}
 	}
+
+	return NULL;
 }
 
 static int
@@ -2724,14 +2726,14 @@ retry:
 				continue;
 			}
 
-			p = strcasechr( left.bv_val, *sub->sa_any[i].bv_val );
+			p = bvcasechr( &left, *sub->sa_any[i].bv_val, &idx );
 
 			if( p == NULL ) {
 				match = 1;
 				goto done;
 			}
 
-			idx = p - left.bv_val;
+			assert( idx < left.bv_len );
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
 				return LDAP_OTHER;
