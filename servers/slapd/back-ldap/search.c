@@ -552,7 +552,7 @@ next_attr:;
 				attr->a_nvals = attr->a_vals;
 			}
 		} else {
-			attr->a_nvals = NULL;
+			attr->a_nvals = attr->a_vals;
 		}
 		*attrp = attr;
 		attrp = &attr->a_next;
