@@ -12097,7 +12097,7 @@ EOF
 	fi
 fi
 
-if test $ol_with_ldbm_api != auto -a $ol_with_ldbm_api = ndbm ; then
+if test $ol_with_ldbm_api = ndbm ; then
 	echo $ac_n "checking for NDBM library""... $ac_c" 1>&6
 echo "configure:12103: checking for NDBM library" >&5
 if eval "test \"\${ol_cv_lib_ndbm+set}\" = set"; then
