@@ -57,6 +57,9 @@
 /* define if you have Mach CThreads */
 #undef HAVE_MACH_CTHREADS
 
+/* define if you have PP */
+#undef HAVE_PP
+
 /* define if you have a preemptive POSIX Threads implementation */
 #undef HAVE_PREEMPTIVE_PTHREADS
 

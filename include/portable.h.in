@@ -154,6 +154,9 @@ is provided ``as is'' without express or implied warranty.
 /* define if you have NDBM */
 #undef HAVE_NDBM
 
+/* define if you have PP */
+#undef HAVE_PP
+
 /* define if you have a preemptive POSIX Threads implementation */
 #undef HAVE_PREEMPTIVE_PTHREADS
 

@@ -243,25 +243,38 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
-# LDAPD tests
+dnl HP-UX requires -lV3
+AC_CHECK_LIB(V3, sigset)
+
+# ISODE tests
+ol_link_isode=no
 if test $ol_enable_ldapd != no ; then
 	dnl look for ISODE libraries
+	AC_CHECK_LIB(xtpp, main, [
+		ol_link_isode=yes
+		AC_DEFINE(HAVE_XTPP,1)
+		LDAPD_LIBS="$LDAPD_LIBS -lxtpp -lresolv -lxtdsap -lxtisode -losi"
+		],:,[-lresolv -lxtdsap -lxtisode -losi])
 	AC_CHECK_LIB(dsap, main, [
+		ol_link_isode=yes
 		AC_DEFINE(HAVE_DSAP,1)
 		LDAPD_LIBS="$LDAPD_LIBS -ldsap"
-		],:)
+		],:,[-lisode])
 	AC_CHECK_LIB(isode, main, [
+		ol_link_isode=yes
 		AC_DEFINE(HAVE_ISODE,1)
 		LDAPD_LIBS="$LDAPD_LIBS -lisode"
 		],:)
-	AC_CHECK_LIB(xtpp, main, [
-		AC_DEFINE(HAVE_XTPP,1)
-		LDAPD_LIBS="$LDAPD_LIBS -lxtpp"
-		],:)
 fi
 
-dnl HP-UX requires -lV3
-AC_CHECK_LIB(V3, sigset)
+if test $ol_link_isode != no; then
+	AC_CHECK_LIB(pp, main, [
+		AC_DEFINE(HAVE_PP,1)
+		LDAPD_LIBS="-lpp $LDAPD_LIBS"
+		],:)
+
+	AC_PATH_PROG(PEPSY, pepsy)
+fi
 
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
@@ -988,7 +1001,7 @@ if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
 	BUILD_SLURPD=yes
 fi
 
-if test $ol_enable_ldapd != no ; then
+if test $ol_link_isode != no ; then
 	BUILD_LDAPD=yes
 fi
 
