@@ -1,6 +1,7 @@
+
 Individual Submission to LDAPExt Working Group              R. Harrison
 Internet Draft                                             Novell, Inc.
-Document: draft-rharrison-ldap-extpartresp-00.txt         October, 1999
+Document: draft-rharrison-ldap-extpartresp-01.txt            June, 2000
 Category: Proposed Standard
 
 
@@ -48,27 +49,25 @@ Status of this Memo
    protocol without requiring a new revision of the protocol.
 
    The LDAP v3 Extended Operation allows for a single extended response
-   to each extended request, but this paradigm may not be efficient
-   enough for some directory operations.  For instance, the LDAP search
+   to each extended request, but this paradigm may not be sufficient
+   for some directory operations.  For instance, the LDAP search
    operation is a directory operation that is much more efficient when
    multiple partial responses are used to service a single request. The
-
-Harrison    Individual Submission û Expires April 14, 2000           1
 
-                  LDAP v3 Extended Partial Response     October, 1999
+                  LDAP v3 Extended Partial Response         June, 2000
 
 
    extended partial response generalizes the current extended operation
    definition to give LDAP server implementers the ability to make use
    of a single-request-multiple-response paradigm for extended LDAP
-   operations that would benefit from it.
+   operations that require it or that would benefit from it.
 
 4. Element of Protocol
 
    The ExtendedPartialResponse is defined as
 
    ExtendedPartialResponse ::= [APPLICATION 25] SEQUENCE {
-           responseName     [0] LDAPOID,
+           responseName     [0] LDAPOID OPTIONAL,
            response         [1] OCTET STRING OPTIONAL }
 
    An LDAP server responds to an LDAP v3 ExtendedRequest with zero or
@@ -111,16 +110,26 @@ Harrison    Individual Submission û Expires April 14, 2000           1
 
    Roger Harrison
    Novell, Inc.
-
-Harrison    Individual Submission û Expires April 14, 2000           2
 
-                  LDAP v3 Extended Partial Response     October, 1999
+                  LDAP v3 Extended Partial Response         June, 2000
 
 
-   122 E. 1700 S.
+   1800 S. Novell Place
    Provo, UT 84606
    +1 801 861 2642
    roger_harrison@novell.com
+
+
+Appendix A - Document Revision History
+
+A.1 draft-rharrison-ldap-extPartResp-00.doc
+
+   Initial revision of draft.
+
+A.2 draft-rharrison-ldap-extPartResp-01.doc
+
+   Changed responseName to be optional to align with [LDAPv3]
+   definition of ExtendedResponse.
 
 Full Copyright Statement
 
@@ -148,29 +157,3 @@ Full Copyright Statement
    BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
    HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
    MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Harrison    Individual Submission û Expires April 14, 2000           3
-
