@@ -226,7 +226,7 @@ struct ldap {
 	char	*ld_host;
 	int		ld_port;
 
-	short		ld_lberoptions;
+	unsigned short	ld_lberoptions;
 
 	LDAPFiltDesc	*ld_filtd;	/* from getfilter for ufn searches */
 	char		*ld_ufnprefix;	/* for incomplete ufn's */

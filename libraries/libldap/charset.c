@@ -40,7 +40,7 @@ ldap_set_string_translators( LDAP *ld, BERTranslateProc encode_proc,
 void
 ldap_enable_translation( LDAP *ld, LDAPMessage *entry, int enable )
 {
-	short	*optionsp;
+	unsigned short	*optionsp;
 
 	optionsp = ( entry == NULL ) ? &ld->ld_lberoptions :
 	    &entry->lm_ber->ber_options;
