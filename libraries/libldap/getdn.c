@@ -63,6 +63,9 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 		return NULL;
 	}
 
+	if ( ( p = ldap_utf8_strpbrk( dn, "=" ) ) == NULL ) {
+		return( LDAP_STRDUP( dn ) );
+	}
 	ufn = LDAP_STRDUP( ++p );
 
 	if( ufn == NULL ) return NULL;
