@@ -22,13 +22,11 @@ Please read:
 OpenLDAP 2.0 Projects
 ---------------------
 	client API update
-		TLS/SSL support
 		Implement LDAP errno draft
-	SASL support
-		Cyrus SASL Integration
 	SLAPD
 		Schema Publishing / Enforcement
 	clients
+		Implement SASL/TLS
 		don't use deprecated routines
 		-C/-CC/-R referral chasing options
 	SLAPD/SLURD Admin Guide
