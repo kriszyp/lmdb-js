@@ -1,18 +1,11 @@
-
-
-
-
-
-
-
           Internet-Draft                                     E. Stokes
           LDAP Extensions WG                                  D. Byrne
           Intended Category: Standards Track                B. Blakley
-          Expires: 15 October 1999                                 IBM
-                                                         15 April 1999
+          Expires: 25 December 1999                                IBM
+                                                          25 June 1999
 
                          Access Control Model for LDAP
-                     <draft-ietf-ldapext-acl-model-02.txt>
+                     <draft-ietf-ldapext-acl-model-03.txt>
 
           STATUS OF THIS MEMO
 
@@ -41,25 +34,33 @@
 
                     ietf-ldapext@netscape.com
 
+          COPYRIGHT NOTICE
+             Copyright (C) The Internet Society (1997).  All Rights
+             Reserved.
+
           ABSTRACT
 
              This document describes the access control model for the
              Lightweight Directory Application Protocol (LDAP)
              directory service. It includes a description of the
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 1]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
              model, the LDAP controls, and the extended operations to
              the LDAP protocol.  A separate document defines the
              corresponding application programming interfaces (APIs).
              RFC2219 [Bradner97] terminology is used.
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 1]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
 
 
 
@@ -101,6 +102,20 @@
              LDAP environment and an attribute that defines the access
              control mechanism in effect for a given part of the LDAP
              namespace.  The instantiation of an access control model
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 2]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
              at the directory server is not defined in this document.
              By defining only what flows on the wire allows existing
              access control mechanisms to be used at the directory
@@ -108,19 +123,6 @@
 
              No mechanisms are defined in this document to control
              access to access control information or for storage of
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 2]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
              access control information at the server; this is vendor
              dependent.
 
@@ -139,22 +141,38 @@
                   There are additional LDAP controls and extended
                   protocol operations defined to further help
                   management of access control information:
-                  getEffectiveRights, listSubjectRights, and
-                  specifyCredentials.
+                  getEffectiveRights and specifyCredentials.
 
-                - LDAP Directory Interchange Format (LDIF) for
-                  application portability:  The LDIF is defined for
-                  access control information (ACI).  This LDIF is also
+                - A set of access control information (ACI) attributes
+                  for application portability:  These attributes are
                   used as input to the LDAP APIs so access control
                   information can be addressed uniformly independent
-                  of how that information is stored and addressed at
-                  the server.
+                  of how that information is addressed and stored at
+                  the server. These same attributes appear in LDIF
+                  output for interchange of access control
+                  information.
 
                 - A set of attributes to identity the access control
                   mechanisms supported by a server.
 
              Encoding of access control information on the wire is per
              the LDAPv3 specifications.
+
+
+
+
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 3]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
 
 
           3.  Terminology
@@ -166,19 +184,6 @@
 
              An "access control list entry" defines a single subject
              security attribute's granted rights for the objects
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 3]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
              governed by the access control list to which it belongs.
 
              The "access control policy information" (acpi) for an
@@ -215,6 +220,20 @@
 
              "effective rights" are the complete set of rights a
              subject is entitled to based on all access control lists
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 4]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
              which apply to a specific object and based on all of the
              subject's security attributes.
 
@@ -224,19 +243,6 @@
 
              A "group" is a privilege attribute asserting a subject's
              membership in the collection of subjects whose name is
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 4]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
              that of the group.
 
              An "identity" is a subject security attribute which is
@@ -273,6 +279,20 @@
              specified target object.
 
              A "role" is a privilege attribute asserting a subject's
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 5]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
              organizational position and entitlement to perform the
              operations appropriate to that organizational position.
 
@@ -282,17 +302,6 @@
              A "subject security attribute" is a defined property
              which is used by a security policy evaluation system to
              make policy decisions.
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 5]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
 
 
           4.  The Model
@@ -332,24 +341,14 @@
 
 
 
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 6]
 
 
 
 
 
 
-
-
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 6]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
@@ -401,13 +400,14 @@
 
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 7]
-
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 7]
 
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
+
+
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
@@ -459,13 +459,14 @@
 
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 8]
-
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 8]
 
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
+
+
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
@@ -517,33 +518,35 @@
 
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999         [Page 9]
-
+          Stokes, Byrne, Blakley   Expires 25 December 1999         [Page 9]
 
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
+
+
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
              Rights that apply to an entire object are:
 
-               16   Add      Add an object below this object
-               32   Delete   Delete this object
+                16   Add      Add an object below this object
+                32   Delete   Delete this object
+                64   EditDN   Edit an object's DN
 
              Rights that apply to the object to which the directory
              object points are:
 
-               64   Manage   Perform a privileged operation; used to
+               128   Manage   Perform a privileged operation; used to
                               restrict access to operations which
                               read or write especially sensitive data
-              128   Use      Execute; useful in controlling access to
+               256   Use      Execute; useful in controlling access to
                               the objects referred to by directory
                               entries than in controlling access to
                               the directory entries themselves
-              256   Get      Get retrieves the attribute values
-              512   Set      Set writes the attribute values
+               512   Get      Get retrieves the attribute values
+              1024   Set      Set writes the attribute values
 
           5.2.1.2  The X.500 Rights Family
 
@@ -568,23 +571,27 @@
              definition and OID.
 
 
+
+
+
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 10]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
           6.  Access Control Parameters for LDAP Controls & Extended
           Operations
 
              This section defines the parameters used in the access
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 10]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
              control LDAP controls and extended operations in this
              document.
 
@@ -626,23 +633,24 @@
                   rightsList for the given subject. If an access
                   control list does not exist for the specified
                   entry/attribute, then the access control list is
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 11]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
                   created with the granted rights for the given
                   subject.  If the access control list already exists
                   for the specified entry/attribute, then the access
                   control list is modified to grant the rights for the
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 11]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
                   given subject.
 
                 - ACI_DENY denies the rights specified in the
@@ -682,22 +690,19 @@
                   for a given directory entry(s) for a given subject
                   during a ldap_search operation
 
-                - listSubjectRights to get the access control
-                  information for a given directory entry(s) during a
-                  ldap_search operation
-
                 - specifyCredentials to specify a set of credentials
                   for the bind identity (DN) during a ldap_bind
 
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 12]
-
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 12]
 
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
+
+
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
@@ -749,13 +754,14 @@
 
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 13]
-
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 13]
 
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
+
+
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
@@ -783,12 +789,8 @@
               }
 
              The effective rights returned are returned with each
-             attribute returned by the search result.  So, the result
-             for ldap_search is:
-
-              SearchResultEntry ::= [APPLICATION 4] SEQUENCE {
-                 objectName    LDAPDN,
-                 rightsAttributes    PartialEffectiveRightsList }
+             entry returned by the search result.  The control
+             response for ldap_search is:
 
               PartialEffectiveRightsList ::= SEQUENCE OF SEQUENCE {
                  rightFamily   LDAPOID,
@@ -804,21 +806,23 @@
              control, hence the above structure cannot be returned to
              a LDAPv2 client.  A LDAPv3 client cannot send this
              request to a LDAPv2 server.  A LDAPv3 server not
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 14]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
              supporting this control cannot return the additional
              data.
+
+
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 14]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
 
           7.1.3  Client-Server Interaction
 
@@ -862,22 +866,22 @@
                    rightsFamily and the client specified FALSE for the
                    control's criticality field, then the server should
                    process as 'no rights returned for that family' and
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 15]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
                    include the result Unavailable in the
                    getEffectiveRightsResponse control in the
                    searchResult message.
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 15]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
 
                5.  If the server supports this control and can return
                    the rights per the rightsFamily information, then
@@ -908,236 +912,10 @@
              may not exist in that directory object's attribute; in
              this case, the rights request is ignored with success.
 
-          7.2  listSubjectRights Control
+          7.2  specifyCredentials Control
 
 
           7.2.1  Request Control
-
-             This control is included in  the ldap_search  message as
-             part of the controls  field  of the  LDAPMessage, as
-             defined in  Section  4.1.12 of [LDAPv3].
-
-             The controlType is set to <OID to be assigned>. The
-             criticality MAY be either TRUE or FALSE (where absent is
-             also equivalent to FALSE) at the client's option.  The
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 16]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-             controlValue is an OCTET STRING, whose value is the BER
-             encoding of a value of the following SEQUENCE:
-
-              listSubjectRightsRequest ::= SEQUENCE {
-                   targetDN  LDAPDN,
-                   listRightsRequest   SEQUENCE OF SEQUENCE {
-                               rightsFamily  LDAPOID | "*",
-                               whichObject   ENUMERATED {
-                                               LDAP_ENTRY (1),
-                                               LDAP_SUBTREE (2)
-                                               },
-                               dnType        LDAPOID | "*",
-                               listSubjectDN     LDAPString | "*",
-                               }
-              }
-
-             The targetDN specifies the initial directory entry in DN
-             syntax on which the listSubjectRights control is
-             performed.  request is a set of sequences that state the
-             whichObject (entry or entry plus subtree) and specifics
-             of the control request to be performed.  One or more
-             rightsFamily can be be obtained for a given subjectDN ad
-             dnType.  A "*" in the rightsFamily field indicates that
-             the rights for all rights families defined for the
-             subjectDN / dnType are to be returned.  A "*" in the
-             dnType field indicates that all dnTypes are processed by
-             this request.  A "*" in the subjectDN field indicates
-             that all subjectDNs are processed by this request. The
-             scope of the operation is controlled by the scope set in
-             the ldap_search operation.
-
-          7.2.2  Response Control
-
-             This control is included in the ldap_search message as
-             part of the controls field of the LDAPMessage, as defined
-             in Section 4.1.12 of [LDAPv3].
-
-             The controlType is set to <OID to be assigned>. The
-             criticality MAY be either TRUE or FALSE (where absent is
-             also equivalent to FALSE).  The controlValue is an OCTET
-             STRING, whose value is the BER encoding of a value of the
-             following SEQUENCE:
-
-              listSubjectRightsResponse ::= {
-                result  ENUMERATED {
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 17]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-                   success                       (0),
-                   operationsError               (1),
-                   unavailableCriticalExtension (12),
-                   noSuchAttribute              (16),
-                   undefinedAttributeType       (17),
-                   invalidAttributeSyntax       (21),
-                   unavailable                  (52),
-                   unwillingToPerform           (53),
-                   other                        (80)
-                   }
-              }
-
-             The subjects' rights returned are returned with each
-             attribute returned by the search result.  So, the result
-             for ldap_search is:
-
-              SearchResultEntry ::= [APPLICATION 4] SEQUENCE {
-                 objectName    LDAPDN,
-                 attributes    PartialSubjRightsAttributeList }
-
-              PartialSubjRightsAttributeList ::= SEQUENCE OF SEQUENCE
-             {
-                 rightFamily   LDAPOID,
-                 whichObject   ENUMERATED {
-                                 LDAP_ENTRY (1),
-                                 LDAP_SUBTREE (2)
-                                 },
-                 subjectDnType LDAPOID,
-                 subjectDN     LDAPString,
-                 rightsList    ENUMERATED
-                 }
-
-             Although this extends the search operation, there are no
-             incompatibilities between versions.  LDAPv2 cannot send a
-             control, hence the above structure cannot be returned to
-             a LDAPv2 client.  A LDAPv3 client cannot send this
-             request to a LDAPv2 server.  A LDAPv3 server not
-             supporting this control cannot return the additional
-             data.
-
-          7.2.3  Client-Server Interaction
-
-             The listSubjectRightsRequest control specifies the rights
-             that MUST be returned for the scope of the search.  The
-             server that consumes the search operation looks up the
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 18]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-             rights for the returned directory information and returns
-             the result as search information associated with the
-             scope of that search.
-
-             There are six possible scenarios that may occur as a
-             result of the listSubjectRights control being included on
-             the search request:
-
-
-               1.  If the server does not support this control and the
-                   client specified TRUE for the control's criticality
-                   field, then the server MUST return
-                   unavailableCriticalExtension as a return code in
-                   the searchResponse message and not send back any
-                   other results.  This behavior is specified in
-                   section 4.1.12 of [LDAPv3].
-
-               2.  If the server does not support this control and the
-                   client specified FALSE for the control's
-                   criticality field, then the server MUST ignore the
-                   control and process the request as if it were not
-                   present.  This behavior is specified in section
-                   4.1.12 of [LDAPv3].
-
-               3.  If the server supports this control but for some
-                   reason such as cannot process specified
-                   rightsFamily and the client specified TRUE for the
-                   control's criticality field, then the server SHOULD
-                   do the following: return
-                   unavailableCriticalExtension as a return code in
-                   the searchResult message and omit the
-                   listSubjectRightsResponse control in the
-                   searchResult message.
-
-               4.  If the server supports this control but for some
-                   reason such as cannot process specified
-                   rightsFamily and the client specified FALSE for the
-                   control's criticality field, then the server should
-                   process as 'no rights returned for that family' and
-                   include the result Unavailable in the
-                   listSubjectRightsResponse control in the
-                   searchResult message.
-
-               5.  If the server supports this control and can return
-                   the rights per the rightsFamily information, then
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 19]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-                   it should include the listSubjectRightsResponse
-                   control in the searchResult message with a result
-                   of success.
-
-               6.  If the search request failed for any other reason,
-                   then the server SHOULD omit the
-                   listSubjectRightsResponse control from the
-                   searchResult message.
-
-             The client application is assured that the correct rights
-             are returned for the scope of the search operation if and
-             only if the listSubjectRightsResponse control returns the
-             rights.  If the server omits the
-             listSubjectRightsResponse control from the searchResponse
-             message, the client SHOULD assume that the control was
-             ignored by the server.
-
-             The listSubjectRightsResponse control, if included by the
-             server in the searchResponse message, should have the
-             searchResult set to either success if the rights were
-             returned or set to the appropriate error code as to why
-             the rights could not be returned.
-
-             The server may not be able to return a right because it
-             may not exist in that directory object's attribute; in
-             this case, the rights request is ignored with success.
-
-          7.3  specifyCredentials Control
-
-
-          7.3.1  Request Control
 
              This control is included in  the ldap_bind  message as
              part of the controls  field  of the  LDAPMessage, as
@@ -1150,21 +928,22 @@
              encoding of a value of the following SEQUENCE:
 
               specifyCredentialRequest ::= SEQUENCE {
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 16]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
                    credential  LDAPString
                                }
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 20]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
               }
 
              The credential specifies the credential (e.g. groups,
@@ -1187,11 +966,11 @@
              the bind DN when needed in subsequent ldap operations to
              provide access control.
 
-          7.3.2  Response Control
+          7.2.2  Response Control
 
-             This control is included in the ldap_search message as
-             part of the controls field of the LDAPMessage, as defined
-             in Section 4.1.12 of [LDAPv3].
+             This control is included in the ldap_bind message as part
+             of the controls field of the LDAPMessage, as defined in
+             Section 4.1.12 of [LDAPv3].
 
              The controlType is set to <OID to be assigned>. The
              criticality MAY be either TRUE or FALSE (where absent is
@@ -1208,20 +987,21 @@
                    unwillingToPerform           (53),
                    other                        (80)
                    }
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 17]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
               }
-
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 21]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
 
              No data is returned; just the result is returned.
 
@@ -1231,10 +1011,10 @@
              LDAPv2 server.  A LDAPv3 server not supporting this
              control cannot return the additional data.
 
-          7.3.3  Client-Server Interaction
+          7.2.3  Client-Server Interaction
 
              The specifyCredentialsRequest control specifies the
-             credentials that the client was the server to use for
+             credentials that the client wants the server to use for
              access control in subsequent ldap operations.  The server
              that consumes the bind operation may unconditionally
              accept, ignore, or evaluate the trust of the specified
@@ -1266,21 +1046,22 @@
                    credential and the result is the server not
                    trusting all the credentials or unconditionally
                    ignores the credential) and the client specified
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 18]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
                    TRUE for the control's criticality field, then the
                    server SHOULD do the following: return
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 22]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
                    unavailableCriticalExtension as a return code in
                    the bindResult message and omit the
                    specifyCredentialResponse control in the bindResult
@@ -1314,7 +1095,7 @@
              client for subsequent ldap operations if and only if the
              specifyCredentialResponse is successful.  If the server
              omits the specifyCredentialResponse control from the
-             searchResponse message, the client SHOULD assume that the
+             bindResponse message, the client SHOULD assume that the
              control was ignored by the server.
 
              The specifyCredentialResponse control, if included by the
@@ -1327,15 +1108,14 @@
 
 
 
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 23]
-
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 19]
 
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
+
+
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
@@ -1350,9 +1130,6 @@
                 - LDAP Get Effective Rights to obtain the effective
                   rights for a given directory entry for a given
                   subject
-
-                - LDAP List Subject Rights to get the access control
-                  information for a given directory entry
 
           8.1  LDAP Get Effective Rights Operation
 
@@ -1385,20 +1162,22 @@
              The server will respond to this with an LDAPMessage
              containing the ExtendedResponse which is a rights list.
 
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 24]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
              ldpGetEffectiveRightsResponse ::= [APPLICATION 24]
              SEQUENCE {
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 20]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
                 COMPONENTS OF LDAPResult,
                 responseName     [10] <OID to be assigned> OPTIONAL,
                 effectiveRights  [11] OCTET STRING OPTIONAL }
@@ -1420,747 +1199,462 @@
              MUST return only the response fields from LDAPResult,
              containing the protocolError result code.
 
-          8.2  LDAP List Subject Rights
 
-             ldapListSubjectRightsRequest ::= [APPLICATION 23]
-             SEQUENCE {
-                requestName      [0] <OID to be assigned>,
-                requestValue     [1] OCTET STRING }
 
-                where
+          9.  Access Control Information Attributes/LDIF
 
-                requestValue ::= SEQUENCE {
-                   targetDN  LDAPDN,
-                   updates   SEQUENCE OF SEQUENCE {
-                               rightsFamily  LDAPOID | "*",
-                               whichObject   ENUMERATED {
-                                               LDAP_ENTRY (1),
-                                               LDAP_SUBTREE (2)
-                                               },
-                               dnType        LDAPOID | "*",
-                               listSubjectDN     LDAPString | "*",
-                               }
-                   }
+          The intent of the following attribute definitions is to
+          design a common interchange format.  Any given LDAP server
+          should be able to translate the below defined attributes
+          into a meaningful operation requests. Each server should be
+          able to understand the attributes; there should not be any
+          ambiguity into what any part of the syntax means.
 
+          While the end goal is to have a common behavior model
+          between different LDAP server implementations, the attribute
+          definition alone will not ensure identical ACL processing
+          behavior between servers.  The semantics of how a server
+          interprets the ACI syntax are not defined here. What 'deny'
+          means on server1 might be different than on server2.
+          Additionally, while the server must recognize and act on the
+          attribute when received over the wire, there are no
+          requirements for the server to actually implement this
+          attribute.
 
+          The attribute definition maintains an assumption that the
+          receiving server supports inheritance within the security
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 25]
-
 
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 21]
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
 
 
 
-             The requestName is a dotted-decimal representation of the
-             OBJECT IDENTIFIER corresponding to the request. The
-             requestValue is information in a form defined by that
-             request, encapsulated inside an OCTET STRING.
+          Internet-Draft      Access Control Model        25 June 1999
 
-             The server will respond to this with an LDAPMessage
-             containing the ExtendedResponse which is a result code.
 
-             ldapListSubjectRightsResponse ::= [APPLICATION 24]
-             SEQUENCE {
-                COMPONENTS OF LDAPResult,
-                responseName      [10] <OID to be assigned> OPTIONAL,
-                subjectRightsList [11] OCTET STRING OPTIONAL }
 
-                where
+          model. If the server does not support inheritance, the
+          receiving server must expand any inherited information based
+          on the scope flag.
 
-                subjectRightsList ::= SEQUENCE OF SEQUENCE {
-                               rightFamily   LDAPOID,
-                               whichObject   ENUMERATED {
-                                               LDAP_ENTRY (1),
-                                               LDAP_SUBTREE (2)
-                                               },
-                               subjectDnType        LDAPOID,
-                               subjectDN     LDAPString,
-                               perms         SEQUENCE OF SEQUENCE {
-                                               rightsList ENUMERATED,
-                                               attrs  LDAPSTRING
-                                               }
-                               }
-                }
 
-             If the server does not recognize the request name, it
-             MUST return only the response fields from LDAPResult,
-             containing the protocolError result code.
+          9.1  ACI Attributes
 
+          There are three attributes which may be queried or set on
+          all directory objects:  aci, vendorAci and policyOwner. The
+          syntax of these attributes is defined below.
 
 
-          9.  Operational Semantics of Access Control Operations
+          9.1.1  The BNF
 
-             The semantics of access control operations described in
-             this document are defined operationally in terms of
-             "histories".  A history is a sequence of actions (x1, x2,
-             ..., xN).
+          < aci > ::= < acl syntax >
 
+          < vendorAci > ::= <oid> + '#' + < printable string >
 
+          < acl syntax > ::= <familyOID> + '#' + <scope > + '#'
+                             + < rights >  + '#' + < dnType >
+                             + '#' + < subjectDn >
 
+          < policyOwner > ::= < familyOid > + '#' + <scope >
+                             + '#' +< dnType > + '#' + < subjectDn >
 
+          < subjectDn > ::= < printable string >
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 26]
-
+          < familyOid > ::= < oid >
 
+          <scope > ::= "entry"  | "subtree" | <level>
 
+          < level > ::= numericstring
 
+          < dnType > ::= "access-id" | "role" | "group"
 
-          Internet-Draft      Access Control Model       15 April 1999
+          < rights > ::= [  ]   |   [ < right > + [ '$'
+                         + <right> ] * ]
 
+          < right > ::= <action > + ';' + <permissions>
+                        + ';' +  <attrs>
 
+          < action > ::= "grant" | "deny"
 
-             We consider five types of actions:
+          < permissions > ::= [  ]  |   [ < permission >
+                              + [ ',' + <permission> ] *  ]
 
-                - LDAP Access Control Policy Update actions:
-                  invocations of the LDAP Update Access Extended
-                  Operation or LDAP Update Access Control.
 
-                - LDAP Access Control Policy Query operations:
-                  invocations of the LDAP Get Effective Access
-                  Extended Operation, LDAP Get Effective Access
-                  Control, LDAP List Subject Rights Extended
-                  Operation, or LDAP List Subject Rights Control.
 
-                - Datastore Access Control Policy Update Actions: any
-                  operation implemented by the server which LDAP is
-                  using as its datastore which changes the access
-                  policy enforced with respect to attempts to access
-                  LDAP directory entries and their attributes.
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 22]
 
-                - LDAP Access Request operations: invocations of LDAP
-                  entry or attribute access operations (Read, Update,
-                  Search, Compare, etc...).
 
-                - Other operations: anything else, including Datastore
-                  operations which do not change the access policy
-                  enforced by the server.
 
 
-             The semantics of histories are defined as follows:
 
-                - LDAP Update (Replace), LDAP Query
 
-                  The Query will show that the subject has all rights
-                  granted by the Update operation, and no rights not
-                  granted by the Update operation.
+          Internet-Draft      Access Control Model        25 June 1999
 
-                - LDAP Update (Grant), LDAP Query
 
-                  The Query will show that the subject has all rights
-                  granted by the Update operation.  The Query may show
-                  that the subject also has other rights not granted
-                  by the Update operation, depending on the policy in
-                  force before the Update operation.
 
-                - LDAP Update (Deny), LDAP Query
+          < attrs > ::= [ < attributeString>
+                         + [ ',' + < attributeString > ] * ]
 
+          < attributeString > ::= "[all]" | "[entry]"
+                                  | <printableString >
 
+          < permission > ::= "a" | "d" | "r" | "s" | "w" |
+                             "c" | "g" | "s" | "m" | "u" | "e"
 
+          These are the permissions defined for the IETF family OID.
+               "a" corresponds to add
+               "d" corresponds to delete
+               "r" corresponds to read
+               "w" corresponds to write
+               "c" corresponds to compare
+               "g" corresponds to get
+               "s" corresponds to set
+               "m" corresponds to manage
+               "u" corresponds to use
+               "e" corresponds to editDn
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 27]
-
 
+          9.1.2  VendorACI
 
+          ( vendorAciOID NAME 'vendorACI'  DESC  'Vendor specific
+          Access control information' EQUALITY caseIgnoreMatch SYNTAX
+          directoryString )
 
+          The Vendor specific ACI information is listed in its own
+          attribute.  This may be used by vendors to provide vendor
+          specific access control related information which can not be
+          expressed in defined ACISyntax. Within the vendorACI, the
+          oid determines the format or the printable string to follow.
 
-          Internet-Draft      Access Control Model       15 April 1999
 
+          9.1.3  Policy Owner
 
+          ( policySyntaxOID  DESC  'PolicyOwner Syntax' ) (
+          policyOwnerOID NAME 'policyOwner' DESC  'Policy Owner Access
+          Control Information' EQUALITY caseIgnoreMatch SYNTAX
+          policySyntaxOID )
 
-                  The Query will show that the subject does not have
-                  any right denied by the Update operation.  The Query
-                  may show that the subject has rights not denied by
-                  the Update operation, depending on the policy in
-                  force before the Update operation.
+          Policy ownership controls administrative subdomains. It can
+          also control who has permission to set / change acls for
+          implementations that do not have ACI controlling access to
 
-                - LDAP Update (Replace), LDAP Access Request
 
-                  The Request will succeed if it requires only rights
-                  granted to the requesting subject by the Update
-                  operation.  The Request will fail with an access-
-                  denied exception if it requires any right not
-                  granted by the Update operation.
 
-                - LDAP Update (Grant), LDAP Access Request
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 23]
 
-                  The Request will succeed if it requires only rights
-                  granted to the requesting subject by the Update
-                  operation.  The Request may succeed if it requires
-                  rights not granted by the Update operation,
-                  depending on the policy in force before the Update
-                  operation.
 
-                - LDAP Update (Deny), LDAP Access Request
 
-                  The Request will fail with an access-denied
-                  exception if it requires any right denied to the
-                  requesting subject by the Update operation.  If the
-                  Request requires only rights which were not denied
-                  by the Update operation, it may succeed, depending
-                  on the policy in force before the Update operation.
 
-                - LDAP Update (Replace), Other, LDAP Query
 
-                  The Query will show that the subject has all rights
-                  granted by the Update operation, and no rights not
-                  granted by the Update operation.
 
-                - LDAP Update (Grant), Other, LDAP Query
+          Internet-Draft      Access Control Model        25 June 1999
 
-                  The Query will show that the subject has all rights
-                  granted by the Update operation.  The Query may show
-                  that the subject also has other rights not granted
-                  by the Update operation, depending on the policy in
-                  force before the Update operation.
 
 
+          itself.   If there are multiple policy owners it is
+          implementation specific as to the behavior of whether policy
+          owner #1 can override policy owner # 2.
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 28]
-
+          The syntax for policyOwner includes the 'scope' flag.
+          Servers which do not support inheritance must expand the
+          policyOwner inheritance similar to the expansion of the ACI.
+          The scope and any inheritance hierarchy for policy ownership
+          is distinct from any inheritance hierarchy defined for ACI
+          values.
 
+          If the policy owner is not specified for any object in the
+          tree, behavior is implementation defined. For instance, if
+          no object anywhere in the tree has a policy owner, then the
+          server could simply assert that the 'root DN' is considered
+          the policy owner for all objects. An alternate approach
+          might be that the implementation defines the entryDN to be
+          the policy owner.
 
 
+          9.1.4  ACI
 
-          Internet-Draft      Access Control Model       15 April 1999
+          ( aciSyntaxOID  DESC  'ACI Syntax' )
+           ( aciOID NAME 'aci' DESC  'Access control information'
+          EQUALITY caseIgnoreMatch SYNTAX  aciSyntaxOID  )
 
+          Within the access control syntax, the family OID describes
+          the permissions, dnType, subjectDn and scope  that will be
+          found in the following string. If the OID within the ACI
+          attribute is listed as other than the IETF family oid, the
+          syntax is the same as listed below, but one or more of the
+          scope, dnType, subjectDn or permissions may vary from the
+          IETF defined syntax.
 
+          Within the access control syntax, there is a string which
+          describes the rights. This is a composite of the permissions
+          and resources to which the user is being granted or denied
+          access. The set of permissions is fixed. Either of the
+          actions "grant" | "deny"  may be used when creating or
+          updating ACI.
 
-                - LDAP Update (Deny), Other, LDAP Query
+          The attributeString is an attribute Name (defined to be a
+          printable string).  If the string refers to an attribute not
+          defined in the given server's schema, the server SHOULD
+          report an error.   Another option for the attributeString is
 
-                  The Query will show that the subject does not have
-                  any right denied by the Update operation.  The Query
-                  may show that the subject has rights not denied by
-                  the Update operation, depending on the policy in
-                  force before the Update operation.
 
-                - LDAP Update (Replace), Other, LDAP Access Request
 
-                  The Request will succeed if it requires only rights
-                  granted to the requesting subject by the Update
-                  operation.  The Request will fail with an access-
-                  denied exception if it requires any right not
-                  granted by the Update operation.
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 24]
 
-                - LDAP Update (Grant), Other, LDAP Access Request
 
-                  The Request will succeed if it requires only rights
-                  granted to the requesting subject by the Update
-                  operation.  The Request may succeed if it requires
-                  rights not granted by the Update operation,
-                  depending on the policy in force before the Update
-                  operation.
 
-                - LDAP Update (Deny), Other, LDAP Access Request
 
-                  The Request will fail with an access-denied
-                  exception if it requires any right denied to the
-                  requesting subject by the Update operation.  If the
-                  Request requires only rights which were not denied
-                  by the Update operation, it may succeed, depending
-                  on the policy in force before the Update operation.
 
-                - LDAP Update (Replace), Datastore Update, LDAP Query
 
-                  The result of the Query is not defined.
+          Internet-Draft      Access Control Model        25 June 1999
 
-                - LDAP Update (Grant), Datastore Update, LDAP Query
 
-                  The result of the Query is not defined.
 
-                - LDAP Update (Deny), Datastore Update, LDAP Query
+          "[entry]". This is provided to describe permissions which
+          apply to an entire object. This could mean actions such as
+          delete the object, or add a child object. The third option
+          for attributeString is "[all]" which means the permission
+          set should apply to all attributes.
 
-                  The result of the Query is not defined.
+          If the keyword "[all]" and another attribute are both
+          specified within an aci, the more specific permission set
+          for the attribute overrides the less specific permission set
+          for "[all]".
 
+          If two ACIs contain identical familyOID, scope, DnTypes and
+          DNs, the permission given DN is specified in two distinct
+          acis on any given entry, the rights lists can be combined
+          into one list. For example,
 
+           aci: 1.2.3.4#subtree#grant;r,w;[all]#group#cn=Dept XYZ
+           aci: 1.2.3.4#subtree#grant;r;attribute1#group#cn=Dept XYZ
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 29]
-
+          is the equivalent of
 
+           aci: 1.2.3.4#subtree#grant;r,w;[all];
+                 r,attribute1#group#cn=Dept XYZ
 
+          Using the defined BNF it is possible for the permission
+          string to be empty. The ACI
 
+           aci: 1.2.3.4#subtree#grant;;attribute1$grant;r,s;
+                 [all]#group#cn=Dept XYZ,c=US
 
-          Internet-Draft      Access Control Model       15 April 1999
+          means that this group is granted permission to read and
+          search all attributes except attribute1.
 
+          Similarly, the ACI
 
+          aci: 1.2.3.4#subtree##group#cn=Dept XYZ, c=US
 
-                - LDAP Update (Replace), Datastore Update, LDAP Access
-                  Request
+          simply means that no permissions have been defined for this
+          group. It is up to the server implementation as to whether
+          the group does or does not receive permission to attributes
+          on an entry with an empty rights list.
 
-                  The result of the Access Request is not defined.
+          Multiple attributeStrings can be listed after any given
+          permission set; for instance, "r,w ; attribute1,
+          attribute2". This means that if the server supports a
 
-                - LDAP Update (Grant), Datastore Update, LDAP Access
-                  Request
 
-                  The result of the Access Request is not defined.
 
-                - LDAP Update (Deny), Datastore Update, LDAP Access
-                  Request
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 25]
 
-                  The result of the Access Request is not defined.
 
 
 
-          10.  LDIF Syntax for Access Control Information
 
 
-          10.1  LDIF Purpose
+          Internet-Draft      Access Control Model        25 June 1999
 
-             The intent of the LDIF is to design a common interchange
-             format. Any given LDAP server should be able to translate
-             the below defined LDIF into a meaningful request. Each
-             server should be able to understand each part of the
-             LDIF; there should not be any ambiguity into what any
-             part of the syntax means.
 
-             While the end goal is to have a common behavior model
-             between different LDAP server implementations, the LDIF
-             alone will not ensure identical ACL processing behavior
-             between servers.  The semantics of how a server
-             interprets the aci syntax are not defined here. What
-             'deny' means on server1 might be different than on
-             server2.
 
-             The LDIF maintains an assumption that the receiving
-             server supports inheritance within the security model. If
-             the server does not support inheritance, the receiving
-             server must expand any inherited information based on the
-             scope flag.
+          attribute aggregation mechanism, attribute1 and attribute2
+          should be considered to be part of the same group. If the
+          server does not support a grouping mechanism, the permission
+          set applies independently to attribute1 and attribute2. For
+          servers that do not support attribute grouping, "grant ; r,w
+          ; attribute1, attribute2" results in the same operations as
+          "grant ; r,w; attribute1$grant; r,w; attribute2"
 
 
+          9.1.5  LDAP Operations
 
+          The attributes which are defined for access control
+          interchange may be used in all LDAP operations.
 
+          Within the ldapmodify-delete operation, the entire acl may
+          be deleted by specifying
 
+           dn: cn = some Entry
+           changetype: modify
+           delete: aci
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 30]
-
+          In this case, the entry would then inherit its ACI from some
+          other node in the tree depending on the server inheritance
+          model.
 
+          Deleting the last ACI value from an entry is not the same as
+          deleting the ACI from the entry. It is possible for an entry
+          to contain an ACI with no values. In this case, nothing is
+          returned to the client when querying the aci. It is server
+          dependent whether access is granted or denied in the absence
+          of any ACI information.  Deleting an ACI value which does
+          not exist will result in an unchanged ACI and a return code
+          specifying that the attribute value does not exist.
 
 
+          9.2  Examples
 
-          Internet-Draft      Access Control Model       15 April 1999
 
+          9.2.1  Attribute Definition
 
-
-          10.2  ACL Attributes
-
-             There are three attributes which are allowed on all
-             directory objects:  aci, vendorAci and policyOwner. The
-             syntax of these attributes is defined below. The aci,
-             vendorAci and policyOwner attribute are all multivalued.
-             In determining the order of the syntax, the DN was left
-             until the end for parsing reasons.   Examples follow the
-             BNF
-
-
-          10.2.1  VendorACI_
-
-             The Vendor specific ACI information is listed in its own
-             attribute. The assumption here is that if the vendor's
-             need to provide information in an additional attribute,
-             then the vendor specific information would not
-             necessarily be of the same syntax as the ACI attribute
-             which would have < acl syntax> .
-
-
-          10.2.2  Policy Owner_
-
-             The intent behind policy ownership is that it controls
-             administrative subdomains. It can also control who has
-             permission to set / change acls for implementations that
-             do not have an acl controlling access to itself.   If
-             there are multiple policy owners it is implementation
-             specific as to the behavior of whether policy owner #1
-             can override policy owner # 2.
-
-             The syntax for policyOwner includes the 'scope' flag.
-             Servers which do not support inheritance must expand the
-             policyOwner inheritance similar to the expansion of the
-             ACI.   If the policy owner is not specified for any
-             object in the tree, behavior is implementation defined.
-             For instance, if no object anywhere in the tree has a
-             policy owner, then the server could simply assert that
-             the 'root DN' is considered the policy owner for all
-             objects. An alternate approach might be that the
-             implementation defines the entryDN to be the policy
-             owner.
-
-             The policyOwner and ACI are left as distinct  attributes
-             for several reasons. They syntax of the policy owner is
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 31]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-             very similar to the syntax of the ACI. In parsing, it
-             would be difficult to tell when one stops and the other
-             begins (especially since there are no reserved characters
-             in LDAP Dns ). Additionally, the inheritance models of
-             the administrative subdomains may be different then the
-             models guiding the ACI inheritance. Since there is no
-             flag to tell if a given ACI is explicit vs inherited,
-             combining the two sets of information ties the
-             policyOwner inheritance to ACI inheritance. Additionally,
-             keeping the information separate makes it easier for the
-             applications to construct views of various models by only
-             requesting the information they need.
-
-
-          10.2.3  ACI
-
-             The aci attribute is defined using < acl syntax>. Within
-             the acl syntax, the family OID describes the permissions,
-             dnType, subhectDn and scope that will be found in the
-             following string.  The permissions for the IETF family
-             are found below.  The family OID is listed first in the
-             syntax to be consistent with other LDAP LDIF definitions
-             which list OIDs first.  If the OID within the ACI
-             attribute is listed as other than the IETF family oid,
-             the syntax is the same as l isted below, but one or more
-             of the scope, dnType, subjectDn or permissions may vary
-             from the IETF defined syntax.
-
-             Within the acl syntax, there is a string which describes
-             the rights. This is a composite of the permissions and
-             resources to which the user is being granted or denied
-             access. The set of permissions is fixed. Either of the
-             actions "grant" | "deny"  may be used when creating or
-             updating an aci.
-
-             Using the BNF defined below, it is possible for the
-             permission string to be empty. The aci
-
-              aci:
-             1.2.3.4#subtree#grant;;attribute1$grant;r,s;[all]#group#cn=Dept
-             XYZ, c=US
-
-             mean that this group is granted permission to read and
-             search all attributes except  attribute1.
-
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 32]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-             Similarly, the aci
-
-              aci:  1.2.3.4#subtree#group#cn=Dept XYZ, c=US simply
-             means that no permissions have been defined for this
-             group. It is up to the server implementation as to
-             whether the group does or does not receive permission to
-             attributes on an entry with an empty rights list.
-
-             The attributeString is an attribute Name (defined to be a
-             printable string).  If the string refers to an attribute
-             not defined in the given server's schema, the server
-             SHOULD report an error.   Another option for the
-             attributeString is "[entry]". This is provided to
-             describe permissions which apply to an entire object.
-             This could mean actions such as delete the object, or add
-             a child object. The third option for attributeString is
-             "[all]" which means the permission set should apply to
-             all attributes.
-
-             If the keyword "[all]"  and another attribute are both
-             specified within an aci, the more specific permission set
-             for the attribute overrides the less specific permission
-             set for "[all]".   If two acis contain identical
-             familyOID, scope, DnTypes and DNs, the permission given
-             DN is specified in two distinct acis on any given entry,
-             the rights lists can be combined into one list. For
-             example:
-
-              aci: 1.2.3.4#subtree#group#grant;r,w;[all]#cn=Dept XYZ
-              aci: 1.2.3.4#subtree#group#grant;r;attribute1#cn=Dept
-             XYZ
-
-             is the equivalent of
-
-              aci:
-             1.2.3.4#subtree#group#grant;r,w;[all];r,attribute1#cn=Dept
-             XYZ
-
-             Multiple attributeStrings can be listed after any given
-             permission set; for instance, "r,w ; attribute1,
-             attribute2". This means that if the server supports a
-             attribute aggregation mechanism, attribute1 and
-             attribute2 should be considered to be part of the same
-             group. If the server does not support a grouping
-             mechanism, the permission set applies independently to
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 33]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-             attribute1 and attribute2. For servers that do not
-             support attribute grouping, "r,w ; attribute1,
-             attribute2" results in the same operations as " r,w;
-             attribute1; r,w; attribute2 "
-
-             Within the vendorACI, the oid determines the format or
-             the printable string to follow.
-
-
-          10.3  Modifying the ACI Values
-
-             The attribute: value pairs listed below would be possible
-             inputs for normal LDAP operations such as ldapadd and
-             ldapmodify.  Within the ldapmodify command there are
-             three changetypes: add, delete, replace.
-
-             Replace works similarly to all other attributes. If the
-             attribute value does not exist, create the value. If the
-             attribute does exist, replace the value.  If the aci
-             value is replaced, all aci values are replaced.  Given an
-             aci for an entry:
-
-              aci:
-             1.2.3.4#subtree#deny;r,w;[all];grant;rsc;attirbute2#group#cn=Dept
-             ABC
-              aci:
-             1.2.3.4#subtree#grant;r,;[all];grant;rsc;attirbute1#group#cn=Dept
-             XYZ
-
-             perform the following change:
-
-              dn: cn=someEntry
-              changetype: replace
-              add: aci
-              aci: 1.2.3.4#subtree#grant;r,w;[all];#group#cn=Dept LMN
-
-             The resulting acl is:
-
-              aci: 1.2.3.4#subtree#grant;r,w;[all];#group#cn=Dept LMN
-
-             (aci values for Dept XYZ and ABC are lost through the
-             replace)
-
-             During an ldapmodify-add, if the aci does not exist, the
-             create the aci with the specific aci value(s).  If the
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 34]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-             aci does exist, then add the specified values to the
-             given aci.  For example a given aci:
-
-               aci: 1.2.3.4#subtree#group#grant;r,w;[all]#cn=Dept XYZ
-
-              with a modification:
-               dn: cn=someEntry
-               changetype: add
-               add: aci
-               aci: 1.2.3.4#subtree#group#grant;r;attribute1#cn=Dept
-             XYZ
-
-             would yield an aci value of:
-
-              aci:
-             1.2.3.4#subtree#group#grant;r,w;[all];r,attribute1#cn=Dept
-             XYZ
-
-             To delete an entire acl, use ldapmodify - delete without
-             specifying a value for the aci. The entry would then
-             inherit its aci from some other node in the tree
-             depending on the server inheritance model.
-
-              dn: cn = some Entry
-              changetype: delete
-              delete: aci
-
-             During an ldapmodify-delete, there are two possible
-             interpretations of the delete.
-
-              dn: cn = some Entry
-              changetype: delete
-              delete: aci
-              aci: < >  (see below)
-
-             Interpretation 1.
-
-                aci: 1.2.3.4#subtree#group#cn=Dept XYZ
-              would delete the entire aci for the group cn=Dept XYZ
-
-             Interpretation 2.
-
-                aci:
-             1.2.3.4#subtree#grant;rsc;attribute1#group#cn=Dept XYZ
-              would delete the 'grant;rsc;attribute1' portion of the
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 35]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-             aci
-              for the group cn=Dept XYZ
-
-              before ldapmodify - delete:
-                aci:
-             1.2.3.4#subtree#group#grant;r,w;[all];grant;rsc;attribute1#cn=Dept
-             XYZ
-
-              after ldapmodify - delete of attribute1
-                aci: 1.2.3.4#subtree#group#grant;r,w;[all];#cn=Dept
-             XYZ
-
-              if the delete is for an attribute not existing within
-             the aci, nothing
-              is changed in the expected outcome. For example, if now
-             attribute2
-              is deleted,
-
-                aci: 1.2.3.4#subtree#grant;[attribute2]#group#cn=Dept
-             XYZ
-
-              the resulting aci would still be
-
-                aci: 1.2.3.4#subtree#group#grant;r,w;[all];#cn=Dept
-             XYZ
-
-
-          10.4  BNF
-
-              <aci> ::= <acl syntax>
-              <vendorAci > ::=  <oid> + '#' + <printable string>
-
-              <acl syntax> ::= <familyOID> + '#' + <scope> + '#' +
-                       <rights> + '#' + <dnType> + '#' + <subjectDn>
-
-              <policyOwner> ::= <familyOid> + '#' + <scope> + '#' +
-                                  <dnType> + '#' + <subjectDn>
-
-              <subjectDn> ::= <printable string>
-              <familyOid> ::= < oid >
-
-              <scope> ::     "entry"  | "subtree"
-
-              <dnType> :: "access-id" | "role" | "group"
-              <rights> ::= [  ] | [ < right > + [ '$' + <right> ] * ]
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 36]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
-              <right> ::= <action> + ';' + <permissions> +
-                            ';' +  <attrs>
-
-              <action> ::= "grant" | "deny"
-
-              <permissions> ::= [  ] | [ < permission > +
-                                  [ ',' + <permission> ] *  ]
-              <attrs > ::= [ <attributeString> +
-                            [  ',' + <attributeString > ] * ]
-
-              <attributeString>  ::= "[all]" | "[entry]" |
-                                       <printableString>
-
-              <permission> : "a" | "d" | "r" | "s" | "w" | "c"
-                                 | "g" | "s" | "m" | "u"
-                             These are the permissions defined for
-                         the IETF family OID.
-
-
-          10.5  Examples
-
-             Suppose IETFFamilyOID = 1.2.3.4
+             Pretend IETFFamilyOID = 1.2.3.4
 
              The following two examples show an administrative
              subdomain being established. The first example shows a
              single user being assigned the policyOwner for the entire
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 26]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
              domain. The second example shows a group of ids assigned
              to the policy Owner.
 
-              policyOwner:  1.2.3.4#subtree#access-id#cn=Hoyt
+             policyOwner: 1.2.3.4#subtree#access-id#cn=Hoyt
 
-              policyOwner:  1.2.3.4#subtree#group#cn=System Owners,
+             policyOwner: 1.2.3.4#subtree#group#cn=System Owners,
              o=Company
 
              The next example shows an aci attribute where a group
-             "cn=Dept XYZ, c=US"  is being given permissions to read,
+             "cn=Dept XYZ, c=US" is being given permissions to read,
              search and compare attribute1. The permission should
              apply to the entire subtree below the node containing
-             this aci.
+             this ACI.
 
-             aci: 1.2.3.4#subtree#group#grant;r,s,c;attribute1#cn=Dept
-             XYZ, c=US
+              aci:1.2.3.4#subtree#grant;r,s,c;
+                   attribute1#group#cn=Dept XYZ,c=US
 
              The next example shows an ACI attribute where a role
              "cn=SysAdmins,o=Company"  is being given permissions to
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 37]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
              add objects below this node, and read, search and compare
-             attributes2 and 3. The permission should apply to the
+             attributes 2 and 3. The permission should apply to the
              entire subtree below the node containing this ACI.
 
-             aci:
-             1.2.3.4#subtree#role#grant;a;[entry]$grant;r,s,c;attribute2,attribute3#cn=SysAdmins,o=Company
+               aci: 1.2.3.4#subtree#grant;a;[entry]$grant;
+                    r,s,c;attribute2, attribute3#role#
+                    cn=SysAdmins,o=Company
+
+
+          9.2.2  Modifying the ACI Values
+
+          Replace works similarly to all other attributes. If the
+          attribute value does not exist, create the value. If the
+          attribute does exist, replace the value.  If the ACI value
+          is replaced, all ACI values are replaced.
+
+          A given aci for an entry:
+
+           aci: 1.2.3.4#subtree#deny;r,w;[all]$grant;r,s,c;
+                attribute2#group#cn=Dept ABC
+
+           aci: 1.2.3.4#subtree#grant;r;[all]$grant;r,s,c;
+                attribute1#group#cn=Dept XYZ
+
+          perform the following change:
 
 
 
-          11.  Security Considerations
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 27]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
+            dn: cn=someEntry
+            changetype: modify
+            replace: aci
+            aci: 1.2.3.4#subtree#grant;r,w;[all];#group#cn=Dept LMN
+
+          The resulting acl is:
+
+          aci: 1.2.3.4#subtree#grant;r,w;[all];#group#cn=Dept LMN
+
+          ( aci values for Dept XYZ and ABC are lost through the
+          replace )
+
+          During an ldapmodify-add, if the ACI does not exist, the
+          create the ACI with the specific aci value(s).  If the ACI
+          does exist, then add the specified values to the given ACI.
+          For example a given ACI:
+
+          aci: 1.2.3.4#subtree#grant;r,w;[all]#group#cn=Dept XYZ
+
+          with a modification:
+
+            dn: cn=someEntry
+            changetype: modify
+            add: aci
+            aci: 1.2.3.4#subtree#grant;r;attribute1#group#cn=Dept XYZ
+
+          would yield an multi-valued aci of:
+
+            aci: 1.2.3.4#subtree#grant;r,w;[all]#group#cn=Dept XYZ
+            aci: 1.2.3.4#subtree#grant;r;attribute1#group#cn=Dept XYZ
+          To delete a particular aci value, use the regular ldapmodify
+          - delete syntax
+
+          Given an ACI of:
+
+            aci: 1.2.3.4#subtree#grant;r,w;[all]#group#cn=Dept XYZ
+            aci: 1.2.3.4#subtree#grant;r;attribute1#group#cn=Dept XYZ
+
+            dn: cn = some Entry
+            changetype: modify
+            delete: aci
+            aci: 1.2.3.4#subtree#grant;r;attribute1#group#cn=Dept XYZ
+
+          would yield a remaining ACI on the server of
+
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 28]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
+          aci: 1.2.3.4#subtree#grant;r,w;[all]#group#cn=Dept XYZ
+
+
+
+          10.  Security Considerations
 
              This draft proposes protocol elements for transmission of
              security policy information.  Security considerations are
@@ -2172,7 +1666,7 @@
 
 
 
-          12.  References
+          11.  References
 
              [LDAPv3] M. Wahl, T. Howes, S. Kille, "Lightweight
              Directory Access Protocol (v3)", RFC 2251, December 1997.
@@ -2196,29 +1690,30 @@
              Indicate Requirement Levels", RFC 2119.
 
 
-
-
-
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 38]
-
-
-
-
-
-          Internet-Draft      Access Control Model       15 April 1999
-
-
-
           AUTHOR(S) ADDRESS
 
               Ellen Stokes                       Bob Blakley
               IBM                                Dascom
-              11400 Burnet Rd
-              Austin, TX 78758                   Austin, TX
+              11400 Burnet Rd                    5515 Balcones Drive
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 29]
+
+
+
+
+
+
+          Internet-Draft      Access Control Model        25 June 1999
+
+
+
+              Austin, TX 78758                   Austin, TX 78731
               USA                                USA
               mail-to: stokes@austin.ibm.com     mail-to: blakley@dascom.com
-              phone: +1 512 838 3725
-              fax:   +1 512 838 8597
+              phone: +1 512 838 3725             phone: +1 512 458 4037  ext 5012
+              fax:   +1 512 838 8597             fax:   +1 512 458 237
 
 
               Debbie Byrne
@@ -2228,7 +1723,7 @@
               USA
               mail-to: djbyrne@us.ibm.com
               phone: +1 512 838 1960
-              fax:   +1 512 838 0156
+              fax:   +1 512 838 8597
 
 
 
@@ -2257,20 +1752,19 @@
 
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 39]
-
 
 
 
 
-          Internet-Draft      Access Control Model       15 April 1999
 
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 30]
 
 
 
 
 
 
+          Internet-Draft      Access Control Model        25 June 1999
 
 
 
@@ -2315,8 +1809,16 @@
 
 
 
-          Stokes, Byrne, Blakley  Expires 15 October 1999        [Page 40]
-
+
+
+
+
+
+
+
+          Stokes, Byrne, Blakley   Expires 25 December 1999        [Page 31]
+
+
 
 
 
@@ -2332,43 +1834,43 @@
 
            2.  Overview...........................................   2
 
-           3.  Terminology........................................   3
+           3.  Terminology........................................   4
 
            4.  The Model..........................................   6
-               4.1   Access Control Activity Lifecycle............   6
-               4.2   Access Control Information Model.............   6
-               4.3   Bind and Credentials.........................   8
+               4.1  Access Control Activity Lifecycle.............   6
+               4.2  Access Control Information Model..............   6
+               4.3  Bind and Credentials..........................   8
 
            5.  Access Control Information Schema..................   8
-               5.1   Attributes...................................   8
-                     5.1.1   Root DSE Attribute for Access
-                             Control Mechanism   8
-                     5.1.2   Subschema Attribute for Access
-                             Control Mechanism   9
-               5.2   Other Defined Parameters/OIDs................   9
-                     5.2.1   Rights Families and Rights   9
-                     5.2.2   DN Types  10
+               5.1  Attributes....................................   8
+                    5.1.1  Root DSE Attribute for Access Control
+                           Mechanism   8
+                    5.1.2  Subschema Attribute for Access Control
+                           Mechanism   9
+               5.2  Other Defined Parameters/OIDs.................   9
+                    5.2.1  Rights Families and Rights   9
+                    5.2.2  DN Types  10
 
            6.  Access Control Parameters for LDAP Controls &
-               Extended Operations................................  10
+               Extended Operations................................  11
 
            7.  Access Control Information (ACI) Controls..........  12
-               7.1   getEffectiveRights Control...................  13
-                     7.1.1   Request Control  13
-                     7.1.2   Response Control  13
-                     7.1.3   Client-Server Interaction  15
-               7.2   listSubjectRights Control....................  16
-                     7.2.1   Request Control  16
-                     7.2.2   Response Control  17
-                     7.2.3   Client-Server Interaction  18
-               7.3   specifyCredentials Control...................  20
-                     7.3.1   Request Control  20
-                     7.3.2   Response Control  21
-                     7.3.3   Client-Server Interaction  22
+               7.1  getEffectiveRights Control....................  13
+                    7.1.1  Request Control  13
+                    7.1.2  Response Control  13
+                    7.1.3  Client-Server Interaction  15
+               7.2  specifyCredentials Control....................  16
+                    7.2.1  Request Control  16
+                    7.2.2  Response Control  17
+                    7.2.3  Client-Server Interaction  18
 
-           8.  Access Control Extended Operations.................  24
-               8.1   LDAP Get Effective Rights Operation..........  24
-               8.2   LDAP List Subject Rights.....................  25
+           8.  Access Control Extended Operations.................  20
+               8.1  LDAP Get Effective Rights Operation...........  20
+
+          10.  Security Considerations............................  29
+
+          11.  References.........................................  29
+
 
 
 
@@ -2385,37 +1887,37 @@
 
 
 
-           9.  Operational Semantics of Access Control
-               Operations.........................................  26
+          Full Copyright Statement
 
-          10.  LDIF Syntax for Access Control Information.........  30
-               10.1  LDIF Purpose.................................  30
-               10.2  ACL Attributes...............................  31
-                     10.2.1  VendorACI   31
-                     10.2.2  Policy Owner   31
-                     10.2.3  ACI  32
-               10.3  Modifying the ACI Values.....................  34
-               10.4  BNF..........................................  36
-               10.5  Examples.....................................  37
+          Copyright (C) The Internet Society (1999).á All Rights
+          Reserved.
 
-          11.  Security Considerations............................  38
+          This document and translations of it may be copied and
+          furnished to others, and derivative works that comment on or
+          otherwise explain it or assist in its implementation may be
+          prepared, copied, published and distributed, in whole or in
+          part, without restriction of any kind, provided that the
+          above copyright notice and this paragraph are included on
+          all such copies and derivative works.á However, this
+          document itself may not be modified in any way, such as by
+          removing the copyright notice or references to the Internet
+          Society or other Internet organizations, except as needed
+          for the purpose of developing Internet standards in which
+          case the procedures for copyrights defined in the Internet
+          Standards process must be followed, or as required to
+          translate it into languages other than English.
 
-          12.  References.........................................  38
+          The limited permissions granted above are perpetual and will
+          not be revoked by the Internet Society or its successors or
+          assigns.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+          This document and the information contained herein is
+          provided on an "AS IS" basis and THE INTERNET SOCIETY AND
+          THE INTERNET ENGINEERING TASK FORCE DISCLAIMS ALL
+          WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+          ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
+          INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+          MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
