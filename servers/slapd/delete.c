@@ -199,19 +199,27 @@ do_delete(
 	 */
 	if ( be->be_delete ) {
 		/* do the update here */
+		slap_replog_ctx ctx;
+		slap_callback cb = {0};
 		int repl_user = be_isupdate( be, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
 		if ( !be->be_update_ndn.bv_len || repl_user )
 #endif
 		{
-			if ( (*be->be_delete)( be, conn, op, &pdn, &ndn ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if ( !be->be_update_ndn.bv_len || !repl_user )
+			if ( !be->be_update_ndn.bv_len || !repl_user )
 #endif
-				{
-					replog( be, op, &pdn, &ndn, NULL );
-				}
+			{
+				ctx.prev = op->o_callback;
+				ctx.be = be;
+				ctx.dn = &pdn;
+				ctx.ndn = &ndn;
+				ctx.change = NULL;
+				cb.sc_private = &ctx;
+				cb.sc_response = slap_replog_cb;
+				op->o_callback = &cb;
 			}
+			rc = (*be->be_delete)( be, conn, op, &pdn, &ndn );
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = be->be_update_refs

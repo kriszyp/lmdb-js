@@ -399,6 +399,8 @@ do_modify(
 			const char *text;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
+			slap_replog_ctx ctx;
+			slap_callback cb = {0};
 
 			rc = slap_mods_check( modlist, update, &text,
 				textbuf, textlen );
@@ -427,14 +429,20 @@ do_modify(
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, &pdn, &ndn, modlist ) == 0
 #ifdef SLAPD_MULTIMASTER
-				&& !repl_user
+			if ( !repl_user )
 #endif
-			) {
-				/* but we log only the ones not from a replicator user */
-				replog( be, op, &pdn, &ndn, modlist );
+			{
+				ctx.prev = op->o_callback;
+				ctx.be = be;
+				ctx.dn = &pdn;
+				ctx.ndn = &ndn;
+				ctx.change = modlist;
+				cb.sc_private = &ctx;
+				cb.sc_response = slap_replog_cb;
+				op->o_callback = &cb;
 			}
+			rc = (*be->be_modify)( be, conn, op, &pdn, &ndn, modlist );
 
 #ifndef SLAPD_MULTIMASTER
 		/* send a referral */

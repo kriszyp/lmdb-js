@@ -796,6 +796,10 @@ LDAP_SLAPD_F (int) add_replica_attrs LDAP_P(( Backend *be,
 	int nr, char *attrs, int exclude ));
 LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op,
 	struct berval *dn, struct berval *ndn, void *change ));
+LDAP_SLAPD_F (void) slap_replog_cb LDAP_P(( Connection *c, Operation *op,
+	ber_tag_t tag, ber_int_t msgid, ber_int_t err, const char *matched,
+	const char *text, BerVarray ref, const char *resoid,
+	struct berval *resdata, struct berval *sasldata, LDAPControl **ct ));
 
 /*
  * result.c

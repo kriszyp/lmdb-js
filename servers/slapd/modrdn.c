@@ -375,20 +375,28 @@ do_modrdn(
 		if ( !be->be_update_ndn.bv_len || repl_user )
 #endif
 		{
-			if ( (*be->be_modrdn)( be, conn, op, &pdn, &ndn,
-				&pnewrdn, &nnewrdn, deloldrdn,
-				pnewS, nnewS ) == 0
+			struct slap_replog_moddn moddn;
+			slap_replog_ctx ctx;
+			slap_callback cb = {0};
 #ifdef SLAPD_MULTIMASTER
-				&& ( !be->be_update_ndn.bv_len || !repl_user )
+			if ( !repl_user )
 #endif
-			) {
-				struct slap_replog_moddn moddn;
+			{
 				moddn.newrdn = &pnewrdn;
 				moddn.deloldrdn = deloldrdn;
 				moddn.newsup = &pnewSuperior;
-
-				replog( be, op, &pdn, &ndn, &moddn );
+				ctx.prev = op->o_callback;
+				ctx.be = be;
+				ctx.dn = &pdn;
+				ctx.ndn = &ndn;
+				ctx.change = &moddn;
+				cb.sc_private = &ctx;
+				cb.sc_response = slap_replog_cb;
+				op->o_callback = &cb;
 			}
+			rc = (*be->be_modrdn)( be, conn, op, &pdn, &ndn,
+				&pnewrdn, &nnewrdn, deloldrdn,
+				pnewS, nnewS );
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = be->be_update_refs

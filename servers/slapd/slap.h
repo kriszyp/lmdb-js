@@ -1612,6 +1612,15 @@ typedef struct slap_callback {
 	void *sc_private;
 } slap_callback;
 
+/* callback context for invoking replog */
+typedef struct slap_replog_ctx {
+	slap_callback *prev;
+	BackendDB *be;
+	struct berval *dn;
+	struct berval *ndn;
+	void *change;
+} slap_replog_ctx;
+
 /*
  * Paged Results state
  */

@@ -102,6 +102,39 @@ print_vals( FILE *fp, struct berval *type, struct berval *bv );
 static void
 replog1( struct slap_replica_info *ri, Operation *op, void *change, FILE *fp, struct berval *dn, long now);
 
+/* invoke replog from a callback to preserve replog order */
+void
+slap_replog_cb(
+	Connection *c,
+	Operation *op,
+	ber_tag_t tag,
+	ber_int_t msgid,
+	ber_int_t err,
+	const char *matched,
+	const char *text,
+	BerVarray ref,
+	const char *resoid,
+	struct berval *resdata,
+	struct berval *sasldata,
+	LDAPControl **ctrls
+)
+{
+	slap_callback *tmp = op->o_callback;
+	slap_replog_ctx *ctx = tmp->sc_private;
+
+	if ( err == LDAP_SUCCESS ) {
+		replog( ctx->be, op, ctx->dn, ctx->ndn, ctx->change );
+	}
+	op->o_callback = ctx->prev;
+	if ( op->o_callback && op->o_callback->sc_response ) {
+		op->o_callback->sc_response(c, op, tag, msgid, err, matched,
+			text, ref, resoid, resdata, sasldata, ctrls );
+	} else {
+		send_ldap_result( c, op, err, matched, text, ref, ctrls );
+	}
+	op->o_callback = tmp;
+}
+
 void
 replog(
     Backend	*be,
