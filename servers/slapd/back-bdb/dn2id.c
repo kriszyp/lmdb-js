@@ -25,7 +25,8 @@ bdb_dn2id_add(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
+		dn, id, 0 );
 	assert( id != NOID );
 
 	DBTzero( &key );
@@ -111,7 +112,8 @@ bdb_dn2id_delete(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", %ld )\n", dn, id, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", 0x%08lx )\n",
+		dn, id, 0 );
 
 	DBTzero( &key );
 	key.size = strlen( dn ) + 2;
@@ -210,7 +212,7 @@ bdb_dn2id(
 	/* fetch it */
 	rc = db->get( db, txn, &key, &data, 0 );
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: id=%ld: %s (%d)\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: id=0x%08lx: %s (%d)\n",
 		id, db_strerror( rc ), rc );
 
 	ch_free( key.data );
@@ -250,6 +252,8 @@ bdb_dn2id_matched(
 	while(1) {
 		AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
 
+		*id = NOID;
+
 		/* fetch it */
 		rc = db->get( db, txn, &key, &data, 0 );
 
@@ -259,6 +263,9 @@ bdb_dn2id_matched(
 			tmp = NULL;
 
 			if( pdn == NULL || *pdn == '\0' ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"<= bdb_dn2id_matched: no match\n",
+					0, 0, 0 );
 				ch_free( pdn );
 				break;
 			}
@@ -268,15 +275,27 @@ bdb_dn2id_matched(
 			key.size = strlen( dn ) + 2;
 
 		} else if ( rc == 0 ) {
+			if( data.size != sizeof( ID ) ) {
+				Debug( LDAP_DEBUG_ANY,
+					"<= bdb_dn2id_matched: get size mismatch: "
+					"expected %ld, got %ld\n",
+					(long) sizeof(ID), (long) data.size, 0 );
+				ch_free( tmp );
+			}
+
 			if( in != dn ) {
 				*matchedDN = (char *) dn;
 			}
+
 			Debug( LDAP_DEBUG_TRACE,
-				"<= bdb_dn2id_matched: id=%ld: %s\n",
-				id, dn, 0 );
+				"<= bdb_dn2id_matched: id=0x%08lx: %s\n",
+				*id, dn, 0 );
 			break;
 
 		} else {
+			Debug( LDAP_DEBUG_ANY,
+				"<= bdb_dn2id_matched: get failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
 			ch_free( tmp );
 			break;
 		}

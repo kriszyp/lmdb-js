@@ -361,7 +361,7 @@ static int base_candidate(
 	Entry	*e,
 	ID		*ids )
 {
-	Debug(LDAP_DEBUG_TRACE, "base_candidates: base: \"%s\" (0x08lx)\n",
+	Debug(LDAP_DEBUG_ARGS, "base_candidates: base: \"%s\" (0x%08lx)\n",
 		e->e_dn, (long) e->e_id, 0);
 
 	ids[0] = 1;
@@ -378,7 +378,7 @@ static int search_candidates(
 	int manageDSAit,
 	ID	*ids )
 {
-	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: \"%s\" (0x08lx)\n",
+	Debug(LDAP_DEBUG_TRACE, "subtree_candidates: base: \"%s\" (0x%08lx)\n",
 		e->e_dn, (long) e->e_id, 0);
 
 	ids[0] = NOID;

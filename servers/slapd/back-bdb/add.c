@@ -251,7 +251,7 @@ retry:	rc = txn_abort( ltid );
 	ltid = NULL;
 	op->o_private = NULL;
 
-	if( rc == 0 ) {
+	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: txn_commit failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );

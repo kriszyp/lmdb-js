@@ -73,6 +73,10 @@ int bdb_id2entry(
 
 	rc = entry_decode( &bv, e );
 
+	if( rc == 0 ) {
+		(*e)->e_id = id;
+	}
+
 	ch_free( data.data );
 	return rc;
 }
