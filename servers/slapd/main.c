@@ -99,7 +99,7 @@ usage( char *name )
 		"\t-d level\tDebug Level" "\n"
 		"\t-f filename\tConfiguration File\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
-		"\t-g group\tGroup (id or name) to ran as\n"
+		"\t-g group\tGroup (id or name) to run as\n"
 #endif
 		"\t-h URLs\tList of URLs to serve\n"
 #ifdef LOG_LOCAL4
@@ -111,7 +111,7 @@ usage( char *name )
 #endif
 		"\t-s level\tSyslog Level\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
-		"\t-u user\tUser (id or name) to ran as\n"
+		"\t-u user\tUser (id or name) to run as\n"
 #endif
     );
 }
