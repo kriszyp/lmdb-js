@@ -1965,18 +1965,69 @@ restrict_unknown:;
 			ldap_syslog = 0;
 
 			for( i=1; i < cargc; i++ ) {
-				int	level = strtol( cargv[i], &next, 10 );
-				if ( next == NULL || next[0] != '\0' ) {
+				int	level;
+
+				if ( isdigit( cargv[i][0] ) ) {
+					level = strtol( cargv[i], &next, 10 );
+					if ( next == NULL || next[0] != '\0' ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG( CONFIG, CRIT, 
-						"%s: line %d: unable to parse level \"%s\" in \"loglevel <level> [...]\""
-						" line.\n", fname, lineno , cargv[i] );
+						LDAP_LOG( CONFIG, CRIT, 
+							"%s: line %d: unable to parse level \"%s\" "
+							"in \"loglevel <level> [...]\" line.\n",
+							fname, lineno , cargv[i] );
 #else
-					Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: unable to parse level \"%s\" in \"loglevel <level> [...]\""
-						" line.\n", fname, lineno , cargv[i] );
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: unable to parse level \"%s\" "
+							"in \"loglevel <level> [...]\" line.\n",
+							fname, lineno , cargv[i] );
 #endif
-					return( 1 );
+						return( 1 );
+					}
+					
+				} else {
+					static struct {
+						int	i;
+						char	*s;
+					} int_2_level[] = {
+						{ LDAP_DEBUG_TRACE,	"Trace"		},
+						{ LDAP_DEBUG_PACKETS,	"Packets"	},
+						{ LDAP_DEBUG_ARGS,	"Args"		},
+						{ LDAP_DEBUG_CONNS,	"Conns"		},
+						{ LDAP_DEBUG_BER,	"BER"		},
+						{ LDAP_DEBUG_FILTER,	"Filter"	},
+						{ LDAP_DEBUG_CONFIG,	"Config"	},
+						{ LDAP_DEBUG_ACL,	"ACL"		},
+						{ LDAP_DEBUG_STATS,	"Stats"		},
+						{ LDAP_DEBUG_STATS2,	"Stats2"	},
+						{ LDAP_DEBUG_SHELL,	"Shell"		},
+						{ LDAP_DEBUG_PARSE,	"Parse"		},
+						{ LDAP_DEBUG_CACHE,	"Cache"		},
+						{ LDAP_DEBUG_INDEX,	"Index"		},
+						{ 0,			NULL		}
+					};
+					int	j;
+
+					for ( j = 0; int_2_level[j].s; j++ ) {
+						if ( strcasecmp( cargv[i], int_2_level[j].s ) == 0 ) {
+							level = int_2_level[j].i;
+							break;
+						}
+					}
+
+					if ( int_2_level[j].s == NULL ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( CONFIG, CRIT, 
+							"%s: line %d: unknown level \"%s\" "
+							"in \"loglevel <level> [...]\" line.\n",
+							fname, lineno , cargv[i] );
+#else
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: unknown level \"%s\" "
+							"in \"loglevel <level> [...]\" line.\n",
+							fname, lineno , cargv[i] );
+#endif
+						return( 1 );
+					}
 				}
 
 				ldap_syslog |= level;

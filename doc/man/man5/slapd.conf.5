@@ -512,7 +512,7 @@ continuing with the next line of the current file.
 .\"only go to stderr and are not recorded anywhere else. Specifying a logfile
 .\"copies messages to both stderr and the logfile.
 .TP
-.B loglevel <integer>
+.B loglevel <integer> [...]
 Specify the level at which debugging statements and operation 
 statistics should be syslogged (currently logged to the
 .BR syslogd (8) 
@@ -523,42 +523,57 @@ are:
 .PD 0
 .TP
 .B 1
+.B (trace)
 trace function calls
 .TP
 .B 2
+.B (packet)
 debug packet handling
 .TP
 .B 4
+.B (args)
 heavy trace debugging
 .TP
 .B 8
+.B (conns)
 connection management
 .TP
 .B 16
+.B (BER)
 print out packets sent and received
 .TP
 .B 32
+.B (filter)
 search filter processing
 .TP
 .B 64
+.B (config)
 configuration file processing
 .TP
 .B 128
+.B (ACL)
 access control list processing
 .TP
 .B 256
+.B (stats)
 stats log connections/operations/results
 .TP
 .B 512
+.B (stats2)
 stats log entries sent
 .TP
 .B 1024
+.B (shell)
 print communication with shell backends
 .TP
 .B 2048
+.B (parse)
 entry parsing
 .PD
 .RE
+The desired log level can be input as a single integer that combines 
+the (ORed) desired levels, as a list of integers (that are ORed internally),
+or as a list of the names that are shown between brackets.
 .RE
 .TP
 .B moduleload <filename>
@@ -644,7 +659,7 @@ during processing of LDAP Password Modify Extended Operations (RFC 3062).
 This string needs to be in
 .BR sprintf (3)
 format and may include one (and only one) %s conversion.
-This conversion will be substituted with a string random
+This conversion will be substituted with a string of random
 characters from [A\-Za\-z0\-9./].  For example, "%.2s"
 provides a two character salt and "$1$%.8s" tells some
 versions of crypt(3) to use an MD5 algorithm and provides
