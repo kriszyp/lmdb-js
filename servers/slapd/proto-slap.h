@@ -256,7 +256,8 @@ extern struct acl	*global_acl;
 extern struct objclass	*global_oc;
 extern time_t		currenttime;
 
-extern int	be_group LDAP_P((Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName));
+extern int	be_group LDAP_P((Backend *be, Entry *e,
+	char *bdn, char *edn, char *objectclassValue, char *groupattrName));
 extern void	init LDAP_P((void));
 extern void	be_unbind LDAP_P((Connection *conn, Operation *op));
 extern void	config_info LDAP_P((Connection *conn, Operation *op));
@@ -295,7 +296,8 @@ extern void ldbm_back_abandon LDAP_P((Backend *be, Connection *c, Operation *o, 
 extern void ldbm_back_config LDAP_P((Backend *be, char *fname, int lineno, int argc, char **argv ));
 extern void ldbm_back_init   LDAP_P((Backend *be));
 extern void ldbm_back_close  LDAP_P((Backend *be));
-extern int  ldbm_back_group  LDAP_P((Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName ));
+extern int  ldbm_back_group  LDAP_P((Backend *be, Entry *target,
+	char *bdn, char *edn, char *objectclassValue, char *groupattrName ));
 #endif
 
 #ifdef SLAPD_PASSWD

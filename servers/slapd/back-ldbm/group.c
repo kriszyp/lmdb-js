@@ -20,6 +20,7 @@
 int
 ldbm_back_group(
 	Backend     *be,
+	Entry	*target,
         char        *bdn,
         char        *edn,
         char        *objectclassValue,
@@ -28,6 +29,7 @@ ldbm_back_group(
 {
         struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
         Entry        *e;
+		char		*tdn;
         char        *matched;
         Attribute   *objectClass;
         Attribute   *member;
@@ -38,15 +40,30 @@ ldbm_back_group(
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: objectClass: %s attrName: %s\n", 
                 objectclassValue, groupattrName, 0 ); 
 
-        /* can we find bdn entry with reader lock */
-        if ((e = dn2entry_r(be, bdn, &matched )) == NULL) {
-                Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: cannot find bdn: %s matched: %s\n", bdn, (matched ? matched : ""), 0 ); 
-                if (matched != NULL)
-                        free(matched);
-                return( 1 );
+	tdn = dn_normalize_case( ch_strdup( target->e_dn ) );
+	if (strcmp(tdn, bdn) == 0) {
+		/* we already have a LOCKED copy of the entry */
+		e = target;
+        	Debug( LDAP_DEBUG_ARGS,
+			"=> ldbm_back_group: target is bdn: %s\n",
+			bdn, 0, 0 ); 
+	} else {
+		/* can we find bdn entry with reader lock */
+		if ((e = dn2entry_r(be, bdn, &matched )) == NULL) {
+			Debug( LDAP_DEBUG_TRACE,
+				"=> ldbm_back_group: cannot find bdn: %s matched: %s\n",
+					bdn, (matched ? matched : ""), 0 ); 
+			if (matched != NULL)
+				free(matched);
+			free(tdn);
+			return( 1 );
+		}
+        	Debug( LDAP_DEBUG_ARGS,
+			"=> ldbm_back_group: found bdn: %s\n",
+			bdn, 0, 0 ); 
         }
+	free(tdn);
 
-        Debug( LDAP_DEBUG_ARGS, "=> ldbm_back_group: found bdn: %s\n", bdn, 0, 0 ); 
 
         /* check for deleted */
 
@@ -90,8 +107,10 @@ ldbm_back_group(
             }
         }
 
-        /* free entry and reader lock */
-        cache_return_entry_r( &li->li_cache, e );                 
+	if( target != e ) {
+		/* free entry and reader lock */
+		cache_return_entry_r( &li->li_cache, e );                 
+	}
         Debug( LDAP_DEBUG_ARGS, "ldbm_back_group: rc: %d\n", rc, 0, 0 ); 
         return(rc);
 }

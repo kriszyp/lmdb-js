@@ -249,7 +249,9 @@ struct backend {
 	void	(*be_close)  LDAP_P((Backend *be));
 
 #ifdef SLAPD_ACLGROUPS
-	int	(*be_group)  LDAP_P((Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName ));
+	int	(*be_group)  LDAP_P((Backend *be, Entry *e,
+		char *bdn, char *edn,
+		char *objectclassValue, char *groupattrName ));
 #endif
 };
 
