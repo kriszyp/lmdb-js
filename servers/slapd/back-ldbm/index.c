@@ -193,7 +193,54 @@ delete_value(
 )
 {
 
-	return 0;
+	int	rc;
+	Datum   key;
+	/* XXX do we need idl ??? */
+	ID_BLOCK	*idl = NULL;
+	char	*tmpval = NULL;
+	char	*realval = val;
+	char	buf[BUFSIZ];
+
+	char	prefix = index2prefix( indextype );
+
+	ldbm_datum_init( key );
+
+	Debug( LDAP_DEBUG_TRACE,
+	       "=> delete_value( \"%c%s\" )\n",
+	       prefix, val, 0 );
+
+	if ( prefix != UNKNOWN_PREFIX ) {
+              unsigned int     len = strlen( val );
+
+              if ( (len + 2) < sizeof(buf) ) {
+			realval = buf;
+	      } else {
+			/* value + prefix + null */
+			tmpval = (char *) ch_malloc( len + 2 );
+			realval = tmpval;
+	      }
+              realval[0] = prefix;
+              strcpy( &realval[1], val );
+	}
+
+	key.dptr = realval;
+	key.dsize = strlen( realval ) + 1;
+
+	rc = idl_delete_key( be, db, key, id );
+
+	if ( tmpval != NULL ) {
+		free( tmpval );
+	}
+
+	if( idl != NULL ) {
+		idl_free( idl );
+	}
+
+	ldap_pvt_thread_yield();
+
+	Debug( LDAP_DEBUG_TRACE, "<= delete_value %d\n", rc, 0, 0 );
+
+	return( rc );
 
 }/* static int delete_value() */
 
