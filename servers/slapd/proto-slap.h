@@ -526,6 +526,19 @@ LDAP_SLAPD_F (int) filter_matched_values(
 	char		***e_flags );
 
 /*
+ * modrdn.c
+ */
+LDAP_SLAPD_F (int) slap_modrdn2mods(
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	Entry		*e,
+	LDAPRDN		*oldrdn,
+	LDAPRDN		*newrdn,
+	int		deleteoldrdn,
+	Modifications	**pmod );
+
+/*
  * modify.c
  */
 LDAP_SLAPD_F( int ) slap_mods_check(
