@@ -109,9 +109,6 @@ install: $(LDAP_SBINDIR) $(LDAP_SBINDIR)/edb2ldif $(LDAP_SBINDIR)/ldif2ldbm \
 	$(LDAP_SBINDIR)/centipede $(LDAP_SBINDIR)/ldbmtest \
 	$(LDAP_SBINDIR)/ldif
 
-$(LDAP_SBINDIR): FORCE
-	@-$(MKDIR) $(LDAP_SBINDIR)
-
 $(LDAP_SBINDIR)/edb2ldif:	build-edb2ldif
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
 		$(INSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(LDAP_SBINDIR); \
