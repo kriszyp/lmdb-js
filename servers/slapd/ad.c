@@ -350,7 +350,6 @@ done:;
 			d2->ad_next = desc.ad_type->sat_ad->ad_next;
 			desc.ad_type->sat_ad->ad_next = d2;
 		}
-		free(desc.ad_lang.bv_val);
 		ldap_pvt_thread_mutex_unlock( &desc.ad_type->sat_ad_mutex );
 	}
 
