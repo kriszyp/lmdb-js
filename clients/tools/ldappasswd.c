@@ -124,7 +124,7 @@ main( int argc, char *argv[] )
 			{
 				char* p;
 
-				for( p = optarg; *p == '\0'; p++ ) {
+				for( p = optarg; *p != '\0'; p++ ) {
 					*p = '\0';
 				}
 			}
@@ -139,7 +139,7 @@ main( int argc, char *argv[] )
 			{
 				char* p;
 
-				for( p = optarg; *p == '\0'; p++ ) {
+				for( p = optarg; *p != '\0'; p++ ) {
 					*p = '\0';
 				}
 			}
@@ -397,7 +397,7 @@ main( int argc, char *argv[] )
 		{
 			char* p;
 
-			for( p = optarg; *p == '\0'; p++ ) {
+			for( p = optarg; *p != '\0'; p++ ) {
 				*p = '\0';
 			}
 		}
