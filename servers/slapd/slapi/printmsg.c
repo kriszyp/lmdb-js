@@ -13,11 +13,11 @@
 #include <portable.h>
 #include <slapi_common.h>
 #include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-#include <unistd.h>
+#include <ac/string.h>
+#include <ac/stdarg.h>
+#include <ac/unistd.h>
 #include <fcntl.h>
-#include <errno.h>
+#include <ac/errno.h>
 
 #include <ldap.h>
 #include <ldap_config.h>

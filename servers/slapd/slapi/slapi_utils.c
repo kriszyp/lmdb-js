@@ -24,9 +24,9 @@
 
 #include <slap.h>
 #include <slapi.h>
-#include <stdarg.h>
-#include <ctype.h>
-#include <unistd.h>
+#include <ac/stdarg.h>
+#include <ac/ctype.h>
+#include <ac/unistd.h>
 #include <ldap_pvt.h>
 
 struct berval *ns_get_supported_extop( int );
