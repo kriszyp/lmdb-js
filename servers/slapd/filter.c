@@ -354,6 +354,8 @@ get_substring_filter(
 	struct berval value;
 	char		*last;
 	struct berval bv;
+	AttributeDescription *ad;
+
 	*text = "error decoding filter";
 
 #ifdef NEW_LOGGING
@@ -366,18 +368,18 @@ get_substring_filter(
 		return SLAPD_DISCONNECT;
 	}
 
-	f->f_sub = ch_calloc( 1, sizeof(SubstringsAssertion) );
-	f->f_sub_desc = NULL;
-	rc = slap_bv2ad( &bv, &f->f_sub_desc, text );
+	ad = NULL;
+	rc = slap_bv2ad( &bv, &ad, text );
 
 	if( rc != LDAP_SUCCESS ) {
 		text = NULL;
-		ch_free( f->f_sub );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
 		return LDAP_SUCCESS;
 	}
 
+	f->f_sub = ch_calloc( 1, sizeof(SubstringsAssertion) );
+	f->f_sub_desc = ad;
 	f->f_sub_initial.bv_val = NULL;
 	f->f_sub_any = NULL;
 	f->f_sub_final.bv_val = NULL;
@@ -450,7 +452,6 @@ get_substring_filter(
 #endif
 
 		value = bv;
-
 		rc = LDAP_PROTOCOL_ERROR;
 
 		switch ( tag ) {
@@ -531,6 +532,7 @@ return_error:
 			ber_bvarray_free( f->f_sub_any );
 			free( f->f_sub_final.bv_val );
 			ch_free( f->f_sub );
+			f->f_sub = NULL;
 			return rc;
 		}
 	}
