@@ -21,6 +21,10 @@ static char * oc_check_required(
 	ObjectClass *oc,
 	struct berval *ocname );
 
+static int entry_naming_check(
+	Entry *e,
+	const char** text,
+	char *textbuf, size_t textlen );
 /*
  * entry_schema_check - check that entry e conforms to the schema required
  * by its object class(es).
@@ -218,60 +222,10 @@ entry_schema_check(
 		return LDAP_NO_OBJECT_CLASS_MODS;
 	}
 
-	{	/* naming check */
-		LDAPRDN		*rdn = NULL;
-		const char	*p = NULL;
-		ber_len_t	cnt;
-
-		/*
-		 * Get attribute type(s) and attribute value(s) of our RDN
-		 */
-		if ( ldap_bv2rdn( &e->e_name, &rdn, (char **)&p,
-			LDAP_DN_FORMAT_LDAP ) )
-		{
-			*text = "unrecongized attribute type(s) in RDN";
-			rc = LDAP_INVALID_DN_SYNTAX;
-			goto rdn_check_done;
-		}
-
-		/* Check that each AVA of the RDN is present in the entry */
-		/* FIXME: Should also check that each AVA lists a distinct type */
-		for ( cnt = 0; rdn[0][cnt]; cnt++ ) {
-			LDAPAVA *ava = rdn[0][cnt];
-			AttributeDescription *desc = NULL;
-			Attribute *attr;
-			const char *errtext;
-
-			rc = slap_bv2ad( &ava->la_attr, &desc, &errtext );
-			if ( rc != LDAP_SUCCESS ) {
-				snprintf( textbuf, textlen, "%s (in RDN)", errtext );
-				goto rdn_check_done;
-			}
-
-			/* find the naming attribute */
-			attr = attr_find( e->e_attrs, desc );
-			if ( attr == NULL ) {
-				snprintf( textbuf, textlen, 
-					"naming attribute '%s' is not present in entry",
-					ava->la_attr.bv_val );
-				rc = LDAP_NO_SUCH_ATTRIBUTE;
-				goto rdn_check_done;
-			}
-
-			if ( value_find( desc, attr->a_vals, &ava->la_value ) != 0 ) {
-				snprintf( textbuf, textlen, 
-					"value of naming attribute '%s' is not present in entry",
-					ava->la_attr.bv_val );
-				rc = LDAP_NO_SUCH_ATTRIBUTE;
-				goto rdn_check_done;
-			}
-		}
-
-rdn_check_done:;
-		ldap_rdnfree( rdn );
-		if ( rc != LDAP_SUCCESS ) {
-			return rc;
-		}
+	/* naming check */
+	rc = entry_naming_check( e, text, textbuf, textlen );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
 
 #ifdef SLAP_EXTENDED_SCHEMA
@@ -847,3 +801,64 @@ int mods_structural_class(
 	return structural_class( ocmod->sml_bvalues, sc, NULL,
 		text, textbuf, textlen );
 }
+
+
+static int
+entry_naming_check(
+	Entry *e,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	/* naming check */
+	LDAPRDN		*rdn = NULL;
+	const char	*p = NULL;
+	ber_len_t	cnt;
+	int		rc = LDAP_SUCCESS;
+
+	/*
+	 * Get attribute type(s) and attribute value(s) of our RDN
+	 */
+	if ( ldap_bv2rdn( &e->e_name, &rdn, (char **)&p,
+		LDAP_DN_FORMAT_LDAP ) )
+	{
+		*text = "unrecongized attribute type(s) in RDN";
+		return LDAP_INVALID_DN_SYNTAX;
+	}
+
+	/* Check that each AVA of the RDN is present in the entry */
+	/* FIXME: Should also check that each AVA lists a distinct type */
+	for ( cnt = 0; rdn[0][cnt]; cnt++ ) {
+		LDAPAVA *ava = rdn[0][cnt];
+		AttributeDescription *desc = NULL;
+		Attribute *attr;
+		const char *errtext;
+
+		rc = slap_bv2ad( &ava->la_attr, &desc, &errtext );
+		if ( rc != LDAP_SUCCESS ) {
+			snprintf( textbuf, textlen, "%s (in RDN)", errtext );
+			break;
+		}
+
+		/* find the naming attribute */
+		attr = attr_find( e->e_attrs, desc );
+		if ( attr == NULL ) {
+			snprintf( textbuf, textlen, 
+				"naming attribute '%s' is not present in entry",
+				ava->la_attr.bv_val );
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			break;
+		}
+
+		if ( value_find( desc, attr->a_vals, &ava->la_value ) != 0 ) {
+			snprintf( textbuf, textlen, 
+				"value of naming attribute '%s' is not present in entry",
+				ava->la_attr.bv_val );
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			break;
+		}
+	}
+
+	ldap_rdnfree( rdn );
+	return rc;
+}
+
