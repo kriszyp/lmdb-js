@@ -958,7 +958,7 @@ slapd_daemon_task(
 				{
 					/* DENY ACCESS */
 					Statslog( LDAP_DEBUG_ANY,
-						"fd=%ld connection from %s (%s) denied.\n",
+						"fd=%ld host access from %s (%s) denied.\n",
 						(long) s,
 						dnsname != NULL ? dnsname : "unknown",
 						peeraddr != NULL ? peeraddr : "unknown",
