@@ -269,7 +269,7 @@ bdb_initialize(
 	bi->bi_destroy = bdb_destroy;
 
 	bi->bi_db_init = bdb_db_init;
-	bi->bi_db_config = 0;
+	bi->bi_db_config = bdb_db_config;
 	bi->bi_db_open = bdb_db_open;
 	bi->bi_db_close = bdb_db_close;
 	bi->bi_db_destroy = bdb_db_destroy;

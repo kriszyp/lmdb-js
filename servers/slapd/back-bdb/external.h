@@ -11,6 +11,10 @@ LDAP_BEGIN_DECL
 
 extern int	bdb_initialize LDAP_P(( BackendInfo *bi ));
 
+extern int	bdb_db_config LDAP_P(( BackendDB *bd,
+	const char *fname, int lineno,
+	int argc, char **argv ));
+
 extern int	bdb_add LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, Entry *e ));
 

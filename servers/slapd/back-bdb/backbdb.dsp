@@ -139,6 +139,10 @@ SOURCE=.\compare.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\config.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\delete.c
 # End Source File
 # Begin Source File
