@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.477 2003/05/23 03:27:34 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.478 2003/05/23 04:27:39 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -77,7 +77,7 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-rlookups	  enable reverse lookups of client hostnames [no]"
 ac_help="$ac_help
-    --enable-slapi        enable installation of slapi library [no]"
+    --enable-slapi        enable SLAPI support (experimental) [no]"
 ac_help="$ac_help
     --enable-slp          enable SLPv2 support [no]"
 ac_help="$ac_help
