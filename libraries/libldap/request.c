@@ -409,7 +409,7 @@ static void
 use_connection( LDAP *ld, LDAPConn *lc )
 {
 	++lc->lconn_refcnt;
-	lc->lconn_lastused = time( 0 );
+	lc->lconn_lastused = time( NULL );
 }
 
 
@@ -456,7 +456,7 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: actually freed\n",
 		    0, 0, 0 );
 	} else {
-		lc->lconn_lastused = time( 0 );
+		lc->lconn_lastused = time( NULL );
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: refcnt %d\n",
 		    lc->lconn_refcnt, 0, 0 );
 	}
