@@ -1048,7 +1048,6 @@ slap_set_shutdown( int sig )
 		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 	}
 #else
-	Debug( LDAP_DEBUG_TRACE, "Shutdown %d ordered", sig, 0, 0 );
 	/* trying to "hit" the socket seems to always get a */
 	/* EWOULDBLOCK error, so just close the listen socket to */
 	/* break out of the select since we're shutting down anyway */
