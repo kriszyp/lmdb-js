@@ -195,6 +195,9 @@ disallow (default none).
 disables acceptance of anonymous bind requests.
 .B bind_simple
 disables simple (bind) authentication.
+.B bind_simple_unprotected
+disables simple (bind) authentication when confidentiality
+protections (e.g. TLS) are not in place.
 .B bind_krbv4
 disables Kerberos V4 (bind) authentication.
 .B tls_2_anon
@@ -506,11 +509,8 @@ requires authentication prior to directory operations.
 requires SASL authentication prior to directory operations.
 .B strong
 requires strong authentication prior to directory operations.
-The
-.B SASL
-and
-.B strong
-conditions are currently same.
+The strong keyword allows protected "simple" authentication
+as well as SASL authentication.
 .B none
 may be used to require no conditions (useful for clearly globally
 set conditions within a particular database).

@@ -1289,6 +1289,9 @@ read_config( const char *fname )
 				} else if( strcasecmp( cargv[i], "bind_simple" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_SIMPLE;
 
+				} else if( strcasecmp( cargv[i], "bind_simple_unprotected" ) == 0 ) {
+					disallows |= SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED;
+
 				} else if( strcasecmp( cargv[i], "bind_krbv4" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_KRBV4;
 
