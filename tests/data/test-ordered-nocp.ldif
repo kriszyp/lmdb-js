@@ -126,14 +126,14 @@ dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
 owner: cn=Manager,o=University of Michigan,c=US
 description: All ITD Staff
 cn: ITD Staff
-objectclass: groupofnames
-member: cn=Manager,o=University of Michigan,c=US
-member: cn=Bjorn Jensen,OU=Information Technology Division,ou=PEOPLE,o=Univers
- ity of Michigan,c=US
-member: cn=James A Jones 2,ou=Information Technology Division,ou=PEOPLE,o=Univ
- ersity of Michigan,c=US
-member: cn=John Doe,ou=Information Technology Division,ou=People,o=University 
- of Michigan,c=US
+objectclass: groupofuniquenames
+uniquemember: cn=Manager,o=University of Michigan,c=US
+uniquemember: cn=Bjorn Jensen,OU=Information Technology Division,ou=PEOPLE,o=U 
+ niversity of Michigan,c=US 
+uniquemember: cn=James A Jones 2,ou=Information Technology Division,ou=PEOPLE, 
+ o=University of Michigan,c=US 
+uniquemember: cn=John Doe,ou=Information Technology Division,ou=People,o=Unive 
+ rsity of Michigan,c=US
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Mich
  igan,c=US

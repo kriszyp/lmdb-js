@@ -729,6 +729,87 @@ nameUIDValidate(
 	return rc;
 }
 
+int
+nameUIDPretty(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *out,
+	void *ctx )
+{
+	assert( val );
+	assert( out );
+
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
+#endif
+
+	if( val->bv_len == 0 ) {
+		ber_dupbv_x( out, val, ctx );
+
+	} else if ( val->bv_len > SLAP_LDAPDN_MAXLEN ) {
+		return LDAP_INVALID_SYNTAX;
+
+	} else {
+		int rc;
+		struct berval dnval = *val;
+		struct berval uidval = { 0, NULL };
+
+		if( val->bv_val[val->bv_len-1] == 'B'
+			&& val->bv_val[val->bv_len-2] == '\'' )
+		{
+			uidval.bv_val=strrchr( val->bv_val, '#' );
+			if( uidval.bv_val ) {
+				dnval.bv_len = uidval.bv_val - dnval.bv_val;
+				uidval.bv_len = val->bv_len - dnval.bv_len;
+
+				uidval.bv_len--;
+				uidval.bv_val++;
+			}
+		}
+
+		rc = dnPretty( syntax, &dnval, out, ctx );
+		if( rc != LDAP_SUCCESS ) return rc;
+
+		if( uidval.bv_val ) {
+			char *tmp = sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2, ctx );
+			int i, c, got1;
+			if( tmp == NULL ) {
+				ber_memfree_x( out->bv_val, ctx );
+				return LDAP_OTHER;
+			}
+
+			out->bv_val[out->bv_len++] = '#';
+
+			got1 = uidval.bv_len < sizeof("'0'B"); 
+			for(i=0; i<uidval.bv_len; i++) {
+				c = uidval.bv_val[i];
+				switch(c) {
+					case '0':
+						if( got1 ) out->bv_val[out->bv_len++] = c;
+						break;
+					case '1':
+						got1 = 1;
+					default:
+						out->bv_val[out->bv_len++] = c;
+				}
+			}
+
+			out->bv_val[out->bv_len] = '\0';
+		}
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, "<<< nameUIDPretty: <%s>\n", out->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "<<< nameUIDPretty: <%s>\n", out->bv_val, 0, 0 );
+#endif
+
+	return LDAP_SUCCESS;
+}
+
 static int
 uniqueMemberNormalize(
 	slap_mask_t usage,
@@ -2508,7 +2589,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
 		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, nameUIDValidate, NULL},
+		0, nameUIDValidate, nameUIDPretty },
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",

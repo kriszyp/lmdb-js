@@ -97,8 +97,8 @@ $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj > \
 version: 1
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
-add: member
-member: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+add: uniquemember
+uniquemember: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 
 EOMODS1
 
@@ -108,8 +108,8 @@ version: 1
 
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
-add: member
-member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+add: uniquemember
+uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 EOMODS2
 
 #
