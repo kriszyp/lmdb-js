@@ -145,6 +145,23 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_MSGID		0x02L
 /* need to add other LDAP_TAGs here */
 
+/* Overview of tag construction in ASN.1:
+ *	 _______
+ * Bit # | 8 7 | CLASS: UNIVERSAL		00
+ *			APPLICATION		01
+ *			CONTEXT-SPECIFIC	10
+ *			PRIVATE			11
+ *		_____
+ *		| 6 | DATA-TYPE: PRIMITIVE	0
+ *				 CONSTRUCTED	1
+ *		    ___________
+ *		    | 5 ... 1 | TAG-NUMBER
+ */
+ 
+#define LDAP_TAG_NEWSUPERIOR	0x80L	/* context-specific + primitive +
+					 * tag # ==> [0]
+					 */
+
 /* possible operations a client can invoke */
 #define LDAP_REQ_BIND			0x60L	/* application + constructed */
 #define LDAP_REQ_UNBIND			0x42L	/* application + primitive   */
