@@ -382,13 +382,14 @@ get_substring_filter(
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_FILTER, "  unknown type\n", tag, 0,
-			    0 );
+			Debug( LDAP_DEBUG_FILTER, "  unknown type=%ld\n",
+				(long) tag, 0, 0 );
 
 			ber_bvfree( val );
 
 return_error:
-			Debug( LDAP_DEBUG_FILTER, "  error=%d\n", rc, 0, 0 );
+			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
+				(long) rc, 0, 0 );
 
 			if( fstr ) {
 				free( *fstr );
