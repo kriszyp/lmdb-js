@@ -676,7 +676,7 @@ parse_noidlen(char **sp, int *code, int *len)
 	}
 	if ( **sp == '{' ) {
 		(*sp)++;
-		*len = atoi(**sp);
+		*len = atoi(*sp);
 		while ( isdigit(**sp) )
 			(*sp)++;
 		(*sp)++;
