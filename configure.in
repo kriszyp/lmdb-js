@@ -245,17 +245,17 @@ dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
-OL_ARG_WITH(chain,[    --with-chain   	  LDAP Chain Response no|yes|mod], no,
+OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod], no,
 	[no yes mod])
-OL_ARG_WITH(denyop,[    --with-denyop  	  Deny Operation overlay no|yes|mod], no,
+OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod], no,
 	[no yes mod])
-OL_ARG_WITH(dyngroup,[    --with-dyngroup	  Dynamic Group overlay no|yes|mod], no,
+OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay no|yes|mod], no,
 	[no yes mod])
-OL_ARG_WITH(ppolicy,[    --with-ppolicy	  Password Policy overlay no|yes|mod], no,
+OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay no|yes|mod], no,
 	[no yes mod])
-OL_ARG_WITH(proxycache,[    --with-proxycache	  Proxy Cache overlay no|yes|mod], no,
+OL_ARG_ENABLE(proxycache,[    --enable-proxycache	  Proxy Cache overlay no|yes|mod], no,
 	[no yes mod])
-OL_ARG_WITH(rwm,[    --with-rwm       	  Rewrite/Remap overlay no|yes|mod], no,
+OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod], no,
 	[no yes mod])
 
 dnl ----------------------------------------------------------------
@@ -447,12 +447,12 @@ if test $ol_enable_slapd = no ; then
 
 	ol_enable_rewrite=no
 
-	ol_with_chain=no
-	ol_with_denyop=no
-	ol_with_dyngroup=no
-	ol_with_ppolicy=no
-	ol_with_proxycache=no
-	ol_with_rwm=no
+	ol_enable_chain=no
+	ol_enable_denyop=no
+	ol_enable_dyngroup=no
+	ol_enable_ppolicy=no
+	ol_enable_proxycache=no
+	ol_enable_rwm=no
 
 elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
@@ -528,6 +528,10 @@ else
 			ol_enable_bdb=no
 		fi
 	fi
+fi
+
+if test $ol_enable_chain != no -a $ol_enable_ldap = no ; then
+	AC_MSG_ERROR([--enable-chain requires --enable-ldap])
 fi
 
 if test $ol_enable_slurpd = yes ; then
@@ -821,6 +825,7 @@ if test $ol_enable_modules != no ; then
 		AC_MSG_ERROR([could not locate libtool -lltdl])
 	fi
 	ol_link_modules=yes
+
 else
 	ol_with_bdb_module=static
 	ol_with_dnssrv_module=static
@@ -835,29 +840,29 @@ else
 	ol_with_relay_module=static
 	ol_with_shell_module=static
 	ol_with_sql_module=static
-	if test $ol_with_chain = mod ; then
+	if test $ol_enable_chain = mod ; then
 		AC_MSG_WARN([building static chain overlay])
-		ol_with_chain=yes
+		ol_enable_chain=yes
 	fi
-	if test $ol_with_denyop = mod ; then
+	if test $ol_enable_denyop = mod ; then
 		AC_MSG_WARN([building static denyop overlay])
-		ol_with_denyop=yes
+		ol_enable_denyop=yes
 	fi
-	if test $ol_with_dyngroup = mod ; then
+	if test $ol_enable_dyngroup = mod ; then
 		AC_MSG_WARN([building static dyngroup overlay])
-		ol_with_dyngroup=yes
+		ol_enable_dyngroup=yes
 	fi
-	if test $ol_with_ppolicy = mod ; then
+	if test $ol_enable_ppolicy = mod ; then
 		AC_MSG_WARN([building static ppolicy overlay])
-		ol_with_ppolicy=yes
+		ol_enable_ppolicy=yes
 	fi
-	if test $ol_with_proxycache = mod ; then
+	if test $ol_enable_proxycache = mod ; then
 		AC_MSG_WARN([building static proxycache overlay])
-		ol_with_proxycache=yes
+		ol_enable_proxycache=yes
 	fi
-	if test $ol_with_rwm = mod ; then
+	if test $ol_enable_rwm = mod ; then
 		AC_MSG_WARN([building static rwm overlay])
-		ol_with_rwm=yes
+		ol_enable_rwm=yes
 	fi
 fi
 
@@ -2789,9 +2794,9 @@ if test "$ol_link_sql" != no ; then
 	fi
 fi
 
-if test "$ol_with_chain" != no ; then
-	BUILD_CHAIN=$ol_with_chain
-	if test "$ol_with_chain" = mod ; then
+if test "$ol_enable_chain" != no ; then
+	BUILD_CHAIN=$ol_enable_chain
+	if test "$ol_enable_chain" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS chain.la"
 	else
@@ -2800,9 +2805,9 @@ if test "$ol_with_chain" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_CHAIN,$MFLAG,[define for Dynamic Group overlay])
 fi
 
-if test "$ol_with_denyop" != no ; then
-	BUILD_DENYOP=$ol_with_denyop
-	if test "$ol_with_denyop" = mod ; then
+if test "$ol_enable_denyop" != no ; then
+	BUILD_DENYOP=$ol_enable_denyop
+	if test "$ol_enable_denyop" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS denyop.la"
 	else
@@ -2811,9 +2816,9 @@ if test "$ol_with_denyop" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DENYOP,$MFLAG,[define for Dynamic Group overlay])
 fi
 
-if test "$ol_with_dyngroup" != no ; then
-	BUILD_DYNGROUP=$ol_with_dyngroup
-	if test "$ol_with_dyngroup" = mod ; then
+if test "$ol_enable_dyngroup" != no ; then
+	BUILD_DYNGROUP=$ol_enable_dyngroup
+	if test "$ol_enable_dyngroup" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS dyngroup.la"
 	else
@@ -2822,9 +2827,9 @@ if test "$ol_with_dyngroup" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_DYNGROUP,$MFLAG,[define for Dynamic Group overlay])
 fi
 
-if test "$ol_with_ppolicy" != no ; then
-	BUILD_PPOLICY=$ol_with_ppolicy
-	if test "$ol_with_ppolicy" = mod ; then
+if test "$ol_enable_ppolicy" != no ; then
+	BUILD_PPOLICY=$ol_enable_ppolicy
+	if test "$ol_enable_ppolicy" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS ppolicy.la"
 	else
@@ -2833,9 +2838,9 @@ if test "$ol_with_ppolicy" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_PPOLICY,$MFLAG,[define for Password Policy overlay])
 fi
 
-if test "$ol_with_proxycache" != no ; then
-	BUILD_PROXYCACHE=$ol_with_proxycache
-	if test "$ol_with_proxycache" = mod ; then
+if test "$ol_enable_proxycache" != no ; then
+	BUILD_PROXYCACHE=$ol_enable_proxycache
+	if test "$ol_enable_proxycache" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS pcache.la"
 	else
@@ -2844,10 +2849,10 @@ if test "$ol_with_proxycache" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_PROXYCACHE,$MFLAG,[define for Proxy Cache overlay])
 fi
 
-if test "$ol_with_rwm " != no ; then
+if test "$ol_enable_rwm " != no ; then
 	BUILD_REWRITE=yes
-	BUILD_RWM=$ol_with_rwm
-	if test "$ol_with_rwm" = mod ; then
+	BUILD_RWM=$ol_enable_rwm
+	if test "$ol_enable_rwm" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS rwm.la"
 	else
