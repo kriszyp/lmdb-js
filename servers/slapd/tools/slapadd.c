@@ -102,7 +102,6 @@ main( int argc, char **argv )
 		}
 
 		id = be->be_entry_put( be, e );
-
 		if( id == NOID ) {
 			fprintf( stderr, "%s: could not add entry dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
@@ -111,7 +110,9 @@ main( int argc, char **argv )
 			if( continuemode ) continue;
 			break;
 
-		} else if ( verbose ) {
+		}
+		
+		if ( verbose ) {
 			fprintf( stderr, "added: \"%s\" (%08lx)\n",
 				e->e_dn, (long) id );
 		}
