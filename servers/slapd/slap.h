@@ -35,6 +35,8 @@
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
+#define SLAP_EXTENDED_SCHEMA 1
+
 LDAP_BEGIN_DECL
 /*
  * SLAPD Memory allocation macros
@@ -164,6 +166,7 @@ typedef struct slap_ssf_set {
 	slap_ssf_t sss_update_transport;
 	slap_ssf_t sss_update_tls;
 	slap_ssf_t sss_update_sasl;
+	slap_ssf_t sss_simple_bind;
 } slap_ssf_set_t;
 
 /*
@@ -211,9 +214,11 @@ typedef struct slap_ssf_set {
 #define SLAP_INDEX_SUBSTR_FINAL_PREFIX '$'
 #define SLAP_INDEX_CONT_PREFIX		'.'		/* prefix for continuation keys */
 
-#define SLAP_SYNTAX_MATCHINGRULES_OID	"1.3.6.1.4.1.1466.115.121.1.30"
-#define SLAP_SYNTAX_ATTRIBUTETYPES_OID	"1.3.6.1.4.1.1466.115.121.1.3"
-#define SLAP_SYNTAX_OBJECTCLASSES_OID	"1.3.6.1.4.1.1466.115.121.1.37"
+#define SLAP_SYNTAX_MATCHINGRULES_OID	 "1.3.6.1.4.1.1466.115.121.1.30"
+#define SLAP_SYNTAX_ATTRIBUTETYPES_OID	 "1.3.6.1.4.1.1466.115.121.1.3"
+#define SLAP_SYNTAX_OBJECTCLASSES_OID	 "1.3.6.1.4.1.1466.115.121.1.37"
+#define SLAP_SYNTAX_MATCHINGRULEUSES_OID "1.3.6.1.4.1.1466.115.121.1.31"
+#define SLAP_SYNTAX_CONTENTRULE_OID		 "1.3.6.1.4.1.1466.115.121.1.16"
 
 #ifdef LDAP_CLIENT_UPDATE
 #define LCUP_COOKIE_OID "1.3.6.1.4.1.4203.666.10.1"
@@ -242,7 +247,11 @@ typedef struct slap_ssf_set {
 #define SLAP_SCHERR_NOT_SUPPORTED		18
 #define SLAP_SCHERR_BAD_DESCR			19
 #define SLAP_SCHERR_OIDM				20
-#define SLAP_SCHERR_LAST				SLAP_SCHERR_OIDM
+#define SLAP_SCHERR_CR_DUP				21
+#define SLAP_SCHERR_CR_BAD_STRUCT		22
+#define SLAP_SCHERR_CR_BAD_AUX			23
+#define SLAP_SCHERR_CR_BAD_AT			24
+#define SLAP_SCHERR_LAST				SLAP_SCHERR_CR_BAD_AT
 
 typedef union slap_sockaddr {
 	struct sockaddr sa_addr;
@@ -590,7 +599,6 @@ typedef struct slap_object_class {
 #define SLAP_OC_OPERATIONAL	0x4000
 #define SLAP_OC_HIDE		0x8000
 
-#ifdef LDAP_EXTENDED_SCHEMA
 /*
  * DIT content rule
  */
@@ -601,16 +609,17 @@ typedef struct slap_content_rule {
 	AttributeType		**scr_required;		/* optional */
 	AttributeType		**scr_allowed;		/* optional */
 	AttributeType		**scr_precluded;	/* optional */
-#define scr_oid			scr_crule.cr_oid
-#define scr_names		scr_crule.cr_names
-#define scr_desc		scr_crule.cr_desc
-#define scr_obsolete		soc_oclass.cr_obsolete
-#define scr_cr_oids_aux		soc_oclass.cr_oc_oids_aux
-#define scr_cr_oids_must	soc_oclass.cr_at_oids_must
-#define scr_cr_oids_may		soc_oclass.cr_at_oids_may
-#define scr_cr_oids_not		soc_oclass.cr_at_oids_not
+#define scr_oid				scr_crule.cr_oid
+#define scr_names			scr_crule.cr_names
+#define scr_desc			scr_crule.cr_desc
+#define scr_obsolete		scr_crule.cr_obsolete
+#define scr_oc_oids_aux		scr_crule.cr_oc_oids_aux
+#define scr_at_oids_must	scr_crule.cr_at_oids_must
+#define scr_at_oids_may		scr_crule.cr_at_oids_may
+#define scr_at_oids_not		scr_crule.cr_at_oids_not
+
+	struct slap_content_rule *scr_next;
 } ContentRule;
-#endif
 
 /*
  * represents a recognized attribute description ( type + options )
@@ -1254,6 +1263,8 @@ struct slap_backend_db {
 
 #define SLAP_DISALLOW_TLS_2_ANON	0x0010U /* StartTLS -> Anonymous */
 #define SLAP_DISALLOW_TLS_AUTHC		0x0020U	/* TLS while authenticated */
+
+#define SLAP_DISALLOW_AUX_WO_CR		0x4000U
 
 	slap_mask_t	be_requires;	/* pre-operation requirements */
 #define SLAP_REQUIRE_BIND		0x0001U	/* bind before op */

@@ -38,6 +38,10 @@ entry_schema_check(
 {
 	Attribute	*a, *asc, *aoc;
 	ObjectClass *sc, *oc;
+#ifdef SLAP_EXTENDED_SCHEMA
+	AttributeType *at;
+	ContentRule *cr;
+#endif
 	int	rc, i;
 	struct berval nsc;
 	AttributeDescription *ad_structuralObjectClass
@@ -49,7 +53,9 @@ entry_schema_check(
 	int collectiveSubentry = 0;
 
 #if 0
-	if( subentry) collectiveSubentry = is_entry_collectiveAttributeSubentry( e );
+	if( subentry ) {
+		collectiveSubentry = is_entry_collectiveAttributeSubentry( e );
+	}
 #endif
 
 	*text = textbuf;
@@ -157,6 +163,23 @@ entry_schema_check(
 		return LDAP_OTHER;
 	}
 
+	if( sc->soc_obsolete ) {
+		snprintf( textbuf, textlen, 
+			"structuralObjectClass '%s' is OBSOLETE",
+			asc->a_vals[0].bv_val );
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, 
+			"entry_schema_check: dn (%s), %s\n", e->e_dn, textbuf, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"entry_check_schema(%s): %s\n",
+			e->e_dn, textbuf, 0 );
+#endif
+
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
 	/* find the object class attribute */
 	aoc = attr_find( e->e_attrs, ad_objectClass );
 	if ( aoc == NULL ) {
@@ -196,11 +219,115 @@ entry_schema_check(
 		return LDAP_NO_OBJECT_CLASS_MODS;
 	}
 
+#ifdef SLAP_EXTENDED_SCHEMA
+	/* find the content rule for the structural class */
+	cr = cr_find( sc->soc_oid );
+
+	/* the cr must be same as the structural class */
+	assert( !cr || !strcmp( cr->scr_oid, sc->soc_oid ) );
+
+	/* check that the entry has required attrs of the content rule */
+	if( cr ) {
+		if( cr->scr_obsolete ) {
+			snprintf( textbuf, textlen, 
+				"content rule '%s' is obsolete",
+				ldap_contentrule2name( &cr->scr_crule ));
+
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, 
+				"entry_schema_check: dn=\"%s\" %s", e->e_dn, textbuf, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"Entry (%s): %s\n",
+				e->e_dn, textbuf, 0 );
+#endif
+
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+
+		if( cr->scr_required ) for( i=0; cr->scr_required[i]; i++ ) {
+			at = cr->scr_required[i];
+
+			for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+				if( a->a_desc->ad_type == at ) {
+					break;
+				}
+			}
+
+			/* not there => schema violation */
+			if ( a == NULL ) {
+				snprintf( textbuf, textlen, 
+					"content rule '%s' requires attribute '%s'",
+					ldap_contentrule2name( &cr->scr_crule ),
+					at->sat_cname.bv_val );
+
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, INFO, 
+					"entry_schema_check: dn=\"%s\" %s", e->e_dn, textbuf, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"Entry (%s): %s\n",
+					e->e_dn, textbuf, 0 );
+#endif
+
+				return LDAP_OBJECT_CLASS_VIOLATION;
+			}
+		}
+
+		if( cr->scr_precluded ) for( i=0; cr->scr_precluded[i]; i++ ) {
+			at = cr->scr_precluded[i];
+
+			for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+				if( a->a_desc->ad_type == at ) {
+					break;
+				}
+			}
+
+			/* there => schema violation */
+			if ( a != NULL ) {
+				snprintf( textbuf, textlen, 
+					"content rule '%s' precluded attribute '%s'",
+					ldap_contentrule2name( &cr->scr_crule ),
+					at->sat_cname.bv_val );
+
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, INFO, 
+					"entry_schema_check: dn=\"%s\" %s", e->e_dn, textbuf, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"Entry (%s): %s\n",
+					e->e_dn, textbuf, 0 );
+#endif
+
+				return LDAP_OBJECT_CLASS_VIOLATION;
+			}
+		}
+	}
+#endif /* SLAP_EXTENDED_SCHEMA */
+
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i].bv_val != NULL; i++ ) {
 		if ( (oc = oc_bvfind( &aoc->a_vals[i] )) == NULL ) {
 			snprintf( textbuf, textlen, 
 				"unrecognized objectClass '%s'",
+				aoc->a_vals[i].bv_val );
+
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, 
+				"entry_schema_check: dn (%s), %s\n", e->e_dn, textbuf, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"entry_check_schema(%s): %s\n",
+				e->e_dn, textbuf, 0 );
+#endif
+
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+
+		if ( oc->soc_obsolete ) {
+			/* disallow obsolete classes */
+			snprintf( textbuf, textlen, 
+				"objectClass '%s' is OBSOLETE",
 				aoc->a_vals[i].bv_val );
 
 #ifdef NEW_LOGGING
@@ -286,8 +413,46 @@ entry_schema_check(
 			}
 
 		} else if ( oc->soc_kind != LDAP_SCHEMA_STRUCTURAL || oc == sc ) {
-			char *s = oc_check_required( e, oc, &aoc->a_vals[i] );
+			char *s;
 
+#ifdef SLAP_EXTENDED_SCHEMA
+			if( oc->soc_kind == LDAP_SCHEMA_AUXILIARY ) {
+				int k=0;
+				if( cr ) {
+					if( cr->scr_auxiliaries ) {
+						for( ; cr->scr_auxiliaries[k]; k++ ) {
+							if( cr->scr_auxiliaries[k] == oc ) {
+								k=-1;
+								break;
+							}
+						}
+					}
+				} else if ( global_disallows & SLAP_DISALLOW_AUX_WO_CR ) {
+					k=-1;
+				}
+
+				if( k == -1 ) {
+					snprintf( textbuf, textlen, 
+						"content rule '%s' does not allow class '%s'",
+						ldap_contentrule2name( &cr->scr_crule ),
+						oc->soc_cname.bv_val );
+
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, INFO, 
+						"entry_schema_check: dn=\"%s\" %s",
+						e->e_dn, textbuf, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"Entry (%s): %s\n",
+						e->e_dn, textbuf, 0 );
+#endif
+
+					return LDAP_OBJECT_CLASS_VIOLATION;
+				}
+			}
+#endif /* SLAP_EXTENDED_SCHEMA */
+
+			s = oc_check_required( e, oc, &aoc->a_vals[i] );
 			if (s != NULL) {
 				snprintf( textbuf, textlen, 
 					"object class '%s' requires attribute '%s'",
@@ -317,7 +482,35 @@ entry_schema_check(
 
 	/* check that each attr in the entry is allowed by some oc */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		int ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals, sc );
+		int ret;
+
+#ifdef SLAP_EXTENDED_SCHEMA
+ 		ret = LDAP_OBJECT_CLASS_VIOLATION;
+
+		if( cr && cr->scr_required ) {
+			for( i=0; cr->scr_required[i]; i++ ) {
+				if( cr->scr_required[i] == a->a_desc->ad_type ) {
+					ret = LDAP_SUCCESS;
+					break;
+				}
+			}
+		}
+
+		if( ret != LDAP_SUCCESS && cr && cr->scr_allowed ) {
+			for( i=0; cr->scr_allowed[i]; i++ ) {
+				if( cr->scr_allowed[i] == a->a_desc->ad_type ) {
+					ret = LDAP_SUCCESS;
+					break;
+				}
+			}
+		}
+
+		if( ret != LDAP_SUCCESS ) 
+#endif /* SLAP_EXTENDED_SCHEMA */
+		{
+			ret = oc_check_allowed( a->a_desc->ad_type, aoc->a_vals, sc );
+		}
+
 		if ( ret != LDAP_SUCCESS ) {
 			char *type = a->a_desc->ad_cname.bv_val;
 

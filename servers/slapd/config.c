@@ -1331,9 +1331,6 @@ read_config( const char *fname, int depth )
 				} else if( strcasecmp( cargv[i], "bind_simple" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_SIMPLE;
 
-				} else if( strcasecmp( cargv[i], "bind_simple_unprotected" ) == 0 ) {
-					disallows |= SLAP_DISALLOW_BIND_SIMPLE_UNPROTECTED;
-
 				} else if( strcasecmp( cargv[i], "bind_krbv4" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_KRBV4;
 
@@ -1494,6 +1491,12 @@ read_config( const char *fname, int depth )
 					set->sss_update_sasl =
 						atoi( &cargv[i][sizeof("update_sasl")] );
 
+				} else if( strncasecmp( cargv[i], "simple_bind=",
+					sizeof("simple_bind") ) == 0 )
+				{
+					set->sss_simple_bind =
+						atoi( &cargv[i][sizeof("simple_bind")] );
+
 				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, 
@@ -1588,9 +1591,9 @@ read_config( const char *fname, int depth )
 
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
-			if ( *cargv[1] == '(' ) {
+			if ( *cargv[1] == '('  /*')'*/) {
 				char * p;
-				p = strchr(saveline,'(');
+				p = strchr(saveline,'(' /*')'*/);
 				rc = parse_oc( fname, lineno, p, cargv );
 				if( rc ) return rc;
 
@@ -1606,13 +1609,21 @@ read_config( const char *fname, int depth )
 #endif
 			}
 
+#ifdef SLAP_EXTENDED_SCHEMA
+		} else if ( strcasecmp( cargv[0], "ditcontentrule" ) == 0 ) {
+			char * p;
+			p = strchr(saveline,'(' /*')'*/);
+			rc = parse_cr( fname, lineno, p, cargv );
+			if( rc ) return rc;
+#endif
+
 		/* specify an attribute type */
 		} else if (( strcasecmp( cargv[0], "attributetype" ) == 0 )
 			|| ( strcasecmp( cargv[0], "attribute" ) == 0 ))
 		{
-			if ( *cargv[1] == '(' ) {
+			if ( *cargv[1] == '(' /*')'*/) {
 				char * p;
-				p = strchr(saveline,'(');
+				p = strchr(saveline,'(' /*')'*/);
 				rc = parse_at( fname, lineno, p, cargv );
 				if( rc ) return rc;
 

@@ -42,7 +42,11 @@ static char *const err2text[] = {
 	"OID or name required",
 	"Qualifier not supported",
 	"Invalid NAME",
-	"OID could not be expanded"
+	"OID could not be expanded",
+	"Duplicate Content Rule",
+	"Content Rule not for STRUCTURAL object class",
+	"Content Rule AUX contains non-AUXILIARY object class"
+	"Content Rule attribute type list contains duplicate"
 };
 
 char *
@@ -92,6 +96,64 @@ dscompare(const char *s1, const char *s2, char delim)
 	return 0;
 }
 
+#ifdef SLAP_EXTENDED_SCHEMA
+
+static void
+cr_usage( void )
+{
+	fprintf( stderr,
+		"DITContentRuleDescription = \"(\" whsp\n"
+		"  numericoid whsp       ; StructuralObjectClass identifier\n"
+		"  [ \"NAME\" qdescrs ]\n"
+		"  [ \"DESC\" qdstring ]\n"
+		"  [ \"OBSOLETE\" whsp ]\n"
+		"  [ \"AUX\" oids ]      ; Auxiliary ObjectClasses\n"
+		"  [ \"MUST\" oids ]     ; AttributeTypes\n"
+		"  [ \"MAY\" oids ]      ; AttributeTypes\n"
+		"  [ \"NOT\" oids ]      ; AttributeTypes\n"
+		"  whsp \")\"\n" );
+}
+
+int
+parse_cr(
+    const char	*fname,
+    int		lineno,
+    char	*line,
+    char	**argv
+)
+{
+	LDAPContentRule *cr;
+	int		code;
+	const char	*err;
+
+	cr = ldap_str2contentrule(line, &code, &err, LDAP_SCHEMA_ALLOW_ALL );
+	if ( !cr ) {
+		fprintf( stderr, "%s: line %d: %s before %s\n",
+			 fname, lineno, ldap_scherr2str(code), err );
+		cr_usage();
+		return 1;
+	}
+
+	if ( cr->cr_oid == NULL ) {
+		fprintf( stderr,
+			"%s: line %d: Content rule has no OID\n",
+			fname, lineno );
+		cr_usage();
+		return 1;
+	}
+
+	code = cr_add(cr,1,&err);
+	if ( code ) {
+		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
+			 fname, lineno, scherr2str(code), err);
+		return 1;
+	}
+
+	ldap_memfree(cr);
+	return 0;
+}
+
+#endif
 
 int
 parse_oc(
@@ -148,7 +210,6 @@ oc_usage( void )
 		"  [ \"MAY\" oids ]                ; AttributeTypes\n"
 		"  whsp \")\"\n" );
 }
-
 
 static void
 at_usage( void )
