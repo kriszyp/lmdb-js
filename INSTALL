@@ -138,8 +138,6 @@ Follow these steps for each different platform:
 
  4. Continue as above (starting at step 6).
 
-	Note: make depend in VPATH environment is not yet supported.
-
 
 CONFIGURE OPTIONS
 
