@@ -158,9 +158,9 @@ do_query( void )
 	fd_set		readfds;
 	LDAP		*ld;
 
-	if ( (ld = ldap_open( ldaphost, ldapport )) == NULL ) {
+	if ( (ld = ldap_init( ldaphost, ldapport )) == NULL ) {
 		fprintf( stderr, FINGER_UNAVAILABLE );
-		perror( "ldap_open" );
+		perror( "ldap_init" );
 		exit( 1 );
 	}
 

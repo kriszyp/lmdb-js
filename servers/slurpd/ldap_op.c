@@ -611,11 +611,11 @@ do_bind(
 	ri->ri_ldp = NULL;
     }
 
-    Debug( LDAP_DEBUG_ARGS, "Open connection to %s:%d\n",
+    Debug( LDAP_DEBUG_ARGS, "Initializing session to %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
-    ri->ri_ldp = ldap_open( ri->ri_hostname, ri->ri_port );
+    ri->ri_ldp = ldap_init( ri->ri_hostname, ri->ri_port );
     if ( ri->ri_ldp == NULL ) {
-	Debug( LDAP_DEBUG_ANY, "Error: ldap_open(%s, %d) failed: %s\n",
+	Debug( LDAP_DEBUG_ANY, "Error: ldap_init(%s, %d) failed: %s\n",
 		ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
 	return( BIND_ERR_OPEN );
     }

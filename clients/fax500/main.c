@@ -323,8 +323,8 @@ connect_to_x500( void )
 	int sizelimit = FAX_MAXAMBIGUOUS;
 	int deref = LDAP_DEREF_ALWAYS;
 
-	if ( (ld = ldap_open( NULL, 0 )) == NULL ) {
-		syslog( LOG_ALERT, "ldap_open failed" );
+	if ( (ld = ldap_init( NULL, 0 )) == NULL ) {
+		syslog( LOG_ALERT, "ldap_init failed" );
 		return( -1 );
 	}
 

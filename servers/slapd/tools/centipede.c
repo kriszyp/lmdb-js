@@ -383,8 +383,8 @@ start_ldap_search(
 		fflush( stdout );
 	}
 
-	if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
-		perror( "ldap_open" );
+	if ( (ld = ldap_init( ldaphost, 0 )) == NULL ) {
+		perror( "ldap_init" );
 		return( NULL );
 	}
 
@@ -976,8 +976,8 @@ bind_to_destination_ldap(
 	free( ldapbase );
 	ldapbase = strdup( buf );
 
-	if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
-		perror( "ldap_open" );
+	if ( (ld = ldap_init( ldaphost, 0 )) == NULL ) {
+		perror( "ldap_init" );
 		return( NULL );
 	}
 

@@ -77,7 +77,7 @@ query_cmd( struct msginfo *msgp, char *reply )
 	ldp = cldap_open( ldaphost, ldapport );
     else
 #endif /* LDAP_CONNECTIONLESS */
-	ldp = ldap_open( ldaphost, ldapport );
+	ldp = ldap_init( ldaphost, ldapport );
 
     if ( ldp == NULL ) {
 	strcat( reply, errpreface );

@@ -441,8 +441,8 @@ do_queries( int s )
 		/* NOT REACHED */
 	}
 
-	if ( (ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-		if ( debug ) perror( "ldap_open" );
+	if ( (ld = ldap_init( ldaphost, ldapport )) == NULL ) {
+		if ( debug ) perror( "ldap_init" );
 		fprintf(fp, "0An error occurred (explanation)\tE%d\t%s\t%d\r\n",
 		    LDAP_SERVER_DOWN, myhost, myport );
 		fprintf( fp, ".\r\n" );

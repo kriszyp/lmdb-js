@@ -321,20 +321,20 @@ main(int argc, char ** argv) {
 	 time(&now);
 	 sprintf(temp,"\n==< Results >==\n\n");
 	 fputs(temp,logfp);
-	 sprintf(temp,"** performing ldap_open at %s\n", ctime(&now));
+	 sprintf(temp,"** performing ldap_init at %s\n", ctime(&now));
 	 fputs(temp,logfp);
 	 fflush(logfp);
 	 fclose(logfp);
       }
    }
-   if ( (ld = ldap_open(ldap_data.servername, ldap_data.ldap_port_num) ) == NULL)
+   if ( (ld = ldap_init(ldap_data.servername, ldap_data.ldap_port_num) ) == NULL)
      {
-	printf("<font color=red><b>ldap_open error</b></font>\n");
+	printf("<font color=red><b>ldap_init error</b></font>\n");
 	if (ldap_data.debug != 0) {
 	   if ((logfp = fopen("web_ldap.log","a")) == 0) {
 	   }
 	   else {
-	      sprintf(temp,"++ ldap_open error\n");
+	      sprintf(temp,"++ ldap_init error\n");
 	      fputs(temp,logfp);
 	      fflush(logfp);
 	      fclose(logfp);

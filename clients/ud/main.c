@@ -648,8 +648,8 @@ initialize_client( void )
 	 *  are meaningless since we will immediately be doing a null bind
 	 *  because we want to be sure to use TCP, not UDP.
 	 */
-	if ((ld = ldap_open(server, ldap_port)) == NULL) {
-		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
+	if ((ld = ldap_init(server, ldap_port)) == NULL) {
+		fprintf(stderr, "  Initialization of LDAP session failed.\n");
 		exit(0);
 		/* NOTREACHED */
 	}

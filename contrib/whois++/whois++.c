@@ -178,10 +178,10 @@ char	**argv;
 		}
 	}
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_init( ldaphost, LDAP_PORT )) == NULL ) {
 		printFormatted( lineLength, TRUE, stdout,
 			"Connection to LDAP port on %s has failed", ldaphost );
-		syslog( LOG_ERR, "Connection to LDAP port on %s has failed",
+		syslog( LOG_ERR, "Initialization of LDAP session (%s)",
 			ldaphost );
 		exit( 1 );
 	}

@@ -639,8 +639,8 @@ int main(int argc, char **argv)
 
 	rc = user_tailor();
 
-	if (!(ld = ldap_open(hostname, portnum))) {
-		fprintf(stderr, "%s: unable to connect to server at host `%s' on port %d\n",
+	if (!(ld = ldap_init(hostname, portnum))) {
+		fprintf(stderr, "%s: unable to initialize LDAP session (%s:%d)\n",
 				progname, hostname, portnum);
 		exit(2);
 	}

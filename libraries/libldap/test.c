@@ -346,7 +346,8 @@ main( int argc, char **argv )
 		exit( 1 );
 	}
 	
-	printf( "%sldap_open( %s, %d )\n", cldapflg ? "c" : "",
+	printf( "%s( %s, %d )\n",
+		cldapflg ? "cldap_open" : "ldap_init",
 		host == NULL ? "(null)" : host, port );
 
 	if ( cldapflg ) {
@@ -354,11 +355,11 @@ main( int argc, char **argv )
 		ld = cldap_open( host, port );
 #endif /* LDAP_CONNECTIONLESS */
 	} else {
-		ld = ldap_open( host, port );
+		ld = ldap_init( host, port );
 	}
 
 	if ( ld == NULL ) {
-		perror( "ldap_open" );
+		perror( cldapflg ? "cldap_open" : "ldap_init" );
 		exit(1);
 	}
 
