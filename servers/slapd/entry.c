@@ -139,6 +139,7 @@ str2entry( char *s )
 			}
 
 			rc = dnPretty( NULL, &value, &pdn );
+			free( value.bv_val );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
@@ -151,7 +152,6 @@ str2entry( char *s )
 					(long) e->e_id,
 					pdn->bv_val ? pdn->bv_val : "", 0 );
 #endif
-				if( value.bv_val != NULL ) free( value.bv_val );
 				entry_free( e );
 				return NULL;
 			}
