@@ -450,14 +450,22 @@ slapi_int_ldapmod_to_entry(
 	} else {
 		int repl_user = be_isupdate_dn( op->o_bd, &op->o_bd->be_rootdn );
         	if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
-			int update = op->o_bd->be_update_ndn.bv_len;
-			char textbuf[SLAP_TEXT_BUFLEN];
-			size_t textlen = sizeof textbuf;
+			int	update = !BER_BVISNULL( &op->o_bd->be_update_ndn );
+			char	textbuf[ SLAP_TEXT_BUFLEN ];
+			size_t	textlen = sizeof( textbuf );
 
-			rc = slap_mods_check( modlist, update, &text, 
+			rc = slap_mods_check( modlist, &text, 
 					textbuf, textlen, NULL );
 			if ( rc != LDAP_SUCCESS) {
 				goto cleanup;
+			}
+
+			if ( !update ) {
+				rc = slap_mods_no_update_check( modlist,
+						&text, textbuf, textlen );
+				if ( rc != LDAP_SUCCESS) {
+					goto cleanup;
+				}
 			}
 
 			if ( !repl_user ) {
@@ -1014,16 +1022,24 @@ slapi_modify_internal(
 	if ( op->o_bd->be_modify ) {
 		int repl_user = be_isupdate( op );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
-			int update = op->o_bd->be_update_ndn.bv_len;
-			const char *text = NULL;
-			char textbuf[SLAP_TEXT_BUFLEN];
-			size_t textlen = sizeof( textbuf );
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
+			const char	*text = NULL;
+			char		textbuf[ SLAP_TEXT_BUFLEN ];
+			size_t		textlen = sizeof( textbuf );
+			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
-			rs.sr_err = slap_mods_check( modlist, update,
+			rs.sr_err = slap_mods_check( modlist,
 					&text, textbuf, textlen, NULL );
 			if ( rs.sr_err != LDAP_SUCCESS ) {
 				goto cleanup;
+			}
+
+			if ( !update ) {
+				rs.sr_err = slap_mods_no_update_check( modlist,
+						&text, textbuf, textlen );
+				if ( rs.sr_err != LDAP_SUCCESS ) {
+					goto cleanup;
+				}
 			}
 
 			if ( !repl_user ) {

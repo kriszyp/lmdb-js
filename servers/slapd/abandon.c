@@ -110,7 +110,10 @@ fe_op_abandon( Operation *op, SlapReply *rs )
 
 	for ( i = 0; i < nbackends; i++ ) {
 		op->o_bd = &backends[i];
-		if( op->o_bd->be_abandon ) op->o_bd->be_abandon( op, rs );
+		if ( op->o_bd->be_abandon ) {
+			(void)op->o_bd->be_abandon( op, rs );
+		}
 	}
+
 	return LDAP_SUCCESS;
 }

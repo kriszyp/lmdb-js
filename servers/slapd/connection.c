@@ -1546,7 +1546,7 @@ connection_resched( Connection *conn )
 		ber_socket_t	sd;
 		ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_GET_FD, &sd );
 
-		/* us trylock to avoid possible deadlock */
+		/* use trylock to avoid possible deadlock */
 		rc = ldap_pvt_thread_mutex_trylock( &connections_mutex );
 
 		if( rc ) {

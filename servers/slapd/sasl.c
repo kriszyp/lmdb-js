@@ -491,28 +491,33 @@ slap_auxprop_store(
 	}
 	*modtail = NULL;
 
-	rc = slap_mods_check( modlist, 0, &text, textbuf, textlen, NULL );
+	rc = slap_mods_check( modlist, &text, textbuf, textlen, NULL );
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = slap_mods_opattrs( &op, modlist, modtail, &text, textbuf,
-			textlen, 1 );
-	}
+		rc = slap_mods_no_update_check( modlist, &text,
+				textbuf, textlen );
 
-	if ( rc == LDAP_SUCCESS ) {
-		op.o_hdr = conn->c_sasl_bindop->o_hdr;
-		op.o_tag = LDAP_REQ_MODIFY;
-		op.o_ndn = op.o_req_ndn;
-		op.o_callback = &cb;
-		op.o_time = slap_get_time();
-		op.o_do_not_cache = 1;
-		op.o_is_auth_check = 1;
-		op.o_req_dn = op.o_req_ndn;
-		op.orm_modlist = modlist;
+		if ( rc == LDAP_SUCCESS ) {
+			rc = slap_mods_opattrs( &op, modlist, modtail,
+					&text, textbuf, textlen, 1 );
 
-		rc = op.o_bd->be_modify( &op, &rs );
+			if ( rc == LDAP_SUCCESS ) {
+				op.o_hdr = conn->c_sasl_bindop->o_hdr;
+				op.o_tag = LDAP_REQ_MODIFY;
+				op.o_ndn = op.o_req_ndn;
+				op.o_callback = &cb;
+				op.o_time = slap_get_time();
+				op.o_do_not_cache = 1;
+				op.o_is_auth_check = 1;
+				op.o_req_dn = op.o_req_ndn;
+				op.orm_modlist = modlist;
+
+				rc = op.o_bd->be_modify( &op, &rs );
+			}
+		}
 	}
 	slap_mods_free( modlist );
-	return rc ? SASL_FAIL : SASL_OK;
+	return rc != LDAP_SUCCESS ? SASL_FAIL : SASL_OK;
 }
 #endif /* SASL_VERSION_FULL >= 2.1.16 */
 

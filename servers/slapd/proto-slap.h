@@ -787,9 +787,13 @@ LDAP_SLAPD_F (int) slap_modrdn2mods(
 /*
  * modify.c
  */
+LDAP_SLAPD_F( int ) slap_mods_no_update_check(
+	Modifications *ml,
+	const char **text,
+	char *textbuf, size_t textlen );
+
 LDAP_SLAPD_F( int ) slap_mods_check(
 	Modifications *ml,
-	int update,
 	const char **text,
 	char *textbuf, size_t textlen, void *ctx );
 

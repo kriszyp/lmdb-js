@@ -50,6 +50,8 @@ do_modify(
 	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
 	int		increment = 0;
+	char		textbuf[ SLAP_TEXT_BUFLEN ];
+	size_t		textlen = sizeof( textbuf );
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 
@@ -184,7 +186,15 @@ do_modify(
 		goto cleanup;
 	}
 
-	/* FIXME: temporary */
+	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
+			textbuf, textlen, NULL );
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto cleanup;
+	}
+
+	/* FIXME: needs review */
 	op->orm_modlist = modlist;
 	op->orm_increment = increment;
 
@@ -214,6 +224,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	LDAPMod		**modv = NULL;
 #endif
 	int		increment = op->orm_increment;
+	int		rc = 0;
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
@@ -404,18 +415,22 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #endif
 		{
-			int update = op->o_bd->be_update_ndn.bv_len;
-			char textbuf[SLAP_TEXT_BUFLEN];
-			size_t textlen = sizeof textbuf;
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
+			char		textbuf[ SLAP_TEXT_BUFLEN ];
+			size_t		textlen = sizeof( textbuf );
+			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
-			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-				textbuf, textlen, NULL );
 
-			if( rs->sr_err != LDAP_SUCCESS ) {
-				send_ldap_result( op, rs );
-				goto cleanup;
+			if ( !update ) {
+				rs->sr_err = slap_mods_no_update_check( modlist,
+						&rs->sr_text, textbuf, textlen );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					send_ldap_result( op, rs );
+					goto cleanup;
+				}
 			}
+
+
 
 			if ( !repl_user ) {
 				for( modtail = &modlist;
@@ -438,7 +453,8 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			if ( !repl_user )
 #endif
 			{
-				/* but we log only the ones not from a replicator user */
+				/* but multimaster slapd logs only the ones 
+				 * not from a replicator user */
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
 			}
@@ -453,12 +469,17 @@ fe_op_modify( Operation *op, SlapReply *rs )
 				rs->sr_ref = referral_rewrite( defref,
 					NULL, &op->o_req_dn,
 					LDAP_SCOPE_DEFAULT );
-				if (!rs->sr_ref) rs->sr_ref = defref;
+				if ( rs->sr_ref == NULL ) {
+					/* FIXME: must duplicate, because
+					 * overlays may muck with it */
+					rs->sr_ref = defref;
+				}
 				rs->sr_err = LDAP_REFERRAL;
 				send_ldap_result( op, rs );
-				if (rs->sr_ref != defref) {
+				if ( rs->sr_ref != defref ) {
 					ber_bvarray_free( rs->sr_ref );
 				}
+
 			} else {
 				send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 					"shadow context; no update referral" );
@@ -488,11 +509,34 @@ cleanup:;
 }
 
 /*
+ * Do non-update constraint checking.
+ */
+int
+slap_mods_no_update_check(
+	Modifications *ml,
+	const char **text,
+	char *textbuf,
+	size_t textlen )
+{
+	for ( ; ml != NULL; ml = ml->sml_next ) {
+		if ( is_at_no_user_mod( ml->sml_desc->ad_type ) ) {
+			/* user modification disallowed */
+			snprintf( textbuf, textlen,
+				"%s: no user modification allowed",
+				ml->sml_type.bv_val );
+			*text = textbuf;
+			return LDAP_CONSTRAINT_VIOLATION;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+/*
  * Do basic attribute type checking and syntax validation.
  */
 int slap_mods_check(
 	Modifications *ml,
-	int update,
 	const char **text,
 	char *textbuf,
 	size_t textlen,
@@ -546,6 +590,8 @@ int slap_mods_check(
 			return LDAP_UNDEFINED_TYPE;
 		}
 
+#if 0
+		/* moved to slap_mods_no_update_check() */
 		if (!update && is_at_no_user_mod( ad->ad_type )) {
 			/* user modification disallowed */
 			snprintf( textbuf, textlen,
@@ -554,6 +600,7 @@ int slap_mods_check(
 			*text = textbuf;
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
+#endif
 
 		if ( is_at_obsolete( ad->ad_type ) &&
 			(( ml->sml_op != LDAP_MOD_REPLACE &&

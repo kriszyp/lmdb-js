@@ -202,8 +202,35 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		}
 		break;
 	case LDAP_REQ_ADD:
+		{
+		int		cleanup_attrs = 0;
+
+		if ( op->ora_e->e_attrs == NULL ) {
+			char		textbuf[ SLAP_TEXT_BUFLEN ];
+			size_t		textlen = sizeof( textbuf );
+
+			/* global overlay; create entry */
+			/* NOTE: this is a hack to use the chain overlay
+			 * as global.  I expect to be able to remove this
+			 * soon by using slap_mods2entry() earlier in
+			 * do_add(), adding the operational attrs later
+			 * if required. */
+			rs->sr_err = slap_mods2entry( op->ora_modlist,
+					&op->ora_e, 0, 1,
+					&rs->sr_text, textbuf, textlen );
+			if ( rs->sr_err != LDAP_SUCCESS ) {
+				send_ldap_result( op, rs );
+				rc = 1;
+				break;
+			}
+		}
 		rc = lback->bi_op_add( op, rs );
+		if ( cleanup_attrs ) {
+			attrs_free( op->ora_e->e_attrs );
+			op->ora_e->e_attrs = NULL;
+		}
 		break;
+		}
 	case LDAP_REQ_DELETE:
 		rc = lback->bi_op_delete( op, rs );
 		break;

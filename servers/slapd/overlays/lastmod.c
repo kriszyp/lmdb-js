@@ -308,19 +308,6 @@ lastmod_op_func( Operation *op, SlapReply *rs )
 			return lastmod_exop( op, rs );
 
 		case LDAP_REQ_MODIFY:
-			/* if global overlay, modlist is not checked yet */
-			if ( op->orm_modlist->sml_desc == NULL ) {
-				char textbuf[SLAP_TEXT_BUFLEN];
-				size_t textlen = sizeof textbuf;
-
-				rs->sr_err = slap_mods_check( op->orm_modlist, 0, &rs->sr_text,
-						textbuf, textlen, NULL );
-
-				if ( rs->sr_err ) {
-					goto return_error;
-				}
-			}
-
 			/* allow only changes to overlay status */
 			for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 				if ( ad_cmp( ml->sml_desc, slap_schema.si_ad_modifiersName ) != 0

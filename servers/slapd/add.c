@@ -53,6 +53,9 @@ do_add( Operation *op, SlapReply *rs )
 	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
 	Modifications	tmp;
+	char		textbuf[ SLAP_TEXT_BUFLEN ];
+	size_t		textlen = sizeof( textbuf );
+	int		rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 	/*
@@ -79,7 +82,7 @@ do_add( Operation *op, SlapReply *rs )
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
 
-	if( rs->sr_err != LDAP_SUCCESS ) {
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn.bv_val, 0, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto done;
@@ -135,7 +138,7 @@ do_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
+	if ( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
 		goto done;
 	} 
@@ -149,15 +152,23 @@ do_add( Operation *op, SlapReply *rs )
 	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
 	    op->o_log_prefix, e->e_name.bv_val, 0, 0, 0 );
 
-	if( e->e_nname.bv_len == 0 ) {
+	if ( dn_match( &e->e_nname, &slap_empty_bv ) ) {
 		/* protocolError may be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS,
 			"root DSE already exists" );
 		goto done;
 
-	} else if ( bvmatch( &e->e_nname, &frontendDB->be_schemandn ) ) {
+	} else if ( dn_match( &e->e_nname, &frontendDB->be_schemandn ) ) {
 		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS,
 			"subschema subentry already exists" );
+		goto done;
+	}
+
+	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
+			  textbuf, textlen, NULL );
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
 		goto done;
 	}
 
@@ -166,24 +177,24 @@ do_add( Operation *op, SlapReply *rs )
 	op->ora_modlist = modlist;
 
 	op->o_bd = frontendDB;
-	rs->sr_err = frontendDB->be_add( op, rs );
-	if ( rs->sr_err == 0 ) {
+	rc = frontendDB->be_add( op, rs );
+	if ( rc == 0 ) {
 		e = NULL;
 	}
 
 done:;
 	slap_graduate_commit_csn( op );
 
-	if( modlist != NULL ) {
+	if ( modlist != NULL ) {
 		slap_mods_free( modlist );
 	}
-	if( e != NULL ) {
+	if ( e != NULL ) {
 		entry_free( e );
 	}
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
-	return rs->sr_err;
+	return rc;
 }
 
 int
@@ -249,30 +260,36 @@ fe_op_add( Operation *op, SlapReply *rs )
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
 #endif
 		{
-			int update = op->o_bd->be_update_ndn.bv_len;
-			char textbuf[SLAP_TEXT_BUFLEN];
-			size_t textlen = sizeof textbuf;
-			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
+			char		textbuf[ SLAP_TEXT_BUFLEN ];
+			size_t		textlen = sizeof( textbuf );
+			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
-			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-				  textbuf, textlen, NULL );
+			if ( !update ) {
+				rs->sr_err = slap_mods_no_update_check( modlist,
+						&rs->sr_text,
+				  		textbuf, textlen );
 
-			if( rs->sr_err != LDAP_SUCCESS ) {
-				send_ldap_result( op, rs );
-				goto done;
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					send_ldap_result( op, rs );
+					goto done;
+				}
 			}
 
 			if ( !repl_user ) {
-				for( modtail = &modlist;
-					*modtail != NULL;
-					modtail = &(*modtail)->sml_next )
+				/* go to the last mod */
+				for ( modtail = &modlist;
+						*modtail != NULL;
+						modtail = &(*modtail)->sml_next )
 				{
 					assert( (*modtail)->sml_op == LDAP_MOD_ADD );
 					assert( (*modtail)->sml_desc != NULL );
 				}
-				rs->sr_err = slap_mods_opattrs( op, modlist, modtail,
-					&rs->sr_text, textbuf, textlen, 1 );
-				if( rs->sr_err != LDAP_SUCCESS ) {
+
+				rs->sr_err = slap_mods_opattrs( op, modlist,
+						modtail, &rs->sr_text,
+						textbuf, textlen, 1 );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
 					goto done;
 				}
@@ -280,7 +297,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 
 			rs->sr_err = slap_mods2entry( modlist, &e, repl_user, 0,
 				&rs->sr_text, textbuf, textlen );
-			if( rs->sr_err != LDAP_SUCCESS ) {
+			if ( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
 				goto done;
 			}

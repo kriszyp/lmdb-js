@@ -1105,7 +1105,7 @@ syncrepl_message_to_entry(
 		goto done;
 	}
 
-	rc = slap_mods_check( *modlist, 1, &text, txtbuf, textlen, NULL );
+	rc = slap_mods_check( *modlist, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: mods check (%s)\n",
