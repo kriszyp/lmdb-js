@@ -33,16 +33,33 @@
 		typedef signed int LDAP_SINT4;
 		typedef unsigned int LDAP_UINT4;
 
+#	elif SIZEOF_SHORT == 4
+		typedef short LDAP_INT4;
+		typedef signed short LDAP_SINT4;
+		typedef unsigned short LDAP_UINT4;
+
+#	else
+#		error "No 4 byte integer type!"
 #	endif
 
 #	if SIZEOF_SHORT == 2
 		typedef short LDAP_INT2;
 		typedef signed short LDAP_SINT2;
 		typedef unsigned short LDAP_UINT2;
+
 #	elif SIZEOF_INT == 2
 		typedef int LDAP_INT2;
 		typedef signed int LDAP_SINT2;
 		typedef unsigned int LDAP_UINT2;
+
+#	elif SIZEOF_LONG == 2
+		typedef long LDAP_INT2;
+		typedef signed long LDAP_SINT2;
+		typedef unsigned long LDAP_UINT2;
+
+#	else
+/* not in use, no error */
+/* #		error "No 2 byte integer type!" */
 #	endif
 #endif
     
