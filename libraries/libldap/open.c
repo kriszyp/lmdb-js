@@ -268,9 +268,6 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 {
 	int rc = -1;
 	int port;
-#ifdef HAVE_TLS
-	int tls;
-#endif
 	long addr;
 
 	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
@@ -306,9 +303,8 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
    	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 
 #ifdef HAVE_TLS
-	tls = (srv->lud_properties & LDAP_URL_USE_SSL);
-
-	if ( tls != 0 ) {
+	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
+	    (srv->lud_properties & LDAP_URL_USE_SSL)) {
 		rc = ldap_pvt_tls_start( ld, sb, ld->ld_options.ldo_tls_ctx );
 		if (rc != LDAP_SUCCESS)
 			return rc;

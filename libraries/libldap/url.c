@@ -449,10 +449,12 @@ ldap_url_dup ( LDAPURLDesc *ludp )
 		return NULL;
 	}
 
-	dest = LDAP_CALLOC( 1, sizeof(LDAPURLDesc) );
+	dest = LDAP_MALLOC( sizeof(LDAPURLDesc) );
 	if (dest == NULL)
 		return NULL;
 	
+	*dest = *ludp;
+
 	if ( ludp->lud_host != NULL ) {
 		dest->lud_host = LDAP_STRDUP( ludp->lud_host );
 		if (dest->lud_host == NULL) {
@@ -492,9 +494,6 @@ ldap_url_dup ( LDAPURLDesc *ludp )
 			return NULL;
 		}
 	}
-
-	dest->lud_port = ludp->lud_port;
-	dest->lud_scope = ludp->lud_scope;
 
 	return dest;
 }
