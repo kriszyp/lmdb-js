@@ -44,17 +44,26 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 	LDAPControl *ctrl,
 	const char **text ));
 
+static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
-static SLAP_CTRL_PARSE_FN parseSubentries;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 
+#ifdef LDAP_CONTROL_SUBENTRIES
+static SLAP_CTRL_PARSE_FN parseSubentries;
+#endif
 #ifdef LDAP_CLIENT_UPDATE
 static SLAP_CTRL_PARSE_FN parseClientUpdate;
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
+
+static char *proxy_authz_extops[] = {
+	LDAP_EXOP_MODIFY_PASSWD,
+	LDAP_EXOP_X_WHO_AM_I,
+	NULL
+};
 
 static struct slap_control {
 	char *sc_oid;
@@ -63,14 +72,12 @@ static struct slap_control {
 	SLAP_CTRL_PARSE_FN *sc_parse;
 
 } supportedControls[] = {
+	{ LDAP_CONTROL_PROXY_AUTHZ,
+		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
+		parseProxyAuthz },
 	{ LDAP_CONTROL_MANAGEDSAIT,
 		SLAP_CTRL_ACCESS, NULL,
 		parseManageDSAit },
-#ifdef LDAP_CONTROL_SUBENTRIES
-	{ LDAP_CONTROL_SUBENTRIES,
-		SLAP_CTRL_SEARCH, NULL,
-		parseSubentries },
-#endif
 	{ LDAP_CONTROL_NOOP,
 		SLAP_CTRL_ACCESS, NULL,
 		parseNoOp },
@@ -79,7 +86,12 @@ static struct slap_control {
 		parsePagedResults },
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
- 		parseValuesReturnFilter },
+		parseValuesReturnFilter },
+#ifdef LDAP_CONTROL_SUBENTRIES
+	{ LDAP_CONTROL_SUBENTRIES,
+		SLAP_CTRL_SEARCH, NULL,
+		parseSubentries },
+#endif
 #ifdef LDAP_CLIENT_UPDATE
 	{ LDAP_CONTROL_CLIENT_UPDATE,
 		SLAP_CTRL_SEARCH, NULL,
@@ -316,8 +328,19 @@ int get_ctrls(
 				tagmask = SLAP_CTRL_ABANDON;
 				break;
 			case LDAP_REQ_EXTENDED:
-				/* FIXME: check list of extended operations */
-				tagmask = ~0U;
+				tagmask=~0L;
+				assert( op->o_extendedop != NULL );
+				if( sc->sc_extendedops != NULL ) {
+					int i;
+					for( i=0; sc->sc_extendedops[i] != NULL; i++ ) {
+						if( strcmp( op->o_extendedop, sc->sc_extendedops[i] )
+							== 0 )
+						{
+							tagmask=0L;
+							break;
+						}
+					}
+				}
 				break;
 			default:
 				rc = LDAP_OTHER;
@@ -367,9 +390,11 @@ int get_ctrls(
 return_results:
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, RESULTS, 
-		"get_ctrls: n=%d rc=%d err=%s\n", nctrls, rc, errmsg ? errmsg : "" );
+		"get_ctrls: n=%d rc=%d err=\"%s\"\n",
+		nctrls, rc, errmsg ? errmsg : "" );
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: n=%d rc=%d err=%s\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"<= get_ctrls: n=%d rc=%d err=\"%s\"\n",
 		nctrls, rc, errmsg ? errmsg : "");
 #endif
 
@@ -408,36 +433,100 @@ static int parseManageDSAit (
 	return LDAP_SUCCESS;
 }
 
-#ifdef LDAP_CONTROL_SUBENTRIES
-static int parseSubentries (
+static int parseProxyAuthz (
 	Connection *conn,
 	Operation *op,
 	LDAPControl *ctrl,
 	const char **text )
 {
-	if ( op->o_subentries != SLAP_NO_CONTROL ) {
-		*text = "subentries control specified multiple times";
+	int rc;
+	struct berval dn;
+
+	if ( op->o_proxy_authz != SLAP_NO_CONTROL ) {
+		*text = "proxy authorization control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	/* FIXME: should use BER library */
-	if( ( ctrl->ldctl_value.bv_len != 3 )
-		&& ( ctrl->ldctl_value.bv_val[0] != 0x01 )
-		&& ( ctrl->ldctl_value.bv_val[1] != 0x01 ))
-	{
-		*text = "subentries control value encoding is bogus";
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-	op->o_subentries = ctrl->ldctl_iscritical
+	op->o_proxy_authz = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
 
-	op->o_subentries_visibility = (ctrl->ldctl_value.bv_val[2] != 0x00);
-
-	return LDAP_SUCCESS;
-}
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, ARGS, 
+		"parseProxyAuthz: conn %d authzid=\"%s\"\n", 
+		conn->c_connid,
+		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
+		0 );
+#else
+	Debug( LDAP_DEBUG_ARGS,
+		"parseProxyAuthz: conn %d authzid=\"%s\"\n", 
+		conn->c_connid,
+		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
+		0 );
 #endif
+
+	if( ctrl->ldctl_value.bv_len == 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, TRACE, 
+			"parseProxyAuthz: conn=%d anonymous\n", 
+			conn->c_connid, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"parseProxyAuthz: conn=%d anonymous\n", 
+			conn->c_connid, 0, 0 );
+#endif
+
+		/* anonymous */
+		free( op->o_dn.bv_val );
+		op->o_dn.bv_len = 0;
+		op->o_dn.bv_val = ch_strdup( "" );
+
+		free( op->o_ndn.bv_val );
+		op->o_ndn.bv_len = 0;
+		op->o_ndn.bv_val = ch_strdup( "" );
+
+		return LDAP_SUCCESS;
+	}
+
+	rc = slap_sasl_getdn( conn,
+		ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len,
+		NULL, &dn, SLAP_GETDN_AUTHZID );
+
+	if( rc != LDAP_SUCCESS || !dn.bv_len ) {
+		*text = "authzId mapping failed";
+		return LDAP_PROXY_AUTHZ_FAILURE;
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( OPERATION, TRACE, 
+		"parseProxyAuthz: conn=%d \"%s\"\n", 
+		conn->c_connid,
+		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE,
+		"parseProxyAuthz: conn=%d \"%s\"\n", 
+		conn->c_connid,
+		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
+#endif
+
+	rc = slap_sasl_authorized( conn, &op->o_dn, &dn );
+
+	if( rc ) {
+		ch_free( dn.bv_val );
+		*text = "not authorized to assume identity";
+		return LDAP_PROXY_AUTHZ_FAILURE;
+	}
+
+#if 0
+	ch_free( op->o_dn );
+	ch_free( op->o_ndn );
+
+	op->o_dn = dn;
+#endif
+
+	*text = "not (yet) implemented";
+	return LDAP_OTHER;
+}
 
 static int parseNoOp (
 	Connection *conn,
@@ -479,7 +568,7 @@ static int parsePagedResults (
 	}
 
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		*text = "paged results control value is empty";
+		*text = "paged results control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -555,7 +644,12 @@ int parseValuesReturnFilter (
 	const char *err_msg = "";
 
 	if ( op->o_valuesreturnfilter != SLAP_NO_CONTROL ) {
-		*text = "valuesreturnfilter control specified multiple times";
+		*text = "valuesReturnFilter control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		*text = "valuesReturnFilter control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -599,6 +693,37 @@ int parseValuesReturnFilter (
 	return LDAP_SUCCESS;
 }
 
+#ifdef LDAP_CONTROL_SUBENTRIES
+static int parseSubentries (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	if ( op->o_subentries != SLAP_NO_CONTROL ) {
+		*text = "subentries control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* FIXME: should use BER library */
+	if( ( ctrl->ldctl_value.bv_len != 3 )
+		&& ( ctrl->ldctl_value.bv_val[0] != 0x01 )
+		&& ( ctrl->ldctl_value.bv_val[1] != 0x01 ))
+	{
+		*text = "subentries control value encoding is bogus";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_subentries = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	op->o_subentries_visibility = (ctrl->ldctl_value.bv_val[2] != 0x00);
+
+	return LDAP_SUCCESS;
+}
+#endif
+
 #ifdef LDAP_CLIENT_UPDATE
 static int parseClientUpdate (
 	Connection *conn,
@@ -620,7 +745,7 @@ static int parseClientUpdate (
 	}
 
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		*text = "LCUP client update control value is empty";
+		*text = "LCUP client update control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
 

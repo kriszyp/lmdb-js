@@ -169,6 +169,11 @@ typedef struct slap_ssf_set {
 	slap_ssf_t sss_simple_bind;
 } slap_ssf_set_t;
 
+
+/* Flags for telling slap_sasl_getdn() what type of identity is being passed */
+#define SLAP_GETDN_AUTHCID 2
+#define SLAP_GETDN_AUTHZID 4
+
 /*
  * Index types
  */
@@ -1631,6 +1636,8 @@ typedef struct slap_op {
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
 
+	char *		o_extendedop;	/* extended operation OID */
+
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
 
 	volatile sig_atomic_t o_abandon;	/* abandon flag */
@@ -1642,6 +1649,7 @@ typedef struct slap_op {
 #define SLAP_CRITICAL_CONTROL 2
 	char o_managedsait;
 	char o_noop;
+	char o_proxy_authz;
 	char o_subentries;
 	char o_subentries_visibility;
 	char o_valuesreturnfilter;

@@ -561,12 +561,10 @@ read_config( const char *fname, int depth )
 
 			lutil_salt_format( cargv[1] );
 
-#ifdef HAVE_CYRUS_SASL
 		/* SASL config options */
 		} else if ( strncasecmp( cargv[0], "sasl", 4 ) == 0 ) {
 			if ( slap_sasl_config( cargc, cargv, line, fname, lineno ) )
 				return 1;
-#endif /* HAVE_CYRUS_SASL */
 
 		} else if ( strcasecmp( cargv[0], "schemadn" ) == 0 ) {
 			struct berval dn;

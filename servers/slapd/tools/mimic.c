@@ -270,3 +270,15 @@ slap_modrdn2mods(
 	return 0;
 }
 
+int slap_sasl_getdn( Connection *conn, char *id, int len,
+	char *user_realm, struct berval *dn, int flags )
+{
+	return -1;
+}
+
+int slap_sasl_authorized( Connection *conn,
+	struct berval *authcDN, struct berval *authzDN )
+{
+	return -1;
+}
+

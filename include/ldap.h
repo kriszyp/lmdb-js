@@ -413,8 +413,9 @@ typedef struct ldapcontrol {
 #define LDAP_IS_LEAF			0x23 /* not LDAPv3 */
 #define LDAP_ALIAS_DEREF_PROBLEM	0x24
 
-#define LDAP_SECURITY_ERROR(n)	LDAP_RANGE((n),0x30,0x32) /* 48-50 */
+#define LDAP_SECURITY_ERROR(n)	LDAP_RANGE((n),0x2F,0x32) /* 47-50 */
 
+#define LDAP_PROXY_AUTHZ_FAILURE	0x2F /* LDAPv3 proxy authorization */
 #define LDAP_INAPPROPRIATE_AUTH		0x30
 #define LDAP_INVALID_CREDENTIALS	0x31
 #define LDAP_INSUFFICIENT_ACCESS	0x32

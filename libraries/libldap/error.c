@@ -53,6 +53,7 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_IS_LEAF, 					"Entry is a leaf" },
 	{LDAP_ALIAS_DEREF_PROBLEM,	 	"Alias dereferencing problem" },
 
+	{LDAP_PROXY_AUTHZ_FAILURE,		"Proxy Authorization Failure" },
 	{LDAP_INAPPROPRIATE_AUTH, 		"Inappropriate authentication" },
 	{LDAP_INVALID_CREDENTIALS, 		"Invalid credentials" },
 	{LDAP_INSUFFICIENT_ACCESS, 		"Insufficient access" },

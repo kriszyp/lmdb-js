@@ -875,6 +875,9 @@ LDAP_SLAPD_F (int) slap_sasl_config(
 	const char *fname,
 	int lineno );
 
+LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn,
+	char *id, int len,
+	char *user_realm, struct berval *dn, int flags );
 
 /*
  * saslauthz.c

@@ -150,6 +150,8 @@ do_extended(
 		goto done;
 	}
 
+	op->o_extendedop = reqoid.bv_val;
+
 	tag = ber_peek_tag( op->o_ber, &len );
 	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {

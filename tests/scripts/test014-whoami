@@ -66,6 +66,39 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing ldapwhoami as ${MANAGERDN} for anonymous..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD \
+	-e \!authzid=""
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+echo "Testing ldapwhoami as ${MANAGERDN} for dn:$BABSDN..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD \
+	-e \!authzid="dn:$BABSDN"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+#	kill -HUP $PID
+#	exit $RC
+fi
+
+echo "Testing ldapwhoami as ${MANAGERDN} for u:ursula..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT -D "$MANAGERDN" -w $PASSWD \
+	-e \!authzid="u:ursula"
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+#	kill -HUP $PID
+#	exit $RC
+fi
+
 kill -HUP $PID
 
 echo ">>>>> Test succeeded"

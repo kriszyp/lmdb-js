@@ -447,7 +447,7 @@ send_ldap_result(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
-		"send_ldap_result : conn %lu	  op=%lu p=%d\n",
+		"send_ldap_result: conn %lu op=%lu p=%d\n",
 		op->o_connid, op->o_opid, op->o_protocol );
 #else
 	Debug( LDAP_DEBUG_TRACE,
@@ -567,12 +567,11 @@ send_ldap_extended(
 		rspdata != NULL ? rspdata->bv_len : 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-		"send_ldap_extended err=%d oid=%s len=%ld\n",
+		"send_ldap_extended: err=%d oid=%s len=%ld\n",
 		err,
 		rspoid ? rspoid : "",
 		rspdata != NULL ? rspdata->bv_len : 0 );
 #endif
-
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;

@@ -15,31 +15,28 @@
 
 #include "slap.h"
 
-#ifdef HAVE_CYRUS_SASL
 #include <limits.h>
 
-#ifdef HAVE_SASL_SASL_H
-#include <sasl/sasl.h>
-#else
-#include <sasl.h>
-#endif
+#ifdef HAVE_CYRUS_SASL
+# ifdef HAVE_SASL_SASL_H
+#  include <sasl/sasl.h>
+# else
+#  include <sasl.h>
+# endif
 
-#include <lutil.h>
-#if SASL_VERSION_MAJOR >= 2
-#include <sasl/saslplug.h>
-#define	SASL_CONST const
-#else
-#define	SASL_CONST
-#endif
+# if SASL_VERSION_MAJOR >= 2
+#  include <sasl/saslplug.h>
+#  define	SASL_CONST const
+# else
+#  define	SASL_CONST
+# endif
+
+static sasl_security_properties_t sasl_secprops;
+#endif /* HAVE_CYRUS_SASL */
 
 #include "ldap_pvt.h"
 #include "lber_pvt.h"
-
-/* Flags for telling slap_sasl_getdn() what type of identity is being passed */
-#define FLAG_GETDN_AUTHCID 2
-#define FLAG_GETDN_AUTHZID 4
-
-static sasl_security_properties_t sasl_secprops;
+#include <lutil.h>
 
 int slap_sasl_config( int cargc, char **cargv, char *line,
 	const char *fname, int lineno )
@@ -49,11 +46,13 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 			if ( cargc != 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: missing policy in \"sasl-authz-policy <policy>\" line\n",
-					   fname, lineno, 0 );
+					"%s: line %d: missing policy in"
+					" \"sasl-authz-policy <policy>\" line\n",
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing policy in \"sasl-authz-policy <policy>\" line\n",
+					"%s: line %d: missing policy in"
+					" \"sasl-authz-policy <policy>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -77,18 +76,42 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 #endif
 				return( 1 );
 			}
-			
 
+		} else if ( !strcasecmp( cargv[0], "sasl-regexp" ) 
+			|| !strcasecmp( cargv[0], "saslregexp" ) )
+		{
+			int rc;
+			if ( cargc != 3 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT,
+					"%s: line %d: need 2 args in "
+					"\"saslregexp <match> <replace>\"\n",
+					fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, 
+					"%s: line %d: need 2 args in "
+					"\"saslregexp <match> <replace>\"\n",
+					fname, lineno, 0 );
+#endif
+
+				return( 1 );
+			}
+			rc = slap_sasl_regexp_config( cargv[1], cargv[2] );
+			if ( rc ) {
+				return rc;
+			}
+
+#ifdef HAVE_CYRUS_SASL
 		/* set SASL host */
 		} else if ( strcasecmp( cargv[0], "sasl-host" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: missing host in \"sasl-host <host>\" line\n",
-					   fname, lineno, 0 );
+					"%s: line %d: missing host in \"sasl-host <host>\" line\n",
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing host in \"sasl-host <host>\" line\n",
+	    			"%s: line %d: missing host in \"sasl-host <host>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -98,8 +121,8 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 			if ( global_host != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: already set sasl-host!\n",
-					   fname, lineno, 0 );
+					"%s: line %d: already set sasl-host!\n",
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set sasl-host!\n",
@@ -116,12 +139,12 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 		} else if ( strcasecmp( cargv[0], "sasl-realm" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: missing realm in \"sasl-realm <realm>\" line.\n",
-					   fname, lineno, 0 );
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
+					"missing realm in \"sasl-realm <realm>\" line.\n",
+					fname, lineno, 0 );
 #else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing realm in \"sasl-realm <realm>\" line\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing realm in \"sasl-realm <realm>\" line.\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -131,8 +154,8 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 			if ( global_realm != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: already set sasl-realm!\n",
-					   fname, lineno, 0 );
+					"%s: line %d: already set sasl-realm!\n",
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set sasl-realm!\n",
@@ -145,42 +168,18 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 				global_realm = ch_strdup( cargv[1] );
 			}
 
-		} else if ( !strcasecmp( cargv[0], "sasl-regexp" ) 
-			|| !strcasecmp( cargv[0], "saslregexp" ) )
-		{
-			int rc;
-			if ( cargc != 3 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: need 2 args in "
-					   "\"saslregexp <match> <replace>\"\n",
-					   fname, lineno, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY, 
-				"%s: line %d: need 2 args in \"saslregexp <match> <replace>\"\n",
-				    fname, lineno, 0 );
-#endif
-
-				return( 1 );
-			}
-			rc = slap_sasl_regexp_config( cargv[1], cargv[2] );
-			if ( rc ) {
-				return rc;
-			}
-
 		/* SASL security properties */
 		} else if ( strcasecmp( cargv[0], "sasl-secprops" ) == 0 ) {
 			char *txt;
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: missing flags in "
-					   "\"sasl-secprops <properties>\" line\n",
-					   fname, lineno, 0 );
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
+					"missing flags in \"sasl-secprops <properties>\" line\n",
+					fname, lineno, 0 );
 #else
-				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: missing flags in \"sasl-secprops <properties>\" line\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing flags in \"sasl-secprops <properties>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -191,22 +190,25 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 			if ( txt != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d sasl-secprops: %s\n",
-					   fname, lineno, txt );
+					"%s: line %d sasl-secprops: %s\n",
+					fname, lineno, txt );
 #else
 				Debug( LDAP_DEBUG_ANY,
-	    "%s: line %d: sasl-secprops: %s\n",
+					"%s: line %d: sasl-secprops: %s\n",
 				    fname, lineno, txt );
 #endif
 
 				return 1;
 			}
+#endif /* HAVE_CYRUS_SASL */
 	    }
 
 	    return LDAP_SUCCESS;
 }
 
-static int
+#ifdef HAVE_CYRUS_SASL
+
+int
 slap_sasl_log(
 	void *context,
 	int priority,
@@ -285,190 +287,6 @@ slap_sasl_log(
 	return SASL_OK;
 }
 
-
-/* Take any sort of identity string and return a DN with the "dn:" prefix. The
-   string returned in *dn is in its own allocated memory, and must be free'd 
-   by the calling process.
-   -Mark Adamson, Carnegie Mellon
-
-   The "dn:" prefix is no longer used anywhere inside slapd. It is only used
-   on strings passed in directly from SASL.
-   -Howard Chu, Symas Corp.
-*/
-
-#define	SET_DN	1
-#define	SET_U	2
-
-static struct berval ext_bv = BER_BVC( "EXTERNAL" );
-
-int slap_sasl_getdn( Connection *conn, char *id, int len,
-	char *user_realm, struct berval *dn, int flags )
-{
-	char *c1;
-	int rc, is_dn = 0, do_norm = 1;
-	sasl_conn_t *ctx;
-	struct berval dn2;
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl_getdn: conn %d id=%s\n",
-		conn ? conn->c_connid : -1, id ? (*id ? id : "<empty>") : "NULL", 0 );
-#else
-	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s\n", 
-      id?(*id?id:"<empty>"):"NULL",0,0 );
-#endif
-
-	dn->bv_val = NULL;
-	dn->bv_len = 0;
-
-	if ( id ) {
-		if ( len == 0 ) len = strlen( id );
-
-		/* Blatantly anonymous ID */
-		if ( len == sizeof("anonymous") - 1 &&
-			!strcasecmp( id, "anonymous" ) ) {
-			return( LDAP_SUCCESS );
-		}
-	} else {
-		len = 0;
-	}
-
-	ctx = conn->c_sasl_context;
-
-	/* An authcID needs to be converted to authzID form. Set the
-	 * values directly into *dn; they will be normalized later. (and
-	 * normalizing always makes a new copy.) An ID from a TLS certificate
-	 * is already normalized, so copy it and skip normalization.
-	 */
-	if( flags & FLAG_GETDN_AUTHCID ) {
-#ifdef HAVE_TLS
-		if( conn->c_is_tls &&
-			conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
-			strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 )
-		{
-			/* X.509 DN is already normalized */
-			do_norm = 0;
-			is_dn = SET_DN;
-			ber_str2bv( id, len, 1, dn );
-
-		} else
-#endif
-		{
-			/* convert to u:<username> form */
-			is_dn = SET_U;
-			dn->bv_val = id;
-			dn->bv_len = len;
-		}
-	}
-	if( !is_dn ) {
-		if( !strncasecmp( id, "u:", sizeof("u:")-1 )) {
-			is_dn = SET_U;
-			dn->bv_val = id+2;
-			dn->bv_len = len-2;
-		} else if ( !strncasecmp( id, "dn:", sizeof("dn:")-1) ) {
-			is_dn = SET_DN;
-			dn->bv_val = id+3;
-			dn->bv_len = len-3;
-		}
-	}
-
-	/* No other possibilities from here */
-	if( !is_dn ) {
-		dn->bv_val = NULL;
-		dn->bv_len = 0;
-		return( LDAP_INAPPROPRIATE_AUTH );
-	}
-
-	/* Username strings */
-	if( is_dn == SET_U ) {
-		char *p, *realm;
-		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
-
-		/* username may have embedded realm name */
-		if( ( realm = strchr( dn->bv_val, '@') ) ) {
-			*realm++ = '\0';
-			len += sizeof(",cn=")-2;
-		} else if( user_realm && *user_realm ) {
- 			len += strlen( user_realm ) + sizeof(",cn=")-1;
-		}
-
-		if( conn->c_sasl_bind_mech.bv_len ) {
-			len += conn->c_sasl_bind_mech.bv_len + sizeof(",cn=")-1;
-		}
-
-		/* Build the new dn */
-		c1 = dn->bv_val;
-		dn->bv_val = SLAP_MALLOC( len+1 );
-		if( dn->bv_val == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( TRANSPORT, ERR, 
-				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_ANY, 
-				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
-#endif
-			return LDAP_OTHER;
-		}
-		p = lutil_strcopy( dn->bv_val, "uid=" );
-		p = lutil_strncopy( p, c1, dn->bv_len );
-
-		if( realm ) {
-			int rlen = dn->bv_len - ( realm - c1 );
-			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strncopy( p, realm, rlen );
-			realm[-1] = '@';
-		} else if( user_realm && *user_realm ) {
-			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strcopy( p, user_realm );
-		}
-
-		if( conn->c_sasl_bind_mech.bv_len ) {
-			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strcopy( p, conn->c_sasl_bind_mech.bv_val );
-		}
-		p = lutil_strcopy( p, ",cn=auth" );
-		dn->bv_len = p - dn->bv_val;
-
-#ifdef NEW_LOGGING
-		LDAP_LOG( TRANSPORT, ENTRY, 
-			"slap_sasl_getdn: u:id converted to %s.\n", dn->bv_val, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE, "getdn: u:id converted to %s\n", dn->bv_val,0,0 );
-#endif
-	}
-
-	/* All strings are in DN form now. Normalize if needed. */
-	if ( do_norm ) {
-		rc = dnNormalize2( NULL, dn, &dn2 );
-
-		/* User DNs were constructed above and must be freed now */
-		if ( is_dn == SET_U )
-			ch_free( dn->bv_val );
-
-		if ( rc != LDAP_SUCCESS ) {
-			dn->bv_val = NULL;
-			dn->bv_len = 0;
-			return rc;
-		}
-		*dn = dn2;
-	}
-
-	/* Run thru regexp */
-	slap_sasl2dn( conn, dn, &dn2 );
-	if( dn2.bv_val ) {
-		ch_free( dn->bv_val );
-		*dn = dn2;
-#ifdef NEW_LOGGING
-		LDAP_LOG( TRANSPORT, ENTRY, 
-			"slap_sasl_getdn: dn:id converted to %s.\n", dn->bv_val, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n",
-			dn->bv_val, 0, 0 );
-#endif
-	}
-
-	return( LDAP_SUCCESS );
-}
 
 #if SASL_VERSION_MAJOR >= 2
 static const char *slap_propnames[] = {
@@ -714,7 +532,7 @@ slap_sasl_checkpass(
 	 */
 
 	rc = slap_sasl_getdn( conn, (char *)username, 0, NULL, &dn,
-		FLAG_GETDN_AUTHCID );
+		SLAP_GETDN_AUTHCID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
 		return SASL_NOUSER;
@@ -849,7 +667,7 @@ slap_sasl_canonicalize(
 	}
 
 	rc = slap_sasl_getdn( conn, (char *)in, inlen, (char *)user_realm, &dn,
-		(flags & SASL_CU_AUTHID) ? FLAG_GETDN_AUTHCID : FLAG_GETDN_AUTHZID );
+		(flags & SASL_CU_AUTHID) ? SLAP_GETDN_AUTHCID : SLAP_GETDN_AUTHZID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
 		return SASL_NOAUTHZ;
@@ -1004,7 +822,8 @@ slap_sasl_authorize(
 
 	/* Convert the identities to DN's. If no authzid was given, client will
 	   be bound as the DN matching their username */
-	rc = slap_sasl_getdn( conn, (char *)authcid, 0, realm, &authcDN, FLAG_GETDN_AUTHCID );
+	rc = slap_sasl_getdn( conn, (char *)authcid, 0, realm,
+		&authcDN, SLAP_GETDN_AUTHCID );
 	if( rc != LDAP_SUCCESS ) {
 		*errstr = ldap_err2string( rc );
 		return SASL_NOAUTHZ;
@@ -1023,7 +842,8 @@ slap_sasl_authorize(
 		*errstr = NULL;
 		return SASL_OK;
 	}
-	rc = slap_sasl_getdn( conn, (char *)authzid, 0, realm, &authzDN, FLAG_GETDN_AUTHZID );
+	rc = slap_sasl_getdn( conn, (char *)authzid, 0, realm,
+		&authzDN, SLAP_GETDN_AUTHZID );
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( authcDN.bv_val );
 		*errstr = ldap_err2string( rc );
@@ -1100,7 +920,6 @@ slap_sasl_err2ldap( int saslerr )
 	return rc;
 }
 #endif
-
 
 int slap_sasl_init( void )
 {
@@ -1677,4 +1496,185 @@ slap_sasl_setpass(
 done:
 	return rc;
 }
+#endif /* HAVE_CYRUS_SASL */
+
+/* Take any sort of identity string and return a DN with the "dn:" prefix. The
+   string returned in *dn is in its own allocated memory, and must be free'd 
+   by the calling process.
+   -Mark Adamson, Carnegie Mellon
+
+   The "dn:" prefix is no longer used anywhere inside slapd. It is only used
+   on strings passed in directly from SASL.
+   -Howard Chu, Symas Corp.
+*/
+
+#define	SET_DN	1
+#define	SET_U	2
+
+static struct berval ext_bv = BER_BVC( "EXTERNAL" );
+
+int slap_sasl_getdn( Connection *conn, char *id, int len,
+	char *user_realm, struct berval *dn, int flags )
+{
+	char *c1;
+	int rc, is_dn = 0, do_norm = 1;
+	struct berval dn2;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl_getdn: conn %d id=%s\n",
+		conn ? conn->c_connid : -1, id ? (*id ? id : "<empty>") : "NULL", 0 );
+#else
+	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s\n", 
+      id?(*id?id:"<empty>"):"NULL",0,0 );
 #endif
+
+	dn->bv_val = NULL;
+	dn->bv_len = 0;
+
+	if ( id ) {
+		if ( len == 0 ) len = strlen( id );
+
+		/* Blatantly anonymous ID */
+		if ( len == sizeof("anonymous") - 1 &&
+			!strcasecmp( id, "anonymous" ) ) {
+			return( LDAP_SUCCESS );
+		}
+	} else {
+		len = 0;
+	}
+
+	/* An authcID needs to be converted to authzID form. Set the
+	 * values directly into *dn; they will be normalized later. (and
+	 * normalizing always makes a new copy.) An ID from a TLS certificate
+	 * is already normalized, so copy it and skip normalization.
+	 */
+	if( flags & SLAP_GETDN_AUTHCID ) {
+#ifdef HAVE_TLS
+		if( conn->c_is_tls &&
+			conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
+			strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 )
+		{
+			/* X.509 DN is already normalized */
+			do_norm = 0;
+			is_dn = SET_DN;
+			ber_str2bv( id, len, 1, dn );
+
+		} else
+#endif
+		{
+			/* convert to u:<username> form */
+			is_dn = SET_U;
+			dn->bv_val = id;
+			dn->bv_len = len;
+		}
+	}
+	if( !is_dn ) {
+		if( !strncasecmp( id, "u:", sizeof("u:")-1 )) {
+			is_dn = SET_U;
+			dn->bv_val = id+2;
+			dn->bv_len = len-2;
+		} else if ( !strncasecmp( id, "dn:", sizeof("dn:")-1) ) {
+			is_dn = SET_DN;
+			dn->bv_val = id+3;
+			dn->bv_len = len-3;
+		}
+	}
+
+	/* No other possibilities from here */
+	if( !is_dn ) {
+		dn->bv_val = NULL;
+		dn->bv_len = 0;
+		return( LDAP_INAPPROPRIATE_AUTH );
+	}
+
+	/* Username strings */
+	if( is_dn == SET_U ) {
+		char *p, *realm;
+		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
+
+		/* username may have embedded realm name */
+		if( ( realm = strchr( dn->bv_val, '@') ) ) {
+			*realm++ = '\0';
+			len += sizeof(",cn=")-2;
+		} else if( user_realm && *user_realm ) {
+ 			len += strlen( user_realm ) + sizeof(",cn=")-1;
+		}
+
+		if( conn->c_sasl_bind_mech.bv_len ) {
+			len += conn->c_sasl_bind_mech.bv_len + sizeof(",cn=")-1;
+		}
+
+		/* Build the new dn */
+		c1 = dn->bv_val;
+		dn->bv_val = SLAP_MALLOC( len+1 );
+		if( dn->bv_val == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( TRANSPORT, ERR, 
+				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, 
+				"slap_sasl_getdn: SLAP_MALLOC failed", 0, 0, 0 );
+#endif
+			return LDAP_OTHER;
+		}
+		p = lutil_strcopy( dn->bv_val, "uid=" );
+		p = lutil_strncopy( p, c1, dn->bv_len );
+
+		if( realm ) {
+			int rlen = dn->bv_len - ( realm - c1 );
+			p = lutil_strcopy( p, ",cn=" );
+			p = lutil_strncopy( p, realm, rlen );
+			realm[-1] = '@';
+		} else if( user_realm && *user_realm ) {
+			p = lutil_strcopy( p, ",cn=" );
+			p = lutil_strcopy( p, user_realm );
+		}
+
+		if( conn->c_sasl_bind_mech.bv_len ) {
+			p = lutil_strcopy( p, ",cn=" );
+			p = lutil_strcopy( p, conn->c_sasl_bind_mech.bv_val );
+		}
+		p = lutil_strcopy( p, ",cn=auth" );
+		dn->bv_len = p - dn->bv_val;
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( TRANSPORT, ENTRY, 
+			"slap_sasl_getdn: u:id converted to %s.\n", dn->bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE, "getdn: u:id converted to %s\n", dn->bv_val,0,0 );
+#endif
+	}
+
+	/* All strings are in DN form now. Normalize if needed. */
+	if ( do_norm ) {
+		rc = dnNormalize2( NULL, dn, &dn2 );
+
+		/* User DNs were constructed above and must be freed now */
+		if ( is_dn == SET_U )
+			ch_free( dn->bv_val );
+
+		if ( rc != LDAP_SUCCESS ) {
+			dn->bv_val = NULL;
+			dn->bv_len = 0;
+			return rc;
+		}
+		*dn = dn2;
+	}
+
+	/* Run thru regexp */
+	slap_sasl2dn( conn, dn, &dn2 );
+	if( dn2.bv_val ) {
+		ch_free( dn->bv_val );
+		*dn = dn2;
+#ifdef NEW_LOGGING
+		LDAP_LOG( TRANSPORT, ENTRY, 
+			"slap_sasl_getdn: dn:id converted to %s.\n", dn->bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n",
+			dn->bv_val, 0, 0 );
+#endif
+	}
+
+	return( LDAP_SUCCESS );
+}

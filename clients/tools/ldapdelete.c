@@ -214,7 +214,7 @@ main( int argc, char **argv )
 			}
 
 			assert( authzid == NULL );
-			authzid = control;
+			authzid = cvalue;
 
 		} else if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
 			if( manageDSAit ) {
