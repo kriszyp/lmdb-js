@@ -146,7 +146,7 @@ ldap_int_flush_request(
 	LDAPConn *lc = lr->lr_conn;
 
 	if ( ber_flush( lc->lconn_sb, lr->lr_ber, 0 ) != 0 ) {
-		if ( errno == EWOULDBLOCK || errno == EAGAIN ) {
+		if ( errno == EWOULDBLOCK ) {
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;
 			ldap_mark_select_write( ld, lc->lconn_sb );

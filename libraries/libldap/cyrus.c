@@ -335,7 +335,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 			return ret;
 		/* Still have something left?? */
 		if ( p->buf_out.buf_ptr != p->buf_out.buf_end ) {
-			errno = EAGAIN;
+			errno = EWOULDBLOCK;
 			return 0;
 		}
 	}
