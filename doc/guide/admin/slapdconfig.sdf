@@ -285,9 +285,9 @@ perform" error.
 H4: replica
 
 >	replica host=<hostname>[:<port>]
->		[bindmethod={ simple | kerberos | sasl }]
+>		[bindmethod={simple|kerberos|sasl}]
 >		["binddn=<DN>"]
->		[mech=<mech>]
+>		[saslmech=<mech>]
 >		[authcid=<identity>]
 >		[authzid=<identity>]
 >		[credentials=<password>]
@@ -323,7 +323,7 @@ mechanisms.  Kerberos authentication requires {{EX:binddn}} and
 {{EX:srvtab}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
-requires specification of a mechanism using the {{EX:mech}} parameter.
+requires specification of a mechanism using the {{EX:saslmech}} parameter.
 Depending on the mechanism, an authentication identity and/or
 credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
 respectively.  The {{EX:authzid}} parameter may be used to specify
