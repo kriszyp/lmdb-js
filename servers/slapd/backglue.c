@@ -525,6 +525,29 @@ glue_back_delete (
 }
 
 int
+glue_back_release_rw (
+	BackendDB *b0,
+	Connection *conn,
+	Operation *op,
+	Entry *e,
+	int rw
+)
+{
+	BackendDB *be;
+	int rc;
+
+	be = glue_back_select (b0, e->e_ndn);
+
+	if (be && be->be_release) {
+		rc = be->be_release (be, conn, op, e, rw);
+	} else {
+		entry_free (e);
+		rc = 0;
+	}
+	return rc;
+}
+
+int
 glue_back_group (
 	BackendDB *b0,
 	Connection *conn,
@@ -676,6 +699,7 @@ glue_tool_entry_next (
 	if (rc == NOID) {
 		gi[i].be->be_entry_close (gi[i].be);
 		i--;
+		glueBack = i;
 		if (i < 0)
 			rc = NOID;
 		else
@@ -791,6 +815,7 @@ glue_back_initialize (
 
 	bi->bi_extended = 0;
 
+	bi->bi_entry_release_rw = glue_back_release_rw;
 	bi->bi_acl_group = glue_back_group;
 	bi->bi_acl_attribute = glue_back_attribute;
 	bi->bi_chk_referrals = glue_back_referrals;
