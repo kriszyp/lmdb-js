@@ -268,6 +268,13 @@ ldap_back_db_config(
 			|| strcasecmp( argv[0], "map" ) == 0
 			|| strncasecmp( argv[0], "rewrite", STRLENOF( "rewrite" ) ) == 0 )
 	{
+		fprintf( stderr, "%s: line %d: "
+			"rewrite/remap capabilities have been moved "
+			"to the \"rwm\" overlay; see slapo-rwm(5) "
+			"for details.  I'm trying to do my best "
+			"to preserve backwards compatibility...\n",
+			fname, lineno );
+
 		if ( li->rwm_started == 0 ) {
 			if ( overlay_config( be, "rwm" ) ) {
 				fprintf( stderr, "%s: line %d: "
