@@ -100,8 +100,9 @@ ldbm_back_search(
 
 		cache_return_entry_r( &li->li_cache, e );
 
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-		    0, 0 );
+		Debug( LDAP_DEBUG_TRACE,
+			"ldbm_search: entry is referral\n",
+			0, 0, 0 );
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 		    matched_dn, NULL, refs, NULL );
@@ -147,8 +148,8 @@ ldbm_back_search(
 
 	if ( candidates == NULL ) {
 		/* no candidates */
-		Debug( LDAP_DEBUG_TRACE, "no candidates\n", 0,
-		    0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
+			0, 0, 0 );
 
 		send_search_result( conn, op,
 			LDAP_SUCCESS,
@@ -186,7 +187,8 @@ ldbm_back_search(
 		e = id2entry_r( be, id );
 
 		if ( e == NULL ) {
-			Debug( LDAP_DEBUG_ARGS, "search: candidate %ld not found\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"ldbm_search: candidate %ld not found\n",
 				id, 0, 0 );
 
 			goto loop_continue;
@@ -222,7 +224,8 @@ ldbm_back_search(
 
 			} else if ( dn_issuffix( e->e_ndn, realbase ) ) {
 				/* alias is within scope */
-				Debug( LDAP_DEBUG_ARGS, "search: \"%s\" in subtree\n",
+				Debug( LDAP_DEBUG_TRACE,
+					"ldbm_search: \"%s\" in subtree\n",
 					e->e_dn, 0, 0 );
 				goto loop_continue;
 			}
@@ -303,11 +306,13 @@ ldbm_back_search(
 					}
 				}
 			} else {
-				Debug( LDAP_DEBUG_TRACE, "candidate %ld scope not okay\n",
+				Debug( LDAP_DEBUG_TRACE,
+					"ldbm_search: candidate %ld scope not okay\n",
 					id, 0, 0 );
 			}
 		} else {
-			Debug( LDAP_DEBUG_TRACE, "candidate %ld does match filter\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"ldbm_search: candidate %ld does not match filter\n",
 				id, 0, 0 );
 		}
 
@@ -366,7 +371,8 @@ search_candidates(
 	static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
 	static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
 
-	Debug(LDAP_DEBUG_TRACE, "search_candidates: base=\"%s\" s=%d d=%d\n",
+	Debug(LDAP_DEBUG_TRACE,
+		"search_candidates: base=\"%s\" s=%d d=%d\n",
 		e->e_ndn, scope, deref );
 
 	xf.f_or = filter;

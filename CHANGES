@@ -1,6 +1,8 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.X Engineering
+	Fixed slapd/ldbm/search confusing log message (ITS#771)
+	Fixed slapd/sasl no cred bug
 	Fixed slurpd TLS initialization bug (ITS#768)
 
 OpenLDAP 2.0.4 Release
