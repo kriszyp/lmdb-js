@@ -296,6 +296,31 @@ idl_store(
 	return( rc );
 }
 
+/* Binary search for id in block, return index
+ *    an index is always returned, even with no match. If no
+ * match, the returned index is the insertion point.
+ */
+static unsigned int
+idl_find(
+    ID_BLOCK	*b,
+    ID		id
+)
+{
+	unsigned int lo=0, hi=ID_BLOCK_NIDS(b)-1, nr;
+
+	for (;lo<=hi;)
+	{
+	    nr = ( lo + hi ) / 2;
+	    if (ID_BLOCK_ID(b, nr) == id)
+	    	break;
+	    if (ID_BLOCK_ID(b, nr) > id)
+	    	hi = nr - 1;
+	    else
+	    	lo = nr + 1;
+	}
+	return nr;
+}
+
 /* split the block at id 
  *	locate ID greater than or equal to id.
  */
@@ -309,9 +334,10 @@ idl_split_block(
 {
 	unsigned int	nr, nl;
 
-	/* find where to split the block *//* XXX linear search XXX */
-	for ( nr = 0; nr < ID_BLOCK_NIDS(b) && id > ID_BLOCK_ID(b, nr); nr++ )
-		;	/* NULL */
+	/* find where to split the block */
+	nr = idl_find(b, id);
+	if ( ID_BLOCK_ID(b,nr) < id )
+		nr++;
 
 	nl = ID_BLOCK_NIDS(b) - nr;
 
@@ -771,13 +797,13 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 		return( 2 );	/* already there */
 	}
 
-	/* is it already there? *//* XXX linear search XXX */
-	for ( i = 0; i < ID_BLOCK_NIDS(*idl) && id > ID_BLOCK_ID(*idl, i); i++ ) {
-		;	/* NULL */
-	}
-	if ( i < ID_BLOCK_NIDS(*idl) && ID_BLOCK_ID(*idl, i) == id ) {
+	/* is it already there? */
+	i = idl_find(*idl, id);
+	if ( ID_BLOCK_ID(*idl, i) == id ) {
 		return( 2 );	/* already there */
 	}
+	if ( ID_BLOCK_ID(*idl, i) < id )
+		i++;
 
 	/* do we need to make room for it? */
 	if ( ID_BLOCK_NIDS(*idl) == ID_BLOCK_NMAX(*idl) ) {
