@@ -49,7 +49,7 @@ int ldap_parse_passwd(
 		}
 
 		/* we should check the tag */
-		tag = ber_scanf( ber, "{o}", newpasswd );
+		tag = ber_scanf( ber, "{O}", newpasswd );
 		ber_free( ber, 1 );
 
 		if( tag == LBER_ERROR ) {
