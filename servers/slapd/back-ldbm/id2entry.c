@@ -25,6 +25,9 @@ id2entry_add( Backend *be, Entry *e )
 	DBCache	*db;
 	Datum		key, data;
 	int		len, rc, flags;
+#ifndef WORDS_BIGENDIAN
+	ID		id;
+#endif
 
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
@@ -52,7 +55,12 @@ id2entry_add( Backend *be, Entry *e )
 		return( -1 );
 	}
 
+#ifdef WORDS_BIGENDIAN
 	key.dptr = (char *) &e->e_id;
+#else
+	id = htonl(e->e_id);
+	key.dptr = (char *) &id;
+#endif
 	key.dsize = sizeof(ID);
 
 	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
@@ -85,6 +93,9 @@ id2entry_delete( Backend *be, Entry *e )
 	DBCache	*db;
 	Datum		key;
 	int		rc;
+#ifndef WORDS_BIGENDIAN
+	ID		id;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -130,7 +141,12 @@ id2entry_delete( Backend *be, Entry *e )
 
 	}
 
+#ifdef WORDS_BIGENDIAN
 	key.dptr = (char *) &e->e_id;
+#else
+	id = htonl(e->e_id);
+	key.dptr = (char *) &id;
+#endif
 	key.dsize = sizeof(ID);
 
 	rc = ldbm_cache_delete( db, key );
@@ -155,6 +171,9 @@ id2entry_rw( Backend *be, ID id, int rw )
 	DBCache	*db;
 	Datum		key, data;
 	Entry		*e;
+#ifndef WORDS_BIGENDIAN
+	ID		id2;
+#endif
 
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
@@ -195,7 +214,12 @@ id2entry_rw( Backend *be, ID id, int rw )
 		return( NULL );
 	}
 
+#ifdef WORDS_BIGENDIAN
 	key.dptr = (char *) &id;
+#else
+	id2 = htonl(id);
+	key.dptr = (char *) &id2;
+#endif
 	key.dsize = sizeof(ID);
 
 	data = ldbm_cache_fetch( db, key );
