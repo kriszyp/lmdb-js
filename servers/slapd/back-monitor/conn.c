@@ -31,19 +31,18 @@
 int
 monitor_subsys_conn_init(
 	BackendDB		*be,
-	monitorsubsys		*ms
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
-	
-	Entry			*e, **ep, *e_conn;
-	struct monitorentrypriv	*mp;
-	char			buf[ BACKMONITOR_BUFSIZE ];
-	struct berval		bv;
+	monitor_info_t	*mi;
+	Entry		*e, **ep, *e_conn;
+	monitor_entry_t	*mp;
+	char		buf[ BACKMONITOR_BUFSIZE ];
+	struct berval	bv;
 
 	assert( be != NULL );
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_conn ) ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -53,7 +52,7 @@ monitor_subsys_conn_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )e_conn->e_private;
+	mp = ( monitor_entry_t * )e_conn->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
@@ -174,8 +173,7 @@ monitor_subsys_conn_update(
 	Entry                   *e
 )
 {
-	struct monitorinfo	*mi =
-		(struct monitorinfo *)op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 
 	long 			n = -1;
 	static struct berval	total_bv = BER_BVC( "cn=total" ),
@@ -226,13 +224,13 @@ monitor_subsys_conn_update(
 
 static int
 conn_create(
-	struct monitorinfo	*mi,
+	monitor_info_t		*mi,
 	Connection		*c,
 	Entry			**ep,
-	monitorsubsys		*ms
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorentrypriv *mp;
+	monitor_entry_t *mp;
 	struct tm		*ltm;
 	char			buf[ BACKMONITOR_BUFSIZE ];
 	char			buf2[ LDAP_LUTIL_GENTIME_BUFSIZE ];
@@ -420,20 +418,19 @@ monitor_subsys_conn_create(
 	Entry			**ep
 )
 {
-	struct monitorinfo	*mi =
-		(struct monitorinfo *)op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 
 	Connection		*c;
 	int			connindex;
-	struct monitorentrypriv *mp;
+	monitor_entry_t 	*mp;
 	int			rc = 0;
-	monitorsubsys		*ms;
+	monitor_subsys_t	*ms;
 
 	assert( mi != NULL );
 	assert( e_parent != NULL );
 	assert( ep != NULL );
 
-	ms = (( struct monitorentrypriv *)e_parent->e_private)->mp_info;
+	ms = (( monitor_entry_t *)e_parent->e_private)->mp_info;
 
 	*ep = NULL;
 
@@ -444,10 +441,11 @@ monitor_subsys_conn_create(
 		/* create all the children of e_parent */
 		for ( c = connection_first( &connindex );
 				c != NULL;
-				c = connection_next( c, &connindex )) {
+				c = connection_next( c, &connindex ))
+		{
 			if ( conn_create( mi, c, &e, ms ) || e == NULL ) {
 				for ( ; e_tmp != NULL; ) {
-					mp = ( struct monitorentrypriv * )e_tmp->e_private;
+					mp = ( monitor_entry_t * )e_tmp->e_private;
 					e = mp->mp_next;
 
 					ch_free( mp );
@@ -459,7 +457,7 @@ monitor_subsys_conn_create(
 				rc = -1;
 				break;
 			}
-			mp = ( struct monitorentrypriv * )e->e_private;
+			mp = ( monitor_entry_t * )e->e_private;
 			mp->mp_next = e_tmp;
 			e_tmp = e;
 		}

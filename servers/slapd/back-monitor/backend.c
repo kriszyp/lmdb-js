@@ -33,17 +33,17 @@
  */
 int
 monitor_subsys_backend_init(
-	BackendDB	*be,
-	monitorsubsys	*ms
+	BackendDB		*be,
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
+	monitor_info_t		*mi;
 	Entry			*e_backend, **ep;
 	int			i;
-	struct monitorentrypriv	*mp;
-	monitorsubsys		*ms_database;
+	monitor_entry_t		*mp;
+	monitor_subsys_t	*ms_database;
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	ms_database = monitor_back_get_subsys( SLAPD_MONITOR_DATABASE_NAME );
 	if ( ms_database == NULL ) {
@@ -65,7 +65,7 @@ monitor_subsys_backend_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )e_backend->e_private;
+	mp = ( monitor_entry_t * )e_backend->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 

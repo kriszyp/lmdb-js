@@ -38,13 +38,12 @@ monitor_send_children(
 	int		sub
 )
 {
-	struct monitorinfo	*mi =
-		(struct monitorinfo *) op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	Entry 			*e, *e_tmp, *e_ch;
-	struct monitorentrypriv *mp;
+	monitor_entry_t *mp;
 	int			rc;
 
-	mp = ( struct monitorentrypriv * )e_parent->e_private;
+	mp = ( monitor_entry_t * )e_parent->e_private;
 	e = mp->mp_children;
 
 	e_ch = NULL;
@@ -71,7 +70,7 @@ monitor_send_children(
 		} else {
 			e_tmp = e_ch;
 			do {
-				mp = ( struct monitorentrypriv * )e_tmp->e_private;
+				mp = ( monitor_entry_t * )e_tmp->e_private;
 				e_tmp = mp->mp_next;
 	
 				if ( e_tmp == NULL ) {
@@ -85,7 +84,7 @@ monitor_send_children(
 
 	/* return entries */
 	for ( ; e != NULL; ) {
-		mp = ( struct monitorentrypriv * )e->e_private;
+		mp = ( monitor_entry_t * )e->e_private;
 
 		monitor_entry_update( op, e );
 		
@@ -119,8 +118,7 @@ monitor_send_children(
 int
 monitor_back_search( Operation *op, SlapReply *rs )
 {
-	struct monitorinfo	*mi
-		= (struct monitorinfo *) op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	int		rc = LDAP_SUCCESS;
 	Entry		*e, *matched = NULL;
 

@@ -30,23 +30,29 @@ monitor_entry_update(
 	Entry 			*e
 )
 {
-	struct monitorinfo	*mi =
-		(struct monitorinfo *)op->o_bd->be_private;
-	struct monitorentrypriv *mp;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
+	monitor_entry_t *mp;
 	int			rc = 0;
 
 	assert( mi != NULL );
 	assert( e != NULL );
 	assert( e->e_private != NULL );
 
-	mp = ( struct monitorentrypriv * )e->e_private;
+	mp = ( monitor_entry_t * )e->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_update ) {
 		rc = ( *mp->mp_info->mss_update )( op, e );
 	}
 
-	if ( rc == 0 && mp->mp_update ) {
-		rc = ( *mp->mp_update )( op, e );
+	if ( rc == 0 && mp->mp_cb ) {
+		struct monitor_callback_t	*mc;
+
+		for ( mc = mp->mp_cb; mc; mc = mc->mc_next ) {
+			rc = ( *mc->mc_update )( op, e, mc->mc_private );
+			if ( rc != 0 ) {
+				break;
+			}
+		}
 	}
 
 	return rc;
@@ -60,15 +66,15 @@ monitor_entry_create(
 	Entry			**ep
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
-	struct monitorentrypriv *mp;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
+	monitor_entry_t *mp;
 
 	assert( mi != NULL );
 	assert( e_parent != NULL );
 	assert( e_parent->e_private != NULL );
 	assert( ep != NULL );
 
-	mp = ( struct monitorentrypriv * )e_parent->e_private;
+	mp = ( monitor_entry_t * )e_parent->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_create ) {
 		return ( *mp->mp_info->mss_create )( op, ndn, e_parent, ep );
@@ -83,14 +89,14 @@ monitor_entry_modify(
 	Entry 			*e
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
-	struct monitorentrypriv *mp;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
+	monitor_entry_t *mp;
 
 	assert( mi != NULL );
 	assert( e != NULL );
 	assert( e->e_private != NULL );
 
-	mp = ( struct monitorentrypriv * )e->e_private;
+	mp = ( monitor_entry_t * )e->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_modify ) {
 		return ( *mp->mp_info->mss_modify )( op, e );
@@ -101,7 +107,7 @@ monitor_entry_modify(
 
 int
 monitor_entry_test_flags(
-	struct monitorentrypriv	*mp,
+	monitor_entry_t		*mp,
 	int			cond
 )
 {
@@ -110,19 +116,18 @@ monitor_entry_test_flags(
 	return( ( mp->mp_flags & cond ) || ( mp->mp_info->mss_flags & cond ) );
 }
 
-struct monitorentrypriv *
+monitor_entry_t *
 monitor_entrypriv_create( void )
 {
-	struct monitorentrypriv	*mp;
+	monitor_entry_t	*mp;
 
-	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+	mp = ( monitor_entry_t * )ch_calloc( sizeof( monitor_entry_t ), 1 );
 
 	mp->mp_next = NULL;
 	mp->mp_children = NULL;
 	mp->mp_info = NULL;
 	mp->mp_flags = MONITOR_F_NONE;
-	mp->mp_update = NULL;
-	mp->mp_private = NULL;
+	mp->mp_cb = NULL;
 
 	return mp;
 }

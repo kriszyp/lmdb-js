@@ -48,20 +48,20 @@ struct monitor_ops_t {
 int
 monitor_subsys_ops_init(
 	BackendDB		*be,
-	monitorsubsys		*ms
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
+	monitor_info_t	*mi;
 	
-	Entry			*e_op, **ep;
-	struct monitorentrypriv	*mp;
-	char			buf[ BACKMONITOR_BUFSIZE ];
-	int 			i;
-	struct berval		bv_zero = BER_BVC("0");
+	Entry		*e_op, **ep;
+	monitor_entry_t	*mp;
+	char		buf[ BACKMONITOR_BUFSIZE ];
+	int 		i;
+	struct berval	bv_zero = BER_BVC( "0" );
 
 	assert( be != NULL );
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	if ( monitor_cache_get( mi,
 			&ms->mss_ndn, &e_op ) )
@@ -77,7 +77,7 @@ monitor_subsys_ops_init(
 	attr_merge_one( e_op, mi->mi_ad_monitorOpInitiated, &bv_zero, NULL );
 	attr_merge_one( e_op, mi->mi_ad_monitorOpCompleted, &bv_zero, NULL );
 
-	mp = ( struct monitorentrypriv * )e_op->e_private;
+	mp = ( monitor_entry_t * )e_op->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
@@ -158,8 +158,7 @@ monitor_subsys_ops_update(
 	Entry                   *e
 )
 {
-	struct monitorinfo	*mi = 
-		(struct monitorinfo *)op->o_bd->be_private;
+	monitor_info_t		*mi = ( monitor_info_t * )op->o_bd->be_private;
 
 	ldap_pvt_mp_t		nInitiated,
 				nCompleted;

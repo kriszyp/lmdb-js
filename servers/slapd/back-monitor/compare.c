@@ -29,8 +29,7 @@
 int
 monitor_back_compare( struct slap_op *op, struct slap_rep *rs)
 {
-	struct monitorinfo      *mi = 
-		(struct monitorinfo *) op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t * ) op->o_bd->be_private;
 	Entry           *e, *matched = NULL;
 	Attribute	*a;
 

@@ -32,16 +32,16 @@
 *   */
 int
 monitor_subsys_thread_init(
-	BackendDB       *be,
-	monitorsubsys	*ms
+	BackendDB       	*be,
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo      *mi;
-	struct monitorentrypriv	*mp;
-	Entry                   *e, **ep, *e_thread;
-	static char		buf[ BACKMONITOR_BUFSIZE ];
+	monitor_info_t	*mi;
+	monitor_entry_t	*mp;
+	Entry		*e, **ep, *e_thread;
+	static char	buf[ BACKMONITOR_BUFSIZE ];
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_thread ) ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -51,7 +51,7 @@ monitor_subsys_thread_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )e_thread->e_private;
+	mp = ( monitor_entry_t * )e_thread->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
@@ -169,8 +169,7 @@ monitor_subsys_thread_update(
 	Entry 			*e
 )
 {
-	struct monitorinfo	*mi =
-		(struct monitorinfo *)op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	Attribute		*a;
 	char 			buf[ BACKMONITOR_BUFSIZE ];
 	static struct berval	backload_bv = BER_BVC( "cn=backload" );

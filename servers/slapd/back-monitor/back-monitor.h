@@ -29,43 +29,39 @@
 
 LDAP_BEGIN_DECL
 
-/*
- * The cache maps DNs to Entries.
- * Each entry, on turn, holds the list of its children in the e_private field.
- * This is used by search operation to perform onelevel and subtree candidate
- * selection.
- */
-struct monitorcache {
-	struct berval		mc_ndn;
-	Entry   		*mc_e;
-};
+typedef struct monitor_callback_t {
+	int			(*mc_update)( Operation *op, Entry *e, void *priv );
+						/* update callback
+						   for user-defined entries */
+	void			*mc_private;	/* opaque pointer to
+						   private data */
+	struct monitor_callback_t	*mc_next;
+} monitor_callback_t;
 
-struct monitorentrypriv {
+
+typedef struct monitor_entry_t {
 	ldap_pvt_thread_mutex_t	mp_mutex;	/* entry mutex */
 	Entry			*mp_next;	/* pointer to next sibling */
 	Entry			*mp_children;	/* pointer to first child */
-	struct monitorsubsys	*mp_info;	/* subsystem info */
+	struct monitor_subsys_t	*mp_info;	/* subsystem info */
 #define mp_type		mp_info->mss_type
 	unsigned long		mp_flags;	/* flags */
 
-#define	MONITOR_F_NONE		0x00U
-#define MONITOR_F_SUB		0x01U		/* subentry of subsystem */
-#define MONITOR_F_PERSISTENT	0x10U		/* persistent entry */
-#define MONITOR_F_PERSISTENT_CH	0x20U		/* subsystem generates 
+#define	MONITOR_F_NONE		0x0000U
+#define MONITOR_F_SUB		0x0001U		/* subentry of subsystem */
+#define MONITOR_F_PERSISTENT	0x0010U		/* persistent entry */
+#define MONITOR_F_PERSISTENT_CH	0x0020U		/* subsystem generates 
 						   persistent entries */
-#define MONITOR_F_VOLATILE	0x40U		/* volatile entry */
-#define MONITOR_F_VOLATILE_CH	0x80U		/* subsystem generates 
+#define MONITOR_F_VOLATILE	0x0040U		/* volatile entry */
+#define MONITOR_F_VOLATILE_CH	0x0080U		/* subsystem generates 
 						   volatile entries */
+#define MONITOR_F_EXTERNAL	0x0100U		/* externally added - don't free */
 /* NOTE: flags with 0xF0000000U mask are reserved for subsystem internals */
 
-	int			(*mp_update)( Operation *op, Entry *e );
-						/* update callback
-						   for user-defined entries */
-	void			*mp_private;	/* opaque pointer to
-						   private data */
-};
+	struct monitor_callback_t	*mp_cb;		/* callback sequence */
+} monitor_entry_t;
 
-struct monitorinfo {
+typedef struct monitor_info_t {
 
 	/*
 	 * Internal data
@@ -83,37 +79,39 @@ struct monitorinfo {
 	/*
 	 * Specific schema entities
 	 */
-	ObjectClass *mi_oc_monitor;
-	ObjectClass *mi_oc_monitorServer;
-	ObjectClass *mi_oc_monitorContainer;
-	ObjectClass *mi_oc_monitorCounterObject;
-	ObjectClass *mi_oc_monitorOperation;
-	ObjectClass *mi_oc_monitorConnection;
-	ObjectClass *mi_oc_managedObject;
-	ObjectClass *mi_oc_monitoredObject;
+	ObjectClass		*mi_oc_monitor;
+	ObjectClass		*mi_oc_monitorServer;
+	ObjectClass		*mi_oc_monitorContainer;
+	ObjectClass		*mi_oc_monitorCounterObject;
+	ObjectClass		*mi_oc_monitorOperation;
+	ObjectClass		*mi_oc_monitorConnection;
+	ObjectClass		*mi_oc_managedObject;
+	ObjectClass		*mi_oc_monitoredObject;
 
-	AttributeDescription *mi_ad_monitoredInfo;
-	AttributeDescription *mi_ad_managedInfo;
-	AttributeDescription *mi_ad_monitorCounter;
-	AttributeDescription *mi_ad_monitorOpCompleted;
-	AttributeDescription *mi_ad_monitorOpInitiated;
-	AttributeDescription *mi_ad_monitorConnectionNumber;
-	AttributeDescription *mi_ad_monitorConnectionAuthzDN;
-	AttributeDescription *mi_ad_monitorConnectionLocalAddress;
-	AttributeDescription *mi_ad_monitorConnectionPeerAddress;
-	AttributeDescription *mi_ad_monitorTimestamp;
-	AttributeDescription *mi_ad_monitorOverlay;
+	AttributeDescription	*mi_ad_monitoredInfo;
+	AttributeDescription	*mi_ad_managedInfo;
+	AttributeDescription	*mi_ad_monitorCounter;
+	AttributeDescription	*mi_ad_monitorOpCompleted;
+	AttributeDescription	*mi_ad_monitorOpInitiated;
+	AttributeDescription	*mi_ad_monitorConnectionNumber;
+	AttributeDescription	*mi_ad_monitorConnectionAuthzDN;
+	AttributeDescription	*mi_ad_monitorConnectionLocalAddress;
+	AttributeDescription	*mi_ad_monitorConnectionPeerAddress;
+	AttributeDescription	*mi_ad_monitorTimestamp;
+	AttributeDescription	*mi_ad_monitorOverlay;
 
 	/*
 	 * Generic description attribute
 	 */
-	AttributeDescription *mi_ad_description;
-	AttributeDescription *mi_ad_seeAlso;
-	AttributeDescription *mi_ad_l;
-	AttributeDescription *mi_ad_labeledURI;
-	AttributeDescription *mi_ad_readOnly;
-	AttributeDescription *mi_ad_restrictedOperation;
-};
+	AttributeDescription	*mi_ad_description;
+	AttributeDescription	*mi_ad_seeAlso;
+	AttributeDescription	*mi_ad_l;
+	AttributeDescription	*mi_ad_labeledURI;
+	AttributeDescription	*mi_ad_readOnly;
+	AttributeDescription	*mi_ad_restrictedOperation;
+
+	void			*mi_entry_limbo;
+} monitor_info_t;
 
 /*
  * DNs
@@ -217,7 +215,7 @@ enum {
 #define SLAPD_MONITOR_RWW_DN	\
 	SLAPD_MONITOR_RWW_RDN "," SLAPD_MONITOR_DN
 
-typedef struct monitorsubsys {
+typedef struct monitor_subsys_t {
 	char		*mss_name;
 	struct berval	mss_rdn;
 	struct berval	mss_dn;
@@ -231,7 +229,7 @@ typedef struct monitorsubsys {
 	( ( mp )->mp_children || MONITOR_HAS_VOLATILE_CH( mp ) )
 
 	/* initialize entry and subentries */
-	int		( *mss_open )( BackendDB *, struct monitorsubsys *ms );
+	int		( *mss_open )( BackendDB *, struct monitor_subsys_t *ms );
 	/* update existing dynamic entry and subentries */
 	int		( *mss_update )( Operation *, Entry * );
 	/* create new dynamic subentries */
@@ -239,7 +237,7 @@ typedef struct monitorsubsys {
 				struct berval *ndn, Entry *, Entry ** );
 	/* modify entry and subentries */
 	int		( *mss_modify )( Operation *, Entry * );
-} monitorsubsys;
+} monitor_subsys_t;
 
 extern BackendDB *be_monitor;
 

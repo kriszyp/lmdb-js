@@ -58,7 +58,7 @@ static struct restricted_ops_t {
 };
 
 static int
-init_readOnly( struct monitorinfo *mi, Entry *e, slap_mask_t restrictops )
+init_readOnly( monitor_info_t *mi, Entry *e, slap_mask_t restrictops )
 {
 	struct berval	*tf = ( ( restrictops & SLAP_RESTRICT_OP_MASK ) == SLAP_RESTRICT_OP_WRITES ) ?
 		(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv;
@@ -67,7 +67,7 @@ init_readOnly( struct monitorinfo *mi, Entry *e, slap_mask_t restrictops )
 }
 
 static int
-init_restrictedOperation( struct monitorinfo *mi, Entry *e, slap_mask_t restrictops )
+init_restrictedOperation( monitor_info_t *mi, Entry *e, slap_mask_t restrictops )
 {
 	int	i, rc;
 
@@ -96,20 +96,20 @@ init_restrictedOperation( struct monitorinfo *mi, Entry *e, slap_mask_t restrict
 
 int
 monitor_subsys_database_init(
-	BackendDB	*be,
-	monitorsubsys	*ms
+	BackendDB		*be,
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
+	monitor_info_t		*mi;
 	Entry			*e_database, **ep;
 	int			i;
-	struct monitorentrypriv	*mp;
-	monitorsubsys		*ms_backend,
+	monitor_entry_t		*mp;
+	monitor_subsys_t	*ms_backend,
 				*ms_overlay;
 
 	assert( be != NULL );
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	ms_backend = monitor_back_get_subsys( SLAPD_MONITOR_BACKEND_NAME );
 	if ( ms_backend == NULL ) {
@@ -144,7 +144,7 @@ monitor_subsys_database_init(
 	(void)init_readOnly( mi, e_database, frontendDB->be_restrictops );
 	(void)init_restrictedOperation( mi, e_database, frontendDB->be_restrictops );
 
-	mp = ( struct monitorentrypriv * )e_database->e_private;
+	mp = ( monitor_entry_t * )e_database->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
@@ -356,15 +356,15 @@ monitor_subsys_database_modify(
 	Entry		*e
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
-	int rc = LDAP_OTHER;
-	Attribute *save_attrs, *a;
-	Modifications *modlist = op->oq_modify.rs_modlist;
-	Modifications *ml;
-	Backend *be;
-	int ro_gotval = 1, i, n;
+	monitor_info_t	*mi = (monitor_info_t *)op->o_bd->be_private;
+	int		rc = LDAP_OTHER;
+	Attribute	*save_attrs, *a;
+	Modifications	*modlist = op->oq_modify.rs_modlist;
+	Modifications	*ml;
+	Backend		*be;
+	int		ro_gotval = 1, i, n;
 	slap_mask_t	rp_add = 0, rp_delete = 0, rp_cur;
-	struct berval *tf;
+	struct berval	*tf;
 	
 	i = sscanf( e->e_nname.bv_val, "cn=database %d,", &n );
 	if ( i != 1 )
@@ -654,9 +654,9 @@ done:;
 static int
 monitor_back_add_plugin( Backend *be, Entry *e_database )
 {
-	Slapi_PBlock		*pCurrentPB; 
-	int			i, rc = LDAP_SUCCESS;
-	struct monitorinfo	*mi = ( struct monitorinfo * )be->be_private;
+	Slapi_PBlock	*pCurrentPB; 
+	int		i, rc = LDAP_SUCCESS;
+	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
 
 	if ( slapi_int_pblock_get_first( be, &pCurrentPB ) != LDAP_SUCCESS ) {
 		/*

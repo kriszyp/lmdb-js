@@ -50,18 +50,18 @@ struct monitor_sent_t {
 int
 monitor_subsys_sent_init(
 	BackendDB		*be,
-	monitorsubsys		*ms
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
+	monitor_info_t	*mi;
 	
-	Entry			**ep, *e_sent;
-	struct monitorentrypriv	*mp;
+	Entry		**ep, *e_sent;
+	monitor_entry_t	*mp;
 	int			i;
 
 	assert( be != NULL );
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_sent ) ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -71,7 +71,7 @@ monitor_subsys_sent_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )e_sent->e_private;
+	mp = ( monitor_entry_t * )e_sent->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
@@ -149,8 +149,7 @@ monitor_subsys_sent_update(
 	Entry                   *e
 )
 {
-	struct monitorinfo	*mi = 
-		(struct monitorinfo *)op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t *)op->o_bd->be_private;
 	
 	struct berval		nrdn;
 	ldap_pvt_mp_t		n;

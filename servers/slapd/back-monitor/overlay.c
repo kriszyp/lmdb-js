@@ -32,18 +32,18 @@
  */
 int
 monitor_subsys_overlay_init(
-	BackendDB	*be,
-	monitorsubsys	*ms
+	BackendDB		*be,
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
+	monitor_info_t		*mi;
 	Entry			*e_overlay, **ep;
 	int			i;
-	struct monitorentrypriv	*mp;
+	monitor_entry_t		*mp;
 	slap_overinst		*on;
-	monitorsubsys		*ms_database;
+	monitor_subsys_t	*ms_database;
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	ms_database = monitor_back_get_subsys( SLAPD_MONITOR_DATABASE_NAME );
 	if ( ms_database == NULL ) {
@@ -56,10 +56,7 @@ monitor_subsys_overlay_init(
 		return -1;
 	}
 
-	if ( monitor_cache_get( mi, 
-				&ms->mss_ndn, 
-				&e_overlay ) )
-	{
+	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_overlay ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_overlay_init: "
 			"unable to get entry \"%s\"\n",
@@ -67,7 +64,7 @@ monitor_subsys_overlay_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )e_overlay->e_private;
+	mp = ( monitor_entry_t * )e_overlay->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 

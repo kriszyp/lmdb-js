@@ -34,18 +34,18 @@
 int
 monitor_subsys_time_init(
 	BackendDB		*be,
-	monitorsubsys		*ms
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
+	monitor_info_t	*mi;
 	
-	Entry			*e, **ep, *e_time;
-	struct monitorentrypriv	*mp;
-	char			buf[ BACKMONITOR_BUFSIZE ];
+	Entry		*e, **ep, *e_time;
+	monitor_entry_t	*mp;
+	char		buf[ BACKMONITOR_BUFSIZE ];
 
 	assert( be != NULL );
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	if ( monitor_cache_get( mi,
 			&ms->mss_ndn, &e_time ) ) {
@@ -56,7 +56,7 @@ monitor_subsys_time_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )e_time->e_private;
+	mp = ( monitor_entry_t * )e_time->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
@@ -172,9 +172,7 @@ monitor_subsys_time_update(
 	Entry                   *e
 )
 {
-	struct monitorinfo 	*mi =
-		(struct monitorinfo *)op->o_bd->be_private;
-
+	monitor_info_t		*mi = ( monitor_info_t * )op->o_bd->be_private;
 	static struct berval	bv_current = BER_BVC( "cn=current" );
 	struct berval		rdn;
 

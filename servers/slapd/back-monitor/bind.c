@@ -34,8 +34,8 @@ int
 monitor_back_bind( Operation *op, SlapReply *rs )
 {
 #if 0	/* not used yet */
-	struct monitorinfo	*mi
-		= (struct monitorinfo *) op->o_bd->be_private;
+	monitor_info_t	*mi
+		= (monitor_info_t *) op->o_bd->be_private;
 #endif
 
 	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n", 

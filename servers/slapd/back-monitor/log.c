@@ -70,14 +70,14 @@ static int replace_values( Entry *e, Modification *mod, int *newlevel );
  */
 int
 monitor_subsys_log_init(
-	BackendDB	*be,
-	monitorsubsys	*ms
+	BackendDB		*be,
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
-	Entry			*e;
-	int			i;
-	struct berval		desc[] = {
+	monitor_info_t	*mi;
+	Entry		*e;
+	int		i;
+	struct berval	desc[] = {
 		BER_BVC("This entry allows to set the log level runtime."),
 		BER_BVC("Set the attribute 'managedInfo' to the desired log levels."),
 		BER_BVNULL
@@ -85,7 +85,7 @@ monitor_subsys_log_init(
 
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
 	if ( monitor_cache_get( mi, &ms->mss_ndn, 
 				&e ) ) {
@@ -132,7 +132,7 @@ monitor_subsys_log_modify(
 	Entry 			*e
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	int		rc = LDAP_OTHER;
 	int		newlevel = ldap_syslog;
 	Attribute	*save_attrs;

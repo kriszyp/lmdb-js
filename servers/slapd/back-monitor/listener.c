@@ -28,15 +28,15 @@
 
 int
 monitor_subsys_listener_init(
-	BackendDB	*be,
-	monitorsubsys	*ms
+	BackendDB		*be,
+	monitor_subsys_t	*ms
 )
 {
-	struct monitorinfo	*mi;
-	Entry			*e_listener, **ep;
-	int			i;
-	struct monitorentrypriv	*mp;
-	Listener		**l;
+	monitor_info_t	*mi;
+	Entry		*e_listener, **ep;
+	int		i;
+	monitor_entry_t	*mp;
+	Listener	**l;
 
 	assert( be != NULL );
 
@@ -51,12 +51,9 @@ monitor_subsys_listener_init(
 		return( -1 );
 	}
 
-	mi = ( struct monitorinfo * )be->be_private;
+	mi = ( monitor_info_t * )be->be_private;
 
-	if ( monitor_cache_get( mi, 
-				&ms->mss_ndn, 
-				&e_listener ) )
-	{
+	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_listener ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_listener_init: "
 			"unable to get entry \"%s\"\n",
@@ -64,7 +61,7 @@ monitor_subsys_listener_init(
 		return( -1 );
 	}
 
-	mp = ( struct monitorentrypriv * )e_listener->e_private;
+	mp = ( monitor_entry_t * )e_listener->e_private;
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 

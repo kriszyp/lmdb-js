@@ -41,11 +41,10 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 	Modifications	*modlist
 	*/
 {
-	int 			rc = 0;
-	struct monitorinfo	*mi
-		= (struct monitorinfo *) op->o_bd->be_private;
-	Entry			*matched;
-	Entry			*e;
+	int 		rc = 0;
+	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
+	Entry		*matched;
+	Entry		*e;
 
 	Debug(LDAP_DEBUG_ARGS, "monitor_back_modify:\n", 0, 0, 0);
 

@@ -50,9 +50,9 @@ monitor_back_operational(
 			ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) )
 	{
 		int			hs;
-		struct monitorentrypriv	*mp;
+		monitor_entry_t	*mp;
 
-		mp = ( struct monitorentrypriv * )rs->sr_entry->e_private;
+		mp = ( monitor_entry_t * )rs->sr_entry->e_private;
 
 		assert( mp );
 
