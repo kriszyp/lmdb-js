@@ -56,8 +56,6 @@ int slap_str2index( const char *str, slap_mask_t *idx )
 		*idx = SLAP_INDEX_NOLANG;
 	} else if ( strcasecmp( str, "nosubtypes" ) == 0 ) {
 		*idx = SLAP_INDEX_NOSUBTYPES;
-	} else if ( strcasecmp( str, "autosubtypes" ) == 0 ) {
-		*idx = SLAP_INDEX_AUTO_SUBTYPES;
 	} else {
 		return LDAP_OTHER;
 	}
