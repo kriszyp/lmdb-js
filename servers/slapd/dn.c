@@ -458,6 +458,14 @@ dn_issuffixbv(
 {
 	int	d = dn->bv_len - suffix->bv_len;
 
+	assert( dn );
+	assert( suffix );
+
+	/* empty suffix matches any dn */
+	if ( suffix->bv_len == 0 ) {
+		return 1;
+	}
+
 	/* suffix longer than dn */
 	if ( d < 0 ) {
 		return 0;
@@ -490,6 +498,9 @@ dn_issuffix(
 )
 {
 	struct berval	bvdn, bvsuffix;
+
+	assert( dn );
+	assert( suffix );
 
 	bvdn.bv_val = (char *) dn;
 	bvdn.bv_len = strlen( dn );
