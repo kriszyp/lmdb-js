@@ -277,8 +277,12 @@ meta_back_do_single_bind(
 	}
 
 	if ( op->o_ctrls ) {
-		ldap_set_option( lc->conns[ candidate ].ld, 
+		rc = ldap_set_option( lc->conns[ candidate ].ld, 
 				LDAP_OPT_SERVER_CONTROLS, op->o_ctrls );
+		if ( rc != LDAP_SUCCESS ) {
+			rc = ldap_back_map_result( rc );
+			goto return_results;
+		}
 	}
 	
 	rc = ldap_bind_s( lc->conns[ candidate ].ld, mdn.bv_val, cred->bv_val, method );
@@ -295,6 +299,8 @@ meta_back_do_single_bind(
 					ndn, candidate );
 		}
 	}
+
+return_results:;
 	
 	if ( mdn.bv_val != dn->bv_val ) {
 		free( mdn.bv_val );
@@ -330,6 +336,17 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		}
 
 		/*
+		 * If required, set controls
+		 */
+		if ( op->o_ctrls ) {
+			if ( ldap_set_option( lsc->ld, LDAP_OPT_SERVER_CONTROLS,
+					op->o_ctrls ) != LDAP_SUCCESS ) {
+				( void )meta_clear_one_candidate( lsc, 1 );
+				continue;
+			}
+		}
+	
+		/*
 		 * If the target is already bound it is skipped
 		 */
 		if ( lsc->bound == META_BOUND && lc->bound_target == i ) {
@@ -348,11 +365,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			lsc->bound_dn.bv_len = 0;
 		}
 		
-		if ( op->o_ctrls ) {
-			ldap_set_option( lsc->ld, LDAP_OPT_SERVER_CONTROLS,
-					op->o_ctrls );
-		}
-	
+
 		rc = ldap_bind_s( lsc->ld, 0, NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
 			

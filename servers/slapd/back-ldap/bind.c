@@ -75,7 +75,11 @@ ldap_back_bind(
 	}
 
 	if ( op->o_ctrls ) {
-		ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS, op->o_ctrls );
+		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
+					op->o_ctrls ) != LDAP_SUCCESS ) {
+			ldap_back_op_result( lc, op );
+			return( -1 );
+		}
 	}
 	
 	/*
@@ -355,16 +359,19 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
  */
 int
 ldap_back_dobind( struct ldapconn *lc, Operation *op )
-{
+{	
+	if ( op->o_ctrls ) {
+		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
+				op->o_ctrls ) != LDAP_SUCCESS ) {
+			ldap_back_op_result( lc, op );
+			return( 0 );
+		}
+	}
+	
 	if ( lc->bound ) {
 		return( lc->bound );
 	}
 
-	if ( op->o_ctrls ) {
-		ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
-				op->o_ctrls );
-	}
-	
 	if ( ldap_bind_s( lc->ld, lc->bound_dn.bv_val, lc->cred.bv_val, 
 				LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
 		ldap_back_op_result( lc, op );
