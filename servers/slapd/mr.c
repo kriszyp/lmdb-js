@@ -36,7 +36,7 @@ mr_index_cmp(
 
 static int
 mr_index_name_cmp(
-    char 		*name,
+    char		*name,
     struct mindexrec	*mir
 )
 {
@@ -49,7 +49,7 @@ mr_find( const char *mrname )
 	struct mindexrec	*mir = NULL;
 
 	if ( (mir = (struct mindexrec *) avl_find( mr_index, mrname,
-            (AVL_CMP) mr_index_name_cmp )) != NULL ) {
+	    (AVL_CMP) mr_index_name_cmp )) != NULL ) {
 		return( mir->mir_mr );
 	}
 	return( NULL );
@@ -169,8 +169,8 @@ register_matching_rule(
 
 	if( usage == SLAP_MR_NONE ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "register_matching_rule: %s not usable\n", desc ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "register_matching_rule: %s not usable\n", desc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
 		    desc, 0, 0 );
@@ -187,9 +187,9 @@ register_matching_rule(
 
 		if( amr == NULL ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                               "register_matching_rule: could not locate associated matching rule %s for %s\n",
-                               associated, desc ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "register_matching_rule: could not locate associated matching rule %s for %s\n",
+				   associated, desc ));
 #else
 			Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
 				"associated matching rule %s for %s\n",
@@ -205,9 +205,9 @@ register_matching_rule(
 	mr = ldap_str2matchingrule( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !mr ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "register_matching_rule: %s before %s in %s.\n",
-                       ldap_scherr2str(code), err, desc ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "register_matching_rule: %s before %s in %s.\n",
+			   ldap_scherr2str(code), err, desc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, desc );
@@ -224,9 +224,9 @@ register_matching_rule(
 
 	if ( code ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "register_matching_rule: %s for %s in %s.\n",
-                       scherr2str(code), err, desc ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "register_matching_rule: %s for %s in %s.\n",
+			   scherr2str(code), err, desc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s for %s in %s\n",
 		    scherr2str(code), err, desc );

@@ -69,14 +69,14 @@ const char Versionstr[] =
 #define DEFAULT_SYSLOG_USER  LOG_LOCAL4
 
 typedef struct _str2intDispatch {
-	char    *stringVal;
-	int      abbr;
-	int      intVal;
+	char	*stringVal;
+	int	 abbr;
+	int	 intVal;
 } STRDISP, *STRDISP_P;
 
 
 /* table to compute syslog-options to integer */
-static STRDISP  syslog_types[] = {
+static STRDISP	syslog_types[] = {
 	{ "LOCAL0", sizeof("LOCAL0"), LOG_LOCAL0 },
 	{ "LOCAL1", sizeof("LOCAL1"), LOG_LOCAL1 },
 	{ "LOCAL2", sizeof("LOCAL2"), LOG_LOCAL2 },
@@ -90,7 +90,7 @@ static STRDISP  syslog_types[] = {
 
 static int   cnvt_str2int( char *, STRDISP_P, int );
 
-#endif  /* LOG_LOCAL4 */
+#endif	/* LOG_LOCAL4 */
 
 
 static void
@@ -136,7 +136,7 @@ int main( int argc, char **argv )
 	char *sandbox = NULL;
 #endif
 #ifdef LOG_LOCAL4
-    int     syslogUser = DEFAULT_SYSLOG_USER;
+    int	    syslogUser = DEFAULT_SYSLOG_USER;
 #endif
 
 #ifdef HAVE_NT_SERVICE_MANAGER
@@ -144,8 +144,8 @@ int main( int argc, char **argv )
 #else
 	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
 #endif
-	char        *serverName = NULL;
-	int         serverMode = SLAP_SERVER_MODE;
+	char	    *serverName = NULL;
+	int	    serverMode = SLAP_SERVER_MODE;
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -176,8 +176,8 @@ int main( int argc, char **argv )
 		{
 			slap_debug = *i;
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                                   "main: new debug level from registry is: %d\n", slap_debug ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+				   "main: new debug level from registry is: %d\n", slap_debug ));
 #else
 			Debug( LDAP_DEBUG_ANY, "new debug level from registry is: %d\n", slap_debug, 0, 0 );
 #endif
@@ -191,8 +191,8 @@ int main( int argc, char **argv )
 
 		    urls = ch_strdup(newUrls);
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                               "main: new urls from registry: %s\n", urls ));
+		    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			       "main: new urls from registry: %s\n", urls ));
 #else
 		    Debug(LDAP_DEBUG_ANY, "new urls from registry: %s\n",
 			  urls, 0, 0);
@@ -205,8 +205,8 @@ int main( int argc, char **argv )
 		{
 			configfile = newConfigFile;
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                                   "main: new config file from registry is: %s\n", configfile ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+				   "main: new config file from registry is: %s\n", configfile ));
 #else
 			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
 #endif
@@ -231,7 +231,7 @@ int main( int argc, char **argv )
 		case 'h':	/* listen URLs */
 			if ( urls != NULL ) free( urls );
 			urls = ch_strdup( optarg );
-            break;
+	    break;
 
 		case 'd':	/* set debug level and 'do not detach' flag */
 			no_detach = 1;
@@ -292,7 +292,7 @@ int main( int argc, char **argv )
 	}
 
 #ifdef NEW_LOGGING
-        lutil_log_initialize( argc, argv );
+	lutil_log_initialize( argc, argv );
 #endif
 
 	lutil_set_debug_level( "slapd", slap_debug );
@@ -301,8 +301,8 @@ int main( int argc, char **argv )
 	ldif_debug = slap_debug;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                   "%s", Versionstr ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+		   "%s", Versionstr ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 #endif
@@ -367,8 +367,8 @@ int main( int argc, char **argv )
 
 	if ( schema_init( ) != 0 ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-                       "main: schema initialization error\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			   "main: schema initialization error\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "schema initialization error\n",
@@ -386,8 +386,8 @@ int main( int argc, char **argv )
 
 	if ( schema_prep( ) != 0 ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-                       "main: schema prep error\n"));
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			   "main: schema prep error\n"));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "schema prep error\n",
@@ -444,8 +444,8 @@ int main( int argc, char **argv )
 		FILE *fp;
 
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                           "main: slapd starting.\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			   "main: slapd starting.\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 #endif
@@ -503,8 +503,8 @@ stop:
 #endif
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-                   "main: slapd stopped.\n" ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		   "main: slapd stopped.\n" ));
 #else
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
 #endif
@@ -567,20 +567,20 @@ wait4child( int sig )
 static int
 cnvt_str2int( char *stringVal, STRDISP_P dispatcher, int defaultVal )
 {
-    int        retVal = defaultVal;
+    int	       retVal = defaultVal;
     STRDISP_P  disp;
 
     for (disp = dispatcher; disp->stringVal; disp++) {
 
-        if (!strncasecmp (stringVal, disp->stringVal, disp->abbr)) {
+	if (!strncasecmp (stringVal, disp->stringVal, disp->abbr)) {
 
-            retVal = disp->intVal;
-            break;
+	    retVal = disp->intVal;
+	    break;
 
-        }
+	}
     }
 
     return (retVal);
 }
 
-#endif  /* LOG_LOCAL4 */
+#endif	/* LOG_LOCAL4 */

@@ -38,8 +38,8 @@ do_delete(
 	int manageDSAit;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-                   "do_delete: conn %d\n", conn->c_connid ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+		   "do_delete: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 #endif
@@ -52,8 +52,8 @@ do_delete(
 
 	if ( ber_scanf( op->o_ber, "a", &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_delete: conn: %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_delete: conn: %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -64,8 +64,8 @@ do_delete(
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "oepration", LDAP_LEVEL_ERR,
-                       "do_delete: conn %d  get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG(( "oepration", LDAP_LEVEL_ERR,
+			   "do_delete: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -76,8 +76,8 @@ do_delete(
 
 	if(	dn_normalize( ndn ) == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_delete: conn %d  invalid dn (%s).\n", conn->c_connid, dn ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_delete: conn %d  invalid dn (%s).\n", conn->c_connid, dn ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", dn, 0, 0 );
 #endif
@@ -88,8 +88,8 @@ do_delete(
 
 	if( ndn == '\0' ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                       "do_delete: conn %d  Attempt to delete root DSE.\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			   "do_delete: conn %d  Attempt to delete root DSE.\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: root dse!\n", 0, 0, 0 );
 #endif

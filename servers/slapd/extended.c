@@ -12,15 +12,15 @@
 /*
  * LDAPv3 Extended Operation Request
  *	ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
- *		requestName      [0] LDAPOID,
- *		requestValue     [1] OCTET STRING OPTIONAL
+ *		requestName	 [0] LDAPOID,
+ *		requestValue	 [1] OCTET STRING OPTIONAL
  *	}
  *
  * LDAPv3 Extended Operation Response
  *	ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
  *		COMPONENTS OF LDAPResult,
- *		responseName     [10] LDAPOID OPTIONAL,
- *		response         [11] OCTET STRING OPTIONAL
+ *		responseName	 [10] LDAPOID OPTIONAL,
+ *		response	 [11] OCTET STRING OPTIONAL
  *	}
  *
  */
@@ -43,7 +43,7 @@ typedef struct extop_list_t {
 extop_list_t *supp_ext_list = NULL;
 
 /* this list of built-in extops is for extops that are not part
- * of backends or in external modules.  essentially, this is
+ * of backends or in external modules.	essentially, this is
  * just a way to get built-in extops onto the extop list without
  * having a separate init routine for each built-in extop.
  */
@@ -94,8 +94,8 @@ do_extended(
 	LDAPControl **rspctrls;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-                   "do_extended: conn %s\n", conn->c_connid ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+		   "do_extended: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 #endif
@@ -104,8 +104,8 @@ do_extended(
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_extended: protocol version (%d) too low.\n", op->o_protocol ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_extended: protocol version (%d) too low.\n", op->o_protocol ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: protocol version (%d) too low\n",
 			op->o_protocol, 0 ,0 );
@@ -118,8 +118,8 @@ do_extended(
 
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &reqoid ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
@@ -131,9 +131,9 @@ do_extended(
 
 	if( !(ext = find_extop(supp_ext_list, reqoid)) ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_extended: conn %d  unsupported operation \"%s\"\n",
-                       conn->c_connid, reqoid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_extended: conn %d  unsupported operation \"%s\"\n",
+			   conn->c_connid, reqoid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
 			reqoid, 0 ,0 );
@@ -148,8 +148,8 @@ do_extended(
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
 		if( ber_scanf( op->o_ber, "O", &reqdata ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                               "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
@@ -162,8 +162,8 @@ do_extended(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_extended: conn %d  get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_extended: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: get_ctrls failed\n", 0, 0 ,0 );
 #endif
@@ -171,8 +171,8 @@ do_extended(
 	} 
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                   "do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+		   "do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", reqoid, 0 ,0 );
 #endif

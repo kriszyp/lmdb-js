@@ -57,7 +57,7 @@ test_filter(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_filter: begin\n" ));
+		   "test_filter: begin\n" ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter\n", 0, 0, 0 );
 #endif
@@ -66,13 +66,13 @@ test_filter(
 	switch ( f->f_choice ) {
 	case SLAPD_FILTER_COMPUTED:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter:   COMPUTED %s (%d)\n",
-                       f->f_result == LDAP_COMPARE_FALSE ? "false" :
-                       f->f_result == LDAP_COMPARE_TRUE  ? "true"  :
-                       f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" :
-                       "error",
-                       f->f_result ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter:   COMPUTED %s (%d)\n",
+			   f->f_result == LDAP_COMPARE_FALSE ? "false" :
+			   f->f_result == LDAP_COMPARE_TRUE	 ? "true"  :
+			   f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" :
+			   "error",
+			   f->f_result ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    COMPUTED %s (%d)\n",
 			f->f_result == LDAP_COMPARE_FALSE ? "false" :
@@ -86,8 +86,8 @@ test_filter(
 
 	case LDAP_FILTER_EQUALITY:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter:   EQUALITY\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter:   EQUALITY\n" ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    EQUALITY\n", 0, 0, 0 );
 #endif
@@ -98,8 +98,8 @@ test_filter(
 
 	case LDAP_FILTER_SUBSTRINGS:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter  SUBSTRINGS\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter  SUBSTRINGS\n" ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    SUBSTRINGS\n", 0, 0, 0 );
 #endif
@@ -119,8 +119,8 @@ test_filter(
 
 	case LDAP_FILTER_PRESENT:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter:    PRESENT\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter:	PRESENT\n" ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    PRESENT\n", 0, 0, 0 );
 #endif
@@ -130,8 +130,8 @@ test_filter(
 
 	case LDAP_FILTER_APPROX:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter: APPROX\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter: APPROX\n" ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    APPROX\n", 0, 0, 0 );
 #endif
@@ -141,10 +141,10 @@ test_filter(
 
 	case LDAP_FILTER_AND:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter:  AND\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter:  AND\n" ));
 #else
-                Debug( LDAP_DEBUG_FILTER, "    AND\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_FILTER, "    AND\n", 0, 0, 0 );
 #endif
 
 		rc = test_filter_and( be, conn, op, e, f->f_and );
@@ -152,8 +152,8 @@ test_filter(
 
 	case LDAP_FILTER_OR:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter:    OR\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter:	OR\n" ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    OR\n", 0, 0, 0 );
 #endif
@@ -163,8 +163,8 @@ test_filter(
 
 	case LDAP_FILTER_NOT:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter:    NOT\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter:	NOT\n" ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    NOT\n", 0, 0, 0 );
 #endif
@@ -184,8 +184,8 @@ test_filter(
 #ifdef SLAPD_EXT_FILTERS
 	case LDAP_FILTER_EXT:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "test_filter:    EXT\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "test_filter:	EXT\n" ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "    EXT\n", 0, 0, 0 );
 #endif
@@ -196,9 +196,9 @@ test_filter(
 
 	default:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-                       "test_filter:  unknown filter type %lu\n", 
-                       f->f_choice ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
+			   "test_filter:  unknown filter type %lu\n", 
+		       f->f_choice ));
 #else
 		Debug( LDAP_DEBUG_ANY, "    unknown filter type %lu\n",
 		    f->f_choice, 0, 0 );
@@ -208,8 +208,8 @@ test_filter(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_filter:  return=%d\n", rc ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "test_filter:  return=%d\n", rc ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter %d\n", rc, 0, 0 );
 #endif
@@ -340,8 +340,8 @@ test_filter_and(
 	int rtn = LDAP_COMPARE_TRUE;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_filter_and: begin\n" ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "test_filter_and: begin\n" ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter_and\n", 0, 0, 0 );
 #endif
@@ -360,8 +360,8 @@ test_filter_and(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_filter_and:  rc=%d\n", rtn ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "test_filter_and:  rc=%d\n", rtn ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter_and %d\n", rtn, 0, 0 );
 #endif
@@ -382,8 +382,8 @@ test_filter_or(
 	int rtn = LDAP_COMPARE_FALSE;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_filter_or: begin\n" ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "test_filter_or: begin\n" ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter_or\n", 0, 0, 0 );
 #endif
@@ -402,8 +402,8 @@ test_filter_or(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_filter_or: result=%d\n", rtn ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "test_filter_or: result=%d\n", rtn ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "<= test_filter_or %d\n", rtn, 0, 0 );
 #endif
@@ -424,8 +424,8 @@ test_substrings_filter(
 	Attribute	*a;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_substrings_filter: begin\n" ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "test_substrings_filter: begin\n" ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "begin test_substrings_filter\n", 0, 0, 0 );
 #endif
@@ -468,8 +468,8 @@ test_substrings_filter(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "test_substrings_filter: return FALSE\n" ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "test_substrings_filter: return FALSE\n" ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "end test_substrings_filter 1\n", 0, 0, 0 );
 #endif

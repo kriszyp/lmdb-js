@@ -236,9 +236,9 @@ dn_validate( char *dn_in )
 		default:
 			dn = NULL;
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                                   "dn_validate: unknown state %d for dn \"%s\".\n",
-                                   state, dn_in ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "dn_validate: unknown state %d for dn \"%s\".\n",
+				   state, dn_in ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "dn_validate - unknown state %d\n", state, 0, 0 );
@@ -279,8 +279,8 @@ dn_validate( char *dn_in )
 
 /*
  * dn_normalize - put dn into a canonical form suitable for storing
- * in a hash database.  this involves normalizing the case as well as
- * the format.  the dn is normalized in place as well as returned if valid.
+ * in a hash database.	this involves normalizing the case as well as
+ * the format.	the dn is normalized in place as well as returned if valid.
  */
 
 char *

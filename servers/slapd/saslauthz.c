@@ -30,7 +30,7 @@
 
 
 
-/* URI format:  ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]]   */
+/* URI format:	ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]]   */
 
 int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 {
@@ -43,8 +43,8 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 	*filter = NULL;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_parseURI: parsing %s\n", uri ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_parseURI: parsing %s\n", uri ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_parseURI: parsing %s\n", uri, 0, 0 );
 #endif
@@ -141,9 +141,9 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	rc = regcomp( &reg->workspace, reg->match, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-                       "slap_sasl_regexp_config: \"%s\" could not be compiled.\n"
-                       reg->match ));
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+			   "slap_sasl_regexp_config: \"%s\" could not be compiled.\n"
+			   reg->match ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		"SASL match pattern %s could not be compiled by regexp engine\n",
@@ -156,7 +156,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	/* Precompile replace pattern. Find the $<n> placeholders */
 	reg->offset[0] = -2;
 	n = 1;
-	for ( c = reg->replace;  *c;  c++ ) {
+	for ( c = reg->replace;	 *c;  c++ ) {
 		if ( *c == '\\' ) {
 			c++;
 			continue;
@@ -164,9 +164,9 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 		if ( *c == '$' ) {
 			if ( n == SASLREGEX_REPLACE ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-                                       "slap_sasl_regexp_config: \"%s\" has too many $n placeholders (max %d)\n",
-                                       reg->replace, SASLREGEX_REPLACE ));
+				LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+					   "slap_sasl_regexp_config: \"%s\" has too many $n placeholders (max %d)\n",
+					   reg->replace, SASLREGEX_REPLACE ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 				   "SASL replace pattern %s has too many $n placeholders (max %d)\n",
@@ -210,8 +210,8 @@ char *slap_sasl_regexp( char *saslname )
 
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_regexp: converting SASL name %s\n", saslname ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_regexp: converting SASL name %s\n", saslname ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_sasl_regexp: converting SASL name %s\n",
 	   saslname, 0, 0 );
@@ -248,7 +248,7 @@ char *slap_sasl_regexp( char *saslname )
 			break;
 
 		/* Len of string from saslname that matched next $i  (b,d above) */
-		i = reg->replace[ reg->offset[n] + 1 ]  - '0';
+		i = reg->replace[ reg->offset[n] + 1 ]	- '0';
 		len += reg->strings[i].rm_eo - reg->strings[i].rm_so;
 		n++;
 	}
@@ -266,7 +266,7 @@ char *slap_sasl_regexp( char *saslname )
 			break;
 
 		/* Paste in string from saslname that matched next $i  (b,d above) */
-		i = reg->replace[ reg->offset[n] + 1 ]  - '0';
+		i = reg->replace[ reg->offset[n] + 1 ]	- '0';
 		len = reg->strings[i].rm_eo - reg->strings[i].rm_so;
 		strncpy( uri+insert, saslname + reg->strings[i].rm_so, len );
 		insert += len;
@@ -276,8 +276,8 @@ char *slap_sasl_regexp( char *saslname )
 
 	uri[insert] = '\0';
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_regexp: converted SASL name to %s\n", uri ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_regexp: converted SASL name to %s\n", uri ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_regexp: converted SASL name to %s\n", uri, 0, 0 );
@@ -311,8 +311,8 @@ char *slap_sasl2dn( char *saslname )
 
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl2dn: converting SASL name %s to DN.\n", saslname ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl2dn: converting SASL name %s to DN.\n", saslname ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	  "==>slap_sasl2dn: Converting SASL name %s to a DN\n", saslname, 0,0 );
@@ -337,9 +337,9 @@ char *slap_sasl2dn( char *saslname )
 	/* Must do an internal search */
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
-                   "slap_sasl2dn: performing internal search (base=%s, scope=%s)\n",
-                   searchbase, scope ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
+		   "slap_sasl2dn: performing internal search (base=%s, scope=%s)\n",
+		   searchbase, scope ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
@@ -369,8 +369,8 @@ char *slap_sasl2dn( char *saslname )
 	/* Make sure exactly one entry was returned */
 	rc = ldap_count_entries( client, res );
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
-                   "slap_sasl2dn: search DN returned %d entries\n", rc ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
+		   "slap_sasl2dn: search DN returned %d entries\n", rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl2dn: search DN returned %d entries\n", rc,0,0 );
@@ -391,8 +391,8 @@ FINISHED:
 	if( client  ) ldap_unbind( client );
 	if( DN ) dn_normalize( DN );
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl2dn: Converted SASL name to %s\n", DN ? DN : "<nothing>" ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl2dn: Converted SASL name to %s\n", DN ? DN : "<nothing>" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
 	   DN ? DN : "<nothing>", 0, 0 );
@@ -428,8 +428,8 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule );
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule, 0 );
@@ -458,9 +458,9 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	/* Must run an internal search. */
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
-                   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-                   searchbase, scope ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
+		   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
+		   searchbase, scope ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
@@ -512,8 +512,8 @@ CONCLUDED:
 	if( res ) ldap_msgfree( res );
 	if( client  ) ldap_unbind( client );
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_match: comparison returned %d\n", rc ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_match: comparison returned %d\n", rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "<===slap_sasl_match: comparison returned %d\n", rc, 0, 0);
@@ -545,9 +545,9 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_check_authz: does %s match %s rule in %s?\n",
-                   assertDN, attr, searchDN ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_check_authz: does %s match %s rule in %s?\n",
+		   assertDN, attr, searchDN ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_check_authz: does %s match %s rule in %s?\n",
@@ -575,8 +575,8 @@ COMPLETE:
 	if( ad ) ad_free( ad, 1 );
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_check_authz: %s check returning %s\n", attr, rc ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_check_authz: %s check returning %s\n", attr, rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "<==slap_sasl_check_authz: %s check returning %d\n", attr, rc, 0);
@@ -587,7 +587,7 @@ COMPLETE:
 
 
 
-#endif  /* HAVE_CYRUS_SASL */
+#endif	/* HAVE_CYRUS_SASL */
 
 
 
@@ -608,8 +608,8 @@ int slap_sasl_authorized( char *authcDN, char *authzDN )
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN, 0 );
@@ -639,8 +639,8 @@ int slap_sasl_authorized( char *authcDN, char *authzDN )
 
 DONE:
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_authorized: return %s\n", rc ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_authorized: return %s\n", rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<== slap_sasl_authorized: return %d\n",rc,0,0 );
 #endif

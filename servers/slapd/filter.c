@@ -48,8 +48,8 @@ get_filter(
 	struct berval escaped;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY, "get_filter: conn %d\n",
-                   conn->c_connid ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY, "get_filter: conn %d\n",
+		   conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter\n", 0, 0, 0 );
 #endif
@@ -69,19 +69,19 @@ get_filter(
 	 *	}
 	 *
 	 *	SubstringFilter ::= SEQUENCE {
-	 *		type               AttributeType,
+	 *		type		   AttributeType,
 	 *		SEQUENCE OF CHOICE {
-	 *			initial          [0] IA5String,
-	 *			any              [1] IA5String,
-	 *			final            [2] IA5String
+	 *			initial		 [0] IA5String,
+	 *			any		 [1] IA5String,
+	 *			final		 [2] IA5String
 	 *		}
 	 *	}
 	 *
-     *  MatchingRuleAssertion ::= SEQUENCE {
-     *          matchingRule    [1] MatchingRuleId OPTIONAL,
-     *          type            [2] AttributeDescription OPTIONAL,
-     *          matchValue      [3] AssertionValue,
-     *          dnAttributes    [4] BOOLEAN DEFAULT FALSE
+     *	MatchingRuleAssertion ::= SEQUENCE {
+     *		matchingRule	[1] MatchingRuleId OPTIONAL,
+     *		type		[2] AttributeDescription OPTIONAL,
+     *		matchValue	[3] AssertionValue,
+     *		dnAttributes	[4] BOOLEAN DEFAULT FALSE
 	 *	}
 	 *
 	 */
@@ -103,8 +103,8 @@ get_filter(
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL2,
-                       "get_filter: conn %d  EQUALITY\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL2,
+			   "get_filter: conn %d  EQUALITY\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
 #endif
@@ -130,8 +130,8 @@ get_filter(
 
 	case LDAP_FILTER_SUBSTRINGS:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  SUBSTRINGS\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  SUBSTRINGS\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
 #endif
@@ -140,8 +140,8 @@ get_filter(
 
 	case LDAP_FILTER_GE:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  GE\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  GE\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
 #endif
@@ -165,8 +165,8 @@ get_filter(
 
 	case LDAP_FILTER_LE:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  LE\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  LE\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
 #endif
@@ -193,8 +193,8 @@ get_filter(
 		struct berval type;
 
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                           "get_filter: conn %d PRESENT\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d PRESENT\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "PRESENT\n", 0, 0, 0 );
 #endif
@@ -223,8 +223,8 @@ get_filter(
 
 	case LDAP_FILTER_APPROX:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  APPROX\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  APPROX\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
 #endif
@@ -248,8 +248,8 @@ get_filter(
 
 	case LDAP_FILTER_AND:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  AND\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  AND\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
 #endif
@@ -265,8 +265,8 @@ get_filter(
 
 	case LDAP_FILTER_OR:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  OR\n", conn->c_connid  ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  OR\n", conn->c_connid  ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "OR\n", 0, 0, 0 );
 #endif
@@ -282,8 +282,8 @@ get_filter(
 
 	case LDAP_FILTER_NOT:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  NOT\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  NOT\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "NOT\n", 0, 0, 0 );
 #endif
@@ -300,8 +300,8 @@ get_filter(
 
 	case LDAP_FILTER_EXT:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                       "get_filter: conn %d  EXTENSIBLE\n", conn->c_connid ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			   "get_filter: conn %d  EXTENSIBLE\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_FILTER, "EXTENSIBLE\n", 0, 0, 0 );
 #endif
@@ -333,9 +333,9 @@ get_filter(
 	default:
 		(void) ber_skip_tag( ber, &len );
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-                           "get_filter: conn %d unknown filter type=%lu\n",
-                           conn->c_connid, f->f_choice ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+			   "get_filter: conn %d unknown filter type=%lu\n",
+			   conn->c_connid, f->f_choice ));
 #else
 		Debug( LDAP_DEBUG_ANY, "get_filter: unknown filter type=%lu\n",
 		       f->f_choice, 0, 0 );
@@ -369,8 +369,8 @@ get_filter(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL2,
-                   "get_filter: conn %d  exit\n", conn->c_connid ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL2,
+		   "get_filter: conn %d	 exit\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "end get_filter %d\n", err, 0, 0 );
 #endif
@@ -389,8 +389,8 @@ get_filter_list( Connection *conn, BerElement *ber,
 	char		*last, *ftmp;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "get_filter_list: conn %d start\n", conn->c_connid ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "get_filter_list: conn %d start\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
 #endif
@@ -416,8 +416,8 @@ get_filter_list( Connection *conn, BerElement *ber,
 	*new = NULL;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "get_filter_list: conn %d exit\n", conn->c_connid ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "get_filter_list: conn %d exit\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "end get_filter_list\n", 0, 0, 0 );
 #endif
@@ -444,8 +444,8 @@ get_substring_filter(
 	*text = "error decoding filter";
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "get_substring_filter: conn %d  begin\n", conn->c_connid ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "get_substring_filter: conn %d  begin\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 #endif
@@ -512,9 +512,9 @@ get_substring_filter(
 			rc = LDAP_PROTOCOL_ERROR;
 
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-                                   "get_filter_substring: conn %d  unknown substring choice=%ld\n",
-                                   conn->c_connid, (long)tag ));
+			LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+				   "get_filter_substring: conn %d  unknown substring choice=%ld\n",
+				   conn->c_connid, (long)tag ));
 #else
 			Debug( LDAP_DEBUG_FILTER,
 				"  unknown substring choice=%ld\n",
@@ -538,9 +538,9 @@ get_substring_filter(
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                               "get_substring_filter: conn %d  INITIAL\n",
-                               conn->c_connid ));
+			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+				   "get_substring_filter: conn %d  INITIAL\n",
+				   conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
 #endif
@@ -562,9 +562,9 @@ get_substring_filter(
 
 		case LDAP_SUBSTRING_ANY:
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                               "get_substring_filter: conn %d  ANY\n",
-                               conn->c_connid ));
+			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+				   "get_substring_filter: conn %d  ANY\n",
+				   conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
 #endif
@@ -585,9 +585,9 @@ get_substring_filter(
 
 		case LDAP_SUBSTRING_FINAL:
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-                               "get_substring_filter: conn %d  FINAL\n",
-                               conn->c_connid ));
+			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+				   "get_substring_filter: conn %d  FINAL\n",
+				   conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
 #endif
@@ -609,9 +609,9 @@ get_substring_filter(
 
 		default:
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-                               "get_substring_filter: conn %d  unknown substring type %ld\n",
-                               conn->c_connid, (long)tag ));
+			LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
+				   "get_substring_filter: conn %d  unknown substring type %ld\n",
+				   conn->c_connid, (long)tag ));
 #else
 			Debug( LDAP_DEBUG_FILTER,
 				"  unknown substring type=%ld\n",
@@ -622,9 +622,9 @@ get_substring_filter(
 
 return_error:
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-                                   "get_substring_filter: conn %d  error %ld\n",
-                                   conn->c_connid, (long)rc ));
+			LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
+				   "get_substring_filter: conn %d  error %ld\n",
+				   conn->c_connid, (long)rc ));
 #else
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
 				(long) rc, 0, 0 );
@@ -652,8 +652,8 @@ return_error:
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-                   "get_substring_filter: conn %d exit\n", conn->c_connid ));
+	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
+		   "get_substring_filter: conn %d exit\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_FILTER, "end get_substring_filter\n", 0, 0, 0 );
 #endif
@@ -706,8 +706,8 @@ filter_free( Filter *f )
 
 	default:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-                       "filter_free: unknown filter type %lu\n", f->f_choice ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+			   "filter_free: unknown filter type %lu\n", f->f_choice ));
 #else
 		Debug( LDAP_DEBUG_ANY, "filter_free: unknown filter type=%lu\n",
 		       f->f_choice, 0, 0 );

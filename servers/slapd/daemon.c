@@ -203,11 +203,11 @@ static void slapd_add(ber_socket_t s) {
 	FD_SET( s, &slap_daemon.sd_readers );
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-                   "slapd_add: added %ld%s%s\n",
-                   (long)s,
-                   FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
-                   FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
+		   "slapd_add: added %ld%s%s\n",
+		   (long)s,
+		   FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
+		   FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" ));
 #else
 	Debug( LDAP_DEBUG_CONNS, "daemon: added %ld%s%s\n",
 		(long) s,
@@ -224,11 +224,11 @@ void slapd_remove(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-                   "slapd_remove: removing %ld%s%s\n",
-                   (long) s,
-                   FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
-                   FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : ""  ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
+		   "slapd_remove: removing %ld%s%s\n",
+		   (long) s,
+		   FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
+		   FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : ""  ));
 #else
 	Debug( LDAP_DEBUG_CONNS, "daemon: removing %ld%s%s\n",
 		(long) s,
@@ -287,8 +287,8 @@ void slapd_set_read(ber_socket_t s, int wake) {
 
 static void slapd_close(ber_socket_t s) {
 #ifdef NEW_LOGGING
-    LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-               "slapd_close: closing %ld\n", (long)s ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
+		   "slapd_close: closing %ld\n", (long)s ));
 #else
 	Debug( LDAP_DEBUG_CONNS, "daemon: closing %ld\n",
 		(long) s, 0, 0 );
@@ -331,9 +331,9 @@ static int slap_get_listener_addresses(
 		/* host specifies a service in this case */
 		if (err = getaddrinfo(NULL, host, &hints, &res)) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                               "slap_get_listener_addresses: getaddrinfo failed: %s\n",
-                               AC_GAI_STRERROR(err) ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+				   "slap_get_listener_addresses: getaddrinfo failed: %s\n",
+				   AC_GAI_STRERROR(err) ));
 #else
 			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
 				AC_GAI_STRERROR(err), 0, 0);
@@ -349,9 +349,9 @@ static int slap_get_listener_addresses(
 		hints.ai_family = AF_UNSPEC;
 		if (err = getaddrinfo(host, serv, &hints, &res)) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                               "slap_get_listener_addresses: getaddrinfo failed: %s\n",
-                               AC_GAI_STRERROR(err) ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+				   "slap_get_listener_addresses: getaddrinfo failed: %s\n",
+				   AC_GAI_STRERROR(err) ));
 #else
 			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
 				AC_GAI_STRERROR(err), 0, 0);
@@ -432,9 +432,9 @@ static int slap_get_listener_addresses(
 		if ( strlen(host) >
 		     (sizeof(((struct sockaddr_un *)*sal)->sun_path) - 1) ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                               "slap_get_listener_addresses: domain socket path (%s) too long in URL\n",
-                               host ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+				   "slap_get_listener_addresses: domain socket path (%s) too long in URL\n",
+				   host ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 			       "daemon: domain socket path (%s) too long in URL",
@@ -455,9 +455,9 @@ static int slap_get_listener_addresses(
 			struct hostent *he = gethostbyname( host );
 			if( he == NULL ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                                       "slap_get_listener_addresses: invalid host %s\n",
-                                       host ));
+				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+					   "slap_get_listener_addresses: invalid host %s\n",
+					   host ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 				       "daemon: invalid host %s", host, 0, 0);
@@ -509,9 +509,9 @@ static Listener * slap_open_listener(
 
 	if( rc != LDAP_URL_SUCCESS ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                       "slap_open_listener: listen URL \"%s\" parse error %d\n",
-                       url, rc ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+			   "slap_open_listener: listen URL \"%s\" parse error %d\n",
+			   url, rc ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: listen URL \"%s\" parse error=%d\n",
@@ -523,9 +523,9 @@ static Listener * slap_open_listener(
 #ifndef HAVE_TLS
 	if( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                       "slap_open_listener: TLS is not supported (%s)\n",
-                       url ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+			   "slap_open_listener: TLS is not supported (%s)\n",
+			   url ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: TLS not supported (%s)\n",
@@ -559,9 +559,9 @@ static Listener * slap_open_listener(
 #else
 
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                           "slap_open_listener: URL scheme is not supported: %s\n",
-                           url ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+			   "slap_open_listener: URL scheme is not supported: %s\n",
+			   url ));
 #else
 		Debug( LDAP_DEBUG_ANY, "daemon: URL scheme not supported: %s",
 			url, 0, 0);
@@ -603,9 +603,9 @@ static Listener * slap_open_listener(
 		if ( l.sl_sd == AC_SOCKET_INVALID ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                                   "slap_open_listener: socket() failed errno=%d (%s)\n",
-                                   err, sock_errstr(err) ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+				   "slap_open_listener: socket() failed errno=%d (%s)\n",
+				   err, sock_errstr(err) ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: socket() failed errno=%d (%s)\n", err,
@@ -617,9 +617,9 @@ static Listener * slap_open_listener(
 #ifndef HAVE_WINSOCK
 		if ( l.sl_sd >= dtblsize ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                               "slap_open_listener: listener descriptor %ld is too great %ld\n",
-                               (long)l.sl_sd, (long)dtblsize ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+				   "slap_open_listener: listener descriptor %ld is too great %ld\n",
+				   (long)l.sl_sd, (long)dtblsize ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 			       "daemon: listener descriptor %ld is too great %ld\n",
@@ -644,9 +644,9 @@ static Listener * slap_open_listener(
 			if ( rc == AC_SOCKET_ERROR ) {
 				int err = sock_errno();
 #ifdef NEW_LOGGING
-                                LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                                           "slap_open_listener: setsockopt( %ld, SO_REUSEADDR ) failed errno %d (%s)\n",
-                                           (long)l.sl_sd, err, sock_errstr(err) ));
+				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+					   "slap_open_listener: setsockopt( %ld, SO_REUSEADDR ) failed errno %d (%s)\n",
+					   (long)l.sl_sd, err, sock_errstr(err) ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 				       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
@@ -676,9 +676,9 @@ static Listener * slap_open_listener(
 			break;
 		err = sock_errno();
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                           "slap_open_listener: bind(%ld) failed errno=%d (%s)\n",
-                           (long)l.sl_sd, err, sock_errstr(err) ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+			   "slap_open_listener: bind(%ld) failed errno=%d (%s)\n",
+			   (long)l.sl_sd, err, sock_errstr(err) ));
 #else
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
 		       (long) l.sl_sd, err, sock_errstr(err) );
@@ -689,8 +689,8 @@ static Listener * slap_open_listener(
 
 	if ( *sal == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                       "slap_open_listener: bind(%ld) failed.\n", (long)l.sl_sd ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+			   "slap_open_listener: bind(%ld) failed.\n", (long)l.sl_sd ));
 #else
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed\n",
 			(long) l.sl_sd, 0, 0 );
@@ -706,9 +706,9 @@ static Listener * slap_open_listener(
 		if ( chmod( addr, S_IRWXU ) < 0 ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                                   "slap_open_listener: fchmod(%ld) failed errno=%d (%s)\n",
-                                   (long)l.sl_sd, err, sock_errstr(err) ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+				   "slap_open_listener: fchmod(%ld) failed errno=%d (%s)\n",
+				   (long)l.sl_sd, err, sock_errstr(err) ));
 #else
 			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
 			       (long) l.sl_sd, err, sock_errstr(err) );
@@ -749,9 +749,9 @@ static Listener * slap_open_listener(
 
 	default:
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                       "slap_open_listener: unsupported address family (%d)\n",
-                       (int)(*sal)->sa_family ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+			   "slap_open_listener: unsupported address family (%d)\n",
+			   (int)(*sal)->sa_family ));
 #else
 		Debug( LDAP_DEBUG_ANY, "daemon: unsupported address family (%d)\n",
 			(int) (*sal)->sa_family, 0, 0 );
@@ -766,8 +766,8 @@ static Listener * slap_open_listener(
 	*li = l;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "connection", LDAP_LEVEL_RESULTS,
-                   "slap_open_listener: daemon initialzed %s\n", l.sl_url ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_RESULTS,
+		   "slap_open_listener: daemon initialzed %s\n", l.sl_url ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
 		l.sl_url, 0, 0 );
@@ -784,9 +784,9 @@ int slapd_daemon_init( const char *urls )
 	char **u;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "connection", LDAP_LEVEL_ARGS,
-                   "slapd_daemon_init: %s\n",
-                   urls ? urls : "<null>" ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_ARGS,
+		   "slapd_daemon_init: %s\n",
+		   urls ? urls : "<null>" ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
 		urls ? urls : "<null>", 0, 0 );
@@ -816,8 +816,8 @@ int slapd_daemon_init( const char *urls )
 	 */
 	if( (rc = lutil_pair( wake_sds )) < 0 ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                       "slap_daemon_init: lutil_pair() failed rc=%d\n", rc ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+			   "slap_daemon_init: lutil_pair() failed rc=%d\n", rc ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
@@ -836,8 +836,8 @@ int slapd_daemon_init( const char *urls )
 
 	if( u == NULL || u[0] == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                       "slap_daemon_init: no urls (%s) provided.\n", urls ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+			   "slap_daemon_init: no urls (%s) provided.\n", urls ));
 #else
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no urls (%s) provided.\n",
 			urls, 0, 0 );
@@ -847,8 +847,8 @@ int slapd_daemon_init( const char *urls )
 
 	for( i=0; u[i] != NULL; i++ ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-                       "slap_daemon_init: listen on %s\n.", u[i] ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
+			   "slap_daemon_init: listen on %s\n.", u[i] ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "daemon_init: listen on %s\n",
 			u[i], 0, 0 );
@@ -857,8 +857,8 @@ int slapd_daemon_init( const char *urls )
 
 	if( i == 0 ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                       "slap_daemon_init: no listeners to open (%s)\n", urls ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+			   "slap_daemon_init: no listeners to open (%s)\n", urls ));
 #else
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no listeners to open (%s)\n",
 			urls, 0, 0 );
@@ -868,8 +868,8 @@ int slapd_daemon_init( const char *urls )
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                   "slap_daemon_init: %d listeners to open...\n", i ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+		   "slap_daemon_init: %d listeners to open...\n", i ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners to open...\n",
 		i, 0, 0 );
@@ -887,8 +887,8 @@ int slapd_daemon_init( const char *urls )
 	slap_listeners[i] = NULL;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-                   "slap_daemon_init: %d listeners opened\n", i ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
+		   "slap_daemon_init: %d listeners opened\n", i ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened\n",
 		i, 0, 0 );
@@ -938,9 +938,9 @@ slapd_daemon_task(
 		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN ) == -1 ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                                   "slapd_daemon_task: listen( %s, 5 ) failed errno=%d (%s)\n",
-                                   slap_listeners[l]->sl_url, err, sock_errstr(err) ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+				   "slapd_daemon_task: listen( %s, 5 ) failed errno=%d (%s)\n",
+				   slap_listeners[l]->sl_url, err, sock_errstr(err) ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
@@ -977,7 +977,7 @@ slapd_daemon_task(
 		Sockaddr		from;
 
 #if defined(SLAPD_RLOOKUPS)
-        struct hostent		*hp;
+	struct hostent		*hp;
 #endif
 		struct timeval		zero;
 		struct timeval		*tvp;
@@ -1041,9 +1041,9 @@ slapd_daemon_task(
 				continue;
 
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-                                   "slapd_daemon_task: select: listen=%d active_threads=%d tvp=%s\n",
-                                   slap_listeners[l]->sl_sd, at, tvp == NULL ? "NULL" : "zero" ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
+				   "slapd_daemon_task: select: listen=%d active_threads=%d tvp=%s\n",
+				   slap_listeners[l]->sl_sd, at, tvp == NULL ? "NULL" : "zero" ));
 #else
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: select: listen=%d active_threads=%d tvp=%s\n",
@@ -1076,9 +1076,9 @@ slapd_daemon_task(
 
 				if( err != EINTR ) {
 #ifdef NEW_LOGGING
-                                    LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                                               "slapd_daemon_task: select failed (%d): %s\n",
-                                               err, sock_errstr(err) ));
+					LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+						   "slapd_daemon_task: select failed (%d): %s\n",
+						   err, sock_errstr(err) ));
 #else
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
@@ -1092,13 +1092,13 @@ slapd_daemon_task(
 		case 0:		/* timeout - let threads run */
 			ebadf = 0;
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                                   "slapd_daemon_task: select timeout - yielding\n" ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+				   "slapd_daemon_task: select timeout - yielding\n" ));
 #else
 			Debug( LDAP_DEBUG_CONNS, "daemon: select timeout - yielding\n",
 			    0, 0, 0 );
 #endif
-	     	ldap_pvt_thread_yield();
+		ldap_pvt_thread_yield();
 			continue;
 
 		default:	/* something happened - deal with it */
@@ -1106,8 +1106,8 @@ slapd_daemon_task(
 
 			ebadf = 0;
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                                   "slapd_daemon_task: activity on %d descriptors\n", ns ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+				   "slapd_daemon_task: activity on %d descriptors\n", ns ));
 #else
 			Debug( LDAP_DEBUG_CONNS, "daemon: activity on %d descriptors\n",
 				ns, 0, 0 );
@@ -1154,9 +1154,9 @@ slapd_daemon_task(
 			if ( s == AC_SOCKET_INVALID ) {
 				int err = sock_errno();
 #ifdef NEW_LOGGING
-                                LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                                           "slapd_daemon_task: accept(%ld) failed errno=%d (%s)\n",
-                                           (long)slap_listeners[l]->sl_sd, err, sock_errstr(err) ));
+				LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+					   "slapd_daemon_task: accept(%ld) failed errno=%d (%s)\n",
+					   (long)slap_listeners[l]->sl_sd, err, sock_errstr(err) ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 				    "daemon: accept(%ld) failed errno=%d (%s)\n",
@@ -1170,9 +1170,9 @@ slapd_daemon_task(
 			/* make sure descriptor number isn't too great */
 			if ( s >= dtblsize ) {
 #ifdef NEW_LGGING
-                            LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                                       "slapd_daemon_task: %ld beyond descriptor table size %ld\n",
-                                       (long)s, (long)dtblsize ));
+				LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+					   "slapd_daemon_task: %ld beyond descriptor table size %ld\n",
+					   (long)s, (long)dtblsize ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: %ld beyond descriptor table size %ld\n",
@@ -1210,9 +1210,9 @@ slapd_daemon_task(
 				if ( rc == AC_SOCKET_ERROR ) {
 					int err = sock_errno();
 #ifdef NEW_LOGGING
-                                        LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                                                   "slapd_daemon_task: setsockopt( %ld, SO_KEEPALIVE) failed errno=%d (%s)\n",
-                                                   (long)s, err, sock_errstr(err) ));
+					LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+						   "slapd_daemon_task: setsockopt( %ld, SO_KEEPALIVE) failed errno=%d (%s)\n",
+						   (long)s, err, sock_errstr(err) ));
 #else
 					Debug( LDAP_DEBUG_ANY,
 						"slapd(%ld): setsockopt(SO_KEEPALIVE) failed "
@@ -1228,9 +1228,9 @@ slapd_daemon_task(
 				if ( rc == AC_SOCKET_ERROR ) {
 					int err = sock_errno();
 #ifdef NEW_LOGGING
-                                        LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                                                   "slapd_daemon_task: setsockopt( %ld, TCP_NODELAY) failed errno=%d (%s)\n",
-                                                   (long)s, err, sock_errstr(err) ));
+					LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+						   "slapd_daemon_task: setsockopt( %ld, TCP_NODELAY) failed errno=%d (%s)\n",
+						   (long)s, err, sock_errstr(err) ));
 #else
 					Debug( LDAP_DEBUG_ANY,
 						"slapd(%ld): setsockopt(TCP_NODELAY) failed "
@@ -1242,8 +1242,8 @@ slapd_daemon_task(
 #endif
 
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-                                   "slapd_daemon_task: new connection on %ld\n", (long)s ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
+				   "slapd_daemon_task: new connection on %ld\n", (long)s ));
 #else
 			Debug( LDAP_DEBUG_CONNS, "daemon: new connection on %ld\n",
 				(long) s, 0, 0 );
@@ -1346,9 +1346,9 @@ slapd_daemon_task(
 
 			if( id < 0 ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-                                       "slapd_daemon_task: connection_init(%ld, %s, %s) failed.\n",
-                                       (long)s, peername, slap_listeners[l]->sl_name ));
+				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+					   "slapd_daemon_task: connection_init(%ld, %s, %s) failed.\n",
+					   (long)s, peername, slap_listeners[l]->sl_name ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: connection_init(%ld, %s, %s) failed.\n",
@@ -1373,16 +1373,16 @@ slapd_daemon_task(
 
 #ifdef LDAP_DEBUG
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                           "slapd_daemon_task: activity on " ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+			   "slapd_daemon_task: activity on " ));
 #else
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
 #endif
 #ifdef HAVE_WINSOCK
 		for ( i = 0; i < readfds.fd_count; i++ ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                               " %d%s", readfs.fd_array[i], "r", 0 );
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+				   " %d%s", readfs.fd_array[i], "r", 0 );
 #else
 			Debug( LDAP_DEBUG_CONNS, " %d%s",
 				readfds.fd_array[i], "r", 0 );
@@ -1390,8 +1390,8 @@ slapd_daemon_task(
 		}
 		for ( i = 0; i < writefds.fd_count; i++ ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                               " %d%s", writefds.fd_array[i], "w" ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+				   " %d%s", writefds.fd_array[i], "w" ));
 #else
 			Debug( LDAP_DEBUG_CONNS, " %d%s",
 				writefds.fd_array[i], "w", 0 );
@@ -1416,9 +1416,9 @@ slapd_daemon_task(
 			w = FD_ISSET( i, &writefds );
 			if ( r || w ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                                       " %d%s%s", i,
-                                       r ? "r" : "", w ? "w" : "" ));
+				LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+					   " %d%s%s", i,
+					   r ? "r" : "", w ? "w" : "" ));
 #else
 				Debug( LDAP_DEBUG_CONNS, " %d%s%s", i,
 				    r ? "r" : "", w ? "w" : "" );
@@ -1427,7 +1427,7 @@ slapd_daemon_task(
 		}
 #endif
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2, "\n" ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2, "\n" ));
 #else
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
 #endif
@@ -1462,8 +1462,8 @@ slapd_daemon_task(
 				continue;
 			}
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                                   "slapd_daemon_task: write active on %d\n", wd ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+				   "slapd_daemon_task: write active on %d\n", wd ));
 #else
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: write active on %d\n",
@@ -1511,8 +1511,8 @@ slapd_daemon_task(
 			}
 
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
-                                   "slapd_daemon_task: read activity on %d\n", rd ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL2,
+				   "slapd_daemon_task: read activity on %d\n", rd ));
 #else
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
@@ -1533,8 +1533,8 @@ slapd_daemon_task(
 
 	if( slapd_shutdown > 0 ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
-                       "slapd_daemon_task: shutdown requested and initiated.\n"));
+		LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
+			   "slapd_daemon_task: shutdown requested and initiated.\n"));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"daemon: shutdown requested and initiated.\n",
@@ -1544,32 +1544,36 @@ slapd_daemon_task(
 	} else if ( slapd_shutdown < 0 ) {
 #ifdef HAVE_NT_SERVICE_MANAGER
 		if (slapd_shutdown == -1)
+		{
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
-                               "slapd_daemon_task: shutdown initiated by Service Manager.\n"));
+			LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
+				   "slapd_daemon_task: shutdown initiated by Service Manager.\n"));
 #else
-		    Debug( LDAP_DEBUG_TRACE,
-			  "daemon: shutdown initiated by Service Manager.\n",
-			  0, 0, 0);
+			Debug( LDAP_DEBUG_TRACE,
+			       "daemon: shutdown initiated by Service Manager.\n",
+			       0, 0, 0);
 #endif
+		}
 		else
 #endif
+		{
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
-                               "slapd_daemon_task: abnormal condition, shutdown initiated.\n" ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
+				   "slapd_daemon_task: abnormal condition, shutdown initiated.\n" ));
 #else
-		Debug( LDAP_DEBUG_TRACE,
-			"daemon: abnormal condition, shutdown initiated.\n",
-			0, 0, 0 );
+			Debug( LDAP_DEBUG_TRACE,
+			       "daemon: abnormal condition, shutdown initiated.\n",
+			       0, 0, 0 );
 #endif
+		}
 	} else {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
-                       "slapd_daemon_task: no active streams, shutdown initiated.\n" ));
+		LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
+			   "slapd_daemon_task: no active streams, shutdown initiated.\n" ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"daemon: no active streams, shutdown initiated.\n",
-			0, 0, 0 );
+		       "daemon: no active streams, shutdown initiated.\n",
+		       0, 0, 0 );
 #endif
 	}
 
@@ -1586,9 +1590,9 @@ slapd_daemon_task(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
-                   "slapd_daemon_task: shutdown waiting for %d threads to terminate.\n",
-                   ldap_pvt_thread_pool_backload(&connection_pool) ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
+		   "slapd_daemon_task: shutdown waiting for %d threads to terminate.\n",
+		   ldap_pvt_thread_pool_backload(&connection_pool) ));
 #else
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",
@@ -1617,18 +1621,18 @@ int slapd_daemon( void )
 
 		if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-                               "slapd_daemon: listener ldap_pvt_thread_create failed (%d).\n", rc ));
+			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+				   "slapd_daemon: listener ldap_pvt_thread_create failed (%d).\n", rc ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-		    	"listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
+			"listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
 #endif
 			return rc;
 		}
 
 		/* wait for the listener thread to complete */
 		ldap_pvt_thread_join( listener_tid, (void *) NULL );
- 	}
+	}
 #else
 	/* experimental code */
 	slapd_daemon_task( NULL );
@@ -1650,21 +1654,21 @@ int sockinit(void)
 	err = WSAStartup( wVersionRequested, &wsaData );
 	if ( err != 0 ) {
 		/* Tell the user that we couldn't find a usable */
-		/* WinSock DLL.                                  */
+		/* WinSock DLL.					 */
 		return -1;
 	}
 
 	/* Confirm that the WinSock DLL supports 2.0.*/
 	/* Note that if the DLL supports versions greater    */
 	/* than 2.0 in addition to 2.0, it will still return */
-	/* 2.0 in wVersion since that is the version we      */
-	/* requested.                                        */
+	/* 2.0 in wVersion since that is the version we	     */
+	/* requested.					     */
 
 	if ( LOBYTE( wsaData.wVersion ) != 2 ||
 		HIBYTE( wsaData.wVersion ) != 0 )
 	{
 	    /* Tell the user that we couldn't find a usable */
-	    /* WinSock DLL.                                  */
+	    /* WinSock DLL.				     */
 	    WSACleanup();
 	    return -1;
 	}
@@ -1691,8 +1695,8 @@ RETSIGTYPE
 slap_sig_shutdown( int sig )
 {
 #ifdef NEW_LOGGING
-    LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
-               "slap_sig_shutdown: signal %d\n", sig ));
+	LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
+		   "slap_sig_shutdown: signal %d\n", sig ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: signal %d\n", sig, 0, 0);
 #endif
@@ -1706,8 +1710,8 @@ slap_sig_shutdown( int sig )
 #if HAVE_NT_SERVICE_MANAGER && SIGBREAK
 	if (is_NT_Service && sig == SIGBREAK)
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
-                       "slap_sig_shutdown: SIGBREAK ignored.\n" ));
+	    LDAP_LOG(( "connection", LDAP_LEVEL_CRIT,
+		       "slap_sig_shutdown: SIGBREAK ignored.\n" ));
 #else
 	    Debug(LDAP_DEBUG_TRACE, "slap_sig_shutdown: SIGBREAK ignored.\n",
 		  0, 0, 0);

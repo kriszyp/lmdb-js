@@ -44,8 +44,8 @@ do_compare(
 	value.bv_val = NULL;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-                   "do_compare: conn %d\n", conn->c_connid ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+		   "do_compare: conn %d\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
 #endif
@@ -63,8 +63,8 @@ do_compare(
 
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -75,8 +75,8 @@ do_compare(
 
 	if ( ber_scanf( op->o_ber, "{oo}", &desc, &value ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_compare: conn %d  get ava failed\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_compare: conn %d  get ava failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
 #endif
@@ -88,8 +88,8 @@ do_compare(
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -101,8 +101,8 @@ do_compare(
 
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                       "do_compare: conn %d  get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			   "do_compare: conn %d  get_ctrls failed\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -113,9 +113,9 @@ do_compare(
 
 	if( dn_normalize( ndn ) == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                       "do_compare: conn %d  invalid dn (%s)\n",
-                       conn->c_connid, dn ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			   "do_compare: conn %d  invalid dn (%s)\n",
+			   conn->c_connid, dn ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
 #endif
@@ -126,9 +126,9 @@ do_compare(
 
 	if( ndn == '\0' ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                       "do_compare: conn %d  compare to root DSE!\n",
-                       conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			   "do_compare: conn %d  compare to root DSE!\n",
+			   conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_compare: root dse!\n", 0, 0, 0 );
 #endif
@@ -190,10 +190,10 @@ do_compare(
 	ava.aa_value = nvalue;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-                   "do_compare: conn %d  dn (%s) attr(%s) value (%s)\n",
-                   conn->c_connid, dn, ava.aa_desc->ad_cname->bv_val,
-                   ava.aa_value->bv_val ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+		   "do_compare: conn %d	 dn (%s) attr(%s) value (%s)\n",
+		   conn->c_connid, dn, ava.aa_desc->ad_cname->bv_val,
+		   ava.aa_value->bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    dn, ava.aa_desc->ad_cname->bv_val, ava.aa_value->bv_val );

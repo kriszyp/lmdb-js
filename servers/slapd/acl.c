@@ -90,12 +90,12 @@ access_allowed(
 
 	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
 
-	regmatch_t       matches[MAXREMATCHES];
+	regmatch_t	 matches[MAXREMATCHES];
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
-                   "access_allowed: conn %d %s access to \"%s\" \"%s\" requested\n",
-                   conn->c_connid, access2str( access ), e->e_dn, attr ));
+	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
+		   "access_allowed: conn %d %s access to \"%s\" \"%s\" requested\n",
+		   conn->c_connid, access2str( access ), e->e_dn, attr ));
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"=> access_allowed: %s access to \"%s\" \"%s\" requested\n",
@@ -111,9 +111,9 @@ access_allowed(
 	/* grant database root access */
 	if ( be != NULL && be_isroot( be, op->o_ndn ) ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
-                       "access_allowed: conn %d root access granted\n",
-                       conn->c_connid));
+		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
+		       "access_allowed: conn %d root access granted\n",
+		       conn->c_connid));
 #else
 		Debug( LDAP_DEBUG_ACL,
 		    "<= root access granted\n",
@@ -132,11 +132,11 @@ access_allowed(
 		&& desc != slap_schema.si_ad_children )
 	{
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                       "access_allowed: conn %d NoUserMod Operational attribute: %s access granted\n",
-                       conn->c_connid, attr ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+		       "access_allowed: conn %d NoUserMod Operational attribute: %s access granted\n",
+		       conn->c_connid, attr ));
 #else
- 		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
+		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 			" %s access granted\n",
 			attr, 0, 0 );
 #endif
@@ -146,10 +146,10 @@ access_allowed(
 	/* use backend default access if no backend acls */
 	if( be != NULL && be->be_acl == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                       "access_allowed: conn %d backend default %s access %s to \"%s\"\n",
-                       conn->c_connid, access2str( access ),
-                       be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+		       "access_allowed: conn %d backend default %s access %s to \"%s\"\n",
+		       conn->c_connid, access2str( access ),
+		       be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
@@ -163,10 +163,10 @@ access_allowed(
 	/* use global default access if no global acls */
 	} else if ( be == NULL && global_acl == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                       "access_allowed: conn %d global default %s access %s to \"%s\"\n",
-                       conn->c_connid, access2str( access ),
-                       global_default_access >= access ? "granted" : "denied", op->o_dn ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+		       "access_allowed: conn %d global default %s access %s to \"%s\"\n",
+		       conn->c_connid, access2str( access ),
+		       global_default_access >= access ? "granted" : "denied", op->o_dn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: global default %s access %s to \"%s\"\n",
@@ -190,9 +190,9 @@ access_allowed(
 
 		for (i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "access_allowed: conn %d match[%d]:  %d %d ",
-                               conn->c_connid, i, (int)matches[i].rm_so, (int)matches[i].rm_eo ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+			       "access_allowed: conn %d match[%d]:  %d %d ",
+			       conn->c_connid, i, (int)matches[i].rm_so, (int)matches[i].rm_eo ));
 #else
 			Debug( LDAP_DEBUG_ACL, "=> match[%d]: %d %d ", i,
 			       (int)matches[i].rm_so, (int)matches[i].rm_eo );
@@ -204,7 +204,7 @@ access_allowed(
 				}
 			}
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "acl", LDAP_LEVEL_ARGS, "\n" ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_ARGS, "\n" ));
 #else
 			Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 #endif
@@ -222,9 +222,9 @@ access_allowed(
 
 	if ( ACL_IS_INVALID( mask ) ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                       "access_allowed: conn %d  \"%s\" (%s) invalid!\n",
-                       conn->c_connid, e->e_dn, attr ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+		       "access_allowed: conn %d	 \"%s\" (%s) invalid!\n",
+		       conn->c_connid, e->e_dn, attr ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: \"%s\" (%s) invalid!\n",
@@ -234,8 +234,8 @@ access_allowed(
 
 	} else if ( control == ACL_BREAK ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                       "access_allowed: conn %d  no more rules\n", conn->c_connid ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+		       "access_allowed: conn %d	 no more rules\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: no more rules\n", 0, 0, 0);
@@ -244,11 +244,11 @@ access_allowed(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
-                   "access_allowed: conn %d  %s access %s by %s\n",
-                   access2str( access ),
-                   ACL_GRANT( mask, access ) ? "granted" : "denied",
-                   accessmask2str( mask, accessmaskbuf ) ));
+	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
+		   "access_allowed: conn %d  %s access %s by %s\n",
+		   access2str( access ),
+		   ACL_GRANT( mask, access ) ? "granted" : "denied",
+		   accessmask2str( mask, accessmaskbuf ) ));
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"=> access_allowed: %s access %s by %s\n",
@@ -305,9 +305,9 @@ acl_get(
 		if (a->acl_dn_pat != NULL) {
 			if ( a->acl_dn_style == ACL_STYLE_REGEX ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                                       "acl_get: dnpat [%d] %s nsub: %d\n",
-                                       *count, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub ));
+				LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+					   "acl_get: dnpat [%d] %s nsub: %d\n",
+					   *count, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub ));
 #else
 				Debug( LDAP_DEBUG_ACL, "=> dnpat: [%d] %s nsub: %d\n", 
 					*count, a->acl_dn_pat, (int) a->acl_dn_re.re_nsub );
@@ -317,9 +317,9 @@ acl_get(
 
 			} else {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                                       "acl_get: dn [%d] %s\n",
-                                       *count, a->acl_dn_pat ));
+				LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+					   "acl_get: dn [%d] %s\n",
+					   *count, a->acl_dn_pat ));
 #else
 				Debug( LDAP_DEBUG_ACL, "=> dn: [%d] %s\n", 
 					*count, a->acl_dn_pat, 0 );
@@ -367,9 +367,9 @@ acl_get(
 			}
 
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                                   "acl_get: [%d] matched\n",
-                                   *count ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_get: [%d] matched\n",
+				   *count ));
 #else
 			Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] matched\n",
 				*count, 0, 0 );
@@ -384,20 +384,20 @@ acl_get(
 		}
 
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                           "acl_get: [%d] check attr %s\n",
-                           *count, attr ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+			   "acl_get: [%d] check attr %s\n",
+			   *count, attr ));
 #else
-        Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] check attr %s\n",
-			*count, attr, 0);
+		Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] check attr %s\n",
+		       *count, attr, 0);
 #endif
 		if ( attr == NULL || a->acl_attrs == NULL ||
 			ad_inlist( desc, a->acl_attrs ) )
 		{
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_get:  [%d] acl %s attr: %s\n",
-                               *count, e->e_dn, attr ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_get:  [%d] acl %s attr: %s\n",
+				   *count, e->e_dn, attr ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"<= acl_get: [%d] acl %s attr: %s\n",
@@ -409,8 +409,8 @@ acl_get(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
-                   "acl_get: done.\n" ));
+	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
+		   "acl_get: done.\n" ));
 #else
 	Debug( LDAP_DEBUG_ACL, "<= acl_get: done.\n", 0, 0, 0 );
 #endif
@@ -451,15 +451,15 @@ acl_mask(
 	assert( mask != NULL );
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
-                   "acl_mask: conn %d  access to entry \"%s\", attr \"%s\" requested\n",
-                   conn->c_connid, e->e_dn, attr ));
+	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
+		   "acl_mask: conn %d  access to entry \"%s\", attr \"%s\" requested\n",
+		   conn->c_connid, e->e_dn, attr ));
 
-        LDAP_LOG(( "acl", LDAP_LEVEL_ARGS,
-                   " to %s by \"%s\", (%s) \n",
-                   val ? "value" : "all values",
-                   op->o_ndn ? op->o_ndn : "",
-                   accessmask2str( *mask, accessmaskbuf ) ));
+	LDAP_LOG(( "acl", LDAP_LEVEL_ARGS,
+		   " to %s by \"%s\", (%s) \n",
+		   val ? "value" : "all values",
+		   op->o_ndn ? op->o_ndn : "",
+		   accessmask2str( *mask, accessmaskbuf ) ));
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"=> acl_mask: access to entry \"%s\", attr \"%s\" requested\n",
@@ -480,9 +480,9 @@ acl_mask(
 		/* AND <who> clauses */
 		if ( b->a_dn_pat != NULL ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_dn_pat: %s\n",
-                               conn->c_connid, b->a_dn_pat ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_dn_pat: %s\n",
+				   conn->c_connid, b->a_dn_pat ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_pat: %s\n",
 				b->a_dn_pat, 0, 0);
@@ -572,9 +572,9 @@ acl_mask(
 
 		if ( b->a_sockurl_pat != NULL ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_sockurl_pat: %s\n",
-                               conn->c_connid, b->a_sockurl_pat ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_sockurl_pat: %s\n",
+				   conn->c_connid, b->a_sockurl_pat ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockurl_pat: %s\n",
 				b->a_sockurl_pat, 0, 0 );
@@ -596,9 +596,9 @@ acl_mask(
 
 		if ( b->a_domain_pat != NULL ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_domain_pat: %s\n",
-                               conn->c_connid, b->a_domain_pat ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_domain_pat: %s\n",
+				   conn->c_connid, b->a_domain_pat ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_domain_pat: %s\n",
 				b->a_domain_pat, 0, 0 );
@@ -619,9 +619,9 @@ acl_mask(
 
 		if ( b->a_peername_pat != NULL ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_perrname_path: %s\n",
-                               conn->c_connid, b->a_peername_pat ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_perrname_path: %s\n",
+				   conn->c_connid, b->a_peername_pat ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
 				b->a_peername_pat, 0, 0 );
@@ -642,9 +642,9 @@ acl_mask(
 
 		if ( b->a_sockname_pat != NULL ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_sockname_path: %s\n",
-                               conn->c_connid, b->a_sockname_pat ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_sockname_path: %s\n",
+				   conn->c_connid, b->a_sockname_pat ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockname_path: %s\n",
 				b->a_sockname_pat, 0, 0 );
@@ -671,9 +671,9 @@ acl_mask(
 			const char *desc = b->a_dn_at->ad_cname->bv_val;
 
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                                   "acl_mask: conn %d  check a_dn_pat: %s\n",
-                                   conn->c_connid, desc ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_dn_pat: %s\n",
+				   conn->c_connid, desc ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
 				desc, 0, 0);
@@ -771,9 +771,9 @@ acl_mask(
 
 		if ( b->a_authz.sai_ssf ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_authz.sai_ssf: ACL %u > OP %u\n",
-                               conn->c_connid, b->a_authz.sai_ssf, op->o_ssf ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_authz.sai_ssf: ACL %u > OP %u\n",
+				   conn->c_connid, b->a_authz.sai_ssf, op->o_ssf ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_authz.sai_ssf: ACL %u > OP %u\n",
 				b->a_authz.sai_ssf, op->o_ssf, 0 );
@@ -785,9 +785,9 @@ acl_mask(
 
 		if ( b->a_authz.sai_transport_ssf ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_authz.sai_transport_ssf: ACL %u > OP %u\n",
-                               conn->c_connid, b->a_authz.sai_transport_ssf, op->o_transport_ssf ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_authz.sai_transport_ssf: ACL %u > OP %u\n",
+				   conn->c_connid, b->a_authz.sai_transport_ssf, op->o_transport_ssf ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_transport_ssf: ACL %u > OP %u\n",
@@ -800,9 +800,9 @@ acl_mask(
 
 		if ( b->a_authz.sai_tls_ssf ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d  check a_authz.sai_tls_ssf: ACL %u > OP %u\n",
-                               conn->c_connid, b->a_authz.sai_tls_ssf, op->o_tls_ssf ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d  check a_authz.sai_tls_ssf: ACL %u > OP %u\n",
+				   conn->c_connid, b->a_authz.sai_tls_ssf, op->o_tls_ssf ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_tls_ssf: ACL %u > OP %u\n",
@@ -815,15 +815,15 @@ acl_mask(
 
 		if ( b->a_authz.sai_sasl_ssf ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                               "acl_mask: conn %d check a_authz.sai_sasl_ssf: ACL %u > OP %u\n",
-                               conn->c_connid, b->a_authz.sai_sasl_ssf, op->o_sasl_ssf ));
+			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+				   "acl_mask: conn %d check a_authz.sai_sasl_ssf: ACL %u > OP %u\n",
+				   conn->c_connid, b->a_authz.sai_sasl_ssf, op->o_sasl_ssf ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"<= check a_authz.sai_sasl_ssf: ACL %u > OP %u\n",
 				b->a_authz.sai_sasl_ssf, op->o_sasl_ssf, 0 );
 #endif
-			if ( b->a_authz.sai_sasl_ssf >  op->o_sasl_ssf ) {
+			if ( b->a_authz.sai_sasl_ssf >	op->o_sasl_ssf ) {
 				continue;
 			}
 		}
@@ -890,7 +890,7 @@ acl_mask(
 			 * by clauses that return grant/deny pairs.  Right now, it does either
 			 * additive or subtractive rights, but not both at the same time.  So,
 			 * we need to combine the grant/deny pair into a single rights mask in
-			 * a smart way:  if either grant or deny is "empty", then we use the
+			 * a smart way:	 if either grant or deny is "empty", then we use the
 			 * opposite as is, otherwise we remove any denied rights from the grant
 			 * rights mask and construct an additive mask.
 			 */
@@ -911,11 +911,11 @@ acl_mask(
 		}
 
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "acl", LDAP_LEVEL_RESULTS,
-                           "acl_mask: conn %d  [%d] applying %s (%s)\n",
-                           conn->c_connid, i, accessmask2str( modmask, accessmaskbuf),
-                           b->a_type == ACL_CONTINUE ? "continue" : b->a_type == ACL_BREAK
-                           ? "break" : "stop" ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_RESULTS,
+			   "acl_mask: conn %d  [%d] applying %s (%s)\n",
+			   conn->c_connid, i, accessmask2str( modmask, accessmaskbuf),
+			   b->a_type == ACL_CONTINUE ? "continue" : b->a_type == ACL_BREAK
+			   ? "break" : "stop" ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] applying %s (%s)\n",
@@ -949,9 +949,9 @@ acl_mask(
 		}
 
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-                           "acl_mask: conn %d  [%d] mask: %s\n",
-                           conn->c_connid, i, accessmask2str( *mask, accessmaskbuf) ));
+		LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
+			   "acl_mask: conn %d  [%d] mask: %s\n",
+			   conn->c_connid, i, accessmask2str( *mask, accessmaskbuf) ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
@@ -970,9 +970,9 @@ acl_mask(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "aci", LDAP_LEVEL_RESULTS,
-                   "acl_mask: conn %d  no more <who> clauses, returning %d (stop)\n",
-                   conn->c_connid, accessmask2str( *mask, accessmaskbuf) ));
+	LDAP_LOG(( "aci", LDAP_LEVEL_RESULTS,
+		   "acl_mask: conn %d  no more <who> clauses, returning %d (stop)\n",
+		   conn->c_connid, accessmask2str( *mask, accessmaskbuf) ));
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
@@ -1004,9 +1004,9 @@ acl_check_modlist(
 	/* short circuit root database access */
 	if ( be_isroot( be, op->o_ndn ) ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-                       "acl_check_modlist: conn %d  access granted to root user\n",
-                       conn->c_connid ));
+		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
+			   "acl_check_modlist: conn %d  access granted to root user\n",
+			   conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_access_allowed: granted to database root\n",
@@ -1018,10 +1018,10 @@ acl_check_modlist(
 	/* use backend default access if no backend acls */
 	if( be != NULL && be->be_acl == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-                       "acl_check_modlist: conn %d  backend default %s access %s to \"%s\"\n",
-                       conn->c_connid, access2str( ACL_WRITE ),
-                       be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn ));
+		LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
+			   "acl_check_modlist: conn %d  backend default %s access %s to \"%s\"\n",
+			   conn->c_connid, access2str( ACL_WRITE ),
+			   be->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
@@ -1035,10 +1035,10 @@ acl_check_modlist(
 	/* use global default access if no global acls */
 	} else if ( be == NULL && global_acl == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-                       "acl_check_modlist: conn %d  global default %s access %s to \"%s\"\n",
-                       conn->c_connid, access2str( ACL_WRITE ),
-                       global_default_access >= ACL_WRITE ? "granted" : "denied", op->o_dn ));
+		LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
+			   "acl_check_modlist: conn %d  global default %s access %s to \"%s\"\n",
+			   conn->c_connid, access2str( ACL_WRITE ),
+			   global_default_access >= ACL_WRITE ? "granted" : "denied", op->o_dn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: global default %s access %s to \"%s\"\n",
@@ -1057,11 +1057,11 @@ acl_check_modlist(
 		 */
 		if ( is_at_no_user_mod( mlist->sml_desc->ad_type ) ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-                               "acl_check_modlist: conn %d  no-user-mod %s: modify access granted\n",
-                               conn->c_connid, mlist->sml_desc->ad_cname->bv_val ));
+			LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
+				   "acl_check_modlist: conn %d  no-user-mod %s: modify access granted\n",
+				   conn->c_connid, mlist->sml_desc->ad_cname->bv_val ));
 #else
- 			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
+			Debug( LDAP_DEBUG_ACL, "acl: no-user-mod %s:"
 				" modify access granted\n",
 				mlist->sml_desc->ad_cname->bv_val, 0, 0 );
 #endif
@@ -1180,10 +1180,10 @@ char **
 aci_set_gather (void *cookie, char *name, char *attr)
 {
 	struct {
-    	Backend *be;
-    	Entry *e;
-    	Connection *conn;
-    	Operation *op;
+	Backend *be;
+	Entry *e;
+	Connection *conn;
+	Operation *op;
 	} *cp = (void *)cookie;
 	struct berval **bvals = NULL;
 	char **vals = NULL;
@@ -1235,10 +1235,10 @@ aci_match_set (
 	char *set = NULL;
 	int rc = 0;
 	struct {
-    	Backend *be;
-    	Entry *e;
-    	Connection *conn;
-    	Operation *op;
+	Backend *be;
+	Entry *e;
+	Connection *conn;
+	Operation *op;
 	} cookie;
 
 	if (setref == 0) {
@@ -1656,10 +1656,10 @@ string_expand(
 	char *match,
 	regmatch_t *matches)
 {
-	int     size;
+	int	size;
 	char   *sp;
 	char   *dp;
-	int     flag;
+	int	flag;
 
 	size = 0;
 	newbuf[0] = '\0';
@@ -1673,9 +1673,9 @@ string_expand(
 				*dp++ = '$';
 				size++;
 			} else if (*sp >= '0' && *sp <= '9' ) {
-				int     n;
-				int     i;
-				int     l;
+				int	n;
+				int	i;
+				int	l;
 
 				n = *sp - '0';
 				*dp = '\0';
@@ -1707,10 +1707,10 @@ string_expand(
 	*dp = '\0';
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-                   "string_expand:  pattern = %s\n", pat ));
-        LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-                   "string_expand:  expanded = %s\n", newbuf ));
+	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
+		   "string_expand:  pattern = %s\n", pat ));
+	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
+		   "string_expand:  expanded = %s\n", newbuf ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> string_expand: pattern:  %s\n", pat, 0, 0 );
 	Debug( LDAP_DEBUG_TRACE, "=> string_expand: expanded: %s\n", newbuf, 0, 0 );
@@ -1737,9 +1737,9 @@ regex_matches(
 		regerror(rc, &re, error, sizeof(error));
 
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "aci", LDAP_LEVEL_ERR,
-                           "regex_matches: compile( \"%s\", \"%s\") failed %s\n",
-                           pat, str, error ));
+		LDAP_LOG(( "aci", LDAP_LEVEL_ERR,
+			   "regex_matches: compile( \"%s\", \"%s\") failed %s\n",
+			   pat, str, error ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "compile( \"%s\", \"%s\") failed %s\n",
@@ -1752,14 +1752,14 @@ regex_matches(
 	regfree( &re );
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL2,
-                   "regex_matches: string:   %s\n", str ));
-        LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL2,
-                   "regex_matches: rc:  %d  %s\n",
-                   rc, rc ? "matches" : "no matches" ));
+	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL2,
+		   "regex_matches: string:   %s\n", str ));
+	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL2,
+		   "regex_matches: rc:	%d  %s\n",
+		   rc, rc ? "matches" : "no matches" ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	    "=> regex_matches: string:   %s\n", str, 0, 0 );
+	    "=> regex_matches: string:	 %s\n", str, 0, 0 );
 	Debug( LDAP_DEBUG_TRACE,
 	    "=> regex_matches: rc: %d %s\n",
 		rc, !rc ? "matches" : "no matches", 0 );

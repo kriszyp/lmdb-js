@@ -56,13 +56,13 @@
 
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
-#define directoryStringApproxMatch  	approxMatch
-#define directoryStringApproxIndexer 	approxIndexer
-#define directoryStringApproxFilter  	approxFilter
+#define directoryStringApproxMatch	approxMatch
+#define directoryStringApproxIndexer	approxIndexer
+#define directoryStringApproxFilter	approxFilter
 #define IA5StringApproxMatchOID			"1.3.6.1.4.1.4203.666.4.5"
-#define IA5StringApproxMatch  			approxMatch
+#define IA5StringApproxMatch			approxMatch
 #define IA5StringApproxIndexer			approxIndexer
-#define IA5StringApproxFilter  			approxFilter
+#define IA5StringApproxFilter			approxFilter
 
 /* orderring matching rules */
 #define caseIgnoreOrderingMatch			caseIgnoreMatch
@@ -133,7 +133,7 @@ int octetStringIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -187,7 +187,7 @@ int octetStringFilter(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value = (struct berval *) assertValue;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
@@ -290,9 +290,9 @@ dnMatch(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-                   "dnMatch: %d\n    %s\n    %s\n", match,
-                   value->bv_val, asserted->bv_val ));
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		   "dnMatch: %d\n    %s\n    %s\n", match,
+		   value->bv_val, asserted->bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
 	    match, value->bv_val, asserted->bv_val );
@@ -778,7 +778,7 @@ approxMatch(
 	/* Get a phonetic copy of each word */
 	words = (char **)ch_malloc( count * sizeof(char *) );
 	values = (char **)ch_malloc( count * sizeof(char *) );
-	for( c=val,i=0;  i<count;  i++,c+=strlen(c)+1 ) {
+	for( c=val,i=0;	 i<count;  i++,c+=strlen(c)+1 ) {
 		words[i] = c;
 		values[i] = phonetic(c);
 	}
@@ -868,7 +868,7 @@ approxIndexer(
 
 		/* Isolate how many words there are. There will be a key for each */
 		val = ch_strdup( values[j]->bv_val );
-		for( wordcount=0,c=val;  *c;  c++) {
+		for( wordcount=0,c=val;	 *c;  c++) {
 			len = strcspn(c, SLAPD_APPROX_DELIMITER);
 			if( len >= SLAPD_APPROX_WORDLEN ) wordcount++;
 			c+= len;
@@ -884,7 +884,7 @@ approxIndexer(
 		keys = newkeys;
 
 		/* Get a phonetic copy of each word */
-		for( c=val,i=0;  i<wordcount;  c+=len+1  ) {
+		for( c=val,i=0;	 i<wordcount;  c+=len+1	 ) {
 			len = strlen( c );
 			if( len < SLAPD_APPROX_WORDLEN ) continue;
 			keys[keycount] = (struct berval *)ch_malloc( sizeof(struct berval) );
@@ -932,7 +932,7 @@ approxFilter(
 	keys = (struct berval **)ch_malloc( (count + 1) * sizeof(struct berval *) );
 
 	/* Get a phonetic copy of each word */
-	for( c=val,i=0;  i<count; c+=len+1 ) {
+	for( c=val,i=0;	 i<count; c+=len+1 ) {
 		len = strlen(c);
 		if( len < SLAPD_APPROX_WORDLEN ) continue;
 		keys[i] = (struct berval *)ch_malloc( sizeof(struct berval) );
@@ -1196,7 +1196,7 @@ int caseExactIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -1250,7 +1250,7 @@ int caseExactFilter(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
@@ -1297,7 +1297,7 @@ int caseExactSubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -1459,7 +1459,7 @@ int caseExactSubstringsFilter(
 	size_t slen, mlen, klen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -1793,7 +1793,7 @@ int caseIgnoreIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -1850,7 +1850,7 @@ int caseIgnoreFilter(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
@@ -1901,7 +1901,7 @@ int caseIgnoreSubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -2067,7 +2067,7 @@ int caseIgnoreSubstringsFilter(
 	size_t slen, mlen, klen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -2619,7 +2619,7 @@ int caseExactIA5Indexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -2673,7 +2673,7 @@ int caseExactIA5Filter(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
@@ -2720,7 +2720,7 @@ int caseExactIA5SubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -2882,7 +2882,7 @@ int caseExactIA5SubstringsFilter(
 	size_t slen, mlen, klen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -3185,7 +3185,7 @@ int caseIgnoreIA5Indexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -3242,7 +3242,7 @@ int caseIgnoreIA5Filter(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
@@ -3293,7 +3293,7 @@ int caseIgnoreIA5SubstringsIndexer(
 	size_t slen, mlen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -3459,7 +3459,7 @@ int caseIgnoreIA5SubstringsFilter(
 	size_t slen, mlen, klen;
 	struct berval **keys;
 	HASH_CONTEXT   HASHcontext;
-	unsigned char   HASHdigest[HASH_BYTES];
+	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
 
@@ -3743,9 +3743,9 @@ objectIdentifierFirstComponentMatch(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-                   "objectIdentifierFirstComponentMatch: %d\n    %s\n    %s\n",
-                   match, value->bv_val, asserted->bv_val ));
+	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+		   "objectIdentifierFirstComponentMatch: %d\n	 %s\n	 %s\n",
+		   match, value->bv_val, asserted->bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "objectIdentifierFirstComponentMatch "
 		"%d\n\t\"%s\"\n\t\"%s\"\n",
@@ -3884,7 +3884,7 @@ check_time_syntax (struct berval *val,
 	}
 
 	switch ( tzoffset ) {
-	case -1: /* negativ offset to UTC, ie west of Greenwich  */
+	case -1: /* negativ offset to UTC, ie west of Greenwich	 */
 		parts[4] += parts[7];
 		parts[5] += parts[8];
 		for (part = 6; --part > 0; ) { /* offset is just hhmm, no seconds */

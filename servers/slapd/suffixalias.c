@@ -32,7 +32,7 @@ char *suffix_alias(
 	Backend *be,
 	char *dn )
 {
-	int 	i, dnLength;
+	int	i, dnLength;
 
 	if(dn == NULL) return NULL;
 	if(be == NULL) return dn;
@@ -64,9 +64,9 @@ char *suffix_alias(
 			strncpy( dn, oldDN, diff );
 			strcpy( &dn[diff], be->be_suffixAlias[i+1] );
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                                   "suffix_alias: converted \"%s\" to \"%s\"\n",
-                                   oldDN, dn ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+				   "suffix_alias: converted \"%s\" to \"%s\"\n",
+				   oldDN, dn ));
 #else
 			Debug( LDAP_DEBUG_ARGS,
 				"suffix_alias: converted \"%s\" to \"%s\"\n",

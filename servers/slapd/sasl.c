@@ -60,10 +60,10 @@ slap_sasl_log(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "SASL [conn=%d] %s: %s\n",
-                   conn ? conn->c_connid : -1,
-                   label, message ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "SASL [conn=%d] %s: %s\n",
+		   conn ? conn->c_connid : -1,
+		   label, message ));
 #else
 	Debug( level, "SASL [conn=%d] %s: %s\n",
 		conn ? conn->c_connid: -1,
@@ -89,10 +89,10 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_getdn: conn %d id=%s\n",
-                   conn ? conn->c_connid : -1,
-                   id ? (*id ? id : "<empty>") : "NULL" ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_getdn: conn %d id=%s\n",
+		   conn ? conn->c_connid : -1,
+		   id ? (*id ? id : "<empty>") : "NULL" ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s\n", 
       id?(*id?id:"<empty>"):"NULL",0,0 );
@@ -136,8 +136,8 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 		rc = sasl_getprop( ctx,	SASL_REALM, (void **)&c );
 		if( rc != SASL_OK ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-                               "slap_sasl_getdn: getprop(REALM) failed.\n" ));
+			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+				   "slap_sasl_getdn: getprop(REALM) failed.\n" ));
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"getdn: getprop(REALM) failed!\n", 0,0,0);
@@ -169,8 +169,8 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 		strcpy(	dn+len, ",cn=authzid" );
 		len += len1;
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                           "getdn: u:id converted to %s.\n", dn ));
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+			   "getdn: u:id converted to %s.\n", dn ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "getdn: u:id converted to %s\n", dn,0,0 );
 #endif
@@ -191,8 +191,8 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 				ch_free( c1 );
 			}
 #ifdef NEW_LOGGING
-                        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                                   "slap_sasl_getdn: dn:id converted to %s.\n", dn ));
+			LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+				   "slap_sasl_getdn: dn:id converted to %s.\n", dn ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n", dn,0,0 );
 #endif
@@ -200,7 +200,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 		}
 	}
 
-	if( ( flags & FLAG_GETDN_FINAL ) == 0 )  {
+	if( ( flags & FLAG_GETDN_FINAL ) == 0 )	 {
 		dn_normalize( dn );
 	}
 
@@ -225,11 +225,11 @@ slap_sasl_authorize(
 	*user = NULL;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sas_authorize: conn %d  authcid=\"%s\" authzid=\"%s\"\n",
-                   conn ? conn->c_connid : -1,
-                   authcid ? authcid : "<empty>",
-                   authzid ? authzid : "<empty>" ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sas_authorize: conn %d	 authcid=\"%s\" authzid=\"%s\"\n",
+		   conn ? conn->c_connid : -1,
+		   authcid ? authcid : "<empty>",
+		   authzid ? authzid : "<empty>" ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "SASL Authorize [conn=%ld]: "
 		"authcid=\"%s\" authzid=\"%s\"\n",
@@ -248,9 +248,9 @@ slap_sasl_authorize(
 	}
 	if( ( authzid == NULL ) || !strcmp( authcid,authzid ) ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                       "slap_sasl_authorize: conn %d  Using authcDN=%s\n",
-                       conn ? conn->c_connid : -1, authcDN ));
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+			   "slap_sasl_authorize: conn %d  Using authcDN=%s\n",
+			   conn ? conn->c_connid : -1, authcDN ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 		 "Using authcDN=%s\n", (long) (conn ? conn->c_connid : -1), authcDN,0 );
@@ -270,9 +270,9 @@ slap_sasl_authorize(
 	rc = slap_sasl_authorized( authcDN, authzDN );
 	if( rc ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
-                       "slap_sasl_authorize: conn %ld  authorization disallowed (%d)\n",
-                       (long)(conn ? conn->c_connid : -1), rc ));
+		LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
+			   "slap_sasl_authorize: conn %ld  authorization disallowed (%d)\n",
+			   (long)(conn ? conn->c_connid : -1), rc ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 			" authorization disallowed (%d)\n",
@@ -286,9 +286,9 @@ slap_sasl_authorize(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_authorize: conn %d authorization allowed\n",
-                   (long)(conn ? conn->c_connid : -1 ) );
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_authorize: conn %d authorization allowed\n",
+		   (long)(conn ? conn->c_connid : -1 ) );
 #else
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 		" authorization allowed\n",
@@ -368,8 +368,8 @@ int slap_sasl_init( void )
 
 	if( rc != SASL_OK ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
-                       "slap_sasl_init: init failed.\n" ));
+		LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
+			   "slap_sasl_init: init failed.\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
 			0, 0, 0 );
@@ -379,8 +379,8 @@ int slap_sasl_init( void )
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
-                   "slap_sasl_init: initialized!\n"));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
+		   "slap_sasl_init: initialized!\n"));
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_sasl_init: initialized!\n",
 		0, 0, 0 );
@@ -444,8 +444,8 @@ int slap_sasl_open( Connection *conn )
 
 	if( sc != SASL_OK ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-                       "slap_sasl_open: sasl_server_new failed: %d\n", sc ));
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+			   "slap_sasl_open: sasl_server_new failed: %d\n", sc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "sasl_server_new failed: %d\n",
 			sc, 0, 0 );
@@ -462,8 +462,8 @@ int slap_sasl_open( Connection *conn )
 
 		if( sc != SASL_OK ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-                               "slap_sasl_open: sasl_setprop failed: %d \n", sc ));
+			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+				   "slap_sasl_open: sasl_setprop failed: %d \n", sc ));
 #else
 			Debug( LDAP_DEBUG_ANY, "sasl_setprop failed: %d\n",
 				sc, 0, 0 );
@@ -537,8 +537,8 @@ char ** slap_sasl_mechs( Connection *conn )
 
 		if( sc != SASL_OK ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-                               "slap_sasl_mechs: sasl_listmech failed: %d\n", sc ));
+			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+				   "slap_sasl_mechs: sasl_listmech failed: %d\n", sc ));
 #else
 			Debug( LDAP_DEBUG_ANY, "slap_sasl_listmech failed: %d\n",
 				sc, 0, 0 );
@@ -575,11 +575,11 @@ int slap_sasl_close( Connection *conn )
 }
 
 int slap_sasl_bind(
-    Connection          *conn,
-    Operation           *op,  
-    const char          *dn,  
-    const char          *ndn,
-    struct berval       *cred,
+    Connection		*conn,
+    Operation		*op,  
+    const char		*dn,  
+    const char		*ndn,
+    struct berval	*cred,
 	char				**edn,
 	slap_ssf_t			*ssfp )
 {
@@ -593,11 +593,11 @@ int slap_sasl_bind(
 	int sc;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "sasl_bind: conn %ld dn=\"%s\" mech=%s datalen=%d\n",
-                   conn->c_connid, dn,
-                   conn->c_sasl_bind_in_progress ? "<continuing>" : conn->c_sasl_bind_mech,
-                   cred ? cred->bv_len : 0 ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "sasl_bind: conn %ld dn=\"%s\" mech=%s datalen=%d\n",
+		   conn->c_connid, dn,
+		   conn->c_sasl_bind_in_progress ? "<continuing>" : conn->c_sasl_bind_mech,
+		   cred ? cred->bv_len : 0 ));
 #else
 	Debug(LDAP_DEBUG_ARGS,
 	  "==> sasl_bind: dn=\"%s\" mech=%s datalen=%d\n", dn,
@@ -634,8 +634,8 @@ int slap_sasl_bind(
 
 		if ( sc != SASL_OK ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-                               "slap_sasl_bind: getprop(USERNAME) failed: %d\n", sc ));
+			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+				   "slap_sasl_bind: getprop(USERNAME) failed: %d\n", sc ));
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"slap_sasl_bind: getprop(USERNAME) failed!\n",
@@ -690,8 +690,8 @@ int slap_sasl_bind(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-                   "slap_sasl_bind: rc=%d\n", rc ));
+	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+		   "slap_sasl_bind: rc=%d\n", rc ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: rc=%d\n", rc, 0, 0);
 #endif

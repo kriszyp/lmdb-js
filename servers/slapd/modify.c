@@ -48,8 +48,8 @@ do_modify(
 	int manageDSAit;
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-                   "do_modify: enter\n" ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+		   "do_modify: enter\n" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 #endif
@@ -76,8 +76,8 @@ do_modify(
 
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_modify: ber_scanf failed\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_modify: ber_scanf failed\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -88,8 +88,8 @@ do_modify(
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-                   "do_modify: dn (%s)\n", dn ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+		   "do_modify: dn (%s)\n", dn ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
 #endif
@@ -119,9 +119,9 @@ do_modify(
 		case LDAP_MOD_ADD:
 			if ( (*modtail)->ml_bvalues == NULL ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                                       "do_modify: modify/add operation (%ld) requires values\n",
-                                       (long)mop ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+					   "do_modify: modify/add operation (%ld) requires values\n",
+					   (long)mop ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: modify/add operation (%ld) requires values\n",
@@ -143,9 +143,9 @@ do_modify(
 
 		default: {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                                       "do_modify: invalid modify operation (%ld)\n",
-                                       (long)mop ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+					   "do_modify: invalid modify operation (%ld)\n",
+					   (long)mop ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: invalid modify operation (%ld)\n",
@@ -166,8 +166,8 @@ do_modify(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_modify: get_ctrls failed\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_modify: get_ctrls failed\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -179,8 +179,8 @@ do_modify(
 
 	if(	dn_normalize( ndn ) == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_modify:  invalid dn (%s)\n", dn ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_modify:  invalid dn (%s)\n", dn ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
 #endif
@@ -192,8 +192,8 @@ do_modify(
 
 	if( ndn == '\0' ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "do_modify: attempt to modify root DSE.\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "do_modify: attempt to modify root DSE.\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
 #endif
@@ -205,18 +205,18 @@ do_modify(
 
 #ifdef LDAP_DEBUG
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                   "do_modify: modifications:\n" ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+		   "do_modify: modifications:\n" ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
 #endif
 
 	for ( tmp = modlist; tmp != NULL; tmp = tmp->ml_next ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                       "\t%s:  %s\n", tmp->ml_op == LDAP_MOD_ADD ?
-                       "add" : (tmp->ml_op == LDAP_MOD_DELETE ?
-                                "delete" : "replace"), tmp->ml_type ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+			   "\t%s:  %s\n", tmp->ml_op == LDAP_MOD_ADD ?
+			   "add" : (tmp->ml_op == LDAP_MOD_DELETE ?
+				    "delete" : "replace"), tmp->ml_type ));
 #else
 		Debug( LDAP_DEBUG_ARGS, "\t%s: %s\n",
 			tmp->ml_op == LDAP_MOD_ADD
@@ -407,9 +407,9 @@ int slap_modlist2mods(
 
 			if( !validate ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                                       "modlist2mods: no validator for syntax %S\n",
-                                       ad->ad_type->sat_syntax->ssyn_oid ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+					   "modlist2mods: no validator for syntax %S\n",
+					   ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"modlist2mods: no validator for syntax %s\n",

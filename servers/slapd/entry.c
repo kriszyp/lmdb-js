@@ -16,9 +16,9 @@
 
 #include "slap.h"
 
-static unsigned char	*ebuf;	/* buf returned by entry2str 		 */
+static unsigned char	*ebuf;	/* buf returned by entry2str		 */
 static unsigned char	*ecur;	/* pointer to end of currently used ebuf */
-static int		emaxsize;/* max size of ebuf	     		 */
+static int		emaxsize;/* max size of ebuf			 */
 
 int entry_destroy(void)
 {
@@ -59,8 +59,8 @@ str2entry( char *s )
 	 */
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-                   "str2entry: \"%s\"\n", s ? s : "NULL" ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+		   "str2entry: \"%s\"\n", s ? s : "NULL" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
 		s ? s : "NULL", 0, 0 );
@@ -71,8 +71,8 @@ str2entry( char *s )
 
 	if( e == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "str2entry: entry allocation failed.\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "str2entry: entry allocation failed.\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= str2entry NULL (entry allocation failed)\n",
@@ -100,8 +100,8 @@ str2entry( char *s )
 
 		if ( ldif_parse_line( s, &type, &value.bv_val, &value.bv_len ) != 0 ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                               "str2entry:  NULL (parse_line)\n" ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+				   "str2entry:  NULL (parse_line)\n" ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (parse_line)\n", 0, 0, 0 );
@@ -114,9 +114,9 @@ str2entry( char *s )
 
 			if ( e->e_dn != NULL ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                                       "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
-                                       e->e_id, e->e_dn, value.bv_val != NULL ? value.bv_val : "" ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+					   "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
+					   e->e_id, e->e_dn, value.bv_val != NULL ? value.bv_val : "" ));
 #else
 				Debug( LDAP_DEBUG_ANY,
  "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
@@ -136,8 +136,8 @@ str2entry( char *s )
 
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                               "str2entry:  str2ad(%s):  %s\n", type, text ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+				   "str2entry:  str2ad(%s):	 %s\n", type, text ));
 #else
 			Debug( slapMode & SLAP_TOOL_MODE
 				? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
@@ -154,8 +154,8 @@ str2entry( char *s )
 
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                                       "str2entry:  str2undef_ad(%s):  %s\n", type, text ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+					   "str2entry:  str2undef_ad(%s):  %s\n", type, text ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"<= str2entry: str2undef_ad(%s): %s\n",
@@ -174,9 +174,9 @@ str2entry( char *s )
 
 			if( !validate ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                                       "str2entry: no validator for syntax %s\n", 
-                                       ad->ad_type->sat_syntax->ssyn_oid ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+					   "str2entry: no validator for syntax %s\n", 
+					   ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"str2entry: no validator for syntax %s\n",
@@ -195,9 +195,9 @@ str2entry( char *s )
 
 			if( rc != 0 ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                                       "str2entry:  invalid value for syntax %s\n",
-                                       ad->ad_type->sat_syntax->ssyn_oid ));
+				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+					   "str2entry:  invalid value for syntax %s\n",
+					   ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"str2entry: invalid value for syntax %s\n",
@@ -216,8 +216,8 @@ str2entry( char *s )
 
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                               "str2entry:  NULL (attr_merge)\n" ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+				   "str2entry:  NULL (attr_merge)\n" ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
@@ -235,8 +235,8 @@ str2entry( char *s )
 	/* check to make sure there was a dn: line */
 	if ( e->e_dn == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                       "str2entry:  entry %ld has no dn.\n", e->e_id ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			   "str2entry:  entry %ld has no dn.\n", e->e_id ));
 #else
 		Debug( LDAP_DEBUG_ANY, "str2entry: entry %ld has no dn\n",
 		    e->e_id, 0, 0 );
@@ -250,8 +250,8 @@ str2entry( char *s )
 	(void) dn_normalize( e->e_ndn );
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
-                   "str2entry(%s) -> 0x%lx\n", e->e_dn, (unsigned long)e ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
+		   "str2entry(%s) -> 0x%lx\n", e->e_dn, (unsigned long)e ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> 0x%lx\n",
 		e->e_dn, (unsigned long) e, 0 );
@@ -344,7 +344,7 @@ entry_free( Entry *e )
  *
  * the Entry has three entry points (ways to find things):
  *
- * 	by entry	e.g., if you already have an entry from the cache
+ *	by entry	e.g., if you already have an entry from the cache
  *			and want to delete it. (really by entry ptr)
  *	by dn		e.g., when looking for the base object of a search
  *	by id		e.g., for search candidates
@@ -400,8 +400,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 	ber = ber_init( bv );
 	if( ber == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "entry_decode: ber_init failed\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "entry_decode: ber_init failed\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= entry_decode: ber_init failed\n",
@@ -415,8 +415,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 	if( e == NULL ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "entry_decode: entry allocation failed.\n" ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "entry_decode: entry allocation failed.\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= entry_decode: entry allocation failed\n",
@@ -439,8 +439,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
-                   "entry_decode: \"%s\"\n", e->e_dn ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
+		   "entry_decode: \"%s\"\n", e->e_dn ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	    "entry_decode: \"%s\"\n",
@@ -460,8 +460,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 		if ( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                               "entry_decode: decoding error (%s)\n", e->e_dn ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "entry_decode: decoding error (%s)\n", e->e_dn ));
 #else
 			Debug( LDAP_DEBUG_ANY, "entry_decode: decoding error\n", 0, 0, 0 );
 #endif
@@ -471,8 +471,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 		if ( vals == NULL ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                               "entry_decode: no values for type %s\n", type ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				   "entry_decode: no values for type %s\n", type ));
 #else
 			Debug( LDAP_DEBUG_ANY, "entry_decode: no values for type %s\n",
 				type, 0, 0 );
@@ -487,8 +487,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                               "entry_decode: str2ad(%s): %s\n", type, text ));
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+				   "entry_decode: str2ad(%s): %s\n", type, text ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"<= entry_decode: str2ad(%s): %s\n", type, text, 0 );
@@ -497,8 +497,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-                            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                                       "entry_decode:  str2undef_ad(%s): %s\n", type, text));
+				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+					   "entry_decode:  str2undef_ad(%s): %s\n", type, text));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"<= entry_decode: str2undef_ad(%s): %s\n",
@@ -516,8 +516,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
-                    LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                               "entry_decode:  attr_merge failed\n"));
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+				   "entry_decode:  attr_merge failed\n"));
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "<= entry_decode: attr_merge failed\n", 0, 0, 0 );
@@ -539,8 +539,8 @@ int entry_decode( struct berval *bv, Entry **entry )
 	}
 
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-                   "entry_decode:  %s\n", e->e_dn ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+		   "entry_decode:  %s\n", e->e_dn ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s)\n",
 		e->e_dn, 0, 0 );
@@ -559,9 +559,9 @@ int entry_encode(
 	BerElement *ber;
 	
 #ifdef NEW_LOGGING
-        LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-                   "entry_encode: id: 0x%08lx  \"%s\"\n",
-                   e->e_id, e->e_dn ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+		   "entry_encode: id: 0x%08lx  \"%s\"\n",
+		   e->e_id, e->e_dn ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> entry_encode(0x%08lx): %s\n",
 		e->e_id, e->e_dn, 0 );
@@ -596,8 +596,8 @@ done:
 	ber_free( ber, 1 );
 	if( rc ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-                       "entry_encode: id=0x%08lx  failed (%d)\n", e->e_id, rc ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+			   "entry_encode: id=0x%08lx  failed (%d)\n", e->e_id, rc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "=> entry_encode(0x%08lx): failed (%d)\n",
 			e->e_id, rc, 0 );

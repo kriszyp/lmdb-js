@@ -36,7 +36,7 @@ syn_index_cmp(
 
 static int
 syn_index_name_cmp(
-    char 		*name,
+    char		*name,
     struct sindexrec	*sir
 )
 {
@@ -49,7 +49,7 @@ syn_find( const char *synname )
 	struct sindexrec	*sir = NULL;
 
 	if ( (sir = (struct sindexrec *) avl_find( syn_index, synname,
-            (AVL_CMP) syn_index_name_cmp )) != NULL ) {
+	    (AVL_CMP) syn_index_name_cmp )) != NULL ) {
 		return( sir->sir_syn );
 	}
 	return( NULL );
@@ -151,9 +151,9 @@ register_syntax(
 	syn = ldap_str2syntax( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !syn ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
-                       "register_syntax: Error - %s before %s in %s.\n",
-                       ldap_scherr2str(code), err, desc ));
+		LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
+			   "register_syntax: Error - %s before %s in %s.\n",
+			   ldap_scherr2str(code), err, desc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, desc );
@@ -168,9 +168,9 @@ register_syntax(
 
 	if ( code ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
-                       "register_syntax: Error - %s %s in %s\n",
-                       scherr2str(code), err, desc ));
+		LDAP_LOG(( "schema", LDAP_LEVEL_ERR,
+			   "register_syntax: Error - %s %s in %s\n",
+			   scherr2str(code), err, desc ));
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, desc );
@@ -213,9 +213,9 @@ syn_schema_info( Entry *e )
 		val.bv_len = strlen( val.bv_val );
 #if 0
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-                           "syn_schema_info: Merging syn [%ld] %s\n",
-                           (long)val.bv_len, val.bv_val ));
+		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
+			   "syn_schema_info: Merging syn [%ld] %s\n",
+			   (long)val.bv_len, val.bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );

@@ -44,8 +44,8 @@ get_ava(
 
 	if( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
-                       "get_ava:  ber_scanf failure\n" ));
+		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+			   "get_ava:  ber_scanf failure\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
 #endif

@@ -67,9 +67,9 @@ int is_entry_objectclass(
 	if( attr == NULL ) {
 		/* no objectClass attribute */
 #ifdef NEW_LOGGING
-            LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-                       "is_entry_objectclass: dn(%s), oid (%s), no objectlcass attribute.\n",
-                       e->e_dn == NULL ? "" : e->e_dn, oc->soc_oclass.oc_oid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+			   "is_entry_objectclass: dn(%s), oid (%s), no objectlcass attribute.\n",
+			   e->e_dn == NULL ? "" : e->e_dn, oc->soc_oclass.oc_oid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "is_entry_objectclass(\"%s\", \"%s\") "
 			"no objectClass attribute\n",
