@@ -51,6 +51,7 @@ bdb_search(
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	Entry		*e = NULL;
+	const static Entry roote = { NOID, "", "", NULL, NULL };
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
 	char	*realbase = NULL;
@@ -65,6 +66,11 @@ bdb_search(
 
 	manageDSAit = get_manageDSAit( op );
 
+	if ( *nbase == '\0' ) {
+		/* DIT root special case */
+		e = (Entry *) &roote;
+		rc = 0;
+	} else						
 #ifdef BDB_ALIASES
 	/* get entry with reader lock */
 	if ( deref & LDAP_DEREF_FINDING ) {
@@ -122,7 +128,7 @@ bdb_search(
 		return rc;
 	}
 
-	if (!manageDSAit && is_entry_referral( e ) ) {
+	if (!manageDSAit &&  e != &roote && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		char *matched_dn = ch_strdup( e->e_dn );
 		struct berval **erefs = get_entry_referrals( be,
@@ -233,10 +239,13 @@ bdb_search(
 	/* need normalized dn below */
 	realbase = ch_strdup( e->e_ndn );
 
-	/* start cursor at base entry's id */
-	cursor = e->e_id;
+	/* start cursor at base entry's id 
+	 * FIXME: hack to make "" base work */
+	cursor = e->e_id == NOID ? 1 : e->e_id;
 
-	bdb_entry_return( be, e );
+	if ( e != &roote ) {
+		bdb_entry_return( be, e );
+	}
 	e = NULL;
 
 	if ( candidates[0] == 0 ) {
@@ -523,7 +532,11 @@ static int search_candidates(
 #ifdef BDB_FILTER_INDICES
 	rc = bdb_filter_candidates( be, &f, ids );
 #else
+	/* FIXME: Original code:
 	BDB_IDL_ID( bdb, ids, e->e_id );
+	* this is a hack to make "" base work; when bdb_filter_candidates
+	* is used this should not be needed any more */
+	BDB_IDL_ID( bdb, ids, (e->e_id == NOID ? 1 : e->e_id) );
 	rc = 0;
 #endif
 
