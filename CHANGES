@@ -1,7 +1,7 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.2 Release Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2
+Changes included in OpenLDAP 1.2.7
+	CVS Tag: OPENLDAP_REL_ENG_1_2_7
 	Added ldapsearch -W password prompting
 	Added dcObject, uidObject, referral object classes to slapd.oc.conf
 	Added ref attribute type to slapd.at.conf
