@@ -33,9 +33,6 @@ root_dse_info( Entry **entry, const char **text )
 	AttributeDescription *ad_supportedExtension = slap_schema.si_ad_supportedExtension;
 	AttributeDescription *ad_supportedLDAPVersion = slap_schema.si_ad_supportedLDAPVersion;
 	AttributeDescription *ad_supportedSASLMechanisms = slap_schema.si_ad_supportedSASLMechanisms;
-#	ifdef SLAPD_ACI_ENABLED
-	AttributeDescription *ad_supportedACIMechanisms = slap_schema.si_ad_supportedACIMechanisms;
-#	endif
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 #else
 	char *ad_objectClass = "objectClass";
@@ -44,9 +41,6 @@ root_dse_info( Entry **entry, const char **text )
 	char *ad_supportedExtension = "supportedExtension";
 	char *ad_supportedLDAPVersion = "supportedLDAPVersion";
 	char *ad_supportedSASLMechanisms = "supportedSASLMechanisms";
-#	ifdef SLAPD_ACI_ENABLED
-	char *ad_supportedACIMechanisms = "supportedACIMechanisms";
-#	endif
 	char *ad_ref = "ref";
 #endif
 
@@ -108,14 +102,6 @@ root_dse_info( Entry **entry, const char **text )
 			attr_merge( e, ad_supportedSASLMechanisms, vals );
 		}
 	}
-
-#ifdef SLAPD_ACI_ENABLED
-	/* supportedACIMechanisms */
-	for ( i=0; (val.bv_val = get_supported_acimech(i)) != NULL; i++ ) {
-		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, ad_supportedACIMechanisms, vals );
-	}
-#endif
 
 	if ( default_referral != NULL ) {
 		attr_merge( e, ad_ref, default_referral );

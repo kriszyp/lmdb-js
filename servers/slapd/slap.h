@@ -101,7 +101,7 @@ LDAP_BEGIN_DECL
 #define SLAPD_ROLE_CLASS		"organizationalRole"
 
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
-#define SLAPD_ACI_ATTR			"aci"
+#define SLAPD_ACI_ATTR			"OpenLDAPaci"
 
 LIBSLAPD_F (int) slap_debug;
 
@@ -355,9 +355,6 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_supportedControl;
 	AttributeDescription *si_ad_supportedExtension;
 	AttributeDescription *si_ad_supportedLDAPVersion;
-#ifdef SLAPD_ACI_ENABLED
-	AttributeDescription *si_ad_supportedACIMechanisms;
-#endif
 	AttributeDescription *si_ad_supportedSASLMechanisms;
 
 	/* subschema subentry attributes */
@@ -374,6 +371,9 @@ struct slap_internal_schema {
 	/* Access Control Internals */
 	AttributeDescription *si_ad_entry;
 	AttributeDescription *si_ad_children;
+#ifdef SLAPD_ACI_ENABLED
+	AttributeDescription *si_ad_aci;
+#endif
 
 	/* Other */
 	AttributeDescription *si_ad_userPassword;

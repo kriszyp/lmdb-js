@@ -53,12 +53,6 @@ static int aci_mask(
 	regmatch_t *matches,
 	slap_access_t *grant,
 	slap_access_t *deny );
-
-char *supportedACIMechs[] = {
-	"1.3.6.1.4.1.4203.666.7.1",	/* experimental IETF aci family */
-	"1.3.6.1.4.1.4203.666.7.2",	/* experimental OpenLDAP aci family */
-	NULL
-};
 #endif
 
 static int	regex_matches(
@@ -1128,12 +1122,6 @@ aci_mask(
 	/* check that the aci family is supported */
 	if (aci_get_part(aci, 0, '#', &bv) < 0)
 		return(0);
-	for (i = 0; supportedACIMechs[i] != NULL; i++) {
-		if (aci_strbvcmp( supportedACIMechs[i], &bv ) == 0)
-			break;
-	}
-	if (supportedACIMechs[i] == NULL)
-		return(0);
 
 	/* check that the scope is "entry" */
 	if (aci_get_part(aci, 1, '#', &bv) < 0
@@ -1229,15 +1217,6 @@ aci_mask(
 	}
 
 	return(0);
-}
-
-char *
-get_supported_acimech(
-	int index )
-{
-	if (index < 0 || index >= (sizeof(supportedACIMechs) / sizeof(char *)))
-		return(NULL);
-	return(supportedACIMechs[index]);
 }
 
 #endif	/* SLAPD_ACI_ENABLED */

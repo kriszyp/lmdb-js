@@ -581,19 +581,3 @@ objectclass ( 1.3.6.1.4.1.4203.666.3.2
 	DESC 'OpenLDAP Root DSE object'
 	SUP top STRUCTURAL MAY cn )
 
-#
-# IETF LDAPext WG Access Control Model
-#	likely to change!
-attributetype ( supportedACIMechanismsOID NAME 'supportedACIMechanisms'
-     DESC 'list of access control mechanisms supported by this directory server'
-     SYNTAX 1.3.6.1.4.1.1466.115.121.1.38  USAGE dSAOperation )
-
-attributetype ( aCIMechanismOID NAME 'aCIMechanism'
-     DESC 'list of access control mechanism supported in this subtree'
-     SYNTAX 1.3.6.1.4.1.1466.115.121.1.38  USAGE dSAOperation )
-
-attributetype ( ldapACIOID NAME 'ldapACI'
-	DESC 'LDAP access control information'
-	EQUALITY caseIgnoreMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-	USAGE directoryOperation )

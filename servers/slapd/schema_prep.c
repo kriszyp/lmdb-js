@@ -79,10 +79,6 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_supportedExtension) },
 	{ "supportedLDAPVersion", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedLDAPVersion) },
-#ifdef SLAPD_ACI_ENABLED
-	{ "supportedACIMechanisms", NULL,
-		offsetof(struct slap_internal_schema, si_ad_supportedACIMechanisms) },
-#endif
 	{ "supportedSASLMechanisms", NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedSASLMechanisms) },
 
@@ -107,6 +103,10 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_entry) },
 	{ "children", NULL,
 		offsetof(struct slap_internal_schema, si_ad_children) },
+#ifdef SLAPD_ACI_ENABLED
+	{ "OpenLDAPaci", NULL,
+		offsetof(struct slap_internal_schema, si_ad_aci) },
+#endif
 
 	{ "userPassword", NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },

@@ -116,7 +116,7 @@ static char *oc_op_usermod_attrs[] = {
 	 * which slapd supports modification of.
 	 *
 	 * Currently none.
-	 * Likely candidate, "aci"
+	 * Likely candidate, "OpenLDAPaci"
 	 */
 	NULL
 };
@@ -139,7 +139,6 @@ static char *oc_op_attrs[] = {
 	"supportedControl",
 	"supportedSASLMechanisms",
 	"supportedLDAPversion",
-	"supportedACIMechanisms",
 	"subschemaSubentry",		/* NO USER MOD */
 	NULL
 

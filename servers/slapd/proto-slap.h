@@ -66,8 +66,6 @@ LIBSLAPD_F (int) acl_check_modlist LDAP_P((
 
 LIBSLAPD_F (void) acl_append( AccessControl **l, AccessControl *a );
 
-LIBSLAPD_F (char *) get_supported_acimech LDAP_P((int index));
-
 /*
  * aclparse.c
  */

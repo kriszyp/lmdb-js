@@ -852,10 +852,12 @@ struct syntax_defs_rec syntax_defs[] = {
 	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		0, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP void' " X_HIDE ")" ,
-		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
-	{"( 1.3.6.1.4.1.4203.666.2.3 DESC 'OpenLDAP DN' " X_HIDE ")" ,
-		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
+		0, NULL, NULL, NULL},
+	{"( 1.3.6.1.4.1.4203.666.2.3 DESC 'OpenLDAP void' " X_HIDE ")" ,
+		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
+	{"( 1.3.6.1.4.1.4203.666.2.4 DESC 'OpenLDAP DN' " X_HIDE ")" ,
+		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
 
 	{NULL, 0, NULL, NULL, NULL}
 };
@@ -925,6 +927,9 @@ struct mrule_defs_rec {
 #define generalizedTimeOrderingMatch NULL
 #define integerFirstComponentMatch NULL
 #define objectIdentifierFirstComponentMatch NULL
+
+#define OpenLDAPaciMatch NULL
+#define authPasswordMatch NULL
 
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
@@ -1062,6 +1067,16 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
 		NULL, NULL, caseIgnoreIA5SubstringsMatch, NULL, NULL},
+
+	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
+		SLAP_MR_EQUALITY,
+		NULL, NULL, authPasswordMatch, NULL, NULL},
+
+	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
+		SLAP_MR_EQUALITY,
+		NULL, NULL, OpenLDAPaciMatch, NULL, NULL},
 
 	{NULL, SLAP_MR_NONE, NULL, NULL, NULL}
 };
