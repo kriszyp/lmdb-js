@@ -101,6 +101,7 @@ static BackendInfo binfo[] = {
 #if defined(SLAPD_PRIVATE) && !defined(SLAPD_PRIVATE_DYNAMIC)
 	{"private",	private_back_initialize},
 #endif
+	{"glue",	glue_back_initialize},
 	{NULL}
 };
 
