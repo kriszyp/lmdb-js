@@ -444,6 +444,12 @@ ber_get_next LDAP_P((
 	BerElement *ber ));
 
 LBER_F( void )
+ber_init2 LDAP_P((
+	BerElement *ber,
+	struct berval *bv,
+	int options ));
+
+LBER_F( void )
 ber_init_w_nullc LDAP_P((	/* DEPRECATED */
 	BerElement *ber,
 	int options ));

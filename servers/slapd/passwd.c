@@ -74,26 +74,15 @@ int slap_passwd_parse( struct berval *reqdata,
 	int rc = LDAP_SUCCESS;
 	ber_tag_t tag;
 	ber_len_t len;
-	BerElement *ber;
+	char berbuf[256];
+	BerElement *ber = (BerElement *)berbuf;
 
 	if( reqdata == NULL ) {
 		return LDAP_SUCCESS;
 	}
 
-	ber = ber_init( reqdata );
-
-	if( ber == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "slap_passwd_parse: ber_init failed\n" ));
-#else
-		Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ber_init failed\n",
-			0, 0, 0 );
-#endif
-
-		*text = "password decoding error";
-		return LDAP_PROTOCOL_ERROR;
-	}
+	/* ber_init2 uses reqdata directly, doesn't allocate new buffers */
+	ber_init2( ber, reqdata, 0 );
 
 	tag = ber_scanf( ber, "{" /*}*/ );
 
@@ -214,24 +203,6 @@ decoding_error:
 	}
 
 done:
-	if( rc != LDAP_SUCCESS ) {
-		if( id && id->bv_val != NULL ) {
-			free( id->bv_val );
-			id->bv_val = NULL;
-		}
-
-		if( oldpass && oldpass->bv_val != NULL ) {
-			free( oldpass->bv_val );
-			oldpass->bv_val = NULL;
-		}
-
-		if( newpass && newpass->bv_val != NULL ) {
-			free( newpass->bv_val );
-			newpass->bv_val = NULL;
-		}
-	}
-
-	ber_free( ber, 1 );
 	return rc;
 }
 
