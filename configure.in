@@ -884,6 +884,7 @@ dnl AC_SYS_RESTARTABLE_SYSCALLS
 
 dnl ----------------------------------------------------------------
 AC_CHECK_FUNCS( poll )
+AC_CHECK_HEADERS( poll.h )
 
 dnl ----------------------------------------------------------------
 # strerror checks
