@@ -7,7 +7,8 @@ OpenLDAP 1.2 README
 
 	For a more detailed description of how to make an install the
 	distribution, see the INSTALL file in this directory.  Additional
-	installation information can be found on the OpenLDAP website.
+	installation information can be found on the OpenLDAP website:
+		http://www.openldap.org/
 
 
 REQUIRED SOFTWARE
