@@ -1694,14 +1694,12 @@ done:
 #endif /* HAVE_CYRUS_SASL */
 
 /* Take any sort of identity string and return a DN with the "dn:" prefix. The
-   string returned in *dn is in its own allocated memory, and must be free'd 
-   by the calling process.
-   -Mark Adamson, Carnegie Mellon
-
-   The "dn:" prefix is no longer used anywhere inside slapd. It is only used
-   on strings passed in directly from SASL.
-   -Howard Chu, Symas Corp.
-*/
+ * string returned in *dn is in its own allocated memory, and must be free'd 
+ * by the calling process.  -Mark Adamson, Carnegie Mellon
+ *
+ * The "dn:" prefix is no longer used anywhere inside slapd. It is only used
+ * on strings passed in directly from SASL.  -Howard Chu, Symas Corp.
+ */
 
 #define SET_NONE	0
 #define	SET_DN		1
