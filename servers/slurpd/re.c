@@ -184,7 +184,8 @@ Re_parse(
 	    state |= GOT_TIME;
 	    break;
 	case T_DN:
-	    re->re_dn = strdup( value );
+	    re->re_dn = calloc( 1, len + 1 );
+		memcpy( re->re_dn, value, len );
 	    state |= GOT_DN;
 	    break;
 	default:
@@ -224,7 +225,8 @@ Re_parse(
 	    sizeof( Mi ) * ( nml + 2 ));
 	re->re_mods[ nml ].mi_type = strdup( type );
 	if ( value != NULL ) {
-	    re->re_mods[ nml ].mi_val = strdup( value );
+	    re->re_mods[ nml ].mi_val = calloc( 1, len + 1 );
+		memcpy( re->re_mods[ nml ].mi_val, value, len );
 	    re->re_mods[ nml ].mi_len = len;
 	} else {
 	    re->re_mods[ nml ].mi_val = NULL;
