@@ -91,13 +91,12 @@ int get_ctrls(
 	Operation *op,
 	int sendres )
 {
-	int nctrls = 0;
+	int nctrls;
 	ber_tag_t tag;
 	ber_len_t len;
 	char *opaque;
 	BerElement *ber = op->o_ber;
-	LDAPControl ***ctrls = &op->o_ctrls;
-	struct slap_control *c;
+	struct slap_control *sc;
 	int rc = LDAP_SUCCESS;
 	const char *errmsg = NULL;
 
@@ -130,46 +129,33 @@ int get_ctrls(
 		goto return_results;
 	}
 
-	/* set through each element */
-	*ctrls = ch_malloc( 1 * sizeof(LDAPControl *) );
+	/* one for first control, one for termination */
+	op->o_ctrls = ch_malloc( 2 * sizeof(LDAPControl *) );
 
 #if 0
-	if( *ctrls == NULL ) {
+	if( op->ctrls == NULL ) {
 		rc = LDAP_NO_MEMORY;
 		errmsg = "no memory";
 		goto return_results;
 	}
 #endif
 
-	*ctrls[nctrls] = NULL;
+	op->o_ctrls[nctrls=0] = NULL;
 
+	/* step through each element */
 	for( tag = ber_first_element( ber, &len, &opaque );
 		tag != LBER_ERROR;
 		tag = ber_next_element( ber, &len, opaque ) )
 	{
-		LDAPControl *tctrl;
+		LDAPControl *c;
 		LDAPControl **tctrls;
 
-		tctrl = ch_calloc( 1, sizeof(LDAPControl) );
-		tctrl->ldctl_oid = NULL;
-		tctrl->ldctl_value.bv_val = NULL;
-
-		/* allocate pointer space for current controls (nctrls)
-		 * + this control + extra NULL
-		 */
-		tctrls = (tctrl == NULL) ? NULL :
-			ch_realloc(*ctrls, (nctrls+2) * sizeof(LDAPControl *));
+		c = ch_calloc( 1, sizeof(LDAPControl) );
 
 #if 0
-		if( tctrls == NULL ) {
-			/* one of the above allocation failed */
-
-			if( tctrl != NULL ) {
-				ch_free( tctrl );
-			}
-
-			ldap_controls_free(*ctrls);
-			*ctrls = NULL;
+		if( c == NULL ) {
+			ldap_controls_free(op->o_ctrls);
+			op->o_ctrls = NULL;
 
 			rc = LDAP_NO_MEMORY;
 			errmsg = "no memory";
@@ -177,10 +163,29 @@ int get_ctrls(
 		}
 #endif
 
-		tctrls[nctrls++] = tctrl;
-		tctrls[nctrls] = NULL;
+		/* allocate pointer space for current controls (nctrls)
+		 * + this control + extra NULL
+		 */
+		tctrls = ch_realloc( op->o_ctrls,
+			(nctrls+2) * sizeof(LDAPControl *));
 
-		tag = ber_scanf( ber, "{a" /*}*/, &tctrl->ldctl_oid );
+#if 0
+		if( tctrls == NULL ) {
+			ch_free( c );
+			ldap_controls_free(op->o_ctrls);
+			op->o_ctrls = NULL;
+
+			rc = LDAP_NO_MEMORY;
+			errmsg = "no memory";
+			goto return_results;
+		}
+#endif
+		op->o_ctrls = tctrls;
+
+		op->o_ctrls[nctrls++] = c;
+		op->o_ctrls[nctrls] = NULL;
+
+		tag = ber_scanf( ber, "{a" /*}*/, &c->ldctl_oid );
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -191,8 +196,8 @@ int get_ctrls(
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
 				0, 0, 0 );
 #endif
-			*ctrls = NULL;
-			ldap_controls_free( tctrls );
+			ldap_controls_free( op->o_ctrls );
+			op->o_ctrls = NULL;
 			rc = SLAPD_DISCONNECT;
 			errmsg = "decoding controls error";
 			goto return_results;
@@ -213,49 +218,57 @@ int get_ctrls(
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
 					0, 0, 0 );
 #endif
-				*ctrls = NULL;
-				ldap_controls_free( tctrls );
+				ldap_controls_free( op->o_ctrls );
+				op->o_ctrls = NULL;
 				rc = SLAPD_DISCONNECT;
 				errmsg = "decoding controls error";
 				goto return_results;
 			}
 
-			tctrl->ldctl_iscritical = (crit != 0);
+			c->ldctl_iscritical = (crit != 0);
 			tag = ber_peek_tag( ber, &len );
+		}
+
+		if( tag == LBER_OCTETSTRING ) {
+			tag = ber_scanf( ber, "o", &c->ldctl_value );
+
+			if( tag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "get_ctrls: conn %d: "
+					"%s (%scritical): get value failed.\n",
+					conn->c_connid,
+					c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+					c->ldctl_iscritical ? "" : "non" ));
+#else
+				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: conn %d: "
+					"%s (%scritical): get value failed.\n",
+					conn->c_connid,
+					c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+					c->ldctl_iscritical ? "" : "non" );
+#endif
+				ldap_controls_free( op->o_ctrls );
+				op->o_ctrls = NULL;
+				rc = SLAPD_DISCONNECT;
+				errmsg = "decoding controls error";
+				goto return_results;
+			}
 		}
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 			"get_ctrls: conn %d oid=\"%s\" (%scritical)\n",
-			conn->c_connid, tctrl->ldctl_oid,
-			tctrl->ldctl_iscritical ? "" : "non" ));
+			conn->c_connid,
+			c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+			c->ldctl_iscritical ? "" : "non" ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: oid=\"%s\" (%scritical)\n",
-			tctrl->ldctl_oid, 
-			tctrl->ldctl_iscritical ? "" : "non",
+			c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+			c->ldctl_iscritical ? "" : "non",
 			0 );
 #endif
-		if( tag == LBER_OCTETSTRING ) {
-			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
 
-			if( tag == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					"get_ctrls: conn %d  get value failed.\n", conn->c_connid ));
-#else
-				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get value failed.\n",
-					0, 0, 0 );
-#endif
-				*ctrls = NULL;
-				ldap_controls_free( tctrls );
-				rc = SLAPD_DISCONNECT;
-				errmsg = "decoding controls error";
-				goto return_results;
-			}
-		}
-
-		c = find_ctrl( tctrl->ldctl_oid );
-		if( c != NULL ) {
+		sc = find_ctrl( c->ldctl_oid );
+		if( sc != NULL ) {
 			/* recognized control */
 			slap_mask_t tagmask;
 			switch( op->o_tag ) {
@@ -293,39 +306,37 @@ int get_ctrls(
 				goto return_results;
 			}
 
-			if (( c->sc_mask & tagmask ) == tagmask ) {
+			if (( sc->sc_mask & tagmask ) == tagmask ) {
 				/* available extension */
 
-				if( !c->sc_parse ) {
+				if( !sc->sc_parse ) {
 					rc = LDAP_OTHER;
 					errmsg = "not yet implemented";
 					goto return_results;
 				}
 
-				rc = c->sc_parse( conn, op, tctrl, &errmsg );
+				rc = sc->sc_parse( conn, op, c, &errmsg );
 
 				if( rc != LDAP_SUCCESS ) goto return_results;
 
-				if( c->sc_mask & SLAP_CTRL_FRONTEND ) {
+				if( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
 					/* kludge to disable backend_control() check */
-					tctrl->ldctl_iscritical = 0;
+					c->ldctl_iscritical = 0;
 				}
 
-			} else if( tctrl->ldctl_iscritical ) {
+			} else if( c->ldctl_iscritical ) {
 				/* unavailable CRITICAL control */
 				rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 				errmsg = "critical extension is unavailable";
 				goto return_results;
 			}
 
-		} else if( tctrl->ldctl_iscritical ) {
+		} else if( c->ldctl_iscritical ) {
 			/* unrecognized CRITICAL control */
 			rc = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
 			errmsg = "critical extension is not recognized";
 			goto return_results;
 		}
-
-		*ctrls = tctrls;
 	}
 
 return_results:
