@@ -506,6 +506,24 @@ LIBLDAP_F (int) ldap_8859_to_t61( char **bufp, ber_len_t *buflenp, int free_inpu
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
+/*
+ * UTF-8 (in utf-8.c)
+ */
+
+LIBLDAP_F (ber_len_t) ldap_utf8_bytes( const char * );
+LIBLDAP_F (ber_len_t) ldap_utf8_chars( const char * );
+LIBLDAP_F (int) ldap_utf8_charlen( const char * );
+
+LIBLDAP_F (char*) ldap_utf8_next(char *);
+LIBLDAP_F (char*) ldap_utf8_prev(char *);
+
+LIBLDAP_F (int) ldap_utf8_isascii( const char * );
+LIBLDAP_F (int) ldap_utf8_isalpa( const char * );
+LIBLDAP_F (int) ldap_utf8_isalnum( const char * );
+LIBLDAP_F (int) ldap_utf8_isdigit( const char * );
+LIBLDAP_F (int) ldap_utf8_isxdigit( const char * );
+LIBLDAP_F (int) ldap_utf8_isspace( const char * );
+
 LDAP_END_DECL
 
 #endif /* _LDAP_INT_H */
