@@ -208,10 +208,12 @@ open_listener(
 	int port,
 	int tls_port )
 {
-	int	tmp, rc;
 	Listener l;
 	Listener *li;
 	LDAPURLDesc *lud;
+	int	tmp, rc;
+	int	err;
+	char *errstr;
 	char *s;
 
 	rc = ldap_url_parse( url, &lud );
@@ -276,10 +278,10 @@ open_listener(
 
 
 	if ( (l.sl_sd = socket( AF_INET, SOCK_STREAM, 0 )) == AC_SOCKET_INVALID ) {
-		int err = sock_errno();
+		SOCK_ERR(err, errstr);
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: socket() failed errno=%d (%s)\n", err,
-			sock_errstr(err), 0 );
+			errstr, 0 );
 		return NULL;
 	}
 
@@ -299,10 +301,10 @@ open_listener(
 	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_REUSEADDR,
 		(char *) &tmp, sizeof(tmp) ) == -1 )
 	{
-		int err = sock_errno();
+		SOCK_ERR(err, errstr);
 		Debug( LDAP_DEBUG_ANY,
 	       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err, sock_errstr(err) );
+	    	(long) l.sl_sd, err, errstr );
 	}
 #endif
 #ifdef SO_KEEPALIVE
@@ -311,10 +313,10 @@ open_listener(
 	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_KEEPALIVE,
 		(char *) &tmp, sizeof(tmp) ) == -1 )
 	{
-		int err = sock_errno();
+		SOCK_ERR(err, errstr);
 		Debug( LDAP_DEBUG_ANY,
 			"slapd(%ld): setsockopt(SO_KEEPALIVE) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err, sock_errstr(err) );
+	    	(long) l.sl_sd, err, errstr );
 	}
 #endif
 #ifdef TCP_NODELAY
@@ -323,17 +325,17 @@ open_listener(
 	if ( setsockopt( l.sl_sd, IPPROTO_TCP, TCP_NODELAY,
 		(char *)&tmp, sizeof(tmp) ) )
 	{
-		int err = sock_errno();
+		SOCK_ERR(err, errstr);
 		Debug( LDAP_DEBUG_ANY,
 			"slapd(%ld): setsockopt(TCP_NODELAY) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err, sock_errstr(err) );
+	    	(long) l.sl_sd, err, errstr );
 	}
 #endif
 
 	if ( bind( l.sl_sd, (struct sockaddr *) &l.sl_addr, sizeof(l.sl_addr) ) == -1 ) {
-		int err = sock_errno();
+		SOCK_ERR(err, errstr);
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err, sock_errstr(err) );
+	    	(long) l.sl_sd, err, errstr );
 		tcp_close( l.sl_sd );
 		return NULL;
 	}
@@ -360,6 +362,8 @@ static int sockdestroy(void);
 int slapd_daemon_init(char *urls, int port, int tls_port )
 {
 	int i, rc;
+	int err;
+	char *errstr;
 	char **u;
 
 #ifndef HAVE_TLS
@@ -394,15 +398,14 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	 */
 	if( (sel_exit_fd = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 )
 	{
-		int err = sock_errno();
+		SOCK_ERR(err, errstr);
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: socket() failed errno=%d (%s)\n", err,
-			sock_errstr(err), 0 );
+			errstr, 0 );
 		return sel_exit_fd;
 	} else {
 		struct sockaddr_in si;
 		int len = sizeof(si);
-		int err;
 
 		(void) memset( (void*) &si, 0, len );
 
@@ -412,25 +415,25 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 
 		if( rc = bind( sel_exit_fd, (struct sockaddr *)&si, len ) )
 		{
-		    err = sock_errno();
+		    SOCK_ERR(err, errstr);
 		    Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
-		    (long) sel_exit_fd, err, sock_errstr(err) );
+		    (long) sel_exit_fd, err, errstr );
 		    tcp_close( sel_exit_fd );
 		    return rc;
 		}
 		if( rc = getsockname( sel_exit_fd, (struct sockaddr *)&si, &len))
 		{
-		    err = sock_errno();
+		    SOCK_ERR(err, errstr);
 		    Debug( LDAP_DEBUG_ANY, "daemon: getsockname(%ld) failed errno=%d (%s)\n",
-		    (long) sel_exit_fd, err, sock_errstr(err) );
+		    (long) sel_exit_fd, err, errstr );
 		    tcp_close( sel_exit_fd );
 		    return rc;
 		}
 		if( rc = connect( sel_exit_fd, (struct sockaddr *)&si, len))
 		{
-		    err = sock_errno();
+		    SOCK_ERR(err, errstr);
 		    Debug( LDAP_DEBUG_ANY, "daemon: connect(%ld) failed errno=%d (%s)\n",
-		    (long) sel_exit_fd, err, sock_errstr(err) );
+		    (long) sel_exit_fd, err, errstr );
 		    tcp_close( sel_exit_fd );
 		    return rc;
 		}
@@ -503,6 +506,8 @@ slapd_daemon_task(
 )
 {
 	int l;
+	int err;
+	char *errstr;
 
 	time( &starttime );
 
@@ -511,11 +516,11 @@ slapd_daemon_task(
 			continue;
 
 		if ( listen( slap_listeners[l]->sl_sd, 5 ) == -1 ) {
-			int err = sock_errno();
+			SOCK_ERR(err, errstr);
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
 					(long) slap_listeners[l]->sl_url, err,
-					sock_errstr(err) );
+					errstr );
 			return( (void*)-1 );
 		}
 
@@ -626,8 +631,7 @@ slapd_daemon_task(
 			NULL, tvp ))
 		{
 		case -1: {	/* failure - try again */
-				int err = sock_errno();
-
+				SOCK_ERR(err, errstr);
 				if( err == EBADF && ++ebadf < SLAPD_EBADF_LIMIT) {
 					continue;
 				}
@@ -635,7 +639,7 @@ slapd_daemon_task(
 				if( err != EINTR ) {
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
-						err, sock_errstr(err), 0 );
+						err, errstr, 0 );
 
 					slapd_shutdown = -1;
 				}
@@ -681,11 +685,11 @@ slapd_daemon_task(
 			if ( (s = accept( slap_listeners[l]->sl_sd,
 				(struct sockaddr *) &from, &len )) == AC_SOCKET_INVALID )
 			{
-				int err = sock_errno();
+				SOCK_ERR(err, errstr);
 				Debug( LDAP_DEBUG_ANY,
 				    "daemon: accept(%ld) failed errno=%d (%s)\n",
 				    (long) slap_listeners[l]->sl_sd, err,
-				    sock_errstr(err) );
+				    errstr );
 				continue;
 			}
 
@@ -718,10 +722,10 @@ slapd_daemon_task(
 			len = sizeof(from);
 
 			if ( getpeername( s, (struct sockaddr *) &from, &len ) != 0 ) {
-				int err = sock_errno();
+				SOCK_ERR(err, errstr);
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: getpeername( %ld ) failed: errno=%d (%s)\n",
-					(long) s, err, sock_errstr(err) );
+					(long) s, err, errstr );
 				slapd_close(s);
 				continue;
 			}
