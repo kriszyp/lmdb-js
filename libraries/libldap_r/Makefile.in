@@ -10,7 +10,7 @@ XLIBRARY = ../libldap_r.a
 PROGRAMS = apitest ltest
 
 XXDIR = $(srcdir)/../libldap
-XXSRCS	= apitest.c test.c tmpltest.c extended.c \
+XXSRCS	= apitest.c test.c extended.c \
 	bind.c controls.c open.c result.c error.c compare.c search.c \
 	modify.c add.c modrdn.c delete.c abandon.c cache.c cyrus.c \
 	getfilter.c sasl.c sbind.c kbind.c unbind.c \
