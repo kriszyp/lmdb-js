@@ -44,7 +44,8 @@ bdb_compare( Operation *op, SlapReply *rs )
 
 dn2entry_retry:
 	/* get entry */
-	rs->sr_err = bdb_dn2entry( op, NULL, &op->o_req_ndn, &ei, 1, locker, &lock );
+	rs->sr_err = bdb_dn2entry( op, NULL, &op->o_req_ndn, &ei, 1,
+		locker, &lock );
 
 	switch( rs->sr_err ) {
 	case DB_NOTFOUND:
@@ -66,10 +67,9 @@ dn2entry_retry:
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if ( e != NULL ) {
 #ifdef SLAP_ACL_HONOR_DISCLOSE
-			/* return referral only if "disclose"
-			 * is granted on the object */
+			/* return referral only if "disclose" is granted on the object */
 			if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
-						NULL, ACL_DISCLOSE, NULL ) )
+				NULL, ACL_DISCLOSE, NULL ) )
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
@@ -104,10 +104,9 @@ dn2entry_retry:
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
 #ifdef SLAP_ACL_HONOR_DISCLOSE
-		/* return referral only if "disclose"
-		 * is granted on the object */
+		/* return referral only if "disclose" is granted on the object */
 		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
-					NULL, ACL_DISCLOSE, NULL ) )
+			NULL, ACL_DISCLOSE, NULL ) )
 		{
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		} else
@@ -119,8 +118,7 @@ dn2entry_retry:
 			rs->sr_matched = e->e_name.bv_val;
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-			0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0, 0, 0 );
 
 		send_ldap_result( op, rs );
 
@@ -133,7 +131,16 @@ dn2entry_retry:
 	if ( get_assert( op ) &&
 		( test_filter( op, e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
 	{
-		rs->sr_err = LDAP_ASSERTION_FAILED;
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+		if ( !access_allowed( op, e, slap_schema.si_ad_entry,
+			NULL, ACL_DISCLOSE, NULL ) )
+		{
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		} else
+#endif
+		{
+			rs->sr_err = LDAP_ASSERTION_FAILED;
+		}
 		goto return_results;
 	}
 
@@ -166,7 +173,8 @@ dn2entry_retry:
 		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			a->a_nvals, &op->oq_compare.rs_ava->aa_value, op->o_tmpmemctx ) == 0 )
+			a->a_nvals, &op->oq_compare.rs_ava->aa_value,
+			op->o_tmpmemctx ) == 0 )
 		{
 			rs->sr_err = LDAP_COMPARE_TRUE;
 			break;
@@ -191,6 +199,5 @@ done:
 	}
 
 	LOCK_ID_FREE ( bdb->bi_dbenv, locker );
-
 	return rs->sr_err;
 }
