@@ -19,7 +19,26 @@
 
 #include "../liblber/lber-int.h"
 
-#define ldap_debug	(ldap_int_global_options.ldo_debug)
+/* 
+ * Support needed if the library is running in the kernel
+ */
+#if LDAP_INT_IN_KERNEL
+	/* 
+	 * Platform specific function to return a pointer to the
+	 * process-specific global options. 
+	 *
+	 * This function should perform the following functions:
+	 *  Allocate and initialize a global options struct on a per process basis
+	 *  Use callers process identifier to return its global options struct
+	 *  Note: Deallocate structure when the process exits
+	 */
+#	define LDAP_INT_GLOBAL_OPT() ldap_int_global_opt()
+   struct ldapoptions *ldap_int_global_opt(void);
+#else
+#	define LDAP_INT_GLOBAL_OPT() (&ldap_int_global_options)
+#endif
+
+#define ldap_debug	((LDAP_INT_GLOBAL_OPT())->ldo_debug)
 
 #include "ldap_log.h"
 
@@ -298,7 +317,9 @@ extern ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
  */
 
 LIBLDAP_F ( struct ldapoptions ) ldap_int_global_options;
-LIBLDAP_F ( void ) ldap_int_initialize LDAP_P((int *));
+LIBLDAP_F ( void ) ldap_int_initialize LDAP_P((struct ldapoptions *, int *));
+LIBLDAP_F ( void ) ldap_int_initialize_global_options LDAP_P((
+	struct ldapoptions *, int *));
 
 /* memory.c */
 	/* simple macros to realloc for now */

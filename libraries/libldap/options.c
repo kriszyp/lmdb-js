@@ -79,16 +79,19 @@ ldap_get_option(
 	int		option,
 	void	*outvalue)
 {
-	const struct ldapoptions *lo;
+	struct ldapoptions *lo;
 
-	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize(NULL);
+	/* Get pointer to global option structure */
+	lo = LDAP_INT_GLOBAL_OPT();   
+	if (NULL == lo)	{
+		return LDAP_NO_MEMORY;
 	}
 
-	if(ld == NULL) {
-		lo = &ldap_int_global_options;
+	if( lo->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(lo, NULL);
+	}
 
-	} else {
+	if(ld != NULL) {
 		assert( LDAP_VALID( ld ) );
 
 		if( !LDAP_VALID( ld ) ) {
@@ -301,6 +304,12 @@ ldap_set_option(
 	struct ldapoptions *lo;
 	int *dbglvl = NULL;
 
+	/* Get pointer to global option structure */
+	lo = LDAP_INT_GLOBAL_OPT();
+	if (lo == NULL)	{
+		return LDAP_NO_MEMORY;
+	}
+
 	/*
 	 * The architecture to turn on debugging has a chicken and egg
 	 * problem. Thus, we introduce a fix here.
@@ -309,14 +318,11 @@ ldap_set_option(
 	if (option == LDAP_OPT_DEBUG_LEVEL)
 	    dbglvl = (int *) invalue;
 
-	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize(dbglvl);
+	if( lo->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(lo, dbglvl);
 	}
 
-	if(ld == NULL) {
-		lo = &ldap_int_global_options;
-
-	} else {
+	if(ld != NULL) {
 		assert( LDAP_VALID( ld ) );
 
 		if( !LDAP_VALID( ld ) ) {

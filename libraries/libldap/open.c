@@ -78,10 +78,17 @@ int
 ldap_create( LDAP **ldp )
 {
 	LDAP			*ld;
+	struct ldapoptions	*gopts;
 
 	*ldp = NULL;
-	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize(NULL);
+	/* Get pointer to global option structure */
+	if ( (gopts = LDAP_INT_GLOBAL_OPT()) == NULL) {
+		return LDAP_NO_MEMORY;
+	}
+
+	/* Initialize the global options, if not already done. */
+	if( gopts->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(gopts, NULL);
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
@@ -127,8 +134,7 @@ ldap_create( LDAP **ldp )
 	}
    
 	/* copy the global options */
-	memcpy(&ld->ld_options, &ldap_int_global_options,
-		sizeof(ld->ld_options));
+	memcpy(&ld->ld_options, gopts, sizeof(ld->ld_options));
 
 	ld->ld_valid = LDAP_VALID_SESSION;
 
@@ -137,8 +143,7 @@ ldap_create( LDAP **ldp )
 	ld->ld_options.ldo_sctrls = NULL;
 	ld->ld_options.ldo_cctrls = NULL;
 
-	ld->ld_options.ldo_defludp =
-			ldap_url_duplist(ldap_int_global_options.ldo_defludp);
+	ld->ld_options.ldo_defludp = ldap_url_duplist(gopts->ldo_defludp);
 
 	if ( ld->ld_options.ldo_defludp == NULL ) {
 		LDAP_FREE( (char*)ld );

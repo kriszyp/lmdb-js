@@ -21,9 +21,6 @@
 struct ldapoptions ldap_int_global_options =
 	{ LDAP_UNINITIALIZED, LDAP_DEBUG_NONE };  
 
-#undef gopts
-#define gopts ldap_int_global_options
-
 #define ATTR_NONE	0
 #define ATTR_BOOL	1
 #define ATTR_INT	2
@@ -96,6 +93,11 @@ static void openldap_ldap_init_w_conf(
 	int i;
 	char *cmd, *opt;
 	char *start, *end;
+	struct ldapoptions *gopts;
+
+	if ((gopts = LDAP_INT_GLOBAL_OPT()) == NULL) {
+		return;			/* Could not allocate mem for global options */
+	}
 
 	if (file == NULL) {
 		/* no file name */
@@ -165,16 +167,16 @@ static void openldap_ldap_init_w_conf(
 					|| (strcasecmp(opt, "yes") == 0)
 					|| (strcasecmp(opt, "true") == 0))
 				{
-					LDAP_BOOL_SET(&gopts, attrs[i].offset);
+					LDAP_BOOL_SET(gopts, attrs[i].offset);
 
 				} else {
-					LDAP_BOOL_CLR(&gopts, attrs[i].offset);
+					LDAP_BOOL_CLR(gopts, attrs[i].offset);
 				}
 
 				break;
 
 			case ATTR_INT:
-				p = &((char *) &gopts)[attrs[i].offset];
+				p = &((char *) gopts)[attrs[i].offset];
 				* (int*) p = atoi(opt);
 				break;
 
@@ -186,7 +188,7 @@ static void openldap_ldap_init_w_conf(
 						kv++) {
 
 						if(strcasecmp(opt, kv->key) == 0) {
-							p = &((char *) &gopts)[attrs[i].offset];
+							p = &((char *) gopts)[attrs[i].offset];
 							* (int*) p = kv->value;
 							break;
 						}
@@ -194,13 +196,13 @@ static void openldap_ldap_init_w_conf(
 				} break;
 
 			case ATTR_STRING:
-				p = &((char *) &gopts)[attrs[i].offset];
+				p = &((char *) gopts)[attrs[i].offset];
 				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 				* (char**) p = LDAP_STRDUP(opt);
 				break;
 			case ATTR_TLS:
 #ifdef HAVE_TLS
-			   	ldap_pvt_tls_config( &gopts, attrs[i].offset, opt );
+			   	ldap_pvt_tls_config( gopts, attrs[i].offset, opt );
 #endif
 				break;
 			case ATTR_URIS:
@@ -264,7 +266,9 @@ static void openldap_ldap_init_w_userconf(const char *file)
 	openldap_ldap_init_w_conf(file, 1);
 }
 
-static void openldap_ldap_init_w_env(const char *prefix)
+static void openldap_ldap_init_w_env(
+		struct ldapoptions *gopts,
+		const char *prefix)
 {
 	char buf[MAX_LDAP_ATTR_LEN+MAX_LDAP_ENV_PREFIX_LEN];
 	int len;
@@ -294,15 +298,15 @@ static void openldap_ldap_init_w_env(const char *prefix)
 				|| (strcasecmp(value, "yes") == 0)
 				|| (strcasecmp(value, "true") == 0))
 			{
-				LDAP_BOOL_SET(&gopts, attrs[i].offset);
+				LDAP_BOOL_SET(gopts, attrs[i].offset);
 
 			} else {
-				LDAP_BOOL_CLR(&gopts, attrs[i].offset);
+				LDAP_BOOL_CLR(gopts, attrs[i].offset);
 			}
 			break;
 
 		case ATTR_INT:
-			p = &((char *) &gopts)[attrs[i].offset];
+			p = &((char *) gopts)[attrs[i].offset];
 			* (int*) p = atoi(value);
 			break;
 
@@ -314,7 +318,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 					kv++) {
 
 					if(strcasecmp(value, kv->key) == 0) {
-						p = &((char *) &gopts)[attrs[i].offset];
+						p = &((char *) gopts)[attrs[i].offset];
 						* (int*) p = kv->value;
 						break;
 					}
@@ -322,7 +326,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 			} break;
 
 		case ATTR_STRING:
-			p = &((char *) &gopts)[attrs[i].offset];
+			p = &((char *) gopts)[attrs[i].offset];
 			if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 			if (*value == '\0') {
 				* (char**) p = NULL;
@@ -332,7 +336,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 			break;
 		case ATTR_TLS:
 #ifdef HAVE_TLS
-		   	ldap_pvt_tls_config( &gopts, attrs[i].offset, value );
+		   	ldap_pvt_tls_config( gopts, attrs[i].offset, value );
 #endif			 	
 		   	break;
 		case ATTR_URIS:
@@ -346,9 +350,53 @@ static void openldap_ldap_init_w_env(const char *prefix)
 	}
 }
 
-void ldap_int_initialize( int *dbglvl )
+/* 
+ * Initialize the global options structure with default values.
+ */
+void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl )
 {
-	if ( gopts.ldo_valid == LDAP_INITIALIZED ) {
+	if (dbglvl)
+	    gopts->ldo_debug = *dbglvl;
+	else
+		gopts->ldo_debug = 0;
+
+	gopts->ldo_version   = LDAP_VERSION2;
+	gopts->ldo_deref     = LDAP_DEREF_NEVER;
+	gopts->ldo_timelimit = LDAP_NO_LIMIT;
+	gopts->ldo_sizelimit = LDAP_NO_LIMIT;
+
+	gopts->ldo_tm_api = (struct timeval *)NULL;
+	gopts->ldo_tm_net = (struct timeval *)NULL;
+
+	/* ldo_defludp is leaked, we should have an at_exit() handler
+	 * to free this and whatever else needs to cleaned up. 
+	 */
+	ldap_url_parselist(&gopts->ldo_defludp, "ldap://localhost/");
+	gopts->ldo_defport = LDAP_PORT;
+
+	gopts->ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
+	gopts->ldo_rebindproc = NULL;
+
+	LDAP_BOOL_ZERO(gopts);
+
+	LDAP_BOOL_SET(gopts, LDAP_BOOL_REFERRALS);
+
+#ifdef HAVE_TLS
+   	gopts->ldo_tls_ctx = NULL;
+#endif
+#ifdef HAVE_CYRUS_SASL
+	gopts->ldo_sasl_minssf = 0;
+	gopts->ldo_sasl_maxssf = INT_MAX;
+#endif
+
+	gopts->ldo_valid = LDAP_INITIALIZED;
+
+   	return;
+}
+
+void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
+{
+	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
 		return;
 	}
 
@@ -365,41 +413,7 @@ void ldap_int_initialize( int *dbglvl )
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();
 
-	if (dbglvl)
-	    gopts.ldo_debug = *dbglvl;
-	else
-	gopts.ldo_debug = 0;
-
-	gopts.ldo_version =	LDAP_VERSION2;
-	gopts.ldo_deref =	LDAP_DEREF_NEVER;
-	gopts.ldo_timelimit = LDAP_NO_LIMIT;
-	gopts.ldo_sizelimit = LDAP_NO_LIMIT;
-
-	gopts.ldo_tm_api = (struct timeval *)NULL;
-	gopts.ldo_tm_net = (struct timeval *)NULL;
-
-	/* ldo_defludp is leaked, we should have an at_exit() handler
-	 * to free this and whatever else needs to cleaned up. 
-	 */
-	ldap_url_parselist(&gopts.ldo_defludp, "ldap://localhost/");
-	gopts.ldo_defport = LDAP_PORT;
-
-	gopts.ldo_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
-	gopts.ldo_rebindproc = NULL;
-
-	LDAP_BOOL_ZERO(&gopts);
-
-	LDAP_BOOL_SET(&gopts, LDAP_BOOL_REFERRALS);
-
-#ifdef HAVE_TLS
-   	gopts.ldo_tls_ctx = NULL;
-#endif
-#ifdef HAVE_CYRUS_SASL
-	gopts.ldo_sasl_minssf = 0;
-	gopts.ldo_sasl_maxssf = INT_MAX;
-#endif
-
-	gopts.ldo_valid = LDAP_INITIALIZED;
+	ldap_int_initialize_global_options(gopts, NULL);
 
 	if( getenv("LDAPNOINIT") != NULL ) {
 		return;
@@ -434,5 +448,5 @@ void ldap_int_initialize( int *dbglvl )
 			      LDAP_ENV_PREFIX "RC", 0, 0);
 	}
 
-	openldap_ldap_init_w_env(NULL);
+	openldap_ldap_init_w_env(gopts, NULL);
 }

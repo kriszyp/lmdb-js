@@ -227,7 +227,14 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		return LDAP_URL_ERR_PARAM;
 	}
 
+#ifndef LDAP_INT_IN_KERNEL
+		/* Global options may not be created yet
+		 * We can't test if the global options are initialized
+		 * because a call to LDAP_INT_GLOBAL_OPT() will try to allocate
+		 * the options and cause infinite recursion
+		 */
 	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse(%s)\n", url_in, 0, 0 );
+#endif
 
 	*ludpp = NULL;	/* pessimistic */
 

@@ -885,7 +885,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 				*ports++ = '\0';
 				srv->lud_port = atoi( ports );
 			} else {
-				srv->lud_port = ldap_int_global_options.ldo_defport;
+				srv->lud_port = (LDAP_INT_GLOBAL_OPT())->ldo_defport;
 			}
 
 		rinfo.ri_msgid = origreq->lr_origid;
