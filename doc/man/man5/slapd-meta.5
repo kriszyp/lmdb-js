@@ -712,7 +712,7 @@ returned is less than <max_entries>. Consistency check is performed every
 "time to live(\fBTTL\fP)" are removed. A sample cache configuration is: 
 .LP
 .RS
-cacheparams 	\fB10000 150000 1 50 100\fP
+cacheparams \fB10000 150000 1 50 100\fP
 .RE
 .TP
 .B attrset <index> <attrs...>
@@ -730,7 +730,7 @@ The following adds a template with filter string (&sn=)(givenName=)) and attribu
 .LP
 .RS
 .nf
-attrset	\fB0 mail postaladdress telephonenumber\fP
+attrset \fB0 mail postaladdress telephonenumber\fP
 addtemplate \fB(&(sn=)(givenName=)) 0 3600\fP
 .fi
 .RE

@@ -13,7 +13,8 @@ OpenLDAP LDAP (libldap, -lldap)
 .LP
 .ft B
 int ldap_parse_reference( LDAP *ld, LDAPMessage *reference,
-	char ***referralsp, LDAPControl ***serverctrlsp, int freeit )
+	char ***referralsp, LDAPControl ***serverctrlsp,
+	int freeit )
 .SH DESCRIPTION
 .LP
 The
@@ -57,7 +58,7 @@ Upon success LDAP_SUCCESS is returned. Otherwise the values of the
 .BR ldap_get_values (3),
 .BR ldap_controls_free (3)
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  

@@ -48,8 +48,8 @@ defined below.
 	    int mod_op;
 	    char *mod_type;
 	    union {
-		char **modv_strvals;
-		struct berval **modv_bvals;
+	        char **modv_strvals;
+	        struct berval **modv_bvals;
 	    } mod_vals;
 	    struct ldapmod *mod_next;
 	} LDAPMod;
@@ -116,7 +116,7 @@ field of \fIld\fP.
 .BR ldap_error (3),
 .BR ldap_add (3)
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  

@@ -281,15 +281,15 @@ output in LDAP Data Interchange Format or
 .BR ldif (5):
 .LP
 .nf
-	version: 1
+    version: 1
 
-	# bjensen, example, net
-	dn: uid=bjensen,dc=example,dc=net
-	objectClass: person
-	objectClass: dcObject
-	uid: bjensen
-	cn: Barbara Jensen
-	sn: Jensen
+    # bjensen, example, net
+    dn: uid=bjensen,dc=example,dc=net
+    objectClass: person
+    objectClass: dcObject
+    uid: bjensen
+    cn: Barbara Jensen
+    sn: Jensen
     ...
 .fi
 .LP
@@ -313,20 +313,20 @@ The output might look something like this if two entries are found:
 .LP
 .nf
     dn: uid=jts,dc=example,dc=com
-	cn: John Smith
-	cn: John T. Smith
-	sn: Smith
-	sn;lang-en: Smith
-	sn;lang-de: Schmidt
-	telephoneNumber: 1 555 123-4567
+    cn: John Smith
+    cn: John T. Smith
+    sn: Smith
+    sn;lang-en: Smith
+    sn;lang-de: Schmidt
+    telephoneNumber: 1 555 123-4567
 
-	dn: uid=sss,dc=example,dc=com
-	cn: Steve Smith
-	cn: Steve S. Smith
-	sn: Smith
-	sn;lang-en: Smith
-	sn;lang-de: Schmidt
-	telephoneNumber: 1 555 765-4321
+    dn: uid=sss,dc=example,dc=com
+    cn: Steve Smith
+    cn: Steve S. Smith
+    sn: Smith
+    sn;lang-en: Smith
+    sn;lang-de: Schmidt
+    telephoneNumber: 1 555 765-4321
 .fi
 .LP
 The command:
@@ -401,7 +401,7 @@ a diagnostic message being written to standard error.
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  

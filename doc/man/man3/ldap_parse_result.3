@@ -14,7 +14,8 @@ OpenLDAP LDAP (libldap, -lldap)
 .ft B
 int ldap_parse_result( LDAP *ld, LDAPMessage *result,
 	int *errcodep, char **matcheddnp, char **errmsgp,
-	char ***referralsp, LDAPControl ***serverctrlsp, int freeit )
+	char ***referralsp, LDAPControl ***serverctrlsp,
+	int freeit )
 .LP
 .ft B
 int ldap_parse_sasl_bind_result( LDAP *ld, LDAPMessage *result,
@@ -102,7 +103,7 @@ result parameters are undefined.
 .BR ldap_controls_free (3),
 .BR lber-types (3)
 .SH ACKNOWLEDGEMENTS
-.B	OpenLDAP
+.B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
-.B	OpenLDAP
+.B OpenLDAP
 is derived from University of Michigan LDAP 3.3 Release.  
