@@ -236,7 +236,10 @@ backsql_count_children(
 		char *end;
 
 		*nchildren = strtol( row.cols[ 0 ], &end, 0 );
-		if ( end[ 0 ] != '\0' ) {
+		if ( end[ 0 ] != '\0' && end[0] != '.' ) {
+			/* FIXME: braindead RDBMSes return
+			 * a fractional number from COUNT!
+			 */
 			res = LDAP_OTHER;
 		}
 
