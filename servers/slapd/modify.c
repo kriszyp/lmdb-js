@@ -288,13 +288,8 @@ add_modified_attrs( Operation *op, LDAPModList **modlist )
 
 	currenttime = slap_get_time();
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
 	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &currenttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	bv.bv_val = buf;

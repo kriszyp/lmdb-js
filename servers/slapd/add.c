@@ -247,21 +247,18 @@ add_created_attrs( Operation *op, Entry *e )
 		bv.bv_len = strlen( bv.bv_val );
 	}
 	attr_merge( e, "creatorsname", bvals );
+	attr_merge( e, "modifiersname", bvals );
 
 	currenttime = slap_get_time();
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
 	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &currenttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 	attr_merge( e, "createtimestamp", bvals );
+	attr_merge( e, "modifytimestamp", bvals );
 
 	return LDAP_SUCCESS;
 }

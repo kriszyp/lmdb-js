@@ -105,19 +105,12 @@ monitor_info(
 		}
 
 		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
+
 		ltm = gmtime( &c->c_starttime );
 		strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
 
 		ltm = gmtime( &c->c_activitytime );
 		strftime( buf3, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
-#else
-		ltm = localtime( &c->.c_starttime );
-		strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
-
-		ltm = localtime( &c->c_activitytime );
-		strftime( buf3, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
-#endif
 
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
@@ -232,24 +225,14 @@ monitor_info(
 	currenttime = slap_get_time();
 
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
 	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &currenttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "currenttime", vals );
 
-#ifndef LDAP_LOCALTIME
 	ltm = gmtime( &starttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &starttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	val.bv_val = buf;
