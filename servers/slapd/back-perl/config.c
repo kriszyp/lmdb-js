@@ -59,7 +59,7 @@ perl_back_db_config(
 		eval_pv( eval_str, 0 );
 
 		if (SvTRUE(ERRSV)) {
-			fprintf(stderr , "Error %s\n", SvPV(ERRSV,  na)) ;
+			fprintf(stderr , "Error %s\n", SvPV(ERRSV, n_a)) ;
 		}
 #else
 		snprintf( eval_str, EVAL_BUF_SIZE, "%s.pm", argv[1] );
