@@ -582,7 +582,7 @@ main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
+	if ( use_tls && ( ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS )) {
 		ldap_perror( ld, "ldap_start_tls" );
 		if ( use_tls > 1 ) {
 			return( EXIT_FAILURE );
