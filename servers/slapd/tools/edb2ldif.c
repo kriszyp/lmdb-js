@@ -109,7 +109,7 @@ main( int argc, char **argv )
     always_addvals = NULL;
     basedn = NULL;
 
-    while (( c = getopt( argc, argv, "dorva:b:f:h:i:" )) != -1 ) {
+    while (( c = getopt( argc, argv, "dorva:b:f:h:i:" )) != EOF ) {
 	switch( c ) {
 	case 'd':
 #ifdef LDAP_DEBUG
