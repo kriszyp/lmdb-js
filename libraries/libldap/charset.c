@@ -42,7 +42,7 @@ ldap_enable_translation( LDAP *ld, LDAPMessage *entry, int enable )
 {
 	short	*optionsp;
 
-	optionsp = ( entry == NULLMSG ) ? &ld->ld_lberoptions :
+	optionsp = ( entry == NULL ) ? &ld->ld_lberoptions :
 	    &entry->lm_ber->ber_options;
 		
 	if ( enable ) {

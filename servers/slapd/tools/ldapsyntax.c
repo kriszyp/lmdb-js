@@ -414,7 +414,7 @@ photo2ldif( PS ps, AttributeValue av )
     if ( pe->pe_class == PE_CLASS_UNIV && pe->pe_form == PE_FORM_PRIM
 	    && pe->pe_id == PE_PRIM_BITS ) {
 	len = ps_get_abs( pe );
-	if (( phber = der_alloc()) == NULLBER ) {
+	if (( phber = der_alloc()) == NULL ) {
 	    return( -1 );
 	}
 	if ( ber_printf( phber, "t{[tB]{B}}",
