@@ -837,7 +837,7 @@ getNextPage:
 	}
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	if ( ( pageSize != 0 ) && ( morePagedResults != 0 ) ) {
+	if ( ( rc == LDAP_SUCCESS ) &&  ( pageSize != 0 ) && ( morePagedResults != 0 ) ) {
 		char	buf[6];
 		int	i, moreEntries, tmpSize;
 
