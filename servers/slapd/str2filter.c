@@ -28,9 +28,8 @@ str2filter( const char *str )
 {
 	int rc;
 	Filter	*f = NULL;
-	BerElement *ber;
 	char berbuf[256];
-	struct berval *bv = NULL;
+	BerElement *ber = (BerElement *)berbuf;
 	Connection conn;
 	const char *text = NULL;
 
@@ -44,35 +43,21 @@ str2filter( const char *str )
 		return NULL;
 	}
 
-	ber = ber_alloc_t( LBER_USE_DER );
-	if( ber == NULL ) {
-		return NULL;
-	}
+	ber_init2( ber, NULL, LBER_USE_DER );
 
 	rc = ldap_pvt_put_filter( ber, str );
 	if( rc < 0 ) {
 		goto done;
 	}
 
-	rc = ber_flatten( ber, &bv );
-	if( rc < 0 ) {
-		goto done;
-	}
-
-	ber_free( ber, 1 );
-
-	ber = (BerElement *)berbuf;
-	ber_init2( ber, bv, 0 );
+	ber_reset( ber, 1 );
 
 	conn.c_connid = 0;
 
 	rc = get_filter( &conn, ber, &f, &text );
-	if( rc ) {
-		goto done;
-	}
 
 done:
-	ber_bvfree( bv );
+	ber_free_buf( ber );
 
 	return f;
 }
