@@ -49,10 +49,11 @@ echo "Using ldapsearch to retrieve all the entries..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT > $SEARCHOUT 2>&1
 	RC=$?
-	if test $RC = 1 ; then
-		echo "Waiting 5 seconds for slapd to start..."
-		sleep 5
+	if test $RC = 0 ; then
+		break
 	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
 done
 
 kill -HUP $PID
