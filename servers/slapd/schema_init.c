@@ -28,9 +28,6 @@
 #define HASH_Update(c,buf,len)	lutil_HASHUpdate(c,buf,len)
 #define HASH_Final(d,c)			lutil_HASHFinal(d,c)
 
-/* not yet implemented */
-#define uniqueMemberMatch NULL
-
 #define	OpenLDAPaciMatch			NULL
 
 /* approx matching rules */
@@ -793,6 +790,77 @@ uniqueMemberNormalize(
 	}
 
 	return LDAP_SUCCESS;
+}
+
+static int
+uniqueMemberMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match;
+	struct berval *asserted = (struct berval *) assertedValue;
+	struct berval assertedDN = { 0, NULL };
+	struct berval assertedUID = { 0, NULL };
+	struct berval valueDN = { 0, NULL };
+	struct berval valueUID = { 0, NULL };
+
+	if( asserted->bv_len != 0 ) {
+		assertedDN = *asserted;
+
+		if( assertedDN.bv_val[assertedDN.bv_len-1] == 'B'
+			&& assertedDN.bv_val[assertedDN.bv_len-2] == '\'' )
+		{
+			/* assume presence of optional UID */
+			assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
+
+			if( assertedUID.bv_val == NULL ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			assertedUID.bv_len = assertedDN.bv_len -
+				(assertedUID.bv_val - assertedDN.bv_val);
+			assertedDN.bv_len -= assertedUID.bv_len--;
+
+			/* trim the separator */
+			assertedUID.bv_val++;
+		}
+	}
+
+	if( value->bv_len != 0 ) {
+		valueDN = *value;
+
+		if( valueDN.bv_val[valueDN.bv_len-1] == 'B'
+			&& valueDN.bv_val[valueDN.bv_len-2] == '\'' )
+		{
+			/* assume presence of optional UID */
+			valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
+
+			if( valueUID.bv_val == NULL ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			valueUID.bv_len = valueDN.bv_len -
+				(assertedUID.bv_val - assertedDN.bv_val);
+			valueDN.bv_len -= valueUID.bv_len--;
+
+			/* trim the separator */
+			valueUID.bv_val++;
+		}
+	}
+
+	if( valueUID.bv_len && assertedUID.bv_len ) {
+		match = memcmp( valueUID.bv_val, assertedUID.bv_val, valueUID.bv_len );
+		if( match ) {
+			*matchp = match;
+			return LDAP_SUCCESS;
+		}
+	}
+
+	return dnMatch( matchp, flags, syntax, mr, &valueDN, &assertedDN );
 }
 
 /*
@@ -2312,6 +2380,7 @@ firstComponentNormalize(
 
 	return rc;
 }
+
 
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
