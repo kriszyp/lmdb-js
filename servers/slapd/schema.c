@@ -180,7 +180,7 @@ static char *oc_no_usermod_attrs[] = {
  * check to see if attribute is 'operational' or not.
  */
 int
-oc_check_operational_attr( char *type )
+oc_check_operational_attr( const char *type )
 {
 	return charray_inlist( oc_operational_attrs, type )
 		|| charray_inlist( oc_usermod_attrs, type )
@@ -191,7 +191,7 @@ oc_check_operational_attr( char *type )
  * check to see if attribute can be user modified or not.
  */
 int
-oc_check_usermod_attr( char *type )
+oc_check_usermod_attr( const char *type )
 {
 	return charray_inlist( oc_usermod_attrs, type );
 }
@@ -200,7 +200,7 @@ oc_check_usermod_attr( char *type )
  * check to see if attribute is 'no user modification' or not.
  */
 int
-oc_check_no_usermod_attr( char *type )
+oc_check_no_usermod_attr( const char *type )
 {
 	return charray_inlist( oc_no_usermod_attrs, type );
 }
@@ -565,7 +565,7 @@ syn_find_desc( const char *syndesc, int *len )
 	Syntax		*synp;
 
 	for (synp = syn_list; synp; synp = synp->ssyn_next)
-		if ((*len = dscompare( synp->ssyn_syn.syn_desc, (char *)syndesc, '{')))
+		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{')))
 			return synp;
 	return( NULL );
 }
@@ -1225,7 +1225,7 @@ oc_print( ObjectClass *oc )
 
 int is_entry_objectclass(
 	Entry*	e,
-	char*	oc)
+	const char*	oc)
 {
 	Attribute *attr;
 	struct berval bv;
@@ -1243,7 +1243,7 @@ int is_entry_objectclass(
 		return 0;
 	}
 
-	bv.bv_val = oc;
+	bv.bv_val = (char *) oc;
 	bv.bv_len = strlen( bv.bv_val );
 
 	if( value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {

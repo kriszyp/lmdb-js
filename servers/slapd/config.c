@@ -43,7 +43,7 @@ static int	fp_parse_line(char *line, int *argcp, char **argv);
 static char	*strtok_quote(char *line, char *sep);
 
 int
-read_config( char *fname )
+read_config( const char *fname )
 {
 	FILE	*fp;
 	char	*line, *savefname, *saveline;

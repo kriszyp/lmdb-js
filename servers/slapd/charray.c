@@ -16,7 +16,7 @@
 void
 charray_add(
     char	***a,
-    char	*s
+    const char	*s
 )
 {
 	int	n;
@@ -40,7 +40,7 @@ charray_add(
 void
 charray_merge(
     char	***a,
-    char	**s
+    const char	**s
 )
 {
 	int	i, n, nn;
@@ -79,8 +79,8 @@ charray_free( char **array )
 
 int
 charray_inlist(
-    char	**a,
-    char	*s
+    const char	**a,
+    const char	*s
 )
 {
 	int	i;
@@ -95,7 +95,7 @@ charray_inlist(
 }
 
 char **
-charray_dup( char **a )
+charray_dup( const char **a )
 {
 	int	i;
 	char	**new;
@@ -115,7 +115,7 @@ charray_dup( char **a )
 
 
 char *
-charray2str( char **a )
+charray2str( const char **a )
 {
 	char *s;
 	int i;
@@ -143,15 +143,16 @@ charray2str( char **a )
 
 
 char **
-str2charray( char *str, char *brkstr )
+str2charray( const char *str_in, const char *brkstr )
 {
+	char	*str;
 	char	**res;
 	char	*s;
 	char	*lasts;
 	int	i;
 
 	/* protect the input string from strtok */
-	str = ch_strdup( str );
+	str = ch_strdup( str_in );
 
 	i = 1;
 	for ( s = str; *s; s++ ) {

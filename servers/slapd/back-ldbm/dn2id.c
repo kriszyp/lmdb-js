@@ -18,7 +18,7 @@
 int
 dn2id_add(
     Backend	*be,
-    char	*dn,
+    const char	*dn,
     ID		id
 )
 {
@@ -99,7 +99,7 @@ dn2id_add(
 ID
 dn2id(
     Backend	*be,
-    char	*dn
+    const char	*dn
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -151,7 +151,7 @@ dn2id(
 ID_BLOCK *
 dn2idl(
     Backend	*be,
-    char	*dn,
+    const char	*dn,
 	int		prefix
 )
 {
@@ -187,7 +187,7 @@ dn2idl(
 int
 dn2id_delete(
     Backend	*be,
-    char	*dn
+    const char	*dn
 )
 {
 	DBCache	*db;
@@ -228,7 +228,7 @@ dn2id_delete(
 Entry *
 dn2entry_rw(
     Backend	*be,
-    char	*dn,
+    const char	*dn,
     Entry	**matched,
     int         rw
 )

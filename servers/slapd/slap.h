@@ -497,7 +497,7 @@ struct slap_backend_info {
 	 */
 	int (*bi_init)	LDAP_P((BackendInfo *bi));
 	int	(*bi_config) LDAP_P((BackendInfo *bi,
-		char *fname, int lineno, int argc, char **argv ));
+		const char *fname, int lineno, int argc, char **argv ));
 	int (*bi_open) LDAP_P((BackendInfo *bi));
 	int (*bi_close) LDAP_P((BackendInfo *bi));
 	int (*bi_destroy) LDAP_P((BackendInfo *bi));
@@ -525,7 +525,7 @@ struct slap_backend_info {
 	 */
 	int (*bi_db_init) LDAP_P((Backend *bd));
 	int	(*bi_db_config) LDAP_P((Backend *bd,
-		char *fname, int lineno, int argc, char **argv ));
+		const char *fname, int lineno, int argc, char **argv ));
 	int (*bi_db_open) LDAP_P((Backend *bd));
 	int (*bi_db_close) LDAP_P((Backend *bd));
 	int (*bi_db_destroy) LDAP_P((Backend *db));
@@ -567,8 +567,8 @@ struct slap_backend_info {
 	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
 
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
-		Entry *e, char *bdn, char *edn,
-		char *objectclassValue, char *groupattrName ));
+		Entry *e, const char *bdn, const char *edn,
+		const char *objectclassValue, const char *groupattrName ));
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

@@ -35,7 +35,8 @@ do_bind(
 	ber_int_t		version;
 	ber_tag_t method;
 	char		*mech;
-	char		*dn, *ndn;
+	char		*dn;
+	char *ndn;
 	ber_tag_t	tag;
 	int			rc = LDAP_SUCCESS;
 	struct berval	cred;

@@ -191,7 +191,7 @@ attr_merge(
 Attribute *
 attr_find(
     Attribute	*a,
-    char	*type
+    const char	*type
 )
 {
 	for ( ; a != NULL; a = a->a_next ) {
@@ -213,7 +213,7 @@ attr_find(
 int
 attr_delete(
     Attribute	**attrs,
-    char	*type
+    const char	*type
 )
 {
 	Attribute	**a;
@@ -261,7 +261,7 @@ attr_syntax( char *type )
 
 void
 attr_syntax_config(
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv

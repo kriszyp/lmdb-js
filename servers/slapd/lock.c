@@ -22,7 +22,7 @@
 #include "slap.h"
 
 FILE *
-lock_fopen( char *fname, char *type, FILE **lfp )
+lock_fopen( const char *fname, const char *type, FILE **lfp )
 {
 	FILE	*fp;
 	char	buf[MAXPATHLEN];

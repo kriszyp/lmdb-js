@@ -26,7 +26,7 @@ static void		print_access(Access *b);
 #endif
 
 static int
-regtest(char *fname, int lineno, char *pat) {
+regtest(const char *fname, int lineno, char *pat) {
 	int e;
 	regex_t re;
 
@@ -84,7 +84,7 @@ regtest(char *fname, int lineno, char *pat) {
 void
 parse_acl(
     Backend	*be,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv

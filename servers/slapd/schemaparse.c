@@ -51,7 +51,7 @@ scherr2str(int code)
 void
 parse_oc_old(
     Backend	*be,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv
@@ -151,9 +151,9 @@ parse_oc_old(
  * matched, otherwise return length matched.
  */
 int
-dscompare(char *s1, char *s2, char delim)
+dscompare(const char *s1, const char *s2, char delim)
 {
-	char *orig = s1;
+	const char *orig = s1;
 	while (*s1++ == *s2++)
 		if (!s1[-1]) break;
 	--s1;
@@ -202,7 +202,7 @@ find_oidm(char *oid)
 
 void
 parse_oidm(
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char 	**argv
@@ -233,7 +233,7 @@ usage:		fprintf( stderr, "ObjectIdentifier <name> <oid>\n");
 
 void
 parse_oc(
-    char	*fname,
+    const char	*fname,
     int		lineno,
     char	*line,
     char	**argv
@@ -337,7 +337,7 @@ at_usage( void )
 
 void
 parse_at(
-    char	*fname,
+    const char	*fname,
     int		lineno,
     char	*line,
     char	**argv

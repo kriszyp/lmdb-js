@@ -24,10 +24,10 @@ int
 ldbm_back_group(
 	Backend	*be,
 	Entry	*target,
-	char	*gr_ndn,
-	char	*op_ndn,
-	char	*objectclassValue,
-	char	*groupattrName
+	const char	*gr_ndn,
+	const char	*op_ndn,
+	const char	*objectclassValue,
+	const char	*groupattrName
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
@@ -104,7 +104,7 @@ ldbm_back_group(
 		goto return_results;
 	}
 
-	bv.bv_val = objectclassValue;
+	bv.bv_val = (char *) objectclassValue;
 	bv.bv_len = strlen( bv.bv_val );         
 
 	if (value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
@@ -125,7 +125,7 @@ ldbm_back_group(
 		"<= ldbm_back_group: found objectClass %s and %s\n",
 		objectclassValue, groupattrName, 0 ); 
 
-	bv.bv_val = op_ndn;
+	bv.bv_val = (char *) op_ndn;
 	bv.bv_len = strlen( op_ndn );         
 
 	if( value_find( attr->a_vals, &bv, attr->a_syntax, 1) != 0 )

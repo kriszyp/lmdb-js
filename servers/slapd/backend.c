@@ -339,7 +339,7 @@ int backend_destroy(void)
 	return 0;
 }
 
-BackendInfo* backend_info(char *type)
+BackendInfo* backend_info(const char *type)
 {
 	int i;
 
@@ -356,7 +356,7 @@ BackendInfo* backend_info(char *type)
 
 BackendDB *
 backend_db_init(
-    char	*type
+    const char	*type
 )
 {
 	Backend	*be;
@@ -410,7 +410,7 @@ be_db_close( void )
 }
 
 Backend *
-select_backend( char * dn )
+select_backend( const char * dn )
 {
 	int	i, j, len, dnlen;
 
@@ -452,7 +452,7 @@ select_backend( char * dn )
 int
 be_issuffix(
     Backend	*be,
-    char	*suffix
+    const char	*suffix
 )
 {
 	int	i;
@@ -467,7 +467,7 @@ be_issuffix(
 }
 
 int
-be_isroot( Backend *be, char *ndn )
+be_isroot( Backend *be, const char *ndn )
 {
 	int rc;
 
@@ -491,7 +491,7 @@ be_root_dn( Backend *be )
 }
 
 int
-be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
+be_isroot_pw( Backend *be, const char *ndn, struct berval *cred )
 {
 	int result;
 
@@ -578,10 +578,10 @@ int
 backend_group(
 	Backend	*be,
 	Entry	*target,
-	char	*gr_ndn,
-	char	*op_ndn,
-	char	*objectclassValue,
-	char	*groupattrName
+	const char	*gr_ndn,
+	const char	*op_ndn,
+	const char	*objectclassValue,
+	const char	*groupattrName
 )
 {
 	if (be->be_group)

@@ -32,7 +32,7 @@ send_ldap_disconnect(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
-    char	*text
+    const char	*text
 )
 {
 	assert(0);
@@ -43,8 +43,8 @@ send_ldap_result(
 	Connection  *conn, 
 	Operation   *op,
 	int     err,
-	char    *matched,
-	char    *text,
+	const char    *matched,
+	const char    *text,
 	struct berval **refs,
 	LDAPControl **ctrls
 )        
@@ -57,8 +57,8 @@ send_search_result(
 	Connection  *conn, 
 	Operation   *op,
 	int     err,
-	char    *matched,
-	char    *text,
+	const char    *matched,
+	const char    *text,
 	struct berval **refs,
 	LDAPControl **ctrls,
 	int		nentries

@@ -197,10 +197,10 @@ dn_normalize_case( char *dn )
 char *
 dn_parent(
     Backend	*be,
-    char	*dn
+    const char	*dn
 )
 {
-	char	*s;
+	const char	*s;
 	int	inquote;
 
 	if( dn == NULL ) {
@@ -345,21 +345,19 @@ char * dn_rdn(
  */
 char **dn_subtree(
 	Backend	*be,
-    char	*dn )
+    const char	*dn )
 {
 	char *child, *parent;
 	char **subtree = NULL;
 	
-	child = dn;
+	child = ch_strdup( dn );
 
 	do {
 		charray_add( &subtree, child );
 
 		parent = dn_parent( be, child );
 
-		if( child != dn ) {
-			free( child );
-		}
+		free( child );
 
 		child = parent;
 	} while ( child != NULL );
@@ -551,7 +549,10 @@ int rdn_validate( const char * rdn )
  */
 
 void
-build_new_dn( char ** new_dn, char *e_dn, char * p_dn, char * newrdn )
+build_new_dn( char ** new_dn,
+	const char *e_dn,
+	const char * p_dn,
+	const char * newrdn )
 {
 
     if ( p_dn == NULL ) {

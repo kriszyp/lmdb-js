@@ -299,7 +299,7 @@ send_ldap_disconnect(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
-    char	*text
+    const char	*text
 )
 {
 	ber_tag_t tag;
@@ -353,8 +353,8 @@ send_ldap_result(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
-    char	*matched,
-    char	*text,
+    const char	*matched,
+    const char	*text,
 	struct berval **ref,
 	LDAPControl **ctrls
 )
@@ -420,8 +420,8 @@ send_search_result(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
-    char	*matched,
-	char	*text,
+    const char	*matched,
+	const char	*text,
     struct berval **refs,
 	LDAPControl **ctrls,
     int		nentries

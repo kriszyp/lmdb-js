@@ -69,7 +69,7 @@ idl_fetch_one(
 )
 {
 	Datum	data;
-	ID_BLOCK	*idl;
+	ID_BLOCK	idl;
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch_one\n", 0, 0, 0 ); */
 
@@ -79,10 +79,10 @@ idl_fetch_one(
 		return NULL;
 	}
 
-	idl = idl_dup( (ID_BLOCK *) data.dptr);
+	memcpy( &idl, data.dptr, data.dsize );
 	ldbm_datum_free( db->dbc_db, data );
 
-	return( idl );
+	return idl_dup( &idl );
 }
 
 

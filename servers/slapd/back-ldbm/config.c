@@ -18,7 +18,7 @@
 int
 ldbm_back_db_config(
     Backend	*be,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv
