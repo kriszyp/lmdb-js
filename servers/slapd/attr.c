@@ -189,18 +189,19 @@ attr_merge(
 
 	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		if ( ad_cmp( (*a)->a_desc, desc ) == 0 )
 #else
-		if ( strcasecmp( (*a)->a_type, type ) == 0 ) {
+		if ( strcasecmp( (*a)->a_type, type ) == 0 )
+#endif
+		{
 			break;
 		}
-#endif
 	}
 
 	if ( *a == NULL ) {
 		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		(*a)->a_desc = ad_dup( desc );
 #else
 		(*a)->a_type = attr_normalize( ch_strdup( type ) );
 		(*a)->a_syntax = attr_syntax( type );
@@ -284,12 +285,13 @@ attr_delete(
 
 	for ( a = attrs; *a != NULL; a = &(*a)->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		if ( ad_cmp( (*a)->a_desc, desc ) == 0 )
 #else
-		if ( strcasecmp( (*a)->a_type, type ) == 0 ) {
+		if ( strcasecmp( (*a)->a_type, type ) == 0 )
+#endif
+		{
 			break;
 		}
-#endif
 	}
 
 	if ( *a == NULL ) {
