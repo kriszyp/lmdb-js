@@ -492,6 +492,7 @@ dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl (for now, let autoconf sort this out)
 dnl CFLAGS=${CFLAGS-""}
 
+AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
@@ -591,12 +592,15 @@ if test $ol_enable_modules != no ; then
 		AC_MSG_ERROR([could not locate libtool ltdl.h])
 	fi
 
-	AC_CHECK_LIB(ltdl, lt_dlinit)
+	AC_CHECK_LIB(ltdl, lt_dlinit, [
+	    MODULES_LIBS=-lltdl
+	    AC_DEFINE(HAVE_LIBLTDL)
+	])
+
 	if test "$ac_cv_lib_ltdl_lt_dlinit" = no ; then
 		AC_MSG_ERROR([could not locate libtool -lltdl])
 	fi
 	ol_link_modules=yes
-
 else
 	ol_with_bdb2_module=static
 	ol_with_ldap_module=static
@@ -627,12 +631,15 @@ AC_CHECK_HEADERS(	\
 	arpa/inet.h		\
 	arpa/nameser.h	\
 	assert.h		\
+	conio.h			\
 	crypt.h			\
+	direct.h		\
 	errno.h			\
 	fcntl.h			\
 	filio.h			\
 	getopt.h		\
 	grp.h			\
+	io.h			\
 	libutil.h		\
 	limits.h		\
 	locale.h		\
@@ -641,6 +648,7 @@ AC_CHECK_HEADERS(	\
 	memory.h		\
 	psap.h			\
 	pwd.h			\
+	process.h		\
 	resolv.h		\
 	sgtty.h			\
 	shadow.h		\
@@ -664,11 +672,38 @@ AC_CHECK_HEADERS(	\
 	unistd.h		\
 )
 
+dnl Check for winsock.h on a Mingw32 system
+if test "$ac_cv_mingw32" = yes ; then
+    AC_CHECK_HEADERS(winsock.h)
+fi
+
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
+
+dnl Gotta check for winsock manually
+if test "${ac_cv_header_winsock_h}" = yes; then
+    AC_MSG_CHECKING(for winsock support)
+    AC_TRY_LINK([
+#include <winsock.h>
+    ],[
+socket(0,0,0);
+select(0,NULL,NULL,NULL,NULL);
+closesocket(0);
+gethostname(NULL,0);
+    ],[
+	AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE_WINSOCK)
+	ac_cv_func_socket=yes
+	ac_cv_func_select=yes
+	ac_cv_func_closesocket=yes
+	ac_cv_func_gethostname=yes
+    ],[
+	AC_MSG_RESULT(no)
+    ])
+fi
 
 dnl Find socket()
 dnl Likely combinations:
@@ -690,10 +725,12 @@ dnl require select
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
 dnl AC_CHECK_FUNCS(socketpair)
 
-dnl Select arg types
-dnl (if this detection becomes permenent, it and the select() detection
-dnl should be done before the yielding select test) 
-AC_FUNC_SELECT_ARGTYPES
+if test "${ac_cv_header_winsock_h}" != yes; then
+    dnl Select arg types
+    dnl (if this detection becomes permenent, it and the select() detection
+    dnl should be done before the yielding select test) 
+    AC_FUNC_SELECT_ARGTYPES
+fi
 
 dnl check to see if system call automatically restart
 dnl AC_SYS_RESTARTABLE_SYSCALLS
@@ -955,6 +992,17 @@ fi
 dnl ----------------------------------------------------------------
 dnl Threads?
 ol_link_threads=no
+
+dnl Not much to check. If we're in mingw32, we assume win32 threads.
+if test "$ac_cv_mingw32" = yes ; then
+    ol_link_threads=nt
+    ol_with_threads=found
+    ol_with_yielding_select=yes
+    AC_MSG_CHECKING(for NT threads)
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(HAVE_NT_THREADS)
+fi
+
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = posix ; then
 
@@ -1386,7 +1434,7 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
-if test $ol_link_threads != no ; then  
+if test $ol_link_threads != no -a $ol_link_threads != nt ; then  
 	dnl needed to get reentrant/threadsafe versions
 	dnl
 	AC_DEFINE(REENTRANT,1)
@@ -1847,7 +1895,8 @@ if test $ol_enable_proctitle != no ; then
 			[have_setproctitle=yes
 			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
 			[have_setproctitle=no
-			LIBOBJS="$LIBOBJS setproctitle.o"])])
+			LIBOBJS="$LIBOBJS setproctitle.o"
+			LIBSRCS="$LIBSRCS setproctitle.c"])])
 
 	if test $have_setproctitle = yes ; then
 		AC_DEFINE(HAVE_SETPROCTITLE,1,
@@ -1857,20 +1906,25 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_GETGROUPS dnl requires AC_TYPE_UID_T
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AM_TYPE_PTRDIFF_T
 AC_TYPE_SIGNAL
-OL_TYPE_SIG_ATOMIC_T
 AC_TYPE_SIZE_T
 OL_TYPE_SOCKLEN_T
 AC_STRUCT_ST_BLKSIZE
 AC_HEADER_TIME
 AC_STRUCT_TM
-OL_STRUCT_PASSWD_PW_GECOS
-OL_STRUCT_PASSWD_PW_PASSWD
+AC_TYPE_UID_T
+OL_TYPE_SIG_ATOMIC_T
+
+dnl only check these if we're not Mingw32
+if test "$ac_cv_mingw32" != yes ; then
+    AC_TYPE_GETGROUPS
+    OL_STRUCT_PASSWD_PW_GECOS
+    OL_STRUCT_PASSWD_PW_PASSWD
+fi
 
 OL_C_UPPER_LOWER
 AC_C_CONST
@@ -1912,6 +1966,21 @@ AC_FUNC_STRFTIME
 dnl AM_FUNC_STRTOD
 
 OL_FUNC_INET_ATON
+
+dnl Check for Mingw32 specific functions.
+if test "$ac_cv_mingw32" = yes ; then
+    AC_CHECK_FUNC(_snprintf, [
+	ac_cv_func_snprintf=yes
+	AC_DEFINE(snprintf, _snprintf)
+    ])
+
+    AC_CHECK_FUNC(_vsnprintf, [
+	ac_cv_func_vsnprintf=yes
+	AC_DEFINE(vsnprintf, _vsnprintf)
+    ])
+
+    AC_CHECK_FUNC(_spawnlp, AC_DEFINE(HAVE_SPAWNLP))
+fi
 
 dnl we should use vfork instead of fork in a number of places...
 dnl AC_FUNC_VFORK
@@ -1975,6 +2044,14 @@ AC_CHECK_FUNCS(		\
 dnl We actually may need to replace more than this.
 AC_REPLACE_FUNCS(getopt tempnam)
 
+if test "$ac_cv_func_getopt" != yes; then
+    LIBSRCS="$LIBSRCS getopt.c"
+fi
+
+if test "$ac_cv_func_tempnam" != yes; then
+    LIBSRCS="$LIBSRCS tempnam.c"
+fi
+
 dnl ----------------------------------------------------------------
 # Check Configuration
 OL_SYS_ERRLIST
@@ -2037,7 +2114,6 @@ fi
 if test "$ol_link_modules" != no ; then
 	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
 	BUILD_SLAPD=yes
-	MODULES_LIBS=-lltdl
 	SLAPD_MODULES_LDFLAGS="-dlopen self"
 fi
 
@@ -2142,6 +2218,29 @@ if test "$ol_link_isode" != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+
+if test "$LINK_BINS_DYNAMIC" = yes; then
+    LIB_LINKAGE=DYN
+    LT_LIB_LINKAGE=shared
+else
+    LIB_LINKAGE=STAT
+    LT_LIB_LINKAGE=static
+fi
+
+if test "$ac_cv_mingw32" = yes ; then
+    PLAT=NT
+    DYN_EXT=dll
+else
+    PLAT=UNIX
+    DYN_EXT=so
+fi
+
+AC_SUBST(LIBSRCS)
+
+AC_SUBST(PLAT)
+AC_SUBST(LIB_LINKAGE)
+AC_SUBST(LT_LIB_LINKAGE)
+AC_SUBST(DYN_EXT)
 
 AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
