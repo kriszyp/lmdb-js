@@ -1396,7 +1396,7 @@ acl_usage( void )
 		"<style> ::= regex | base | exact\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
 		"<level> ::= none | auth | compare | search | read | write\n"
-		"<priv> ::= {=|+|-}{w|r|s|c|x}+\n"
+		"<priv> ::= {=|+|-}{w|r|s|c|x|0}+\n"
 		"<control> ::= [ stop | continue | break ]\n"
 	);
 	exit( EXIT_FAILURE );

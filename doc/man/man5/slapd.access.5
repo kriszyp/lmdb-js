@@ -374,7 +374,7 @@ Its component are defined as
 .LP
 .nf
 	<level> ::= none|auth|compare|search|read|write
-	<priv> ::= {=|+|-}{w|r|s|c|x}+
+	<priv> ::= {=|+|-}{w|r|s|c|x|0}+
 .fi
 .LP
 The modifier
@@ -438,7 +438,9 @@ for search,
 for compare, and
 .B x
 for authentication.
-More than one privilege can be added in one statement.
+More than one of the above privileges can be added in one statement.
+.B 0
+indicates no privileges and is used only by itself (e.g., +0).
 .LP
 The optional field
 .B <control>
