@@ -107,7 +107,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 	err = 0;
 	if ( sendabandon ) {
 		/* create a message to send */
-		if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+		if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 			err = -1;
 			ld->ld_errno = LDAP_NO_MEMORY;
 		} else {
@@ -151,10 +151,10 @@ do_abandon( LDAP *ld, int origid, int msgid )
 #ifdef LDAP_REFERRALS
 	if ( lr != NULL ) {
 		if ( sendabandon ) {
-			free_connection( ld, lr->lr_conn, 0, 1 );
+			ldap_free_connection( ld, lr->lr_conn, 0, 1 );
 		}
 		if ( origid == msgid ) {
-			free_request( ld, lr );
+			ldap_free_request( ld, lr );
 		}
 	}
 #endif /* LDAP_REFERRALS */

@@ -53,7 +53,7 @@ ldap_modrdn2( LDAP *ld, char *dn, char *newrdn, int deleteoldrdn )
 	Debug( LDAP_DEBUG_TRACE, "ldap_modrdn\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -65,7 +65,7 @@ ldap_modrdn2( LDAP *ld, char *dn, char *newrdn, int deleteoldrdn )
 	}
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_MODRDN, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_MODRDN, dn, ber ));
 }
 
 int

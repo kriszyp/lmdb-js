@@ -51,7 +51,7 @@ ldap_delete( LDAP *ld, char *dn )
 	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -63,7 +63,7 @@ ldap_delete( LDAP *ld, char *dn )
 	}
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_DELETE, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_DELETE, dn, ber ));
 }
 
 

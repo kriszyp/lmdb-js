@@ -36,7 +36,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 
-	if ( (*ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( NULL );
 	}
 

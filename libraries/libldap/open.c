@@ -81,7 +81,7 @@ ldap_open( char *host, int port )
 	}
 	srv->lsrv_port = ld->ld_defport;
 
-	if (( ld->ld_defconn = new_connection( ld, &srv, 1,1,0 )) == NULL ) {
+	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL ) {
 		if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
 		free( (char *)srv );
 		ldap_ld_free( ld, 0 );
@@ -126,7 +126,7 @@ ldap_init( char *defhost, int defport )
 	}
 
 #ifdef LDAP_REFERRALS
-	if (( ld->ld_selectinfo = new_select_info()) == NULL ) {
+	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		free( (char*)ld );
 		return( NULL );
 	}
@@ -136,7 +136,7 @@ ldap_init( char *defhost, int defport )
 	if ( defhost != NULL &&
 	    ( ld->ld_defhost = strdup( defhost )) == NULL ) {
 #ifdef LDAP_REFERRALS
-		free_select_info( ld->ld_selectinfo );
+		ldap_free_select_info( ld->ld_selectinfo );
 #endif /* LDAP_REFERRALS */
 		free( (char*)ld );
 		return( NULL );
@@ -201,13 +201,13 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 			    port = defport;   
 			}
 
-			if (( rc = connect_to_host( sb, curhost, 0L,
+			if (( rc = ldap_connect_to_host( sb, curhost, 0L,
 			    port, async )) != -1 ) {
 				break;
 			}
 		}
 	} else {
-		rc = connect_to_host( sb, NULL, htonl( INADDR_LOOPBACK ),
+		rc = ldap_connect_to_host( sb, NULL, htonl( INADDR_LOOPBACK ),
 		    defport, async );
 	}
 
@@ -217,7 +217,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 
 	if ( krbinstancep != NULL ) {
 #ifdef KERBEROS
-		if (( *krbinstancep = host_connected_to( sb )) != NULL &&
+		if (( *krbinstancep = ldap_host_connected_to( sb )) != NULL &&
 		    ( p = strchr( *krbinstancep, '.' )) != NULL ) {
 			*p = '\0';
 		}

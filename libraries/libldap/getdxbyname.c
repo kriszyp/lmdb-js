@@ -3,7 +3,7 @@
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
  *
- * getdxbyname - retrieve DX records from the DNS (from TXT records for now)
+ * ldap_getdxbyname - retrieve DX records from the DNS (from TXT records for now)
  */
 #include <stdio.h>
 #include <string.h>
@@ -47,17 +47,17 @@ extern char *h_errlist[];
 
 
 /*
- * getdxbyname - lookup DNS DX records for domain and return an ordered
+ * ldap_getdxbyname - lookup DNS DX records for domain and return an ordered
  *	array.
  */
 char **
-getdxbyname( char *domain )
+ldap_getdxbyname( char *domain )
 {
     unsigned char	buf[ PACKETSZ ];
     char		**dxs;
     int			rc;
 
-    Debug( LDAP_DEBUG_TRACE, "getdxbyname( %s )\n", domain, 0, 0 );
+    Debug( LDAP_DEBUG_TRACE, "ldap_getdxbyname( %s )\n", domain, 0, 0 );
 
     memset( buf, 0, sizeof( buf ));
 
