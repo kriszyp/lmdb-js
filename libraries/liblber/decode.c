@@ -316,13 +316,12 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 	struct berval bv, *bvp = NULL;
 
 	orig = b->ber->ber_ptr;
+	tag = b->ber->ber_tag;
 
-	tag = ber_first_element( b->ber, &len, &last );
-	if ( tag != LBER_DEFAULT ) {
+	if ( ber_first_element( b->ber, &len, &last ) != LBER_DEFAULT ) {
 		for ( ; b->ber->ber_ptr < last; i++ )
 		{
-			tag = ber_skip_tag( b->ber, &len );
-			if (tag == LBER_DEFAULT) break;
+			if (ber_skip_tag( b->ber, &len ) == LBER_DEFAULT) break;
 			b->ber->ber_ptr += len;
 		}
 	}
@@ -366,6 +365,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 		break;
 	}
 	b->ber->ber_ptr = orig;
+	b->ber->ber_tag = tag;
 	ber_skip_tag( b->ber, &len );
 	
 	for (n=0; n<i; n++)
