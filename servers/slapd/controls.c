@@ -520,6 +520,7 @@ static int parseProxyAuthz (
 {
 	int rc;
 	struct berval dn = { 0, NULL };
+	Operation *tmp;
 
 	if ( op->o_proxy_authz != SLAP_NO_CONTROL ) {
 		*text = "proxy authorization control specified multiple times";
@@ -567,9 +568,12 @@ static int parseProxyAuthz (
 		return LDAP_SUCCESS;
 	}
 
+	tmp = conn->c_sasl_bindop;
+	conn->c_sasl_bindop = op;
 	rc = slap_sasl_getdn( conn,
 		ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len,
 		NULL, &dn, SLAP_GETDN_AUTHZID );
+	conn->c_sasl_bindop = tmp;
 
 	if( rc != LDAP_SUCCESS || !dn.bv_len ) {
 		if ( dn.bv_val ) {
