@@ -213,34 +213,6 @@ do_search(
 			rc = root_dse_info( conn, &entry, &text );
 		}
 
-#if defined( SLAPD_MONITOR_DN )
-		else if ( strcasecmp( nbase, SLAPD_MONITOR_DN ) == 0 ) {
-			/* check restrictions */
-			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
-			if( rc != LDAP_SUCCESS ) {
-				send_ldap_result( conn, op, rc,
-					NULL, text, NULL, NULL );
-				goto return_results;
-			}
-
-			rc = monitor_info( &entry, &text );
-		}
-#endif
-
-#if defined( SLAPD_CONFIG_DN )
-		else if ( strcasecmp( nbase, SLAPD_CONFIG_DN ) == 0 ) {
-			/* check restrictions */
-			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
-			if( rc != LDAP_SUCCESS ) {
-				send_ldap_result( conn, op, rc,
-					NULL, text, NULL, NULL );
-				goto return_results;
-			}
-
-			rc = config_info( &entry, &text );
-		}
-#endif
-
 #if defined( SLAPD_SCHEMA_DN )
 		else if ( strcasecmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
 			/* check restrictions */

@@ -765,6 +765,21 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 #endif
 
+#if defined(SLAPD_MONITOR_DN)
+			/* "cn=Monitor" is reserved for monitoring slap */
+			} else if ( strcasecmp( cargv[1], SLAPD_MONITOR_DN ) == 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+"%s: line %d: \"%s\" is reserved for monitoring slapd\n", 
+					SLAPD_MONITOR_DN, fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: \"%s\" is reserved for monitoring slapd\n",
+					SLAPD_MONITOR_DN, fname, lineno );
+#endif
+				return( 1 );
+#endif /* SLAPD_MONITOR_DN */
+
 			} else if ( ( tmp_be = select_backend( cargv[1], 0 ) ) == be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,

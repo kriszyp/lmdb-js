@@ -33,6 +33,9 @@
 #ifdef SLAPD_META
 #include "back-meta/external.h"
 #endif
+#ifdef SLAPD_MONITOR
+#include "back-monitor/external.h"
+#endif
 #ifdef SLAPD_PASSWD
 #include "back-passwd/external.h"
 #endif
@@ -67,6 +70,9 @@ static BackendInfo binfo[] = {
 #endif
 #if defined(SLAPD_META) && !defined(SLAPD_META_DYNAMIC)
 	{"meta",	meta_back_initialize},
+#endif
+#if defined(SLAPD_MONITOR) && !defined(SLAPD_MONITOR_DYNAMIC)
+	{"monitor",	monitor_back_initialize},
 #endif
 #if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
 	{"passwd",	passwd_back_initialize},

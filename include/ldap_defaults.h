@@ -222,9 +222,10 @@ Please try again later.\r\n"
 /* the following DNs must be normalized! */
 	/* dn of the default subschema subentry */
 #define SLAPD_SCHEMA_DN			"cn=Subschema"
-#if 0
 	/* dn of the default "monitor" subentry */
 #define SLAPD_MONITOR_DN		"cn=Monitor"
+#define SLAPD_MONITOR_NDN		"CN=MONITOR"
+#if 0
 	/* dn of the default "config" subentry */
 #define SLAPD_CONFIG_DN			"cn=Config"
 #endif

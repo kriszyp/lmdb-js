@@ -17,6 +17,9 @@
 time_t starttime;
 #endif
 
+/* because Versionstr is used in back-monitor */
+const char Versionstr[] = "";
+
 /* bogus ../results.c */
 int str2result(
 	char* s,
@@ -159,6 +162,26 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 
 
 void connection2anonymous( Connection *c )
+{
+	assert(0);
+}
+
+Connection * connection_first( ber_socket_t *b )
+{
+	assert(0);
+}
+
+Connection * connection_next( Connection *c, ber_socket_t *b )
+{
+	assert(0);
+}
+
+void connection_done( Connection *c )
+{
+	assert(0);
+}
+
+const char * connection_state2str( int state )
 {
 	assert(0);
 }

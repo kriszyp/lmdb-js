@@ -1,0 +1,33 @@
+back-monitor
+
+Backend for monitoring the server's activity.  It must be explicitly
+enabled by configuring with `--enable-monitor' set; then it must be
+activated by placing in slapd.conf the configure directive
+
+database	monitor
+
+The suffix "cn=Monitor" is implicitly activated (it cannot be given
+as a suffix of the database as usually done for conventional backends).
+
+The backend root is "cn=Monitor"; the first level entries represent
+the monitored subsystems.  It is being implemented in a modular way,
+to ease the addition of new subsystems.
+All the subsystems get a default "cn" attribute, represented by the
+subsystem's name, and they all have "top", "LDAPsubEntry" and
+"monitorSubEntry" objectclasses (the latter has not been defined yet,
+pending the design of the monitor schema and its registration under
+OpenLDAP's OID).
+Most of the sybsystems contain an additional depth level, represented
+by detailed item monitoring.
+All the entries undergo an update operation, if a related method is
+defined, prior to being returned.  Moreover, there's a mechanism to
+allow volatile entries to be defined, and generated on the fly when
+requested.  As an instance, the connection statistics are updated
+at each request, while each active connection data is created on the
+fly.
+
+This document is in a very early stage of maturity and will probably 
+be rewritten many times before the monitor backend is released.
+
+Author:	Pierangelo Masarati <ando@OpenLDAP.org>
+

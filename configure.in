@@ -183,6 +183,9 @@ OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type], auto,
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no)dnl
 OL_ARG_WITH(meta_module,[    --with-meta-module	  module type], static,
 	[static dynamic])
+OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], no)dnl
+OL_ARG_WITH(monitor_module,[    --with-monitor-module	  module type], static,
+	[static dynamic])
 OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no)dnl
 OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type], static,
 	[static dynamic])
@@ -230,6 +233,9 @@ if test $ol_enable_slapd = no ; then
 	fi
 	if test $ol_enable_meta = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-meta argument])
+	fi
+	if test $ol_enable_module = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-monitor argument])
 	fi
 	if test $ol_enable_passwd = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-passwd argument])
@@ -285,6 +291,9 @@ dnl	fi
 	if test $ol_with_meta_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-meta-module argument])
 	fi
+	if test $ol_with_monitor_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-monitor-module argument])
+	fi
 	if test $ol_with_passwd_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-passwd-module argument])
 	fi
@@ -313,6 +322,7 @@ dnl	fi
 	ol_enable_ldap=no
 	ol_enable_ldbm=no
 	ol_enable_meta=no
+	ol_enable_monitor=no
 	ol_enable_passwd=no
 	ol_enable_perl=no
 	ol_enable_shell=no
@@ -335,6 +345,7 @@ dnl	ol_enable_multimaster=no
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
 	ol_with_meta_module=static
+	ol_with_monitor_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
@@ -365,6 +376,7 @@ elif test $ol_enable_ldbm = no ; then
 		$ol_enable_dnssrv = no -a \
 		$ol_enable_ldap = no -a \
 		$ol_enable_meta = no -a \
+		$ol_enable_monitor = no -a \
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
@@ -448,6 +460,7 @@ BUILD_DNSSRV=no
 BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_META=no
+BUILD_MONITOR=no
 BUILD_PASSWD=no
 BUILD_PERL=no
 BUILD_SHELL=no
@@ -459,6 +472,7 @@ BUILD_DNSSRV_DYNAMIC=static
 BUILD_LDAP_DYNAMIC=static
 BUILD_LDBM_DYNAMIC=static
 BUILD_META_DYNAMIC=static
+BUILD_MONITOR_DYNAMIC=static
 BUILD_PASSWD_DYNAMIC=static
 BUILD_PERL_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
@@ -673,6 +687,7 @@ else
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
 	ol_with_meta_module=static
+	ol_with_monitor_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
@@ -2378,6 +2393,19 @@ if test "$ol_enable_meta" != no ; then
 	fi
 fi
 
+if test "$ol_enable_monitor" != no ; then
+	AC_DEFINE(SLAPD_MONITOR,1,[define to support cn=Monitor backend])
+	BUILD_SLAPD=yes
+	BUILD_MONITOR=yes
+	if test "$ol_with_monitor_module" != static ; then
+		AC_DEFINE(SLAPD_MONITOR_DYNAMIC,1,
+			[define to support dynamic cn=Monitor backend])
+		BUILD_MONITOR=mod
+		BUILD_MONITOR_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-monitor/back_monitor.la"
+	fi
+fi
+
 if test "$ol_enable_passwd" != no ; then
 	AC_DEFINE(SLAPD_PASSWD,1,[define to support PASSWD backend])
 	BUILD_SLAPD=yes
@@ -2485,6 +2513,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_META)
+  AC_SUBST(BUILD_MONITOR)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
@@ -2495,6 +2524,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDAP_DYNAMIC)
   AC_SUBST(BUILD_LDBM_DYNAMIC)
   AC_SUBST(BUILD_META_DYNAMIC)
+  AC_SUBST(BUILD_MONITOR_DYNAMIC)
   AC_SUBST(BUILD_PASSWD_DYNAMIC)
   AC_SUBST(BUILD_PERL_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
@@ -2572,6 +2602,7 @@ servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefi
 servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
 servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk \
+servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \

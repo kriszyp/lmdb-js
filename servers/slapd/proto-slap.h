@@ -450,12 +450,9 @@ LDAP_SLAPD_F (void) *module_resolve LDAP_P((
 #endif /* SLAPD_MODULES */
 
 /*
- * monitor.c
+ * controls.c
  */
 LDAP_SLAPD_F (char *) supportedControls[];
-
-LDAP_SLAPD_F (int) monitor_info LDAP_P((
-	Entry **entry, const char **text ));
 
 /*
  * mra.c
