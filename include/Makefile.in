@@ -18,7 +18,7 @@ clean-local: FORCE
 	$(RM) ldapconfig.h
 
 veryclean-local: clean-local FORCE
-	$(RM) portable.h
+	$(RM) portable.h ldap_features.h
 
 depend-local: ldapconfig.h FORCE
 

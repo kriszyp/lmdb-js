@@ -128,6 +128,9 @@ is provided ``as is'' without express or implied warranty.
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
+/* define this if TIOCGWINSZ is defined in sys/ioctl.h */
+#undef GWINSZ_IN_SYS_IOCTL
+
 /* define if you have berkeley db */
 #undef HAVE_BERKELEY_DB
 
@@ -164,6 +167,9 @@ is provided ``as is'' without express or implied warranty.
 /* define if you have Mach CThreads */
 #undef HAVE_MACH_CTHREADS
 
+/* define if you have POSIX termios */
+#undef HAVE_POSIX_TERMIOS
+
 /* define if you have PP */
 #undef HAVE_PP
 
@@ -178,6 +184,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* define if your POSIX Threads implementation is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
+
+/* define if you have ptrdiff_t */
+#undef HAVE_PTRDIFF_T
 
 /* define if you have sched_yield() */
 #ifdef __notdef__
@@ -272,6 +281,9 @@ is provided ``as is'' without express or implied warranty.
 /* The number of bytes in a short.  */
 #undef SIZEOF_SHORT
 
+/* Define if you have the alarm function.  */
+#undef HAVE_ALARM
+
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
@@ -305,8 +317,8 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the mkstemp function.  */
 #undef HAVE_MKSTEMP
 
-/* Define if you have the mktime function.  */
-#undef HAVE_MKTIME
+/* Define if you have the pow function.  */
+#undef HAVE_POW
 
 /* Define if you have the pthread_attr_create function.  */
 #undef HAVE_PTHREAD_ATTR_CREATE
@@ -379,9 +391,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the strstr function.  */
 #undef HAVE_STRSTR
-
-/* Define if you have the strtod function.  */
-#undef HAVE_STRTOD
 
 /* Define if you have the strtok function.  */
 #undef HAVE_STRTOK

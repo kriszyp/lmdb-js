@@ -2,7 +2,7 @@
 ## Makefile.in for slapd
 ##
 PROGRAMS=slapd
-XPROGRAMS=libbackends.a .backend
+XPROGRAMS=sslapd libbackends.a .backend
 SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
@@ -33,7 +33,10 @@ XLIBS = @SLAPD_LIBS@ libbackends.a \
 	-lavl -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ -llutil @LUTIL_LIBS@
 
 slapd: version.o
-	$(CC) $(LDFLGS) -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+
+sslapd: version.o
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
 backendslib:	FORCE
 	@for i in back-*; do \
@@ -93,7 +96,7 @@ install-local: install-slapd install-conf install-tools
 
 install-slapd: FORCE
 	@-$(MKDIR) $(libexecdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
 
 install-conf: FORCE
 	@-$(MKDIR) -p $(sysconfdir)

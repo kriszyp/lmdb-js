@@ -72,38 +72,39 @@ build-chlog2replog: FORCE
 	fi
 
 chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o
-	$(CC) $(LDFLAGS) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
+	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
 
 ldif2index:	ldif2index.o ../libbackends.a $(OBJS2)
-	$(CC) $(LDFLAGS) -o $@ ldif2index.o $(OBJS2) ../libbackends.a $(LIBS)
+	$(LTLINK) -o $@ ldif2index.o $(OBJS2) ../libbackends.a $(LIBS)
 
 ldif2ldbm:	ldif2ldbm.o ../libbackends.a $(OBJS2)
-	$(CC) $(LDFLAGS) -o $@ ldif2ldbm.o $(OBJS2) ../libbackends.a $(LIBS)
+	$(LTLINK) -o $@ ldif2ldbm.o $(OBJS2) ../libbackends.a $(LIBS)
 
 ldif2id2entry:	ldif2id2entry.o ../libbackends.a $(OBJS2)
-	$(CC) $(LDFLAGS) -o $@ ldif2id2entry.o $(OBJS2) ../libbackends.a $(LIBS)
+	$(LTLINK) -o $@ ldif2id2entry.o $(OBJS2) ../libbackends.a $(LIBS)
 
 ldif2id2children:	ldif2id2children.o ../libbackends.a $(OBJS2)
-	$(CC) $(LDFLAGS) -o $@ ldif2id2children.o $(OBJS2) ../libbackends.a $(LIBS)
+	$(LTLINK) -o $@ ldif2id2children.o $(OBJS2) ../libbackends.a $(LIBS)
 
 ldbmcat:	ldbmcat.o
-	$(CC) $(LDFLAGS) -o $@ ldbmcat.o $(LIBS)
+	$(LTLINK) -o $@ ldbmcat.o $(LIBS)
 
 ldif:		ldif.o
-	$(CC) $(LDFLAGS) -o $@ ldif.o $(LIBS) $(LIBS2)
+	$(LTLINK) -o $@ ldif.o $(LIBS) $(LIBS2)
 
 centipede:	centipede.o 
-	$(CC) -o $@ centipede.o $(LIBS) $(KRBLIBFLAG) $(KRBLIBS)
+	$(LTLINK) -o $@ centipede.o $(LIBS) $(KRBLIBFLAG) $(KRBLIBS)
 
 sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o
-	$(CC) $(LDFLAGS) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o \
+	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o \
 		$(LIBS) $(KRBLIBFLAG) $(KRBLIBS)
 
 ldbmtest:	ldbmtest.o ../libbackends.a $(OBJS2)
-	$(CC) $(LDFLAGS) -o ldbmtest ldbmtest.o $(OBJS2) ../libbackends.a $(LIBS)
+	$(LTLINK) -o ldbmtest ldbmtest.o $(OBJS2) ../libbackends.a $(LIBS)
 
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) edb2-vers.c *.o a.out core
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) edb2-vers.c *.o a.out core \
+	.libs/*
 
 depend-local: FORCE
 	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_ISODE= ; \
@@ -126,14 +127,14 @@ install-local: install-ldbm install-isode FORCE
 install-ldbm: FORCE
 	@-$(MKDIR) -p $(sbindir) 
 	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	; \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	; \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	; \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	; \
 	else \
 		exit 0 ; \
 	fi
@@ -141,14 +142,9 @@ install-ldbm: FORCE
 install-isode: FORCE
 	@-$(MKDIR) -p $(sbindir)
 	@if [ "$(HAVE_ISODE)" = "yes" ]; then \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir); \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir); \
 	else \
 		exit 0 ; \
 	fi
 
-all-common: all-local FORCE
-install-common: all-common install-local FORCE
-depend-common: depend-local FORCE
-clean-common: clean-local FORCE
-veryclean-common: clean-common veryclean-local FORCE

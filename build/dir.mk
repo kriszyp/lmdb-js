@@ -4,7 +4,7 @@
 ##
 
 
-all-common: all-local FORCE
+all-common: FORCE
 	@echo "Making all in `$(PWD)`"
 	@for i in $(SUBDIRS) $(ALLDIRS); do 		\
 		echo "  Entering subdirectory $$i";		\
@@ -12,7 +12,7 @@ all-common: all-local FORCE
 		echo " ";								\
 	done
 
-install-common: install-local FORCE
+install-common: FORCE
 	@echo "Making install in `$(PWD)`"
 	@for i in $(SUBDIRS) $(INSTALLDIRS); do 	\
 		echo "  Entering subdirectory $$i";		\
@@ -20,7 +20,7 @@ install-common: install-local FORCE
 		echo " ";								\
 	done
 
-clean-common: clean-local FORCE
+clean-common: FORCE
 	@echo "Making clean in `$(PWD)`"
 	@for i in $(SUBDIRS) $(CLEANDIRS); do		\
 		echo "  Entering subdirectory $$i";		\
@@ -28,7 +28,7 @@ clean-common: clean-local FORCE
 		echo " ";								\
 	done
 
-veryclean-common: veryclean-local FORCE
+veryclean-common: FORCE
 	@echo "Making veryclean in `$(PWD)`"
 	@for i in $(SUBDIRS) $(CLEANDIRS); do		\
 		echo "  Entering subdirectory $$i";		\
@@ -36,7 +36,7 @@ veryclean-common: veryclean-local FORCE
 		echo " ";								\
 	done
 
-depend-common: depend-local FORCE
+depend-common: FORCE
 	@echo "Making depend in `$(PWD)`"
 	@for i in $(SUBDIRS) $(DEPENDDIRS); do		\
 		echo "  Entering subdirectory $$i";		\

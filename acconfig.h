@@ -24,6 +24,9 @@
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
+/* define this if TIOCGWINSZ is defined in sys/ioctl.h */
+#undef GWINSZ_IN_SYS_IOCTL
+
 /* define if you have berkeley db */
 #undef HAVE_BERKELEY_DB
 
@@ -60,6 +63,9 @@
 /* define if you have Mach CThreads */
 #undef HAVE_MACH_CTHREADS
 
+/* define if you have POSIX termios */
+#undef HAVE_POSIX_TERMIOS
+
 /* define if you have PP */
 #undef HAVE_PP
 
@@ -74,6 +80,9 @@
 
 /* define if your POSIX Threads implementation is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
+
+/* define if you have ptrdiff_t */
+#undef HAVE_PTRDIFF_T
 
 /* define if you have sched_yield() */
 #ifdef __notdef__

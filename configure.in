@@ -5,24 +5,28 @@ dnl as authorized by the OpenLDAP Public License.  A copy of this
 dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
 dnl ----
+
 dnl Configure.in for OpenLDAP
-dnl
-AC_INIT(include/ldap.h)
-dnl
-dnl
-AC_PREREQ(2.10)dnl Required Autoconf version
+AC_INIT(include/ldap.h)dnl
+AC_CONFIG_AUX_DIR(build)dnl
+AM_INIT_AUTOMAKE(OpenLDAP,[2.0-devel], [no ac_define])dnl
+
 dnl Do not use AutoConf 2.12; it produces a configuration script
 dnl that causes an "internal 2K buffer" error on HPUX when run
 dnl with /bin/sh.  Autoconf 2.10 seems to be okay.
-AC_CONFIG_AUX_DIR(build)
+AC_PREREQ(2.10)dnl Required Autoconf version
+
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h)dnl
+
 dnl
 dnl Start Args
 AC_MSG_CHECKING(configure arguments)
 AC_PREFIX_DEFAULT(/usr/local)
 
-dnl General "enable" options
-OL_ARG_ENABLE(debug,[  --enable-debug	enable debugging], yes)dnl
+top_builddir=`pwd`
+AC_SUBST(top_builddir)dnl
+
+OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
@@ -44,9 +48,11 @@ OL_ARG_WITH(preemptive,[  --with-preemptive	thread implementation is preemptive]
 dnl Server options
 
 dnl LDAPD OPTIONS
+AC_ARG_WITH(xxldapdoptions,[LDAPD Options:])
 OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 
 dnl SLAPD OPTIONS
+AC_ARG_WITH(xxslapdoptions,[SLAPD Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(aclgroups,[    --enable-aclgroups	enable ACL group support], auto)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
@@ -67,8 +73,15 @@ OL_ARG_ENABLE(passwd,[    --enable-passwd	enable passwd backend], no)dnl
 OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
 
 dnl SLURPD OPTIONS
+AC_ARG_WITH(xxslurpdoptions,[SLURPD Options:])
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
+AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
+AM_ENABLE_STATIC
+dnl AM_DISABLE_SHARED
+AM_ENABLE_SHARED
+
+dnl General "enable" options
 # validate options
 if test $ol_enable_referrals = no ; then
 	if test $ol_enable_dns = yes ; then
@@ -174,6 +187,8 @@ fi
 
 AC_MSG_RESULT(done)
 
+AC_CANONICAL_HOST
+
 ## Initialize vars
 LDAP_LIBS=
 LDBM_LIBS=
@@ -199,10 +214,9 @@ TERMCAP_LIBS=
 dnl ----------------------------------------------------------------
 dnl Checks for programs
 
-AC_PROG_LN_S
 AC_PROG_INSTALL
-AC_PROG_RANLIB
-AC_PROG_MAKE_SET
+AM_PROG_LIBTOOL
+dnl AC_PROG_MAKE_SET
 
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
@@ -210,28 +224,32 @@ AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
 dnl Checks the compiler and UNIX Variants
-AC_PROG_CC
 
 if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
-	AC_WARN([cross compiling....  some functionality will be removed.])
+	AC_MSG_WARN([cross compiling....  some functionality will be removed.])
 
 elif test $cross_compiling = no -a $ol_enable_x_compile = yes; then
-	AC_WARN([programs compiled here do run here...])
-	AC_ERROR([  if not cross compiling, use --disable-x-compile.])
+	AC_MSG_WARN([programs compiled here do run here...])
+	AC_MSG_ERROR([  if not cross compiling, use --disable-x-compile.])
 
 elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
-	AC_WARN([programs compiled here do not run here...])
-	AC_ERROR([  if cross compiling,  add --enable-x-compile.])
+	AC_MSG_WARN([programs compiled here do not run here...])
+	AC_MSG_ERROR([  if cross compiling,  add --enable-x-compile.])
 fi
 
-dnl OpenLDAP requires STDC features
-dnl AC_PROG_GCC_TRADITIONAL
 AC_PROG_CPP
-
 
 AC_AIX
 AC_ISC_POSIX
 AC_MINIX
+
+dnl OpenLDAP requires STDC features
+AM_PROG_CC_STDC
+if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
+	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC prototypes.])
+fi
+
+dnl AM_C_PROTOTYPES
 
 dnl Checks for libraries
 
@@ -240,7 +258,7 @@ dnl Likely combinations:
 dnl		-lsocket [ -lnsl_s | -lnsl ]
 dnl		-linet
 
-AC_CHECK_FUNC(socket, :, [	
+AC_CHECK_FUNC(socket, [have_socket=yes], [	
 dnl
 dnl hopefully we won't include too many libraries
 dnl
@@ -795,7 +813,7 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = ndbm ; then
 		ol_with_ldbm_api=ndbm
 
 		if test $ol_with_ldbm_api = ndbm ; then
-			AC_WARN([Attempting to use NDBM.  Functionality will be limited.])
+			AC_MSG_WARN([Attempting to use NDBM.  Functionality will be limited.])
 		fi
 
 		if test $ol_cv_lib_ndbm != yes ; then
@@ -903,6 +921,11 @@ fi
 
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
+AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
+if test $am_cv_sys_posix_termios = yes ; then
+	AC_DEFINE(HAVE_POSIX_TERMIOS,1)
+fi
+
 AC_CHECK_HEADERS(	\
 	crypt.h			\
 	errno.h			\
@@ -929,22 +952,20 @@ AC_CHECK_HEADERS(	\
 	sys/resource.h	\
 	sys/socket.h	\
 	sys/syslog.h	\
-	sys/time.h		\
 	sys/types.h		\
 	syslog.h		\
 	termios.h		\
-	unistd.h		\
 )
 
 dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_GETGROUPS
+AC_TYPE_GETGROUPS dnl requires AC_TYPE_UID_T
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
+AM_TYPE_PTRDIFF_T
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
-AC_TYPE_UID_T
 AC_STRUCT_ST_BLKSIZE
 AC_HEADER_TIME
 AC_STRUCT_TM
@@ -964,7 +985,9 @@ fi
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
+AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
+AM_FUNC_STRTOD
 AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
@@ -985,7 +1008,6 @@ AC_CHECK_FUNCS(		\
 	memcpy			\
 	memmove			\
 	mkstemp			\
-	mktime			\
 	res_search		\
 	select			\
 	setpwfile		\
@@ -999,7 +1021,6 @@ AC_CHECK_FUNCS(		\
 	strrchr			\
 	strsep			\
 	strstr			\
-	strtod			\
 	strtok			\
 	strtol			\
 	strtoul			\
@@ -1131,13 +1152,13 @@ clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
-libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk \
-libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk \
-libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk \
-libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk \
-libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk \
-libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk \
-libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk \
+libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \

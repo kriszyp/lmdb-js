@@ -3,6 +3,7 @@
 ##
 PROGRAMS=ldapd
 XPROGRAMS=sldapd
+
 SRCS	= main.c request.c bind.c result.c error.c \
 	search.c util.c compare.c message.c add.c delete.c modrdn.c modify.c \
 	abandon.c syntax.c association.c kerberos.c certificate.c
@@ -19,13 +20,11 @@ BUILD_SRV = @BUILD_LDAPD@
 
 XLIBS= @LDAPD_LIBS@ -llutil @LUTIL_LIBS@
 
-all-local: $(PROGRAMS)
-
 ldapd:	version.o
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) version.o $(LIBS)
+	$(LDLINK) -o $@ $(OBJS) version.o $(LIBS)
 
 sldapd:	version.o
-	$(CC) $(LDFLAGS) -static -o $@ $(OBJS) version.o $(LDFLAGS) $(LIBS) -lresolv
+	$(LDLINK) -static -o $@ $(OBJS) version.o $(LDFLAGS) $(LIBS) -lresolv
 
 version.c: $(OBJS) $(LDAP_LIBDIR)/liblber/liblber.a
 	$(RM) $@
@@ -48,4 +47,4 @@ LDAP-types.h: LDAP_tables.c
 
 install-local: FORCE
 	@$(MKDIR) -p $(libexecdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapd $(LDAP_LIBEXECDIR)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapd $(LDAP_LIBEXECDIR)

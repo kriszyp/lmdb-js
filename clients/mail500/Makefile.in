@@ -8,7 +8,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 mail500 : version.o
-	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)
+	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
 
 version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	$(RM) $@
@@ -18,6 +18,6 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	    -e "s|%VERSION%|$${v}|" \
 	    < $(srcdir)/Version.c > $@)
 
-install: $(PROGRAMS) FORCE
+install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) -p $(libexecdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 mail500 $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 mail500 $(libexecdir)

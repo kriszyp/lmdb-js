@@ -5,12 +5,6 @@
 
 all-common: $(LIBRARY) $(PROGRAMS)
 
-$(LIBRARY): version.o
-	$(AR) ru $@ $(OBJS) version.o
-	@$(RANLIB) $@;	\
-	$(RM) ../$@;	\
-	(d=`$(PWD)` ; $(LN_S) `$(BASENAME) $$d`/$@ ../$@)
-
 version.c: $(OBJS) $(srcdir)/Version.c
 	$(RM) $@
 	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` \
@@ -19,7 +13,7 @@ version.c: $(OBJS) $(srcdir)/Version.c
 	-e "s|%VERSION%|$${v}|" \
 	< $(srcdir)/Version.c > $@)
 
-install-common: all-common install-local
+install-common: FORCE
 
 lint: lint-local FORCE
 	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
@@ -27,14 +21,12 @@ lint: lint-local FORCE
 lint5: lint5-local FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
-clean-common: 	clean-local
+clean-common: 	FORCE
 	$(RM) $(LIBRARY) ../$(LIBRARY) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) \
-		*.o a.out core version.c
+		*.o a.out core version.c *.lo .libs/*
 
-depend-common: depend-local
+depend-common: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
-
-veryclean-common: veryclean-local clean-common
 
 lint-local: FORCE
 lint5-local: FORCE

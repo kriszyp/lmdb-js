@@ -3,8 +3,12 @@
 #ifndef _AC_TERMIOS_H
 #define _AC_TERMIOS_H
 
-#ifdef HAVE_TERMIOS_H
+#ifdef HAVE_POSIX_TERMIOS
 #include <termios.h>
+
+#ifdef GCWINSZ_IN_SYS_IOCTL
+#include <sys/ioctl.h>
+#endif
 
 #define TERMIO_TYPE	struct termios
 #define TERMFLAG_TYPE	tcflag_t

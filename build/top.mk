@@ -3,9 +3,13 @@
 ## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
 ## of this package for details.
 ##
-@SET_MAKE@
+PACKAGE= @PACKAGE@
+VERSION= @VERSION@
 
+@SET_MAKE@
 SHELL = /bin/sh
+
+top_builddir = @top_builddir@
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -40,7 +44,12 @@ AR = ar
 
 LINT = lint
 5LINT = 5lint
-MKDEP = $(top_srcdir)/build/mkdep -c "$(CC)"
+MKDEP = $(top_srcdir)/build/mkdep $(MKDEPFLAG) -c "$(CC)"
+
+LIBTOOL = @LIBTOOL@
+LIBVERSION = 0:0:0
+LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LFLAGS)
+LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
 # Misc UNIX commands used in makefiles
 SED = sed
@@ -66,12 +75,19 @@ MANCOMPRESSSUFFIX=
 # Version
 VERSIONFILE = $(top_srcdir)/build/version
 
-INCLUDEDIR = $(top_srcdir)/include
-LDAP_INCPATH = -I$(LDAP_INCDIR) -I$(INCLUDEDIR)
-LDAP_LIBPATH = -L$(LDAP_LIBDIR)
+INCLUDEDIR= $(top_srcdir)/include
+LDAP_INCPATH= -I$(LDAP_INCDIR) -I$(INCLUDEDIR)
+LDAP_LIBADIR= $(top_builddir)/libraries
+LDAP_LIBPATH= -L$(LDAP_LIBADIR)
 
-LDAP_LIBS = $(LDAP_LIBPATH) -lldif -lldap -llber
-LDAP_LIBDEPEND = $(LDAP_LIBDIR)/libldif.a $(LDAP_LIBDIR)/libldap.a $(LDAP_LIBDIR)/liblber.a
+LDAP_LIBLBER = $(LDAP_LIBADIR)/liblber/liblber.la
+LDAP_LIBLDAP = $(LDAP_LIBADIR)/libldap/libldap.la
+
+LDAP_LIBLBER_DEPEND = $(LDAP_LIBDIR)/liblber/liblber.la
+LDAP_LIBLDAP_DEPEND = $(LDAP_LIBDIR)/libldap/libldap.la
+
+LDAP_LIBS = $(LDAP_LIBPATH) -lldif $(LDAP_LIBLDAP) $(LDAP_LIBLBER)
+LDAP_LIBDEPEND = $(LDAP_LIBDIR)/libldif.a $(LDAP_LIBLDAP) $(LDAP_LIBLBER)
 
 # AutoConfig generated 
 AC_CC	= @CC@
@@ -91,20 +107,32 @@ LIBS = $(LDAP_LIBS) $(XLIBS) $(AC_LIBS)
 CFLAGS = $(AC_CFLAGS) $(DEFS) $(DEFINES)
 LDFLAGS = $(AC_LDFLAGS)
 
-all:		all-common FORCE
-install:	install-common FORCE
-clean:		clean-common FORCE
-veryclean:	veryclean-common FORCE
-depend:		depend-common FORCE
+all:		all-common all-local FORCE
+install:	install-common install-local FORCE
+clean:		clean-common clean-local FORCE
+veryclean:	veryclean-common veryclean-local FORCE
+depend:		depend-common depend-local FORCE
+
+# empty common rules
+all-common:
+install-common:
+clean-common:
+veryclean-common:	clean-common FORCE
+depend-common:
+lint-common:
+lint5-common:
 
 # empty local rules
 all-local:
 install-local:
 clean-local:
-veryclean-local:
+veryclean-local:	clean-local FORCE
 depend-local:
 lint-local:
 lint5-local:
+
+veryclean: FORCE
+	$(RM) Makefile
 
 Makefile: Makefile.in $(top_srcdir)/build/top.mk
 

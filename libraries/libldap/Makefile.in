@@ -1,12 +1,8 @@
 ##
 ## Makefile.in for LDAP -lldap
 ##
-LIBRARY = libldap.a
+LIBRARY = libldap.la
 PROGRAMS = apitest ltest ttest
-
-LDAP_INCDIR= ../../include       
-LDAP_LIBDIR= ../../libraries
-
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	modify.c add.c modrdn.c delete.c abandon.c ufn.c cache.c \
@@ -15,30 +11,32 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
 	request.c getdxbyname.c os-ip.c url.c charset.c \
 	init.c options.c strdup.c
-OBJS	= bind.o open.o result.o error.o compare.o search.o \
-	modify.o add.o modrdn.o delete.o abandon.o ufn.o cache.o \
-	getfilter.o sbind.o kbind.o unbind.o friendly.o cldap.o \
-	free.o disptmpl.o srchpref.o dsparse.o tmplout.o sort.o \
-	getdn.o getentry.o getattr.o getvalues.o addentry.o \
-	request.o getdxbyname.o os-ip.o url.o charset.o \
-	init.o options.o strdup.o
+OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
+	modify.lo add.lo modrdn.lo delete.lo abandon.lo ufn.lo cache.lo \
+	getfilter.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
+	free.lo disptmpl.lo srchpref.lo dsparse.lo tmplout.lo sort.lo \
+	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
+	request.lo getdxbyname.lo os-ip.lo url.lo charset.lo \
+	init.lo options.lo strdup.lo
 
-LIBS = -L$(LDAP_LIBDIR) -lldap -llber $(AC_LIBS)
-LIBLBER = ../liblber/liblber.a
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
 
-apitest:	$(LIBRARY) apitest.o $(LIBLBER)
-	$(CC) $(LDFLAGS) -o $@ apitest.o $(LIBS)
-ltest:	$(LIBRARY) test.o $(LIBLBER)
-	$(CC) $(LDFLAGS) -o $@ test.o $(LIBS)
-ttest:	$(LIBRARY) tmpltest.o $(LIBLBER)
-	$(CC) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
+LIBS = $(LDAP_LIBPATH) $(LDAP_LIBLDAP) $(LDAP_LIBLBER) $(AC_LIBS)
 
-CFFILES= ldap.conf ldapfilter.conf ldapfriendly ldaptemplates.conf ldapsearchprefs.conf
+apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
+	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)
+ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
+	$(LTLINK) $(LDFLAGS) -o $@ test.o $(LIBS)
+ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
+	$(LTLINK) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
 
-install-local: $(LIBRARY) $(CFFILES) FORCE
+CFFILES= ldap.conf ldapfilter.conf ldapfriendly \
+	ldaptemplates.conf ldapsearchprefs.conf
+
+install-local: $(CFFILES) FORCE
 	-$(MKDIR) -p $(libdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
-	@(cd /tmp; $(RANLIB) $(libdir)/$(LIBRARY))
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
 	-$(MKDIR) -p $(sysconfdir)
 	@for i in $(CFFILES); do \
 		echo "installing $$i in $(sysconfdir)"; \
@@ -47,3 +45,4 @@ install-local: $(LIBRARY) $(CFFILES) FORCE
 		fi; \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir); \
 	done
+

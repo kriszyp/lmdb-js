@@ -45,6 +45,12 @@ while :
 			SED='s;\.o;;'
 			shift ;;
 
+
+		# the -l flag produces libtool compatible dependencies
+		-l)
+			SED='s;\.o:;.lo:;'
+			shift ;;
+
 		# the -s flag removes dependencies to files that begin with /
 		-s)
 			NOSLASH=yes;

@@ -29,3 +29,13 @@ Makefile: Makefile.in config.status
 config.status: configure
 	./config.status --recheck
 
+
+# force a make all before make install
+#	only done at the top-level
+install-common: all FORCE
+
+clean-local: FORCE
+	$(RM) config.log
+
+veryclean-local: FORCE
+	$(RM) config.cache config.status libtool stamp-h stamp-h.in

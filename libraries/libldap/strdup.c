@@ -6,7 +6,8 @@
 
 #include "ldap-int.h"
 
-char *(ldap_strdup)( const char *s )
+char *
+(ldap_strdup)( const char *s )
 {
         char    *p;
 

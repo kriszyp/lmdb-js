@@ -12,7 +12,7 @@ LDAP_LIBDIR= ../../libraries
 XLIBS = $(TERMCAP_LIBS)
 
 ud : version.o
-	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)
+	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
 
 version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	$(RM) $@
@@ -22,7 +22,7 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	    -e "s|%VERSION%|$${v}|" \
 	    < $(srcdir)/Version.c > $@)
 
-install: $(PROGRAMS) FORCE
+install-local: FORCE
 	-$(MKDIR) -p $(bindir)
 	-mv -f $(bindir)/ud $(bindir)/ud-
-	$(INSTALL) $(INSTALLFLAGS) -m 775 ud $(bindir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 775 ud $(bindir)

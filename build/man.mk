@@ -5,7 +5,7 @@
 
 MANDIR=$(mandir)/man$(MANSECT)
 
-install-common: all-common install-local
+install-common: FORCE
 	-$(MKDIR) -p $(MANDIR)
 	@TMPMAN=/tmp/ldapman.$$$$$(MANCOMPRESSSUFFIX); \
 	VERSION=`$(CAT) $(VERSIONFILE)`; \
@@ -31,15 +31,5 @@ install-common: all-common install-local
 	done; \
 	$(RM) $$TMPMAN
 
-all-common: all-local 
-clean-common: 	clean-local
-veryclean-common: veryclean-local clean-local
-depend-common: depend-local
-lint: lint-local
-lint5: lint5-local
-
-# these could be empty
-lint-local: FORCE
-lint5-local: FORCE
-
 Makefile: $(top_srcdir)/build/lib.mk
+

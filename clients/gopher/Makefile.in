@@ -14,10 +14,10 @@ LDAP_LIBDIR= ../../libraries
 XLIBS = -llutil @LUTIL_LIBS@
 
 go500 : goversion.o
-	$(CC) $(LDFLAGS) -o $@ $(GOOBJS) goversion.o $(LIBS)
+	$(LTLINK) -o $@ $(GOOBJS) goversion.o $(LIBS)
 
 go500gw : gwversion.o
-	$(CC) $(LDFLAGS) -o $@ $(GWOBJS) gwversion.o $(LIBS)
+	$(LTLINK) -o $@ $(GWOBJS) gwversion.o $(LIBS)
 
 goversion.c: ${GOOBJS} $(LDAP_LIBDEPEND)
 	$(RM) $@
@@ -35,9 +35,9 @@ gwversion.c: ${GWOBJS} $(LDAP_LIBDEPEND)
 	    -e "s|%VERSION%|$${v}|" \
 	    < $(srcdir)/Versiongw.c > $@)
 
-install: $(PROGRAMS) go500gw.help FORCE
+install-local: $(PROGRAMS) go500gw.help FORCE
 	-$(MKDIR) -p $(libexecdir) $(sysconfdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 go500	$(libexecdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 go500gw $(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500	$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500gw $(libexecdir)
 	-$(MV) $(sysconfdir)/go500gw.help $(sysconfdir)/go500gw.help-
 	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(sysconfdir)

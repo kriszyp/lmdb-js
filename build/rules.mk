@@ -3,26 +3,19 @@
 ## Makefile Template for Programs
 ##
 
-all-common: all-local $(PROGRAMS)
+all-common: $(PROGRAMS) FORCE
 
-install-common: all-common install-local
+clean-common: 	FORCE
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core .libs/*
 
-clean-common: 	clean-local
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core
-
-veryclean-common: veryclean-local clean-local
-
-depend-common: depend-local
+depend-common: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
 
-lint: lint-local
+lint: FORCE
 	$(LINT) $(DEFS) $(DEFINES) $(SRCS)
 
-lint5: lint5-local
+lint5: FORCE
 	$(5LINT) $(DEFS) $(DEFINES) $(SRCS)
 
-# these could be empty
-lint-local: FORCE
-lint5-local: FORCE
-
 Makefile: $(top_srcdir)/build/rules.mk
+
