@@ -422,6 +422,7 @@ int backend_destroy(void)
 		free( backendDB[i].be_root_dn );
 		free( backendDB[i].be_root_ndn );
 		free( backendDB[i].be_root_pw.bv_val );
+		acl_destroy( backendDB[i].be_acl, global_acl );
 	}
 	free( backendDB );
 

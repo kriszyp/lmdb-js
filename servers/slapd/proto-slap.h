@@ -81,6 +81,8 @@ LDAP_SLAPD_F (slap_access_t) str2access LDAP_P(( const char *str ));
 #define ACCESSMASK_MAXLEN	sizeof("unknown (+wrscan)")
 LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_mask_t mask, char* ));
 LDAP_SLAPD_F (slap_mask_t) str2accessmask LDAP_P(( const char *str ));
+LDAP_SLAPD_F (void) acl_destroy LDAP_P(( AccessControl*, AccessControl* ));
+LDAP_SLAPD_F (void) acl_free LDAP_P(( AccessControl *a ));
 
 /*
  * at.c

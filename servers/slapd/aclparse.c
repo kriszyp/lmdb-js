@@ -1217,6 +1217,62 @@ acl_append( AccessControl **l, AccessControl *a )
 	*l = a;
 }
 
+static void
+access_free( Access *a )
+{
+	if ( a->a_dn_pat )
+		free ( a->a_dn_pat );
+	if ( a->a_peername_pat )
+		free ( a->a_peername_pat );
+	if ( a->a_sockname_pat )
+		free ( a->a_sockname_pat );
+	if ( a->a_domain_pat )
+		free ( a->a_domain_pat );
+	if ( a->a_sockurl_pat )
+		free ( a->a_sockurl_pat );
+	if ( a->a_set_pat )
+		free ( a->a_set_pat );
+	if ( a->a_group_pat )
+		free ( a->a_group_pat );
+	free( a );
+}
+
+void
+acl_free( AccessControl *a )
+{
+	Access *n;
+
+	if ( a->acl_filter )
+		filter_free( a->acl_filter );
+	if ( a->acl_dn_pat )
+		free ( a->acl_dn_pat );
+	if ( a->acl_attrs )
+		charray_free( a->acl_attrs );
+	for (; a->acl_access; a->acl_access = n) {
+		n = a->acl_access->a_next;
+		access_free( a->acl_access );
+	}
+	free( a );
+}
+
+/* Because backend_startup uses acl_append to tack on the global_acl to
+ * the end of each backend's acl, we cannot just take one argument and
+ * merrily free our way to the end of the list. backend_destroy calls us
+ * with the be_acl in arg1, and global_acl in arg2 to give us a stopping
+ * point. config_destroy calls us with global_acl in arg1 and NULL in
+ * arg2, so we then proceed to polish off the global_acl.
+ */
+void
+acl_destroy( AccessControl *a, AccessControl *end )
+{
+	AccessControl *n;
+
+	for (; a && a!= end; a=n) {
+		n = a->acl_next;
+		acl_free( a );
+	}
+}
+
 char *
 access2str( slap_access_t access )
 {
