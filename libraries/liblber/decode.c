@@ -178,7 +178,7 @@ ber_getnint(
 		return( -1 );
 
 	/* read into the low-order bytes of our buffer */
-	if ( (ber_len_t) ber_read( ber, buf, len ) != len ) {
+	if ( (ber_len_t) ber_read( ber, (char *) buf, len ) != len ) {
 		return( -1 );
 	}
 
