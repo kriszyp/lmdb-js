@@ -22,12 +22,11 @@ LDAP_BEGIN_DECL
 /*
  * SHA-1 in C
  * By Steve Reid <steve@edmweb.com>
- * 100% Public Domain
  */
 
 #ifndef LDAP_UINT32
 #define LDAP_UINT32 1
-typedef LDAP_UINT4 uint32;
+typedef ac_uint4 uint32;
 #endif
 
 typedef struct {

@@ -12,40 +12,35 @@
 #ifndef _AC_BYTES_H
 #define _AC_BYTES_H
 
-#if defined( LDAP_INT4_TYPE ) && defined( LDAP_INT2_TYPE )
-	/* cross compilers should define LDAP_INT{2,4}_TYPE in CPPFLAS */
-	typedef LDAP_INT4_TYPE LDAP_INT4;
-	typedef signed LDAP_INT4_TYPE LDAP_SINT4;
-	typedef unsigned LDAP_INT4_TYPE LDAP_UINT4;
+/* cross compilers should define both AC_INT{2,4}_TYPE in CPPFLAGS */
 
-	typedef LDAP_INT2_TYPE LDAP_INT2;
-	typedef signed LDAP_INT2_TYPE LDAP_SINT2;
-	typedef unsigned LDAP_INT2_TYPE LDAP_UINT2;
-
-#else
+#if !defined( AC_INT4_TYPE ) || !defined( AC_INT2_TYPE )
 	/* use autoconf defines to provide sized typedefs */
 #	if SIZEOF_LONG == 4
-		typedef long LDAP_INT4;
-		typedef signed long LDAP_SINT4;
-		typedef unsigned long LDAP_UINT4;
+#		define AC_INT4_TYPE long
 #	elif SIZEOF_INT == 4
-		typedef int LDAP_INT4;
-		typedef signed int LDAP_SINT4;
-		typedef unsigned int LDAP_UINT4;
-
+#		define AC_INT4_TYPE int
+#	else
+#		error "AC_INT4_TYPE?"
 #	endif
 
 #	if SIZEOF_SHORT == 2
-		typedef short LDAP_INT2;
-		typedef signed short LDAP_SINT2;
-		typedef unsigned short LDAP_UINT2;
+#		define AC_INT2_TYPE short
 #	elif SIZEOF_INT == 2
-		typedef int LDAP_INT2;
-		typedef signed int LDAP_SINT2;
-		typedef unsigned int LDAP_UINT2;
+#		define AC_INT2_TYPE int
+#	else
+#		error "AC_INT2_TYPE?"
 #	endif
 #endif
     
+typedef AC_INT4_TYPE ac_int4;
+typedef signed AC_INT4_TYPE ac_sint4;
+typedef unsigned AC_INT4_TYPE ac_uint4;
+
+typedef AC_INT2_TYPE ac_int2;
+typedef signed AC_INT2_TYPE ac_sint2;
+typedef unsigned AC_INT2_TYPE ac_uint2;
+
 #ifndef BYTE_ORDER
 /* cross compilers should define BYTE_ORDER in CPPFLAGS */
 
