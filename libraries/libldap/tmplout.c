@@ -909,8 +909,17 @@ time2text( char *ldtimestr, int dateonly )
 		/* POSIX says tm_year should be year - 1900 */
     	t.tm_year = 100 * GET2BYTENUM( p ) - 1900;
 		p += 2;
+    	t.tm_year = GET2BYTENUM( p ); p += 2;
+
+	} else {
+		/* came without a century */
+    	t.tm_year = GET2BYTENUM( p ); p += 2;
+
+		/* Y2K hack - 2 digit years < 70 are 21st century */
+		if( t.tm_year < 70 ) {
+			t.tm_year += 100;
+		}
 	}
-    t.tm_year = GET2BYTENUM( p ); p += 2;
 
     t.tm_mon = GET2BYTENUM( p ) - 1; p += 2;
     t.tm_mday = GET2BYTENUM( p ); p += 2;
