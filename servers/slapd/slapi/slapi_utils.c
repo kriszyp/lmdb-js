@@ -1408,8 +1408,12 @@ slapi_send_ldap_search_entry(
 	AttributeName	*an = NULL;
 	const char	*text;
 
-	for ( i = 0; attrs[ i ] != NULL; i++ ) {
-		; /* empty */
+	if ( attrs != NULL ) {
+		for ( i = 0; attrs[ i ] != NULL; i++ ) {
+			; /* empty */
+		}
+	} else {
+		i = 0;
 	}
 
 	if ( i > 0 ) {
