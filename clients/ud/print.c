@@ -532,7 +532,7 @@ print_one_URL( char *s, int label_lead, char *tag, int url_lead )
 }
 
 
-#define GET2BYTENUM( p )	(( *p - '0' ) * 10 + ( *(p+1) - '0' ))
+#define GET2BYTENUM( p )	(( *(p) - '0' ) * 10 + ( *((p)+1) - '0' ))
 
 static char *
 time2text( char *ldtimestr, int dateonly )
@@ -540,20 +540,32 @@ time2text( char *ldtimestr, int dateonly )
     struct tm		t;
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
+	int ndigits;
 
-    memset( (char *)&t, 0, sizeof( struct tm ));
-    if ( strlen( ldtimestr ) < 13 ) {
-	return( fmterr );
+	if (strlen( ldtimestr ) < 12 ) {
+		return( fmterr );
+	}
+
+    for ( ndigits=0; isdigit((unsigned char) ldtimestr[ndigits]); ndigits++) {
+		; /* EMPTY */
     }
 
-    for ( p = ldtimestr; p - ldtimestr < 12; ++p ) {
-	if ( !isdigit( (unsigned char) *p )) {
+	if ( ndigits != 12 && ndigits != 14) {
 	    return( fmterr );
 	}
-    }
+	
+    memset( (char *)&t, 0, sizeof( struct tm ));
 
     p = ldtimestr;
+
+	if( ndigits == 14) {
+		/* came with a century */
+		/* POSIX says tm_year should be year - 1900 */
+    	t.tm_year = 100 * GET2BYTENUM( p ) - 1900;
+		p += 2;
+	}
     t.tm_year = GET2BYTENUM( p ); p += 2;
+
     t.tm_mon = GET2BYTENUM( p ) - 1; p += 2;
     t.tm_mday = GET2BYTENUM( p ); p += 2;
     t.tm_hour = GET2BYTENUM( p ); p += 2;
@@ -572,7 +584,6 @@ time2text( char *ldtimestr, int dateonly )
 	SAFEMEMCPY( timestr + 11, timestr + 20, strlen( timestr + 20 ) + 1 );
     }
 
-    Free ( ldtimestr );
     return( strdup( timestr ) );
 }
 
@@ -592,7 +603,19 @@ int	dmsize[] = {
 #define	dysize(y)	\
 	(((y) % 4) ? 365 : (((y) % 100) ? 366 : (((y) % 400) ? 365 : 366)))
 
-#define	YEAR(y)		((y) >= 100 ? (y) : (y) + 1900)
+/*
+ * Y2K YEAR
+ */
+	/* per STDC & POSIX tm_year *should* be offset by 1900 */
+#define YEAR_POSIX(y)		((y) + 1900)
+
+	/*
+	 * year is < 1900, year is offset by 1900
+	 */
+#define YEAR_CAREFUL(y)		((y) < 1900 ? (y) + 1900 : (y))
+
+#define YEAR(y) YEAR_CAREFUL(y)
+
 
 /*  */
 
