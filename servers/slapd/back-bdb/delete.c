@@ -56,10 +56,15 @@ bdb_delete( Operation *op, SlapReply *rs )
 	int	parent_is_glue = 0;
 	int parent_is_leaf = 0;
 
+	struct berval ctxcsn_ndn = BER_BVNULL;
+
 	ctrls[num_ctrls] = 0;
 
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n",
 		op->o_req_dn.bv_val, 0, 0 );
+
+	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
+				(struct berval *)&slap_ldapsync_cn_bv, op->o_tmpmemctx );
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -469,7 +474,9 @@ retry:	/* transaction retry */
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
 #endif
 
-	if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
+	if ( !dn_match( &ctxcsn_ndn, &op->o_req_ndn ) &&
+		 !be_issuffix( op->o_bd, &op->o_req_ndn ) &&
+			LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei,
 			&ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
@@ -584,6 +591,8 @@ done:
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}
+
+	slap_sl_free( ctxcsn_ndn.bv_val, op->o_tmpmemctx );
 
 	if( preread_ctrl != NULL ) {
 		slap_sl_free( (*preread_ctrl)->ldctl_value.bv_val, &op->o_tmpmemctx );
