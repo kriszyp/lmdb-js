@@ -144,6 +144,14 @@ SOURCE=..\libldap\bind.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\cache.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\libldap\cancel.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\charray.c
 # End Source File
 # Begin Source File
