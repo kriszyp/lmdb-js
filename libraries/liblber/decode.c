@@ -233,7 +233,7 @@ ber_get_enum(
 	BerElement *ber,
 	ber_int_t *num )
 {
-	ber_get_int( ber, num );
+	return ber_get_int( ber, num );
 }
 
 ber_tag_t
