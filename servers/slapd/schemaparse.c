@@ -203,24 +203,29 @@ parse_oc(
 		return 1;
 	}
 
-	if ( oc->oc_oid ) {
-		if ( !OID_LEADCHAR( oc->oc_oid[0] )) {
-			/* Expand OID macros */
-			oid = find_oidm( oc->oc_oid );
-			if ( !oid ) {
-				fprintf(stderr,
-					"%s: line %d: OID %s not recognized\n",
-					fname, lineno, oc->oc_oid);
-				return 1;
-			}
-			if ( oid != oc->oc_oid ) {
-				ldap_memfree( oc->oc_oid );
-				oc->oc_oid = oid;
-			}
+	if ( oc->oc_oid == NULL ) {
+		fprintf( stderr,
+			"%s: line %d: objectclass has no OID\n",
+			fname, lineno );
+		oc_usage();
+		return 1;
+	}
+
+	if ( !OID_LEADCHAR( oc->oc_oid[0] )) {
+		/* Expand OID macros */
+		oid = find_oidm( oc->oc_oid );
+		if ( !oid ) {
+			fprintf( stderr,
+				"%s: line %d: OID %s not recognized\n",
+				fname, lineno, oc->oc_oid);
+			return 1;
+		}
+		if ( oid != oc->oc_oid ) {
+			ldap_memfree( oc->oc_oid );
+			oc->oc_oid = oid;
 		}
 	}
 
-	/* oc->oc_oid == NULL will be an error someday */
 	code = oc_add(oc,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
@@ -297,23 +302,30 @@ parse_at(
 		at_usage();
 		return 1;
 	}
-	if ( at->at_oid ) {
-		if ( !OID_LEADCHAR( at->at_oid[0] )) {
-			/* Expand OID macros */
-			oid = find_oidm( at->at_oid );
-			if ( !oid ) {
-				fprintf(stderr,
-					"%s: line %d: OID %s not recognized\n",
-					fname, lineno, at->at_oid);
-				return 1;
-			}
-			if ( oid != at->at_oid ) {
-				ldap_memfree( at->at_oid );
-				at->at_oid = oid;
-			}
+
+	if ( at->at_oid == NULL ) {
+		fprintf( stderr,
+			"%s: line %d: attributeType has no OID\n",
+			fname, lineno );
+		at_usage();
+		return 1;
+	}
+
+	if ( !OID_LEADCHAR( at->at_oid[0] )) {
+		/* Expand OID macros */
+		oid = find_oidm( at->at_oid );
+		if ( !oid ) {
+			fprintf( stderr,
+				"%s: line %d: OID %s not recognized\n",
+				fname, lineno, at->at_oid);
+			return 1;
+		}
+		if ( oid != at->at_oid ) {
+			ldap_memfree( at->at_oid );
+			at->at_oid = oid;
 		}
 	}
-	/* at->at_oid == NULL will be an error someday */
+
 	if ( at->at_syntax_oid && !OID_LEADCHAR( at->at_syntax_oid[0] )) {
 		/* Expand OID macros */
 		oid = find_oidm( at->at_syntax_oid );
