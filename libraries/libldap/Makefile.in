@@ -25,7 +25,9 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
 	request.c os-ip.c url.c sortctrl.c vlvctrl.c \
 	init.c options.c print.c string.c util-int.c schema.c \
-	charray.c tls.c os-local.c dnssrv.c utf-8.c utf-8-conv.c
+	charray.c tls.c os-local.c dnssrv.c utf-8.c utf-8-conv.c \
+	pcontrol.c
+
 OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	controls.lo messages.lo references.lo extended.lo cyrus.lo \
 	modify.lo add.lo modrdn.lo delete.lo abandon.lo \
@@ -34,7 +36,8 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
 	request.lo os-ip.lo url.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
-	charray.lo tls.lo os-local.lo dnssrv.lo utf-8.lo utf-8-conv.lo
+	charray.lo tls.lo os-local.lo dnssrv.lo utf-8.lo utf-8-conv.lo \
+	ppcontrol.lo
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

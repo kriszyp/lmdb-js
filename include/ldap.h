@@ -238,6 +238,11 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
 #endif
 
+/* Control Requests and Response for password policies */
+
+#define LDAP_CONTROL_PASSWORDPOLICYREQUEST "1.3.6.1.4.1.42.2.27.8.5.1"
+#define LDAP_CONTROL_PASSWORDPOLICYRESPONSE "1.3.6.1.4.1.42.2.27.8.5.1"
+
 /* controls for MSAD compatibility */
 #define LDAP_CONTROL_X_DOMAIN_SCOPE		"1.2.840.113556.1.4.1339"
 #define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
@@ -1764,6 +1769,35 @@ ldap_passwd_s LDAP_P((
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
 
+/*
+ * LDAP Password Policy controls
+ *	in ppcontrol.c
+ */
+typedef enum passpolicyerror_enum {
+       PP_passwordExpired = 0,
+       PP_accountLocked = 1,
+       PP_changeAfterReset = 2,
+       PP_passwordModNotAllowed = 3,
+       PP_mustSupplyOldPassword = 4,
+       PP_invalidPasswordSyntax = 5,
+       PP_passwordTooShort = 6,
+       PP_passwordTooYoung = 7,
+       PP_passwordInHistory = 8,
+       PP_noError = 65535
+} LDAPPasswordPolicyError;
+
+LDAP_F( int )
+ldap_create_passwordpolicy_control LDAP_P((
+        LDAP *ld,
+        LDAPControl **ctrlp ));
+
+LDAP_F( int )
+ldap_parse_passwordpolicy_control LDAP_P((
+        LDAP *ld,
+        LDAPControl **ctrls,
+        int *expirep,
+        int *gracep,
+        LDAPPasswordPolicyError *errorp ));
 
 LDAP_END_DECL
 #endif /* _LDAP_H */
