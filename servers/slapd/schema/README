@@ -17,10 +17,10 @@ nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project
 vendor.schema			Vendor Information (RFC 3045) schema
 
-Additional schema definitions can be submitted using the OpenLDAP
-Issue Tracking System <http://www.openldap.org/its/>.  Such
-submissions should include a reference (e.g. a URL) to a stable,
-mature specification (e.g., an RFC) of the schema.
+Additional "generally useful" schema definitions can be submitted
+using the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
+Such submissions should include a stable reference (e.g. a URL) to
+a mature, open specification (e.g., an RFC) describing the schema.
 
 ---
 $OpenLDAP$
