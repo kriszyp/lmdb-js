@@ -1,3 +1,9 @@
+/*
+ * Copyright 2000 The OpenLDAP Foundation
+ * COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+ * of this package for details.
+ */
+
 #include "portable.h"
 
 #include <ac/ctype.h>
