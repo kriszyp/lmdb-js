@@ -85,7 +85,7 @@ do_modify(
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
 
-	ndn = ch_strdup( ndn );
+	ndn = ch_strdup( dn );
 
 	if(	dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
