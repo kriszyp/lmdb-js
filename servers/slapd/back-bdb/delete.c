@@ -41,6 +41,8 @@ bdb_delete(
 	DB_LOCK		lock;
 #endif
 
+	int		noop = 0;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS,  "==> bdb_delete: %s\n", dn->bv_val, 0, 0 );
 #else
@@ -416,7 +418,12 @@ retry:	/* transaction retry */
 #endif
 
 	if( op->o_noop ) {
-		rc = TXN_ABORT( ltid );
+		if ( ( rc = TXN_ABORT( ltid ) ) != 0 ) {
+			text = "txn_abort (no-op) failed";
+		} else {
+			noop = 1;
+			rc = LDAP_SUCCESS;
+		}
 	} else {
 		rc = TXN_COMMIT( ltid, 0 );
 	}
@@ -472,5 +479,5 @@ done:
 		op->o_private = NULL;
 	}
 
-	return rc;
+	return ( ( rc == LDAP_SUCCESS ) ? noop : rc );
 }

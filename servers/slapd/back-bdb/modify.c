@@ -268,6 +268,8 @@ bdb_modify(
 	u_int32_t	locker;
 	DB_LOCK		lock;
 
+	int		noop = 0;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify: %s\n", dn->bv_val, 0, 0 );
 #else
@@ -439,7 +441,12 @@ retry:	/* transaction retry */
 	}
 
 	if( op->o_noop ) {
-		rc = TXN_ABORT( ltid );
+		if ( ( rc = TXN_ABORT( ltid ) ) != 0 ) {
+			text = "txn_abort (no-op) failed";
+		} else {
+			noop = 1;
+			rc = LDAP_SUCCESS;
+		}
 	} else {
 		rc = TXN_COMMIT( ltid, 0 );
 	}
@@ -494,5 +501,5 @@ done:
 	if( e != NULL ) {
 		bdb_unlocked_cache_return_entry_w (&bdb->bi_cache, e);
 	}
-	return rc;
+	return ( ( rc == LDAP_SUCCESS ) ? noop : rc );
 }
