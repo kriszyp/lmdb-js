@@ -382,7 +382,7 @@ do_modrdn(
 #endif
 		{
 			if ( (*be->be_modrdn)( be, conn, op, pdn->bv_val, ndn->bv_val,
-				pnewrdn->bv_val, deloldrdn, pnewSuperior->bv_val ) == 0
+				pnewrdn->bv_val, deloldrdn, pnewSuperior ? pnewSuperior->bv_val : NULL ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL || !repl_user )
 #endif
@@ -390,7 +390,7 @@ do_modrdn(
 				struct replog_moddn moddn;
 				moddn.newrdn = pnewrdn->bv_val;
 				moddn.deloldrdn = deloldrdn;
-				moddn.newsup = pnewSuperior->bv_val;
+				moddn.newsup = pnewSuperior ? pnewSuperior->bv_val : NULL;
 
 				replog( be, op, pdn->bv_val, ndn->bv_val, &moddn );
 			}
@@ -423,8 +423,8 @@ cleanup:
 	if( nnewrdn != NULL ) ber_bvfree( nnewrdn );
 
 	free( newSuperior.bv_val );
-	if ( pnewSuperior != NULL ) free( pnewSuperior );
-	if ( nnewSuperior != NULL ) free( nnewSuperior );
+	if ( pnewSuperior != NULL ) ber_bvfree( pnewSuperior );
+	if ( nnewSuperior != NULL ) ber_bvfree( nnewSuperior );
 
 	return rc;
 }
