@@ -760,11 +760,14 @@ comp_component_encoder ( void* mem_op, ComponentSyntaxInfo* csi , struct berval*
 		 * use nibble memory in it 
 		 */
 		free ( bv.bv_val );
+		GenBufFreeBuf( b );
+		BufFreeBuf( buf );
 		return LDAP_SUCCESS;
 	}
 
 	rc = csi->csi_comp_desc->cd_gser_encoder( b, csi );
 	if ( rc < 0 ) {
+		GenBufFreeBuf( b );
 		BufFreeBuf( buf );
 		return rc;
 	}
@@ -780,6 +783,7 @@ comp_component_encoder ( void* mem_op, ComponentSyntaxInfo* csi , struct berval*
 		BufCopy( nval->bv_val, b, size );
 	}
 	ExpBufFreeBuf( buf );
+	GenBufFreeBuf( b );
 
 	return LDAP_SUCCESS;
 }
