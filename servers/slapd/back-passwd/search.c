@@ -363,7 +363,6 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 			vals[0].bv_len = strlen(vals[0].bv_val);
 			attr_merge(e, ad_sn, vals);
 		}
-nogecos:;
 	}
 #endif
 
