@@ -484,7 +484,7 @@ static int parseProxyAuthz (
 	const char **text )
 {
 	int rc;
-	struct berval dn;
+	struct berval dn = { 0, NULL };
 
 	if ( op->o_proxy_authz != SLAP_NO_CONTROL ) {
 		*text = "proxy authorization control specified multiple times";
@@ -537,6 +537,9 @@ static int parseProxyAuthz (
 		NULL, &dn, SLAP_GETDN_AUTHZID );
 
 	if( rc != LDAP_SUCCESS || !dn.bv_len ) {
+		if ( dn.bv_val ) {
+			ch_free( dn.bv_val );
+		}
 		*text = "authzId mapping failed";
 		return LDAP_PROXY_AUTHZ_FAILURE;
 	}
@@ -566,6 +569,11 @@ static int parseProxyAuthz (
 
 	op->o_dn.bv_val = NULL;
 	op->o_ndn = dn;
+
+	/*
+	 * NOTE: since slap_sasl_getdn() returns a normalized dn,
+	 * from now on op->o_dn is normalized
+	 */
 	ber_dupbv( &op->o_dn, &dn );
 
 	return LDAP_SUCCESS;
