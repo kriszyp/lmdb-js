@@ -1,4 +1,4 @@
-.TH LDAPMODRDN 1 "20 April 2000" "OpenLDAP LDVERSION"
+.TH LDAPMODRDN 1 "12 July 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -37,9 +37,7 @@ ldapmodrdn \- LDAP rename entry tool
 [\c
 .BI \-P \ 2\fR\||\|\fI3\fR]
 [\c
-.BR \-E[E] ]
-[\c
-.BR \-I[I] ]
+.BR \-O \ security-properties ]
 [\c
 .BI \-U \ username\fR]
 [\c
@@ -131,24 +129,8 @@ Specify an alternate TCP port where the ldap server is listening.
 .BI \-P \ 2\fR\||\|\fI3
 Specify the LDAP protocol version to use.
 .TP
-.B \-E[E]
-Requset the use of SASL privacy (encryption). If the server allows it, data
-sent between the client and the server will be encrypted. If the server
-requires the use of encryption and this flag is not specified, the command
-will fail. If you use
-.B \-EE\c
-, the command will fail if the server does not support encryption.
-.B \-E[E]
-implies
-.B \-I[I]
-.TP
-.B \-I[I]
-Request the use of SASL integrity checking. It protects data sent between the
-client and the server from being modified along the way, but it does not
-prevent sniffing. If the server requires the use of integrity checking and
-this flag is not specified, the command will fail.If you use
-.B \-II\c
-, the command will fail if the server does not support this function. 
+.BI \-O \ security-properties
+Specify SASL security properties.
 .TP
 .BI \-U \ username
 Specify the username for SASL bind. The syntax of the username depends on the
@@ -225,6 +207,8 @@ Kille, S.,
 ISODE Consortium, March 1995.
 .SH BUGS
 There is no interactive mode, but there probably should be.
+.SH AUTHOR
+The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).

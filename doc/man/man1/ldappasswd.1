@@ -1,4 +1,4 @@
-.TH LDAPPASSWD 1 "20 April 2000" "LDAPPasswd"
+.TH LDAPPASSWD 1 "12 July 2000" "LDAPPasswd"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -33,9 +33,7 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-w \ passwd\fR]
 [\c
-.BR \-E[E] ]
-[\c
-.BR \-I[I] ]
+.BR \-O \ security-properties ]
 [\c
 .BI \-U \ username\fR]
 [\c
@@ -107,24 +105,8 @@ This is used instead of specifying the password on the command line.
 .BI \-w \ passwd
 Use \fIpasswd\fP as the password to bind with.
 .TP
-.B \-E[E]
-Requset the use of SASL privacy (encryption). If the server allows it, data
-sent between the client and the server will be encrypted. If the server
-requires the use of encryption and this flag is not specified, the command
-will fail. If you use
-.B \-EE\c
-, the command will fail if the server does not support encryption.
-.B \-E[E]
-implies
-.B \-I[I]
-.TP
-.B \-I[I]
-Request the use of SASL integrity checking. It protects data sent between the
-client and the server from being modified along the way, but it does not
-prevent sniffing. If the server requires the use of integrity checking and
-this flag is not specified, the command will fail.If you use
-.B \-II\c
-, the command will fail if the server does not support this function. 
+.BI \-O \ security-properties
+Specify SASL security properties.
 .TP
 .BI \-U \ username
 Specify the username for SASL bind. The syntax of the username depends on the
@@ -150,6 +132,8 @@ Issue StartTLS (Transport Layer Security) extended operation. If you use
 , the command will require the operation to be successful.
 .SH SEE ALSO
 .BR ldap_bind (3)
+.SH AUTHOR
+The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
