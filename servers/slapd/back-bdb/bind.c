@@ -169,7 +169,7 @@ bdb_bind(
 		}
 
 		if ( ! access_allowed( be, conn, op, e,
-			password, NULL, ACL_AUTH ) )
+			password, NULL, ACL_AUTH, NULL ) )
 		{
 			send_ldap_result( conn, op, rc = LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
@@ -200,7 +200,7 @@ bdb_bind(
 		}
 
 		if ( ! access_allowed( be, conn, op, e,
-			krbattr, NULL, ACL_AUTH ) )
+			krbattr, NULL, ACL_AUTH, NULL ) )
 		{
 			send_ldap_result( conn, op, rc = LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );

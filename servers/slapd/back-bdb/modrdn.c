@@ -203,7 +203,7 @@ retry:	/* transaction retry */
 
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE, NULL ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
@@ -237,7 +237,7 @@ retry:	/* transaction retry */
 
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,
-					children, NULL, ACL_WRITE );
+					children, NULL, ACL_WRITE, NULL );
 
 				p = NULL;
 
@@ -317,7 +317,7 @@ retry:	/* transaction retry */
 				np, (long) np->e_id, 0 );
 
 			/* check newSuperior for "children" acl */
-			if ( !access_allowed( be, conn, op, np, children, NULL, ACL_WRITE ) ) {
+			if ( !access_allowed( be, conn, op, np, children, NULL, ACL_WRITE, NULL ) ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: no wr to newSup children\n",
 					0, 0, 0 );
@@ -360,7 +360,7 @@ retry:	/* transaction retry */
 
 					/* check parent for "children" acl */
 					rc = access_allowed( be, conn, op, np,
-						children, NULL, ACL_WRITE );
+						children, NULL, ACL_WRITE, NULL );
 
 					np = NULL;
 
@@ -487,7 +487,7 @@ retry:	/* transaction retry */
 
 		/* ACL check of newly added attrs */
 		if ( !access_allowed( be, conn, op, e, desc,
-			&new_rdn[0][ a_cnt ]->la_value, ACL_WRITE ) ) {
+			&new_rdn[0][ a_cnt ]->la_value, ACL_WRITE, NULL ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: access to attr \"%s\" "
 				"(new) not allowed\n", 
@@ -537,7 +537,7 @@ retry:	/* transaction retry */
 
 			/* ACL check of newly added attrs */
 			if ( !access_allowed( be, conn, op, e, desc,
-				&old_rdn[0][d_cnt]->la_value, ACL_WRITE ) ) {
+				&old_rdn[0][d_cnt]->la_value, ACL_WRITE, NULL ) ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: access to attr \"%s\" "
 					"(old) not allowed\n", 

@@ -37,6 +37,7 @@ ldbm_back_attribute(
 	BerVarray v;
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
 	struct berval *iv, *jv;
+	AccessControlState acl_state = ACL_STATE_INIT;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
@@ -102,7 +103,7 @@ ldbm_back_attribute(
     }
 
 	/* find attribute values */
-	
+
 	if( is_entry_alias( e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -130,8 +131,8 @@ ldbm_back_attribute(
 	}
 
 	if (conn != NULL && op != NULL
-		&& access_allowed(be, conn, op, e, slap_schema.si_ad_entry,
-			NULL, ACL_READ) == 0)
+		&& access_allowed( be, conn, op, e, slap_schema.si_ad_entry,
+			NULL, ACL_READ, NULL ) == 0)
 	{
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
@@ -152,7 +153,8 @@ ldbm_back_attribute(
 	}
 
 	if (conn != NULL && op != NULL
-		&& access_allowed(be, conn, op, e, entry_at, NULL, ACL_READ) == 0)
+		&& access_allowed( be, conn, op, e, entry_at, NULL,
+			ACL_READ, &acl_state ) == 0)
 	{
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
@@ -167,8 +169,8 @@ ldbm_back_attribute(
 	for ( iv=attr->a_vals, jv=v; iv->bv_val; iv++ ) {
 		if( conn != NULL
 			&& op != NULL
-			&& access_allowed(be, conn, op, e, entry_at,
-				iv, ACL_READ) == 0)
+			&& access_allowed( be, conn, op, e, entry_at,
+				iv, ACL_READ, &acl_state ) == 0)
 		{
 			continue;
 		}

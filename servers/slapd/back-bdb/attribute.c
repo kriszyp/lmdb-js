@@ -37,6 +37,7 @@ bdb_attribute(
 	Attribute *attr;
 	BerVarray v;
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
+	AccessControlState acl_state = ACL_STATE_INIT;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
@@ -142,8 +143,8 @@ bdb_attribute(
 	}
 
 	if (conn != NULL && op != NULL
-		&& access_allowed(be, conn, op, e, slap_schema.si_ad_entry,
-			NULL, ACL_READ) == 0)
+		&& access_allowed( be, conn, op, e, slap_schema.si_ad_entry,
+			NULL, ACL_READ, &acl_state ) == 0 )
 	{
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
@@ -163,7 +164,8 @@ bdb_attribute(
 	}
 
 	if (conn != NULL && op != NULL
-		&& access_allowed(be, conn, op, e, entry_at, NULL, ACL_READ) == 0)
+		&& access_allowed( be, conn, op, e, entry_at, NULL, ACL_READ, 
+			   &acl_state ) == 0 )
 	{
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;
@@ -179,7 +181,7 @@ bdb_attribute(
 		if( conn != NULL
 			&& op != NULL
 			&& access_allowed(be, conn, op, e, entry_at,
-				&attr->a_vals[i], ACL_READ) == 0)
+				&attr->a_vals[i], ACL_READ, &acl_state ) == 0)
 		{
 			continue;
 		}

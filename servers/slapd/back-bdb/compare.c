@@ -86,7 +86,7 @@ bdb_compare(
 	}
 
 	if ( ! access_allowed( be, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_COMPARE ) )
+		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
 	{
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto return_results;

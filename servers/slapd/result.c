@@ -628,6 +628,8 @@ send_search_entry(
 	char		*edn;
 	int		userattrs;
 	int		opattrs;
+	static AccessControlState acl_state_init = ACL_STATE_INIT;
+	AccessControlState acl_state;
 
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
@@ -647,9 +649,8 @@ send_search_entry(
 		e->e_dn, attrsonly ? " (attrsOnly)" : "", 0 );
 #endif
 
-
 	if ( ! access_allowed( be, conn, op, e,
-		ad_entry, NULL, ACL_READ ) )
+		ad_entry, NULL, ACL_READ, NULL ) )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
@@ -739,7 +740,11 @@ send_search_entry(
 			}
 		}
 
-		if ( ! access_allowed( be, conn, op, e, desc, NULL, ACL_READ ) ) {
+		acl_state = acl_state_init;
+
+		if ( ! access_allowed( be, conn, op, e, desc, NULL,
+			ACL_READ, &acl_state ) )
+		{
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_INFO, "send_search_entry: "
 				"conn %d  access to attribute %s not allowed\n",
@@ -749,7 +754,6 @@ send_search_entry(
 				"access to attribute %s not allowed\n",
 			    desc->ad_cname.bv_val, 0, 0 );
 #endif
-
 			continue;
 		}
 
@@ -771,12 +775,13 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					desc, &a->a_vals[i], ACL_READ ) )
+					desc, &a->a_vals[i], ACL_READ, &acl_state ) )
 				{
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
-						   "send_search_entry: conn %d  access to attribute %s, value %d not allowed\n",
-						   op->o_connid, desc->ad_cname.bv_val, i ));
+						"send_search_entry: conn %d "
+						"access to attribute %s, value %d not allowed\n",
+						op->o_connid, desc->ad_cname.bv_val, i ));
 #else
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
@@ -789,8 +794,8 @@ send_search_entry(
 				if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-						   "send_search_entry: conn %d  ber_printf failed.\n",
-						   op->o_connid ));
+						"send_search_entry: conn %d  ber_printf failed.\n",
+						op->o_connid ));
 #else
 					Debug( LDAP_DEBUG_ANY,
 					    "ber_printf failed\n", 0, 0, 0 );
@@ -807,8 +812,8 @@ send_search_entry(
 		if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "send_search_entry: conn %d  ber_printf failed\n",
-				   op->o_connid ));
+				"send_search_entry: conn %d  ber_printf failed\n",
+				op->o_connid ));
 #else
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 #endif
@@ -847,11 +852,16 @@ send_search_entry(
 			}
 		}
 
-		if ( ! access_allowed( be, conn, op, e,	desc, NULL, ACL_READ ) ) {
+		acl_state = acl_state_init;
+
+		if ( ! access_allowed( be, conn, op, e,	desc, NULL,
+			ACL_READ, &acl_state ) )
+		{
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
-				   "send_search_entry: conn %s  access to attribute %s not allowed\n",
-				   op->o_connid, desc->ad_cname.bv_val ));
+				"send_search_entry: conn %s "
+				"access to attribute %s not allowed\n",
+				op->o_connid, desc->ad_cname.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
 			    desc->ad_cname.bv_val, 0, 0 );
@@ -864,8 +874,8 @@ send_search_entry(
 		if ( rc == -1 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "send_search_entry: conn %d  ber_printf failed\n",
-				   op->o_connid ));
+				"send_search_entry: conn %d  ber_printf failed\n",
+				op->o_connid ));
 #else
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 #endif
@@ -880,12 +890,13 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					desc, &a->a_vals[i], ACL_READ ) )
+					desc, &a->a_vals[i], ACL_READ, &acl_state ) )
 				{
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
-						   "send_search_entry: conn %d access to %s, value %d not allowed\n",
-						   op->o_connid, desc->ad_cname.bv_val, i ));
+						"send_search_entry: conn %d "
+						"access to %s, value %d not allowed\n",
+						op->o_connid, desc->ad_cname.bv_val, i ));
 #else
 					Debug( LDAP_DEBUG_ACL,
 						"acl: access to attribute %s, value %d not allowed\n",
@@ -894,7 +905,6 @@ send_search_entry(
 
 					continue;
 				}
-
 
 				if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
 #ifdef NEW_LOGGING
@@ -989,7 +999,6 @@ send_search_entry(
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
 #endif
 
-
 	rc = 0;
 
 error_return:;
@@ -1027,7 +1036,7 @@ send_search_reference(
 
 
 	if ( ! access_allowed( be, conn, op, e,
-		ad_entry, NULL, ACL_READ ) )
+		ad_entry, NULL, ACL_READ, NULL ) )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
@@ -1043,7 +1052,7 @@ send_search_reference(
 	}
 
 	if ( ! access_allowed( be, conn, op, e,
-		ad_ref, NULL, ACL_READ ) )
+		ad_ref, NULL, ACL_READ, NULL ) )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,

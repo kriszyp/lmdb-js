@@ -291,7 +291,7 @@ static int compare_entry(
 	Attribute *a;
 
 	if ( ! access_allowed( NULL, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_COMPARE ) )
+		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
 	{	
 		return LDAP_INSUFFICIENT_ACCESS;
 	}

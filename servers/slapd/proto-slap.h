@@ -16,7 +16,8 @@ LDAP_BEGIN_DECL
 LDAP_SLAPD_F (int) access_allowed LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, AttributeDescription *desc, struct berval *val,
-	slap_access_t access ));
+	slap_access_t access,
+	AccessControlState *state ));
 LDAP_SLAPD_F (int) acl_check_modlist LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, Modifications *ml ));

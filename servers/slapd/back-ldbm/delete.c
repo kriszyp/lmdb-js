@@ -138,7 +138,7 @@ ldbm_back_delete(
 
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE, NULL ) )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -162,7 +162,7 @@ ldbm_back_delete(
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
-					children, NULL, ACL_WRITE );
+					children, NULL, ACL_WRITE, NULL );
 				p = NULL;
 								
 				/* check parent for "children" acl */

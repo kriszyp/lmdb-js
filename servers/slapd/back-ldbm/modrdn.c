@@ -181,7 +181,7 @@ ldbm_back_modrdn(
 
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE, NULL ) )
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -228,7 +228,7 @@ ldbm_back_modrdn(
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
-						children, NULL, ACL_WRITE );
+						children, NULL, ACL_WRITE, NULL );
 				p = NULL;
 								
 				/* check parent for "children" acl */
@@ -342,7 +342,7 @@ ldbm_back_modrdn(
 
 			/* check newSuperior for "children" acl */
 			if ( !access_allowed( be, conn, op, np, children, NULL,
-					      ACL_WRITE ) )
+					      ACL_WRITE, NULL ) )
 			{
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -403,7 +403,7 @@ ldbm_back_modrdn(
 					np = (Entry *)&slap_entry_root;
 				
 					rc = access_allowed( be, conn, op, np,
-							children, NULL, ACL_WRITE );
+							children, NULL, ACL_WRITE, NULL );
 					np = NULL;
 								
 					/* check parent for "children" acl */
@@ -593,7 +593,7 @@ ldbm_back_modrdn(
 		}
 
 		if ( ! access_allowed( be, conn, op, e, 
-				desc, &new_rdn[0][a_cnt]->la_value, ACL_WRITE ) ) {
+				desc, &new_rdn[0][a_cnt]->la_value, ACL_WRITE, NULL ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				   "ldbm_back_modrdn: access "
@@ -666,7 +666,7 @@ ldbm_back_modrdn(
 			}
 
 			if ( ! access_allowed( be, conn, op, e, 
-					desc, &old_rdn[0][d_cnt]->la_value, ACL_WRITE ) ) {
+					desc, &old_rdn[0][d_cnt]->la_value, ACL_WRITE, NULL ) ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 					   "ldbm_back_modrdn: access "

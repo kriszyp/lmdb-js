@@ -87,7 +87,7 @@ ldbm_back_compare(
 	}
 
 	if ( ! access_allowed( be, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_COMPARE ) )
+		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
 	{
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			NULL, NULL, NULL, NULL );
@@ -107,7 +107,6 @@ ldbm_back_compare(
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}
-
 	}
 
 	send_ldap_result( conn, op, rc,

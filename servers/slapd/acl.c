@@ -50,7 +50,9 @@ static slap_control_t acl_mask(
 	Entry *e,
 	AttributeDescription *desc,
 	struct berval *val,
-	regmatch_t *matches );
+	regmatch_t *matches,
+	int count,
+	AccessControlState *state );
 
 #ifdef SLAPD_ACI_ENABLED
 static int aci_mask(
@@ -106,8 +108,10 @@ access_allowed(
     Entry		*e,
 	AttributeDescription	*desc,
     struct berval	*val,
-    slap_access_t	access )
+    slap_access_t	access,
+	AccessControlState *state )
 {
+	int				ret = 1;
 	int				count;
 	AccessControl	*a;
 #ifdef LDAP_DEBUG
@@ -126,6 +130,19 @@ access_allowed(
 
 	assert( attr != NULL );
 
+	if( state && state->as_recorded ) { 
+		if( state->as_recorded & ACL_STATE_RECORDED_NV &&
+			val == NULL )
+		{
+			return state->as_result;
+
+		} else if ( state->as_recorded & ACL_STATE_RECORDED_VD &&
+			val != NULL && state->as_vd_acl == NULL )
+		{
+			return state->as_result;
+		}
+	}
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
 		"access_allowed: conn %d %s access to \"%s\" \"%s\" requested\n",
@@ -138,7 +155,7 @@ access_allowed(
 
 	if ( op == NULL ) {
 		/* no-op call */
-		return 1;
+		goto done;
 	}
 
 	if ( be == NULL ) be = &backends[0];
@@ -155,7 +172,7 @@ access_allowed(
 		    "<= root access granted\n",
 			0, 0, 0 );
 #endif
-		return 1;
+		goto done;
 	}
 
 	/*
@@ -176,7 +193,7 @@ access_allowed(
 			" %s access granted\n",
 			attr, 0, 0 );
 #endif
-		return 1;
+		goto done;
 	}
 
 	/* use backend default access if no backend acls */
@@ -192,7 +209,8 @@ access_allowed(
 			access2str( access ),
 			be->be_dfltaccess >= access ? "granted" : "denied", op->o_dn.bv_val );
 #endif
-		return be->be_dfltaccess >= access;
+		ret = be->be_dfltaccess >= access;
+		goto done;
 
 #ifdef notdef
 	/* be is always non-NULL */
@@ -209,29 +227,45 @@ access_allowed(
 			access2str( access ),
 			global_default_access >= access ? "granted" : "denied", op->o_dn.bv_val );
 #endif
-		return global_default_access >= access;
+		ret = global_default_access >= access;
+		goto done;
 #endif
 	}
 
-	ACL_INIT(mask);
-	memset(matches, '\0', sizeof(matches));
-	
+	ret = 0;
 	control = ACL_BREAK;
-	a = NULL;
-	count = 0;
 
-	while((a = acl_get( a, &count, be, op, e, desc, MAXREMATCHES, matches )) != NULL)
+	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )) {
+		assert( state->as_vd_acl != NULL );
+
+		a = state->as_vd_acl;
+		mask = state->as_vd_acl_mask;
+		count = state->as_vd_acl_count;
+		AC_MEMCPY( matches, state->as_vd_acl_matches,
+			sizeof(matches) );
+		goto vd_access;
+
+	} else {
+		a = NULL;
+		ACL_INIT(mask);
+		count = 0;
+		memset(matches, '\0', sizeof(matches));
+	}
+
+	while((a = acl_get( a, &count, be, op, e, desc,
+		MAXREMATCHES, matches )) != NULL)
 	{
 		int i;
 
 		for (i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-			       "access_allowed: conn %d match[%d]:  %d %d ",
-			       conn->c_connid, i, (int)matches[i].rm_so, (int)matches[i].rm_eo ));
+			    "access_allowed: conn %d match[%d]:  %d %d ",
+			    conn->c_connid, i,
+				(int)matches[i].rm_so, (int)matches[i].rm_eo ));
 #else
 			Debug( LDAP_DEBUG_ACL, "=> match[%d]: %d %d ", i,
-			       (int)matches[i].rm_so, (int)matches[i].rm_eo );
+			    (int)matches[i].rm_so, (int)matches[i].rm_eo );
 #endif
 			if( matches[i].rm_so <= matches[0].rm_eo ) {
 				int n;
@@ -246,8 +280,9 @@ access_allowed(
 #endif
 		}
 
+vd_access:
 		control = acl_mask( a, &mask, be, conn, op,
-			e, desc, val, matches );
+			e, desc, val, matches, count, state );
 
 		if ( control != ACL_BREAK ) {
 			break;
@@ -259,14 +294,14 @@ access_allowed(
 	if ( ACL_IS_INVALID( mask ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
-		       "access_allowed: conn %d	 \"%s\" (%s) invalid!\n",
-		       conn->c_connid, e->e_dn, attr ));
+		    "access_allowed: conn %d	 \"%s\" (%s) invalid!\n",
+		    conn->c_connid, e->e_dn, attr ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: \"%s\" (%s) invalid!\n",
 			e->e_dn, attr, 0 );
 #endif
-		ACL_INIT( mask );
+		ACL_INIT(mask);
 
 	} else if ( control == ACL_BREAK ) {
 #ifdef NEW_LOGGING
@@ -276,16 +311,17 @@ access_allowed(
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: no more rules\n", 0, 0, 0);
 #endif
-		ACL_INIT( mask );
+
+		goto done;
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
-		   "access_allowed: conn %d  %s access %s by %s\n",
-		   conn->c_connid,
-		   access2str( access ),
-		   ACL_GRANT( mask, access ) ? "granted" : "denied",
-		   accessmask2str( mask, accessmaskbuf ) ));
+		"access_allowed: conn %d  %s access %s by %s\n",
+		conn->c_connid,
+		access2str( access ),
+		ACL_GRANT( mask, access ) ? "granted" : "denied",
+		accessmask2str( mask, accessmaskbuf ) ));
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"=> access_allowed: %s access %s by %s\n",
@@ -293,7 +329,15 @@ access_allowed(
 		ACL_GRANT(mask, access) ? "granted" : "denied",
 		accessmask2str( mask, accessmaskbuf ) );
 #endif
-	return ACL_GRANT(mask, access);
+
+	ret = ACL_GRANT(mask, access);
+
+done:
+	if( state != NULL ) {
+		state->as_recorded |= ACL_STATE_RECORDED;
+		state->as_result = ret;
+	}
+	return ret;
 }
 
 /*
@@ -452,6 +496,20 @@ acl_get(
 	return( NULL );
 }
 
+/*
+ * Record value-dependent access control state
+ */
+#define ACL_RECORD_VALUE_STATE do { \
+		if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) { \
+			state->as_recorded |= ACL_STATE_RECORDED_VD; \
+			state->as_vd_acl = a; \
+			AC_MEMCPY( state->as_vd_acl_matches, matches, \
+				sizeof( state->as_vd_acl_matches )) ; \
+			state->as_vd_acl_count = count; \
+			state->as_vd_access = b; \
+			state->as_vd_access_count = i; \
+		} \
+	} while( 0 )
 
 /*
  * acl_mask - modifies mask based upon the given acl and the
@@ -472,10 +530,12 @@ acl_mask(
     Entry		*e,
 	AttributeDescription *desc,
     struct berval	*val,
-	regmatch_t	*matches
-)
+	regmatch_t	*matches,
+	int	count,
+	AccessControlState *state )
 {
 	int		i, odnlen, patlen;
+	int		vd_recorded = 0;
 	Access	*b;
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
@@ -512,7 +572,18 @@ acl_mask(
 		accessmask2str( *mask, accessmaskbuf ) );
 #endif
 
-	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
+	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )
+		&& state->as_vd_acl == a )
+	{
+		b = state->as_vd_access;
+		i = state->as_vd_access_count;
+
+	} else {
+		b = a->acl_access;
+		i = 1;
+	}
+
+	for ( ; b != NULL; b = b->a_next, i++ ) {
 		slap_mask_t oldmask, modmask;
 
 		ACL_INVALIDATE( modmask );
@@ -750,11 +821,15 @@ acl_mask(
 				/* no dnattr match, check if this is a self clause */
 				if ( ! b->a_dn_self )
 					continue;
+
+				ACL_RECORD_VALUE_STATE;
+				
 				/* this is a self clause, check if the target is an
 				 * attribute.
 				 */
 				if ( val == NULL )
 					continue;
+
 				/* target is attribute, check if the attribute value
 				 * is the op dn.
 				 */
@@ -891,6 +966,8 @@ acl_mask(
 			if ( at == NULL ) {
 				continue;
 			}
+
+			ACL_RECORD_VALUE_STATE;
 
 			/* start out with nothing granted, nothing denied */
 			ACL_INIT(tgrant);
@@ -1086,6 +1163,9 @@ acl_check_modlist(
 	}
 
 	for ( ; mlist != NULL; mlist = mlist->sml_next ) {
+		static AccessControlState state_init = ACL_STATE_INIT;
+		AccessControlState state;
+
 		/*
 		 * no-user-modification operational attributes are ignored
 		 * by ACL_WRITE checking as any found here are not provided
@@ -1104,6 +1184,8 @@ acl_check_modlist(
 			continue;
 		}
 
+		state = state_init;
+
 		switch ( mlist->sml_op ) {
 		case LDAP_MOD_REPLACE:
 			/*
@@ -1112,7 +1194,7 @@ acl_check_modlist(
 			 * This prevents abuse from selfwriters.
 			 */
 			if ( ! access_allowed( be, conn, op, e,
-				mlist->sml_desc, NULL, ACL_WRITE ) )
+				mlist->sml_desc, NULL, ACL_WRITE, &state ) )
 			{
 				return( 0 );
 			}
@@ -1126,7 +1208,7 @@ acl_check_modlist(
 
 			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->sml_desc, bv, ACL_WRITE ) )
+					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
 					return( 0 );
 				}
@@ -1136,7 +1218,7 @@ acl_check_modlist(
 		case LDAP_MOD_DELETE:
 			if ( mlist->sml_bvalues == NULL ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->sml_desc, NULL, ACL_WRITE ) )
+					mlist->sml_desc, NULL, ACL_WRITE, NULL ) )
 				{
 					return( 0 );
 				}
@@ -1144,7 +1226,7 @@ acl_check_modlist(
 			}
 			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->sml_desc, bv, ACL_WRITE ) )
+					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
 					return( 0 );
 				}

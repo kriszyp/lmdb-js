@@ -228,7 +228,7 @@ static int test_mra_filter(
 	Attribute	*a;
 
 	if( !access_allowed( be, conn, op, e,
-		mra->ma_desc, &mra->ma_value, ACL_SEARCH ) )
+		mra->ma_desc, &mra->ma_value, ACL_SEARCH, NULL ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -285,7 +285,7 @@ test_ava_filter(
 	Attribute	*a;
 
 	if ( !access_allowed( be, conn, op, e,
-		ava->aa_desc, &ava->aa_value, ACL_SEARCH ) )
+		ava->aa_desc, &ava->aa_value, ACL_SEARCH, NULL ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -370,7 +370,7 @@ test_presence_filter(
 	AttributeDescription *desc
 )
 {
-	if ( !access_allowed( be, conn, op, e, desc, NULL, ACL_SEARCH ) )
+	if ( !access_allowed( be, conn, op, e, desc, NULL, ACL_SEARCH, NULL ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -491,7 +491,7 @@ test_substrings_filter(
 
 
 	if ( !access_allowed( be, conn, op, e,
-		f->f_sub_desc, NULL, ACL_SEARCH ) )
+		f->f_sub_desc, NULL, ACL_SEARCH, NULL ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}

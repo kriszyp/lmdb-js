@@ -120,7 +120,7 @@ retry:	/* transaction retry */
 
 		/* check parent for "children" acl */
 		rc = access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE );
+			children, NULL, ACL_WRITE, NULL );
 
 		bdb_cache_return_entry_r(&bdb->bi_cache, p);
 		p = NULL;
@@ -148,7 +148,7 @@ retry:	/* transaction retry */
 
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,
-					children, NULL, ACL_WRITE );
+					children, NULL, ACL_WRITE, NULL );
 				p = NULL;
 
 				switch( opinfo.boi_err ) {

@@ -948,6 +948,26 @@ typedef struct slap_acl {
 	struct slap_acl	*acl_next;
 } AccessControl;
 
+typedef struct slap_acl_state {
+	unsigned as_recorded;
+#define ACL_STATE_NOT_RECORDED			0x0
+#define ACL_STATE_RECORDED_VD			0x1
+#define ACL_STATE_RECORDED_NV			0x2
+#define ACL_STATE_RECORDED				0x3
+
+	/* Access state */
+	AccessControl *as_vd_acl;
+	slap_mask_t as_vd_acl_mask;
+	regmatch_t as_vd_acl_matches[MAXREMATCHES];
+	int as_vd_acl_count;
+
+	Access *as_vd_access;
+	int as_vd_access_count;
+
+	int as_result;
+} AccessControlState;
+#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, 0UL, { 0 }, 0, NULL, 0 }
+
 /*
  * replog moddn param structure
  */
@@ -1138,7 +1158,6 @@ struct slap_backend_db {
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
 	char	*be_realm;
-
 	void	*be_private;	/* anything the backend database needs 	   */
 };
 

@@ -126,7 +126,7 @@ ldbm_back_add(
 		}
 
 		if ( ! access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE, NULL ) )
 		{
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
@@ -207,7 +207,7 @@ ldbm_back_add(
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
-					children, NULL, ACL_WRITE );
+					children, NULL, ACL_WRITE, NULL );
 				p = NULL;
 				
 				if ( ! rc ) {

@@ -1963,7 +1963,7 @@ read_config( const char *fname )
 			}
 
 		/* file from which to read additional rootdse attrs */
-		} else if ( strcasecmp( cargv[0], "rootdse" ) == 0) {
+		} else if ( strcasecmp( cargv[0], "rootDSE" ) == 0) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "

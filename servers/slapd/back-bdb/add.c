@@ -173,7 +173,7 @@ retry:	/* transaction retry */
 		}
 
 		rc = access_allowed( be, conn, op, p,
-			children, NULL, ACL_WRITE );
+			children, NULL, ACL_WRITE, NULL );
 
 		switch( opinfo.boi_err ) {
 		case DB_LOCK_DEADLOCK:
@@ -253,7 +253,7 @@ retry:	/* transaction retry */
 
 				/* check parent for "children" acl */
 				rc = access_allowed( be, conn, op, p,
-					children, NULL, ACL_WRITE );
+					children, NULL, ACL_WRITE, NULL );
 				p = NULL;
 
 				switch( opinfo.boi_err ) {
