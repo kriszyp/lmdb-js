@@ -121,7 +121,10 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	return attr;
 }
 
-/* Fetch attribute type and optionally fetch values */
+/* Fetch attribute type and optionally fetch values. The type
+ * and values are referenced in-place from the BerElement, they are
+ * not dup'd into malloc'd memory.
+ */
 /* ARGSUSED */
 int
 ldap_get_attribute_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber,
@@ -146,8 +149,11 @@ ldap_get_attribute_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber,
 	attr->bv_len = 0;
 
 	if ( ber_pvt_ber_remaining( ber ) ) {
+		ber_len_t siz = sizeof( BerValue );
+
 		/* skip sequence, snarf attribute type */
-		tag = ber_scanf( ber, vals ? "{mW}" : "{mx}", attr, vals ); 
+		tag = ber_scanf( ber, vals ? "{mM}" : "{mx}", attr, vals,
+			&siz, 0 ); 
 		if( tag == LBER_ERROR ) {
 			rc = ld->ld_errno = LDAP_DECODING_ERROR;
 		}
