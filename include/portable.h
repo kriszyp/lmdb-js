@@ -101,7 +101,7 @@
  * some systems don't have the BSD re_comp and re_exec routines
  */
 #ifndef NEED_BSDREGEX
-#if defined( SYSV ) || defined( VMS ) || defined( netbsd ) || defined( freebsd ) || defined( linux )
+#if defined( SYSV ) || defined( VMS ) || defined( netbsd ) || defined( linux )
 #define NEED_BSDREGEX
 #endif
 #endif
