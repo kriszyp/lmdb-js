@@ -241,12 +241,14 @@ get_filter(
 		/* not yet implemented */
 		Debug( LDAP_DEBUG_ANY, "extensible match not yet implemented.\n",
 		       f->f_choice, 0, 0 );
+		(void) ber_skip_tag( ber, &len );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
 		*fstr = ch_strdup( "(extended)" );
 		break;
 
 	default:
+		(void) ber_skip_tag( ber, &len );
 		Debug( LDAP_DEBUG_ANY, "get_filter: unknown filter type=%lu\n",
 		       f->f_choice, 0, 0 );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
