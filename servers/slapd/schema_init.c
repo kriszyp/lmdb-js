@@ -1213,6 +1213,7 @@ struct syntax_defs_rec {
 #define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
 #define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
 
+/* recycled normalization routines */
 #define faxNumberNormalize numericStringNormalize
 #define phoneNumberNormalize numericStringNormalize
 #define telexNumberNormalize numericStringNormalize
@@ -1381,7 +1382,7 @@ struct mrule_defs_rec {
  */
 
 
-/* recycled matching functions */
+/* recycled matching routines */
 #define caseIgnoreMatch caseIgnoreIA5Match
 #define caseIgnoreOrderingMatch caseIgnoreMatch
 #define caseIgnoreSubstringsMatch caseIgnoreIA5SubstringsMatch
@@ -1389,20 +1390,21 @@ struct mrule_defs_rec {
 #define caseExactOrderingMatch caseExactMatch
 #define caseExactSubstringsMatch caseExactIA5SubstringsMatch
 
-/* unimplemented matching functions */
-#define objectIdentifierMatch NULL
+#define numericStringMatch caseIgnoreMatch
+#define objectIdentifierMatch numericStringMatch
+#define integerMatch numericStringMatch
+#define telephoneNumberMatch numericStringMatch
+#define generalizedTimeMatch numericStringMatch
+#define generalizedTimeOrderingMatch numericStringMatch
+
+/* unimplemented matching routines */
 #define caseIgnoreListMatch NULL
 #define caseIgnoreListSubstringsMatch NULL
-#define integerMatch NULL
 #define bitStringMatch NULL
-#define octetStringMatch NULL
-#define telephoneNumberMatch NULL
 #define telephoneNumberSubstringsMatch NULL
 #define presentationAddressMatch NULL
 #define uniqueMemberMatch NULL
 #define protocolInformationMatch NULL
-#define generalizedTimeMatch caseExactIA5Match
-#define generalizedTimeOrderingMatch caseExactIA5Match
 #define integerFirstComponentMatch NULL
 #define objectIdentifierFirstComponentMatch NULL
 
@@ -1413,6 +1415,7 @@ struct mrule_defs_rec {
 #define dnIndexer NULL
 #define dnFilter NULL
 
+/* recycled indexing/filtering routines */
 #define caseIgnoreIndexer		caseIgnoreIA5Indexer
 #define caseIgnoreFilter		caseIgnoreIA5Filter
 #define caseExactIndexer		caseExactIA5Indexer
