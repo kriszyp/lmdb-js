@@ -48,7 +48,7 @@ ldbm_back_startup(
 #else
 	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
 	DB_ENV           *dbEnv = &li->li_db_env;
-	int    envFlags = DB_CREATE | DB_THREAD;
+	u_int32_t    envFlags = DB_CREATE | DB_THREAD;
 	int    err      = 0;
 	char   *home;
 

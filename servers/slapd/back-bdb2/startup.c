@@ -38,7 +38,7 @@ bdb2i_back_startup_internal(
 )
 {
 	struct ldbtype  *lty = (struct ldbtype *) bi->bi_private;
-	int             envFlags;
+	u_int32_t		envFlags;
 	int             err      = 0;
 	char            *home;
 
