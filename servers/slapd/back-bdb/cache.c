@@ -102,9 +102,10 @@ bdb_cache_entry_db_relock(
 	return rc;
 #endif
 }
+
 static int
-bdb_cache_entry_db_lock
-( DB_ENV *env, u_int32_t locker, EntryInfo *ei, int rw, int tryOnly, DB_LOCK *lock )
+bdb_cache_entry_db_lock( DB_ENV *env, u_int32_t locker, EntryInfo *ei,
+	int rw, int tryOnly, DB_LOCK *lock )
 {
 #ifdef NO_THREADS
 	return 0;
@@ -141,8 +142,7 @@ bdb_cache_entry_db_lock
 }
 
 int
-bdb_cache_entry_db_unlock
-( DB_ENV *env, DB_LOCK *lock )
+bdb_cache_entry_db_unlock ( DB_ENV *env, DB_LOCK *lock )
 {
 #ifdef NO_THREADS
 	return 0;
@@ -199,8 +199,10 @@ bdb_rdn_cmp( const void *v_e1, const void *v_e2 )
 {
 	const EntryInfo *e1 = v_e1, *e2 = v_e2;
 	int rc = e1->bei_nrdn.bv_len - e2->bei_nrdn.bv_len;
-	if (rc == 0) rc = strncmp( e1->bei_nrdn.bv_val, e2->bei_nrdn.bv_val,
-		e1->bei_nrdn.bv_len );
+	if (rc == 0) {
+		rc = strncmp( e1->bei_nrdn.bv_val, e2->bei_nrdn.bv_val,
+			e1->bei_nrdn.bv_len );
+	}
 	return rc;
 }
 
@@ -217,8 +219,7 @@ static int
 bdb_entryinfo_add_internal(
 	struct bdb_info *bdb,
 	EntryInfo *ei,
-	EntryInfo **res
-)
+	EntryInfo **res )
 {
 	EntryInfo *ei2 = NULL;
 
@@ -271,8 +272,7 @@ bdb_cache_find_ndn(
 	Operation	*op,
 	DB_TXN		*txn,
 	struct berval	*ndn,
-	EntryInfo	**res
-)
+	EntryInfo	**res )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	EntryInfo	ei, *eip, *ei2;
@@ -299,7 +299,8 @@ bdb_cache_find_ndn(
 		if ( !ei2 ) {
 			int len = ei.bei_nrdn.bv_len;
 				
-			ei.bei_nrdn.bv_len = ndn->bv_len - (ei.bei_nrdn.bv_val - ndn->bv_val);
+			ei.bei_nrdn.bv_len = ndn->bv_len -
+				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
 
 			rc = bdb_dn2id( op, txn, &ei.bei_nrdn, &ei );
@@ -335,7 +336,7 @@ bdb_cache_find_ndn(
 
 		/* Advance to next lower RDN */
 		for (ptr = ei.bei_nrdn.bv_val - 2; ptr > ndn->bv_val
-			&& !DN_SEPARATOR(*ptr); ptr--);
+			&& !DN_SEPARATOR(*ptr); ptr--) /* empty */;
 		if ( ptr >= ndn->bv_val ) {
 			if (DN_SEPARATOR(*ptr)) ptr++;
 			ei.bei_nrdn.bv_len = ei.bei_nrdn.bv_val - ptr - 1;
@@ -359,8 +360,7 @@ hdb_cache_find_parent(
 	Operation *op,
 	DB_TXN *txn,
 	ID id,
-	EntryInfo **res
-)
+	EntryInfo **res )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	EntryInfo ei, eip, *ei2 = NULL, *ein = NULL, *eir = NULL;
@@ -497,8 +497,7 @@ static void
 bdb_cache_lru_add(
 	struct bdb_info *bdb,
 	u_int32_t	locker,
-	EntryInfo *ei
-)
+	EntryInfo *ei )
 {
 	DB_LOCK		lock, *lockp;
 
@@ -551,8 +550,7 @@ bdb_cache_lru_add(
 EntryInfo *
 bdb_cache_find_info(
 	struct bdb_info *bdb,
-	ID id
-)
+	ID id )
 {
 	EntryInfo ei, *ei2;
 
@@ -579,8 +577,7 @@ bdb_cache_find_id(
 	EntryInfo	**eip,
 	int		islocked,
 	u_int32_t	locker,
-	DB_LOCK		*lock
-)
+	DB_LOCK		*lock )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry	*ep = NULL;
@@ -592,9 +589,9 @@ bdb_cache_find_id(
 
 	/* If we weren't given any info, see if we have it already cached */
 	if ( !*eip ) {
-again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
+again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		*eip = (EntryInfo *) avl_find( bdb->bi_cache.c_idtree,
-					(caddr_t) &ei, bdb_id_cmp );
+			(caddr_t) &ei, bdb_id_cmp );
 		if ( *eip ) {
 			/* If the lock attempt fails, the info is in use */
 			if ( ldap_pvt_thread_mutex_trylock(
@@ -631,8 +628,7 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		if ( rc == 0 ) {
 			rc = bdb_cache_find_ndn( op, tid,
 				&ep->e_nname, eip );
-			if ( *eip )
-				islocked = 1;
+			if ( *eip ) islocked = 1;
 			if ( rc ) {
 				bdb_entry_return( ep );
 				ep = NULL;
@@ -640,8 +636,7 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		}
 #else
 		rc = hdb_cache_find_parent(op, tid, id, eip );
-		if ( rc == 0 && *eip )
-			islocked = 1;
+		if ( rc == 0 && *eip ) islocked = 1;
 #endif
 	}
 
@@ -650,8 +645,7 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
 		} else {
-			bdb_cache_entry_db_lock( bdb->bi_dbenv, locker,
-					*eip, 0, 0, lock );
+			bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, *eip, 0, 0, lock );
 			if ( !(*eip)->bei_e ) {
 				if (!ep) {
 					rc = bdb_id2entry( op->o_bd, tid, id, &ep );
@@ -717,8 +711,7 @@ int
 bdb_cache_children(
 	Operation *op,
 	DB_TXN *txn,
-	Entry *e
-)
+	Entry *e )
 {
 	int rc;
 
@@ -742,8 +735,7 @@ bdb_cache_add(
 	EntryInfo *eip,
 	Entry *e,
 	struct berval *nrdn,
-	u_int32_t locker
-)
+	u_int32_t locker )
 {
 	EntryInfo *new, ei;
 	struct berval rdn = e->e_name;
@@ -760,6 +752,7 @@ bdb_cache_add(
 	ber_dupbv( &ei.bei_rdn, &rdn );
 	if ( eip->bei_dkids ) eip->bei_dkids++;
 #endif
+
 	rc = bdb_entryinfo_add_internal( bdb, &ei, &new );
 	/* bdb_csn_commit can cause this when adding the database root entry */
 	if ( new->bei_e ) bdb_entry_return( new->bei_e );
@@ -767,7 +760,9 @@ bdb_cache_add(
 	e->e_private = new;
 	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
-	if (eip->bei_parent) eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
+	if (eip->bei_parent) {
+		eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
+	}
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
@@ -786,8 +781,7 @@ bdb_cache_modify(
 	Attribute *newAttrs,
 	DB_ENV *env,
 	u_int32_t locker,
-	DB_LOCK *lock
-)
+	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e);
 	
@@ -816,8 +810,7 @@ bdb_cache_modrdn(
 	EntryInfo *ein,
 	DB_ENV *env,
 	u_int32_t locker,
-	DB_LOCK *lock
-)
+	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e), *pei;
 	struct berval rdn;
@@ -833,8 +826,9 @@ bdb_cache_modrdn(
 		attrs_free( e->e_attrs );
 	}
 	e->e_attrs = new->e_attrs;
-	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
-		e->e_bv.bv_val + e->e_bv.bv_len ) {
+	if( e->e_nname.bv_val < e->e_bv.bv_val ||
+		e->e_nname.bv_val > e->e_bv.bv_val + e->e_bv.bv_len )
+	{
 		ch_free(e->e_name.bv_val);
 		ch_free(e->e_nname.bv_val);
 	}
@@ -866,11 +860,11 @@ bdb_cache_modrdn(
 		bdb_cache_entryinfo_lock( ein );
 	}
 #ifdef BDB_HIER
-	{ int max = ei->bei_modrdns;
-	/* Record the generation number of this change */
+	{
+		int max = ei->bei_modrdns;
+		/* Record the generation number of this change */
 		for ( pei = ein; pei->bei_parent; pei = pei->bei_parent ) {
-			if ( pei->bei_modrdns > max )
-				max = pei->bei_modrdns;
+			if ( pei->bei_modrdns > max ) max = pei->bei_modrdns;
 		}
 		ei->bei_modrdns = max + 1;
 	}
@@ -892,8 +886,7 @@ bdb_cache_delete(
     Entry		*e,
     DB_ENV	*env,
     u_int32_t	locker,
-    DB_LOCK	*lock
-)
+    DB_LOCK	*lock )
 {
 	EntryInfo *ei = BEI(e);
 	int	rc;
@@ -941,8 +934,7 @@ bdb_cache_delete(
 void
 bdb_cache_delete_cleanup(
 	Cache *cache,
-	Entry *e
-)
+	Entry *e )
 {
 	EntryInfo *ei = BEI(e);
 
@@ -973,8 +965,7 @@ bdb_cache_delete_cleanup(
 static int
 bdb_cache_delete_internal(
     Cache	*cache,
-    EntryInfo		*e
-)
+    EntryInfo		*e )
 {
 	int rc = 0;	/* return code */
 
@@ -983,14 +974,14 @@ bdb_cache_delete_internal(
 	if ( e->bei_parent->bei_dkids ) e->bei_parent->bei_dkids--;
 #endif
 	/* dn tree */
-	if ( avl_delete( &e->bei_parent->bei_kids, (caddr_t) e, bdb_rdn_cmp ) == NULL )
+	if ( avl_delete( &e->bei_parent->bei_kids, (caddr_t) e, bdb_rdn_cmp )
+		== NULL )
 	{
 		rc = -1;
 	}
 
 	/* id tree */
-	if ( avl_delete( &cache->c_idtree, (caddr_t) e, bdb_id_cmp ) == NULL )
-	{
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, bdb_id_cmp ) == NULL ) {
 		rc = -1;
 	}
 
@@ -1076,7 +1067,6 @@ bdb_locker_id_free( void *key, void *data )
 	int lockid = (int) data;
 	int rc;
 
-
 	rc = XLOCK_ID_FREE( env, lockid );
 	if ( rc == EINVAL ) {
 		DB_LOCKREQ lr;
@@ -1158,7 +1148,8 @@ bdb_cache_delete_entry(
 	DB_LOCK *lock )
 {
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
-	if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, ei, 1, 1, lock ) == 0 ) {
+	if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, ei, 1, 1, lock ) == 0 )
+	{
 		if ( ei->bei_e && !(ei->bei_state & CACHE_ENTRY_NOT_LINKED )) {
 			LRU_DELETE( &bdb->bi_cache, ei );
 			ei->bei_e->e_private = NULL;

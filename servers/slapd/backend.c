@@ -1027,9 +1027,10 @@ backend_check_restrictions(
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */
 			if( ( op->o_transport_ssf < ssf->sss_transport
-				&& op->o_authtype == LDAP_AUTH_SIMPLE ) || op->o_dn.bv_len == 0 )
+				&& op->o_authtype == LDAP_AUTH_SIMPLE )
+				|| op->o_dn.bv_len == 0 )
 			{
-				rs->sr_text = "strong authentication required";
+				rs->sr_text = "strong(er) authentication required";
 				rs->sr_err = LDAP_STRONG_AUTH_REQUIRED;
 				return rs->sr_err;
 			}

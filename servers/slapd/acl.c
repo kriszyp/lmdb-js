@@ -1450,8 +1450,17 @@ acl_check_modlist(
 {
 	struct berval *bv;
 	AccessControlState state = ACL_STATE_INIT;
+	Backend *be;
+	int be_null = 0;
+	int ret = 1; /* default is access allowed */
 
-	assert( op->o_bd != NULL );
+	be = op->o_bd;
+	if ( be == NULL ) {
+		be = &backends[0];
+		be_null = 1;
+		op->o_bd = be;
+	}
+	assert( be != NULL );
 
 	/* short circuit root database access */
 	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
@@ -1464,7 +1473,7 @@ acl_check_modlist(
 			"<= acl_access_allowed: granted to database root\n",
 		    0, 0, 0 );
 #endif
-		return 1;
+		goto done;
 	}
 
 	/* use backend default access if no backend acls */
@@ -1481,26 +1490,8 @@ acl_check_modlist(
 			access2str( ACL_WRITE ),
 			op->o_bd->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn.bv_val );
 #endif
-		return op->o_bd->be_dfltaccess >= ACL_WRITE;
-
-#ifdef notdef
-	/* op->o_bd is always non-NULL */
-	/* use global default access if no global acls */
-	} else if ( op->o_bd == NULL && global_acl == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( ACL, DETAIL1, 
-			"acl_check_modlist: global default %s access %s to \"%s\"\n",
-		   access2str( ACL_WRITE ),
-		   global_default_access >= ACL_WRITE ? "granted" : "denied", 
-		   op->o_dn  );
-#else
-		Debug( LDAP_DEBUG_ACL,
-			"=> access_allowed: global default %s access %s to \"%s\"\n",
-			access2str( ACL_WRITE ),
-			global_default_access >= ACL_WRITE ? "granted" : "denied", op->o_dn );
-#endif
-		return global_default_access >= ACL_WRITE;
-#endif
+		ret = (op->o_bd->be_dfltaccess >= ACL_WRITE);
+		goto done;
 	}
 
 	for ( ; mlist != NULL; mlist = mlist->sml_next ) {
@@ -1532,7 +1523,8 @@ acl_check_modlist(
 			if ( ! access_allowed( op, e,
 				mlist->sml_desc, NULL, ACL_WRITE, &state ) )
 			{
-				return( 0 );
+				ret = 0;
+				goto done;
 			}
 
 			if ( mlist->sml_bvalues == NULL ) break;
@@ -1549,7 +1541,8 @@ acl_check_modlist(
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
-					return( 0 );
+					ret = 0;
+					goto done;
 				}
 			}
 			break;
@@ -1559,7 +1552,8 @@ acl_check_modlist(
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, NULL, ACL_WRITE, NULL ) )
 				{
-					return( 0 );
+					ret = 0;
+					goto done;
 				}
 				break;
 			}
@@ -1570,7 +1564,8 @@ acl_check_modlist(
 				if ( ! access_allowed( op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
-					return( 0 );
+					ret = 0;
+					goto done;
 				}
 			}
 			break;
@@ -1581,11 +1576,15 @@ acl_check_modlist(
 
 		default:
 			assert( 0 );
-			return( 0 );
+			/* not reached */
+			ret = 0;
+			break;
 		}
 	}
 
-	return( 1 );
+done:
+	if (be_null) op->o_bd = NULL;
+	return( ret );
 }
 
 static int

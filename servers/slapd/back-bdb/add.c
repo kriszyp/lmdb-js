@@ -53,17 +53,21 @@ bdb_add(Operation *op, SlapReply *rs )
 	int num_ctrls = 0;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS, "==> bdb_add: %s\n", op->oq_add.rs_e->e_name.bv_val, 0, 0 );
+	LDAP_LOG ( OPERATION, ARGS, "==> bdb_add: %s\n",
+		op->oq_add.rs_e->e_name.bv_val, 0, 0 );
 #else
-	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n", op->oq_add.rs_e->e_name.bv_val, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "==> bdb_add: %s\n",
+		op->oq_add.rs_e->e_name.bv_val, 0, 0);
 #endif
 
 	/* check entry's schema */
-	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, &rs->sr_text, textbuf, textlen );
+	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e,
+		NULL, &rs->sr_text, textbuf, textlen );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ERR, 
-		"bdb_add: entry failed schema check: %s (%d)\n", rs->sr_text, rs->sr_err, 0 );
+		LDAP_LOG ( OPERATION, ERR, 
+			"bdb_add: entry failed schema check: %s (%d)\n",
+			rs->sr_text, rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: entry failed schema check: %s (%d)\n",
@@ -121,7 +125,8 @@ retry:	/* transaction retry */
 	if( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: txn_begin failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_add: txn_begin failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: txn_begin failed: %s (%d)\n",
@@ -182,8 +187,8 @@ retry:	/* transaction retry */
 			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 			p = NULL;
 #ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, DETAIL1, 
-				"bdb_add: parent does not exist\n", 0, 0, 0 );
+			LDAP_LOG ( OPERATION, DETAIL1, "bdb_add: parent does not exist\n",
+				0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent does not exist\n",
 				0, 0, 0 );
@@ -214,8 +219,8 @@ retry:	/* transaction retry */
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"bdb_add: no write access to parent\n", 0, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_TRACE, "bdb_add: no write access to parent\n",
-				0, 0, 0 );
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_add: no write access to parent\n", 0, 0, 0 );
 #endif
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 			rs->sr_text = "no write access to parent";
@@ -363,7 +368,8 @@ retry:	/* transaction retry */
 	if( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_add: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_add: txn_begin(2) failed: %s (%d)\n",
@@ -379,7 +385,8 @@ retry:	/* transaction retry */
 	if ( rs->sr_err != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: dn2id_add failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_add: dn2id_add failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: dn2id_add failed: %s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
@@ -477,13 +484,13 @@ retry:	/* transaction retry */
 		bdb_cache_add( bdb, ei, e, &nrdn, locker );
 
 		if ( suffix_ei == NULL ) {
-			suffix_ei = e->e_private;
+			suffix_ei = BEI(e);
 		}
 
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
 			if ( ctxcsn_added ) {
 				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
-						(struct berval *)&slap_ldapsync_cn_bv, locker );
+					(struct berval *)&slap_ldapsync_cn_bv, locker );
 			}
 		}
 
@@ -508,9 +515,8 @@ retry:	/* transaction retry */
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_add: %s : %s (%d)\n",  rs->sr_text,
-				db_strerror(rs->sr_err), rs->sr_err );
+		LDAP_LOG ( OPERATION, ERR, "bdb_add: %s : %s (%d)\n",
+			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: %s : %s (%d)\n",
 			rs->sr_text, db_strerror(rs->sr_err), rs->sr_err );
