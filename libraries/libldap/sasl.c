@@ -899,6 +899,8 @@ ldap_negotiated_sasl_bind_s(
 	callbacks[n].proc = NULL;
 	callbacks[n].context = NULL;
 
+	assert( n * sizeof(sasl_callback_t) < sizeof(callbacks) );
+
 	rc = ldap_pvt_sasl_bind(ld, dn, saslMechanism, callbacks,
 		serverControls, clientControls);
 
