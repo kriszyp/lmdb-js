@@ -108,7 +108,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct berval match = { 0, NULL }, mmatch = { 0, NULL };
 	BerVarray v2refs = NULL;
 		
-	int i, last = 0, candidates = 0;
+	int i, last = 0, candidates = 0, initial_candidates = 0,
+			candidate_match = 0;
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 	dncookie dc;
@@ -378,6 +379,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 new_candidate:;
 	}
 
+	initial_candidates = candidates;
+
 	/* We pull apart the ber result, stuff it into a slapd entry, and
 	 * let send_search_entry stuff it back into ber format. Slow & ugly,
 	 * but this is necessary for version matching, and for ACL processing.
@@ -530,7 +533,7 @@ new_candidate:;
 					"match=\"%s\" err=\"%s\"\n",
      					i, match.bv_val, err );	
 #endif /* !NEW_LOGGING */
-				
+				candidate_match++;
 				last = i;
 				rc = 0;
 
@@ -570,7 +573,8 @@ new_candidate:;
 	 * 
 	 * FIXME: only the last one gets caught!
 	 */
-	if ( match.bv_val != NULL && *match.bv_val ) {
+	if ( candidate_match == initial_candidates
+			&& match.bv_val != NULL && *match.bv_val ) {
 		dc.ctx = "matchedDn";
 		dc.rwmap = &li->targets[ last ]->rwmap;
 
@@ -766,7 +770,6 @@ meta_send_entry(
 				slap_schema.si_syn_distinguishedName ) {
 			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
 		}
-next_attr:;
 
 		*attrp = attr;
 		attrp = &attr->a_next;
