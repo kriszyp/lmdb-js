@@ -66,18 +66,19 @@ Options described in this section apply to all backends, unless specifically
 overridden in a backend definition. Arguments that should be replaced by 
 actual text are shown in brackets <>.
 .TP
-.B
-access to <what> [ by <who> <access> <control> ]+
+.B access to <what> [ by <who> <access> <control> ]+
 Grant access (specified by <access>) to a set of entries and/or
 attributes (specified by <what>) by one or more requestors (specified
 by <who>).
 See Developer's FAQ (http://www.openldap.org/faq/) for details.
-.TP
-.B
-attributetype ( <oid> [NAME <name>] [DESC <description>] \
-[OBSOLETE] [SUP <oid>] [EQUALITY <oid>] [ORDERING <oid>] \
-[SUBSTR <oid>] [SYNTAX <oidlen>] [SINGLE\-VALUE] [COLLECTIVE] \
-[NO\-USER\-MODIFICATION] [USAGE <attributeUsage>] )
+.HP
+.hy 0
+.B attributetype (\ <oid> [NAME\ <name>] [OBSOLETE]\
+ [DESC\ <description>]\
+ [SUP\ <oid>] [EQUALITY\ <oid>] [ORDERING\ <oid>]\
+ [SUBSTR\ <oid>] [SYNTAX\ <oidlen>] [SINGLE\-VALUE] [COLLECTIVE]\
+ [NO\-USER\-MODIFICATION] [USAGE\ <attributeUsage>]\ )
+.RS
 Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
 forms as well as numeric OIDs to be used for the attribute OID and
@@ -102,19 +103,21 @@ SubstringAssertion NISnetgrouptriple Bootparameter
 .PD
 .RE
 .RE
+.RE
 .TP
 .B concurrency <integer>
 Specify a desired level of concurrency.  Provided to the underlying
 thread system as a hint.  The default is not to provdide any hint.
-.TP
-.B
-defaultaccess { none | auth | compare | search | read | write }
+.HP
+.B defaultaccess { none | auth | compare | search | read | write }
+.RS
 Specify the default access level to grant requestors when
 no access directives were provided for the database.
 The default behavior is to grant 'read' access.  It is
 recommended that
 .B access
 directives be used instead.
+.RE
 .TP
 .B idletimeout <integer>
 Specify the number of seconds to wait before forcibly closing
@@ -186,11 +189,11 @@ entry parsing
 .PD
 .RE
 .RE
-.TP
-.B
-objectclass ( <oid> [NAME <name>] [DESC <description] [OBSOLETE] \
-[SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>] \
-[MAY <oids>] )
+.HP
+.B objectclass ( <oid> [NAME <name>] [DESC <description] [OBSOLETE]\
+ [SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>]\
+ [MAY <oids>] )
+.RS
 Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
 forms as well as numeric OIDs to be used for the object class OID.
@@ -198,6 +201,7 @@ forms as well as numeric OIDs to be used for the object class OID.
 .B
 objectidentifier
 description.)  Object classes are "STRUCTURAL" by default.
+.RE
 .TP
 .B objectidentifier <name> { <oid> | <name>[:<suffix>] }
 Define a string name that equates to the given OID. The string can be used
@@ -280,17 +284,16 @@ createTimestamp attributes for entries.  By default, lastmod is on.
 This option puts the database into "read-only" mode.  Any attempts to 
 modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
-.TP
-.B
-replica host=<hostname>[:port] "binddn=<DN>" bindmethod=simple |
-.B
-kerberos [credentials=<password>] [srvtab=<filename>]
-.br
+.HP
+.B replica host=<hostname>[:port] "binddn=<DN>" bindmethod=simple |\
+ kerberos [credentials=<password>] [srvtab=<filename> ]
+.RS
 Specify a replication site for this database.  Refer to "The SLAPD and
 SLURPD Administrator's Guide" for detailed information on setting up
 a replicated
 .B slapd
 directory service.
+.RE
 .TP
 .B replogfile <filename>
 Specify the name of the replication log file to log changes to.  
