@@ -160,6 +160,7 @@ static Connection* connection_get( int s )
 
 	ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
+	assert( c->c_struct_state == SLAP_C_USED );
 	assert( c->c_conn_state != SLAP_C_INVALID );
 	assert( ber_pvt_sb_in_use( c->c_sb ) );
 
