@@ -2287,6 +2287,9 @@ Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type )
 
 	a->a_desc = ad;
 	a->a_vals = NULL;
+#ifdef SLAP_NVALUES
+	a->a_nvals = NULL;
+#endif
 	a->a_next = NULL;
 	a->a_flags = 0;
 
@@ -2316,6 +2319,11 @@ Slapi_Attr *slapi_attr_dup( const Slapi_Attr *attr )
 int slapi_attr_add_value( Slapi_Attr *a, const Slapi_Value *v )
 {
 #ifdef LDAP_SLAPI
+#ifdef SLAP_NVALUES
+	/*
+	 * FIXME: here we may lose alignment between a_vals/a_nvals
+	 */
+#endif
 	return value_add_one( &a->a_vals, (Slapi_Value *)v );
 #else
 	return -1;
