@@ -289,7 +289,8 @@ main( int argc, char **argv )
 		/* set option error */
 	}
 	if (referrals != -1 &&
-		ldap_set_option( ld, LDAP_OPT_REFERRALS, (void *) referrals ) == -1 )
+		ldap_set_option( ld, LDAP_OPT_REFERRALS,
+				 (referrals ? LDAP_OPT_ON : LDAP_OPT_OFF) ) == -1 )
 	{
 		/* set option error */
 	}
