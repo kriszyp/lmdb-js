@@ -1894,7 +1894,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 			continue;
 		}
 
-		cl = LDAP_UTF8_CHARLEN( p );
+		cl = LDAP_UTF8_CHARLEN2( p, cl );
 		if ( cl == 0 ) {
 			/* illegal utf-8 char! */
 			return( -1 );
@@ -1903,7 +1903,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 			ber_len_t cnt;
 
 			for ( cnt = 1; cnt < cl; cnt++ ) {
-				if ( ( p[ cnt ] & 0x80 ) == 0x00 ) {
+				if ( ( p[ cnt ] & 0xc0 ) != 0x80 ) {
 					return( -1 );
 				}
 			}

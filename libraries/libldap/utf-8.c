@@ -91,6 +91,29 @@ int ldap_utf8_charlen( const char * p )
 	return ldap_utf8_lentab[*(unsigned char *)p ^ 0x80];
 }
 
+/*
+ * Make sure the UTF-8 char used the shortest possible encoding
+ * returns charlen if valid, 0 if not. 
+ */
+
+/* mask of required bits in second octet */
+const char ldap_utf8_mintab[] = {
+	0x20, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+	0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+	0x30, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+	0x38, 0x80, 0x80, 0x80, 0x3c, 0x80, 0x00, 0x00 };
+
+int ldap_utf8_charlen2( const char * p )
+{
+	int i = LDAP_UTF8_CHARLEN( p );
+
+	if ( i > 2 ) {
+		if ( !( ldap_utf8_mintab[*p & 0x1f] & p[1] ) )
+			i = 0;
+	}
+	return i;
+}
+
 /* conv UTF-8 to UCS-4, useful for comparisons */
 ldap_ucs4_t ldap_x_utf8_to_ucs4( const char * p )
 {
@@ -100,7 +123,7 @@ ldap_ucs4_t ldap_x_utf8_to_ucs4( const char * p )
 	static unsigned char mask[] = {
 		0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
 
-	len = LDAP_UTF8_CHARLEN(p);
+	len = LDAP_UTF8_CHARLEN2(p, len);
 
 	if( len == 0 ) return LDAP_UCS4_INVALID;
 

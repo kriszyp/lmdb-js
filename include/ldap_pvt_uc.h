@@ -47,6 +47,12 @@ LDAP_F (ber_len_t) ldap_utf8_chars( const char * );
 LDAP_F (int) ldap_utf8_offset( const char * );
 /* returns the length (in bytes) indicated by the UTF-8 character */
 LDAP_F (int) ldap_utf8_charlen( const char * );
+
+/* returns the length (in bytes) indicated by the UTF-8 character
+ * also checks that shortest possible encoding was used
+ */
+LDAP_F (int) ldap_utf8_charlen2( const char * );
+
 /* copies a UTF-8 character and returning number of bytes copied */
 LDAP_F (int) ldap_utf8_copy( char *, const char *);
 
@@ -76,10 +82,20 @@ LDAP_F (char*) ldap_utf8_strtok( char* sp, const char* sep, char **last);
 
 /* Optimizations */
 LDAP_V (const char) ldap_utf8_lentab[128];
+LDAP_V (const char) ldap_utf8_mintab[32];
 
 #define LDAP_UTF8_ISASCII(p) ( !(*(unsigned char *)(p) & 0x80 ) )
 #define LDAP_UTF8_CHARLEN(p) ( LDAP_UTF8_ISASCII(p) \
 	? 1 : ldap_utf8_lentab[*(unsigned char *)(p) ^ 0x80] )
+
+/* This is like CHARLEN but additionally validates to make sure
+ * the char used the shortest possible encoding.
+ * 'l' is used to temporarily hold the result of CHARLEN.
+ */
+#define LDAP_UTF8_CHARLEN2(p, l) ( ( ( l = LDAP_UTF8_CHARLEN( p )) < 3 || \
+	( ldap_utf8_mintab[*(unsigned char *)(p) & 0x1f] & (p)[1] ) ) ? \
+	l : 0 )
+
 #define LDAP_UTF8_OFFSET(p) ( LDAP_UTF8_ISASCII(p) \
 	? 1 : ldap_utf8_offset((p)) )
 
