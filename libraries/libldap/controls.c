@@ -100,15 +100,113 @@ int ldap_int_put_controls(
 }
 
 int ldap_int_get_controls LDAP_P((
-	BerElement *be,
+	BerElement *ber,
 	LDAPControl ***ctrls ))
 {
-	assert( be != NULL );
+	int nctrls;
+	unsigned long tag, len;
+	char *opaque;
+
+	assert( ber != NULL );
 	assert( ctrls != NULL );
 
-	**ctrls = NULL;
+	*ctrls = NULL;
 
-	return LDAP_NOT_SUPPORTED;
+	len = ber->ber_end - ber->ber_ptr;
+
+	if( len == 0) {
+		/* no controls */
+		return LDAP_SUCCESS;
+	}
+
+	if(( tag = ber_peek_tag( ber, &len )) != LDAP_TAG_CONTROLS ) {
+		if( tag == LBER_ERROR ) {
+			/* decoding error */
+			return LDAP_DECODING_ERROR;
+		}
+
+		/* ignore unexpected input */
+		return LDAP_SUCCESS;
+	}
+
+	/* set through each element */
+	nctrls = 0;
+	*ctrls = malloc( 1 * sizeof(LDAPControl *) );
+
+	if( *ctrls == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	ctrls[nctrls] = NULL;
+
+	for( tag = ber_first_element( ber, &len, &opaque );
+		(
+			tag != LBER_ERROR
+#ifdef LDAP_END_SEQORSET
+			&& tag != LBER_END_OF_SEQORSET
+#endif
+		);
+		tag = ber_next_element( ber, &len, opaque ) )
+	{
+		LDAPControl *tctrl;
+		LDAPControl **tctrls;
+
+		tctrl = calloc( 1, sizeof(LDAPControl) );
+
+		/* allocate pointer space for current controls (nctrls)
+		 * + this control + extra NULL
+		 */
+		tctrls = (tctrl == NULL) ? NULL :
+			realloc(*ctrls, (nctrls+2) * sizeof(LDAPControl *));
+
+		if( tctrls == NULL ) {
+			/* one of the above allocation failed */
+
+			if( tctrl != NULL ) {
+				free( tctrl );
+			}
+
+			ldap_controls_free(*ctrls);
+			*ctrls = NULL;
+
+			return LDAP_NO_MEMORY;
+		}
+
+
+		tctrls[nctrls++] = tctrl;
+		tctrls[nctrls] = NULL;
+
+		tag = ber_scanf( ber, "{a", &tctrl->ldctl_oid );
+
+		if( tag != LBER_ERROR ) {
+			tag = ber_peek_tag( ber, &len );
+		}
+
+		if( tag == LBER_BOOLEAN ) {
+			tag = ber_scanf( ber, "b", &tctrl->ldctl_iscritical );
+		}
+
+		if( tag != LBER_ERROR ) {
+			tag = ber_peek_tag( ber, &len );
+		}
+
+		if( tag == LBER_OCTETSTRING ) {
+			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
+
+		} else {
+			tctrl->ldctl_value.bv_val = NULL;
+		}
+
+		if( tag == LBER_ERROR ) {
+			*ctrls = NULL;
+			ldap_controls_free( tctrls );
+			return LDAP_DECODING_ERROR;
+		}
+
+		*ctrls = tctrls;
+	}
+		
+	return LDAP_SUCCESS;
 }
 
 /*
