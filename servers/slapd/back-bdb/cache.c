@@ -240,7 +240,6 @@ bdb_entryinfo_add_internal(
 			if ( bdb_cache_entry_db_lock( env, locker, elru, 1, 1,
 				&lock ) == 0 ) {
 				if ( !elru->bei_e ) {
-					bdb_cache_entryinfo_unlock( elru->bei_parent );
 					bdb_cache_entry_db_unlock( env, &lock );
 					continue;
 				}
