@@ -274,8 +274,8 @@ fi
 BASEDN="o=Example,c=US"
 echo "changing password to database \"$BASEDN\"..."
 $LDAPPASSWD -h $LOCALHOST -p $PORT1 -D "cn=Manager,$BASEDN" -w $PASSWD \
-	"cn=Added User,ou=Alumni Association,ou=People,$BASEDN" \
-	-s $PASSWD >> $TESTOUT 2>&1
+	-s $PASSWD "cn=Added User,ou=Alumni Association,ou=People,$BASEDN" \
+	>> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Passwd ExOp failed ($RC)!"
