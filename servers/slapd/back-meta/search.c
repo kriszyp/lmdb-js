@@ -59,7 +59,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct metasingleconn *lsc;
 	struct timeval	tv = { 0, 0 };
 	LDAPMessage	*res, *e;
-	int	rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
+	int	rc = 0, *msgid, sres = LDAP_SUCCESS;
 	char *err = NULL;
 	struct berval match = { 0, NULL }, mmatch = { 0, NULL };
 	BerVarray v2refs = NULL;
@@ -69,6 +69,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 	dncookie dc;
+
+	int	is_scope = 0,
+		is_filter = 0;
 
 	/*
 	 * controls are set in ldap_back_dobind()
@@ -198,6 +201,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 				if ( dnIsSuffix( &li->targets[ i ]->suffix,
 						&op->o_req_ndn ) ) {
 					realbase = li->targets[ i ]->suffix;
+					is_scope++;
+
 				} else {
 					/*
 					 * this target is no longer candidate
@@ -218,6 +223,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 					 */
 					realbase = li->targets[ i ]->suffix;
 					realscope = LDAP_SCOPE_BASE;
+					is_scope++;
 					break;
 				} /* else continue with the next case */
 
@@ -268,7 +274,15 @@ meta_back_search( Operation *op, SlapReply *rs )
 		rc = ldap_back_filter_map_rewrite( &dc,
 				op->oq_search.rs_filter,
 				&mfilter, BACKLDAP_MAP );
-		if ( rc != 0 ) {
+		switch ( rc ) {
+		case LDAP_SUCCESS:
+			is_filter++;
+			break;
+
+		case LDAP_COMPARE_FALSE:
+			rc = 0;
+
+		default:
 			/*
 			 * this target is no longer candidate
 			 */
@@ -529,6 +543,10 @@ new_candidate:;
 	 * FIXME: we should handle error codes and return the more 
 	 * important/reasonable
 	 */
+	if ( is_scope == 0 ) {
+		sres = LDAP_NO_SUCH_OBJECT;
+	}
+
 	if ( sres == LDAP_SUCCESS && v2refs ) {
 		sres = LDAP_REFERRAL;
 	}

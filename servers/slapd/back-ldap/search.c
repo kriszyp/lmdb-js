@@ -154,7 +154,17 @@ ldap_back_search(
 	rc = ldap_back_filter_map_rewrite( &dc, op->oq_search.rs_filter,
 			&mfilter, BACKLDAP_MAP );
 
-	if ( rc ) {
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+		break;
+
+	case LDAP_COMPARE_FALSE:
+		rs->sr_err = LDAP_SUCCESS;
+		rs->sr_text = NULL;
+		rc = 0;
+		goto finish;
+
+	default:
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "Rewrite error";
 		dontfreetext = 1;

@@ -172,7 +172,7 @@ map_attr_value(
 	}
 
 	if ( value == NULL ) {
-		return 0;
+		return LDAP_SUCCESS;
 	}
 
 	if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
@@ -191,10 +191,8 @@ map_attr_value(
 			break;
 		
 		case LDAP_UNWILLING_TO_PERFORM:
-			return -1;
-
 		case LDAP_OTHER:
-			return -1;
+			return LDAP_OTHER;
 		}
 
 	} else if ( ad == slap_schema.si_ad_objectClass || ad == slap_schema.si_ad_structuralObjectClass ) {
@@ -213,7 +211,7 @@ map_attr_value(
 		ber_memfree( vtmp.bv_val );
 	}
 	
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 int
@@ -223,23 +221,23 @@ ldap_back_filter_map_rewrite(
 		struct berval		*fstr,
 		int			remap )
 {
-	int		i;
+	int		i, rc;
 	Filter		*p;
 	struct berval	atmp;
 	struct berval	vtmp;
 	ber_len_t	len;
 
 	if ( f == NULL ) {
-		ber_str2bv( "No filter!", sizeof("No filter!")-1, 1, fstr );
-		return -1;
+		ber_str2bv( "(?=error)", sizeof("(?=error)")-1, 1, fstr );
+		return LDAP_OTHER;
 	}
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
-					&f->f_av_value, &vtmp, remap ) )
-		{
-			return -1;
+		rc = map_attr_value( dc, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap );
+		if ( rc ) {
+			return rc;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -253,10 +251,10 @@ ldap_back_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_GE:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
-					&f->f_av_value, &vtmp, remap ) )
-		{
-			return -1;
+		rc = map_attr_value( dc, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap );
+		if ( rc ) {
+			return rc;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -270,10 +268,10 @@ ldap_back_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_LE:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
-					&f->f_av_value, &vtmp, remap ) )
-		{
-			return -1;
+		rc = map_attr_value( dc, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap );
+		if ( rc ) {
+			return rc;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -287,10 +285,10 @@ ldap_back_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_APPROX:
-		if ( map_attr_value( dc, f->f_av_desc, &atmp,
-					&f->f_av_value, &vtmp, remap ) )
-		{
-			return -1;
+		rc = map_attr_value( dc, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap );
+		if ( rc ) {
+			return rc;
 		}
 
 		fstr->bv_len = atmp.bv_len + vtmp.bv_len
@@ -304,10 +302,10 @@ ldap_back_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		if ( map_attr_value( dc, f->f_sub_desc, &atmp,
-					NULL, NULL, remap ) )
-		{
-			return -1;
+		rc = map_attr_value( dc, f->f_sub_desc, &atmp,
+					NULL, NULL, remap );
+		if ( rc ) {
+			return rc;
 		}
 
 		/* cannot be a DN ... */
@@ -366,10 +364,10 @@ ldap_back_filter_map_rewrite(
 		break;
 
 	case LDAP_FILTER_PRESENT:
-		if ( map_attr_value( dc, f->f_desc, &atmp,
-					NULL, NULL, remap ) )
-		{
-			return -1;
+		rc = map_attr_value( dc, f->f_desc, &atmp,
+					NULL, NULL, remap );
+		if ( rc ) {
+			return rc;
 		}
 
 		fstr->bv_len = atmp.bv_len + ( sizeof("(=*)") - 1 );
@@ -392,9 +390,9 @@ ldap_back_filter_map_rewrite(
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			len = fstr->bv_len;
 
-			if ( ldap_back_filter_map_rewrite( dc, p, &vtmp, remap ) )
-			{
-				return -1;
+			rc = ldap_back_filter_map_rewrite( dc, p, &vtmp, remap );
+			if ( rc != LDAP_SUCCESS ) {
+				return rc;
 			}
 			
 			fstr->bv_len += vtmp.bv_len;
@@ -410,10 +408,10 @@ ldap_back_filter_map_rewrite(
 
 	case LDAP_FILTER_EXT: {
 		if ( f->f_mr_desc ) {
-			if ( map_attr_value( dc, f->f_mr_desc, &atmp,
-						&f->f_mr_value, &vtmp, remap ) )
-			{
-				return -1;
+			rc = map_attr_value( dc, f->f_mr_desc, &atmp,
+						&f->f_mr_value, &vtmp, remap );
+			if ( rc ) {
+				return rc;
 			}
 
 		} else {
@@ -450,14 +448,14 @@ ldap_back_filter_map_rewrite(
 			f->f_result == SLAPD_COMPARE_UNDEFINED ? sizeof("(?=undefined)")-1 :
 			sizeof("(?=error)")-1,
 			1, fstr );
-		break;
+		return LDAP_COMPARE_FALSE;
 
 	default:
 		ber_str2bv( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr );
-		break;
+		return LDAP_COMPARE_FALSE;
 	}
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 /*
