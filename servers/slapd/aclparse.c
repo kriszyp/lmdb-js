@@ -177,6 +177,10 @@ check_scope( BackendDB *be, AccessControl *a )
 
 	dn = be->be_nsuffix[0];
 
+	if ( BER_BVISEMPTY( &dn ) ) {
+		return ACL_SCOPE_OK;
+	}
+
 	if ( !BER_BVISEMPTY( &a->acl_dn_pat ) ||
 			a->acl_dn_style != ACL_STYLE_REGEX )
 	{
