@@ -24,7 +24,7 @@ value_add(
     BVarray addvals
 )
 {
-	int	n, nn, i, j;
+	int	n, nn;
 	BVarray v2;
 
 	for ( nn = 0; addvals != NULL && addvals[nn].bv_val != NULL; nn++ )
@@ -35,8 +35,9 @@ value_add(
 		    * sizeof(struct berval) );
 		n = 0;
 	} else {
-		for ( n = 0; (*vals)[n].bv_val != NULL; n++ )
-			;	/* NULL */
+		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
+			;	/* Empty */
+		}
 		*vals = (BVarray) ch_realloc( (char *) *vals,
 		    (n + nn + 1) * sizeof(struct berval) );
 	}
