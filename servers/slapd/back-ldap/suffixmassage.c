@@ -135,7 +135,7 @@ ldap_back_dn_massage(
 			/* At a DN Separator */
 		}
 
-		if ( !strcmp( dc->rwmap->rwm_suffix_massage[i+src].bv_val, &dn->bv_val[diff] ) ) {
+		if ( !strcasecmp( dc->rwmap->rwm_suffix_massage[i+src].bv_val, &dn->bv_val[diff] ) ) {
 			res->bv_len = diff + dc->rwmap->rwm_suffix_massage[i+dst].bv_len;
 			res->bv_val = ch_malloc( res->bv_len + 1 );
 			strncpy( res->bv_val, dn->bv_val, diff );

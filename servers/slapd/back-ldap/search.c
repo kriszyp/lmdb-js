@@ -144,7 +144,7 @@ ldap_back_search(
 	dc.ctx = "searchBase";
 #else
 	dc.tofrom = 1;
-	dc.normalized = 1;
+	dc.normalized = 0;
 #endif
 	if ( ldap_back_dn_massage( &dc, &op->o_req_ndn, &mbase ) ) {
 		send_ldap_result( op, rs );
