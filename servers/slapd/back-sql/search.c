@@ -130,7 +130,12 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
  }
  if (f->f_sub_initial!=NULL)
  {
-  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_initial->bv_val,NULL);
+  if (bsi->bi->upper_func)
+   {
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,toupper(f->f_sub_initial->bv_val),NULL);
+   }
+   else
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_initial->bv_val,NULL);
  }
 
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"%",NULL);
@@ -139,11 +144,21 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
   for(i=0;f->f_sub_any[i]!=NULL;i++)
   {
    //Debug(LDAP_DEBUG_TRACE,"==>backsql_process_sub_filter(): sub_any='%s'\n",f->f_sub_any[i]->bv_val,0,0);
-   bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_any[i]->bv_val,"%",NULL);
+   if (bsi->bi->upper_func)
+   {
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,toupper(f->f_sub_any[i]->bv_val),"%",NULL);
+   }
+   else
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_any[i]->bv_val,"%",NULL);    
   }
 
  if (f->f_sub_final!=NULL)
-  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_final->bv_val,NULL);
+  if (bsi->bi->upper_func)
+   {
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,toupper(f->f_sub_final->bv_val),NULL);
+   }
+   else
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_final->bv_val,NULL);
 
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"')",NULL);
  
@@ -225,7 +240,7 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
 			if (bsi->bi->upper_func)
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
 					bsi->bi->upper_func,"(",at->sel_expr,")='",
-						f->f_av_value->bv_val,"')",NULL);
+						toupper(f->f_av_value->bv_val),"')",NULL);
 			else
 			 bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,"='",
 							f->f_av_value->bv_val,"')",NULL);
