@@ -14,6 +14,9 @@ Changes included in OpenLDAP 1.2
 	Updated client -d(ebug) handling
 	Updated slapd alias deref functionality to be optional
 	Updated client/tools Kerberos option handling
+	Build environment
+		Added -kthread support
+		Renamed install.sh to install-sh
 
 Changes included in OpenLDAP 1.1.4
 	CVS Tag: OPENLDAP_REL_ENG_1_1_4
