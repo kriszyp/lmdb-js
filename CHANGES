@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.22 Engineering
+OpenLDAP 2.2.22 Release
+	Fixed slapd extensibleMatch empty DN bug (ITS#3506)
 
 OpenLDAP 2.2.21 Release
 	Fixed slapd group limits
