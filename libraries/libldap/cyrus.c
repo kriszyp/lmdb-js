@@ -603,7 +603,7 @@ ldap_int_sasl_bind(
 		rc = ldap_open_defconn( ld );
 		if( rc < 0 ) return ld->ld_errno;
 
-		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
+		ber_sockbuf_ctrl( ld->ld_defconn->lconn_sb, LBER_SB_OPT_GET_FD, &sd );
 
 		if( sd == AC_SOCKET_INVALID ) {
 			ld->ld_errno = LDAP_LOCAL_ERROR;
@@ -621,7 +621,7 @@ ldap_int_sasl_bind(
 		ld->ld_defconn->lconn_sasl_authctx = NULL;
 	}
 
-	{ char *saslhost = ldap_host_connected_to( ld->ld_sb, "localhost" );
+	{ char *saslhost = ldap_host_connected_to( ld->ld_defconn->lconn_sb, "localhost" );
 	rc = ldap_int_sasl_open( ld, ld->ld_defconn, saslhost );
 	LDAP_FREE( saslhost );
 	}
@@ -631,7 +631,7 @@ ldap_int_sasl_bind(
 	ctx = ld->ld_defconn->lconn_sasl_authctx;
 
 	/* Check for TLS */
-	ssl = ldap_pvt_tls_sb_ctx( ld->ld_sb );
+	ssl = ldap_pvt_tls_sb_ctx( ld->ld_defconn->lconn_sb );
 	if ( ssl ) {
 		struct berval authid = BER_BVNULL;
 		ber_len_t fac;
@@ -831,7 +831,7 @@ ldap_int_sasl_bind(
 			if ( ld->ld_defconn->lconn_sasl_sockctx ) {
 				oldctx = ld->ld_defconn->lconn_sasl_sockctx;
 				sasl_dispose( &oldctx );
-				ldap_pvt_sasl_remove( ld->ld_sb );
+				ldap_pvt_sasl_remove( ld->ld_defconn->lconn_sb );
 			}
 			ldap_pvt_sasl_install( ld->ld_conns->lconn_sb, ctx );
 			ld->ld_defconn->lconn_sasl_sockctx = ctx;

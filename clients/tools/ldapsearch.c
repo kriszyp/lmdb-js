@@ -659,7 +659,7 @@ getNextPage:
 		|| domainScope
 #endif
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-		|| pageSize
+		|| pagedResults
 #endif
 		|| ldapsync
 		|| subentries || valuesReturnFilter )
@@ -834,7 +834,7 @@ getNextPage:
 				valuesReturnFilter > 1 ? _("critical ") : "", vrFilter );
 		}
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-		if ( pageSize ) {
+		if ( pagedResults ) {
 			printf(_("\n# with pagedResults %scontrol: size=%d"),
 				(pagedResults > 1) ? _("critical ") : "", 
 				pageSize );
@@ -902,7 +902,7 @@ getNextPage:
 			}
 		}
 
-		goto getNextPage;	
+		goto getNextPage;
 	}
 #endif
 
@@ -1040,6 +1040,8 @@ static int dosearch(
 					} else {
 						morePagedResults = 0;
 					}
+				} else {
+					morePagedResults = 0;
 				}
 #endif
 
@@ -1093,18 +1095,18 @@ static int dosearch(
 done:
 	ldap_msgfree( res );
 #ifdef LDAP_CONTROL_PAGEDRESULTS
-	if ( pageSize != 0 ) { 
-		npagedresponses = npagedresponses + nresponses;
-		npagedentries = npagedentries + nentries;
-		npagedreferences = npagedreferences + nreferences;
-		npagedextended = npagedextended + nextended;
-		npagedpartial = npagedpartial + npartial;
+	if ( pagedResults ) { 
+		npagedresponses += nresponses;
+		npagedentries += nentries;
+		npagedextended += nextended;
+		npagedpartial += npartial;
+		npagedreferences += nreferences;
 		if ( ( morePagedResults == 0 ) && ( ldif < 2 ) ) {
 			printf( _("\n# numResponses: %d\n"), npagedresponses );
-			if( nentries ) printf( _("# numEntries: %d\n"), npagedentries );
-			if( nextended ) printf( _("# numExtended: %d\n"), npagedextended );
-			if( npartial ) printf( _("# numPartial: %d\n"), npagedpartial );
-			if( nreferences ) printf( _("# numReferences: %d\n"), npagedreferences );
+			if( npagedentries ) printf( _("# numEntries: %d\n"), npagedentries );
+			if( npagedextended ) printf( _("# numExtended: %d\n"), npagedextended );
+			if( npagedpartial ) printf( _("# numPartial: %d\n"), npagedpartial );
+			if( npagedreferences ) printf( _("# numReferences: %d\n"), npagedreferences );
 		}
 	} else
 #endif

@@ -1,5 +1,14 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.16 Engineering
+	Fixed ldapsearch paged results size 0 bug 
+	Fixed libldap SASL host connected to bug
+	Fixed libldap SASL proper sockbuf bug
+	Fixed libldap getaddrinfo hints portability bug
+	Updated LDAP C++ library
+	Documentation
+		Updated provided RFCs and I-Ds
+
 OpenLDAP 2.2.15 Release
 	Fixed back-bdb DB_DEADLOCK memory leak bug (ITS#3213)
 	Fixed back-bdb dbcache locking bug (ITS#3201)
