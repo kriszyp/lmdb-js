@@ -84,12 +84,16 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	/* Grab the filter */
 	if ( ludp->lud_filter ) {
 		*filter = str2filter( ludp->lud_filter );
+		if ( *filter == NULL )
+			rc = LDAP_PROTOCOL_ERROR;
 	}
 
 	/* Grab the searchbase */
-	bv.bv_val = ludp->lud_dn;
-	bv.bv_len = strlen( bv.bv_val );
-	rc = dnNormalize2( NULL, &bv, searchbase );
+	if ( rc == LDAP_URL_SUCCESS ) {
+		bv.bv_val = ludp->lud_dn;
+		bv.bv_len = strlen( bv.bv_val );
+		rc = dnNormalize2( NULL, &bv, searchbase );
+	}
 
 	ldap_free_urldesc( ludp );
 
