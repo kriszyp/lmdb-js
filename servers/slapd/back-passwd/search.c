@@ -26,8 +26,8 @@ passwd_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*base,
-    const char	*nbase,
+    struct berval *base,
+    struct berval *nbase,
     int		scope,
     int		deref,
     int		slimit,
@@ -68,7 +68,7 @@ passwd_back_search(
 #endif /* HAVE_SETPWFILE */
 
 	/* Handle a query for the base of this backend */
-	if ( be_issuffix( be,  nbase ) ) {
+	if ( be_issuffix( be,  nbase->bv_val ) ) {
 		struct berval	val, *vals[2];
 
 		vals[0] = &val;
@@ -82,18 +82,17 @@ passwd_back_search(
 
 			/* Create an entry corresponding to the base DN */
 			e = (Entry *) ch_calloc(1, sizeof(Entry));
+			e->e_name.bv_val = ch_strdup( base->bv_val );
+			e->e_name.bv_len = base->bv_len;
+			e->e_nname.bv_val =  ch_strdup( nbase->bv_val );
+			e->e_nname.bv_len = nbase->bv_len;
 			e->e_attrs = NULL;
-			e->e_name.bv_val = ch_strdup( base );
-			e->e_name.bv_len = strlen( e->e_name.bv_val );
-
-			e->e_nname.bv_val = ch_strdup( base );
-			(void) dn_normalize( e->e_nname.bv_val );
-			e->e_nname.bv_len = strlen( e->e_nname.bv_val );
+			e->e_private = NULL;
 
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.
 		 	*/
-			rdn = dn_rdn(NULL, base);
+			rdn = dn_rdn(NULL, base->bv_val);
 
 			if( rdn == NULL || (s = strchr(rdn, '=')) == NULL ) {
 				err = LDAP_INVALID_DN_SYNTAX;
@@ -184,7 +183,7 @@ passwd_back_search(
 		}
 
 	} else {
-		parent = dn_parent( be, nbase );
+		parent = dn_parent( be, nbase->bv_val );
 
 		/* This backend is only one layer deep. Don't answer requests for
 		 * anything deeper than that.
@@ -192,7 +191,7 @@ passwd_back_search(
 		if( !be_issuffix( be, parent ) ) {
 			int i;
 			for( i=0; be->be_nsuffix[i] != NULL; i++ ) {
-				if( dn_issuffix( nbase, be->be_nsuffix[i]->bv_val ) ) {
+				if( dnIsSuffix( nbase, be->be_nsuffix[i] ) ) {
 					matched = be->be_suffix[i]->bv_val;
 					break;
 				}
@@ -205,7 +204,7 @@ passwd_back_search(
 			goto done;
 		}
 
-		rdn = dn_rdn( NULL, base );
+		rdn = dn_rdn( NULL, base->bv_val );
 
 		if ( (user = rdn_attr_value(rdn)) == NULL) {
 			err = LDAP_OPERATIONS_ERROR;
