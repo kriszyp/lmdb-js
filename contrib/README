@@ -11,6 +11,12 @@ Current contributions:
 		LDAP C++ API
 		Contributed by SuSE Gmbh.
 
+	ldapsasl
+		LDAP SASL auxprop plugin
+		Contributed by Symas Corp.
+		Note: this module is now part of Cyrus SASL
+		and no longer included here.
+
 	slapd-modules
 		Native modules
 
