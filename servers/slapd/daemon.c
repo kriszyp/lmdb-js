@@ -42,37 +42,20 @@ typedef struct slap_listener {
 
 Listener **slap_listeners = NULL;
 
+static int sel_exit_fds[2];
+
+#define WAKE_LISTENER(w) \
+do { if (w) tcp_write( sel_exit_fds[1], "0", 1 ); } while(0)
+
 #ifdef HAVE_WINSOCK2
 /* in nt_main.c */
 extern ldap_pvt_thread_cond_t			started_event;
-
-/* forward reference */
-static void hit_socket(void);
-/* In wsa_err.c */
-char *WSAGetLastErrorString();
-static ldap_pvt_thread_t hit_tid;
-
-#define WAKE_LISTENER(w) \
-do {\
-    if( w ) {\
-        ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
-        hit_socket(); \
-    }\
-} while(0)
-#else
-#define WAKE_LISTENER(w) \
-do {\
-    if( w ) {\
-        ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
-    }\
-} while(0)
 #endif
 
 #ifndef HAVE_WINSOCK
 static 
 #endif
 volatile sig_atomic_t slapd_shutdown = 0;
-static int sel_exit_fd;
 
 static ldap_pvt_thread_t	listener_tid;
 static volatile sig_atomic_t slapd_listener = 0;
@@ -125,7 +108,6 @@ static void slapd_add(ber_socket_t s) {
  */
 void slapd_remove(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER(wake);
 
 	Debug( LDAP_DEBUG_CONNS, "daemon: removing %ld%s%s\n",
 		(long) s,
@@ -137,62 +119,47 @@ void slapd_remove(ber_socket_t s, int wake) {
 	FD_CLR( s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+	WAKE_LISTENER(wake);
 }
 
 void slapd_clr_write(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-	WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_CLR( s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+	WAKE_LISTENER(wake);
 }
 
 void slapd_set_write(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-    WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_SET( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+	WAKE_LISTENER(wake);
 }
 
 void slapd_clr_read(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-    WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_CLR( s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+	WAKE_LISTENER(wake);
 }
 
 void slapd_set_read(ber_socket_t s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-    WAKE_LISTENER(wake);
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
 	FD_SET( s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-
-	if( wake ) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
+	WAKE_LISTENER(wake);
 }
 
 static void slapd_close(ber_socket_t s) {
@@ -387,53 +354,16 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	}
 #endif	/* !FD_SETSIZE */
 
-	/* set up a datagram socket connected to itself. we write a byte
-	 * on this socket whenever we catch a signal. The main loop will
-	 * be select'ing on this socket, and will wake up when this byte
-	 * arrives.
+	/* open a pipe (or something equivalent connected to itself).
+	 * we write a byte on this fd whenever we catch a signal. The main
+	 * loop will be select'ing on this socket, and will wake up when
+	 * this byte arrives.
 	 */
-	if( (sel_exit_fd = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 )
+	if( (rc = lutil_pair( sel_exit_fds )) < 0 )
 	{
-		int err = sock_errno();
 		Debug( LDAP_DEBUG_ANY,
-			"daemon: socket() failed errno=%d (%s)\n", err,
-			sock_errstr(err), 0 );
-		return sel_exit_fd;
-	} else {
-		struct sockaddr_in si;
-		int len = sizeof(si);
-		int err;
-
-		(void) memset( (void*) &si, 0, len );
-
-		si.sin_family = AF_INET;
-		si.sin_port = 0;
-		si.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-		if( rc = bind( sel_exit_fd, (struct sockaddr *)&si, len ) )
-		{
-		    err = sock_errno();
-		    Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
-		    (long) sel_exit_fd, err, sock_errstr(err) );
-		    tcp_close( sel_exit_fd );
-		    return rc;
-		}
-		if( rc = getsockname( sel_exit_fd, (struct sockaddr *)&si, &len))
-		{
-		    err = sock_errno();
-		    Debug( LDAP_DEBUG_ANY, "daemon: getsockname(%ld) failed errno=%d (%s)\n",
-		    (long) sel_exit_fd, err, sock_errstr(err) );
-		    tcp_close( sel_exit_fd );
-		    return rc;
-		}
-		if( rc = connect( sel_exit_fd, (struct sockaddr *)&si, len))
-		{
-		    err = sock_errno();
-		    Debug( LDAP_DEBUG_ANY, "daemon: connect(%ld) failed errno=%d (%s)\n",
-		    (long) sel_exit_fd, err, sock_errstr(err) );
-		    tcp_close( sel_exit_fd );
-		    return rc;
-		}
+			"daemon: lutil_pair() failed rc=%d\n", rc, 0, 0 );
+		return rc;
 	}
 
 	FD_ZERO( &slap_daemon.sd_readers );
@@ -492,6 +422,8 @@ int
 slapd_daemon_destroy(void)
 {
 	connections_destroy();
+	tcp_close( sel_exit_fds[1] );
+	tcp_close( sel_exit_fds[0] );
 	sockdestroy();
 	return 0;
 }
@@ -580,7 +512,7 @@ slapd_daemon_task(
 		memcpy( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
 		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
-		FD_SET( sel_exit_fd, &readfds );
+		FD_SET( sel_exit_fds[0], &readfds );
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
@@ -656,10 +588,10 @@ slapd_daemon_task(
 			/* FALL THRU */
 		}
 
-		if( FD_ISSET( sel_exit_fd, &readfds ) )
+		if( FD_ISSET( sel_exit_fds[0], &readfds ) )
 		{
 			char c;
-			tcp_read( sel_exit_fd, &c, 1 );
+			tcp_read( sel_exit_fds[0], &c, 1 );
 			continue;
 		}
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
@@ -1086,23 +1018,9 @@ static int sockdestroy(void)
 void
 slap_set_shutdown( int sig )
 {
-	int l;
 	slapd_shutdown = sig;
-#ifndef HAVE_WINSOCK
-	if(slapd_listener) {
-		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
-	}
-#else
-	/* trying to "hit" the socket seems to always get a */
-	/* EWOULDBLOCK error, so just close the listen socket to */
-	/* break out of the select since we're shutting down anyway */
-	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-		if ( slap_listeners[l]->sl_sd >= 0 ) {
-			tcp_close( slap_listeners[l]->sl_sd );
-		}
-	}
-#endif
-	tcp_write( sel_exit_fd, "0", 1 );
+	WAKE_LISTENER(1);
+
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_set_shutdown );
 }
