@@ -218,7 +218,7 @@ send_ldap_controls( BerElement *ber, LDAPControl **c )
 	return rc;
 }
 
-static void
+void
 send_ldap_response(
 	Operation *op,
 	SlapReply *rs )
@@ -229,8 +229,8 @@ send_ldap_response(
 	long	bytes;
 
 	if (op->o_callback && op->o_callback->sc_response) {
-		op->o_callback->sc_response( op, rs );
-		return;
+		rc = op->o_callback->sc_response( op, rs );
+		if ( rc != SLAP_CB_CONTINUE ) return;
 	}
 		
 #ifdef LDAP_CONNECTIONLESS
@@ -608,7 +608,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCH;
 	if (op->o_callback && op->o_callback->sc_response) {
-		return op->o_callback->sc_response( op, rs );
+		rc = op->o_callback->sc_response( op, rs );
+		if ( rc != SLAP_CB_CONTINUE ) return rc;
 	}
 
 #ifdef NEW_LOGGING
@@ -1225,7 +1226,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_SEARCHREF;
 	if (op->o_callback && op->o_callback->sc_response) {
-		return op->o_callback->sc_response( op, rs );
+		rc = op->o_callback->sc_response( op, rs );
+		if ( rc != SLAP_CB_CONTINUE ) return rc;
 	}
 
 	mark = sl_mark( op->o_tmpmemctx );

@@ -130,21 +130,22 @@ over_back_response ( Operation *op, SlapReply *rs )
 	int rc = SLAP_CB_CONTINUE;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
 	slap_callback *sc = op->o_callback->sc_private;
+	slap_callback *s0 = op->o_callback;
 
 	op->o_bd = &db;
+	op->o_callback = sc;
 	for (; on; on=on->on_next ) {
 		if ( on->on_response ) {
 			db.bd_info = (BackendInfo *)on;
 			rc = on->on_response( op, rs );
-			if ( ! (rc & SLAP_CB_CONTINUE) ) break;
+			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
-	op->o_callback = sc;
-	if ( sc && (rc & SLAP_CB_CONTINUE) ) {
+	if ( sc && (rc == SLAP_CB_CONTINUE) ) {
 		rc = sc->sc_response( op, rs );
 	}
 	op->o_bd = be;
-	rc &= ~SLAP_CB_CONTINUE;
+	op->o_callback = s0;
 	return rc;
 }
 

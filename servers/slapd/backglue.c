@@ -187,11 +187,7 @@ glue_back_response ( Operation *op, SlapReply *rs )
 		op->o_callback = gs->prevcb;
 		if (op->o_callback && op->o_callback->sc_response) {
 			rs->sr_err = op->o_callback->sc_response( op, rs );
-		} else if (rs->sr_type == REP_SEARCH) {
-			rs->sr_err = send_search_entry( op, rs );
-		} else {
-			rs->sr_err = send_search_reference( op, rs );
-		}
+		} else rs->sr_err = SLAP_CB_CONTINUE;
 		op->o_callback = tmp;
 		return rs->sr_err;
 
