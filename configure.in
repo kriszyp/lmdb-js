@@ -1496,6 +1496,7 @@ AC_SUBST(LUTIL_LIBS)
 AC_SUBST(WRAP_LIBS)
 AC_SUBST(KRB_LIBS)
 AC_SUBST(TERMCAP_LIBS)
+AC_SUBST(WRAP_LIBS)
 
 dnl ----------------------------------------------------------------
 dnl final output
