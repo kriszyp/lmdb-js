@@ -676,8 +676,9 @@ dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_NEEDESCAPE(c) )
 #define LDAP_DN_WILLESCAPE_CHAR( c) \
 	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) )
+#define LDAP_DN_IS_PRETTY( f )		( (f) & LDAP_DN_PRETTY )
 #define LDAP_DN_WILLESCAPE(f, c) \
-	( ( !( (f) & LDAP_DN_PRETTY ) ) && LDAP_DN_WILLESCAPE_CHAR(c) )
+	( ( !LDAP_DN_IS_PRETTY( f ) ) && LDAP_DN_WILLESCAPE_CHAR(c) )
 
 /* LDAPv2 */
 #define	LDAP_DN_VALUE_END_V2(c) \
@@ -2147,6 +2148,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 {
 	ber_len_t	l, cl = 1;
 	char		*p;
+	int		escaped_byte_len = LDAP_DN_IS_PRETTY( flags ) ? 1 : 3;
 	
 	assert( val );
 	assert( len );
@@ -2170,8 +2172,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 					return( -1 );
 				}
 			}
-			/* need to escape it */
-			l += 3 * cl;
+			l += escaped_byte_len * cl;
 		
 		/* 
 		 * there might be some chars we want to escape in form
@@ -2224,12 +2225,18 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		 * there might be some chars we want to escape in form
 		 * of a couple of hexdigits for optimization purposes
 		 */
-		if ( cl > 1 || LDAP_DN_WILLESCAPE( flags, val->bv_val[ s ] ) ) {
+		if ( ( cl > 1 && !LDAP_DN_IS_PRETTY( flags ) ) 
+				|| LDAP_DN_WILLESCAPE( flags, val->bv_val[ s ] ) ) {
 			for ( ; cl--; ) {
 				str[ d++ ] = '\\';
 				byte2hexpair( &val->bv_val[ s ], &str[ d ] );
 				s++;
 				d += 2;
+			}
+
+		} else if ( cl > 1 ) {
+			for ( ; cl--; ) {
+				str[ d++ ] = val->bv_val[ s++ ];
 			}
 
 		} else {
