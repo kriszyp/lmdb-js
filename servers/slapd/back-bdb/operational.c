@@ -44,9 +44,11 @@ bdb_operational(
 
 	if( 0 ) {
 retry:	/* transaction retry */
+#if 0
 		if( e != NULL ) {
-			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
+#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "operational", LDAP_LEVEL_DETAIL1,
 			"=> bdb_operational: retrying...\n" ));

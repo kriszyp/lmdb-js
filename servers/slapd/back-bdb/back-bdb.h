@@ -146,21 +146,27 @@ struct bdb_op_info {
 #if DB_VERSION_MAJOR < 4
 #define LOCK_DETECT(env,f,t,a)		lock_detect(env, f, t, a)
 #define LOCK_GET(env,i,f,o,m,l)		lock_get(env, i, f, o, m, l)
+#define LOCK_PUT(env,l)			lock_put(env, l)
 #define TXN_CHECKPOINT(env,k,m,f)	txn_checkpoint(env, k, m, f)
 #define TXN_BEGIN(env,p,t,f)		txn_begin((env), p, t, f)
 #define TXN_PREPARE(txn,gid)		txn_prepare((txn), (gid))
 #define TXN_COMMIT(txn,f)			txn_commit((txn), (f))
 #define	TXN_ABORT(txn)				txn_abort((txn))
 #define TXN_ID(txn)					txn_id(txn)
+#define LOCK_ID(env, locker)		lock_id(env, locker)
+#define LOCK_ID_FREE(env, locker)	lock_id_free(env, locker)
 #else
 #define LOCK_DETECT(env,f,t,a)		(env)->lock_detect(env, f, t, a)
 #define LOCK_GET(env,i,f,o,m,l)		(env)->lock_get(env, i, f, o, m, l)
+#define LOCK_PUT(env,l)			(env)->lock_put(env, l)
 #define TXN_CHECKPOINT(env,k,m,f)	(env)->txn_checkpoint(env, k, m, f)
 #define TXN_BEGIN(env,p,t,f)		(env)->txn_begin((env), p, t, f)
 #define TXN_PREPARE(txn,g)			(txn)->prepare((txn), (g))
 #define TXN_COMMIT(txn,f)			(txn)->commit((txn), (f))
 #define TXN_ABORT(txn)				(txn)->abort((txn))
 #define TXN_ID(txn)					(txn)->id(txn)
+#define LOCK_ID(env, locker)		(env)->lock_id(env, locker)
+#define LOCK_ID_FREE(env, locker)	(env)->lock_id_free(env, locker)
 #endif
 
 LDAP_END_DECL

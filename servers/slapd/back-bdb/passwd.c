@@ -41,6 +41,9 @@ bdb_exop_passwd(
 	struct berval dn;
 	struct berval ndn;
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
 
@@ -109,7 +112,7 @@ bdb_exop_passwd(
 retry:	/* transaction retry */
 		if ( e != NULL ) {
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
-			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "passwd", LDAP_LEVEL_DETAIL1, "bdb_exop_passwd: retrying...\n" ));
@@ -144,13 +147,15 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
+	locker = TXN_ID ( ltid );
+
 	opinfo.boi_bdb = be;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry_w( be, ltid, &ndn, &e, NULL, 0 );
+	rc = bdb_dn2entry_w( be, ltid, &ndn, &e, NULL, 0 , locker, &lock);
 
 	switch(rc) {
 	case DB_LOCK_DEADLOCK:
@@ -256,7 +261,7 @@ retry:	/* transaction retry */
 
 done:
 	if( e != NULL ) {
-		bdb_cache_return_entry_w( &bdb->bi_cache, e );
+		bdb_cache_return_entry_w( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
 		
 	if( hash.bv_val != NULL ) {

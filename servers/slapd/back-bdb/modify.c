@@ -249,6 +249,9 @@ bdb_modify(
 	DB_TXN	*ltid = NULL;
 	struct bdb_op_info opinfo;
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "modify", LDAP_LEVEL_ENTRY, "bdb_modify: %s\n", dn->bv_val ));
 #else
@@ -259,7 +262,7 @@ bdb_modify(
 retry:	/* transaction retry */
 		if( e != NULL ) {
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
-			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify: retrying...\n" ));
@@ -295,13 +298,15 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	locker = TXN_ID ( ltid );
+
 	opinfo.boi_bdb = be;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, 0, locker, &lock );
 
 	if ( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -337,7 +342,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_cache_return_entry_r (&bdb->bi_cache, matched);
+			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
 			matched = NULL;
 
 		} else {
@@ -463,7 +468,7 @@ done:
 	}
 
 	if( e != NULL ) {
-		bdb_cache_return_entry_w (&bdb->bi_cache, e);
+		bdb_cache_return_entry_w (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 	}
 	return rc;
 }

@@ -26,6 +26,9 @@ bdb_referrals(
 	Entry *e = NULL;
 	Entry *matched = NULL;
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 	if( op->o_tag == LDAP_REQ_SEARCH ) {
 		/* let search take care of itself */
 		return rc;
@@ -36,8 +39,11 @@ bdb_referrals(
 		return rc;
 	} 
 
+	LOCK_ID ( bdb->bi_dbenv, &locker );
+
+dn2entry_retry:
 	/* get entry */
-	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0, locker, &lock );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -46,14 +52,18 @@ bdb_referrals(
 		break;
 	case LDAP_BUSY:
 		if (e != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, e);
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
 		if (matched != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
 		}
 		send_ldap_result( conn, op, LDAP_BUSY,
 			NULL, "ldap server busy", NULL, NULL );
+		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 		return LDAP_BUSY;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto dn2entry_retry;
 	default:
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "referral", LDAP_LEVEL_ERR,
@@ -65,13 +75,14 @@ bdb_referrals(
 			db_strerror(rc), rc, 0 ); 
 #endif
 		if (e != NULL) {
-                        bdb_cache_return_entry_r(&bdb->bi_cache, e);
+                        bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
                 if (matched != NULL) {
-                        bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+                        bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
 		}
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
+		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 		return rc;
 	}
 
@@ -97,7 +108,7 @@ bdb_referrals(
 				refs = get_entry_referrals( be, conn, op, matched );
 			}
 
-			bdb_cache_return_entry_r (&bdb->bi_cache, matched);
+			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
 			matched = NULL;
 		} else if ( default_referral != NULL ) {
 			rc = LDAP_OTHER;
@@ -116,6 +127,7 @@ bdb_referrals(
 				NULL, NULL );
 		}
 
+		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 		free( matched_dn );
 		return rc;
 	}
@@ -148,6 +160,7 @@ bdb_referrals(
 		ber_bvarray_free( refs );
 	}
 
-	bdb_cache_return_entry_r(&bdb->bi_cache, e);
+	bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+	LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 	return rc;
 }
