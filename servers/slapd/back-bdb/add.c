@@ -344,23 +344,6 @@ retry:	/* transaction retry */
 		goto return_results;;
 	}
 
-	/* post-read */
-	if( op->o_postread ) {
-		if ( slap_read_controls( op, rs, op->oq_add.rs_e,
-			&slap_post_read_bv, &ctrls[num_ctrls] ) )
-		{
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, DETAIL1, 
-				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE,
-				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
-#endif
-			goto return_results;
-		}
-		ctrls[++num_ctrls] = NULL;
-	}
-
 	/* nested transaction */
 	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
 		bdb->bi_db_opflags );
@@ -460,6 +443,25 @@ retry:	/* transaction retry */
 		case BDB_CSN_RETRY :
 			goto retry;
 		}
+	}
+
+	/* post-read */
+	if( op->o_postread ) {
+		if ( slap_read_controls( op, rs, op->oq_add.rs_e,
+			&slap_post_read_bv, &ctrls[num_ctrls] ) )
+		{
+#ifdef NEW_LOGGING
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- bdb_add: post-read failed!\n", 0, 0, 0 );
+#endif
+			goto return_results;
+		}
+		ctrls[++num_ctrls] = NULL;
+		op->o_postread = 0;  /* prevent redo on retry */
+		/* FIXME: should read entry on the last retry */
 	}
 
 	if ( op->o_noop ) {

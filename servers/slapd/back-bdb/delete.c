@@ -359,6 +359,8 @@ retry:	/* transaction retry */
 			goto return_results;
 		}
 		ctrls[++num_ctrls] = NULL;
+		op->o_preread = 0; /* prevent redo on retry */
+        /* FIXME: should read entry on the last retry */
 	}
 
 	/* nested transaction */
