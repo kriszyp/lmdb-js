@@ -25,7 +25,6 @@
 #include <lutil.h>
 #endif
 
-static char *sasl_host = NULL;
 static sasl_security_properties_t sasl_secprops;
 
 
@@ -195,13 +194,8 @@ int slap_sasl_init( void )
 		return -1;
 	}
 
-	if( sasl_host == NULL ) {
-		sasl_host = ldap_pvt_get_fqdn( NULL );
-	}
-
-	Debug( LDAP_DEBUG_TRACE,
-		"slap_sasl_init: %s initialized!\n",
-		sasl_host, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "slap_sasl_init: initialized!\n",
+		0, 0, 0 );
 
 	/* default security properties */
 	memset( &sasl_secprops, '\0', sizeof(sasl_secprops) );
@@ -259,8 +253,12 @@ int slap_sasl_open( Connection *conn )
 	session_callbacks[2].proc = NULL;
 	session_callbacks[2].context = NULL;
 
+	if( global_host == NULL ) {
+		global_host = ldap_pvt_get_fqdn( NULL );
+	}
+
 	/* create new SASL context */
-	sc = sasl_server_new( "ldap", sasl_host, global_realm,
+	sc = sasl_server_new( "ldap", global_host, global_realm,
 		session_callbacks, SASL_SECURITY_LAYER, &ctx );
 
 	if( sc != SASL_OK ) {

@@ -38,9 +38,8 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	if( conn->c_authz_backend != NULL && conn->c_authz_backend->be_extended )
-	{
-		if( global_readonly || conn->c_authz_backend->be_readonly ) {
+	if( conn->c_authz_backend != NULL && conn->c_authz_backend->be_extended ) {
+		if( conn->c_authz_backend->be_restrictops & SLAP_RESTRICT_OP_MODIFY ) {
 			*text = "authorization database is read only";
 			rc = LDAP_UNWILLING_TO_PERFORM;
 

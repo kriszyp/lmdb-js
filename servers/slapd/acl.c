@@ -636,6 +636,45 @@ acl_mask(
 			}
 		}
 
+		if ( b->a_authz.sai_ssf ) {
+			Debug( LDAP_DEBUG_ACL, "<= check a_authz.sai_ssf: %ud\n",
+				b->a_authz.sai_ssf, 0, 0 );
+
+			if ( b->a_authz.sai_ssf >  op->o_ssf ) {
+				continue;
+			}
+		}
+
+		if ( b->a_authz.sai_transport_ssf ) {
+			Debug( LDAP_DEBUG_ACL,
+				"<= check a_authz.sai_transport_ssf: %ud\n",
+				b->a_authz.sai_transport_ssf, 0, 0 );
+
+			if ( b->a_authz.sai_transport_ssf >  op->o_transport_ssf ) {
+				continue;
+			}
+		}
+
+		if ( b->a_authz.sai_tls_ssf ) {
+			Debug( LDAP_DEBUG_ACL,
+				"<= check a_authz.sai_tls_ssf: %ud\n",
+				b->a_authz.sai_tls_ssf, 0, 0 );
+
+			if ( b->a_authz.sai_tls_ssf >  op->o_tls_ssf ) {
+				continue;
+			}
+		}
+
+		if ( b->a_authz.sai_sasl_ssf ) {
+			Debug( LDAP_DEBUG_ACL,
+				"<= check a_authz.sai_sasl_ssf: %ud\n",
+				b->a_authz.sai_sasl_ssf, 0, 0 );
+
+			if ( b->a_authz.sai_sasl_ssf >  op->o_sasl_ssf ) {
+				continue;
+			}
+		}
+
 #ifdef SLAPD_ACI_ENABLED
 		if ( b->a_aci_at != NULL ) {
 			Attribute	*at;

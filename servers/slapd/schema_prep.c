@@ -26,7 +26,7 @@ struct slap_internal_schema slap_schema;
 static int
 objectClassMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -72,7 +72,7 @@ objectClassMatch(
 static int
 structuralObjectClassMatch(
 	int *matchp,
-	unsigned flags,
+	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
