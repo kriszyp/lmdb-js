@@ -75,6 +75,7 @@ ldap_back_initialize(
 	bi->bi_extended = 0;
 
 	bi->bi_acl_group = ldap_back_group;
+	bi->bi_chk_referrals = 0;
 
 #ifdef HAVE_CYRUS_SASL
 	bi->bi_sasl_authorize = 0;
