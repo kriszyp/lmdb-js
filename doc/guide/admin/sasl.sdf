@@ -265,11 +265,11 @@ pattern, the variables $2, $3, etc are used.
 For example, suppose the user's authentication identity is written
 as the DN string
 
->	uid=ADAMSON,cn=EXAMPLE.COM,cn=KERBEROS_V4,cn=AUTH
+>	uid=adamson,cn=example.com,cn=kerberos_v4,cn=auth
 
 and the user's actual LDAP entry is
 
->	uid=ADAMSON,ou=PERSON,dc=EXAMPLE,dc=COM
+>	uid=adamson,ou=person,dc=example,dc=com
 
 The {{EX:saslRegexp}} directive in {{slapd.conf}}(5) could be
 written
@@ -451,7 +451,7 @@ Authorization identities of this form are converted into a DN format
 by the same function that the authentication process used, producing
 an {{authorization request DN}} of the form
 
->	uid=<username>,cn=<realm>,cn=auth
+>	uid=<username>,cn=<realm>,cn=<mechanism>,cn=auth
 
 That authorization request DN is then run through the same
 {{EX:saslRegexp}} process to convert it into a legitimate authorization
