@@ -1004,7 +1004,7 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 		LDAP_FREE(n2);
 	} else 
 #endif
-	if ((ptr = strrchr(name, '.')) && isdigit(ptr[1])) {
+	if ((ptr = strrchr(name, '.')) && isdigit((unsigned char)ptr[1])) {
 		if (inet_aton(name, (struct in_addr *)&addr))
 			ntype = IS_IP4;
 	}

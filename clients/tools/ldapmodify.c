@@ -619,17 +619,19 @@ parse_ldif_control( char *line,
     pcolon = s;                        /* Save this position for later */
     if (*s++ != ':')                   /* Make sure colon follows */
         return ( LDAP_PARAM_ERROR );
-    while (*s && isspace(*s))  s++;    /* Skip white space before OID */
+    while (*s && isspace((unsigned char)*s))
+		s++;                           /* Skip white space before OID */
 
     /* OID should come next. Validate and extract it. */
     if (*s == 0)
         return ( LDAP_PARAM_ERROR );
     oidStart = s;
-    while (isdigit(*s) || *s == '.')  s++;    /* OID should be digits or . */
+    while (isdigit((unsigned char)*s) || *s == '.')
+		s++;                           /* OID should be digits or . */
     if (s == oidStart) 
         return ( LDAP_PARAM_ERROR );   /* OID was not present */
     if (*s) {                          /* End of OID should be space or NULL */
-        if (!isspace(*s))
+        if (!isspace((unsigned char)*s))
             return ( LDAP_PARAM_ERROR ); /* else OID contained invalid chars */
         *s++ = 0;                    /* Replace space with null to terminate */
     }
@@ -640,7 +642,8 @@ parse_ldif_control( char *line,
         return ( LDAP_NO_MEMORY );
 
     /* Optional Criticality field is next. */
-    while (*s && isspace(*s))  s++;   /* Skip white space before criticality */
+    while (*s && isspace((unsigned char)*s))
+		s++;                         /* Skip white space before criticality */
     if (strncasecmp(s, "true", 4) == 0) {
         criticality = 1;
         s += 4;
@@ -651,7 +654,8 @@ parse_ldif_control( char *line,
     }
 
     /* Optional value field is next */
-    while (*s && isspace(*s))  s++;    /* Skip white space before value */
+    while (*s && isspace((unsigned char)*s))
+		s++;                         /* Skip white space before value */
     if (*s) {
         if (*s != ':') {           /* If value is present, must start with : */
             rc = LDAP_PARAM_ERROR;

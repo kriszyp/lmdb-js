@@ -737,7 +737,7 @@ getNextPage:
 		}
 		buf[i] = '\0';
 
-		if ( i > 0 && isdigit( buf[0] ) ) {
+		if ( i > 0 && isdigit( (unsigned char)buf[0] ) ) {
 			int num = sscanf( buf, "%d", &tmpSize );
 			if ( num != 1 ) {
 				fprintf( stderr, "Invalid value for PagedResultsControl, %s.\n", buf);
