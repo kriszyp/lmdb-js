@@ -26,7 +26,8 @@ dn2id_add(
 	int		rc, flags;
 	DBCache	*db;
 	Datum		key, data;
-	char		*buf, *ptr, *pdn;
+	char		*buf;
+	struct berval	ptr, pdn;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -55,8 +56,9 @@ dn2id_add(
 	buf = ch_malloc( key.dsize );
 	key.dptr = buf;
 	buf[0] = DN_BASE_PREFIX;
-	ptr = buf + 1;
-	strcpy( ptr, dn->bv_val );
+	ptr.bv_val = buf + 1;
+	ptr.bv_len = dn->bv_len;
+	strcpy( ptr.bv_val, dn->bv_val );
 
 	ldbm_datum_init( data );
 	data.dptr = (char *) &id;
@@ -65,41 +67,39 @@ dn2id_add(
 	flags = LDBM_INSERT;
 	rc = ldbm_cache_store( db, key, data, flags );
 
-	if ( rc != -1 && !be_issuffix( be, ptr )) {
+	if ( rc != -1 && !be_issuffix( be, &ptr )) {
 		buf[0] = DN_SUBTREE_PREFIX;
 		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 		rc = idl_insert_key( be, db, key, id );
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-	}
 
-	if ( rc != -1 ) {
-		pdn = dn_parent( be, ptr );
+		if ( rc != -1 ) {
+			rc = dnParent( &ptr, &pdn );
 
-		if( pdn != NULL ) {
-			pdn[-1] = DN_ONE_PREFIX;
-			key.dsize -= pdn - ptr;
-			key.dptr = pdn - 1;
-			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
-			rc = idl_insert_key( be, db, key, id );
-			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+			if( rc == LDAP_SUCCESS ) {
+				pdn.bv_val[-1] = DN_ONE_PREFIX;
+				key.dsize = pdn.bv_len + 2;
+				key.dptr = pdn.bv_val - 1;
+				ptr = pdn;
+				ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+				rc = idl_insert_key( be, db, key, id );
+				ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+			}
 		}
 	}
 
-	while ( rc != -1 && pdn != NULL ) {
-		if ( be_issuffix( be, pdn ))
-			break;
-
-		pdn[-1] = DN_SUBTREE_PREFIX;
+	while ( rc != -1 && !be_issuffix( be, &ptr )) {
+		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
 		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 		rc = idl_insert_key( be, db, key, id );
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 		if( rc != 0 ) break;
+		rc = dnParent( &ptr, &pdn );
+		key.dsize = pdn.bv_len + 2;
+		key.dptr = pdn.bv_val - 1;
 		ptr = pdn;
-		pdn = dn_parent( be, pdn );
-		key.dsize -= pdn - ptr;
-		key.dptr = pdn - 1;
 	}
 
 	free( buf );
@@ -226,7 +226,7 @@ dn2idl(
 	assert( idlp != NULL );
 	*idlp = NULL;
 
-	if ( prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn->bv_val) ) {
+	if ( prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn) ) {
 		*idlp = idl_allids( be );
 		return 0;
 	}
@@ -270,7 +270,8 @@ dn2id_delete(
 	DBCache	*db;
 	Datum		key;
 	int		rc;
-	char		*buf, *ptr, *pdn;
+	char		*buf;
+	struct berval	ptr, pdn;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
@@ -301,44 +302,43 @@ dn2id_delete(
 	buf = ch_malloc( key.dsize );
 	key.dptr = buf;
 	buf[0] = DN_BASE_PREFIX;
-	ptr = buf + 1;
-	strcpy( ptr, dn->bv_val );
+	ptr.bv_val = buf + 1;
+	ptr.bv_len = dn->bv_len;
+	strcpy( ptr.bv_val, dn->bv_val );
 
 	rc = ldbm_cache_delete( db, key );
 	
-	if( !be_issuffix( be, ptr )) {
+	if( !be_issuffix( be, &ptr )) {
 		buf[0] = DN_SUBTREE_PREFIX;
 		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 		(void) idl_delete_key( be, db, key, id );
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+
+		rc = dnParent( &ptr, &pdn );
+
+		if( rc == LDAP_SUCCESS ) {
+			pdn.bv_val[-1] = DN_ONE_PREFIX;
+			key.dsize = pdn.bv_len + 2;
+			key.dptr = pdn.bv_val - 1;
+			ptr = pdn;
+
+			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+			(void) idl_delete_key( be, db, key, id );
+			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+		}
 	}
 
-	pdn = dn_parent( be, ptr );
-
-	if( pdn != NULL ) {
-		pdn[-1] = DN_ONE_PREFIX;
-		key.dsize -= pdn - ptr;
-		key.dptr = pdn - 1;
+	while ( rc != -1 && !be_issuffix( be, &ptr )) {
+		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
 		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 		(void) idl_delete_key( be, db, key, id );
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-	}
 
-	while ( pdn != NULL ) {
-		if ( be_issuffix( be, pdn ))
-			break;
-
-		pdn[-1] = DN_SUBTREE_PREFIX;
-
-		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
-		(void) idl_delete_key( be, db, key, id );
-		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-
+		rc = dnParent( &ptr, &pdn );
+		key.dsize = pdn.bv_len + 2;
+		key.dptr = pdn.bv_val - 1;
 		ptr = pdn;
-		pdn = dn_parent( be, pdn );
-		key.dsize -= pdn - ptr;
-		key.dptr = pdn - 1;
 	}
 
 	free( buf );
@@ -415,9 +415,8 @@ dn2entry_rw(
 	if( matched == NULL ) return NULL;
 
 	/* entry does not exist - see how much of the dn does exist */
-	/* dn_parent checks returns NULL if dn is suffix */
-	if ( (pdn.bv_val = dn_parent( be, dn->bv_val )) != NULL && *pdn.bv_val ) {
-		pdn.bv_len = dn->bv_len - (pdn.bv_val - dn->bv_val);
+	if ( !be_issuffix( be, dn ) && dnParent( dn, &pdn ) == LDAP_SUCCESS
+		&& pdn.bv_len ) {
 		/* get entry with reader lock */
 		if ( (e = dn2entry_r( be, &pdn, matched )) != NULL ) {
 			*matched = e;

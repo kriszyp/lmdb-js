@@ -115,8 +115,8 @@ ldbm_back_delete(
 	}
 
 	/* delete from parent's id2children entry */
-	if( (pdn.bv_val = dn_parent( be, e->e_ndn )) != NULL && pdn.bv_val[ 0 ] != '\0' ) {
-		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
+	if( !be_issuffix( be, &e->e_nname ) && dnParent( &e->e_nname, &pdn ) == LDAP_SUCCESS
+		&& pdn.bv_len ) {
 		if( (p = dn2entry_w( be, &pdn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -154,7 +154,7 @@ ldbm_back_delete(
 	} else {
 		/* no parent, must be root to delete */
 		if( ! be_isroot( be, &op->o_ndn ) ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+			if ( be_issuffix( be, (struct berval *)&slap_empty_bv ) || be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,

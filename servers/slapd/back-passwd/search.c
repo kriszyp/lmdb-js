@@ -47,7 +47,7 @@ passwd_back_search(
 	int err = LDAP_SUCCESS;
 
 	LDAPRDN *rdn = NULL;
-	char *parent = NULL;
+	struct berval parent = { 0, NULL };
 	char *matched = NULL;
 	const char *text = NULL;
 
@@ -68,7 +68,7 @@ passwd_back_search(
 #endif /* HAVE_SETPWFILE */
 
 	/* Handle a query for the base of this backend */
-	if ( be_issuffix( be,  nbase->bv_val ) ) {
+	if ( be_issuffix( be, nbase ) ) {
 		struct berval	vals[2];
 
 		vals[1].bv_val = NULL;
@@ -174,12 +174,14 @@ passwd_back_search(
 		}
 
 	} else {
-		parent = dn_parent( be, nbase->bv_val );
+		if (! be_issuffix( be, nbase ) ) {
+			dnParent( nbase, &parent );
+		}
 
 		/* This backend is only one layer deep. Don't answer requests for
 		 * anything deeper than that.
 		 */
-		if( !be_issuffix( be, parent ) ) {
+		if( !be_issuffix( be, &parent ) ) {
 			int i;
 			for( i=0; be->be_nsuffix[i] != NULL; i++ ) {
 				if( dnIsSuffix( nbase, be->be_nsuffix[i] ) ) {
@@ -203,7 +205,7 @@ passwd_back_search(
 		}
 
 		if ( (pw = getpwnam( rdn[0][0]->la_value.bv_val )) == NULL ) {
-			matched = parent;
+			matched = parent.bv_val;
 			err = LDAP_NO_SUCH_OBJECT;
 			goto done;
 		}

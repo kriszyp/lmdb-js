@@ -343,11 +343,10 @@ searchit:
 
 			/* need to skip alias which deref into scope */
 			if( scope & LDAP_SCOPE_ONELEVEL ) {
-				char *pdn = dn_parent( NULL, e->e_ndn );
-				if ( pdn != NULL ) {
-					if( strcmp( pdn, realbase.bv_val ) ) {
-						goto loop_continue;
-					}
+				struct berval pdn;
+				dnParent( &e->e_nname, &pdn );
+				if ( ber_bvcmp( &pdn, &realbase ) ) {
+					goto loop_continue;
 				}
 
 			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
@@ -375,14 +374,13 @@ searchit:
 		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
-			char	*dn;
+			struct berval	dn;
 
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					scopeok = (dn == realbase.bv_val)
-						? 1
-						: (strcmp( dn, realbase.bv_val ) ? 0 : 1 );
+				if ( !be_issuffix( be, &e->e_nname ) ) {
+					dnParent( &e->e_nname, &dn );
+					scopeok = dn_match( &dn, &realbase );
 				} else {
 					scopeok = (realbase.bv_len == 0);
 				}
@@ -425,14 +423,13 @@ searchit:
 
 		/* if it matches the filter and scope, send it */
 		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
-			char	*dn;
+			struct berval	dn;
 
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					scopeok = (dn == realbase.bv_val)
-						? 1
-						: (strcmp( dn, realbase.bv_val ) ? 0 : 1 );
+				if ( !be_issuffix( be, &e->e_nname ) ) {
+					dnParent( &e->e_nname, &dn );
+					scopeok = dn_match( &dn, &realbase );
 				} else {
 					scopeok = (realbase.bv_len == 0);
 				}

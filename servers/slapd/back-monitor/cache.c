@@ -206,7 +206,7 @@ monitor_cache_dn2entry(
 
 	/* try with parent/ancestors */
 	if ( ndn->bv_len ) {
-		p_ndn.bv_val = dn_parent( NULL, ndn->bv_val );
+		dnParent( ndn, &p_ndn );
 	}
 
 	if ( p_ndn.bv_val == NULL ) {

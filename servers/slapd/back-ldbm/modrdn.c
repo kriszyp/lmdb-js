@@ -148,11 +148,11 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	p_ndn.bv_val = dn_parent( be, e->e_ndn );
-	if ( p_ndn.bv_val )
-		p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
-	else
-		p_ndn.bv_len = 0;
+	if ( be_issuffix( be, &e->e_nname ) ) {
+		p_ndn = slap_empty_bv ;
+	} else {
+		dnParent( &e->e_nname, &p_ndn );
+	}
 
 	if ( p_ndn.bv_len != 0 ) {
 		/* Make sure parent entry exist and we can write its 
@@ -201,11 +201,11 @@ ldbm_back_modrdn(
 		       p_ndn.bv_val, 0, 0 );
 #endif
 
-		p_dn.bv_val = dn_parent( be, e->e_dn );
-		if ( p_dn.bv_val )
-			p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
-		else
-			p_dn.bv_len = 0;
+		if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
+			p_dn = slap_empty_bv;
+		} else {
+			dnParent( &e->e_name, &p_dn );
+		}
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
@@ -219,7 +219,7 @@ ldbm_back_modrdn(
 		/* no parent, must be root to modify rdn */
 		isroot = be_isroot( be, &op->o_ndn );
 		if ( ! isroot ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+			if ( be_issuffix( be, (struct berval *)&slap_empty_bv ) || be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
@@ -397,7 +397,7 @@ ldbm_back_modrdn(
 			}
 
 			if ( ! isroot ) {
-				if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+				if ( be_issuffix( be, (struct berval *)&slap_empty_bv ) || be_isupdate( be, &op->o_ndn ) ) {
 					np = (Entry *)&slap_entry_root;
 				
 					rc = access_allowed( be, conn, op, np,

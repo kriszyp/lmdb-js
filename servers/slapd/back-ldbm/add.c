@@ -80,11 +80,12 @@ ldbm_back_add(
 	 * add the entry.
 	 */
 
-	pdn.bv_val = dn_parent( be, e->e_ndn );
-	if (pdn.bv_val && pdn.bv_val[0])
-		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
-	else
-		pdn.bv_len = 0;
+	if ( be_issuffix( be, &e->e_nname ) ) {
+		pdn = slap_empty_bv;
+	} else {
+		rc = dnParent( &e->e_nname, &pdn );
+		/* dnParent always returns success */
+	}
 
 	if( pdn.bv_len ) {
 		Entry *matched = NULL;
@@ -206,7 +207,7 @@ ldbm_back_add(
 
 		/* no parent, must be adding entry to root */
 		if ( !be_isroot( be, &op->o_ndn ) ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+			if ( be_issuffix( be, (struct berval *)&slap_empty_bv ) || be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
