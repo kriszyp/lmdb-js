@@ -143,7 +143,7 @@ ldbm_back_db_init(
 	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
 
 	argv[ 0 ] = "objectclass";
-	argv[ 1 ] = "pres,eq";
+	argv[ 1 ] = "eq";
 	argv[ 2 ] = NULL;
 	attr_index_config( li, "ldbm objectclass initialization",
 		0, 2, argv, 1 );
