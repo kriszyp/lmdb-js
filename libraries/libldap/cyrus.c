@@ -665,7 +665,7 @@ ldap_int_sasl_bind(
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 		rc = ld->ld_errno = sasl_err2ldap( saslrc );
 #if SASL_VERSION_MAJOR >= 2
-		ld->ld_error = (char *)sasl_errdetail( ctx );
+		ld->ld_error = LDAP_STRDUP( sasl_errdetail( ctx ) );
 #endif
 		goto done;
 	}
@@ -753,7 +753,7 @@ ldap_int_sasl_bind(
 		if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 			ld->ld_errno = sasl_err2ldap( saslrc );
 #if SASL_VERSION_MAJOR >= 2
-			ld->ld_error = (char *)sasl_errdetail( ctx );
+			ld->ld_error = LDAP_STRDUP( sasl_errdetail( ctx ) );
 #endif
 			rc = ld->ld_errno;
 			goto done;
@@ -764,7 +764,7 @@ ldap_int_sasl_bind(
 
 	if ( saslrc != SASL_OK ) {
 #if SASL_VERSION_MAJOR >= 2
-		ld->ld_error = (char *)sasl_errdetail( ctx );
+		ld->ld_error = LDAP_STRDUP( sasl_errdetail( ctx ) );
 #endif
 		rc = ld->ld_errno = sasl_err2ldap( saslrc );
 		goto done;
