@@ -216,6 +216,34 @@ meaningful if you are using Kerberos authentication.
 Specify the maximum number of seconds (in real time)
 .B slapd
 will spend answering a search request.  The default time limit is 3600.
+.SH TLS OPTIONS
+If
+.B slapd
+is build with support for Transport Layer Security, there are more options
+you can specify.
+.TP
+.B TLSCipherSuite <cipher-suite-spec>
+Permits configuring what ciphers will be accepted and the preference order.
+<cipher-suite-spec> should be a cipher specification for OpenSSL.  Example:
+
+TLSCipherSuite HIGH:MEDIUM:+SSLv2
+
+To check what ciphers a given spec selects, use:
+
+openssl ciphers -v <cipher-suite-spec>
+.TP
+.B TLSCertificateFile <filename>
+Specifies the file that contains the
+.B slapd
+server certificate.
+.TP
+.B TLSCertificateKeyFile <filename>
+Specifies the file that contains the
+.B slapd
+server private key that matches the certificate stored in the
+.B TLSCertificateFile
+file.  Currently, the private key must not be protected with a password, so
+it is of critical importance that it is protected carefully. 
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the backend in which they are defined.  They are supported by every
