@@ -29,10 +29,10 @@
 #ifdef LDAP_SLAPI
 #include "slapi.h"
 static char **anlist2charray( AttributeName *an );
-static Slapi_PBlock *initSearchPlugin( Operation *op, char **attrs, int managedsait );
-static int doPreSearchPluginFNs( Backend *be, Slapi_PBlock *pb );
-static int doSearchRewriteFNs( Backend *be, Slapi_PBlock *pb, Filter **filter, struct berval *fstr );
-static void doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb );
+static void initSearchPlugin( Operation *op, char **attrs, int managedsait );
+static int doPreSearchPluginFNs( Operation *op );
+static int doSearchRewriteFNs( Operation *op );
+static void doPostSearchPluginFNs( Operation *op );
 #endif /* LDAPI_SLAPI */
 
 int
@@ -428,7 +428,7 @@ static char **anlist2charray( AttributeName *an )
 	return attrs;
 }
 
-static void Slapi_PBlock *initSearchPlugin( Operation *op,
+static void initSearchPlugin( Operation *op,
 	char **attrs, int managedsait )
 {
 	slapi_x_backend_set_pb( op->o_pb, op->o_bd );
