@@ -34,7 +34,7 @@ dnl General "with" options
 OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(threads,[  --with-threads	use threads],
-	auto, [auto posix dce mach yes no manual] )
+	auto, [auto posix mach lwp yes no manual] )
 
 dnl Server options
 
@@ -344,13 +344,13 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 		fi
 
 		if test $ol_link_threads != no ; then
+			save_LIBS="$LIBS"
+			LIBS="$LTHREAD_LIBS $LIBS"
+
 			dnl All POSIX Thread (final) implementations should have
 			dnl sched_yield instead of pthread yield.
 			dnl check for both
-			save_LIBS="$LIBS"
-			LIBS="$LTHREAD_LIBS $LIBS"
 			AC_CHECK_FUNCS(sched_yield pthread_yield)
-			LIBS="$save_LIBS"
 
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
@@ -358,6 +358,15 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
 				AC_MSG_ERROR([POSIX Threads are not usable])
 			fi
+
+			dnl Check functions for compatibility
+			AC_CHECK_FUNCS(pthread_kill \
+				pthread_attr_init pthread_attr_create \
+				pthread_attr_destroy pthread_attr_delete \
+				pthread_attr_setdetachstate pthread_attr_setdetach_np \
+			)
+
+			LIBS="$save_LIBS"
 		else
 			AC_MSG_ERROR([could not link with POSIX Threads])
 		fi
@@ -365,6 +374,43 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 
 	if test $ol_with_threads = posix ; then
 		AC_MSG_ERROR([could not locate POSIX Threads])
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = cthreads ; then
+	dnl check for Mach CThreads
+	AC_CHECK_HEADERS(mach/cthreads.h)
+	if test $ac_cv_header_lwp_lwp_h = yes ; then
+		AC_CHECK_LIB(lwp, cthread_fork, [have_cthreads=yes], [have_cthreads=no])
+
+		if test $have_cthreads = yes ; then
+			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_NEXT_CTHREADS"
+			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+		fi
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
+	dnl check for SunOS5 LWP
+	AC_CHECK_HEADERS(lwp/lwp.h)
+	if test $ac_cv_header_lwp_lwp_h = yes ; then
+		AC_CHECK_LIB(thread, thr_create, [have_lwp=yes], [have_lwp=no])
+
+		if test $have_lwp = yes ; then
+			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_SUNOS5_LWP"
+			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+		fi
+	fi
+
+	dnl check for SunOS4 LWP
+	AC_CHECK_HEADERS(thread.h synch.h)
+	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
+		AC_CHECK_LIB(lwp, lwp_create, [have_lwp=yes], [have_lwp=no])
+
+		if test $have_lwp = yes ; then
+			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_SUNOS4_LWP"
+			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+		fi
 	fi
 fi
 

@@ -103,6 +103,27 @@
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
 
+/* Define if you have the pthread_attr_create function.  */
+#undef HAVE_PTHREAD_ATTR_CREATE
+
+/* Define if you have the pthread_attr_delete function.  */
+#undef HAVE_PTHREAD_ATTR_DELETE
+
+/* Define if you have the pthread_attr_destroy function.  */
+#undef HAVE_PTHREAD_ATTR_DESTROY
+
+/* Define if you have the pthread_attr_init function.  */
+#undef HAVE_PTHREAD_ATTR_INIT
+
+/* Define if you have the pthread_attr_setdetach_np function.  */
+#undef HAVE_PTHREAD_ATTR_SETDETACH_NP
+
+/* Define if you have the pthread_attr_setdetachstate function.  */
+#undef HAVE_PTHREAD_ATTR_SETDETACHSTATE
+
+/* Define if you have the pthread_kill function.  */
+#undef HAVE_PTHREAD_KILL
+
 /* Define if you have the pthread_yield function.  */
 #undef HAVE_PTHREAD_YIELD
 
@@ -187,6 +208,12 @@
 /* Define if you have the <limits.h> header file.  */
 #undef HAVE_LIMITS_H
 
+/* Define if you have the <lwp/lwp.h> header file.  */
+#undef HAVE_LWP_LWP_H
+
+/* Define if you have the <mach/cthreads.h> header file.  */
+#undef HAVE_MACH_CTHREADS_H
+
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H
 
@@ -211,6 +238,9 @@
 /* Define if you have the <stddef.h> header file.  */
 #undef HAVE_STDDEF_H
 
+/* Define if you have the <synch.h> header file.  */
+#undef HAVE_SYNCH_H
+
 /* Define if you have the <sys/dir.h> header file.  */
 #undef HAVE_SYS_DIR_H
 
@@ -234,6 +264,9 @@
 
 /* Define if you have the <termio.h> header file.  */
 #undef HAVE_TERMIO_H
+
+/* Define if you have the <thread.h> header file.  */
+#undef HAVE_THREAD_H
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
