@@ -330,8 +330,6 @@ static int test_mra_filter(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		rc = LDAP_COMPARE_FALSE;
-
 		/* for each AVA of each RDN ... */
 		for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
 			LDAPRDN		rdn = dn[ iRDN ];
@@ -385,18 +383,17 @@ static int test_mra_filter(
 					op->o_tmpfree( value.bv_val, memctx );
 				}
 
-				if( rc != LDAP_SUCCESS ) {
-					break;
+				if ( rc == LDAP_SUCCESS && ret == 0 ) {
+					rc = LDAP_COMPARE_TRUE;
 				}
 
-				if ( ret == 0 ) {
-					rc = LDAP_COMPARE_TRUE;
-					break;
+				if( rc != LDAP_SUCCESS ) {
+					ldap_dnfree_x( dn, memctx );
+					return rc;
 				}
 			}
 		}
 		ldap_dnfree_x( dn, memctx );
-		return rc;
 	}
 
 	return LDAP_COMPARE_FALSE;
