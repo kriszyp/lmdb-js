@@ -290,6 +290,7 @@ do_bind(
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, NULL, NULL, NULL );
+		goto cleanup;
 	}
 
 	if ( be->be_bind ) {

@@ -153,6 +153,8 @@ do_add( Connection *conn, Operation *op )
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, NULL, NULL, NULL );
+		entry_free( e );
+		return rc;
 	}
 
 	if ( global_readonly || be->be_readonly ) {

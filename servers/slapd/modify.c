@@ -184,6 +184,7 @@ do_modify(
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, NULL, NULL, NULL );
+		goto cleanup;
 	}
 
 	if ( global_readonly || be->be_readonly ) {

@@ -116,6 +116,7 @@ do_compare(
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, NULL, NULL, NULL );
+		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */

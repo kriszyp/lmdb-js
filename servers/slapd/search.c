@@ -210,6 +210,7 @@ do_search(
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, NULL, NULL, NULL );
+		goto return_results;
 	}
 
 	/* deref the base if needed */
