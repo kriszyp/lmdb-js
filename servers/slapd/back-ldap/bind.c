@@ -97,7 +97,7 @@ ldap_back_bind(
 		return( -1 );
 	}
 #else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->o_req_dn &mdn, 0, 1 );
+	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
 	if ( lc->bound_dn.bv_val ) {

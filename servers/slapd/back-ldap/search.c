@@ -174,7 +174,7 @@ ldap_back_search(
 	}
 
 #else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->oq_req_dn &mbase, 0, 1 );
+	ldap_back_dn_massage( li, &op->o_req_dn, &mbase, 0, 1 );
 #endif /* !ENABLE_REWRITE */
 
 #ifdef ENABLE_REWRITE
