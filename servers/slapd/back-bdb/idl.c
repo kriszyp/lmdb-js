@@ -441,7 +441,14 @@ bdb_idl_fetch_key(
 #if DB_VERSION_FULL < 0x04010000
 #	define BDB_ENOUGH 5
 #else
+	/* We sometimes test with tiny IDLs, and BDB always wants buffers
+	 * that are at least one page in size.
+	 */
+# if BDB_IDL_SIZE < 4096
+#   define BDB_ENOUGH 2048
+# else
 #	define BDB_ENOUGH 1
+# endif
 #endif
 	ID buf[BDB_IDL_DB_SIZE*BDB_ENOUGH];
 
@@ -683,8 +690,8 @@ bdb_idl_insert_key(
 				/* Update hi/lo if needed, then delete all the items
 				 * between lo and hi
 				 */
+				data.data = &nid;
 				if ( id > hi ) {
-					nhi = nid;
 					rc = cursor->c_del( cursor, 0 );
 					if ( rc != 0 ) {
 						err = "c_del hi";
@@ -704,7 +711,6 @@ bdb_idl_insert_key(
 					err = "c_get 2";
 					goto fail;
 				}
-				data.data = &nid;
 				if ( id < lo ) {
 					rc = cursor->c_del( cursor, 0 );
 					if ( rc != 0 ) {
