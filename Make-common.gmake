@@ -30,11 +30,11 @@
 #############################################################################
 
 #
-# Note:  Some make(1) programs do not understand the FOO?=BAR syntax.
+# This template should be used by systems with Gnu Make.
 #
-# On such systems, you should use copy Make-common.gmake to Make-common
-# and use gmake to build the distribution.
-#
+# If Gnu make is not installed as make, you must uncomment out
+# this line.
+#MAKE=gmake
 
 #############################################################################
 ## LDAP install paths                                                      ##
@@ -51,16 +51,36 @@
 #
 # Per platform defaults override these.
 #
-LDAP_PREFIX?= /usr/local
-LDAP_INSTROOT?= $(LDAP_PREFIX)
-LDAP_ETCDIR?= $(LDAP_INSTROOT)/etc/ldap
-LDAP_INCDIR?= $(LDAP_INSTROOT)/include
-LDAP_LIBDIR?= $(LDAP_INSTROOT)/lib
-LDAP_MANDIR?= $(LDAP_INSTROOT)/man
-LDAP_BINDIR?= $(LDAP_INSTROOT)/bin
-LDAP_SBINDIR?=$(LDAP_INSTROOT)/sbin
-LDAP_LIBEXECDIR?= $(LDAP_INSTROOT)/libexec
-LDAP_RUNDIR?= $(LDAP_ETCDIR)
+ifndef LDAP_PREFIX
+LDAP_PREFIX= /usr/local
+endif
+ifndef LDAP_INSTROOT
+LDAP_INSTROOT= $(LDAP_PREFIX)
+endif
+ifndef LDAP_ETCDIR
+LDAP_ETCDIR= $(LDAP_INSTROOT)/etc/ldap
+endif
+ifndef LDAP_INCDIR
+LDAP_INCDIR= $(LDAP_INSTROOT)/include
+endif
+ifndef LDAP_LIBDIR
+LDAP_LIBDIR= $(LDAP_INSTROOT)/lib
+endif
+ifndef LDAP_MANDIR
+LDAP_MANDIR= $(LDAP_INSTROOT)/man
+endif
+ifndef LDAP_BINDIR
+LDAP_BINDIR= $(LDAP_INSTROOT)/bin
+endif
+ifndef LDAP_SBINDIR
+LDAP_SBINDIR=$(LDAP_INSTROOT)/sbin
+endif
+ifndef LDAP_LIBEXECDIR
+LDAP_LIBEXECDIR= $(LDAP_INSTROOT)/libexec
+endif
+ifndef LDAP_ETCDIR
+LDAP_RUNDIR= $(LDAP_ETCDIR)
+endif
 
 #############################################################################
 ## General compiler options                                                ##
@@ -68,9 +88,13 @@ LDAP_RUNDIR?= $(LDAP_ETCDIR)
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
 #EXTRACFLAGS=-O -g
 #EXTRACFLAGS=-O
+ifndef EXTRACFLAGS
 EXTRACFLAGS?=-g
+endif
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
-EXTRALDFLAGS?=-g
+ifndef EXTRALDFLAGS
+EXTRALDFLAGS=-g
+endif
 
 #############################################################################
 ## If you are NOT using Kerberos authentication, you can skip this section.##
@@ -153,9 +177,15 @@ SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 # Fallback settings, defaults are set in build/*/Make-platform
 #   The NDBM interface may not work on some (any) platforms.
 #	You may be happier with Berkeley DB B-trees.
-LDBMBACKEND?=-DLDBM_USE_NDBM
-LDBMINCLUDE?=
-LDBMLIB?=
+ifndef LDBMBACKEND
+LDBMBACKEND=-DLDBM_USE_NDBM
+endif
+ifndef LDBMINCLUDE
+LDBMINCLUDE=
+endif
+ifndef LDBMLIB
+LDBMLIB=
+endif
 
 # LDBM Hardcode Setting Examples (may require editing)
 # berkeley db btree package
@@ -191,19 +221,34 @@ LDBMLIB?=
 #	-DTHREAD_SUNOS4_LWP
 #	-DTHREAD_SUNOS5_LWP
 # and select the appropriate library.
-#THREADS?=-DNO_THREADS
-#THREADSLIB?=
+
+ifndef THREADS
+THREADS=-DNO_THREADS
+endif
+ifndef THREADSLIB
+THREADSLIB=
+endif
 
 # Locations of auxilary programs
 # (excepts to below are generally defined in Make-platform)
-LDAP_SENDMAIL?=/usr/lib/sendmail
-LDAP_EDITOR?=/usr/ucb/vi
-LDAP_FINGER?=/usr/ucb/finger
+ifndef LDAP_SENDMAIL
+LDAP_SENDMAIL=/usr/lib/sendmail
+endif
+ifndef LDAP_EDITOR
+LDAP_EDITOR=/usr/ucb/vi
+endif
+ifndef LDAP_FINGER
+LDAP_FINGER=/usr/ucb/finger
+endif
 
 # For generation of compressed man pages
 # (excepts to below are generally defined in Make-platform)
-MANCOMPRESS?=cat
-MANCOMPRESSSUFFIX?=
+ifndef MANCOMPRESS
+MANCOMPRESS=cat
+endif
+ifndef MANCOMPRESSSUFFIX
+MANCOMPRESSSUFFIX=
+endif
 
 #############################################################################
 ## The following options are used by the xax500 client.  If you haven't    ##
