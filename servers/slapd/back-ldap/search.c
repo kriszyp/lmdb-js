@@ -50,6 +50,12 @@
 
 #include "lutil.h"
 
+static int
+ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
+	 struct berval *bdn, int flags );
+#define LDAP_BUILD_ENTRY_PRIVATE	0x01
+#define LDAP_BUILD_ENTRY_NORMALIZE	0x02
+
 static struct berval dummy = { 0, NULL };
 
 int
@@ -234,7 +240,8 @@ fail:;
 			Entry ent;
 			struct berval bdn;
 			e = ldap_first_entry(lc->ld,res);
-			if ( ldap_build_entry(op, e, &ent, &bdn, 1) == LDAP_SUCCESS ) {
+			if ( ldap_build_entry(op, e, &ent, &bdn,
+						LDAP_BUILD_ENTRY_PRIVATE) == LDAP_SUCCESS ) {
 				Attribute *a;
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->oq_search.rs_attrs;
@@ -379,13 +386,13 @@ finish:;
 	return rc;
 }
 
-int
+static int
 ldap_build_entry(
 	Operation *op,
 	LDAPMessage *e,
 	Entry *ent,
 	struct berval *bdn,
-	int private
+	int flags
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;
@@ -395,6 +402,10 @@ ldap_build_entry(
 	struct berval *bv;
 	const char *text;
 	int last;
+	int private = flags & LDAP_BUILD_ENTRY_PRIVATE;
+#ifdef SLAP_NVALUES
+	int normalize = flags & LDAP_BUILD_ENTRY_NORMALIZE;
+#endif /* SLAP_NVALUES */
 
 	/* safe assumptions ... */
 	assert( ent );
@@ -618,22 +629,26 @@ ldap_build_entry(
 next_attr:;
 
 #ifdef SLAP_NVALUES
-		if ( last && attr->a_desc->ad_type->sat_equality &&
-			attr->a_desc->ad_type->sat_equality->smr_normalize ) {
-			int i;
+		if ( normalize ) {
+			if ( last && attr->a_desc->ad_type->sat_equality &&
+				attr->a_desc->ad_type->sat_equality->smr_normalize ) {
+				int i;
 
-			attr->a_nvals = ch_malloc((last+1)*sizeof(struct berval));
-			for (i=0; i<last; i++) {
-				attr->a_desc->ad_type->sat_equality->smr_normalize(
-					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					attr->a_desc->ad_type->sat_syntax,
-					attr->a_desc->ad_type->sat_equality,
-					&attr->a_vals[i], &attr->a_nvals[i] );
+				attr->a_nvals = ch_malloc((last+1)*sizeof(struct berval));
+				for (i=0; i<last; i++) {
+					attr->a_desc->ad_type->sat_equality->smr_normalize(
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						attr->a_desc->ad_type->sat_syntax,
+						attr->a_desc->ad_type->sat_equality,
+						&attr->a_vals[i], &attr->a_nvals[i] );
+				}
+				attr->a_nvals[i].bv_val = NULL;
+				attr->a_nvals[i].bv_len = 0;
+			} else {
+				attr->a_nvals = attr->a_vals;
 			}
-			attr->a_nvals[i].bv_val = NULL;
-			attr->a_nvals[i].bv_len = 0;
 		} else {
-			attr->a_nvals = attr->a_vals;
+			attr->a_nvals = NULL;
 		}
 #endif
 		*attrp = attr;
@@ -753,7 +768,7 @@ ldap_back_entry_get(
 
 	*ent = ch_calloc(1,sizeof(Entry));
 
-	rc = ldap_build_entry(op, e, *ent, &bdn, 0);
+	rc = ldap_build_entry(op, e, *ent, &bdn, LDAP_BUILD_ENTRY_NORMALIZE);
 
 	if (rc != LDAP_SUCCESS) {
 		ch_free(*ent);
