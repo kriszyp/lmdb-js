@@ -15,24 +15,15 @@
 #include <ac/stdlib.h>
 #include <stdio.h>
 
-#define SLAPD_TOOLS
 #include "slap.h"
-#undef SLAPD_TOOLS
 #include "proto-slap.h"
 
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#elif defined (HAVE_STRING_H)
-#include <string.h>
-#endif
+#include <ac/string.h>
 
 #ifdef HAVE_CYRUS_SASL
 #include <limits.h>
 #include <sasl.h>
 #include <ldap_pvt.h>
-
-extern int nSaslRegexp;
-extern SaslRegexp_t *SaslRegexp;
 #endif
 
 
@@ -198,7 +189,7 @@ char *slap_sasl_regexp( char *saslname )
 	/* Match the normalized SASL name to the saslregexp patterns */
 	for( reg = SaslRegexp,i=0;  i<nSaslRegexp;  i++,reg++ ) {
 		if ( regexec( &reg->workspace, saslname, SASLREGEX_REPLACE,
-		  reg->strings, 0)  == REG_OK )
+		  reg->strings, 0)  == 0 )
 			break;
 	}
 
