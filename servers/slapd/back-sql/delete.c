@@ -123,9 +123,8 @@ backsql_delete( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_REFERRAL:
-		if ( !BER_BVISNULL( &bsi.bsi_e->e_nname ) &&
-				dn_match( &op->o_req_ndn, &bsi.bsi_e->e_nname )
-				&& manageDSAit )
+		if ( manageDSAit && !BER_BVISNULL( &bsi.bsi_e->e_nname ) &&
+				dn_match( &op->o_req_ndn, &bsi.bsi_e->e_nname ) )
 		{
 			rs->sr_err = LDAP_SUCCESS;
 			rs->sr_text = NULL;

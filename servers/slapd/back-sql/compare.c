@@ -36,8 +36,8 @@ backsql_compare( Operation *op, SlapReply *rs )
 	Attribute		*a = NULL;
 	backsql_srch_info	bsi = { 0 };
 	int			rc;
-	AttributeName		anlist[2],
-				*anlistp = NULL;
+	int			manageDSAit = get_manageDSAit( op );
+	AttributeName		anlist[2];
 
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_compare()\n", 0, 0, 0 );
 
@@ -57,22 +57,34 @@ backsql_compare( Operation *op, SlapReply *rs )
 	BER_BVZERO( &anlist[ 1 ].an_name );
 
 	/*
-	 * Try to get attr as dynamic operational
-	 */
-	if ( !is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
-		anlistp = anlist;
-	}
-
-	/*
 	 * Get the entry
 	 */
 	bsi.bsi_e = &e;
 	rc = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
-			(time_t)(-1), NULL, dbh, op, rs, anlistp,
+			(time_t)(-1), NULL, dbh, op, rs, anlist,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
-	if ( rc != LDAP_SUCCESS ) {
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+		break;
+
+	case LDAP_REFERRAL:
+		if ( manageDSAit && !BER_BVISNULL( &bsi.bsi_e->e_nname ) &&
+				dn_match( &op->o_req_ndn, &bsi.bsi_e->e_nname ) )
+		{
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_text = NULL;
+			rs->sr_matched = NULL;
+			if ( rs->sr_ref ) {
+				ber_bvarray_free( rs->sr_ref );
+				rs->sr_ref = NULL;
+			}
+			break;
+		}
+		/* fallthru */
+
+	default:
 		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
 			"could not retrieve compareDN ID - no such entry\n", 
 			0, 0, 0 );
@@ -89,10 +101,10 @@ backsql_compare( Operation *op, SlapReply *rs )
 
 	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
 		SlapReply	nrs = { 0 };
+		Attribute	**ap;
 
-		e.e_attrs = NULL;
-		ber_dupbv( &e.e_name, &bsi.bsi_base_id.eid_dn );
-		ber_dupbv( &e.e_nname, &bsi.bsi_base_id.eid_ndn );
+		for ( ap = &e.e_attrs; *ap; ap = &(*ap)->a_next )
+			;
 
 		nrs.sr_attrs = anlist;
 		nrs.sr_entry = &e;
@@ -104,17 +116,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 			goto return_results;
 		}
 		
-		e.e_attrs = nrs.sr_operational_attrs;
-
-	} else {
-		rc = backsql_id2entry( &bsi, &bsi.bsi_base_id );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
-				"error %d in backsql_id2entry() "
-				"- compare failed\n", rc, 0, 0 );
-			rs->sr_err = rc;
-			goto return_results;
-		}
+		*ap = nrs.sr_operational_attrs;
 	}
 
 	if ( ! access_allowed( op, &e, op->oq_compare.rs_ava->aa_desc,
