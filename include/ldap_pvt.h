@@ -35,6 +35,10 @@ LDAP_F ( int )
 ldap_pvt_url_scheme2tls LDAP_P((
 	const char * ));
 
+LDAP_F ( int )
+ldap_pvt_url_scheme_port LDAP_P((
+	const char *, int ));
+
 struct ldap_url_desc; /* avoid pulling in <ldap.h> */
 
 LDAP_F( int )

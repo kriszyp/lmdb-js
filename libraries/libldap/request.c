@@ -448,20 +448,28 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
  */
 {
 	LDAPConn	*lc;
-	LDAPURLDesc	*ls;
+	LDAPURLDesc	*lcu, *lsu;
+	int lcu_port, lsu_port;
 
 	for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-		for ( ls = srv; ls != NULL; ls = ls->lud_next ) {
-			if ( lc->lconn_server->lud_host != NULL &&
-				*lc->lconn_server->lud_host != '\0' &&
-			    ls->lud_host != NULL && *ls->lud_host != '\0' &&
-				strcasecmp( ls->lud_host, lc->lconn_server->lud_host ) == 0
-			    && ls->lud_port == lc->lconn_server->lud_port ) {
+		lcu = lc->lconn_server;
+		lcu_port = ldap_pvt_url_scheme_port( lcu->lud_scheme,
+			lcu->lud_port );
+
+		for ( lsu = srv; lsu != NULL; lsu = lsu->lud_next ) {
+			lsu_port = ldap_pvt_url_scheme_port( lsu->lud_scheme,
+				lsu->lud_port );
+
+			if ( strcmp( lcu->lud_scheme, lsu->lud_scheme ) == 0
+				&& lcu->lud_host != NULL && *lcu->lud_host != '\0'
+			    && lsu->lud_host != NULL && *lsu->lud_host != '\0'
+				&& strcasecmp( lsu->lud_host, lcu->lud_host ) == 0
+			    && lsu_port == lcu_port )
+			{
 				return lc;
 			}
-			if ( !any ) {
-				break;
-			}
+
+			if ( !any ) break;
 		}
 	}
 
