@@ -103,7 +103,7 @@ syn_insert(
 				 (AVL_DUP) avl_dup_error ) ) {
 			*err = ssyn->ssyn_oid;
 			ldap_memfree(sir);
-			return SLAP_SCHERR_DUP_SYNTAX;
+			return SLAP_SCHERR_SYN_DUP;
 		}
 		/* FIX: temporal consistency check */
 		syn_find(sir->sir_name);

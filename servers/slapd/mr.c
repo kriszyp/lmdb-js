@@ -108,7 +108,7 @@ mr_insert(
 				 (AVL_DUP) avl_dup_error ) ) {
 			*err = smr->smr_oid;
 			ldap_memfree(mir);
-			return SLAP_SCHERR_DUP_RULE;
+			return SLAP_SCHERR_MR_DUP;
 		}
 		/* FIX: temporal consistency check */
 		mr_bvfind(&mir->mir_name);
@@ -125,7 +125,7 @@ mr_insert(
 					 (AVL_DUP) avl_dup_error ) ) {
 				*err = *names;
 				ldap_memfree(mir);
-				return SLAP_SCHERR_DUP_RULE;
+				return SLAP_SCHERR_MR_DUP;
 			}
 			/* FIX: temporal consistency check */
 			mr_bvfind(&mir->mir_name);

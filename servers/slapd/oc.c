@@ -354,7 +354,7 @@ oc_insert(
 		{
 			*err = soc->soc_oid;
 			ldap_memfree(oir);
-			return SLAP_SCHERR_DUP_CLASS;
+			return SLAP_SCHERR_CLASS_DUP;
 		}
 
 		/* FIX: temporal consistency check */
@@ -378,7 +378,7 @@ oc_insert(
 			{
 				*err = *names;
 				ldap_memfree(oir);
-				return SLAP_SCHERR_DUP_CLASS;
+				return SLAP_SCHERR_CLASS_DUP;
 			}
 
 			/* FIX: temporal consistency check */
@@ -446,7 +446,7 @@ oc_add(
 	code = oc_create_allowed( soc, soc->soc_at_oids_may, &op, err );
 	if ( code != 0 ) return code;
 
-	if( user && op ) return SLAP_SCHERR_CLASS_OPERATIONAL;
+	if( user && op ) return SLAP_SCHERR_CLASS_BAD_SUP;
 
 	code = oc_insert(soc,err);
 	return code;

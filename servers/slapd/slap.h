@@ -218,25 +218,26 @@ typedef struct slap_ssf_set {
 /*
  * represents schema information for a database
  */
-#define SLAP_SCHERR_OUTOFMEM		1
-#define SLAP_SCHERR_CLASS_NOT_FOUND	2
-#define SLAP_SCHERR_CLASS_BAD_USAGE	3
-#define SLAP_SCHERR_CLASS_OPERATIONAL 4
-#define SLAP_SCHERR_ATTR_NOT_FOUND	5
-#define SLAP_SCHERR_ATTR_BAD_USAGE	6
-#define SLAP_SCHERR_DUP_CLASS		7
-#define SLAP_SCHERR_DUP_ATTR		8
-#define SLAP_SCHERR_DUP_SYNTAX		9
-#define SLAP_SCHERR_DUP_RULE		10
-#define SLAP_SCHERR_NO_NAME			11
-#define SLAP_SCHERR_ATTR_INCOMPLETE	12
-#define SLAP_SCHERR_MR_NOT_FOUND	13
-#define SLAP_SCHERR_SYN_NOT_FOUND	14
-#define SLAP_SCHERR_MR_INCOMPLETE	15
-#define SLAP_SCHERR_NOT_SUPPORTED	16
-#define SLAP_SCHERR_BAD_DESCR		17
-#define SLAP_SCHERR_OIDM			18
-#define SLAP_SCHERR_LAST			SLAP_SCHERR_OIDM
+#define SLAP_SCHERR_OUTOFMEM			1
+#define SLAP_SCHERR_CLASS_NOT_FOUND		2
+#define SLAP_SCHERR_CLASS_BAD_USAGE		3
+#define SLAP_SCHERR_CLASS_BAD_SUP		4
+#define SLAP_SCHERR_CLASS_DUP			5
+#define SLAP_SCHERR_ATTR_NOT_FOUND		6
+#define SLAP_SCHERR_ATTR_BAD_USAGE		7
+#define SLAP_SCHERR_ATTR_BAD_SUP		8
+#define SLAP_SCHERR_ATTR_INCOMPLETE		9
+#define SLAP_SCHERR_ATTR_DUP			10
+#define SLAP_SCHERR_MR_NOT_FOUND		11
+#define SLAP_SCHERR_MR_INCOMPLETE		12
+#define SLAP_SCHERR_MR_DUP				13
+#define SLAP_SCHERR_SYN_NOT_FOUND		14
+#define SLAP_SCHERR_SYN_DUP				15
+#define SLAP_SCHERR_NO_NAME				16
+#define SLAP_SCHERR_NOT_SUPPORTED		17
+#define SLAP_SCHERR_BAD_DESCR			18
+#define SLAP_SCHERR_OIDM				19
+#define SLAP_SCHERR_LAST				SLAP_SCHERR_OIDM
 
 typedef union slap_sockaddr {
 	struct sockaddr sa_addr;
@@ -433,8 +434,10 @@ typedef struct slap_attribute_type {
 
 	AttributeTypeSchemaCheckFN	*sat_check;
 
-#define SLAP_AT_NONE	0x0000U
-#define SLAP_AT_HIDE	0x0001U /* hide attribute */
+#define SLAP_AT_NONE		0x0000U
+#define SLAP_AT_ABSTRACT	0x0100U /* cannot be instantiated */
+#define SLAP_AT_FINAL		0x0200U /* cannot be subtyped */
+#define SLAP_AT_HIDE		0x8000U /* hide attribute */
 	slap_mask_t					sat_flags;
 
 	struct slap_attribute_type	*sat_next;

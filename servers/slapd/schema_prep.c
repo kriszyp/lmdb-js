@@ -236,7 +236,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2256: object classes of the entity' "
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		NULL, 0, objectClassMatch, NULL, NULL,
+		NULL, SLAP_AT_FINAL, objectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
 
 	/* user entry operational attributes */
@@ -453,7 +453,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2256: name of aliased object' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE )",
-		aliasAttribute, 0, NULL, NULL, NULL,
+		aliasAttribute, SLAP_AT_FINAL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_aliasedObjectName) },
 	{ "ref", "( 2.16.840.1.113730.3.1.34 NAME 'ref' "
 			"DESC 'namedref: subordinate referral URL' "
@@ -508,14 +508,14 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2256: common supertype of DN attributes' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_ABSTRACT, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_distinguishedName) },
 	{ "name", "( 2.5.4.41 NAME 'name' "
 			"DESC 'RFC2256: common supertype of name attributes' "
 			"EQUALITY caseIgnoreMatch "
 			"SUBSTR caseIgnoreSubstringsMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_ABSTRACT, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_name) },
 	{ "cn", "( 2.5.4.3 NAME ( 'cn' 'commonName' ) "
 			"DESC 'RFC2256: common name(s) for which the entity is known by' "
@@ -526,7 +526,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2256/2307: password of user' "
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_FINAL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },
 
 #ifdef SLAPD_AUTHPASSWD
@@ -535,7 +535,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC3112: authentication password attribute' "
 			"EQUALITY 1.3.6.1.4.1.4203.1.2.2 "
 			"SYNTAX 1.3.6.1.4.1.4203.1.1.2 )",
-		NULL, 0,
+		NULL, SLAP_AT_FINAL,
 		NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_authPassword) },
 	{ "supportedAuthPasswordSchemes", "( 1.3.6.1.4.1.4203.1.3.3 "
@@ -549,7 +549,7 @@ static struct slap_schema_ad_map {
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	{ "krbName", NULL,
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_FINAL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
 
@@ -565,7 +565,8 @@ static AttributeType slap_at_undefined = {
 	NULL, /* subtypes */
 	NULL, NULL, NULL, NULL,	/* matching rules */
 	NULL, /* syntax (this may need to be defined) */
-	(AttributeTypeSchemaCheckFN *) 0, 0, /* schema check function/mask */
+	(AttributeTypeSchemaCheckFN *) 0, /* schema check function */
+	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
 	NULL, /* next */
 	NULL /* attribute description */
 	/* mutex (don't know how to initialize it :) */
