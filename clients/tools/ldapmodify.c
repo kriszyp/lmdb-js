@@ -463,6 +463,7 @@ process_ldif_rec( char *rbuf, int count )
 		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPREPLACESTR ) == 0 ) {
 		modop = LDAP_MOD_REPLACE;
+		addmodifyop( &pmods, modop, value, NULL, 0 );
 		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPDELETESTR ) == 0 ) {
 		modop = LDAP_MOD_DELETE;

@@ -124,6 +124,9 @@ do_modify(
 		    (*modtail)->ml_op != LDAP_MOD_DELETE &&
 		    (*modtail)->ml_op != LDAP_MOD_REPLACE )
 		{
+			Debug( LDAP_DEBUG_ANY,
+				"do_modify: invalid modify operation (%ld)\n",
+				(long) (*modtail)->ml_op, 0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "unrecognized modify operation", NULL, NULL );
 			free( ndn );
@@ -131,11 +134,16 @@ do_modify(
 			return LDAP_PROTOCOL_ERROR;
 		}
 
-		if ( (*modtail)->ml_bvalues == NULL
-			&& (*modtail)->ml_op != LDAP_MOD_DELETE )
+		if ( (*modtail)->ml_bvalues == NULL && (
+			(*modtail)->ml_op != LDAP_MOD_REPLACE &&
+			(*modtail)->ml_op != LDAP_MOD_DELETE ) )
 		{
+			Debug( LDAP_DEBUG_ANY,
+				"do_modify: invalid modify operation (%ld) without values\n",
+				(long) (*modtail)->ml_op, 0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-			    NULL, "unrecognized modify operation", NULL, NULL );
+			    NULL, "unrecognized modify operation without values",
+				NULL, NULL );
 			free( ndn );
 			modlist_free( modlist );
 			return LDAP_PROTOCOL_ERROR;
