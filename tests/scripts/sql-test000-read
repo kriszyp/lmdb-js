@@ -16,15 +16,6 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-echo "### This test requires the sql backend, a properly configured"
-echo "### ODBC and a database poulated with data from the applicable"
-echo "### servers/slapd/back-sql/rdbms_depend/* files."
-echo "### Set SLAPD_USE_SQL to the desired RDBMS to enable this test;"
-echo "### Supported RDBMSes are: mysql,postgres"
-echo "### Set SLAPD_USE_SQLWRITE=yes to enable the write test"
-echo "### See servers/slapd/back-sql/rdbms_depend/README for more "
-echo "### details on how to set up the RDBMS and the ODBC"
-
 if test $BACKSQL = "sqlno" ; then 
 	echo "SQL backend not available, test skipped"
 	exit 0
@@ -47,7 +38,7 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$PID"
 
-echo "Testing SQL backend operations..."
+echo "Testing SQL backend read operations..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1
@@ -65,14 +56,23 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-BASEDN="o=Example,c=RU"
+BASEDN="dc=example,dc=com"
 BINDDN="cn=Mitya Kovalev,${BASEDN}"
 BINDPW="mit"
-echo "Testing bind..."
+echo -n "Testing correct bind... "
 $LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $BINDPW
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo -n "Testing incorrect bind (should fail)... "
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w "XXX"
+RC=$?
+if test $RC == 0 ; then
+	echo "ldapwhoami should have failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
@@ -160,6 +160,115 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing search for telephoneNumber..."
+echo "# Testing search for telephoneNumber..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(telephoneNumber=3322334)" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing AND search..."
+echo "# Testing AND search..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(&(sn=kovalev)(givenName=mitya))" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing AND search on objectClass..."
+echo "# Testing AND search on objectClass..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(&(objectClass=organization)(objectClass=dcObject))" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing OR search..."
+echo "# Testing OR search..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(|(sn=kovalev)(givenName=mitya))" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing OR search on objectClass..."
+echo "# Testing OR search on objectClass..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 "(|(objectClass=document)(objectClass=organization))" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing NOT search..."
+echo "# Testing NOT search..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 '(!(sn=kovalev))' >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing NOT search on objectClass..."
+echo "# Testing NOT search on objectClass..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 '(!(objectClass=inetOrgPerson))' >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing NOT search on \"auxiliary\" objectClass..."
+echo "# Testing NOT search on \"auxiliary\" objectClass..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+	 '(!(objectClass=dcObject))' >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+#### Needs work...
+echo "Testing NOT presence search... (disabled)"
+###echo "# Testing NOT search on sn..." >> $SEARCHOUT
+###$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
+###	 '(!(sn=*))' >> $SEARCHOUT 2>&1
+###
+###RC=$?
+###if test $RC != 0 ; then
+###	echo "ldapsearch failed ($RC)!"
+###	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+###	exit $RC
+###fi
+
 echo "Testing attribute inheritance in filter..."
 echo "# Testing attribute inheritance in filter..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
@@ -187,7 +296,7 @@ fi
 echo "Testing \"auxiliary\" objectClass in filter..."
 echo "# Testing \"auxiliary\" objectClass in filter..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-	 "(objectClass=posixAccount)" >> $SEARCHOUT 2>&1
+	 "(objectClass=dcObject)" >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -244,141 +353,74 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo -n "Testing compare (should be TRUE)... "
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 "$BINDDN" \
+	 "sn:kovalev" >> $TESTOUT 2>&1
+
+RC=$?
+case $RC in
+6)
+	echo "TRUE"
+	;;
+5)	echo "FALSE!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+*)	echo "failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+echo -n "Testing compare (should be FALSE)... "
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 "$BINDDN" \
+	 "cn:foobar" >> $TESTOUT 2>&1
+
+RC=$?
+case $RC in
+6)
+	echo "TRUE!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+5)	echo "FALSE"
+	;;
+*)	echo "failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+esac
+
+echo -n "Testing compare (should be UNDEFINED)... "
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 "$BINDDN" \
+	 "o:example" >> $TESTOUT 2>&1
+
+RC=$?
+case $RC in
+6)
+	echo "TRUE!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+5)	echo "FALSE!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+	;;
+*)	echo "failed ($RC)"
+	;;
+esac
+
 echo "Filtering ldapsearch results..."
 . $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering original ldif..."
-. $LDIFFILTER < $SQLMASTER > $LDIFFLT
+. $LDIFFILTER < $SQLREAD > $LDIFFLT
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 	
 if test $? != 0 ; then
-	echo "comparison failed - SQL master search didn't succeed"
+	echo "comparison failed - SQL search didn't succeed"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
-fi
-
-echo "Testing modify, add, and delete..."
-if test "${RDBMSWRITE}" != "yes"; then
-	echo "write test disabled; set SLAPD_USE_SQLWRITE=yes to enable"
-else
-	case ${RDBMS} in
-		# list here the RDBMSes whose mapping allows writes
-	postgres)
-		MANAGERDN="cn=Manager,${BASEDN}"
-		$LDAPMODIFY -v -c -D "$MANAGERDN" -w $PASSWD \
-			-h $LOCALHOST -p $PORT1 > \
-			$TESTOUT 2>&1 << EOMODS
-version: 1
-
-dn: cn=Mitya Kovalev,${BASEDN}
-changetype: modify
-add: telephoneNumber
-telephoneNumber: +1 800 123 4567
--
-
-dn: cn=Pierangelo Masarati,${BASEDN}
-changetype: add
-objectClass: inetOrgPerson
-cn: Pierangelo Masarati
-sn: Masarati
-givenName: Pierangelo
-telephoneNumber: +39 02 XXXX YYYY
-telephoneNumber: +39 02 XXXX ZZZZ
-
-dn: cn=Pierangelo Masarati,${BASEDN}
-changetype: modify
-delete: telephoneNumber
-telephoneNumber: +39 02 XXXX YYYY
--
-add: telephoneNumber
-telephoneNumber: +39 333 ZZZ 1234
--
-
-dn: cn=Torvlobnor Puzdoy,${BASEDN}
-changetype: delete
-
-dn: o=An Org,${BASEDN}
-changetype: add
-objectClass: organization
-o: An Org
-
-dn: o=An Org,${BASEDN}
-changetype: modrdn
-newrdn: o=Another Org
-deleteoldrdn: 1
-
-dn: documentTitle=book1,${BASEDN}
-changetype: modify
-add: documentAuthor
-documentAuthor: cn=Pierangelo Masarati,${BASEDN}
--
-
-dn: documentTitle=book2,${BASEDN}
-changetype: modify
-add: documentAuthor
-documentAuthor: cn=Pierangelo Masarati,${BASEDN}
--
-
-EOMODS
-
-		RC=$?
-		if test $RC != 0 ; then
-			echo "ldapmodify failed ($RC)!"
-			test $KILLSERVERS != no && kill -HUP $KILLPIDS
-			exit $RC
-		fi
-
-		NEWPW="newsecret"
-		echo "Testing passwd change..."
-		$LDAPPASSWD -h $LOCALHOST -p $PORT1 \
-			-D "${BINDDN}" -w ${BINDPW} -s ${NEWPW} \
-			"$BINDDN" >> $TESTOUT 2>&1
-
-		RC=$?
-		if test $RC != 0 ; then
-			echo "ldappasswd failed ($RC)!"
-			test $KILLSERVERS != no && kill -HUP $KILLPIDS
-			exit $RC
-		fi
-
-		echo "Testing bind with new secret..."
-		$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $NEWPW
-		RC=$?
-		if test $RC != 0 ; then
-			echo "ldapwhoami failed ($RC)!"
-			test $KILLSERVERS != no && kill -HUP $KILLPIDS
-			exit $RC
-		fi
-
-		echo "Using ldapsearch to retrieve all the entries..."
-		$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
-			 "objectClass=*" > $SEARCHOUT 2>&1
-
-		RC=$?
-		if test $RC != 0 ; then
-			echo "ldapsearch failed ($RC)!"
-			test $KILLSERVERS != no && kill -HUP $KILLPIDS
-			exit $RC
-		fi
-
-		echo "Filtering ldapsearch results..."
-		. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-		echo "Filtering modified ldif..."
-		. $LDIFFILTER < $SQLMODS > $LDIFFLT
-		echo "Comparing filter output..."
-		$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
-	
-		if test $? != 0 ; then
-			echo "comparison failed - SQL mods search didn't succeed"
-			test $KILLSERVERS != no && kill -HUP $KILLPIDS
-			exit 1
-		fi
-		;;
-
-	*)
-		echo "apparently ${RDBMS} does not support writes; skipping..."
-		;;
-	esac
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS

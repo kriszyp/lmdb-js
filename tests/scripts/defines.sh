@@ -222,8 +222,8 @@ IDASSERTOUT=$DATADIR/idassert.out
 LDAPGLUEOUT=$DATADIR/ldapglue.out
 LDAPGLUEANONYMOUSOUT=$DATADIR/ldapglueanonymous.out
 RELAYOUT=$DATADIR/relay.out
-SQLMASTER=$DATADIR/sqlmaster.out
-SQLMODS=$DATADIR/sqlmods.out
+SQLREAD=$DATADIR/sql-read.out
+SQLWRITE=$DATADIR/sql-write.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

@@ -1,0 +1,64 @@
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: documentTitle=War and Peace,dc=example,dc=com
+objectClass: document
+description: Historical novel
+documentTitle: War and Peace
+documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
+documentIdentifier: document 3
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: dc=subnet,dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: SubNet
+dc: subnet
+
+dn: o=Another Org,dc=example,dc=com
+objectClass: organization
+o: Another Org
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+telephoneNumber: +1 800 123 4567
+
+dn: cn=Lev Tolstoij,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Lev Tolstoij
+sn: Tolstoij
+seeAlso: documentTitle=book2,dc=example,dc=com
+seeAlso: documentTitle=War and Peace,dc=example,dc=com
+givenName: Lev
+telephoneNumber: +39 02 XXXX ZZZZ
+telephoneNumber: +39 333 ZZZ 1234
+
+dn: cn=Some One,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: simpleSecurityObject
+cn: Some One
+sn: One
+givenName: Some
+
+dn: cn=SubNet User,dc=subnet,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: SubNet User
+sn: User
+givenName: SubNet
+

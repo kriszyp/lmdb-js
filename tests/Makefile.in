@@ -19,11 +19,13 @@ SUBDIRS= progs
 BUILD_BDB=@BUILD_BDB@
 BUILD_HDB=@BUILD_HDB@
 BUILD_LDBM=@BUILD_LDBM@
+BUILD_SQL=@BUILD_SQL@
 
 test tests:
 	@$(MAKE) bdb
 	@$(MAKE) hdb
 	@$(MAKE) ldbm
+	@$(MAKE) sql
 
 bdb test-bdb:	bdb-$(BUILD_BDB)
 bdb-no:
@@ -48,6 +50,14 @@ ldbm-no:
 ldbm-yes ldbm-mod:	FORCE
 	@echo "Initiating LDAP tests for LDBM..."
 	@$(RUN) -b ldbm all
+
+sql test-sql:	sql-$(BUILD_SQL)
+sql-no:
+	@echo "run configure with --enable-sql"
+
+sql-yes sql-mod:	FORCE
+	@echo "Initiating LDAP tests for SQL..."
+	@$(RUN) -b sql sql-all
 
 clean-local:	FORCE
 	-$(RM) -r testrun *leak *gmon *core

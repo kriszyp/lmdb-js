@@ -1,0 +1,339 @@
+# Testing search...
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost/dc=example,dc=com??sub
+
+# Testing exact search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing substrings initial search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing substrings any search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing substrings final search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing approx search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing extensible filter search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing search for telephoneNumber...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing AND search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing AND search on objectClass...
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+# Testing OR search...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+# Testing OR search on objectClass...
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+# Testing NOT search...
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost/dc=example,dc=com??sub
+
+# Testing NOT search on objectClass...
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+# Testing NOT search on "auxiliary" objectClass...
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost/dc=example,dc=com??sub
+
+# Testing NOT search on sn...
+# Testing attribute inheritance in filter...
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+# Testing objectClass inheritance in filter...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+# refldap://localhost/dc=example,dc=com??sub
+
+# Testing "auxiliary" objectClass in filter...
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+# refldap://localhost/dc=example,dc=com??sub
+
+# Testing hasSubordinates in filter...
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+# refldap://localhost/dc=example,dc=com??sub
+
+# Testing attribute inheritance in requested attributes...
+dn: cn=Mitya Kovalev,dc=example,dc=com
+cn: Mitya Kovalev
+sn: Kovalev
+givenName: Mitya
+
+# Testing objectClass in requested attributes...
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+
+# refldap://localhost/dc=example,dc=com??sub
+
+# Testing operational attributes in request...
+dn: documentTitle=book1,dc=example,dc=com
+structuralObjectClass: document
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
+
+dn: documentTitle=book2,dc=example,dc=com
+structuralObjectClass: document
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
+
+dn: dc=example,dc=com
+structuralObjectClass: organization
+subschemaSubentry: cn=Subschema
+hasSubordinates: TRUE
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+structuralObjectClass: inetOrgPerson
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+structuralObjectClass: inetOrgPerson
+subschemaSubentry: cn=Subschema
+hasSubordinates: FALSE
+
+# refldap://localhost/dc=example,dc=com??sub
+
