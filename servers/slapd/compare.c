@@ -321,9 +321,42 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
-	if ( op->o_bd->be_compare ) {
-		op->orc_ava = &ava;
+	op->orc_ava = &ava;
+	if ( ava.aa_desc == slap_schema.si_ad_hasSubordinates
+			&& op->o_bd->be_has_subordinates )
+	{
+		int	rc, hasSubordinates = LDAP_SUCCESS;
+
+		rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL,
+				0, &entry );
+		if ( rc == 0 && entry ) {
+			rc = op->o_bd->be_has_subordinates( op, entry,
+					&hasSubordinates );
+			be_entry_release_r( op, entry );
+		}
+
+		if ( rc == 0 ) {
+			int	asserted;
+
+			asserted = bvmatch( &ava.aa_value, &slap_true_bv )
+				? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
+			if ( hasSubordinates == asserted ) {
+				rs->sr_err = LDAP_COMPARE_TRUE;
+			} else {
+				rs->sr_err = LDAP_COMPARE_FALSE;
+			}
+		}
+		send_ldap_result( op, rs );
+
+		if ( rs->sr_err == LDAP_COMPARE_TRUE ||
+				rs->sr_err == LDAP_COMPARE_FALSE )
+		{
+			rs->sr_err = LDAP_SUCCESS;
+		}
+	
+	} else if ( op->o_bd->be_compare ) {
 		op->o_bd->be_compare( op, rs );
+
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
