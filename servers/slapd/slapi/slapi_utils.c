@@ -1749,8 +1749,6 @@ slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	int verify_access )
 {
 #ifdef LDAP_SLAPI
-	Backend *be = NULL;
-	Connection *conn;
 	Operation *op;
 	int rc;
 
@@ -1760,17 +1758,11 @@ slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	}
 
 	if ( verify_access ) {
-		(void) slapi_pblock_get(pb, SLAPI_BACKEND, (void *)&be);
-		rc = slapi_pblock_get(pb, SLAPI_CONNECTION, (void *)&conn);
-		if ( rc != 0 ) {
-			return LDAP_PARAM_ERROR;
-		}
 		rc = slapi_pblock_get(pb, SLAPI_OPERATION, (void *)&op);
 		if ( rc != 0 ) {
 			return LDAP_PARAM_ERROR;
 		}
 	} else {
-		conn = NULL;
 		op = NULL;
 	}
 	/*
