@@ -969,8 +969,7 @@ syncrepl_entry(
 
 		if ( rc == LDAP_SUCCESS ||
 			 rc == LDAP_REFERRAL ||
-			 rc == LDAP_NO_SUCH_OBJECT ||
-			 rc == DB_NOTFOUND ) {
+			 rc == LDAP_NO_SUCH_OBJECT ) {
 
 			if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
 				attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID, syncUUID );
@@ -990,8 +989,7 @@ syncrepl_entry(
 					op->o_req_ndn = e->e_nname;
 					rc = be->be_modify( op, &rs );
 				} else if ( rc == LDAP_REFERRAL ||
-							rc == LDAP_NO_SUCH_OBJECT ||
-							rc == DB_NOTFOUND ) {
+							rc == LDAP_NO_SUCH_OBJECT ) {
 					syncrepl_add_glue(ld, op, e,
 						modlist, syncstate,
 						syncUUID, syncCookie);
@@ -1381,8 +1379,7 @@ update_cookie_retry:
 	rc = be->be_modify( op, &rs );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_REFERRAL ||
-			 rc == LDAP_NO_SUCH_OBJECT ||
-			 rc == DB_NOTFOUND ) {
+			 rc == LDAP_NO_SUCH_OBJECT ) {
 			op->o_tag = LDAP_REQ_ADD;
 			op->ora_e = e;
 			rc = be->be_add( op, &rs );
@@ -1390,8 +1387,7 @@ update_cookie_retry:
 				if ( rc == LDAP_ALREADY_EXISTS ) {
 					goto update_cookie_retry;
 				} else if ( rc == LDAP_REFERRAL ||
-							rc == LDAP_NO_SUCH_OBJECT ||
-							rc == DB_NOTFOUND ) {
+							rc == LDAP_NO_SUCH_OBJECT ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, ERR,
 						"cookie will be non-persistent\n",
@@ -2012,8 +2008,7 @@ null_callback(
 	if ( rs->sr_err != LDAP_SUCCESS &&
 		 rs->sr_err != LDAP_REFERRAL &&
 		 rs->sr_err != LDAP_ALREADY_EXISTS &&
-		 rs->sr_err != LDAP_NO_SUCH_OBJECT &&
-		 rs->sr_err != DB_NOTFOUND ) {
+		 rs->sr_err != LDAP_NO_SUCH_OBJECT ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
 			"null_callback : error code 0x%x\n",
