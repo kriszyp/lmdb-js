@@ -11,10 +11,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
+#include <ac/param.h>
 
 #include "slap.h"
 #include "back-ldbm.h"
