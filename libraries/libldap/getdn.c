@@ -26,6 +26,7 @@
 /* extension to UFN that turns trailing "dc=value" rdns in DNS style,
  * e.g. "ou=People,dc=openldap,dc=org" => "People, openldap.org" */
 #define DC_IN_UFN
+/* #define PRETTY_ESCAPE */
 
 static int dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout );
 
@@ -409,10 +410,10 @@ dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) || LDAP_DN_NE(c) )
 #define LDAP_DN_NEEDESCAPE_TRAIL(c) \
 	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_NEEDESCAPE(c) )
-#define LDAP_DN_WILLESCAPE_CHAR( c) \
-	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) )
-#define LDAP_DN_IS_PRETTY( f )		( (f) & LDAP_DN_PRETTY )
-#define LDAP_DN_WILLESCAPE(f, c) \
+#define LDAP_DN_WILLESCAPE_CHAR(c) \
+	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) || LDAP_DN_ESCAPE(c) )
+#define LDAP_DN_IS_PRETTY(f)		( (f) & LDAP_DN_PRETTY )
+#define LDAP_DN_WILLESCAPE_HEX(f, c) \
 	( ( !LDAP_DN_IS_PRETTY( f ) ) && LDAP_DN_WILLESCAPE_CHAR(c) )
 
 /* LDAPv2 */
@@ -1838,7 +1839,7 @@ end_of_value:;
 static int
 byte2hexpair( const char *val, char *pair )
 {
-	static const char	hexdig[] = "0123456789abcdef";
+	static const char	hexdig[] = "0123456789ABCDEF";
 
 	assert( val );
 	assert( pair );
@@ -1891,6 +1892,7 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 	ber_len_t	l, cl = 1;
 	char		*p;
 	int		escaped_byte_len = LDAP_DN_IS_PRETTY( flags ) ? 1 : 3;
+	int		escaped_ascii_len = LDAP_DN_IS_PRETTY( flags ) ? 2 : 3;
 	
 	assert( val );
 	assert( len );
@@ -1915,18 +1917,26 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 				}
 			}
 			l += escaped_byte_len * cl;
-		
-		/* 
-		 * there might be some chars we want to escape in form
-		 * of a couple of hexdigits for optimization purposes
-		 */
-		} else if ( LDAP_DN_WILLESCAPE( flags, p[ 0 ] ) ) {
-			l += 3;
 
 		} else if ( LDAP_DN_NEEDESCAPE( p[ 0 ] )
 				|| ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
 				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) ) ) {
-			l += 2;
+#ifdef PRETTY_ESCAPE
+			if ( LDAP_DN_WILLESCAPE_HEX( flags, p[ 0 ] ) ) {
+
+				/* 
+				 * there might be some chars we want 
+				 * to escape in form of a couple 
+				 * of hexdigits for optimization purposes
+				 */
+				l += 3;
+
+			} else {
+				l += escaped_ascii_len;
+			}
+#else /* ! PRETTY_ESCAPE */
+			l += 3;
+#endif /* ! PRETTY_ESCAPE */
 
 		} else {
 			l++;
@@ -1968,7 +1978,15 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		 * of a couple of hexdigits for optimization purposes
 		 */
 		if ( ( cl > 1 && !LDAP_DN_IS_PRETTY( flags ) ) 
-				|| LDAP_DN_WILLESCAPE( flags, val->bv_val[ s ] ) ) {
+#ifdef PRETTY_ESCAPE
+				|| LDAP_DN_WILLESCAPE_HEX( flags, val->bv_val[ s ] ) 
+#else /* ! PRETTY_ESCAPE */
+				|| LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
+				|| ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
+				|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) )
+
+#endif /* ! PRETTY_ESCAPE */
+				) {
 			for ( ; cl--; ) {
 				str[ d++ ] = '\\';
 				byte2hexpair( &val->bv_val[ s ], &str[ d ] );
@@ -1982,11 +2000,19 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 			}
 
 		} else {
+#ifdef PRETTY_ESCAPE
 			if ( LDAP_DN_NEEDESCAPE( val->bv_val[ s ] )
 					|| ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
 					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) ) ) {
 				str[ d++ ] = '\\';
+				if ( !LDAP_DN_IS_PRETTY( flags ) ) {
+					byte2hexpair( &val->bv_val[ s ], &str[ d ] );
+					s++;
+					d += 2;
+					continue;
+				}
 			}
+#endif /* PRETTY_ESCAPE */
 			str[ d++ ] = val->bv_val[ s++ ];
 		}
 	}
