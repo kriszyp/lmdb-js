@@ -784,13 +784,13 @@ do_bind(
 		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
 		c.ldctl_value.bv_val = NULL;
 		c.ldctl_value.bv_len = 0;
-		c.ldctl_iscritical = 1;
+		c.ldctl_iscritical = 0;
 
 		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_SERVER_CONTROLS, &ctrls);
 
 		if( err != LDAP_OPT_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"Error: ldap_set_option(%s, SERVER_CONTROLS, ManageDSAit) failed!\n",
+			Debug( LDAP_DEBUG_ANY, "Error: "
+				"ldap_set_option(%s, SERVER_CONTROLS, ManageDSAit) failed!\n",
 				ri->ri_hostname, NULL, NULL );
 			ldap_unbind( ri->ri_ldp );
 			ri->ri_ldp = NULL;
