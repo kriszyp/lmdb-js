@@ -2092,8 +2092,7 @@ void slapi_x_attrset_free( Slapi_AttrSet **pAs )
 
 	if ( as != NULL ) {
 		attrs_free( *as );
-		slapi_ch_free( (void **)&as );
-		*pAs = NULL;
+		slapi_ch_free( (void **)pAs );
 	}
 #endif
 }
