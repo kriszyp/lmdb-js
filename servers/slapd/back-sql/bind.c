@@ -113,13 +113,21 @@ backsql_bind( Operation *op, SlapReply *rs )
 	e = &user_entry;
 
 	if ( ! access_allowed( op, e, password, NULL, ACL_AUTH, NULL ) ) {
+#if 1
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+#else
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+#endif
 		goto error_return;
 	}
 
 	a = attr_find( e->e_attrs, password );
 	if ( a == NULL ) {
+#if 1
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+#else
 		rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
+#endif
 		goto error_return;
 	}
 
