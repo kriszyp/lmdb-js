@@ -52,20 +52,6 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
- * ctxcsn.c
- */
-#define bdb_csn_commit				BDB_SYMBOL(csn_commit)
-#define bdb_get_commit_csn			BDB_SYMBOL(get_commit_csn)
-
-int bdb_csn_commit LDAP_P(( Operation *op, SlapReply *rs, DB_TXN *tid,
-						EntryInfo *ei, EntryInfo **suffix_ei, Entry **ctxcsn_e,
-						int *ctxcsn_added, u_int32_t locker ));
-
-int bdb_get_commit_csn LDAP_P(( Operation *op, SlapReply *rs,
-						struct berval **search_context_csn,
-						u_int32_t locker, DB_LOCK *ctxcsn_lock ));
-
-/*
  * dbcache.c
  */
 #define bdb_db_cache				BDB_SYMBOL(db_cache)
@@ -538,34 +524,6 @@ int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
 #define	LOCK_ID(env, locker)		XLOCK_ID(env, locker)
 
 #endif
-
-/*
- * search.c
- */
-
-#define bdb_abandon					BDB_SYMBOL(abandon)
-#define bdb_cancel					BDB_SYMBOL(cancel)
-#define bdb_do_search				BDB_SYMBOL(do_search)
-#define bdb_psearch				BDB_SYMBOL(psearch)
-
-BI_op_abandon bdb_abandon;
-BI_op_cancel bdb_cancel;
-
-int bdb_psearch(
-	Operation       *op,
-	SlapReply	*rs,
-	Operation       *ps_op,
-	Entry           *entry,
-	int             psearch_type
-);
-
-int bdb_do_search(
-	Operation       *op,
-	SlapReply	*rs,
-	Operation       *ps_op,
-	Entry           *entry,
-	int             psearch_type
-);
 
 /*
  * trans.c
