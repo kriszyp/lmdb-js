@@ -56,7 +56,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 
 	connected = use_hp = 0;
 
-	if ( host != NULL && ( address = inet_addr( host )) == -1UL ) {
+	if ( host != NULL && ( address = inet_addr( host )) == (unsigned long) -1L ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
 #ifdef HAVE_WINSOCK
 			errno = WSAGetLastError();
