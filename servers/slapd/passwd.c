@@ -37,7 +37,8 @@ int passwd_extop(
 	Modifications ml, **modtail;
 	Operation op2;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
-	slap_callback cb2 = { &cb, slap_replog_cb, NULL, NULL };
+	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
+	cb2.sc_next = &cb;
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
