@@ -1678,7 +1678,9 @@ aci_group_member (
 
 	if (grp_oc != NULL && grp_ad != NULL ) {
 		char buf[ACL_BUF_SIZE];
-		struct berval bv = { sizeof(buf), buf }, ndn;
+		struct berval bv, ndn;
+		bv.bv_len = sizeof( buf );
+		bv.bv_val = &buf;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
 		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
 			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn, grp_oc, grp_ad) == 0);
