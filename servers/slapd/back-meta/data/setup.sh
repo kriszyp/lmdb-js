@@ -33,7 +33,7 @@ done
 echo ""
 echo "After slapd started, try"
 echo ""
-echo "    ldapsearch -x -H ldap://localhost:$PORT -b '' -s base namingContexts"
+echo "    ldapsearch -x -H ldap://:$PORT/ -b '' -s base namingContexts"
 echo ""
 echo "and browse the directory using the last base that appears;"
 echo "you may also try to bind as administrator of each subdirectory"
@@ -42,7 +42,7 @@ echo "to attrs \"sn\" and \"cn\" of some entries based on the ACLs ..."
 echo ""
 
 echo "Starting slapd on port $PORT"
-$SRCDIR/servers/slapd/slapd -f $CONF -h "ldap://localhost:$PORT/" -d $DEBUG
+$SRCDIR/servers/slapd/slapd -f $CONF -h "ldap://:$PORT/" -d $DEBUG
 echo "Waiting 2 secs for everything to shut down ..."
 sleep 2
 
