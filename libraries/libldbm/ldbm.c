@@ -136,7 +136,7 @@ int ldbm_initialize( void )
 			sprintf( error, "%s\n", strerror( err ));
 		}
 
-#ifndef WIN32
+#ifdef HAVE_SYSLOG
 		syslog( LOG_INFO,
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
 			error );
