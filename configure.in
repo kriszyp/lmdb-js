@@ -1943,12 +1943,11 @@ AC_COMPILE_CHECK_SIZEOF(short)
 AC_COMPILE_CHECK_SIZEOF(int) 
 AC_COMPILE_CHECK_SIZEOF(long)
 
-if test "$ac_cv_sizeof_short" -lt 4 ; then
-	AC_DEFINE(LBER_INT_T,long)
-else
-	AC_DEFINE(LBER_INT_T,short)
+if test "$ac_cv_sizeof_long" -lt 4 ; then
+	AC_MSG_ERROR([sizeof(long) < 4])
 fi
 
+AC_DEFINE(LBER_INT_T,long)
 AC_DEFINE(LBER_LEN_T,long)
 AC_DEFINE(LBER_SOCKET_T,int)
 AC_DEFINE(LBER_TAG_T,long)
