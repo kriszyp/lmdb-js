@@ -318,6 +318,10 @@ typedef struct ldapmod {
 #define LDAP_MOD_ADD		0x0000
 #define LDAP_MOD_DELETE		0x0001
 #define LDAP_MOD_REPLACE	0x0002
+/* IMPORTANT: do not use code 0x04, it is used internally by the backends!
+ * (see ldap/servers/slapd/slap.h)
+ * JCG 05/1999 (gomez@engr.sgi.com)
+ */
 #define LDAP_MOD_BVALUES	0x0080
 	char		*mod_type;
 	union mod_vals_u {
