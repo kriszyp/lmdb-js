@@ -47,7 +47,7 @@ static char *const err2text[] = {
 char *
 scherr2str(int code)
 {
-	if ( code < 0 || SLAP_SCHERR_LAST < code ) {
+	if ( code < 0 || SLAP_SCHERR_LAST <= code ) {
 		return "Unknown error";
 	} else {
 		return err2text[code];
