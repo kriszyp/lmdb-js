@@ -181,6 +181,25 @@ ber_realloc( BerElement *ber, ber_len_t len )
 }
 
 void
+ber_free_buf( BerElement *ber )
+{
+	Seqorset *s, *next;
+
+	assert( LBER_VALID( ber ) );
+
+	if ( ber->ber_buf) LBER_FREE( ber->ber_buf );
+
+	for( s = ber->ber_sos ; s != NULL ; s = next ) {
+		next = s->sos_next;
+		LBER_FREE( s );
+	}
+
+	ber->ber_buf = NULL;
+	ber->ber_sos = NULL;
+	ber->ber_valid = LBER_UNINITIALIZED;
+}
+
+void
 ber_free( BerElement *ber, int freebuf )
 {
 #ifdef LDAP_MEMORY_DEBUG
@@ -191,21 +210,8 @@ ber_free( BerElement *ber, int freebuf )
 		return;
 	}
 
-	assert( LBER_VALID( ber ) );
-
-	if ( freebuf ) {
-		Seqorset *s, *next;
-		LBER_FREE( ber->ber_buf );
-
-		for( s = ber->ber_sos ; s != NULL ; s = next ) {
-			next = s->sos_next;
-			LBER_FREE( s );
-		}
-	}
-
-	ber->ber_buf = NULL;
-	ber->ber_sos = NULL;
-	ber->ber_valid = LBER_UNINITIALIZED;
+	if( freebuf )
+		ber_free_buf( ber );
 
 	LBER_FREE( (char *) ber );
 }

@@ -406,6 +406,9 @@ ber_free LDAP_P((
 	BerElement *ber,
 	int freebuf ));
 
+LBER_F( void )
+ber_free_buf LDAP_P(( BerElement *ber ));
+
 LBER_F( int )
 ber_flush LDAP_P((
 	Sockbuf *sb,
