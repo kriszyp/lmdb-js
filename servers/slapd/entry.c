@@ -626,7 +626,6 @@ int entry_decode(struct berval *bv, Entry **e)
 		bptr = (BVarray)(a+1);
 		a->a_vals = bptr;
 		j = entry_getlen(&ptr);
-		a->a_vals[j].bv_val = NULL;
 
 		while (j) {
 			i = entry_getlen(&ptr);
@@ -636,6 +635,9 @@ int entry_decode(struct berval *bv, Entry **e)
 			bptr++;
 			j--;
 		}
+		bptr->bv_val = NULL;
+		bptr->bv_len = 0;
+		bptr++;
 	}
 	if (a)
 		a->a_next = NULL;
