@@ -39,9 +39,26 @@ directive.
 After a write operation has succeeded, write the contextCSN to the underlying
 database if <ops> write operations or more than <minutes> time have passed
 since the last checkpoint. Checkpointing is disabled by default.
+.TP
+.B syncprov-sessionlog <sid> <size>
+Specify a session log for recording information about entries that have been
+scoped out of the content identified by
+.BR <sid> .
+The number of entries in the log is limited by
+.BR <size> .
+Both
+.B <sid>
+and
+.B <size>
+must be non-negative integers, and
+.B <sid>
+can have no more than three decimal digits.
+When using the session log, it is helpful to set an eq index on the
+entryUUID attribute in the underlying database.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR slapd.conf (5).
+OpenLDAP Administrator's Guide.
