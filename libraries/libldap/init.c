@@ -315,12 +315,15 @@ void ldap_int_initialize( void )
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();
 
+	gopts.ldo_debug = 0;
+
 	gopts.ldo_version =	LDAP_VERSION2;
 	gopts.ldo_deref =	LDAP_DEREF_NEVER;
 	gopts.ldo_timelimit = LDAP_NO_LIMIT;
 	gopts.ldo_sizelimit = LDAP_NO_LIMIT;
 
-	gopts.ldo_debug = 0;
+	gopts.ldo_tm_api = (struct timeval *)NULL;
+	gopts.ldo_tm_net = (struct timeval *)NULL;
 
 	gopts.ldo_defhost = LDAP_STRDUP("localhost");
 	gopts.ldo_defport = LDAP_PORT;

@@ -90,6 +90,9 @@ struct ldapoptions {
 #define LDAP_VALID_SESSION	0x2
 
 	int		ldo_debug;
+	/* per API call timeout */
+	struct timeval		*ldo_tm_api;
+	struct timeval		*ldo_tm_net;
 
 	ber_int_t		ldo_version;	/* version to connect at */
 	ber_int_t		ldo_deref;
@@ -118,6 +121,7 @@ struct ldapoptions {
 #endif
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
+
 
 /*
  * structure for tracking LDAP server host, ports, DNs, etc.
@@ -353,9 +357,10 @@ int open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
  * in os-ip.c
  */
 extern int ldap_int_tblsize;
+int ldap_int_timeval_dup( struct timeval **dest, const struct timeval *tm );
+int ldap_connect_to_host( LDAP *ld, Sockbuf *sb, const char *host,
+	unsigned long address, int port, int async );
 
-int ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address, int port,
-	int async );
 void ldap_close_connection( Sockbuf *sb );
 
 #ifdef HAVE_KERBEROS

@@ -25,6 +25,13 @@
 #include <io.h>
 #endif /* HAVE_IO_H */
 
+#if defined( HAVE_FCNTL_H )
+#include <fcntl.h>
+#ifndef O_NONBLOCK
+#define O_NONBLOCK O_NDELAY
+#endif
+#endif /* HAVE_FCNTL_H */
+
 #if defined( HAVE_SYS_FILIO_H )
 #include <sys/filio.h>
 #elif defined( HAVE_SYS_IOCTL_H )
@@ -35,143 +42,315 @@
 
 int ldap_int_tblsize = 0;
 
+/*
+ * nonblock connect code
+ * written by Lars Uffmann, <lars.uffmann@mediaway.net>.
+ *
+ * Copyright 1999, Lars Uffmann, All rights reserved.
+ * This software is not subject to any license of my employer
+ * mediaWays GmbH.
+ *
+ * OpenLDAP COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ *
+ * Read about the rationale in ldap_connect_timeout: 
+ * ftp://koobera.math.uic.edu/www/docs/connect.html.
+ */
+
+#define osip_debug(ld,fmt,arg1,arg2,arg3) \
+do { \
+	ldap_log_printf(ld, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
+} while(0)
+
+static void
+ldap_pvt_set_errno(int err)
+{
+	errno = err;
+}
 
 int
-ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
-	int port, int async )
-/*
- * if host == NULL, connect using address
- * "address" and "port" must be in network byte order
- * zero is returned upon success, -1 if fatal error, -2 EINPROGRESS
- * async is only used ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS (non-0 means don't wait for connect)
- * XXX async is not used yet!
- */
+ldap_int_timeval_dup( struct timeval **dest, const struct timeval *src )
 {
-	int			rc, i;
-	ber_socket_t s = AC_SOCKET_INVALID;
-	int			connected, use_hp;
-	struct sockaddr_in	sin;
-	struct hostent		*hp = NULL;
+	struct timeval *new;
+
+	assert( dest != NULL );
+
+	if (src == NULL) {
+		*dest = NULL;
+		return 0;
+	}
+
+	new = (struct timeval *) malloc(sizeof(struct timeval));
+
+	if( new == NULL ) {
+		*dest = NULL;
+		return 1;
+	}
+
+	SAFEMEMCPY( (char *) new, (char *) src, sizeof(struct timeval));
+
+	*dest = new;
+	return 0;
+}
+
+static int
+ldap_pvt_ndelay_on(LDAP *ld, int fd)
+{
+	osip_debug(ld, "ldap_ndelay_on: %d\n",fd,0,0);
 #ifdef notyet
-	ioctl_t			status;	/* for ioctl call */
-#endif /* notyet */
-   
-   	/* buffers for ldap_pvt_gethostbyname_a */
-   	struct hostent		he_buf;
-   	int			local_h_errno;
-   	char   			*ha_buf=NULL;
-#define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
-   
-	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
-	    ( host == NULL ) ? "(by address)" : host, (int) ntohs( (short) port ), 0 );
-
-	connected = use_hp = 0;
-
-	if ( host != NULL ) {
-	    address = inet_addr( host );
-	    /* This was just a test for -1 until OSF1 let inet_addr return
-	       unsigned int, which is narrower than 'unsigned long address' */
-	    if ( address == 0xffffffff || address == (unsigned long) -1 ) {
-		if ( ( ldap_pvt_gethostbyname_a( host, &he_buf, &ha_buf,
-			&hp, &local_h_errno) < 0) || (hp==NULL))
-		{
-#ifdef HAVE_WINSOCK
-			errno = WSAGetLastError();
+/* #if defined( HAVE_FCNTL_H ) */
+	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) | O_NONBLOCK);
 #else
-			errno = EHOSTUNREACH;	/* not exactly right, but... */
+{
+	ioctl_t	status = 1;
+	return ioctl( fd, FIONBIO, (caddr_t)&status );
+}
 #endif
-			DO_RETURN( -1 );
-		}
-		use_hp = 1;
-	    }
-	}
-
-	rc = -1;
-	for ( i = 0; !use_hp || ( hp->h_addr_list[ i ] != 0 ); i++ ) {
-		if (( s = socket( AF_INET, SOCK_STREAM, 0 )) < 0 ) {
-			DO_RETURN( -1 );
-		}
-#ifdef TCP_NODELAY
-		{
-			int tmp = 1;
-			if( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
-				(char *) &tmp, sizeof(tmp) ) == -1 )
-			{
-				Debug( LDAP_DEBUG_ANY,
-					"setsockopt(TCP_NODELAY failed on %d\n",
-					s, 0, 0 );
-			}
-		}
-#endif
-#ifdef notyet
-		status = 1;
-		if ( async && ioctl( s, FIONBIO, (caddr_t)&status ) == -1 ) {
-			Debug( LDAP_DEBUG_ANY, "FIONBIO ioctl failed on %d\n",
-			    s, 0, 0 );
-		}
-#endif /* notyet */
-		(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
-		sin.sin_family = AF_INET;
-		sin.sin_port = port;
-		SAFEMEMCPY( (char *) &sin.sin_addr.s_addr,
-		    ( use_hp ? (char *) hp->h_addr_list[ i ] :
-		    (char *) &address ), sizeof( sin.sin_addr.s_addr) );
-
-		if ( connect( s, (struct sockaddr *)&sin,
-		    sizeof( struct sockaddr_in )) >= 0 ) {
-			connected = 1;
-			rc = 0;
-			break;
-		} else {
-#ifdef HAVE_WINSOCK
-		        errno = WSAGetLastError();
-#endif
-#ifdef notyet
-#ifdef EAGAIN
-			if ( errno == EINPROGRESS || errno == EAGAIN ) {
-#else /* EAGAIN */
-			if ( errno == EINPROGRESS ) {
-#endif /* EAGAIN */
-				Debug( LDAP_DEBUG_TRACE,
-					"connect would block...\n", 0, 0, 0 );
-				rc = -2;
-				break;
-			}
-#endif /* notyet */
-
-#ifdef LDAP_DEBUG		
-			if ( ldap_debug & LDAP_DEBUG_TRACE ) {
-				perror( (char *)inet_ntoa( sin.sin_addr ));
-			}
-#endif
-			tcp_close( s );
-			if ( !use_hp ) {
-				break;
-			}
-		}
-	}
-
-	ber_pvt_sb_set_desc( sb, s );		
-
-	if ( connected ) {
-	   
-#ifdef notyet
-		status = 0;
-		if ( !async && ioctl( s, FIONBIO, (caddr_t)&on ) == -1 ) {
-			Debug( LDAP_DEBUG_ANY, "FIONBIO ioctl failed on %d\n",
-			    s, 0, 0 );
-		}
-#endif /* notyet */
-
-		Debug( LDAP_DEBUG_TRACE, "sd %d connected to: %s\n",
-		    s, (char *) inet_ntoa( sin.sin_addr ), 0 );
-	}
-
-	DO_RETURN( rc );
+	return 0;
 }
    
-#undef DO_RETURN
+static int
+ldap_pvt_ndelay_off(LDAP *ld, int fd)
+{
+	osip_debug(ld, "ldap_ndelay_off: %d\n",fd,0,0);
+#ifdef notyet
+/* #if defined( HAVE_FCNTL_H ) */
+	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
+#else
+{
+	ioctl_t	status = 0;
+	return ioctl( fd, FIONBIO, (caddr_t)&status );
+}
+#endif
+}
 
+static ber_socket_t
+ldap_pvt_socket(LDAP *ld)
+{
+	ber_socket_t s = socket(AF_INET, SOCK_STREAM, 0);
+	osip_debug(ld, "ldap_new_socket: %d\n",s,0,0);
+	return ( s );
+}
+
+static int
+ldap_pvt_close_socket(LDAP *ld, int s)
+{
+	osip_debug(ld, "ldap_close_socket: %d\n",s,0,0);
+	return tcp_close(s);
+}
+
+static int
+ldap_pvt_prepare_socket(LDAP *ld, int fd)
+{
+	osip_debug(ld, "ldap_prepare_socket: %d\n",fd,0,0);
+
+#ifdef TCP_NODELAY
+{
+	int dummy = 1;
+	if ( setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,&dummy,sizeof(dummy)) == -1 )
+		return -1;
+}
+#endif
+	return 0;
+}
+
+/*
+ * check the socket for errors after select returned.
+ */
+static int
+ldap_pvt_is_socket_ready(LDAP *ld, int s)
+{
+	osip_debug(ld, "ldap_is_sock_ready: %d\n",s,0,0);
+
+#define TRACE \
+{ \
+	osip_debug(ld, \
+		"ldap_is_socket_ready: errror on socket %d: errno: %d (%s)\n", \
+		s, \
+		errno, \
+		strerror(errno) ); \
+}
+
+#ifdef notyet
+/* #ifdef SO_ERROR */
+{
+	int so_errno;
+	int dummy = sizeof(so_errno);
+	if ( getsockopt(s,SOL_SOCKET,SO_ERROR,&so_errno,&dummy) == -1 )
+		return -1;
+	if ( so_errno ) {
+		ldap_pvt_set_errno(so_errno);
+		TRACE;
+		return -1;
+	}
+	return 0;
+}
+#else
+{
+	/* error slippery */
+	struct sockaddr_in sin;
+	char ch;
+	int dummy = sizeof(sin);
+	if ( getpeername(s, (struct sockaddr *) &sin, &dummy) == -1 ) {
+		read(s, &ch, 1);
+#ifdef HAVE_WINSOCK
+		ldap_pvt_set_errno( WSAGetLastError() );
+#endif
+		TRACE;
+		return -1;
+		}
+	return 0;
+}
+#endif
+	return -1;
+#undef TRACE
+}
+
+static int
+ldap_pvt_connect(LDAP *ld, int s, struct sockaddr_in *sin, int async)
+{
+	struct timeval	tv, *opt_tv=NULL;
+	fd_set		wfds, *z=NULL;
+
+	if ( (opt_tv = ld->ld_options.ldo_tm_net) != NULL ) {
+		tv.tv_usec = opt_tv->tv_usec;
+		tv.tv_sec = opt_tv->tv_sec;
+	}
+
+	osip_debug(ld, "ldap_connect_timeout: fd: %d tm: %d async: %d\n",
+			s, opt_tv ? tv.tv_sec : -1, async);
+
+	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
+		return ( -1 );
+
+	if ( connect(s, (struct sockaddr *) sin, sizeof(struct sockaddr_in)) == 0 )
+	{
+		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
+			return ( -1 );
+		return ( 0 );
+	}
+
+#ifdef HAVE_WINSOCK
+	ldap_pvt_set_errno( WSAGetLastError() );
+#endif
+
+	if ( (errno != EINPROGRESS) && (errno != EWOULDBLOCK) )
+		return ( -1 );
+	
+#ifdef notyet
+	if ( async ) return ( -2 );
+#endif
+
+	FD_ZERO(&wfds); FD_SET(s, &wfds );
+
+	if ( select(s + 1, z, &wfds, z, opt_tv ? &tv : NULL) == -1)
+		return ( -1 );
+
+	if ( FD_ISSET(s, &wfds) ) {
+		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
+			return ( -1 );
+		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
+			return ( -1 );
+		return ( 0 );
+	}
+	osip_debug(ld, "ldap_connect_timeout: timed out\n",0,0,0);
+	ldap_pvt_set_errno( ETIMEDOUT );
+	return ( -1 );
+}
+
+static int
+ldap_pvt_inet_aton( LDAP *ld, const char *host, struct in_addr *in)
+{
+#ifdef notyet
+/* #ifdef HAVE_INET_ATON */
+	return inet_aton( host, in );
+#else
+{
+	unsigned long u = inet_addr( host );
+	if ( u != 0xffffffff || u != (unsigned long) -1 ) {
+		in->s_addr = u;
+		return 1;
+	}
+}
+#endif
+	return 0;
+}
+
+
+int
+ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
+		unsigned long address, int port, int async)
+{
+	struct sockaddr_in	sin;
+	struct in_addr		in;
+	ber_socket_t		s = AC_SOCKET_INVALID;
+	int			rc, i, use_hp = 0;
+	struct hostent		*hp, he_buf;
+   	int			local_h_errno;
+	char   			*ha_buf=NULL, *p, *q;
+
+	osip_debug(ld, "ldap_connect_to_host\n",0,0,0);
+	
+	if (host != NULL) {
+		if (! ldap_pvt_inet_aton( ld, host, &in) ) {
+			rc = ldap_pvt_gethostbyname_a(host, &he_buf, &ha_buf,
+					&hp, &local_h_errno);
+
+			if ( rc < 0 )
+				; /*XXX NO MEMORY? */
+
+			if ( (rc < 0) || (hp == NULL) ) {
+#ifdef HAVE_WINSOCK
+				ldap_pvt_set_errno( WSAGetLastError() );
+#else
+				/* not exactly right, but... */
+				ldap_pvt_set_errno( EHOSTUNREACH );
+#endif
+				if (ha_buf) LDAP_FREE(ha_buf);
+				return -1;
+			}
+			use_hp = 1;
+		}
+		address = in.s_addr;
+	}
+
+	rc = s = -1;
+	for ( i = 0; !use_hp || (hp->h_addr_list[i] != 0); ++i, rc = -1 ) {
+
+		if ( (s = ldap_pvt_socket( ld )) == -1 )
+			/* use_hp ? continue : break; */
+			break;
+	   
+		if ( ldap_pvt_prepare_socket(ld, s) == -1 ) {
+			ldap_pvt_close_socket(ld, s);
+			/* use_hp ? continue : break; */
+			break;
+		}
+
+		(void)memset((char *)&sin, 0, sizeof(struct sockaddr_in));
+		sin.sin_family = AF_INET;
+		sin.sin_port = port;
+		p = (char *)&sin.sin_addr.s_addr;
+		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&address;
+		SAFEMEMCPY(p, q, sizeof(p) );
+
+		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
+				inet_ntoa(sin.sin_addr),ntohs(sin.sin_port),0);
+
+		rc = ldap_pvt_connect(ld, s, &sin, async);
+   
+		if ( (rc == 0) || (rc == -2) ) {
+			ber_pvt_sb_set_desc( sb, s );
+			break;
+		}
+
+		ldap_pvt_close_socket(ld, s);
+
+		if (!use_hp)
+			break;
+	}
+	if (ha_buf) LDAP_FREE(ha_buf);
+	return rc;
+}
 
 void
 ldap_close_connection( Sockbuf *sb )

@@ -11,6 +11,7 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/time.h>
 
 #include "ldap-int.h"
 
@@ -153,6 +154,22 @@ ldap_get_option(
 		} 
 
 		* (ber_socket_t *) outvalue = ber_pvt_sb_get_desc( &(ld->ld_sb) );
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_TIMEOUT:
+		/* the caller has to free outvalue ! */
+		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api) != 0 )
+		{
+			return LDAP_OPT_ERROR;
+		}
+		return LDAP_OPT_SUCCESS;
+		
+	case LDAP_OPT_NETWORK_TIMEOUT:
+		/* the caller has to free outvalue ! */
+		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_net ) != 0 )
+		{
+			return LDAP_OPT_ERROR;
+		}
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_DEREF:
@@ -322,38 +339,8 @@ ldap_set_option(
 		return LDAP_OPT_SUCCESS;
 	}
 
-	if(invalue == NULL) {
-		/* no place to set from */
-		return LDAP_OPT_ERROR;
-	}
-
-	switch(option) {
-	case LDAP_OPT_API_INFO:
-	case LDAP_OPT_DESC:
-		/* READ ONLY */
-		break;
-
-	case LDAP_OPT_DEREF:
-		lo->ldo_deref = * (const int *) invalue;
-		return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_SIZELIMIT:
-		lo->ldo_sizelimit = * (const int *) invalue;
-		return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_TIMELIMIT:
-		lo->ldo_timelimit = * (const int *) invalue;
-		return LDAP_OPT_SUCCESS;
-
-	case LDAP_OPT_PROTOCOL_VERSION: {
-			int vers = * (const int *) invalue;
-			if (vers < LDAP_VERSION_MIN || vers > LDAP_VERSION_MAX) {
-				/* not supported */
-				break;
-			}
-			ld->ld_version = vers;
-		} return LDAP_OPT_SUCCESS;
-
+	/* options which can withstand invalue == NULL */
+	switch ( option ) {
 	case LDAP_OPT_SERVER_CONTROLS: {
 			LDAPControl *const *controls =
 				(LDAPControl *const *) invalue;
@@ -391,6 +378,70 @@ ldap_set_option(
 				break;
 			}
 		} return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_TIMEOUT: {
+			const struct timeval *tv = 
+				(struct timeval *) invalue;
+
+			if ( lo->ldo_tm_api != NULL ) {
+				LDAP_FREE( lo->ldo_tm_api );
+				lo->ldo_tm_api = NULL;
+			}
+
+			if ( ldap_int_timeval_dup( &lo->ldo_tm_api, tv ) != 0 ) {
+				return LDAP_OPT_ERROR;
+			}
+		} return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_NETWORK_TIMEOUT: {
+			const struct timeval *tv = 
+				(struct timeval *) invalue;
+
+			if ( lo->ldo_tm_net != NULL ) {
+				LDAP_FREE( lo->ldo_tm_net );
+				lo->ldo_tm_net = NULL;
+			}
+
+			if ( ldap_int_timeval_dup( &lo->ldo_tm_net, tv ) != 0 ) {
+				return LDAP_OPT_ERROR;
+			}
+		} return LDAP_OPT_SUCCESS;
+	}
+
+	if(invalue == NULL) {
+		/* no place to set from */
+		return LDAP_OPT_ERROR;
+	}
+
+	/* options which cannot withstand invalue == NULL */
+
+	switch(option) {
+	case LDAP_OPT_API_INFO:
+	case LDAP_OPT_DESC:
+		/* READ ONLY */
+		break;
+
+	case LDAP_OPT_DEREF:
+		lo->ldo_deref = * (const int *) invalue;
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_SIZELIMIT:
+		lo->ldo_sizelimit = * (const int *) invalue;
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_TIMELIMIT:
+		lo->ldo_timelimit = * (const int *) invalue;
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_PROTOCOL_VERSION: {
+			int vers = * (const int *) invalue;
+			if (vers < LDAP_VERSION_MIN || vers > LDAP_VERSION_MAX) {
+				/* not supported */
+				break;
+			}
+			ld->ld_version = vers;
+		} return LDAP_OPT_SUCCESS;
+
 
 	case LDAP_OPT_HOST_NAME: {
 			const char *host = (const char *) invalue;

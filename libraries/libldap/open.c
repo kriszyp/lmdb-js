@@ -236,13 +236,13 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
 			    port = defport;   
 			}
 
-			if (( rc = ldap_connect_to_host( sb, curhost, 0L,
+			if (( rc = ldap_connect_to_host( ld, sb, curhost, 0L,
 			    port, async )) != -1 ) {
 				break;
 			}
 		}
 	} else {
-		rc = ldap_connect_to_host( sb, NULL, htonl( INADDR_LOOPBACK ),
+		rc = ldap_connect_to_host( ld, sb, 0, htonl( INADDR_LOOPBACK ),
 		    defport, async );
 	}
 

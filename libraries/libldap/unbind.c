@@ -133,6 +133,16 @@ ldap_ld_free(
 		ld->ld_options.ldo_defhost = NULL;
 	}
 
+	if ( ld->ld_options.ldo_tm_api != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_tm_api );
+		ld->ld_options.ldo_tm_api = NULL;
+	}
+
+	if ( ld->ld_options.ldo_tm_net != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_tm_net );
+		ld->ld_options.ldo_tm_net = NULL;
+	}
+
 	ber_pvt_sb_destroy( &(ld->ld_sb) );   
    
 	LDAP_FREE( (char *) ld );
