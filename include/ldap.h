@@ -231,8 +231,8 @@ typedef struct ldapcontrol {
 /* general stuff */
 #define LDAP_TAG_MESSAGE	((ber_tag_t) 0x30U)	/* constructed + 16 */
 #define LDAP_TAG_MSGID		((ber_tag_t) 0x02U)	/* integer */
-#define LDAP_TAG_LDAPDN		((ber_tag_t) 0x04U)	/* octect string */
-#define LDAP_TAG_LDAPCRED	((ber_tag_t) 0x04U)	/* octect string */
+#define LDAP_TAG_LDAPDN		((ber_tag_t) 0x04U)	/* octet string */
+#define LDAP_TAG_LDAPCRED	((ber_tag_t) 0x04U)	/* octet string */
 #define LDAP_TAG_CONTROLS	((ber_tag_t) 0xa0U)	/* context specific + constructed + 0 */
 #define LDAP_TAG_REFERRAL	((ber_tag_t) 0xa3U)	/* context specific + constructed + 3 */
 
