@@ -177,7 +177,7 @@ typedef int LDBMCursor;
 typedef MDBM		*LDBM;
 
 LDAP_END_DECL
-    
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>

@@ -46,14 +46,14 @@ ldap_pvt_thread_set_concurrency LDAP_P(( int ));
 #define LDAP_PVT_THREAD_STACK_SIZE	(16*1024*1024)
 #endif
 
-LDAP_F( int ) 
+LDAP_F( int )
 ldap_pvt_thread_create LDAP_P((
-	ldap_pvt_thread_t * thread, 
+	ldap_pvt_thread_t * thread,
 	int	detach,
-	void *(*start_routine)( void * ), 
+	void *(*start_routine)( void * ),
 	void *arg));
 
-LDAP_F( void ) 
+LDAP_F( void )
 ldap_pvt_thread_exit LDAP_P(( void *retval ));
 
 LDAP_F( int )
@@ -79,7 +79,7 @@ ldap_pvt_thread_cond_broadcast LDAP_P(( ldap_pvt_thread_cond_t *cond ));
 
 LDAP_F( int )
 ldap_pvt_thread_cond_wait LDAP_P((
-	ldap_pvt_thread_cond_t *cond, 
+	ldap_pvt_thread_cond_t *cond,
 	ldap_pvt_thread_mutex_t *mutex ));
 
 LDAP_F( int )

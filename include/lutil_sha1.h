@@ -35,10 +35,10 @@ typedef ac_uint4 uint32;
 
 typedef struct {
     uint32 state[5];
-    uint32 count[2];  
+    uint32 count[2];
     unsigned char buffer[64];
 } lutil_SHA1_CTX;
-  
+
 LDAP_LUTIL_F( void )
 lutil_SHA1Transform
 	LDAP_P((uint32 state[5], const unsigned char buffer[64]));

@@ -16,7 +16,7 @@
 
 /* cross compilers should define both AC_INT{2,4}_TYPE in CPPFLAGS */
 
-#if !defined( AC_INT4_TYPE ) 
+#if !defined( AC_INT4_TYPE )
 	/* use autoconf defines to provide sized typedefs */
 #	if SIZEOF_LONG == 4
 #		define AC_INT4_TYPE long
@@ -34,7 +34,7 @@ typedef AC_INT4_TYPE ac_int4;
 typedef signed AC_INT4_TYPE ac_sint4;
 typedef unsigned AC_INT4_TYPE ac_uint4;
 
-#if !defined( AC_INT2_TYPE ) 
+#if !defined( AC_INT2_TYPE )
 #	if SIZEOF_SHORT == 2
 #		define AC_INT2_TYPE short
 #	elif SIZEOF_INT == 2
@@ -46,8 +46,8 @@ typedef unsigned AC_INT4_TYPE ac_uint4;
 /* #	error "AC_INT2_TYPE?" */
 #	endif
 #endif
-    
-#if defined( AC_INT2_TYPE ) 
+ 
+#if defined( AC_INT2_TYPE )
 typedef AC_INT2_TYPE ac_int2;
 typedef signed AC_INT2_TYPE ac_sint2;
 typedef unsigned AC_INT2_TYPE ac_uint2;

@@ -49,7 +49,7 @@ LDAP_LUTIL_F(lutil_sig_t) lutil_sigaction( int sig, lutil_sig_t func );
 		 * two signals reserved for user applications.  This forces
 		 * OpenLDAP to use other signals reserved for other uses.
 		 */
-	    
+
 #		if defined( SIGSTKFLT )
 #			define LDAP_SIGUSR1	SIGSTKFLT
 #		elif defined ( SIGSYS )

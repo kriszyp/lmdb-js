@@ -29,7 +29,7 @@
 
 LDAP_BEGIN_DECL
 
-/*  
+/*
  * UTF-8 (in utf-8.c)
  */
 

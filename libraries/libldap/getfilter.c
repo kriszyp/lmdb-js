@@ -35,54 +35,7 @@ static int break_into_words LDAP_P((
 
 #define FILT_MAX_LINE_LEN	1024
 
-LDAPFiltDesc *
-ldap_init_getfilter( LDAP_CONST char *fname )
-{
-    FILE		*fp;
-    char		*buf;
-    long		rlen, len;
-    int 		eof;
-    LDAPFiltDesc	*lfdp;
-
-    if (( fp = fopen( fname, "r" )) == NULL ) {
-	return( NULL );
-    }
-
-    if ( fseek( fp, 0L, SEEK_END ) != 0 ) {	/* move to end to get len */
-	fclose( fp );
-	return( NULL );
-    }
-
-    len = ftell( fp );
-
-    if ( fseek( fp, 0L, SEEK_SET ) != 0 ) {	/* back to start of file */
-	fclose( fp );
-	return( NULL );
-    }
-
-    if (( buf = LDAP_MALLOC( (size_t)len )) == NULL ) {
-	fclose( fp );
-	return( NULL );
-    }
-
-    rlen = fread( buf, 1, (size_t)len, fp );
-    eof = feof( fp );
-    fclose( fp );
-
-    if ( rlen != len && !eof ) {	/* error:  didn't get the whole file */
-	LDAP_FREE( buf );
-	return( NULL );
-    }
-
-
-    lfdp = ldap_init_getfilter_buf( buf, rlen );
-    LDAP_FREE( buf );
-
-    return( lfdp );
-}
-
-
-LDAPFiltDesc *
+static LDAPFiltDesc *
 ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 {
     LDAPFiltDesc	*lfdp;
@@ -206,21 +159,51 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
     return( lfdp );
 }
 
-
-void
-ldap_setfilteraffixes( LDAPFiltDesc *lfdp, LDAP_CONST char *prefix, LDAP_CONST char *suffix )
+LDAPFiltDesc *
+ldap_init_getfilter( LDAP_CONST char *fname )
 {
-    if ( lfdp->lfd_filtprefix != NULL ) {
-	LDAP_FREE( lfdp->lfd_filtprefix );
-    }
-    lfdp->lfd_filtprefix = ( prefix == NULL ) ? NULL : LDAP_STRDUP( prefix );
+    FILE		*fp;
+    char		*buf;
+    long		rlen, len;
+    int 		eof;
+    LDAPFiltDesc	*lfdp;
 
-    if ( lfdp->lfd_filtsuffix != NULL ) {
-	LDAP_FREE( lfdp->lfd_filtsuffix );
+    if (( fp = fopen( fname, "r" )) == NULL ) {
+	return( NULL );
     }
-    lfdp->lfd_filtsuffix = ( suffix == NULL ) ? NULL : LDAP_STRDUP( suffix );
+
+    if ( fseek( fp, 0L, SEEK_END ) != 0 ) {	/* move to end to get len */
+	fclose( fp );
+	return( NULL );
+    }
+
+    len = ftell( fp );
+
+    if ( fseek( fp, 0L, SEEK_SET ) != 0 ) {	/* back to start of file */
+	fclose( fp );
+	return( NULL );
+    }
+
+    if (( buf = LDAP_MALLOC( (size_t)len )) == NULL ) {
+	fclose( fp );
+	return( NULL );
+    }
+
+    rlen = fread( buf, 1, (size_t)len, fp );
+    eof = feof( fp );
+    fclose( fp );
+
+    if ( rlen != len && !eof ) {	/* error:  didn't get the whole file */
+	LDAP_FREE( buf );
+	return( NULL );
+    }
+
+
+    lfdp = ldap_init_getfilter_buf( buf, rlen );
+    LDAP_FREE( buf );
+
+    return( lfdp );
 }
-
 
 LDAPFiltInfo *
 ldap_getfirstfilter(
@@ -284,6 +267,16 @@ ldap_getfirstfilter(
     return( ldap_getnextfilter( lfdp ));
 }
 
+static void
+ldap_build_filter(
+	char *filtbuf,
+	ber_len_t buflen,
+	LDAP_CONST char *pattern,
+	LDAP_CONST char *prefix,
+	LDAP_CONST char *suffix,
+	LDAP_CONST char *attr,
+	LDAP_CONST char *value,
+	char **valwords );
 
 LDAPFiltInfo *
 ldap_getnextfilter( LDAPFiltDesc *lfdp )
@@ -309,8 +302,7 @@ ldap_getnextfilter( LDAPFiltDesc *lfdp )
     return( &lfdp->lfd_retfi );
 }
 
-
-void
+static void
 ldap_build_filter(
 	char *filtbuf,
 	ber_len_t buflen,
@@ -411,7 +403,6 @@ ldap_build_filter(
 	    *f = '\0';
 	}
 }
-
 
 static int
 break_into_words( /* LDAP_CONST */ char *str, LDAP_CONST char *delims, char ***wordsp )

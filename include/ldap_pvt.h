@@ -56,7 +56,7 @@ LDAP_F( char *) ldap_pvt_get_fqdn LDAP_P(( char * ));
 
 LDAP_F( int )
 ldap_pvt_gethostbyname_a LDAP_P((
-	const char *name, 
+	const char *name,
 	struct hostent *resbuf,
 	char **buf,
 	struct hostent **result,

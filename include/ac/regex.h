@@ -28,7 +28,7 @@
 #error "No POSIX REGEX available."
 
 #elif HAVE_GNUREGEX_H
-	/* system has GNU gnuregex.h */ 
+	/* system has GNU gnuregex.h */
 #	include <gnuregex.h>
 #else
 	/* have regex.h, assume it's POSIX compliant */

@@ -121,7 +121,7 @@ typedef struct lber_memory_fns {
 	BER_MEMFREE_FN bmf_free;
 } BerMemoryFunctions;
 
-/* LBER Sockbuf_IO options */ 
+/* LBER Sockbuf_IO options */
 #define LBER_SB_OPT_GET_FD		1
 #define LBER_SB_OPT_SET_FD		2
 #define LBER_SB_OPT_HAS_IO		3
@@ -174,12 +174,12 @@ struct sockbuf_io {
 	int (*sbi_setup)( Sockbuf_IO_Desc *sbiod, void *arg );
 	int (*sbi_remove)( Sockbuf_IO_Desc *sbiod );
 	int (*sbi_ctrl)( Sockbuf_IO_Desc *sbiod, int opt, void *arg);
-	
+
 	ber_slen_t (*sbi_read)( Sockbuf_IO_Desc *sbiod, void *buf,
 		ber_len_t len );
 	ber_slen_t (*sbi_write)( Sockbuf_IO_Desc *sbiod, void *buf,
 		ber_len_t len );
-	
+
 	int (*sbi_close)( Sockbuf_IO_Desc *sbiod );
 };
 
@@ -298,7 +298,7 @@ ber_next_element LDAP_P((
 	LDAP_CONST char *last ));
 
 LBER_F( ber_tag_t )
-ber_scanf LDAP_P((								  
+ber_scanf LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *fmt,
 	... ));

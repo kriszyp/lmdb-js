@@ -85,7 +85,7 @@ Please try again later.\r\n"
 	/* timeout for searches */
 #define FINGER_TIMEOUT		60
 	/* number of DN components to show in entry displays */
-#define FINGER_RDNCOUNT		DEFAULT_RDNCOUNT	
+#define FINGER_RDNCOUNT		DEFAULT_RDNCOUNT
 
 /*
  * GO500 GOPHER GATEWAY DEFINITIONS
@@ -108,7 +108,7 @@ Please try again later.\r\n"
 	 */
 /* #define GO500_HOSTNAME	"fully.qualified.hostname.here" */
 	/* number of DN components to show in entry displays */
-#define GO500_RDNCOUNT		DEFAULT_RDNCOUNT	
+#define GO500_RDNCOUNT		DEFAULT_RDNCOUNT
 
 /*
  * GO500GW GOPHER GATEWAY DEFINITIONS
@@ -131,7 +131,7 @@ Please try again later.\r\n"
 	 */
 /* #define GO500GW_HOSTNAME	"fully.qualified.hostname.here" */
 	/* number of DN components to show in entry displays */
-#define GO500GW_RDNCOUNT	DEFAULT_RDNCOUNT	
+#define GO500GW_RDNCOUNT	DEFAULT_RDNCOUNT
 
 /*
  * RCPT500 MAIL RESPONDER GATEWAY DEFINITIONS
@@ -154,7 +154,7 @@ Please try again later.\r\n"
 #define RCPT500_UFN
 #endif
 	/* number of DN components to show in entry displays */
-#define RCPT500_RDNCOUNT	DEFAULT_RDNCOUNT	
+#define RCPT500_RDNCOUNT	DEFAULT_RDNCOUNT
 
 /*
  * MAIL500 MAILER DEFINITIONS
@@ -207,7 +207,7 @@ Please try again later.\r\n"
 #define SLAPD_DEFAULT_CONFIGFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.conf"
 #define SLAPD_DEFAULT_UCDATA		LDAP_DATADIR LDAP_DIRSEP "ucdata"
 	/* default max deref depth for aliases */
-#define SLAPD_DEFAULT_MAXDEREFDEPTH	15	
+#define SLAPD_DEFAULT_MAXDEREFDEPTH	15
 	/* default sizelimit on number of entries from a search */
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */

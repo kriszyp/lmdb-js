@@ -23,7 +23,7 @@
  * TOP-LEVEL DIRECTORY OF THE DISTRIBUTION. ANY USE OR EXPLOITATION OF THIS
  * WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP PUBLIC
  * LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT THE
- * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY. 
+ * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY.
  ******************************************************************************/
 
 #ifndef _LDAP_UTF8_H
@@ -31,7 +31,7 @@
 
 #include <lber_types.h>	/* get ber_*_t */
 
-/*  
+/*
  * UTF-8 Utility Routines
  */
 

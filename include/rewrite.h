@@ -17,7 +17,7 @@
  * 3. Altered versions must be plainly marked as such, and must not be
  * misrepresented as being the original software.  Since few users
  * ever read sources, credits should appear in the documentation.
- * 
+ *
  * 4. This notice may not be removed or altered.
  *
  ******************************************************************************/
@@ -49,7 +49,7 @@ LDAP_BEGIN_DECL
 /*
  * Rewrite modes (input values for rewrite_info_init); determine the
  * behavior in case a null or non existent context is required:
- * 
+ *
  * 	REWRITE_MODE_ERR		error
  * 	REWRITE_MODE_OK			no error but no rewrite
  * 	REWRITE_MODE_COPY_INPUT		a copy of the input is returned
@@ -62,7 +62,7 @@ LDAP_BEGIN_DECL
 
 /*
  * Rewrite status returns
- * 
+ *
  * 	REWRITE_REGEXEC_OK		success (result may be empty in case
  * 					of no match)
  * 	REWRITE_REGEXEC_ERR		error (internal error,
@@ -130,8 +130,8 @@ rewrite_parse(
  *
  * What to do in case of non-existing rewrite context is still an issue.
  * Four possibilities:
- *      - error, 
- *      - ok with NULL result, 
+ *      - error,
+ *      - ok with NULL result,
  *      - ok with copy of string as result,
  *      - use the default rewrite context.
  */
@@ -209,7 +209,7 @@ rewrite_param_get(
                 struct berval *value
 );
 
-/* 
+/*
  * Destroys the parameter tree
  */
 LDAP_REWRITE_F (int)
