@@ -273,8 +273,6 @@ objectClass: dcObject
 o: Example
 dc: example
 
-# refldap://localhost/dc=example,dc=com??sub
-
 # Testing hasSubordinates in filter...
 dn: dc=example,dc=com
 objectClass: organization
