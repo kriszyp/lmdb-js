@@ -1411,6 +1411,7 @@ typedef struct syncinfo_s {
 		LDAP				*si_ld;
 		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
 		LDAP_STAILQ_ENTRY( syncinfo_s ) si_next;
+		ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
 
 LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
