@@ -263,6 +263,7 @@ nameUIDNormalize(
 	struct berval **normalized )
 {
 	struct berval *out = ber_bvdup( val );
+	int rc;
 
 	if( out->bv_len != 0 ) {
 		char *dn;
@@ -279,37 +280,42 @@ nameUIDNormalize(
 				return LDAP_INVALID_SYNTAX;
 			}
 
-			uidlen = out->bv_len - (out->bv_val - uid);
+			uidlen = out->bv_len - (uid - out->bv_val);
 			/* temporarily trim the UID */
 			*uid = '\0';
+			out->bv_len -= uidlen;
 		}
 
-		/* FIXME: should use dnNormalize */
 #ifdef USE_DN_NORMALIZE
-		dn = dn_normalize( out->bv_val );
+		rc = dnNormalize( NULL, out, normalized );
 #else
-		dn = dn_validate( out->bv_val );
+		rc = dnPretty( NULL, out, normalized );
 #endif
 
-		if( dn == NULL ) {
+		if( rc != LDAP_SUCCESS ) {
 			ber_bvfree( out );
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		dnlen = strlen(dn);
+		dnlen = (*normalized)->bv_len;
 
 		if( uidlen ) {
+			struct berval *b2 = ch_malloc(sizeof(struct berval));
+			b2->bv_val = ch_malloc(dnlen + uidlen + 1);
+			SAFEMEMCPY( b2->bv_val, (*normalized)->bv_val, dnlen );
+
 			/* restore the separator */
 			*uid = '#';
 			/* shift the UID */
-			SAFEMEMCPY( &dn[dnlen], uid, uidlen );
+			SAFEMEMCPY( (*normalized)->bv_val+dnlen, uid, uidlen );
+			b2->bv_len = dnlen + uidlen;
+			(*normalized)->bv_val[dnlen+uidlen] = '\0';
+			ber_bvfree(*normalized);
+			*normalized = b2;
 		}
-
-		out->bv_val = dn;
-		out->bv_len = dnlen + uidlen;
+		ber_bvfree( out );
 	}
 
-	*normalized = out;
 	return LDAP_SUCCESS;
 }
 
@@ -3584,7 +3590,7 @@ serial_and_issuer_parse(
 	char *begin;
 	char *end;
 	char *p;
-	char *q;
+	struct berval bv;
 
 	begin = assertion->bv_val;
 	end = assertion->bv_val+assertion->bv_len-1;
@@ -3601,10 +3607,9 @@ serial_and_issuer_parse(
 	while (ASCII_SPACE(*end))
 		end--;
 
-	q = ch_malloc( (end-begin+1)+1 );
-	AC_MEMCPY( q, begin, end-begin+1 );
-	q[end-begin+1] = '\0';
-	*serial = ber_bvstr(q);
+	bv.bv_len = end-begin+1;
+	bv.bv_val = begin;
+	*serial = ber_bvdup(&bv);
 
 	/* now extract the issuer, remember p was at the dollar sign */
 	begin = p+1;
@@ -3613,10 +3618,9 @@ serial_and_issuer_parse(
 		begin++;
 	/* should we trim spaces at the end too? is it safe always? */
 
-	q = ch_malloc( (end-begin+1)+1 );
-	AC_MEMCPY( q, begin, end-begin+1 );
-	q[end-begin+1] = '\0';
-	*issuer_dn = ber_bvstr(dn_normalize(q));
+	bv.bv_len = end-begin+1;
+	bv.bv_val = begin;
+	dnNormalize( NULL, &bv, issuer_dn );
 
 	return LDAP_SUCCESS;
 }
