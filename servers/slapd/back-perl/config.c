@@ -59,6 +59,8 @@ perl_back_db_config(
 		eval_pv( eval_str, 0 );
 
 		if (SvTRUE(ERRSV)) {
+			STRLEN n_a;
+
 			fprintf(stderr , "Error %s\n", SvPV(ERRSV, n_a)) ;
 		}
 #else
