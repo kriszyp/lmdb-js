@@ -29,7 +29,7 @@
 #include "ldap_defaults.h"
 
 #undef ISASCII
-#define ISASCII(uc)	((uc) < 0x100)
+#define ISASCII(uc)	((uc) < 0x80)
 #undef UCS4_INVALID
 #define UCS4_INVALID	0x80000000U
 
@@ -163,7 +163,7 @@ int ldap_ucs4_to_utf8( ldap_ucs4_t c, char *buf )
 		p[len++] = 0x80 | ( (c >> 6) & 0x3f );
 		p[len++] = 0x80 | ( c & 0x3f );
 
-	} else if( c < 0x400000 ) {
+	} else if( c < 0x4000000 ) {
 		p[len++] = 0xf8 | ( c >> 24 );
 		p[len++] = 0x80 | ( (c >> 18) & 0x3f );
 		p[len++] = 0x80 | ( (c >> 12) & 0x3f );
@@ -266,7 +266,7 @@ int ldap_utf8_copy( char* dst, const char *src )
 
 /*
  * UTF-8 ctype routines
- * Only deals with characters < 0x100 (ie: US-ASCII)
+ * Only deals with characters < 0x80 (ie: US-ASCII)
  */
 
 int ldap_utf8_isascii( const char * p )
