@@ -138,7 +138,7 @@ str2entry( char *s )
 				return NULL;
 			}
 
-			rc = dnPretty( NULL, &value, &pdn );
+			rc = dnPrettyNormal( NULL, &value, &e->e_name, &e->e_nname );
 			free( value.bv_val );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -155,11 +155,6 @@ str2entry( char *s )
 				entry_free( e );
 				return NULL;
 			}
-
-			e->e_name.bv_val = ( pdn->bv_val != NULL )
-				? pdn->bv_val : ch_strdup( "" );
-			e->e_name.bv_len = pdn->bv_len;
-			free( pdn );
 			continue;
 		}
 
@@ -286,29 +281,6 @@ str2entry( char *s )
 #endif
 		entry_free( e );
 		return( NULL );
-	}
-
-	/* generate normalized dn */
-	{
-		struct berval *ndn = NULL;
-
-		rc = dnNormalize( NULL, &e->e_name, &ndn );
-		if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				"str2entry:  entry %ld has invalid dn: %s\n",
-				(long) e->e_id, e->e_dn ));
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"str2entry: entry %ld has invalid dn: %s\n",
-			    (long) e->e_id, e->e_dn, 0 );
-#endif
-			entry_free( e );
-			return NULL;
-		}
-
-		e->e_nname = *ndn;
-		free( ndn );
 	}
 
 #ifdef NEW_LOGGING

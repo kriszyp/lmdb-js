@@ -395,12 +395,15 @@ read_config( const char *fname )
 			if ( load_ucdata( NULL ) < 0 ) return 1;
 
 			{
-				struct berval dn, *pdn, *ndn;
+				struct berval dn;
 
 				dn.bv_val = cargv[1];
 				dn.bv_len = strlen( dn.bv_val );
 
-				rc = dnPretty( NULL, &dn, &pdn );
+				rc = dnPrettyNormal( NULL, &dn,
+					&default_search_base,
+					&default_search_nbase );
+
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -413,27 +416,6 @@ read_config( const char *fname )
 #endif
 					return( 1 );
 				}
-
-				rc = dnNormalize( NULL, &dn, &ndn );
-				if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						"%s: line %d: defaultSearchBase DN is invalid.\n",
-						fname, lineno ));
-#else
-					Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: defaultSearchBase DN is invalid\n",
-					   fname, lineno, 0 );
-#endif
-					ber_bvfree( ndn );
-					return( 1 );
-				}
-
-				default_search_base = *pdn;
-				default_search_nbase = *ndn;
-
-				free( pdn );
-				free( ndn );
 			}
 
 		/* set maximum threads in thread pool */
@@ -930,8 +912,10 @@ read_config( const char *fname )
 
 			dn.bv_val = cargv[1];
 			dn.bv_len = strlen( cargv[1] );
+			pdn = ch_malloc( sizeof( struct berval ));
+			ndn = ch_malloc( sizeof( struct berval ));
 
-			rc = dnPretty( NULL, &dn, &pdn );
+			rc = dnPrettyNormal( NULL, &dn, pdn, ndn );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -942,21 +926,6 @@ read_config( const char *fname )
 					"%s: line %d: suffix DN is invalid\n",
 				   fname, lineno, 0 );
 #endif
-				return( 1 );
-			}
-
-			rc = dnNormalize( NULL, &dn, &ndn );
-			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					"%s: line %d: suffix DN is invalid.\n",
-					fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: suffix DN is invalid\n",
-				   fname, lineno, 0 );
-#endif
-				ber_bvfree( ndn );
 				return( 1 );
 			}
 
@@ -1009,8 +978,8 @@ read_config( const char *fname )
 		/* set database suffixAlias */
 		} else if ( strcasecmp( cargv[0], "suffixAlias" ) == 0 ) {
 			Backend *tmp_be;
-			struct berval alias, *palias, *nalias;
-			struct berval aliased, *paliased, *naliased;
+			struct berval alias, *palias, nalias;
+			struct berval aliased, *paliased, naliased;
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -1070,8 +1039,9 @@ read_config( const char *fname )
 			
 			alias.bv_val = cargv[1];
 			alias.bv_len = strlen( cargv[1] );
+			palias = ch_malloc(sizeof(struct berval));
 
-			rc = dnPretty( NULL, &alias, &palias );
+			rc = dnPrettyNormal( NULL, &alias, palias, &nalias );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1085,23 +1055,8 @@ read_config( const char *fname )
 				return( 1 );
 			}
 
-			rc = dnNormalize( NULL, &alias, &nalias );
-			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					"%s: line %d: alias DN is invalid.\n",
-					fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: alias DN is invalid\n",
-				   fname, lineno, 0 );
-#endif
-				ber_bvfree( palias );
-				return( 1 );
-			}
-
-			tmp_be = select_backend( nalias, 0, 0 );
-			ber_bvfree( nalias );
+			tmp_be = select_backend( &nalias, 0, 0 );
+			free( nalias.bv_val );
 			if ( tmp_be != be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
@@ -1120,8 +1075,9 @@ read_config( const char *fname )
 
 			aliased.bv_val = cargv[2];
 			aliased.bv_len = strlen( cargv[2] );
+			paliased = ch_malloc(sizeof(struct berval));
 
-			rc = dnPretty( NULL, &aliased, &paliased );
+			rc = dnPrettyNormal( NULL, &aliased, paliased, &naliased );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1136,24 +1092,8 @@ read_config( const char *fname )
 				return( 1 );
 			}
 
-			rc = dnNormalize( NULL, &aliased, &naliased );
-			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					"%s: line %d: aliased DN is invalid.\n",
-					fname, lineno ));
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: aliased DN is invalid\n",
-				   fname, lineno, 0 );
-#endif
-				ber_bvfree( palias );
-				ber_bvfree( paliased );
-				return( 1 );
-			}
-
-			tmp_be = select_backend( naliased, 0, 0 );
-			ber_bvfree( naliased );
+			tmp_be = select_backend( &naliased, 0, 0 );
+			free( naliased.bv_val );
 			if ( tmp_be != be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
@@ -1245,14 +1185,17 @@ read_config( const char *fname )
 #endif
 
 			} else {
-				struct berval dn, *pdn = NULL, *ndn = NULL;
+				struct berval dn;
 				
 				if ( load_ucdata( NULL ) < 0 ) return 1;
 
 				dn.bv_val = cargv[1];
 				dn.bv_len = strlen( cargv[1] );
 
-				rc = dnPretty( NULL, &dn, &pdn );
+				rc = dnPrettyNormal( NULL, &dn,
+					&be->be_rootdn,
+					&be->be_rootndn );
+
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
@@ -1265,27 +1208,6 @@ read_config( const char *fname )
 #endif
 					return( 1 );
 				}
-
-				rc = dnNormalize( NULL, &dn, &ndn );
-				if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						"%s: line %d: rootdn DN is invalid.\n",
-						fname, lineno ));
-#else
-					Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: rootdn DN is invalid\n",
-					   fname, lineno, 0 );
-#endif
-					ber_bvfree( ndn );
-					return( 1 );
-				}
-
-				be->be_rootdn = *pdn;
-				be->be_rootndn = *ndn;
-
-				free( pdn );
-				free( ndn );
 			}
 
 		/* set super-secret magic database password */

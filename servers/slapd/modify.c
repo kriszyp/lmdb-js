@@ -34,8 +34,8 @@ do_modify(
     Operation	*op )
 {
 	struct berval dn = { 0, NULL };
-	struct berval *pdn = NULL;
-	struct berval *ndn = NULL;
+	struct berval pdn = { 0, NULL };
+	struct berval ndn = { 0, NULL };
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -177,7 +177,7 @@ do_modify(
 		goto cleanup;
 	}
 
-	rc = dnPretty( NULL, &dn, &pdn );
+	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
@@ -192,22 +192,7 @@ do_modify(
 		goto cleanup;
 	}
 
-	rc = dnNormalize( NULL, &dn, &ndn );
-	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_modify: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val ));
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"do_modify: invalid dn (%s)\n", dn.bv_val, 0, 0 );
-#endif
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto cleanup;
-	}
-
-	if( ndn->bv_len == 0 ) {
+	if( ndn.bv_len == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_modify: attempt to modify root DSE.\n" ));
@@ -220,7 +205,7 @@ do_modify(
 		goto cleanup;
 
 #if defined( SLAPD_SCHEMA_DN )
-	} else if ( strcasecmp( ndn->bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
+	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_modify: attempt to modify subschema subentry.\n" ));
@@ -297,9 +282,9 @@ do_modify(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
+	if ( (be = select_backend( &ndn, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, pdn, LDAP_SCOPE_DEFAULT );
+			NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -317,13 +302,13 @@ do_modify(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, pdn, ndn );
+	rc = backend_check_referrals( be, conn, op, &pdn, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
-	suffix_alias( be, ndn );
+	suffix_alias( be, &ndn );
 
 	/*
 	 * do the modify if 1 && (2 || 3)
@@ -376,13 +361,13 @@ do_modify(
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, pdn, ndn, mods ) == 0
+			if ( (*be->be_modify)( be, conn, op, &pdn, &ndn, mods ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& !repl_user
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
-				replog( be, op, pdn, ndn, mods );
+				replog( be, op, &pdn, &ndn, mods );
 			}
 
 #ifndef SLAPD_MULTIMASTER
@@ -391,7 +376,7 @@ do_modify(
 			struct berval **defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
 			struct berval **ref = referral_rewrite( defref,
-				NULL, pdn, LDAP_SCOPE_DEFAULT );
+				NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
@@ -407,8 +392,8 @@ do_modify(
 
 cleanup:
 	free( dn.bv_val );
-	if( pdn != NULL ) ber_bvfree( pdn );
-	if( ndn != NULL ) ber_bvfree( ndn );
+	free( pdn.bv_val );
+	free( ndn.bv_val );
 	if ( modlist != NULL )
 		slap_modlist_free( modlist );
 	if ( mods != NULL )
