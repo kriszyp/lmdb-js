@@ -5,9 +5,16 @@
 H1: Schema Specification
 
 This chapter describes how to extend the schema used by {{slapd}}(8).
-The first section details optional schema definitions provided
-in the distribution and where to obtain other definitions.  The
-second section details how to define new schema items.
+The first section, {{SECT:Distribution Schema Files}} details optional
+schema definitions provided in the distribution and where to obtain
+other definitions.
+The second section, {{SECT:Extending Schema}}, details how to define
+new schema items.
+!if 0
+The third section, {{SECT:Transferring Schema}} details how you can
+export schema definitions from an LDAPv3 server and transform it
+to {{slapd.conf}}(5) format.
+!endif
 
 H2: Distributed Schema Files
 
@@ -370,10 +377,76 @@ you desire.
 
 >	objectclass ( 1.1.2.2.2 NAME 'myPerson'
 >		DESC 'my person'
->		MUST ( 'myUniqueName' $ 'givenName' )
 >		SUP inetOrgPerson
+>		MUST ( 'myUniqueName' $ 'givenName' )
 >		MAY 'myPhoto' )
 
 The object class inherits the required/allowed attribute
 types of {{EX:inetOrgPerson}} but requires {{EX:myUniqueName}}
 and {{EX:givenName}} and allows {{EX:myPhoto}}.
+
+!if 0
+H2: Transferring Schema
+
+Since the {{slapd.conf}}(5) schema directives use {{REF:RFC2252}}
+format values, you can extract schema elements published by
+any LDAPv3 server and easily construct directives for use with
+{{slapd}}(8).
+
+LDAPv3 servers publish schema elements in special {{subschema}}
+entries (or subentries).  {{slapd}}(8) publishes a single subschema
+entry normally named {{EX:cn=Subschema}}.  If a server which
+supports a single subschema subentry, the DN of the subschema
+subenty can usually be found by examining the value of the
+{{EX:subschemaSubentry}} attribute type in the {{root DSE}}
+Other servers may publish multiple subschema entries.  These
+can be located by examining the {{EX:subschemaSubentry}} attribute
+contained in the entry at the root of each administrative context.
+
+To obtain the schema from a subschema subentry, you can use
+ldapsearch(1) as follows (replace the search base as needed):
+
+>	ldapsearch -LLL -x -b "cn=Subschema" -s base "(objectclass=subschema)" attributeTypes objectClasses
+
+This will return {{TERM:LDIF}} output containing many type/value
+pairs.  The following is an abbreviated example:
+
+>	dn: cn=Subschema
+>	attributeTypes: ( 1.1.2.1.1 NAME 'myUniqueName' DESC 'unique name wi
+>	 th my organization' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubst
+>	 ringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
+>	attributeTypes: ( 1.1.2.1.2 NAME 'myPhoto' DESC 'a photo (applicatio
+>	 n defined format)' SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
+>	objectClasses: ( 1.1.2.2.2 NAME 'myPerson' DESC 'my person' SUP inet
+>	 OrgPerson MUST ( 'myUniqueName' $ 'givenName' ) MAY 'myPhoto' )
+
+Capture the output of the search in a file and then edit the file:
+
++ to contain only desired type/value pairs
+^ join LDIF continuation lines
+^ replace attribute type with directive name
+(e.g. {{EX:s/attributeTypes:/attributeType/}} and
+{{EX:s/objectClasses:/objectClass/}}).
+^ continue long directives over multiple lines
+
+For the three type/value pairs in our example, the edit should
+result in a file with contains of:
+
+>	attributetype ( 1.1.2.1.1 NAME 'myUniqueName'
+>		DESC 'unique name with my organization' 
+>		EQUALITY caseIgnoreMatch
+>		SUBSTR caseIgnoreSubstringsMatch
+>		SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+>		SINGLE-VALUE )
+>	attributeType ( 1.1.2.1.2 NAME 'myPhoto'
+>		DESC 'a photo (application defined format)'
+>		SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
+>	objectClass ( 1.1.2.2.2 NAME 'myPerson'
+>		DESC 'my person'
+>		SUP inetOrgPerson
+>		MUST ( 'myUniqueName' $ 'givenName' )
+>		MAY 'myPhoto' )
+
+Save in an appropriately named file (e.g. {{F:my.schema}}).
+You may now include this file in your {{slapd.conf}}(8) file.
+!endif
