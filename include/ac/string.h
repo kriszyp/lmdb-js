@@ -32,21 +32,25 @@
 #	endif
 
 #	ifndef HAVE_STRRCHR
+#		undef strchr
 #		define strchr index
+#		undef strrchr
 #		define strrchr rindex
 #	endif
 
 #	ifndef HAVE_MEMCPY
+#		undef memcpy
 #		define memcpy(d, s, n)		((void) bcopy ((s), (d), (n)))
+#		undef memmove
 #		define memmove(d, s, n)		((void) bcopy ((s), (d), (n)))
 #	endif
 #endif
 
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */
-	extern char *strdup( const char *s );
+	extern char *strdup LDAP_P(( const char *s ));
 #else
-	/* some systems have strdup, but fail to declare it */
+	/* some systems have strdup(), but fail to declare it */
 	extern char *strdup();
 #endif
 
@@ -66,6 +70,5 @@ extern int strcasecmp(), strncasecmp();
 #		define SAFEMEMCPY( d, s, n )	memcpy((d), (s), (n))
 #	endif
 #endif
-
 
 #endif /* _AC_STRING_H */
