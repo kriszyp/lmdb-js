@@ -265,7 +265,6 @@ static int index_at_values(
 		*dbnamep = type->sat_cname.bv_val;
 	} else if ( tmpmask & SLAP_INDEX_AUTO_SUBTYPES ) {
 		mask = tmpmask;
-		*maskp = mask;
 	}
 
 	if( mask ) {
@@ -273,6 +272,9 @@ static int index_at_values(
 			&type->sat_cname,
 			vals, id, op,
 			mask );
+		if ( mask & SLAP_INDEX_AUTO_SUBTYPES ) {
+			*maskp = mask;
+		}
 	}
 
 	if( lang->bv_len ) {
