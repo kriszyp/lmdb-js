@@ -419,6 +419,26 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
 
 		if test $ol_link_threads = no ; then
+			dnl try -kthread
+			AC_CACHE_CHECK([for pthread_create with -kthread],
+				[ol_cv_kthread_flag], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="-kthread $LIBS"
+				AC_TRY_LINK([char pthread();],[
+					pthread_create();
+					], ol_cv_kthread_flag=yes, ol_cv_kthread_flag=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_kthread_flag = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -kthread"
+				ol_link_threads=posix
+			fi
+		fi
+
+		if test $ol_link_threads = no ; then
 			dnl try -pthread
 			AC_CACHE_CHECK([for pthread_create with -pthread],
 				[ol_cv_pthread_flag], [
