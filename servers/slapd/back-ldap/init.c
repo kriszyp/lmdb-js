@@ -132,6 +132,12 @@ ldap_back_db_init(
 		rargv[ 2 ] = NULL;
 		rewrite_parse( li->rwmap.rwm_rw, "<suffix massage>", 
 				1, 2, rargv );
+
+		rargv[ 0 ] = "rewriteContext";
+		rargv[ 1 ] = "default";
+		rargv[ 2 ] = NULL;
+		rewrite_parse( li->rwmap.rwm_rw, "<suffix massage>", 
+				1, 2, rargv );
 	}
 #endif /* ENABLE_REWRITE */
 

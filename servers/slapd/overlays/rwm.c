@@ -683,6 +683,11 @@ rwm_over_init(
 		rargv[ 1 ] = "searchFilter";
 		rargv[ 2 ] = NULL;
 		rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
+
+		rargv[ 0 ] = "rewriteContext";
+		rargv[ 1 ] = "default";
+		rargv[ 2 ] = NULL;
+		rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
 	}
 	
 #endif /* ENABLE_REWRITE */
