@@ -52,8 +52,6 @@ bdb_group(
 		group_oc_name = group_oc->soc_oid;
 	}
 
-	printf("KKK\n");
-
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_BDB, ENTRY, 
 		"bdb_group: check (%s) member of (%s), oc %s\n",
