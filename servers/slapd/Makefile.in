@@ -137,9 +137,9 @@ slapd.def: libbackends.a version.o
 	done; \
 	objs=""; \
 	for i in $(OBJS) version.o $(LIBS) ; do \
+	    obj="" ; \
 	    case $$i in \
 		-l*) \
-		    obj="" ; \
 		    done="" ;\
 		    base=`expr "$$i" : "-l\(.*\)"`; \
 		    for p in $$paths ; do \
