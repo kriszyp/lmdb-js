@@ -7,10 +7,17 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+#include <ac/wait.h>
+#include <ac/signal.h>
+#include <ac/errno.h>
 
 #include "ldapconfig.h"
 #include "slap.h"
 #include "lutil.h"			/* Get lutil_detach() */
+
+#if defined(SIGCHLD) || defined(SIGCLD)
+static RETSIGTYPE wait4child( int sig );
+#endif
 
 /*
  * when more than one slapd is running on one machine, each one might have
@@ -219,6 +226,11 @@ main( int argc, char **argv )
 #endif
 	(void) SIGNAL( SIGINT, slap_set_shutdown );
 	(void) SIGNAL( SIGTERM, slap_set_shutdown );
+#ifdef SIGCHLD
+	(void) SIGNAL( SIGCHLD, wait4child );
+#elif defined(SIGCLD)
+	(void) SIGNAL( SIGCLD, wait4child );
+#endif
 
 	if(!inetd) {
 #ifdef LDAP_DEBUG
@@ -278,6 +290,39 @@ destroy:
 }
 
 
+#if defined(SIGCHLD) || defined(SIGCLD)
+
+/*
+ *  Catch and discard terminated child processes, to avoid zombies.
+ */
+
+static RETSIGTYPE
+wait4child( int sig )
+{
+    int save_errno = errno;
+    errno = 0;
+    /*
+     * ### The wait3 vs. waitpid choice needs improvement.
+     * ### There are apparently systems where waitpid(-1, ...) fails, and
+     * ### others where waitpid should preferred over wait3 for some reason.
+     * ### Now wait3 is only here for reference, configure does not detect it.
+     */
+#if defined(HAVE_WAITPID) && defined(WNOHANG)
+    while ( waitpid( (pid_t)-1, NULL, WNOHANG ) >= 0 || errno == EINTR )
+	;	/* NULL */
+#elif defined(HAVE_WAIT3) && defined(WNOHANG)
+    while ( wait3( NULL, WNOHANG, NULL ) >= 0 || errno == EINTR )
+	;	/* NULL */
+#else
+    (void) wait( NULL );
+#endif
+    (void) signal( sig, wait4child );
+    errno = save_errno;
+}
+
+#endif /* SIGCHLD || SIGCLD */
+
+
 #ifdef LOG_LOCAL4
 
 /*
@@ -306,4 +351,3 @@ cnvt_str2int( char *stringVal, STRDISP_P dispatcher, int defaultVal )
 } /* cnvt_str2int */
 
 #endif  /* LOG_LOCAL4 */
-
