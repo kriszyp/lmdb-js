@@ -173,7 +173,7 @@ retry:	/* transaction retry */
 				refs = is_entry_referral( matched )
 					? get_entry_referrals( be, conn, op, matched )
 					: NULL;
-				bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
+				bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, matched );
 				matched = NULL;
 
 			} else {
@@ -204,7 +204,7 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			/* free parent and reader lock */
-			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, p, &lock );
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 			p = NULL;
 			goto retry;
 		}
@@ -266,7 +266,7 @@ retry:	/* transaction retry */
 				matched_dn, NULL, refs, NULL );
 
 			ber_bvarray_free( refs );
-			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, p, &lock );
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 			p = NULL;
 			goto done;
 		}
@@ -279,7 +279,7 @@ retry:	/* transaction retry */
 #endif
 
 		/* free parent and reader lock */
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, p, &lock );
+		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 		p = NULL;
 
 	} else {

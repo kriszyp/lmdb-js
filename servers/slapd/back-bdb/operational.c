@@ -46,7 +46,7 @@ bdb_operational(
 retry:	/* transaction retry */
 #if 0
 		if( e != NULL ) {
-			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 #endif
 #ifdef NEW_LOGGING

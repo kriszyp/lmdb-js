@@ -307,8 +307,8 @@ void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e, int rw, DB_
 #define bdb_cache_return_entry_r(env, c, e, l) bdb_cache_return_entry_rw((env), (c), (e), 0, (l))
 #define bdb_cache_return_entry_w(env, c, e, l) bdb_cache_return_entry_rw((env), (c), (e), 1, (l))
 void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
-#define bdb_unlocked_cache_return_entry_r( c, e ) bdb_cache_return_entry_rw((c), (e), 0)
-#define bdb_unlocked_cache_return_entry_w( c, e ) bdb_cache_return_entry_rw((c), (e), 1)
+#define bdb_unlocked_cache_return_entry_r( c, e ) bdb_unlocked_cache_return_entry_rw((c), (e), 0)
+#define bdb_unlocked_cache_return_entry_w( c, e ) bdb_unlocked_cache_return_entry_rw((c), (e), 1)
 int bdb_cache_add_entry_rw(
 	DB_ENV	*env,
 	Cache   *cache,

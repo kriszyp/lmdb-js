@@ -233,11 +233,11 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_return_entry_rw: return (%ld):%s, refcnt=%d\n",
+			   "bdb_unlocked_cache_return_entry_rw: return (%ld):%s, refcnt=%d\n",
 			   id, rw ? "w" : "r", refcnt ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"====> bdb_cache_return_entry_%s( %ld ): created (%d)\n",
+			"====> bdb_unlocked_cache_return_entry_%s( %ld ): created (%d)\n",
 			rw ? "w" : "r", id, refcnt );
 #endif
 
@@ -249,11 +249,11 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-				   "bdb_cache_return_entry_rw: %ld, delete pending (%d).\n",
+				   "bdb_unlocked_cache_return_entry_rw: %ld, delete pending (%d).\n",
 				   id, refcnt ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"====> bdb_cache_return_entry_%s( %ld ): delete pending (%d)\n",
+				"====> bdb_unlocked_cache_return_entry_%s( %ld ): delete pending (%d)\n",
 				rw ? "w" : "r", id, refcnt );
 #endif
 
@@ -268,11 +268,11 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-				   "bdb_cache_return_entry_rw: (%ld): deleted (%d)\n",
+				   "bdb_unlocked_cache_return_entry_rw: (%ld): deleted (%d)\n",
 				   id, refcnt ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"====> bdb_cache_return_entry_%s( %ld ): deleted (%d)\n",
+				"====> bdb_unlocked_cache_return_entry_%s( %ld ): deleted (%d)\n",
 				rw ? "w" : "r", id, refcnt );
 #endif
 		}
@@ -283,11 +283,11 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_return_entry_rw: ID %ld:%s returned (%d)\n",
+			   "bdb_unlocked_cache_return_entry_rw: ID %ld:%s returned (%d)\n",
 			   id, rw ? "w": "r", refcnt ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"====> bdb_cache_return_entry_%s( %ld ): returned (%d)\n",
+			"====> bdb_unlocked_cache_return_entry_%s( %ld ): returned (%d)\n",
 			rw ? "w" : "r", id, refcnt);
 #endif
 	}

@@ -52,7 +52,7 @@ bdb_delete(
 	if( 0 ) {
 retry:	/* transaction retry */
 		if( e != NULL ) {
-			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
@@ -152,7 +152,7 @@ retry:	/* transaction retry */
 		rc = access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE, NULL );
 
-		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, p, &lock);
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
 		p = NULL;
 
 		switch( opinfo.boi_err ) {
@@ -268,7 +268,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock );
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, matched);
 			matched = NULL;
 
 		} else {
@@ -470,7 +470,7 @@ return_results:
 done:
 	/* free entry */
 	if( e != NULL ) {
-		bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+		bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 	}
 
 	if( ltid != NULL ) {

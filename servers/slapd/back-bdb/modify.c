@@ -262,7 +262,7 @@ bdb_modify(
 retry:	/* transaction retry */
 		if( e != NULL ) {
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
-			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "modify", LDAP_LEVEL_DETAIL1, "bdb_modify: retrying...\n" ));
@@ -342,7 +342,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
+			bdb_unlocked_cache_return_entry_r (&bdb->bi_cache, matched);
 			matched = NULL;
 
 		} else {
@@ -468,7 +468,7 @@ done:
 	}
 
 	if( e != NULL ) {
-		bdb_cache_return_entry_w (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+		bdb_unlocked_cache_return_entry_w (&bdb->bi_cache, e);
 	}
 	return rc;
 }

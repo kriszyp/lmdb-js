@@ -81,13 +81,13 @@ bdb_modrdn(
 retry:	/* transaction retry */
 		if (e != NULL) {
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
-			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 		if (p != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, p, &lock);
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
 		}
 		if (np != NULL) {
-			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, np, &lock);
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, np);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: retrying...\n"));
@@ -157,7 +157,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, matched, &lock );
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, matched);
 			matched = NULL;
 
 		} else {
@@ -860,17 +860,17 @@ done:
 	/* LDAP v3 Support */
 	if( np != NULL ) {
 		/* free new parent and reader lock */
-		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, np, &lock);
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, np);
 	}
 
 	if( p != NULL ) {
 		/* free parent and reader lock */
-		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, p, &lock);
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
 	}
 
 	/* free entry */
 	if( e != NULL ) {
-		bdb_cache_return_entry_w( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+		bdb_unlocked_cache_return_entry_w( &bdb->bi_cache, e);
 	}
 
 	if( ltid != NULL ) {
