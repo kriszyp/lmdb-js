@@ -543,9 +543,10 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 
 	/* count the result size */
 	i = 0;
-	for ( oc=start; oc && oc!=end; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
+	for ( oc=start; oc; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
 		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
 		i++;
+		if ( oc == end ) break;
 	}
 	if (!i) return;
 
@@ -558,7 +559,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 		ibuf[0] = '\0';
 	}
 	i = 0;
-	for ( oc=start; oc && oc!=end; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
+	for ( oc=start; oc; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
 		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
 		if ( ldap_objectclass2bv( &oc->soc_oclass, &bv ) == NULL ) {
 			ber_bvarray_free( bva );
@@ -573,6 +574,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 		i++;
 		bva[i].bv_val = NULL;
 		ldap_memfree( bv.bv_val );
+		if ( oc == end ) break;
 	}
 	*res = bva;
 }

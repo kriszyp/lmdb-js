@@ -633,9 +633,10 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 
 	/* count the result size */
 	i = 0;
-	for ( at=start; at && at!=end; at=LDAP_STAILQ_NEXT(at, sat_next)) {
+	for ( at=start; at; at=LDAP_STAILQ_NEXT(at, sat_next)) {
 		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
 		i++;
+		if ( at == end ) break;
 	}
 	if (!i) return;
 
@@ -648,7 +649,7 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 		ibuf[0] = '\0';
 	}
 	i = 0;
-	for ( at=start; at && at!=end; at=LDAP_STAILQ_NEXT(at, sat_next)) {
+	for ( at=start; at; at=LDAP_STAILQ_NEXT(at, sat_next)) {
 		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
 		if ( ldap_attributetype2bv( &at->sat_atype, &bv ) == NULL ) {
 			ber_bvarray_free( bva );
@@ -663,6 +664,7 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 		i++;
 		bva[i].bv_val = NULL;
 		ldap_memfree( bv.bv_val );
+		if ( at == end ) break;
 	}
 	*res = bva;
 }

@@ -164,10 +164,11 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 
 	/* count the result size */
 	i = 0;
-	for ( om=start; om && om!=end; om=LDAP_STAILQ_NEXT(om, som_next)) {
+	for ( om=start; om; om=LDAP_STAILQ_NEXT(om, som_next)) {
 		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) continue;
 		for ( j=0; !BER_BVISNULL(&om->som_names[j]); j++ );
 		i += j;
+		if ( om == end ) break;
 	}
 	num = i;
 	if (!i) return;
@@ -179,7 +180,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 		idx.bv_len = 0;
 		ibuf[0] = '\0';
 	}
-	for ( i=0,om=start; om && om!=end; om=LDAP_STAILQ_NEXT(om, som_next)) {
+	for ( i=0,om=start; om; om=LDAP_STAILQ_NEXT(om, som_next)) {
 		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) continue;
 		for ( j=0; !BER_BVISNULL(&om->som_names[j]); i++,j++ ) {
 			if ( !sys ) {
@@ -194,6 +195,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 			strcpy( ptr, om->som_subs[j].bv_val );
 		}
 		if ( i>=num ) break;
+		if ( om == end ) break;
 	}
 	*res = bva;
 }

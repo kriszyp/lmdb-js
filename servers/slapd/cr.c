@@ -417,9 +417,10 @@ cr_unparse( BerVarray *res, ContentRule *start, ContentRule *end, int sys )
 
 	/* count the result size */
 	i = 0;
-	for ( cr=start; cr && cr!=end; cr=LDAP_STAILQ_NEXT(cr, scr_next)) {
+	for ( cr=start; cr; cr=LDAP_STAILQ_NEXT(cr, scr_next)) {
 		if ( sys && !(cr->scr_flags & SLAP_CR_HARDCODE)) continue;
 		i++;
+		if ( cr == end ) break;
 	}
 	if (!i) return;
 
@@ -432,7 +433,7 @@ cr_unparse( BerVarray *res, ContentRule *start, ContentRule *end, int sys )
 		ibuf[0] = '\0';
 	}
 	i = 0;
-	for ( cr=start; cr && cr!=end; cr=LDAP_STAILQ_NEXT(cr, scr_next)) {
+	for ( cr=start; cr; cr=LDAP_STAILQ_NEXT(cr, scr_next)) {
 		if ( sys && !(cr->scr_flags & SLAP_CR_HARDCODE)) continue;
 		if ( ldap_contentrule2bv( &cr->scr_crule, &bv ) == NULL ) {
 			ber_bvarray_free( bva );
@@ -447,6 +448,7 @@ cr_unparse( BerVarray *res, ContentRule *start, ContentRule *end, int sys )
 		i++;
 		bva[i].bv_val = NULL;
 		ldap_memfree( bv.bv_val );
+		if ( cr == end ) break;
 	}
 	*res = bva;
 }

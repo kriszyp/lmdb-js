@@ -103,36 +103,31 @@ dn2path(struct berval * dn, struct berval * rootdn, struct berval * base_path,
 }
 
 static char * slurp_file(int fd) {
-	int entry_buf_size = 40 * ENTRY_BUFF_INCREMENT;
 	int read_chars_total = 0;
 	int read_chars = 0;
-	int entry_size = 40 * ENTRY_BUFF_INCREMENT;
-	char * entry = (char *) malloc(sizeof(char) * 40 * ENTRY_BUFF_INCREMENT);
-	char * entry_pos = entry;
+	int entry_size;
+	char * entry;
+	char * entry_pos;
+	struct stat st;
+
+	fstat(fd, &st);
+	entry_size = st.st_size;
+	entry = ch_malloc( entry_size+1 );
+	entry_pos = entry;
 	
 	while(1) {
-		if(entry_size - read_chars_total == 0) {
-			entry = (char *) realloc(entry, sizeof(char) * 2 * entry_size);
-			entry_size = 2 * entry_size;
-		}
 		read_chars = read(fd, (void *) entry_pos, entry_size - read_chars_total);
 		if(read_chars == -1) {
 			SLAP_FREE(entry);
 			return NULL;
 		}
-		entry_pos += read_chars;
 		if(read_chars == 0) {
-			if(entry_size - read_chars_total > 0)
-				entry[read_chars_total] = '\0';
-			else {
-				entry = (char *) realloc(entry, sizeof(char) * entry_size + 1);
-				entry_size = entry_size + 1;
-				entry[read_chars_total] = '\0';
-			}	
+			entry[read_chars_total] = '\0';
 			break;
 		}
 		else {
 			read_chars_total += read_chars;
+			entry_pos += read_chars;
 		}
 	}
 	return entry;

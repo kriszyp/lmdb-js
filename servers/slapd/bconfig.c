@@ -234,8 +234,8 @@ ConfigTable config_back_cf_table[] = {
 	{ "attribute",	"attribute", 2, 0, 9, ARG_PAREN|ARG_MAGIC|CFG_ATTR,
 		&config_generic, "( OLcfgAt:4 NAME 'olcAttributeTypes' "
 			"DESC 'OpenLDAP attributeTypes' "
-			"EQUALITY objectIdentifierFirstComponentMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.3 X-ORDERED 'VALUES' )",
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 				NULL, NULL },
 	{ "attributeoptions", NULL, 0, 0, 0, ARG_MAGIC|CFG_ATOPT,
 		&config_generic, "( OLcfgAt:5 NAME 'olcAttributeOptions' "
@@ -286,8 +286,8 @@ ConfigTable config_back_cf_table[] = {
 	{ "ditcontentrule",	NULL, 0, 0, 0, ARG_MAGIC|CFG_DIT,
 		&config_generic, "( OLcfgAt:16 NAME 'olcDitContentRules' "
 			"DESC 'OpenLDAP DIT content rules' "
-			"EQUALITY objectIdentifierFirstComponentMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.16 X-ORDERED 'VALUES' )",
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 			NULL, NULL },
 	{ "gentlehup", "on|off", 2, 2, 0,
 #ifdef SIGHUP
@@ -353,8 +353,8 @@ ConfigTable config_back_cf_table[] = {
 	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC,
 		&config_generic, "( OLcfgAt:32 NAME 'olcObjectClasses' "
 		"DESC 'OpenLDAP object classes' "
-		"EQUALITY objectIdentifierFirstComponentMatch "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.37 X-ORDERED 'VALUES' )",
+		"EQUALITY caseIgnoreMatch "
+		"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 			NULL, NULL },
 	{ "objectidentifier", NULL,	0, 0, 0, ARG_MAGIC|CFG_OID,
 		&config_generic, "( OLcfgAt:33 NAME 'olcObjectIdentifier' "
@@ -580,23 +580,26 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcConfig' "
 		"DESC 'OpenLDAP configuration object' "
 		"ABSTRACT SUP top "
-		"MAY ( cn $ olcConfigFile ) )", Cft_Abstract, NULL },
+		"MAY cn )", Cft_Abstract, NULL },
 	{ "( OLcfgOc:2 "
 		"NAME 'olcGlobal' "
 		"DESC 'OpenLDAP Global configuration options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcConfigDir $ olcAllows $ olcArgsFile $ olcAttributeOptions $ "
-		 "olcAuthIDRewrite $ olcAuthzPolicy $ olcAuthzRegexp $ "
-		 "olcConcurrency $ olcConnMaxPending $ olcConnMaxPendingAuth $ "
-		 "olcDefaultSearchBase $ olcDisallows $ olcGentleHUP $ "
-		 "olcIdleTimeout $ olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
+		"MAY ( olcConfigFile $ olcConfigDir $ olcAllows $ olcArgsFile $ "
+		 "olcAttributeOptions $ olcAttributeTypes $ olcAuthIDRewrite $ "
+		 "olcAuthzPolicy $ olcAuthzRegexp $ olcConcurrency $ "
+		 "olcConnMaxPending $ olcConnMaxPendingAuth $ olcDefaultSearchBase $ "
+		 "olcDisallows $ olcDitContentRules $ olcGentleHUP $ olcIdleTimeout $ "
+		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
-		 "olcLogLevel $ olcModulePath $ olcObjectIdentifier $ "
+		 "olcLogLevel $ olcModulePath $ olcObjectClasses $ "
+		 "olcObjectIdentifier $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPlugin $ olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplicaPidFile $ olcReplicaArgsFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
-		 "olcRootDSE $ olcRootPW $ olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
+		 "olcRootDSE $ olcRootPW $ "
+		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSchemaCheck $ olcSchemaDN $ olcSecurity $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ olcSrvtab $ "
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
@@ -633,7 +636,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcIncludeFile' "
 		"DESC 'OpenLDAP configuration include file' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcInclude $ olcRootDSE ) )",
+		"MAY ( olcInclude $ olcConfigFile $ olcRootDSE ) )",
 		Cft_Include, &cfOc_include },
 #ifdef SLAPD_MODULES
 	{ "( OLcfgOc:8 "
@@ -2873,6 +2876,7 @@ sort_vals( Attribute *a )
 		/* Strip index from normalized values */
 		if ( !a->a_nvals || a->a_vals == a->a_nvals ) {
 			a->a_nvals = ch_malloc( (vals+1)*sizeof(struct berval));
+			BER_BVZERO(a->a_nvals+vals);
 			for ( i=0; i<vals; i++ ) {
 				ptr = strchr(a->a_vals[i].bv_val, '}') + 1;
 				a->a_nvals[i].bv_len = a->a_vals[i].bv_len -
@@ -3369,6 +3373,61 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 	return 0;
 }
 
+static void
+config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
+	Operation *op, SlapReply *rs )
+{
+	Entry *e;
+	ConfigFile *cf = c->private;
+	CfEntryInfo *ce, *ceprev;
+	char *ptr;
+	struct berval bv;
+
+	if ( ceparent->ce_kids ) {
+		for ( ceprev = ceparent->ce_kids; ceprev->ce_sibs;
+			ceprev = ceprev->ce_sibs );
+	}
+
+	for (; cf; cf=cf->c_sibs, c->depth++) {
+		c->value_dn.bv_val = c->log;
+		bv.bv_val = strrchr(cf->c_file.bv_val, LDAP_DIRSEP[0]);
+		if ( !bv.bv_val ) {
+			bv = cf->c_file;
+		} else {
+			bv.bv_val++;
+			bv.bv_len = cf->c_file.bv_len - (bv.bv_val - cf->c_file.bv_val);
+		}
+		ptr = strchr( bv.bv_val, '.' );
+		if ( ptr )
+			bv.bv_len = ptr - bv.bv_val;
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn={%02d}", c->depth);
+		strncpy( c->value_dn.bv_val + c->value_dn.bv_len, bv.bv_val,
+			bv.bv_len );
+		c->value_dn.bv_len += bv.bv_len;
+		c->value_dn.bv_val[c->value_dn.bv_len] ='\0';
+
+		e = config_alloc_entry( ceparent, &c->value_dn );
+		c->private = cf;
+		config_build_entry( c, e, cfOc_schema, &c->value_dn,
+			c->bi->bi_cf_table, NO_TABLE );
+		ce = e->e_private;
+		ce->ce_type = Cft_Schema;
+		op->ora_e = e;
+		op->o_bd->be_add( op, rs );
+		ce->ce_bi = c->bi;
+		if ( !ceparent->ce_kids ) {
+			ceparent->ce_kids = ce;
+		} else {
+			ceprev->ce_sibs = ce;
+		}
+		ceprev = ce;
+		if ( cf->c_kids ) {
+			c->private = cf->c_kids;
+			config_build_schema_inc( c, ceparent, op, rs );
+		}
+	}
+}
+
 static CfEntryInfo *
 config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 	Operation *op, SlapReply *rs )
@@ -3519,8 +3578,11 @@ config_back_db_open( BackendDB *be )
 	}
 	ceprev = ce;
 
-	/* Create includeFile nodes... */
+	/* Create includeFile nodes and schema nodes for included schema... */
 	if ( cfb->cb_config->c_kids ) {
+		c.depth = 0;
+		c.private = cfb->cb_config->c_kids;
+		config_build_schema_inc( &c, ce, op, &rs );
 		c.private = cfb->cb_config->c_kids;
 		ceprev = config_build_includes( &c, ceparent, op, &rs );
 	}
