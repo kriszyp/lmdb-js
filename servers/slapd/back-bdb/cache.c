@@ -442,7 +442,7 @@ hdb_cache_find_parent(
 		ein->bei_state = CACHE_ENTRY_NOT_LINKED;
 
 		/* Insert this node into the ID tree */
-		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
+		ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 		if ( avl_insert( &bdb->bi_cache.c_idtree, (caddr_t)ein,
 			bdb_id_cmp, avl_dup_error ) ) {
 
@@ -482,7 +482,7 @@ hdb_cache_find_parent(
 			*res = eir;
 			bdb_cache_entryinfo_lock( eir );
 		}
-		ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
+		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 		if ( ei2 ) {
 			/* Found a link. Reset all the state info */
 			for (ein = eir; ein != ei2; ein=ein->bei_parent)
@@ -524,11 +524,16 @@ bdb_cache_find_id(
 
 	/* If we weren't given any info, see if we have it already cached */
 	if ( !*eip ) {
-		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
+again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		*eip = (EntryInfo *) avl_find( bdb->bi_cache.c_idtree,
 					(caddr_t) &ei, bdb_id_cmp );
 		if ( *eip ) {
-			bdb_cache_entryinfo_lock( *eip );
+			if ( ldap_pvt_thread_mutex_trylock(
+					&(*eip)->bei_kids_mutex )) {
+				ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
+				ldap_pvt_thread_yield();
+				goto again;
+			}
 			islocked = 1;
 		}
 		ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
