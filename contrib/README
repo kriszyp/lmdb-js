@@ -19,6 +19,12 @@ Current contributions:
 		LDAP TCL API
 		Contributed by NeoSoft
 
+	slapd-modules
+		Native modules
+
+	slapi-plugins
+		SLAPI plugins
+
 
 OpenLDAP Contributing Guidelines are available at:
   <http://www.openldap.org/devel/contributing.html>.
