@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1994 Regents of the University of Michigan.
  *  All rights reserved.
  *
@@ -6,10 +10,6 @@
  */
 
 #include "portable.h"
-
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * util-int.c	Various functions to replace missing threadsafe ones.
  *				  Without the real *_r funcs, things will work, but won't be
  *				  threadsafe. 
