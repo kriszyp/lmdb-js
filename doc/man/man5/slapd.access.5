@@ -255,7 +255,9 @@ or
 syntax. For dynamic groups the attributeType must
 be a subtype of the
 .B labeledURI
-attributeType.
+attributeType. Only LDAP URIs of the form
+.B ldap:///<base>??<scope>?<filter>
+will be evaluated in a dynamic group.
 .LP
 The statements
 .BR peername=<peername> ,
