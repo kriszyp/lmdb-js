@@ -257,7 +257,7 @@ slapi_entry_attr_merge(
 		return -1;
 	}
 	
-	rc = attr_mergeit( e, ad, bv );
+	rc = attr_merge_normalize_one( e, ad, bv, NULL );
 	ch_free( bv );
 
 	return rc;
@@ -469,7 +469,7 @@ slapi_entry_attr_set_charptr(Slapi_Entry* e, const char *type, const char *value
 	if ( value != NULL ) {
 		bv.bv_val = (char *)value;
 		bv.bv_len = strlen(value);
-		attr_mergeit_one( e, ad, &bv );
+		attr_merge_normalize_one( e, ad, &bv, NULL );
 	}
 #endif /* LDAP_SLAPI */
 }
@@ -602,7 +602,7 @@ slapi_entry_add_valueset(Slapi_Entry *e, const char *type, Slapi_ValueSet *vs)
 		return -1;
 	}
 
-	return attr_mergeit( e, ad, *vs );
+	return attr_merge_normalize( e, ad, *vs, NULL );
 #else
 	return -1;
 #endif /* LDAP_SLAPI */
@@ -686,7 +686,7 @@ slapi_entry_add_value(Slapi_Entry *e, const char *type, const Slapi_Value *value
 		return -1;
 	}
 
-	rc = attr_mergeit_one( e, ad, (Slapi_Value *)value );
+	rc = attr_merge_normalize_one( e, ad, (Slapi_Value *)value, NULL );
 	if ( rc != LDAP_SUCCESS ) {
 		return -1;
 	}
@@ -798,7 +798,7 @@ slapi_entry_attr_replace_sv( Slapi_Entry *e, const char *type, Slapi_Value **val
 		return -1;
 	}
 	
-	rc = attr_mergeit( e, ad, bv );
+	rc = attr_merge_normalize( e, ad, bv, NULL );
 	slapi_ch_free( (void **)&bv );
 	if ( rc != LDAP_SUCCESS ) {
 		return -1;
