@@ -76,6 +76,7 @@ ldbm_back_search(
 	 * the subordinates of the base
 	 */
 
+#ifdef SLAPD_DEREF
 	switch ( deref ) {
 	case LDAP_DEREF_FINDING:
 	case LDAP_DEREF_ALWAYS:
@@ -84,6 +85,9 @@ ldbm_back_search(
 	default:
 		realBase = ch_strdup(base);
 	}
+#else
+		realBase = ch_strdup(base);
+#endif
 
 	(void) dn_normalize (realBase);
 
@@ -244,6 +248,7 @@ ldbm_back_search(
 						return( 0 );
 					}
 
+#ifdef	SLAPD_DEREF
 					/*
 					 * check and apply aliasing where the dereferencing applies to
 					 * the subordinates of the base
@@ -258,6 +263,7 @@ ldbm_back_search(
 						}
 						break;
 					}
+#endif
 
 					switch ( send_search_entry( be, conn, op, e,
 						attrs, attrsonly ) ) {

@@ -8,6 +8,7 @@ LDAP_BEGIN_DECL
 /*
  * alias.c
  */
+#ifdef SLAPD_ALIAS_DEREF
 Entry *derefAlias_r LDAP_P((
 	Backend     *be,
 	Connection	*conn,
@@ -18,6 +19,7 @@ char *derefDN LDAP_P((
 	Connection  *conn,
 	Operation   *op,
 	char        *dn ));
+#endif
 
 /*
  * attr.c

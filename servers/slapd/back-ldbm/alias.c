@@ -12,6 +12,8 @@
 
 #include "portable.h"
 
+#ifndef SLAPD_ALIAS_DEREF
+
 #include <stdio.h>
 #include <string.h>
 #include <ac/socket.h>		/* Get struct sockaddr for slap.h */
@@ -243,3 +245,5 @@ char *derefDN ( Backend     *be,
 
   return newDN;
 }
+
+#endif SLAPD_ALIAS_DEREF
