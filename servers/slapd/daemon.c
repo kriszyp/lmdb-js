@@ -79,7 +79,7 @@ extern int	  is_NT_Service;
 #endif
 
 #ifndef HAVE_WINSOCK
-static 
+static
 #endif
 volatile sig_atomic_t slapd_shutdown = 0;
 
@@ -97,7 +97,10 @@ static struct slap_daemon {
 	fd_set sd_actives;
 	fd_set sd_readers;
 	fd_set sd_writers;
-} slap_daemon; 
+} slap_daemon;
+
+
+
 
 /*
  * Add a descriptor to daemon control
@@ -122,7 +125,6 @@ static void slapd_add(ber_socket_t s) {
 		(long) s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
 		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
-
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 }
 
@@ -136,7 +138,6 @@ void slapd_remove(ber_socket_t s, int wake) {
 		(long) s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
 		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
-
 	FD_CLR( s, &slap_daemon.sd_actives );
 	FD_CLR( s, &slap_daemon.sd_readers );
 	FD_CLR( s, &slap_daemon.sd_writers );
@@ -215,116 +216,98 @@ static int slap_get_listener_addresses(
 	struct sockaddr ***sal)
 {
 	struct sockaddr **sap;
-#ifdef HAVE_GETADDRINFO
-	struct addrinfo hints, *res, *sai;
-	int n, err;
-	
-	memset( &hints, '\0', sizeof(hints) );
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_socktype = SOCK_STREAM;
-#  ifdef LDAP_PF_LOCAL
+
+#ifdef LDAP_PF_LOCAL
 	if ( port == 0 ) {
-		hints.ai_family = AF_LOCAL;
-		/* host specifies a service in this case */
-		if (err = getaddrinfo(NULL, host, &hints, &res)) {
-			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
-				AC_GAI_STRERROR(err), 0, 0);
-			return -1;
-		}
-	} else
-#  endif
-	{		
-		char serv[7];
-	
-		snprintf(serv, sizeof serv, "%d", port);
-		hints.ai_family = AF_UNSPEC;
-		if (err = getaddrinfo(host, serv, &hints, &res)) {
-			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
-				AC_GAI_STRERROR(err), 0, 0);
-			return -1;
-		}
-	}
-
-	sai = res;
-	for (n=2; (sai = sai->ai_next) != NULL; n++) {
-		/* EMPTY */ ;
-	}
-	*sal = ch_malloc(n * sizeof(*sal));
-	if (*sal == NULL) {
-		return -1;
-	}
-
-	sai = res;
-	sap = *sal;
-	do {
-		switch (sai->ai_family) {
-#  ifdef LDAP_PF_LOCAL
-		case AF_LOCAL: {
-			*sap = ch_malloc(sizeof(struct sockaddr_un));
-			if (*sap == NULL) {
-				freeaddrinfo(res);
-				goto errexit;
-			}
-			*(struct sockaddr_un *)*sap =
-				*((struct sockaddr_un *)sai->ai_addr);
-		} break;
-#  endif
-#  ifdef LDAP_PF_INET6			
-		case AF_INET6: {
-			*sap = ch_malloc(sizeof(struct sockaddr_in6));
-			if (*sap == NULL) {
-				freeaddrinfo(res);
-				goto errexit;
-			}
-			*(struct sockaddr_in6 *)*sap =
-				*((struct sockaddr_in6 *)sai->ai_addr);
-		} break;
-#  endif
-		case AF_INET: {
-			*sap = ch_malloc(sizeof(struct sockaddr_in));
-			if (*sap == NULL) {
-				freeaddrinfo(res);
-				goto errexit;
-			}
-			*(struct sockaddr_in *)*sap =
-				*((struct sockaddr_in *)sai->ai_addr);
-		} break;
-		default: 
-			*sap = NULL;
-			break;
-		}
-		if (*sap != NULL) {
-			(*sap)->sa_family = sai->ai_family;
-			sap++;
-		}
-	} while ((sai = sai->ai_next) != NULL);
-
-	freeaddrinfo(res);
-
-#else
-#  ifdef LDAP_PF_LOCAL
-	if ( port == 0 ) {
-		*sal = ch_malloc(2 * sizeof(*sal));
+		*sal = ch_malloc(2 * sizeof(void *));
 		if (*sal == NULL) {
 			return -1;
 		}
+
 		sap = *sal;
 		*sap = ch_malloc(sizeof(struct sockaddr_un));
 		if (*sap == NULL)
 			goto errexit;
-		(void)memset( (void *)*sap, '\0', sizeof(struct sockaddr_un) );
-		(*sap)->sa_family = AF_LOCAL;
+		sap[1] = NULL;
+
 		if ( strlen(host) >
-		     (sizeof(((struct sockaddr_un *)*sal)->sun_path) - 1) ) {
+		     (sizeof(((struct sockaddr_un *)*sap)->sun_path) - 1) ) {
 			Debug( LDAP_DEBUG_ANY,
 			       "daemon: domain socket path (%s) too long in URL",
 			       host, 0, 0);
 			goto errexit;
 		}
+
+		(void)memset( (void *)*sap, '\0', sizeof(struct sockaddr_un) );
+		(*sap)->sa_family = AF_LOCAL;
 		strcpy( ((struct sockaddr_un *)*sap)->sun_path, host );
 	} else
-#  endif		
+#endif
 	{
+#ifdef HAVE_GETADDRINFO
+		struct addrinfo hints, *res, *sai;
+		int n, err;
+		char serv[7];
+
+		memset( &hints, '\0', sizeof(hints) );
+		hints.ai_flags = AI_PASSIVE;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_family = AF_UNSPEC;
+		snprintf(serv, sizeof serv, "%d", port);
+
+		if (err = getaddrinfo(host, serv, &hints, &res)) {
+			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
+				AC_GAI_STRERROR(err), 0, 0);
+			return -1;
+		}
+
+		sai = res;
+		for (n=2; (sai = sai->ai_next) != NULL; n++) {
+			/* EMPTY */ ;
+		}
+		*sal = ch_malloc(n * sizeof(void *));
+		if (*sal == NULL) {
+			return -1;
+		}
+
+		sai = res;
+		sap = *sal;
+
+		do {
+			switch (sai->ai_family) {
+#  ifdef LDAP_PF_INET6
+			case AF_INET6:
+				*sap = ch_malloc(sizeof(struct sockaddr_in6));
+				if (*sap == NULL) {
+					freeaddrinfo(res);
+					goto errexit;
+				}
+				*(struct sockaddr_in6 *)*sap =
+					*((struct sockaddr_in6 *)sai->ai_addr);
+				break;
+#  endif
+			case AF_INET:
+				*sap = ch_malloc(sizeof(struct sockaddr_in));
+				if (*sap == NULL) {
+					freeaddrinfo(res);
+					goto errexit;
+				}
+				*(struct sockaddr_in *)*sap =
+					*((struct sockaddr_in *)sai->ai_addr);
+				break;
+			default:
+				*sap = NULL;
+				break;
+			}
+			if (*sap != NULL) {
+				(*sap)->sa_family = sai->ai_family;
+				sap++;
+			}
+		} while ((sai = sai->ai_next) != NULL);
+
+		*sap = NULL;
+		freeaddrinfo(res);
+#else
 		struct in_addr in;
 
 		if ( host == NULL ) {
@@ -340,7 +323,7 @@ static int slap_get_listener_addresses(
 			AC_MEMCPY( &in, he->h_addr, sizeof( in ) );
 		}
 
-		*sal = ch_malloc(2 * sizeof(*sal));
+		*sal = ch_malloc(2 * sizeof(void *));
 		if (*sal == NULL) {
 			return -1;
 		}
@@ -350,16 +333,15 @@ static int slap_get_listener_addresses(
 		if (*sap == NULL) {
 			goto errexit;
 		}
+		sap[1] = NULL;
 
 		(void)memset( (void *)*sap, '\0', sizeof(struct sockaddr_in) );
 		(*sap)->sa_family = AF_INET;
 		((struct sockaddr_in *)*sap)->sin_port = htons(port);
 		((struct sockaddr_in *)*sap)->sin_addr = in;
-	}
-	sap++;
 #endif
+	}
 
-	*sap = NULL;
 	return 0;
 
 errexit:
@@ -409,7 +391,7 @@ static Listener * slap_open_listener(
 #endif
 
 	port = (unsigned short) lud->lud_port;
-	
+
 	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
 #ifdef LDAP_PF_LOCAL
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
@@ -418,6 +400,7 @@ static Listener * slap_open_listener(
 			err = slap_get_listener_addresses(lud->lud_host, 0, &sal);
 		}
 #else
+
 		Debug( LDAP_DEBUG_ANY, "daemon: URL scheme not supported: %s",
 			url, 0, 0);
 		ldap_free_urldesc( lud );
@@ -491,7 +474,7 @@ static Listener * slap_open_listener(
 			}
 #endif
 		}
-	
+
 		switch( (*sal)->sa_family ) {
 		case AF_INET:
 			addrlen = sizeof(struct sockaddr_in);
@@ -507,7 +490,7 @@ static Listener * slap_open_listener(
 			break;
 #endif
 		}
-	
+
 		if (!bind(l.sl_sd, *sal, addrlen))
 			break;
 		err = sock_errno();
@@ -583,7 +566,6 @@ static Listener * slap_open_listener(
 
 	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
 		l.sl_url, 0, 0 );
-
 	return li;
 }
 
@@ -597,7 +579,6 @@ int slapd_daemon_init( const char *urls )
 
 	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
 		urls ? urls : "<null>", 0, 0 );
-
 	if( (rc = sockinit()) != 0 ) {
 		return rc;
 	}
@@ -639,7 +620,6 @@ int slapd_daemon_init( const char *urls )
 	if( u == NULL || u[0] == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no urls (%s) provided.\n",
 			urls, 0, 0 );
-
 		return -1;
 	}
 
@@ -657,7 +637,6 @@ int slapd_daemon_init( const char *urls )
 
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners to open...\n",
 		i, 0, 0 );
-
 	slap_listeners = ch_malloc( (i+1)*sizeof(Listener *) );
 
 	for(i = 0; u[i] != NULL; i++ ) {
@@ -673,6 +652,7 @@ int slapd_daemon_init( const char *urls )
 	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened\n",
 		i, 0, 0 );
 
+
 	charray_free( u );
 	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
 	return !i;
@@ -686,6 +666,8 @@ slapd_daemon_destroy(void)
 	tcp_close( wake_sds[1] );
 	tcp_close( wake_sds[0] );
 	sockdestroy();
+
+
 	return 0;
 }
 
@@ -739,7 +721,7 @@ slapd_daemon_task(
 		Sockaddr		from;
 
 #if defined(SLAPD_RLOOKUPS)
-        struct hostent		*hp;
+	struct hostent		*hp;
 #endif
 		struct timeval		zero;
 		struct timeval		*tvp;
@@ -820,7 +802,7 @@ slapd_daemon_task(
 		case -1: {	/* failure - try again */
 				int err = sock_errno();
 
-				if( err == EBADF 
+				if( err == EBADF
 #ifdef WSAENOTSOCK
 					/* you'd think this would be EBADF */
 					|| err == WSAENOTSOCK
@@ -834,7 +816,6 @@ slapd_daemon_task(
 					Debug( LDAP_DEBUG_CONNS,
 						"daemon: select failed (%d): %s\n",
 						err, sock_errstr(err), 0 );
-
 					slapd_shutdown = -1;
 				}
 			}
@@ -844,7 +825,7 @@ slapd_daemon_task(
 			ebadf = 0;
 			Debug( LDAP_DEBUG_CONNS, "daemon: select timeout - yielding\n",
 			    0, 0, 0 );
-	     	ldap_pvt_thread_yield();
+			ldap_pvt_thread_yield();
 			continue;
 
 		default:	/* something happened - deal with it */
@@ -962,7 +943,6 @@ slapd_daemon_task(
 
 			Debug( LDAP_DEBUG_CONNS, "daemon: new connection on %ld\n",
 				(long) s, 0, 0 );
-
 			switch ( from.sa_addr.sa_family ) {
 #  ifdef LDAP_PF_LOCAL
 			case AF_LOCAL:
@@ -1002,7 +982,7 @@ slapd_daemon_task(
 				continue;
 			}
 
-			if ( ( from.sa_addr.sa_family == AF_INET ) 
+			if ( ( from.sa_addr.sa_family == AF_INET )
 #ifdef LDAP_PF_INET6
 				|| ( from.sa_addr.sa_family == AF_INET6 )
 #endif
@@ -1091,6 +1071,7 @@ slapd_daemon_task(
 			Debug( LDAP_DEBUG_CONNS, " %d%s",
 				writefds.fd_array[i], "w", 0 );
 		}
+
 #else
 		for ( i = 0; i < nfds; i++ ) {
 			int	r, w;
@@ -1114,6 +1095,7 @@ slapd_daemon_task(
 		}
 #endif
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
+
 #endif
 
 		/* loop through the writers */
@@ -1146,7 +1128,6 @@ slapd_daemon_task(
 			Debug( LDAP_DEBUG_CONNS,
 				"daemon: write active on %d\n",
 				wd, 0, 0 );
-
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
@@ -1190,7 +1171,6 @@ slapd_daemon_task(
 
 			Debug ( LDAP_DEBUG_CONNS,
 				"daemon: read activity on %d\n", rd, 0, 0 );
-
 			/*
 			 * NOTE: it is possible that the connection was closed
 			 * and that the stream is now inactive.
@@ -1213,18 +1193,22 @@ slapd_daemon_task(
 	} else if ( slapd_shutdown < 0 ) {
 #ifdef HAVE_NT_SERVICE_MANAGER
 		if (slapd_shutdown == -1)
-		    Debug( LDAP_DEBUG_TRACE,
-			  "daemon: shutdown initiated by Service Manager.\n",
-			  0, 0, 0);
+		{
+			Debug( LDAP_DEBUG_TRACE,
+			       "daemon: shutdown initiated by Service Manager.\n",
+			       0, 0, 0);
+		}
 		else
 #endif
-		Debug( LDAP_DEBUG_TRACE,
-			"daemon: abnormal condition, shutdown initiated.\n",
-			0, 0, 0 );
+		{
+			Debug( LDAP_DEBUG_TRACE,
+			       "daemon: abnormal condition, shutdown initiated.\n",
+			       0, 0, 0 );
+		}
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"daemon: no active streams, shutdown initiated.\n",
-			0, 0, 0 );
+		       "daemon: no active streams, shutdown initiated.\n",
+		       0, 0, 0 );
 	}
 
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
@@ -1242,7 +1226,6 @@ slapd_daemon_task(
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",
 	    ldap_pvt_thread_pool_backload(&connection_pool), 0, 0 );
-
 	ldap_pvt_thread_pool_destroy(&connection_pool, 1);
 
 	return NULL;
@@ -1266,13 +1249,13 @@ int slapd_daemon( void )
 
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-		    	"listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
+			"listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
 			return rc;
 		}
-
-		/* wait for the listener thread to complete */
-		ldap_pvt_thread_join( listener_tid, (void *) NULL );
- 	}
+ 
+  		/* wait for the listener thread to complete */
+  		ldap_pvt_thread_join( listener_tid, (void *) NULL );
+	}
 #else
 	/* experimental code */
 	slapd_daemon_task( NULL );
@@ -1288,29 +1271,29 @@ int sockinit(void)
     WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
- 
+
 	wVersionRequested = MAKEWORD( 2, 0 );
- 
+
 	err = WSAStartup( wVersionRequested, &wsaData );
 	if ( err != 0 ) {
 		/* Tell the user that we couldn't find a usable */
-		/* WinSock DLL.                                  */
+		/* WinSock DLL.					 */
 		return -1;
 	}
- 
+
 	/* Confirm that the WinSock DLL supports 2.0.*/
 	/* Note that if the DLL supports versions greater    */
 	/* than 2.0 in addition to 2.0, it will still return */
-	/* 2.0 in wVersion since that is the version we      */
-	/* requested.                                        */
- 
+	/* 2.0 in wVersion since that is the version we	     */
+	/* requested.					     */
+
 	if ( LOBYTE( wsaData.wVersion ) != 2 ||
 		HIBYTE( wsaData.wVersion ) != 0 )
 	{
 	    /* Tell the user that we couldn't find a usable */
-	    /* WinSock DLL.                                  */
+	    /* WinSock DLL.				     */
 	    WSACleanup();
-	    return -1; 
+	    return -1;
 	}
 
 	/* The WinSock DLL is acceptable. Proceed. */
