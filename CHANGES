@@ -1,9 +1,5 @@
 OpenLDAP Change Log
 
-Changes included in OpenLDAP 1.2.12 Release Engineering
-	CVS Tag: OPENLDAP_REL_ENG_1_2_12
-	<insert changes here>
-
 Changes included in OpenLDAP 1.2.11
 	CVS Tag: OPENLDAP_REL_ENG_1_2_11
 	Fixed /tmp races in ud, ldapsearch, ldbmtest and slurpd
@@ -16,6 +12,7 @@ Changes included in OpenLDAP 1.2.11
 	Fixed ACL groups member matching
 	Raise MAXDBCACHE to 128 (ITS#512)
 	Fixed slapd client_addr crash (ITS#579)
+	Fixed back-shell realloc bug (ITS#506)
 	Build Environment
 		Update res_search detection
 		Detect and use getpassphrase() and getpass()
