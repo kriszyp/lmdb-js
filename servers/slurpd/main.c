@@ -120,8 +120,13 @@ main(
     if ( ldap_pvt_thread_create( &(sglob->fm_tid),
 		0, fm, (void *) NULL ) != 0 )
 	{
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "main", LDAP_LEVEL_ERR,
+		"main: file manager ldap_pvt_thread_create failed\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "file manager ldap_pvt_thread_create failed\n",
 		0, 0, 0 );
+#endif
 	exit( EXIT_FAILURE );
 
     }
@@ -157,7 +162,12 @@ main(
     /* destroy the thread package */
     ldap_pvt_thread_destroy();
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "main", LDAP_LEVEL_RESULTS,
+		"main: slurpd terminated\n" ));
+#else
     Debug( LDAP_DEBUG_ANY, "slurpd: terminated.\n", 0, 0, 0 );
+#endif
 	return 0;
 #endif /* !NO_THREADS */
 }

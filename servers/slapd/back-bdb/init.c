@@ -443,6 +443,14 @@ bdb_db_destroy( BackendDB *be )
 		}
 	}
 
+#ifdef BDB_HIER
+	ldap_pvt_thread_rdwr_destroy( &bdb->bi_tree_rdwr );
+#endif
+	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
+
 	return 0;
 }
 

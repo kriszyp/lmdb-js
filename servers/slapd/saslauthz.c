@@ -164,7 +164,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	reg->sr_offset[0] = -2;
 	n = 1;
 	for ( c = reg->sr_replace;	 *c;  c++ ) {
-		if ( *c == '\\' ) {
+		if ( *c == '\\' && c[1] ) {
 			c++;
 			continue;
 		}
@@ -546,7 +546,7 @@ CONCLUDED:
  * attribute named by *attr. If any of those rules map to the *assertDN, the
  * authorization is approved.
  *
- * DN's passed in should have a dn: prefix
+ * The DNs should not have the dn: prefix
  */
 static int
 slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, struct berval *attr, struct berval *authc)
@@ -555,7 +555,6 @@ slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, struct b
 	int i, rc;
 	BerVarray vals=NULL;
 	AttributeDescription *ad=NULL;
-	struct berval bv;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -571,17 +570,13 @@ slap_sasl_check_authz(struct berval *searchDN, struct berval *assertDN, struct b
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
-	bv.bv_val = searchDN->bv_val + 3;
-	bv.bv_len = searchDN->bv_len - 3;
-	rc = backend_attribute( NULL, NULL, NULL, NULL, &bv, ad, &vals );
+	rc = backend_attribute( NULL, NULL, NULL, NULL, searchDN, ad, &vals );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
-	bv.bv_val = assertDN->bv_val + 3;
-	bv.bv_len = assertDN->bv_len - 3;
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
-		rc = slap_sasl_match( &vals[i], &bv, authc );
+		rc = slap_sasl_match( &vals[i], assertDN, authc );
 		if ( rc == LDAP_SUCCESS )
 			goto COMPLETE;
 	}
@@ -604,7 +599,8 @@ COMPLETE:
 
 
 /* Check if a bind can SASL authorize to another identity.
-   Accepts authorization DN's with "dn:" prefix */
+ * The DNs should not have the dn: prefix
+ */
 
 static struct berval sasl_authz_src = {
 	sizeof(SASL_AUTHZ_SOURCE_ATTR)-1, SASL_AUTHZ_SOURCE_ATTR };

@@ -38,7 +38,6 @@
 #endif
 
 /* Flags for telling slap_sasl_getdn() what type of identity is being passed */
-#define FLAG_GETDN_FINAL   1
 #define FLAG_GETDN_AUTHCID 2
 #define FLAG_GETDN_AUTHZID 4
 
@@ -130,6 +129,10 @@ slap_sasl_log(
    string returned in *dn is in its own allocated memory, and must be free'd 
    by the calling process.
    -Mark Adamson, Carnegie Mellon
+
+   The "dn:" prefix is no longer used anywhere inside slapd. It is only used
+   on strings passed in directly from SASL.
+   -Howard Chu, Symas Corp.
 */
 
 #define	SET_DN	1
@@ -137,11 +140,11 @@ slap_sasl_log(
 
 static struct berval ext_bv = { sizeof("EXTERNAL")-1, "EXTERNAL" };
 
-int slap_sasl_getdn( Connection *conn, char *id,
+int slap_sasl_getdn( Connection *conn, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
 	char *c1;
-	int rc, len, is_dn = 0;
+	int rc, is_dn = 0, do_norm = 1;
 	sasl_conn_t *ctx;
 	struct berval dn2;
 
@@ -166,7 +169,7 @@ int slap_sasl_getdn( Connection *conn, char *id,
 		return( LDAP_SUCCESS );
 	}
 	ctx = conn->c_sasl_context;
-	len = strlen( id );
+	if ( len == 0 ) len = strlen( id );
 
 	/* An authcID needs to be converted to authzID form */
 	if( flags & FLAG_GETDN_AUTHCID ) {
@@ -176,9 +179,9 @@ int slap_sasl_getdn( Connection *conn, char *id,
 			&& id[0] == '/' )
 		{
 			/* check SASL external for X.509 style DN and */
-			/* convert to dn:<dn> form */
-			dn->bv_val = ldap_dcedn2dn( id );
-			dn->bv_len = strlen(dn->bv_val);
+			/* convert to dn:<dn> form, result is normalized */
+			dnDCEnormalize( id, dn );
+			do_norm = 0;
 			is_dn = SET_DN;
 
 		} else {
@@ -246,12 +249,13 @@ int slap_sasl_getdn( Connection *conn, char *id,
 	}
 
 	/* DN strings that are a cn=auth identity to run through regexp */
-	if( is_dn == SET_DN && ( ( flags & FLAG_GETDN_FINAL ) == 0 ) )
+	if( is_dn == SET_DN )
 	{
 		slap_sasl2dn( dn, &dn2 );
 		if( dn2.bv_val ) {
 			ch_free( dn->bv_val );
 			*dn = dn2;
+			do_norm = 0;	/* slap_sasl2dn normalizes */
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 				"slap_sasl_getdn: dn:id converted to %s.\n", dn->bv_val ));
@@ -262,10 +266,7 @@ int slap_sasl_getdn( Connection *conn, char *id,
 		}
 	}
 
-	if( flags & FLAG_GETDN_FINAL ) {
-		/* omit "dn:" prefix */
-		is_dn = 0;
-	} else {
+	if ( do_norm ) {
 		rc = dnNormalize2( NULL, dn, &dn2 );
 		free(dn->bv_val);
 		if ( rc != LDAP_SUCCESS ) {
@@ -273,16 +274,6 @@ int slap_sasl_getdn( Connection *conn, char *id,
 			return rc;
 		}
 		*dn = dn2;
-	}
-
-	/* Attach the "dn:" prefix if needed */
-	if ( is_dn == SET_DN ) {
-		c1 = ch_malloc( dn->bv_len + sizeof("dn:") );
-		strcpy( c1, "dn:" );
-		strcpy( c1 + 3, dn->bv_val );
-		free( dn->bv_val );
-		dn->bv_val = c1;
-		dn->bv_len += 3;
 	}
 
 	return( LDAP_SUCCESS );
@@ -306,11 +297,12 @@ slap_sasl_checkpass(
 	cred.bv_val = (char *)pass;
 	cred.bv_len = passlen;
 
-	/* XXX do we need to check sasldb as well? */
+	/* SASL will fallback to its own mechanisms if we don't
+	 * find an answer here.
+	 */
 
-	/* XXX can we do both steps at once? */
-	rc = slap_sasl_getdn( conn, (char *)username, NULL, &dn,
-		FLAG_GETDN_AUTHCID | FLAG_GETDN_FINAL );
+	rc = slap_sasl_getdn( conn, (char *)username, 0, NULL, &dn,
+		FLAG_GETDN_AUTHCID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
 		return SASL_NOUSER;
@@ -388,7 +380,7 @@ slap_sasl_canonicalize(
 			in ? in : "<empty>" );
 #endif
 
-	rc = slap_sasl_getdn( conn, (char *)in, (char *)user_realm, &dn,
+	rc = slap_sasl_getdn( conn, (char *)in, inlen, (char *)user_realm, &dn,
 		(flags == SASL_CU_AUTHID) ? FLAG_GETDN_AUTHCID : FLAG_GETDN_AUTHZID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
@@ -441,7 +433,7 @@ slap_sasl_authorize(
 	Connection *conn = (Connection *)context;
 	struct berval authcDN, authzDN;
 	char *realm;
-	int rc, equal = 1;
+	int rc, equal = 1, ext = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -456,11 +448,19 @@ slap_sasl_authorize(
 	if ( requested_user )
 		equal = !strcmp( auth_identity, requested_user );
 
-	realm = strchr( auth_identity, '@' );
-	if ( realm )
-		*realm++ = '\0';
+	/* If using SASL-EXTERNAL, don't modify the ID in any way */
+	if ( conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
+		&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) 
+			&& auth_identity[0] == '/' ) {
+		ext = 1;
+		realm = NULL;
+	} else {
+	/* Else look for an embedded realm in the name */
+		realm = strchr( auth_identity, '@' );
+		if ( realm ) *realm++ = '\0';
+	}
 
-	rc = slap_sasl_getdn( conn, auth_identity, realm ? realm : (char *)def_realm,
+	rc = slap_sasl_getdn( conn, auth_identity, alen, realm ? realm : (char *)def_realm,
 		&authcDN, FLAG_GETDN_AUTHCID );
 	if ( realm )
 		realm[-1] = '@';
@@ -480,11 +480,14 @@ slap_sasl_authorize(
 		return SASL_OK;
 	}
 
-	realm = strchr( requested_user, '@' );
-	if ( realm )
-		*realm++ = '\0';
+	if ( ext ) {
+		realm = NULL;
+	} else {
+		realm = strchr( requested_user, '@' );
+		if ( realm ) *realm++ = '\0';
+	}
 
-	rc = slap_sasl_getdn( conn, requested_user, realm ? realm : (char *)def_realm,
+	rc = slap_sasl_getdn( conn, requested_user, rlen, realm ? realm : (char *)def_realm,
 		&authzDN, FLAG_GETDN_AUTHZID );
 	if ( realm )
 		realm[-1] = '@';
@@ -537,15 +540,15 @@ slap_sasl_authorize(
 static int
 slap_sasl_authorize(
 	void *context,
-	const char *authcid,
-	const char *authzid,
+	char *authcid,
+	char *authzid,
 	const char **user,
 	const char **errstr)
 {
 	struct berval authcDN, authzDN;
-	int rc;
+	int rc, ext = 0;
 	Connection *conn = context;
-	char *realm;
+	char *realm, *xrealm;
 
 	*user = NULL;
 
@@ -579,7 +582,17 @@ slap_sasl_authorize(
 
 	/* Convert the identities to DN's. If no authzid was given, client will
 	   be bound as the DN matching their username */
-	rc = slap_sasl_getdn( conn, (char *)authcid, realm, &authcDN, FLAG_GETDN_AUTHCID );
+	if ( conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
+		&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) 
+			&& authcid[0] == '/' ) {
+		ext = 1;
+		xrealm = NULL;
+	} else {
+		xrealm = strchr( authcid, '@' );
+		if ( xrealm ) *xrealm++ = '\0';
+	}
+	rc = slap_sasl_getdn( conn, (char *)authcid, 0, xrealm ? xrealm : realm, &authcDN, FLAG_GETDN_AUTHCID );
+	if ( xrealm ) xrealm[-1] = '@';
 	if( rc != LDAP_SUCCESS ) {
 		*errstr = ldap_err2string( rc );
 		return SASL_NOAUTHZ;
@@ -598,7 +611,14 @@ slap_sasl_authorize(
 		*errstr = NULL;
 		return SASL_OK;
 	}
-	rc = slap_sasl_getdn( conn, (char *)authzid, realm, &authzDN, FLAG_GETDN_AUTHZID );
+	if ( ext ) {
+		xrealm = NULL;
+	} else {
+		xrealm = strchr( authzid, '@' );
+		if ( xrealm ) *xrealm++ = '\0';
+	}
+	rc = slap_sasl_getdn( conn, (char *)authzid, 0, xrealm ? xrealm : realm, &authzDN, FLAG_GETDN_AUTHZID );
+	if ( xrealm ) xrealm[-1] = '@';
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( authcDN.bv_val );
 		*errstr = ldap_err2string( rc );
@@ -1088,30 +1108,23 @@ int slap_sasl_bind(
 				NULL, "no SASL username", NULL, NULL );
 
 		} else {
-			rc = slap_sasl_getdn( conn, username, realm, edn, FLAG_GETDN_FINAL );
+			sasl_ssf_t *ssf = NULL;
 
-			if( rc == LDAP_SUCCESS ) {
-				sasl_ssf_t *ssf = NULL;
-				(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
-				*ssfp = ssf ? *ssf : 0;
+			rc = LDAP_SUCCESS;
+			ber_str2bv( username, 0, 1, edn );
 
-				if( *ssfp ) {
-					ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-					conn->c_sasl_layers++;
-					ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-				}
+			(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
+			*ssfp = ssf ? *ssf : 0;
 
-				send_ldap_sasl( conn, op, rc,
-					NULL, NULL, NULL, NULL,
-					response.bv_len ? &response : NULL );
-
-			} else {
-#if SASL_VERSION_MAJOR >= 2
-				errstr = sasl_errdetail( ctx );
-#endif
-				send_ldap_result( conn, op, rc,
-					NULL, errstr, NULL, NULL );
+			if( *ssfp ) {
+				ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+				conn->c_sasl_layers++;
+				ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			}
+
+			send_ldap_sasl( conn, op, rc,
+				NULL, NULL, NULL, NULL,
+				response.bv_len ? &response : NULL );
 		}
 
 	} else if ( sc == SASL_CONTINUE ) {

@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -17,20 +22,18 @@
  * to a replica LDAP server.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
+
+#include <ac/errno.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
-
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
-
 
 /*
  * Write a replication record to a reject file.  The reject file has the
@@ -52,7 +55,7 @@ write_reject(
     FILE	*rfp, *lfp;
     int		rc;
 
-    pthread_mutex_lock( &sglob->rej_mutex );
+    ldap_pvt_thread_mutex_lock( &sglob->rej_mutex );
     sprintf( rejfile, "%s/%s:%d.rej", sglob->slurpd_rdir,
 	    ri->ri_hostname, ri->ri_port );
 
@@ -61,18 +64,29 @@ write_reject(
 	int rjfd;
 	if (( rjfd = open( rejfile, O_RDWR | O_APPEND | O_CREAT,
 		S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP )) < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "reject", LDAP_LEVEL_ERR, "write_reject: "
+			"Error: Cannot create \"%s\":%s\n", 
+			rejfile, sys_errlist[ errno ] ));
+#else
 	    Debug( LDAP_DEBUG_ANY,
 		"Error: write_reject: Cannot create \"%s\": %s\n",
 		rejfile, sys_errlist[ errno ], 0 );
-	    pthread_mutex_unlock( &sglob->rej_mutex );
+#endif
+	    ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
 	    return;
 	} else {
 	    close( rjfd );
 	}
     }
     if (( rc = acquire_lock( rejfile, &rfp, &lfp )) < 0 ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "reject", LDAP_LEVEL_ERR, "write_reject: "
+		"Error: Cannot open reject file \"%s\"\n", rejfile ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Error: cannot open reject file \"%s\"\n",
 		rejfile, 0, 0 );
+#endif
     } else {
 	fseek( rfp, 0, 2 );
 	if ( errmsg != NULL ) {
@@ -81,16 +95,26 @@ write_reject(
 	    fprintf( rfp, "%s: %s\n", ERROR_STR, ldap_err2string( lderr ));
 	}
 	if ((rc = re->re_write( ri, re, rfp )) < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "reject", LDAP_LEVEL_ERR, "write_reject: "
+			"Error: Cannot write reject file \"%s\"\n", rejfile ));
+#else
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: cannot write reject file \"%s\"\n",
 		    rejfile, 0, 0 );
+#endif
 	}
 	(void) relinquish_lock( rejfile, rfp, lfp );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "reject", LDAP_LEVEL_ERR, "write_reject: "
+		"Error: ldap operation failed, data written to \"%s\"\n", rejfile ));
+#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: ldap operation failed, data written to \"%s\"\n",
 		rejfile, 0, 0 );
+#endif
     }
-    pthread_mutex_unlock( &sglob->rej_mutex );
+    ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
     return;
 }
 

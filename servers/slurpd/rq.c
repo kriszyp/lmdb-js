@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -31,21 +36,24 @@
  *
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+#include <sys/stat.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/unistd.h>		/* get ftruncate() */
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #include "slurp.h"
 #include "globals.h"
-
-
-/* externs */
-#ifdef NEEDPROTOS
-extern void Re_dump( Re *re );
-#else /* NEEDPROTOS */
-extern void Re_dump();
-#endif /* NEEDPROTOS */
-
-
-extern char *sys_errlist[];
 
 
 /*
@@ -56,11 +64,8 @@ Rq_lock(
     Rq	*rq
 )
 {
-    return( pthread_mutex_lock( &rq->rq_mutex ));
+    return( ldap_pvt_thread_mutex_lock( &rq->rq_mutex ));
 }
-
-
-
 
 
 /*
@@ -71,7 +76,7 @@ Rq_unlock(
     Rq	*rq
 )
 {
-    return( pthread_mutex_unlock( &rq->rq_mutex ));
+    return( ldap_pvt_thread_mutex_unlock( &rq->rq_mutex ));
 }
 
 
@@ -89,8 +94,6 @@ Rq_gethead(
 }
 
 
-
-
 /*
  * Return the next item in the queue.  Callers should lock the queue before
  * calling this routine.
@@ -106,8 +109,6 @@ Rq_getnext(
 	return( re->re_getnext( re ));
     }
 }
-
-
 
 
 /*
@@ -132,8 +133,13 @@ Rq_delhead(
     }
 
     if ( savedhead->re_getrefcnt( savedhead ) != 0 ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_WARNING, "Rq_delhead: "
+		"Warning: attempt to delete when refcnt != 0\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Warning: attempt to delete when refcnt != 0\n",
 		0, 0, 0 );
+#endif
 	return( -1 );
     }
 
@@ -142,8 +148,6 @@ Rq_delhead(
     rq->rq_nre--;	/* decrement count of Re's in queue */
     return( rc );
 }
-
-
 
 
 /* 
@@ -188,7 +192,7 @@ Rq_add(
 
     /* set the sequence number */
     re->re_seq = 0;
-    if ( !wasempty && !strcmp(rq->rq_tail->re_timestamp, re->re_timestamp )) {
+    if ( !wasempty && ( rq->rq_tail->re_timestamp == re->re_timestamp )) {
 	/*
 	 * Our new re has the same timestamp as the tail's timestamp.
 	 * Increment the seq number in the tail and use it as our seq number.
@@ -200,15 +204,13 @@ Rq_add(
     /* Increment count of items in queue */
     rq->rq_nre++;
     /* wake up any threads waiting for more work */
-    pthread_cond_broadcast( &rq->rq_more );
+    ldap_pvt_thread_cond_broadcast( &rq->rq_more );
 
     /* ... and unlock the queue */
     rq->rq_unlock( rq );
 
     return 0;
 }
-
-
 
 
 /*
@@ -220,7 +222,11 @@ Rq_gc(
 )
 {
     if ( rq == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_DETAIL1, "Rq_gc: rq is NULL!\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Rq_gc: rq is NULL!\n", 0, 0, 0 );
+#endif
 	return;
     }
     rq->rq_lock( rq ); 
@@ -234,7 +240,6 @@ Rq_gc(
 }
 
 
-
 /*
  * For debugging: dump the contents of the replication queue to a file.
  * Locking is handled internally.
@@ -246,15 +251,45 @@ Rq_dump(
 {
     Re		*re;
     FILE	*fp;
+    int		tmpfd;
 
     if ( rq == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_ARGS, "Rq_dump: rq is NULL!\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: rq is NULL!\n", 0, 0, 0 );
+#endif
 	return;
     }
 
-    if (( fp = fopen( SLURPD_DUMPFILE, "w" )) == NULL ) {
+    if (unlink(SLURPD_DUMPFILE) == -1 && errno != ENOENT) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_dump: "
+		"\"%s\" exists, cannot unlink\n", SLURPD_DUMPFILE ));
+#else
+	Debug( LDAP_DEBUG_ANY, "Rq_dump: \"%s\" exists, and cannot unlink\n",
+		SLURPD_DUMPFILE, 0, 0 );
+#endif
+	return;
+    }
+    if (( tmpfd = open(SLURPD_DUMPFILE, O_CREAT|O_RDWR|O_EXCL, 0600)) == -1) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_dump: "
+		"cannot open \"%s\" for write\n", SLURPD_DUMPFILE ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot open \"%s\" for write\n",
 		SLURPD_DUMPFILE, 0, 0 );
+#endif
+	return;
+    }
+    if (( fp = fdopen( tmpfd, "w" )) == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_dump: "
+		"cannot fdopen \"%s\" for write\n", SLURPD_DUMPFILE ));
+#else
+	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot fdopen \"%s\" for write\n",
+		SLURPD_DUMPFILE, 0, 0 );
+#endif
 	return;
     }
 
@@ -266,7 +301,6 @@ Rq_dump(
     fclose( fp );
     return;
 }
-
 
 
 /*
@@ -287,8 +321,13 @@ Rq_write(
 	return -1;
     }
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_ENTRY, "Rq_write: "
+		"re-write on-disk replication log\n" ));
+#else
     Debug( LDAP_DEBUG_ARGS, "re-write on-disk replication log\n",
 	    0, 0, 0 );
+#endif
 #ifndef SEEK_SET
 #define SEEK_SET 0
 #endif
@@ -306,8 +345,13 @@ Rq_write(
     sglob->srpos = ftell( fp );	/* update replog file position */
     /* and truncate to correct len */
     if ( ftruncate( fileno( fp ), sglob->srpos ) < 0 ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_write: "
+		"Error truncating replication log: %s\n", sys_errlist[ errno ] ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Error truncating replication log: %s\n",
 		sys_errlist[ errno ], 0, 0 );
+#endif
     }
     rq->rq_ndel = 0;	/* reset count of deleted re's */
     time( &now );
@@ -315,8 +359,6 @@ Rq_write(
     rq->rq_unlock( rq );
     return 0;
 }
-
-
 
 
 /*
@@ -335,8 +377,6 @@ Rq_needtrim(
 )
 {
     int		rc = 0;
-    Re		*re;
-    int		nzrc = 0;	/* nzrc is count of entries with refcnt == 0 */
     time_t	now;
 
     if ( rq == NULL ) {
@@ -380,7 +420,7 @@ Rq_getcount(
 	for ( re = rq->rq_gethead( rq ); re != NULL;
 		re = rq->rq_getnext( re )) {
 	    if ( type == RQ_COUNT_NZRC ) {
-		if ( re->re_getrefcnt( re ) > 1 ) {
+		if ( re->re_getrefcnt( re ) > 0 ) {
 		    count++;
 		}
 	    }
@@ -389,8 +429,6 @@ Rq_getcount(
     rq->rq_unlock( rq );
     return count;
 }
-
-
 
 
 /* 
@@ -421,8 +459,8 @@ Rq_init(
     (*rq)->rq_getcount = Rq_getcount;
 
     /* Initialize private data */
-    pthread_mutex_init( &((*rq)->rq_mutex), pthread_mutexattr_default );
-    pthread_cond_init( &((*rq)->rq_more), pthread_condattr_default );
+    ldap_pvt_thread_mutex_init( &((*rq)->rq_mutex) );
+    ldap_pvt_thread_cond_init( &((*rq)->rq_more) );
     (*rq)->rq_head = NULL;
     (*rq)->rq_tail = NULL;
     (*rq)->rq_nre = 0;
@@ -431,4 +469,3 @@ Rq_init(
 
     return 0;
 }
-

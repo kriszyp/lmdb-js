@@ -245,19 +245,20 @@ rewrite_map_parse(
 	for ( p = string, cnt = 1; p[ 0 ] != '\0' && cnt > 0; p++ ) {
 		if ( p[ 0 ] == REWRITE_SUBMATCH_ESCAPE ) {
 			/*
-			 * '\' marks the beginning of a new map
+			 * '%' marks the beginning of a new map
 			 */
 			if ( p[ 1 ] == '{' ) {
 				cnt++;
 			/*
-			 * '\' followed by a digit may mark the beginning
+			 * '%' followed by a digit may mark the beginning
 			 * of an old map
 			 */
 			} else if ( isdigit( (unsigned char) p[ 1 ] ) && p[ 2 ] == '{' ) {
 				cnt++;
 				p++;
 			}
-			p++;
+			if ( p[ 1 ] != '\0' )
+				p++;
 		} else if ( p[ 0 ] == '}' ) {
 			cnt--;
 		}

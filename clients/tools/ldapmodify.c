@@ -1,40 +1,61 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* ldapmodify.c - generic program to modify or add entries using LDAP */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <fcntl.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
-#include <lber.h>
-#include <ldap.h>
-#include <ldif.h>
+#include "portable.h"
 
-#include "ldapconfig.h"
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
+#include <ldap.h>
+
+#include "lutil_ldap.h"
+#include "ldif.h"
+#include "ldap_defaults.h"
+#include "ldap_log.h"
 
 static char	*prog;
-static char	*binddn = LDAPMODIFY_BINDDN;
-static char	*passwd = NULL;
-static char	*ldaphost = LDAPHOST;
-static int	ldapport = LDAP_PORT;
-static int	new, replace, not, verbose, contoper, force, valsfromfiles;
-static LDAP	*ld;
-
-#ifdef LDAP_DEBUG
-extern int ldap_debug, lber_debug;
-#endif /* LDAP_DEBUG */
-
-#define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
-					 realloc( ptr, size ))
+static char	*binddn = NULL;
+static struct berval passwd = { 0, NULL };
+static char *ldapuri = NULL;
+static char	*ldaphost = NULL;
+static int	ldapport = 0;
+#ifdef HAVE_CYRUS_SASL
+static unsigned sasl_flags = LDAP_SASL_AUTOMATIC;
+static char *sasl_realm = NULL;
+static char	*sasl_authc_id = NULL;
+static char	*sasl_authz_id = NULL;
+static char	*sasl_mech = NULL;
+static char	*sasl_secprops = NULL;
+#endif
+static int	use_tls = 0;
+static int	ldapadd, not, verbose, contoper, force;
+static LDAP	*ld = NULL;
 
 #define LDAPMOD_MAXLINE		4096
 
 /* strings found in replog/LDIF entries (mostly lifted from slurpd/slurp.h) */
+#define T_VERSION_STR		"version"
 #define T_REPLICA_STR		"replica"
 #define T_DN_STR		"dn"
 #define T_CHANGETYPESTR         "changetype"
@@ -42,228 +63,700 @@ extern int ldap_debug, lber_debug;
 #define T_MODIFYCTSTR		"modify"
 #define T_DELETECTSTR		"delete"
 #define T_MODRDNCTSTR		"modrdn"
+#define T_MODDNCTSTR		"moddn"
+#define T_RENAMECTSTR		"rename"
 #define T_MODOPADDSTR		"add"
 #define T_MODOPREPLACESTR	"replace"
 #define T_MODOPDELETESTR	"delete"
 #define T_MODSEPSTR		"-"
 #define T_NEWRDNSTR		"newrdn"
 #define T_DELETEOLDRDNSTR	"deleteoldrdn"
+#define T_NEWSUPSTR		"newsuperior"
 
 
-#ifdef NEEDPROTOS
-static int process_ldapmod_rec( char *rbuf );
-static int process_ldif_rec( char *rbuf );
-static void addmodifyop( LDAPMod ***pmodsp, int modop, char *attr,
-	char *value, int vlen );
-static int domodify( char *dn, LDAPMod **pmods, int newentry );
-static int dodelete( char *dn );
-static int domodrdn( char *dn, char *newrdn, int deleteoldrdn );
-static void freepmods( LDAPMod **pmods );
-static int fromfile( char *path, struct berval *bv );
-static char *read_one_record( FILE *fp );
-#else /* NEEDPROTOS */
-static int process_ldapmod_rec();
-static int process_ldif_rec();
-static void addmodifyop();
-static int domodify();
-static int dodelete();
-static int domodrdn();
-static void freepmods();
-static int fromfile();
-static char *read_one_record();
-#endif /* NEEDPROTOS */
+static void usage LDAP_P(( const char *prog )) LDAP_GCCATTR((noreturn));
+static int process_ldif_rec LDAP_P(( char *rbuf, int count ));
+static void addmodifyop LDAP_P((
+	LDAPMod ***pmodsp, int modop,
+	const char *attr,
+	struct berval *value ));
+static int domodify LDAP_P((
+	const char *dn,
+	LDAPMod **pmods,
+	int newentry ));
+static int dodelete LDAP_P((
+	const char *dn ));
+static int dorename LDAP_P((
+	const char *dn,
+	const char *newrdn,
+	const char *newsup,
+	int deleteoldrdn ));
+static char *read_one_record LDAP_P(( FILE *fp ));
 
-
-main( argc, argv )
-    int		argc;
-    char	**argv;
+static void
+usage( const char *prog )
 {
-    char		*infile, *rbuf, *start, *p, *q;
+    fprintf( stderr,
+"Add or modify entries from an LDAP server\n\n"
+"usage: %s [options]\n"
+"	The list of desired operations are read from stdin or from the file\n"
+"	specified by \"-f file\".\n"
+"Add or modify options:\n"
+"  -a         add values (default%s)\n"
+"  -F         force all changes records to be used\n"
+
+"Common options:\n"
+"  -d level   set LDAP debugging level to `level'\n"
+"  -D binddn  bind DN\n"
+"  -f file    read operations from `file'\n"
+"  -h host    LDAP server\n"
+"  -H URI     LDAP Uniform Resource Indentifier(s)\n"
+"  -I         use SASL Interactive mode\n"
+"  -k         use Kerberos authentication\n"
+"  -K         like -k, but do only step 1 of the Kerberos bind\n"
+"  -M         enable Manage DSA IT control (-MM to make critical)\n"
+"  -n         show what would be done but don't actually update\n"
+"  -O props   SASL security properties\n"
+"  -p port    port on LDAP server\n"
+"  -P version procotol version (default: 3)\n"
+"  -Q         use SASL Quiet mode\n"
+"  -R realm   SASL realm\n"
+"  -U authcid SASL authentication identity\n"
+"  -v         run in verbose mode (diagnostics to standard output)\n"
+"  -w passwd  bind passwd (for simple authentication)\n"
+"  -W         prompt for bind passwd\n"
+"  -x         Simple authentication\n"
+"  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -Y mech    SASL mechanism\n"
+"  -Z         Start TLS request (-ZZ to require successful response)\n"
+	     , prog, (strcmp( prog, "ldapadd" ) ? " is to replace" : "") );
+
+    exit( EXIT_FAILURE );
+}
+
+
+int
+main( int argc, char **argv )
+{
+    char		*infile, *rbuf, *start;
     FILE		*fp;
-    int			rc, i, kerberos, use_ldif, authmethod;
-    char		*usage = "usage: %s [-abcknrvF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
+	int		rc, i, authmethod, version, want_bindpw, debug, manageDSAit, referrals;
+	int count;
 
-    extern char	*optarg;
-    extern int	optind;
-
-    if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
+    if (( prog = strrchr( argv[ 0 ], *LDAP_DIRSEP )) == NULL ) {
 	prog = argv[ 0 ];
     } else {
 	++prog;
     }
-    new = ( strcmp( prog, "ldapadd" ) == 0 );
+
+    /* Print usage when no parameters */
+    if( argc < 2 ) usage( prog );
+
+	/* strncmp instead of strcmp since NT binaries carry .exe extension */
+    ldapadd = ( strncmp( prog, "ldapadd", sizeof("ldapadd")-1 ) == 0 );
 
     infile = NULL;
-    kerberos = not = verbose = valsfromfiles = 0;
+    not = verbose = want_bindpw = debug = manageDSAit = referrals = 0;
+    authmethod = -1;
+	version = -1;
 
-    while (( i = getopt( argc, argv, "FabckKnrtvh:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "acrf:F"
+		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z" )) != EOF )
+	{
 	switch( i ) {
+	/* Modify Options */
 	case 'a':	/* add */
-	    new = 1;
-	    break;
-	case 'b':	/* read values from files (for binary attributes) */
-	    valsfromfiles = 1;
+	    ldapadd = 1;
 	    break;
 	case 'c':	/* continuous operation */
 	    contoper = 1;
 	    break;
-	case 'r':	/* default is to replace rather than add values */
-	    replace = 1;
-	    break;
-	case 'k':	/* kerberos bind */
-	    kerberos = 2;
-	    break;
-	case 'K':	/* kerberos bind, part 1 only */
-	    kerberos = 1;
+	case 'f':	/* read from file */
+		if( infile != NULL ) {
+			fprintf( stderr, "%s: -f previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+	    infile = strdup( optarg );
 	    break;
 	case 'F':	/* force all changes records to be used */
 	    force = 1;
 	    break;
-	case 'h':	/* ldap host */
-	    ldaphost = strdup( optarg );
+
+	/* Common Options */
+	case 'C':
+		referrals++;
+		break;
+	case 'd':
+	    debug |= atoi( optarg );
 	    break;
 	case 'D':	/* bind DN */
+		if( binddn != NULL ) {
+			fprintf( stderr, "%s: -D previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
 	    binddn = strdup( optarg );
 	    break;
-	case 'w':	/* password */
-	    passwd = strdup( optarg );
+	case 'h':	/* ldap host */
+		if( ldapuri != NULL ) {
+			fprintf( stderr, "%s: -h incompatible with -H\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( ldaphost != NULL ) {
+			fprintf( stderr, "%s: -h previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+	    ldaphost = strdup( optarg );
 	    break;
-	case 'd':
-#ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
-#else /* LDAP_DEBUG */
-	    fprintf( stderr, "%s: compile with -DLDAP_DEBUG for debugging\n",
-		    prog );
-#endif /* LDAP_DEBUG */
+	case 'H':	/* ldap URI */
+		if( ldaphost != NULL ) {
+			fprintf( stderr, "%s: -H incompatible with -h\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( ldapport ) {
+			fprintf( stderr, "%s: -H incompatible with -p\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( ldapuri != NULL ) {
+			fprintf( stderr, "%s: -H previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+	    ldapuri = strdup( optarg );
 	    break;
-	case 'f':	/* read from file */
-	    infile = strdup( optarg );
+	case 'I':
+#ifdef HAVE_CYRUS_SASL
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -I incompatible with version %d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: incompatible previous "
+				"authentication choice\n",
+				prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_flags = LDAP_SASL_INTERACTIVE;
+		break;
+#else
+		fprintf( stderr, "%s: was not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+	case 'k':	/* kerberos bind */
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+		if( version > LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -k incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+
+		if( authmethod != -1 ) {
+			fprintf( stderr, "%s: -k incompatible with previous "
+				"authentication choice\n", prog );
+			return EXIT_FAILURE;
+		}
+			
+		authmethod = LDAP_AUTH_KRBV4;
+#else
+		fprintf( stderr, "%s: not compiled with Kerberos support\n", prog );
+		return EXIT_FAILURE;
+#endif
 	    break;
-	case 'p':
-	    ldapport = atoi( optarg );
+	case 'K':	/* kerberos bind, part one only */
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+		if( version > LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -k incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 ) {
+			fprintf( stderr, "%s: incompatible with previous "
+				"authentication choice\n", prog );
+			return EXIT_FAILURE;
+		}
+
+		authmethod = LDAP_AUTH_KRBV41;
+#else
+		fprintf( stderr, "%s: not compiled with Kerberos support\n", prog );
+		return( EXIT_FAILURE );
+#endif
 	    break;
-	case 'n':	/* print adds, don't actually do them */
+	case 'M':
+		/* enable Manage DSA IT */
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -M incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		manageDSAit++;
+		version = LDAP_VERSION3;
+		break;
+	case 'n':	/* print deletes, don't actually do them */
 	    ++not;
 	    break;
+	case 'O':
+#ifdef HAVE_CYRUS_SASL
+		if( sasl_secprops != NULL ) {
+			fprintf( stderr, "%s: -O previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -O incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: incompatible previous "
+				"authentication choice\n", prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_secprops = strdup( optarg );
+#else
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'p':
+		if( ldapport ) {
+			fprintf( stderr, "%s: -p previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+	    ldapport = atoi( optarg );
+	    break;
+	case 'P':
+		switch( atoi(optarg) ) {
+		case 2:
+			if( version == LDAP_VERSION3 ) {
+				fprintf( stderr, "%s: -P 2 incompatible with version %d\n",
+					prog, version );
+				return EXIT_FAILURE;
+			}
+			version = LDAP_VERSION2;
+			break;
+		case 3:
+			if( version == LDAP_VERSION2 ) {
+				fprintf( stderr, "%s: -P 2 incompatible with version %d\n",
+					prog, version );
+				return EXIT_FAILURE;
+			}
+			version = LDAP_VERSION3;
+			break;
+		default:
+			fprintf( stderr, "%s: protocol version should be 2 or 3\n",
+				prog );
+			usage( prog );
+			return( EXIT_FAILURE );
+		} break;
+	case 'Q':
+#ifdef HAVE_CYRUS_SASL
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -Q incompatible with version %d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: incompatible previous "
+				"authentication choice\n",
+				prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_flags = LDAP_SASL_QUIET;
+		break;
+#else
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+	case 'r':	/* replace (obsolete) */
+		break;
+
+	case 'R':
+#ifdef HAVE_CYRUS_SASL
+		if( sasl_realm != NULL ) {
+			fprintf( stderr, "%s: -R previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -R incompatible with version %d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: incompatible previous "
+				"authentication choice\n",
+				prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_realm = strdup( optarg );
+#else
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'U':
+#ifdef HAVE_CYRUS_SASL
+		if( sasl_authc_id != NULL ) {
+			fprintf( stderr, "%s: -U previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -U incompatible with version %d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: incompatible previous "
+				"authentication choice\n",
+				prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_authc_id = strdup( optarg );
+#else
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+		break;
 	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
+	case 'w':	/* password */
+	    passwd.bv_val = strdup( optarg );
+		{
+			char* p;
+
+			for( p = optarg; *p != '\0'; p++ ) {
+				*p = '\0';
+			}
+		}
+		passwd.bv_len = strlen( passwd.bv_val );
+	    break;
+	case 'W':
+		want_bindpw++;
+		break;
+	case 'Y':
+#ifdef HAVE_CYRUS_SASL
+		if( sasl_mech != NULL ) {
+			fprintf( stderr, "%s: -Y previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -Y incompatible with version %d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: incompatible with authentication choice\n", prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_mech = strdup( optarg );
+#else
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'x':
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SIMPLE ) {
+			fprintf( stderr, "%s: incompatible with previous "
+				"authentication choice\n", prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SIMPLE;
+		break;
+	case 'X':
+#ifdef HAVE_CYRUS_SASL
+		if( sasl_authz_id != NULL ) {
+			fprintf( stderr, "%s: -X previously specified\n", prog );
+			return EXIT_FAILURE;
+		}
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -X incompatible with LDAPv%d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: -X incompatible with "
+				"authentication choice\n", prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_authz_id = strdup( optarg );
+#else
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'Z':
+#ifdef HAVE_TLS
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -Z incompatible with version %d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION3;
+		use_tls++;
+#else
+		fprintf( stderr, "%s: not compiled with TLS support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+		break;
 	default:
-	    fprintf( stderr, usage, prog );
-	    exit( 1 );
+		fprintf( stderr, "%s: unrecognized option -%c\n",
+			prog, optopt );
+	    usage( prog );
 	}
     }
 
-    if ( argc - optind != 0 ) {
-	fprintf( stderr, usage, prog );
-	exit( 1 );
-    }
+	if (version == -1) {
+		version = LDAP_VERSION3;
+	}
+	if (authmethod == -1 && version > LDAP_VERSION2) {
+#ifdef HAVE_CYRUS_SASL
+		authmethod = LDAP_AUTH_SASL;
+#else
+		authmethod = LDAP_AUTH_SIMPLE;
+#endif
+	}
+
+	if ( argc != optind )
+	usage( prog );
 
     if ( infile != NULL ) {
 	if (( fp = fopen( infile, "r" )) == NULL ) {
 	    perror( infile );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
     } else {
 	fp = stdin;
     }
 
+	if ( debug ) {
+		if( ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug ) != LBER_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LBER_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		if( ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug ) != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LDAP_OPT_DEBUG_LEVEL %d\n", debug );
+		}
+		ldif_debug = debug;
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
+#ifdef NEW_LOGGING
+    lutil_log_initialize( argc, argv );
+#endif
 
     if ( !not ) {
-	if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
-	    perror( "ldap_open" );
-	    exit( 1 );
-	}
+	if( ( ldaphost != NULL || ldapport ) && ( ldapuri == NULL ) ) {
+		if ( verbose ) {
+			fprintf( stderr, "ldap_init( %s, %d )\n",
+				ldaphost != NULL ? ldaphost : "<DEFAULT>",
+				ldapport );
+		}
 
-	ld->ld_deref = LDAP_DEREF_NEVER;	/* this seems prudent */
+		ld = ldap_init( ldaphost, ldapport );
+		if( ld == NULL ) {
+			perror("ldapmodify: ldap_init");
+			return EXIT_FAILURE;
+		}
 
-	if ( !kerberos ) {
-	    authmethod = LDAP_AUTH_SIMPLE;
-	} else if ( kerberos == 1 ) {
-	    authmethod = LDAP_AUTH_KRBV41;
 	} else {
-	    authmethod = LDAP_AUTH_KRBV4;
+		if ( verbose ) {
+			fprintf( stderr, "ldap_initialize( %s )\n",
+				ldapuri != NULL ? ldapuri : "<DEFAULT>" );
+		}
+
+		rc = ldap_initialize( &ld, ldapuri );
+		if( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "Could not create LDAP session handle (%d): %s\n",
+				rc, ldap_err2string(rc) );
+			return EXIT_FAILURE;
+		}
 	}
-	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_bind" );
-	    exit( 1 );
+
+	/* referrals */
+	if( ldap_set_option( ld, LDAP_OPT_REFERRALS,
+		referrals ? LDAP_OPT_ON : LDAP_OPT_OFF ) != LDAP_OPT_SUCCESS )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_REFERRALS %s\n",
+			referrals ? "on" : "off" );
+		return EXIT_FAILURE;
 	}
+
+
+	if (version == -1 ) {
+		version = LDAP_VERSION3;
+	}
+
+	if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version )
+		!= LDAP_OPT_SUCCESS )
+	{
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n",
+			version );
+		return EXIT_FAILURE;
+	}
+
+	if ( use_tls && ( ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS )) {
+		ldap_perror( ld, "ldap_start_tls" );
+		if ( use_tls > 1 ) {
+			return( EXIT_FAILURE );
+		}
+	}
+
+	if (want_bindpw) {
+		passwd.bv_val = getpassphrase("Enter LDAP Password: ");
+		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
+	}
+
+	if ( authmethod == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+		void *defaults;
+
+		if( sasl_secprops != NULL ) {
+			rc = ldap_set_option( ld, LDAP_OPT_X_SASL_SECPROPS,
+				(void *) sasl_secprops );
+			
+			if( rc != LDAP_OPT_SUCCESS ) {
+				fprintf( stderr,
+					"Could not set LDAP_OPT_X_SASL_SECPROPS: %s\n",
+					sasl_secprops );
+				return( EXIT_FAILURE );
+			}
+		}
+		
+		defaults = lutil_sasl_defaults( ld,
+			sasl_mech,
+			sasl_realm,
+			sasl_authc_id,
+			passwd.bv_val,
+			sasl_authz_id );
+
+		rc = ldap_sasl_interactive_bind_s( ld, binddn,
+			sasl_mech, NULL, NULL,
+			sasl_flags, lutil_sasl_interact, defaults );
+
+		if( rc != LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_sasl_interactive_bind_s" );
+			return( EXIT_FAILURE );
+		}
+#else
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
+	}
+	else {
+		if ( ldap_bind_s( ld, binddn, passwd.bv_val, authmethod )
+				!= LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_bind" );
+			return( EXIT_FAILURE );
+		}
+	}
+
     }
 
     rc = 0;
 
+	if ( manageDSAit ) {
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = manageDSAit > 1;
+
+		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set ManageDSAit %scontrol\n",
+				c.ldctl_iscritical ? "critical " : "" );
+			if( c.ldctl_iscritical ) {
+				exit( EXIT_FAILURE );
+			}
+		}
+	}
+
+	count = 0;
     while (( rc == 0 || contoper ) &&
 		( rbuf = read_one_record( fp )) != NULL ) {
-	/*
-	 * we assume record is ldif/slapd.replog if the first line
-	 * has a colon that appears to the left of any equal signs, OR
-	 * if the first line consists entirely of digits (an entry id)
-	 */
-	use_ldif = ( p = strchr( rbuf, ':' )) != NULL &&
-		( q = strchr( rbuf, '\n' )) != NULL && p < q &&
-		(( q = strchr( rbuf, '=' )) == NULL || p < q );
+	count++;
 
 	start = rbuf;
 
-	if ( !use_ldif && ( q = strchr( rbuf, '\n' )) != NULL ) {
-	    for ( p = rbuf; p < q; ++p ) {
-		if ( !isdigit( *p )) {
-		    break;
-		}
-	    }
-	    if ( p >= q ) {
-		use_ldif = 1;
-		start = q + 1;
-	    }
-	}
+    rc = process_ldif_rec( start, count );
 
-	if ( use_ldif ) {
-	    rc = process_ldif_rec( start );
-	} else {
-	    rc = process_ldapmod_rec( start );
-	}
-
-	free( rbuf );
+	if( rc )
+		fprintf( stderr, "ldif_record() = %d\n", rc );
+		free( rbuf );
     }
 
     if ( !not ) {
-	ldap_unbind( ld );
+		ldap_unbind( ld );
     }
 
-    exit( rc );
+	return( rc );
 }
 
 
 static int
-process_ldif_rec( char *rbuf )
+process_ldif_rec( char *rbuf, int count )
 {
-    char	*line, *dn, *type, *value, *newrdn, *p;
-    int		rc, linenum, vlen, modop, replicaport;
-    int		expect_modop, expect_sep, expect_ct, expect_newrdn;
+    char	*line, *dn, *type, *newrdn, *newsup, *p;
+    int		rc, linenum, modop, replicaport;
+    int		expect_modop, expect_sep, expect_ct, expect_newrdn, expect_newsup;
     int		expect_deleteoldrdn, deleteoldrdn;
     int		saw_replica, use_record, new_entry, delete_entry, got_all;
     LDAPMod	**pmods;
+	int version;
+	struct berval val;
 
-    new_entry = new;
+    new_entry = ldapadd;
 
-    rc = got_all = saw_replica = delete_entry = expect_modop = 0;
-    expect_deleteoldrdn = expect_newrdn = expect_sep = expect_ct = 0;
+    rc = got_all = saw_replica = delete_entry = modop = expect_modop = 0;
+    expect_deleteoldrdn = expect_newrdn = expect_newsup = 0;
+	expect_sep = expect_ct = 0;
     linenum = 0;
+	version = 0;
     deleteoldrdn = 1;
     use_record = force;
     pmods = NULL;
-    dn = newrdn = NULL;
+    dn = newrdn = newsup = NULL;
 
-    while ( rc == 0 && ( line = str_getline( &rbuf )) != NULL ) {
+    while ( rc == 0 && ( line = ldif_getline( &rbuf )) != NULL ) {
 	++linenum;
+
 	if ( expect_sep && strcasecmp( line, T_MODSEPSTR ) == 0 ) {
 	    expect_sep = 0;
 	    expect_ct = 1;
 	    continue;
 	}
 	
-	if ( str_parse_line( line, &type, &value, &vlen ) < 0 ) {
-	    fprintf( stderr, "%s: invalid format (line %d of entry: %s\n",
+	if ( ldif_parse_line( line, &type, &val.bv_val, &val.bv_len ) < 0 ) {
+	    fprintf( stderr, "%s: invalid format (line %d) entry: \"%s\"\n",
 		    prog, linenum, dn == NULL ? "" : dn );
 	    rc = LDAP_PARAM_ERROR;
 	    break;
@@ -272,53 +765,85 @@ process_ldif_rec( char *rbuf )
 	if ( dn == NULL ) {
 	    if ( !use_record && strcasecmp( type, T_REPLICA_STR ) == 0 ) {
 		++saw_replica;
-		if (( p = strchr( value, ':' )) == NULL ) {
-		    replicaport = LDAP_PORT;
+		if (( p = strchr( val.bv_val, ':' )) == NULL ) {
+		    replicaport = 0;
 		} else {
 		    *p++ = '\0';
 		    replicaport = atoi( p );
 		}
-		if ( strcasecmp( value, ldaphost ) == 0 &&
+		if ( ldaphost != NULL && strcasecmp( val.bv_val, ldaphost ) == 0 &&
 			replicaport == ldapport ) {
 		    use_record = 1;
 		}
+	    } else if ( count == 1 && linenum == 1 && 
+			strcasecmp( type, T_VERSION_STR ) == 0 )
+		{
+			if( val.bv_len == 0 || atoi(val.bv_val) != 1 ) {
+		    	fprintf( stderr, "%s: invalid version %s, line %d (ignored)\n",
+			   	prog, val.bv_val == NULL ? "(null)" : val.bv_val, linenum );
+			}
+			version++;
+
 	    } else if ( strcasecmp( type, T_DN_STR ) == 0 ) {
-		if (( dn = strdup( value )) == NULL ) {
+		if (( dn = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 		expect_ct = 1;
 	    }
-	    continue;	/* skip all lines until we see "dn:" */
+	    goto end_line;	/* skip all lines until we see "dn:" */
 	}
 
 	if ( expect_ct ) {
 	    expect_ct = 0;
 	    if ( !use_record && saw_replica ) {
-		printf( "%s: skipping change record for entry: %s\n\t(LDAP host/port does not match replica: lines)\n",
+		printf( "%s: skipping change record for entry: %s\n"
+			"\t(LDAP host/port does not match replica: lines)\n",
 			prog, dn );
 		free( dn );
+		ber_memfree( type );
+		ber_memfree( val.bv_val );
 		return( 0 );
 	    }
 
 	    if ( strcasecmp( type, T_CHANGETYPESTR ) == 0 ) {
-		if ( strcasecmp( value, T_MODIFYCTSTR ) == 0 ) {
+#ifdef LIBERAL_CHANGETYPE_MODOP
+		/* trim trailing spaces (and log warning ...) */
+
+		int icnt;
+		for ( icnt = val.bv_len; --icnt > 0; ) {
+		    if ( !isspace( (unsigned char) val.bv_val[icnt] ) ) {
+			break;
+		    }
+		}
+
+		if ( ++icnt != val.bv_len ) {
+		    fprintf( stderr, "%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n",
+			    prog, T_CHANGETYPESTR, val.bv_val, linenum, dn );
+		    val.bv_val[icnt] = '\0';
+		}
+#endif /* LIBERAL_CHANGETYPE_MODOP */
+
+		if ( strcasecmp( val.bv_val, T_MODIFYCTSTR ) == 0 ) {
 			new_entry = 0;
 			expect_modop = 1;
-		} else if ( strcasecmp( value, T_ADDCTSTR ) == 0 ) {
+		} else if ( strcasecmp( val.bv_val, T_ADDCTSTR ) == 0 ) {
 			new_entry = 1;
-		} else if ( strcasecmp( value, T_MODRDNCTSTR ) == 0 ) {
+		} else if ( strcasecmp( val.bv_val, T_MODRDNCTSTR ) == 0
+			|| strcasecmp( val.bv_val, T_MODDNCTSTR ) == 0
+			|| strcasecmp( val.bv_val, T_RENAMECTSTR ) == 0)
+		{
 		    expect_newrdn = 1;
-		} else if ( strcasecmp( value, T_DELETECTSTR ) == 0 ) {
+		} else if ( strcasecmp( val.bv_val, T_DELETECTSTR ) == 0 ) {
 		    got_all = delete_entry = 1;
 		} else {
 		    fprintf( stderr,
-			    "%s:  unknown %s \"%s\" (line %d of entry: %s)\n",
-			    prog, T_CHANGETYPESTR, value, linenum, dn );
+			    "%s:  unknown %s \"%s\" (line %d of entry \"%s\")\n",
+			    prog, T_CHANGETYPESTR, val.bv_val, linenum, dn );
 		    rc = LDAP_PARAM_ERROR;
 		}
-		continue;
-	    } else if ( new ) {		/*  missing changetype => add */
+		goto end_line;
+	    } else if ( ldapadd ) {		/*  missing changetype => add */
 		new_entry = 1;
 		modop = LDAP_MOD_ADD;
 	    } else {
@@ -327,60 +852,104 @@ process_ldif_rec( char *rbuf )
 	}
 
 	if ( expect_modop ) {
+#ifdef LIBERAL_CHANGETYPE_MODOP
+	    /* trim trailing spaces (and log warning ...) */
+	    
+	    int icnt;
+	    for ( icnt = val.bv_len; --icnt > 0; ) {
+		if ( !isspace( (unsigned char) val.bv_val[icnt] ) ) {
+		    break;
+		}
+	    }
+	    
+	    if ( ++icnt != val.bv_len ) {
+		fprintf( stderr, "%s: illegal trailing space after \"%s: %s\" trimmed (line %d of entry \"%s\")\n",
+    			prog, type, val.bv_val, linenum, dn );
+		val.bv_val[icnt] = '\0';
+	    }
+#endif /* LIBERAL_CHANGETYPE_MODOP */
+
 	    expect_modop = 0;
 	    expect_sep = 1;
 	    if ( strcasecmp( type, T_MODOPADDSTR ) == 0 ) {
 		modop = LDAP_MOD_ADD;
-		continue;
+		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPREPLACESTR ) == 0 ) {
 		modop = LDAP_MOD_REPLACE;
-		continue;
+		addmodifyop( &pmods, modop, val.bv_val, NULL );
+		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPDELETESTR ) == 0 ) {
 		modop = LDAP_MOD_DELETE;
-		addmodifyop( &pmods, modop, value, NULL, 0 );
-		continue;
+		addmodifyop( &pmods, modop, val.bv_val, NULL );
+		goto end_line;
 	    } else {	/* no modify op:  use default */
-		modop = replace ? LDAP_MOD_REPLACE : LDAP_MOD_ADD;
+		modop = ldapadd ? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
 	    }
 	}
 
 	if ( expect_newrdn ) {
 	    if ( strcasecmp( type, T_NEWRDNSTR ) == 0 ) {
-		if (( newrdn = strdup( value )) == NULL ) {
+			if (( newrdn = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
 		    perror( "strdup" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		}
 		expect_deleteoldrdn = 1;
 		expect_newrdn = 0;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry %s)\n",
+		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
 			prog, T_NEWRDNSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
 	} else if ( expect_deleteoldrdn ) {
 	    if ( strcasecmp( type, T_DELETEOLDRDNSTR ) == 0 ) {
-		deleteoldrdn = ( *value == '0' ) ? 0 : 1;
+		deleteoldrdn = ( *val.bv_val == '0' ) ? 0 : 1;
+		expect_deleteoldrdn = 0;
+		expect_newsup = 1;
 		got_all = 1;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry %s)\n",
+		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
 			prog, T_DELETEOLDRDNSTR, type, linenum, dn );
+		rc = LDAP_PARAM_ERROR;
+	    }
+	} else if ( expect_newsup ) {
+	    if ( strcasecmp( type, T_NEWSUPSTR ) == 0 ) {
+		if (( newsup = strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
+		    perror( "strdup" );
+		    exit( EXIT_FAILURE );
+		}
+		expect_newsup = 0;
+	    } else {
+		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
+			prog, T_NEWSUPSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
 	} else if ( got_all ) {
 	    fprintf( stderr,
-		    "%s: extra lines at end (line %d of entry %s)\n",
+		    "%s: extra lines at end (line %d of entry \"%s\")\n",
 		    prog, linenum, dn );
 	    rc = LDAP_PARAM_ERROR;
 	} else {
-	    addmodifyop( &pmods, modop, type, value, vlen );
+		addmodifyop( &pmods, modop, type, val.bv_val == NULL ? NULL : &val );
 	}
+
+end_line:
+	ber_memfree( type );
+	ber_memfree( val.bv_val );
     }
+
+	if( linenum == 0 ) {
+		return 0;
+	}
+
+	if( version && linenum == 1 ) {
+		return 0;
+	}
 
     if ( rc == 0 ) {
 	if ( delete_entry ) {
 	    rc = dodelete( dn );
 	} else if ( newrdn != NULL ) {
-	    rc = domodrdn( dn, newrdn, deleteoldrdn );
+	    rc = dorename( dn, newrdn, newsup, deleteoldrdn );
 	} else {
 	    rc = domodify( dn, pmods, new_entry );
 	}
@@ -397,115 +966,7 @@ process_ldif_rec( char *rbuf )
 	free( newrdn );
     }
     if ( pmods != NULL ) {
-	freepmods( pmods );
-    }
-
-    return( rc );
-}
-
-
-static int
-process_ldapmod_rec( char *rbuf )
-{
-    char	*line, *dn, *p, *q, *attr, *value;
-    int		rc, linenum, modop;
-    LDAPMod	**pmods;
-
-    pmods = NULL;
-    dn = NULL;
-    linenum = 0;
-    line = rbuf;
-    rc = 0;
-
-    while ( rc == 0 && rbuf != NULL && *rbuf != '\0' ) {
-	++linenum;
-	if (( p = strchr( rbuf, '\n' )) == NULL ) {
-	    rbuf = NULL;
-	} else {
-	    if ( *(p-1) == '\\' ) {	/* lines ending in '\' are continued */
-		strcpy( p - 1, p );
-		rbuf = p;
-		continue;
-	    }
-	    *p++ = '\0';
-	    rbuf = p;
-	}
-
-	if ( dn == NULL ) {	/* first line contains DN */
-	    if (( dn = strdup( line )) == NULL ) {
-		perror( "strdup" );
-		exit( 1 );
-	    }
-	} else {
-	    if (( p = strchr( line, '=' )) == NULL ) {
-		value = NULL;
-		p = line + strlen( line );
-	    } else {
-		*p++ = '\0';
-		value = p;
-	    }
-
-	    for ( attr = line; *attr != '\0' && isspace( *attr ); ++attr ) {
-		;	/* skip attribute leading white space */
-	    }
-
-	    for ( q = p - 1; q > attr && isspace( *q ); --q ) {
-		*q = '\0';	/* remove attribute trailing white space */
-	    }
-
-	    if ( value != NULL ) {
-		while ( isspace( *value )) {
-		    ++value;		/* skip value leading white space */
-		}
-		for ( q = value + strlen( value ) - 1; q > value &&
-			isspace( *q ); --q ) {
-		    *q = '\0';	/* remove value trailing white space */
-		}
-		if ( *value == '\0' ) {
-		    value = NULL;
-		}
-
-	    }
-
-	    if ( value == NULL && new ) {
-		fprintf( stderr, "%s: missing value on line %d (attr is %s)\n",
-			prog, linenum, attr );
-		rc = LDAP_PARAM_ERROR;
-	    } else {
-		 switch ( *attr ) {
-		case '-':
-		    modop = LDAP_MOD_DELETE;
-		    ++attr;
-		    break;
-		case '+':
-		    modop = LDAP_MOD_ADD;
-		    ++attr;
-		    break;
-		default:
-		    modop = replace ? LDAP_MOD_REPLACE : LDAP_MOD_ADD;
-		}
-
-		addmodifyop( &pmods, modop, attr, value,
-			( value == NULL ) ? 0 : strlen( value ));
-	    }
-	}
-
-	line = rbuf;
-    }
-
-    if ( rc == 0 ) {
-	if ( dn == NULL ) {
-	    rc = LDAP_PARAM_ERROR;
-	} else if (( rc = domodify( dn, pmods, new )) == LDAP_SUCCESS ) {
-	    rc = 0;
-	}
-    }
-
-    if ( pmods != NULL ) {
-	freepmods( pmods );
-    }
-    if ( dn != NULL ) {
-	free( dn );
+	ldap_mods_free( pmods, 1 );
     }
 
     return( rc );
@@ -513,93 +974,102 @@ process_ldapmod_rec( char *rbuf )
 
 
 static void
-addmodifyop( LDAPMod ***pmodsp, int modop, char *attr, char *value, int vlen )
+addmodifyop(
+	LDAPMod ***pmodsp,
+	int modop,
+	const char *attr,
+	struct berval *val )
 {
-    LDAPMod		**pmods;
-    int			i, j;
-    struct berval	*bvp;
+	LDAPMod		**pmods;
+	int			i, j;
 
-    pmods = *pmodsp;
-    modop |= LDAP_MOD_BVALUES;
+	pmods = *pmodsp;
+	modop |= LDAP_MOD_BVALUES;
 
-    i = 0;
-    if ( pmods != NULL ) {
-	for ( ; pmods[ i ] != NULL; ++i ) {
-	    if ( strcasecmp( pmods[ i ]->mod_type, attr ) == 0 &&
-		    pmods[ i ]->mod_op == modop ) {
-		break;
-	    }
+	i = 0;
+	if ( pmods != NULL ) {
+		for ( ; pmods[ i ] != NULL; ++i ) {
+			if ( strcasecmp( pmods[ i ]->mod_type, attr ) == 0 &&
+				pmods[ i ]->mod_op == modop )
+			{
+				break;
+			}
+		}
 	}
-    }
 
-    if ( pmods == NULL || pmods[ i ] == NULL ) {
-	if (( pmods = (LDAPMod **)safe_realloc( pmods, (i + 2) *
-		sizeof( LDAPMod * ))) == NULL ) {
-	    perror( "safe_realloc" );
-	    exit( 1 );
-	}
-	*pmodsp = pmods;
-	pmods[ i + 1 ] = NULL;
-	if (( pmods[ i ] = (LDAPMod *)calloc( 1, sizeof( LDAPMod )))
-		== NULL ) {
-	    perror( "calloc" );
-	    exit( 1 );
-	}
-	pmods[ i ]->mod_op = modop;
-	if (( pmods[ i ]->mod_type = strdup( attr )) == NULL ) {
-	    perror( "strdup" );
-	    exit( 1 );
-	}
-    }
+	if ( pmods == NULL || pmods[ i ] == NULL ) {
+		if (( pmods = (LDAPMod **)ber_memrealloc( pmods, (i + 2) *
+			sizeof( LDAPMod * ))) == NULL )
+		{
+			perror( "realloc" );
+			exit( EXIT_FAILURE );
+		}
 
-    if ( value != NULL ) {
-	j = 0;
-	if ( pmods[ i ]->mod_bvalues != NULL ) {
-	    for ( ; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
-		;
-	    }
-	}
-	if (( pmods[ i ]->mod_bvalues =
-		(struct berval **)safe_realloc( pmods[ i ]->mod_bvalues,
-		(j + 2) * sizeof( struct berval * ))) == NULL ) {
-	    perror( "safe_realloc" );
-	    exit( 1 );
-	}
-	pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
-	if (( bvp = (struct berval *)malloc( sizeof( struct berval )))
-		== NULL ) {
-	    perror( "malloc" );
-	    exit( 1 );
-	}
-	pmods[ i ]->mod_bvalues[ j ] = bvp;
+		*pmodsp = pmods;
+		pmods[ i + 1 ] = NULL;
 
-	if ( valsfromfiles && *value == '/' ) {	/* get value from file */
-	    if ( fromfile( value, bvp ) < 0 ) {
-		exit( 1 );
-	    }
-	} else {
-	    bvp->bv_len = vlen;
-	    if (( bvp->bv_val = (char *)malloc( vlen + 1 )) == NULL ) {
-		perror( "malloc" );
-		exit( 1 );
-	    }
-	    SAFEMEMCPY( bvp->bv_val, value, vlen );
-	    bvp->bv_val[ vlen ] = '\0';
+		pmods[ i ] = (LDAPMod *)ber_memcalloc( 1, sizeof( LDAPMod ));
+		if ( pmods[ i ] == NULL ) {
+			perror( "calloc" );
+			exit( EXIT_FAILURE );
+		}
+
+		pmods[ i ]->mod_op = modop;
+		pmods[ i ]->mod_type = ber_strdup( attr );
+		if ( pmods[ i ]->mod_type == NULL ) {
+			perror( "strdup" );
+			exit( EXIT_FAILURE );
+		}
 	}
-    }
+
+	if ( val != NULL ) {
+		j = 0;
+		if ( pmods[ i ]->mod_bvalues != NULL ) {
+			for ( ; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
+				/* Empty */;
+			}
+		}
+
+		pmods[ i ]->mod_bvalues = (struct berval **) ber_memrealloc(
+			pmods[ i ]->mod_bvalues, (j + 2) * sizeof( struct berval * ));
+		if ( pmods[ i ]->mod_bvalues == NULL ) {
+			perror( "ber_realloc" );
+			exit( EXIT_FAILURE );
+		}
+
+		pmods[ i ]->mod_bvalues[ j + 1 ] = NULL;
+		pmods[ i ]->mod_bvalues[ j ] = ber_bvdup( val );
+		if ( pmods[ i ]->mod_bvalues[ j ] == NULL ) {
+			perror( "ber_bvdup" );
+			exit( EXIT_FAILURE );
+		}
+	}
 }
 
 
 static int
-domodify( char *dn, LDAPMod **pmods, int newentry )
+domodify(
+	const char *dn,
+	LDAPMod **pmods,
+	int newentry )
 {
     int			i, j, k, notascii, op;
     struct berval	*bvp;
 
     if ( pmods == NULL ) {
-	fprintf( stderr, "%s: no attributes to change or add (entry %s)\n",
+	fprintf( stderr, "%s: no attributes to change or add (entry=\"%s\")\n",
 		prog, dn );
 	return( LDAP_PARAM_ERROR );
+    } 
+
+    for ( i = 0; pmods[ i ] != NULL; ++i ) {
+	op = pmods[ i ]->mod_op & ~LDAP_MOD_BVALUES;
+	if( op == LDAP_MOD_ADD && ( pmods[i]->mod_bvalues == NULL )) {
+		fprintf( stderr,
+			"%s: attribute \"%s\" has no values (entry=\"%s\")\n",
+			prog, pmods[i]->mod_type, dn );
+		return LDAP_PARAM_ERROR;
+	}
     }
 
     if ( verbose ) {
@@ -612,7 +1082,7 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
 		for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
 		    bvp = pmods[ i ]->mod_bvalues[ j ];
 		    notascii = 0;
-		    for ( k = 0; k < bvp->bv_len; ++k ) {
+		    for ( k = 0; (unsigned long) k < bvp->bv_len; ++k ) {
 			if ( !isascii( bvp->bv_val[ k ] )) {
 			    notascii = 1;
 			    break;
@@ -629,9 +1099,9 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
     }
 
     if ( newentry ) {
-	printf( "%sadding new entry %s\n", not ? "!" : "", dn );
+	printf( "%sadding new entry \"%s\"\n", not ? "!" : "", dn );
     } else {
-	printf( "%smodifying entry %s\n", not ? "!" : "", dn );
+	printf( "%smodifying entry \"%s\"\n", not ? "!" : "", dn );
     }
 
     if ( !not ) {
@@ -641,7 +1111,9 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
 	    i = ldap_modify_s( ld, dn, pmods );
 	}
 	if ( i != LDAP_SUCCESS ) {
-	    ldap_perror( ld, newentry ? "ldap_add" : "ldap_modify" );
+		/* print error message about failed update including DN */
+		fprintf( stderr, "%s: update failed: %s\n", prog, dn );
+		ldap_perror( ld, newentry ? "ldap_add" : "ldap_modify" );
 	} else if ( verbose ) {
 	    printf( "modify complete\n" );
 	}
@@ -656,14 +1128,16 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
 
 
 static int
-dodelete( char *dn )
+dodelete(
+	const char *dn )
 {
     int	rc;
 
-    printf( "%sdeleting entry %s\n", not ? "!" : "", dn );
+    printf( "%sdeleting entry \"%s\"\n", not ? "!" : "", dn );
     if ( !not ) {
 	if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_delete" );
+		fprintf( stderr, "%s: delete failed: %s\n", prog, dn );
+		ldap_perror( ld, "ldap_delete" );
 	} else if ( verbose ) {
 	    printf( "delete complete" );
 	}
@@ -678,20 +1152,26 @@ dodelete( char *dn )
 
 
 static int
-domodrdn( char *dn, char *newrdn, int deleteoldrdn )
+dorename(
+	const char *dn,
+	const char *newrdn,
+	const char* newsup,
+	int deleteoldrdn )
 {
     int	rc;
 
+
+    printf( "%smodifying rdn of entry \"%s\"\n", not ? "!" : "", dn );
     if ( verbose ) {
-	printf( "new RDN: %s (%skeep existing values)\n",
+	printf( "\tnew RDN: \"%s\" (%skeep existing values)\n",
 		newrdn, deleteoldrdn ? "do not " : "" );
     }
-
-    printf( "%smodifying rdn of entry %s\n", not ? "!" : "", dn );
     if ( !not ) {
-	if (( rc = ldap_modrdn2_s( ld, dn, newrdn, deleteoldrdn ))
-		!= LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_modrdn" );
+	if (( rc = ldap_rename2_s( ld, dn, newrdn, newsup, deleteoldrdn ))
+		!= LDAP_SUCCESS )
+	{
+		fprintf( stderr, "%s: rename failed: %s\n", prog, dn );
+		ldap_perror( ld, "ldap_modrdn" );
 	} else {
 	    printf( "modrdn completed\n" );
 	}
@@ -705,93 +1185,38 @@ domodrdn( char *dn, char *newrdn, int deleteoldrdn )
 }
 
 
-
-static void
-freepmods( LDAPMod **pmods )
-{
-    int	i;
-
-    for ( i = 0; pmods[ i ] != NULL; ++i ) {
-	if ( pmods[ i ]->mod_bvalues != NULL ) {
-	    ber_bvecfree( pmods[ i ]->mod_bvalues );
-	}
-	if ( pmods[ i ]->mod_type != NULL ) {
-	    free( pmods[ i ]->mod_type );
-	}
-	free( pmods[ i ] );
-    }
-    free( pmods );
-}
-
-
-static int
-fromfile( char *path, struct berval *bv )
-{
-	FILE		*fp;
-	long		rlen;
-	int		eof;
-
-	if (( fp = fopen( path, "r" )) == NULL ) {
-	    	perror( path );
-		return( -1 );
-	}
-
-	if ( fseek( fp, 0L, SEEK_END ) != 0 ) {
-		perror( path );
-		fclose( fp );
-		return( -1 );
-	}
-
-	bv->bv_len = ftell( fp );
-
-	if (( bv->bv_val = (char *)malloc( bv->bv_len )) == NULL ) {
-		perror( "malloc" );
-		fclose( fp );
-		return( -1 );
-	}
-
-	if ( fseek( fp, 0L, SEEK_SET ) != 0 ) {
-		perror( path );
-		fclose( fp );
-		return( -1 );
-	}
-
-	rlen = fread( bv->bv_val, 1, bv->bv_len, fp );
-	eof = feof( fp );
-	fclose( fp );
-
-	if ( rlen != bv->bv_len ) {
-		perror( path );
-		free( bv->bv_val );
-		return( -1 );
-	}
-
-	return( bv->bv_len );
-}
-
-
 static char *
 read_one_record( FILE *fp )
 {
-    int         len;
     char        *buf, line[ LDAPMOD_MAXLINE ];
     int		lcur, lmax;
 
     lcur = lmax = 0;
     buf = NULL;
 
-    while (( fgets( line, sizeof(line), fp ) != NULL ) &&
-            (( len = strlen( line )) > 1 )) {
-        if ( lcur + len + 1 > lmax ) {
-            lmax = LDAPMOD_MAXLINE
-		    * (( lcur + len + 1 ) / LDAPMOD_MAXLINE + 1 );
-	    if (( buf = (char *)safe_realloc( buf, lmax )) == NULL ) {
-		perror( "safe_realloc" );
-		exit( 1 );
-	    }
-        }
-        strcpy( buf + lcur, line );
-        lcur += len;
+    while ( fgets( line, sizeof(line), fp ) != NULL ) {
+    	int len = strlen( line );
+
+		if( len < 2 || ( len == 3 && *line == '\r' )) {
+			if( buf == NULL ) {
+				continue;
+			} else {
+				break;
+			}
+		}
+
+		if ( lcur + len + 1 > lmax ) {
+			lmax = LDAPMOD_MAXLINE
+				* (( lcur + len + 1 ) / LDAPMOD_MAXLINE + 1 );
+
+			if (( buf = (char *)realloc( buf, lmax )) == NULL ) {
+				perror( "realloc" );
+				exit( EXIT_FAILURE );
+			}
+		}
+
+		strcpy( buf + lcur, line );
+		lcur += len;
     }
 
     return( buf );

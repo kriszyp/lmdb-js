@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -15,6 +20,7 @@
  * replica.c - code to start up replica threads.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
 
@@ -26,22 +32,33 @@
  * Just invoke the Ri's process() member function, and log the start and
  * finish.
  */
-void
+static void *
 replicate(
-    Ri	*ri
+    void	*ri_arg
 )
 {
-    int i;
-    unsigned long seq;
+    Ri		*ri = (Ri *) ri_arg;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "replica", LDAP_LEVEL_ARGS, "replicate: "
+		"begin replication thread for %s:%d\n",
+	    ((Ri *)ri)->ri_hostname, ((Ri *)ri)->ri_port ));
+#else
     Debug( LDAP_DEBUG_ARGS, "begin replication thread for %s:%d\n",
-	    ri->ri_hostname, ri->ri_port, 0 );
+	    ((Ri *)ri)->ri_hostname, ((Ri *)ri)->ri_port, 0 );
+#endif
 
     ri->ri_process( ri );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "replica", LDAP_LEVEL_ARGS, "replicate: "
+		"begin replication thread for %s:%d\n",
+	    ri->ri_hostname, ri->ri_port ));
+#else
     Debug( LDAP_DEBUG_ARGS, "end replication thread for %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
-    return;
+#endif
+    return NULL;
 }
 
 
@@ -54,18 +71,19 @@ start_replica_thread(
     Ri	*ri
 )
 {
-    pthread_attr_t	attr;
-
-    pthread_attr_init( &attr );
-    pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
-
-    if ( pthread_create( &(ri->ri_tid), attr, (void *) replicate,
+    /* POSIX_THREADS or compatible */
+    if ( ldap_pvt_thread_create( &(ri->ri_tid), 0, replicate,
 	    (void *) ri ) != 0 ) {
-	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "replica", LDAP_LEVEL_ERR, "start_replica_thread: "
+		"replica %s:%d ldap_pvt_thread_create failed\n",
+	    ri->ri_hostname, ri->ri_port ));
+#else
+	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" ldap_pvt_thread_create failed\n",
 		ri->ri_hostname, ri->ri_port, 0 );
-	pthread_attr_destroy( &attr );
+#endif
 	return -1;
     }
-    pthread_attr_destroy( &attr );
+
     return 0;
 }

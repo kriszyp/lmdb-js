@@ -98,11 +98,11 @@ static const struct MatchingRulePtr {
 };
 
 
-static char *bvcasechr( struct berval *bv, int c, ber_len_t *len )
+static char *bvcasechr( struct berval *bv, unsigned char c, ber_len_t *len )
 {
 	ber_len_t i;
-	int lower = TOLOWER( c );
-	int upper = TOUPPER( c );
+	char lower = TOLOWER( c );
+	char upper = TOUPPER( c );
 
 	if( c == 0 ) return NULL;
 	
@@ -3421,7 +3421,7 @@ char digit[] = "0123456789";
  */
 
 static struct berval *
-asn1_integer2str(ASN1_INTEGER *a)
+asn1_integer2str(ASN1_INTEGER *a, struct berval *bv)
 {
 	char buf[256];
 	char *p;
@@ -3477,35 +3477,17 @@ asn1_integer2str(ASN1_INTEGER *a)
 		*--p = '-';
 	}
 
-	return ber_bvstrdup(p);
+	return ber_str2bv( p, 0, 1, bv );
 }
 
 /* Get a DN in RFC2253 format from a X509_NAME internal struct */
-static struct berval *
-dn_openssl2ldap(X509_NAME *name)
+int
+dn_openssl2ldap(X509_NAME *name, struct berval *out)
 {
-	char issuer_dn[1024];
-	BIO *bio;
+	char buf[2048], *p;
 
-	bio = BIO_new(BIO_s_mem());
-	if ( !bio ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-			   "dn_openssl2ldap: error creating BIO_s_mem: %s\n",
-			   ERR_error_string(ERR_get_error(),NULL)));
-#else
-		Debug( LDAP_DEBUG_ARGS, "dn_openssl2ldap: "
-		       "error creating BIO: %s\n",
-		       ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
-#endif
-		return NULL;
-	}
-	X509_NAME_print_ex(bio, name, 0, XN_FLAG_RFC2253);
-
-	BIO_gets(bio, issuer_dn, 1024);
-
-	BIO_free(bio);
-	return ber_bvstrdup(issuer_dn);
+	p = X509_NAME_oneline( name, buf, sizeof( buf ) );
+	return dnDCEnormalize( p, out );
 }
 
 /*
@@ -3519,9 +3501,8 @@ certificateExactConvert(
 {
 	X509 *xcert;
 	unsigned char *p = in->bv_val;
-	struct berval *serial;
-	struct berval *issuer_dn;
-	struct berval *bv_tmp;
+	struct berval serial;
+	struct berval issuer_dn;
 
 	xcert = d2i_X509(NULL, &p, in->bv_len);
 	if ( !xcert ) {
@@ -3537,39 +3518,27 @@ certificateExactConvert(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	serial = asn1_integer2str(xcert->cert_info->serialNumber);
-	if ( !serial ) {
+	if ( !asn1_integer2str(xcert->cert_info->serialNumber, &serial) ) {
 		X509_free(xcert);
 		return LDAP_INVALID_SYNTAX;
 	}
-	issuer_dn = dn_openssl2ldap(X509_get_issuer_name(xcert));
-	if ( !issuer_dn ) {
+	if ( dn_openssl2ldap(X509_get_issuer_name(xcert), &issuer_dn ) != LDAP_SUCCESS ) {
 		X509_free(xcert);
-		ber_bvfree(serial);
+		ber_memfree(serial.bv_val);
 		return LDAP_INVALID_SYNTAX;
 	}
-	/* Actually, dn_openssl2ldap returns in a normalized format, but
-	   it is different from our normalized format */
-	bv_tmp = issuer_dn;
-	if ( dnNormalize(NULL, bv_tmp, &issuer_dn) != LDAP_SUCCESS ) {
-		X509_free(xcert);
-		ber_bvfree(serial);
-		ber_bvfree(bv_tmp);
-		return LDAP_INVALID_SYNTAX;
-	}
-	ber_bvfree(bv_tmp);
 
 	X509_free(xcert);
 
-	out->bv_len = serial->bv_len + issuer_dn->bv_len + sizeof(" $ ");
+	out->bv_len = serial.bv_len + issuer_dn.bv_len + sizeof(" $ ");
 	out->bv_val = ch_malloc(out->bv_len);
 	p = out->bv_val;
-	AC_MEMCPY(p, serial->bv_val, serial->bv_len);
-	p += serial->bv_len;
+	AC_MEMCPY(p, serial.bv_val, serial.bv_len);
+	p += serial.bv_len;
 	AC_MEMCPY(p, " $ ", sizeof(" $ ")-1);
 	p += 3;
-	AC_MEMCPY(p, issuer_dn->bv_val, issuer_dn->bv_len);
-	p += issuer_dn->bv_len;
+	AC_MEMCPY(p, issuer_dn.bv_val, issuer_dn.bv_len);
+	p += issuer_dn.bv_len;
 	*p++ = '\0';
 
 #ifdef NEW_LOGGING
@@ -3582,8 +3551,8 @@ certificateExactConvert(
 		out->bv_val, NULL, NULL );
 #endif
 
-	ber_bvfree(serial);
-	ber_bvfree(issuer_dn);
+	ber_memfree(serial.bv_val);
+	ber_memfree(issuer_dn.bv_val);
 
 	return LDAP_SUCCESS;
 }
@@ -3591,8 +3560,8 @@ certificateExactConvert(
 static int
 serial_and_issuer_parse(
 	struct berval *assertion,
-	struct berval **serial,
-	struct berval **issuer_dn
+	struct berval *serial,
+	struct berval *issuer_dn
 )
 {
 	char *begin;
@@ -3617,18 +3586,20 @@ serial_and_issuer_parse(
 
 	bv.bv_len = end-begin+1;
 	bv.bv_val = begin;
-	*serial = ber_dupbv(NULL, &bv);
+	ber_dupbv(serial, &bv);
 
 	/* now extract the issuer, remember p was at the dollar sign */
-	begin = p+1;
-	end = assertion->bv_val+assertion->bv_len-1;
-	while (ASCII_SPACE(*begin))
-		begin++;
-	/* should we trim spaces at the end too? is it safe always? */
+	if ( issuer_dn ) {
+		begin = p+1;
+		end = assertion->bv_val+assertion->bv_len-1;
+		while (ASCII_SPACE(*begin))
+			begin++;
+		/* should we trim spaces at the end too? is it safe always? */
 
-	bv.bv_len = end-begin+1;
-	bv.bv_val = begin;
-	dnNormalize( NULL, &bv, issuer_dn );
+		bv.bv_len = end-begin+1;
+		bv.bv_val = begin;
+		dnNormalize2( NULL, &bv, issuer_dn );
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -3644,10 +3615,10 @@ certificateExactMatch(
 {
 	X509 *xcert;
 	unsigned char *p = value->bv_val;
-	struct berval *serial;
-	struct berval *issuer_dn;
-	struct berval *asserted_serial;
-	struct berval *asserted_issuer_dn;
+	struct berval serial;
+	struct berval issuer_dn;
+	struct berval asserted_serial;
+	struct berval asserted_issuer_dn;
 	int ret;
 
 	xcert = d2i_X509(NULL, &p, value->bv_len);
@@ -3664,8 +3635,8 @@ certificateExactMatch(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	serial = asn1_integer2str(xcert->cert_info->serialNumber);
-	issuer_dn = dn_openssl2ldap(X509_get_issuer_name(xcert));
+	asn1_integer2str(xcert->cert_info->serialNumber, &serial);
+	dn_openssl2ldap(X509_get_issuer_name(xcert), &issuer_dn);
 
 	X509_free(xcert);
 
@@ -3678,8 +3649,8 @@ certificateExactMatch(
 		flags,
 		slap_schema.si_syn_integer,
 		slap_schema.si_mr_integerMatch,
-		serial,
-		asserted_serial);
+		&serial,
+		&asserted_serial);
 	if ( ret == LDAP_SUCCESS ) {
 		if ( *matchp == 0 ) {
 			/* We need to normalize everything for dnMatch */
@@ -3688,29 +3659,29 @@ certificateExactMatch(
 				flags,
 				slap_schema.si_syn_distinguishedName,
 				slap_schema.si_mr_distinguishedNameMatch,
-				issuer_dn,
-				asserted_issuer_dn);
+				&issuer_dn,
+				&asserted_issuer_dn);
 		}
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
 		   "certificateExactMatch: %d\n	 %s $ %s\n	 %s $	%s\n",
-		   *matchp, serial->bv_val, issuer_dn->bv_val,
-		   asserted_serial->bv_val, asserted_issuer_dn->bv_val));
+		   *matchp, serial.bv_val, issuer_dn.bv_val,
+		   asserted_serial.bv_val, asserted_issuer_dn.bv_val));
 #else
 	Debug( LDAP_DEBUG_ARGS, "certificateExactMatch "
 		"%d\n\t\"%s $ %s\"\n",
-		*matchp, serial->bv_val, issuer_dn->bv_val );
+		*matchp, serial.bv_val, issuer_dn.bv_val );
 	Debug( LDAP_DEBUG_ARGS, "\t\"%s $ %s\"\n",
-		asserted_serial->bv_val, asserted_issuer_dn->bv_val,
+		asserted_serial.bv_val, asserted_issuer_dn.bv_val,
 		NULL );
 #endif
 
-	ber_bvfree(serial);
-	ber_bvfree(issuer_dn);
-	ber_bvfree(asserted_serial);
-	ber_bvfree(asserted_issuer_dn);
+	ber_memfree(serial.bv_val);
+	ber_memfree(issuer_dn.bv_val);
+	ber_memfree(asserted_serial.bv_val);
+	ber_memfree(asserted_issuer_dn.bv_val);
 
 	return ret;
 }
@@ -3733,7 +3704,7 @@ static int certificateExactIndexer(
 	BerVarray keys;
 	X509 *xcert;
 	unsigned char *p;
-	struct berval * serial;
+	struct berval serial;
 
 	/* we should have at least one value at this point */
 	assert( values != NULL && values[0].bv_val != NULL );
@@ -3762,12 +3733,12 @@ static int certificateExactIndexer(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		serial = asn1_integer2str(xcert->cert_info->serialNumber);
+		asn1_integer2str(xcert->cert_info->serialNumber, &serial);
 		X509_free(xcert);
 		integerNormalize( slap_schema.si_syn_integer,
-				  serial,
+				  &serial,
 				  &keys[i] );
-		ber_bvfree(serial);
+		ber_memfree(serial.bv_val);
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
 			   "certificateExactIndexer: returning: %s\n",
@@ -3797,20 +3768,18 @@ static int certificateExactFilter(
 	BerVarray *keysp )
 {
 	BerVarray keys;
-	struct berval *asserted_serial;
-	struct berval *asserted_issuer_dn;
+	struct berval asserted_serial;
 
 	serial_and_issuer_parse(assertValue,
 				&asserted_serial,
-				&asserted_issuer_dn);
+				NULL);
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
-	integerNormalize( syntax, asserted_serial, &keys[0] );
+	integerNormalize( syntax, &asserted_serial, &keys[0] );
 	keys[1].bv_val = NULL;
 	*keysp = keys;
 
-	ber_bvfree(asserted_serial);
-	ber_bvfree(asserted_issuer_dn);
+	ber_memfree(asserted_serial.bv_val);
 	return LDAP_SUCCESS;
 }
 #endif

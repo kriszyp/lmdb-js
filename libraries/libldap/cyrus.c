@@ -846,7 +846,7 @@ int ldap_pvt_sasl_secprops(
 		} else if( !strncasecmp(props[i],
 			"minssf=", sizeof("minssf")) )
 		{
-			if( isdigit( props[i][sizeof("minssf")] ) ) {
+			if( isdigit( (unsigned char) props[i][sizeof("minssf")] ) ) {
 				got_min_ssf++;
 				min_ssf = atoi( &props[i][sizeof("minssf")] );
 			} else {
@@ -856,7 +856,7 @@ int ldap_pvt_sasl_secprops(
 		} else if( !strncasecmp(props[i],
 			"maxssf=", sizeof("maxssf")) )
 		{
-			if( isdigit( props[i][sizeof("maxssf")] ) ) {
+			if( isdigit( (unsigned char) props[i][sizeof("maxssf")] ) ) {
 				got_max_ssf++;
 				max_ssf = atoi( &props[i][sizeof("maxssf")] );
 			} else {
@@ -866,7 +866,7 @@ int ldap_pvt_sasl_secprops(
 		} else if( !strncasecmp(props[i],
 			"maxbufsize=", sizeof("maxbufsize")) )
 		{
-			if( isdigit( props[i][sizeof("maxbufsize")] ) ) {
+			if( isdigit( (unsigned char) props[i][sizeof("maxbufsize")] ) ) {
 				got_maxbufsize++;
 				maxbufsize = atoi( &props[i][sizeof("maxbufsize")] );
 			} else {

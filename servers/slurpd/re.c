@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -18,28 +23,27 @@
  */
 
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include "portable.h"
 
-#include "../slapd/slap.h"
+#include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+
 #include "slurp.h"
 #include "globals.h"
 
-/* externs */
-extern char *str_getline( char **next );
-extern void ch_free( char *p );
-
-extern char *sys_errlist[];
+#include "../slapd/slap.h"
 
 /* Forward references */
-static Rh 	*get_repl_hosts( char *, int *, char ** );
-static int	gettype( char * );
-static int	getchangetype( char *);
-static int	Re_parse( Re *re, char *replbuf );
-static void 	Re_dump( Re *re, FILE *fp );
-static void	warn_unknown_replica( char *, int port );
+static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));
+static int	gettype LDAP_P(( char * ));
+static int	getchangetype LDAP_P(( char * ));
+static int	Re_parse LDAP_P(( Re *re, char *replbuf ));
+static void 	Re_dump LDAP_P(( Re *re, FILE *fp ));
+static void	warn_unknown_replica LDAP_P(( char *, int port ));
 
 /* Globals, scoped within this file */
 static int	nur = 0;	/* Number of unknown replicas */
@@ -62,6 +66,7 @@ Re_getnext(
 
 /*
  * Free an Re
+ * ??? Something should apparently return nonzero here, but I dont know what.
  */
 static int
 Re_free(
@@ -76,15 +81,18 @@ Re_free(
 	return 0;
     }
     if ( re->re_refcnt > 0 ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_WARNING, "Re_free: "
+		"Warning: freeing re (dn: %s) with nonzero refcnt\n", re->re_dn ));
+#else
 	Debug( LDAP_DEBUG_ANY,
 		"Warning: freeing re (dn: %s) with nonzero refcnt\n",
 		re->re_dn, 0, 0 );
+#endif
     }
-#if !defined( THREAD_SUNOS4_LWP )
-    /* This seems to have problems under SunOS lwp */
-    pthread_mutex_destroy( &re->re_mutex );
-#endif /* THREAD_SUNOS4_LWP */
-    ch_free( re->re_timestamp );
+
+    ldap_pvt_thread_mutex_destroy( &re->re_mutex );
+
     if (( rh = re->re_replicas ) != NULL ) {
 	for ( i = 0; rh[ i ].rh_hostname != NULL; i++ ) {
 	    free( rh[ i ].rh_hostname );
@@ -100,6 +108,7 @@ Re_free(
 	free( mi );
     }
     free( re );
+    return 0;
 }
 
 
@@ -125,17 +134,25 @@ Re_parse(
     int			state;
     int			nml;
     char		*buf, *rp, *p;
-    long		buflen;
+    size_t		buflen;
     char		*type, *value;
-    int			len;
+    ber_len_t	len;
     int			nreplicas;
 
     if ( re == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_ERR, "Re_parse: Error: re is NULL\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Re_parse: error: re is NULL\n", 0, 0, 0 );
+#endif
 	return -1;
     }
     if ( replbuf == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_ERR, "Re_parse: Error: replbuf is NULL\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Re_parse: error: replbuf is NULL\n", 0, 0, 0 );
+#endif
 	return -1;
     }
 
@@ -147,7 +164,7 @@ Re_parse(
     re->re_refcnt = sglob->num_replicas;
 
     for (;;) {
-	if (( state == GOT_ALL ) || ( buf = str_getline( &rp )) == NULL ) {
+	if (( state == GOT_ALL ) || ( buf = ldif_getline( &rp )) == NULL ) {
 	    break;
 	}
 	/*
@@ -158,11 +175,16 @@ Re_parse(
 	if ( strncmp( buf, ERROR_STR, strlen( ERROR_STR )) == 0 ) {
 	    continue;
 	}
-	buflen = ( long ) strlen( buf );
-	if ( str_parse_line( buf, &type, &value, &len ) < 0 ) {
+	buflen = strlen( buf );
+	if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
+			"Re_parse: Error: malformed replog file\n" ));
+#else
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: Re_parse: malformed replog file\n",
 		    0, 0, 0 );
+#endif
 	    return -1;
 	}
 	switch ( gettype( type )) {
@@ -175,46 +197,71 @@ Re_parse(
 		/* there was a sequence number */
 		*p++ = '\0';
 	    }
-	    re->re_timestamp = strdup( value );
-	    if ( p != NULL && isdigit( *p )) {
+	    re->re_timestamp = atol( value );
+	    if ( p != NULL && isdigit( (unsigned char) *p )) {
 		re->re_seq = atoi( p );
 	    }
 	    state |= GOT_TIME;
 	    break;
 	case T_DN:
-	    re->re_dn = strdup( value );
+	    re->re_dn = ch_malloc( len + 1 );
+		AC_MEMCPY( re->re_dn, value, len );
+		re->re_dn[ len ]='\0';
 	    state |= GOT_DN;
 	    break;
 	default:
 	    if ( !( state == GOT_ALL )) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
+			"Re_parse: Error: bad type <%s>\n", type ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: Re_parse: bad type <%s>\n",
 			type, 0, 0 );
+#endif
+		free( type );
+		if ( value != NULL )
+			free( value );
 		return -1;
 	    }
 	}
+	free( type );
+	if ( value != NULL )
+		free( value );
     }
 
     if ( state != GOT_ALL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
+		"Re_parse: Error: malformed replog file\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: Re_parse: malformed replog file\n",
 		0, 0, 0 );
+#endif
 	return -1;
     }
 
     for (;;) {
-	if (( buf = str_getline( &rp )) == NULL ) {
+	char *const dash = "-";
+
+	if (( buf = ldif_getline( &rp )) == NULL ) {
 	    break;
 	}
-	buflen = ( long ) strlen( buf );
+	buflen = strlen( buf );
 	if (( buflen == 1 ) && ( buf[ 0 ] == '-' )) {
-	    type = "-";
+	    type  = dash;
 	    value = NULL;
 	} else {
-	    if ( str_parse_line( buf, &type, &value, &len ) < 0 ) {
+	    if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
+			"Re_parse: Error: malformed replog line \"%s\"\n", buf ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: malformed replog line \"%s\"\n",
 			buf, 0, 0 );
+#endif
 		return -1;
 	    }
 	}
@@ -222,7 +269,9 @@ Re_parse(
 	    sizeof( Mi ) * ( nml + 2 ));
 	re->re_mods[ nml ].mi_type = strdup( type );
 	if ( value != NULL ) {
-	    re->re_mods[ nml ].mi_val = strdup( value );
+	    re->re_mods[ nml ].mi_val = ch_malloc( len + 1 );
+		AC_MEMCPY( re->re_mods[ nml ].mi_val, value, len );
+		re->re_mods[ nml ].mi_val[ len ] = '\0';
 	    re->re_mods[ nml ].mi_len = len;
 	} else {
 	    re->re_mods[ nml ].mi_val = NULL;
@@ -231,6 +280,11 @@ Re_parse(
 	re->re_mods[ nml + 1 ].mi_type = NULL;
 	re->re_mods[ nml + 1 ].mi_val = NULL;
 	nml++;
+
+	if ( type != dash )
+		free( type );
+	if ( value != NULL )
+		free( value );
     }
     return 0;
 }
@@ -252,10 +306,10 @@ get_repl_hosts(
     char	**r_rp
 )
 {
-    char		buf[ LINE_WIDTH + 1 ];
     char		*type, *value, *line, *p;
     Rh			*rh = NULL;
-    int			nreplicas, len;
+    int			nreplicas;
+	ber_len_t	len;
     int			port;
     int			repl_ok;
     int			i;
@@ -274,7 +328,7 @@ get_repl_hosts(
     for (;;) {
 	/* If this is a reject log, we need to skip over the ERROR: line */
 	if ( !strncmp( *r_rp, ERROR_STR, strlen( ERROR_STR ))) {
-	    line = str_getline( r_rp );
+	    line = ldif_getline( r_rp );
 	    if ( line == NULL ) {
 		break;
 	    }
@@ -282,14 +336,14 @@ get_repl_hosts(
 	if ( strncasecmp( *r_rp, "replica:", 7 )) {
 	    break;
 	}
-	line = str_getline( r_rp );
+	line = ldif_getline( r_rp );
 	if ( line == NULL ) {
 	    break;
 	}
-	if ( str_parse_line( line, &type, &value, &len ) < 0 ) {
+	if ( ldif_parse_line( line, &type, &value, &len ) < 0 ) {
 	    return( NULL );
 	}
-	port = LDAP_PORT;
+	port = 0;
 	if (( p = strchr( value, ':' )) != NULL ) {
 	    *p = '\0';
 	    p++;
@@ -309,20 +363,31 @@ get_repl_hosts(
 		break;
 	    }
 	}
+	free( type );
 	if ( !repl_ok ) {
 	    warn_unknown_replica( value, port );
+	    if ( value != NULL )
+		free( value );
 	    continue;
 	}
 
 	rh = (Rh *) ch_realloc((char *) rh, ( nreplicas + 2 ) * sizeof( Rh ));
 	if ( rh == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
+			"get_repl_hosts: Out of memory\n" ));
+#else
 	    Debug( LDAP_DEBUG_ANY, "Out of memory in get_repl_hosts\n",
 		    0, 0, 0 );
+#endif
 	    return NULL;
 	}
 	rh[ nreplicas ].rh_hostname = strdup( value );
 	rh[ nreplicas ].rh_port = port;
 	nreplicas++;
+
+	if ( value != NULL )
+		free( value );
     }
 
     if ( nreplicas == 0 ) {
@@ -430,12 +495,16 @@ Re_dump(
     Mi *mi;
 
     if ( re == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_ERR, "Re_dump: re is NULL\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "Re_dump: re is NULL\n", 0, 0, 0 );
+#endif
 	return;
     }
     fprintf( fp, "Re_dump: ******\n" );
     fprintf( fp, "re_refcnt: %d\n", re->re_refcnt );
-    fprintf( fp, "re_timestamp: %s\n", re->re_timestamp );
+    fprintf( fp, "re_timestamp: %ld\n", (long) re->re_timestamp );
     fprintf( fp, "re_seq: %d\n", re->re_seq );
     for ( i = 0; re->re_replicas && re->re_replicas[ i ].rh_hostname != NULL;
 		i++ ) {
@@ -494,11 +563,15 @@ Re_write(
     int		i;
     char	*s;
     int		rc = 0;
-    Rh		*rh;
 
     if ( re == NULL || fp == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
+		"Re_write: Internal error: NULL argument\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Internal error: Re_write: NULL argument\n",
 		0, 0, 0 );
+#endif
 	return -1;
     }
 
@@ -522,7 +595,7 @@ Re_write(
 	    }
 	}
     }
-    if ( fprintf( fp, "time: %s.%d\n", re->re_timestamp, re->re_seq ) < 0 ) {
+    if ( fprintf( fp, "time: %ld.%d\n", (long) re->re_timestamp, re->re_seq ) < 0 ) {
 	rc = -1;
 	goto bad;
     }
@@ -563,7 +636,8 @@ Re_write(
 	    }
 	} else {
 	    char *obuf;
-	    obuf = ldif_type_and_value( re->re_mods[ i ].mi_type,
+	    obuf = ldif_put( LDIF_PUT_VALUE,
+			re->re_mods[ i ].mi_type,
 		    re->re_mods[ i ].mi_val ? re->re_mods[ i ].mi_val : "",
 		    re->re_mods[ i ].mi_len );
 	    if ( fputs( obuf, fp ) < 0 ) {
@@ -571,7 +645,7 @@ Re_write(
 		free( obuf );
 		goto bad;
 	    } else {
-		free( obuf );
+		ber_memfree( obuf );
 	    }
 	}
     }
@@ -585,8 +659,13 @@ Re_write(
     }
 bad:
     if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
+		"Re_write: Error while writing: %s\n", sys_errlist[ errno ] ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Error while writing: %s\n",
 		sys_errlist[ errno ], 0, 0 );
+#endif
     }
     return rc;
 }
@@ -638,7 +717,7 @@ Re_lock(
     Re	*re
 )
 {
-    return( pthread_mutex_lock( &re->re_mutex ));
+    return( ldap_pvt_thread_mutex_lock( &re->re_mutex ));
 }
 
 
@@ -652,7 +731,7 @@ Re_unlock(
     Re	*re
 )
 {
-    return( pthread_mutex_unlock( &re->re_mutex ));
+    return( ldap_pvt_thread_mutex_unlock( &re->re_mutex ));
 }
 
 
@@ -685,7 +764,7 @@ Re_init(
 
     /* Initialize private data */
    (*re)->re_refcnt = sglob->num_replicas;
-   (*re)->re_timestamp = NULL;
+   (*re)->re_timestamp = (time_t) 0L;
    (*re)->re_replicas = NULL;
    (*re)->re_dn = NULL;
    (*re)->re_changetype = 0;
@@ -693,7 +772,7 @@ Re_init(
    (*re)->re_mods = NULL;
    (*re)->re_next = NULL;
 
-   pthread_mutex_init( &((*re)->re_mutex), pthread_mutexattr_default );
+   ldap_pvt_thread_mutex_init( &((*re)->re_mutex) );
    return 0;
 }
 
@@ -723,9 +802,15 @@ warn_unknown_replica(
 	}
     }
     if ( !found ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "re", LDAP_LEVEL_WARNING, "warn_unknown_replica: "
+		"Warning: unknown replica %s:%d found in replication log\n",
+		host, port ));
+#else
 	Debug( LDAP_DEBUG_ANY,
 		"Warning: unknown replica %s:%d found in replication log\n",
 		host, port, 0 );
+#endif
 	nur++;
 	ur = (Rh *) ch_realloc( (char *) ur, ( nur * sizeof( Rh )));
 	ur[ nur - 1 ].rh_hostname = strdup( host );

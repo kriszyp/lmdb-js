@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -15,33 +20,28 @@
  * config.c - configuration file handling routines
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include "portable.h"
 
-#include <lber.h>
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/ctype.h>
+
 #include <ldap.h>
 
 #include "slurp.h"
 #include "globals.h"
 
-#define MAXARGS	100
+#define MAXARGS	500
 
 /* Forward declarations */
-#ifdef NEEDPROTOS
-static void	add_replica( char **, int );
-static int	parse_replica_line( char **, int, Ri *);
-static void	parse_line( char *, int *, char ** );
-static char	*getline( FILE * );
-static char	*strtok_quote( char *, char * );
-#else /* NEEDPROTOS */
-static void	add_replica();
-static int	parse_replica_line();
-static void	parse_line();
-static char	*getline();
-static char	*strtok_quote();
-#endif /* NEEDPROTOS */
+static void	add_replica LDAP_P(( char **, int ));
+static int	parse_replica_line LDAP_P(( char **, int, Ri *));
+static void	parse_line LDAP_P(( char *, int *, char ** ));
+static char	*getline LDAP_P(( FILE * ));
+static char	*strtok_quote LDAP_P(( char *, char * ));
 
 /* current config file line # */
 static int	lineno;
@@ -59,17 +59,21 @@ slurpd_read_config(
 )
 {
     FILE	*fp;
-    char	buf[BUFSIZ];
-    char	*line, *p;
+    char	*line;
     int		cargc;
     char	*cargv[MAXARGS];
 
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_ARGS, 
+	"slurpd_read_config: Config: opening config file \"%s\"\n", fname ));
+#else
     Debug( LDAP_DEBUG_CONFIG, "Config: opening config file \"%s\"\n",
 	    fname, 0, 0 );
+#endif
 
     if ( (fp = fopen( fname, "r" )) == NULL ) {
 	perror( fname );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     lineno = 0;
@@ -79,7 +83,12 @@ slurpd_read_config(
 	    continue;
 	}
 
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_DETAIL1, 
+		"slurpd_read_config: Config: (%s)\n", line ));
+#else
 	Debug( LDAP_DEBUG_CONFIG, "Config: (%s)\n", line, 0, 0 );
+#endif
 
 	parse_line( line, &cargc, cargv );
 
@@ -101,23 +110,57 @@ slurpd_read_config(
 			"line %d: missing filename in \"replogfile ",
 			lineno );
 		    fprintf( stderr, "<filename>\" line\n" );
-		    exit( 1 );
+		    exit( EXIT_FAILURE );
 		} else if ( cargc > 2 && *cargv[2] != '#' ) {
 		    fprintf( stderr,
 			"line %d: extra cruft at the end of \"replogfile %s\"",
 			lineno, cargv[1] );
 		    fprintf( stderr, "line (ignored)\n" );
 		}
-		sprintf( sglob->slapd_replogfile, cargv[1] );
+		strcpy( sglob->slapd_replogfile, cargv[1] );
 	    }
 	} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
 	    add_replica( cargv, cargc );
+	    
+	    /* include another config file */
+	} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {
+	    char *savefname;
+	    int savelineno;
+
+            if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+                LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+                        "%s: line %d: missing filename in \"include "
+                        "<filename>\" line.\n", fname, lineno ));
+#else
+                Debug( LDAP_DEBUG_ANY,
+        "%s: line %d: missing filename in \"include <filename>\" line\n",
+                        fname, lineno, 0 );
+#endif
+		
+                return( 1 );
+            }
+	    savefname = strdup( cargv[1] );
+	    savelineno = lineno;
+	    
+	    if ( slurpd_read_config( savefname ) != 0 ) {
+	        return( 1 );
+	    }
+		
+	    free( savefname );
+	    lineno = savelineno - 1;
 	}
     }
     fclose( fp );
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_RESULTS, 
+		"slurpd_read_config: Config: "
+		"** configuration file successfully read and parsed\n" ));
+#else
     Debug( LDAP_DEBUG_CONFIG,
 	    "Config: ** configuration file successfully read and parsed\n",
 	    0, 0, 0 );
+#endif
     return 0;
 }
 
@@ -178,11 +221,13 @@ strtok_quote(
 	    } else {
 		inquote = 1;
 	    }
-	    strcpy( next, next + 1 );
+	    AC_MEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
 	    break;
 
 	case '\\':
-	    strcpy( next, next + 1 );
+	    if ( next[1] )
+		AC_MEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
+	    next++;		/* dont parse the escaped character */
 	    break;
 
 	default:
@@ -230,12 +275,16 @@ getline(
     CATLINE( buf );
     while ( fgets( buf, sizeof(buf), fp ) != NULL ) {
 	if ( (p = strchr( buf, '\n' )) != NULL ) {
-	    *p = '\0';
+		if( p > buf && p[-1] == '\r' ) --p;       
+		*p = '\0';
 	}
 	lineno++;
-	if ( ! isspace( buf[0] ) ) {
+	if ( ! isspace( (unsigned char) buf[0] ) ) {
 	    return( line );
 	}
+
+	/* change leading whitespace to space */
+	buf[0] = ' ';
 
 	CATLINE( buf );
     }
@@ -261,13 +310,13 @@ add_replica(
 	    ( nr + 1 )  * sizeof( Re * ));
     if ( sglob->replicas == NULL ) {
 	fprintf( stderr, "out of memory, add_replica\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     sglob->replicas[ nr ] = NULL; 
 
     if ( Ri_init( &(sglob->replicas[ nr - 1 ])) < 0 ) {
 	fprintf( stderr, "out of memory, Ri_init\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
     if ( parse_replica_line( cargv, cargc,
 	    sglob->replicas[ nr - 1] ) < 0 ) {
@@ -280,17 +329,25 @@ add_replica(
 	sglob->replicas[ nr - 1] = NULL;
 	sglob->num_replicas--;
     } else {
+#ifdef NEW_LOGGING
+    LDAP_LOG (( "config", LDAP_LEVEL_RESULTS, 
+		"add_replica: Config: ** successfully added replica \"%s%d\"\n", 
+		sglob->replicas[ nr - 1 ]->ri_hostname == NULL ?
+		"(null)" : sglob->replicas[ nr - 1 ]->ri_hostname,
+		sglob->replicas[ nr - 1 ]->ri_port, 0 ));
+#else
 	Debug( LDAP_DEBUG_CONFIG,
 		"Config: ** successfully added replica \"%s:%d\"\n",
 		sglob->replicas[ nr - 1 ]->ri_hostname == NULL ?
 		"(null)" : sglob->replicas[ nr - 1 ]->ri_hostname,
 		sglob->replicas[ nr - 1 ]->ri_port, 0 );
+#endif
 	sglob->replicas[ nr - 1]->ri_stel =
 		sglob->st->st_add( sglob->st,
 		sglob->replicas[ nr - 1 ] );
 	if ( sglob->replicas[ nr - 1]->ri_stel == NULL ) {
 	    fprintf( stderr, "Failed to add status element structure\n" );
-	    exit( 1 );
+	    exit( EXIT_FAILURE );
 	}
     }
 }
@@ -301,7 +358,7 @@ add_replica(
  * Parse a "replica" line from the config file.  replica lines should be
  * in the following format:
  * replica    host=<hostname:portnumber> binddn=<binddn>
- *            bindmethod="simple|kerberos" credentials=<creds>
+ *            bindmethod="simple" credentials=<creds>
  *
  * where:
  * <hostname:portnumber> describes the host name and port number where the
@@ -309,12 +366,10 @@ add_replica(
  *
  * <binddn> is the DN to bind to the replica slapd as,
  *
- * bindmethod is either "simple" or "kerberos", and
+ * bindmethod is "simple", and
  *
  * <creds> are the credentials (e.g. password) for binddn.  <creds> are
- * only used for bindmethod=simple.  For bindmethod=kerberos, the
- * credentials= option should be omitted.  Credentials for kerberos
- * authentication are in the system srvtab file.
+ * only used for bindmethod=simple.  
  *
  * The "replica" config file line may be split across multiple lines.  If
  * a line begins with whitespace, it is considered a continuation of the
@@ -324,6 +379,8 @@ add_replica(
 #define	GOT_DN		2
 #define	GOT_METHOD	4
 #define	GOT_ALL		( GOT_HOST | GOT_DN | GOT_METHOD )
+#define	GOT_MECH	8
+
 static int
 parse_replica_line( 
     char	**cargv,
@@ -336,56 +393,86 @@ parse_replica_line(
     char	*hp, *val;
 
     for ( i = 1; i < cargc; i++ ) {
-	if ( !strncasecmp( cargv[ i ], HOSTSTR, strlen( HOSTSTR ))) {
-	    val = cargv[ i ] + strlen( HOSTSTR ) + 1;
+	if ( !strncasecmp( cargv[ i ], HOSTSTR, sizeof( HOSTSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( HOSTSTR ); /* '\0' string terminator accounts for '=' */
 	    if (( hp = strchr( val, ':' )) != NULL ) {
 		*hp = '\0';
 		hp++;
 		ri->ri_port = atoi( hp );
 	    }
 	    if ( ri->ri_port <= 0 ) {
-		ri->ri_port = LDAP_PORT;
+		ri->ri_port = 0;
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
+	} else if ( !strncasecmp( cargv[ i ], 
+			ATTRSTR, sizeof( ATTRSTR ) - 1 ) ) {
+	    /* ignore it */ ;
+	} else if ( !strncasecmp( cargv[ i ], 
+			SUFFIXSTR, sizeof( SUFFIXSTR ) - 1 ) ) {
+	    /* ignore it */ ;
+	} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( TLSSTR );
+		if( !strcasecmp( val, TLSCRITICALSTR ) ) {
+			ri->ri_tls = TLS_CRITICAL;
+		} else {
+			ri->ri_tls = TLS_ON;
+		}
 	} else if ( !strncasecmp( cargv[ i ],
-		BINDDNSTR, strlen( BINDDNSTR ))) { 
-	    val = cargv[ i ] + strlen( BINDDNSTR ) + 1;
+			BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) { 
+	    val = cargv[ i ] + sizeof( BINDDNSTR );
 	    ri->ri_bind_dn = strdup( val );
 	    gots |= GOT_DN;
 	} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR,
-		strlen( BINDMETHSTR ))) {
-	    val = cargv[ i ] + strlen( BINDMETHSTR ) + 1;
+		sizeof( BINDMETHSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( BINDMETHSTR );
 	    if ( !strcasecmp( val, KERBEROSSTR )) {
-#ifdef KERBEROS
-		ri->ri_bind_method = AUTH_KERBEROS;
-		if ( ri->ri_srvtab == NULL ) {
-		    ri->ri_srvtab = strdup( sglob->default_srvtab );
-		}
-		gots |= GOT_METHOD;
-#else /* KERBEROS */
 	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
-	    fprintf( stderr, "specified in the slapd configuration file,\n" );
-	    fprintf( stderr, "but slurpd was not built with kerberos.\n" );
-	    fprintf( stderr, "You must rebuild the LDAP release with\n" );
-	    fprintf( stderr, "kerberos support if you wish to use\n" );
-	    fprintf( stderr, "bindmethod=kerberos\n" );
-	    exit( 1 );
-#endif /* KERBEROS */
+	    fprintf( stderr, "specified in the slapd configuration file.\n" );
+	    fprintf( stderr, "slurpd no longer supports Kerberos.\n" );
+	    exit( EXIT_FAILURE );
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = AUTH_SIMPLE;
+		gots |= GOT_METHOD;
+	    } else if ( !strcasecmp( val, SASLSTR )) {
+		ri->ri_bind_method = AUTH_SASL;
 		gots |= GOT_METHOD;
 	    } else {
 		ri->ri_bind_method = -1;
 	    }
-	} else if ( !strncasecmp( cargv[ i ], CREDSTR, strlen( CREDSTR ))) {
-	    val = cargv[ i ] + strlen( CREDSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			SASLMECHSTR, sizeof( SASLMECHSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( SASLMECHSTR );
+	    gots |= GOT_MECH;
+	    ri->ri_saslmech = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], 
+			CREDSTR, sizeof( CREDSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( CREDSTR );
 	    ri->ri_password = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], BINDPSTR, strlen( BINDPSTR ))) {
-	    val = cargv[ i ] + strlen( BINDPSTR ) + 1;
-	    ri->ri_principal = strdup( val );
-	} else if ( !strncasecmp( cargv[ i ], SRVTABSTR, strlen( SRVTABSTR ))) {
-	    val = cargv[ i ] + strlen( SRVTABSTR ) + 1;
+	} else if ( !strncasecmp( cargv[ i ], 
+			SECPROPSSTR, sizeof( SECPROPSSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( SECPROPSSTR );
+	    ri->ri_secprops = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], 
+			REALMSTR, sizeof( REALMSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( REALMSTR );
+	    ri->ri_realm = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], 
+			AUTHCSTR, sizeof( AUTHCSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( AUTHCSTR );
+	    ri->ri_authcId = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], 
+			OLDAUTHCSTR, sizeof( OLDAUTHCSTR ) - 1 ) ) {
+	    /* Old authcID is provided for some backwards compatibility */
+	    val = cargv[ i ] + sizeof( OLDAUTHCSTR );
+	    ri->ri_authcId = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], 
+			AUTHZSTR, sizeof( AUTHZSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( AUTHZSTR );
+	    ri->ri_authzId = strdup( val );
+	} else if ( !strncasecmp( cargv[ i ], 
+			SRVTABSTR, sizeof( SRVTABSTR ) - 1 ) ) {
+	    val = cargv[ i ] + sizeof( SRVTABSTR );
 	    if ( ri->ri_srvtab != NULL ) {
 		free( ri->ri_srvtab );
 	    }
@@ -396,11 +483,19 @@ parse_replica_line(
 		    cargv[ i ] );
 	}
     }
-    if ( gots != GOT_ALL ) {
-	    fprintf( stderr, "Error: Malformed \"replica\" line in slapd " );
-	    fprintf( stderr, "config file, line %d\n", lineno );
-	return -1;
-    }
+    
+	if ( ri->ri_bind_method == AUTH_SASL) {
+		if ((gots & GOT_MECH) == 0) {
+			fprintf( stderr, "Error: \"replica\" line needs SASLmech flag in " );
+			fprintf( stderr, "slapd config file, line %d\n", lineno );
+			return -1;
+		}
+	}
+	else if ( gots != GOT_ALL ) {
+		fprintf( stderr, "Error: Malformed \"replica\" line in slapd " );
+		fprintf( stderr, "config file, line %d\n", lineno );
+		return -1;
+	}
     return 0;
 }
 

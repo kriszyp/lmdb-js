@@ -45,7 +45,7 @@ parse_line(
 	}
 	
 	for ( begin = p;  p[ 0 ] != '\0'; p++ ) {
-		if ( p[ 0 ] == '\\' ) {
+		if ( p[ 0 ] == '\\' && p[ 1 ] != '\0' ) {
 			p++;
 		} else if ( p[ 0 ] == '\'' || p[ 0 ] == '\"') {
 			if ( in_quoted_field && p[ 0 ] == quote ) {

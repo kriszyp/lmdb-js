@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -14,24 +19,27 @@
  * lock.c - routines to open and apply an advisory lock to a file
  */
 
-#include <stdio.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/file.h>
-#include <sys/param.h>
-#include <sys/socket.h>
 #include "portable.h"
-#ifdef USE_LOCKF
-#include <unistd.h>
-#endif
-#include "../slapd/slap.h"
 
+#include <stdio.h>
+
+#include <ac/param.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+
+#include "slurp.h"
 
 
 FILE *
 lock_fopen(
-    char	*fname,
-    char	*type,
+    const char	*fname,
+    const char	*type,
     FILE	**lfp
 )
 {
@@ -42,29 +50,31 @@ lock_fopen(
 	strcpy( buf, fname );
 	strcat( buf, ".lock" );
 	if ( (*lfp = fopen( buf, "w" )) == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "lock", LDAP_LEVEL_ERR, "lock_fopen: "
+			"Error: could not open \"%s\"\n", buf ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: could not open \"%s\"\n", buf, 0, 0 );
+#endif
 		return( NULL );
 	}
 
 	/* acquire the lock */
-#ifdef USE_LOCKF
-	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 ) {
-#else
-	while ( flock( fileno( *lfp ), LOCK_EX ) != 0 ) {
-#endif
-		;	/* NULL */
-	}
+	ldap_lockf( fileno(*lfp) );
 
 	/* open the log file */
 	if ( (fp = fopen( fname, type )) == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "lock", LDAP_LEVEL_ERR, "lock_fopen: "
+			"Error: could not open \"%s\"\n", fname ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: could not open \"%s\"\n", fname, 0, 0 );
-#ifdef USE_LOCKF
-		lockf( fileno( *lfp ), F_ULOCK, 0 );
-#else
-		flock( fileno( *lfp ), LOCK_UN );
 #endif
+		ldap_unlockf( fileno(*lfp) );
+		fclose( *lfp );
+		*lfp = NULL;
 		return( NULL );
 	}
 
@@ -80,11 +90,7 @@ lock_fclose(
 )
 {
 	/* unlock */
-#ifdef USE_LOCKF
-	lockf( fileno( lfp ), F_ULOCK, 0 );
-#else
-	flock( fileno( lfp ), LOCK_UN );
-#endif
+	ldap_unlockf( fileno(lfp) );
 	fclose( lfp );
 
 	return( fclose( fp ) );
@@ -97,15 +103,21 @@ lock_fclose(
  */
 int
 acquire_lock(
-    char	*file,
+    const char	*file,
     FILE	**rfp,
     FILE	**lfp
 )
 {
     if (( *rfp = lock_fopen( file, "r+", lfp )) == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "lock", LDAP_LEVEL_ERR, "acquire_lock: "
+		"Error: acquire_lock(%ld): Could not acquire lock on \"%s\"\n",
+		(long) getpid(), file ));
+#else
 	Debug( LDAP_DEBUG_ANY,
-		"Error: acquire_lock(%d): Could not acquire lock on \"%s\"\n",
-		getpid(), file, 0);
+		"Error: acquire_lock(%ld): Could not acquire lock on \"%s\"\n",
+		(long) getpid(), file, 0);
+#endif
 	return( -1 );
     }
     return( 0 );
@@ -119,15 +131,21 @@ acquire_lock(
  */
 int
 relinquish_lock(
-    char	*file,
+    const char	*file,
     FILE	*rfp,
     FILE	*lfp
 )
 {
     if ( lock_fclose( rfp, lfp ) == EOF ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "lock", LDAP_LEVEL_ERR, "relinguish_lock: "
+		"Error: relinquish_lock (%ld): Error closing \"%s\"\n",
+		(long) getpid(), file ));
+#else
 	Debug( LDAP_DEBUG_ANY,
-		"Error: relinquish_lock (%d): Error closing \"%s\"\n",
-		getpid(), file, 0 );
+		"Error: relinquish_lock (%ld): Error closing \"%s\"\n",
+		(long) getpid(), file, 0 );
+#endif
 	return( -1 );
     }
     return( 0 );

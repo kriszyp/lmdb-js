@@ -647,7 +647,8 @@ try_read1msg(
 		{
 			tmpber = *ber;	/* struct copy */
 			if ( v3ref == 1 ) {
-				; /* V3 search reference or V3 referral sucessfully chased */
+				/* V3 search reference or V3 referral successfully chased */
+				refer_cnt = 0;
 			} else if ( ber_scanf( &tmpber, "{iaa}", &lderr,
 			    &lr->lr_res_matched, &lr->lr_res_error )
 			    != LBER_ERROR ) {

@@ -22,14 +22,14 @@ static void		split(char *line, int splitchar, char **left, char **right);
 static void		access_append(Access **l, Access *a);
 static void		acl_usage(void) LDAP_GCCATTR((noreturn));
 
-static void 		acl_regex_normalized_dn(struct berval *pattern);
+static void		acl_regex_normalized_dn(const char *src, struct berval *pat);
 
 #ifdef LDAP_DEBUG
 static void		print_acl(Backend *be, AccessControl *a);
 static void		print_access(Access *b);
 #endif
 
-static int
+static void
 regtest(const char *fname, int lineno, char *pat) {
 	int e;
 	regex_t re;
@@ -79,10 +79,8 @@ regtest(const char *fname, int lineno, char *pat) {
 			"%s: line %d: regular expression \"%s\" bad because of %s\n",
 			fname, lineno, pat, error );
 		acl_usage();
-		return(0);
 	}
 	regfree(&re);
-	return(1);
 }
 
 void
@@ -166,7 +164,7 @@ parse_acl(
 							|| strcmp(right, ".*") == 0 
 							|| strcmp(right, ".*$") == 0 
 							|| strcmp(right, "^.*") == 0 
-							|| strcmp(right, "^.*$$") == 0
+							|| strcmp(right, "^.*$") == 0
 							|| strcmp(right, ".*$$") == 0 
 							|| strcmp(right, "^.*$$") == 0 )
 						{
@@ -174,8 +172,7 @@ parse_acl(
 							a->acl_dn_pat.bv_len = sizeof("*")-1;
 
 						} else {
-							a->acl_dn_pat.bv_val = right;
-							acl_regex_normalized_dn( &a->acl_dn_pat );
+							acl_regex_normalized_dn( right, &a->acl_dn_pat );
 						}
 					} else if ( strcasecmp( style, "base" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_BASE;
@@ -236,7 +233,13 @@ parse_acl(
 			if( a->acl_dn_pat.bv_len != 0 ) {
 				if ( a->acl_dn_style != ACL_STYLE_REGEX ) {
 					struct berval bv;
-					dnNormalize2( NULL, &a->acl_dn_pat, &bv);
+					rc = dnNormalize2( NULL, &a->acl_dn_pat, &bv);
+					if ( rc != LDAP_SUCCESS ) {
+						fprintf( stderr,
+							"%s: line %d: bad DN \"%s\"\n",
+							fname, lineno, a->acl_dn_pat.bv_val );
+						acl_usage();
+					}
 					free( a->acl_dn_pat.bv_val );
 					a->acl_dn_pat = bv;
 				} else {
@@ -373,8 +376,7 @@ parse_acl(
 								1, &bv);
 
 						} else {
-							bv.bv_val = right;
-							acl_regex_normalized_dn( &bv );
+							acl_regex_normalized_dn( right, &bv );
 							if ( !ber_bvccmp( &bv, '*' ) ) {
 								regtest(fname, lineno, bv.bv_val);
 							}
@@ -402,7 +404,13 @@ parse_acl(
 					}
 
 					if ( sty != ACL_STYLE_REGEX && expand == 0 ) {
-						dnNormalize2(NULL, &bv, &b->a_dn_pat);
+						rc = dnNormalize2(NULL, &bv, &b->a_dn_pat);
+						if ( rc != LDAP_SUCCESS ) {
+							fprintf( stderr,
+								"%s: line %d: bad DN \"%s\"\n",
+								fname, lineno, bv.bv_val );
+							acl_usage();
+						}
 						free(bv.bv_val);
 					} else {
 						b->a_dn_pat = bv;
@@ -490,15 +498,20 @@ parse_acl(
 
 					b->a_group_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						bv.bv_val = right;
-						acl_regex_normalized_dn( &bv );
+						acl_regex_normalized_dn( right, &bv );
 						if ( !ber_bvccmp( &bv, '*' ) ) {
 							regtest(fname, lineno, bv.bv_val);
 						}
 						b->a_group_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 0, &bv );
-						dnNormalize2( NULL, &bv, &b->a_group_pat );
+						rc = dnNormalize2( NULL, &bv, &b->a_group_pat );
+						if ( rc != LDAP_SUCCESS ) {
+							fprintf( stderr,
+								"%s: line %d: bad DN \"%s\"\n",
+								fname, lineno, right );
+							acl_usage();
+						}
 					}
 
 					if (value && *value) {
@@ -625,8 +638,7 @@ parse_acl(
 
 					b->a_peername_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						bv.bv_val = right;
-						acl_regex_normalized_dn( &bv );
+						acl_regex_normalized_dn( right, &bv );
 						if ( !ber_bvccmp( &bv, '*' ) ) {
 							regtest(fname, lineno, bv.bv_val);
 						}
@@ -661,8 +673,7 @@ parse_acl(
 
 					b->a_sockname_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						bv.bv_val = right;
-						acl_regex_normalized_dn( &bv );
+						acl_regex_normalized_dn( right, &bv );
 						if ( !ber_bvccmp( &bv, '*' ) ) {
 							regtest(fname, lineno, bv.bv_val);
 						}
@@ -704,8 +715,7 @@ parse_acl(
 					b->a_domain_style = sty;
 					b->a_domain_expand = expand;
 					if (sty == ACL_STYLE_REGEX) {
-						bv.bv_val = right;
-						acl_regex_normalized_dn( &bv );
+						acl_regex_normalized_dn( right, &bv );
 						if ( !ber_bvccmp( &bv, '*' ) ) {
 							regtest(fname, lineno, bv.bv_val);
 						}
@@ -740,8 +750,7 @@ parse_acl(
 
 					b->a_sockurl_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						bv.bv_val = right;
-						acl_regex_normalized_dn( &bv );
+						acl_regex_normalized_dn( right, &bv );
 						if ( !ber_bvccmp( &bv, '*' ) ) {
 							regtest(fname, lineno, bv.bv_val);
 						}
@@ -1191,19 +1200,19 @@ str2accessmask( const char *str )
 		}
 
 		for( i=1; str[i] != '\0'; i++ ) {
-			if( TOLOWER(str[i]) == 'w' ) {
+			if( TOLOWER((unsigned char) str[i]) == 'w' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
 
-			} else if( TOLOWER(str[i]) == 'r' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 'r' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_READ);
 
-			} else if( TOLOWER(str[i]) == 's' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 's' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_SEARCH);
 
-			} else if( TOLOWER(str[i]) == 'c' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 'c' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_COMPARE);
 
-			} else if( TOLOWER(str[i]) == 'x' ) {
+			} else if( TOLOWER((unsigned char) str[i]) == 'x' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
 
 			} else if( str[i] != '0' ) {
@@ -1270,25 +1279,26 @@ acl_usage( void )
 }
 
 /*
+ * Set pattern to a "normalized" DN from src.
  * At present it simply eats the (optional) space after 
  * a RDN separator (,)
  * Eventually will evolve in a more complete normalization
- *
- * Note that the input berval only needs bv_val, it ignores
- * the input bv_len and sets it on return.
  */
 static void
 acl_regex_normalized_dn(
+	const char *src,
 	struct berval *pattern
 )
 {
 	char *str, *p;
+	ber_len_t len;
 
-	str = ch_strdup( pattern->bv_val );
+	str = ch_strdup( src );
+	len = strlen( src );
 
 	for ( p = str; p && p[ 0 ]; p++ ) {
 		/* escape */
-		if ( p[ 0 ] == '\\' ) {
+		if ( p[ 0 ] == '\\' && p[ 1 ] ) {
 			/* 
 			 * if escaping a hex pair we should
 			 * increment p twice; however, in that 
@@ -1309,7 +1319,7 @@ acl_regex_normalized_dn(
 				for ( q = &p[ 2 ]; q[ 0 ] == ' '; q++ ) {
 					/* DO NOTHING */ ;
 				}
-				AC_MEMCPY( p+1, q, pattern->bv_len-(q-str)+1);
+				AC_MEMCPY( p+1, q, len-(q-str)+1);
 			}
 		}
 	}

@@ -6,12 +6,12 @@
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slapd 
+.B [\-d debug\-level]
 .B [\-f slapd\-config\-file]
 .B [\-h URLs]
-.B [\-d debug\-level]
 .B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
 .B [\-r directory]
-.B [\-u user] [\-g group]
+.B [\-u user] [\-g group] [\-t]
 .B 
 .SH DESCRIPTION
 .LP
@@ -144,6 +144,12 @@ will run with the specified group name or id.
 Note that on some systems, running as a non-privileged user will prevent
 passwd back-ends from accessing the encrypted passwords.  Note also that
 any shell back-ends will run as the specified non-privileged user.
+.TP
+.BI \-t
+.B slapd
+will read the configuration file (the default if none is given with the 
+\fI\-f\fP switch) and check its syntax, without opening any listener 
+or database.
 .SH EXAMPLES
 To start 
 .I slapd
@@ -164,6 +170,14 @@ on voluminous debugging which will be printed on standard error, type:
 .nf
 .ft tt
 	LIBEXECDIR/slapd -f ETCDIR/slapd.conf -d 255
+.ft
+.fi
+.LP
+To test whether the configuration file is correct or not, type:
+.LP
+.nf
+.ft tt
+	LIBEXECDIR/slapd -t
 .ft
 .fi
 .LP

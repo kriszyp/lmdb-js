@@ -829,3 +829,40 @@ dnIsSuffix(
 	/* compare */
 	return( strcmp( dn->bv_val + d, suffix->bv_val ) == 0 );
 }
+
+/*
+ * Convert a DN from X.500 format into a normalized DN
+ */
+int
+dnDCEnormalize( char *dce, struct berval *out )
+{
+	int rc;
+	LDAPDN *dn = NULL;
+
+	out->bv_val = NULL;
+	out->bv_len = 0;
+
+	rc = ldap_str2dn( dce, &dn, LDAP_DN_FORMAT_DCE );
+	if  ( rc != LDAP_SUCCESS )
+		return rc;
+
+	/*
+	 * Schema-aware rewrite
+	 */
+	if ( LDAPDN_rewrite( dn, 0 ) != LDAP_SUCCESS ) {
+		ldap_dnfree( dn );
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/*
+	 * Back to string representation
+	 */
+	rc = ldap_dn2bv( dn, out, LDAP_DN_FORMAT_LDAPV3 );
+
+	ldap_dnfree( dn );
+
+	if ( rc != LDAP_SUCCESS ) {
+		rc = LDAP_INVALID_SYNTAX;
+	}
+	return rc;
+}
