@@ -132,7 +132,7 @@ member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Mi
 
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
-delete: member
+delete: description
 
 dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: add
@@ -161,6 +161,7 @@ changetype: add
 objectclass: OpenLDAPperson
 cn: Rosco P. Coltrane
 sn: Coltrane
+uid: rosco
 
 dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: modrdn

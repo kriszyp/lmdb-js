@@ -102,6 +102,8 @@ delete: member
 -
 add: member
 member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Michigan,c=US
+-
+delete: description
 
 dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 changetype: add
