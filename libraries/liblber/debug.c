@@ -68,12 +68,12 @@ static char *lutil_levels[] = {
 	NULL };
 
 static char *lutil_subsys[LDAP_SUBSYS_NUM] = {
-	"global","operation", "transport",
-	"connection", "filter", "ber", 
-	"config", "acl", "cache", "index", 
-	"ldif", "tools", "slapd", "slurpd",
-	"backend", "back_bdb", "back_ldbm", 
-	"back_ldap", "back_meta", "back_mon" };
+	"GLOBAL","OPERATION", "TRANSPORT",
+	"CONNECTION", "FILTER", "BER", 
+	"CONFIG", "ACL", "CACHE", "INDEX", 
+	"LDIF", "TOOLS", "SLAPD", "SLURPD",
+	"BACKEND", "BACK_BDB", "BACK_LDBM", 
+	"BACK_LDAP", "BACK_META", "BACK_MON" };
 
 int lutil_mnem2subsys( const char *subsys )
 {
@@ -91,7 +91,7 @@ void lutil_set_all_backends( int level )
 	int i;
 
 	for( i = 0; i < LDAP_SUBSYS_NUM; i++ ) {
-		if ( !strncasecmp( "back_", lutil_subsys[i], strlen("back_") ) ) {
+		if ( !strncasecmp( "BACK_", lutil_subsys[i], sizeof("BACK_")-1 ) ) {
 			ldap_loglevels[i] = level;
 		}
 	}
@@ -112,7 +112,7 @@ static int addSubsys( const char *subsys, int level )
 {
 	int subsys_num;
 
-	if ( !strcasecmp( subsys, "backend" ) ) {
+	if ( !strcasecmp( subsys, "BACKEND" ) ) {
 		lutil_set_all_backends( level );
 		return level;
 
@@ -154,14 +154,7 @@ void lutil_log_int(
 	struct tm *today;
 #endif
 	size_t i;
-	char * t_subsys;
 	char * tmp;
-
-	t_subsys = strdup(subsys);
-	
-	for(tmp = t_subsys, i = 0; i < strlen(t_subsys); i++, tmp++) {
-		*tmp = TOUPPER( (unsigned char) *tmp );
-	}
 
 #ifdef LDAP_SYSLOG
 	/* we're configured to use syslog */
@@ -218,7 +211,7 @@ void lutil_log_int(
 	 * format the output data.
 	 */
 
-	fprintf(file, "\n%s:: ", t_subsys ); 
+	fprintf(file, "\n%s:: ", subsys ); 
 	vfprintf( file, fmt, vl );
 	fflush( file );
 }
