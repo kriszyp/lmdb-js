@@ -112,6 +112,16 @@ ldbm_back_bind(
 
 	/* check for deleted */
 
+#ifdef SLAPD_ACLAUTH
+	if ( ! access_allowed( be, conn, op, e,
+		"entry", NULL, ACL_AUTH ) )
+	{
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+		rc = 1;
+		goto return_results;
+	}
+#endif
+
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
 		if ( cred->bv_len == 0 ) {
@@ -130,6 +140,16 @@ ldbm_back_bind(
 			rc = 0;
 			goto return_results;
 		}
+
+#ifdef SLAPD_ACLAUTH
+		if ( ! access_allowed( be, conn, op, e,
+			"userpassword", NULL, ACL_AUTH ) )
+		{
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			rc = 1;
+			goto return_results;
+		}
+#endif
 
 		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
@@ -154,6 +174,15 @@ ldbm_back_bind(
 
 #ifdef HAVE_KERBEROS
 	case LDAP_AUTH_KRBV41:
+#ifdef SLAPD_ACLAUTH
+		if ( ! access_allowed( be, conn, op, e,
+			"krbname", NULL, ACL_AUTH ) )
+		{
+			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
+			rc = 1;
+			goto return_results;
+		}
+#endif
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 			    NULL, NULL );
@@ -167,7 +196,7 @@ ldbm_back_bind(
 			 * no krbName values present:  check against DN
 			 */
 			if ( strcasecmp( dn, krbname ) == 0 ) {
-				rc = 0; /* XXX wild ass guess */
+				rc = 0;
 				break;
 			}
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,

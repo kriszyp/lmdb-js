@@ -425,18 +425,19 @@ read_config( char *fname )
 				return( 1 );
 			}
 			if ( be == NULL ) {
-				if ( (global_default_access =
-				    str2access( cargv[1] )) == -1 ) {
+				if ( ACL_IS_INVALID(ACL_SET(str2access(cargv[1]),
+					global_default_access)) ) {
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: bad access \"%s\" expecting [self]{none|compare|read|write}\n",
 					    fname, lineno, cargv[1] );
 					return( 1 );
 				}
 			} else {
-				if ( (be->be_dfltaccess =
-				    str2access( cargv[1] )) == -1 ) {
+				if ( ACL_IS_INVALID(ACL_SET(str2access(cargv[1]),
+					be->be_dfltaccess)) ) {
 					Debug( LDAP_DEBUG_ANY,
-"%s: line %d: bad access \"%s\" expecting [self]{none|compare|read|write}\n",
+						"%s: line %d: bad access \"%s\", "
+						"expecting [self]{none|compare|search|read|write}\n",
 					    fname, lineno, cargv[1] );
 					return( 1 );
 				}

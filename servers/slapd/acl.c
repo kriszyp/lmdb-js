@@ -266,19 +266,19 @@ acl_access_allowed(
 				if ( strcmp( edn, op->o_ndn ) == 0 ) {
 					Debug( LDAP_DEBUG_ACL,
 					"<= acl_access_allowed: matched by clause #%d access %s\n",
-					    i, (b->a_access & ~ACL_SELF) >=
-					    access ? "granted" : "denied", 0 );
+					    i, ACL_GRANT(b->a_access, access)
+							? "granted" : "denied", 0 );
 
-					return( (b->a_access & ~ACL_SELF) >= access );
+					return ACL_GRANT(b->a_access, access );
 				}
 			} else {
 				if ( regex_matches( b->a_dnpat, odn, edn, matches ) ) {
 					Debug( LDAP_DEBUG_ACL,
 				    "<= acl_access_allowed: matched by clause #%d access %s\n",
-				    i, (b->a_access & ~ACL_SELF) >= access ?
-					    "granted" : "denied", 0 );
+				    i, ACL_GRANT(b->a_access, access)
+						? "granted" : "denied", 0 );
 
-					return( (b->a_access & ~ACL_SELF) >= access );
+					return ACL_GRANT(b->a_access, access );
 				}
 			}
 		}
@@ -288,10 +288,10 @@ acl_access_allowed(
 			{
 				Debug( LDAP_DEBUG_ACL,
 				    "<= acl_access_allowed: matched by clause #%d access %s\n",
-				    i, (b->a_access & ~ACL_SELF) >= access ?
-				    "granted" : "denied", 0 );
+				    i, ACL_GRANT(b->a_access, access)
+						? "granted" : "denied", 0 );
 
-				return( (b->a_access & ~ACL_SELF) >= access );
+				return ACL_GRANT(b->a_access, access );
 			}
 		}
 		if ( b->a_domainpat != NULL ) {
@@ -302,10 +302,10 @@ acl_access_allowed(
 			{
 				Debug( LDAP_DEBUG_ACL,
 				    "<= acl_access_allowed: matched by clause #%d access %s\n",
-				    i, (b->a_access & ~ACL_SELF) >= access ?
-				    "granted" : "denied", 0 );
+				    i, ACL_GRANT(b->a_access, access)
+						? "granted" : "denied", 0 );
 
-				return( (b->a_access & ~ACL_SELF) >= access );
+				return ACL_GRANT(b->a_access, access );
 			}
 		}
 		if ( b->a_dnattr != NULL && op->o_ndn != NULL ) {
@@ -315,7 +315,7 @@ acl_access_allowed(
 			if ( (at = attr_find( e->e_attrs, b->a_dnattr )) != NULL && 
 				value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
 			{
-				if ( (b->a_access & ACL_SELF) && 
+				if ( ACL_IS_SELF(b->a_access) && 
 					(val == NULL || value_cmp( &bv, val, at->a_syntax, 2 )) )
 				{
 					continue;
@@ -323,14 +323,14 @@ acl_access_allowed(
 
 				Debug( LDAP_DEBUG_ACL,
 				    "<= acl_acces_allowed: matched by clause #%d access %s\n",
-				    i, (b->a_access & ~ACL_SELF) >= access ?
-				    "granted" : "denied", 0 );
+				    i, ACL_GRANT(b->a_access, access)
+						? "granted" : "denied", 0 );
 
-				return( (b->a_access & ~ACL_SELF) >= access );
+				return ACL_GRANT(b->a_access, access );
 			}
 
 			/* asker not listed in dnattr - check for self access */
-			if ( ! (b->a_access & ACL_SELF) || val == NULL ||
+			if ( ! ACL_IS_SELF(b->a_access) || val == NULL ||
 				value_cmp( &bv, val, at->a_syntax, 2 ) != 0 )
 			{
 				continue;
@@ -338,10 +338,10 @@ acl_access_allowed(
 
 			Debug( LDAP_DEBUG_ACL,
 				"<= acl_access_allowed: matched by clause #%d (self) access %s\n",
-			    i, (b->a_access & ~ACL_SELF) >= access ? "granted"
-			    : "denied", 0 );
+			    i, ACL_GRANT(b->a_access, access)
+					? "granted" : "denied", 0 );
 
-			return( (b->a_access & ~ACL_SELF) >= access );
+			return ACL_GRANT(b->a_access, access );
 		}
 #ifdef SLAPD_ACLGROUPS
 		if ( b->a_group != NULL && op->o_ndn != NULL ) {
@@ -356,12 +356,12 @@ acl_access_allowed(
 			(void) dn_normalize_case(buf);
 
 			if (backend_group(be, e, buf, odn,
-				b->a_objectclassvalue, b->a_groupattrname) == 0)
+				b->a_group_oc, b->a_group_at) == 0)
 			{
 				Debug( LDAP_DEBUG_ACL,
 					"<= acl_access_allowed: matched by clause #%d (group) access granted\n",
 					i, 0, 0 );
-				return( (b->a_access & ~ACL_SELF) >= access );
+				return ACL_GRANT(b->a_access, access );
 			}
 		}
 #endif /* SLAPD_ACLGROUPS */

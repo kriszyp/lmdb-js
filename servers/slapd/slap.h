@@ -176,12 +176,47 @@ typedef struct entry {
 
 /* the "by" part */
 struct access {
-#define ACL_NONE	0x01
-#define ACL_COMPARE	0x02
-#define ACL_SEARCH	0x04
-#define ACL_READ	0x08
-#define ACL_WRITE	0x10
-#define ACL_SELF	0x40
+#define ACL_NONE	0x0001
+/* #define SLAPD_ACLAUTH 1 */
+#ifdef SLAPD_ACLAUTH
+#define ACL_AUTH	0x0002
+#endif
+#define ACL_COMPARE	0x0004
+#define ACL_SEARCH	0x0008
+#define ACL_READ	0x0010
+#define ACL_WRITE	0x0020
+#define ACL_SELF	0x4000
+#define ACL_INVALID	-1
+
+#define ACL_IS(lvl,a)	(((a) & (lvl)) == (lvl))
+
+#define ACL_IS_NONE(a)		ACL_IS(ACL_SELF,(a))
+#define ACL_IS_AUTH(a)		ACL_IS(ACL_AUTH,(a))
+#define ACL_IS_COMPARE(a)	ACL_IS(ACL_COMPARE,(a))
+#define ACL_IS_SEARCH(a)	ACL_IS(ACL_SEARCH,(a))
+#define ACL_IS_READ(a)		ACL_IS(ACL_READ,(a))
+#define ACL_IS_WRITE(a)		ACL_IS(ACL_WRITE,(a))
+#define ACL_IS_SELF(a)		ACL_IS(ACL_SELF,(a))
+#define ACL_IS_INVALID(a)	ACL_IS(ACL_INVALID,(a))
+
+
+#define ACL_CLR(a)			((a) = 0)
+#define ACL_SET(lvl,a)		((a) |= (lvl))
+#define ACL_SET_NONE(a)		ACL_SET(ACL_SELF,(a))
+#define ACL_SET_AUTH(a)		ACL_SET(ACL_AUTH,(a))
+#define ACL_SET_COMPARE(a)	ACL_SET(ACL_COMPARE,(a))
+#define ACL_SET_SEARCH(a)	ACL_SET(ACL_SEARCH,(a))
+#define ACL_SET_READ(a)		ACL_SET(ACL_READ,(a))
+#define ACL_SET_WRITE(a)	ACL_SET(ACL_WRITE,(a))
+#define ACL_SET_SELF(a)		ACL_SET(ACL_SELF,(a))
+#define ACL_SET_INVALID(a)	ACL_SET(ACL_INVALID,(a))
+
+#define ACL_PRIV_MASK	0x00ff
+#define	ACL_PRIV(a)		((a) & ACL_PRIV_MASK)
+#define ACL_GRANT(lvl,a)	(ACL_PRIV(a) >= (lvl))
+#define ACL_TEST
+
+
 	int			a_access;
 
 	char		*a_dnpat;
@@ -191,8 +226,8 @@ struct access {
 
 #ifdef SLAPD_ACLGROUPS
         char		*a_group;
-        char		*a_objectclassvalue;
-        char		*a_groupattrname;
+        char		*a_group_oc;
+        char		*a_group_at;
 #endif
 	struct access	*a_next;
 };

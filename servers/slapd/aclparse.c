@@ -206,7 +206,6 @@ parse_acl(
 			} else if ( strncasecmp( left, "group", sizeof("group")-1 ) == 0 ) {
                                 char *name = NULL;
                                 char *value = NULL;
-				regtest(fname, lineno, right);
 
                                 /* format of string is "group/objectClassValue/groupAttrName"
                                  */
@@ -216,21 +215,22 @@ parse_acl(
                                             *name++ = '\0';
                                 }
 
+				regtest(fname, lineno, right);
 				b->a_group = dn_upcase(ch_strdup( right ));
 
                                 if (value && *value) {
-                                        b->a_objectclassvalue = ch_strdup(value);
+                                        b->a_group_oc = ch_strdup(value);
                                         *--value = '/';
                                 }
                                 else
-                                        b->a_objectclassvalue = ch_strdup("groupOfNames");
+                                        b->a_group_oc = ch_strdup("groupOfNames");
 
                                 if (name && *name) {
-                                        b->a_groupattrname = ch_strdup(name);
+                                        b->a_group_at = ch_strdup(name);
                                         *--name = '/';
                                 }
                                 else
-                                        b->a_groupattrname = ch_strdup("member");
+                                        b->a_group_at = ch_strdup("member");
 
 
 
@@ -263,7 +263,7 @@ parse_acl(
 
 			/* get <access> */
 			split( argv[i], '=', &left, &right );
-			if ( (b->a_access = str2access( left )) == -1 ) {
+			if ( ACL_IS_INVALID(ACL_SET(str2access( left ),b->a_access)) ) {
 				fprintf( stderr,
 			    "%s: line %d: expecting <access> got \"%s\"\n",
 				    fname, lineno, left );
@@ -311,21 +311,25 @@ access2str( int access )
 {
 	static char	buf[12];
 
-	if ( access & ACL_SELF ) {
+	if ( ACL_IS_SELF( access ) ) {
 		strcpy( buf, "self" );
 	} else {
 		buf[0] = '\0';
 	}
 
-	if ( access & ACL_NONE ) {
+	if ( ACL_IS_NONE(access) ) {
 		strcat( buf, "none" );
-	} else if ( access & ACL_COMPARE ) {
+#ifdef SLAPD_ACLAUTH
+	} else if ( ACL_IS_AUTH(access) ) {
+		strcat( buf, "auth" );
+#endif
+	} else if ( ACL_IS_COMPARE(access) ) {
 		strcat( buf, "compare" );
-	} else if ( access & ACL_SEARCH ) {
+	} else if ( ACL_IS_SEARCH(access) ) {
 		strcat( buf, "search" );
-	} else if ( access & ACL_READ ) {
+	} else if ( ACL_IS_READ(access) ) {
 		strcat( buf, "read" );
-	} else if ( access & ACL_WRITE ) {
+	} else if ( ACL_IS_WRITE(access) ) {
 		strcat( buf, "write" );
 	} else {
 		strcat( buf, "unknown" );
@@ -339,24 +343,29 @@ str2access( char *str )
 {
 	int	access;
 
-	access = 0;
+	ACL_CLR(access);
+
 	if ( strncasecmp( str, "self", 4 ) == 0 ) {
-		access |= ACL_SELF;
+		ACL_SET_SELF(access);
 		str += 4;
 	}
 
 	if ( strcasecmp( str, "none" ) == 0 ) {
-		access |= ACL_NONE;
+		ACL_SET_NONE(access);
+#ifdef SLAPD_ACLAUTH
+	} else if ( strcasecmp( str, "auth" ) == 0 ) {
+		ACL_SET_AUTH(access);
+#endif
 	} else if ( strcasecmp( str, "compare" ) == 0 ) {
-		access |= ACL_COMPARE;
+		ACL_SET_COMPARE(access);
 	} else if ( strcasecmp( str, "search" ) == 0 ) {
-		access |= ACL_SEARCH;
+		ACL_SET_SEARCH(access);
 	} else if ( strcasecmp( str, "read" ) == 0 ) {
-		access |= ACL_READ;
+		ACL_SET_READ(access);
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
-		access |= ACL_WRITE;
+		ACL_SET_WRITE(access);
 	} else {
-		access = -1;
+		ACL_SET_INVALID(access);
 	}
 
 	return( access );
@@ -365,12 +374,22 @@ str2access( char *str )
 static void
 acl_usage( void )
 {
-	fprintf( stderr, "\n<access clause> ::= access to <what> [ by <who> <access> ]+ \n" );
-	fprintf( stderr, "<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n" );
-	fprintf( stderr, "<attrlist> ::= <attr> | <attr> , <attrlist>\n" );
-	fprintf( stderr, "<attr> ::= <attrname> | entry | children\n" );
-	fprintf( stderr, "<who> ::= * | self | dn=<regex> | addr=<regex> |\n\tdomain=<regex> | dnattr=<dnattrname>\n" );
-	fprintf( stderr, "<access> ::= [self]{none | compare | search | read | write }\n" );
+	fprintf( stderr, "\n"
+		"<access clause> ::= access to <what> [ by <who> <access> ]+ \n"
+		"<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
+		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
+		"<attr> ::= <attrname> | entry | children\n"
+		"<who> ::= * | self | dn=<regex> | addr=<regex>\n"
+			"\t| domain=<regex> | dnattr=<dnattrname>\n"
+#ifdef SLAPD_ACLGROUPS
+			"\t| group[/<objectclass>[/<attrname>]]=<regex>\n"
+#endif
+#ifdef SLAPD_ACLAUTH
+		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
+#else
+		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
+#endif
+		);
 	exit( 1 );
 }
 
@@ -425,10 +444,10 @@ print_access( struct access *b )
 #ifdef SLAPD_ACLGROUPS
         else if ( b->a_group != NULL ) {
                 fprintf( stderr, " group: %s", b->a_group );
-                if ( b->a_objectclassvalue )
-                        fprintf( stderr, " objectClassValue: %s", b->a_objectclassvalue );
-                if ( b->a_groupattrname )
-                        fprintf( stderr, " groupAttrName: %s", b->a_groupattrname );
+                if ( b->a_group_oc )
+                        fprintf( stderr, " objectClass: %s", b->a_group_oc );
+                if ( b->a_group_at )
+                        fprintf( stderr, " attributeType: %s", b->a_group_at );
         }
 #endif
 	fprintf( stderr, "\n" );

@@ -69,6 +69,16 @@ do_bind(
 
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
+	if ( op->o_ndn != NULL ) {
+		free( op->o_ndn );
+		op->o_ndn = NULL;
+	}
+
+	if ( op->o_dn != NULL ) {
+		free( op->o_dn );
+		op->o_dn = NULL;
+	}
+
 	/*
 	 * Parse the bind request.  It looks like this:
 	 *
