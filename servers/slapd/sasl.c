@@ -292,7 +292,7 @@ slap_sasl_log(
 static const char *slap_propnames[] = {
 	"*slapConn", "*authcDN", "*authzDN", NULL };
 
-static Filter *generic_filter;
+static Filter generic_filter = { LDAP_FILTER_PRESENT };
 
 #define	PROP_CONN	0
 #define	PROP_AUTHC	1
@@ -443,7 +443,7 @@ slap_auxprop_lookup(
 			op.ors_scope = LDAP_SCOPE_BASE;
 			op.ors_deref = LDAP_DEREF_NEVER;
 			op.ors_slimit = 1;
-			op.ors_filter = generic_filter;
+			op.ors_filter = &generic_filter;
 
 			op.o_bd->be_search( &op, &rs );
 		}
@@ -566,7 +566,7 @@ slap_sasl_checkpass(
 		op.ors_scope = LDAP_SCOPE_BASE;
 		op.ors_deref = LDAP_DEREF_NEVER;
 		op.ors_slimit = 1;
-		op.ors_filter = generic_filter;
+		op.ors_filter = &generic_filter;
 
 		op.o_bd->be_search( &op, &rs );
 	}
@@ -988,6 +988,8 @@ int slap_sasl_init( void )
 		ldap_pvt_sasl_mutex_dispose );
 
 #if SASL_VERSION_MAJOR >= 2
+	generic_filter.f_desc = slap_schema.si_ad_objectClass;
+
 	sasl_auxprop_add_plugin( "slapd", slap_auxprop_init );
 #endif
 	/* should provide callbacks for logging */
@@ -1031,9 +1033,6 @@ int slap_sasl_destroy( void )
 {
 #ifdef HAVE_CYRUS_SASL
 	sasl_done();
-#endif
-#if SASL_VERSION_MAJOR >= 2
-	filter_free( generic_filter );
 #endif
 	free( global_host );
 	global_host = NULL;
@@ -1104,9 +1103,6 @@ int slap_sasl_open( Connection *conn )
 
 	/* create new SASL context */
 #if SASL_VERSION_MAJOR >= 2
-	if ( generic_filter == NULL ) {
-		generic_filter = str2filter( "(objectclass=*)" );
-	}
 	if ( conn->c_sock_name.bv_len != 0 &&
 	     strncmp( conn->c_sock_name.bv_val, "IP=", 3 ) == 0) {
 		char *p;
