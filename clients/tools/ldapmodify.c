@@ -403,7 +403,7 @@ process_ldif_rec( char *rbuf, int count )
 			version++;
 
 	    } else if ( strcasecmp( type, T_DN_STR ) == 0 ) {
-		if (( dn = strdup( value )) == NULL ) {
+		if (( dn = strdup( value ? value : "" )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
