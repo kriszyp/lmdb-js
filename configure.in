@@ -60,8 +60,8 @@ fi
 SHTOOL="$ac_cv_shtool"
 dnl AC_SUBST(SHTOOL)dnl
 
-TB=`$SHTOOL echo -e %B`
-TN=`$SHTOOL echo -e %b`
+TB=`($SHTOOL echo -e '%B') 2>/dev/null`
+TN=`($SHTOOL echo -e '%b') 2>/dev/null`
 
 echo "Configuring $TB$OL_STRING$TN ..."
 
