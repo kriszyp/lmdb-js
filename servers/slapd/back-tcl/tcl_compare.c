@@ -1,6 +1,6 @@
 /* compare.c - tcl compare routines
  *
- * $Id: tcl_compare.c,v 1.5.6.1 1999/07/09 18:02:59 kdz Exp $
+ * $Id: tcl_compare.c,v 1.6 1999/07/16 00:45:52 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -32,7 +32,7 @@ tcl_back_compare (
 
 	if (ti->ti_compare == NULL) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"compare not implemented", NULL );
+			"compare not implemented", NULL, NULL );
 		return (-1);
 	}
 
@@ -63,7 +63,7 @@ tcl_back_compare (
 
 	if (err != LDAP_SUCCESS)
 		send_ldap_result (conn, op, err, NULL,
-			"internal backend error", NULL );
+			"internal backend error", NULL, NULL );
 
 	free (results);
 	return (err);

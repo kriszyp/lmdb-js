@@ -1,6 +1,6 @@
 /* modrdn.c - tcl modify rdn routines
  *
- * $Id: tcl_modrdn.c,v 1.7.6.1 1999/07/09 18:02:59 kdz Exp $
+ * $Id: tcl_modrdn.c,v 1.8 1999/07/16 00:45:52 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -47,7 +47,7 @@ tcl_back_modrdn (
 
 	if (ti->ti_modrdn == NULL) {
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"modrdn not implemented", NULL );
+			"modrdn not implemented", NULL, NULL );
 		return (-1);
 	}
 
@@ -84,7 +84,7 @@ tcl_back_modrdn (
 
 	if (err != LDAP_SUCCESS)
 		send_ldap_result (conn, op, err, NULL,
-			"internal backend error", NULL );
+			"internal backend error", NULL, NULL );
 
 	free (results);
 	return (err);

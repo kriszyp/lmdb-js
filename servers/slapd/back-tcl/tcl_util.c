@@ -1,6 +1,6 @@
 /* result.c - tcl backend utility functions
  *
- * $Id: tcl_util.c,v 1.6.2.2 1999/07/14 00:54:37 kdz Exp $
+ * $Id: tcl_util.c,v 1.7 1999/07/16 00:45:52 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -47,7 +47,7 @@ interp_send_results (
 	if (code != TCL_OK) {
 		argcPtr = 0;
 		send_ldap_result (conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
-			"internal backend error", NULL );
+			"internal backend error", NULL, NULL );
 		return -1;
 	}
 	for (i = 0; i < argcPtr; i++) {
@@ -80,7 +80,7 @@ interp_send_results (
 					buf, 0, 0);
 			} else {
 				send_search_entry (be, conn, op, e, attrs,
-					attrsonly, 0, NULL );
+					attrsonly, NULL );
 				entry_free (e);
 			}
 
@@ -94,7 +94,7 @@ interp_send_results (
 	 * otherwise, front end will send this result 
 	 */
 	if (err != 0 || op->o_tag != LDAP_REQ_BIND) {
-		send_ldap_result (conn, op, err, matched, info, NULL );
+		send_ldap_result (conn, op, err, matched, info, NULL, NULL );
 	}
 
 	free (buf);
