@@ -218,6 +218,7 @@ ldap_int_thread_mutex_unlock( ldap_int_thread_mutex_t *mutex )
 	return pthread_mutex_unlock( mutex );
 }
 
+#ifdef LDAP_THREAD_HAVE_RDWR
 #ifdef HAVE_PTHREAD_RWLOCK_DESTROY
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
@@ -261,6 +262,7 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 	return pthread_rwlock_unlock( rw );
 }
 
+#endif /* HAVE_PTHREAD_RDLOCK_DESTROY */
 #endif /* LDAP_THREAD_HAVE_RDWR */
 #endif /* HAVE_PTHREADS */
 

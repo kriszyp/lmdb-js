@@ -49,7 +49,7 @@ typedef pthread_cond_t		ldap_int_thread_cond_t;
 #define HAVE_SETCONCURRENCY 1
 #endif
 
-#if defined( HAVE_PTHREAD_RWLOCK_DESTROY )
+#if 0 && defined( HAVE_PTHREAD_RWLOCK_DESTROY )
 #define LDAP_THREAD_HAVE_RDWR 1
 typedef pthread_rwlock_t ldap_pvt_thread_rdwr_t;
 #endif
