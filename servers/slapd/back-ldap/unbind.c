@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ *
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -43,20 +52,34 @@ ldap_back_conn_destroy(
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
-	struct ldapconn *lc, *lp;
+	struct ldapconn *lc, lc_curr;
 
+	Debug( LDAP_DEBUG_TRACE,
+		"=>ldap_back_conn_destroy: fetching conn %d\n",
+		conn->c_connid, 0, 0 );
+	
+
+	lc_curr.conn = conn;
+	
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
-	for (lc = li->lcs, lp = (struct ldapconn *)&li->lcs; lc;
-		lp=lc, lc=lc->next)
-		if (lc->conn == conn) {
-			lp->next = lc->next;
-			break;
-		}
+	lc = avl_delete( &li->conntree, (caddr_t)&lc_curr, conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	if (lc) {
+		Debug( LDAP_DEBUG_TRACE,
+			"=>ldap_back_conn_destroy: destroying conn %d\n",
+			lc->conn->c_connid, 0, 0 );
+		
+		/*
+		 * Needs a test because the handler may be corrupted,
+		 * and calling ldap_unbind on a corrupted header results
+		 * in a segmentation fault
+		 */
 		ldap_unbind(lc->ld);
-		free(lc);
+		if ( lc->bound_dn ) {
+			free( lc->bound_dn );
+		}
+		free( lc );
 	}
 
 	/* no response to unbind */

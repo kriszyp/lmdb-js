@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ * 
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.      
  */
 
 #ifndef SLAPD_LDAP_H
@@ -37,28 +46,37 @@ struct slap_conn;
 struct slap_op;
 
 struct ldapconn {
-	struct ldapconn *next;
 	struct slap_conn	*conn;
 	LDAP		*ld;
+	char 		*bound_dn;
 	int		bound;
 };
 
 struct ldapinfo {
 	char *url;
+#if 0 /* unused! */
 	char *suffix;
+#endif /* 0 */
+	char **suffix_massage;
 	char *binddn;
 	char *bindpw;
 	ldap_pvt_thread_mutex_t		conn_mutex;
-	struct ldapconn *lcs;
+	Avlnode *conntree;
 };
 
 struct ldapconn *ldap_back_getconn(struct ldapinfo *li, struct slap_conn *conn,
 	struct slap_op *op);
-void ldap_back_dobind(struct ldapconn *lc, Operation *op);
+int ldap_back_dobind(struct ldapconn *lc, Operation *op);
 int ldap_back_map_result(int err);
 int ldap_back_op_result(struct ldapconn *lc, Operation *op);
 int	back_ldap_LTX_init_module(int argc, char *argv[]);
 
+char *ldap_back_dn_massage(struct ldapinfo *li, char *dn, int normalized);
+char *ldap_back_dn_restore(struct ldapinfo *li, char *dn, int normalized);
+
+int conn_cmp(const void *, const void *);
+int conn_dup(void *, void *);
+			
 LDAP_END_DECL
 
 #endif

@@ -1,0 +1,121 @@
+Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+
+The backend back-ldap has been modified as follows:
+
+* The LDAP handlers have been put under an avl tree, in an attempt
+  to improve the access to connections in heavy loaded environments
+  (many clients connecting simultaneously for long times, e.g.
+  authenticators that make successive searches and binds without
+  renewing the handler).
+  This required to change the lcs member of struct ldapinfo into
+  an (Avlnode *) member called conntree.
+  The member next in the ldapconn struct has been eliminated because
+  it is no longer needed.
+
+* The ldap_back_dobind function has been forced to return the value
+  of the bound flag instead of void; there is no longer need to test 
+  for the flag outside the function as a test was already in. 
+  Now the function can be called as 
+
+  	if ( !ldap_back_dobind( lc, op ) ) {
+		/* handle error */
+	}
+
+* The suffix of the operations can be "massaged", i.e. changed to
+  a different suffix to implement what has been termed a 
+  "virtual naming context": an incoming request with a certain
+  base or related to a certain dn is turned into a request to a different
+  server with the base or the dn changed in its terminal part (the naming
+  context). The resulting entries, if any, have the real naming context
+  changed back into the virtual naming context.
+
+  This required to add a suffixMassage configuration line of the form
+
+	suffix		"virtual naming context"
+  	suffixMassage	"virtual naming context"	"real naming context"
+
+  (the name of the configuration parameter will be changed to something
+  more appropriate as will result from a debate in the -devel mailing
+  list).
+  The "virtual naming context" must appear in a suffix configuration line
+  so the server can select the appropriate backend; then the suffixMassage
+  configuration line maps the "virtual" and the "real" naming contexts
+  back and forth.
+  This allows one to map multiple real naming contexts as branches
+  of a single naming context, provided these reside on the same server:
+
+	suffix		"ou=Branch 1, o=My Org, c=IT"
+	suffixMassage   "ou=Branch 1, o=My Org, c=IT"	"o=Org 1, c=IT"
+	suffix          "ou=Branch 2, o=My Org, c=IT"
+	suffixMassage   "ou=Branch 2, o=My Org, c=IT"	"dc=host, dc=net"
+	suffix		"o=My Org, c=IT"
+	suffixMassage   "o=My Org, c=IT"		"dc=host, dc=it"
+
+  Note that the "same server" limitation can be overcome by using
+  multiple back-ldap databases, each pointing to the appropriate
+  server.
+  
+  Another choice, which would not allow multiple naming contexts
+  being served by the same database, is to use the "dn" part of the 
+  "uri" configuration parameter, e.g.:
+
+	suffix	"virtual naming context"
+	uri	"ldap://ldap.my.org:port/real naming context"
+  
+  This has not been implemented yet.
+
+  A possible future enhancement will allow the ldap backend to handle
+  multiple servers within a single naming context.
+  
+  Two functions, ldap_back_dn_massage and ldap_back_dn_restore, have
+  been added. The former changes the bind dn or the search base,
+  in case its terminal portion matches the "virtual naming context"
+  of a suffixMassage entry, to the corresponding "real naming context"
+  suffixed value.
+  The latter turns the entry's dn back to the "virtual naming context" 
+  suffixed form if the real dn terminal portion matches any "real naming
+  context" part of a suffixMassage configuration line.
+  The deferred bind required to add the bound_dn member to the ldapconn
+  struct.
+  As of the time of this writing, all the backend operations that
+  require writing (add, delete, modify, modrdn) have been added the 
+  massaging capability; it can be safely turned off by turning on
+  the readonly mode at the backend level. The massaging is performed
+  only on the dn of the entry that is modified, and in the modrdn 
+  operation it affects both the old and the newSuperior dn.
+
+* Cleanup/minor bug fixes/software enhancements:
+
+  - the suffix member (unused) has been eliminated (commented out) 
+    from the ldapinfo struct.
+
+  - bind.c:ldap_back_op_result: a check of the value of "match" and
+    "msg" variables is added before freeing them (got a NULL "match"
+    when the server the backend points to was restarted).
+    
+  - search.c:ldap_send_entry: the member a_desc in the (Attribute *)
+    "attr" must be set to NULL before calling slap_str2ad, otherwise
+    an assertion fails (ITS #919).
+
+  - search.c:ldap_send_entry: the entry's ent.e_dn and ent.e_ndn members
+    need be freed before returning because they were allocated inside
+    the routine.
+
+  - modify.c:ldap_back_modify: the Modifications member sml_op needs be
+    ORed with LDAP_MOD_BVALUES to force the ldap_modify_s routine
+    handle the modifications as bervals:
+
+	mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
+
+* Notes:
+  - there a possible memory leak in the backend, because the memory 
+    occupation of the slapd processes steadily grows when it is 
+    repeatedly accessed.
+
+  - when writing (add/modify) lastmod must be set to OFF otherwise
+    the lastmod attributes will be added to the entry mods and the
+    target server will complain about
+
+	ldap_modify: Constraint violation
+	ldap_modify: additional info: no user modification allowed
+

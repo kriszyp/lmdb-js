@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ * 
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -103,6 +112,16 @@ ldap_back_db_init(
 	return li == NULL;
 }
 
+static void
+conn_free( 
+	struct ldapconn *lc
+)
+{
+	ldap_unbind(lc->ld);
+	if ( lc->bound_dn) free( lc->bound_dn );
+	free( lc );
+}
+
 int
 ldap_back_db_destroy(
     Backend	*be
@@ -112,6 +131,9 @@ ldap_back_db_destroy(
 
 	if (be->be_private) {
 		li = (struct ldapinfo *)be->be_private;
+
+		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+
 		if (li->url) {
 			free(li->url);
 			li->url = NULL;
@@ -124,6 +146,15 @@ ldap_back_db_destroy(
 			free(li->bindpw);
 			li->bindpw = NULL;
 		}
+		if (li->suffix_massage) {
+			ldap_value_free( li->suffix_massage );
+			li->suffix_massage = NULL;
+		}
+                if (li->conntree) {
+			avl_free( li->conntree, (AVL_FREE) conn_free );
+		}
+		
+		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );
 	}
 

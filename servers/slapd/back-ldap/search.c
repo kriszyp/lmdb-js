@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ * 
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -64,9 +73,12 @@ ldap_back_search(
 	int			i, rc, msgid, sres = LDAP_SUCCESS; 
 	char *match = NULL, *err = NULL;
 
+	char *mbase;
+
 	lc = ldap_back_getconn(li, conn, op);
-	if (!lc)
+	if ( !lc ) {
 		return( -1 );
+	}
 
 	if (deref != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_DEREF, (void *)&deref);
@@ -74,13 +86,17 @@ ldap_back_search(
 		ldap_set_option( lc->ld, LDAP_OPT_TIMELIMIT, (void *)&time);
 	if (size != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_SIZELIMIT, (void *)&size);
-	if (!lc->bound) {
-		ldap_back_dobind(lc, op);
-		if (!lc->bound)
-			return( -1 );
+	
+	if ( !ldap_back_dobind( lc, op ) ) {
+		return( -1 );
 	}
 
-	if ((msgid = ldap_search(lc->ld, base, scope, filterstr, attrs,
+	mbase = ldap_back_dn_massage( li, ch_strdup( base ), 0 );
+	if ( mbase == NULL ) {
+		return -1;
+	}
+
+	if ((msgid = ldap_search(lc->ld, mbase, scope, filterstr, attrs,
 		attrsonly)) == -1)
 fail:		return( ldap_back_op_result(lc, op) );
 
@@ -132,6 +148,8 @@ fail:		return( ldap_back_op_result(lc, op) );
 		free(match);
 	if (err)
 		free(err);
+	if (mbase) 
+		free(mbase);
 	return( 0 );
 }
 
@@ -145,6 +163,7 @@ ldap_send_entry(
 	int attrsonly
 )
 {
+	struct ldapinfo *li = (struct ldapinfo *) be->be_private;
 	char *a;
 	Entry ent;
 	BerElement *ber = NULL;
@@ -152,8 +171,8 @@ ldap_send_entry(
 	struct berval *dummy = NULL;
 	const char *text;
 
-	ent.e_dn = ldap_get_dn(lc->ld, e);
-	ent.e_ndn = ch_strdup( ent.e_dn);
+	ent.e_dn = ldap_back_dn_restore( li, ldap_get_dn(lc->ld, e), 0 );
+	ent.e_ndn = ch_strdup( ent.e_dn );
 	(void) dn_normalize( ent.e_ndn );
 	ent.e_id = 0;
 	ent.e_attrs = 0;
@@ -187,4 +206,9 @@ ldap_send_entry(
 	}
 	if (ber)
 		ber_free(ber,0);
+	
+	if ( ent.e_dn )
+		free( ent.e_dn );
+	if ( ent.e_ndn )
+		free( ent.e_ndn );
 }

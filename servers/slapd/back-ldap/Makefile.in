@@ -1,9 +1,11 @@
 # $OpenLDAP$
 
 SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c \
-		delete.c modify.c modrdn.c group.c attribute.c
+		delete.c modify.c modrdn.c group.c attribute.c \
+		suffixmassage.c
 OBJS	= init.lo config.lo search.lo bind.lo unbind.lo add.lo compare.lo \
-		delete.lo modify.lo modrdn.lo group.lo attribute.lo
+		delete.lo modify.lo modrdn.lo group.lo attribute.lo \
+		suffixmassage.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

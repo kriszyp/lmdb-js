@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ * 
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -48,16 +57,22 @@ ldap_back_delete(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
 
-	lc = ldap_back_getconn( li, conn, op );
-	if (!lc)
-		return( -1 );
+	char *mdn;
 
-	if (!lc->bound) {
-		ldap_back_dobind(lc, op);
-		if (!lc->bound)
-			return( -1 );
+	lc = ldap_back_getconn( li, conn, op );
+	
+	if ( !lc || !ldap_back_dobind( lc, op ) ) {
+		return( -1 );
 	}
 
-	ldap_delete_s( lc->ld, dn );
+	mdn = ldap_back_dn_massage( li, ch_strdup( dn ), 0 );
+	if ( mdn == NULL ) {
+		return( -1 );
+	}
+	
+	ldap_delete_s( lc->ld, mdn );
+
+	free( mdn );
+	
 	return( ldap_back_op_result( lc, op ) );
 }

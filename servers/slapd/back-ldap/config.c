@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ * 
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -101,6 +110,49 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		li->bindpw = ch_strdup(argv[1]);
+	
+	/* dn massaging */
+	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
+		char *dn, *massaged_dn;
+		BackendDB *tmp_be;
+		
+		if ( argc != 3 ) {
+			fprintf( stderr,
+	"%s: line %d: syntax is \"suffixMassage <suffix> <massaged suffix>\"\n",
+				fname, lineno );
+			return( 1 );
+		}
+		
+		tmp_be = select_backend( argv[1], 0 );
+		if ( tmp_be != NULL && tmp_be != be ) {
+			fprintf( stderr,
+	"%s: line %d: suffix already in use by another backend in"
+	" \"suffixMassage <suffix> <massaged suffix>\"\n",
+				fname, lineno );
+			return( 1 );						
+		}
+
+		tmp_be = select_backend( argv[2], 0 );
+		if ( tmp_be != NULL ) {
+			fprintf( stderr,
+        "%s: line %d: massaged suffix already in use by another backend in" 
+        " \"suffixMassage <suffix> <massaged suffix>\"\n",
+                                fname, lineno );
+                        return( 1 );
+		}
+		
+                dn = ch_strdup( argv[1] );
+		charray_add( &li->suffix_massage, dn );
+		(void) dn_normalize( dn );
+		charray_add( &li->suffix_massage, dn );
+		
+		massaged_dn = ch_strdup( argv[2] );
+		charray_add( &li->suffix_massage, massaged_dn );
+		(void) dn_normalize( massaged_dn );
+		charray_add( &li->suffix_massage, massaged_dn );
+		
+		free( dn );
+		free( massaged_dn );
 
 	/* anything else */
 	} else {

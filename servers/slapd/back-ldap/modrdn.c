@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ * 
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -51,21 +60,37 @@ ldap_back_modrdn(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
 
+	char *mdn, *mnewSuperior;
+
 	lc = ldap_back_getconn( li, conn, op );
-	if (!lc)
+	if ( !lc ) {
 		return( -1 );
+	}
 
 	if (newSuperior) {
 		int version = LDAP_VERSION3;
 		ldap_set_option( lc->ld, LDAP_OPT_PROTOCOL_VERSION, &version);
-	}
-
-	if (!lc->bound) {
-		ldap_back_dobind(lc, op);
-		if (!lc->bound)
+		
+		mnewSuperior = ldap_back_dn_massage( li,
+			ch_strdup( newSuperior ), 0 );
+		if ( mnewSuperior == NULL ) {
 			return( -1 );
+		}
 	}
 
-	ldap_rename2_s( lc->ld, dn, newrdn, newSuperior, deleteoldrdn );
+	if ( !ldap_back_dobind(lc, op) ) {
+		return( -1 );
+	}
+
+	mdn = ldap_back_dn_massage( li, ch_strdup( dn ), 0 );
+	if ( mdn == NULL ) {
+		return( -1 );
+	}
+
+	ldap_rename2_s( lc->ld, mdn, newrdn, mnewSuperior, deleteoldrdn );
+
+	free( mdn );
+	if ( mnewSuperior ) free( mnewSuperior );
+	
 	return( ldap_back_op_result( lc, op ) );
 }

@@ -24,6 +24,15 @@
  *    ever read sources, credits should appear in the documentation.
  * 
  * 4. This notice may not be removed or altered.
+ *
+ *
+ *
+ * Copyright 2000, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ *
+ * This software is being modified by Pierangelo Masarati.
+ * The previously reported conditions apply to the modified code as well.
+ * Changes in the original code are highlighted where required.
+ * Credits for the original code go to the author, Howard Chu.
  */
 
 #include "portable.h"
@@ -50,18 +59,20 @@ ldap_back_add(
 	Attribute *a;
 	LDAPMod **attrs;
 
-	lc = ldap_back_getconn(li, conn, op);
-	if (!lc)
-		return( -1 );
+	char *mdn;
 
-	if (!lc->bound) {
-		ldap_back_dobind(lc, op);
-		if (!lc->bound)
-			return( -1 );
+	lc = ldap_back_getconn(li, conn, op);
+	if ( !lc || !ldap_back_dobind( lc, op ) ) {
+		return( -1 );
+	}
+
+	mdn = ldap_back_dn_massage( li, ch_strdup( e->e_dn ), 0 );
+	if ( mdn == NULL ) {
+		return( -1 );
 	}
 
 	/* Count number of attributes in entry */
-	for (i=1, a=e->e_attrs; a; i++, a=a->a_next)
+	for (i = 1, a = e->e_attrs; a; i++, a = a->a_next)
 		;
 	
 	/* Create array of LDAPMods for ldap_add() */
@@ -75,9 +86,10 @@ ldap_back_add(
 		attrs[i]->mod_vals.modv_bvals = a->a_vals;
 	}
 
-	ldap_add_s(lc->ld, e->e_dn, attrs);
+	ldap_add_s(lc->ld, mdn, attrs);
 	for (--i; i>= 0; --i)
 		free(attrs[i]);
 	free(attrs);
+	free( mdn );
 	return( ldap_back_op_result( lc, op ));
 }
