@@ -59,7 +59,7 @@ init_globals( void )
 {
     Globals *g;
 
-    g = ( Globals * ) malloc( sizeof( Globals ));
+    g = ( Globals * ) calloc( 1, sizeof( Globals ));
     if ( g == NULL ) {
 	return NULL;
     }
