@@ -48,7 +48,11 @@ ldap_delete_ext(
 	int rc;
 	BerElement	*ber;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "delete", LDAP_LEVEL_ENTRY, "ldap_delete_ext\n" ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_delete_ext\n", 0, 0, 0 );
+#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -134,7 +138,11 @@ ldap_delete( LDAP *ld, LDAP_CONST char *dn )
 	 *	DelRequet ::= DistinguishedName,
 	 */
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "delete", LDAP_LEVEL_ENTRY, "ldap_delete\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );
+#endif
 
 	return ldap_delete_ext( ld, dn, NULL, NULL, &msgid ) == LDAP_SUCCESS
 		? msgid : -1 ;
