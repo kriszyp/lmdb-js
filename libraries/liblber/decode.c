@@ -409,11 +409,7 @@ ber_first_element( BerElement *ber, unsigned long *len, char **last )
 	*last = ber->ber_ptr + *len;
 
 	if ( *last == ber->ber_ptr ) {
-#ifdef LBER_END_SEQORSET 
-		return( LBER_END_SEQORSET );
-#else
 		return( LBER_DEFAULT );
-#endif
 	}
 
 	return( ber_peek_tag( ber, len ) );
@@ -427,11 +423,7 @@ ber_next_element( BerElement *ber, unsigned long *len, char *last )
 	assert( last != NULL );
 
 	if ( ber->ber_ptr == last ) {
-#ifdef LBER_END_SEQORSET 
-		return( LBER_END_SEQORSET );
-#else
 		return( LBER_DEFAULT );
-#endif
 	}
 
 	return( ber_peek_tag( ber, len ) );
@@ -556,11 +548,7 @@ va_dcl
 			*sss = NULL;
 			j = 0;
 			for ( tag = ber_first_element( ber, &len, &last );
-			    tag != LBER_DEFAULT && 
-#ifdef LBER_END_SEQORSET
-					tag != LBER_END_SEQORSET &&
-#endif
-					rc != LBER_DEFAULT;
+			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
 				if ( *sss == NULL ) {
@@ -573,13 +561,6 @@ va_dcl
 				rc = ber_get_stringa( ber, &((*sss)[j]) );
 				j++;
 			}
-#ifdef LBER_END_SEQORSET
-			if (rc != LBER_DEFAULT && 
-				tag != LBER_END_SEQORSET )
-			{
-				rc = LBER_DEFAULT;
-			}
-#endif
 			if ( j > 0 )
 				(*sss)[j] = NULL;
 			break;
@@ -589,11 +570,7 @@ va_dcl
 			*bv = NULL;
 			j = 0;
 			for ( tag = ber_first_element( ber, &len, &last );
-			    tag != LBER_DEFAULT && 
-#ifdef LBER_END_SEQORSET
-					tag != LBER_END_SEQORSET &&
-#endif
-					rc != LBER_DEFAULT;
+			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
 			    tag = ber_next_element( ber, &len, last ) )
 			{
 				if ( *bv == NULL ) {
@@ -606,13 +583,6 @@ va_dcl
 				rc = ber_get_stringal( ber, &((*bv)[j]) );
 				j++;
 			}
-#ifdef LBER_END_SEQORSET
-			if (rc != LBER_DEFAULT && 
-				tag != LBER_END_SEQORSET )
-			{
-				rc = LBER_DEFAULT;
-			}
-#endif
 			if ( j > 0 )
 				(*bv)[j] = NULL;
 			break;

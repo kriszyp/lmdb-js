@@ -140,12 +140,7 @@ int ldap_int_get_controls LDAP_P((
 	ctrls[nctrls] = NULL;
 
 	for( tag = ber_first_element( ber, &len, &opaque );
-		(
-			tag != LBER_ERROR
-#ifdef LDAP_END_SEQORSET
-			&& tag != LBER_END_OF_SEQORSET
-#endif
-		);
+		tag != LBER_ERROR;
 		tag = ber_next_element( ber, &len, opaque ) )
 	{
 		LDAPControl *tctrl;
