@@ -30,7 +30,7 @@ if test $WAIT != 0 ; then
 	echo PID $PID
 	read foo
 fi
-KILLPIDS="$PIDS"
+KILLPIDS="$PID"
 
 echo "Using ldapsearch to check that master slapd is running..."
 for i in 0 1 2 3 4 5; do
