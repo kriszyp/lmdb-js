@@ -1162,6 +1162,8 @@ slapd_daemon_task(
 		}
 	}
 
+	ldap_pvt_thread_pool_destroy(connection_pool, 1);
+
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutdown: waiting for %d threads to terminate\n",

@@ -1138,8 +1138,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	active_threads++;
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
-	status = ldap_pvt_thread_create( &arg->co_op->o_tid, 1,
-					 connection_operation, (void *) arg );
+	status = ldap_pvt_thread_pool_submit( connection_pool, connection_operation, (void *) arg );
 
 	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY,

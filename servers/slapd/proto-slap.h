@@ -759,6 +759,7 @@ LIBSLAPD_F (time_t) slap_get_time LDAP_P((void));
 
 LIBSLAPD_F (ldap_pvt_thread_mutex_t)	active_threads_mutex;
 LIBSLAPD_F (ldap_pvt_thread_cond_t)	active_threads_cond;
+LIBSLAPD_F (ldap_pvt_thread_pool_t)	connection_pool;
 
 LIBSLAPD_F (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LIBSLAPD_F (ldap_pvt_thread_mutex_t)	replog_mutex;

@@ -41,6 +41,7 @@ char		**g_argv;
 int				active_threads;
 ldap_pvt_thread_mutex_t	active_threads_mutex;
 ldap_pvt_thread_cond_t	active_threads_cond;
+ldap_pvt_thread_pool_t	connection_pool;
 
 ldap_pvt_thread_mutex_t	gmtime_mutex;
 #ifdef SLAPD_CRYPT
@@ -96,6 +97,7 @@ slap_init( int mode, const char *name )
 			slap_name = name;
 	
 			(void) ldap_pvt_thread_initialize();
+			ldap_pvt_thread_pool_initialize(&connection_pool, 0, 0);
 
 			ldap_pvt_thread_mutex_init( &active_threads_mutex );
 			ldap_pvt_thread_cond_init( &active_threads_cond );
