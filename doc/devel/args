@@ -1,19 +1,19 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        CD   HI K M OPQR  U WXYZ  cd f h  k  n p     vwx
-ldapmodify        CD F HI K M OPQR  U WXYZabcd f h  k  n p r t vwx
-ldapmodrdn        CD   HI K M OPQR  U WXYZ  cd f h  k  n p rs  vwx
-ldappasswd      A CD   HI     O QRS U WXYZa  d   h          s  vwx   
-ldapsearch      A CD   HI KLM OPQRSTUVWXYZab*d f h  kl n p  stuvwx z
+ldapdelete        CD   HI K M OPQR  U*WXYZ  cd f h  k  n p     vwx
+ldapmodify        CD F HI K M OPQR  U*WXYZabcd f h  k  n p r t vwx
+ldapmodrdn        CD   HI K M OPQR  U*WXYZ  cd f h  k  n p rs  vwx
+ldappasswd      A CD   HI     O QRS U*WXYZa  d   h          s  vwx   
+ldapsearch      A CD   HI KLM OPQRSTU*WXYZab*d f h  kl n p  stuvwx z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-fax500                                         f h    m
-finger                                      c  f  i  l  p    t   x
-go500                   I                  bcd f     l  p    t   x
-go500gw                 I      P          a cd f h   l  p    t   x
-mail500           C                          d f h   lm        v
-rcpt500                             U     abc  f h   l  p   st     z
-rp500                                     ab d f                 x z
-ud                 D                 V      cd f     l  p   s uv
+fax500                               *         f h    m
+finger                               *      c  f  i  l  p    t   x
+go500                   I            *     bcd f     l  p    t   x
+go500gw                 I      P     *    a cd f h   l  p    t   x
+mail500           C                  *       d f h   lm        v
+rcpt500                             U*    abc  f h   l  p   st     z
+rp500                                *    ab d f                 x z
+ud                 D                 *      cd f     l  p   s uv
 
 
 * reserved
@@ -24,6 +24,7 @@ ud                 D                 V      cd f     l  p   s uv
 	-D Bind DN
 	-H URI
 	-P protocol version
+	-V version information
 	-W prompt for bind password
 	-d debug
 	-h host
