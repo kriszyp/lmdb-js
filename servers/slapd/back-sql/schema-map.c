@@ -326,7 +326,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 				Debug( LDAP_DEBUG_TRACE, "load_schema_map(): "
 					"attribute '%s' for objectClass '%s' "
 					"is not defined in schema: %s\n", 
-					at_map->ad->ad_cname.bv_val, 
+					at_rol.cols[ 0 ],
 					BACKSQL_OC_NAME( oc_map ), text );
 				return LDAP_CONSTRAINT_VIOLATION;
 			}
