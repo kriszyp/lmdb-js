@@ -864,7 +864,7 @@ str2accessmask( const char *str )
 {
 	slap_access_mask_t	mask;
 
-	if( !isalpha(str[0]) ) {
+	if( !ASCII_ALPHA(str[0]) ) {
 		int i;
 
 		if ( str[0] == '=' ) {

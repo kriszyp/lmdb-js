@@ -85,7 +85,8 @@ LDAP_BEGIN_DECL
 #define DESC_LEADCHAR(c)	( ASCII_ALPHA(c) )
 #define DESC_CHAR(c)	( ASCII_ALNUM(c) || (c) == '-' )
 #define OID_LEADCHAR(c)	( ASCII_DIGIT(c) )
-#define OID_CHAR(c)	( ASCII_DIGIT(c) || (c) == '.' )
+#define OID_SEPARATOR(c)	( (c) == '.' )
+#define OID_CHAR(c)	( OID_LEADCHAR(c) || OID_SEPARATOR(c) )
 
 #define ATTR_LEADCHAR(c)	( DESC_LEADCHAR(c) || OID_LEADCHAR(c) )
 #define ATTR_CHAR(c)	( DESC_CHAR((c)) || (c) == '.' )

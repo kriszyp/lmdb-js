@@ -18,52 +18,63 @@
 #include "lutil_md5.h"
 
 /* recycled validatation routines */
-#define berValidate blobValidate
+#define berValidate						blobValidate
 
 /* recycled normalization routines */
-#define faxNumberNormalize numericStringNormalize
-#define phoneNumberNormalize numericStringNormalize
-#define telexNumberNormalize numericStringNormalize
+#define faxNumberNormalize				numericStringNormalize
+#define phoneNumberNormalize			numericStringNormalize
+#define telexNumberNormalize			numericStringNormalize
 
 /* recycled matching routines */
-#define caseIgnoreMatch caseIgnoreIA5Match
-#define caseIgnoreOrderingMatch caseIgnoreMatch
-#define caseIgnoreSubstringsMatch caseIgnoreIA5SubstringsMatch
-#define caseExactMatch caseExactIA5Match
-#define caseExactOrderingMatch caseExactMatch
-#define caseExactSubstringsMatch caseExactIA5SubstringsMatch
+#define caseIgnoreMatch					caseIgnoreIA5Match
+#define caseIgnoreOrderingMatch			caseIgnoreMatch
+#define caseIgnoreSubstringsMatch		caseIgnoreIA5SubstringsMatch
 
-#define numericStringMatch caseIgnoreMatch
-#define objectIdentifierMatch numericStringMatch
-#define integerMatch numericStringMatch
-#define telephoneNumberMatch numericStringMatch
-#define generalizedTimeMatch numericStringMatch
-#define generalizedTimeOrderingMatch numericStringMatch
+#define caseExactMatch					caseExactIA5Match
+#define caseExactOrderingMatch			caseExactMatch
+#define caseExactSubstringsMatch		caseExactIA5SubstringsMatch
+
+#define numericStringMatch				caseIgnoreMatch
+#define objectIdentifierMatch			numericStringMatch
+#define integerMatch					numericStringMatch
+#define telephoneNumberMatch			numericStringMatch
+#define generalizedTimeMatch			numericStringMatch
+#define generalizedTimeOrderingMatch	numericStringMatch
 
 /* unimplemented matching routines */
-#define caseIgnoreListMatch NULL
-#define caseIgnoreListSubstringsMatch NULL
-#define bitStringMatch NULL
-#define telephoneNumberSubstringsMatch NULL
-#define presentationAddressMatch NULL
-#define uniqueMemberMatch NULL
-#define protocolInformationMatch NULL
-#define integerFirstComponentMatch NULL
+#define caseIgnoreListMatch				NULL
+#define caseIgnoreListSubstringsMatch	NULL
+#define bitStringMatch					NULL
+#define telephoneNumberSubstringsMatch	NULL
+#define presentationAddressMatch		NULL
+#define uniqueMemberMatch				NULL
+#define protocolInformationMatch		NULL
+#define integerFirstComponentMatch		NULL
 
-#define OpenLDAPaciMatch NULL
-#define authPasswordMatch NULL
+#define OpenLDAPaciMatch				NULL
+#define authPasswordMatch				NULL
 
 /* unimplied indexer/filter routines */
-#define dnIndexer NULL
-#define dnFilter NULL
+#define dnIndexer						NULL
+#define dnFilter						NULL
+#define caseIgnoreIA5SubstringsIndexer	NULL
+#define caseIgnoreIA5SubstringsFilter	NULL
 
 /* recycled indexing/filtering routines */
-#define caseIgnoreIndexer		caseIgnoreIA5Indexer
-#define caseIgnoreFilter		caseIgnoreIA5Filter
-#define caseExactIndexer		caseExactIA5Indexer
-#define caseExactFilter			caseExactIA5Filter
-#define caseExactIA5Indexer		caseIgnoreIA5Indexer
-#define caseExactIA5Filter		caseIgnoreIA5Filter
+#define caseIgnoreIndexer				caseIgnoreIA5Indexer
+#define caseIgnoreFilter				caseIgnoreIA5Filter
+#define caseExactIndexer				caseExactIA5Indexer
+#define caseExactFilter					caseExactIA5Filter
+#define caseExactIA5Indexer				caseIgnoreIA5Indexer
+#define caseExactIA5Filter				caseIgnoreIA5Filter
+
+#define caseIgnoreSubstringsIndexer		caseIgnoreIA5SubstringsIndexer
+#define caseIgnoreSubstringsFilter		caseIgnoreIA5SubstringsFilter
+#define caseExactSubstringsIndexer		caseExactIA5SubstringsIndexer
+#define caseExactSubstringsFilter		caseExactIA5SubstringsFilter
+#define caseExactIA5SubstringsFilter	caseIgnoreIA5SubstringsFilter
+#define caseExactIA5SubstringsIndexer	caseIgnoreIA5SubstringsIndexer
+
 
 static int
 octetStringMatch(
@@ -390,12 +401,12 @@ oidValidate(
 
 	if( val->bv_len == 0 ) return 0;
 
-	if( isdigit(val->bv_val[0]) ) {
+	if( OID_LEADCHAR(val->bv_val[0]) ) {
 		int dot = 0;
 		for(i=1; i < val->bv_len; i++) {
-			if( val->bv_val[i] == '.' ) {
+			if( OID_SEPARATOR( val->bv_val[i] ) ) {
 				if( dot++ ) return 1;
-			} else if ( isdigit(val->bv_val[i]) ) {
+			} else if ( OID_CHAR( val->bv_val[i] ) ) {
 				dot = 0;
 			} else {
 				return LDAP_INVALID_SYNTAX;
@@ -404,9 +415,9 @@ oidValidate(
 
 		return !dot ? LDAP_SUCCESS : LDAP_INVALID_SYNTAX;
 
-	} else if( isalpha(val->bv_val[0]) ) {
+	} else if( DESC_LEADCHAR(val->bv_val[0]) ) {
 		for(i=1; i < val->bv_len; i++) {
-			if( !isalpha(val->bv_val[i] ) ) {
+			if( !DESC_CHAR(val->bv_val[i] ) ) {
 				return LDAP_INVALID_SYNTAX;
 			}
 		}
@@ -425,7 +436,7 @@ integerValidate(
 	ber_len_t i;
 
 	for(i=0; i < val->bv_len; i++) {
-		if( !isdigit(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
+		if( !ASCII_DIGIT(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
 	return LDAP_SUCCESS;
@@ -499,7 +510,7 @@ IA5StringNormalize(
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( isspace( *p ) ) {
+	while ( ASCII_SPACE( *p ) ) {
 		p++;
 	}
 
@@ -512,11 +523,11 @@ IA5StringNormalize(
 	p = q = newval->bv_val;
 
 	while ( *p ) {
-		if ( isspace( *p ) ) {
+		if ( ASCII_SPACE( *p ) ) {
 			*q++ = *p++;
 
 			/* Ignore the extra whitespace */
-			while ( isspace( *p ) ) {
+			while ( ASCII_SPACE( *p ) ) {
 				p++;
 			}
 		} else {
@@ -529,7 +540,7 @@ IA5StringNormalize(
 	assert( p <= q );
 
 	/* cannot start with a space */
-	assert( !isspace(*newval->bv_val) );
+	assert( !ASCII_SPACE(*newval->bv_val) );
 
 	/*
 	 * If the string ended in space, backup the pointer one
@@ -537,12 +548,12 @@ IA5StringNormalize(
 	 * all whitespace to a single space.
 	 */
 
-	if ( isspace( q[-1] ) ) {
+	if ( ASCII_SPACE( q[-1] ) ) {
 		--q;
 	}
 
 	/* cannot end with a space */
-	assert( !isspace( q[-1] ) );
+	assert( !ASCII_SPACE( q[-1] ) );
 
 	/* null terminate */
 	*q = '\0';
@@ -979,7 +990,7 @@ numericStringNormalize(
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
-	while ( isspace( *p ) ) {
+	while ( ASCII_SPACE( *p ) ) {
 		p++;
 	}
 
@@ -992,7 +1003,7 @@ numericStringNormalize(
 	p = q = newval->bv_val;
 
 	while ( *p ) {
-		if ( isspace( *p ) ) {
+		if ( ASCII_SPACE( *p ) ) {
 			/* Ignore whitespace */
 			p++;
 		} else {
@@ -1005,10 +1016,10 @@ numericStringNormalize(
 	assert( p <= q );
 
 	/* cannot start with a space */
-	assert( !isspace(*newval->bv_val) );
+	assert( !ASCII_SPACE(*newval->bv_val) );
 
 	/* cannot end with a space */
-	assert( !isspace( q[-1] ) );
+	assert( !ASCII_SPACE( q[-1] ) );
 
 	/* null terminate */
 	*q = '\0';
@@ -1039,20 +1050,20 @@ objectIdentifierFirstComponentMatch(
 	}
 
 	/* trim leading white space */
-	for( i=1; isspace(value->bv_val[i]) && i < value->bv_len; i++ ) {
+	for( i=1; ASCII_SPACE(value->bv_val[i]) && i < value->bv_len; i++ ) {
 		/* empty */
 	}
 
 	/* grab next word */
 	oid.bv_val = &value->bv_val[i];
 	oid.bv_len = value->bv_len - i;
-	for( i=1; isspace(value->bv_val[i]) && i < oid.bv_len; i++ ) {
+	for( i=1; ASCII_SPACE(value->bv_val[i]) && i < oid.bv_len; i++ ) {
 		/* empty */
 	}
 	oid.bv_len = i;
 
 	/* insert attributeTypes, objectclass check here */
-	if( isdigit(asserted->bv_val[0]) ) {
+	if( OID_LEADCHAR(asserted->bv_val[0]) ) {
 		rc = objectIdentifierMatch( &match, use, syntax, mr, &oid, asserted );
 
 	} else {
@@ -1123,7 +1134,7 @@ check_time_syntax (struct berval *val,
 	e = p + val->bv_len;
 
 	/* Ignore initial whitespace */
-	while ( ( p < e ) && isspace( *p ) ) {
+	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
 		p++;
 	}
 
@@ -1205,7 +1216,7 @@ check_time_syntax (struct berval *val,
 	}
 
 	/* Ignore trailing whitespace */
-	while ( ( p < e ) && isspace( *p ) ) {
+	while ( ( p < e ) && ASCII_SPACE( *p ) ) {
 		p++;
 	}
 	if (p != e)
@@ -1548,7 +1559,8 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreSubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreSubstringsMatch,
+		caseIgnoreSubstringsIndexer, caseIgnoreSubstringsFilter},
 
 	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
@@ -1564,7 +1576,8 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseExactSubstringsMatch, NULL, NULL},
+		NULL, NULL, caseExactSubstringsMatch,
+		caseExactSubstringsIndexer, caseExactSubstringsFilter},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
@@ -1574,7 +1587,8 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
@@ -1659,7 +1673,8 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
 
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
