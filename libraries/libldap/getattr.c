@@ -26,11 +26,12 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 {
 	char *attr;
 
+	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
+
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 	assert( entry != NULL );
 	assert( ber != NULL );
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 
 	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		*ber = NULL;
@@ -62,11 +63,12 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 {
 	char *attr;
 
+	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
+
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 	assert( entry != NULL );
 	assert( ber != NULL );
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
 
 	/* skip sequence, snarf attribute type, skip values */
 	if ( ber_scanf( ber, "{ax}", &attr ) 

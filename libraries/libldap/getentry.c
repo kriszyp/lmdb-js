@@ -25,6 +25,9 @@
 LDAPMessage *
 ldap_first_entry( LDAP *ld, LDAPMessage *chain )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	if( ld == NULL || chain == NULLMSG ) {
 		return NULLMSG;
 	}
@@ -34,10 +37,12 @@ ldap_first_entry( LDAP *ld, LDAPMessage *chain )
 		: ldap_next_entry( ld, chain );
 }
 
-/* ARGSUSED */
 LDAPMessage *
 ldap_next_entry( LDAP *ld, LDAPMessage *entry )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	if ( ld == NULL || entry == NULLMSG ) {
 		return NULLMSG;
 	}
@@ -55,11 +60,13 @@ ldap_next_entry( LDAP *ld, LDAPMessage *entry )
 	return( NULLMSG );
 }
 
-/* ARGSUSED */
 int
 ldap_count_entries( LDAP *ld, LDAPMessage *chain )
 {
 	int	i;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 
 	if ( ld == NULL ) {
 		return -1;
@@ -78,12 +85,17 @@ int
 ldap_get_entry_controls(
 	LDAP *ld,
 	LDAPMessage *entry, 
-	LDAPControl ***serverctrls)
+	LDAPControl ***sctrls )
 {
 	int rc;
 	BerElement be;
 
-	if ( ld == NULL || serverctrls == NULL ||
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( entry != NULL );
+	assert( sctrls != NULL );
+
+	if ( ld == NULL || sctrls == NULL ||
 		entry == NULL || entry->lm_msgtype == LDAP_RES_SEARCH_ENTRY )
 	{
 		return LDAP_PARAM_ERROR;
@@ -97,7 +109,7 @@ ldap_get_entry_controls(
 		goto cleanup_and_return;
 	}
 
-	rc = ldap_int_get_controls( &be, serverctrls );
+	rc = ldap_int_get_controls( &be, sctrls );
 
 cleanup_and_return:
 	if( rc != LDAP_SUCCESS ) {

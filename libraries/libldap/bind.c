@@ -135,5 +135,8 @@ void
 ldap_set_rebind_proc( LDAP *ld, int (*rebindproc)( LDAP *ld, char **dnp,
 	char **passwdp, int *authmethodp, int freeit ))
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	ld->ld_rebindproc = rebindproc;
 }

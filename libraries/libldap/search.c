@@ -22,13 +22,31 @@
 
 #include "ldap-int.h"
 
-static char *find_right_paren LDAP_P(( char *s ));
-static char *put_complex_filter LDAP_P(( BerElement *ber, char *str,
-	unsigned long tag, int not ));
-static int put_filter LDAP_P(( BerElement *ber, char *str ));
-static int put_simple_filter LDAP_P(( BerElement *ber, char *str ));
-static int put_substring_filter LDAP_P(( BerElement *ber, char *type, char *str ));
-static int put_filter_list LDAP_P(( BerElement *ber, char *str ));
+static char *find_right_paren LDAP_P((
+	char *s ));
+
+static char *put_complex_filter LDAP_P((
+	BerElement *ber,
+	char *str,
+	unsigned long tag,
+	int not ));
+
+static int put_filter LDAP_P((
+	BerElement *ber,
+	char *str ));
+
+static int put_simple_filter LDAP_P((
+	BerElement *ber,
+	char *str ));
+
+static int put_substring_filter LDAP_P((
+	BerElement *ber,
+	char *type,
+	char *str ));
+
+static int put_filter_list LDAP_P((
+	BerElement *ber,
+	char *str ));
 
 /*
  * ldap_search_ext - initiate an ldap search operation.
@@ -341,11 +359,6 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	if ( ber_printf( ber, "t{", tag ) == -1 )
 		return( NULL );
 
-#if 0
-	if ( !not && ber_printf( ber, "{" ) == -1 )
-		return( NULL );
-#endif
-
 	str++;
 	if ( (next = find_right_paren( str )) == NULL )
 		return( NULL );
@@ -358,11 +371,6 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	/* flush explicit tagged thang */
 	if ( ber_printf( ber, "}" ) == -1 )
 		return( NULL );
-
-#if 0
-	if ( !not && ber_printf( ber, "}" ) == -1 )
-		return( NULL );
-#endif
 
 	return( next );
 }
@@ -576,7 +584,9 @@ put_filter_list( BerElement *ber, char *str )
 }
 
 static int
-put_simple_filter( BerElement *ber, char *str )
+put_simple_filter(
+	BerElement *ber,
+	char *str )
 {
 	char		*s;
 	char		*value, savechar;
@@ -603,6 +613,10 @@ put_simple_filter( BerElement *ber, char *str )
 	case '~':
 		ftype = LDAP_FILTER_APPROX;
 		*s = '\0';
+		break;
+	case ':':	/* LDAPv3 extended filter */
+		ftype = LDAP_FILTER_EXTENDED;
+		return -1;
 		break;
 	default:
 		if ( strchr( value, '*' ) == NULL ) {

@@ -54,6 +54,12 @@ ldap_compare_ext(
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_compare\n", 0, 0, 0 );
 
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( dn != NULL );
+	assert( attr != NULL );
+	assert( msgidp != NULL );
+
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( LDAP_NO_MEMORY );

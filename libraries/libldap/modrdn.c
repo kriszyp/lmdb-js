@@ -76,10 +76,6 @@ ldap_rename(
 
 	if( newSuperior != NULL ) {
 		/* must be version 3 (or greater) */
-		if ( ld->ld_version == 0 ) {
-			ld->ld_version = LDAP_VERSION3;
-		}
-
 		if ( ld->ld_version < LDAP_VERSION3 ) {
 			ld->ld_errno = LDAP_NOT_SUPPORTED;
 			ber_free( ber, 1 );

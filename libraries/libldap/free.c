@@ -126,6 +126,7 @@ ldap_mods_free( LDAPMod **mods, int freemods )
 		LDAP_FREE( (char *) mods[i] );
 	}
 
-	if ( freemods )
+	if ( freemods ) {
 		LDAP_FREE( (char *) mods );
+	}
 }

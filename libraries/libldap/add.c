@@ -87,7 +87,10 @@ ldap_add( LDAP *ld, LDAP_CONST char *dn, LDAPMod **attrs )
  *	rc = ldap_add_ext( ld, dn, attrs, NULL, NULL, &msgid );
  */
 int
-ldap_add_ext( LDAP *ld, LDAP_CONST char *dn, LDAPMod **attrs,
+ldap_add_ext(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAPMod **attrs,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
 	int	*msgidp )
@@ -96,6 +99,10 @@ ldap_add_ext( LDAP *ld, LDAP_CONST char *dn, LDAPMod **attrs,
 	int		i, rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_add\n", 0, 0, 0 );
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( dn != NULL );
+	assert( msgidp != NULL );
 
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {

@@ -19,18 +19,25 @@
 
 #include "ldap-int.h"
 
-/* ARGSUSED */
 LDAPMessage *
 ldap_first_message( LDAP *ld, LDAPMessage *chain )
 {
-	return( ld == NULL || chain == NULLMSG
-	   		? NULLMSG : chain );
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
+	if ( ld == NULL || chain == NULLMSG ) {
+		return NULLMSG;
+	}
+	
+  	return chain;
 }
 
-/* ARGSUSED */
 LDAPMessage *
 ldap_next_message( LDAP *ld, LDAPMessage *msg )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	if ( ld == NULL || msg == NULLMSG || msg->lm_chain == NULL ) {
 		return NULLMSG;
 	}
@@ -38,11 +45,13 @@ ldap_next_message( LDAP *ld, LDAPMessage *msg )
 	return( msg->lm_chain );
 }
 
-/* ARGSUSED */
 int
 ldap_count_messages( LDAP *ld, LDAPMessage *chain )
 {
 	int	i;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 
 	if ( ld == NULL ) {
 		return -1;

@@ -218,6 +218,8 @@ int ldap_int_get_controls LDAP_P((
 void
 ldap_control_free( LDAPControl *c )
 {
+	assert( c != NULL );
+
 	if ( c != NULL ) {
 		if( c->ldctl_oid != NULL) {
 			LDAP_FREE( c->ldctl_oid );
@@ -237,6 +239,8 @@ ldap_control_free( LDAPControl *c )
 void
 ldap_controls_free( LDAPControl **controls )
 {
+	assert( controls != NULL );
+
 	if ( controls != NULL ) {
 		LDAPControl *c;
 

@@ -58,6 +58,9 @@ ldap_simple_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_simple_bind\n", 0, 0, 0 );
 
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	if ( dn == NULL )
 		dn = "";
 	if ( passwd == NULL )

@@ -200,12 +200,6 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME:
-		/*
-		 * draft-ietf-ldapext-ldap-c-api-01 doesn't state
-		 * whether caller has to free host names or not,
-		 * we do.
-		 */
-
 		* (char **) outvalue = LDAP_STRDUP(lo->ldo_defhost);
 		return LDAP_OPT_SUCCESS;
 
@@ -223,11 +217,6 @@ ldap_get_option(
 			break;
 		} 
 
-		/*
-		 * draft-ietf-ldapext-ldap-c-api-01 doesn't require
-		 *	the client to have to free error strings, we do
-		 */
-
 		if( ld->ld_error == NULL ) {
 			* (char **) outvalue = NULL;
 		} else {
@@ -236,16 +225,11 @@ ldap_get_option(
 
 		return LDAP_OPT_SUCCESS;
 
-        case LDAP_OPT_MATCH_STRING:
+	case LDAP_OPT_MATCHED_DN:
 		if(ld == NULL) {
 			/* bad param */
 			break;
 		} 
-
-		/*
-		 * draft-ietf-ldapext-ldap-c-api-01 doesn't require
-		 *	the client to have to free error strings, we do
-		 */
 
 		if( ld->ld_matched == NULL ) {
 			* (char **) outvalue = NULL;
@@ -253,7 +237,7 @@ ldap_get_option(
 			* (char **) outvalue = LDAP_STRDUP(ld->ld_matched);
 		}
 
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_API_FEATURE_INFO: {
 			LDAPAPIFeatureInfo *info = (LDAPAPIFeatureInfo *) outvalue;
@@ -458,6 +442,21 @@ ldap_set_option(
 			}
 
 			ld->ld_error = LDAP_STRDUP(err);
+		} return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_MATCHED_DN: {
+			char* err = (char *) invalue;
+
+			if(ld == NULL) {
+				/* need a struct ldap */
+				break;
+			}
+
+			if( ld->ld_matched ) {
+				LDAP_FREE(ld->ld_matched);
+			}
+
+			ld->ld_matched = LDAP_STRDUP(err);
 		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_API_FEATURE_INFO:

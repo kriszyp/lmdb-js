@@ -120,15 +120,15 @@ ldap_err2string( int err )
 void
 ldap_perror( LDAP *ld, LDAP_CONST char *str )
 {
-	char *s;
+	const char *s;
 	struct ldaperror *e;
 	Debug( LDAP_DEBUG_TRACE, "ldap_perror\n", 0, 0, 0 );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( s );
+	assert( str );
 
-	s = ( str != NULL ) ? (char *) str : "ldap_perror";
+	s = ( str != NULL ) ? str : "ldap_perror";
 
 	if ( ld == NULL ) {
 		perror( s );

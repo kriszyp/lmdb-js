@@ -255,6 +255,10 @@ SOURCE=..\..\include\ldapconfig.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\messages.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\modify.c
 # End Source File
 # Begin Source File
