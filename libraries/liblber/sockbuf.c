@@ -104,7 +104,7 @@ status_is_ok( Sockbuf *sb )
 
 #ifdef USE_SASL
 static ber_len_t
-packet_length( char *buf )
+packet_length( Sockbuf *sb, const char *buf )
 {
    ber_len_t size;
 
@@ -115,11 +115,11 @@ packet_length( char *buf )
      (((ber_len_t)buf[2])<<8)|
      (((ber_len_t)buf[3]));
    
-   if ((size<0) || (size>MAX_BUF_SIZE))	{
+   if ( size > MAX_BUF_SIZE ) {
       /* somebody is trying to mess me up. */
-      lber_log_printf( LDAP_DEBUG_SASL, sb->sb_debug,
-		      "SASL: received packet length of %d bytes\n",
-		      size );      
+      ber_log_printf( LDAP_DEBUG_SASL, sb->sb_debug,
+		      "SASL: received packet length of %lu bytes\n",
+		      (unsigned long) size );      
       size = 16; /* this should lead to an error. */
    }
    
@@ -228,7 +228,7 @@ sockbuf_sec_release( Sockbuf *sb, char *buf, ber_len_t len )
       ptr+=size;
       
       if (ptr+4<=end)
-	size = packet_length( ptr ); 
+	size = packet_length( sb, ptr ); 
       /* size is always at least 4, so the loop condition is always OK !!*/
       assert( size>=4 );
       
@@ -444,14 +444,14 @@ ber_pvt_sb_read( Sockbuf *sb, void *buf_arg, ber_len_t len )
 	    }
 	    /* calculate the packet length. */
 	    sb->sb_sec_buf_in.buf_end = 
-	       packet_length(sb->sb_sec_buf_in.buf_base );
+	       packet_length(sb, sb->sb_sec_buf_in.buf_base );
 	    if ((sb->sb_sec_buf_in.buf_end > sb->sb_sec_buf_in.buf_size) &&
 		(grow_buffer( &(sb->sb_sec_buf_in), sb->sb_sec_buf_in.buf_end)<0)) {
 	       /* buffer has to be to big. exit with error. */
 	       ret = -1;
 	       goto do_return;
 	    }
-	    if (sb->sb_sec_buf_in.buf_ptr >= sb_sec_buf_in.buf_end) {
+	    if (sb->sb_sec_buf_in.buf_ptr >= sb->sb_sec_buf_in.buf_end) {
 	       /* finished packet. decode it. */
 	       goto decode_packet;
 	    }
@@ -531,6 +531,7 @@ do_return:
 long sockbuf_do_write( Sockbuf *sb )
 {
    long to_go;
+   ber_slen_t   ret;
 
    assert( sb != NULL );
 	assert( SOCKBUF_VALID( sb ) );
@@ -782,10 +783,10 @@ int ber_pvt_sb_set_sec( Sockbuf *sb, Sockbuf_Sec * sec, void *arg )
       memcpy( sb->sb_sec_buf_in.buf_base, 
 	     sb->sb_buf.buf_base + sb->sb_buf.buf_ptr, len );
       sb->sb_sec_buf_in.buf_ptr = len;
-      sb->sb_sec_buf_in.buf_end = (len>4) ? packet_length( sb->sb_sec_buf_in ) : 0;
+      sb->sb_sec_buf_in.buf_end = (len>4) ? packet_length( sb, sb->sb_sec_buf_in ) : 0;
       sb->sb_buf.buf_ptr = sb->sb_buf.buf_end = 0;
    }
-   update_status();
+   update_status( sb );
    return 0;
 }
 

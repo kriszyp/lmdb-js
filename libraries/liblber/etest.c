@@ -77,7 +77,7 @@ main( int argc, char **argv )
 	sb = ber_sockbuf_alloc_fd( fd );
 
 	if( sb == NULL ) {
-		perror( "lber_sockbuf_alloc_fd" );
+		perror( "ber_sockbuf_alloc_fd" );
 		return( EXIT_FAILURE );
 	}
 

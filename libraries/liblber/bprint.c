@@ -197,7 +197,7 @@ ber_dump(
 }
 
 int
-lber_log_sos_dump(
+ber_log_sos_dump(
 	int errlvl,
 	int loglvl,
 	const Seqorset *sos )
