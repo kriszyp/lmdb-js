@@ -275,9 +275,9 @@ add_values(
 
 	/* check if the values we're adding already exist */
 	if ( a != NULL ) {
-		/* do allow add of additional attribute if
-			no equality rule exists */
-		if( mr == NULL ) {
+		if( mr == NULL || !mr->smr_match ) {
+			/* do not allow add of additional attribute
+				if no equality rule exists */
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
@@ -339,9 +339,9 @@ delete_values(
 		    LDAP_NO_SUCH_ATTRIBUTE : LDAP_SUCCESS );
 	}
 
-	/* disallow specific attributes from being deleted if
-		no equality rule */
 	if( mr == NULL || !mr->smr_match ) {
+		/* disallow specific attributes from being deleted if
+			no equality rule */
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
