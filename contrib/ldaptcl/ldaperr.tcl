@@ -11,7 +11,6 @@ proc genstrings {path} {
     puts -nonewline "char *ldaptclerrorcode\[\] = {
 	NULL"
     while {[gets $fp line] != -1} {
-	puts stderr $line
 	if {[clength $line] == 0 || [ctype space $line]} continue
 	if {[string match *typedef* $line]} break
 	if {![string match #define* $line]} continue
