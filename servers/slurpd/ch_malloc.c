@@ -10,6 +10,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#define CH_FREE 1
+
 /*
  * ch_malloc.c - malloc() and friends, with check for NULL return.
  */
@@ -24,6 +26,7 @@
 #include "../slapd/slap.h"
 
 
+#ifndef CSRIMALLOC
 
 /*
  * Just like malloc, except we check the returned value and exit
@@ -116,3 +119,4 @@ ch_free(
     return;
 }
 
+#endif

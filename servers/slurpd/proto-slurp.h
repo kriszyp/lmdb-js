@@ -12,10 +12,17 @@ RETSIGTYPE do_admin	LDAP_P((int sig));
 int doargs	LDAP_P((int argc, char **argv, struct globals *g));
 
 /* ch_malloc.c */
+#ifdef CSRIMALLOC
+#define ch_malloc malloc
+#define ch_realloc realloc
+#define ch_calloc calloc
+#define ch_free free
+#else
 void *ch_malloc	LDAP_P((ber_len_t size));
 void *ch_realloc	LDAP_P((void *block, ber_len_t size));
 void *ch_calloc	LDAP_P((ber_len_t nelem, ber_len_t size));
 void ch_free	LDAP_P((void *p));
+#endif
 
 /* config.c */
 int slurpd_read_config	LDAP_P((char *fname));
