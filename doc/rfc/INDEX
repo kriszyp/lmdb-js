@@ -29,6 +29,7 @@ rfc3045.txt Storing Vendor Information in the LDAP root DSE (I)
 rfc3062.txt LDAP Password Modify Extended Operation (PS)
 rfc3088.txt OpenLDAP Root Service (E)
 rfc3112.txt LDAP Authentication Password Schema (I)
+rfc3296.txt Named Subordinate References in LDAP (PS)
 
 Legend:
 STD	Standard
