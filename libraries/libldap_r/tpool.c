@@ -141,7 +141,7 @@ ldap_pvt_thread_pool_init (
 		ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 		ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 		ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
-		free(pool);
+		LDAP_FREE(pool);
 		return(-1);
 	}
 #endif
@@ -233,7 +233,7 @@ ldap_pvt_thread_pool_submit (
 						ldap_int_thread_ctx_s, ltc_next.q);
 					pool->ltp_pending_count++;
 					ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-					free(ctx);
+					LDAP_FREE(ctx);
 					return(-1);
 				}
 			}
@@ -336,18 +336,18 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	while ((ctx = LDAP_STAILQ_FIRST(&pool->ltp_pending_list)) != NULL)
 	{
 		LDAP_STAILQ_REMOVE_HEAD(&pool->ltp_pending_list, ltc_next.q);
-		free(ctx);
+		LDAP_FREE(ctx);
 	}
 
 	while ((ctx = LDAP_SLIST_FIRST(&pool->ltp_free_list)) != NULL)
 	{
 		LDAP_SLIST_REMOVE_HEAD(&pool->ltp_free_list, ltc_next.l);
-		free(ctx);
+		LDAP_FREE(ctx);
 	}
 
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
-	free(pool);
+	LDAP_FREE(pool);
 	return(0);
 }
 

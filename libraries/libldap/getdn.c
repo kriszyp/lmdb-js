@@ -533,9 +533,9 @@ ldap_avafree( LDAPAVA *ava )
 
 #if 0
 	/* la_attr is now contiguous with ava, not freed separately */
-	free( ava->la_attr.bv_val );
+	LDAP_FREE( ava->la_attr.bv_val );
 #endif
-	free( ava->la_value.bv_val );
+	LDAP_FREE( ava->la_value.bv_val );
 
 	LDAP_FREE( ava );
 }
