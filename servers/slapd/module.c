@@ -29,7 +29,7 @@ struct module_regtable_t {
 
 typedef struct module_loaded_t {
 	struct module_loaded_t *next;
-	lt_dlhandle *lib;
+	lt_dlhandle lib;
 } module_loaded_t;
 
 module_loaded_t *module_list = NULL;
