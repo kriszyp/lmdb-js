@@ -1223,12 +1223,12 @@ slapd_daemon_task(
 		time_t				tdelta = 1;
 #endif
 
+		now = slap_get_time();
+
 		if( emfile ) {
-			now = slap_get_time();
 			connections_timeout_idle( now );
-		}
-		else if ( global_idletimeout > 0 ) {
-			now = slap_get_time();
+
+		} else if ( global_idletimeout > 0 ) {
 			if ( difftime( last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT, now ) < 0 ) {
 				connections_timeout_idle( now );
 			}
