@@ -26,8 +26,8 @@
  */
 static char * referral_dn_muck(
 	const char * refDN,
-	const char * baseDN,
-	const char * targetDN )
+	struct berval * baseDN,
+	struct berval * targetDN )
 {
 	int rc;
 	struct berval bvin;
@@ -37,7 +37,7 @@ static char * referral_dn_muck(
 
 	if( !baseDN ) {
 		/* no base, return target */
-		return targetDN ? ch_strdup( targetDN ) : NULL;
+		return targetDN ? ch_strdup( targetDN->bv_val ) : NULL;
 	}
 
 	if( refDN ) {
@@ -56,13 +56,10 @@ static char * referral_dn_muck(
 		 *	if refDN present return refDN
 		 *  else return baseDN
 		 */
-		return nrefDN.bv_len ? nrefDN.bv_val : ch_strdup( baseDN );
+		return nrefDN.bv_len ? nrefDN.bv_val : ch_strdup( baseDN->bv_val );
 	}
 
-	bvin.bv_val = (char *)targetDN;
-	bvin.bv_len = strlen( targetDN );
-
-	rc = dnPretty2( NULL, &bvin, &ntargetDN );
+	rc = dnPretty2( NULL, targetDN, &ntargetDN );
 	if( rc != LDAP_SUCCESS ) {
 		/* Invalid targetDN */
 		ch_free( nrefDN.bv_val );
@@ -70,10 +67,7 @@ static char * referral_dn_muck(
 	}
 
 	if( nrefDN.bv_len ) {
-		bvin.bv_val = (char *)baseDN;
-		bvin.bv_len = strlen( baseDN );
-
-		rc = dnPretty2( NULL, &bvin, &nbaseDN );
+		rc = dnPretty2( NULL, baseDN, &nbaseDN );
 		if( rc != LDAP_SUCCESS ) {
 			/* Invalid baseDN */
 			ch_free( nrefDN.bv_val );
@@ -249,8 +243,7 @@ BerVarray referral_rewrite(
 			char *dn = url->lud_dn;
 			url->lud_dn = referral_dn_muck(
 				( dn && *dn ) ? dn : NULL,
-				base ? base->bv_val : NULL,
-				target ? target->bv_val : NULL ); 
+				base, target );
 
 			ldap_memfree( dn );
 		}
