@@ -183,10 +183,10 @@ ol_enable_multimaster=${ol_enable_multimaster-no}
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and back-meta], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
-OL_ARG_ENABLE(slp, [    --enable-slp          enable SLPv2 support], no)dnl     
+OL_ARG_ENABLE(slapi,[    --enable-slapi        enable installation of slapi library], no)dnl
+OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl     
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
 
-OL_ARG_ENABLE(slapi,[    --enable-slapi   enable installation of slapi library], no)dnl
 
 dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], yes)dnl

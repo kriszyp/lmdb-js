@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.457 2003/02/09 17:03:40 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.458 2003/02/10 05:36:12 kurt Exp  
 
 # Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -81,11 +81,11 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-rlookups	  enable reverse lookups of client hostnames [no]"
 ac_help="$ac_help
+    --enable-slapi        enable installation of slapi library [no]"
+ac_help="$ac_help
     --enable-slp          enable SLPv2 support [no]"
 ac_help="$ac_help
     --enable-wrappers	  enable tcp wrapper support [no]"
-ac_help="$ac_help
-    --enable-slapi   enable installation of slapi library [no]"
 ac_help="$ac_help
     --enable-bdb	  enable Berkeley DB backend [yes]"
 ac_help="$ac_help
@@ -1914,6 +1914,26 @@ else
   	ol_enable_rlookups="no"
 fi
 # end --enable-rlookups
+# OpenLDAP --enable-slapi
+	# Check whether --enable-slapi or --disable-slapi was given.
+if test "${enable_slapi+set}" = set; then
+  enableval="$enable_slapi"
+  
+	ol_arg=invalid
+	for ol_val in auto yes no ; do
+		if test "$enableval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		{ echo "configure: error: bad value $enableval for --enable-slapi" 1>&2; exit 1; }
+	fi
+	ol_enable_slapi="$ol_arg"
+
+else
+  	ol_enable_slapi="no"
+fi
+# end --enable-slapi
 # OpenLDAP --enable-slp
 	# Check whether --enable-slp or --disable-slp was given.
 if test "${enable_slp+set}" = set; then
@@ -1955,26 +1975,6 @@ else
 fi
 # end --enable-wrappers
 
-# OpenLDAP --enable-slapi
-	# Check whether --enable-slapi or --disable-slapi was given.
-if test "${enable_slapi+set}" = set; then
-  enableval="$enable_slapi"
-  
-	ol_arg=invalid
-	for ol_val in auto yes no ; do
-		if test "$enableval" = "$ol_val" ; then
-			ol_arg="$ol_val"
-		fi
-	done
-	if test "$ol_arg" = "invalid" ; then
-		{ echo "configure: error: bad value $enableval for --enable-slapi" 1>&2; exit 1; }
-	fi
-	ol_enable_slapi="$ol_arg"
-
-else
-  	ol_enable_slapi="no"
-fi
-# end --enable-slapi
 
 # OpenLDAP --enable-bdb
 	# Check whether --enable-bdb or --disable-bdb was given.
