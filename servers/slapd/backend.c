@@ -260,6 +260,7 @@ be_unbind(
 int 
 be_group(
 	Backend	*be,
+	Entry	*e,
 	char	*bdn,
 	char	*edn,
 	char	*objectclassValue,
@@ -267,7 +268,8 @@ be_group(
 )
 {
         if (be->be_group)
-                return(be->be_group(be, bdn, edn, objectclassValue, groupattrName));
+                return(be->be_group(be, e, bdn, edn,
+					objectclassValue, groupattrName));
         else
                 return(1);
 }

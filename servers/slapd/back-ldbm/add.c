@@ -28,48 +28,26 @@ ldbm_back_add(
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", dn, 0, 0);
 
+	pthread_mutex_lock(&li->li_add_mutex);
+
 	if ( ( dn2id( be, dn ) ) != NOID ) {
+		pthread_mutex_unlock(&li->li_add_mutex);
 		entry_free( e );
 		free( dn );
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
 		return( -1 );
 	}
 
-	/* XXX race condition here til we cache_add_entry_lock below XXX */
-
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
+		pthread_mutex_unlock(&li->li_add_mutex);
+
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check\n",
 			0, 0, 0 );
 
-		/* XXX this should be ok, no other thread should have access
-		 * because e hasn't been added to the cache yet
-		 */
 		entry_free( e );
 		free( dn );
 		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, "",
 		    "" );
-		return( -1 );
-	}
-
-	/*
-	 * Try to add the entry to the cache, assign it a new dnid
-	 * and mark it locked.  This should only fail if the entry
-	 * already exists.
-	 */
-
-	e->e_id = next_id( be );
-	if ( cache_add_entry_lock( &li->li_cache, e, ENTRY_STATE_CREATING )
-	    != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
-		    0 );
-		next_id_return( be, e->e_id );
-                
-		/* XXX this should be ok, no other thread should have access
-		 * because e hasn't been added to the cache yet
-		 */
-		entry_free( e );
-		free( dn );
-		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
 		return( -1 );
 	}
 
@@ -85,6 +63,7 @@ ldbm_back_add(
 
 		/* get entry with reader lock */
 		if ( (p = dn2entry_r( be, pdn, &matched )) == NULL ) {
+			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
@@ -94,30 +73,60 @@ ldbm_back_add(
 				free( matched );
 			}
 
-			rc = -1;
-			goto return_results;
+			entry_free( e );
+			free( dn );
+			return -1;
 		}
 
 		if ( ! access_allowed( be, conn, op, p, "children", NULL,
-		    op->o_dn, ACL_WRITE ) ) {
+		    op->o_dn, ACL_WRITE ) )
+		{
+			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    "", "" );
 
-			rc = -1;
-			goto return_results;
+			entry_free( e );
+			free( dn );
+			return -1;
 		}
+
 	} else {
 		if ( ! be_isroot( be, op->o_dn ) ) {
+			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    "", "" );
 
-			rc = -1;
-			goto return_results;
+			entry_free( e );
+			free( dn );
+			return -1;
 		}
+	}
+
+	/*
+	 * Try to add the entry to the cache, assign it a new dnid
+	 * and mark it locked.  This should only fail if the entry
+	 * already exists.
+	 */
+
+	e->e_id = next_id( be );
+	if ( cache_add_entry_lock( &li->li_cache, e, ENTRY_STATE_CREATING ) != 0 ) {
+		pthread_mutex_unlock(&li->li_add_mutex);
+
+		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
+		    0 );
+		next_id_return( be, e->e_id );
+                
+		/* XXX this should be ok, no other thread should have access
+		 * because e hasn't been added to the cache yet
+		 */
+		entry_free( e );
+		free( dn );
+		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS, "", "" );
+		return( -1 );
 	}
 
 	/*
@@ -191,6 +200,9 @@ return_results:;
 	if (p != NULL) {
 		cache_return_entry_r( &li->li_cache, p ); 
 	}
+
+	/* it might actually be okay to release this lock sooner */
+	pthread_mutex_unlock(&li->li_add_mutex);
 
 	return( rc );
 }

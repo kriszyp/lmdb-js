@@ -360,7 +360,9 @@ acl_access_allowed(
 			/* see if asker is listed in dnattr */
 			string_expand(buf, sizeof(buf), b->a_group, edn, matches);
 
-			if (be_group(be, buf, odn, b->a_objectclassvalue, b->a_groupattrname) == 0) {
+			if (be_group(be, e, buf, odn,
+				b->a_objectclassvalue, b->a_groupattrname) == 0)
+			{
 				Debug( LDAP_DEBUG_ACL,
 					"<= acl_access_allowed: matched by clause #%d (group) access granted\n",
 					i, 0, 0 );
