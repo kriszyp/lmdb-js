@@ -151,7 +151,7 @@ syncprov_state_ctrl(
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	ctrls[num_ctrls] = op->o_tmpalloc( sizeof ( LDAPControl ), op->o_tmpmemctx );
-	
+
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
 		if ( desc == slap_schema.si_ad_entryUUID ) {
@@ -212,7 +212,7 @@ syncprov_done_ctrl(
 	if ( refreshDeletes == LDAP_SYNC_REFRESH_DELETES ) {
 		ber_printf( ber, "b", refreshDeletes );
 	}
-	ber_printf( ber, "N}" );	
+	ber_printf( ber, "N}" );
 
 	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
 	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
@@ -795,6 +795,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	Attribute *a;
 	int rc;
 	struct berval newdn;
+	int freefdn = 0;
 
 	fc.fdn = &op->o_req_ndn;
 	/* compute new DN */
@@ -804,6 +805,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		else dnParent( fc.fdn, &pdn );
 		build_new_dn( &newdn, &pdn, &op->orr_nnewrdn, op->o_tmpmemctx );
 		fc.fdn = &newdn;
+		freefdn = 1;
 	}
 	if ( op->o_tag != LDAP_REQ_ADD ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -814,6 +816,10 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		e = op->ora_e;
 	}
 
+	/* Never replicate these */
+	if ( is_entry_syncConsumerSubentry( e )) {
+		goto done;
+	}
 	if ( saveit ) {
 		ber_dupbv_x( &opc->sdn, &e->e_name, op->o_tmpmemctx );
 		ber_dupbv_x( &opc->sndn, &e->e_nname, op->o_tmpmemctx );
@@ -883,10 +889,14 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		}
 	}
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+done:
 	if ( op->o_tag != LDAP_REQ_ADD ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		be_entry_release_r( op, e );
 		op->o_bd->bd_info = (BackendInfo *)on;
+	}
+	if ( freefdn ) {
+		op->o_tmpfree( fc.fdn->bv_val, op->o_tmpmemctx );
 	}
 }
 
@@ -913,7 +923,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 	ldap_pvt_thread_rdwr_runlock( &si->si_mods_rwlock );
 	if ( mt ) {
 		modinst *mi = mt->mt_mods;
-		
+
 		/* If there are more, promote the next one */
 		ldap_pvt_thread_mutex_lock( &mt->mt_mutex );
 		if ( mi->mi_next ) {
@@ -929,6 +939,12 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 			ch_free( mt );
 		}
 	}
+	if ( !BER_BVISNULL( &opc->suuid ))
+		op->o_tmpfree( opc->suuid.bv_val, op->o_tmpmemctx );
+	if ( !BER_BVISNULL( &opc->sndn ))
+		op->o_tmpfree( opc->sndn.bv_val, op->o_tmpmemctx );
+	if ( !BER_BVISNULL( &opc->sdn ))
+		op->o_tmpfree( opc->sdn.bv_val, op->o_tmpmemctx );
 	op->o_callback = cb->sc_next;
 	op->o_tmpfree(cb, op->o_tmpmemctx);
 }
@@ -995,7 +1011,7 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 				do_check = 1;
 				si->si_numops = 0;
 			}
-			if ( si->si_chktime && 
+			if ( si->si_chktime &&
 				(op->o_time - si->si_chklast >= si->si_chktime )) {
 				do_check = 1;
 				si->si_chklast = op->o_time;
@@ -1107,7 +1123,7 @@ return_results:;
 
 	return rc;
 }
-	
+
 static int
 syncprov_op_mod( Operation *op, SlapReply *rs )
 {
@@ -1263,6 +1279,16 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
 		int i;
+		/* If we got a referral without a referral object, there's
+		 * something missing that we cannot replicate. Just ignore it.
+		 * The consumer will abort because we didn't send the expected
+		 * control.
+		 */
+		if ( !rs->sr_entry ) {
+			assert( rs->sr_entry );
+			Debug( LDAP_DEBUG_ANY, "bogus referral in context\n",0,0,0 );
+			return SLAP_CB_CONTINUE;
+		}
 		if ( srs->sr_state.ctxcsn ) {
 			Attribute *a = attr_find( rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
@@ -1313,7 +1339,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 					opc.sctxcsn = sr->s_csn;
 					opc.sreference = sr->s_isreference;
 					e = NULL;
-					
+
 					if ( sr->s_mode != LDAP_SYNC_DELETE ) {
 						op->o_bd->bd_info = (BackendInfo *)on->on_info;
 						rc = be_entry_get_rw( op, &opc.sndn, NULL, NULL, 0, &e );
@@ -1442,7 +1468,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 					return rs->sr_err;
 				}
 				goto shortcut;
-			} else 
+			} else
 			/* If context has changed, check for Present UUIDs */
 			if ( syncprov_findcsn( op, FIND_PRESENT ) != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
@@ -1525,7 +1551,6 @@ syncprov_operational(
 			ad_inlist( slap_schema.si_ad_contextCSN, rs->sr_attrs )) {
 			Attribute *a, **ap = NULL;
 
-			
 			for ( a=rs->sr_entry->e_attrs; a; a=a->a_next ) {
 				if ( a->a_desc == slap_schema.si_ad_contextCSN )
 					break;
@@ -1646,7 +1671,7 @@ syncprov_db_open(
 		slap_get_csn( op, si->si_ctxcsnbuf, sizeof(si->si_ctxcsnbuf),
 				&si->si_ctxcsn, 0 );
 	}
-	
+
 	op->o_bd->bd_info = (BackendInfo *)on;
 	return 0;
 }
