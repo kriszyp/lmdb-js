@@ -336,10 +336,10 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 #else
 	int i;
 	int use_hp = 0;
-	struct hostent		*hp = NULL;
+	struct hostent *hp = NULL;
 	struct hostent he_buf;
 	struct in_addr in;
-	char   	*ha_buf=NULL, *p, *q;
+	char *ha_buf=NULL;
 #endif
 
 	if( host == NULL ) host = "localhost";
@@ -472,15 +472,20 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		(void)memset((char *)&sin, '\0', sizeof sin);
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons((short) port);
-		p = (char *)&sin.sin_addr;
-		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&in.s_addr;
-		AC_MEMCPY(p, q, sizeof(sin.sin_addr) );
+
+		if( use_hp ) {
+			AC_MEMCPY( &sin.sin_addr, hp->h_addr_list[i],
+				sizeof(sin.sin_addr) );
+		} else {
+			AC_MEMCPY( &sin.sin_addr, &in.s_addr,
+				sizeof(sin.sin_addr) );
+		}
 
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
-			inet_ntoa(sin.sin_addr),port,0);
+			inet_ntoa(sin.sin_addr), port, 0);
 
 		rc = ldap_pvt_connect(ld, s,
-			(struct sockaddr *)&sin, sizeof(struct sockaddr_in),
+			(struct sockaddr *)&sin, sizeof(sin),
 			async);
    
 		if ( (rc == 0) || (rc == -2) ) {
@@ -490,8 +495,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 		ldap_pvt_close_socket(ld, s);
 
-		if (!use_hp)
-			break;
+		if (!use_hp) break;
 	}
 	if (ha_buf) LDAP_FREE(ha_buf);
 #endif
