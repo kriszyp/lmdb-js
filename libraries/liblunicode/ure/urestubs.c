@@ -36,6 +36,9 @@
  */
 /* $Id: urestubs.c,v 1.2 1999/09/21 15:47:44 mleisher Exp $" */
 
+#include "portable.h"
+#include <ac/bytes.h>
+
 #include "ure.h"
 
 #ifdef _MSC_VER

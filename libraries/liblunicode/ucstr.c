@@ -15,6 +15,7 @@
 
 #include "portable.h"
 
+#include <ac/bytes.h>
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/stdlib.h>
@@ -109,7 +110,7 @@ struct berval * UTF8bvnormalize(
 {
 	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
 	char *out, *outtmp, *s;
-	unsigned long *ucs, *p, *ucsout;
+	ac_uint4 *ucs, *p, *ucsout;
 
 	static unsigned char mask[] = {
 		0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
@@ -302,7 +303,7 @@ int UTF8bvnormcmp(
 {
 	int i, l1, l2, len, ulen, res = 0;
 	char *s1, *s2, *done;
-	unsigned long *ucs, *ucsout1, *ucsout2;
+	ac_uint4 *ucs, *ucsout1, *ucsout2;
 
 	unsigned casefold = flags & LDAP_UTF8_CASEFOLD;
 	unsigned norm1 = flags & LDAP_UTF8_ARG1NFC;
@@ -382,7 +383,7 @@ int UTF8bvnormcmp(
 	
 	/*
 	 * XXYYZ: we convert to ucs4 even though -llunicode
-	 * expects ucs2 in an unsigned long
+	 * expects ucs2 in an ac_uint4
 	 */
 	
 	/* convert and normalize 1st string */
