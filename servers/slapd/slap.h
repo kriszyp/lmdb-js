@@ -1340,38 +1340,6 @@ typedef struct syncinfo_s {
 		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;
 } syncinfo_t;
 
-#define IDSTR           "id"
-#define PROVIDERSTR     "provider"
-#define SUFFIXSTR       "suffix"
-#define UPDATEDNSTR		"updatedn"
-#define BINDDNSTR       "binddn"
-#define BINDMETHSTR     "bindmethod"
-#define SIMPLESTR       "simple"
-#define SASLSTR         "sasl"
-#define CREDSTR         "credentials"
-#define OLDAUTHCSTR     "bindprincipal"
-#define AUTHCSTR        "authcID"
-#define AUTHZSTR        "authzID"
-#define SRVTABSTR       "srvtab"
-#define SASLMECHSTR     "saslmech"
-#define REALMSTR        "realm"
-#define SECPROPSSTR     "secprops"
-#define STARTTLSSTR     "starttls"
-#define CRITICALSTR     "critical"
-
-#define FILTERSTR       "filter"
-#define SEARCHBASESTR   "searchbase"
-#define SCOPESTR        "scope"
-#define ATTRSSTR        "attrs"
-#define ATTRSONLYSTR    "attrsonly"
-#define TYPESTR         "type"
-#define INTERVALSTR     "interval"
-#define COOKIESTR       "cookie"
-#define LASTMODSTR	"lastmod"
-#define LMREQSTR	"req"
-#define LMGENSTR	"gen"
-#define LMNOSTR		"no"
-
 #endif /* LDAP_SYNCREPL */
 
 struct slap_backend_db {
