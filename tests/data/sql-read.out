@@ -39,7 +39,7 @@ seeAlso: documentTitle=book1,dc=example,dc=com
 givenName: Torvlobnor
 telephoneNumber: 545-4563
 
-# refldap://localhost/dc=example,dc=com??one
+# refldap://localhost:9010/dc=example,dc=com??one
 
 # Testing subtree search...
 dn: documentTitle=book1,dc=example,dc=com
@@ -81,7 +81,55 @@ seeAlso: documentTitle=book1,dc=example,dc=com
 givenName: Torvlobnor
 telephoneNumber: 545-4563
 
-# refldap://localhost/dc=example,dc=com??sub
+# refldap://localhost:9010/dc=example,dc=com??sub
+
+# Testing subtree search with manageDSAit...
+dn: documentTitle=book1,dc=example,dc=com
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentAuthor: cn=Torvlobnor Puzdoy,dc=example,dc=com
+documentIdentifier: document 1
+
+dn: documentTitle=book2,dc=example,dc=com
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,dc=example,dc=com
+documentIdentifier: document 2
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcObject
+o: Example
+dc: example
+
+dn: cn=Mitya Kovalev,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+sn: Kovalev
+seeAlso: documentTitle=book1,dc=example,dc=com
+seeAlso: documentTitle=book2,dc=example,dc=com
+givenName: Mitya
+telephoneNumber: 222-3234
+telephoneNumber: 332-2334
+
+dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+sn: Puzdoy
+seeAlso: documentTitle=book1,dc=example,dc=com
+givenName: Torvlobnor
+telephoneNumber: 545-4563
+
+dn: cn=Akakiy Zinberstein,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: referral
+cn: Akakiy Zinberstein
+sn: Zinberstein
+ref: ldap://localhost:9010/
+givenName: Akakiy
 
 # Testing invalid filter...
 # Testing exact search...
@@ -221,7 +269,7 @@ seeAlso: documentTitle=book1,dc=example,dc=com
 givenName: Torvlobnor
 telephoneNumber: 545-4563
 
-# refldap://localhost/dc=example,dc=com??sub
+# refldap://localhost:9010/dc=example,dc=com??sub
 
 # Testing NOT search on objectClass...
 dn: documentTitle=book1,dc=example,dc=com
@@ -279,7 +327,7 @@ seeAlso: documentTitle=book1,dc=example,dc=com
 givenName: Torvlobnor
 telephoneNumber: 545-4563
 
-# refldap://localhost/dc=example,dc=com??sub
+# refldap://localhost:9010/dc=example,dc=com??sub
 
 # Testing attribute inheritance in filter...
 dn: dc=example,dc=com
@@ -307,7 +355,7 @@ seeAlso: documentTitle=book1,dc=example,dc=com
 givenName: Torvlobnor
 telephoneNumber: 545-4563
 
-# refldap://localhost/dc=example,dc=com??sub
+# refldap://localhost:9010/dc=example,dc=com??sub
 
 # Testing "auxiliary" objectClass in filter...
 dn: dc=example,dc=com
@@ -323,7 +371,7 @@ objectClass: dcObject
 o: Example
 dc: example
 
-# refldap://localhost/dc=example,dc=com??sub
+# refldap://localhost:9010/dc=example,dc=com??sub
 
 # Testing entryUUID in filter...
 dn: cn=Mitya Kovalev,dc=example,dc=com
@@ -359,7 +407,7 @@ objectClass: inetOrgPerson
 dn: cn=Torvlobnor Puzdoy,dc=example,dc=com
 objectClass: inetOrgPerson
 
-# refldap://localhost/dc=example,dc=com??sub
+# refldap://localhost:9010/dc=example,dc=com??sub
 
 # Testing operational attributes in request...
 dn: documentTitle=book1,dc=example,dc=com
@@ -397,5 +445,5 @@ subschemaSubentry: cn=Subschema
 hasSubordinates: FALSE
 entryUUID: 00000001-0000-0002-0000-000000000000
 
-# refldap://localhost/dc=example,dc=com??sub
+# refldap://localhost:9010/dc=example,dc=com??sub
 

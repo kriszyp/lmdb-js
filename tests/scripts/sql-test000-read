@@ -110,6 +110,17 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing subtree search with manageDSAit..."
+echo "# Testing subtree search with manageDSAit..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M '*' ref >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Testing invalid filter..."
 echo "# Testing invalid filter..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
