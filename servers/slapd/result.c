@@ -727,7 +727,7 @@ send_search_entry(
 		: an_find( attrs, &AllOper );
 
 	/* create an array of arrays of flags. Each flag corresponds
-	 * to particular value of attribute an equals 1 if value matches
+	 * to particular value of attribute and equals 1 if value matches
 	 * to ValuesReturnFilter or 0 if not
 	 */	
 	for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next ) i++;
@@ -736,16 +736,19 @@ send_search_entry(
 	for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
 		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
 
-		a_flags = ch_calloc ( j, sizeof(char) );
-		/* If no ValuesReturnFilter control return everything */
-		if ( op->vrFilter == NULL ){
-		    memset(a_flags, 1, j);
+		if( j ) {
+			a_flags = ch_calloc ( j, sizeof(char) );
+			/* If no ValuesReturnFilter control return everything */
+			if ( op->vrFilter == NULL ) {
+				memset(a_flags, 1, j);
+			}
+		} else {
+			a_flags = NULL;
 		}
 		e_flags[i] = a_flags; 
 	}
 
-	if ( op->vrFilter != NULL ){ 
-
+	if ( op->vrFilter != NULL ) { 
 		rc = filter_matched_values(be, conn, op, e->e_attrs, &e_flags) ; 
 	    
 		if ( rc == -1 ) {
@@ -932,8 +935,7 @@ send_search_entry(
 		e_flags[i] = a_flags; 
 	}
 
-	if ( op->vrFilter != NULL ){ 
-
+	if ( op->vrFilter != NULL ) {
 		rc = filter_matched_values(be, conn, op, aa, &e_flags) ; 
 	    
 		if ( rc == -1 ) {
@@ -1328,7 +1330,6 @@ str2result(
 		Debug( LDAP_DEBUG_ANY, "str2result (%s) expecting \"RESULT\"\n",
 		    s, 0, 0 );
 #endif
-
 
 		return( -1 );
 	}
