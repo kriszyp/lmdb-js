@@ -119,14 +119,14 @@ static Entry * deref_base (
 
 /* Look for and dereference all aliases within the search scope. Adds
  * the dereferenced entries to the "ids" list. Requires "stack" to be
- * able to hold 8 levels of DB_SIZE IDLs.
+ * able to hold 8 levels of DB_SIZE IDLs. Of course we're hardcoded to
+ * require a minimum of 8 UM_SIZE IDLs so this is never a problem.
  */
 static int search_aliases(
 	Operation *op,
 	SlapReply *rs,
 	Entry *e,
 	u_int32_t locker,
-	Filter *sf,
 	ID *ids,
 	ID *scopes,
 	ID *stack
@@ -142,7 +142,6 @@ static int search_aliases(
 	Filter	af;
 	DB_LOCK locka, lockr;
 	int first = 1;
-
 
 	aliases = stack;	/* IDL of all aliases in the database */
 	curscop = aliases + BDB_IDL_DB_SIZE;	/* Aliases in the current scope */
@@ -187,7 +186,8 @@ static int search_aliases(
 		 * to the cumulative list of candidates.
 		 */
 		BDB_IDL_CPY( curscop, aliases );
-		rs->sr_err = bdb_filter_candidates( op, sf, subscop, NULL, NULL );
+		rs->sr_err = bdb_dn2idl( op, e, subscop,
+					subscop2+BDB_IDL_DB_SIZE );
 		if (first) {
 			first = 0;
 		} else {
@@ -273,12 +273,6 @@ nextido:
 			0, locker, &locka, op->o_tmpmemctx );
 		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
 		e = ei->bei_e;
-#ifndef BDB_HIER
-		sf->f_dn = &e->e_nname;
-#else
-		/* bdb_dn2idl uses IDs for keys, not DNs */
-		sf->f_dn = (struct berval *)ei;
-#endif
 	}
 	return rs->sr_err;
 }
@@ -1508,7 +1502,7 @@ static int search_candidates(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	int rc, depth = 1;
-	Filter		f, scopef, rf, xf, nf;
+	Filter		f, rf, xf, nf;
 	ID		*stack;
 	AttributeAssertion aa_ref;
 #ifdef BDB_SUBENTRIES
@@ -1557,16 +1551,6 @@ static int search_candidates(
 		}
 	}
 
-	scopef.f_choice = op->oq_search.rs_scope == LDAP_SCOPE_SUBTREE
-		? SLAPD_FILTER_DN_SUBTREE
-		: SLAPD_FILTER_DN_ONE;
-#ifdef BDB_HIER
-	scopef.f_dn = (struct berval *)e->e_private;
-#else
-	scopef.f_dn = &e->e_nname;
-#endif
-	scopef.f_next = NULL;
-
 	f.f_next = NULL;
 	f.f_choice = LDAP_FILTER_AND;
 	f.f_and = &nf;
@@ -1598,10 +1582,9 @@ static int search_candidates(
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
-		rc = search_aliases( op, rs, e, locker, &scopef, ids, scopes, stack );
+		rc = search_aliases( op, rs, e, locker, ids, scopes, stack );
 	} else {
-		rc = bdb_filter_candidates( op, &scopef, ids,
-			stack, stack+BDB_IDL_UM_SIZE );
+		rc = bdb_dn2idl( op, e, ids, stack );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {

@@ -71,7 +71,7 @@ bdb_filter_candidates(
 			break;
 		}
 		break;
-
+#if 0	/* Not used any more, search calls bdb_dn2idl directly */
 	case SLAPD_FILTER_DN_ONE:
 #ifdef NEW_LOGGING
 		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tDN ONE\n", 0, 0, 0 );
@@ -95,7 +95,7 @@ bdb_filter_candidates(
 		rc = bdb_dn2idl( op->o_bd, f->f_dn, DN_SUBTREE_PREFIX, ids,
 			stack, op->o_tmpmemctx );
 		break;
-
+#endif
 	case LDAP_FILTER_PRESENT:
 #ifdef NEW_LOGGING
 		LDAP_LOG ( INDEX, ARGS, "=> bdb_filter_candidates: \tPRESENT\n", 0, 0, 0 );

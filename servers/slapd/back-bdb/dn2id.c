@@ -412,27 +412,27 @@ bdb_dn2id_children(
 
 int
 bdb_dn2idl(
-	BackendDB	*be,
-	struct berval	*dn,
-	int prefix,
+	Operation *op,
+	Entry *e,
 	ID *ids,
-	ID *stack,
-	void *ctx )
+	ID *stack )
 {
 	int		rc;
 	DBT		key;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
+	int prefix = op->ors_scope == LDAP_SCOPE_SUBTREE ? DN_SUBTREE_PREFIX :
+			DN_ONE_PREFIX;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( INDEX, ARGS, 
-		"=> bdb_dn2ididl( \"%s\" )\n", dn->bv_val, 0, 0 );
+		"=> bdb_dn2ididl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", dn->bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
 #endif
 
 #ifndef	BDB_MULTIPLE_SUFFIXES
-	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn))
+	if (prefix == DN_SUBTREE_PREFIX && BEI(e)->bei_parent->bei_id == 0 )
 	{
 		BDB_IDL_ALL(bdb, ids);
 		return 0;
@@ -440,14 +440,14 @@ bdb_dn2idl(
 #endif
 
 	DBTzero( &key );
-	key.size = dn->bv_len + 2;
+	key.size = e->e_nname.bv_len + 2;
 	key.ulen = key.size;
 	key.flags = DB_DBT_USERMEM;
-	key.data = sl_malloc( key.size, ctx );
+	key.data = sl_malloc( key.size, op->o_tmpmemctx );
 	((char *)key.data)[0] = prefix;
-	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
+	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
-	rc = bdb_idl_fetch_key( be, db, NULL, &key, ids );
+	rc = bdb_idl_fetch_key( op->o_bd, db, NULL, &key, ids );
 
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -473,7 +473,7 @@ bdb_dn2idl(
 #endif
 	}
 
-	sl_free( key.data, ctx );
+	sl_free( key.data, op->o_tmpmemctx );
 	return rc;
 }
 #else	/* BDB_HIER */
@@ -506,7 +506,7 @@ typedef struct diskNode {
  * Sorts based on normalized RDN, in length order.
  */
 int
-bdb_dup_compare(
+hdb_dup_compare(
 	DB *db, 
 	const DBT *usrkey,
 	const DBT *curkey
@@ -531,7 +531,7 @@ bdb_dup_compare(
 
 /* This function constructs a full DN for a given entry.
  */
-int bdb_fix_dn(
+int hdb_fix_dn(
 	Entry *e,
 	int checkit
 )
@@ -540,7 +540,8 @@ int bdb_fix_dn(
 	int rlen = 0, nrlen = 0;
 	char *ptr, *nptr;
 	int max = 0;
-	
+
+	/* count length of all DN components */
 	for ( ei = BEI(e); ei && ei->bei_id; ei=ei->bei_parent ) {
 		rlen += ei->bei_rdn.bv_len + 1;
 		nrlen += ei->bei_nrdn.bv_len + 1;
@@ -586,7 +587,7 @@ int bdb_fix_dn(
  * child's entryID containing the parent's entryID.
  */
 int
-bdb_dn2id_add(
+hdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
 	EntryInfo	*eip,
@@ -647,7 +648,7 @@ bdb_dn2id_add(
 }
 
 int
-bdb_dn2id_delete(
+hdb_dn2id_delete(
 	BackendDB	*be,
 	DB_TXN *txn,
 	EntryInfo	*eip,
@@ -709,7 +710,7 @@ bdb_dn2id_delete(
 }
 
 int
-bdb_dn2id(
+hdb_dn2id(
 	BackendDB	*be,
 	DB_TXN *txn,
 	struct berval	*in,
@@ -764,7 +765,7 @@ bdb_dn2id(
 }
 
 int
-bdb_dn2id_parent(
+hdb_dn2id_parent(
 	Backend *be,
 	DB_TXN *txn,
 	EntryInfo *ei,
@@ -815,7 +816,7 @@ bdb_dn2id_parent(
 }
 
 int
-bdb_dn2id_children(
+hdb_dn2id_children(
 	Operation *op,
 	DB_TXN *txn,
 	Entry *e )
@@ -886,7 +887,7 @@ struct dn2id_cookie {
 };
 
 static int
-bdb_dn2idl_internal(
+hdb_dn2idl_internal(
 	struct dn2id_cookie *cx
 )
 {
@@ -960,7 +961,7 @@ saveit:
 			for ( cx->id = bdb_idl_first( save, &idcurs );
 				cx->id != NOID;
 				cx->id = bdb_idl_next( save, &idcurs )) {
-				bdb_dn2idl_internal( cx );
+				hdb_dn2idl_internal( cx );
 			}
 			sl_free( save, cx->ctx );
 			cx->rc = 0;
@@ -972,35 +973,41 @@ saveit:
 }
 
 int
-bdb_dn2idl(
-	BackendDB	*be,
-	struct berval	*dn,
-	int prefix,
+hdb_dn2idl(
+	Operation	*op,
+	Entry		*e,
 	ID *ids,
-	ID *stack,
-	void *ctx )
+	ID *stack )
 {
+	struct bdb_info *bdb = (struct bdb_info *)op->o_bd->be_private;
 	struct dn2id_cookie cx;
-	EntryInfo *ei = (EntryInfo *)dn;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG ( INDEX, ARGS, 
+		"=> hdb_dn2ididl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2idl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
+#endif
 
 #ifndef BDB_MULTIPLE_SUFFIXES
-	if ( ei->bei_parent->bei_id == 0 ) {
-		struct bdb_info *bdb = (struct bdb_info *)be->be_private;
+	if ( op->ors_scope == LDAP_SCOPE_SUBTREE && 
+		BEI(e)->bei_parent->bei_id == 0 ) {
 		BDB_IDL_ALL( bdb, ids );
 		return 0;
 	}
 #endif
 
-	cx.id = ei->bei_id;
-	cx.bdb = (struct bdb_info *)be->be_private;
+	cx.id = e->e_id;
+	cx.bdb = bdb;
 	cx.db = cx.bdb->bi_dn2id->bdi_db;
-	cx.prefix = prefix;
+	cx.prefix = op->ors_scope == LDAP_SCOPE_SUBTREE ? DN_SUBTREE_PREFIX :
+			DN_ONE_PREFIX;
 	cx.ids = ids;
 	cx.buf = stack;
-	cx.ctx = ctx;
+	cx.ctx = op->o_tmpmemctx;
 
 	BDB_IDL_ZERO( ids );
-	if ( prefix == DN_SUBTREE_PREFIX ) {
+	if ( cx.prefix == DN_SUBTREE_PREFIX ) {
 		bdb_idl_insert( ids, cx.id );
 	}
 
@@ -1012,6 +1019,6 @@ bdb_dn2idl(
 
 	DBTzero(&cx.data);
 
-	return bdb_dn2idl_internal(&cx);
+	return hdb_dn2idl_internal(&cx);
 }
 #endif	/* BDB_HIER */

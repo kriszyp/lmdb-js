@@ -90,12 +90,10 @@ int bdb_dn2id_children(
 	Entry *e );
 
 int bdb_dn2idl(
-	BackendDB	*be,
-	struct berval	*dn,
-	int prefix,
+	Operation *op,
+	Entry *e,
 	ID *ids,
-	ID *stack,
-	void *ctx );
+	ID *stack );
 
 #ifdef BDB_HIER
 #define bdb_dn2id_parent			BDB_SYMBOL(dn2id_parent)
