@@ -511,38 +511,51 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_extensibleObject;
 	ObjectClass *si_oc_alias;
 	ObjectClass *si_oc_referral;
+	ObjectClass *si_oc_rootdse;
 	ObjectClass *si_oc_subentry;
 	ObjectClass *si_oc_subschema;
-	ObjectClass *si_oc_rootdse;
+	ObjectClass *si_oc_collectiveAttributes;
 
 	/* objectClass attribute descriptions */
 	AttributeDescription *si_ad_objectClass;
 
 	/* operational attribute descriptions */
 	AttributeDescription *si_ad_structuralObjectClass;
-	AttributeDescription *si_ad_entryUUID;
-	AttributeDescription *si_ad_entryCSN;
 	AttributeDescription *si_ad_creatorsName;
 	AttributeDescription *si_ad_createTimestamp;
 	AttributeDescription *si_ad_modifiersName;
 	AttributeDescription *si_ad_modifyTimestamp;
 	AttributeDescription *si_ad_hasSubordinates;
 	AttributeDescription *si_ad_subschemaSubentry;
+	AttributeDescription *si_ad_collectiveSubentry;
+	AttributeDescription *si_ad_collectiveExclusions;
+	AttributeDescription *si_ad_entryUUID;
+	AttributeDescription *si_ad_entryCSN;
 
 	/* root DSE attribute descriptions */
+	AttributeDescription *si_ad_altServer;
 	AttributeDescription *si_ad_namingContexts;
 	AttributeDescription *si_ad_supportedControl;
 	AttributeDescription *si_ad_supportedExtension;
 	AttributeDescription *si_ad_supportedLDAPVersion;
 	AttributeDescription *si_ad_supportedSASLMechanisms;
 	AttributeDescription *si_ad_supportedFeatures;
+	AttributeDescription *si_ad_vendorName;
+	AttributeDescription *si_ad_vendorVersion;
+
+	/* subentry attribute descriptions */
+	AttributeDescription *si_ad_administrativeRole;
+	AttributeDescription *si_ad_subtreeSpecification;
 
 	/* subschema subentry attribute descriptions */
+	AttributeDescription *si_ad_ditStructureRules;
+	AttributeDescription *si_ad_ditContentRules;
+	AttributeDescription *si_ad_nameForms;
 	AttributeDescription *si_ad_objectClasses;
 	AttributeDescription *si_ad_attributeTypes;
 	AttributeDescription *si_ad_ldapSyntaxes;
 	AttributeDescription *si_ad_matchingRules;
-	AttributeDescription *si_ad_matchingRulesUse;
+	AttributeDescription *si_ad_matchingRuleUses;
 
 	/* Aliases & Referrals */
 	AttributeDescription *si_ad_aliasedObjectName;
@@ -555,7 +568,12 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_aci;
 #endif
 
+	/* dynamic entries */
+	AttributeDescription *si_ad_entryTtl;
+	AttributeDescription *si_ad_dynamicSubtrees;
+
 	/* Other attributes descriptions */
+	AttributeDescription *si_ad_distinguishedName;
 	AttributeDescription *si_ad_name;
 	AttributeDescription *si_ad_cn;
 	AttributeDescription *si_ad_userPassword;
