@@ -1,5 +1,8 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.23 Engineering
+	Fixed ldappasswd -y handling bug (ITS#2696)
+
 OpenLDAP 2.1.22 Release
 	Fixed slapd yielding select fix (ITS#2603)
 	Fixed slapadd dnfree bug (ITS#2587)
