@@ -80,7 +80,7 @@ struct ldapinfo {
 #ifdef ENABLE_REWRITE
 	struct rewrite_info *rwinfo;
 #else /* !ENABLE_REWRITE */
-	struct berval **suffix_massage;
+	BerVarray suffix_massage;
 #endif /* !ENABLE_REWRITE */
 
 	struct ldapmap oc_map;

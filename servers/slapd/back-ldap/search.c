@@ -479,18 +479,19 @@ ldap_send_entry(
 		 * It is necessary to try to rewrite attributes with
 		 * dn syntax because they might be used in ACLs as
 		 * members of groups; since ACLs are applied to the
-		 * rewritten stuff, no dn-based subecj clause could
+		 * rewritten stuff, no dn-based subject clause could
 		 * be used at the ldap backend side (see
 		 * http://www.OpenLDAP.org/faq/data/cache/452.html)
 		 * The problem can be overcome by moving the dn-based
 		 * ACLs to the target directory server, and letting
 		 * everything pass thru the ldap backend.
 		 */
+		/* FIXME: #ifndef ENABLE_REWRITE should we massage these? */
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
-				char *newval;
+				char *newval = NULL;
 				
 				switch ( rewrite_session( li->rwinfo,
 							"searchResult",
@@ -516,9 +517,7 @@ ldap_send_entry(
 						bv->bv_val, newval );
 #endif /* !NEW_LOGGING */
 					free( bv->bv_val );
-					bv->bv_val = newval;
-					bv->bv_len = strlen( newval );
-					
+					ber_str2bv( newval, 0, 0, bv );
 					break;
 					
 				case REWRITE_REGEXEC_UNWILLING:
@@ -547,7 +546,7 @@ ldap_send_entry(
 		ch_free(attr);
 	}
 	
-	if ( ent.e_dn && ent.e_dn != bdn.bv_val )
+	if ( ent.e_dn && ( ent.e_dn != bdn.bv_val ) )
 		free( ent.e_dn );
 	if ( ent.e_ndn )
 		free( ent.e_ndn );

@@ -126,7 +126,9 @@ ldap_back_db_config(
 		BackendDB *tmp_be;
 		struct berval bvnc, *nvnc = NULL, *pvnc = NULL, 
 			brnc, *nrnc = NULL, *prnc = NULL;
+#ifdef ENABLE_REWRITE
 		int rc;
+#endif /* ENABLE_REWRITE */
 		
 		/*
 		 * syntax:
@@ -211,11 +213,11 @@ ldap_back_db_config(
 		return( rc );
 
 #else /* !ENABLE_REWRITE */
-		ber_bvecadd( &li->suffix_massage, pvnc );
-		ber_bvecadd( &li->suffix_massage, nvnc );
+		ber_bvarray_add( &li->suffix_massage, pvnc );
+		ber_bvarray_add( &li->suffix_massage, nvnc );
 		
-		ber_bvecadd( &li->suffix_massage, prnc );
-		ber_bvecadd( &li->suffix_massage, nrnc );
+		ber_bvarray_add( &li->suffix_massage, prnc );
+		ber_bvarray_add( &li->suffix_massage, nrnc );
 #endif /* !ENABLE_REWRITE */
 
 	/* rewrite stuff ... */
