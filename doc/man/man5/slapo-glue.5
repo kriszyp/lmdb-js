@@ -30,11 +30,13 @@ directive and before any subsequent
 .B database
 directive.
 .TP
-.B glue-sub <suffix-DN> [async]
+.B glue-sub <suffix-DN> [async] [advertize]
 Specify the suffix of a database to attach as a subordinate to the root
 database. The specified database must have already been configured. If the
-optional "async" keyword is supplied, searches against this database may
-be spawned in a separate thread to run concurrently with other operations.
+optional \fBasync\fP keyword is supplied, searches against this database may
+be spawned in a separate thread to run concurrently with other operations
+(currently not implemented).  If the optional \fBadvertize\fI flag 
+is supplied, the naming context is advertized in the rootDSE.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
