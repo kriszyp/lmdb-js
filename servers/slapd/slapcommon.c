@@ -275,6 +275,8 @@ slap_tool_init(
 		break;
 	}
 
+	ldap_syslog = 0;
+
 	if ( ldiffile == NULL ) {
 		ldiffp = tool == SLAPCAT ? stdout : stdin;
 
@@ -296,17 +298,17 @@ slap_tool_init(
 	}
 #endif
 		
-	rc = slap_init( mode, progname );
-
-	if ( rc != 0 ) {
-		fprintf( stderr, "%s: slap_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-
 	rc = slap_schema_init();
 
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+
+	rc = slap_init( mode, progname );
+
+	if ( rc != 0 ) {
+		fprintf( stderr, "%s: slap_init failed!\n", progname );
 		exit( EXIT_FAILURE );
 	}
 
@@ -321,8 +323,6 @@ slap_tool_init(
 		fprintf( stderr, "%s: bad configuration file!\n", progname );
 		exit( EXIT_FAILURE );
 	}
-
-	ldap_syslog = 0;
 
 	switch ( tool ) {
 	case SLAPADD:
