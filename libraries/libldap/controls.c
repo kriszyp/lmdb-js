@@ -285,7 +285,7 @@ ldap_controls_dup( LDAPControl *const *controls )
 		return NULL;
 	}
 
-	new = (LDAPControl **) LDAP_MALLOC( i * sizeof(LDAPControl *) );
+	new = (LDAPControl **) LDAP_MALLOC( (i+1) * sizeof(LDAPControl *) );
 
 	if( new == NULL ) {
 		/* memory allocation failure */
