@@ -483,8 +483,8 @@ ber_bvdup(
 }
 
 struct berval *
-ber_bvstr(
-	LDAP_CONST char *s )
+ber_str2bv(
+	LDAP_CONST char *s, int dup, struct berval *bv )
 {
 	struct berval *new;
 
@@ -495,45 +495,31 @@ ber_bvstr(
 		return NULL;
 	}
 
-	if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
-		ber_errno = LBER_ERROR_MEMORY;
-		return NULL;
+	if( bv ) {
+		new = bv;
+	} else {
+		if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
+			ber_errno = LBER_ERROR_MEMORY;
+			return NULL;
+		}
 	}
 
-	new->bv_val = (char *) s;
 	new->bv_len = strlen( s );
+	if ( dup ) {
+		if ( (new->bv_val = LBER_MALLOC( new->bv_len+1 )) == NULL ) {
+			ber_errno = LBER_ERROR_MEMORY;
+			if ( !bv )
+				LBER_FREE( new );
+			return NULL;
+		}
+
+		AC_MEMCPY( new->bv_val, s, new->bv_len );
+		new->bv_val[new->bv_len] = '\0';
+	} else {
+		new->bv_val = (char *) s;
+	}
 
 	return( new );
-}
-
-struct berval *
-ber_bvstrdup(
-	LDAP_CONST char *s )
-{
-	struct berval *new;
-	char *p;
-
-	ber_int_options.lbo_valid = LBER_INITIALIZED;
-
-	if( s == NULL ) {
-		ber_errno = LBER_ERROR_PARAM;
-		return NULL;
-	}
-
-	p = LBER_STRDUP( s );
-
-	if( p == NULL ) {
-		ber_errno = LBER_ERROR_MEMORY;
-		return NULL;
-	}
-
-	new = ber_bvstr( p );
-
-	if( new == NULL || *p == '\0' ) {
-		LBER_FREE( p );
-	}
-
-	return new;
 }
 
 char *

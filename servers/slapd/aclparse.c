@@ -172,24 +172,16 @@ parse_acl(
 						}
 					} else if ( strcasecmp( style, "base" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_BASE;
-						a->acl_dn_pat.bv_val = ch_strdup( right );
-						a->acl_dn_pat.bv_len = strlen( right );
-
+						ber_str2bv( right, 1, &a->acl_dn_pat );
 					} else if ( strcasecmp( style, "one" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_ONE;
-						a->acl_dn_pat.bv_val = ch_strdup( right );
-						a->acl_dn_pat.bv_len = strlen( right );
-
+						ber_str2bv( right, 1, &a->acl_dn_pat );
 					} else if ( strcasecmp( style, "subtree" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_SUBTREE;
-						a->acl_dn_pat.bv_val = ch_strdup( right );
-						a->acl_dn_pat.bv_len = strlen( right );
-
+						ber_str2bv( right, 1, &a->acl_dn_pat );
 					} else if ( strcasecmp( style, "children" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_CHILDREN;
-						a->acl_dn_pat.bv_val = ch_strdup( right );
-						a->acl_dn_pat.bv_len = strlen( right );
-
+						ber_str2bv( right, 1, &a->acl_dn_pat );
 					} else {
 						fprintf( stderr,
 	"%s: line %d: unknown dn style \"%s\" in to clause\n",
@@ -366,8 +358,7 @@ parse_acl(
 						acl_usage();
 
 					} else {
-						bv.bv_val = ch_strdup( right );
-						bv.bv_len = strlen( right );
+						ber_str2bv( right, 1, &bv );
 					}
 
 				} else {
@@ -479,8 +470,7 @@ parse_acl(
 						b->a_group_pat = bv;
 					} else {
 						struct berval *ndn = NULL;
-						bv.bv_val = right;
-						bv.bv_len = strlen( right );
+						ber_str2bv( right, 0, &bv );
 						dnNormalize( NULL, &bv, &ndn );
 						b->a_group_pat = *ndn;
 						free(ndn);
@@ -712,8 +702,7 @@ parse_acl(
 					}
 
 					b->a_set_style = sty;
-					b->a_set_pat.bv_val = ch_strdup(right);
-					b->a_set_pat.bv_len = strlen(right);
+					ber_str2bv( right, 1, &b->a_set_pat );
 
 					continue;
 				}
@@ -1205,7 +1194,7 @@ acl_regex_normalized_dn(
 				for ( q = &p[ 2 ]; q[ 0 ] == ' '; q++ ) {
 					/* DO NOTHING */ ;
 				}
-				AC_MEMCPY( &p[ 1 ], &q[ 0 ], strlen( q ) + 1 );
+				AC_MEMCPY( p+1, q, pattern->bv_len-(q-str)+1);
 			}
 		}
 	}
