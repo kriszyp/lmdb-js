@@ -427,7 +427,8 @@ LDAP_SLAPD_F (int) dn_rdnlen LDAP_P(( Backend *be, struct berval *dn ));
 LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	struct berval * new_dn,
 	struct berval * parent_dn,
-	struct berval * newrdn ));
+	struct berval * newrdn,
+	void *memctx ));
 
 LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 

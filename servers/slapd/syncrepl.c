@@ -364,9 +364,8 @@ do_syncrepl(
 	op.ors_tlimit = 0;
 	op.ors_attrsonly = 0;
 	op.ors_attrs = NULL;
-	op.ors_filter = str2filter( def_filter_str = "(objectClass=*)" );
-	ber_str2bv( def_filter_str, strlen( def_filter_str ), 1,
-				&op.ors_filterstr );
+	op.ors_filter = str2filter_x( &op, def_filter_str = "(objectClass=*)" );
+	ber_str2bv( def_filter_str, 0, 0, &op.ors_filterstr );
 
 	si->conn = &conn;
 	conn.c_send_ldap_result = slap_send_ldap_result;
@@ -374,22 +373,15 @@ do_syncrepl(
 	conn.c_send_search_reference = slap_send_search_reference;
 
 	/* get syncrepl cookie of shadow replica from subentry */
-	ber_str2bv( si->base, strlen(si->base), 1, &base_bv ); 
+	ber_str2bv( si->base, 0, 0, &base_bv ); 
 	dnPrettyNormal( 0, &base_bv, &pbase, &nbase, op.o_tmpmemctx );
 
 	sprintf( substr, "cn=syncrepl%d", si->id );
-	ber_str2bv( substr, strlen(substr), 1, &sub_bv );
+	ber_str2bv( substr, 0, 0, &sub_bv );
 	dnPrettyNormal( 0, &sub_bv, &psubrdn, &nsubrdn, op.o_tmpmemctx );
 
-	build_new_dn( &op.o_req_dn, &pbase, &psubrdn );
-	build_new_dn( &op.o_req_ndn, &nbase, &nsubrdn );
-
-	ch_free( base_bv.bv_val );
-	ch_free( pbase.bv_val );
-	ch_free( nbase.bv_val );
-	ch_free( sub_bv.bv_val );
-	ch_free( psubrdn.bv_val );
-	ch_free( nsubrdn.bv_val );
+	build_new_dn( &op.o_req_dn, &pbase, &psubrdn, op.o_tmpmemctx );
+	build_new_dn( &op.o_req_ndn, &nbase, &nsubrdn, op.o_tmpmemctx );
 
 	/* set callback function */
 	cb.sc_response = cookie_callback;
@@ -400,11 +392,6 @@ do_syncrepl(
 	be->be_search( &op, &rs );
 
 	ber_dupbv( &syncCookie_req, si->syncCookie );
-
-	ch_free( op.o_req_dn.bv_val );
-	ch_free( op.o_req_ndn.bv_val );
-	filter_free( op.ors_filter );
-	ch_free( op.ors_filterstr.bv_val );
 
 	psub = be->be_nsuffix[0];
 
@@ -1405,7 +1392,7 @@ syncrepl_updateCookie(
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
-	build_new_dn( &sub_bv, pdn, &psubrdn );
+	build_new_dn( &sub_bv, pdn, &psubrdn, NULL );
 	dnPrettyNormal( NULL, &sub_bv, &e->e_name, &e->e_nname, NULL );
 	ch_free( sub_bv.bv_val );
 	ch_free( psubrdn.bv_val );

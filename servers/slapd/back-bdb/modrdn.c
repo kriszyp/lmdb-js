@@ -664,7 +664,7 @@ retry:	/* transaction retry */
 	}
 
 	/* Build target dn and make sure target entry doesn't exist already. */
-	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
+	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
 
 	if (!new_ndn.bv_val) {
 		struct berval bv = {0, NULL};

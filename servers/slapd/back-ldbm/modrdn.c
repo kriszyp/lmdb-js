@@ -469,7 +469,7 @@ ldbm_back_modrdn(
 	}
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
-	build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
+	build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
 	dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn, NULL );
 
 #ifdef NEW_LOGGING

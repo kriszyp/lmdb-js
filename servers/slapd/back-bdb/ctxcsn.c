@@ -44,6 +44,7 @@ bdb_csn_commit(
 )
 {
 	struct bdb_info	*bdb = (struct bdb_info *) op->o_bd->be_private;
+	struct berval	ctxcsn_ndn = { 0, NULL };
 	EntryInfo		*ctxcsn_ei = NULL;
 	DB_LOCK			ctxcsn_lock;
 	struct berval	max_committed_csn;
@@ -59,16 +60,15 @@ bdb_csn_commit(
 		e = ei->bei_e;
 	}
 
-	bdb_cache_find_ndn( op, tid, op->o_bd->be_nsuffix, &ctxcsn_ei );
-	bdb_cache_entryinfo_unlock( ctxcsn_ei );
-	rc = bdb_cache_find_ndn( op, tid, &slap_ldapsync_cn_bv, &ctxcsn_ei );
-	if ( rc == 0 ) {
-		rc = bdb_cache_find_id( op, tid, ctxcsn_ei->bei_id, &ctxcsn_ei, 1,
-			locker, &ctxcsn_lock );
-		*ctxcsn_e = ctxcsn_ei->bei_e;
-	} else {
-		bdb_cache_entryinfo_unlock( ctxcsn_ei );
-	}
+	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
+		(struct berval *)&slap_ldapsync_cn_bv, op->o_tmpmemctx );
+
+	rc =  bdb_dn2entry( op, tid, &ctxcsn_ndn, &ctxcsn_ei,
+			1, locker, &ctxcsn_lock );
+	
+	*ctxcsn_e = ctxcsn_ei->bei_e;
+
+	op->o_tmpfree( ctxcsn_ndn.bv_val, op->o_tmpmemctx );
 
 	slap_get_commit_csn( op, &max_committed_csn );
 
@@ -269,9 +269,9 @@ bdb_get_commit_csn(
 			struct berval bv;
 			sprintf( substr, "cn=syncrepl%d", op->o_bd->syncinfo->id );
 			ber_str2bv( substr, 0, 0, &bv );
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, op->o_tmpmemctx );
 		} else {
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv, op->o_tmpmemctx );
 		}
 
 ctxcsn_retry :
