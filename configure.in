@@ -683,13 +683,16 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS( \
 	stddef.h	\
+	errno.h		\
 	fcntl.h		\
 	filio.h		\
 	limits.h	\
 	malloc.h	\
 	sgtty.h		\
 	sys/file.h	\
+	sys/errno.h \
 	sys/ioctl.h	\
+	sys/param.h	\
 	sys/time.h	\
 	syslog.h	\
 	termios.h	\

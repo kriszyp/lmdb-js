@@ -53,11 +53,11 @@
 /* define if your POSIX Threads implementatin is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
 
-/* define if you have -ltermcap */
-#undef HAVE_TERMCAP
-
 /* define if you have -lwrap */
 #undef HAVE_TCPD
+
+/* define if you have -ltermcap */
+#undef HAVE_TERMCAP
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
@@ -76,6 +76,30 @@
 
 /* define this for LDAP User Interface support */
 #undef LDAP_LIBUI
+
+/* define this to use DB2 in native mode */
+#undef LDBM_USE_DB2
+
+/* define this to use DB2 in compat185 mode */
+#undef LDBM_USE_DB2_COMPAT185
+
+/* define this to use DBBTREE w/ LDBM backend */
+#undef LDBM_USE_DBBTREE
+
+/* define this to use DBHASH w/ LDBM backend */
+#undef LDBM_USE_DBHASH
+
+/* define this to use GDBM w/ LDBM backend */
+#undef LDBM_USE_GDBM
+
+/* define this to use NDBM w/ LDBM backend */
+#undef LDBM_USE_NDBM
+
+/* define this if you want no termcap support */
+#undef NO_TERMCAP
+
+/* define this if you want no thread support */
+#undef NO_THREADS
 
 /* define this for ACL Group support */
 #undef SLAPD_ACLGROUPS
@@ -103,30 +127,6 @@
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
-
-/* define this to use DB2 in native mode */
-#undef LDBM_USE_DB2
-
-/* define this to use DB2 in compat185 mode */
-#undef LDBM_USE_DB2_COMPAT185
-
-/* define this to use DBBTREE w/ LDBM backend */
-#undef LDBM_USE_DBBTREE
-
-/* define this to use DBHASH w/ LDBM backend */
-#undef LDBM_USE_DBHASH
-
-/* define this to use GDBM w/ LDBM backend */
-#undef LDBM_USE_GDBM
-
-/* define this to use NDBM w/ LDBM backend */
-#undef LDBM_USE_NDBM
-
-/* define this if you want no termcap support */
-#undef NO_TERMCAP
-
-/* define this if you want no thread support */
-#undef NO_THREADS
 
 /* define this if the thread package is preemptive */
 #undef THREAD_PREEMPTIVE

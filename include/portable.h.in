@@ -152,11 +152,11 @@ is provided ``as is'' without express or implied warranty.
 /* define if your POSIX Threads implementatin is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
 
-/* define if you have -ltermcap */
-#undef HAVE_TERMCAP
-
 /* define if you have -lwrap */
 #undef HAVE_TCPD
+
+/* define if you have -ltermcap */
+#undef HAVE_TERMCAP
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
@@ -175,6 +175,18 @@ is provided ``as is'' without express or implied warranty.
 
 /* define this for LDAP User Interface support */
 #undef LDAP_LIBUI
+
+/* define this to use DBBTREE w/ LDBM backend */
+#undef LDBM_USE_DBBTREE
+
+/* define this to use DBHASH w/ LDBM backend */
+#undef LDBM_USE_DBHASH
+
+/* define this if you want no termcap support */
+#undef NO_TERMCAP
+
+/* define this if you want no thread support */
+#undef NO_THREADS
 
 /* define this for ACL Group support */
 #undef SLAPD_ACLGROUPS
@@ -202,18 +214,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
-
-/* define this to use DBBTREE w/ LDBM backend */
-#undef LDBM_USE_DBBTREE
-
-/* define this to use DBHASH w/ LDBM backend */
-#undef LDBM_USE_DBHASH
-
-/* define this if you want no termcap support */
-#undef NO_TERMCAP
-
-/* define this if you want no thread support */
-#undef NO_THREADS
 
 /* define this if the thread package is preemptive */
 #undef THREAD_PREEMPTIVE
@@ -311,6 +311,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
+/* Define if you have the <errno.h> header file.  */
+#undef HAVE_ERRNO_H
+
 /* Define if you have the <fcntl.h> header file.  */
 #undef HAVE_FCNTL_H
 
@@ -368,6 +371,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <sys/dir.h> header file.  */
 #undef HAVE_SYS_DIR_H
 
+/* Define if you have the <sys/errno.h> header file.  */
+#undef HAVE_SYS_ERRNO_H
+
 /* Define if you have the <sys/file.h> header file.  */
 #undef HAVE_SYS_FILE_H
 
@@ -376,6 +382,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the <sys/ndir.h> header file.  */
 #undef HAVE_SYS_NDIR_H
+
+/* Define if you have the <sys/param.h> header file.  */
+#undef HAVE_SYS_PARAM_H
 
 /* Define if you have the <sys/time.h> header file.  */
 #undef HAVE_SYS_TIME_H
@@ -420,6 +429,7 @@ is provided ``as is'' without express or implied warranty.
 #	include <stddef.h>
 #endif
 
+#include "bridge.h"
 #include "ldap_cdefs.h"
 
 #endif /* _LDAP_PORTABLE_H */
