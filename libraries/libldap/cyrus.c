@@ -1002,6 +1002,7 @@ ldap_int_sasl_bind(
 int
 ldap_int_sasl_external(
 	LDAP *ld,
+	LDAPConn *conn,
 	const char * authid,
 	ber_len_t ssf )
 { return LDAP_SUCCESS; }
