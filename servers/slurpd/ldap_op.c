@@ -903,10 +903,14 @@ do_bind(
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "operation", LDAP_LEVEL_ARGS, 
 		"do_bind: bind to %s as %s via %s (SASL)\n", 
-		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech ));
+		ri->ri_hostname,
+		ri->ri_authcId ? ri->ri_authcId : "-",
+		ri->ri_saslmech ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "bind to %s as %s via %s (SASL)\n",
-		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech );
+		ri->ri_hostname,
+		ri->ri_authcId ? ri->ri_authcId : "-",
+		ri->ri_saslmech );
 #endif
 
 #ifdef HAVE_CYRUS_SASL
