@@ -12,96 +12,94 @@ the {{I:slapd.conf}}(5) file, normally installed in the
 An alternate configuration file can be specified via a
 command-line option to slapd or slurpd (see Sections 5 and 8,
 respectively). This section describes the general format of the config file,
-followed by a detailed description of each config file option.
+followed by a detailed description of each config file directive.
 
 
 
 H2: Configuration File Format
 
-The {{EX: slapd.conf}} file consists of a series of global configuration options
-that apply to slapd as a whole (including all backends), followed by
-zero or more database backend definitions that contain information
-specific to a backend instance.
+The {{slapd.conf}}(5) file consists three types of configuration
+information: global, backend specific, database specific.  Global
+information is specified first, followed by information associated
+with a particular backend type, which is then followed by information
+associated with a particular database instance.  Global directives can
+be overridden in a backend and/or database directives, backend directives
+can be overridden by database directives.
 
-Global options can be overridden in a backend (for options that
-appear more than once, the last appearance in the slapd.conf file is
-used). Blank lines and comment lines beginning with a `#' character
-are ignored. If a line begins with white space, it is considered a
+Blank lines and comment lines beginning with a '{{EX:#}}' character
+are ignored.  If a line begins with white space, it is considered a
 continuation of the previous line. The general format of slapd.conf is
 as follows:
 
-E: # comment - these options apply to every database
-E: <global config options>
+E: # global configuration directives
+E: <global config directives>
 E:
-E: # first database definition & config options
-E: database <backend 1 type>
-E: <config options specific to backend 1>
+E: # backend definition
+E: backend <typeA>
+E: <backend-specific directives>
 E:
-E: # second database definition & config options
-E: database <backend 2 type>
-E: <config options specific to backend 2>
+E: # first database definition & config directives
+E: database <typeA>
+E: <database-specific directives>
 E:
-E: # subsequent database definitions & config options
+E: # second database definition & config directives
+E: database <typeB>
+E: <database-specific directives>
+E:
+E: # second database definition & config directives
+E: database <typeA>
+E: <database-specific directives>
+E:
+E: # subsequent backend & database definitions & config directives
 E: ...
 
-Configuration line arguments are separated by white space. If
-an argument contains white space, the argument should be
-enclosed in double quotes "like this". If an argument contains
-a double quote or a backslash character `\', the character
-should be preceded by a backslash character `\'.
+A configuration directive may take arguments.  If so, they are
+separated by white space.  If an argument contains white space,
+the argument should be enclosed in double quotes "like this". If
+an argument contains a double quote or a backslash character `\',
+the character should be preceded by a backslash character `\'.
 
 The distribution contains an example configuration file that will
-be installed in the {{EX: ETCDIR}} directory. Also provided are
-{{EX: slapd.at.conf}}, which contains many commonly used attribute
-definitions, and {{EX: slapd.oc.conf}}, which contains many commonly
-used object class definitions. These files can be included from
-the slapd configuration file (see below).
+be installed in the {{F: /usr/local/etc/openldap}} directory.
+A number of files containing schema definition (attribute types
+and object classes) are also provided in the
+{{F: /usr/local/etc/openldap/schema}} directory.
 
 
+H2: Configuration File Directives
 
-H2: Configuration File Options
-
-This section separates the configuration file options into
-global and backend-specific categories, describing each
-option and its default value (if any), and giving an example of
+This section details commonly used configuration directives.  For
+a complete list, see {{slapd.conf}}(5) manual page.  This section
+separates the configuration file directives into global,
+backend-specific and data-specific categories, describing each
+directive and its default value (if any), and giving an example of
 its use.
 
 
 
-H3: Global Options
+H3: Global Directives
 
-Options described in this section apply to all backends,
-unless specifically overridden in a backend definition. Option
-arguments that should be replaced by actual text are shown
-in brackets <>.
+Directives described in this section apply to all backends,
+unless specifically overridden in a backend definition. 
+Arguments to directives should be replaced by actual text are
+shown in brackets {{EX:<>}}.
 
 
 H4: access to <what> [ by <who> <accesslevel> <control> ]+
 
-This option grants access (specified by <accesslevel>) to a
+This directive grants access (specified by <accesslevel>) to a
 set of entries and/or attributes (specified by <what>) by one or
 more requesters (specified by <who>). See Section 5.3 on
 access control for more details and examples.
 
 
-H4: attribute <name> [<name2>] { bin | ces | cis | tel | dn }
+H4: attributetype <RFC2252 Attribute Type Description>
 
-This option associates a syntax with an attribute name. By
-default, an attribute is assumed to have syntax cis. An
-optional alternate name can be given for an attribute. The
-possible syntaxes and their meanings are
-
-* {{EX: bin}} binary
-* {{EX: ces}} case exact string (case must match during comparisons)
-* {{EX: cis}} case ignore string (case is ignored during comparisons)
-* {{EX: tel}} telephone number string (like cis but blanks and dashes ` '
-are ignored during comparisons)
-* {{EX: dn}} distinguished name
-
+This directive defines an attribute type.
 
 H4: defaultaccess { none | compare | search | read | write }
 
-This option specifies the default access to grant requesters
+This directive specifies the default access to grant requesters
 not matched by any other access line (see Section 5.3). Note
 that an access level implies all lesser access levels (e.g.,
 write access implies read, search and compare).
@@ -112,18 +110,18 @@ E: defaultaccess read
 
 H4: include <filename>
 
-This option specifies that slapd should read additional
+This directive specifies that slapd should read additional
 configuration information from the given file before continuing
 with the next line of the current file. The included file should
 follow the normal slapd config file format.
 
-Note: You should be careful when using this option - there is
-no small limit on the number of nested include options, and no
+Note: You should be careful when using this directive - there is
+no small limit on the number of nested include directives, and no
 loop detection is done.
 
 H4: loglevel <integer>
 
-This option specifies the level at which debugging statements
+This directive specifies the level at which debugging statements
 and operation statistics should be syslogged (currently
 logged to the syslogd(8) LOG_LOCAL4 facility). You must
 have compiled slapd with  DLDAP_DEBUG for this to work
@@ -156,34 +154,32 @@ syslogged.
 
 E: loglevel 256
 
-H4: objectclass <name> [ requires <attrs> ] [ allows <attrs> ]
+H4: objectclass <RFC2252 Object Class Description>
 
-This option defines the schema rules for the given object
-class. Used in conjunction with the schemacheck option. See
-Section 5.4 for more details.
+This directive defines an object class.
 
 H4: referral <url>
 
-This option specifies the referral to pass back when slapd
+This directive specifies the referral to pass back when slapd
 cannot find a local database to handle a request.
 
 \Example:
 
-E: referral ldap://ldap.openldap.org
+E: referral ldap://root.openldap.org
 
-This will refer non-local queries to the LDAP server at the
-OpenLDAP Project. Smart LDAP clients can re-ask their
+This will refer non-local queries to the global root LDAP server
+at the OpenLDAP Project. Smart LDAP clients can re-ask their
 query at that server, but note that most of these clients are
 only going to know how to handle simple LDAP URLs that
 contain a host part and optionally a distinguished name part.
 
 H4: schemacheck { on | off }
 
-This option turns schema checking on or off. If schema
+This directive turns schema checking on or off. If schema
 checking is on, entries added or modified through LDAP operations
 will be checked to ensure they obey the schema rules implied
 by their object class(es) as defined by the corresponding objectclass
-option(s). If schema checking is off this check is not done.
+directive(s). If schema checking is off this check is not done.
 
 \Default:
 
@@ -191,7 +187,7 @@ E: schemacheck on
 
 H4: sizelimit <integer>
 
-This option specifies the maximum number of entries to return
+This directive specifies the maximum number of entries to return
 from a search operation.
 
 \Default:
@@ -201,9 +197,9 @@ E: sizelimit 500
 
 H4: srvtab <filename>
 
-This option specifies the srvtab file in which slapd can find the
+This directive specifies the srvtab file in which slapd can find the
 kerberos keys necessary for authenticating clients using
-kerberos. This option is only meaningful if you are using
+kerberos. This directive is only meaningful if you are using
 kerberos authentication, which must be enabled at compile
 time by including the appropriate definitions in the
 {{EX: Make-common}} file.
@@ -214,7 +210,7 @@ E: srvtab /etc/srvtab
 
 H4: timelimit <integer>
 
-This option specifies the maximum number of seconds (in real
+This directive specifies the maximum number of seconds (in real
 time) slapd will spend answering a search request. If a
 request is not finished in this time, a result indicating an
 exceeded timelimit will be returned.
@@ -224,16 +220,16 @@ exceeded timelimit will be returned.
 E: timelimit 3600
 
 
+H3: General Backend Directives
 
-H3: General Backend Options
+H3: General Database Directives
 
-Options in this section only apply to the backend in which
-they are defined. They are supported by every type of
-backend.
+Directives in this section only apply to the database in which
+they are defined. They are supported by every type of database.
 
 H4: database <databasetype>
 
-This option marks the beginning of a new database instance
+This directive marks the beginning of a new database instance
 definition. <databasetype> should be one of ldbm, shell, or
 passwd, depending on which backend will serve the
 database.
@@ -247,17 +243,17 @@ instance definition.
 
 H4: lastmod { on | off }
 
-This option controls whether slapd will automatically maintain
+This directive controls whether slapd will automatically maintain
 the modifiersName, modifyTimestamp, creatorsName, and
 createTimestamp attributes for entries.
 
 \Default:
 
-E: lastmod off
+E: lastmod on
 
 H4: readonly { on | off }
 
-This option puts the database into "read-only" mode. Any
+This directive puts the database into "read-only" mode. Any
 attempts to modify the database will return an "unwilling to
 perform" error.
 
@@ -266,13 +262,14 @@ perform" error.
 E: readonly off
 
 H4: replica
-E: replica host=<hostname>[:<port>]
-E: "binddn=<DN>"
-E: bindmethod={ simple | kerberos }
-E: \[credentials=<password>]
-E: \[srvtab=<filename>]
 
-This option specifies a replication site for this database. The
+.{{EX:replica host=<hostname>[:<port>]}}
+..{{EX:"binddn=<DN>"}}
+..{{EX:bindmethod={ simple | kerberos }}}
+..{{EX:[credentials=<password>]}}
+..{{EX:[srvtab=<filename>]}}
+
+This directive specifies a replication site for this database. The
 {{EX: host=}} parameter specifies a host and optionally a port where
 the slave slapd instance can be found. Either a domain name
 or IP address may be used for <hostname>. If <port> is not
@@ -282,7 +279,7 @@ The {{EX: binddn=}} parameter gives the DN to bind as for updates to
 the slave slapd. It should be a DN which has read/write
 access to the slave slapd's database, typically given as a
 "rootdn" in the slave's config file. It must also match the
-updatedn option in the slave slapd's config file. Since DNs are
+updatedn directive in the slave slapd's config file. Since DNs are
 likely to contain embedded spaces, the entire "{{EX: binddn=<DN>}}"
 string should be enclosed in quotes.
 
@@ -304,9 +301,9 @@ See Section 10 for more details on replication.
 
 H4: replogfile <filename>
 
-This option specifies the name of the replication log file to
+This directive specifies the name of the replication log file to
 which slapd will log changes. The replication log is typically
-written by slapd and read by slurpd. Normally, this option is
+written by slapd and read by slurpd. Normally, this directive is
 only used if slurpd is being used to replicate the database.
 However, you can also use it to generate a transaction log, if
 slurpd is not running. In this case, you will need to periodically
@@ -316,19 +313,19 @@ See Section 10 for more details on replication.
 
 H4: rootdn <dn>
 
-This option specifies the DN of an entry that is not subject to
+This directive specifies the DN of an entry that is not subject to
 access control or administrative limit restrictions for
 operations on this database.
 
 \Example:
 
-E: rootdn "cn=Manager, o=OpenLDAP Project, c=US"
+E: rootdn "cn=Manager, dc=example, dc=com"
 
 H4: rootkrbname <kerberosname>
 
-This option specifies a kerberos name for the DN given above
+This directive specifies a kerberos name for the DN given above
 that will always work, regardless of whether an entry with the
-given DN exists or has a {{EX: krbName}} attribute. This option is
+given DN exists or has a {{EX: krbName}} attribute. This directive is
 useful when creating a database and also when using slurpd
 to provide replication service (see Section 10).
 
@@ -338,9 +335,9 @@ E: rootkrbname admin@openldap.org
 
 H4: rootpw <password>
 
-This option specifies a password for the DN given above that
+This directive specifies a password for the DN given above that
 will always work, regardless of whether an entry with the given
-DN exists or has a password. This option is useful when
+DN exists or has a password. This directive is useful when
 creating a database and also when using slurpd to provide
 replication service (see Section 10).
 
@@ -350,16 +347,16 @@ E: rootpw secret
 
 H4: suffix <dn suffix>
 
-This option specifies the DN suffix of queries that will be
+This directive specifies the DN suffix of queries that will be
 passed to this backend database. Multiple suffix lines can be
 given, and at least one is required for each database
 definition.
 
 \Example:
 
-E: suffix "o=OpenLDAP Project, c=US"
+E: suffix "dc=example, dc=com"
 
-Queries with a DN ending in "o=OpenLDAP Project, c=US"
+Queries with a DN ending in "dc=example, dc=com"
 will be passed to this backend.
 
 Note: when the backend to pass a query to is selected, slapd
@@ -369,21 +366,21 @@ prefix of another, it must appear after it in the config file.
 
 H4: updatedn <dn>
 
-This option is only applicable in a slave slapd. It specifies the
+This directive is only applicable in a slave slapd. It specifies the
 DN allowed to make changes to the replica (typically, this is
 the DN slurpd binds as when making changes to the replica).
 
 
 
-H3: LDBM Backend-Specific Options
+H3: LDBM Backend-Specific Directives
 
-Options in this category only apply to the LDBM backend
+Directives in this category only apply to the LDBM backend
 database. That is, they must follow a "database ldbm" line and
 come before any other "database" line.
 
 H4: cachesize <integer>
 
-This option specifies the size in entries of the in-memory
+This directive specifies the size in entries of the in-memory
 cache maintained by the LDBM backend database instance.
 
 \Default:
@@ -393,9 +390,9 @@ E: cachesize 1000
 
 H4: dbcachesize <integer>
 
-This option specifies the size in bytes of the in-memory cache
+This directive specifies the size in bytes of the in-memory cache
 associated with each open index file. If not supported by the
-underlying database method, this option is ignored without
+underlying database method, this directive is ignored without
 comment. Increasing this number uses more memory but can
 cause a dramatic performance increase, especially during
 modifies or when building indexes.
@@ -407,36 +404,35 @@ E: dbcachesize 100000
 
 H4: directory <directory>
 
-This option specifies the directory where the LDBM files
+This directive specifies the directory where the LDBM files
 containing the database and associated indexes live.
 
 \Default:
 
-E: directory /usr/tmp
+E: directory /usr/local/var/openldap-ldbm
 
 
 H4: index {<attrlist> | default} [pres,eq,approx,sub,none]
 
-This option specifies the indexes to maintain for the given
+This directive specifies the indexes to maintain for the given
 attribute. If only an <attrlist> is given, all possible indexes are
 maintained.
 
 \Example:
 
-E: index cn
+E: index default pres,eq
+E: index objectclass,uid
+E: index cn,sn eq,sub,approx
 
-E: index sn,uid eq,sub,approx
-
-E: index default none
-
-This example causes all indexes to be maintained for the cn
-attribute; equality, substring, and approximate indexes for the
-sn and uid attributes; and no indexes for all other attributes.
-
+The first line sets the default to indices to maintain to present
+and equality.  The second line causes the default (pres,eq) set
+of indices to be maintained for objectclass and uid.  The third
+line causes equality, substring, and approximate filters to be
+maintained for cn and sn attributes.
 
 H4: mode <integer>
 
-This option specifies the file protection mode that newly
+This directive specifies the file protection mode that newly
 created database index files should have.
 
 \Default:
@@ -445,7 +441,7 @@ E: mode 0600
 
 
 
-H3: Shell Backend-Specific Options
+H3: Shell Backend-Specific Directives
 
 E: bind <pathname>
 
@@ -465,7 +461,7 @@ E: delete <pathname>
 
 E: abandon <pathname>
 
-These options specify the pathname of the command to
+These directives specify the pathname of the command to
 execute in response to the given LDAP operation. The
 command given should understand and follow the input/output
 conventions described in Appendix B.
@@ -480,15 +476,15 @@ supplied will be refused with an "unwilling to perform" error.
 
 
 
-H3: Password Backend-Specific Options
+H3: Password Backend-Specific Directives
 
-Options in this category only apply to the PASSWD backend
+Directives in this category only apply to the PASSWD backend
 database. That is, they must follow a "database passwd" line
 and come before any other "database" line.
 
 H4: file <filename>
 
-This option specifies an alternate passwd file to use.
+This directive specifies an alternate passwd file to use.
 
 \Default:
 
@@ -496,7 +492,7 @@ E: file /etc/passwd
 
 
 
-H3: Tcl Backend-Specific Options
+H3: Tcl Backend-Specific Directives
 
 H4: scriptpath <pathname>
 
@@ -523,7 +519,7 @@ E: delete <proc>
 
 E: abandon <proc>
 
-These options specify the name of the proc (function) in the tcl script
+These directives specify the name of the proc (function) in the tcl script
 specified in 'scriptpath' to execute in response to the given LDAP
 operation.
 
@@ -593,9 +589,9 @@ E: dn=<regular expression>
 Note: The DN pattern specified should be "normalized",
 meaning that there should be no extra spaces, and commas
 should be used to separate components. An example
-normalized DN is "cn=Babs Jensen,o=OpenLDAP Project,c=US".
+normalized DN is "cn=Babs Jensen,dc=example,dc=com".
 An example of a non-normalized DN is
-"cn=Babs Jensen; o=OpenLDAP Project, c=US".
+"cn=Babs Jensen; dc=example, dc=com".
 
 Or, entries may be selected by a filter matching some
 attribute(s) in the entry:
@@ -603,9 +599,10 @@ attribute(s) in the entry:
 E: filter=<ldap filter>
 
 where <ldap filter> is a string representation of an LDAP
-search filter, as described in RFC 1588. The special entry
-selector "*" is used to select any entry, and is a convenient
-shorthand for the equivalent "dn=.*" selector.
+search filter, as described in RFC 2254.
+
+The special entry selector "*" is used to select any entry,
+and is a convenient shorthand for the equivalent "dn=.*" selector.
 
 Attributes within an entry are selected by including a
 comma-separated list of attribute names in the <what>
@@ -614,9 +611,9 @@ selector:
 E: attrs=<attribute list>
 
 Access to the entry itself must be granted or denied using the
-special attribute name "entry". Note that giving access to an
+special attribute name "{{EX:entry}}". Note that giving access to an
 attribute is not enough; access to the entry itself through the
-"entry" attribute is also required. The complete examples at
+{{EX:entry}} attribute is also required. The complete examples at
 the end of this section should help clear things up.
 
 
@@ -722,40 +719,40 @@ The following example shows the use of a regular expression
 to select the entries by DN in two access directives where
 ordering is significant.
 
-E: access to dn=".*, o=OpenLDAP Project, c=US"
+E: access to dn=".*,dc=example,dc=com"
 E: 	by * search
-E: access to dn=".*, c=US"
+E: access to dn=".*,dc=com"
 E: 	by * read
 
-Read access is granted to entries under the c=US subtree,
-except for those entries under the "o=OpenLDAP Project,
-c=US" subtree, to which search access is granted. If the
+Read access is granted to entries under the {{EX:dc=com}}
+subtree, except for those entries under the {{EX:dc=example,dc=com}} subtree,
+to which search access is granted. If the
 order of these access directives was reversed, the
-OpenLDAP-specific directive would never be matched, since all
-OpenLDAP entries are also c=US entries.
+trailing directive would never be reached, since all
+{{EX:dc=example,dc=com}} entries are also {{EX:dc=com}} entries.
 
 The next example again shows the importance of ordering,
 both of the access directives and the "by" clauses. It also
 shows the use of an attribute selector to grant access to a
 specific attribute and various <who> selectors.
 
-E:access to dn=".*, o=OpenLDAP Project, c=US" attr=homePhone
+E:access to dn=".*, dc=example, dc=com" attr=homePhone
 E:	by self write
-E:	by dn=".*, o=OpenLDAP Project, c=US" search
-E:	by domain=.*\.openldap\.org read
+E:	by dn=".*,dc=example,dc=com" search
+E:	by domain=.*\.example\.com read
 E:	by * compare
-E:access to dn=".*, o=OpenLDAP Project, c=US"
+E:access to dn=".*,dc=example,dc=com"
 E:	by self write
-E:	by dn=".*, o=OpenLDAP Project, c=US" search
+E:	by dn=".*,dc=example,dc=com" search
 E:	by * none
 
-This example applies to entries in the "o=OpenLDAP Project, c=US"
+This example applies to entries in the "dc=example, dc=com"
 subtree. To all attributes except homePhone, the entry itself
-can write them, other OpenLDAP entries can search by them,
+can write them, other Example.com entries can search by them,
 anybody else has no access. The homePhone attribute is
-writable by the entry, searchable by other OpenLDAP entries,
+writable by the entry, searchable by other Example.com entries,
 readable by clients connecting from somewhere in the
-OpenLDAP.org domain, and comparable by everybody else.
+example.com domain, and comparable by everybody else.
 
 Sometimes it is useful to permit a particular DN to add or
 remove itself from an attribute. For example, if you would like to
@@ -783,17 +780,15 @@ H2: Schema Enforcement
 
 
 
-The {{EX: objectclass}} and schemacheck configuration file options
+The {{EX: objectclass}} and schemacheck configuration file directives
 can be used to enforce schema rules on entries in the
 directory. The schema rules are defined by one or more
 objectclass lines, and enforcement is turned on or off via the
-schemacheck option. The format of an {{EX: objectclass}} line is:
+schemacheck directives. The format of an {{EX: objectclass}} line is:
 
-E: objectclass <name>
-E: 	[ requires <attrs> ]
-E: 	[ allows <attrs> ]
+E: objectclass <RFC2252 Object Class Description>
 
-This option defines the schema rules for the object class
+This directive defines the schema rules for the object class
 given by {{EX: <name>}}. Schema rules consist of the attributes the
 entry is required to have (given by the requires {{EX: <attrs>}}
 clause) and those attributes that it may optionally have (given
@@ -834,21 +829,19 @@ reference only and are not included in the actual file. First, the
 global configuration section:
 
 E: 1. # example config file - global configuration section
-E: 2. include /usr/local/etc/slapd.at.conf
-E: 3. include /usr/local/etc/slapd.oc.conf
-E: 4. schemacheck on
-E: 5. referral ldap://ldap.openldap.org
+E: 2. include /usr/local/etc/schema/core.schema
+E: 3. referral ldap://root.openldap.org
 
-Line 1 is a comment. Lines 2 and 3 include other config files
-containing attribute and object class definitions, respectively.
-Line 4 turns on schema checking. The {{EX: referral}} option on line 5
+Line 1 is a comment. Lines 2 include another config file
+which containing {{core}} schema definitions.
+The {{EX: referral}} directive on line 3
 means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
-standard port (389) at the host {{EX: ldap.openldap.org}}.
+standard port (389) at the host {{EX: root.openldap.org}}.
 
 The next section of the configuration file defines an LDBM
 backend that will handle queries for things in the
-"o=OpenLDAP Project, c=US" portion of the tree. The
+"dc=example,dc=com" portion of the tree. The
 database is to be replicated to two slave slapds, one on
 truelies, the other on judgmentday. Indexes are to be
 maintained for several attributes, and the {{EX: userPassword}}
@@ -856,16 +849,16 @@ attribute is to be protected from unauthorized access.
 
 E: 1. # ldbm definition for the U-M database
 E: 2. database ldbm
-E: 3. suffix "o=OpenLDAP Project, c=US"
+E: 3. suffix "dc=example, dc=com"
 E: 4. directory /usr/local/var/openldap
-E: 6. rootdn "cn=Manager, o=OpenLDAP Project, c=US"
+E: 6. rootdn "cn=Manager, dc=example, dc=com"
 E: 7. rootpw secret
 E: 8. replogfile /usr/local/var/openldap/slapd.replog
-E: 9. replica host=slave1.openldap.org:389
-E: 10. binddn="cn=Replicator, o=OpenLDAP Project, c=US"
+E: 9. replica host=slave1.example.com:389
+E: 10. binddn="cn=Replicator, dc=example, dc=com"
 E: 11. bindmethod=simple credentials=secret
-E: 12.replica host=slave2.openldap.org
-E: 13. binddn="cn=Replicator, o=OpenLDAP Project, c=US"
+E: 12.replica host=slave2.example.com
+E: 13. binddn="cn=Replicator, dc=example, dc=com"
 E: 14. bindmethod=kerberos
 E: 15. srvtab=/etc/srvtab.slave2
 E: 16.# ldbm indexed attribute definitions
@@ -873,11 +866,16 @@ E: 17.index cn,sn,uid pres,eq,approx,sub
 E: 18.index objectclass pres,eq
 E: 19.index default none
 E: 20.# ldbm access control definitions
-E: 21.defaultaccess read
-E: 22.access to attr=userpassword
+E: 21.access to attr=userPassword
 E: 23. by self write
-E: 24. by dn="cn=Admin, o=OpenLDAP Project, c=US" write
-E: 25. by * compare
+E: 22. by anonymous auth
+E: 23. by dn="cn=Admin,dc=example,dc=com" write
+E: 25. by * none
+E: 26.access to *
+E: 27. by self write
+E: 28. by anonymous auth
+E: 29. by dn="cn=Admin,dc=example,dc=com" write
+E: 30. by * read
 
 Line 1 is a comment. The start of the database definition is
 marked by the database keyword on line 2. Line 3 specifies
@@ -896,32 +894,27 @@ host, the DN to bind as when performing updates, the bind
 method (simple) and the credentials (password) for the
 binddn. Lines 12 through 15 specify a second replication site,
 using kerberos instead of simple authentication. See Section
-10 on slurpd for more information on these options.
+10 on slurpd for more information on these directives.
 
 Lines 16 through 19 indicate the indexes to maintain for
 various attributes. The default is not to maintain any indexes
 (line 19).
 
-Lines 20 through 25 specify access control for entries in the
+Lines 20 through 30 specify access control for entries in the
 database. For all entries, the {{EX: userPassword}} attribute is
-writable by the entry and the "admin" entry, comparable by
-everyone else. All other attributes allow read access by
-default (line 21). Note that the special "entry" attribute is not
-required in the access directive beginning on line 22. This is
-because the default access is read.
+writable by the entry and the "admin" entry, may be used for
+authentication/authorization purposes, but is otherwise not
+readable.  All other attributes by writable by the entry and
+the "admin" entry, may be used for authentication/authorization
+purposes, but may be read by authenticated users.
 
 The next section of the example configuration file defines
 another LDBM database. This one handles queries involving
-the "o="Babs, Inc.", c=US" subtree.
+the {{EX:dc=example,dc=net}} subtree.
 
 E: 1. # ldbm definition for Babs, Inc. database
 E: 2. database ldbm
-E: 3. suffix "o=\"Babs, Inc.\", c=US"
-E: 4. directory /usr/local/ldbm-babs
-E: 5. rootdn "cn=Babs, o=\"Babs, Inc.\", c=US"
-E: 6. index default
-
-Note the use of `\' to escape the quotes necessary in the
-distinguished names given on lines 3 and 5. By default, all
-indexes are maintained for every attribute in an entry.
+E: 3. suffix "dc=example, dc=net"
+E: 4. directory /usr/local/var/ldbm-example-net
+E: 5. rootdn "cn=Manager, dc=example, dc=net"
 
