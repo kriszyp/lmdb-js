@@ -58,7 +58,7 @@ do_add( Connection *conn, Operation *op )
 	entry_rdwr_init(e);
 
 	e->e_dn = dn;
-	e->e_ndn = dn_normalize( ch_strdup( dn ) );
+	e->e_ndn = dn_normalize_case( ch_strdup( dn ) );
 	dn = NULL;
 
 	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
