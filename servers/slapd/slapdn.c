@@ -51,8 +51,7 @@ slapdn( int argc, char **argv )
 	for ( ; argc--; argv++ ) {
 		struct berval	dn, pdn, ndn;
 
-		dn.bv_val = argv[ 0 ];
-		dn.bv_len = strlen( argv[ 0 ] );
+		ber_str2bv( argv[ 0 ], 0, 0, &dn );
 
 		rc = dnPrettyNormal( NULL, &dn,
 					&pdn, &ndn, NULL );

@@ -1,0 +1,103 @@
+.TH SLAPSASLAUTH 8C "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+slapsaslauth \- Check a list of string-represented IDs for authc/authz.
+.SH SYNOPSIS
+.B SBINDIR/slapsaslauth
+.B [\-v]
+.B [\-d level]
+.B [\-f slapd.conf]
+.B [\-U authcID]
+.B [\-X authzID]
+.B ID [...]
+.LP
+.SH DESCRIPTION
+.LP
+.B Slapsaslauth
+is used to check the behavior of the slapd in mapping identities 
+for authentication and authorization purposes, as specified in 
+.BR slapd.conf (5).
+It opens the
+.BR slapd.conf (5)
+configuration file, reads in the 
+.B sasl-authz-policy
+and
+.B sasl-regexp
+directives, and then parses the 
+.B ID
+list given on the command-line.
+.LP
+.SH OPTIONS
+.TP
+.B \-v
+enable verbose mode.
+.TP
+.BI \-d " level"
+enable debugging messages as defined by the specified
+.IR level .
+.TP
+.BI \-f " slapd.conf"
+specify an alternative
+.BR slapd.conf (5)
+file.
+.TP
+.BI \-U " authcID"
+specify an ID to be used as 
+.I authcID
+throughout the test session.
+If present, and if no
+.B authzID
+is given, the IDs in the ID list are treated as 
+.BR authzID .
+.TP
+.BI \-X " authzID"
+specify an ID to be used as 
+.I authzID
+throughout the test session.
+If present, and if no
+.B authcID
+is given, the IDs in the ID list are treated as 
+.BR authcID .
+If both
+.I authcID 
+and
+.I authzID
+are given via command line switch, the ID list cannot be present.
+.SH EXAMPLES
+The command
+.LP
+.nf
+.ft tt
+	SBINDIR/slapsaslauth -f /ETCDIR/slapd.conf -v \\
+            -U bjorn -X u:bjensen
+
+.ft
+.fi
+tests whether the user
+.I bjorn
+can assume the identity of the user 
+.I bjensen
+provided the directives
+.LP
+.nf
+.ft tt
+	sasl-authz-policy from
+	sasl-regexp "^uid=([^,]+).*,cn=auth$"
+		"ldap:///o=University of Michigan,c=US??sub?uid=$1"
+
+.ft
+.fi
+are defined in
+.BR slapd.conf (5).
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR slapd (8)
+.BR slaptest (8)
+.LP
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
+.SH ACKNOWLEDGEMENTS
+.B OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

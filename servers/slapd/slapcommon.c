@@ -69,6 +69,10 @@ usage( int tool, const char *progname )
 	case SLAPINDEX:
 		options = "\t[-n databasenumber | -b suffix]\n";
 		break;
+
+	case SLAPSASLAUTH:
+		options = "\t[-U authcID] [-X authzID] ID [...]\n";
+		break;
 	}
 
 	if ( options != NULL ) {
@@ -102,7 +106,7 @@ slap_tool_init(
 	int truncatemode = 0;
 
 #ifdef CSRIMALLOC
-	leakfilename = malloc( strlen( progname ) + sizeof(".leak") );
+	leakfilename = malloc( strlen( progname ) + STRLEOF( ".leak" ) - 1 );
 	sprintf( leakfilename, "%s.leak", progname );
 	if( ( leakfile = fopen( leakfilename, "w" )) == NULL ) {
 		leakfile = stderr;
@@ -125,6 +129,10 @@ slap_tool_init(
 		options = "d:f:v";
 		break;
 
+	case SLAPSASLAUTH:
+		options = "d:f:U:vX:";
+		break;
+
 	case SLAPINDEX:
 		options = "b:cd:f:n:v";
 		mode |= SLAP_TOOL_READMAIN;
@@ -140,8 +148,7 @@ slap_tool_init(
 	while ( (i = getopt( argc, argv, options )) != EOF ) {
 		switch ( i ) {
 		case 'b':
-			base.bv_val = strdup( optarg );
-			base.bv_len = strlen( base.bv_val );
+			ber_str2bv( optarg, 0, 1, &base );
 			break;
 
 		case 'c':	/* enable continue mode */
@@ -210,6 +217,10 @@ slap_tool_init(
 			mode |= SLAP_TRUNCATE_MODE;
 			break;
 
+		case 'U':
+			ber_str2bv( optarg, 0, 0, &authcID );
+			break;
+
 		case 'u':	/* dry run */
 			dryrun++;
 			break;
@@ -225,6 +236,10 @@ slap_tool_init(
 
 		case 'w':	/* write context csn on at the end */
 			update_ctxcsn = SLAP_TOOL_CTXCSN_BATCH;
+			break;
+
+		case 'X':
+			ber_str2bv( optarg, 0, 0, &authzID );
 			break;
 
 		default:
@@ -253,6 +268,12 @@ slap_tool_init(
 
 	case SLAPDN:
 		if ( argc == optind ) {
+			usage( tool, progname );
+		}
+		break;
+
+	case SLAPSASLAUTH:
+		if ( argc == optind && BER_BVISNULL( &authcID ) ) {
 			usage( tool, progname );
 		}
 		break;
@@ -350,21 +371,24 @@ slap_tool_init(
 	case SLAPTEST:
 		return;
 
+	case SLAPSASLAUTH:
+		be = NULL;
+		goto startup;
+
 	default:
 		break;
 	}
 
 	if( subtree ) {
 		struct berval val;
-		val.bv_val = subtree;
-		val.bv_len = strlen( subtree );
+		ber_str2bv( subtree, 0, 0, &val );
 		rc = dnNormalize( 0, NULL, NULL, &val, &sub_ndn, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "Invalid subtree DN '%s'\n", optarg );
 			exit( EXIT_FAILURE );
 		}
 
-		if( base.bv_val == NULL && dbnum == -1 )
+		if ( BER_BVISNULL( &base ) && dbnum == -1 )
 			base = val;
 		else
 			free( subtree );
@@ -443,6 +467,8 @@ slap_tool_init(
 	} else {
 		be = &backends[dbnum];
 	}
+
+startup:;
 
 #ifdef CSRIMALLOC
 	mal_leaktrace(1);
