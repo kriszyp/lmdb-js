@@ -279,6 +279,7 @@ access_allowed(
 		goto vd_access;
 
 	} else {
+		if ( state ) state->as_vi_acl = NULL;
 		a = NULL;
 		ACL_INIT(mask);
 		count = 0;
