@@ -410,9 +410,6 @@ static int is_ad_subtags(
 	const char *subtags, *subp, *subdelimp;
 	int  suplen, sublen;
 
-	if( suptagsbv->bv_len == 0 ) return 1;
-	if( subtagsbv->bv_len == 0 ) return 0;
-
 	subtags =subtagsbv->bv_val;
 	suptags =suptagsbv->bv_val;
 
@@ -445,9 +442,13 @@ int is_ad_subtype(
 	AttributeDescription *super
 )
 {
+	AttributeType *a;
 	int lr;
 
-	if( !is_at_subtype( sub->ad_type, super->ad_type ) ) {
+	for ( a = sub->ad_type; a; a=a->sat_sup ) {
+		if ( a == super->ad_type ) break;
+	}
+	if( !a ) {
 		return 0;
 	}
 
@@ -458,11 +459,12 @@ int is_ad_subtype(
 	}
 
 	/* check for tagging options */
-	if ( !is_ad_subtags( &sub->ad_tags, &super->ad_tags )) {
+	if ( super->ad_tags.bv_len == 0 )
+		return 1;
+	if ( sub->ad_tags.bv_len == 0 )
 		return 0;
-	}
 
-	return 1;
+	return is_ad_subtags( &sub->ad_tags, &super->ad_tags );
 }
 
 int ad_inlist(
@@ -472,25 +474,50 @@ int ad_inlist(
 	if (! attrs ) return 0;
 
 	for( ; attrs->an_name.bv_val; attrs++ ) {
+		AttributeType *a;
 		ObjectClass *oc;
 		int rc;
 		
 		if ( attrs->an_desc ) {
+			int lr;
+
 			if ( desc == attrs->an_desc ) {
 				return 1;
 			}
 
 			/*
-			 * EXTENSION: if requested description is preceeded by an
+			 * EXTENSION: if requested description is preceeded by
 			 * a '-' character, do not match on subtypes.
 			 */
-			if ( attrs->an_name.bv_val[0] != '-' &&
-				is_ad_subtype( desc, attrs->an_desc ))
-			{
+			if ( attrs->an_name.bv_val[0] == '-' ) {
+				continue;
+			}
+			
+			/* Is this a subtype of the requested attr? */
+			for (a = desc->ad_type; a; a=a->sat_sup) {
+				if ( a == attrs->an_desc->ad_type )
+					break;
+			}
+			if ( !a ) {
+				continue;
+			}
+			/* Does desc support all the requested flags? */
+			lr = desc->ad_tags.bv_len ? SLAP_DESC_TAG_RANGE : 0;
+			if(( attrs->an_desc->ad_flags & (desc->ad_flags | lr))
+				!= attrs->an_desc->ad_flags ) {
+				continue;
+			}
+			/* Do the descs have compatible tags? */
+			if ( attrs->an_desc->ad_tags.bv_len == 0 ) {
 				return 1;
 			}
-
-			continue;
+			if ( desc->ad_tags.bv_len == 0) {
+				continue;
+			}
+			if ( is_ad_subtags( &desc->ad_tags,
+				&attrs->an_desc->ad_tags ) ) {
+				return 1;
+			}
 		}
 
 		/*
@@ -521,9 +548,11 @@ int ad_inlist(
 				/* allow return of required attributes */
 				int i;
    				for ( i = 0; oc->soc_required[i] != NULL; i++ ) {
-					rc = is_at_subtype( desc->ad_type,
-						oc->soc_required[i] );
-					if( rc ) return 1;
+					for (a = desc->ad_type; a; a=a->sat_sup) {
+						if ( a == oc->soc_required[i] ) {
+							return 1;
+						}
+					}
 				}
 			}
 
@@ -531,9 +560,11 @@ int ad_inlist(
 				/* allow return of allowed attributes */
 				int i;
    				for ( i = 0; oc->soc_allowed[i] != NULL; i++ ) {
-					rc = is_at_subtype( desc->ad_type,
-						oc->soc_allowed[i] );
-					if( rc ) return 1;
+					for (a = desc->ad_type; a; a=a->sat_sup) {
+						if ( a == oc->soc_allowed[i] ) {
+							return 1;
+						}
+					}
 				}
 			}
 
