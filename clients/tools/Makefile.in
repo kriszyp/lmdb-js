@@ -61,7 +61,7 @@ ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
 	@-$(RM) $@
 	$(MKVERSION) ldapmodrdn > $@
 
-ldwversion.c: ldappasswd.o $(LDAP_LIBDEPEND)
+ldwversion.c: ldapwhoami.o $(LDAP_LIBDEPEND)
 	@-$(RM) $@
 	$(MKVERSION) ldapwhoami > $@
 
