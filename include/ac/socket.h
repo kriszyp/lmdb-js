@@ -84,9 +84,9 @@
 
 #	if SD_BOTH
 #		define tcp_close( s )	(shutdown( s, SD_BOTH ), closesocket( s ))
-#else
+#	else
 #		define tcp_close( s )		closesocket( s )
-#endif
+#	endif
 
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define EINPROGRESS WSAEINPROGRESS
@@ -130,16 +130,16 @@ LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 
 #	if SHUT_RDWR
 #		define tcp_close( s )	(shutdown( s, SHUT_RDWR ), close( s ))
-#else
-#		define tcp_close( s )		close( s )
-#endif
+#	else
+#		define tcp_close( s )	close( s )
+#	endif
 
 #ifdef HAVE_PIPE
 /*
  * Only use pipe() on systems where file and socket descriptors 
  * are interchangable
  */
-#define USE_PIPE HAVE_PIPE
+#	define USE_PIPE HAVE_PIPE
 #endif
 
 #endif /* MACOS */
@@ -156,7 +156,7 @@ LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 #endif
 
 #if !defined( HAVE_INET_ATON ) && !defined( inet_aton )
-#define inet_aton ldap_pvt_inet_aton
+#	define inet_aton ldap_pvt_inet_aton
 struct in_addr;
 LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #endif
