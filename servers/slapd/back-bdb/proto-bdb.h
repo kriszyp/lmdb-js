@@ -34,6 +34,13 @@ LDAP_BEGIN_DECL
 #define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
 #define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
 
+#ifdef LDAP_COMP_MATCH
+#define bdb_attr_comp_ref			BDB_SYMBOL(attr_comp_ref)
+void bdb_attr_comp_ref( struct bdb_info *bdb,
+	AttributeDescription *desc,
+	ComponentReference **cr );
+#endif
+
 void bdb_attr_mask( struct bdb_info *bdb,
 	AttributeDescription *desc,
 	slap_mask_t *indexmask );

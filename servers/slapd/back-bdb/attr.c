@@ -56,7 +56,10 @@ ainfo_cmp(
 
 #ifdef LDAP_COMP_MATCH
 void
-bdb_attr_comp_ref( struct bdb_info *bdb, AttributeDescription *desc, ComponentReference** cr )
+bdb_attr_comp_ref(
+	struct bdb_info *bdb,
+	AttributeDescription *desc,
+	ComponentReference** cr )
 {
 	AttrInfo	*a;
 

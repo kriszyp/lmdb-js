@@ -58,7 +58,7 @@ static int list_candidates(
 	ID *stack );
 
 #ifdef LDAP_COMP_MATCH
-int
+static int
 ext_candidates(
         Operation *op,
         MatchingRuleAssertion *mra,
@@ -247,7 +247,7 @@ comp_list_candidates(
 	return rc;
 }
 
-int
+static int
 comp_equality_candidates (
         Operation *op,
         MatchingRuleAssertion *mra,
@@ -352,7 +352,7 @@ comp_equality_candidates (
         return( rc );
 }
 
-int
+static int
 comp_candidates (
 	Operation *op,
 	MatchingRuleAssertion *mra,
@@ -399,7 +399,7 @@ comp_candidates (
 	return( rc );
 }
 
-int
+static int
 ext_candidates(
         Operation *op,
         MatchingRuleAssertion *mra,
