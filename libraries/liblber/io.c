@@ -264,6 +264,7 @@ ber_free( BerElement *ber, int freebuf )
 {
 	if ( freebuf && ber->ber_buf != NULL )
 		free( ber->ber_buf );
+	ber->ber_buf = NULL;
 	free( (char *) ber );
 }
 
