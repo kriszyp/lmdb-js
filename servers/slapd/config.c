@@ -1577,9 +1577,9 @@ read_config( const char *fname, int depth )
 
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
-			if ( *cargv[1] == '(' ) {
+			if ( *cargv[1] == '('  /*')'*/) {
 				char * p;
-				p = strchr(saveline,'(');
+				p = strchr(saveline,'(' /*')'*/);
 				rc = parse_oc( fname, lineno, p, cargv );
 				if( rc ) return rc;
 
@@ -1595,13 +1595,21 @@ read_config( const char *fname, int depth )
 #endif
 			}
 
+#ifdef SLAP_EXTENDED_SCHEMA
+		} else if ( strcasecmp( cargv[0], "ditcontentrule" ) == 0 ) {
+			char * p;
+			p = strchr(saveline,'(' /*')'*/);
+			rc = parse_cr( fname, lineno, p, cargv );
+			if( rc ) return rc;
+#endif
+
 		/* specify an attribute type */
 		} else if (( strcasecmp( cargv[0], "attributetype" ) == 0 )
 			|| ( strcasecmp( cargv[0], "attribute" ) == 0 ))
 		{
-			if ( *cargv[1] == '(' ) {
+			if ( *cargv[1] == '(' /*')'*/) {
 				char * p;
-				p = strchr(saveline,'(');
+				p = strchr(saveline,'(' /*')'*/);
 				rc = parse_at( fname, lineno, p, cargv );
 				if( rc ) return rc;
 

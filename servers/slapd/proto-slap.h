@@ -313,6 +313,22 @@ LDAP_SLAPD_F (void) connection_done LDAP_P((Connection *));
 LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
 
 /*
+ * cr.c
+ */
+LDAP_SLAPD_F (int) cr_schema_info( Entry *e );
+
+LDAP_SLAPD_F (int) cr_add LDAP_P((
+	LDAPContentRule *oc,
+	int user,
+	const char **err));
+LDAP_SLAPD_F (void) cr_destroy LDAP_P(( void ));
+
+LDAP_SLAPD_F (ContentRule *) cr_find LDAP_P((
+	const char *crname));
+LDAP_SLAPD_F (ContentRule *) cr_bvfind LDAP_P((
+	struct berval *crname));
+
+/*
  * daemon.c
  */
 LDAP_SLAPD_F (void) slapd_add_internal(ber_socket_t s);
@@ -954,8 +970,8 @@ LDAP_SLAPD_F (int) slap_schema_check LDAP_P((void));
  */
 LDAP_SLAPD_F( int ) slap_valid_descr( const char * );
 
-LDAP_SLAPD_F (int) parse_oc_old LDAP_P((
-	Backend *be, const char *fname, int lineno, int argc, char **argv ));
+LDAP_SLAPD_F (int) parse_cr LDAP_P((
+	const char *fname, int lineno, char *line, char **argv ));
 LDAP_SLAPD_F (int) parse_oc LDAP_P((
 	const char *fname, int lineno, char *line, char **argv ));
 LDAP_SLAPD_F (int) parse_at LDAP_P((

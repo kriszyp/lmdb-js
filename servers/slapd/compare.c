@@ -36,6 +36,7 @@ do_compare(
 )
 {
 	Entry *entry = NULL;
+	Entry *fentry = NULL;
 	struct berval dn = { 0, NULL };
 	struct berval pdn = { 0, NULL };
 	struct berval ndn = { 0, NULL };
@@ -169,6 +170,8 @@ do_compare(
 			goto cleanup;
 		}
 
+		fentry = entry;
+
 	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
@@ -198,11 +201,12 @@ do_compare(
 			rc = 0;
 			goto cleanup;
 		}
+		fentry = entry;
 	}
 
 	if( entry ) {
 		rc = compare_entry( conn, op, entry, &ava );
-		entry_free( entry );
+		if( fentry) entry_free( fentry );
 
 		send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
 

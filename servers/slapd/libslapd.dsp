@@ -192,6 +192,10 @@ SOURCE=.\controls.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\daemon.c
 # End Source File
 # Begin Source File

@@ -115,7 +115,8 @@ schema_info( Entry **entry, const char **text )
 		|| mr_schema_info( e )
 		|| mru_schema_info( e )
 		|| at_schema_info( e )
-		|| oc_schema_info( e ) )
+		|| oc_schema_info( e )
+		|| cr_schema_info( e ) )
 	{
 		/* Out of memory, do something about it */
 		entry_free( e );

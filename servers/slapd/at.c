@@ -591,11 +591,11 @@ at_schema_info( Entry *e )
 	vals[1].bv_val = NULL;
 
 	for ( at = attr_list; at; at = at->sat_next ) {
+		if( at->sat_flags & SLAP_AT_HIDE ) continue;
+
 		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {
 			return -1;
 		}
-
-		if( at->sat_flags & SLAP_AT_HIDE ) continue;
 
 		attr_merge( e, ad_attributeTypes, vals );
 		ldap_memfree( vals[0].bv_val );
