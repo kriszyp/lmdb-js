@@ -20,11 +20,9 @@
 int
 main( int argc, char **argv )
 {
-	int		stop;
 	char		*linep, *buf;
-	char		line[BUFSIZ];
 	int		lineno, elineno;
-	int      	lmax, lcur;
+	int         lmax;
 	ID		id;
 	DBCache	*db, *db2;
 	Backend		*be = NULL;
@@ -54,13 +52,12 @@ main( int argc, char **argv )
 	}
 
 	id = 0;
-	stop = 0;
 	lineno = 0;
 	buf = NULL;
-	lcur = lmax = 0;
+	lmax = 0;
 	vals[0] = &bv;
 	vals[1] = NULL;
-	while ( ! stop ) {
+	while ( slap_read_ldif( &lineno, &buf, &lmax, &id, 0 ) ) {
 		char		*type, *val, *s;
 		ber_len_t		vlen;
 		Datum		key, data;
@@ -68,27 +65,6 @@ main( int argc, char **argv )
 		ldbm_datum_init( key );
 		ldbm_datum_init( data );
 
-		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
-			int     len;
-
-			lineno++;
-			len = strlen( line );
-			while ( lcur + len + 1 > lmax ) {
-				lmax += BUFSIZ;
-				buf = (char *) ch_realloc( buf, lmax );
-			}
-			strcpy( buf + lcur, line );
-			lcur += len;
-		} else {
-			stop = 1;
-		}
-		if ( line[0] == '\n' || stop && buf && *buf ) {
-			if ( *buf != '\n' ) {
-				if (isdigit((unsigned char) *buf)) {
-					id = atol(buf);
-				} else {
-					id++;
-				}
 				s = buf;
 				elineno = 0;
 				while ( (linep = ldif_getline( &s )) != NULL ) {
@@ -120,11 +96,6 @@ main( int argc, char **argv )
 						exit( EXIT_FAILURE );
 					}
 				}
-			}
-			*buf = '\0';
-			lcur = 0;
-			line[0] = '\0';
-		}
 	}
 	if ( buf )
 		free( buf );
@@ -141,13 +112,12 @@ main( int argc, char **argv )
 
 	rewind( stdin );
 	id = 0;
-	stop = 0;
 	buf = NULL;
 	lineno = 0;
-	lcur = lmax = 0;
+	lmax = 0;
 	vals[0] = &bv;
 	vals[1] = NULL;
-	while ( ! stop ) {
+	while ( slap_read_ldif( &lineno, &buf, &lmax, &id, 0 ) ) {
 		char	*type, *val, *s, *dn;
 		ber_len_t	vlen;
 		ID	pid;
@@ -157,26 +127,6 @@ main( int argc, char **argv )
 		ldbm_datum_init( key );
 		ldbm_datum_init( data );
 
-		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
-			int     len;
-
-			len = strlen( line );
-			while ( lcur + len + 1 > lmax ) {
-				lmax += BUFSIZ;
-				buf = (char *) ch_realloc( buf, lmax );
-			}
-			strcpy( buf + lcur, line );
-			lcur += len;
-		} else {
-			stop = 1;
-		}
-		if ( line[0] == '\n' || stop && buf && *buf ) {
-			if ( * buf != '\n' ) {
-				if (isdigit((unsigned char) *buf)) {
-					id = atol(buf);
-				} else {
-					id++;
-				}
 				s = buf;
 				while ( (linep = ldif_getline( &s )) != NULL ) {
 					if ( ldif_parse_line( linep, &type, &val,
@@ -212,9 +162,6 @@ main( int argc, char **argv )
 							    val ) ) {
 	Debug( LDAP_DEBUG_PARSE, "no parent \"%s\" of \"%s\"\n", dn, val, 0 );
 							}
-							*buf = '\0';
-							lcur = 0;
-							line[0] = '\0';
 							continue;
 						}
 						(void) memcpy( (char *) &pid,
@@ -232,11 +179,6 @@ main( int argc, char **argv )
 						exit( EXIT_FAILURE );
 					}
 				}
-			}
-			*buf = '\0';
-			lcur = 0;
-			line[0] = '\0';
-		}
 	}
 
 #ifdef SLAP_CLEANUP

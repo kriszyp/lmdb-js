@@ -36,14 +36,14 @@ static int      nkids;
 int
 main( int argc, char **argv )
 {
-	int		i, stop;
+	int		i;
 	char		*linep, *buf;
 	char		*args[MAXARGS];
 	char		buf2[20], buf3[20];
 	char		line[BUFSIZ];
 	char		cmd[MAXPATHLEN];
 	int		lineno, elineno;
-	int      	lmax, lcur;
+	int      	lmax;
 	ID		id;
 	Backend		*be = NULL;
 	struct ldbminfo *li;
@@ -132,33 +132,16 @@ main( int argc, char **argv )
 	args[i++] = NULL;
 
 	id = 0;
-	stop = 0;
 	buf = NULL;
 	lineno = 0;
-	lcur = lmax = 0;
+	lmax = 0;
 	vals[0] = &bv;
 	vals[1] = NULL;
-	while ( ! stop ) {
+	while ( slap_read_ldif( &lineno, &buf, &lmax, &id, 0 ) ) {
 		char		*type, *val, *s;
 		ber_len_t	vlen;
 		int			indexmask, syntaxmask;
 
-		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
-			int     len;
-
-			lineno++;
-			len = strlen( line );
-			while ( lcur + len + 1 > lmax ) {
-				lmax += BUFSIZ;
-				buf = (char *) ch_realloc( buf, lmax );
-			}
-			strcpy( buf + lcur, line );
-			lcur += len;
-		} else {
-			stop = 1;
-		}
-		if ( line[0] == '\n' || stop && buf && *buf ) {
-			id++;
 			s = buf;
 			elineno = 0;
 			while ( (linep = ldif_getline( &s )) != NULL ) {
@@ -187,9 +170,6 @@ main( int argc, char **argv )
 					}
 				}
 			}
-			*buf = '\0';
-			lcur = 0;
-		}
 	}
 
 	wait4kids( -1 );

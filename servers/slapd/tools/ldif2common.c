@@ -128,3 +128,72 @@ slap_ldif_init( int argc, char **argv, int tool, const char *dbtype, int mode )
 		exit( EXIT_FAILURE );
 	}
 }
+
+
+#define IDBUFSIZ 100			/* enough to hold <decimal ID>\n\0 */
+
+/*
+ * slap_read_ldif - read an ldif record.  Return 1 for success, 0 for EOF.
+ */
+int
+slap_read_ldif(
+	int         *lno,		/* ptr to line number counter              */
+	char        **bufp,     /* ptr to malloced output buffer           */
+	int         *buflenp,   /* ptr to length of *bufp                  */
+	ID          *idp,       /* ptr to ID number to be read/incremented */
+	int         idout )     /* flag to begin *buf with ID number       */
+{
+	char        linebuf[IDBUFSIZ + BUFSIZ], *line;
+	ber_len_t   lcur = 0, idlen, len, linesize;
+	int         last_ch = '\n', found_entry = 0, stop;
+
+	line     = linebuf + IDBUFSIZ;
+	linesize = sizeof( linebuf ) - IDBUFSIZ;
+
+	for ( stop = feof( stdin );  !stop;  last_ch = line[len-1] ) {
+		if ( fgets( line, linesize, stdin ) == NULL ) {
+			stop = 1;
+			/* Add \n in case the file does not end with newline */
+			line = "\n";
+		}
+		len = strlen( line );
+
+		if ( last_ch == '\n' ) {
+			(*lno)++;
+
+			if ( line[0] == '\n' ) {
+				if ( !found_entry )
+					continue;
+				break;
+			}
+
+			if ( !found_entry ) {
+				/* Found a new entry */
+				found_entry = 1;
+
+				if ( isdigit( (unsigned char) line[0] ) ) {
+					*idp = atol( line );
+					if ( !idout )
+						continue;
+				} else {
+					++(*idp);
+					if ( idout ) {
+						sprintf( linebuf, "%ld\n", (long) *idp );
+						idlen = strlen( linebuf );
+						line -= idlen;
+						linesize += idlen;
+						len += idlen;
+						SAFEMEMCPY( line, linebuf, idlen );
+					}
+				}
+			}			
+		}
+
+		if ( *buflenp - lcur <= len )
+			*bufp = ch_realloc( *bufp, *buflenp += len + BUFSIZ );
+		strcpy( *bufp + lcur, line );
+		lcur += len;
+	}
+
+	return( found_entry );
+}

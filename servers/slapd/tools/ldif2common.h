@@ -20,5 +20,7 @@ extern	int 	dbnum;
 
 
 void slap_ldif_init LDAP_P(( int, char **, int, const char *, int ));
+int  slap_read_ldif LDAP_P(( int *, char **, int *, ID *, int ));
+
 
 #endif /* LDIF2COMMON_H_ */

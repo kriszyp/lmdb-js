@@ -19,10 +19,10 @@
 int
 main( int argc, char **argv )
 {
-	int		stop;
 	char		*buf;
-	char		line[BUFSIZ], idbuf[BUFSIZ];
-	int      	lmax, lcur;
+	int         lineno;
+	char        line[BUFSIZ];
+	int         lmax;
 	ID		id;
 	ID		maxid;
 	DBCache	*db;
@@ -52,72 +52,28 @@ main( int argc, char **argv )
 
 	id = 0;
 	maxid = 0;
-	stop = 0;
 	buf = NULL;
-	lcur = lmax = 0;
+	lmax = 0;
 	vals[0] = &bv;
 	vals[1] = NULL;
-	while ( ! stop ) {
+	while ( slap_read_ldif( &lineno, &buf, &lmax, &id, 1 ) ) {
 		Datum		key, data;
 
 		ldbm_datum_init( key );
 		ldbm_datum_init( data );
 
-		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
-			int     len, idlen;
-
-			len = strlen( line );
-			if ( buf == NULL || *buf == '\0' ) {
-				if (!isdigit((unsigned char) line[0])) {
-					sprintf( idbuf, "%ld\n", id + 1 );
-					idlen = strlen( idbuf );
-				} else {
-					id = atol(line) - 1;
-					idlen = 0;
-				}
-			} else {
-				idlen = 0;
-			}
-
-			while ( lcur + len + idlen + 1 > lmax ) {
-				lmax += BUFSIZ;
-				buf = (char *) ch_realloc( buf, lmax );
-			}
-
-			if ( idlen > 0 ) {
-				strcpy( buf + lcur, idbuf );
-				lcur += idlen;
-			}
-			strcpy( buf + lcur, line );
-			lcur += len;
-		} else {
-			stop = 1;
-		}
-		if ( line[0] == '\n' || stop && buf && *buf ) {
-			if ( *buf != '\n' ) {
-				int len;
-
-				id++;
 				if ( id > maxid )
 					maxid = id;
 				key.dptr = (char *) &id;
 				key.dsize = sizeof(ID);
 				data.dptr = buf;
-				len = strlen(buf);
-				if (buf[len - 1] == '\n')
-					buf[--len] = '\0';
-				data.dsize = len + 1;
+				data.dsize = strlen( buf ) + 1;
 				if ( ldbm_store( db->dbc_db, key, data,
 				    LDBM_INSERT ) != 0 ) {
 					fputs("id2entry ldbm_store failed\n",
 					      stderr);
 					exit( EXIT_FAILURE );
 				}
-			}
-			*buf = '\0';
-			lcur = 0;
-			line[0] = '\0';
-		}
 	}
 
 #ifdef SLAP_CLEANUP
