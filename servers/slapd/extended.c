@@ -43,7 +43,7 @@
 #include "slapi/slapi.h"
 #endif
 
-#define UNSUPPORTED_EXTENDEDOP "unsupported extended operation"
+#define UNSUPPORTED_EXOP "unsupported extended operation"
 
 #ifdef LDAP_DEVEL
 #define SLAP_EXOP_HIDE 0x0000
@@ -60,8 +60,8 @@ static struct extop_list {
 
 static SLAP_EXTOP_MAIN_FN whoami_extop;
 
-/* this list of built-in extops is for extops that are not part
- * of backends or in external modules.	essentially, this is
+/* This list of built-in extops is for extops that are not part
+ * of backends or in external modules.	Essentially, this is
  * just a way to get built-in extops onto the extop list without
  * having a separate init routine for each built-in extop.
  */
@@ -269,7 +269,7 @@ do_extended(
 
 		} else if ( extop_rc == SLAPI_PLUGIN_EXTENDED_NOT_HANDLED ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
-			rs->sr_text = UNSUPPORTED_EXTENDEDOP;
+			rs->sr_text = UNSUPPORTED_EXOP;
 
 		} else {
 			rs->sr_err = slapi_pblock_get( pb, SLAPI_EXT_OP_RET_OID,

@@ -1726,7 +1726,7 @@ print_acl( Backend *be, AccessControl *a )
 				fprintf( stderr, "," );
 			}
 			if (an->an_oc) {
-				fputc( '@', stderr);
+				fputc( an->an_oc_exclude ? '!' : '@', stderr);
 			}
 			fputs( an->an_name.bv_val, stderr );
 			first = 0;
