@@ -120,12 +120,14 @@ safe_string_free(safe_string * ss)
 	LDAP_FREE(ss);
 }
 
+#if 0	/* unused */
 static char *
 safe_string_val(safe_string * ss)
 {
 	ss->val[ss->pos] = '\0';
 	return(ss->val);
 }
+#endif
 
 static char *
 safe_strdup(safe_string * ss)
@@ -2868,7 +2870,6 @@ ldap_str2structurerule( LDAP_CONST char * s,
 	int seen_desc = 0;
 	int seen_obsolete = 0;
 	int seen_nameform = 0;
-	int seen_ruleids = 0;
 	LDAPStructureRule * sr;
 	char ** ext_vals;
 	const char * savepos;

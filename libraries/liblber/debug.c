@@ -30,7 +30,6 @@ struct DEBUGLEVEL
 };
 
 int ldap_loglevels[LDAP_SUBSYS_NUM];
-static long   numLevels = 0;
 
 static FILE *log_file = NULL;
 static int global_level = 0;

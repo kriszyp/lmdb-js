@@ -409,7 +409,6 @@ get_ca_list( char * bundle, char * dir )
 		}
 	}
 #endif
-done:
 	return ca_list;
 }
 
