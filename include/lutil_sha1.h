@@ -25,6 +25,8 @@ LDAP_BEGIN_DECL
  * By Steve Reid <steve@edmweb.com>
  */
 
+/* This code assumes char are 8-bits and uint32 are 32-bits */
+
 #ifndef LDAP_UINT32
 #define LDAP_UINT32 1
 typedef ac_uint4 uint32;
