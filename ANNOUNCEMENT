@@ -7,23 +7,21 @@ A N N O U N C E M E N T -- OpenLDAP 2.2
 
     This release contains the following major enhancements:
 
-        * Transactional backend
-        * Improved Unicode handling
-        * Improved DN handlng
-        * Improved Referral handling
-        * SASL authentication/authorization mapping
-        * SASL in-directory storage of authentication secrets
-        * Enhanced administrative limits/access controls
-        * Meta backend (experimental)
-        * Monitor backend (experimental)
-        * Virtual "glue" backend (experimental)
-        * LDAP C++ API
-        * Updated LDAP C and TCL APIs
+        * Slapd(8) enhancements
+            - LDAP "sync" Engine with replication support
+            - Updated Transactional backend (back-bdb)
+            - Hierarchial backend (back-hdb)
+            - Enhanced native API with Overlay support
+                - Proxy Cache Overlay
+                - Dynamic Group Overlay
+            - NS SLAPI support
+        * Updated LDAP C API
         * LDAPv3 extensions, including:
-            - Enhanced Language Tag/Range Support
-            - 'Who am i?' Extended Operation
-            - 'Matched Values' Control
-            - 'NOOP' Control
+            - LDAP Content Synchronization ('Sync') Operation
+            - LDAP Cancel Operation
+            - LDAP Paged Results Control
+            - LDAP Pre/Post Read Controls
+            - LDAP Assertion Control
 
     This release includes the following major components:
 
@@ -37,7 +35,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.2
     In addition, there are some contributed components:
 
         * LDAPC++ - a LDAP C++ SDK
-        * ldapTCL - a LDAP TCL SDK 
+        * LDAP SASL - An "auxprop" plugin for Cyrus SASL
 
     This release contains a number of major code changes.  It
     might be a bit rough around the edges.  Use with appropriate
