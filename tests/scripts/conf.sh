@@ -27,6 +27,7 @@ if [ x"$WITH_SASL" = x"yes" -a x"$USE_SASL" != x"no" ] ; then
 	if [ x"$USE_SASL" = x"yes" ] ; then
 		USE_SASL=DIGEST-MD5
 	fi
+	SASL_MECH="\"mech=$USE_SASL\""
 else
 	SASL="nosasl"
 	SASL_MECH=
@@ -42,6 +43,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${MON}#//"				\
 	-e "s/^#${MONMOD}#//"				\
 	-e "s/^#${SASL}#//"				\
-	-e "s/#SASL_MECH#/\"mech=${USE_SASL}\"/"	\
+	-e "s/#SASL_MECH#/${SASL_MECH}/"	\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
 	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   
