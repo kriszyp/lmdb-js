@@ -1,4 +1,4 @@
-/* $Id: dsaschema.c,v 1.4 2004/01/09 06:47:01 lukeh Exp $ */
+/* $OpenLDAP$ */
 /*
  * Copyright 2004 The OpenLDAP Foundation.
  * All rights reserved.
