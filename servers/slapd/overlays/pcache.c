@@ -16,9 +16,7 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Apurva Kumar for inclusion
- * in OpenLDAP Software.
- *
- * This work was rewritten by Howard Chu for OpenLDAP.
+ * in OpenLDAP Software and subsequently rewritten by Howard Chu.
  */
 
 #include "portable.h"

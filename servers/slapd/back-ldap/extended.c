@@ -18,7 +18,6 @@
  * in OpenLDAP Software and subsequently enhanced by Pierangelo
  * Masarati. 
  */
-/* This is an altered version */
 
 #include "portable.h"
 
