@@ -6,12 +6,14 @@
 
 INTERNET-DRAFT                           Editor: Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                            4 May 2003
+Expires in six months                            27 October 2003
 Obsoletes: 2253
 
 
+
             LDAP: String Representation of Distinguished Names
-                      <draft-ietf-ldapbis-dn-10.txt>
+                      <draft-ietf-ldapbis-dn-12.txt>
+
 
 
 Status of Memo
@@ -23,7 +25,7 @@ Status of Memo
   revision, submitted to the RFC Editor as a Standard Track document
   replacing RFC 2253.  Distribution of this memo is unlimited.
   Technical discussion of this document will take place on the IETF LDAP
-  Revision (LDAPbis) Working Group mailing list
+  Revision (LDAPBIS) Working Group mailing list
   <ietf-ldapbis@openldap.org>.  Please send editorial comments directly
   to the document editor <Kurt@OpenLDAP.org>.
 
@@ -40,10 +42,22 @@ Status of Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright 2003, The Internet Society.  All Rights Reserved.
+  Copyright (C) The Internet Society (2003).  All Rights Reserved.
 
-  Please see the Copyright section near the end of this document for
-  more information.
+  Please see the Full Copyright section near the end of this document
+  for more information.
+
+
+
+
+
+
+
+
+
+Zeilenga                LDAP: Distinguished Names               [Page 1]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
 
 
 Abstract
@@ -52,14 +66,6 @@ Abstract
   entries in the directory.  This document defines the string
   representation used in the Lightweight Directory Access Protocol
   (LDAP) to transfer distinguished names.  The string representation is
-
-
-
-Zeilenga                LDAP: Distinguished Names               [Page 1]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
-
-
   designed to give a clean representation of commonly used distinguished
   names, while being able to represent any distinguished name.
 
@@ -75,13 +81,14 @@ Conventions
 
   In X.500-based directory systems [X.500], including those accessed
   using the Lightweight Directory Access Protocol (LDAP) [Roadmap],
-  distinguished names (DNs) are used to unambiguously refer to a
-  directory entry [X.501][Models].
+  distinguished names (DNs) are used to unambiguously refer to directory
+  entries [X.501][Models].
 
   The structure of a DN [X.501] is described in terms of ASN.1 [X.680].
   In the X.500 Directory Access Protocol [X.511] (and other ITU-defined
   directory protocols), DNs are encoded using the Basic Encoding Rules
-  (BER) [X.690].  In LDAP, DNs are represented in string form.
+  (BER) [X.690].  In LDAP, DNs are represented in the string form
+  described in this document.
 
   It is important to have a common format to be able to unambiguously
   represent a distinguished name.  The primary goal of this
@@ -89,8 +96,8 @@ Conventions
   to have names that are human readable.  It is not expected that LDAP
   implementations with a human user interface would display these
   strings directly to the user, but would most likely be performing
-  translations (such as expressing attribute type names in one of the
-  local national languages).
+  translations (such as expressing attribute type names in the local
+  national language).
 
   This document defines the string representation of Distinguished Names
   used in LDAP [Protocol][Syntaxes].  Section 2 details the RECOMMENDED
@@ -102,19 +109,19 @@ Conventions
   from its ASN.1 structured representation to a string, all algorithms
   MUST produce strings which adhere to the requirements of Section 3.
 
+
+
+Zeilenga                LDAP: Distinguished Names               [Page 2]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
+
+
   This document does not define a canonical string representation for
   DNs.  Comparison of DNs for equality is to be performed in accordance
   with the distinguishedNameMatch matching rule [Syntaxes].
 
   This document is an integral part of the LDAP Technical Specification
   [Roadmap].
-
-
-
-Zeilenga                LDAP: Distinguished Names               [Page 2]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
-
 
   This document obsoletes RFC 2253.  Changes since RFC 2253 are
   summarized in Appendix B.
@@ -141,7 +148,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
 
   This section defines the RECOMMENDED algorithm for converting a
   distinguished name from an ASN.1 structured representation to an UTF-8
-  [RFC2279] encoded Universal Character Set (UCS) [ISO10646] character
+  [UTF-8] encoded Universal Character Set (UCS) [ISO10646] character
   string representation.  Other documents may describe other algorithms
   for converting a distinguished name to a string, but only strings
   which conform to the grammar defined in Section 3 MUST be produced by
@@ -158,19 +165,18 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
   2.2), starting with the last element of the sequence and moving
   backwards toward the first.
 
+
+
+Zeilenga                LDAP: Distinguished Names               [Page 3]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
+
+
   The encodings of adjoining RelativeDistinguishedNames are separated by
   a comma ("," U+002C) character.
 
 
 2.2.  Converting RelativeDistinguishedName
-
-
-
-
-Zeilenga                LDAP: Distinguished Names               [Page 3]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
-
 
   When converting from an ASN.1 RelativeDistinguishedName to a string,
   the output consists of the string encodings of each
@@ -189,14 +195,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
   encoding of the AttributeValue is given in Section 2.4.
 
   If the AttributeType is defined to have a short name and that short
-  name is known to be registered [REGISTRY] as identifying the
+  name is known to be registered [REGISTRY][BCP64bis] as identifying the
   AttributeType, that short name, a <descr>, is used.  Otherwise the
   AttributeType is encoded as the dotted-decimal encoding, a
   <numericoid>, of its OBJECT IDENTIFIER.  The <descr> and <numericoid>
   is defined in [Models].
 
-  Implementations are not expected dynamically update their knowledge of
-  registered short names.  However, implementations SHOULD provide a
+  Implementations are not expected to dynamically update their knowledge
+  of registered short names.  However, implementations SHOULD provide a
   mechanism to allow its knowledge of registered short names to be
   updated.
 
@@ -214,19 +220,19 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
   desired (see Section 5.2).
 
   Otherwise, if the AttributeValue is of a syntax which has a native
-  string encoding, the value is converted first to a UTF-8 encoded UCS
-  string according to its syntax specification (see for example Section
-  6 of [Syntaxes]).  If that UTF-8 encoded UCS string does not have any
-  of the following characters which need escaping, then that string can
-  be used as the string representation of the value.
-
 
 
 
 Zeilenga                LDAP: Distinguished Names               [Page 4]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
 
+
+  string encoding, the value is converted first to a UTF-8 encoded UCS
+  string according to its syntax specification (see for example Section
+  6 of [Syntaxes]).  If that UTF-8 encoded UCS string does not have any
+  of the following characters which need escaping, then that string can
+  be used as the string representation of the value.
 
       - a space (" " U+0020) or number sign ("#" U+0023) occurring at
         the beginning of the string;
@@ -259,7 +265,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
 3. Parsing a String back to a Distinguished Name
 
   The string representation of Distinguished Names is restricted to
-  UTF-8 [RFC2279] encoded characters from the Universal Character Set
+  UTF-8 [UTF-8] encoded characters from the Universal Character Set
   (UCS) [ISO10646].  The structure of this string representation is
   specified using the following Augmented BNF [RFC2234] grammar:
 
@@ -271,19 +277,18 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
 
       attributeTypeAndValue = attributeType EQUALS attributeValue
 
+
+
+Zeilenga                LDAP: Distinguished Names               [Page 5]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
+
+
       attributeType = descr / numericoid
 
       attributeValue = string / hexstring
 
       ; The UTF-8 string shall not contain NULL, ESC, or
-
-
-
-Zeilenga                LDAP: Distinguished Names               [Page 5]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
-
-
       ; one of escaped, shall not start with SHARP or SPACE,
       ; and shall must not end with SPACE.
       string     = [ (leadchar / pair)
@@ -327,19 +332,19 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
       replace <ESC><special> with <special>;
       replace <ESC><hexpair> with the octet indicated by the <hexpair>.
 
-  If in <hexstring> form, a BER representation can be obtained from
-  converting each <hexpair> of the <hexstring> to the octet indicated by
-  the <hexpair>.
-
-  One or more attribute values assertions, separated by <PLUS>, for a
 
 
 
 Zeilenga                LDAP: Distinguished Names               [Page 6]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
 
 
+  If in <hexstring> form, a BER representation can be obtained from
+  converting each <hexpair> of the <hexstring> to the octet indicated by
+  the <hexpair>.
+
+  One or more attribute values assertions, separated by <PLUS>, for a
   relative distinguished name.
 
   Zero or more relative distinguished names, separated by <COMMA>, for a
@@ -383,19 +388,19 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
           OU=Sales+CN=J. Smith,DC=example,DC=net
 
       This example shows the method of escaping of a comma in a common
-      name:
-
-          CN=John Smith\, III,DC=example,DC=net
-
-      An example name in which a value contains a carriage return
 
 
 
 Zeilenga                LDAP: Distinguished Names               [Page 7]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
 
 
+      name:
+
+          CN=John Smith\, III,DC=example,DC=net
+
+      An example name in which a value contains a carriage return
       character:
 
           CN=Before\0dAfter,DC=example,DC=net
@@ -439,17 +444,19 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
 
     - the common name of the object (i.e. a person's full name)
     - an email or TCP/IP address
-    - its physical location (country, locality, city, street address)
-    - organizational attributes (such as department name or affiliation)
-
-  Most countries have privacy laws regarding the publication of
-  information about people.
 
 
 
 Zeilenga                LDAP: Distinguished Names               [Page 8]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
+
+
+    - its physical location (country, locality, city, street address)
+    - organizational attributes (such as department name or affiliation)
+
+  Most countries have privacy laws regarding the publication of
+  information about people.
 
 
 5.2. Use of Distinguished Names in Security Applications
@@ -491,78 +498,96 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
 
 8. Normative References
 
-  [X.501]      "The Directory -- Models," ITU-T Rec. X.501(1993).
-
-  [X.680]      ITU-T, "Abstract Syntax Notation One (ASN.1) -
-               Specification of Basic Notation", X.680, 1994.
-
-  [RFC2119]    Bradner, S., "Key words for use in RFCs to Indicate
-               Requirement Levels", BCP 14 (also RFC 2119).
-
-  [RFC2234]    Crocker, D., and P. Overell, "Augmented BNF for Syntax
+  [X.501]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
 
 
 
 Zeilenga                LDAP: Distinguished Names               [Page 9]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
 
 
-               Specifications: ABNF", RFC 2234, November 1997.
+                -- Models," X.501(1993) (also ISO/IEC 9594-2:1994).
 
-  [RFC2279]    Yergeau, F., "UTF-8, a transformation format of ISO
-               10646", RFC 2279, January 1998.
+  [X.680]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "Abstract
+                Syntax Notation One (ASN.1) - Specification of Basic
+                Notation", X.680(1997) (also ISO/IEC 8824-1:1998).
 
-  [Models]     K. Zeilenga (editor), "LDAP: Directory Information
-               Models", draft-ietf-ldapbis-models-xx.txt, a work in
-               progress.
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
-  [Roadmap]    K. Zeilenga, "LDAP: Technical Specification Road Map",
-               draft-ietf-ldapbis-roadmap-xx.txt, a work in progress.
+  [RFC2234]     Crocker, D. and P. Overell, "Augmented BNF for Syntax
+                Specifications: ABNF", RFC 2234, November 1997.
 
-  [Protocol]   J. Sermersheim (editor), "LDAP: The Protocol",
-               draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+  [UTF-8]       Yergeau, F., "UTF-8, a transformation format of ISO
+                10646", draft-yergeau-rfc2279bis-xx.txt, a work in
+                progress.
 
-  [Syntaxes]   S. Legg (editor), "LDAP: Syntaxes",
-               draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress.
+  [Models]      Zeilenga, K. (editor), "LDAP: Directory Information
+                Models", draft-ietf-ldapbis-models-xx.txt, a work in
+                progress.
 
-  [Schema]     K. Dally (editor), "LDAP: User Schema",
-               draft-ietf-ldapbis-user-schema-xx.txt, a work in
-               progress.
+  [Roadmap]     Zeilenga, K. (editor), "LDAP: Technical Specification
+                Road Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in
+                progress.
 
-  [ISO10646]   Universal Multiple-Octet Coded Character Set (UCS) -
-               Architecture and Basic Multilingual Plane, ISO/IEC
-               10646-1 : 1993.
+  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
+                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
 
+  [Syntaxes]    Legg, S. (editor), "LDAP: Syntaxes and Matching Rules",
+                draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress.
+
+  [Schema]      Dally, K. (editor), "LDAP: User Schema",
+                draft-ietf-ldapbis-user-schema-xx.txt, a work in
+                progress.
+
+  [ISO10646]    International Organization for Standardization,
+                "Universal Multiple-Octet Coded Character Set (UCS) -
+                Architecture and Basic Multilingual Plane", ISO/IEC
+                10646-1 : 1993.
+
+  [REGISTRY]    IANA, Object Identifier Descriptors Registry,
+                <http://www.iana.org/...>.
 
 9. Informative References
 
-  [X.500]      "The Directory -- overview of concepts, models and
-               services,"  ITU-T Rec. X.500(1993).
-
-  [X.690]      ITU-T, "Specification of ASN.1 encoding rules:  Basic,
-               Canonical, and Distinguished Encoding Rules", X.690,
-               1994.
-
-  [RFC3383]    K. Zeilenga, "IANA Considerations for LDAP", BCP 64 (also
-               RFC 3383), September 2002.
-
-  [RFC2849]    G. Good, "The LDAP Data Interchange Format (LDIF) -
-               Technical Specification", RFC 2849, June 2000.
-
-
-Appendix A.   Presentation Issues
-
-  This appendix is provided for informational purposes only, it is not a
-  normative part of this specification.
+  [ASCII]       Coded Character Set--7-bit American Standard Code for
+                Information Interchange, ANSI X3.4-1986.
 
 
 
 
 Zeilenga                LDAP: Distinguished Names              [Page 10]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
 
+
+  [X.500]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Overview of concepts, models and services,"
+                X.500(1993) (also ISO/IEC 9594-1:1994).
+
+  [X.690]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "Specification
+                of ASN.1 encoding rules: Basic Encoding Rules (BER),
+                Canonical Encoding Rules (CER), and Distinguished
+                Encoding Rules (DER)", X.690(1997) (also ISO/IEC
+                8825-1:1998).
+
+  [RFC2849]     Good, G., "The LDAP Data Interchange Format (LDIF) -
+                Technical Specification", RFC 2849, June 2000.
+
+  [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP", draft-
+                ietf-ldapbis-bcp64-xx.txt, a work in progress.
+
+
+
+Appendix A.   Presentation Issues
+
+  This appendix is provided for informational purposes only, it is not a
+  normative part of this specification.
 
   The string representation described in this document is not intended
   to be presented to humans without translation.  However, at times it
@@ -587,6 +612,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
   demonstrated in the final example of Section 4).
 
   When a DN string is displayed in free form text, it is often necessary
+
+
+
+Zeilenga                LDAP: Distinguished Names              [Page 11]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
+
+
   to distinguish the DN string from surrounding text.  While this is
   often done with white space (as demonstrated in Section 4), it is
   noted that DN strings may end with white space.  Careful readers of
@@ -612,14 +645,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
       so it has been line-wrapped for readability.  The extra white
       space is to be removed before the DN string is used in LDAP.
 
-
-
-
-Zeilenga                LDAP: Distinguished Names              [Page 11]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
-
-
   It is not advised to insert white space otherwise as it may not be
   obvious to the user which white space is part of the DN string and
   which white space was added for readability.
@@ -642,18 +667,27 @@ Appendix B. Changes made since RFC 2253
 
   The following substantive changes were made to RFC 2253:
     - Removed IESG Note.  The IESG Note has been addressed.
-    - Clarified (in Section 1), that this document does not define a
+    - Clarified (in Section 1) that this document does not define a
+
+
+
+Zeilenga                LDAP: Distinguished Names              [Page 12]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
+
+
       canonical string representation.
+    - Revised specification (in Section 2) to allow short names of any
+      registered attribute type to appear in string representations of
+      DNs instead of being restricted to a "published table".  Remove
+      "as an example" language.  Added statement (in Section 3) allowing
+      recognition of additional names but require recognization of those
+      names in the published table.  The table is now published in
+      Section 3.
     - Replaced specification of additional requirements for LDAPv2
       implementations which also support LDAPv3 (RFC 2253, Section 4)
       with a statement (in Section 3) allowing recognition of
       alternative string representations.
-    - Clarified (in Section 2.3) that the "published" table of names
-      which may be appear in DNs is the table which Section 2.3
-      provides.  Remove "as an example" language.  Noted this table is
-      not extensible.  Added statement (in Section 3) allowing
-      recognition of additional names.  Added security considerations
-      (Section 5.3) regarding the use of other names.
     - Updated Section 2.3 to indicate attribute type name strings are
       case insensitive.
     - Updated Section 2.4 to allow hex pair escaping of all characters
@@ -669,21 +703,48 @@ Appendix B. Changes made since RFC 2253
     - Added discussion of presentation issues (Appendix A).
     - Added this appendix.
 
-
-
-Zeilenga                LDAP: Distinguished Names              [Page 12]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-dn-10.txt            4 May 2003
-
-
   In addition, numerous editorial changes were made.
 
 
-Copyright 2003, The Internet Society.  All Rights Reserved.
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  intellectual property or other rights that might be claimed to pertain
+  to the implementation or use of the technology described in this
+  document or the extent to which any license under such rights might or
+  might not be available; neither does it represent that it has made any
+  effort to identify any such rights.  Information on the IETF's
+  procedures with respect to rights in standards-track and
+  standards-related documentation can be found in BCP-11.  Copies of
+  claims of rights made available for publication and any assurances of
+  licenses to be made available, or the result of an attempt made to
+  obtain a general license or permission for the use of such proprietary
+  rights by implementors or users of this specification can be obtained
+  from the IETF Secretariat.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+
+
+
+Zeilenga                LDAP: Distinguished Names              [Page 13]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-dn-12.txt       27 October 2003
+
+
+  rights which may cover technology that may be required to practice
+  this standard.  Please address the information to the IETF Executive
+  Director.
+
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2003). All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
-  or assist in its implementation may be prepared, copied, published and
+  or assist in its implmentation may be prepared, copied, published and
   distributed, in whole or in part, without restriction of any kind,
   provided that the above copyright notice and this paragraph are
   included on all such copies and derivative works.  However, this
@@ -694,15 +755,6 @@ Copyright 2003, The Internet Society.  All Rights Reserved.
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
 
-  The limited permissions granted above are perpetual and will not be
-  revoked by the Internet Society or its successors or assigns.
-
-  This document and the information contained herein is provided on an
-  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
-  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
-  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
-  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
@@ -727,5 +779,9 @@ Copyright 2003, The Internet Society.  All Rights Reserved.
 
 
 
-Zeilenga                LDAP: Distinguished Names              [Page 13]
+
+
+
+
+Zeilenga                LDAP: Distinguished Names              [Page 14]
 

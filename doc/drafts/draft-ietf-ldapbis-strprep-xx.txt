@@ -6,12 +6,12 @@
 
 Internet-Draft                                      Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                    26 May 2003
+Expires in six months                                27 October 2003
 
 
 
                 LDAP: Internationalized String Preparation
-                   <draft-ietf-ldapbis-strprep-00.txt>
+                   <draft-ietf-ldapbis-strprep-02.txt>
 
 
 Status of this Memo
@@ -46,10 +46,10 @@ Status of this Memo
 Abstract
 
   The previous Lightweight Directory Access Protocol (LDAP) technical
-  specifications did not precisely define how string matching is to be
-  performed.  This lead to a number of usability and interoperability
-  problems.  This document defines string preparation algorithms for
-  matching rules defined for use in LDAP.
+  specifications did not precisely define how character string matching
+  is to be performed.  This lead to a number of usability and
+  interoperability problems.  This document defines string preparation
+  algorithms for character-based matching rules defined for use in LDAP.
 
 
 
@@ -57,7 +57,7 @@ Abstract
 
 Zeilenga                        LDAPprep                        [Page 1]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
 
 
 Conventions
@@ -113,7 +113,7 @@ Conventions
 
 Zeilenga                        LDAPprep                        [Page 2]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
 
 
   The caseIgnoreMatch matching rule [X.520], for example, is simply
@@ -130,22 +130,24 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
   (Zs) property as a space, and another implementation may view any
   character with the whitespace (WS) category as a space.
 
-  The lack of precise specification for string matching has led to
-  significant interoperability problems.  When used in certificate chain
-  validation, security vulnerabilities can arise.  To address these
-  problems, this document defines precise algorithms for preparing
-  strings for matching.
+  The lack of precise specification for character string matching has
+  led to significant interoperability problems.  When used in
+  certificate chain validation, security vulnerabilities can arise.  To
+  address these problems, this document defines precise algorithms for
+  preparing character strings for matching.
 
 
 1.3. Relationship to "stringprep"
 
-  The string preparation algorithms described in this document are based
-  upon the "stringprep" approach [RFC3454].  In "stringprep", presented
-  and stored values are first prepared for comparison and so that a
-  character-by-character comparison yields the "correct" result.
+  The character string preparation algorithms described in this document
+  are based upon the "stringprep" approach [StringPrep].  In
+  "stringprep", presented and stored values are first prepared for
+  comparison and so that a character-by-character comparison yields the
+  "correct" result.
 
-  The approach used here is a refinement of the "stringprep" [RFC3454]
-  approach.  Each algorithm involves two additional preparation steps.
+  The approach used here is a refinement of the "stringprep"
+  [StringPrep] approach.  Each algorithm involves two additional
+  preparation steps.
 
   a) prior to applying the Unicode string preparation steps outlined in
      "stringprep", the string is transcoded to Unicode;
@@ -154,23 +156,23 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
      "stringprep", characters insignificant to the matching rules are
      removed.
 
-  Hence, preparation of strings for X.500 matching involves the
-  following steps:
+  Hence, preparation of character strings for X.500 matching involves
+  the following steps:
 
       1) Transcode
       2) Map
       3) Normalize
       4) Prohibit
       5) Check Bidi (Bidirectional)
-      6) Insignificant Character Removal
-
 
 
 
 Zeilenga                        LDAPprep                        [Page 3]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
 
+
+      6) Insignificant Character Removal
 
   These steps are described in Section 2.
 
@@ -181,8 +183,8 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
   [Roadmap] which obsoletes the previously defined LDAP technical
   specification [RFC3377] in its entirety.
 
-  This document details new LDAP internationalized string preparation
-  algorithms used by [Syntaxes] and possible other technical
+  This document details new LDAP internationalized character string
+  preparation algorithms used by [Syntaxes] and possible other technical
   specifications defining LDAP syntaxes and/or matching rules.
 
 
@@ -190,15 +192,17 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
   LDAP is defined [Roadmap] in X.500 terms as an X.500 access mechanism.
   As such, there is a strong desire for alignment between LDAP and X.500
-  syntax and semantics.  The string preparation algorithms described in
-  this document are based upon "Internationalized String Matching Rules
-  for X.500" [XMATCH] proposal to ITU/ISO Joint Study Group 2.
+  syntax and semantics.  The character string preparation algorithms
+  described in this document are based upon "Internationalized String
+  Matching Rules for X.500" [XMATCH] proposal to ITU/ISO Joint Study
+  Group 2.
 
 
 2. String Preparation
 
   The following six-step process SHALL be applied to each presented and
-  attribute value in preparation for string match rule evaluation.
+  attribute value in preparation for character string matching rule
+  evaluation.
 
       1) Transcode
       2) Map
@@ -207,9 +211,21 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
       5) Check bidi
       6) Insignificant Character Removal
 
-  Failure in any step is be cause the assertion to be Undefined.
+  Failure in any step causes the assertion to evaluate to Undefined.
+
+  This process is intended to act upon non-empty character strings.  If
+  the string to prepare is empty, this process is not applied and the
+  assertion is evaluated to Undefined.
 
   The character repertoire of this process is Unicode 3.2 [Unicode].
+
+
+
+
+
+Zeilenga                        LDAPprep                        [Page 4]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
 
 
 2.1. Transcode
@@ -221,22 +237,11 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
   PrintableString [X.680] value are transcoded directly to Unicode.
 
-
-
-Zeilenga                        LDAPprep                        [Page 4]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
   UniversalString, UTF8String, and bmpString [X.680] values need not be
   transcoded as they are Unicode-based strings (in the case of
   bmpString, a subset of Unicode).
 
-  If the implementation is unable or unwilling to perform the
-  transcoding as described above, or the transcoding fails, this step
-  fails and the assertion is evaluated to Undefined.
-
-  The transcoded string is the output string.
+  The output is the transcoded string.
 
 
 2.2. Map
@@ -259,44 +264,55 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
   Zp) are mapped to SPACE (U+0020).
 
   For case ignore, numeric, and stored prefix string matching rules,
-  characters are case folded per B.2 of [RFC3454].
+  characters are case folded per B.2 of [StringPrep].
+
+  The output is the mapped string.
 
 
 2.3. Normalize
 
   The input string is be normalized to Unicode Form KC (compatibility
-  composed) as described in [UAX15].
+  composed) as described in [UAX15].  The output is the normalized
+  string.
 
 
-2.4. Prohibit
-
-  All Unassigned, Private Use, and non-character code points are
-  prohibited.  Surrogate codes (U+D800-DFFFF) are prohibited.
-
-  The REPLACEMENT CHARACTER (U+FFFD) code point is prohibited.
-
-  The first code point of a string is prohibited from being a combining
 
 
 
 Zeilenga                        LDAPprep                        [Page 5]
 
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
 
 
+2.4. Prohibit
+
+  All Unassigned code points are prohibited.  Unassigned code points are
+  listed in Table A.1 of [StringPrep].
+
+  Private Use (U+E000-F8FF, F0000-FFFFD, 100000-10FFFD) code points are
+  prohibited.
+
+  All non-character code points (U+FDD0-FDEF, FFFE-FFFF, 1FFFE-1FFFF,
+  2FFFE-2FFFF, 3FFFE-3FFFF, 4FFFE-4FFFF, 5FFFE-5FFFF, 6FFFE-6FFFF,
+  7FFFE-7FFFF, 8FFFE-8FFFF, 9FFFE-9FFFF, AFFFE-AFFFF, BFFFE-BFFFF,
+  CFFFE-CFFFF, DFFFE-DFFFF, EFFFE-EFFFF, FFFFE-FFFFF, 10FFFE-10FFFF) are
+  prohibited.
+
+  Surrogate codes (U+D800-DFFFF) are prohibited.
+
+  The REPLACEMENT CHARACTER (U+FFFD) code point is prohibited.
+
+  The first code point of a string is prohibited from being a combining
   character.
 
-  Empty strings are prohibited.
-
-  The step fails and the assertion is evaluated to Undefined if the
-  input string contains any prohibited code point.  The output string is
-  the input string.
+  The step fails if the input string contains any prohibited code point.
+  The output is the input string.
 
 
 2.5. Check bidi
 
-  There are no bidirectional restrictions.  The output string is the
-  input string.
+  There are no bidirectional restrictions.  The output is the input
+  string.
 
 
 2.5. Insignificant Character Removal
@@ -305,21 +321,31 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
   removed.  The characters to be removed differ from matching rule to
   matching rule.
 
-  Section 2.6.1 applies to case ignore and exact string matching.
-  Section 2.6.2 applies to numericString matching.
-  Section 2.6.3 applies to telephoneNumber matching
+  Section 2.5.1 applies to case ignore and exact string matching.
+  Section 2.5.2 applies to numericString matching.
+  Section 2.5.3 applies to telephoneNumber matching
 
 
-2.6.1. Insignificant Space Removal
+2.5.1. Insignificant Space Removal
 
   For the purposes of this section, a space is defined to be the SPACE
   (U+0020) code point followed by no combining marks.
 
   NOTE - The previous steps ensure that the string cannot contain any
+
+
+
+Zeilenga                        LDAPprep                        [Page 6]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
          code points in the separator class, other than SPACE (U+0020).
 
-  The following spaces are regarded as not significant and are to be
-  removed:
+  If the input string consists entirely of spaces or is empty, the
+  output is a string consisting of exactly one space (e.g. " ").
+
+  Otherwise, the following spaces are removed:
     - leading spaces (i.e. those preceding the first character that is
       not a space);
     - trailing spaces (i.e. those following the last character that is
@@ -327,19 +353,8 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
     - multiple consecutive spaces (these are taken as equivalent to a
       single space character).
 
-  A string consisting entirely of spaces is equivalent to a string
-  containing exactly one space.
-
   For example, removal of spaces from the Form KC string:
       "<SPACE><SPACE>foo<SPACE><SPACE>bar<SPACE><SPACE>"
-
-
-
-Zeilenga                        LDAPprep                        [Page 6]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
   would result in the output string:
       "foo<SPACE>bar"
   and the Form KC string:
@@ -348,38 +363,61 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
       "<SPACE>".
 
 
-2.6.2. numericString Insignificant Character Removal
+2.5.2. numericString Insignificant Character Removal
 
   For the purposes of this section, a space is defined to be the SPACE
   (U+0020) code point followed by no combining marks.
 
-  All spaces are regarded as not significant and are to be removed.
+  All spaces are regarded as not significant.  If the input string
+  consists entirely of spaces or is empty, the output is a string
+  consisting of exactly one space (e.g. " ").  Otherwise, all spaces are
+  to be removed.
 
   For example, removal of spaces from the Form KC string:
-      "<SPACE><SPACE>123<SPACE><SPACE>456<SPACE><SPACE>" would result in
-  the output string:
+      "<SPACE><SPACE>123<SPACE><SPACE>456<SPACE><SPACE>"
+  would result in the output string:
       "123456"
   and the Form KC string:
       "<SPACE><SPACE><SPACE>"
-  would result in an empty output string.
+  would result in the output string:
+      "<SPACE>".
 
 
-2.6.3. telephoneNumber Insignificant Character Removal
+2.5.3. telephoneNumber Insignificant Character Removal
 
   For the purposes of this section, a hyphen is defined to be
   HYPHEN-MINUS (U+002D), ARMENIAN HYPHEN (U+058A), HYPHEN (U+2010),
   NON-BREAKING HYPHEN (U+2011), MINUS SIGN (U+2212), SMALL HYPHEN-MINUS
+
+
+
+Zeilenga                        LDAPprep                        [Page 7]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
   (U+FE63), or FULLWIDTH HYPHEN-MINUS (U+FF0D) code point followed by no
   combining marks and a space is defined to be the SPACE (U+0020) code
   point followed by no combining marks.
 
-  All hyphens and spaces are regarded as not significant and are to be
+  All hyphens and spaces are considered insignificant.  If the string
+  contains only spaces and hyphens or is empty, then the output is a
+  string consisting of one space.  Otherwise, all hyphens and spaces are
   removed.
+
+  For example, removal of hyphens and spaces from the Form KC string:
+      "<SPACE><HYPHEN>123<SPACE><SPACE>456<SPACE><HYPHEN>"
+  would result in the output string:
+      "123456"
+  and the Form KC string:
+      "<HYPHEN><HYPHEN><HYPHEN>"
+  would result in the output string:
+      "<SPACE>".
 
 
 3. Security Considerations
 
-  "Preparation for International Strings ('stringprep')" [RFC3454]
+  "Preparation for International Strings ('stringprep')" [StringPrep]
   security considerations generally apply to the algorithms described
   here.
 
@@ -388,14 +426,6 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
   Appendix A and B of this document were authored by Howard Chu
   <hyc@symas.com> of Symas Corporation (based upon information provided
-
-
-
-Zeilenga                        LDAPprep                        [Page 7]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
   in RFC 1345).
 
 
@@ -403,14 +433,25 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
   The approach used in this document is based upon design principles and
   algorithms described in "Preparation of Internationalized Strings
-  ('stringprep')" [RFC3454] by Paul Hoffman and Marc Blanchet.  Some
+  ('stringprep')" [StringPrep] by Paul Hoffman and Marc Blanchet.  Some
   additional guidance was drawn from Unicode Technical Standards,
   Technical Reports, and Notes.
+
+  This document is a product of the IETF LDAP Revision (LDAPBIS) Working
+  Group.
 
 
 6. Author's Address
 
   Kurt Zeilenga
+
+
+
+Zeilenga                        LDAPprep                        [Page 8]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
   E-mail: <kurt@openldap.org>
 
 
@@ -421,13 +462,13 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
   [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
                 Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
-  [RFC3454]     Hoffman, P. and M. Blanchet, "Preparation of
-                Internationalized Strings ('stringprep')", RFC 3454,
-                December 2002.
-
   [Roadmap]     Zeilenga, K. (editor), "LDAP: Technical Specification
                 Road Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in
                 progress.
+
+  [StringPrep]  Hoffman P. and M. Blanchet, "Preparation of
+                Internationalized Strings ('stringprep')",
+                draft-hoffman-rfc3454bis-xx.txt, a work in progress.
 
   [Syntaxes]    Legg, S. (editor), "LDAP: Syntaxes and Matching Rules",
                 draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress.
@@ -445,13 +486,6 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
                 "Unicode Standard Annex #28: Unicode 3.2"
                 (http://www.unicode.org/reports/tr28/).
 
-
-
-Zeilenga                        LDAPprep                        [Page 8]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
   [UAX15]       Davis, M. and M. Duerst, "Unicode Standard Annex #15:
                 Unicode Normalization Forms, Version 3.2.0".
                 <http://www.unicode.org/unicode/reports/tr15/tr15-22.html>,
@@ -465,6 +499,14 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
   [T.61]        CCITT (now ITU), "Character Repertoire and Coded
                 Character Sets for the International Teletex Service",
                 T.61, 1988.
+
+
+
+
+Zeilenga                        LDAPprep                        [Page 9]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
 
 7.2. Informative References
 
@@ -491,7 +533,7 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
                 2000.
 
   [XMATCH]      Zeilenga, K., "Internationalized String Matching Rules
-                for X.500", draft-zeilenga-ldapbis-strmatch-xx.txt a
+                for X.500", draft-zeilenga-ldapbis-strmatch-xx.txt, a
                 work in progress.
 
   [RFC1345]     Simonsen, K., "Character Mnemonics & Character Sets",
@@ -500,17 +542,9 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
 Appendix A. Teletex (T.61) to Unicode
 
-
-
-
-Zeilenga                        LDAPprep                        [Page 9]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
   This appendix defines an algorithm for transcoding [T.61] characters
   to [Unicode] characters for use in string preparation for LDAP
-  matching rules.  This appendix is a normative.
+  matching rules.  This appendix is normative.
 
   The transcoding algorithm is derived from the T.61-8bit definition
   provided in [RFC1345].  With a few exceptions, the T.61 character
@@ -522,6 +556,14 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
   The codes from x80 to x9f are also equivalent to the corresponding
   Unicode code points.  This is specified for completeness only, as
+
+
+
+Zeilenga                        LDAPprep                       [Page 10]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
   these codes are control characters, and will be mapped to nothing in
   the LDAP String Preparation Mapping step.
 
@@ -532,9 +574,9 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
   Undefined matching result. For diagnostic purposes, this algorithm
   does not fail for undefined input codes.  Instead, undefined codes in
   the input are mapped to the Unicode REPLACEMENT CHARACTER (U+FFFD).
-  As the LDAP String Preparation Probhibit step disallows the
-  REPLACEMENT CHARACTER from appearing in its output, this transcoding
-  yields the desired effect.
+  As the LDAP String Preparation Prohibit step disallows the REPLACEMENT
+  CHARACTER from appearing in its output, this transcoding yields the
+  desired effect.
 
   Note: RFC 1345 listed the non-spacing accent codepoints as residing in
         the range starting at (U+E000).  In the current Unicode
@@ -556,14 +598,6 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
    e8| 0141 | 00d8 | 0152 | 00ba | 00de | 0166 | 014a | 0149 |
    f0| 0138 | 00e6 | 0111 | 00f0 | 0127 | 0131 | 0133 | 0140 |
    f8| 0142 | 00f8 | 0153 | 00df | 00fe | 0167 | 014b |  ??  |
-
-
-
-Zeilenga                        LDAPprep                       [Page 10]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
    --+------+------+------+------+------+------+------+------+
             Table A.1:  Mapping of 8-bit T.61 codes to Unicode
 
@@ -579,12 +613,19 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
 Appendix B. Additional Teletex (T.61) to Unicode Tables
 
+
+
+Zeilenga                        LDAPprep                       [Page 11]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
   All of the accented characters in T.61 have a corresponding code point
   in Unicode.  For the sake of completeness, the combined character
   codes are presented in the following tables.  This is informational
   only; for matching purposes it is sufficient to map the non-spacing
   accent and exchange the order of the character pair as specified in
-  Appendix A.
+  Appendix A.   This appendix is informative.
 
 
 B.1. Combinations with SPACE
@@ -612,14 +653,6 @@ B.2. Combinations for xc1: (Grave accent)
    40|  ??  | 00c0 |  ??  |  ??  |  ??  | 00c8 |  ??  |  ??  |
    48|  ??  | 00cc |  ??  |  ??  |  ??  |  ??  | 01f8 | 00d2 |
    50|  ??  |  ??  |  ??  |  ??  |  ??  | 00d9 |  ??  | 1e80 |
-
-
-
-Zeilenga                        LDAPprep                       [Page 11]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
    58|  ??  | 1ef2 |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
    60|  ??  | 00e0 |  ??  |  ??  |  ??  | 00e8 |  ??  |  ??  |
    68|  ??  | 00ec |  ??  |  ??  |  ??  |  ??  | 01f9 | 00f2 |
@@ -634,6 +667,14 @@ B.3. Combinations for xc2: (Acute accent)
   T.61 has predefined characters for combinations with A, E, I, O, U, Y,
   C, L, N, R, S, and Z.  Unicode also defines G, K, M, P, and W.  All of
   these combinations are present in Table B.3.
+
+
+
+
+Zeilenga                        LDAPprep                       [Page 12]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
 
      |    0 |    1 |    2 |    3 |    4 |    5 |    6 |    7 |
    --+------+------+------+------+------+------+------+------+
@@ -669,13 +710,6 @@ B.4. Combinations for xc3: (Circumflex)
         Table B.4: Mapping of T.61 Circumflex Accent Combinations
 
 
-
-
-Zeilenga                        LDAPprep                       [Page 12]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
 B.5. Combinations for xc4: (Tilde)
 
   T.61 has predefined characters for combinations with A, I, O, U, and
@@ -690,6 +724,14 @@ B.5. Combinations for xc4: (Tilde)
    58|  ??  | 1ef8 |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
    60|  ??  | 00e3 |  ??  |  ??  |  ??  | 1ebd |  ??  |  ??  |
    68|  ??  | 0129 |  ??  |  ??  |  ??  |  ??  | 00f1 | 00f5 |
+
+
+
+Zeilenga                        LDAPprep                       [Page 13]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
    70|  ??  |  ??  |  ??  |  ??  |  ??  | 0169 | 1e7d |  ??  |
    78|  ??  | 1ef9 |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
    --+------+------+------+------+------+------+------+------+
@@ -724,14 +766,6 @@ B.7. Combinations for xc6: (Breve)
   Unicode also defines E, I, and O.  All of these combinations are
   present in Table B.7.
 
-
-
-
-Zeilenga                        LDAPprep                       [Page 13]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
      |    0 |    1 |    2 |    3 |    4 |    5 |    6 |    7 |
    --+------+------+------+------+------+------+------+------+
    40|  ??  | 0102 |  ??  |  ??  |  ??  | 0114 |  ??  | 011e |
@@ -744,6 +778,14 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
    78|  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
    --+------+------+------+------+------+------+------+------+
            Table B.7: Mapping of T.61 Breve Accent Combinations
+
+
+
+
+
+Zeilenga                        LDAPprep                       [Page 14]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
 
 
 B.8. Combinations for xc7: (Dot Above)
@@ -780,14 +822,6 @@ B.9. Combinations for xc8: (Diaeresis)
    58| 1e8c | 0178 |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
    60|  ??  | 00e4 |  ??  |  ??  |  ??  | 00eb |  ??  |  ??  |
    68| 1e27 | 00ef |  ??  |  ??  |  ??  |  ??  |  ??  | 00f6 |
-
-
-
-Zeilenga                        LDAPprep                       [Page 14]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
    70|  ??  |  ??  |  ??  |  ??  | 1e97 | 00fc |  ??  | 1e85 |
    78| 1e8d | 00ff |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
    --+------+------+------+------+------+------+------+------+
@@ -802,6 +836,14 @@ B.10. Combinations for xca: (Ring Above)
      |    0 |    1 |    2 |    3 |    4 |    5 |    6 |    7 |
    --+------+------+------+------+------+------+------+------+
    40|  ??  | 00c5 |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
+
+
+
+Zeilenga                        LDAPprep                       [Page 15]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
    48|  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
    50|  ??  |  ??  |  ??  |  ??  |  ??  | 016e |  ??  |  ??  |
    58|  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |  ??  |
@@ -836,14 +878,6 @@ B.11. Combinations for xcb: (Cedilla)
 B.12. Combinations for xcd: (Double Acute Accent)
 
   T.61 has predefined characters for O, and U.  These combinations are
-
-
-
-Zeilenga                        LDAPprep                       [Page 15]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
   present in Table B.12.
 
      |    0 |    1 |    2 |    3 |    4 |    5 |    6 |    7 |
@@ -857,6 +891,14 @@ Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
 
 
 B.13. Combinations for xce: (Ogonek)
+
+
+
+
+Zeilenga                        LDAPprep                       [Page 16]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
 
   T.61 has predefined characters for A, E, I, and U.  Unicode also
   defines the combination for O.  All of these combinations are present
@@ -892,17 +934,8 @@ B.14. Combinations for xcf: (Caron)
    68| 021f | 01d0 | 01f0 | 01e9 | 013e |  ??  | 0148 | 01d2 |
    70|  ??  |  ??  | 0159 | 0161 | 0165 | 01d4 |  ??  |  ??  |
    78|  ??  |  ??  | 017e |  ??  |  ??  |  ??  |  ??  |  ??  |
-
-
-
-Zeilenga                        LDAPprep                       [Page 16]
-
-Internet-Draft        draft-ietf-ldapbis-strprep-00          26 May 2003
-
-
    --+------+------+------+------+------+------+------+------+
           Table B.14: Mapping of T.61 Caron Accent Combinations
-
 
 
 
@@ -915,6 +948,14 @@ Intellectual Property Rights
   might not be available; neither does it represent that it has made any
   effort to identify any such rights.  Information on the IETF's
   procedures with respect to rights in standards-track and
+
+
+
+Zeilenga                        LDAPprep                       [Page 17]
+
+Internet-Draft        draft-ietf-ldapbis-strprep-02      27 October 2003
+
+
   standards-related documentation can be found in BCP-11.  Copies of
   claims of rights made available for publication and any assurances of
   licenses to be made available, or the result of an attempt made to
@@ -951,5 +992,20 @@ Full Copyright
 
 
 
-Zeilenga                        LDAPprep                       [Page 17]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                        LDAPprep                       [Page 18]
 

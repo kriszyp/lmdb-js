@@ -6,11 +6,11 @@
 
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                    11 May 2003
+Expires in six months                                25 October 2003
 
 
                         The LDAP Assertion Control
-                   <draft-zeilenga-ldap-assert-00.txt>
+                   <draft-zeilenga-ldap-assert-01.txt>
 
 
 Status of this Memo
@@ -22,8 +22,8 @@ Status of this Memo
   revision, submitted to the IESG for consideration as a Standard Track
   document.  Distribution of this memo is unlimited.  Technical
   discussion of this document will take place on the IETF LDAP
-  Extensions Working Group mailing list <ldapext@ietf.org>.  Please send
-  editorial comments directly to the author <Kurt@OpenLDAP.org>.
+  Extensions mailing list <ldapext@ietf.org>.  Please send editorial
+  comments directly to the author <Kurt@OpenLDAP.org>.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups.  Note that other
@@ -48,30 +48,30 @@ Abstract
 
   This document defines the Lightweight Directory Access Protocol (LDAP)
   Assertion Control which allows a client to specify that a directory
-  operation should only be processed if the assertion when applied to
-  the target entry of the operation.  It can be used to construct "test
-  and set" and "test and clear" operations.
+  operation should only be processed if an assertion applied to the
+  target entry of the operation is true.  It can be used to construct
+  "test and set" and "test and clear" and other conditional operations.
 
 
 
 
 Zeilenga                 LDAP Assertion Control                 [Page 1]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
 
 
 1.  Overview
 
   This document defines the Lightweight Directory Access Protocol (LDAP)
   [RFC3377] assertion control.  The assertion control allows the client
-  to specify a condition which allows the operation to be processed
-  normally only when true.  Otherwise the operation fails.
+  to specify a condition which must be true for the operation to be
+  processed normally.  Otherwise the operation fails.
 
   The control can be used with the Modify operation [RFC2251] to perform
-  atomic "test and set" and "test and clear" operations as the the
-  asserted condition is evaluated as an integral part the operation.
-  The control may be attached to other update operations to support
-  conditional add, delete, and renaming of objects.
+  atomic "test and set" and "test and clear" operations as the asserted
+  condition is evaluated as an integral part the operation.  The control
+  may be attached to other update operations to support conditional add,
+  delete, and renaming of objects.
 
   The control may also be used with the search operation.  Here the
   assertion is applied to the base object of the search before searching
@@ -83,13 +83,12 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
 
 2. Terminology
 
-  Protocol elements are described using ASN.1 [X.680].  The term
-  "BER-encoded" means the element is to be encoded using the Basic
-  Encoding Rules [X.690] under the restrictions detailed in Section 5.1
-  of [RFC2251].
+  Protocol elements are described using ASN.1 [X.680] with implicit
+  tags.  The term "BER-encoded" means the element is to be encoded using
+  the Basic Encoding Rules [X.690] under the restrictions detailed in
+  Section 5.1 of [RFC2251].
 
-  DN stands for Distinguished Name.
-  DSA stands for Directory System Agent (i.e., a directory server).
+  DSA stands for Directory System Agent (or server).
   DSE stands for DSA-specific Entry.
 
   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
@@ -104,30 +103,25 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
   [RFC2251, Section 4.5.1].  The criticality may be TRUE or FALSE.
   There is no corresponding response control.
 
-  Servers implementing this technical specification SHOULD publish
-  IANA-ASSIGNED-OID as a value of the 'supportedControl' attribute
-  [RFC2252] in their root DSE.
-
+  The control is appropriate for both LDAP interrogation and update
+  operations [RFC2251] including Add, Compare, Delete, Modify, ModifyDN
+  (rename), and Search.  It is inappropriate for Abandon, Bind nor
+  Unbind operations.  It is also inappropriate for the Start TLS
+  [RFC2830] operation.
 
 
 
 Zeilenga                 LDAP Assertion Control                 [Page 2]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
 
-
-  The control is appropriate for both LDAP interrogation and update
-  operations [RFC2251] including Add, Compare, Delete, Modify, ModifyDN
-  (rename), and Search.  It is not appropriate for Abandon, Bind nor
-  Unbind operations.  Nor is it appropriate for the Start TLS [RFC2830]
-  operation.
 
   When the control is attached to an LDAP request, the processing of the
   request is conditional on the evaluation of the Filter as applied
   against the target of the operation.  If the Filter evaluates to TRUE,
   then the request is processed normally.  If the Filter evaluates to
-  FALSE, then assertionFailed (IANA-ASSIGNED-CODE) resultCode is
-  returned and no further processing is performed.
+  FALSE or Undefined, then assertionFailed (IANA-ASSIGNED-CODE)
+  resultCode is returned and no further processing is performed.
 
   For Add, Compare, and ModifyDN the target is indicated by the entry
   field in the request.  For Modify, the target is indicated by the
@@ -135,23 +129,29 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
   type.  For the Compare operation and all update operations, the
   evaluation of the assertion MUST be performed as an integral part of
   the operation.  That is, the evaluation of the assertion and the
-  normal processing SHALL be done as one atomic action.
+  normal processing of the operation SHALL be done as one atomic action.
 
   For search operation, the target is indicated by the baseObject field
   and the evaluation is done after "finding" but before "searching"
   [RFC2251].  Hence, if the evaluation fails, no entries or
   continuations references are returned.
 
+  Servers implementing this technical specification SHOULD publish the
+  object identifier IANA-ASSIGNED-OID as a value of the
+  'supportedControl' attribute [RFC2252] in their root DSE.  A server
+  MAY choose to advertise this extension only when the client is
+  authorized to use it.
+
   Other documents may specify how this control applies to other LDAP
-  operations.  In doing so, they must how the target entry is
+  operations.  In doing so, they must state how the target entry is
   determined.
 
 
-3.  Security Considerations
+4.  Security Considerations
 
-  The filter may, like other values of the request, contain sensitive
-  information.  When so, this information should be appropriately
-  protected.
+  The filter may, like other components of the request, contain
+  sensitive information.  When so, this information should be
+  appropriately protected.
 
   As with any general assertion mechanism, the mechanism can be used to
   determine directory content.  Hence, the mechanism SHOULD be subject
@@ -169,16 +169,16 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
 
 Zeilenga                 LDAP Assertion Control                 [Page 3]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
 
 
-4.  IANA Considerations
+5.  IANA Considerations
 
-4.1.  Object Identifier
+5.1.  Object Identifier
 
-  It is requested that IANA register upon Standards Action an LDAP
-  Object Identifier [RFC3383] to identify the LDAP Assertion Control
-  defined in this document.
+  It is requested that IANA assign upon Standards Action an LDAP Object
+  Identifier [RFC3383] to identify the LDAP Assertion Control defined in
+  this document.
 
       Subject: Request for LDAP Object Identifier Registration
       Person & email address to contact for further information:
@@ -188,7 +188,7 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
       Comments:
           Identifies the LDAP Assertion Control
 
-4.2  LDAP Protocol Mechanism
+5.2  LDAP Protocol Mechanism
 
   Registration of this protocol mechanism [RFC3383] is requested.
 
@@ -203,7 +203,7 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
       Comments: none
 
 
-4.3  LDAP Result Code
+5.3  LDAP Result Code
 
   Assignment of an LDAP Result Code [RFC3383] called 'assertionFailed'
   is requested.
@@ -217,7 +217,7 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
       Comments:  none
 
 
-5.  Acknowledgments
+6.  Acknowledgments
 
   The assertion control concept is attributed to Morteza Ansari.
 
@@ -225,17 +225,17 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
 
 Zeilenga                 LDAP Assertion Control                 [Page 4]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
 
 
-6.  Author's Address
+7.  Author's Address
 
   Kurt D. Zeilenga
   OpenLDAP Foundation
   <Kurt@OpenLDAP.org>
 
 
-7. Normative References
+8. Normative References
 
   [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
                 Requirement Levels", BCP 14 (also RFC 2119), March 1997.
@@ -252,7 +252,7 @@ INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
                 September 2002.
 
 
-8. Informative References
+9. Informative References
 
   [RFC3383]     Zeilenga, K., "IANA Considerations for LDAP", BCP 64
                 (also RFC 3383), September 2002.
@@ -281,7 +281,7 @@ Intellectual Property Rights
 
 Zeilenga                 LDAP Assertion Control                 [Page 5]
 
-INTERNET-DRAFT        draft-zeilenga-ldap-assert-00          11 May 2003
+INTERNET-DRAFT        draft-zeilenga-ldap-assert-01      25 October 2003
 
 
   copyrights, patents or patent applications, or other proprietary

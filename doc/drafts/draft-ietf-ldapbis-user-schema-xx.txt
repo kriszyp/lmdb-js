@@ -1,12 +1,12 @@
 INTERNET-DRAFT                                          K. Dally, Editor
 Intended Category:  Standard Track                       The MITRE Corp.
-Expires:  October 2003                                        April 2003
-Updates:  RFC 2247
+Expires:  December 2003                                        June 2003
+Updates:  RFC 2247, RFC 2798
 Obsoletes:  RFC 2256
 
 
-                           LDAP:  User Schema
-                  <draft-ietf-ldapbis-user-schema-05>
+                   LDAP:  Schema for User Applications                  
+                  <draft-ietf-ldapbis-user-schema-06>
 
 
 Status of this Memo
@@ -44,22 +44,22 @@ Copyright Notice
 
 Abstract
 
-   This document is a integral part of the LDAP technical specification 
-   [ROADMAP].  It provides an overview of attribute types and object 
-   classes intended for use by LDAP directory clients for many 
-   directory services, such as, White Pages.  Originally specified the 
-   ISO/IEC 9594 and X.500 documents, these objects are widely used as a 
+   This document is a integral part of the Lightweight Directory Access 
+   Protocol (LDAP) technical specification [ROADMAP].  It provides a 
+   technical specification of attribute types and object classes 
+   intended for use by LDAP directory clients for many directory 
+   services, such as, White Pages.  These objects are widely used as a 
    basis for the schema in many LDAP directories.  This document does 
    not cover attributes used for the administration of directory 
    servers, nor does it include directory objects defined for specific 
    uses in other documents.  
 
 
-Dally                    Expires October 2003                   [Page 1]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+Dally                    Expires December 2003                  [Page 1]
+INTERNET-DRAFT      draft-ietf-ldapbis-user-schema-06          June 2003
 
 
-                           Table of Contents
+                            Table of Contents                           
 
 Status of this Memo                                                    1
 
@@ -81,81 +81,78 @@ Table of Contents                                                      2
     2.3  cn                                                            6
     2.4  dc                                                            6
     2.5  description                                                   6
-    2.6  destinationIndicator                                          6
+    2.6  destinationIndicator                                          7
     2.7  distinguishedName                                             7
     2.8  dnQualifier                                                   7
-    2.9  enhancedSearchGuide                                           7
-    2.10 facsimileTelephoneNumber                                      7
+    2.9  enhancedSearchGuide                                           8
+    2.10 facsimileTelephoneNumber                                      8
     2.11 generationQualifier                                           8
     2.12 givenName                                                     8
-    2.13 houseIdentifier                                               8
-    2.14 initials                                                      8
-    2.15 internationalISDNNumber                                       8
+    2.13 houseIdentifier                                               9
+    2.14 initials                                                      9
+    2.15 internationalISDNNumber                                       9
     2.16 l                                                             9
-    2.17 member                                                        9
-    2.18 name                                                          9
-    2.19 o                                                             9
-    2.20 ou                                                            9
-    2.21 owner                                                        10
-    2.22 physicalDeliveryOfficeName                                   10
-    2.23 postalAddress                                                10
-    2.24 postalCode                                                   10
-    2.25 postOfficeBox                                                10
-    2.26 preferredDeliveryMethod                                      11
-    2.27 registeredAddress                                            11
-    2.28 roleOccupant                                                 11
-    2.29 searchGuide                                                  11
-    2.30 seeAlso                                                      12
-    2.31 serialNumber                                                 12
-    2.32 sn                                                           12
-    2.33 st                                                           12
-    2.34 street                                                       12
-    2.35 telephoneNumber                                              12
+    2.17 member                                                       10
+    2.18 name                                                         10
+    2.19 o                                                            10
+    2.20 ou                                                           10
+    2.21 owner                                                        11
+    2.22 physicalDeliveryOfficeName                                   11
+    2.23 postalAddress                                                11
+    2.24 postalCode                                                   11
+    2.25 postOfficeBox                                                12
+    2.26 preferredDeliveryMethod                                      12
+    2.27 registeredAddress                                            12
+    2.28 roleOccupant                                                 13
+    2.29 searchGuide                                                  13
+    2.30 seeAlso                                                      13
+    2.31 serialNumber                                                 13
+    2.32 sn                                                           14
+    2.33 st                                                           14
+    2.34 street                                                       14
+    2.35 telephoneNumber                                              14
 
 
-Dally                    Expires October 2003                   [Page 2]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+Dally                    Expires December 2003                  [Page 2]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
-    2.36 teletexTerminalIdentifier                                    13
-    2.37 telexNumber                                                  13
-    2.38 title                                                        13
-    2.39 uniqueMember                                                 13
-    2.40 userPassword                                                 14
-    2.41 x121Address                                                  14
-    2.42 x500UniqueIdentifier                                         14
+    2.36 teletexTerminalIdentifier                                    14
+    2.37 telexNumber                                                  15
+    2.38 title                                                        15
+    2.39 uid                                                          15
+    2.40 uniqueMember                                                 15
+    2.41 userPassword                                                 16
+    2.42 x121Address                                                  16
+    2.43 x500UniqueIdentifier                                         16
 
-3.  Object Classes                                                    15
-    3.1  applicationProcess                                           15
-    3.2  country                                                      15
-    3.3  device                                                       15
-    3.4  domain                                                       15
-    3.5  groupOfNames                                                 16
-    3.6  groupOfUniqueNames                                           16
-    3.7  locality                                                     17
-    3.8  organization                                                 17
-    3.9  organizationalPerson                                         17
-    3.10 organizationalRole                                           18
-    3.11 organizationalUnit                                           18
-    3.12 person                                                       18
-    3.13 residentialPerson                                            19
+3.  Object Classes                                                    17
+    3.1  applicationProcess                                           17
+    3.2  country                                                      17
+    3.3  device                                                       17
+    3.4  groupOfNames                                                 18
+    3.5  groupOfUniqueNames                                           18
+    3.6  locality                                                     18
+    3.7  organization                                                 19
+    3.8  organizationalPerson                                         19
+    3.9 organizationalRole                                            19
+    3.10 organizationalUnit                                           20
+    3.11 person                                                       20
+    3.12 residentialPerson                                            20
 
-4.  IANA Considerations                                               19
+4.  IANA Considerations                                               21
 
-5.  Security Considerations                                           19
+5.  Security Considerations                                           22
 
-6.  Acknowledgements                                                  19
+6.  Acknowledgements                                                  23
 
-7.  References                                                        20
-    7.1  Normative                                                    20
-    7.2  Informative                                                  20
+7.  References                                                        23
+    7.1  Normative                                                    23
+    7.2  Informative                                                  24
 
-8.  Author's Address                                                  21
+8.  Author's Address                                                  25
 
-9.  Full Copyright Statement                                          21
-
-
-
+9.  Full Copyright Statement                                          25
 
 
 
@@ -171,32 +168,40 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
 
 
 
-Dally                    Expires October 2003                   [Page 3]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2002
+
+
+
+Dally                    Expires December 2003                  [Page 3]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2002
 
 
 1.  Introduction
 
    This document provides an overview of attribute types and object 
-   classes intended for use by LDAP directory clients for many 
-   directory services, such as, White Pages.  Originally specified in 
-   the ISO/IEC 9594 and X.500 documents, these objects are widely used 
-   as a basis for the schema in many LDAP directories.  This document 
-   does not cover attributes used for the administration of directory 
-   servers, nor does it include directory objects defined for specific 
-   uses in other documents.
+   classes intended for use by Lightweight Directory Access Protocol 
+   directory clients for many directory services, such as, White Pages.
+   Originally specified in the X.500 [X.500] documents, these objects 
+   are widely used as a basis for the schema in many LDAP 
+   directories.  This document does not cover attributes used for the 
+   administration of directory servers, nor does it include directory 
+   objects defined for specific uses in other documents.
 
 1.1  Situation
 
    This document is a integral part of the LDAP technical specification 
    [ROADMAP] which obsoletes the previously defined LDAP technical 
    specification [RFC3377] in its entirety.  In terms of RFC 2256, 
-   Sections 6 and 8 of RFC 2256 are obsoleted by [Syntaxes].  
-   Sections 5.1, 5.2, 7.1 and 7.2 of RFC 2256 are obsoleted by [Models].
-   The remainder of RFC 2256 is obsoleted by this document.  Sections 
-   3.4 and 4.4 of this document supercede the technical specifications 
-   for the 'dc' attribute type and 'domain' object class found in 
-   RFC 2247.  The remainder of RFC 2247 remains in force.
+   Sections 6 and 8 of RFC 2256 are obsoleted by [Syntaxes].  Sections 
+   5.1, 5.2, 7.1 and 7.2 of RFC 2256 are obsoleted by [Models].  The 
+   remainder of RFC 2256 is obsoleted by this document.  Section 3.4 of 
+   this document supercedes the technical specification for the 'dc' 
+   attribute type found in RFC 2247.[editor's note:  Substitute 
+   replacement RFC at time of publication.]   The remainder of RFC 2247 
+   remains in force.
+
+   This document updates RFC 2798 by replacing the informative 
+   description of the 'uid' attribute type, with the definitive 
+   description provided in Section 2.39 of this document.
 
    A number of schema elements which were included in the previous 
    revision of the LDAP Technical Specification are not included in this
@@ -224,86 +229,91 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2002
 
 
 
-
-
-
-
-
-Dally                    Expires October 2003                   [Page 4]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+Dally                    Expires December 2003                  [Page 4]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
 1.4  Source
 
    The schema definitions in this document are based on those found in 
-   the X.500-series [X.520] and [X.521] and RFC 2247 [RFC2247], 
-   specifically:
+   the X.500-series [X.520] and [X.521], RFC 2798 [RFC2798] and 
+   RFC 2247 [RFC2247], specifically:
+   
+   Sections             Source
+   ============         ==================
+   2.1 - 2.3            X.520 [X.520]
+   2.4                  RFC 2247 [RFC2247]
+   2.5 - 2.38           X.520 [X.520]
+   2.39                 RFC 2798 [2798]
+   2.40 - 2.43          X.520 [X.520]
+   3.1  - 3.12          X.521 [X.521]
 
-        Sections             Source
-        ============         ==================
-        2.1 - 2.3            X.520 [X.520]
-        2.4                  RFC 2247 [RFC2247]
-        2.5 - 2.42           X.520 [X.520]
-        3.1  - 3.3           X.521 [X.521]
-        3.4                  RFC 2247 [RFC2247]
-        3.5 - 3.13           X.521 [X.521]
+   However, the descriptions in this document SHALL be considered 
+   definitive for use in LDAP.
 
 
-2. Attribute Types
+2.  Attribute Types
 
    The Attribute Types contained in this section hold user information.
 
    There is no requirement that servers implement the following 
-   Attribute Types: 
+   attribute types: 
 
-       searchGuide
-       teletexTerminalIdentifier
+      searchGuide
+      teletexTerminalIdentifier
 
    In fact, their use is greatly discouraged.
 
    An LDAP server implementation SHOULD recognize the rest of the 
-   Attribute Types described in this section.
+   attribute types described in this section.
 
 2.1  businessCategory
 
-   This Attribute Type describes the kind of business performed by 
-   an organization.
+   The businessCategory attribute type describes the kinds of business 
+   performed by an organization (e.g., "banking", "transportation").  
+   Each kind is one value of this multi-valued attribute.
 
    ( 2.5.4.15 NAME 'businessCategory' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.2  c
 
-   This is the X.520 [X.520] countryName Attribute Type, which contains 
-   a two-letter ISO 3166 [ISO3166]country code.
+   The c (countryName) attribute type contains a two-letter ISO 3166 
+   [ISO3166] country code (e.g., "DE").  (Source:  X.520)
+
+
+Dally                    Expires December 2003                  [Page 5]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
 
    ( 2.5.4.6 NAME 'c' 
       SUP name 
       SINGLE-VALUE )
 
-
-
-Dally                    Expires October 2003                   [Page 5]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
 2.3  cn
 
-   This is the X.520 [X.520] commonName Attribute Type, which contains 
-   a name of an object.  If the object corresponds to a person, it is 
-   typically the person's full name.
+   The cn (commonName) attribute type contains names of an object 
+   (e.g., "Martin K Smith", "Marty Smith", "printer12").  Each name is 
+   one value of this multi-valued attribute.  If the object corresponds 
+   to a person, it is typically the person's full name.  
+   (Source:  X.520)
 
    ( 2.5.4.3 NAME 'cn' 
       SUP name )
 
 2.4  dc
 
-   The dc (short for domainComponent) attribute type is defined as 
-   follows:
+   The dc (short for domainComponent) attribute type is a string 
+   holding one component, a <label> [RFC1034}, of a DNS domain name 
+   (e.g., "example" or "com", but not "example.com").  The encoding of 
+   IA5String for use in LDAP is simply the characters of the string 
+   itself.  The equality matching rule is case insensitive, as is 
+   today's DNS.
 
    ( 0.9.2342.19200300.100.1.25 NAME 'dc' 
       EQUALITY caseIgnoreIA5Match
@@ -311,49 +321,62 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 
       SINGLE-VALUE )
 
-   The value of this attribute is a string holding one component of a 
-   DNS domain name.  The encoding of IA5String for use in LDAP is simply
-   the characters of the string itself.  The equality matching rule is 
-   case insensitive, as is today's DNS.
+   1.3.6.1.4.1.1466.115.121.1.26 refers to the IA5 String 
+   syntax [Syntaxes].
+
+   It is noted that the directory will not ensure that values of this 
+   attribute conform to the label production [RFC1034].  It is the 
+   application responsibility to ensure domains it stores in this 
+   attribute are appropriately represented.
+
+   It is also noted that applications supporting Internationalized 
+   Domain Names SHALL use the ToASCII method [RFC3490] to produce 
+   <label> components of the <domain> production.
 
 2.5  description
 
-   This Attribute Type contains a human-readable description of 
-   the object. 
+   The description attribute type contains human-readable descriptive 
+   phrases about the object (e.g., "a color printer", "Maintenance is 
+   done every Monday, at 1pm.").  Each description is one value of this 
+   multi-valued attribute.  
 
    ( 2.5.4.13 NAME 'description' 
       EQUALITY caseIgnoreMatch
-      SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+
+
+Dally                    Expires December 2003                  [Page 6]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
+
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.6  destinationIndicator
 
-   This attribute is used for the telegram service.
+   The destinationIndicator attribute type contains country and city 
+   strings, associated with the object (the addressee), needed to 
+   provide the Public Telegram Service.  Each string is one value of 
+   this multi-valued attribute.  The strings are composed in accordance 
+   with CCITT Recommendations F.1 [F.1] and F.31 [F.31].
 
    ( 2.5.4.27 NAME 'destinationIndicator' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{128} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 ) 
 
-   The SYNTAX oid indicates the Printable String syntax.
-
-
-
-
-
-
-
-Dally                    Expires October 2003                   [Page 6]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
+   1.3.6.1.4.1.1466.115.121.1.44 refers to the Printable String 
+   syntax [Syntaxes].
 
 2.7  distinguishedName
 
-   This Attribute Type is not used as the name of the object itself, 
-   but it is instead a base type from which attributes with DN syntax 
-   inherit.
+   The distinguishedName attribute type is the attribute supertype from 
+   which attribute types with DN syntax inherit, instead of containing 
+   values which name the object itself.  The attribute type is 
+   multi-valued.
 
    It is unlikely that values of this type itself will occur in an 
    entry.  LDAP server implementations which do not support attribute 
@@ -365,16 +388,24 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
       EQUALITY distinguishedNameMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
 
-   The SYNTAX oid indicates the DN syntax.
+   1.3.6.1.4.1.1466.115.121.1.12 refers to the DN syntax [Syntaxes].
 
 2.8  dnQualifier
 
-   The dnQualifier Attribute Type specifies disambiguating information 
-   to add to the relative distinguished name of an entry.  It is 
-   intended for use when merging data from multiple sources in order to 
-   prevent conflicts between entries which would otherwise have the same
-   name.  It is recommended that the value of the dnQualifier attribute 
-   be the same for all entries from a particular source.
+   The dnQualifier attribute type contains disambiguating information 
+   strings to add to the relative distinguished name of an entry.  The 
+   information is intended for use when merging data from multiple 
+   sources in order to prevent conflicts between entries which would 
+   otherwise have the same name.  Each string is one value of this 
+   multi-valued attribute.  It is recommended that a value of the 
+   dnQualifier attribute be the same for all entries from a 
+   particular source.
+
+
+
+Dally                    Expires December 2003                  [Page 7]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
 
    ( 2.5.4.46 NAME 'dnQualifier' 
       EQUALITY caseIgnoreMatch
@@ -382,389 +413,483 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
       SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 ) 
 
-   The SYNTAX oid indicates the Printable String syntax.
+   1.3.6.1.4.1.1466.115.121.1.44 refers to the Printable String 
+   syntax [Syntaxes].
 
 2.9  enhancedSearchGuide
 
-   This attribute is for use by X.500 clients in constructing search 
-   filters.
+   The enhancedSearchGuide attribute type contains sets of information 
+   for use by directory clients in constructing search filters.  Each 
+   set is one value of this multi-valued attribute.
 
    ( 2.5.4.47 NAME 'enhancedSearchGuide'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.21 ) 
 
-   The SYNTAX oid indicates the Enhanced Guide syntax.
+   1.3.6.1.4.1.1466.115.121.1.21 refers to the Enhanced Guide 
+   syntax [Syntaxes].
 
 2.10  facsimileTelephoneNumber
 
-   A value of this Attribute Type is a telephone number for a facsimile 
-   terminal (and, optionally, its parameters).
+   The facsimileTelephoneNumber attribute type contains telephone 
+   numbers (and, optionally, the parameters) for facsimile terrminals.  
+   Each telephone number is one value of this multi-valued attribute.
 
    ( 2.5.4.23 NAME 'facsimileTelephoneNumber'
-     SYNTAX 1.3.6.1.4.1.1466.115.121.1.22 ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.22 ) 
 
-
-Dally                    Expires October 2003                   [Page 7]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
-   The SYNTAX oid indicates the Facsimile Telephone Number syntax.
+   1.3.6.1.4.1.1466.115.121.1.22 refers to the Facsimile Telephone 
+   Number syntax [Syntaxes].
 
 2.11  generationQualifier
 
-   The generationQualifier Attribute Type contains the part of a 
-   person's name which typically is the suffix, as in "IIIrd".
+   The generationQualifier attribute type contains name strings that 
+   are the part of a person's name which typically is the suffix, as in 
+   "IIIrd" or "3rd".  Each string is one value of this multi-valued 
+   attribute.
 
    ( 2.5.4.44 NAME 'generationQualifier' 
       SUP name )
 
 2.12  givenName
 
-   The givenName Attribute Type is used to hold the part of a person's 
-   name which is not their surname nor middle name.
+   The givenName attribute type contains name strings that are the part 
+   of a person's name which is not their surname.  Each string is one 
+   value of this multi-valued attribute.
 
    ( 2.5.4.42 NAME 'givenName' 
       SUP name )
 
+
+
+Dally                    Expires December 2003                  [Page 8]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
 2.13  houseIdentifier
 
-   This Attribute Type is used to identify a building within a location.
+   The houseIdentifier attribute type contains identifiers for a 
+   building within a location.  Each identifier is one value of this 
+   multi-valued attribute.
 
    ( 2.5.4.51 NAME 'houseIdentifier' 
       EQUALITY caseIgnoreMatch 
       SUBSTR caseIgnoreSubstringsMatch 
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.14  initials
 
-   The initials Attribute Type contains the initials of some or all of 
-   an individuals names, except the surname(s).
+   The initials attribute type contains strings of initials of some or 
+   all of an individual's names, except the surname(s) 
+   (e.g., "K. A.", "K").  Each string is one value of this multi-valued 
+   attribute.
 
-    ( 2.5.4.43 NAME 'initials' 
+   ( 2.5.4.43 NAME 'initials' 
       SUP name )
 
 2.15  internationalISDNNumber
 
-   A value of this Attribute Type is an ISDN address, as defined in 
-   ITU Recommendation E.164 [E.164].
+   The internationalISDNNumber attribute type contains ISDN addresses, 
+   as defined in ITU Recommendation E.164 [E.164].  Each address is one 
+   value of this multi-valued attribute.
 
    ( 2.5.4.25 NAME 'internationalISDNNumber' 
       EQUALITY numericStringMatch 
       SUBSTR numericStringSubstringsMatch 
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{16} ) i
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 ) 
 
-   The SYNTAX oid indicates the Numeric String syntax.
-
-
-
-
-
-
-Dally                    Expires October 2003                   [Page 8]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
+   1.3.6.1.4.1.1466.115.121.1.36 refers to the Numeric String 
+   syntax [Syntaxes].
 
 2.16  l
 
-   This is the X.520 [X.520] localityName Attribute Type, which 
-   contains the name of a locality or place, such as a city, county or 
-   other geographic region.
+   The l (localityName) attribute type contains names of a locality or 
+   place, such as a city, county or other geographic region (e.g., 
+   "Geneva").  Each name is one value of this multi-valued attribute.  
+   (Source:  X.520)
 
-    ( 2.5.4.7 NAME 'l' 
+   ( 2.5.4.7 NAME 'l' 
       SUP name )
+
+
+
+
+
+
+
+Dally                    Expires December 2003                  [Page 9]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
 
 2.17  member
 
-   A value of this Attribute Type is the Distinguished Name of an 
-   object that is on a list or in a group.
+   The member attribute type contains the Distinguished Names of 
+   objects that are on a list or in a group.  Each name is one value of 
+   this multi-valued attribute.
 
    ( 2.5.4.31 NAME 'member' 
       SUP distinguishedName )
 
 2.18  name
 
-   The name Attribute Type is the attribute supertype from which string 
-   Attribute Types typically used for naming may be formed.  It is 
-   unlikely that values of this type itself will occur in an entry.  
-   LDAP server implementations which do not support attribute subtyping 
-   need not recognize this attribute in requests.  Client 
+   The name attribute type is the attribute supertype from which 
+   attributes with the name syntax inherit.  Such attributes are 
+   typically used for naming.  The attribute type is multi-valued.
+
+   It is unlikely that values of this type itself will occur in an 
+   entry.  LDAP server implementations which do not support attribute 
+   subtyping need not recognize this attribute in requests.  Client 
    implementations MUST NOT assume that LDAP servers are capable of 
    performing attribute subtyping.
 
    ( 2.5.4.41 NAME 'name' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.19  o
 
-   This is the X.520 [X.520] organizationName Attribute Type, which 
-   contains the name of an organization.
+   The o (organizationName) attribute type contains the names of an 
+   organization (e.g., "IETF", "Internet Engineering Task Force").  
+   Each name is one value of this multi-valued attribute.  
+   (Source:  X.520)
 
    ( 2.5.4.10 NAME 'o' 
       SUP name )
 
 2.20  ou
 
-   This is the X.520 [X.520] organizationalUnitName Attribute Type, 
-   which contains the name of an organizational unit.
+   The ou (organizationalUnitName) attribute type contains the names of 
+   an organizational unit (e.g., "Application Area", "LDAPbis WG").  
+   Each name is one value of this multi-valued attribute.  
+   (Source:  X.520)
 
-    ( 2.5.4.11 NAME 'ou' 
+   ( 2.5.4.11 NAME 'ou' 
       SUP name )
 
 
 
 
 
-Dally                    Expires October 2003                   [Page 9]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+
+Dally                   Expires December 2003                  [Page 10]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
 2.21  owner
 
-   A value of this Attribute Type is the Distinguished Name of an 
-   object that has an ownership responsibility for the object that 
-   is owned.
+   The owner attribute type contains the Distinguished Names of objects 
+   that have an ownership responsibility for the object that is owned.  
+   (e.g., The list object, "cn=All Employees, ou=Mailing List, 
+   o=Widget, Inc.", is owned by the role object, "cn=ou=Human Resources 
+   Director, ou=employee, o=Widget, Inc.")  Each name is one value of 
+   this multi-valued attribute.
 
-    ( 2.5.4.32 NAME 'owner' 
+   ( 2.5.4.32 NAME 'owner' 
       SUP distinguishedName )
 
 2.22  physicalDeliveryOfficeName
 
-   This attribute contains the name that a Postal Service uses to 
-   identify a post office.
+   The physicalDeliveryOfficeName attribute type contains names that a 
+   Postal Service uses to identify a post office (e.g., "Bremerhaven, 
+   Main", "Bremerhaven, Bonnstrasse").
 
    ( 2.5.4.19 NAME 'physicalDeliveryOfficeName' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.23  postalAddress
 
-   This attribute contains an address used by a Postal Service to 
-   perform services for the object.
+   The postalAddress attribute type contains addresses used by a Postal 
+   Service to perform services for the object (e.g., "15 Main St., 
+   Ottawa, Canada").  Each address is one value of this multi-valued 
+   attribute.
 
    ( 2.5.4.16 NAME 'postalAddress' 
       EQUALITY caseIgnoreListMatch
       SUBSTR caseIgnoreListSubstringsMatch
-      SYNTAX 1.5.6.1.4.1.1466.115.121.1.41 ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 ) 
 
-   The SYNTAX oid indicates the Postal Address syntax.
+   1.3.6.1.4.1.1466.115.121.1.41 refers to the Postal Address 
+   syntax [Syntaxes].
 
 2.24  postalCode
 
-   This attribute contains a code used by a Postal Service to identify 
-   a postal service zone, such as the southern quadrant of a city.
+   The postalCode attribute type contains codes used by a Postal 
+   Service to identify a postal service zones, such as the southern 
+   quadrant of a city (e.g., "22180").  Each code is one value of this 
+   multi-valued attribute.
 
    ( 2.5.4.17 NAME 'postalCode' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.5.6.1.4.1.1466.115.121.1.15{40} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+
+Dally                   Expires December 2003                  [Page 11]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.25  postOfficeBox
 
-   This attribute contains the number that a Postal Service uses when a 
-   customer arranges to receive mail at a box on premises of the Postal 
-   Service.
-
-
-
-
-Dally                   Expires October 2003                   [Page 10]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+   The postOfficeBox attribute type contains numbers that a Postal 
+   Service uses when a customer arranges to receive mail at a box on 
+   premises of the Postal Service (e.g., "Box 45").  Each number is one 
+   value of this multi-valued attribute.
 
 
    ( 2.5.4.18 NAME 'postOfficeBox' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.5.6.1.4.1.1466.115.121.1.15{40} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.26  preferredDeliveryMethod
 
-   This attribute contains an indication of the preferred method of 
-   getting a message to the object.
+   The preferredDeliveryMethod attribute type contains an indication of 
+   the preferred method of getting a message to the object.  For example,
+   if mhs-delivery is preferred over telephone-delivery, which is 
+   preferred over all other methods, the value of the value would 
+   be {1, 9}.
 
    ( 2.5.4.28 NAME 'preferredDeliveryMethod'
-      SYNTAX 1.5.6.1.4.1.1466.115.121.1.14 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.14 
       SINGLE-VALUE )
 
-   The SYNTAX oid indicates the Delivery Method syntax.
+   1.3.6.1.4.1.1466.115.121.1.14 refers to the Delivery Method
+   syntax [Syntaxes].
 
 2.27  registeredAddress
 
-   This attribute holds a postal address suitable for reception of 
-   telegrams or expedited documents, where it is necessary to have the 
-   recipient accept delivery.
+   The registeredAddress attribute type contains postal addresses 
+   suitable for reception of telegrams or expedited documents, where it 
+   is necessary to have the recipient accept delivery (e.g., 
+   "Receptionist, Widget Inc., 15 Main St., Ottawa, Canada").  Each 
+   address is one value of this multi-valued attribute.
 
    ( 2.5.4.26 NAME 'registeredAddress' 
       SUP postalAddress
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 ) 
 
-   The SYNTAX oid indicates the Postal Address syntax.
+   1.3.6.1.4.1.1466.115.121.1.41 refers to the Postal Address 
+   syntax [Syntaxes].
+
+
+
+
+
+
+Dally                   Expires December 2003                  [Page 12]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
 
 2.28  roleOccupant
 
-   A value of this Attribute Type is the Distinguished Name of an 
-   object (normally a person) that fulfills the responsibilities of a 
-   role object.
+   The roleOccupant attribute type contains the Distinguished Names of 
+   objects(normally people) that fulfill the responsibilities of a role 
+   object.  For example, the role object, "cn=Human Resources Director, 
+   ou=Position, o=Widget, Inc.", is fulfilled by two people whose 
+   object names are "cn=Mary Smith, ou=employee, o=Widget, Inc." and 
+   "cn=James Brown, ou=employee, o=Widget, Inc."  Each name is one 
+   value of this multi-valued attribute.
 
    ( 2.5.4.33 NAME 'roleOccupant' 
       SUP distinguishedName )
 
 2.29  searchGuide
 
-   This Attribute Type is for use by clients in constructing search 
-   filters.  It is superseded by enhancedSearchGuide, described above 
-   in section 2.9.
+   The searchGuide attribute type contains sets of information for use 
+   by clients in constructing search filters.  It is superseded by 
+   enhancedSearchGuide, described above in section 2.9.
 
    ( 2.5.4.14 NAME 'searchGuide'
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.25 )  ; Guide
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.25 )  
 
-The SYNTAX oid indicates the Guide syntax.
-
-
-
-
-
-Dally                   Expires October 2003                   [Page 11]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
+   1.3.6.1.4.1.1466.115.121.1.25 refers to the Guide syntax [Syntaxes].
 
 2.30  seeAlso
 
-   A value of this Attribute Type is the Distinguished Name of an 
-   object that is related to the subject object.
+   The seeAlso attribute type contains Distinguished Names of objects 
+   that are related to the subject object.  For example, the person 
+   object, "cn=James Brown, ou=employee, o=Widget Inc." is related to 
+   the role objects, "cn=Football Team Captain, ou=sponsored 
+   activities, o=Widget Inc." and "cn=Chess Team, ou=sponsored 
+   activities, o=Widget Inc.".  Each name is one value of this 
+   multi-valued attribute.
 
-    ( 2.5.4.34 NAME 'seeAlso' 
+   ( 2.5.4.34 NAME 'seeAlso' 
       SUP distinguishedName )
 
 2.31  serialNumber
 
-   This attribute contains the serial number of a device.
+   The serialNumber attribute type contains the serial numbers of 
+   devices (e.g., "WI-3005".  Each number is one value of this 
+   multi-valued attribute.
 
-    ( 2.5.4.5 NAME 'serialNumber' 
+   ( 2.5.4.5 NAME 'serialNumber' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{64} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 ) 
 
-   The SYNTAX oid indicates the Printable String syntax.
+   1.3.6.1.4.1.1466.115.121.1.44 refers to the Printable String 
+   syntax [Syntaxes].
+
+
+
+
+Dally                   Expires December 2003                  [Page 13]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
 
 2.32  sn
 
-   This is the X.520 [X.520] surname Attribute Type, which contains the 
-   family name of a person.
+   The sn (surname)attribute type contains name strings for the family 
+   names of a person (e.g., "Smith").  Each string is one value of this 
+   multi-valued attribute.  (Source:  X.520)
 
    ( 2.5.4.4 NAME 'sn' 
       SUP name )
 
 2.33  st
 
-   This is the X.520 [X.520] stateOrProvinceName attribute, which 
-   contains the full name of a state or province.
+   The st (stateOrProvinceName) attribute type contains the full names 
+   of states or provinces, (e.g. "California").  Each name is one value 
+   of this multi-valued attribute.
 
    ( 2.5.4.8 NAME 'st' 
       SUP name )
 
 2.34  street
 
-   This is the X.520 [X.520] streetAddress attribute, which contains the
-   physical address of the object to which the entry corresponds, such 
-   as an address for package delivery.
+   The street (streetAddress) attribute type contains physical 
+   addresses of the object to which the entry corresponds, such as an 
+   address for package delivery.  Each address is one value of this 
+   multi-valued attribute.
 
    ( 2.5.4.9 NAME 'street' 
       EQUALITY caseIgnoreMatch
       SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{128} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 ) 
 
-   The SYNTAX oid indicates the Directory String syntax.
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String 
+   syntax [Syntaxes].
 
 2.35  telephoneNumber
 
-   A value of this Attribute Type is a telephone number complying with 
-   ITU Recommendation E.123 [E.123].
-
-
-Dally                   Expires October 2003                   [Page 12]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
+   The telephoneNumber attribute type contains telephone numbers 
+   complying with ITU Recommendation E.123 [E.123] 
+   (e.g., 1 234 567 8901)  Each number is one value of this 
+   multi-valued attribute.
 
    ( 2.5.4.20 NAME 'telephoneNumber' 
-     EQUALITY telephoneNumberMatch
-     SUBSTR telephoneNumberSubstringsMatch
-     SYNTAX 1.3.6.1.4.1.1466.115.121.1.50{32} ) 
+      EQUALITY telephoneNumberMatch
+      SUBSTR telephoneNumberSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 ) 
 
-   The SYNTAX oid indicates the Telephone Number syntax.
+   1.3.6.1.4.1.1466.115.121.1.50 refers to the Telephone Number 
+   syntax [Syntaxes].
 
 2.36  teletexTerminalIdentifier
 
    The withdrawal of Rec. F.200 has resulted in the withdrawal of this 
    attribute. 
 
-   ( 2.5.4.22 NAME 'teletexTerminalIdentifier'
-     SYNTAX 1.3.6.1.4.1.1466.115.121.1.51 ) 
 
-   The SYNTAX oid indicates the Teletex Terminal Identifier syntax.
+Dally                   Expires December 2003                  [Page 14]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
+   ( 2.5.4.22 NAME 'teletexTerminalIdentifier'
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.51 ) 
 
 2.37  telexNumber
 
-   A value of this Attribute Type is a telex number, country code, and 
-   answerback code of a telex terminal.
+   The telexNumber attribute type contains sets of strings which are a 
+   telex number, country code, and answerback code of a telex 
+   terminal.  Each set is one value of this multi-valued attribute.
 
    ( 2.5.4.21 NAME 'telexNumber'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.52 ) 
 
-   The SYNTAX oid indicates the Telex Number syntax.
+   1.3.6.1.4.1.1466.115.121.1.52 refers to the Telex Number 
+   syntax [Syntaxes].
 
 2.38  title
 
    This attribute contains the title, such as "Vice President", of a 
-   person in their organizational context.  The "personalTitle"
-   attribute would be used for a person's title independent of their 
-   job function.
+   person in their organizational context.
 
    ( 2.5.4.12 NAME 'title' 
       SUP name )
 
-2.39  uniqueMember
+2.39  uid
 
-   A value of this Attribute Type is the Distinguished Name of an 
-   object that is on a list or in a group, where the Relative 
-   Distinguished Name of the object includes a value that distinguishs 
-   between objects when a distinguished name has been reused.
+   The uid attribute type contains computer system login names 
+   associated with the object.  (Source: RFC 1274, 
+   RFC 2798).  Each name is one value of this multi-valued attribute.
+
+   ( 0.9.2342.19200300.100.1.1
+      NAME 'uid'
+      EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+   1.3.6.1.4.1.1466.115.121.1.15 refers to the Directory String
+   syntax [Syntaxes].
+
+2.40  uniqueMember
+
+   The uniqueMember attribute type contains the Distinguished Names of 
+   an object that is on a list or in a group, where the Relative 
+   Distinguished Names of the object include a value that distinguishs 
+   between objects when a distinguished name has been reused.  For 
+   example, if "ou=1st Battalion, o=Defense, c=US" is a battalion that 
+   was disbanded, establishing a new battalion with the "same" name 
+   would have a uid value added, resulting in 
+   "ou=1st Battalion#'010101', o=Defense, c=US".  
 
    ( 2.5.4.50 NAME 'uniqueMember' 
       EQUALITY uniqueMemberMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 ) 
 
-The SYNTAX oid indicates the Name and Optional UID syntax.
+
+Dally                   Expires December 2003                  [Page 15]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
+   1.3.6.1.4.1.1466.115.121.1.34 refers to the Name and Optional UID 
+   syntax [Syntaxes].
 
+2.41  userPassword
 
+   The userPassword attribute type contains character strings that are 
+   known only to the user and the system to which the user has access.  
+   Each string is one value of this multi-valued attribute.
 
-Dally                   Expires October 2003                   [Page 13]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
-2.40  userPassword
-
-   A value of this Attribute Type is a character string that is known 
-   only to the user and the system to which the user has access.
+   The application SHOULD prepare textual strings used as passwords by 
+   transcoding them to Unicode, applying SASLprep [SASLprep], and 
+   encoding as UTF-8.
 
    ( 2.5.4.35 NAME 'userPassword' 
       EQUALITY octetStringMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 ) 
 
-   The SYNTAX oid indicates the Octet String syntax.
+   1.3.6.1.4.1.1466.115.121.1.40 refers to the Octet String 
+   syntax [Syntaxes].
 
    Passwords are stored using an Octet String syntax and are not 
    encrypted.  Transfer of cleartext passwords is strongly discouraged 
@@ -772,55 +897,58 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
    confidentiality and may result in disclosure of the password to 
    unauthorized parties.
 
-2.41  x121Address
+   An example of a need for multiple values in the userPassword 
+   attribute is an environment where every month the user was expected 
+   to use a different password generated by some automated system.  
+   During transitional periods, like say the last and first day of the 
+   periods, it may be necessary to allow two passwords for the two 
+   consecutive periods to be valid in the system.
 
-   A value of this Attribute Type is a data network address as defined 
-   by ITU Recommendation X.121 [X.121].
+2.42  x121Address
+
+   The x121Address attribute type contains data network addresses 
+   (e.g., 36111222333444555) as defined by ITU Recommendation X.121 
+   [X.121].  Each address is one value of this multi-valued attribute.
 
    ( 2.5.4.24 NAME 'x121Address' 
       EQUALITY numericStringMatch
       SUBSTR numericStringSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{15} ) 
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 ) 
 
-   The SYNTAX oid indicates the Numeric String syntax.
+   1.3.6.1.4.1.1466.115.121.1.36 refers to the Numeric String 
+   syntax [Syntaxes].
 
-2.42  x500UniqueIdentifier
+2.43  x500UniqueIdentifier
 
-   The x500UniqueIdentifier Attribute Type is used to distinguish 
-   between objects when a distinguished name has been reused.  In X.520 
-   [X.520], this Attribute Type is called uniqueIdentifier.  This is a 
-   different Attribute Type from both the "uid" and "uniqueIdentifier" 
-   Attribute Types.
+   The x500UniqueIdentifier attribute type contains binary strings that 
+   are used to distinguish between objects when a distinguished name 
+   has been reused.  Each string is one value of this multi-valued 
+
+
+Dally                   Expires December 2003                  [Page 16]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
+   attribute.  In X.520 [X.520], this attribute type is called 
+   uniqueIdentifier.  This is a different attribute type from both the 
+   "uid" and "uniqueIdentifier" attribute types.
 
    ( 2.5.4.45 NAME 'x500UniqueIdentifier' 
       EQUALITY bitStringMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 ) 
 
-   The SYNTAX oid indicates the Bit String syntax.
-
-
-
-
-
-
-
-
-
-
-
-
-Dally                   Expires October 2003                   [Page 14]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+   1.3.6.1.4.1.1466.115.121.1.6 refers to the Bit String 
+   syntax [Syntaxes].
 
 
 3.  Object Classes
 
    LDAP servers SHOULD recognize all the Object Classes listed here as 
-   values of the objectClass attribute.
+   values of the objectClass attribute (see [Models]).
 
 3.1  applicationProcess
 
-   The applicationProcess Object Class definition is the basis of an 
+   The applicationProcess object class definition is the basis of an 
    entry which represents an application executing in a computer system.
 
    ( 2.5.6.11 NAME 'applicationProcess' 
@@ -834,7 +962,7 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
 
 3.2  country
 
-   The country Object Class definition is the basis of an entry which 
+   The country object class definition is the basis of an entry which 
    represents a country.
 
    ( 2.5.6.2 NAME 'country' 
@@ -846,13 +974,19 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
 
 3.3  device
 
-   The device Object Class is the basis of an entry which represents 
-   an appliance or computer or network element.
+   The device object class is the basis of an entry which represents an 
+   appliance or computer or network element.
 
    ( 2.5.6.14 NAME 'device' 
       SUP top 
       STRUCTURAL 
       MUST cn
+
+
+Dally                   Expires December 2003                  [Page 17]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
       MAY ( serialNumber $ 
             seeAlso $ 
             owner $ 
@@ -861,40 +995,9 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
             l $ 
             description ) )
 
-3.4  domain
+3.4  groupOfNames
 
-   The domain Object Class is the basis of an entry which represents a 
-   portion of a network, as organized by DNS.  
-
-
-Dally                   Expires October 2003                   [Page 15]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
-   ( 0.9.2342.19200300.100.4.13 NAME 'domain' 
-      SUP top 
-      STRUCTURAL
-      MUST dc
-      MAY ( userPassword $ searchGuide $ seeAlso $ businessCategory $
-          x121Address $ registeredAddress $ destinationIndicator $
-          preferredDeliveryMethod $ telexNumber $
-          teletexTerminalIdentifier $ telephoneNumber $
-          internationaliSDNNumber $  facsimileTelephoneNumber $ street $
-          postOfficeBox $ postalCode $ postalAddress $
-          physicalDeliveryOfficeName $ st $ l $ description $ o $
-          associatedName ) )
-
-   An example entry would be:
-
-   dn: dc=tcp,dc=critical-angle,dc=com
-   objectClass: top
-   objectClass: domain
-   dc: tcp
-   description: a placeholder entry used with SRV records
-
-3.5  groupOfNames
-
-   The groupOfNames Object Class is the basis of an entry which 
+   The groupOfNames object class is the basis of an entry which 
    represents a set of named objects including information related to 
    the purpose or maintenance of the set.
 
@@ -902,7 +1005,7 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
       SUP top 
       STRUCTURAL 
       MUST ( member $ 
-             cn )
+            cn )
       MAY ( businessCategory $ 
             seeAlso $ 
             owner $ 
@@ -910,9 +1013,9 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
             o $ 
             description ) )
 
-3.6  groupOfUniqueNames
+3.5  groupOfUniqueNames
 
-   The groupOfUniqueNames Object Class is the same as the groupOfNames 
+   The groupOfUniqueNames object class is the same as the groupOfNames 
    object class except that the object names are not repeated or 
    reassigned within a set scope.
 
@@ -920,28 +1023,28 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
       SUP top 
       STRUCTURAL
       MUST ( uniqueMember $ 
-             cn )
+            cn )
       MAY ( businessCategory $ 
             seeAlso $ 
-
-
-Dally                   Expires October 2003                   [Page 16]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
             owner $ 
             ou $ 
             o $ 
             description ) ) 
 
-3.7  locality
+3.6  locality
 
-   The locality Object Class is the basis of an entry which 
-   represents a place in the physical world.
+   The locality object class is the basis of an entry which represents 
+   a place in the physical world.
 
    ( 2.5.6.3 NAME 'locality' 
       SUP top 
       STRUCTURAL
+
+
+Dally                   Expires December 2003                  [Page 18]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
       MAY ( street $ 
             seeAlso $ 
             searchGuide $ 
@@ -949,9 +1052,9 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
             l $ 
             description ) )
 
-3.8  organization
+3.7  organization
 
-   The organization Object Class is the basis of an entry which 
+   The organization object class is the basis of an entry which 
    represents a structured group of people.
 
    ( 2.5.6.4 NAME 'organization' 
@@ -967,9 +1070,9 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
             postalAddress $ physicalDeliveryOfficeName $ st $ 
             l $ description ) )
 
-3.9  organizationalPerson
+3.8  organizationalPerson
 
-   The organizationalPerson Object Class is the basis of an entry which 
+   The organizationalPerson object class is the basis of an entry which 
    represents a person in relation to an organization.  
 
    ( 2.5.6.7 NAME 'organizationalPerson' 
@@ -982,14 +1085,9 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
             street $ postOfficeBox $ postalCode $ postalAddress $ 
             physicalDeliveryOfficeName $ ou $ st $ l ) )
 
+3.9  organizationalRole
 
-Dally                   Expires October 2003                   [Page 17]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
-3.10  organizationalRole
-
-   The organizationalRole Object Class is the basis of an entry which 
+   The organizationalRole object class is the basis of an entry which 
    represents a job or function or position in an organization.
 
    ( 2.5.6.8 NAME 'organizationalRole' 
@@ -999,14 +1097,20 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
       MAY ( x121Address $ registeredAddress $ destinationIndicator $ 
             preferredDeliveryMethod $ telexNumber $ 
             teletexTerminalIdentifier $ telephoneNumber $ 
+
+
+Dally                   Expires December 2003                  [Page 19]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
             internationaliSDNNumber $ facsimileTelephoneNumber $ 
             seeAlso $ roleOccupant $ preferredDeliveryMethod $ 
             street $ postOfficeBox $ postalCode $ postalAddress $ 
             physicalDeliveryOfficeName $ ou $ st $ l $ description ) )
 
-3.11  organizationalUnit
+3.10  organizationalUnit
 
-   The organizationalUnit Object Class is the basis of an entry which 
+   The organizationalUnit object class is the basis of an entry which 
    represents a piece of an organization.
 
    ( 2.5.6.5 NAME 'organizationalUnit' 
@@ -1021,33 +1125,24 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
             telephoneNumber $ teletexTerminalIdentifier $ telexNumber $ 
             userPassword $ x121Address ) )
 
-3.12  person
+3.11  person
 
-   The person Object Class is the basis of an entry which represents a 
+   The person object class is the basis of an entry which represents a 
    human being.
 
    ( 2.5.6.6 NAME 'person' 
       SUP top 
       STRUCTURAL 
       MUST ( sn $ 
-             cn )
+            cn )
       MAY ( userPassword $ 
             telephoneNumber $ 
             seeAlso $ 
             description ) ) 
 
+3.12  residentialPerson
 
-
-
-
-
-Dally                   Expires October 2003                   [Page 18]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
-3.13  residentialPerson
-
-   The residentialPerson Object Class is the basis of an entry which 
+   The residentialPerson object class is the basis of an entry which 
    includes a person's residence in the representation of the person. 
 
    ( 2.5.6.10 NAME 'residentialPerson' 
@@ -1055,102 +1150,105 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
       STRUCTURAL 
       MUST l
       MAY ( businessCategory $ x121Address $ registeredAddress $ 
-           destinationIndicator $ preferredDeliveryMethod $ 
-           telexNumber $ teletexTerminalIdentifier $ telephoneNumber $ 
-           internationaliSDNNumber $ facsimileTelephoneNumber $ 
-           preferredDeliveryMethod $ street $ postOfficeBox $ 
-           postalCode $ postalAddress $ physicalDeliveryOfficeName $ 
-           st $ l ) )
+            destinationIndicator $ preferredDeliveryMethod $ 
+            telexNumber $ teletexTerminalIdentifier $ telephoneNumber $ 
+            internationaliSDNNumber $ facsimileTelephoneNumber $ 
+            preferredDeliveryMethod $ street $ postOfficeBox $ 
+
+
+
+Dally                   Expires December 2003                  [Page 20]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
+            postalCode $ postalAddress $ physicalDeliveryOfficeName $ 
+            st $ l ) )
 
 
 4.  IANA Considerations
 
-   It is requested that the Internet Assigned Numbers Authority (IANA)
-   update the LDAP descriptors registry as indicated in the following
+   It is requested that the Internet Assigned Numbers Authority (IANA) 
+   update the LDAP descriptors registry as indicated in the following 
    template:
 
       Subject: Request for LDAP Descriptor Registration Update
       Descriptor (short name): see comment
       Object Identifier: see comment
       Person & email address to contact for further information:
-          Kathy Dally <kdally@mitre.org>
-      Usage: (A = Attribute Type, O = Object Class) see comment
-      Specification: RFC XXXX
+            Kathy Dally <kdally@mitre.org>
+      Usage: (A = attribute type, O = Object Class) see comment
+      Specification: RFC XXXX [editor's note:  The RFC number will be 
+            the one assigned to this document.
       Author/Change Controller: IESG
 
+   Comments
+   In the LDAP descriptors registry, the following descriptors (short 
+   names) should be updated to refer to RFC XXXX [editor's note:  This 
+   document].
+
+      NAME                         Type OID
+      ------------------------     ---- ----------------------------
+      applicationProcess           O    2.5.6.11
+      businessCategory             A    2.5.4.15
+      c                            A    2.5.4.6
+      cn                           A    2.5.4.3
+      country                      O    2.5.6.2
+      dc                           A    0.9.2342.19200300.100.1.25
+      description                  A    2.5.4.13
+      destinationIndicator         A    2.5.4.27
+      device                       O    2.5.6.14
+      distinguishedName            A    2.5.4.49
+      dnQualifier                  A    2.5.4.46
+      enhancedSearchGuide          A    2.5.4.47
+      facsimileTelephoneNumber     A    2.5.4.23
+      generationQualifier          A    2.5.4.44
+      givenName                    A    2.5.4.42
+      groupOfNames                 O    2.5.6.9
+      groupOfUniqueNames           O    2.5.6.17
+      houseIdentifier              A    2.5.4.51
+      initials                     A    2.5.4.43
+      internationalISDNNumber      A    2.5.4.25
+      l                            A    2.5.4.7
+      locality                     O    2.5.6.3
+      member                       A    2.5.4.31
+      name                         A    2.5.4.41
+      o                            A    2.5.4.10
 
 
-Dally                   Expires October 2003                   [Page 19]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+Dally                   Expires December 2003                  [Page 21]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
-      Comments:
-         The following descriptors (short names) should be updated to 
-         refer to RFC XXXX.
-
-        NAME                         Type OID
-        ------------------------     ---- ----------------------------
-         applicationProcess           O    2.5.6.11
-         businessCategory             A    2.5.4.15
-         c                            A    2.5.4.6
-         cn                           A    2.5.4.3
-         country                      O    2.5.6.2
-         dc                           A    0.9.2342.19200300.100.1.25
-         description                  A    2.5.4.13
-         destinationIndicator         A    2.5.4.27
-         device                       O    2.5.6.14
-         distinguishedName            A    2.5.4.49
-         dnQualifier                  A    2.5.4.46
-         domain                       O    0.9.2342.19200300.100.4.13
-         enhancedSearchGuide          A    2.5.4.47
-         facsimileTelephoneNumber     A    2.5.4.23
-         generationQualifier          A    2.5.4.44
-         givenName                    A    2.5.4.42
-         groupOfNames                 O    2.5.6.9
-         groupOfUniqueNames           O    2.5.6.17
-         houseIdentifier              A    2.5.4.51
-         initials                     A    2.5.4.43
-         internationalISDNNumber      A    2.5.4.25
-         l                            A    2.5.4.7
-         locality                     O    2.5.6.3
-         member                       A    2.5.4.31
-         name                         A    2.5.4.41
-         o                            A    2.5.4.10
-         organization                 O    2.5.6.4
-         organizationalPerson         O    2.5.6.7
-         organizationalRole           O    2.5.6.8
-         organizationalUnit           O    2.5.6.5
-         ou                           A    2.5.4.11
-         owner                        A    2.5.4.32
-         person                       O    2.5.6.6
-         physicalDeliveryOfficeName   A    2.5.4.19
-         postalAddress                A    2.5.4.16
-         postalCode                   A    2.5.4.17
-         postOfficeBox                A    2.5.4.18
-         preferredDeliveryMethod      A    2.5.4.28
-         registeredAddress            A    2.5.4.26
-         residentialPerson            O    2.5.6.10
-         roleOccupant                 A    2.5.4.33
-         searchGuide                  A    2.5.4.14
-         seeAlso                      A    2.5.4.34
-         serialNumber                 A    2.5.4.5
-         sn                           A    2.5.4.4
-
-
-Dally                   Expires October 2003                   [Page 20]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
-         st                           A    2.5.4.8
-         street                       A    2.5.4.9
-         telephoneNumber              A    2.5.4.20
-         teletexTerminalIdentifier    A    2.5.4.22
-         telexNumber                  A    2.5.4.21
-         title                        A    2.5.4.12
-         uniqueMember                 A    2.5.4.50
-         userPassword                 A    2.5.4.35
-         x121Address                  A    2.5.4.24
-         x500UniqueIdentifier         A    2.5.4.45
+      organization                 O    2.5.6.4
+      organizationalPerson         O    2.5.6.7
+      organizationalRole           O    2.5.6.8
+      organizationalUnit           O    2.5.6.5
+      ou                           A    2.5.4.11
+      owner                        A    2.5.4.32
+      person                       O    2.5.6.6
+      physicalDeliveryOfficeName   A    2.5.4.19
+      postalAddress                A    2.5.4.16
+      postalCode                   A    2.5.4.17
+      postOfficeBox                A    2.5.4.18
+      preferredDeliveryMethod      A    2.5.4.28
+      registeredAddress            A    2.5.4.26
+      residentialPerson            O    2.5.6.10
+      roleOccupant                 A    2.5.4.33
+      searchGuide                  A    2.5.4.14
+      seeAlso                      A    2.5.4.34
+      serialNumber                 A    2.5.4.5
+      sn                           A    2.5.4.4
+      st                           A    2.5.4.8
+      street                       A    2.5.4.9
+      telephoneNumber              A    2.5.4.20
+      teletexTerminalIdentifier    A    2.5.4.22
+      telexNumber                  A    2.5.4.21
+      title                        A    2.5.4.12
+      uid                          A    0.9.2342.19200300.100.1.1
+      uniqueMember                 A    2.5.4.50
+      userPassword                 A    2.5.4.35
+      x121Address                  A    2.5.4.24
+      x500UniqueIdentifier         A    2.5.4.45
 
 
 5.  Security Considerations
@@ -1164,18 +1262,44 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
    underlying transport service cannot guarantee confidentiality and may
    result in disclosure of the password to unauthorized parties.
 
-   It is required that strong authentication be performed in order to 
-   modify directory entries using LDAP.
+   Multiple attribute values for the userPassword needs to be used with 
+   care. Especially reset/deletion of a password by an admin without 
+   knowing the old user password gets tricky or impossible if multiple 
+   values for different applications are present. 
+
+   Certainly, applications which intend to replace the userPassword 
+   value(s) with new value(s) should use modify/replaceValues (or 
+   modify/deleteAttribute+addAttribute).  Additionally, server 
+
+
+
+Dally                   Expires December 2003                  [Page 22]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
+   implementations are encouraged to provide administrative controls 
+   which, if enabled, restrict the userPassword attributer to one value.
+
+   Note that when used for authentication purposes [AuthMeth], the user 
+   need only prove knowledge of one of the values, not all of 
+   the values.
 
 
 6.  Acknowledgements
 
    The definitions, on which this document is based, have been developed
    by committees for telecommunications and international standards.  
-   No new attribute definitions have been added.  
 
    This document is an update of RFC 2256 by Mark Wahl.  RFC 2256 was a
    product of the IETF ASID Working Group.
+
+   The dc attribute type definition in this document supercedes the 
+   specification in RFC 2247 by S. Kille, M. Wahl, A. Grimstad, 
+   R. Huber, and S. Sataluri.
+
+   The uid attribute type definition in this document supercedes the 
+   specification of the userid in RFC 1274 by P. Barker and S. Kille 
+   and of the uid in RFC 2798 by M. Smith.
 
    This document is based upon input of the IETF LDAPBIS working group.
    The author wishes to thank S. Legg and K. Zeilenga for their 
@@ -1192,34 +1316,33 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
    [E.164]  The international public telecommunication numbering plan, 
             ITU-T Recommendation E.164, 1997
 
-
-
-Dally                   Expires October 2003                   [Page 21]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
-
-
    [ISO3166]  ISO 3166, "Codes for the representation of names of 
               countries".
-
-   [LDAP-PKI]  Chadwick, D. W., Legg S., "LDAP Schema and Syntaxes for 
-               PKIs", draft-ietf-pkix-ldap-pki-schema-xx (a work in 
-               progress)
 
    [Models]  K. Zeilenga, "LDAP: The Models", draft-ietf-ldapbis-
              models-xx (a work in progress) 
 
+   [RFC1034]  P. Mockapetris, " DOMAIN NAMES - CONCEPTS AND 
+              FACILITIES", RFC 1034, November 1987
+
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate 
               Requirement Levels", RFC 2119, March 1997
 
-   [RFC3377]  Hodges, J., Morgan, R., "Lightweight Directory Access 
-              Protocol (v3):  Technical Specification", RFC 3377, 
-              September 2002
+
+
+
+Dally                   Expires December 2003                  [Page 23]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
+
+
+   [RFC3490]   Faltstrom P., Hoffman P., Costello A. "Internationalizing 
+   Domain Names in Applications (IDNA)", RFC 3490, March 2003
 
 ...[ROADMAP]  Zeilenga, K., "LDAP:  Technical Specification Road Map", 
               draft-ietf-ldapbis-roadmap-xx (a work in progress)
 
-   [Syntaxes]  S. Legg (editor), "LDAP: Syntaxes",
-               draft-ietf-ldapbis-syntaxes-xx (a work in progress)
+   [Syntaxes]  S. Legg (editor), "LDAP: Syntaxes", draft-ietf-ldapbis-
+               syntaxes-xx (a work in progress)
 
    [X.121]  International numbering plan for public data networks, 
             ITU-T Recommendation X.121, 1996
@@ -1235,31 +1358,46 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
 
 7.2  Informative
 
+   [AUTHMETH]  Harrison R., "LDAP: Authentication Methods and 
+               Connection Level Security Mechanisms", draft-ietf-
+               ldapbis-authmeth-xx (a work in progress)
+
+   [F.1]  Operational Provisions For The International Public Telegram 
+   Service Transmission System, CCITT Recommmendation F.1, 1992
+
+   [F.31]  Telegram Retransmission System, CCITT Recommendation 
+           F.31, 1988
+
+   [LDAP-PKI]  Chadwick, D. W., Legg S., "LDAP Schema and Syntaxes for 
+               PKIs", draft-ietf-pkix-ldap-pki-schema-xx (a work in 
+               progress)
+
    [RFC2247]  Kille, S., Wahl, M., Grimstad, A., Huber, R., and 
-      Sataluri, S., "Using Domains in LDAP/X.500 Distinguished Names", 
-      RFC 2247, January 1998
+              Sataluri, S., "Using Domains in LDAP/X.500 Distinguished 
+              Names", RFC 2247, January 1998
+
+   [RFC3377]  Hodges, J., Morgan, R., "Lightweight Directory Access 
+              Protocol (v3):  Technical Specification", RFC 3377, 
+              September 2002
+
+   [SASLprep]  Zeilenga K., "SASLprep: Stringprep profile for user 
+               names and passwords", draft-ietf-sasl-saslprep-xx (a 
+               work in progress)
+
+   [X.500]  The Directory, ITU-T Recommendations X.501-X.525, 1993
 
 
 
 
-
-
-
-
-
-
-
-
-
-Dally                   Expires October 2003                   [Page 22]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+Dally                   Expires December 2003                  [Page 24]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
 8.  Author's Address
 
    Kathy Dally
    The MITRE Corp.
-   1575 Colshire Dr., H300
+   7515 Colshire Dr., H300
    McLean VA 22102
    USA
    
@@ -1308,8 +1446,9 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
 
 
 
-Dally                   Expires October 2003                   [Page 23]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+
+Dally                   Expires December 2003                  [Page 25]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
                           Appendix A  Changes RFC 2256
@@ -1317,31 +1456,24 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
    This appendix lists the changes that have been made from RFC 2256 to 
    this I-D.  
 
-      1.  Revised the Status of this Memo.
+      1.  Replaced the document title.
 
       2.  Removed the IESG Note.
 
       3.  Dependencies on RFC 1274 have been eliminated.
 
-      4.  Added a Security Considerations section, requiring strong 
-          authentication in order to modify directory entries.
+      4.  Added a Security Considerations section.
 
       5.  Deleted the conformance requirement for subschema object 
           classes in favor of a statement in [Syntaxes].
 
-      6.  Added a Table of Contents.
+      6.  Added explanations to many attribute types and to each object 
+          class.  
 
-      7.  Added explanations to many attributes.
-
-      8.  Removed Section 4, Syntaxes, and Section 6, Matching Rules, 
+      7.  Removed Section 4, Syntaxes, and Section 6, Matching Rules, 
           (moved to [Syntaxes]).
 
-      9.  Reordered Section 3, Attributes, and Section 4, Object 
-          Classes, alphabetically.
-
-      10. Added an explanation for each object class.
-
-      11. Removed the certificate-related Attribute Types:  
+      8.  Removed the certificate-related attribute types:  
              authorityRevocationList, 
              cACertificate, 
              certificateRevocationList, 
@@ -1357,36 +1489,29 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
              strongAuthenticationUser, and
              userSecurityInformation
 
-          Noted that they are covered in PKIX WG documents.
+          LDAP PKI is now discussed in [LDAP-PKI].
 
-      12. Removed the dmdName Attribute Type and dmd Object Class 
-          because they are not in the version of X.500 which 
-          is referenced.
+      9.  Removed the dmdName, knowledgeInformation, 
+          presentationAddress, protocolInformation, and 
+          supportedApplicationContext attribute types and the dmd, 
+          applicationEntity, and dSA object classes. 
+
+      10. Deleted the aliasedObjectName and objectClass attribute 
+          type definitions.   Deleted the alias and top object class 
+          definitions.  They are included in [Models].
+
+      11. Added the 'dc' attribute type from RFC 2247.
 
 
 
-Dally                   Expires October 2003                   [Page 24]
-INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
+
+Dally                   Expires December 2003                  [Page 26]
+INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-06           June 2003
 
 
-......13. Deleted the 'aliasedObjectName' and 'objectClass' attribute 
-          type definitions.  They are included in [Models].
+      12. Added an IANA Considerations section.
 
-      14. Deleted the 'alias' and 'top' object class definitions.  They 
-          are included in [Models].
-
-      15. Replaced the document title.
-
-      16. Added the 'dc' attribute and the 'domain' object class from 
-          RFC 2247.
-
-      17. Deleted the 'knowledgeInformation', 'presentationAddress', 
-          'protocolInformation', and 'supportedApplicationContext' 
-          attributes.
-
-      18. Deleted the 'applicationEntity' and 'dSA' object classes.
-
-      19. Added an IANA Considerations section.
+      13. Numerous edititorial changes.
 
 
 
@@ -1422,4 +1547,20 @@ INTERNET-DRAFT     draft-ietf-ldapbis-user-schema-05          April 2003
 
 
 
-Dally                   Expires October 2003                   [Page 25]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Dally                   Expires December 2003                  [Page 27]

@@ -6,13 +6,13 @@
 
 INTERNET-DRAFT                              Editor: Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                   1 March 2003
+Expires in six months                                   30 June 2003
 Obsoletes: RFC 2251-2256, 2829-2830, 3377
 
 
 
                   LDAP: Technical Specification Road Map
-                   <draft-ietf-ldapbis-roadmap-02.txt>
+                   <draft-ietf-ldapbis-roadmap-03.txt>
 
 
 Status of this Memo
@@ -39,10 +39,10 @@ Status of this Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright 2003, The Internet Society.  All Rights Reserved.
+  Copyright (C) The Internet Society (2003).  All Rights Reserved.
 
-  Please see the Copyright section near the end of this document for
-  more information.
+  Please see the Full Copyright section near the end of this document
+  for more information.
 
 
 Abstract
@@ -57,7 +57,7 @@ Abstract
 
 Zeilenga                    LDAP: TS Road Map                   [Page 1]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-02         1 March 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
 
 
 Conventions
@@ -80,7 +80,8 @@ Conventions
       LDAP: String Representation of Distinguished Names [LDAPDN],
       LDAP: String Representation of Search Filters [Filters],
       LDAP: Uniform Resource Locator [LDAPURL],
-      LDAP: Syntaxes [Syntaxes], and
+      LDAP: Syntaxes and Matching Rules [Syntaxes],
+      LDAP: Internationalized String Preparation [LDAPprep], and
       LDAP: User Schema [Schema].
 
   The terms "LDAP" and "LDAPv3" are commonly used to informally refer to
@@ -93,27 +94,26 @@ Conventions
   this document but may be defined in some future document(s).
 
   IANA (Internet Assigned Numbers Authority) considerations for LDAP
-  described in BCP 64 [RFC3383] apply fully to this revision of the LDAP
-  technical specification.
+  described in BCP 64 [BCP64bis] apply fully to this revision of the
+  LDAP technical specification.
 
 
 2. Relationship to X.500
 
   This technical specification defines LDAP in terms of [X.500] as an
   X.500 access mechanism.  An LDAP server MUST act in accordance with
-  X.500(1993) series of International Telephone Union (ITU)
-  Recommendations when providing the service.  However, it is not
-  required that an LDAP server make use of any X.500 protocols in
-  providing this service, e.g. LDAP can be mapped onto any other
-  directory system so long as the X.500 data and service models
+  X.500(1993) series of International Telecommunication Union - Telecom
+  Standardization (ITU-T) Recommendations when providing the service.
+  However, it is not required that an LDAP server make use of any X.500
+  protocols in providing this service, e.g. LDAP can be mapped onto any
+  other directory system so long as the X.500 data and service models
   [X.501][X.511] as used in LDAP is not violated in the LDAP interface.
-
 
 
 
 Zeilenga                    LDAP: TS Road Map                   [Page 2]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-02         1 March 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
 
 
   This technical specification explicitly incorporates portions of
@@ -137,9 +137,12 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-02         1 March 2003
   [Models] replaces portions of RFC 2251, RFC 2252 and RFC 2256.
   [Protocol] replaces the majority RFC 2251 and portions of RFC 2252.
   [AuthMeth] replaces RFC 2829, RFC 2830, and portions of RFC 2251.
-  [Syntax] replaces the majority of RFC 2252 and portions of RFC 2256.
+  [Syntaxes] replaces the majority of RFC 2252 and portions of RFC 2256.
   [Schema] replaces the majority of RFC 2256.  [LDAPDN] replaces RFC
   2253.  [Filters] replaces RFC 2254.  [LDAPURL] replaces RFC 2255.
+
+  [LDAPprep] is new to this revision of the LDAP technical
+  specification.
 
   Each document of this specification contains appendices summarizing
   changes to all sections of the specifications they replace.  Appendix
@@ -163,57 +166,75 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-02         1 March 2003
   E-mail: <kurt@openldap.org>
 
 
-7. References
-
-
 
 Zeilenga                    LDAP: TS Road Map                   [Page 3]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-02         1 March 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
 
+
+7. References
 
 7.1. Normative References
 
-  [RFC2119]  S. Bradner, "Key words for use in RFCs to Indicate
-             Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
-  [RFC3383]  K. Zeilenga, "IANA Considerations for LDAP", BCP 64 (also
-             RFC 3383), September 2002.
+  [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP", draft-
+                ietf-ldapbis-bcp64-xx.txt, a work in progress.
 
-  [Models]   K. Zeilenga (editor), "LDAP: Directory Information Models",
-             draft-ietf-ldapbis-models-xx.txt, a work in progress.
+  [Models]      Zeilenga, K. (editor), "LDAP: Directory Information
+                Models", draft-ietf-ldapbis-models-xx.txt, a work in
+                progress.
 
-  [Protocol] J. Sermersheim (editor), "LDAP: The Protocol",
-             draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
+                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
 
-  [AuthMeth] R. Harrison (editor), "LDAP: Authentication Methods and
-             Connection Level Security Mechanisms",
-             draft-ietf-ldapbis-authmeth-xx.txt, a work in progress.
+  [AuthMeth]    Harrison, R. (editor), "LDAP: Authentication Methods and
+                Connection Level Security Mechanisms",
+                draft-ietf-ldapbis-authmeth-xx.txt, a work in progress.
 
-  [LDAPDN]   K. Zeilenga (editor), "LDAP: String Representation of
-             Distinguished Names", draft-ietf-ldapbis-dn-xx.txt, a work
-             in progress.
+  [LDAPDN]      Zeilenga, K. (editor), "LDAP: String Representation of
+                Distinguished Names", draft-ietf-ldapbis-dn-xx.txt, a
+                work in progress.
 
-  [Filters]  M. Smith (editor), LDAPbis WG, "LDAP: String Representation
-             of Search Filters", draft-ietf-ldapbis-filter-xx.txt, a
-             work in progress.
+  [Filters]     Smith, M. (editor), LDAPbis WG, "LDAP: String
+                Representation of Search Filters",
+                draft-ietf-ldapbis-filter-xx.txt, a work in progress.
 
-  [LDAPURL]  M. Smith (editor), "LDAP: Uniform Resource Locator",
-             draft-ietf-ldapbis-url-xx.txt, a work in progress.
+  [LDAPURL]     Smith, M. (editor), "LDAP: Uniform Resource Locator",
+                draft-ietf-ldapbis-url-xx.txt, a work in progress.
 
-  [Syntaxes] S. Legg (editor), "LDAP: Syntaxes",
-             draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress.
+  [Syntaxes]    Legg, S. (editor), "LDAP: Syntaxes and Matching Rules",
+                draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress.
 
-  [Schema]   K. Dally (editor), "LDAP: User Schema",
-             draft-ietf-ldapbis-user-schema-xx.txt, a work in progress.
+  [LDAPprep]    Zeilenga, K., "LDAP: Internationalized String
+                Preparation", draft-ietf-ldapbis-strpro-xx.txt, a work
+                in progress.
 
-  [X.500]    ITU-T Rec. X.500, "The Directory: Overview of Concepts,
-             Models and Service", 1993.
+  [Schema]      Dally, K. (editor), "LDAP: User Schema",
+                draft-ietf-ldapbis-user-schema-xx.txt, a work in
+                progress.
 
-  [X.501]    ITU-T Rec. X.501, "The Directory: Models", 1993.
+  [X.500]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Overview of concepts, models and services,"
+                X.500(1993) (also ISO/IEC 9594-1:1994).
 
-  [X.511]    ITU-T Rec. X.511, "The Directory: Abstract Service
-             Definition", 1993.
+
+
+
+Zeilenga                    LDAP: TS Road Map                   [Page 4]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
+
+
+  [X.501]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Models," X.501(1993) (also ISO/IEC 9594-2:1994).
+
+  [X.511]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The
+                Directory: Abstract Service Definition", X.511(1993).
 
 
 7.2. Informative References
@@ -221,40 +242,67 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-02         1 March 2003
   None.
 
 
-
-
-Zeilenga                    LDAP: TS Road Map                   [Page 4]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-02         1 March 2003
-
-
 Appendix A.  Changes to Previous Documents
 
-             This appendix outlines changes this document makes relative
-             to the documents it replaces (in whole or in part).
+  This appendix outlines changes this document makes relative to the
+  documents it replaces (in whole or in part).
 
 
 Appendix A.1. Changes to RFC 3377
 
-             This document is nearly a complete rewrite of RFC 3377 as
-             much of the material of RFC 3377 is no longer applicable.
-             These changes include defining the terms "LDAP" and
-             "LDAPv3" to refer to this revision of the technical
-             specification.
+  This document is nearly a complete rewrite of RFC 3377 as much of the
+  material of RFC 3377 is no longer applicable.  The changes include
+  redefining the terms "LDAP" and "LDAPv3" to refer to this revision of
+  the technical specification.
 
 
 Appendix A.2. Changes to Section 3.3 of RFC 2251
 
-             The section was modified slightly (the word "document" was
-             replaced with "technical specification") to clarify that it
-             applies to the entire LDAP technical specification.
+  The section was modified slightly (the word "document" was replaced
+  with "technical specification") to clarify that it applies to the
+  entire LDAP technical specification.
 
 
-Copyright 2003, The Internet Society.  All Rights Reserved.
+
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  intellectual property or other rights that might be claimed to pertain
+  to the implementation or use of the technology described in this
+  document or the extent to which any license under such rights might or
+  might not be available; neither does it represent that it has made any
+  effort to identify any such rights.  Information on the IETF's
+  procedures with respect to rights in standards-track and
+  standards-related documentation can be found in BCP-11.  Copies of
+  claims of rights made available for publication and any assurances of
+  licenses to be made available, or the result of an attempt made to
+
+
+
+Zeilenga                    LDAP: TS Road Map                   [Page 5]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
+
+
+  obtain a general license or permission for the use of such proprietary
+  rights by implementors or users of this specification can be obtained
+  from the IETF Secretariat.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights which may cover technology that may be required to practice
+  this standard.  Please address the information to the IETF Executive
+  Director.
+
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2003). All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
-  or assist in its implementation may be prepared, copied, published and
+  or assist in its implmentation may be prepared, copied, published and
   distributed, in whole or in part, without restriction of any kind,
   provided that the above copyright notice and this paragraph are
   included on all such copies and derivative works.  However, this
@@ -265,19 +313,27 @@ Copyright 2003, The Internet Society.  All Rights Reserved.
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
 
-  The limited permissions granted above are perpetual and will not be
-  revoked by the Internet Society or its successors or assigns.
-
-  This document and the information contained herein is provided on an
-  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
-  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
-  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
-  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
 
 
-Zeilenga                    LDAP: TS Road Map                   [Page 5]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                    LDAP: TS Road Map                   [Page 6]
 

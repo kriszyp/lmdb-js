@@ -6,11 +6,11 @@
 
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                   OpenLDAP Foundation
-Expires in six months                               11 May 2003
+Expires in six months                               25 October 2003
 
 
                  The LDAP entryUUID operational attribute
-                    <draft-zeilenga-ldap-uuid-00.txt>
+                    <draft-zeilenga-ldap-uuid-02.txt>
 
 
 Status of this Memo
@@ -21,9 +21,9 @@ Status of this Memo
   This document is intended to be, after appropriate review and
   revision, submitted to the RFC Editor as an Standard Track document.
   Distribution of this memo is unlimited.  Technical discussion of this
-  document will take place on the IETF LDAP Extension Working Group
-  mailing list <ldapext@ietf.org>.  Please send editorial comments
-  directly to the author <Kurt@OpenLDAP.org>.
+  document will take place on the IETF LDAP Extensions mailing list
+  <ldapext@ietf.org>.  Please send editorial comments directly to the
+  author <Kurt@OpenLDAP.org>.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups.  Note that other
@@ -55,9 +55,9 @@ Abstract
 
 
 
-Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 1]
+Zeilenga               draft-zeilenga-ldap-uuid-02              [Page 1]
 
-INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
+INTERNET-DRAFT               LDAP entryUUID              25 October 2003
 
 
 1. Background and Intended Use
@@ -69,11 +69,11 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
   DN which previously identified another (now renamed or deleted)
   object.
 
-  This document describes the 'entryUUID' operational attribute holds
-  the Universally Unique Identifier (UUID) [ISO11578] assigned to the
-  object by the server.  Clients may use this attribute to distinguish
-  objects identified by a distinguished name or to locate an object
-  after renaming.
+  This document describes the 'entryUUID' operational attribute which
+  holds the Universally Unique Identifier (UUID) [ISO11578] assigned to
+  the object by the server.  Clients may use this attribute to
+  distinguish objects identified by a distinguished name or to locate an
+  object after renaming.
 
   This document defines the UUID syntax, the 'uuidMatch' and
   'uuidOrderingMatch' matching rules, the 'entryUUID' attribute type.
@@ -91,32 +91,42 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
 
 2.1 UUID Syntax
 
-  A Universally Unique Identifier (UUID) [ISO11578] is a 16-octet value
-  which identifies object.  The ASN.1 [X.690] type UUID is defined to
-  represent UUIDs.
+  A Universally Unique Identifier (UUID) [ISO11578] is a 16-octet
+  (128-bit) value which identifies an object.  The ASN.1 [X.690] type
+  UUID is defined to represent UUIDs.
 
-      UUID ::= OCTET STRING{16} -- constrained to an UUID [ISO 11578]
+      UUID ::= OCTET STRING (SIZE(16))
+            -- constrained to an UUID [ISO 11578]
 
-  In LDAP, values of the UUID are encoded using the string
-  representation described in [ISO11578].  For example,
-  597ae2f6-16a6-1027-98f4-d28b5365dc14.
+  In LDAP, values of the UUID type are encoded using the [ASCII]
+  character string representation described in [ISO11578].  For example,
+  "597ae2f6-16a6-1027-98f4-d28b5365dc14".
+
+  The following is a LDAP syntax description [RFC2252] suitable for
+  publication in the subschema.
 
       ( IANA-ASSIGNED-OID.1 DESC 'UUID' )
+
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-02              [Page 2]
+
+INTERNET-DRAFT               LDAP entryUUID              25 October 2003
 
 
 2.2 'uuidMatch' Matching Rule
 
   The 'uuidMatch' matching rule compares an asserted UUID with a stored
-  UUID for equality.  Its semantics are same as octetStringMatch
+  UUID for equality.  Its semantics are same as the octetStringMatch
+  [X.520][RFC2252] matching rule.   The rule differs from
+  octetStringMatch in that the assertion value is encoded using the UUID
+  string representation instead of the normal OCTET STRING string
+  representation.
 
-
-
-Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 2]
-
-INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
-
-
-  [X.520][RFC2252].
+  The following is a LDAP matching rule description [RFC2252] suitable
+  for publication in the subschema.
 
       ( IANA-ASSIGNED-OID.2 NAME 'uuidMatch'
           SYNTAX IANA-ASSIGNED-OID.1 )
@@ -125,11 +135,21 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
 2.3 'uuidOrderingMatch' Matching Rule
 
   The 'uuidOrderingMatch' matching rule compares an asserted UUID
-  with a stored UUID for ordering.  Its semantics are the same as
-  octetStringOrderingMatch [X.520][RFC2252].
+  with a stored UUID for ordering.  Its semantics are the same as the
+  octetStringOrderingMatch [X.520][RFC2252] matching rule.  The rule
+  differs from octetStringOrderingMatch in that the assertion value
+  is encoded using the UUID string representation instead of the
+  normal OCTET STRING string representation.
+
+  The following is a LDAP matching rule description [RFC2252] suitable
+  for publication in the subschema.
 
       ( IANA-ASSIGNED-OID.3 NAME 'uuidMatch'
           SYNTAX IANA-ASSIGNED-OID.1 )
+
+  It is noted that not all UUID variants have a defined ordering and,
+  even where so, servers are not obligated to assign UUIDs in any
+  particular order.  This matching rule is provided for completeness.
 
 
 2.4. 'entryUUID' attribute
@@ -137,10 +157,21 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
   The 'entryUUID' operational attribute provides the Universally Unique
   Identifier (UUID) [ISO11578] assigned to the entry.
 
+  The following is a LDAP attribute type description [RFC2252] suitable
+  for publication in the subschema.
+
       ( IANA-ASSIGNED-OID.4 NAME 'entryUUID'
           DESC 'UUID of the entry'
           EQUALITY uuidMatch
           ORDERING uuidOrderingMatch
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-02              [Page 3]
+
+INTERNET-DRAFT               LDAP entryUUID              25 October 2003
+
+
           SYNTAX IANA-ASSIGNED-OID.1
           SINGLE-VALUE
           NO-USER-MODIFICATION
@@ -164,14 +195,6 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
 4.1. Object Identifier Registration
 
   It is requested that IANA register upon Standards Action an LDAP
-
-
-
-Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 3]
-
-INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
-
-
   Object Identifier for use in this technical specification.
 
       Subject: Request for LDAP OID Registration
@@ -198,6 +221,13 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
       Author/Change Controller: IESG
 
 
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-02              [Page 4]
+
+INTERNET-DRAFT               LDAP entryUUID              25 October 2003
+
+
 4.3. Registration of the uuidOrderingMatch descriptor
 
   It is requested that IANA register upon Standards Action the LDAP
@@ -220,14 +250,6 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
 
       Subject: Request for LDAP Descriptor Registration
       Descriptor (short name): entryUUID
-
-
-
-Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 4]
-
-INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
-
-
       Object Identifier: IANA-ASSIGNED-OID.4
       Person & email address to contact for further information:
           Kurt Zeilenga <kurt@OpenLDAP.org>
@@ -239,7 +261,8 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
 5. Acknowledgments
 
   This document is based upon discussions in the LDAP Update and
-  Duplication Protocols (LDUP) WG.
+  Duplication Protocols (LDUP) WG.  Members of the concluded LDAP
+  Extensions (LDAPEXT) Working Group provided review.
 
 
 6. Author's Address
@@ -254,6 +277,13 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
   [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
                 Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-02              [Page 5]
+
+INTERNET-DRAFT               LDAP entryUUID              25 October 2003
+
+
   [RFC2252]     Wahl, M., A. Coulbeck, T. Howes, and S. Kille,
                 "Lightweight Directory Access Protocol (v3):  Attribute
                 Syntax Definitions", RFC 2252, December 1997.
@@ -266,6 +296,9 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
                 "Information technology - Open Systems Interconnection -
                 Remote Procedure Call", ISO/IEC 11578:1996.
 
+  [ASCII]       Coded Character Set--7-bit American Standard Code for
+                Information Interchange, ANSI X3.4-1986.
+
   [X.501]       International Telecommunication Union -
                 Telecommunication Standardization Sector, "The Directory
                 -- Models," X.501(1993) (also ISO/IEC 9594-2:1994).
@@ -276,14 +309,6 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
                 ISO/IEC 9594-6:1994).
 
   [X.680]       International Telecommunication Union -
-
-
-
-Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 5]
-
-INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
-
-
                 Telecommunication Standardization Sector, "Abstract
                 Syntax Notation One (ASN.1) - Specification of Basic
                 Notation", X.680(1997) (also ISO/IEC 8824-1:1998).
@@ -294,16 +319,27 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
   [RFC3383]     Zeilenga, K., "IANA Considerations for LDAP", BCP 64
                 (also RFC 3383), September 2002.
 
-  [UUIDinfo]    The Open Group, "Universally Unique Identifier" section
-                of "CDE 1.1: Remote Procedure Calls",
-                <http://www.opengroup.org/onlinepubs/9629399/apdxa.htm>,
-                April 1997.
+  [UUIDinfo]    The Open Group, "Universally Unique Identifier" appendix
+                of the CAE Specification "DCE 1.1: Remote Procedure
+                Calls", Document Number C706,
+                <http://www.opengroup.org/products/publications/catalog/c706.htm>
+                (appendix available at:
+                <http://www.opengroup.org/onlinepubs/9629399/apdxa.htm>),
+                August 1997.
 
 
 
 Intellectual Property Rights
 
   The IETF takes no position regarding the validity or scope of any
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-02              [Page 6]
+
+INTERNET-DRAFT               LDAP entryUUID              25 October 2003
+
+
   intellectual property or other rights that might be claimed to pertain
   to the implementation or use of the technology described in this
   document or the extent to which any license under such rights might or
@@ -332,14 +368,6 @@ Full Copyright
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
   or assist in its implmentation may be prepared, copied, published and
-
-
-
-Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 6]
-
-INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
-
-
   distributed, in whole or in part, without restriction of any kind,
   provided that the above copyright notice and this paragraph are
   included on all such copies and derivative works.  However, this
@@ -363,33 +391,5 @@ INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 7]
+Zeilenga               draft-zeilenga-ldap-uuid-02              [Page 7]
 
