@@ -18,7 +18,7 @@ XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 # load-tools: $(PROGRAMS)
 
 slapd-tester: slapd-tester.o 
-	$(LTLINK) -o $@ slapd-tester.o
+	$(LTLINK) -o $@ slapd-tester.o $(LIBS)
 
 slapd-search: slapd-search.o $(LDAP_LIBLBER_DEPEND) $(LDAP_LIBLDAP_DEPEND)
 	$(LTLINK) -o $@ slapd-search.o $(LIBS)
