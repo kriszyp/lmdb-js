@@ -58,6 +58,7 @@ main( int argc, char **argv )
 	int		dbnum;
 	ID		id;
 	int		rc;
+    int     cmdkids = 1;
 	Backend		*be = NULL;
 	struct ldbminfo *li;
 	struct berval	bv;
@@ -87,7 +88,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'j':	/* number of parallel index procs */
-			maxkids = atoi( optarg );
+			cmdkids = atoi( optarg );
 			break;
 
 		case 'n':	/* which config file db to index */
@@ -169,6 +170,8 @@ main( int argc, char **argv )
 	}
 	args[i++] = NULL;
 	fork_child( cmd, args );
+
+    maxkids = cmdkids;
 
 	/*
 	 * generate the dn2id and id2children indexes
