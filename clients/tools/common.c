@@ -114,7 +114,7 @@ N_("             [!]noop\n")
 N_("             ppolicy\n")
 #endif
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-N_("             [!]chaining[=<resolveBehavior>[,<continuationBehavior>]]\n")
+N_("             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]\n")
 N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
 N_("                     \"referralsPreferred\", \"referralsRequired\"\n")
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
@@ -304,7 +304,7 @@ tool_args( int argc, char **argv )
 				if ( cvalue != NULL ) {
 					char	*continuation;
 
-					continuation = strchr( cvalue, ',' );
+					continuation = strchr( cvalue, '/' );
 					if ( continuation ) {
 						/* FIXME: this makes sense only in searches */
 						*continuation++ = '\0';
