@@ -102,7 +102,7 @@ ldbm_back_group(
 		goto return_results;
 	}
 
-	if( is_entry_objectclass( e, group_oc ) ) {
+	if( !is_entry_objectclass( e, group_oc ) ) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find %s in objectClass\n", 
 				group_oc_name, 0, 0 ); 
