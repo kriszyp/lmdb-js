@@ -40,6 +40,19 @@ LDAP_BEGIN_DECL
 /* include LDAP_API_FEATURE defines */
 #include <ldap_features.h>
 
+#if defined( LDAP_API_FEATURE_X_OPENLDAP_REENTRANT ) || \
+	( defined( LDAP_THREAD_SAFE ) && \
+		defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE ) )
+	/* -lldap may or may not be thread safe */
+	/* -lldap_r, if available, is always thread safe */
+#	define	LDAP_API_FEATURE_THREAD_SAFE 1
+#endif
+#if defined( LDAP_THREAD_SAFE ) && \
+	defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE )
+/* #define LDAP_API_FEATURE_SESSION_SAFE	1	*/
+/* #define LDAP_API_OPERATION_SESSION_SAFE	1	*/
+#endif
+
 #define LDAP_COMPAT20
 #define LDAP_COMPAT30
 #if defined(LDAP_COMPAT20) || defined(LDAP_COMPAT30)

@@ -19,6 +19,12 @@
 
 LDAP_BEGIN_DECL
 
+#if defined( _POSIX_REENTRANT_FUNCTIONS ) || \
+	defined( _POSIX_THREAD_SAFE_FUNCTIONS ) || \
+	defined( _POSIX_THREAD_SAFE_FUNCTIONS )
+#define HAVE_REENTRANT_FUNCTIONS 1
+#endif
+
 #if !defined( HAVE_PTHREAD_ATTR_INIT ) && \
 	defined( HAVE_PTHREAD_ATTR_CREATE )
 #define pthread_attr_init( a )		pthread_attr_create( a )
@@ -103,6 +109,8 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
+#define HAVE_REENTRANT_FUNCTIONS 1
+
 typedef void	*(*VFP)();
 
 /* default attr states */
@@ -144,6 +152,8 @@ LDAP_END_DECL
 #include <lwp/stackdep.h>
 
 LDAP_BEGIN_DECL
+
+#define HAVE_REENTRANT_FUNCTIONS 1
 
 stkalign_t *get_stack( int *stacknop );
 void free_stack( int *stackno );
@@ -265,4 +275,9 @@ typedef int	pthread_cond_t;
 LDAP_END_DECL
 
 #endif /* no threads support */
+
+#ifndef NO_THREADS
+#	define HAVE_THREADS 1
+#endif
+
 #endif /* _LTHREAD_H */

@@ -4,12 +4,10 @@
 LIBRARY = libldap_r.la
 XLIBRARY = ../libldap_r.a
 
-XDIR = ../libldap
-XDEFS = -DLDAP_THREAD_SAFE -I$(XDIR)
-
 PROGRAMS = apitest ltest ttest
 
-XSRCS	= apitest.c test.c tmpltest.c \
+XXDIR = ../libldap
+XXSRCS	= apitest.c test.c tmpltest.c \
 	bind.c open.c result.c error.c compare.c search.c \
 	modify.c add.c modrdn.c delete.c abandon.c ufn.c cache.c \
 	getfilter.c sbind.c kbind.c unbind.c friendly.c cldap.c \
@@ -28,19 +26,22 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
+XDEFS = -DLDAP_R_COMPILE -I$(XXDIR)
 LIBS = $(LDAP_LIBPATH) $(LDAP_LIBLDAP) $(LDAP_LIBLBER) $(AC_LIBS)
 
-.links :
-	@for i in $(XSRCS); do \
+.links : FORCE
+	@for i in $(XXSRCS); do \
 		$(RM) $$i ; \
-		$(LN_S) $(XDIR)/$$i . ; \
+		$(LN_S) $(XXDIR)/$$i . ; \
 	done
 	touch .links
 
-$(XSRCS) : .links
+$(XXSRCS) : .links
 
 clean-local: FORCE
-	$(RM) .links
+	@$(RM) .links
+
+depend-common: .links
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)

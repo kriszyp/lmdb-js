@@ -808,13 +808,33 @@ dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) \
 dnl			|| defined( HAVE_FUNC_R )
 dnl			func_r(...);
 dnl		#else
-dnl			func(...);
+dnl		#	if defined( HAVE_THREADS ) 
+dnl				/* lock */
+dnl		#	endif
+dnl				func(...);
+dnl		#	if defined( HAVE_THREADS ) 
+dnl				/* unlock */
+dnl		#	endif
 dnl		#endif
 dnl
 dnl HAVE_REENTRANT_FUNCTIONS is derived from:
 dnl		_POSIX_REENTRANT_FUNCTIONS
 dnl		_POSIX_THREAD_SAFE_FUNCTIONS
 dnl		_POSIX_THREADSAFE_FUNCTIONS
+dnl
+dnl		and is currently defined in lthread.h
+dnl
+dnl HAVE_THREADS is defined by lthread.h iff -UNO_THREADS
+dnl 
+dnl libldap/*.c should only include <lthread.h> iff
+dnl LDAP_R_COMPILE is defined.  ie:
+dnl		#ifdef LDAP_R_COMPILE
+dnl		#	include LDAP_R_COMPILE
+dnl		#endif
+dnl
+dnl LDAP_R_COMIPLE is defined by libldap_r/Makefile.in
+dnl specifically for compiling the threadsafe version of
+dnl	the ldap library (-lldap_r).
 dnl		
 dnl	dnl check for reentrant/threadsafe functions
 dnl	dnl
@@ -1116,11 +1136,9 @@ AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
 	bcopy			\
-	ctime_r			\
 	flock			\
 	getdtablesize	\
 	gethostname		\
-	gethostbyaddr_r gethostbyname_r	\
 	getpwuid		\
 	gettimeofday	\
 	lockf			\
@@ -1141,12 +1159,32 @@ AC_CHECK_FUNCS(		\
 	strsep			\
 	strstr			\
 	strtok			\
-	strtok_r		\
 	strtol			\
 	strtoul			\
 	sysconf			\
 	waitpid			\
 )
+
+# these functions are required to build a thread_safe -lldap
+AC_CHECK_FUNCS(		\
+	strtok_r		\
+	ctime_r			\
+	gethostbyaddr_r \
+	gethostbyname_r	\
+)
+
+if test $ac_cv_func_strtok_r = yes \
+	-a $ac_cv_func_ctime_r = yes \
+	-a $ac_cv_func_gethostbyaddr_r = yes \
+	-a $ac_cv_func_gethostbyname_r = yes \
+	; then
+
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT, 1)
+fi
+
+if test $ol_link_threads != no ; then
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE, 1)
+fi
 
 dnl We actually may need to replace more than this.
 AC_REPLACE_FUNCS(getopt strdup tempnam)
