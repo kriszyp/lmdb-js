@@ -40,7 +40,7 @@ charray_add(
 void
 charray_merge(
     char	***a,
-    const char	**s
+    char	**s
 )
 {
 	int	i, n, nn;
@@ -79,7 +79,7 @@ charray_free( char **array )
 
 int
 charray_inlist(
-    const char	**a,
+    char	**a,
     const char	*s
 )
 {
@@ -95,7 +95,7 @@ charray_inlist(
 }
 
 char **
-charray_dup( const char **a )
+charray_dup( char **a )
 {
 	int	i;
 	char	**new;
@@ -115,7 +115,7 @@ charray_dup( const char **a )
 
 
 char *
-charray2str( const char **a )
+charray2str( char **a )
 {
 	char *s;
 	int i;

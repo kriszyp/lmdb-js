@@ -321,7 +321,7 @@ attr_syntax_config(
 
 	save = argv[lasti];
 	argv[lasti] = NULL;
-	at->at_names = charray_dup( (const char **) argv );
+	at->at_names = charray_dup( argv );
 	argv[lasti] = save;
 
 	code = at_add( at, &err );

@@ -35,7 +35,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_bind = charray_dup( (const char**) &argv[1] );
+		si->si_bind = charray_dup( &argv[1] );
 
 	/* command + args to exec for unbinds */
 	} else if ( strcasecmp( argv[0], "unbind" ) == 0 ) {
@@ -45,7 +45,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_unbind = charray_dup( (const char**) &argv[1] );
+		si->si_unbind = charray_dup( &argv[1] );
 
 	/* command + args to exec for searches */
 	} else if ( strcasecmp( argv[0], "search" ) == 0 ) {
@@ -55,7 +55,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_search = charray_dup( (const char**) &argv[1] );
+		si->si_search = charray_dup( &argv[1] );
 
 	/* command + args to exec for compares */
 	} else if ( strcasecmp( argv[0], "compare" ) == 0 ) {
@@ -65,7 +65,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_compare = charray_dup( (const char**) &argv[1] );
+		si->si_compare = charray_dup( &argv[1] );
 
 	/* command + args to exec for modifies */
 	} else if ( strcasecmp( argv[0], "modify" ) == 0 ) {
@@ -75,7 +75,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_modify = charray_dup( (const char**) &argv[1] );
+		si->si_modify = charray_dup( &argv[1] );
 
 	/* command + args to exec for modrdn */
 	} else if ( strcasecmp( argv[0], "modrdn" ) == 0 ) {
@@ -85,7 +85,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_modrdn = charray_dup( (const char**) &argv[1] );
+		si->si_modrdn = charray_dup( &argv[1] );
 
 	/* command + args to exec for add */
 	} else if ( strcasecmp( argv[0], "add" ) == 0 ) {
@@ -95,7 +95,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_add = charray_dup( (const char**) &argv[1] );
+		si->si_add = charray_dup( &argv[1] );
 
 	/* command + args to exec for delete */
 	} else if ( strcasecmp( argv[0], "delete" ) == 0 ) {
@@ -105,7 +105,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_delete = charray_dup( (const char**) &argv[1] );
+		si->si_delete = charray_dup( &argv[1] );
 
 	/* command + args to exec for abandon */
 	} else if ( strcasecmp( argv[0], "abandon" ) == 0 ) {
@@ -115,7 +115,7 @@ shell_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		si->si_abandon = charray_dup( (const char**) &argv[1] );
+		si->si_abandon = charray_dup( &argv[1] );
 
 	/* anything else */
 	} else {

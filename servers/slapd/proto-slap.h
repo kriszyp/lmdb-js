@@ -148,12 +148,12 @@ void   ch_free LDAP_P(( void * ));
  */
 
 void charray_add LDAP_P(( char ***a, const char *s ));
-void charray_merge LDAP_P(( char ***a, const char **s ));
+void charray_merge LDAP_P(( char ***a, char **s ));
 void charray_free LDAP_P(( char **array ));
-int charray_inlist LDAP_P(( const char **a, const char *s ));
-char ** charray_dup LDAP_P(( const char **a ));
+int charray_inlist LDAP_P(( char **a, const char *s ));
+char ** charray_dup LDAP_P(( char **a ));
 char ** str2charray LDAP_P(( const char *str, const char *brkstr ));
-char * charray2str LDAP_P(( const char **a ));
+char * charray2str LDAP_P(( char **a ));
 
 /*
  * controls.c

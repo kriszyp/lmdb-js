@@ -217,10 +217,10 @@ send_ldap_response(
 	ber_tag_t	tag,
 	ber_int_t	msgid,
     ber_int_t	err,
-    char	*matched,
-    char	*text,
+    const char	*matched,
+    const char	*text,
 	struct berval	**ref,
-	char	*resoid,
+	const char	*resoid,
 	struct berval	*resdata,
 	LDAPControl **ctrls
 )
@@ -381,7 +381,8 @@ send_ldap_result(
 			err = LDAP_NO_SUCH_OBJECT;
 		} else if ( op->o_protocol < LDAP_VERSION3 ) {
 			err = LDAP_PARTIAL_RESULTS;
-			tmp = text = v2ref( ref );
+			tmp = v2ref( ref );
+			text = tmp;
 			ref = NULL;
 		}
 	}
@@ -445,7 +446,8 @@ send_search_result(
 			err = LDAP_PARTIAL_RESULTS;
 		}
 
-		tmp = text = v2ref( refs );
+		tmp = v2ref( refs );
+		text = tmp;
 		refs = NULL;
 
 	} else {
