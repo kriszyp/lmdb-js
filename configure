@@ -2832,7 +2832,7 @@ if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_save_LIBS="$LIBS"
-LIBS="-lbe -lroot $LIBS"
+LIBS="-lbe -lroot -lnet $LIBS"
 cat > conftest.$ac_ext <<EOF
 #line 2838 "configure"
 #include "confdefs.h"
@@ -2860,7 +2860,7 @@ LIBS="$ac_save_LIBS"
 fi
 if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  LIBS="$LIBS -lbe -lroot"
+  LIBS="$LIBS -lbe -lroot -lnet"
 else
   echo "$ac_t""no" 1>&6
 :
