@@ -1129,7 +1129,7 @@ static int process_response(
 
 	if( ldap_msgtype( res ) != LDAP_RES_INTERMEDIATE ) {
 		rc = ldap_result2error( ld, res, 1 );
-		ldap_perror( ld, opstr );
+		if (rc) ldap_perror( ld, opstr );
 		return rc;
 	}
 
