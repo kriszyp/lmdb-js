@@ -4,6 +4,7 @@ OpenLDAP 2.0.X Engineering
 	Updated -lldap SASL error reporting
 	Updated -lldap TLS error reporting
 	Build Environment
+		Fixed make comment bug (ITS#811)
 		Fixed $(DESTDIR) install (ITS#806)
 
 OpenLDAP 2.0.6 Release
