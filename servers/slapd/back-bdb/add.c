@@ -70,7 +70,8 @@ retry:	rc = txn_abort( ltid );
 
 	/* begin transaction */
 	if( bdb->bi_txn ) {
-		rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+		rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 
+			bdb->bi_db_opflags );
 		text = NULL;
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,

@@ -220,6 +220,7 @@ bdb_idl_fetch_key(
 	DBT			*key,
 	ID			*ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
 	DBT data;
 
@@ -231,7 +232,7 @@ bdb_idl_fetch_key(
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch it */
-	rc = db->get( db, tid, key, &data, 0 );
+	rc = db->get( db, tid, key, &data, bdb->bi_db_opflags );
 
 	if( rc == DB_NOTFOUND ) {
 		return rc;
@@ -268,6 +269,7 @@ bdb_idl_insert_key(
 	DBT			*key,
 	ID			id )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int	rc;
 	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
@@ -284,7 +286,7 @@ bdb_idl_insert_key(
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch the key for read/modify/write */
-	rc = db->get( db, tid, key, &data, DB_RMW );
+	rc = db->get( db, tid, key, &data, DB_RMW | bdb->bi_db_opflags );
 
 	if( rc == DB_NOTFOUND ) {
 		ids[0] = 1;
@@ -358,6 +360,7 @@ bdb_idl_delete_key(
 	DBT			*key,
 	ID			id )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int	rc;
 	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
@@ -374,7 +377,7 @@ bdb_idl_delete_key(
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch the key for read/modify/write */
-	rc = db->get( db, tid, key, &data, DB_RMW );
+	rc = db->get( db, tid, key, &data, DB_RMW | bdb->bi_db_opflags );
 
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "

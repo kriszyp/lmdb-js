@@ -73,7 +73,7 @@ bdb_db_cache(
 
 	rc = db->bdi_db->open( db->bdi_db,
 		file, name,
-		DB_BTREE, DB_CREATE|DB_THREAD,
+		DB_BTREE, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,
 		bdb->bi_dbenv_mode );
 
 	ch_free( file );

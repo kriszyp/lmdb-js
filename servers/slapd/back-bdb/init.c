@@ -210,7 +210,7 @@ bdb_db_open( BackendDB *be )
 		}
 	}
 
-	flags = DB_THREAD | DB_CREATE;
+	flags = DB_THREAD | DB_CREATE | bdb->bi_db_opflags;
 
 	bdb->bi_databases = (struct bdb_db_info **) ch_malloc(
 		BDB_INDICES * sizeof(struct bdb_db_info *) );

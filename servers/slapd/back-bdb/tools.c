@@ -64,7 +64,8 @@ ID bdb_tool_entry_next(
 	
 	if (cursor == NULL) {
 		rc = bdb->bi_id2entry->bdi_db->cursor(
-			bdb->bi_id2entry->bdi_db, NULL, &cursor, 0 );
+			bdb->bi_id2entry->bdi_db, NULL, &cursor,
+			bdb->bi_db_opflags );
 		if( rc != 0 ) {
 			return NOID;
 		}
@@ -120,7 +121,8 @@ ID bdb_tool_entry_put(
 		(long) e->e_id, e->e_dn, 0 );
 
 	if( bdb->bi_txn ) {
-		rc = txn_begin( bdb->bi_dbenv, NULL, &tid, 0 );
+		rc = txn_begin( bdb->bi_dbenv, NULL, &tid, 
+			bdb->bi_db_opflags );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_tool_entry_put: txn_begin failed: %s (%d)\n",
@@ -208,7 +210,7 @@ int bdb_tool_entry_reindex(
 	}
 
 	if( bi->bi_txn ) {
-		rc = txn_begin( bi->bi_dbenv, NULL, &tid, 0 );
+		rc = txn_begin( bi->bi_dbenv, NULL, &tid, bi->bi_db_opflags );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_tool_entry_reindex: txn_begin failed: %s (%d)\n",

@@ -210,7 +210,7 @@ bdb_dn2id(
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch it */
-	rc = db->get( db, txn, &key, &data, 0 );
+	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
@@ -260,7 +260,7 @@ bdb_dn2id_matched(
 		*id = NOID;
 
 		/* fetch it */
-		rc = db->get( db, txn, &key, &data, 0 );
+		rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 		if( rc == DB_NOTFOUND ) {
 			char *pdn = dn_parent( be, dn );
@@ -339,7 +339,7 @@ bdb_dn2id_children(
 	data.doff = 0;
 	data.dlen = sizeof(id);
 
-	rc = db->get( db, txn, &key, &data, 0 );
+	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %schildren (%d)\n",
 		dn,
@@ -376,7 +376,7 @@ bdb_dn2idl(
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch it */
-	rc = db->get( db, NULL, &key, &data, 0 );
+	rc = db->get( db, NULL, &key, &data, bdb->bi_db_opflags );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,

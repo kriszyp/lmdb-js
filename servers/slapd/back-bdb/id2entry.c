@@ -92,7 +92,7 @@ int bdb_id2entry(
 	data.flags = DB_DBT_MALLOC;
 
 	/* fetch it */
-	rc = db->get( db, tid, &key, &data, 0 );
+	rc = db->get( db, tid, &key, &data, bdb->bi_db_opflags );
 
 	if( rc != 0 ) {
 		return rc;

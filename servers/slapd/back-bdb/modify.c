@@ -189,7 +189,8 @@ retry:	/* transaction retry */
 
 	if( bdb->bi_txn ) {
 		/* begin transaction */
-		rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 0 );
+		rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 
+			bdb->bi_db_opflags );
 		text = NULL;
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
