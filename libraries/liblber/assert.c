@@ -27,7 +27,7 @@ void
 ber_pvt_assert( const char *file, int line, const char *test )
 {
 	fprintf(stderr,
-		"Assertion failed: %s, file %s, line %d\n",
+		_("Assertion failed: %s, file %s, line %d\n"),
 			test, file, line);
 
 	abort();

@@ -117,7 +117,7 @@ static int addSubsys( const char *subsys, int level )
 		subsys_num = lutil_mnem2subsys(subsys);
 		if(subsys_num < 0)
 		{
-			fprintf(stderr, "Unknown Subsystem name [ %s ] - Discarded\n", 
+			fprintf(stderr, _("Unknown Subsystem name [ %s ] - Discarded\n"), 
 				subsys);
 			fflush(stderr);
 			return -1;

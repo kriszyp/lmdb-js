@@ -191,16 +191,15 @@ static const char *
 hp_strerror( int err )
 {
 	switch (err) {
-	case HOST_NOT_FOUND:	return "Host not found (authoritative)";
-	case TRY_AGAIN:		return "Host not found (server fail?)";
-	case NO_RECOVERY:	return "Non-recoverable failure";
-	case NO_DATA:		return "No data of requested type";
+	case HOST_NOT_FOUND:	return _("Host not found (authoritative)");
+	case TRY_AGAIN:			return _("Host not found (server fail?)");
+	case NO_RECOVERY:		return _("Non-recoverable failure");
+	case NO_DATA:			return _("No data of requested type");
 #ifdef NETDB_INTERNAL
 	case NETDB_INTERNAL:	return STRERROR( errno );
 #endif
-	default:	break;	
 	}
-	return "Unknown resolver error";
+	return _("Unknown resolver error");
 }
 #endif
 
@@ -547,20 +546,20 @@ char *ldap_pvt_gai_strerror (int code) {
 		const char *msg;
 	} values[] = {
 #ifdef EAI_ADDRFAMILY
-		{ EAI_ADDRFAMILY, "Address family for hostname not supported" },
+		{ EAI_ADDRFAMILY, N_("Address family for hostname not supported") },
 #endif
-		{ EAI_AGAIN, "Temporary failure in name resolution" },
-		{ EAI_BADFLAGS, "Bad value for ai_flags" },
-		{ EAI_FAIL, "Non-recoverable failure in name resolution" },
-		{ EAI_FAMILY, "ai_family not supported" },
-		{ EAI_MEMORY, "Memory allocation failure" },
+		{ EAI_AGAIN, N_("Temporary failure in name resolution") },
+		{ EAI_BADFLAGS, N_("Bad value for ai_flags") },
+		{ EAI_FAIL, N_("Non-recoverable failure in name resolution") },
+		{ EAI_FAMILY, N_("ai_family not supported") },
+		{ EAI_MEMORY, N_("Memory allocation failure") },
 #ifdef EAI_NODATA
-		{ EAI_NODATA, "No address associated with hostname" },
+		{ EAI_NODATA, N_("No address associated with hostname") },
 #endif    
-		{ EAI_NONAME, "Name or service not known" },
-		{ EAI_SERVICE, "Servname not supported for ai_socktype" },
-		{ EAI_SOCKTYPE, "ai_socktype not supported" },
-		{ EAI_SYSTEM, "System error" },
+		{ EAI_NONAME, N_("Name or service not known") },
+		{ EAI_SERVICE, N_("Servname not supported for ai_socktype") },
+		{ EAI_SOCKTYPE, N_("ai_socktype not supported") },
+		{ EAI_SYSTEM, N_("System error") },
 		{ 0, NULL }
 	};
 
@@ -568,10 +567,10 @@ char *ldap_pvt_gai_strerror (int code) {
 
 	for ( i = 0; values[i].msg != NULL; i++ ) {
 		if ( values[i].code == code ) {
-			return (char *) values[i].msg;
+			return (char *) _(values[i].msg);
 		}
 	}
 	
-	return "Unknown error";
+	return _("Unknown error");
 }
 #endif
