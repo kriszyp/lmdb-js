@@ -823,6 +823,7 @@ do_syncrepl(
 	int first = 0;
 	int dostop = 0;
 	ber_socket_t s;
+	int i, defer = 1;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrepl\n", 0, 0, 0 );
@@ -885,7 +886,7 @@ do_syncrepl(
 						arg );
 				} else {
 					connection_client_enable( s );
-				}
+				} 
 			} else if ( !first ) {
 				dostop = 1;
 			}
@@ -901,25 +902,45 @@ do_syncrepl(
 	 * 4) for Persist and Success, reschedule to defer
 	 */
 	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+
 	if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
 		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
 	}
 
-	if ( dostop ) {
-		connection_client_stop( s );
-	}
-
-	if ( rc && rc != LDAP_SERVER_DOWN ) {
-		ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
-	} else {
-		if ( rc == LDAP_SERVER_DOWN ||
-			si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
-			rc = 0;
-		} else {
-			rc = 1;
+	if ( rc == LDAP_SUCCESS ) {
+		if ( dostop ) {
+			connection_client_stop( s );
 		}
-		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, rc );
+		if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
+			defer = 0;
+		}
+		rtask->interval.tv_sec = si->si_interval;
+		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, defer );
+		if ( si->si_retrynum ) {
+			for ( i = 0; si->si_retrynum_init[i] != -2; i++ ) {
+				si->si_retrynum[i] = si->si_retrynum_init[i];
+			}
+			si->si_retrynum[i] = -2;
+		}
+	} else {
+		for ( i = 0; si->si_retrynum && si->si_retrynum[i] <= 0; i++ ) {
+			if ( si->si_retrynum[i] == -1  || si->si_retrynum[i] == -2 )
+				break;
+		}
+
+		if ( !si->si_retrynum || si->si_retrynum[i] == -2 ) {
+			if ( dostop ) {
+				connection_client_stop( s );
+			}
+			ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
+		} else if ( si->si_retrynum[i] >= -1 ) {
+			if ( si->si_retrynum[i] > 0 )
+				si->si_retrynum[i]--;
+			rtask->interval.tv_sec = si->si_retryinterval[i];
+			ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
+		}
 	}
+	
 	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 
 	return NULL;

@@ -1407,6 +1407,9 @@ typedef struct syncinfo_s {
         char				**si_attrs;
         int					si_type;
         time_t				si_interval;
+		time_t				*si_retryinterval;
+		int					*si_retrynum_init;
+		int					*si_retrynum;
 		struct sync_cookie	si_syncCookie;
         int					si_manageDSAit;
         int					si_slimit;

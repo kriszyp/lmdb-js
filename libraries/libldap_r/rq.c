@@ -66,12 +66,11 @@ ldap_pvt_runqueue_remove(
 			break;
 	}
 
-	assert ( e == entry );
-
-	LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
+	if ( e == entry ) {
+		LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
+	}
 
 	LDAP_FREE( entry );
-
 }
 
 struct re_s*
@@ -148,7 +147,7 @@ ldap_pvt_runqueue_resched(
 
 	LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
 
-	if ( entry->interval.tv_sec && !defer ) {
+	if ( !defer ) {
 		entry->next_sched.tv_sec = time( NULL ) + entry->interval.tv_sec;
 	} else {
 		entry->next_sched.tv_sec = 0;

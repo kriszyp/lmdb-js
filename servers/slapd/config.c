@@ -3028,6 +3028,9 @@ add_syncrepl(
 	si->si_attrs[0] = NULL;
 	si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
+	si->si_retryinterval = 0;
+	si->si_retrynum_init = 0;
+	si->si_retrynum = 0;
 	si->si_syncCookie.ctxcsn = NULL;
 	si->si_syncCookie.octet_str = NULL;
 	si->si_syncCookie.sid = -1;
@@ -3143,6 +3146,8 @@ add_syncrepl(
 #define MANAGEDSAITSTR	"manageDSAit"
 #define SLIMITSTR		"sizelimit"
 #define TLIMITSTR		"timelimit"
+
+#define RETRYSTR		"retry"
 
 #define GOT_ID			0x0001
 #define GOT_PROVIDER	0x0002
@@ -3383,6 +3388,53 @@ parse_syncrepl_line(
 					(long) si->si_interval);
 				return 1;
 			}
+		} else if ( !strncasecmp( cargv[ i ],
+			RETRYSTR, sizeof( RETRYSTR ) - 1 ) )
+		{
+			char *str;
+			char **retry_list;
+			int j, k, n;
+
+			val = cargv[ i ] + sizeof( RETRYSTR );
+			retry_list = (char **) ch_calloc( 1, sizeof( char * ));
+			retry_list[0] = NULL;
+
+			str2clist( &retry_list, val, " ,\t" );
+
+			for ( k = 0; retry_list && retry_list[k]; k++ ) ;
+			n = k / 2;
+			if ( k % 2 ) {
+				fprintf( stderr,
+						"Error: incomplete syncrepl retry list\n" );
+				for ( k = 0; retry_list && retry_list[k]; k++ ) {
+					ch_free( retry_list[k] );
+				}
+				ch_free( retry_list );
+				exit( EXIT_FAILURE );
+			}
+			si->si_retryinterval = (time_t *) ch_calloc( n + 1, sizeof( time_t ));
+			si->si_retrynum = (int *) ch_calloc( n + 1, sizeof( int ));
+			si->si_retrynum_init = (int *) ch_calloc( n + 1, sizeof( int ));
+			for ( j = 0; j < n; j++ ) {
+				si->si_retryinterval[j] = atoi( retry_list[j*2] );
+				if ( *retry_list[j*2+1] == '+' ) {
+					si->si_retrynum_init[j] = -1;
+					si->si_retrynum[j] = -1;
+					j++;
+					break;
+				} else {
+					si->si_retrynum_init[j] = atoi( retry_list[j*2+1] );
+					si->si_retrynum[j] = atoi( retry_list[j*2+1] );
+				}
+			}
+			si->si_retrynum_init[j] = -2;
+			si->si_retrynum[j] = -2;
+			si->si_retryinterval[j] = 0;
+			
+			for ( k = 0; retry_list && retry_list[k]; k++ ) {
+				ch_free( retry_list[k] );
+			}
+			ch_free( retry_list );
 		} else if ( !strncasecmp( cargv[ i ],
 			MANAGEDSAITSTR, sizeof( MANAGEDSAITSTR ) - 1 ) )
 		{
