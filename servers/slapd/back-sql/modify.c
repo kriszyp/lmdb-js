@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <string.h>
+#include "ac/string.h"
 #include "slap.h"
 #include "ldap_pvt.h"
 #include "back-sql.h"

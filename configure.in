@@ -2090,6 +2090,10 @@ dnl ----------------------------------------------------------------
 dnl SQL
 ol_link_sql=no
 if test $ol_enable_sql != no ; then
+	AC_CHECK_HEADERS(sql.h sqlext.h,[],[
+		AC_MSG_ERROR([could not locate SQL headers])
+	])
+
 	AC_CHECK_LIB(iodbc,SQLDriverConnect,[have_iodbc=yes],[have_iodbc=no])
 	if test $have_iodbc = yes ; then
 		ol_link_sql="-liodbc"

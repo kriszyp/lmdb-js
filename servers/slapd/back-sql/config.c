@@ -12,7 +12,7 @@
 #ifdef SLAPD_SQL
 
 #include <stdio.h>
-#include <string.h>
+#include "ac/string.h"
 #include <sys/types.h>
 #include "slap.h"
 #include "back-sql.h"
