@@ -314,6 +314,11 @@ done2:;
 			if ( rs->sr_err == LDAP_REFERRAL && rs->sr_ref == NULL ) {
 				rs->sr_ref = referral_rewrite( default_referral,
 					NULL, NULL, LDAP_SCOPE_DEFAULT );
+				if ( !rs->sr_ref ) rs->sr_ref = default_referral;
+				if ( !rs->sr_ref ) {
+					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					rs->sr_text = "referral missing";
+				}
 			}
 
 			send_ldap_extended( op, rs );

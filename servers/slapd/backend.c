@@ -353,26 +353,6 @@ int backend_startup(Backend *be)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
-#ifndef SLAPD_MULTIMASTER
-		if ( backendDB[i].be_update_ndn.bv_val && (
-			!backendDB[i].be_update_refs &&
-			LDAP_STAILQ_EMPTY( &backendDB[i].be_syncinfo ) &&
-			!default_referral ) )
-		{
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACKEND, CRIT, 
-				"backend_startup: slave \"%s\" updateref missing\n",
-				backendDB[i].be_suffix[0].bv_val, 0, 0 );
-				
-#else
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: slave \"%s\" updateref missing\n",
-				backendDB[i].be_suffix[0].bv_val, 0, 0 );
-#endif
-			return -1;
-		}
-#endif
-
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
 
