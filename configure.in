@@ -530,9 +530,9 @@ dnl
 ol_link_tls=no
 if test $ol_with_tls != no ; then
 	
-	AC_CHECK_HEADERS(ssl.h ssl/ssl.h)
+	AC_CHECK_HEADERS(ssl.h)
 	
-	if test $ac_cv_header_ssl_h = yes -o $ac_cv_header_ssl_ssl_h = yes ; then
+	if test $ac_cv_header_ssl_h = yes ; then
 		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
 			[have_ssleay=yes
 			need_rsaref=no],
