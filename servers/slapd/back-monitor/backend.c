@@ -58,10 +58,10 @@ monitor_subsys_backend_init(
 				&monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn, 
 				&e_backend ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_backend_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_backend_init: "
@@ -91,11 +91,10 @@ monitor_subsys_backend_init(
 		e = str2entry( buf );
 		if ( e == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor_subsys_backend_init: "
 				"unable to create entry 'cn=Backend %d,%s'\n",
-				i, 
-				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val ));
+				i, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_backend_init: "
@@ -124,11 +123,10 @@ monitor_subsys_backend_init(
 
 		if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor_subsys_backend_init: "
 				"unable to add entry 'cn=Backend %d,%s'\n",
-				i,
-			       	monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val ));
+				i, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_backend_init: "

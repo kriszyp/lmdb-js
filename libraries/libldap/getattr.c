@@ -31,7 +31,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 	BerElement *ber;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getattr", LDAP_LEVEL_ENTRY, "ldap_first_attribute\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_first_attribute\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 #endif
@@ -97,7 +97,7 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	char *attr;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getattr", LDAP_LEVEL_ENTRY, "ldap_next_attribute\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_next_attribute\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
 #endif

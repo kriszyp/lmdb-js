@@ -53,7 +53,7 @@
 #include <ac/unistd.h>
 
 #include "ldap-int.h"
-
+#include "ldap_log.h"
 
 static int ldap_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
 static int ldap_mark_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
@@ -98,7 +98,7 @@ ldap_result(
 	assert( result != NULL );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_ARGS, "ldap_result msgid %d\n", msgid ));
+	LDAP_LOG ( OPERATION, ARGS, "ldap_result msgid %d\n", msgid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_result msgid %d\n", msgid, 0, 0 );
 #endif
@@ -129,8 +129,8 @@ chkResponseList(
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_ARGS, 
-		"ldap_chkResponseList for msgid=%d, all=%d\n", msgid, all ));
+	LDAP_LOG ( OPERATION, ARGS, "ldap_chkResponseList for msgid=%d, all=%d\n", 
+		msgid, all, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_chkResponseList for msgid=%d, all=%d\n",
@@ -142,8 +142,8 @@ chkResponseList(
 
 		if ( ldap_abandoned( ld, lm->lm_msgid ) ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
-				"ldap_chkResponseList msg abandoned, msgid %d\n", msgid ));
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"ldap_chkResponseList msg abandoned, msgid %d\n", msgid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldap_chkResponseList msg abandoned, msgid %d\n",
@@ -207,17 +207,17 @@ chkResponseList(
 #ifdef LDAP_DEBUG
 	if( lm == NULL) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_RESULTS, 
-			"ldap_chkResponseList returns NULL\n" ));
+		LDAP_LOG ( OPERATION, RESULTS, "ldap_chkResponseList returns NULL\n",
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_chkResponseList returns NULL\n", 0, 0, 0);
 #endif
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_RESULTS, 
-			"ldap_chkResponseList returns msgid %d, type 0x02lu\n",
-			lm->lm_msgid, (unsigned long) lm->lm_msgtype ));
+		LDAP_LOG ( OPERATION, RESULTS, 
+			"ldap_chkResponseList returns msgid %d, type 0x%02lu\n",
+			lm->lm_msgid, (unsigned long) lm->lm_msgtype, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_chkResponseList returns msgid %d, type 0x%02lu\n",
@@ -248,17 +248,17 @@ wait4msg(
 #ifdef LDAP_DEBUG
 	if ( timeout == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_ARGS,
-			"wait4msg (infinite timeout), msgid %d\n", msgid ));
+		LDAP_LOG ( OPERATION, ARGS, 
+			"wait4msg (infinite timeout), msgid %d\n", msgid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "wait4msg (infinite timeout), msgid %d\n",
 		    msgid, 0, 0 );
 #endif
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_ARGS,
+		LDAP_LOG ( OPERATION, ARGS, 
 			"wait4msg (timeout %ld sec, %ld usec), msgid %d\n", 
-			(long) timeout->tv_sec, (long) timeout->tv_usec, msgid ));
+			(long) timeout->tv_sec, (long) timeout->tv_usec, msgid );
 #else
 		Debug( LDAP_DEBUG_TRACE, "wait4msg (timeout %ld sec, %ld usec), msgid %d\n",
 		       (long) timeout->tv_sec, (long) timeout->tv_usec, msgid );
@@ -278,8 +278,8 @@ wait4msg(
 	while ( rc == -2 ) {
 #ifdef LDAP_DEBUG
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_ARGS,
-			"wait4msg continue, msgid %d, all %d\n", msgid, all ));
+		LDAP_LOG ( OPERATION, ARGS, 
+			"wait4msg continue, msgid %d, all %d\n", msgid, all, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "wait4msg continue, msgid %d, all %d\n",
 		    msgid, all, 0 );
@@ -310,9 +310,9 @@ wait4msg(
 #ifdef LDAP_DEBUG
 			    if ( rc == -1 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG (( "result", LDAP_LEVEL_ARGS,
+					LDAP_LOG ( OPERATION, ARGS, 
 						"wait4msg: ldap_int_select returned -1: errno %d\n", 
-						errno ));
+						errno, 0, 0 );
 #else
 			        Debug( LDAP_DEBUG_TRACE,
 				        "ldap_int_select returned -1: errno %d\n",
@@ -358,8 +358,8 @@ wait4msg(
 			}
 
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1,
-				"wait4msg: %ld secs to go\n", (long) tv.tv_sec ));
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"wait4msg: %ld secs to go\n", (long) tv.tv_sec, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "wait4msg:  %ld secs to go\n",
 			       (long) tv.tv_sec, 0, 0 );
@@ -401,8 +401,7 @@ try_read1msg(
 	assert( lc != NULL );
 	
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_ARGS, "read1msg: msgid %d, all %d\n",
-		msgid, all ));
+	LDAP_LOG ( OPERATION, ARGS, "read1msg: msgid %d, all %d\n", msgid, all, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "read1msg: msgid %d, all %d\n", msgid, all, 0 );
 #endif
@@ -431,8 +430,8 @@ try_read1msg(
 		if ( tag == LBER_DEFAULT) {
 #ifdef LDAP_DEBUG		   
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
-				"read1msg: ber_get_next failed\n" ));
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"read1msg: ber_get_next failed\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_CONNS,
 			      "ber_get_next failed.\n", 0, 0, 0 );
@@ -468,8 +467,7 @@ try_read1msg(
 	if ( ldap_abandoned( ld, id ) ) {
 		ber_free( ber, 1 );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
-			"read1msg: abandoned\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, "read1msg: abandoned\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "abandoned\n", 0, 0, 0);
 #endif
@@ -478,9 +476,9 @@ try_read1msg(
 
 	if (( lr = ldap_find_request_by_msgid( ld, id )) == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+		LDAP_LOG ( OPERATION, DETAIL1, 
 			"read1msg: no request for response with msgid %ld (tossing)\n",
-			(long) id ));
+			(long) id, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
@@ -503,10 +501,10 @@ try_read1msg(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+	LDAP_LOG ( OPERATION, DETAIL1, 
 		"read1msg: ldap_read: message type %s msgid %ld, original id %ld\n",
 	    ldap_int_msgtype2str( tag ),
-		(long) lr->lr_msgid, (long) lr->lr_origid ));
+		(long) lr->lr_msgid, (long) lr->lr_origid );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_read: message type %s msgid %ld, original id %ld\n",
@@ -548,10 +546,10 @@ try_read1msg(
 						if( lr->lr_status != LDAP_REQST_COMPLETED) {
 							lr->lr_status = LDAP_REQST_CHASINGREFS;
 #ifdef NEW_LOGGING
-							LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+							LDAP_LOG ( OPERATION, DETAIL1, 
 								"read1msg: search ref chased,"
 								"mark request chasing refs, id =	%d\n",
-								lr->lr_msgid ));
+								lr->lr_msgid, 0, 0 );
 #else
 							Debug( LDAP_DEBUG_TRACE,
 							    "read1msg:  search ref chased, mark request chasing refs, id = %d\n",
@@ -581,10 +579,10 @@ try_read1msg(
 							rc = LDAP_DECODING_ERROR;
 							lr->lr_status = LDAP_REQST_COMPLETED;
 #ifdef NEW_LOGGING
-							LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+							LDAP_LOG ( OPERATION, DETAIL1, 
 								"read1msg: referral decode error,"
 								"mark request completed, id =	%d\n",
-								lr->lr_msgid ));
+								lr->lr_msgid, 0, 0 );
 #else
 							Debug( LDAP_DEBUG_TRACE,
 							    "read1msg: referral decode error, mark request completed, id = %d\n",
@@ -598,10 +596,10 @@ try_read1msg(
 							    0, &lr->lr_res_error, &hadref );
 							lr->lr_status = LDAP_REQST_COMPLETED;
 #ifdef NEW_LOGGING
-							LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+							LDAP_LOG ( OPERATION, DETAIL1, 
 								"read1msg: referral chased,"
 								"mark request completed, id =	%d\n",
-								lr->lr_msgid ));
+								lr->lr_msgid, 0, 0 );
 #else
 							Debug( LDAP_DEBUG_TRACE,
 							    "read1msg:  referral chased, mark request completed, id = %d\n",
@@ -654,10 +652,10 @@ try_read1msg(
 						&lr->lr_res_error, -1, &hadref );
 					lr->lr_status = LDAP_REQST_COMPLETED;
 #ifdef NEW_LOGGING
-					LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+					LDAP_LOG ( OPERATION, DETAIL1, 
 						"read1msg: V2 referral chased,"
 						"mark request completed, id =	%d\n",
-						lr->lr_msgid ));
+						lr->lr_msgid, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_TRACE,
 					    "read1msg:  V2 referral chased, mark request completed, id = %d\n", lr->lr_msgid, 0, 0);
@@ -675,10 +673,10 @@ try_read1msg(
 					lr->lr_res_errno = LDAP_PARTIAL_RESULTS;
 				}
 #ifdef NEW_LOGGING
-LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+LDAP_LOG ( OPERATION, DETAIL1, 
 	"read1msg: new result: res_errno: %d, res_error: <%s>, res_matched: <%s>\n",
     lr->lr_res_errno, lr->lr_res_error ? lr->lr_res_error : "",
-    lr->lr_res_matched ? lr->lr_res_matched : "" ));
+    lr->lr_res_matched ? lr->lr_res_matched : "" );
 #else
 Debug( LDAP_DEBUG_TRACE,
     "new result:  res_errno: %d, res_error: <%s>, res_matched: <%s>\n",
@@ -689,8 +687,8 @@ Debug( LDAP_DEBUG_TRACE,
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
-			"read1msg: %d new referrals\n", refer_cnt ));
+		LDAP_LOG ( OPERATION, DETAIL1, "read1msg: %d new referrals\n", 
+			refer_cnt, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "read1msg:  %d new referrals\n", refer_cnt, 0, 0 );
@@ -715,8 +713,9 @@ Debug( LDAP_DEBUG_TRACE,
 
 			lr->lr_status = LDAP_REQST_COMPLETED; /* declare this request done */
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
-				"read1msg: mark request completed, id = %d\n", lr->lr_msgid ));
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"read1msg: mark request completed, id = %d\n", 
+				lr->lr_msgid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 			    "read1msg:  mark request completed, id = %d\n", lr->lr_msgid, 0, 0);
@@ -745,12 +744,12 @@ Debug( LDAP_DEBUG_TRACE,
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
-				"read1msg: request %ld done\n", (long) id ));
-			LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+			LDAP_LOG ( OPERATION, DETAIL1, 
+				"read1msg: request %ld done\n", (long) id, 0, 0 );
+			LDAP_LOG ( OPERATION, DETAIL1, 
 				"read1msg: res_errno: %d,res_error: <%s>, res_matched: <%s>\n",
 				lr->lr_res_errno, lr->lr_res_error ? lr->lr_res_error : "",
-				lr->lr_res_matched ? lr->lr_res_matched : "" ));
+				lr->lr_res_matched ? lr->lr_res_matched : "" );
 #else
 				Debug( LDAP_DEBUG_ANY, "request %ld done\n",
 				    (long) id, 0, 0 );
@@ -838,9 +837,9 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
+	LDAP_LOG ( OPERATION, DETAIL1, 
 		"read1msg: adding response id %ld type %ld\n",
-		(long) new->lm_msgid, (long) new->lm_msgtype ));
+		(long) new->lm_msgid, (long) new->lm_msgtype, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "adding response id %ld type %ld:\n",
 	    (long) new->lm_msgid, (long) new->lm_msgtype, 0 );
@@ -964,12 +963,12 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_DETAIL1, 
-		"read1msg: merged parent (id %d) error info: result errno %d, "
-		"error <%s>, matched <%s>\n", parentr->lr_msgid,
+	LDAP_LOG( OPERATION, DETAIL1, "merged parent (id %d) error info:  ",
+	    parentr->lr_msgid, 0, 0 );
+	LDAP_LOG( OPERATION, DETAIL1, "result errno %d, error <%s>, matched <%s>\n",
 	    parentr->lr_res_errno, parentr->lr_res_error ?
 	    parentr->lr_res_error : "", parentr->lr_res_matched ?
-	    parentr->lr_res_matched : "" ));
+	    parentr->lr_res_matched : "" );
 #else
 	Debug( LDAP_DEBUG_TRACE, "merged parent (id %d) error info:  ",
 	    parentr->lr_msgid, 0, 0 );
@@ -1024,7 +1023,7 @@ ldap_msgfree( LDAPMessage *lm )
 	int		type = 0;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_ENTRY, "ldap_msgfree\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_msgfree\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgfree\n", 0, 0, 0 );
 #endif
@@ -1052,7 +1051,7 @@ ldap_msgdelete( LDAP *ld, int msgid )
 	assert( ld != NULL );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "result", LDAP_LEVEL_ENTRY, "ldap_msgdelete\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_msgdelete\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgdelete\n", 0, 0, 0 );
 #endif

@@ -27,8 +27,8 @@ next_id_read( Backend *be, ID *idp )
 	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
-			   "next_id_read: could not open/create nextid%s\n", LDBM_SUFFIX ));
+		LDAP_LOG( BACK_LDBM, CRIT,
+		   "next_id_read: could not open/create nextid%s\n", LDBM_SUFFIX, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" LDBM_SUFFIX "\n",
 			0, 0, 0 );
@@ -66,8 +66,8 @@ next_id_write( Backend *be, ID id )
 	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
-			   "next_id_write: Could not open/create nextid%s\n", LDBM_SUFFIX ));
+		LDAP_LOG( BACK_LDBM, CRIT,
+		  "next_id_write: Could not open/create nextid%s\n", LDBM_SUFFIX, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" LDBM_SUFFIX "\n",
 		    0, 0, 0 );

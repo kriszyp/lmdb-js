@@ -73,8 +73,7 @@ filter_matched_values(
 	int		rc = LDAP_SUCCESS;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		"filter_matched_values: begin\n" ));
+	LDAP_LOG( FILTER, ENTRY, "filter_matched_values: begin\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_FILTER, "=> filter_matched_values\n", 0, 0, 0 );
 #endif
@@ -83,13 +82,12 @@ filter_matched_values(
 		switch ( f->f_choice ) {
 		case SLAPD_FILTER_COMPUTED:
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( FILTER, DETAIL1, 
 				"test_vrFilter: COMPUTED %s (%d)\n",
 				f->f_result == LDAP_COMPARE_FALSE ? "false" :
 				f->f_result == LDAP_COMPARE_TRUE	 ? "true"  :
 				f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" :
-				"error",
-				f->f_result ));
+				"error", f->f_result, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "	COMPUTED %s (%d)\n",
 				f->f_result == LDAP_COMPARE_FALSE ? "false" :
@@ -103,8 +101,7 @@ filter_matched_values(
 
 		case LDAP_FILTER_EQUALITY:
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				"test_vrFilter: EQUALITY\n" ));
+			LDAP_LOG( FILTER, DETAIL1, "test_vrFilter: EQUALITY\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "	EQUALITY\n", 0, 0, 0 );
 #endif
@@ -117,8 +114,7 @@ filter_matched_values(
 
 		case LDAP_FILTER_SUBSTRINGS:
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				"test_vrFilter  SUBSTRINGS\n" ));
+			LDAP_LOG( FILTER, DETAIL1, "test_vrFilter  SUBSTRINGS\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "	SUBSTRINGS\n", 0, 0, 0 );
 #endif
@@ -132,8 +128,7 @@ filter_matched_values(
 
 		case LDAP_FILTER_PRESENT:
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				"test_vrFilter:	PRESENT\n" ));
+			LDAP_LOG( FILTER, DETAIL1, "test_vrFilter:	PRESENT\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "	PRESENT\n", 0, 0, 0 );
 #endif
@@ -162,8 +157,7 @@ filter_matched_values(
 
 		case LDAP_FILTER_EXT:
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
-				"test_vrFilter:	EXT\n" ));
+			LDAP_LOG( FILTER, DETAIL1, "test_vrFilter:	EXT\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_FILTER, "	EXT\n", 0, 0, 0 );
 #endif
@@ -176,9 +170,8 @@ filter_matched_values(
 
 		default:
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "filter", LDAP_LEVEL_INFO,
-				"test_vrFilter:  unknown filter type %lu\n", 
-				f->f_choice ));
+			LDAP_LOG( FILTER, INFO, 
+				"test_vrFilter:  unknown filter type %lu\n", f->f_choice, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "	unknown filter type %lu\n",
 				f->f_choice, 0, 0 );
@@ -188,8 +181,7 @@ filter_matched_values(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		"filter_matched_values:  return=%d\n", rc ));
+	LDAP_LOG( FILTER, ENTRY, "filter_matched_values:  return=%d\n", rc, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_FILTER, "<= filter_matched_values %d\n", rc, 0, 0 );
 #endif

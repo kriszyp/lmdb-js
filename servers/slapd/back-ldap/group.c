@@ -100,9 +100,9 @@ ldap_back_group(
 			mop_ndn = *op_ndn;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] bindDn (op ndn in group):"
-				" \"%s\" -> \"%s\"\n", op_ndn->bv_val, mop_ndn.bv_val ));
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] bindDn (op ndn in group): \"%s\" -> \"%s\"\n", 
+			op_ndn->bv_val, mop_ndn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> bindDn (op ndn in group): \"%s\" -> \"%s\"\n%s",
@@ -126,9 +126,9 @@ ldap_back_group(
 			mgr_ndn = *gr_ndn;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] searchBase (gr ndn in group):"
-				" \"%s\" -> \"%s\"\n%s", gr_ndn->bv_val, mgr_ndn.bv_val ));
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] searchBase (gr ndn in group): \"%s\" -> \"%s\"\n%s", 
+			gr_ndn->bv_val, mgr_ndn.bv_val, "" );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"rw> searchBase (gr ndn in group):"

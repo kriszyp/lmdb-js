@@ -51,9 +51,9 @@ ldbm_back_referrals(
 			matched_dn = ch_strdup( matched->e_dn );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( BACK_LDBM, DETAIL1,
 				"ldbm_back_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-				op->o_tag, dn->bv_val, matched_dn ));
+				op->o_tag, dn->bv_val, matched_dn );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
@@ -98,9 +98,9 @@ ldbm_back_referrals(
 			refs, &e->e_name, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( BACK_LDBM, DETAIL1,
 			"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			op->o_tag, dn->bv_val, e->e_dn ));
+			op->o_tag, dn->bv_val, e->e_dn );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",

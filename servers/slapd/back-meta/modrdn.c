@@ -143,10 +143,9 @@ meta_back_modrdn(
 				mnewSuperior = ( char * )newSuperior;
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] newSuperiorDn:"
-					" \"%s\" -> \"%s\"\n",
-					newSuperior, mnewSuperior ));
+			LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] newSuperiorDn: \"%s\" -> \"%s\"\n",
+				newSuperior, mnewSuperior, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> newSuperiorDn:"
 					" \"%s\" -> \"%s\"\n%s",
@@ -176,9 +175,8 @@ meta_back_modrdn(
 			mdn = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] modrDn: \"%s\" -> \"%s\"\n",
-				dn->bv_val, mdn ));
+		LDAP_LOG( BACK_META, DETAIL1,
+			"[rw] modrDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modrDn: \"%s\" -> \"%s\"\n%s",
 				dn->bv_val, mdn, "" );

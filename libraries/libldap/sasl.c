@@ -62,7 +62,7 @@ ldap_sasl_bind(
 	int rc;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "sasl", LDAP_LEVEL_ENTRY, "ldap_sasl_bind\n" ));
+	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_sasl_bind\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_sasl_bind\n", 0, 0, 0 );
 #endif
@@ -169,7 +169,7 @@ ldap_sasl_bind_s(
 	struct berval	*scredp = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "sasl", LDAP_LEVEL_ENTRY, "ldap_sasl_bind_s\n" ));
+	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_sasl_bind_s\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_sasl_bind_s\n", 0, 0, 0 );
 #endif
@@ -255,7 +255,7 @@ ldap_parse_sasl_bind_result(
 	BerElement	*ber;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "sasl", LDAP_LEVEL_ENTRY, "ldap_parse_sasl_bind_result\n" ));
+	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_parse_sasl_bind_result\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_parse_sasl_bind_result\n", 0, 0, 0 );
 #endif
@@ -368,7 +368,7 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 	int rc;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "sasl", LDAP_LEVEL_ENTRY, "ldap_pvt_sasl_getmech\n" ));
+	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_pvt_sasl_getmech\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_sasl_getmech\n", 0, 0, 0 );
 #endif
@@ -456,8 +456,9 @@ ldap_sasl_interactive_bind_s(
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "sasl", LDAP_LEVEL_DETAIL1, 
-			"ldap_interactive_sasl_bind_s: server supports: %s\n", smechs ));
+		LDAP_LOG ( TRANSPORT, DETAIL1, 
+			"ldap_interactive_sasl_bind_s: server supports: %s\n", 
+			smechs, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_interactive_sasl_bind_s: server supports: %s\n",
@@ -468,8 +469,8 @@ ldap_sasl_interactive_bind_s(
 
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "sasl", LDAP_LEVEL_DETAIL1, 
-			"ldap_interactive_sasl_bind_s: user selected: %s\n", mechs ));
+		LDAP_LOG ( TRANSPORT, DETAIL1, 
+			"ldap_interactive_sasl_bind_s: user selected: %s\n", mechs, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_interactive_sasl_bind_s: user selected: %s\n",

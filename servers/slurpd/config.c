@@ -67,8 +67,9 @@ slurpd_read_config(
 	cargv_size = ARGS_STEP + 1;
 
 #ifdef NEW_LOGGING
-    LDAP_LOG (( "config", LDAP_LEVEL_ARGS, 
-	"slurpd_read_config: Config: opening config file \"%s\"\n", fname ));
+    LDAP_LOG ( CONFIG, ARGS, 
+		"slurpd_read_config: Config: opening config file \"%s\"\n", 
+		fname, 0, 0 );
 #else
     Debug( LDAP_DEBUG_CONFIG, "Config: opening config file \"%s\"\n",
 	    fname, 0, 0 );
@@ -87,8 +88,8 @@ slurpd_read_config(
 	}
 
 #ifdef NEW_LOGGING
-    LDAP_LOG (( "config", LDAP_LEVEL_DETAIL1, 
-		"slurpd_read_config: Config: (%s)\n", line ));
+    LDAP_LOG ( CONFIG, DETAIL1, 
+		"slurpd_read_config: Config: (%s)\n", line, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_CONFIG, "Config: (%s)\n", line, 0, 0 );
 #endif
@@ -132,9 +133,9 @@ slurpd_read_config(
 
             if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-                LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+                LDAP_LOG( CONFIG, CRIT,
                         "%s: line %d: missing filename in \"include "
-                        "<filename>\" line.\n", fname, lineno ));
+                        "<filename>\" line.\n", fname, lineno , 0 );
 #else
                 Debug( LDAP_DEBUG_ANY,
         "%s: line %d: missing filename in \"include <filename>\" line\n",
@@ -156,9 +157,9 @@ slurpd_read_config(
     }
     fclose( fp );
 #ifdef NEW_LOGGING
-    LDAP_LOG (( "config", LDAP_LEVEL_RESULTS, 
+    LDAP_LOG ( CONFIG, RESULTS, 
 		"slurpd_read_config: Config: "
-		"** configuration file successfully read and parsed\n" ));
+		"** configuration file successfully read and parsed\n", 0, 0, 0 );
 #else
     Debug( LDAP_DEBUG_CONFIG,
 	    "Config: ** configuration file successfully read and parsed\n",
@@ -344,11 +345,11 @@ add_replica(
 	sglob->num_replicas--;
     } else {
 #ifdef NEW_LOGGING
-    LDAP_LOG (( "config", LDAP_LEVEL_RESULTS, 
+    LDAP_LOG ( CONFIG, RESULTS, 
 		"add_replica: Config: ** successfully added replica \"%s%d\"\n", 
 		sglob->replicas[ nr - 1 ]->ri_hostname == NULL ?
 		"(null)" : sglob->replicas[ nr - 1 ]->ri_hostname,
-		sglob->replicas[ nr - 1 ]->ri_port, 0 ));
+		sglob->replicas[ nr - 1 ]->ri_port, 0 );
 #else
 	Debug( LDAP_DEBUG_CONFIG,
 		"Config: ** successfully added replica \"%s:%d\"\n",

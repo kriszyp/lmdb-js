@@ -69,8 +69,8 @@ ldbm_back_compare(
 			conn, op, e );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"ldbm_back_compare: entry (%s) is a referral.\n", e->e_dn ));
+		LDAP_LOG( BACK_LDBM, INFO, 
+			"ldbm_back_compare: entry (%s) is a referral.\n", e->e_dn, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );

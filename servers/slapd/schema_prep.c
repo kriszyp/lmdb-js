@@ -36,9 +36,8 @@ objectClassMatch(
 
 #if 1
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "> objectClassMatch(%s, %s)\n",
-		   value->bv_val, a->bv_val ));
+	LDAP_LOG( CONFIG, ENTRY, 
+		"> objectClassMatch(%s, %s)\n", value->bv_val, a->bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "> objectClassMatch(%s,%s)\n",
 		value->bv_val, a->bv_val, 0 );
@@ -69,9 +68,9 @@ objectClassMatch(
 
 #if 1
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "< objectClassMatch(%s, %s) = %d\n",
-		   value->bv_val, a->bv_val, *matchp ));
+	LDAP_LOG( CONFIG, ENTRY, 
+		"< objectClassMatch(%s, %s) = %d\n",
+		value->bv_val, a->bv_val, *matchp );
 #else
 	Debug( LDAP_DEBUG_TRACE, "< objectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );
@@ -99,9 +98,8 @@ structuralObjectClassMatch(
 
 #if 1
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "> structuralObjectClassMatch(%s, %s)\n",
-		   value->bv_val, a->bv_val ));
+	LDAP_LOG( CONFIG, ENTRY, 
+		"> structuralObjectClassMatch(%s, %s)\n", value->bv_val, a->bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "> structuralObjectClassMatch(%s,%s)\n",
 		value->bv_val, a->bv_val, 0 );
@@ -128,9 +126,9 @@ structuralObjectClassMatch(
 
 #if 1
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		   "< structuralObjectClassMatch( %s, %s ) = %d\n",
-		   value->bv_val, a->bv_val, *matchp ));
+	LDAP_LOG( CONFIG, ENTRY, 
+		"< structuralObjectClassMatch( %s, %s ) = %d\n",
+		value->bv_val, a->bv_val, *matchp );
 #else
 	Debug( LDAP_DEBUG_TRACE, "< structuralObjectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );

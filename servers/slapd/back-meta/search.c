@@ -77,6 +77,7 @@
 #include "back-meta.h"
 #include "ldap_pvt.h"
 #undef ldap_debug	/* silence a warning in ldap-int.h */
+#include "ldap_log.h"
 #include "../../../libraries/libldap/ldap-int.h"
 
 static void
@@ -277,9 +278,8 @@ meta_back_search(
 			mbase = realbase;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] searchBase: \"%s\" -> \"%s\"\n",
-				base->bv_val, mbase ));
+		LDAP_LOG( BACK_META, DETAIL1,
+			"[rw] searchBase: \"%s\" -> \"%s\"\n", base->bv_val, mbase, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
 				base->bv_val, mbase, "" );
@@ -317,9 +317,9 @@ meta_back_search(
 				mfilter = *filterstr;
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] searchFilter: \"%s\" -> \"%s\"\n",
-					filterstr->bv_val, mfilter.bv_val ));
+			LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] searchFilter: \"%s\" -> \"%s\"\n",
+				filterstr->bv_val, mfilter.bv_val, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				"rw> searchFilter: \"%s\" -> \"%s\"\n%s",
@@ -464,10 +464,9 @@ meta_back_search(
 						LDAP_OPT_MATCHED_DN, &match );
 
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-						"meta_back_search [%d]"
-						" match=\"%s\" err=\"%s\"\n",
-						i, match, err ));
+				LDAP_LOG( BACK_META, ERR,
+					"meta_back_search [%d] match=\"%s\" err=\"%s\"\n",
+					i, match, err );
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY,
 	"=>meta_back_search [%d] match=\"%s\" err=\"%s\"\n",
@@ -521,9 +520,8 @@ meta_back_search(
 				mmatch = ( char * )match;
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] matchedDn: \"%s\" -> \"%s\"\n",
-					match, mmatch ));
+			LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] matchedDn: \"%s\" -> \"%s\"\n", match, mmatch, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
 				       " \"%s\" -> \"%s\"\n%s",
@@ -602,10 +600,9 @@ meta_send_entry(
 
 		} else {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] searchResult[%d]:"
-					" \"%s\" -> \"%s\"\n",
-					target, bdn.bv_val, ent.e_name.bv_val ));
+			LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] searchResult[%d]: \"%s\" -> \"%s\"\n",
+				target, bdn.bv_val, ent.e_name.bv_val );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult[%d]: \"%s\""
  					" -> \"%s\"\n", target, bdn.bv_val, ent.e_name.bv_val );
@@ -653,9 +650,8 @@ meta_send_entry(
 			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text ) 
 					!= LDAP_SUCCESS) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-						"slap_bv2undef_ad(%s): "
-						"%s\n", mapped.bv_val, text ));
+				LDAP_LOG( BACK_META, DETAIL1,
+					"slap_bv2undef_ad(%s): %s\n", mapped.bv_val, text, 0 );
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY,
 						"slap_bv2undef_ad(%s): "
@@ -723,13 +719,10 @@ meta_send_entry(
 						break;
 					}
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "backend",
-							LDAP_LEVEL_DETAIL1,
-							"[rw] searchResult on"
-							" attr=%s:"
-							" \"%s\" -> \"%s\"\n",
-					attr->a_desc->ad_type->sat_cname.bv_val,
-							bv->bv_val, newval ));
+					LDAP_LOG( BACK_META, DETAIL1,
+						"[rw] searchResult on attr=%s: \"%s\" -> \"%s\"\n",
+						attr->a_desc->ad_type->sat_cname.bv_val,
+						bv->bv_val, newval );
 #else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ARGS,
 						"rw> searchResult on attr=%s:"

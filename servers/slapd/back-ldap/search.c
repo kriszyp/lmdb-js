@@ -153,9 +153,9 @@ ldap_back_search(
 			mbase = *base;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] searchBase: \"%s\" -> \"%s\"\n%",
-				base->bv_val, mbase.bv_val ));
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] searchBase: \"%s\" -> \"%s\"\n", 
+			base->bv_val, mbase.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
 				base->bv_val, mbase.bv_val, "" );
@@ -191,9 +191,9 @@ ldap_back_search(
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] searchFilter: \"%s\" -> \"%s\"\n",
-				filterstr->bv_val, mfilter.bv_val ));
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] searchFilter: \"%s\" -> \"%s\"\n",
+			filterstr->bv_val, mfilter.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> searchFilter: \"%s\" -> \"%s\"\n%s",
@@ -300,10 +300,8 @@ fail:;
 				mmatch = ( char * )match;
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw]  matchedDn:"
-					" \"%s\" -> \"%s\"\n",
-					match, mmatch ));
+			LDAP_LOG( BACK_LDAP, DETAIL1, 
+				"[rw]  matchedDn:" " \"%s\" -> \"%s\"\n", match, mmatch, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
 					" \"%s\" -> \"%s\"\n%s",
@@ -389,9 +387,9 @@ ldap_send_entry(
 			ent.e_name = bdn;
 		} else {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] searchResult: \"%s\""
-					" -> \"%s\"\n", bdn.bv_val, ent.e_dn ));
+			LDAP_LOG( BACK_LDAP, DETAIL1, 
+				"[rw] searchResult: \"%s\"" " -> \"%s\"\n", 
+				bdn.bv_val, ent.e_dn, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult: \"%s\""
  					" -> \"%s\"\n%s", bdn.bv_val, ent.e_dn, "" );
@@ -428,9 +426,8 @@ ldap_send_entry(
 			if (slap_bv2undef_ad(&mapped, &attr->a_desc, &text) 
 					!= LDAP_SUCCESS) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-						"slap_bv2undef_ad(%s):	"
-						"%s\n", mapped.bv_val, text ));
+				LDAP_LOG( BACK_LDAP, DETAIL1, 
+					"slap_bv2undef_ad(%s):	%s\n", mapped.bv_val, text, 0 );
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY, 
 						"slap_bv2undef_ad(%s):	"
@@ -506,14 +503,10 @@ ldap_send_entry(
 					}
 					newval.bv_len = strlen( newval.bv_val );
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "backend",
-							LDAP_LEVEL_DETAIL1,
-							"[rw] searchResult on"
-							" attr=%s:"
-							" \"%s\" -> \"%s\"\n",
-							attr->a_desc->ad_type->sat_cname.bv_val,
-							bv->bv_val, 
-							newval.bv_val ));
+					LDAP_LOG( BACK_LDAP, DETAIL1, 
+						"[rw] searchResult on attr=%s: \"%s\" -> \"%s\"\n",
+						attr->a_desc->ad_type->sat_cname.bv_val,
+						bv->bv_val, newval.bv_val );
 #else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ARGS,
 		"rw> searchResult on attr=%s: \"%s\" -> \"%s\"\n",

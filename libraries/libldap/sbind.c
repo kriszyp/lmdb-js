@@ -41,7 +41,6 @@
 
 #include "ldap-int.h"
 
-
 /*
  * ldap_simple_bind - bind to the ldap server (and X.500).  The dn and
  * password of the entry to which to bind are supplied.  The message id
@@ -63,7 +62,7 @@ ldap_simple_bind(
 	struct berval cred;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "sbind", LDAP_LEVEL_ENTRY, "ldap_simple_bind\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_simple_bind\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_simple_bind\n", 0, 0, 0 );
 #endif
@@ -102,7 +101,7 @@ ldap_simple_bind_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 	struct berval cred;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "sbind", LDAP_LEVEL_ENTRY, "ldap_simple_bind_s\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_simple_bind_s\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_simple_bind_s\n", 0, 0, 0 );
 #endif

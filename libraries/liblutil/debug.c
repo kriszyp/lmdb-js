@@ -12,6 +12,7 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/ctype.h>
 
 #ifdef LDAP_SYSLOG
 #include <ac/syslog.h>
@@ -27,7 +28,7 @@ struct DEBUGLEVEL
 	int  level;
 };
 
-static struct DEBUGLEVEL **levelArray;
+int ldap_loglevels[LDAP_SUBSYS_NUM];
 static long   numLevels = 0;
 
 static FILE *log_file = NULL;
@@ -56,6 +57,39 @@ static char *lutil_levels[] = {"emergency", "alert", "critical",
 			   "results", "detail1", "detail2",
 			   NULL};
 
+static char *lutil_subsys[LDAP_SUBSYS_NUM] = {"global","operation", "transport",
+			   	"connection", "filter", "ber", 
+				"config", "acl", "cache", "index", 
+				"ldif", "tools", "slapd", "slurpd",
+				"backend", "back_bdb", "back_ldbm", 
+				"back_ldap", "back_meta", "back_mon" };
+
+int lutil_mnem2subsys( const char *subsys )
+{
+    int i;
+    for( i = 0; i < LDAP_SUBSYS_NUM; i++ )
+    {
+		if ( !strcasecmp( subsys, lutil_subsys[i] ) )
+		{
+	    	return i;
+		}
+    }
+    return 0;
+}
+
+void lutil_set_all_backends( level )
+{
+    int i;
+
+    for( i = 0; i < LDAP_SUBSYS_NUM; i++ )
+    {
+		if ( !strncasecmp( "back_", lutil_subsys[i], strlen("back_") ) )
+		{
+			ldap_loglevels[i] = level;
+		}
+    }
+}
+
 int lutil_mnem2level( const char *level )
 {
     int i;
@@ -71,36 +105,15 @@ int lutil_mnem2level( const char *level )
 
 static void addSubsys( const char *subsys, int level )
 {
-	int i, j;
+	int i, j, subsys_num;
 
-	if ( !strcasecmp( subsys, "global") ) global_level = level;
-
-	for( i = 0; i < numLevels; i++ )
+	if ( !strcasecmp( subsys, "backend" ) )
+		lutil_set_all_backends( level );
+	else
 	{
-		if ( levelArray[i] == NULL )
-		{
-			levelArray[i] = (struct DEBUGLEVEL*)ber_memalloc( sizeof( struct DEBUGLEVEL ) );
-			levelArray[i]->subsystem = (char*)ber_memalloc( strlen( subsys ) + 1 );
-			strcpy ( levelArray[i]->subsystem, subsys );
-			levelArray[i]->level = level;
-			return;
-		}
-		if( !strcasecmp( subsys, levelArray[i]->subsystem ) )
-		{
-			levelArray[i]->level = level;
-			return;
-		}
+		subsys_num = lutil_mnem2subsys(subsys);
+		ldap_loglevels[subsys_num] = level;
 	}
-	levelArray = (struct DEBUGLEVEL**)ber_memrealloc( levelArray, sizeof( struct DEBUGLEVEL* ) * (numLevels + 10) );
-	for( j = numLevels; j < (numLevels + 10); j++ )
-	{
-		levelArray[j] = NULL;
-	}
-	numLevels += 10;
-	levelArray[i] = (struct DEBUGLEVEL*)ber_memalloc( sizeof( struct DEBUGLEVEL ) );
-	levelArray[i]->subsystem = (char*)ber_memalloc( strlen( subsys ) + 1 );
-	strcpy( levelArray[i]->subsystem, subsys );
-	levelArray[i]->level = level;
 	return;
 }
 
@@ -127,27 +140,14 @@ void lutil_log_int(
 	struct tm *today;
 #endif
 	int i;
+	char data[4096];
+	char * t_subsys;
+	char * tmp;
 
-	if ( levelArray == NULL ) return; /* logging isn't set up */
-
-	/*
-	 * Look for the subsystem in the level array.  When we find it,
-	 * break out of the loop.
-	 */
-	for( i = 0; i < numLevels; i++ ) {
-		if ( levelArray[i] == NULL ) break; 
-		if ( ! strcasecmp( levelArray[i]->subsystem, subsys ) ) break;
-	}
-
-	/*
-	 * If we didn't find the subsystem, or the set level is less than
-	 * the requested output level, don't output it.
-	 */
-	if ( (level > global_level) &&
-		((i > numLevels ) || (levelArray[i] == NULL) || ( level > levelArray[i]->level )) )
-	{
-		return;
-	}
+	t_subsys = strdup(subsys);
+	
+	for(tmp = t_subsys, i = 0; i < strlen(t_subsys); i++, tmp++)
+		*tmp = TOUPPER( (unsigned char) *tmp );
 
 #ifdef LDAP_SYSLOG
 	/* we're configured to use syslog */
@@ -198,7 +198,10 @@ void lutil_log_int(
 	/*
 	 * format the output data.
 	 */
+
+	fprintf(file, "\n%s:: ", t_subsys ); 
 	vfprintf( file, fmt, vl );
+	fflush( file );
 }
 
 /*
@@ -206,13 +209,13 @@ void lutil_log_int(
  * level of the log output and the format and data.  Send this on to the
  * internal routine with the print file, if any.
  */
-void lutil_log( const char *subsys, int level, const char *fmt, ... )
+void lutil_log( const int subsys, int level, const char *fmt, ... )
 {
 	FILE* outfile = NULL;
 	va_list vl;
 	va_start( vl, fmt );
 	ber_get_option( NULL, LBER_OPT_LOG_PRINT_FILE, &outfile );
-	lutil_log_int( outfile, subsys, level, fmt, vl );
+	lutil_log_int( outfile, lutil_subsys[subsys], level, fmt, vl );
 	va_end( vl );
 }
 
@@ -232,32 +235,38 @@ void lutil_log_initialize(int argc, char **argv)
      */
     for( i = 0; i < argc; i++ )
     {
-	char *next = argv[i];
-	if ( i < argc-1 && next[0] == '-' && next[1] == 'd' )
-	{
-	    char subsys[64];
-	    int level;
-	    char *optarg = argv[i+1];
-	    char *index = strchr( optarg, '=' );
-	    if ( index != NULL )
-	    {
-		*index = 0;
-		strcpy ( subsys, optarg );
-		level = atoi( index+1 );
-		if ( level <= 0 ) level = lutil_mnem2level( index + 1 );
-		lutil_set_debug_level( subsys, level );
-		*index = '=';
-	    }
-	    else
-	    {
-		global_level = atoi( optarg );
-		/* 
-		 * if a negative number was used, make the global level the
-		 * maximum sane level.
-		 */
-		if ( global_level < 0 ) global_level = 65535;
-	    }
-	}
+		char *next = argv[i];
+	
+		if ( i < argc-1 && next[0] == '-' && next[1] == 'd' )
+		{
+	   		char subsys[64];
+	   		int level;
+	    	char *optarg = argv[i+1];
+	    	char *index = strchr( optarg, '=' );
+	    	if ( index != NULL )
+	    	{
+				*index = 0;
+				strcpy ( subsys, optarg );
+				level = atoi( index+1 );
+				if ( level <= 0 ) level = lutil_mnem2level( index + 1 );
+				lutil_set_debug_level( subsys, level );
+				*index = '=';
+	    	}
+	    	else
+	    	{
+				global_level = atoi( optarg );
+				ldap_loglevels[0] = global_level;
+				/* 
+		 		* if a negative number was used, make the global level the
+		 		* maximum sane level.
+		 		*/
+				if ( global_level < 0 ) 
+				{
+					global_level = 65535;
+					ldap_loglevels[0] = 65535;
+	    		}
+	    	}
+		}
     }
 }
 

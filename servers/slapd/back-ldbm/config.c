@@ -107,9 +107,9 @@ ldbm_back_db_config(
 		int i;
 		if ( argc < 2 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "config", LDAP_LEVEL_ERR, "ldbm_back_db_config: %s: "
+			LDAP_LOG ( CONFIG, ERR, "ldbm_back_db_config: %s: "
 				"line %d: missing frequency value in \"dbsync <frequency> "
-				"[<wait-times> [wait-interval]]\" line\n", fname, lineno ));
+				"[<wait-times> [wait-interval]]\" line\n", fname, lineno, 0 );
 #else	
 			Debug( LDAP_DEBUG_ANY,
     "%s: line %d: missing frquency value in \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
@@ -122,10 +122,11 @@ ldbm_back_db_config(
 
 		if( i < 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "config", LDAP_LEVEL_ERR, "ldbm_back_db_config: %s: "
+			LDAP_LOG ( CONFIG, ERR, 
+				"ldbm_back_db_config: %s: "
 				"line %d: frequency value (%d) invalid \"dbsync "
 				"<frequency> [<wait-times> [wait-interval]]\" line\n", 
-				fname, lineno, i ));
+				fname, lineno, i );
 #else	
 			Debug( LDAP_DEBUG_ANY,
     "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
@@ -140,10 +141,10 @@ ldbm_back_db_config(
 			i = atoi( argv[2] );
 			if ( i < 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "config",LDAP_LEVEL_ERR, "ldbm_back_db_config: %s: "
+				LDAP_LOG ( CONFIG,ERR, "ldbm_back_db_config: %s: "
 					"line %d: frequency value (%d) invalid \"dbsync "
 					"<frequency> [<wait-times> [wait-interval]]\" line\n", 
-					fname, lineno, i ));
+					fname, lineno, i );
 #else	
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
@@ -158,10 +159,10 @@ ldbm_back_db_config(
 			i = atoi( argv[3] );
 			if ( i <= 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "config",LDAP_LEVEL_ERR, "ldbm_back_db_config: %s: "
+				LDAP_LOG ( CONFIG,ERR, "ldbm_back_db_config: %s: "
 					"line %d: frequency value (%d) invalid \"dbsync "
 					"<frequency> [<wait-times> [wait-interval]]\" line\n", 
-					fname, lineno, i ));
+					fname, lineno, i );
 #else	
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: frquency value (%d) invalid \"dbsync <frequency> [<wait-times> [wait-interval]]\" line\n",
@@ -177,8 +178,8 @@ ldbm_back_db_config(
 
 #else
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "config", LDAP_LEVEL_ERR, "ldbm_back_db_config: \"dbsync\""
-			" policies not supported in non-threaded environments\n" ));
+		LDAP_LOG ( CONFIG, ERR, "ldbm_back_db_config: \"dbsync\""
+			" policies not supported in non-threaded environments\n", 0, 0, 0 );
 #else	
 		Debug( LDAP_DEBUG_ANY,
     "\"dbsync\" policies not supported in non-threaded environments\n", 0, 0, 0);

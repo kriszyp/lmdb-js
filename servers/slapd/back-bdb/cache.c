@@ -49,9 +49,9 @@ static int
 bdb_cache_entry_rdwr_lock(Entry *e, int rw)
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "bdb_cache_entry_rdwr_lock: %s lock on ID %ld\n",
-		   rw ? "w" : "r", e->e_id ));
+	LDAP_LOG( CACHE, ENTRY, 
+		"bdb_cache_entry_rdwr_lock: %s lock on ID %ld\n",
+		rw ? "w" : "r", e->e_id, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%slock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
@@ -67,9 +67,9 @@ static int
 bdb_cache_entry_rdwr_trylock(Entry *e, int rw)
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "bdb_cache_entry_rdwr_trylock: try %s lock on ID: %ld.\n",
-		   rw ? "w" : "r", e->e_id ));
+	LDAP_LOG( CACHE, ENTRY, 
+		"bdb_cache_entry_rdwr_trylock: try %s lock on ID: %ld.\n",
+		rw ? "w" : "r", e->e_id, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%strylock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
@@ -85,9 +85,9 @@ static int
 bdb_cache_entry_rdwr_unlock(Entry *e, int rw)
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "bdb_cache_entry_rdwr_unlock: remove %s lock on ID %ld.\n",
-		   rw ? "w" : "r", e->e_id ));
+	LDAP_LOG( CACHE, ENTRY, 
+		"bdb_cache_entry_rdwr_unlock: remove %s lock on ID %ld.\n",
+		rw ? "w" : "r", e->e_id, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %ld\n",
 		rw ? "w" : "r", e->e_id, 0);
@@ -232,9 +232,9 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( CACHE, DETAIL1, 
 			   "bdb_unlocked_cache_return_entry_rw: return (%ld):%s, refcnt=%d\n",
-			   id, rw ? "w" : "r", refcnt ));
+			   id, rw ? "w" : "r", refcnt );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> bdb_unlocked_cache_return_entry_%s( %ld ): created (%d)\n",
@@ -248,9 +248,9 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 			ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( CACHE, DETAIL1, 
 				   "bdb_unlocked_cache_return_entry_rw: %ld, delete pending (%d).\n",
-				   id, refcnt ));
+				   id, refcnt, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"====> bdb_unlocked_cache_return_entry_%s( %ld ): delete pending (%d)\n",
@@ -267,9 +267,9 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 			ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( CACHE, DETAIL1, 
 				   "bdb_unlocked_cache_return_entry_rw: (%ld): deleted (%d)\n",
-				   id, refcnt ));
+				   id, refcnt, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"====> bdb_unlocked_cache_return_entry_%s( %ld ): deleted (%d)\n",
@@ -282,9 +282,9 @@ bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( CACHE, DETAIL1, 
 			   "bdb_unlocked_cache_return_entry_rw: ID %ld:%s returned (%d)\n",
-			   id, rw ? "w": "r", refcnt ));
+			   id, rw ? "w": "r", refcnt );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> bdb_unlocked_cache_return_entry_%s( %ld ): returned (%d)\n",
@@ -335,9 +335,9 @@ bdb_cache_return_entry_rw
 		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( CACHE, DETAIL1, 
 			   "bdb_cache_return_entry_rw: return (%ld):%s, refcnt=%d\n",
-			   id, rw ? "w" : "r", refcnt ));
+			   id, rw ? "w" : "r", refcnt );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> bdb_cache_return_entry_%s( %ld ): created (%d)\n",
@@ -351,9 +351,9 @@ bdb_cache_return_entry_rw
 			ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( CACHE, DETAIL1, 
 				   "bdb_cache_return_entry_rw: %ld, delete pending (%d).\n",
-				   id, refcnt ));
+				   id, refcnt, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"====> bdb_cache_return_entry_%s( %ld ): delete pending (%d)\n",
@@ -370,9 +370,9 @@ bdb_cache_return_entry_rw
 			ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+			LDAP_LOG( CACHE, DETAIL1, 
 				   "bdb_cache_return_entry_rw: (%ld): deleted (%d)\n",
-				   id, refcnt ));
+				   id, refcnt, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"====> bdb_cache_return_entry_%s( %ld ): deleted (%d)\n",
@@ -385,9 +385,9 @@ bdb_cache_return_entry_rw
 		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG( CACHE, DETAIL1, 
 			   "bdb_cache_return_entry_rw: ID %ld:%s returned (%d)\n",
-			   id, rw ? "w": "r", refcnt ));
+			   id, rw ? "w": "r", refcnt );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> bdb_cache_return_entry_%s( %ld ): returned (%d)\n",
@@ -442,9 +442,9 @@ bdb_cache_add_entry_rw(
 	Entry	*ee;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "bdb_cache_add_entry_rw: add (%s):%s to cache\n",
-		   e->e_dn, rw ? "w" : "r" ));
+	LDAP_LOG( CACHE, ENTRY, 
+		"bdb_cache_add_entry_rw: add (%s):%s to cache\n",
+		e->e_dn, rw ? "w" : "r", 0 );
 #endif
 	/* set cache write lock */
 	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
@@ -456,9 +456,9 @@ bdb_cache_add_entry_rw(
 		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
-			   "bdb_cache_add_entry_rw: add (%s):%ld private init failed!\n",
-			   e->e_dn, e->e_id ));
+		LDAP_LOG( CACHE, ERR, 
+			"bdb_cache_add_entry_rw: add (%s):%ld private init failed!\n",
+			e->e_dn, e->e_id, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"====> bdb_cache_add_entry( %ld ): \"%s\": private init failed!\n",
@@ -476,9 +476,9 @@ bdb_cache_add_entry_rw(
 		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_add_entry: (%s):%ld already in cache.\n",
-			   e->e_dn, e->e_id ));
+		LDAP_LOG( CACHE, DETAIL1, 
+			"bdb_cache_add_entry: (%s):%ld already in cache.\n",
+			e->e_dn, e->e_id, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> bdb_cache_add_entry( %ld ): \"%s\": already in dn cache\n",
@@ -495,9 +495,9 @@ bdb_cache_add_entry_rw(
 		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
 	{
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_add_entry: (%s):%ls already in cache.\n",
-			   e->e_dn, e->e_id ));
+		LDAP_LOG( CACHE, DETAIL1, 
+			"bdb_cache_add_entry: (%s):%ls already in cache.\n",
+			e->e_dn, e->e_id, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"====> bdb_cache_add_entry( %ld ): \"%s\": already in id cache\n",
@@ -509,9 +509,9 @@ bdb_cache_add_entry_rw(
 			(AVL_CMP) entry_dn_cmp ) == NULL )
 		{
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-				   "bdb_cache_add_entry: can't delete (%s) from cache.\n",
-				   e->e_dn ));
+			LDAP_LOG( CACHE, INFO, 
+				"bdb_cache_add_entry: can't delete (%s) from cache.\n", 
+				e->e_dn, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
@@ -535,8 +535,9 @@ bdb_cache_add_entry_rw(
 		if ( avl_delete( &cache->c_idtree, (caddr_t) e,
 			(AVL_CMP) entry_id_cmp ) == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-				"bdb_cache_add_entry: can't delete (%s) from cache.\n", e->e_dn ));
+			LDAP_LOG( CACHE, INFO, 
+				"bdb_cache_add_entry: can't delete (%s) from cache.\n", 
+				e->e_dn, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from id cache\n", 0, 0, 0 );
 #endif
@@ -544,8 +545,9 @@ bdb_cache_add_entry_rw(
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 				(AVL_CMP) entry_dn_cmp ) == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-					"bdb_cache_add_entry: can't delete (%s) from cache.\n", e->e_dn ));
+			LDAP_LOG( CACHE, INFO, 
+				"bdb_cache_add_entry: can't delete (%s) from cache.\n", 
+				e->e_dn, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n", 0, 0, 0 );
 #endif
@@ -633,9 +635,9 @@ bdb_cache_update_entry(
 		(AVL_CMP) entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_update_entry: (%s):%ld already in dn cache\n",
-			   e->e_dn, e->e_id ));
+		LDAP_LOG( CACHE, DETAIL1, 
+			"bdb_cache_update_entry: (%s):%ld already in dn cache\n",
+			e->e_dn, e->e_id, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"====> bdb_cache_update_entry( %ld ): \"%s\": already in dn cache\n",
@@ -652,9 +654,9 @@ bdb_cache_update_entry(
 		(AVL_CMP) entry_id_cmp, avl_dup_error ) != 0 )
 	{
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_update_entry: (%s)%ld already in id cache\n",
-			   e->e_dn, e->e_id ));
+		LDAP_LOG( CACHE, DETAIL1, 
+			"bdb_cache_update_entry: (%s)%ld already in id cache\n",
+			e->e_dn, e->e_id, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"====> bdb_cache_update_entry( %ld ): \"%s\": already in id cache\n",
@@ -666,9 +668,9 @@ bdb_cache_update_entry(
 			(AVL_CMP) entry_dn_cmp ) == NULL )
 		{
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-				   "bdb_cache_update_entry: can't delete (%s)%ld from dn cache.\n",
-				   e->e_dn, e->e_id ));
+			LDAP_LOG( CACHE, INFO, 
+				"bdb_cache_update_entry: can't delete (%s)%ld from dn cache.\n",
+				e->e_dn, e->e_id, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
@@ -778,9 +780,9 @@ try_again:
 			ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-				   "bdb_cache_find_entry_dn2id: (%s) %ld not ready: %d\n",
-				   ndn->bv_val, id, state ));
+			LDAP_LOG( CACHE, INFO, 
+				"bdb_cache_find_entry_dn2id: (%s) %ld not ready: %d\n",
+				ndn->bv_val, id, state );
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"====> bdb_cache_find_entry_dn2id(\"%s\"): %ld (not ready) %d\n",
@@ -806,9 +808,9 @@ try_again:
 		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_find_entry_dn2id: (%s): %ld %d tries\n",
-			   ndn->bv_val, id, count ));
+		LDAP_LOG( CACHE, DETAIL1, 
+			"bdb_cache_find_entry_dn2id: (%s): %ld %d tries\n",
+			ndn->bv_val, id, count );
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"====> bdb_cache_find_entry_dn2id(\"%s\"): %ld (%d tries)\n",
@@ -874,9 +876,9 @@ try_again:
 			ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-				   "bdb_cache_find_entry_id: (%ld)->%ld not ready (%d).\n",
-				   id, ep_id, state ));
+			LDAP_LOG( CACHE, INFO, 
+				"bdb_cache_find_entry_id: (%ld)->%ld not ready (%d).\n",
+				id, ep_id, state );
 				   
 #else
 			Debug(LDAP_DEBUG_TRACE,
@@ -905,9 +907,9 @@ try_again:
 			ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-				   "bdb_cache_find_entry_id: %ld -> %ld (busy) %d.\n",
-				   id, ep_id, state ));
+			LDAP_LOG( CACHE, INFO, 
+				"bdb_cache_find_entry_id: %ld -> %ld (busy) %d.\n",
+				id, ep_id, state );
 #else
 			Debug(LDAP_DEBUG_TRACE,
 				"====> bdb_cache_find_entry_id( %ld ): %ld (busy) %d\n",
@@ -935,9 +937,9 @@ try_again:
 		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-			   "bdb_cache_find_entry_id: %ld -> %s  found %d tries.\n",
-			   ep_id, ep->e_dn, count ));
+		LDAP_LOG( CACHE, DETAIL1, 
+			"bdb_cache_find_entry_id: %ld -> %s  found %d tries.\n",
+			ep_id, ep->e_dn, count );
 #else
 		Debug(LDAP_DEBUG_TRACE,
 			"====> bdb_cache_find_entry_id( %ld ) \"%s\" (found) (%d tries)\n",
@@ -979,8 +981,8 @@ bdb_cache_delete_entry(
 	assert( e->e_private );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "bdb_cache_delete_entry: delete %ld.\n", e->e_id ));
+	LDAP_LOG( CACHE, ENTRY, 
+		"bdb_cache_delete_entry: delete %ld.\n", e->e_id, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_delete_entry( %ld )\n",
 		e->e_id, 0, 0 );
@@ -1047,8 +1049,7 @@ bdb_cache_release_all( Cache *cache )
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
-		   "bdb_cache_release_all: enter\n" ));
+	LDAP_LOG( CACHE, ENTRY, "bdb_cache_release_all: enter\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_release_all\n", 0, 0, 0 );
 #endif
@@ -1067,8 +1068,8 @@ bdb_cache_release_all( Cache *cache )
 
 	if ( cache->c_cursize ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
-			   "bdb_cache_release_all: Entry cache could not be emptied.\n" ));
+		LDAP_LOG( CACHE, INFO,
+		   "bdb_cache_release_all: Entry cache could not be emptied.\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "Entry-cache could not be emptied\n", 0, 0, 0 );
 #endif

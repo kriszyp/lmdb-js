@@ -69,7 +69,7 @@ ldap_rename(
 	int rc;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "modrdn", LDAP_LEVEL_ENTRY, "ldap_rename\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_rename\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_rename\n", 0, 0, 0 );
 #endif
@@ -156,7 +156,7 @@ ldap_rename2(
 	int rc;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "modrdn", LDAP_LEVEL_ENTRY, "ldap_rename2\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_rename2\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_rename2\n", 0, 0, 0 );
 #endif

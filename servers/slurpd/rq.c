@@ -55,7 +55,6 @@
 #include "slurp.h"
 #include "globals.h"
 
-
 /*
  * Lock the replication queue.
  */
@@ -134,8 +133,8 @@ Rq_delhead(
 
     if ( savedhead->re_getrefcnt( savedhead ) != 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_WARNING, "Rq_delhead: "
-		"Warning: attempt to delete when refcnt != 0\n" ));
+	LDAP_LOG ( SLURPD, WARNING, "Rq_delhead: "
+		"Warning: attempt to delete when refcnt != 0\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Warning: attempt to delete when refcnt != 0\n",
 		0, 0, 0 );
@@ -223,7 +222,7 @@ Rq_gc(
 {
     if ( rq == NULL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_DETAIL1, "Rq_gc: rq is NULL!\n" ));
+	LDAP_LOG ( SLURPD, DETAIL1, "Rq_gc: rq is NULL!\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Rq_gc: rq is NULL!\n", 0, 0, 0 );
 #endif
@@ -255,7 +254,7 @@ Rq_dump(
 
     if ( rq == NULL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_ARGS, "Rq_dump: rq is NULL!\n" ));
+	LDAP_LOG ( SLURPD, ARGS, "Rq_dump: rq is NULL!\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: rq is NULL!\n", 0, 0, 0 );
 #endif
@@ -264,8 +263,8 @@ Rq_dump(
 
     if (unlink(SLURPD_DUMPFILE) == -1 && errno != ENOENT) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_dump: "
-		"\"%s\" exists, cannot unlink\n", SLURPD_DUMPFILE ));
+	LDAP_LOG ( SLURPD, ERR, "Rq_dump: "
+		"\"%s\" exists, cannot unlink\n", SLURPD_DUMPFILE, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: \"%s\" exists, and cannot unlink\n",
 		SLURPD_DUMPFILE, 0, 0 );
@@ -274,8 +273,8 @@ Rq_dump(
     }
     if (( tmpfd = open(SLURPD_DUMPFILE, O_CREAT|O_RDWR|O_EXCL, 0600)) == -1) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_dump: "
-		"cannot open \"%s\" for write\n", SLURPD_DUMPFILE ));
+	LDAP_LOG ( SLURPD, ERR, "Rq_dump: "
+		"cannot open \"%s\" for write\n", SLURPD_DUMPFILE, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot open \"%s\" for write\n",
 		SLURPD_DUMPFILE, 0, 0 );
@@ -284,8 +283,8 @@ Rq_dump(
     }
     if (( fp = fdopen( tmpfd, "w" )) == NULL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_dump: "
-		"cannot fdopen \"%s\" for write\n", SLURPD_DUMPFILE ));
+	LDAP_LOG ( SLURPD, ERR, "Rq_dump: "
+		"cannot fdopen \"%s\" for write\n", SLURPD_DUMPFILE, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot fdopen \"%s\" for write\n",
 		SLURPD_DUMPFILE, 0, 0 );
@@ -322,8 +321,8 @@ Rq_write(
     }
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_ENTRY, "Rq_write: "
-		"re-write on-disk replication log\n" ));
+	LDAP_LOG ( SLURPD, ENTRY, "Rq_write: "
+		"re-write on-disk replication log\n", 0, 0, 0 );
 #else
     Debug( LDAP_DEBUG_ARGS, "re-write on-disk replication log\n",
 	    0, 0, 0 );
@@ -346,8 +345,8 @@ Rq_write(
     /* and truncate to correct len */
     if ( ftruncate( fileno( fp ), sglob->srpos ) < 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "rq", LDAP_LEVEL_ERR, "Rq_write: "
-		"Error truncating replication log: %s\n", sys_errlist[ errno ] ));
+	LDAP_LOG ( SLURPD, ERR, "Rq_write: "
+		"Error truncating replication log: %s\n", sys_errlist[ errno ], 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Error truncating replication log: %s\n",
 		sys_errlist[ errno ], 0, 0 );

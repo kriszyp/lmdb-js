@@ -15,7 +15,6 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-
 /* for the cache of attribute information (which are indexed, etc.) */
 typedef struct ldbm_attrinfo {
 	AttributeDescription *ai_desc; /* attribute description cn;lang-en */
@@ -182,9 +181,9 @@ attr_index_config(
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "attr_index_config: index %s 0x%04lx\n",
-			   ad->ad_cname.bv_val, mask ));
+		LDAP_LOG( BACK_LDBM, DETAIL1, 
+			"attr_index_config: index %s 0x%04lx\n", 
+			ad->ad_cname.bv_val, mask, 0 );
 #else
 		Debug( LDAP_DEBUG_CONFIG, "index %s 0x%04lx\n",
 			ad->ad_cname.bv_val, mask, 0 ); 

@@ -33,8 +33,7 @@ str2filter( const char *str )
 	const char *text = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
-		"str2filter: \"%s\"\n", str ));
+	LDAP_LOG( FILTER, ENTRY,  "str2filter: \"%s\"\n", str, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );
 #endif

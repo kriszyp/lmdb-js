@@ -58,8 +58,7 @@ ldbm_back_search(
 	int isroot = 0;
 		
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		"ldbm_back_search: enter\n" ));
+	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_back_search: enter\n", 0, 0, 0 );
 #else
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
 #endif
@@ -142,9 +141,9 @@ ldbm_back_search(
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
+		LDAP_LOG( BACK_LDBM, INFO,
 			"ldbm_search: entry (%s) is a referral.\n",
-			e->e_dn ));
+			e->e_dn, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldbm_search: entry is referral\n",
@@ -198,8 +197,8 @@ searchit:
 	if ( candidates == NULL ) {
 		/* no candidates */
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"ldbm_search: no candidates\n" ));
+		LDAP_LOG( BACK_LDBM, INFO,
+			"ldbm_search: no candidates\n" , 0, 0, 0);
 #else
 		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
 			0, 0, 0 );
@@ -313,8 +312,8 @@ searchit:
 
 		if ( e == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"ldbm_search: candidate %ld not found.\n", id ));
+			LDAP_LOG( BACK_LDBM, INFO,
+				"ldbm_search: candidate %ld not found.\n", id, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_search: candidate %ld not found\n",
@@ -352,8 +351,8 @@ searchit:
 			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
 				/* alias is within scope */
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"ldbm_search: alias \"%s\" in subtree\n", e->e_dn ));
+				LDAP_LOG( BACK_LDBM, DETAIL1,
+					"ldbm_search: alias \"%s\" in subtree\n", e->e_dn, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: alias \"%s\" in subtree\n",
@@ -408,9 +407,9 @@ searchit:
 
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
+				LDAP_LOG( BACK_LDBM, DETAIL2,
 					"ldbm_search: candidate referral %ld scope not okay\n",
-					id ));
+					id, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: candidate referral %ld scope not okay\n",
@@ -470,8 +469,9 @@ searchit:
 				}
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
-					"ldbm_search: candidate entry %ld scope not okay\n", id ));
+				LDAP_LOG( BACK_LDBM, DETAIL2,
+					"ldbm_search: candidate entry %ld scope not okay\n", 
+					id, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_search: candidate entry %ld scope not okay\n",
@@ -481,8 +481,9 @@ searchit:
 
 		} else {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
-				"ldbm_search: candidate entry %ld does not match filter\n", id ));
+			LDAP_LOG( BACK_LDBM, DETAIL2,
+				"ldbm_search: candidate entry %ld does not match filter\n", 
+				id, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_search: candidate entry %ld does not match filter\n",
@@ -525,8 +526,7 @@ base_candidate(
 	ID_BLOCK		*idl;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "base_candidate: base (%s)\n", e->e_dn ));
+	LDAP_LOG( BACK_LDBM, ENTRY, "base_candidate: base (%s)\n", e->e_dn, 0, 0 );
 #else
 	Debug(LDAP_DEBUG_TRACE, "base_candidates: base: \"%s\"\n",
 		e->e_dn, 0, 0);
@@ -555,9 +555,9 @@ search_candidates(
 	struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
+	LDAP_LOG( BACK_LDBM, DETAIL1,
 		   "search_candidates: base (%s) scope %d deref %d\n",
-		   e->e_ndn, scope, deref ));
+		   e->e_ndn, scope, deref );
 #else
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" s=%d d=%d\n",

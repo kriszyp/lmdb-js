@@ -127,9 +127,8 @@ meta_back_compare(
 				mdn = ( char * )dn->bv_val;
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] compareDn: \"%s\" -> \"%s\"\n",
-					dn->bv_val, mdn ));
+			LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] compareDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				     	"rw> compareDn: \"%s\" -> \"%s\"\n%s",
@@ -314,9 +313,8 @@ finish:;
 				mmatch = ( char * )match;
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] matchedDn: \"%s\" -> \"%s\"\n",
-					match, mmatch ));
+			LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] matchedDn: \"%s\" -> \"%s\"\n", match, mmatch, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
 					" \"%s\" -> \"%s\"\n%s",

@@ -59,7 +59,7 @@ int
 ldap_unbind( LDAP *ld )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "unbind", LDAP_LEVEL_ENTRY, "ldap_unbind\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_unbind\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_unbind\n", 0, 0, 0 );
 #endif
@@ -181,7 +181,7 @@ ldap_send_unbind(
 	BerElement	*ber;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "unbind", LDAP_LEVEL_ENTRY, "ldap_send_unbind\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_send_unbind\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_unbind\n", 0, 0, 0 );
 #endif

@@ -180,9 +180,9 @@ ldap_pvt_tls_init_def_ctx( void )
 		tls_def_ctx = SSL_CTX_new( SSLv23_method() );
 		if ( tls_def_ctx == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_init_def_ctx: "
+			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_init_def_ctx: "
 				"TLS could not allocate default ctx (%d).\n",
-				ERR_peek_error() ));
+				ERR_peek_error(), 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 			   "TLS: could not allocate default ctx (%lu).\n",
@@ -195,9 +195,9 @@ ldap_pvt_tls_init_def_ctx( void )
 			!SSL_CTX_set_cipher_list( tls_def_ctx, tls_opt_ciphersuite ) )
 		{
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_init_def_ctx: "
+			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_init_def_ctx: "
 				"TLS could not set cipher list %s.\n",
-				tls_opt_ciphersuite ));
+				tls_opt_ciphersuite, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				   "TLS: could not set cipher list %s.\n",
@@ -213,12 +213,12 @@ ldap_pvt_tls_init_def_ctx( void )
 				!SSL_CTX_set_default_verify_paths( tls_def_ctx ) )
 			{
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "tls", LDAP_LEVEL_ERR,
+				LDAP_LOG ( TRANSPORT, ERR, 
 					"ldap_pvt_tls_init_def_ctx: "
 					"TLS could not load verify locations "
 					"(file:`%s',dir:`%s').\n",
 					tls_opt_cacertfile ? tls_opt_cacertfile : "",
-					tls_opt_cacertdir ? tls_opt_cacertdir : "" ));
+					tls_opt_cacertdir ? tls_opt_cacertdir : "", 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "TLS: "
 					"could not load verify locations (file:`%s',dir:`%s').\n",
@@ -233,10 +233,10 @@ ldap_pvt_tls_init_def_ctx( void )
 			calist = get_ca_list( tls_opt_cacertfile, tls_opt_cacertdir );
 			if ( !calist ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_init_def_ctx: "
+				LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_init_def_ctx: "
 					"TLS could not load client CA list (file: `%s',dir:`%s')\n",
 					tls_opt_cacertfile ? tls_opt_cacertfile : "",
-					tls_opt_cacertdir ? tls_opt_cacertdir : "" ));
+					tls_opt_cacertdir ? tls_opt_cacertdir : "", 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "TLS: "
 					"could not load client CA list (file:`%s',dir:`%s').\n",
@@ -256,8 +256,8 @@ ldap_pvt_tls_init_def_ctx( void )
 				tls_opt_keyfile, SSL_FILETYPE_PEM ) )
 		{
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_init_def_ctx: "
-				"TLS could not use key file `%s'.\n", tls_opt_keyfile ));
+			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_init_def_ctx: "
+				"TLS could not use key file `%s'.\n", tls_opt_keyfile, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"TLS: could not use key file `%s'.\n",
@@ -272,8 +272,9 @@ ldap_pvt_tls_init_def_ctx( void )
 				tls_opt_certfile, SSL_FILETYPE_PEM ) )
 		{
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_init_def_ctx: "
-				"TLS could not use certificate `%s'.\n", tls_opt_certfile ));
+			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_init_def_ctx: "
+				"TLS could not use certificate `%s'.\n", 
+				tls_opt_certfile, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"TLS: could not use certificate `%s'.\n",
@@ -287,8 +288,9 @@ ldap_pvt_tls_init_def_ctx( void )
 			!SSL_CTX_check_private_key( tls_def_ctx ) )
 		{
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_init_def_ctx: "
-				"TLS private key mismatch.\n" ));
+			LDAP_LOG ( TRANSPORT, ERR, 
+				"ldap_pvt_tls_init_def_ctx: TLS private key mismatch.\n", 
+				0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"TLS: private key mismatch.\n",
@@ -397,8 +399,8 @@ alloc_handle( void *ctx_arg )
 	ssl = SSL_new( ctx );
 	if ( ssl == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "alloc_handle: "
-			"TLS can't create ssl handle.\n" ));
+		LDAP_LOG ( TRANSPORT, ERR, 
+			"alloc_handle: TLS can't create ssl handle.\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,"TLS: can't create ssl handle.\n",0,0,0);
 #endif
@@ -739,8 +741,8 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_int_tls_connect: "
-			"TLS can't connect.\n" ));
+		LDAP_LOG ( TRANSPORT, ERR, 
+			"ldap_int_tls_connect: TLS can't connect.\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,"TLS: can't connect.\n",0,0,0);
 #endif
@@ -791,8 +793,8 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 		if ( update_flags( sb, ssl, err )) return 1;
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_accept: "
-			"TLS can't accept.\n" ));
+		LDAP_LOG ( TRANSPORT, ERR, 
+			"ldap_pvt_tls_accept: TLS can't accept.\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,"TLS: can't accept.\n",0,0,0 );
 #endif
@@ -929,8 +931,9 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 	x = tls_get_cert((SSL *)s);
 	if (!x) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_check_hostname: "
-			"TLS unable to get peer certificate.\n" ));
+		LDAP_LOG ( TRANSPORT, ERR, 
+			"ldap_pvt_tls_check_hostname: "
+			"TLS unable to get peer certificate.\n" , 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"TLS: unable to get peer certificate.\n",
@@ -1006,8 +1009,9 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 			buf, sizeof(buf)) == -1)
 		{
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_check_hostname: "
-				"TLS unable to get common name from peer certificate.\n" ));
+			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_check_hostname: "
+				"TLS unable to get common name from peer certificate.\n", 
+				0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"TLS: unable to get common name from peer certificate.\n",
@@ -1016,9 +1020,9 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 
 		} else if (strcasecmp(name, buf)) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "ldap_pvt_tls_check_hostname: "
+			LDAP_LOG ( TRANSPORT, ERR, "ldap_pvt_tls_check_hostname: "
 				"TLS hostname (%s) does not match "
-				"common name in certificate (%s).\n", name, buf ));
+				"common name in certificate (%s).\n", name, buf, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
 				"common name in certificate (%s).\n", 
@@ -1344,8 +1348,8 @@ tls_info_cb( SSL *ssl, int where, int ret )
 
 	if ( where & SSL_CB_LOOP ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_DETAIL1, "tls_info_cb: "
-			"TLS trace: %s:%s\n", op, SSL_state_string_long( ssl ) ));
+		LDAP_LOG ( TRANSPORT, DETAIL1, "tls_info_cb: "
+			"TLS trace: %s:%s\n", op, SSL_state_string_long( ssl ), 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			   "TLS trace: %s:%s\n",
@@ -1355,10 +1359,10 @@ tls_info_cb( SSL *ssl, int where, int ret )
 	} else if ( where & SSL_CB_ALERT ) {
 		op = ( where & SSL_CB_READ ) ? "read" : "write";
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_DETAIL1, "tls_info_cb: "
-			"TLS trace: SSL3 alert %s:%s:%s\n", op,
-			   SSL_alert_type_string_long( ret ),
-			   SSL_alert_desc_string_long( ret) ));
+		LDAP_LOG ( TRANSPORT, DETAIL1, 
+			"tls_info_cb: TLS trace: SSL3 alert %s:%s:%s\n", 
+			op, SSL_alert_type_string_long( ret ), 
+			SSL_alert_desc_string_long( ret) );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			   "TLS trace: SSL3 alert %s:%s:%s\n",
@@ -1370,8 +1374,9 @@ tls_info_cb( SSL *ssl, int where, int ret )
 	} else if ( where & SSL_CB_EXIT ) {
 		if ( ret == 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "tls_info_cb: "
-			"TLS trace: %s:failed in %s\n", op, SSL_state_string_long( ssl ) ));
+			LDAP_LOG ( TRANSPORT, ERR, 
+				"tls_info_cb: TLS trace: %s:failed in %s\n", 
+				op, SSL_state_string_long( ssl ), 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				   "TLS trace: %s:failed in %s\n",
@@ -1379,8 +1384,9 @@ tls_info_cb( SSL *ssl, int where, int ret )
 #endif
 		} else if ( ret < 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "tls_info_cb: "
-			"TLS trace: %s:error in %s\n", op, SSL_state_string_long( ssl ) ));
+			LDAP_LOG ( TRANSPORT, ERR, 
+				"tls_info_cb: TLS trace: %s:error in %s\n", 
+				op, SSL_state_string_long( ssl ), 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				   "TLS trace: %s:error in %s\n",
@@ -1415,13 +1421,15 @@ tls_verify_cb( int ok, X509_STORE_CTX *ctx )
 	sname = X509_NAME_oneline( subject, NULL, 0 );
 	iname = X509_NAME_oneline( issuer, NULL, 0 );
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "tls_verify_cb"
-		"TLS certificate verification: depth: %d, err: %d: "
-		"subject: %s, issuer: %s\n", errdepth, errnum, 
-		sname ? sname : "-unknown-", iname ? iname : "-unknown-" ));
+	LDAP_LOG( TRANSPORT, ERR,
+		   "TLS certificate verification: depth: %d, err: %d, subject: %s,",
+		   errdepth, errnum,
+		   sname ? sname : "-unknown-" );
+	LDAP_LOG( TRANSPORT, ERR, " issuer: %s\n", iname ? iname : "-unknown-", 0, 0 );
 	if ( !ok ) {
-		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, "TLS certificate verification: Error, %s\n",
-			X509_verify_cert_error_string(errnum)));
+		LDAP_LOG ( TRANSPORT, ERR, 
+			"TLS certificate verification: Error, %s\n",
+			X509_verify_cert_error_string(errnum), 0, 0 );
 	}
 #else
 	Debug( LDAP_DEBUG_TRACE,
@@ -1461,9 +1469,9 @@ tls_report_error( void )
 
 	while ( ( l = ERR_get_error_line( &file, &line ) ) != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, 
+		LDAP_LOG ( TRANSPORT, ERR, 
 			"tls_report_error: TLS %s %s:%d\n", 
-			ERR_error_string( l, buf ), file, line ));
+			ERR_error_string( l, buf ), file, line );
 #else
 		Debug( LDAP_DEBUG_ANY, "TLS: %s %s:%d\n",
 		   ERR_error_string( l, buf ), file, line );
@@ -1482,9 +1490,9 @@ tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 
 	if ( !tmp_rsa ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_ERR, 
-			"tls_tmp_rsa_cb: TLS Failed to generate temporary %d-bit %s RSA key\n", 
-			key_length, is_export ? "export" : "domestic" ));
+		LDAP_LOG ( TRANSPORT, ERR, 
+			"tls_tmp_rsa_cb: TLS Failed to generate temporary %d-bit %s "
+			"RSA key\n", key_length, is_export ? "export" : "domestic", 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"TLS: Failed to generate temporary %d-bit %s RSA key\n",
@@ -1518,9 +1526,9 @@ tls_seed_PRNG( const char *randfile )
 
 	if (randfile == NULL) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_DETAIL1, 
+		LDAP_LOG ( TRANSPORT, DETAIL1, 
 			"tls_seed_PRNG: TLS Use configuration file or "
-			"$RANDFILE to define seed PRNG\n" ));
+			"$RANDFILE to define seed PRNG\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"TLS: Use configuration file or $RANDFILE to define seed PRNG\n",
@@ -1533,8 +1541,9 @@ tls_seed_PRNG( const char *randfile )
 
 	if (RAND_status() == 0) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tls", LDAP_LEVEL_DETAIL1, 
-			"tls_seed_PRNG: TLS PRNG not been seeded with enough data\n" ));
+		LDAP_LOG ( TRANSPORT, DETAIL1, 
+			"tls_seed_PRNG: TLS PRNG not been seeded with enough data\n", 
+			0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"TLS: PRNG not been seeded with enough data\n",

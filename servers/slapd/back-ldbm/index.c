@@ -160,9 +160,8 @@ static int indexer(
 	
 	if ( db == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "index", LDAP_LEVEL_ERR,
-			   "index_read: Could not open db %s%s\n",
-			   dbname, LDBM_SUFFIX ));
+		LDAP_LOG( INDEX, ERR, 
+			   "index_read: Could not open db %s%s\n", dbname, LDBM_SUFFIX, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= index_read NULL (could not open %s%s)\n",
@@ -299,10 +298,9 @@ index_entry(
 	Attribute *ap )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-		   "index_entry: %s (%s)%ld\n",
-		   op == SLAP_INDEX_ADD_OP ? "add" : "del",
-		   e->e_dn, e->e_id ));
+	LDAP_LOG( INDEX, ENTRY, 
+		"index_entry: %s (%s)%ld\n", op == SLAP_INDEX_ADD_OP ? "add" : "del",
+		e->e_dn, e->e_id );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		op == SLAP_INDEX_ADD_OP ? "add" : "del",
@@ -315,8 +313,7 @@ index_entry(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-		   "index_entry: success\n" ));
+	LDAP_LOG( INDEX, ENTRY, "index_entry: success\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
 	    op == SLAP_INDEX_ADD_OP ? "add" : "del",

@@ -289,9 +289,9 @@ init_one_conn(
 				ber_dupbv( &lsc->bound_dn, &conn->c_dn );
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] bindDn: \"%s\" -> \"%s\"\n",
-					conn->c_dn.bv_val, lsc->bound_dn.bv_val ));
+			LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] bindDn: \"%s\" -> \"%s\"\n",
+				conn->c_dn.bv_val, lsc->bound_dn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 				       	"rw> bindDn: \"%s\" -> \"%s\"\n",
@@ -402,10 +402,9 @@ meta_back_getconn(
 		}
 				
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"meta_back_getconn: got target %d"
-				" for ndn=\"%s\" from cache\n", 
-				i, ndn->bv_val ));
+		LDAP_LOG( BACK_META, INFO,
+			"meta_back_getconn: got target %d for ndn=\"%s\" from cache\n", 
+			i, ndn->bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_CACHE,
 	"==>meta_back_getconn: got target %d for ndn=\"%s\" from cache\n%s",
@@ -513,9 +512,8 @@ meta_back_getconn(
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"meta_back_getconn: conn %ld inserted\n",
-				lc->conn->c_connid ));
+		LDAP_LOG( BACK_META, INFO,
+			"meta_back_getconn: conn %ld inserted\n", lc->conn->c_connid, 0, 0);
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld inserted\n%s%s",
@@ -533,9 +531,8 @@ meta_back_getconn(
 		}
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"meta_back_getconn: conn %ld fetched\n",
-				lc->conn->c_connid ));
+		LDAP_LOG( BACK_META, INFO,
+			"meta_back_getconn: conn %ld fetched\n", lc->conn->c_connid, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld fetched\n%s%s",

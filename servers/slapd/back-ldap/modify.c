@@ -79,8 +79,8 @@ ldap_back_modify(
 			mdn.bv_val = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] modifyDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] modifyDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n%s",
 				dn->bv_val, mdn.bv_val, "" );

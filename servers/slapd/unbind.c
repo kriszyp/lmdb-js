@@ -26,7 +26,6 @@
 
 #include "slap.h"
 
-
 int
 do_unbind(
     Connection	*conn,
@@ -34,8 +33,8 @@ do_unbind(
 )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "do_unbind: conn %d\n", conn ? conn->c_connid : -1 ));
+	LDAP_LOG( OPERATION, ENTRY, 
+		"do_unbind: conn %d\n", conn ? conn->c_connid : -1, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_unbind\n", 0, 0, 0 );
 #endif

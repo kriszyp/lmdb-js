@@ -34,7 +34,6 @@
 
 #include "ldap-int.h"
 
-
 /* local functions */
 static const char* skip_url_prefix LDAP_P((
 	const char *url,
@@ -446,7 +445,7 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	 * the options and cause infinite recursion
 	 */
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "url", LDAP_LEVEL_ENTRY, "ldap_url_parse_ext(%s)\n", url_in ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_url_parse_ext(%s)\n", url_in, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse_ext(%s)\n", url_in, 0, 0 );
 #endif

@@ -96,9 +96,9 @@ read_config( const char *fname )
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_ENTRY, "read_config: "
-			"could not open config file \"%s\": %s (%d)\n",
-		    fname, strerror(errno), errno ));
+		LDAP_LOG( CONFIG, ENTRY, 
+			"read_config: " "could not open config file \"%s\": %s (%d)\n",
+		    fname, strerror(errno), errno );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "could not open config file \"%s\": %s (%d)\n",
@@ -108,8 +108,8 @@ read_config( const char *fname )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "config", LDAP_LEVEL_ENTRY,
-		"read_config: reading config file %s\n", fname ));
+	LDAP_LOG( CONFIG, ENTRY, 
+		"read_config: reading config file %s\n", fname, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_CONFIG, "reading config file %s\n", fname, 0, 0 );
 #endif
@@ -132,9 +132,8 @@ read_config( const char *fname )
 
 		if ( cargc < 1 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-				   "%s: line %d: bad config line (ignored)\n",
-				   fname, lineno ));
+			LDAP_LOG( CONFIG, INFO, 
+				"%s: line %d: bad config line (ignored)\n", fname, lineno, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "%s: line %d: bad config line (ignored)\n",
@@ -147,9 +146,9 @@ read_config( const char *fname )
 		if ( strcasecmp( cargv[0], "backend" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s : line %d: missing type in \"backend\" line.\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: missing type in \"backend <type>\" line\n",
@@ -161,9 +160,9 @@ read_config( const char *fname )
 
 			if( be != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: backend line must appear before any "
-					   "database definition.\n", fname, lineno ));
+					   "database definition.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: backend line must appear before any database definition\n",
@@ -177,9 +176,9 @@ read_config( const char *fname )
 
 			if( bi == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "read_config: backend %s initialization failed.\n",
-					   cargv[1] ));
+					   cargv[1], 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"backend %s initialization failed.\n",
@@ -191,9 +190,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "database" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing type in \"database <type>\" line\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing type in \"database <type>\" line\n",
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: missing type in \"database <type>\" line\n",
@@ -208,9 +207,8 @@ read_config( const char *fname )
 
 			if( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "database %s initialization failed.\n",
-					   cargv[1] ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"database %s initialization failed.\n", cargv[1], 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"database %s initialization failed.\n",
@@ -225,9 +223,9 @@ read_config( const char *fname )
 			int c;
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing level in \"concurrency <level\" line\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing level in \"concurrency <level\" "
+					" line\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing level in \"concurrency <level>\" line\n",
@@ -241,10 +239,9 @@ read_config( const char *fname )
 
 			if( c < 1 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: invalid level (%d) in "
-					   "\"concurrency <level>\" line.\n",
-					   fname, lineno, c ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: invalid level (%d) in "
+					"\"concurrency <level>\" line.\n", fname, lineno, c );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: invalid level (%d) in \"concurrency <level>\" line\n",
@@ -261,9 +258,9 @@ read_config( const char *fname )
 			long max;
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing max in \"sockbuf_max_incoming <bytes>\" line\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+				   "%s: line %d: missing max in \"sockbuf_max_incoming "
+				   "<bytes>\" line\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					   "%s: line %d: missing max in \"sockbuf_max_incoming <bytes>\" line\n",
@@ -277,10 +274,10 @@ read_config( const char *fname )
 
 			if( max < 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: invalid max value (%ld) in "
 					   "\"sockbuf_max_incoming <bytes>\" line.\n",
-					   fname, lineno, max ));
+					   fname, lineno, max );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: invalid max value (%ld) in "
@@ -298,9 +295,9 @@ read_config( const char *fname )
 			long max;
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing max in \"sockbuf_max_incoming_auth <bytes>\" line\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+				   "%s: line %d: missing max in \"sockbuf_max_incoming_auth "
+				   "<bytes>\" line\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					   "%s: line %d: missing max in \"sockbuf_max_incoming_auth <bytes>\" line\n",
@@ -314,10 +311,10 @@ read_config( const char *fname )
 
 			if( max < 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: invalid max value (%ld) in "
 					   "\"sockbuf_max_incoming_auth <bytes>\" line.\n",
-					   fname, lineno, max ));
+					   fname, lineno, max );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: invalid max value (%ld) in "
@@ -334,9 +331,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "defaultSearchBase" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: missing dn in \"defaultSearchBase <dn\" "
-					"line\n", fname, lineno ));
+					"line\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"missing dn in \"defaultSearchBase <dn>\" line\n",
@@ -347,10 +344,10 @@ read_config( const char *fname )
 
 			} else if ( cargc > 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: extra cruft after <dn> in "
 					"\"defaultSearchBase %s\" line (ignored)\n",
-					fname, lineno, cargv[1] ));
+					fname, lineno, cargv[1] );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"extra cruft after <dn> in \"defaultSearchBase %s\", "
@@ -361,10 +358,10 @@ read_config( const char *fname )
 
 			if ( bi != NULL || be != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: defaultSearchBase line must appear "
 					"prior to any backend or database definitions\n",
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"defaultSearchBaase line must appear prior to "
@@ -377,10 +374,10 @@ read_config( const char *fname )
 
 			if ( default_search_nbase.bv_len ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
 					"default search base \"%s\" already defined "
 					"(discarding old)\n", fname, lineno,
-					default_search_base.bv_val ));
+					default_search_base.bv_val );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"default search base \"%s\" already defined "
@@ -406,9 +403,9 @@ read_config( const char *fname )
 
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					LDAP_LOG( CONFIG, CRIT, 
 						"%s: line %d: defaultSearchBase DN is invalid.\n",
-						fname, lineno ));
+						fname, lineno, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
 						"%s: line %d: defaultSearchBase DN is invalid\n",
@@ -423,9 +420,9 @@ read_config( const char *fname )
 			int c;
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing count in \"threads <count>\" line\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing count in \"threads <count>\" line\n",
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing count in \"threads <count>\" line\n",
@@ -439,9 +436,9 @@ read_config( const char *fname )
 
 			if( c < 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: invalid level (%d) in \"threads <count>\""
-					   "line\n",fname, lineno, c ));
+					   "line\n", fname, lineno, c );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: invalid level (%d) in \"threads <count>\" line\n",
@@ -460,9 +457,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d missing file name in \"pidfile <file>\" line.\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d missing file name in \"pidfile <file>\" "
+					"line.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing file name in \"pidfile <file>\" line\n",
@@ -478,10 +475,10 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "argsfile" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: %d: missing file name in "
 					   "\"argsfile <file>\" line.\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing file name in \"argsfile <file>\" line\n",
@@ -497,10 +494,10 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "password-hash" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: missing hash in "
 					   "\"password-hash <hash>\" line.\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing hash in \"password-hash <hash>\" line\n",
@@ -511,9 +508,9 @@ read_config( const char *fname )
 			}
 			if ( default_passwd_hash != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: already set default password_hash!\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set default password_hash!\n",
@@ -526,9 +523,9 @@ read_config( const char *fname )
 
 			if ( lutil_passwd_scheme( cargv[1] ) == 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: password scheme \"%s\" not available\n",
-					   fname, lineno, cargv[1] ));
+					   fname, lineno, cargv[1] );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: password scheme \"%s\" not available\n",
@@ -543,10 +540,10 @@ read_config( const char *fname )
 		{
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: missing format in "
 					"\"password-crypt-salt-format <format>\" line\n",
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: missing format in "
 					"\"password-crypt-salt-format <format>\" line\n",
@@ -570,10 +567,9 @@ read_config( const char *fname )
 			int err;
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: missing path in "
-					   "\"ucdata-path <path>\" line.\n",
-					   fname, lineno ));
+					   "\"ucdata-path <path>\" line.\n", fname, lineno, 0  );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing path in \"ucdata-path <path>\" line\n",
@@ -587,11 +583,10 @@ read_config( const char *fname )
 			if ( err <= 0 ) {
 				if ( err == 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					LDAP_LOG( CONFIG, CRIT, 
 						   "%s: line %d: ucdata already loaded, ucdata-path "
 						   "must be set earlier in the file and/or be "
-						   "specified only once!\n",
-						   fname, lineno ));
+						   "specified only once!\n", fname, lineno, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
 					       "%s: line %d: ucdata already loaded, ucdata-path must be set earlier in the file and/or be specified only once!\n",
@@ -609,9 +604,9 @@ read_config( const char *fname )
 			
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing limit in \"sizelimit <limit>\" line.\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+				   "%s: line %d: missing limit in \"sizelimit <limit>\" "
+				   "line.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing limit in \"sizelimit <limit>\" line\n",
@@ -637,12 +632,10 @@ read_config( const char *fname )
 
 				if ( rc ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						   "%s: line %d: unable "
-						   "to parse value \"%s\" "
-						   "in \"sizelimit "
-						   "<limit>\" line.\n",
-						   fname, lineno, cargv[i] ));
+					LDAP_LOG( CONFIG, CRIT, 
+					    	"%s: line %d: unable "
+						   "to parse value \"%s\" in \"sizelimit "
+						   "<limit>\" line.\n", fname, lineno, cargv[i] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 					    	"%s: line %d: unable "
@@ -661,9 +654,9 @@ read_config( const char *fname )
 			
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d missing limit in \"timelimit <limit>\" line.\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d missing limit in \"timelimit <limit>\" "
+					"line.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing limit in \"timelimit <limit>\" line\n",
@@ -689,12 +682,10 @@ read_config( const char *fname )
 
 				if ( rc ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						   "%s: line %d: unable "
-						   "to parse value \"%s\" "
-						   "in \"timelimit "
-						   "<limit>\" line.\n",
-						   fname, lineno, cargv[i] ));
+					LDAP_LOG( CONFIG, CRIT, 
+						    "%s: line %d: unable to parse value \"%s\" "
+						   "in \"timelimit <limit>\" line.\n",
+						   fname, lineno, cargv[i] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 						"%s: line %d: unable "
@@ -710,9 +701,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "limits" ) == 0 ) {
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_WARNING,
-					   "%s: line %d \"limits\" allowed only in database environment.\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, WARNING, 
+					   "%s: line %d \"limits\" allowed only in database "
+					   "environment.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	"%s: line %d \"limits\" allowed only in database environment.\n%s",
@@ -729,9 +720,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "subordinate" ) == 0 ) {
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
 					"subordinate keyword must appear inside a database "
-					"definition.\n", fname, lineno ));
+					"definition.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix line "
 					"must appear inside a database definition.\n",
@@ -751,9 +742,9 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: missing dn in \"suffix <dn>\" line.\n",
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"missing dn in \"suffix <dn>\" line\n",
@@ -764,9 +755,9 @@ read_config( const char *fname )
 
 			} else if ( cargc > 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: extra cruft after <dn> in \"suffix %s\""
-					" line (ignored).\n", fname, lineno, cargv[1] ));
+					" line (ignored).\n", fname, lineno, cargv[1] );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: extra cruft "
 					"after <dn> in \"suffix %s\" line (ignored)\n",
@@ -776,9 +767,9 @@ read_config( const char *fname )
 
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: suffix line must appear inside a database "
-					"definition.\n", fname, lineno ));
+					"definition.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix line "
 					"must appear inside a database definition\n",
@@ -790,9 +781,9 @@ read_config( const char *fname )
 			/* "cn=Monitor" is reserved for monitoring slap */
 			} else if ( strcasecmp( cargv[1], SLAPD_MONITOR_DN ) == 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: \""
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: \""
 					SLAPD_MONITOR_DN "\" is reserved for monitoring slapd\n", 
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: \""
 					SLAPD_MONITOR_DN "\" is reserved for monitoring slapd\n", 
@@ -810,9 +801,9 @@ read_config( const char *fname )
 			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: suffix DN is invalid.\n",
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffix DN is invalid\n",
@@ -824,9 +815,9 @@ read_config( const char *fname )
 			tmp_be = select_backend( &ndn, 0, 0 );
 			if ( tmp_be == be ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: suffix already served by this backend "
-					"(ignored)\n", fname, lineno ));
+					"(ignored)\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix "
 					"already served by this backend (ignored)\n",
@@ -837,10 +828,10 @@ read_config( const char *fname )
 
 			} else if ( tmp_be  != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: suffix already served by a preceding "
 					"backend \"%s\"\n", fname, lineno,
-					tmp_be->be_suffix[0].bv_val ));
+					tmp_be->be_suffix[0].bv_val );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: suffix "
 					"already served by a preceeding backend \"%s\"\n",
@@ -852,10 +843,10 @@ read_config( const char *fname )
 
 			} else if( pdn.bv_len == 0 && default_search_nbase.bv_len ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+					LDAP_LOG( CONFIG, INFO, 
 						"%s: line %d: suffix DN empty and default search "
 						"base provided \"%s\" (assuming okay).\n",
-						fname, lineno, default_search_base.bv_val ));
+						fname, lineno, default_search_base.bv_val );
 #else
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"suffix DN empty and default "
@@ -875,10 +866,10 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: missing alias and aliased_dn in "
 					"\"suffixAlias <alias> <aliased_dn>\" line.\n",
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: missing alias and aliased_dn in "
@@ -889,10 +880,10 @@ read_config( const char *fname )
 				return( 1 );
 			} else if ( cargc < 3 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: missing aliased_dn in "
 					"\"suffixAlias <alias> <aliased_dn>\" line\n",
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: missing aliased_dn in "
@@ -903,9 +894,9 @@ read_config( const char *fname )
 
 			} else if ( cargc > 3 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: extra cruft in suffixAlias line (ignored)\n",
-					fname, lineno ));
+					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: extra cruft in suffixAlias line (ignored)\n",
@@ -915,9 +906,9 @@ read_config( const char *fname )
 
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					"%s: line %d: suffixAlias line must appear inside a "
-					"database definition.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: suffix line must appear inside a database "
+					"definition.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias line"
@@ -935,9 +926,8 @@ read_config( const char *fname )
 			rc = dnPrettyNormal( NULL, &alias, &palias, &nalias );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					"%s: line %d: alias DN is invalid.\n",
-					fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: alias DN is invalid.\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: alias DN is invalid\n",
@@ -950,10 +940,10 @@ read_config( const char *fname )
 			free( nalias.bv_val );
 			if ( tmp_be && tmp_be != be ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: suffixAlias served by a preceeding "
-					"backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0].bv_val ));
+					"backend \"%s\"\n", fname, lineno, 
+					tmp_be->be_suffix[0].bv_val );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias served by"
@@ -970,9 +960,8 @@ read_config( const char *fname )
 			rc = dnPrettyNormal( NULL, &aliased, &paliased, &naliased );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					"%s: line %d: aliased DN is invalid.\n",
-					fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: aliased DN is invalid.\n", fname, lineno,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: aliased DN is invalid\n",
@@ -986,10 +975,10 @@ read_config( const char *fname )
 			free( naliased.bv_val );
 			if ( tmp_be && tmp_be != be ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: suffixAlias derefs to a different backend "
 					"a preceeding backend \"%s\"\n",
-					fname, lineno, tmp_be->be_suffix[0].bv_val ));
+					fname, lineno, tmp_be->be_suffix[0].bv_val );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: suffixAlias derefs to differnet backend"
@@ -1009,9 +998,9 @@ read_config( const char *fname )
 					int i;
                        if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-			       LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+			       LDAP_LOG( CONFIG, CRIT, 
 					  "%s: line %d: missing depth in \"maxDerefDepth <depth>\""
-					  " line\n", fname, lineno ));
+					  " line\n", fname, lineno, 0 );
 #else
                                Debug( LDAP_DEBUG_ANY,
                    "%s: line %d: missing depth in \"maxDerefDepth <depth>\" line\n",
@@ -1022,9 +1011,9 @@ read_config( const char *fname )
                        }
                        if ( be == NULL ) {
 #ifdef NEW_LOGGING
-			       LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+			       LDAP_LOG( CONFIG, INFO, 
 					  "%s: line %d: depth line must appear inside a database "
-					  "definition.\n", fname, lineno ));
+					  "definition.\n", fname, lineno ,0 );
 #else
                                Debug( LDAP_DEBUG_ANY,
 "%s: line %d: depth line must appear inside a database definition.\n",
@@ -1034,9 +1023,9 @@ read_config( const char *fname )
 
                        } else if ((i = atoi(cargv[1])) < 0) {
 #ifdef NEW_LOGGING
-			       LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+			       LDAP_LOG( CONFIG, INFO, 
 					  "%s: line %d: depth must be positive.\n",
-					  fname, lineno ));
+					  fname, lineno ,0 );
 #else
                                Debug( LDAP_DEBUG_ANY,
 "%s: line %d: depth must be positive.\n",
@@ -1054,9 +1043,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "rootdn" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					   "%s: line %d: missing dn in \"rootdn <dn>\" line.\n",
-					   fname, lineno ));
+					   fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing dn in \"rootdn <dn>\" line\n",
@@ -1068,9 +1057,9 @@ read_config( const char *fname )
 
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					   "%s: line %d: rootdn line must appear inside a database "
-					   "definition.\n", fname, lineno ));
+					   "definition.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: rootdn line must appear inside a database definition.\n",
@@ -1092,9 +1081,9 @@ read_config( const char *fname )
 
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						"%s: line %d: rootdn DN is invalid.\n",
-						fname, lineno ));
+					LDAP_LOG( CONFIG, CRIT, 
+						"%s: line %d: rootdn DN is invalid.\n", 
+						fname, lineno ,0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
 						"%s: line %d: rootdn DN is invalid\n",
@@ -1108,9 +1097,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "rootpw" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					"%s: line %d: missing passwd in \"rootpw <passwd>\""
-					" line\n", fname, lineno ));
+					" line\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"missing passwd in \"rootpw <passwd>\" line\n",
@@ -1122,9 +1111,9 @@ read_config( const char *fname )
 
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
 					"rootpw line must appear inside a database "
-					"definition.\n", fname, lineno ));
+					"definition.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"rootpw line must appear inside a database "
@@ -1138,10 +1127,10 @@ read_config( const char *fname )
 
 				if( tmp_be != be ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+					LDAP_LOG( CONFIG, INFO,
 						"%s: line %d: "
-						"rootpw can only be set when rootdn is under suffix\n"
-						fname, lineno ));
+						"rootpw can only be set when rootdn is under suffix\n",
+						fname, lineno, "" );
 #else
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"rootpw can only be set when rootdn is under suffix\n",
@@ -1158,9 +1147,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "readonly" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing on|off in \"readonly <on|off>\" line.\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing on|off in \"readonly <on|off>\" "
+					"line.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing on|off in \"readonly <on|off>\" line\n",
@@ -1192,9 +1181,9 @@ read_config( const char *fname )
 
 			if ( be != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					   "%s: line %d: allow line must appear prior to "
-					   "database definitions.\n", fname, lineno ));
+					   "database definitions.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: allow line must appear prior to database definitions\n",
@@ -1205,9 +1194,9 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: missing feature(s) in \"allow <features>\""
-					   " line\n", fname, lineno ));
+					   " line\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing feature(s) in \"allow <features>\" line\n",
@@ -1231,10 +1220,10 @@ read_config( const char *fname )
 
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					LDAP_LOG( CONFIG, CRIT, 
 						   "%s: line %d: unknown feature %s in "
 						   "\"allow <features>\" line.\n",
-						   fname, lineno, cargv[1] ));
+						   fname, lineno, cargv[1] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: unknown feature %s in \"allow <features>\" line\n",
@@ -1255,9 +1244,9 @@ read_config( const char *fname )
 
 			if ( be != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+				LDAP_LOG( CONFIG, INFO, 
 					   "%s: line %d: disallow line must appear prior to "
-					   "database definitions.\n", fname, lineno ));
+					   "database definitions.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: disallow line must appear prior to database definitions\n",
@@ -1268,9 +1257,9 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing feature(s) in \"disallow <features>\""
-					   " line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing feature(s) in \"disallow <features>\""
+					" line.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing feature(s) in \"disallow <features>\" line\n",
@@ -1303,10 +1292,10 @@ read_config( const char *fname )
 
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					LDAP_LOG( CONFIG, CRIT, 
 						"%s: line %d: unknown feature %s in "
 						"\"disallow <features>\" line.\n",
-						fname, lineno, cargv[i] ));
+						fname, lineno, cargv[i] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: unknown feature %s in \"disallow <features>\" line\n",
@@ -1327,9 +1316,9 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: missing feature(s) in "
-					   "\"require <features>\" line.\n", fname, lineno ));
+					   "\"require <features>\" line.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing feature(s) in \"require <features>\" line\n",
@@ -1359,10 +1348,10 @@ read_config( const char *fname )
 
 				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					LDAP_LOG( CONFIG, CRIT, 
 						   "%s: line %d: unknown feature %s in "
-						   "\"require <features>\" line.\n",
-						   fname, lineno ));
+						   "\"require <features>\" line.\n", 
+						   fname, lineno , cargv[i] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: unknown feature %s in \"require <features>\" line\n",
@@ -1385,9 +1374,9 @@ read_config( const char *fname )
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing factor(s) in \"security <factors>\""
-					   " line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing factor(s) in \"security <factors>\""
+					" line.\n", fname, lineno ,0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing factor(s) in \"security <factors>\" line\n",
@@ -1454,10 +1443,10 @@ read_config( const char *fname )
 
 				} else {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					LDAP_LOG( CONFIG, CRIT, 
 						   "%s: line %d: unknown factor %S in "
 						   "\"security <factors>\" line.\n",
-						   fname, lineno, cargv[1] ));
+						   fname, lineno, cargv[1] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: unknown factor %s in \"security <factors>\" line\n",
@@ -1471,9 +1460,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "referral" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing URL in \"referral <URL>\""
-					   " line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing URL in \"referral <URL>\""
+					" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing URL in \"referral <URL>\" line\n",
@@ -1485,9 +1474,9 @@ read_config( const char *fname )
 
 			if( validate_global_referral( cargv[1] ) ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
-					"invalid URL (%s) in \"referral\" line.\n",
-					fname, lineno, cargv[1] ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: invalid URL (%s) in \"referral\" line.\n",
+					fname, lineno, cargv[1]  );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"invalid URL (%s) in \"referral\" line.\n",
@@ -1505,9 +1494,9 @@ read_config( const char *fname )
                         FILE *logfile;
                         if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: Error in logfile directive, "
-					   "\"logfile <filename>\"\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: Error in logfile directive, "
+					"\"logfile <filename>\"\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 				       "%s: line %d: Error in logfile directive, \"logfile filename\"\n",
@@ -1517,7 +1506,7 @@ read_config( const char *fname )
 				return( 1 );
                         }
                         logfile = fopen( cargv[1], "w" );
-                        if ( logfile != NULL ) lutil_debug_file( logfile );
+                        if ( logfile != NULL ) lutil_debug_file( logfile  );
 
 #endif
 		/* start of a new database definition */
@@ -1525,9 +1514,9 @@ read_config( const char *fname )
                         int level;
 			if ( cargc < 3 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: Error in debug directive, "
-					   "\"debug <subsys> <level>\"\n", fname, lineno ));
+					   "\"debug <subsys> <level>\"\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: Error in debug directive, \"debug subsys level\"\n",
@@ -1554,9 +1543,9 @@ read_config( const char *fname )
 
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: old objectclass format not supported\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: old objectclass format not supported\n",
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 				       "%s: line %d: old objectclass format not supported.\n",
@@ -1576,9 +1565,9 @@ read_config( const char *fname )
 
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: old attribute type format not supported.\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: old attribute type format not supported.\n",
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: old attribute type format not supported.\n",
@@ -1591,10 +1580,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "schemacheck" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing on|off in "
-					   "\"schemacheck <on|off>\" line.\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing on|off in \"schemacheck <on|off>\""
+					" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: missing on|off in \"schemacheck <on|off>\" line\n",
@@ -1605,9 +1593,9 @@ read_config( const char *fname )
 			}
 			if ( strcasecmp( cargv[1], "off" ) == 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					"%s: line %d: schema checking disabled! your mileage may vary!\n",
-					fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: schema checking disabled! your mileage may "
+					"vary!\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: schema checking disabled! your mileage may vary!\n",
@@ -1626,9 +1614,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "loglevel" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing level in \"loglevel <level>\""
-					   " line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing level in \"loglevel <level>\""
+					" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing level in \"loglevel <level>\" line\n",
@@ -1648,9 +1636,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing host in \"replica "
-					   " <host[:port]\" line\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing host in \"replica "
+					" <host[:port]\" line\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing host in \"replica <host[:port]>\" line\n",
@@ -1661,9 +1649,9 @@ read_config( const char *fname )
 			}
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: replica line must appear inside "
-					   "a database definition.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, INFO, 
+					    "%s: line %d: replica line must appear inside "
+					    "a database definition.\n", fname, lineno, 0);
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: replica line must appear inside a database definition\n",
@@ -1684,9 +1672,9 @@ read_config( const char *fname )
 				}
 				if ( i == cargc ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-						"%s: line %d: missing host in \"replica\" line\n",
-						fname, lineno ));
+					LDAP_LOG( CONFIG, INFO, 
+						"%s: line %d: missing host in \"replica\" line\n", 
+						fname, lineno , 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing host in \"replica\" line\n",
@@ -1696,11 +1684,11 @@ read_config( const char *fname )
 
 				} else if ( nr == -1 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+					LDAP_LOG( CONFIG, INFO, 
 						   "%s: line %d: unable to add"
-				 		   " replica \"%s\"\n",
+						   " replica \"%s\"\n",
 						   fname, lineno, 
-						   cargv[i] + 5 ));
+						   cargv[i] + 5 );
 #else
 					Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: unable to add replica \"%s\"\n",
@@ -1714,9 +1702,10 @@ read_config( const char *fname )
 							switch ( add_replica_suffix( be, nr, cargv[i] + 7 ) ) {
 							case 1:
 #ifdef NEW_LOGGING
-								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-										"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
-										fname, lineno, cargv[i] + 7 ));
+								LDAP_LOG( CONFIG, INFO, 
+									"%s: line %d: suffix \"%s\" in \"replica\""
+									" line is not valid for backend(ignored)\n",
+									fname, lineno, cargv[i] + 7 );
 #else
 								Debug( LDAP_DEBUG_ANY,
 										"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
@@ -1726,9 +1715,10 @@ read_config( const char *fname )
 
 							case 2:
 #ifdef NEW_LOGGING
-								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-											"%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
-											fname, lineno ));
+								LDAP_LOG( CONFIG, INFO, 
+									"%s: line %d: unable to normalize suffix"
+								   	" in \"replica\" line (ignored)\n",
+									fname, lineno , 0 );
 #else
 								Debug( LDAP_DEBUG_ANY,
 										 "%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
@@ -1752,9 +1742,10 @@ read_config( const char *fname )
 
 							if ( add_replica_attrs( be, nr, arg + 1, exclude ) ) {
 #ifdef NEW_LOGGING
-								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-										"%s: line %d: attribute \"%s\" in \"replica\" line is unknown\n",
-										fname, lineno, arg + 1 ));
+								LDAP_LOG( CONFIG, INFO, 
+									"%s: line %d: attribute \"%s\" in "
+									"\"replica\" line is unknown\n",
+									fname, lineno, arg + 1 ); 
 #else
 								Debug( LDAP_DEBUG_ANY,
 										"%s: line %d: attribute \"%s\" in \"replica\" line is unknown\n",
@@ -1771,9 +1762,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "updatedn" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing dn in \"updatedn <dn>\""
-					   " line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing dn in \"updatedn <dn>\""
+					" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing dn in \"updatedn <dn>\" line\n",
@@ -1784,10 +1775,10 @@ read_config( const char *fname )
 			}
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: updatedn line must appear inside "
-					   "a database definition\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: updatedn line must appear inside "
+					"a database definition\n", 
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: updatedn line must appear inside a database definition\n",
@@ -1806,9 +1797,9 @@ read_config( const char *fname )
 				rc = dnNormalize2( NULL, &dn, &be->be_update_ndn );
 				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					LDAP_LOG( CONFIG, CRIT, 
 						"%s: line %d: updatedn DN is invalid.\n",
-						fname, lineno ));
+						fname, lineno , 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
 						"%s: line %d: updatedn DN is invalid\n",
@@ -1821,9 +1812,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 					"missing url in \"updateref <ldapurl>\" line.\n",
-					fname, lineno ));
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"missing url in \"updateref <ldapurl>\" line\n",
@@ -1834,9 +1825,9 @@ read_config( const char *fname )
 			}
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: updateref"
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: updateref"
 					" line must appear inside a database definition\n",
-					fname, lineno ));
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: updateref"
 					" line must appear inside a database definition\n",
@@ -1846,9 +1837,9 @@ read_config( const char *fname )
 
 			} else if ( !be->be_update_ndn.bv_len ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
 					"updateref line must come after updatedn.\n",
-					fname, lineno ));
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"updateref line must after updatedn.\n",
@@ -1859,9 +1850,9 @@ read_config( const char *fname )
 
 			if( validate_global_referral( cargv[1] ) ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 					"invalid URL (%s) in \"updateref\" line.\n",
-					fname, lineno, cargv[1] ));
+					fname, lineno, cargv[1] );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"invalid URL (%s) in \"updateref\" line.\n",
@@ -1878,9 +1869,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "replogfile" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing filename in \"replogfile <filename>\""
-					   " line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing filename in \"replogfile <filename>\""
+					" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing filename in \"replogfile <filename>\" line\n",
@@ -1899,9 +1890,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "rootDSE" ) == 0) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 					"missing filename in \"rootDSE <filename>\" line.\n",
-					fname, lineno ));
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"missing filename in \"rootDSE <filename>\" line.\n",
@@ -1912,9 +1903,9 @@ read_config( const char *fname )
 
 			if( read_root_dse_file( cargv[1] ) ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 					"could not read \"rootDSE <filename>\" line.\n",
-					fname, lineno ));
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 					"could not read \"rootDSE <filename>\" line\n",
@@ -1927,9 +1918,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "lastmod" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT, 
 					   "%s: line %d: missing on|off in \"lastmod <on|off>\""
-					   " line.\n", fname, lineno ));
+					   " line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing on|off in \"lastmod <on|off>\" line\n",
@@ -1973,9 +1964,9 @@ read_config( const char *fname )
 			int i;
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing timeout value in "
-					   "\"idletimeout <seconds>\" line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing timeout value in "
+					"\"idletimeout <seconds>\" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing timeout value in \"idletimeout <seconds>\" line\n",
@@ -1989,10 +1980,9 @@ read_config( const char *fname )
 
 			if( i < 0 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: timeout value (%d) invalid "
-					   "\"idletimeout <seconds>\" line.\n",
-					   fname, lineno, i ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: timeout value (%d) invalid "
+					"\"idletimeout <seconds>\" line.\n", fname, lineno, i );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: timeout value (%d) invalid \"idletimeout <seconds>\" line\n",
@@ -2008,9 +1998,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "include" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing filename in \"include "
-					   "<filename>\" line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing filename in \"include "
+					"<filename>\" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: missing filename in \"include <filename>\" line\n",
@@ -2033,9 +2023,9 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "srvtab" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing filename in \"srvtab "
-					   "<filename>\" line.\n", fname, lineno ));
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing filename in \"srvtab "
+					"<filename>\" line.\n", fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing filename in \"srvtab <filename>\" line\n",
@@ -2050,9 +2040,9 @@ read_config( const char *fname )
                 } else if (strcasecmp( cargv[0], "moduleload") == 0 ) {
                    if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-			   LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-				      "%s: line %d: missing filename in \"moduleload "
-				      "<filename>\" line.\n", fname, lineno ));
+			   LDAP_LOG( CONFIG, INFO, 
+				   "%s: line %d: missing filename in \"moduleload "
+				   "<filename>\" line.\n", fname, lineno , 0 );
 #else
                       Debug( LDAP_DEBUG_ANY,
                              "%s: line %d: missing filename in \"moduleload <filename>\" line\n",
@@ -2063,9 +2053,9 @@ read_config( const char *fname )
                    }
                    if (module_load(cargv[1], cargc - 2, (cargc > 2) ? cargv + 2 : NULL)) {
 #ifdef NEW_LOGGING
-			   LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-				      "%s: line %d: failed to load or initialize module %s\n",
-				      fname, lineno, cargv[1] ));
+			   LDAP_LOG( CONFIG, CRIT, 
+				   "%s: line %d: failed to load or initialize module %s\n",
+				   fname, lineno, cargv[1] );
 #else
                       Debug( LDAP_DEBUG_ANY,
                              "%s: line %d: failed to load or initialize module %s\n",
@@ -2077,9 +2067,9 @@ read_config( const char *fname )
                 } else if (strcasecmp( cargv[0], "modulepath") == 0 ) {
                    if ( cargc != 2 ) {
 #ifdef NEW_LOGGING
-			   LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-				      "%s: line %d: missing path in \"modulepath <path>\""
-				      " line\n", fname, lineno ));
+			   LDAP_LOG( CONFIG, INFO, 
+				  "%s: line %d: missing path in \"modulepath <path>\""
+				  " line\n", fname, lineno , 0 );
 #else
                       Debug( LDAP_DEBUG_ANY,
                              "%s: line %d: missing path in \"modulepath <path>\" line\n",
@@ -2090,9 +2080,9 @@ read_config( const char *fname )
                    }
                    if (module_path( cargv[1] )) {
 #ifdef NEW_LOGGING
-			   LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-				      "%s: line %d: failed to set module search path to %s.\n",
-				      fname, lineno, cargv[1] ));
+			   LDAP_LOG( CONFIG, CRIT, 
+				  "%s: line %d: failed to set module search path to %s.\n",
+				  fname, lineno, cargv[1] );
 #else
 			   Debug( LDAP_DEBUG_ANY,
 				  "%s: line %d: failed to set module search path to %s\n",
@@ -2167,10 +2157,9 @@ read_config( const char *fname )
 #ifdef SLAPD_RLOOKUPS
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: reverse-lookup: "
-					   "missing \"on\" or \"off\"\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: reverse-lookup: missing \"on\" or \"off\"\n",
+					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: reverse-lookup: missing \"on\" or \"off\"\n",
@@ -2185,11 +2174,9 @@ read_config( const char *fname )
 				use_reverse_lookup = 0;
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: reverse-lookup: "
-					   "must be \"on\" (default) "
-					   "or \"off\"\n",
-					   fname, lineno ));
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: reverse-lookup: "
+					"must be \"on\" (default) or \"off\"\n", fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: reverse-lookup: must be \"on\" (default) or \"off\"\n",
@@ -2200,10 +2187,9 @@ read_config( const char *fname )
 
 #else /* !SLAPD_RLOOKUPS */
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-				   "%s: line %d: reverse lookups "
-				   "are not configured (ignored).\n",
-				   fname, lineno ));
+			LDAP_LOG( CONFIG, INFO, 
+				"%s: line %d: reverse lookups "
+				"are not configured (ignored).\n", fname, lineno , 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 "%s: line %d: reverse lookups are not configured (ignored).\n",
@@ -2216,10 +2202,10 @@ read_config( const char *fname )
 			if ( bi != NULL ) {
 				if ( bi->bi_config == 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-						   "%s: line %d: unknown directive \"%s\" inside "
-						   "backend info definition (ignored).\n",
-						   fname, lineno, cargv[0] ));
+					LDAP_LOG( CONFIG, INFO, 
+						"%s: line %d: unknown directive \"%s\" inside "
+						"backend info definition (ignored).\n",
+						fname, lineno, cargv[0] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: unknown directive \"%s\" inside backend info definition (ignored)\n",
@@ -2236,10 +2222,10 @@ read_config( const char *fname )
 			} else if ( be != NULL ) {
 				if ( be->be_config == 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-						   "%s: line %d: uknown directive \"%s\" inside "
-						   "backend database definition (ignored).\n",
-						   fname, lineno, cargv[0] ));
+					LDAP_LOG( CONFIG, INFO, 
+						"%s: line %d: uknown directive \"%s\" inside "
+						"backend database definition (ignored).\n",
+						fname, lineno, cargv[0] );
 #else
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: unknown directive \"%s\" inside backend database definition (ignored)\n",
@@ -2255,10 +2241,10 @@ read_config( const char *fname )
 				}
 			} else {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: unknown directive \"%s\" outside backend "
-					   "info and database definitions (ignored).\n",
-					   fname, lineno, cargv[0] ));
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: unknown directive \"%s\" outside backend "
+					"info and database definitions (ignored).\n",
+					fname, lineno, cargv[0] );
 #else
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: unknown directive \"%s\" outside backend info and database definitions (ignored)\n",
@@ -2299,8 +2285,7 @@ fp_parse_line(
 	if ( strtok_quote_ptr )
 		*strtok_quote_ptr = ' ';
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "config", LDAP_LEVEL_DETAIL1,
-		   "line %d (%s)\n", lineno, logline ));
+	LDAP_LOG( CONFIG, DETAIL1, "line %d (%s)\n", lineno, logline , 0 );
 #else
 	Debug( LDAP_DEBUG_CONFIG, "line %d (%s)\n", lineno, logline, 0 );
 #endif
@@ -2314,9 +2299,7 @@ fp_parse_line(
 			                    sizeof(*cargv) );
 			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_ERR,
-					   "line %d: out of memory\n", 
-					   lineno ));
+				LDAP_LOG( CONFIG, ERR, "line %d: out of memory\n", lineno, 0,0 );
 #else
 				Debug( LDAP_DEBUG_ANY, 
 						"line %d: out of memory\n", 
@@ -2469,8 +2452,8 @@ load_ucdata( char *path )
 	err = ucdata_load( path ? path : SLAPD_DEFAULT_UCDATA, UCDATA_ALL );
 	if ( err ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-			   "load_ucdata: Error %d loading ucdata.\n", err ));
+		LDAP_LOG( CONFIG, CRIT, 
+			"load_ucdata: Error %d loading ucdata.\n", err, 0,0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "error loading ucdata (error %d)\n",
 		       err, 0, 0 );

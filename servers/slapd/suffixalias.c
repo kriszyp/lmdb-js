@@ -65,9 +65,9 @@ void suffix_alias(
 			strncpy( dn->bv_val, oldDN, diff );
 			strcpy( &dn->bv_val[diff], be->be_suffixAlias[i+1].bv_val );
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "suffix_alias: converted \"%s\" to \"%s\"\n",
-				   oldDN, dn->bv_val ));
+			LDAP_LOG( OPERATION, INFO, 
+				"suffix_alias: converted \"%s\" to \"%s\"\n",
+				oldDN, dn->bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ARGS,
 				"suffix_alias: converted \"%s\" to \"%s\"\n",

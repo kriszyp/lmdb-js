@@ -51,8 +51,8 @@ bdb_exop_passwd(
 		&id, NULL, &new, text );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "passwd", LDAP_LEVEL_ENTRY, "==>bdb_exop_passwd: \"%s\"\n",
-		id.bv_val ? id.bv_val : "" ));
+	LDAP_LOG ( ACL, ENTRY, 
+		"==>bdb_exop_passwd: \"%s\"\n", id.bv_val ? id.bv_val : "", 0, 0  );
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_exop_passwd: \"%s\"\n",
 		id.bv_val ? id.bv_val : "", 0, 0 );
@@ -89,8 +89,8 @@ bdb_exop_passwd(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "passwd", LDAP_LEVEL_DETAIL1, "bdb_exop_passwd: \"%s\"%s\"\n",
-		dn.bv_val, id.bv_len ? " (proxy)" : "" ));
+	LDAP_LOG ( ACL, DETAIL1, "bdb_exop_passwd: \"%s\"%s\"\n",
+		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: \"%s\"%s\n",
 		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
@@ -115,7 +115,7 @@ retry:	/* transaction retry */
 			bdb_cache_return_entry_w(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "passwd", LDAP_LEVEL_DETAIL1, "bdb_exop_passwd: retrying...\n" ));
+		LDAP_LOG ( ACL, DETAIL1, "bdb_exop_passwd: retrying...\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: retrying...\n", 0, 0, 0 );
 #endif
@@ -136,7 +136,9 @@ retry:	/* transaction retry */
 	*text = NULL;
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "passwd", LDAP_LEVEL_ERR, "bdb_exop_passwd: txn_begin failed: %s (%d)\n", db_strerror(rc), rc ));
+		LDAP_LOG ( ACL, ERR, 
+			"bdb_exop_passwd: txn_begin failed: %s (%d)\n", 
+			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_exop_passwd: txn_begin failed: %s (%d)\n",

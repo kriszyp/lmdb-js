@@ -157,8 +157,8 @@ monitor_back_search(
 	int		nentries = 0;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "monitor_back_search: enter\n" ));
+	LDAP_LOG( BACK_MON, ENTRY,
+		   "monitor_back_search: enter\n", 0, 0, 0 );
 #else
 	Debug(LDAP_DEBUG_TRACE, "=> monitor_back_search\n%s%s%s", "", "", "");
 #endif

@@ -103,17 +103,15 @@ do_extended(
 	LDAPControl **rspctrls;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"do_extended: conn %d\n", conn->c_connid ));
+	LDAP_LOG( OPERATION, ENTRY, "do_extended: conn %d\n", conn->c_connid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 #endif
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_extended: protocol version (%d) too low.\n",
-			op->o_protocol ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_extended: protocol version (%d) too low.\n", op->o_protocol, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_extended: protocol version (%d) too low\n",
@@ -127,8 +125,8 @@ do_extended(
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &reqoid ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, "do_extended: conn %d  ber_scanf failed\n", 
+			conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
@@ -140,9 +138,9 @@ do_extended(
 
 	if( !(ext = find_extop(supp_ext_list, &reqoid)) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+		LDAP_LOG( OPERATION, ERR, 
 			"do_extended: conn %d  unsupported operation \"%s\"\n",
-			conn->c_connid, reqoid.bv_val ));
+			conn->c_connid, reqoid.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
 			reqoid.bv_val, 0 ,0 );
@@ -157,8 +155,9 @@ do_extended(
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
 		if( ber_scanf( op->o_ber, "m", &reqdata ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				"do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
+			LDAP_LOG( OPERATION, ERR, 
+				"do_extended: conn %d  ber_scanf failed\n", 
+				conn->c_connid, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 #endif
@@ -171,8 +170,8 @@ do_extended(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_extended: conn %d  get_ctrls failed\n", conn->c_connid ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_extended: conn %d  get_ctrls failed\n", conn->c_connid, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: get_ctrls failed\n", 0, 0 ,0 );
 #endif
@@ -189,8 +188,8 @@ do_extended(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		"do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid.bv_val ));
+	LDAP_LOG( OPERATION, DETAIL1, 
+		"do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid.bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", reqoid.bv_val, 0 ,0 );
 #endif

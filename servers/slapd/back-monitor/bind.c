@@ -60,8 +60,8 @@ monitor_back_bind(
 #endif
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		"monitor_back_bind: dn: %s.\n", dn->bv_val ));
+	LDAP_LOG( BACK_MON, ENTRY,
+		"monitor_back_bind: dn: %s.\n", dn->bv_val, 0, 0 );
 #else
 	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n%s%s", 
 			dn->bv_val, "", "");

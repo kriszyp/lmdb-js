@@ -126,9 +126,8 @@ ID bdb_tool_entry_put(
 	assert( text->bv_val[0] == '\0' );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "tools", LDAP_LEVEL_ARGS,
-		"=> bdb_tool_entry_put( %ld, \"%s\" )\n",
-		(long) e->e_id, e->e_dn ));
+	LDAP_LOG ( TOOLS, ARGS, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
+		(long) e->e_id, e->e_dn, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
 		(long) e->e_id, e->e_dn, 0 );
@@ -141,8 +140,7 @@ ID bdb_tool_entry_put(
 			"txn_begin failed: %s (%d)",
 			db_strerror(rc), rc );
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-		"=> bdb_tool_entry_put: %s\n", text->bv_val ));
+	LDAP_LOG ( TOOLS, ERR, "=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: %s\n",
@@ -157,8 +155,8 @@ ID bdb_tool_entry_put(
 				"next_id failed: %s (%d)",
 				db_strerror(rc), rc );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val ));
+		LDAP_LOG ( TOOLS, ERR, 
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
@@ -178,8 +176,8 @@ ID bdb_tool_entry_put(
 				"dn2id_add failed: %s (%d)",
 				db_strerror(rc), rc );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val ));
+		LDAP_LOG ( TOOLS, ERR, 
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
@@ -194,8 +192,8 @@ ID bdb_tool_entry_put(
 				"id2entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val ));
+		LDAP_LOG ( TOOLS, ERR, 
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
@@ -209,8 +207,8 @@ ID bdb_tool_entry_put(
 				"index_entry_add failed: %s (%d)",
 				db_strerror(rc), rc );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val ));
+		LDAP_LOG ( TOOLS, ERR, 
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
@@ -226,8 +224,8 @@ done:
 					"txn_commit failed: %s (%d)",
 					db_strerror(rc), rc );
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-				"=> bdb_tool_entry_put: %s\n", text->bv_val ));
+			LDAP_LOG ( TOOLS, ERR, 
+				"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_tool_entry_put: %s\n",
@@ -242,8 +240,8 @@ done:
 			"txn_aborted! %s (%d)",
 			db_strerror(rc), rc );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val ));
+		LDAP_LOG ( TOOLS, ERR, 
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_put: %s\n",
@@ -266,8 +264,8 @@ int bdb_tool_entry_reindex(
 	struct berval pdn;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "tools", LDAP_LEVEL_ARGS,
-		"=> bdb_tool_entry_reindex( %ld )\n", (long) id ));
+	LDAP_LOG ( TOOLS, ARGS, 
+		"=> bdb_tool_entry_reindex( %ld )\n", (long) id, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "=> bdb_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
@@ -277,9 +275,9 @@ int bdb_tool_entry_reindex(
 
 	if( e == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG ( TOOLS, DETAIL1, 
 			"bdb_tool_entry_reindex:: could not locate id=%ld\n", 
-			(long) id ));
+			(long) id, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_tool_entry_reindex:: could not locate id=%ld\n",
@@ -291,9 +289,9 @@ int bdb_tool_entry_reindex(
 	rc = TXN_BEGIN( bi->bi_dbenv, NULL, &tid, bi->bi_db_opflags );
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
+		LDAP_LOG ( TOOLS, ERR, 
 			"=> bdb_tool_entry_reindex: txn_begin failed: %s (%d)\n", 
-			db_strerror(rc), rc ));
+			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_reindex: txn_begin failed: %s (%d)\n",
@@ -310,9 +308,8 @@ int bdb_tool_entry_reindex(
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
-		"=> bdb_tool_entry_reindex( %ld, \"%s\" )\n", 
-			(long) id, e->e_dn ));
+	LDAP_LOG ( TOOLS, ERR, 
+		"=> bdb_tool_entry_reindex( %ld, \"%s\" )\n", (long) id, e->e_dn, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_reindex( %ld, \"%s\" )\n",
 		(long) id, e->e_dn, 0 );
@@ -327,9 +324,9 @@ int bdb_tool_entry_reindex(
 	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
+		LDAP_LOG ( TOOLS, ERR, 
 			"=> bdb_tool_entry_reindex: dn2id_add failed: %s (%d)\n", 
-			db_strerror(rc), rc ));
+			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_reindex: dn2id_add failed: %s (%d)\n",
@@ -345,9 +342,9 @@ done:
 		rc = TXN_COMMIT( tid, 0 );
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG (( "tools", LDAP_LEVEL_ERR,
+			LDAP_LOG ( TOOLS, ERR, 
 				"=> bdb_tool_entry_reindex: txn_commit failed: %s (%d)\n", 
-				db_strerror(rc), rc ));
+				db_strerror(rc), rc, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"=> bdb_tool_entry_reindex: txn_commit failed: %s (%d)\n",
@@ -359,9 +356,9 @@ done:
 	} else {
 		TXN_ABORT( tid );
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "tools", LDAP_LEVEL_DETAIL1,
+		LDAP_LOG ( TOOLS, DETAIL1, 
 			"=> bdb_tool_entry_reindex: txn_aborted! %s (%d)\n", 
-			db_strerror(rc), rc ));
+			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"=> bdb_tool_entry_reindex: txn_aborted! %s (%d)\n",

@@ -686,7 +686,7 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 	struct selectinfo	*sip;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "os-ip", LDAP_LEVEL_ENTRY, "ldap_int_select\n" ));
+	LDAP_LOG ( CONNECTION, ENTRY, "ldap_int_select\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
 #endif

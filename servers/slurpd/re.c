@@ -83,8 +83,8 @@ Re_free(
     }
     if ( re->re_refcnt > 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_WARNING, "Re_free: "
-		"Warning: freeing re (dn: %s) with nonzero refcnt\n", re->re_dn ));
+	LDAP_LOG ( SLURPD, WARNING, "Re_free: "
+		"Warning: freeing re (dn: %s) with nonzero refcnt\n", re->re_dn, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY,
 		"Warning: freeing re (dn: %s) with nonzero refcnt\n",
@@ -142,7 +142,7 @@ Re_parse(
 
     if ( re == NULL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_ERR, "Re_parse: Error: re is NULL\n" ));
+	LDAP_LOG ( SLURPD, ERR, "Re_parse: Error: re is NULL\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Re_parse: error: re is NULL\n", 0, 0, 0 );
 #endif
@@ -150,7 +150,7 @@ Re_parse(
     }
     if ( replbuf == NULL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_ERR, "Re_parse: Error: replbuf is NULL\n" ));
+	LDAP_LOG ( SLURPD, ERR, "Re_parse: Error: replbuf is NULL\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Re_parse: error: replbuf is NULL\n", 0, 0, 0 );
 #endif
@@ -179,8 +179,8 @@ Re_parse(
 	buflen = strlen( buf );
 	if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
-			"Re_parse: Error: malformed replog file\n" ));
+		LDAP_LOG ( SLURPD, ERR, 
+			"Re_parse: Error: malformed replog file\n", 0, 0, 0 );
 #else
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: Re_parse: malformed replog file\n",
@@ -213,8 +213,8 @@ Re_parse(
 	default:
 	    if ( !( state == GOT_ALL )) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
-			"Re_parse: Error: bad type <%s>\n", type ));
+		LDAP_LOG ( SLURPD, ERR, 
+			"Re_parse: Error: bad type <%s>\n", type, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: Re_parse: bad type <%s>\n",
@@ -233,8 +233,8 @@ Re_parse(
 
     if ( state != GOT_ALL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
-		"Re_parse: Error: malformed replog file\n" ));
+	LDAP_LOG ( SLURPD, ERR, 
+		"Re_parse: Error: malformed replog file\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: Re_parse: malformed replog file\n",
@@ -256,8 +256,8 @@ Re_parse(
 	} else {
 	    if ( ldif_parse_line( buf, &type, &value, &len ) < 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
-			"Re_parse: Error: malformed replog line \"%s\"\n", buf ));
+		LDAP_LOG ( SLURPD, ERR, 
+			"Re_parse: Error: malformed replog line \"%s\"\n", buf, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: malformed replog line \"%s\"\n",
@@ -375,8 +375,8 @@ get_repl_hosts(
 	rh = (Rh *) ch_realloc((char *) rh, ( nreplicas + 2 ) * sizeof( Rh ));
 	if ( rh == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
-			"get_repl_hosts: Out of memory\n" ));
+		LDAP_LOG ( SLURPD, ERR, 
+			"get_repl_hosts: Out of memory\n", 0, 0, 0 );
 #else
 	    Debug( LDAP_DEBUG_ANY, "Out of memory in get_repl_hosts\n",
 		    0, 0, 0 );
@@ -497,7 +497,7 @@ Re_dump(
 
     if ( re == NULL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_ERR, "Re_dump: re is NULL\n" ));
+	LDAP_LOG ( SLURPD, ERR, "Re_dump: re is NULL\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "Re_dump: re is NULL\n", 0, 0, 0 );
 #endif
@@ -567,8 +567,8 @@ Re_write(
 
     if ( re == NULL || fp == NULL ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
-		"Re_write: Internal error: NULL argument\n" ));
+	LDAP_LOG ( SLURPD, ERR, 
+		"Re_write: Internal error: NULL argument\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Internal error: Re_write: NULL argument\n",
 		0, 0, 0 );
@@ -661,8 +661,8 @@ Re_write(
 bad:
     if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_ERR, 
-		"Re_write: Error while writing: %s\n", sys_errlist[ errno ] ));
+	LDAP_LOG ( SLURPD, ERR, 
+		"Re_write: Error while writing: %s\n", sys_errlist[ errno ], 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY, "Error while writing: %s\n",
 		sys_errlist[ errno ], 0, 0 );
@@ -804,9 +804,9 @@ warn_unknown_replica(
     }
     if ( !found ) {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "re", LDAP_LEVEL_WARNING, "warn_unknown_replica: "
+	LDAP_LOG ( SLURPD, WARNING, "warn_unknown_replica: "
 		"Warning: unknown replica %s:%d found in replication log\n",
-		host, port ));
+		host, port, 0 );
 #else
 	Debug( LDAP_DEBUG_ANY,
 		"Warning: unknown replica %s:%d found in replication log\n",

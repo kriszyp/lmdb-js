@@ -50,8 +50,7 @@ do_modify(
 	int manageDSAit;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"do_modify: enter\n" ));
+	LDAP_LOG( OPERATION, ENTRY, "do_modify: enter\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 #endif
@@ -77,8 +76,7 @@ do_modify(
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modify: ber_scanf failed\n" ));
+		LDAP_LOG( OPERATION, ERR, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 #endif
@@ -89,8 +87,7 @@ do_modify(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-		   "do_modify: dn (%s)\n", dn.bv_val ));
+	LDAP_LOG( OPERATION, ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
@@ -128,9 +125,9 @@ do_modify(
 		case LDAP_MOD_ADD:
 			if ( mod->sml_bvalues == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+				LDAP_LOG( OPERATION, ERR, 
 					"do_modify: modify/add operation (%ld) requires values\n",
-					(long)mop ));
+					(long)mop, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: modify/add operation (%ld) requires values\n",
@@ -152,9 +149,8 @@ do_modify(
 
 		default: {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-					"do_modify: invalid modify operation (%ld)\n",
-					(long)mop ));
+				LDAP_LOG( OPERATION, ERR, 
+					"do_modify: invalid modify operation (%ld)\n", (long)mop, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"do_modify: invalid modify operation (%ld)\n",
@@ -174,8 +170,7 @@ do_modify(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modify: get_ctrls failed\n" ));
+		LDAP_LOG( OPERATION, ERR, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
 #endif
@@ -186,9 +181,8 @@ do_modify(
 	rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"do_modify: conn %d  invalid dn (%s)\n",
-			conn->c_connid, dn.bv_val ));
+		LDAP_LOG( OPERATION, INFO, "do_modify: conn %d  invalid dn (%s)\n",
+			conn->c_connid, dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"do_modify: invalid dn (%s)\n", dn.bv_val, 0, 0 );
@@ -200,8 +194,8 @@ do_modify(
 
 	if( ndn.bv_len == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modify: attempt to modify root DSE.\n" ));
+		LDAP_LOG( OPERATION, ERR, 
+			"do_modify: attempt to modify root DSE.\n",0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
 #endif
@@ -213,8 +207,8 @@ do_modify(
 #if defined( SLAPD_SCHEMA_DN )
 	} else if ( strcasecmp( ndn.bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			"do_modify: attempt to modify subschema subentry.\n" ));
+		LDAP_LOG( OPERATION, ERR,
+			"do_modify: attempt to modify subschema subentry.\n" , 0, 0, 0  );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modify: subschema subentry!\n", 0, 0, 0 );
 #endif
@@ -228,31 +222,26 @@ do_modify(
 
 #ifdef LDAP_DEBUG
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		"do_modify: modifications:\n" ));
+	LDAP_LOG( OPERATION, DETAIL1, "do_modify: modifications:\n", 0, 0, 0  );
 #else
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
 #endif
 
 	for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			"\t%s:  %s\n", tmp->sml_op == LDAP_MOD_ADD ?
-				"add" : (tmp->sml_op == LDAP_MOD_DELETE ?
-					"delete" : "replace"), tmp->sml_type.bv_val ));
+		LDAP_LOG( OPERATION, DETAIL1, "\t%s:  %s\n", 
+			tmp->sml_op == LDAP_MOD_ADD ?
+			"add" : (tmp->sml_op == LDAP_MOD_DELETE ?
+			"delete" : "replace"), tmp->sml_type.bv_val, 0 );
 
 		if ( tmp->sml_bvalues == NULL ) {
-			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			   "\t\tno values" ));
+			LDAP_LOG( OPERATION, DETAIL1, "\t\tno values", 0, 0, 0 );
 		} else if ( tmp->sml_bvalues[0].bv_val == NULL ) {
-			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			   "\t\tzero values" ));
+			LDAP_LOG( OPERATION, DETAIL1, "\t\tzero values", 0, 0, 0 );
 		} else if ( tmp->sml_bvalues[1].bv_val == NULL ) {
-			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			   "\t\tone value" ));
+			LDAP_LOG( OPERATION, DETAIL1, "\t\tone value", 0, 0, 0 );
 		} else {
-			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-			   "\t\tmultiple values" ));
+			LDAP_LOG( OPERATION, DETAIL1, "\t\tmultiple values", 0, 0, 0 );
 		}
 
 #else

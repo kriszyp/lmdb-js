@@ -108,9 +108,8 @@ meta_back_delete(
 			mdn = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] deleteDn: \"%s\" -> \"%s\"\n",
-				dn->bv_val, mdn ));
+		LDAP_LOG( BACK_META, DETAIL1,
+			"[rw] deleteDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
 				dn->bv_val, mdn, "" );

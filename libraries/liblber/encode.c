@@ -812,8 +812,8 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 		default:
 			if( ber->ber_debug ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "liblber", LDAP_LEVEL_ERR,
-					   "ber_printf: unknown fmt %c\n", *fmt ));
+				LDAP_LOG( BER, ERR, 
+					"ber_printf: unknown fmt %c\n", *fmt, 0, 0 );
 #else
 				ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
 					"ber_printf: unknown fmt %c\n", *fmt );

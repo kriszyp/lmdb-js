@@ -84,9 +84,8 @@ entry_schema_check(
 				type );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-				"entry_schema_check: dn=\"%s\" %s\n",
-				e->e_dn, textbuf ));
+			LDAP_LOG( OPERATION, INFO, 
+				"entry_schema_check: dn=\"%s\" %s\n", e->e_dn, textbuf, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "Entry (%s), %s\n",
@@ -104,9 +103,9 @@ entry_schema_check(
 	asc = attr_find( e->e_attrs, ad_structuralObjectClass );
 	if ( asc == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_INFO, "entry_schema_check: "
-			"No structuralObjectClass for entry (%s)\n",
-			e->e_dn ));
+		LDAP_LOG( OPERATION, INFO, 
+			"entry_schema_check: No structuralObjectClass for entry (%s)\n", 
+			e->e_dn, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"No structuralObjectClass for entry (%s)\n",
@@ -128,9 +127,8 @@ entry_schema_check(
 			asc->a_vals[0].bv_val );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-			"entry_schema_check: dn (%s), %s\n",
-			e->e_dn, textbuf ));
+		LDAP_LOG( OPERATION, INFO, 
+			"entry_schema_check: dn (%s), %s\n", e->e_dn, textbuf, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"entry_check_schema(%s): %s\n",
@@ -146,9 +144,8 @@ entry_schema_check(
 			asc->a_vals[0].bv_val );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-			"entry_schema_check: dn (%s), %s\n",
-			e->e_dn, textbuf ));
+		LDAP_LOG( OPERATION, INFO, 
+			"entry_schema_check: dn (%s), %s\n", e->e_dn, textbuf, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"entry_check_schema(%s): %s\n",
@@ -162,9 +159,9 @@ entry_schema_check(
 	aoc = attr_find( e->e_attrs, ad_objectClass );
 	if ( aoc == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-			"entry_schema_check: No objectClass for entry (%s).\n",
-			e->e_dn ));
+		LDAP_LOG( OPERATION, INFO, 
+			"entry_schema_check: No objectClass for entry (%s).\n", 
+			e->e_dn, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "No objectClass for entry (%s)\n",
 		    e->e_dn, 0, 0 );
@@ -207,9 +204,8 @@ entry_schema_check(
 				aoc->a_vals[i].bv_val );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-				"entry_schema_check: dn (%s), %s\n",
-				e->e_dn, textbuf ));
+			LDAP_LOG( OPERATION, INFO, 
+				"entry_schema_check: dn (%s), %s\n", e->e_dn, textbuf, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"entry_check_schema(%s): %s\n",
@@ -243,9 +239,9 @@ entry_schema_check(
 								aoc->a_vals[i].bv_val );
 
 #ifdef NEW_LOGGING
-							LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
+							LDAP_LOG( OPERATION, INFO, 
 								"entry_schema_check: dn (%s), %s\n",
-								e->e_dn, textbuf ));
+								e->e_dn, textbuf, 0 );
 #else
 							Debug( LDAP_DEBUG_ANY,
 								"entry_check_schema(%s): %s\n",
@@ -277,9 +273,9 @@ entry_schema_check(
 						aoc->a_vals[i].bv_val );
 
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-						"entry_schema_check: dn (%s), %s\n",
-						e->e_dn, textbuf ));
+					LDAP_LOG( OPERATION, INFO, 
+						"entry_schema_check: dn (%s), %s\n", 
+						e->e_dn, textbuf, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
 						"entry_check_schema(%s): %s\n",
@@ -299,9 +295,8 @@ entry_schema_check(
 					aoc->a_vals[i].bv_val, s );
 
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-					"entry_schema_check: dn=\"%s\" %s",
-					e->e_dn, textbuf ));
+				LDAP_LOG( OPERATION, INFO, 
+					"entry_schema_check: dn=\"%s\" %s", e->e_dn, textbuf, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"Entry (%s): %s\n",
@@ -332,9 +327,8 @@ entry_schema_check(
 				type );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-				"entry_schema_check: dn=\"%s\" %s\n",
-				e->e_dn, textbuf ));
+			LDAP_LOG( OPERATION, INFO, 
+				"entry_schema_check: dn=\"%s\" %s\n", e->e_dn, textbuf, 0);
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "Entry (%s), %s\n",
@@ -359,9 +353,9 @@ oc_check_required(
 	Attribute	*a;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		"oc_check_required: dn (%s), objectClass \"%s\"\n",
-	e->e_dn, ocname->bv_val ));
+	LDAP_LOG( OPERATION, ENTRY, 
+		"oc_check_required: dn (%s), objectClass \"%s\"\n", 
+		e->e_dn, ocname->bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"oc_check_required entry (%s), objectClass \"%s\"\n",
@@ -400,8 +394,8 @@ int oc_check_allowed(
 	int		i, j;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-		"oc_check_allowed: type \"%s\"\n", at->sat_cname.bv_val ));
+	LDAP_LOG( OPERATION, ENTRY, 
+		"oc_check_allowed: type \"%s\"\n", at->sat_cname.bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"oc_check_allowed type \"%s\"\n",

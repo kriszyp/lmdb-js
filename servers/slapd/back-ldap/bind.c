@@ -84,8 +84,8 @@ ldap_back_bind(
 			mdn.bv_val = ( char * )dn->bv_val;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> bindDn: \"%s\" -> \"%s\"\n%s",
 				dn->bv_val, mdn.bv_val, "" );
@@ -258,11 +258,11 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 					ber_dupbv( &lc->bound_dn, &lc->conn->c_dn );
 				}
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-						"[rw] bindDn: \"%s\" ->"
+				LDAP_LOG( BACK_LDAP, DETAIL1, 
+						"[rw] bindDn: \"%s\" ->" 
 						" \"%s\"\n%s",
-						lc->conn->c_dn.bv_val,
-						lc->bound_dn.bv_val ));
+						lc->conn->c_dn.bv_val, 
+						lc->bound_dn.bv_val, "" );
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ARGS,
 					       	"rw> bindDn: \"%s\" ->"
@@ -312,9 +312,8 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"ldap_back_getconn: conn %ld inserted\n",
-				lc->conn->c_connid ));
+		LDAP_LOG( BACK_LDAP, INFO, 
+			"ldap_back_getconn: conn %ld inserted\n", lc->conn->c_connid, 0, 0);
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %ld inserted\n%s%s",
@@ -330,9 +329,9 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		}
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				"ldap_back_getconn: conn %ld inserted\n",
-				lc->conn->c_connid ));
+		LDAP_LOG( BACK_LDAP, INFO, 
+			"ldap_back_getconn: conn %ld inserted\n", 
+			lc->conn->c_connid, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %ld fetched%s%s\n",

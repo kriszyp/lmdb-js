@@ -102,8 +102,8 @@ meta_back_bind(
 	int realmethod = method;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-			"meta_back_bind: dn: %s.\n", dn->bv_val ));
+	LDAP_LOG( BACK_META, ENTRY,
+			"meta_back_bind: dn: %s.\n", dn->bv_val, 0, 0 );
 #else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_ARGS, "meta_back_bind: dn: %s.\n%s%s", dn->bv_val, "", "" );
 #endif /* !NEW_LOGGING */
@@ -117,9 +117,8 @@ meta_back_bind(
 	lc = meta_back_getconn( li, conn, op, op_type, ndn, NULL );
 	if ( !lc ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_NOTICE,
-				"meta_back_bind: no target for dn %s.\n",
-				dn->bv_val ));
+		LDAP_LOG( BACK_META, NOTICE,
+				"meta_back_bind: no target for dn %s.\n", dn->bv_val, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY,
 				"meta_back_bind: no target for dn %s.\n%s%s",
@@ -153,10 +152,10 @@ meta_back_bind(
 			 * ONE CANDIDATE ONLY!
 			 */
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_WARNING,
+			LDAP_LOG( BACK_META, WARNING,
 					"==>meta_back_bind: more than one"
 					" candidate is attempting to bind"
-					" ...\n" ));
+					" ...\n" , 0, 0, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_bind: more than one"
@@ -248,8 +247,8 @@ meta_back_do_single_bind(
 			mdn = *dn;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val ));
+		LDAP_LOG( BACK_META, DETAIL1,
+				"[rw] bindDn: \"%s\" -> \"%s\"\n", dn->bv_val, mdn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 				"rw> bindDn: \"%s\" -> \"%s\"\n%s",
@@ -334,12 +333,12 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		if ( rc != LDAP_SUCCESS ) {
 			
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_WARNING,
+			LDAP_LOG( BACK_META, WARNING,
 					"meta_back_dobind: (anonymous)"
 					" bind as \"%s\" failed"
 					" with error \"%s\"\n",
 					lsc[ 0 ]->bound_dn.bv_val,
-					ldap_err2string( rc ) ));
+					ldap_err2string( rc ), 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_dobind: (anonymous)"
@@ -424,12 +423,12 @@ meta_back_op_result( struct metaconn *lc, Operation *op )
 			err = ldap_back_map_result( err );
 
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_RESULTS,
+			LDAP_LOG( BACK_META, RESULTS,
 					"meta_back_op_result: target"
 					" <%d> sending msg \"%s\""
 					" (matched \"%s\")\n",
 					i, ( msg ? msg : "" ),
-					( match ? match : "" ) ));
+					( match ? match : "" ) );
 #else /* !NEW_LOGGING */
 			Debug(LDAP_DEBUG_ANY,
 					"==> meta_back_op_result: target"

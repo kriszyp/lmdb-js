@@ -15,7 +15,6 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-
 int
 has_children(
     Backend	*be,
@@ -30,8 +29,7 @@ has_children(
 	ldbm_datum_init( key );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "id2children", LDAP_LEVEL_ENTRY,
-		   "has_children: enter %ld\n", p->e_id ));
+	LDAP_LOG( INDEX, ENTRY, "has_children: enter %ld\n", p->e_id, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> has_children( %ld )\n", p->e_id , 0, 0 );
 #endif
@@ -40,9 +38,8 @@ has_children(
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "id2children", LDAP_LEVEL_ERR,
-			   "has_children: could not open \"dn2id%s\"\n",
-			   LDBM_SUFFIX ));
+		LDAP_LOG( INDEX, ERR, 
+			"has_children: could not open \"dn2id%s\"\n", LDBM_SUFFIX, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= has_children -1 could not open \"dn2id%s\"\n",
@@ -68,9 +65,9 @@ has_children(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "id2children", LDAP_LEVEL_ENTRY,
+	LDAP_LOG( INDEX, ENTRY, 
 		   "has_children: id (%ld) %s children.\n",
-		   p->e_id, rc ? "has" : "doesn't have" ));
+		   p->e_id, rc ? "has" : "doesn't have", 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= has_children( %ld ): %s\n",
 		p->e_id, rc ? "yes" : "no", 0 );

@@ -55,9 +55,8 @@ ldap_back_conn_destroy(
 	struct ldapconn *lc, lc_curr;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			"ldap_back_conn_destroy: fetching conn %ld\n",
-			conn->c_connid ));
+	LDAP_LOG( BACK_LDAP, INFO,
+		"ldap_back_conn_destroy: fetching conn %ld\n", conn->c_connid, 0, 0 );
 #else /* !NEW_LOGGING */
 	Debug( LDAP_DEBUG_TRACE,
 		"=>ldap_back_conn_destroy: fetching conn %ld\n",
@@ -72,9 +71,9 @@ ldap_back_conn_destroy(
 
 	if (lc) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"ldap_back_conn_destroy: destroying conn %ld\n",
-			conn->c_connid ));
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"ldap_back_conn_destroy: destroying conn %ld\n", 
+			conn->c_connid, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_conn_destroy: destroying conn %ld\n",

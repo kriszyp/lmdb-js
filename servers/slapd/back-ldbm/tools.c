@@ -47,8 +47,8 @@ int ldbm_tool_entry_open(
 	if ( (id2entry = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, flags ))
 	    == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_CRIT,
-			   "Could not open/create id2entry%s\n", LDBM_SUFFIX ));
+		LDAP_LOG( BACK_LDBM, CRIT,
+			   "Could not open/create id2entry%s\n", LDBM_SUFFIX, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry" LDBM_SUFFIX "\n",
 		    0, 0, 0 );
@@ -189,8 +189,8 @@ ID ldbm_tool_entry_put(
 	e->e_id = li->li_nextid++;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		"ldbm_tool_entry_put: (%s)%ld\n", e->e_dn, e->e_id ));
+	LDAP_LOG( BACK_LDBM, ENTRY,
+		"ldbm_tool_entry_put: (%s)%ld\n", e->e_dn, e->e_id ,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
@@ -204,9 +204,9 @@ ID ldbm_tool_entry_put(
 
 	if( id != NOID ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+		LDAP_LOG( BACK_LDBM, ENTRY,
 			"ldbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
-			e->e_dn, id ));
+			e->e_dn, id, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"<= ldbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
@@ -262,8 +262,8 @@ int ldbm_tool_entry_reindex(
 	Entry *e;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_tool_entry_reindex: ID=%ld\n", (long)id ));
+	LDAP_LOG( BACK_LDBM, ENTRY, "ldbm_tool_entry_reindex: ID=%ld\n", 
+		(long)id, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "=> ldbm_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
@@ -274,9 +274,9 @@ int ldbm_tool_entry_reindex(
 
 	if( e == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_tool_entry_reindex: could not locate id %ld\n", 
-			   (long)id ));
+		LDAP_LOG( BACK_LDBM, INFO,
+		   "ldbm_tool_entry_reindex: could not locate id %ld\n", 
+		   (long)id, 0, 0  );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"ldbm_tool_entry_reindex:: could not locate id=%ld\n",
@@ -294,8 +294,8 @@ int ldbm_tool_entry_reindex(
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_tool_entry_reindex: (%s) %ld\n", e->e_dn, id ));
+	LDAP_LOG( BACK_LDBM, ENTRY,
+		   "ldbm_tool_entry_reindex: (%s) %ld\n", e->e_dn, id, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_reindex( %ld, \"%s\" )\n",
 		id, e->e_dn, 0 );

@@ -31,6 +31,9 @@ main( int argc, char **argv )
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 
+#ifdef NEW_LOGGING
+	lutil_log_initialize(argc, argv );
+#endif
 	slap_tool_init( "slapadd", SLAPADD, argc, argv );
 
 	if( !be->be_entry_open ||

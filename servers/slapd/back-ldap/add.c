@@ -62,8 +62,7 @@ ldap_back_add(
 	struct berval mdn = { 0, NULL };
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY, "ldap_back_add: %s\n",
-				e->e_dn ));
+	LDAP_LOG( BACK_LDAP, ENTRY, "ldap_back_add: %s\n", e->e_dn, 0, 0 );
 #else /* !NEW_LOGGING */
 	Debug(LDAP_DEBUG_ARGS, "==> ldap_back_add: %s\n", e->e_dn, 0, 0);
 #endif /* !NEW_LOGGING */
@@ -86,9 +85,8 @@ ldap_back_add(
 			mdn = e->e_name;
 		}
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] addDn: \"%s\" -> \"%s\"\n",
-					e->e_dn, mdn.bv_val ));		
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] addDn: \"%s\" -> \"%s\"\n", e->e_dn, mdn.bv_val, 0 );		
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
 				e->e_dn, mdn.bv_val, "" );
@@ -202,10 +200,9 @@ ldap_dnattr_rewrite(
 				continue;
 			}
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					"[rw] bindDn (in add of dn-valued"
-					" attr): \"%s\" -> \"%s\"\n",
-					a_vals->bv_val, mattr ));
+			LDAP_LOG( BACK_LDAP, DETAIL1, 
+				"[rw] bindDn (in add of dn-valued"
+				" attr): \"%s\" -> \"%s\"\n", a_vals->bv_val, mattr, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS,
 					"rw> bindDn (in add of dn-valued attr):"

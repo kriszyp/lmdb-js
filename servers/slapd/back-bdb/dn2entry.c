@@ -12,6 +12,7 @@
 
 #include "back-bdb.h"
 
+
 /*
  * dn2entry - look up dn in the cache/indexes and return the corresponding
  * entry.
@@ -33,8 +34,7 @@ bdb_dn2entry_rw(
 	ID		id, id2 = 0;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "db2entry", LDAP_LEVEL_ARGS, "bdb_dn2entry_rw(\"%s\")\n",
-		dn->bv_val ));
+	LDAP_LOG ( CACHE, ARGS, "bdb_dn2entry_rw(\"%s\")\n", dn->bv_val, 0, 0 );
 #else
 	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry_rw(\"%s\")\n",
 		dn->bv_val, 0, 0 );

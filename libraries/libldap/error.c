@@ -147,7 +147,7 @@ ldap_err2string( int err )
 	const struct ldaperror *e;
 	
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "error", LDAP_LEVEL_ENTRY, "ldap_err2string\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_err2string\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_err2string\n", 0, 0, 0 );
 #endif
@@ -163,7 +163,7 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 {
 	const struct ldaperror *e;
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "error", LDAP_LEVEL_ENTRY, "ldap_perror\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_perror\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_perror\n", 0, 0, 0 );
 #endif
@@ -243,7 +243,7 @@ ldap_parse_result(
 	BerElement	*ber;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "error", LDAP_LEVEL_ENTRY, "ldap_parse_result\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_parse_result\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_parse_result\n", 0, 0, 0 );
 #endif

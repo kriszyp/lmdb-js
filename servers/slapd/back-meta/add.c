@@ -92,8 +92,7 @@ meta_back_add(
 	struct berval mdn = { 0, NULL }, mapped;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY, "meta_back_add: %s\n",
-			e->e_dn ));
+	LDAP_LOG( BACK_META, ENTRY, "meta_back_add: %s\n", e->e_dn, 0, 0 );
 #else /* !NEW_LOGGING */
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n%s%s", e->e_dn, "", "");
 #endif /* !NEW_LOGGING */
@@ -122,9 +121,8 @@ meta_back_add(
 		}
 
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				"[rw] addDn: \"%s\" -> \"%s\"\n",
-				e->e_dn, mdn.bv_val ));
+		LDAP_LOG( BACK_META, DETAIL1,
+			"[rw] addDn: \"%s\" -> \"%s\"\n", e->e_dn, mdn.bv_val, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
 				e->e_dn, mdn.bv_val, "" );

@@ -44,7 +44,7 @@ bdb_bind(
 	DB_LOCK		lock;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "bind", LDAP_LEVEL_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val ));
+	LDAP_LOG ( OPERATION, ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
 #endif
@@ -134,7 +134,8 @@ dn2entry_retry:
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "bind", LDAP_LEVEL_DETAIL1, "bdb_bind: entry is subentry\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"bdb_bind: entry is subentry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
 			0, 0 );
@@ -151,7 +152,7 @@ dn2entry_retry:
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "bind", LDAP_LEVEL_DETAIL1, "bdb_bind: entry is alias\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, "bdb_bind: entry is alias\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
 			0, 0 );
@@ -170,7 +171,8 @@ dn2entry_retry:
 			conn, op, e );
 
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "bind", LDAP_LEVEL_DETAIL1, "bdb_bind: entry is referral\n" ));
+		LDAP_LOG ( OPERATION, DETAIL1, 
+			"bdb_bind: entry is referral\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
