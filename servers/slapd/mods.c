@@ -18,8 +18,6 @@
 
 #include "slap.h"
 
-#undef QUICK_DIRTY_DUPLICATE_CHECK
-
 int
 modify_check_duplicates(
 	AttributeDescription	*ad,
@@ -73,25 +71,25 @@ modify_check_duplicates(
 	if ( vals ) {
 		for ( numvals = 0; vals[ numvals ].bv_val != NULL; numvals++ )
 			/* count existing values */ ;
-	}
 
-	if ( numvals > 0 && numvals < nummods ) {
-		nvals = ch_calloc( numvals + 1, sizeof( struct berval ) );
+		if ( numvals < nummods ) {
+			nvals = ch_calloc( numvals + 1, sizeof( struct berval ) );
 
-		/* normalize the existing values first */
-		for ( j = 0; vals[ j ].bv_val != NULL; j++ ) {
-			rc = value_normalize( ad, SLAP_MR_EQUALITY,
-				&vals[ j ], &nvals[ j ], text );
+			/* normalize the existing values first */
+			for ( j = 0; vals[ j ].bv_val != NULL; j++ ) {
+				rc = value_normalize( ad, SLAP_MR_EQUALITY,
+					&vals[ j ], &nvals[ j ], text );
 
-			/* existing attribute values must normalize */
-			assert( rc == LDAP_SUCCESS );
+				/* existing attribute values must normalize */
+				assert( rc == LDAP_SUCCESS );
 
-			if ( rc != LDAP_SUCCESS ) {
-				nvals[ j ].bv_val = NULL;
-				goto return_results;
+				if ( rc != LDAP_SUCCESS ) {
+					nvals[ j ].bv_val = NULL;
+					goto return_results;
+				}
 			}
+			nvals[ j ].bv_val = NULL;
 		}
-		nvals[ j ].bv_val = NULL;
 	}
 
 	/*
@@ -113,12 +111,9 @@ modify_check_duplicates(
 
 		if ( numvals > 0 && numvals < nummods ) {
 			for ( j = 0; nvals[ j ].bv_val; j++ ) {
-#ifdef QUICK_DIRTY_DUPLICATE_CHECK
-				if ( bvmatch( &nmods[ i ], &nvals[ j ] ) ) {
-#else /* !QUICK_DIRTY_DUPLICATE_CHECK */
 				int match;
 
-				rc = (mr->smr_match)( &match,
+				rc = (*mr->smr_match)( &match,
 					SLAP_MR_VALUE_SYNTAX_MATCH,
 					ad->ad_type->sat_syntax,
 					mr, &nmods[ i ], &nvals[ j ] );
@@ -128,7 +123,6 @@ modify_check_duplicates(
 				}
 	
 				if ( match == 0 ) {
-#endif /* !QUICK_DIRTY_DUPLICATE_CHECK */
 					snprintf( textbuf, textlen,
 						"%s: value #%d provided more than once",
 						ad->ad_cname.bv_val, i );
@@ -140,12 +134,9 @@ modify_check_duplicates(
 		}
 	
 		for ( j = 0; j < i; j++ ) {
-#ifdef QUICK_DIRTY_DUPLICATE_CHECK
-			if ( bvmatch( &nmods[ i ], &nmods[ j ] ) ) {
-#else /* !QUICK_DIRTY_DUPLICATE_CHECK */
 			int match;
 
-			rc = (mr->smr_match)( &match,
+			rc = (*mr->smr_match)( &match,
 				SLAP_MR_VALUE_SYNTAX_MATCH,
 				ad->ad_type->sat_syntax,
 				mr, &nmods[ i ], &nmods[ j ] );
@@ -155,7 +146,6 @@ modify_check_duplicates(
 			}
 
 			if ( match == 0 ) {
-#endif /* !QUICK_DIRTY_DUPLICATE_CHECK */
 				snprintf( textbuf, textlen,
 					"%s: value #%d provided more than once",
 					ad->ad_cname.bv_val, j );
@@ -186,12 +176,9 @@ modify_check_duplicates(
 			}
 
 			for ( i = 0; nmods[ i ].bv_val; i++ ) {
-#ifdef QUICK_DIRTY_DUPLICATE_CHECK
-				if ( bvmatch( &nmods[ i ], &asserted ) ) {
-#else /* !QUICK_DIRTY_DUPLICATE_CHECK */
 				int match;
 
-				rc = (mr->smr_match)( &match,
+				rc = (*mr->smr_match)( &match,
 					SLAP_MR_VALUE_SYNTAX_MATCH,
 					ad->ad_type->sat_syntax,
 					mr, &nmods[ i ], &asserted );
@@ -200,7 +187,6 @@ modify_check_duplicates(
 				}
 
 				if ( match == 0 ) {
-#endif /* !QUICK_DIRTY_DUPLICATE_CHECK */
 					snprintf( textbuf, textlen,
 						"%s: value #%d provided more than once",
 						ad->ad_cname.bv_val, j );
@@ -385,13 +371,15 @@ modify_delete_values(
 	char *textbuf, size_t textlen
 )
 {
-	int		i, j, k, found;
+	int		i, j, k, rc = LDAP_SUCCESS;
 	Attribute	*a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
+	BerVarray	nvals = NULL;
+	char		dummy = '\0';
 
 	/* delete the entire attribute */
 	if ( mod->sm_bvalues == NULL ) {
-		int rc = attr_delete( &e->e_attrs, mod->sm_desc );
+		rc = attr_delete( &e->e_attrs, mod->sm_desc );
 
 		if( rc != LDAP_SUCCESS ) {
 			*text = textbuf;
@@ -422,59 +410,97 @@ modify_delete_values(
 		return LDAP_NO_SUCH_ATTRIBUTE;
 	}
 
-	/* find each value to delete
-	 *
-	 * FIXME: need to optimize this operation too,
-	 * see modify_check_duplicates()
-	 */
-	for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
-		int rc;
-		struct berval asserted;
+	/* find each value to delete */
+	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ )
+		/* count existing values */ ;
 
-		rc = value_normalize( mod->sm_desc,
-			SLAP_MR_EQUALITY,
-			&mod->sm_bvalues[i],
-			&asserted,
-			text );
+	nvals = (BerVarray)ch_calloc( j + 1, sizeof ( struct berval ) );
 
-		if( rc != LDAP_SUCCESS ) return rc;
+	/* normalize existing values */
+	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ ) {
+		rc = value_normalize( a->a_desc, SLAP_MR_EQUALITY,
+			&a->a_vals[ j ], &nvals[ j ], text );
 
-		found = 0;
-		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
+		if ( rc != LDAP_SUCCESS ) {
+			nvals[ j ].bv_val = NULL;
+			goto return_results;
+		}
+	}
+
+	for ( i = 0; mod->sm_bvalues[ i ].bv_val != NULL; i++ ) {
+		struct	berval asserted;
+		int	found = 0;
+
+		/* normalize the value to be deleted */
+		rc = value_normalize( mod->sm_desc, SLAP_MR_EQUALITY,
+			&mod->sm_bvalues[ i ], &asserted, text );
+
+		if( rc != LDAP_SUCCESS ) {
+			goto return_results;
+		}
+
+		/* search it */
+		for ( j = 0; nvals[ j ].bv_val != NULL; j++ ) {
 			int match;
-			int rc = value_match( &match, mod->sm_desc, mr,
-				SLAP_MR_VALUE_SYNTAX_MATCH,
-				&a->a_vals[j], &asserted, text );
 
-			if( rc == LDAP_SUCCESS && match != 0 ) {
+			if ( nvals[ j ].bv_val == &dummy ) {
 				continue;
 			}
 
-			/* found a matching value */
+			rc = (*mr->smr_match)( &match,
+				SLAP_MR_VALUE_SYNTAX_MATCH,
+				a->a_desc->ad_type->sat_syntax,
+				mr, &nvals[ j ], &asserted );
+
+			if ( rc != LDAP_SUCCESS ) {
+				free( asserted.bv_val );
+				goto return_results;
+			}
+
+			if ( match != 0 ) {
+				continue;
+			}
+
 			found = 1;
 
-			/* delete it */
-			free( a->a_vals[j].bv_val );
-			for ( k = j + 1; a->a_vals[k].bv_val != NULL; k++ ) {
-				a->a_vals[k - 1] = a->a_vals[k];
-			}
-			a->a_vals[k - 1].bv_val = NULL;
-			a->a_vals[k - 1].bv_len = 0;
+			/* delete value and mark it as dummy */
+			free( nvals[ j ].bv_val );
+			nvals[ j ].bv_val = &dummy;
 
 			break;
 		}
 
 		free( asserted.bv_val );
 
-		/* looked through them all w/o finding it */
-		if ( ! found ) {
+		if ( found == 0 ) {
 			*text = textbuf;
 			snprintf( textbuf, textlen,
 				"modify/delete: %s: no such value",
 				mod->sm_desc->ad_cname.bv_val );
-			return LDAP_NO_SUCH_ATTRIBUTE;
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			goto return_results;
 		}
 	}
+
+	/* compact array skipping dummies */
+	for ( k = 0, j = 0; nvals[ k ].bv_val != NULL; j++, k++ ) {
+
+		/* delete and skip dummies */ ;
+		for ( ; nvals[ k ].bv_val == &dummy; k++ ) {
+			free( a->a_vals[ k ].bv_val );
+		}
+
+		if ( j != k ) {
+			a->a_vals[ j ] = a->a_vals[ k ];
+		}
+
+		if ( a->a_vals[ k ].bv_val == NULL ) {
+			break;
+		}
+	}
+	a->a_vals[ j ].bv_val = NULL;
+
+	assert( i == k - j );
 
 	/* if no values remain, delete the entire attribute */
 	if ( a->a_vals[0].bv_val == NULL ) {
@@ -483,11 +509,22 @@ modify_delete_values(
 			snprintf( textbuf, textlen,
 				"modify/delete: %s: no such attribute",
 				mod->sm_desc->ad_cname.bv_val );
-			return LDAP_NO_SUCH_ATTRIBUTE;
+			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
 	}
 
-	return LDAP_SUCCESS;
+return_results:;
+	if ( nvals ) {
+		/* delete the remaining normalized values */
+		for ( j = 0; nvals[ j ].bv_val != NULL; j++ ) {
+			if ( nvals[ j ].bv_val != &dummy ) {
+				ber_memfree( nvals[ j ].bv_val );
+			}
+		}
+		ber_memfree( nvals );
+	}
+
+	return rc;
 }
 
 int
