@@ -244,7 +244,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 	int i;
 	long stoptime = 0;
 	glue_state gs = {0, 0, NULL, 0, NULL, NULL};
-	slap_callback cb = { glue_back_response };
+	slap_callback cb = { glue_back_response, NULL };
 	int scope0, slimit0, tlimit0;
 	struct berval dn, ndn;
 

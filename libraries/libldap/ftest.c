@@ -76,7 +76,7 @@ main( int argc, char *argv[] )
 static int filter2ber( char *filter )
 {
 	int rc;
-	struct berval bv = {0};
+	struct berval bv = {0, NULL};
 	BerElement *ber;
 
 	printf( "Filter: %s\n", filter );

@@ -11,7 +11,7 @@
 #include "lber-int.h"
 
 struct lber_options ber_int_options = {
-	LBER_UNINITIALIZED, 0, 0 };
+	LBER_UNINITIALIZED, 0, 0, 0 };
 
 int
 ber_get_option(

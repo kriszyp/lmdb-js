@@ -770,7 +770,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
-	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, 0 }
+	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0 }
 };
 
 static AttributeType slap_at_undefined = {

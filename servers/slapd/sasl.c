@@ -422,7 +422,7 @@ slap_auxprop_lookup(
 	}
 
 	if (doit) {
-		slap_callback cb = { sasl_ap_lookup };
+		slap_callback cb = { sasl_ap_lookup, NULL };
 
 		cb.sc_private = &sl;
 
@@ -548,7 +548,7 @@ slap_sasl_checkpass(
 
 	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 	if ( op.o_bd && op.o_bd->be_search ) {
-		slap_callback cb = { sasl_cb_checkpass };
+		slap_callback cb = { sasl_cb_checkpass, NULL };
 		SlapReply rs = {REP_RESULT};
 
 		ci.cred.bv_val = (char *)pass;
