@@ -1006,6 +1006,8 @@ syncrepl_entry(
 	cb.sc_response = dn_callback;
 	cb.sc_private = si;
 
+	si->syncUUID_ndn = NULL;
+
 	rc = be->be_search( op, &rs );
 
 	ch_free( op->o_req_dn.bv_val );
@@ -1053,6 +1055,18 @@ syncrepl_entry(
 					op->o_req_ndn = e->e_nname;
 					rc = be->be_modify( op, &rs );
 					si->e = NULL;
+					if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+						LDAP_LOG( OPERATION, ERR,
+							"syncrepl_entry : be_modify failed (%d)\n",
+							rc, 0, 0 );
+#else
+						Debug( LDAP_DEBUG_ANY,
+							"syncrepl_entry : be_modify failed (%d)\n",
+							rc, 0, 0 );
+#endif
+						return 1;
+					}
 					return 0;
 				} else if ( rc == LDAP_REFERRAL ||
 							rc == LDAP_NO_SUCH_OBJECT ) {
@@ -1064,11 +1078,11 @@ syncrepl_entry(
 				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, ERR,
-						"be_modify failed (%d)\n",
+						"syncrepl_entry : be_add failed (%d)\n",
 						rc, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY,
-						"be_modify failed (%d)\n",
+						"syncrepl_entry : be_add failed (%d)\n",
 						rc, 0, 0 );
 #endif
 					si->e = NULL;
@@ -1082,10 +1096,10 @@ syncrepl_entry(
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR,
-				"be_modify/be_delete failed (%d)\n", rc, 0, 0 );
+				"syncrepl_entry : be_search failed (%d)\n", rc, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"be_modify/be_delete failed (%d)\n", rc, 0, 0 );
+				"syncrepl_entry : be_search failed (%d)\n", rc, 0, 0 );
 #endif
 			si->e = NULL;
 			return 1;
@@ -1104,10 +1118,10 @@ syncrepl_entry(
 	default :
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
-			"unknown syncstate\n", 0, 0, 0 );
+			"syncrepl_entry : unknown syncstate\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"unknown syncstate\n", 0, 0, 0 );
+			"syncrepl_entry : unknown syncstate\n", 0, 0, 0 );
 #endif
 		return 1;
 	}
@@ -1579,9 +1593,23 @@ dn_callback(
 )
 {
 	syncinfo_t *si = op->o_callback->sc_private;
-	
+
 	if ( rs->sr_type == REP_SEARCH ) {
-		si->syncUUID_ndn = ber_dupbv( NULL, &rs->sr_entry->e_nname );
+		if ( si->syncUUID_ndn != NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR,
+				"dn_callback : multiple entries match dn\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"dn_callback : multiple entries match dn\n", 0, 0, 0 );
+#endif
+		} else {
+			if ( rs->sr_entry == NULL ) {
+				si->syncUUID_ndn = NULL;
+			} else {
+				si->syncUUID_ndn = ber_dupbv( NULL, &rs->sr_entry->e_nname );
+			}
+		}
 	}
 
 	return LDAP_SUCCESS;

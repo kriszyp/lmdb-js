@@ -450,7 +450,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	if ( sop->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
 		e = (Entry *) &slap_entry_root;
-		rs->sr_err = 0;
+		rs->sr_err = LDAP_SUCCESS;
 	} else {
 dn2entry_retry:
 		/* get entry with reader lock */
@@ -508,7 +508,7 @@ dn2entry_retry:
 				NULL, &sop->o_req_dn, sop->oq_search.rs_scope );
 		}
 
-		rs->sr_err=LDAP_REFERRAL;
+		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( sop, rs );
 
@@ -608,7 +608,7 @@ dn2entry_retry:
 			} else if ( limit->lms_t_hard > 0 ) {
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 				send_ldap_result( sop, rs );
-				rs->sr_err = 0;
+				rs->sr_err = LDAP_SUCCESS;
 				goto done;
 			}
 		
@@ -635,7 +635,7 @@ dn2entry_retry:
 			} else if ( limit->lms_s_hard > 0 ) {
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 				send_ldap_result( sop, rs );
-				rs->sr_err = 0;	
+				rs->sr_err = LDAP_SUCCESS;	
 				goto done;
 			}
 			
@@ -760,8 +760,8 @@ ctxcsn_retry :
 #endif
 
 		rs->sr_err = LDAP_SUCCESS;
+		rs->sr_entry = NULL;
 		send_ldap_result( sop, rs );
-		rs->sr_err = 1;
 		goto done;
 	}
 
@@ -770,7 +770,7 @@ ctxcsn_retry :
 		if ( BDB_IDL_N(candidates) > (unsigned) limit->lms_s_unchecked ) {
 			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 			send_ldap_result( sop, rs );
-			rs->sr_err = 1;
+			rs->sr_err = LDAP_SUCCESS;
 			goto done;
 		}
 	}
@@ -806,7 +806,7 @@ ctxcsn_retry :
 #endif
 			send_pagerequest_response( sop, rs, lastid, 0 );
 
-			rs->sr_err = 1;
+			rs->sr_err = LDAP_OTHER;
 			goto done;
 		}
 		goto loop_begin;
@@ -877,7 +877,7 @@ ctxcsn_retry :
 loop_begin:
 		/* check for abandon */
 		if ( sop->o_abandon ) {
-			rs->sr_err = 0;
+			rs->sr_err = LDAP_SUCCESS;
 			goto done;
 		}
 
@@ -887,7 +887,7 @@ loop_begin:
 			rs->sr_err = LDAP_CANCELLED;
 			send_ldap_result( sop, rs );
 			sop->o_cancel = SLAP_CANCEL_ACK;
-			rs->sr_err = 0;
+			rs->sr_err = LDAP_SUCCESS;
 			goto done;
 		}
 #endif
@@ -897,6 +897,7 @@ loop_begin:
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			rs->sr_ref = rs->sr_v2ref;
 			send_ldap_result( sop, rs );
+			rs->sr_err = LDAP_SUCCESS;
 			goto done;
 		}
 
@@ -919,7 +920,7 @@ id2entry_retry:
 				goto id2entry_retry;	
 			}
 
-			if ( ei && rs->sr_err == 0 ) {
+			if ( ei && rs->sr_err == LDAP_SUCCESS ) {
 				e = ei->bei_e;
 			} else {
 				e = NULL;
@@ -1135,6 +1136,7 @@ id2entry_retry:
 				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 				rs->sr_ref = rs->sr_v2ref;
 				send_ldap_result( sop, rs );
+				rs->sr_err = LDAP_SUCCESS;
 				goto done;
 			}
 
@@ -1193,7 +1195,7 @@ id2entry_retry:
 						} else if ( ps_type == LDAP_PSEARCH_BY_SCOPEOUT )
 							entry_sync_state = LDAP_SYNC_DELETE;
 						else {
-							rs->sr_err = 1;
+							rs->sr_err = LDAP_OTHER;
 							goto done;
 						}
 						rs->sr_err = bdb_build_sync_state_ctrl( sop,

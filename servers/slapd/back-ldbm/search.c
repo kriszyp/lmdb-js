@@ -193,7 +193,7 @@ searchit:
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );
 
-		rc = LDAP_OTHER;
+		rc = LDAP_SUCCESS;
 		goto done;
 	}
 
@@ -214,7 +214,7 @@ searchit:
 		if ( ID_BLOCK_NIDS( candidates ) > (unsigned) limit->lms_s_unchecked ) {
 			send_ldap_error( op, rs, LDAP_ADMINLIMIT_EXCEEDED,
 					NULL );
-			rc = 0;
+			rc = LDAP_SUCCESS;
 			goto done;
 		}
 	}
@@ -247,7 +247,7 @@ searchit:
 				send_ldap_error( op, rs,
 						LDAP_ADMINLIMIT_EXCEEDED,
 						NULL );
-				rc = 0; 
+				rc = LDAP_SUCCESS; 
 				goto done;
 			}
 
@@ -271,7 +271,7 @@ searchit:
 				send_ldap_error( op, rs,
 						LDAP_ADMINLIMIT_EXCEEDED,
 						NULL );
-				rc = 0;
+				rc = LDAP_SUCCESS;
 				goto done;
 			}
 
@@ -291,7 +291,7 @@ searchit:
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			rc = 0;
+			rc = LDAP_SUCCESS;
 			goto done;
 		}
 
@@ -299,7 +299,7 @@ searchit:
 		if ( op->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			send_ldap_result( op, rs );
-			rc = 0;
+			rc = LDAP_SUCCESS;
 			goto done;
 		}
 
@@ -470,7 +470,7 @@ searchit:
 					cache_return_entry_r( &li->li_cache, e );
 					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 					send_ldap_result( op, rs );
-					rc = 0;
+					rc = LDAP_SUCCESS;
 					goto done;
 				}
 
@@ -485,7 +485,7 @@ searchit:
 						break;
 					case -1:	/* connection closed */
 						cache_return_entry_r( &li->li_cache, e );
-						rc = 0;
+						rc = LDAP_SUCCESS;
 						goto done;
 					}
 				}
@@ -526,7 +526,7 @@ loop_continue:
 	rs->sr_ref = rs->sr_v2ref;
 	send_ldap_result( op, rs );
 
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 done:
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
