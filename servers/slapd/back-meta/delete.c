@@ -127,7 +127,7 @@ meta_back_delete(
 		return -1;
 	}
 	
-	ldap_delete_s( lc->conns[ candidate ]->ld, mdn );
+	ldap_delete_s( lc->conns[ candidate ].ld, mdn );
 
 	if ( mdn != dn->bv_val ) {
 		free( mdn );

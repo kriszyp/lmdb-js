@@ -214,7 +214,7 @@ meta_clear_unused_candidates(
 		if ( i == candidate ) {
 			continue;
 		}
-		meta_clear_one_candidate( lc->conns[ i ], reallyclean );
+		meta_clear_one_candidate( &lc->conns[ i ], reallyclean );
 	}
 
 	return 0;

@@ -87,7 +87,7 @@ meta_back_compare(
 {
 	struct metainfo	*li = ( struct metainfo * )be->be_private;
 	struct metaconn *lc;
-	struct metasingleconn **lsc;
+	struct metasingleconn *lsc;
 	char *match = NULL, *err = NULL, *mmatch = NULL;
 	int candidates = 0, last = 0, i, count, rc;
        	int cres = LDAP_SUCCESS, rres = LDAP_SUCCESS;
@@ -107,12 +107,12 @@ meta_back_compare(
 	/*
 	 * start an asynchronous compare for each candidate target
 	 */
-	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
+	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 		char *mdn = NULL;
 		struct berval mapped_attr = ava->aa_desc->ad_cname;
 		struct berval mapped_value = ava->aa_value;
 
-		if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
+		if ( lsc->candidate != META_CANDIDATE ) {
 			continue;
 		}
 
@@ -158,7 +158,7 @@ meta_back_compare(
 					&ava->aa_value, &mapped_value, 0 );
 
 			if ( mapped_value.bv_val == NULL ) {
-				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
 			}
 		/*
@@ -168,7 +168,7 @@ meta_back_compare(
 			ldap_back_map( &li->targets[ i ]->at_map,
 				&ava->aa_desc->ad_cname, &mapped_attr, 0 );
 			if ( mapped_attr.bv_val == NULL ) {
-				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
 			}
 		}
@@ -178,10 +178,10 @@ meta_back_compare(
 		 * that returns determines the result; a constraint on unicity
 		 * of the result ought to be enforced
 		 */
-		msgid[ i ] = ldap_compare( lc->conns[ i ]->ld, mdn,
+		msgid[ i ] = ldap_compare( lc->conns[ i ].ld, mdn,
 				mapped_attr.bv_val, mapped_value.bv_val );
 		if ( msgid[ i ] == -1 ) {
-			lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+			lsc->candidate = META_NOT_CANDIDATE;
 			continue;
 		}
 
@@ -206,15 +206,15 @@ meta_back_compare(
 		/*
 		 * FIXME: should we check for abandon?
 		 */
-		for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; lsc++, i++ ) {
+		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); lsc++, i++ ) {
 			int lrc;
 			LDAPMessage *res = NULL;
 
-			if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
+			if ( lsc->candidate != META_CANDIDATE ) {
 				continue;
 			}
 
-			lrc = ldap_result( lsc[ 0 ]->ld, msgid[ i ],
+			lrc = ldap_result( lsc->ld, msgid[ i ],
 					0, NULL, &res );
 
 			if ( lrc == 0 ) {
@@ -232,8 +232,7 @@ meta_back_compare(
 					goto finish;
 				}
 				
-				cres = ldap_result2error( lsc[ 0 ]->ld,
-						res, 1 );
+				cres = ldap_result2error( lsc->ld, res, 1 );
 				switch ( cres ) {
 				case LDAP_COMPARE_TRUE:
 				case LDAP_COMPARE_FALSE:
@@ -256,22 +255,22 @@ meta_back_compare(
 					if ( err != NULL ) {
 						free( err );
 					}
-					ldap_get_option( lsc[ 0 ]->ld,
+					ldap_get_option( lsc->ld,
 						LDAP_OPT_ERROR_STRING, &err );
 
 					if ( match != NULL ) {
 						free( match );
 					}
-					ldap_get_option( lsc[ 0 ]->ld,
+					ldap_get_option( lsc->ld,
 						LDAP_OPT_MATCHED_DN, &match );
 					
 					last = i;
 					break;
 				}
-				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+				lsc->candidate = META_NOT_CANDIDATE;
 				--candidates;
 			} else {
-				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+				lsc->candidate = META_NOT_CANDIDATE;
 				--candidates;
 				if ( res ) {
 					ldap_msgfree( res );

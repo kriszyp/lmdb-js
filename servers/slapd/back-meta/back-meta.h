@@ -87,6 +87,7 @@ struct metasingleconn {
 	int			candidate;
 #define	META_NOT_CANDIDATE	0
 #define	META_CANDIDATE		1
+#define	META_LAST_CONN		-1
 	
 	LDAP            	*ld;
 	struct berval          	bound_dn;
@@ -95,6 +96,8 @@ struct metasingleconn {
 #define META_BOUND		1
 #define META_ANONYMOUS		2
 };
+
+#define META_LAST(lsc)		((lsc)->candidate == META_LAST_CONN)
 
 struct metaconn {
 	struct slap_conn	*conn;
@@ -108,7 +111,7 @@ struct metaconn {
 #define META_BOUND_NONE		-1
 #define META_BOUND_ALL		-2
 	/* supersedes the connection stuff */
-	struct metasingleconn **conns;
+	struct metasingleconn *conns;
 };
 
 struct metatarget {

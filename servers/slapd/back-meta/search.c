@@ -116,7 +116,7 @@ meta_back_search(
 {
 	struct metainfo	*li = ( struct metainfo * )be->be_private;
 	struct metaconn *lc;
-	struct metasingleconn **lsc;
+	struct metasingleconn *lsc;
 	struct timeval	tv;
 	LDAPMessage	*res, *e;
 	int	count, rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
@@ -195,26 +195,26 @@ meta_back_search(
 	/*
 	 * Inits searches
 	 */
-	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
+	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 		char 	*realbase = ( char * )base->bv_val;
 		int 	realscope = scope;
 		ber_len_t suffixlen;
 		char	*mapped_filter, **mapped_attrs;
 		
-		if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
+		if ( lsc->candidate != META_CANDIDATE ) {
 			continue;
 		}
 
 		if ( deref != -1 ) {
-			ldap_set_option( lsc[ 0 ]->ld, LDAP_OPT_DEREF,
+			ldap_set_option( lsc->ld, LDAP_OPT_DEREF,
 					( void * )&deref);
 		}
 		if ( tlimit != -1 ) {
-			ldap_set_option( lsc[ 0 ]->ld, LDAP_OPT_TIMELIMIT,
+			ldap_set_option( lsc->ld, LDAP_OPT_TIMELIMIT,
 					( void * )&tlimit);
 		}
 		if ( slimit != -1 ) {
-			ldap_set_option( lsc[ 0 ]->ld, LDAP_OPT_SIZELIMIT,
+			ldap_set_option( lsc->ld, LDAP_OPT_SIZELIMIT,
 					( void * )&slimit);
 		}
 
@@ -238,7 +238,7 @@ meta_back_search(
 					/*
 					 * this target is no longer candidate
 					 */
-					lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+					lsc->candidate = META_NOT_CANDIDATE;
 					continue;
 				}
 				break;
@@ -261,7 +261,7 @@ meta_back_search(
 				/*
 				 * this target is no longer candidate
 				 */
-				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
 			}
 
@@ -372,10 +372,10 @@ meta_back_search(
 		/*
 		 * Starts the search
 		 */
-		msgid[ i ] = ldap_search( lsc[ 0 ]->ld, mbase, realscope,
+		msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
 				mapped_filter, mapped_attrs, attrsonly ); 
 		if ( msgid[ i ] == -1 ) {
-			lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+			lsc->candidate = META_NOT_CANDIDATE;
 			continue;
 		}
 
@@ -410,13 +410,13 @@ meta_back_search(
 		/* check for abandon */
 		ab = op->o_abandon;
 
-		for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; lsc++, i++ ) {
-			if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
+		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); lsc++, i++ ) {
+			if ( lsc->candidate != META_CANDIDATE ) {
 				continue;
 			}
 			
 			if ( ab ) {
-				ldap_abandon( lsc[ 0 ]->ld, msgid[ i ] );
+				ldap_abandon( lsc->ld, msgid[ i ] );
 				rc = 0;
 				break;
 			}
@@ -428,7 +428,7 @@ meta_back_search(
 				goto finish;
 			}
 
-			rc = ldap_result( lsc[ 0 ]->ld, msgid[ i ],
+			rc = ldap_result( lsc->ld, msgid[ i ],
 					0, &tv, &res );
 
 			if ( rc == 0 ) {
@@ -444,25 +444,25 @@ meta_back_search(
 				/* anything else needs be done? */
 				goto finish;
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
-				e = ldap_first_entry( lsc[ 0 ]->ld, res );
+				e = ldap_first_entry( lsc->ld, res );
 				meta_send_entry(be, op, lc, i, e, attrs,
 						attrsonly);
 				count++;
 				ldap_msgfree( res );
 				gotit = 1;
 			} else {
-				sres = ldap_result2error( lsc[ 0 ]->ld,
+				sres = ldap_result2error( lsc->ld,
 						res, 1 );
 				sres = ldap_back_map_result( sres );
 				if ( err != NULL ) {
 					free( err );
 				}
-				ldap_get_option( lsc[ 0 ]->ld,
+				ldap_get_option( lsc->ld,
 						LDAP_OPT_ERROR_STRING, &err );
 				if ( match != NULL ) {
 					free( match );
 				}
-				ldap_get_option( lsc[ 0 ]->ld,
+				ldap_get_option( lsc->ld,
 						LDAP_OPT_MATCHED_DN, &match );
 
 #ifdef NEW_LOGGING
@@ -482,7 +482,7 @@ meta_back_search(
 				 * When no candidates are left,
 				 * the outer cycle finishes
 				 */
-				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
+				lsc->candidate = META_NOT_CANDIDATE;
 				--candidates;
 			}
 		}

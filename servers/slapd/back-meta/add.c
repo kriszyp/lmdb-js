@@ -200,7 +200,7 @@ meta_back_add(
 	}
 	attrs[ i ] = NULL;
 
-	ldap_add_s( lc->conns[ candidate ]->ld, mdn.bv_val, attrs );
+	ldap_add_s( lc->conns[ candidate ].ld, mdn.bv_val, attrs );
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ]->mod_vals.modv_bvals );
 		free( attrs[ i ] );
