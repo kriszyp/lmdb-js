@@ -681,3 +681,30 @@ done:
 	assert( 0 ); /* ber structure is messed up ?*/
 	return LBER_DEFAULT;
 }
+
+char *
+ber_start( BerElement* ber )
+{
+	return ber->ber_buf;
+}
+
+int
+ber_len( BerElement* ber )
+{
+	return ( ber->ber_end - ber->ber_buf );
+}
+
+int
+ber_ptrlen( BerElement* ber )
+{
+	return ( ber->ber_ptr - ber->ber_buf );
+}
+
+void
+ber_rewind ( BerElement * ber )
+{
+	ber->ber_rwptr = NULL;
+	ber->ber_sos = NULL;
+	ber->ber_end = ber->ber_ptr;
+	ber->ber_ptr = ber->ber_buf;
+}

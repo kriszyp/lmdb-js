@@ -123,6 +123,11 @@ ber_realloc LDAP_P((
 	BerElement *ber,
 	ber_len_t len ));
 
+LBER_F (char *) ber_start LDAP_P(( BerElement * ));
+LBER_F (int) ber_len LDAP_P(( BerElement * ));
+LBER_F (int) ber_ptrlen LDAP_P(( BerElement * ));
+LBER_F (void) ber_rewind LDAP_P(( BerElement * ));
+
 /*
  * bprint.c
  */
