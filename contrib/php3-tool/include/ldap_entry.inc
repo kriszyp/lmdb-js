@@ -61,22 +61,17 @@ class ldap_entry {
 			if ($attrib->isVisible($attrib->name) == "TRUE") {
 				$s .= $attrib->formatHTMLValues();
 			}
-		//	switch ($attrib->name) {
-		//		case "krbname":
-		//		case "objectclass":
-		//		case "nobatchupdates":
-		//		case "uid":
-		//		case "userpassword": break;
-		//		default: 	
-		//			$s .= $attrib->formatHTMLValues();
-		//			break;
-		//	}
 		}
 		$a = $this->attributes[0];
 		$v = $a->values[1];
 		if ($v == "organizationalUnit" || $v == "organization") {
 			$s .= "<tr>\n\t<td colspan=2>\n";
 			$s .= "\t\t<a href=".$FILE."?host=".urlencode($host)."&ldap_action=list&base_dn=".urlencode($this->dn).">Browse</a>\n";
+			$s .= "\t\t</td>\n\t</tr>\n";
+		}
+		else if ($v == "person") {
+			$s .= "<tr>\n\t<td colspan=2>\n";
+			$s .= "\t\t<a href=".$FILE."?host=".urlencode($host)."&ldap_action=read&admin_action=modify&base_dn=".urlencode($this->dn).">Modify</a>\n";
 			$s .= "\t\t</td>\n\t</tr>\n";
 		}
 		else {
