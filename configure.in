@@ -223,7 +223,6 @@ AC_AIX
 AC_ISC_POSIX
 AC_MINIX
 
-dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
 dnl Find socket()
@@ -475,16 +474,16 @@ int argc; char **argv;
 				fi
 			fi
 
-			dnl check for reentrant/threadsafe functions
-			AC_CHECK_FUNCS(	\
-				feof_unlocked \
-				unlocked_feof \
-				ftrylockfile \
-				flockfile \
-				putc_unlocked \
-				gmtime_r \
-				strtok_r \
-			)
+dnl			dnl check for reentrant/threadsafe functions
+dnl			AC_CHECK_FUNCS(	\
+dnl				feof_unlocked \
+dnl				unlocked_feof \
+dnl				ftrylockfile \
+dnl				flockfile \
+dnl				putc_unlocked \
+dnl				gmtime_r \
+dnl				strtok_r \
+dnl			)
 
 			dnl restore DEFS/LIBS
 			CPPFLAGS="$save_CPPFLAGS"
@@ -591,6 +590,18 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(lwp/lwp.h)
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
+
+if test $ol_with_threads = yes ; then
+	dnl needed to get reentrant/threadsafe versions
+	dnl
+	dnl hopefully this will not cause problems with
+	dnl non-threaded apps
+	dnl
+	AC_DEFINE(_REENTRANT,1)
+	AC_DEFINE(_THREAD_SAFE,1)
+fi
+
+dnl ----------------------------------------------------------------
 
 if test $ol_link_threads = no ; then
 	if test $ol_with_threads = yes ; then

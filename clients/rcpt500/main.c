@@ -10,11 +10,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
-#include <ac/syslog.h>
+#include <ac/ctype.h>
 #include <ac/string.h>
-
+#include <ac/syslog.h>
 
 #include "ldapconfig.h"
 #include "rcpt500.h"
@@ -365,7 +364,7 @@ find_command( text, argp )
 
     p = text;
     for ( s = argbuf; *p != '\0'; ++p ) {
-	*s++ = tolower( *p );
+	*s++ = TOLOWER( *p );
     }
     *s = '\0';
 

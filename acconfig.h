@@ -5,6 +5,13 @@
    Leave the following blank line there!!  Autoheader needs it.  */
 
 
+
+/* define this if needed to get reentrant functions */
+#undef _REENTRANT
+
+/* define this if needed to get threadsafe functions */
+#undef _THREAD_SAFE
+
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 

@@ -498,7 +498,7 @@ generate_new_centroids(
 				/* normalize the value */
 				for ( s = val[j]; *s; s++ ) {
 					if ( isascii( *s ) ) {
-						*s = tolower( *s );
+						*s = TOLOWER( *s );
 					}
 					last = *s;
 				}

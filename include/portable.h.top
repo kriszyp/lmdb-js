@@ -1,3 +1,4 @@
+/* portable.h.top begin */
 /*
 Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
@@ -30,3 +31,4 @@ is provided ``as is'' without express or implied warranty.
 #ifndef _LDAP_PORTABLE_H
 #define _LDAP_PORTABLE_H
 
+/* portable.h.top end */

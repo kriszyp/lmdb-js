@@ -1,3 +1,4 @@
+/* portable.h.bot begin */
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
@@ -6,3 +7,5 @@
 #include "ldap_cdefs.h"
 
 #endif /* _LDAP_PORTABLE_H */
+
+/* portable.h.bot end */

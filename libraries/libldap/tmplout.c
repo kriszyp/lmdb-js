@@ -251,9 +251,7 @@ do_entry2text(
 		freevals = 1;
 	    }
 
-	    if ( islower( *attr )) {	/* cosmetic -- upcase attr. name */
-		*attr = toupper( *attr );
-	    }
+		*attr = TOUPPER( *attr );
 
 	    err = do_vals2text( ld, buf, vals, attr, labelwidth,
 		    LDAP_SYN_CASEIGNORESTR, writeproc, writeparm, eol, 
@@ -302,14 +300,14 @@ do_entry2text(
 		if ( show && LDAP_GET_SYN_TYPE( colp->ti_syntaxid )
 			== LDAP_SYN_TYPE_BOOLEAN && LDAP_IS_TMPLITEM_OPTION_SET(
 			colp, LDAP_DITEM_OPT_HIDEIFFALSE ) &&
-			toupper( vals[ 0 ][ 0 ] ) != 'T' ) {
+			TOUPPER( vals[ 0 ][ 0 ] ) != 'T' ) {
 		    show = 0;
 		}
 
 		if ( colp->ti_syntaxid == LDAP_SYN_SEARCHACTION ) {
 		    if (( opts & LDAP_DISP_OPT_DOSEARCHACTIONS ) != 0 ) {
 			if ( colp->ti_attrname == NULL || ( show &&
-				toupper( vals[ 0 ][ 0 ] ) == 'T' )) {
+				TOUPPER( vals[ 0 ][ 0 ] ) == 'T' )) {
 			    err = searchaction( ld, buf, base, entry, dn, colp,
 				    labelwidth, rdncount, writeproc,
 				    writeparm, eol, urlprefix );
@@ -689,7 +687,7 @@ do_vals2text(
 	    break;
 
 	case LDAP_SYN_BOOLEAN:
-	    outval = toupper( outval[ 0 ] ) == 'T' ? "TRUE" : "FALSE";
+	    outval = TOUPPER( outval[ 0 ] ) == 'T' ? "TRUE" : "FALSE";
 	    ++writeoutval;
 	    break;
 
