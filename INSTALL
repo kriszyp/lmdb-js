@@ -32,8 +32,8 @@ Making and Installing the OpenLDAP Distribution
 
      to list available configuration options.
 
-     The configure script uses environmental variables for determining
-     compiler/linker options including:
+     Note also that the configure script uses environmental variables
+     for determining compiler/linker options including:
 
         Variable        Description     Example
         CC              C compiler      gcc
@@ -42,6 +42,8 @@ Making and Installing the OpenLDAP Distribution
         LDFLAGS         ld flags        -L/usr/local/lib
         LIBS            libraries       -llib
         PATH            command path    /usr/local/bin:/usr/bin:/bin
+
+     See doc/install/configure for generic configure documentation.
 
 3.   Configure the build system:
 
