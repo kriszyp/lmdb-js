@@ -597,23 +597,20 @@ slap_entry2mods(
 		mod->sml_bvalues = (struct berval*) malloc(
 				(count+1) * sizeof( struct berval) );
 
-		mod->sml_nvalues = (struct berval*) malloc(
+		/* see slap_mods_check() comments...
+		 * if a_vals == a_nvals, there is no normalizer.
+		 * in this case, mod->sml_nvalues must be left NULL.
+		 */
+		if ( a_new->a_vals != a_new->a_nvals ) {
+			mod->sml_nvalues = (struct berval*) malloc(
 				(count+1) * sizeof( struct berval) );
+		} else {
+			mod->sml_nvalues = NULL;
+		}
 
 		for ( i = 0; i < count; i++ ) {
 			ber_dupbv(mod->sml_bvalues+i, a_new->a_vals+i); 
-			if ( a_new->a_desc->ad_type->sat_equality &&
-				a_new->a_desc->ad_type->sat_equality->smr_normalize ) {
-				rc = a_new->a_desc->ad_type->sat_equality->smr_normalize(
-					0,
-					a_new->a_desc->ad_type->sat_syntax,
-					a_new->a_desc->ad_type->sat_equality,
-					a_new->a_vals+i, mod->sml_nvalues+i, NULL );
-				if (rc) {
-					return rc; 
-				} 
-			}
-			else {	
+			if ( mod->sml_nvalues ) {
 				ber_dupbv( mod->sml_nvalues+i, a_new->a_vals+i ); 
 			} 
 		}
@@ -621,8 +618,10 @@ slap_entry2mods(
 		mod->sml_bvalues[count].bv_val = 0; 
 		mod->sml_bvalues[count].bv_len = 0; 
 
-		mod->sml_nvalues[count].bv_val = 0; 
-		mod->sml_nvalues[count].bv_len = 0; 
+		if ( mod->sml_nvalues ) {
+			mod->sml_nvalues[count].bv_val = 0; 
+			mod->sml_nvalues[count].bv_len = 0; 
+		}
 
 		mod->sml_desc = a_new_desc;
 		mod->sml_next =NULL;
