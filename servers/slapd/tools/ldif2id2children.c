@@ -5,7 +5,8 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#define DEFAULT_CONFIGFILE	"/usr/local/etc/slapd.conf"
+#include "ldapconfig.h"
+
 #define MAXARGS      		100
 
 extern struct dbcache	*ldbm_cache_open();
@@ -63,13 +64,13 @@ main( int argc, char **argv )
 	int		dbnum;
 	ID		id;
 	struct dbcache	*db, *db2;
-	Backend		*be;
+	Backend		*be = NULL;
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
 	extern char	*optarg;
 
-	tailorfile = DEFAULT_CONFIGFILE;
+	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, "d:f:i:n:" )) != EOF ) {
 		switch ( i ) {
@@ -121,7 +122,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "No ldbm database found in config file\n" );
 			exit( 1 );
 		}
-	} else if ( dbnum < 1 || dbnum > nbackends ) {
+	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr, "Database number selected via -n is out of range\n" );
 		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
 		exit( 1 );
