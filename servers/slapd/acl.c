@@ -33,6 +33,12 @@ static int aci_mask(
 	Operation *op,
 	Entry *e, char *attr, struct berval *val, struct berval *aci,
 	regmatch_t *matches, slap_access_t *grant, slap_access_t *deny );
+
+char *supportedACIMechs[] = {
+				"1.3.6.1.4.1.4203.666.7.1",	/* experimental draft aci family */
+				"1.3.6.1.4.1.4203.666.7.2",	/* experimental OpenLDAP aci family */
+				NULL
+		};
 #endif
 
 static int	regex_matches(char *pat, char *str, char *buf, regmatch_t *matches);
@@ -941,12 +947,12 @@ aci_mask (
 {
     struct berval bv, perms, sdn;
     char *subjdn;
-	int rc;
+	int rc, i;
 
 	/* parse an aci of the form:
 		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
 
-	   See draft-ietf-ldapext-aci-model-0.3.txt section 9.1 for
+	   See draft-ietf-ldapext-aci-model-04.txt section 9.1 for
 	   a full description of the format for this attribute.
 
 	   For now, this routine only supports scope=entry.
@@ -954,6 +960,16 @@ aci_mask (
 
 	/* check that the aci has all 5 components */
 	if (aci_get_part(aci, 4, '#', NULL) < 0)
+		return(0);
+
+	/* check that the aci family is supported */
+	if (aci_get_part(aci, 0, '#', &bv) < 0)
+		return(0);
+	for (i = 0; supportedACIMechs[i] != NULL; i++) {
+		if (aci_strbvcmp( supportedACIMechs[i], &bv ) == 0)
+			break;
+	}
+	if (supportedACIMechs[i] == NULL)
 		return(0);
 
 	/* check that the scope is "entry" */
@@ -1021,6 +1037,15 @@ aci_mask (
 
 	return(0);
 }
+
+char *
+get_supported_acimech (int index)
+{
+	if (index < 0 || index >= (sizeof(supportedACIMechs) / sizeof(char *)))
+		return(NULL);
+	return(supportedACIMechs[index]);
+}
+
 #endif	/* SLAPD_ACI_ENABLED */
 
 static void
