@@ -10,8 +10,8 @@
 #ifdef HAVE_TLS
 
 #include <stdio.h>
-#include <stdlib.h>
 
+#include <ac/stdlib.h>
 #include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
