@@ -31,7 +31,7 @@ ldappasswd:	ldappasswd.o
 
 ldapadd:	ldapmodify
 	$(RM) $@
-	$(LN) ldapmodify ldapadd
+	$(LN_H) ldapmodify ldapadd
 
 ldsversion.c: ldapsearch.o $(LDAP_LIBDEPEND)
 	$(RM) $@
