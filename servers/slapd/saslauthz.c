@@ -618,7 +618,7 @@ void slap_sasl2dn( Connection *conn,
 
 	op.o_tag = LDAP_REQ_SEARCH;
 	op.o_protocol = LDAP_VERSION3;
-	op.o_ndn = *saslname;
+	op.o_ndn = conn->c_ndn;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
