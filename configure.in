@@ -7,6 +7,10 @@ dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
 dnl
 
+dnl Disable config.cache!
+define([AC_CACHE_LOAD], )dnl
+define([AC_CACHE_SAVE], )dnl
+
 dnl Configure.in for OpenLDAP
 AC_INIT(include/ldap.h)dnl
 AC_CONFIG_AUX_DIR(build)dnl
@@ -770,7 +774,7 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			fi
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
-				dnl Solaris has sched_yield() in -lposix4
+				dnl Solaris has sched_yield() stub in -lposix4
 				dnl but we'll use thr_yield instead.
 				AC_CHECK_FUNCS(thr_yield)
 			fi
