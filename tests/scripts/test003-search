@@ -29,8 +29,8 @@ echo "Running slapindex to index slapd database..."
 $SLAPINDEX -f $CONF
 RC=$?
 if test $RC != 0 ; then
-	echo "slapindex failed ($RC)!"
-	exit $RC
+	echo "warning: slapindex failed ($RC)"
+	echo "  assuming no indexing support"
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
