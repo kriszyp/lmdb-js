@@ -46,7 +46,14 @@ The local
 .I objectClasses 
 and 
 .I attributeTypes 
-must be defined in the local schema; the foreign ones do not have to.
+must be defined in the local schema; the foreign ones do not have to,
+but users are encouraged to explicitly define the remote attributeTypes
+and the objectClasses they intend to map.  All in all, when remapping
+a remote server via back-ldap (\fBslapd-ldap\fP(5)) 
+or back-meta (\fBslapd-meta\fP(5))
+their definition can be easily obtained by querying the \fIsubschemaSubentry\fP
+of the remote server; the problem should not exist when remapping a local 
+database.
 Note, however, that the decision whether to rewrite or not attributeTypes
 with 
 .IR "distinguishedName syntax" ,
@@ -59,8 +66,9 @@ while mapping from remote to local, first the attributeType is mapped,
 and then the DN is rewritten.
 As such, it is important that the local attributeType is appropriately
 defined as using the distinguishedName syntax.
-Also, note that there are DN-related syntaxes, like nameAndOptionalUID,
-whose values are currenlty not rewritten.
+Also, note that there are DN-related syntaxes (i.e. compound types with
+a portion that is DN-valued), like nameAndOptionalUID,
+whose values are currently not rewritten.
 .SH SUFFIX MASSAGING
 A basic feature of the
 .B rwm
