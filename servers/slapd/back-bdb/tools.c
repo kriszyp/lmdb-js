@@ -109,7 +109,7 @@ ID bdb_tool_dn2id_get(
 	struct berval *dn
 )
 {
-	struct bdb_info *bdb = (struct bdb_nifo *) be->be_private;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	int rc;
 	DBT	key, data;
