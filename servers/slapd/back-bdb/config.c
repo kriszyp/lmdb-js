@@ -43,7 +43,11 @@ bdb_db_config(
 		bdb->bi_dbenv_home = ch_strdup( argv[1] );
 
 
-	/* mode with which to create new database files */
+	/* transaction checkpoint configuration */
+	} else if ( strcasecmp( argv[0], "dbnosync" ) == 0 ) {
+		bdb->bi_dbenv_xflags |= DB_TXN_NOSYNC;
+
+	/* transaction checkpoint configuration */
 	} else if ( strcasecmp( argv[0], "checkpoint" ) == 0 ) {
 		if ( argc < 3 ) {
 			fprintf( stderr, "%s: line %d: "
@@ -54,6 +58,48 @@ bdb_db_config(
 		bdb->bi_txn_cp = 1;
 		bdb->bi_txn_cp_kbyte = strtol( argv[1], NULL, 0 );
 		bdb->bi_txn_cp_min = strtol( argv[2], NULL, 0 );
+
+	/* lock detect configuration */
+	} else if ( strcasecmp( argv[0], "lockdetect" ) == 0 ) {
+#ifndef NO_THREADS
+		if ( argc < 3 ) {
+			fprintf( stderr, "%s: line %d: "
+				"missing parameters in \"lockDetect <policy> <seconds>\" line\n",
+				fname, lineno );
+			return 1;
+		}
+
+		if( strcasecmp( argv[1], "default" ) == 0 ) {
+			bdb->bi_lock_detect = DB_LOCK_DEFAULT;
+
+		} else if( strcasecmp( argv[1], "oldest" ) == 0 ) {
+			bdb->bi_lock_detect = DB_LOCK_OLDEST;
+
+		} else if( strcasecmp( argv[1], "random" ) == 0 ) {
+			bdb->bi_lock_detect = DB_LOCK_RANDOM;
+
+		} else if( strcasecmp( argv[1], "youngest" ) == 0 ) {
+			bdb->bi_lock_detect = DB_LOCK_YOUNGEST;
+
+		} else {
+			fprintf( stderr, "%s: line %d: "
+				"bad policy (%s) in \"lockDetect <policy> <seconds>\" line\n",
+				fname, lineno, argv[1] );
+			return 1;
+		}
+
+		bdb->bi_lock_detect_seconds = strtol( argv[2], NULL, 0 );
+		if( bdb->bi_lock_detect_seconds < 1 ) {
+			fprintf( stderr, "%s: line %d: "
+				"bad seconds (%s) in \"lockDetect <policy> <seconds>\" line\n",
+				fname, lineno, argv[2] );
+			return 1;
+		}
+#else
+		fprintf( stderr, "%s: line %d: "
+			"NO THREADS: lockDetect line ignored\n",
+			fname, lineno );
+#endif
 
 	/* mode with which to create new database files */
 	} else if ( strcasecmp( argv[0], "mode" ) == 0 ) {

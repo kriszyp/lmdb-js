@@ -73,6 +73,12 @@ struct bdb_info {
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;
+
+#ifndef NO_THREADS
+	int			bi_lock_detect;
+	int			bi_lock_detect_seconds;
+	ldap_pvt_thread_t	bi_lock_detect_tid;
+#endif
 };
 #define bi_nextid	bi_databases[BDB_NEXTID]
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]

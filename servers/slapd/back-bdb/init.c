@@ -66,9 +66,30 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_dbenv_xflags = 0;
 	bdb->bi_dbenv_mode = DEFAULT_MODE;
 
+	bdb->bi_lock_detect = DB_LOCK_NORUN;
+
 	be->be_private = bdb;
 	return 0;
 }
+
+#ifndef NO_THREADS
+static void *lock_detect_task( void *arg )
+{
+	struct bdb_info *bdb = (struct bdb_info *) arg;
+
+	while( bdb->bi_dbenv != NULL ) {
+		int rc;
+		sleep( bdb->bi_lock_detect_seconds );
+
+		rc = lock_detect( bdb->bi_dbenv, DB_LOCK_CONFLICT, bdb->bi_lock_detect, NULL );
+		if( rc != 0 ) {
+			break;
+		}
+	}
+
+	return NULL;
+}
+#endif
 
 static int
 bdb_db_open( BackendDB *be )
@@ -91,13 +112,11 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN |
-		DB_CREATE | DB_RECOVER | DB_THREAD;
+	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | 
+		DB_CREATE | DB_RECOVER;
 
-#ifdef SLAPD_BDB_PRIVATE
-	flags |= DB_PRIVATE;
-#else
-	flags |= DB_INIT_MPOOL;
+#ifndef NO_THREADS
+	flags |= DB_THREAD;
 #endif
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0] );
@@ -195,6 +214,13 @@ bdb_db_open( BackendDB *be )
 	/* <insert> open (and create) index databases */
 
 
+#ifndef NO_THREADS
+	if( bdb->bi_lock_detect != DB_LOCK_NORUN ) {
+		/* listener as a separate THREAD */
+		rc = ldap_pvt_thread_create( &bdb->bi_lock_detect_tid,
+			1, lock_detect_task, bdb );
+	}
+#endif
 	return 0;
 }
 
