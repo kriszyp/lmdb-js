@@ -366,24 +366,25 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 		
 	e = ldap_first_entry( ld, res );
 	if ( e == NULL ) {
+		ldap_msgfree( res );
 		if ( ld->ld_errno == LDAP_SUCCESS ) {
-			ld->ld_errno = LDAP_UNAVAILABLE;
+			ld->ld_errno = LDAP_NO_SUCH_OBJECT;
 		}
 		return ld->ld_errno;
 	}
 
 	values = ldap_get_values( ld, e, "supportedSASLMechanisms" );
 	if ( values == NULL ) {
-		ld->ld_errno = LDAP_NO_SUCH_ATTRIBUTE;
 		ldap_msgfree( res );
+		ld->ld_errno = LDAP_NO_SUCH_ATTRIBUTE;
 		return ld->ld_errno;
 	}
 
 	mechlist = ldap_charray2str( values, " " );
 	if ( mechlist == NULL ) {
-		ld->ld_errno = LDAP_NO_MEMORY;
 		LDAP_VFREE( values );
 		ldap_msgfree( res );
+		ld->ld_errno = LDAP_NO_MEMORY;
 		return ld->ld_errno;
 	} 
 
