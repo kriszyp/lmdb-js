@@ -70,8 +70,10 @@ main(int argc, char **argv)
 
 	printf("  API Version:       %d\n", api.ldapai_api_version);
 	printf("  Protocol Max:      %d\n", api.ldapai_protocol_version);
+
 	if(api.ldapai_extensions == NULL) {
 		printf("  Extensions:        none\n");
+
 	} else {
 		int i;
 		for(i=0; api.ldapai_extensions[i] != NULL; i++) {
@@ -80,6 +82,7 @@ main(int argc, char **argv)
 		}
 		printf("  #Extensions:       %d\n", i);
 	}
+
 	printf("  Vendor Name:       %s\n", api.ldapai_vendor_name);
 	printf("  Vendor Version:    %d\n", api.ldapai_vendor_version);
 
