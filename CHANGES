@@ -8,6 +8,7 @@ Changes included in OpenLDAP 1.2
 	Add slapd logging option
 	Add slapd alternative args/pid file locations
 	Fix lber leaking ber_scanf
+	Update slapd alias deref functionality to be optional
 	Update client/tools Kerberos option handling
 
 Changes included in OpenLDAP 1.1.3
