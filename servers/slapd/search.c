@@ -472,21 +472,36 @@ static int doPreSearchPluginFNs( Operation *op )
 static int doSearchRewriteFNs( Operation *op )
 {
 	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, op->o_pb ) == 0 ) {
+		Filter *f;
+
 		/*
 		 * The plugin can set the SLAPI_SEARCH_FILTER.
 		 * SLAPI_SEARCH_STRFILER is not normative.
 		 */
-		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_FILTER, (void *)&op->ors_filter);
-		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
+		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_FILTER, (void *)&f );
+		if ( f != op->ors_filter ) {
+			/* Plugin modified filter. Is pointer comparison safe? */
+			/*
+			 * This is inefficient but it is not possible to expose the
+			 * new memory allocation API through SLAPI. 
+		 	 *
+			 * Further, the plugin should be responsible for freeing
+			 * the original filter, but there is no way to communicate
+			 * the memory context through the SLAPI filter free API.
+			 */
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+			filter2bv_x( op, f, &op->ors_filterstr );
+			filter_free_x( op, op->ors_filter );
+			op->ors_filter = str2filter_x( op, op->ors_filterstr.bv_val );
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ARGS, 
-			"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 
-			op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
+			LDAP_LOG( OPERATION, ARGS, 
+				"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 
+				op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
-			op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
+			Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
+				op->ors_filterstr.bv_len ? op->ors_filterstr.bv_val : "empty", 0, 0 );
 #endif
+		}
 	}
 
 	return LDAP_SUCCESS;
