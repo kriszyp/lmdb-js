@@ -36,9 +36,9 @@
 #		if defined( SIGUNUSED )
 #			define LDAP_SIGUSR2	SIGUNUSED
 #		elif defined ( SIGINFO )
-#			define LDAP_SIGUSR1	SIGINFO
+#			define LDAP_SIGUSR2	SIGINFO
 #		elif defined ( SIGEMT )
-#			define LDAP_SIGUSR1	SIGEMT
+#			define LDAP_SIGUSR2	SIGEMT
 #		endif
 #	endif
 #endif
