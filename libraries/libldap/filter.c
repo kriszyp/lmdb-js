@@ -181,6 +181,10 @@ ldap_pvt_find_wildcard( const char *s )
 		case '*':	/* found wildcard */
 			return (char *) s;
 
+		case '(':
+		case ')':
+			return NULL;
+
 		case '\\':
 			if( s[1] == '\0' ) return NULL;
 
@@ -215,6 +219,10 @@ ldap_pvt_filter_value_unescape( char *fval )
 
 	for( r=v=0; fval[v] != '\0'; v++ ) {
 		switch( fval[v] ) {
+		case '(':
+		case ')':
+			return -1;
+
 		case '\\':
 			/* escape */
 			v++;
