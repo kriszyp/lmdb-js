@@ -126,6 +126,10 @@ do_search(
 			goto return_results;
 		}
 #endif
+		if ( strcmp( base, LDAP_ROOT_DSE ) == 0 ) {
+			root_dse_info( conn, op );
+			goto return_results;
+		}
 	}
 #endif /* monitor or config or schema dn */
 
