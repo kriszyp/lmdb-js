@@ -31,13 +31,13 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-static struct dbcache	*openchoice(char c, int mode, int verbose, char **fname);
+static DBCache	*openchoice(char c, int mode, int verbose, char **fname);
 static void		print_entry(FILE *fp, char c, Datum *key, char *klabel, Datum *data, char *dlabel);
-static void		free_and_close(struct dbcache *dbc, Datum key, Datum data);
+static void		free_and_close(DBCache *dbc, Datum key, Datum data);
 static void		edit_entry(char c, Datum *data);
 static void		get_keydata(FILE *fp, char c, Datum *key, Datum *data);
 
-static struct dbcache *dbc;
+static DBCache *dbc;
 static LDBM           dbp;
 static Backend		*be = NULL;
 
@@ -373,7 +373,7 @@ main( int argc, char **argv )
 }
 
 static void
-free_and_close( struct dbcache *dbc, Datum key, Datum data )
+free_and_close( DBCache *dbc, Datum key, Datum data )
 {
 	ldbm_cache_really_close( be, dbc );
 	if ( key.dptr != NULL )
@@ -570,10 +570,10 @@ edit_entry( char c, Datum *data )
 }
 #endif
 
-static struct dbcache *
+static DBCache *
 openfile( char *name, int namesiz, int mode, int verbose, char c )
 {
-	struct dbcache	*dbc;
+	DBCache	*dbc;
 
 	if ( name == NULL || *name == '\0' ) {
 		if ( c == 'f' ) {
@@ -599,7 +599,7 @@ openfile( char *name, int namesiz, int mode, int verbose, char c )
 	return( dbc );
 }
 
-static struct dbcache *
+static DBCache *
 openchoice( char c, int mode, int verbose, char **fname )
 {
 	static char	name[MAXPATHLEN];

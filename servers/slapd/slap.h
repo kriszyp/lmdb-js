@@ -80,12 +80,12 @@ struct slap_conn;
 /*
  * represents an attribute value assertion (i.e., attr=value)
  */
-typedef struct ava {
+typedef struct slap_ava {
 	char		*ava_type;
 	struct berval	ava_value;
 } Ava;
 
-typedef struct mra {
+typedef struct slap_mra {
 	char	*mra_rule;
 	char	*mra_type;
 	char	*mra_value;
@@ -95,7 +95,7 @@ typedef struct mra {
 /*
  * represents a search filter
  */
-typedef struct filter {
+typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h */
 
 	union f_un_u {
@@ -109,7 +109,7 @@ typedef struct filter {
 		Mra		f_un_fra;	
 
 		/* and, or, not */
-		struct filter	*f_un_complex;
+		struct slap_filter	*f_un_complex;
 
 		/* substrings */
 		struct sub {
@@ -137,17 +137,17 @@ typedef struct filter {
 #define f_sub_any	f_un.f_un_sub.f_un_sub_any
 #define f_sub_final	f_un.f_un_sub.f_un_sub_final
 
-	struct filter	*f_next;
+	struct slap_filter	*f_next;
 } Filter;
 
 /*
  * represents an attribute (type + values + syntax)
  */
-typedef struct attr {
+typedef struct slap_attr {
 	char		*a_type;
 	struct berval	**a_vals;
 	int		a_syntax;
-	struct attr	*a_next;
+	struct slap_attr	*a_next;
 } Attribute;
 
 /*
@@ -164,12 +164,12 @@ typedef struct attr {
  * the id used in the indexes to refer to an entry
  */
 typedef unsigned long	ID;
-#define NOID	((unsigned long)~0)
+#define NOID	((ID)~0)
 
 /*
  * represents an entry in core
  */
-typedef struct entry {
+typedef struct slap_entry {
 	/*
 	 * The ID field should only be changed before entry is
 	 * inserted into a cache.  The ID value is backend
@@ -190,7 +190,7 @@ typedef struct entry {
  */
 
 /* the "by" part */
-struct access {
+typedef struct slap_access {
 
 #define ACL_NONE		0x0001
 #define ACL_AUTH		0x0004
@@ -240,11 +240,11 @@ struct access {
 	char		*a_group_oc;
 	char		*a_group_at;
 
-	struct access	*a_next;
-};
+	struct slap_access	*a_next;
+} Access;
 
 /* the "to" part */
-struct acl {
+typedef struct slap_acl {
 	/* "to" part: the entries this acl applies to */
 	Filter		*acl_filter;
 	regex_t		acl_dnre;
@@ -252,10 +252,10 @@ struct acl {
 	char		**acl_attrs;
 
 	/* "by" part: list of who has what access to the entries */
-	struct access	*acl_access;
+	Access	*acl_access;
 
-	struct acl	*acl_next;
-};
+	struct slap_acl	*acl_next;
+} AccessControl;
 
 /*
  * A list of LDAPMods
@@ -346,8 +346,8 @@ typedef struct slap_object_class {
  * represents a backend 
  */
 
-typedef struct backend_info BackendInfo;	/* per backend type */
-typedef struct backend_db BackendDB;		/* per backend database */
+typedef struct slap_backend_info BackendInfo;	/* per backend type */
+typedef struct slap_backend_db BackendDB;		/* per backend database */
 
 extern int nBackendInfo;
 extern int nBackendDB;
@@ -368,7 +368,7 @@ typedef BackendDB Backend;
 #define nbackends nBackendDB
 #define backends backendDB
 
-struct backend_db {
+struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
 	/* BackendInfo accessors */
@@ -401,7 +401,7 @@ struct backend_db {
 	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
-	struct acl *be_acl;	/* access control list for this backend	   */
+	AccessControl *be_acl;	/* access control list for this backend	   */
 	int	be_dfltaccess;	/* access given if no acl matches	   */
 	char	**be_replica;	/* replicas of this backend (in master)	   */
 	char	*be_replogfile;	/* replication log file (in master)	   */
@@ -414,7 +414,7 @@ struct backend_db {
 	void	*be_private;	/* anything the backend database needs 	   */
 };
 
-struct backend_info {
+struct slap_backend_info {
 	char	*bi_type;	/* type of backend */
 
 	/*
@@ -537,7 +537,7 @@ typedef struct slap_op {
 	ber_tag_t	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 
-	int		o_bind_in_progress;	/* multi-op bind in progress */
+	int		o_bind_in_progress;	/* multi-step bind in progress */
 
 	char		*o_dn;		/* dn bound when op was initiated */
 	char		*o_ndn;		/* normalized dn bound when op was initiated */
@@ -601,8 +601,10 @@ typedef struct slap_conn {
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int		c_writewaiter;	/* true if writer is waiting */
 
+#ifdef HAVE_TLS
 	int	c_is_tls;		/* true if this LDAP over raw TLS */
 	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
+#endif
 
 	long	c_n_ops_received;		/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */

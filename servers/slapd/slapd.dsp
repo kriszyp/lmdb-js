@@ -139,10 +139,6 @@ LINK32=link.exe
 # Name "slapd - Win32 Single Release"
 # Begin Source File
 
-SOURCE=.\daemon.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\main.c
 # End Source File
 # Begin Source File

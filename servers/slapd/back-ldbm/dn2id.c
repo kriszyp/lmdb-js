@@ -19,7 +19,7 @@ dn2id_add(
 )
 {
 	int		rc, flags;
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key, data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
@@ -62,7 +62,7 @@ dn2id(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	struct dbcache	*db;
+	DBCache	*db;
 	ID		id;
 	Datum		key, data;
 
@@ -116,7 +116,7 @@ dn2id_delete(
     char	*dn
 )
 {
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key;
 	int		rc;
 

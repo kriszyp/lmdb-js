@@ -61,7 +61,7 @@ idl_free( ID_BLOCK *idl )
 static ID_BLOCK *
 idl_fetch_one(
     Backend		*be,
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		key
 )
 {
@@ -97,7 +97,7 @@ idl_fetch_one(
 ID_BLOCK *
 idl_fetch(
     Backend		*be,
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		key
 )
 {
@@ -191,7 +191,7 @@ idl_fetch(
 static int
 idl_store(
     Backend		*be,
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		key, 
     ID_BLOCK		*idl
 )
@@ -277,7 +277,7 @@ idl_split_block(
 static int
 idl_change_first(
     Backend		*be,
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		hkey,		/* header block key	*/
     ID_BLOCK		*h,		/* header block 	*/
     int			pos,		/* pos in h to update	*/
@@ -321,7 +321,7 @@ idl_change_first(
 int
 idl_insert_key(
     Backend		*be,
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		key,
     ID			id
 )
@@ -662,7 +662,7 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 int
 idl_delete_key (
 	Backend         *be,
-	struct dbcache  *db,
+	DBCache  *db,
 	Datum           key,
 	ID              id
 )

@@ -38,7 +38,7 @@ access_allowed(
 )
 {
 	int				rc;
-	struct acl		*a;
+	AccessControl	*a;
 	char            *edn;
 
 	regmatch_t       matches[MAXREMATCHES];
@@ -93,7 +93,7 @@ access_allowed(
  * acl_access_allowed().
  */
 
-struct acl *
+AccessControl *
 acl_get_applicable(
     Backend		*be,
     Operation		*op,
@@ -104,7 +104,7 @@ acl_get_applicable(
 )
 {
 	int		i;
-	struct acl	*a;
+	AccessControl	*a;
     char		*edn;
 
 	Debug( LDAP_DEBUG_ACL, "\n=> acl_get: entry (%s) attr (%s)\n",
@@ -200,7 +200,7 @@ acl_get_applicable(
 
 int
 acl_access_allowed(
-    struct acl		*a,
+    AccessControl	*a,
     Backend		*be,
     Connection		*conn,
     Entry		*e,
@@ -212,7 +212,7 @@ acl_access_allowed(
 )
 {
 	int		i;
-	struct access	*b;
+	Access	*b;
 	Attribute	*at;
 	struct berval	bv;
 	int		default_access;
@@ -398,7 +398,7 @@ acl_check_modlist(
 )
 {
 	int		i;
-	struct acl	*a;
+	AccessControl	*a;
 	char	*edn = e->e_ndn;
 
 	for ( ; mlist != NULL; mlist = mlist->ml_next ) {

@@ -13,7 +13,7 @@
 static int
 ainfo_type_cmp(
     char		*type,
-    struct attrinfo	*a
+    AttrInfo	*a
 )
 {
 	return( strcasecmp( type, a->ai_type ) );
@@ -21,8 +21,8 @@ ainfo_type_cmp(
 
 static int
 ainfo_cmp(
-    struct attrinfo	*a,
-    struct attrinfo	*b
+    AttrInfo	*a,
+    AttrInfo	*b
 )
 {
 	return( strcasecmp( a->ai_type, b->ai_type ) );
@@ -37,8 +37,8 @@ ainfo_cmp(
 
 static int
 ainfo_dup(
-    struct attrinfo	*a,
-    struct attrinfo	*b
+    AttrInfo	*a,
+    AttrInfo	*b
 )
 {
 	/*
@@ -62,13 +62,13 @@ attr_masks(
     int			*syntaxmask
 )
 {
-	struct attrinfo	*a;
+	AttrInfo	*a;
 
 	*indexmask = 0;
 	*syntaxmask = 0;
-	if ( (a = (struct attrinfo *) avl_find( li->li_attrs, type,
+	if ( (a = (AttrInfo *) avl_find( li->li_attrs, type,
 	    (AVL_CMP) ainfo_type_cmp )) == NULL ) {
-		if ( (a = (struct attrinfo *) avl_find( li->li_attrs, "default",
+		if ( (a = (AttrInfo *) avl_find( li->li_attrs, "default",
 		    (AVL_CMP) ainfo_type_cmp )) == NULL ) {
 			return;
 		}
@@ -93,14 +93,14 @@ attr_index_config(
 {
 	int		i, j;
 	char		**attrs, **indexes;
-	struct attrinfo	*a;
+	AttrInfo	*a;
 
 	attrs = str2charray( argv[0], "," );
 	if ( argc > 1 ) {
 		indexes = str2charray( argv[1], "," );
 	}
 	for ( i = 0; attrs[i] != NULL; i++ ) {
-		a = (struct attrinfo *) ch_malloc( sizeof(struct attrinfo) );
+		a = (AttrInfo *) ch_malloc( sizeof(AttrInfo) );
 		a->ai_type = ch_strdup( attrs[i] );
 		a->ai_syntaxmask = attr_syntax( a->ai_type );
 		if ( argc == 1 ) {

@@ -13,12 +13,12 @@
 #include "slap.h"
 
 static void		split(char *line, int splitchar, char **left, char **right);
-static void		acl_append(struct acl **l, struct acl *a);
-static void		access_append(struct access **l, struct access *a);
+static void		acl_append(AccessControl **l, AccessControl *a);
+static void		access_append(Access **l, Access *a);
 static void		acl_usage(void);
 #ifdef LDAP_DEBUG
-static void		print_acl(struct acl *a);
-static void		print_access(struct access *b);
+static void		print_acl(AccessControl *a);
+static void		print_access(Access *b);
 #endif
 
 static int
@@ -88,8 +88,8 @@ parse_acl(
 {
 	int		i;
 	char		*left, *right;
-	struct acl	*a;
-	struct access	*b;
+	AccessControl	*a;
+	Access	*b;
 
 	a = NULL;
 	for ( i = 1; i < argc; i++ ) {
@@ -101,7 +101,7 @@ parse_acl(
 				    fname, lineno );
 				acl_usage();
 			}
-			a = (struct acl *) ch_calloc( 1, sizeof(struct acl) );
+			a = (AccessControl *) ch_calloc( 1, sizeof(AccessControl) );
 			for ( ++i; i < argc; i++ ) {
 				if ( strcasecmp( argv[i], "by" ) == 0 ) {
 					i--;
@@ -181,7 +181,7 @@ parse_acl(
 			 * by clause consists of <who> and <access>
 			 */
 
-			b = (struct access *) ch_calloc( 1, sizeof(struct access) );
+			b = (Access *) ch_calloc( 1, sizeof(Access) );
 
 			if ( ++i == argc ) {
 				fprintf( stderr,
@@ -400,7 +400,7 @@ split(
 }
 
 static void
-access_append( struct access **l, struct access *a )
+access_append( Access **l, Access *a )
 {
 	for ( ; *l != NULL; l = &(*l)->a_next )
 		;	/* NULL */
@@ -409,7 +409,7 @@ access_append( struct access **l, struct access *a )
 }
 
 static void
-acl_append( struct acl **l, struct acl *a )
+acl_append( AccessControl **l, AccessControl *a )
 {
 	for ( ; *l != NULL; l = &(*l)->acl_next )
 		;	/* NULL */
@@ -420,7 +420,7 @@ acl_append( struct acl **l, struct acl *a )
 #ifdef LDAP_DEBUG
 
 static void
-print_access( struct access *b )
+print_access( Access *b )
 {
 	fprintf( stderr, "\tby" );
 
@@ -451,10 +451,10 @@ print_access( struct access *b )
 }
 
 static void
-print_acl( struct acl *a )
+print_acl( AccessControl *a )
 {
 	int		i;
-	struct access	*b;
+	Access	*b;
 
 	if ( a == NULL ) {
 		fprintf( stderr, "NULL\n" );

@@ -39,31 +39,31 @@ void attr_index_destroy LDAP_P(( Avlnode *tree ));
  * cache.c
  */
 
-int cache_add_entry_rw LDAP_P(( struct cache *cache, Entry *e, int rw ));
-int cache_update_entry LDAP_P(( struct cache *cache, Entry *e ));
-void cache_return_entry_rw LDAP_P(( struct cache *cache, Entry *e, int rw ));
+int cache_add_entry_rw LDAP_P(( Cache *cache, Entry *e, int rw ));
+int cache_update_entry LDAP_P(( Cache *cache, Entry *e ));
+void cache_return_entry_rw LDAP_P(( Cache *cache, Entry *e, int rw ));
 #define cache_return_entry_r(c, e) cache_return_entry_rw((c), (e), 0)
 #define cache_return_entry_w(c, e) cache_return_entry_rw((c), (e), 1)
 
-ID cache_find_entry_dn2id LDAP_P(( Backend *be, struct cache *cache, char *dn ));
-Entry * cache_find_entry_id LDAP_P(( struct cache *cache, ID id, int rw ));
-int cache_delete_entry LDAP_P(( struct cache *cache, Entry *e ));
+ID cache_find_entry_dn2id LDAP_P(( Backend *be, Cache *cache, char *dn ));
+Entry * cache_find_entry_id LDAP_P(( Cache *cache, ID id, int rw ));
+int cache_delete_entry LDAP_P(( Cache *cache, Entry *e ));
 #ifdef SLAP_CLEANUP
-void cache_release_all LDAP_P(( struct cache *cache ));
+void cache_release_all LDAP_P(( Cache *cache ));
 #endif
 
 /*
  * dbcache.c
  */
 
-struct dbcache * ldbm_cache_open LDAP_P(( Backend *be, char *name, char *suffix,
- int flags ));
-void ldbm_cache_close LDAP_P(( Backend *be, struct dbcache *db ));
-void ldbm_cache_really_close LDAP_P(( Backend *be, struct dbcache *db ));
+DBCache * ldbm_cache_open LDAP_P(( Backend *be,
+	char *name, char *suffix, int flags ));
+void ldbm_cache_close LDAP_P(( Backend *be, DBCache *db ));
+void ldbm_cache_really_close LDAP_P(( Backend *be, DBCache *db ));
 void ldbm_cache_flush_all LDAP_P(( Backend *be ));
-Datum ldbm_cache_fetch LDAP_P(( struct dbcache *db, Datum key ));
-int ldbm_cache_store LDAP_P(( struct dbcache *db, Datum key, Datum data, int flags ));
-int ldbm_cache_delete LDAP_P(( struct dbcache *db, Datum key ));
+Datum ldbm_cache_fetch LDAP_P(( DBCache *db, Datum key ));
+int ldbm_cache_store LDAP_P(( DBCache *db, Datum key, Datum data, int flags ));
+int ldbm_cache_delete LDAP_P(( DBCache *db, Datum key ));
 
 /*
  * dn2id.c
@@ -114,10 +114,10 @@ Entry * id2entry_rw LDAP_P(( Backend *be, ID id, int rw ));
 ID_BLOCK * idl_alloc LDAP_P(( unsigned int nids ));
 ID_BLOCK * idl_allids LDAP_P(( Backend *be ));
 void idl_free LDAP_P(( ID_BLOCK *idl ));
-ID_BLOCK * idl_fetch LDAP_P(( Backend *be, struct dbcache *db, Datum key ));
-int idl_insert_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
+ID_BLOCK * idl_fetch LDAP_P(( Backend *be, DBCache *db, Datum key ));
+int idl_insert_key LDAP_P(( Backend *be, DBCache *db, Datum key, ID id ));
 int idl_insert LDAP_P(( ID_BLOCK **idl, ID id, unsigned int maxids ));
-int idl_delete_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
+int idl_delete_key LDAP_P(( Backend *be, DBCache *db, Datum key, ID id ));
 ID_BLOCK * idl_intersection LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));
 ID_BLOCK * idl_union LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));
 ID_BLOCK * idl_notin LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));
@@ -130,7 +130,8 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID id ));
 
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
 int index_add_mods LDAP_P(( Backend *be, LDAPModList *ml, ID id ));
-ID_BLOCK * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
+ID_BLOCK * index_read LDAP_P(( Backend *be,
+	char *type, int indextype, char *val ));
 /* Possible operations supported (op) by index_change_values() */
 #define __INDEX_ADD_OP		0x0001
 #define __INDEX_DELETE_OP	0x0002
@@ -164,8 +165,9 @@ int index_change_values LDAP_P(( Backend *be,
 int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int ldbm_modify_internal LDAP_P((Backend *be, Connection *conn, Operation *op,
-			         char *dn, LDAPModList *mods, Entry *e));
+int ldbm_modify_internal LDAP_P((Backend *be,
+	Connection *conn, Operation *op,
+	char *dn, LDAPModList *mods, Entry *e));
 
 /*
  * nextid.c

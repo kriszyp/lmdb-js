@@ -13,11 +13,12 @@ int access_allowed LDAP_P(( Backend *be, Connection *conn,
 	Operation *op, Entry *e,
 	char *attr, struct berval *val, int access ));
 
-struct acl * acl_get_applicable LDAP_P(( Backend *be,
+AccessControl * acl_get_applicable LDAP_P(( Backend *be,
 	Operation *op, Entry *e,
 	char *attr, int nmatches, regmatch_t *matches ));
 
-int acl_access_allowed LDAP_P(( struct acl *a, Backend *be, Connection *conn, Entry *e,
+int acl_access_allowed LDAP_P((
+	AccessControl *a, Backend *be, Connection *conn, Entry *e,
 	struct berval *val, Operation *op, int  access, char *edn,
 	regmatch_t *matches ));
 
@@ -147,7 +148,8 @@ int connections_timeout_idle LDAP_P((time_t));
 
 long connection_init LDAP_P((
 	ber_socket_t s,
-	const char* name, const char* addr, int use_tls));
+	const char* name, const char* addr,
+	int use_tls ));
 
 void connection_closing LDAP_P(( Connection *c ));
 int connection_state_closing LDAP_P(( Connection *c ));
@@ -398,7 +400,7 @@ extern ldap_pvt_thread_mutex_t	crypt_mutex;
 #endif
 extern ldap_pvt_thread_mutex_t	gmtime_mutex;
 
-extern struct acl		*global_acl;
+extern AccessControl *global_acl;
 
 int	slap_init LDAP_P((int mode, char* name));
 int	slap_startup LDAP_P((int dbnum));
@@ -407,17 +409,9 @@ int	slap_destroy LDAP_P((void));
 
 struct sockaddr_in;
 
-struct slapd_args {
-	struct sockaddr_in *addr;
-	int tcps;
-#ifdef HAVE_TLS
-	struct sockaddr_in *tls_addr;
-	int tls_tcps;
-#endif
-};
-
-extern int	slapd_daemon LDAP_P((struct slapd_args *args));
-extern int	set_socket LDAP_P((struct sockaddr_in *addr));
+extern int	slapd_daemon_init( char *urls, int port, int tls_port );
+extern int	slapd_daemon_destroy(void);
+extern int	slapd_daemon(void);
 
 extern void slapd_set_write LDAP_P((ber_socket_t s, int wake));
 extern void slapd_clr_write LDAP_P((ber_socket_t s, int wake));

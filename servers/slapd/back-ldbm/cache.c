@@ -13,7 +13,7 @@
 #include "back-ldbm.h"
 
 /* LDBM backend specific entry info -- visible only to the cache */
-struct ldbm_entry_info {
+typedef struct ldbm_entry_info {
 	ldap_pvt_thread_rdwr_t	lei_rdwr;	/* reader/writer lock */
 
 	/*
@@ -28,14 +28,14 @@ struct ldbm_entry_info {
 #define CACHE_ENTRY_DELETED		3
 
 	int		lei_refcnt;	/* # threads ref'ing this entry */
-	struct entry	*lei_lrunext;	/* for cache lru list */
-	struct entry	*lei_lruprev;
-};
-#define LEI(e)	((struct ldbm_entry_info *) ((e)->e_private))
+	Entry	*lei_lrunext;	/* for cache lru list */
+	Entry	*lei_lruprev;
+} EntryInfo;
+#define LEI(e)	((EntryInfo *) ((e)->e_private))
 
-static int	cache_delete_entry_internal(struct cache *cache, Entry *e);
+static int	cache_delete_entry_internal(Cache *cache, Entry *e);
 #ifdef LDAP_DEBUG
-static void	lru_print(struct cache *cache);
+static void	lru_print(Cache *cache);
 #endif
 
 static int
@@ -120,7 +120,7 @@ cache_entry_private_destroy( Entry*e )
 }
 
 void
-cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
+cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 {
 	ID id;
 	int refcnt;
@@ -209,7 +209,7 @@ cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
  */
 int
 cache_add_entry_rw(
-    struct cache	*cache,
+    Cache	*cache,
     Entry		*e,
 	int		rw
 )
@@ -330,7 +330,7 @@ cache_add_entry_rw(
  */
 int
 cache_update_entry(
-    struct cache	*cache,
+    Cache	*cache,
     Entry		*e
 )
 {
@@ -430,7 +430,7 @@ cache_update_entry(
 ID
 cache_find_entry_dn2id(
 	Backend		*be,
-    struct cache	*cache,
+    Cache	*cache,
     char		*dn
 )
 {
@@ -509,7 +509,7 @@ try_again:
 
 Entry *
 cache_find_entry_id(
-	struct cache	*cache,
+	Cache	*cache,
 	ID				id,
 	int				rw
 )
@@ -608,7 +608,7 @@ try_again:
  */
 int
 cache_delete_entry(
-    struct cache	*cache,
+    Cache	*cache,
     Entry		*e
 )
 {
@@ -631,7 +631,7 @@ cache_delete_entry(
 
 static int
 cache_delete_entry_internal(
-    struct cache	*cache,
+    Cache	*cache,
     Entry		*e
 )
 {
@@ -670,7 +670,7 @@ cache_delete_entry_internal(
 #ifdef SLAP_CLEANUP
 
 void
-cache_release_all( struct cache *cache )
+cache_release_all( Cache *cache )
 {
 	Entry *e;
 	int rc;
@@ -703,7 +703,7 @@ cache_release_all( struct cache *cache )
 #ifdef LDAP_DEBUG
 
 static void
-lru_print( struct cache *cache )
+lru_print( Cache *cache )
 {
 	Entry	*e;
 

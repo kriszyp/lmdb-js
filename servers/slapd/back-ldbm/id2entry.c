@@ -18,7 +18,7 @@ int
 id2entry_add( Backend *be, Entry *e )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key, data;
 	int		len, rc, flags;
 
@@ -60,7 +60,7 @@ int
 id2entry_delete( Backend *be, Entry *e )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key;
 	int		rc;
 
@@ -104,7 +104,7 @@ Entry *
 id2entry_rw( Backend *be, ID id, int rw )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key, data;
 	Entry		*e;
 

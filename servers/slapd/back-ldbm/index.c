@@ -11,13 +11,13 @@
 #include "back-ldbm.h"
 
 static int	change_value(Backend *be,
-			  struct dbcache *db,
+			  DBCache *db,
 			  char *type,
 			  int indextype,
 			  char *val,
 			  ID id,
 			  int
-			  (*idl_func)(Backend *, struct dbcache *, Datum, ID));
+			  (*idl_func)(Backend *, DBCache *, Datum, ID));
 static int	index2prefix(int indextype);
 
 int
@@ -116,7 +116,7 @@ index_read(
     char	*val
 )
 {
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum   	key;
 	ID_BLOCK		*idl;
 	int		indexmask, syntax;
@@ -188,12 +188,12 @@ index_read(
 static int
 change_value(
     Backend		*be,
-    struct dbcache	*db,
+    DBCache	*db,
     char		*type,
     int			indextype,
     char		*val,
     ID			id,
-    int			(*idl_func)(Backend *, struct dbcache *, Datum, ID)
+    int			(*idl_func)(Backend *, DBCache *, Datum, ID)
 )
 {
 	int	rc;
@@ -257,10 +257,10 @@ index_change_values(
 	char		buf[SUBLEN + 1];
 	char		vbuf[BUFSIZ];
 	char		*bigbuf;
-	struct dbcache	*db;
+	DBCache	*db;
 
 	int		(*idl_funct)(Backend *,
-				    struct dbcache *,
+				    DBCache *,
 				    Datum, ID);
 	char		*at_cn;	/* Attribute canonical name */
 	int		mode;

@@ -69,7 +69,7 @@ typedef ID ID_BLOCK;
 #define ID_BLOCK_INDIRECT(b)	(ID_BLOCK_NIDS(b) == ID_BLOCK_INDIRECT_VALUE)
 
 /* for the in-core cache of entries */
-struct cache {
+typedef struct ldbm_cache {
 	int		c_maxsize;
 	int		c_cursize;
 	Avlnode		*c_dntree;
@@ -77,13 +77,13 @@ struct cache {
 	Entry		*c_lruhead;	/* lru - add accessed entries here */
 	Entry		*c_lrutail;	/* lru - rem lru entries from here */
 	ldap_pvt_thread_mutex_t	c_mutex;
-};
+} Cache;
 
 #define CACHE_READ_LOCK		0
 #define CACHE_WRITE_LOCK	1
 
 /* for the cache of open index files */
-struct dbcache {
+typedef struct ldbm_dbcache {
 	int		dbc_refcnt;
 	int		dbc_maxids;
 	int		dbc_maxindirect;
@@ -91,10 +91,10 @@ struct dbcache {
 	long	dbc_blksize;
 	char	*dbc_name;
 	LDBM	dbc_db;
-};
+} DBCache;
 
 /* for the cache of attribute information (which are indexed, etc.) */
-struct attrinfo {
+typedef struct ldbm_attrinfo {
 	char	*ai_type;	/* type name (cn, sn, ...)	*/
 	int	ai_indexmask;	/* how the attr is indexed	*/
 #define INDEX_PRESENCE	0x01
@@ -110,7 +110,7 @@ struct attrinfo {
 #define SYNTAX_BIN      0x04
    ... etc. ...
 */
-};
+} AttrInfo;
 
 #define MAXDBCACHE	10
 
@@ -130,11 +130,11 @@ struct ldbminfo {
 	ldap_pvt_thread_mutex_t		li_nextid_mutex;
 	int			li_mode;
 	char			*li_directory;
-	struct cache		li_cache;
+	Cache		li_cache;
 	Avlnode			*li_attrs;
 	int			li_dbcachesize;
 	int			li_dbcachewsync;
-	struct dbcache		li_dbcache[MAXDBCACHE];
+	DBCache		li_dbcache[MAXDBCACHE];
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
 #ifdef HAVE_BERKELEY_DB2

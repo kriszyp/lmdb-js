@@ -19,7 +19,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-struct dbcache *
+DBCache *
 ldbm_cache_open(
     Backend	*be,
     char	*name,
@@ -127,7 +127,7 @@ ldbm_cache_open(
 }
 
 void
-ldbm_cache_close( Backend *be, struct dbcache *db )
+ldbm_cache_close( Backend *be, DBCache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
@@ -139,7 +139,7 @@ ldbm_cache_close( Backend *be, struct dbcache *db )
 }
 
 void
-ldbm_cache_really_close( Backend *be, struct dbcache *db )
+ldbm_cache_really_close( Backend *be, DBCache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
@@ -188,7 +188,7 @@ ldbm_cache_flush_all( Backend *be )
 
 Datum
 ldbm_cache_fetch(
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		key
 )
 {
@@ -203,7 +203,7 @@ ldbm_cache_fetch(
 
 int
 ldbm_cache_store(
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		key,
     Datum		data,
     int			flags
@@ -236,7 +236,7 @@ ldbm_cache_store(
 
 int
 ldbm_cache_delete(
-    struct dbcache	*db,
+    DBCache	*db,
     Datum		key
 )
 {

@@ -441,15 +441,18 @@ send_search_result(
 		/* send references in search results */
 		if( err == LDAP_REFERRAL ) {
 			err = LDAP_PARTIAL_RESULTS;
-			tmp = text = v2ref( refs );
-			refs = NULL;
 		}
+
+		tmp = text = v2ref( refs );
+		refs = NULL;
 
 	} else {
 		/* don't send references in search results */
+		assert( refs == NULL );
+		refs = NULL;
+
 		if( err == LDAP_REFERRAL ) {
 			err = LDAP_SUCCESS;
-			refs = NULL;
 		}
 	}
 
@@ -494,7 +497,7 @@ send_search_entry(
 	BerElement	*ber;
 	Attribute	*a;
 	int		i, rc=-1, bytes;
-	struct acl	*acl;
+	AccessControl	*acl;
 	char            *edn;
 	int		allattrs;
 

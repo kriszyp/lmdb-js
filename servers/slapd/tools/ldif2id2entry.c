@@ -34,7 +34,7 @@ main( int argc, char **argv )
 	int      	lmax, lcur;
 	int		dbnum;
 	ID		id;
-	struct dbcache	*db;
+	DBCache	*db;
 	Backend		*be = NULL;
 	struct ldbminfo *li;
 	struct berval	bv;

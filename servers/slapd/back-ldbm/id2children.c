@@ -17,7 +17,7 @@ id2children_add(
     Entry	*e
 )
 {
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key;
 	char		buf[20];
 
@@ -59,7 +59,7 @@ id2children_remove(
     Entry	*e
 )
 {
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key;
 	char		buf[20];
 
@@ -105,7 +105,7 @@ has_children(
     Entry	*p
 )
 {
-	struct dbcache	*db;
+	DBCache	*db;
 	Datum		key;
 	int		rc = 0;
 	ID_BLOCK		*idl;

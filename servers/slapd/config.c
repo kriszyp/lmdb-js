@@ -21,7 +21,7 @@
  */
 int		defsize = SLAPD_DEFAULT_SIZELIMIT;
 int		deftime = SLAPD_DEFAULT_TIMELIMIT;
-struct acl	*global_acl = NULL;
+AccessControl	*global_acl = NULL;
 int		global_default_access = ACL_READ;
 char		*replogfile;
 int		global_lastmod;
@@ -45,8 +45,10 @@ read_config( char *fname )
 	char	*line, *savefname, *saveline;
 	int	cargc, savelineno;
 	char	*cargv[MAXARGS];
-	int	lineno, i, rc;
-
+	int	lineno, i;
+#ifdef HAVE_TLS
+	int rc;
+#endif
 	struct berval *vals[2];
 	struct berval val;
 

@@ -273,11 +273,15 @@ long connection_init(
 	ber_socket_t s,
 	const char* name,
 	const char* addr,
-	int use_tls)
+	int use_tls )
 {
 	unsigned long id;
 	Connection *c;
 	assert( connections != NULL );
+
+#ifndef HAVE_TLS
+	assert( !use_tls );
+#endif
 
 	if( s == AC_SOCKET_INVALID ) {
         Debug( LDAP_DEBUG_ANY,
@@ -394,10 +398,12 @@ long connection_init(
     c->c_conn_state = SLAP_C_INACTIVE;
     c->c_struct_state = SLAP_C_USED;
 
+#ifdef HAVE_TLS
     if ( use_tls ) {
 	    c->c_is_tls = 1;
 	    c->c_needs_tls_accept = 1;
     }
+#endif
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     ldap_pvt_thread_mutex_unlock( &connections_mutex );
