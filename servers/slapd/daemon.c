@@ -117,7 +117,7 @@ void slapd_slp_init( const char* urls ) {
 
 	slapd_srvurls = str2charray( urls, " " );
 
-	if( slapd_srv_urls == NULL ) return;
+	if( slapd_srvurls == NULL ) return;
 
 	/* find and expand INADDR_ANY URLs */
 	for( i=0; slapd_srvurls[i] != NULL; i++ ) {
@@ -152,7 +152,7 @@ void slapd_slp_init( const char* urls ) {
 }
 
 void slapd_slp_deinit() {
-	if( slapd_srv_urls == NULL ) return;
+	if( slapd_srvurls == NULL ) return;
 
 	charray_free( slapd_srvurls );
 	slapd_srvurls = NULL;
