@@ -688,6 +688,13 @@ if test $ol_with_tls != no ; then
 			[-lcrypto])
 			
 		if test $have_ssleay = no ; then
+			AC_CHECK_LIB(ssl, SSL_library_init,
+				[have_ssleay=yes
+				need_rsaref=no], [have_ssleay=no],
+				[-lcrypto])
+		fi
+
+		if test $have_ssleay = no ; then
 			AC_CHECK_LIB(ssl, ssl3_accept, 
 				[have_ssleay=yes
 				need_rsaref=yes], [have_ssleay=no],
