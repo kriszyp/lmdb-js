@@ -27,9 +27,6 @@
 #ifdef SLAPD_LDBM
 #include "back-ldbm/external.h"
 #endif
-#ifdef SLAPD_BDB2
-#include "back-bdb2/external.h"
-#endif
 #ifdef SLAPD_PASSWD
 #include "back-passwd/external.h"
 #endif
@@ -58,9 +55,6 @@ static BackendInfo binfo[] = {
 #endif
 #if defined(SLAPD_LDBM) && !defined(SLAPD_LDBM_DYNAMIC)
 	{"ldbm",	ldbm_back_initialize},
-#endif
-#if defined(SLAPD_BDB2) && !defined(SLAPD_BDB2_DYNAMIC)
-	{"bdb2",	bdb2_back_initialize},
 #endif
 #if defined(SLAPD_PASSWD) && !defined(SLAPD_PASSWD_DYNAMIC)
 	{"passwd",	passwd_back_initialize},
