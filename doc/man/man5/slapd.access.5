@@ -40,16 +40,20 @@ is as follows:
     ...
 .fi
 .LP
-Both the global configuration and each backend-specific section can contain
-access information.
-Backend-specific access control directives are used for those entries
-that belong to the backend, according to their naming context.
-In case no access control directives are defined for a backend, 
-the appropriate directives from the global configuration section
-are used.
+Both the global configuration and each backend-specific section can
+contain access information.  Backend-specific access control
+directives are used for those entries that belong to the backend,
+according to their naming context.  In case no access control
+directives are defined for a backend or those which are defined are
+not applicable, the directives from the global configuration section
+are then used.
 .LP
-Arguments that should be replaced by actual text are shown in brackets <>.
-The structure of the access control directives is
+For entries not held in any backend (such as a root DSE), the
+directives of the first backend (and any global directives) are
+used.
+.LP
+Arguments that should be replaced by actual text are shown in
+brackets <>.  The structure of the access control directives is
 .TP
 .B access to <what> "[ by <who> <access> [ <control> ] ]+"
 Grant access (specified by 
