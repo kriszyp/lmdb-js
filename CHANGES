@@ -6,6 +6,8 @@ Changes included in OpenLDAP 1.2.1
 	Fix ctype 'unsigned char' bug 
 	Build environment
 		Added pthread '-mt' check for Solaris 2.x.
+		Fixed slapd 'make veryclean'
+		Modified doc/man to generate pages during make all.
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_0
