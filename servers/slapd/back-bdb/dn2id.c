@@ -698,7 +698,7 @@ bdb_dn2id_delete(
 	 */
 	if ( rc == 0 ) {
 		key.data = &e->e_id;
-		rc = cursor->c_get( cursor, &key, &data, DB_SET );
+		rc = cursor->c_get( cursor, &key, &data, DB_SET | DB_RMW );
 		if ( rc == 0 )
 			rc = cursor->c_del( cursor, 0 );
 	}
