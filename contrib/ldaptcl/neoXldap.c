@@ -797,7 +797,7 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 		deref = LDAP_DEREF_NEVER;
 	    else if (STREQU(derefString, "search"))
 		deref = LDAP_DEREF_SEARCHING;
-	    else if (STREQU(derefString, "find") == 0)
+	    else if (STREQU(derefString, "find"))
 		deref = LDAP_DEREF_FINDING;
 	    else if (STREQU(derefString, "always"))
 		deref = LDAP_DEREF_ALWAYS;
@@ -886,6 +886,9 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 		ldap_disable_cache(ldap);
 	}
 #endif
+
+	ldap_set_option(ldap, LDAP_OPT_DEREF, &deref);
+
 	tclResult = LDAP_PerformSearch (interp, 
 			            ldaptcl, 
 			            baseString, 
@@ -907,8 +910,40 @@ NeoX_LdapTargetObjCmd (clientData, interp, objc, objv)
 	    else
 		ldap_enable_cache(ldap, ldaptcl->timeout, ldaptcl->maxmem);
 	}
+	deref = LDAP_DEREF_NEVER;
+	ldap_set_option(ldap, LDAP_OPT_DEREF, &deref);
 #endif
 	return tclResult;
+    }
+
+    /* object compare dn attr value */
+    if (STREQU (subCommand, "compare")) {
+	char        *dn;
+	char	    *attr;
+	char	    *value;
+	int	     result;
+	int	     lderrno;
+
+	if (objc != 5)
+	    return TclX_WrongArgs (interp, 
+				   objv [0],
+				   "compare dn attribute value");
+
+	dn = Tcl_GetStringFromObj (objv[2], NULL);
+	attr = Tcl_GetStringFromObj (objv[3], NULL);
+	value = Tcl_GetStringFromObj (objv[4], NULL);
+	
+	result = ldap_compare_s (ldap, dn, attr, value);
+	if (result == LDAP_COMPARE_TRUE || result == LDAP_COMPARE_FALSE) {
+	    Tcl_SetIntObj(resultObj, result == LDAP_COMPARE_TRUE);
+	    return TCL_OK;
+	}
+	LDAP_SetErrorCode(ldaptcl, result, interp);
+	Tcl_AppendStringsToObj (resultObj,
+				"LDAP compare error: ",
+				LDAP_ERR_STRING(ldap),
+				(char *)NULL);
+	return TCL_ERROR;
     }
 
 #if defined(UMICH_LDAP) || (defined(OPEN_LDAP) && !defined(LDAP_API_VERSION))
