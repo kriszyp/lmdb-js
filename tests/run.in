@@ -48,7 +48,7 @@ while test $# -gt 0 ; do
 			shift; shift ;;
 
 		-w | -wait)
-			CLEAN=1
+			WAIT=1
 			shift ;;
 
 		-)
