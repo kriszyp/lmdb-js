@@ -240,7 +240,7 @@ static int slap_get_listener_addresses(
 		hints.ai_family = AF_UNSPEC;
 		if (err = getaddrinfo(host, serv, &hints, &res)) {
 			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
-				gai_strerror(err), 0, 0);
+				AC_GAI_STRERROR(err), 0, 0);
 			return -1;
 		}
 	}
