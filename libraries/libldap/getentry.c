@@ -25,30 +25,18 @@ static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of 
 LDAPMessage *
 ldap_first_entry( LDAP *ld, LDAPMessage *chain )
 {
-	if( ld == NULL || chain == NULLMSG ) {
-		return NULLMSG;
-	}
-
-	return chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY
-		? chain
-		: ldap_next_entry( ld, chain );
+	return( chain == NULLMSG || chain->lm_msgtype == LDAP_RES_SEARCH_RESULT
+	    ? NULLMSG : chain );
 }
 
 /* ARGSUSED */
-LDAPMessage *
-ldap_next_entry( LDAP *ld, LDAPMessage *entry )
+LDAPMessage *ldap_next_entry( LDAP *ld, LDAPMessage *entry )
 {
-	if ( ld == NULL || entry == NULLMSG ) {
-		return NULLMSG;
-	}
+	if ( entry == NULLMSG || entry->lm_chain == NULLMSG
+	    || entry->lm_chain->lm_msgtype == LDAP_RES_SEARCH_RESULT )
+		return( NULLMSG );
 
-	for ( ; entry != NULLMSG; entry = entry->lm_chain ) {
-		if( entry->lm_msgtype == LDAP_RES_SEARCH_ENTRY ) {
-			return( entry );
-		}
-	}
-
-	return( NULLMSG );
+	return( entry->lm_chain );
 }
 
 /* ARGSUSED */
@@ -57,15 +45,9 @@ ldap_count_entries( LDAP *ld, LDAPMessage *chain )
 {
 	int	i;
 
-	if ( ld == NULL ) {
-		return -1;
-	}
-
-	for ( i = 0; chain != NULL; chain = chain->lm_chain ) {
-		if( chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY ) {
-			i++;
-		}
-	}
+	for ( i = 0; chain != NULL && chain->lm_msgtype
+	    != LDAP_RES_SEARCH_RESULT; chain = chain->lm_chain )
+		i++;
 
 	return( i );
 }
