@@ -81,14 +81,11 @@ retry:	/* transaction retry */
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
-	if ( !be_issuffix( be, ndn->bv_val ) ) {
-		rc = dnParent( ndn->bv_val, &pdn.bv_val );
+	if ( !be_issuffix( be, ndn ) ) {
+		rc = dnParent( ndn, &pdn );
 		if ( rc != LDAP_SUCCESS ) {
 			text = "internal error";
 			goto return_results;
-		}
-		if (pdn.bv_val && pdn.bv_val[0]) {
-			pdn.bv_len = ndn->bv_len - (pdn.bv_val - ndn->bv_val);
 		}
 	}
 
@@ -151,7 +148,8 @@ retry:	/* transaction retry */
 	} else {
 		/* no parent, must be root to delete */
 		if( ! be_isroot( be, &op->o_ndn ) ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+			if ( be_issuffix( be, (struct berval *)&slap_empty_bv )
+				|| be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 
 				/* check parent for "children" acl */

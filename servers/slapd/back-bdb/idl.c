@@ -232,7 +232,7 @@ bdb_idl_fetch_key(
 	{
 		DBC *cursor;
 		ID buf[BDB_IDL_UM_SIZE];
-		ID *i, *j;
+		ID *i;
 		void *ptr;
 		size_t len;
 		int rc2;
@@ -254,6 +254,8 @@ bdb_idl_fetch_key(
 		if (rc == 0) {
 			i = ids;
 			while (rc == 0) {
+				u_int8_t *j;
+
 				DB_MULTIPLE_INIT( ptr, &data );
 				while (ptr) {
 					DB_MULTIPLE_NEXT(ptr, &data, j, len);

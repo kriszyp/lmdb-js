@@ -104,16 +104,14 @@ retry:          /* transaction retry */
 	 * If the parent does not exist, only allow the "root" user to
 	 * add the entry.
 	 */
-	if ( be_issuffix( be, e->e_nname.bv_val ) ) {
-		pdn.bv_len = 0;
-		pdn.bv_val = "";
+	if ( be_issuffix( be, &e->e_nname ) ) {
+		pdn = slap_empty_bv;
 	} else {
-		rc = dnParent( e->e_nname.bv_val, (const char **)&pdn.bv_val );
+		rc = dnParent( &e->e_nname, &pdn );
 		if ( rc != LDAP_SUCCESS ) {
 			text = "internal error";
 			goto return_results;
 		}
-		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_nname.bv_val);
 	}
 
 	if( pdn.bv_len != 0 ) {
@@ -244,7 +242,8 @@ retry:          /* transaction retry */
 		 *	must be adding entry at suffix or with parent ""
 		 */
 		if ( !be_isroot( be, &op->o_ndn )) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+			if ( be_issuffix( be, (struct berval *)&slap_empty_bv )
+				|| be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 
 				/* check parent for "children" acl */

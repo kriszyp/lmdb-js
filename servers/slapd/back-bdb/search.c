@@ -352,12 +352,10 @@ bdb_search(
 
 			/* need to skip alias which deref into scope */
 			if( scope & LDAP_SCOPE_ONELEVEL ) {
-				char 		*pdn;
-				ber_len_t	plen;
+				struct berval	pdn;
 				
-				if ( dnParent( e->e_nname.bv_val, &pdn ) == LDAP_SUCCESS ) {
-					plen = e->e_nname.bv_len - ( pdn - e->e_nname.bv_val );
-					if ( plen != realbase.bv_len || strcmp( pdn, realbase.bv_val ) ) {
+				if ( dnParent( &e->e_nname, &pdn ) == LDAP_SUCCESS ) {
+					if ( ber_bvcmp( pdn, &realbase ) ) {
 						goto loop_continue;
 					}
 				}
@@ -401,17 +399,15 @@ bdb_search(
 		/* if it matches the filter and scope, send it */
 		rc = test_filter( be, conn, op, e, filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			char	*dn;
+			struct berval	dn;
 
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
-				if ( be_issuffix( be, e->e_nname.bv_val ) ) {
+				if ( be_issuffix( be, &e->e_nname ) ) {
 					scopeok = (realbase.bv_len == 0);
 				} else {
-					dnParent( e->e_nname.bv_val, (const char **)&dn );
-					scopeok = (dn == realbase.bv_val)
-						? 1
-						: (strcmp( dn, realbase.bv_val ) ? 0 : 1 );
+					dnParent( &e->e_nname, &dn );
+					scopeok = dn_match( &dn, &realbase );
 				}
 
 			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {

@@ -170,16 +170,14 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	if ( be_issuffix( be, e->e_nname.bv_val ) ) {
-		p_ndn.bv_len = 0;
-		p_ndn.bv_val = "";
+	if ( be_issuffix( be, &e->e_nname ) ) {
+		p_ndn = slap_empty_bv;
 	} else {
-		rc = dnParent( e->e_nname.bv_val, (const char **)&p_ndn.bv_val );
+		rc = dnParent( &e->e_nname, &p_ndn );
 		if ( rc != LDAP_SUCCESS ) {
 			text = "internal error";
 			goto return_results;
 		}
-		p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_nname.bv_val);
 	}
 	np_ndn = &p_ndn;
 	if ( p_ndn.bv_len != 0 ) {
@@ -223,16 +221,14 @@ retry:	/* transaction retry */
 			"bdb_modrdn: wr to children of entry %s OK\n",
 			p_ndn.bv_val, 0, 0 );
 		
-		if ( be_issuffix( be, e->e_name.bv_val ) ) {
-			p_dn.bv_len = 0;
-			p_dn.bv_val = "";
+		if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
+			p_dn = slap_empty_bv;
 		} else {
-			rc = dnParent( e->e_name.bv_val, &p_dn.bv_val );
+			rc = dnParent( &e->e_name, &p_dn );
 			if ( rc != LDAP_SUCCESS ) {
 				text = "internal error";
 				goto return_results;
 			}
-			p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_name.bv_val);
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -243,7 +239,8 @@ retry:	/* transaction retry */
 		/* no parent, modrdn entry directly under root */
 		isroot = be_isroot( be, &op->o_ndn );
 		if ( ! isroot ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+			if ( be_issuffix( be, (struct berval *)&slap_empty_bv )
+				|| be_isupdate( be, &op->o_ndn ) ) {
 
 				p = (Entry *)&slap_entry_root;
 
@@ -364,7 +361,8 @@ retry:	/* transaction retry */
 
 			/* no parent, modrdn entry directly under root */
 			if ( ! isroot ) {
-				if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
+				if ( be_issuffix( be, (struct berval *)&slap_empty_bv )
+					|| be_isupdate( be, &op->o_ndn ) ) {
 					np = (Entry *)&slap_entry_root;
 
 					/* check parent for "children" acl */
