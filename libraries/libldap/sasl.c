@@ -496,7 +496,7 @@ static ber_slen_t sasl_write( Sockbuf *sb, void *buf, ber_len_t len )
 
 static int sasl_close( Sockbuf *sb )
 {
-	(ber_pvt_sb_io_tcp.sbi_close)( sb );
+	return (ber_pvt_sb_io_tcp.sbi_close)( sb );
 }
 
 static int
@@ -545,7 +545,7 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 	/* we need to query the server for supported mechs anyway */
 	LDAPMessage *res, *e;
 	char *attrs[] = { "supportedSASLMechanisms", NULL };
-	char **values, *mechlist, **p;
+	char **values, *mechlist;
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_sasl_getmech\n", 0, 0, 0 );
@@ -598,7 +598,8 @@ ldap_pvt_sasl_bind(
 	LDAPControl		**cctrls )
 {
 	const char *mech;
-	int	saslrc, rc, msgid, ssf = 0;
+	int	saslrc, rc, ssf = 0;
+	unsigned credlen;
 	struct berval ccred, *scred;
 	char *host;
 	sasl_interact_t *client_interact = NULL;
@@ -648,8 +649,10 @@ ldap_pvt_sasl_bind(
 		NULL,
 		&client_interact,
 		&ccred.bv_val,
-		(unsigned int *)&ccred.bv_len,
+		&credlen,
 		&mech );
+
+	ccred.bv_len = credlen;
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 		ld->ld_errno = sasl_err2ldap( saslrc );
@@ -660,6 +663,7 @@ ldap_pvt_sasl_bind(
 	scred = NULL;
 
 	do {
+		unsigned credlen;
 		sasl_interact_t *client_interact = NULL;
 
 		rc = ldap_sasl_bind_s( ld, dn, mech, &ccred, sctrls, cctrls, &scred );
@@ -683,8 +687,9 @@ ldap_pvt_sasl_bind(
 			(scred == NULL) ? 0 : scred->bv_len,
 			&client_interact,
 			&ccred.bv_val,
-			(unsigned int *)&ccred.bv_len );
+			&credlen );
 
+		ccred.bv_len = credlen;
 		ber_bvfree( scred );
 
 		if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {

@@ -239,18 +239,27 @@ int sasl_bind(
 			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
 				NULL, NULL, NULL, NULL );
 		} else {
+			unsigned reslen;
 			conn->c_authmech = ch_strdup( mech );
+
 			sc = sasl_server_start( conn->c_sasl_bind_context, conn->c_authmech,
-				cred->bv_val, cred->bv_len, (char **)&response.bv_val,
-				(unsigned *)&response.bv_len, &errstr );
+				cred->bv_val, cred->bv_len,
+				(char **)&response.bv_val, &reslen, &errstr );
+
+			response.bv_len = reslen;
+			
 			if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
 				send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
 					NULL, errstr, NULL, NULL );
 			}
 		}
 	} else {
+		unsigned reslen;
 		sc = sasl_server_step( conn->c_sasl_bind_context, cred->bv_val, cred->bv_len,
-			(char **)&response.bv_val, (unsigned *)&response.bv_len, &errstr );
+			(char **)&response.bv_val, &reslen, &errstr );
+
+		response.bv_len = reslen;
+	
 		if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
 			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
 				NULL, errstr, NULL, NULL );

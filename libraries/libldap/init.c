@@ -13,6 +13,8 @@
 #include <ac/ctype.h>
 #include <ac/time.h>
 
+#include <limits.h>
+
 #include "ldap-int.h"
 #include "ldap_defaults.h"
 
