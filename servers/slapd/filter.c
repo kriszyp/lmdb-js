@@ -207,6 +207,10 @@ get_filter(
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+		if ( f->f_and == NULL ) {
+			f->f_choice = SLAPD_FILTER_COMPUTED;
+			f->f_result = LDAP_COMPARE_TRUE;
+		}
 		break;
 
 	case LDAP_FILTER_OR:
@@ -219,6 +223,10 @@ get_filter(
 		err = get_filter_list( conn, ber, &f->f_or, text );
 		if ( err != LDAP_SUCCESS ) {
 			break;
+		}
+		if ( f->f_or == NULL ) {
+			f->f_choice = SLAPD_FILTER_COMPUTED;
+			f->f_result = LDAP_COMPARE_FALSE;
 		}
 		break;
 

@@ -14,6 +14,8 @@ OpenLDAP 2.1.18 Engineering
 	Fixed liblber multi-value decode bug (ITS#2458)
 	Fixed liblber over read bug (ITS#2465)
 	Fixed ldappasswd -y support (ITS#2441)
+	Documentation
+		Misc man page updates
 
 OpenLDAP 2.1.17 Release
 	Fixed libldap_r thread pool context bug (ITS#2404)
