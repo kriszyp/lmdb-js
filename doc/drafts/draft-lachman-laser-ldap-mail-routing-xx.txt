@@ -1,0 +1,613 @@
+Network Working Group                                         H. Lachman
+INTERNET-DRAFT                             Netscape Communications Corp.
+Intended Category: Standards Track                              May 1999
+Expires: November 1999
+Filename: draft-lachman-laser-ldap-mail-routing-00.txt
+
+
+                 LDAP Schema for Intranet Mail Routing
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   This draft is being discussed on the Laser mailing list at
+   <laser@sunroof.eng.sun.com>.  Subscription requests can be sent to
+   <laser-request@sunroof.eng.sun.com> (send an email message with the
+   word "subscribe" in the body).  More information on the mailing list
+   along with an archive of back messages is available at
+   <http://playground.sun.com/laser/>.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (1999).  All Rights Reserved.
+
+Abstract
+
+   This document defines an LDAP [1] object class called
+   'inetLocalMailRecipient' and associated attributes that provide a way
+   to designate an LDAP entry as one that represents a local (intra-
+   organizational) email recipient, to specify the recipient's email
+   address(es), and to provide routing information pertinent to the
+
+
+
+Lachman                                                         [Page 1]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+   recipient.  This is intended to support SMTP [2] message transfer
+   agents in routing RFC 822-based email [3] within a private enterprise
+   only, and is not to be used in the process of routing email across
+   the public Internet.
+
+1.  Background and Motivation
+
+   LDAP-based directory services are currently being used in many
+   organizations as a repository of information about users and other
+   network entities (such as groups of users, network resources, etc.).
+   In cases where LDAP entries are used to represent entities that are
+   email recipients (e.g., a mail user or a mailing list), the LDAP
+   entries provide a convenient place to store per-recipient data, such
+   as a recipient's email address.
+
+   In many organizations, an email recipient may have an email address
+   (e.g., "joe@example.com") that does not specify the host that
+   receives mail for that recipient (e.g., "host42.example.com").  A
+   message transfer agent (MTA) responsible for routing mail within the
+   organization needs some way to determine the appropriate target host
+   for such a recipient.  A common solution is the sendmail "aliases"
+   database which may contain a record that provides the necessary per-
+   recipient routing information (e.g., "joe: joe@host42").  A drawback
+   of this solution is that if the organization hosts more than one DNS
+   domain (e.g., "example.com" and "example.org", with "joe" in each
+   domain being different recipients), a more explicit mapping is
+   desirable.  The schema defined in this document provides a way to
+   represent such mappings in LDAP and X.500 [4] directory services.
+
+   An LDAP entry that represents an email recipient could conceivably
+   contain a variety of attributes related to email, such as disk quota
+   and delivery preferences.  We consider here only attributes that
+   specify address information and routing information; these attributes
+   may be useful to multiple MTAs within the organization since one or
+   more MTAs may be responsible for intra-organizational routing.  The
+   various MTAs in an organization may have been developed by different
+   implementors, so a common schema is desirable for such attributes.
+
+2.  Overview
+
+   The 'inetLocalMailRecipient' object class and associated attributes
+   identify an LDAP entry as representing an SMTP mail recipient (in the
+   sense "recipient" is used in RFC 821).  A recipient may be a mail
+   user, a mailing list, an auto-responder of some kind (e.g., a mailing
+   list subscription program), a network device such as a printer or fax
+   machine, or other recipient type.  Address attributes and routing
+   attributes are provided to aid SMTP MTAs in routing mail within an
+   organization to the appropriate target MTA for each recipient.
+
+
+
+Lachman                                                         [Page 2]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+   Once on the target MTA, a message is handled as per the recipient
+   type and options (which may be specified using other auxiliary object
+   classes and is outside the scope of this document).  For example, the
+   message may be delivered to a user mailbox, or to a program or
+   network device, and/or forwarded to another recipient.  Or, the
+   target MTA may be a gateway to a non-SMTP mail routing and delivery
+   system including non-SMTP MTAs.  Note that, in this discussion,
+   "target MTA" refers to the final SMTP destination of messages for the
+   recipient in question, as we are considering routing of mail only
+   among the SMTP MTAs within an organization.
+
+   Routing of mail between different organizations across the public
+   Internet is outside the scope of this document, as the mechanism for
+   this is already standardized [5,6].  An 'inetLocalMailRecipient'
+   entry represents a mail recipient that is local to the organization
+   in question, not recipients in other organizations.  This means that
+   the domain names that appear within the 'mail',
+   'mailAlternateAddress', 'mailHost', and 'mailRoutingAddress'
+   attribute values in an 'inetLocalMailRecipient' entry must be DNS
+   domain names that are within the administrative authority of the
+   organization in question (i.e., the organization within which MTAs
+   are accessing such entries and using these attributes for mail
+   routing).
+
+   LDAP entries that are not 'inetLocalMailRecipient' entries should be
+   ignored by MTAs for the purpose of routing.  Such entries may contain
+   a 'mail' attribute since this attribute is used in other object
+   classes.  An example is a conference room whose LDAP entry contains
+   contact information (e.g., email address and telephone number) for
+   the person who books reservations for the room; the conference room
+   is not a mail recipient, and can safely be ignored by MTAs doing
+   route determination based on recipient address.
+
+3.  Object Class and Attribute Definitions
+
+   The 'inetLocalMailRecipient' object class and associated attributes
+   are defined (using syntaxes given in [7]) as follows.
+
+ 3.1  The inetLocalMailRecipient Object Class
+
+       ( 2.16.840.1.113730.3.2.[[TBD]]
+           NAME 'inetLocalMailRecipient'
+           SUP top
+           AUXILIARY
+           MAY ( mail $ mailAlternateAddress $
+               mailHost $ mailRoutingAddress
+           )
+       )
+
+
+
+Lachman                                                         [Page 3]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+   The 'inetLocalMailRecipient' object class signifies that the entry
+   represents an entity within the organization that can receive SMTP
+   mail, such as a mail user or a mailing list.
+
+ 3.2  Address Attributes
+
+       ( 0.9.2342.19200300.100.1.3
+           NAME 'mail'
+           DESC 'RFC 822 email address of this recipient'
+           EQUALITY caseIgnoreIA5Match
+           SYNTAX '1.3.6.1.4.1.1466.115.121.1.26{256}'
+       )
+
+   The attribute name 'mail' is a synonym for 'rfc822Mailbox', as
+   defined earlier in [8].  This attribute specifies the recipient's
+   "primary" or "advertised" email address, i.e., that which might
+   appear on a business card; for example, "user@example.com".  The
+   address conforms to the syntax of an 'addr-spec' as defined in RFC
+   822.
+
+       ( 2.16.840.1.113730.3.1.13
+           NAME 'mailAlternateAddress'
+           DESC 'alternate RFC 822 email address of this recipient'
+           EQUALITY caseIgnoreIA5Match
+           SYNTAX '1.3.6.1.4.1.1466.115.121.1.26{256}'
+       )
+
+   The 'mailAlternateAddress' attribute is used to specify alternate
+   email addresses, if any, for the recipient; for example,
+   "nickname@example.com".  The address conforms to the syntax of an
+   'addr-spec' as defined in RFC 822.
+
+   When determining the disposition of a given message, an MTA may
+   search the directory for an entry with object class
+   'inetLocalMailRecipient' and a 'mail' or 'mailAlternateAddress'
+   attribute matching the message's recipient address.  If exactly one
+   matching entry is found, the MTA may regard the message as being
+   addressed to the entity that is represented by the directory entry.
+
+   The 'mailAlternateAddress' attribute may also be used to represent a
+   "wildcard domain" address, e.g., "@example.org", meaning that if mail
+   arrives for "someone@example.org", and there is no recipient with
+   that address specified as 'mail' or 'mailAlternateAddress', then the
+   recipient with the wildcard domain address should receive the mail.
+
+   In short, address attributes may be used by an LDAP entry to answer
+   the question "what is/are this account's email address(es)?"
+
+
+
+
+Lachman                                                         [Page 4]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+ 3.3  Routing Attributes
+
+       ( 2.16.840.1.113730.3.1.18
+           NAME 'mailHost'
+           DESC 'fully-qualified hostname of the MTA that is the final
+               SMTP destination of messages to this recipient'
+           EQUALITY caseIgnoreIA5Match
+           SYNTAX '1.3.6.1.4.1.1466.115.121.1.26{256}'
+           SINGLE-VALUE
+       )
+
+   The 'mailHost' attribute indicates which SMTP MTA considers the
+   recipient's mail to be locally handlable.  This information can be
+   used for routing, in that an intermediary MTA may take it to be the
+   destination for messages addressed to this recipient.  The hostname
+   is specified as a fully-qualified DNS hostname with no trailing dot
+   (e.g., "host42.example.com").
+
+       ( 2.16.840.1.113730.3.1.47
+           NAME 'mailRoutingAddress'
+           DESC 'RFC 822 address to use when routing messages to
+               the SMTP MTA of this recipient'
+           EQUALITY caseIgnoreIA5Match
+           SYNTAX '1.3.6.1.4.1.1466.115.121.1.26{256}'
+           SINGLE-VALUE
+       )
+
+   The 'mailRoutingAddress' attribute indicates a routing address for
+   the recipient.  The address conforms to the syntax of an 'addr-spec'
+   in RFC 822.  An intermediary MTA may use this information to route
+   the message to the MTA that handles mail for this recipient.  This is
+   useful in cases where, for a given recipient, the target MTA prefers
+   a particular address to appear as the recipient address in the SMTP
+   envelope.  So, 'mailRoutingAddress' may be used as an alternative to
+   'mailHost', and is intended to have the same effect as 'mailHost'
+   except that 'mailRoutingAddress' suggests an address for rewriting
+   the envelope.  With 'mailHost', the envelope address either is not
+   rewritten, or is rewritten according to implementation-specific rules
+   and/or configuration.
+
+   If both 'mailHost' and 'mailRoutingAddress' are present, the
+   suggested interpretation is that messages are to be routed to the
+   host indicated by 'mailHost', while rewriting the envelope as per
+   'mailRoutingAddress'.  In theory, there could be peculiar cases where
+   this is necessary, but this is not normally expected.
+
+   Absense of both 'mailHost' and 'mailRoutingAddress' should be
+   considered an error, unless "location-independent" recipient types
+
+
+
+Lachman                                                         [Page 5]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+   are supported by the various MTAs within the organization.  This
+   would allow any MTA in the organization to handle the processing of
+   mail for, say, a mailing list.  This presumes that the various MTAs
+   all recognize the recipient type in question, suggesting a need to
+   standardize recipient types that could be "location-independent".
+
+   In short, routing attributes may be used by an LDAP entry to answer
+   the question "how should MTAs route mail to this account?"
+   (analogous to using the sendmail "aliases" database for per-user
+   routing within an organization).  This is in contrast with
+   "forwarding"; forwarding and delivery options may be specified in an
+   LDAP entry to answer the question "what happens to mail once it
+   arrives at this account?", which may include forwarding to some other
+   account within or outside the organization (analogous to using the
+   sendmail ".forward" file).  Such options are outside the scope of the
+   'inetLocalMailRecipient' schema definition.
+
+4.  Examples
+
+   The following examples illustrate possible uses of the
+   'inetLocalMailRecipient' object class.
+
+   Here is an example of an LDAP entry representing a mail user:
+
+       dn: uid=joe,o=Example Corp,c=US
+       objectclass: top
+       objectclass: person
+       objectclass: organizationalPerson
+       objectclass: inetOrgPerson
+       objectclass: inetLocalMailRecipient
+       objectclass: nsMessagingServerUser
+       cn: Joe User
+       sn: User
+       uid: joe
+       userpassword: {crypt}y2KxtbzMYnApU
+       mail: joe@example.com
+       mailhost: nsmail1.example.com
+       maildeliveryoption: mailbox
+       mailquota: 1000000
+       mailforwardingaddress: mary@example.com
+
+   Joe User is a user of a hypothetical mail system called NS Messaging.
+   Let's say mail arrives on an MTA called "mx.example.com", addressed
+   to "joe@example.com".  The MTA searches the directory for a mail
+   recipient with that address, using an LDAP search filter [9] such as:
+
+       (&(objectClass=inetLocalMailRecipient)
+         (|(mail=joe@example.com)
+
+
+
+Lachman                                                         [Page 6]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+           (mailAlternateAddress=joe@example.com)))
+
+   It finds Joe's LDAP entry, and routes the message to the target MTA
+   "nsmail1.example.com", while not rewriting the SMTP envelope
+   recipient address.  Then, "nsmail1.example.com" receives the message,
+   searches for and finds the recipient in the directory, ascertains
+   that it is the recipient's target MTA, and handles the message as per
+   other attributes in the recipient's entry and/or the MTA
+   configuration (in this case, the message is delivered to a mailbox,
+   and forwarded to another recipient).
+
+   Note that this document does not specify what search filters are to
+   be used by MTAs (although the one above is recommended), nor does it
+   specify the rules an MTA is to use to ascertain whether or not it is
+   the target MTA for a given recipient (it could check the recipient's
+   'mailHost' value against its own hostname, or check the recipient's
+   'mailRoutingAddress', or check the MTA configuration, or some
+   combination of these), nor does it specify how and when MTAs should
+   rewrite envelopes (it may depend on the MTA configuration).
+
+   Here is another example of an LDAP entry representing a mail user:
+
+       dn: uid=john,o=Example Corp,c=US
+       objectclass: top
+       objectclass: person
+       objectclass: organizationalPerson
+       objectclass: inetOrgPerson
+       objectclass: inetLocalMailRecipient
+       objectclass: xyzMailUser
+       cn: John Doe
+       sn: Doe
+       uid: john
+       userpassword: {crypt}y2KxtbzMYnApU
+       mail: john@example.com
+       mailroutingaddress: John_Doe@xyz-gw.example.com
+       xyzpostofficename: PO_1
+       xyzclusternumber: 3
+       xyzmessagestoreid: 9
+
+   John Doe is a user of a hypothetical mail system called XYZ Mail.
+   Let's say mail arrives on an MTA called "mx.example.com", addressed
+   to "john@example.com".  The MTA searches the directory for a mail
+   recipient with that address, and routes the message to "xyz-
+   gw.example.com", rewriting the SMTP envelope recipient address to
+   "John_Doe@xyz-gw.example.com", as per the 'mailRoutingAddress'.  On
+   "xyz-gw.example.com", the message is gatewayed into the XYZ Mail
+   system and then dealt with as per other attributes.
+
+
+
+
+Lachman                                                         [Page 7]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+   Here is an example of an LDAP entry representing a mailing list:
+
+       dn: cn=Scuba Group,o=Example Corp,c=US
+       objectclass: top
+       objectclass: groupOfUniqueNames
+       objectclass: inetLocalMailRecipient
+       objectclass: mailGroup
+       cn: Scuba Group
+       mail: scuba@example.com
+       mailhost: host42.example.com
+       mgrprfc822mailmember: joe@example.com
+       mgrprfc822mailmember: john@example.com
+
+   The Scuba Group is a mail group (mailing list) that includes two
+   members.  A message addressed to "scuba@example.com" is routed to
+   "host42.example.com" where it is then resent to the mailing list
+   members.  The 'mailGroup' object class is specified elsewhere [10].
+
+   Here is an example of an LDAP entry representing a forwarding alias:
+
+       dn: cn=Jane Roe Forwarding Alias,o=PU,c=US
+       objectclass: top
+       objectclass: inetLocalMailRecipient
+       objectclass: mailForwardingAlias
+       mail: janeroe@pu.edu
+       mailhost: mail.pu.edu
+       mailforwardingaddress: janeroe@elsewhereville.edu
+       cn: Jane Roe Forwarding Alias
+
+   This entry uses a hypothetical object class 'mailForwardingAlias'
+   that is not specified here, but is used as an example of how an LDAP
+   entry might represent such a recipient type.  A message addressed to
+   "janeroe@pu.edu" is routed to "mail.pu.edu" where it is then
+   forwarded.  In this case, Jane Roe may be a former student of a
+   university called PU, and they are forwarding her mail to her new
+   address elsewhere.
+
+5.  Security Considerations
+
+   As in all cases where account information is stored in an LDAP-based
+   directory service, network administrators must be careful to ensure
+   that their directory service controls users' access to the entries
+   and attributes stored therein, according to site policy.  In
+   particular, mail routing information should not be accessible from
+   outside the organization, since it is intended for use only by MTAs
+   within the organization.
+
+6.  Acknowledgements
+
+
+
+Lachman                                                         [Page 8]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+   The 'inetLocalMailRecipient' object class is based on an earlier
+   design done by the Netscape Messaging and Directory Server teams,
+   which was implemented and deployed to customers as part of Netscape
+   Messaging Server.  Various team members contributed to the design,
+   including Bill Fitler, Bruce Steinback, Prabhat Keni, Mike Macgirvin,
+   John Myers, John Kristian, Tim Howes, Mark Smith, and Leif Hedstrom.
+   Thanks also to Jeff Hodges of Stanford for contributing to the early
+   design discussions, and to the other participants in the IETF LASER
+   BOF, including, from Sun Microsystems, John Beck, Anil Srivastava,
+   and Darryl Huff.
+
+7.  References
+
+   [1]  W. Yeong, T. Howes, S. Kille, "Lightweight Directory Access
+   Protocol", RFC 1777, March 1995.
+
+   [2]  J. Postel, "Simple Mail Transfer Protocol", STD 10, RFC 821,
+   August 1982.
+
+   [3]  D. Crocker, "Standard for the Format of ARPA Internet Text
+   Messages", STD 11, RFC 822, August 1982.
+
+   [4]  "Information Processing Systems - Open Systems Interconnection -
+   The Directory: Overview of Concepts, Models and Service", ISO/IEC JTC
+   1/SC21, International Standard 9594-1, 1988.
+
+   [5]  C. Partridge, "Mail routing and the domain system", STD 14, RFC
+   974, January 1986.
+
+   [6]  R. Braden, "Requirements for Internet hosts - application and
+   support", STD 3, RFC 1123, October 1989.
+
+   [7]  M. Wahl, A. Coulbeck, T. Howes, S. Kille, "Lightweight X.500
+   Directory Access Protocol (v3): Attribute Syntax Definitions", RFC
+   2252, December 1997.
+
+   [8]  P. Barker, S. Kille, "The COSINE and Internet X.500 Schema", RFC
+   1274, November 1991.
+
+   [9]  T. Howes, "The String Representation of LDAP Search Filters",
+   RFC 2254, December 1997.
+
+   [10]  B. Steinback, "Using LDAP for SMTP Mailing Lists and Aliases",
+   Internet-Draft (work in progress).
+
+   [11]  G. Good, "The LDAP Data Interchange Format (LDIF) - Technical
+   Specification", Internet-Draft (work in progress).
+
+
+
+
+Lachman                                                         [Page 9]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+   [12]  M. Smith, "The inetOrgPerson Object Class", Internet-Draft
+   (work in progress).
+
+8.  Author's Address
+
+   Hans Lachman
+   Netscape Communications Corp.
+   501 East Middlefield Road
+   Mountain View, CA  94043
+
+   Phone: (650) 254-1900
+   EMail: lachman@netscape.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lachman                                                        [Page 10]
+
+INTERNET-DRAFT   LDAP Schema for Intranet Mail Routing          May 1999
+
+
+9.  Full Copyright Statement
+
+   Copyright (C) The Internet Society (1999).  All Rights Reserved.
+
+   This document and translations of it may be copied and furnished
+   to others, and derivative works that comment on or otherwise
+   explain it or assist in its implementation may be prepared, copied,
+   published and distributed, in whole or in part, without
+   restriction of any kind, provided that the above copyright notice
+   and this paragraph are included on all such copies and derivative
+   works.  However, this document itself may not be modified in any
+   way, such as by removing the copyright notice or references to the
+   Internet Society or other Internet organizations, except as needed
+   for the purpose of developing Internet standards in which case the
+   procedures for copyrights defined in the Internet Standards
+   process must be followed, or as required to translate it into
+   languages other than English.
+
+   The limited permissions granted above are perpetual and will not
+   be revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on
+   an "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF
+   THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lachman                  Expires: November 1999                [Page 11]
+
