@@ -220,8 +220,9 @@ ldap_back_db_config(
 		} else if ( strcasecmp( argv[1], "attribute" ) == 0 ) {
 			map = &li->at_map;
 		} else {
-			fprintf( stderr,
-	"%s: line %d: syntax is \"map {objectclass | attribute} {<source> | *} [<dest> | *]\"\n",
+			fprintf( stderr, "%s: line %d: syntax is "
+				"\"map {objectclass | attribute} {<source> | *} "
+					"[<dest> | *]\"\n",
 				fname, lineno );
 			return( 1 );
 		}
@@ -257,7 +258,8 @@ ldap_back_db_config(
 				fname, lineno );
 		}
 
-		mapping = (struct ldapmapping *)ch_calloc( 2, sizeof(struct ldapmapping) );
+		mapping = (struct ldapmapping *)ch_calloc( 2,
+			sizeof(struct ldapmapping) );
 		if ( mapping == NULL ) {
 			fprintf( stderr,
 				"%s: line %d: out of memory\n",
@@ -274,8 +276,8 @@ ldap_back_db_config(
 			mapping[1].dst = mapping->dst;
 		}
 
-		if ( avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL
-			|| avl_find( map->remap, (caddr_t)&mapping[1], mapping_cmp ) != NULL)
+		if ( avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL ||
+			avl_find( map->remap, (caddr_t)&mapping[1], mapping_cmp ) != NULL)
 		{
 			fprintf( stderr,
 				"%s: line %d: duplicate mapping found (ignored)\n",
@@ -290,8 +292,8 @@ ldap_back_db_config(
 
 	/* anything else */
 	} else {
-		fprintf( stderr,
-"%s: line %d: unknown directive \"%s\" in ldap database definition (ignored)\n",
+		fprintf( stderr, "%s: line %d: unknown directive \"%s\" "
+			"in ldap database definition (ignored)\n",
 		    fname, lineno, argv[0] );
 	}
 	return 0;
@@ -378,7 +380,7 @@ ldap_back_map_filter(
 			in_quote = !in_quote;
 			if (q != NULL) {
 				plen = p - q;
-				memcpy(s, q, plen);
+				AC_MEMCPY(s, q, plen);
 				s += plen;
 				q = NULL;
 			}
@@ -421,7 +423,7 @@ ldap_back_map_filter(
 					}
 					s += (long)nf;
 				}
-				memcpy(s, m.bv_val, plen);
+				AC_MEMCPY(s, m.bv_val, plen);
 				s += plen;
 				*p = c;
 				q = NULL;
@@ -501,12 +503,12 @@ suffix_massage_patternize( const char *s, int normalize )
 {
 	char *res;
 
-	res = ch_calloc( sizeof( char ), strlen( s ) + 3 );
+	res = ch_calloc( sizeof( char ), strlen( s ) + sizeof("%1") );
 
 	sprintf( res, "%%1%s", s );
 
 	if ( normalize ) {
-		char *out = dn_normalize( res + 2 );
+		char *out = dn_normalize( res + (sizeof("%1")-1) );
 		if ( out != res + 2 ) {
 			strcpy( res + 2, out );
 			free( out );
@@ -599,4 +601,3 @@ suffix_massage_config(
 	return 0;
 }
 #endif /* ENABLE_REWRITE */
-
