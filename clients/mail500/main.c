@@ -115,7 +115,7 @@ Base	base[] = {
 	{"ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org",
 		1, 0xff,
 		{"(&(cn=%s)(associatedDomain=%h))", NULL, NULL}},
-	NULL
+	{NULL}
 };
 
 char	*sendmailargs[] = { MAIL500_SENDMAIL, "-oMrLDAP", "-odi", "-oi", "-f", NULL, NULL };
