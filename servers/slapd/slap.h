@@ -103,13 +103,13 @@ LDAP_BEGIN_DECL
 #define SLAP_TEXT_BUFLEN (256)
 
 /* psuedo error code indicating abandoned operation */
-#define SLAPD_ABANDON (-1)
+#define SLAPD_ABANDON (-1024)
 
 /* psuedo error code indicating disconnect */
-#define SLAPD_DISCONNECT (-2)
+#define SLAPD_DISCONNECT (-1025)
 
 /* unknown config file directive */
-#define SLAP_CONF_UNKNOWN (-2)
+#define SLAP_CONF_UNKNOWN (-1026)
 
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
@@ -2016,10 +2016,10 @@ typedef struct slap_op {
 
 	char o_sync;
 	char o_sync_mode;
-#define SLAP_SYNC_NONE					(0x0)
-#define SLAP_SYNC_REFRESH				(0x1)
-#define SLAP_SYNC_PERSIST				(0x2)
-#define SLAP_SYNC_REFRESH_AND_PERSIST	(0x3)
+#define SLAP_SYNC_NONE					LDAP_SYNC_NONE
+#define SLAP_SYNC_REFRESH				LDAP_SYNC_REFRESH_ONLY
+#define SLAP_SYNC_PERSIST				LDAP_SYNC_RESERVED
+#define SLAP_SYNC_REFRESH_AND_PERSIST	LDAP_SYNC_REFRESH_AND_PERSIST
 	struct sync_cookie	o_sync_state;
 	int					o_sync_rhint;
 	struct berval		o_sync_cid;
@@ -2292,7 +2292,7 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 	SlapReply *rs,
 	LDAPControl *ctrl ));
 
-#define SLMALLOC_SLAB_SIZE	1048576
+#define SLMALLOC_SLAB_SIZE	(1024*1024)
 
 LDAP_END_DECL
 

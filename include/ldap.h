@@ -211,6 +211,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_SYNC_NONE					0x00
 #define LDAP_SYNC_REFRESH_ONLY			0x01
+#define LDAP_SYNC_RESERVED				0x02
 #define LDAP_SYNC_REFRESH_AND_PERSIST	0x03
 
 #define LDAP_SYNC_REFRESH_PRESENTS		0
@@ -478,16 +479,16 @@ typedef struct ldapcontrol {
  * Based on draft-ietf-ldap-c-api-xx
  * but with new (negative) codes
  */
-#define LDAP_SERVER_DOWN		(-1)
-#define LDAP_LOCAL_ERROR		(-2)
-#define LDAP_ENCODING_ERROR		(-3)
-#define LDAP_DECODING_ERROR		(-4)
-#define LDAP_TIMEOUT			(-5)
-#define LDAP_AUTH_UNKNOWN		(-6)
-#define LDAP_FILTER_ERROR		(-7)
-#define LDAP_USER_CANCELLED		(-8)
-#define LDAP_PARAM_ERROR		(-9)
-#define LDAP_NO_MEMORY			(-10)
+#define LDAP_SERVER_DOWN				(-1)
+#define LDAP_LOCAL_ERROR				(-2)
+#define LDAP_ENCODING_ERROR				(-3)
+#define LDAP_DECODING_ERROR				(-4)
+#define LDAP_TIMEOUT					(-5)
+#define LDAP_AUTH_UNKNOWN				(-6)
+#define LDAP_FILTER_ERROR				(-7)
+#define LDAP_USER_CANCELLED				(-8)
+#define LDAP_PARAM_ERROR				(-9)
+#define LDAP_NO_MEMORY					(-10)
 #define LDAP_CONNECT_ERROR				(-11)
 #define LDAP_NOT_SUPPORTED				(-12)
 #define LDAP_CONTROL_NOT_FOUND			(-13)
