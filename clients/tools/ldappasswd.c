@@ -28,9 +28,9 @@ static void
 usage(const char *s)
 {
 	fprintf(stderr,
-"Change the password of an LDAP entry\n\n"
-"usage: %s [options] dn\n"
-"	dn: the DN of the entry whose password must be changed\n"
+"Change password of an LDAP user\n\n"
+"usage: %s [options] user\n"
+"	user: the identity of the user, normally a DN\n"
 "Password change options:\n"
 "	-a secret\told password\n"
 "	-A\t\tprompt for old password\n"
