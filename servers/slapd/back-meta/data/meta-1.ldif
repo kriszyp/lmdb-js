@@ -1,0 +1,10 @@
+dn: ou=People, dc=foo, dc=example, dc=com
+objectClass: top
+
+dn: cn=Ando, ou=People, dc=foo, dc=example, dc=com
+objectClass: top
+objectClass: person
+cn: Ando
+sn: Ando
+userPassword: ando
+

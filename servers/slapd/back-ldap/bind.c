@@ -47,6 +47,8 @@
 #include "slap.h"
 #include "back-ldap.h"
 
+#define PRINT_CONNTREE 0
+
 int
 ldap_back_bind(
     Backend		*be,
@@ -72,30 +74,56 @@ ldap_back_bind(
 		return( -1 );
 	}
 
-	mdn = ldap_back_dn_massage( li, ch_strdup( dn ), 0 );
-	if ( mdn == NULL ) {
-		return -1;
-	}
+	/*
+	 * Rewrite the bind dn if needed
+	 */
+#ifdef ENABLE_REWRITE
+	switch ( rewrite_session( li->rwinfo, "bindDn", dn, conn, &mdn ) ) {
+	case REWRITE_REGEXEC_OK:
+		if ( mdn == NULL ) {
+			mdn = ( char * )dn;
+		}
+		Debug( LDAP_DEBUG_ARGS, "rw> bindDn: \"%s\" -> \"%s\"\n%s",
+				dn, mdn, "" );
+		break;
+		
+	case REWRITE_REGEXEC_UNWILLING:
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+				NULL, "Unwilling to perform", NULL, NULL );
 
-	if (ldap_bind_s(lc->ld, mdn, cred->bv_val, method) != LDAP_SUCCESS) {
+	case REWRITE_REGEXEC_ERR:
+		return( -1 );
+	}
+#else /* !ENABLE_REWRITE */
+	mdn = ldap_back_dn_massage( li, ch_strdup( dn ), 0 );
+#endif /* !ENABLE_REWRITE */
+
+	rc = ldap_bind_s(lc->ld, mdn, cred->bv_val, method);
+	if (rc != LDAP_SUCCESS) {
 		rc = ldap_back_op_result( lc, op );
 	} else {
 		lc->bound = 1;
 	}
-	
+
+#ifdef ENABLE_REWRITE	
+	if ( mdn != dn ) {
+#endif /* ENABLE_REWRITE */
 	free( mdn );
+#ifdef ENABLE_REWRITE
+	}
+#endif /* ENABLE_REWRITE */
 	
 	return( rc );
 }
 
 /*
- * conn_cmp
+ * ldap_back_conn_cmp
  *
  * compares two struct ldapconn based on the value of the conn pointer;
  * used by avl stuff
  */
 int
-conn_cmp(
+ldap_back_conn_cmp(
 	const void *c1,
 	const void *c2
 	)
@@ -107,13 +135,13 @@ conn_cmp(
 }
 
 /*
- * conn_dup
+ * ldap_back_conn_dup
  *
  * returns -1 in case a duplicate struct ldapconn has been inserted;
  * used by avl stuff
  */
 int
-conn_dup(
+ldap_back_conn_dup(
 	void *c1,
 	void *c2
 	)
@@ -124,6 +152,7 @@ conn_dup(
 	return( ( lc1->conn == lc2->conn ) ? -1 : 0 );
 }
 
+#if PRINT_CONNTREE > 0
 static void ravl_print( Avlnode *root, int depth )
 {
 	int     i;
@@ -136,7 +165,7 @@ static void ravl_print( Avlnode *root, int depth )
 	for ( i = 0; i < depth; i++ )
 		printf( "   " );
 
-	printf( "c(%d) %d\n", ((struct ldapconn *) root->avl_data)->conn->c_connid, root->avl_bf );
+	printf( "c(%ld) %d\n", ((struct ldapconn *) root->avl_data)->conn->c_connid, root->avl_bf );
 	
 	ravl_print( root->avl_left, depth+1 );
 }
@@ -153,6 +182,7 @@ static void myprint( Avlnode *root )
 	
 	printf( "********\n" );
 }
+#endif /* PRINT_CONNTREE */
 
 struct ldapconn *
 ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
@@ -164,7 +194,7 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 	lc_curr.conn = conn;
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = (struct ldapconn *)avl_find( li->conntree, 
-		(caddr_t)&lc_curr, conn_cmp );
+		(caddr_t)&lc_curr, ldap_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	/* Looks like we didn't get a bind. Open a new session... */
@@ -186,9 +216,49 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		lc = (struct ldapconn *)ch_malloc(sizeof(struct ldapconn));
 		lc->conn = conn;
 		lc->ld = ld;
+
+#ifdef ENABLE_REWRITE
+		/*
+		 * Sets a cookie for the rewrite session
+		 */
+		( void )rewrite_session_init( li->rwinfo, conn );
+#endif /* ENABLE_REWRITE */
+
 		if ( lc->conn->c_cdn != NULL && lc->conn->c_cdn[0] != '\0' ) {
+			
+			/*
+			 * Rewrite the bind dn if needed
+			 */
+#ifdef ENABLE_REWRITE			
+			lc->bound_dn = NULL;
+			switch ( rewrite_session( li->rwinfo, "bindDn",
+						lc->conn->c_cdn, conn,
+						&lc->bound_dn ) ) {
+			case REWRITE_REGEXEC_OK:
+				if ( lc->bound_dn == NULL ) {
+					lc->bound_dn = 
+						ch_strdup( lc->conn->c_cdn );
+				}
+				Debug( LDAP_DEBUG_ARGS,
+					       	"rw> bindDn: \"%s\" ->"
+					       " \"%s\"\n%s",
+						lc->conn->c_cdn,
+						lc->bound_dn, "" );
+				break;
+				
+			case REWRITE_REGEXEC_UNWILLING:
+				send_ldap_result( conn, op,
+						LDAP_UNWILLING_TO_PERFORM,
+						NULL, "Unwilling to perform",
+						NULL, NULL );
+				
+			case REWRITE_REGEXEC_ERR:
+				return( NULL );
+			}
+#else /* !ENABLE_REWRITE */
 			lc->bound_dn = ldap_back_dn_massage( li,
-				ch_strdup( lc->conn->c_cdn ), 0 );
+	 				ch_strdup( lc->conn->c_cdn ), 0 );		
+#endif /* !ENABLE_REWRITE */
 		} else {
 			lc->bound_dn = NULL;
 		}
@@ -197,17 +267,17 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		/* Inserts the newly created ldapconn in the avl tree */
 		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 		err = avl_insert( &li->conntree, (caddr_t)lc,
-			conn_cmp, conn_dup );
+			ldap_back_conn_cmp, ldap_back_conn_dup );
 
-#if 0
+#if PRINT_CONNTREE > 0
 		myprint( li->conntree );
-#endif
+#endif /* PRINT_CONNTREE */
 		
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %d inserted\n",
-			lc->conn->c_connid, 0, 0 );
+			"=>ldap_back_getconn: conn %ld inserted%s%s\n",
+			lc->conn->c_connid, "", "" );
 		
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( err != 0 ) {
@@ -218,8 +288,8 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 		}
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %d fetched\n",
-			lc->conn->c_connid, 0, 0 );
+			"=>ldap_back_getconn: conn %ld fetched%s%s\n",
+			lc->conn->c_connid, "", "" );
 	}
 	
 	return( lc );
@@ -305,9 +375,23 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op)
 	ldap_get_option(lc->ld, LDAP_OPT_ERROR_STRING, &msg);
 	ldap_get_option(lc->ld, LDAP_OPT_MATCHED_DN, &match);
 	err = ldap_back_map_result(err);
+
+#ifdef ENABLE_REWRITE
+	
+	/*
+	 * need rewrite info; mmmh ...
+	 */
+
+#else /* !ENABLE_REWRITE */
+
 	send_ldap_result( lc->conn, op, err, match, msg, NULL, NULL );
 	/* better test the pointers before freeing? */
-	if ( match ) free( match );
+	if ( match ) {
+		free( match );
+	}
+#endif /* !ENABLE_REWRITE */
+
 	if ( msg ) free( msg );
 	return( (err==LDAP_SUCCESS) ? 0 : -1 );
 }
+

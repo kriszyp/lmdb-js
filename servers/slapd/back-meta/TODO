@@ -1,0 +1,20 @@
+* Short term:
+
+- add missing functions (FIXED)
+
+- review per-target error handling
+
+- dn cache and cache exploitation to refine the candidate selection (?) (FIXED)
+
+- review the group and attribute stuff (also in back-ldap!) (FIXED, need to
+  test attribute)
+
+- rework compare and bind to attempt to operate on all candidate entries
+  while checking at most one succeedes
+
+- clear previously bound targets when the bind is repeated
+
+* Long term:
+
+- distributed entries
+

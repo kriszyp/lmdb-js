@@ -106,6 +106,18 @@ ldap_back_db_init(
 	struct ldapmapping *mapping;
 
 	li = (struct ldapinfo *) ch_calloc( 1, sizeof(struct ldapinfo) );
+	if ( li == NULL ) {
+ 		return -1;
+ 	}
+
+#ifdef ENABLE_REWRITE
+ 	li->rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( li->rwinfo == NULL ) {
+ 		ch_free( li );
+ 		return -1;
+ 	}
+#endif /* ENABLE_REWRITE */
+
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 
 	mapping = (struct ldapmapping *)ch_calloc( 2, sizeof(struct ldapmapping) );
@@ -123,7 +135,7 @@ ldap_back_db_init(
 
 	be->be_private = li;
 
-	return li == NULL;
+	return 0;
 }
 
 static void
@@ -136,7 +148,7 @@ conn_free(
 	free( lc );
 }
 
-static void
+void
 mapping_free ( struct ldapmapping *mapping )
 {
 	ch_free( mapping->src );
@@ -168,13 +180,18 @@ ldap_back_db_destroy(
 			free(li->bindpw);
 			li->bindpw = NULL;
 		}
-		if (li->suffix_massage) {
-			ldap_value_free( li->suffix_massage );
-			li->suffix_massage = NULL;
-		}
                 if (li->conntree) {
 			avl_free( li->conntree, (AVL_FREE) conn_free );
 		}
+#ifdef ENABLE_REWRITE
+		if (li->rwinfo) {
+			rewrite_info_delete( li->rwinfo );
+		}
+#else /* !ENABLE_REWRITE */
+		if (li->suffix_massage) {
+  			ldap_value_free( li->suffix_massage );
+ 		}
+#endif /* !ENABLE_REWRITE */
 
 		avl_free( li->oc_map.remap, NULL );
 		avl_free( li->oc_map.map, (AVL_FREE) mapping_free );

@@ -1,0 +1,11 @@
+dn: ou=Groups, dc=bar, dc=example, dc=com
+objectClass: top
+
+dn: cn=Users, ou=Groups, dc=bar, dc=example, dc=com
+objectClass: top
+objectClass: groupOfNames
+objectClass: simpleSecurityObject
+cn: Users
+member: cn=Users, ou=Groups, dc=bar, dc=example, dc=com
+member: cn=Ando, ou=People, dc=bar, dc=example, dc=com
+userPassword: users

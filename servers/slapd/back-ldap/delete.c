@@ -57,7 +57,7 @@ ldap_back_delete(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
 
-	char *mdn;
+	char *mdn = NULL;
 
 	lc = ldap_back_getconn( li, conn, op );
 	
@@ -65,14 +65,39 @@ ldap_back_delete(
 		return( -1 );
 	}
 
-	mdn = ldap_back_dn_massage( li, ch_strdup( dn ), 0 );
+	/*
+	 * Rewrite the compare dn, if needed
+	 */
+#ifdef ENABLE_REWRITE
+	switch ( rewrite_session( li->rwinfo, "deleteDn", dn, conn, &mdn ) ) {
+	case REWRITE_REGEXEC_OK:
 	if ( mdn == NULL ) {
+			mdn = ( char * )dn;
+		}
+		Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
+				dn, mdn, "" );
+		break;
+		
+	case REWRITE_REGEXEC_UNWILLING:
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+				NULL, "Unwilling to perform", NULL, NULL );
+
+	case REWRITE_REGEXEC_ERR:
 		return( -1 );
 	}
+#else /* !ENABLE_REWRITE */
+	mdn = ldap_back_dn_massage( li, ch_strdup( dn ), 0 );
+#endif /* !ENABLE_REWRITE */
 	
 	ldap_delete_s( lc->ld, mdn );
 
-	free( mdn );
+#ifdef ENABLE_REWRITE
+	if ( mdn != dn ) {
+#endif /* ENABLE_REWRITE */
+		free( mdn );
+#ifdef ENABLE_REWRITE
+	}
+#endif /* ENABLE_REWRITE */
 	
 	return( ldap_back_op_result( lc, op ) );
 }

@@ -116,6 +116,7 @@ OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable V2 Referrals (experimenta
 OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable V2 Kerberos IV bind (deprecated)], no)dnl
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
 OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
+OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable rewrite], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
 	no, [yes no])dnl
 
@@ -177,6 +178,9 @@ OL_ARG_WITH(ldbm_module,[    --with-ldbm-module	  module type], static,
 	[static dynamic])
 OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type], auto,
 	[auto btree hash])
+OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no)dnl
+OL_ARG_WITH(meta_module,[    --with-meta-module	  module type], static,
+	[static dynamic])
 OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no)dnl
 OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type], static,
 	[static dynamic])
@@ -221,6 +225,9 @@ if test $ol_enable_slapd = no ; then
 	fi
 	if test $ol_enable_ldbm = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-ldbm argument])
+	fi
+	if test $ol_enable_meta = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-meta argument])
 	fi
 	if test $ol_enable_passwd = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-passwd argument])
@@ -273,6 +280,9 @@ dnl	fi
 	if test $ol_with_ldbm_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-module argument])
 	fi
+	if test $ol_with_meta_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-meta-module argument])
+	fi
 	if test $ol_with_passwd_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-passwd-module argument])
 	fi
@@ -291,12 +301,16 @@ dnl	fi
 	if test $ol_enable_slurpd = yes ; then
 		AC_MSG_ERROR([slurpd requires slapd])
 	fi
+	if test $ol_enable_rewrite = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
+	fi
 
 	# force settings to no
 	ol_enable_bdb=no
 	ol_enable_dnssrv=no
 	ol_enable_ldap=no
 	ol_enable_ldbm=no
+	ol_enable_meta=no
 	ol_enable_passwd=no
 	ol_enable_perl=no
 	ol_enable_shell=no
@@ -318,6 +332,7 @@ dnl	ol_enable_multimaster=no
 	ol_with_dnssrv_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
+	ol_with_meta_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
@@ -325,6 +340,8 @@ dnl	ol_enable_multimaster=no
 	ol_with_sql_module=static
 
 	ol_enable_slurpd=no
+
+	ol_enable_rewrite=no
 
 elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
@@ -345,6 +362,7 @@ elif test $ol_enable_ldbm = no ; then
 		$ol_enable_bdb = no -a \
 		$ol_enable_dnssrv = no -a \
 		$ol_enable_ldap = no -a \
+		$ol_enable_meta = no -a \
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
@@ -427,6 +445,7 @@ BUILD_BDB=no
 BUILD_DNSSRV=no
 BUILD_LDAP=no
 BUILD_LDBM=no
+BUILD_META=no
 BUILD_PASSWD=no
 BUILD_PERL=no
 BUILD_SHELL=no
@@ -437,6 +456,7 @@ BUILD_BDB_DYNAMIC=static
 BUILD_DNSSRV_DYNAMIC=static
 BUILD_LDAP_DYNAMIC=static
 BUILD_LDBM_DYNAMIC=static
+BUILD_META_DYNAMIC=static
 BUILD_PASSWD_DYNAMIC=static
 BUILD_PERL_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
@@ -650,6 +670,7 @@ else
 	ol_with_dnssrv_module=static
 	ol_with_ldap_module=static
 	ol_with_ldbm_module=static
+	ol_with_meta_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
@@ -2342,6 +2363,25 @@ if test "$ol_link_ldbm" != no ; then
 	fi
 fi
 
+if test "$ol_enable_meta" != no ; then
+	if test "$ol_enable_ldap" = no ; then
+		AC_MSG_ERROR([need --enable-ldap to use --enable-meta])
+	fi
+	if test "$ol_enable_rewrite" = no ; then
+		AC_MSG_ERROR([need --enable-rewrite to use --enable-meta])
+	fi
+	AC_DEFINE(SLAPD_META,1,[define to support LDAP Metadirectory backend])
+	BUILD_SLAPD=yes
+	BUILD_META=yes
+	if test "$ol_with_meta_module" != static ; then
+		AC_DEFINE(SLAPD_META_DYNAMIC,1,
+			[define to support dynamic LDAP Metadirectory backend])
+		BUILD_META=mod
+		BUILD_META_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-meta/back_meta.la"
+	fi
+fi
+
 if test "$ol_enable_passwd" != no ; then
 	AC_DEFINE(SLAPD_PASSWD,1,[define to support PASSWD backend])
 	BUILD_SLAPD=yes
@@ -2412,6 +2452,12 @@ if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	BUILD_SLURPD=yes
 fi
 
+if test "$ol_enable_rewrite" != no ; then
+	AC_DEFINE(ENABLE_REWRITE,1,[define to enable rewriting in back-ldap and back-meta])
+	BUILD_REWRITE=yes
+	SLAPD_LIBS="$SLAPD_LIBS -lrewrite"
+fi
+
 dnl ----------------------------------------------------------------
 
 if test "$LINK_BINS_DYNAMIC" = yes; then
@@ -2442,6 +2488,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_DNSSRV)
   AC_SUBST(BUILD_LDAP)
   AC_SUBST(BUILD_LDBM)
+  AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
@@ -2451,6 +2498,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_DNSSRV_DYNAMIC)
   AC_SUBST(BUILD_LDAP_DYNAMIC)
   AC_SUBST(BUILD_LDBM_DYNAMIC)
+  AC_SUBST(BUILD_META_DYNAMIC)
   AC_SUBST(BUILD_PASSWD_DYNAMIC)
   AC_SUBST(BUILD_PERL_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
@@ -2523,12 +2571,14 @@ libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.
 libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk    \
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk \
 servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \
 servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
+servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \

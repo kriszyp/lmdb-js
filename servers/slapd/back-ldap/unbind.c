@@ -62,14 +62,21 @@ ldap_back_conn_destroy(
 	lc_curr.conn = conn;
 	
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
-	lc = avl_delete( &li->conntree, (caddr_t)&lc_curr, conn_cmp );
+	lc = avl_delete( &li->conntree, (caddr_t)&lc_curr, ldap_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	if (lc) {
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_conn_destroy: destroying conn %d\n",
 			lc->conn->c_connid, 0, 0 );
-		
+
+#ifdef ENABLE_REWRITE
+		/*
+		 * Cleanup rewrite session
+		 */
+		rewrite_session_delete( li->rwinfo, conn );
+#endif /* ENABLE_REWRITE */
+
 		/*
 		 * Needs a test because the handler may be corrupted,
 		 * and calling ldap_unbind on a corrupted header results

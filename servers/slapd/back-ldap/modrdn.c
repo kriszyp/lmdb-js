@@ -60,10 +60,10 @@ ldap_back_modrdn(
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
 
-	char *mdn, *mnewSuperior;
+	char *mdn = NULL, *mnewSuperior = NULL;
 
 	lc = ldap_back_getconn( li, conn, op );
-	if ( !lc ) {
+	if ( !lc || !ldap_back_dobind(lc, op) ) {
 		return( -1 );
 	}
 
@@ -71,26 +71,78 @@ ldap_back_modrdn(
 		int version = LDAP_VERSION3;
 		ldap_set_option( lc->ld, LDAP_OPT_PROTOCOL_VERSION, &version);
 		
+		/*
+		 * Rewrite the new superior, if defined and required
+	 	 */
+#ifdef ENABLE_REWRITE
+		switch ( rewrite_session( li->rwinfo, "newSuperiorDn",
+					newSuperior, conn, &mnewSuperior ) ) {
+		case REWRITE_REGEXEC_OK:
+			if ( mnewSuperior == NULL ) {
+				mnewSuperior = ( char * )newSuperior;
+			}
+			Debug( LDAP_DEBUG_ARGS, "rw> newSuperiorDn:"
+					" \"%s\" -> \"%s\"\n%s",
+					newSuperior, mnewSuperior, "" );
+			break;
+
+		case REWRITE_REGEXEC_UNWILLING:
+			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, "Unwilling to perform",
+					NULL, NULL );
+
+		case REWRITE_REGEXEC_ERR:
+			return( -1 );
+		}
+#else /* !ENABLE_REWRITE */
 		mnewSuperior = ldap_back_dn_massage( li,
-			ch_strdup( newSuperior ), 0 );
+	 			ch_strdup( newSuperior ), 0 );
 		if ( mnewSuperior == NULL ) {
 			return( -1 );
 		}
+#endif /* !ENABLE_REWRITE */
 	}
 
-	if ( !ldap_back_dobind(lc, op) ) {
+#ifdef ENABLE_REWRITE
+	/*
+	 * Rewrite the modrdn dn, if required
+	 */
+	switch ( rewrite_session( li->rwinfo, "modrDn", dn, conn, &mdn ) ) {
+	case REWRITE_REGEXEC_OK:
+		if ( mdn == NULL ) {
+			mdn = ( char * )dn;
+		}
+		Debug( LDAP_DEBUG_ARGS, "rw> modrDn: \"%s\" -> \"%s\"\n%s",
+				dn, mdn, "" );
+		break;
+		
+	case REWRITE_REGEXEC_UNWILLING:
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+				NULL, "Unwilling to perform", NULL, NULL );
+
+	case REWRITE_REGEXEC_ERR:
 		return( -1 );
 	}
-
+#else /* !ENABLE_REWRITE */
 	mdn = ldap_back_dn_massage( li, ch_strdup( dn ), 0 );
-	if ( mdn == NULL ) {
-		return( -1 );
-	}
+#endif /* !ENABLE_REWRITE */
 
 	ldap_rename2_s( lc->ld, mdn, newrdn, mnewSuperior, deleteoldrdn );
 
+#ifdef ENABLE_REWRITE
+	if ( mdn != dn ) {
+#endif /* ENABLE_REWRITE */
 	free( mdn );
-	if ( mnewSuperior ) free( mnewSuperior );
+#ifdef ENABLE_REWRITE
+	}
+#endif /* ENABLE_REWRITE */
+	if ( mnewSuperior != NULL
+#ifdef ENABLE_REWRITE
+			&& mnewSuperior != newSuperior
+#endif /* ENABLE_REWRITE */
+	   ) {
+		free( mnewSuperior );
+	}
 	
 	return( ldap_back_op_result( lc, op ) );
 }

@@ -113,34 +113,59 @@ ldap_back_db_config(
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
+#ifndef ENABLE_REWRITE
 		char *dn, *massaged_dn;
+#endif /* ENABLE_REWRITE */
 		BackendDB *tmp_be;
 		
+		/*
+		 * syntax:
+		 * 
+		 * 	suffixmassage <suffix> <massaged suffix>
+		 *
+		 * the <suffix> field must be defined as a valid suffix
+		 * (or suffixAlias?) for the current database;
+		 * the <massaged suffix> shouldn't have already been
+		 * defined as a valid suffix or suffixAlias for the 
+		 * current server
+		 */
 		if ( argc != 3 ) {
-			fprintf( stderr,
-	"%s: line %d: syntax is \"suffixMassage <suffix> <massaged suffix>\"\n",
+ 			fprintf( stderr, "%s: line %d: syntax is"
+				       " \"suffixMassage <suffix>"
+				       " <massaged suffix>\"\n",
 				fname, lineno );
 			return( 1 );
 		}
 		
 		tmp_be = select_backend( argv[1], 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
-			fprintf( stderr,
-	"%s: line %d: suffix already in use by another backend in"
-	" \"suffixMassage <suffix> <massaged suffix>\"\n",
+			fprintf( stderr, "%s: line %d: suffix already in use"
+				       " by another backend in"
+				       " \"suffixMassage <suffix>"
+				       " <massaged suffix>\"\n",
 				fname, lineno );
 			return( 1 );						
 		}
 
 		tmp_be = select_backend( argv[2], 0 );
 		if ( tmp_be != NULL ) {
-			fprintf( stderr,
-        "%s: line %d: massaged suffix already in use by another backend in" 
-        " \"suffixMassage <suffix> <massaged suffix>\"\n",
+			fprintf( stderr, "%s: line %d: massaged suffix"
+				       " already in use by another backend in" 
+			       	       " \"suffixMassage <suffix>"
+				       " <massaged suffix>\"\n",
                                 fname, lineno );
                         return( 1 );
 		}
-		
+
+#ifdef ENABLE_REWRITE
+		/*
+		 * The suffix massaging is emulated by means of the
+		 * rewrite capabilities
+		 * FIXME: no extra rewrite capabilities should be added
+		 * to the database
+		 */
+	 	return suffix_massage_config( li->rwinfo, argc, argv );
+#else /* !ENABLE_REWRITE */
 		dn = ch_strdup( argv[1] );
 		charray_add( &li->suffix_massage, dn );
 		(void) dn_normalize( dn );
@@ -153,7 +178,14 @@ ldap_back_db_config(
 		
 		free( dn );
 		free( massaged_dn );
+#endif /* !ENABLE_REWRITE */
 
+#ifdef ENABLE_REWRITE
+	/* rewrite stuff ... */
+ 	} else if ( strncasecmp( argv[0], "rewrite", 7 ) == 0 ) {
+ 		return rewrite_parse( li->rwinfo, fname, lineno, argc, argv );
+#endif /* ENABLE_REWRITE */
+		
 	/* objectclass/attribute mapping */
 	} else if ( strcasecmp( argv[0], "map" ) == 0 ) {
 		struct ldapmap *map;
@@ -293,7 +325,12 @@ ldap_back_map ( struct ldapmap *map, char *s, int remap )
 }
 
 char *
-ldap_back_map_filter ( struct ldapinfo *li, char *f, int remap )
+ldap_back_map_filter(
+		struct ldapmap *at_map,
+		struct ldapmap *oc_map,
+		char *f,
+		int remap
+)
 {
 	char *nf, *m, *p, *q, *s, c;
 	int len, extra, plen, in_quote;
@@ -315,7 +352,7 @@ ldap_back_map_filter ( struct ldapinfo *li, char *f, int remap )
 	s = nf;
 	q = NULL;
 	in_quote = 0;
-	for (p = f; c = *p; p++) {
+	for (p = f; (c = *p); p++) {
 		if (c == '"') {
 			in_quote = !in_quote;
 			if (q != NULL) {
@@ -339,9 +376,9 @@ ldap_back_map_filter ( struct ldapinfo *li, char *f, int remap )
 		} else {
 			if (q != NULL) {
 				*p = 0;
-				m = ldap_back_map(&li->at_map, q, remap);
+				m = ldap_back_map(at_map, q, remap);
 				if (m == NULL)
-					m = ldap_back_map(&li->oc_map, q, remap);
+					m = ldap_back_map(oc_map, q, remap);
 				if (m == NULL) {
 					m = q;
 				}
@@ -374,7 +411,11 @@ ldap_back_map_filter ( struct ldapinfo *li, char *f, int remap )
 }
 
 char **
-ldap_back_map_attrs ( struct ldapinfo *li, char **a, int remap )
+ldap_back_map_attrs(
+		struct ldapmap *at_map,
+		char **a,
+		int remap
+)
 {
 	int i, j, count;
 	char **na, *mapped;
@@ -391,7 +432,7 @@ ldap_back_map_attrs ( struct ldapinfo *li, char **a, int remap )
 		return(NULL);
 
 	for (i = 0, j = 0; i < count; i++) {
-		mapped = ldap_back_map(&li->at_map, a[i], remap);
+		mapped = ldap_back_map(at_map, a[i], remap);
 		if (mapped != NULL) {
 			mapped = ch_strdup(mapped);
 			if (mapped == NULL) {
@@ -404,4 +445,138 @@ ldap_back_map_attrs ( struct ldapinfo *li, char **a, int remap )
 	}
 	return(na);
 }
+
+#ifdef ENABLE_REWRITE
+static char *
+suffix_massage_regexize( const char *s )
+{
+	char *res, *p, *r;
+	int i;
+
+	for ( i = 0, p = ( char * )s; 
+			( r = strchr( p, ',' ) ) != NULL; 
+			p = r + 1, i++ )
+		;
+
+	res = ch_calloc( sizeof( char ), strlen( s ) + 4 + 4*i + 1 );
+
+	strcpy( res, "(.*)" );
+	for ( i = 0, p = ( char * )s;
+			( r = strchr( p, ',' ) ) != NULL;
+			p = r + 1 , i++ ) {
+		strncat( res, p, r - p + 1 );
+		strcat( res, "[ ]?" );
+
+		if ( r[ 1 ] == ' ' ) {
+			r++;
+		}
+	}
+	strcat( res, p );
+
+	return res;
+}
+
+static char *
+suffix_massage_patternize( const char *s, int normalize )
+{
+	char *res;
+
+	res = ch_calloc( sizeof( char ), strlen( s ) + 3 );
+
+	sprintf( res, "%%1%s", s );
+
+	if ( normalize ) {
+		char *out = dn_normalize( res + 2 );
+		if ( out != res + 2 ) {
+			strcpy( res + 2, out );
+			free( out );
+		}
+	}
+
+	return res;
+}
+
+int
+suffix_massage_config( 
+		struct rewrite_info *info,
+		int argc,
+		char **argv
+)
+{
+	char *rargv[ 5 ];
+
+	rargv[ 0 ] = "rewriteEngine";
+	rargv[ 1 ] = "on";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 1, 2, rargv );
+
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "default";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 2, 2, rargv );
+
+	rargv[ 0 ] = "rewriteRule";
+	rargv[ 1 ] = suffix_massage_regexize( argv[ 1 ] );
+	rargv[ 2 ] = suffix_massage_patternize( argv[ 2 ], 0 );
+	rargv[ 3 ] = ":";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 3, 4, rargv );
+	ch_free( rargv[ 1 ] );
+	ch_free( rargv[ 2 ] );
+	
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "searchResult";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 4, 2, rargv );
+	
+	rargv[ 0 ] = "rewriteRule";
+	rargv[ 1 ] = suffix_massage_regexize( argv[ 2 ] );
+	rargv[ 2 ] = suffix_massage_patternize( argv[ 1 ], 0 );
+	rargv[ 3 ] = ":";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 5, 4, rargv );
+	ch_free( rargv[ 1 ] );
+	ch_free( rargv[ 2 ] );
+
+	/*
+	 * the filter should be rewritten as
+	 * 
+	 * rewriteRule
+	 * 	"(.*)member=([^)]+),o=Foo Bar,[ ]?c=US(.*)"
+	 * 	"%1member=%2,dc=example,dc=com%3"
+	 *
+	 * where "o=Foo Bar, c=US" is the virtual naming context,
+	 * and "dc=example, dc=com" is the real naming context
+	 */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "searchFilter";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 6, 2, rargv );
+
+#if 0 /*  matched is not normalized */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "matchedDn";
+	rargv[ 2 ] = "alias";
+	rargv[ 3 ] = "searchResult";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 7, 4, rargv );
+#else /* normalize matched */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "matchedDn";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 7, 2, rargv );
+
+	rargv[ 0 ] = "rewriteRule";
+	rargv[ 1 ] = suffix_massage_regexize( argv[ 2 ] );
+	rargv[ 2 ] = suffix_massage_patternize( argv[ 1 ], 1 );
+	rargv[ 3 ] = ":";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", 8, 4, rargv );
+	ch_free( rargv[ 1 ] );
+	ch_free( rargv[ 2 ] );
+#endif /* normalize matched */
+
+	return 0;
+}
+#endif /* ENABLE_REWRITE */
 

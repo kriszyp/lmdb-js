@@ -30,6 +30,8 @@
 
 #include "portable.h"
 
+#ifndef ENABLE_REWRITE
+
 #include <stdio.h>
 
 #include <ac/socket.h>
@@ -154,4 +156,5 @@ ldap_back_dn_restore(
 
         return dn;
 }
+#endif /* !ENABLE_REWRITE */
 

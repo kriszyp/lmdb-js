@@ -58,17 +58,36 @@ ldap_back_add(
 	int i;
 	Attribute *a;
 	LDAPMod **attrs;
-	char *mdn, *mapped;
+	char *mdn = NULL, *mapped;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc || !ldap_back_dobind( lc, op ) ) {
 		return( -1 );
 	}
 
-	mdn = ldap_back_dn_massage( li, ch_strdup( e->e_dn ), 0 );
+	/*
+	 * Rewrite the add dn, if needed
+	 */
+#ifdef ENABLE_REWRITE
+	switch (rewrite_session( li->rwinfo, "addDn", e->e_dn, conn, &mdn )) {
+	case REWRITE_REGEXEC_OK:
 	if ( mdn == NULL ) {
+			mdn = e->e_dn;
+		}
+		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
+				e->e_dn, mdn, "" );
+		break;
+ 		
+ 	case REWRITE_REGEXEC_UNWILLING:
+ 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+ 				NULL, "Unwilling to perform", NULL, NULL );
+	       	
+	case REWRITE_REGEXEC_ERR:
 		return( -1 );
 	}
+#else /* !ENABLE_REWRITE */
+	mdn = ldap_back_dn_massage( li, ch_strdup( e->e_dn ), 0 );
+#endif /* !ENABLE_REWRITE */
 
 	/* Count number of attributes in entry */
 	for (i = 1, a = e->e_attrs; a; i++, a = a->a_next)
@@ -78,16 +97,52 @@ ldap_back_add(
 	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
 
 	for (i=0, a=e->e_attrs; a; a=a->a_next) {
-		mapped = ldap_back_map(&li->at_map, a->a_desc->ad_cname->bv_val, 0);
-		if (mapped != NULL) {
-			attrs[i] = (LDAPMod *)ch_malloc(sizeof(LDAPMod));
-			if (attrs[i] != NULL) {
-				attrs[i]->mod_op = LDAP_MOD_BVALUES;
-				attrs[i]->mod_type = mapped;
-				attrs[i]->mod_vals.modv_bvals = a->a_vals;
-				i++;
-			}
+		/*
+		 * lastmod should always be <off>, so that
+		 * creation/modification operational attrs
+		 * of the target directory are used, if available
+		 */
+#if 0
+		if ( !strcasecmp( a->a_desc->ad_cname->bv_val,
+			slap_schema.si_ad_creatorsName->ad_cname->bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
+			slap_schema.si_ad_createTimestamp->ad_cname->bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
+			slap_schema.si_ad_modifiersName->ad_cname->bv_val )
+			|| !strcasecmp( a->a_desc->ad_cname->bv_val,
+			slap_schema.si_ad_modifyTimestamp->ad_cname->bv_val )
+		) {
+			continue;
 		}
+#endif
+		
+		mapped = ldap_back_map(&li->at_map, a->a_desc->ad_cname->bv_val, 0);
+		if (mapped == NULL) {
+			continue;
+		}
+
+		attrs[i] = (LDAPMod *)ch_malloc(sizeof(LDAPMod));
+		if (attrs[i] == NULL) {
+			continue;
+		}
+
+		attrs[i]->mod_op = LDAP_MOD_BVALUES;
+		attrs[i]->mod_type = mapped;
+
+#ifdef ENABLE_REWRITE
+		/*
+		 * FIXME: dn-valued attrs should be rewritten
+		 * to allow their use in ACLs at the back-ldap
+		 * level.
+		 */
+		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
+					SLAPD_DN_SYNTAX ) == 0 ) {
+			ldap_dnattr_rewrite( li->rwinfo, a->a_vals, conn );
+		}
+#endif /* ENABLE_REWRITE */
+
+		attrs[i]->mod_vals.modv_bvals = a->a_vals;
+		i++;
 	}
 	attrs[i] = NULL;
 
@@ -95,6 +150,60 @@ ldap_back_add(
 	for (--i; i>= 0; --i)
 		free(attrs[i]);
 	free(attrs);
+#ifdef ENABLE_REWRITE
+	if ( mdn != e->e_dn ) {
+#endif /* ENABLE_REWRITE */
 	free( mdn );
-	return( ldap_back_op_result( lc, op ));
+#ifdef ENABLE_REWRITE
+	}
+#endif /* ENABLE_REWRITE */
+	
+	return( ldap_back_op_result( lc, op ) );
 }
+
+#ifdef ENABLE_REWRITE
+int
+ldap_dnattr_rewrite(
+		struct rewrite_info     *rwinfo,
+		struct berval           **a_vals,
+		void                    *cookie
+)
+{
+	int j;
+	char *mattr;
+	
+	for ( j = 0; a_vals[ j ] != NULL; j++ ) {
+		switch ( rewrite_session( rwinfo, "bindDn", a_vals[ j ]->bv_val,
+					cookie, &mattr )) {
+		case REWRITE_REGEXEC_OK:
+			if ( mattr == NULL ) {
+				/* no substitution */
+				continue;
+			}
+			Debug( LDAP_DEBUG_ARGS,
+					"rw> bindDn (in add of dn-valued attr):"
+					" \"%s\" -> \"%s\"\n%s",
+					a_vals[ j ]->bv_val, mattr, "" );
+			
+			free( a_vals[ j ]->bv_val );
+			a_vals[ j ]->bv_val = mattr;
+			a_vals[ j ]->bv_len = strlen( mattr );
+			
+			break;
+			
+		case REWRITE_REGEXEC_UNWILLING:
+			
+		case REWRITE_REGEXEC_ERR:
+			/*
+			 * FIXME: better give up,
+			 * skip the attribute
+			 * or leave it untouched?
+			 */
+			break;
+		}
+	}
+	
+	return 0;
+}
+#endif /* ENABLE_REWRITE */
+

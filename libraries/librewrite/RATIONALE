@@ -1,0 +1,397 @@
+/******************************************************************************
+ *
+ * Copyright (C) 2000 Pierangelo Masarati, <ando@sys-net.it>
+ * All rights reserved.
+ *
+ * Permission is granted to anyone to use this software for any purpose
+ * on any computer system, and to alter it and redistribute it, subject
+ * to the following restrictions:
+ *
+ * 1. The author is not responsible for the consequences of use of this
+ * software, no matter how awful, even if they arise from flaws in it.
+ *
+ * 2. The origin of this software must not be misrepresented, either by
+ * explicit claim or by omission.  Since few users ever read sources,
+ * credits should appear in the documentation.
+ *
+ * 3. Altered versions must be plainly marked as such, and must not be
+ * misrepresented as being the original software.  Since few users
+ * ever read sources, credits should appear in the documentation.
+ * 
+ * 4. This notice may not be removed or altered.
+ *
+ ******************************************************************************/
+
+/*
+ * Description
+ *
+ *      A string is rewritten according to a set of rules, called
+ *	a `rewrite context'.
+ *      The rules are based on Regular Expressions (POSIX regex) with
+ *      substring matching; extensions are planned to allow basic variable
+ *      substitution and map resolution of substrings.
+ *      The behavior of pattern matching/substitution can be altered by a
+ *      set of flags.
+ *
+ *      The underlying concept is to build a lightweight rewrite module
+ *      for the slapd server (initially dedicated to the back-ldap module).
+ *
+ *
+ * Passes
+ *
+ *      An incoming string is matched agains a set of rules. Rules are made
+ *      of a match pattern, a substitution pattern and a set of actions.
+ *	In case of match a string rewriting is performed according to the
+ *	substitution pattern that allows to refer to substrings matched
+ *	in the incoming string. The actions, if any, are finally performed.
+ *	The substitution pattern allows map resolution of substrings.
+ *	A map is a generic object that maps a substitution pattern to a
+ *	value.
+ *
+ *
+ * Pattern Matching Flags
+ *
+ *      'C'     honors case in matching (default is case insensitive)
+ *      'R'     use POSIX Basic Regular Expressions (default is Extended)
+ *
+ *
+ * Action Flags
+ *
+ *      ':'     apply the rule once only (default is recursive)
+ *      '@'     stop applying rules in case of match.
+ *      '#'     stop current operation if the rule matches, and issue an
+ *              `unwilling to perform' error.
+ *      'G{n}'  jump n rules back and forth (watch for loops!). Note that
+ *		'G{1}' is implicit in every rule.
+ *      'I'	ignores errors in rule; this means, in case of error, e.g.
+ *		issued by a map, the error is treated as a missed match.
+ *		The 'unwilling to perform' is not overridden.
+ *
+ *	the ordering of the flags is significant. For instance:
+ *
+ *	'IG{2}'	means ignore errors and jump two lines ahead both in case
+ *		of match and in case of error, while
+ *	'G{2}I'	means ignore errors, but jump thwo lines ahead only in case
+ *		of match.
+ *
+ *	More flags (mainly Action Flags) will be added as needed.
+ *
+ *
+ * Pattern matching: 
+ *
+ *      see regex(7)
+ *
+ *
+ * String Substitution:
+ *
+ *      the string substitution happens according to a substitution pattern.
+ *      -       susbtring substitution is allowed with the syntax '\d'
+ *              where 'd' is a digit ranging 0-9 (0 is the full match).
+ *		I see that 0-9 digit expansion is a widely accepted
+ *		practise; however there is no technical reason to use
+ *		such a strict limit. A syntax of the form '\{ddd}'
+ *		should be fine if there is any need to use a higher
+ *		number of possible submatches.
+ *      -       variable substitution will be allowed (at least when I
+ *              figure out which kind of variable could be proficiently
+ *              substituted)
+ *      -       map lookup will be allowed (map lookup of substring matches
+ *              in gdbm, ldap(!), math(?) and so on maps 'a la sendmail'.
+ *      -       subroutine invocation will make it possible to rewrite a
+ *              submatch in terms of the output of another rewriteContext
+ *
+ *	Old syntax:
+ *
+ *		'\' {0-9} [ '{' <name> [ '(' <args> ')' ] '}' ]
+ *
+ *		where <name> is the name of a built-in map, and
+ *		<args> are optional arguments to the map, if
+ *		the map <name> requires them.
+ *		The following experimental maps have been implemented:
+ *
+ *	\n{xpasswd}
+ *			maps the n-th substring match as uid to 
+ *			the gecos field in /etc/passwd;
+ *
+ *	\n{xfile(/absolute/path)}
+ *			maps the n-th substring match 
+ *			to a 'key value' style plain text file.
+ *
+ *	\n{xldap(ldap://url/with?%0?in?filter)
+ *			maps the n-th substring match to an
+ *			attribute retrieved by means of an LDAP
+ *			url with substitution of %0 in the filter
+ *			(NOT IMPL.)
+ *
+ *	New scheme:
+ *
+ *	-	everything starting with '\' requires substitution;
+ *	-	the only obvious exception is '\\', which is left as is;
+ *	-	the basic substitution is '\d', where 'd' is a digit;
+ *	  	0 means the whole string, while 1-9 is a submatch;
+ *	-	in the outdated schema, the digit may be optionally
+ *	  	followed by a '{', which means pipe the submatch into
+ *	  	the map described by the string up to the following '}';
+ *	- 	the output of the map is used instead of the submatch;
+ *	- 	in the new schema, a '\' followed by a '{' invokes an
+ *	  	advanced substitution scheme. The pattern is:
+ *
+ *		'\' '{' [{ <op> }] <name> '(' <substitution schema> ')' '}'
+ *
+ *		where <name> must be a legal name for the map, i.e.
+ *		
+ *		<name> ::= [a-z][a-z0-9]* (case insensitive)
+ *		<op> ::= '>' '|' '&' '&&' '*' '**' '$'
+ *
+ *		and <substitution schema> must be a legal substitution
+ *		schema, with no limits on the nesting level.
+ *		The operators are:
+ *		>	sub context invocation; <name> must be a legal,
+ *			already defined rewrite context name
+ *		|	external command invocation; <name> must refer
+ *			to a legal, already defined command name (NOT IMPL.)
+ *		&	variable assignment; <name> defines a variable
+ *			in the running operation structure which can be
+ *			dereferenced later (NOT IMPL.)
+ *		*	variable dereferencing; <name> must refer to a
+ *			variable that is defined and assigned for the
+ *			running operation (NOT IMPL.)
+ *		$	parameter dereferencing; <name> must refer to
+ *			an existing parameter; the idea is to make
+ *			some run-time parameters set by the system
+ *			available to the rewrite engine, as the client
+ *			host name, the bind dn if any, constant
+ *			parameters initialized at config time, and so
+ *			on (NOT IMPL.)
+ *
+ *	Note: as the slapd parsing routines escape backslashes ('\'),
+ *	a double backslash is required inside substitution patterns.
+ *	To overcome the resulting heavy notation, the substitution escaping
+ *	has been delegated to the '%' symbol, which should be used 
+ *	instead of '\' in string substitution patterns. The symbol can
+ *	be altered at will by redefining the related macro in "rewrite-int.h".
+ *	In the current snapshot, all the '\' on the left side of each rule
+ *	(the regex pattern) must be converted in '\\'; all the '\' on the
+ *	right side of the rule (the substitution pattern) must be turned
+ *	into '%'. In the following examples, the original (more readable)
+ *	syntax is used; however, in the servers/slapd/back-ldap/slapd.conf
+ *	example file, the working syntax is used.
+ *
+ *
+ *
+ * Rewrite context:
+ *
+ *	a rewrite context is a set of rules which are applied in sequence.
+ *	The basic idea is to have an application initialize a rewrite
+ *	engine (think of Apache's mod_rewrite ...) with a set of rewrite
+ *	contexts; when string rewriting is required, one invokes the
+ *	appropriate rewrite context with the input string and obtains the
+ *	newly rewritten one if no errors occur.
+ *	
+ *	An interesting application, in back-ldap or in slapd itself,
+ *	could associate each basic server operation to a rewrite context
+ *	(most of them possibly aliasing the default one). Then, DN rewriting
+ +	could take place at any invocation of a backend operation.
+ *
+ *	client -> server:
+ *		default		if defined and no specific context is available
+ *		bindDn		bind
+ *		searchBase	search
+ *		searchFilter	search
+ *		compareDn	compare
+ *		addDn		add
+ *		modifyDn	modify
+ *		modrDn		modrdn
+ *		newSuperiorDn	modrdn
+ *		deleteDn	delete
+ *
+ *	server -> client:
+ *		searchResult	search (only if defined; no default)
+ *
+ *
+ * Configuration syntax:
+ *
+ *		Basics:
+ *
+ *	rewriteEngine	{ on | off }
+ *
+ *	rewriteContext	<context name> [ alias <aliased context name> ]
+ *
+ *	rewriteRule	<regex pattern> <substitution pattern> [ <flags> ]
+ *
+ *
+ *		Additional:
+ *
+ *	rewriteMap	<map name> <map type> [ <map attrs> ]
+ *
+ *	rewriteParam	<param name> <param value>
+ *
+ *	rewriteMaxPasses <number of passes>
+ *
+ *
+ *
+ * 	rewriteEngine:
+ *
+ *	if 'on', the requested rewriting is performed; if 'off', no
+ *	rewriting takes place (an easy way to stop rewriting without
+ *	altering too much the configuration file)
+ *
+ * 	rewriteContext:
+ *
+ *	<context name> is the name that identifies the context, i.e.
+ *	the name used by the application to refer to the set of rules
+ *	it contains. It is used also to reference sub contexts in
+ *	string rewriting. A context may aliase another one. In this
+ *	case the alias context contains no rule, and any reference to
+ * 	it will result in accessing the aliased one.
+ *
+ * 	rewriteRule:
+ *
+ *	determines how a tring can be rewritten if a pattern is matched.
+ *	Examples are reported below.
+ *
+ * 	rewriteMap:
+ *
+ *	allows to define a map that transforms substring rewriting into
+ *	something else. The map is referenced inside the substitution
+ *	pattern of a rule.
+ *
+ *	rewriteParam:
+ *
+ *	sets a value with global scope, that can be dereferenced by the
+ *	command '\{$paramName}'.
+ *
+ *	rewriteMaxPasses:
+ *
+ *	sets the maximum number of total rewriting passes taht can be
+ *	performed in a signle rewriting operation (to avoid loops).
+ *
+ *
+ * Configuration examples:
+ *
+ *	# set to 'off' to disable rewriting
+ *
+ *	rewriteEngine	on
+ *
+ *
+ *	# everything defined here goes into the 'default' context
+ *	# this rule changes the naming context of anything sent to
+ *	# 'dc=home,dc=net' to 'dc=OpenLDAP, dc=org'
+ *
+ *	rewriteRule	"(.*)dc=home,[ ]?dc=net" "\1dc=OpenLDAP, dc=org" ":"
+ *
+ *
+ *	# start a new context (ends input of the previous one)
+ *	# this rule adds blancs between dn parts if not present.
+ *
+ *	rewriteContext	addBlancs
+ *	rewriteRule	"(.*),([^ ].*)" "\1, \2"
+ *
+ *
+ *	# this one eats blancs
+ *
+ *	rewriteContext	eatBlancs
+ *	rewriteRule	"(.*),[ ](.*)" "\1,\2"
+ *
+ *
+ *	# here control goes back to the default rewrite context; rules are
+ *	# appended to the existing ones.
+ *	# anything that gets here is piped into rule 'addBlancs'
+ *
+ *	rewriteContext	default
+ *	rewriteRule	".*" "\{>addBlancs(\0)}" ":"
+ *
+ *
+ *	# anything with 'uid=username' gets looked up in /etc/passwd for
+ *	# gecos (I know it's nearly useless, but it is there just to
+ *	# test something fancy!). Note the 'I' flag that leaves
+ *	# 'uid=username' in place if 'username' does not have a valid
+ *	# account. Note also the ':' that forces the rule to be processed
+ *	# exactly once.
+ *
+ *	rewriteContext  uid2Gecos
+ *	rewriteRule     "(.*)uid=([a-z0-9]+),(.+)" "\1cn=\2{xpasswd},\3" "I:"
+ *
+ *
+ *	# finally, in case of bind, if one uses a 'uid=username' dn,
+ *	# it is rewritten in 'cn=name surname' if possible.
+ *
+ *	rewriteContext	bindDn
+ *	rewriteRule	".*" "\{>addBlancs(\{>uid2Gecos(\0)})}" ":"
+ *
+ *
+ *	# the search base is rewritten according to 'default' rules
+ *
+ *	rewriteContext	searchBase alias default
+ *
+ *
+ *	# search results with OpenLDAP dn are rewritten back with
+ *	# 'dc=home,dc=net' naming context, with spaces eaten.
+ *
+ *	rewriteContext	searchResult
+ *	rewriteRule	"(.*[^ ]?)[ ]?dc=OpenLDAP,[ ]?dc=org" 
+ *		"\{>eatBlancs(\1)}dc=home,dc=net" ":"
+ *
+ *	# bind with email instead of full dn: we first need an ldap map
+ *	# that turns attributes into a dn (the filter is provided by the
+ *	# substitution string):
+ *
+ *	rewriteMap	ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
+ *	
+ *	# then we need to detect emails; note that the rule in case of match
+ *	# stops rewriting; in case of error, it is ignored.
+ *	# In case we are mapping virtual to real naming contexts, we also
+ *	# need to rewrite regular dns, because the definition of a bindDn
+ *	# rewrite context overrides the default definition.
+ *
+ *	rewriteContext bindDn
+ *	rewriteRule	"(mail=[^,]+@[^,]+)" "\{attr2dn(\1)}" "@I"
+ *
+ *	# This is a rather sophisticate example. It massages a search filter
+ *	# in case who performs the search has administrative privileges.
+ *	# First we need to keep track of the bind dn of the incoming request:
+ *
+ *	rewriteContext	bindDn
+ *	rewriteRule	".+" "\{**&binddn(\0)}" ":"
+ *
+ *	# a search filter containing 'uid=' is rewritten only if an
+ *	# appropriate dn is bound.
+ *	# to do this, in the first rule the bound dn is dereferenced, while
+ *	# the filter is decomposed in a prefix, the argument of the 'uid=',
+ *	# and in a suffix. A tag '<>' is appended to the dn. If the dn 
+ *	# refers to an entry in the 'ou=admin' subtree, the filter is
+ *	# rewritten OR-ing the 'uid=<arg>' with 'cn=<arg>'; otherwise
+ *	# it is left as is. This could be useful, for instance, to allow
+ *	# apache's auth_ldap-1.4 module to authenticate users with both
+ *	# 'uid' and 'cn', but only if the request comes from a possible
+ *	# 'dn: cn=Web auth, ou=admin, dc=home, dc=net' user.
+ *
+ *	rewriteContext	searchFilter
+ *	rewriteRule	"(.*\()uid=([a-z0-9_]+)(\).*)"
+ *		"\{**binddn}<>\{&prefix(\1)}\{&arg(\2)}\{&suffix(\3)}" ":I"
+ *	rewriteRule	"[^,]+,[ ]?ou=admin,[ ]?dc=home,[ ]?dc=net"
+ *		"\{*prefix}|(uid=\{*arg})(cn=\{*arg})\{*suffix}" "@I"
+ *	rewriteRule	".*<>" "\{*prefix}uid=\{*arg}\{*suffix}"
+ *
+ *
+ * LDAP Proxy resolution (a possible evolution of the back-ldap):
+ *
+ *	in case the rewritten dn is an LDAP URL, the operation is initiated
+ *	towards the host[:port] indicated in the url, if it does not refer
+ *	to the local server.
+ *
+ *	e.g.:
+ *
+ *	rewriteRule	'^cn=root,.*'	'\0'				'G{3}'
+ *	rewriteRule	'^cn=[a-l].*'	'ldap://ldap1.my.org/\0'	'@'
+ *	rewriteRule	'^cn=[m-z].*'	'ldap://ldap2.my.org/\0'	'@'
+ *	rewriteRule	'.*'		'ldap://ldap3.my.org/\0'	'@'
+ *
+ *	(rule 1 is simply there to illustrate the 'G{n}' action; it could
+ *	have been written:
+ *
+ *	rewriteRule	'^cn=root,.*'	'ldap://ldap3.my.org/\0'	'@'
+ *
+ *	with the advantage of saving one rewrite pass ...)
+ */
+

@@ -6,5 +6,5 @@
 
 SUBDIRS= liblunicode liblutil libldif \
 	liblber libldap libldap_r \
-	libavl libldbm
+	libavl libldbm librewrite
 

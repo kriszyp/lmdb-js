@@ -70,9 +70,12 @@ ldap_back_search(
 	struct ldapconn *lc;
 	struct timeval	tv;
 	LDAPMessage		*res, *e;
-	int	count, rc, msgid, sres = LDAP_SUCCESS; 
+	int	count, rc = 0, msgid, sres = LDAP_SUCCESS; 
 	char *match = NULL, *err = NULL;
-	char *mbase, *mapped_filter, **mapped_attrs;
+	char *mbase = NULL, *mapped_filter = NULL, **mapped_attrs = NULL;
+#ifdef ENABLE_REWRITE
+	char *mfilter = NULL, *mmatch = NULL;
+#endif /* ENABLE_REWRITE */
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc ) {
@@ -90,17 +93,73 @@ ldap_back_search(
 		return( -1 );
 	}
 
+	/*
+	 * Rewrite the search base, if required
+	 */
+#ifdef ENABLE_REWRITE
+ 	switch ( rewrite_session( li->rwinfo, "searchBase",
+ 				base, conn, &mbase ) ) {
+	case REWRITE_REGEXEC_OK:
+		if ( mbase == NULL ) {
+			mbase = ( char * )base;
+		}
+		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
+				base, mbase, "" );
+		break;
+		
+	case REWRITE_REGEXEC_UNWILLING:
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+				NULL, "Unwilling to perform", NULL, NULL );
+
+	case REWRITE_REGEXEC_ERR:
+		rc = -1;
+		goto finish;
+	}
+	
+	/*
+	 * Rewrite the search filter, if required
+	 */
+	switch ( rewrite_session( li->rwinfo, "searchFilter",
+				filterstr, conn, &mfilter ) ) {
+	case REWRITE_REGEXEC_OK:
+		if ( mfilter == NULL || mfilter[0] == '\0') {
+			if ( mfilter != NULL ) {
+				free( mfilter );
+			}
+			mfilter = ( char * )filterstr;
+		}
+		Debug( LDAP_DEBUG_ARGS,
+				"rw> searchFilter: \"%s\" -> \"%s\"\n%s",
+				filterstr, mfilter, "" );
+		break;
+		
+	case REWRITE_REGEXEC_UNWILLING:
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+				NULL, "Unwilling to perform", NULL, NULL );
+	case REWRITE_REGEXEC_ERR:
+		rc = -1;
+		goto finish;
+	}
+#else /* !ENABLE_REWRITE */
 	mbase = ldap_back_dn_massage( li, ch_strdup( base ), 0 );
-	if ( mbase == NULL ) {
-		return -1;
-	}
+#endif /* !ENABLE_REWRITE */
 
-	mapped_filter = ldap_back_map_filter(li, (char *)filterstr, 0);
+	mapped_filter = ldap_back_map_filter(&li->at_map, &li->oc_map,
+#ifdef ENABLE_REWRITE
+			(char *)mfilter,
+#else /* !ENABLE_REWRITE */
+			(char *)filterstr,
+#endif /* !ENABLE_REWRITE */
+		       	0);
 	if ( mapped_filter == NULL ) {
+#ifdef ENABLE_REWRITE
+		mapped_filter = (char *)mfilter;
+#else /* !ENABLE_REWRITE */
 		mapped_filter = (char *)filterstr;
+#endif /* !ENABLE_REWRITE */
 	}
 
-	mapped_attrs = ldap_back_map_attrs(li, attrs, 0);
+	mapped_attrs = ldap_back_map_attrs(&li->at_map, attrs, 0);
 	if ( mapped_attrs == NULL ) {
 		mapped_attrs = attrs;
 	}
@@ -109,16 +168,8 @@ ldap_back_search(
 		attrsonly)) == -1)
 	{
 fail:
-		if (match)
-			free(match);
-		if (err)
-			free(err);
-		if (mapped_attrs != attrs)
-			charray_free(mapped_attrs);
-		if (mapped_filter != filterstr)
-			free(mapped_filter);
-		free(mbase);
-		return( ldap_back_op_result(lc, op) );
+		rc = ldap_back_op_result(lc, op);
+		goto finish;
 	}
 
 	/* We pull apart the ber result, stuff it into a slapd entry, and
@@ -139,6 +190,7 @@ fail:
 
 		if (ab) {
 			ldap_abandon(lc->ld, msgid);
+			rc = 0;
 			goto finish;
 		}
 		if (rc == 0) {
@@ -163,20 +215,78 @@ fail:
 	if (rc == -1)
 		goto fail;
 
+#ifdef ENABLE_REWRITE
+	/*
+	 * Rewrite the matched portion of the search base, if required
+	 */
+	if ( match != NULL ) {
+		switch ( rewrite_session( li->rwinfo, "matchedDn",
+				match, conn, &mmatch ) ) {
+		case REWRITE_REGEXEC_OK:
+			if ( mmatch == NULL ) {
+				mmatch = ( char * )match;
+			}
+			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
+				       " \"%s\" -> \"%s\"\n%s",
+				       match, mmatch, "" );
+			break;
+			
+		case REWRITE_REGEXEC_UNWILLING:
+			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, "Unwilling to perform",
+				       	NULL, NULL );
+			
+		case REWRITE_REGEXEC_ERR:
+			rc = -1;
+			goto finish;
+		}
+	}
+
+	send_search_result( conn, op, sres,
+		mmatch, err, NULL, NULL, count );
+
+#else /* !ENABLE_REWRITE */
 	send_search_result( conn, op, sres,
 		match, err, NULL, NULL, count );
+#endif /* !ENABLE_REWRITE */
 
 finish:
-	if (match)
+	if ( match ) {
+#ifdef ENABLE_REWRITE
+		if ( mmatch != match ) {
+			free( mmatch );
+		}
+#endif /* ENABLE_REWRITE */
 		free(match);
-	if (err)
-		free(err);
-	if (mapped_attrs != attrs)
-		charray_free(mapped_attrs);
-	if (mapped_filter != filterstr)
-		free(mapped_filter);
-	free(mbase);
-	return( 0 );
+	}
+	if ( err ) {
+		free( err );
+	}
+	if ( mapped_attrs != attrs ) {
+		charray_free( mapped_attrs );
+	}
+#ifdef ENABLE_REWRITE
+	if ( mapped_filter != mfilter ) {
+		free( mapped_filter );
+	}
+	if ( mfilter != filterstr ) {
+		free( mfilter );
+	}
+#else /* !ENABLE_REWRITE */
+	if ( mapped_filter != filterstr ) {
+		free( mapped_filter );
+	}
+#endif /* !ENABLE_REWRITE */
+	
+#ifdef ENABLE_REWRITE
+	if ( mbase != base ) {
+#endif /* ENABLE_REWRITE */
+		free( mbase );
+#ifdef ENABLE_REWRITE
+	}
+#endif /* ENABLE_REWRITE */
+	
+	return rc;
 }
 
 static void
@@ -198,7 +308,39 @@ ldap_send_entry(
 	struct berval *bv;
 	const char *text;
 
+#ifdef ENABLE_REWRITE
+	char *dn;
+
+	dn = ldap_get_dn(lc->ld, e);
+	if ( dn == NULL ) {
+		return;
+	}
+
+	/*
+	 * Rewrite the dn of the result, if needed
+	 */
+	switch ( rewrite_session( li->rwinfo, "searchResult",
+				dn, lc->conn, &ent.e_dn ) ) {
+	case REWRITE_REGEXEC_OK:
+		if ( ent.e_dn == NULL ) {
+			ent.e_dn = dn;
+		} else {
+			Debug( LDAP_DEBUG_ARGS, "rw> searchResult: \"%s\""
+ 					" -> \"%s\"\n%s", dn, ent.e_dn, "" );
+			free( dn );
+			dn = NULL;
+		}
+		break;
+		
+	case REWRITE_REGEXEC_ERR:
+	case REWRITE_REGEXEC_UNWILLING:
+		free( dn );
+		return;
+	}
+#else /* !ENABLE_REWRITE */
 	ent.e_dn = ldap_back_dn_restore( li, ldap_get_dn(lc->ld, e), 0 );
+#endif /* !ENABLE_REWRITE */
+
 	ent.e_ndn = ch_strdup( ent.e_dn );
 	(void) dn_normalize( ent.e_ndn );
 	ent.e_id = 0;
@@ -228,7 +370,7 @@ ldap_send_entry(
 		} else if ( strcasecmp( mapped, "objectclass" ) == 0 ) {
 			int i, last;
 			for ( last = 0; attr->a_vals[last]; last++ ) ;
-			for ( i = 0; bv = attr->a_vals[i]; i++ ) {
+			for ( i = 0; ( bv = attr->a_vals[i] ); i++ ) {
 				mapped = ldap_back_map(&li->oc_map, bv->bv_val, 1);
 				if (mapped == NULL) {
 					ber_bvfree(attr->a_vals[i]);
@@ -244,7 +386,59 @@ ldap_send_entry(
 					bv->bv_len = strlen( mapped );
 				}
 			}
+
+#ifdef ENABLE_REWRITE
+		/*
+		 * It is necessary to try to rewrite attributes with
+		 * dn syntax because they might be used in ACLs as
+		 * members of groups; since ACLs are applied to the
+		 * rewritten stuff, no dn-based subecj clause could
+		 * be used at the ldap backend side (see
+		 * http://www.OpenLDAP.org/faq/data/cache/452.html)
+		 * The problem can be overcome by moving the dn-based
+		 * ACLs to the target directory server, and letting
+		 * everything pass thru the ldap backend.
+		 */
+		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
+					SLAPD_DN_SYNTAX ) == 0 ) {
+			int i;
+			for ( i = 0; ( bv = attr->a_vals[ i ] ); i++ ) {
+				char *newval;
+				
+				switch ( rewrite_session( li->rwinfo,
+							"searchResult",
+							bv->bv_val,
+							lc->conn, &newval )) {
+				case REWRITE_REGEXEC_OK:
+					/* left as is */
+					if ( newval == NULL ) {
+						break;
+					}
+					Debug( LDAP_DEBUG_ARGS,
+		"rw> searchResult on attr=%s: \"%s\" -> \"%s\"\n",
+						attr->a_desc->ad_type->sat_cname,
+						bv->bv_val, newval );
+					
+					free( bv->bv_val );
+					bv->bv_val = newval;
+					bv->bv_len = strlen( newval );
+					
+					break;
+					
+				case REWRITE_REGEXEC_UNWILLING:
+					
+				case REWRITE_REGEXEC_ERR:
+					/*
+					 * FIXME: better give up,
+					 * skip the attribute
+					 * or leave it untouched?
+					 */
+					break;
+				}
+			}
+#endif /* ENABLE_REWRITE */
 		}
+
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}
@@ -265,3 +459,4 @@ ldap_send_entry(
 	if ( ent.e_ndn )
 		free( ent.e_ndn );
 }
+
