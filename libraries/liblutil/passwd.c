@@ -132,6 +132,7 @@ static LUTIL_PASSWD_HASH_FUNC hash_clear;
 #endif
 
 static struct pw_slist *pw_schemes;
+static int pw_inited;
 
 static const struct pw_scheme pw_schemes_default[] =
 {
@@ -173,6 +174,8 @@ int lutil_passwd_add(
 {
 	struct pw_slist *ptr;
 
+	if (!pw_inited) lutil_passwd_init();
+
 	ptr = ber_memalloc( sizeof( struct pw_slist ));
 	if (!ptr) return -1;
 	ptr->next = pw_schemes;
@@ -186,6 +189,8 @@ int lutil_passwd_add(
 void lutil_passwd_init()
 {
 	struct pw_scheme *s;
+
+	pw_inited = 1;
 
 	for( s=(struct pw_scheme *)pw_schemes_default; s->name.bv_val; s++) {
 		if ( lutil_passwd_add( &s->name, s->chk_fn, s->hash_fn ) ) break;
@@ -207,7 +212,7 @@ static const struct pw_scheme *get_scheme(
 {
 	struct pw_slist *pws;
 
-	if (!pw_schemes) lutil_passwd_init();
+	if (!pw_inited) lutil_passwd_init();
 
 	for( pws=pw_schemes; pws; pws=pws->next ) {
 		if( strcasecmp(scheme, pws->s.name.bv_val ) == 0 ) {
@@ -287,7 +292,7 @@ lutil_passwd(
 		return -1;
 	}
 
-	if (!pw_schemes) lutil_passwd_init();
+	if (!pw_inited) lutil_passwd_init();
 
 	for( pws=pw_schemes; pws; pws=pws->next ) {
 		if( pws->s.chk_fn ) {
