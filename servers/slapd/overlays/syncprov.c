@@ -607,7 +607,7 @@ syncprov_findcsn( Operation *op, int mode )
 	AttributeAssertion eq;
 	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
-	sync_control *srs;
+	sync_control *srs = NULL;
 
 	if ( mode != FIND_MAXCSN ) {
 		srs = op->o_controls[slap_cids.sc_LDAPsync];
@@ -856,6 +856,8 @@ syncprov_drop_psearch( syncops *so, int lock )
 			ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
 	}
 	syncprov_free_syncop( so );
+
+	return 0;
 }
 
 static int
@@ -1048,6 +1050,8 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 		op->o_tmpfree( opc->sdn.bv_val, op->o_tmpmemctx );
 	op->o_callback = cb->sc_next;
 	op->o_tmpfree(cb, op->o_tmpmemctx);
+
+	return 0;
 }
 
 static void
