@@ -267,11 +267,11 @@ description: All ITD Staff
 cn: ITD Staff
 objectclass: groupofuniquenames
 uniquemember: cn=Manager,o=University of Michigan,c=US
-uniquemember: cn=Bjorn Jensen,OU=Information Technology Division,ou=PEOPLE,o=U 
+uniquemember: cn=Bjorn Jensen,OU=Information Technology Division,ou=PEOPLE,o=U
  niversity of Michigan,c=US 
-uniquemember: cn=James A Jones 2,ou=Information Technology Division,ou=PEOPLE, 
+uniquemember: cn=James A Jones 2,ou=Information Technology Division,ou=PEOPLE,
  o=University of Michigan,c=US 
-uniquemember: cn=John Doe,ou=Information Technology Division,ou=People,o=Unive 
+uniquemember: cn=John Doe,ou=Information Technology Division,ou=People,o=Unive
  rsity of Michigan,c=US
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Mich
