@@ -66,10 +66,17 @@ monitor_subsys_database_init(
 
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {
-		char buf[ BACKMONITOR_BUFSIZE ];
-		int j;
+		char		buf[ BACKMONITOR_BUFSIZE ];
+		int		j;
+		slap_overinfo	*oi = NULL;
 
 		be = &backendDB[i];
+
+		if ( strcmp( be->bd_info->bi_type, "over" ) == 0 ) {
+			oi = (slap_overinfo *)be->bd_info;
+
+			be = &oi->oi_bd;
+		}
 
 		/* Subordinates are not exposed as their own naming context */
 		if ( SLAP_GLUE_SUBORDINATE( be ) ) {
