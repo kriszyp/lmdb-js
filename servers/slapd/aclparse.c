@@ -426,6 +426,7 @@ print_access( struct access *b )
 	} else if ( b->a_dnattr != NULL ) {
 		fprintf( stderr, " dnattr=%s", b->a_dnattr );
 	}
+#ifdef SLAPD_ACLGROUPS
         else if ( b->a_group != NULL ) {
                 fprintf( stderr, " group: %s", b->a_group );
                 if ( b->a_objectclassvalue )
@@ -433,6 +434,7 @@ print_access( struct access *b )
                 if ( b->a_groupattrname )
                         fprintf( stderr, " groupAttrName: %s", b->a_groupattrname );
         }
+#endif
 	fprintf( stderr, "\n" );
 }
 
