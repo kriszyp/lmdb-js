@@ -4,7 +4,7 @@
 ##
 ## Libraries Makefile for OpenLDAP
 
-SUBDIRS= liblunicode liblutil libldif \
+SUBDIRS= liblutil liblunicode libldif \
 	liblber libldap libldap_r \
 	libavl libldbm librewrite
 
