@@ -359,7 +359,7 @@ test_ava_filter(
 		&& op && op->o_bd && op->o_bd->be_has_subordinates )
 	{
 		int	hasSubordinates;
-		struct berval	hs;
+		struct berval hs;
 
 		if( type != LDAP_FILTER_EQUALITY &&
 			type != LDAP_FILTER_APPROX )
@@ -388,6 +388,28 @@ test_ava_filter(
 		return LDAP_COMPARE_FALSE;
 	}
 
+	if ( ava->aa_desc == slap_schema.si_ad_entryDN ) {
+		MatchingRule *mr;
+		int rc, ret;
+		const char *text;
+
+		if( type != LDAP_FILTER_EQUALITY &&
+			type != LDAP_FILTER_APPROX )
+		{
+			/* No other match is allowed */
+			return LDAP_OTHER;
+		}
+
+		mr = a->a_desc->ad_type->sat_equality;
+		assert( mr );
+
+		rc = value_match( &ret, a->a_desc, mr, 0,
+			&e->e_nname, &ava->aa_value, &text );
+
+		if( rc != LDAP_SUCCESS ) return rc;
+		if( ret == 0 ) return LDAP_COMPARE_TRUE;
+		return LDAP_COMPARE_FALSE;
+	}
 
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
@@ -461,8 +483,7 @@ test_presence_filter(
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
-	a = attrs_find( e->e_attrs, desc );
-	if ( a == NULL && desc == slap_schema.si_ad_hasSubordinates ) {
+	if ( desc == slap_schema.si_ad_hasSubordinates ) {
 
 		/*
 		 * XXX: fairly optimistic: if the function is defined,
@@ -477,6 +498,14 @@ test_presence_filter(
 		return LDAP_COMPARE_FALSE;
 	}
 
+	if ( desc == slap_schema.si_ad_entryDN ||
+		desc == slap_schema.si_ad_subschemaSubentry )
+	{
+		/* entryDN and subschemaSubentry are always present */
+		return LDAP_COMPARE_TRUE;
+	}
+
+	a = attrs_find( e->e_attrs, desc );
 	return a != NULL ? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 }
 
@@ -491,7 +520,6 @@ test_filter_and(
 	int rtn = LDAP_COMPARE_TRUE; /* True if empty */
 
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter_and\n", 0, 0, 0 );
-
 
 	for ( f = flist; f != NULL; f = f->f_next ) {
 		int rc = test_filter( op, e, f );
