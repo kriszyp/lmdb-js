@@ -35,7 +35,8 @@
 
 #include "config.h"
 
-#define CONFIG_DN	"cn=config"
+static struct berval config_rdn = BER_BVC("cn=config");
+static struct berval access_rdn = BER_BVC("cn=access");
 
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
@@ -83,7 +84,7 @@ static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
 	*cfAd_include;
 
 static ObjectClass *cfOc_global, *cfOc_backend, *cfOc_database,
-	*cfOc_include, *cfOc_overlay;
+	*cfOc_include, *cfOc_overlay, *cfOc_access;
 
 static ConfigFile cf_prv, *cfn = &cf_prv;
 
@@ -550,7 +551,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcGlobal' "
 		"DESC 'OpenLDAP Global configuration options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcAccess $ olcAllows $ olcArgsFile $ olcAttributeOptions $ "
+		"MAY ( olcAllows $ olcArgsFile $ olcAttributeOptions $ "
 		 "olcAuthIDRewrite $ olcAuthzPolicy $ olcAuthzRegexp $ "
 		 "olcConcurrency $ olcConnMaxPending $ olcConnMaxPendingAuth $ "
 		 "olcDefaultSearchBase $ olcDisallows $ olcGentleHUP $ "
@@ -577,7 +578,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcDatabaseConfig' "
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcAccess $ olcDatabase $ olcLastMod $ olcLimits $ "
+		"MAY ( olcDatabase $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSuffix $ olcSyncrepl $ "
@@ -593,6 +594,11 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( olcOverlay ) )", &cfOc_overlay },
+	{ "( OLcfgOc:8 "
+		"NAME 'olcACL' "
+		"DESC 'OpenLDAP Access Control List' "
+		"SUP olcConfig STRUCTURAL "
+		"MUST ( olcAccess ) )", &cfOc_access },
 	{ NULL, NULL }
 };
 
@@ -2634,7 +2640,23 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 	vals[0].bv_len = rdn->bv_len - (vals[0].bv_val - rdn->bv_val);
 	attr_merge(e, ad, vals, NULL );
 
-	for (at=oc->soc_allowed;*at;at++) {
+	for (at=oc->soc_required; at && *at; at++) {
+		/* Skip the naming attr */
+		if ((*at)->sat_ad == ad || (*at)->sat_ad == slap_schema.si_ad_cn )
+			continue;
+		for (i=0;ct[i].name;i++) {
+			if (ct[i].ad == (*at)->sat_ad)
+				break;
+		}
+		rc = config_get_vals(&ct[i], c);
+		if (rc == LDAP_SUCCESS) {
+			attr_merge(e, ct[i].ad, c->rvalue_vals, c->rvalue_nvals);
+			ber_bvarray_free( c->rvalue_nvals );
+			ber_bvarray_free( c->rvalue_vals );
+		}
+	}
+
+	for (at=oc->soc_allowed; at && *at; at++) {
 		/* Skip the naming attr */
 		if ((*at)->sat_ad == ad || (*at)->sat_ad == slap_schema.si_ad_cn )
 			continue;
@@ -2713,7 +2735,7 @@ config_back_db_open( BackendDB *be )
 	ConfigTable *ct;
 
 	/* create root of tree */
-	ber_str2bv( CONFIG_DN, STRLENOF( CONFIG_DN ), 0, &rdn );
+	rdn = config_rdn;
 	e = config_alloc_entry( NULL, &rdn );
 	ce = e->e_private;
 	cfb->cb_root = ce;
@@ -2813,6 +2835,24 @@ config_back_db_open( BackendDB *be )
 				oprev = ce;
 			}
 		}
+		/* Set up ACLs */
+		if ( bptr->be_acl ) {
+			Entry *ae;
+			CfEntryInfo *opar = ce;
+
+			ae = config_alloc_entry( &e->e_nname, &access_rdn );
+			ce = ae->e_private;
+			c.be = bptr;
+			c.bi = bi;
+			ce->ce_be = c.be;
+			ce->ce_bi = c.bi;
+			config_build_entry( &c, ae, cfOc_access, &access_rdn, ct,
+				NO_TABLE );
+			if ( opar->ce_kids ) {
+				ce->ce_sibs = opar->ce_kids;
+			}
+			opar->ce_kids = ce;
+		}
 	}
 
 	return 0;
@@ -2835,7 +2875,7 @@ config_back_db_init( Backend *be )
 	cfb->cb_config = &cf_prv;
 	be->be_private = cfb;
 
-	ber_str2bv( CONFIG_DN, 0, 1, &be->be_rootdn );
+	ber_dupbv( &be->be_rootdn, &config_rdn );
 	ber_dupbv( &be->be_rootndn, &be->be_rootdn );
 	ber_dupbv( &dn, &be->be_rootdn );
 	ber_bvarray_add( &be->be_suffix, &dn );
