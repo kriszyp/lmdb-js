@@ -152,10 +152,6 @@ SOURCE=..\libldap\charray.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\libldap\cldap.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\libldap\compare.c
 # End Source File
 # Begin Source File
