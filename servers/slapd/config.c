@@ -18,7 +18,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#define MAXARGS	500
+#define ARGS_STEP	512
 
 /*
  * defaults for various global variables
@@ -45,6 +45,8 @@ char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
 char		*default_passwd_hash = NULL;
+int		cargc = 0, cargv_size = 0;
+char	**cargv;
 struct berval default_search_base = { 0, NULL };
 struct berval default_search_nbase = { 0, NULL };
 unsigned		num_subordinates = 0;
@@ -68,7 +70,7 @@ int use_reverse_lookup = 0;
 
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
-static int	fp_parse_line(int lineno, char *line, int *argcp, char **argv);
+static int	fp_parse_line(int lineno, char *line);
 
 static char	*strtok_quote(char *line, char *sep);
 static int      load_ucdata(char *path);
@@ -78,8 +80,7 @@ read_config( const char *fname )
 {
 	FILE	*fp;
 	char	*line, *savefname, *saveline;
-	int	cargc, savelineno;
-	char	*cargv[MAXARGS+1];
+	int savelineno;
 	int	lineno, i;
 	int rc;
 	struct berval vals[2];
@@ -89,6 +90,9 @@ read_config( const char *fname )
 	static BackendDB	*be = NULL;
 
 	vals[1].bv_val = NULL;
+
+	cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
+	cargv_size = ARGS_STEP + 1;
 
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
@@ -123,7 +127,7 @@ read_config( const char *fname )
 		/* fp_parse_line is destructive, we save a copy */
 		saveline = ch_strdup( line );
 
-		if ( fp_parse_line( lineno, line, &cargc, cargv ) != 0 ) {
+		if ( fp_parse_line( lineno, line ) != 0 ) {
 			return( 1 );
 		}
 
@@ -2345,16 +2349,14 @@ read_config( const char *fname )
 static int
 fp_parse_line(
     int		lineno,
-    char	*line,
-    int		*argcp,
-    char	**argv
+    char	*line
 )
 {
 	char *	token;
 	char *	logline;
 	char	logbuf[sizeof("pseudorootpw ***")];
 
-	*argcp = 0;
+	cargc = 0;
 	token = strtok_quote( line, " \t" );
 
 	logline = line;
@@ -2377,21 +2379,28 @@ fp_parse_line(
 		*strtok_quote_ptr = '\0';
 
 	for ( ; token != NULL; token = strtok_quote( NULL, " \t" ) ) {
-		if ( *argcp == MAXARGS ) {
+		if ( cargc == cargv_size - 1 ) {
+			char **tmp;
+			tmp = ch_realloc( cargv, (cargv_size + ARGS_STEP) *
+			                    sizeof(*cargv) );
+			if ( tmp == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-				   "fp_parse_line: too many tokens (%d max).\n",
-				   MAXARGS ));
+				LDAP_LOG(( "config", LDAP_LEVEL_ERR,
+					   "line %d: out of memory\n", 
+					   lineno ));
 #else
-			Debug( LDAP_DEBUG_ANY, "Too many tokens (max %d)\n",
-			    MAXARGS, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, 
+						"line %d: out of memory\n", 
+						lineno, 0, 0 );
 #endif
-
-			return( 1 );
+				return -1;
+			}
+			cargv = tmp;
+			cargv_size += ARGS_STEP;
 		}
-		argv[(*argcp)++] = token;
+		cargv[cargc++] = token;
 	}
-	argv[*argcp] = NULL;
+	cargv[cargc] = NULL;
 	return 0;
 }
 
