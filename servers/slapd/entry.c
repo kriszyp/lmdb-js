@@ -65,7 +65,7 @@ str2entry( char *s )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		   "str2entry: \"%s\"\n", s ? s : "NULL" ));
+		"str2entry: \"%s\"\n", s ? s : "NULL" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
 		s ? s : "NULL", 0, 0 );
@@ -77,7 +77,7 @@ str2entry( char *s )
 	if( e == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "str2entry: entry allocation failed.\n" ));
+			"str2entry: entry allocation failed.\n" ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 		    "<= str2entry NULL (entry allocation failed)\n",
@@ -156,7 +156,7 @@ str2entry( char *s )
 				return NULL;
 			}
 
-			e->e_name.bv_val = pdn->bv_val != NULL
+			e->e_name.bv_val = ( pdn->bv_val != NULL )
 				? pdn->bv_val : ch_strdup( "" );
 			e->e_name.bv_len = pdn->bv_len;
 			free( pdn );
@@ -169,7 +169,7 @@ str2entry( char *s )
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-				   "str2entry:  str2ad(%s):	 %s\n", type, text ));
+				"str2entry:  str2ad(%s): %s\n", type, text ));
 #else
 			Debug( slapMode & SLAP_TOOL_MODE
 				? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
@@ -186,7 +186,7 @@ str2entry( char *s )
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-					   "str2entry:  str2undef_ad(%s):  %s\n", type, text ));
+					"str2entry:  str2undef_ad(%s): %s\n", type, text ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"<= str2entry: str2undef_ad(%s): %s\n",
@@ -219,8 +219,8 @@ str2entry( char *s )
 			} else {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					   "str2entry: no validator for syntax %s\n", 
-					   ad->ad_type->sat_syntax->ssyn_oid ));
+					"str2entry: no validator for syntax %s\n", 
+					ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"str2entry: no validator for syntax %s\n",
@@ -235,8 +235,8 @@ str2entry( char *s )
 			if( rc != 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-					   "str2entry:  invalid value for syntax %s\n",
-					   ad->ad_type->sat_syntax->ssyn_oid ));
+					"str2entry:  invalid value for syntax %s\n",
+					ad->ad_type->sat_syntax->ssyn_oid ));
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"str2entry: invalid value for syntax %s\n",
@@ -259,7 +259,7 @@ str2entry( char *s )
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-				   "str2entry:  NULL (attr_merge)\n" ));
+				"str2entry:  NULL (attr_merge)\n" ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
@@ -278,8 +278,8 @@ str2entry( char *s )
 	if ( e->e_dn == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "str2entry:  entry %ld has no dn.\n",
-				(long) e->e_id ));
+			"str2entry:  entry %ld has no dn.\n",
+			(long) e->e_id ));
 #else
 		Debug( LDAP_DEBUG_ANY, "str2entry: entry %ld has no dn\n",
 		    (long) e->e_id, 0, 0 );
@@ -296,8 +296,8 @@ str2entry( char *s )
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "str2entry:  entry %ld has invalid dn: %s\n",
-					(long) e->e_id, e->e_dn ));
+				"str2entry:  entry %ld has invalid dn: %s\n",
+				(long) e->e_id, e->e_dn ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"str2entry: entry %ld has invalid dn: %s\n",

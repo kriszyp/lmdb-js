@@ -351,10 +351,12 @@ dnNormalize(
 		out = ber_bvdup( val );
 	}
 
+	/* FIXME: cheat! */
+	ldap_pvt_str2upper( out->bv_val );
+
 	Debug( LDAP_DEBUG_TRACE, "<<< dnNormalize: <%s>\n", out->bv_val, 0, 0 );
 
 	*normalized = out;
-
 	return LDAP_SUCCESS;
 }
 
@@ -423,8 +425,7 @@ dnPretty(
 /*
  * dnMatch routine
  *
- * note: uses exact string match (strcmp) because it is supposed to work
- * on normalized DNs.
+ * FIXME: strcasecmp should be replaced with schema aware checks
  */
 int
 dnMatch(
@@ -445,7 +446,7 @@ dnMatch(
 	match = value->bv_len - asserted->bv_len;
 
 	if ( match == 0 ) {
-		match = strcmp( value->bv_val, asserted->bv_val );
+		match = strcasecmp( value->bv_val, asserted->bv_val );
 	}
 
 #ifdef NEW_LOGGING

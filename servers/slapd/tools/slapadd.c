@@ -76,11 +76,16 @@ main( int argc, char **argv )
 
 		/* check backend */
 		if( select_backend( e->e_ndn, is_entry_referral(e), nosubs ) != be ) {
-			fprintf( stderr, "%s: database (%s) not configured to "
-				"hold dn=\"%s\" (line=%d)\n",
-				progname,
+			fprintf( stderr, "%s: line %d: "
+				"database (%s) not configured to hold \"%s\"\n",
+				progname, lineno,
 				be ? be->be_suffix[0] : "<none>",
-				e->e_dn, lineno );
+				e->e_dn );
+			fprintf( stderr, "%s: line %d: "
+				"database (%s) not configured to hold \"%s\"\n",
+				progname, lineno,
+				be ? be->be_nsuffix[0]->bv_val : "<none>",
+				e->e_ndn );
 			rc = EXIT_FAILURE;
 			entry_free( e );
 			if( continuemode ) continue;
