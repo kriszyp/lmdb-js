@@ -40,6 +40,7 @@ typedef struct ldap_schema_extension_item {
 
 typedef struct ldap_syntax {
 	char *syn_oid;		/* REQUIRED */
+	char **syn_names;	/* OPTIONAL */
 	char *syn_desc;		/* OPTIONAL */
 	LDAP_SCHEMA_EXTENSION_ITEM **syn_extensions; /* OPTIONAL */
 } LDAP_SYNTAX;
@@ -96,6 +97,16 @@ typedef struct ldap_objectclass {
 #define LDAP_SCHEMA_STRUCTURAL			1
 #define LDAP_SCHEMA_AUXILIARY			2
 
+/*
+ * Flags that control how liberal the parsing routines are.
+ */
+#define LDAP_SCHEMA_ALLOW_NONE		0x00 /* Strict parsing               */
+#define LDAP_SCHEMA_ALLOW_NO_OID	0x01 /* Allow missing oid            */
+#define LDAP_SCHEMA_ALLOW_QUOTED	0x02 /* Allow bogus extra quotes     */
+#define LDAP_SCHEMA_ALLOW_DESCR		0x04 /* Allow descr instead of OID   */
+#define LDAP_SCHEMA_ALLOW_DESCR_PREFIX	0x08 /* Allow descr as OID prefix    */
+#define LDAP_SCHEMA_ALLOW_ALL		0x0f /* Be very liberal in parsing   */
+
 LIBLDAP_F( LDAP_CONST char * )
 ldap_syntax2name LDAP_P((
 	LDAP_SYNTAX * syn ));
@@ -132,25 +143,29 @@ LIBLDAP_F( LDAP_OBJECT_CLASS * )
 ldap_str2objectclass LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
-	LDAP_CONST char ** errp ));
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags ));
 
 LIBLDAP_F( LDAP_ATTRIBUTE_TYPE * )
 ldap_str2attributetype LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
-	LDAP_CONST char ** errp ));
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags ));
 
 LIBLDAP_F( LDAP_SYNTAX * )
 ldap_str2syntax LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
-	LDAP_CONST char ** errp ));
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags ));
 
 LIBLDAP_F( LDAP_MATCHING_RULE * )
 ldap_str2matchingrule LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
-	LDAP_CONST char ** errp ));
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags ));
 
 LIBLDAP_F( char *)
 ldap_objectclass2str LDAP_P((

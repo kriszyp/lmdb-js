@@ -273,7 +273,7 @@ parse_oc(
 	const char	*err;
 	char		*oid = NULL;
 
-	oc = ldap_str2objectclass(line,&code,&err);
+	oc = ldap_str2objectclass(line,&code,&err,LDAP_SCHEMA_ALLOW_ALL);
 	if ( !oc ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
@@ -398,7 +398,7 @@ parse_at(
 			break;
 		}
 	}
-	at = ldap_str2attributetype(line,&code,&err);
+	at = ldap_str2attributetype(line,&code,&err,LDAP_SCHEMA_ALLOW_ALL);
 	if ( !at ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );

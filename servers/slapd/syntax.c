@@ -148,7 +148,7 @@ register_syntax(
 	int		code;
 	const char	*err;
 
-	syn = ldap_str2syntax( desc, &code, &err);
+	syn = ldap_str2syntax( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !syn ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, desc );

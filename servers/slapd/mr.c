@@ -169,7 +169,7 @@ register_matching_rule(
 		return -1;
 	}
 
-	mr = ldap_str2matchingrule( desc, &code, &err);
+	mr = ldap_str2matchingrule( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !mr ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s before %s in %s\n",
 		    ldap_scherr2str(code), err, desc );
