@@ -4,7 +4,7 @@
 
 #
 # This schema is not usable as it contains invalid constructs.
-# It is provided for informatinal purposes only.
+# It is provided for informational purposes only.
 #
 
 # OID Base is iso(1) org(3) dod(6) internet(1) private(4) enterprise(1) padl(5322) kdcSchema(10)
