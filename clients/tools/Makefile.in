@@ -1,8 +1,8 @@
 ##
 ## Makefile for LDAP tools
 ##
-SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c
-OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o
+SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c ldappasswd.c
+OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o ldappasswd.o
 
 XLIBS	= $(KRB_LIBS)
 
@@ -11,7 +11,7 @@ LDAP_LIBDIR= ../../libraries
 
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c
 
-PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd
+PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd ldappasswd
 
 ldapsearch:	ldsversion.o
 	$(LTLINK) -o $@ ldapsearch.o ldsversion.o $(LIBS)
@@ -24,6 +24,9 @@ ldapdelete:	lddversion.o
 
 ldapmodrdn:	ldrversion.o
 	$(LTLINK) -o $@ ldapmodrdn.o ldrversion.o $(LIBS)
+
+ldappasswd:	ldappasswd.o
+	$(LTLINK) -o $@ ldappasswd.o $(LIBS) @LUTIL_LIBS@ $(LDAP_LIBPATH) -llutil
 
 ldapadd:	ldapmodify
 	$(RM) $@
@@ -67,5 +70,6 @@ install-local:	FORCE
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapmodify $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(bindir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(bindir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldappasswd $(bindir)
 	$(RM) $(bindir)/ldapadd
 	$(LN) $(bindir)/ldapmodify $(bindir)/ldapadd
