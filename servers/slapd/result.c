@@ -452,7 +452,7 @@ slap_send_ldap_result(
 	ber_int_t msgid;
 	char *tmp = NULL;
 
-	assert( !LDAP_API_ERROR( err ) );
+	assert( !LDAP_API_ERROR( err ) && ( err >= 0 ));
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
