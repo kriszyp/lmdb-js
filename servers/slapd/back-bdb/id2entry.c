@@ -149,7 +149,12 @@ int bdb_entry_return(
 	if( (void *) e->e_attrs != (void *) (e+1)) {
 		attrs_free( e->e_attrs );
 	}
-	if( e->e_private ) {
+#ifdef BDB_HIER
+	/* We had to construct the dn and ndn as well, in a single block */
+	free( e->e_dn );
+#endif
+	/* In tool mode the e_private buffer is realloc'd, leave it alone */
+	if( e->e_private && !(slapMode & SLAP_TOOL_MODE) ) {
 		free( e->e_private );
 	}
 
@@ -165,14 +170,5 @@ int bdb_entry_release(
 	Entry *e,
 	int rw )
 {
-	/* A tool will call this with NULL Connection and Operation
-	 * pointers. We don't need to free the e_private in that case,
-	 * because the tool is getting entries into a realloc'd
-	 * buffer.
-	 */
-	if( c && o ) {
-		return bdb_entry_return( be, e );
-	} else {
-		free( e );
-	}
+	return bdb_entry_return( be, e );
 }
