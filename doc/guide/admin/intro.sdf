@@ -53,8 +53,10 @@ it is a lightweight protocol for accessing directory services,
 specifically {{TERM:X.500}}-based directory services.  LDAP runs
 over {{TERM:TCP}}/{{TERM:IP}} or other connection oriented transfer
 services.  The nitty-gritty details of LDAP are defined in
-{{REF:RFC2251}} "The Lightweight Directory Access Protocol (v3)."
-This section gives an overview of LDAP from a user's perspective.
+{{REF:RFC2251}} "The Lightweight Directory Access Protocol (v3)"
+and other documents comprising the technical specification
+{{REF:RFC3377}}.  This section gives an overview of LDAP from a
+user's perspective.
 
 {{What kind of information can be stored in the directory?}} The
 LDAP information model is based on {{entries}}. An entry is a
