@@ -101,7 +101,9 @@ static int interaction(
 
 	if( dflt && !*dflt ) dflt = NULL;
 
-	if( flags != LDAP_SASL_INTERACTIVE && dflt ) {
+	if( flags != LDAP_SASL_INTERACTIVE &&
+		( dflt || interact->id == SASL_CB_USER ) )
+	{
 		goto use_default;
 	}
 
@@ -184,7 +186,7 @@ int lutil_sasl_interact(
 {
 	sasl_interact_t *interact = in;
 
-	if( flags != LDAP_SASL_QUIET ) {
+	if( flags == LDAP_SASL_INTERACTIVE ) {
 		fputs( "SASL Interaction\n", stderr );
 	}
 

@@ -600,12 +600,12 @@ ldap_int_sasl_bind(
 
 	if( flags != LDAP_SASL_QUIET ) {
 		saslrc = sasl_getprop( ctx, SASL_USERNAME, (void **) &data );
-		if( saslrc == SASL_OK ) {
+		if( saslrc == SASL_OK && data && *data ) {
 			fprintf( stderr, "SASL username: %s\n", data );
 		}
 
 		saslrc = sasl_getprop( ctx, SASL_REALM, (void **) &data );
-		if( saslrc == SASL_OK ) {
+		if( saslrc == SASL_OK && data && *data ) {
 			fprintf( stderr, "SASL realm: %s\n", data );
 		}
 	}
