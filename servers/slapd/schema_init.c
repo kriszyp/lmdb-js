@@ -1636,7 +1636,7 @@ telephoneNumberNormalize(
 	/* validator should have refused an empty string */
 	assert( val->bv_len );
 
-	q = normalized->bv_val = ch_malloc( val->bv_len + 1 );
+	q = normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
 	for( p = val->bv_val; *p; p++ ) {
 		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
@@ -1977,7 +1977,7 @@ UUIDNormalize(
 	int i;
 	int j;
 	normalized->bv_len = 16;
-	normalized->bv_val = ch_malloc( normalized->bv_len + 1 );
+	normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
 
 	for( i=0, j=0; i<36; i++ ) {
 		unsigned char nibble;
@@ -2045,7 +2045,7 @@ numericStringNormalize(
 
 	assert( val->bv_len );
 
-	normalized->bv_val = ch_malloc( val->bv_len + 1 );
+	normalized->bv_val = slap_sl_malloc( val->bv_len + 1, ctx );
 
 	p = val->bv_val;
 	q = normalized->bv_val;
@@ -2672,7 +2672,7 @@ generalizedTimeNormalize(
 	}
 
 	len = sizeof("YYYYmmddHHMMSSZ")-1 + fraction.bv_len;
-	normalized->bv_val = ch_malloc( len + 1 );
+	normalized->bv_val = slap_sl_malloc( len + 1, ctx );
 	if ( normalized->bv_val == NULL ) {
 		return LBER_ERROR_MEMORY;
 	}
