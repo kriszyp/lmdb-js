@@ -3024,7 +3024,6 @@ parse_syncrepl_line(
 				*mstr++ = '\0';
 				si->interval = (( atoi( dstr ) * 24 + atoi( hstr )) * 60
 								+ atoi( mstr )) * 60;
-				fprintf(stderr, "interval = %d\n", si->interval );
 			}
 			if ( si->interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
