@@ -60,23 +60,25 @@
 #define MAXHOSTNAMELEN  64
 #endif
 
-#ifdef MACOS
-#define tcp_close( s )		tcpclose( s )
-#else /* MACOS */
-#ifdef DOS
-#ifdef PCNFS
-#define tcp_close( s )		close( s )
-#endif /* PCNFS */
-#ifdef NCSA
-#define tcp_close( s )		netclose( s ); netshut()
-#endif /* NCSA */
-#ifdef WINSOCK
-#define tcp_close( s )		closesocket( s );
-#endif /* WINSOCK */
-#else /* DOS */
-#define tcp_close( s )		close( s )
-#endif /* DOS */
-#endif /* MACOS */
+#ifdef HAVE_CLOSESOCKET
+# define tcp_close( s )		closesocket( s )
+#elif defined( MACOS )
+# define tcp_close( s )		tcpclose( s )
+#elif defined( DOS )
+
+# ifdef PCNFS
+#  define tcp_close( s )		close( s )
+# endif /* PCNFS */
+# ifdef NCSA
+#  define tcp_close( s )		netclose( s ); netshut()
+# endif /* NCSA */
+# ifdef WINSOCK
+#  define tcp_close( s )		closesocket( s )
+# endif /* WINSOCK */
+
+#else
+# define tcp_close( s )		close( s )
+#endif
 
 #if !defined(__alpha) || defined(VMS)
 #define AC_HTONL( l ) htonl( l )

@@ -211,6 +211,9 @@
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
+/* Define if you have the closesocket function.  */
+#undef HAVE_CLOSESOCKET
+
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
 

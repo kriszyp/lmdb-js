@@ -1362,6 +1362,7 @@ fi
 
 AC_CHECK_FUNCS(		\
 	bcopy			\
+	closesocket		\
 	flock			\
 	getdtablesize	\
 	gethostname		\

@@ -2,12 +2,12 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
-	Added the mdbm to the ldbm backends (memory mapped dbm).
+	Added the MDBM to the ldbm backends (memory mapped dbm)
 	Updated README to require BerkeleyDB 2.7.5
-	Added #define _SGI_MP_SOURCE to enable per-thread errno in
-		IRIX
 	Build environment
-		Added sys/select.h detection.
+		Added closesocket detection/use of BeOS (ITS#195)
+		Added IRIX #define _SGI_MP_SOURCE for enable per-thread errno
+		Added sys/select.h detection
 
 Changes included in OpenLDAP 1.2.3
 	CVS Tag: OPENLDAP_REL_ENG_1_2_3
