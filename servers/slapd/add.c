@@ -20,7 +20,7 @@
 
 #include "slap.h"
 
-static void	add_created_attrs(Operation *op, Entry *e);
+static int	add_created_attrs(Operation *op, Entry *e);
 
 int
 do_add( Connection *conn, Operation *op )
@@ -155,10 +155,19 @@ do_add( Connection *conn, Operation *op )
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 		{
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && be->be_update_ndn == NULL ) {
+				global_lastmod == ON)) && be->be_update_ndn == NULL )
+			{
+				rc = add_created_attrs( op, e );
 
-				add_created_attrs( op, e );
+				if( rc != LDAP_SUCCESS ) {
+					entry_free( e );
+					send_ldap_result( conn, op, rc,
+						NULL, "no-user-modification attribute type",
+						NULL, NULL );
+					return rc;
+				}
 			}
+
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
 				replog( be, LDAP_REQ_ADD, e->e_dn, e, 0 );
 				be_entry_release_w( be, e );
@@ -179,13 +188,13 @@ do_add( Connection *conn, Operation *op )
 	return rc;
 }
 
-static void
+static int
 add_created_attrs( Operation *op, Entry *e )
 {
 	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
-	Attribute	**a, **next;
+	Attribute	*a;
 	Attribute	*tmp;
 	struct tm	*ltm;
 	time_t		currenttime;
@@ -195,15 +204,10 @@ add_created_attrs( Operation *op, Entry *e )
 	bvals[0] = &bv;
 	bvals[1] = NULL;
 
-	/* remove any attempts by the user to add these attrs */
-	for ( a = &e->e_attrs; *a != NULL; a = next ) {
-		if ( oc_check_no_usermod_attr( (*a)->a_type ) ) {
-			tmp = *a;
-			*a = (*a)->a_next;
-			attr_free( tmp );
-			next = a;
-		} else {
-			next = &(*a)->a_next;
+	/* return error on any attempts by the user to add these attrs */
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		if ( oc_check_no_usermod_attr( a->a_type ) ) {
+			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
 
@@ -230,4 +234,6 @@ add_created_attrs( Operation *op, Entry *e )
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 	attr_merge( e, "createtimestamp", bvals );
+
+	return LDAP_SUCCESS;
 }

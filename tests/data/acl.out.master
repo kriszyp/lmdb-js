@@ -108,9 +108,6 @@ notice: Off sailing this month.
 onvacation: FALSE
 labeledurl: http://www.umich.edu/ U-M Home Page
 drink: water
-lastmodifiedtime: 960404035839Z
-lastmodifiedby: cn=Barbara Jensen, ou=Information Technology Division, ou=Peop
- le, o=University of Michigan, c=US
 homephone: +1 313 555 2333
 pager: +1 313 555 3233
 facsimiletelephonenumber: +1 313 555 2274
@@ -148,8 +145,6 @@ objectclass: organizationalUnit
 objectclass: quipuObject
 objectclass: quipuNonLeafObject
 ou: Groups
-lastmodifiedtime: 950120182331Z
-lastmodifiedby: cn=manager, o=university of michigan, c=US
 
 dn: ou=Information Technology Division, ou=People, o=University of Michigan, c
  =US
@@ -241,8 +236,6 @@ cn: Directory Manager
 cn: Dir Man
 sn: Manager
 description: Manager of the directory
-lastmodifiedtime: 951212214144Z
-lastmodifiedby: cn=Manager, o=University of Michigan, c=US
 krbname: bjensen@umich.edu
 
 dn: ou=People, o=University of Michigan, c=US
@@ -270,6 +263,4 @@ description: The University of Michigan at Ann Arbor
 postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
  09 $ USpostalcode: 48109
 telephonenumber: +1 313 764-1817
-lastmodifiedtime: 930106182800Z
-lastmodifiedby: cn=manager, o=university of michigan, c=US
 associateddomain: umich.edu
