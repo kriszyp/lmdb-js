@@ -242,7 +242,7 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
-Overlays="chain denyop dyngroup glue lastmod ppolicy proxycache rwm \
+Overlays="denyop dyngroup glue lastmod ppolicy proxycache rwm \
 	refint syncprov unique"
 
 AC_ARG_WITH(xxslapoverlays,[
@@ -250,8 +250,6 @@ SLAPD Overlay Options:])
 
 OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no|yes|mod],
 	no, [no yes mod])dnl
-OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod],
-	no, [no yes mod])
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod],
 	no, [no yes mod])
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay no|yes|mod],
@@ -444,10 +442,6 @@ else
 			AC_MSG_ERROR([LDBM API not compatible with BDB/HDB])
 		fi
 	fi
-fi
-
-if test $ol_enable_chain != no -a $ol_enable_ldap = no ; then
-	AC_MSG_ERROR([--enable-chain requires --enable-ldap])
 fi
 
 if test $ol_enable_meta = yes -a $ol_enable_ldap = no ; then
@@ -2770,17 +2764,6 @@ if test "$ol_link_sql" != no ; then
 		MFLAG=SLAPD_MOD_STATIC
 	fi
 	AC_DEFINE_UNQUOTED(SLAPD_SQL,$MFLAG,[define to support SQL backend])
-fi
-
-if test "$ol_enable_chain" != no ; then
-	BUILD_CHAIN=$ol_enable_chain
-	if test "$ol_enable_chain" = mod ; then
-		MFLAG=SLAPD_MOD_DYNAMIC
-		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS chain.la"
-	else
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_CHAIN,$MFLAG,[define for Dynamic Group overlay])
 fi
 
 if test "$ol_enable_denyop" != no ; then
