@@ -342,7 +342,7 @@ Make-common: Make-common.dist
 		echo "or touch Make-common to ignore."; \
 		exit 1; \
 	fi; \
-	echo "Copy Make-common.dist or Make-common.gmake to Make-common" \
+	echo "Copy Make-common.dist or Make-common.gmake to Make-common" ; \
 	echo "  Edit as needed before making!"	; \
 	exit 1
 #
