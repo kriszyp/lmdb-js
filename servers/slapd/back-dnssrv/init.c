@@ -34,7 +34,6 @@ dnssrv_back_initialize(
 {
 	static char *controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
- 		LDAP_CONTROL_VALUESRETURNFILTER,
 		NULL
 	};
 

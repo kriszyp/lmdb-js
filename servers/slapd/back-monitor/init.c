@@ -671,7 +671,6 @@ monitor_back_initialize(
 	monitor_subsys_t	*ms;
 	static char		*controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
-		LDAP_CONTROL_VALUESRETURNFILTER,
 		NULL
 	};
 
