@@ -1,9 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
 
-echo "temporarily disabled"
-exit 0
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 

@@ -571,7 +571,15 @@ do_syncrep2(
 						ber_scanf( ber, "t{", &tag );
 						if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE )
 						{
-							ber_scanf( ber, "m", &tag, &cookie );
+							ber_scanf( ber, "m", &cookie );
+							if ( cookie.bv_val ) {
+								struct berval tmp_bv;
+								ber_dupbv( &tmp_bv, &cookie );
+								ber_bvarray_add( &syncCookie.octet_str, &tmp_bv);
+							}
+							if ( syncCookie.octet_str &&
+									 syncCookie.octet_str[0].bv_val )
+								slap_parse_sync_cookie( &syncCookie );
 						}
 						if ( ber_peek_tag( ber, &len ) ==
 									LDAP_TAG_REFRESHDONE )
@@ -585,7 +593,15 @@ do_syncrep2(
 						ber_scanf( ber, "t{", &tag );
 						if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE )
 						{
-							ber_scanf( ber, "m", &tag, &cookie );
+							ber_scanf( ber, "m", &cookie );
+							if ( cookie.bv_val ) {
+								struct berval tmp_bv;
+								ber_dupbv( &tmp_bv, &cookie );
+								ber_bvarray_add( &syncCookie.octet_str, &tmp_bv);
+							}
+							if ( syncCookie.octet_str &&
+									 syncCookie.octet_str[0].bv_val )
+								slap_parse_sync_cookie( &syncCookie );
 						}
 						if ( ber_peek_tag( ber, &len ) ==
 									LDAP_TAG_REFRESHDELETES )

@@ -219,10 +219,6 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_REFRESHDONE	((ber_tag_t) 0x01U)
 #define LDAP_TAG_RELOAD_HINT	((ber_tag_t) 0x01U)
 
-#define LDAP_SYNC_STATE_MODE		0
-#define LDAP_SYNC_LOG_MODE			1
-#define LDAP_SYNC_PERSIST_MODE		2
-
 #define LDAP_SYNC_PRESENT		0
 #define LDAP_SYNC_ADD			1
 #define LDAP_SYNC_MODIFY		2
