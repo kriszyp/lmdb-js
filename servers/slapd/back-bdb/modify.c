@@ -380,7 +380,7 @@ add_values(
 	char	*dn
 )
 {
-	int		i;
+	int		i, j;
 	Attribute	*a;
 
 	/* char *desc = mod->sm_desc->ad_cname.bv_val; */
@@ -389,16 +389,42 @@ add_values(
 	a = attr_find( e->e_attrs, mod->sm_desc );
 
 	/* check if the values we're adding already exist */
-	if ( a != NULL ) {
-		if( mr == NULL || !mr->smr_match ) {
+	if( mr == NULL || !mr->smr_match ) {
+		if ( a != NULL ) {
 			/* do not allow add of additional attribute
 				if no equality rule exists */
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
 		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
-			int rc;
-			int j;
+			/* test asserted values against existing values */
+			if( a ) {
+				for( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
+					int rc = ber_bvcmp( &mod->sm_bvalues[i],
+						&a->a_vals[j] );
+
+					if( rc == 0 ) {
+						/* value exists already */
+						return LDAP_TYPE_OR_VALUE_EXISTS;
+					}
+				}
+			}
+
+			/* test asserted values against themselves */
+			for( j = 0; j < i; j++ ) {
+				int rc = ber_bvcmp( &mod->sm_bvalues[i],
+					&mod->sm_bvalues[j] );
+
+				if( rc == 0 ) {
+					/* value exists already */
+					return LDAP_TYPE_OR_VALUE_EXISTS;
+				}
+			}
+		}
+
+	} else {
+		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
+			int rc, match;
 			const char *text = NULL;
 			struct berval asserted;
 
@@ -410,11 +436,23 @@ add_values(
 
 			if( rc != LDAP_SUCCESS ) return rc;
 
-			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
-				int match;
+			if( a ) {
+				for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
+					int rc = value_match( &match, mod->sm_desc, mr,
+						SLAP_MR_VALUE_SYNTAX_MATCH,
+						&a->a_vals[j], &asserted, &text );
+
+					if( rc == LDAP_SUCCESS && match == 0 ) {
+						free( asserted.bv_val );
+						return LDAP_TYPE_OR_VALUE_EXISTS;
+					}
+				}
+			}
+
+			for ( j = 0; j < i; j++ ) {
 				int rc = value_match( &match, mod->sm_desc, mr,
 					SLAP_MR_VALUE_SYNTAX_MATCH,
-					&a->a_vals[j], &asserted, &text );
+					&mod->sm_bvalues[j], &asserted, &text );
 
 				if( rc == LDAP_SUCCESS && match == 0 ) {
 					free( asserted.bv_val );
@@ -546,11 +584,10 @@ replace_values(
 	if( rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_ATTRIBUTE ) {
 		return rc;
 	}
+	rc = LDAP_SUCCESS;
 
-	if ( mod->sm_bvalues != NULL &&
-		attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 )
-	{
-		return LDAP_OTHER;
+	if ( mod->sm_bvalues ) {
+		rc = add_values( e, mod, dn );
 	}
 
 	return LDAP_SUCCESS;
