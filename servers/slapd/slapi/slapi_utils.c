@@ -1302,8 +1302,9 @@ int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op )
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	opAuthType = Authorization2AuthType( &op->o_authz, op->o_conn->c_is_tls, 1 );
-	if (opAuthType != NULL) {
+	rc = slapi_pblock_get( pb, SLAPI_CONN_AUTHMETHOD, (void *)&opAuthType );
+	if ( rc == LDAP_SUCCESS && opAuthType != NULL ) {
+		/* Not quite sure what the point of this is. */
 		rc = slapi_pblock_set( pb, SLAPI_OPERATION_AUTHTYPE, (void *)opAuthType );
 		if ( rc != LDAP_SUCCESS )
 			return rc;

@@ -361,12 +361,6 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 		str = NULL;
 	}
 
-	get( pb, SLAPI_OPERATION_AUTHTYPE, (void **)&str );
-	if ( str != NULL ) {
-		ch_free( str );
-		str = NULL;
-	}
-
 	get( pb, SLAPI_CONN_AUTHMETHOD, (void **)&str );
 	if ( str != NULL ) {
 		ch_free( str );
