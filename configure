@@ -1648,46 +1648,46 @@ fi
 
 if test $ol_enable_slapd = no ; then
 		if test $ol_enable_bdb2 = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_bdb2 argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-bdb2 argument" 1>&2
 	fi
 	if test $ol_enable_ldap = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_ldap argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-ldap argument" 1>&2
 	fi
 	if test $ol_enable_ldbm = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_ldbm argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-ldbm argument" 1>&2
 	fi
 	if test $ol_enable_passwd = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_passwd argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-passwd argument" 1>&2
 	fi
 	if test $ol_enable_perl = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_perl argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-perl argument" 1>&2
 	fi
 	if test $ol_enable_shell = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_shell argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-shell argument" 1>&2
 	fi
 	if test $ol_enable_tcl = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_tcl argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-tcl argument" 1>&2
 	fi
 	if test $ol_enable_aclgroups = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_aclgroups argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-aclgroups argument" 1>&2
 	fi
 	if test $ol_enable_modules = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_modules argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-modules argument" 1>&2
 	fi
 	if test $ol_enable_wrappers = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_wrappers argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-wrappers argument" 1>&2
 	fi
 	if test $ol_enable_phonetic = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_phonetic argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-phonetic argument" 1>&2
 	fi
 	if test $ol_enable_rlookups = yes ; then
-		echo "configure: warning: slapd disabled, ignoring --enable_rlookups argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --enable-rlookups argument" 1>&2
 	fi
 	if test $ol_with_ldbm_api != auto ; then
-		echo "configure: warning: slapd disabled, ignoring --with_ldbm_api argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --with-ldbm-api argument" 1>&2
 	fi
 	if test $ol_with_ldbm_type != auto ; then
-		echo "configure: warning: slapd disabled, ignoring --with_ldbm_type argument" 1>&2
+		echo "configure: warning: slapd disabled, ignoring --with-ldbm-type argument" 1>&2
 	fi
 	if test $ol_enable_slurpd = yes ; then
 		{ echo "configure: error: slurpd requires slapd" 1>&2; exit 1; }
@@ -1716,11 +1716,11 @@ if test $ol_enable_slapd = no ; then
 elif test $ol_enable_ldbm = no ; then
 	
 	if test $ol_with_ldbm_api != auto ; then
-		echo "configure: warning: LDBM disabled, ignoring --with_ldbm_api argument" 1>&2
+		echo "configure: warning: LDBM disabled, ignoring --with-ldbm-api argument" 1>&2
 	fi
 
 	if test $ol_with_ldbm_type != auto ; then
-		echo "configure: warning: LDBM disabled, ignoring --with_ldbm_type argument" 1>&2
+		echo "configure: warning: LDBM disabled, ignoring --with-ldbm-type argument" 1>&2
 	fi
 
 	if test $ol_enable_bdb2 = yes ; then

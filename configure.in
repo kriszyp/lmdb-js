@@ -134,46 +134,46 @@ fi
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
 	if test $ol_enable_bdb2 = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_bdb2 argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-bdb2 argument])
 	fi
 	if test $ol_enable_ldap = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_ldap argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-ldap argument])
 	fi
 	if test $ol_enable_ldbm = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_ldbm argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-ldbm argument])
 	fi
 	if test $ol_enable_passwd = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_passwd argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-passwd argument])
 	fi
 	if test $ol_enable_perl = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_perl argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-perl argument])
 	fi
 	if test $ol_enable_shell = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_shell argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-shell argument])
 	fi
 	if test $ol_enable_tcl = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_tcl argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-tcl argument])
 	fi
 	if test $ol_enable_aclgroups = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_aclgroups argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-aclgroups argument])
 	fi
 	if test $ol_enable_modules = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_modules argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
 	fi
 	if test $ol_enable_wrappers = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_wrappers argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-wrappers argument])
 	fi
 	if test $ol_enable_phonetic = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_phonetic argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-phonetic argument])
 	fi
 	if test $ol_enable_rlookups = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable_rlookups argument])
+		AC_MSG_WARN([slapd disabled, ignoring --enable-rlookups argument])
 	fi
 	if test $ol_with_ldbm_api != auto ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_api argument])
+		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-api argument])
 	fi
 	if test $ol_with_ldbm_type != auto ; then
-		AC_MSG_WARN([slapd disabled, ignoring --with_ldbm_type argument])
+		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-type argument])
 	fi
 	if test $ol_enable_slurpd = yes ; then
 		AC_MSG_ERROR([slurpd requires slapd])
@@ -203,11 +203,11 @@ elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
 
 	if test $ol_with_ldbm_api != auto ; then
-		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_api argument])
+		AC_MSG_WARN([LDBM disabled, ignoring --with-ldbm-api argument])
 	fi
 
 	if test $ol_with_ldbm_type != auto ; then
-		AC_MSG_WARN([LDBM disabled, ignoring --with_ldbm_type argument])
+		AC_MSG_WARN([LDBM disabled, ignoring --with-ldbm-type argument])
 	fi
 
 	if test $ol_enable_bdb2 = yes ; then
