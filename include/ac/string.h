@@ -17,11 +17,12 @@
 #		include <memory.h>
 #	endif
 
+	/* we should actually create <ac/stdlib.h> */
 #	ifdef HAVE_MALLOC_H
 #		include <malloc.h>
 #	endif
 
-#	ifndef HAVE_STRCHR
+#	ifndef HAVE_STRRCHR
 #		define strchr index
 #		define strrchr rindex
 #	endif
@@ -32,13 +33,19 @@
 #	endif
 #endif
 
-/*
- * provide prototypes for missing functions that we replace.
- * replacements can be found in -llutil
- */
 #ifndef HAVE_STRDUP
-	char *strdup( const char *s );
+	/* strdup() is missing, declare our own version */
+	extern char *strdup( const char *s );
+#else
+	/* some systems fail to declare strdup altogether */
+	extern char *strdup();
 #endif
+
+/*
+ * some systems fail to declare strcasecmp() and strncasecmp()
+ * we need them defined so we obtain pointers to them
+ */
+extern int strcasecmp(), strncasecmp();
 
 #ifndef SAFEMEMCPY
 #	if defined( HAVE_MEMMOVE )
@@ -50,5 +57,6 @@
 #		define SAFEMEMCPY( d, s, n )	memcpy((d), (s), (n))
 #	endif
 #endif
+
 
 #endif /* _AC_STRING_H */
