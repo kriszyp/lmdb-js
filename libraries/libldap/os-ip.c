@@ -265,8 +265,8 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	if ( FD_ISSET(s, &efds) ) {
 	    int so_errno;
 	    int dummy = sizeof(so_errno);
-	    if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy )
-		== AC_SOCKET_ERROR || !so_errno )
+	    if ( getsockopt( s, SOL_SOCKET, SO_ERROR,
+			(char *) &so_errno, &dummy ) == AC_SOCKET_ERROR || !so_errno )
 	    {
 	    	/* impossible */
 	    	so_errno = WSAGetLastError();
