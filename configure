@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.344 2001/01/03 19:47:08 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.345 2001/01/12 02:21:48 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -6656,7 +6656,7 @@ elif test $ol_with_tls != no ; then
 	{ echo "configure: error: Could not locate TLS/SSL package" 1>&2; exit 1; }
 fi
 
-if test $ol_enable_lmhash != no; then
+if test $ol_enable_lmpasswd != no; then
 	if test $ol_link_tls != yes ; then
 		{ echo "configure: error: LAN Manager passwords require OpenSSL" 1>&2; exit 1; }
 	fi

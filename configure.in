@@ -1082,7 +1082,7 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl LAN Manger password checking requires DES from OpenSSL
-if test $ol_enable_lmhash != no; then
+if test $ol_enable_lmpasswd != no; then
 	if test $ol_link_tls != yes ; then
 		AC_ERROR([LAN Manager passwords require OpenSSL])
 	fi
