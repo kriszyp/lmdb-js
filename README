@@ -23,11 +23,8 @@ OpenLDAP Release README
 
 	For a more detailed description of how to make an install the
 	distribution, see the INSTALL file in this directory.  Additional
-	installation information, such as per platform hints can be found
-	in the doc/install directory.
-
-	For more information:
-		http://www.OpenLDAP.org/software/
+	installation information can be found on the OpenLDAP website:
+		http://www.openldap.org/
 
 
 REQUIRED SOFTWARE
@@ -69,6 +66,9 @@ DOCUMENTATION
 	etc..  It is located at:
 		http://www.OpenLDAP.org/
 
+	The OpenLDAP Quick Start Guide is available at:
+		http://www.openldap.org/faq/index.cgi?file=172
+
 	The OpenLDAP Software FAQ is available at:
 		http://www.openldap.org/faq/index.cgi?file=2
 
@@ -83,7 +83,8 @@ FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 
 		OpenLDAP-its@OpenLDAP.org
 
-	Additional mailing lists are available.  Please see:
+	Additional mailing lists are available for discussion proposes.
+	Please see:
 
 		http://www.OpenLDAP.com/lists/
 

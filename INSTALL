@@ -4,8 +4,7 @@ Making and Installing the OpenLDAP Distribution
 ** It is recommended that you read or at least skim through ALL of the
 ** instructions in this file before attempting to build the software.
 **
-** A Quick Start Guide, which may be used in conjunction with this
-** document, is available at:
+** The OpenLDAP Quick Start Guide is available at:
 **    http://www.openldap.org/faq/index.cgi?file=172
 **
 ** The OpenLDAP Installation FAQ is available at:
