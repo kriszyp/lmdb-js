@@ -122,6 +122,11 @@
  * see queue(3) for instructions on how to use
  */
 
+/* The latest set of Windows headers defines SLIST_ENTRY in WINNT.H */
+#ifdef SLIST_ENTRY
+#undef SLIST_ENTRY
+#endif
+
 /*
  * Singly-linked List definitions.
  */

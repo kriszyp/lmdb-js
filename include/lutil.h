@@ -106,6 +106,11 @@ lutil_progname LDAP_P((
 	int argc,
 	char *argv[] ));
 
+#ifndef HAVE_MKSTEMP
+LDAP_LUTIL_F( int )
+mkstemp LDAP_P (( char * template ));
+#endif
+
 /* sockpair.c */
 LDAP_LUTIL_F( int )
 lutil_pair( ber_socket_t sd[2] );
@@ -132,7 +137,8 @@ LDAP_LUTIL_V (int) is_NT_Service;
 LDAP_LUTIL_V (ldap_pvt_thread_cond_t) started_event;
 #endif /* _LDAP_PVT_THREAD_H */
 
-#ifdef _WINSVC_H
+/* macros are different between Windows and Mingw */
+#if defined(_WINSVC_H) || defined(_WINSVC_)
 LDAP_LUTIL_V (SERVICE_STATUS) SLAPDServiceStatus;
 LDAP_LUTIL_V (SERVICE_STATUS_HANDLE) hSLAPDServiceStatus;
 #endif /* _WINSVC_H */

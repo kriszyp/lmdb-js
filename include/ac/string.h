@@ -62,9 +62,11 @@ LDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str,
  * we need them declared so we can obtain pointers to them
  */
 
-/* In Mingw32, strcasecmp is not in the C library, so we don't LIBC_F it */
+/* we don't want these declared for Windows or Mingw */
+#ifndef _WIN32
 int (strcasecmp)();
 int (strncasecmp)();
+#endif
 
 #ifndef SAFEMEMCPY
 #	if defined( HAVE_MEMMOVE )
