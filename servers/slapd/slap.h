@@ -1453,6 +1453,8 @@ struct slap_backend_db {
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE 0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
 #define SLAP_DBFLAG_SHADOW			0x8000U /* a shadow */
+#define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
+#define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */
 	slap_mask_t	be_flags;
 #define SLAP_DBFLAGS(be)			((be)->be_flags)
 #define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
