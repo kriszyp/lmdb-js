@@ -63,8 +63,9 @@ LDAP_SLAPD_F (char *) access2str LDAP_P(( slap_access_t access ));
 LDAP_SLAPD_F (slap_access_t) str2access LDAP_P(( const char *str ));
 
 #define ACCESSMASK_MAXLEN	sizeof("unknown (+wrscan)")
-LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_mask_t mask, char* ));
+LDAP_SLAPD_F (char *) accessmask2str LDAP_P(( slap_mask_t mask, char*, int debug ));
 LDAP_SLAPD_F (slap_mask_t) str2accessmask LDAP_P(( const char *str ));
+LDAP_SLAPD_F (void) acl_unparse LDAP_P(( AccessControl*, struct berval* ));
 LDAP_SLAPD_F (void) acl_destroy LDAP_P(( AccessControl*, AccessControl* ));
 LDAP_SLAPD_F (void) acl_free LDAP_P(( AccessControl *a ));
 
@@ -1171,6 +1172,7 @@ LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
+LDAP_SLAPD_F (const char *) slap_sasl_getpolicy LDAP_P(( void ));
 #ifdef SLAP_AUTH_REWRITE
 LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P(( 
 	const char *fname,

@@ -1186,9 +1186,9 @@ struct slap_op;
 /*
  * "dynamic" ACL infrastructure (for ACIs and more)
  */
-typedef int (*slap_dynacl_parse)( const char *fname, int lineno, slap_style_t, const char *, void **privp );
-typedef int (*slap_dynacl_print)( void *priv );
-typedef int (*slap_dynacl_mask)(
+typedef int (slap_dynacl_parse)( const char *fname, int lineno, slap_style_t, const char *, void **privp );
+typedef int (slap_dynacl_unparse)( void *priv, struct berval *bv );
+typedef int (slap_dynacl_mask)(
 		void			*priv,
 		struct slap_op		*op,
 		Entry			*e,
@@ -1198,14 +1198,14 @@ typedef int (*slap_dynacl_mask)(
 		regmatch_t		*matches,
 		slap_access_t		*grant,
 		slap_access_t		*deny );
-typedef int (*slap_dynacl_destroy)( void *priv );
+typedef int (slap_dynacl_destroy)( void *priv );
 
 typedef struct slap_dynacl_t {
 	char			*da_name;
-	slap_dynacl_parse	da_parse;
-	slap_dynacl_print	da_print;
-	slap_dynacl_mask	da_mask;
-	slap_dynacl_destroy	da_destroy;
+	slap_dynacl_parse	*da_parse;
+	slap_dynacl_unparse	*da_unparse;
+	slap_dynacl_mask	*da_mask;
+	slap_dynacl_destroy	*da_destroy;
 	
 	void			*da_private;
 	struct slap_dynacl_t	*da_next;

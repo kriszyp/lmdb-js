@@ -60,6 +60,8 @@ char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
 char		**default_passwd_hash = NULL;
+char	*passwd_salt;
+char	*logfileName;
 struct berval default_search_base = BER_BVNULL;
 struct berval default_search_nbase = BER_BVNULL;
 
@@ -230,7 +232,7 @@ static ConfigTable SystemConfiguration[] = {
 		 "( OLcfgAt:6 NAME 'olcAuthRewrite' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "authz-policy", "policy", 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
+	{ "authz-policy", "policy", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_AZPOLICY,
 		&config_generic, "( OLcfgAt:7 NAME 'olcAuthzPolicy' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
@@ -302,7 +304,7 @@ static ConfigTable SystemConfiguration[] = {
 	{ "localSSF", "ssf", 2, 2, 0, ARG_LONG,
 		&local_ssf, "( OLcfgAt:26 NAME 'olcLocalSSF' "
 			"SYNTAX OMsInteger )", NULL, NULL },
-	{ "logfile", "file", 2, 2, 0, ARG_MAGIC|CFG_LOGFILE,
+	{ "logfile", "file", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_LOGFILE,
 		&config_generic, "( OLcfgAt:27 NAME 'olcLogFile' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "loglevel", "level", 2, 0, 0, ARG_MAGIC,
@@ -336,7 +338,7 @@ static ConfigTable SystemConfiguration[] = {
 	{ "overlay", "overlay", 2, 2, 0, ARG_MAGIC,
 		&config_overlay, "( OLcfgAt:34 NAME 'olcOverlay' "
 			"SUP olcDatabase )", NULL, NULL },
-	{ "password-crypt-salt-format", "salt", 2, 2, 0, ARG_MAGIC|CFG_SALT,
+	{ "password-crypt-salt-format", "salt", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_SALT,
 		&config_generic, "( OLcfgAt:35 NAME 'olcPasswordCryptSaltFormat' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "password-hash", "hash", 2, 2, 0, ARG_MAGIC,
@@ -958,17 +960,65 @@ config_generic(ConfigArgs *c) {
 			c->value_int = ldap_pvt_thread_get_concurrency();
 			break;
 		case CFG_THREADS:
-			c->value_int = connection_pool_max; break;
+			c->value_int = connection_pool_max;
+			break;
+		case CFG_SALT:
+			if ( passwd_salt )
+				c->value_string = passwd_salt;
+			else
+				rc = 1;
+			break;
+		case CFG_LIMITS:
+			rc = 1;
 			break;
 		case CFG_RO:
 			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) != 0;
 			break;
+		case CFG_AZPOLICY:
+			c->value_string = (char *)slap_sasl_getpolicy();
+			break;
+		case CFG_AZREGEXP:
+			rc = 1;
+			break;
+#ifdef HAVE_CYRUS_SASL
+		case CFG_SASLSECP:
+			rc = 1;
+			break;
+#endif
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
+			break;
+		case CFG_OID:
+			rc = 1;
 			break;
 		case CFG_CHECK:
 			c->value_int = global_schemacheck;
 			break;
+		case CFG_ACL: {
+			AccessControl *a;
+			char *src, *dst, ibuf[11];
+			struct berval bv, abv;
+			for (i=0, a=c->be->be_acl; a; i++,a=a->acl_next) {
+				abv.bv_len = sprintf( ibuf, "{%x}", i );
+				acl_unparse( a, &bv );
+				abv.bv_val = ch_malloc( abv.bv_len + bv.bv_len + 1 );
+				AC_MEMCPY( abv.bv_val, ibuf, abv.bv_len );
+				/* Turn TAB / EOL into plain space */
+				for (src=bv.bv_val,dst=abv.bv_val+abv.bv_len; *src; src++) {
+					if (isspace(*src)) *dst++ = ' ';
+					else *dst++ = *src;
+				}
+				*dst = '\0';
+				if (dst[-1] == ' ') {
+					dst--;
+					*dst = '\0';
+				}
+				abv.bv_len = dst - abv.bv_val;
+				ber_bvarray_add( &c->rvalue_vals, &abv );
+			}
+			rc = (!i);
+			break;
+		}
 		case CFG_REPLOG:
 			c->value_string = c->be->be_replogfile;
 			break;
@@ -981,6 +1031,12 @@ config_generic(ConfigArgs *c) {
 			}
 			}
 			break;
+		case CFG_LOGFILE:
+			if ( logfileName )
+				c->value_string = logfileName;
+			else
+				rc = 1;
+			break;
 		case CFG_LASTMOD:
 			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
 			break;
@@ -990,6 +1046,22 @@ config_generic(ConfigArgs *c) {
 		case CFG_SSTR_IF_MIN:
 			c->value_int = index_substr_if_minlen;
 			break;
+#ifdef SLAPD_MODULES
+		case CFG_MODLOAD:
+		case CFG_MODPATH:
+			rc = 1;
+			break;
+#endif
+#ifdef LDAP_SLAPI
+		case CFG_PLUGIN:
+			rc = 1;
+			break;
+#endif
+#ifdef SLAP_AUTH_REWRITE
+		case CFG_REWRITE:
+			rc = 1;
+			break;
+#endif
 		default:
 			rc = 1;
 		}
@@ -1030,7 +1102,9 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_SALT:
-			lutil_salt_format(c->argv[1]);
+			if ( passwd_salt ) ch_free( passwd_salt );
+			passwd_salt = c->value_string;
+			lutil_salt_format(passwd_salt);
 			break;
 
 		case CFG_LIMITS:
@@ -1046,6 +1120,7 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_AZPOLICY:
+			ch_free(c->value_string);
 			if (slap_sasl_setpolicy( c->argv[1] )) {
 				Debug(LDAP_DEBUG_ANY, "%s: unable to parse value \"%s\" in"
 					" \"authz-policy <policy>\"\n",
@@ -1137,7 +1212,9 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_LOGFILE: {
-			FILE *logfile = fopen(c->argv[1], "w");
+			if ( logfileName ) ch_free( logfileName );
+			logfileName = c->value_string;
+			FILE *logfile = fopen(logfileName, "w");
 			if(logfile) lutil_debug_file(logfile);
 			break;
 			}

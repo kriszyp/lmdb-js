@@ -87,6 +87,10 @@ struct rewrite_info	*sasl_rwinfo = NULL;
 #define	SASL_AUTHZ_TO	0x02
 #define SASL_AUTHZ_AND	0x10
 
+static const char *policy_txt[] = {
+	"none", "from", "to", "any"
+};
+
 static int authz_policy = SASL_AUTHZ_NONE;
 
 static
@@ -111,6 +115,14 @@ int slap_sasl_setpolicy( const char *arg )
 		rc = LDAP_OTHER;
 	}
 	return rc;
+}
+
+const char * slap_sasl_getpolicy()
+{
+	if ( authz_policy == (SASL_AUTHZ_FROM | SASL_AUTHZ_TO | SASL_AUTHZ_AND) )
+		return "all";
+	else
+		return policy_txt[authz_policy];
 }
 
 int slap_parse_user( struct berval *id, struct berval *user,
