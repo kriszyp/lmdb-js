@@ -113,7 +113,7 @@ static int unique_config(
 			for(up = ud->attrs; up; up = up->next)
 			    if(!strcmp(argv[i], up->attr->ad_cname.bv_val)) {
 				Debug(LDAP_DEBUG_ANY,
-					"%s: line %d: duplicate attribute <s>, ignored\n",
+					"%s: line %d: duplicate attribute <%s>, ignored\n",
 					fname, lineno, argv[i]);
 				continue;
 			}
