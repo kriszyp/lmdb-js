@@ -46,7 +46,7 @@ str2entry( char *s )
 	char		*type;
 	struct berval	vals[2];
 #ifdef SLAP_NVALUES
-	struct berval	nvals[2];
+	struct berval	nvals[2], *nvalsp;
 #endif
 	AttributeDescription *ad;
 	const char *text;
@@ -92,6 +92,7 @@ str2entry( char *s )
 	e->e_id = NOID;
 
 	/* dn + attributes */
+	vals[1].bv_len = 0;
 	vals[1].bv_val = NULL;
 
 	next = s;
@@ -239,7 +240,14 @@ str2entry( char *s )
 		}
 
 #ifdef SLAP_NVALUES
-		if( ad->ad_type->sat_syntax->ssyn_normalize ) {
+		nvalsp = NULL;
+		nvals[0].bv_val = NULL;
+
+#if 0
+		if( ad->ad_type->sat_equality &&
+			ad->ad_type->sat_equality->smr_match &&
+			ad->ad_type->sat_syntax->ssyn_normalize )
+		{
 			rc = ad->ad_type->sat_syntax->ssyn_normalize(
 				ad->ad_type->sat_syntax,
 				&vals[0], &nvals[0] );
@@ -259,20 +267,19 @@ str2entry( char *s )
 			}
 #endif
 
-		} else {
-			nvals[0].bv_len = 0;
-			nvals[0].bv_val = NULL;
+			nvals[1].bv_len = 0;
+			nvals[1].bv_val = NULL;
+
+			nvalsp = &nvals[0];
 		}
-
-		nvals[1].bv_len = 0;
-		nvals[1].bv_val = NULL;
+#endif
 #endif
 
-		rc = attr_merge( e, ad, vals
 #ifdef SLAP_NVALUES
-			, nvals
+		rc = attr_merge( e, ad, vals, nvalsp );
+#else
+		rc = attr_merge( e, ad, vals );
 #endif
-			);
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1,

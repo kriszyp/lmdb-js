@@ -135,10 +135,12 @@ main( int argc, char **argv )
 					break;
 				}
 
+				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
+
 #ifdef SLAP_NVALUES
-				attr_merge( e, slap_schema.si_ad_structuralObjectClass, vals,
-					NULL /* FIXME */ );
+				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
+					vals, NULL /* FIXME */ );
 #else
 				attr_merge( e, slap_schema.si_ad_structuralObjectClass, vals );
 #endif
@@ -209,7 +211,7 @@ main( int argc, char **argv )
 				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				vals[0].bv_val = uuidbuf;
 #ifdef SLAP_NVALUES
-				attr_merge( e, slap_schema.si_ad_entryUUID, vals, vals );
+				attr_merge( e, slap_schema.si_ad_entryUUID, vals, NULL );
 #else
 				attr_merge( e, slap_schema.si_ad_entryUUID, vals );
 #endif
