@@ -15,8 +15,6 @@
 
 #include "slap.h"
 
-#define SLAPD_EXT_FILTERS 1
-
 static int	test_filter_and( Backend *be,
 	Connection *conn, Operation *op,
 	Entry *e, Filter *flist );
@@ -186,7 +184,6 @@ test_filter(
 		}
 		break;
 
-#ifdef SLAPD_EXT_FILTERS
 	case LDAP_FILTER_EXT:
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "filter", LDAP_LEVEL_DETAIL1,
@@ -197,7 +194,6 @@ test_filter(
 
 		rc = test_mra_filter( be, conn, op, e, f->f_mra );
 		break;
-#endif
 
 	default:
 #ifdef NEW_LOGGING
