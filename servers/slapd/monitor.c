@@ -93,10 +93,11 @@ monitor_info( Connection *conn, Operation *op )
 				nreadwaiters++;
 			}
 			pthread_mutex_lock( &currenttime_mutex );
-			ltm = localtime( &c[i].c_starttime );
 #ifdef LDAP_Y2K
+			ltm = gmtime( &c[i].c_starttime );
 			strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
 #else
+			ltm = localtime( &c[i].c_starttime );
 			strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
 #endif
 			pthread_mutex_unlock( &currenttime_mutex );

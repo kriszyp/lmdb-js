@@ -251,10 +251,11 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	*mods = tmp;
 
 	pthread_mutex_lock( &currenttime_mutex );
-	ltm = localtime( &currenttime );
 #ifdef LDAP_Y2K
+	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
 #else
+	ltm = localtime( &currenttime );
 	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
 #endif
 	pthread_mutex_unlock( &currenttime_mutex );
