@@ -163,7 +163,7 @@ static int interaction(
 
 	} else {
 use_default:
-		/* must be empty */
+		/* input must be empty */
 		interact->result = strdup( (dflt && *dflt) ? dflt : "" );
 		interact->len = interact->result
 			? strlen( interact->result ) : 0;
