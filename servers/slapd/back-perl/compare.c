@@ -15,22 +15,8 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#include <EXTERN.h>
-#include <perl.h>
-#undef _ /* #defined by both Perl and ac/localize.h */
-
-#ifdef HAVE_WIN32_ASPERL
-#include "asperl_undefs.h"
-#endif
-
-#include "portable.h"
-
-#include <stdio.h>
-
-#include "slap.h"
-
-#include "lutil.h"
 #include "perl_back.h"
+#include "lutil.h"
 
 /**********************************************************
  *
