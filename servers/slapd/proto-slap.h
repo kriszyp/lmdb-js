@@ -816,7 +816,7 @@ LDAP_SLAPD_F (Filter *) str2filter LDAP_P(( const char *str ));
 /*
  * suffixalias.c
  */
-LDAP_SLAPD_F (char *) suffix_alias LDAP_P(( Backend *be, char *ndn ));
+LDAP_SLAPD_F (void) suffix_alias LDAP_P(( Backend *be, struct berval *ndn ));
 
 /*
  * value.c

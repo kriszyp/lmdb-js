@@ -281,8 +281,7 @@ do_compare(
 
 
 	/* deref suffix alias if appropriate */
-	ndn->bv_val = suffix_alias( be, ndn->bv_val );
-	ndn->bv_len = strlen( ndn->bv_val );
+	suffix_alias( be, ndn );
 
 	if ( be->be_compare ) {
 		(*be->be_compare)( be, conn, op, pdn->bv_val, ndn->bv_val, &ava );

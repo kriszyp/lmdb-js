@@ -49,7 +49,7 @@ do_modrdn(
 	struct berval newSuperior = { 0, NULL };
 	ber_int_t	deloldrdn;
 
-	char	*ndn = NULL;
+	struct berval *ndn;
 	char	*nnewSuperior = NULL;
 
 	Backend	*be;
@@ -190,9 +190,9 @@ do_modrdn(
 		goto cleanup;
 	} 
 
-	ndn = ch_strdup( dn.bv_val );
+	rc = dnNormalize( NULL, &dn, &ndn );
 
-	if( dn_normalize( ndn ) == NULL ) {
+	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_modrdn: invalid dn (%s)\n", dn.bv_val ));
@@ -220,7 +220,7 @@ do_modrdn(
 		goto cleanup;
 	}
 
-	if( *ndn == '\0' ) {
+	if( ndn->bv_len == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			   "do_modrdn:  attempt to modify root DSE.\n" ));
@@ -233,7 +233,7 @@ do_modrdn(
 		goto cleanup;
 
 #ifdef SLAPD_SCHEMA_DN
-	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+	} else if ( strcasecmp( ndn->bv_val, SLAPD_SCHEMA_DN ) == 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_modrdn: attempt to modify subschema subentry\n" ));
@@ -257,7 +257,7 @@ do_modrdn(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
+	if ( (be = select_backend( ndn->bv_val, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
 			NULL, dn.bv_val, LDAP_SCOPE_DEFAULT );
 
@@ -277,7 +277,7 @@ do_modrdn(
 	}
 
 	/* check for referrals */
-	rc = backend_check_referrals( be, conn, op, dn.bv_val, ndn );
+	rc = backend_check_referrals( be, conn, op, dn.bv_val, ndn->bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -297,13 +297,10 @@ do_modrdn(
 
 			goto cleanup;
 		}
-
-		/* deref suffix alias if appropriate */
-		nnewSuperior = suffix_alias( be, nnewSuperior );
 	}
 
 	/* deref suffix alias if appropriate */
-	ndn = suffix_alias( be, ndn );
+	suffix_alias( be, ndn );
 
 	/*
 	 * do the add if 1 && (2 || 3)
@@ -318,7 +315,7 @@ do_modrdn(
 		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
-			if ( (*be->be_modrdn)( be, conn, op, dn.bv_val, ndn,
+			if ( (*be->be_modrdn)( be, conn, op, dn.bv_val, ndn->bv_val,
 				newrdn.bv_val, deloldrdn, newSuperior.bv_val ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL || !repl_user )
@@ -329,7 +326,7 @@ do_modrdn(
 				moddn.deloldrdn = deloldrdn;
 				moddn.newsup = newSuperior.bv_val;
 
-				replog( be, op, dn.bv_val, ndn, &moddn );
+				replog( be, op, dn.bv_val, ndn->bv_val, &moddn );
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {
@@ -355,7 +352,7 @@ cleanup:
 	free( newrdn.bv_val );	
 	free( newSuperior.bv_val );
 
-	if( ndn != NULL ) free( ndn );
+	if( ndn != NULL ) ber_bvfree( ndn );
 	if ( nnewSuperior != NULL ) free( nnewSuperior );
 	return rc;
 }

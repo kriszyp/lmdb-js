@@ -296,7 +296,8 @@ char *slap_sasl_regexp( char *saslname )
 
 char *slap_sasl2dn( char *saslname )
 {
-	char *uri=NULL, *searchbase=NULL, *DN=NULL;
+	char *uri=NULL, *DN=NULL;
+	struct berval searchbase = {0, NULL};
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
@@ -319,13 +320,14 @@ char *slap_sasl2dn( char *saslname )
 	if( uri == NULL )
 		goto FINISHED;
 
-	rc = slap_parseURI( uri, &searchbase, &scope, &filter );
+	rc = slap_parseURI( uri, &searchbase.bv_val, &scope, &filter );
 	if( rc )
 		goto FINISHED;
 
+	searchbase.bv_len = strlen( searchbase.bv_val );
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
-		DN = ch_strdup( searchbase );
+		DN = ch_strdup( searchbase.bv_val );
 		goto FINISHED;
 	}
 
@@ -334,24 +336,24 @@ char *slap_sasl2dn( char *saslname )
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
 		   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		   searchbase, scope ));
+		   searchbase.bv_val, scope ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-	   searchbase, scope, 0 );
+	   searchbase.bv_val, scope, 0 );
 #endif
 
 
-	be = select_backend( searchbase, 0, 1 );
+	be = select_backend( searchbase.bv_val, 0, 1 );
 	if(( be == NULL ) || ( be->be_search == NULL))
 		goto FINISHED;
-	searchbase = suffix_alias( be, searchbase );
+	suffix_alias( be, &searchbase );
 
 	rc = connection_internal_open( &conn, &client, saslname );
 	if( rc != LDAP_SUCCESS )
 		goto FINISHED;
 
-	(*be->be_search)( be, conn, conn->c_ops, /*base=*/NULL, searchbase,
+	(*be->be_search)( be, conn, conn->c_ops, /*base=*/NULL, searchbase.bv_val,
 	   scope, /*deref=*/1, /*sizelimit=*/1, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
@@ -378,7 +380,7 @@ char *slap_sasl2dn( char *saslname )
 	DN = ldap_get_dn( client, msg );
 
 FINISHED:
-	if( searchbase ) ch_free( searchbase );
+	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
 	if( filter ) filter_free( filter );
 	if( uri ) ch_free( uri );
 	if( conn ) connection_internal_close( conn );
@@ -412,7 +414,8 @@ FINISHED:
 static
 int slap_sasl_match( char *rule, char *assertDN, char *authc )
 {
-	char *searchbase=NULL, *dn=NULL;
+	char *dn=NULL;
+	struct berval searchbase = {0, NULL};
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
@@ -431,14 +434,15 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 #endif
 
 
-	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
+	rc = slap_parseURI( rule, &searchbase.bv_val, &scope, &filter );
 	if( rc != LDAP_SUCCESS )
 		goto CONCLUDED;
 
+	searchbase.bv_len = strlen( searchbase.bv_val );
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
-		dn_normalize( searchbase );
-		rc = regcomp(&reg, searchbase, REG_EXTENDED|REG_ICASE|REG_NOSUB);
+		dn_normalize( searchbase.bv_val );
+		rc = regcomp(&reg, searchbase.bv_val, REG_EXTENDED|REG_ICASE|REG_NOSUB);
 		if ( rc == 0 ) {
 			rc = regexec(&reg, assertDN, 0, NULL, 0);
 			regfree( &reg );
@@ -455,27 +459,27 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
 		   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-		   searchbase, scope ));
+		   searchbase.bv_val, scope ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-	   searchbase, scope, 0 );
+	   searchbase.bv_val, scope, 0 );
 #endif
 
 
-	be = select_backend( searchbase, 0, 1 );
+	be = select_backend( searchbase.bv_val, 0, 1 );
 	if(( be == NULL ) || ( be->be_search == NULL)) {
 		rc = LDAP_INAPPROPRIATE_AUTH;
 		goto CONCLUDED;
 	}
-	searchbase = suffix_alias( be, searchbase );
+	suffix_alias( be, &searchbase );
 
 	/* Make an internal connection on which to run the search */
 	rc = connection_internal_open( &conn, &client, authc );
 	if( rc != LDAP_SUCCESS )
 		goto CONCLUDED;
 
-	(*be->be_search)( be, conn, conn->c_ops, /*base=*/NULL, searchbase,
+	(*be->be_search)( be, conn, conn->c_ops, /*base=*/NULL, searchbase.bv_val,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
@@ -501,7 +505,7 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 CONCLUDED:
-	if( searchbase ) ch_free( searchbase );
+	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
 	if( filter ) filter_free( filter );
 	if( conn ) connection_internal_close( conn );
 	if( res ) ldap_msgfree( res );

@@ -323,8 +323,7 @@ do_modify(
 	}
 
 	/* deref suffix alias if appropriate */
-	ndn->bv_val = suffix_alias( be, ndn->bv_val );
-	ndn->bv_len = strlen( ndn->bv_val );
+	suffix_alias( be, ndn );
 
 	/*
 	 * do the modify if 1 && (2 || 3)

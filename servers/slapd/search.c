@@ -322,8 +322,7 @@ do_search(
 	}
 
 	/* deref the base if needed */
-	nbase->bv_val = suffix_alias( be, nbase->bv_val );
-	nbase->bv_len = strlen( nbase->bv_val );
+	suffix_alias( be, nbase );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {

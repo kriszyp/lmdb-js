@@ -169,7 +169,7 @@ replog(
 			    ml->sml_bvalues[i] != NULL; i++ ) {
 				char	*buf, *bufp;
 
-				len = strlen( type );
+				len = ml->sml_desc->ad_cname.bv_len;
 				len = LDIF_SIZE_NEEDED( len,
 				    ml->sml_bvalues[i]->bv_len ) + 1;
 				buf = (char *) ch_malloc( len );

@@ -28,16 +28,16 @@
  * given a normalized uppercased dn (or root part),
  * return an aliased dn if any of the alias suffixes match
  */
-char *suffix_alias(
+void suffix_alias(
 	Backend *be,
-	char *dn )
+	struct berval *dn )
 {
 	int	i, dnLength;
 
-	if(dn == NULL) return NULL;
-	if(be == NULL) return dn;
+	if(dn == NULL || be == NULL || dn->bv_len == 0)
+		return;
 
-	dnLength = strlen ( dn );
+	dnLength = dn->bv_len;
 
 	for ( i = 0;
 		be->be_suffixAlias != NULL && be->be_suffixAlias[i] != NULL;
@@ -50,7 +50,7 @@ char *suffix_alias(
 			/* alias is longer than dn */
 			continue;
 		} else if ( diff > 0 ) {
-			if ( ! DN_SEPARATOR(dn[diff-1]) ) {
+			if ( ! DN_SEPARATOR(dn->bv_val[diff-1]) ) {
 				/* boundary is not at a DN separator */
 				continue;
 			}
@@ -58,25 +58,24 @@ char *suffix_alias(
 			/* XXX or an escaped separator... oh well */
 		}
 
-		if (!strcmp(be->be_suffixAlias[i]->bv_val, &dn[diff])) {
-			char *oldDN = dn;
-			dn = ch_malloc( diff + be->be_suffixAlias[i+1]->bv_len + 1 );
-			strncpy( dn, oldDN, diff );
-			strcpy( &dn[diff], be->be_suffixAlias[i+1]->bv_val );
+		if (!strcmp(be->be_suffixAlias[i]->bv_val, &dn->bv_val[diff])) {
+			char *oldDN = dn->bv_val;
+			dn->bv_len = diff + be->be_suffixAlias[i+1]->bv_len;
+			dn->bv_val = ch_malloc( dn->bv_len + 1 );
+			strncpy( dn->bv_val, oldDN, diff );
+			strcpy( &dn->bv_val[diff], be->be_suffixAlias[i+1]->bv_val );
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				   "suffix_alias: converted \"%s\" to \"%s\"\n",
-				   oldDN, dn ));
+				   oldDN, dn->bv_val ));
 #else
 			Debug( LDAP_DEBUG_ARGS,
 				"suffix_alias: converted \"%s\" to \"%s\"\n",
-				oldDN, dn, 0);
+				oldDN, dn->bv_val, 0);
 #endif
 
 			free (oldDN);
 			break;
 		}
 	}
-
-	return dn;
 }

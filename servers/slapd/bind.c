@@ -491,8 +491,7 @@ do_bind(
 		char *edn = NULL;
 
 		/* deref suffix alias if appropriate */
-		ndn->bv_val = suffix_alias( be, ndn->bv_val );
-		ndn->bv_len = strlen( ndn->bv_val );
+		suffix_alias( be, ndn );
 
 		ret = (*be->be_bind)( be, conn, op,
 			pdn->bv_val, ndn->bv_val,
