@@ -39,6 +39,7 @@
 #define SLAP_NVALUES 1
 /* #define SLAP_NVALUES_ON_DISK 1 */
 #define SLAP_EXTENDED_SCHEMA 1
+#define LDAP_CACHING
 #endif
 
 LDAP_BEGIN_DECL
@@ -1487,7 +1488,6 @@ typedef struct req_extended_s {
 typedef enum slap_reply_e {
 	REP_RESULT,
 	REP_SASL,
-	REP_SRESULT,
 	REP_EXTENDED,
 	REP_SEARCH,
 	REP_SEARCHREF
@@ -1497,18 +1497,15 @@ typedef struct rep_sasl_s {
 	struct berval *r_sasldata;
 } rep_sasl_s;
 
-typedef struct rep_sresult_s {
-	int r_nentries;
-} rep_sresult_s;
-
 typedef struct rep_extended_s {
 	const char *r_rspoid;
 	struct berval *r_rspdata;
 } rep_extended_s;
 
 typedef struct rep_search_s {
-	AttributeName *r_attrs;
 	Entry *r_entry;
+	AttributeName *r_attrs;
+	int r_nentries;
 	BerVarray r_v2ref;
 } rep_search_s;
 
@@ -1523,7 +1520,6 @@ typedef struct slap_rep {
 	LDAPControl **sr_ctrls;
 	union sr_u {
 		rep_sasl_s sru_sasl;
-		rep_sresult_s sru_sresult;
 		rep_extended_s sru_extended;
 		rep_search_s sru_search;
 	} sr_un;
@@ -1533,10 +1529,10 @@ typedef struct slap_rep {
 #define	sr_attrs sr_un.sru_search.r_attrs
 #define	sr_entry sr_un.sru_search.r_entry
 #define	sr_v2ref sr_un.sru_search.r_v2ref
+#define	sr_nentries sr_un.sru_search.r_nentries
 #define	sr_rspoid sr_un.sru_extended.r_rspoid
 #define	sr_rspdata sr_un.sru_extended.r_rspdata
 #define	sr_sasldata sr_un.sru_sasl.r_sasldata
-#define	sr_nentries sr_un.sru_sresult.r_nentries
 
 typedef int (BI_op_bind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_unbind) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
@@ -1690,16 +1686,10 @@ struct slap_backend_info {
 #define o_tls_ssf		o_authz.sai_tls_ssf
 #define o_sasl_ssf		o_authz.sai_sasl_ssf
 
-typedef void (slap_response)( struct slap_op *, struct slap_rep * );
-typedef void (slap_sresult)( struct slap_op *, struct slap_rep * );
-typedef int (slap_sendentry)( struct slap_op *, struct slap_rep * );
-typedef int (slap_sendreference)( struct slap_op *, struct slap_rep * );
+typedef int (slap_response)( struct slap_op *, struct slap_rep * );
 
 typedef struct slap_callback {
 	slap_response *sc_response;
-	slap_sresult *sc_sresult;
-	slap_sendentry *sc_sendentry;
-	slap_sendreference *sc_sendreference;
 	void *sc_private;
 } slap_callback;
 
@@ -1908,7 +1898,6 @@ do { (rs)->sr_err = err; (rs)->sr_text = text; \
 send_ldap_disconnect( op, rs ); } while (0)
 typedef void (SEND_LDAP_RESULT)(struct slap_op *op, struct slap_rep *rs);
 typedef int (SEND_SEARCH_ENTRY)(struct slap_op *op, struct slap_rep *rs);
-typedef void (SEND_SEARCH_RESULT)(struct slap_op *op, struct slap_rep *rs);
 typedef int (SEND_SEARCH_REFERENCE)(struct slap_op *op, struct slap_rep *rs);
 typedef void (SEND_LDAP_EXTENDED)(struct slap_op *op, struct slap_rep *rs);
 typedef void (SEND_LDAP_INTERMEDIATE_RESP)(struct slap_op *op, struct slap_rep *rs);
@@ -1916,8 +1905,6 @@ typedef void (SEND_LDAP_INTERMEDIATE_RESP)(struct slap_op *op, struct slap_rep *
 (op->o_conn->c_send_ldap_result)( op, rs )
 #define send_search_entry( op, rs ) \
 (op->o_conn->c_send_search_entry)( op, rs )
-#define send_search_result( op, rs ) \
-(op->o_conn->c_send_search_result)( op, rs )
 #define send_search_reference( op, rs ) \
 (op->o_conn->c_send_search_reference)( op, rs )
 #define send_ldap_extended( op, rs ) \
@@ -2015,7 +2002,6 @@ typedef struct slap_conn {
 	 */
 	SEND_LDAP_RESULT *c_send_ldap_result;
 	SEND_SEARCH_ENTRY *c_send_search_entry;
-	SEND_SEARCH_RESULT *c_send_search_result;
 	SEND_SEARCH_REFERENCE *c_send_search_reference;
 	SEND_LDAP_EXTENDED *c_send_ldap_extended;
 #ifdef LDAP_RES_INTERMEDIATE_RESP

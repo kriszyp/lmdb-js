@@ -888,9 +888,6 @@ LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
-LDAP_SLAPD_F (slap_response) slap_cb_null_response;
-LDAP_SLAPD_F (slap_sresult) slap_cb_null_sresult;
-LDAP_SLAPD_F (slap_sendreference) slap_cb_null_sreference;
 
 
 /*

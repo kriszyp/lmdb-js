@@ -70,7 +70,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
-			rs->sr_matched = ch_strdup( matched->e_dn );
+			rs->sr_matched = matched->e_name.bv_val;
 		}
 		send_ldap_result( op, rs );
 		if ( matched != NULL ) {

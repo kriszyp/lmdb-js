@@ -483,7 +483,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 
 	send_ldap_response( op, rs );
 
-	if ( rs->sr_type == REP_SRESULT ) {
+	if ( op->o_tag == LDAP_REQ_SEARCH ) {
 		char nbuf[64];
 		snprintf( nbuf, sizeof nbuf, "%d nentries=%d", rs->sr_err, rs->sr_nentries );
 
@@ -569,13 +569,6 @@ slap_send_ldap_intermediate_resp( Operation *op, SlapReply *rs )
 }
 #endif
 
-void
-slap_send_search_result( Operation *op, SlapReply *rs )
-{
-	rs->sr_type = REP_SRESULT;
-	slap_send_ldap_result( op, rs );
-}
-
 int
 slap_send_search_entry( Operation *op, SlapReply *rs )
 {
@@ -602,8 +595,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	char **e_flags = NULL;
 
 	rs->sr_type = REP_SEARCH;
-	if (op->o_callback && op->o_callback->sc_sendentry) {
-		return op->o_callback->sc_sendentry( op, rs );
+	if (op->o_callback && op->o_callback->sc_response) {
+		return op->o_callback->sc_response( op, rs );
 	}
 
 #ifdef NEW_LOGGING
@@ -1143,6 +1136,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 		return -1;
 	}
+	rs->sr_nentries++;
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
@@ -1183,8 +1177,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
 	rs->sr_type = REP_SEARCHREF;
-	if (op->o_callback && op->o_callback->sc_sendreference) {
-		return op->o_callback->sc_sendreference( op, rs );
+	if (op->o_callback && op->o_callback->sc_response) {
+		return op->o_callback->sc_response( op, rs );
 	}
 
 #ifdef NEW_LOGGING

@@ -408,7 +408,6 @@ long connection_init(
 	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
 		c->c_send_ldap_result = slap_send_ldap_result;
 		c->c_send_search_entry = slap_send_search_entry;
-		c->c_send_search_result = slap_send_search_result;
 		c->c_send_search_reference = slap_send_search_reference;
 		c->c_send_ldap_extended = slap_send_ldap_extended;
 #ifdef LDAP_RES_INTERMEDIATE_RESP

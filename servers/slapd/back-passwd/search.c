@@ -33,8 +33,6 @@ passwd_back_search(
 	char		*s;
 	time_t		stoptime;
 
-	int sent = 0;
-
 	LDAPRDN *rdn = NULL;
 	struct berval parent = { 0, NULL };
 
@@ -103,7 +101,6 @@ passwd_back_search(
 				rs->sr_entry = e;
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				send_search_entry( op, rs );
-				sent++;
 			}
 		}
 
@@ -147,7 +144,6 @@ passwd_back_search(
 					rs->sr_entry = e;
 					rs->sr_attrs = op->oq_search.rs_attrs;
 					send_search_entry( op, rs );
-					sent++;
 				}
 
 				entry_free( e );
@@ -207,7 +203,6 @@ passwd_back_search(
 			rs->sr_entry = e;
 			rs->sr_attrs = op->oq_search.rs_attrs;
 			send_search_entry( op, rs );
-			sent++;
 		}
 
 		entry_free( e );
@@ -215,8 +210,7 @@ passwd_back_search(
 
 done:
 	if( rs->sr_err != LDAP_NO_SUCH_OBJECT ) rs->sr_matched = NULL;
-	rs->sr_nentries = sent;
-	send_search_result( op, rs );
+	send_ldap_result( op, rs );
 
 	if( rdn != NULL ) ldap_rdnfree( rdn );
 

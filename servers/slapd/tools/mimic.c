@@ -64,12 +64,6 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	assert(0);
 }
 
-void
-slap_send_search_result( Operation *op, SlapReply *rs )
-{
-	assert(0);
-}
-
 int
 slap_send_search_entry( Operation *op, SlapReply *rs )
 {

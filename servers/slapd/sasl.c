@@ -305,7 +305,7 @@ typedef struct lookup_info {
 	sasl_server_params_t *sparams;
 } lookup_info;
 
-static slap_sendentry sasl_ap_lookup, sasl_cb_checkpass;
+static slap_response sasl_ap_lookup, sasl_cb_checkpass;
 
 static int
 sasl_ap_lookup( Operation *op, SlapReply *rs )
@@ -317,6 +317,8 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 	int rc, i;
 	slap_callback *tmp = op->o_callback;
 	lookup_info *sl = tmp->sc_private;
+
+	if (rs->sr_type != REP_SEARCH) return 0;
 
 	for( i = 0; i < sl->last; i++ ) {
 		const char *name = sl->list[i].name;
@@ -420,8 +422,7 @@ slap_auxprop_lookup(
 	}
 
 	if (doit) {
-		slap_callback cb = { slap_cb_null_response,
-			slap_cb_null_sresult, sasl_ap_lookup, slap_cb_null_sreference, NULL };
+		slap_callback cb = { sasl_ap_lookup };
 
 		cb.sc_private = &sl;
 
@@ -489,6 +490,8 @@ sasl_cb_checkpass( Operation *op, SlapReply *rs )
 	Attribute *a;
 	struct berval *bv;
 	
+	if (rs->sr_type != REP_SEARCH) return 0;
+
 	ci->rc = SASL_NOVERIFY;
 
 	a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_userPassword );
@@ -543,8 +546,7 @@ slap_sasl_checkpass(
 
 	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 	if ( op.o_bd && op.o_bd->be_search ) {
-		slap_callback cb = { slap_cb_null_response,
-			slap_cb_null_sresult, sasl_cb_checkpass, slap_cb_null_sreference, NULL };
+		slap_callback cb = { sasl_cb_checkpass };
 		SlapReply rs = {REP_RESULT};
 
 		ci.cred.bv_val = (char *)pass;

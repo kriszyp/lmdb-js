@@ -215,9 +215,7 @@ fail:;
 	 * but this is necessary for version matching, and for ACL processing.
 	 */
 
-	for (	rs->sr_nentries=0, rc=0;
-			rc != -1;
-			rc = ldap_result(lc->ld, msgid, 0, &tv, &res))
+	for ( rc=0; rc != -1; rc = ldap_result(lc->ld, msgid, 0, &tv, &res))
 	{
 		/* check for abandon */
 		if (op->o_abandon) {
@@ -237,7 +235,6 @@ fail:;
 			e = ldap_first_entry(lc->ld,res);
 			if ( ldap_build_entry(op->o_bd, op->o_conn, e, &ent, &bdn, 1) == LDAP_SUCCESS ) {
 				Attribute *a;
-				rs->sr_nentries++;
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->oq_search.rs_attrs;
 				send_search_entry( op, rs );
@@ -350,7 +347,7 @@ fail:;
 	if ( rs->sr_v2ref ) {
 		rs->sr_err = LDAP_REFERRAL;
 	}
-	send_search_result( op, rs );
+	send_ldap_result( op, rs );
 
 finish:;
 	if ( match ) {

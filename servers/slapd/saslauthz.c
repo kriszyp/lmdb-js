@@ -327,24 +327,12 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 	return( 1 );
 }
 
-/* Two empty callback functions to avoid sending results */
-void slap_cb_null_response( Operation *o, SlapReply *rs )
-{
-}
-
-void slap_cb_null_sresult( Operation *o, SlapReply *rs )
-{
-}
-
-int slap_cb_null_sreference( Operation *o, SlapReply *rs )
-{
-	return 0;
-}
-
 /* This callback actually does some work...*/
 static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 {
 	struct berval *ndn = o->o_callback->sc_private;
+
+	if (rs->sr_type != REP_SEARCH) return 0;
 
 	/* We only want to be called once */
 	if( ndn->bv_val ) {
@@ -375,6 +363,8 @@ static int sasl_sc_smatch( Operation *o, SlapReply *rs )
 {
 	smatch_info *sm = o->o_callback->sc_private;
 
+	if (rs->sr_type != REP_SEARCH) return 0;
+
 	if (dn_match(sm->dn, &rs->sr_entry->e_nname)) {
 		sm->match = 1;
 		return -1;	/* short-circuit the search */
@@ -398,12 +388,7 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	int rc; 
 	regex_t reg;
 	smatch_info sm;
-	slap_callback cb = {
-		slap_cb_null_response,
-		slap_cb_null_sresult,
-		sasl_sc_smatch,
-		slap_cb_null_sreference
-	};
+	slap_callback cb = { sasl_sc_smatch };
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
 
@@ -560,8 +545,7 @@ void slap_sasl2dn( Connection *conn,
 	struct berval *saslname, struct berval *sasldn )
 {
 	int rc;
-	slap_callback cb = { slap_cb_null_response,
-		slap_cb_null_sresult, sasl_sc_sasl2dn, slap_cb_null_sreference, NULL};
+	slap_callback cb = { sasl_sc_sasl2dn };
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
 	struct berval regout = { 0, NULL };

@@ -68,12 +68,11 @@ bdb_cancel( Operation *op, SlapReply *rs )
 
 #if 0
 				bdb_build_sync_done_ctrl( conn, ps_list, ps_list->ctrls, 1, &latest_entrycsn_bv );
-				send_search_result( conn, ps_list, LDAP_CANCELLED,
+				send_ldap_result( conn, ps_list, LDAP_CANCELLED,
 						NULL, NULL, NULL, ps_list->ctrls, ps_list->nentries);
 #endif
 				rs->sr_err = LDAP_CANCELLED;
-				rs->sr_nentries = 0;
-				send_search_result( ps_list, rs );
+				send_ldap_result( ps_list, rs );
 
 				slap_op_free ( ps_list );
 				return LDAP_SUCCESS;
@@ -107,7 +106,7 @@ int bdb_search( Operation *op, SlapReply *rs )
 	Entry	*matched = NULL;
 	struct berval	realbase = { 0, NULL };
 	int		manageDSAit;
-	int		nentries = 0, tentries = 0;
+	int		tentries = 0;
 	ID		lastid = NOID;
 	AttributeName	*attrs;
 
@@ -367,7 +366,7 @@ dn2entry_retry:
 			/* positive hard limit means abort */
 			} else if ( limit->lms_t_hard > 0 ) {
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_search_result( sop, rs );
+				send_ldap_result( sop, rs );
 				rs->sr_err = 0;
 				goto done;
 			}
@@ -394,7 +393,7 @@ dn2entry_retry:
 			/* positive hard limit means abort */
 			} else if ( limit->lms_s_hard > 0 ) {
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_search_result( sop, rs );
+				send_ldap_result( sop, rs );
 				rs->sr_err = 0;	
 				goto done;
 			}
@@ -456,7 +455,7 @@ dn2entry_retry:
 #endif
 
 		rs->sr_err = LDAP_SUCCESS;
-		send_search_result( sop, rs );
+		send_ldap_result( sop, rs );
 		rs->sr_err = 1;
 		goto done;
 	}
@@ -465,7 +464,7 @@ dn2entry_retry:
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
 		if ( BDB_IDL_N(candidates) > (unsigned) limit->lms_s_unchecked ) {
 			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-			send_search_result( sop, rs );
+			send_ldap_result( sop, rs );
 			rs->sr_err = 1;
 			goto done;
 		}
@@ -483,7 +482,7 @@ dn2entry_retry:
 			if ( sop->o_pagedresults_size == 0 ) {
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_text = "search abandoned by pagedResult size=0";
-				send_search_result( sop, rs );
+				send_ldap_result( sop, rs );
 				goto done;
 			}
 			for ( id = bdb_idl_first( candidates, &cursor );
@@ -500,7 +499,6 @@ dn2entry_retry:
 				"bdb_search: no paged results candidates\n",
 				0, 0, 0 );
 #endif
-			rs->sr_nentries = nentries;
 			send_pagerequest_response( sop, rs, lastid, 0 );
 
 			rs->sr_err = 1;
@@ -586,8 +584,7 @@ loop_begin:
 		if ( sop->o_cancel ) {
 			assert( sop->o_cancel == SLAP_CANCEL_REQ );
 			rs->sr_err = LDAP_CANCELLED;
-			rs->sr_nentries = nentries;
-			send_search_result( sop, rs );
+			send_ldap_result( sop, rs );
 			sop->o_cancel = SLAP_CANCEL_ACK;
 			rs->sr_err = 0;
 			goto done;
@@ -598,8 +595,7 @@ loop_begin:
 		if ( sop->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
 			rs->sr_ref = rs->sr_v2ref;
-			rs->sr_nentries = nentries;
-			send_search_result( sop, rs );
+			send_ldap_result( sop, rs );
 			goto done;
 		}
 
@@ -828,15 +824,13 @@ id2entry_retry:
 					rs->sr_entry = NULL;
 					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 					rs->sr_ref = rs->sr_v2ref;
-					rs->sr_nentries = nentries;
-					send_search_result( sop, rs );
+					send_ldap_result( sop, rs );
 					goto done;
 				}
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 				if ( get_pagedresults(sop) ) {
-					if ( nentries >= sop->o_pagedresults_size ) {
-						rs->sr_nentries = nentries;
+					if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
 						send_pagerequest_response( sop, rs,
 							lastid, tentries );
 						goto done;
@@ -1001,7 +995,6 @@ id2entry_retry:
 
 					switch (result) {
 					case 0:		/* entry sent ok */
-						nentries++;
 						break;
 					case 1:		/* entry not sent */
 						break;
@@ -1057,8 +1050,7 @@ loop_continue:
 		rs->sr_ctrls = ctrls;
 		rs->sr_ref = rs->sr_v2ref;
 		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
-		rs->sr_nentries = nentries;
-		send_search_result( sop, rs );
+		send_ldap_result( sop, rs );
 
 		ch_free( latest_entrycsn_bv.bv_val );
 		latest_entrycsn_bv.bv_val = NULL;
@@ -1084,8 +1076,7 @@ loop_continue:
 			rs->sr_ctrls = ctrls;
 			rs->sr_ref = rs->sr_v2ref;
 			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
-			rs->sr_nentries = nentries;
-			send_search_result( sop, rs );
+			send_ldap_result( sop, rs );
 			if ( ctrls[num_ctrls-1]->ldctl_value.bv_val != NULL )
 				ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
 			ch_free( ctrls[--num_ctrls] );
@@ -1100,8 +1091,7 @@ loop_continue:
 		rs->sr_ctrls = NULL;
 		rs->sr_ref = rs->sr_v2ref;
 		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
-		rs->sr_nentries = nentries;
-		send_search_result( sop, rs );
+		send_ldap_result( sop, rs );
 	}
 	}
 
@@ -1394,7 +1384,7 @@ send_pagerequest_response(
 
 	rs->sr_ctrls = ctrls;
 	rs->sr_err = LDAP_SUCCESS;
-	send_search_result( op, rs );
+	send_ldap_result( op, rs );
 
 done:
 	(void) ber_free_buf( ber );

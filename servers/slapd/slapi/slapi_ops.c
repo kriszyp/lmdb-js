@@ -38,6 +38,10 @@ internal_result_v3(
 	Operation	*op, 
 	SlapReply	*rs )
 {
+	if (op->o_tag == LDAP_REQ_SEARCH)
+		slapi_pblock_set( (Slapi_PBlock *)op->o_pb,
+			SLAPI_NENTRIES, (void *)sr->sr_nentries );
+
 	return;
 }
 
@@ -91,17 +95,6 @@ internal_search_entry(
 			SLAPI_NENTRIES, (void *)i );
 
 	return LDAP_SUCCESS;
-}
-
-static void
-internal_search_result(
-	Operation	*op,
-	SlapReply	*sr )
-{
-	slapi_pblock_set( (Slapi_PBlock *)op->o_pb,
-			SLAPI_NENTRIES, (void *)sr->sr_nentries );
-
-	return;
 }
 
 static void
@@ -217,7 +210,6 @@ slapiConnectionInit(
 
 	pConn->c_send_ldap_result = internal_result_v3;
 	pConn->c_send_search_entry = internal_search_entry;
-	pConn->c_send_search_result = internal_search_result;
 	pConn->c_send_ldap_extended = internal_result_ext;
 	pConn->c_send_search_reference = internal_search_reference;
 

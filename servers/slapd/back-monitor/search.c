@@ -55,15 +55,13 @@ monitor_send_children(
 	Operation	*op,
 	SlapReply	*rs,
 	Entry		*e_parent,
-	int		sub,
-	int		*nentriesp
+	int		sub
 )
 {
 	struct monitorinfo	*mi =
 		(struct monitorinfo *) op->o_bd->be_private;
 	Entry 			*e, *e_tmp, *e_ch;
 	struct monitorentrypriv *mp;
-	int			nentries;
 	int			rc;
 
 	mp = ( struct monitorentrypriv * )e_parent->e_private;
@@ -106,7 +104,7 @@ monitor_send_children(
 	}
 
 	/* return entries */
-	for ( nentries = *nentriesp; e != NULL; ) {
+	for ( ; e != NULL; ) {
 		mp = ( struct monitorentrypriv * )e->e_private;
 
 		monitor_entry_update( mi, e );
@@ -115,12 +113,11 @@ monitor_send_children(
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			send_search_entry( op, rs );
-			nentries++;
 		}
 
 		if ( ( mp->mp_children || MONITOR_HAS_VOLATILE_CH( mp ) )
 				&& sub ) {
-			rc = monitor_send_children( op, rs, e, sub, &nentries );
+			rc = monitor_send_children( op, rs, e, sub );
 			if ( rc ) {
 				return( rc );
 			}
@@ -144,7 +141,6 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		= (struct monitorinfo *) op->o_bd->be_private;
 	int		rc = LDAP_SUCCESS;
 	Entry		*e, *matched = NULL;
-	int		nentries = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_MON, ENTRY,
@@ -169,7 +165,6 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		return( 0 );
 	}
 
-	nentries = 0;
 	switch ( op->oq_search.rs_scope ) {
 	case LDAP_SCOPE_BASE:
 		monitor_entry_update( mi, e );
@@ -177,14 +172,13 @@ monitor_back_search( Operation *op, SlapReply *rs )
  		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			send_search_entry( op, rs );
-			nentries = 1;
 		}
 		rc = LDAP_SUCCESS;
 		monitor_cache_release( mi, e );
 		break;
 
 	case LDAP_SCOPE_ONELEVEL:
-		rc = monitor_send_children( op, rs, e, 0, &nentries );
+		rc = monitor_send_children( op, rs, e, 0 );
 		if ( rc ) {
 			rc = LDAP_OTHER;
 		}
@@ -196,10 +190,9 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			send_search_entry( op, rs );
-			nentries++;
 		}
 
-		rc = monitor_send_children( op, rs, e, 1, &nentries );
+		rc = monitor_send_children( op, rs, e, 1 );
 		if ( rc ) {
 			rc = LDAP_OTHER;
 		}
@@ -207,9 +200,8 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		break;
 	}
 	
-	rs->sr_nentries = nentries;
 	rs->sr_err = rc;
-	send_search_result( op, rs );
+	send_ldap_result( op, rs );
 
 	return( rc == LDAP_SUCCESS ? 0 : 1 );
 }

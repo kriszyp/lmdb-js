@@ -1363,6 +1363,8 @@ slapi_send_ldap_result(
 	rs.sr_ref = NULL;
 	rs.sr_ctrls = NULL;
 
+	slapi_pblock_get( pb, SLAPI_RESCONTROLS, &rs.sr_ctrls );
+
 	if ( err == LDAP_SASL_BIND_IN_PROGRESS ) {
 		slapi_pblock_get( pb, SLAPI_BIND_RET_SASLCREDS, (void *) &rs.sr_sasldata );
 		send_ldap_sasl( op, &rs );
@@ -1377,8 +1379,8 @@ slapi_send_ldap_result(
 		return;
 	}
 
-	rs.sr_type = REP_RESULT;
-	slapi_pblock_get( pb, SLAPI_RESCONTROLS, &rs.sr_ctrls );
+	if (op->o_tag == LDAP_REQ_SEARCH)
+		rs.sr_nentries = nentries;
 
 	send_ldap_result( op, &rs );
 #endif /* LDAP_SLAPI */

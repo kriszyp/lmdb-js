@@ -309,8 +309,7 @@ do_search(
 			entry_free( entry );
 
 			rs->sr_err = LDAP_SUCCESS;
-			rs->sr_nentries = 1;
-			send_search_result( op, rs );
+			send_ldap_result( op, rs );
 #ifdef LDAP_SLAPI
 			doPostSearchPluginFNs( op );
 #endif /* LDAP_SLAPI */

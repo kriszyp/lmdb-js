@@ -40,7 +40,6 @@ ldbm_back_search(
 	struct berval	realbase = { 0, NULL };
 	int		manageDSAit = get_manageDSAit( op );
 	int		cscope = LDAP_SCOPE_DEFAULT;
-	int		nentries = 0;
 
 #ifdef LDAP_CACHING
 	Entry 		cache_base_entry; 
@@ -221,7 +220,7 @@ searchit:
 #endif /* LDAP_CACHING */
 
 		rs->sr_err = LDAP_SUCCESS;
-		send_search_result( op, rs );
+		send_ldap_result( op, rs );
 
 #ifdef LDAP_CACHING
                 if ( op->o_caching_on ) {
@@ -338,8 +337,7 @@ searchit:
 		/* check time limit */
 		if ( op->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
 			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
-			rs->sr_nentries = nentries;
-			send_search_result( op, rs );
+			send_ldap_result( op, rs );
 			rc = 0;
 			goto done;
 		}
@@ -494,8 +492,7 @@ searchit:
 				if ( --op->oq_search.rs_slimit == -1 ) {
 					cache_return_entry_r( &li->li_cache, e );
 					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-					rs->sr_nentries = nentries;
-					send_search_result( op, rs );
+					send_ldap_result( op, rs );
 					rc = 0;
 					goto done;
 				}
@@ -520,7 +517,6 @@ searchit:
 
 					switch (result) {
 					case 0:		/* entry sent ok */
-						nentries++;
 						break;
 					case 1:		/* entry not sent */
 						break;
@@ -571,8 +567,7 @@ loop_continue:
 
 	rs->sr_err = rs->sr_v2ref ? LDAP_REFERRAL : LDAP_SUCCESS;
 	rs->sr_ref = rs->sr_v2ref;
-	rs->sr_nentries = nentries;
-	send_search_result( op, rs );
+	send_ldap_result( op, rs );
 
 	rc = 0;
 
