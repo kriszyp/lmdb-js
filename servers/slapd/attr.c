@@ -29,7 +29,7 @@ static void at_index_print( void ) {};
 void
 attr_free( Attribute *a )
 {
-	ber_bvecfree( a->a_vals );
+	bvarray_free( a->a_vals );
 	free( a );
 }
 
@@ -55,19 +55,18 @@ Attribute *attr_dup( Attribute *a )
 	if( a->a_vals != NULL ) {
 		int i;
 
-		for( i=0; a->a_vals[i] != NULL; i++ ) {
+		for( i=0; a->a_vals[i].bv_val != NULL; i++ ) {
 			/* EMPTY */ ;
 		}
 
-		tmp->a_vals = ch_malloc((i+1) * sizeof(struct berval*));
+		tmp->a_vals = ch_malloc((i+1) * sizeof(struct berval));
 
-		for( i=0; a->a_vals[i] != NULL; i++ ) {
-			tmp->a_vals[i] = ber_bvdup( a->a_vals[i] );
-
-			if( tmp->a_vals[i] == NULL ) break;
+		for( i=0; a->a_vals[i].bv_val != NULL; i++ ) {
+			ber_dupbv( &tmp->a_vals[i], &a->a_vals[i] );
+			if( tmp->a_vals[i].bv_val == NULL ) break;
 		}
 
-		tmp->a_vals[i] = NULL;
+		tmp->a_vals[i].bv_val = NULL;
 
 	} else {
 		tmp->a_vals = NULL;
@@ -110,7 +109,7 @@ int
 attr_merge(
 	Entry		*e,
 	AttributeDescription *desc,
-	struct berval	**vals )
+	BVarray	vals )
 {
 	Attribute	**a;
 

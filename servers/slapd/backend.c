@@ -1049,7 +1049,7 @@ backend_attribute(
 	Entry	*target,
 	struct berval	*edn,
 	AttributeDescription *entry_at,
-	struct berval ***vals
+	BVarray *vals
 )
 {
 	if( target == NULL || target->e_nname.bv_len != edn->bv_len ||

@@ -12,78 +12,72 @@
 #include "slap.h"
 #include "sets.h"
 
-static char **set_join (char **lset, int op, char **rset);
-static char **set_chase (SET_GATHER gatherer,
-	void *cookie, char **set, char *attr, int attrlen, int closure);
+static BVarray set_join (BVarray lset, int op, BVarray rset);
+static BVarray set_chase (SET_GATHER gatherer,
+	void *cookie, BVarray set, struct berval *attr, int closure);
 static int set_samedn (char *dn1, char *dn2);
 
 long
-set_size (char **set)
+set_size (BVarray set)
 {
 	int i;
 
 	i = 0;
 	if (set != NULL) {
-		while (set[i])
+		while (set[i].bv_val)
 			i++;
 	}
 	return(i);
 }
 
 void
-set_dispose (char **set)
+set_dispose (BVarray set)
 {
-	int i;
-
-	if (set != NULL) {
-		for (i = 0; set[i]; i++)
-			ch_free(set[i]);
-		ch_free(set);
-	}
+	bvarray_free(set);
 }
 
-static char **
-set_join (char **lset, int op, char **rset)
+static BVarray
+set_join (BVarray lset, int op, BVarray rset)
 {
-	char **set;
+	BVarray set;
 	long i, j, last;
 
 	set = NULL;
 	if (op == '|') {
-		if (lset == NULL || *lset == NULL) {
+		if (lset == NULL || lset->bv_val == NULL) {
 			if (rset == NULL) {
 				if (lset == NULL)
-					return(ch_calloc(1, sizeof(char *)));
+					return(ch_calloc(1, sizeof(struct berval)));
 				return(lset);
 			}
 			set_dispose(lset);
 			return(rset);
 		}
-		if (rset == NULL || *rset == NULL) {
+		if (rset == NULL || rset->bv_val == NULL) {
 			set_dispose(rset);
 			return(lset);
 		}
 
 		i = set_size(lset) + set_size(rset) + 1;
-		set = ch_calloc(i, sizeof(char *));
+		set = ch_calloc(i, sizeof(struct berval));
 		if (set != NULL) {
 			/* set_chase() depends on this routine to
 			 * keep the first elements of the result
 			 * set the same (and in the same order)
 			 * as the left-set.
 			 */
-			for (i = 0; lset[i]; i++)
+			for (i = 0; lset[i].bv_val; i++)
 				set[i] = lset[i];
 			ch_free(lset);
-			for (i = 0; rset[i]; i++) {
-				for (j = 0; set[j]; j++) {
-					if (set_samedn(rset[i], set[j])) {
-						ch_free(rset[i]);
-						rset[i] = NULL;
+			for (i = 0; rset[i].bv_val; i++) {
+				for (j = 0; set[j].bv_val; j++) {
+					if (set_samedn(rset[i].bv_val, set[j].bv_val)) {
+						ch_free(rset[i].bv_val);
+						rset[i].bv_val = NULL;
 						break;		
 					}	
 				}
-				if (rset[i])
+				if (rset[i].bv_val)
 					set[j] = rset[i];
 			}
 			ch_free(rset);
@@ -92,21 +86,21 @@ set_join (char **lset, int op, char **rset)
 	}
 
 	if (op == '&') {
-		if (lset == NULL || *lset == NULL || rset == NULL || *rset == NULL) {
-			set = ch_calloc(1, sizeof(char *));
+		if (lset == NULL || lset->bv_val == NULL || rset == NULL || rset->bv_val == NULL) {
+			set = ch_calloc(1, sizeof(struct berval));
 		} else {
 			set = lset;
 			lset = NULL;
 			last = set_size(set) - 1;
-			for (i = 0; set[i]; i++) {
-				for (j = 0; rset[j]; j++) {
-					if (set_samedn(set[i], rset[j]))
+			for (i = 0; set[i].bv_val; i++) {
+				for (j = 0; rset[j].bv_val; j++) {
+					if (set_samedn(set[i].bv_val, rset[j].bv_val))
 						break;
 				}
-				if (rset[j] == NULL) {
-					ch_free(set[i]);
+				if (rset[j].bv_val == NULL) {
+					ch_free(set[i].bv_val);
 					set[i] = set[last];
-					set[last] = NULL;
+					set[last].bv_val = NULL;
 					last--;
 					i--;
 				}
@@ -119,43 +113,43 @@ set_join (char **lset, int op, char **rset)
 	return(set);
 }
 
-static char **
+static BVarray
 set_chase (SET_GATHER gatherer,
-	void *cookie, char **set, char *attr, int attrlen, int closure)
+	void *cookie, BVarray set, struct berval *attr, int closure)
 {
-	char **vals, **nset;
+	BVarray vals, nset;
 	char attrstr[32];
-	struct berval bv = {attrlen, attrstr};
+	struct berval bv = {attr->bv_len, attrstr};
 	int i;
 
 	if (set == NULL)
-		return(ch_calloc(1, sizeof(char *)));
+		return(ch_calloc(1, sizeof(struct berval)));
 
-	if (*set == NULL)
+	if (set->bv_val == NULL)
 		return(set);
 
-	if (attrlen > (sizeof(attrstr) - 1)) {
+	if (attr->bv_len > (sizeof(attrstr) - 1)) {
 		set_dispose(set);
 		return(NULL);
 	}
-	AC_MEMCPY(attrstr, attr, attrlen);
-	attrstr[attrlen] = 0;
+	AC_MEMCPY(attrstr, attr->bv_val, attr->bv_len);
+	attrstr[attr->bv_len] = 0;
 
-	nset = ch_calloc(1, sizeof(char *));
+	nset = ch_calloc(1, sizeof(struct berval));
 	if (nset == NULL) {
 		set_dispose(set);
 		return(NULL);
 	}
-	for (i = 0; set[i]; i++) {
-		vals = (gatherer)(cookie, set[i], &bv);
+	for (i = 0; set[i].bv_val; i++) {
+		vals = (gatherer)(cookie, set[i].bv_val, &bv);
 		if (vals != NULL)
 			nset = set_join(nset, '|', vals);
 	}
 	set_dispose(set);
 
 	if (closure) {
-		for (i = 0; nset[i]; i++) {
-			vals = (gatherer)(cookie, nset[i], &bv);
+		for (i = 0; nset[i].bv_val; i++) {
+			vals = (gatherer)(cookie, nset[i].bv_val, &bv);
 			if (vals != NULL) {
 				nset = set_join(nset, '|', vals);
 				if (nset == NULL)
@@ -199,22 +193,22 @@ set_samedn (char *dn1, char *dn2)
 
 int
 set_filter (SET_GATHER gatherer,
-	void *cookie, char *filter, char *user, char *this, char ***results)
+	void *cookie, struct berval *fbv, char *user, char *this, BVarray *results)
 {
 #define IS_SET(x)	( (long)(x) >= 256 )
 #define IS_OP(x)	( (long)(x) < 256 )
 #define SF_ERROR(x)	do { rc = -1; goto _error; } while (0)
-#define SF_TOP()	( (char **)( (stp < 0) ? 0 : stack[stp] ) )
-#define SF_POP()	( (char **)( (stp < 0) ? 0 : stack[stp--] ) )
+#define SF_TOP()	( (BVarray)( (stp < 0) ? 0 : stack[stp] ) )
+#define SF_POP()	( (BVarray)( (stp < 0) ? 0 : stack[stp--] ) )
 #define SF_PUSH(x)	do { \
 		if (stp >= 63) SF_ERROR(overflow); \
-		stack[++stp] = (char **)(long)(x); \
+		stack[++stp] = (BVarray)(long)(x); \
 	} while (0)
 
-	char c;
-	char **set, **lset;
+	BVarray set, lset;
+	BVarray stack[64];
 	int len, op, rc, stp;
-	char **stack[64];
+	char c, *filter = fbv->bv_val;
 
 	if (results)
 		*results = NULL;
@@ -289,13 +283,14 @@ set_filter (SET_GATHER gatherer,
 			if (c == 0)
 				SF_ERROR(syntax);
 			
-			set = ch_calloc(2, sizeof(char *));
+			set = ch_calloc(2, sizeof(struct berval));
 			if (set == NULL)
 				SF_ERROR(memory);
-			*set = ch_calloc(len + 1, sizeof(char));
-			if (*set == NULL)
+			set->bv_val = ch_calloc(len + 1, sizeof(char));
+			if (set->bv_val == NULL)
 				SF_ERROR(memory);
-			AC_MEMCPY(*set, &filter[-len - 1], len);
+			AC_MEMCPY(set->bv_val, &filter[-len - 1], len);
+			set->bv_len = len;
 			SF_PUSH(set);
 			set = NULL;
 			break;
@@ -332,29 +327,32 @@ set_filter (SET_GATHER gatherer,
 			{
 				if ((SF_TOP() == (void *)'/') || IS_SET(SF_TOP()))
 					SF_ERROR(syntax);
-				set = ch_calloc(2, sizeof(char *));
+				set = ch_calloc(2, sizeof(struct berval));
 				if (set == NULL)
 					SF_ERROR(memory);
-				*set = ch_strdup(this);
-				if (*set == NULL)
+				ber_str2bv( this, 0, 1, set );
+				if (set->bv_val == NULL)
 					SF_ERROR(memory);
 			} else if (len == 4
 				&& memcmp("user", filter, len) == 0) 
 			{
 				if ((SF_TOP() == (void *)'/') || IS_SET(SF_TOP()))
 					SF_ERROR(syntax);
-				set = ch_calloc(2, sizeof(char *));
+				set = ch_calloc(2, sizeof(struct berval));
 				if (set == NULL)
 					SF_ERROR(memory);
-				*set = ch_strdup(user);
-				if (*set == NULL)
+				ber_str2bv( user, 0, 1, set );
+				if (set->bv_val == NULL)
 					SF_ERROR(memory);
 			} else if (SF_TOP() != (void *)'/') {
 				SF_ERROR(syntax);
 			} else {
 				SF_POP();
+				struct berval fb2;
+				fb2.bv_val = filter;
+				fb2.bv_len = len;
 				set = set_chase(gatherer,
-					cookie, SF_POP(), filter, len, c == '*');
+					cookie, SF_POP(), &fb2, c == '*');
 				if (set == NULL)
 					SF_ERROR(memory);
 				if (c == '*')

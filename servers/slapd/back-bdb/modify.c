@@ -230,7 +230,7 @@ retry:	/* transaction retry */
 	/* acquire and lock entry */
 	if ( e == NULL ) {
 		char* matched_dn = NULL;
-		struct berval **refs;
+		BVarray refs;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -248,7 +248,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		ber_bvecfree( refs );
+		bvarray_free( refs );
 		free( matched_dn );
 
 		return rc;
@@ -257,7 +257,7 @@ retry:	/* transaction retry */
 	if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
-		struct berval **refs = get_entry_referrals( be,
+		BVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -267,7 +267,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			e->e_dn, NULL, refs, NULL );
 
-		ber_bvecfree( refs );
+		bvarray_free( refs );
 		goto done;
 	}
 	
@@ -368,7 +368,7 @@ add_values(
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
-		for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
+		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 			int rc;
 			int j;
 			const char *text = NULL;
@@ -376,17 +376,17 @@ add_values(
 
 			rc = value_normalize( mod->sm_desc,
 				SLAP_MR_EQUALITY,
-				mod->sm_bvalues[i],
+				&mod->sm_bvalues[i],
 				&asserted,
 				&text );
 
 			if( rc != LDAP_SUCCESS ) return rc;
 
-			for ( j = 0; a->a_vals[j] != NULL; j++ ) {
+			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
 					SLAP_MR_VALUE_SYNTAX_MATCH,
-					a->a_vals[j], &asserted, &text );
+					&a->a_vals[j], &asserted, &text );
 
 				if( rc == LDAP_SUCCESS && match == 0 ) {
 					free( asserted.bv_val );
@@ -400,7 +400,7 @@ add_values(
 
 	/* no - add them */
 	if( attr_merge( e, mod->sm_desc, mod->sm_bvalues ) != 0 ) {
-		/* this should return result return of attr_merge */
+		/* this should return result of attr_merge */
 		return LDAP_OTHER;
 	}
 
@@ -443,7 +443,7 @@ delete_values(
 	}
 
 	/* find each value to delete */
-	for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
+	for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 		int rc;
 		const char *text = NULL;
 
@@ -451,18 +451,18 @@ delete_values(
 
 		rc = value_normalize( mod->sm_desc,
 			SLAP_MR_EQUALITY,
-			mod->sm_bvalues[i],
+			&mod->sm_bvalues[i],
 			&asserted,
 			&text );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 
 		found = 0;
-		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
+		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
 				SLAP_MR_VALUE_SYNTAX_MATCH,
-				a->a_vals[j], &asserted, &text );
+				&a->a_vals[j], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {
 				continue;
@@ -472,11 +472,12 @@ delete_values(
 			found = 1;
 
 			/* delete it */
-			ber_bvfree( a->a_vals[j] );
-			for ( k = j + 1; a->a_vals[k] != NULL; k++ ) {
+			free( a->a_vals[j].bv_val );
+			for ( k = j + 1; a->a_vals[k].bv_val != NULL; k++ ) {
 				a->a_vals[k - 1] = a->a_vals[k];
 			}
-			a->a_vals[k - 1] = NULL;
+			a->a_vals[k - 1].bv_val = NULL;
+			a->a_vals[k - 1].bv_len = 0;
 
 			break;
 		}
@@ -493,7 +494,7 @@ delete_values(
 	}
 
 	/* if no values remain, delete the entire attribute */
-	if ( a->a_vals[0] == NULL ) {
+	if ( a->a_vals[0].bv_val == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify_delete: removing entire attribute %s\n",
 			desc, 0, 0 );

@@ -27,16 +27,16 @@ ldbm_back_exop_passwd(
     struct berval	**rspdata,
 	LDAPControl		*** rspctrls,
 	const char		**text,
-    struct berval	*** refs
+    BVarray *refs
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	int rc;
 	Entry *e = NULL;
-	struct berval *hash = NULL;
+	struct berval hash = { 0, NULL };
 
-	struct berval *id = NULL;
-	struct berval *new = NULL;
+	struct berval id = { 0, NULL };
+	struct berval new = { 0, NULL };
 
 	struct berval dn;
 	struct berval ndn;
@@ -50,10 +50,10 @@ ldbm_back_exop_passwd(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		   "ldbm_back_exop_passwd: \"%s\"\n",
-		   id ? id->bv_val : "" ));
+		   id.bv_val ? id.bv_val : "" ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: \"%s\"\n",
-		id ? id->bv_val : "", 0, 0 );
+		id.bv_val ? id.bv_val : "", 0, 0 );
 #endif
 
 
@@ -61,28 +61,28 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	if( new == NULL || new->bv_len == 0 ) {
-		new = slap_passwd_generate();
+	if( new.bv_len == 0 ) {
+		slap_passwd_generate(&new);
 
-		if( new == NULL || new->bv_len == 0 ) {
+		if( new.bv_len == 0 ) {
 			*text = "password generation failed.";
 			rc = LDAP_OTHER;
 			goto done;
 		}
 		
-		*rspdata = slap_passwd_return( new );
+		*rspdata = slap_passwd_return( &new );
 	}
 
-	hash = slap_passwd_hash( new );
+	slap_passwd_hash( &new, &hash );
 
-	if( hash == NULL || hash->bv_len == 0 ) {
+	if( hash.bv_len == 0 ) {
 		*text = "password hash failed";
 		rc = LDAP_OTHER;
 		goto done;
 	}
 
-	if( id ) {
-		dn = *id;
+	if( id.bv_len ) {
+		dn = id;
 	} else {
 		dn = op->o_dn;
 	}
@@ -90,10 +90,10 @@ ldbm_back_exop_passwd(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 		"ldbm_back_exop_passwd: \"%s\"%s\n",
-		dn.bv_val, id ? " (proxy)" : "" ));
+		dn.bv_val, id.bv_len ? " (proxy)" : "" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "passwd: \"%s\"%s\n",
-		dn.bv_val, id ? " (proxy)" : "", 0 );
+		dn.bv_val, id.bv_len ? " (proxy)" : "", 0 );
 #endif
 
 	if( dn.bv_len == 0 ) {
@@ -132,11 +132,11 @@ ldbm_back_exop_passwd(
 
 	{
 		Modifications ml;
-		struct berval *vals[2];
+		struct berval vals[2];
 		char textbuf[SLAP_TEXT_BUFLEN]; /* non-returnable */
 
 		vals[0] = hash;
-		vals[1] = NULL;
+		vals[1].bv_val = NULL;
 
 		ml.sml_desc = slap_schema.si_ad_userPassword;
 		ml.sml_bvalues = vals;
@@ -175,16 +175,16 @@ done:
 		cache_return_entry_w( &li->li_cache, e );
 	}
 
-	if( id != NULL ) {
-		ber_bvfree( id );
+	if( id.bv_val != NULL ) {
+		free( id.bv_val );
 	}
 
-	if( new != NULL ) {
-		ber_bvfree( new );
+	if( new.bv_val != NULL ) {
+		free( new.bv_val );
 	}
 
-	if( hash != NULL ) {
-		ber_bvfree( hash );
+	if( hash.bv_val != NULL ) {
+		free( hash.bv_val );
 	}
 
 	if( ndn.bv_val != NULL ) {

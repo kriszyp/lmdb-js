@@ -228,7 +228,7 @@ static int get_alias_dn(
 	/* 
 	 * aliasedObjectName should be SINGLE-VALUED with a single value. 
 	 */			
-	if ( a->a_vals[0] == NULL || a->a_vals[0]->bv_val == NULL ) {
+	if ( a->a_vals[0].bv_val == NULL ) {
 		/*
 		 * there was an aliasedobjectname defined but no data.
 		 */
@@ -237,13 +237,13 @@ static int get_alias_dn(
 		return -1;
 	}
 
-	if( a->a_vals[1] != NULL ) {
+	if( a->a_vals[1].bv_val != NULL ) {
 		*err = LDAP_ALIAS_PROBLEM;
 		*errmsg = "alias has multivalued aliasedObjectName";
 		return -1;
 	}
 
-	rc = dnNormalize2( NULL, a->a_vals[0], ndn );
+	rc = dnNormalize2( NULL, &a->a_vals[0], ndn );
 	if( rc != LDAP_SUCCESS ) {
 		*err = LDAP_ALIAS_PROBLEM;
 		*errmsg = "alias aliasedObjectName value is invalid";

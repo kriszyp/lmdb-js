@@ -43,14 +43,16 @@ ldap_back_group(
 	struct berval mop_ndn = { 0, NULL }, mgr_ndn = { 0, NULL };
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
-	char *group_oc_name = NULL;
-	char *group_at_name = group_at->ad_cname.bv_val;
+	struct berval group_oc_name = {0, NULL};
+	struct berval group_at_name = group_at->ad_cname;
 
 	if( group_oc->soc_names && group_oc->soc_names[0] ) {
-		group_oc_name = group_oc->soc_names[0];
+		group_oc_name.bv_val = group_oc->soc_names[0];
 	} else {
-		group_oc_name = group_oc->soc_oid;
+		group_oc_name.bv_val = group_oc->soc_oid;
 	}
+	if (group_oc_name.bv_val)
+		group_oc_name.bv_len = strlen(group_oc_name.bv_val);
 
 	if (target != NULL && target->e_nname.bv_len == gr_ndn->bv_len &&
 		strcmp(target->e_nname.bv_val, gr_ndn->bv_val) == 0) {
@@ -152,16 +154,16 @@ ldap_back_group(
 	}
 #endif /* !ENABLE_REWRITE */
 
-	group_oc_name = ldap_back_map(&li->oc_map, group_oc_name, 0);
-	if (group_oc_name == NULL)
+	ldap_back_map(&li->oc_map, &group_oc_name, &group_oc_name, 0);
+	if (group_oc_name.bv_val == NULL)
 		goto cleanup;
-	group_at_name = ldap_back_map(&li->at_map, group_at_name, 0);
-	if (group_at_name == NULL)
+	ldap_back_map(&li->at_map, &group_at_name, &group_at_name, 0);
+	if (group_at_name.bv_val == NULL)
 		goto cleanup;
 
 	filter = ch_malloc(sizeof("(&(objectclass=)(=))")
-						+ strlen(group_oc_name)
-						+ strlen(group_at_name)
+						+ group_oc_name.bv_len
+						+ group_at_name.bv_len
 						+ mop_ndn.bv_len + 1);
 	if (filter == NULL)
 		goto cleanup;
@@ -176,9 +178,9 @@ ldap_back_group(
 	}
 
 	ptr = slap_strcopy(filter, "(&(objectclass=");
-	ptr = slap_strcopy(ptr, group_oc_name);
+	ptr = slap_strcopy(ptr, group_oc_name.bv_val);
 	ptr = slap_strcopy(ptr, ")(");
-	ptr = slap_strcopy(ptr, group_at_name);
+	ptr = slap_strcopy(ptr, group_at_name.bv_val);
 	ptr = slap_strcopy(ptr, "=");
 	ptr = slap_strcopy(ptr, mop_ndn.bv_val);
 	strcpy(ptr, "))");

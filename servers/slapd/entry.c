@@ -42,8 +42,7 @@ str2entry( char *s )
 	int rc;
 	Entry		*e;
 	char		*type;
-	struct berval value;
-	struct berval	*vals[2];
+	struct berval	vals[2];
 	AttributeDescription *ad;
 	const char *text;
 	char	*next;
@@ -96,8 +95,7 @@ str2entry( char *s )
 	e->e_private = NULL;
 
 	/* dn + attributes */
-	vals[0] = &value;
-	vals[1] = NULL;
+	vals[1].bv_val = NULL;
 
 	next = s;
 	while ( (s = ldif_getline( &next )) != NULL ) {
@@ -105,7 +103,7 @@ str2entry( char *s )
 			break;
 		}
 
-		if ( ldif_parse_line( s, &type, &value.bv_val, &value.bv_len ) != 0 ) {
+		if ( ldif_parse_line( s, &type, &vals[0].bv_val, &vals[0].bv_len ) != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 				   "str2entry:  NULL (parse_line)\n" ));
@@ -126,20 +124,20 @@ str2entry( char *s )
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
 					(long) e->e_id, e->e_dn,
-					value.bv_val != NULL ? value.bv_val : "" ));
+					vals[0].bv_val != NULL ? vals[0].bv_val : "" ));
 #else
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
 				    (long) e->e_id, e->e_dn,
-					value.bv_val != NULL ? value.bv_val : "" );
+					vals[0].bv_val != NULL ? vals[0].bv_val : "" );
 #endif
-				if( value.bv_val != NULL ) free( value.bv_val );
+				if( vals[0].bv_val != NULL ) free( vals[0].bv_val );
 				entry_free( e );
 				return NULL;
 			}
 
-			rc = dnPrettyNormal( NULL, &value, &e->e_name, &e->e_nname );
-			free( value.bv_val );
+			rc = dnPrettyNormal( NULL, &vals[0], &e->e_name, &e->e_nname );
+			free( vals[0].bv_val );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
@@ -172,7 +170,7 @@ str2entry( char *s )
 #endif
 			if( slapMode & SLAP_TOOL_MODE ) {
 				entry_free( e );
-				free( value.bv_val );
+				free( vals[0].bv_val );
 				free( type );
 				return NULL;
 			}
@@ -188,7 +186,7 @@ str2entry( char *s )
 						type, text, 0 );
 #endif
 				entry_free( e );
-				free( value.bv_val );
+				free( vals[0].bv_val );
 				free( type );
 				return NULL;
 			}
@@ -203,13 +201,13 @@ str2entry( char *s )
 
 			if( pretty ) {
 				rc = pretty( ad->ad_type->sat_syntax,
-					&value, &pval );
+					&vals[0], &pval );
 
 			} else if( validate ) {
 				/*
 			 	 * validate value per syntax
 			 	 */
-				rc = validate( ad->ad_type->sat_syntax, &value );
+				rc = validate( ad->ad_type->sat_syntax, &vals[0] );
 
 			} else {
 #ifdef NEW_LOGGING
@@ -222,7 +220,7 @@ str2entry( char *s )
 					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
 #endif
 				entry_free( e );
-				free( value.bv_val );
+				free( vals[0].bv_val );
 				free( type );
 				return NULL;
 			}
@@ -238,14 +236,14 @@ str2entry( char *s )
 					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
 #endif
 				entry_free( e );
-				free( value.bv_val );
+				free( vals[0].bv_val );
 				free( type );
 				return NULL;
 			}
 
 			if( pretty ) {
-				free( value.bv_val );
-				value = pval;
+				free( vals[0].bv_val );
+				vals[0] = pval;
 			}
 		}
 
@@ -259,13 +257,13 @@ str2entry( char *s )
 			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
 #endif
 			entry_free( e );
-			free( value.bv_val );
+			free( vals[0].bv_val );
 			free( type );
 			return( NULL );
 		}
 
 		free( type );
-		free( value.bv_val );
+		free( vals[0].bv_val );
 	}
 
 	/* check to make sure there was a dn: line */
@@ -335,8 +333,8 @@ entry2str(
 	/* put the attributes */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		/* put "<type>:[:] <value>" line for each value */
-		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-			bv = a->a_vals[i];
+		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
+			bv = &a->a_vals[i];
 			tmplen = a->a_desc->ad_cname.bv_len;
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
 			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE,
@@ -401,6 +399,8 @@ int
 entry_dn_cmp( Entry *e1, Entry *e2 )
 {
 	/* compare their normalized UPPERCASED dn's */
+	int rc = e1->e_nname.bv_len - e2->e_nname.bv_len;
+	if (rc) return rc;
 	return( strcmp( e1->e_ndn, e2->e_ndn ) );
 }
 
@@ -496,14 +496,13 @@ int entry_encode(Entry *e, struct berval *bv)
 		siz += sizeof(Attribute);
 		len += a->a_desc->ad_cname.bv_len+1;
 		len += entry_lenlen(a->a_desc->ad_cname.bv_len);
-		for (i=0; a->a_vals[i]; i++) {
-			siz += sizeof(struct berval *);
+		for (i=0; a->a_vals[i].bv_val; i++) {
 			siz += sizeof(struct berval);
-			len += a->a_vals[i]->bv_len + 1;
-			len += entry_lenlen(a->a_vals[i]->bv_len);
+			len += a->a_vals[i].bv_len + 1;
+			len += entry_lenlen(a->a_vals[i].bv_len);
 		}
 		len += entry_lenlen(i);
-		siz += sizeof(struct berval *);	/* NULL pointer at end */
+		siz += sizeof(struct berval);	/* empty berval at end */
 	}
 	len += 1;	/* NUL byte at end */
 	len += entry_lenlen(siz);
@@ -527,13 +526,13 @@ int entry_encode(Entry *e, struct berval *bv)
 		ptr += a->a_desc->ad_cname.bv_len;
 		*ptr++ = '\0';
 		if (a->a_vals) {
-		    for (i=0; a->a_vals[i]; i++);
+		    for (i=0; a->a_vals[i].bv_val; i++);
 		    entry_putlen(&ptr, i);
-		    for (i=0; a->a_vals[i]; i++) {
-			entry_putlen(&ptr, a->a_vals[i]->bv_len);
-			memcpy(ptr, a->a_vals[i]->bv_val,
-				a->a_vals[i]->bv_len);
-			ptr += a->a_vals[i]->bv_len;
+		    for (i=0; a->a_vals[i].bv_val; i++) {
+			entry_putlen(&ptr, a->a_vals[i].bv_len);
+			memcpy(ptr, a->a_vals[i].bv_val,
+				a->a_vals[i].bv_len);
+			ptr += a->a_vals[i].bv_len;
 			*ptr++ = '\0';
 		    }
 		}
@@ -562,8 +561,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	const char *text;
 	AttributeDescription *ad;
 	unsigned char *ptr = (unsigned char *)bv->bv_val;
-	struct berval **bptr;
-	struct berval *vptr;
+	BVarray bptr;
 
 	i = entry_getlen(&ptr);
 	x = ch_malloc(i);
@@ -589,16 +587,17 @@ int entry_decode(struct berval *bv, Entry **e)
 	 * pointer can never be NULL
 	 */
 	x->e_attrs = (Attribute *)(x+1);
-	bptr = (struct berval **)x->e_attrs;
+	bptr = (BVarray)x->e_attrs;
 	a = NULL;
 
 	while (i = entry_getlen(&ptr)) {
+		struct berval bv = { i, ptr };
 		if (a) {
 			a->a_next = (Attribute *)bptr;
 		}
 		a = (Attribute *)bptr;
 		ad = NULL;
-		rc = slap_str2ad( ptr, &ad, &text );
+		rc = slap_bv2ad( &bv, &ad, &text );
 
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -608,7 +607,7 @@ int entry_decode(struct berval *bv, Entry **e)
 			Debug( LDAP_DEBUG_TRACE,
 				"<= entry_decode: str2ad(%s): %s\n", ptr, text, 0 );
 #endif
-			rc = slap_str2undef_ad( ptr, &ad, &text );
+			rc = slap_bv2undef_ad( &bv, &ad, &text );
 
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -624,23 +623,19 @@ int entry_decode(struct berval *bv, Entry **e)
 		}
 		ptr += i + 1;
 		a->a_desc = ad;
-		bptr = (struct berval **)(a+1);
+		bptr = (BVarray)(a+1);
 		a->a_vals = bptr;
 		j = entry_getlen(&ptr);
-		a->a_vals[j] = NULL;
-		vptr = (struct berval *)(bptr + j + 1);
+		a->a_vals[j].bv_val = NULL;
 
 		while (j) {
 			i = entry_getlen(&ptr);
-			*bptr = vptr;
-			vptr->bv_len = i;
-			vptr->bv_val = (char *)ptr;
+			bptr->bv_len = i;
+			bptr->bv_val = (char *)ptr;
 			ptr += i+1;
 			bptr++;
-			vptr++;
 			j--;
 		}
-		bptr = (struct berval **)vptr;
 	}
 	if (a)
 		a->a_next = NULL;

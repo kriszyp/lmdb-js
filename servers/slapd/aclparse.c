@@ -552,13 +552,11 @@ parse_acl(
 
 					{
 						int rc;
-						struct berval val;
-						struct berval *vals[2];
+						struct berval vals[2];
 
-						val.bv_val = b->a_group_oc->soc_oid;
-						val.bv_len = strlen(val.bv_val);
-						vals[0] = &val;
-						vals[1] = NULL;
+						vals[0].bv_val = b->a_group_oc->soc_oid;
+						vals[0].bv_len = strlen(vals[0].bv_val);
+						vals[1].bv_val = NULL;
 
 
 						rc = oc_check_allowed( b->a_group_at->ad_type, vals, NULL );

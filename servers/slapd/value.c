@@ -20,32 +20,34 @@
 
 int
 value_add( 
-    struct berval	***vals,
-    struct berval	**addvals
+    BVarray *vals,
+    BVarray addvals
 )
 {
 	int	n, nn, i, j;
+	BVarray v2;
 
-	for ( nn = 0; addvals != NULL && addvals[nn] != NULL; nn++ )
+	for ( nn = 0; addvals != NULL && addvals[nn].bv_val != NULL; nn++ )
 		;	/* NULL */
 
 	if ( *vals == NULL ) {
-		*vals = (struct berval **) ch_malloc( (nn + 1)
-		    * sizeof(struct berval *) );
+		*vals = (BVarray) ch_malloc( (nn + 1)
+		    * sizeof(struct berval) );
 		n = 0;
-
 	} else {
-		for ( n = 0; (*vals)[n] != NULL; n++ )
+		for ( n = 0; (*vals)[n].bv_val != NULL; n++ )
 			;	/* NULL */
-		*vals = (struct berval **) ch_realloc( (char *) *vals,
-		    (n + nn + 1) * sizeof(struct berval *) );
+		*vals = (BVarray) ch_realloc( (char *) *vals,
+		    (n + nn + 1) * sizeof(struct berval) );
 	}
 
-	for ( i = 0, j = 0; i < nn; i++ ) {
-		(*vals)[n + j] = ber_bvdup( addvals[i] );
-		if( (*vals)[n + j++] == NULL ) break;
+	v2 = *vals + n;
+	for ( ; addvals->bv_val; v2++, addvals++ ) {
+		ber_dupbv(v2, addvals);
+		if (v2->bv_val == NULL) break;
 	}
-	(*vals)[n + j] = NULL;
+	v2->bv_val = NULL;
+	v2->bv_len = 0;
 
 	return LDAP_SUCCESS;
 }
@@ -174,7 +176,7 @@ value_match(
 int value_find_ex(
 	AttributeDescription *ad,
 	unsigned flags,
-	struct berval **vals,
+	BVarray vals,
 	struct berval *val )
 {
 	int	i;
@@ -212,12 +214,12 @@ int value_find_ex(
 		}
 	}
 
-	for ( i = 0; vals[i] != NULL; i++ ) {
+	for ( i = 0; vals[i].bv_val != NULL; i++ ) {
 		int match;
 		const char *text;
 
 		rc = value_match( &match, ad, mr, flags,
-			vals[i], nval.bv_val == NULL ? val : &nval, &text );
+			&vals[i], nval.bv_val == NULL ? val : &nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {
 			free( nval.bv_val );

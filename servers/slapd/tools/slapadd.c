@@ -111,13 +111,12 @@ main( int argc, char **argv )
 			}
 
 			if( sc == NULL ) {
-				struct berval *vals[2];
-				struct berval scbv;
+				struct berval vals[2];
 
 				int ret = structural_class(
-					oc->a_vals, &scbv, &text, textbuf, textlen );
+					oc->a_vals, vals, &text, textbuf, textlen );
 
-				if( scbv.bv_len == 0 ) {
+				if( vals[0].bv_len == 0 ) {
 					fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
 					progname, e->e_dn, lineno, text );
 					rc = EXIT_FAILURE;
@@ -126,8 +125,7 @@ main( int argc, char **argv )
 					break;
 				}
 
-				vals[0] = &scbv;
-				vals[1] = NULL;
+				vals[1].bv_val = NULL;
 				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
 					vals );
 			}

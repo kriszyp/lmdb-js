@@ -27,14 +27,15 @@ ldap_back_attribute(
 	Entry	*target,
 	struct berval	*ndn,
 	AttributeDescription *entry_at,
-	struct berval ***vals
+	BVarray *vals
 )
 {
 	struct ldapinfo *li = (struct ldapinfo *) be->be_private;    
 	int rc = 1, i, j, count, is_oc;
 	Attribute *attr;
-	struct berval **abv, **v;
-	char **vs, *mapped;
+	BVarray abv, v;
+	struct berval mapped;
+	char **vs;
 	LDAPMessage	*result, *e;
 	char *gattr[2];
 	LDAP *ld;
@@ -47,24 +48,24 @@ ldap_back_attribute(
 		if ((attr = attr_find(target->e_attrs, entry_at)) == NULL)
 			return(1);
 
-		for ( count = 0; attr->a_vals[count] != NULL; count++ ) { }
-		v = (struct berval **) ch_calloc( (count + 1), sizeof(struct berval *) );
+		for ( count = 0; attr->a_vals[count].bv_val != NULL; count++ ) { }
+		v = (BVarray) ch_calloc( (count + 1), sizeof(struct berval) );
 		if (v != NULL) {
 			for ( j = 0, abv = attr->a_vals; --count >= 0; abv++ ) {
-				if ( (*abv)->bv_len > 0 ) {
-					v[j] = ber_bvdup( *abv );
-					if( v[j] == NULL )
+				if ( abv->bv_len > 0 ) {
+					ber_dupbv( &v[j], abv );
+					if( v[j].bv_val == NULL )
 						break;
 				}
 			}
-			v[j] = NULL;
+			v[j].bv_val = NULL;
 			*vals = v;
 			rc = 0;
 		}
 
 	} else {
-		mapped = ldap_back_map(&li->at_map, entry_at->ad_cname.bv_val, 0);
-		if (mapped == NULL)
+		ldap_back_map(&li->at_map, &entry_at->ad_cname, &mapped, 0);
+		if (mapped.bv_val == NULL)
 			return(1);
 
 		if (ldap_initialize(&ld, li->url) != LDAP_SUCCESS) {
@@ -72,42 +73,39 @@ ldap_back_attribute(
 		}
 
 		if (ldap_bind_s(ld, li->binddn, li->bindpw, LDAP_AUTH_SIMPLE) == LDAP_SUCCESS) {
-			gattr[0] = mapped;
+			gattr[0] = mapped.bv_val;
 			gattr[1] = NULL;
 			if (ldap_search_ext_s(ld, ndn->bv_val, LDAP_SCOPE_BASE, "(objectclass=*)",
 									gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
 									LDAP_NO_LIMIT, &result) == LDAP_SUCCESS)
 			{
 				if ((e = ldap_first_entry(ld, result)) != NULL) {
-					vs = ldap_get_values(ld, e, mapped);
+					vs = ldap_get_values(ld, e, mapped.bv_val);
 					if (vs != NULL) {
 						for ( count = 0; vs[count] != NULL; count++ ) { }
-						v = (struct berval **) ch_calloc( (count + 1), sizeof(struct berval *) );
+						v = (BVarray) ch_calloc( (count + 1), sizeof(struct berval) );
 						if (v == NULL) {
 							ldap_value_free(vs);
 						} else {
-							is_oc = (strcasecmp("objectclass", mapped) == 0);
+							is_oc = (strcasecmp("objectclass", mapped.bv_val) == 0);
 							for ( i = 0, j = 0; i < count; i++) {
+								ber_str2bv(vs[i], 0, 0, &v[j] );
 								if (!is_oc) {
-									v[j] = ber_bvstr( vs[i] );
-									if( v[j] == NULL )
+									if( v[j].bv_val == NULL )
 										ch_free(vs[i]);
 									else
 										j++;
 								} else {
-									mapped = ldap_back_map(&li->oc_map, vs[i], 1);
-									if (mapped) {
-										mapped = ch_strdup( mapped );
-										if (mapped) {
-											v[j] = ber_bvstr( mapped );
-											if (v[j])
-												j++;
-										}
+									ldap_back_map(&li->oc_map, &v[j], &mapped, 1);
+									if (mapped.bv_val) {
+										ber_dupbv( &v[j], &mapped );
+										if (v[j].bv_val)
+											j++;
 									}
 									ch_free(vs[i]);
 								}
 							}
-							v[j] = NULL;
+							v[j].bv_val = NULL;
 							*vals = v;
 							rc = 0;
 							ch_free(vs);

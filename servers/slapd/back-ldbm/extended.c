@@ -35,7 +35,7 @@ ldbm_back_extended(
     struct berval	**rspdata,
 	LDAPControl *** rspctrls,
 	const char**	text,
-    struct berval *** refs 
+    BVarray *refs 
 )
 {
 	int i;

@@ -88,7 +88,7 @@ retry:	/* transaction retry */
 
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
-		struct berval **refs;
+		BVarray refs;
 
 		Debug( LDAP_DEBUG_ARGS,
 			"<=- bdb_delete: no such object %s\n",
@@ -110,7 +110,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		ber_bvecfree( refs );
+		bvarray_free( refs );
 		free( matched_dn );
 
 		rc = -1;
@@ -196,7 +196,7 @@ retry:	/* transaction retry */
 	if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
-		struct berval **refs = get_entry_referrals( be,
+		BVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -206,7 +206,7 @@ retry:	/* transaction retry */
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			e->e_dn, NULL, refs, NULL );
 
-		ber_bvecfree( refs );
+		bvarray_free( refs );
 
 		rc = 1;
 		goto done;

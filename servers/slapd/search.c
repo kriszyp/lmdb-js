@@ -299,13 +299,13 @@ do_search(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( &nbase, manageDSAit, 1 )) == NULL ) {
-		struct berval **ref = referral_rewrite( default_referral,
+		BVarray ref = referral_rewrite( default_referral,
 			NULL, &pbase, scope );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
 
-		ber_bvecfree( ref );
+		bvarray_free( ref );
 		goto return_results;
 	}
 
@@ -330,7 +330,7 @@ do_search(
 	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, &pbase, &nbase,
 			scope, deref, sizelimit,
-		    timelimit, filter, fstr.bv_val, al, attrsonly );
+		    timelimit, filter, &fstr, al, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext", NULL, NULL );

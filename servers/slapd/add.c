@@ -40,9 +40,9 @@ do_add( Connection *conn, Operation *op )
 	ber_tag_t	tag;
 	Entry		*e;
 	Backend		*be;
-	LDAPModList	*modlist = NULL;
-	LDAPModList	**modtail = &modlist;
-	Modifications *mods = NULL;
+	Modifications	*modlist = NULL;
+	Modifications	**modtail = &modlist;
+	Modifications	tmp;
 	const char *text;
 	int			rc = LDAP_SUCCESS;
 	int	manageDSAit;
@@ -112,11 +112,9 @@ do_add( Connection *conn, Operation *op )
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
 	{
-		LDAPModList *mod = (LDAPModList *) ch_malloc( sizeof(LDAPModList) );
-		mod->ml_op = LDAP_MOD_ADD;
-		mod->ml_next = NULL;
+		Modifications *mod;
 
-		rc = ber_scanf( ber, "{a{V}}", &mod->ml_type, &mod->ml_bvalues );
+		rc = ber_scanf( ber, "{o{W}}", &tmp.sml_type, &tmp.sml_bvalues );
 
 		if ( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -128,28 +126,36 @@ do_add( Connection *conn, Operation *op )
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 			rc = -1;
-			free( mod );
 			goto done;
 		}
 
-		if ( mod->ml_bvalues == NULL ) {
+		if ( tmp.sml_bvalues == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				"do_add: conn %d	 no values for type %s\n",
-				conn->c_connid, mod->ml_type ));
+				conn->c_connid, tmp.sml_type.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
-				mod->ml_type, 0, 0 );
+				tmp.sml_type.bv_val, 0, 0 );
 #endif
 			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 				NULL, "no values for attribute type", NULL, NULL );
-			free( mod->ml_type );
-			free( mod );
+			free( tmp.sml_type.bv_val );
 			goto done;
 		}
+		mod  = (Modifications *) ch_malloc( sizeof(Modifications)
+			+ tmp.sml_type.bv_len + 1);
+		
+		mod->sml_op = LDAP_MOD_ADD;
+		mod->sml_next = NULL;
+		mod->sml_desc = NULL;
+		mod->sml_type.bv_val = (char *)(mod+1);
+		strcpy(mod->sml_type.bv_val, tmp.sml_type.bv_val);
+		mod->sml_type.bv_len = tmp.sml_type.bv_len;
+		mod->sml_bvalues = tmp.sml_bvalues;
 
 		*modtail = mod;
-		modtail = &mod->ml_next;
+		modtail = &mod->sml_next;
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
@@ -184,7 +190,7 @@ do_add( Connection *conn, Operation *op )
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, e->e_dn, 0, 0 );
 
-	if( e->e_ndn == NULL || *e->e_ndn == '\0' ) {
+	if( e->e_nname.bv_len == 0 ) {
 		/* protocolError may be a more appropriate error */
 		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
 			NULL, "root DSE already exists",
@@ -209,13 +215,13 @@ do_add( Connection *conn, Operation *op )
 	 */
 	be = select_backend( &e->e_nname, manageDSAit, 0 );
 	if ( be == NULL ) {
-		struct berval **ref = referral_rewrite( default_referral,
+		BVarray ref = referral_rewrite( default_referral,
 			NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
 
-		ber_bvecfree( ref );
+		bvarray_free( ref );
 		goto done;
 	}
 
@@ -250,7 +256,7 @@ do_add( Connection *conn, Operation *op )
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
 
-			rc = slap_modlist2mods( modlist, update, &mods, &text,
+			rc = slap_mods_check( modlist, update, &text,
 				textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -262,15 +268,14 @@ do_add( Connection *conn, Operation *op )
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON)) && !repl_user )
 			{
-				Modifications **modstail;
-				for( modstail = &mods;
-					*modstail != NULL;
-					modstail = &(*modstail)->sml_next )
+				for( modtail = &modlist;
+					*modtail != NULL;
+					modtail = &(*modtail)->sml_next )
 				{
-					assert( (*modstail)->sml_op == LDAP_MOD_ADD );
-					assert( (*modstail)->sml_desc != NULL );
+					assert( (*modtail)->sml_op == LDAP_MOD_ADD );
+					assert( (*modtail)->sml_desc != NULL );
 				}
-				rc = slap_mods_opattrs( op, mods, modstail, &text,
+				rc = slap_mods_opattrs( op, modlist, modtail, &text,
 					textbuf, textlen );
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
@@ -279,7 +284,7 @@ do_add( Connection *conn, Operation *op )
 				}
 			}
 
-			rc = slap_mods2entry( mods, &e, &text );
+			rc = slap_mods2entry( modlist, &e, &text );
 			if( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
 					NULL, text, NULL, NULL );
@@ -299,15 +304,15 @@ do_add( Connection *conn, Operation *op )
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			struct berval **defref = be->be_update_refs
+			BVarray defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
-			struct berval **ref = referral_rewrite( defref,
+			BVarray ref = referral_rewrite( defref,
 				NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
 
-			ber_bvecfree( ref );
+			bvarray_free( ref );
 #endif
 		}
 	} else {
@@ -325,10 +330,7 @@ done:
 	free( dn.bv_val );
 
 	if( modlist != NULL ) {
-		slap_modlist_free( modlist );
-	}
-	if( mods != NULL ) {
-		slap_mods_free( mods );
+		slap_mods_free( modlist );
 	}
 	if( e != NULL ) {
 		entry_free( e );
@@ -358,20 +360,20 @@ static int slap_mods2entry(
 #ifdef SLURPD_FRIENDLY
 			ber_len_t i,j;
 
-			for( i=0; attr->a_vals[i]; i++ ) {
+			for( i=0; attr->a_vals[i].bv_val; i++ ) {
 				/* count them */
 			}
-			for( j=0; mods->sml_bvalues[j]; j++ ) {
+			for( j=0; mods->sml_bvalues[j].bv_val; j++ ) {
 				/* count them */
 			}
 			j++;	/* NULL */
 			
 			attr->a_vals = ch_realloc( attr->a_vals,
-				sizeof( struct berval * ) * (i+j) );
+				sizeof( struct berval ) * (i+j) );
 
 			/* should check for duplicates */
 			AC_MEMCPY( &attr->a_vals[i], mods->sml_bvalues,
-				sizeof( struct berval * ) * j );
+				sizeof( struct berval ) * j );
 
 			/* trim the mods array */
 			ch_free( mods->sml_bvalues );

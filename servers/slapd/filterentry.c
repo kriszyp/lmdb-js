@@ -225,7 +225,6 @@ static int test_mra_filter(
 	Entry *e,
 	MatchingRuleAssertion *mra )
 {
-	int		i;
 	Attribute	*a;
 
 	if( !access_allowed( be, conn, op, e,
@@ -249,14 +248,15 @@ static int test_mra_filter(
 		a != NULL;
 		a = attrs_find( a->a_next, mra->ma_desc ) )
 	{
-		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+		struct berval *bv;
+		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
 			int ret;
 			int rc;
 			const char *text;
 
 			rc = value_match( &ret, a->a_desc, mra->ma_rule,
 				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				a->a_vals[i], &mra->ma_value,
+				bv, &mra->ma_value,
 				&text );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -282,7 +282,6 @@ test_ava_filter(
     int		type
 )
 {
-	int		i;
 	Attribute	*a;
 
 	if ( !access_allowed( be, conn, op, e,
@@ -296,6 +295,7 @@ test_ava_filter(
 		a = attrs_find( a->a_next, ava->aa_desc ) )
 	{
 		MatchingRule *mr;
+		struct berval *bv;
 
 		switch ( type ) {
 		case LDAP_FILTER_APPROX:
@@ -321,15 +321,14 @@ test_ava_filter(
 			continue;
 		}
 
-		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
 			int ret;
 			int rc;
 			const char *text;
 
 			rc = value_match( &ret, a->a_desc, mr,
 				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				a->a_vals[i], &ava->aa_value,
-				&text );
+				bv, &ava->aa_value, &text );
 
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -501,22 +500,21 @@ test_substrings_filter(
 		a != NULL;
 		a = attrs_find( a->a_next, f->f_sub_desc ) )
 	{
-		int i;
 		MatchingRule *mr = a->a_desc->ad_type->sat_substr;
+		struct berval *bv;
 
 		if( mr == NULL ) {
 			continue;
 		}
 
-		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+		for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
 			int ret;
 			int rc;
 			const char *text;
 
 			rc = value_match( &ret, a->a_desc, mr,
 				SLAP_MR_ASSERTION_SYNTAX_MATCH,
-				a->a_vals[i], f->f_sub,
-				&text );
+				bv, f->f_sub, &text );
 
 			if( rc != LDAP_SUCCESS ) {
 				return rc;

@@ -39,7 +39,7 @@ bdb_search(
 	int		slimit,
 	int		tlimit,
 	Filter	*filter,
-	const char	*filterstr,
+	struct berval	*filterstr,
 	AttributeName	*attrs,
 	int		attrsonly )
 {
@@ -51,7 +51,7 @@ bdb_search(
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	Entry		*e = NULL;
-	struct berval **v2refs = NULL;
+	BVarray v2refs = NULL;
 	Entry	*matched = NULL;
 	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
@@ -93,10 +93,10 @@ bdb_search(
 
 	if ( e == NULL ) {
 		struct berval *matched_dn = NULL;
-		struct berval **refs = NULL;
+		BVarray refs = NULL;
 
 		if ( matched != NULL ) {
-			struct berval **erefs;
+			BVarray erefs;
 			matched_dn = ber_bvdup( &matched->e_name );
 
 			erefs = is_entry_referral( matched )
@@ -109,7 +109,7 @@ bdb_search(
 			if( erefs ) {
 				refs = referral_rewrite( erefs, matched_dn,
 					base, scope );
-				ber_bvecfree( erefs );
+				bvarray_free( erefs );
 			}
 
 		} else {
@@ -120,7 +120,7 @@ bdb_search(
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
 			matched_dn ? matched_dn->bv_val : NULL, text, refs, NULL );
 
-		if ( refs ) ber_bvecfree( refs );
+		if ( refs ) bvarray_free( refs );
 		if ( matched_dn ) ber_bvfree( matched_dn );
 		return rc;
 	}
@@ -128,9 +128,8 @@ bdb_search(
 	if (!manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval *matched_dn = ber_bvdup( &e->e_name );
-		struct berval **erefs = get_entry_referrals( be,
-			conn, op, e );
-		struct berval **refs = NULL;
+		BVarray erefs = get_entry_referrals( be, conn, op, e );
+		BVarray refs = NULL;
 
 		bdb_entry_return( be, e );
 		e = NULL;
@@ -138,7 +137,7 @@ bdb_search(
 		if( erefs ) {
 			refs = referral_rewrite( erefs, matched_dn,
 				base, scope );
-			ber_bvecfree( erefs );
+			bvarray_free( erefs );
 		}
 
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
@@ -149,7 +148,7 @@ bdb_search(
 			refs ? NULL : "bad referral object",
 			refs, NULL );
 
-		ber_bvecfree( refs );
+		bvarray_free( refs );
 		ber_bvfree( matched_dn );
 		return 1;
 	}
@@ -353,9 +352,9 @@ bdb_search(
 		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
-			struct berval **erefs = get_entry_referrals(
+			BVarray erefs = get_entry_referrals(
 				be, conn, op, e );
-			struct berval **refs = referral_rewrite( erefs,
+			BVarray refs = referral_rewrite( erefs,
 				&e->e_name, NULL,
 				scope == LDAP_SCOPE_SUBTREE 
 					? LDAP_SCOPE_SUBTREE
@@ -364,7 +363,7 @@ bdb_search(
 			send_search_reference( be, conn, op,
 				e, refs, NULL, &v2refs );
 
-			ber_bvecfree( refs );
+			bvarray_free( refs );
 
 			goto loop_continue;
 		}
@@ -445,7 +444,7 @@ loop_continue:
 	rc = 0;
 
 done:
-	ber_bvecfree( v2refs );
+	if( v2refs ) bvarray_free( v2refs );
 	if( realbase.bv_val ) ch_free( realbase.bv_val );
 
 	return rc;

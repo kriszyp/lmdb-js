@@ -65,8 +65,8 @@ struct ldapmap {
 };
 
 struct ldapmapping {
-	char *src;
-	char *dst;
+	struct berval src;
+	struct berval dst;
 };
 
 struct ldapinfo {
@@ -101,12 +101,13 @@ extern int ldap_back_conn_dup( void *c1, void *c2 );
 int mapping_cmp (const void *, const void *);
 int mapping_dup (void *, void *);
 
-char *ldap_back_map ( struct ldapmap *map, char *s, int remap );
+void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
+	int remap );
 char *
 ldap_back_map_filter(
 		struct ldapmap *at_map,
 		struct ldapmap *oc_map,
-		char *f,
+		struct berval *f,
 		int remap
 );
 char **

@@ -92,7 +92,7 @@ ldbm_back_add(
 		/* get parent with writer lock */
 		if ( (p = dn2entry_w( be, &pdn, &matched )) == NULL ) {
 			char *matched_dn = NULL;
-			struct berval **refs;
+			BVarray refs;
 
 			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
 
@@ -121,7 +121,7 @@ ldbm_back_add(
 				refs == NULL ? "parent does not exist" : "parent is referral",
 				refs, NULL );
 
-			ber_bvecfree( refs );
+			bvarray_free( refs );
 			free( matched_dn );
 
 			return -1;
@@ -176,7 +176,7 @@ ldbm_back_add(
 		if ( is_entry_referral( p ) ) {
 			/* parent is a referral, don't allow add */
 			char *matched_dn = ch_strdup( p->e_dn );
-			struct berval **refs = is_entry_referral( p )
+			BVarray refs = is_entry_referral( p )
 				? get_entry_referrals( be, conn, op, p )
 				: NULL;
 
@@ -194,7 +194,7 @@ ldbm_back_add(
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 			    matched_dn, NULL, refs, NULL );
 
-			ber_bvecfree( refs );
+			bvarray_free( refs );
 			free( matched_dn );
 			return -1;
 		}

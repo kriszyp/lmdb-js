@@ -34,8 +34,7 @@ root_dse_info(
 {
 	char buf[BUFSIZ];
 	Entry		*e;
-	struct berval	val;
-	struct berval	*vals[2];
+	struct berval	vals[2];
 	int		i, j;
 	char ** supportedSASLMechanisms;
 
@@ -60,8 +59,7 @@ root_dse_info(
 
 	Attribute *a;
 
-	vals[0] = &val;
-	vals[1] = NULL;
+	vals[1].bv_val = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
@@ -78,23 +76,23 @@ root_dse_info(
 
 	e->e_private = NULL;
 
-	val.bv_val = "OpenLDAProotDSE";
-	val.bv_len = sizeof("OpenLDAProotDSE")-1;
+	vals[0].bv_val = "OpenLDAProotDSE";
+	vals[0].bv_len = sizeof("OpenLDAProotDSE")-1;
 	attr_merge( e, ad_structuralObjectClass, vals );
 
-	val.bv_val = "top";
-	val.bv_len = sizeof("top")-1;
+	vals[0].bv_val = "top";
+	vals[0].bv_len = sizeof("top")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = "OpenLDAProotDSE";
-	val.bv_len = sizeof("OpenLDAProotDSE")-1;
+	vals[0].bv_val = "OpenLDAProotDSE";
+	vals[0].bv_len = sizeof("OpenLDAProotDSE")-1;
 	attr_merge( e, ad_objectClass, vals );
 
 	for ( i = 0; i < nbackends; i++ ) {
 		if ( backends[i].be_glueflags & SLAP_GLUE_SUBORDINATE )
 			continue;
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
-			val = *backends[i].be_suffix[j];
+			vals[0] = *backends[i].be_suffix[j];
 			attr_merge( e, ad_namingContexts, vals );
 		}
 	}
@@ -103,21 +101,21 @@ root_dse_info(
 
 	/* supportedControl */
 	for ( i=0; supportedControls[i] != NULL; i++ ) {
-		val.bv_val = supportedControls[i];
-		val.bv_len = strlen( val.bv_val );
+		vals[0].bv_val = supportedControls[i];
+		vals[0].bv_len = strlen( vals[0].bv_val );
 		attr_merge( e, ad_supportedControl, vals );
 	}
 
 	/* supportedExtension */
-	for ( i=0; (val.bv_val = get_supported_extop(i)) != NULL; i++ ) {
-		val.bv_len = strlen( val.bv_val );
+	for ( i=0; (vals[0].bv_val = get_supported_extop(i)) != NULL; i++ ) {
+		vals[0].bv_len = strlen( vals[0].bv_val );
 		attr_merge( e, ad_supportedExtension, vals );
 	}
 
 	/* supportedFeatures */
 	for ( i=0; supportedFeatures[i] != NULL; i++ ) {
-		val.bv_val = supportedFeatures[i];
-		val.bv_len = strlen( val.bv_val );
+		vals[0].bv_val = supportedFeatures[i];
+		vals[0].bv_len = strlen( vals[0].bv_val );
 		attr_merge( e, ad_supportedFeatures, vals );
 	}
 
@@ -130,8 +128,8 @@ root_dse_info(
 			continue;
 		}
 		sprintf(buf,"%d",i);
-		val.bv_val = buf;
-		val.bv_len = strlen( val.bv_val );
+		vals[0].bv_val = buf;
+		vals[0].bv_len = strlen( vals[0].bv_val );
 		attr_merge( e, ad_supportedLDAPVersion, vals );
 	}
 
@@ -140,8 +138,8 @@ root_dse_info(
 
 	if( supportedSASLMechanisms != NULL ) {
 		for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
-			val.bv_val = supportedSASLMechanisms[i];
-			val.bv_len = strlen( val.bv_val );
+			vals[0].bv_val = supportedSASLMechanisms[i];
+			vals[0].bv_len = strlen( vals[0].bv_val );
 			attr_merge( e, ad_supportedSASLMechanisms, vals );
 		}
 		charray_free( supportedSASLMechanisms );

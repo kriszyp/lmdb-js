@@ -169,7 +169,7 @@ typedef struct glue_state {
 	int matchlen;
 	char *matched;
 	int nrefs;
-	struct berval **refs;
+	BVarray refs;
 } glue_state;
 
 static void
@@ -181,7 +181,7 @@ glue_back_response (
 	ber_int_t err,
 	const char *matched,
 	const char *text,
-	struct berval **ref,
+	BVarray ref,
 	const char *resoid,
 	struct berval *resdata,
 	struct berval *sasldata,
@@ -208,21 +208,21 @@ glue_back_response (
 	}
 	if (ref) {
 		int i, j, k;
-		struct berval **new;
+		BVarray new;
 
-		for (i=0; ref[i]; i++);
+		for (i=0; ref[i].bv_val; i++);
 
 		j = gs->nrefs;
 		if (!j) {
-			new = ch_malloc ((i+1)*sizeof(struct berval *));
+			new = ch_malloc ((i+1)*sizeof(struct berval));
 		} else {
 			new = ch_realloc(gs->refs,
-				(j+i+1)*sizeof(struct berval *));
+				(j+i+1)*sizeof(struct berval));
 		}
 		for (k=0; k<i; j++,k++) {
-			new[j] = ber_bvdup(ref[k]);
+			ber_dupbv( &new[j], &ref[k] );
 		}
-		new[j] = NULL;
+		new[j].bv_val = NULL;
 		gs->nrefs = j;
 		gs->refs = new;
 	}
@@ -235,7 +235,7 @@ glue_back_sresult (
 	ber_int_t err,
 	const char *matched,
 	const char *text,
-	struct berval **refs,
+	BVarray refs,
 	LDAPControl **ctrls,
 	int nentries
 )
@@ -259,7 +259,7 @@ glue_back_search (
 	int slimit,
 	int tlimit,
 	Filter *filter,
-	const char *filterstr,
+	struct berval *filterstr,
 	AttributeName *attrs,
 	int attrsonly
 )
@@ -360,7 +360,7 @@ done:
 	if (gs.matched)
 		free (gs.matched);
 	if (gs.refs)
-		ber_bvecfree(gs.refs);
+		bvarray_free(gs.refs);
 	return rc;
 }
 
@@ -575,7 +575,7 @@ glue_back_attribute (
 	Entry *target,
 	struct berval *ndn,
 	AttributeDescription *ad,
-	struct berval ***vals
+	BVarray *vals
 )
 {
 	BackendDB *be;

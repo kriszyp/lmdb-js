@@ -28,11 +28,9 @@ schema_info( Entry **entry, const char **text )
 		= slap_schema.si_ad_objectClass;
 
 	Entry		*e;
-	struct berval	val;
-	struct berval	*vals[2];
+	struct berval	vals[2];
 
-	vals[0] = &val;
-	vals[1] = NULL;
+	vals[1].bv_val = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
@@ -41,24 +39,24 @@ schema_info( Entry **entry, const char **text )
 	(void) dnNormalize2( NULL, &e->e_name, &e->e_nname );
 	e->e_private = NULL;
 
-	val.bv_val = "LDAPsubentry";
-	val.bv_len = sizeof("LDAPsubentry")-1;
+	vals[0].bv_val = "LDAPsubentry";
+	vals[0].bv_len = sizeof("LDAPsubentry")-1;
 	attr_merge( e, ad_structuralObjectClass, vals );
 
-	val.bv_val = "top";
-	val.bv_len = sizeof("top")-1;
+	vals[0].bv_val = "top";
+	vals[0].bv_len = sizeof("top")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = "LDAPsubentry";
-	val.bv_len = sizeof("LDAPsubentry")-1;
+	vals[0].bv_val = "LDAPsubentry";
+	vals[0].bv_len = sizeof("LDAPsubentry")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = "subschema";
-	val.bv_len = sizeof("subschema")-1;
+	vals[0].bv_val = "subschema";
+	vals[0].bv_len = sizeof("subschema")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	val.bv_val = "extensibleObject";
-	val.bv_len = sizeof("extensibleObject")-1;
+	vals[0].bv_val = "extensibleObject";
+	vals[0].bv_len = sizeof("extensibleObject")-1;
 	attr_merge( e, ad_objectClass, vals );
 
 	{
@@ -66,16 +64,16 @@ schema_info( Entry **entry, const char **text )
 		AttributeDescription *desc = NULL;
 		struct berval rdn = { sizeof(SLAPD_SCHEMA_DN)-1,
 			SLAPD_SCHEMA_DN };
-		val.bv_val = strchr( rdn.bv_val, '=' );
+		vals[0].bv_val = strchr( rdn.bv_val, '=' );
 
-		if( val.bv_val == NULL ) {
+		if( vals[0].bv_val == NULL ) {
 			*text = "improperly configured subschema subentry";
 			return LDAP_OTHER;
 		}
 
-		val.bv_val++;
-		val.bv_len = rdn.bv_len - (val.bv_val - rdn.bv_val);
-		rdn.bv_len -= val.bv_len + 1;
+		vals[0].bv_val++;
+		vals[0].bv_len = rdn.bv_len - (vals[0].bv_val - rdn.bv_val);
+		rdn.bv_len -= vals[0].bv_len + 1;
 
 		rc = slap_bv2ad( &rdn, &desc, text );
 
@@ -103,4 +101,3 @@ schema_info( Entry **entry, const char **text )
 	return LDAP_SUCCESS;
 }
 #endif
-

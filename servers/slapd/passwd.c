@@ -26,7 +26,7 @@ int passwd_extop(
 	struct berval **rspdata,
 	LDAPControl ***rspctrls,
 	const char **text,
-	struct berval ***refs )
+	BVarray *refs )
 {
 	int rc;
 
@@ -66,9 +66,9 @@ int passwd_extop(
 }
 
 int slap_passwd_parse( struct berval *reqdata,
-	struct berval **id,
-	struct berval **oldpass,
-	struct berval **newpass,
+	struct berval *id,
+	struct berval *oldpass,
+	struct berval *newpass,
 	const char **text )
 {
 	int rc = LDAP_SUCCESS;
@@ -116,7 +116,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "O", id );
+		tag = ber_scanf( ber, "o", id );
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -148,7 +148,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "O", oldpass );
+		tag = ber_scanf( ber, "o", oldpass );
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -180,7 +180,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "O", newpass );
+		tag = ber_scanf( ber, "o", newpass );
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -215,19 +215,19 @@ decoding_error:
 
 done:
 	if( rc != LDAP_SUCCESS ) {
-		if( id != NULL ) {
-			ber_bvfree( *id );
-			*id = NULL;
+		if( id && id->bv_val != NULL ) {
+			free( id->bv_val );
+			id->bv_val = NULL;
 		}
 
-		if( oldpass != NULL ) {
-			ber_bvfree( *oldpass );
-			*oldpass = NULL;
+		if( oldpass && oldpass->bv_val != NULL ) {
+			free( oldpass->bv_val );
+			oldpass->bv_val = NULL;
 		}
 
-		if( newpass != NULL ) {
-			ber_bvfree( *newpass );
-			*newpass = NULL;
+		if( newpass && newpass->bv_val != NULL ) {
+			free( newpass->bv_val );
+			newpass->bv_val = NULL;
 		}
 	}
 
@@ -274,8 +274,8 @@ slap_passwd_check(
 	Attribute *a,
 	struct berval *cred )
 {
-	int	i;
 	int result = 1;
+	struct berval *bv;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
@@ -284,8 +284,8 @@ slap_passwd_check(
 #endif
 #endif
 
-	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-		if( !lutil_passwd( a->a_vals[i], cred, NULL ) ) {
+	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
+		if( !lutil_passwd( bv, cred, NULL ) ) {
 			result = 0;
 			break;
 		}
@@ -301,26 +301,36 @@ slap_passwd_check(
 	return result;
 }
 
-struct berval * slap_passwd_generate( void )
+void
+slap_passwd_generate( struct berval *pass )
 {
+	struct berval *tmp;
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
 		   "slap_passwd_generate: begin\n" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_generate\n", 0, 0, 0 );
 #endif
-
-
 	/*
 	 * generate passwords of only 8 characters as some getpass(3)
 	 * implementations truncate at 8 characters.
 	 */
-	return lutil_passwd_generate( 8 );
+	tmp = lutil_passwd_generate( 8 );
+	if (tmp) {
+		*pass = *tmp;
+		free(tmp);
+	} else {
+		pass->bv_val = NULL;
+		pass->bv_len = 0;
+	}
 }
 
-struct berval * slap_passwd_hash(
-	struct berval * cred )
+void
+slap_passwd_hash(
+	struct berval * cred,
+	struct berval * new )
 {
+	struct berval *tmp;
 #ifdef LUTIL_SHA1_BYTES
 	char* hash = default_passwd_hash ?  default_passwd_hash : "{SSHA}";
 #else
@@ -328,17 +338,17 @@ struct berval * slap_passwd_hash(
 #endif
 	
 
-	struct berval *new;
-
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #endif
 
-	new = lutil_passwd_hash( cred , hash );
+	tmp = lutil_passwd_hash( cred , hash );
 	
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 #endif
+	*new = *tmp;
+	free( tmp );
 
-	return new;
+	return;
 }

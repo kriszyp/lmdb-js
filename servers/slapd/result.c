@@ -19,7 +19,7 @@
 
 #include "slap.h"
 
-static char *v2ref( struct berval **ref, const char *text )
+static char *v2ref( BVarray ref, const char *text )
 {
 	size_t len = 0, i = 0;
 	char *v2;
@@ -49,12 +49,12 @@ static char *v2ref( struct berval **ref, const char *text )
 	strcpy( v2+len, "Referral:" );
 	len += sizeof("Referral:");
 
-	for( i=0; ref[i] != NULL; i++ ) {
-		v2 = ch_realloc( v2, len + ref[i]->bv_len + 1 );
+	for( i=0; ref[i].bv_val != NULL; i++ ) {
+		v2 = ch_realloc( v2, len + ref[i].bv_len + 1 );
 		v2[len-1] = '\n';
-		AC_MEMCPY(&v2[len], ref[i]->bv_val, ref[i]->bv_len );
-		len += ref[i]->bv_len;
-		if (ref[i]->bv_val[ref[i]->bv_len-1] != '/') {
+		AC_MEMCPY(&v2[len], ref[i].bv_val, ref[i].bv_len );
+		len += ref[i].bv_len;
+		if (ref[i].bv_val[ref[i].bv_len-1] != '/') {
 			++len;
 		}
 	}
@@ -176,7 +176,7 @@ send_ldap_response(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	struct berval	**ref,
+	BVarray	ref,
 	const char	*resoid,
 	struct berval	*resdata,
 	struct berval	*sasldata,
@@ -214,10 +214,10 @@ send_ldap_response(
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 			   "send_ldap_response: conn %d  ref=\"%s\"\n",
 			   conn ? conn->c_connid : 0,
-			   ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL" ));
+			   ref[0].bv_val ? ref[0].bv_val : "NULL" ));
 #else
 		Debug( LDAP_DEBUG_ARGS, "send_ldap_response: ref=\"%s\"\n",
-			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
+			ref[0].bv_val ? ref[0].bv_val : "NULL",
 			NULL, NULL );
 #endif
 
@@ -255,7 +255,7 @@ send_ldap_response(
 	if( rc != -1 ) {
 		if ( ref != NULL ) {
 			assert( err == LDAP_REFERRAL );
-			rc = ber_printf( ber, "t{V}",
+			rc = ber_printf( ber, "t{W}",
 				LDAP_TAG_REFERRAL, ref );
 		} else {
 			assert( err != LDAP_REFERRAL );
@@ -383,7 +383,7 @@ send_ldap_result(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	struct berval **ref,
+	BVarray ref,
 	LDAPControl **ctrls
 )
 {
@@ -418,11 +418,11 @@ send_ldap_result(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
 			"send_ldap_result: referral=\"%s\"\n",
-			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL" ));
+			ref[0].bv_val ? ref[0].bv_val : "NULL" ));
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"send_ldap_result: referral=\"%s\"\n",
-			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
+			ref[0].bv_val ? ref[0].bv_val : "NULL",
 			NULL, NULL );
 #endif
 	}
@@ -467,7 +467,7 @@ send_ldap_sasl(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-	struct berval **ref,
+	BVarray ref,
 	LDAPControl **ctrls,
 	struct berval *cred
 )
@@ -500,7 +500,7 @@ send_ldap_extended(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
-    struct berval **refs,
+    BVarray	refs,
     const char		*rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
@@ -539,7 +539,7 @@ send_search_result(
     ber_int_t	err,
     const char	*matched,
 	const char	*text,
-    struct berval **refs,
+    BVarray	refs,
 	LDAPControl **ctrls,
     int		nentries
 )
@@ -766,9 +766,9 @@ send_search_entry(
 		}
 
 		if ( ! attrsonly ) {
-			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					desc, a->a_vals[i], ACL_READ ) )
+					desc, &a->a_vals[i], ACL_READ ) )
 				{
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
@@ -783,7 +783,7 @@ send_search_entry(
 					continue;
 				}
 
-				if (( rc = ber_printf( ber, "O", a->a_vals[i] )) == -1 ) {
+				if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 						   "send_search_entry: conn %d  ber_printf failed.\n",
@@ -875,9 +875,9 @@ send_search_entry(
 		}
 
 		if ( ! attrsonly ) {
-			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					desc, a->a_vals[i], ACL_READ ) )
+					desc, &a->a_vals[i], ACL_READ ) )
 				{
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
@@ -893,7 +893,7 @@ send_search_entry(
 				}
 
 
-				if (( rc = ber_printf( ber, "O", a->a_vals[i] )) == -1 ) {
+				if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 						   "send_search_entry: conn %d  ber_printf failed\n",
@@ -999,9 +999,9 @@ send_search_reference(
     Connection	*conn,
     Operation	*op,
     Entry	*e,
-	struct berval **refs,
+	BVarray refs,
 	LDAPControl **ctrls,
-    struct berval ***v2refs
+    BVarray *v2refs
 )
 {
 	char		berbuf[256];
@@ -1071,7 +1071,7 @@ send_search_reference(
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		/* save the references for the result */
-		if( *refs != NULL ) {
+		if( refs[0].bv_val != NULL ) {
 			value_add( v2refs, refs );
 		}
 		return 0;
@@ -1079,7 +1079,7 @@ send_search_reference(
 
 	ber_init_w_nullc( ber, LBER_USE_DER );
 
-	rc = ber_printf( ber, "{it{V}N}", op->o_msgid,
+	rc = ber_printf( ber, "{it{W}N}", op->o_msgid,
 		LDAP_RES_SEARCH_REFERENCE, refs );
 
 	if ( rc == -1 ) {

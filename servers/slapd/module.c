@@ -265,12 +265,12 @@ load_extop_module (
 	const char *file_name
 )
 {
-	SLAP_EXTOP_MAIN_FN ext_main;
+	SLAP_EXTOP_MAIN_FN *ext_main;
 	int (*ext_getoid)(int index, char *oid, int blen);
 	char *oid;
 	int rc;
 
-	ext_main = (SLAP_EXTOP_MAIN_FN)module_resolve(module, "ext_main");
+	ext_main = (SLAP_EXTOP_MAIN_FN *)module_resolve(module, "ext_main");
 	if (ext_main == NULL) {
 		return(-1);
 	}

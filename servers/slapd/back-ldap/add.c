@@ -55,10 +55,10 @@ ldap_back_add(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
-	int i;
+	int i, j;
 	Attribute *a;
 	LDAPMod **attrs;
-	char *mapped;
+	struct berval mapped;
 	struct berval mdn = { 0, NULL };
 
 #ifdef NEW_LOGGING
@@ -133,8 +133,8 @@ ldap_back_add(
 		}
 #endif
 		
-		mapped = ldap_back_map(&li->at_map, a->a_desc->ad_cname.bv_val, 0);
-		if (mapped == NULL) {
+		ldap_back_map(&li->at_map, &a->a_desc->ad_cname, &mapped, 0);
+		if (mapped.bv_val == NULL) {
 			continue;
 		}
 
@@ -144,7 +144,7 @@ ldap_back_add(
 		}
 
 		attrs[i]->mod_op = LDAP_MOD_BVALUES;
-		attrs[i]->mod_type = mapped;
+		attrs[i]->mod_type = mapped.bv_val;
 
 #ifdef ENABLE_REWRITE
 		/*
@@ -158,14 +158,19 @@ ldap_back_add(
 		}
 #endif /* ENABLE_REWRITE */
 
-		attrs[i]->mod_vals.modv_bvals = a->a_vals;
+		for (j=0; a->a_vals[j].bv_val; j++);
+		attrs[i]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
+		for (j=0; a->a_vals[j].bv_val; j++)
+			attrs[i]->mod_vals.modv_bvals[j] = &a->a_vals[j];
 		i++;
 	}
 	attrs[i] = NULL;
 
 	ldap_add_s(lc->ld, mdn.bv_val, attrs);
-	for (--i; i>= 0; --i)
+	for (--i; i>= 0; --i) {
+		free(attrs[i]->mod_vals.modv_bvals);
 		free(attrs[i]);
+	}
 	free(attrs);
 	if ( mdn.bv_val != e->e_dn ) {
 		free( mdn.bv_val );

@@ -24,19 +24,19 @@ bdb_exop_passwd(
 	struct berval	**rspdata,
 	LDAPControl		*** rspctrls,
 	const char		**text,
-	struct berval	*** refs )
+	BVarray *refs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
 	Entry *e = NULL;
-	struct berval *hash = NULL;
+	struct berval hash = { 0, NULL };
 	DB_TXN *ltid = NULL;
 	struct bdb_op_info opinfo;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 
-	struct berval *id = NULL;
-	struct berval *new = NULL;
+	struct berval id = { 0, NULL };
+	struct berval new = { 0, NULL };
 
 	struct berval *dn;
 
@@ -47,36 +47,36 @@ bdb_exop_passwd(
 		&id, NULL, &new, text );
 
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_exop_passwd: \"%s\"\n",
-		id ? id->bv_val : "", 0, 0 );
+		id.bv_val ? id.bv_val : "", 0, 0 );
 
 	if( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
 
-	if( new == NULL || new->bv_len == 0 ) {
-		new = slap_passwd_generate();
+	if( new.bv_len == 0 ) {
+		slap_passwd_generate(&new);
 
-		if( new == NULL || new->bv_len == 0 ) {
+		if( new.bv_len == 0 ) {
 			*text = "password generation failed.";
 			rc = LDAP_OTHER;
 			goto done;
 		}
 		
-		*rspdata = slap_passwd_return( new );
+		*rspdata = slap_passwd_return( &new );
 	}
 
-	hash = slap_passwd_hash( new );
+	slap_passwd_hash( &new, &hash );
 
-	if( hash == NULL || hash->bv_len == 0 ) {
+	if( hash.bv_len == 0 ) {
 		*text = "password hash failed";
 		rc = LDAP_OTHER;
 		goto done;
 	}
 
-	dn = id ? id : &op->o_dn;
+	dn = id.bv_val ? &id : &op->o_dn;
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: \"%s\"%s\n",
-		dn->bv_val, id ? " (proxy)" : "", 0 );
+		dn->bv_val, id.bv_val ? " (proxy)" : "", 0 );
 
 	if( dn->bv_len == 0 ) {
 		*text = "No password is associated with the Root DSE";
@@ -156,10 +156,10 @@ retry:	/* transaction retry */
 
 	{
 		Modifications ml;
-		struct berval *vals[2];
+		struct berval vals[2];
 
 		vals[0] = hash;
-		vals[1] = NULL;
+		vals[1].bv_val = NULL;
 
 		ml.sml_desc = slap_schema.si_ad_userPassword;
 		ml.sml_bvalues = vals;
@@ -214,16 +214,16 @@ done:
 		bdb_entry_return( be, e );
 	}
 
-	if( id != NULL ) {
-		ber_bvfree( id );
+	if( id.bv_val != NULL ) {
+		free( id.bv_val );
 	}
 
-	if( new != NULL ) {
-		ber_bvfree( new );
+	if( new.bv_val != NULL ) {
+		free( new.bv_val );
 	}
 
-	if( hash != NULL ) {
-		ber_bvfree( hash );
+	if( hash.bv_val != NULL ) {
+		free( hash.bv_val );
 	}
 
 	if( ltid != NULL ) {

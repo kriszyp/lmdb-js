@@ -57,7 +57,7 @@ ldap_back_compare(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
 	struct ldapconn *lc;
-	char *mapped_oc, *mapped_at;
+	struct berval mapped_oc, mapped_at;
 	struct berval mdn = { 0, NULL };
 
 	lc = ldap_back_getconn(li, conn, op);
@@ -101,15 +101,15 @@ ldap_back_compare(
 	}
 #endif /* !ENABLE_REWRITE */
 
-	mapped_oc = ldap_back_map(&li->oc_map, ava->aa_desc->ad_cname.bv_val, 0);
-	if (mapped_oc == NULL)
+	ldap_back_map(&li->oc_map, &ava->aa_desc->ad_cname, &mapped_oc, 0);
+	if (mapped_oc.bv_val == NULL)
 		return( -1 );
 
-	mapped_at = ldap_back_map(&li->at_map, ava->aa_value.bv_val, 0);
-	if (mapped_at == NULL)
+	ldap_back_map(&li->at_map, &ava->aa_value, &mapped_at, 0);
+	if (mapped_at.bv_val == NULL)
 		return( -1 );
 
-	ldap_compare_s( lc->ld, mdn.bv_val, mapped_oc, mapped_at );
+	ldap_compare_s( lc->ld, mdn.bv_val, mapped_oc.bv_val, mapped_at.bv_val );
 
 	if ( mdn.bv_val != dn->bv_val ) {
 		free( mdn.bv_val );

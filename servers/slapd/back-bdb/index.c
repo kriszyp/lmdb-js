@@ -142,7 +142,7 @@ static int indexer(
 	DB_TXN *txn,
 	char *dbname,
 	struct berval *atname,
-	struct berval **vals,
+	BVarray vals,
 	ID id,
 	int op,
 	slap_mask_t mask )
@@ -253,7 +253,7 @@ static int index_at_values(
 	DB_TXN *txn,
 	AttributeType *type,
 	struct berval *lang,
-	struct berval **vals,
+	BVarray vals,
 	ID id,
 	int op,
 	char ** dbnamep,
@@ -334,7 +334,7 @@ int bdb_index_values(
 	Backend *be,
 	DB_TXN *txn,
 	AttributeDescription *desc,
-	struct berval **vals,
+	BVarray vals,
 	ID id,
 	int op )
 {

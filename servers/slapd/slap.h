@@ -312,8 +312,8 @@ typedef int slap_mr_indexer_func LDAP_P((
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
-	struct berval **values,
-	struct berval **keys ));
+	BVarray values,
+	BVarray *keys ));
 
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
@@ -323,7 +323,7 @@ typedef int slap_mr_filter_func LDAP_P((
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
 	void * assertValue,
-	struct berval **keys ));
+	BVarray *keys ));
 
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
@@ -623,7 +623,7 @@ typedef struct slap_filter {
  */
 typedef struct slap_attr {
 	AttributeDescription *a_desc;
-	struct berval	**a_vals;
+	BVarray	a_vals;
 	struct slap_attr	*a_next;
 } Attribute;
 
@@ -664,13 +664,15 @@ typedef struct slap_entry {
 typedef struct slap_mod {
 	int sm_op;
 	AttributeDescription *sm_desc;
-	struct berval **sm_bvalues;
+	struct berval sm_type;
+	BVarray sm_bvalues;
 } Modification;
 
 typedef struct slap_mod_list {
 	Modification sml_mod;
 #define sml_op		sml_mod.sm_op
 #define sml_desc	sml_mod.sm_desc
+#define	sml_type	sml_mod.sm_type
 #define sml_bvalues	sml_mod.sm_bvalues
 	struct slap_mod_list *sml_next;
 } Modifications;
@@ -1009,7 +1011,7 @@ struct slap_backend_db {
 	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
-	struct berval **be_update_refs;	/* where to refer modifying clients to */
+	BVarray	be_update_refs;	/* where to refer modifying clients to */
 	char	*be_realm;
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 
@@ -1052,7 +1054,7 @@ typedef int (BI_op_search) LDAP_P((BackendDB *bd,
 		struct berval *base, struct berval *nbase,
 		int scope, int deref,
 		int slimit, int tlimit,
-		Filter *f, const char *filterstr,
+		Filter *f, struct berval *filterstr,
 		AttributeName *attrs, int attrsonly));
 typedef int (BI_op_compare)LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
@@ -1088,7 +1090,7 @@ typedef int (BI_op_extended) LDAP_P((
     struct berval ** rspdata,
 	LDAPControl *** rspctrls,
 	const char **	text,
-	struct berval *** refs ));
+	BVarray *refs ));
 
 typedef int (BI_entry_release_rw) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
@@ -1111,7 +1113,7 @@ typedef int (BI_acl_attribute)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, struct berval *edn,
 		AttributeDescription *entry_at,
-		struct berval ***vals ));
+		BVarray *vals ));
 
 typedef int (BI_operational)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
@@ -1255,11 +1257,11 @@ struct slap_conn;
 
 typedef void (slap_response)( struct slap_conn *, struct slap_op *,
 	ber_tag_t, ber_int_t, ber_int_t, const char *, const char *,
-	struct berval **, const char *, struct berval *,
+	BVarray, const char *, struct berval *,
 	struct berval *, LDAPControl ** );
 
 typedef void (slap_sresult)( struct slap_conn *, struct slap_op *,
-	ber_int_t, const char *, const char *, struct berval **,
+	ber_int_t, const char *, const char *, BVarray,
 	LDAPControl **, int nentries);
 
 /*

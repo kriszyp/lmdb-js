@@ -60,8 +60,8 @@ ldap_back_modify(
 	LDAPMod **modv = NULL;
 	LDAPMod *mods;
 	Modifications *ml;
-	int i;
-	char *mapped;
+	int i, j;
+	struct berval mapped;
 	struct berval mdn = { 0, NULL };
 
 	lc = ldap_back_getconn(li, conn, op);
@@ -114,14 +114,14 @@ ldap_back_modify(
 	}
 
 	for (i=0, ml=modlist; ml; ml=ml->sml_next) {
-		mapped = ldap_back_map(&li->at_map, ml->sml_desc->ad_cname.bv_val, 0);
-		if (mapped == NULL) {
+		ldap_back_map(&li->at_map, &ml->sml_desc->ad_cname, &mapped, 0);
+		if (mapped.bv_val == NULL) {
 			continue;
 		}
 
 		modv[i] = &mods[i];
 		mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
-		mods[i].mod_type = mapped;
+		mods[i].mod_type = mapped.bv_val;
 
 #ifdef ENABLE_REWRITE
 		/*
@@ -136,7 +136,12 @@ ldap_back_modify(
 		}
 #endif /* ENABLE_REWRITE */
 	
-		mods[i].mod_bvalues = ml->sml_bvalues;
+		for (j = 0; ml->sml_bvalues[j].bv_val; j++);
+		mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+			sizeof(struct berval *));
+		for (j = 0; ml->sml_bvalues[j].bv_val; j++)
+			mods[i].mod_bvalues[j] = &ml->sml_bvalues[j];
+		mods[i].mod_bvalues[j] = NULL;
 		i++;
 	}
 	modv[i] = 0;
@@ -151,6 +156,8 @@ cleanup:;
 #ifdef ENABLE_REWRITE
 	}
 #endif /* ENABLE_REWRITE */
+	for (i=0; modv[i]; i++)
+		free(modv[i]->mod_bvalues);
 	free(mods);
 	free(modv);
 	return( ldap_back_op_result( lc, op ));

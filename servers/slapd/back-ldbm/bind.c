@@ -56,7 +56,7 @@ ldbm_back_bind(
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
-		struct berval **refs = NULL;
+		BVarray refs = NULL;
 
 		if( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -97,7 +97,7 @@ ldbm_back_bind(
 				NULL, NULL, NULL, NULL );
 		}
 
-		if ( refs ) ber_bvecfree( refs );
+		if ( refs ) bvarray_free( refs );
 		if ( matched_dn ) free( matched_dn );
 		return( rc );
 	}
@@ -126,7 +126,7 @@ ldbm_back_bind(
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
-		struct berval **refs = get_entry_referrals( be,
+		BVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
 #ifdef NEW_LOGGING
@@ -147,7 +147,7 @@ ldbm_back_bind(
 				NULL, NULL, NULL, NULL );
 		}
 
-		ber_bvecfree( refs );
+		bvarray_free( refs );
 
 		rc = 1;
 		goto return_results;

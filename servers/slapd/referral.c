@@ -213,31 +213,32 @@ int validate_global_referral( const char *url )
 	return rc;
 }
 
-struct berval ** referral_rewrite(
-	struct berval **in,
+BVarray referral_rewrite(
+	BVarray in,
 	struct berval *base,
 	struct berval *target,
 	int scope )
 {
-	int i, j;
-	struct berval **refs;
+	int i;
+	BVarray refs;
+	struct berval *iv, *jv;
 
 	if( in == NULL ) return NULL;
 
-	for( i=0; in[i] != NULL ; i++ ) {
+	for( i=0; in[i].bv_val != NULL ; i++ ) {
 		/* just count them */
 	}
 
 	if( i < 1 ) return NULL;
 
-	refs = ch_malloc( (i+1) * sizeof( struct berval * ) );
+	refs = ch_malloc( (i+1) * sizeof( struct berval ) );
 
-	for( i=0,j=0; in[i] != NULL ; i++ ) {
+	for( iv=in,jv=refs; iv->bv_val != NULL ; iv++ ) {
 		LDAPURLDesc *url;
-		int rc = ldap_url_parse_ext( in[i]->bv_val, &url );
+		int rc = ldap_url_parse_ext( iv->bv_val, &url );
 
 		if( rc == LDAP_URL_ERR_BADSCHEME ) {
-			refs[j++] = ber_bvdup( in[i] );
+			ber_dupbv( jv++, iv );
 			continue;
 
 		} else if( rc != LDAP_URL_SUCCESS ) {
@@ -258,36 +259,35 @@ struct berval ** referral_rewrite(
 			url->lud_scope = scope;
 		}
 
-		refs[j] = ch_malloc( sizeof( struct berval ) );
-
-		refs[j]->bv_val = ldap_url_desc2str( url );
-		refs[j]->bv_len = strlen( refs[j]->bv_val );
+		jv->bv_val = ldap_url_desc2str( url );
+		jv->bv_len = strlen( jv->bv_val );
 
 		ldap_free_urldesc( url );
-		j++;
+		jv++;
 	}
 
-	if( j == 0 ) {
+	if( jv == refs ) {
 		ch_free( refs );
 		refs = NULL;
 
 	} else {
-		refs[j] = NULL;
+		jv->bv_val = NULL;
 	}
 
 	return refs;
 }
 
 
-struct berval **get_entry_referrals(
+BVarray get_entry_referrals(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
 	Entry *e )
 {
 	Attribute *attr;
-	struct berval **refs;
-	unsigned i, j;
+	BVarray refs;
+	unsigned i;
+	struct berval *iv, *jv;
 
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 
@@ -295,41 +295,40 @@ struct berval **get_entry_referrals(
 
 	if( attr == NULL ) return NULL;
 
-	for( i=0; attr->a_vals[i] != NULL; i++ ) {
+	for( i=0; attr->a_vals[i].bv_val != NULL; i++ ) {
 		/* count references */
 	}
 
 	if( i < 1 ) return NULL;
 
-	refs = ch_malloc( (i + 1) * sizeof(struct berval *));
+	refs = ch_malloc( (i + 1) * sizeof(struct berval));
 
-	for( i=0, j=0; attr->a_vals[i] != NULL; i++ ) {
+	for( iv=attr->a_vals, jv=refs; iv->bv_val != NULL; iv++ ) {
 		unsigned k;
-		struct berval *ref = ber_bvdup( attr->a_vals[i] );
+		ber_dupbv( jv, iv );
 
 		/* trim the label */
-		for( k=0; k<ref->bv_len; k++ ) {
-			if( isspace(ref->bv_val[k]) ) {
-				ref->bv_val[k] = '\0';
-				ref->bv_len = k;
+		for( k=0; k<jv->bv_len; k++ ) {
+			if( isspace(jv->bv_val[k]) ) {
+				jv->bv_val[k] = '\0';
+				jv->bv_len = k;
 				break;
 			}
 		}
 
-		if(	ref->bv_len > 0 ) {
-			refs[j++] = ref;
-
+		if(	jv->bv_len > 0 ) {
+			jv++;
 		} else {
-			ber_bvfree( ref );
+			free( jv->bv_val );
 		}
 	}
 
-	if( j == 0 ) {
-		ber_bvecfree( refs );
+	if( jv == refs ) {
+		free( refs );
 		refs = NULL;
 
 	} else {
-		refs[j] = NULL;
+		jv->bv_val = NULL;
 	}
 
 	/* we should check that a referral value exists... */

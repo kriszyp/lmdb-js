@@ -402,25 +402,23 @@ at_index_print( void )
 int
 at_schema_info( Entry *e )
 {
-	struct berval	val;
-	struct berval	*vals[2];
+	struct berval	vals[2];
 	AttributeType	*at;
 
 	AttributeDescription *ad_attributeTypes = slap_schema.si_ad_attributeTypes;
 
-	vals[0] = &val;
-	vals[1] = NULL;
+	vals[1].bv_val = NULL;
 
 	for ( at = attr_list; at; at = at->sat_next ) {
-		if ( ldap_attributetype2bv( &at->sat_atype, &val ) == NULL ) {
+		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {
 			return -1;
 		}
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
-		       (long) val.bv_len, val.bv_val, 0 );
+		       (long) vals[0].bv_len, vals[0].bv_val, 0 );
 #endif
 		attr_merge( e, ad_attributeTypes, vals );
-		ldap_memfree( val.bv_val );
+		ldap_memfree( vals[0].bv_val );
 	}
 	return 0;
 }

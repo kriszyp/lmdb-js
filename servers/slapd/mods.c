@@ -25,7 +25,7 @@ slap_mod_free(
 )
 {
 	if ( mod->sm_bvalues != NULL )
-		ber_bvecfree( mod->sm_bvalues );
+		bvarray_free( mod->sm_bvalues );
 
 	if( freeit )
 		free( mod );

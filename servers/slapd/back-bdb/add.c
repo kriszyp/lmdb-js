@@ -120,7 +120,7 @@ retry:	rc = txn_abort( ltid );
 
 		if ( p == NULL ) {
 			char *matched_dn = NULL;
-			struct berval **refs;
+			BVarray refs;
 
 			if ( matched != NULL ) {
 				matched_dn = ch_strdup( matched->e_dn );
@@ -141,7 +141,7 @@ retry:	rc = txn_abort( ltid );
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
 
-			ber_bvecfree( refs );
+			bvarray_free( refs );
 			ch_free( matched_dn );
 
 			goto done;
@@ -169,7 +169,7 @@ retry:	rc = txn_abort( ltid );
 		if ( is_entry_referral( p ) ) {
 			/* parent is a referral, don't allow add */
 			char *matched_dn = ch_strdup( p->e_dn );
-			struct berval **refs = is_entry_referral( p )
+			BVarray refs = is_entry_referral( p )
 				? get_entry_referrals( be, conn, op, p )
 				: NULL;
 
@@ -179,7 +179,7 @@ retry:	rc = txn_abort( ltid );
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
 
-			ber_bvecfree( refs );
+			bvarray_free( refs );
 			free( matched_dn );
 			goto done;
 		}

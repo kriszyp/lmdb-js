@@ -22,9 +22,9 @@ slap_operational_subschemaSubentry( void )
 	a->a_desc = slap_schema.si_ad_subschemaSubentry;
 
 	/* Should be backend specific */
-	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
-	a->a_vals[0] = ber_bvstrdup( SLAPD_SCHEMA_DN );
-	a->a_vals[1] = NULL;
+	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
+	ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1, a->a_vals );
+	a->a_vals[1].bv_val = NULL;
 
 	a->a_next = NULL;
 
@@ -40,9 +40,9 @@ slap_operational_hasSubordinate( int hs )
 	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = slap_schema.si_ad_hasSubordinates;
 
-	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
-	a->a_vals[0] = ber_bvstrdup( hs ? "TRUE" : "FALSE" );
-	a->a_vals[1] = NULL;
+	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
+	ber_str2bv( hs ? "TRUE" : "FALSE", 0, 1, a->a_vals );
+	a->a_vals[1].bv_val = NULL;
 
 	a->a_next = NULL;
 

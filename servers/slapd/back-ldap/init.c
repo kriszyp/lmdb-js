@@ -122,8 +122,8 @@ ldap_back_db_init(
 
 	mapping = (struct ldapmapping *)ch_calloc( 2, sizeof(struct ldapmapping) );
 	if ( mapping != NULL ) {
-		mapping->src = ch_strdup("objectclass");
-		mapping->dst = ch_strdup("objectclass");
+		ber_str2bv( "objectclass", sizeof("objectclass")-1, 1, &mapping->src);
+		ber_dupbv( &mapping->dst, &mapping->src );
 		mapping[1].src = mapping->src;
 		mapping[1].dst = mapping->dst;
 
@@ -151,8 +151,8 @@ conn_free(
 void
 mapping_free ( struct ldapmapping *mapping )
 {
-	ch_free( mapping->src );
-	ch_free( mapping->dst );
+	ch_free( mapping->src.bv_val );
+	ch_free( mapping->dst.bv_val );
 	ch_free( mapping );
 }
 

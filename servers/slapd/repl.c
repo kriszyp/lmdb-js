@@ -152,6 +152,7 @@ replog(
 		ml = change;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
+			struct berval *bv;
 			type = ml->sml_desc->ad_cname.bv_val;
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
@@ -167,20 +168,18 @@ replog(
 				break;
 			}
 
-			for ( i = 0; ml->sml_bvalues != NULL &&
-			    ml->sml_bvalues[i] != NULL; i++ )
+			for ( bv = ml->sml_bvalues; bv && bv->bv_val; bv++ )
 			{
 				char	*buf, *bufp;
 
 				len = ml->sml_desc->ad_cname.bv_len;
 				len = LDIF_SIZE_NEEDED( len,
-				    ml->sml_bvalues[i]->bv_len ) + 1;
+				    bv->bv_len ) + 1;
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
 				ldif_sput( &bufp, LDIF_PUT_VALUE, type,
-				    ml->sml_bvalues[i]->bv_val,
-				    ml->sml_bvalues[i]->bv_len );
+				    bv->bv_val, bv->bv_len );
 				*bufp = '\0';
 
 				fputs( buf, fp );

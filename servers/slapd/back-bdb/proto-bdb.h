@@ -220,7 +220,7 @@ bdb_index_values LDAP_P((
 	Backend *be,
 	DB_TXN *txn,
 	AttributeDescription *desc,
-	struct berval **vals,
+	BVarray vals,
 	ID id,
 	int op ));
 

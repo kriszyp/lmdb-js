@@ -76,14 +76,12 @@ read_config( const char *fname )
 	char	*cargv[MAXARGS+1];
 	int	lineno, i;
 	int rc;
-	struct berval *vals[2];
-	struct berval val;
+	struct berval vals[2];
 
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
 
-	vals[0] = &val;
-	vals[1] = NULL;
+	vals[1].bv_val = NULL;
 
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
@@ -1580,8 +1578,8 @@ read_config( const char *fname )
 				return 1;
 			}
 
-			vals[0]->bv_val = cargv[1];
-			vals[0]->bv_len = strlen( vals[0]->bv_val );
+			vals[0].bv_val = cargv[1];
+			vals[0].bv_len = strlen( vals[0].bv_val );
 			value_add( &default_referral, vals );
 
 #ifdef NEW_LOGGING
@@ -1917,8 +1915,8 @@ read_config( const char *fname )
 				return 1;
 			}
 
-			vals[0]->bv_val = cargv[1];
-			vals[0]->bv_len = strlen( vals[0]->bv_val );
+			vals[0].bv_val = cargv[1];
+			vals[0].bv_len = strlen( vals[0].bv_val );
 			value_add( &be->be_update_refs, vals );
 
 		/* replication log file to which changes are appended */

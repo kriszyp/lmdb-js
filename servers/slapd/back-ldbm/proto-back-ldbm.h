@@ -151,7 +151,7 @@ extern int
 index_values LDAP_P((
 	Backend *be,
 	AttributeDescription *desc,
-	struct berval **vals,
+	BVarray vals,
 	ID id,
 	int op ));
 
@@ -180,16 +180,7 @@ key_read LDAP_P((
 /*
  * passwd.c
  */
-extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op,
-	const char *reqoid,
-	struct berval *reqdata,
-	char **rspoid,
-	struct berval **rspdata,
-	LDAPControl ***rspctrls,
-	const char **text,
-	struct berval *** refs ));
- 
+extern BI_op_extended ldbm_back_exop_passwd;
 
 /*
  * modify.c

@@ -58,7 +58,7 @@ typedef	struct AciSetCookie {
 	Operation *op;
 } AciSetCookie;
 
-char **aci_set_gather (void *cookie, char *name, struct berval *attr);
+BVarray aci_set_gather (void *cookie, char *name, struct berval *attr);
 static int aci_match_set ( struct berval *subj, Backend *be,
     Entry *e, Connection *conn, Operation *op, int setref );
 
@@ -1021,7 +1021,7 @@ acl_check_modlist(
     Modifications	*mlist
 )
 {
-	int		i;
+	struct berval *bv;
 
 	assert( be != NULL );
 
@@ -1098,9 +1098,9 @@ acl_check_modlist(
 			if ( mlist->sml_bvalues == NULL ) {
 				break;
 			}
-			for ( i = 0; mlist->sml_bvalues[i] != NULL; i++ ) {
+			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->sml_desc, mlist->sml_bvalues[i], ACL_WRITE ) )
+					mlist->sml_desc, bv, ACL_WRITE ) )
 				{
 					return( 0 );
 				}
@@ -1116,9 +1116,9 @@ acl_check_modlist(
 				}
 				break;
 			}
-			for ( i = 0; mlist->sml_bvalues[i] != NULL; i++ ) {
+			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-					mlist->sml_desc, mlist->sml_bvalues[i], ACL_WRITE ) )
+					mlist->sml_desc, bv, ACL_WRITE ) )
 				{
 					return( 0 );
 				}
@@ -1202,12 +1202,11 @@ aci_get_part(
 	return(bv->bv_len);
 }
 
-char **
+BVarray
 aci_set_gather (void *cookie, char *name, struct berval *attr)
 {
 	AciSetCookie *cp = cookie;
-	struct berval **bvals = NULL;
-	char **vals = NULL;
+	BVarray bvals = NULL;
 	struct berval bv, ndn;
 	int i;
 
@@ -1224,21 +1223,10 @@ aci_set_gather (void *cookie, char *name, struct berval *attr)
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
 			backend_attribute(cp->be, NULL, NULL,
 				cp->e, &ndn, desc, &bvals);
-			if (bvals != NULL) {
-				for (i = 0; bvals[i] != NULL; i++) { }
-				vals = ch_calloc(i + 1, sizeof(char *));
-				if (vals != NULL) {
-					while (--i >= 0) {
-						vals[i] = bvals[i]->bv_val;
-						bvals[i]->bv_val = NULL;
-					}
-				}
-				ber_bvecfree(bvals);
-			}
 		}
 		free(ndn.bv_val);
 	}
-	return(vals);
+	return(bvals);
 }
 
 static int
@@ -1251,16 +1239,16 @@ aci_match_set (
     int setref
 )
 {
-	char *set = NULL;
+	struct berval set = { 0, NULL };
 	int rc = 0;
 	AciSetCookie cookie;
 
 	if (setref == 0) {
-		set = aci_bvstrdup(subj);
+		ber_dupbv( &set, subj );
 	} else {
 		struct berval subjdn, ndn = { 0, NULL };
 		struct berval setat;
-		struct berval **bvals;
+		BVarray bvals;
 		const char *text;
 		AttributeDescription *desc = NULL;
 
@@ -1289,9 +1277,15 @@ aci_match_set (
 				backend_attribute(be, NULL, NULL, e,
 					&ndn, desc, &bvals);
 				if ( bvals != NULL ) {
-					if ( bvals[0] != NULL )
-						set = ch_strdup(bvals[0]->bv_val);
-					ber_bvecfree(bvals);
+					if ( bvals[0].bv_val != NULL ) {
+						int i;
+						set = bvals[0];
+						bvals[0].bv_val = NULL;
+						for (i=1;bvals[i].bv_val;i++);
+						bvals[0].bv_val = bvals[i-1].bv_val;
+						bvals[i-1].bv_val = NULL;
+					}
+					bvarray_free(bvals);
 				}
 			}
 			if (ndn.bv_val)
@@ -1300,13 +1294,13 @@ aci_match_set (
 		ch_free(subjdn.bv_val);
 	}
 
-	if (set != NULL) {
+	if (set.bv_val != NULL) {
 		cookie.be = be;
 		cookie.e = e;
 		cookie.conn = conn;
 		cookie.op = op;
-		rc = (set_filter(aci_set_gather, &cookie, set, op->o_ndn.bv_val, e->e_ndn, NULL) > 0);
-		ch_free(set);
+		rc = (set_filter(aci_set_gather, &cookie, &set, op->o_ndn.bv_val, e->e_ndn, NULL) > 0);
+		ch_free(set.bv_val);
 	}
 	return(rc);
 }

@@ -561,7 +561,7 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 {
 	const char *errmsg;
 	int i, rc;
-	struct berval **vals=NULL;
+	BVarray vals=NULL;
 	AttributeDescription *ad=NULL;
 	struct berval bv;
 
@@ -587,15 +587,15 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 		goto COMPLETE;
 
 	/* Check if the *assertDN matches any **vals */
-	for( i=0; vals[i] != NULL; i++ ) {
-		rc = slap_sasl_match( vals[i]->bv_val, assertDN+3, authc );
+	for( i=0; vals[i].bv_val != NULL; i++ ) {
+		rc = slap_sasl_match( vals[i].bv_val, assertDN+3, authc );
 		if ( rc == LDAP_SUCCESS )
 			goto COMPLETE;
 	}
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 COMPLETE:
-	if( vals ) ber_bvecfree( vals );
+	if( vals ) bvarray_free( vals );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,

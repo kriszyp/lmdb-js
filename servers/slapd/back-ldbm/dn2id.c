@@ -227,8 +227,9 @@ dn2idl(
 	*idlp = NULL;
 
 	if ( prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn->bv_val) ) {
-		*idlp = ch_malloc( sizeof(ID) );
-		**idlp = ID_BLOCK_ALLIDS_VALUE;
+		*idlp = ch_malloc( 2*sizeof(ID) );
+		(*idlp)[0] = ID_BLOCK_ALLIDS_VALUE;
+		(*idlp)[1] = 0;
 		return 0;
 	}
 

@@ -129,13 +129,13 @@ do_delete(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( &ndn, manageDSAit, 0 )) == NULL ) {
-		struct berval **ref = referral_rewrite( default_referral,
+		BVarray ref = referral_rewrite( default_referral,
 			NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
 
-		ber_bvecfree( ref );
+		bvarray_free( ref );
 		goto cleanup;
 	}
 
@@ -179,15 +179,15 @@ do_delete(
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			struct berval **defref = be->be_update_refs
+			BVarray defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
-			struct berval **ref = referral_rewrite( default_referral,
+			BVarray ref = referral_rewrite( default_referral,
 				NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
 
-			ber_bvecfree( ref );
+			bvarray_free( ref );
 #endif
 		}
 

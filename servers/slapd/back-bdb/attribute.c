@@ -28,13 +28,13 @@ bdb_attribute(
 	Entry *target,
 	struct berval *entry_ndn,
 	AttributeDescription *entry_at,
-	struct berval ***vals )
+	BVarray *vals )
 {
 	struct bdbinfo *li = (struct bdbinfo *) be->be_private;
 	Entry *e;
 	int	i, j, rc;
 	Attribute *attr;
-	struct berval **v;
+	BVarray v;
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
 
 #ifdef NEW_LOGGING
@@ -159,23 +159,23 @@ bdb_attribute(
 		goto return_results;
 	}
 
-	for ( i = 0; attr->a_vals[i] != NULL; i++ ) {
+	for ( i = 0; attr->a_vals[i].bv_val != NULL; i++ ) {
 		/* count them */
 	}
 
-	v = (struct berval **) ch_malloc( sizeof(struct berval *) * (i+1) );
+	v = (BVarray) ch_malloc( sizeof(struct berval) * (i+1) );
 
-	for ( i=0, j=0; attr->a_vals[i] != NULL; i++ ) {
+	for ( i=0, j=0; attr->a_vals[i].bv_val != NULL; i++ ) {
 		if( conn != NULL
 			&& op != NULL
 			&& access_allowed(be, conn, op, e, entry_at,
-				attr->a_vals[i], ACL_READ) == 0)
+				&attr->a_vals[i], ACL_READ) == 0)
 		{
 			continue;
 		}
-		v[j] = ber_bvdup( attr->a_vals[i] );
+		ber_dupbv( &v[j], &attr->a_vals[i] );
 
-		if( v[j] != NULL ) j++;
+		if( v[j].bv_val != NULL ) j++;
 	}
 
 	if( j == 0 ) {
@@ -183,7 +183,8 @@ bdb_attribute(
 		*vals = NULL;
 		rc = LDAP_INSUFFICIENT_ACCESS;
 	} else {
-		v[j] = NULL;
+		v[j].bv_val = NULL;
+		v[j].bv_len = 0;
 		*vals = v;
 		rc = LDAP_SUCCESS;
 	}

@@ -37,7 +37,7 @@
 typedef struct extop_list_t {
 	struct extop_list_t *next;
 	char *oid;
-	SLAP_EXTOP_MAIN_FN ext_main;
+	SLAP_EXTOP_MAIN_FN *ext_main;
 } extop_list_t;
 
 extop_list_t *supp_ext_list = NULL;
@@ -49,7 +49,7 @@ extop_list_t *supp_ext_list = NULL;
  */
 struct {
 	char *oid;
-	SLAP_EXTOP_MAIN_FN ext_main;
+	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
 #ifdef HAVE_TLS
 		{ LDAP_EXOP_START_TLS, starttls_extop },
@@ -88,7 +88,7 @@ do_extended(
 	ber_len_t len;
 	extop_list_t *ext;
 	const char *text;
-	struct berval **refs;
+	BVarray refs;
 	char *rspoid;
 	struct berval *rspdata;
 	LDAPControl **rspctrls;
@@ -195,7 +195,7 @@ do_extended(
 		send_ldap_extended( conn, op, rc, NULL, text, refs,
 			rspoid, rspdata, rspctrls );
 
-		ber_bvecfree( refs );
+		bvarray_free( refs );
 	}
 
 	if ( rspoid != NULL ) {
@@ -219,7 +219,7 @@ done:
 int
 load_extop(
 	const char *ext_oid,
-	SLAP_EXTOP_MAIN_FN ext_main )
+	SLAP_EXTOP_MAIN_FN *ext_main )
 {
 	extop_list_t *ext;
 

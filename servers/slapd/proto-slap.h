@@ -129,7 +129,7 @@ LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
-	struct berval **vals ));
+	BVarray vals ));
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((
@@ -221,7 +221,7 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((BackendDB *be,
 	Entry *target,
 	struct berval *entry_ndn,
 	AttributeDescription *entry_at,
-	struct berval ***vals
+	BVarray *vals
 ));
 
 LDAP_SLAPD_F (Attribute *) backend_operational(
@@ -278,7 +278,7 @@ LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr 
 LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
 LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
 
-LDAP_SLAPD_F (void) bvarray_add LDAP_P(( struct berval **a, struct berval *bv ));
+LDAP_SLAPD_F (void) bvarray_add LDAP_P(( BVarray *a, struct berval *bv ));
 LDAP_SLAPD_F (void) bvarray_free LDAP_P(( struct berval *a ));
 
 LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
@@ -438,7 +438,7 @@ LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( Entry *a, Entry *b ));
  * extended.c
  */
 
-typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
+typedef int (SLAP_EXTOP_MAIN_FN) LDAP_P((
 	Connection *conn, Operation *op,
 	const char * reqoid,
 	struct berval * reqdata,
@@ -446,9 +446,9 @@ typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
 	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
 	const char ** text,
-	struct berval *** refs ));
+	BVarray *refs ));
 
-typedef int (*SLAP_EXTOP_GETOID_FN) LDAP_P((
+typedef int (SLAP_EXTOP_GETOID_FN) LDAP_P((
 	int index, char *oid, int blen ));
 
 LDAP_SLAPD_F (int) load_extension LDAP_P((
@@ -457,7 +457,7 @@ LDAP_SLAPD_F (char *) get_supported_extension LDAP_P((int index));
 
 LDAP_SLAPD_F (int) load_extop LDAP_P((
 	const char *ext_oid,
-	SLAP_EXTOP_MAIN_FN ext_main ));
+	SLAP_EXTOP_MAIN_FN *ext_main ));
 
 LDAP_SLAPD_F (int) extops_init LDAP_P(( void ));
 
@@ -515,6 +515,12 @@ LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
 LDAP_SLAPD_F( void ) slap_mod_free( Modification *mod, int freeit );
 LDAP_SLAPD_F( void ) slap_mods_free( Modifications *mods );
 LDAP_SLAPD_F( void ) slap_modlist_free( LDAPModList *ml );
+
+LDAP_SLAPD_F( int ) slap_mods_check(
+	Modifications *ml,
+	int update,
+	const char **text,
+	char *textbuf, size_t textlen );
 
 LDAP_SLAPD_F( int ) slap_modlist2mods(
 	LDAPModList *ml,
@@ -605,11 +611,11 @@ LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op,
 LDAP_SLAPD_F (int) validate_global_referral LDAP_P((
 	const char *url ));
 
-LDAP_SLAPD_F (struct berval **) get_entry_referrals LDAP_P((
+LDAP_SLAPD_F (BVarray) get_entry_referrals LDAP_P((
 	Backend *be, Connection *conn, Operation *op, Entry *e ));
 
-LDAP_SLAPD_F (struct berval **) referral_rewrite LDAP_P((
-	struct berval **refs,
+LDAP_SLAPD_F (BVarray) referral_rewrite LDAP_P((
+	BVarray refs,
 	struct berval *base,
 	struct berval *target,
 	int scope ));
@@ -621,14 +627,14 @@ LDAP_SLAPD_F (struct berval **) referral_rewrite LDAP_P((
 LDAP_SLAPD_F (void) send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
-	struct berval **refs,
+	BVarray refs,
 	LDAPControl **ctrls ));
 
 LDAP_SLAPD_F (void) send_ldap_sasl LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text,
-	struct berval **refs,
+	BVarray refs,
 	LDAPControl **ctrls,
 	struct berval *cred ));
 
@@ -639,7 +645,7 @@ LDAP_SLAPD_F (void) send_ldap_disconnect LDAP_P((
 LDAP_SLAPD_F (void) send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
-	const char *text, struct berval **refs,
+	const char *text, BVarray refs,
 	const char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
@@ -651,15 +657,15 @@ LDAP_SLAPD_F (void) send_ldap_partial LDAP_P((
 LDAP_SLAPD_F (void) send_search_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
-	struct berval **refs,
+	BVarray refs,
 	LDAPControl **ctrls,
 	int nentries ));
 
 LDAP_SLAPD_F (int) send_search_reference LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e, struct berval **refs,
+	Entry *e, BVarray refs,
 	LDAPControl **ctrls,
-	struct berval ***v2refs ));
+	BVarray *v2refs ));
 
 LDAP_SLAPD_F (int) send_search_entry LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
@@ -806,11 +812,11 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
  */
 LDAP_SLAPD_F( int ) oc_check_allowed(
 	AttributeType *type,
-	struct berval **oclist,
+	BVarray oclist,
 	ObjectClass *sc );
 
 LDAP_SLAPD_F( int ) structural_class(
-	struct berval **ocs,
+	BVarray ocs,
 	struct berval *scbv,
 	const char **text,
 	char *textbuf, size_t textlen );
@@ -852,16 +858,7 @@ LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
 /*
  * starttls.c
  */
-
-LDAP_SLAPD_F (int) starttls_extop LDAP_P((
-	Connection *conn, Operation *op,
-	const char * reqoid,
-	struct berval * reqdata,
-	char ** rspoid,
-	struct berval ** rspdata,
-	LDAPControl ***rspctrls,
-	const char ** text,
-	struct berval *** refs ));
+LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) starttls_extop;
 
 
 /*
@@ -896,11 +893,11 @@ LDAP_SLAPD_F (int) value_match LDAP_P((
 LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 	AttributeDescription *ad,
 	unsigned flags,
-	struct berval **values,
+	BVarray values,
 	struct berval *value ));
 LDAP_SLAPD_F (int) value_add LDAP_P((
-	struct berval ***vals,
-	struct berval **addvals ));
+	BVarray *vals,
+	BVarray addvals ));
 
 /*
  * user.c
@@ -912,34 +909,27 @@ LDAP_SLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 /*
  * passwd.c
  */
-LDAP_SLAPD_F (int) passwd_extop LDAP_P((
-	Connection *conn, Operation *op,
-	const char * reqoid,
-	struct berval * reqdata,
-	char ** rspoid,
-	struct berval ** rspdata,
-	LDAPControl *** rspctrls,
-	const char ** text,
-	struct berval *** refs ));
+LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) passwd_extop;
 
 LDAP_SLAPD_F (int) slap_passwd_check(
 	Connection			*conn,
 	Attribute			*attr,
 	struct berval		*cred );
 
-LDAP_SLAPD_F (struct berval *) slap_passwd_generate( void );
+LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
-LDAP_SLAPD_F (struct berval *) slap_passwd_hash(
-	struct berval		*cred );
+LDAP_SLAPD_F (void) slap_passwd_hash(
+	struct berval		*cred,
+	struct berval		*hash );
 
 LDAP_SLAPD_F (struct berval *) slap_passwd_return(
 	struct berval		*cred );
 
 LDAP_SLAPD_F (int) slap_passwd_parse(
 	struct berval *reqdata,
-	struct berval **id,
-	struct berval **oldpass,
-	struct berval **newpass,
+	struct berval *id,
+	struct berval *oldpass,
+	struct berval *newpass,
 	const char **text );
 
 /*
@@ -973,7 +963,7 @@ LDAP_SLAPD_V (slap_mask_t)	global_disallows;
 LDAP_SLAPD_V (slap_mask_t)	global_requires;
 LDAP_SLAPD_V (slap_ssf_set_t)	global_ssf_set;
 
-LDAP_SLAPD_V (struct berval **)	default_referral;
+LDAP_SLAPD_V (BVarray)		default_referral;
 LDAP_SLAPD_V (char *)		replogfile;
 LDAP_SLAPD_V (const char) 	Versionstr[];
 LDAP_SLAPD_V (struct slap_limits_set)		deflimit;

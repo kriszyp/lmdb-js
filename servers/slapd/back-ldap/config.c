@@ -264,8 +264,8 @@ ldap_back_db_config(
 				fname, lineno );
 			return( 1 );
 		}
-		mapping->src = ch_strdup(src);
-		mapping->dst = ch_strdup(dst);
+		ber_str2bv( src, 0, 1, &mapping->src );
+		ber_str2bv( dst, 0, 1, &mapping->dst );
 		if ( *dst != 0 ) {
 			mapping[1].src = mapping->dst;
 			mapping[1].dst = mapping->src;
@@ -302,8 +302,9 @@ mapping_cmp ( const void *c1, const void *c2 )
 {
 	struct ldapmapping *map1 = (struct ldapmapping *)c1;
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
-
-	return ( strcasecmp(map1->src, map2->src) );
+	int rc = map1->src.bv_len - map2->src.bv_len;
+	if (rc) return rc;
+	return ( strcasecmp(map1->src.bv_val, map2->src.bv_val) );
 }
 
 int
@@ -312,11 +313,12 @@ mapping_dup ( void *c1, void *c2 )
 	struct ldapmapping *map1 = (struct ldapmapping *)c1;
 	struct ldapmapping *map2 = (struct ldapmapping *)c2;
 
-	return( ( strcasecmp(map1->src, map2->src) == 0 ) ? -1 : 0 );
+	return( ( strcasecmp(map1->src.bv_val, map2->src.bv_val) == 0 ) ? -1 : 0 );
 }
 
-char *
-ldap_back_map ( struct ldapmap *map, char *s, int remap )
+void
+ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
+	int remap )
 {
 	Avlnode *tree;
 	struct ldapmapping *mapping, fmapping;
@@ -326,35 +328,38 @@ ldap_back_map ( struct ldapmap *map, char *s, int remap )
 	else
 		tree = map->map;
 
-	fmapping.src = s;
+	bv->bv_len = 0;
+	bv->bv_val = NULL;
+	fmapping.src = *s;
 	mapping = (struct ldapmapping *)avl_find( tree, (caddr_t)&fmapping, mapping_cmp );
 	if (mapping != NULL) {
-		if ( *mapping->dst == 0 )
-			return(NULL);
-		return(mapping->dst);
+		if ( mapping->dst.bv_val )
+			*bv = mapping->dst;
+		return;
 	}
 
-	if (map->drop_missing)
-		return(NULL);
+	if (!map->drop_missing)
+		*bv = *s;
 
-	return(s);
+	return;
 }
 
 char *
 ldap_back_map_filter(
 		struct ldapmap *at_map,
 		struct ldapmap *oc_map,
-		char *f,
+		struct berval *f,
 		int remap
 )
 {
-	char *nf, *m, *p, *q, *s, c;
+	char *nf, *p, *q, *s, c;
 	int len, extra, plen, in_quote;
+	struct berval m, tmp;
 
 	if (f == NULL)
 		return(NULL);
 
-	len = strlen(f);
+	len = f->bv_len;
 	extra = len;
 	len *= 2;
 	nf = ch_malloc( len + 1 );
@@ -368,7 +373,7 @@ ldap_back_map_filter(
 	s = nf;
 	q = NULL;
 	in_quote = 0;
-	for (p = f; (c = *p); p++) {
+	for (p = f->bv_val; (c = *p); p++) {
 		if (c == '"') {
 			in_quote = !in_quote;
 			if (q != NULL) {
@@ -392,14 +397,16 @@ ldap_back_map_filter(
 		} else {
 			if (q != NULL) {
 				*p = 0;
-				m = ldap_back_map(at_map, q, remap);
-				if (m == NULL)
-					m = ldap_back_map(oc_map, q, remap);
-				if (m == NULL) {
-					m = q;
+				tmp.bv_len = p - q;
+				tmp.bv_val = q;
+				ldap_back_map(at_map, &tmp, &m, remap);
+				if (m.bv_val == NULL)
+					ldap_back_map(oc_map, &tmp, &m, remap);
+				if (m.bv_val == NULL) {
+					m = tmp;
 				}
 				extra += p - q;
-				plen = strlen(m);
+				plen = m.bv_len;
 				extra -= plen;
 				if (extra < 0) {
 					while (extra < 0) {
@@ -414,7 +421,7 @@ ldap_back_map_filter(
 					}
 					s += (long)nf;
 				}
-				memcpy(s, m, plen);
+				memcpy(s, m.bv_val, plen);
 				s += plen;
 				*p = c;
 				q = NULL;
@@ -434,8 +441,9 @@ ldap_back_map_attrs(
 )
 {
 	int i;
-	char *mapped, **na;
+	char **na;
 	AttributeName *an;
+	struct berval mapped;
 
 	if (a == NULL)
 		return(NULL);
@@ -449,9 +457,9 @@ ldap_back_map_attrs(
 		return(NULL);
 
 	for (i = 0, an=a; an; an=an->an_next) {
-		mapped = ldap_back_map(at_map, an->an_name.bv_val, remap);
-		if (mapped != NULL) {
-			na[i] = mapped;
+		ldap_back_map(at_map, &an->an_name, &mapped, remap);
+		if (mapped.bv_val != NULL) {
+			na[i] = mapped.bv_val;
 			i++;
 		}
 	}
