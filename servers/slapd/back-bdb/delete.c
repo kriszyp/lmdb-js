@@ -585,9 +585,9 @@ retry:	/* transaction retry */
 				if( (void *) e->e_attrs != (void *) (e+1)) {
 					attr_delete( &e->e_attrs, slap_schema.si_ad_entryCSN );
 					attr_merge_normalize_one( e, slap_schema.si_ad_entryCSN,
-					&op->ord_csn, NULL );
+					&op->o_sync_csn, NULL );
 				} else {
-					a->a_vals[0] = op->ord_csn;
+					a->a_vals[0] = op->o_sync_csn;
 				}
 			} else {
 				/* Hm, the entryCSN ought to exist. ??? */
