@@ -36,7 +36,7 @@ INCLUDES= -I. -I$(HDIR) $(KRBINCLUDEFLAG)
 DEFINES = $(DEFS) $(SERVERDEFS)
 CFLAGS	= $(INCLUDES) $(THREADSINCLUDE) $(DEFINES) $(ACFLAGS) $(THREADS)
 LDFLAGS	= -L$(LDIR) $(KRBLIBFLAG)
-LIBS	= $(KRBLIBS) -llber -lldbm -lavl -llthread -lldif \
+LIBS	= $(KRBLIBS) -llber -lldbm -lavl -llthread -lldif -llutil \
 		$(REGEXLIB) $(THREADSLIB) \
 		$(LDBMLIB) $(LDAP_CRYPT_LIB) $(LDAP_TCP_WRAPPERS_LIB) $(ALIBS)
 

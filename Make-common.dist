@@ -253,8 +253,9 @@ LDAP_REFERRALS=-DLDAP_REFERRALS
 # uncomment this line to enable ACL by groups
 # LDAP_ACLGROUP=-DACLGROUP
 
-# uncomment these lines to enable support for CRYPT passwords in LDBM.
-# LDAP_CRYPT=-DLDAP_CRYPT
+# uncomment these lines to enable support for CRYPT, SHA1, and/or MD5 passwords
+# in LDBM.  Crypt uses platform provided crypt(3).
+# LDAP_CRYPT=-DLDAP_CRYPT -DLDAP_SHA1 -DLDAP_MD5
 # LDAP_CRYPT_LIB?=
 # and comment this line out
 LDAP_CRYPT_LIB=

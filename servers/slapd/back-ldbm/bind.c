@@ -19,6 +19,15 @@ extern char *crypt (char *key, char *salt);
 #endif
 #endif /* LDAP_CRYPT */
 
+#ifdef LDAP_SHA1
+#include <sha1.h>
+#endif /* LDAP_SHA1 */
+#ifdef LDAP_MD5
+#include <lutil_md5.h>
+#endif /* LDAP_MD5 */
+
+#include <lutil.h>
+
 extern Entry		*dn2entry();
 extern Attribute	*attr_find();
 
@@ -40,15 +49,62 @@ crypted_value_find(
 {
 	int     i;
 	for ( i = 0; vals[i] != NULL; i++ ) {
-		if ( syntax != SYNTAX_BIN && 
-			strncasecmp( "{CRYPT}", vals[i]->bv_val, (sizeof("{CRYPT}") - 1 ) ) == 0 ) {
+		if ( syntax != SYNTAX_BIN && strncasecmp( "{CRYPT}",
+			vals[i]->bv_val, (sizeof("{CRYPT}") - 1 ) ) == 0 ) {
 				char *userpassword = vals[i]->bv_val + sizeof("{CRYPT}") - 1;
 				pthread_mutex_lock( &crypt_mutex );
-				if ( ( !strcmp( userpassword, crypt( cred->bv_val, userpassword ) ) != 0 ) ) {
+				if (strcmp(userpassword, crypt(cred->bv_val,
+						userpassword)) == 0) {
 					pthread_mutex_unlock( &crypt_mutex );
 					return ( 0 );
 				}
 				pthread_mutex_unlock( &crypt_mutex );
+#ifdef LDAP_MD5
+		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{MD5}",
+			vals[i]->bv_val, (sizeof("{MD5}") - 1 ) ) == 0 ) {
+				MD5_CTX MD5context;
+				unsigned char MD5digest[20];
+				char base64digest[29]; 	/* ceiling(sizeof(input)/3) * 4 + 1 */
+
+				char *userpassword = vals[i]->bv_val + sizeof("{MD5}") - 1;
+
+				MD5Init(&MD5context);
+				MD5Update(&MD5context, cred->bv_val, strlen(cred->bv_val));
+				MD5Final(MD5digest, &MD5context);
+
+				if (b64_ntop(MD5digest, sizeof(MD5digest),
+					base64digest, sizeof(base64digest)) < 0)
+				{
+					return ( 1 );
+				}
+
+				if (strcmp(userpassword, base64digest) == 0) {
+					return ( 0 );
+				}
+#endif /* LDAP_MD5 */
+#ifdef LDAP_SHA1
+		} else if ( syntax != SYNTAX_BIN && strncasecmp( "{SHA}",
+			vals[i]->bv_val, (sizeof("{SHA}") - 1 ) ) == 0 ) {
+				SHA1_CTX SHA1context;
+				unsigned char SHA1digest[20];
+				char base64digest[29]; 	/* ceiling(sizeof(input)/3) * 4 + 1 */
+
+				char *userpassword = vals[i]->bv_val + sizeof("{SHA}") - 1;
+
+				SHA1Init(&SHA1context);
+				SHA1Update(&SHA1context, cred->bv_val, strlen(cred->bv_val));
+				SHA1Final(SHA1digest, &SHA1context);
+
+				if (b64_ntop(SHA1digest, sizeof(SHA1digest),
+					base64digest, sizeof(base64digest)) < 0)
+				{
+					return ( 1 );
+				}
+
+				if (strcmp(userpassword, base64digest) == 0) {
+					return ( 0 );
+				}
+#endif /* LDAP_SHA1 */
 		} else {
                 if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
                         return( 0 );

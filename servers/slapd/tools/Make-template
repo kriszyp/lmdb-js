@@ -30,8 +30,8 @@ INCLUDES= -I. -I$(HDIR) $(EXINCLUDES)
 DEFINES = $(DEFS) $(LDAP_CRYPT) $(SERVERDEFS) $(THREADS)
 CFLAGS	= $(INCLUDES) $(DEFINES) $(ACFLAGS)
 LDFLAGS	= -L$(LDIR) $(EXLDFLAGS)
-LIBS	= -lldif -lldap -llber -lldbm -lavl $(LDBMLIB) $(EXLIBS) $(ALIBS)
-LIBS2	= -lldif -lldbm -lavl $(LDBMLIB) -llber $(KRBLIBFLAG) $(KRBLIBS) \
+LIBS	= -lldif -lldap -llber -lldbm -llutil -lavl $(LDBMLIB) $(EXLIBS) $(ALIBS)
+LIBS2	= -lldif -lldbm -llutil -lavl $(LDBMLIB) -llber $(KRBLIBFLAG) $(KRBLIBS) \
 		-llthread $(THREADSLIB) $(ALIBS) $(LDAP_CRYPT_LIB)
 
 all:	build-edb2ldif ldif2index ldif2ldbm ldbmcat ldif2id2entry \

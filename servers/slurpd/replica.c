@@ -57,7 +57,10 @@ start_replica_thread(
     pthread_attr_t	attr;
 
     pthread_attr_init( &attr );
+#ifdef NOTDEF
+	/* if main wants to join with us, we shouldn't detach */
     pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
+#endif
 
 #ifndef THREAD_MIT_PTHREADS
     /* POSIX_THREADS or compatible
