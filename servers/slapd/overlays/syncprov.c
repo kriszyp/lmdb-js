@@ -177,13 +177,16 @@ findpres_cb( Operation *op, SlapReply *rs )
 {
 	slap_callback *sc = op->o_callback;
 	fpres_cookie *pc = sc->sc_private;
-	int ret;
+	int ret = SLAP_CB_CONTINUE;
 
 	if ( rs->sr_type == REP_SEARCH ) {
+		Debug(LDAP_DEBUG_TRACE, "present %s\n", rs->sr_entry->e_name.bv_val, 0, 0);
 		ret = slap_build_syncUUID_set( op, &pc->uuids, rs->sr_entry );
 		if ( ret > 0 ) {
 			pc->num++;
+			ret = LDAP_SUCCESS;
 			if ( pc->num == SLAP_SYNCUUID_SET_SIZE ) {
+				rs->sr_rspoid = LDAP_SYNC_INFO;
 				ret = slap_send_syncinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
 					0, pc->uuids, 0 );
 				ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
@@ -196,6 +199,7 @@ findpres_cb( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_type == REP_RESULT ) {
 		ret = rs->sr_err;
 		if ( pc->num ) {
+			rs->sr_rspoid = LDAP_SYNC_INFO;
 			ret = slap_send_syncinfo( op, rs, LDAP_TAG_SYNC_ID_SET, NULL,
 				0, pc->uuids, 0 );
 			ber_bvarray_free_x( pc->uuids, op->o_tmpmemctx );
@@ -281,7 +285,6 @@ syncprov_findcsn( Operation *op, int mode )
 	cf.f_next = NULL;
 
 	fop.o_callback = &cb;
-	fop.ors_slimit = 1;
 	fop.ors_tlimit = SLAP_NO_LIMIT;
 	fop.ors_filter = &cf;
 	fop.ors_filterstr = fbuf;
@@ -380,13 +383,28 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 }
 
 static int
+syncprov_op_cleanup( Operation *op, SlapReply *rs )
+{
+	slap_callback *cb = op->o_callback;
+	opcookie *opc = (opcookie *)(cb+1);
+	syncmatches *sm, *snext;
+
+	for (sm = opc->smatches; sm; sm=snext) {
+		snext = sm->sm_next;
+		op->o_tmpfree( sm, op->o_tmpmemctx );
+	}
+	op->o_callback = cb->sc_next;
+	op->o_tmpfree(cb, op->o_tmpmemctx);
+}
+
+static int
 syncprov_op_response( Operation *op, SlapReply *rs )
 {
 	slap_callback *cb = op->o_callback;
 	opcookie *opc = (opcookie *)(cb+1);
 	slap_overinst *on = opc->son;
 	syncprov_info_t		*si = on->on_bi.bi_private;
-	syncmatches *sm, *snext;
+	syncmatches *sm;
 
 	if ( rs->sr_err == LDAP_SUCCESS )
 	{
@@ -423,12 +441,6 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 		}
 
 	}
-	for (sm = opc->smatches; sm; sm=snext) {
-		snext = sm->sm_next;
-		op->o_tmpfree( sm, op->o_tmpmemctx );
-	}
-	op->o_callback = cb->sc_next;
-	op->o_tmpfree(cb, op->o_tmpmemctx);
 	return SLAP_CB_CONTINUE;
 }
 
@@ -504,6 +516,7 @@ syncprov_op_mod( Operation *op, SlapReply *rs )
 	opcookie *opc = (opcookie *)(cb+1);
 	opc->son = on;
 	cb->sc_response = syncprov_op_response;
+	cb->sc_cleanup = syncprov_op_cleanup;
 	cb->sc_private = opc;
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
@@ -596,10 +609,12 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		/* Is the CSN still present in the database? */
 		if ( syncprov_findcsn( op, FIND_CSN ) != LDAP_SUCCESS ) {
 			/* No, so a reload is required */
+#if 0		/* the consumer doesn't seem to send this hint */
 			if ( op->o_sync_rhint == 0 ) {
 				send_ldap_error( op, rs, LDAP_SYNC_REFRESH_REQUIRED, "sync cookie is stale" );
 				return rs->sr_err;
 			}
+#endif
 		} else {
 			/* Does it match the current ctxCSN? */
 			if ( bvmatch( op->o_sync_state.ctxcsn, &si->si_ctxcsn )) {
