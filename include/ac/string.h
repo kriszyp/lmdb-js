@@ -6,18 +6,34 @@
 #ifdef STDC_HEADERS
 #	include <string.h>
 #else
+#	ifdef HAVE_STRING_H
+#		include <string.h>
+#	elif HAVE_STRINGS_H
+#		include <strings.h>
+#	endif
+
 #	ifndef HAVE_STRCHR
 #		define strchr index
 #		define strrchr rindex
 #	endif
-	char *strchr (), *strrchr ();
-	char *strcpy (), *strncpy (), *strcat (), *strncat ();
-	int   strcmp (),  strncmp (),  memcmp ();
 
 #	ifndef HAVE_MEMCPY
 #		define memcpy(d, s, n)			bcopy ((s), (d), (n))
 #		define memmove(d, s, n)			bcopy ((s), (d), (n))
 #	endif
+
+#	if !defined(HAVE_STRING_H) && !defined(HAVE_STRINGS_H)
+	/* define prototypes for string functions */
+	/* this could cause problems on some odd ball systems */
+	char	*strchr(), *strrchr();
+	char	*strcpy(), *strncpy();
+	char	*strcat (), *strncat ();
+	int		strcmp(), strncmp();
+	int		strcasecmp(), strncasecmp();
+	char	*strdup();
+	int		memcmp();
+#	endif
+
 #endif
 
 #ifndef SAFEMEMCPY

@@ -904,6 +904,8 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(	\
 	stdarg.h		\
 	stddef.h		\
+	string.h		\
+	strings.h		\
 	errno.h			\
 	fcntl.h			\
 	filio.h			\
