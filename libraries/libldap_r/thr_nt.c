@@ -29,7 +29,7 @@ typedef struct ldap_int_thread_s {
 #define NT_MAX_THREADS	1024
 #endif
 
-static ldap_int_thread_s tid[NT_MAX_THREADS];
+static ldap_int_thread_s tids[NT_MAX_THREADS];
 static int ntids;
 
 
@@ -63,8 +63,8 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 
 	if ( thd ) {
 		*thread = (ldap_pvt_thread_t) tid;
-		tid[ntids].tid = tid;
-		tid[ntids].thd = thd;
+		tids[ntids].tid = tid;
+		tids[ntids].thd = thd;
 		ntids++;
 		rc = 0;
 	}
@@ -84,14 +84,14 @@ ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 	int i;
 
 	for (i=0; i<ntids; i++) {
-		if ( tid[i].tid == thread )
+		if ( tids[i].tid == thread )
 			break;
 	}
 	if ( i > ntids ) return -1;
 
-	status = WaitForSingleObject( tid[i].thd, INFINITE );
+	status = WaitForSingleObject( tids[i].thd, INFINITE );
 	for (; i<ntids; i++) {
-		tid[i] = tid[i+1];
+		tids[i] = tids[i+1];
 	}
 	ntids--;
 	return status == WAIT_FAILED ? -1 : 0;
