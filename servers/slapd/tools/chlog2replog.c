@@ -122,8 +122,8 @@ dn2ldap( char *edbdn )
 }
 
 
-#define SEPARATOR(c)	(c == ',' || c == ';')
-#define SPACE(c)	(c == ' ' || c == '\n')
+#define SEPARATOR(c)	((c) == ',' || (c) == ';')
+#define SPACE(c)    	((c) == ' ' || (c) == '\n')
 
 static int
 dn2ldif( PS ps, DN dn )

@@ -345,7 +345,7 @@ typedef struct ldapmod {
 #define LDAP_IS_LEAF			0x23 /* not LDAPv3 */
 #define LDAP_ALIAS_DEREF_PROBLEM	0x24
 
-#define LDAP_NAME_ERROR(n)	((n & 0xf0) == 0x20)
+#define LDAP_NAME_ERROR(n)	(((n) & 0xf0) == 0x20)
 #define NAME_ERROR(n)	LDAP_NAME_ERROR(n)	/* depreciated */
 
 #define LDAP_INAPPROPRIATE_AUTH		0x30

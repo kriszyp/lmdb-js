@@ -169,8 +169,8 @@ attr_key_rfc1779(
     strcpy ( key, x );
 }
 
-#define SEPARATOR(c)	(c == ',' || c == ';')
-#define SPACE(c)	(c == ' ' || c == '\n')
+#define SEPARATOR(c)	((c) == ',' || (c) == ';')
+#define SPACE(c)    	((c) == ' ' || (c) == '\n')
 
 int
 dn_print_real(

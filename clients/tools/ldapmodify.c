@@ -31,7 +31,7 @@ static int	ldapport = 0;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 static LDAP	*ld;
 
-#define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
+#define safe_realloc( ptr, size )	( (ptr) == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
 #define LDAPMOD_MAXLINE		4096

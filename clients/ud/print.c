@@ -536,7 +536,7 @@ print_one_URL( char *s, int label_lead, char *tag, int url_lead )
 }
 
 
-#define GET2BYTENUM( p )	(( *p - '0' ) * 10 + ( *(p+1) - '0' ))
+#define GET2BYTENUM( p )	(( *(p) - '0' ) * 10 + ( *((p)+1) - '0' ))
 
 static char *
 time2text( char *ldtimestr, int dateonly )

@@ -64,8 +64,8 @@ static int searchaction LDAP_P((
 #define OCATTRNAME		"objectClass"
 
 
-#define NONFATAL_LDAP_ERR( err )	( err == LDAP_SUCCESS || \
-	err == LDAP_TIMELIMIT_EXCEEDED || err == LDAP_SIZELIMIT_EXCEEDED )
+#define NONFATAL_LDAP_ERR( err )	( (err) == LDAP_SUCCESS || \
+	(err) == LDAP_TIMELIMIT_EXCEEDED || (err) == LDAP_SIZELIMIT_EXCEEDED )
 
 #define DEF_LDAP_URL_PREFIX	"ldap:///"
 
@@ -848,10 +848,10 @@ output_dn( char *buf, char *dn, int width, int rdncount,
 
 
 
-#define HREF_CHAR_ACCEPTABLE( c )	(( c >= '-' && c <= '9' ) ||	\
-					 ( c >= '@' && c <= 'Z' ) ||	\
-					 ( c == '_' ) ||		\
-					 ( c >= 'a' && c <= 'z' ))
+#define HREF_CHAR_ACCEPTABLE( c )	(( (c) >= '-' && (c) <= '9' ) || \
+					 ( (c) >= '@' && (c) <= 'Z' ) || \
+					 ( (c) == '_' )               || \
+					 ( (c) >= 'a' && (c) <= 'z' ))
 
 static void
 strcat_escaped( char *s1, char *s2 )
@@ -874,7 +874,7 @@ strcat_escaped( char *s1, char *s2 )
 }
 
 
-#define GET2BYTENUM( p )	(( *p - '0' ) * 10 + ( *(p+1) - '0' ))
+#define GET2BYTENUM( p )	(( *(p) - '0' ) * 10 + ( *((p)+1) - '0' ))
 
 static char *
 time2text( char *ldtimestr, int dateonly )

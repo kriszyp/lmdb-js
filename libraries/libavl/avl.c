@@ -40,7 +40,7 @@ static char avl_version[] = "AVL library version 1.0\n";
 	}\
 	tmp = (*(x))->avl_right;\
 	(*(x))->avl_right = tmp->avl_left;\
-	tmp->avl_left = *x;\
+	tmp->avl_left = *(x);\
 	*(x) = tmp;\
 }
 

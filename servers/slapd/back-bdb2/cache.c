@@ -106,24 +106,24 @@ bdb2i_cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 	if ( LEI(e)->lei_lruprev != NULL ) { \
 		LEI(LEI(e)->lei_lruprev)->lei_lrunext = LEI(e)->lei_lrunext; \
 	} else { \
-		cache->c_lruhead = LEI(e)->lei_lrunext; \
+		(cache)->c_lruhead = LEI(e)->lei_lrunext; \
 	} \
 	if ( LEI(e)->lei_lrunext != NULL ) { \
 		LEI(LEI(e)->lei_lrunext)->lei_lruprev = LEI(e)->lei_lruprev; \
 	} else { \
-		cache->c_lrutail = LEI(e)->lei_lruprev; \
+		(cache)->c_lrutail = LEI(e)->lei_lruprev; \
 	} \
 }
 
 #define LRU_ADD( cache, e ) { \
-	LEI(e)->lei_lrunext = cache->c_lruhead; \
+	LEI(e)->lei_lrunext = (cache)->c_lruhead; \
 	if ( LEI(e)->lei_lrunext != NULL ) { \
-		LEI(LEI(e)->lei_lrunext)->lei_lruprev = e; \
+		LEI(LEI(e)->lei_lrunext)->lei_lruprev = (e); \
 	} \
-	cache->c_lruhead = e; \
+	(cache)->c_lruhead = (e); \
 	LEI(e)->lei_lruprev = NULL; \
-	if ( cache->c_lrutail == NULL ) { \
-		cache->c_lrutail = e; \
+	if ( (cache)->c_lrutail == NULL ) { \
+		(cache)->c_lrutail = (e); \
 	} \
 }
 

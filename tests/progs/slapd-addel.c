@@ -105,7 +105,7 @@ main( int argc, char **argv )
 }
 
 
-#define safe_realloc( ptr, size )   ( ptr == NULL ? malloc( size ) : \
+#define safe_realloc( ptr, size )   ( (ptr) == NULL ? malloc( size ) : \
 				realloc( ptr, size ))
 
 

@@ -22,7 +22,7 @@
 static void dump_tmpl	 ( struct ldap_disptmpl *tmpl );
 static void dump_srchpref( struct ldap_searchobj *sp );
 
-#define NULLSTRINGIFNULL( s )	( s == NULL ? "(null)" : s )
+#define NULLSTRINGIFNULL( s )	( (s) == NULL ? "(null)" : (s) )
 
 int
 main( int argc, char **argv )

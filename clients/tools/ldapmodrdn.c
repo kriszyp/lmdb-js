@@ -33,7 +33,7 @@ static int	ldapport = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-#define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
+#define safe_realloc( ptr, size )	( (ptr) == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
 static int domodrdn LDAP_P((

@@ -45,8 +45,8 @@ static void	de_crypt( char *s );
 
 extern char	*progname;
 
-#define SEPARATOR(c)	(c == ',' || c == ';')
-#define SPACE(c)	(c == ' ' || c == '\n')
+#define SEPARATOR(c)	((c) == ',' || (c) == ';')
+#define SPACE(c)    	((c) == ' ' || (c) == '\n')
 
 
 int

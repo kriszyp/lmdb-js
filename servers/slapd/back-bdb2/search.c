@@ -19,7 +19,7 @@ static ID_BLOCK	*subtree_candidates(BackendDB *be, Connection *conn, Operation *
 #define GRABSIZE	BUFSIZ
 
 #define MAKE_SPACE( n ) { \
-	if ( rcur + n > rbuf + rmaxsize ) { \
+	if ( rcur + (n) > rbuf + rmaxsize ) { \
 		int	offset = rcur - rbuf; \
 		rbuf =  ch_realloc( rbuf, rmaxsize + GRABSIZE ); \
 		rmaxsize += GRABSIZE; \

@@ -17,7 +17,7 @@
 
 #define iswordbreak(x)  (!isascii(x) || isspace((unsigned char) (x)) || \
 			 ispunct((unsigned char) (x)) || \
-			 isdigit((unsigned char) (x)) || x == '\0')
+			 isdigit((unsigned char) (x)) || (x) == '\0')
 
 char *
 first_word( char *s )
