@@ -743,6 +743,24 @@ static int slap_open_listener(
 			break;
 #ifdef LDAP_PF_INET6
 		case AF_INET6:
+#ifdef IPV6_V6ONLY
+			/* Try to use IPv6 sockets for IPv6 only */
+			tmp = 1;
+			rc = setsockopt( l.sl_sd, IPPROTO_IPV6, IPV6_V6ONLY,
+					 (char *) &tmp, sizeof(tmp) );
+			if ( rc == AC_SOCKET_ERROR ) {
+				int err = sock_errno();
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+					   "slap_open_listener: setsockopt( %ld, IPV6_V6ONLY ) failed errno %d (%s)\n",
+					   (long)l.sl_sd, err, sock_errstr(err) ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+				       "slapd(%ld): setsockopt(IPV6_V6ONLY) failed errno=%d (%s)\n",
+				       (long) l.sl_sd, err, sock_errstr(err) );
+#endif
+			}
+#endif
 			addrlen = sizeof(struct sockaddr_in6);
 			break;
 #endif
@@ -1006,9 +1024,9 @@ close_listeners(
 	int l;
 
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-		if ( remove )
-			slapd_remove( slap_listeners[l]->sl_sd, 0 );
 		if ( slap_listeners[l]->sl_sd != AC_SOCKET_INVALID ) {
+			if ( remove )
+				slapd_remove( slap_listeners[l]->sl_sd, 0 );
 #ifdef LDAP_PF_LOCAL
 			if ( slap_listeners[l]->sl_sa.sa_addr.sa_family == AF_LOCAL ) {
 				unlink( slap_listeners[l]->sl_sa.sa_un_addr.sun_path );
@@ -1055,6 +1073,43 @@ slapd_daemon_task(
 
 		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN ) == -1 ) {
 			int err = sock_errno();
+
+#ifdef LDAP_PF_INET6
+			/* If error is EADDRINUSE, we are trying to listen to INADDR_ANY and
+			 * we are already listening to in6addr_any, then we want to ignore
+			 * this and continue.
+			 */
+			if ( err == EADDRINUSE ) {
+				int i;
+				struct sockaddr_in sa = slap_listeners[l]->sl_sa.sa_in_addr;
+				struct sockaddr_in6 sa6;
+				
+				if ( sa.sin_family == AF_INET &&
+				     sa.sin_addr.s_addr == htonl(INADDR_ANY) ) {
+					for ( i = 0 ; i < l; i++ ) {
+						sa6 = slap_listeners[i]->sl_sa.sa_in6_addr;
+						if ( sa6.sin6_family == AF_INET6 &&
+						     !memcmp( &sa6.sin6_addr, &in6addr_any, sizeof(struct in6_addr) ) )
+							break;
+					}
+
+					if ( i < l ) {
+						/* We are already listening to in6addr_any */
+#ifdef NEW_LOGGING
+						LDAP_LOG(( "connection", LDAP_LEVEL_WARNING,
+							   "slapd_daemon_task: Attempt to listen to 0.0.0.0 failed, already listening on ::, assuming IPv4 included\n" ));
+#else
+						Debug( LDAP_DEBUG_CONNS,
+						       "daemon: Attempt to listen to 0.0.0.0 failed, already listening on ::, assuming IPv4 included\n",
+						       0, 0, 0 );
+#endif
+						slapd_close( slap_listeners[l]->sl_sd );
+						slap_listeners[l]->sl_sd = AC_SOCKET_INVALID;
+						continue;
+					}
+				}
+			}
+#endif				
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
 				   "slapd_daemon_task: listen( %s, 5 ) failed errno=%d (%s)\n",
@@ -1460,10 +1515,12 @@ slapd_daemon_task(
 					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 			} else {
 				char addr[INET6_ADDRSTRLEN];
+
+				peeraddr = (char *) inet_ntop( AF_INET6,
+						      &from.sa_in6_addr.sin6_addr,
+						      addr, sizeof addr );
 				sprintf( peername, "IP=%s %d",
-					 inet_ntop( AF_INET6,
-						    &from.sa_in6_addr.sin6_addr,
-						    addr, sizeof addr) ? addr : "unknown",
+					 peeraddr != NULL ? peeraddr : "unknown",
 					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
 			}
 			break;
