@@ -541,6 +541,97 @@ UTF8casecmp(
 
 	return 0;
 }
+
+/* case insensitive UTF8 strncmp with offset for second string */
+static int
+UTF8oncasecmp(
+	struct berval *right,
+	struct berval *left,
+	ber_len_t len,
+	ber_len_t offset )
+{
+	ber_len_t r, l;
+	int rlen, llen;
+	int rslen, lslen;
+	ldap_unicode_t ru, lu;
+	ldap_unicode_t ruu, luu;
+
+	rslen = len < right->bv_len ? len : right->bv_len;
+	lslen = len + offset < left->bv_len ? len : left->bv_len;
+
+	for( r = 0, l = offset;
+		r < rslen && l < lslen;
+		r+=rlen, l+=llen )
+	{
+		/*
+		 * XXYYZ: we convert to ucs4 even though -llunicode
+		 * expects ucs2 in an unsigned long
+		 */
+		ru = ldap_utf8_to_ucs4( &right->bv_val[r] );
+		if( ru == LDAP_UCS4_INVALID ) {
+			return 1;
+		}
+
+		lu = ldap_utf8_to_ucs4( &left->bv_val[l] );
+		if( lu == LDAP_UCS4_INVALID ) {
+			return -1;
+		}
+
+		ruu = uctoupper( ru );
+		luu = uctoupper( lu );
+
+		if( ruu > luu ) {
+			return 1;
+		} else if( luu > ruu ) {
+			return -1;
+		}
+
+		rlen = LDAP_UTF8_CHARLEN( &right->bv_val[r] );
+		llen = LDAP_UTF8_CHARLEN( &left->bv_val[l] );
+	}
+
+	if( r < rslen ) {
+		/* less left */
+		return -1;
+	}
+
+	if( l < lslen ) {
+		/* less right */
+		return 1;
+	}
+
+	return 0;
+}
+
+static char *UTF8casechr( const char *str, const char *c )
+{
+	char *p, *lower, *upper;
+	ldap_ucs4_t tch, ch = ldap_utf8_to_ucs4(c);
+
+	tch = uctolower ( ch );
+	for( p = (char *) str; *p != '\0'; LDAP_UTF8_INCR(p) ) {
+		if( ldap_utf8_to_ucs4( p ) == tch ) {
+			break;
+		} 
+	}
+	lower = *p != '\0' ? p : NULL;
+
+	tch = uctoupper ( ch );
+	for( p = (char *) str; *p != '\0'; LDAP_UTF8_INCR(p) ) {
+		if( ldap_utf8_to_ucs4( p ) == tch ) {
+			break;
+		} 
+	}
+	upper = *p != '\0' ? p : NULL;
+	
+	if( lower && upper ) {
+		return lower < upper ? lower : upper;
+	} else if ( lower ) {
+		return lower;
+	} else {
+		return upper;
+	}
+}
 #endif
 
 static int
@@ -1561,8 +1652,13 @@ caseIgnoreSubstringsMatch(
 			goto done;
 		}
 
+#if UTF8MATCH
+		match = UTF8oncasecmp( sub->sa_initial, &left,
+				     sub->sa_initial->bv_len, 0 );
+#else		
 		match = strncasecmp( sub->sa_initial->bv_val, left.bv_val,
 			sub->sa_initial->bv_len );
+#endif
 
 		if( match != 0 ) {
 			goto done;
@@ -1579,9 +1675,15 @@ caseIgnoreSubstringsMatch(
 			goto done;
 		}
 
+#if UTF8MATCH
+		match = UTF8oncasecmp( sub->sa_final, &left,
+				       sub->sa_final->bv_len,
+				       left.bv_len - sub->sa_final->bv_len );
+#else		
 		match = strncasecmp( sub->sa_final->bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
 			sub->sa_final->bv_len );
+#endif
 
 		if( match != 0 ) {
 			goto done;
@@ -1607,7 +1709,11 @@ retry:
 				continue;
 			}
 
+#if UTF8MATCH
+			p = UTF8casechr( left.bv_val, sub->sa_any[i]->bv_val );
+#else
 			p = strcasechr( left.bv_val, *sub->sa_any[i]->bv_val );
+#endif
 
 			if( p == NULL ) {
 				match = 1;
@@ -1631,6 +1737,17 @@ retry:
 				goto done;
 			}
 
+#if UTF8MATCH
+			match = UTF8oncasecmp( &left, sub->sa_any[i],
+					       sub->sa_any[i]->bv_len, 0 );
+
+			if( match != 0 ) {
+				int len = LDAP_UTF8_CHARLEN( left.bv_val );
+				left.bv_val += len;
+				left.bv_len -= len;
+				goto retry;
+			}
+#else			
 			match = strncasecmp( left.bv_val,
 				sub->sa_any[i]->bv_val,
 				sub->sa_any[i]->bv_len );
@@ -1641,6 +1758,7 @@ retry:
 
 				goto retry;
 			}
+#endif
 
 			left.bv_val += sub->sa_any[i]->bv_len;
 			left.bv_len -= sub->sa_any[i]->bv_len;
