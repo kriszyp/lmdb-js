@@ -82,12 +82,15 @@ retry:	/* transaction retry */
 		if (e != NULL) {
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
+			e = NULL;
 		}
 		if (p != NULL) {
 			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
+			p = NULL;
 		}
 		if (np != NULL) {
 			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, np);
+			np = NULL;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, "==>bdb_modrdn: retrying...\n", 0, 0, 0);
