@@ -2802,7 +2802,6 @@ add_syncrepl(
 	si->si_manageDSAit = 0;
 	si->si_tlimit = -1;
 	si->si_slimit = -1;
-	si->si_syncUUID = NULL;
 	si->si_syncUUID_ndn.bv_val = NULL;
 	si->si_syncUUID_ndn.bv_len = 0;
 	si->si_sync_mode = LDAP_SYNC_STATE_MODE;
