@@ -32,6 +32,20 @@ int schema_init_done = 0;
 
 struct slap_internal_schema slap_schema;
 
+static int objectClassValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	ObjectClass *oc;
+	int rc = numericoidValidate( syntax, in );
+	if ( rc ) return rc;
+
+	oc = oc_bvfind( in );
+	if( oc == NULL ) return LDAP_INVALID_SYNTAX;
+
+	return LDAP_SUCCESS;
+}
+
 static int objectClassPretty(
 	struct slap_syntax *syntax,
 	struct berval * in,
@@ -39,13 +53,9 @@ static int objectClassPretty(
 	void *ctx )
 {
 	ObjectClass *oc = oc_bvfind( in );
+	if( oc == NULL ) return LDAP_INVALID_SYNTAX;
 
-	if( oc != NULL ) {
-		ber_dupbv_x( out, &oc->soc_cname, ctx );
-	} else {
-		ber_dupbv_x( out, in, ctx );
-	}
-
+	ber_dupbv_x( out, &oc->soc_cname, ctx );
 	return LDAP_SUCCESS;
 }
 
@@ -283,7 +293,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		NULL, SLAP_AT_FINAL,
-		NULL, objectClassPretty,
+		objectClassValidate, objectClassPretty,
 		NULL, NULL, objectSubClassMatch,
 			objectSubClassIndexer, objectSubClassFilter,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
@@ -295,7 +305,7 @@ static struct slap_schema_ad_map {
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0,
-		NULL, objectClassPretty,
+		objectClassValidate, objectClassPretty,
 		NULL, NULL, objectSubClassMatch,
 			objectSubClassIndexer, objectSubClassFilter,
 		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
