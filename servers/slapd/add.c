@@ -413,7 +413,7 @@ slap_mods2entry(
 			for( i=0; attr->a_vals[i].bv_val; i++ ) {
 				/* count them */
 			}
-			for( j=0; mods->sml_bvalues[j].bv_val; j++ ) {
+			for( j=0; mods->sml_nvalues[j].bv_val; j++ ) {
 				/* count them */
 			}
 			j++;	/* NULL */
@@ -423,12 +423,24 @@ slap_mods2entry(
 
 			/* should check for duplicates */
 
-			AC_MEMCPY( &attr->a_vals[i], mods->sml_bvalues,
+			AC_MEMCPY( &attr->a_vals[i], mods->sml_nvalues,
 				sizeof( struct berval ) * j );
 
 			/* trim the mods array */
-			ch_free( mods->sml_bvalues );
-			mods->sml_bvalues = NULL;
+			ch_free( mods->sml_nvalues );
+			mods->sml_nvalues = NULL;
+
+			if( attr->a_nvals ) {
+				attr->a_nvals = ch_realloc( attr->a_nvals,
+					sizeof( struct berval ) * (i+j) );
+
+				AC_MEMCPY( &attr->a_nvals[i], mods->sml_nvalues,
+					sizeof( struct berval ) * j );
+
+				/* trim the mods array */
+				ch_free( mods->sml_nvalues );
+				mods->sml_nvalues = NULL;
+			}
 
 			continue;
 #else
@@ -439,7 +451,7 @@ slap_mods2entry(
 #endif
 		}
 
-		if( mods->sml_bvalues[1].bv_val != NULL ) {
+		if( mods->sml_values[1].bv_val != NULL ) {
 			/* check for duplicates */
 			int		i, j;
 			MatchingRule *mr = mods->sml_desc->ad_type->sat_equality;
@@ -485,6 +497,7 @@ slap_mods2entry(
 		/*	should check for duplicates */
 		attr->a_vals = mods->sml_values;
 		mods->sml_values = NULL;
+
 #ifdef SLAP_NVALUES
 		attr->a_nvals = mods->sml_nvalues;
 		mods->sml_nvalues = NULL;
