@@ -20,7 +20,7 @@ REQUIRED SOFTWARE
 
 	SLAPD:
 		BDB backend requires Sleepycat Berkeley DB 4.0 or better 
-		LDBM backend supports this and other compatible database manager
+		LDBM backend supports this and other compatible database managers
 
 	SLURPD:
 		LTHREAD compatible thread package
