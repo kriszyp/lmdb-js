@@ -15,12 +15,12 @@ overlay is configured.
 .LP
 Uniqueness is enforced by searching the subtree to ensure that the values of
 all attributes presented with an
-.B add ,
+.BR add ,
 .B modify
 or
 .B modrdn
 operation are unique within the subtree.
-For example, if uniquness were enforced for the
+For example, if uniqueness were enforced for the
 .B uid
 attribute, the subtree would be searched for any other records which also
 have a
@@ -49,8 +49,8 @@ If not configured, all non-operational (eg, system) attributes must be
 unique. Note that the
 .B unique_ignore
 list should generally contain the
-.B objectClass ,
-.B dc ,
+.BR objectClass ,
+.BR dc ,
 .B ou
 and
 .B o
