@@ -4060,7 +4060,7 @@ nisNetgroupTripleValidate(
 				return LDAP_INVALID_SYNTAX;
 			}
 
-		} else if ( !ATTR_CHAR( *p ) ) {
+		} else if ( !AD_CHAR( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4094,7 +4094,7 @@ bootParameterValidate(
 
 	/* key */
 	for (; ( p < e ) && ( *p != '=' ); p++ ) {
-		if ( !ATTR_CHAR( *p ) ) {
+		if ( !AD_CHAR( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4105,7 +4105,7 @@ bootParameterValidate(
 
 	/* server */
 	for ( p++; ( p < e ) && ( *p != ':' ); p++ ) {
-		if ( !ATTR_CHAR( *p ) ) {
+		if ( !AD_CHAR( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
@@ -4116,7 +4116,7 @@ bootParameterValidate(
 
 	/* path */
 	for ( p++; p < e; p++ ) {
-		if ( !ATTR_CHAR( *p ) ) {
+		if ( !AD_CHAR( *p ) ) {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
