@@ -417,6 +417,8 @@ monitor_subsys_conn_create(
 					connection_done(c);
 					return( -1 );
 				}
+
+				break;
 			}
 		}
 		
