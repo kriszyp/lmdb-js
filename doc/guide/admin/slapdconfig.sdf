@@ -130,25 +130,31 @@ Log levels are additive. To display what numbers correspond
 to what kind of debugging, invoke slapd with the  ? flag or
 consult the table below. The possible values for <integer> are:
 
-*1 trace function calls
-*2 debug packet handling
-*4 heavy trace debugging
-*8 connection management
-*16 print out packets sent and received
-*32 search filter processing
-*64 configuration file processing
-*128 access control list processing
-*256 stats log connections/operations/results
-*512 stats log entries sent
-*1024 print communication with shell backends
-*2048 print entry parsing debugging
+!block table; colaligns="RL"; align=Center; \
+	title="Table 5.1: Debugging Levels"
+Level	Description
+-1	enable all debugging
+0	no debugging
+1	trace function calls
+2	debug packet handling
+4	heavy trace debugging
+8	connection management
+16	print out packets sent and received
+32	search filter processing
+64	configuration file processing
+128	access control list processing
+256	stats log connections/operations/results
+512	stats log entries sent
+1024	print communication with shell backends
+2048	print entry parsing debugging
+!endblock
 
 \Example:
 
-E: loglevel 255
+E: loglevel -1
 
 This will cause lots and lots of debugging information to be
-syslogged.
+logged.
 
 \Default:
 
@@ -421,14 +427,14 @@ maintained.
 \Example:
 
 >	index default pres,eq
->	index objectclass,uid
+>	index objectClass,uid
 >	index cn,sn eq,sub,approx
 
 The first line sets the default to indices to maintain to present
 and equality.  The second line causes the default (pres,eq) set
-of indices to be maintained for objectclass and uid.  The third
-line causes equality, substring, and approximate filters to be
-maintained for cn and sn attributes.
+of indices to be maintained for objectcCass and uid attribute
+types.  The third line causes equality, substring, and approximate
+filters to be maintained for cn and sn attribute types.
 
 H4: mode <integer>
 
@@ -643,11 +649,22 @@ H3: The access to grant
 
 The kind of <access> granted can be one of the following:
 
->	none | auth | compare | search | read | write
 
-Note that each level implies all lower levels of access. So, for
+!block table; colaligns="LRL"; align=Center; \
+	title="Table 5.2: Access Levels"
+Level	Privledges	Description
+none			no access
+auth	=x		needed to bind
+compare	=cx		needed to compare
+search	=scx		needed to apply search filters
+read	=rscx		needed to read search results
+write	=wrscx		needed to modify/rename
+!endblock
+
+Each level implies all lower levels of access. So, for
 example, granting someone write access to an entry also
-grants them read, search, compare, and auth access.
+grants them read, search, compare, and auth access.  However,
+one may use the privledges specify to grant specific permissions.
 
 
 H3: Access Control Evaluation
@@ -716,10 +733,11 @@ ordering is significant.
 >	access to dn=".*,dc=com"
 > 		by * read
 
-Read access is granted to entries under the {{EX:dc=com}}
-subtree, except for those entries under the {{EX:dc=example,dc=com}} subtree,
-to which search access is granted. If the
-order of these access directives was reversed, the
+Read access is granted to entries under the {{EX:dc=com}}.
+subtree, except for those entries under the {{EX:dc=example,dc=com}}
+subtree, to which search access is granted.  No access to
+{{EX:dc=com}} as the neither access directive matches this DN.
+If the order of these access directives was reversed, the
 trailing directive would never be reached, since all
 {{EX:dc=example,dc=com}} entries are also {{EX:dc=com}} entries.
 
@@ -728,12 +746,12 @@ no {{EX:by <who>}} clause, {{B:access is denied}}.  That is, every
 {{EX:access to}} directive ends with a implicit {{EX:by * none}}
 clause and access list itself ends with {{EX:access to * by * none}}
 directive.  Only if no access controls are specified, is the
-defaultaccess granted.
+{{EX:defaultaccess}} granted.
 
 The next example again shows the importance of ordering,
 both of the access directives and the {{EX:by <who>}} clauses.
 It also shows the use of an attribute selector to grant access
-to a specific attribute and various <who> selectors.
+to a specific attribute and various {{EX:<who>}} selectors.
 
 >	access to dn="(.*,)?dc=example,dc=com" attr=homePhone
 >		by self write
@@ -744,14 +762,14 @@ to a specific attribute and various <who> selectors.
 >		by dn=".*,dc=example,dc=com" search
 >		by anonymous auth
 
-This example applies to entries in the "dc=example, dc=com"
-subtree. To all attributes except homePhone, the entry itself
-can write them, other Example.com entries can search by them,
+This example applies to entries in the "{{EX:dc=example, dc=com}}"
+subtree. To all attributes except {{EX:homePhone}}, the entry itself
+can write them, other {{EX:example.com}} entries can search by them,
 anybody else has no access ((implicit {{EX:by * none}}) excepting for
 authentication/authorization (which is always done anonymously).
-The homePhone attribute is writable by the entry, searchable
-by other Example.com entries, readable by clients connecting
-from somewhere in the example.com domain, and otherwise not
+The {{EX:homePhone}} attribute is writable by the entry, searchable
+by other {{EX:example.com}} entries, readable by clients connecting
+from somewhere in the {{EX:example.com}} domain, and otherwise not
 readable (implicit {{EX:by * none}}).  All other access
 is denied by the implicit {{EX:access to * by * none}}.
 
@@ -765,25 +783,66 @@ it with an access directive like this:
 > 		by dnattr=member selfwrite
 
 The dnattr {{EX:<who>}} selector says that the access applies to
-entries listed in the member attribute. The selfwrite access
+entries listed in the {{EX:member}} attribute. The {{EX:selfwrite}} access
 selector says that such members can only add or delete their
 own DN from the attribute, not other values. The addition of
 the entry attribute is required because access to the entry is
 required to access any of the entry's attributes.
 
-Note that the attr=member construct in the {{EX:<what>}} clause is a
-shorthand for the clause "{{EX:dn=.* attr=member}}" (i.e., it matches
-the member attribute in all entries).
+Note that the {{EX:attr=member}} construct in the {{EX:<what>}}
+clause is a shorthand for the clause "{{EX:dn=.* attr=member}}"
+(i.e., it matches the {{EX:member}} attribute in all entries).
 
 
 
-H2: Schema Enforcement
+H2: Schema Specification
 
+The {{EX:objectclass}} and {{attributeTypes}} configuration file
+directives can be used to define schema rules on entries in the
+directory.
 
+H3: Object Identifiers
 
-The {{EX:objectclass}} and schemacheck configuration file directives
-can be used to enforce schema rules on entries in the
-directory. The schema rules are defined by one or more
+Each schema element is identified by a globally unique Object
+Identifier (OID).  OIDs are also used to identify other objects.
+They are commonly found in protocols described by ASN.1.  In
+particular, they are heavy used by Simple Network Management
+Protocol (SNMP).  As OIDs are heirarchial, your organization
+can obtain one OID and branch in as needed.  For example,
+if your organization were assigned OID 1.1, you could branch
+the tree as follows:
+
+!block table; colaligns="RL"; align=Center; \
+	title="Table 5.1: Debugging Levels"
+OID		Assignment
+1.1		Organization's OID
+1.1.1		SNMP Elements
+1.1.2		LDAP Elements
+1.1.2.1		AttributeTypes
+1.1.2.1.1	myAttribute
+1.1.2.2		ObjectClasses
+1.1.2.2.1	myObjectClass
+!endblock
+
+You are, of course, free to design a heirarchy suitable to your
+organizational needs under your organization's OID.
+
+.{{Under no circumstances should you use a fictious OID!}} 
+
+To obtain a fully registered OID at {{no cost}}, apply for
+a OID under {{Internet Assigned Numbers Authority}} maintained
+{{Private Enterprise}} arch.  Any private enterprise (organization)
+may request an OID to be assigned under this arch.  Just fill
+out the form at {{URL: http://www.iana.org/}} and your OID will
+be sent to you usually within a few days.
+
+H3: AttributeType Specification
+
+{{B:To be specified.}}
+
+H3: ObjectClass Specification
+
+The schema rules are defined by one or more
 objectclass lines, and enforcement is turned on or off via the
 schemacheck directives. The format of an {{EX:objectclass}} line is:
 
@@ -793,39 +852,25 @@ This directive defines the schema rules for the object class
 given by {{EX:<name>}}. Schema rules consist of the attributes the
 entry is required to have (given by the requires {{EX:<attrs>}}
 clause) and those attributes that it may optionally have (given
-by the allows {{EX:<attrs>}} clause). In both clauses, {{EX:<attrs>}} is a
-comma-separated list of attribute names.
+by the allows {{EX:<attrs>}} clause). In both clauses, {{EX:<attrs>}}
+is a comma-separated list of attribute names.
 
-Note that object class inheritance (that is, defining one object
-class in terms of another) is not supported directly. All of an
-object class's required and allowed attributes must be listed
-in the objectclass definition.
-
-For example, to define an objectclass called myPerson, you
+For example, to define an object class called {{myPerson}}, you
 might include a definition like this:
 
->	objectclass myperson
->		requires cn, sn, objectclass
->		allows mail, phone, fax
-
-To then enforce this rule (i.e., to make sure an entry with an
-objectclass of myperson contains the cn, sn and objectclass
-attributes, and that it contains no other attributes besides
-mail, phone, and fax), turn on schema checking with a line like
-this:
-
->	schemacheck on
+>	objectclass ( 1.2.3 NAME 'myPerson'
+>		DESC 'my person'
+>		MUST ( cn $ sn )
+>		MAY ( mail $ phone $ fax ) )
 
 
 
 H2: Configuration File Example
 
-
-
 The following is an example configuration file, interspersed
 with explanatory text. It defines two databases to handle
-different parts of the X.500 tree; both are LDBM database
-instances. The line numbers shown are provided for
+different parts of the {{TERM:X.500}} tree; both are {{TERM:LDBM}}
+database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
 
@@ -848,60 +893,59 @@ truelies, the other on judgmentday. Indexes are to be
 maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
-E: 1. # ldbm definition for the U-M database
-E: 2. database ldbm
-E: 3. suffix "dc=example, dc=com"
-E: 4. directory /usr/local/var/openldap
-E: 6. rootdn "cn=Manager, dc=example, dc=com"
-E: 7. rootpw secret
-E: 8. replogfile /usr/local/var/openldap/slapd.replog
-E: 9. replica host=slave1.example.com:389
-E: 10. binddn="cn=Replicator, dc=example, dc=com"
-E: 11. bindmethod=simple credentials=secret
-E: 12.replica host=slave2.example.com
-E: 13. binddn="cn=Replicator, dc=example, dc=com"
-E: 14. bindmethod=kerberos
-E: 15. srvtab=/etc/srvtab.slave2
-E: 16.# ldbm indexed attribute definitions
-E: 17.index cn,sn,uid pres,eq,approx,sub
-E: 18.index objectclass pres,eq
-E: 19.index default none
-E: 20.# ldbm access control definitions
-E: 21.access to attr=userPassword
-E: 23. by self write
-E: 22. by anonymous auth
-E: 23. by dn="cn=Admin,dc=example,dc=com" write
-E: 25. by * none
-E: 26.access to *
-E: 27. by self write
-E: 28. by anonymous auth
-E: 29. by dn="cn=Admin,dc=example,dc=com" write
-E: 30. by * read
+E:  4. # ldbm definition for the example.com
+E:  5. database ldbm
+E:  6. suffix "dc=example, dc=com"
+E:  7. directory /usr/local/var/openldap
+E:  8. rootdn "cn=Manager, dc=example, dc=com"
+E:  9. rootpw secret
+E: 10. replogfile /usr/local/var/openldap/slapd.replog
+E: 11. replica host=slave1.example.com:389
+E: 12.   binddn="cn=Replicator, dc=example, dc=com"
+E: 13.   bindmethod=simple credentials=secret
+E: 14. replica host=slave2.example.com
+E: 15.   binddn="cn=Replicator, dc=example, dc=com"
+E: 16.   bindmethod=kerberos
+E: 17.   srvtab=/etc/srvtab.slave2
+E: 18. # ldbm indexed attribute definitions
+E: 19. index uid pres,eq
+E: 20. index cn,sn,uid pres,eq,approx,sub
+E: 21. index objectClass eq
+E: 22. # ldbm access control definitions
+E: 23. access to attr=userPassword
+E: 24.   by self write
+E: 25.   by anonymous auth
+E: 26.   by dn="cn=Admin,dc=example,dc=com" write
+E: 27.   by * none
+E: 28. access to *
+E: 29.   by self write
+E: 30.   by anonymous auth
+E: 31.   by dn="cn=Admin,dc=example,dc=com" write
+E: 32.   by * read
 
-Line 1 is a comment. The start of the database definition is
-marked by the database keyword on line 2. Line 3 specifies
-the DN suffix for queries to pass to this database. Line 4
+Line 4 is a comment. The start of the database definition is
+marked by the database keyword on line 5. Line 6 specifies
+the DN suffix for queries to pass to this database. Line 7
 specifies the directory in which the database files will live
 
-Lines 6 and 7 identify the database "super user" entry and
+Lines 8 and 9 identify the database "super user" entry and
 associated password. This entry is not subject to access
 control or size or time limit restrictions.
 
-Lines 8 through 15 are for replication. Line 8 specifies the
+Lines 10 through 17 are for replication. Line 10 specifies the
 replication log file (where changes to the database are logged
-\- this file is written by slapd and read by slurpd). Lines 9
-through 11 specify the hostname and port for a replicated
+\- this file is written by slapd and read by slurpd). Lines 11 
+through 13 specify the hostname and port for a replicated
 host, the DN to bind as when performing updates, the bind
 method (simple) and the credentials (password) for the
-binddn. Lines 12 through 15 specify a second replication site,
+binddn. Lines 14 through 17 specify a second replication site,
 using kerberos instead of simple authentication. See Section
 10 on slurpd for more information on these directives.
 
-Lines 16 through 19 indicate the indexes to maintain for
-various attributes. The default is not to maintain any indexes
-(line 19).
+Lines 19 through 21 indicate the indexes to maintain for
+various attributes.
 
-Lines 20 through 30 specify access control for entries in the
+Lines 23 through 32 specify access control for entries in the
 database. For all entries, the {{EX:userPassword}} attribute is
 writable by the entry and the "admin" entry, may be used for
 authentication/authorization purposes, but is otherwise not
@@ -913,9 +957,9 @@ The next section of the example configuration file defines
 another LDBM database. This one handles queries involving
 the {{EX:dc=example,dc=net}} subtree.
 
-E: 1. # ldbm definition for Babs, Inc. database
-E: 2. database ldbm
-E: 3. suffix "dc=example, dc=net"
-E: 4. directory /usr/local/var/ldbm-example-net
-E: 5. rootdn "cn=Manager, dc=example, dc=net"
+E: 33. # ldbm definition for example.net
+E: 34. database ldbm
+E: 35. suffix "dc=example, dc=net"
+E: 36. directory /usr/local/var/ldbm-example-net
+E: 37. rootdn "cn=Manager, dc=example, dc=net"
 
