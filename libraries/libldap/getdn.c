@@ -56,6 +56,7 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 {
 	char	*ufn;
 	char	**vals;
+	int i;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
@@ -65,9 +66,23 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 		return NULL;
 	}
 
-	vals = ldap_explode_dn( dn , 1 );
+	vals = ldap_explode_dn( dn , 0 );
 	if( vals == NULL ) {
 		return NULL;
+	}
+
+	for ( i = 0; vals[i]; i++ ) {
+		char **rvals;
+
+		rvals = ldap_explode_rdn( vals[i] , 1 );
+		if ( rvals == NULL ) {
+			LDAP_VFREE( vals );
+			return NULL;
+		}
+
+		LDAP_FREE( vals[i] );
+		vals[i] = ldap_charray2str( rvals, " + " );
+		LDAP_VFREE( rvals );
 	}
 
 	ufn = ldap_charray2str( vals, ", " );
