@@ -1236,19 +1236,19 @@ print_access( Access *b )
 
 	/* Security Strength Factors */
 	if ( b->a_authz.sai_ssf ) {
-		fprintf( stderr, " ssf=%ud",
+		fprintf( stderr, " ssf=%u",
 			b->a_authz.sai_ssf );
 	}
 	if ( b->a_authz.sai_transport_ssf ) {
-		fprintf( stderr, " transport_ssf=%ud",
+		fprintf( stderr, " transport_ssf=%u",
 			b->a_authz.sai_transport_ssf );
 	}
 	if ( b->a_authz.sai_tls_ssf ) {
-		fprintf( stderr, " tls_ssf=%ud",
+		fprintf( stderr, " tls_ssf=%u",
 			b->a_authz.sai_tls_ssf );
 	}
 	if ( b->a_authz.sai_sasl_ssf ) {
-		fprintf( stderr, " sasl_ssf=%ud",
+		fprintf( stderr, " sasl_ssf=%u",
 			b->a_authz.sai_sasl_ssf );
 	}
 

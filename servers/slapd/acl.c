@@ -637,8 +637,8 @@ acl_mask(
 		}
 
 		if ( b->a_authz.sai_ssf ) {
-			Debug( LDAP_DEBUG_ACL, "<= check a_authz.sai_ssf: %ud\n",
-				b->a_authz.sai_ssf, 0, 0 );
+			Debug( LDAP_DEBUG_ACL, "<= check a_authz.sai_ssf: ACL %u > OP %u\n",
+				b->a_authz.sai_ssf, op->o_ssf, 0 );
 
 			if ( b->a_authz.sai_ssf >  op->o_ssf ) {
 				continue;
@@ -647,8 +647,8 @@ acl_mask(
 
 		if ( b->a_authz.sai_transport_ssf ) {
 			Debug( LDAP_DEBUG_ACL,
-				"<= check a_authz.sai_transport_ssf: %ud\n",
-				b->a_authz.sai_transport_ssf, 0, 0 );
+				"<= check a_authz.sai_transport_ssf: ACL %u > OP %u\n",
+				b->a_authz.sai_transport_ssf, op->o_transport_ssf, 0 );
 
 			if ( b->a_authz.sai_transport_ssf >  op->o_transport_ssf ) {
 				continue;
@@ -657,8 +657,8 @@ acl_mask(
 
 		if ( b->a_authz.sai_tls_ssf ) {
 			Debug( LDAP_DEBUG_ACL,
-				"<= check a_authz.sai_tls_ssf: %ud\n",
-				b->a_authz.sai_tls_ssf, 0, 0 );
+				"<= check a_authz.sai_tls_ssf: ACL %u > OP %s\n",
+				b->a_authz.sai_tls_ssf, op->o_tls_ssf, 0 );
 
 			if ( b->a_authz.sai_tls_ssf >  op->o_tls_ssf ) {
 				continue;
@@ -667,8 +667,8 @@ acl_mask(
 
 		if ( b->a_authz.sai_sasl_ssf ) {
 			Debug( LDAP_DEBUG_ACL,
-				"<= check a_authz.sai_sasl_ssf: %ud\n",
-				b->a_authz.sai_sasl_ssf, 0, 0 );
+				"<= check a_authz.sai_sasl_ssf: ACL %u > OP %s\n",
+				b->a_authz.sai_sasl_ssf, op->o_sasl_ssf, 0 );
 
 			if ( b->a_authz.sai_sasl_ssf >  op->o_sasl_ssf ) {
 				continue;
