@@ -1,0 +1,477 @@
+# These definitions are from Microsoft's Active Directory.
+# They were gathered using the subschemaSubentry object of
+# Windows 2000 Advanced Server Release Candidate 2.
+
+# These object classes and attributes are from the standard
+# OID arc 2.5.6 and from the directory pilot project RFC-1274.
+# Many of them have been modified in Active Directory.  To
+# adhere to the standard, DO NOT USE THIS FILE.  Instead, use
+# core.schema.
+
+objectclass ( 2.5.6.0
+	NAME 'top'
+	ABSTRACT
+	MUST (objectClass $ instanceType $ nTSecurityDescriptor $
+		objectCategory )
+	MAY (cn $ description $ distinguishedName $ whenCreated $
+		whenChanged $ subRefs $ displayName $ uSNCreated $ isDeleted $
+		dSASignature $ objectVersion $ repsTo $ repsFrom $ memberOf $
+		uSNChanged $ uSNLastObjRem $ showInAdvancedViewOnly $
+		adminDisplayName $ proxyAddresses $ adminDescription $
+		extensionName $ uSNDSALastObjRemoved $ displayNamePrintable $
+		directReports $ wWWHomePage $ USNIntersite $ name $ objectGUID $
+		replPropertyMetaData $ replUpToDateVector $ flags $ revision $
+		wbemPath $ fSMORoleOwner $ systemFlags $ siteObjectBL $
+		serverReferenceBL $ nonSecurityMemberBL $ queryPolicyBL $
+		wellKnownObjects $ isPrivilegeHolder $ partialAttributeSet $
+		managedObjects $ partialAttributeDeletionList $ url $
+		lastKnownParent $ bridgeheadServerListBL $ netbootSCPBL $
+		isCriticalSystemObject $ frsComputerReferenceBL $
+		fRSMemberReferenceBL $ uSNSource $ fromEntry $
+		allowedChildClasses $ allowedChildClassesEffective $
+		allowedAttributes $ allowedAttributesEffective $
+		possibleInferiors $ canonicalName $ proxiedObjectName $
+		sDRightsEffective $ dSCorePropagationData $
+		otherWellKnownObjects $ mS-DS-ConsistencyGuid $
+		mS-DS-ConsistencyChildCount $ masteredBy $ createTimeStamp $
+		modifyTimeStamp $ subSchemaSubEntry ) )
+
+objectclass ( 2.5.6.2
+	NAME 'country'
+	SUP top
+	ABSTRACT
+	MUST (c )
+	MAY (searchGuide $ co ) )
+
+objectclass ( 2.5.6.3
+	NAME 'locality'
+	SUP top
+	STRUCTURAL 
+	MUST (l )
+	MAY (st $ street $ searchGuide $ seeAlso ) )
+
+objectclass ( 2.5.6.4
+	NAME 'organization'
+	SUP top
+	STRUCTURAL 
+	MUST (o )
+	MAY (l $ st $ street $ searchGuide $ businessCategory $ postalAddress $
+		postalCode $ postOfficeBox $ physicalDeliveryOfficeName $
+		telephoneNumber $ telexNumber $ teletexTerminalIdentifier $
+		facsimileTelephoneNumber $ x121Address $ internationalISDNNumber $
+		registeredAddress $ destinationIndicator $ preferredDeliveryMethod $
+		seeAlso $ userPassword ) )
+
+objectclass ( 2.5.6.5
+	NAME 'organizationalUnit'
+	SUP top
+	STRUCTURAL 
+	MUST (ou )
+	MAY (c $ l $ st $ street $ searchGuide $ businessCategory $
+		postalAddress $ postalCode $ postOfficeBox $
+		physicalDeliveryOfficeName $ telephoneNumber $ telexNumber $
+		teletexTerminalIdentifier $ facsimileTelephoneNumber $ x121Address $
+		internationalISDNNumber $ registeredAddress $ destinationIndicator $
+		preferredDeliveryMethod $ seeAlso $ userPassword $ co $ countryCode $ 
+		desktopProfile $ defaultGroup $ managedBy $ uPNSuffixes $ gPLink $
+		gPOptions $ thumbnailLogo ) )
+
+objectclass ( 2.5.6.6
+	NAME 'person'
+	SUP top
+	ABSTRACT
+	MUST (cn )
+	MAY (sn $ telephoneNumber $ seeAlso $ userPassword ) )
+
+objectclass ( 2.5.6.7
+	NAME 'organizationalPerson'
+	SUP person
+	ABSTRACT
+	MAY (c $ l $ st $ street $ o $ ou $ title $ postalAddress $ postalCode $
+		postOfficeBox $ physicalDeliveryOfficeName $ telexNumber $
+		teletexTerminalIdentifier $ facsimileTelephoneNumber $ x121Address $
+		internationalISDNNumber $ registeredAddress $ destinationIndicator $
+		preferredDeliveryMethod $ givenName $ initials $ generationQualifier $
+		otherTelephone $ otherPager $ co $ department $ company $
+		streetAddress $ otherHomePhone $ personalTitle $ homePostalAddress $
+		countryCode $ employeeID $ comment $ division $
+		otherFacsimileTelephoneNumber $ otherMobile $ primaryTelexNumber $
+		primaryInternationalISDNNumber $ mhsORAddress $ otherMailbox $
+		assistant $ ipPhone $ otherIpPhone $ mail $ manager $ homePhone $
+		mobile $ pager $ middleName $ thumbnailPhoto $ thumbnailLogo ) )
+
+objectclass ( 2.5.6.8
+	NAME 'organizationalRole'
+	SUP top
+	STRUCTURAL 
+	MUST (cn )
+	MAY (l $ st $ street $ ou $ postalAddress $ postalCode $ postOfficeBox $
+		physicalDeliveryOfficeName $ telephoneNumber $ telexNumber $
+		teletexTerminalIdentifier $ facsimileTelephoneNumber $ x121Address $
+		internationalISDNNumber $ registeredAddress $ destinationIndicator $
+		preferredDeliveryMethod $ roleOccupant $ seeAlso ) )
+
+objectclass ( 2.5.6.9
+	NAME 'groupOfNames'
+	SUP top
+	ABSTRACT
+	MUST (cn $ member )
+	MAY (o $ ou $ businessCategory $ owner $ seeAlso ) )
+
+objectclass ( 2.5.6.10
+	NAME 'residentialPerson'
+	SUP person
+	STRUCTURAL 
+	MAY (l $ st $ street $ ou $ title $ businessCategory $ postalAddress $
+		postalCode $ postOfficeBox $ physicalDeliveryOfficeName $ telexNumber $
+		teletexTerminalIdentifier $ facsimileTelephoneNumber $ x121Address $
+		internationalISDNNumber $ registeredAddress $ destinationIndicator $
+		preferredDeliveryMethod ) )
+
+objectclass ( 2.5.6.11
+	NAME 'applicationProcess'
+	SUP top
+	STRUCTURAL 
+	MUST (cn )
+	MAY (l $ ou $ seeAlso ) )
+
+objectclass ( 2.5.6.12
+	NAME 'applicationEntity'
+	SUP top
+	STRUCTURAL 
+	MUST (cn $ presentationAddress )
+	MAY (l $ o $ ou $ supportedApplicationContext $ seeAlso ) )
+
+objectclass ( 2.5.6.13
+	NAME 'dSA'
+	SUP applicationEntity
+	STRUCTURAL 
+	MAY (knowledgeInformation ) )
+
+objectclass ( 2.5.6.14
+	NAME 'device'
+	SUP top
+	ABSTRACT
+	MUST (cn )
+	MAY (serialNumber $ l $ o $ ou $ owner $ seeAlso ) )
+
+objectclass ( 2.5.6.16
+	NAME 'certificationAuthority'
+	SUP top
+	STRUCTURAL 
+	MUST (cn $ cACertificate $ authorityRevocationList $
+		certificateRevocationList )
+	MAY (searchGuide $ teletexTerminalIdentifier $ supportedApplicationContext $
+		crossCertificatePair $ deltaRevocationList $ domainPolicyObject $
+		parentCA $ dNSHostName $ parentCACertificateChain $ domainID $
+		cAConnect $ cAWEBURL $ cRLObject $ cAUsages $ previousCACertificates $
+		pendingCACertificates $ previousParentCA $ pendingParentCA $
+		currentParentCA $ cACertificateDN $ certificateTemplates $
+		signatureAlgorithms $ enrollmentProviders ) )
+
+objectclass ( 2.5.6.19
+	NAME 'cRLDistributionPoint'
+	SUP top
+	STRUCTURAL 
+	MUST (cn )
+	MAY (authorityRevocationList $ certificateRevocationList $
+		deltaRevocationList $ cRLPartitionedRevocationList $
+		certificateAuthorityObject ) )
+
+objectclass ( 2.5.20.1
+	NAME 'subSchema'
+	SUP top
+	STRUCTURAL 
+	MAY (extendedClassInfo $ extendedAttributeInfo $ dITContentRules $
+		attributeTypes $ objectClasses $ modifyTimeStamp ) )
+
+#####################################################
+
+attributetype ( 2.5.4.0
+	NAME 'objectClass'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.38'
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.5.4.2
+	NAME 'knowledgeInformation'
+	SYNTAX '1.2.840.113556.1.4.905' )
+
+attributetype ( 2.5.4.3
+	NAME 'cn'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.4
+	NAME 'sn'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.5
+	NAME 'serialNumber'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
+
+attributetype ( 2.5.4.6
+	NAME 'c'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.7
+	NAME 'l'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.8
+	NAME 'st'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.9
+	NAME 'street'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.10
+	NAME 'o'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+
+attributetype ( 2.5.4.11
+	NAME 'ou'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+
+attributetype ( 2.5.4.12
+	NAME 'title'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.13
+	NAME 'description'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+
+attributetype ( 2.5.4.14
+	NAME 'searchGuide'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.15
+	NAME 'businessCategory'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+
+attributetype ( 2.5.4.16
+	NAME 'postalAddress'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+
+attributetype ( 2.5.4.17
+	NAME 'postalCode'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.18
+	NAME 'postOfficeBox'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+
+attributetype ( 2.5.4.19
+	NAME 'physicalDeliveryOfficeName'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.20
+	NAME 'telephoneNumber'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.21
+	NAME 'telexNumber'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.22
+	NAME 'teletexTerminalIdentifier'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.23
+	NAME 'facsimileTelephoneNumber'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.24
+	NAME 'x121Address'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.36' )
+
+attributetype ( 2.5.4.25
+	NAME 'internationalISDNNumber'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.36' )
+
+attributetype ( 2.5.4.26
+	NAME 'registeredAddress'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.27
+	NAME 'destinationIndicator'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.44' )
+
+attributetype ( 2.5.4.28
+	NAME 'preferredDeliveryMethod'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )
+
+attributetype ( 2.5.4.29
+	NAME 'presentationAddress'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.43'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.30
+	NAME 'supportedApplicationContext'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.31
+	NAME 'member'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+
+attributetype ( 2.5.4.32
+	NAME 'owner'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.33
+	NAME 'roleOccupant'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+
+attributetype ( 2.5.4.34
+	NAME 'seeAlso'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' )
+
+attributetype ( 2.5.4.35
+	NAME 'userPassword'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.36
+	NAME 'userCertificate'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.37
+	NAME 'cACertificate'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.38
+	NAME 'authorityRevocationList'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.39
+	NAME 'certificateRevocationList'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.40
+	NAME 'crossCertificatePair'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.4.42
+	NAME 'givenName'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.43
+	NAME 'initials'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.44
+	NAME 'generationQualifier'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.5.4.49
+	NAME 'distinguishedName'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
+	SINGLE-VALUE
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.5.4.53
+	NAME 'deltaRevocationList'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+attributetype ( 2.5.18.1
+	NAME 'createTimeStamp'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.24'
+	SINGLE-VALUE
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.5.18.2
+	NAME 'modifyTimeStamp'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.24'
+	SINGLE-VALUE
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.5.18.10
+	NAME 'subSchemaSubEntry'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.5.21.2
+	NAME 'dITContentRules'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.5.21.5
+	NAME 'attributeTypes'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.5.21.6
+	NAME 'objectClasses'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	NO-USER-MODIFICATION )
+
+attributetype ( 2.16.840.1.113730.3.1.34
+	NAME 'middleName'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 2.16.840.1.113730.3.1.35
+	NAME 'thumbnailPhoto'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
+	SINGLE-VALUE )
+
+attributetype ( 2.16.840.1.113730.3.1.36
+	NAME 'thumbnailLogo'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40'
+	SINGLE-VALUE )
+
+attributetype ( 2.16.840.1.113730.3.140
+	NAME 'userSMIMECertificate'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' )
+
+#####################################################
+
+attributetype ( 0.9.2342.19200300.100.1.2
+	NAME 'textEncodedORAddress'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 0.9.2342.19200300.100.1.3
+	NAME 'mail'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 0.9.2342.19200300.100.1.10
+	NAME 'manager'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
+	SINGLE-VALUE )
+
+attributetype ( 0.9.2342.19200300.100.1.20
+	NAME 'homePhone'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 0.9.2342.19200300.100.1.25
+	NAME 'dc'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 0.9.2342.19200300.100.1.41
+	NAME 'mobile'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
+attributetype ( 0.9.2342.19200300.100.1.42
+	NAME 'pager'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.15'
+	SINGLE-VALUE )
+
