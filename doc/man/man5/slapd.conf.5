@@ -745,6 +745,18 @@ Specify the DN suffix of queries that will be passed to this
 backend database.  Multiple suffix lines can be given and at least one is 
 required for each database definition.
 .TP
+.B subordinate
+Specify that the current backend database is a subordinate of another
+backend database. A subordinate database may have only one suffix. This
+option may bse used to glue multiple databases into a single namingContext.
+If the suffix of the current database is within the namingContext of a
+superior database, searches against the superior database will be
+propagated to the subordinate as well. All of the databases
+associated with a single namingContext should have identical rootdns.
+Behavior of other LDAP operations is unaffected by this setting. In
+particular, it is not possible to use moddn to move an entry from
+one subordinate to another subordinate within the namingContext.
+.TP
 .B updatedn <dn>
 This option is only applicable in a slave
 .B slapd.
