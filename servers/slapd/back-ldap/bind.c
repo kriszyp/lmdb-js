@@ -390,7 +390,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		 * otherwise we cannot do symmetric pools of servers;
 		 * we have to live with the fact that a user can
 		 * authorize itself as any ID that is allowed
-		 * by the saslAuthzTo directive of the "binddn".
+		 * by the saslAuthzTo directive of the "proxyauthzdn".
 		 */
 		/*
 		 * NOTE: current Proxy Authorization specification
@@ -402,16 +402,17 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 
 		/*
 		 * if no bind took place yet, but the connection is bound
-		 * and the binddn is set, then bind with binddn and 
-		 * explicitly add proxyAuthz control to every operation
-		 * with the dn bound to the connection as control value.
+		 * and the "proxyauthzdn" is set, then bind as 
+		 * "proxyauthzdn" and explicitly add the proxyAuthz 
+		 * control to every operation with the dn bound 
+		 * to the connection as control value.
 		 */
 		if ( ( lc->bound_dn.bv_val == NULL || lc->bound_dn.bv_len == 0 )
 	      			&& ( op->o_conn && op->o_conn->c_dn.bv_val != NULL && op->o_conn->c_dn.bv_len != 0 )
-	      			&& ( li->binddn.bv_val != NULL && li->binddn.bv_len != 0 ) 
+	      			&& ( li->proxyauthzdn.bv_val != NULL && li->proxyauthzdn.bv_len != 0 ) 
 	      			&& ! gotit ) {
-			rs->sr_err = ldap_sasl_bind(lc->ld, li->binddn.bv_val,
-				LDAP_SASL_SIMPLE, &li->bindpw, NULL, NULL, &msgid);
+			rs->sr_err = ldap_sasl_bind(lc->ld, li->proxyauthzdn.bv_val,
+				LDAP_SASL_SIMPLE, &li->proxyauthzpw, NULL, NULL, &msgid);
 
 		} else
 #endif /* LDAP_BACK_PROXY_AUTHZ */
@@ -572,8 +573,8 @@ ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
  * it might return some error if it failed.
  * 
  * if no bind took place yet, but the connection is bound
- * and the binddn is set, then bind with binddn and 
- * explicitly add proxyAuthz control to every operation
+ * and the "proxyauthzdn" is set, then bind as "proxyauthzdn" 
+ * and explicitly add proxyAuthz the control to every operation
  * with the dn bound to the connection as control value.
  *
  * If no server-side controls are defined for the operation,
@@ -596,7 +597,7 @@ ldap_back_proxy_authz_ctrl(
 
 	if ( ( lc->bound_dn.bv_val == NULL || lc->bound_dn.bv_len == 0 )
 	      		&& ( op->o_conn && op->o_conn->c_dn.bv_val != NULL && op->o_conn->c_dn.bv_len != 0 )
-	      		&& ( li->binddn.bv_val != NULL && li->binddn.bv_len != 0 ) ) {
+	      		&& ( li->proxyauthzdn.bv_val != NULL && li->proxyauthzdn.bv_len != 0 ) ) {
 		int	i = 0;
 
 		if ( !op->o_proxy_authz ) {
@@ -622,10 +623,10 @@ ldap_back_proxy_authz_ctrl(
 			/*
 			 * FIXME: we do not want to perform proxyAuthz
 			 * on behalf of the client, because this would
-			 * be performed with "binddn" privileges.
+			 * be performed with "proxyauthzdn" privileges.
 			 *
 			 * This might actually be too strict, since
-			 * the "binddn" saslAuthzTo, and each entry's
+			 * the "proxyauthzdn" saslAuthzTo, and each entry's
 			 * saslAuthzFrom attributes may be crafted
 			 * to avoid unwanted proxyAuthz to take place.
 			 */

@@ -68,21 +68,22 @@ should have read access on the target server to attributes used on the
 proxy for acl checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
-.RS
-Note: the
-.B binddn 
-/
-.B bindpw
-values are also used to propagate user authorization by means of the 
-.B proxyAuthz 
-mechanism when operations performed by users bound to another backend 
-are propagated to back-ldap.
+.TP
+.B bindpw <password>
+Password used with the bind DN above.
+.TP
+.B proxyauthzdn "<administrative DN for proxyAuthz purposes>"
+DN which is used to propagate the client's identity to the target
+by means of the proxyAuthz control when the client does not
+belong to the DIT fragment that is being proxyied by back-ldap.
+This is useful when operations performed by users bound to another 
+backend are propagated through back-ldap.
 This requires the entry with 
-.B binddn 
-DN on the remote server to have
+.B proxyauthzdn 
+identity on the remote server to have
 .B proxyAuthz
 privileges on a wide set of DNs, e.g.
-.BR saslAuthzTo=regex:.* ,
+.BR saslAuthzTo=dn.regex:.* ,
 and the remote server to have
 .B sasl-authz-policy
 set to 
@@ -93,10 +94,9 @@ See
 .BR slapd.conf (5)
 for details on these statements and for remarks and drawbacks about
 their usage.
-.RE
 .TP
-.B bindpw <password>
-Password used with the bind DN above.
+.B proxyauthzpw <password>
+Password used with the proxy authz DN above.
 .TP
 .B proxy-whoami
 Turns on proxying of the WhoAmI extended operation. If this option is

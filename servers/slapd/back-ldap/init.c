@@ -105,6 +105,13 @@ ldap_back_db_init(
 	li->bindpw.bv_val = NULL;
 	li->bindpw.bv_len = 0;
 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	li->proxyauthzdn.bv_val = NULL;
+	li->proxyauthzdn.bv_len = 0;
+	li->proxyauthzpw.bv_val = NULL;
+	li->proxyauthzpw.bv_len = 0;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 #ifdef ENABLE_REWRITE
  	li->rwmap.rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	if ( li->rwmap.rwm_rw == NULL ) {
@@ -179,6 +186,16 @@ ldap_back_db_destroy(
 			ch_free(li->bindpw.bv_val);
 			li->bindpw.bv_val = NULL;
 		}
+#ifdef LDAP_BACK_PROXY_AUTHZ
+		if (li->proxyauthzdn.bv_val) {
+			ch_free(li->proxyauthzdn.bv_val);
+			li->proxyauthzdn.bv_val = NULL;
+		}
+		if (li->proxyauthzpw.bv_val) {
+			ch_free(li->proxyauthzpw.bv_val);
+			li->proxyauthzpw.bv_val = NULL;
+		}
+#endif /* LDAP_BACK_PROXY_AUTHZ */
                 if (li->conntree) {
 			avl_free( li->conntree, ldap_back_conn_free );
 		}

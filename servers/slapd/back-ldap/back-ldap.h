@@ -83,6 +83,10 @@ struct ldapinfo {
 	char *url;
 	struct berval binddn;
 	struct berval bindpw;
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	struct berval proxyauthzdn;
+	struct berval proxyauthzpw;
+#endif /* LDAP_BACK_PROXY_AUTHZ */
 	ldap_pvt_thread_mutex_t		conn_mutex;
 	int savecred;
 	Avlnode *conntree;

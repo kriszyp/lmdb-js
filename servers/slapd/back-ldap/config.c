@@ -99,7 +99,29 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		ber_str2bv( argv[1], 0, 1, &li->bindpw );
-	
+
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	/* name to use for proxyAuthz propagation */
+	} else if ( strcasecmp( argv[0], "proxyauthzdn" ) == 0 ) {
+		if (argc != 2) {
+			fprintf( stderr,
+	"%s: line %d: missing name in \"proxyauthzdn <name>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		ber_str2bv( argv[1], 0, 1, &li->proxyauthzdn );
+
+	/* password to use for proxyAuthz propagation */
+	} else if ( strcasecmp( argv[0], "proxyauthzpw" ) == 0 ) {
+		if (argc != 2) {
+			fprintf( stderr,
+	"%s: line %d: missing password in \"proxyauthzpw <password>\" line\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		ber_str2bv( argv[1], 0, 1, &li->proxyauthzpw );
+#endif /* LDAP_BACK_PROXY_AUTHZ */
+
 	/* save bind creds for referral rebinds? */
 	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
 		if (argc != 1) {
