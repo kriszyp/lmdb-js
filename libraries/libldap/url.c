@@ -518,7 +518,6 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	ludp->lud_port = 0;
 	ludp->lud_dn = NULL;
 	ludp->lud_attrs = NULL;
-	ludp->lud_filter = NULL;
 	ludp->lud_scope = LDAP_SCOPE_DEFAULT;
 	ludp->lud_filter = NULL;
 	ludp->lud_exts = NULL;
@@ -725,7 +724,6 @@ ldap_url_parse_ext( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 			return LDAP_URL_ERR_BADFILTER;
 		}
 
-		LDAP_FREE( ludp->lud_filter );
 		ludp->lud_filter = LDAP_STRDUP( p );
 
 		if( ludp->lud_filter == NULL ) {
