@@ -1150,6 +1150,10 @@ ldap_count_messages LDAP_P((
 	LDAP *ld,
 	LDAPMessage *chain ));
 
+LDAP_F( BerElement * )
+get_ldapmsg_ber LDAP_P((
+	LDAPMessage * ));
+
 
 /*
  * in references.c:
