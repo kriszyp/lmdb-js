@@ -72,6 +72,8 @@ ldbm_back_search(
 		/* deref dn and get entry with reader lock */
 		e = deref_dn_r( be, nbase, &err, &matched, &text );
 
+		if( err == LDAP_NO_SUCH_OBJECT ) err = LDAP_REFERRAL;
+
 	} else {
 		/* get entry with reader lock */
 		e = dn2entry_r( be, nbase, &matched );
@@ -91,6 +93,7 @@ ldbm_back_search(
 				: NULL;
 
 			cache_return_entry_r( &li->li_cache, matched );
+
 		} else {
 			refs = default_referral;
 		}
