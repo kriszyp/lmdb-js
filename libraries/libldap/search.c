@@ -77,7 +77,7 @@ ldap_search_ext(
 
 	/*
 	 * if timeout is provided, both tv_sec and tv_usec must
-	 * be non-zero
+	 * not be zero
 	 */
 	if( timeout != NULL ) {
 		if( timeout->tv_sec == 0 && timeout->tv_usec == 0 ) {
