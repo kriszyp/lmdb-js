@@ -38,7 +38,6 @@
 #endif
 
 /* Flags for telling slap_sasl_getdn() what type of identity is being passed */
-#define FLAG_GETDN_FINAL   1
 #define FLAG_GETDN_AUTHCID 2
 #define FLAG_GETDN_AUTHZID 4
 
@@ -130,6 +129,10 @@ slap_sasl_log(
    string returned in *dn is in its own allocated memory, and must be free'd 
    by the calling process.
    -Mark Adamson, Carnegie Mellon
+
+   The "dn:" prefix is no longer used anywhere inside slapd. It is only used
+   on strings passed in directly from SASL.
+   -Howard Chu, Symas Corp.
 */
 
 #define	SET_DN	1
@@ -141,7 +144,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
 	char *c1;
-	int rc, is_dn = 0;
+	int rc, is_dn = 0, do_norm = 1;
 	sasl_conn_t *ctx;
 	struct berval dn2;
 
@@ -176,8 +179,9 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 			&& id[0] == '/' )
 		{
 			/* check SASL external for X.509 style DN and */
-			/* convert to dn:<dn> form */
+			/* convert to dn:<dn> form, result is normalized */
 			dnDCEnormalize( id, dn );
+			do_norm = 0;
 			is_dn = SET_DN;
 
 		} else {
@@ -245,12 +249,13 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	}
 
 	/* DN strings that are a cn=auth identity to run through regexp */
-	if( is_dn == SET_DN && ( ( flags & FLAG_GETDN_FINAL ) == 0 ) )
+	if( is_dn == SET_DN )
 	{
 		slap_sasl2dn( dn, &dn2 );
 		if( dn2.bv_val ) {
 			ch_free( dn->bv_val );
 			*dn = dn2;
+			do_norm = 0;	/* slap_sasl2dn normalizes */
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 				"slap_sasl_getdn: dn:id converted to %s.\n", dn->bv_val ));
@@ -261,10 +266,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		}
 	}
 
-	if( flags & FLAG_GETDN_FINAL ) {
-		/* omit "dn:" prefix */
-		is_dn = 0;
-	} else {
+	if ( do_norm ) {
 		rc = dnNormalize2( NULL, dn, &dn2 );
 		free(dn->bv_val);
 		if ( rc != LDAP_SUCCESS ) {
@@ -272,16 +274,6 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 			return rc;
 		}
 		*dn = dn2;
-	}
-
-	/* Attach the "dn:" prefix if needed */
-	if ( is_dn == SET_DN ) {
-		c1 = ch_malloc( dn->bv_len + sizeof("dn:") );
-		strcpy( c1, "dn:" );
-		strcpy( c1 + 3, dn->bv_val );
-		free( dn->bv_val );
-		dn->bv_val = c1;
-		dn->bv_len += 3;
 	}
 
 	return( LDAP_SUCCESS );
@@ -305,11 +297,12 @@ slap_sasl_checkpass(
 	cred.bv_val = (char *)pass;
 	cred.bv_len = passlen;
 
-	/* XXX do we need to check sasldb as well? */
+	/* SASL will fallback to its own mechanisms if we don't
+	 * find an answer here.
+	 */
 
-	/* XXX can we do both steps at once? */
 	rc = slap_sasl_getdn( conn, (char *)username, 0, NULL, &dn,
-		FLAG_GETDN_AUTHCID | FLAG_GETDN_FINAL );
+		FLAG_GETDN_AUTHCID );
 	if ( rc != LDAP_SUCCESS ) {
 		sasl_seterror( sconn, 0, ldap_err2string( rc ) );
 		return SASL_NOUSER;
@@ -1115,30 +1108,22 @@ int slap_sasl_bind(
 				NULL, "no SASL username", NULL, NULL );
 
 		} else {
-			rc = slap_sasl_getdn( conn, username, 0, realm, edn, FLAG_GETDN_FINAL );
+			rc = LDAP_SUCCESS;
+			ber_str2bv( username, 0, 1, edn );
 
-			if( rc == LDAP_SUCCESS ) {
-				sasl_ssf_t *ssf = NULL;
-				(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
-				*ssfp = ssf ? *ssf : 0;
+			sasl_ssf_t *ssf = NULL;
+			(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
+			*ssfp = ssf ? *ssf : 0;
 
-				if( *ssfp ) {
-					ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-					conn->c_sasl_layers++;
-					ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-				}
-
-				send_ldap_sasl( conn, op, rc,
-					NULL, NULL, NULL, NULL,
-					response.bv_len ? &response : NULL );
-
-			} else {
-#if SASL_VERSION_MAJOR >= 2
-				errstr = sasl_errdetail( ctx );
-#endif
-				send_ldap_result( conn, op, rc,
-					NULL, errstr, NULL, NULL );
+			if( *ssfp ) {
+				ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+				conn->c_sasl_layers++;
+				ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			}
+
+			send_ldap_sasl( conn, op, rc,
+				NULL, NULL, NULL, NULL,
+				response.bv_len ? &response : NULL );
 		}
 
 	} else if ( sc == SASL_CONTINUE ) {
