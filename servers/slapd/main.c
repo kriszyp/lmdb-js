@@ -21,9 +21,6 @@
 #include "lutil.h"
 #include "ldif.h"
 
-/* I guess this should be declared in ldap_pvt.h */
-extern int ldap_pvt_tls_init_def_ctx( void );
-
 #ifdef LDAP_SIGCHLD
 static RETSIGTYPE wait4child( int sig );
 #endif
@@ -35,7 +32,8 @@ struct sockaddr_in	bind_addr;
 /* in nt_main.c */
 LDAP_LUTIL_V(SERVICE_STATUS)		SLAPDServiceStatus;
 LDAP_LUTIL_V(SERVICE_STATUS_HANDLE)	hSLAPDServiceStatus;
-extern ldap_pvt_thread_cond_t	started_event,		stopped_event;
+/* externs are frowned upon, but so is NT :-) */
+extern ldap_pvt_thread_cond_t	started_event, stopped_event;
 extern int	  is_NT_Service;
 
 void CommenceStartupProcessing( LPCTSTR serverName,

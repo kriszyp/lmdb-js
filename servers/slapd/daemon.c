@@ -66,6 +66,7 @@ do { if (w) tcp_write( wake_sds[1], "0", 1 ); } while(0)
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 /* in nt_main.c */
+/* externs are frowned upon, but so is NT :-) */
 extern ldap_pvt_thread_cond_t			started_event;
 extern int	  is_NT_Service;
 #endif

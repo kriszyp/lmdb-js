@@ -20,9 +20,6 @@
 #include "lutil.h"
 #include "slap.h"
 
-/* I guess this should be declared in ldap_pvt.h */
-extern void * ldap_pvt_tls_sb_ctx( Sockbuf *sb );
-
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
