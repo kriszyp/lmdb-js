@@ -355,6 +355,10 @@ SOURCE=.\string.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\tls.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ufn.c
 # End Source File
 # Begin Source File

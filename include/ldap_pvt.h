@@ -113,7 +113,6 @@ LIBLDAP_F (int) ldap_pvt_unhex( int c );
 
 LIBLDAP_F (int) ldap_pvt_sasl_init LDAP_P(( void )); /* clientside init */
 LIBLDAP_F (int) ldap_pvt_sasl_install LDAP_P(( Sockbuf *, void * ));
-LIBLDAP_F (int) ldap_pvt_sasl_err2ldap LDAP_P(( int ));
 LIBLDAP_F (int) ldap_pvt_sasl_bind LDAP_P(( LDAP *, LDAP_CONST char *,
 	LDAP_CONST char *, LDAP_CONST sasl_callback_t *, LDAPControl **,
 	LDAPControl ** ));

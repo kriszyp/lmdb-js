@@ -102,6 +102,8 @@ LDAP_BEGIN_DECL
 
 /* 0x34 - 0x0fff not defined by current draft */
 
+#define LDAP_OPT_PRIVATE_EXTENSION_BASE 0x4000  /* to 0x7FFF inclusive */
+
 /* private and experimental options */
 #define LDAP_OPT_DNS				0x4001	/* use DN & DNS */
 
@@ -112,7 +114,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_NETWORK_TIMEOUT        0x5005  /* socket level timeout */
 #define LDAP_OPT_URI				0x5006
 
-/* TLS options */
+/* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS_CACERTFILE	0x6001
 #define LDAP_OPT_X_TLS_CACERTDIR	0x6002
 #define LDAP_OPT_X_TLS_CERT		0x6003
@@ -129,7 +131,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_ALLOW		3
 #define LDAP_OPT_X_TLS_TRY		4
 
-/* SASL options */
+/* OpenLDAP SASL options */
 #define LDAP_OPT_X_SASL_MINSSF		0x6100
 #define LDAP_OPT_X_SASL_MAXSSF		0x6101
 #define LDAP_OPT_X_SASL_ACTSSF		0x6102

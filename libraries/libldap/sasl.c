@@ -497,42 +497,43 @@ static int sasl_close( Sockbuf *sb )
 	(ber_pvt_sb_io_tcp.sbi_close)( sb );
 }
 
-int
-ldap_pvt_sasl_err2ldap( int saslerr )
+static int
+sasl_err2ldap( int saslerr )
 {
 	int rc;
 
 	switch (saslerr) {
 		case SASL_CONTINUE:
-			rc = LDAP_SASL_BIND_IN_PROGRESS;
+			rc = LDAP_MORE_RESULTS_TO_RETURN;
 			break;
 		case SASL_OK:
 			rc = LDAP_SUCCESS;
 			break;
 		case SASL_FAIL:
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_LOCAL_ERROR;
 			break;
 		case SASL_NOMEM:
 			rc = LDAP_NO_MEMORY;
 			break;
 		case SASL_NOMECH:
-			rc = LDAP_AUTH_METHOD_NOT_SUPPORTED;
+			rc = LDAP_AUTH_UNKNOWN;
 			break;
 		case SASL_BADAUTH:
-			rc = LDAP_INVALID_CREDENTIALS;
+			rc = LDAP_AUTH_UNKNOWN;
 			break;
 		case SASL_NOAUTHZ:
-			rc = LDAP_INSUFFICIENT_ACCESS;
+			rc = LDAP_PARAM_ERROR;
 			break;
 		case SASL_TOOWEAK:
 		case SASL_ENCRYPT:
-			rc = LDAP_INAPPROPRIATE_AUTH;
+			rc = LDAP_AUTH_UNKNOWN;
 			break;
 		default:
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_LOCAL_ERROR;
 			break;
 	}
 
+	assert( rc == LDAP_SUCCESS || LDAP_API_ERROR( rc ) );
 	return rc;
 }
 
@@ -656,7 +657,7 @@ ldap_pvt_sasl_bind(
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 		LDAP_FREE( mechlist );
-		ld->ld_errno = ldap_pvt_sasl_err2ldap( rc );
+		ld->ld_errno = sasl_err2ldap( rc );
 		sasl_dispose( &ld->ld_sasl_context );
 		return ld->ld_errno;
 	}
@@ -675,7 +676,7 @@ ldap_pvt_sasl_bind(
 	LDAP_FREE( mechlist );
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
-		ld->ld_errno = ldap_pvt_sasl_err2ldap( saslrc );
+		ld->ld_errno = sasl_err2ldap( saslrc );
 		sasl_dispose( &ld->ld_sasl_context );
 		return ld->ld_errno;
 	}
@@ -711,7 +712,7 @@ ldap_pvt_sasl_bind(
 		ber_bvfree( scred );
 
 		if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
-			ld->ld_errno = ldap_pvt_sasl_err2ldap( saslrc );
+			ld->ld_errno = sasl_err2ldap( saslrc );
 			sasl_dispose( &ld->ld_sasl_context );
 			return ld->ld_errno;
 		}

@@ -348,6 +348,10 @@ SOURCE=.\thr_stub.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\tls.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\ufn.c
 # End Source File
 # Begin Source File

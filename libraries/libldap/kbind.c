@@ -269,7 +269,7 @@ ldap_get_kerberosv4_credentials(
 		fprintf( stderr, "krb_get_tf_realm failed (%s)\n",
 		    krb_err_txt[err] );
 #endif /* LDAP_LIBUI */
-		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
+		ld->ld_errno = LDAP_AUTH_UNKNOWN;
 		return( NULL );
 	}
 
@@ -287,7 +287,7 @@ ldap_get_kerberosv4_credentials(
 #ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_mk_req failed (%s)\n", krb_err_txt[err] );
 #endif /* LDAP_LIBUI */
-		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
+		ld->ld_errno = LDAP_AUTH_UNKNOWN;
 		return( NULL );
 	}
 

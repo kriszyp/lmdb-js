@@ -19,32 +19,72 @@ char **supportedSASLMechanisms = NULL;
 char *sasl_host = NULL;
 
 #ifdef HAVE_CYRUS_SASL
-static void *sasl_pvt_mutex_new(void)
+static void *slap_sasl_mutex_new(void)
 {
 	ldap_pvt_thread_mutex_t *mutex;
 
-	mutex = (ldap_pvt_thread_mutex_t *)ch_malloc( sizeof(ldap_pvt_thread_mutex_t) );
+	mutex = (ldap_pvt_thread_mutex_t *) ch_malloc( sizeof(ldap_pvt_thread_mutex_t) );
 	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {
 		return mutex;
 	}
 	return NULL;
 }
 
-static int sasl_pvt_mutex_lock(void *mutex)
+static int slap_sasl_mutex_lock(void *mutex)
 {
 	return ldap_pvt_thread_mutex_lock( (ldap_pvt_thread_mutex_t *)mutex );
 }
 
-static int sasl_pvt_mutex_unlock(void *mutex)
+static int slap_sasl_mutex_unlock(void *mutex)
 {
 	return ldap_pvt_thread_mutex_unlock( (ldap_pvt_thread_mutex_t *)mutex );
 }
 
-static void sasl_pvt_mutex_dispose(void *mutex)
+static void slap_sasl_mutex_dispose(void *mutex)
 {
 	(void) ldap_pvt_thread_mutex_destroy( (ldap_pvt_thread_mutex_t *)mutex );
 	free( mutex );
 }
+
+static int
+slap_sasl_err2ldap( int saslerr )
+{
+	int rc;
+
+	switch (saslerr) {
+		case SASL_CONTINUE:
+			rc = LDAP_SASL_BIND_IN_PROGRESS;
+			break;
+		case SASL_OK:
+			rc = LDAP_SUCCESS;
+			break;
+		case SASL_FAIL:
+			rc = LDAP_OTHER;
+			break;
+		case SASL_NOMEM:
+			rc = LDAP_OTHER;
+			break;
+		case SASL_NOMECH:
+			rc = LDAP_AUTH_METHOD_NOT_SUPPORTED;
+			break;
+		case SASL_BADAUTH:
+			rc = LDAP_INVALID_CREDENTIALS;
+			break;
+		case SASL_NOAUTHZ:
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			break;
+		case SASL_TOOWEAK:
+		case SASL_ENCRYPT:
+			rc = LDAP_INAPPROPRIATE_AUTH;
+			break;
+		default:
+			rc = LDAP_OTHER;
+			break;
+	}
+
+	return rc;
+}
+
 
 int sasl_init( void )
 {
@@ -54,8 +94,11 @@ int sasl_init( void )
 
 	sasl_set_alloc( ch_malloc, ch_calloc, ch_realloc, ch_free ); 
 
-	sasl_set_mutex( sasl_pvt_mutex_new, sasl_pvt_mutex_lock,
-		sasl_pvt_mutex_unlock, sasl_pvt_mutex_dispose );
+	sasl_set_mutex(
+		slap_sasl_mutex_new,
+		slap_sasl_mutex_lock,
+		slap_sasl_mutex_unlock,
+		slap_sasl_mutex_dispose );
 
 	rc = sasl_server_init( NULL, "slapd" );
 
@@ -188,7 +231,7 @@ int sasl_bind(
 				cred->bv_val, cred->bv_len, (char **)&response.bv_val,
 				(unsigned *)&response.bv_len, &errstr );
 			if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
-				send_ldap_result( conn, op, rc = ldap_pvt_sasl_err2ldap( sc ),
+				send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
 					NULL, errstr, NULL, NULL );
 			}
 		}
@@ -196,7 +239,7 @@ int sasl_bind(
 		sc = sasl_server_step( conn->c_sasl_bind_context, cred->bv_val, cred->bv_len,
 			(char **)&response.bv_val, (unsigned *)&response.bv_len, &errstr );
 		if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
-			send_ldap_result( conn, op, rc = ldap_pvt_sasl_err2ldap( sc ),
+			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
 				NULL, errstr, NULL, NULL );
 		}
 	}
@@ -206,7 +249,7 @@ int sasl_bind(
 
 		if ( ( sc = sasl_getprop( conn->c_sasl_bind_context, SASL_USERNAME,
 			(void **)&authzid ) ) != SASL_OK ) {
-			send_ldap_result( conn, op, rc = ldap_pvt_sasl_err2ldap( sc ),
+			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
 				NULL, NULL, NULL, NULL );
 
 		} else {
