@@ -210,7 +210,7 @@ attr_syntax_config(
 	LDAP_ATTRIBUTE_TYPE	*at;
 	int			lasti;
 	int			code;
-	char			*err;
+	const char		*err;
 
 	if ( argc < 2 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -314,7 +314,7 @@ attr_index_name_cmp(
 
 AttributeType *
 at_find(
-    char		*name
+    const char		*name
 )
 {
 	struct aindexrec	*air = NULL;
@@ -418,7 +418,7 @@ at_find_in_list(
 static int
 at_insert(
     AttributeType	*sat,
-    char		**err
+    const char		**err
 )
 {
 	AttributeType		**atp;
@@ -471,7 +471,7 @@ at_insert(
 int
 at_add(
     LDAP_ATTRIBUTE_TYPE	*at,
-    char		**err
+    const char		**err
 )
 {
 	AttributeType	*sat;

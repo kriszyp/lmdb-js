@@ -236,7 +236,7 @@ oc_index_name_cmp(
 }
 
 ObjectClass *
-oc_find( char *ocname )
+oc_find( const char *ocname )
 {
 	struct oindexrec	*oir = NULL;
 
@@ -251,7 +251,7 @@ static int
 oc_create_required(
     ObjectClass		*soc,
     char		**attrs,
-    char		**err
+    const char		**err
 )
 {
 	char		**attrs1;
@@ -290,7 +290,7 @@ static int
 oc_create_allowed(
     ObjectClass		*soc,
     char		**attrs,
-    char		**err
+    const char		**err
 )
 {
 	char		**attrs1;
@@ -321,7 +321,7 @@ static int
 oc_add_sups(
     ObjectClass		*soc,
     char		**sups,
-    char		**err
+    const char		**err
 )
 {
 	int		code;
@@ -376,7 +376,7 @@ oc_add_sups(
 static int
 oc_insert(
     ObjectClass		*soc,
-    char		**err
+    const char		**err
 )
 {
 	ObjectClass	**ocp;
@@ -428,7 +428,7 @@ oc_insert(
 int
 oc_add(
     LDAP_OBJECT_CLASS	*oc,
-    char		**err
+    const char		**err
 )
 {
 	ObjectClass	*soc;

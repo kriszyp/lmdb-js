@@ -46,13 +46,13 @@ Attribute * attr_find LDAP_P(( Attribute *a, char *type ));
 int attr_delete LDAP_P(( Attribute **attrs, char *type ));
 int attr_syntax LDAP_P(( char *type ));
 void attr_syntax_config LDAP_P(( char *fname, int lineno, int argc, char **argv ));
-AttributeType * at_find LDAP_P(( char *name ));
+AttributeType * at_find LDAP_P(( const char *name ));
 int at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **list ));
 int at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
 int at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
 int at_fake_if_needed LDAP_P(( char *name ));
 int at_schema_info LDAP_P(( Entry *e ));
-int at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, char **err ));
+int at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
 char * at_official_name LDAP_P(( char * a_type ));
 
 /*
@@ -238,8 +238,8 @@ void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
  */
 
 int oc_schema_check LDAP_P(( Entry *e ));
-ObjectClass *oc_find LDAP_P((char *ocname));
-int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, char **err));
+ObjectClass *oc_find LDAP_P((const char *ocname));
+int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
 
 
@@ -248,7 +248,7 @@ void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attr
  */
 
 void parse_oc_old LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
-void parse_oc LDAP_P(( char *fname, int lineno, char * line ));
+void parse_oc LDAP_P(( char *fname, int lineno, char *line ));
 void parse_at LDAP_P(( char *fname, int lineno, char *line ));
 char *scherr2str LDAP_P((int code));
 /*

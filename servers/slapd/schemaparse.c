@@ -49,7 +49,7 @@ parse_oc_old(
 	char		last;
 	LDAP_OBJECT_CLASS	*oc;
 	int		code;
-	char		*err;
+	const char	*err;
 	char		**namep;
 
 	oc = (LDAP_OBJECT_CLASS *) ch_calloc( 1, sizeof(LDAP_OBJECT_CLASS) );
@@ -142,7 +142,7 @@ parse_oc(
 {
 	LDAP_OBJECT_CLASS *oc;
 	int		code;
-	char		*err;
+	const char	*err;
 
 	oc = ldap_str2objectclass(line,&code,&err);
 	if ( !oc ) {
@@ -220,7 +220,7 @@ parse_at(
 {
 	LDAP_ATTRIBUTE_TYPE *at;
 	int		code;
-	char		*err;
+	const char	*err;
 
 	at = ldap_str2attributetype(line,&code,&err);
 	if ( !at ) {
