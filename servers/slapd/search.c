@@ -24,6 +24,7 @@
 #include <ac/socket.h>
 
 #include "ldap_pvt.h"
+#include "lutil.h"
 #include "slap.h"
 #include "slapi.h"
 
@@ -213,9 +214,33 @@ do_search(
 	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 #endif
 
-	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%lu op=%lu SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
-	    op->o_connid, op->o_opid, pbase.bv_val, scope, fstr.bv_val );
+	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
+		char abuf[BUFSIZ/2], *ptr = abuf;
+		int len = 0;
+
+		Statslog( LDAP_DEBUG_STATS,
+	    		"conn=%lu op=%lu SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
+	    		op->o_connid, op->o_opid, pbase.bv_val, scope, fstr.bv_val );
+
+		for ( i = 0; i<siz; i++ ) {
+			if (len + 1 + an[i].an_name.bv_len > sizeof(abuf)) {
+				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu SRCH attr=%s\n",
+				    op->o_connid, op->o_opid, abuf, 0, 0 );
+	    			len = 0;
+				ptr = abuf;
+			}
+			if (len) {
+				*ptr++ = ' ';
+				len++;
+			}
+			ptr = lutil_strcopy(ptr, an[i].an_name.bv_val);
+			len += an[i].an_name.bv_len;
+		}
+		if (len) {
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+	    			op->o_connid, op->o_opid, abuf, 0, 0 );
+		}
+	}
 
 	manageDSAit = get_manageDSAit( op );
 

@@ -764,6 +764,12 @@ slap_sasl_authorize(
 	}
 
 	conn->c_sasl_dn = authzDN;
+	if (conn->c_sasl_bindop) {
+		Statslog( LDAP_DEBUG_STATS,
+	    		"conn=%lu op=%lu BIND authcid=\"%s\"\n",
+	    		conn->c_connid, conn->c_sasl_bindop->o_opid, 
+			auth_identity, 0, 0);
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -881,6 +887,13 @@ slap_sasl_authorize(
 		" authorization allowed\n",
 		(long) (conn ? conn->c_connid : -1), 0, 0 );
 #endif
+
+	if (conn->c_sasl_bindop) {
+		Statslog( LDAP_DEBUG_STATS,
+	    		"conn=%lu op=%lu BIND authcid=\"%s\"\n",
+	    		conn->c_connid, conn->c_sasl_bindop->o_opid, 
+			auth_identity, 0, 0);
+	}
 
 	conn->c_sasl_dn = authzDN;
 	*errstr = NULL;

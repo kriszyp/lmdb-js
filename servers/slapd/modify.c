@@ -269,8 +269,32 @@ do_modify(
 	}
 #endif
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
+	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
+		char abuf[BUFSIZ/2], *ptr = abuf;
+		int len = 0;
+
+		Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD dn=\"%s\"\n",
+			op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
+
+		for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
+			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
+				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+				    op->o_connid, op->o_opid, abuf, 0, 0 );
+	    			len = 0;
+				ptr = abuf;
+			}
+			if (len) {
+				*ptr++ = ' ';
+				len++;
+			}
+			ptr = lutil_strcopy(ptr, tmp->sml_type.bv_val);
+			len += tmp->sml_type.bv_len;
+		}
+		if (len) {
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+	    			op->o_connid, op->o_opid, abuf, 0, 0 );
+		}
+	}
 
 	manageDSAit = get_manageDSAit( op );
 
