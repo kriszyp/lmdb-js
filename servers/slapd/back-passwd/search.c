@@ -144,9 +144,11 @@ pw2entry( Backend *be, struct passwd *pw )
 	attr_merge( e, "cn", vals );
 	attr_merge( e, "sn", vals );
 	attr_merge( e, "uid", vals );
+#ifdef HAVE_PW_GECOS
 	val.bv_val = pw->pw_gecos;
 	val.bv_len = strlen( pw->pw_gecos );
 	attr_merge( e, "cn", vals );
+#endif
 	val.bv_val = "person";
 	val.bv_len = strlen( val.bv_val );
 	attr_merge( e, "objectclass", vals );
