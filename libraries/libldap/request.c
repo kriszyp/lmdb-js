@@ -236,7 +236,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 {
 	LDAPConn	*lc;
 	LDAPURLDesc	*srv;
-	Sockbuf		*sb;
+	Sockbuf		*sb = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection\n", 0, 0, 0 );
 	/*
