@@ -64,7 +64,7 @@ regtest(const char *fname, int lineno, char *pat) {
 	if ( size >= (sizeof(buf)-1) ) {
 		fprintf( stderr,
 			"%s: line %d: regular expression \"%s\" too large\n",
-			fname, lineno, pat, 0 );
+			fname, lineno, pat );
 		acl_usage();
 	}
 
