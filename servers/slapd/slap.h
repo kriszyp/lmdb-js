@@ -935,8 +935,8 @@ typedef struct slap_mod {
 	int sm_op;
 	AttributeDescription *sm_desc;
 	struct berval sm_type;
-#define sm_bvalues sm_values
 	BerVarray sm_values;
+#define sm_bvalues sm_values
 #ifdef SLAP_NVALUES
 	BerVarray sm_nvalues;
 #endif
@@ -947,7 +947,9 @@ typedef struct slap_mod_list {
 #define sml_op		sml_mod.sm_op
 #define sml_desc	sml_mod.sm_desc
 #define	sml_type	sml_mod.sm_type
-#define sml_bvalues	sml_mod.sm_bvalues
+#define sml_bvalues	sml_mod.sm_values
+#define sml_values	sml_mod.sm_values
+#define sml_nvalues	sml_mod.sm_nvalues
 	struct slap_mod_list *sml_next;
 } Modifications;
 

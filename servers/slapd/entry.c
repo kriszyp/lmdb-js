@@ -24,7 +24,9 @@ static int		emaxsize;/* max size of ebuf			 */
 /*
  * Empty root entry
  */
-const Entry slap_entry_root = { NOID, { 0, "" }, { 0, "" }, NULL, 0, { 0, "" }, NULL };
+const Entry slap_entry_root = {
+	NOID, { 0, "" }, { 0, "" }, NULL, 0, { 0, "" }, NULL
+};
 
 int entry_destroy(void)
 {
@@ -237,7 +239,33 @@ str2entry( char *s )
 		}
 
 #ifdef SLAP_NVALUES
-		/* normalize here */
+		if( ad->ad_type->sat_syntax->ssyn_normalize ) {
+			rc = ad->ad_type->sat_syntax->ssyn_normalize(
+				ad->ad_type->sat_syntax,
+				&vals[0], &nvals[0] );
+
+			if( rc ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, DETAIL1,
+					"str2entry:  NULL (ssyn_normalize %d)\n" , rc, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+			   		"<= str2entry NULL (ssyn_normalize %d)\n", rc, 0, 0 );
+
+				entry_free( e );
+				free( vals[0].bv_val );
+				free( type );
+				return NULL;
+			}
+#endif
+
+		} else {
+			nvals[0].bv_len = 0;
+			nvals[0].bv_val = NULL;
+		}
+
+		nvals[1].bv_len = 0;
+		nvals[1].bv_val = NULL;
 #endif
 
 		rc = attr_merge( e, ad, vals
@@ -276,7 +304,7 @@ str2entry( char *s )
 		    (long) e->e_id, 0, 0 );
 #endif
 		entry_free( e );
-		return( NULL );
+		return NULL;
 	}
 
 #ifdef NEW_LOGGING

@@ -113,7 +113,11 @@ do_add( Connection *conn, Operation *op )
 		Modifications *mod;
 		ber_tag_t rtag;
 
-		rtag = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_bvalues );
+#ifdef SLAP_NVALUES
+		tmp.sml_nvalues = NULL;
+#endif
+
+		rtag = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_values );
 
 		if ( rtag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -128,7 +132,7 @@ do_add( Connection *conn, Operation *op )
 			goto done;
 		}
 
-		if ( tmp.sml_bvalues == NULL ) {
+		if ( tmp.sml_values == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, 
 				"do_add: conn %d	 no values for type %s\n",
@@ -141,13 +145,16 @@ do_add( Connection *conn, Operation *op )
 				NULL, "no values for attribute type", NULL, NULL );
 			goto done;
 		}
+
 		mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
-		
 		mod->sml_op = LDAP_MOD_ADD;
 		mod->sml_next = NULL;
 		mod->sml_desc = NULL;
 		mod->sml_type = tmp.sml_type;
-		mod->sml_bvalues = tmp.sml_bvalues;
+		mod->sml_values = tmp.sml_values;
+#ifdef SLAP_NVALUES
+		mod->sml_nvalues = NULL;
+#endif
 
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -476,8 +483,12 @@ slap_mods2entry(
 
 		/* move values to attr structure */
 		/*	should check for duplicates */
-		attr->a_vals = mods->sml_bvalues;
-		mods->sml_bvalues = NULL;
+		attr->a_vals = mods->sml_values;
+		mods->sml_values = NULL;
+#ifdef SLAP_NVALUES
+		attr->a_nvals = mods->sml_nvalues;
+		mods->sml_nvalues = NULL;
+#endif
 
 		*tail = attr;
 		tail = &attr->a_next;

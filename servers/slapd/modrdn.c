@@ -490,9 +490,12 @@ slap_modrdn2mods(
 		mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
 			+ 2 * sizeof( struct berval ) );
 		mod_tmp->sml_desc = desc;
-		mod_tmp->sml_bvalues = ( BerVarray )( mod_tmp + 1 );
-		mod_tmp->sml_bvalues[ 0 ] = new_rdn[ 0 ][ a_cnt ]->la_value;
-		mod_tmp->sml_bvalues[ 1 ].bv_val = NULL;
+		mod_tmp->sml_values = ( BerVarray )( mod_tmp + 1 );
+		mod_tmp->sml_values[ 0 ] = new_rdn[ 0 ][ a_cnt ]->la_value;
+		mod_tmp->sml_values[ 1 ].bv_val = NULL;
+#ifdef SLAP_NVALUES
+		mod_tmp->sml_nvalues = NULL;
+#endif
 		mod_tmp->sml_op = SLAP_MOD_SOFTADD;
 		mod_tmp->sml_next = mod;
 		mod = mod_tmp;
@@ -549,10 +552,13 @@ slap_modrdn2mods(
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications )
 				+ 2 * sizeof ( struct berval ) );
 			mod_tmp->sml_desc = desc;
-			mod_tmp->sml_bvalues = ( BerVarray )(mod_tmp+1);
-			mod_tmp->sml_bvalues[ 0 ] 
+			mod_tmp->sml_values = ( BerVarray )(mod_tmp+1);
+			mod_tmp->sml_values[ 0 ] 
 				= old_rdn[ 0 ][ d_cnt ]->la_value;
-			mod_tmp->sml_bvalues[ 1 ].bv_val = NULL;
+			mod_tmp->sml_values[ 1 ].bv_val = NULL;
+#ifdef SLAP_NVALUES
+			mod_tmp->sml_nvalues = NULL;
+#endif
 			mod_tmp->sml_op = LDAP_MOD_DELETE;
 			mod_tmp->sml_next = mod;
 			mod = mod_tmp;
