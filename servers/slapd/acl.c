@@ -888,9 +888,9 @@ acl_mask(
 			 * rights are determined by OR'ing the individual
 			 * rights given by the acis.
 			 */
-			for ( i = 0; at->a_vals[i] != NULL; i++ ) {
+			for ( i = 0; at->a_vals[i].bv_val != NULL; i++ ) {
 				if (aci_mask( be, conn, op,
-					e, desc, val, at->a_vals[i],
+					e, desc, val, &at->a_vals[i],
 					matches, &grant, &deny ) != 0)
 				{
 					tgrant |= grant;
