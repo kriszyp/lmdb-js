@@ -39,16 +39,14 @@
 
 /*
  * return the number of bytes required to hold the
- * NULL-terminated UTF-8 string INCLUDING the
+ * NULL-terminated UTF-8 string NOT INCLUDING the
  * termination.
  */
 ber_len_t ldap_utf8_bytes( const char * p )
 {
-	ber_len_t bytes = 0;
+	ber_len_t bytes;
 
-	if( p == NULL ) return bytes;
-
-	while( p[bytes++] ) {
+	for( bytes=0; p[bytes]; bytes++ ) {
 		/* EMPTY */ ;
 	}
 

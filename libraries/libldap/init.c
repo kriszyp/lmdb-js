@@ -133,7 +133,7 @@ static void openldap_ldap_init_w_conf(
 
 		*start++ = '\0';
 
-		/* we must have some non-whitespace to skip */
+		/* we must have some whitespace to skip */
 		while(isspace((unsigned char)*start)) start++;
 		opt = start;
 

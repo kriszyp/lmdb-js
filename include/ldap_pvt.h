@@ -147,8 +147,7 @@ LIBLDAP_F (int) ldap_pvt_tls_start LDAP_P(( Sockbuf *sb, void *ctx_arg ));
  * UTF-8 (in utf-8.c)
  */
 
-/* returns the number of bytes in the UTF-8 string
-	(counting the NULL) */
+/* returns the number of bytes in the UTF-8 string */
 LIBLDAP_F (ber_len_t) ldap_utf8_bytes( const char * );
 /* returns the number of UTF-8 characters in the string */
 LIBLDAP_F (ber_len_t) ldap_utf8_chars( const char * );
