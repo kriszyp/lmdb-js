@@ -31,6 +31,8 @@ typedef struct slapi_attr	Slapi_Attr;
 typedef struct slapi_value	Slapi_Value;
 typedef struct slapi_valueset	Slapi_ValueSet;
 typedef struct slapi_filter	Slapi_Filter;
+typedef struct slapi_dn		Slapi_DN;
+typedef struct slapi_rdn	Slapi_RDN;
 
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
@@ -40,6 +42,14 @@ void slapi_pblock_destroy( Slapi_PBlock* );
 
 /* entry/attr/dn routines */
 Slapi_Entry *slapi_str2entry( char *s, int flags );
+#define SLAPI_STR2ENTRY_REMOVEDUPVALS	1
+#define SLAPI_STR2ENTRY_ADDRDNVALS	2
+#define SLAPI_STR2ENTRY_BIGENTRY	4
+#define SLAPI_STR2ENTRY_TOMBSTONE_CHECK	8
+#define SLAPI_STR2ENTRY_IGNORE_STATE	16
+#define SLAPI_STR2ENTRY_INCLUDE_VERSION_STR	32
+#define SLAPI_STR2ENTRY_EXPAND_OBJECTCLASSES	64
+#define SLAPI_STR2ENTRY_NOT_WELL_FORMED_LDIF	128
 char *slapi_entry2str( Slapi_Entry *e, int *len );
 char *slapi_entry_get_dn( Slapi_Entry *e );
 int slapi_x_entry_get_id( Slapi_Entry *e );
@@ -96,6 +106,8 @@ void slapi_entry_attr_set_int( Slapi_Entry* e, const char *type, int l);
 void slapi_entry_attr_set_uint( Slapi_Entry* e, const char *type, unsigned int l);
 void slapi_entry_attr_set_long(Slapi_Entry* e, const char *type, long l);
 void slapi_entry_attr_set_ulong(Slapi_Entry* e, const char *type, unsigned long l);
+int slapi_entry_has_children(const Slapi_Entry *e);
+size_t slapi_entry_size(Slapi_Entry *e);
 int slapi_is_rootdse( const char *dn );
 int slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
 int slapi_entry_add_values_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
@@ -573,6 +585,8 @@ void slapi_set_object_extension(int objecttype, void *object,
 
 #define SLAPI_PLUGIN_EXTENDED_SENT_RESULT	-1
 
+#define SLAPI_FAIL_DISKFULL		-2
+#define SLAPI_FAIL_GENERAL		-1
 #define SLAPI_BIND_SUCCESS		0
 #define SLAPI_BIND_FAIL			2
 #define SLAPI_BIND_ANONYMOUS		3
