@@ -899,20 +899,21 @@ main( int argc, char **argv )
 			c2.ldctl_oid = LDAP_CONTROL_VALUESRETURNFILTER;
 			c2.ldctl_iscritical = valuesReturnFilter > 1;
 		    
-		        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) 
-				exit( EXIT_FAILURE );
-
-		    	if ( err = put_vrFilter(ber, vrFilter)==-1 ) {
-				ber_free( ber, 1 );
-				fprintf( stderr, "Bad ValuesReturnFilter: %s\n", vrFilter );
-				exit( EXIT_FAILURE );
+	        if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) 
-				return LDAP_NO_MEMORY;
+	    	if ( err = ldap_put_vrFilter(ber, vrFilter)==-1 ) {
+				ber_free( ber, 1 );
+				fprintf( stderr, "Bad ValuesReturnFilter: %s\n", vrFilter );
+				return EXIT_FAILURE;
+			}
+
+			if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+				return EXIT_FAILURE;
+			}
 
 			c2.ldctl_value=(*bvalp);
-
 		}
 	
 		err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, ctrls );
@@ -925,7 +926,7 @@ main( int argc, char **argv )
 				(c1.ldctl_iscritical || c2.ldctl_iscritical)
 				? "critical " : "" );
 			if( c1.ldctl_iscritical && c2.ldctl_iscritical ) {
-				exit( EXIT_FAILURE );
+				return EXIT_FAILURE;
 			}
 		}
 	}

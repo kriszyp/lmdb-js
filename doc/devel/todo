@@ -48,7 +48,6 @@ Update to latest autoconf and friends
 Small projects
 --------------
 Populate matchingRuleUse attribute in the subschema
-Implement -E/-e extensions options
 Implement -V version options
 Implement Proxy Authorization Control extension
 Complete Simple Paged Results Control
