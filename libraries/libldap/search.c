@@ -23,7 +23,10 @@
 #include "ldap.h"
 #include "ldap-int.h"
 
+static int hex2value( int c );
+static long filter_value_unescape LDAP_P(( char *filter ));
 static char *find_right_paren LDAP_P(( char *s ));
+static char *find_wildcard LDAP_P(( char *s ));
 static char *put_complex_filter LDAP_P(( BerElement *ber, char *str,
 	unsigned long tag, int not ));
 static int put_filter LDAP_P(( BerElement *ber, char *str ));
@@ -187,6 +190,93 @@ find_right_paren( char *s )
 	return( *s ? s : NULL );
 }
 
+static int hex2value( int c )
+{
+	if( c >= '0' && c <= '9' ) {
+		return c - '0';
+	}
+
+	if( c >= 'A' && c <= 'F' ) {
+		return c + (10 - (int) 'A');
+	}
+
+	if( c >= 'a' && c <= 'f' ) {
+		return c + (10 - (int) 'a');
+	}
+
+	return -1;
+}
+
+static char *
+find_wildcard( char *s )
+{
+	for( ; *s != '\0' ; s++ ) {
+		switch( *s ) {
+		case '*':	/* found wildcard */
+			return s;
+
+		case '\\':
+			s++; /* skip over escape */
+			if ( *s == '\0' )
+				return NULL;	/* escape at end of string */
+			if( hex2value( s[0] ) >= 0 && hex2value( s[1] ) >= 0 ) {
+				/* skip over lead digit of two hex digit code */
+				s++;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+/* unescape filter value */
+/* support both LDAP v2 and v3 escapes */
+/* output can include nul characters */
+static long
+filter_value_unescape( char *fval )
+{
+	long r, v;
+	int v1, v2;
+
+	for( r=v=0; fval[v] != '\0'; v++ ) {
+		switch( fval[v] ) {
+		case '\\':
+			/* escape */
+			v++;
+
+			if ( fval[v] == '\0' ) {
+				/* escape at end of string */
+				return -1;
+
+			}
+
+			if (( v1 = hex2value( fval[v] )) >= 0 ) {
+				/* LDAPv3 escape */
+
+				if (( v2 = hex2value( fval[v+1] )) < 0 ) {
+					/* must be two digit code */
+					return -1;
+				}
+
+				fval[r++] = v1 * 16 + v2;
+				v++;
+
+			} else {
+				/* LDAPv2 escape */
+				fval[r++] = fval[v];
+			}
+
+			break;
+
+		default:
+			fval[r++] = fval[v];
+		}
+	}
+
+	fval[r] = '\0';
+	return r;
+}
+
 static char *
 put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 {
@@ -200,12 +290,8 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	 */
 
 	/* put explicit tag */
-	if ( ber_printf( ber, "t{", tag ) == -1 )
+	if ( ber_printf( ber, "t{", /*}*/ tag ) == -1 )
 		return( NULL );
-/*
-	if ( !not && ber_printf( ber, "{" ) == -1 )
-		return( NULL );
-*/
 
 	str++;
 	if ( (next = find_right_paren( str )) == NULL )
@@ -217,12 +303,8 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	*next++ = ')';
 
 	/* flush explicit tagged thang */
-	if ( ber_printf( ber, "}" ) == -1 )
+	if ( ber_printf( ber, /*{*/ "}" ) == -1 )
 		return( NULL );
-/*
-	if ( !not && ber_printf( ber, "}" ) == -1 )
-		return( NULL );
-*/
 
 	return( next );
 }
@@ -230,8 +312,8 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 static int
 put_filter( BerElement *ber, char *str )
 {
-	char	*next, *tmp, *s, *d;
-	int	parens, balance, escape, gotescape;
+	char	*next;
+	int	parens, balance, escape;
 
 	/*
 	 * A Filter looks like this:
@@ -260,7 +342,7 @@ put_filter( BerElement *ber, char *str )
 
 	Debug( LDAP_DEBUG_TRACE, "put_filter \"%s\"\n", str, 0, 0 );
 
-	gotescape = parens = 0;
+	parens = 0;
 	while ( *str ) {
 		switch ( *str ) {
 		case '(':
@@ -315,7 +397,7 @@ put_filter( BerElement *ber, char *str )
 							balance--;
 					}
 					if ( *next == '\\' && ! escape )
-						gotescape = escape = 1;
+						escape = 1;
 					else
 						escape = 0;
 					if ( balance )
@@ -325,24 +407,9 @@ put_filter( BerElement *ber, char *str )
 					return( -1 );
 
 				*next = '\0';
-				tmp = ldap_strdup( str );
-				if ( gotescape ) {
-					escape = 0;
-					for ( s = d = tmp; *s; s++ ) {
-						if ( *s != '\\' || escape ) {
-							*d++ = *s;
-							escape = 0;
-						} else {
-							escape = 1;
-						}
-					}
-					*d = '\0';
-				}
-				if ( put_simple_filter( ber, tmp ) == -1 ) {
-					free( tmp );
+				if ( put_simple_filter( ber, str ) == -1 ) {
 					return( -1 );
 				}
-				free( tmp );
 				*next++ = ')';
 				str = next;
 				parens--;
@@ -353,7 +420,7 @@ put_filter( BerElement *ber, char *str )
 		case ')':
 			Debug( LDAP_DEBUG_TRACE, "put_filter: end\n", 0, 0,
 			    0 );
-			if ( ber_printf( ber, "]" ) == -1 )
+			if ( ber_printf( ber, /*[*/ "]" ) == -1 )
 				return( -1 );
 			str++;
 			parens--;
@@ -367,24 +434,9 @@ put_filter( BerElement *ber, char *str )
 			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n", 0, 0,
 			    0 );
 			next = strchr( str, '\0' );
-			tmp = ldap_strdup( str );
-			if ( strchr( tmp, '\\' ) != NULL ) {
-				escape = 0;
-				for ( s = d = tmp; *s; s++ ) {
-					if ( *s != '\\' || escape ) {
-						*d++ = *s;
-						escape = 0;
-					} else {
-						escape = 1;
-					}
-				}
-				*d = '\0';
-			}
-			if ( put_simple_filter( ber, tmp ) == -1 ) {
-				free( tmp );
+			if ( put_simple_filter( ber, str ) == -1 ) {
 				return( -1 );
 			}
-			free( tmp );
 			str = next;
 			break;
 		}
@@ -431,17 +483,21 @@ static int
 put_simple_filter( BerElement *ber, char *str )
 {
 	char		*s;
-	char		*value, savechar;
+	char		*value;
 	unsigned long	ftype;
-	int		rc;
+	int		rc = -1;
 
 	Debug( LDAP_DEBUG_TRACE, "put_simple_filter \"%s\"\n", str, 0, 0 );
 
-	if ( (s = strchr( str, '=' )) == NULL )
-		return( -1 );
+	str = ldap_strdup( str );
+	if( str == NULL ) return -1;
+
+	if ( (s = strchr( str, '=' )) == NULL ) {
+		goto done;
+	}
+
 	value = s + 1;
 	*s-- = '\0';
-	savechar = *s;
 
 	switch ( *s ) {
 	case '<':
@@ -457,27 +513,34 @@ put_simple_filter( BerElement *ber, char *str )
 		*s = '\0';
 		break;
 	default:
-		if ( strchr( value, '*' ) == NULL ) {
+		if ( find_wildcard( value ) == NULL ) {
 			ftype = LDAP_FILTER_EQUALITY;
 		} else if ( strcmp( value, "*" ) == 0 ) {
 			ftype = LDAP_FILTER_PRESENT;
 		} else {
 			rc = put_substring_filter( ber, str, value );
-			*(value-1) = '=';
-			return( rc );
+			goto done;
 		}
 		break;
 	}
 
 	if ( ftype == LDAP_FILTER_PRESENT ) {
 		rc = ber_printf( ber, "ts", ftype, str );
+
 	} else {
-		rc = ber_printf( ber, "t{ss}", ftype, str, value );
+		long len = filter_value_unescape( value );
+
+		if( len >= 0 ) {
+			rc = ber_printf( ber, "t{so}",
+				ftype, str, value, len );
+		}
 	}
 
-	*s = savechar;
-	*(value-1) = '=';
-	return( rc == -1 ? rc : 0 );
+	if( rc != -1 ) rc = 0;
+
+done:
+	free( str );
+	return rc;
 }
 
 static int
@@ -492,8 +555,8 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 	if ( ber_printf( ber, "t{s{", LDAP_FILTER_SUBSTRINGS, type ) == -1 )
 		return( -1 );
 
-	while ( val != NULL ) {
-		if ( (nextstar = strchr( val, '*' )) != NULL )
+	for( ; val != NULL; val=nextstar ) {
+		if ( (nextstar = find_wildcard( val )) != NULL )
 			*nextstar++ = '\0';
 
 		if ( gotstar == 0 ) {
@@ -503,15 +566,20 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 		} else {
 			ftype = LDAP_SUBSTRING_ANY;
 		}
+
 		if ( *val != '\0' ) {
-			if ( ber_printf( ber, "ts", ftype, val ) == -1 )
+			long len = filter_value_unescape( val );
+
+			if ( len < 0  ) {
+				return -1;
+			}
+
+			if ( ber_printf( ber, "to", ftype, val, len ) == -1 ) {
 				return( -1 );
+			}
 		}
 
 		gotstar = 1;
-		if ( nextstar != NULL )
-			*(nextstar-1) = '*';
-		val = nextstar;
 	}
 
 	if ( ber_printf( ber, "}}" ) == -1 )
