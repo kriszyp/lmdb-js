@@ -61,7 +61,7 @@ static struct oc_info {
 		"DESC 'OpenLDAP Global configuration options' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( olcAccess $ olcAllows $ olcArgsFile $ olcAttributeOptions $ "
-		 "olcAuthRewrite $ olcAuthzPolicy $ olcAuthzRegexp $ "
+		 "olcAuthIDRewrite $ olcAuthzPolicy $ olcAuthzRegexp $ "
 		 "olcConcurrency $ olcConnMaxPending $ olcConnMaxPendingAuth $ "
 		 "olcDefaultSearchBase $ olcDisallows $ olcGentleHUP $ "
 		 "olcIdleTimeout $ olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
