@@ -757,7 +757,7 @@ sb_rdahead_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 		return ( bufptr ? bufptr : ret );
 
 	p->buf_end += ret;
-	bufptr += ber_pvt_sb_copy_out( p, buf + bufptr, len );
+	bufptr += ber_pvt_sb_copy_out( p, (char *) buf + bufptr, len );
 	return bufptr;
 }
 
