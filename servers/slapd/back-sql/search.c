@@ -113,7 +113,7 @@ backsql_init_search(
 	Operation 		*op,
 	SlapReply		*rs,
 	AttributeName 		*attrs,
-	int			get_base_id )
+	unsigned		flags )
 {
 	AttributeName		*p;
 	int			rc = LDAP_SUCCESS;
@@ -191,10 +191,11 @@ backsql_init_search(
 	bsi->bsi_flt_where.bb_len = 0;
 	bsi->bsi_filter_oc = NULL;
 
-	if ( get_base_id ) {
+	if ( flags & BACKSQL_ISF_GET_ID ) {
 		assert( op->o_bd->be_private );
 
-		rc = backsql_dn2id( op, rs, &bsi->bsi_base_id, dbh, nbase );
+		rc = backsql_dn2id( op, rs, &bsi->bsi_base_id, dbh, nbase,
+				( flags & BACKSQL_ISF_MUCK ) );
 	}
 
 	return ( bsi->bsi_status = rc );
@@ -1601,7 +1602,8 @@ backsql_search( Operation *op, SlapReply *rs )
 	time_t			stoptime = 0;
 	backsql_srch_info	bsi;
 	backsql_entryID		*eid = NULL;
-	struct berval		nbase = BER_BVNULL;
+	struct berval		nbase = BER_BVNULL,
+				realndn = BER_BVNULL;
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -1644,11 +1646,11 @@ backsql_search( Operation *op, SlapReply *rs )
 	/* compute it anyway; root does not use it */
 	stoptime = op->o_time + op->ors_tlimit;
 
-	nbase = op->o_req_ndn;
-	if ( backsql_api_dn2odbc( op, rs, &nbase ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-			"backsql_api_dn2odbc failed\n", 
-			0, 0, 0 );
+	realndn = op->o_req_ndn;
+	if ( backsql_api_dn2odbc( op, rs, &realndn ) ) {
+		Debug( LDAP_DEBUG_TRACE, "   backsql_search(\"%s\"): "
+			"backsql_api_dn2odbc(\"%s\") failed\n", 
+			op->o_req_ndn.bv_val, realndn.bv_val, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
 		send_ldap_result( op, rs );
@@ -1656,11 +1658,12 @@ backsql_search( Operation *op, SlapReply *rs )
 	}
 
 	/* init search */
-	rs->sr_err = backsql_init_search( &bsi, &nbase,
+	rs->sr_err = backsql_init_search( &bsi, &realndn,
 			op->ors_scope,
 			op->ors_slimit, op->ors_tlimit,
 			stoptime, op->ors_filter,
-			dbh, op, rs, op->ors_attrs, 1 );
+			dbh, op, rs, op->ors_attrs,
+			( BACKSQL_ISF_GET_ID | BACKSQL_ISF_MUCK ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
 		goto done;
@@ -1829,7 +1832,8 @@ backsql_search( Operation *op, SlapReply *rs )
 						&e->e_nname,
 						LDAP_SCOPE_BASE, 
 						-1, -1, -1, NULL,
-						dbh, op, rs, NULL, 0 );
+						dbh, op, rs, NULL,
+						BACKSQL_ISF_MUCK );
 				bsi2.bsi_e = &user_entry2;
 				rc = backsql_id2entry( &bsi2, eid );
 				if ( rc == LDAP_SUCCESS ) {
@@ -2010,6 +2014,10 @@ end_of_search:;
 #endif /* BACKSQL_SYNCPROV */
 
 done:;
+	if ( !BER_BVISNULL( &realndn ) && realndn.bv_val != op->o_req_ndn.bv_val ) {
+		ch_free( realndn.bv_val );
+	}
+
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
 	}
@@ -2066,7 +2074,8 @@ backsql_entry_get(
 			ndn,
 			LDAP_SCOPE_BASE, 
 			SLAP_NO_LIMIT, SLAP_NO_LIMIT, -1, NULL,
-			dbh, op, &rs, at ? anlist : NULL, 1 );
+			dbh, op, &rs, at ? anlist : NULL,
+			( BACKSQL_ISF_GET_ID | BACKSQL_ISF_MUCK ) );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}

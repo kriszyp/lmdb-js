@@ -36,7 +36,6 @@ backsql_bind( Operation *op, SlapReply *rs )
 	backsql_srch_info	bsi;
 	AttributeName		anlist[2];
 	int			rc;
-	struct berval		ndn;
  
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_bind()\n", 0, 0, 0 );
 
@@ -71,22 +70,13 @@ backsql_bind( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	ndn = op->o_req_ndn;
-	if ( backsql_api_dn2odbc( op, rs, &ndn ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-			"backsql_api_dn2odbc failed\n", 
-			0, 0, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
-		goto error_return;
-	}
-
 	anlist[0].an_name = password->ad_cname;
 	anlist[0].an_desc = password;
 	anlist[1].an_name.bv_val = NULL;
 
-	rc = backsql_init_search( &bsi, &ndn, LDAP_SCOPE_BASE, 
-			-1, -1, -1, NULL, dbh, op, rs, anlist, 1 );
+	rc = backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
+			-1, -1, -1, NULL, dbh, op, rs, anlist,
+			( BACKSQL_ISF_GET_ID | BACKSQL_ISF_MUCK ) );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
 			"could not retrieve bindDN ID - no such entry\n", 
@@ -141,10 +131,6 @@ error_return:;
 		return 1;
 	}
 	
-	if ( ndn.bv_val != op->o_req_ndn.bv_val ) {
-		ch_free( ndn.bv_val );
-	}
-
 	Debug(LDAP_DEBUG_TRACE,"<==backsql_bind()\n",0,0,0);
 	return 0;
 }

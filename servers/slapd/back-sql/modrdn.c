@@ -40,7 +40,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	backsql_oc_map_rec	*oc = NULL;
 	struct berval		p_dn = BER_BVNULL, p_ndn = BER_BVNULL,
 				*new_pdn = NULL, *new_npdn = NULL,
-				new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
+				new_dn = BER_BVNULL, new_ndn = BER_BVNULL,
+				realnew_dn = BER_BVNULL;
 	LDAPRDN			new_rdn = NULL;
 	LDAPRDN			old_rdn = NULL;
 	Entry			e;
@@ -63,8 +64,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn );
+	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup entry id (%d)\n",
@@ -190,8 +190,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): new entry dn is \"%s\"\n",
 			new_dn.bv_val, 0, 0 );
 
-	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( op, rs, &pe_id, dbh, &p_ndn );
+	rs->sr_err = backsql_dn2id( op, rs, &pe_id, dbh, &p_ndn, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup old parent entry id\n", 0, 0, 0 );
@@ -211,8 +210,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 	(void)backsql_free_entryID( &pe_id, 0 );
 
-	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( op, rs, &new_pe_id, dbh, new_npdn );
+	rs->sr_err = backsql_dn2id( op, rs, &new_pe_id, dbh, new_npdn, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"could not lookup new parent entry id\n", 0, 0, 0 );
@@ -294,7 +292,19 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rc = backsql_BindParamBerVal( sth, 1, SQL_PARAM_INPUT, &new_dn );
+	realnew_dn = new_dn;
+	if ( backsql_api_dn2odbc( op, rs, &realnew_dn ) ) {
+		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(\"%s\"): "
+			"backsql_api_dn2odbc(\"%s\") failed\n", 
+			op->o_req_dn.bv_val, realnew_dn.bv_val, 0 );
+		SQLFreeStmt( sth, SQL_DROP );
+
+		rs->sr_text = "SQL-backend error";
+		rs->sr_err = LDAP_OTHER;
+		goto done;
+	}
+
+	rc = backsql_BindParamBerVal( sth, 1, SQL_PARAM_INPUT, &realnew_dn );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_add_attr(): "
@@ -428,6 +438,10 @@ done:;
 	}
 
 modrdn_return:;
+	if ( !BER_BVISNULL( &realnew_dn ) && realnew_dn.bv_val != new_dn.bv_val ) {
+		ch_free( realnew_dn.bv_val );
+	}
+
 	if ( !BER_BVISNULL( &new_dn ) ) {
 		slap_sl_free( new_dn.bv_val, op->o_tmpmemctx );
 	}

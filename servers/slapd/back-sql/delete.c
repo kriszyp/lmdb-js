@@ -118,8 +118,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 	
-	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn );
+	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"could not lookup entry id\n", 0, 0, 0 );

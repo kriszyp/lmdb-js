@@ -35,7 +35,6 @@ backsql_compare( Operation *op, SlapReply *rs )
 	backsql_srch_info	bsi;
 	int			rc;
 	AttributeName		anlist[2];
-	struct berval		ndn;
 
 	user_entry.e_name.bv_val = NULL;
 	user_entry.e_name.bv_len = 0;
@@ -53,16 +52,6 @@ backsql_compare( Operation *op, SlapReply *rs )
 
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			? "SQL-backend error" : NULL;
-		goto return_results;
-	}
-
-	ndn = op->o_req_ndn;
-	if ( backsql_api_dn2odbc( op, rs, &ndn ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
-			"backsql_api_dn2odbc failed\n", 
-			0, 0, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
 		goto return_results;
 	}
 
@@ -93,8 +82,9 @@ backsql_compare( Operation *op, SlapReply *rs )
 		user_entry.e_attrs = nrs.sr_operational_attrs;
 
 	} else {
-		rc = backsql_init_search( &bsi, &ndn, LDAP_SCOPE_BASE, 
-				-1, -1, -1, NULL, dbh, op, rs, anlist, 1 );
+		rc = backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
+				-1, -1, -1, NULL, dbh, op, rs, anlist,
+				( BACKSQL_ISF_GET_ID | BACKSQL_ISF_MUCK ) );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
 				"could not retrieve compareDN ID - no such entry\n", 
@@ -145,10 +135,6 @@ return_results:;
 
 	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
-	}
-
-	if ( ndn.bv_val != op->o_req_ndn.bv_val ) {
-		ch_free( ndn.bv_val );
 	}
 
 	if ( e != NULL ) {

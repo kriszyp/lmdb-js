@@ -80,13 +80,15 @@ backsql_dn2id(
 	SlapReply		*rs,
 	backsql_entryID		*id,
 	SQLHDBC			dbh,
-	struct berval		*ndn )
+	struct berval		*ndn,
+	int			muck )
 {
 	backsql_info		*bi = op->o_bd->be_private;
-	SQLHSTMT		sth; 
+	SQLHSTMT		sth = SQL_NULL_HSTMT; 
 	BACKSQL_ROW_NTS		row;
 	RETCODE 		rc;
 	int			res;
+	struct berval		realndn = BER_BVNULL;
 
 	/* TimesTen */
 	char			upperdn[ BACKSQL_MAX_DN_LEN + 1 ];
@@ -141,8 +143,19 @@ backsql_dn2id(
 			"backsql_dn2id(): error preparing SQL:\n%s", 
 			bi->sql_id_query, 0, 0);
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
-		SQLFreeStmt( sth, SQL_DROP );
-		return LDAP_OTHER;
+		res = LDAP_OTHER;
+		goto done;
+	}
+
+	realndn = *ndn;
+	if ( muck ) {
+		if ( backsql_api_dn2odbc( op, rs, &realndn ) ) {
+			Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): "
+				"backsql_api_dn2odbc(\"%s\") failed\n", 
+				ndn->bv_val, realndn.bv_val, 0 );
+			res = LDAP_OTHER;
+			goto done;
+		}
 	}
 
 	if ( BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ) {
@@ -151,8 +164,8 @@ backsql_dn2id(
 		 * that can be searched using indexes
 		 */
 
-		for ( i = 0, j = ndn->bv_len - 1; ndn->bv_val[ i ]; i++, j--) {
-			upperdn[ i ] = ndn->bv_val[ j ];
+		for ( i = 0, j = realndn.bv_len - 1; realndn.bv_val[ i ]; i++, j--) {
+			upperdn[ i ] = realndn.bv_val[ j ];
 		}
 		upperdn[ i ] = '\0';
 		ldap_pvt_str2upper( upperdn );
@@ -163,7 +176,7 @@ backsql_dn2id(
 
 	} else {
 		if ( BACKSQL_USE_REVERSE_DN( bi ) ) {
-			AC_MEMCPY( upperdn, ndn->bv_val, ndn->bv_len + 1 );
+			AC_MEMCPY( upperdn, realndn.bv_val, realndn.bv_len + 1 );
 			ldap_pvt_str2upper( upperdn );
 			Debug( LDAP_DEBUG_TRACE,
 				"==>backsql_dn2id(): upperdn=\"%s\"\n",
@@ -171,7 +184,7 @@ backsql_dn2id(
 			ber_str2bv( upperdn, 0, 0, &tbbDN );
 
 		} else {
-			tbbDN = *ndn;
+			tbbDN = realndn;
 		}
 	}
 
@@ -182,8 +195,8 @@ backsql_dn2id(
 			"error binding dn=\"%s\" parameter:\n", 
 			tbbDN.bv_val, 0, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
-		SQLFreeStmt( sth, SQL_DROP );
-		return LDAP_OTHER;
+		res = LDAP_OTHER;
+		goto done;
 	}
 
 	rc = SQLExecute( sth );
@@ -192,8 +205,8 @@ backsql_dn2id(
 			"error executing query (\"%s\", \"%s\"):\n", 
 			bi->sql_id_query, tbbDN.bv_val, 0 );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
-		SQLFreeStmt( sth, SQL_DROP );
-		return LDAP_OTHER;
+		res = LDAP_OTHER;
+		goto done;
 	}
 
 	backsql_BindRowAsStrings( sth, &row );
@@ -234,7 +247,7 @@ backsql_dn2id(
 					Debug( LDAP_DEBUG_TRACE,
 						"<==backsql_dn2id(\"%s\"): "
 						"dnPrettyNormal failed (%d: %s)\n",
-						ndn->bv_val, res,
+						realndn.bv_val, res,
 						ldap_err2string( res ) );
 
 					/* cleanup... */
@@ -256,7 +269,15 @@ backsql_dn2id(
 	}
 	backsql_FreeRow( &row );
 
-	SQLFreeStmt( sth, SQL_DROP );
+done:;
+	if ( sth != SQL_NULL_HSTMT ) {
+		SQLFreeStmt( sth, SQL_DROP );
+	}
+
+	if ( !BER_BVISNULL( &realndn ) && realndn.bv_val != ndn->bv_val ) {
+		ch_free( realndn.bv_val );
+	}
+
 	return res;
 }
 

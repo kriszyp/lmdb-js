@@ -55,19 +55,16 @@ backsql_modify( Operation *op, SlapReply *rs )
 		 */
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			? "SQL-backend error" : NULL;
-		send_ldap_result( op, rs );
-		return 1;
+		goto done;
 	}
 
-	/* FIXME: API... */
-	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn );
+	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 			"could not lookup entry id\n", 0, 0, 0 );
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			? "SQL-backend error" : NULL;
-		send_ldap_result( op, rs );
-		return 1;
+		goto done;
 	}
 
 #ifdef BACKSQL_ARBITRARY_KEY
@@ -95,8 +92,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 		 */
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "SQL-backend error";
-		send_ldap_result( op, rs );
-		return 1;
+		goto done;
 	}
 
 	e.e_attrs = NULL;
@@ -117,9 +113,11 @@ backsql_modify( Operation *op, SlapReply *rs )
 		SQLTransact( SQL_NULL_HENV, dbh, 
 				op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
 	}
+
+done:;
 	send_ldap_result( op, rs );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n", 0, 0, 0 );
 
-	return op->o_noop;
+	return rs->sr_err != LDAP_SUCCESS ? rs->sr_err : op->o_noop;
 }
 

@@ -908,9 +908,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	Attribute		*at,
 				*at_objectClass = NULL;
 	struct berval		pdn;
-	struct berval		realdn = BER_BVNULL,
-				realndn = BER_BVNULL,
-				realpdn = BER_BVNULL;
+	struct berval		realdn = BER_BVNULL;
 
 #ifdef BACKSQL_SYNCPROV
 	/*
@@ -1018,17 +1016,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	realndn = op->oq_add.rs_e->e_nname;
-	if ( backsql_api_dn2odbc( op, rs, &realndn ) ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
-			"backsql_api_dn2odbc(\"%s\") failed\n", 
-			op->oq_add.rs_e->e_name.bv_val, realndn.bv_val, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
-		goto done;
-	}
-
-	rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &realndn );
+	rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &realdn, 0 );
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"entry exists\n",
@@ -1047,17 +1035,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		dnParent( &op->oq_add.rs_e->e_nname, &pdn );
 	}
 
-	realpdn = pdn;
-	if ( backsql_api_dn2odbc( op, rs, &realpdn ) ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
-			"backsql_api_dn2odbc(\"%s\") failed\n", 
-			op->oq_add.rs_e->e_name.bv_val, pdn.bv_val, 0 );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
-		goto done;
-	}
-
-	rs->sr_err = backsql_dn2id( op, rs, &parent_id, dbh, &realpdn );
+	rs->sr_err = backsql_dn2id( op, rs, &parent_id, dbh, &pdn, 1 );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 			"could not lookup parent entry for new record \"%s\"\n",
@@ -1085,28 +1063,13 @@ backsql_add( Operation *op, SlapReply *rs )
 				struct berval	dn;
 				char		*matched = NULL;
 	
-				if ( realpdn.bv_val != pdn.bv_val ) {
-					ch_free( realpdn.bv_val );
-				}
-	
 				dn = pdn;
 				dnParent( &dn, &pdn );
 	
 				/*
 				 * Empty DN ("") defaults to LDAP_SUCCESS
 				 */
-				realpdn = pdn;
-				if ( backsql_api_dn2odbc( op, rs, &realpdn ) ) {
-					Debug( LDAP_DEBUG_TRACE,
-						"   backsql_add(\"%s\"): "
-						"backsql_api_dn2odbc failed\n", 
-						op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-					rs->sr_err = LDAP_OTHER;
-					rs->sr_text = "SQL-backend error";
-					goto done;
-				}
-	
-				rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &realpdn );
+				rs->sr_err = backsql_dn2id( op, rs, NULL, dbh, &pdn, 1 );
 				switch ( rs->sr_err ) {
 				case LDAP_NO_SUCH_OBJECT:
 					if ( !BER_BVISEMPTY( &pdn ) ) {
@@ -1443,14 +1406,6 @@ done:;
 			&& realdn.bv_val != op->oq_add.rs_e->e_name.bv_val )
 	{
 		ch_free( realdn.bv_val );
-	}
-	if ( !BER_BVISNULL( &realndn )
-			&& realndn.bv_val != op->oq_add.rs_e->e_nname.bv_val )
-	{
-		ch_free( realndn.bv_val );
-	}
-	if ( !BER_BVISNULL( &realpdn ) && realpdn.bv_val != pdn.bv_val ) {
-		ch_free( realpdn.bv_val );
 	}
 	if ( !BER_BVISNULL( &parent_id.eid_ndn ) ) {
 		(void)backsql_free_entryID( &parent_id, 0 );

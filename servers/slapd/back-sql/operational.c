@@ -178,19 +178,12 @@ backsql_operational(
 			&& !got[ BACKSQL_OP_ENTRYUUID ]
 			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID ) == NULL )
 	{
-		struct berval		ndn;
 		backsql_srch_info	bsi;
 
-		ndn = rs->sr_entry->e_nname;
-		if ( backsql_api_dn2odbc( op, rs, &ndn ) ) {
-			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-				"backsql_api_dn2odbc failed\n", 
-				0, 0, 0 );
-			return 1;
-		}
-
-		rc = backsql_init_search( &bsi, &ndn, LDAP_SCOPE_BASE, 
-			-1, -1, -1, NULL, dbh, op, rs, NULL, 1 );
+		rc = backsql_init_search( &bsi, &rs->sr_entry->e_nname,
+				LDAP_SCOPE_BASE, -1, -1, -1, NULL,
+				dbh, op, rs, NULL,
+				( BACKSQL_ISF_GET_ID | BACKSQL_ISF_MUCK ) );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
 				"could not retrieve entry ID - no such entry\n", 
@@ -201,10 +194,6 @@ backsql_operational(
 		*ap = backsql_operational_entryUUID( bi, &bsi.bsi_base_id );
 
 		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
-
-		if ( ndn.bv_val != rs->sr_entry->e_nname.bv_val ) {
-			free( ndn.bv_val );
-		}
 
 		if ( *ap == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
