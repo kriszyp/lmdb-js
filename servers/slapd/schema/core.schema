@@ -525,7 +525,7 @@ objectclass ( 2.5.6.12 NAME 'applicationEntity'
 	description ) )
 
 objectclass ( 2.5.6.13 NAME 'dSA'
-	DESC 'RFC2256: a directory service agent (a server)'
+	DESC 'RFC2256: a directory system agent (a server)'
 	SUP applicationEntity STRUCTURAL
 	MAY knowledgeInformation )
 

@@ -3045,7 +3045,7 @@ got_funcs:
         omitted, unless they are after an Organisation attribute or
         the first attribute is of type OrganisationalUnit.
 
-	         * this should be the pedantic implementation.
+         * this should be the pedantic implementation.
 		 *
 		 * Here the standard implementation reflects
 		 * the one historically provided by OpenLDAP
@@ -3187,7 +3187,7 @@ got_funcs:
 		 * 
 		 * Example:
 		 * 
-		 * 	"cn=Bill+sn=Gates,ou=People,dc=microsoft,dc=com"
+		 * 	"givenName=Bill+sn=Gates,ou=People,dc=microsoft,dc=com"
 		 *
 		 * will read
 		 * 
