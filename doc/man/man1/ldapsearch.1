@@ -23,15 +23,13 @@ ldapsearch \- LDAP search tool
 [\c
 .BR \-B ]
 [\c
-.BR \-L ]
+.BR \-L[L[L]] ]
 [\c
 .BR \-M[M] ]
 [\c
 .BR \-R ]
 [\c
 .BI \-d \ debuglevel\fR]
-[\c
-.BI \-F \ sep\fR]
 [\c
 .BI \-f \ file\fR]
 [\c
@@ -122,16 +120,12 @@ Retrieve attributes only (no values).  This is useful when you just want to
 see if an attribute is present in an entry and are not interested in the
 specific values.
 .TP
-.B \-B
-Do not suppress display of non-ascii values.  This is useful when
-dealing with values that appear in alternate characters sets such as
-ISO-8859.1.  This option is implied by -L (see below).
-.TP
 .B \-L
 Display search results in
 .BR ldif (5)
-format.  This option also turns on the -B option, and causes the -F option
-to be ignored.
+format.  A second -L disables comments. A third -L disables
+printing of the LDIF version.
+The default is -L.
 .TP
 .B \-M[M]
 Enable manage DSA IT control.
@@ -140,14 +134,6 @@ makes control critical.
 .TP
 .B \-R
 Do not automatically follow referrals returned while searching.
-.B ldapsearch
-must be compiled with LDAP_REFERRALS defined for referrals to be
-automatically followed by default, and for this option to have any effect.
-.TP
-.BI \-F \ sep
-Use \fIsep\fP as the field separator between attribute names and values.
-The default separator is `=', unless the -L flag has been specified, in
-which case this option is ignored.
 .TP
 .BI \-S \ attribute
 Sort the entries returned based on \fIattribute\fP. The default is not
@@ -292,16 +278,15 @@ in the form:
     ...
 .fi
 .LP
-Multiple entries are separated with a single blank line.  If the -F option
-is used to specify a separator character, it will be used instead of the
-`=' character.  If the -t option is used, the name of a temporary file
+Multiple entries are separated with a single blank line.  
+If the -t option is used, the name of a temporary file
 is used in place of the actual value.  If the -A option
 is given, only the "attributename" part is written.
 .SH EXAMPLE
 The following command:
 .LP
 .nf
-    ldapsearch "(sn=smith)" cn sn telephoneNumber
+    ldapsearch -LLL "(sn=smith)" cn sn telephoneNumber
 .fi
 .LP
 will perform a subtree search (using the default search base) for
@@ -311,23 +296,27 @@ standard output.
 The output might look something like this if two entries are found:
 .LP
 .nf
-uid=jts, ou=Volunteers, ou=People, dc=OpenLDAP, dc=org
-cn=John Smith
-cn=John T. Smith
-sn=Smith
-telephoneNumber=+1 555 123-4567
+dn: uid=jts, ou=Volunteers, ou=People, dc=OpenLDAP, dc=org
+cn: John Smith
+cn: John T. Smith
+sn: Smith
+sn;lang-en: Smith
+sn;lang-de: Schmidt
+telephoneNumber: 1 555 123-4567
 
-uid=sss, ou=Staff, ou=People, dc=OpenLDAP, dc=org
-cn=Steve Smith
-cn=Steve S. Smith
-sn=Smith
-telephoneNumber=+1 555 765-4321
+dn: uid=sss, ou=Staff, ou=People, dc=OpenLDAP, dc=org
+cn: Steve Smith
+cn: Steve S. Smith
+sn: Smith
+sn;lang-en: Smith
+sn;lang-de: Schmidt
+telephoneNumber: 1 555 765-4321
 .fi
 .LP
 The command:
 .LP
 .nf
-    ldapsearch -u -t "uid=xyz" jpegPhoto audio
+    ldapsearch -LLL -u -t "(uid=xyz)" jpegPhoto audio
 .fi
 .LP
 will perform a subtree search using the default search base for entries
@@ -338,21 +327,20 @@ output might look like this if one entry with one value for each of the
 requested attributes is found:
 .LP
 .nf
-uid=xyz, ou=Staff, ou=People, dc=OpenLDAP, dc=org
-xyz, Staff, People, OpenLDAP, org
-audio=/tmp/ldapsearch-audio-a19924
-jpegPhoto=/tmp/ldapsearch-jpegPhoto-a19924
+dn: uid=xyz, ou=Staff, ou=People, dc=OpenLDAP, dc=org
+ufn: xyz, Staff, People, OpenLDAP, org
+audio:< file::/tmp/ldapsearch-audio-a19924
+jpegPhoto:< file::=/tmp/ldapsearch-jpegPhoto-a19924
 .fi
 .LP
 This command:
 .LP
 .nf
-    ldapsearch -L -s one -b "c=US" "o=University*" o description
+    ldapsearch -LLL -s one -b "c=US" "(o=University*)" o description
 .fi
 .LP
 will perform a one-level search at the c=US level for all entries
 whose organizationName (o) begins begins with \fBUniversity\fP.
-Search results will be displayed in the LDIF format.
 The organizationName and description attribute values will be retrieved
 and printed to standard output, resulting in output similar to this:
 .LP
