@@ -172,6 +172,8 @@ parameter should match the {{EX:updatedn}} option in the corresponding
 slave slapd configuration file, and should name an entry with write
 permission to the slave database (e.g., an entry allowed access via
 {{EX:access}} directives in the slave slapd configuration file).
+This DN generally {{should not}} be the same as the master's
+{{EX:rootdn}}.
 
 + Add a {{EX:replogfile}} directive, which tells slapd where to log
 changes. This file will be read by slurpd.
@@ -191,8 +193,8 @@ to create "chains" of replicas, in most cases this is inappropriate.
 + Do include an {{EX:updatedn}} line. The DN given should match the
 DN given in the {{EX:binddn=}} parameter of the corresponding
 {{EX:replica=}} directive in the master slapd config file.  The
-{{EX:updatedn}} should generally NOT be the same as the {{EX:rootdn}}
-of the slave database.
+{{EX:updatedn}} generally {{should not}} be the same as the
+{{EX:rootdn}} of the master database.
 
 + Make sure the DN given in the {{EX:updatedn}} directive has
 permission to write the database (e.g., it is is allowed {{EX:access}}
