@@ -1,11 +1,13 @@
+
 This document is being replaced with:
 	http://www.openldap.org/devel/programming.html
+and
+	http://www.openldap.org/devel/contributing.html
 
 However, some of the info here is still useful.
 
 Coding guide lines and and hints for OpenLDAP developers.
 =========================================================
-
 
 Please add to this file when new points come up.
 
