@@ -47,12 +47,12 @@ tcl_back_search (
 
 	for (i = 0, an = attrs; an && an->an_name.bv_val; an++, i++);
 	if (i > 0) {
-		char *sattrs[i+1];
-
+		char **sattrs = ch_malloc( (i+1) * sizeof(char *));
 		for (i = 0, an = attrs; an->an_name.bv_val; an++, i++)
 			sattrs[i] = an->an_name.bv_val;
 		sattrs[i] = NULL;
 		attrs_tcl = Tcl_Merge (i, sattrs);
+		ch_free(sattrs);
 	}
 
 	if (tcl_merge_bvlist (be->be_suffix, &suf_tcl) == NULL) {

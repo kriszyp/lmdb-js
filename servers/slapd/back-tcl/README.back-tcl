@@ -25,7 +25,7 @@ compare		<proc>
 abandon		<proc>
 
 # This is one of the biggest pluses of using the tcl backend.
-# The realm let's you group several databases to the same interpreter.
+# The realm lets you group several databases to the same interpreter.
 # This basically means they share the same global variables and proc
 # space. So global variables, as well as all the procs, are callable
 # between databases. If no tclrealm is specified, it is put into the
@@ -109,7 +109,7 @@ modrdn { action msgid suffix dn newrdn deleteoldrdn }
 	msgid  - The msgid of this ldap session
 	suffix - List of suffix(es) associated with the call. Each one
 		 is and entry in a tcl formatted list (surrounded by {}'s)
-	dn     - DN who's RDN is being renamed
+	dn     - DN whose RDN is being renamed
 	newrdn - New RDN
 	deleteoldrdn - Boolean stating whether or not the old RDN should
 		 be removed after being renamed

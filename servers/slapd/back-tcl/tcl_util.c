@@ -215,13 +215,19 @@ tcl_merge_bvlist(
 	for (i = 0; bvlist[i] != NULL; i++);
 
 	if (i) {
-		char *strlist[i + 1];
+		char **strlist = ch_malloc ((i + 1) * sizeof(char *));
+		if (strlist == NULL) {
+			if (out == NULL)
+				ch_free (ret);
+			return NULL;
+		}
 		for (i = 0; bvlist[i] != NULL; i++) {
 			strlist[i] = bvlist[i]->bv_val;
 		}
 		strlist[i] = NULL;
 		ret->bv_val = Tcl_Merge(i, strlist);
 		ret->bv_len = ret->bv_val ? strlen(ret->bv_val) : 0;
+		ch_free (strlist);
 	}
 
 	return ret;
