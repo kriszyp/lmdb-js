@@ -15,12 +15,18 @@
 #include <stdio.h>
 
 #include <ac/signal.h>
+#include <ac/socket.h>
 #include <ac/unistd.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
+#ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
+#endif
 
 #include "lutil.h"
 
@@ -82,13 +88,15 @@ lutil_detach( int debug, int do_close )
 
 #ifdef HAVE_SETSID
 		(void) setsid();
-#else /* HAVE_SETSID */
+#elif TIOCNOTTY
 		if ( (sd = open( "/dev/tty", O_RDWR )) != -1 ) {
 			(void) ioctl( sd, TIOCNOTTY, NULL );
 			(void) close( sd );
 		}
-#endif /* HAVE_SETSID */
+#endif
 	} 
 
+#ifdef SIGPIPE
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 }

@@ -577,15 +577,18 @@ int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
       sb->sb_read_ahead = 0;
 #endif
    }
-#ifdef FIONBIO
    if (lber_pvt_sb_in_use(sb)) {
+#if HAVE_FCNTL
+		int flags = fcntl(lber_pvt_sb_get_desc(sb), F_GETFL);
+		flags |= O_NONBLOCK;
+		return fcntl(lber_pvt_sb_get_desc(sb), F_SETFL, flags);
+		
+#elif defined( FIONBIO )
 	   /* WINSOCK requires the status to be a long */
 		ioctl_t status = (nb!=0);
-		if (ioctl( lber_pvt_sb_get_desc(sb), FIONBIO, &status ) == -1 ) {
-	 return -1;
-      }
-   }
+		return ioctl( lber_pvt_sb_get_desc(sb), FIONBIO, &status );
 #endif /* FIONBIO */
+   }
    return 0;
 }
 #endif
@@ -750,8 +753,9 @@ stream_read( Sockbuf *sb, void *buf, long len )
  */
    return tcpread( lber_pvt_sb_get_desc(sb), 0, (unsigned char *)buf, 
 		   len, NULL );
-#elif (defined(DOS) && (defined(PCNFS) || defined( WINSOCK))) \
-	|| defined( _WIN32) || defined ( __BEOS__ )
+
+#elif defined( HAVE_PCNFS ) || \
+   defined( HAVE_WINSOCK ) || defined ( __BEOS__ )
 /*
  * PCNFS (under DOS)
  */
@@ -762,11 +766,13 @@ stream_read( Sockbuf *sb, void *buf, long len )
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
    return recv( lber_pvt_sb_get_desc(sb), buf, len, 0 );
-#elif (defined(DOS) && defined( NCSA ))
+
+#elif defined( HAVE_NCSA )
 /*
  * NCSA Telnet TCP/IP stack (under DOS)
  */
    return nread( lber_pvt_sb_get_desc(sb), buf, len );
+
 #else
    return read( lber_pvt_sb_get_desc(sb), buf, len );
 #endif
@@ -783,8 +789,9 @@ stream_write( Sockbuf *sb, void *buf, long len )
    return tcpwrite( lber_pvt_sb_get_desc(sb),
 		    (unsigned char *)(buf), 
 		    (len<MAX_WRITE)? len : MAX_WRITE );
-#elif (defined(DOS) && (defined(PCNFS) || defined( WINSOCK))) \
-	|| defined( _WIN32 ) || defined ( __BEOS__ )
+
+#elif defined( HAVE_PCNFS) \
+   || defined( HAVE_WINSOCK) || defined ( __BEOS__ )
 /*
  * PCNFS (under DOS)
  */
@@ -795,8 +802,10 @@ stream_write( Sockbuf *sb, void *buf, long len )
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
    return send( lber_pvt_sb_get_desc(sb), buf, len, 0 );
-#elif defined(NCSA)
+
+#elif defined(HAVE_NCSA)
    return netwrite( lber_pvt_sb_get_desc(sb), buf, len );
+
 #elif defined(VMS)
 /*
  * VMS -- each write must be 64K or smaller
@@ -862,12 +871,8 @@ dgram_read( Sockbuf *sb, void *buf, long len )
    
    dd = (struct dgram_data *)(sb->sb_iodata);
    
-# if !defined( MACOS) && !defined(DOS) && !defined( _WIN32)
    addrlen = sizeof( struct sockaddr );
    rc=recvfrom( lber_pvt_sb_get_desc(sb), buf, len, 0, &(dd->src), &addrlen );
-# else
-   UDP not supported
-# endif
    
    if ( sb->sb_debug ) {
       lber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
@@ -892,13 +897,10 @@ dgram_write( Sockbuf *sb, void *buf, long len )
    
    dd = (struct dgram_data *)(sb->sb_iodata);
    
-# if !defined( MACOS) && !defined(DOS) && !defined( _WIN32)
    rc=sendto( lber_pvt_sb_get_desc(sb), buf, len, 0, &(dd->dst),
 	     sizeof( struct sockaddr ) );
-# else
-   UDP not supported
-# endif
-     if ( rc <= 0 )
+
+   if ( rc <= 0 )
        return( -1 );
    
    /* fake error if write was not atomic */

@@ -15,7 +15,7 @@
 #include "slap.h"
 #include "lutil.h"			/* Get lutil_detach() */
 
-#if defined(SIGCHLD) || defined(SIGCLD)
+#ifdef LDAP_SIGCHLD
 static RETSIGTYPE wait4child( int sig );
 #endif
 
@@ -226,10 +226,8 @@ main( int argc, char **argv )
 #endif
 	(void) SIGNAL( SIGINT, slap_set_shutdown );
 	(void) SIGNAL( SIGTERM, slap_set_shutdown );
-#ifdef SIGCHLD
-	(void) SIGNAL( SIGCHLD, wait4child );
-#elif defined(SIGCLD)
-	(void) SIGNAL( SIGCLD, wait4child );
+#ifdef LDAP_SIGCHLD
+	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
 
 	if(!inetd) {
@@ -290,7 +288,7 @@ destroy:
 }
 
 
-#if defined(SIGCHLD) || defined(SIGCLD)
+#ifdef LDAP_SIGCHLD
 
 /*
  *  Catch and discard terminated child processes, to avoid zombies.

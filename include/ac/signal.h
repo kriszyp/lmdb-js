@@ -52,4 +52,12 @@
 #	endif
 #endif
 
+#ifndef LDAP_SIGCHLD
+#ifdef SIGCHLD
+#define LDAP_SIGCHLD SIGCHLD
+#elif SIGCLD
+#define LDAP_SIGCHLD SIGCLD
+#endif
+#endif
+
 #endif /* _AC_SIGNAL_H */

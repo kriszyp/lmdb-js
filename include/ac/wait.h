@@ -18,11 +18,28 @@
 # include <sys/wait.h>
 #endif
 
-#ifndef WEXITSTATUS
-# define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
-#endif
+#define LDAP_HI(s)	(((s) >> 8) & 0x377)
+#define LDAP_LO(s)	((s) & 0377)
+
+/* These should work on non-POSIX UNIX platforms,
+	all bets on off on non-POSIX non-UNIX platforms... */
 #ifndef WIFEXITED
-# define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
+# define WIFEXITED(s)	(LDAP_LO(s) == 0)
+#endif
+#ifndef WEXITSTATUS
+# define WEXITSTATUS(s) LDAP_HI(s)
+#endif
+#ifndef WIFSIGNALED
+# define WIFSIGNALED(s) (LDAP_LO(s) > 0 && LDAP_HI(s) == 0)
+#endif
+#ifndef WTERMSIG
+# define WTERMSIG(s)	(LDAP_LO(s) & 0177)
+#endif
+#ifndef WIFSTOPPED
+# define WIFSTOPPED(s)	(LDAP_LO(s) == 0177 && LDAP_HI(s) != 0)
+#endif
+#ifndef WSTOPSIG
+# define WSTOPSIG(s)	LDAP_HI(s)
 #endif
 
 #ifdef WCONTINUED

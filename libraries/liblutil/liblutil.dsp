@@ -100,6 +100,10 @@ SOURCE=..\..\include\ldap_features.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\lockf.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\lutil.h
 # End Source File
 # Begin Source File
@@ -116,11 +120,27 @@ SOURCE=.\md5.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\memcmp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\passwd.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\portable.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\setproctitle.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\sha1.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\tempnam.c
 # End Source File
 # End Target
 # End Project
