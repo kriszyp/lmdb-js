@@ -257,7 +257,7 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 		char		*str;
 		LDAPAVA		*ava = tmpRDN[ iAVA ];
 		
-		if ( ava->la_flags == LDAP_AVA_BINARY ) {
+		if ( ava->la_flags & LDAP_AVA_BINARY ) {
 			vl = 1 + 2 * ava->la_value.bv_len;
 
 		} else {
@@ -281,7 +281,7 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 			str = LDAP_MALLOC( l + 1 );
 		}
 		
-		if ( ava->la_flags == LDAP_AVA_BINARY ) {
+		if ( ava->la_flags & LDAP_AVA_BINARY ) {
 			str[ al++ ] = '#';
 			if ( binval2hexstr( &ava->la_value, &str[ al ] ) ) {
 				goto error_return;
@@ -1541,7 +1541,7 @@ str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char *
 	val->bv_len = len;
 
 	if ( escapes == 0 ) {
-		if ( *retFlags == LDAP_AVA_NONPRINTABLE ) {
+		if ( *retFlags & LDAP_AVA_NONPRINTABLE ) {
 			val->bv_val = LDAP_MALLOCX( len + 1, ctx );
 			AC_MEMCPY( val->bv_val, startPos, len );
 			val->bv_val[ len ] = '\0';
