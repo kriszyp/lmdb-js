@@ -1,4 +1,4 @@
-    A N N O U N C E M E N T	-- OpenLDAP 2.0
+    A N N O U N C E M E N T -- OpenLDAP 2.0
 
     The OpenLDAP Project is pleased to announce the availability
     of OpenLDAP 2.0, a suite of the Lightweight Weight Directory
@@ -29,7 +29,7 @@
 
         * slapd - a stand-alone LDAP directory server
         * slurpd - a stand-alone LDAP replication server
-        * -lldap - an LDAP client library
+        * -lldap - a LDAP client library
         * -llber - a lightweight BER/DER encoding/decoding library
         * LDIF tools - data conversion tools for use with slapd
         * LDAP gateways - finger, gopher, email to LDAP gateways
@@ -74,9 +74,10 @@ SUPPORT
 
         http://www.openldap.org/support/
 
-	The OpenLDAP Administrator's Guide, which includes quick
-	start instructions, is available at:
-		http://www.openldap.org/doc/admin/
+    The OpenLDAP Administrator's Guide, which includes quick
+    start instructions, is available at:
+
+        http://www.openldap.org/doc/admin/
 
     The project maintains a FAQ which you may find useful:
 
