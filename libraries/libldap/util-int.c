@@ -42,6 +42,17 @@
 #	define USE_CTIME_R
 #endif
 
+#if defined(HAVE_GETHOSTBYNAME_R) && \
+    (GETHOSTBYNAME_R_NARGS > 6 || GETHOSTBYNAME_R_NARGS < 5)
+	/* Don't know how to handle this version, pretend it's not there */
+#	undef HAVE_GETHOSTBYNAME_R
+#endif
+#if defined(HAVE_GETHOSTBYADDR_R) && \
+    (GETHOSTBYADDR_R_NARGS > 8 || GETHOSTBYADDR_R_NARGS < 7)
+	/* Don't know how to handle this version, pretend it's not there */
+#	undef HAVE_GETHOSTBYADDR_R
+#endif
+
 #ifdef LDAP_R_COMPILE
 # ifndef USE_CTIME_R
 	static ldap_pvt_thread_mutex_t ldap_int_ctime_mutex;
@@ -91,10 +102,6 @@ int ldap_pvt_gethostbyname_a(
 	int *herrno_ptr )
 {
 #if defined( HAVE_GETHOSTBYNAME_R )
-
-# if (GETHOSTBYNAME_R_NARGS > 6) || (GETHOSTBYNAME_R_NARGS < 5)
-    Ouch! gethostbyname_r() must have either 5 or 6 args
-#endif
 
 # define NEED_SAFE_REALLOC 1   
 	int r=-1;
@@ -174,10 +181,6 @@ int ldap_pvt_gethostbyaddr_a(
 	int *herrno_ptr )
 {
 #if defined( HAVE_GETHOSTBYADDR_R )
-
-#if (GETHOSTBYADDR_R_NARGS > 8) || (GETHOSTBYADDR_R_NARGS < 7)
-    Ouch! gethostbyaddr_r() must have either 7 or 8 args
-#endif
 
 # undef NEED_SAFE_REALLOC
 # define NEED_SAFE_REALLOC   
