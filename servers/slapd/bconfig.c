@@ -38,6 +38,8 @@
 static struct berval config_rdn = BER_BVC("cn=config");
 static struct berval schema_rdn = BER_BVC("cn=schema");
 
+#define	IFMT	"{%02d}"
+
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
 	struct modpath_s *mp_next;
@@ -108,7 +110,8 @@ static Avlnode *CfOcTree;
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 static void syncrepl_unparse LDAP_P (( syncinfo_t *, struct berval *));
-static int config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs );
+static int config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs,
+	int *renumber );
 
 static ConfigDriver config_fname;
 static ConfigDriver config_cfdir;
@@ -675,7 +678,7 @@ config_generic(ConfigArgs *c) {
 				int i;
 
 				for ( i=0; c->be->be_limits[i]; i++ ) {
-					bv.bv_len = sprintf( buf, "{%d}", i );
+					bv.bv_len = sprintf( buf, IFMT, i );
 					bv.bv_val = buf+bv.bv_len;
 					limits_unparse( c->be->be_limits[i], &bv );
 					bv.bv_len += bv.bv_val - buf;
@@ -763,7 +766,7 @@ config_generic(ConfigArgs *c) {
 			char *src, *dst, ibuf[11];
 			struct berval bv, abv;
 			for (i=0, a=c->be->be_acl; a; i++,a=a->acl_next) {
-				abv.bv_len = sprintf( ibuf, "{%x}", i );
+				abv.bv_len = sprintf( ibuf, IFMT, i );
 				acl_unparse( a, &bv );
 				abv.bv_val = ch_malloc( abv.bv_len + bv.bv_len + 1 );
 				AC_MEMCPY( abv.bv_val, ibuf, abv.bv_len );
@@ -819,7 +822,7 @@ config_generic(ConfigArgs *c) {
 				for (i=0; !BER_BVISNULL(&mp->mp_loads[i]); i++) {
 					struct berval bv;
 					bv.bv_val = c->log;
-					bv.bv_len = sprintf( bv.bv_val, "{%d}%s", i,
+					bv.bv_len = sprintf( bv.bv_val, IFMT "%s", i,
 						mp->mp_loads[i].bv_val );
 					value_add_one( &c->rvalue_vals, &bv );
 				}
@@ -835,7 +838,7 @@ config_generic(ConfigArgs *c) {
 				if ( BER_BVISNULL( &mp->mp_path ) && !mp->mp_loads )
 					continue;
 				bv.bv_val = c->log;
-				bv.bv_len = sprintf( bv.bv_val, "{%d}%s", i,
+				bv.bv_len = sprintf( bv.bv_val, IFMT "%s", i,
 					mp->mp_path.bv_val );
 				value_add_one( &c->rvalue_vals, &bv );
 			}
@@ -858,7 +861,7 @@ config_generic(ConfigArgs *c) {
 
 				idx.bv_val = ibuf;
 				for ( i=0; !BER_BVISNULL( &authz_rewrites[i] ); i++ ) {
-					idx.bv_len = sprintf( idx.bv_val, "{%d}", i );
+					idx.bv_len = sprintf( idx.bv_val, IFMT, i );
 					bv.bv_len = idx.bv_len + authz_rewrites[i].bv_len;
 					bv.bv_val = ch_malloc( bv.bv_len + 1 );
 					strcpy( bv.bv_val, idx.bv_val );
@@ -1088,7 +1091,7 @@ config_generic(ConfigArgs *c) {
 			/* Record this load on the current path */
 			{
 				struct berval bv;
-				char *ptr = c->line + STRLENOF('moduleload');
+				char *ptr = c->line + STRLENOF("moduleload");
 				while (!isspace(*ptr)) ptr++;
 				while (isspace(*ptr)) ptr++;
 				ber_str2bv(ptr, 0, 1, &bv);
@@ -1766,7 +1769,7 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 	struct berval bc = {0};
 	char numbuf[32];
 
-	len = sprintf(numbuf, "{%d}", i );
+	len = sprintf(numbuf, IFMT, i );
 
 	len += strlen( ri->ri_uri ) + STRLENOF("uri=");
 	if ( ri->ri_nsuffix ) {
@@ -2644,7 +2647,7 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 		CfBackInfo *cfb = op->o_callback->sc_private;
 
 		cfb->cb_got_ldif = 1;
-		rs->sr_err = config_add_internal( cfb, rs->sr_entry, NULL );
+		rs->sr_err = config_add_internal( cfb, rs->sr_entry, NULL, NULL );
 	}
 	return rs->sr_err;
 }
@@ -2939,9 +2942,132 @@ check_attr( ConfigTable *ct, ConfigArgs *ca, Attribute *a )
 	return rc;
 }
 
+static int
+check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
+	SlapReply *rs, int *renum )
+{
+	CfEntryInfo *ce;
+	int index = -1, gotindex = 0, nsibs;
+	int renumber = 0, tailindex = 0;
+	char *ptr1, *ptr2;
+	struct berval rdn;
+
+	if ( renum ) *renum = 0;
+
+	/* These entries don't get indexed/renumbered */
+	if ( ce_type == Cft_Global ) return 0;
+	if ( ce_type == Cft_Schema && parent->ce_type == Cft_Global ) return 0;
+
+	if ( ce_type == Cft_Include || ce_type == Cft_Module )
+		tailindex = 1;
+
+	/* See if the rdn has an index already */
+	dnRdn( &e->e_name, &rdn );
+	ptr1 = strchr( e->e_name.bv_val, '{' );
+	if ( ptr1 && ptr1 - e->e_name.bv_val < rdn.bv_len ) {
+		ptr2 = strchr( ptr1, '}' );
+		if (!ptr2 || ptr2 - e->e_name.bv_val > rdn.bv_len)
+			return LDAP_NAMING_VIOLATION;
+		if ( ptr2-ptr1 == 1)
+			return LDAP_NAMING_VIOLATION;
+		gotindex = 1;
+		index = atoi(ptr1+1);
+		if ( index < 0 )
+			return LDAP_NAMING_VIOLATION;
+	}
+
+	/* count related kids */
+	for (nsibs=0, ce=parent->ce_kids; ce; ce=ce->ce_sibs) {
+		if ( ce->ce_type == ce_type ) nsibs++;
+	}
+
+	if ( index != nsibs ) {
+		if ( gotindex ) {
+			if ( index < nsibs ) {
+				if ( tailindex ) return LDAP_NAMING_VIOLATION;
+				/* Siblings need to be renumbered */
+				renumber = 1;
+			}
+		}
+		if ( !renumber ) {
+			struct berval ival, newrdn, nnewrdn;
+			struct berval rtype, rval;
+			Attribute *a;
+			AttributeDescription *ad = NULL;
+			char ibuf[32];
+			const char *text;
+
+			rval.bv_val = strchr(rdn.bv_val, '=' ) + 1;
+			rval.bv_len = rdn.bv_len - (rval.bv_val - rdn.bv_val);
+			rtype.bv_val = rdn.bv_val;
+			rtype.bv_len = rval.bv_val - rtype.bv_val - 2;
+
+			/* Find attr */
+			slap_bv2ad( &rtype, &ad, &text );
+			a = attr_find( e->e_attrs, ad );
+			if (!a ) return LDAP_NAMING_VIOLATION;
+
+			ival.bv_val = ibuf;
+			ival.bv_len = sprintf( ibuf, IFMT, nsibs );
+			
+			newrdn.bv_len = rdn.bv_len + ival.bv_len;
+			newrdn.bv_val = ch_malloc( newrdn.bv_len+1 );
+
+			if ( tailindex ) {
+				ptr1 = lutil_strncopy( newrdn.bv_val, rdn.bv_val, rdn.bv_len );
+				ptr1 = lutil_strcopy( ptr1, ival.bv_val );
+			} else {
+				int xlen;
+				if ( !gotindex ) {
+					ptr2 = rval.bv_val;
+					xlen = rval.bv_len;
+				} else {
+					xlen = rdn.bv_len - (ptr2 - rdn.bv_val);
+				}
+				ptr1 = lutil_strncopy( newrdn.bv_val, rtype.bv_val,
+					rtype.bv_len );
+				*ptr1++ = '=';
+				ptr1 = lutil_strcopy( ptr1, ival.bv_val );
+				ptr1 = lutil_strncopy( ptr1, ptr2, xlen );
+				*ptr1 = '\0';
+			}
+
+			/* Do the equivalent of ModRDN */
+			/* Replace DN / NDN */
+			newrdn.bv_len = ptr1 - newrdn.bv_val;
+			rdnNormalize( 0, NULL, NULL, &newrdn, &nnewrdn, NULL );
+			free( e->e_name.bv_val );
+			build_new_dn( &e->e_name, &parent->ce_entry->e_name,
+				&newrdn, NULL );
+			free( e->e_nname.bv_val );
+			build_new_dn( &e->e_nname, &parent->ce_entry->e_nname,
+				&nnewrdn, NULL );
+
+			/* Replace attr */
+			free( a->a_vals[0].bv_val );
+			ptr1 = strchr( newrdn.bv_val, '=' ) + 1;
+			a->a_vals[0].bv_len = newrdn.bv_len - (ptr1 - newrdn.bv_val);
+			a->a_vals[0].bv_val = ch_malloc( a->a_vals[0].bv_len + 1 );
+			strcpy( a->a_vals[0].bv_val, ptr1 );
+
+			if ( a->a_nvals != a->a_vals ) {
+				free( a->a_nvals[0].bv_val );
+				ptr1 = strchr( nnewrdn.bv_val, '=' ) + 1;
+				a->a_nvals[0].bv_len = nnewrdn.bv_len - (ptr1 - nnewrdn.bv_val);
+				a->a_nvals[0].bv_val = ch_malloc( a->a_nvals[0].bv_len + 1 );
+				strcpy( a->a_nvals[0].bv_val, ptr1 );
+			}
+			free( nnewrdn.bv_val );
+			free( newrdn.bv_val );
+		}
+	}
+	if ( renum ) *renum = renumber;
+	return 0;
+}
+
 /* Parse an LDAP entry into config directives */
 static int
-config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs )
+config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 {
 	CfEntryInfo *ce, *last;
 	CfOcInfo co, *coptr, **colst = NULL;
@@ -3089,6 +3215,24 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs )
 		break;
 #endif
 	}
+
+	/* If doing an LDAPadd, check for indexed names and any necessary
+	 * renaming/renumbering. Entries that don't need indexed names are
+	 * ignored. Entries that need an indexed name and arrive without one
+	 * are assigned to the end. Entries that arrive with an index may
+	 * cause the following entries to be renumbered/bumped down.
+	 *
+	 * Note that "pseudo-indexed" entries (cn=Include{xx}, cn=Module{xx})
+	 * don't allow Adding an entry with an index that's already in use.
+	 * This is flagged as an error (LDAP_ALREADY_EXISTS) up above.
+	 *
+	 * These entries can have auto-assigned indexes (appended to the end)
+	 * but only the other types support auto-renumbering of siblings.
+	 */
+	rc = check_name_index( last, colst[0]->co_type, e, rs, renum );
+	if ( rc )
+		goto leave;
+
 	init_config_argv( &ca );
 	if ( type_ad ) {
 		type_attr = attr_find( e->e_attrs, type_ad );
@@ -3151,6 +3295,7 @@ ok:
 		CfEntryInfo *c2;
 
 		for (c2=last->ce_kids; c2 && c2->ce_sibs; c2 = c2->ce_sibs);
+
 		c2->ce_sibs = ce;
 	} else {
 		last->ce_kids = ce;
@@ -3170,6 +3315,7 @@ config_back_add( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
+	int renumber;
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -3182,9 +3328,24 @@ config_back_add( Operation *op, SlapReply *rs )
 
 	/* Strategy:
 	 * 1) check for existence of entry
-	 * 2) perform internal add
-	 * 3) store entry in underlying database
+	 * 2) check for sibling renumbering
+	 * 3) perform internal add
+	 * 4) store entry in underlying database
+	 * 5) perform any necessary renumbering
 	 */
+	rs->sr_err = config_add_internal( cfb, op->ora_e, rs, &renumber );
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		BackendDB *be = op->o_bd;
+		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		op->o_bd = &cfb->cb_db;
+		sc.sc_next = op->o_callback;
+		op->o_callback = &sc;
+		op->o_bd->be_add( op, rs );
+		op->o_bd = be;
+		op->o_callback = sc.sc_next;
+	}
+	if ( renumber ) {
+	}
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
 
@@ -3404,7 +3565,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		ptr = strchr( bv.bv_val, '.' );
 		if ( ptr )
 			bv.bv_len = ptr - bv.bv_val;
-		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn={%02d}", c->depth);
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=" IFMT, c->depth);
 		strncpy( c->value_dn.bv_val + c->value_dn.bv_len, bv.bv_val,
 			bv.bv_len );
 		c->value_dn.bv_len += bv.bv_len;
@@ -3448,7 +3609,7 @@ config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 
 	for (i=0; cf; cf=cf->c_sibs, i++) {
 		c->value_dn.bv_val = c->log;
-		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=include{%02d}", i);
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=include" IFMT, i);
 		e = config_alloc_entry( ceparent, &c->value_dn );
 		c->private = cf;
 		config_build_entry( c, e, cfOc_include, &c->value_dn,
@@ -3492,7 +3653,7 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 		if ( BER_BVISNULL( &mp->mp_path ) && !mp->mp_loads )
 			continue;
 		c->value_dn.bv_val = c->log;
-		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=module{%02d}", i);
+		c->value_dn.bv_len = sprintf(c->value_dn.bv_val, "cn=module" IFMT, i);
 		e = config_alloc_entry( ceparent, &c->value_dn );
 		ce = e->e_private;
 		ce->ce_type = Cft_Include;
@@ -3641,7 +3802,7 @@ config_back_db_open( BackendDB *be )
 			bi = bptr->bd_info;
 		}
 		rdn.bv_val = c.log;
-		rdn.bv_len = sprintf(rdn.bv_val, "%s={%0x}%s", cfAd_database->ad_cname.bv_val,
+		rdn.bv_len = sprintf(rdn.bv_val, "%s=" IFMT "%s", cfAd_database->ad_cname.bv_val,
 			i, bi->bi_type);
 		e = config_alloc_entry( ceparent, &rdn );
 		ce = e->e_private;
@@ -3668,7 +3829,7 @@ config_back_db_open( BackendDB *be )
 
 			for (j=0,on=oi->oi_list; on; j++,on=on->on_next) {
 				rdn.bv_val = c.log;
-				rdn.bv_len = sprintf(rdn.bv_val, "%s={%0x}%s",
+				rdn.bv_len = sprintf(rdn.bv_val, "%s=" IFMT "%s",
 					cfAd_overlay->ad_cname.bv_val, j, on->on_bi.bi_type );
 				oe = config_alloc_entry( opar, &rdn );
 				ce = oe->e_private;
@@ -3731,7 +3892,7 @@ static struct {
 	{ "database", &cfAd_database },
 	{ "include", &cfAd_include },
 	{ "overlay", &cfAd_overlay },
-	{ NULL, NULL, NULL }
+	{ NULL, NULL }
 };
 
 /* Notes:
@@ -3781,7 +3942,7 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_op_compare = 0;
 	bi->bi_op_modify = config_back_modify;
 	bi->bi_op_modrdn = 0;
-	bi->bi_op_add = 0;
+	bi->bi_op_add = config_back_add;
 	bi->bi_op_delete = 0;
 	bi->bi_op_abandon = 0;
 
