@@ -124,6 +124,9 @@ int bdb_id2entry_rw(
 	}
 
 	if ( rc == 0 ) {
+#ifdef BDB_HIER
+		bdb_fix_dn(be, id, *e);
+#endif
 		ret = bdb_cache_add_entry_rw( bdb->bi_dbenv,
 				&bdb->bi_cache, *e, rw, locker, lock);
 		while ( ret == 1 || ret == -1 ) {
@@ -154,10 +157,6 @@ int bdb_id2entry_rw(
 		}
 		rc = ret;
 	}
-
-#ifdef BDB_HIER
-	bdb_fix_dn(be, id, *e);
-#endif
 
 	if (rc == 0) {
 		bdb_cache_entry_commit(*e);

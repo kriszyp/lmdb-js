@@ -136,6 +136,9 @@ int
 bdb_cache_entry_db_lock
 ( DB_ENV *env, u_int32_t locker, Entry *e, int rw, u_int32_t flags, DB_LOCK *lock )
 {
+#ifdef NO_THREADS
+	return 0;
+#else
 	int       rc;
 	DBT       lockobj;
 	int       db_rw;
@@ -161,16 +164,21 @@ bdb_cache_entry_db_lock
 #endif
 	}
 	return rc;
+#endif /* NO_THREADS */
 }
 
 int
 bdb_cache_entry_db_unlock
 ( DB_ENV *env, DB_LOCK *lock )
 {
+#ifdef NO_THREADS
+	return 0;
+#else
 	int rc;
 
 	rc = LOCK_PUT ( env, lock );
 	return rc;
+#endif
 }
 
 /*

@@ -12,6 +12,7 @@
 
 #include "back-bdb.h"
 #include "idl.h"
+#include "lutil.h"
 
 #ifndef BDB_HIER
 int
@@ -621,11 +622,11 @@ node_find_cmp(
 
 static int
 node_frdn_cmp(
-	char *nrdn,
+	struct berval *nrdn,
 	idNode *n
 )
 {
-	return strcmp(nrdn, n->i_rdn->nrdn.bv_val);
+	return ber_bvcmp(nrdn, &n->i_rdn->nrdn);
 }
 
 static int
@@ -643,9 +644,6 @@ node_rdn_cmp(
 	idNode *b
 )
 {
-#if 0
-	return strcmp(a->i_rdn->nrdn.bv_val, b->i_rdn->nrdn.bv_val);
-#endif
 	/* should be slightly better without ordering drawbacks */
 	return ber_bvcmp(&a->i_rdn->nrdn, &b->i_rdn->nrdn);
 }
@@ -659,7 +657,7 @@ idNode * bdb_find_id_node(
 }
 
 idNode * bdb_find_rdn_node(
-	char *nrdn,
+	struct berval *nrdn,
 	Avlnode *tree
 )
 {
@@ -716,12 +714,11 @@ int bdb_build_tree(
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int i, rc;
+	int rc;
 	DBC *cursor;
 	DBT key, data;
 	ID id;
 	idNode *node;
-	char **rdns;
 
 	bdb->bi_tree = NULL;
 
@@ -731,20 +728,6 @@ int bdb_build_tree(
 	if( rc != 0 ) {
 		return NOID;
 	}
-
-	/* When be_suffix is turned into struct berval or LDAPDN
-	 * life will get a lot easier... Since no DNs live on disk, we
-	 * need to operate on the be_suffix to fully qualify our DNs.
-	 * We need to know how many components are in the suffix DN,
-	 * so we can tell where the suffix ends and our nodes begin.
-	 *
-	 * Note that this code always uses be_suffix[0], so defining
-	 * multiple suffixes for a single backend won't work!
-	 */
-	rdns = ldap_explode_dn(be->be_nsuffix[0].bv_val, 0);
-	for (i=0; rdns[i]; i++);
-	bdb->bi_nrdns = i;
-	ldap_charray_free(rdns);
 
 	DBTzero( &key );
 	DBTzero( &data );
@@ -840,7 +823,7 @@ bdb_dn2id_add(
 	d->nrdn.bv_val -= (long)d;
 
 	if (pdn->bv_len) {
-		bdb_dn2id(be, txn, pdn, &d->parent);
+		bdb_dn2id(be, txn, pdn, &d->parent, 0);
 	} else {
 		d->parent = 0;
 	}
@@ -897,7 +880,7 @@ bdb_dn2id_delete(
 	if (n) {
 		if (n->i_parent) {
 			ldap_pvt_thread_rdwr_wlock(&n->i_parent->i_kids_rdwr);
-			avl_delete(&n->i_parent->i_kids, n->i_rdn->nrdn.bv_val,
+			avl_delete(&n->i_parent->i_kids, &n->i_rdn->nrdn,
 				(AVL_CMP)node_frdn_cmp);
 			ldap_pvt_thread_rdwr_wunlock(&n->i_parent->i_kids_rdwr);
 		}
@@ -918,11 +901,12 @@ bdb_dn2id_matched(
 	DB_TXN *txn,
 	struct berval	*in,
 	ID *id,
-	ID *id2 )
+	ID *id2,
+	int flags )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int		i;
-	char		**rdns;
+	struct berval	rdn;
+	char		*p1, *p2;
 	idNode *n, *p;
 
 	if (!bdb->bi_troot)
@@ -934,24 +918,23 @@ bdb_dn2id_matched(
 		return 0;
 	}
 
-	rdns = ldap_explode_dn(in->bv_val, 0);
-	for (i=0; rdns[i]; i++);
-	i -= bdb->bi_nrdns;
-	if (i < 0) {
-		ldap_charray_free(rdns);
-		return -1;
-	}
+	p1 = in->bv_val + in->bv_len - be->be_nsuffix[0].bv_len - 1;
+
 	n = p;
 	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
-	for (--i; i>=0; i--) {
+	for (;;) {
+		for (p2 = p1-1; (p2 >= in->bv_val) && !DN_SEPARATOR(*p2); p2--);
+		rdn.bv_val = p2+1;
+		rdn.bv_len = p1-rdn.bv_val;
+		p1 = p2;
+
 		ldap_pvt_thread_rdwr_rlock(&p->i_kids_rdwr);
-		n = bdb_find_rdn_node(rdns[i], p->i_kids);
+		n = bdb_find_rdn_node(&rdn, p->i_kids);
 		ldap_pvt_thread_rdwr_runlock(&p->i_kids_rdwr);
-		if (!n) break;
+		if (!n || p2 < in->bv_val) break;
 		p = n;
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
-	ldap_charray_free(rdns);
 
 	if (n) {
 		*id = n->i_id;
@@ -966,23 +949,25 @@ bdb_dn2id(
 	BackendDB	*be,
 	DB_TXN *txn,
 	struct berval	*dn,
-	ID *id )
+	ID *id,
+	int flags )
 {
-	return bdb_dn2id_matched(be, txn, dn, id, NULL);
+	return bdb_dn2id_matched(be, txn, dn, id, NULL, flags);
 }
 
 int
 bdb_dn2id_children(
 	BackendDB	*be,
 	DB_TXN *txn,
-	struct berval	*dn )
+	struct berval	*dn,
+	int flags )
 {
 	int		rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	ID		id;
 	idNode *n;
 
-	rc = bdb_dn2id(be, txn, dn, &id);
+	rc = bdb_dn2id(be, txn, dn, &id, flags);
 	if (rc != 0)
 		return rc;
 
@@ -1043,7 +1028,7 @@ bdb_dn2idl(
 		return 0;
 	}
 
-	rc = bdb_dn2id(be, NULL, dn, &id);
+	rc = bdb_dn2id(be, NULL, dn, &id, 0);
 	if (rc) return rc;
 
 	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);

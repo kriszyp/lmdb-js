@@ -104,18 +104,13 @@ struct bdb_info {
 	Avlnode		*bi_tree;
 	ldap_pvt_thread_rdwr_t	bi_tree_rdwr;
 	void		*bi_troot;
-	int		bi_nrdns;
 #endif
 
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;
 
-#ifndef NO_THREADS
 	int			bi_lock_detect;
-	int			bi_lock_detect_seconds;
-	ldap_pvt_thread_t	bi_lock_detect_tid;
-#endif
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
