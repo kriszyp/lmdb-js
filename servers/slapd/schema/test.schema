@@ -1,4 +1,4 @@
-# OpenLDAP Test schema
+# OpenLDAP Component Matching schema for testing
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
@@ -16,8 +16,11 @@
 
 # For testing purposes only.
 
-# RFC 3687 -- componentFilterMatch
-attributetype ( 1.3.6.1.4.1.4203.666.1.34 NAME 'componentTest'
-       DESC 'RFC 3687 Component Matching, use ;gser'
-       EQUALITY componentFilterMatch
-       SYNTAX 1.2.36.79672281.1.5.2 )
+attributetype ( 1.3.6.1.4.1.4203.666.1.34 NAME 'componentCertificate'
+        DESC 'Component version of userCertificate, use ;binary'
+        SYNTAX 1.3.6.1.4.1.4203.666.2.7 )
+
+objectclass ( 1.3.6.1.4.1.4203.666.3.14 NAME 'componentpkiUser'
+    DESC 'a PKI user with componentCertificate'
+    SUP top AUXILIARY
+    MAY componentCertificate )
