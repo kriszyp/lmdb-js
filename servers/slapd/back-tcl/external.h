@@ -1,5 +1,5 @@
 /*
- * $Id
+ * $Id$
  */
 
 #ifndef _TCL_EXTERNAL_H
