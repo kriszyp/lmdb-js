@@ -250,7 +250,6 @@ values2obj(
 	char **ppValue,
 	BerVarray *bvobj)
 {
-	int rc = LDAP_SUCCESS;
 	int i;
 	BerVarray tmpberval;
 
