@@ -21,6 +21,8 @@
 #ifndef MAXPATHLEN
 #	ifdef _MAX_PATH
 #		define MAXPATHLEN	_MAX_PATH
+#	else
+#		define MAXPATHLEN	4096
 #	endif
 #endif
 
