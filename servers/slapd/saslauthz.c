@@ -252,8 +252,9 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 			}
 
 		} else {
-			if ( bv.bv_val[ 0 ] != ':' )
+			if ( bv.bv_val[ 0 ] != ':' ) {
 				return LDAP_PROTOCOL_ERROR;
+			}
 			*scope = LDAP_X_SCOPE_EXACT;
 			bv.bv_val++;
 		}
