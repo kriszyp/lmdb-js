@@ -727,6 +727,10 @@ filter_free( Filter *f )
 		}
 		break;
 
+	case LDAP_FILTER_EXT:
+		mra_free( f->f_mra, 1 );
+		break;
+
 	case SLAPD_FILTER_COMPUTED:
 		break;
 
