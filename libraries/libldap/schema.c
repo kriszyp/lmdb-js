@@ -1183,8 +1183,8 @@ parse_qdescrs(const char **sp, int *code)
 					}
 					res = res1;
 				}
-				res[pos] = sval;
-				pos++;
+				res[pos++] = sval;
+				res[pos] = NULL;
 				parse_whsp(sp);
 			} else {
 				LDAP_VFREE(res);
@@ -1193,7 +1193,6 @@ parse_qdescrs(const char **sp, int *code)
 				return(NULL);
 			}
 		}
-		res[pos] = NULL;
 		parse_whsp(sp);
 		return(res);
 	} else if ( kind == TK_QDESCR ) {
@@ -1311,8 +1310,8 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 		kind = get_token(sp,&sval);
 		if ( kind == TK_BAREWORD ||
 		     ( allow_quoted && kind == TK_QDSTRING ) ) {
-			res[pos] = sval;
-			pos++;
+			res[pos++] = sval;
+			res[pos] = NULL;
 		} else {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
 			LDAP_FREE(sval);
@@ -1341,8 +1340,8 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 						}
 						res = res1;
 					}
-					res[pos] = sval;
-					pos++;
+					res[pos++] = sval;
+					res[pos] = NULL;
 				} else {
 					*code = LDAP_SCHERR_UNEXPTOKEN;
 					LDAP_FREE(sval);
@@ -1357,7 +1356,6 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 				return NULL;
 			}
 		}
-		res[pos] = NULL;
 		parse_whsp(sp);
 		return(res);
 	} else if ( kind == TK_BAREWORD ||
