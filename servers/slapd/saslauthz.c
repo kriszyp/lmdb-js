@@ -1145,7 +1145,13 @@ void slap_sasl2dn( Operation *opx,
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
 		op.o_req_ndn.bv_val, op.ors_scope, 0 );
 
-	if(( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL)) {
+	if ( ( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL) ) {
+		goto FINISHED;
+	}
+
+	/* Must run an internal search. */
+	if ( op.ors_filter == NULL ) {
+		rc = LDAP_FILTER_ERROR;
 		goto FINISHED;
 	}
 
