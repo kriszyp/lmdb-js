@@ -110,6 +110,11 @@ LIBLUTIL_F (char *) WSAGetErrorString LDAP_P((int));
 #elif HAVE_CLOSESOCKET
 #	define tcp_close( s )		closesocket( s )
 
+#	ifdef __BEOS__
+#		define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
+#		define tcp_write( s, buf, len )	send( s, buf, len, 0 )
+#	endif
+
 #else
 #	define tcp_close( s )		close( s )
 #	define tcp_read( s, buf, len)	read( s, buf, len )
