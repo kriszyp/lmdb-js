@@ -205,11 +205,29 @@ typedef struct ldapcontrol {
 
 /*
 #define LDAP_CLIENT_UPDATE 1
+#define LDAP_SYNC 2
 */
+
 #ifdef LDAP_CLIENT_UPDATE
 #define LDAP_CONTROL_CLIENT_UPDATE		"1.3.6.1.4.1.4203.666.5.3"
 #define LDAP_CONTROL_ENTRY_UPDATE		"1.3.6.1.4.1.4203.666.5.4"
-#define LDAP_CONTROL_CLIENT_UPDATE_DONE	"1.3.6.1.4.1.4203.666.5.5"
+#define LDAP_CONTROL_CLIENT_UPDATE_DONE		"1.3.6.1.4.1.4203.666.5.5"
+#define LDAP_LCUP_COOKIE_OID			"1.3.6.1.4.1.4203.666.10.1"
+#endif
+
+#ifdef LDAP_SYNC
+#define LDAP_CONTROL_SYNC			"1.3.6.1.4.1.4203.666.5.TBD1"
+#define LDAP_CONTROL_SYNC_STATE			"1.3.6.1.4.1.4203.666.5.TBD2"
+#define LDAP_CONTROL_SYNC_DONE			"1.3.6.1.4.1.4203.666.5.TBD3"
+#define LDAP_SYNC_INFO				"1.3.6.1.4.1.4203.666.5.TBD4"
+
+#define LDAP_SYNC_REFRESH_DONE		0
+#define LDAP_SYNC_NEW_COOKIE		1
+
+#define LDAP_SYNC_PRESENT		0
+#define LDAP_SYNC_ADD			1
+#define LDAP_SYNC_MODIFY		2
+#define LDAP_SYNC_DELETE		3
 #endif
 
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
@@ -278,8 +296,12 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_LDAPCRED	((ber_tag_t) 0x04U)	/* octet string */
 
 #ifdef LDAP_CLIENT_UPDATE
-#define LDAP_TAG_COOKIE		((ber_tag_t) 0x30U)	/* sequence */
-#endif /* LDAP_CLIENT_UPDATE */
+#define LDAP_LCUP_TAG_COOKIE	((ber_tag_t) 0x30U)	/* sequence */
+#endif
+
+#ifdef LDAP_SYNC
+#define LDAP_SYNC_TAG_COOKIE	((ber_tag_t) 0x04U)	/* octet string */
+#endif
 
 #define LDAP_TAG_CONTROLS	((ber_tag_t) 0xa0U)	/* context specific + constructed + 0 */
 #define LDAP_TAG_REFERRAL	((ber_tag_t) 0xa3U)	/* context specific + constructed + 3 */
@@ -477,15 +499,7 @@ typedef struct ldapcontrol {
 #define LDAP_CUP_UNSUPPORTED_SCHEME		0x65
 #define LDAP_CUP_CLIENT_DISCONNECT		0x66
 #define LDAP_CUP_RELOAD_REQUIRED		0x67
-
-/* LCUP update type */
-#define LDAP_CUP_SYNC_ONLY			0x00
-#define LDAP_CUP_SYNC_AND_PERSIST	0x01
-#define LDAP_CUP_PERSIST_ONLY		0x02
-
-/* LCUP default cookie interval */
-#define LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL	0x01
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 /* resultCode for Cancel Response */
 #define LDAP_CANCELLED                  0x68
@@ -497,6 +511,24 @@ typedef struct ldapcontrol {
 #define LDAP_CANCEL_REQ                 0x01
 #define LDAP_CANCEL_ACK                 0x02
 #define LDAP_CANCEL_DONE                0x03
+
+#ifdef LDAP_CLIENT_UPDATE
+/* LCUP update type */
+#define LDAP_CUP_NONE			0x00
+#define LDAP_CUP_SYNC_ONLY		0x01
+#define LDAP_CUP_PERSIST_ONLY		0x02
+#define LDAP_CUP_SYNC_AND_PERSIST	0x03
+
+/* LCUP default cookie interval */
+#define LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL	0x01
+#endif /* LDAP_CLIENT_UPDATE */
+
+/* LDAP SYNC request type */
+#ifdef LDAP_SYNC
+#define LDAP_SYNC_NONE			0x00
+#define LDAP_SYNC_REFRESH_ONLY		0x01
+#define LDAP_SYNC_REFRESH_AND_PERSIST	0x03
+#endif
 
 /*
  * This structure represents both ldap messages and ldap responses.

@@ -46,7 +46,12 @@ slap_op_free( Operation *op )
 	if ( op->o_clientupdate_state.bv_val != NULL ) {
 		free( op->o_clientupdate_state.bv_val );
 	}
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
+#ifdef LDAP_SYNC
+	if ( op->o_sync_state.bv_val != NULL ) {
+		free( op->o_sync_state.bv_val );
+	}
+#endif
 
 #if defined( LDAP_SLAPI )
 	if ( op->o_pb != NULL ) {

@@ -415,20 +415,28 @@ do_search(
 #endif /* LDAP_SLAPI */
 
 return_results:;
-#ifdef LDAP_CLIENT_UPDATE
-	if ( !( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
-#endif /* LDAP_CLIENT_UPDATE */
-	{
-		if( pbase.bv_val != NULL) free( pbase.bv_val );
-		if( nbase.bv_val != NULL) free( nbase.bv_val );
 
-		if( fstr.bv_val != NULL) free( fstr.bv_val );
-		if( filter != NULL) filter_free( filter );
-		if( an != NULL ) free( an );
+#ifdef LDAP_CLIENT_UPDATE
+	if ( ( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
+		return rc;
+#endif
+#if defined(LDAP_CLIENT_UPDATE) && defined(LDAP_SYNC)
+	else
+#endif
+#ifdef LDAP_SYNC
+	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
+		return rc;
+#endif
+
+	if( pbase.bv_val != NULL) free( pbase.bv_val );
+	if( nbase.bv_val != NULL) free( nbase.bv_val );
+
+	if( fstr.bv_val != NULL) free( fstr.bv_val );
+	if( filter != NULL) filter_free( filter );
+	if( an != NULL ) free( an );
 #ifdef LDAP_SLAPI
-		if( attrs != NULL) ch_free( attrs );
+	if( attrs != NULL) ch_free( attrs );
 #endif /* LDAP_SLAPI */
-	}
 
 	return rc;
 }

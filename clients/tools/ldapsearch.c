@@ -76,6 +76,10 @@ usage( void )
  * "                     sp/<cint>/<cookie>/<slimit>\n"
  * */
 #endif
+#ifdef LDAP_SYNC
+"             [!]sync= ro[/<cookie>] (ldap sync - refreshOnly)\n"
+"                      rp[/<cookie>][/<slimit>] (ldap sync - refreshAndPersist)\n"
+#endif
 "  -F prefix  URL prefix for files (default: %s)\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
@@ -147,11 +151,20 @@ static int  includeufn, vals2tmp = 0, ldif = 0;
 static int subentries = 0, valuesReturnFilter = 0;
 static char	*vrFilter = NULL;
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 static int lcup = 0;
+static int ldapsync = 0;
+#endif
+
+#ifdef LDAP_CLIENT_UPDATE
 static int lcup_cint = 0;
 static struct berval lcup_cookie = { 0, NULL };
-static int lcup_slimit = 0;
+static int lcup_slimit = -1;
+#endif
+
+#ifdef LDAP_SYNC
+static struct berval sync_cookie = { 0, NULL };
+static int sync_slimit = -1;
 #endif
 
 static int pagedResults = 0;
@@ -290,29 +303,35 @@ handle_private_option( int i )
 #endif
 
 #ifdef LDAP_CLIENT_UPDATE
-		} else if ( strcasecmp( control, "lcup" ) == 0 ) {
-			char *cookiep;
-			char *slimitp;
-			if ( lcup ) {
-				fprintf( stderr, "client update control previously specified\n");
-				exit( EXIT_FAILURE );
-			}
-			if ( cvalue == NULL ) {
-				fprintf( stderr,
-					"missing specification of client update control\n");
-				exit( EXIT_FAILURE );
-			}
-			if ( strncasecmp( cvalue, "p", 1 ) == 0 ) {
-				lcup = LDAP_CUP_PERSIST_ONLY;
-				cvalue += 2;
-				cookiep = strchr( cvalue, '/' );
-				*cookiep++ = '\0';
-				lcup_cint = atoi( cvalue );
-				cvalue = cookiep;
-				slimitp = strchr( cvalue, '/' );
-				*slimitp++ = '\0';
-				ber_str2bv( cookiep, 0, 0, &lcup_cookie );
-				lcup_slimit = atoi( slimitp );
+                } else if ( strcasecmp( control, "lcup" ) == 0 ) {
+                        char *cookiep;
+                        char *slimitp;
+                        if ( lcup ) {
+                                fprintf( stderr, "client update control previously specified\n");
+                                exit( EXIT_FAILURE );
+                        }
+                        if ( ldapsync != -1 ) {
+                                fprintf( stderr, "ldap sync control previously specified\n");
+                                exit( EXIT_FAILURE );
+                        }
+                        if ( cvalue == NULL ) {
+                                fprintf( stderr,
+                                        "missing specification of client update control\n");
+                                exit( EXIT_FAILURE );
+                        }
+                        if ( strncasecmp( cvalue, "p", 1 ) == 0 ) {
+                                lcup = LDAP_CUP_PERSIST_ONLY;
+                                cvalue = strchr( cvalue, '/' );
+                                cvalue++;
+                                cookiep = strchr( cvalue, '/' );
+                                *cookiep++ = '\0';
+                                lcup_cint = atoi( cvalue );
+                                cvalue = cookiep;
+                                slimitp = strchr( cvalue, '/' );
+                                *slimitp++ = '\0';
+                                while ( isspace( *cookiep ) ) cookiep++;
+                                ber_str2bv( cookiep, 0, 0, &lcup_cookie );
+                                lcup_slimit = atoi( slimitp );
 /*
 			} else if ( strncasecmp( cvalue, "s", 1 ) == 0 ) {
 				lcup = LDAP_CUP_SYNC_ONLY;
@@ -340,6 +359,56 @@ handle_private_option( int i )
 				exit( EXIT_FAILURE );
 			}
 			if ( crit ) lcup *= -1;
+#endif
+
+#ifdef LDAP_SYNC
+	} else if ( strcasecmp( control, "sync" ) == 0 ) {
+			char *cookiep;
+			char *slimitp;
+			if ( ldapsync ) {
+				fprintf( stderr, "ldap sync control previously specified\n" );
+				exit( EXIT_FAILURE );
+			}
+			if ( lcup ) {
+				fprintf( stderr, "client update control previously specified\n" );
+				exit( EXIT_FAILURE );
+			}
+			if ( cvalue == NULL ) {
+				fprintf( stderr,
+					"missing specification of ldap sync control\n");
+				exit( EXIT_FAILURE );
+			}
+			if ( strncasecmp( cvalue, "ro", 2 ) == 0 ) {
+				ldapsync = LDAP_SYNC_REFRESH_ONLY;
+				cookiep = strchr( cvalue, '/' );
+				if ( cookiep != NULL ) {
+					cookiep++;
+					if ( *cookiep != '\0' ) {
+						ber_str2bv( cookiep, 0, 0, &sync_cookie );
+					}
+				}
+			} else if ( strncasecmp( cvalue, "rp", 2 ) == 0 ) {
+				ldapsync = LDAP_SYNC_REFRESH_AND_PERSIST;
+				cookiep = strchr( cvalue, '/' );
+				if ( cookiep != NULL ) {
+					*cookiep++ = '\0';	
+					cvalue = cookiep;
+				}
+				slimitp = strchr( cvalue, '/' );
+				if ( slimitp != NULL ) {
+					*slimitp++ = '\0';
+				}
+				if ( cookiep != NULL && *cookiep != '\0' )
+					ber_str2bv( cookiep, 0, 0, &sync_cookie );
+				if ( slimitp != NULL && *slimitp != '\0' )
+					sync_slimit = atoi( slimitp );
+			} else {
+				fprintf( stderr,
+					"ldap sync control value \"%s\" invalid\n",
+					cvalue );
+				exit( EXIT_FAILURE );
+			}
+			if ( crit ) ldapsync *= -1;
 #endif
 
 		} else {
@@ -432,6 +501,11 @@ main( int argc, char **argv )
 #ifdef LDAP_CLIENT_UPDATE
 	BerElement	*cuber = NULL;
         struct berval   *cubvalp = NULL;
+#endif
+
+#ifdef LDAP_SYNC
+	BerElement      *syncber = NULL;
+	struct berval   *syncbvalp = NULL;
 #endif
 
 	npagedresponses = npagedentries = npagedreferences =
@@ -530,7 +604,10 @@ getNextPage:
 			|| valuesReturnFilter || pageSize
 #ifdef LDAP_CLIENT_UPDATE
 			|| lcup
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
+#ifdef LDAP_SYNC
+			|| ldapsync
+#endif
 			) {
 		int err;
 		int i=0;
@@ -560,25 +637,61 @@ getNextPage:
 #endif
 
 #ifdef LDAP_CLIENT_UPDATE
-		if ( lcup ) {
-			if (( cuber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+                if ( lcup ) {
+                        if (( cuber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+                                return EXIT_FAILURE;
+                        }
+
+                        if ( lcup_cookie.bv_len == 0 ) {
+                                err = ber_printf( cuber, "{ei}", abs(lcup), lcup_cint );
+                        } else {
+                                err = ber_printf( cuber, "{ei{sO}}", abs(lcup), lcup_cint,
+                                                LDAP_LCUP_COOKIE_OID, &lcup_cookie );
+                        }
+
+                        if ( err == LBER_ERROR ) {
+                                ber_free( cuber, 1 );
+                                fprintf( stderr, "client update control encoding error!\n" );
+                                return EXIT_FAILURE;
+                        }
+
+                        if ( ber_flatten( cuber, &cubvalp ) == LBER_ERROR ) {
+                                return EXIT_FAILURE;
+                        }
+
+                        c[i].ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE;
+                        c[i].ldctl_value = (*cubvalp);
+                        c[i].ldctl_iscritical = lcup < 0;
+                        i++;
+                }
+#endif
+
+#ifdef LDAP_SYNC
+		if ( ldapsync ) {
+			if (( syncber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
 			}
-			err = ber_printf( cuber, "{ei{sO}}", abs(lcup), lcup_cint,
-					LDAP_CLIENT_UPDATE_COOKIE, &lcup_cookie);
+
+			if ( sync_cookie.bv_len == 0 ) {
+				err = ber_printf( syncber, "{e}", abs(ldapsync) );
+			} else {
+				err = ber_printf( syncber, "{eO}", abs(ldapsync),
+							&sync_cookie );
+			}
+
 			if ( err == LBER_ERROR ) {
-				ber_free( cuber, 1 );
-				fprintf( stderr, "client update control encoding error!\n" );
+				ber_free( syncber, 1 );
+				fprintf( stderr, "ldap sync control encoding error!\n" );
 				return EXIT_FAILURE;
 			}
 
-			if ( ber_flatten( cuber, &cubvalp ) == LBER_ERROR ) {
+			if ( ber_flatten( syncber, &syncbvalp ) == LBER_ERROR ) {
 				return EXIT_FAILURE;
 			}
 
-			c[i].ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE;
-			c[i].ldctl_value=(*cubvalp);
-			c[i].ldctl_iscritical = lcup < 0;
+			c[i].ldctl_oid = LDAP_CONTROL_SYNC;
+			c[i].ldctl_value = (*syncbvalp);
+			c[i].ldctl_iscritical = ldapsync < 0;
 			i++;
 		}
 #endif
@@ -776,7 +889,13 @@ static int dosearch(
 	int			nextended;
 	int			npartial;
 	LDAPMessage		*res, *msg;
-	ber_int_t	msgid;
+	ber_int_t		msgid;
+#ifdef LDAP_SYNC
+	char			*retoid = NULL;
+	struct berval		*retdata = NULL;
+	int			nresponses_psearch = -1;
+	int			cancel_msgid = -1;
+#endif
 
 	if( filtpatt != NULL ) {
 		filter = malloc( strlen( filtpatt ) + strlen( value ) );
@@ -806,6 +925,8 @@ static int dosearch(
 	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
 		sctrls, cctrls, timeout, sizelimit, &msgid );
 
+	printf("msgid = %d\n", msgid);
+
 	if ( filtpatt != NULL ) {
 		free( filter );
 	}
@@ -833,7 +954,11 @@ static int dosearch(
 			msg != NULL;
 			msg = ldap_next_message( ld, msg ) )
 		{
-			if( nresponses++ ) putchar('\n');
+			if ( nresponses++ ) putchar('\n');
+#if LDAP_SYNC
+			if ( nresponses_psearch >= 0 ) 
+				nresponses_psearch++;
+#endif
 
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
@@ -854,6 +979,16 @@ static int dosearch(
 					/* unsolicited extended operation */
 					goto done;
 				}
+
+#ifdef LDAP_SYNC
+				if ( cancel_msgid != -1 &&
+						cancel_msgid == ldap_msgid( msg ) ) {
+					printf("Cancelled \n");
+					printf("cancel_msgid = %d\n", cancel_msgid);
+					goto done;
+				}
+#endif
+
 				break;
 
 			case LDAP_RES_EXTENDED_PARTIAL:
@@ -866,12 +1001,60 @@ static int dosearch(
 				if ( pageSize != 0 ) { 
 					rc = parse_page_control( ld, msg, &cookie );
 				}
-				goto done;
-			}
+
 #ifdef LDAP_CLIENT_UPDATE
-			if ( nresponses >= lcup_slimit ) {
+				if ( lcup == LDAP_CUP_PERSIST_ONLY ||
+				     lcup == LDAP_CUP_SYNC_AND_PERSIST ) {
+					break;
+				}
+#endif
+#if defined(LDAP_CLIENT_UPDATE) && defined(LDAP_SYNC)
+				else
+#endif
+#ifdef LDAP_SYNC
+				if ( ldapsync == LDAP_SYNC_REFRESH_AND_PERSIST ) {
+					break;
+				}
+#endif
+
+				goto done;
+
+#ifdef LDAP_SYNC
+			case LDAP_RES_INTERMEDIATE_RESP:
+				ldap_parse_intermediate_resp_result( ld, msg, &retoid, &retdata, 0 );
+				nresponses_psearch = 0;
+
+				if ( strcmp( retoid, LDAP_SYNC_INFO ) ) {
+					printf("Unexpected Intermediate Response\n");
+					ldap_memfree( retoid );
+					ber_bvfree( retdata );
+					goto done;
+				} else {
+					printf("SyncInfo Received\n");
+					ldap_memfree( retoid );
+					ber_bvfree( retdata );
+					break;
+				}
+#endif
+			}
+
+#ifdef LDAP_CLIENT_UPDATE
+			if ( lcup && lcup_slimit != -1 && nresponses >= lcup_slimit ) {
 				ldap_abandon (ld, ldap_msgid(msg));
 				goto done;
+			}
+#endif
+#ifdef LDAP_SYNC
+			if ( ldapsync && sync_slimit != -1 &&
+					nresponses_psearch >= sync_slimit ) {
+				BerElement *msgidber = NULL;
+				struct berval *msgidvalp = NULL;
+				msgidber = ber_alloc_t(LBER_USE_DER);
+				ber_printf(msgidber, "{i}", msgid);
+				ber_flatten(msgidber, &msgidvalp);
+				ldap_extended_operation(ld, LDAP_EXOP_X_CANCEL,
+						msgidvalp, NULL, NULL, &cancel_msgid);
+				nresponses_psearch = -1;
 			}
 #endif
 

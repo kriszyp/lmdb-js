@@ -62,7 +62,7 @@ bdb_modrdn(
 
 	int		noop = 0;
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
         Operation* ps_list;
         struct psid_entry* pm_list;
         struct psid_entry* pm_prev;
@@ -95,7 +95,7 @@ retry:	/* transaction retry */
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 #endif
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
                 pm_list = LDAP_LIST_FIRST(&op->premodify_list);
                 while ( pm_list != NULL ) {
                         LDAP_LIST_REMOVE ( pm_list, link );
@@ -731,13 +731,13 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( rc == LDAP_SUCCESS && !op->o_noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
-			bdb_psearch(be, conn, op, ps_list, e, LCUP_PSEARCH_BY_PREMODIFY );
+			bdb_psearch(be, conn, op, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
 		}
 	}
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 	/* modify entry */
 	rc = bdb_modify_internal( be, conn, op, ltid, &mod[0], e,
@@ -833,23 +833,23 @@ return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( rc == LDAP_SUCCESS && !op->o_noop ) {
 		/* Loop through in-scope entries for each psearch spec */
 		LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
-			bdb_psearch( be, conn, op, ps_list, e, LCUP_PSEARCH_BY_MODIFY );
+			bdb_psearch( be, conn, op, ps_list, e, LDAP_PSEARCH_BY_MODIFY );
 		}
 		pm_list = LDAP_LIST_FIRST(&op->premodify_list);
 		while ( pm_list != NULL ) {
 			bdb_psearch(be, conn, op, pm_list->ps->op,
-						e, LCUP_PSEARCH_BY_SCOPEOUT);
+						e, LDAP_PSEARCH_BY_SCOPEOUT);
 			LDAP_LIST_REMOVE ( pm_list, link );
 			pm_prev = pm_list;
 			pm_list = LDAP_LIST_NEXT ( pm_list, link );
                         free (pm_prev);
 		}
 	}
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 	if( rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
@@ -893,7 +893,7 @@ done:
 	}
 
 	if( ltid != NULL ) {
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
                 pm_list = LDAP_LIST_FIRST(&op->premodify_list);
                 while ( pm_list != NULL ) {
                         LDAP_LIST_REMOVE ( pm_list, link );

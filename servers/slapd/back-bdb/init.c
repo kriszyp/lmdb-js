@@ -95,7 +95,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	LDAP_LIST_INIT (&bdb->psearch_list);
 #endif
 

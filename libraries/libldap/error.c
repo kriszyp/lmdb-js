@@ -92,6 +92,18 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_MORE_RESULTS_TO_RETURN,	"More results to return" },
 	{LDAP_CLIENT_LOOP,				"Client Loop" },
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	"Referral Limit Exceeded" },
+#ifdef LDAP_CLIENT_UPDATE
+	{LDAP_CUP_RESOURCES_EXHAUSTED,	"LDAP Client Update Resource Exhausted" },
+	{LDAP_CUP_SECURITY_VIOLATION,	"LDAP Client Update Security Violation" },
+	{LDAP_CUP_INVALID_COOKIE,	"LDAP Client Update Invalid Cookie" },
+	{LDAP_CUP_UNSUPPORTED_SCHEME,	"LDAP Client Update Unsupported Scheme" },
+	{LDAP_CUP_CLIENT_DISCONNECT,	"LDAP Client Update Client Disconnect" },
+	{LDAP_CUP_RELOAD_REQUIRED,	"LDAP Client Update Reload Required" },
+#endif
+	{LDAP_CANCELLED,		"LDAP Cancelled" },
+	{LDAP_NO_SUCH_OPERATION,	"LDAP No Operation to Cancel" },
+	{LDAP_TOO_LATE,			"LDAP Too Late to Cancel" },
+	{LDAP_CANNOT_CANCEL,		"LDAP Cannot Cancel" },
 
 	{-1, NULL}
 };

@@ -35,6 +35,7 @@ int cancel_extop(
 	int found = 0;
 	int opid;
 	BerElement *ber;
+	int i;
 
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_CANCEL, reqoid ) == 0 );
@@ -86,9 +87,22 @@ int cancel_extop(
 	}
 
 	if ( !found ) {
+#ifdef LDAP_SYNC
+		for ( i = 0; i < nbackends; i++ ) {
+			if ( strncmp( backends[i].be_type, "bdb", 3 ) ) continue;
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+			if ( bdb_cancel( &backends[i], conn, opid ) == LDAP_SUCCESS ) {
+				return LDAP_SUCCESS;
+			} else {
+				*text = "message ID not found";
+			 	return LDAP_NO_SUCH_OPERATION;
+			}
+		}
+#else
 		*text = "message ID not found";
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-		return LDAP_NO_SUCH_OPERATION;
+	 	return LDAP_NO_SUCH_OPERATION;
+#endif
 	}
 
 	if ( op->o_cancel != LDAP_CANCEL_NONE ) {
@@ -114,3 +128,4 @@ int cancel_extop(
 
 	return rc;
 }
+

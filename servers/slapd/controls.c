@@ -58,6 +58,9 @@ static SLAP_CTRL_PARSE_FN parseSubentries;
 #ifdef LDAP_CLIENT_UPDATE
 static SLAP_CTRL_PARSE_FN parseClientUpdate;
 #endif
+#ifdef LDAP_SYNC
+static SLAP_CTRL_PARSE_FN parseLdupSync;
+#endif
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
@@ -108,7 +111,12 @@ static struct slap_control {
 	{ LDAP_CONTROL_CLIENT_UPDATE,
 		SLAP_CTRL_SEARCH, NULL,
 		parseClientUpdate },
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
+#ifdef LDAP_SYNC
+	{ LDAP_CONTROL_SYNC,
+		SLAP_CTRL_SEARCH, NULL,
+		parseLdupSync },
+#endif
 	{ NULL, 0, NULL, 0 }
 };
 
@@ -829,6 +837,13 @@ static int parseClientUpdate (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+#ifdef LDAP_SYNC
+	if ( op->o_sync != SLAP_NO_CONTROL ) {
+		*text = "LDAP Client Update and Sync controls used together";
+		return LDAP_PROTOCOL_ERROR;
+	}
+#endif
+
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
 		*text = "LCUP client update control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
@@ -897,7 +912,7 @@ static int parseClientUpdate (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( tag == LDAP_TAG_COOKIE ) {
+	if ( tag == LDAP_LCUP_TAG_COOKIE ) {
 		if ( (tag = ber_scanf( ber, /*{*/ "{mm}}",
 					&scheme, &cookie )) == LBER_ERROR ) {
 			*text = "LCUP client update control : decoding error";
@@ -931,4 +946,113 @@ static int parseClientUpdate (
 
 	return LDAP_SUCCESS;
 }
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
+
+#ifdef LDAP_SYNC
+static int parseLdupSync (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	ber_tag_t tag;
+	BerElement *ber;
+	ber_int_t mode;
+	ber_len_t len;
+	struct berval cookie = { 0, NULL };
+
+	if ( op->o_sync != SLAP_NO_CONTROL ) {
+		*text = "LDAP Sync control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+#ifdef LDAP_CLIENT_UPDATE
+	if ( op->o_clientupdate != SLAP_NO_CONTROL ) {
+		*text = "LDAP Sync and LDAP Client Update controls used together";
+		return LDAP_PROTOCOL_ERROR;
+	}
+#endif
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		*text = "LDAP Sync control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* Parse the control value
+	 *      syncRequestValue ::= SEQUENCE {
+	 *              mode   ENUMERATED {
+	 *                      -- 0 unused
+	 *                      refreshOnly		(1),
+	 *                      -- 2 reserved
+	 *                      refreshAndPersist	(3)
+	 *              },
+	 *              cookie  syncCookie OPTIONAL
+	 *      }
+	 */
+
+	ber = ber_init( &ctrl->ldctl_value );
+	if( ber == NULL ) {
+		*text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	if ( (tag = ber_scanf( ber, "{i" /*}*/, &mode )) == LBER_ERROR ) {
+		*text = "LDAP Sync control : mode decoding error";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	switch( mode ) {
+	case LDAP_SYNC_REFRESH_ONLY:
+		mode = SLAP_SYNC_REFRESH;
+		break;
+	case LDAP_SYNC_REFRESH_AND_PERSIST:
+		mode = SLAP_SYNC_REFRESH_AND_PERSIST;
+		break;
+	default:
+		*text = "LDAP Sync control : unknown update mode";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	tag = ber_peek_tag( ber, &len );
+
+	if ( tag == LDAP_SYNC_TAG_COOKIE ) {
+		if (( ber_scanf( ber, /*{*/ "m}",
+					&cookie )) == LBER_ERROR ) {
+			*text = "LDAP Sync control : cookie decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+	} else {
+		if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
+			*text = "LDAP Sync control : decoding error";
+			return LDAP_PROTOCOL_ERROR;
+		}
+		cookie.bv_len = 0;
+		cookie.bv_val = NULL;
+	}
+
+	/* TODO : Cookie Scheme Validation */
+#if 0
+	if ( lcup_cookie_scheme_validate(scheme) != LDAP_SUCCESS ) {
+		*text = "Unsupported LCUP cookie scheme";
+		return LCUP_UNSUPPORTED_SCHEME;
+	}
+
+	if ( lcup_cookie_validate(scheme, cookie) != LDAP_SUCCESS ) {
+		*text = "Invalid LCUP cookie";
+		return LCUP_INVALID_COOKIE;
+	}
+#endif
+
+	ber_dupbv( &op->o_sync_state, &cookie );
+
+	(void) ber_free( ber, 1 );
+
+	op->o_sync_mode = (char) mode;
+
+	op->o_sync = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+#endif

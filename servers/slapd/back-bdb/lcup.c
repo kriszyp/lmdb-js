@@ -13,20 +13,25 @@
 #include "idl.h"
 #include "external.h"
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+
+#define IS_BDB_REPLACE (( psearch_type == LDAP_PSEARCH_BY_DELETE ) || \
+		       ( psearch_type == LDAP_PSEARCH_BY_SCOPEOUT ))
+#define IS_BDB_LCUP_REPLACE (( protocol == LDAP_CLIENT_UPDATE ) && IS_BDB_REPLACE )
 
 static int psearch_base_candidate(
 	BackendDB	*be,
-	Entry	*e,
+	Entry		*e,
 	ID		*ids );
+
 static int psearch_candidates(
-	BackendDB *be,
-	Operation *op,
-	Entry *e,
-	Filter *filter,
-	int scope,
-	int deref,
-	ID	*ids );
+	BackendDB	*be,
+	Operation	*op,
+	Entry		*e,
+	Filter		*filter,
+	int		scope,
+	int		deref,
+	ID		*ids );
 
 int
 bdb_abandon(
@@ -51,6 +56,39 @@ bdb_abandon(
 }
 
 int
+bdb_cancel(
+	BackendDB	*be,
+	Connection	*conn,
+	ber_int_t	id )
+{
+	Operation	*ps_list;
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+
+	LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
+		if ( ps_list->o_connid == conn->c_connid ) {
+			if ( ps_list->o_msgid == id ) {
+				ps_list->o_cancel = LDAP_CANCEL_DONE;
+				LDAP_LIST_REMOVE( ps_list, link );
+
+#if 0
+				bdb_build_sync_done_ctrl( conn, ps_list, ps_list->ctrls, 1, &latest_entrycsn_bv );
+				send_search_result( conn, ps_list, LDAP_CANCELLED,
+						NULL, NULL, NULL, ps_list->ctrls, ps_list->nentries);
+#endif
+				send_search_result( conn, ps_list, LDAP_CANCELLED,
+						NULL, NULL, NULL, NULL, 0);
+
+
+
+				slap_op_free ( ps_list );
+				return LDAP_SUCCESS;
+			}
+		}
+	}
+	return LDAP_UNAVAILABLE;
+}
+
+int
 bdb_add_psearch_spec(
 	BackendDB       *be,
 	Connection      *conn,
@@ -64,30 +102,33 @@ bdb_add_psearch_spec(
 	Filter	        *filter,
 	struct berval   *fstr,
 	AttributeName   *attrs,
-	int             attrsonly )
+	int             attrsonly,
+	int		protocol	)
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
-	LDAP_LIST_FIRST(&op->psearch_spec) = (struct lcup_search_spec *)
-		calloc ( 1, sizeof ( struct lcup_search_spec ) );
+	LDAP_LIST_FIRST( &op->psearch_spec ) = (struct ldap_psearch_spec *)
+		calloc ( 1, sizeof ( struct ldap_psearch_spec ) );
 
-	LDAP_LIST_FIRST(&op->psearch_spec)->op = op;
+	LDAP_LIST_FIRST( &op->psearch_spec )->op = op;
 
-	LDAP_LIST_FIRST(&op->psearch_spec)->base = ber_dupbv(NULL, base);
-	LDAP_LIST_FIRST(&op->psearch_spec)->nbase = ber_dupbv(NULL, nbase);
+	LDAP_LIST_FIRST( &op->psearch_spec )->base = ber_dupbv(NULL, base);
+	LDAP_LIST_FIRST( &op->psearch_spec )->nbase = ber_dupbv(NULL, nbase);
 
-	LDAP_LIST_FIRST(&op->psearch_spec)->scope = scope;
-	LDAP_LIST_FIRST(&op->psearch_spec)->deref = deref;
-	LDAP_LIST_FIRST(&op->psearch_spec)->slimit = slimit;
-	LDAP_LIST_FIRST(&op->psearch_spec)->tlimit = tlimit;
+	LDAP_LIST_FIRST( &op->psearch_spec )->scope = scope;
+	LDAP_LIST_FIRST( &op->psearch_spec )->deref = deref;
+	LDAP_LIST_FIRST( &op->psearch_spec )->slimit = slimit;
+	LDAP_LIST_FIRST( &op->psearch_spec )->tlimit = tlimit;
 
-	LDAP_LIST_FIRST(&op->psearch_spec)->filter = filter;
-	LDAP_LIST_FIRST(&op->psearch_spec)->filterstr = ber_dupbv(NULL, fstr);
-	LDAP_LIST_FIRST(&op->psearch_spec)->attrs = attrs;
+	LDAP_LIST_FIRST( &op->psearch_spec )->filter = filter;
+	LDAP_LIST_FIRST( &op->psearch_spec )->filterstr = ber_dupbv(NULL, fstr);
+	LDAP_LIST_FIRST( &op->psearch_spec )->attrs = attrs;
 
-	LDAP_LIST_FIRST(&op->psearch_spec)->attrsonly = attrsonly;
+	LDAP_LIST_FIRST( &op->psearch_spec )->attrsonly = attrsonly;
 
-	LDAP_LIST_FIRST(&op->psearch_spec)->entry_count = 0;
+	LDAP_LIST_FIRST( &op->psearch_spec )->entry_count = 0;
+
+	LDAP_LIST_FIRST( &op->psearch_spec )->protocol = protocol;
 
 	LDAP_LIST_INSERT_HEAD( &bdb->psearch_list, op, link );
 }
@@ -99,26 +140,29 @@ bdb_psearch(
 	Operation	*op,
 	Operation	*ps_op,
 	Entry		*entry,
-	int		psearch_type )
+	int		psearch_type	)
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int		rc;
-	const char *text = NULL;
+	const char	*text = NULL;
 	time_t		stoptime;
 	unsigned	cursor;
 	ID		id;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	Entry		*e = NULL;
-	BerVarray v2refs = NULL;
-	Entry	*matched = NULL;
+	BerVarray	v2refs = NULL;
+	Entry		*matched = NULL;
 	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
 	int		manageDSAit;
 
-	Filter lcupf, csnfnot, csnfeq, csnfand, csnfge;
-	AttributeAssertion aa_ge, aa_eq;
-	struct berval entrycsn_bv = { 0, NULL };
-	struct berval latest_entrycsn_bv = { 0, NULL };
+	Filter		cookief, csnfnot, csnfeq, csnfand, csnfge;
+	AttributeAssertion	aa_ge, aa_eq;
+	struct berval	entrycsn_bv = { 0, NULL };
+	struct berval	latest_entrycsn_bv = { 0, NULL };
+
+        LDAPControl     *ctrls[SLAP_SEARCH_MAX_CTRLS];
+        int             num_ctrls = 0;
 
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
@@ -128,31 +172,18 @@ bdb_psearch(
 	DB_LOCK		lock;
 
 	Connection	*ps_conn   = ps_op->o_conn;
-	struct berval	*base      = LDAP_LIST_FIRST(&ps_op->psearch_spec)->base;
-	struct berval	*nbase     = LDAP_LIST_FIRST(&ps_op->psearch_spec)->nbase;
-	int		scope      = LDAP_LIST_FIRST(&ps_op->psearch_spec)->scope;
-	int		deref      = LDAP_LIST_FIRST(&ps_op->psearch_spec)->deref;
-	int		slimit     = LDAP_LIST_FIRST(&ps_op->psearch_spec)->slimit;
-	int		tlimit     = LDAP_LIST_FIRST(&ps_op->psearch_spec)->tlimit;
-	Filter		*filter    = LDAP_LIST_FIRST(&ps_op->psearch_spec)->filter;
-	struct berval *filterstr = LDAP_LIST_FIRST(&ps_op->psearch_spec)->filterstr;
-	int		attrsonly  = LDAP_LIST_FIRST(&ps_op->psearch_spec)->attrsonly;
+	struct berval	*base      = LDAP_LIST_FIRST( &ps_op->psearch_spec )->base;
+	struct berval	*nbase     = LDAP_LIST_FIRST( &ps_op->psearch_spec )->nbase;
+	int		scope      = LDAP_LIST_FIRST( &ps_op->psearch_spec )->scope;
+	int		deref      = LDAP_LIST_FIRST( &ps_op->psearch_spec )->deref;
+	int		slimit     = LDAP_LIST_FIRST( &ps_op->psearch_spec )->slimit;
+	int		tlimit     = LDAP_LIST_FIRST( &ps_op->psearch_spec )->tlimit;
+	Filter		*filter    = LDAP_LIST_FIRST( &ps_op->psearch_spec )->filter;
+	struct berval	*filterstr = LDAP_LIST_FIRST( &ps_op->psearch_spec )->filterstr;
+	int		attrsonly  = LDAP_LIST_FIRST( &ps_op->psearch_spec )->attrsonly;
+	int		protocol   = LDAP_LIST_FIRST( &ps_op->psearch_spec )->protocol;
 	AttributeName	uuid_attr[2];
-	AttributeName	*attrs = uuid_attr;
-
-	if ( psearch_type != LCUP_PSEARCH_BY_DELETE &&
-		psearch_type != LCUP_PSEARCH_BY_SCOPEOUT )
-	{
-		attrs = LDAP_LIST_FIRST(&ps_op->psearch_spec)->attrs;
-	} else {
-		attrs[0].an_desc = slap_schema.si_ad_entryUUID;
-		attrs[0].an_oc = NULL;
-		ber_dupbv( &attrs[0].an_name, &attrs[0].an_desc->ad_cname );
-		attrs[1].an_desc = NULL;
-		attrs[1].an_oc = NULL;
-		attrs[1].an_name.bv_len = 0;
-		attrs[1].an_name.bv_val = NULL;
-	}
+	AttributeName	*attrs;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "bdb_back_search\n", 0, 0, 0 );
@@ -170,10 +201,41 @@ bdb_psearch(
 	default:
 		send_ldap_result( ps_conn, ps_op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
-		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
-		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
-			ch_free( attrs[0].an_name.bv_val );
 		return rc;
+	}	
+
+        for ( num_ctrls = 0; num_ctrls < SLAP_SEARCH_MAX_CTRLS; num_ctrls++ )
+                ctrls[num_ctrls] = NULL;
+        num_ctrls = 0;
+
+	if ( !IS_BDB_REPLACE ) {
+		attrs = LDAP_LIST_FIRST(&ps_op->psearch_spec)->attrs;
+	} else {
+#ifdef LDAP_CLIENT_UPDATE
+		if ( protocol == LDAP_CLIENT_UPDATE ) {
+			attrs = uuid_attr;
+			attrs[0].an_desc = slap_schema.si_ad_entryUUID;
+			attrs[0].an_oc = NULL;
+			ber_dupbv( &attrs[0].an_name, &attrs[0].an_desc->ad_cname );
+			attrs[1].an_desc = NULL;
+			attrs[1].an_oc = NULL;
+			attrs[1].an_name.bv_len = 0;
+			attrs[1].an_name.bv_val = NULL;
+		} else
+#endif
+#ifdef LDAP_SYNC
+		if (protocol == LDAP_SYNC ) {
+			attrs = uuid_attr;
+			attrs[0].an_desc = NULL;
+			attrs[0].an_oc = NULL;
+			attrs[0].an_name.bv_len = 0;
+			attrs[0].an_name.bv_val = NULL;
+		} else
+#endif
+		{
+			rc = 1;
+			goto done;
+		}
 	}
 
 	if ( nbase->bv_len == 0 ) {
@@ -209,9 +271,10 @@ dn2entry_retry:
 		send_ldap_result( ps_conn, ps_op, LDAP_BUSY,
 			NULL, "ldap server busy", NULL, NULL );
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
-		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
-		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+#ifdef LDAP_CLIENT_UPDATE
+		if ( IS_BDB_LCUP_REPLACE )
 			ch_free( attrs[0].an_name.bv_val );
+#endif
 		return LDAP_BUSY;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
@@ -228,9 +291,10 @@ dn2entry_retry:
 		send_ldap_result( ps_conn, ps_op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
-		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
-		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+#ifdef LDAP_CLIENT_UPDATE
+		if ( IS_BDB_LCUP_REPLACE )
 			ch_free( attrs[0].an_name.bv_val );
+#endif
 		return rc;
 	}
 
@@ -267,9 +331,10 @@ dn2entry_retry:
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 		if ( refs ) ber_bvarray_free( refs );
 		if ( matched_dn.bv_val ) ber_memfree( matched_dn.bv_val );
-		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
-		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+#ifdef LDAP_CLIENT_UPDATE
+		if ( IS_BDB_LCUP_REPLACE )
 			ch_free( attrs[0].an_name.bv_val );
+#endif
 		return rc;
 	}
 
@@ -307,9 +372,10 @@ dn2entry_retry:
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 		ber_bvarray_free( refs );
 		ber_memfree( matched_dn.bv_val );
-		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
-		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+#ifdef LDAP_CLIENT_UPDATE
+		if ( IS_BDB_LCUP_REPLACE )
 			ch_free( attrs[0].an_name.bv_val );
+#endif
 		return 1;
 	}
 
@@ -444,28 +510,61 @@ dn2entry_retry:
 		}
 	}
 
-	lcupf.f_choice = LDAP_FILTER_AND;
-	lcupf.f_and = &csnfnot;
-	lcupf.f_next = NULL;
+#ifdef LDAP_CLIENT_UPDATE
+	if ( protocol == LDAP_CLIENT_UPDATE ) {
+		cookief.f_choice = LDAP_FILTER_AND;
+		cookief.f_and = &csnfnot;
+		cookief.f_next = NULL;
+	
+		csnfnot.f_choice = LDAP_FILTER_NOT;
+		csnfnot.f_not = &csnfeq;
+		csnfnot.f_next = &csnfand;
 
-	csnfnot.f_choice = LDAP_FILTER_NOT;
-	csnfnot.f_not = &csnfeq;
-	csnfnot.f_next = &csnfand;
+		csnfeq.f_choice = LDAP_FILTER_EQUALITY;
+		csnfeq.f_ava = &aa_eq;
+		csnfeq.f_av_desc = slap_schema.si_ad_entryCSN;
+		ber_dupbv( &csnfeq.f_av_value, &ps_op->o_clientupdate_state );
 
-	csnfeq.f_choice = LDAP_FILTER_EQUALITY;
-	csnfeq.f_ava = &aa_eq;
-	csnfeq.f_av_desc = slap_schema.si_ad_entryCSN;
-	ber_dupbv( &csnfeq.f_av_value, &ps_op->o_clientupdate_state );
+		csnfand.f_choice = LDAP_FILTER_AND;
+		csnfand.f_and = &csnfge;
+		csnfand.f_next = NULL;
+	
+		csnfge.f_choice = LDAP_FILTER_GE;
+		csnfge.f_ava = &aa_ge;
+		csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
+		ber_dupbv( &csnfge.f_av_value, &ps_op->o_clientupdate_state );
+		csnfge.f_next = filter;
+	}
+#endif
+#if defined(LDAP_CLIENT_UPDATE) && defined(LDAP_SYNC)
+	else
+#endif
+#ifdef LDAP_SYNC
+	if ( protocol == LDAP_SYNC ) {
+		cookief.f_choice = LDAP_FILTER_AND;
+		cookief.f_and = &csnfnot;
+		cookief.f_next = NULL;
+	
+		csnfnot.f_choice = LDAP_FILTER_NOT;
+		csnfnot.f_not = &csnfeq;
+		csnfnot.f_next = &csnfand;
 
-	csnfand.f_choice = LDAP_FILTER_AND;
-	csnfand.f_and = &csnfge;
-	csnfand.f_next = NULL;
+		csnfeq.f_choice = LDAP_FILTER_EQUALITY;
+		csnfeq.f_ava = &aa_eq;
+		csnfeq.f_av_desc = slap_schema.si_ad_entryCSN;
+		ber_dupbv( &csnfeq.f_av_value, &ps_op->o_sync_state );
 
-	csnfge.f_choice = LDAP_FILTER_GE;
-	csnfge.f_ava = &aa_ge;
-	csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
-	ber_dupbv( &csnfge.f_av_value, &ps_op->o_clientupdate_state );
-	csnfge.f_next = filter;
+		csnfand.f_choice = LDAP_FILTER_AND;
+		csnfand.f_and = &csnfge;
+		csnfand.f_next = NULL;
+	
+		csnfge.f_choice = LDAP_FILTER_GE;
+		csnfge.f_ava = &aa_ge;
+		csnfge.f_av_desc = slap_schema.si_ad_entryCSN;
+		ber_dupbv( &csnfge.f_av_value, &ps_op->o_sync_state );
+		csnfge.f_next = filter;
+	}
+#endif
 
 	id = entry->e_id;
 
@@ -604,8 +703,8 @@ dn2entry_retry:
 		goto test_done;
 	}
 
-	if ( psearch_type != LCUP_PSEARCH_BY_SCOPEOUT ) {
-		rc = test_filter( be, ps_conn, ps_op, e, &lcupf );
+	if ( psearch_type != LDAP_PSEARCH_BY_SCOPEOUT ) {
+		rc = test_filter( be, ps_conn, ps_op, e, &cookief );
 	} else {
 		rc = LDAP_COMPARE_TRUE;
 	}
@@ -647,144 +746,87 @@ dn2entry_retry:
 				} else
 #endif
 				{
-					if ( psearch_type == LCUP_PSEARCH_BY_ADD ||
-					     psearch_type == LCUP_PSEARCH_BY_DELETE ||
-					     psearch_type == LCUP_PSEARCH_BY_MODIFY ||
-					     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+#ifdef LDAP_SYNC
+						int premodify_found = 0;
+						int entry_sync_state;
+#endif
+
+					if ( psearch_type == LDAP_PSEARCH_BY_ADD ||
+					     psearch_type == LDAP_PSEARCH_BY_DELETE ||
+					     psearch_type == LDAP_PSEARCH_BY_MODIFY ||
+					     psearch_type == LDAP_PSEARCH_BY_SCOPEOUT )
 					{
-						Attribute* a;
-						int ret;
-						int res;
-						const char *text = NULL;
-						LDAPControl *ctrls[2];
-						struct berval *bv;
-						char berbuf[LBER_ELEMENT_SIZEOF];
-						BerElement *ber = (BerElement *)berbuf;
-						
-						ber_init2( ber, NULL, LBER_USE_DER );
-
-						LDAP_LIST_FIRST(&ps_op->psearch_spec)->entry_count++;
-
-						ctrls[0] = ch_malloc ( sizeof ( LDAPControl ) );
-						ctrls[1] = NULL;
-
-						if ( LDAP_LIST_FIRST(
-							&ps_op->psearch_spec)->entry_count %
-								ps_op->o_clientupdate_interval == 0 )
-						{
-							/* Send cookie */
-							for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-								AttributeDescription *desc = a->a_desc;
-								if ( desc == slap_schema.si_ad_entryCSN ) {
-									ber_dupbv( &entrycsn_bv, &a->a_vals[0] );
-									if ( latest_entrycsn_bv.bv_val == NULL ) {
-										ber_dupbv( &latest_entrycsn_bv,
-											&entrycsn_bv );
-									} else {
-										res = value_match( &ret, desc,
-											desc->ad_type->sat_ordering,
-											SLAP_MR_ASSERTION_SYNTAX_MATCH,
-											&entrycsn_bv, &latest_entrycsn_bv,
-											&text );
-										if ( res != LDAP_SUCCESS ) {
-											ret = 0;
-#ifdef NEW_LOGGING
-											LDAP_LOG ( OPERATION, RESULTS, 
-												"bdb_search: "
-												"value_match failed\n",
-												0, 0, 0 );
-#else
-											Debug( LDAP_DEBUG_TRACE,
-												"bdb_search: "
-												"value_match failed\n",
-												0, 0, 0 );
-#endif
-										}
-
-										if ( ret > 0 ) {
-											ch_free(latest_entrycsn_bv.bv_val);
-											latest_entrycsn_bv.bv_val = NULL;
-											ber_dupbv( &latest_entrycsn_bv,
-												&entrycsn_bv );
-										}
-									}
-								}
-							}
-
-							if ( psearch_type != LCUP_PSEARCH_BY_DELETE ||
-								psearch_type != LCUP_PSEARCH_BY_SCOPEOUT )
-							{
-								ber_printf( ber, "{bb{sON}N}",
-									SLAP_LCUP_STATE_UPDATE_FALSE,
-									SLAP_LCUP_ENTRY_DELETED_FALSE,
-									LCUP_COOKIE_OID, &entrycsn_bv );
-							} else {
-								ber_printf( ber, "{bb{sON}N}",
-									SLAP_LCUP_STATE_UPDATE_FALSE,
-									SLAP_LCUP_ENTRY_DELETED_TRUE,
-									LCUP_COOKIE_OID, &entrycsn_bv );
-							}
-
-							ch_free( entrycsn_bv.bv_val );
-							entrycsn_bv.bv_val = NULL;
-
-						} else {
-							/* Do not send cookie */
-							if ( psearch_type != LCUP_PSEARCH_BY_DELETE ||
-								psearch_type != LCUP_PSEARCH_BY_SCOPEOUT )
-							{
-								ber_printf( ber, "{bbN}",
-									SLAP_LCUP_STATE_UPDATE_FALSE,
-									SLAP_LCUP_ENTRY_DELETED_FALSE );
-							} else {
-								ber_printf( ber, "{bbN}",
-									SLAP_LCUP_STATE_UPDATE_FALSE,
-									SLAP_LCUP_ENTRY_DELETED_TRUE );
-							}
-						}
-
-						ctrls[0]->ldctl_oid = LDAP_CONTROL_ENTRY_UPDATE;
-						ctrls[0]->ldctl_iscritical = ps_op->o_clientupdate;
-						ret = ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 );
-
-						if ( ret < 0 ) {
-							ber_free_buf( ber );
-#ifdef NEW_LOGGING
-							LDAP_LOG ( OPERATION, RESULTS, 
-								"bdb_search: ber_flatten2 failed\n",
-								0, 0, 0 );
-#else
-							Debug( LDAP_DEBUG_TRACE,
-								"bdb_search: ber_flatten2 failed\n",
-								0, 0, 0 );
-#endif
-							send_ldap_result( ps_conn, ps_op, rc=LDAP_OTHER,
-								NULL, "internal error", NULL, NULL );
-							goto done;
-						}
-
-						result = send_search_entry( be, ps_conn, ps_op,
-							e, attrs, attrsonly, ctrls);
-
-						ber_free_buf( ber );
-						ch_free( ctrls[0] );
-
-						if ( psearch_type == LCUP_PSEARCH_BY_MODIFY ) {
+						if ( psearch_type == LDAP_PSEARCH_BY_MODIFY ) {
 							struct psid_entry* psid_e;
-							LDAP_LIST_FOREACH( psid_e, &op->premodify_list,
-								link)
+							LDAP_LIST_FOREACH( psid_e, &op->premodify_list, link)
 							{
-								if( psid_e->ps ==
-									LDAP_LIST_FIRST(&ps_op->psearch_spec))
+								if( psid_e->ps == LDAP_LIST_FIRST(&ps_op->psearch_spec))
 								{
+#ifdef LDAP_SYNC
+									premodify_found = 1;
+#endif
 									LDAP_LIST_REMOVE(psid_e, link);
 									break;
 								}
 							}
 							if (psid_e != NULL) free (psid_e);
 						}
+#ifdef LDAP_SYNC
+						if ( psearch_type == LDAP_PSEARCH_BY_ADD )
+							entry_sync_state = LDAP_SYNC_ADD;
+						else if ( psearch_type == LDAP_PSEARCH_BY_DELETE )
+							entry_sync_state = LDAP_SYNC_DELETE;
+						else if ( psearch_type == LDAP_PSEARCH_BY_MODIFY ) {
+							if ( premodify_found )
+								entry_sync_state = LDAP_SYNC_MODIFY;
+							else
+								entry_sync_state = LDAP_SYNC_ADD;
+						} else if ( psearch_type == LDAP_PSEARCH_BY_SCOPEOUT )
+							entry_sync_state = LDAP_SYNC_DELETE;
+						else {
+							rc = 1;
+							goto done;
+						}
+#endif
 
-					} else if ( psearch_type == LCUP_PSEARCH_BY_PREMODIFY ) {
+#ifdef LDAP_CLIENT_UPDATE
+						if ( protocol == LDAP_CLIENT_UPDATE ) {
+							int entry_count = ++(LDAP_LIST_FIRST(&ps_op->psearch_spec)->entry_count);
+							if ( IS_BDB_REPLACE ) {
+								rc = bdb_build_lcup_update_ctrl( ps_conn, ps_op, e, entry_count, ctrls,
+										num_ctrls++, &latest_entrycsn_bv, SLAP_LCUP_ENTRY_DELETED_TRUE );
+							} else {
+								rc = bdb_build_lcup_update_ctrl( ps_conn, ps_op, e, entry_count, ctrls,
+										num_ctrls++, &latest_entrycsn_bv, SLAP_LCUP_ENTRY_DELETED_FALSE );
+							}
+							if ( rc != LDAP_SUCCESS )
+								goto done;
+							result = send_search_entry( be, ps_conn, ps_op, e, attrs, attrsonly, ctrls );
+							if ( ctrls[num_ctrls-1]->ldctl_value.bv_val != NULL )
+								ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
+							ch_free( ctrls[--num_ctrls] );
+							ctrls[num_ctrls] = NULL;
+						} else
+#endif
+#ifdef LDAP_SYNC
+						if ( protocol == LDAP_SYNC ) {
+							rc = bdb_build_sync_state_ctrl( ps_conn, ps_op, e, entry_sync_state, ctrls,
+											num_ctrls++, 1, &latest_entrycsn_bv );
+							if ( rc != LDAP_SUCCESS )
+								goto done;
+							result = send_search_entry( be, ps_conn, ps_op, e, attrs, attrsonly, ctrls );
+							if ( ctrls[num_ctrls-1]->ldctl_value.bv_val != NULL )
+								ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
+							ch_free( ctrls[--num_ctrls] );
+							ctrls[num_ctrls] = NULL;
+						} else
+#endif
+						{
+							rc = 1;
+							goto done;
+						}
+
+					} else if ( psearch_type == LDAP_PSEARCH_BY_PREMODIFY ) {
 						struct psid_entry* psid_e;
 						psid_e = (struct psid_entry *) calloc (1,
 							sizeof(struct psid_entry));
@@ -844,9 +886,10 @@ done:
 
 	if( v2refs ) ber_bvarray_free( v2refs );
 	if( realbase.bv_val ) ch_free( realbase.bv_val );
-	if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
-	     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+#ifdef LDAP_CLIENT_UPDATE
+	if ( IS_BDB_LCUP_REPLACE )
 		ch_free( attrs[0].an_name.bv_val );
+#endif
 
 	return rc;
 }
@@ -1034,4 +1077,4 @@ static int psearch_candidates(
 }
 
 
-#endif /* LDAP_CLIENT_UPDATE */
+#endif

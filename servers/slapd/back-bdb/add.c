@@ -42,7 +42,7 @@ bdb_add(
 #endif
 	int		noop = 0;
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	Operation* ps_list;
 #endif
 
@@ -547,10 +547,10 @@ return_results:
 	send_ldap_result( conn, op, rc,
 		NULL, text, NULL, NULL );
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	if ( rc == LDAP_SUCCESS && !noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
-			bdb_psearch( be, conn, op, ps_list, e, LCUP_PSEARCH_BY_ADD );
+			bdb_psearch( be, conn, op, ps_list, e, LDAP_PSEARCH_BY_ADD );
 		}
 	}
 #endif /* LDAP_CLIENT_UPDATE */

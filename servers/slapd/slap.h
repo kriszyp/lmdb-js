@@ -1615,14 +1615,14 @@ typedef struct slap_paged_state {
 } PagedResultsState;
 
 
-#ifdef LDAP_CLIENT_UPDATE
-#define LCUP_PSEARCH_BY_ADD 0x01
-#define LCUP_PSEARCH_BY_DELETE 0x02
-#define LCUP_PSEARCH_BY_PREMODIFY 0x03
-#define LCUP_PSEARCH_BY_MODIFY 0x04
-#define LCUP_PSEARCH_BY_SCOPEOUT 0x05
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#define LDAP_PSEARCH_BY_ADD		0x01
+#define LDAP_PSEARCH_BY_DELETE		0x02
+#define LDAP_PSEARCH_BY_PREMODIFY	0x03
+#define LDAP_PSEARCH_BY_MODIFY		0x04
+#define LDAP_PSEARCH_BY_SCOPEOUT	0x05
 
-struct lcup_search_spec {
+struct ldap_psearch_spec {
 	struct slap_op  *op;
 	struct berval   *base;
 	struct berval   *nbase;
@@ -1634,17 +1634,16 @@ struct lcup_search_spec {
 	struct berval   *filterstr;
 	AttributeName   *attrs;
 	int             attrsonly;
-	struct lcup_entry *elist;
-	ldap_pvt_thread_mutex_t elist_mutex;
+	int             protocol;
 	int             entry_count;
-	LDAP_LIST_ENTRY(lcup_search_spec) link;
+	LDAP_LIST_ENTRY(ldap_psearch_spec) link;
 };
 
 struct psid_entry {
-	struct lcup_search_spec* ps;
+	struct ldap_psearch_spec* ps;
 	LDAP_LIST_ENTRY(psid_entry) link;
 };
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 
 /*
@@ -1691,13 +1690,26 @@ typedef struct slap_op {
 #define SLAP_LCUP_NONE				(0x0)
 #define SLAP_LCUP_SYNC 				(0x1)
 #define SLAP_LCUP_PERSIST			(0x2)
-#define SLAP_LCUP_SYNC_AND_PERSIST	(0x3)
+#define SLAP_LCUP_SYNC_AND_PERSIST		(0x3)
 	ber_int_t o_clientupdate_interval;
 	struct berval o_clientupdate_state;
-	LDAP_LIST_HEAD(lss, lcup_search_spec) psearch_spec;
+#endif
+
+#ifdef LDAP_SYNC
+	char o_sync;
+	char o_sync_mode;
+#define SLAP_SYNC_NONE				(0x0)
+#define SLAP_SYNC_REFRESH			(0x1)
+#define SLAP_SYNC_PERSIST			(0x2)
+#define SLAP_SYNC_REFRESH_AND_PERSIST		(0x3)
+	struct berval o_sync_state;
+#endif
+
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+	LDAP_LIST_HEAD(lss, ldap_psearch_spec) psearch_spec;
 	LDAP_LIST_HEAD(pe, psid_entry) premodify_list;
 	LDAP_LIST_ENTRY(slap_op) link;
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 #ifdef LDAP_CONNECTIONLESS
 	Sockaddr	o_peeraddr;	/* UDP peer address		  */
@@ -1996,6 +2008,10 @@ enum {
 #define SLAP_LCUP_ENTRY_DELETED_TRUE	1
 #define SLAP_LCUP_ENTRY_DELETED_FALSE	0
 #endif /* LDAP_CLIENT_UPDATE */
+
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+#define SLAP_SEARCH_MAX_CTRLS   10
+#endif
 
 LDAP_END_DECL
 

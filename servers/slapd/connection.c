@@ -1040,12 +1040,26 @@ operations_error:
 
 	LDAP_STAILQ_REMOVE( &conn->c_ops, arg->co_op, slap_op, o_next);
 	LDAP_STAILQ_NEXT(arg->co_op, o_next) = NULL;
+
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+	if ( arg->co_op->o_cancel == LDAP_CANCEL_ACK )
+		goto co_op_free;
+#endif
 #ifdef LDAP_CLIENT_UPDATE
-	if ( !( arg->co_op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
-#endif /* LDAP_CLIENT_UPDATE */
-	{
-		slap_op_free( arg->co_op );
-	}
+	if ( ( arg->co_op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
+		goto no_co_op_free;
+#endif
+#ifdef LDAP_SYNC
+	if ( ( arg->co_op->o_sync_mode & SLAP_SYNC_PERSIST ) )
+		goto no_co_op_free;
+#endif
+
+co_op_free:
+
+	slap_op_free( arg->co_op );
+
+no_co_op_free:
+
 	arg->co_op = NULL;
 	arg->co_conn = NULL;
 	free( (char *) arg );
