@@ -18,6 +18,7 @@ OpenLDAP 2.2.15 Engineering
 	Build environments
 		Added additional res_query detection for MacOS X
 		Added default ldapi:// SSF build setting
+		Fixed OPENLDAP_FD_SETSIZE macro handlling
 
 OpenLDAP 2.2.14 Release
 	Fixed back-bdb ignore deadlock bug (ITS#3188)
