@@ -417,7 +417,7 @@ if test $ol_enable_spasswd = yes ; then
 	if test $ol_with_cyrus_sasl = no ; then
 		AC_MSG_ERROR([options require --with-cyrus-sasl])
 	fi
-	ol_with_cyrus_sasl=yes
+	ol_link_spasswd=yes
 fi
 
 AC_MSG_RESULT(done)
