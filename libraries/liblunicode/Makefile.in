@@ -29,7 +29,7 @@ XLIBS = $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-uctable.h: $(srcdir)/UnicodeData.txt $(srcdir)/CompositionExclusions.txt
+uctable.h: ucgendat.c $(srcdir)/UnicodeData.txt $(srcdir)/CompositionExclusions.txt
 	$(MAKE) ucgendat
 	./ucgendat $(srcdir)/UnicodeData.txt -x $(srcdir)/CompositionExclusions.txt
 

@@ -1805,9 +1805,9 @@ write_cdata(char *opath)
     if (ncodes_used > 0) {
 	for (i = 0; i<ncodes_used; i++) {
 	    if (i) fprintf(out, ",");
-	    if (!(i&3)) fprintf(out, "\n\t");
+	    if (!(i&1)) fprintf(out, "\n\t");
 	    else fprintf(out, " ");
-	    fprintf(out, "0x%08x", ncodes[i]);
+	    fprintf(out, "0x%08x, 0x%08x", ncodes[i].code, ncodes[i].idx);
 	}
 	fprintf(out, "\n};\n\n");
 

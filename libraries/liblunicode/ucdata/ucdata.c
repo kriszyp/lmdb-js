@@ -1378,7 +1378,7 @@ main(void)
     ac_uint4 i, lo, *dec;
     struct ucnumber num;
 
-    ucdata_setup(".");
+/*    ucdata_setup("."); */
 
     if (ucisweak(0x30))
       printf("WEAK\n");
@@ -1490,7 +1490,7 @@ main(void)
     else
       printf("UCGETNUMBER: 0xff19 = %d\n", num.numerator);
 
-    ucdata_cleanup();
+/*    ucdata_cleanup(); */
     exit(0);
 }
 
