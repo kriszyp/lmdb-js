@@ -234,7 +234,7 @@ static int str2scope( const char *p )
 	if ( strcasecmp( p, "one" ) == 0 ) {
 		return LDAP_SCOPE_ONELEVEL;
 
-	} else if ( strcasecmp( p, "onetree" ) == 0 ) {
+	} else if ( strcasecmp( p, "onelevel" ) == 0 ) {
 		return LDAP_SCOPE_ONELEVEL;
 
 	} else if ( strcasecmp( p, "base" ) == 0 ) {
