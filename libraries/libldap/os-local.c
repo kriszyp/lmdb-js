@@ -247,6 +247,14 @@ sendcred:
 	{
 		fd_set wfds, *z=NULL;
 
+#ifdef FD_SETSIZE
+		if ( s >= FD_SETSIZE ) {
+			rc = AC_SOCKET_ERROR;
+			tcp_close( s );
+			ldap_pvt_set_errno( EMFILE );
+			return rc;
+		}
+#endif
 		do { 
 			FD_ZERO(&wfds);
 			FD_SET(s, &wfds );

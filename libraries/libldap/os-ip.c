@@ -282,6 +282,15 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 #ifdef HAVE_WINSOCK
 		fd_set		efds;
 #endif
+
+#ifdef FD_SETSIZE
+		if ( s >= FD_SETSIZE ) {
+			rc = AC_SOCKET_ERROR;
+			tcp_close( s );
+			ldap_pvt_set_errno( EMFILE );
+			return rc;
+		}
+#endif
 		FD_ZERO(&wfds);
 		FD_SET(s, &wfds );
 
