@@ -432,11 +432,11 @@ dnl Check to see if we should not declare strdup if we have it
 dnl
 AC_DEFUN([OL_DECL_STRDUP],
 [
-AC_MSG_CHECKING([strdup decleration])
+AC_MSG_CHECKING([strdup declaration])
 AC_CACHE_VAL(ol_cv_dcl_strdup,[
 	AC_TRY_COMPILE([
 #include <string.h> ],
-	[extern char *strdup()],
+	[extern char *strdup();],
 	[ol_cv_dcl_strdup=yes],
 	[ol_cv_dcl_strdup=no])])
 AC_MSG_RESULT($ol_cv_dcl_strdup)
