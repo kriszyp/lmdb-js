@@ -39,6 +39,7 @@ do_compare(
 	int rc = LDAP_SUCCESS;
 	const char *text = NULL;
 
+	ava.aa_desc = NULL;
 	desc.bv_val = NULL;
 	value.bv_val = NULL;
 
@@ -93,7 +94,6 @@ do_compare(
 		goto cleanup;
 	}
 
-	ava.aa_desc = NULL;
 	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc, NULL,
