@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.11 Engineering
+OpenLDAP 2.0.11 Release
 	Fix attribute parse bug (ITS#1159)
 
 OpenLDAP 2.0.10 Release
