@@ -1104,7 +1104,7 @@ send_pagerequest_response(
 	LDAP_LOG ( OPERATION, ENTRY,
 		"send_pagerequest_response: lastid: (0x%08lx) "
 		"nentries: (0x%081x)\n", 
-		lastid, nentries );
+		lastid, nentries, NULL );
 #else
 	Debug(LDAP_DEBUG_ARGS, "send_pagerequest_response: lastid: (0x%08lx) "
 			"nentries: (0x%081x)\n", lastid, nentries, NULL );

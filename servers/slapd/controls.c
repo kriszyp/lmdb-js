@@ -467,7 +467,7 @@ static int parseProxyAuthz (
 
 	if( ctrl->ldctl_value.bv_len == 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, TRACE, 
+		LDAP_LOG( OPERATION, RESULTS, 
 			"parseProxyAuthz: conn=%d anonymous\n", 
 			conn->c_connid, 0, 0 );
 #else
@@ -498,7 +498,7 @@ static int parseProxyAuthz (
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, TRACE, 
+	LDAP_LOG( OPERATION, RESULTS, 
 		"parseProxyAuthz: conn=%d \"%s\"\n", 
 		conn->c_connid,
 		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
