@@ -15,7 +15,7 @@ LDAP_BEGIN_DECL
 Entry *bdb_deref_internal_r LDAP_P((
 	BackendDB *be,
 	Entry *e,
-	const char *dn,
+	struct berval *dn,
 	int *err,
 	Entry **matched,
 	const char **text ));

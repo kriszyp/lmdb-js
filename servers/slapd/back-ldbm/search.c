@@ -79,7 +79,7 @@ ldbm_back_search(
 		
 	} else if ( deref & LDAP_DEREF_FINDING ) {
 		/* deref dn and get entry with reader lock */
-		e = deref_dn_r( be, nbase->bv_val, &err, &matched, &text );
+		e = deref_dn_r( be, nbase, &err, &matched, &text );
 
 		if( err == LDAP_NO_SUCH_OBJECT ) err = LDAP_REFERRAL;
 

@@ -31,7 +31,7 @@ static int dnlist_subordinate(
 Entry *deref_internal_r(
 	Backend*	be,
 	Entry*		alias,
-	const char*		dn_in,
+	struct berval*	dn_in,
 	int*		err,
 	Entry**		matched,
 	const char**		text )
@@ -51,7 +51,7 @@ Entry *deref_internal_r(
 	*text = NULL;
 
 	if( alias == NULL ) {
-		dn = ch_strdup( dn_in );
+		dn = ch_strdup( dn_in->bv_val );
 		entry = dn2entry_r( be, dn, &sup );
 
 	} else {

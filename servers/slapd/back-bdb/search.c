@@ -73,7 +73,7 @@ bdb_search(
 #ifdef BDB_ALIASES
 	/* get entry with reader lock */
 	if ( deref & LDAP_DEREF_FINDING ) {
-		e = deref_dn_r( be, nbase->bv_val, &err, &matched, &text );
+		e = deref_dn_r( be, nbase-, &err, &matched, &text );
 
 	} else
 #endif
