@@ -243,7 +243,6 @@ str2entry( char *s )
 		nvalsp = NULL;
 		nvals[0].bv_val = NULL;
 
-#if 0
 		if( ad->ad_type->sat_equality &&
 			ad->ad_type->sat_equality->smr_match &&
 			ad->ad_type->sat_syntax->ssyn_normalize )
@@ -259,20 +258,19 @@ str2entry( char *s )
 #else
 				Debug( LDAP_DEBUG_ANY,
 			   		"<= str2entry NULL (ssyn_normalize %d)\n", rc, 0, 0 );
+#endif
 
 				entry_free( e );
 				free( vals[0].bv_val );
 				free( type );
 				return NULL;
 			}
-#endif
 
 			nvals[1].bv_len = 0;
 			nvals[1].bv_val = NULL;
 
 			nvalsp = &nvals[0];
 		}
-#endif
 #endif
 
 #ifdef SLAP_NVALUES
@@ -596,7 +594,7 @@ int entry_encode(Entry *e, struct berval *bv)
  */
 int entry_decode(struct berval *bv, Entry **e)
 {
-	int i, j;
+	int i, j, count;
 	int rc;
 	Attribute *a;
 	Entry *x;
@@ -669,7 +667,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		bptr = (BerVarray)(a+1);
 		a->a_vals = bptr;
 		a->a_flags = 0;
-		j = entry_getlen(&ptr);
+		count = j = entry_getlen(&ptr);
 
 		while (j) {
 			i = entry_getlen(&ptr);
@@ -682,9 +680,37 @@ int entry_decode(struct berval *bv, Entry **e)
 		bptr->bv_val = NULL;
 		bptr->bv_len = 0;
 		bptr++;
+
+#ifdef SLAP_NVALUES
+		if( count && ad->ad_type->sat_equality &&
+			ad->ad_type->sat_equality->smr_match &&
+			ad->ad_type->sat_syntax->ssyn_normalize )
+		{
+			a->a_nvals = ch_malloc((count+1)*sizeof(struct berval));
+
+			for(j=0; j<count; j++) {
+				rc = ad->ad_type->sat_syntax->ssyn_normalize(
+					ad->ad_type->sat_syntax,
+					&a->a_vals[j], &a->a_nvals[j] );
+
+				if( rc ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( OPERATION, DETAIL1,
+						"str2entry:  NULL (ssyn_normalize %d)\n" , rc, 0, 0 );
+#else
+					Debug( LDAP_DEBUG_ANY,
+				   		"<= str2entry NULL (ssyn_normalize %d)\n", rc, 0, 0 );
+#endif
+
+					return rc;
+				}
+			}
+		}
+#endif
+
 	}
-	if (a)
-		a->a_next = NULL;
+
+	if (a) a->a_next = NULL;
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, DETAIL1, "entry_decode:  %s\n", x->e_dn, 0, 0 );
 #else
