@@ -2631,6 +2631,9 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 #define SLAP_SLAB_STACK 1
 #define SLAP_SLAB_SOBLOCK 64
 
+#define SLAP_ZONE_ALLOC 1
+#undef SLAP_ZONE_ALLOC
+
 #if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
 /* use librewrite for sasl-regexp */
 #define SLAP_AUTH_REWRITE	1
@@ -2848,6 +2851,38 @@ struct slab_heap {
     LDAP_LIST_HEAD( sh_freelist, slab_object ) *sh_free;
 	LDAP_LIST_HEAD( sh_so, slab_object ) sh_sopool;
 };
+
+#ifdef SLAP_ZONE_ALLOC
+#define SLAP_ZONE_SIZE 0x80000		/* 512KB */
+#define SLAP_ZONE_SHIFT 19
+#define SLAP_ZONE_INITSIZE 0x800000 /* 8MB */
+#define SLAP_ZONE_DELTA 0x800000	/* 8MB */
+#define SLAP_ZONE_ZOBLOCK 256
+
+struct zone_object {
+	void *zo_ptr;
+	int zo_siz;
+	int zo_idx;
+	int zo_blockhead;
+	LDAP_LIST_ENTRY(zone_object) zo_link;
+};
+
+struct zone_heap {
+	int zh_fd;
+	int zh_zonesize;
+	int zh_zoneorder;
+	int zh_numzones;
+	int zh_maxzones;
+	int zh_deltazones;
+	void **zh_zones;
+	Avlnode *zh_zonetree;
+	unsigned char ***zh_maps;
+	unsigned long *zh_seqno;
+	LDAP_LIST_HEAD( zh_freelist, zone_object ) *zh_free;
+	LDAP_LIST_HEAD( zh_so, zone_object ) zh_zopool;
+	ldap_pvt_thread_mutex_t zh_mutex;
+};
+#endif
 
 #define SLAP_BACKEND_INIT_MODULE(b) \
 	int \
