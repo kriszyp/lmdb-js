@@ -1238,7 +1238,7 @@ read_one_record( FILE *fp )
     while ( fgets( line, sizeof(line), fp ) != NULL ) {
     	int len = strlen( line );
 
-		if( len < 2 || ( len == 3 && *line == '\r' )) {
+		if( len < 2 || ( len == 2 && *line == '\r' )) {
 			if( buf == NULL ) {
 				continue;
 			} else {
