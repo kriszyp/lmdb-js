@@ -165,8 +165,7 @@ int ldbm_initialize( const char* home )
 	if ( err ) {
 #ifdef LDAP_SYSLOG
 		syslog( LOG_INFO, "ldbm_initialize(): "
-			"FATAL error in db_appinit() : %s (%d)\n",
-			db_strerror( err ), err );
+			"FATAL error (%d) in db_appinit()\n", err );
 #endif
 	 	return( 1 );
 	}
