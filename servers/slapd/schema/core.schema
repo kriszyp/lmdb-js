@@ -585,16 +585,16 @@ attributetype ( 1.3.6.1.4.1.4203.666.1.2
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{32}
 	NO-USER-MODIFICATION USAGE dSAOperation )
 
-attributetype ( 1.3.6.1.4.1.4203.666.1.3
+attributetype ( 1.3.6.1.4.1.4203.1.3.1
 	NAME 'entry'
-	DESC 'OpenLDAP ACL entry pseudo attribute'
-	SYNTAX 1.3.6.1.4.1.4203.666.2.3
+	DESC 'OpenLDAP ACL entry pseudo-attribute'
+	SYNTAX 1.3.6.1.4.1.4203.1.1.1
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
-attributetype ( 1.3.6.1.4.1.4203.666.1.4
+attributetype ( 1.3.6.1.4.1.4203.1.3.2
 	NAME 'children'
-	DESC 'OpenLDAP ACL children pseudo attribute'
-	SYNTAX 1.3.6.1.4.1.4203.666.2.3
+	DESC 'OpenLDAP ACL children pseudo-attribute'
+	SYNTAX 1.3.6.1.4.1.4203.1.1.1
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
 attributetype ( 1.3.6.1.4.1.4203.666.1.5
