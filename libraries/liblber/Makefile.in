@@ -40,5 +40,5 @@ idtest:  $(XLIBS) idtest.o
 install-local: FORCE
 	-$(MKDIR) $(DESTDIR)$(libdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
-	$(LTFINISH) $(DESTDIR)$libdir
+	$(LTFINISH) $(DESTDIR)$(libdir)
 
