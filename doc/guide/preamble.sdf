@@ -187,6 +187,7 @@ URI|Uniform Resource Identifier
 URL|Uniform Resource Locator
 WWW|World Wide Web
 X.500|X.500 Directory Services
+X.509|X.509 Public Key and Attribute Certificate Frameworks
 !endblock
 
 !block references; data
