@@ -1046,7 +1046,6 @@ int
 ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 {
 	Sockbuf *sb = conn->lconn_sb;
-	void *ctx = ld->ld_defconn->lconn_tls_ctx;
 	char *host;
 	void *ssl;
 
@@ -1074,8 +1073,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	 */
 
 	ld->ld_errno = ldap_pvt_tls_check_hostname( ssl, host );
-	if (ld->ld_errno != LDAP_SUCCESS)
-	{
+	if (ld->ld_errno != LDAP_SUCCESS) {
 		return ld->ld_errno;
 	}
 
@@ -1090,7 +1088,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 		ssf = ldap_pvt_tls_get_strength( ssl );
 		authid = ldap_pvt_tls_get_peer( ssl );
 
-		(void) ldap_int_sasl_external( ld, authid, ssf );
+		(void) ldap_int_sasl_external( ld, conn, authid, ssf );
 	}
 
 	return LDAP_SUCCESS;
