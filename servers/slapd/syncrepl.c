@@ -1143,7 +1143,7 @@ syncrepl_entry(
 	SlapReply	rs_add = {REP_RESULT};
 	SlapReply	rs_modify = {REP_RESULT};
 	Filter f = {0};
-	AttributeAssertion ava = {0};
+	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
 	int rc = LDAP_SUCCESS;
 	int ret = LDAP_SUCCESS;
 
@@ -1538,7 +1538,7 @@ syncrepl_del_nonpresent(
 
 	if ( uuids ) {
 		Filter uf;
-		AttributeAssertion eq;
+		AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
 		int i;
 
 		op->ors_attrsonly = 1;

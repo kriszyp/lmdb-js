@@ -153,7 +153,7 @@ static int search_aliases(
 	Entry *matched, *a;
 	EntryInfo *ei;
 	struct berval bv_alias = BER_BVC( "alias" );
-	AttributeAssertion aa_alias;
+	AttributeAssertion aa_alias = { NULL, BER_BVNULL, NULL };
 	Filter	af;
 	DB_LOCK locka, lockr;
 	int first = 1;
@@ -1022,10 +1022,10 @@ static int search_candidates(
 	int rc, depth = 1;
 	Filter		f, rf, xf, nf;
 	ID		*stack;
-	AttributeAssertion aa_ref;
+	AttributeAssertion aa_ref = { NULL, BER_BVNULL, NULL };
 #ifdef BDB_SUBENTRIES
 	Filter	sf;
-	AttributeAssertion aa_subentry;
+	AttributeAssertion aa_subentry = { NULL, BER_BVNULL, NULL };
 #endif
 
 	/*
