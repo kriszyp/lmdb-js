@@ -104,7 +104,7 @@ ldbm_back_open(
 	int rc;
 
 	/* initialize the underlying database system */
-	rc = ldbm_initialize();
+	rc = ldbm_initialize( NULL );
 
 	return rc;
 }

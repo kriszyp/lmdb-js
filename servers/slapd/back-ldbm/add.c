@@ -191,6 +191,26 @@ ldbm_back_add(
 
 	e->e_id = next_id( be );
 
+	if( e->e_id == NOID ) {
+		if( p != NULL) {
+			/* free parent and writer lock */
+			cache_return_entry_w( &li->li_cache, p ); 
+		}
+
+		if ( rootlock ) {
+			/* release root lock */
+			ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
+		}
+
+		Debug( LDAP_DEBUG_ANY, "ldbm_add: next_id failed\n",
+			0, 0, 0 );
+
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "next_id add failed", NULL, NULL );
+
+		return( -1 );
+	}
+
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
 	 */

@@ -286,6 +286,8 @@ LDAP_SLAPD_F (Connection *) connection_first LDAP_P((ber_socket_t *));
 LDAP_SLAPD_F (Connection *) connection_next LDAP_P((Connection *, ber_socket_t *));
 LDAP_SLAPD_F (void) connection_done LDAP_P((Connection *));
 
+LDAP_SLAPD_F (void) connection2anonymous LDAP_P((Connection *));
+
 /*
  * dn.c
  */
@@ -312,8 +314,11 @@ LDAP_SLAPD_F (int) entry_destroy LDAP_P((void));
 
 LDAP_SLAPD_F (Entry *) str2entry LDAP_P(( char	*s ));
 LDAP_SLAPD_F (char *) entry2str LDAP_P(( Entry *e, int *len ));
-LDAP_SLAPD_F (void) entry_free LDAP_P(( Entry *e ));
 
+LDAP_SLAPD_F (int) entry_decode LDAP_P(( struct berval *bv, Entry **e ));
+LDAP_SLAPD_F (int) entry_encode LDAP_P(( Entry *e, struct berval **bv ));
+
+LDAP_SLAPD_F (void) entry_free LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) entry_cmp LDAP_P(( Entry *a, Entry *b ));
 LDAP_SLAPD_F (int) entry_dn_cmp LDAP_P(( Entry *a, Entry *b ));
 LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( Entry *a, Entry *b ));
@@ -753,6 +758,7 @@ LDAP_SLAPD_F (int)	krbv4_ldap_auth();
  */
 
 LDAP_SLAPD_F (slap_mask_t)	global_restrictops;
+LDAP_SLAPD_F (slap_mask_t)	global_allows;
 LDAP_SLAPD_F (slap_mask_t)	global_disallows;
 LDAP_SLAPD_F (slap_mask_t)	global_requires;
 LDAP_SLAPD_F (slap_ssf_set_t)	global_ssf_set;
@@ -772,6 +778,8 @@ LDAP_SLAPD_F (char)		*global_realm;
 LDAP_SLAPD_F (char)		*default_passwd_hash;
 LDAP_SLAPD_F (int)		lber_debug;
 LDAP_SLAPD_F (int)		ldap_syslog;
+LDAP_SLAPD_F (char *)	default_search_base;
+LDAP_SLAPD_F (char *)	default_search_nbase;
 
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	num_sent_mutex;
 LDAP_SLAPD_F (long)		num_bytes_sent;

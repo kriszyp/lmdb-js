@@ -256,7 +256,7 @@ typedef struct slap_syntax {
 #define slap_syntax_is_ber(s)		slap_syntax_is_flag((s),SLAP_SYNTAX_BER)
 #define slap_syntax_is_hidden(s)	slap_syntax_is_flag((s),SLAP_SYNTAX_HIDE)
 
-/* XXX -> UCS-2 Converter */
+/* X -> Y Converter */
 typedef int slap_mr_convert_func LDAP_P((
 	struct berval * in,
 	struct berval ** out ));
@@ -455,6 +455,7 @@ struct slap_internal_schema {
 
 	/* Other attributes descriptions */
 	AttributeDescription *si_ad_userPassword;
+	AttributeDescription *si_ad_authPassword;
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	AttributeDescription *si_ad_krbName;
 #endif
@@ -853,6 +854,8 @@ struct slap_backend_db {
 	| SLAP_RESTRICT_OP_MODIFY \
 	| SLAP_RESTRICT_OP_RENAME )
 
+#define SLAP_ALLOW_TLS_2_ANON	0x0001U /* StartTLS -> Anonymous */
+
 #define SLAP_DISALLOW_BIND_V2	0x0001U	/* LDAPv2 bind */
 #define SLAP_DISALLOW_BIND_ANON 0x0002U /* no anonymous */
 #define SLAP_DISALLOW_BIND_ANON_CRED \
@@ -860,13 +863,17 @@ struct slap_backend_db {
 #define SLAP_DISALLOW_BIND_ANON_DN \
 								0x0008U /* dn should be empty */
 
+#define SLAP_DISALLOW_BIND_SIMPLE	0x0010U	/* simple authentication */
+#define SLAP_DISALLOW_BIND_KRBV4	0x0020U /* Kerberos V4 authentication */
+
+#define SLAP_DISALLOW_TLS_AUTHC	0x0100U	/* TLS while authenticated */
+
 	slap_mask_t	be_requires;	/* pre-operation requirements */
 #define SLAP_REQUIRE_BIND		0x0001U	/* bind before op */
 #define SLAP_REQUIRE_LDAP_V3	0x0002U	/* LDAPv3 before op */
 #define SLAP_REQUIRE_AUTHC		0x0004U	/* authentication before op */
 #define SLAP_REQUIRE_SASL		0x0008U	/* SASL before op  */
 #define SLAP_REQUIRE_STRONG		0x0010U	/* strong authentication before op */
-
 
 	/* Required Security Strength Factor */
 	slap_ssf_set_t be_ssf_set;

@@ -3,19 +3,30 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.X Engineering
 	Fixed KBIND (ITS#717)
 	Fixed clients/tools -R handling (ITS#726)
+	Fixed -lldap TLS issues (ITS#733)
+	Fixed -lldap_r NT threads (ITS#732)
 	Fixed ldappasswd -A -S crash (ITS#714)
 	Fixed ldappasswd user argument usage
 	Fixed slapd disallow bind_anon (ITS#721)
 	Fixed slapd IPv6 issues (ITS#716)
 	Fixed slapd MIT KPASSWD Compatibility (ITS#715)
 	Fixed slapd time syntax routines (ITS#713)
-	Updated slapd root DSE inappropriate op handling
+	Fixed slapd/ldbm DB_PRIVATE not set bug (ITS#725)
+	Fixed slapd/ldbm nextid reporting bug
+	Fixed slapd syntaxes/mr routines (ITS#739)
+	Fixed slurpd -r buffer overflow (ITS#722)
+	Updated slapd rootDSE inappropriate op handling
+	Added slapd syntax/mr routines
+	Added slapd allow/disallow options
+	Added slapd defaultSearchBase and DN verify (ITS#723)
 	Build Environment
 		Added test000-rootdse
+		Added Corba & Java Schema
+		Updated MSVC projects for BDB 3.1
 		Fixed Kerberos detection (ITS#717)
 		Remove incompatible contribWare
 	Documentation
-		Fixed ldappasswd(1) user argument usage
+		Fixed ldappasswd(1) usage
 		Fixed ldapmodify(1) (ITS#719)
 		Updated release documents (ITS#720)
 

@@ -41,7 +41,11 @@ cat $SEARCHOUT
 if test $RC != 0 ; then
 	echo ">>>>> Test failed"
 else
-	echo ">>>>> Test succeeded"
+	if grep "TLS:" $SEARCHOUT; then
+		RC=-1
+	else
+	    echo ">>>>> Test succeeded"
+	fi
 fi
 
 

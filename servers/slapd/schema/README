@@ -2,9 +2,11 @@ This directory contains schema definitions for use with slapd(5).
 
 File                    Description
 ----                    -----------
+corba.schema            Corba Object (RFC 2714) schema
 core.schema             OpenLDAP "core"
 cosine.schema           COSINE Pilot schema
 inetorgperson.schema    InetOrgPerson schema
+java.schema             Java Object (RFC 2713) schema
 krb5-kdc.schema         Kerberos V KDC schema
 microsoft.ext.schema    Microsoft schema
 microsoft.schema        Microsoft schema
