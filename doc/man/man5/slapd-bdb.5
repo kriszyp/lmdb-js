@@ -116,6 +116,9 @@ each indexed attribute is processed individually, using multiple passes
 through the entire database. This option improves slapindex performance
 when the database size exceeds the dbcache size. When the dbcache is
 large enough, this option is not needed and will decrease performance.
+Also by default, slapadd performs full indexing and so a separate slapindex
+run is not needed. With this option, slapadd does no indexing and slapindex
+must be used.
 .TP
 .B lockdetect {oldest|youngest|fewest|random|default}
 Specify which transaction to abort when a deadlock is detected.
