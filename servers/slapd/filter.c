@@ -135,6 +135,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
 		if ( (err = get_filter_list( conn, ber, &f->f_and, &ftmp ))
 		    == 0 ) {
+		  if (ftmp == NULL) ftmp = strdup("");
 			*fstr = ch_malloc( 4 + strlen( ftmp ) );
 			sprintf( *fstr, "(&%s)", ftmp );
 			free( ftmp );
@@ -145,6 +146,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		Debug( LDAP_DEBUG_FILTER, "OR\n", 0, 0, 0 );
 		if ( (err = get_filter_list( conn, ber, &f->f_or, &ftmp ))
 		    == 0 ) {
+		  if (ftmp == NULL) ftmp = strdup("");
 			*fstr = ch_malloc( 4 + strlen( ftmp ) );
 			sprintf( *fstr, "(|%s)", ftmp );
 			free( ftmp );
@@ -155,6 +157,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		Debug( LDAP_DEBUG_FILTER, "NOT\n", 0, 0, 0 );
 		(void) ber_skip_tag( ber, &len );
 		if ( (err = get_filter( conn, ber, &f->f_not, &ftmp )) == 0 ) {
+		  if (ftmp == NULL) ftmp = strdup("");
 			*fstr = ch_malloc( 4 + strlen( ftmp ) );
 			sprintf( *fstr, "(!%s)", ftmp );
 			free( ftmp );
