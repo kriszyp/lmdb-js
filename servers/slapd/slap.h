@@ -178,12 +178,29 @@ typedef int slap_mr_match_func LDAP_P((
 	struct berval * value,
 	struct berval * assertValue ));
 
+/* Index generation function */
+typedef int slap_mr_indexer_func LDAP_P((
+	struct slap_syntax *syntax,	/* syntax of stored value */
+	struct slap_matching_rule *mr,
+	struct berval **values,
+	struct berval **keys ));
+
+struct slap_filter; 	/* forward declaration */
+/* Filter index function */
+typedef int slap_mr_filter_func LDAP_P((
+	struct slap_syntax *syntax,	/* syntax of stored value */
+	struct slap_matching_rule *mr,
+	struct slap_filter *filter,
+	struct berval **keys ));
+
 typedef struct slap_matching_rule {
 	LDAP_MATCHING_RULE		smr_mrule;
+	Syntax					*smr_syntax;
 	slap_mr_convert_func	*smr_convert;
 	slap_mr_normalize_func	*smr_normalize;
 	slap_mr_match_func		*smr_match;
-	Syntax					*smr_syntax;
+	slap_mr_indexer_func	*smr_indexer;
+	slap_mr_filter_func		*smr_filter;
 	struct slap_matching_rule	*smr_next;
 #define smr_oid				smr_mrule.mr_oid
 #define smr_names			smr_mrule.mr_names
