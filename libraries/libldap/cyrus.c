@@ -697,7 +697,7 @@ int ldap_pvt_sasl_secprops(
 			"minssf=", sizeof("minssf")) )
 		{
 			if( isdigit( props[i][sizeof("minssf")] ) ) {
-				got_max_ssf++;
+				got_min_ssf++;
 				min_ssf = atoi( &props[i][sizeof("minssf")] );
 			} else {
 				return LDAP_NOT_SUPPORTED;
