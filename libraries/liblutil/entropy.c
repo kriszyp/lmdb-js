@@ -24,6 +24,10 @@
 /*
  * lutil_entropy() provides nbytes of entropy in buf.
  * Quality offerred is suitable for one-time uses, such as "once" keys.
+ *
+ * Note:  Callers are encouraged to provide additional bytes of
+ * of entropy in the buf argument.  This information is used in
+ * fallback mode to improve the quality of bytes returned.
  */
 int lutil_entropy( char *buf, int nbytes )
 {
@@ -75,7 +79,7 @@ int lutil_entropy( char *buf, int nbytes )
 		 *	MD5 is a strong cryptographic hash, this should
 		 *	be fairly resistant to attack
 		 */
-		static int counter = 0;
+		static sig_atomic_t counter = 0;
 		int n;
 
 		struct rdata_s {
@@ -119,10 +123,14 @@ int lutil_entropy( char *buf, int nbytes )
 
 			lutil_MD5Init( &ctx );
 			lutil_MD5Update( &ctx, (char *) &rdata, sizeof( rdata ) );
+
+			/* use caller to provided information */
+			lutil_MD5Update( &ctx, (char *) &buf, nbytes );
+
 			lutil_MD5Final( digest, &ctx );
 
 			memcpy( &buf[n], digest,
-				nbytes - n > 16 ? 16 : nbytes - n );
+				nbytes - n >= 16 ? 16 : nbytes - n );
 		}
 
 		return 0;
