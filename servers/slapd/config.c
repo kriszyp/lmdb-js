@@ -3002,7 +3002,7 @@ parse_syncrepl_line(
 			struct berval bv;
 			val = cargv[ i ] + sizeof( SEARCHBASESTR );
 			if ( si->si_base.bv_val ) {
-				ch_free( si->si_base->bv_val );
+				ch_free( si->si_base.bv_val );
 			}
 			ber_str2bv( val, 0, 0, &bv );
 			if ( dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL )) {
