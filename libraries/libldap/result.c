@@ -542,7 +542,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 			prev->lm_next = l->lm_next;
 		*result = l;
 		ld->ld_errno = LDAP_SUCCESS;
+#ifndef ultrix
+		return( l->lm_msgtype );
+#else
 		return( tag );
+#endif
 	}
 
 	return( -2 );	/* continue looking */
