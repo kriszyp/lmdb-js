@@ -992,9 +992,7 @@ tls_seed_PRNG( const char *randfile )
 {
 #ifndef URANDOM_DEVICE
 	/* no /dev/urandom (or equiv) */
-
-	char buffer[1024];
-	static int egdsocket = 0;
+	char buffer[MAXPATHLEN];
 
 	if (randfile == NULL) {
 		/* The seed file is $RANDFILE if defined, otherwise $HOME/.rnd.
@@ -1002,17 +1000,16 @@ tls_seed_PRNG( const char *randfile )
 		 * an error occurs.    - From RAND_file_name() man page.
 		 * The fact is that when $HOME is NULL, .rnd is used.
 		 */
-		randfile = RAND_file_name(buffer, sizeof( buffer ));
+		randfile = RAND_file_name( buffer, sizeof( buffer ) );
 
 	} else if (RAND_egd(randfile) > 0) {
 		/* EGD socket */
-		egdsocket = 1;
 		return 0;
 	}
 
 	if (randfile == NULL) {
 		Debug( LDAP_DEBUG_ANY,
-			"TLS: Use configuration file or $RANDFILE to define seed file",
+			"TLS: Use configuration file or $RANDFILE to define seed PRNG",
 			0, 0, 0);
 		return -1;
 	}
@@ -1021,7 +1018,7 @@ tls_seed_PRNG( const char *randfile )
 
 	if (RAND_status() == 0) {
 		Debug( LDAP_DEBUG_ANY,
-			"TLS: PRNG has not been seeded with enough data",
+			"TLS: PRNG not been seeded with enough data",
 			0, 0, 0);
 		return -1;
 	}
