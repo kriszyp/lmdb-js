@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 # These definitions are from Microsoft's Active Directory.
 # They were gathered using the subschemaSubentry object of
 # Windows 2000 Advanced Server Release Candidate 2.
