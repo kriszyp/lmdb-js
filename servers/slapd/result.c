@@ -746,7 +746,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 {
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *) &berbuf;
-	Attribute	*a, *aa;
+	Attribute	*a, *aa = NULL;
 	int		i, j, rc=-1, bytes;
 	char		*edn;
 	int		userattrs;
@@ -1196,7 +1196,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER,
 				"encoding description error" );
-			attrs_free( aa );
 			goto error_return;
 		}
 
@@ -1238,7 +1237,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 					if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 					send_ldap_error( op, rs, LDAP_OTHER,
 						"encoding values error" );
-					attrs_free( aa );
 					goto error_return;
 				}
 			}
@@ -1257,7 +1255,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 			send_ldap_error( op, rs, LDAP_OTHER, "encode end error" );
-			attrs_free( aa );
 			goto error_return;
 		}
 	}
@@ -1308,7 +1305,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		e_flags = NULL;
 	}
 
-	attrs_free( aa );
 	rc = ber_printf( ber, /*{{*/ "}N}" );
 
 	if( rc != -1 ) {
@@ -1386,6 +1382,10 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 error_return:;
 	if ( e_flags ) {
 		slap_sl_free( e_flags, op->o_tmpmemctx );
+	}
+
+	if ( aa ) {
+		attrs_free( aa );
 	}
 
 	if ( op->o_callback ) {
