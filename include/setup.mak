@@ -23,7 +23,7 @@ ol_string="$(ol_package) $(ol_version)-$(ol_type)"
 .nt.h:
 	copy $*.nt $*.h
 
-all: setup.txt ol_version0.h
+all: setup.txt
 
 setup.txt: lber_types.h ldap_config.h ldap_features.h portable.h setup.mak
 	copy setup.mak setup.txt
@@ -53,5 +53,3 @@ i
 e
 <<NOKEEP
 
-ol_version0.h:	../build/version.h
-	$(CPP) /EP -D_OLV_WHO=\"$(USERNAME)@$(COMPUTERNAME)\" $? > $@
