@@ -192,10 +192,6 @@ SOURCE=.\repl.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\result.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\schema.c
 # End Source File
 # Begin Source File
