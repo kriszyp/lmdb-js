@@ -119,9 +119,6 @@
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
-/* define this if TIOCGWINSZ is defined in sys/ioctl.h */
-#undef GWINSZ_IN_SYS_IOCTL
-
 /* define if you have berkeley db */
 #undef HAVE_BERKELEY_DB
 
@@ -172,9 +169,6 @@
 
 /* define if your POSIX Threads implementation is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
-
-/* define if you have ptrdiff_t */
-#undef HAVE_PTRDIFF_T
 
 /* define if you have res_search() */
 #ifdef __notdef__
@@ -583,6 +577,13 @@
 
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET
+
+/* Define if TIOCGWINSZ requires sys/ioctl.h */
+#undef GWINSZ_IN_SYS_IOCTL
+
+/* Define if system has ptrdiff_t type */
+#undef HAVE_PTRDIFF_T
+
 /* portable.h.bot begin */
 /*
  * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA

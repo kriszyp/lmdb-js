@@ -16,6 +16,8 @@ Changes included in OpenLDAP 1.2
 		Fixed mkdep to handle multiple dependent files on one line
 		Fixed openldap.m4 to "protect" shell variable
 		Fixed HAVE_PHREAD_FINAL typo
+		Fixed pthread detection on Digital UNIX
+		Updated to Autoconf 1.3 with aclocal from automake 1.4
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA

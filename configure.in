@@ -15,7 +15,7 @@ AM_INIT_AUTOMAKE(openldap,[1.2], [no ac_define])dnl
 dnl Do not use AutoConf 2.12; it produces a configuration script
 dnl that causes an "internal 2K buffer" error on HPUX when run
 dnl with /bin/sh.  Autoconf 2.10 seems to be okay.
-AC_PREREQ(2.10)dnl Required Autoconf version
+AC_PREREQ(2.13)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h)dnl
 
@@ -392,9 +392,36 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			AC_DEFINE(HAVE_LINUX_THREADS,1)
 		fi
 
-		dnl Now the hard part, how to link
+		dnl Now the hard part, how to link?
+		dnl
+		dnl currently supported checks:
+		dnl
+		dnl 0)	pthread_create() in $LIBS
+		dnl
+		dnl Check special pthread (final) flags
+		dnl 1)	pthread_create() with -kthread (FreeBSD)
+		dnl 2)	pthread_create() with -pthread (FreeBSD)
+		dnl 3)	pthread_create() with -pthreads (OSF/1)
+		dnl 4)	pthread_create() with -thread (?)
+		dnl
+		dnl Check pthread (final) libraries
+		dnl 5)	pthread_mutex_lock() in -lpthread -lexc (OSF/1)
+		dnl 6)	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
+		dnl 7)	pthread_create() in -lpthread (many)
+		dnl 8)	pthread_create() in -lc_r (FreeBSD)
+		dnl 9)	pthread_create() in -lpthreads (many)
+		dnl 10)	pthread_join() -Wl,-woff,85 -lpthreads (IRIX)
+		dnl 11)	pthread_create() in HP-UX -lpthread (HP-UX 11)
+		dnl
+		dnl Check pthread (draft4) flags (to be depreciated)
+		dnl 12)	pthread_create() with -threads (OSF/1)
+		dnl
+		dnl Check pthread (final) libraries (to be depreciated)
+		dnl 13)	pthread_mutex_lock() in -lpthreads -lexc (OSF/1)
+		dnl 14)	pthread_mutex_unlock() in -lpthreads -lmach -lexc -lc_r (OSF/1)
+		dnl
 
-		dnl Check for pthread support in current $LIBS
+		dnl pthread_create in $LIBS
 		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
 
 		if test $ol_link_threads = no ; then
@@ -491,11 +518,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		fi
 
 		if test $ol_link_threads = no ; then
-			dnl try DEC Threads -lpthreads -lmach -lexc -lc_r
+			dnl try DEC Threads -lpthread -lmach -lexc -lc_r
 			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_mutex_unlock, [
+			AC_CHECK_LIB(pthread, pthread_mutex_unlock, [
 				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc_r"
 				if test $ol_with_yielding_select = auto ; then
 					ol_with_yielding_select=yes
 				fi
@@ -570,6 +597,52 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 					ac_cv_func_pthread_attr_init=yes
 				fi
 			fi
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try -threads
+			AC_CACHE_CHECK([for pthread_create with -threads],
+				[ol_cv_thread_flag], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="-threads $LIBS"
+				AC_TRY_LINK([char pthread();],[
+					pthread_create();
+					], ol_cv_thread_flag=yes, ol_cv_thread_flag=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_thread_flag = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -threads"
+				ol_link_threads=posix
+			fi
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try DEC Threads -lpthreads -lexc
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthreads, pthread_mutex_lock, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lexc"
+				if test $ol_with_yielding_select = auto ; then
+					ol_with_yielding_select=yes
+				fi
+				],:,[-lexc])
+			LIBS="$save_LIBS"
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try DEC Threads -lpthreads -lmach -lexc -lc_r
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthreads, pthread_mutex_unlock, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
+				if test $ol_with_yielding_select = auto ; then
+					ol_with_yielding_select=yes
+				fi
+				],:,[-lmach -lexc -lc_r])
+			LIBS="$save_LIBS"
 		fi
 
 		if test $ol_link_threads != no ; then
