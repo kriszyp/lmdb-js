@@ -250,8 +250,9 @@ slap_tool_init(
 		/* If the named base is a glue master, operate on the
 		 * entire context
 		 */
-		if (SLAP_GLUE_INSTANCE(be))
+		if (SLAP_GLUE_INSTANCE(be)) {
 			nosubordinates = 1;
+		}
 
 	} else if ( dbnum == -1 ) {
 		be = &backends[dbnum=0];
@@ -263,6 +264,31 @@ slap_tool_init(
 				nosubordinates = 1;
 			}
 			be++;
+			dbnum++;
+		}
+
+
+		if ( dbnum < 0 ) {
+			fprintf( stderr, "No available database\n" );
+			exit( EXIT_FAILURE );
+		}
+		
+		if ( dbnum > (nbackends-1) ) {
+			fprintf( stderr, "Available database(s) "
+					"do not allow %s\n", name );
+			exit( EXIT_FAILURE );
+		}
+		
+		if ( nosubordinates == 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACKEND, ERR, 
+"The first database does not allow %s; using the first available one\n",
+				name, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+"The first database does not allow %s; using the first available one\n",
+				name, 0, 0 );
+#endif
 		}
 
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
