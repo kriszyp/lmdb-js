@@ -280,7 +280,7 @@ LDAP_SLAPD_F (char *) get_supported_ctrl LDAP_P((int index));
 /*
  * config.c
  */
-LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname ));
+LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 
 /*

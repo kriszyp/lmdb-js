@@ -405,7 +405,7 @@ int main( int argc, char **argv )
 	(void) ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
 #endif
 
-	if ( read_config( configfile ) != 0 ) {
+	if ( read_config( configfile, 0 ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
 
