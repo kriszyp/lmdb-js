@@ -811,7 +811,7 @@ domodify(
     struct berval	*bvp;
 
 	if ( dn == NULL ) {
-	fprintf( stderr, _("%s: no DN specified\n"), prog );
+	fprintf( stderr, "%s: no DN specified\n", prog );
 	return( LDAP_PARAM_ERROR );
 	}
 
