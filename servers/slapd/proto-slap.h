@@ -449,7 +449,9 @@ LIBSLAPD_F (Syntax *) syn_find_desc LDAP_P((const char *syndesc, int *slen));
 LIBSLAPD_F (int) syn_add LDAP_P((LDAP_SYNTAX *syn, slap_syntax_check_func *check, const char **err));
 LIBSLAPD_F (MatchingRule *) mr_find LDAP_P((const char *mrname));
 LIBSLAPD_F (int) mr_add LDAP_P((LDAP_MATCHING_RULE *mr, slap_mr_normalize_func *normalize, slap_mr_compare_func *compare, const char **err));
-LIBSLAPD_F (int) case_ignore_normalize LDAP_P((struct berval *val, struct berval **normalized));
+
+LIBSLAPD_F (int) caseIngoreIA5Normalize LDAP_P((struct berval *val, struct berval **normalized));
+
 LIBSLAPD_F (int) register_syntax LDAP_P((char *desc,	slap_syntax_check_func *check ));
 LIBSLAPD_F (int) register_matching_rule LDAP_P((char * desc,	slap_mr_normalize_func *normalize, slap_mr_compare_func *compare));
 LIBSLAPD_F (void) schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));

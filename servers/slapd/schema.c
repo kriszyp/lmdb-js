@@ -786,7 +786,7 @@ mr_add(
 }
 
 static int
-case_exact_normalize(
+caseExactIA5Normalize(
 	struct berval *val,
 	struct berval **normalized
 )
@@ -824,7 +824,7 @@ case_exact_normalize(
 }
 
 static int
-case_exact_compare(
+caseExactIA5Match(
 	struct berval *val1,
 	struct berval *val2
 )
@@ -833,7 +833,7 @@ case_exact_compare(
 }
 
 int
-case_ignore_normalize(
+caseIgnoreIA5Normalize(
 	struct berval *val,
 	struct berval **normalized
 )
@@ -871,7 +871,7 @@ case_ignore_normalize(
 }
 
 static int
-case_ignore_compare(
+caseIgnoreIA5Match(
 	struct berval *val1,
 	struct berval *val2
 )
@@ -1016,18 +1016,18 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )", NULL, NULL},
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-	 case_ignore_normalize, case_ignore_compare},
+	 caseIgnoreIA5Normalize, caseIgnoreIA5Match},
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-	 case_ignore_normalize, case_ignore_compare},
+	 caseIgnoreIA5Normalize, caseIgnoreIA5Match},
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-	 case_ignore_normalize, case_ignore_compare},
+	 caseIgnoreIA5Normalize, caseIgnoreIA5Match},
 	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-	 case_exact_normalize, case_exact_compare},
+	 caseExactIA5Normalize, caseExactIA5Match},
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-	 case_exact_normalize, case_exact_compare},
+	 caseExactIA5Normalize, caseExactIA5Match},
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
-	 case_exact_normalize, case_exact_compare},
+	 caseExactIA5Normalize, caseExactIA5Match},
 	{"( 2.5.13.8 NAME 'numericStringMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )", NULL, NULL},
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )", NULL, NULL},
@@ -1044,9 +1044,9 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", NULL, NULL},
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-	 case_exact_normalize, case_exact_compare},
+	 caseExactIA5Normalize, caseExactIA5Match},
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-	 case_ignore_normalize, case_ignore_compare},
+	 caseIgnoreIA5Normalize, caseIgnoreIA5Match},
 	{NULL, NULL, NULL}
 };
 
@@ -1072,9 +1072,9 @@ schema_init( void )
 	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
 		res = register_matching_rule( mrule_defs[i].mrd_desc,
 		    ( mrule_defs[i].mrd_normalize ?
-		      mrule_defs[i].mrd_normalize : case_ignore_normalize ),
+		      mrule_defs[i].mrd_normalize : caseIgnoreIA5Normalize ),
 		    ( mrule_defs[i].mrd_compare ?
-		      mrule_defs[i].mrd_compare : case_ignore_compare ) );
+		      mrule_defs[i].mrd_compare : caseIgnoreIA5Match ) );
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
