@@ -1611,8 +1611,9 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		if ( srs->sr_state.ctxcsn ) {
 			Attribute *a = attr_find( rs->sr_entry->e_attrs,
 				slap_schema.si_ad_entryCSN );
+			
 			/* Don't send the ctx entry twice */
-			if ( bvmatch( &a->a_nvals[0], srs->sr_state.ctxcsn ))
+			if ( a && bvmatch( &a->a_nvals[0], srs->sr_state.ctxcsn ) )
 				return LDAP_SUCCESS;
 		}
 		rs->sr_ctrls = op->o_tmpalloc( sizeof(LDAPControl *)*2,
