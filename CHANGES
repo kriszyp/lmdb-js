@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.30 Engineering
+OpenLDAP 2.1.30 Release
 	Fixed slapd userdb checkpass bug (ITS#3048)
 	Fixed back-ldbm IDL delete bug (ITS#3046)
 	Fixed libldap schema parsing bugs (ITS#2920, ITS#3065)
