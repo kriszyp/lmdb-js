@@ -1,7 +1,7 @@
 README for gtk-tool v0.6
 
 This package has been tested and run with the latest Gtk+/Gtk--
-OpenLDAP 1.1-devel. This thing doesn't run as it should, please
+OpenLDAP 2.0-devel. This thing doesn't run as it should, please
 read TODO!
 
 Just type 'make' to compile and if you have all the necessary stuff it'll do so.
