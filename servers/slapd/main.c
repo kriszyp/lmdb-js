@@ -162,7 +162,6 @@ int main( int argc, char **argv )
 	{
 		int *i;
 		char *newConfigFile;
-		ldap_debug = 0xffff;
 		if ( is_NT_Service ) CommenceStartupProcessing( NTservice, slap_set_shutdown );
 		i = (int*)getRegParam( NULL, "Port" );
 		if ( i != NULL )
