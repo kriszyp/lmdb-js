@@ -5,6 +5,52 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+/****
+LDAP/X.500 string syntax / matching rules have a few oddities.  This
+comment attempts to detail how slapd(8) treats them.
+
+Directory String -
+  In X.500(93), a directory string can be either a PrintableString,
+  a bmpString, or a UniversalString (e.g., UCS (a subset of Unicode)).
+  In later versions, more CHOICEs were added.  In all cases the string
+  must be non-empty.
+
+  In LDPAv3, a directory string is a UTF-8 encoded UCS string.
+
+  For matching, there are both case ignore and exact rules.  Both
+  also require that "insignificant" spaces be ignored.
+	spaces before the first non-space are ignored;
+	spaces after the last non-space are ignored;
+	spaces after a space are ignored.
+  Note: by these rules (and as clarified in X.520), a string of only
+  spaces is to be treated as if held one space, not empty (which would
+  be a syntax error).
+
+NumericString
+  In ASN.1, numeric string is just a string of digits and spaces and
+  could be empty.  However, in X.500, all attribute values of numeric
+  string carry a non-empty constraint.  Unfornately, some assertion
+  values are don't carry this constraint (but its unclear how such
+  an assertion could ever be true).  In LDAP, there is one syntax
+  (numericString) not two (numericString with constraint, numericString
+  without constraint).  This should be treated as numericString with
+  non-empty constraint.
+
+  In matching, spaces are ignored.
+
+PrintableString
+  In ASN.1, Printable string is just a string of printable characters and
+  can be empty.  In X.500, semantics much like NumericString excepting
+  uses insignificant space handling instead of ingore all spaces.
+
+IA5String
+  Basically same as PrintableString.
+
+****/
+
+
+
+
 #include "portable.h"
 
 #include <stdio.h>
