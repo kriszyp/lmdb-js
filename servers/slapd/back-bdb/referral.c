@@ -19,7 +19,6 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
-#include "external.h"
 
 int
 bdb_referrals( Operation *op, SlapReply *rs )

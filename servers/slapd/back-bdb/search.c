@@ -21,7 +21,6 @@
 
 #include "back-bdb.h"
 #include "idl.h"
-#include "external.h"
 
 static int base_candidate(
 	BackendDB	*be,

@@ -24,7 +24,6 @@
 
 #include "lutil.h"
 #include "back-bdb.h"
-#include "external.h"
 
 int
 bdb_csn_commit(

@@ -21,7 +21,6 @@
 #include <ac/time.h>
 
 #include "back-bdb.h"
-#include "external.h"
 
 static struct berval scbva[] = {
 	BER_BVC("glue"),

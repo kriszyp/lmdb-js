@@ -540,7 +540,7 @@ int init_module( int argc, char *argv[] ) {
 #else
 	bi.bi_type = "bdb";
 #endif
-	bi.bi_init = bdb_initialize;
+	bi.bi_init = bdb_back_initialize;
 
 	backend_add( &bi );
 	return 0;
@@ -548,7 +548,7 @@ int init_module( int argc, char *argv[] ) {
 #endif /* SLAPD_BDB */
 
 int
-bdb_initialize(
+bdb_back_initialize(
 	BackendInfo	*bi )
 {
 	static char *controls[] = {
@@ -564,7 +564,7 @@ bdb_initialize(
 	};
 
 	/* initialize the underlying database system */
-	Debug( LDAP_DEBUG_TRACE, "bdb_initialize: initialize BDB backend\n",
+	Debug( LDAP_DEBUG_TRACE, "bdb_back_initialize: initialize BDB backend\n",
 		0, 0, 0 );
 
 	bi->bi_flags |=
@@ -596,12 +596,12 @@ bdb_initialize(
 		if( ver < DB_VERSION_FULL )
 		{
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_initialize: BDB library version mismatch:"
+				"bdb_back_initialize: BDB library version mismatch:"
 				" expected " DB_VERSION_STRING ","
 				" got %s\n", version, 0, 0 );
 		}
 
-		Debug( LDAP_DEBUG_ANY, "bdb_initialize: %s\n",
+		Debug( LDAP_DEBUG_ANY, "bdb_back_initialize: %s\n",
 			version, 0, 0 );
 	}
 

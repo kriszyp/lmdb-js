@@ -20,7 +20,6 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
-#include "external.h"
 #include "lber_pvt.h"
 #include "lutil.h"
 

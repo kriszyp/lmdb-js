@@ -28,7 +28,7 @@
 #include <ac/time.h>
 
 #include "slap.h"
-#include "external.h"
+#include "proto-dnssrv.h"
 
 int
 dnssrv_back_search(

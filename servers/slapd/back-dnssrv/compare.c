@@ -27,7 +27,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-dnssrv.h"
+#include "proto-dnssrv.h"
 
 int
 dnssrv_back_compare(

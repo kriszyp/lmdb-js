@@ -21,7 +21,6 @@
 
 #define AVL_INTERNAL
 #include "back-bdb.h"
-#include "external.h"
 
 static DBC *cursor = NULL;
 static DBT key, data;

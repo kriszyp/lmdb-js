@@ -23,7 +23,6 @@
 
 #include "slap.h"
 #include "back-bdb.h"
-#include "external.h"
 
 /*
  * sets *hasSubordinates to LDAP_COMPARE_TRUE/LDAP_COMPARE_FALSE

@@ -20,7 +20,6 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
-#include "external.h"
 
 static int bdb_id2entry_put(
 	BackendDB *be,

@@ -22,7 +22,6 @@
 #include <ac/unistd.h>
 
 #include "back-bdb.h"
-#include "external.h"
 
 int
 bdb_bind( Operation *op, SlapReply *rs )

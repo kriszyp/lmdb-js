@@ -28,7 +28,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "external.h"
+#include "proto-dnssrv.h"
 
 int
 dnssrv_back_bind(

@@ -26,6 +26,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "proto-dnssrv.h"
 #include "external.h"
 
 #if SLAPD_DNSSRV == SLAPD_MOD_DYNAMIC
