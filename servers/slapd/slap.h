@@ -409,6 +409,7 @@ typedef struct slap_matching_rule {
 #define smr_extensions		smr_mrule.mr_extensions
 } MatchingRule;
 
+struct slap_backend_db;
 struct slap_entry;
 struct slap_attr;
 
