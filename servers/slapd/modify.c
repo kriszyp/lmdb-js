@@ -552,7 +552,7 @@ int slap_mods_opattrs(
 	struct berval name, timestamp, csn;
 	time_t now = slap_get_time();
 	char timebuf[22];
-	char csnbuf[128];
+	char csnbuf[64];
 	struct tm *ltm;
 	Modifications *mod;
 
@@ -583,7 +583,7 @@ int slap_mods_opattrs(
 
 	if( op->o_tag == LDAP_REQ_ADD ) {
 		struct berval uuid;
-		char uuidbuf[64];
+		char uuidbuf[40];
 
 		uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 		uuid.bv_val = uuidbuf;
