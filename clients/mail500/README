@@ -1,13 +1,13 @@
-
-*** WARNING:  Preliminary ***
-
 This is the README file for mail500, a mailer that does X.500 lookups
 via LDAP.
 
-If you are planning to run mail500 at your site, you need to create a
-configuration file.  Previous versions required modifying the source
-code for configuration.  This is no longer necessary.
-there are several
+If you are planning to run mail500 at your site, there are several
+things you will have to tailor in main.c:
+
+	LDAPHOST - The host running an LDAP server
+
+	base[] - The array telling mail500 where/how to search for
+		things.  See the explanation below.
 
 *** WHAT mail500 DOES: ***
 
@@ -36,16 +36,6 @@ strip off our local names:
 R<@umich.edu>$*:$*                 $>10<@>$1:$2
 R$+%$+<@umich.edu>                 $>10$1%$2<@>
 R$+!$+<@umich.edu>                 $>10$1!$2<@>
-
-You can also feed complete FQDN addresses to mail500.  For instance,
-you could define a class containing the list of domains you want to
-serve like this:
-
-FQ/etc/mail/mail500domains
-
-and then use a rule in rule set 0 like this:
-
-R$*<$=Q>$*		$#mail500 $@$2 $:<$1@$2>
 
 See the sample sendmail.cf in this directory for more details.
 For sendmail 8.9 (and later) users can use MAILER(mail500) if
@@ -81,51 +71,24 @@ deliver the mail.
 
 *** HOW IT WORKS (from the mail500 side): ***
 
-When mail500 gets invoked with one or more names to which to deliver
-mail, it searches for each name in X.500.  Where it searches, and what
-kind(s) of search(es) is controlled by a configuration file.  There
-are a number of different approaches to handling mail and no general
-rules can be given.  We will however present some examples of what you
-can do.  The new mail500 is designed to be flexible and able to
-accommodate most scenarios.
+When mail500 gets invoked with one or more names to which to
+deliver mail, it searches for each name in X.500.  Where it searches,
+and what kind(s) of search(es) it does are compile-time configurable
+by changing the base array in main.c.  For example, the configuration
+we use at U-M is like this:
 
-For instance, if you are following the mail distribution model that
-the old mail500 used, you need lines in the configuration file like
-these:
+	Base    base[] =
+		{ "ou=People, dc=OpenLDAP, dc=org", 0
+			"uid=%s", "cn=%s", NULL,
+		  "ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org", 1
+			"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
+		  "ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org", 1
+			"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
+		  NULL
+		};
 
-search  ldap:///ou=People, dc=OpenLDAP, dc=org??sub?\
-	(|(uid=%25l)(cn==%25l))
-
-search  ldap:///ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
-	(&(cn=%25l)(associatedDomain==%25h))
-
-search  ldap:///ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
-	(&(cn=%25l)(associatedDomain==%25h))
-
-As you can see, searches are described by using LDAP URLs.  You can
-have as many searches as you want, but the first search that succeeds
-completes the processing for a recipient address.  You can provide an
-attribute list in the URL and it will be honored.  Otherwise, the
-attribute list will default as explained below.
-
-Filters can contain substitutions.  Actually, they *should* contain
-substitutions or the search result would not change with the recipient
-address.  Since the usual substitution character is % and it has
-special meaning in URLs, you have to represent it according to the URL
-syntax, that is, %25, 25 being the hex code of %.  The filter can be
-as complex as you want and you may make as many substitutions as you
-want.  Known substitutions at this time are:
-
-        %m   The recipient address we are considering now, maybe fully
-	     qualified
-	%h   The host, that is, the value of the -h argument to
-	     mail500
-	%l   The local part from %m
-	%d   The domain part from %m
-
-So, in the above example, if the recipient address were
-name@OpenLDAP.org, mail500 would do the the following searches,
-stopping if it found anything at any step:
+which means that in delivering mail to "name" mail500 would do the
+the following searches, stopping if it found anything at any step:
 
 	Search (18) [2]: dc=org@dc=OpenLDAP@ou=People
 	Search subtree (uid=name)
@@ -138,7 +101,11 @@ stopping if it found anything at any step:
 	Search (18) [5]: dc=org@dc=OpenLDAP@ou=Groups@ou=User Groups
 	Search subtree & ((cn=name)(associatedDomain=OpenLDAP.org))
 
-[Beware: Currently unimplemented]
+Notice that when specifying a filter %s is replaced by the name,
+or user portion of the address while %h is replaced by whatever is
+passed in to mail500 via the -h option (typically the host portion
+of the address).
+
 You can also specify whether you want search results that matched
 because the entry's RDN matched the search to be given preference
 or not.  At U-M, we only give such preference in the mail group
@@ -146,148 +113,12 @@ portion of the searches.  Beware with this option:  the algorithm
 used to decide whether an entry's RDN matched the search is very
 simple-minded, and may not always be correct.
 
+There is currently no limit on the number of areas searched (the base
+array can be as large as you want), and an arbitrary limit of 2 filters
+for each base.  If you want more than that, simply changing the 3 in
+the typedef for Base should do the trick.
+
 *** HOW IT WORKS (from the X.500 side): ***
-
-First you need to decide what attributes you will search for and what
-attributes will be used to deliver the message.  In the classical
-mail500, we would search by uid or cn and deliver to the mail
-attribute.  Another model is to search by the mail attribute and
-deliver to something else, such as the uid if determined that the user
-has a local account.
-
-*** THE CONFIGURATION FILE
-
-The configuration file is composed of lines that prescribe the
-operation of mail500.  Blank lines are ignored and lines beginning
-with # are considered comments and ignored.  Outside comments, the
-sequence '\', newline, whitespace is ignored so that long lines can be
-split for readability.
-
-Attribute Definitions
-
-Lines starting with 'attribute' define the semantics of an attribute.
-Notice that attributes will be considered in the order they are
-defined in the configuration file.  This means that the presence of
-some can preempt processing of other attributes and that attributes
-that simply collect needed information must be defined before others
-that use that information.  The format is:
-
-attribute name [multivalued] [final] [multiple-entries] [<syntax>] [<kind>]
-
-If the attribute is "multivalued", all values will be considered.  If
-it is not and several values are found the entry is declared in error.
-
-If the attribute is "final", its presence in an entry prevents further
-analysis of the entry.
-
-If the attribute is "multiple-entries" and it is of an appropriate
-syntax that can point to other entries, all such entries are
-considered, otherwise the entry is in error.
-
-The known kinds are:
-
-recipient		The value(s) of this attribute should be
-			used as the address(es) to deliver the message
-			to if they are in an appropriate syntax.  If
-			they otherwise point at other entries, they
-			should be retrieved and expanded as necessary
-			to complete the resolution of this entry.  The
-			process is recursive and all.
-
-errors			The value(s) of this attribute represent the
-			entities that should receive error messages
-			for mail messages directed to this entry.
-			The presence of an attribute of this kind
-			force a change in the envelope sender address
-			of the message.
-
-The known syntaxes are:
-
-local-native-mailbox	An unqualified mailbox name
-rfc822			A fully qualified RFC822 mail address
-rfc822-extended		Currently identical to rfc822
-dn			The Distinguished Name of some other entry
-url			A URL either of the mailto: or ldap: styles,
-			others styles, notably file:, could be added.
-			No substitutions are supported currently.
-search-with-filter=<filter>	Do a search on all known search bases
-			with the give filter.  The only currenty
-			substitution available is %D, the DN of the
-			current entry.
-
-The default attributes to search
-
-A line starting with "default-attributes" contains a comma-separated
-list of attributes to use in searches everytime a specific list is not
-known.
-
-Search bases
-
-As shown in the example above, lines starting with "search" provide
-the search bases to use to initially try to resolve each entry or when
-using attributes of syntax "search-with-filter".
-
-*** EXAMPLES
-
-A configuration file that approximates the operation of the old
-mail500 runs as follows:
-
-attribute errorsTo				errors dn
-attribute rfc822ErrorsTo			errors rfc822
-attribute requestsTo				request dn
-attribute rfc822RequestsTo			request rfc822
-attribute owner					owner dn
-attribute mail			multivalued 	recipient rfc822
-attribute member		multivalued	recipient dn
-attribute joinable	multiple-entries	recipient \
-	  search-with-filter=(memberOfGroup=%D)
-
-default-attributes objectClass,title,postaladdress,telephoneNumber,\
-	mail,description,owner,errorsTo,rfc822ErrorsTo,requestsTo,\
-	rfc822RequestsTo,joinable,cn,member,moderator,onVacation,uid,\
-	suppressNoEmailError
-
-# Objectclasses that, when present, identify an entry as a group
-group-classes mailGroup
-
-search  ldap:///ou=People, dc=OpenLDAP, dc=org??sub?\
-	(|(uid=%25l)(cn==%25l))
-
-search  ldap:///ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
-	(&(cn=%25l)(associatedDomain==%25h))
-
-search  ldap:///ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
-	(&(cn=%25l)(associatedDomain==%25h))
-
-A configuration that approximates the semantics of the mailRecipient
-and mailGroup classes used by Netscape:
-
-attribute mgrpErrorsTo				errors url
-attribute rfc822ErrorsTo			errors rfc822
-attribute mailRoutingAddress	final		recipient rfc822
-attribute mailHost		final		host forward-to-host
-attribute uid			final		recipient local-native-mailbox
-attribute uniqueMember		multivalued	recipient dn
-attribute mgrpRFC822MailMember	multivalued	recipient rfc822-extended
-attribute mgrpDeliverTo		multivalued multiple-entries recipient url
-
-default-attributes objetcClass,mailRoutingAddress,mailHost,uid,uniqueMember,\
-	mgrpRFC822MailMember,mgrpErrorsTo,rfc822ErrorsTo
-
-# Objectclasses that, when present, identify an entry as a group
-group-classes mailGroup
-
-search  ldap://localhost/dc=OpenLDAP,dc=org?\
-	objectClass,mailRoutingAddress,mailHost,uid?\
-	sub?\
-	(&(|(mail=%25m)(mailAlternateAddress=%25m))(objectClass=mailRecipient))
-
-search  ldap://localhost/dc=OpenLDAP,dc=org?\
-	objectClass,uniqueMember,mgrpRFC822MailMember,mgrpErrorsTo,mgrpDeliverTo,rfc822ErrorsTo?\
-	sub?\
-	(&(|(mail=%25m)(mailAlternateAddress=%25m))(objectClass=mailGroup))
-
-[ The rest is from the original README and I did not rewrite it yet ]
 
 In X.500, there are several new attribute types and one new object
 class defined that mail500 makes use of.  At its most basic, for normal

@@ -61,7 +61,7 @@
 
 LDAP	*ld;
 char	*vacationhost = NULL;
-char	*errorsfrom = MAIL500_BOUNCEFROM;
+char	*errorsfrom = NULL;
 char	*mailfrom = NULL;
 char	*host = NULL;
 char	*ldaphost = NULL;
@@ -82,7 +82,6 @@ typedef struct errs {
 #define E_NOMEMBERS		10
 #define	E_NOOWNER		11
 #define E_GROUPUNKNOWN		12
-#define E_NOOWNADDRESS		13
 	char		*e_addr;
 	union e_union_u {
 		char		*e_u_loop;
@@ -96,89 +95,63 @@ typedef struct groupto {
 	char	*g_dn;
 	char	*g_errorsto;
 	char	**g_members;
-	int	g_nmembers;
 } Group;
 
 typedef struct baseinfo {
-	char	*b_url;
-	int	b_m_entries;
+	char	*b_dn;		/* dn to start searching at */
 	char	b_rdnpref;	/* give rdn's preference when searching? */
 	int	b_search;	/* ORed with the type of thing the address */
 				/*  looks like (USER, GROUP_ERRORS, etc.)  */
 				/*  to see if this should be searched	   */
+	char	*b_filter[3];	/* filter to apply - name substituted for %s */
+				/* (up to three of them) */
 } Base;
 
-Base	**base = NULL;
+Base	base[] = {
+	{"ou=People, dc=OpenLDAP, dc=org",
+		0, USER,
+		{"uid=%s", "cn=%s", NULL}},
+	{"ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org",
+		1, 0xff,
+		{"(&(cn=%s)(associatedDomain=%h))", NULL, NULL}},
+	{"ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org",
+		1, 0xff,
+		{"(&(cn=%s)(associatedDomain=%h))", NULL, NULL}},
+	{NULL}
+};
 
 char	*sendmailargs[] = { MAIL500_SENDMAIL, "-oMrLDAP", "-odi", "-oi", "-f", NULL, NULL };
 
-typedef struct attr_semantics {
-	char	*as_name;
-	int	as_m_valued;	/* Is multivalued? */
-	int	as_priority;	/* Priority level of this attribut type */
-	int	as_syntax;	/* How to interpret values */
-	int	as_m_entries;	/* Can resolve to several entries? */
-	int	as_kind;	/* Recipient, sender, etc. */
-	char	*as_param;	/* Extra info for filters and things alike */
-} AttrSemantics;
+static char	*attrs[] = { "objectClass", "title", "postaladdress",
+			"telephoneNumber", "mail", "description", "owner",
+			"errorsTo", "rfc822ErrorsTo", "requestsTo",
+			"rfc822RequestsTo", "joinable", "cn", "member",
+			"moderator", "onVacation", "uid",
+			"suppressNoEmailError", NULL };
 
-#define AS_SYNTAX_UNKNOWN	0
-#define AS_SYNTAX_NATIVE_MB	1	/* Unqualified mailbox name */
-#define AS_SYNTAX_RFC822	2	/* RFC822 mail address */
-#define AS_SYNTAX_HOST		3
-#define AS_SYNTAX_DN		4	/* A directory entry */
-#define AS_SYNTAX_RFC822_EXT	5
-#define AS_SYNTAX_URL		6	/* mailto: or ldap: URL */
-#define AS_SYNTAX_BOOL_FILTER	7	/* For joinable, filter in as_param */
-#define AS_SYNTAX_PRESENT	8	/* Value irrelevant, only presence is
-					 * considered. */
-
-#define AS_KIND_UNKNOWN		0
-#define AS_KIND_RECIPIENT	1
-#define AS_KIND_ERRORS		2	/* For ErrorsTo and similar */
-#define AS_KIND_REQUEST		3
-#define AS_KIND_OWNER		4
-#define AS_KIND_ROUTE_TO_HOST	5	/* Expand at some other host */
-#define AS_KIND_ALLOWED_SENDER	6	/* Can send to group */
-#define AS_KIND_MODERATOR	7
-#define AS_KIND_ROUTE_TO_ADDR	8	/* Rewrite recipient address as */
-#define AS_KIND_OWN_ADDR	9	/* RFC822 name of this entry */
-#define AS_KIND_DELIVERY_TYPE	10	/* How to deliver mail to this entry */
-
-AttrSemantics **attr_semantics = NULL;
-int current_priority = 0;
-
-typedef struct subst {
-	char	sub_char;
-	char	*sub_value;
-} Subst;
-
-char	**groupclasses = NULL;
-char	**def_attr = NULL;
-char	**myhosts = NULL;		/* FQDNs not to route elsewhere */
-char	**mydomains = NULL;		/* If an RFC822 address points to one
-					   of these domains, search it in the
-					   directory instead of returning it
-					   to hte MTA */
-
-static void load_config( char *filespec );
-static void split_address( char *address, char **localpart, char **domainpart);
-static int entry_engine( LDAPMessage *e, char *dn, char *address, char ***to, int *nto, Group ***togroups, int *ngroups, Error **err, int *nerr, int type );
-static void do_address( char *name, char ***to, int *nto, Group ***togroups, int *ngroups, Error **err, int *nerr, int type );
+static void do_address( char *name, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr, int type );
+static int  do_group( LDAPMessage *e, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr );
+static void do_group_members( LDAPMessage *e, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr );
 static void send_message( char **to );
 static void send_errors( Error *err, int nerr );
 static void do_noemail( FILE *fp, Error *err, int namelen );
 static void do_ambiguous( FILE *fp, Error *err, int namelen );
-static int count_values( char **list );
 static void add_to( char ***list, int *nlist, char **new );
-static void add_single_to( char ***list, char *new );
 static int  isgroup( LDAPMessage *e );
 static void add_error( Error **err, int *nerr, int code, char *addr, LDAPMessage *msg );
-static void unbind_and_exit( int rc ) LDAP_GCCATTR((noreturn));
-static void send_group( Group **group, int ngroup );
-
+static void add_group( char *dn, Group **list, int *nlist );
+static void unbind_and_exit( int rc );
+static int  group_loop( char *dn );
+static void send_group( Group *group, int ngroup );
+static int  has_attributes( LDAPMessage *e, char *attr1, char *attr2 );
+static char **get_attributes_mail_dn( LDAPMessage *e, char *attr1, char *attr2 );
+static char *canonical( char *s );
 static int  connect_to_x500( void );
 
+static void do_group_errors( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
+static void do_group_request( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
+static void do_group_owner( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
+static void add_member( char *gdn, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr, char **suppress );
 
 int
 main ( int argc, char **argv )
@@ -186,10 +159,9 @@ main ( int argc, char **argv )
 	char		*myname;
 	char		**tolist;
 	Error		*errlist;
-	Group		**togroups;
+	Group		*togroups;
 	int		numto, ngroups, numerr, nargs;
 	int		i, j;
-	char		*conffile = NULL;
 
 	if ( (myname = strrchr( argv[0], '/' )) == NULL )
 		myname = strdup( argv[0] );
@@ -206,14 +178,10 @@ main ( int argc, char **argv )
 	openlog( myname, OPENLOG_OPTIONS );
 #endif
 
-	while ( (i = getopt( argc, argv, "d:C:f:h:l:m:v:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "d:f:h:l:m:v:" )) != EOF ) {
 		switch( i ) {
 		case 'd':	/* turn on debugging */
-			debug |= atoi( optarg );
-			break;
-
-		case 'C':	/* path to configuration file */
-			conffile = strdup( optarg );
+			debug = atoi( optarg );
 			break;
 
 		case 'f':	/* who it's from & where errors should go */
@@ -258,16 +226,10 @@ main ( int argc, char **argv )
 		syslog( LOG_ALERT, "required argument -m not present" );
 		exit( EX_TEMPFAIL );
 	}
-/*  	if ( host == NULL ) { */
-/*  		syslog( LOG_ALERT, "required argument -h not present" ); */
-/*  		exit( EX_TEMPFAIL ); */
-/*  	} */
-	if ( conffile == NULL ) {
-		syslog( LOG_ALERT, "required argument -C not present" );
+	if ( host == NULL ) {
+		syslog( LOG_ALERT, "required argument -h not present" );
 		exit( EX_TEMPFAIL );
 	}
-
-	load_config( conffile );
 
 	if ( connect_to_x500() != 0 )
 		exit( EX_TEMPFAIL );
@@ -298,12 +260,14 @@ main ( int argc, char **argv )
 	for ( i = optind; i < argc; i++ ) {
 		char	*s;
 		int	type;
-		char	*localpart = NULL, *domainpart = NULL;
-		char	address[1024];
+
+		for ( j = 0; argv[i][j] != '\0'; j++ ) {
+			if ( argv[i][j] == '.' || argv[i][j] == '_' )
+				argv[i][j] = ' ';
+		}
 
 		type = USER;
-		split_address( argv[i], &localpart, &domainpart );
-		if ( (s = strrchr( localpart, '-' )) != NULL ) {
+		if ( (s = strrchr( argv[i], '-' )) != NULL ) {
 			s++;
 
 			if ((strcasecmp(s, ERROR) == 0) ||
@@ -324,15 +288,7 @@ main ( int argc, char **argv )
 			}
 		}
 
-		if ( domainpart ) {
-			sprintf( address, "%s@%s", localpart, domainpart );
-			free( localpart );
-			free( domainpart );
-		} else {
-			sprintf( address, "%s@%s", localpart, domainpart );
-			free( localpart );
-		}
-		do_address( address, &tolist, &numto, &togroups, &ngroups,
+		do_address( argv[i], &tolist, &numto, &togroups, &ngroups,
 		    &errlist, &numerr, type );
 	}
 
@@ -400,276 +356,6 @@ main ( int argc, char **argv )
 	return( EX_OK );
 }
 
-static char *
-get_config_line( FILE *cf, int *lineno)
-{
-	static char	buf[2048];
-	int		len;
-	int		pos;
-	int		room;
-
-	pos = 0;
-	room = sizeof( buf );
-	while ( fgets( &buf[pos], room, cf ) ) {
-		(*lineno)++;
-		if ( pos > 0 ) {
-			/* Delete whitespace at the beginning of new data */
-			if ( isspace( buf[pos] ) ) {
-				char *s, *d;
-				for ( s = buf+pos; isspace(*s); s++ )
-					;
-				for ( d = buf+pos; *s; s++, d++ ) {
-					*d = *s;
-				}
-				*d = *s;
-			}
-		}
-		len = strlen( buf );
-		if ( buf[len-1] != '\n' ) {
-			syslog( LOG_ALERT, "Definition too long at line %d",
-				*lineno );
-			exit( EX_TEMPFAIL );
-		}
-		if ( buf[0] == '#' )
-			continue;
-		if ( strspn( buf, " \t\n" ) == len )
-			continue;
-		if ( buf[len-2] == '\\' ) {
-			pos = len - 2;
-			room = sizeof(buf) - pos;
-			continue;
-		}
-		/* We have a real line, we will exit the loop */
-		buf[len-1] = '\0';
-		return( buf );
-	}
-	return( NULL );
-}
-
-static void
-add_url ( char *url, int rdnpref, int typemask )
-{
-	Base		**list_temp;
-	int		size;
-	Base		*b;
-
-	b = calloc(1, sizeof(Base));
-	if ( !b ) {
-		syslog( LOG_ALERT, "Out of memory" );
-		exit( EX_TEMPFAIL );
-	}
-	b->b_url = strdup( url );
-	b->b_rdnpref = rdnpref;
-	b->b_search   = typemask;
-
-	if ( base == NULL ) {
-		base = calloc(2, sizeof(LDAPURLDesc *));
-		if ( !base ) {
-			syslog( LOG_ALERT, "Out of memory" );
-			exit( EX_TEMPFAIL );
-		}
-		base[0] = b;
-	} else {
-		for ( size = 0; base[size]; size++ )
-			;
-		size += 2;
-		list_temp = realloc( base, size*sizeof(LDAPURLDesc *) );
-		if ( !list_temp ) {
-			syslog( LOG_ALERT, "Out of memory" );
-			exit( EX_TEMPFAIL );
-		}
-		base = list_temp;
-		base[size-2] = b;
-		base[size-1] = NULL;
-	}
-}
-
-static void
-add_def_attr( char *s )
-{
-	char *p, *q;
-
-	p = s;
-	while ( *p ) {
-		p += strspn( p, "\t," );
-		q = strpbrk( p, " \t," );
-		if ( q ) {
-			*q = '\0';
-			add_single_to( &def_attr, p );
-		} else {
-			add_single_to( &def_attr, p );
-			break;
-		}
-		p = q + 1;
-	}
-}
-
-static void
-add_attr_semantics( char *s )
-{
-	char *p, *q;
-	AttrSemantics *as;
-
-	as = calloc( 1, sizeof( AttrSemantics ) );
-	as->as_priority = current_priority;
-	p = s;
-	while ( isspace ( *p ) )
-		p++;
-	q = p;
-	while ( !isspace ( *q ) && *q != '\0' )
-		q++;
-	*q = '\0';
-	as->as_name = strdup( p );
-	p = q + 1;
-
-	while ( *p ) {
-		while ( isspace ( *p ) )
-			p++;
-		q = p;
-		while ( !isspace ( *q ) && *q != '\0' )
-			q++;
-		*q = '\0';
-		if ( !strcasecmp( p, "multivalued" ) ) {
-			as->as_m_valued = 1;
-		} else if ( !strcasecmp( p, "multiple-entries" ) ) {
-			as->as_m_entries = 1;
-		} else if ( !strcasecmp( p, "local-native-mailbox" ) ) {
-			as->as_syntax = AS_SYNTAX_NATIVE_MB;
-		} else if ( !strcasecmp( p, "rfc822" ) ) {
-			as->as_syntax = AS_SYNTAX_RFC822;
-		} else if ( !strcasecmp( p, "rfc822-extended" ) ) {
-			as->as_syntax = AS_SYNTAX_RFC822_EXT;
-		} else if ( !strcasecmp( p, "dn" ) ) {
-			as->as_syntax = AS_SYNTAX_DN;
-		} else if ( !strcasecmp( p, "url" ) ) {
-			as->as_syntax = AS_SYNTAX_URL;
-		} else if ( !strcasecmp( p, "search-with-filter" ) ) {
-			as->as_syntax = AS_SYNTAX_BOOL_FILTER;
-		} else if ( !strncasecmp( p, "param=", 6 ) ) {
-			q = strchr( p, '=' );
-			if ( q ) {
-				p = q + 1;
-				while ( *q && !isspace( *q ) ) {
-					q++;
-				}
-				if ( *q ) {
-					*q = '\0';
-					as->as_param = strdup( p );
-					p = q + 1;
-				} else {
-					as->as_param = strdup( p );
-					p = q;
-				}
-			}
-		} else if ( !strcasecmp( p, "host" ) ) {
-			as->as_kind = AS_SYNTAX_HOST;
-		} else if ( !strcasecmp( p, "present" ) ) {
-			as->as_kind = AS_SYNTAX_PRESENT;
-		} else if ( !strcasecmp( p, "route-to-host" ) ) {
-			as->as_kind = AS_KIND_ROUTE_TO_HOST;
-		} else if ( !strcasecmp( p, "route-to-address" ) ) {
-			as->as_kind = AS_KIND_ROUTE_TO_ADDR;
-		} else if ( !strcasecmp( p, "own-address" ) ) {
-			as->as_kind = AS_KIND_OWN_ADDR;
-		} else if ( !strcasecmp( p, "recipient" ) ) {
-			as->as_kind = AS_KIND_RECIPIENT;
-		} else if ( !strcasecmp( p, "errors" ) ) {
-			as->as_kind = AS_KIND_ERRORS;
-		} else if ( !strcasecmp( p, "request" ) ) {
-			as->as_kind = AS_KIND_REQUEST;
-		} else if ( !strcasecmp( p, "owner" ) ) {
-			as->as_kind = AS_KIND_OWNER;
-		} else if ( !strcasecmp( p, "delivery-type" ) ) {
-			as->as_kind = AS_KIND_DELIVERY_TYPE;
-		} else {
-			syslog( LOG_ALERT,
-				"Unknown semantics word %s", p );
-			exit( EX_TEMPFAIL );
-		}
-		p = q + 1;
-	}
-	if ( attr_semantics == NULL ) {
-		attr_semantics = calloc(2, sizeof(AttrSemantics *));
-		if ( !attr_semantics ) {
-			syslog( LOG_ALERT, "Out of memory" );
-			exit( EX_TEMPFAIL );
-		}
-		attr_semantics[0] = as;
-	} else {
-		int size;
-		AttrSemantics **list_temp;
-		for ( size = 0; attr_semantics[size]; size++ )
-			;
-		size += 2;
-		list_temp = realloc( attr_semantics,
-				     size*sizeof(AttrSemantics *) );
-		if ( !list_temp ) {
-			syslog( LOG_ALERT, "Out of memory" );
-			exit( EX_TEMPFAIL );
-		}
-		attr_semantics = list_temp;
-		attr_semantics[size-2] = as;
-		attr_semantics[size-1] = NULL;
-	}
-}
-
-static void
-load_config( char *filespec )
-{
-	FILE		*cf;
-	char		*line;
-	int		lineno = 0;
-	char		*p;
-	int		rdnpref;
-	int		typemask;
-
-	cf = fopen( filespec, "r" );
-	if ( !cf ) {
-		perror( "Opening config file" );
-		exit( EX_TEMPFAIL );
-	}
-
-	while ( ( line = get_config_line( cf,&lineno ) ) ) {
-		p = strpbrk( line, " \t" );
-		if ( !p ) {
-			syslog( LOG_ALERT,
-				"Missing space at line %d", lineno );
-			exit( EX_TEMPFAIL );
-		}
-		if ( !strncmp( line, "search", p-line ) ) {
-			p += strspn( p, " \t" );
-			/* TBC, get these */
-			rdnpref = 0;
-			typemask = 0xFF;
-			add_url( p, rdnpref, typemask );
-		} else if ( !strncmp(line, "attribute", p-line) ) {
-			p += strspn(p, " \t");
-			add_attr_semantics( p );
-		} else if ( !strncmp(line, "default-attributes", p-line) ) {
-			p += strspn(p, " \t");
-			add_def_attr( p );
-		} else if ( !strncmp(line, "group-classes", p-line) ) {
-			p += strspn(p, " \t");
-			add_single_to( &groupclasses, p );
-		} else if ( !strncmp(line, "priority", p-line) ) {
-			p += strspn(p, " \t");
-			current_priority = atoi(p);
-		} else if ( !strncmp(line, "domain", p-line) ) {
-			p += strspn(p, " \t");
-			add_single_to( &mydomains, p );
-		} else if ( !strncmp(line, "host", p-line) ) {
-			p += strspn(p, " \t");
-			add_single_to( &myhosts, p );
-		} else {
-			syslog( LOG_ALERT,
-				"Unparseable config definition at line %d",
-				lineno );
-			exit( EX_TEMPFAIL );
-		}
-	}
-	fclose( cf );
-}
-
 static int
 connect_to_x500( void )
 {
@@ -680,10 +366,8 @@ connect_to_x500( void )
 		return( -1 );
 	}
 
-	/*  TBC: Set this only when it makes sense
 	opt = MAIL500_MAXAMBIGUOUS;
 	ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &opt);
-	*/
 	opt = LDAP_DEREF_ALWAYS;
 	ldap_set_option(ld, LDAP_OPT_DEREF, &opt);
 
@@ -695,246 +379,133 @@ connect_to_x500( void )
 	return( 0 );
 }
 
-static Group *
-new_group( char *dn, Group ***list, int *nlist )
+static int
+mailcmp( char *a, char *b )
 {
 	int	i;
-	Group	*this_group;
 
-	for ( i = 0; i < *nlist; i++ ) {
-		if ( strcmp( dn, (*list)[i]->g_dn ) == 0 ) {
-			syslog( LOG_ALERT, "group loop 2 detected (%s)", dn );
-			return NULL;
+	for ( i = 0; a[i] != '\0'; i++ ) {
+		if ( a[i] != b[i] ) {
+			switch ( a[i] ) {
+			case ' ':
+			case '.':
+			case '_':
+				if ( b[i] == ' ' || b[i] == '.' || b[i] == '_' )
+					break;
+				return( 1 );
+
+			default:
+				return( 1 );
+			}
 		}
 	}
 
-	this_group = (Group *) malloc( sizeof(Group) );
-
-	if ( *nlist == 0 ) {
-		*list = (Group **) malloc( sizeof(Group *) );
-	} else {
-		*list = (Group **) realloc( *list, (*nlist + 1) *
-		    sizeof(Group *) );
-	}
-
-	this_group->g_errorsto = NULL;
-	this_group->g_members = NULL;
-	this_group->g_nmembers = 0;
-	/* save the group's dn so we can check for loops above */
-	this_group->g_dn = strdup( dn );
-
-	(*list)[*nlist] = this_group;
-	(*nlist)++;
-
-	return( this_group );
+	return( 0 );
 }
 
 static void
-split_address(
-	char	*address,
-	char	**localpart,
-	char	**domainpart
-)
-{
-	char		*p;
-
-	if ( ( p = strrchr( address, '@' ) ) == NULL ) {
-		*localpart = strdup( address );
-		*domainpart = NULL;
-	} else {
-		*localpart = malloc( p - address + 1 );
-		strncpy( *localpart, address, p - address );
-		(*localpart)[p - address] = '\0';
-		p++;
-		*domainpart = strdup( p );
-	}
-}
-
-static int
-dn_search(
-	char	**dnlist, 
-	char	*address,
+do_address(
+	char	*name,
 	char	***to,
 	int	*nto,
-	Group	***togroups,
-	int	*ngroups,
-	Error	**err,
-	int	*nerr
-)
-{
-	int		rc;
-	int		i;
-	int		resolved = 0;
-	LDAPMessage	*res, *e;
-	struct timeval	timeout;
-
-	timeout.tv_sec = MAIL500_TIMEOUT;
-	timeout.tv_usec = 0;
-	for ( i = 0; dnlist[i]; i++ ) {
-		if ( (rc = ldap_search_st( ld, dnlist[i], LDAP_SCOPE_BASE,
-			NULL, def_attr, 0,
-			 &timeout, &res )) != LDAP_SUCCESS ) {
-			if ( rc == LDAP_NO_SUCH_OBJECT ) {
-				add_error( err, nerr, E_BADMEMBER, dnlist[i], NULL );
-				continue;
-			} else {
-				syslog( LOG_ALERT, "member search return 0x%x", rc );
-
-				unbind_and_exit( EX_TEMPFAIL );
-			}
-		} else {
-			if ( (e = ldap_first_entry( ld, res )) == NULL ) {
-				syslog( LOG_ALERT, "member search error parsing entry" );
-				unbind_and_exit( EX_TEMPFAIL );
-			}
-			if ( entry_engine( e, dnlist[i], address, to, nto,
-					   togroups, ngroups, err, nerr,
-					   USER | GROUP_MEMBERS ) ) {
-				resolved = 1;
-			}
-		}
-	}
-	return( resolved );
-}
-
-static int
-search_ldap_url(
-	char	*url,
-	Subst	*substs,
-	char	*address,
-	int	rdnpref,
-	int	multi_entry,
-	char	***to,
-	int	*nto,
-	Group	***togroups,
+	Group	**togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr,
 	int	type
 )
 {
-	LDAPURLDesc	*ludp;
-	char		*p, *s, *d;
-	int		i;
-	char		filter[1024];
+	int		rc, b, f, match;
 	LDAPMessage	*e, *res;
-	int		rc;
-	char		**attrlist;
 	struct timeval	timeout;
-	int		match;
-	int		resolved = 0;
 	char		*dn;
+	char		filter[1024];
+	char		realfilter[1024];
+	char		**mail, **onvacation = NULL, **uid = NULL;
+
+	/*
+	 * Look up the name in X.500, add the appropriate addresses found
+	 * to the to list, or to the err list in case of error.  Groups are
+	 * handled by the do_group routine, individuals are handled here.
+	 * When looking up name, we follow the bases hierarchy, looking
+	 * in base[0] first, then base[1], etc.  For each base, there is
+	 * a set of search filters to try, in order.  If something goes
+	 * wrong here trying to contact X.500, we exit with EX_TEMPFAIL.
+	 * If the b_rdnpref flag is set, then we give preference to entries
+	 * that matched name because it's their rdn, otherwise not.
+	 */
 
 	timeout.tv_sec = MAIL500_TIMEOUT;
 	timeout.tv_usec = 0;
-
-	rc = ldap_url_parse( url, &ludp );
-	if ( rc ) {
-		switch ( rc ) {
-		case LDAP_URL_ERR_BADSCHEME:
-			syslog( LOG_ALERT,
-				"Not an LDAP URL: %s", url );
-			break;
-		case LDAP_URL_ERR_BADENCLOSURE:
-			syslog( LOG_ALERT,
-				"Bad Enclosure in URL: %s", url );
-			break;
-		case LDAP_URL_ERR_BADURL:
-			syslog( LOG_ALERT,
-				"Bad URL: %s", url );
-			break;
-		case LDAP_URL_ERR_BADHOST:
-			syslog( LOG_ALERT,
-				"Host is invalid in URL: %s", url );
-			break;
-		case LDAP_URL_ERR_BADATTRS:
-			syslog( LOG_ALERT,
-				"Attributes are invalid in URL: %s", url );
-			break;
-		case LDAP_URL_ERR_BADSCOPE:
-			syslog( LOG_ALERT,
-				"Scope is invalid in URL: %s", url );
-			break;
-		case LDAP_URL_ERR_BADFILTER:
-			syslog( LOG_ALERT,
-				"Filter is invalid in URL: %s", url );
-			break;
-		case LDAP_URL_ERR_BADEXTS:
-			syslog( LOG_ALERT,
-				"Extensions are invalid in URL: %s", url );
-			break;
-		case LDAP_URL_ERR_MEM:
-			syslog( LOG_ALERT,
-				"Out of memory parsing URL: %s", url );
-			break;
-		case LDAP_URL_ERR_PARAM:
-			syslog( LOG_ALERT,
-				"bad parameter parsing URL: %s", url );
-			break;
-		default:
-			syslog( LOG_ALERT,
-				"Unknown error %d parsing URL: %s",
-				rc, url );
-			break;
+	for ( b = 0, match = 0; !match && base[b].b_dn != NULL; b++ ) {
+		if ( ! (base[b].b_search & type) ) {
+			continue;
 		}
-		add_error( err, nerr, E_BADMEMBER,
-			   url, NULL );
-		return 0;
-	}
+		for ( f = 0; base[b].b_filter[f] != NULL; f++ ) {
+			char	*format, *p, *s, *d;
+			char	*argv[3];
+			int	argc;
 
-	if ( substs ) {
-		for ( s = ludp->lud_filter, d = filter; *s; s++,d++ ) {
-			if ( *s == '%' ) {
-				s++;
-				if ( *s == '%' ) {
-					*d = '%';
-					continue;
-				}
-				for ( i = 0; substs[i].sub_char != '\0';
-				      i++ ) {
-					if ( *s == substs[i].sub_char ) {
-						for ( p = substs[i].sub_value;
-						      *p; p++,d++ ) {
-							*d = *p;
-						}
-						d--;
+			for ( argc = 0; argc < 3; argc++ ) {
+				argv[argc] = NULL;
+			}
+
+			format = strdup( base[b].b_filter[f] );
+			for ( argc = 0, p = format; *p; p++ ) {
+				if ( *p == '%' ) {
+					switch ( *++p ) {
+					case 's':	/* %s is the name */
+						argv[argc] = name;
+						break;
+
+					case 'h':	/* %h is the host */
+						*p = 's';
+						argv[argc] = host;
+						break;
+
+					default:
+						syslog( LOG_ALERT,
+						    "unknown format %c", *p );
 						break;
 					}
+
+					argc++;
 				}
-				if ( substs[i].sub_char == '\0' ) {
-					syslog( LOG_ALERT,
-						"unknown format %c", *s );
+			}
+
+			/* three names ought to do... */
+			sprintf( filter, format, argv[0], argv[1], argv[2] );
+			free( format );
+			for ( s = filter, d = realfilter; *s; s++, d++ ) {
+				if ( *s == '*' ) {
+					*d++ = '\\';
 				}
-			} else {
 				*d = *s;
 			}
+			*d = '\0';
+
+			res = NULL;
+			rc = ldap_search_st( ld, base[b].b_dn,
+			    LDAP_SCOPE_SUBTREE, realfilter, attrs, 0, &timeout,
+			    &res );
+
+			/* some other trouble - try again later */
+			if ( rc != LDAP_SUCCESS &&
+			    rc != LDAP_SIZELIMIT_EXCEEDED ) {
+				syslog( LOG_ALERT, "return 0x%x from X.500",
+				    rc );
+				unbind_and_exit( EX_TEMPFAIL );
+			}
+
+			if ( (match = ldap_count_entries( ld, res )) != 0 )
+				break;
+
+			ldap_msgfree( res );
 		}
-		*d = *s;
-	} else {
-		strncpy( filter, ludp->lud_filter, sizeof( filter ) - 1 );
-		filter[ sizeof( filter ) - 1 ] = '\0';
-	}
 
-	if ( ludp->lud_attrs ) {
-		attrlist = ludp->lud_attrs;
-	} else {
-		attrlist = def_attr;
+		if ( match )
+			break;
 	}
-	res = NULL;
-	/* TBC: we don't read the host, dammit */
-	rc = ldap_search_st( ld, ludp->lud_dn, ludp->lud_scope,
-			     filter, attrlist, 0,
-			     &timeout, &res );
-
-	/* some other trouble - try again later */
-	if ( rc != LDAP_SUCCESS &&
-	     rc != LDAP_SIZELIMIT_EXCEEDED ) {
-		syslog( LOG_ALERT, "return 0x%x from X.500",
-			rc );
-		unbind_and_exit( EX_TEMPFAIL );
-	}
-
-	match = ldap_count_entries( ld, res );
 
 	/* trouble - try again later */
 	if ( match == -1 ) {
@@ -942,18 +513,14 @@ search_ldap_url(
 		unbind_and_exit( EX_TEMPFAIL );
 	}
 
-	if ( match == 1 || multi_entry ) {
-		for ( e = ldap_first_entry( ld, res ); e != NULL;
-		      e = ldap_next_entry( ld, e ) ) {
-			dn = ldap_get_dn( ld, e );
-			resolved = entry_engine( e, dn, address, to, nto,
-						 togroups, ngroups,
-						 err, nerr, type );
-			if ( !resolved ) {
-				add_error( err, nerr, E_NOEMAIL, address, res );
-			}
+	/* no matches - bounce with user unknown */
+	if ( match == 0 ) {
+		if ( type == USER ) {
+			add_error( err, nerr, E_USERUNKNOWN, name, NULL );
+		} else {
+			add_error( err, nerr, E_GROUPUNKNOWN, name, NULL );
 		}
-		return ( resolved );
+		return;
 	}
 
 	/* more than one match - bounce with ambiguous user? */
@@ -963,9 +530,9 @@ search_ldap_url(
 		char		**xdn;
 
 		/* not giving rdn preference - bounce with ambiguous user */
-		if ( rdnpref == 0 ) {
-			add_error( err, nerr, E_AMBIGUOUS, address, res );
-			return 0;
+		if ( base[b].b_rdnpref == 0 ) {
+			add_error( err, nerr, E_AMBIGUOUS, name, res );
+			return;
 		}
 
 		/*
@@ -980,7 +547,7 @@ search_ldap_url(
 			xdn = ldap_explode_dn( dn, 1 );
 
 			/* XXX bad, but how else can we do it? XXX */
-			if ( strcasecmp( xdn[0], address ) == 0 ) {
+			if ( strcasecmp( xdn[0], name ) == 0 ) {
 				ldap_delete_result_entry( &res, e );
 				ldap_add_result_entry( &tmpres, e );
 			}
@@ -991,13 +558,13 @@ search_ldap_url(
 
 		/* nothing matched by rdn - go ahead and bounce */
 		if ( tmpres == NULL ) {
-			add_error( err, nerr, E_AMBIGUOUS, address, res );
-			return 0;
+			add_error( err, nerr, E_AMBIGUOUS, name, res );
+			return;
 
 		/* more than one matched by rdn - bounce with rdn matches */
 		} else if ( (match = ldap_count_entries( ld, tmpres )) > 1 ) {
-			add_error( err, nerr, E_AMBIGUOUS, address, tmpres );
-			return 0;
+			add_error( err, nerr, E_AMBIGUOUS, name, tmpres );
+			return;
 
 		/* trouble... */
 		} else if ( match < 0 ) {
@@ -1008,565 +575,484 @@ search_ldap_url(
 		/* otherwise one matched by rdn - send to it */
 		ldap_msgfree( res );
 		res = tmpres;
-
-		/* trouble */
-		if ( (e = ldap_first_entry( ld, res )) == NULL ) {
-			syslog( LOG_ALERT, "error parsing entry from X.500" );
-			unbind_and_exit( EX_TEMPFAIL );
-		}
-
-		dn = ldap_get_dn( ld, e );
-
-		resolved = entry_engine( e, dn, address, to, nto,
-					 togroups, ngroups,
-					 err, nerr, type );
-		if ( !resolved ) {
-			add_error( err, nerr, E_NOEMAIL, address, res );
-			/* Don't free res if we passed it to add_error */
-		} else {
-			ldap_msgfree( res );
-		}
 	}
-	return( resolved );
-}
-
-static int
-url_list_search(
-	char	**urllist, 
-	char	*address,
-	int	multi_entry,
-	char	***to,
-	int	*nto,
-	Group	***togroups,
-	int	*ngroups,
-	Error	**err,
-	int	*nerr,
-	int	type
-)
-{
-	int		i;
-	int		resolved = 0;
-
-	for ( i = 0; urllist[i]; i++ ) {
-
-		if ( !strncasecmp( urllist[i], "mail:", 5 ) ) {
-			char	*vals[2];
-
-			vals[0] = urllist[i] + 5;
-			vals[1] = NULL;
-			add_to( to, nto, vals );
-			resolved = 1;
-
-		} else if ( ldap_is_ldap_url( urllist[i] ) ) {
-
-			resolved = search_ldap_url( urllist[i], NULL,
-						    address, 0, multi_entry,
-						    to, nto, togroups, ngroups,
-						    err, nerr, type );
-		} else {
-			/* Produce some sensible error here */
-			resolved = 0;
-		}
-	}
-	return( resolved );
-}
-
-/*
- * We should probably take MX records into account to cover all bases,
- * but really, routing belongs in the MTA.
- */
-static int
-is_my_host(
-	char * host
-)
-{
-	char **d;
-
-	if ( myhosts == NULL )
-		return 0;
-	for ( d = myhosts; *d; d++ ) {
-		if ( !strcasecmp(*d,host) ) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-static int
-is_my_domain(
-	char * address
-)
-{
-	char **d;
-	char *p;
-
-	if ( mydomains == NULL )
-		return 0;
-	p = strchr( address, '@' );
-	if ( p == NULL)
-		return 0;
-	for ( d = mydomains; *d; d++ ) {
-		if ( !strcasecmp(*d,p+1) ) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-static void
-do_addresses(
-	char	**addresses,
-	char	***to,
-	int	*nto,
-	Group	***togroups,
-	int	*ngroups,
-	Error	**err,
-	int	*nerr,
-	int	type
-)
-{
-	int	i, j;
-	int	n;
 
 	/*
-	 * Well, this is tricky, every address in my_addresses will be
-	 * removed from the list while we shift the other values down
-	 * and we do it in a single scan of the address list and
-	 * without using additional memory.  We are going to be
-	 * modifying the value list in a way that the later
-	 * ldap_value_free works.
+	 * if we get this far, it means that we found a single match for
+	 * name.  for a user, we deliver to the mail attribute or bounce
+	 * with address and phone if no mail attr.  for a group, we
+	 * deliver to all members or bounce to rfc822ErrorsTo if no members.
 	 */
-	j = 0;
-	for ( i = 0; addresses[i]; i++ ) {
-		if ( is_my_domain(addresses[i]) ) {
-			do_address( addresses[i], to, nto, togroups, ngroups,
-				    err, nerr, type );
-			ldap_memfree( addresses[i] );
-		} else {
-			if ( j < i ) {
-				addresses[j] = addresses[i];
+
+	/* trouble */
+	if ( (e = ldap_first_entry( ld, res )) == NULL ) {
+		syslog( LOG_ALERT, "error parsing entry from X.500" );
+		unbind_and_exit( EX_TEMPFAIL );
+	}
+
+	dn = ldap_get_dn( ld, e );
+
+	if ( type == GROUP_ERRORS ) {
+		/* sent to group-errors - resend to [rfc822]ErrorsTo attr */
+		do_group_errors( e, dn, to, nto, err, nerr );
+
+	} else if ( type == GROUP_REQUEST ) {
+		/* sent to group-request - resend to [rfc822]RequestsTo attr */
+		do_group_request( e, dn, to, nto, err, nerr );
+
+	} else if ( type == GROUP_MEMBERS ) {
+		/* sent to group-members - expand */
+		do_group_members( e, dn, to, nto, togroups, ngroups, err,
+		    nerr );
+
+	} else if ( type == GROUP_OWNER ) {
+		/* sent to group-owner - resend to owner attr */
+		do_group_owner( e, dn, to, nto, err, nerr );
+
+	} else if ( isgroup( e ) ) {
+		/* 
+		 * sent to group - resend from [rfc822]ErrorsTo if it's there,
+		 * otherwise, expand the group
+		 */
+
+		do_group( e, dn, to, nto, togroups, ngroups, err, nerr );
+
+		ldap_msgfree( res );
+
+	} else {
+		/*
+		 * sent to user - mail attribute => add it to the to list,
+		 * otherwise bounce
+		 */
+		if ( (mail = ldap_get_values( ld, e, "mail" )) != NULL ) {
+			char	buf[1024];
+			char	*h;
+			int	i, j;
+
+			/* try to detect simple mail loops */
+			sprintf( buf, "%s@%s", name, host );
+			for ( i = 0; mail[i] != NULL; i++ ) {
+				/*
+				 * address is the same as the one we're
+				 * sending to - mail loop.  syslog the
+				 * problem, bounce a message back to the
+				 * sender (who else?), and delete the bogus
+				 * addr from the list.
+				 */
+
+				if ( (h = strchr( mail[i], '@' )) != NULL ) {
+					h++;
+					if ( strcasecmp( h, host ) == 0 ) {
+						syslog( LOG_ALERT,
+					    "potential loop detected (%s)",
+						    mail[i] );
+					}
+				}
+
+				if ( mailcmp( buf, mail[i] ) == 0 ) {
+					syslog( LOG_ALERT,
+					    "loop detected (%s)", mail[i] );
+
+					/* remove the bogus address */
+					for ( j = i; mail[j] != NULL; j++ ) {
+						mail[j] = mail[j+1];
+					}
+				}
 			}
-			j++;
+			if ( mail[0] != NULL ) {
+				add_to( to, nto, mail );
+			} else {
+				add_error( err, nerr, E_NOEMAIL, name, res );
+			}
+
+			ldap_value_free( mail );
+		} else {
+			add_error( err, nerr, E_NOEMAIL, name, res );
+		}
+
+		/*
+		 * If the user is on vacation, send a copy of the mail to
+		 * the vacation server.  The address is constructed from
+		 * the vacationhost (set in a command line argument) and
+		 * the uid (XXX this should be more general XXX).
+		 */
+
+		if ( vacationhost != NULL && (onvacation = ldap_get_values( ld,
+		    e, "onVacation" )) != NULL && strcasecmp( onvacation[0],
+		    "TRUE" ) == 0 ) {
+			char	buf[1024];
+			char	*vaddr[2];
+
+			if ( (uid = ldap_get_values( ld, e, "uid" )) != NULL ) {
+				sprintf( buf, "%s@%s", uid[0], vacationhost );
+
+				vaddr[0] = buf;
+				vaddr[1] = NULL;
+
+				add_to( to, nto, vaddr );
+			} else {
+				syslog( LOG_ALERT,
+				    "user without a uid on vacation (%s)",
+				    name );
+			}
 		}
 	}
-	addresses[j] = NULL;
-	if ( addresses[0] ) {
-		add_to( to, nto, addresses );
+
+	if ( onvacation != NULL ) {
+		ldap_value_free( onvacation );
 	}
+	if ( uid != NULL ) {
+		ldap_value_free( uid );
+	}
+	free( dn );
 }
 
-/*
- * The entry engine processes an entry.  Normally, each entry will resolve
- * to one or more values that will be added to the 'to' argument.  This
- * argument needs not be the global 'to' list, it may be the g_to field
- * in a group.  Groups have no special treatment, unless they require
- * a special sender.
- */
-
 static int
-entry_engine(
+do_group(
 	LDAPMessage *e,
 	char	*dn,
-	char	*address,
 	char	***to,
 	int	*nto,
-	Group	***togroups,
+	Group	**togroups,
 	int	*ngroups,
 	Error	**err,
-	int	*nerr,
-	int	type
+	int	*nerr
 )
 {
-	char	**vals;
 	int	i;
-	int	resolved = 0;
-	char	***current_to = to;
-	int	*current_nto = nto;
-	Group	*current_group = NULL;
-	char	buf[1024];
-	char	*localpart = NULL, *domainpart = NULL;
-	Subst	substs[2];
-	int	cur_priority = 0;
-	char	*route_to_host = NULL;
-	char	*route_to_address = NULL;
-	int	needs_mta_routing = 0;
-	char	**own_addresses = NULL;
-	int	own_addresses_total = 0;
-	char	**delivery_types = NULL;
-	int	delivery_types_total = 0;
-	char	*nvals[2];
+	char	**moderator;
 
-	for ( i=0; attr_semantics[i] != NULL; i++ ) {
-		AttrSemantics	*as = attr_semantics[i];
-		int		nent;
-		int		j;
-
-		if ( as->as_priority < cur_priority ) {
-			/*
-			 * We already got higher priority information,
-			 * so no further work to do, ignore the rest.
-			 */
-			break;
-		}
-		vals = ldap_get_values( ld, e, as->as_name );
-		if ( !vals || vals[0] == NULL ) {
-			continue;
-		}
-		nent = count_values( vals );
-		if ( nent > 1 && !as->as_m_valued ) {
-			add_error( err, nerr, E_AMBIGUOUS, address, e );
-			return( 0 );
-		}
-		switch ( as->as_kind ) {
-		case AS_KIND_RECIPIENT:
-			cur_priority = as->as_priority;
-			if ( ! ( type & ( USER | GROUP_MEMBERS ) ) )
-				break;
-			switch ( as->as_syntax ) {
-			case AS_SYNTAX_RFC822:
-				do_addresses( vals, current_to, current_nto,
-					      togroups, ngroups, err, nerr,
-					      USER );
-				resolved = 1;
-				break;
-			case AS_SYNTAX_RFC822_EXT:
-				do_addresses( vals, current_to, current_nto,
-					      togroups, ngroups, err, nerr,
-					      USER );
-				resolved = 1;
-				break;
-			case AS_SYNTAX_NATIVE_MB:
-				/* We used to concatenate mailHost if set here */
-				/*
-				 * We used to send a copy to the vacation host
-				 * if onVacation to uid@vacationhost
-				 */
-				if ( as->as_param ) {
-					for ( j=0; j<delivery_types_total; j++ ) {
-						if ( !strcasecmp( as->as_param, delivery_types[j] ) ) {
-							add_to( current_to, current_nto, vals );
-							resolved = 1;
-							break;
-						}
-					}
-				} else {
-					add_to( current_to, current_nto, vals );
-					resolved = 1;
-				}
-				break;
-
-			case AS_SYNTAX_DN:
-				if ( dn_search( vals, address,
-						current_to, current_nto,
-						togroups, ngroups,
-						err, nerr ) ) {
-					resolved = 1;
-				}
-				break;
-
-			case AS_SYNTAX_URL:
-				if ( url_list_search( vals, address,
-						 as->as_m_entries,
-						 current_to, current_nto,
-						 togroups, ngroups,
-						 err, nerr, type ) ) {
-					resolved = 1;
-				}
-				break;
-
-			case AS_SYNTAX_BOOL_FILTER:
-				if ( strcasecmp( vals[0], "true" ) ) {
-					break;
-				}
-				substs[0].sub_char = 'D';
-				substs[0].sub_value = dn;
-				substs[1].sub_char = '\0';
-				substs[1].sub_value = NULL;
-				if ( url_list_search( vals, address,
-						 as->as_m_entries,
-						 current_to, current_nto,
-						 togroups, ngroups,
-						 err, nerr, type ) ) {
-					resolved = 1;
-				}
-				break;
-
-			default:
-				syslog( LOG_ALERT,
-					"Invalid syntax %d for kind %d",
-					as->as_syntax, as->as_kind );
-				break;
-			}
-			break;
-
-		case AS_KIND_ERRORS:
-			cur_priority = as->as_priority;
-			/* This is a group with special processing */
-			if ( type & GROUP_ERRORS ) {
-				switch (as->as_kind) {
-				case AS_SYNTAX_RFC822:
-					add_to( current_to, current_nto, vals );
-					resolved = 1;
-					break;
-				case AS_SYNTAX_URL:
-				default:
-					syslog( LOG_ALERT,
-						"Invalid syntax %d for kind %d",
-						as->as_syntax, as->as_kind );
-				}
-			} else {
-				current_group = new_group( dn, togroups,
-							   ngroups );
-				current_to = &current_group->g_members;
-				current_nto = &current_group->g_nmembers;
-				split_address( address,
-					       &localpart, &domainpart );
-				if ( domainpart ) {
-					sprintf( buf, "%s-%s@%s",
-						 localpart, ERRORS,
-						 domainpart );
-					free( localpart );
-					free( domainpart );
-				} else {
-					sprintf( buf, "%s-%s@%s",
-						 localpart, ERRORS,
-						 host );
-					free( localpart );
-				}
-				current_group->g_errorsto = strdup( buf );
-			}
-			break;
-
-		case AS_KIND_REQUEST:
-			cur_priority = as->as_priority;
-			/* This is a group with special processing */
-			if ( type & GROUP_REQUEST ) {
-				add_to( current_to, current_nto, vals );
-				resolved = 1;
-			}
-			break;
-
-		case AS_KIND_OWNER:
-			cur_priority = as->as_priority;
-			/* This is a group with special processing */
-			if ( type & GROUP_REQUEST ) {
-				add_to( current_to, current_nto, vals );
-				resolved = 1;
-			}
-			break;
-
-		case AS_KIND_ROUTE_TO_HOST:
-			if ( !is_my_host( vals[0] ) ) {
-				cur_priority = as->as_priority;
-				if ( as->as_syntax == AS_SYNTAX_PRESENT ) {
-					needs_mta_routing = 1;
-				} else {
-					route_to_host = strdup( vals[0] );
-				}
-			}
-			break;
-
-		case AS_KIND_ROUTE_TO_ADDR:
-			for ( j=0; j<own_addresses_total; j++ ) {
-				if ( strcasecmp( vals[0], own_addresses[j] ) ) {
-					cur_priority = as->as_priority;
-					if ( as->as_syntax == AS_SYNTAX_PRESENT ) {
-						needs_mta_routing = 1;
-					} else {
-						route_to_address = strdup( vals[0] );
-					}
-				}
-				break;
-			}
-
-		case AS_KIND_OWN_ADDR:
-			add_to( &own_addresses, &own_addresses_total, vals );
-			cur_priority = as->as_priority;
-			break;
-
-		case AS_KIND_DELIVERY_TYPE:
-			add_to( &delivery_types, &delivery_types_total, vals );
-			cur_priority = as->as_priority;
-			break;
-
-		default:
-			syslog( LOG_ALERT,
-				"Invalid kind %d", as->as_kind );
-			/* Error, TBC */
-		}
-		ldap_value_free( vals );
-	}
 	/*
-	 * Now check if we are dealing with mail routing.  We support
-	 * two modes.
-	 *
-	 * The first mode and by far the most robust method is doing
-	 * routing at the MTA.  In this case, we just checked if the
-	 * routing attributes were present and did not seem like
-	 * pointing to ourselves.  The only thing we have to do here
-	 * is adding to the recipient list any of the RFC822 addresses
-	 * of this entry.  That means we needed to retrieve them from
-	 * the entry itself because we might have arrived here through
-	 * some directory search.  The address received as argument is
-	 * not the address of the entry we are processing, but rather
-	 * the RFC822 address we are expanding now.  Unfortunately,
-	 * this requires an MTA that understands LDAP routing.
-	 * Sendmail 8.10.0 does, if compiled properly.
-	 *
-	 * The second method, that is most emphatically not recommended
-	 * is routing in mail500.  This is going to require using the
-	 * percent hack.  Moreover, this may occasionally loop.
+	 * If this group has an rfc822ErrorsTo attribute, we need to
+	 * arrange for errors involving this group to go there, not
+	 * to the sender.  Since sendmail only has the concept of a
+	 * single sender, we arrange for errors to go to groupname-errors,
+	 * which we then handle specially when (if) it comes back to us
+	 * by expanding to all the rfc822ErrorsTo addresses.  If it has no
+	 * rfc822ErrorsTo attribute, we call do_group_members() to expand
+	 * the group.
 	 */
-	if ( needs_mta_routing ) {
-		if ( !own_addresses ) {
-			add_error( err, nerr, E_NOOWNADDRESS, address, e );
+
+	if ( group_loop( dn ) ) {
+		return( -1 );
+	}
+
+	/*
+	 * check for moderated groups - if the group has a moderator
+	 * attribute, we check to see if the from address is one of
+	 * the moderator values.  if so, continue on.  if not, arrange
+	 * to send the mail to the moderator(s).  need to do this before
+	 * we change the from below.
+	 */
+
+	if ( (moderator = ldap_get_values( ld, e, "moderator" )) != NULL ) {
+		/* check if it came from any of the group's moderators */
+		for ( i = 0; moderator[i] != NULL; i++ ) {
+			if ( strcasecmp( moderator[i], mailfrom ) == 0 )
+				break;
+		}
+
+		/* not from the moderator? */
+		if ( moderator[i] == NULL ) {
+			add_to( to, nto, moderator );
+			ldap_value_free( moderator );
+
 			return( 0 );
 		}
-		nvals[0] = own_addresses[0];	/* Anyone will do */
-		nvals[1] = NULL;
-		add_to( current_to, current_nto, nvals );
-		resolved = 1;
-	} else if ( route_to_host ) {
-		char *p;
-		if ( !route_to_address ) {
-			if ( !own_addresses ) {
-				add_error( err, nerr, E_NOOWNADDRESS, address, e );
-				return( 0 );
-			}
-			route_to_address = strdup( own_addresses[0] );
-		}
-		/* This makes use of the percent hack, but there's no choice */
-		p = strchr( route_to_address, '@' );
-		if ( p ) {
-			*p = '%';
-		}
-		sprintf( buf, "%s@%s", route_to_address, route_to_host );
-		nvals[0] = buf;
-		nvals[1] = NULL;
-		add_to( current_to, current_nto, nvals );
-		resolved = 1;
-		free( route_to_host );
-		free( route_to_address );
-	} else if ( route_to_address ) {
-		nvals[0] = route_to_address;
-		nvals[1] = NULL;
-		add_to( current_to, current_nto, nvals );
-		resolved = 1;
-		free( route_to_address );
+		/* else from the moderator - fall through and deliver it */
 	}
-	if ( own_addresses ) {
-		ldap_value_free( own_addresses );
+
+	if (strcmp(MAIL500_BOUNCEFROM, mailfrom) != 0 &&
+	    has_attributes( e, "rfc822ErrorsTo", "errorsTo" ) ) {
+		add_group( dn, togroups, ngroups );
+
+		return( 0 );
 	}
-	if ( delivery_types ) {
-		ldap_value_free( delivery_types );
-	}
-		  
-	return( resolved );
+
+	do_group_members( e, dn, to, nto, togroups, ngroups, err, nerr );
+
+	return( 0 );
 }
 
-static int
-search_bases(
-	char	*filter,
-	Subst	*substs,
-	char	*name,
+/* ARGSUSED */
+static void
+do_group_members(
+	LDAPMessage *e,
+	char	*dn,
 	char	***to,
 	int	*nto,
-	Group	***togroups,
+	Group	**togroups,
 	int	*ngroups,
 	Error	**err,
-	int	*nerr,
-	int	type
+	int	*nerr
 )
 {
-	int		b, resolved = 0;
+	int		i, rc, anymembers;
+	char		*ndn;
+	char		**mail, **member, **joinable, **suppress;
+	char		filter[1024];
+	LDAPMessage	*ee, *res;
+	struct timeval	timeout;
+	int		opt;
 
-	for ( b = 0; base[b] != NULL; b++ ) {
+	/*
+	 * if all has gone according to plan, we've already arranged for
+	 * errors to go to the [rfc822]ErrorsTo attributes (if they exist),
+	 * so all we have to do here is arrange to send to the
+	 * rfc822Mailbox attribute, the member attribute, and anyone who
+	 * has joined the group by setting memberOfGroup equal to the
+	 * group dn.
+	 */
 
-		if ( ! (base[b]->b_search & type) ) {
-			continue;
+	/* add members in the group itself - mail attribute */
+	anymembers = 0;
+	if ( (mail = ldap_get_values( ld, e, "mail" )) != NULL ) {
+		anymembers = 1;
+		add_to( to, nto, mail );
+
+		ldap_value_free( mail );
+	}
+
+	/* add members in the group itself - member attribute */
+	if ( (member = ldap_get_values( ld, e, "member" )) != NULL ) {
+		suppress = ldap_get_values( ld, e, "suppressNoEmailError" );
+		anymembers = 1;
+		for ( i = 0; member[i] != NULL; i++ ) {
+			if ( strcasecmp( dn, member[i] ) == 0 ) {
+				syslog( LOG_ALERT, "group (%s) contains itself",
+				    dn );
+				continue;
+			}
+			add_member( dn, member[i], to, nto, togroups,
+			    ngroups, err, nerr, suppress );
 		}
 
-		resolved = search_ldap_url( base[b]->b_url, substs, name,
-					    base[b]->b_rdnpref,
-					    base[b]->b_m_entries,
-					    to, nto, togroups, ngroups,
-					    err, nerr, type );
-		if ( resolved )
-			break;
+		if ( suppress ) {
+			ldap_value_free( suppress );
+		}
+		ldap_value_free( member );
 	}
-	return( resolved );
+
+	/* add members who have joined by setting memberOfGroup */
+	if ( (joinable = ldap_get_values( ld, e, "joinable" )) != NULL ) {
+		if ( strcasecmp( joinable[0], "FALSE" ) == 0 ) {
+			if ( ! anymembers ) {
+				add_error( err, nerr, E_NOMEMBERS, dn,
+				    NULL );
+			}
+
+			ldap_value_free( joinable );
+			return;
+		}
+		ldap_value_free( joinable );
+
+		sprintf( filter, "(memberOfGroup=%s)", dn );
+
+		timeout.tv_sec = MAIL500_TIMEOUT;
+		timeout.tv_usec = 0;
+
+		/* for each subtree to look in... */
+		opt = MAIL500_MAXAMBIGUOUS;
+		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &opt);
+		for ( i = 0; base[i].b_dn != NULL; i++ ) {
+			/* find entries that have joined this group... */
+			rc = ldap_search_st( ld, base[i].b_dn,
+			    LDAP_SCOPE_SUBTREE, filter, attrs, 0, &timeout,
+			    &res );
+
+			if ( rc == LDAP_SIZELIMIT_EXCEEDED ||
+			    rc == LDAP_TIMELIMIT_EXCEEDED ) {
+				syslog( LOG_ALERT,
+				    "group search limit exceeded %d", rc );
+				unbind_and_exit( EX_TEMPFAIL );
+			}
+
+			if ( rc != LDAP_SUCCESS ) {
+				syslog( LOG_ALERT, "group search return 0x%x",
+				    rc );
+				unbind_and_exit( EX_TEMPFAIL );
+			}
+
+			/* for each entry that has joined... */
+			for ( ee = ldap_first_entry( ld, res ); ee != NULL;
+			    ee = ldap_next_entry( ld, ee ) ) {
+				anymembers = 1;
+				if ( isgroup( ee ) ) {
+					ndn = ldap_get_dn( ld, ee );
+
+					if ( do_group( e, ndn, to, nto,
+					    togroups, ngroups, err, nerr )
+					    == -1 ) {
+						syslog( LOG_ALERT,
+						    "group loop (%s) (%s)",
+						    dn, ndn );
+					}
+
+					free( ndn );
+
+					continue;
+				}
+
+				/* add them to the to list */
+				if ( (mail = ldap_get_values( ld, ee, "mail" ))
+				    != NULL ) {
+					add_to( to, nto, mail );
+
+					ldap_value_free( mail );
+
+				/* else generate a bounce */
+				} else {
+					ndn = ldap_get_dn( ld, ee );
+
+					add_error( err, nerr,
+					    E_JOINMEMBERNOEMAIL, ndn, NULL );
+
+					free( ndn );
+				}
+			}
+
+			ldap_msgfree( res );
+		}
+		opt = MAIL500_MAXAMBIGUOUS;
+		ldap_set_option(ld, LDAP_OPT_SIZELIMIT, &opt);
+	}
+
+	if ( ! anymembers ) {
+		add_error( err, nerr, E_NOMEMBERS, dn, NULL );
+	}
 }
 
 static void
-do_address(
-	char	*name,
+add_member(
+	char	*gdn,
+	char	*dn,
 	char	***to,
 	int	*nto,
-	Group	***togroups,
+	Group	**togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr,
-	int	type
+	char	**suppress
 )
 {
-	char		*localpart = NULL, *domainpart = NULL;
-	char		*synthname = NULL;
-	int		resolved;
-	int		i;
-	Subst		substs[6];
+	char		*ndn;
+	char		**mail;
+	int		rc;
+	LDAPMessage	*res, *e;
+	struct timeval	timeout;
 
-	/*
-	 * Look up the name in X.500, add the appropriate addresses found
-	 * to the to list, or to the err list in case of error.  Groups are
-	 * handled by the do_group routine, individuals are handled here.
-	 * When looking up name, we follow the bases hierarchy, looking
-	 * in base[0] first, then base[1], etc.  For each base, there is
-	 * a set of search filters to try, in order.  If something goes
-	 * wrong here trying to contact X.500, we exit with EX_TEMPFAIL.
-	 * If the b_rdnpref flag is set, then we give preference to entries
-	 * that matched name because it's their rdn, otherwise not.
-	 */
+	timeout.tv_sec = MAIL500_TIMEOUT;
+	timeout.tv_usec = 0;
+	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "(objectclass=*)",
+	    attrs, 0, &timeout, &res )) != LDAP_SUCCESS ) {
+		if ( rc == LDAP_NO_SUCH_OBJECT ) {
+			add_error( err, nerr, E_BADMEMBER, dn, NULL );
 
-	split_address( name, &localpart, &domainpart );
-	synthname = strdup( localpart );
-	for ( i = 0; synthname[i] != '\0'; i++ ) {
-		if ( synthname[i] == '.' || synthname[i] == '_' )
-			synthname[i] = ' ';
-	}
-	substs[0].sub_char = 'm';
-	substs[0].sub_value = name;
-	substs[1].sub_char = 'h';
-	substs[1].sub_value = host;
-	substs[2].sub_char = 'l';
-	substs[2].sub_value = localpart;
-	substs[3].sub_char = 'd';
-	substs[3].sub_value = domainpart;
-	substs[4].sub_char = 's';
-	substs[4].sub_value = synthname;
-	substs[5].sub_char = '\0';
-	substs[5].sub_value = NULL;
-
-	resolved = search_bases( NULL, substs, name,
-				 to, nto, togroups, ngroups,
-				 err, nerr, type );
-
-	if ( localpart ) {
-		free( localpart );
-	}
-	if ( domainpart ) {
-		free( domainpart );
-	}
-	if ( synthname ) {
-		free( synthname );
-	}
-
-	if ( !resolved ) {
-		/* not resolved - bounce with user unknown */
-		if ( type == USER ) {
-			add_error( err, nerr, E_USERUNKNOWN, name, NULL );
+			return;
 		} else {
-			add_error( err, nerr, E_GROUPUNKNOWN, name, NULL );
+			syslog( LOG_ALERT, "member search return 0x%x", rc );
+
+			unbind_and_exit( EX_TEMPFAIL );
 		}
+	}
+
+	if ( (e = ldap_first_entry( ld, res )) == NULL ) {
+		syslog( LOG_ALERT, "member search error parsing entry" );
+
+		unbind_and_exit( EX_TEMPFAIL );
+	}
+	ndn = ldap_get_dn( ld, e );
+
+	/* allow groups within groups */
+	if ( isgroup( e ) ) {
+		if ( do_group( e, ndn, to, nto, togroups, ngroups, err, nerr )
+		    == -1 ) {
+			syslog( LOG_ALERT, "group loop (%s) (%s)", gdn, ndn );
+		}
+
+		free( ndn );
+
+		return;
+	}
+
+	/* send to the member's mail attribute */
+	if ( (mail = ldap_get_values( ld, e, "mail" )) != NULL ) {
+		add_to( to, nto, mail );
+
+		ldap_value_free( mail );
+
+	/* else generate a bounce */
+	} else {
+		if ( suppress == NULL || strcasecmp( suppress[0], "FALSE" )
+		    == 0 ) {
+			add_error( err, nerr, E_MEMBERNOEMAIL, ndn, NULL );
+		}
+	}
+
+	free( ndn );
+}
+
+static void
+do_group_request(
+	LDAPMessage *e,
+	char	*dn,
+	char	***to,
+	int	*nto,
+	Error	**err,
+	int	*nerr
+)
+{
+	char		**requeststo;
+
+	if ( (requeststo = get_attributes_mail_dn( e, "rfc822RequestsTo",
+	    "requestsTo" )) != NULL ) {
+		add_to( to, nto, requeststo );
+
+		ldap_value_free( requeststo );
+	} else {
+		add_error( err, nerr, E_NOREQUEST, dn, NULL );
+	}
+}
+
+static void
+do_group_errors(
+	LDAPMessage *e,
+	char	*dn,
+	char	***to,
+	int	*nto,
+	Error	**err,
+	int	*nerr
+)
+{
+	char		**errorsto;
+
+	if ( (errorsto = get_attributes_mail_dn( e, "rfc822ErrorsTo",
+	    "errorsTo" )) != NULL ) {
+		add_to( to, nto, errorsto );
+
+		ldap_value_free( errorsto );
+	} else {
+		add_error( err, nerr, E_NOERRORS, dn, NULL );
+	}
+}
+
+static void
+do_group_owner(
+	LDAPMessage *e,
+	char	*dn,
+	char	***to,
+	int	*nto,
+	Error	**err,
+	int	*nerr
+)
+{
+	char		**owner;
+
+	if ( (owner = get_attributes_mail_dn( e, "", "owner" )) != NULL ) {
+		add_to( to, nto, owner );
+		ldap_value_free( owner );
+	} else {
+		add_error( err, nerr, E_NOOWNER, dn, NULL );
 	}
 }
 
@@ -1610,7 +1096,7 @@ send_message( char **to )
 }
 
 static void
-send_group( Group **group, int ngroup )
+send_group( Group *group, int ngroup )
 {
 	int	i, pid;
 	char	**argv;
@@ -1625,7 +1111,7 @@ send_group( Group **group, int ngroup )
 
 		iargv[0] = MAIL500_SENDMAIL;
 		iargv[1] = "-f";
-		iargv[2] = group[i]->g_errorsto;
+		iargv[2] = group[i].g_errorsto;
 		iargv[3] = "-oMrX.500";
 		iargv[4] = "-odi";
 		iargv[5] = "-oi";
@@ -1634,7 +1120,7 @@ send_group( Group **group, int ngroup )
 		argv = NULL;
 		argc = 0;
 		add_to( &argv, &argc, iargv );
-		add_to( &argv, &argc, group[i]->g_members );
+		add_to( &argv, &argc, group[i].g_members );
 
 		if ( debug ) {
 			char	buf[1024];
@@ -1781,11 +1267,6 @@ send_errors( Error *err, int nerr )
 
 			case E_NOMEMBERS:
 				fprintf( fp, "%s: Group has no members\n",
-				    err[i].e_addr );
-				break;
-
-			case E_NOOWNADDRESS:
-				fprintf( fp, "%s: Not enough information to perform required routing\n",
 				    err[i].e_addr );
 				break;
 
@@ -1937,14 +1418,11 @@ do_ambiguous( FILE *fp, Error *err, int namelen )
 			}
 		}
 
-		/* 
 		if ( isgroup( e ) ) {
 			vals = ldap_get_values( ld, e, "description" );
 		} else {
 			vals = ldap_get_values( ld, e, "title" );
 		}
-		*/
-		vals = ldap_get_values( ld, e, "description" );
 
 		fprintf( fp, "    %-20s %s\n", rdn, vals ? vals[0] : "" );
 		for ( i = 1; vals && vals[i] != NULL; i++ ) {
@@ -1992,42 +1470,18 @@ add_to( char ***list, int *nlist, char **new )
 	(*list)[*nlist] = NULL;
 }
 
-static void
-add_single_to( char ***list, char *new )
-{
-	int	nlist;
-
-	if ( *list == NULL ) {
-		nlist = 0;
-		*list = (char **) malloc( 2 * sizeof(char *) );
-	} else {
-		nlist = count_values( *list );
-		*list = (char **) realloc( *list,
-					   ( nlist + 2 ) * sizeof(char *) );
-	}
-
-	(*list)[nlist] = strdup( new );
-	(*list)[nlist+1] = NULL;
-}
-
 static int
 isgroup( LDAPMessage *e )
 {
-	int	i, j;
+	int	i;
 	char	**oclist;
-
-	if ( !groupclasses ) {
-		return( 0 );
-	}
 
 	oclist = ldap_get_values( ld, e, "objectClass" );
 
 	for ( i = 0; oclist[i] != NULL; i++ ) {
-		for ( j = 0; groupclasses[j] != NULL; j++ ) {
-			if ( strcasecmp( oclist[i], groupclasses[j] ) == 0 ) {
-				ldap_value_free( oclist );
-				return( 1 );
-			}
+		if ( strcasecmp( oclist[i], "rfc822MailGroup" ) == 0 ) {
+			ldap_value_free( oclist );
+			return( 1 );
 		}
 	}
 	ldap_value_free( oclist );
@@ -2051,6 +1505,52 @@ add_error( Error **err, int *nerr, int code, char *addr, LDAPMessage *msg )
 }
 
 static void
+add_group( char *dn, Group **list, int *nlist )
+{
+	int	i, namelen;
+	char	**ufn;
+
+	for ( i = 0; i < *nlist; i++ ) {
+		if ( strcmp( dn, (*list)[i].g_dn ) == 0 ) {
+			syslog( LOG_ALERT, "group loop 2 detected (%s)", dn );
+			return;
+		}
+	}
+
+	ufn = ldap_explode_dn( dn, 1 );
+	namelen = strlen( ufn[0] );
+
+	if ( *nlist == 0 ) {
+		*list = (Group *) malloc( sizeof(Group) );
+	} else {
+		*list = (Group *) realloc( *list, (*nlist + 1) *
+		    sizeof(Group) );
+	}
+
+	/* send errors to groupname-errors@host */
+	(*list)[*nlist].g_errorsto = (char *) malloc( namelen + sizeof(ERRORS)
+	    + hostlen + 2 );
+	sprintf( (*list)[*nlist].g_errorsto, "%s-%s@%s", ufn[0], ERRORS, host );
+	(void) canonical( (*list)[*nlist].g_errorsto );
+
+	/* send to groupname-members@host - make it a list for send_group */
+	(*list)[*nlist].g_members = (char **) malloc( 2 * sizeof(char *) );
+	(*list)[*nlist].g_members[0] = (char *) malloc( namelen +
+	    sizeof(MEMBERS) + hostlen + 2 );
+	sprintf( (*list)[*nlist].g_members[0], "%s-%s@%s", ufn[0], MEMBERS,
+	    host );
+	(void) canonical( (*list)[*nlist].g_members[0] );
+	(*list)[*nlist].g_members[1] = NULL;
+
+	/* save the group's dn so we can check for loops above */
+	(*list)[*nlist].g_dn = strdup( dn );
+
+	(*nlist)++;
+
+	ldap_value_free( ufn );
+}
+
+static void
 unbind_and_exit( int rc )
 {
 	int	i;
@@ -2059,4 +1559,130 @@ unbind_and_exit( int rc )
 		syslog( LOG_ALERT, "ldap_unbind failed %d\n", i );
 
 	exit( rc );
+}
+
+static char *
+canonical( char *s )
+{
+	char	*saves = s;
+
+	for ( ; *s != '\0'; s++ ) {
+		if ( *s == ' ' )
+			*s = '.';
+	}
+
+	return( saves );
+}
+
+static int
+group_loop( char *dn )
+{
+	int		i;
+	static char	**groups;
+	static int	ngroups;
+
+	for ( i = 0; i < ngroups; i++ ) {
+		if ( strcmp( dn, groups[i] ) == 0 )
+			return( 1 );
+	}
+
+	if ( ngroups == 0 )
+		groups = (char **) malloc( sizeof(char *) );
+	else
+		groups = (char **) realloc( groups,
+		    (ngroups + 1) * sizeof(char *) );
+
+	groups[ngroups++] = strdup( dn );
+
+	return( 0 );
+}
+
+static int
+has_attributes( LDAPMessage *e, char *attr1, char *attr2 )
+{
+	char	**attr;
+
+	if ( (attr = ldap_get_values( ld, e, attr1 )) != NULL ) {
+		ldap_value_free( attr );
+		return( 1 );
+	}
+
+	if ( (attr = ldap_get_values( ld, e, attr2 )) != NULL ) {
+		ldap_value_free( attr );
+		return( 1 );
+	}
+
+	return( 0 );
+}
+
+static char **
+get_attributes_mail_dn(
+    LDAPMessage *e,
+    char *attr1,
+    char *attr2			/* this one is dn-valued */
+)
+{
+	LDAPMessage	*ee, *res;
+	char		**vals, **dnlist, **mail, **grname;
+        char            *dn;
+	int		nto = 0, i, rc;
+	struct timeval	timeout;
+
+	dn = ldap_get_dn( ld, e );
+
+	vals = ldap_get_values( ld, e, attr1 );
+	for ( nto = 0; vals != NULL && vals[nto] != NULL; nto++ )
+		;	/* NULL */
+
+	if ( (dnlist = ldap_get_values( ld, e, attr2 )) != NULL ) {
+		timeout.tv_sec = MAIL500_TIMEOUT;
+		timeout.tv_usec = 0;
+
+		for ( i = 0; dnlist[i] != NULL; i++ ) {
+			if ( (rc = ldap_search_st( ld, dnlist[i],
+			    LDAP_SCOPE_BASE, "(objectclass=*)", attrs, 0,
+			    &timeout, &res )) != LDAP_SUCCESS ) {
+				if ( rc != LDAP_NO_SUCH_OBJECT ) {
+					unbind_and_exit( EX_TEMPFAIL );
+				}
+
+				syslog( LOG_ALERT, "bad (%s) dn (%s)", attr2,
+				    dnlist[i] );
+
+				continue;
+			}
+
+			if ( (ee = ldap_first_entry( ld, res )) == NULL ) {
+				syslog( LOG_ALERT, "error parsing x500 entry" );
+				continue;
+			}
+
+			if ( isgroup(ee) ) {
+				char	*graddr[2];
+
+				grname = ldap_explode_dn( dnlist[i], 1 );
+
+				/* groupname + host + @ + null */
+				graddr[0] = (char *) malloc( strlen( grname[0] )
+				    + strlen( host ) + 2 );
+				graddr[1] = NULL;
+				sprintf( graddr[0], "%s@%s", grname[0], host);
+				(void) canonical( graddr[0] );
+
+				add_to( &vals, &nto, graddr );
+
+				free( graddr[0] );
+				ldap_value_free( grname );
+			} else if ( (mail = ldap_get_values( ld, ee, "mail" ))
+			    != NULL ) {
+				add_to( &vals, &nto, mail );
+
+				ldap_value_free( mail );
+			}
+
+			ldap_msgfree( res );
+		}
+	}
+
+	return( vals );
 }
