@@ -182,8 +182,8 @@ monitor_subsys_ops_update(
 			mpz_add( nInitiated, nInitiated, slap_counters.sc_ops_initiated_[ i ] );
 			mpz_add( nCompleted, nCompleted, slap_counters.sc_ops_completed_[ i ] );
 #else /* ! HAVE_GMP */
-			nInitiated += slap_counter.sc_ops_initiated_[ i ];
-			nCompleted += slap_counter.sc_ops_completed_[ i ];
+			nInitiated += slap_counters.sc_ops_initiated_[ i ];
+			nCompleted += slap_counters.sc_ops_completed_[ i ];
 #endif /* ! HAVE_GMP */
 		}
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
@@ -197,8 +197,8 @@ monitor_subsys_ops_update(
 				mpz_init_set( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
 				mpz_init_set( nCompleted, slap_counters.sc_ops_completed_[ i ] );
 #else /* ! HAVE_GMP */
-				nInitiated = slap_counter.sc_ops_initiated_[ i ];
-				nCompleted = slap_counter.sc_ops_completed_[ i ];
+				nInitiated = slap_counters.sc_ops_initiated_[ i ];
+				nCompleted = slap_counters.sc_ops_completed_[ i ];
 #endif /* ! HAVE_GMP */
 				ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 				break;
