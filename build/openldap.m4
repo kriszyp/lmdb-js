@@ -315,7 +315,7 @@ AC_DEFUN([OL_BERKELEY_DB_THREAD],
 main()
 {
 	int rc;
-	u_int32_t flags = DB_CREATE | DB_THREAD | DB_INIT_DB | DB_INIT_MPOOL;
+	u_int32_t flags = DB_CREATE | DB_THREAD | DB_INIT_CDB | DB_INIT_MPOOL;
 
 #if DB_VERSION_MAJOR > 2
 	DB_ENV *env = NULL;
