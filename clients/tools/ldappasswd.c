@@ -449,7 +449,7 @@ main( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 
-	rc = ldap_result( ld, LDAP_RES_ANY, 0, NULL, &res );
+	rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
 	if ( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_result" );
 		return rc;

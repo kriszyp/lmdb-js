@@ -266,8 +266,8 @@ typedef struct ldapcontrol {
 #define LDAP_RES_EXTENDED		((ber_tag_t) 0x78U)	/* V3: application + constructed */
 #define LDAP_RES_EXTENDED_PARTIAL	((ber_tag_t) 0x79U)	/* V3+: application + constructed */
 
-#define LDAP_RES_ANY			((ber_tag_t)(-1))
-#define LDAP_RES_UNSOLICITED	((ber_tag_t)(0))
+#define LDAP_RES_ANY			(-1)
+#define LDAP_RES_UNSOLICITED	(0)
 
 
 /* sasl methods */

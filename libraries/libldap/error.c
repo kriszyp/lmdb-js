@@ -211,7 +211,6 @@ ldap_parse_result(
 	LDAPMessage	*lm;
 	ber_int_t errcode = LDAP_SUCCESS;
 
-	int rc;
 	ber_tag_t tag;
 	BerElement	*ber;
 
@@ -307,7 +306,7 @@ ldap_parse_result(
 		}
 
 		if( tag != LBER_ERROR ) {
-			rc = ldap_int_get_controls( ber, serverctrls );
+			int rc = ldap_int_get_controls( ber, serverctrls );
 
 			if( rc != LDAP_SUCCESS ) {
 				tag = LBER_ERROR;

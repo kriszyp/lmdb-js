@@ -509,25 +509,31 @@ static int domodrdn(
 		NULL, NULL, &id );
 
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_rename" );
+		fprintf( stderr, "ldapmodrdn: ldap_rename: %s (%d)\n",
+			ldap_err2string( rc ), rc );
 		return rc;
 	}
 
-	rc = ldap_result( ld, LDAP_RES_ANY, 0, NULL, &res );
+	rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
 	if ( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_result" );
+		fprintf( stderr, "ldapmodrdn: ldap_result: %s (%d)\n",
+			ldap_err2string( rc ), rc );
 		return rc;
 	}
 
 	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 1 );
 
 	if( rc != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_parse_result" );
+		fprintf( stderr, "ldapmodrdn: ldap_parse_result: %s (%d)\n",
+			ldap_err2string( rc ), rc );
 		return rc;
 	}
 
-	if( verbose || code != LDAP_SUCCESS || matcheddn || text || refs ) {
-		printf( "Result: %s (%d)\n", ldap_err2string( code ), code );
+	if( verbose || code != LDAP_SUCCESS ||
+		(matcheddn && *matcheddn) || (text && *text) || (refs && *refs) )
+	{
+		printf( "Rename Result: %s (%d)\n",
+			ldap_err2string( code ), code );
 
 		if( text && *text ) {
 			printf( "Additional info: %s\n", text );
@@ -547,7 +553,7 @@ static int domodrdn(
 
 	ber_memfree( text );
 	ber_memfree( matcheddn );
-	ber_memvfree( refs );
+	ber_memvfree( (void **) refs );
 
 	return code;
 }

@@ -67,12 +67,14 @@ static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPReques
 
 /*
  * ldap_result - wait for an ldap result response to a message from the
- * ldap server.  If msgid is -1, any message will be accepted, otherwise
- * ldap_result will wait for a response with msgid.  If all is 0 the
- * first message with id msgid will be accepted, otherwise, ldap_result
- * will wait for all responses with id msgid and then return a pointer to
- * the entire list of messages.  This is only useful for search responses,
- * which can be of two message types (zero or more entries, followed by an
+ * ldap server.  If msgid is LDAP_RES_ANY (-1), any message will be
+ * accepted.  If msgid is LDAP_RES_UNSOLICITED (0), any unsolicited
+ * message is accepted.  Otherwise ldap_result will wait for a response
+ * with msgid.  If all is LDAP_MSG_ONE (0) the first message with id
+ * msgid will be accepted, otherwise, ldap_result will wait for all
+ * responses with id msgid and then return a pointer to the entire list
+ * of messages.  This is only useful for search responses, which can be
+ * of two message types (zero or more entries, followed by an
  * ldap result).  The type of the first message received is returned.
  * When waiting, any messages that have been abandoned are discarded.
  *
