@@ -271,6 +271,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the getopt function.  */
 #undef HAVE_GETOPT
 
+/* Define if you have the getpwuid function.  */
+#undef HAVE_GETPWUID
+
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
@@ -445,6 +448,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 
+/* Define if you have the <pwd.h> header file.  */
+#undef HAVE_PWD_H
+
 /* Define if you have the <regex.h> header file.  */
 #undef HAVE_REGEX_H
 
@@ -483,6 +489,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the <sys/param.h> header file.  */
 #undef HAVE_SYS_PARAM_H
+
+/* Define if you have the <sys/resource.h> header file.  */
+#undef HAVE_SYS_RESOURCE_H
 
 /* Define if you have the <sys/socket.h> header file.  */
 #undef HAVE_SYS_SOCKET_H

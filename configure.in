@@ -892,12 +892,14 @@ AC_CHECK_HEADERS(	\
 	limits.h		\
 	malloc.h		\
 	regex.h			\
+	pwd.h			\
 	sgtty.h			\
 	sys/file.h		\
 	sys/filio.h		\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
+	sys/resource.h	\
 	sys/socket.h	\
 	sys/syslog.h	\
 	sys/time.h		\
@@ -947,6 +949,7 @@ AC_CHECK_FUNCS(		\
 	gethostname		\
 	gettimeofday	\
 	getdtablesize	\
+	getpwuid		\
 	lockf			\
 	memcpy			\
 	memmove			\
