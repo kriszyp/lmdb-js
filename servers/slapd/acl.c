@@ -87,10 +87,16 @@ access_allowed(
 #endif
 	slap_mask_t mask;
 	slap_control_t control;
+	const char *attr;
+	regmatch_t matches[MAXREMATCHES];
 
-	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
+	assert( e != NULL );
+	assert( desc != NULL );
+	assert( access > ACL_NONE );
 
-	regmatch_t       matches[MAXREMATCHES];
+	attr = desc->ad_cname->bv_val;
+
+	assert( attr != NULL );
 
 	Debug( LDAP_DEBUG_ACL,
 		"=> access_allowed: %s access to \"%s\" \"%s\" requested\n",
@@ -231,8 +237,10 @@ acl_get(
 
 	assert( e != NULL );
 	assert( count != NULL );
+	assert( desc != NULL );
 
-	attr = desc ? desc->ad_cname->bv_val : NULL;
+	attr = desc->ad_cname->bv_val;
+	assert( attr != NULL );
 
 	if( a == NULL ) {
 		if( be == NULL ) {
@@ -363,10 +371,15 @@ acl_mask(
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif
-	const char *attr = desc ? desc->ad_cname->bv_val : NULL;
+	const char *attr;
 
 	assert( a != NULL );
 	assert( mask != NULL );
+	assert( desc != NULL );
+
+	attr = desc->ad_cname->bv_val;
+
+	assert( attr != NULL );
 
 	Debug( LDAP_DEBUG_ACL,
 		"=> acl_mask: access to entry \"%s\", attr \"%s\" requested\n",
@@ -547,11 +560,12 @@ acl_mask(
 			struct berval	bv;
 			int rc, match = 0;
 			const char *text;
-			const char *desc = b->a_dn_at->ad_cname->bv_val;
+			const char *attr = b->a_dn_at->ad_cname->bv_val;
+
+			assert( attr != NULL );
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
-				desc, 0, 0);
-
+				attr, 0, 0);
 			bv.bv_val = op->o_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 
@@ -1351,6 +1365,8 @@ aci_mask(
     char *subjdn;
 	int rc;
 	char *attr = desc->ad_cname->bv_val;
+
+	assert( attr != NULL );
 
 	/* parse an aci of the form:
 		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
