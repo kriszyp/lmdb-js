@@ -38,13 +38,11 @@ else
 	RELAYS="$RELAYS ldap"
 fi
 
-# back-meta - disable by now, needs work to line up with rwm
+# back-meta
 if test $BACKMETA = metano ; then 
 	echo "meta backend not available, test skipped"
 else
-	# RELAYS="$RELAYS meta"
-	echo "==> back-meta disabled by now, needs work"
-	echo ""
+	RELAYS="$RELAYS meta"
 fi 
 
 first=1

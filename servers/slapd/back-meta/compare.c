@@ -114,6 +114,21 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			if ( mapped_attr.bv_val == NULL || mapped_attr.bv_val[0] == '\0' ) {
 				continue;
 			}
+
+			if ( op->oq_compare.rs_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
+			{
+				dc.ctx = "compareAttrDN";
+
+				switch ( ldap_back_dn_massage( &dc, &op->oq_compare.rs_ava->aa_value, &mapped_value ) )
+				{
+				case LDAP_UNWILLING_TO_PERFORM:
+					rc = 1;
+					goto finish;
+
+				default:
+					break;
+				}
+			}
 		}
 		
 		/*
@@ -123,13 +138,16 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 */
 		msgid[ i ] = ldap_compare( lc->conns[ i ].ld, mdn.bv_val,
 				mapped_attr.bv_val, mapped_value.bv_val );
+
 		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 			free( mdn.bv_val );
 			mdn.bv_val = NULL;
 		}
+
 		if ( mapped_attr.bv_val != op->oq_compare.rs_ava->aa_desc->ad_cname.bv_val ) {
 			free( mapped_attr.bv_val );
 		}
+
 		if ( mapped_value.bv_val != op->oq_compare.rs_ava->aa_value.bv_val ) {
 			free( mapped_value.bv_val );
 		}

@@ -771,10 +771,10 @@ suffix_massage_config(
 	ch_free( rargv[ 2 ] );
 	
 	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "searchResult";
+	rargv[ 1 ] = "searchEntryDN";
 	rargv[ 2 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
-	
+
 	rargv[ 0 ] = "rewriteRule";
 	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
 	rargv[ 2 ] = suffix_massage_patternize( pvnc->bv_val );
@@ -784,20 +784,40 @@ suffix_massage_config(
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 
+	/* backward compatibility */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "searchResult";
+	rargv[ 2 ] = "alias";
+	rargv[ 3 ] = "searchEntryDN";
+	rargv[ 4 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
+	
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDN";
 	rargv[ 2 ] = "alias";
-	rargv[ 3 ] = "searchResult";
+	rargv[ 3 ] = "searchEntryDN";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchAttrDN";
 	rargv[ 2 ] = "alias";
-	rargv[ 3 ] = "searchResult";
+	rargv[ 3 ] = "searchEntryDN";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
 
+	/* NOTE: this corresponds to #undef'ining RWM_REFERRAL_REWRITE;
+	 * see servers/slapd/overlays/rwm.h for details */
+        rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "referralAttrDN";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
+
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "referralDN";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
+	
 	return 0;
 }
 #endif /* ENABLE_REWRITE */
