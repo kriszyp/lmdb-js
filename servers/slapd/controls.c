@@ -176,7 +176,7 @@ int get_ctrls(
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				"get_ctrls: conn %d  get OID failed.\n",
+				"get_ctrls: conn %d get OID failed.\n",
 				conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
@@ -198,7 +198,7 @@ int get_ctrls(
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					"get_ctrls: conn %d  get crit failed.\n",
+					"get_ctrls: conn %d get crit failed.\n",
 					conn->c_connid ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",

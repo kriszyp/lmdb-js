@@ -66,8 +66,8 @@ bdb_db_init( BackendDB *be )
 
 	/* indicate system schema supported */
 	be->be_flags |= SLAP_BFLAG_ALIASES
-			| SLAP_BFLAG_REFERRALS
-			| SLAP_BFLAG_SUBENTRIES;
+		| SLAP_BFLAG_REFERRALS
+		| SLAP_BFLAG_SUBENTRIES;
 
 	/* allocate backend-database-specific stuff */
 	bdb = (struct bdb_info *) ch_calloc( 1, sizeof(struct bdb_info) );
