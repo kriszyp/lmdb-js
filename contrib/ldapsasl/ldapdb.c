@@ -222,8 +222,19 @@ static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech",
     	(const char **)&tmp.mech.bv_val, &len);
     tmp.mech.bv_len = len;
-    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_rc", &s, NULL);
-    if(s && setenv("LDAPRC", s, 1)) return SASL_BADPARAM;
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_rc", &s, &len);
+    if (s)
+    {
+    	char *str = utils->malloc(sizeof("LDAPRC=")+len);
+	if (!str) return SASL_NOMEM;
+	strcpy( str, "LDAPRC=" );
+	strcpy( str + sizeof("LDAPRC=")-1, s );
+	if (putenv(str))
+	{
+	    utils->free(str);
+	    return SASL_NOMEM;
+	}
+    }
 
     p = utils->malloc(sizeof(ldapctx));
     if (!p) return SASL_NOMEM;
