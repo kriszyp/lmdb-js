@@ -35,8 +35,6 @@ $(LIBRARY):  version.lo
 	$(RM) ../$@
 	d=`$(PWD)`; d=`$(BASENAME) $$d`; cd ..; $(LN_S) $$d/$@ $@; \
 	t=`$(BASENAME) $@ .la`.a; $(RM) $$t; $(LN_S) $$d/.libs/$$t $$t
-	@# If we want our binaries to link dynamically with libldap{,_r} liblber
-	@# We also symlink the .so, so we can run the tests without installing
 	if test "$(LINK_BINS_DYNAMIC)" = "yes"; then \
 		d=`$(PWD)`; d=`$(BASENAME) $$d`; b=`$(BASENAME) $@ .la`; \
 		 cd .libs; t=`echo $$b*.$(DYN_EXT)`; (cd ../.. ; $(RM) $$t; \
