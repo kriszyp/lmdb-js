@@ -1,0 +1,76 @@
+.TH SLAPO-CHAIN 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2004 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copying restrictions apply.  See the COPYRIGHT file.
+.\" $OpenLDAP$
+.SH NAME
+slapo-chain \- chain overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The
+.B chain
+overlay to
+.BR slapd (8)
+allows automatic referral chasing.
+Any time a referral is returned (except for bind operations),
+it is chased by using an instance of the ldap backend.
+If operations are performed with an identity (i.e. after a bind),
+the referrals are chased with the 
+.B acl-authcDN 
+(if any; see
+.BR slapd-ldap (5)
+for details), with the original identity asserted by means of the
+.B proxyAuthz
+control (see \fIdraft-weltman-ldapv3-proxy\fP for details).
+
+.LP 
+The config directives that are specific to the
+.B chain
+overlay can be prefixed by
+.BR chain\- ,
+to avoid conflicts with directives specific to the underlying database
+or to other stacked overlays.
+
+.LP
+There are no chain overlay specific directives; however, directives 
+related to the instance of the ldap backend that is implicitly 
+instantiated by the overlay may assume a special meaning when used 
+in conjuction with this overlay.
+.TP
+.B overlay chain
+This directive adds the chain overlay to the current backend.
+The chain overlay may be used with any backend but is intended 
+for use with local storage backends that may return referrals.
+It is useless in conjunction with the ldap and meta backends
+because they exploit the libldap specific referral chase feature.
+.TP
+.B chain-uri <ldapuri>
+This directive instructs the underlying ldap database about which
+URI to contact to follow referrals.
+If not given, the referral itself is parsed, and the protocol/host/port
+portions are used to establish a connection.
+
+.LP
+Directives for configuring the underlying ldap database must also be given, 
+as shown here:
+.LP
+.RS
+.nf
+chain-acl-authcDN	cn=Auth,dc=example,dc=com
+chain-acl-passwd	secret
+.fi
+.RE
+.LP
+Any valid directives for the ldap database may be used; see
+.BR slapd-ldap (5)
+for details.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd\-ldap (5),
+.BR slapd (8).
+.SH AUTHOR
+Originally implemented by Howard Chu.
