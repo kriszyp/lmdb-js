@@ -49,7 +49,7 @@ void
 monitor_info( Connection *conn, Operation *op )
 {
 	Entry		*e;
-	char		buf[BUFSIZ], buf2[20];
+	char		buf[BUFSIZ], buf2[22];
 	struct berval	val;
 	struct berval	*vals[2];
 	int		i, nconns, nwritewaiters, nreadwaiters;
@@ -92,7 +92,11 @@ monitor_info( Connection *conn, Operation *op )
 			}
 			pthread_mutex_lock( &currenttime_mutex );
 			ltm = localtime( &c[i].c_starttime );
+#ifdef LDAP_Y2K
+			strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+#else
 			strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
+#endif
 			pthread_mutex_unlock( &currenttime_mutex );
 
 			pthread_mutex_lock( &c[i].c_dnmutex );
@@ -155,16 +159,24 @@ monitor_info( Connection *conn, Operation *op )
 	attr_merge( e, "bytessent", vals );
 
 	pthread_mutex_lock( &currenttime_mutex );
-        ltm = localtime( &currenttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+	ltm = localtime( &currenttime );
+#ifdef LDAP_Y2K
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
 	pthread_mutex_unlock( &currenttime_mutex );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "currenttime", vals );
 
 	pthread_mutex_lock( &currenttime_mutex );
-        ltm = localtime( &starttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+	ltm = localtime( &starttime );
+#ifdef LDAP_Y2K
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
 	pthread_mutex_unlock( &currenttime_mutex );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );

@@ -145,7 +145,7 @@ do_add( conn, op )
 static void
 add_created_attrs( Operation *op, Entry *e )
 {
-	char		buf[20];
+	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
 	Attribute	**a, **next;
@@ -182,8 +182,12 @@ add_created_attrs( Operation *op, Entry *e )
 	attr_merge( e, "creatorsname", bvals );
 
 	pthread_mutex_lock( &currenttime_mutex );
-        ltm = localtime( &currenttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+	ltm = localtime( &currenttime );
+#ifdef LDAP_Y2K
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
 	pthread_mutex_unlock( &currenttime_mutex );
 
 	bv.bv_val = buf;

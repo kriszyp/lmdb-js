@@ -200,7 +200,7 @@ modlist_free(
 static void
 add_lastmods( Operation *op, LDAPMod **mods )
 {
-	char		buf[20];
+	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
 	LDAPMod		**m;
@@ -251,8 +251,12 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	*mods = tmp;
 
 	pthread_mutex_lock( &currenttime_mutex );
-        ltm = localtime( &currenttime );
-        strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+	ltm = localtime( &currenttime );
+#ifdef LDAP_Y2K
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
 	pthread_mutex_unlock( &currenttime_mutex );
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
