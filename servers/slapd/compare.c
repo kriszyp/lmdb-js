@@ -298,11 +298,7 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		}
 		send_ldap_result( op, rs );
 
-		if ( rs->sr_err == LDAP_COMPARE_TRUE ||
-			rs->sr_err == LDAP_COMPARE_FALSE )
-		{
-			rs->sr_err = LDAP_SUCCESS;
-		}
+		if( rc == 0 ) rs->sr_err = LDAP_SUCCESS;
 
 	} else if ( op->o_bd->be_compare ) {
 		op->o_bd->be_compare( op, rs );

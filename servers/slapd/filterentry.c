@@ -37,9 +37,12 @@
 static int	test_filter_and( Operation *op, Entry *e, Filter *flist );
 static int	test_filter_or( Operation *op, Entry *e, Filter *flist );
 static int	test_substrings_filter( Operation *op, Entry *e, Filter *f);
-static int	test_ava_filter( Operation *op, Entry *e, AttributeAssertion *ava, int type );
-static int	test_mra_filter( Operation *op, Entry *e, MatchingRuleAssertion *mra );
-static int	test_presence_filter( Operation *op, Entry *e, AttributeDescription *desc );
+static int	test_ava_filter( Operation *op,
+	Entry *e, AttributeAssertion *ava, int type );
+static int	test_mra_filter( Operation *op,
+	Entry *e, MatchingRuleAssertion *mra );
+static int	test_presence_filter( Operation *op,
+	Entry *e, AttributeDescription *desc );
 
 
 /*
@@ -73,21 +76,21 @@ test_filter(
 
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "    EQUALITY\n", 0, 0, 0 );
-
 		rc = test_ava_filter( op, e, f->f_ava, LDAP_FILTER_EQUALITY );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		Debug( LDAP_DEBUG_FILTER, "    SUBSTRINGS\n", 0, 0, 0 );
-
 		rc = test_substrings_filter( op, e, f );
 		break;
 
 	case LDAP_FILTER_GE:
+		Debug( LDAP_DEBUG_FILTER, "    GE\n", 0, 0, 0 );
 		rc = test_ava_filter( op, e, f->f_ava, LDAP_FILTER_GE );
 		break;
 
 	case LDAP_FILTER_LE:
+		Debug( LDAP_DEBUG_FILTER, "    LE\n", 0, 0, 0 );
 		rc = test_ava_filter( op, e, f->f_ava, LDAP_FILTER_LE );
 		break;
 
@@ -358,8 +361,12 @@ test_ava_filter(
 		int	hasSubordinates;
 		struct berval	hs;
 
-		/* No other match is allowed */
-		if( type != LDAP_FILTER_EQUALITY ) return LDAP_OTHER;
+		if( type != LDAP_FILTER_EQUALITY &&
+			type != LDAP_FILTER_APPROX )
+		{
+			/* No other match is allowed */
+			return LDAP_OTHER;
+		}
 		
 		if ( op->o_bd->be_has_subordinates( op, e, &hasSubordinates ) !=
 			LDAP_SUCCESS )
@@ -510,8 +517,7 @@ static int
 test_filter_or(
 	Operation	*op,
 	Entry	*e,
-	Filter	*flist
-)
+	Filter	*flist )
 {
 	Filter	*f;
 	int rtn = LDAP_COMPARE_FALSE; /* False if empty */
