@@ -21,7 +21,7 @@ typedef struct slapi_entry	Slapi_Entry;
 typedef struct slapi_attr	Slapi_Attr;
 typedef struct berval		Slapi_Value;
 typedef struct BerVarray	Slapi_ValueSet;
-typedef struct slapi_filter	Slapi_Filter;
+typedef Slapi_Filter	Slapi_Filter;
 
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
@@ -174,6 +174,13 @@ int slapi_filter_get_choice( Slapi_Filter *f);
 int slapi_filter_get_ava( Slapi_Filter *f, char **type, struct berval **bval );
 Slapi_Filter *slapi_filter_list_first( Slapi_Filter *f );
 Slapi_Filter *slapi_filter_list_next( Slapi_Filter *f, Slapi_Filter *fprev );
+int slapi_filter_get_attribute_type( Slapi_Filter *f, char **type ); 
+int slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
+	char ***any, char **final );
+Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);
+int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
+	int verify_access );
+int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f);
 
 /* internal add/delete/search/modify routines */
 Slapi_PBlock *slapi_search_internal( char *base, int scope, char *filter, 
