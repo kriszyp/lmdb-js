@@ -1817,7 +1817,78 @@ integerBitOrMatch(
 	return LDAP_SUCCESS;
 }
 
-#ifndef SLAP_NVALUES
+static int
+serialNumberAndIssuerValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int rc = LDAP_INVALID_SYNTAX;
+	struct berval serialNumber, issuer;
+
+	serialNumber.bv_val = in->bv_val;
+	for( serialNumber.bv_len = 0;
+		serialNumber.bv_len < in->bv_len;
+		serialNumber.bv_len++ )
+	{
+		if ( serialNumber.bv_val[serialNumber.bv_len] == '$' ) {
+			issuer.bv_val = &serialNumber.bv_val[serialNumber.bv_len+1];
+			issuer.bv_len = in->bv_len - (serialNumber.bv_len+1);
+
+			if( serialNumber.bv_len == 0 || issuer.bv_len == 0 ) break;
+
+			rc = integerValidate( NULL, &serialNumber );
+			if( rc ) break;
+
+			rc = dnValidate( NULL, &issuer );
+			break;
+		}
+	}
+
+	return rc;
+}
+
+static int
+serialNumberAndIssuerNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	int rc = LDAP_INVALID_SYNTAX;
+	struct berval serialNumber, issuer, nissuer;
+
+	serialNumber.bv_val = val->bv_val;
+	for( serialNumber.bv_len = 0;
+		serialNumber.bv_len < val->bv_len;
+		serialNumber.bv_len++ )
+	{
+		if ( serialNumber.bv_val[serialNumber.bv_len] == '$' ) {
+			issuer.bv_val = &serialNumber.bv_val[serialNumber.bv_len+1];
+			issuer.bv_len = val->bv_len - (serialNumber.bv_len+1);
+
+			if( serialNumber.bv_len == 0 || issuer.bv_len == 0 ) break;
+
+			rc = dnNormalize( usage, syntax, mr, &issuer, &nissuer, ctx );
+			if( rc ) break;
+
+			normalized->bv_len = serialNumber.bv_len + 1 + nissuer.bv_len;
+			normalized->bv_val = ch_malloc( normalized->bv_len + 1);
+
+			AC_MEMCPY( normalized->bv_val,
+				serialNumber.bv_val, serialNumber.bv_len );
+			normalized->bv_val[serialNumber.bv_len] = '$';
+			AC_MEMCPY( &normalized->bv_val[serialNumber.bv_len+1],
+				nissuer.bv_val, nissuer.bv_len );
+			normalized->bv_val[normalized->bv_len] = '\0';
+			break;
+		}
+	}
+
+	return rc;
+}
+
 #ifdef HAVE_TLS
 #include <openssl/x509.h>
 #include <openssl/err.h>
@@ -1897,6 +1968,7 @@ certificateExactConvert(
 	struct berval * in,
 	struct berval * out )
 {
+	int rc;
 	X509 *xcert;
 	unsigned char *p = in->bv_val;
 	struct berval serial;
@@ -1920,9 +1992,9 @@ certificateExactConvert(
 		X509_free(xcert);
 		return LDAP_INVALID_SYNTAX;
 	}
-	if ( dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn )
-		!= LDAP_SUCCESS )
-	{
+
+	rc = dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn );
+	if( rc != LDAP_SUCCESS ) {
 		X509_free(xcert);
 		ber_memfree(serial.bv_val);
 		return LDAP_INVALID_SYNTAX;
@@ -1957,231 +2029,28 @@ certificateExactConvert(
 }
 
 static int
-serial_and_issuer_parse(
-	struct berval *assertion,
-	struct berval *serial,
-	struct berval *issuer_dn )
-{
-	char *begin;
-	char *end;
-	char *p;
-	struct berval bv;
-
-	begin = assertion->bv_val;
-	end = assertion->bv_val+assertion->bv_len-1;
-	for (p=begin; p<=end && *p != '$'; p++) /* empty */ ;
-	if ( p > end ) return LDAP_INVALID_SYNTAX;
-
-	/* p now points at the $ sign, now use
-	 * begin and end to delimit the serial number
-	 */
-	while (ASCII_SPACE(*begin)) begin++;
-	end = p-1;
-	while (ASCII_SPACE(*end)) end--;
-
-	if( end <= begin ) return LDAP_INVALID_SYNTAX;
-
-	bv.bv_len = end-begin+1;
-	bv.bv_val = begin;
-	ber_dupbv(serial, &bv);
-
-	/* now extract the issuer, remember p was at the dollar sign */
-	begin = p+1;
-	end = assertion->bv_val+assertion->bv_len-1;
-	while (ASCII_SPACE(*begin)) begin++;
-	/* should we trim spaces at the end too? is it safe always? no, no */
-
-	if( end <= begin ) return LDAP_INVALID_SYNTAX;
-
-	if ( issuer_dn ) {
-		bv.bv_len = end-begin+1;
-		bv.bv_val = begin;
-
-		return dnNormalize( 0, NULL, NULL, &bv, issuer_dn );
-	}
-
-	return LDAP_SUCCESS;
-}
-
-static int
-certificateExactMatch(
-	int *matchp,
-	slap_mask_t flags,
+certificateExactNormalize(
+	slap_mask_t usage,
 	Syntax *syntax,
 	MatchingRule *mr,
-	struct berval *value,
-	void *assertedValue )
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
 {
-	X509 *xcert;
-	unsigned char *p = value->bv_val;
-	struct berval serial;
-	struct berval issuer_dn;
-	struct berval asserted_serial;
-	struct berval asserted_issuer_dn;
-	int ret;
+	int rc;
 
-	xcert = d2i_X509(NULL, &p, value->bv_len);
-	if ( !xcert ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, ENTRY, 
-			"certificateExactMatch: error parsing cert: %s\n",
-			ERR_error_string(ERR_get_error(),NULL), 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ARGS, "certificateExactMatch: "
-		       "error parsing cert: %s\n",
-		       ERR_error_string(ERR_get_error(),NULL), NULL, NULL );
-#endif
-		return LDAP_INVALID_SYNTAX;
+	if( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( usage ) ) {
+		rc = serialNumberAndIssuerNormalize( usage, syntax, mr,
+			val, normalized, ctx );
+
+	} else {
+		rc = certificateExactConvert( val, normalized );
 	}
 
-	asn1_integer2str(xcert->cert_info->serialNumber, &serial);
-	dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn);
-
-	X509_free(xcert);
-
-	serial_and_issuer_parse(assertedValue,
-		&asserted_serial, &asserted_issuer_dn);
-
-	ret = integerMatch(
-		matchp,
-		flags,
-		slap_schema.si_syn_integer,
-		slap_schema.si_mr_integerMatch,
-		&serial,
-		&asserted_serial);
-	if ( ret == LDAP_SUCCESS ) {
-		if ( *matchp == 0 ) {
-			/* We need to normalize everything for dnMatch */
-			ret = dnMatch(
-				matchp,
-				flags,
-				slap_schema.si_syn_distinguishedName,
-				slap_schema.si_mr_distinguishedNameMatch,
-				&issuer_dn,
-				&asserted_issuer_dn);
-		}
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( CONFIG, ARGS, "certificateExactMatch "
-		"%d\n\t\"%s $ %s\"\n",
-		*matchp, serial.bv_val, issuer_dn.bv_val );
-	LDAP_LOG( CONFIG, ARGS, "\t\"%s $ %s\"\n",
-		asserted_serial.bv_val, asserted_issuer_dn.bv_val,
-		0 );
-#else
-	Debug( LDAP_DEBUG_ARGS, "certificateExactMatch "
-		"%d\n\t\"%s $ %s\"\n",
-		*matchp, serial.bv_val, issuer_dn.bv_val );
-	Debug( LDAP_DEBUG_ARGS, "\t\"%s $ %s\"\n",
-		asserted_serial.bv_val, asserted_issuer_dn.bv_val,
-		NULL );
-#endif
-
-	ber_memfree(serial.bv_val);
-	ber_memfree(issuer_dn.bv_val);
-	ber_memfree(asserted_serial.bv_val);
-	ber_memfree(asserted_issuer_dn.bv_val);
-
-	return ret;
+	return rc;
 }
+#endif /* HAVE_TLS */
 
-/* 
- * Index generation function
- * We just index the serials, in most scenarios the issuer DN is one of
- * a very small set of values.
- */
-static int certificateExactIndexer(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	BerVarray values,
-	BerVarray *keysp )
-{
-	int i;
-	BerVarray keys;
-	X509 *xcert;
-	unsigned char *p;
-	struct berval serial;
-
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0].bv_val != NULL );
-
-	for( i=0; values[i].bv_val != NULL; i++ ) {
-		/* empty -- just count them */
-	}
-
-	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
-
-	for( i=0; values[i].bv_val != NULL; i++ ) {
-		p = values[i].bv_val;
-		xcert = d2i_X509(NULL, &p, values[i].bv_len);
-		if ( !xcert ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( CONFIG, ENTRY, 
-				"certificateExactIndexer: error parsing cert: %s\n",
-				ERR_error_string(ERR_get_error(),NULL), 0, 0);
-#else
-			Debug( LDAP_DEBUG_ARGS, "certificateExactIndexer: "
-			       "error parsing cert: %s\n",
-			       ERR_error_string(ERR_get_error(),NULL),
-			       NULL, NULL );
-#endif
-			/* Do we leak keys on error? */
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		asn1_integer2str(xcert->cert_info->serialNumber, &serial);
-		X509_free(xcert);
-		xintegerNormalize( slap_schema.si_syn_integer,
-			&serial, &keys[i] );
-		ber_memfree(serial.bv_val);
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, ENTRY, 
-			"certificateExactIndexer: returning: %s\n", keys[i].bv_val, 0, 0);
-#else
-		Debug( LDAP_DEBUG_ARGS, "certificateExactIndexer: "
-		       "returning: %s\n",
-		       keys[i].bv_val,
-		       NULL, NULL );
-#endif
-	}
-
-	keys[i].bv_val = NULL;
-	*keysp = keys;
-	return LDAP_SUCCESS;
-}
-
-/* Index generation function */
-/* We think this is always called with a value in matching rule syntax */
-static int certificateExactFilter(
-	slap_mask_t use,
-	slap_mask_t flags,
-	Syntax *syntax,
-	MatchingRule *mr,
-	struct berval *prefix,
-	void * assertedValue,
-	BerVarray *keysp )
-{
-	BerVarray keys;
-	struct berval asserted_serial;
-	int ret;
-
-	ret = serial_and_issuer_parse( assertedValue, &asserted_serial, NULL );
-	if( ret != LDAP_SUCCESS ) return ret;
-
-	keys = ch_malloc( sizeof( struct berval ) * 2 );
-	xintegerNormalize( syntax, &asserted_serial, &keys[0] );
-	keys[1].bv_val = NULL;
-	*keysp = keys;
-
-	ber_memfree(asserted_serial.bv_val);
-	return LDAP_SUCCESS;
-}
-#endif
-#endif
 
 static int
 check_time_syntax (struct berval *val,
@@ -2697,15 +2566,13 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
 		0, bootParameterValidate, NULL},
 
-#ifdef HAVE_TLS
 	/* From PKIX */
 	/* These OIDs are not published yet, but will be in the next
 	 * I-D for PKIX LDAPv3 schema as have been advanced by David
 	 * Chadwick in private mail.
 	 */
 	{"( 1.2.826.0.1.3344810.7.1 DESC 'Serial Number and Issuer' )",
-		0, UTF8StringValidate, NULL},
-#endif
+		0, serialNumberAndIssuerValidate, NULL},
 
 	/* OpenLDAP Experimental Syntaxes */
 #ifdef SLAPD_ACI_ENABLED
@@ -2991,15 +2858,13 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
-#ifndef SLAP_NVALUES
 #ifdef HAVE_TLS
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
-		certificateExactConvert, NULL, certificateExactMatch,
-		certificateExactIndexer, certificateExactFilter,
+		NULL, certificateExactNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
 		NULL },
-#endif
 #endif
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
