@@ -144,7 +144,7 @@ H4: loglevel <integer>
 
 This directive specifies the level at which debugging statements
 and operation statistics should be syslogged (currently logged to
-the {{syslogd}}(8) {EX:LOG_LOCAL4}} facility). You must have
+the {{syslogd}}(8) {{EX:LOG_LOCAL4}} facility). You must have
 configured OpenLDAP {{EX:--enable-debug}} (the default) for this
 to work (except for the two statistics levels, which are always
 enabled).  Log levels are additive. To display what numbers
