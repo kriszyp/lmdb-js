@@ -19,6 +19,13 @@
 #include "lutil_sha1.h"
 #include "lutil.h"
 
+#ifdef HAVE_SHADOW_H
+#	include <shadow.h>
+#endif
+#ifdef HAVE_PWD_H
+#	include <pwd.h>
+#endif
+
 /*
  * Return 0 if creds are good.
  */
@@ -138,6 +145,29 @@ lutil_passwd(
 
 		return( strcmp(p, crypt(cred, p)) );
 
+# if defined( HAVE_GETSPNAM ) \
+  || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
+	} else if (strncasecmp(passwd, "{UNIX}", sizeof("{UNIX}") - 1) == 0 ) {
+		const char *u = passwd + (sizeof("{UNIX}") - 1);
+
+#  ifdef HAVE_GETSPNAM
+		struct spwd *spwd = getspnam(u);
+
+		if(spwd == NULL) {
+			return 1;	/* not found */
+		}
+
+		return strcmp(spwd->sp_pwdp, crypt(cred, spwd->sp_pwdp));
+#  else
+		struct passwd *pwd = getpwnam(u);
+
+		if(pwd == NULL) {
+			return 1;	/* not found */
+		}
+
+		return strcmp(pwd->pw_passwd, crypt(cred, pwd->pw_passwd));
+#  endif
+# endif
 #endif
 	}
 

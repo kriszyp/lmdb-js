@@ -1643,6 +1643,7 @@ AC_CHECK_HEADERS(	\
 	pwd.h			\
 	resolv.h		\
 	sgtty.h			\
+	shadow.h		\
 	stdarg.h		\
 	stddef.h		\
 	string.h		\
@@ -1678,6 +1679,7 @@ AC_STRUCT_ST_BLKSIZE
 AC_HEADER_TIME
 AC_STRUCT_TM
 OL_STRUCT_PASSWD_PW_GECOS
+OL_STRUCT_PASSWD_PW_PASSWD
 
 OL_C_UPPER_LOWER
 AC_C_CONST
@@ -1738,6 +1740,8 @@ AC_CHECK_FUNCS(		\
 	gethostname		\
 	getpass			\
 	getpwuid		\
+	getpwnam		\
+	getspnam		\
 	gettimeofday	\
 	initgroups		\
 	lockf			\

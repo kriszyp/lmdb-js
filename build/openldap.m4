@@ -197,6 +197,23 @@ if test $ol_cv_struct_passwd_pw_gecos = yes ; then
 fi
 ])
 dnl
+dnl --------------------------------------------------------------------
+dnl Check if struct passwd has pw_gecos
+AC_DEFUN([OL_STRUCT_PASSWD_PW_PASSWD], [# test for pw_passwd in struct passwd
+AC_MSG_CHECKING([struct passwd for pw_passwd])
+AC_CACHE_VAL(ol_cv_struct_passwd_pw_passwd,[
+	AC_TRY_COMPILE([#include <pwd.h>],[
+	struct passwd pwd;
+	pwd.pw_passwd = pwd.pw_name;
+],
+	[ol_cv_struct_passwd_pw_passwd=yes],
+	[ol_cv_struct_passwd_pw_passwd=no])])
+AC_MSG_RESULT($ol_cv_struct_passwd_pw_passwd)
+if test $ol_cv_struct_passwd_pw_passwd = yes ; then
+	AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
+fi
+])
+dnl
 dnl ====================================================================
 dnl Check if db.h is Berkeley DB2
 dnl
