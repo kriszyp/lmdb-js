@@ -1242,7 +1242,9 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
 #endif
+#ifndef HAVE_GMTIME_R
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
+#endif
 
 LDAP_SLAPD_V (AccessControl *) global_acl;
 
