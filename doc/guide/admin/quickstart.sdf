@@ -126,7 +126,7 @@ You can check to see if the server is running and your naming context
 {{I:ldapsearch}}(1).
 By default ldapsearch is installed as {{FILE:/usr/local/bin/ldapsearch}}.
 
-.{{EX:ldapsearch -x -b "" -s base '(objectclass=*)' namingContexts
+.{{EX:ldapsearch -x -b "" -s base '(objectclass=*)' namingContexts}}
 
 This should return:
 
