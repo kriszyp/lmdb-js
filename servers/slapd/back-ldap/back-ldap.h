@@ -123,7 +123,9 @@ ldap_back_map_attrs(
 extern void mapping_free ( struct ldapmapping *mapping );
 
 #ifdef ENABLE_REWRITE
-extern int suffix_massage_config( struct rewrite_info *info, int argc, char **argv );
+extern int suffix_massage_config( struct rewrite_info *info,
+		struct berval *pvnc, struct berval *nvnc,
+		struct berval *prnc, struct berval *nrnc);
 extern int ldap_dnattr_rewrite( struct rewrite_info *rwinfo, BerVarray a_vals, void *cookie );
 #endif /* ENABLE_REWRITE */
 

@@ -75,13 +75,6 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
-extern int
-suffix_massage_config(
-		struct rewrite_info *info,
-		int argc,
-		char **argv
-);
-
 static struct metatarget *
 new_target( void )
 {
@@ -399,7 +392,7 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
 		BackendDB 	*tmp_be;
 		int 		i = li->ntargets-1;
-		struct berval	dn, ndn;
+		struct berval	dn, nvnc, pvnc, nrnc, prnc;
 
 		if ( i < 0 ) {
 			fprintf( stderr,
@@ -428,41 +421,49 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize2( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"suffix '%s' is invalid\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 		}
 		
-		tmp_be = select_backend( &ndn, 0, 0 );
-		free( ndn.bv_val );
+		tmp_be = select_backend( &nvnc, 0, 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, 
 	"%s: line %d: suffix already in use by another backend in"
 	" \"suffixMassage <suffix> <massaged suffix>\"\n",
 				fname, lineno );
+			free( pvnc.bv_val );
+			free( nvnc.bv_val );
 			return 1;						
 		}
 
 		dn.bv_val = argv[ 2 ];
 		dn.bv_len = strlen( argv[ 2 ] );
-		if ( dnNormalize2( NULL, &dn, &ndn ) != LDAP_SUCCESS ) {
+		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"massaged suffix '%s' is invalid\n",
 					fname, lineno, argv[ 2 ] );
+			free( pvnc.bv_val );
+			free( nvnc.bv_val );
 			return 1;
 		}
-		
-		tmp_be = select_backend( &ndn, 0, 0 );
-		free( ndn.bv_val );
+	
+#if 0	
+		tmp_be = select_backend( &nrnc, 0, 0 );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr,
 	"%s: line %d: massaged suffix already in use by another backend in" 
 	" \"suffixMassage <suffix> <massaged suffix>\"\n",
                                 fname, lineno );
+			free( pvnc.bv_val );
+			free( nvnc.bv_val );
+			free( prnc.bv_val );
+			free( nrnc.bv_val );
                         return 1;
 		}
+#endif
 		
 		/*
 		 * The suffix massaging is emulated by means of the
@@ -471,7 +472,7 @@ meta_back_db_config(
 		 * to the database
 		 */
 	 	return suffix_massage_config( li->targets[ i ]->rwinfo,
-				argc, argv );
+				&pvnc, &nvnc, &prnc, &nrnc );
 		
 	/* rewrite stuff ... */
  	} else if ( strncasecmp( argv[ 0 ], "rewrite", 7 ) == 0 ) {
