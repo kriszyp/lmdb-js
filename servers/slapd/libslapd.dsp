@@ -164,6 +164,10 @@ SOURCE=.\backend.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\backglue.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bind.c
 # End Source File
 # Begin Source File
