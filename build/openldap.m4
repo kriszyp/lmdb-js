@@ -92,7 +92,7 @@ AC_CACHE_VAL(ol_cv_cpp_ebcdic,[
 	[ol_cv_cpp_ebcdic=yes],
 	[ol_cv_cpp_ebcdic=no])])
 AC_MSG_RESULT($ol_cv_cpp_ebcdic)
-if test $ol_cv_cpp_ebcdic != no ; then
+if test $ol_cv_cpp_ebcdic = yes ; then
 	AC_DEFINE(HAVE_EBCDIC,1, [define if system uses EBCDIC instead of ASCII])
 fi
 ])
@@ -101,7 +101,7 @@ dnl --------------------------------------------------------------------
 dnl OpenLDAP version of STDC header check w/ EBCDIC support
 AC_DEFUN(OL_HEADER_STDC,
 [AC_REQUIRE_CPP()dnl
-AC_REQUIRE([OL_CPP_EBCDIC])
+AC_REQUIRE([OL_CPP_EBCDIC])dnl
 AC_CACHE_CHECK([for ANSI C header files], ol_cv_header_stdc,
 [AC_TRY_CPP([#include <stdlib.h>
 #include <stdarg.h>
