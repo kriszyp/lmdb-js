@@ -14,13 +14,3 @@
 ## <http://www.OpenLDAP.org/license.html>.
 #
 
-# For testing purposes only.
-
-attributetype ( 1.3.6.1.4.1.4203.666.1.34 NAME 'componentCertificate'
-        DESC 'Component version of userCertificate, use ;binary'
-        SYNTAX 1.3.6.1.4.1.4203.666.2.7 )
-
-objectclass ( 1.3.6.1.4.1.4203.666.3.14 NAME 'componentpkiUser'
-    DESC 'a PKI user with componentCertificate'
-    SUP top AUXILIARY
-    MAY componentCertificate )

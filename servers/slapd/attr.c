@@ -40,12 +40,21 @@
 
 #include "slap.h"
 
+#ifdef LDAP_COMP_MATCH
+extern free_component_func* component_destructor;
+#endif
 void
 attr_free( Attribute *a )
 {
 	if ( a->a_nvals && a->a_nvals != a->a_vals )
 		ber_bvarray_free( a->a_nvals );
 	ber_bvarray_free( a->a_vals );
+#ifdef LDAP_COMP_MATCH
+	if ( component_destructor && a->a_component_values ) {
+		component_destructor(a->a_component_values);
+		a->a_component_values = NULL;
+	}
+#endif
 	free( a );
 }
 
@@ -108,6 +117,9 @@ attr_dup( Attribute *a )
 	tmp->a_desc = a->a_desc;
 	tmp->a_next = NULL;
 	tmp->a_flags = 0;
+#ifdef LDAP_COMP_MATCH
+	tmp->a_component_values = NULL;
+#endif
 
 	return tmp;
 }
@@ -168,6 +180,9 @@ attr_merge(
 		(*a)->a_nvals = NULL;
 		(*a)->a_next = NULL;
 		(*a)->a_flags = 0;
+#ifdef LDAP_COMP_MATCH
+		(*a)->a_component_values = NULL;
+#endif
 	}
 
 	rc = value_add( &(*a)->a_vals, vals );
@@ -249,6 +264,9 @@ attr_merge_one(
 		(*a)->a_nvals = NULL;
 		(*a)->a_next = NULL;
 		(*a)->a_flags = 0;
+#ifdef LDAP_COMP_MATCH
+		(*a)->a_component_values = NULL;
+#endif
 	}
 
 	rc = value_add_one( &(*a)->a_vals, val );

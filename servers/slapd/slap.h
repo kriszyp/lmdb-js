@@ -2611,7 +2611,7 @@ struct slap_component_syntax_info;
 
 typedef int gser_decoder_func LDAP_P((
 	void* b,
-	struct slap_component_syntax_info* comp_syn_info,
+	struct slap_component_syntax_info** comp_syn_info,
 	int* len,
 	int mode));
 

@@ -103,10 +103,7 @@ componentFilterMatch (
 		return LDAP_INAPPROPRIATE_MATCHING;
 		
 	rc = test_comp_filter( syntax, a, a->a_vals, ma->ma_cf );
-	if ( component_destructor && a->a_component_values ) {
-		component_destructor(a->a_component_values);
-		a->a_component_values = NULL;
-	}
+
 	if ( rc == LDAP_COMPARE_TRUE ) {
 		*matchp = 0;
 		return LDAP_SUCCESS;

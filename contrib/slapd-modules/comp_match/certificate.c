@@ -9,7 +9,7 @@
 
 
 void init_module_AuthenticationFramework() {
-	add_OD_entry ( "1.3.6.1.4.1.4203.666.1.34", GDecComponentCertificate,
+	add_OD_entry ( "2.5.4.36", GDecComponentCertificate,
 	BDecComponentCertificate, NULL);
 	InitAnyAuthenticationFramework();
 }
@@ -1630,6 +1630,8 @@ MatchingComponentRelativeDistinguishedName ( char* oid, ComponentSyntaxInfo* csi
 	else
 		 rc = LDAP_COMPARE_FALSE;
 	AsnListMove( &t_list, v2 );
+	AsnListFirst(v1);
+	AsnListFirst(v2);
 	return rc;
 }  /* BMatchingComponentRelativeDistinguishedNameContent */
 
@@ -1871,6 +1873,9 @@ MatchingComponentRDNSequence ( char* oid, ComponentSyntaxInfo* csi_attr, Compone
 			return LDAP_COMPARE_FALSE;
 		}
 	} /* end of for */
+
+	AsnListFirst(v1);
+	AsnListFirst(v2);
 
 	if( (!component1 && component2) || (component1 && !component2))
 		return LDAP_COMPARE_FALSE;
