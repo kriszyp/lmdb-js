@@ -47,6 +47,7 @@ rfc3829.txt LDAP Authorization Identity Controls (I)
 rfc3866.txt Language Tag and Ranges in LDAP (PS)
 rfc3876.txt Returning Matched Values with LDAP (PS)
 rfc3909.txt LDAP Cancel Operation (PS)
+rfc3928.txt LDAP Client Update Protocol (PS)
 
 Legend:
 STD	Standard
