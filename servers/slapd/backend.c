@@ -316,7 +316,6 @@ int backend_startup(Backend *be)
 	for( i = 0; i < nBackendDB; i++ ) {
 		if ( backendDB[i].be_update_ndn.bv_val && (
 			!backendDB[i].be_update_refs &&
-			!backendDB[i].syncinfo &&
 			!default_referral ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACKEND, CRIT, 
