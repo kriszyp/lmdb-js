@@ -55,7 +55,8 @@ Making and Installing the OpenLDAP Distribution
      was trying to do and exactly what failed.  You may need to specify
      additional options and/or environment variables besides those
      listed above to obtain desired results, depending on your operating
-     system.
+     system. The Platform Hints section of the FAQ provides help for
+     operating system related problems.
 
 4.   Build dependencies:
 
