@@ -385,6 +385,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 	backsql_BindRowAsStrings( bas->bas_sth, &at_row );
 	for ( ; rc = SQLFetch( bas->bas_sth ), BACKSQL_SUCCESS( rc ); ) {
 		const char	*text = NULL;
+		char		*next = NULL;
 		struct berval	bv;
 		struct berbuf	bb = BB_NULL;
 
@@ -446,9 +447,15 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 			at_map->bam_delete_proc = ch_strdup( at_row.cols[ 5 ] );
 		}
 		at_map->bam_param_order = strtol( at_row.cols[ 6 ], 
-				NULL, 0 );
+				&next, 0 );
+		if ( next == at_row.cols[ 6 ] || next[0] != '\0' ) {
+			/* error */
+		}
 		at_map->bam_expect_return = strtol( at_row.cols[ 7 ],
-				NULL, 0 );
+				&next, 0 );
+		if ( next == at_row.cols[ 7 ] || next[0] != '\0' ) {
+			/* error */
+		}
 		backsql_make_attr_query( oc_map, at_map );
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_attr_mapping(): "
 			"preconstructed query \"%s\"\n",
@@ -491,7 +498,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 int
 backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 {
-	SQLHSTMT 			sth;
+	SQLHSTMT 			sth = SQL_NULL_HSTMT;
 	RETCODE				rc;
 	BACKSQL_ROW_NTS			oc_row;
 	unsigned long			oc_id;
@@ -573,6 +580,28 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 		oc_map->bom_expect_return = strtol( oc_row.cols[ colnum + 1 ], 
 				NULL, 0 );
 
+		colnum += 2;
+		if ( ( oc_row.ncols > colnum ) &&
+				( oc_row.value_len[ colnum ] > 0 ) )
+		{
+			const char	*text;
+
+			oc_map->bom_create_hint = NULL;
+			rc = slap_str2ad( oc_row.cols[ colnum ],
+					&oc_map->bom_create_hint, &text );
+			if ( rc != SQL_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE, "load_schema_map(): "
+						"error matching "
+						"AttributeDescription %s "
+						"in create_hint: %s (%d)\n",
+						oc_row.cols[ colnum ],
+						text, rc );
+				backsql_PrintErrors( bi->sql_db_env, dbh,
+						sth, rc );
+				return LDAP_OTHER;
+			}
+		}
+
 		/*
 		 * FIXME: first attempt to check for offending
 		 * instructions in {create|delete}_proc
@@ -593,22 +622,27 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 		}
 		oc_id = oc_map->bom_id;
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-			"objectClass \"%s\": keytbl=\"%s\" keycol=\"%s\"\n",
+			"objectClass \"%s\":\n    keytbl=\"%s\" keycol=\"%s\"\n",
 			BACKSQL_OC_NAME( oc_map ),
 			oc_map->bom_keytbl.bv_val, oc_map->bom_keycol.bv_val );
 		if ( oc_map->bom_create_proc ) {
-			Debug( LDAP_DEBUG_TRACE, "create_proc=\"%s\"\n",
+			Debug( LDAP_DEBUG_TRACE, "    create_proc=\"%s\"\n",
 				oc_map->bom_create_proc, 0, 0 );
 		}
 		if ( oc_map->bom_create_keyval ) {
-			Debug( LDAP_DEBUG_TRACE, "create_keyval=\"%s\"\n",
+			Debug( LDAP_DEBUG_TRACE, "    create_keyval=\"%s\"\n",
 				oc_map->bom_create_keyval, 0, 0 );
 		}
+		if ( oc_map->bom_create_hint ) {
+			Debug( LDAP_DEBUG_TRACE, "    create_hint=\"%s\"\n", 
+				oc_map->bom_create_hint->ad_cname.bv_val,
+				0, 0 );
+		}
 		if ( oc_map->bom_delete_proc ) {
-			Debug( LDAP_DEBUG_TRACE, "delete_proc=\"%s\"\n", 
+			Debug( LDAP_DEBUG_TRACE, "    delete_proc=\"%s\"\n", 
 				oc_map->bom_delete_proc, 0, 0 );
 		}
-		Debug( LDAP_DEBUG_TRACE, "expect_return: "
+		Debug( LDAP_DEBUG_TRACE, "    expect_return: "
 			"add=%d, del=%d; attributes:\n",
 			BACKSQL_IS_ADD( oc_map->bom_expect_return ), 
 			BACKSQL_IS_DEL( oc_map->bom_expect_return ), 0 );

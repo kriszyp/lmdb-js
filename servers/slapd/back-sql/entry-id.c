@@ -114,7 +114,10 @@ backsql_dn2id(
 	}
 
 	/* return baseObject if available and matches */
-	if ( bi->sql_baseObject != NULL && dn_match( ndn, &bi->sql_baseObject->e_nname ) ) {
+	/* FIXME: if ndn is already mucked, we cannot check this */
+	if ( bi->sql_baseObject != NULL &&
+			dn_match( ndn, &bi->sql_baseObject->e_nname ) )
+	{
 		if ( id != NULL ) {
 #ifdef BACKSQL_ARBITRARY_KEY
 			ber_dupbv( &id->eid_id, &backsql_baseObject_bv );
@@ -164,7 +167,8 @@ backsql_dn2id(
 		 * that can be searched using indexes
 		 */
 
-		for ( i = 0, j = realndn.bv_len - 1; realndn.bv_val[ i ]; i++, j--) {
+		for ( i = 0, j = realndn.bv_len - 1; realndn.bv_val[ i ]; i++, j--)
+		{
 			upperdn[ i ] = realndn.bv_val[ j ];
 		}
 		upperdn[ i ] = '\0';
@@ -288,7 +292,7 @@ backsql_count_children(
 	struct berval		*dn,
 	unsigned long		*nchildren )
 {
-	SQLHSTMT		sth; 
+	SQLHSTMT		sth = SQL_NULL_HSTMT;
 	BACKSQL_ROW_NTS		row;
 	RETCODE 		rc;
 	int			res = LDAP_SUCCESS;
@@ -391,7 +395,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	backsql_srch_info	*bsi = v_bsi;
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	RETCODE			rc;
-	SQLHSTMT		sth;
+	SQLHSTMT		sth = SQL_NULL_HSTMT;
 	BACKSQL_ROW_NTS		row;
 	int			i;
 
@@ -466,7 +470,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				 */
 				bv.bv_len = strlen( row.cols[ i ] );
 #endif
-       				backsql_entry_addattr( bsi->bsi_e, 
+				backsql_entry_addattr( bsi->bsi_e, 
 						&row.col_names[ i ], &bv,
 						bsi->bsi_op->o_tmpmemctx );
 

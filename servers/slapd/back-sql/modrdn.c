@@ -31,8 +31,8 @@ int
 backsql_modrdn( Operation *op, SlapReply *rs )
 {
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
-	SQLHDBC			dbh;
-	SQLHSTMT		sth;
+	SQLHDBC			dbh = SQL_NULL_HDBC;
+	SQLHSTMT		sth = SQL_NULL_HSTMT;
 	RETCODE			rc;
 	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT,
 				pe_id = BACKSQL_ENTRYID_INIT,

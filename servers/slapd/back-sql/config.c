@@ -441,6 +441,48 @@ backsql_db_config(
 			return 1;
 		}
 
+	} else if ( !strcasecmp( argv[ 0 ], "id_query" ) ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE, 
+				"<==backsql_db_config (%s line %d): "
+				"missing SQL condition "
+				"in \"id_query\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+		bi->sql_id_query = ch_strdup( argv[ 1 ] );
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"id_query=%s\n", bi->sql_id_query, 0, 0 );
+
+	} else if ( !strcasecmp( argv[ 0 ], "use_subtree_shortcut") ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing { yes | no }"
+				"in \"use_subtree_shortcut\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			bi->sql_flags |= BSQLF_USE_SUBTREE_SHORTCUT;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			bi->sql_flags &= ~BSQLF_USE_SUBTREE_SHORTCUT;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"\"use_subtree_shortcut\" directive arg "
+				"must be \"yes\" or \"no\"\n",
+				fname, lineno, 0 );
+			return 1;
+
+		}
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"use_subtree_shortcut=%s\n", 
+			BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ? "yes" : "no", 0, 0 );
+
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}

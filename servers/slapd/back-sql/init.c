@@ -153,8 +153,7 @@ backsql_db_open(
 	BackendDB 	*bd )
 {
 	backsql_info 	*bi = (backsql_info*)bd->be_private;
-	SQLHDBC 	dbh;
-	ber_len_t	idq_len;
+	SQLHDBC 	dbh = SQL_NULL_HDBC;
 	struct berbuf	bb = BB_NULL;
 
 	char		opbuf[ OPERATION_BUFFER_SIZE ];
@@ -398,34 +397,34 @@ backsql_db_open(
 	/*
 	 * Prepare ID selection query
 	 */
-	bi->sql_id_query = NULL;
-	idq_len = 0;
+	if ( bi->sql_id_query == NULL ) {
+		/* no custom id_query provided */
+		if ( bi->sql_upper_func.bv_val == NULL ) {
+			backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
 
-	if ( bi->sql_upper_func.bv_val == NULL ) {
-		backsql_strcat( &bb, backsql_id_query, "dn=?", NULL );
-
-	} else {
-		if ( BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ) {
-			backsql_strcat( &bb, backsql_id_query,
-					"dn_ru=?", NULL );
 		} else {
-			if ( BACKSQL_USE_REVERSE_DN( bi ) ) {
-				backsql_strfcat( &bb, "sbl",
-						backsql_id_query,
-						&bi->sql_upper_func, 
-						(ber_len_t)STRLENOF( "(dn)=?" ), "(dn)=?" );
+			if ( BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ) {
+				backsql_strcat( &bb, backsql_id_query,
+						"dn_ru=?", NULL );
 			} else {
-				backsql_strfcat( &bb, "sblbcb",
-						backsql_id_query,
-						&bi->sql_upper_func, 
-						(ber_len_t)STRLENOF( "(dn)=" ), "(dn)=",
-						&bi->sql_upper_func_open, 
-						'?', 
-						&bi->sql_upper_func_close );
+				if ( BACKSQL_USE_REVERSE_DN( bi ) ) {
+					backsql_strfcat( &bb, "sbl",
+							backsql_id_query,
+							&bi->sql_upper_func, 
+							(ber_len_t)STRLENOF( "(dn)=?" ), "(dn)=?" );
+				} else {
+					backsql_strfcat( &bb, "sblbcb",
+							backsql_id_query,
+							&bi->sql_upper_func, 
+							(ber_len_t)STRLENOF( "(dn)=" ), "(dn)=",
+							&bi->sql_upper_func_open, 
+							'?', 
+							&bi->sql_upper_func_close );
+				}
 			}
 		}
+		bi->sql_id_query = bb.bb_val.bv_val;
 	}
-	bi->sql_id_query = bb.bb_val.bv_val;
 
        	/*
 	 * Prepare children ID selection query

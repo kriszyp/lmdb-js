@@ -31,10 +31,10 @@ int
 backsql_modify( Operation *op, SlapReply *rs )
 {
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
-	SQLHDBC 		dbh;
+	SQLHDBC 		dbh = SQL_NULL_HDBC;
 	backsql_oc_map_rec	*oc = NULL;
-	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT;
-	Entry			e;
+	backsql_srch_info	bsi = { 0 };
+	Entry			e = { 0 };
 
 	/*
 	 * FIXME: in case part of the operation cannot be performed
@@ -58,26 +58,42 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = backsql_dn2id( op, rs, &e_id, dbh, &op->o_req_ndn, 1 );
+	/* FIXME: using all attributes because of access control later ... */
+	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
+			LDAP_SCOPE_BASE, 
+			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+			(time_t)(-1), NULL, dbh, op, rs,
+			slap_anlist_all_attributes,
+			BACKSQL_ISF_GET_ID );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
-			"could not lookup entry id\n", 0, 0, 0 );
-		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
-			? "SQL-backend error" : NULL;
+		Debug( LDAP_DEBUG_TRACE, "backsql_modify(): "
+			"could not retrieve modifyDN ID - no such entry\n", 
+			0, 0, 0 );
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto done;
+	}
+
+	bsi.bsi_e = &e;
+	rs->sr_err = backsql_id2entry( &bsi, &bsi.bsi_base_id );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_modify(): "
+			"error %d in backsql_id2entry()\n",
+			rs->sr_err, 0, 0 );
 		goto done;
 	}
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 		"modifying entry \"%s\" (id=%s)\n", 
-		e_id.eid_dn.bv_val, e_id.eid_id.bv_val, 0 );
+		bsi.bsi_base_id.eid_dn.bv_val,
+		bsi.bsi_base_id.eid_id.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 		"modifying entry \"%s\" (id=%ld)\n", 
-		e_id.eid_dn.bv_val, e_id.eid_id, 0 );
+		bsi.bsi_base_id.eid_dn.bv_val, bsi.bsi_base_id.eid_id, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
-	oc = backsql_id2oc( bi, e_id.eid_oc_id );
+	oc = backsql_id2oc( bi, bsi.bsi_base_id.eid_oc_id );
 	if ( oc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 			"cannot determine objectclass of entry -- aborting\n",
@@ -102,7 +118,8 @@ backsql_modify( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 
 	} else {
-		rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id,
+		rs->sr_err = backsql_modify_internal( op, rs, dbh, oc,
+				&bsi.bsi_base_id,
 				op->oq_modify.rs_modlist );
 	}
 
@@ -116,6 +133,15 @@ backsql_modify( Operation *op, SlapReply *rs )
 
 done:;
 	send_ldap_result( op, rs );
+
+	if ( !BER_BVISNULL( &bsi.bsi_base_id.eid_ndn ) ) {
+		(void)backsql_free_entryID( &bsi.bsi_base_id, 0 );
+	}
+
+	if ( bsi.bsi_e != NULL ) {
+		entry_clean( bsi.bsi_e );
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n", 0, 0, 0 );
 
 	return rs->sr_err != LDAP_SUCCESS ? rs->sr_err : op->o_noop;

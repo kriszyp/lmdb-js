@@ -57,7 +57,7 @@ backsql_modify_delete_all_values(
 {
 	backsql_info	*bi = (backsql_info *)op->o_bd->be_private;
 	RETCODE		rc;
-	SQLHSTMT	asth;
+	SQLHSTMT	asth = SQL_NULL_HSTMT;
 	BACKSQL_ROW_NTS	row;
 
 	assert( at );
@@ -138,10 +138,10 @@ backsql_modify_delete_all_values(
 		/* first parameter no, parameter order */
 		SQLUSMALLINT		pno, po;
 		/* procedure return code */
-		int			prc;
+		int			prc = LDAP_SUCCESS;
 		
 		for ( i = 0; i < row.ncols; i++ ) {
-			SQLHSTMT	sth;
+			SQLHSTMT	sth = SQL_NULL_HSTMT;
 			ber_len_t	col_len;
 			
 			rc = backsql_Prepare( dbh, &sth, at->bam_delete_proc, 0 );
@@ -248,19 +248,33 @@ backsql_modify_delete_all_values(
 				pno + 2 - po, row.cols[ i ],
 				at->bam_delete_proc );
 			rc = SQLExecute( sth );
-			if ( rc != SQL_SUCCESS ) {
+			if ( rc == SQL_SUCCESS && prc == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_SUCCESS;
+
+			} else {
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_delete_all_values(): "
 					"delete_proc "
-					"execution failed\n",
-					0, 0, 0 );
-				backsql_PrintErrors( bi->sql_db_env,
-						dbh, sth, rc );
-
-				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+					"execution failed (rc=%d, prc=%d)\n",
+					rc, prc, 0 );
+				if ( prc != LDAP_SUCCESS ) {
+					/* SQL procedure executed fine 
+					 * but returned an error */
+					rs->sr_err = BACKSQL_SANITIZE_ERROR( prc );
+					rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
 					SQLFreeStmt( sth, SQL_DROP );
-					rs->sr_text = "SQL-backend error";
-					return rs->sr_err = LDAP_OTHER;
+					return rs->sr_err;
+
+				} else {
+					backsql_PrintErrors( bi->sql_db_env, dbh,
+							sth, rc );
+					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) 
+					{
+						rs->sr_err = LDAP_OTHER;
+						rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
+						SQLFreeStmt( sth, SQL_DROP );
+						return rs->sr_err;
+					}
 				}
 			}
 			SQLFreeStmt( sth, SQL_DROP );
@@ -283,7 +297,7 @@ backsql_modify_internal(
 {
 	backsql_info	*bi = (backsql_info*)op->o_bd->be_private;
 	RETCODE		rc;
-	SQLHSTMT	sth;
+	SQLHSTMT	sth = SQL_NULL_HSTMT;
 	Modifications	*ml;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_modify_internal(): "
@@ -306,7 +320,7 @@ backsql_modify_internal(
 		/* first parameter position, parameter order */
 		SQLUSMALLINT		pno, po;
 		/* procedure return code */
-		int			prc;
+		int			prc = LDAP_SUCCESS;
 		
 		ad = ml->sml_mod.sm_desc;
 		sm_op = ( ml->sml_mod.sm_op & LDAP_MOD_OP );
@@ -578,6 +592,7 @@ add_only:;
 					!BER_BVISNULL( at_val );
 					i++, at_val++ )
 			{
+				prc = LDAP_SUCCESS;
 				rc = backsql_Prepare( dbh, &sth, at->bam_delete_proc, 0 );
 				if ( rc != SQL_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
@@ -667,19 +682,34 @@ add_only:;
 					"executing \"%s\"\n", 
 					at->bam_delete_proc, 0, 0 );
 				rc = SQLExecute( sth );
-				if ( rc != SQL_SUCCESS ) {
+				if ( rc == SQL_SUCCESS && prc == LDAP_SUCCESS )
+				{
+					rs->sr_err = LDAP_SUCCESS;
+					
+				} else {
 					Debug( LDAP_DEBUG_TRACE,
 						"   backsql_modify_internal(): "
 						"delete_proc execution "
-						"failed\n", 0, 0, 0 );
-					backsql_PrintErrors( bi->sql_db_env,
-							dbh, sth, rc );
+						"failed (rc=%d, prc=%d)\n",
+						rc, prc, 0 );
 
-					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-						SQLFreeStmt( sth, SQL_DROP );
-						rs->sr_err = LDAP_OTHER;
-						rs->sr_text = "SQL-backend error";
+					if ( prc != LDAP_SUCCESS ) {
+						/* SQL procedure executed fine
+						 * but returned an error */
+						rs->sr_err = BACKSQL_SANITIZE_ERROR( prc );
+						rs->sr_text = at->bam_ad->ad_cname.bv_val;
 						goto done;
+						
+					} else {
+						backsql_PrintErrors( bi->sql_db_env,
+								dbh, sth, rc );
+						if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) )
+						{
+							SQLFreeStmt( sth, SQL_DROP );
+							rs->sr_err = LDAP_OTHER;
+							rs->sr_text = at->bam_ad->ad_cname.bv_val;
+							goto done;
+						}
 					}
 				}
 				SQLFreeStmt( sth, SQL_DROP );
@@ -724,12 +754,8 @@ backsql_add_attr(
 	struct berval		*at_val;
 	unsigned long		i;
 	RETCODE			rc;
-	/* first parameter #, parameter order */
-	SQLUSMALLINT		pno, po;
-	/* procedure return code */
-	int			prc;
 	SQLUSMALLINT		currpos;
-	SQLHSTMT 		sth;
+	SQLHSTMT 		sth = SQL_NULL_HSTMT;
 
 	at_rec = backsql_ad2at( oc, at->a_desc ); 
   
@@ -772,7 +798,11 @@ backsql_add_attr(
 		       	!BER_BVISNULL( at_val );
 			i++, at_val = &at->a_vals[ i ] )
 	{
-		char logbuf[] = "val[18446744073709551615UL], id=18446744073709551615UL";
+		/* procedure return code */
+		int		prc = LDAP_SUCCESS;
+		/* first parameter #, parameter order */
+		SQLUSMALLINT	pno, po;
+		char		logbuf[] = "val[18446744073709551615UL], id=18446744073709551615UL";
 		
 		/*
 		 * Do not deal with the objectClass that is used
@@ -875,17 +905,31 @@ backsql_add_attr(
 			at_rec->bam_add_proc, logbuf );
 #endif
 		rc = SQLExecute( sth );
-		if ( rc != SQL_SUCCESS ) {
+		if ( rc == SQL_SUCCESS && prc == LDAP_SUCCESS ) {
+			rs->sr_err = LDAP_SUCCESS;
+
+		} else {
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_add_attr(\"%s\"): "
-				"add_proc execution failed\n", 
-				op->oq_add.rs_e->e_name.bv_val, 0, 0 );
-			backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
-
-			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+				"add_proc execution failed (rc=%d, prc=%d)\n", 
+				op->oq_add.rs_e->e_name.bv_val, rc, prc );
+			if ( prc != LDAP_SUCCESS ) {
+				/* SQL procedure executed fine
+				 * but returned an error */
+				rs->sr_err = BACKSQL_SANITIZE_ERROR( prc );
+				rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
 				SQLFreeStmt( sth, SQL_DROP );
-				rs->sr_text = "SQL-backend error";
-				return rs->sr_err = LDAP_OTHER;
+				return rs->sr_err;
+
+			} else {
+				backsql_PrintErrors( bi->sql_db_env, dbh,
+						sth, rc );
+				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
+					rs->sr_err = LDAP_OTHER;
+					rs->sr_text = op->oq_add.rs_e->e_name.bv_val;
+					SQLFreeStmt( sth, SQL_DROP );
+					return rs->sr_err;
+				}
 			}
 		}
 		SQLFreeStmt( sth, SQL_DROP );
@@ -898,8 +942,8 @@ int
 backsql_add( Operation *op, SlapReply *rs )
 {
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
-	SQLHDBC 		dbh;
-	SQLHSTMT 		sth;
+	SQLHDBC 		dbh = SQL_NULL_HDBC;
+	SQLHSTMT 		sth = SQL_NULL_HSTMT;
 	unsigned long		new_keyval = 0;
 	RETCODE			rc;
 	backsql_oc_map_rec 	*oc = NULL;
@@ -909,6 +953,7 @@ backsql_add( Operation *op, SlapReply *rs )
 				*at_objectClass = NULL;
 	struct berval		pdn;
 	struct berval		realdn = BER_BVNULL;
+	int			colnum;
 
 #ifdef BACKSQL_SYNCPROV
 	/*
@@ -1005,6 +1050,9 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	/*
 	 * Check if entry exists
+	*
+	 * NOTE: backsql_api_dn2odbc() is called explicitly because
+	 * we need the mucked DN to pass it to the create procedure.
 	 */
 	realdn = op->oq_add.rs_e->e_name;
 	if ( backsql_api_dn2odbc( op, rs, &realdn ) ) {
@@ -1122,6 +1170,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	colnum = 1;
 	if ( BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
 		rc = backsql_BindParamInt( sth, 1, SQL_PARAM_OUTPUT, &new_keyval );
 		if ( rc != SQL_SUCCESS ) {
@@ -1136,6 +1185,27 @@ backsql_add( Operation *op, SlapReply *rs )
 			rs->sr_text = "SQL-backend error";
 			rs->sr_err = LDAP_OTHER;
 			goto done;
+		}
+		colnum++;
+	}
+
+	if ( oc->bom_create_hint ) {
+		at = attr_find( op->oq_add.rs_e->e_attrs, oc->bom_create_hint );
+		if ( at && at->a_vals ) {
+			backsql_BindParamStr( sth, colnum, SQL_PARAM_INPUT,
+					at->a_vals[0].bv_val,
+					at->a_vals[0].bv_len );
+			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
+					"create_proc hint: param = '%s'\n",
+					at->a_vals[0].bv_val, 0, 0 );
+
+		} else {
+			backsql_BindParamStr( sth, colnum, SQL_PARAM_INPUT,
+					"", 0 );
+			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
+					"create_proc hint (%s) not avalable\n",
+					oc->bom_create_hint->ad_cname.bv_val,
+					0, 0 );
 		}
 	}
 

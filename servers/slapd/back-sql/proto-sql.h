@@ -160,8 +160,8 @@ int backsql_destroy_schema_map( backsql_info *si );
  * search.c
  */
 
+/* the function must collect the entry associated to nbase */
 #define BACKSQL_ISF_GET_ID	0x1U
-#define BACKSQL_ISF_MUCK	0x2U
 int backsql_init_search( backsql_srch_info *bsi, 
 		struct berval *nbase, int scope, int slimit, int tlimit,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,

@@ -29,7 +29,7 @@
 int
 backsql_compare( Operation *op, SlapReply *rs )
 {
-	SQLHDBC			dbh;
+	SQLHDBC			dbh = SQL_NULL_HDBC;
 	Entry			*e = NULL, user_entry;
 	Attribute		*a = NULL;
 	backsql_srch_info	bsi;
@@ -82,9 +82,11 @@ backsql_compare( Operation *op, SlapReply *rs )
 		user_entry.e_attrs = nrs.sr_operational_attrs;
 
 	} else {
-		rc = backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
-				-1, -1, -1, NULL, dbh, op, rs, anlist,
-				( BACKSQL_ISF_GET_ID | BACKSQL_ISF_MUCK ) );
+		rc = backsql_init_search( &bsi, &op->o_req_ndn,
+				LDAP_SCOPE_BASE, 
+				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
+				(time_t)(-1), NULL, dbh, op, rs, anlist,
+				BACKSQL_ISF_GET_ID );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
 				"could not retrieve compareDN ID - no such entry\n", 

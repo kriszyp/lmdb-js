@@ -80,15 +80,16 @@ int
 backsql_delete( Operation *op, SlapReply *rs )
 {
 	backsql_info 		*bi = (backsql_info*)op->o_bd->be_private;
-	SQLHDBC 		dbh;
-	SQLHSTMT		sth;
+	SQLHDBC 		dbh = SQL_NULL_HDBC;
+	SQLHSTMT		sth = SQL_NULL_HSTMT;
 	RETCODE			rc;
-	int			retval;
+	int			prc = LDAP_SUCCESS;
 	backsql_oc_map_rec	*oc = NULL;
 	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT;
 	Entry			e;
 	/* first parameter no */
 	SQLUSMALLINT		pno;
+	SQLUSMALLINT		CompletionType = SQL_ROLLBACK;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_delete(): deleting entry \"%s\"\n",
 			op->o_req_ndn.bv_val, 0, 0 );
@@ -127,16 +128,17 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 	rs->sr_err = backsql_has_children( bi, dbh, &op->o_req_ndn );
 	switch ( rs->sr_err ) {
+	case LDAP_COMPARE_FALSE:
+		rs->sr_err = LDAP_SUCCESS;
+		break;
+
 	case LDAP_COMPARE_TRUE:
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"entry \"%s\" has children\n",
 			op->o_req_dn.bv_val, 0, 0 );
 		rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
 		rs->sr_text = "subtree delete not supported";
-		goto done;
-
-	case LDAP_COMPARE_FALSE:
-		break;
+		/* fallthru */
 
 	default:
 		goto done;
@@ -182,7 +184,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 	if ( BACKSQL_IS_DEL( oc->bom_expect_return ) ) {
 		pno = 1;
-		rc = backsql_BindParamInt( sth, 1, SQL_PARAM_OUTPUT, &retval );
+		rc = backsql_BindParamInt( sth, 1, SQL_PARAM_OUTPUT, &prc );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_delete(): "
@@ -217,13 +219,26 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 
 	rc = SQLExecute( sth );
-	if ( rc != SQL_SUCCESS ) {
+	if ( rc == SQL_SUCCESS && prc == LDAP_SUCCESS ) {
+		rs->sr_err = LDAP_SUCCESS;
+
+	} else {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
-			"delete_proc execution failed\n", 0, 0, 0 );
-		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
+			"delete_proc execution failed (rc=%d, prc=%d)\n",
+			rc, prc, 0 );
+
+
+		if ( prc != LDAP_SUCCESS ) {
+			/* SQL procedure executed fine 
+			 * but returned an error */
+			rs->sr_err = BACKSQL_SANITIZE_ERROR( prc );
+
+		} else {
+			backsql_PrintErrors( bi->sql_db_env, dbh,
+					sth, rc );
+			rs->sr_err = LDAP_OTHER;
+		}
 		SQLFreeStmt( sth, SQL_DROP );
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
 		goto done;
 	}
 	SQLFreeStmt( sth, SQL_DROP );
@@ -371,6 +386,10 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 	SQLFreeStmt( sth, SQL_DROP );
 
+	rs->sr_err = LDAP_SUCCESS;
+
+done:;
+
 	/*
 	 * Commit only if all operations succeed
 	 *
@@ -380,12 +399,11 @@ backsql_delete( Operation *op, SlapReply *rs )
 	 * or if a single operation on an attribute fails 
 	 * for any reason
 	 */
-	SQLTransact( SQL_NULL_HENV, dbh, 
-			op->o_noop ? SQL_ROLLBACK : SQL_COMMIT );
+	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+		CompletionType = SQL_COMMIT;
+	}
+	SQLTransact( SQL_NULL_HENV, dbh, CompletionType );
 
-	rs->sr_err = LDAP_SUCCESS;
-
-done:;
 	send_ldap_result( op, rs );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_delete()\n", 0, 0, 0 );
