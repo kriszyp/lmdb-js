@@ -55,7 +55,7 @@ usage( int tool, const char *progname )
 	switch( tool ) {
 	case SLAPACL:
 		options = "\n\t[-U authcID | -D authcDN]"
-			" -b DN -o <var>[=<val>]"
+			" -b DN -o <var>[=<val>] [-u]"
 			"\n\t[attr[/access][:value]] [...]\n";
 		break;
 
@@ -214,7 +214,7 @@ slap_tool_init(
 		break;
 
 	case SLAPACL:
-		options = "b:D:d:f:F:o:U:v";
+		options = "b:D:d:f:F:o:uU:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -582,8 +582,8 @@ void slap_tool_destroy( void )
 {
 	if ( !dryrun ) {
 		slap_shutdown( be );
+		slap_destroy();
 	}
-	slap_destroy();
 #ifdef SLAPD_MODULES
 	if ( slapMode == SLAP_SERVER_MODE ) {
 	/* always false. just pulls in necessary symbol references. */

@@ -43,7 +43,7 @@ slapacl( int argc, char **argv )
 	Listener		listener;
 	char			opbuf[OPERATION_BUFFER_SIZE];
 	Operation		*op;
-	Entry			e = { 0 };
+	Entry			e = { 0 }, *ep = &e;
 	char			*attr = NULL;
 
 	slap_tool_init( progname, SLAPACL, argc, argv );
@@ -116,6 +116,45 @@ slapacl( int argc, char **argv )
 		attr = slap_schema.si_ad_entry->ad_cname.bv_val;
 	}
 
+	if ( !dryrun ) {
+		ID	id;
+
+		if ( !be->be_entry_open ||
+			!be->be_entry_close ||
+			!be->be_dn2id_get ||
+			!be->be_entry_get )
+		{
+			fprintf( stderr, "%s: target database "
+				"doesn't support necessary operations; "
+				"you may try with \"-u\" (dry run).\n",
+				progname );
+			rc = 1;
+			goto destroy;
+		}
+
+		if ( be->be_entry_open( be, 0 ) != 0 ) {
+			fprintf( stderr, "%s: could not open database.\n",
+				progname );
+			rc = 1;
+			goto destroy;
+		}
+
+		id = be->be_dn2id_get( be, &e.e_nname );
+		if ( id == NOID ) {
+			fprintf( stderr, "%s: unable to fetch ID of DN \"%s\"\n",
+				progname, e.e_nname.bv_val );
+			rc = 1;
+			goto destroy;
+		}
+		if ( be->be_id2entry_get( be, id, &ep ) != 0 ) {
+			fprintf( stderr, "%s: unable to fetch entry \"%s\" (%lu)\n",
+				progname, e.e_nname.bv_val, id );
+			rc = 1;
+			goto destroy;
+
+		}
+	}
+
 	for ( ; argc--; argv++ ) {
 		slap_mask_t		mask;
 		AttributeDescription	*desc = NULL;
@@ -164,7 +203,7 @@ slapacl( int argc, char **argv )
 			break;
 		}
 
-		rc = access_allowed_mask( op, &e, desc, valp, access,
+		rc = access_allowed_mask( op, ep, desc, valp, access,
 				NULL, &mask );
 
 		if ( accessstr ) {
@@ -187,6 +226,15 @@ slapacl( int argc, char **argv )
 	}
 
 destroy:;
+	ber_memfree( e.e_name.bv_val );
+	ber_memfree( e.e_nname.bv_val );
+	if ( !dryrun ) {
+		if ( ep != &e ) {
+			be_entry_release_r( op, ep );
+		}
+		be->be_entry_close( be );
+	}
+
 	slap_tool_destroy();
 
 	return rc;
