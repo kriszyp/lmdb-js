@@ -1,11 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 
 # disable LDAP initialization
 LDAPNOINIT=true; export LDAPNOINIT
 
 echo ">>>>> Executing all LDAP tests..."
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
@@ -13,11 +13,19 @@ fi
 
 echo ">>>>> Test Directory: $SRCDIR"
 
+if test $# -eq 0 ; then
+	BACKEND=ldbm
+else
+	BACKEND=$1; shift
+fi
+
+echo ">>>>> Backend: $BACKEND"
+
 for CMD in $SRCDIR/scripts/test*; do
 	echo ">>>>> Starting `basename $CMD` ..."
-	$CMD $SRCDIR
+	$CMD $SRCDIR $BACKEND
 	RC=$?
-	if [ $RC -eq 0 ]; then
+	if test $RC -eq 0 ; then
 		echo ">>>>> $CMD completed OK."
 	else
 		echo ">>>>> $CMD failed (exit $RC)"

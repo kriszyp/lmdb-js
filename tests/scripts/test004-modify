@@ -1,12 +1,16 @@
-#!/bin/sh
+#! /bin/sh
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
+if test $# -eq 1 ; then
+	BACKEND=$1; shift
+fi
 
-. $SRCDIR/scripts/defines.sh $SRCDIR
+echo "running defines.sh $SRCDIR $BACKEND"
+. $SRCDIR/scripts/defines.sh
 
 echo "Cleaning up in $DBDIR..."
 
@@ -15,13 +19,13 @@ rm -f $DBDIR/[!C]*
 echo "Running ldif2ldbm to build slapd database..."
 $LDIF2LDBM -f $CONF -i $LDIF -e ../servers/slapd/tools
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldif2ldbm failed!"
 	exit $RC
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $CONF -p $PORT -d $LVL > $MASTERLOG 2>&1 &
+$SLAPD -f $CONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Testing slapd modify operations..."
@@ -29,13 +33,13 @@ for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
 		'cn=Manager' > /dev/null 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
 done
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	kill -HUP $PID
 	exit $RC
@@ -102,7 +106,7 @@ changetype: delete
 EOMODS
 
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapmodify failed!"
 	kill -HUP $PID
 	exit $RC
@@ -110,18 +114,24 @@ fi
 
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
-	    'objectClass=*' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
-	    > $SEARCHOUT 2>&1
+	    'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	exit $RC
 fi
 
-echo "Comparing database to reference file"
-cmp $SEARCHOUT $MODIFYOUTMASTER
-if [ $? != 0 ]; then
+LDIF=$MODIFYOUTMASTER
+
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+cmp $SEARCHFLT $LDIFFLT
+
+if test $? != 0 ; then
 	echo "comparison failed - modify operations did not complete correctly"
 	exit 1
 fi

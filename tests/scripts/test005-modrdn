@@ -46,7 +46,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-cat /dev/null > $TESTOUT_MODRDN
+cat /dev/null > $TESTOUT
+
 
 # -r used to do remove of old rdn
 
@@ -74,8 +75,7 @@ fi
 
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
-	    'objectClass=*' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
-	    > $SEARCHOUT 2>&1
+	    'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID
 if test $RC != 0 ; then
@@ -83,8 +83,15 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Comparing database to reference file"
-cmp $SEARCHOUT $MODRDNOUTMASTER
+LDIF=$MODRDNOUTMASTER
+
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+cmp $SEARCHFLT $LDIFFLT
+
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
 	exit 1
