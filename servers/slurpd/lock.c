@@ -47,8 +47,8 @@ lock_fopen(
 	char	buf[MAXPATHLEN];
 
 	/* open the lock file */
-	strcpy( buf, fname );
-	strcat( buf, ".lock" );
+	snprintf( buf, sizeof buf, "%s.lock", fname );
+
 	if ( (*lfp = fopen( buf, "w" )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( SLURPD, ERR, "lock_fopen: "

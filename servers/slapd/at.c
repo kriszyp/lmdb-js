@@ -338,7 +338,6 @@ at_add(
 			ldap_memfree( at->at_syntax_oid );
 			at->at_syntax_oid = oid;
 		}
-
 	}
 
 	if ( at->at_names && at->at_names[0] ) {
