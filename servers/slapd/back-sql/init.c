@@ -449,6 +449,14 @@ backsql_db_open(
 			0, 0, 0 );
 		return 1;
 	}
+
+	/* should never happen! */
+	assert( bd->be_nsuffix != NULL );
+	
+	if ( BER_BVISNULL( &bd->be_nsuffix[ 1 ] ) ) {
+		/* enable if only one suffix is defined */
+		bi->sql_flags |= BSQLF_USE_SUBTREE_SHORTCUT;
+	}
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_open(): "
 		"test succeeded, schema map loaded\n", 0, 0, 0 );
