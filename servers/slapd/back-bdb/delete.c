@@ -25,7 +25,8 @@ bdb_delete(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	Entry	*matched;
 	struct berval	pdn = {0, NULL};
-	Entry	*e, *p = NULL;
+	Entry	*e = NULL;
+	Entry	*p = NULL;
 	int	rc;
 	const char *text;
 	int		manageDSAit = get_manageDSAit( op );
