@@ -22,20 +22,25 @@
  * use berkeley db btree or hash package                         *
  *                                                               *
  *****************************************************************/
-
 #include <sys/types.h>
 #include <limits.h>
 #include <fcntl.h>
 
 #ifdef HAVE_DB_185_H
 #	include <db_185.h>
+#ifndef DB_VERSION_MAJOR
+#  define DB_VERSION_MAJOR 1
+#endif
+#ifndef DB_VERSION_MINOR
+#  define DB_VERSION_MINOR 85
+#endif
 #else
 #	ifdef HAVE_DB1_DB_H
 #		include <db1/db.h>
 #	else
 #		include <db.h>
 #	endif
-#	if defined( HAVE_BERKELEY_DB2 ) || ( HAVE_BERKELEY_DB3 )
+#	if DB_VERSION_MAJOR >= 2
 #		define R_NOOVERWRITE DB_NOOVERWRITE
 #		ifndef DEFAULT_DB_PAGE_SIZE
 #			define DEFAULT_DB_PAGE_SIZE 4096
@@ -54,12 +59,12 @@ typedef DB	*LDBM;
 
 
 /* for ldbm_open */
-#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
+#if DB_VERSION_MAJOR >= 2
 typedef DBC	LDBMCursor;
 
 #	define LDBM_READER	DB_RDONLY
 #	define LDBM_WRITER	0x00000      /* hopefully */
-# if defined( HAVE_BERKELEY_DB2_DB_THREAD ) || defined( HAVE_BERKELEY_DB3_DB_THREAD )
+# if defined( HAVE_BERKELEY_DB_THREAD )
 #	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
 #	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
 # else
@@ -246,12 +251,12 @@ LIBLDBM_F (Datum) ldbm_firstkey( LDBM ldbm, LDBMCursor **cursor );
 LIBLDBM_F (Datum) ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *cursor );
 
 /* initialization of Datum structures */
-#if defined( HAVE_BERKELEY_DB2 ) || defined( HAVE_BERKELEY_DB3 )
+#if defined( HAVE_BERKELEY_DB ) && (DB_VERSION_MAJOR >= 2)
 	LIBLDBM_F (void *) ldbm_malloc( size_t size );
 #   define ldbm_datum_init(d) ((void)memset(&(d), 0, sizeof(Datum)))
 #else
 #   define ldbm_datum_init(d) ((void)0)
-#endif  /* HAVE_BERKELEY_DB2 */
+#endif  /* HAVE_BERKELEY_DB */
 
 LDAP_END_DECL
 
