@@ -38,11 +38,21 @@ static void usage( char *name )
 int
 main( int argc, char **argv )
 {
-	long		i;
-	unsigned long	len;
-	int		tag;
+	char *s;
+	int rc;
+
+	unsigned long tag, len;
+
 	BerElement	*ber;
 	Sockbuf		*sb;
+
+	/* enable debugging */
+	ber_int_debug = -1;
+
+	if ( argc < 2 ) {
+		usage( argv[0] );
+		return( EXIT_FAILURE );
+	}
 
 #ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
@@ -56,17 +66,28 @@ main( int argc, char **argv )
 		return( EXIT_FAILURE );
 	}
 
-	if ( (tag = ber_get_next( sb, &len, ber )) == -1 ) {
+	if(( tag = ber_get_next( sb, &len, ber) ) == LBER_ERROR ) {
 		perror( "ber_get_next" );
 		return( EXIT_FAILURE );
 	}
-	printf( "message has tag 0x%x and length %ld\n", tag, len );
 
-	if ( ber_scanf( ber, "i", &i ) == LBER_ERROR ) {
-		fprintf( stderr, "ber_scanf returns -1\n" );
-		exit( EXIT_FAILURE );
+	printf("decode: message tag 0x%lx and length %ld\n",
+		tag, len );
+
+	for( s = argv[1]; *s; s++ ) {
+		char buf[128];
+		char fmt[2];
+		fmt[0] = *s;
+		fmt[1] = '\0';
+
+		printf("decode: format %s\n", fmt );
+		rc = ber_scanf( ber, fmt, buf );
+
+		if( rc == LBER_ERROR ) {
+			perror( "ber_scanf" );
+			return( EXIT_FAILURE );
+		}
 	}
-	printf( "got int %ld\n", i );
 
 	ber_sockbuf_free( sb );
 	return( EXIT_SUCCESS );
