@@ -10,6 +10,8 @@ Changes included in OpenLDAP 1.2 Release Engineering
 		Updated to latest aclocal from Automake (AnonCVS)
 		Updated to libtool-1.3.3.
 		Don't use "ln -s -f file link" (ITS#227)
+	Documentation
+		Fix misplaced paragraph tag in ldap.conf(5)  (ITS#234)
 
 Changes included in OpenLDAP 1.2.4
 	CVS Tag: OPENLDAP_REL_ENG_1_2_4
