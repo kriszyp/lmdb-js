@@ -24,6 +24,9 @@
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
+/* define this if TIOCGWINSZ is defined in sys/ioctl.h */
+#undef GWINSZ_IN_SYS_IOCTL
+
 /* define if you have berkeley db */
 #undef HAVE_BERKELEY_DB
 
@@ -60,11 +63,11 @@
 /* define if you have Mach CThreads */
 #undef HAVE_MACH_CTHREADS
 
+/* define if you have POSIX termios */
+#undef HAVE_POSIX_TERMIOS
+
 /* define if you have PP */
 #undef HAVE_PP
-
-/* define if you have a preemptive POSIX Threads implementation */
-#undef HAVE_PREEMPTIVE_PTHREADS
 
 /* define if you have POSIX Threads */
 #undef HAVE_PTHREADS
@@ -74,6 +77,9 @@
 
 /* define if your POSIX Threads implementation is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
+
+/* define if you have ptrdiff_t */
+#undef HAVE_PTRDIFF_T
 
 /* define if you have sched_yield() */
 #ifdef __notdef__
@@ -95,6 +101,9 @@
 
 /* define if you have XTPP */
 #undef HAVE_XTPP
+
+/* define this if select() implicitly yields in thread environments */
+#undef HAVE_YIELDING_SELECT
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
@@ -140,9 +149,6 @@
 
 /* define this if you want no thread support */
 #undef NO_THREADS
-
-/* define this if the thread package is preemptive */
-#undef PREEMPTIVE_THREADS
 
 /* define this for ACL Group support */
 #undef SLAPD_ACLGROUPS

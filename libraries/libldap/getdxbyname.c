@@ -1,63 +1,43 @@
-#ifdef LDAP_DNS
 /*
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
  *
- * getdxbyname - retrieve DX records from the DNS (from TXT records for now)
+ * ldap_getdxbyname - retrieve DX records from the DNS (from TXT records for now)
  */
+
+#include "portable.h"
+
+#ifdef LDAP_DNS
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <resolv.h>
-#endif
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
-
-
-#ifdef NEEDPROTOS
-static char ** decode_answer( unsigned char *answer, int len );
-#else /* NEEDPROTOS */
-static char **decode_answer();
-#endif /* NEEDPROTOS */
-
-extern int h_errno;
-extern char *h_errlist[];
-
+static char ** decode_answer LDAP_P(( unsigned char *answer, int len ));
 
 #define MAX_TO_SORT	32
 
 
 /*
- * getdxbyname - lookup DNS DX records for domain and return an ordered
+ * ldap_getdxbyname - lookup DNS DX records for domain and return an ordered
  *	array.
  */
 char **
-getdxbyname( char *domain )
+ldap_getdxbyname( char *domain )
 {
     unsigned char	buf[ PACKETSZ ];
     char		**dxs;
     int			rc;
 
-    Debug( LDAP_DEBUG_TRACE, "getdxbyname( %s )\n", domain, 0, 0 );
+    Debug( LDAP_DEBUG_TRACE, "ldap_getdxbyname( %s )\n", domain, 0, 0 );
 
     memset( buf, 0, sizeof( buf ));
 
@@ -67,7 +47,7 @@ getdxbyname( char *domain )
 	 * punt:  return list conisting of the original domain name only
 	 */
 	if (( dxs = (char **)malloc( 2 * sizeof( char * ))) == NULL ||
-		( dxs[ 0 ] = strdup( domain )) == NULL ) {
+		( dxs[ 0 ] = ldap_strdup( domain )) == NULL ) {
 	    if ( dxs != NULL ) {
 		free( dxs );
 	    }
@@ -91,9 +71,11 @@ decode_answer( unsigned char *answer, int len )
     int			dx_pref[ MAX_TO_SORT ];
 
 #ifdef LDAP_DEBUG
+#ifdef notdef
     if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
-/*	__p_query( answer );	/* */
+		__p_query( answer );
     }
+#endif
 #endif /* LDAP_DEBUG */
 
     dxs = NULL;

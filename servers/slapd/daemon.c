@@ -189,7 +189,7 @@ slapd_daemon(
 
 		Debug( LDAP_DEBUG_CONNS, "before select active_threads %d\n",
 		    active_threads, 0, 0 );
-#ifdef PREEMPTIVE_THREADS
+#if defined( HAVE_YIELDING_SELECT ) || defined( NO_THREADS )
 		tvp = NULL;
 #else
 		tvp = active_threads ? &zero : NULL;

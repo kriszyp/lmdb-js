@@ -1,0 +1,28 @@
+##
+## LIBLBER
+##
+
+LIBRARY = liblber.la
+
+SRCS= decode.c encode.c io.c bprint.c
+OBJS= decode.lo encode.lo io.lo bprint.lo
+XSRCS= version.c
+
+PROGRAMS= dtest etest idtest
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries       
+
+LIBS = $(LDAP_LIBPATH) $(LDAP_LIBLBER) $(AC_LIBS)
+
+dtest:    $(LIBRARY) dtest.o
+	$(LTLINK) $(LDFLAGS) -o $@ dtest.o $(LIBS)
+etest:  $(LIBRARY) etest.o
+	$(LTLINK) $(LDFLAGS) -o $@ etest.o $(LIBS)
+idtest:  $(LIBRARY) idtest.o
+	$(LTLINK) $(LDFLAGS) -o $@ idtest.o $(LIBS)
+
+install-local: FORCE
+	-$(MKDIR) -p $(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
+

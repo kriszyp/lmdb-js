@@ -119,6 +119,10 @@ LDAP_F int cldap_getmsg	( LDAP *ld, struct timeval *timeout, BerElement *ber );
 BerElement *ldap_build_search_req( LDAP *ld, char *base, int scope,
 	char *filter, char **attrs, int attrsonly );
 
+/*
+ * in strdup.c
+ */
+char *ldap_strdup LDAP_P(( const char * ));
 
 /*
  * in unbind.c

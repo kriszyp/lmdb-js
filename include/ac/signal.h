@@ -33,7 +33,7 @@
 #			define LDAP_SIGUSR1	SIGSYS
 #		endif
 
-#		ifdef defined( SIGUNUSED )
+#		if defined( SIGUNUSED )
 #			define LDAP_SIGUSR2	SIGUNUSED
 #		elif defined ( SIGINFO )
 #			define LDAP_SIGUSR1	SIGINFO

@@ -115,7 +115,7 @@ ldap_url_parse( char *url, LDAPURLDesc **ludpp )
 	}
 
 	/* make working copy of the remainder of the URL */
-	if (( url = strdup( url )) == NULL ) {
+	if (( url = ldap_strdup( url )) == NULL ) {
 		ldap_free_urldesc( ludp );
 		return( LDAP_URL_ERR_MEM );
 	}
@@ -265,7 +265,7 @@ ldap_url_search( LDAP *ld, char *url, int attrsonly )
 	if ( ludp->lud_host != NULL || ludp->lud_port != 0 ) {
 #ifdef LDAP_REFERRALS
 		if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer )))
-		    == NULL || ( srv->lsrv_host = strdup( ludp->lud_host ==
+		    == NULL || ( srv->lsrv_host = ldap_strdup( ludp->lud_host ==
 		    NULL ? ld->ld_defhost : ludp->lud_host )) == NULL ) {
 			if ( srv != NULL ) {
 				free( srv );

@@ -5,24 +5,29 @@ dnl as authorized by the OpenLDAP Public License.  A copy of this
 dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
 dnl ----
+
 dnl Configure.in for OpenLDAP
-dnl
-AC_INIT(include/ldap.h)
-dnl
-dnl
-AC_PREREQ(2.10)dnl Required Autoconf version
+AC_INIT(include/ldap.h)dnl
+AC_CONFIG_AUX_DIR(build)dnl
+AM_INIT_AUTOMAKE(OpenLDAP,[2.0-devel], [no ac_define])dnl
+
 dnl Do not use AutoConf 2.12; it produces a configuration script
 dnl that causes an "internal 2K buffer" error on HPUX when run
 dnl with /bin/sh.  Autoconf 2.10 seems to be okay.
+AC_PREREQ(2.10)dnl Required Autoconf version
+
 AC_CONFIG_AUX_DIR(build)
 AC_CONFIG_HEADER(include/portable.h)dnl
+
 dnl
 dnl Start Args
 AC_MSG_CHECKING(configure arguments)
 AC_PREFIX_DEFAULT(/usr/local)
 
-dnl General "enable" options
-OL_ARG_ENABLE(debug,[  --enable-debug	enable debugging], yes)dnl
+top_builddir=`pwd`
+AC_SUBST(top_builddir)dnl
+
+OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
@@ -38,15 +43,17 @@ OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(threads,[  --with-threads	use threads],
 	auto, [auto posix mach lwp yes no manual] )
-OL_ARG_WITH(preemptive,[  --with-preemptive	thread implementation is preemptive],
+OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
 	auto, [auto yes no manual] )
 
 dnl Server options
 
 dnl LDAPD OPTIONS
+AC_ARG_WITH(xxldapdoptions,[LDAPD Options:])
 OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 
 dnl SLAPD OPTIONS
+AC_ARG_WITH(xxslapdoptions,[SLAPD Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(aclgroups,[    --enable-aclgroups	enable ACL group support], auto)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
@@ -67,8 +74,15 @@ OL_ARG_ENABLE(passwd,[    --enable-passwd	enable passwd backend], no)dnl
 OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
 
 dnl SLURPD OPTIONS
+AC_ARG_WITH(xxslurpdoptions,[SLURPD Options:])
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
+AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
+AM_ENABLE_STATIC
+dnl AM_DISABLE_SHARED
+AM_ENABLE_SHARED
+
+dnl General "enable" options
 # validate options
 if test $ol_enable_referrals = no ; then
 	if test $ol_enable_dns = yes ; then
@@ -174,6 +188,8 @@ fi
 
 AC_MSG_RESULT(done)
 
+AC_CANONICAL_HOST
+
 ## Initialize vars
 LDAP_LIBS=
 LDBM_LIBS=
@@ -199,10 +215,9 @@ TERMCAP_LIBS=
 dnl ----------------------------------------------------------------
 dnl Checks for programs
 
-AC_PROG_LN_S
 AC_PROG_INSTALL
-AC_PROG_RANLIB
-AC_PROG_MAKE_SET
+AM_PROG_LIBTOOL
+dnl AC_PROG_MAKE_SET
 
 AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
@@ -210,28 +225,32 @@ AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
 dnl Checks the compiler and UNIX Variants
-AC_PROG_CC
 
 if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
-	AC_WARN([cross compiling....  some functionality will be removed.])
+	AC_MSG_WARN([cross compiling....  some functionality will be removed.])
 
 elif test $cross_compiling = no -a $ol_enable_x_compile = yes; then
-	AC_WARN([programs compiled here do run here...])
-	AC_ERROR([  if not cross compiling, use --disable-x-compile.])
+	AC_MSG_WARN([programs compiled here do run here...])
+	AC_MSG_ERROR([  if not cross compiling, use --disable-x-compile.])
 
 elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
-	AC_WARN([programs compiled here do not run here...])
-	AC_ERROR([  if cross compiling,  add --enable-x-compile.])
+	AC_MSG_WARN([programs compiled here do not run here...])
+	AC_MSG_ERROR([  if cross compiling,  add --enable-x-compile.])
 fi
 
-dnl OpenLDAP requires STDC features
-dnl AC_PROG_GCC_TRADITIONAL
 AC_PROG_CPP
-
 
 AC_AIX
 AC_ISC_POSIX
 AC_MINIX
+
+dnl OpenLDAP requires STDC features
+AM_PROG_CC_STDC
+if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
+	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC prototypes.])
+fi
+
+dnl AM_C_PROTOTYPES
 
 dnl Checks for libraries
 
@@ -240,7 +259,7 @@ dnl Likely combinations:
 dnl		-lsocket [ -lnsl_s | -lnsl ]
 dnl		-linet
 
-AC_CHECK_FUNC(socket, :, [	
+AC_CHECK_FUNC(socket, [have_socket=yes], [	
 dnl
 dnl hopefully we won't include too many libraries
 dnl
@@ -348,7 +367,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 		dnl Now the hard part, how to link
 
-		dnl A few platforms have pthread support in standard libraries
+		dnl Check for pthread support in current $LIBS
 		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
 
 		if test $ol_link_threads = no ; then
@@ -397,8 +416,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_CHECK_LIB(pthread, pthread_join, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lexc"
-				if test $ol_with_preemptive = auto ; then
-					ol_with_preemptive=yes
+				if test $ol_with_yielding_select = auto ; then
+					ol_with_yielding_select=yes
 				fi
 				],,[-lexc])
 			LIBS="$save_LIBS"
@@ -410,8 +429,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_CHECK_LIB(pthreads, pthread_join, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
-				if test $ol_with_preemptive = auto ; then
-					ol_with_preemptive=yes
+				if test $ol_with_yielding_select = auto ; then
+					ol_with_yielding_select=yes
 				fi
 				],,[-lmach -lexc -lc_r])
 			LIBS="$save_LIBS"
@@ -486,9 +505,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 				thr_setconcurrency \
 			)
 
-			dnl Check PREEMPTIVE Implementation 
-			if test $ol_with_preemptive = auto ; then
-				AC_MSG_CHECKING([for preemptive Pthread implementation])
+			dnl Check if select causes an yield
+			if test $ol_with_yielding_select = auto ; then
+				AC_MSG_CHECKING([if select yields])
 				AC_TRY_RUN([
 #include <sys/types.h>
 #include <sys/time.h>
@@ -498,29 +517,44 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 #define NULL 0
 #endif
 
+int fildes[2];
+
 int task(arg)
 	int *arg;
 {
 	int i;
 	struct timeval tv;
 
-	tv.tv_sec=5;
+	fd_set rfds;
+
+	tv.tv_sec=10;
 	tv.tv_usec=0;
 
+	FD_ZERO(&rfds);
+	FD_SET(fildes[0], &rfds);
+
 	/* we're not interested in any fds */
-	i = select(FD_SETSIZE, NULL, NULL, NULL, &tv);
+	i = select(FD_SETSIZE, &rfds, NULL, NULL, &tv);
 
 	if(i < 0) {
 		perror("select");
+		exit(0);
 	}
 
 	exit(1); /* if we exit here, the select blocked the whole process */
 }
 
-main(argc, argv)
-int argc; char **argv;
+int main(argc, argv)
+	int argc;
+	char **argv;
 {
 	pthread_t t;
+
+	/* create a pipe to select */
+	if(pipe(&fildes[0])) {
+		perror("select");
+		exit(0);
+	}
 
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
 	(void) pthread_setconcurrency(2);
@@ -542,13 +576,12 @@ int argc; char **argv;
 #endif
 	exit(0);
 }
-				], [ol_pthread_preemptive=yes], [ol_pthread_preemptive=no], [
-				AC_MSG_ERROR([crossing compiling: use --with-preemptive=yes|no|manual])])
-				AC_MSG_RESULT($ol_pthread_preemptive)
+				], [ol_pthread_select_yields=yes], [ol_pthread_select_yields=no], [
+				AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])])
+				AC_MSG_RESULT($ol_pthread_select_yields)
 
-				if test $ol_pthread_preemptive = yes ; then
-					AC_DEFINE(HAVE_PREEMPTIVE_PTHREADS)
-					ol_with_preemptive=yes
+				if test $ol_pthread_select_yields = yes ; then
+					ol_with_yielding_select=yes
 				fi
 			fi
 
@@ -582,7 +615,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 	if test $ac_cv_header_mach_cthreads_h = yes ; then
 		ol_with_threads=found
 
-		dnl A few platforms have cthread support in standard libraries
+		dnl check for cthread support in current $LIBS
 		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
 
 		if test $ol_link_threads = no ; then
@@ -623,14 +656,15 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 	dnl check for SunOS5 LWP
 	AC_CHECK_HEADERS(thread.h synch.h)
 	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
-		AC_CHECK_LIB(thread, thr_create, [have_lwp=yes], [have_lwp=no])
+		AC_CHECK_LIB(thread, thr_create, [have_thr=yes], [have_thr=no])
 
-		if test $have_lwp = yes ; then
+		if test $have_thr = yes ; then
 			AC_DEFINE(HAVE_THR)
-			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+			LTHREAD_LIBS="$LTHREAD_LIBS -lthread"
+			ol_link_threads=thr
 
-			if test $ol_with_preemptive = auto ; then
-				ol_with_preemptive=yes
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=yes
 			fi
 		fi
 	fi
@@ -643,16 +677,17 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 		if test $have_lwp = yes ; then
 			AC_DEFINE(HAVE_LWP)
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+			ol_link_threads=lwp
 
-			if test $ol_with_preemptive = auto ; then
-				ol_with_preemptive=no
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=no
 			fi
 		fi
 	fi
 fi
 
-if test $ol_with_preemptive = yes ; then
-	AC_DEFINE(PREEMPTIVE_THREADS,1)
+if test $ol_with_yielding_select = yes ; then
+	AC_DEFINE(HAVE_YIELDING_SELECT,1)
 fi
 
 if test $ol_with_threads = manual ; then
@@ -711,7 +746,6 @@ if test $ol_link_threads = no ; then
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
-	AC_DEFINE(PREEMPTIVE_THREADS,1)
 	LTHREAD_LIBS=""
 fi
 
@@ -789,12 +823,12 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = ndbm ; then
 	OL_NDBM
 
 	if test $ol_cv_ndbm = yes ; then
+		if test $ol_with_ldbm_api = auto ; then
+			AC_MSG_WARN([Attempting to use NDBM.  Functionality will be limited.])
+		fi
+
 		ol_link_ldbm=ndbm
 		ol_with_ldbm_api=ndbm
-
-		if test $ol_with_ldbm_api = ndbm ; then
-			AC_WARN([Attempting to use NDBM.  Functionality will be limited.])
-		fi
 
 		if test $ol_cv_lib_ndbm != yes ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_ndbm"
@@ -896,11 +930,16 @@ dnl Checks for header files.
 AC_HEADER_STDC
 
 if test $ac_cv_header_stdc != yes; then
-	AC_MSG_WARN([could not locate Standard C headers])
+	AC_MSG_WARN([could not Standard C compliant headers])
 fi
 
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
+AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
+if test $am_cv_sys_posix_termios = yes ; then
+	AC_DEFINE(HAVE_POSIX_TERMIOS,1)
+fi
+
 AC_CHECK_HEADERS(	\
 	crypt.h			\
 	errno.h			\
@@ -912,6 +951,7 @@ AC_CHECK_HEADERS(	\
 	malloc.h		\
 	memory.h		\
 	regex.h			\
+	psap.h			\
 	pwd.h			\
 	sgtty.h			\
 	stdarg.h		\
@@ -926,22 +966,20 @@ AC_CHECK_HEADERS(	\
 	sys/resource.h	\
 	sys/socket.h	\
 	sys/syslog.h	\
-	sys/time.h		\
 	sys/types.h		\
 	syslog.h		\
 	termios.h		\
-	unistd.h		\
 )
 
 dnl ----------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_GETGROUPS
+AC_TYPE_GETGROUPS dnl requires AC_TYPE_UID_T
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
+AM_TYPE_PTRDIFF_T
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
-AC_TYPE_UID_T
 AC_STRUCT_ST_BLKSIZE
 AC_HEADER_TIME
 AC_STRUCT_TM
@@ -961,7 +999,9 @@ fi
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
+AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
+AM_FUNC_STRTOD
 AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
@@ -982,7 +1022,6 @@ AC_CHECK_FUNCS(		\
 	memcpy			\
 	memmove			\
 	mkstemp			\
-	mktime			\
 	res_search		\
 	select			\
 	setpwfile		\
@@ -996,7 +1035,6 @@ AC_CHECK_FUNCS(		\
 	strrchr			\
 	strsep			\
 	strstr			\
-	strtod			\
 	strtok			\
 	strtol			\
 	strtoul			\
@@ -1128,13 +1166,13 @@ clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
-libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk \
-libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk \
-libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk \
-libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk \
-libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk \
-libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk \
-libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk \
+libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/ldapd/Makefile:build/top.mk:servers/ldapd/Makefile.in:build/srv.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \

@@ -30,6 +30,7 @@
 #include "lber.h"
 #include "ldap.h"
 #include "disptmpl.h"
+#include "ldap-int.h"
 
 static void free_disptmpl LDAP_P(( struct ldap_disptmpl *tmpl ));
 static int read_next_tmpl LDAP_P(( char **bufp, long *blenp,
@@ -385,7 +386,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 	for ( i = 0; !memerr && includeattrs[ i ] != NULL; ++i ) {
 	    if (( attrs = (char **)realloc( attrs, ( attrcnt + 2 ) *
 		    sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
-		    strdup( includeattrs[ i ] )) == NULL ) {
+		    ldap_strdup( includeattrs[ i ] )) == NULL ) {
 		memerr = 1;
 	    } else {
 		attrs[ attrcnt ] = NULL;
@@ -412,7 +413,7 @@ ldap_tmplattrs( struct ldap_disptmpl *tmpl, char **includeattrs,
 	    if ( ticolp->ti_attrname != NULL ) {
 		if (( attrs = (char **)realloc( attrs, ( attrcnt + 2 ) *
 			sizeof( char * ))) == NULL || ( attrs[ attrcnt++ ] =
-			strdup( ticolp->ti_attrname )) == NULL ) {
+			ldap_strdup( ticolp->ti_attrname )) == NULL ) {
 		    memerr = 1;
 		} else {
 		    attrs[ attrcnt ] = NULL;

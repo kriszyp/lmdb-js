@@ -25,7 +25,7 @@ set -e				# exit immediately if any errors occur
 
 MAKE=Makefile			# default makefile name is "Makefile"
 NOSLASH="no"			# by default, / dependencies are included
-CC=cc				# default compiler is cc
+CC=${CC-cc}				# default compiler is cc
 
 while :
 	do case "$1" in
@@ -45,6 +45,12 @@ while :
 			SED='s;\.o;;'
 			shift ;;
 
+
+		# the -l flag produces libtool compatible dependencies
+		-l)
+			SED='s;\.o:;.lo:;'
+			shift ;;
+
 		# the -s flag removes dependencies to files that begin with /
 		-s)
 			NOSLASH=yes;
@@ -58,7 +64,7 @@ while :
 done
 
 if [ $# = 0 ] ; then
-	echo 'usage: mkdep [-p] [-f makefile] [flags] file ...'
+	echo 'usage: mkdep [-p] [-s] [-c cc] [-f makefile] [flags] file ...'
 	exit 1
 fi
 

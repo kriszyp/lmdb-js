@@ -24,7 +24,7 @@
 #include <console.h>
 #endif /* MACOS */
 
-#include "lber-int.h"
+#include "lber.h"
 
 static void usage( char *name )
 {

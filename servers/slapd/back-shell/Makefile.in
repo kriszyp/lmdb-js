@@ -1,0 +1,32 @@
+XSRCS	= version.c
+SRCS	= init.c config.c fork.c search.c bind.c unbind.c add.c delete.c \
+		modify.c modrdn.c compare.c abandon.c result.c
+OBJS	= init.o config.o fork.o search.o bind.o unbind.o add.o delete.o \
+		modify.o modrdn.o compare.o abandon.o result.o
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-shell"
+BUILD_SRV = @BUILD_SHELL@
+
+PROGRAMS =		libback-shell.a
+
+XINCPATH = -I.. -I$(srcdir)/..
+
+all-local:	FORCE
+	$(MAKE) $(MFLAGS) libback-shell.a
+
+libback-shell.a:	version.o
+	$(AR) ruv $@ $(OBJS) version.o
+	@$(RANLIB) $@
+	@touch ../.backend
+
+version.c: $(OBJS) $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< $(srcdir)/Version.c > $@)
+

@@ -5,48 +5,31 @@
  *  search.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef NEEDPROTOS
-static char *find_right_paren( char *s );
-static char *put_complex_filter( BerElement *ber, char *str,
-	unsigned long tag, int not );
-static int put_filter( BerElement *ber, char *str );
-static int put_simple_filter( BerElement *ber, char *str );
-static int put_substring_filter( BerElement *ber, char *type, char *str );
-static int put_filter_list( BerElement *ber, char *str );
-#else
-static char *find_right_paren();
-static char *put_complex_filter();
-static int put_filter();
-static int put_simple_filter();
-static int put_substring_filter();
-static int put_filter_list();
-#endif /* NEEDPROTOS */
+static char *find_right_paren LDAP_P(( char *s ));
+static char *put_complex_filter LDAP_P(( BerElement *ber, char *str,
+	unsigned long tag, int not ));
+static int put_filter LDAP_P(( BerElement *ber, char *str ));
+static int put_simple_filter LDAP_P(( BerElement *ber, char *str ));
+static int put_substring_filter LDAP_P(( BerElement *ber, char *type, char *str ));
+static int put_filter_list LDAP_P(( BerElement *ber, char *str ));
 
 /*
  * ldap_search - initiate an ldap (and X.500) search operation.  Parameters:
@@ -78,19 +61,19 @@ ldap_search( LDAP *ld, char *base, int scope, char *filter,
 		return( -1 );
 	}
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
-		if ( check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
+		if ( ldap_check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
 			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_SUCCESS;
 			return( ld->ld_msgid );
 		}
-		add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
+		ldap_add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
 	}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));
 }
 
 
@@ -126,7 +109,7 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 	 */
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( NULLBER );
 	}
 
@@ -134,19 +117,19 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 	    base = "";
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( ld->ld_sb.sb_naddr > 0 ) {
 	    err = ber_printf( ber, "{ist{seeiib", ++ld->ld_msgid,
 		ld->ld_cldapdn, LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
 		ld->ld_sizelimit, ld->ld_timelimit, attrsonly );
 	} else {
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		err = ber_printf( ber, "{it{seeiib", ++ld->ld_msgid,
 		    LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
 		    ld->ld_sizelimit, ld->ld_timelimit, attrsonly );
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	}
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 	if ( err == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
@@ -154,7 +137,7 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 		return( NULLBER );
 	}
 
-	filter = strdup( filter );
+	filter = ldap_strdup( filter );
 	err = put_filter( ber, filter );
 	free( filter );
 
@@ -336,7 +319,7 @@ put_filter( BerElement *ber, char *str )
 					return( -1 );
 
 				*next = '\0';
-				tmp = strdup( str );
+				tmp = ldap_strdup( str );
 				if ( gotescape ) {
 					escape = 0;
 					for ( s = d = tmp; *s; s++ ) {
@@ -378,7 +361,7 @@ put_filter( BerElement *ber, char *str )
 			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n", 0, 0,
 			    0 );
 			next = strchr( str, '\0' );
-			tmp = strdup( str );
+			tmp = ldap_strdup( str );
 			if ( strchr( tmp, '\\' ) != NULL ) {
 				escape = 0;
 				for ( s = d = tmp; *s; s++ ) {

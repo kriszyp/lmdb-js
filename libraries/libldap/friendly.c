@@ -5,31 +5,24 @@
  *  friendly.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
+#include "ldap-int.h"
 
 char *
 ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
@@ -40,9 +33,7 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 	char	buf[BUFSIZ];
 
 	if ( map == NULL ) {
-#if !defined( MACOS ) && !defined( DOS )
 		errno = EINVAL;
-#endif
 		return( uname );
 	}
 
@@ -94,8 +85,8 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 				}
 			}
 
-			(*map)[i].f_unfriendly = strdup( buf );
-			(*map)[i].f_friendly = strdup( s );
+			(*map)[i].f_unfriendly = ldap_strdup( buf );
+			(*map)[i].f_friendly   = ldap_strdup( s );
 			i++;
 		}
 
