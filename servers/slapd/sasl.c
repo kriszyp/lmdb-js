@@ -717,7 +717,7 @@ slap_sasl_checkpass(
  * auxiliary property, so that we can refer to it in sasl_authorize
  * without interfering with anything else. Also, the SASL username
  * buffer is constrained to 256 characters, and our DNs could be
- * much longer (totally arbitrary length)...
+ * much longer (SLAP_LDAPDN_MAXLEN, currently set to 8192)
  */
 static int
 slap_sasl_canonicalize(
@@ -1804,7 +1804,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 		/* username may have embedded realm name */
 		/* FIXME:
 		 * userids can legally have embedded '@' chars;
-		 * the relm should be set by those mechanisms
+		 * the realm should be set by those mechanisms
 		 * that support it by means of the user_realm
 		 * variable
 		 */

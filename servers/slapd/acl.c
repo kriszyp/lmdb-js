@@ -198,7 +198,7 @@ access_allowed(
 
 #ifdef LDAP_SLAPI
 	if ( op->o_pb && 
-		!slapi_x_access_allowed( op, e, desc, val, access, state )) {
+		!slapi_int_access_allowed( op, e, desc, val, access, state )) {
 		/* ACL plugin denied access */
 		goto done;
 	}

@@ -357,6 +357,7 @@ replog1(
 					for ( an = ri->ri_attrs; an->an_name.bv_val; an++ ) {
 						if ( an->an_oc ) {
 							int i;
+
 							for ( i=0; a->a_vals[i].bv_val; i++ ) {
 								if ( a->a_vals[i].bv_len == an->an_name.bv_len
 									&& !strcasecmp(a->a_vals[i].bv_val,

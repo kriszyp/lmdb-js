@@ -316,7 +316,7 @@ do_modrdn(
 #if defined( LDAP_SLAPI )
 #define	pb	op->o_pb
 	if ( pb ) {
-		slapi_x_pblock_set_operation( pb, op );
+		slapi_int_pblock_set_operation( pb, op );
 		slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,

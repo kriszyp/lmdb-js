@@ -232,7 +232,7 @@ int slapi_register_object_extension(
 #endif /* LDAP_SLAPI */
 }
 
-int slapi_x_create_object_extensions(int objecttype, void *object)
+int slapi_int_create_object_extensions(int objecttype, void *object)
 {
 #ifdef LDAP_SLAPI
 	int i, rc;
@@ -285,7 +285,7 @@ int slapi_x_create_object_extensions(int objecttype, void *object)
 #endif
 }
 
-int slapi_x_free_object_extensions(int objecttype, void *object)
+int slapi_int_free_object_extensions(int objecttype, void *object)
 {
 #ifdef LDAP_SLAPI
 	int i, rc;
@@ -326,7 +326,7 @@ int slapi_x_free_object_extensions(int objecttype, void *object)
 }
 
 /* for reusable object types */
-int slapi_x_clear_object_extensions(int objecttype, void *object)
+int slapi_int_clear_object_extensions(int objecttype, void *object)
 {
 #ifdef LDAP_SLAPI
 	int i, rc;
@@ -356,7 +356,7 @@ int slapi_x_clear_object_extensions(int objecttype, void *object)
 #endif
 }
 
-int slapi_x_init_object_extensions(void)
+int slapi_int_init_object_extensions(void)
 {
 #ifdef LDAP_SLAPI
 	memset( &registered_extensions, 0, sizeof( registered_extensions ) );

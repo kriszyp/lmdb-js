@@ -400,6 +400,7 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 {
 #if defined(LDAP_SLAPI)
 	char *str = NULL;
+	LDAPControl **rescontrols = NULL;
 
 	get( pb, SLAPI_CONN_DN,(void **)&str );
 	if ( str != NULL ) {
@@ -434,6 +435,12 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 	if ( str != NULL ) {
 		ch_free( str );
 		str = NULL;
+	}
+
+	get( pb, SLAPI_RESCONTROLS, (void **)&rescontrols );
+	if ( rescontrols != NULL ) {
+		ldap_controls_free( rescontrols );
+		rescontrols = NULL;
 	}
 
 	ldap_pvt_thread_mutex_destroy( &pb->pblockMutex );
@@ -509,7 +516,7 @@ slapi_pblock_check_params( Slapi_PBlock *pb, int flag )
  * OpenLDAP extension
  */
 int
-slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb )
+slapi_int_pblock_get_first( Backend *be, Slapi_PBlock **pb )
 {
 #if defined(LDAP_SLAPI)
 	assert( pb );
@@ -524,7 +531,7 @@ slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb )
  * OpenLDAP extension
  */
 int
-slapi_x_pblock_get_next( Slapi_PBlock **pb )
+slapi_int_pblock_get_next( Slapi_PBlock **pb )
 {
 #if defined(LDAP_SLAPI)
 	assert( pb );

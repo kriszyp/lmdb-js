@@ -162,7 +162,7 @@ int connections_destroy(void)
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
 #ifdef LDAP_SLAPI
 			if ( slapi_plugins_used ) {
-				slapi_x_free_object_extensions( SLAPI_X_EXT_CONNECTION, &connections[i] );
+				slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION, &connections[i] );
 			}
 #endif
 		}
@@ -496,7 +496,7 @@ long connection_init(
 
 #ifdef LDAP_SLAPI
 		if ( slapi_plugins_used ) {
-			slapi_x_create_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+			slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, c );
 		}
 #endif
 
@@ -734,7 +734,7 @@ connection_destroy( Connection *c )
 #ifdef LDAP_SLAPI
 	/* call destructors, then constructors; avoids unnecessary allocation */
 	if ( slapi_plugins_used ) {
-		slapi_x_clear_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+		slapi_int_clear_object_extensions( SLAPI_X_EXT_CONNECTION, c );
 	}
 #endif
 }

@@ -260,7 +260,7 @@ do_compare(
 #if defined( LDAP_SLAPI )
 #define	pb	op->o_pb
 	if ( pb ) {
-		slapi_x_pblock_set_operation( pb, op );
+		slapi_int_pblock_set_operation( pb, op );
 		slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)dn.bv_val );
 		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 		slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );

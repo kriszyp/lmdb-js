@@ -87,10 +87,6 @@
 #define LDAP_NEEDS_PROTOTYPES 1
 #endif
 
-#ifdef HAVE_STDDEF_H
-#	include <stddef.h>
-#endif
-
 #ifndef LDAP_REL_ENG
 #if (LDAP_VENDOR_VERSION == 000000) && !defined(LDAP_DEVEL)
 #define LDAP_DEVEL
@@ -98,6 +94,10 @@
 #if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
 #define LDAP_TEST
 #endif
+#endif
+
+#ifdef HAVE_STDDEF_H
+#	include <stddef.h>
 #endif
 
 #ifdef HAVE_EBCDIC 
