@@ -52,27 +52,42 @@ extern char* getpass LDAP_P((const char *getpass));
 	extern char *mktemp(char *);
 #endif
 
-/* use _POSIX_VERSION for POSIX.1 code */
-
 /* Setup file locking macros */
-#if defined (HAVE_LOCKF) && defined (F_LOCK) && defined (F_ULOCK)
-#	define ldap_lockf(x) lockf(fileno(x),F_LOCK, 0)
-#	define ldap_unlockf(x) lockf(fileno(x),F_ULOCK, 0)
-#elif defined (HAVE_FCNTL_H) && defined (F_WRLCK) && defined (F_UNLCK)
-#	ifndef  NEED_FCNTL_LOCKING
-#		define NEED_FCNTL_LOCKING
+#if !defined( ldap_lockf ) && HAVE_LOCKF && defined( F_LOCK )
+#	define ldap_lockf(x)	lockf(fileno(x), F_LOCK, 0)
+#	define ldap_unlockf(x)	lockf(fileno(x), F_ULOCK, 0)
+#endif
+
+#if !defined( ldap_lockf ) && HAVE_FCNTL
+#	ifdef HAVE_FCNTL_H
+#		include <fcntl.h>
 #	endif
-#	include <lutil_lockf.h>
-#	define ldap_lockf(x) lutil_ldap_lockf(x)
-#	define ldap_unlockf(x) lutil_ldap_unlockf(x)
-#elif defined (HAVE_FLOCK) && defined (LOCK_EX) && defined (LOCK_UN)
+
+#	ifdef F_WRLCK
+#		ifndef  NEED_FCNTL_LOCKING
+#			define NEED_FCNTL_LOCKING
+#		endif
+#		include <lutil_lockf.h>
+#		define ldap_lockf(x)	lutil_lockf(x)
+#		define ldap_unlockf(x)	lutil_unlockf(x)
+#	endif
+#endif
+
+#if !defined( ldap_lockf ) && HAVE_FLOCK
 #	if HAVE_SYS_FILE_H
 #		include <sys/file.h>
 #	endif
-#	define ldap_lockf(x) flock(fileno(x),LOCK_EX)
-#	define ldap_unlockf(x) flock(fileno(x),LOCK_UN)
-#else
-#error no_suitable_locking_found
+#	ifdef LOCK_EX
+#		define ldap_lockf(x)	flock(fileno(x), LOCK_EX)
+#		define ldap_unlockf(x)	flock(fileno(x), LOCK_UN)
+#	endif
+#endif
+
+#if !defined( ldap_lockf )
+	/* use some simplistic locking method */
+#	include <lutil_lockf.h>
+#	define ldap_lockf(x)	lutil_lockf(x)
+#	define ldap_unlockf(x)	lutil_unlockf(x)
 #endif
 
 #endif /* _AC_UNISTD_H */

@@ -14,28 +14,26 @@
 #include <stdio.h>
 #include <ac/unistd.h>
 
-#if defined(NEED_FCNTL_LOCKING) && defined(HAVE_FCNTL_H)
+#if defined(NEED_FCNTL_LOCKING)
 
-#include <fcntl.h>
-
-int lutil_ldap_lockf ( FILE *fs ) {
+int lutil_lockf ( FILE *fp ) {
 	struct flock file_lock;
 	memset( &file_lock, 0, sizeof( file_lock ) );
 	file_lock.l_type = F_WRLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;
 	file_lock.l_len = 0;
-	return( fcntl( fileno( fs ), F_SETLKW, &file_lock ) );
+	return( fcntl( fileno(fp), F_SETLKW, &file_lock ) );
 }
 
-int lutil_ldap_unlockf ( FILE *fs ) {
+int lutil_unlockf ( FILE *fp ) {
 	struct flock file_lock;
 	memset( &file_lock, 0, sizeof( file_lock ) );
 	file_lock.l_type = F_UNLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;
 	file_lock.l_len = 0;
-	return ( fcntl( fileno( fs ), F_SETLK, &file_lock ) );
+	return ( fcntl( fileno(fp), F_SETLK, &file_lock ) );
 }
 
 #endif /* !HAVE_FILE_LOCKING */
