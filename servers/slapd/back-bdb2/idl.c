@@ -150,7 +150,7 @@ bdb2i_idl_fetch(
 
 		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "idl_fetch of (%s) returns NULL\n", data.dptr, 0, 0 );
+			    "bdb2i_idl_fetch of (%s) returns NULL\n", data.dptr, 0, 0 );
 			continue;
 		}
 
