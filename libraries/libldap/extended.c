@@ -170,6 +170,11 @@ ldap_parse_extended_result (
 		return ld->ld_errno;
 	}
 
+	if( res->lm_msgtype == LDAP_RES_EXTENDED ) {
+		ld->ld_errno = LDAP_PARAM_ERROR;
+		return ld->ld_errno;
+	}
+
 	if( retoidp != NULL ) *retoidp = NULL;
 	if( retdatap != NULL ) *retdatap = NULL;
 
@@ -198,6 +203,15 @@ ldap_parse_extended_result (
 	resdata = NULL;
 
 	tag = ber_peek_tag( ber, &len );
+
+	if( tag == LDAP_TAG_REFERRAL ) {
+		/* skip over referral */
+		tag = ber_scanf( ber, "x" );
+
+		if( tag != LBER_ERROR ) {
+			tag = ber_peek_tag( ber, &len );
+		}
+	}
 
 	if( tag == LDAP_TAG_EXOP_RES_OID ) {
 		/* we have a resoid */
