@@ -869,7 +869,7 @@ LDAP_SLAPD_F (void) slap_sasl2dn LDAP_P((
 	struct berval *saslname,
 	struct berval *dn ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
-	Connection *conn,
+	Operation *op,
 	struct berval *authcid,
 	struct berval *authzid ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((

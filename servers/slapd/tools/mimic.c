@@ -227,7 +227,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	return -1;
 }
 
-int slap_sasl_authorized( Connection *conn,
+int slap_sasl_authorized( Operation *op,
 	struct berval *authcDN, struct berval *authzDN )
 {
 	return -1;

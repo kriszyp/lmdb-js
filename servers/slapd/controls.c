@@ -740,7 +740,7 @@ static int parseProxyAuthz (
 		dn.bv_len ? dn.bv_val : "(NULL)", 0 );
 #endif
 
-	rc = slap_sasl_authorized( op->o_conn, &op->o_ndn, &dn );
+	rc = slap_sasl_authorized( op, &op->o_ndn, &dn );
 
 	if( rc ) {
 		ch_free( dn.bv_val );

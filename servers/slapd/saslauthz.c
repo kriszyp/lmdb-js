@@ -490,7 +490,7 @@ CONCLUDED:
  * The DNs should not have the dn: prefix
  */
 static int
-slap_sasl_check_authz( Connection *conn,
+slap_sasl_check_authz( Operation *op,
 	struct berval *searchDN,
 	struct berval *assertDN,
 	AttributeDescription *ad,
@@ -509,19 +509,19 @@ slap_sasl_check_authz( Connection *conn,
 	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #endif
 
-	rc = backend_attribute( conn->c_sasl_bindop, NULL,
+	rc = backend_attribute( op, NULL,
 		searchDN, ad, &vals );
 	if( rc != LDAP_SUCCESS ) goto COMPLETE;
 
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
-		rc = slap_sasl_match( conn->c_sasl_bindop, &vals[i], assertDN, authc );
+		rc = slap_sasl_match( op, &vals[i], assertDN, authc );
 		if ( rc == LDAP_SUCCESS ) goto COMPLETE;
 	}
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 COMPLETE:
-	if( vals ) ber_bvarray_free_x( vals, conn->c_sasl_bindop->o_tmpmemctx );
+	if( vals ) ber_bvarray_free_x( vals, op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, RESULTS, 
@@ -645,7 +645,7 @@ FINISHED:
  * The DNs should not have the dn: prefix
  */
 
-int slap_sasl_authorized( Connection *conn,
+int slap_sasl_authorized( Operation *op,
 	struct berval *authcDN, struct berval *authzDN )
 {
 	int rc = LDAP_INAPPROPRIATE_AUTH;
@@ -673,14 +673,14 @@ int slap_sasl_authorized( Connection *conn,
 	}
 
 	/* Allow the manager to authorize as any DN. */
-	if( conn->c_authz_backend && be_isroot( conn->c_authz_backend, authcDN )) {
+	if( op->o_conn->c_authz_backend && be_isroot( op->o_conn->c_authz_backend, authcDN )) {
 		rc = LDAP_SUCCESS;
 		goto DONE;
 	}
 
 	/* Check source rules */
 	if( authz_policy & SASL_AUTHZ_TO ) {
-		rc = slap_sasl_check_authz( conn, authcDN, authzDN,
+		rc = slap_sasl_check_authz( op, authcDN, authzDN,
 			slap_schema.si_ad_saslAuthzTo, authcDN );
 		if( rc == LDAP_SUCCESS ) {
 			goto DONE;
@@ -689,7 +689,7 @@ int slap_sasl_authorized( Connection *conn,
 
 	/* Check destination rules */
 	if( authz_policy & SASL_AUTHZ_FROM ) {
-		rc = slap_sasl_check_authz( conn, authzDN, authcDN,
+		rc = slap_sasl_check_authz( op, authzDN, authcDN,
 			slap_schema.si_ad_saslAuthzFrom, authcDN );
 		if( rc == LDAP_SUCCESS ) {
 			goto DONE;
