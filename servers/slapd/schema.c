@@ -633,12 +633,24 @@ mr_add(
 )
 {
 	MatchingRule	*smr;
+	Syntax		*syn;
 	int		code;
 
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
 	memcpy( &smr->smr_mrule, mr, sizeof(LDAP_MATCHING_RULE));
 	smr->smr_normalize = normalize;
 	smr->smr_compare = compare;
+	if ( smr->smr_syntax_oid ) {
+		if ( (syn = syn_find(smr->smr_syntax_oid)) ) {
+			smr->smr_syntax = syn;
+		} else {
+			*err = smr->smr_syntax_oid;
+			return SLAP_SCHERR_SYN_NOT_FOUND;
+		}
+	} else {
+		*err = "";
+		return SLAP_SCHERR_MR_INCOMPLETE;
+	}
 	code = mr_insert(smr,err);
 	return code;
 }
@@ -660,7 +672,7 @@ register_syntax(
 	}
 	code = syn_add( syn, check, &err );
 	if ( code ) {
-		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
+		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
 		    scherr2str(code), err, desc );
 		return( -1 );
 	}
@@ -699,21 +711,46 @@ struct syntax_defs_rec {
 
 struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'Attribute Type Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DIT Content Rule Description' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DIT Structure Rule Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'INTEGER' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'Matching Rule Description' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'Matching Rule Use Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'Mail Preference' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )", NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'Substring Assertion' )", NULL},
+	{"( 1.3.6.1.1.1.0.0 DESC 'NIS netgroup triple' )", NULL},
+	{"( 1.3.6.1.1.1.0.1 DESC 'Boot parameter' )", NULL},
 	{NULL, NULL}
 };
 
@@ -727,12 +764,25 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )", NULL, NULL},
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
+	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
 	{"( 2.5.13.8 NAME 'numericStringMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )", NULL, NULL},
+	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
+	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )", NULL, NULL},
+	{"( 2.5.13.14 NAME 'integerMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", NULL, NULL},
+	{"( 2.5.13.16 NAME 'bitStringMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )", NULL, NULL},
+	{"( 2.5.13.17 NAME 'octetStringMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )", NULL, NULL},
+	{"( 2.5.13.20 NAME 'telephoneNumberMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )", NULL, NULL},
+	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
+	{"( 2.5.13.22 NAME 'presentationAddressMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )", NULL, NULL},
+	{"( 2.5.13.23 NAME 'uniqueMemberMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )", NULL, NULL},
+	{"( 2.5.13.24 NAME 'protocolInformationMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )", NULL, NULL},
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )", NULL, NULL},
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )", NULL, NULL},
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", NULL, NULL},
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )", NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )", NULL, NULL},
 	{NULL, NULL, NULL}
 };
 
@@ -743,9 +793,11 @@ schema_init( void )
 	int		code;
 	const char	*err;
 	int		i;
+	static int	schema_init_done = 0;
 
-	/* For now */
-	return( 0 );
+	/* We are called from read_config that is recursive */
+	if ( schema_init_done )
+		return( 0 );
 	for ( i=0; syntax_defs[i].sd_desc != NULL; i++ ) {
 		res = register_syntax( syntax_defs[i].sd_desc,
 		    syntax_defs[i].sd_check );
@@ -765,6 +817,8 @@ schema_init( void )
 			exit( 1 );
 		}
 	}
+	schema_init_done = 1;
+	return( 0 );
 }
 
 #if defined( SLAPD_SCHEMA_DN )
