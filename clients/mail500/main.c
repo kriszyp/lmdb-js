@@ -82,6 +82,7 @@ typedef struct errs {
 #define E_NOMEMBERS		10
 #define	E_NOOWNER		11
 #define E_GROUPUNKNOWN		12
+#define E_NOOWNADDRESS		13
 	char		*e_addr;
 	union e_union_u {
 		char		*e_u_loop;
@@ -135,7 +136,7 @@ typedef struct attr_semantics {
 	char	*as_param;	/* Extra info for filters and things alike */
 } AttrSemantics;
 
-#define AS_SYNTAX_UNKNOWN	0	/* Unqualified mailbox name */
+#define AS_SYNTAX_UNKNOWN	0
 #define AS_SYNTAX_NATIVE_MB	1	/* Unqualified mailbox name */
 #define AS_SYNTAX_RFC822	2	/* RFC822 mail address */
 #define AS_SYNTAX_HOST		3
@@ -143,6 +144,8 @@ typedef struct attr_semantics {
 #define AS_SYNTAX_RFC822_EXT	5
 #define AS_SYNTAX_URL		6	/* mailto: or ldap: URL */
 #define AS_SYNTAX_BOOL_FILTER	7	/* For joinable, filter in as_param */
+#define AS_SYNTAX_PRESENT	8	/* Value irrelevant, only presence is
+					 * considered. */
 
 #define AS_KIND_UNKNOWN		0
 #define AS_KIND_RECIPIENT	1
@@ -153,6 +156,7 @@ typedef struct attr_semantics {
 #define AS_KIND_ALLOWED_SENDER	6	/* Can send to group */
 #define AS_KIND_MODERATOR	7
 #define AS_KIND_ROUTE_TO_ADDR	8	/* Rewrite recipient address as */
+#define AS_KIND_OWN_ADDR	9	/* RFC822 name of this entry */
 
 AttrSemantics **attr_semantics = NULL;
 int current_priority = 0;
@@ -577,10 +581,14 @@ add_attr_semantics( char *s )
 			}
 		} else if ( !strcasecmp( p, "host" ) ) {
 			as->as_kind = AS_SYNTAX_HOST;
+		} else if ( !strcasecmp( p, "present" ) ) {
+			as->as_kind = AS_SYNTAX_PRESENT;
 		} else if ( !strcasecmp( p, "route-to-host" ) ) {
 			as->as_kind = AS_KIND_ROUTE_TO_HOST;
 		} else if ( !strcasecmp( p, "route-to-address" ) ) {
 			as->as_kind = AS_KIND_ROUTE_TO_ADDR;
+		} else if ( !strcasecmp( p, "own-address" ) ) {
+			as->as_kind = AS_KIND_OWN_ADDR;
 		} else if ( !strcasecmp( p, "recipient" ) ) {
 			as->as_kind = AS_KIND_RECIPIENT;
 		} else if ( !strcasecmp( p, "errors" ) ) {
@@ -1076,6 +1084,10 @@ url_list_search(
 	return( resolved );
 }
 
+/*
+ * We should probably take MX records into account to cover all bases,
+ * but really, routing belongs in the MTA.
+ */
 static int
 is_my_domain(
 	char * domain
@@ -1086,7 +1098,7 @@ is_my_domain(
 	if ( d == NULL )
 		return 0;
 	for ( d = mydomains; *d; d++ ) {
-		if ( !strcmp(*d,domain) ) {
+		if ( !strcasecmp(*d,domain) ) {
 			return 1;
 		}
 	}
@@ -1127,11 +1139,15 @@ entry_engine(
 	int	cur_priority = 0;
 	char	*route_to_host = NULL;
 	char	*route_to_address = NULL;
+	int	needs_mta_routing = 0;
+	char	**own_addresses = NULL;
+	int	own_addresses_total = 0;
 	char	*nvals[2];
 
 	for ( i=0; attr_semantics[i] != NULL; i++ ) {
 		AttrSemantics	*as = attr_semantics[i];
 		int		nent;
+		int		j;
 
 		if ( as->as_priority < cur_priority ) {
 			/*
@@ -1276,15 +1292,30 @@ entry_engine(
 		case AS_KIND_ROUTE_TO_HOST:
 			if ( !is_my_domain( vals[0] ) ) {
 				cur_priority = as->as_priority;
-				route_to_host = strdup( vals[0] );
+				if ( as->as_syntax == AS_SYNTAX_PRESENT ) {
+					needs_mta_routing = 1;
+				} else {
+					route_to_host = strdup( vals[0] );
+				}
 			}
 			break;
 
 		case AS_KIND_ROUTE_TO_ADDR:
-			if ( strcmp( vals[0], address ) ) {
-				cur_priority = as->as_priority;
-				route_to_address = strdup( vals[0] );
+			for ( j=0; j<own_addresses_total; j++ ) {
+				if ( strcasecmp( vals[0], own_addresses[j] ) ) {
+					cur_priority = as->as_priority;
+					if ( as->as_syntax == AS_SYNTAX_PRESENT ) {
+						needs_mta_routing = 1;
+					} else {
+						route_to_address = strdup( vals[0] );
+					}
+				}
+				break;
 			}
+
+		case AS_KIND_OWN_ADDR:
+			add_to( &own_addresses, &own_addresses_total, vals );
+			cur_priority = as->as_priority;
 			break;
 
 		default:
@@ -1294,10 +1325,44 @@ entry_engine(
 		}
 		ldap_value_free( vals );
 	}
-	if ( route_to_host ) {
+	/*
+	 * Now check if we are dealing with mail routing.  We support
+	 * two modes.
+	 *
+	 * The first mode and by far the most robust method is doing
+	 * routing at the MTA.  In this case, we just checked if the
+	 * routing attributes were present and did not seem like
+	 * pointing to ourselves.  The only thing we have to do here
+	 * is adding to the recipient list any of the RFC822 addresses
+	 * of this entry.  That means we needed to retrieve them from
+	 * the entry itself because we might have arrived here through
+	 * some directory search.  The address received as argument is
+	 * not the address of the entry we are processing, but rather
+	 * the RFC822 address we are expanding now.  Unfortunately,
+	 * this requires an MTA that understands LDAP routing.
+	 * Sendmail 8.10.0 does, if compiled properly.
+	 *
+	 * The second method, that is most emphatically not recommended
+	 * is routing in mail500.  This is going to require using the
+	 * percent hack.  Moreover, this may occasionally loop.
+	 */
+	if ( needs_mta_routing ) {
+		if ( !own_addresses ) {
+			add_error( err, nerr, E_NOOWNADDRESS, address, e );
+			return( 0 );
+		}
+		nvals[0] = own_addresses[0];	/* Anyone will do */
+		nvals[1] = NULL;
+		add_to( current_to, current_nto, nvals );
+		resolved = 1;
+	} else if ( route_to_host ) {
 		char *p;
 		if ( !route_to_address ) {
-			route_to_address = strdup( address );
+			if ( !own_addresses ) {
+				add_error( err, nerr, E_NOOWNADDRESS, address, e );
+				return( 0 );
+			}
+			route_to_address = strdup( own_addresses[0] );
 		}
 		/* This makes use of the percent hack, but there's no choice */
 		p = strchr( route_to_address, '@' );
@@ -1317,6 +1382,9 @@ entry_engine(
 		add_to( current_to, current_nto, nvals );
 		resolved = 1;
 		free( route_to_address );
+	}
+	if ( own_addresses ) {
+		ldap_value_free( own_addresses );
 	}
 		  
 	return( resolved );
@@ -1623,6 +1691,11 @@ send_errors( Error *err, int nerr )
 
 			case E_NOMEMBERS:
 				fprintf( fp, "%s: Group has no members\n",
+				    err[i].e_addr );
+				break;
+
+			case E_NOOWNADDRESS:
+				fprintf( fp, "%s: Not enough information to perform required routing\n",
 				    err[i].e_addr );
 				break;
 
