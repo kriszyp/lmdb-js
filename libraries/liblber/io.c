@@ -402,7 +402,7 @@ ber_init( struct berval *bv )
 	}
 
 	/* copy the data */
-	if ( (ber_write ( ber, bv->bv_val, bv->bv_len, 0 )) != bv->bv_len ) {
+	if ( ( (unsigned int) ber_write ( ber, bv->bv_val, bv->bv_len, 0 )) != bv->bv_len ) {
 		/* write failed, so free and return NULL */
 		ber_free( ber, 1 );
 		return( NULL );

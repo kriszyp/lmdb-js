@@ -39,7 +39,7 @@ CPP=cl.exe
 # PROP Intermediate_Dir "Release\libldap"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -60,7 +60,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug\libldap"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /I "..\..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -105,6 +105,10 @@ SOURCE=.\cldap.c
 # Begin Source File
 
 SOURCE=.\compare.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\controls.c
 # End Source File
 # Begin Source File
 
@@ -168,7 +172,15 @@ SOURCE=.\kbind.c
 # End Source File
 # Begin Source File
 
+SOURCE="..\liblber\lber-int.h"
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\lber.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\lber_pvt.h
 # End Source File
 # Begin Source File
 
@@ -180,7 +192,23 @@ SOURCE=..\..\include\ldap.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ldap_cdefs.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_features.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldap_log.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_pvt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldapconfig.h
 # End Source File
 # Begin Source File
 
@@ -201,6 +229,14 @@ SOURCE=.\options.c
 # Begin Source File
 
 SOURCE=".\os-ip.c"
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\portable.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\print.c
 # End Source File
 # Begin Source File
 
@@ -232,7 +268,7 @@ SOURCE=..\..\include\srchpref.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\strdup.c
+SOURCE=.\string.c
 # End Source File
 # Begin Source File
 
@@ -245,6 +281,10 @@ SOURCE=.\unbind.c
 # Begin Source File
 
 SOURCE=.\url.c
+# End Source File
+# Begin Source File
+
+SOURCE=".\util-int.c"
 # End Source File
 # End Target
 # End Project

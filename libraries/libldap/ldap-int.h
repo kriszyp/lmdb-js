@@ -260,6 +260,7 @@ int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *reque
  */
 LDAPControl *ldap_control_dup LDAP_P(( LDAPControl *ctrl ));
 LDAPControl **ldap_controls_dup LDAP_P(( LDAPControl **ctrl ));
+int ldap_get_ber_controls LDAP_P(( BerElement *be, LDAPControl ***cp));
 
 /*
  * in dsparse.c

@@ -39,13 +39,13 @@ CPP=cl.exe
 # PROP Intermediate_Dir "Release\libldif"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /out:"..\Release\oldif32.lib"
 
 !ELSEIF  "$(CFG)" == "libldif - Win32 Debug"
 
@@ -76,11 +76,39 @@ LIB32=link.exe -lib
 # Name "libldif - Win32 Debug"
 # Begin Source File
 
+SOURCE=..\..\include\lber.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\lber_pvt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_cdefs.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_features.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_log.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldif.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\line64.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\portable.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\libldap\print.c
 # End Source File
 # End Target
 # End Project
