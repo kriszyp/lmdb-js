@@ -1,13 +1,33 @@
-This is the first version of this README
-gtk-tool v0.5delta
+README for gtk-tool v0.6
 
 This package has been tested and run with the latest Gtk+/Gtk--
 OpenLDAP 1.1-devel. This thing doesn't run as it should, please
 read TODO!
+
+Just type 'make' to compile and if you have all the necessary stuff it'll do so.
+You do need the latest version of Gtk+ and Gtk-- (which may be tricky to build).
+After that, hopefully all goes well, you start the thing by doing:
+./main
+
+It will default to base of o=University of Michigan, c=US", localhost, and 
+LDAP_PORT (389). This is because OpenLDAP comes with the UMICH ldif and the 
+assumption is that many of you have actually created a test db with that data 
+(to see that people don't lie when they say OpenLDAP actually works or 
+something). If you want to change any of these do ./main -h and it will give 
+you a list of supported parameters. 
+
+In short this is what you can do:
+
+./main -h ldap-server.somewhere.net -p 28345 -b "o=OpenLDAP Foundation, c=US"
 
 I really couldn't think of anything else to put here (at the moment
 that is). But please feel free to add whatever else you consider
 neccessary to understanding how this thing works. Enjoy, and I hope
 this can be useful to you in some miniscule way.
 
+All emails to -devel list, and plase make sure you put "GTK-TOOL"
+in the subject line, so other people who are not interested don't
+have to read our garbage.
+
 Pele
+pele@openldap.org

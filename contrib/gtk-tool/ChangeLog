@@ -1,0 +1,32 @@
+ChangeLog for gtk-tool
+
+28/11/1998 - Pele
+	* Fixes, enhancements, started using ldap utility api
+	* It now traverses the whole tree at startup, not sure if it's smart
+	but I did it because of something that has no relevance to network
+	traffic
+
+27/11/1998 - Pele
+	* Added viewports, both sides now scroll automatically
+	* Brought back the "cache" stuff, now data gets reused if it's allready
+	available without redundant searches/listings.
+	* Editing pixmaps by hand is so much, er, fun!
+	* Miniscule fixes
+
+26/11/1998 - Pele
+	* Added nice icons in the browser pane - looks decent now.
+	* Fixed scrolling in the data (right) pane - now scrolls if there is
+	a long tab
+	* removed class My_Scroller
+	* removed file Gtk_LdapItem.cc (useless)
+	* commented-out the part where data gets reused instead of re-querying
+	the server, stupid I know, but for the time being if resolves some
+	problems with replacement of right pane.
+	* Misc. fixes
+
+26/11/1998 - Pele
+	* First appearance of ChangeLog
+	* Fixed removal of scrolled window on the right hand side
+	  thus making gtk-tool a viable project to be worked on
+	* added command-line parameter parsing - now accepts
+	  -s for server, -p for port, -b for baseDN
