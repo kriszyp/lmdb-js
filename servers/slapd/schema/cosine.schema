@@ -1269,7 +1269,7 @@ objectclass ( 0.9.2342.19200300.100.4.14 NAME 'RFC822localPart'
 #    ::= {pilotObjectClass 15}
 #
 objectclass ( 0.9.2342.19200300.100.4.15 NAME 'dNSDomain'
-	SUP 'domain' STRUCTURAL
+	SUP domain STRUCTURAL
 	MAY ( ARecord $ MDRecord $ MXRecord $ NSRecord $
 		SOARecord $ CNAMERecord )
 	)
