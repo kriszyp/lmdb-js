@@ -646,30 +646,6 @@ err:
 	return NULL;
 }
 
-/* Strip characters with the 8th bit set */
-static char *
-strip8bitChars(
-	char *in )      
-{
-	char *p = in, *q;
-  
-	if( in == NULL ) {
-		return NULL;
-	}
-	while( *p ) {
-		if( *p & 0x80 ) {
-			q = p;
-			while( *++q & 0x80 ) {
-				/* empty */
-			}
-			p = AC_MEMCPY(p, q, strlen(q) + 1);
-		} else {
-			p++;
-		}
-	}
-	return in;
-}
-
 #ifndef SLAPD_APPROX_OLDSINGLESTRING
 
 #if defined(SLAPD_APPROX_INITIALS)
@@ -689,31 +665,27 @@ approxMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	char *val, *nval, *assertv, **values, **words, *c;
+	struct berval *nval, *assertv;
+	char *val, **values, **words, *c;
 	int i, count, len, nextchunk=0, nextavail=0;
-	size_t avlen;
 
 	/* Yes, this is necessary */
-	nval = UTF8normalize( value, LDAP_UTF8_NOCASEFOLD );
+	nval = UTF8bvnormalize( value, NULL, LDAP_UTF8_APPROX );
 	if( nval == NULL ) {
 		*matchp = 1;
 		return LDAP_SUCCESS;
 	}
-	strip8bitChars( nval );
 
 	/* Yes, this is necessary */
-	assertv = UTF8normalize( ((struct berval *)assertedValue),
-		LDAP_UTF8_NOCASEFOLD );
+	assertv = UTF8bvnormalize( ((struct berval *)assertedValue), NULL, LDAP_UTF8_APPROX );
 	if( assertv == NULL ) {
-		ch_free( nval );
+		ber_bvfree( nval );
 		*matchp = 1;
 		return LDAP_SUCCESS;
 	}
-	strip8bitChars( assertv );
-	avlen = strlen( assertv );
 
 	/* Isolate how many words there are */
-	for( c=nval,count=1; *c; c++ ) {
+	for ( c = nval->bv_val, count = 1; *c; c++ ) {
 		c = strpbrk( c, SLAPD_APPROX_DELIMITER );
 		if ( c == NULL ) break;
 		*c = '\0';
@@ -723,7 +695,7 @@ approxMatch(
 	/* Get a phonetic copy of each word */
 	words = (char **)ch_malloc( count * sizeof(char *) );
 	values = (char **)ch_malloc( count * sizeof(char *) );
-	for( c=nval,i=0;  i<count;  i++,c+=strlen(c)+1 ) {
+	for ( c = nval->bv_val, i = 0;  i < count; i++, c += strlen(c) + 1 ) {
 		words[i] = c;
 		values[i] = phonetic(c);
 	}
@@ -731,8 +703,8 @@ approxMatch(
 	/* Work through the asserted value's words, to see if at least some
 	   of the words are there, in the same order. */
 	len = 0;
-	while ( (size_t) nextchunk < avlen ) {
-		len = strcspn( assertv + nextchunk, SLAPD_APPROX_DELIMITER);
+	while ( (ber_len_t) nextchunk < assertv->bv_len ) {
+		len = strcspn( assertv->bv_val + nextchunk, SLAPD_APPROX_DELIMITER);
 		if( len == 0 ) {
 			nextchunk++;
 			continue;
@@ -741,7 +713,7 @@ approxMatch(
 		else if( len == 1 ) {
 			/* Single letter words need to at least match one word's initial */
 			for( i=nextavail; i<count; i++ )
-				if( !strncasecmp( assertv+nextchunk, words[i], 1 )) {
+				if( !strncasecmp( assertv->bv_val + nextchunk, words[i], 1 )) {
 					nextavail=i+1;
 					break;
 				}
@@ -749,8 +721,8 @@ approxMatch(
 #endif
 		else {
 			/* Isolate the next word in the asserted value and phonetic it */
-			assertv[nextchunk+len] = '\0';
-			val = phonetic( assertv + nextchunk );
+			assertv->bv_val[nextchunk+len] = '\0';
+			val = phonetic( assertv->bv_val + nextchunk );
 
 			/* See if this phonetic chunk is in the remaining words of *value */
 			for( i=nextavail; i<count; i++ ){
@@ -781,13 +753,13 @@ approxMatch(
 	}
 
 	/* Cleanup allocs */
-	free( assertv );
+	ber_bvfree( assertv );
 	for( i=0; i<count; i++ ) {
 		ch_free( values[i] );
 	}
 	ch_free( values );
 	ch_free( words );
-	ch_free( nval );
+	ber_bvfree( nval );
 
 	return LDAP_SUCCESS;
 }
@@ -802,18 +774,18 @@ approxIndexer(
 	BerVarray values,
 	BerVarray *keysp )
 {
-	char *val, *c;
+	char *c;
 	int i,j, len, wordcount, keycount=0;
-	struct berval *newkeys;
+	struct berval *val, *newkeys;
 	BerVarray keys=NULL;
 
 	for( j=0; values[j].bv_val != NULL; j++ ) {
 		/* Yes, this is necessary */
-		val = UTF8normalize( &values[j], LDAP_UTF8_NOCASEFOLD );
-		strip8bitChars( val );
+		val = UTF8bvnormalize( &values[j], NULL, LDAP_UTF8_APPROX );
+		assert( val != NULL && val->bv_val != NULL );
 
 		/* Isolate how many words there are. There will be a key for each */
-		for( wordcount=0,c=val;	 *c;  c++) {
+		for( wordcount = 0, c = val->bv_val; *c; c++) {
 			len = strcspn(c, SLAPD_APPROX_DELIMITER);
 			if( len >= SLAPD_APPROX_WORDLEN ) wordcount++;
 			c+= len;
@@ -829,7 +801,7 @@ approxIndexer(
 		keys = newkeys;
 
 		/* Get a phonetic copy of each word */
-		for( c=val,i=0;	 i<wordcount;  c+=len+1	 ) {
+		for( c = val->bv_val, i = 0; i < wordcount; c += len + 1 ) {
 			len = strlen( c );
 			if( len < SLAPD_APPROX_WORDLEN ) continue;
 			ber_str2bv( phonetic( c ), 0, 0, &keys[keycount] );
@@ -837,7 +809,7 @@ approxIndexer(
 			i++;
 		}
 
-		free( val );
+		ber_bvfree( val );
 	}
 	keys[keycount].bv_val = NULL;
 	*keysp = keys;
@@ -855,23 +827,23 @@ approxFilter(
 	void * assertValue,
 	BerVarray *keysp )
 {
-	char *val, *c;
+	char *c;
 	int i, count, len;
+	struct berval *val;
 	BerVarray keys;
 
 	/* Yes, this is necessary */
-	val = UTF8normalize( ((struct berval *)assertValue),
-		LDAP_UTF8_NOCASEFOLD );
-	if( val == NULL ) {
+	val = UTF8bvnormalize( ((struct berval *)assertValue), NULL, LDAP_UTF8_APPROX );
+	if( val == NULL || val->bv_val == NULL ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
 		keys[0].bv_val = NULL;
 		*keysp = keys;
+		ber_bvfree( val );
 		return LDAP_SUCCESS;
 	}
-	strip8bitChars( val );
 
 	/* Isolate how many words there are. There will be a key for each */
-	for( count=0,c=val;  *c;  c++) {
+	for( count = 0,c = val->bv_val; *c; c++) {
 		len = strcspn(c, SLAPD_APPROX_DELIMITER);
 		if( len >= SLAPD_APPROX_WORDLEN ) count++;
 		c+= len;
@@ -883,14 +855,14 @@ approxFilter(
 	keys = (struct berval *)ch_malloc( (count + 1) * sizeof(struct berval) );
 
 	/* Get a phonetic copy of each word */
-	for( c=val,i=0;	 i<count; c+=len+1 ) {
+	for( c = val->bv_val, i = 0; i < count; c += len + 1 ) {
 		len = strlen(c);
 		if( len < SLAPD_APPROX_WORDLEN ) continue;
 		ber_str2bv( phonetic( c ), 0, 0, &keys[i] );
 		i++;
 	}
 
-	free( val );
+	ber_bvfree( val );
 
 	keys[count].bv_val = NULL;
 	*keysp = keys;

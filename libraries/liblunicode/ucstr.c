@@ -245,12 +245,14 @@ char * UTF8normalize(
 struct berval * UTF8bvnormalize(
 	struct berval *bv,
 	struct berval *newbv,
-	unsigned casefold )
+	unsigned flags )
 {
 	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
 	char *out, *s;
 	unsigned long *ucs, *p, *ucsout;
-	
+
+	unsigned casefold = flags & LDAP_UTF8_CASEFOLD;
+	unsigned approx = flags & LDAP_UTF8_APPROX;
 	static unsigned char mask[] = {
                 0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
 
@@ -361,20 +363,28 @@ struct berval * UTF8bvnormalize(
                 }
 		/* normalize ucs of length p - ucs */
 		uccanondecomp( ucs, p - ucs, &ucsout, &ucsoutlen );    
-		ucsoutlen = uccanoncomp( ucsout, ucsoutlen );
-		/* convert ucs to utf-8 and store in out */
-		for ( j = 0; j < ucsoutlen; j++ ) {
-			/* allocate more space if not enough room for
-			   6 bytes and terminator */
-			if ( outsize - outpos < 7 ) {
-				outsize = ucsoutlen - j + outpos + 6;
-				out = (char *) realloc( out, outsize );
-				if ( out == NULL ) {
-					free( ucs );
-					return NULL;
+		if ( approx ) {
+			for ( j = 0; j < ucsoutlen; j++ ) {
+				if ( ucsout[j] < 0x80 ) {
+					out[outpos++] = ucsout[j];
 				}
 			}
-			outpos += ldap_x_ucs4_to_utf8( ucsout[j], &out[outpos] );
+		} else {
+			ucsoutlen = uccanoncomp( ucsout, ucsoutlen );
+			/* convert ucs to utf-8 and store in out */
+			for ( j = 0; j < ucsoutlen; j++ ) {
+				/* allocate more space if not enough room for
+				   6 bytes and terminator */
+				if ( outsize - outpos < 7 ) {
+					outsize = ucsoutlen - j + outpos + 6;
+					out = (char *) realloc( out, outsize );
+					if ( out == NULL ) {
+						free( ucs );
+						return NULL;
+					}
+				}
+				outpos += ldap_x_ucs4_to_utf8( ucsout[j], &out[outpos] );
+			}
 		}
 		
 		if ( i == len ) {
