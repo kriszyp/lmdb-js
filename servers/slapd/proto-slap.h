@@ -952,6 +952,12 @@ LDAP_SLAPD_F (int) value_normalize LDAP_P((
 	struct berval *in,
 	struct berval *out,
 	const char ** text ));
+LDAP_SLAPD_F (int) value_validate_normalize LDAP_P((
+	AttributeDescription *ad,
+	unsigned usage,
+	struct berval *in,
+	struct berval *out,
+	const char ** text ));
 LDAP_SLAPD_F (int) value_match LDAP_P((
 	int *match,
 	AttributeDescription *ad,

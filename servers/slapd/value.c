@@ -154,6 +154,91 @@ value_normalize(
 	return LDAP_SUCCESS;
 }
 
+int
+value_validate_normalize(
+	AttributeDescription *ad,
+	unsigned usage,
+	struct berval *in,
+	struct berval *out,
+	const char **text )
+{
+	int rc;
+	MatchingRule *mr;
+
+	switch( usage & SLAP_MR_TYPE_MASK ) {
+	case SLAP_MR_NONE:
+	case SLAP_MR_EQUALITY:
+		mr = ad->ad_type->sat_equality;
+		break;
+	case SLAP_MR_ORDERING:
+		mr = ad->ad_type->sat_ordering;
+		break;
+	case SLAP_MR_SUBSTR:
+		mr = ad->ad_type->sat_substr;
+		break;
+	case SLAP_MR_EXT:
+	default:
+		assert( 0 );
+		*text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	if( mr == NULL ) {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( mr->smr_syntax == NULL ) {
+		*text = "no assertion syntax";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if( ! mr->smr_syntax->ssyn_validate ) {
+		*text = "no syntax validator";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+
+	if( rc != LDAP_SUCCESS ) {
+		*text = "value is invalid";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/* we only support equality matching of binary attributes */
+	/* This is suspect, flexible certificate matching will hit this */
+	if( slap_ad_is_binary( ad ) && usage != SLAP_MR_EQUALITY ) {
+		*text = "inappropriate binary matching";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( mr->smr_normalize ) {
+		rc = (mr->smr_normalize)( usage,
+			ad->ad_type->sat_syntax,
+			mr, in, out );
+
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value";
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else if ( mr->smr_syntax->ssyn_normalize ) {
+		rc = (mr->smr_syntax->ssyn_normalize)(
+			ad->ad_type->sat_syntax,
+			in, out );
+
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value";
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		ber_dupbv( out, in );
+	}
+
+	return LDAP_SUCCESS;
+}
+
 
 int
 value_match(
