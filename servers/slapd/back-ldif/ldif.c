@@ -65,10 +65,10 @@ static ConfigOCs ldifocs[] = {
 	{ "( OLcfgOc:2.1 "
 		"NAME 'ldifConfig' "
 		"DESC 'LDIF backend configuration' "
-		"AUXILIARY "
-		"MAY ( dbDirectory ) )",
+		"SUP olcDatabaseConfig "
+		"MUST ( dbDirectory ) )", Cft_Database,
 		&ldif_oc },
-	{ NULL, NULL }
+	{ NULL, 0, NULL }
 };
 
 static int

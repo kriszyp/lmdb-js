@@ -111,12 +111,13 @@ static ConfigOCs bdbocs[] = {
 	{ "( OLcfgOc:1.1 "
 		"NAME 'bdbConfig' "
 		"DESC 'BDB backend configuration' "
-		"AUXILIARY "
-		"MAY ( dbDirectory $ dbCacheSize $ dbCheckpoint $ dbNoSync $ "
+		"SUP olcDatabaseConfig "
+		"MUST dbDirectory "
+		"MAY ( dbCacheSize $ dbCheckpoint $ dbNoSync $ "
 		 "dbDirtyRead $ dbIDLcacheSize $ dbIndex $ dbLinearIndex $ "
 		 "dbLockDetect $ dbMode $ dbSearchStack $ dbShmKey ) )",
-		 	&bdb_oc },
-	{ NULL, NULL }
+		 	Cft_Database, &bdb_oc },
+	{ NULL, 0, NULL }
 };
 
 static int

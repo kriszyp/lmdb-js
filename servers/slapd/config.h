@@ -27,6 +27,16 @@ typedef struct ConfigTable {
 	void *notify;
 } ConfigTable;
 
+typedef enum {
+	Cft_Abstract = 0,
+	Cft_Global,
+	Cft_Schema,
+	Cft_Backend,
+	Cft_Database,
+	Cft_Overlay,
+	Cft_Include,
+} ConfigType;
+
 #define ARGS_USERLAND	0x00000fff
 #define ARGS_TYPES	0x000ff000
 #define ARGS_POINTER	0x0003f000
@@ -59,6 +69,7 @@ extern ConfigTable config_back_cf_table[];
 
 typedef struct ConfigOCs {
 	char *def;
+	ConfigType cft;
 	ObjectClass **oc;
 } ConfigOCs;
 
@@ -67,6 +78,7 @@ typedef struct config_args_s {
 	char **argv;
 	int argv_size;
 	char *line;
+	char *tline;
 	const char *fname;
 	unsigned long lineno;
 	char log[PATH_MAX + STRLENOF(": line 18446744073709551615") + 1];
