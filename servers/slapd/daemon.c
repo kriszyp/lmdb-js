@@ -40,8 +40,6 @@
 
 #include "ldap_rq.h"
 
-#include <valgrind/valgrind.h>
-
 #ifdef HAVE_TCPD
 #include <tcpd.h>
 #define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
@@ -1835,15 +1833,7 @@ slap_sig_shutdown( int sig )
 	else
 #endif
 	slapd_shutdown = 1;
-
-	if ( sig == SIGTRAP )
-	{
-		slapd_shutdown = 0;
-		VALGRIND_ATTACH_GDB(1);
-	} else
-	{
-		WAKE_LISTENER(1);
-	}
+	WAKE_LISTENER(1);
 
 	/* reinstall self */
 	(void) SIGNAL_REINSTALL( sig, slap_sig_shutdown );
