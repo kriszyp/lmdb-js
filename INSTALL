@@ -179,11 +179,12 @@ Supported Environmental Variables
 
 HINTS
 
-* use software under installed in /usr/local/{include,lib}
+* Platform specific hints are available in doc/install/hints.
+
+* Use software under installed in /usr/local/{include,lib}
 	[env] \
 		CPPFLAGS="-I/usr/local/include" \
 		LDFLAGS="-L/usr/local/lib" \
 		./configure
-
 
 End of OpenLDAP INSTALL file.
