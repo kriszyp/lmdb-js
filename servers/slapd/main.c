@@ -301,7 +301,7 @@ int main( int argc, char **argv )
 	}
 
 #if defined(HAVE_CHROOT)
-	if ( sandbox && chroot( sandbox ) ) {
+	if ( sandbox && chdir( sandbox ) && chroot( sandbox ) ) {
 		perror("chroot");
 		rc = 1;
 		goto stop;
