@@ -295,23 +295,44 @@ conn_create(
 	char		ctmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	struct tm	*mtm;
 	char		mtmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+#ifdef HAVE_GMTIME_R
+	struct tm	tm_buf;
+#endif /* HAVE_GMTIME_R */
 
 	assert( c != NULL );
 	assert( ep != NULL );
 
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#endif
 #ifdef HACK_LOCAL_TIME
+# ifdef HAVE_LOCALTIME_R
+	ctm = localtime_r( &c->c_starttime, &tm_buf );
+	lutil_localtime( ctmbuf, sizeof( ctmbuf ), ctm, -timezone );
+	mtm = localtime_r( &c->c_activitytime, &tm_buf );
+	lutil_localtime( mtmbuf, sizeof( mtmbuf ), mtm, -timezone );
+# else
 	ctm = localtime( &c->c_starttime );
 	lutil_localtime( ctmbuf, sizeof( ctmbuf ), ctm, -timezone );
 	mtm = localtime( &c->c_activitytime );
 	lutil_localtime( mtmbuf, sizeof( mtmbuf ), mtm, -timezone );
+# endif /* HAVE_LOCALTIME_R */
 #else /* !HACK_LOCAL_TIME */
+# ifdef HAVE_GMTIME_R
+	ctm = gmtime_r( &c->c_starttime, &tm_buf );
+	lutil_gentime( ctmbuf, sizeof( ctmbuf ), ctm );
+	mtm = gmtime_r( &c->c_activitytime, &tm_buf );
+	lutil_gentime( mtmbuf, sizeof( mtmbuf ), mtm );
+# else
 	ctm = gmtime( &c->c_starttime );
 	lutil_gentime( ctmbuf, sizeof( ctmbuf ), ctm );
 	mtm = gmtime( &c->c_activitytime );
 	lutil_gentime( mtmbuf, sizeof( mtmbuf ), mtm );
+# endif /* HAVE_GMTIME_R */
 #endif /* !HACK_LOCAL_TIME */
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
 
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=" CONN_CN_PREFIX " %ld,%s\n"
@@ -346,15 +367,27 @@ conn_create(
 		return( -1 );
 	}
 
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	
+#endif
+
+#ifdef HAVE_GMTIME_R
+	ltm = gmtime_r( &c->c_starttime, &tm_buf );
+#else
 	ltm = gmtime( &c->c_starttime );
+#endif
 	lutil_gentime( buf2, sizeof( buf2 ), ltm );
-			
+
+#ifdef HAVE_GMTIME_R
+	ltm = gmtime_r( &c->c_activitytime, &tm_buf );
+#else
 	ltm = gmtime( &c->c_activitytime );
+#endif
 	lutil_gentime( buf3, sizeof( buf3 ), ltm );
-			
+
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif /* HAVE_GMTIME_R */
 
 	/* monitored info */
 	sprintf( buf,

@@ -235,6 +235,9 @@ monitor_subsys_time_update(
 	if ( strncmp( e->e_nname.bv_val, "cn=current",
 				sizeof("cn=current") - 1 ) == 0 ) {
 		struct tm	*tm;
+#ifdef HAVE_GMTIME_R
+		struct tm	tm_buf;
+#endif
 		char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		Attribute	*a;
 		ber_len_t	len;
@@ -242,15 +245,27 @@ monitor_subsys_time_update(
 
 		currtime = slap_get_time();
 
+#ifndef HAVE_GMTIME_R
 		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#endif
 #ifdef HACK_LOCAL_TIME
+# ifdef HAVE_LOCALTIME_R
+		tm = localtime_r( &currtime, &tm_buf );
+# else
 		tm = localtime( &currtime );
+# endif /* HAVE_LOCALTIME_R */
 		lutil_localtime( tmbuf, sizeof( tmbuf ), tm, -timezone );
 #else /* !HACK_LOCAL_TIME */
+# ifdef HAVE_GMTIME_R
+		tm = gmtime_r( &currtime, &tm_buf );
+# else
 		tm = gmtime( &currtime );
+# endif /* HAVE_GMTIME_R */
 		lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
 #endif /* !HACK_LOCAL_TIME */
+#ifndef HAVE_GMTIME_R
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
 
 		len = strlen( tmbuf );
 

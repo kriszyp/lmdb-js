@@ -495,20 +495,35 @@ monitor_back_db_open(
 	};
 	
 	struct tm		*tms;
+#ifdef HAVE_GMTIME_R
+	struct tm		tm_buf;
+#endif
 	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
 	/*
 	 * Start
 	 */
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#endif
 #ifdef HACK_LOCAL_TIME
+# ifdef HAVE_LOCALTIME_R
+	tms = localtime_r( &starttime, &tm_buf );
+# else
 	tms = localtime( &starttime );
+# endif /* HAVE_LOCALTIME_R */
 	lutil_localtime( tmbuf, sizeof(tmbuf), tms, -timezone );
 #else /* !HACK_LOCAL_TIME */
+# ifdef HAVE_GMTIME_R
+	tms = gmtime_r( &starttime, &tm_buf );
+# else
 	tms = gmtime( &starttime );
+# endif /* HAVE_GMTIME_R */
 	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
 #endif /* !HACK_LOCAL_TIME */
+#ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
 
 	mi->mi_startTime.bv_val = tmbuf;
 	mi->mi_startTime.bv_len = strlen( tmbuf );
