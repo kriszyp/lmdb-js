@@ -375,6 +375,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "dnattr" ) == 0 ) {
+					if ( right == NULL || right[ 0 ] == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+							fname, lineno, left );
+						acl_usage();
+					}
+
 					if( b->a_dn_at != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: dnattr already specified.\n",
@@ -418,6 +425,13 @@ parse_acl(
 				if ( strncasecmp( left, "group", sizeof("group")-1 ) == 0 ) {
 					char *name = NULL;
 					char *value = NULL;
+
+					if ( right == NULL || right[ 0 ] == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+							fname, lineno, left );
+						acl_usage();
+					}
 
 					if( b->a_group_pat != NULL ) {
 						fprintf( stderr,
@@ -548,6 +562,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "peername" ) == 0 ) {
+					if ( right == NULL || right[ 0 ] == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+							fname, lineno, left );
+						acl_usage();
+					}
+
 					if( b->a_peername_pat != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: peername pattern already specified.\n",
@@ -564,6 +585,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "sockname" ) == 0 ) {
+					if ( right == NULL || right[ 0 ] == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+							fname, lineno, left );
+						acl_usage();
+					}
+
 					if( b->a_sockname_pat != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: sockname pattern already specified.\n",
@@ -580,6 +608,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "domain" ) == 0 ) {
+					if ( right == NULL || right[ 0 ] == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+							fname, lineno, left );
+						acl_usage();
+					}
+
 					if( b->a_domain_pat != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: domain pattern already specified.\n",
@@ -596,6 +631,13 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "sockurl" ) == 0 ) {
+					if ( right == NULL || right[ 0 ] == '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: missing \"=\" in (or value after) \"%s\" in by clause\n",
+							fname, lineno, left );
+						acl_usage();
+					}
+
 					if( b->a_sockurl_pat != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: sockurl pattern already specified.\n",
@@ -1065,19 +1107,22 @@ acl_usage( void )
 {
 	fprintf( stderr, "\n"
 		"<access clause> ::= access to <what> "
-				"[ by <who> <access> <control> ]+ \n"
-		"<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
+				"[ by <who> <access> [ <control> ] ]+ \n"
+		"<what> ::= * | [dn[.<dnstyle>]=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
-		"<who> ::= [ * | anonymous | users | self | dn=<regex> ]\n"
+		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<regex> ]\n"
 			"\t[dnattr=<attrname>]\n"
-			"\t[group[/<objectclass>[/<attrname>]]=<regex>]\n"
-			"\t[peername=<regex>] [sockname=<regex>]\n"
-			"\t[domain=<regex>] [sockurl=<regex>]\n"
+			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<regex>]\n"
+			"\t[peername[.<style>]=<regex>] [sockname[.<style>]=<regex>]\n"
+			"\t[domain[.<style>]=<regex>] [sockurl[.<style>]=<regex>]\n"
 #ifdef SLAPD_ACI_ENABLED
 			"\t[aci=<attrname>]\n"
 #endif
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
+		"<dnstyle> ::= regex | base | exact (alias of base) | one | sub | children\n"
+		"<style> ::= regex | base | exact (alias of base)\n"
+		"<groupflags> ::= R\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
 		"<level> ::= none | auth | compare | search | read | write\n"
 		"<priv> ::= {=|+|-}{w|r|s|c|x}+\n"
