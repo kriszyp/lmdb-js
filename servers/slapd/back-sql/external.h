@@ -14,7 +14,7 @@
 
 LDAP_BEGIN_DECL
 
-extern BI_init	sql_back_initialize;
+extern BI_init		sql_back_initialize;
 extern BI_destroy	backsql_destroy;
 
 extern BI_db_init	backsql_db_init;
@@ -25,14 +25,12 @@ extern BI_db_destroy	backsql_db_destroy;
 extern BI_db_config	backsql_db_config;
 
 extern BI_op_bind	backsql_bind;
-extern BI_op_unbind	backsql_unbind;
 extern BI_op_search	backsql_search;
 extern BI_op_compare	backsql_compare;
 extern BI_op_modify	backsql_modify;
 extern BI_op_modrdn	backsql_modrdn;
 extern BI_op_add	backsql_add;
 extern BI_op_delete	backsql_delete;
-extern BI_op_abandon	backsql_abandon;
 
 extern BI_operational	backsql_operational;
 

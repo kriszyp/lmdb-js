@@ -68,15 +68,10 @@ sql_back_initialize(
 	bi->bi_db_close = backsql_db_close;
 	bi->bi_db_destroy = backsql_db_destroy;
 
-#ifdef BACKSQL_ALL_DONE
-	bi->bi_op_abandon = backsql_abandon;
-	bi->bi_op_compare = backsql_compare;
-#else
 	bi->bi_op_abandon = 0;
-	bi->bi_op_compare = 0;
-#endif
+	bi->bi_op_compare = backsql_compare;
 	bi->bi_op_bind = backsql_bind;
-	bi->bi_op_unbind = backsql_unbind;
+	bi->bi_op_unbind = 0;
 	bi->bi_op_search = backsql_search;
 	bi->bi_op_modify = backsql_modify;
 	bi->bi_op_modrdn = backsql_modrdn;

@@ -984,7 +984,8 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 }
 
 int
-backsql_search(
+backsql_search( Operation *op, SlapReply *rs )
+	/*
 	BackendDB	*be,
 	Connection	*conn,
 	Operation	*op,
@@ -997,50 +998,54 @@ backsql_search(
 	Filter		*filter,
 	struct berval	*filterstr,
 	AttributeName	*attrs,
-	int		attrsonly )
+	int		attrsonly ) */
 {
-	backsql_info		*bi = (backsql_info *)be->be_private;
+	backsql_info		*bi = (backsql_info *)op->o_bd->be_private;
 	SQLHDBC			dbh;
 	int			sres;
-	int			nentries;
 	Entry			*entry, *res;
-	int			manageDSAit = get_manageDSAit( op );
-	BerVarray		v2refs = NULL;
+	int			manageDSAit;
 	time_t			stoptime = 0;
 	backsql_srch_info	srch_info;
 	backsql_entryID		*eid = NULL;
 	struct slap_limits_set	*limit = NULL;
 	int			isroot = 0;
 
+	manageDSAit = get_manageDSAit( op );
+
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_search(): "
 		"base='%s', filter='%s', scope=%d,", 
-		nbase->bv_val, filterstr->bv_val, scope );
+		op->o_req_ndn.bv_val,
+		op->oq_search.rs_filterstr.bv_val,
+		op->oq_search.rs_scope );
 	Debug( LDAP_DEBUG_TRACE, " deref=%d, attrsonly=%d, "
 		"attributes to load: %s\n",
-		deref, attrsonly, attrs == NULL ? "all" : "custom list" );
+		op->oq_search.rs_deref,
+		op->oq_search.rs_attrsonly,
+		op->oq_search.rs_attrs == NULL ? "all" : "custom list" );
 
-	if ( nbase->bv_len > BACKSQL_MAX_DN_LEN ) {
+	if ( op->o_req_ndn.bv_len > BACKSQL_MAX_DN_LEN ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"search base length (%ld) exceeds max length (%ld)\n", 
-			nbase->bv_len, BACKSQL_MAX_DN_LEN, 0 );
+			op->o_req_ndn.bv_len, BACKSQL_MAX_DN_LEN, 0 );
 		/*
 		 * FIXME: a LDAP_NO_SUCH_OBJECT could be appropriate
 		 * since it is impossible that such a long DN exists
 		 * in the backend
 		 */
-		send_ldap_result( conn, op, LDAP_ADMINLIMIT_EXCEEDED, 
-				"", NULL, NULL, NULL );
+		rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+		send_ldap_result( op, rs );
 		return 1;
 	}
 
-	sres = backsql_get_db_conn( be, conn, &dbh );
+	sres = backsql_get_db_conn( op->o_bd, op->o_conn, &dbh );
 	if ( sres != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"could not get connection handle - exiting\n", 
 			0, 0, 0 );
-		send_ldap_result( conn, op, sres, "",
-				sres == LDAP_OTHER ?  "SQL-backend error" : "",
-				NULL, NULL );
+		rs->sr_err = sres;
+		rs->sr_text = sres == LDAP_OTHER ?  "SQL-backend error" : NULL;
+		send_ldap_result( op, rs );
 		return 1;
 	}
 
@@ -1048,10 +1053,10 @@ backsql_search(
 	srch_info.use_reverse_dn = BACKSQL_USE_REVERSE_DN( bi ); 
  
 	/* if not root, get appropriate limits */
-	if ( be_isroot( be, &op->o_ndn ) ) {
+	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
 		isroot = 1;
 	} else {
-		( void ) get_limits( be, &op->o_ndn, &limit );
+		( void ) get_limits( op->o_bd, &op->o_ndn, &limit );
 	}
 
 	/* The time/size limits come first because they require very little
@@ -1060,32 +1065,31 @@ backsql_search(
 
 	/* if no time limit requested, use soft limit (unless root!) */
 	if ( isroot ) {
-		if ( tlimit == 0 ) {
-			tlimit = -1;	/* allow root to set no limit */
+		if ( op->oq_search.rs_tlimit == 0 ) {
+			op->oq_search.rs_tlimit = -1;	/* allow root to set no limit */
 		}
 
-		if ( slimit == 0 ) {
-			slimit = -1;
+		if ( op->oq_search.rs_slimit == 0 ) {
+			op->oq_search.rs_slimit = -1;
 		}
 
 	} else {
 		/* if no limit is required, use soft limit */
-		if ( tlimit <= 0 ) {
-			tlimit = limit->lms_t_soft;
+		if ( op->oq_search.rs_tlimit <= 0 ) {
+			op->oq_search.rs_tlimit = limit->lms_t_soft;
 
 		/* if requested limit higher than hard limit, abort */
-		} else if ( tlimit > limit->lms_t_hard ) {
+		} else if ( op->oq_search.rs_tlimit > limit->lms_t_hard ) {
 			/* no hard limit means use soft instead */
 			if ( limit->lms_t_hard == 0
 					&& limit->lms_t_soft > -1
-					&& tlimit > limit->lms_t_soft ) {
-				tlimit = limit->lms_t_soft;
+					&& op->oq_search.rs_tlimit > limit->lms_t_soft ) {
+				op->oq_search.rs_tlimit = limit->lms_t_soft;
 
 			/* positive hard limit means abort */
 			} else if ( limit->lms_t_hard > 0 ) {
-				send_search_result( conn, op, 
-						LDAP_ADMINLIMIT_EXCEEDED,
-						NULL, NULL, NULL, NULL, 0 );
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
 				return 0;
 			}
 		
@@ -1093,22 +1097,21 @@ backsql_search(
 		}
 		
 		/* if no limit is required, use soft limit */
-		if ( slimit <= 0 ) {
-			slimit = limit->lms_s_soft;
+		if ( op->oq_search.rs_slimit <= 0 ) {
+			op->oq_search.rs_slimit = limit->lms_s_soft;
 
 		/* if requested limit higher than hard limit, abort */
-		} else if ( slimit > limit->lms_s_hard ) {
+		} else if ( op->oq_search.rs_slimit > limit->lms_s_hard ) {
 			/* no hard limit means use soft instead */
 			if ( limit->lms_s_hard == 0
 					&& limit->lms_s_soft > -1
-					&& slimit > limit->lms_s_soft ) {
-				slimit = limit->lms_s_soft;
+					&& op->oq_search.rs_slimit > limit->lms_s_soft ) {
+				op->oq_search.rs_slimit = limit->lms_s_soft;
 
 			/* positive hard limit means abort */
 			} else if ( limit->lms_s_hard > 0 ) {
-				send_search_result( conn, op, 
-						LDAP_ADMINLIMIT_EXCEEDED,
-						NULL, NULL, NULL, NULL, 0 );
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
 				return 0;
 			}
 			
@@ -1117,11 +1120,14 @@ backsql_search(
 	}
 
 	/* compute it anyway; root does not use it */
-	stoptime = op->o_time + tlimit;
+	stoptime = op->o_time + op->oq_search.rs_tlimit;
 
-	backsql_init_search( &srch_info, bi, nbase, scope,
-			slimit, tlimit, stoptime, filter, dbh,
-			be, conn, op, attrs );
+	backsql_init_search( &srch_info, bi, &op->o_req_dn,
+			op->oq_search.rs_scope,
+			op->oq_search.rs_slimit, op->oq_search.rs_tlimit,
+			stoptime, op->oq_search.rs_filter,
+			dbh, op->o_bd, op->o_conn, op,
+			op->oq_search.rs_attrs );
 
 	/*
 	 * for each objectclass we try to construct query which gets IDs
@@ -1134,14 +1140,12 @@ backsql_search(
 			&srch_info, BACKSQL_STOP, AVL_INORDER );
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
 		if ( srch_info.n_candidates == -1 ) {
-			send_search_result( conn, op,
-					LDAP_ADMINLIMIT_EXCEEDED,
-					NULL, NULL, NULL, NULL, 0 );
+			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+			send_ldap_result( op, rs );
 			goto done;
 		}
 	}
 	
-	nentries = 0;
 	/*
 	 * now we load candidate entries (only those attributes 
 	 * mentioned in attrs and filter), test it against full filter 
@@ -1158,9 +1162,13 @@ backsql_search(
 		}
 
 		/* check time limit */
-		if ( tlimit != -1 && slap_get_time() > stoptime ) {
-			send_search_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
-				NULL, NULL, v2refs, NULL, nentries );
+		if ( op->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
+			rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
+			rs->sr_ctrls = NULL;
+			rs->sr_ref = rs->sr_v2ref;
+			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
+				: LDAP_REFERRAL;
+			send_ldap_result( op, rs );
 			goto end_of_search;
 		}
 
@@ -1177,14 +1185,34 @@ backsql_search(
 			continue;
 		}
 
-		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
-			is_entry_referral( entry ) ) {
-			BerVarray refs = get_entry_referrals( be, conn,
-					op, entry );
+		if ( !manageDSAit &&
+				op->oq_search.rs_scope != LDAP_SCOPE_BASE &&
+				is_entry_referral( entry ) ) {
+			BerVarray refs;
+			struct berval matched_dn;
 
-			send_search_reference( be, conn, op, entry, refs, 
-					NULL, &v2refs );
-			ber_bvarray_free( refs );
+			ber_dupbv( &matched_dn, &entry->e_name );
+			refs = get_entry_referrals( op, entry );
+			if ( refs ) {
+				rs->sr_ref = referral_rewrite( refs,
+						&matched_dn, &op->o_req_dn,
+						op->oq_search.rs_scope );
+				ber_bvarray_free( refs );
+			}
+
+			if (!rs->sr_ref) {
+				rs->sr_text = "bad_referral object";
+			}
+
+			rs->sr_err = LDAP_REFERRAL;
+			rs->sr_matched = matched_dn.bv_val;
+			send_ldap_result( op, rs );
+
+			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
+			ber_memfree( matched_dn.bv_val );
+			rs->sr_matched = NULL;
+
 			continue;
 		}
 
@@ -1226,10 +1254,10 @@ backsql_search(
 			}
 		}
 
-		if ( test_filter( be, conn, op, entry, filter ) 
+		if ( test_filter( op, entry, op->oq_search.rs_filter )
 				== LDAP_COMPARE_TRUE ) {
 			if ( hasSubordinate && !( srch_info.bsi_flags & BSQL_SF_ALL_OPER ) 
-					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) {
+					&& !ad_inlist( slap_schema.si_ad_hasSubordinates, op->oq_search.rs_attrs ) ) {
 				a->a_next = NULL;
 				attr_free( hasSubordinate );
 				hasSubordinate = NULL;
@@ -1240,15 +1268,14 @@ backsql_search(
 				sres = 0;
 			} else {
 #endif
-				sres = send_search_entry( be, conn, op, entry,
-						attrs, attrsonly, NULL );
+				rs->sr_entry = entry;
+				sres = send_search_entry( op, rs );
 #if 0
 			}
 #endif
 
 			switch ( sres ) {
 			case 0:
-				nentries++;
 				break;
 
 			case -1:
@@ -1266,24 +1293,30 @@ backsql_search(
 		}
 		entry_free( entry );
 
-		if ( slimit != -1 && nentries >= slimit ) {
-			send_search_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
-				NULL, NULL, v2refs, NULL, nentries );
+		if ( op->oq_search.rs_slimit != -1 
+				&& rs->sr_nentries >= op->oq_search.rs_slimit ) {
+			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+			send_ldap_result( op, rs );
 			goto end_of_search;
 		}
 	}
 
 end_of_search:;
 
-	if ( nentries > 0 ) {
-		send_search_result( conn, op,
-			v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
-			NULL, NULL, v2refs, NULL, nentries );
+	if ( rs->sr_nentries > 0 ) {
+		rs->sr_ref = rs->sr_v2ref;
+		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS
+			: LDAP_REFERRAL;
 	} else {
-		send_ldap_result( conn, op, srch_info.status,
-				NULL, NULL, NULL, 0 );
+		rs->sr_err = srch_info.status;
 	}
-	
+	send_ldap_result( op, rs );
+
+	if ( rs->sr_v2ref ) {
+		ber_bvarray_free( rs->sr_v2ref );
+		rs->sr_v2ref = NULL;
+	}
+
 done:;
 	ch_free( srch_info.attrs );
 
