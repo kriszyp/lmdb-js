@@ -25,7 +25,7 @@ set -e				# exit immediately if any errors occur
 
 MAKE=Makefile			# default makefile name is "Makefile"
 NOSLASH="no"			# by default, / dependencies are included
-CC=cc				# default compiler is cc
+CC=${CC-cc}				# default compiler is cc
 
 while :
 	do case "$1" in
