@@ -21,6 +21,7 @@
 #include <sys/types.h>
 
 #include <ac/stdlib.h>
+#include <ac/string.h>	/* get memcmp() */
 
 #ifdef HAVE_UUID_TO_STR
 #  include <sys/uuid.h>
