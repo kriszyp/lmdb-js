@@ -49,7 +49,9 @@ usage( const char *s )
 "  -D binddn  bind DN\n"
 "  -e [!]<ctrl>[=<ctrlparam>] general controls (! indicates criticality)\n"
 "             [!]manageDSAit   (alternate form, see -M)\n"
+#ifdef LDAP_CONTROL_NOOP
 "             [!]noop\n"
+#endif
 "  -h host    LDAP server\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
 "  -I         use SASL Interactive mode\n"
@@ -108,15 +110,18 @@ main( int argc, char **argv )
 {
 	char	*compdn = NULL, *attrs = NULL;
 	char	*sep;
-	int		rc, i, crit, manageDSAit, noop, quiet;
+	int		rc, i, crit, manageDSAit, quiet;
 	int		referrals, debug;
 	int		authmethod, version, want_bindpw;
 	LDAP	*ld = NULL;
 	struct berval bvalue = { 0, NULL };
 	char	*pw_file = NULL;
 	char	*control, *cvalue;
+#ifdef LDAP_CONTROL_NOOP
+	int noop=0;
+#endif
 
-	debug = verbose = not = referrals = noop =
+	debug = verbose = not = referrals =
 		manageDSAit = want_bindpw = quiet = 0;
 
 	version = -1;
