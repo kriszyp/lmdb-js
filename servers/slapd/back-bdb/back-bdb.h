@@ -261,19 +261,19 @@ struct bdb_op_info {
 
 /* Copy an ID "src" to pointer "dst" in big-endian byte order */
 #define BDB_ID2DISK( src, dst )	\
-	do { int i0; ID tmp; char *ptr;	\
-		tmp = (src); ptr = (char *)(dst);	\
+	do { int i0; ID tmp; unsigned char *_p;	\
+		tmp = (src); _p = (char *)(dst);	\
 		for ( i0=sizeof(ID)-1; i0>=0; i0-- ) {	\
-			ptr[i0] = tmp & 0xff; tmp >>= 8;	\
+			_p[i0] = tmp & 0xff; tmp >>= 8;	\
 		} \
 	} while(0);
 
 /* Copy a pointer "src" to a pointer "dst" from big-endian to native order */
 #define BDB_DISK2ID( src, dst ) \
-	do { int i0; ID tmp = 0; unsigned char *ptr;	\
-		ptr = (unsigned char *)(src);	\
+	do { int i0; ID tmp = 0; unsigned char *_p;	\
+		_p = (unsigned char *)(src);	\
 		for ( i0=0; i0<sizeof(ID); i0++ ) {	\
-			tmp <<= 8; tmp |= *ptr++;	\
+			tmp <<= 8; tmp |= *_p++;	\
 		} *(dst) = tmp; \
 	} while (0);
 

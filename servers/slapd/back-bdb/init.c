@@ -348,9 +348,9 @@ bdb_db_open( BackendDB *be )
 				flags |= DB_CREATE;
 			}
 #else
+#if 0
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
 				bdb_dup_compare );
-#if 0
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
 #endif

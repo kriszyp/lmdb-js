@@ -391,44 +391,20 @@ bdb_dn2idl(
  * a B-Tree with sorted duplicates to store all the children of a node under
  * the same key. Also, the first item under the key contains the entry's own
  * rdn and the ID of the node's parent, to allow bottom-up tree traversal as
- * well as top-down. To keep this info first in the list, the nrdnlen is set
- * to the negative of its value.
+ * well as top-down. To keep this info first in the list, the high bit of all
+ * subsequent nrdnlen's is always set. This means we can only accomodate
+ * RDNs up to length 32767, but that's fine since full DNs are already
+ * restricted to 8192.
  *
  * The diskNode is a variable length structure. This definition is not
  * directly usable for in-memory manipulation.
  */
 typedef struct diskNode {
-	ID entryID;
-	short nrdnlen;
-	char nrdn[1];
-	char rdn[1];
+	unsigned char nrdnlen[2];
+	unsigned char nrdn[1];
+	unsigned char rdn[1];
+	unsigned char entryID[sizeof(ID)];
 } diskNode;
-
-/* Sort function for the sorted duplicate data items of a dn2id key.
- * Sorts based on normalized RDN, in length order.
- */
-int
-hdb_dup_compare(
-	DB *db, 
-	const DBT *usrkey,
-	const DBT *curkey )
-{
-	signed char *u = (signed char *)&(((diskNode *)(usrkey->data))->nrdnlen);
-	signed char *c = (signed char *)&(((diskNode *)(curkey->data))->nrdnlen);
-	int rc, i;
-
-	/* data is not aligned, cannot compare directly */
-#ifdef WORDS_BIGENDIAN
-	for( i = 0; i < (int)sizeof(short); i++)
-#else
-	for( i = sizeof(short)-1; i >= 0; i--)
-#endif
-	{
-		rc = u[i] - c[i];
-		if( rc ) return rc;
-	}
-	return strcmp( u+sizeof(short), c+sizeof(short) );
-}
 
 /* This function constructs a full DN for a given entry.
  */
@@ -511,12 +487,13 @@ hdb_dn2id_add(
 	}
 
 	d = op->o_tmpalloc(sizeof(diskNode) + rlen + nrlen, op->o_tmpmemctx);
-	BDB_ID2DISK( e->e_id, &d->entryID );
-	d->nrdnlen = nrlen;
+	d->nrdnlen[1] = nrlen & 0xff;
+	d->nrdnlen[0] = (nrlen >> 8) | 0x80;
 	ptr = lutil_strncopy( d->nrdn, e->e_nname.bv_val, nrlen );
 	*ptr++ = '\0';
 	ptr = lutil_strncopy( ptr, e->e_name.bv_val, rlen );
-	*ptr = '\0';
+	*ptr++ = '\0';
+	BDB_ID2DISK( e->e_id, ptr );
 
 	DBTzero(&key);
 	DBTzero(&data);
@@ -547,10 +524,9 @@ hdb_dn2id_add(
 	rc = db->put( db, txn, &key, &data, DB_NODUPDATA );
 
 	if (rc == 0) {
-		ID tmp = nid;
-		nid = d->entryID;
-		d->entryID = tmp;
-		d->nrdnlen = 0 - nrlen;
+		BDB_ID2DISK( e->e_id, &nid );
+		BDB_ID2DISK( eip->bei_id, ptr );
+		d->nrdnlen[0] ^= 0x80;
 
 		rc = db->put( db, txn, &key, &data, DB_NODUPDATA );
 	}
@@ -583,7 +559,7 @@ hdb_dn2id_delete(
 	BDB_ID2DISK( eip->bei_id, &nid );
 
 	DBTzero(&data);
-	data.size = sizeof(diskNode) + BEI(e)->bei_nrdn.bv_len;
+	data.size = sizeof(diskNode) + BEI(e)->bei_nrdn.bv_len - sizeof(ID) - 1;
 	data.ulen = data.size;
 	data.dlen = data.size;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
@@ -595,15 +571,19 @@ hdb_dn2id_delete(
 	if ( rc ) return rc;
 
 	d = op->o_tmpalloc( data.size, op->o_tmpmemctx );
-	BDB_ID2DISK( e->e_id, &d->entryID );
-	d->nrdnlen = BEI(e)->bei_nrdn.bv_len;
+	d->nrdnlen[1] = BEI(e)->bei_nrdn.bv_len & 0xff;
+	d->nrdnlen[0] = (BEI(e)->bei_nrdn.bv_len >> 8) | 0x80;
 	strcpy( d->nrdn, BEI(e)->bei_nrdn.bv_val );
 	data.data = d;
 
 	/* Delete our ID from the parent's list */
-	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH | DB_RMW );
-	if ( rc == 0 )
-		rc = cursor->c_del( cursor, 0 );
+	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE | DB_RMW );
+	if ( rc == 0 ) {
+		if ( !strcmp( d->nrdn, BEI(e)->bei_nrdn.bv_val ))
+			rc = cursor->c_del( cursor, 0 );
+		else
+			rc = DB_NOTFOUND;
+	}
 
 	/* Delete our ID from the tree. With sorted duplicates, this
 	 * will leave any child nodes still hanging around. This is OK
@@ -649,22 +629,28 @@ hdb_dn2id(
 	BDB_ID2DISK( ei->bei_parent->bei_id, &idp );
 
 	DBTzero(&data);
-	data.size = sizeof(diskNode) + nrlen;
+	data.size = sizeof(diskNode) + nrlen - sizeof(ID) - 1;
 	data.ulen = data.size * 3;
-	data.flags = DB_DBT_USERMEM;
+	data.dlen = data.ulen;
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 
 	d = op->o_tmpalloc( data.size * 3, op->o_tmpmemctx );
-	d->nrdnlen = nrlen;
+	d->nrdnlen[1] = nrlen & 0xff;
+	d->nrdnlen[0] = (nrlen >> 8) | 0x80;
 	ptr = lutil_strncopy( d->nrdn, in->bv_val, nrlen );
 	*ptr = '\0';
 	data.data = d;
 
-	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH );
+	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
+	if ( rc == 0 && strncmp( d->nrdn, in->bv_val, nrlen )) {
+		rc = DB_NOTFOUND;
+	}
 	if ( rc == 0 ) {
-		BDB_DISK2ID( &d->entryID, &ei->bei_id );
+		ptr = data.data + data.size - sizeof(ID);
+		BDB_DISK2ID( ptr, &ei->bei_id );
 		ei->bei_rdn.bv_len = data.size - sizeof(diskNode) - nrlen;
 		ptr = d->nrdn + nrlen + 1;
 		ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
@@ -720,12 +706,13 @@ hdb_dn2id_parent(
 
 	rc = cursor->c_get( cursor, &key, &data, DB_SET );
 	if ( rc == 0 ) {
-		if (d->nrdnlen >= 0) {
+		if (d->nrdnlen[0] & 0x80) {
 			rc = LDAP_OTHER;
 		} else {
 			db_recno_t dkids;
-			BDB_DISK2ID( &d->entryID, idp );
-			ei->bei_nrdn.bv_len = 0 - d->nrdnlen;
+			ptr = data.data + data.size - sizeof(ID);
+			BDB_DISK2ID( ptr, idp );
+			ei->bei_nrdn.bv_len = (d->nrdnlen[0] << 8) | d->nrdnlen[1];
 			ber_str2bv( d->nrdn, ei->bei_nrdn.bv_len, 1, &ei->bei_nrdn );
 			ei->bei_rdn.bv_len = data.size - sizeof(diskNode) -
 				ei->bei_nrdn.bv_len;
@@ -913,8 +900,8 @@ hdb_dn2idl_internal(
 					diskNode *d = (diskNode *)j;
 					short nrlen;
 
-					BDB_DISK2ID( &d->entryID, &ei.bei_id );
-					AC_MEMCPY( &nrlen, &d->nrdnlen, sizeof(d->nrdnlen) );
+					BDB_DISK2ID( j + len - sizeof(ID), &ei.bei_id );
+					nrlen = ((d->nrdnlen[0] ^ 0x80) << 8) | d->nrdnlen[1];
 					ei.bei_nrdn.bv_len = nrlen;
 					/* nrdn/rdn are set in-place.
 					 * hdb_cache_load will copy them as needed
