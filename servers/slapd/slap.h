@@ -96,8 +96,8 @@ LDAP_BEGIN_DECL
 #define ASCII_UPPER(c)	( (c) >= 'A' && (c) <= 'Z' )
 #define ASCII_ALPHA(c)	( ASCII_LOWER(c) || ASCII_UPPER(c) )
 #define ASCII_DIGIT(c)	( (c) >= '0' && (c) <= '9' )
-#define ASCII_HEXLOWER(c)	( (c) >= 'a' && (c) <= 'h' )
-#define ASCII_HEXUPPER(c)	( (c) >= 'A' && (c) <= 'H' )
+#define ASCII_HEXLOWER(c)	( (c) >= 'a' && (c) <= 'f' )
+#define ASCII_HEXUPPER(c)	( (c) >= 'A' && (c) <= 'F' )
 #define ASCII_HEX(c)	( ASCII_DIGIT(c) || \
 	ASCII_HEXLOWER(c) || ASCII_HEXUPPER(c) )
 #define ASCII_ALNUM(c)	( ASCII_ALPHA(c) || ASCII_DIGIT(c) )
