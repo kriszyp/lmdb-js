@@ -232,6 +232,10 @@ SOURCE=..\..\include\srchpref.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\strdup.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ufn.c
 # End Source File
 # Begin Source File
