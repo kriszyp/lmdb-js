@@ -40,7 +40,7 @@ int
 read_config( char *fname )
 {
 	FILE	*fp;
-	char	*line, *savefname;
+	char	*line, *savefname, *saveline;
 	int	cargc, savelineno;
 	char	*cargv[MAXARGS];
 	int	lineno, i;
@@ -68,6 +68,9 @@ read_config( char *fname )
 		}
 
 		Debug( LDAP_DEBUG_CONFIG, "line %d (%s)\n", lineno, line, 0 );
+
+		/* fp_parse_line is destructive, we save a copy */
+		saveline = ch_strdup( line );
 
 		if ( fp_parse_line( line, &cargc, cargv ) != 0 ) {
 			return( 1 );
@@ -348,7 +351,7 @@ read_config( char *fname )
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
 			if ( *cargv[1] == '(' ) {
 				char * p;
-				p = strchr(line,'(');
+				p = strchr(saveline,'(');
 				parse_oc( fname, lineno, p );
 			} else {
 				parse_oc_old( be, fname, lineno, cargc, cargv );
@@ -358,7 +361,7 @@ read_config( char *fname )
 		} else if ( strcasecmp( cargv[0], "attribute" ) == 0 ) {
 			if ( *cargv[1] == '(' ) {
 				char * p;
-				p = strchr(line,'(');
+				p = strchr(saveline,'(');
 				parse_at( fname, lineno, p );
 			} else {
 				attr_syntax_config( fname, lineno, cargc - 1,
@@ -558,6 +561,7 @@ read_config( char *fname )
 				    fname, lineno, cargv[0] );
 			}
 		}
+		free( saveline );
 	}
 	fclose( fp );
 	return( 0 );
