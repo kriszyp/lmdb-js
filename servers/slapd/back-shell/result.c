@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 
+#include <ac/errno.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 #include <ac/unistd.h>
@@ -38,13 +39,29 @@ read_and_send_results(
 	buf[0] = '\0';
 	bsize = BUFSIZ;
 	bp = buf;
-	while ( fgets( line, sizeof(line), fp ) != NULL ) {
+	while ( !feof(fp) ) {
+		errno = 0;
+		if ( fgets( line, sizeof(line), fp ) == NULL ) {
+			if ( errno == EINTR ) continue;
+
+			Debug( LDAP_DEBUG_ANY, "shell: fgets failed: %s (%d)\n",
+				strerror(errno), errno, 0 ); 
+			break;
+		}
+
 		Debug( LDAP_DEBUG_SHELL, "shell search reading line (%s)\n",
 		    line, 0, 0 );
+
+		/* ignore lines beginning with # (LDIFv1 comments) */
+		if ( *line == '#' ) {
+			continue;
+		}
+
 		/* ignore lines beginning with DEBUG: */
 		if ( strncasecmp( line, "DEBUG:", 6 ) == 0 ) {
 			continue;
 		}
+
 		len = strlen( line );
 		while ( bp + len - buf > bsize ) {
 			size_t offset = bp - buf;
