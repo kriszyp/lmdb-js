@@ -242,6 +242,17 @@ bdb_db_open( BackendDB *be )
 	}
 #endif
 
+	if( bdb->bi_dbenv_xflags != 0 ) {
+		rc = bdb->bi_dbenv->set_flags( bdb->bi_dbenv,
+			bdb->bi_dbenv_xflags, 1);
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			return rc;
+		}
+	}
+
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_db_open: dbenv_open(%s)\n",
 		bdb->bi_dbenv_home, 0, 0);
@@ -264,17 +275,6 @@ bdb_db_open( BackendDB *be )
 			"bdb_db_open: dbenv_open failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
-	}
-
-	if( bdb->bi_dbenv_xflags != 0 ) {
-		rc = bdb->bi_dbenv->set_flags( bdb->bi_dbenv,
-			bdb->bi_dbenv_xflags, 1);
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: dbenv_set_flags failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-			return rc;
-		}
 	}
 
 	flags = DB_THREAD | bdb->bi_db_opflags;
