@@ -310,6 +310,8 @@ UTF8StringValidate(
 	int len;
 	unsigned char *u = in->bv_val;
 
+	if( !in->bv_len ) return LDAP_INVALID_SYNTAX;
+
 	for( count = in->bv_len; count > 0; count-=len, u+=len ) {
 		/* get the length indicated by the first byte */
 		len = LDAP_UTF8_CHARLEN( u );
@@ -377,7 +379,7 @@ UTF8StringNormalize(
 
 	assert( *newval->bv_val );
 	assert( newval->bv_val < p );
-	assert( p <= q );
+	assert( p >= q );
 
 	/* cannot start with a space */
 	assert( !ldap_utf8_isspace(newval->bv_val) );
@@ -447,6 +449,8 @@ integerValidate(
 {
 	ber_len_t i;
 
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
+
 	for(i=0; i < val->bv_len; i++) {
 		if( !ASCII_DIGIT(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
@@ -461,6 +465,8 @@ printableStringValidate(
 {
 	ber_len_t i;
 
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
+
 	for(i=0; i < val->bv_len; i++) {
 		if( !isprint(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
@@ -474,6 +480,8 @@ IA5StringValidate(
 	struct berval *val )
 {
 	ber_len_t i;
+
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !isascii(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
