@@ -294,7 +294,9 @@ ldap_objectclass2str( LDAP_OBJECT_CLASS * oc )
 
 	if ( oc->oc_sup_oids ) {
 		print_literal(ss,"SUP");
+		print_whsp(ss);
 		print_oids(ss,oc->oc_sup_oids);
+		print_whsp(ss);
 	}
 
 	switch (oc->oc_kind) {
@@ -390,6 +392,7 @@ ldap_attributetype2str( LDAP_ATTRIBUTE_TYPE * at )
 		print_literal(ss,"SYNTAX");
 		print_whsp(ss);
 		print_noidlen(ss,at->at_syntax_oid,at->at_syntax_len);
+		print_whsp(ss);
 	}
 
 	if ( at->at_single_value == LDAP_SCHEMA_YES ) {
@@ -564,7 +567,7 @@ parse_numericoid(char **sp, int *code)
 	char * start = *sp;
 	int len;
 
-	/* Each iteration of this loops gets one decimal string */
+	/* Each iteration of this loop gets one decimal string */
 	while (**sp) {
 		if ( !isdigit(**sp) ) {
 			/*
@@ -586,8 +589,8 @@ parse_numericoid(char **sp, int *code)
 	len = *sp - start;
 	res = LDAP_MALLOC(len+1);
 	if (!res) {
-	  *code = LDAP_SCHERR_OUTOFMEM;
-	  return(NULL);
+		*code = LDAP_SCHERR_OUTOFMEM;
+		return(NULL);
 	}
 	strncpy(res,start,len);
 	res[len] = '\0';
@@ -685,9 +688,8 @@ parse_noidlen(char **sp, int *code, int *len)
 	int kind;
 
 	*len = 0;
-	kind = get_token(sp, &sval);
-	if ( kind != TK_BAREWORD ) {
-		*code = LDAP_SCHERR_UNEXPTOKEN;
+	sval = parse_numericoid(sp, code);
+	if ( !sval ) {
 		return NULL;
 	}
 	if ( **sp == '{' ) {
@@ -695,7 +697,6 @@ parse_noidlen(char **sp, int *code, int *len)
 		*len = atoi(*sp);
 		while ( isdigit(**sp) )
 			(*sp)++;
-		(*sp)++;
 		if ( **sp != '}' ) {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
 			LDAP_FREE(sval);
