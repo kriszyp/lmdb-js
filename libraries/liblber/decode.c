@@ -109,7 +109,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 
 	/*
 	 * Next, read the length.  The first byte contains the length of
-	 * the length.  If bit 8 is set, the length is the long form,
+	 * the length.	If bit 8 is set, the length is the long form,
 	 * otherwise it's the short form.  We don't allow a length that's
 	 * greater than what we can hold in a ber_len_t.
 	 */
@@ -477,7 +477,7 @@ ber_scanf ( BerElement *ber,
 	LDAP_CONST char		*fmt_reset;
 	char		*last;
 	char		*s, **ss, ***sss;
-	struct berval 	***bv, **bvp, *bval;
+	struct berval	***bv, **bvp, *bval;
 	ber_int_t	*i;
 	int j;
 	ber_len_t	*l;
@@ -495,8 +495,8 @@ ber_scanf ( BerElement *ber,
 	fmt_reset = fmt;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "LIBLBER", LDAP_LEVEL_ENTRY, "ber_scanf fmt (%s) ber:\n", fmt ));
-        BER_DUMP(( "LIBLBER", LDAP_LEVEL_DETAIL2, ber, 1 ));
+	LDAP_LOG(( "liblber", LDAP_LEVEL_ENTRY, "ber_scanf fmt (%s) ber:\n", fmt ));
+	BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
 #else
 	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 		"ber_scanf fmt (%s) ber:\n", fmt );
@@ -629,8 +629,13 @@ ber_scanf ( BerElement *ber,
 
 		default:
 			if( ber->ber_debug ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "liblber", LDAP_LEVEL_ERR,
+					   "ber_scanf: unknown fmt %c\n", *fmt ));
+#else
 				ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
 					"ber_scanf: unknown fmt %c\n", *fmt );
+#endif
 			}
 			rc = LBER_DEFAULT;
 			break;
@@ -715,7 +720,7 @@ ber_scanf ( BerElement *ber,
 		case 'v':	/* sequence of strings */
 			sss = va_arg( ap, char *** );
 			if ( *sss ) {
-				for (j = 0;  (*sss)[j];  j++) {
+				for (j = 0;  (*sss)[j];	 j++) {
 					LBER_FREE( (*sss)[j] );
 					(*sss)[j] = NULL;
 				}

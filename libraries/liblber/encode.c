@@ -1,4 +1,4 @@
-/* encode.c - ber output encoding routines */
+/* Encode.c - ber output encoding routines */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -187,7 +187,7 @@ ber_put_int_or_enum(
 	assert( BER_VALID( ber ) );
 
 	sign = (num < 0);
-	unum = num;     /* Bit fiddling should be done with unsigned values */
+	unum = num;	/* Bit fiddling should be done with unsigned values */
 
 	/*
 	 * high bit is set - look for first non-all-one byte
@@ -506,7 +506,7 @@ ber_put_seqorset( BerElement *ber )
 
 	/*
 	 * If this is the toplevel sequence or set, we need to actually
-	 * write the stuff out.  Otherwise, it's already been put in
+	 * write the stuff out.	 Otherwise, it's already been put in
 	 * the appropriate buffer and will be written when the toplevel
 	 * one is written.  In this case all we need to do is update the
 	 * length and tag.
@@ -584,7 +584,7 @@ ber_put_seqorset( BerElement *ber )
 			/* The sos_ptr exceeds the end of the BerElement
 			 * this can happen, for example, when the sos_ptr
 			 * is near the end and no data was written for the
-			 * 'V'.  We must realloc the BerElement to ensure
+			 * 'V'.	 We must realloc the BerElement to ensure
 			 * we don't overwrite the buffer when writing
 			 * the tag and length fields.
 			 */
@@ -797,8 +797,13 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 
 		default:
 			if( ber->ber_debug ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "liblber", LDAP_LEVEL_ERR,
+					   "ber_printf: unknown fmt %c\n", *fmt ));
+#else
 				ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
 					"ber_printf: unknown fmt %c\n", *fmt );
+#endif
 			}
 			rc = -1;
 			break;

@@ -150,7 +150,7 @@ ber_realloc( BerElement *ber, ber_len_t len )
 
 	/*
 	 * If the stinking thing was moved, we need to go through and
-	 * reset all the sos and ber pointers.  Offsets would've been
+	 * reset all the sos and ber pointers.	Offsets would've been
 	 * a better idea... oh well.
 	 */
 
@@ -217,12 +217,20 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	towrite = ber->ber_ptr - ber->ber_rwptr;
 
 	if ( sb->sb_debug ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "liblber", LDAP_LEVEL_DETAIL1,
+			   "ber_flush: %ld bytes to sd %ld%s\n",
+			   towrite, (long)sb->sb_fd,
+			   ber->ber_rwptr != ber->ber_buf ? " (re-flush)" : "" ));
+		BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
+#else
 		ber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
 			"ber_flush: %ld bytes to sd %ld%s\n",
 			towrite, (long) sb->sb_fd,
 			ber->ber_rwptr != ber->ber_buf ?  " (re-flush)" : "" );
 		ber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
 			ber->ber_rwptr, towrite );
+#endif
 	}
 
 	nwritten = 0;
@@ -431,8 +439,12 @@ ber_get_next(
 	assert( SOCKBUF_VALID( sb ) );
 	assert( BER_VALID( ber ) );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "liblber", LDAP_LEVEL_ENTRY, "ber_get_next: enter\n" ));
+#else
 	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 		"ber_get_next\n" );
+#endif
 
 	/*
 	 * Any ber element looks like this: tag length contents.
@@ -567,10 +579,17 @@ fill_buffer:
 		ber->ber_rwptr = NULL;
 		*len = ber->ber_len;
 		if ( ber->ber_debug ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "liblber", LDAP_LEVEL_DETAIL1,
+				   "ber_get_next: tag 0x%lx len %ld\n",
+				   ber->ber_tag, ber->ber_len ));
+			BER_DUMP(( "liblber", LDAP_LEVEL_DETAIL2, ber, 1 ));
+#else
 			ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 				"ber_get_next: tag 0x%lx len %ld contents:\n",
 				ber->ber_tag, ber->ber_len );
 			ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
+#endif
 		}
 		return (ber->ber_tag);
 	}
