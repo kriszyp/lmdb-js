@@ -1,11 +1,16 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
 /*
  * Basic UTF-8 routines
+ *
+ * These routines are "dumb".  Though they understand UTF-8,
+ * they don't grok Unicode.  That is, they can push bits,
+ * but don't have a clue what the bits represent.  That's
+ * good enough for use with the LDAP Client SDK.
  *
  * These routines are not optimized.
  */
@@ -23,8 +28,12 @@
 #include "ldap-int.h"
 #include "ldap_defaults.h"
 
-#define UTF8_ISASCII(u)	( !((u) & ~0x7f) )
+#define UTF8_ISASCII(u)	( (u) < 0x100 )
 #define UCS4_INVALID	0x80000000U
+
+/*
+ * Basic UTF-8 routines
+ */
 
 /*
  * return the number of bytes required to hold the
@@ -92,6 +101,7 @@ int ldap_utf8_charlen( const char * p )
 	return 1;
 }
 
+/* conv UTF-8 to UCS-4, useful for comparisons */
 ber_int_t ldap_utf8_to_ucs4( const char * p )
 {
 	int len, i;
@@ -138,6 +148,7 @@ ber_int_t ldap_utf8_to_ucs4( const char * p )
 	return c;
 }
 
+/* conv UCS-4 to UTF-8, not used */
 int ldap_ucs4_to_utf8( ber_int_t c, char *buf )
 {
 	int len=0;
@@ -204,6 +215,11 @@ char* ldap_utf8_prev( const char * p )
 	return NULL;
 }
 
+/*
+ * UTF-8 ctype routines
+ * Only deals with characters < 0x100 (ie: US-ASCII)
+ */
+
 int ldap_utf8_isascii( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
@@ -230,6 +246,30 @@ int ldap_utf8_isxdigit( const char * p )
 		|| ( c >= 'a' && c <= 'f' );
 }
 
+int ldap_utf8_isspace( const char * p )
+{
+	unsigned c = * (const unsigned char *) p;
+
+	if(!UTF8_ISASCII(c)) return 0;
+
+	switch(c) {
+	case ' ':
+	case '\t':
+	case '\n':
+	case '\r':
+	case '\v':
+	case '\f':
+		return 1;
+	}
+
+	return 0;
+}
+
+#ifndef UTF8_ALPHA_CTYPE
+/*
+ * These are not needed by the C SDK and are
+ * not "good enough" for general use.
+ */
 int ldap_utf8_isalpha( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
@@ -268,26 +308,11 @@ int ldap_utf8_isupper( const char * p )
 
 	return ( c >= 'A' && c <= 'Z' );
 }
+#endif
 
-int ldap_utf8_isspace( const char * p )
-{
-	unsigned c = * (const unsigned char *) p;
-
-	if(!UTF8_ISASCII(c)) return 0;
-
-	switch(c) {
-	case ' ':
-	case '\t':
-	case '\n':
-	case '\r':
-	case '\v':
-	case '\f':
-		return 1;
-	}
-
-	return 0;
-}
-
+/*
+ * get one UTF-8 character
+ */
 char* ldap_utf8_fgetc( FILE *s, char *buf )
 {
 	int i;
@@ -328,6 +353,12 @@ char* ldap_utf8_fgetc( FILE *s, char *buf )
 	return buf;
 }
 
+
+/*
+ * UTF-8 string routines
+ */
+
+/* like strcspn() but returns number of bytes, not characters */
 ber_len_t (ldap_utf8_strcspn)( const char *str, const char *set )
 {
 	int len;
@@ -352,6 +383,7 @@ ber_len_t (ldap_utf8_strcspn)( const char *str, const char *set )
 	return cstr - str;
 }
 
+/* like strspn() but returns number of bytes, not characters */
 ber_len_t (ldap_utf8_strspn)( const char *str, const char *set )
 {
 	int len;
@@ -380,6 +412,7 @@ ber_len_t (ldap_utf8_strspn)( const char *str, const char *set )
 	return cstr - str;
 }
 
+/* like strpbrk(), replaces strchr() as well */
 char *(ldap_utf8_strpbrk)( const char *str, const char *set )
 {
 	int len;
@@ -404,6 +437,7 @@ char *(ldap_utf8_strpbrk)( const char *str, const char *set )
 	return NULL;
 }
 
+/* like strtok_r(), not strtok() */
 char *(ldap_utf8_strtok)(char *str, const char *sep, char **last)
 {
 	char *begin;
