@@ -291,6 +291,7 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 {
 	struct sb_sasl_data	*p;
 	int			ret;
+	unsigned		*max;
 
 	assert( sbiod != NULL );
 	assert( SOCKBUF_VALID( sbiod->sbiod_sb ) );
@@ -310,6 +311,9 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 #else
 	ber_pvt_sb_buf_destroy( &p->buf_out );
 #endif
+	sasl_getprop( p->sasl_context, SASL_MAXOUTBUF, (const void **)&max );
+	if ( len > *max )
+		len = *max - 100;	/* For safety margin */
 	ret = sasl_encode( p->sasl_context, buf, len,
 		(SASL_CONST char **)&p->buf_out.buf_base,
 		(unsigned *)&p->buf_out.buf_size );
