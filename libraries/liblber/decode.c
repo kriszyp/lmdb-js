@@ -598,7 +598,7 @@ ber_next_element(
 
 	assert( LBER_VALID( ber ) );
 
-	if ( ber->ber_ptr == last ) {
+	if ( ber->ber_ptr >= last ) {
 		return LBER_DEFAULT;
 	}
 
