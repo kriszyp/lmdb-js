@@ -648,7 +648,12 @@ ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 			goto parsing_error;
 		}
 		p++;
-		
+
+	/*
+	 * actually we do not want to accept by default the DCE form,
+	 * we do not want to auto-detect it
+	 */
+#if 0
 	} else if ( LDAP_DN_LDAP( flags ) ) {
 		/*
 		 * if dn starts with '/' let's make it a DCE dn
@@ -657,6 +662,7 @@ ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 			flags |= LDAP_DN_FORMAT_DCE;
 			p++;
 		}
+#endif
 	}
 
 	for ( ; p[ 0 ]; p++ ) {
@@ -1980,6 +1986,10 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 			continue;
 		}
 		
+		/*
+		 * The length was checked in strval2strlen();
+		 */
+		assert( LDAP_UTF8_CHARLEN2( &val->bv_val[ s ], cl ) > 0 );
 		cl = LDAP_UTF8_CHARLEN( &val->bv_val[ s ] );
 		
 		/* 
