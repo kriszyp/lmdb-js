@@ -1,0 +1,47 @@
+.TH LBER_TYPES 3 "12 July 2000" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+ber_int_t, ber_len_t, ber_tag_t \- LBER types
+.SH SYNOPSIS
+.nf
+.ft B
+#include <lber.h>
+.ft
+.fi
+.LP
+.nf
+.ft B
+typedef impl_int_t ber_int_t;
+typedef impl_len_t ber_len_t;
+typedef impl_tag_t ber_tag_t;
+.ft
+.fi
+.SH DESCRIPTION
+.LP
+The are basic types defined for use with the Lightweight BER library.
+.LP
+.B ber_int_t
+is a signed integer of at least 32 bits.
+.LP
+.B ber_len_t
+is a unsigned integer of at least 32 bits used to represent a length.  
+It is commonly equivalent to a
+.BR size_t .
+.LP
+.B ber_len_t
+is a unsigned integer of at least 32 bits used to represent a
+BER tag.  It is commonly equivalent to a
+.BR unsigned\ long .
+.SH SEE ALSO
+.BR lber-encode (3)
+.BR lber-decode (3)
+.LP
+.SH AUTHOR
+The OpenLDAP Project <http://www.openldap.org/>
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  
