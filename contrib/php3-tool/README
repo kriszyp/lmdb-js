@@ -1,0 +1,6 @@
+blah blah blah yadda yadda yadda don't forget to modify at.conf
+blah blah
+/me hopes you'll like this
+
+p.s. do _NOT_ forget to add this to your /etc/httpd/conf/srm.conf (or wherever your put it):
+DorectoryIndex .... index.php3 ...
