@@ -24,6 +24,7 @@ Large projects
 redesign slapd threading
 Modify -lldap to be session-level multithreaded <kurt@openldap.org>
 Port slapd (incl back-ldbm & tools) to NT
+MajorLDAP - Design and implement an LDAP aware mailing list manager
 
 
 Medium projects
