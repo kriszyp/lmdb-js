@@ -100,7 +100,9 @@ lutil_detach( int debug, int do_close )
 			}
 		}
 
+#ifdef CHDIR_TO_ROOT
 		(void) chdir( "/" );
+#endif
 
 #ifdef HAVE_SETSID
 		(void) setsid();
