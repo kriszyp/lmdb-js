@@ -1166,7 +1166,7 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn )
 
 	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
-			rc = TXN_BEGIN( env, NULL, txn, DB_TXN_NOT_DURABLE );
+			rc = TXN_BEGIN( env, NULL, txn, 0 );
 			if (rc) ldap_pvt_thread_yield();
 		}
 		if ( rc != 0) {
