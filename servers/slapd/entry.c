@@ -307,7 +307,8 @@ str2entry( char *s )
 			return NULL;
 		}
 
-		e->e_nname = *ndn;
+		e->e_nname.bv_val = ndn->bv_val;
+		e->e_nname.bv_len = ndn->bv_len;
 		free( ndn );
 	}
 

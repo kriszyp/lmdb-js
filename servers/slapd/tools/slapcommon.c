@@ -121,7 +121,7 @@ slap_tool_init(
 		switch ( i ) {
 		case 'b':
 			base.bv_val = strdup( optarg );
-			base.bv_len = strlen( optarg );
+			base.bv_len = strlen( base.bv_val );
 
 		case 'c':	/* enable continue mode */
 			continuemode++;
@@ -226,7 +226,7 @@ slap_tool_init(
 
 		if( be == NULL ) {
 			fprintf( stderr, "%s: slap_init no backend for \"%s\"\n",
-				progname, base );
+				progname, base.bv_val );
 			exit( EXIT_FAILURE );
 		}
 		/* If the named base is a glue master, operate on the
@@ -248,7 +248,8 @@ slap_tool_init(
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr,
 			"Database number selected via -n is out of range\n"
-			"Must be in the range 1 to %d (number of databases in the config file)\n",
+			"Must be in the range 1 to %d"
+				" (number of databases in the config file)\n",
 			nbackends );
 		exit( EXIT_FAILURE );
 
