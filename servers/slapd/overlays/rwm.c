@@ -1020,38 +1020,45 @@ rwm_suffixmassage_config(
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
-	struct berval	bvnc, nvnc, pvnc, brnc, nrnc, prnc;
+	struct berval		bvnc, nvnc, pvnc, brnc, nrnc, prnc;
+	int			massaged;
 #ifdef ENABLE_REWRITE
-	int		rc;
+	int			rc;
 #endif /* ENABLE_REWRITE */
 		
 	/*
 	 * syntax:
 	 * 
-	 * 	suffixmassage <suffix> <massaged suffix>
+	 * 	suffixmassage [<suffix>] <massaged suffix>
 	 *
-	 * the <suffix> field must be defined as a valid suffix
-	 * (or suffixAlias?) for the current database;
+	 * the [<suffix>] field must be defined as a valid suffix
+	 * for the current database;
 	 * the <massaged suffix> shouldn't have already been
-	 * defined as a valid suffix or suffixAlias for the 
-	 * current server
+	 * defined as a valid suffix for the current server
 	 */
-	if ( argc != 3 ) {
+	if ( argc == 2 ) {
+		bvnc = be->be_suffix[ 0 ];
+		massaged = 1;
+
+	} else if ( argc == 3 ) {
+		ber_str2bv( argv[ 1 ], 0, 0, &bvnc );
+		massaged = 2;
+
+	} else  {
  		fprintf( stderr, "%s: line %d: syntax is"
-			       " \"suffixMassage <suffix>"
+			       " \"suffixMassage [<suffix>]"
 			       " <massaged suffix>\"\n",
 			fname, lineno );
 		return 1;
 	}
-		
-	ber_str2bv( argv[1], 0, 0, &bvnc );
+
 	if ( dnPrettyNormal( NULL, &bvnc, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 			fname, lineno, bvnc.bv_val );
 		return 1;
 	}
 
-	ber_str2bv( argv[2], 0, 0, &brnc );
+	ber_str2bv( argv[ massaged ], 0, 0, &brnc );
 	if ( dnPrettyNormal( NULL, &brnc, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: line %d: suffix DN %s is invalid\n",
 				fname, lineno, brnc.bv_val );
@@ -1167,7 +1174,7 @@ rwm_response( Operation *op, SlapReply *rs )
 }
 
 static int
-rwm_config(
+rwm_db_config(
     BackendDB	*be,
     const char	*fname,
     int		lineno,
@@ -1204,7 +1211,7 @@ rwm_config(
 }
 
 static int
-rwm_over_init(
+rwm_db_init(
 	BackendDB *be
 )
 {
@@ -1252,7 +1259,7 @@ rwm_over_init(
 }
 
 static int
-rwm_destroy(
+rwm_db_destroy(
 	BackendDB *be
 )
 {
@@ -1290,9 +1297,10 @@ rwm_init(void)
 	memset( &rwm, 0, sizeof( slap_overinst ) );
 
 	rwm.on_bi.bi_type = "rwm";
-	rwm.on_bi.bi_db_init = rwm_over_init;
-	rwm.on_bi.bi_db_config = rwm_config;
-	rwm.on_bi.bi_db_destroy = rwm_destroy;
+
+	rwm.on_bi.bi_db_init = rwm_db_init;
+	rwm.on_bi.bi_db_config = rwm_db_config;
+	rwm.on_bi.bi_db_destroy = rwm_db_destroy;
 
 	rwm.on_bi.bi_op_bind = rwm_bind;
 	rwm.on_bi.bi_op_search = rwm_search;
