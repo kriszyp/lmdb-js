@@ -7,10 +7,12 @@
 
 #include <ac/stdlib.h>
 #include <ac/string.h>
-
+#include <ac/stdarg.h>
 #include "lber-int.h"
 
-extern void * ber_pvt_err_file;	/* bprint.c */
+/* bprint.c */
+typedef void (*BER_LOG_FN) LDAP_P((FILE *file, char *subsys, int level, const char *fmt, va_list vl));
+extern void * ber_pvt_err_file;
 extern BER_LOG_FN ber_int_log_proc;
 
 struct lber_options ber_int_options = {

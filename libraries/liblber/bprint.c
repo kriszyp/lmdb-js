@@ -14,6 +14,9 @@
 
 #include "lber-int.h"
 
+typedef void (*BER_LOG_FN) LDAP_P((FILE *file, char *subsys, int level, const char *fmt, va_list vl));
+
+
 BER_LOG_FN ber_int_log_proc = NULL;
 
 /*
