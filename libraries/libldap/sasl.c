@@ -27,10 +27,10 @@
 
 #include "portable.h"
 
-#include <stdlib.h>
 #include <stdio.h>
 
 #include <ac/socket.h>
+#include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/errno.h>

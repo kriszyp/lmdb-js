@@ -18,9 +18,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/types.h>
 
+#include <ac/stdlib.h>
 
 #ifdef HAVE_SYS_UUID_H
 #  include <sys/uuid.h>
