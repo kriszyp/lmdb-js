@@ -376,6 +376,9 @@ SASL-based Example:
 
 >	rootdn "uid=root,cn=example.com,cn=digest-md5,cn=auth"
 
+See the {{SECT:SASL Authentication}} section for information on
+SASL authentication identities.
+
 
 H4: rootpw <password>
 
