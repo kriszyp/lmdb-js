@@ -83,7 +83,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-LDIF=$MODRDNOUTMASTER
+LDIF=$MODRDNOUTMASTER0
 
 echo "Filtering ldapsearch results..."
 . $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
