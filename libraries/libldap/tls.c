@@ -1720,7 +1720,7 @@ ldap_start_tls_s ( LDAP *ld,
 		ber_bvfree( rspdata );
 	}
 
-	if ( rc != LDAP_SUCCESS ) {
+	if ( rc == LDAP_SUCCESS ) {
 		rc = ldap_int_tls_start( ld, ld->ld_defconn, NULL );
 	}
 
