@@ -21,6 +21,10 @@
 #include <io.h>
 #endif /* HAVE_IO_H */
 
+#if defined( HAVE_FCNTL_H )
+#include <fcntl.h>
+#endif
+
 #if defined( HAVE_SYS_FILIO_H )
 #include <sys/filio.h>
 #elif defined( HAVE_SYS_IOCTL_H )
@@ -69,6 +73,7 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 	int			ret = 0;
 
 	assert( sb != NULL );
+	assert( SOCKBUF_VALID( sb ) );
 
 	switch ( opt ) {
 		case LBER_SB_OPT_HAS_IO:
@@ -118,6 +123,18 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 
 		case LBER_SB_OPT_NEEDS_WRITE:
 			ret = ( sb->sb_trans_needs_write ? 1 : 0 );
+			break;
+
+		case LBER_SB_OPT_GET_MAX_INCOMING:
+			if ( arg != NULL ) {
+				*((ber_len_t *)arg) = sb->sb_max_incoming;
+			}
+			ret = 1;
+			break;
+
+		case LBER_SB_OPT_SET_MAX_INCOMING:
+			sb->sb_max_incoming = *((ber_len_t *)arg);
+			ret = 1;
 			break;
 
 		default:
