@@ -98,10 +98,11 @@ do_modrdn( char *uri, char *host, int port, char *manager,
 {
 	LDAP	*ld = NULL;
 	int  	i;
-	pid_t	pid = getpid();
+	pid_t	pid;
 	char *DNs[2];
 	char *rdns[2];
 
+	pid = getpid();
 	DNs[0] = entry;
 	DNs[1] = strdup( entry );
 
@@ -164,7 +165,6 @@ do_modrdn( char *uri, char *host, int port, char *manager,
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
 			continue;
 		}
-
 	}
 
 	fprintf( stderr, " PID=%ld - Modrdn done.\n", (long) pid );
