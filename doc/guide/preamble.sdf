@@ -1,13 +1,10 @@
 # Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
-# file: guide.sdf
 # 
 
-!define DOC_NAME           "OpenLDAP Administrators Guide"
-!define DOC_AUTHOR         "OpenLDAP <{{URL:http://www.openldap.org/}}>"
-!define DOC_LOGO           "LDAPwww.gif"
-!define DOC_LOF_TITLE      "Figures"
-!define DOC_LOF
-!build_title
+H1: Acknowledgements
 
+The OpenLDAP Project would like to thank the University of Michigan
+LDAP Team for building the foundation of LDAP software and information
+to which we build upon.
 

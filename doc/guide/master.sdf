@@ -5,10 +5,13 @@
 # SDF master file for the OpenLDAP Administrator's guide
 #
 
+# title information
+!include "title.sdf"
+
+# Document copyright, publishing info, acknowledgements, preface
 !include "preamble.sdf"
 
-!include "copyright.sdf"
-
+# Chapters
 !include "intro.sdf"
 !include "quickstart.sdf"
 !include "config.sdf"
@@ -21,3 +24,8 @@
 !include "referrals.sdf"
 !include "replication.sdf"
 
+# Appendices 
+
+# Software Copyright/License
+# !include "copyright.sdf"
+# !include "license.sdf"

@@ -1,0 +1,15 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+#
+# Document: OpenLDAP Administrator's Guide
+# Master: master.sdf
+# 
+
+!define DOC_NAME           "OpenLDAP Administrators Guide"
+!define DOC_AUTHOR         "OpenLDAP <{{URL:http://www.openldap.org/}}>"
+!define DOC_LOGO           "LDAPwww.gif"
+!define DOC_LOF_TITLE      "Figures"
+!define DOC_LOF
+!build_title
+
+
