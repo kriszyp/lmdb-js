@@ -10,28 +10,30 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
 #include <signal.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/wait.h>
+
+#include <sys/resource.h>
+
+#include <lber.h>
+#include <ldap.h>
+
 #include <ldapconfig.h>
-#include "lber.h"
-#include "ldap.h"
 
 #define DEFAULT_PORT		79
 #define DEFAULT_SIZELIMIT	50
 
 int		debug;
-char		*ldaphost = LDAPHOST;
-char		*base = DEFAULT_BASE;
+char	*ldaphost = LDAPHOST;
+char	*base = RP_BASE;
 int		deref;
 int		sizelimit;
 LDAPFiltDesc	*filtd;
@@ -114,7 +116,7 @@ main (argc, argv)
 	ld->ld_sizelimit = sizelimit ? sizelimit : DEFAULT_SIZELIMIT;
 	ld->ld_deref = deref;
 
-	if ( ldap_simple_bind_s( ld, RP_BINDDN, NULL ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, RP_BINDDN, RP_BIND_CRED ) != LDAP_SUCCESS ) {
 		fprintf( stderr, "X.500 is temporarily unavailable.\n" );
 		ldap_perror( ld, "ldap_simple_bind_s" );
 		exit( -1 );
@@ -255,7 +257,7 @@ print_entry( ld, e )
 		fprintf( stderr, "Entry \"%s\" has no fax number.\n", dn );
 		exit( 1 );
 	}
-	faxmail = faxtotpc( fax[0] );
+	faxmail = faxtotpc( fax[0], NULL );
 	title = ldap_get_values( ld, e, "title" );
 	phone = ldap_get_values( ld, e, "telephoneNumber" );
 	mail = ldap_get_values( ld, e, "mail" );

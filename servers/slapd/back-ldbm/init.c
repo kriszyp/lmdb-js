@@ -1,9 +1,12 @@
 /* init.c - initialize ldbm backend */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -14,6 +17,10 @@ ldbm_back_init(
 	struct ldbminfo	*li;
 	char		*argv[ 4 ];
 	int		i;
+
+#ifdef SLAPD_CRYPT
+	extern pthread_mutex_t crypt_mutex;
+#endif /* SLAPD_CRYPT */
 
 	/* allocate backend-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
@@ -26,6 +33,9 @@ ldbm_back_init(
 
 	/* default database cache size */
 	li->li_dbcachesize = DEFAULT_DBCACHE_SIZE;
+
+	/* default cache mode is sync on write */
+	li->li_dbcachewsync = 1;
 
 	/* default file creation mode */
 	li->li_mode = DEFAULT_MODE;
@@ -59,6 +69,9 @@ ldbm_back_init(
 	pthread_mutex_init( &li->li_cache.c_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &li->li_nextid_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &li->li_dbcache_mutex, pthread_mutexattr_default );
+#ifdef SLAPD_CRYPT
+	pthread_mutex_init( &crypt_mutex, pthread_mutexattr_default );
+#endif /* SLAPD_CRYPT */
 	pthread_cond_init( &li->li_dbcache_cv, pthread_condattr_default );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		pthread_mutex_init( &li->li_dbcache[i].dbc_mutex,

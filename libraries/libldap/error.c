@@ -80,10 +80,10 @@ ldap_err2string( int err )
 	return( "Unknown error" );
 }
 
-#ifdef LDAP_LIBUI
 void
 ldap_perror( LDAP *ld, char *s )
 {
+#ifdef LDAP_LIBUI
 	int	i;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_perror\n", 0, 0, 0 );
@@ -110,17 +110,8 @@ ldap_perror( LDAP *ld, char *s )
 
 	fprintf( stderr, "%s: Not an LDAP errno %d\n", s, ld->ld_errno );
 	fflush( stderr );
-}
-
-#else
-
-void
-ldap_perror( LDAP *ld, char *s )
-{
-}
-
 #endif /* !LDAP_LIBUI */
-
+}
 
 int
 ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )

@@ -10,18 +10,25 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+#include <stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/krb.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_PWD_H
 #include <pwd.h>
-#include <string.h>
-#include <ctype.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
+
 #include "ud.h"
-#ifdef KERBEROS
-#include <sys/types.h>
-#include <krb.h>
-#endif
 
 extern LDAP *ld;		/* our LDAP descriptor */
 extern int verbose;		/* verbosity indicator */
@@ -31,11 +38,13 @@ extern char *mygetpass();	/* getpass() passwds are too short */
 extern int debug;		/* debug flag */
 #endif
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 static char tktpath[20];	/* ticket file path */
 static int kinit();
 static int valid_tgt();
 #endif
+
+static void set_bound_dn();
 
 auth(who, implicit)
 char *who;
@@ -46,9 +55,13 @@ int implicit;
 	char **rdns;		/* for fiddling with the DN */
 	int authmethod;
 	int name_provided;	/* was a name passed in? */
+#ifdef HAVE_GETPWUID
 	struct passwd *pw;	/* for getting user id */
+#else
+	char *user;
+#endif
 	char uidname[20];
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	char **krbnames;	/* for kerberos names */
 	int kinited, ikrb;
 	char buf[5];
@@ -65,7 +78,6 @@ int implicit;
 	extern void printbase();	/* used to pretty-print a base */
 	extern int bind_status;
 	extern void Free();
-	static void set_bound_dn();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -77,11 +89,26 @@ int implicit;
 	 *  The user needs to bind.  If <who> is not specified, we
 	 *  assume that authenticating as user id is what user wants.
 	 */
-	if (who == NULL && implicit && (pw = getpwuid((uid_t)geteuid()))
-	    != (struct passwd *) NULL) {
-		sprintf(uidname, "uid=%s", pw->pw_name);
-		/* who = pw->pw_name; /* */
-		who = uidname;
+	if (who == NULL && implicit) {
+		uidname[0] = '\0';
+
+#ifdef HAVE_GETPWUID
+		if ((pw = getpwuid((uid_t)geteuid())) != (struct passwd *) NULL) {
+			sprintf(uidname, "uid=%s", pw->pw_name);
+		}
+#else
+		user = getenv("USER");
+		if(user == NULL) user = getenv("USERNAME");
+		if(user == NULL) user = getenv("LOGNAME");
+
+		if(user != NULL) {
+			sprintf(uidname, "uid=%s", user);
+		}
+#endif
+
+		if(uidname[0] != '\0') {
+			who = uidname;
+		}
 	}
 
 	if ( who == NULL ) {
@@ -130,7 +157,7 @@ int implicit;
 	rdns = ldap_explode_dn(Entry.DN, TRUE);
 	printf("  Authenticating to the directory as \"%s\"...\n", *rdns );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	/*
 	 * First, if the user has a choice of auth methods, ask which
 	 * one they want to use.  if they want kerberos, ask which
@@ -155,7 +182,7 @@ int implicit;
 
 		if ( hassimple && !kinited ) {
 			printf("  Which password would you like to use?\n");
-			printf("    1 -> X.500 password\n");
+			printf("    1 -> LDAP password\n");
 #ifdef UOFM
 			printf("    2 -> UMICH password (aka Uniqname or Kerberos password)\n");
 #else
@@ -221,7 +248,7 @@ int implicit;
 	} else {
 #endif
 		authmethod = LDAP_AUTH_SIMPLE;
-		sprintf(prompt, "  Enter your X.500 password: ");
+		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
 			passwd = mygetpass(prompt);
 		} while (passwd != NULL && *passwd == '\0');
@@ -229,7 +256,7 @@ int implicit;
 			(void) ldap_value_free(rdns);
 			return(0);
 		}
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	}
 	(void) ldap_value_free(krbnames);
 #endif
@@ -239,19 +266,19 @@ int implicit;
 		if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			fprintf(stderr, "  Entry has no password\n");
 		else if (ld->ld_errno == LDAP_INVALID_CREDENTIALS)
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");
 			} else {
 #endif
 				fprintf(stderr, "  The password you provided is incorrect.\n");
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			}
 #endif
 		else
 			ldap_perror(ld, "ldap_bind_s" );
 		(void) ldap_bind_s(ld, default_bind_object,
-			 (char *) UD_PASSWD, LDAP_AUTH_SIMPLE);
+			 (char *) UD_BIND_CRED, LDAP_AUTH_SIMPLE);
 		if (default_bind_object == NULL)
 			set_bound_dn(NULL);
 		else
@@ -274,20 +301,18 @@ int implicit;
 	return(0);
 }
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"
 
-str2upper( s )
+static void str2upper( s )
     char	*s;
 {
 	char	*p;
 
 	for ( p = s; *p != '\0'; ++p ) {
-		if ( islower( *p )) {
-			*p = toupper( *p );
-		}
+		*p = TOUPPER( *p );
 	}
 }
 
@@ -307,12 +332,12 @@ static valid_tgt( names )
 			return( 0 );
 		}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 		/*
 		 * realm must be uppercase for krb_ routines
 		 */
 		str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 		/*
 		* check ticket file for a valid ticket granting ticket
@@ -351,18 +376,16 @@ krbgetpass( user, inst, realm, pw, key )
 		return(-1);
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	strcpy( lcrealm, realm );
 	for ( p = lcrealm; *p != '\0'; ++p ) {
-		if ( isupper( *p )) {
-			*p = tolower( *p );
-		}
+		*p = TOLOWER( *p );
 	}
 
 	ka_StringToKey( passwd, lcrealm, key );
-#else /* AFSKERBEROS */
+#else /* HAVE_AFS_KERBEROS */
 	string_to_key( passwd, key );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	return( 0 );
 }
@@ -382,12 +405,12 @@ static kinit( kname )
 		return( -1 );
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	/*
 	 * realm must be uppercase for krb_ routines
 	 */
 	str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,
 	    DEFAULT_TKT_LIFE, krbgetpass, NULL, NULL );
@@ -407,7 +430,7 @@ static kinit( kname )
 	return( 0 );
 }
 
-destroy_tickets()
+void destroy_tickets(void)
 {
 	if ( *tktpath != '\0' ) {
 		unlink( tktpath );
@@ -415,13 +438,12 @@ destroy_tickets()
 }
 #endif
 
-static void set_bound_dn(s)
-char *s;
+static void set_bound_dn(char *s)
 {
 	extern void Free();
 	extern char *bound_dn;
 
 	if (bound_dn != NULL)
 		Free(bound_dn);
-	bound_dn = strdup(s);
+	bound_dn = (s == NULL) ? NULL : strdup(s);
 }

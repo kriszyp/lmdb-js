@@ -1,14 +1,321 @@
 /* thread.c - glue routines to provide a consistent thread interface */
-#include <stdio.h>
-#include "lthread.h"
 
-#if defined( THREAD_SUNOS4_LWP )
+#include "portable.h"
+
+#include <lthread.h>
+
+#if defined( HAVE_PTHREADS )
+
+#ifndef HAVE_PTHREAD_KILL
+/***********************************************************************
+ *                                                                     *
+ * pthreads package with DCE - no mapping to do (except to create a    *
+ * pthread_kill() routine)                                             *
+ *                                                                     *
+ ***********************************************************************/
+
+/* ARGSUSED */
+void
+pthread_kill( pthread_t tid, int sig )
+{
+	kill( getpid(), sig );
+}
+#endif /* HAVE_PTHREAD_KILL */
+
+#elif defined( HAVE_MACH_CTHREADS )
 
 /***********************************************************************
  *                                                                     *
- * under sunos 4 - use the built in non-preemptive lwp threads package *
+ * under NEXTSTEP or OPENSTEP use CThreads                             *
+ * lukeh@xedoc.com.au                                                  *
  *                                                                     *
  ***********************************************************************/
+
+int
+pthread_attr_init( pthread_attr_t *attr )
+{
+	*attr = 0;
+	return( 0 );
+}
+
+int
+pthread_attr_destroy( pthread_attr_t *attr )
+{
+	return( 0 );
+}
+
+int
+pthread_attr_getdetachstate( pthread_attr_t *attr, int *detachstate )
+{
+	*detachstate = *attr;
+	return( 0 );
+}
+
+int
+pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
+{
+	*attr = detachstate;
+	return( 0 );
+}
+
+/* ARGSUSED */
+int
+pthread_create(
+    pthread_t		*tid,
+    pthread_attr_t	*attr,
+    VFP			func,
+    void		*arg
+)
+{
+	*tid = cthread_fork(func, arg);
+	 return ( *tid == NULL ? -1 : 0 );
+}
+
+void
+pthread_yield()
+{
+	cthread_yield();
+}
+
+void
+pthread_exit( any_t a )
+{
+	cthread_exit( a );
+}
+
+void
+pthread_join( pthread_t tid, int *pStatus )
+{
+	int status;
+	status = (int) cthread_join ( tid );
+	if (pStatus != NULL)
+		{
+		*pStatus = status;
+		}
+}
+
+/* ARGSUSED */
+void
+pthread_kill( pthread_t tid, int sig )
+{
+	return;
+}
+
+/* ARGSUSED */
+int
+pthread_mutex_init( pthread_mutex_t *mp, pthread_mutexattr_t *attr )
+{
+	mutex_init( mp );
+	mp->name = NULL;
+	return ( 0 );
+}
+
+int
+pthread_mutex_destroy( pthread_mutex_t *mp )
+{
+	mutex_clear( mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_lock( pthread_mutex_t *mp )
+{
+	mutex_lock( mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_unlock( pthread_mutex_t *mp )
+{
+	mutex_unlock( mp );
+	return ( 0 );
+}
+
+int
+pthread_mutex_trylock( pthread_mutex_t *mp )
+{
+	return mutex_try_lock( mp );
+}
+
+int
+pthread_cond_init( pthread_cond_t *cv, pthread_condattr_t *attr )
+{
+	condition_init( cv );
+	return( 0 );
+}
+
+int
+pthread_cond_destroy( pthread_cond_t *cv )
+{
+	condition_clear( cv );
+	return( 0 );
+}
+
+int
+pthread_cond_wait( pthread_cond_t *cv, pthread_mutex_t *mp )
+{
+	condition_wait( cv, mp );
+	return( 0 );
+}
+
+int
+pthread_cond_signal( pthread_cond_t *cv )
+{
+	condition_signal( cv );
+	return( 0 );
+}
+
+int
+pthread_cond_broadcast( pthread_cond_t *cv )
+{
+	condition_broadcast( cv );
+	return( 0 );
+}
+
+#elif defined( HAVE_THR )
+
+/*******************
+ *                 *
+ * Solaris Threads *
+ *                 *
+ *******************/
+
+#if !defined(__SunOS_5_6)
+int
+pthread_attr_init( pthread_attr_t *attr )
+{
+	*attr = 0;
+	return( 0 );
+}
+
+int
+pthread_attr_destroy( pthread_attr_t *attr )
+{
+	*attr = 0;
+	return( 0 );
+}
+
+int
+pthread_attr_getdetachstate( pthread_attr_t *attr, int *detachstate )
+{
+	*detachstate = *attr;
+	return( 0 );
+}
+
+int
+pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
+{
+	*attr = detachstate;
+	return( 0 );
+}
+
+/* ARGSUSED */
+int
+pthread_create(
+    pthread_t		*tid,
+    pthread_attr_t	*attr,
+    VFP			func,
+    void		*arg
+)
+{
+	return( thr_create( NULL, 0, func, arg, *attr, tid ) );
+}
+#endif /* ! sunos56 */
+
+void
+pthread_yield()
+{
+	thr_yield();
+}
+
+#if !defined(__SunOS_5_6)
+void
+pthread_exit()
+{
+	thr_exit( NULL );
+}
+
+void
+pthread_join( pthread_t tid, int *status )
+{
+	thr_join( tid, NULL, (void **) status );
+}
+
+void
+pthread_kill( pthread_t tid, int sig )
+{
+	thr_kill( tid, sig );
+}
+
+/* ARGSUSED */
+int
+pthread_mutex_init( pthread_mutex_t *mp, pthread_mutexattr_t *attr )
+{
+	return( mutex_init( mp, attr ? *attr : USYNC_THREAD, NULL ) );
+}
+
+int
+pthread_mutex_destroy( pthread_mutex_t *mp )
+{
+	return( mutex_destroy( mp ) );
+}
+
+int
+pthread_mutex_lock( pthread_mutex_t *mp )
+{
+	return( mutex_lock( mp ) );
+}
+
+int
+pthread_mutex_unlock( pthread_mutex_t *mp )
+{
+	return( mutex_unlock( mp ) );
+}
+
+int
+pthread_mutex_trylock( pthread_mutex_t *mp )
+{
+	return( mutex_trylock( mp ) );
+}
+
+int
+pthread_cond_init( pthread_cond_t *cv, pthread_condattr_t *attr )
+{
+	return( cond_init( cv, attr ? *attr : USYNC_THREAD, NULL ) );
+}
+
+int
+pthread_cond_destroy( pthread_cond_t *cv )
+{
+	return( cond_destroy( cv ) );
+}
+
+int
+pthread_cond_wait( pthread_cond_t *cv, pthread_mutex_t *mp )
+{
+	return( cond_wait( cv, mp ) );
+}
+
+int
+pthread_cond_signal( pthread_cond_t *cv )
+{
+	return( cond_signal( cv ) );
+}
+
+int
+pthread_cond_broadcast( pthread_cond_t *cv )
+{
+	return( cond_broadcast( cv ) );
+}
+#endif /* ! sunos56 */
+
+#elif defined( HAVE_LWP )
+
+/*************
+ *           *
+ * SunOS LWP *
+ *           *
+ *************/
 
 extern stkalign_t	*get_stack();
 static void		lwp_create_stack();
@@ -44,7 +351,7 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )
@@ -168,177 +475,8 @@ pthread_cond_broadcast( pthread_cond_t *cv )
 	return( cv->lcv_created ? cv_broadcast( cv->lcv_cv ) : 0 );
 }
 
-#else /* end sunos4 */
 
-#  if defined( THREAD_SUNOS5_LWP )
-
-/***********************************************************************
- *                                                                     *
- * under sunos 5 - use the built in preemptive solaris threads package *
- *                                                                     *
- ***********************************************************************/
-
-int
-pthread_attr_init( pthread_attr_t *attr )
-{
-	*attr = 0;
-	return( 0 );
-}
-
-int
-pthread_attr_destroy( pthread_attr_t *attr )
-{
-	*attr = 0;
-	return( 0 );
-}
-
-int
-pthread_attr_getdetachstate( pthread_attr_t *attr, int *detachstate )
-{
-	*detachstate = *attr;
-	return( 0 );
-}
-
-int
-pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
-{
-	*attr = detachstate;
-	return( 0 );
-}
-
-/* ARGSUSED */
-int
-pthread_create(
-    pthread_t		*tid,
-    pthread_attr_t	attr,
-    VFP			func,
-    void		*arg
-)
-{
-	return( thr_create( NULL, 0, func, arg, attr, tid ) );
-}
-
-void
-pthread_yield()
-{
-	thr_yield();
-}
-
-void
-pthread_exit()
-{
-	thr_exit( NULL );
-}
-
-void
-pthread_join( pthread_t tid, int *status )
-{
-	thr_join( tid, NULL, (void **) status );
-}
-
-void
-pthread_kill( pthread_t tid, int sig )
-{
-	thr_kill( tid, sig );
-}
-
-/* ARGSUSED */
-int
-pthread_mutex_init( pthread_mutex_t *mp, pthread_mutexattr_t *attr )
-{
-	return( mutex_init( mp, attr ? *attr : USYNC_THREAD, NULL ) );
-}
-
-int
-pthread_mutex_destroy( pthread_mutex_t *mp )
-{
-	return( mutex_destroy( mp ) );
-}
-
-int
-pthread_mutex_lock( pthread_mutex_t *mp )
-{
-	return( mutex_lock( mp ) );
-}
-
-int
-pthread_mutex_unlock( pthread_mutex_t *mp )
-{
-	return( mutex_unlock( mp ) );
-}
-
-int
-pthread_mutex_trylock( pthread_mutex_t *mp )
-{
-	return( mutex_trylock( mp ) );
-}
-
-int
-pthread_cond_init( pthread_cond_t *cv, pthread_condattr_t *attr )
-{
-	return( cond_init( cv, attr ? *attr : USYNC_THREAD, NULL ) );
-}
-
-int
-pthread_cond_destroy( pthread_cond_t *cv )
-{
-	return( cond_destroy( cv ) );
-}
-
-int
-pthread_cond_wait( pthread_cond_t *cv, pthread_mutex_t *mp )
-{
-	return( cond_wait( cv, mp ) );
-}
-
-int
-pthread_cond_signal( pthread_cond_t *cv )
-{
-	return( cond_signal( cv ) );
-}
-
-int
-pthread_cond_broadcast( pthread_cond_t *cv )
-{
-	return( cond_broadcast( cv ) );
-}
-
-
-#else /* end sunos5 threads */
-
-#if defined( THREAD_MIT_PTHREADS )
-
-/***********************************************************************
- *                                                                     *
- * pthreads package by Chris Provenzano of MIT - provides all the      *
- * pthreads calls already, so no mapping to do                         *
- *                                                                     *
- ***********************************************************************/
-
-#else /* end mit pthreads */
-
-#if defined( THREAD_DCE_PTHREADS )
-
-/***********************************************************************
- *                                                                     *
- * pthreads package with DCE - no mapping to do (except to create a    *
- * pthread_kill() routine)                                             *
- *                                                                     *
- ***********************************************************************/
-
-/* ARGSUSED */
-void
-pthread_kill( pthread_t tid, int sig )
-{
-	kill( getpid(), sig );
-}
-
-#endif /* dce pthreads */
-#endif /* mit pthreads */
-#endif /* sunos5 lwp */
-#endif /* sunos4 lwp */
-
-#ifndef _THREAD
+#else
 
 /***********************************************************************
  *                                                                     *
@@ -379,7 +517,7 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 int
 pthread_create(
     pthread_t		*tid,
-    pthread_attr_t	attr,
+    pthread_attr_t	*attr,
     VFP			func,
     void		*arg
 )

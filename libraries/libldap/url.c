@@ -17,45 +17,28 @@
  *  We also tolerate URLs that look like: <ldapurl> and <URL:ldapurl>
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1996 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if defined( DOS ) || defined( _WIN32 )
-#include <stdlib.h>
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS || _WIN32 */
-
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* !MACOS && !DOS && !_WIN32 */
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
 
-#ifdef NEEDPROTOS
-static int skip_url_prefix( char **urlp, int *enclosedp );
-static void hex_unescape( char *s );
+static int skip_url_prefix LDAP_P(( char **urlp, int *enclosedp ));
+static void hex_unescape LDAP_P(( char *s ));
 static int unhex( char c );
-#else /* NEEDPROTOS */
-static int skip_url_prefix();
-static void hex_unescape();
-static int unhex();
-#endif /* NEEDPROTOS */
 
 
 int
@@ -305,10 +288,10 @@ ldap_url_search( LDAP *ld, char *url, int attrsonly )
 		ber_free( ber, 1 );
 	} else {
 #ifdef LDAP_REFERRALS
-		err = send_server_request( ld, ber, ld->ld_msgid, NULL, srv,
+		err = ldap_send_server_request( ld, ber, ld->ld_msgid, NULL, srv,
 		    NULL, 1 );
 #else /* LDAP_REFERRALS */
-		err = send_initial_request( ld, LDAP_REQ_SEARCH,
+		err = ldap_send_initial_request( ld, LDAP_REQ_SEARCH,
 		    ludp->lud_dn, ber );
 #endif /* LDAP_REFERRALS */
 	}

@@ -12,13 +12,17 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
 extern Backend	*select_backend();
+extern char	*suffixAlias();
 
 extern char	*default_referral;
 
@@ -29,7 +33,8 @@ do_bind(
 )
 {
 	BerElement	*ber = op->o_ber;
-	int		version, method, len, rc;
+	int		version, method, len;
+	unsigned long	rc;
 	char		*dn;
 	struct berval	cred;
 	Backend		*be;
@@ -50,7 +55,7 @@ do_bind(
 	 *	}
 	 */
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	/*
 	 * in version 3.0 there is an extra SEQUENCE tag after the
 	 * BindRequest SEQUENCE tag.
@@ -79,13 +84,13 @@ do_bind(
 		    "decoding error" );
 		return;
 	}
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		switch ( method ) {
 		case LDAP_AUTH_SIMPLE_30:
 			method = LDAP_AUTH_SIMPLE;
 			break;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		case LDAP_AUTH_KRBV41_30:
 			method = LDAP_AUTH_KRBV41;
 			break;
@@ -143,13 +148,20 @@ do_bind(
 			free( cred.bv_val );
 		}
 		if ( cred.bv_len == 0 ) {
-			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL );
+		} else if ( default_referral && *default_referral ) {
+			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS,
+				NULL, default_referral );
 		} else {
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-			    default_referral );
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, default_referral );
 		}
 		return;
 	}
+
+        /* alias suffix */
+        dn = suffixAlias ( dn, op, be );
 
 	if ( be->be_bind != NULL ) {
 		if ( (*be->be_bind)( be, conn, op, dn, method, &cred ) == 0 ) {

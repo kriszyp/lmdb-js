@@ -10,14 +10,17 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "ud.h"
 
 extern char *search_base;	/* search base */
@@ -222,9 +225,12 @@ int quiet;
 			ld->ld_deref = savederef;
 			return(NULL);
 		} else if (matches == 1) {
-			if (ldap_search_s(ld, ldap_get_dn(ld, ldap_first_entry(ld, res)), LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res) != LDAP_SUCCESS) {
+			dn = ldap_get_dn(ld, ldap_first_entry(ld, res));
+			rc = ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res);
+			Free(dn);
+			if (rc != LDAP_SUCCESS) {
 				if (ld->ld_errno == LDAP_UNAVAILABLE)
-					printf("  Could not contact the X.500 server to find \"%s\".\n", who);
+					printf("  Could not contact the LDAP server to find \"%s\".\n", who);
 				else
 					ldap_perror(ld, "ldap_search_s");
 				return(NULL);
@@ -232,8 +238,7 @@ int quiet;
 			ld->ld_deref = savederef;
 			return(res);
 		} else if (matches > 1 ) {
-			return( disambiguate( ld, res, matches, read_attrs,
-			    who ) );
+			return disambiguate( res, matches, read_attrs, who );
 		}
 		ld->ld_deref = savederef;
 	}
@@ -287,7 +292,10 @@ int quiet;
 				fflush(stdout);
 				fetch_buffer(response, sizeof(response), stdin);
 				if ((response[0] == 'n') || (response[0] == 'N'))
+				{
+					Free(dn);
 					return(NULL);
+				}
 			}
 #ifdef DEBUG
 			if (debug & D_FIND) {
@@ -306,7 +314,7 @@ int quiet;
 			if (ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res) != LDAP_SUCCESS) {
 				ldap_perror(ld, "ldap_search_s");
 				ldap_msgfree(res);
-				return(NULL);
+				res = NULL;
 			}
 			Free(dn);
 			return(res);

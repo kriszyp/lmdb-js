@@ -10,22 +10,32 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <memory.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <syslog.h>
-#include <sys/param.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <sysexits.h>
 #include "portable.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/wait.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
+#include <sys/resource.h>
+
+#include <sysexits.h>
 
 #include "lber.h"
 #include "ldap.h"
 #include "ldapconfig.h"
+
+#ifndef MAIL500_BOUNCEFROM
+#define MAIL500_BOUNCEFROM "<>"
+#endif
 
 #define USER		0x01
 #define GROUP_ERRORS	0x02
@@ -734,7 +744,8 @@ do_group( e, dn, to, nto, togroups, ngroups, err, nerr )
 		/* else from the moderator - fall through and deliver it */
 	}
 
-	if ( has_attributes( e, "rfc822ErrorsTo", "errorsTo" ) ) {
+	if (strcmp(MAIL500_BOUNCEFROM, mailfrom) != 0 &&
+	    has_attributes( e, "rfc822ErrorsTo", "errorsTo" ) ) {
 		add_group( dn, togroups, ngroups );
 
 		return( 0 );
@@ -1029,7 +1040,7 @@ send_message( to )
     char	**to;
 {
 	int	pid;
-#ifndef USE_WAITPID
+#ifndef HAVE_WAITPID
 	WAITSTATUSTYPE	status;
 #endif
 
@@ -1048,7 +1059,7 @@ send_message( to )
 
 	/* parent */
 	if ( pid = fork() ) {
-#ifdef USE_WAITPID
+#ifdef HAVE_WAITPID
 		waitpid( pid, (int *) NULL, 0 );
 #else
 		wait4( pid, &status, WAIT_FLAGS, 0 );
@@ -1073,7 +1084,7 @@ send_group( group, ngroup )
 	char	**argv;
 	int	argc;
 	char	*iargv[7];
-#ifndef USE_WAITPID
+#ifndef HAVE_WAITPID
 	WAITSTATUSTYPE	status;
 #endif
 
@@ -1108,7 +1119,7 @@ send_group( group, ngroup )
 
 		/* parent */
 		if ( pid = fork() ) {
-#ifdef USE_WAITPID
+#ifdef HAVE_WAITPID
 			waitpid( pid, (int *) NULL, 0 );
 #else
 			wait4( pid, &status, WAIT_FLAGS, 0 );
@@ -1136,16 +1147,20 @@ send_errors( err, nerr )
 	int	fd[2];
 	char	*argv[8];
 	char	buf[1024];
-#ifndef USE_WAITPID
+#ifndef HAVE_WAITPID
 	WAITSTATUSTYPE	status;
 #endif
+
+	if ( strcmp( MAIL500_BOUNCEFROM, mailfrom ) == 0 ) {
+	    mailfrom = errorsfrom;
+	}
 
 	argv[0] = MAIL500_SENDMAIL;
 	argv[1] = "-oMrX.500";
 	argv[2] = "-odi";
 	argv[3] = "-oi";
 	argv[4] = "-f";
-	argv[5] = errorsfrom;
+	argv[5] = MAIL500_BOUNCEFROM;
 	argv[6] = mailfrom;
 	argv[7] = NULL;
 
@@ -1255,7 +1270,7 @@ send_errors( err, nerr )
 		}
 		fclose( fp );
 
-#ifdef USE_WAITPID
+#ifdef HAVE_WAITPID
 		waitpid( pid, (int *) NULL, 0 );
 #else
 		wait4( pid, &status, WAIT_FLAGS, 0 );

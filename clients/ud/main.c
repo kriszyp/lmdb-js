@@ -16,34 +16,29 @@
  *	Simon Fraser University, Academic Computing Services
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#if defined(NeXT)
 #include <stdlib.h>
-#include <sys/file.h>
-#else NeXT
-#include <unistd.h>
-#endif NeXT
-#include <pwd.h>
-#include <string.h>
-#ifndef DOS
-#if defined( NeXT ) || defined( ultrix ) || defined( osf1 ) || (defined(SunOS) && SunOS < 40)
-#include <sgtty.h>
-#else /* defined( NeXT ) || defined( ultrix ) etc. */
-#include <termios.h>
-#endif /* defined( NeXT ) || defined( ultrix ) etc. */
-#endif /* !DOS */
-#if defined( aix ) || defined( __NetBSD__ )
-#include <sys/ioctl.h>
-#endif /* aix || __NetBSD__ */
-#include <ctype.h>
-#include <signal.h>
 #include <setjmp.h>
-#include <memory.h>
+
+#ifdef HAVE_PWD_H
+#include <pwd.h>
+#endif
+
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/termios.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
-#include "portable.h"
 #include "ud.h"
 
 #ifndef lint
@@ -68,8 +63,8 @@ static int dereference = TRUE;
 char *default_bind_object = UD_BINDDN;
 
 char *bound_dn;			/* bound user's Distinguished Name */
-char *group_base;		/* place in X.500 tree where groups are */
-char *search_base;		/* place in X.500 tree where searches start */
+char *group_base;		/* place in LDAP tree where groups are */
+char *search_base;		/* place in LDAP tree where searches start */
 
 static jmp_buf env;		/* spot to jump to on an interrupt */
 
@@ -85,6 +80,9 @@ LDAPFiltDesc *lfdp;		/* LDAP filter descriptor */
 int debug;			/* debug flag */
 #endif
 
+extern void initialize_client();
+extern void initialize_attribute_strings();
+
 main(argc, argv)
 int argc;
 char *argv[];
@@ -93,7 +91,6 @@ char *argv[];
 	extern char *optarg;			/* for parsing argv */
 	register int c;				/* for parsing argv */
 	register char *cp;			/* for parsing Version */
-	extern void initialize_attribute_strings();
 
 	verbose = 1;
 
@@ -278,7 +275,7 @@ do_commands()
 	printf(" Thank you!\n");
 	
 	ldap_unbind(ld);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
 	exit(0);
@@ -374,7 +371,7 @@ char **base, *s;
 	}
 
 	/*
-	 *  User wants to ascend one level in the X.500 tree.
+	 *  User wants to ascend one level in the LDAP tree.
 	 *  Easy:  Just strip off the first element of the
 	 *  current search base, unless it's the root, in
 	 *  which case we just do nothing.
@@ -531,7 +528,7 @@ char **base, *s;
 	}
 }
 
-initialize_client()
+void initialize_client()
 {
 	FILE *fp;				/* for config file */
 	static char buffer[MED_BUF_SIZE];	/* for input */
@@ -540,7 +537,7 @@ initialize_client()
 	char *term;				/* for tty set-up */
 	char *config;				/* config file to use */
 	static char bp[1024];			/* for tty set-up */
-	extern SIG_FN attn();			/* ^C signal handler */
+	extern RETSIGTYPE attn();			/* ^C signal handler */
 	extern char *getenv();
 	extern void Free();
 
@@ -552,6 +549,7 @@ initialize_client()
 	 *  A per-user config file has precedence over any system-wide
 	 *  config file, if one exists.
 	 */
+#ifdef HAVE_GETPWUID_H
 	if ((pw = getpwuid((uid_t) geteuid())) == (struct passwd *) NULL)
 		config = config_file;
 	else {
@@ -566,6 +564,7 @@ initialize_client()
 				config = config_file;
 		}
 	}
+#endif /* getpwduid() */
 #ifdef DEBUG
 	if (debug & D_INITIALIZE)
 		printf("Using config file %s\n", config);
@@ -627,13 +626,13 @@ initialize_client()
 	 *  because we want to be sure to use TCP, not UDP.
 	 */
 	if ((ld = ldap_open(server, ldap_port)) == NULL) {
-		fprintf(stderr, "  The X.500 Directory is temporarily unavailable.  Please try again later.\n");
+		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
 		exit(0);
 		/* NOTREACHED */
 	}
-	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_PASSWD,
+	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_BIND_CRED,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
-		fprintf(stderr, "  The X.500 Directory is temporarily unavailable.  Please try again later.\n");
+		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
 		if (ld->ld_errno != LDAP_UNAVAILABLE)
 			ldap_perror(ld, "  ldap_bind_s");
 		exit(0);
@@ -648,11 +647,7 @@ initialize_client()
 	}
 
 	/* enabled local caching of ldap results, 15 minute lifetime */
-#ifdef DOS
-	ldap_enable_cache( ld, 60 * 15, 100 * 1024 );	/* 100k max memory */
-#else /* DOS */
 	ldap_enable_cache( ld, 60 * 15, 0 );		/* no memory limit */
-#endif /* DOS */
 
 	/* initialize the search filters */
 	if ((lfdp = ldap_init_getfilter(filter_file)) == NULL) {
@@ -665,21 +660,23 @@ initialize_client()
 	lpp = DEFAULT_TTY_HEIGHT;
 	col_size = DEFAULT_TTY_WIDTH;
 
-	(void) signal(SIGINT, attn);
+	(void) SIGNAL (SIGINT, attn);
 
-#if !defined(DOS) && !defined(NOTERMCAP)
+#ifndef NO_TERMCAP
 	{
 	struct winsize win;			/* for tty set-up */
-	extern SIG_FN chwinsz();		/* WINSZ signal handler */
+	extern RETSIGTYPE chwinsz();		/* WINSZ signal handler */
 
 	if (((term = getenv("TERM")) == NULL) || (tgetent(bp, term) <= 0))
 		return;
 	else {
+#ifdef TIOCGWINSZ
 		if (ioctl(fileno(stdout), TIOCGWINSZ, &win) < 0) {
 			lpp = tgetnum("li");
 			col_size = tgetnum("co");
-		}
-		else {
+		} else
+#endif
+		{
 			if ((lpp = win.ws_row) == 0)
 				lpp = tgetnum("li");
 			if ((col_size = win.ws_col) == 0)
@@ -690,35 +687,36 @@ initialize_client()
 				col_size = DEFAULT_TTY_WIDTH;
 		}
 	}
-	(void) signal(SIGWINCH, chwinsz);
+	(void) SIGNAL (SIGWINCH, chwinsz);
 
 	}
 #endif
 }
 
-SIG_FN attn()
+RETSIGTYPE attn()
 {
 	fflush(stderr);
 	fflush(stdout);
 	printf("\n\n  INTERRUPTED!\n");
-#if defined(DOS) || defined(SYSV)
-	(void) signal(SIGINT, attn);
-#endif
+
+	(void) SIGNAL (SIGINT, attn);
+
 	longjmp(env, 1);
 }
 
-#if !defined(DOS) && !defined(NOTERMCAP)
-SIG_FN chwinsz() 
+#ifndef NO_TERMCAP
+RETSIGTYPE chwinsz() 
 {
 	struct winsize win;
 
-	(void) signal(SIGWINCH, SIG_IGN);
+	(void) SIGNAL (SIGWINCH, SIG_IGN);
 	if (ioctl(fileno(stdout), TIOCGWINSZ, &win) != -1) {
 		if (win.ws_row != 0)
 			lpp = win.ws_row;
 		if (win.ws_col != 0)
 			col_size = win.ws_col;
 	}
-	(void) signal(SIGWINCH, chwinsz);
+
+	(void) SIGNAL (SIGWINCH, chwinsz);
 }
 #endif

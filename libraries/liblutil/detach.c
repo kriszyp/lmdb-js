@@ -23,8 +23,7 @@
 #include <sys/file.h>
 #include <sys/ioctl.h>
 
-#include "portable.h"
-
+#include "lutil.h"
 
 /* I'd really like to make do_close an fd_set, but that isn't portable. */
 void

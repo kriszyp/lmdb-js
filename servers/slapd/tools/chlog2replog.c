@@ -16,10 +16,13 @@
  * slapd/slurpd locking conventions.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
 
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
@@ -31,7 +34,7 @@ static void de_t61();
 
 extern FILE *lock_fopen( char *, char *, FILE ** );
 extern int lock_fclose( FILE *, FILE * );
-extern char *ch_realloc( char *, unsigned long ); 
+extern void *ch_realloc( void *, unsigned long ); 
 
 short	ldap_dn_syntax;
 PS	rps;

@@ -17,7 +17,6 @@ extern pthread_mutex_t	currenttime_mutex;
 extern IDList		*idl_alloc();
 extern Attribute	*attr_find();
 extern IDList		*filter_candidates();
-extern char		*ch_realloc();
 extern char		*dn_parent();
 
 static IDList	*base_candidates();

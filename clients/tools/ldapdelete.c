@@ -34,6 +34,7 @@ static int dodelete LDAP_P((
     LDAP	*ld,
     char	*dn));
 
+int
 main( argc, argv )
     int		argc;
     char	**argv;

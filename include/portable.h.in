@@ -109,8 +109,11 @@ is provided ``as is'' without express or implied warranty.
 /* define this if needed to get reentrant functions */
 #undef _REENTRANT
 
-/* define this if needed to get threadsafe functions */
+/* define this if needed to get thread safe functions */
 #undef _THREAD_SAFE
+
+/* define this if needed to get thread safe functions */
+#undef _THREADSAFE
 
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
@@ -127,11 +130,14 @@ is provided ``as is'' without express or implied warranty.
 /* define if you have crypt */
 #undef HAVE_CRYPT
 
-/* define if you have DCE */
-#undef HAVE_DCE
+/* define if you have DSAP */
+#undef HAVE_DSAP
 
 /* define if you have GDBM */
 #undef HAVE_GDBM
+
+/* define if you have ISODE */
+#undef HAVE_ISODE
 
 /* define if you have Kerberos */
 #undef HAVE_KERBEROS
@@ -147,6 +153,12 @@ is provided ``as is'' without express or implied warranty.
 
 /* define if you have NDBM */
 #undef HAVE_NDBM
+
+/* define if you have Mach CThreads */
+#undef HAVE_MACH_CTHREADS
+
+/* define if you have PP */
+#undef HAVE_PP
 
 /* define if you have a preemptive POSIX Threads implementation */
 #undef HAVE_PREEMPTIVE_PTHREADS
@@ -177,6 +189,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* define if you have Sun LWP (Solaris style) */
 #undef HAVE_THR
+
+/* define if you have XTPP */
+#undef HAVE_XTPP
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
@@ -256,6 +271,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the getopt function.  */
 #undef HAVE_GETOPT
 
+/* Define if you have the getpwuid function.  */
+#undef HAVE_GETPWUID
+
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
@@ -274,6 +292,24 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
 
+/* Define if you have the pthread_attr_create function.  */
+#undef HAVE_PTHREAD_ATTR_CREATE
+
+/* Define if you have the pthread_attr_delete function.  */
+#undef HAVE_PTHREAD_ATTR_DELETE
+
+/* Define if you have the pthread_attr_destroy function.  */
+#undef HAVE_PTHREAD_ATTR_DESTROY
+
+/* Define if you have the pthread_attr_init function.  */
+#undef HAVE_PTHREAD_ATTR_INIT
+
+/* Define if you have the pthread_attr_setdetach_np function.  */
+#undef HAVE_PTHREAD_ATTR_SETDETACH_NP
+
+/* Define if you have the pthread_attr_setdetachstate function.  */
+#undef HAVE_PTHREAD_ATTR_SETDETACHSTATE
+
 /* Define if you have the pthread_kill function.  */
 #undef HAVE_PTHREAD_KILL
 
@@ -282,6 +318,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the pthread_yield function.  */
 #undef HAVE_PTHREAD_YIELD
+
+/* Define if you have the res_search function.  */
+#undef HAVE_RES_SEARCH
 
 /* Define if you have the sched_yield function.  */
 #undef HAVE_SCHED_YIELD
@@ -409,6 +448,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <pthread.h> header file.  */
 #undef HAVE_PTHREAD_H
 
+/* Define if you have the <pwd.h> header file.  */
+#undef HAVE_PWD_H
+
 /* Define if you have the <regex.h> header file.  */
 #undef HAVE_REGEX_H
 
@@ -447,6 +489,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the <sys/param.h> header file.  */
 #undef HAVE_SYS_PARAM_H
+
+/* Define if you have the <sys/resource.h> header file.  */
+#undef HAVE_SYS_RESOURCE_H
 
 /* Define if you have the <sys/socket.h> header file.  */
 #undef HAVE_SYS_SOCKET_H
@@ -492,6 +537,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the nsl_s library (-lnsl_s).  */
 #undef HAVE_LIBNSL_S
+
+/* Define if you have the resolv library (-lresolv).  */
+#undef HAVE_LIBRESOLV
 
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET

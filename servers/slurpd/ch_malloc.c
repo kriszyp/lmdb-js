@@ -28,14 +28,14 @@
  * Just like malloc, except we check the returned value and exit
  * if anything goes wrong.
  */
-char *
+void *
 ch_malloc(
     unsigned long	size
 )
 {
-	char	*new;
+	void	*new;
 
-	if ( (new = (char *) malloc( size )) == NULL ) {
+	if ( (new = (void *) malloc( size )) == NULL ) {
 		fprintf( stderr, "malloc of %lu bytes failed\n", size );
 		exit( 1 );
 	}
@@ -50,19 +50,19 @@ ch_malloc(
  * Just like realloc, except we check the returned value and exit
  * if anything goes wrong.
  */
-char *
+void *
 ch_realloc(
-    char		*block,
+    void		*block,
     unsigned long	size
 )
 {
-	char	*new;
+	void	*new;
 
 	if ( block == NULL ) {
 		return( ch_malloc( size ) );
 	}
 
-	if ( (new = (char *) realloc( block, size )) == NULL ) {
+	if ( (new = (void *) realloc( block, size )) == NULL ) {
 		fprintf( stderr, "realloc of %lu bytes failed\n", size );
 		exit( 1 );
 	}
@@ -77,15 +77,15 @@ ch_realloc(
  * Just like calloc, except we check the returned value and exit
  * if anything goes wrong.
  */
-char *
+void *
 ch_calloc(
     unsigned long	nelem,
     unsigned long	size
 )
 {
-	char	*new;
+	void	*new;
 
-	if ( (new = (char *) calloc( nelem, size )) == NULL ) {
+	if ( (new = (void *) calloc( nelem, size )) == NULL ) {
 		fprintf( stderr, "calloc of %lu elems of %lu bytes failed\n",
 		    nelem, size );
 		exit( 1 );
@@ -100,7 +100,7 @@ ch_calloc(
  */
 void
 ch_free(
-    char *p
+    void *p
 )
 {
     if ( p != NULL ) {

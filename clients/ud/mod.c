@@ -10,22 +10,28 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
-#include <sys/types.h>
 #include "ud.h"
+extern void Free();
 
 extern struct entry Entry; 
 extern int verbose;
 extern LDAP *ld;
 
 extern LDAPMessage *find();
+extern void * Malloc();
+
+static char * get_URL();
+static int check_URL();
 
 #ifdef DEBUG
 extern int debug;
@@ -109,7 +115,7 @@ char *who;
 	if (verbose && !printed_warning && (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)) {
 		printed_warning = 1;
 		printf("\n  WARNING!\n");
-		printf("  You are about to make a modification to an X.500 entry\n");
+		printf("  You are about to make a modification to an LDAP entry\n");
 		printf("  that has its \"automatic updates\" field set to ON.\n");
 		printf("  This means that the entry will be automatically updated\n");
 		printf("  each month from official University sources like the\n");
@@ -381,9 +387,6 @@ char *id, *prompt;
 	static char line[LINE_SIZE];	/* raw line from user */
 	static char buffer[MAX_DESC_LINES * LINE_SIZE];	/* holds ALL of the 
 							   lines we get */
-	extern void * Malloc();
-	static char * get_URL();
-
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->get_value(%s, %s)\n", id, prompt);
@@ -481,7 +484,7 @@ mail_is_good:
 			if (lmp == (LDAPMessage *) NULL) {
 				printf("  Could not find \"%s\" in the Directory\n", line);
 				if (verbose) 
-					format("Owners of groups must be valid entries in the X.500 Directory.  The name you have typed above could not be found in the X.500 Directory.", 72, 2);
+					format("Owners of groups must be valid entries in the LDAP Directory.  The name you have typed above could not be found in the LDAP Directory.", 72, 2);
 				return(NULL);
 			}
 			elmp = ldap_first_entry(ld, lmp);
@@ -491,6 +494,7 @@ mail_is_good:
 			}
 			tmp = ldap_get_dn(ld, elmp);
 			strcpy(buffer, tmp);
+			Free(tmp);
 			(void) ldap_msgfree(lmp);
 			break;
 		}
@@ -620,9 +624,9 @@ char *who;
 	if (verbose) {
 		printf("\n  By default, updates that are received from the Personnel\n");
 		printf("  Office and the Office of the Registrar are applied to all\n");
-		printf("  entries in the X.500 database each month.  Sometimes this\n");
+		printf("  entries in the LDAP database each month.  Sometimes this\n");
 		printf("  feature is undesirable.  For example, if you maintain your\n");
-		printf("  entry in the X.500 database manually, you may not want to\n");
+		printf("  entry in the LDAP database manually, you may not want to\n");
 		printf("  have these updates applied to your entry, possibly overwriting\n");
 		printf("  correct information with out-dated information.\n\n");
 	}
@@ -753,8 +757,6 @@ int group;
 static char * get_URL()
 {
 	char *rvalue, label[MED_BUF_SIZE], url[MED_BUF_SIZE];
-	static int check_URL();
-	extern void * Malloc();
 
 	if (verbose) {
 		printf("  First, enter the URL.  (Example: http://www.us.itd.umich.edu/users/).\n");

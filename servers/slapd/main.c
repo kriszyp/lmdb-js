@@ -187,7 +187,7 @@ main( argc, argv )
 		pthread_attr_init( &attr );
 		pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 
-#if !defined(HAVE_PTHREADS_D4) && !defined(HAVE_DCE)
+#if !defined(HAVE_PTHREADS_D4)
 		/* POSIX_THREADS or compatible
 		 * This is a draft 10 or standard pthreads implementation
 		 */

@@ -69,6 +69,14 @@ OL_ARG_ENABLE(shell,[    --enable-shell	enable shell backend], no)dnl
 dnl SLURPD OPTIONS
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
+# validate options
+if test $ol_enable_referrals = no ; then
+	if test $ol_enable_dns = yes ; then
+		AC_MSG_WARN([dns disabled, ignoring --enable-dns argument])
+	fi
+	ol_enable_dns=no
+fi
+
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
 	if test $ol_enable_ldbm = yes ; then
@@ -183,6 +191,7 @@ BUILD_SLURPD=no
 BUILD_LDBM=no
 BUILD_PASSWD=no
 BUILD_SHELL=no
+BUILD_THREAD=no
 
 KRB_LIBS=
 TERMCAP_LIBS=
@@ -215,7 +224,8 @@ elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
 	AC_ERROR([  if cross compiling,  add --enable-x-compile.])
 fi
 
-AC_PROG_GCC_TRADITIONAL
+dnl OpenLDAP requires STDC features
+dnl AC_PROG_GCC_TRADITIONAL
 AC_PROG_CPP
 
 
@@ -242,8 +252,41 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
+dnl Check for resolv
+AC_CHECK_LIB(resolv, res_search)
+
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
+
+# ISODE tests
+ol_link_isode=no
+if test $ol_enable_ldapd != no ; then
+	dnl look for ISODE libraries
+	AC_CHECK_LIB(xtpp, main, [
+		ol_link_isode=yes
+		AC_DEFINE(HAVE_XTPP,1)
+		LDAPD_LIBS="$LDAPD_LIBS -lxtpp -lxtdsap -lxtisode -losi"
+		],:,[-lxtdsap -lxtisode -losi])
+	AC_CHECK_LIB(dsap, main, [
+		ol_link_isode=yes
+		AC_DEFINE(HAVE_DSAP,1)
+		LDAPD_LIBS="$LDAPD_LIBS -ldsap"
+		],:,[-lisode])
+	AC_CHECK_LIB(isode, main, [
+		ol_link_isode=yes
+		AC_DEFINE(HAVE_ISODE,1)
+		LDAPD_LIBS="$LDAPD_LIBS -lisode"
+		],:)
+fi
+
+if test $ol_link_isode != no; then
+	AC_CHECK_LIB(pp, main, [
+		AC_DEFINE(HAVE_PP,1)
+		LDAPD_LIBS="-lpp $LDAPD_LIBS"
+		],:)
+
+	AC_PATH_PROG(PEPSY, pepsy)
+fi
 
 if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
@@ -313,12 +356,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			dnl try -pthread
 			AC_CACHE_CHECK([for pthread_create with -pthread],
 				[ol_cv_pthread_flag], [
-				dnl save the CPPFLAGS
+				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-pthread $LIBS"
-				AC_TRY_LINK([#include <pthread.h>],[
-					pthread_create((pthread_t*) 0,
-						(pthread_attr_t*) 0, 0, 0);
+				AC_TRY_LINK([char pthread();],[
+					pthread_create();
 					], ol_cv_pthread_flag=yes, ol_cv_pthread_flag=no)
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
@@ -328,6 +370,52 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
 				ol_link_threads=posix
 			fi
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try -thread
+			AC_CACHE_CHECK([for pthread_create with -thread],
+				[ol_cv_thread_flag], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="-thread $LIBS"
+				AC_TRY_LINK([char pthread();],[
+					pthread_create();
+					], ol_cv_thread_flag=yes, ol_cv_thread_flag=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_thread_flag = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -thread"
+				ol_link_threads=posix
+			fi
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try DEC Threads -lpthread -lexc
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthread, pthread_join, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lexc"
+				if test $ol_with_preemptive = auto ; then
+					ol_with_preemptive=yes
+				fi
+				],,[-lexc])
+			LIBS="$save_LIBS"
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try DEC Threads -lpthreads -lmach -lexc -lc_r
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthreads, pthread_join, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
+				if test $ol_with_preemptive = auto ; then
+					ol_with_preemptive=yes
+				fi
+				],,[-lmach -lexc -lc_r])
+			LIBS="$save_LIBS"
 		fi
 
 		if test $ol_link_threads = no ; then
@@ -348,24 +436,10 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			LIBS="$save_LIBS"
 		fi
 
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_create, [
-				AC_DEFINE(HAVE_DCE)
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"
-				if test $ol_with_preemptive = auto ; then
-					ol_with_preemptive=yes
-				fi
-				],,[-lmach -lexc -lc])
-			LIBS="$save_LIBS"
-		fi
-
 		if test $ol_link_threads != no ; then
 			AC_DEFINE(HAVE_PTHREADS)
 
-			dnl save DEFS/LIBS
+			dnl save flags
 			save_CPPFLAGS="$CPPFLAGS"
 			save_LIBS="$LIBS"
 			LIBS="$LTHREAD_LIBS $LIBS"
@@ -401,11 +475,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 			dnl Check functions for compatibility
 			AC_CHECK_FUNCS(pthread_kill)
-dnl			AC_CHECK_FUNCS( \
-dnl				pthread_attr_create pthread_attr_init \
-dnl				pthread_attr_destroy pthread_attr_delete \
-dnl				pthread_attr_setdetachstate pthread_attr_setdetach_np \
-dnl			)
+			AC_CHECK_FUNCS( \
+				pthread_attr_create pthread_attr_init \
+				pthread_attr_destroy pthread_attr_delete \
+				pthread_attr_setdetachstate pthread_attr_setdetach_np \
+			)
 
 			dnl Check for setconcurreny functions
 			AC_CHECK_FUNCS(	\
@@ -448,9 +522,11 @@ int argc; char **argv;
 
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
 	(void) pthread_setconcurrency(2);
-#elif HAVE_THR_SETCONCURRENCY
+#else
+#ifdef HAVE_THR_SETCONCURRENCY
 	/* Set Solaris LWP concurrency to 2 */
 	thr_setconcurrency(2);
+#endif
 #endif
 
 	pthread_create(&t, NULL, (void *) task, NULL);
@@ -458,7 +534,7 @@ int argc; char **argv;
 #if HAVE_SCHED_YIELD
 	sched_yield();	/* make sure task runs first */
 #else
-#if defined(HAVE_PTHREAD_YIELD)
+#ifdef HAVE_PTHREAD_YIELD
 	pthread_yield();	/* make sure task runs first */
 #endif
 #endif
@@ -485,7 +561,7 @@ dnl				gmtime_r \
 dnl				strtok_r \
 dnl			)
 
-			dnl restore DEFS/LIBS
+			dnl restore flags
 			CPPFLAGS="$save_CPPFLAGS"
 			LIBS="$save_LIBS"
 		else
@@ -512,7 +588,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 			dnl this test needs work
 			AC_CACHE_CHECK([for cthread_fork with -all_load],
 				[ol_cv_cthread_all_load], [
-				dnl save the CPPFLAGS
+				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-all_load $LIBS"
 				AC_TRY_LINK([#include <mach/cthreads.h>],[
@@ -530,6 +606,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 
 		if test $ol_link_threads != no ; then
 			: check for cthread specific functionality here
+			AC_DEFINE(HAVE_MACH_CTHREADS,1)
 		else
 			AC_MSG_ERROR([could not link with Mach CThreads])
 		fi
@@ -591,7 +668,7 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
-if test $ol_with_threads = yes ; then
+if test $ol_with_threads != no ; then
 	dnl needed to get reentrant/threadsafe versions
 	dnl
 	dnl hopefully this will not cause problems with
@@ -599,6 +676,7 @@ if test $ol_with_threads = yes ; then
 	dnl
 	AC_DEFINE(_REENTRANT,1)
 	AC_DEFINE(_THREAD_SAFE,1)
+	AC_DEFINE(_THREADSAFE,1)
 fi
 
 dnl ----------------------------------------------------------------
@@ -815,12 +893,14 @@ AC_CHECK_HEADERS(	\
 	limits.h		\
 	malloc.h		\
 	regex.h			\
+	pwd.h			\
 	sgtty.h			\
 	sys/file.h		\
 	sys/filio.h		\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
+	sys/resource.h	\
 	sys/socket.h	\
 	sys/syslog.h	\
 	sys/time.h		\
@@ -870,11 +950,13 @@ AC_CHECK_FUNCS(		\
 	gethostname		\
 	gettimeofday	\
 	getdtablesize	\
+	getpwuid		\
 	lockf			\
 	memcpy			\
 	memmove			\
 	mkstemp			\
 	mktime			\
+	res_search		\
 	select			\
 	setpwfile		\
 	setsid			\
@@ -970,7 +1052,7 @@ if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
 	BUILD_SLURPD=yes
 fi
 
-if test $ol_enable_ldapd != no ; then
+if test $ol_link_isode != no ; then
 	BUILD_LDAPD=yes
 fi
 
@@ -998,12 +1080,6 @@ AC_SUBST(TERMCAP_LIBS)
 dnl ----------------------------------------------------------------
 dnl final output
 dnl
-
-dnl AC_OUTPUT( \
-dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
-dnl contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
-dnl contrib/whois++/Makefile:build/top.mk:contrib/whois++/Makefile.in:build/rules.mk \
-dnl [date > stamp-h])
 
 AC_OUTPUT( \
 Makefile:build/top.mk:Makefile.in:build/dir.mk \

@@ -111,7 +111,10 @@ cldap_open( char *host, int port )
 		}
 	    }
 
-	    if ( (address = inet_addr( host )) == (unsigned long) -1L ) {
+	    address = inet_addr( host );
+	    /* This was just a test for -1 until OSF1 let inet_addr return
+	       unsigned int, which is narrower than 'unsigned long address' */
+	    if ( address == 0xffffffff || address == (unsigned long) -1 ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
 		    errno = EHOSTUNREACH;
 		    continue;

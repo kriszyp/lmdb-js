@@ -13,21 +13,18 @@
  * Routines for parsing the facsimileTelephoneNumber field out of
  * an X.500 entry and converting it to a "tpc.int" domain name.
  *
- * char *faxtotpc(str)
- * char *str;
+ * char *faxtotpc( char *str, char *userinfo)
  *
  * faxtotpc() returns a pointer to a string allocated with malloc(3).
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
+
 #include <sys/types.h>
-
-#ifdef ultrix
-extern char *strdup();
-#endif
-
+#include <ac/string.h>
 
 #define	TPCDOMAIN	"tpc.int"
 

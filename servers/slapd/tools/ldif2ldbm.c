@@ -1,23 +1,24 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include <sys/param.h>
+
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
+#include "ldapconfig.h"
+#include "ldif.h"
 
-#define DEFAULT_CONFIGFILE	"%ETCDIR%/slapd.conf"
-#define DEFAULT_ETCDIR		"%ETCDIR%"
 #define INDEXCMD		"ldif2index"
 #define ID2ENTRYCMD		"ldif2id2entry"
 #define ID2CHILDRENCMD		"ldif2id2children"
 #define MAXARGS      		100
 
-extern void		attr_index_config();
-extern char		*str_getline();
-extern int		strcasecmp();
 extern int		nbackends;
-extern Backend		*backends;
+extern Backend	*backends;
 extern int		ldap_debug;
 
 int		ldap_debug;
@@ -40,8 +41,8 @@ pthread_mutex_t	replog_mutex;
 pthread_mutex_t	ops_mutex;
 pthread_mutex_t	regex_mutex;
 
-static void	fork_child();
-static void	wait4kids();
+static void fork_child( char *prog, char *args[] );
+static void	wait4kids( int nkidval );
 
 static char	*indexcmd;
 static char	*tailorfile;
@@ -52,14 +53,14 @@ static int      nkids;
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-j #jobs] [-n databasenumber] [-e etcdir]\n", name );
+	fprintf( stderr, "usage: %s -i inputfile [-d debuglevel] [-f configfile] [-j #jobs] [-n databasenumber] [-s sbindir]\n", name );
 	exit( 1 );
 }
 
 main( int argc, char **argv )
 {
 	int		i, stop, status;
-	char		*linep, *buf, *etcdir;
+	char		*linep, *buf, *sbindir;
 	char		*args[10];
 	char		buf2[20], buf3[20];
 	char		line[BUFSIZ];
@@ -74,17 +75,18 @@ main( int argc, char **argv )
 	Avlnode		*avltypes = NULL;
 	extern char	*optarg;
 
-	etcdir = DEFAULT_ETCDIR;
-	tailorfile = DEFAULT_CONFIGFILE;
+	sbindir = DEFAULT_SBINDIR;
+	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
-	while ( (i = getopt( argc, argv, "d:e:f:i:j:n:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "d:e:s:f:i:j:n:" )) != EOF ) {
 		switch ( i ) {
 		case 'd':	/* turn on debugging */
 			ldap_debug = atoi( optarg );
 			break;
 
-		case 'e':	/* alternate etcdir (index cmd location) */
-			etcdir = strdup( optarg );
+		case 's':	/* alternate sbindir (index cmd location) */
+		case 'e':	/* accept -e for backwards compatibility */
+			sbindir = strdup( optarg );
 			break;
 
 		case 'f':	/* specify a tailor file */
@@ -135,7 +137,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "No ldbm database found in config file\n" );
 			exit( 1 );
 		}
-	} else if ( dbnum < 0 || dbnum > nbackends ) {
+	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr, "Database number selected via -n is out of range\n" );
 		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
 		exit( 1 );
@@ -150,14 +152,14 @@ main( int argc, char **argv )
 	 */
 
 	i = 0;
-	sprintf( cmd, "%s/%s", etcdir, ID2ENTRYCMD );
+	sprintf( cmd, "%s/%s", sbindir, ID2ENTRYCMD );
 	args[i++] = cmd;
 	args[i++] = "-i";
 	args[i++] = inputfile;
 	args[i++] = "-f";
 	args[i++] = tailorfile;
 	args[i++] = "-n";
-	sprintf( buf2, "%d", dbnum );
+	sprintf( buf2, "%d", dbnum+1 );
 	args[i++] = buf2;
 	if ( ldap_debug ) {
 		sprintf( buf3, "%d", ldap_debug );
@@ -172,14 +174,14 @@ main( int argc, char **argv )
 	 */
 
 	i = 0;
-	sprintf( cmd, "%s/%s", etcdir, ID2CHILDRENCMD );
+	sprintf( cmd, "%s/%s", sbindir, ID2CHILDRENCMD );
 	args[i++] = cmd;
 	args[i++] = "-i";
 	args[i++] = inputfile;
 	args[i++] = "-f";
 	args[i++] = tailorfile;
 	args[i++] = "-n";
-	sprintf( buf2, "%d", dbnum );
+	sprintf( buf2, "%d", dbnum+1 );
 	args[i++] = buf2;
 	if ( ldap_debug ) {
 		sprintf( buf3, "%d", ldap_debug );
@@ -194,14 +196,14 @@ main( int argc, char **argv )
 	 */
 
 	i = 0;
-	sprintf( cmd, "%s/%s", etcdir, INDEXCMD );
+	sprintf( cmd, "%s/%s", sbindir, INDEXCMD );
 	args[i++] = cmd;
 	args[i++] = "-i";
 	args[i++] = inputfile;
 	args[i++] = "-f";
 	args[i++] = tailorfile;
 	args[i++] = "-n";
-	sprintf( buf2, "%d", dbnum );
+	sprintf( buf2, "%d", dbnum+1 );
 	args[i++] = buf2;
 	if ( ldap_debug ) {
 		sprintf( buf3, "%d", ldap_debug );

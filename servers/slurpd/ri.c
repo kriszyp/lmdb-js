@@ -20,6 +20,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ac/signal.h>
 
 #include "slurp.h"
@@ -122,6 +123,7 @@ Ri_process(
 	while ( !sglob->slurpd_shutdown &&
 		((new_re = re->re_getnext( re )) == NULL )) {
 	    if ( sglob->one_shot_mode ) {
+		rq->rq_unlock( rq );
 		return 0;
 	    }
 	    /* No work - wait on condition variable */

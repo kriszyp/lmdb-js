@@ -29,7 +29,7 @@ REQUIRED SOFTWARE
 		ISODE compatible ldap distribution
 
 	CLIENTS/CONTRIBware:
-		Depends on package.  See per package READMEs.
+		Depends on package.  See per package README.
 		
 
 MAKING AND INSTALLING THE DISTRIBUTION

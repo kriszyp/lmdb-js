@@ -377,7 +377,9 @@ int	s;
 
 	rewind(fp);
 
-	if ( *query != '~' && *query != '@' ) {
+	if ( *query == '~' || *query == '@' ) {
+		ld = NULL;
+	} else {
 		if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
@@ -423,7 +425,10 @@ int	s;
 
 	fprintf( fp, ".\r\n" );
 	rewind(fp);
-	ldap_unbind( ld );
+
+	if( ld == NULL ) {
+		ldap_unbind( ld );
+	}
 
 	exit( 1 );
 	/* NOT REACHED */

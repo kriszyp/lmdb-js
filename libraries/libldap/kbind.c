@@ -5,30 +5,21 @@
  *  kbind.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include "msdos.h"
-#endif /* DOS */
-#include <krb.h>
-#include <stdlib.h>
-#if !defined(DOS) && !defined( _WIN32 )
-#include <sys/types.h>
-#endif /* !DOS && !_WIN32 */
-#include <sys/time.h>
-#include <sys/socket.h>
-#endif /* MACOS */
+#include <ac/krb.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -52,7 +43,6 @@ ldap_kerberos_bind1( LDAP *ld, char *dn )
 	BerElement	*ber;
 	char		*cred;
 	int		rc, credlen;
-	char		*get_kerberosv4_credentials();
 #ifdef STR_TRANSLATION
 	int		str_translation_on;
 #endif /* STR_TRANSLATION */
@@ -75,13 +65,13 @@ ldap_kerberos_bind1( LDAP *ld, char *dn )
 	if ( dn == NULL )
 		dn = "";
 
-	if ( (cred = get_kerberosv4_credentials( ld, dn, "ldapserver",
+	if ( (cred = ldap_get_kerberosv4_credentials( ld, dn, "ldapserver",
 	    &credlen )) == NULL ) {
 		return( -1 );	/* ld_errno should already be set */
 	}
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		free( cred );
 		return( -1 );
 	}
@@ -112,14 +102,14 @@ ldap_kerberos_bind1( LDAP *ld, char *dn )
 
 	free( cred );
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
 	}
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
 }
 
 int
@@ -159,7 +149,6 @@ ldap_kerberos_bind2( LDAP *ld, char *dn )
 	BerElement	*ber;
 	char		*cred;
 	int		rc, credlen;
-	char		*get_kerberosv4_credentials();
 #ifdef STR_TRANSLATION
 	int		str_translation_on;
 #endif /* STR_TRANSLATION */
@@ -169,13 +158,13 @@ ldap_kerberos_bind2( LDAP *ld, char *dn )
 	if ( dn == NULL )
 		dn = "";
 
-	if ( (cred = get_kerberosv4_credentials( ld, dn, "x500dsa", &credlen ))
+	if ( (cred = ldap_get_kerberosv4_credentials( ld, dn, "x500dsa", &credlen ))
 	    == NULL ) {
 		return( -1 );	/* ld_errno should already be set */
 	}
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		free( cred );
 		return( -1 );
 	}
@@ -207,7 +196,7 @@ ldap_kerberos_bind2( LDAP *ld, char *dn )
 	}
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
 }
 
 /* synchronous bind to DSA using kerberos */
@@ -249,25 +238,25 @@ ldap_kerberos_bind_s( LDAP *ld, char *dn )
 
 #ifndef AUTHMAN
 /*
- * get_kerberosv4_credentials - obtain kerberos v4 credentials for ldap.
+ * ldap_get_kerberosv4_credentials - obtain kerberos v4 credentials for ldap.
  * The dn of the entry to which to bind is supplied.  It's assumed the
  * user already has a tgt.
  */
 
 char *
-get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
+ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 {
 	KTEXT_ST	ktxt;
 	int		err;
 	char		realm[REALM_SZ], *cred, *krbinstance;
 
-	Debug( LDAP_DEBUG_TRACE, "get_kerberosv4_credentials\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_get_kerberosv4_credentials\n", 0, 0, 0 );
 
 	if ( (err = krb_get_tf_realm( tkt_string(), realm )) != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_get_tf_realm failed (%s)\n",
 		    krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
 		return( NULL );
 	}
@@ -280,9 +269,9 @@ get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 
 	if ( (err = krb_mk_req( &ktxt, service, krbinstance, realm, 0 ))
 	    != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_mk_req failed (%s)\n", krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
 		return( NULL );
 	}
@@ -299,4 +288,4 @@ get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 }
 
 #endif /* !AUTHMAN */
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */

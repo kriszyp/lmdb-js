@@ -3,6 +3,7 @@
 #ifndef HAVE_SETPROCTITLE
 
 #include <stdlib.h>
+#include <ac/string.h>
 
 #if defined( HAVE_STDARG_H ) && __STDC__
 #include <stdarg.h>

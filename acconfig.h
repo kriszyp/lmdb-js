@@ -9,8 +9,11 @@
 /* define this if needed to get reentrant functions */
 #undef _REENTRANT
 
-/* define this if needed to get threadsafe functions */
+/* define this if needed to get thread safe functions */
 #undef _THREAD_SAFE
+
+/* define this if needed to get thread safe functions */
+#undef _THREADSAFE
 
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
@@ -27,11 +30,14 @@
 /* define if you have crypt */
 #undef HAVE_CRYPT
 
-/* define if you have DCE */
-#undef HAVE_DCE
+/* define if you have DSAP */
+#undef HAVE_DSAP
 
 /* define if you have GDBM */
 #undef HAVE_GDBM
+
+/* define if you have ISODE */
+#undef HAVE_ISODE
 
 /* define if you have Kerberos */
 #undef HAVE_KERBEROS
@@ -50,6 +56,9 @@
 
 /* define if you have Mach CThreads */
 #undef HAVE_MACH_CTHREADS
+
+/* define if you have PP */
+#undef HAVE_PP
 
 /* define if you have a preemptive POSIX Threads implementation */
 #undef HAVE_PREEMPTIVE_PTHREADS
@@ -80,6 +89,9 @@
 
 /* define if you have Sun LWP (Solaris style) */
 #undef HAVE_THR
+
+/* define if you have XTPP */
+#undef HAVE_XTPP
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS

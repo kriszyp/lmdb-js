@@ -60,7 +60,7 @@ start_replica_thread(
     pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 #endif
 
-#if !defined(HAVE_PTHREAD_D4) && !defined(HAVE_DCE)
+#if !defined(HAVE_PTHREADS_D4)
     /* POSIX_THREADS or compatible
      * This is a draft 10 or standard pthreads implementation
      */

@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5  "13 November 1995" "U-M LDAP LDVERSION"
+.TH SLAPD.CONF 5 "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 slapd.conf \- configuration file for slapd, the stand-alone LDAP daemon
 .SH SYNOPSIS
@@ -266,6 +266,10 @@ by the LDBM backend database instance.  The default is 1000 entries.
 Specify the size in bytes of the in-memory cache associated 
 with each open index file. If not supported by the underlying database 
 method, this option is ignored without comment.  The default is 100000 bytes.
+.B dbcachenowsync
+Specify that database writes should not be immediately synchronized
+with in memory changes.  Enabling this option may improving performance
+at the expense of data security.
 .TP
 .B directory <directory>
 Specify the directory where the LDBM files containing the database and
@@ -338,3 +342,8 @@ ETCDIR/slapd.conf
 .BR slurpd (8),
 .LP
 "The SLAPD and SLURPD Administrator's Guide"
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

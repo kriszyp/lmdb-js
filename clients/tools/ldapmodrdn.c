@@ -36,6 +36,7 @@ static int domodrdn LDAP_P((
     char	*rdn,
     int		remove));	/* flag: remove old RDN */
 
+int
 main( argc, argv )
     int		argc;
     char	**argv;

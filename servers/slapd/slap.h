@@ -3,8 +3,6 @@
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
 
-#include "portable.h"
-
 #include <stdlib.h>
 
 #include <sys/types.h>

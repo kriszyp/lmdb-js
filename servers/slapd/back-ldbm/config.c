@@ -1,9 +1,12 @@
 /* config.c - ldbm backend configuration file routine */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -76,6 +79,10 @@ ldbm_back_config(
 			exit( 1 );
 		}
 		li->li_dbcachesize = atoi( argv[1] );
+
+	/* no write sync */
+	} else if ( strcasecmp( argv[0], "dbcachenowsync" ) == 0 ) {
+		li->li_dbcachewsync = 0;
 
 	/* anything else */
 	} else {

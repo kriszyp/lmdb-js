@@ -47,9 +47,6 @@ static int do_bind LDAP_P(( Ri *, int * ));
 static int do_unbind LDAP_P(( Ri * ));
 
 
-/* External references */
-extern char *ch_malloc LDAP_P(( unsigned long ));
-
 static char *kattrs[] = {"kerberosName", NULL };
 static struct timeval kst = {30L, 0L};
 
@@ -615,6 +612,15 @@ do_bind(
 		ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
 	return( BIND_ERR_OPEN );
     }
+
+    /*
+     * Disable string translation if enabled by default.
+     * The replication log is written in the internal format,
+     * so this would do another translation, breaking havoc.
+     */
+#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
+        ri->ri_ldp->ld_lberoptions &= ~LBER_TRANSLATE_STRINGS;
+#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
     /*
      * Set ldap library options to (1) not follow referrals, and 

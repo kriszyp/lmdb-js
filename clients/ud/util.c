@@ -10,35 +10,24 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#ifdef DOS
-#include <malloc.h>
-#endif
-#include <memory.h>
-#if defined( NeXT )
 #include <stdlib.h>
-#endif
-#include <ctype.h>
-#include <errno.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/termios.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
-#if !defined(DOS) && !defined( VMS)
-#include <sys/types.h>
-#endif
-#include "portable.h"
-#ifdef USE_TERMIOS
-#include <termios.h>
-#else /* USE_TERMIOS */
-#include <sgtty.h>
-#endif /* USE_TERMIOS */
-#include "ud.h"
 
-#if defined(VMS)
-#define getch getchar
-#endif
+#include "ud.h"
 
 #ifdef DEBUG
 extern int debug;
@@ -47,7 +36,7 @@ extern int debug;
 char * mygetpass(prompt)
 char *prompt;
 {
-#if defined(DOS) || defined(VMS)
+#if !defined(HAVE_TERMIOS) && !defined(HAVE_SGTTY_H)
 	static char buf[256];
 	int i, c;
 
@@ -72,7 +61,7 @@ char *prompt;
 	register char *p;
 	register int c;
 	FILE *fi;
-	SIG_FN (*sig)();
+	RETSIGTYPE (*sig)();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -80,7 +69,7 @@ char *prompt;
 #endif
 	/*
 	 *  Stolen from the getpass() routine.  Can't use the plain
-	 *  getpass() for two reasons.  One is that X.500 passwords
+	 *  getpass() for two reasons.  One is that LDAP passwords
 	 *  can be really, really long - much longer than 8 chars.
 	 *  The second is that we like to make this client available
 	 *  out of inetd via a Merit asynch port, and we need to be
@@ -91,7 +80,7 @@ char *prompt;
 		fi = stdin;
 	else
 		setbuf(fi, (char *)NULL);
-	sig = signal(SIGINT, SIG_IGN);
+	sig = SIGNAL (SIGINT, SIG_IGN);
 	if (fi != stdin) {
 		if (GETATTR(fileno(fi), &ttyb) < 0)
 			perror("GETATTR");
@@ -145,7 +134,7 @@ char *prompt;
 		if (SETATTR(fileno(fi), &ttyb) < 0)
 			perror("SETATTR");
 	}
-	(void) signal(SIGINT, sig);
+	(void) SIGNAL (SIGINT, sig);
 	if (fi != stdin)
 		(void) fclose(fi);
 	else
@@ -226,11 +215,9 @@ FILE *where;
 fatal(s)
 char *s;
 {
-	void exit();
-
 	if (errno != 0)
 		perror(s);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
 	exit(-1);
@@ -477,7 +464,7 @@ char *cp;
 	return(tmp);
 }
 
-char * code_to_str(i)
+char * code_to_str(int i)
 {
 	switch(i) {
 	case LDAP_MOD_ADD : return("ADD");
@@ -594,13 +581,15 @@ unsigned int size;
 void Free(ptr)
 char *ptr;
 {
-	extern int free();
-
+#ifndef STDC_HEADERS
 	if (free(ptr) < 0) {
 		perror("free");
 		exit(-1);
 		/*NOTREACHED*/
 	}
+#else
+	free(ptr);
+#endif
 	return;
 }
 

@@ -1,8 +1,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
+#include <stdlib.h>
 
+#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -87,6 +88,7 @@ static char	*sortattr = NULL;
 static int	skipsortattr = 0;
 static int	verbose, not, includeufn, allow_binary, vals2tmp, ldif;
 
+int
 main( argc, argv )
 int	argc;
 char	**argv;
