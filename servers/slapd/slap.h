@@ -40,11 +40,12 @@
 
 LDAP_BEGIN_DECL
 
+#define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
+#define SLAPD_ANONYMOUS "<anonymous>"
+
 #ifdef f_next
 #undef f_next /* name conflict between sys/file.h on SCO and struct filter */
 #endif
-
-#define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
 
 /* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
  *
@@ -61,11 +62,12 @@ LDAP_BEGIN_DECL
 
 #define MAXREMATCHES 10
 
-/* psuedo error code indicating disconnect */
-#define SLAPD_DISCONNECT -1
 
 /* psuedo error code indicating abandoned operation */
-#define SLAPD_ABANDON -2
+#define SLAPD_ABANDON (-1)
+
+/* psuedo error code indicating disconnect */
+#define SLAPD_DISCONNECT (-2)
 
 
 /* We assume "C" locale, that is US-ASCII */
@@ -340,6 +342,9 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_supportedControl;
 	AttributeDescription *si_ad_supportedExtension;
 	AttributeDescription *si_ad_supportedLDAPVersion;
+#ifdef SLAPD_ACI_ENABLED
+	AttributeDescription *si_ad_supportedACIMechanisms;
+#endif
 	AttributeDescription *si_ad_supportedSASLMechanisms;
 
 	/* subschema subentry attributes */
@@ -412,7 +417,10 @@ typedef struct slap_mra {
 
 typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
-#define SLAPD_FILTER_COMPUTED ((ber_tag_t) 0x01U)
+#define SLAPD_FILTER_COMPUTED	((ber_tag_t) -1)
+#define SLAPD_FILTER_DN_ONE		((ber_tag_t) -2)
+#define SLAPD_FILTER_DN_SUBTREE	((ber_tag_t) -3)
+
 
 	union f_un_u {
 		/* precomputed result */

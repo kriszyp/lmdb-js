@@ -413,8 +413,8 @@ int slap_mods_opattrs(
 	timestamp.bv_len = strlen(timebuf);
 
 	if( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		name.bv_val = "<anonymous>";
-		name.bv_len = sizeof("<anonymous>")-1;
+		name.bv_val = SLAPD_ANONYMOUS;
+		name.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
 	} else {
 		name.bv_val = op->o_dn;
 		name.bv_len = strlen( op->o_dn );
@@ -484,8 +484,8 @@ add_modified_attrs( Operation *op, Modifications **modlist )
 	}
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = "<anonymous>";
-		bv.bv_len = sizeof("<anonymous>")-1;
+		bv.bv_val = SLAPD_ANONYMOUS;
+		bv.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
 	} else {
 		bv.bv_val = op->o_dn;
 		bv.bv_len = strlen( bv.bv_val );

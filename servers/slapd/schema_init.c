@@ -168,6 +168,34 @@ oidValidate(
 }
 
 static int
+integerValidate(
+	Syntax *syntax,
+	struct berval *val )
+{
+	ber_len_t i;
+
+	for(i=0; i < val->bv_len; i++) {
+		if( !isdigit(val->bv_val[i]) ) return -1;
+	}
+
+	return 0;
+}
+
+static int
+printableStringValidate(
+	Syntax *syntax,
+	struct berval *val )
+{
+	ber_len_t i;
+
+	for(i=0; i < val->bv_len; i++) {
+		if( !isprint(val->bv_val[i]) ) return -1;
+	}
+
+	return 0;
+}
+
+static int
 IA5StringValidate(
 	Syntax *syntax,
 	struct berval *val )
@@ -367,7 +395,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
 		0, IA5StringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		0, NULL, NULL, NULL},
+		0, integerValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
@@ -401,7 +429,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
-		0, NULL, NULL, NULL},
+		0, printableStringValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
@@ -728,6 +756,11 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_supportedExtension) },
 	{ "supportedLDAPVersion",
 		offsetof(struct slap_internal_schema, si_ad_supportedLDAPVersion) },
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	{ "supportedACIMechanisms",
+		offsetof(struct slap_internal_schema, si_ad_supportedACIMechanisms) },
+
+#endif
 	{ "supportedSASLMechanisms",
 		offsetof(struct slap_internal_schema, si_ad_supportedSASLMechanisms) },
 

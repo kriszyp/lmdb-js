@@ -148,7 +148,7 @@ monitor_info(
 			connection_state2str( c->c_conn_state ),
 			c->c_sasl_bind_in_progress ? "S" : "",
 
-		    c->c_cdn ? c->c_cdn : "<anonymous>",
+		    c->c_cdn ? c->c_cdn : SLAPD_ANONYMOUS,
 
 			c->c_listener_url,
 		    c->c_peer_domain,

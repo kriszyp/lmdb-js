@@ -110,6 +110,7 @@ do_add( Connection *conn, Operation *op )
 		rc = ber_scanf( ber, "{a{V}}", &mod->ml_type, &mod->ml_bvalues );
 
 		if ( rc == LBER_ERROR ) {
+			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 			rc = -1;
@@ -272,7 +273,7 @@ do_add( Connection *conn, Operation *op )
 #endif
 		}
 	} else {
-	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
+	    Debug( LDAP_DEBUG_ARGS, "    do_add: no backend support\n", 0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
@@ -310,7 +311,7 @@ static int slap_mods2entry(
 		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
 
 		if( attr != NULL ) {
-			*text = "Attribute provided more than once";
+			*text = "attribute provided more than once";
 			return LDAP_OPERATIONS_ERROR;
 		}
 
@@ -345,19 +346,14 @@ add_created_attrs( Operation *op, Entry *e )
 
 	/* return error on any attempts by the user to add these attrs */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		if ( is_at_no_user_mod( a->a_desc.ad_type ))
-#else
-		if ( oc_check_op_no_usermod_attr( a->a_type ) )
-#endif
-		{
+		if ( oc_check_op_no_usermod_attr( a->a_type ) )	{
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
 
 	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = "<anonymous>";
-		bv.bv_len = sizeof("<anonymous>")-1;
+		bv.bv_val = SLAPD_ANONYMOUS;
+		bv.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
 ;
 	} else {
 		bv.bv_val = op->o_dn;

@@ -29,9 +29,6 @@ LDAP_BEGIN_DECL
 #define DN_ONE_PREFIX	 	'@'
 #define DN_SUBTREE_PREFIX 	'?'
 
-#define SLAPD_FILTER_DN_ONE		((ber_tag_t) -2)
-#define SLAPD_FILTER_DN_SUBTREE	((ber_tag_t) -3)
-
 /*
  * there is a single index for each attribute.  these prefixes ensure
  * that there is no collision among keys.
