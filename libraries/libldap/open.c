@@ -279,7 +279,7 @@ ldap_int_open_connection(
 		case LDAP_PROTO_IPC:
 #ifdef LDAP_PF_LOCAL
 			/* only IPC mechanism supported is PF_LOCAL (PF_UNIX) */
-			rc = ldap_connect_to_path( ld, conn->lconn_sb, 0,
+			rc = ldap_connect_to_path( ld, conn->lconn_sb,
 				srv->lud_host, async );
 			if ( rc == -1 ) return rc;
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_fd,
