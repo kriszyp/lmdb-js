@@ -345,6 +345,8 @@ typedef struct slap_matching_rule {
 
 /* this is used to kludge objectClass testing */
 #define SLAP_MR_MODIFY_MATCHING 0x0001U
+/* are we matching from a mr asserted value or a real value */
+#define SLAP_MR_VALUE_IS_IN_MR_SYNTAX	0x0002U
 
 	Syntax					*smr_syntax;
 	slap_mr_convert_func	*smr_convert;
