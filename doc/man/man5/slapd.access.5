@@ -78,31 +78,36 @@ stands for all the entries.
 The statement
 .B dn=<pattern>
 selects the entries based on their naming context.
-The optional style qualificator
+The optional style qualifier
 .B <dnstyle>
 can be 
-.BR regex ,
-which implies a regular expression pattern, as detailed in
+.B regex
+(the default) implies that
+.B pattern
+is a regular expression, as detailed in
 .BR regex (7),
-will be used (the default),
+matching a normalized string representation of the entry's DN.
+The regex form of the pattern does not support UTF-8 yet.
+.LP
+For all other qualifiers, the pattern is a string representation of
+the entry's DN.
 .B base
 or
 .B exact 
 (an alias of 
 .BR base )
-for an exact match of the entry,
+indicates the entry whose DN is equal to the pattern.
 .B one
 to indicate all the entries immediately below the
 .BR pattern ,
 .B subtree
-to indicate all the subentries of an entry including the entry itself,
+to indicate all entries in the subtree at the pattern,
 .B children
-to indicate all the subentries of an entry not including the entry itself.
+to indicate all entries below (subordinate) to the pattern.
 Note that 
 .B dn=".*"
 is equivalent to
 .BR * .
-The regex form of the pattern does not support UTF-8 yet.
 .LP
 The statement
 .B filter=<ldapfilter>
@@ -184,19 +189,18 @@ being accessed and the requesting entry must be the same).
 .LP
 The statement
 .B dn=<pattern>
-means that access is granted to the matching dn.
-The optional style qualificator
+means that access is granted to the matching DN.
+The optional style qualifier
 .B dnstyle
 allows the same choices of the dn form of the
 .B <what>
-field.
-In detail, the
+field.  In addition, the
 .B regex
 form of
 .B pattern
 can exploit substring substitution of submatches in the
 .B <what>
-dn by using the form
+dn.regex clause by using the form
 .BR $<digit> ,
 with 
 .B digit
@@ -204,22 +208,22 @@ ranging from 1 to 9.
 .LP
 The statement
 .B dnattr=<attrname>
-means that access is granted to requests whose dn is listed in the
+means that access is granted to requests whose DN is listed in the
 entry being accessed under the 
 .B attrname
 attribute.
 .LP
 The statement
 .B group=<pattern>
-means that access is granted to requests whose dn is listed
-in the group entry whose dn is given by
+means that access is granted to requests whose DN is listed
+in the group entry whose DN is given by
 .BR pattern .
 The optional parameters
 .B objectclass
 and
 .B attrname
 define the objectClass and the member attributeType of the group entry.
-The optional style qualificator
+The optional style qualifier
 .B style
 can be
 .BR regex ,
@@ -231,7 +235,7 @@ or
 .B exact
 (an alias of
 .BR base ),
-which means that an exact match will be used.
+which means that exact match will be used.
 .LP
 The statements
 .BR peername=<pattern> ,
