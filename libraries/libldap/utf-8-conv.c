@@ -85,7 +85,7 @@ ldap_x_utf8_to_wc ( wchar_t *wchar, const char *utf8char )
 		utf8char = "";
 
 	/* Get UTF-8 sequence length from 1st byte */
-	utflen = UTF8_CHARLEN(utf8char);
+	utflen = LDAP_UTF8_CHARLEN(utf8char);
 	
 	if( utflen==0 || utflen > LDAP_MAX_UTF8_LEN )
 		return -1;								 	/* Invalid input */
@@ -130,7 +130,7 @@ ldap_x_utf8s_to_wcs ( wchar_t *wcstr, const char *utf8str, size_t count )
 	while ( *utf8str && (wcstr==NULL || wclen<count) )
 	{
 		/* Get UTF-8 sequence length from 1st byte */
-		utflen = UTF8_CHARLEN(utf8str);
+		utflen = LDAP_UTF8_CHARLEN(utf8str);
 		
 		if( utflen==0 || utflen > LDAP_MAX_UTF8_LEN )
 			return -1;								 	/* Invalid input */
