@@ -400,11 +400,9 @@ ldap_build_entry(
 	dc.ctx = "searchAttrDN";
 #endif
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
-		int		i;
-		slap_syntax_validate_func *validate =
-			attr->a_desc->ad_type->sat_syntax->ssyn_validate;
-		slap_syntax_transform_func *pretty =
-			attr->a_desc->ad_type->sat_syntax->ssyn_pretty;
+		int				i;
+		slap_syntax_validate_func	*validate;
+		slap_syntax_transform_func	*pretty;
 
 		ldap_back_map( &li->rwmap.rwm_at, &a, &mapped, BACKLDAP_REMAP );
 		if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) )
