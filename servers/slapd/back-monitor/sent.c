@@ -78,9 +78,12 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Entries,%s\n"
-			SLAPD_MONITOR_OBJECTCLASSES
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
 			"cn: Entries\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -101,7 +104,7 @@ monitor_subsys_sent_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
+	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -134,9 +137,12 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Referrals,%s\n"
-			SLAPD_MONITOR_OBJECTCLASSES
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
 			"cn: Referrals\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -157,7 +163,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
+	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -190,9 +196,12 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=PDU,%s\n"
-			SLAPD_MONITOR_OBJECTCLASSES
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
 			"cn: PDU\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -213,7 +222,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
+	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -246,9 +255,12 @@ monitor_subsys_sent_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Bytes,%s\n"
-			SLAPD_MONITOR_OBJECTCLASSES
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
 			"cn: Bytes\n",
-			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val );
+			monitor_subsys[SLAPD_MONITOR_SENT].mss_dn.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val,
+			mi->oc_monitorCounterObject->soc_cname.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -269,7 +281,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
+	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -344,16 +356,16 @@ monitor_subsys_sent_update(
 
 	if ( n != -1 ) {
 		Attribute	*a;
-		char		buf[16];
+		char		buf[] = "+9223372036854775807L";
 
-		a = attr_find( e->e_attrs, mi->monitor_ad_description );
+		a = attr_find( e->e_attrs, mi->ad_monitorCounter);
 		if ( a == NULL ) {
 			return( -1 );
 		}
 
 		snprintf( buf, sizeof( buf ), "%ld", n );
 		free( a->a_vals[ 0 ].bv_val );
-		ber_str2bv( buf, 0, 1, a->a_vals );
+		ber_str2bv( buf, 0, 1, &a->a_vals[ 0 ] );
 	}
 
 	return( 0 );

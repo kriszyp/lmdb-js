@@ -81,9 +81,12 @@ monitor_subsys_conn_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=Total,%s\n"
-		SLAPD_MONITOR_OBJECTCLASSES
+		"objectClass: %s\n"
+		"structuralObjectClass: %s\n"
 		"cn: Total\n",
-		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val );
+		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
+		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->oc_monitorCounterObject->soc_cname.bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -104,7 +107,7 @@ monitor_subsys_conn_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
+	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -138,9 +141,12 @@ monitor_subsys_conn_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=Current,%s\n"
-		SLAPD_MONITOR_OBJECTCLASSES
+		"objectClass: %s\n"
+		"structuralObjectClass: %s\n"
 		"cn: Current\n",
-		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val );
+		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
+		mi->oc_monitorCounterObject->soc_cname.bv_val,
+		mi->oc_monitorCounterObject->soc_cname.bv_val );
 	
 	e = str2entry( buf );
 	if ( e == NULL ) {
@@ -161,7 +167,7 @@ monitor_subsys_conn_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
+	attr_merge_one( e, mi->ad_monitorCounter, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -231,7 +237,7 @@ monitor_subsys_conn_update(
 		Attribute	*a;
 		char		buf[16];
 
-		a = attr_find( e->e_attrs, mi->monitor_ad_description );
+		a = attr_find( e->e_attrs, mi->ad_monitorCounter );
 		if ( a == NULL ) {
 			return( -1 );
 		}
@@ -266,9 +272,12 @@ conn_create(
 
 	snprintf( buf, sizeof( buf ),
 		"dn: cn=" CONN_CN_PREFIX " %ld,%s\n"
-		SLAPD_MONITOR_OBJECTCLASSES
+		"objectClass: %s\n"
+		"structuralObjectClass: %s\n"
 		"cn: " CONN_CN_PREFIX " %ld\n",
 		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
+		mi->oc_monitorConnection->soc_cname.bv_val,
+		mi->oc_monitorConnection->soc_cname.bv_val,
 		c->c_connid );
 	e = str2entry( buf );
 
@@ -300,6 +309,7 @@ conn_create(
 			
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
+	/* monitored info */
 	sprintf( buf,
 		"%ld : %ld "
 		": %ld/%ld/%ld/%ld "
@@ -335,7 +345,25 @@ conn_create(
 
 	bv.bv_val = buf;
 	bv.bv_len = strlen( buf );
-	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
+	attr_merge_one( e, mi->ad_monitoredInfo, &bv, NULL );
+
+	/* connection number */
+	snprintf( buf, sizeof( buf ), "%ld", c->c_connid );
+	bv.bv_val = buf;
+	bv.bv_len = strlen( buf );
+	attr_merge_one( e, mi->ad_monitorConnectionNumber, &bv, NULL );
+
+	/* authz DN */
+	attr_merge_one( e, mi->ad_monitorConnectionAuthzDN,
+			&c->c_dn, &c->c_ndn );
+
+	/* local address */
+	attr_merge_one( e, mi->ad_monitorConnectionLocalAddress,
+			&c->c_sock_name, NULL );
+
+	/* peer address */
+	attr_merge_one( e, mi->ad_monitorConnectionPeerAddress,
+			&c->c_peer_name, NULL );
 
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -422,7 +450,7 @@ monitor_subsys_conn_create(
 				c = connection_next( c, &connindex )) {
 			if ( c->c_connid == connid ) {
 				if ( conn_create( mi, c, ep ) || *ep == NULL ) {
-					connection_done(c);
+					connection_done( c );
 					return( -1 );
 				}
 

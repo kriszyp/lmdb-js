@@ -686,7 +686,6 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_rootdse;
 	ObjectClass *si_oc_subentry;
 	ObjectClass *si_oc_subschema;
-	ObjectClass *si_oc_monitor;
 	ObjectClass *si_oc_collectiveAttributeSubentry;
 	ObjectClass *si_oc_dynamicObject;
 
@@ -767,7 +766,7 @@ struct slap_internal_schema {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	AttributeDescription *si_ad_krbName;
 #endif
-
+        
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
 

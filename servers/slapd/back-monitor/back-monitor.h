@@ -41,8 +41,6 @@
 
 LDAP_BEGIN_DECL
 
-/* #define MONITOR_DEVEL */
-
 /*
  * The cache maps DNs to Entries.
  * Each entry, on turn, holds the list of its children in the e_private field.
@@ -73,28 +71,45 @@ struct monitorentrypriv {
 };
 
 struct monitorinfo {
+
+	/*
+	 * Internal data
+	 */
 	Avlnode			*mi_cache;
 	ldap_pvt_thread_mutex_t	mi_cache_mutex;
 
-	ObjectClass *monitor_oc_monitorServer;
-	ObjectClass *monitor_oc_monitorContainer;
-	ObjectClass *monitor_oc_monitorCounter;
-	ObjectClass *monitor_oc_monitorOperation;
-	ObjectClass *monitor_oc_monitorConnection;
-	ObjectClass *monitor_oc_managedObject;
-	ObjectClass *monitor_oc_monitoredObject;
+	/*
+	 * Config parameters
+	 */
+	struct berval		l;
 
-	AttributeDescription *monitor_ad_monitoredInfo;
-	AttributeDescription *monitor_ad_managedInfo;
-	AttributeDescription *monitor_ad_monitorCounter;
-	AttributeDescription *monitor_ad_monitorOpCompleted;
-	AttributeDescription *monitor_ad_monitorOpInitiated;
-	AttributeDescription *monitor_ad_monitorConnectionNumber;
-	AttributeDescription *monitor_ad_monitorConnectionAuthzDN;
-	AttributeDescription *monitor_ad_monitorConnectionLocalAddress;
-	AttributeDescription *monitor_ad_monitorConnectionPeerAddress;
+	/*
+	 * Specific schema entities
+	 */
+	ObjectClass *oc_monitor;
+	ObjectClass *oc_monitorServer;
+	ObjectClass *oc_monitorContainer;
+	ObjectClass *oc_monitorCounterObject;
+	ObjectClass *oc_monitorOperation;
+	ObjectClass *oc_monitorConnection;
+	ObjectClass *oc_managedObject;
+	ObjectClass *oc_monitoredObject;
 
-	AttributeDescription *monitor_ad_description;
+	AttributeDescription *ad_monitoredInfo;
+	AttributeDescription *ad_managedInfo;
+	AttributeDescription *ad_monitorCounter;
+	AttributeDescription *ad_monitorOpCompleted;
+	AttributeDescription *ad_monitorOpInitiated;
+	AttributeDescription *ad_monitorConnectionNumber;
+	AttributeDescription *ad_monitorConnectionAuthzDN;
+	AttributeDescription *ad_monitorConnectionLocalAddress;
+	AttributeDescription *ad_monitorConnectionPeerAddress;
+
+	/*
+	 * Generic description attribute
+	 */
+	AttributeDescription *ad_description;
+	AttributeDescription *ad_seeAlso;
 };
 
 /*
@@ -149,53 +164,40 @@ struct monitorinfo {
 #define SLAPD_MONITOR_CONN_DN	\
 	SLAPD_MONITOR_CONN_RDN "," SLAPD_MONITOR_DN
 
-#define SLAPD_MONITOR_READW		7
-#define SLAPD_MONITOR_READW_NAME	"Read Waiters"
-#define SLAPD_MONITOR_READW_RDN	\
-	"cn=" SLAPD_MONITOR_READW_NAME
-#define SLAPD_MONITOR_READW_DN	\
-	SLAPD_MONITOR_READW_RDN "," SLAPD_MONITOR_DN
+#define SLAPD_MONITOR_RWW		7
+#define SLAPD_MONITOR_RWW_NAME	"Waiters"
+#define SLAPD_MONITOR_RWW_RDN	\
+	"cn=" SLAPD_MONITOR_RWW_NAME
+#define SLAPD_MONITOR_RWW_DN	\
+	SLAPD_MONITOR_RWW_RDN "," SLAPD_MONITOR_DN
 
-#define SLAPD_MONITOR_WRITEW		8
-#define SLAPD_MONITOR_WRITEW_NAME	"Write Waiters"
-#define SLAPD_MONITOR_WRITEW_RDN	\
-	"cn=" SLAPD_MONITOR_WRITEW_NAME
-#define SLAPD_MONITOR_WRITEW_DN	\
-	SLAPD_MONITOR_WRITEW_RDN "," SLAPD_MONITOR_DN
-
-#define SLAPD_MONITOR_LOG		9
+#define SLAPD_MONITOR_LOG		8
 #define SLAPD_MONITOR_LOG_NAME		"Log"
 #define SLAPD_MONITOR_LOG_RDN	\
 	"cn=" SLAPD_MONITOR_LOG_NAME
 #define SLAPD_MONITOR_LOG_DN	\
 	SLAPD_MONITOR_LOG_RDN "," SLAPD_MONITOR_DN
 
-#define SLAPD_MONITOR_OPS		10
+#define SLAPD_MONITOR_OPS		9
 #define SLAPD_MONITOR_OPS_NAME		"Operations"
 #define SLAPD_MONITOR_OPS_RDN	\
 	"cn=" SLAPD_MONITOR_OPS_NAME
 #define SLAPD_MONITOR_OPS_DN	\
 	SLAPD_MONITOR_OPS_RDN "," SLAPD_MONITOR_DN
 
-#define SLAPD_MONITOR_SENT		11
+#define SLAPD_MONITOR_SENT		10
 #define SLAPD_MONITOR_SENT_NAME		"Statistics"
 #define SLAPD_MONITOR_SENT_RDN	\
 	"cn=" SLAPD_MONITOR_SENT_NAME
 #define SLAPD_MONITOR_SENT_DN	\
 	SLAPD_MONITOR_SENT_RDN "," SLAPD_MONITOR_DN
 
-#define SLAPD_MONITOR_TIME		12
+#define SLAPD_MONITOR_TIME		11
 #define SLAPD_MONITOR_TIME_NAME		"Time"
 #define SLAPD_MONITOR_TIME_RDN  \
 	"cn=" SLAPD_MONITOR_TIME_NAME
 #define SLAPD_MONITOR_TIME_DN   \
 	SLAPD_MONITOR_TIME_RDN "," SLAPD_MONITOR_DN
-
-#define SLAPD_MONITOR_OBJECTCLASSES \
-	"objectClass: top\n" \
-	"objectClass: monitor\n" \
-	"objectClass: extensibleObject\n" \
-	"structuralObjectClass: monitor\n"
 
 struct monitorsubsys {
 	int		mss_type;

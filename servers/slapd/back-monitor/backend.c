@@ -77,15 +77,19 @@ monitor_subsys_backend_init(
 		char 		buf[1024];
 		BackendInfo 	*bi;
 		struct berval 	bv;
+		int		j;
 
 		bi = &backendInfo[i];
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Backend %d,%s\n"
-				SLAPD_MONITOR_OBJECTCLASSES
+				"objectClass: %s\n"
+				"structuralObjectClass: %s\n"
 				"cn: Backend %d\n",
 				i,
 				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val,
+				mi->oc_monitoredObject->soc_cname.bv_val,
+				mi->oc_monitoredObject->soc_cname.bv_val,
 				i );
 		
 		e = str2entry( buf );
@@ -109,9 +113,9 @@ monitor_subsys_backend_init(
 		bv.bv_val = bi->bi_type;
 		bv.bv_len = strlen( bv.bv_val );
 
-		attr_merge_normalize_one( e, mi->monitor_ad_description,
+		attr_merge_normalize_one( e, mi->ad_monitoredInfo,
 				&bv, NULL );
-		attr_merge_normalize_one( e_backend, mi->monitor_ad_description,
+		attr_merge_normalize_one( e_backend, mi->ad_monitoredInfo,
 				&bv, NULL );
 
 		if ( bi->bi_controls ) {
@@ -122,6 +126,24 @@ monitor_subsys_backend_init(
 				bv.bv_len = strlen( bv.bv_val );
 				attr_merge_one( e, slap_schema.si_ad_supportedControl, &bv, NULL );
 			}
+		}
+
+		for ( j = 0; j < nBackendDB; j++ ) {
+			BackendDB	*be = &backendDB[j];
+			char		buf[ SLAP_LDAPDN_MAXLEN ];
+			struct berval	dn;
+			
+			if ( be->bd_info != bi ) {
+				continue;
+			}
+
+			snprintf( buf, sizeof( buf ), "cn=Database %d,%s",
+					j, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val );
+			dn.bv_val = buf;
+			dn.bv_len = strlen( buf );
+
+			attr_merge_normalize_one( e, mi->ad_seeAlso,
+					&dn, NULL );
 		}
 		
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );

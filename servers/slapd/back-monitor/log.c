@@ -88,7 +88,11 @@ monitor_subsys_log_init(
 	struct monitorinfo	*mi;
 	Entry			*e;
 	int			i;
-	struct berval 		bv[2];
+	struct berval		desc[] = {
+		BER_BVC("This entry allows to set the log level runtime."),
+		BER_BVC("Set the attribute 'managedInfo' to the desired log levels."),
+		{ 0, NULL }
+	};
 
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );
 
@@ -111,18 +115,16 @@ monitor_subsys_log_init(
 		return( -1 );
 	}
 
-	bv[1].bv_val = NULL;
-
 	/* initialize the debug level(s) */
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
 
-		if ( mi->monitor_ad_description->ad_type->sat_equality->smr_normalize ) {
+		if ( mi->ad_managedInfo->ad_type->sat_equality->smr_normalize ) {
 			int	rc;
 
-			rc = (*mi->monitor_ad_description->ad_type->sat_equality->smr_normalize)(
+			rc = (*mi->ad_managedInfo->ad_type->sat_equality->smr_normalize)(
 					0,
-					mi->monitor_ad_description->ad_type->sat_syntax,
-					mi->monitor_ad_description->ad_type->sat_equality,
+					mi->ad_managedInfo->ad_type->sat_syntax,
+					mi->ad_managedInfo->ad_type->sat_equality,
 					&int_2_level[ i ].s,
 					&int_2_level[ i ].n, NULL );
 			if ( rc ) {
@@ -131,11 +133,13 @@ monitor_subsys_log_init(
 		}
 
 		if ( int_2_level[ i ].i & ldap_syslog ) {
-			attr_merge_one( e, mi->monitor_ad_description,
+			attr_merge_one( e, mi->ad_managedInfo,
 					&int_2_level[ i ].s,
 					&int_2_level[ i ].n );
 		}
 	}
+
+	attr_merge( e, mi->ad_description, desc, NULL );
 
 	monitor_cache_release( mi, e );
 
@@ -179,7 +183,7 @@ monitor_subsys_log_modify(
 		/*
 		 * only the monitor description attribute can be modified
 		 */
-		} else if ( mod->sm_desc != mi->monitor_ad_description ) {
+		} else if ( mod->sm_desc != mi->ad_managedInfo) {
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}

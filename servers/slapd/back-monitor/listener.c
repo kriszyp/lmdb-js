@@ -91,13 +91,17 @@ monitor_subsys_listener_init(
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Listener %d,%s\n"
-				SLAPD_MONITOR_OBJECTCLASSES
+				"objectClass: %s\n"
+				"structuralObjectClass: %s\n"
 				"cn: Listener %d\n"
-				"description: %s\n"
+				"%s: %s\n"
 				"labeledURI: %s",
 				i,
 				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_dn.bv_val,
+				mi->oc_monitoredObject->soc_cname.bv_val,
+				mi->oc_monitoredObject->soc_cname.bv_val,
 				i,
+				mi->ad_monitorConnectionLocalAddress->ad_cname.bv_val,
 				l[i]->sl_name.bv_val,
 				l[i]->sl_url.bv_val );
 		
@@ -126,7 +130,8 @@ monitor_subsys_listener_init(
 			bv.bv_val = "TLS";
 			bv.bv_len = sizeof("TLS")-1;
 
-			attr_merge_normalize_one( e, mi->monitor_ad_description, &bv, NULL );
+			attr_merge_normalize_one( e, mi->ad_monitoredInfo,
+					&bv, NULL );
 		}
 #endif /* HAVE_TLS */
 #ifdef LDAP_CONNECTIONLESS
@@ -136,7 +141,8 @@ monitor_subsys_listener_init(
 			bv.bv_val = "UDP";
 			bv.bv_len = sizeof("UDP")-1;
 
-			attr_merge_normalize_one( e, mi->monitor_ad_description, &bv, NULL );
+			attr_merge_normalize_one( e, mi->ad_monitoredInfo,
+					&bv, NULL );
 		}
 #endif /* HAVE_TLS */
 

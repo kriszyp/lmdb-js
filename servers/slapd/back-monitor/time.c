@@ -102,10 +102,13 @@ monitor_subsys_time_init(
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Start,%s\n"
-			SLAPD_MONITOR_OBJECTCLASSES
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
 			"cn: Start\n"
 			"createTimestamp: %s", 
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
+			mi->oc_monitoredObject->soc_cname.bv_val,
+			mi->oc_monitoredObject->soc_cname.bv_val,
 			tmbuf );
 
 	e = str2entry( buf );
@@ -156,11 +159,14 @@ monitor_subsys_time_init(
 	 */
 	snprintf( buf, sizeof( buf ),
 			"dn: cn=Current,%s\n"
-			SLAPD_MONITOR_OBJECTCLASSES
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
 			"cn: Current\n"
 			"createTimestamp: %s\n"
-			"modifyTimestamp: %s",
+			"modifyTimestamp: %s\n",
 			monitor_subsys[SLAPD_MONITOR_TIME].mss_dn.bv_val,
+			mi->oc_monitoredObject->soc_cname.bv_val,
+			mi->oc_monitoredObject->soc_cname.bv_val,
 			tmbuf, tmbuf );
 
 	e = str2entry( buf );
@@ -179,7 +185,7 @@ monitor_subsys_time_init(
 #endif
 		return( -1 );
 	}
-	
+
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
 	mp->mp_next = e_tmp;

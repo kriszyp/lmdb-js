@@ -52,9 +52,6 @@ monitor_subsys_database_init(
 	Entry			*e, *e_database, *e_tmp;
 	int			i;
 	struct monitorentrypriv	*mp;
-	AttributeDescription 	*ad_nc = slap_schema.si_ad_namingContexts;
-	AttributeDescription 	*ad_mc = slap_schema.si_ad_monitorContext;
-	AttributeDescription 	*ad_seeAlso = NULL;
 	const char		*text = NULL;
 
 	assert( be != NULL );
@@ -79,21 +76,6 @@ monitor_subsys_database_init(
 		return( -1 );
 	}
 
-	if ( slap_str2ad( "seeAlso", &ad_seeAlso, &text ) != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, CRIT,
-			"monitor_subsys_database_init: "
-			"unable to find 'seeAlso' attribute description\n",
-			0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_database_init: "
-			"unable to find 'seeAlso' attribute description\n",
-			0, 0, 0 );
-#endif
-		return( -1 );
-	}
-
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {
 		char buf[1024];
@@ -108,12 +90,17 @@ monitor_subsys_database_init(
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Database %d,%s\n"
-				SLAPD_MONITOR_OBJECTCLASSES
+				"objectClass: %s\n"
+				"structuralObjectClass: %s\n"
 				"cn: Database %d\n"
-				"description: %s",
+				"description: This object contains the type of the database.\n"
+				"%s: %s",
 				i,
 				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val,
+				mi->oc_monitoredObject->soc_cname.bv_val,
+				mi->oc_monitoredObject->soc_cname.bv_val,
 				i,
+				mi->ad_monitoredInfo->ad_cname.bv_val,
 				be->bd_info->bi_type );
 		
 		e = str2entry( buf );
@@ -135,11 +122,15 @@ monitor_subsys_database_init(
 		}
 		
 		if ( be->be_flags & SLAP_BFLAG_MONITOR ) {
-			attr_merge( e, ad_mc, be->be_suffix, be->be_nsuffix );
-			attr_merge( e_database, ad_mc, be->be_suffix, be->be_nsuffix );
+			attr_merge( e, slap_schema.si_ad_monitorContext,
+					be->be_suffix, be->be_nsuffix );
+			attr_merge( e_database, slap_schema.si_ad_monitorContext,
+					be->be_suffix, be->be_nsuffix );
 		} else {
-			attr_merge( e, ad_nc, be->be_suffix, be->be_nsuffix );
-			attr_merge( e_database, ad_nc, be->be_suffix, be->be_nsuffix );
+			attr_merge( e, slap_schema.si_ad_namingContexts,
+					be->be_suffix, be->be_nsuffix );
+			attr_merge( e_database, slap_schema.si_ad_namingContexts,
+					be->be_suffix, be->be_nsuffix );
 		}
 
 		for ( j = nBackendInfo; j--; ) {
@@ -151,7 +142,8 @@ monitor_subsys_database_init(
 					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
-				attr_merge_normalize_one( e, ad_seeAlso, &bv, NULL );
+				attr_merge_normalize_one( e, mi->ad_seeAlso,
+						&bv, NULL );
 				break;
 			}
 		}
@@ -240,7 +232,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
 		attr_merge_normalize_one( e_database,
-				mi->monitor_ad_description, &bv, NULL );
+				mi->ad_monitoredInfo, &bv, NULL );
 
 		i++;
 

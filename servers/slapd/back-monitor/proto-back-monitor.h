@@ -69,14 +69,10 @@ int monitor_subsys_conn_create LDAP_P(( Operation *op, struct berval *ndn,
 			Entry *e_parent, Entry **ep ));
 
 /*
- * read waiters
+ * waiters
  */
-int monitor_subsys_readw_update LDAP_P(( Operation *op, Entry *e ));
-
-/*
- * write waiters
- */
-int monitor_subsys_writew_update LDAP_P(( Operation *op, Entry *e ));
+int monitor_subsys_rww_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_rww_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * log

@@ -318,12 +318,6 @@ static struct slap_schema_oc_map {
 			"matchingRuleUse ) )",
 		subentryObjectClass, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_subschema) },
-	{ "monitor", "( 1.3.6.1.4.1.4203.666.3.2 NAME 'monitor' "
-		"DESC 'OpenLDAP system monitoring' "
-		"STRUCTURAL "
-		"MUST cn )",
-		0, SLAP_OC_OPERATIONAL,
-		offsetof(struct slap_internal_schema, si_oc_monitor) },
 #ifdef LDAP_DEVEL
 	{ "collectiveAttributeSubentry", "( 2.5.17.2 "
 			"NAME 'collectiveAttributeSubentry' "
@@ -793,7 +787,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
-
 	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, 0 }
 };
 
