@@ -146,6 +146,15 @@ conn_free(
 }
 
 static void
+mapping_free( void *v_mapping )
+{
+	struct ldapmapping *mapping = v_mapping;
+	ch_free( mapping->src.bv_val );
+	ch_free( mapping->dst.bv_val );
+	ch_free( mapping );
+}
+
+static void
 target_free(
 		struct metatarget *lt
 )

@@ -216,7 +216,7 @@ ldap_back_conn_free(
 	ch_free( lc );
 }
 
-void
+static void
 mapping_free( void *v_mapping )
 {
 	struct ldapmapping *mapping = v_mapping;

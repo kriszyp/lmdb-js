@@ -205,8 +205,6 @@ ldap_back_map_attrs(
 		char ***mapped_attrs
 );
 
-extern void mapping_free ( void *mapping );
-
 extern int ldap_back_map_config(
 		struct ldapmap	*oc_map,
 		struct ldapmap	*at_map,
