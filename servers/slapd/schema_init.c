@@ -37,7 +37,6 @@
 
 /* recycled matching routines */
 #define bitStringMatch					octetStringMatch
-#define integerMatch					caseIgnoreIA5Match
 #define numericStringMatch				caseIgnoreIA5Match
 #define objectIdentifierMatch			caseIgnoreIA5Match
 #define telephoneNumberMatch			caseIgnoreIA5Match
@@ -72,8 +71,6 @@
 /* recycled indexing/filtering routines */
 #define dnIndexer				caseExactIgnoreIndexer
 #define dnFilter				caseExactIgnoreFilter
-#define integerIndexer					caseIgnoreIA5Indexer
-#define integerFilter					caseIgnoreIA5Filter
 
 #define telephoneNumberIndexer			caseIgnoreIA5Indexer
 #define telephoneNumberFilter			caseIgnoreIA5Filter
@@ -1727,6 +1724,98 @@ oidValidate(
 }
 
 static int
+integerMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	char *v, *av;
+	int vsign=0, avsign=0;
+	struct berval *asserted;
+	ber_len_t vlen, avlen;
+
+
+	/* Start off pessimistic */
+	*matchp = 1;
+
+	/* Skip past leading spaces/zeros, and get the sign of the *value number */
+	v = value->bv_val;
+	vlen = value->bv_len;
+	while( vlen ) {
+		if( ASCII_SPACE(*v) || ( *v == '0' )) {
+			/* empty -- skip spaces */
+		}
+		else if ( *v == '+' ) {
+			vsign = 1;
+		}
+		else if ( *v == '-' ) {
+			vsign = -1;
+		}
+		else if ( ASCII_DIGIT(*v) ) {
+			if ( vsign == 0 ) vsign = 1;
+			vsign *= 2;
+			break;
+		}
+		v++;
+		vlen--;
+	}
+
+	/* Skip past leading spaces/zeros, and get the sign of the *assertedValue
+	   number */
+	asserted = (struct berval *) assertedValue;
+	av = asserted->bv_val;
+	avlen = asserted->bv_len;
+	while( avlen ) {
+		if( ASCII_SPACE(*av) || ( *av == '0' )) {
+			/* empty -- skip spaces */
+		}
+		else if ( *av == '+' ) {
+			avsign = 1;
+		}
+		else if ( *av == '-' ) {
+			avsign = -1;
+		}
+		else if ( ASCII_DIGIT(*av) ) {
+			if ( avsign == 0 ) avsign = 1;
+			avsign *= 2;
+			break;
+		}
+		av++;
+		avlen--;
+	}
+
+	/* The two ?sign vars are now one of :
+	   -2  negative non-zero number
+	   -1  -0   \
+	    0   0   collapse these three to 0
+	   +1  +0   /
+	   +2  positive non-zero number
+	*/
+	if ( abs( vsign ) == 1 ) vsign = 0;
+	if ( abs( avsign ) == 1 ) avsign = 0;
+
+	if( vsign != avsign ) return LDAP_SUCCESS;
+
+	/* Check the significant digits */
+	while( vlen && avlen ) {
+		if( *v != *av ) break;
+		v++;
+		vlen--;
+		av++;
+		avlen--;
+	}
+
+	/* If all digits compared equal, the numbers are equal */
+	if(( vlen == 0 ) && ( avlen == 0 )) {
+		*matchp = 0;
+	}
+	return LDAP_SUCCESS;
+}
+	
+static int
 integerValidate(
 	Syntax *syntax,
 	struct berval *val )
@@ -1735,13 +1824,13 @@ integerValidate(
 
 	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
-	if( val->bv_val[0] == '+' || val->bv_val[0] == '-' ) {
+	if(( val->bv_val[0] == '+' ) || ( val->bv_val[0] == '-' )) {
 		if( val->bv_len < 2 ) return LDAP_INVALID_SYNTAX;
 	} else if( !ASCII_DIGIT(val->bv_val[0]) ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	for(i=1; i < val->bv_len; i++) {
+	for( i=1; i < val->bv_len; i++ ) {
 		if( !ASCII_DIGIT(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
@@ -1754,42 +1843,108 @@ integerNormalize(
 	struct berval *val,
 	struct berval **normalized )
 {
-	int negative;
-	struct berval *newval;
 	char *p;
+	int negative=0;
+	struct berval *newval;
+	ber_len_t len;
+
 
 	p = val->bv_val;
+	len = val->bv_len;
+
+	/* Ignore leading spaces */
+	while ( len && ( *p == ' ' )) {
+		p++;
+		len--;
+	}
 
 	/* save sign */
-	negative = ( *p == '-' );
-	if( *p == '-' || *p == '+' ) p++;
+	if( len ) {
+		negative = ( *p == '-' );
+		if(( *p == '-' ) || ( *p == '+' )) {
+			p++;
+			len--;
+		}
+	}
 
 	/* Ignore leading zeros */
-	while ( *p == '0' ) p++;
+	while ( len && ( *p == '0' )) {
+		p++;
+		len--;
+	}
 
 	newval = (struct berval *) ch_malloc( sizeof(struct berval) );
 
-	if( *p == '\0' ) {
+	/* If there are no non-zero digits left, the number is zero, otherwise
+	   allocate space for the number and copy it into the buffer */
+	if( len == 0 ) {
 		newval->bv_val = ch_strdup("0");
 		newval->bv_len = 1;
-		goto done;
+	}
+	else {
+		newval->bv_len = len+negative;
+		newval->bv_val = ch_malloc( newval->bv_len );
+		if( negative ) {
+			newval->bv_val[0] = '-';
+		}
+		memcpy( newval->bv_val + negative, p, len );
 	}
 
-	newval->bv_val = ch_malloc( val->bv_len + 1 );
-	newval->bv_len = 0;
-
-	if( negative ) {
-		newval->bv_val[newval->bv_len++] = '-';
-	}
-
-	for( ; *p != '\0'; p++ ) {
-		newval->bv_val[newval->bv_len++] = *p;
-	}
-
-done:
 	*normalized = newval;
 	return LDAP_SUCCESS;
 }
+
+/* Index generation function */
+int integerIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i;
+	struct berval **keys;
+
+	/* we should have at least one value at this point */
+	assert( values != NULL && values[0] != NULL );
+
+	for( i=0; values[i] != NULL; i++ ) {
+		/* empty -- just count them */
+	}
+
+	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+
+	for( i=0; values[i] != NULL; i++ ) {
+		integerNormalize( syntax, values[i], &keys[i] );
+	}
+
+	keys[i] = NULL;
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+/* Index generation function */
+int integerFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	struct berval **keys;
+
+	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+	integerNormalize( syntax, assertValue, &keys[0] );
+	keys[1] = NULL;
+	*keysp = keys;
+
+	return LDAP_SUCCESS;
+}
+
 
 static int
 countryStringValidate(
