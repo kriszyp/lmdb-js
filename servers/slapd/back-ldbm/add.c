@@ -375,12 +375,14 @@ return_results:;
 	}
 
 	if ( rc ) {
-		/* in case of error, writer lock is freed 
-		 * and entry's private data is destroyed */
+		/*
+		 * in case of error, writer lock is freed 
+		 * and entry's private data is destroyed.
+		 * otherwise, this is done when entry is released
+		 */
 		cache_return_entry_w( &li->li_cache, e );
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	}
-
-	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 	return( rc );
 }
