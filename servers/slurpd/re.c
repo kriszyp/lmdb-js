@@ -583,7 +583,7 @@ Re_write(
 	    goto bad;
 	}
     } else {			/* write multiple "replica:" lines */
-	for ( i = 0; re->re_replicas[ i ].rh_hostname != NULL; i++ ) {
+	for ( i = 0; re->re_replicas && re->re_replicas[ i ].rh_hostname != NULL; i++ ) {
 	    if ( fprintf( fp, "replica: %s:%d\n",
 		    re->re_replicas[ i ].rh_hostname,
 		    re->re_replicas[ i ].rh_port ) < 0 ) {
