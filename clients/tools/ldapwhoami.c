@@ -175,7 +175,7 @@ main( int argc, char *argv[] )
 
 		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
 			if( cvalue != NULL ) {
-				fprintf( stderr, "manageDSAit: no control value expected" );
+				fprintf( stderr, "manageDSAit: no control value expected\n" );
 				usage(prog);
 				return EXIT_FAILURE;
 			}
@@ -186,7 +186,7 @@ main( int argc, char *argv[] )
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
 			if( cvalue != NULL ) {
-				fprintf( stderr, "noop: no control value expected" );
+				fprintf( stderr, "noop: no control value expected\n" );
 				usage(prog);
 				return EXIT_FAILURE;
 			}
