@@ -7,10 +7,9 @@
 ##
 
 MANDIR=$(mandir)/man$(MANSECT)
+TMP_SUFFIX=tmp
 
-install-common: FORCE
-	-$(MKDIR) -p $(MANDIR)
-	@TMPMAN=/tmp/ldapman.$$$$$(MANCOMPRESSSUFFIX); \
+all-common: FORCE
 	VERSION=`$(CAT) $(VERSIONFILE)`; \
 	cd $(srcdir); \
 	for page in *.$(MANSECT); do \
@@ -23,19 +22,24 @@ install-common: FORCE
 			-e 's%BINDIR%$(bindir)%' \
 			-e 's%LIBDIR%$(libdir)%' \
 			-e 's%LIBEXECDIR%$(libexecdir)%' \
-			$$page | $(MANCOMPRESS) > $$TMPMAN; \
+			$$page > $$page.$(TMP_SUFFIX); \
+	done
+	touch all-common
+
+install-common:
+	-$(MKDIR) -p $(MANDIR)
+	for page in *.$(MANSECT); do \
 		echo "installing $(MANDIR)/$$page"; \
-		$(RM) $(MANDIR)/$$page $(MANDIR)/$$page$(MANCOMPRESSSUFFIX); \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$TMPMAN $(MANDIR)/$$page$(MANCOMPRESSSUFFIX); \
+		$(RM) $(MANDIR)/$$page; \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $$page.$(TMP_SUFFIX) $(MANDIR)/$$page; \
 		if [ -f "$$page.links" ]; then \
 			for link in `$(CAT) $$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
-				$(RM) $(MANDIR)/$$link $(MANDIR)/$$link$(MANCOMPRESSSUFFIX); \
-				$(LN_S) $$page$(MANCOMPRESSSUFFIX) $(MANDIR)/$$link$(MANCOMPRESSSUFFIX); \
+				$(RM) $(INSTDIR)/$$link $(MANDIR)/$$link; \
+				$(LN_S) -sf $$page $(MANDIR)/$$link; \
 			done; \
 		fi; \
 	done; \
 	$(RM) $$TMPMAN
 
 Makefile: $(top_srcdir)/build/lib.mk
-
