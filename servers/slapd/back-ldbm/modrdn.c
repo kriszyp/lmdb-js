@@ -587,7 +587,7 @@ ldbm_back_modrdn(
 				goto return_results;
 			}
 
-			val.bv_val = old_rdn_vals[a_cnt];
+			val.bv_val = old_rdn_vals[d_cnt];
 			val.bv_len = strlen( val.bv_val );
 			if ( ! access_allowed( be, conn, op, p, 
 					mod_tmp->sml_desc, &val, ACL_WRITE ) ) {
@@ -595,12 +595,12 @@ ldbm_back_modrdn(
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 					   "ldbm_back_modrdn: access "
 					   "not allowed to attr \"%s\"\n",
-					   old_rdn_types[a_cnt] ));
+					   old_rdn_types[d_cnt] ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_back_modrdn: access not allowed "
 					"to attr \"%s\"\n%s%s",
-					old_rdn_types[a_cnt], "", "" );
+					old_rdn_types[d_cnt], "", "" );
 #endif
 				send_ldap_result( conn, op, 
 					LDAP_INSUFFICIENT_ACCESS,
@@ -672,8 +672,14 @@ ldbm_back_modrdn(
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
 		}
+
+		/* here we may try to delete the newly added dn */
+		if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+			/* we already are in trouble ... */
+			;
+		}
 	    
-	    goto return_results;
+    		goto return_results;
 	}
 	
 	(void) cache_update_entry( &li->li_cache, e );
