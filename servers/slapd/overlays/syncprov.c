@@ -1256,13 +1256,11 @@ typedef struct searchstate {
 static int
 syncprov_search_cleanup( Operation *op, SlapReply *rs )
 {
-#if 0
 	if ( rs->sr_ctrls ) {
-		free( rs->sr_ctrls[0] );
+		op->o_tmpfree( rs->sr_ctrls[0], op->o_tmpmemctx );
 		op->o_tmpfree( rs->sr_ctrls, op->o_tmpmemctx );
 		rs->sr_ctrls = NULL;
 	}
-#endif
 	return 0;
 }
 
