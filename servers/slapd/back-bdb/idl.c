@@ -20,19 +20,42 @@
 
 #define BDB_IS_ALLIDS(ids)	((ids)[0] == NOID)
 
+#define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
+
 static int idl_search( ID *ids, ID id )
 {
-	/* we should replace this a binary search as ids is sorted */
-	int i;
-	int n = (int) ids[0];
+	/*
+	 * binary search of id in ids
+	 * if found, returns position of id
+	 * if not found, returns first postion greater than id
+	 */
+	int base = 0;
+	int cursor;
+	int val;
+	int n = ids[0];
 
-	for( i = 1; i <= n; i++ ) {
-		if( id <= ids[i] ) {
-			return i;
+	while( 0 < n ) {
+		int pivot = n >> 1;
+		cursor = base + pivot;
+		val = IDL_CMP( id, ids[cursor + 1] );
+
+		if( val < 0 ) {
+			n = pivot;
+
+		} else if ( val > 0 ) {
+			base = cursor + 1;
+			n -= pivot + 1;
+
+		} else {
+			return cursor + 1;
 		}
 	}
-
-	return 0;
+	
+	if( val < 0 ) {
+		return cursor + 1;
+	} else {
+		return cursor + 2;
+	}
 }
 
 static int idl_insert( ID *ids, ID id )
