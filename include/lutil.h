@@ -106,6 +106,15 @@ lutil_progname LDAP_P((
 	int argc,
 	char *argv[] ));
 
+LDAP_LUTIL_F( char* )
+lutil_strcopy LDAP_P(( char *dst, const char *src ));
+
+LDAP_LUTIL_F( char* )
+lutil_strncopy LDAP_P(( char *dst, const char *src, size_t n ));
+
+LDAP_LUTIL_F( size_t )
+lutil_gentime LDAP_P(( char *s, size_t max, const struct tm *tm ));
+
 #ifndef HAVE_MKSTEMP
 LDAP_LUTIL_F( int )
 mkstemp LDAP_P (( char * template ));
@@ -144,6 +153,16 @@ LDAP_LUTIL_V (SERVICE_STATUS_HANDLE) hSLAPDServiceStatus;
 #endif /* _WINSVC_H */
 
 #endif /* HAVE_NT_SERVICE_MANAGER */
+
+#ifdef HAVE_EBCDIC
+/* Generally this has only been used to put '\n' to stdout. We need to
+ * make sure it is output in EBCDIC.
+ */
+#undef putchar
+#undef putc
+#define putchar(c)     putc((c), stdout)
+#define putc(c,fp)     do { char x=(c); __atoe_l(&x,1); putc(x,fp); } while(0)
+#endif
 
 LDAP_END_DECL
 
