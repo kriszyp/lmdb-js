@@ -548,8 +548,8 @@ ldap_controls_free LDAP_P((
 LDAP_F( int )
 ldap_extended_operation LDAP_P((
 	LDAP			*ld,
-	LDAP_CONST char	*exoid,
-	struct berval	*exdata,
+	LDAP_CONST char	*reqoid,
+	struct berval	*reqdata,
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls,
 	int				*msgidp ));
@@ -557,8 +557,8 @@ ldap_extended_operation LDAP_P((
 LDAP_F( int )
 ldap_extended_operation_s LDAP_P((
 	LDAP			*ld,
-	LDAP_CONST char	*exoid,
-	struct berval	*exdata,
+	LDAP_CONST char	*reqoid,
+	struct berval	*reqdata,
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls,
 	char			**retoidp,
