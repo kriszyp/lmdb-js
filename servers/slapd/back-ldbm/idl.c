@@ -551,7 +551,6 @@ idl_insert_key(
 					    id, 0, 0 );
 				}
 
-				assert( 0 ); /* not yet implemented */
 				idl_free( tmp );
 				idl_free( tmp2 );
 				idl_free( idl );
