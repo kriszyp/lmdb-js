@@ -2,6 +2,8 @@
 # Definitions from RFC2307 (Experimental)
 #	An Approach for Using LDAP as a Network Information Service
 
+# Depends upon core.schema and cosine.schema
+
 # Note: The definitions in RFC2307 are given in syntaxes closely related
 # to those in RFC2252, however, some liberties are taken that are not
 # supported by RFC2252.  This file has been written following RFC2252

@@ -11,6 +11,8 @@
 # Note: It seems that the pilot schema evolved beyond what was
 # described in RFC1274.  However, this document attempts to describes
 # RFC1274 as published. 
+#
+# Depends on core.schema
 
 
 # Network Working Group                                          P. Barker
