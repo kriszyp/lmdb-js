@@ -267,14 +267,20 @@ send_ldap_response(
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if (op->o_conn && op->o_conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
+	if (op->o_conn && op->o_conn->c_is_udp &&
+		op->o_protocol == LDAP_VERSION2 )
+	{
 		rc = ber_printf( ber, "t{ess" /*"}}"*/,
 			rs->sr_tag, rs->sr_err,
 		rs->sr_matched == NULL ? "" : rs->sr_matched,
 		rs->sr_text == NULL ? "" : rs->sr_text );
 	} else 
 #endif
-	{
+	if ( rs->sr_type == REP_INTERMEDIATE ) {
+	    rc = ber_printf( ber, "{it{" /*"}}"*/,
+			rs->sr_msgid, rs->sr_tag );
+
+	} else {
 	    rc = ber_printf( ber, "{it{ess" /*"}}"*/,
 		rs->sr_msgid, rs->sr_tag, rs->sr_err,
 		rs->sr_matched == NULL ? "" : rs->sr_matched,
@@ -296,7 +302,9 @@ send_ldap_response(
 			LDAP_TAG_SASL_RES_CREDS, rs->sr_sasldata );
 	}
 
-	if( rc != -1 && rs->sr_type == REP_EXTENDED ) {
+	if( rc != -1 &&
+		( rs->sr_type == REP_EXTENDED || rs->sr_type == REP_INTERMEDIATE ))
+	{
 		if ( rs->sr_rspoid != NULL ) {
 			rc = ber_printf( ber, "ts",
 				LDAP_TAG_EXOP_RES_OID, rs->sr_rspoid );
@@ -551,11 +559,10 @@ slap_send_ldap_extended( Operation *op, SlapReply *rs )
 	send_ldap_response( op, rs );
 }
 
-#ifdef LDAP_RES_INTERMEDIATE
 void
 slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 {
-	rs->sr_type = REP_EXTENDED;
+	rs->sr_type = REP_INTERMEDIATE;
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY,
 		"send_ldap_intermediate: err=%d oid=%s len=%ld\n",
@@ -572,7 +579,6 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 	rs->sr_msgid = op->o_msgid;
 	send_ldap_response( op, rs );
 }
-#endif
 
 int
 slap_send_search_entry( Operation *op, SlapReply *rs )

@@ -557,8 +557,9 @@ do_syncrepl(
 				break;
 
 			case LDAP_RES_INTERMEDIATE:
-				ldap_parse_intermediate( ld, msg, &retoid, &retdata, NULL, 0 );
-				if ( !strcmp( retoid, LDAP_SYNC_INFO ) ) {
+				rc = ldap_parse_intermediate( ld, msg,
+					&retoid, &retdata, NULL, 0 );
+				if ( !rc && !strcmp( retoid, LDAP_SYNC_INFO ) ) {
 					sync_info_arrived = 1;
 					res_ber = ber_init( retdata );
 					ber_scanf( res_ber, "{e", &syncstate );
@@ -605,8 +606,8 @@ do_syncrepl(
 						"response\n", 0, 0, 0 );
 #else
 					Debug( LDAP_DEBUG_ANY, "do_syncrepl : "
-						"unknown intermediate "
-						"response\n", 0, 0, 0 );
+						"unknown intermediate response (%d)\n",
+						rc, 0, 0 );
 #endif
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );

@@ -1575,7 +1575,8 @@ typedef enum slap_reply_e {
 	REP_SASL,
 	REP_EXTENDED,
 	REP_SEARCH,
-	REP_SEARCHREF
+	REP_SEARCHREF,
+	REP_INTERMEDIATE
 } slap_reply_t;
 
 typedef struct rep_sasl_s {
