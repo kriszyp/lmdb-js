@@ -169,7 +169,7 @@ ldap_pvt_thread_sleep LDAP_P(( unsigned int s ));
 
 #ifdef HAVE_GETCONCURRENCY
 LDAP_F int
-ldap_pvt_thread_getconcurrency LDAP_P(( void ));
+ldap_pvt_thread_get_concurrency LDAP_P(( void ));
 #endif
 #ifdef HAVE_SETCONCURRENCY
 #	ifndef LDAP_THREAD_CONCURRENCY
@@ -177,7 +177,7 @@ ldap_pvt_thread_getconcurrency LDAP_P(( void ));
 #	define LDAP_THREAD_CONCURRENCY	3
 #	endif
 LDAP_F int
-ldap_pvt_thread_setconcurrency LDAP_P(( int ));
+ldap_pvt_thread_set_concurrency LDAP_P(( int ));
 #endif
 
 LDAP_F int 

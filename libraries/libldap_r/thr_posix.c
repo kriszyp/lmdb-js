@@ -20,7 +20,7 @@ int
 ldap_pvt_thread_initialize( void )
 {
 #if defined( LDAP_THREAD_CONCURRENCY ) && HAVE_PTHREAD_SETCONCURRENCY
-	ldap_pvt_thread_setconcurrency( LDAP_THREAD_CONCURRENCY );
+	ldap_pvt_thread_set_concurrency( LDAP_THREAD_CONCURRENCY );
 #endif
 	return 0;
 }
