@@ -118,6 +118,22 @@ main( int argc, char *argv[] )
 
 	rc = ldap_str2dn( strin, &dn, flags[ 0 ] );
 
+	if ( rc == LDAP_SUCCESS ) {
+		int i;
+		for ( i = 0; dn[ i ]; i++ ) {
+			LDAPRDN		*rdn = dn[ i ][ 0 ];
+			char		*rstr;
+
+			if ( ldap_rdn2str( rdn, &rstr, flags[ f2 ] ) ) {
+				fprintf( stdout, "\tldap_rdn2str() failed\n" );
+				continue;
+			}
+
+			fprintf( stdout, "\tldap_rdn2str() = \"%s\"\n", rstr );
+			ldap_memfree( rstr );
+		}
+	}
+
 	if ( rc == LDAP_SUCCESS && 
 			ldap_dn2str( dn, &str, flags[ f2 ] ) == LDAP_SUCCESS ) {
 		char	**values, *tmp, *tmp2;

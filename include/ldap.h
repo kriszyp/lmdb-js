@@ -1214,6 +1214,22 @@ LDAP_F( void )
 ldapava_free_dn LDAP_P(( LDAPDN *dn ));
 
 LDAP_F( int )
+ldap_str2rdn LDAP_P(( 
+	const char *str, 
+	LDAPRDN **rdn, 
+	const char **next,
+	unsigned flags ));
+
+LDAP_F( int )
+ldap_rdn2str LDAP_P(( 
+	LDAPRDN *rdn, 
+	char **str, 
+	unsigned flags ));
+
+LDAP_F( void )
+ldapava_free_rdn LDAP_P(( LDAPRDN *rdn ));
+
+LDAP_F( int )
 ldap_dn_normalize LDAP_P((
 	LDAP_CONST char *in, unsigned iflags,
 	char **out, unsigned oflags ));
