@@ -110,7 +110,7 @@ meta_back_compare(
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
 		char *mdn = NULL;
 		char *mapped_attr = ava->aa_desc->ad_cname.bv_val;
-		char *mapped_value = ava->aa_value->bv_val;
+		char *mapped_value = ava->aa_value.bv_val;
 
 		if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
 			continue;
@@ -156,7 +156,7 @@ meta_back_compare(
 		if ( ava->aa_desc->ad_type->sat_oid 
 			== slap_schema.si_ad_objectClass->ad_type->sat_oid ) {
 			mapped_value = ldap_back_map( &li->targets[ i ]->oc_map,
-					ava->aa_value->bv_val, 0 );
+					ava->aa_value.bv_val, 0 );
 
 			if ( mapped_value == NULL ) {
 				lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
@@ -192,7 +192,7 @@ meta_back_compare(
 		if ( mapped_attr != ava->aa_desc->ad_cname.bv_val ) {
 			free( mapped_attr );
 		}
-		if ( mapped_value != ava->aa_value->bv_val ) {
+		if ( mapped_value != ava->aa_value.bv_val ) {
 			free( mapped_value );
 		}
 
