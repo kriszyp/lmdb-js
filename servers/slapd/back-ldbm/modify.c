@@ -153,6 +153,7 @@ int ldbm_modify_internal(
 
 			rc = modify_add_values( e, mod, get_permissiveModify( op ),
 						text, textbuf, textlen );
+			mod->sm_op = SLAP_MOD_SOFTADD;
 			if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
 				rc = LDAP_SUCCESS;
 			}

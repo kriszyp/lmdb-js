@@ -655,10 +655,16 @@ return_results:
 	if ( mod != NULL ) {
 		Modifications *tmp;
 		for (; mod; mod = tmp ) {
+			/* slap_modrdn2mods does things one way,
+			 * slap_mods_opattrs does it differently
+			 */
+			if ( mod->sml_op != SLAP_MOD_SOFTADD &&
+				mod->sml_op != LDAP_MOD_DELETE ) break;
 			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
 			tmp = mod->sml_next;
 			free( mod );
 		}
+		slap_mods_free( mod );
 	}
 
 	/* LDAP v3 Support */
