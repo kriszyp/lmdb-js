@@ -165,6 +165,11 @@ ldap_get_option(
 		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, outvalue );
 		return LDAP_OPT_SUCCESS;
 
+	case LDAP_OPT_SOCKBUF:
+		if( ld == NULL ) break;
+		outvalue = ld->ld_sb;
+		return LDAP_OPT_SUCCESS;
+
 	case LDAP_OPT_TIMEOUT:
 		/* the caller has to free outvalue ! */
 		if ( ldap_int_timeval_dup( outvalue, lo->ldo_tm_api) != 0 ) {

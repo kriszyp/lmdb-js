@@ -119,6 +119,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_NETWORK_TIMEOUT	0x5005	/* socket level timeout */
 #define LDAP_OPT_URI				0x5006
 #define LDAP_OPT_REFERRAL_URLS      0x5007  /* Referral URLs */
+#define LDAP_OPT_SOCKBUF            0x5008  /* sockbuf */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
