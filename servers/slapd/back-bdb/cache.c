@@ -140,6 +140,8 @@ bdb_cache_entry_db_unlock
 #else
 	int rc;
 
+	if ( !lock ) return 0;
+
 	rc = LOCK_PUT ( env, lock );
 	return rc;
 #endif
@@ -489,7 +491,13 @@ bdb_cache_lru_add(
 	EntryInfo *ei
 )
 {
-	DB_LOCK		lock;
+	DB_LOCK		lock, *lockp;
+
+	if ( locker ) {
+		lockp = &lock;
+	} else {
+		lockp = NULL;
+	}
 
 	/* See if we're above the cache size limit */
 	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
@@ -507,20 +515,20 @@ bdb_cache_lru_add(
 			 * the object is idle.
 			 */
 			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, elru, 1, 1,
-				&lock ) == 0 ) {
+				lockp ) == 0 ) {
 				/* If there's no entry, or this node is in
 				 * the process of linking into the cache,
 				 * skip it.
 				 */
 				if ( !elru->bei_e || (elru->bei_state & CACHE_ENTRY_NOT_LINKED) ) {
-					bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
+					bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 					continue;
 				}
 				LRU_DELETE( &bdb->bi_cache, elru );
 				elru->bei_e->e_private = NULL;
 				bdb_entry_return( elru->bei_e );
 				elru->bei_e = NULL;
-				bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
+				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lockp );
 				--bdb->bi_cache.c_cursize;
 				if (bdb->bi_cache.c_cursize < bdb->bi_cache.c_maxsize)
 					break;
