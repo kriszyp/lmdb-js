@@ -1,8 +1,18 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.12 Engineering
+	Fixed slapd modlist2mods error text bug
+	Fixed slapd empty rootdn bug
+	Fixed slapd numericString empty value bug
+	Fixed slapd undefined attr error report
 	Fixed ldapmodrdn SASL auth bug (ITS#1179)
-	Updated ldaptcl API
+	Added slapd sb_max_incoming_auth support
+	Added slapd DB_ENV support
+	Updated slapd filter checks
+	Updated ldaptcl API (contrib)
+	Updated ldbm to use BerkeleyDB's CDB
+	Build environment
+		Remove extraneous files
 
 OpenLDAP 2.0.11 Release
 	Fix attribute parse bug (ITS#1159)
