@@ -82,7 +82,8 @@ Specifies the name of the
 replication logfile.  Normally, the name
 of the replication log file is read from the 
 .B slapd
-configuration file.
+configuration file.  The file should be located in a directory
+with limited read/write/execute access.
 The
 .B \-r
 option allows you to override this.  In conjunction with the
@@ -107,6 +108,8 @@ processes a replication log and exits.
 .BI \-t " temp\-dir"
 .B slurpd
 copies the replication log to a working directory before processing it.
+The directory permissions should limit read/write/execute access as
+temporary files may contain sensitive information.
 This option allows you to specify the location of these temporary files. 
 The default is
 .BR LOCALSTATEDIR/openldap-slurp .

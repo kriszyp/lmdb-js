@@ -536,7 +536,9 @@ and read by
 .BR slurpd (8).
 See
 .BR slapd.replog (5)
-for more information.
+for more information.  The specified file should be located
+in a directory with limited read/write/execute access as the replication
+logs may contain sensitive information.
 .TP
 .B rootdn <dn>
 Specify the distinguished name that is not subject to access control 
