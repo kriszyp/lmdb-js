@@ -273,7 +273,7 @@ lutil_uuidstr( char *buf, size_t len )
 		(unsigned) nl[2], (unsigned) nl[3],
 		(unsigned) nl[4], (unsigned) nl[5] );
 
-	return (t1 < len) ? t1 : 0;
+	return (0 < t1 && t1 < len) ? t1 : 0;
 #endif
 }
 
