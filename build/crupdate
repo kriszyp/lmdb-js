@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2003 The OpenLDAP Foundation.
+## Copyright 1998-2004 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -18,5 +18,5 @@
 
 set -e 		# exit immediately if any errors occur
 
-find . -type=f -not -name 'LICENSE*' -exec perl -pi -e 's/Copyright ([0-9]{4})([,\-][0-9]{2,4})*,? The OpenLDAP Foundation/Copyright $1-2003 The OpenLDAP Foundation/g;' {} \;
+find . -type f -not -name 'LICENSE*' -exec perl -pi -e 's/Copyright ([0-9]{4})([,\-][0-9]{2,4})*,? The OpenLDAP Foundation/Copyright $1-2004 The OpenLDAP Foundation/g;' {} \;
 
