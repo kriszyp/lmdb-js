@@ -536,19 +536,20 @@ caseExactIA5SubstringsMatch(
 	int i;
 	ber_len_t inlen=0;
 
+	/* Add up asserted input length */
 	if( sub->sa_initial ) {
 		inlen += sub->sa_initial->bv_len;
 	}
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i]; i++) {
-			inlen += sub->sa_final->bv_len;
+		for(i=0; sub->sa_any[i] != NULL; i++) {
+			inlen += sub->sa_any[i]->bv_len;
 		}
 	}
 	if( sub->sa_final ) {
 		inlen += sub->sa_final->bv_len;
 	}
 
-	if( inlen > value->bv_len ) {
+	if( inlen > left.bv_len ) {
 		match = 1;
 		goto done;
 	}
@@ -564,6 +565,11 @@ caseExactIA5SubstringsMatch(
 		left.bv_val += sub->sa_initial->bv_len;
 		left.bv_len -= sub->sa_initial->bv_len;
 		inlen -= sub->sa_initial->bv_len;
+
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
 	}
 
 	if( sub->sa_final ) {
@@ -576,7 +582,12 @@ caseExactIA5SubstringsMatch(
 		}
 
 		left.bv_len -= sub->sa_final->bv_len;
-		inlen -= sub->sa_initial->bv_len;
+		inlen -= sub->sa_final->bv_len;
+
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
 	}
 
 	if( sub->sa_any ) {
@@ -585,12 +596,6 @@ caseExactIA5SubstringsMatch(
 			char *p;
 
 retry:
-			if( inlen < left.bv_len ) {
-				/* not enough length */
-				match = 1;
-				goto done;
-			}
-
 			if( sub->sa_any[i]->bv_len == 0 ) {
 				continue;
 			}
@@ -623,13 +628,19 @@ retry:
 				sub->sa_any[i]->bv_val,
 				sub->sa_any[i]->bv_len );
 
-
 			if( match != 0 ) {
 				goto retry;
 			}
 
 			left.bv_val += sub->sa_any[i]->bv_len;
 			left.bv_len -= sub->sa_any[i]->bv_len;
+			inlen -= sub->sa_any[i]->bv_len;
+
+			if( inlen > left.bv_len ) {
+				/* not enough length */
+				match = 1;
+				goto done;
+			}
 		}
 	}
 
@@ -681,11 +692,12 @@ caseIgnoreIA5SubstringsMatch(
 	int i;
 	ber_len_t inlen=0;
 
+	/* Add up asserted input length */
 	if( sub->sa_initial ) {
 		inlen += sub->sa_initial->bv_len;
 	}
 	if( sub->sa_any ) {
-		for(i=0; sub->sa_any[i]; i++) {
+		for(i=0; sub->sa_any[i] != NULL; i++) {
 			inlen += sub->sa_any[i]->bv_len;
 		}
 	}
@@ -693,7 +705,7 @@ caseIgnoreIA5SubstringsMatch(
 		inlen += sub->sa_final->bv_len;
 	}
 
-	if( inlen > value->bv_len ) {
+	if( inlen > left.bv_len ) {
 		match = 1;
 		goto done;
 	}
@@ -708,6 +720,12 @@ caseIgnoreIA5SubstringsMatch(
 
 		left.bv_val += sub->sa_initial->bv_len;
 		left.bv_len -= sub->sa_initial->bv_len;
+		inlen -= sub->sa_initial->bv_len;
+
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
 	}
 
 	if( sub->sa_final ) {
@@ -720,6 +738,12 @@ caseIgnoreIA5SubstringsMatch(
 		}
 
 		left.bv_len -= sub->sa_final->bv_len;
+		inlen -= sub->sa_final->bv_len;
+
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
 	}
 
 	if( sub->sa_any ) {
@@ -728,12 +752,6 @@ caseIgnoreIA5SubstringsMatch(
 			char *p;
 
 retry:
-			if( inlen < left.bv_len ) {
-				/* not enough length */
-				match = 1;
-				goto done;
-			}
-
 			if( sub->sa_any[i]->bv_len == 0 ) {
 				continue;
 			}
@@ -766,13 +784,19 @@ retry:
 				sub->sa_any[i]->bv_val,
 				sub->sa_any[i]->bv_len );
 
-
 			if( match != 0 ) {
 				goto retry;
 			}
 
 			left.bv_val += sub->sa_any[i]->bv_len;
 			left.bv_len -= sub->sa_any[i]->bv_len;
+			inlen -= sub->sa_any[i]->bv_len;
+
+			if( inlen > left.bv_len ) {
+				/* not enough length */
+				match = 1;
+				goto done;
+			}
 		}
 	}
 
