@@ -1186,7 +1186,9 @@ syncrepl_entry(
 			if ( rc != LDAP_SUCCESS ) {
 				if ( rc == LDAP_ALREADY_EXISTS ) {
 					Modifications *mod;
-					Modifications *modtail;
+					Modifications *modtail = modlist;
+
+					assert( modlist );
 
 					for ( mod = modlist; mod != NULL; mod = mod->sml_next ) {
 						modtail = mod;
@@ -1805,7 +1807,7 @@ syncrepl_isupdate_dn(
 
 	if ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
 		LDAP_STAILQ_FOREACH( si, &be->be_syncinfo, si_next ) {
-			if ( ret = dn_match( &si->si_updatedn, ndn )) {
+			if ( ( ret = dn_match( &si->si_updatedn, ndn ) ) ) {
 				return ret;
 			}
 		}
