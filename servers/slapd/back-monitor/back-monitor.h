@@ -227,6 +227,9 @@ extern struct monitorsubsys monitor_subsys[];
 
 extern BackendDB *be_monitor;
 
+/* increase this bufsize if entries in string form get too big */
+#define BACKMONITOR_BUFSIZE	1024
+
 /*
  * cache
  */

@@ -48,7 +48,7 @@ monitor_subsys_rww_init(
 	
 	Entry			*e, *e_tmp, *e_conn;
 	struct monitorentrypriv	*mp;
-	char			buf[1024];
+	char			buf[ BACKMONITOR_BUFSIZE ];
 	struct berval		bv;
 
 	assert( be != NULL );

@@ -62,7 +62,7 @@ monitor_subsys_ops_init(
 	
 	Entry			*e, *e_tmp, *e_op;
 	struct monitorentrypriv	*mp;
-	char			buf[1024];
+	char			buf[ BACKMONITOR_BUFSIZE ];
 	int 			i;
 
 	assert( be != NULL );

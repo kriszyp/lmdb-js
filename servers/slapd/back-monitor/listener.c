@@ -87,7 +87,7 @@ monitor_subsys_listener_init(
 	e_tmp = NULL;
 	for ( i = 0; l[i]; i++ );
 	for ( ; i--; ) {
-		char 		buf[1024];
+		char 		buf[ BACKMONITOR_BUFSIZE ];
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Listener %d,%s\n"

@@ -57,7 +57,7 @@ monitor_subsys_time_init(
 	
 	Entry			*e, *e_tmp, *e_time;
 	struct monitorentrypriv	*mp;
-	char			buf[1024];
+	char			buf[ BACKMONITOR_BUFSIZE ];
 	struct tm		*tms;
 	char			tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 

@@ -214,7 +214,7 @@ monitor_subsys_log_modify(
 	/* set the new debug level */
 	if ( rc == LDAP_SUCCESS ) {
 		const char *text;
-		static char textbuf[1024];
+		static char textbuf[ BACKMONITOR_BUFSIZE ];
 
 		/* check for abandon */
 		if ( op->o_abandon ) {

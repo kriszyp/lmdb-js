@@ -50,7 +50,7 @@ monitor_subsys_conn_init(
 	
 	Entry			*e, *e_tmp, *e_conn;
 	struct monitorentrypriv	*mp;
-	char			buf[1024];
+	char			buf[ BACKMONITOR_BUFSIZE ];
 	struct berval		bv;
 
 	assert( be != NULL );
@@ -235,7 +235,7 @@ monitor_subsys_conn_update(
 
 	if ( n != -1 ) {
 		Attribute	*a;
-		char		buf[16];
+		char		buf[] = "+9223372036854775807L";
 
 		a = attr_find( e->e_attrs, mi->ad_monitorCounter );
 		if ( a == NULL ) {
@@ -259,7 +259,7 @@ conn_create(
 {
 	struct monitorentrypriv *mp;
 	struct tm		*ltm;
-	char			buf[ 1024 ];
+	char			buf[ BACKMONITOR_BUFSIZE ];
 	char			buf2[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	char			buf3[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 

@@ -78,7 +78,7 @@ monitor_subsys_database_init(
 
 	e_tmp = NULL;
 	for ( i = nBackendDB; i--; ) {
-		char buf[1024];
+		char buf[ BACKMONITOR_BUFSIZE ];
 		int j;
 
 		be = &backendDB[i];
@@ -209,7 +209,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 	i = 0;
 	do {
 		Slapi_PluginDesc	*srchdesc;
-		char			buf[1024];
+		char			buf[ BACKMONITOR_BUFSIZE ];
 		struct berval		bv;
 
 		rc = slapi_pblock_get( pCurrentPB, SLAPI_PLUGIN_DESCRIPTION,

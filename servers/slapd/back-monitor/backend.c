@@ -74,7 +74,7 @@ monitor_subsys_backend_init(
 
 	e_tmp = NULL;
 	for ( i = nBackendInfo; i--; ) {
-		char 		buf[1024];
+		char 		buf[ BACKMONITOR_BUFSIZE ];
 		BackendInfo 	*bi;
 		struct berval 	bv;
 		int		j;

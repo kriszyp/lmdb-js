@@ -303,7 +303,7 @@ monitor_back_db_open(
 	Entry 			*e, *e_tmp;
 	struct monitorentrypriv	*mp;
 	int			i;
-	char 			buf[1024], *end_of_line;
+	char 			buf[ BACKMONITOR_BUFSIZE ], *end_of_line;
 	const char 		*text;
 	struct berval		bv;
 	struct m_s {

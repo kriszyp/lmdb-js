@@ -48,7 +48,7 @@ monitor_subsys_thread_init(
 {
 	struct monitorinfo      *mi;
 	Entry                   *e;
-	static char		buf[1024];
+	static char		buf[ BACKMONITOR_BUFSIZE ];
 	struct berval		bv;
 
 	mi = ( struct monitorinfo * )be->be_private;
@@ -91,7 +91,7 @@ monitor_subsys_thread_update(
 	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	Attribute		*a;
 	struct berval           *b = NULL;
-	char 			buf[1024];
+	char 			buf[ BACKMONITOR_BUFSIZE ];
 
 	assert( mi != NULL );
 
