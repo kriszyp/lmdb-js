@@ -220,7 +220,7 @@ ldbm_back_modrdn(
 
 	} else {
 		/* no parent, modrdn entry directly under root */
-		if( ! be_isroot( be, op->o_ndn ) ) {
+		if( ! be_isroot( be, op->o_ndn ) && ! be_issuffix( be, "" ) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				   "ldbm_back_modrdn: (%s) no parent & not a root.\n",
