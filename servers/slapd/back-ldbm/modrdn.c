@@ -271,14 +271,6 @@ ldbm_back_modrdn(
 	       "ldbm_back_modrdn: new ndn=%s does not exist\n",
 	       new_ndn, 0, 0 );
 
-	/* check for abandon */
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-	if ( op->o_abandon ) {
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		goto return_results;
-	}
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
@@ -417,6 +409,14 @@ ldbm_back_modrdn(
 	}
 #endif
 
+	/* check for abandon */
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+	if ( op->o_abandon ) {
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+		goto return_results;
+	}
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+
 	/* delete old one */
 	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -425,10 +425,15 @@ ldbm_back_modrdn(
 	}
 
 	(void) cache_delete_entry( &li->li_cache, e );
+
+	/* XXX: there is no going back! */
+
 	free( e->e_dn );
 	free( e->e_ndn );
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
+	new_dn = NULL;
+	new_ndn = NULL;
 
 	/* add new one */
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
@@ -436,7 +441,6 @@ ldbm_back_modrdn(
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
-
 
 	/* modify memory copy of entry */
 	if ( ldbm_modify_internal( be, conn, op, dn, &mod[0], e )
@@ -456,23 +460,17 @@ ldbm_back_modrdn(
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			NULL, NULL, NULL, NULL );
-		goto return_results_after;
+		goto return_results;
 	}
 
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
 	rc = 0;
-	goto return_results_after;	
 
 return_results:
 	if( new_dn != NULL ) free( new_dn );
 	if( new_ndn != NULL ) free( new_ndn );
 
-return_results_after:
-	/* NOTE:
-	 * new_dn and new_ndn are not deallocated because they are used by
-	 * the cache entry.
-	 */
 	if( p_dn != NULL ) free( p_dn );
 	if( p_ndn != NULL ) free( p_ndn );
 
