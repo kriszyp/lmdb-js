@@ -226,7 +226,9 @@ int ldap_int_get_controls(
 void
 ldap_control_free( LDAPControl *c )
 {
+#ifdef LDAP_MEMORY_DEBUG
 	assert( c != NULL );
+#endif
 
 	if ( c != NULL ) {
 		if( c->ldctl_oid != NULL) {
@@ -247,7 +249,9 @@ ldap_control_free( LDAPControl *c )
 void
 ldap_controls_free( LDAPControl **controls )
 {
+#ifdef LDAP_MEMORY_DEBUG
 	assert( controls != NULL );
+#endif
 
 	if ( controls != NULL ) {
 		int i;
