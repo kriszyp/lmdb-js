@@ -91,7 +91,7 @@ above, the server can be configured to use directory service with
 >	referral	ldap://root.openldap.org/
 
 However, as {{EX:a.example.net}} is the {{immediate superior}}
-to {{EX:b.example.net}}, {{a.example.net}} would be configured
+to {{EX:b.example.net}}, {{b.example.net}} would be configured
 as follows:
 
 >	referral	ldap://a.example.net/
