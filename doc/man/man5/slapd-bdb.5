@@ -10,8 +10,18 @@ ETCDIR/slapd.conf
 The BDB backend to
 .BR slapd (8)
 is the recommended backend for a normal slapd database.
-It uses the Sleepycat BerkelyDB package to store data.
+It uses the Sleepycat Berkeley DB (BDB) package to store data.
 It makes extensive use of indexing and caching to speed data access.
+.TP
+It is noted that these options are intended to complement
+Berkeley DB configuration options set in the environment's
+.B DB_CONFIG
+file.  See Berkeley DB documentation for
+details on
+.B DB_CONFIG
+configuration options.  Where there is overlap, settings in
+.B DB_CONFIG
+take precedence.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -111,9 +121,13 @@ is 16, thus 8MB per thread is used.
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
+.TP
+DB_CONFIG
+Berkeley DB configuration file
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8),
 .BR slapadd (8),
 .BR slapcat (8),
-.BR slapindex (8).
+.BR slapindex (8),
+.BR Berkeley DB documentation .
