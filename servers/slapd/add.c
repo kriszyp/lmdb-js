@@ -227,13 +227,10 @@ do_add( Connection *conn, Operation *op )
 	 */
 	if ( be->be_add ) {
 		/* do the update here */
-#ifdef SLAPD_MULTIMASTER
-		if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-			global_lastmod == ON)) && (be->be_update_ndn == NULL ||
-			strcmp( be->be_update_ndn, op->o_ndn )) )
-#else
-		if ( be->be_update_ndn == NULL ||
-			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		int repl_user = (be->be_update_ndn != NULL &&
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0);
+#ifndef SLAPD_MULTIMASTER
+		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
 			int update = be->be_update_ndn != NULL;
@@ -245,10 +242,8 @@ do_add( Connection *conn, Operation *op )
 				goto done;
 			}
 
-#ifndef SLAPD_MULTIMASTER
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && !update )
-#endif
+				global_lastmod == ON)) && !repl_user )
 			{
 				Modifications **modstail;
 				for( modstail = &mods;
@@ -275,8 +270,7 @@ do_add( Connection *conn, Operation *op )
 
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if (be->be_update_ndn == NULL ||
-					strcmp( be->be_update_ndn, op->o_ndn ))
+				if ( !repl_user )
 #endif
 				{
 					replog( be, op, e->e_dn, e );

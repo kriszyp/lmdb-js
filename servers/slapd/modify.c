@@ -268,12 +268,13 @@ do_modify(
 	 */
 	if ( be->be_modify ) {
 		/* do the update here */
+		int repl_user = (be->be_update_ndn != NULL &&
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0);
 #ifndef SLAPD_MULTIMASTER
-		/* we don't have to check for replicator dn
-		 * because we accept each modify request
+		/* Multimaster slapd does not have to check for replicator dn
+		 * because it accepts each modify request
 		 */
-		if ( be->be_update_ndn == NULL ||
-			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
 			int update = be->be_update_ndn != NULL;
@@ -287,7 +288,7 @@ do_modify(
 			}
 
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && !update )
+				global_lastmod == ON)) && !repl_user )
 			{
 				Modifications **modstail;
 				for( modstail = &mods;
@@ -308,8 +309,7 @@ do_modify(
 
 			if ( (*be->be_modify)( be, conn, op, dn, ndn, mods ) == 0 
 #ifdef SLAPD_MULTIMASTER
-				&& ( be->be_update_ndn == NULL ||
-					strcmp( be->be_update_ndn, op->o_ndn ) != 0 )
+				&& !repl_user
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
