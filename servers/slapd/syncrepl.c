@@ -1121,7 +1121,8 @@ syncrepl_entry(
 	case LDAP_SYNC_MODIFY:
 		if ( rc == LDAP_SUCCESS ||
 			 rc == LDAP_REFERRAL ||
-			 rc == LDAP_NO_SUCH_OBJECT )
+			 rc == LDAP_NO_SUCH_OBJECT ||
+			 rc == LDAP_NOT_ALLOWED_ON_NONLEAF )
 		{
 			attr_delete( &e->e_attrs, slap_schema.si_ad_entryUUID );
 			attr_merge_one( e, slap_schema.si_ad_entryUUID,
@@ -1134,7 +1135,7 @@ syncrepl_entry(
 			rc = be->be_add( op, &rs );
 
 			if ( rc != LDAP_SUCCESS ) {
-				if ( rc == LDAP_ALREADY_EXISTS ) {	
+				if ( rc == LDAP_ALREADY_EXISTS ) {
 					op->o_tag = LDAP_REQ_MODIFY;
 					op->orm_modlist = modlist;
 					op->o_req_dn = e->e_name;
