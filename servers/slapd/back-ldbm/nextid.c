@@ -109,6 +109,7 @@ next_id( Backend *be )
 void
 next_id_return( Backend *be, ID id )
 {
+#ifdef NEXT_ID_RETURN
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
@@ -122,6 +123,7 @@ next_id_return( Backend *be, ID id )
 	(void) next_id_write( be, li->li_nextid );
 
 	pthread_mutex_unlock( &li->li_nextid_mutex );
+#endif
 }
 
 ID
