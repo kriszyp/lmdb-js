@@ -590,6 +590,7 @@ ldap_int_sasl_bind(
 			&credlen,
 			&mech );
 
+		/* Cyrus SASL library doesn't initialize the prompt result pointer */
 		if( promptresult == NULL && prompts != NULL ) prompts->result = NULL;
 
 		if( pmech == NULL && mech != NULL ) {
@@ -606,7 +607,12 @@ ldap_int_sasl_bind(
 			int res;
 			if( !interact ) break;
 			res = (interact)( ld, flags, defaults, prompts );
+
+			/* keep a pointer to the prompt result so we can free it
+			 * after Cyrus SASL has consumed the prompts.
+			 */
 			promptresult = prompts->result;
+
 			if( res != LDAP_SUCCESS ) break;
 		}
 	} while ( saslrc == SASL_INTERACT );
@@ -682,6 +688,7 @@ ldap_int_sasl_bind(
 				(SASL_CONST char **)&ccred.bv_val,
 				&credlen );
 
+			/* SASL library doesn't initialize the prompt result pointer */
 			if( promptresult == NULL && prompts != NULL ) prompts->result = NULL;
 
 #ifdef NEW_LOGGING
@@ -696,7 +703,12 @@ ldap_int_sasl_bind(
 				int res;
 				if( !interact ) break;
 				res = (interact)( ld, flags, defaults, prompts );
+
+				/* keep a pointer to the prompt result so we can free it
+				 * after Cyrus SASL has consumed the prompts.
+				 */
 				promptresult = prompts->result;
+
 				if( res != LDAP_SUCCESS ) break;
 			}
 		} while ( saslrc == SASL_INTERACT );
@@ -756,6 +768,7 @@ ldap_int_sasl_bind(
 	}
 
 done:
+	/* free the last prompt result */
 	LDAP_FREE((void*)promptresult);
 	return rc;
 }
