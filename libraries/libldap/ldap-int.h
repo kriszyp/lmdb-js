@@ -526,6 +526,7 @@ LIBLDAP_F (int) ldap_utf8_isspace( const char * );
 
 LIBLDAP_F (ber_len_t) ldap_utf8_strcspn( const char* str, const char *set);
 LIBLDAP_F (ber_len_t) ldap_utf8_strspn( const char* str, const char *set);
+LIBLDAP_F (char *) ldap_utf8_strpbrk( const char* str, const char *set);
 LIBLDAP_F (char*) ldap_utf8_strtok( char* sp, const char* sep, char **last);
 
 LDAP_END_DECL

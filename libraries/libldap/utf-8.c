@@ -380,6 +380,30 @@ ber_len_t (ldap_utf8_strspn)( const char *str, const char *set )
 	return cstr - str;
 }
 
+char *(ldap_utf8_strpbrk)( const char *str, const char *set )
+{
+	int len;
+	const char *cstr;
+
+	for( cstr = str; *cstr != '\0'; cstr += len ) {
+		const char *cset;
+
+		for( cset = set; ; cset += len ) {
+			if( ldap_utf8_to_ucs4( cstr ) == ldap_utf8_to_ucs4( cset ) ) {
+				return cstr;
+			} 
+
+			len = ldap_utf8_charlen(cset);
+			if( !len ) break;
+		}
+
+		len = ldap_utf8_charlen(cstr);
+		if( !len ) break;
+	}
+
+	return NULL;
+}
+
 char *(ldap_utf8_strtok)(char *str, const char *sep, char **last)
 {
 	char *begin;
