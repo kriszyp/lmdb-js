@@ -32,24 +32,30 @@
 #define SLAP_MR_DN_FOLD (0) /* TO BE DELETED */
 #endif
 
-/* recycled validatation routines */
+/* validatation routines */
 #define berValidate						blobValidate
 
-/* unimplemented pretters */
-#define integerPretty					NULL
-
-/* recycled matching routines */
-#define bitStringMatch					octetStringMatch
-#define numericStringMatch				caseIgnoreIA5Match
-#define objectIdentifierMatch			octetStringMatch
-#define telephoneNumberMatch			caseIgnoreIA5Match
-#define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
-#define generalizedTimeMatch			caseIgnoreIA5Match
-#define generalizedTimeOrderingMatch	caseIgnoreIA5Match
-#define uniqueMemberMatch				dnMatch
-#define integerFirstComponentMatch		integerMatch
+/* (new) normalization routines */
+#define caseExactNormalize							NULL
+#define caseExactIA5Normalize						NULL
+#define caseIgnoreNormalize							NULL
+#define caseIgnoreIA5Normalize						NULL
+#define distinguishedNameNormalize					NULL
+#define integerNormalize							NULL
+#define integerFirstComponentNormalize				NULL
+#define numericStringNormalize						NULL
+#define objectIdentifierNormalize					NULL
+#define objectIdentifierFirstComponentNormalize		NULL
+#define generalizedTimeNormalize					NULL
+#define uniqueMemberNormalize						NULL
+#define bitStringNormalize							NULL
+#define telephoneNumberNormalize					NULL
 
 /* approx matching rules */
+#ifdef SLAP_NVALUES
+#define directoryStringApproxMatchOID	NULL
+#define IA5StringApproxMatchOID			NULL
+#else
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
 #define directoryStringApproxMatch	approxMatch
 #define directoryStringApproxIndexer	approxIndexer
@@ -58,34 +64,56 @@
 #define IA5StringApproxMatch			approxMatch
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
+#endif
 
-/* ordering matching rules */
-#define caseIgnoreOrderingMatch			caseIgnoreMatch
+/* matching routines */
+#define bitStringMatch					octetStringMatch
+#define bitStringIndexer				octetStringIndexer
+#define bitStringFilter					octetStringFilter
+
+#define numericStringMatch				caseIgnoreIA5Match
+#define numericStringIndexer			NULL
+#define numericStringFilter				NULL
+#define numericStringSubstringsIndexer	NULL
+#define numericStringSubstringsFilter	NULL
+
+#define objectIdentifierMatch			octetStringMatch
+#define objectIdentifierIndexer			caseIgnoreIA5Indexer
+#define objectIdentifierFilter			caseIgnoreIA5Filter
+
+#define generalizedTimeMatch			caseIgnoreIA5Match
+#define generalizedTimeOrderingMatch	caseIgnoreIA5Match
+
+#define uniqueMemberMatch				dnMatch
+#define numericStringSubstringsMatch    NULL
+
+#define caseExactIndexer				caseExactIgnoreIndexer
+#define caseExactFilter					caseExactIgnoreFilter
 #define caseExactOrderingMatch			caseExactMatch
+#define caseExactSubstringsMatch		caseExactIgnoreSubstringsMatch
+#define caseExactSubstringsIndexer		caseExactIgnoreSubstringsIndexer
+#define caseExactSubstringsFilter		caseExactIgnoreSubstringsFilter
+#define caseIgnoreIndexer				caseExactIgnoreIndexer
+#define caseIgnoreFilter				caseExactIgnoreFilter
+#define caseIgnoreOrderingMatch			caseIgnoreMatch
+#define caseIgnoreSubstringsMatch		caseExactIgnoreSubstringsMatch
+#define caseIgnoreSubstringsIndexer		caseExactIgnoreSubstringsIndexer
+#define caseIgnoreSubstringsFilter		caseExactIgnoreSubstringsFilter
+
 #define integerOrderingMatch			integerMatch
+#define integerFirstComponentMatch		integerMatch
 
-/* unimplemented matching routines */
-#define caseIgnoreListMatch				NULL
-#define caseIgnoreListSubstringsMatch	NULL
-#define protocolInformationMatch		NULL
+#define distinguishedNameMatch			dnMatch
+#define distinguishedNameIndexer		caseExactIgnoreIndexer
+#define distinguishedNameFilter			caseExactIgnoreFilter
 
-#ifdef SLAPD_ACI_ENABLED
-#define OpenLDAPaciMatch				NULL
-#endif
-#ifdef SLAPD_AUTHPASSWD
-#define authPasswordMatch				NULL
-#endif
-
-/* recycled indexing/filtering routines */
-#define dnIndexer				caseExactIgnoreIndexer
-#define dnFilter				caseExactIgnoreFilter
-#define bitStringFilter			octetStringFilter
-#define bitStringIndexer		octetStringIndexer
-
-#define telephoneNumberIndexer			caseIgnoreIA5Indexer
-#define telephoneNumberFilter			caseIgnoreIA5Filter
+#define telephoneNumberMatch			caseIgnoreIA5Match
+#define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
+#define telephoneNumberIndexer				caseIgnoreIA5Indexer
+#define telephoneNumberFilter				caseIgnoreIA5Filter
 #define telephoneNumberSubstringsIndexer	caseIgnoreIA5SubstringsIndexer
 #define telephoneNumberSubstringsFilter		caseIgnoreIA5SubstringsFilter
+
 
 static char *bvcasechr( struct berval *bv, unsigned char c, ber_len_t *len )
 {
@@ -137,11 +165,13 @@ octetStringOrderingMatch(
 {
 	ber_len_t v_len  = value->bv_len;
 	ber_len_t av_len = ((struct berval *) assertedValue)->bv_len;
+
 	int match = memcmp( value->bv_val,
 		((struct berval *) assertedValue)->bv_val,
 		(v_len < av_len ? v_len : av_len) );
-	if( match == 0 )
-		match = v_len - av_len;
+
+	if( match == 0 ) match = v_len - av_len;
+
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
@@ -344,7 +374,7 @@ nameUIDValidate(
 }
 
 static int
-nameUIDNormalize(
+xnameUIDNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -571,7 +601,7 @@ UTF8StringValidate(
 }
 
 static int
-UTF8StringNormalize(
+xUTF8StringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -654,7 +684,7 @@ UTF8StringNormalize(
 /* Returns Unicode canonically normalized copy of a substring assertion
  * Skipping attribute description */
 static SubstringsAssertion *
-UTF8SubstringsassertionNormalize(
+UTF8SubstringsAssertionNormalize(
 	SubstringsAssertion *sa,
 	unsigned casefold )
 {
@@ -1096,7 +1126,7 @@ caseExactIgnoreSubstringsMatch(
 	}
 	nav = left.bv_val;
 
-	sub = UTF8SubstringsassertionNormalize( assertedValue, casefold );
+	sub = UTF8SubstringsAssertionNormalize( assertedValue, casefold );
 	if( sub == NULL ) {
 		match = -1;
 		goto done;
@@ -1604,7 +1634,7 @@ static int caseExactIgnoreSubstringsFilter(
 	casefold = ( mr != slap_schema.si_mr_caseExactSubstringsMatch )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
-	sa = UTF8SubstringsassertionNormalize( assertedValue, casefold );
+	sa = UTF8SubstringsAssertionNormalize( assertedValue, casefold );
 	if( sa == NULL ) {
 		*keysp = NULL;
 		return LDAP_SUCCESS;
@@ -1774,7 +1804,7 @@ caseIgnoreMatch(
 	
 /* Remove all spaces and '-' characters */
 static int
-telephoneNumberNormalize(
+xtelephoneNumberNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -1919,7 +1949,7 @@ integerValidate(
 }
 
 static int
-integerNormalize(
+xintegerNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -2005,7 +2035,7 @@ static int integerIndexer(
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		struct berval norm;
-		integerNormalize( syntax, &values[i], &norm );
+		xintegerNormalize( syntax, &values[i], &norm );
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -2051,7 +2081,7 @@ static int integerFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	integerNormalize( syntax, assertedValue, &norm );
+	xintegerNormalize( syntax, assertedValue, &norm );
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
@@ -2163,7 +2193,7 @@ IA5StringValidate(
 }
 
 static int
-IA5StringNormalize(
+xIA5StringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -3410,7 +3440,7 @@ numericStringValidate(
 }
 
 static int
-numericStringNormalize(
+xnumericStringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -3913,7 +3943,7 @@ static int certificateExactIndexer(
 
 		asn1_integer2str(xcert->cert_info->serialNumber, &serial);
 		X509_free(xcert);
-		integerNormalize( slap_schema.si_syn_integer,
+		xintegerNormalize( slap_schema.si_syn_integer,
 			&serial, &keys[i] );
 		ber_memfree(serial.bv_val);
 #ifdef NEW_LOGGING
@@ -3951,7 +3981,7 @@ static int certificateExactFilter(
 	if( ret != LDAP_SUCCESS ) return ret;
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
-	integerNormalize( syntax, &asserted_serial, &keys[0] );
+	xintegerNormalize( syntax, &asserted_serial, &keys[0] );
 	keys[1].bv_val = NULL;
 	*keysp = keys;
 
@@ -4127,7 +4157,7 @@ check_time_syntax (struct berval *val,
 
 #ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 static int
-utcTimeNormalize(
+xutcTimeNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -4176,7 +4206,7 @@ generalizedTimeValidate(
 }
 
 static int
-generalizedTimeNormalize(
+xgeneralizedTimeNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
@@ -4322,7 +4352,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
-		0, countryStringValidate, IA5StringNormalize, NULL},
+		0, countryStringValidate, xIA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
 		0, dnValidate, dnNormalize2, dnPretty2},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
@@ -4330,7 +4360,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )",
-		0, UTF8StringValidate, UTF8StringNormalize, NULL},
+		0, UTF8StringValidate, xUTF8StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DIT Content Rule Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DIT Structure Rule Description' )",
@@ -4342,17 +4372,17 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
-		0, printablesStringValidate, telephoneNumberNormalize, NULL},
+		0, printablesStringValidate, xtelephoneNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
-		0, generalizedTimeValidate, generalizedTimeNormalize, NULL},
+		0, generalizedTimeValidate, xgeneralizedTimeNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
-		0, IA5StringValidate, IA5StringNormalize, NULL},
+		0, IA5StringValidate, xIA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		0, integerValidate, integerNormalize, NULL},
+		0, integerValidate, xintegerNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
@@ -4366,27 +4396,27 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, nameUIDValidate, nameUIDNormalize, NULL},
+		0, nameUIDValidate, xnameUIDNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
-		0, numericStringValidate, numericStringNormalize, NULL},
+		0, numericStringValidate, xnumericStringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
 		0, oidValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )",
-		0, IA5StringValidate, IA5StringNormalize, NULL},
+		0, IA5StringValidate, xIA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
 		0, blobValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )",
-		0, UTF8StringValidate, UTF8StringNormalize, NULL},
+		0, UTF8StringValidate, xUTF8StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
-		0, printableStringValidate, IA5StringNormalize, NULL},
+		0, printableStringValidate, xIA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.45 DESC 'SubtreeSpecification' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL, NULL},
@@ -4394,14 +4424,14 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, printableStringValidate, telephoneNumberNormalize, NULL},
+		0, printableStringValidate, xtelephoneNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
-		0, printablesStringValidate, IA5StringNormalize, NULL},
+		0, printablesStringValidate, xIA5StringNormalize, NULL},
 #ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
-		0, utcTimeValidate, utcTimeNormalize, NULL},
+		0, utcTimeValidate, xutcTimeNormalize, NULL},
 #endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",
 		0, NULL, NULL, NULL},
@@ -4503,23 +4533,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	 * EQUALITY matching rules must be listed after associated APPROX
 	 * matching rules.  So, we list all APPROX matching rules first.
 	 */
+#ifndef SLAP_NVALUES
 	{"( " directoryStringApproxMatchOID " NAME 'directoryStringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		directoryStringApproxMatch,
-		directoryStringApproxIndexer, 
-		directoryStringApproxFilter,
+		NULL, NULL, directoryStringApproxMatch,
+		directoryStringApproxIndexer, directoryStringApproxFilter,
 		NULL},
 
 	{"( " IA5StringApproxMatchOID " NAME 'IA5StringApproxMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_HIDE | SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		IA5StringApproxMatch,
-		IA5StringApproxIndexer, 
-		IA5StringApproxFilter,
+		NULL, NULL, IA5StringApproxMatch,
+		IA5StringApproxIndexer, IA5StringApproxFilter,
 		NULL},
+#endif
 
 	/*
 	 * Other matching rules
@@ -4528,122 +4556,116 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		objectIdentifierMatch, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
+		NULL,
+		objectIdentifierNormalize, objectIdentifierMatch,
+		objectIdentifierIndexer, objectIdentifierFilter,
 		NULL},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		dnMatch, dnIndexer, dnFilter,
+		NULL,
+		distinguishedNameNormalize, distinguishedNameMatch,
+		distinguishedNameIndexer, distinguishedNameFilter,
 		NULL},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD,
 			directoryStringSyntaxes,
-		NULL, NULL,
-		caseIgnoreMatch, caseExactIgnoreIndexer, caseExactIgnoreFilter,
+		NULL,
+		caseIgnoreNormalize, caseIgnoreMatch,
+		caseIgnoreIndexer, caseIgnoreFilter,
 		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING, directoryStringSyntaxes,
-		NULL, NULL,
-		caseIgnoreOrderingMatch, NULL, NULL,
-		NULL},
+		NULL, caseIgnoreNormalize, caseIgnoreOrderingMatch,
+		NULL, NULL, NULL},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR, NULL,
 		NULL, NULL,
 		caseExactIgnoreSubstringsMatch,
-		caseExactIgnoreSubstringsIndexer,
-		caseExactIgnoreSubstringsFilter,
+		caseExactIgnoreSubstringsIndexer, caseExactIgnoreSubstringsFilter,
 		NULL},
 
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, directoryStringSyntaxes,
-		NULL, NULL,
-		caseExactMatch, caseExactIgnoreIndexer, caseExactIgnoreFilter,
+		NULL,
+		caseExactNormalize, caseExactMatch,
+		caseExactIndexer, caseExactFilter,
 		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING, directoryStringSyntaxes,
-		NULL, NULL,
-		caseExactOrderingMatch, NULL, NULL,
-		NULL},
+		NULL, caseExactNormalize, caseExactOrderingMatch,
+		NULL, NULL, NULL},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR, directoryStringSyntaxes,
-		NULL, NULL,
-		caseExactIgnoreSubstringsMatch,
-		caseExactIgnoreSubstringsIndexer,
-		caseExactIgnoreSubstringsFilter,
+		NULL,
+		NULL, caseExactSubstringsMatch,
+		caseExactSubstringsIndexer, caseExactSubstringsFilter,
 		NULL},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
-		NULL, NULL,
-		caseIgnoreIA5Match,
-		caseIgnoreIA5Indexer,
-		caseIgnoreIA5Filter,
+		NULL,
+		numericStringNormalize, numericStringMatch,
+		numericStringIndexer, numericStringFilter,
 		NULL},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR, NULL,
-		NULL, NULL,
-		caseIgnoreIA5SubstringsMatch,
-		caseIgnoreIA5SubstringsIndexer,
-		caseIgnoreIA5SubstringsFilter,
+		NULL,
+		NULL, numericStringSubstringsMatch,
+		numericStringSubstringsIndexer, numericStringSubstringsFilter,
 		NULL},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
-		NULL, NULL,
-		caseIgnoreListMatch, NULL, NULL,
-		NULL},
+		NULL, NULL, NULL, NULL, NULL, NULL},
 
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR, NULL,
-		NULL, NULL,
-		caseIgnoreListSubstringsMatch, NULL, NULL,
-		NULL},
+		NULL, NULL, NULL, NULL, NULL, NULL},
 
 	{"( 2.5.13.13 NAME 'booleanMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		booleanMatch, NULL, NULL,
-		NULL},
+		NULL, NULL, booleanMatch, NULL, NULL, NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		integerMatch, integerIndexer, integerFilter,
+		NULL,
+		integerNormalize, integerMatch,
+		integerIndexer, integerFilter,
 		NULL},
 
 	{"( 2.5.13.15 NAME 'integerOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
-		SLAP_MR_ORDERING, NULL,
-		NULL, NULL,
-		integerOrderingMatch, NULL, NULL,
+		SLAP_MR_ORDERING, NULL, NULL,
+		integerNormalize, integerOrderingMatch,
+		integerIndexer, integerFilter,
 		NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		bitStringMatch, bitStringIndexer, bitStringFilter,
+		NULL,
+		bitStringNormalize, bitStringMatch,
+		bitStringIndexer, bitStringFilter,
 		NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
@@ -4663,19 +4685,16 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
-		NULL, NULL,
-		telephoneNumberMatch,
-		telephoneNumberIndexer,
-		telephoneNumberFilter,
+		NULL,
+		telephoneNumberNormalize, telephoneNumberMatch,
+		telephoneNumberIndexer, telephoneNumberFilter,
 		NULL},
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR, NULL,
-		NULL, NULL,
-		telephoneNumberSubstringsMatch,
-		telephoneNumberSubstringsIndexer,
-		telephoneNumberSubstringsFilter,
+		NULL, NULL, telephoneNumberSubstringsMatch,
+		telephoneNumberSubstringsIndexer, telephoneNumberSubstringsFilter,
 		NULL},
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
@@ -4688,46 +4707,50 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
+		NULL,
+		uniqueMemberNormalize, uniqueMemberMatch,
 		NULL, NULL,
-		uniqueMemberMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		protocolInformationMatch, NULL, NULL,
-		NULL},
+		NULL, NULL, NULL, NULL, NULL, NULL},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
+		NULL,
+		generalizedTimeNormalize, generalizedTimeMatch,
 		NULL, NULL,
-		generalizedTimeMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_ORDERING, NULL,
+		NULL,
+		generalizedTimeOrderingMatch, generalizedTimeOrderingMatch,
 		NULL, NULL,
-		generalizedTimeOrderingMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, integerFirstComponentMatchSyntaxes,
+		NULL,
+		integerFirstComponentNormalize, integerMatch,
 		NULL, NULL,
-		integerFirstComponentMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 			objectIdentifierFirstComponentMatchSyntaxes,
+		NULL,
+		objectIdentifierFirstComponentNormalize, objectIdentifierMatch,
 		NULL, NULL,
-		objectIdentifierFirstComponentMatch, NULL, NULL,
 		NULL},
 
+#ifdef SLAP_NVALUES
 #ifdef HAVE_TLS
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
 		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
@@ -4737,37 +4760,38 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		certificateExactIndexer, certificateExactFilter,
 		NULL},
 #endif
+#endif
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
+		NULL,
+		caseExactIA5Normalize, caseExactIA5Match,
+		caseExactIA5Indexer, caseExactIA5Filter,
 		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT | SLAP_MR_DN_FOLD, NULL,
-		NULL, NULL,
-		caseIgnoreIA5Match, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
+		NULL,
+		NULL, caseIgnoreIA5Match,
+		caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
 		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR, NULL,
-		NULL, NULL,
-		caseIgnoreIA5SubstringsMatch,
-		caseIgnoreIA5SubstringsIndexer,
-		caseIgnoreIA5SubstringsFilter,
+		NULL,
+		NULL, caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter,
 		NULL},
 
 	{"( 1.3.6.1.4.1.4203.1.2.1 NAME 'caseExactIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR, NULL,
-		NULL, NULL,
-		caseExactIA5SubstringsMatch,
-		caseExactIA5SubstringsIndexer,
-		caseExactIA5SubstringsFilter,
+		NULL,
+		NULL, caseExactIA5SubstringsMatch,
+		caseExactIA5SubstringsIndexer, caseExactIA5SubstringsFilter,
 		NULL},
 
 #ifdef SLAPD_AUTHPASSWD
@@ -4792,15 +4816,15 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 1.2.840.113556.1.4.803 NAME 'integerBitAndMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		integerBitAndMatch, NULL, NULL,
+		NULL,
+		NULL, integerBitAndMatch, NULL, NULL,
 		NULL},
 
 	{"( 1.2.840.113556.1.4.804 NAME 'integerBitOrMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EXT, NULL,
-		NULL, NULL,
-		integerBitOrMatch, NULL, NULL,
+		NULL,
+		NULL, integerBitOrMatch, NULL, NULL,
 		NULL},
 
 	{NULL, SLAP_MR_NONE, NULL,
