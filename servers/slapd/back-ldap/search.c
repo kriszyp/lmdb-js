@@ -27,6 +27,7 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/time.h>
 
 #include "slap.h"
 #include "back-ldap.h"
