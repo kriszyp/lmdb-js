@@ -43,8 +43,6 @@ OBJEXT = @OBJEXT@
 
 BUILD_LIBS_DYNAMIC = @BUILD_LIBS_DYNAMIC@
 
-SHTOOL = @SHTOOL@
-
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
@@ -59,6 +57,8 @@ MKDEP_CC	= @OL_MKDEP@
 MKDEP_CFLAGS = @OL_MKDEP_FLAGS@
 
 MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
+
+SHTOOL = $(top_srcdir)/build/shtool
 
 LIBTOOL = @LIBTOOL@
 LIBVERSION = @OPENLDAP_LIBVERSION@
@@ -234,6 +234,10 @@ veryclean: FORCE
 	$(RM) -r .libs
 
 Makefile: Makefile.in $(top_srcdir)/build/top.mk
+
+pathtest:
+	@echo "shtool: $(SHTOOL)"
+	@$(SHTOOL) echo -e "  %Bokay%b"
 
 # empty rule for forcing rules
 FORCE:
