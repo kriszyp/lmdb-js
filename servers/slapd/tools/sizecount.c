@@ -179,8 +179,8 @@ add(
 {
 	Datum	key, data;
 
-    memset( &key, 0, sizeof( key ));
-    memset( &data, 0, sizeof( data ));
+	memset( &key, 0, sizeof( key ));
+	memset( &data, 0, sizeof( data ));
 
 	key.dptr = s;
 	key.dsize = strlen( key.dptr ) + 1;
