@@ -1,5 +1,20 @@
 OpenLDAP Change Log
 
+Changes included in OpenLDAP 1.1-Alpha (from -devel)
+	CVS Tag: OPENLDAP_REL_ENG_1_1_A
+	Fixed slapd/back-passwd sizelimit bug
+	Fixed slapd/back-ldbm/msearch entry rwlock bug
+	Fixed slapd/filterentry Equality bugs
+	Fixed NT port merge issues
+	Fixed ldif/line64 padding bug
+	Added configurable slapd/ACLGROUPS attribute.
+
+Changes included in OpenLDAP 1.1-Devel
+	CVS Tag: OPENLDAP_DEVEL_POST_AC
+	Added Autoconf Build Environment
+	Added Basic NT Support
+
+
 Changes included in OpenLDAP Stable 
 	CVS Tag: OPENLDAP_STABLE 
 	Fixed slapd filter.c to error on stderr
