@@ -258,7 +258,7 @@ main( int argc, char **argv )
 	if (version != -1 &&
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
 	{
-		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION to %d\n", version );
 	}
 
 	if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
@@ -415,7 +415,8 @@ process_ldif_rec( char *rbuf, int count )
 	if ( expect_ct ) {
 	    expect_ct = 0;
 	    if ( !use_record && saw_replica ) {
-		printf( "%s: skipping change record for entry: %s\n\t(LDAP host/port does not match replica: lines)\n",
+		printf( "%s: skipping change record for entry: %s\n"
+			"\t(LDAP host/port does not match replica: lines)\n",
 			prog, dn );
 		free( dn );
 		return( 0 );
@@ -436,7 +437,7 @@ process_ldif_rec( char *rbuf, int count )
 		    got_all = delete_entry = 1;
 		} else {
 		    fprintf( stderr,
-			    "%s:  unknown %s \"%s\" (line %d of entry: %s)\n",
+			    "%s:  unknown %s \"%s\" (line %d of entry \"%s\")\n",
 			    prog, T_CHANGETYPESTR, value, linenum, dn );
 		    rc = LDAP_PARAM_ERROR;
 		}
@@ -476,7 +477,7 @@ process_ldif_rec( char *rbuf, int count )
 		expect_deleteoldrdn = 1;
 		expect_newrdn = 0;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry %s)\n",
+		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
 			prog, T_NEWRDNSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
@@ -487,7 +488,7 @@ process_ldif_rec( char *rbuf, int count )
 		expect_newsup = 1;
 		got_all = 1;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry %s)\n",
+		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
 			prog, T_DELETEOLDRDNSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
@@ -499,13 +500,13 @@ process_ldif_rec( char *rbuf, int count )
 		}
 		expect_newsup = 0;
 	    } else {
-		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry %s)\n",
+		fprintf( stderr, "%s: expecting \"%s:\" but saw \"%s:\" (line %d of entry \"%s\")\n",
 			prog, T_NEWSUPSTR, type, linenum, dn );
 		rc = LDAP_PARAM_ERROR;
 	    }
 	} else if ( got_all ) {
 	    fprintf( stderr,
-		    "%s: extra lines at end (line %d of entry %s)\n",
+		    "%s: extra lines at end (line %d of entry \"%s\")\n",
 		    prog, linenum, dn );
 	    rc = LDAP_PARAM_ERROR;
 	} else {
@@ -614,7 +615,7 @@ process_ldapmod_rec( char *rbuf )
 	    }
 
 	    if ( value == NULL && new ) {
-		fprintf( stderr, "%s: missing value on line %d (attr is %s)\n",
+		fprintf( stderr, "%s: missing value on line %d (attr=\"%s\")\n",
 			prog, linenum, attr );
 		rc = LDAP_PARAM_ERROR;
 	    } else {
@@ -743,7 +744,7 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
     struct berval	*bvp;
 
     if ( pmods == NULL ) {
-	fprintf( stderr, "%s: no attributes to change or add (entry %s)\n",
+	fprintf( stderr, "%s: no attributes to change or add (entry=\"%s\")\n",
 		prog, dn );
 	return( LDAP_PARAM_ERROR );
     }
@@ -775,9 +776,9 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
     }
 
     if ( newentry ) {
-	printf( "%sadding new entry %s\n", not ? "!" : "", dn );
+	printf( "%sadding new entry \"%s\"\n", not ? "!" : "", dn );
     } else {
-	printf( "%smodifying entry %s\n", not ? "!" : "", dn );
+	printf( "%smodifying entry \"%s\"\n", not ? "!" : "", dn );
     }
 
     if ( !not ) {
@@ -806,7 +807,7 @@ dodelete( char *dn )
 {
     int	rc;
 
-    printf( "%sdeleting entry %s\n", not ? "!" : "", dn );
+    printf( "%sdeleting entry \"%s\"\n", not ? "!" : "", dn );
     if ( !not ) {
 	if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_delete" );
@@ -828,12 +829,12 @@ domodrdn( char *dn, char *newrdn, int deleteoldrdn )
 {
     int	rc;
 
+
+    printf( "%smodifying rdn of entry \"%s\"\n", not ? "!" : "", dn );
     if ( verbose ) {
-	printf( "new RDN: %s (%skeep existing values)\n",
+	printf( "\tnew RDN: \"%s\" (%skeep existing values)\n",
 		newrdn, deleteoldrdn ? "do not " : "" );
     }
-
-    printf( "%smodifying rdn of entry %s\n", not ? "!" : "", dn );
     if ( !not ) {
 	if (( rc = ldap_modrdn2_s( ld, dn, newrdn, deleteoldrdn ))
 		!= LDAP_SUCCESS ) {

@@ -329,7 +329,7 @@ void
 usage (char *s)
 {
 	fprintf (stderr, "Usage: %s [options] [filter]\n", s);
-	fprintf (stderr, "  -a attrib\tpassword attribute (default: %s)\n", LDAP_PASSWD_ATTRIB);
+	fprintf (stderr, "  -a attrib\tpassword attribute (default: " LDAP_PASSWD_ATTRIB ")\n");
 	fprintf (stderr, "  -b basedn\tbasedn to perform searches\n");
 /*      fprintf (stderr, "  -C\t\tuse entry's current hash mechanism\n"); */
 	fprintf (stderr, "  -D binddn\tbind dn\n");
@@ -587,12 +587,12 @@ main (int argc, char *argv[])
 
 #ifdef HAVE_GETTIMEOFDAY
 	/* this is of questionable value
-	 * gettimeofday not provide much usec
+	 * gettimeofday may not provide much usec
 	 */
 	{
 		struct timeval tv;
 		gettimeofday (&tv, NULL);
-		srand (tv.tv_usec);
+		srand(tv.sec * (tv.tv_usec + 1));
 	}
 #else
 	/* The traditional seed */
@@ -651,10 +651,9 @@ main (int argc, char *argv[])
 	{
 		char		filter[BUFSIZ];
 		LDAPMessage	*result = NULL, *e;
-		char		*attrs[3];
-		attrs[0] = "dn";
-		attrs[1] = pwattr;
-		attrs[2] = NULL;
+		char		*attrs[2];
+		attrs[0] = pwattr;
+		attrs[1] = NULL;
 
 		/* search */
 		sprintf (filter, "%s", filtpattern);

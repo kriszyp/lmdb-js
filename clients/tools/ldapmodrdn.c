@@ -287,14 +287,13 @@ static int domodrdn(
     int	i;
 
     if ( verbose ) {
-	printf( "modrdn %s:\n\t%s\n", dn, rdn );
-	if (remove)
-	    printf("removing old RDN\n");
-	else
-	    printf("keeping old RDN\n");
-	if(newSuperior!=NULL)
-	    printf("placing node under a new parent = %s\n", newSuperior);
-    }
+		printf( "Renaming \"%s\"\n", dn );
+		printf( "\tnew rdn=\"%s\" (%s old rdn)\n",
+			rdn, remove ? "delete" : "keep" );
+		if( newSuperior != NULL ) {
+			printf("\tnew parent=\"%s\"\n", newSuperior);
+		}
+	}
 
     if ( !not ) {
 	i = ldap_rename2_s( ld, dn, rdn, remove, newSuperior );
