@@ -158,8 +158,12 @@ int backend_startup(int n)
 	}
 
 	/* open each backend type */
-/*
 	for( i = 0; i < nBackendInfo; i++ ) {
+		if( backendInfo[i].bi_nDB == 0) {
+			/* no database of this type, don't open */
+			continue;
+		}
+
 		if( backendInfo[i].bi_open ) {
 			rc = backendInfo[i].bi_open(
 				&backendInfo[i] );
@@ -172,7 +176,6 @@ int backend_startup(int n)
 			return rc;
 		}
 	}
-*/
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
@@ -180,15 +183,14 @@ int backend_startup(int n)
 
 		/* open the backend type, if not done already */
 		bi =  backendDB[i].bd_info;
-		if( bi->bi_open ) {
-			rc = bi->bi_open( bi );
-		}
 
-		if(rc != 0) {
-			Debug( LDAP_DEBUG_ANY,
-				"backend_startup: bi_open %s failed!\n",
-				bi->bi_type, 0, 0 );
-			return rc;
+		if( bi->bi_nDB == 0) {
+			/* no database of this type, don't open */
+			Debug(LDAP_DEBUG_ANY, 
+				"backend_startup: there should be no database (%d) of %s type.!\n",
+				i, bi->bi_type, 0 );
+
+			return -1;
 		}
 
 		if ( backendDB[i].bd_info->bi_db_open ) {
@@ -224,6 +226,11 @@ int backend_shutdown(int n)
 			return 1;
 		}
 
+		if ( backendDB[n].bd_info->bi_nDB == 0 ) {
+			/* no database of this type, we never opened it */
+			return 0;
+		}
+
 		if ( backendDB[n].bd_info->bi_db_close ) {
 			backendDB[n].bd_info->bi_db_close(
 				&backendDB[n] );
@@ -246,12 +253,6 @@ int backend_shutdown(int n)
 				&backendDB[i] );
 		}
 
-		/* close the backend type, if not done already */
-		bi =  backendDB[i].bd_info;
-		if( bi->bi_close ) {
-			rc = bi->bi_close( bi );
-		}
-
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_close: bi_close %s failed!\n",
@@ -260,14 +261,17 @@ int backend_shutdown(int n)
 	}
 
 	/* close each backend type */
-/*
 	for( i = 0; i < nBackendInfo; i++ ) {
+		if( backendInfo[i].bi_nDB == 0 ) {
+			/* no database of this type */
+			continue;
+		}
+
 		if( backendInfo[i].bi_close ) {
 			backendInfo[i].bi_close(
 				&backendInfo[i] );
 		}
 	}
-*/
 
 	return 0;
 }
@@ -285,14 +289,12 @@ int backend_destroy(void)
 	}
 
 	/* destroy each backend type */
-/*
 	for( i = 0; i < nBackendInfo; i++ ) {
 		if( backendInfo[i].bi_destroy ) {
 			backendInfo[i].bi_destroy(
 				&backendInfo[i] );
 		}
 	}
-*/
 
 	return 0;
 }
@@ -348,6 +350,7 @@ backend_db_init(
 		return NULL;
 	}
 
+	bi->bi_nDB++;
 	return( be );
 }
 

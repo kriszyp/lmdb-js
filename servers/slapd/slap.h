@@ -387,6 +387,7 @@ struct backend_info {
 		char *objectclassValue, char *groupattrName ));
 #endif
 
+	unsigned int bi_nDB;	/* number of databases of this type */
 	void	*bi_private;	/* anything the backend type needs */
 };
 
