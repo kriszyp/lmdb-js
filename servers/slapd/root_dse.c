@@ -37,7 +37,7 @@ root_dse_info(
 {
 	char buf[BUFSIZ];
 	Entry		*e;
-	struct berval	vals[2];
+	struct berval	vals[2], *bv;
 	int		i, j;
 	char ** supportedSASLMechanisms;
 
@@ -107,8 +107,8 @@ root_dse_info(
 	}
 
 	/* supportedExtension */
-	for ( i=0; (vals[0].bv_val = get_supported_extop(i)) != NULL; i++ ) {
-		vals[0].bv_len = strlen( vals[0].bv_val );
+	for ( i=0; (bv = get_supported_extop(i)) != NULL; i++ ) {
+		vals[0] = *bv;
 		attr_merge( e, ad_supportedExtension, vals );
 	}
 

@@ -35,11 +35,15 @@
 
 static struct extop_list {
 	struct extop_list *next;
-	char *oid;
+	struct berval oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } *supp_ext_list = NULL;
 
 static SLAP_EXTOP_MAIN_FN whoami_extop;
+
+/* BerVal Constant initializer */
+
+#define	BVC(x)	{sizeof(x)-1, x}
 
 /* this list of built-in extops is for extops that are not part
  * of backends or in external modules.	essentially, this is
@@ -47,22 +51,22 @@ static SLAP_EXTOP_MAIN_FN whoami_extop;
  * having a separate init routine for each built-in extop.
  */
 static struct {
-	char *oid;
+	struct berval oid;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
 #ifdef HAVE_TLS
-	{ LDAP_EXOP_START_TLS, starttls_extop },
+	{ BVC(LDAP_EXOP_START_TLS), starttls_extop },
 #endif
-	{ LDAP_EXOP_MODIFY_PASSWD, passwd_extop },
-	{ LDAP_EXOP_X_WHO_AM_I, whoami_extop },
-	{ NULL, NULL }
+	{ BVC(LDAP_EXOP_MODIFY_PASSWD), passwd_extop },
+	{ BVC(LDAP_EXOP_X_WHO_AM_I), whoami_extop },
+	{ {0,NULL}, NULL }
 };
 
 
 static struct extop_list *find_extop(
-	struct extop_list *list, char *oid );
+	struct extop_list *list, struct berval *oid );
 
-char *
+struct berval *
 get_supported_extop (int index)
 {
 	struct extop_list *ext;
@@ -76,7 +80,7 @@ get_supported_extop (int index)
 
 	if (ext == NULL) return NULL;
 
-	return ext->oid ;
+	return &ext->oid ;
 }
 
 int
@@ -86,8 +90,8 @@ do_extended(
 )
 {
 	int rc = LDAP_SUCCESS;
-	char* reqoid;
-	struct berval *reqdata;
+	struct berval reqoid = {0, NULL};
+	struct berval reqdata = {0, NULL};
 	ber_tag_t tag;
 	ber_len_t len;
 	struct extop_list *ext;
@@ -103,9 +107,6 @@ do_extended(
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 #endif
-	reqoid = NULL;
-	reqdata = NULL;
-
 	if( op->o_protocol < LDAP_VERSION3 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -122,7 +123,7 @@ do_extended(
 		goto done;
 	}
 
-	if ( ber_scanf( op->o_ber, "{a" /*}*/, &reqoid ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{m" /*}*/, &reqoid ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
@@ -135,14 +136,14 @@ do_extended(
 		goto done;
 	}
 
-	if( !(ext = find_extop(supp_ext_list, reqoid)) ) {
+	if( !(ext = find_extop(supp_ext_list, &reqoid)) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_extended: conn %d  unsupported operation \"%s\"\n",
-			conn->c_connid, reqoid ));
+			conn->c_connid, reqoid.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
-			reqoid, 0 ,0 );
+			reqoid.bv_val, 0 ,0 );
 #endif
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "unsupported extended operation", NULL, NULL );
@@ -152,7 +153,7 @@ do_extended(
 	tag = ber_peek_tag( op->o_ber, &len );
 	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
-		if( ber_scanf( op->o_ber, "O", &reqdata ) == LBER_ERROR ) {
+		if( ber_scanf( op->o_ber, "m", &reqdata ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 				"do_extended: conn %d  ber_scanf failed\n", conn->c_connid ));
@@ -187,9 +188,9 @@ do_extended(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		"do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid ));
+		"do_extended: conn %d  oid=%d\n.", conn->c_connid, reqoid.bv_val ));
 #else
-	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", reqoid, 0 ,0 );
+	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", reqoid.bv_val, 0 ,0 );
 #endif
 
 	rspoid = NULL;
@@ -199,7 +200,7 @@ do_extended(
 	refs = NULL;
 
 	rc = (ext->ext_main)( conn, op,
-		reqoid, reqdata,
+		reqoid.bv_val, &reqdata,
 		&rspoid, &rspdata, &rspctrls, &text, &refs );
 
 	if( rc != SLAPD_ABANDON ) {
@@ -223,13 +224,6 @@ do_extended(
 	}
 
 done:
-	if ( reqdata != NULL ) {
-		ber_bvfree( reqdata );
-	}
-	if ( reqoid != NULL ) {
-		free( reqoid );
-	}
-
 	return rc;
 }
 
@@ -247,8 +241,8 @@ load_extop(
 	if (ext == NULL)
 		return(-1);
 
-	ext->oid = ch_strdup( ext_oid );
-	if (ext->oid == NULL) {
+	ber_str2bv( ext_oid, 0, 1, &ext->oid );
+	if (ext->oid.bv_val == NULL) {
 		free(ext);
 		return(-1);
 	}
@@ -266,8 +260,8 @@ extops_init (void)
 {
 	int i;
 
-	for (i = 0; builtin_extops[i].oid != NULL; i++) {
-		load_extop(builtin_extops[i].oid, builtin_extops[i].ext_main);
+	for (i = 0; builtin_extops[i].oid.bv_val != NULL; i++) {
+		load_extop(builtin_extops[i].oid.bv_val, builtin_extops[i].ext_main);
 	}
 	return(0);
 }
@@ -280,20 +274,20 @@ extops_kill (void)
 	/* we allocated the memory, so we have to free it, too. */
 	while ((ext = supp_ext_list) != NULL) {
 		supp_ext_list = ext->next;
-		if (ext->oid != NULL)
-			ch_free(ext->oid);
+		if (ext->oid.bv_val != NULL)
+			ch_free(ext->oid.bv_val);
 		ch_free(ext);
 	}
 	return(0);
 }
 
 static struct extop_list *
-find_extop( struct extop_list *list, char *oid )
+find_extop( struct extop_list *list, struct berval *oid )
 {
 	struct extop_list *ext;
 
 	for (ext = list; ext; ext = ext->next) {
-		if (strcmp(ext->oid, oid) == 0)
+		if (ber_bvcmp(&ext->oid, oid) == 0)
 			return(ext);
 	}
 	return(NULL);
