@@ -989,12 +989,14 @@ ldap_pvt_hex_unescape( char *s )
 
 	for ( p = s; *s != '\0'; ++s ) {
 		if ( *s == '%' ) {
-			if ( *++s != '\0' ) {
-				*p = ldap_pvt_unhex( *s ) << 4;
+			if ( *++s == '\0' ) {
+				break;
 			}
-			if ( *++s != '\0' ) {
-				*p++ += ldap_pvt_unhex( *s );
+			*p = ldap_pvt_unhex( *s ) << 4;
+			if ( *++s == '\0' ) {
+				break;
 			}
+			*p++ += ldap_pvt_unhex( *s );
 		} else {
 			*p++ = *s;
 		}
