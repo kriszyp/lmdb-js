@@ -81,3 +81,31 @@ int pthread_rdwr_wunlock_np(pthread_rdwr_t *rdwrp)
 		return 0;
 	}
 }
+
+#ifdef LDAP_DEBUG
+
+/* just for testing, 
+ * return 0 if false, suitable for assert(pthread_rdwr_Xchk(rdwr))
+ * 
+ * Currently they don't check if the calling thread is the one 
+ * that has the lock, just that there is a reader or writer.
+ *
+ * Basically sufficent for testing that places that should have
+ * a lock are caught.
+ */
+
+int pthread_rdwr_rchk_np(pthread_rdwr_t *rdwrp)
+{
+	return(rdwrp->readers_reading!=0);
+}
+
+int pthread_rdwr_wchk_np(pthread_rdwr_t *rdwrp)
+{
+	return(rdwrp->writer_writing!=0);
+}
+int pthread_rdwr_rwchk_np(pthread_rdwr_t *rdwrp)
+{
+	return(pthread_rdwr_rchk_np(rdwrp) || pthread_rdwr_wchk_np(rdwrp));
+}
+
+#endif LDAP_DEBUG
