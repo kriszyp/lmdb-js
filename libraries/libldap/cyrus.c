@@ -264,7 +264,8 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	/* Read the length of the packet */
 	while ( p->sec_buf_in.buf_ptr < 4 ) {
-		ret = LBER_SBIOD_READ_NEXT( sbiod, p->sec_buf_in.buf_base,
+		ret = LBER_SBIOD_READ_NEXT( sbiod, p->sec_buf_in.buf_base +
+			p->sec_buf_in.buf_ptr,
 			4 - p->sec_buf_in.buf_ptr );
 #ifdef EINTR
 		if ( ( ret < 0 ) && ( errno == EINTR ) )
