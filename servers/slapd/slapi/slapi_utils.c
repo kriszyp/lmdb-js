@@ -285,6 +285,35 @@ slapi_entry_attr_find(
 #endif /* !defined(LDAP_SLAPI) */
 }
 
+char *
+slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad = NULL;
+	const char *text;
+	int rc;
+	Attribute *attr;
+
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	attr = attr_find( e->e_attrs, ad );
+	if ( attr == NULL ) {
+		return NULL;
+	}
+
+	if ( attr->a_vals != NULL && attr->a_vals[0].bv_val != NULL ) {
+		return slapi_ch_strdup( attr->a_vals[0].bv_val );
+	}
+
+	return NULL;
+#else
+	return -1;
+#endif
+}
+
 /* 
  * FIXME -- The caller must free the allocated memory. 
  * In Netscape they do not have to.

@@ -47,6 +47,7 @@ Slapi_Entry *slapi_str2entry( char *s, int flags );
 char *slapi_entry2str( Slapi_Entry *e, int *len );
 int slapi_entry_attr_merge( Slapi_Entry *e, char *type, struct berval **vals );
 int slapi_entry_attr_find( Slapi_Entry *e, char *type, Slapi_Attr **attr );
+char *slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type );
 int slapi_entry_attr_delete( Slapi_Entry *e, char *type );
 char *slapi_entry_get_dn( Slapi_Entry *e );
 int slapi_x_entry_get_id( Slapi_Entry *e );
