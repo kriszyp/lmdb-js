@@ -555,6 +555,7 @@ bdb_idl_union(
 }
 
 
+#if 0
 /*
  * bdb_idl_notin - return a intersection ~b (or a minus b)
  */
@@ -606,6 +607,7 @@ bdb_idl_notin(
 
 	return 0;
 }
+#endif
 
 ID bdb_idl_first( ID *ids, ID *cursor )
 {

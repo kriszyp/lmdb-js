@@ -85,27 +85,24 @@ bdb_filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tSUBSTRINGS\n", 0, 0, 0 );
 		rc = substring_candidates( be, range, f->f_sub, ids );
 		break;
-#endif
 
 	case LDAP_FILTER_GE:
+		/* no GE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
-		rc = 0;
+		rc = presence_candidates( be, range, f->f_desc, ids );
 		break;
 
 	case LDAP_FILTER_LE:
+		/* no LE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
-		rc = 0;
+		rc = presence_candidates( be, range, f->f_desc, ids );
 		break;
+#endif
 
-	case LDAP_FILTER_NOT: {
-			ID tmp[BDB_IDL_UM_SIZE];
-
-			Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
-			rc = bdb_filter_candidates( be, range, f->f_not, tmp );
-			if( rc == 0 ) {
-				rc = bdb_idl_notin( range, tmp, ids );
-			}
-		} break;
+	case LDAP_FILTER_NOT:
+		/* no indexing to support NOT filters */
+		Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
+		break;
 
 	case LDAP_FILTER_AND:
 		Debug( LDAP_DEBUG_FILTER, "\tAND\n", 0, 0, 0 );
