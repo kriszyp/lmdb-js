@@ -38,9 +38,7 @@ you are reading this file, you probably have already done this!
 
 E:	% ./configure --help
 
-.to list available configuration options.   A description of
-these options is provided in the 'CONFIGURE OPTIONS' section
-below.
+.to list available configuration options.
 
 .The {{EX:configure}} script uses environmental variables for
 determining compiler/linker options including:
@@ -103,9 +101,6 @@ the OpenLDAP configuration directory (normally
 {{F:/usr/local/etc/openldap}}).
 
 >	ldap.conf		client defaults
->	ldapfilter.conf		search filter configuration
->	ldapsearchprefs.conf	search object definitions
->	ldaptemplates.conf	display template definitions
 >	slapd.conf		Standalone LDAP daemon
 >	schema/*.schema		Schema Definitions
 
