@@ -298,8 +298,6 @@ do_add( Connection *conn, Operation *op )
 			}
 	
 			if (mod == NULL) {
-				struct berval	bv;
-	
 #define BAILOUT
 #ifdef BAILOUT
 				/* bail out */
@@ -311,6 +309,8 @@ do_add( Connection *conn, Operation *op )
 				goto done;
 	
 #else /* ! BAILOUT */
+				struct berval	bv;
+	
 				/* add attribute type and value to modlist */
 				mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 			
