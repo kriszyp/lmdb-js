@@ -40,7 +40,7 @@
 
 #include "ldap_rq.h"
 
-#ifdef HAVE_SYS_EPOLL_H
+#if defined(HAVE_SYS_EPOLL_H) && defined(HAVE_EPOLL)
 #include <sys/epoll.h>
 #endif
 
