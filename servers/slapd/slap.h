@@ -489,7 +489,12 @@ typedef struct slap_matching_rule {
 	 */
 	Syntax					**smr_compat_syntaxes;
 
+	/*
+	 * For equality rules, refers to an associated approximate rule.
+	 * For non-equality rules, refers to an associated equality rule.
+	 */
 	struct slap_matching_rule	*smr_associated;
+
 	LDAP_SLIST_ENTRY(slap_matching_rule)smr_next;
 
 #define smr_oid				smr_mrule.mr_oid
@@ -527,7 +532,8 @@ typedef struct slap_mrule_defs_rec {
 	slap_mr_indexer_func *		mrd_indexer;
 	slap_mr_filter_func *		mrd_filter;
 
-	/* For equality rule, this may refer to an appropriate approximate rule */
+	/* For equality rule, this may refer to an associated approximate rule */
+	/* For non-equality rule, this may refer to an associated equality rule */
 	char *						mrd_associated;
 } slap_mrule_defs_rec;
 
