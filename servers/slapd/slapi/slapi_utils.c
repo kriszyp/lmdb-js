@@ -1131,6 +1131,17 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 }
 
 /*
+ * Internal API to prime a Slapi_PBlock with a Backend.
+ */
+void slapi_backend_set_pb( Slapi_PBlock *pb, Backend *be )
+{
+#if defined(LDAP_SLAPI)
+	slapi_pblock_set(pb, SLAPI_BACKEND, (void *)be);
+	slapi_pblock_set(pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type);
+#endif /* defined(LDAP_SLAPI) */
+}
+
+/*
  * Internal API to prime a Slapi_PBlock with a Connection.
  */
 void slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
