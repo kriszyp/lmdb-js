@@ -44,3 +44,74 @@ int mkstemp( char * template )
 #endif
 }
 #endif
+
+#ifndef HAVE_VSNPRINTF
+#include <ac/stdarg.h>
+#include <ac/signal.h>
+#include <stdio.h>
+
+/* Write at most n characters to the buffer in str, return the
+ * number of chars written or -1 if the buffer would have been
+ * overflowed.
+ *
+ * This is portable to any POSIX-compliant system. We use pipe()
+ * to create a valid file descriptor, and then fdopen() it to get
+ * a valid FILE pointer. The user's buffer and size are assigned
+ * to the FILE pointer using setvbuf. Then we close the read side
+ * of the pipe to invalidate the descriptor.
+ *
+ * If the write arguments all fit into size n, the write will
+ * return successfully. If the write is too large, the stdio
+ * buffer will need to be flushed to the underlying file descriptor.
+ * The flush will fail because it is attempting to write to a
+ * broken pipe, and the write will be terminated.
+ *
+ * Note: glibc's setvbuf is broken, so this code fails on glibc.
+ * But that's no loss since glibc provides these functions itself.
+ *
+ * In practice, the main app will probably have ignored SIGPIPE
+ * already, so catching it here is redundant, but harmless.
+ *
+ * -- hyc, 2002-07-19
+ */
+int vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
+{
+	int fds[2], res;
+	FILE *f;
+#ifdef SIGPIPE
+	RETSIGTYPE (*sig)();
+#endif
+
+	if (pipe( fds )) return -1;
+
+	f = fdopen( fds[1], "w" );
+	if ( !f ) {
+		close( fds[1] );
+		close( fds[0] );
+		return -1;
+	}
+#ifdef SIGPIPE
+	sig = SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+	setvbuf( f, str, _IOFBF, n );
+	close( fds[0] );
+
+	res = vfprintf( f, fmt, ap );
+	fclose( f );
+#ifdef SIGPIPE
+	SIGNAL( SIGPIPE, sig );
+#endif
+	return res;
+}
+
+int snprintf( char *str, size_t n, const char *fmt, ... )
+{
+	va_list ap;
+	int res;
+
+	va_start( ap, fmt );
+	res = vsnprintf( str, n, fmt, ap );
+	va_end( ap );
+	return res;
+}
+#endif /* !HAVE_VSNPRINTF */
