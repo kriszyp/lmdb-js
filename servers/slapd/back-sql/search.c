@@ -476,8 +476,11 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		matching_rule = f->f_mr_rule;
 
 equality_match:;
+#if 0 /* always uppercase strings by now */
 		if ( SLAP_MR_ASSOCIATED( matching_rule,
-					bi->bi_caseIgnoreMatch ) ) {
+					bi->bi_caseIgnoreMatch ) )
+#endif
+		{
 			casefold = 1;
 		}
 
