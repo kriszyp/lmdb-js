@@ -528,6 +528,12 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
+		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
+	}
+#endif
 
 	ch_free( bdb );
 	be->be_private = NULL;
