@@ -145,6 +145,26 @@ void bdb_entry_free ( Entry *e );
  */
 #ifdef SLAP_IDL_CACHE
 int bdb_idl_entry_cmp( const void*, const void* );
+
+int bdb_idl_cache_get(
+	struct bdb_info *bdb,
+	DB *db,
+	DBT *key,
+	ID *ids );
+
+void
+bdb_idl_cache_put(
+	struct bdb_info	*bdb,
+	DB		*db,
+	DBT		*key,
+	ID		*ids,
+	int		rc );
+
+void
+bdb_idl_cache_del(
+	struct bdb_info	*bdb,
+	DB		*db,
+	DBT		*key );
 #endif
 
 unsigned bdb_idl_search( ID *ids, ID id );

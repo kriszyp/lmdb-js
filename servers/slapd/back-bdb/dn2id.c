@@ -376,6 +376,15 @@ bdb_dn2id_children(
 	((char *)key.data)[0] = DN_ONE_PREFIX;
 	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_size ) {
+		rc = bdb_idl_cache_get( bdb, db, &key, NULL );
+		if ( rc != LDAP_NO_SUCH_OBJECT ) {
+			sl_free( key.data, o->o_tmpmemctx );
+			return rc;
+		}
+	}
+#endif
 	/* we actually could do a empty get... */
 	DBTzero( &data );
 	data.data = &id;
@@ -513,26 +522,21 @@ bdb_hdb_compare(
 	return rc;
 }
 
-/* This function constructs a full DN for a given id.
+/* This function constructs a full DN for a given entry.
  */
 int bdb_fix_dn(
 	BackendDB *be,
-	ID id,
 	Entry *e
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	idNode *n, *o;
-	int rlen, nrlen;
+	EntryInfo *ei;
+	int rlen = 0, nrlen = 0;
 	char *ptr, *nptr;
 	
-	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
-	o = bdb_find_id_node(id, bdb->bi_tree);
-	rlen = be->be_suffix[0].bv_len + 1;
-	nrlen = be->be_nsuffix[0].bv_len + 1;
-	for (n = o; n && n->i_parent; n=n->i_parent) {
-		rlen += n->i_rdn->rdn.bv_len + 1;
-		nrlen += n->i_rdn->nrdn.bv_len + 1;
+	for ( ei = BEI(e); ei; ei=ei->bei_parent ) {
+		rlen += ei->bei_rdn.bv_len + 1;
+		nrlen += ei->bei_nrdn.bv_len + 1;
 	}
 	e->e_name.bv_len = rlen - 1;
 	e->e_nname.bv_len = nrlen - 1;
@@ -540,16 +544,16 @@ int bdb_fix_dn(
 	e->e_nname.bv_val = e->e_name.bv_val + rlen;
 	ptr = e->e_name.bv_val;
 	nptr = e->e_nname.bv_val;
-	for (n = o; n && n->i_parent; n=n->i_parent) {
-		ptr = lutil_strcopy(ptr, n->i_rdn->rdn.bv_val);
-		*ptr++ = ',';
-		nptr = lutil_strcopy(nptr, n->i_rdn->nrdn.bv_val);
-		*nptr++ = ',';
+	for ( ei = BEI(e); ei; ei=ei->bei_parent ) {
+		ptr = lutil_strcopy(ptr, ei->bei_rdn.bv_val);
+		nptr = lutil_strcopy(nptr, ei->bei_nrdn.bv_val);
+		if ( ei->bei_parent ) {
+			*ptr++ = ',';
+			*nptr++ = ',';
+		}
 	}
-	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
-
-	strcpy(ptr, be->be_suffix[0].bv_val);
-	strcpy(nptr, be->be_nsuffix[0].bv_val);
+	*ptr = '\0';
+	*nptr = '\0';
 
 	return 0;
 }
@@ -594,6 +598,11 @@ bdb_dn2id_add(
 	key.size = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
 
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_size ) {
+		bdb_idl_cache_del( bdb, db, &key );
+	}
+#endif
 	data.data = d;
 	data.size = sizeof(diskNode) + rlen + nrlen + 2;
 	data.flags = DB_DBT_USERMEM;
@@ -648,6 +657,11 @@ bdb_dn2id_delete(
 	data.dlen = data.size;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_size ) {
+		bdb_idl_cache_del( bdb, db, &key );
+	}
+#endif
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
 	if ( rc ) return rc;
 
@@ -717,54 +731,40 @@ bdb_dn2id_children(
 	Entry *e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	DB *db = bdb->bi_dn2id->bdi_db;
+	DBT		key, data;
+	DBC		*cursor;
 	int		rc;
 	ID		id;
-	idNode *n;
+	diskNode d;
 
-	rc = bdb_dn2id(be, txn, dn, &id, flags);
-	if (rc != 0)
-		return rc;
+	DBTzero(&key);
+	key.size = sizeof(ID);
+	key.data = &e->e_id;
+	key.flags = DB_DBT_USERMEM;
 
-	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
-	n = bdb_find_id_node(id, bdb->bi_tree);
-	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
-
-	if (!n->i_kids)
-		return DB_NOTFOUND;
-	else
-		return 0;
-}
-
-/* Since we don't store IDLs for onelevel or subtree, we have to construct
- * them on the fly... Perhaps the i_kids tree ought to just be an IDL?
- */
-static int
-insert_one(
-	void *v_n,
-	void *v_ids
-)
-{
-	idNode *n = v_n;
-	ID *ids = v_ids;
-	return bdb_idl_insert(ids, n->i_id);
-}
-
-static int
-insert_sub(
-	void *v_n,
-	void *v_ids
-)
-{
-	idNode *n = v_n;
-	ID *ids = v_ids;
-	int rc;
-
-	rc = bdb_idl_insert(ids, n->i_id);
-	if (rc == 0) {
-		ldap_pvt_thread_rdwr_rlock(&n->i_kids_rdwr);
-		rc = avl_apply(n->i_kids, insert_sub, ids, -1, AVL_INORDER);
-		ldap_pvt_thread_rdwr_runlock(&n->i_kids_rdwr);
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_size ) {
+		rc = bdb_idl_cache_get( bdb, db, &key, NULL );
+		if ( rc != LDAP_NO_SUCH_OBJECT ) {
+			sl_free( key.data, o->o_tmpmemctx );
+			return rc;
+		}
 	}
+#endif
+	DBTzero(&data);
+	data.ulen = sizeof(d);
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+	data.dlen = sizeof(d);
+
+	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
+	if ( rc ) return rc;
+
+	rc = cursor->c_get( cursor, &key, &data, DB_FIRST );
+	if ( rc == 0 ) {
+		rc = cursor->c_get( cursor, &key, &data, DB_NEXT_DUP );
+	}
+	cursor->c_close( cursor );
 	return rc;
 }
 
