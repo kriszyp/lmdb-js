@@ -3,6 +3,8 @@
 # COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 
 SUBDIRS= include libraries clients servers # contrib
+CLEANDIRS= tests
+INSTALLDIRS= doc
 
 makefiles:	FORCE
 	./config.status

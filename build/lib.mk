@@ -19,7 +19,7 @@ version.c: $(OBJS)
 	-e "s|%VERSION%|$${v}|" \
 	< Version.c > $@)
 
-install-common: install-local
+install-common: all-common install-local
 
 lint: lint-local FORCE
 	$(LINT) $(DEFS) $(DEFINES) $(SRCS)

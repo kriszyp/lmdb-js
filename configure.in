@@ -344,10 +344,12 @@ dnl AC_OUTPUT( \
 dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 dnl contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
 dnl contrib/whois++/Makefile:build/top.mk:contrib/whois++/Makefile.in:build/rules.mk \
-dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
 AC_OUTPUT( \
+Makefile:build/top.mk:Makefile.in:build/dir.mk \
+doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk \
+doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
 clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
 clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
@@ -375,5 +377,4 @@ servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in \
-Makefile:build/top.mk:Makefile.in:build/dir.mk \
 ,[date > stamp-h])

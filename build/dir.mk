@@ -6,7 +6,7 @@
 
 all-common: all-local FORCE
 	@echo "Making all in `$(PWD)`"
-	@for i in $(SUBDIRS); do 					\
+	@for i in $(SUBDIRS) $(ALLDIRS); do 		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) all );		\
 		echo " ";								\
@@ -14,7 +14,7 @@ all-common: all-local FORCE
 
 install-common: install-local FORCE
 	@echo "Making install in `$(PWD)`"
-	@for i in $(SUBDIRS); do 					\
+	@for i in $(SUBDIRS) $(INSTALLDIRS); do 	\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) install );	\
 		echo " ";								\
@@ -22,7 +22,7 @@ install-common: install-local FORCE
 
 clean-common: clean-local FORCE
 	@echo "Making clean in `$(PWD)`"
-	@for i in $(SUBDIRS); do 					\
+	@for i in $(SUBDIRS) $(CLEANDIRS); do 		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) clean );	\
 		echo " ";								\
@@ -30,7 +30,7 @@ clean-common: clean-local FORCE
 
 veryclean-common: veryclean-local FORCE
 	@echo "Making veryclean in `$(PWD)`"
-	@for i in $(SUBDIRS); do 					\
+	@for i in $(SUBDIRS) $(CLEANDIRS); do 		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) veryclean );	\
 		echo " ";								\
@@ -38,7 +38,7 @@ veryclean-common: veryclean-local FORCE
 
 depend-common: depend-local FORCE
 	@echo "Making depend in `$(PWD)`"
-	@for i in $(SUBDIRS); do 					\
+	@for i in $(SUBDIRS) $(DEPENDDIRS); do 		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) depend );	\
 		echo " ";								\
