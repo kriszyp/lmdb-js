@@ -109,8 +109,6 @@ str2entry( char *s )
 		}
 
 		if ( strcasecmp( type, "dn" ) == 0 ) {
-			struct berval *pdn = NULL;
-
 			free( type );
 
 			if ( e->e_dn != NULL ) {
@@ -137,12 +135,12 @@ str2entry( char *s )
 				LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1, "str2entry: "
 					"entry %ld has invalid DN \"%s\"\n",
 					(long) e->e_id,
-					pdn->bv_val ? pdn->bv_val : "" ));
+					e->e_dn ? e->e_dn : "" ));
 #else
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has invalid DN \"%s\"\n",
 					(long) e->e_id,
-					pdn->bv_val ? pdn->bv_val : "", 0 );
+					e->e_dn ? e->e_dn : "", 0 );
 #endif
 				entry_free( e );
 				return NULL;
