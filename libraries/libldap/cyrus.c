@@ -598,9 +598,10 @@ ldap_int_sasl_bind(
 		ld->ld_defconn->lconn_sasl_authctx = NULL;
 	}
 
-	rc = ldap_int_sasl_open( ld, ld->ld_defconn,
-		ld->ld_defconn->lconn_server->lud_host ?
-		ld->ld_defconn->lconn_server->lud_host : "localhost" );
+	{ char *saslhost = ldap_host_connected_to( ld->ld_sb, "localhost" );
+	rc = ldap_int_sasl_open( ld, ld->ld_defconn, saslhost );
+	LDAP_FREE( saslhost );
+	}
 
 	if ( rc != LDAP_SUCCESS ) return rc;
 
