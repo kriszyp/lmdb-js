@@ -29,7 +29,7 @@ ainfo_type_cmp(
 {
 	const AttributeDescription *desc = v_desc;
 	const AttrInfo	*a = v_a;
-	return (unsigned)desc - (unsigned)a->ai_desc;
+	return SLAP_PTRCMP(desc, a->ai_desc);
 }
 
 static int
@@ -39,7 +39,7 @@ ainfo_cmp(
 )
 {
 	const AttrInfo *a = v_a, *b = v_b;
-	return (unsigned)a->ai_desc - (unsigned)b->ai_desc;
+	return SLAP_PTRCMP(a->ai_desc, b->ai_desc);
 }
 
 void

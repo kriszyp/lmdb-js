@@ -422,7 +422,7 @@ entry_free( Entry *e )
 int
 entry_cmp( Entry *e1, Entry *e2 )
 {
-	return( e1 < e2 ? -1 : (e1 > e2 ? 1 : 0) );
+	return SLAP_PTRCMP( e1, e2 );
 }
 
 int
@@ -430,9 +430,8 @@ entry_dn_cmp( const void *v_e1, const void *v_e2 )
 {
 	/* compare their normalized UPPERCASED dn's */
 	const Entry *e1 = v_e1, *e2 = v_e2;
-	int rc = e1->e_nname.bv_len - e2->e_nname.bv_len;
-	if (rc) return rc;
-	return( strcmp( e1->e_ndn, e2->e_ndn ) );
+
+	return ber_bvcmp( &e1->e_nname, &e2->e_nname );
 }
 
 int

@@ -29,7 +29,7 @@ static int
 backsql_cmp_oc( const void *v_m1, const void *v_m2 )
 {
 	const backsql_oc_map_rec *m1 = v_m1, *m2 = v_m2;
-	return ( m1->oc < m2->oc ? -1 : ( m1->oc > m2->oc ? 1 : 0 ) );
+	return SLAP_PTRCMP( m1->oc, m2->oc );
 }
 
 static int
@@ -46,7 +46,7 @@ static int
 backsql_cmp_attr( const void *v_m1, const void *v_m2 )
 {
 	const backsql_at_map_rec *m1 = v_m1, *m2 = v_m2;
-	return ( m1->ad < m2->ad ? -1 : ( m1->ad > m2->ad ? 1 : 0 ) );
+	return SLAP_PTRCMP( m1->ad, m2->ad );
 }
 
 static int

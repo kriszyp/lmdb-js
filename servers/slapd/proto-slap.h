@@ -1023,6 +1023,9 @@ LDAP_SLAPD_F (int) value_add_one LDAP_P((
 	BerVarray *vals,
 	struct berval *addval ));
 
+/* assumes (x) > (y) returns 1 if true, 0 otherwise */
+#define SLAP_PTRCMP(x, y) ((x) < (y) ? -1 : (x) > (y))
+
 /*
  * Other...
  */
