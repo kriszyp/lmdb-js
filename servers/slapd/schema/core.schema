@@ -1,5 +1,6 @@
 
-# Standard schema from RFC2251-RFC2256
+# OpenLDAP Core schema
+# Includes "standard" schema items from RFC2251-RFC2256
 
 # Standard X.501(93) Operational Attribute Types from RFC2252
 
