@@ -232,8 +232,6 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 
 #if DB_VERSION_MINOR >= 3
 	env->set_alloc( env, ldbm_malloc, NULL, NULL );
-#else
-	env->set_malloc( env, ldbm_malloc );
 #endif
 
 	env->set_errcall( env, ldbm_db_errcall );
@@ -317,6 +315,10 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 
 		return NULL;
 	}
+
+#if DB_VERSION_MINOR < 3
+	ret->set_malloc( ret, ldbm_malloc );
+#endif
 
 	ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
 
