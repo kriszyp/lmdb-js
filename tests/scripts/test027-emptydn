@@ -74,6 +74,7 @@ if test $RC != 0 ; then
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
+sleep 2
 
 LDIFOUT=$EMPTYDNOUT1
 
