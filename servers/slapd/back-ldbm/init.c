@@ -83,10 +83,10 @@ ldbm_back_initialize(
 	bi->bi_tool_sync = ldbm_tool_sync;
 
 #ifdef HAVE_CYRUS_SASL
-	bi->bi_sasl_authorize = 0; /* ldbm_sasl_authorize; */
-	bi->bi_sasl_getsecret = 0; /* ldbm_sasl_getsecret; */
-	bi->bi_sasl_putsecret = 0; /* ldbm_sasl_putsecret; */
-#endif
+	bi->bi_sasl_authorize = 0;
+	bi->bi_sasl_getsecret = 0;
+	bi->bi_sasl_putsecret = 0;
+#endif /* HAVE_CYRUS_SASL */
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
