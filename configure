@@ -7893,7 +7893,7 @@ LIBTOOL='$(SHELL) $(top_builddir)/libtool'
 
 
 LTSTATIC=""
-if test "${OPENLDAP_CVS}"; then
+if test -z "$LTDYNAMIC" -a "${OPENLDAP_CVS}"; then
 	LTSTATIC="-static"
 fi
 

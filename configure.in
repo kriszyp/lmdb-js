@@ -659,7 +659,7 @@ AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
 LTSTATIC=""
-if test "${OPENLDAP_CVS}"; then
+if test -z "$LTDYNAMIC" -a "${OPENLDAP_CVS}"; then
 	LTSTATIC="-static"
 fi
 AC_SUBST(LTSTATIC)dnl
