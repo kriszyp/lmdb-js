@@ -6,12 +6,39 @@
 #
 # add any platform-specific overrides below here
 #
+PREFIX?=/usr/local
+INSTROOT=${PREFIX}
+ETCDIR= $(INSTROOT)/etc/ldap
+EXTRACFLAGS=-O -DLDAP_DEBUG
+LDBMBACKEND=-DLDBM_USE_DBBTREE
+LDBMINCLUDE=-I/usr/include
+#
+# LDAP has a problem with the idea of implicit vs. explicit yields
+# in call conversion threading packages, like the MIT pthreads
+# package.  Rather than resolve this globally, I have marked the
+# threading as "preeemptive", even though it is technically not.
+#
+# As far as I have been able to determine, there are not buzz-loop
+# based races in the LDAP code (at least not now that I've fixed
+# the bogus FD_SETSIZE assumptions about the select(2) system call
+# implementation being in any way related to getdtablesize(2) --
+# if it were, sys/types.h would define FD_SETSIZE in terms of the
+# getdtablesize(2) call, and there would be no implicit limits).
+#
+# This means that the implicit-yield threading is topologically
+# equivalent to preemptive threading.
+#
+THREADS= -D_THREAD_SAFE -DPOSIX_THREADS -DPTHREAD_PREEMPTIVE
+THREADSLIB= -pthread
+
+# we need to link in the V3 library to get sigset()
+PLATFORMLIBS= -lcrypt
 
 #
 # -------------------------------------------------------------------------
 # you will probably not need to edit anything below this point
 # -------------------------------------------------------------------------
-CC	= cc
+CC	= gcc
 
 PLATFORMCFLAGS=	-Dfreebsd
 

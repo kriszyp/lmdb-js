@@ -203,6 +203,22 @@ connection_activity(
 
 	pthread_attr_init( &attr );
 	pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
+#ifdef PTHREAD_MUTEX_INITIALIZER
+	/*
+	 * This is a draft 10 or standard pthreads implementation
+	 */
+	if ( pthread_create( &arg->co_op->o_tid, attr,
+	    (void *) connection_operation, (void *) arg ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
+	} else {
+		pthread_mutex_lock( &active_threads_mutex );
+		active_threads++;
+		pthread_mutex_unlock( &active_threads_mutex );
+	}
+#else	/* !PTHREAD_MUTEX_INITIALIZER*/
+	/*
+	 * This is a draft 4 or earlier pthreads implementation
+	 */
 	if ( pthread_create( &arg->co_op->o_tid, &attr,
 	    (void *) connection_operation, (void *) arg ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
@@ -211,5 +227,6 @@ connection_activity(
 		active_threads++;
 		pthread_mutex_unlock( &active_threads_mutex );
 	}
+#endif	/* !PTHREAD_MUTEX_INITIALIZER*/
 	pthread_attr_destroy( &attr );
 }

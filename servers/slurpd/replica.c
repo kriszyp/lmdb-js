@@ -59,6 +59,21 @@ start_replica_thread(
     pthread_attr_init( &attr );
     pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 
+#ifdef PTHREAD_MUTEX_INITIALIZER
+    /*
+     * This is a draft 10 or standard pthreads implementation
+     */
+    if ( pthread_create( &(ri->ri_tid), attr, (void *) replicate,
+	    (void *) ri ) != 0 ) {
+	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
+		ri->ri_hostname, ri->ri_port, 0 );
+	pthread_attr_destroy( &attr );
+	return -1;
+    }
+#else	/* !PTHREAD_MUTEX_INITIALIZER */
+    /*
+     * This is a draft 4 or earlier pthreads implementation
+     */
     if ( pthread_create( &(ri->ri_tid), &attr, (void *) replicate,
 	    (void *) ri ) != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "replica \"%s:%d\" pthread_create failed\n",
@@ -66,6 +81,7 @@ start_replica_thread(
 	pthread_attr_destroy( &attr );
 	return -1;
     }
+#endif	/* !PTHREAD_MUTEX_INITIALIZER */
     pthread_attr_destroy( &attr );
     return 0;
 }

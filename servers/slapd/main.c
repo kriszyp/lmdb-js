@@ -15,6 +15,7 @@ extern int	lber_debug;
 
 extern char Versionstr[];
 
+
 /*
  * read-only global variables or variables only written by the listener
  * thread (after they are initialized) - no need to protect them with a mutex.
@@ -184,12 +185,27 @@ main( argc, argv )
 		pthread_attr_init( &attr );
 		pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 
+#ifdef PTHREAD_MUTEX_INITIALIZER
+		/*
+		 * This is a draft 10 or standard pthreads implementation
+		 */
+		if ( pthread_create( &listener_tid, attr, (void *) slapd_daemon,
+		    (void *) port ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "listener pthread_create failed\n", 0, 0, 0 );
+			exit( 1 );
+		}
+#else	/* !PTHREAD_MUTEX_INITIALIZER */
+		/*
+		 * This is a draft 4 or earlier pthreads implementation
+		 */
 		if ( pthread_create( &listener_tid, &attr, (void *) slapd_daemon,
 		    (void *) port ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "listener pthread_create failed\n", 0, 0, 0 );
 			exit( 1 );
 		}
+#endif	/* !PTHREAD_MUTEX_INITIALIZER */
 		pthread_attr_destroy( &attr );
 		pthread_join( listener_tid, (void *) &status );
 		pthread_exit( 0 );

@@ -39,14 +39,15 @@ BINDIR= $(INSTROOT)/bin
 # if you want things to run in a different directory from where they
 # are installed, set this accordingly (this path gets compiled into a
 # few binaries). otherwise, leave it alone.
-RUNTIMEETCDIR= $(ETCDIR)
+RUNTIMEETCDIR?= $(ETCDIR)
 
 #############################################################################
 ## General compiler options                                                ##
 #############################################################################
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
 EXTRACFLAGS=-O -g
-# EXTRACFLAGS=-O
+#EXTRACFLAGS=-O
+#EXTRACFLAGS=-g
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
 EXTRALDFLAGS=-g
 
@@ -125,23 +126,26 @@ SLAPD_BACKENDS= -DLDAP_LDBM # -DLDAP_SHELL -DLDAP_PASSWD
 # You will also need to edit the include and lib strings appropriately.
 #
 # berkeley db btree package
-LDBMBACKEND=-DLDBM_USE_DBBTREE
-LDBMINCLUDE=-I/usr/include
 #LDBMLIB=-ldb
+#LDBMBACKEND?=-DLDBM_USE_DBBTREE
+#LDBMINCLUDE?=-I/usr/local/db/include
+#LDBMLIB?=-ldb
 # berkeley db hash package
-#LDBMBACKEND=-DLDBM_USE_DBHASH
-#LDBMINCLUDE=-I/usr/local/db/include
-#LDBMLIB=-ldb
+#LDBMBACKEND?=-DLDBM_USE_DBHASH
+#LDBMINCLUDE?=-I/usr/local/db/include
+#LDBMLIB?=-ldb
 # gnu dbm (gdbm)
-#LDBMBACKEND=-DLDBM_USE_GDBM
-#LDBMINCLUDE=-I/usr/local/gdbm/include
-#LDBMLIB=-lgdbm
+#LDBMBACKEND?=-DLDBM_USE_GDBM
+#LDBMINCLUDE?=-I/usr/local/gdbm/include
+#LDBMLIB?=-lgdbm
 # standard unix ndbm
-#LDBMBACKEND=-DLDBM_USE_NDBM
+LDBMBACKEND?=-DLDBM_USE_NDBM
+LDBMINCLUDE?=
+LDBMLIB?=
 #
 # if you want to use a non-default threads package change these lines
-#THREADS=-DPOSIX_THREADS
-#THREADSLIB= -pthread
+#THREADS?=-DNO_THREADS
+#THREADSLIB?=
 
 #############################################################################
 ## The following options are used by the xax500 client.  If you haven't    ##

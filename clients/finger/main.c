@@ -172,11 +172,20 @@ static do_query()
 		exit( 1 );
 	}
 
+#ifdef FD_SETSIZE
+	/*
+	 * It is invalid to use a set size in excess of the type
+	 * scope, as defined for the fd_set in sys/types.h.  This
+	 * is true for any OS.
+	 */
+	tblsize = FD_SETSIZE;
+#else	/* !FD_SETSIZE*/
 #ifdef USE_SYSCONF
 	tblsize = sysconf( _SC_OPEN_MAX );
 #else /* USE_SYSCONF */
 	tblsize = getdtablesize();
 #endif /* USE_SYSCONF */
+#endif	/* !FD_SETSIZE*/
 
 	timeout.tv_sec = FINGER_TIMEOUT;
 	timeout.tv_usec = 0;

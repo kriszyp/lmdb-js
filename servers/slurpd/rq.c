@@ -44,9 +44,9 @@ extern void Re_dump( Re *re );
 extern void Re_dump();
 #endif /* NEEDPROTOS */
 
-#ifndef	SYSERRLIST_IN_STDIO
+#ifndef SYSERRLIST_IN_STDIO
 extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO
+#endif /* SYSERRLIST_IN_STDIO */
 
 /*
  * Lock the replication queue.

@@ -17,14 +17,12 @@
 #include <stdarg.h>
 #include "macos.h"
 #else /* MACOS */
-#if defined(NeXT) || defined(VMS)
+#if defined(NeXT) || defined(VMS) || defined(__FreeBSD__)
 #include <stdlib.h>
-#else /* next || vms */
-#ifndef __FreeBSD__
+#else /* next || vms || freebsd */
 #include <malloc.h>
-#endif
-#endif /* next || vms */
-#if defined( BC31 ) || defined( _WIN32 ) 
+#endif /* next || vms || freebsd */
+#if defined( BC31 ) || defined( _WIN32 )
 #include <stdarg.h>
 #else /* BC31 || _WIN32 */
 #include <varargs.h>

@@ -543,12 +543,17 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		*result = l;
 		ld->ld_errno = LDAP_SUCCESS;
 #ifdef LDAP_WORLD_P16
-		/* inclusion of this patch causes searchs to hang on
-			multiple platforms */
+		/*
+		 * XXX questionable fix; see text for [P16] on
+		 * http://www.critical-angle.com/ldapworld/patch/
+		 *
+		 * inclusion of this patch causes searchs to hang on
+		 * multiple platforms
+		 */
 		return( l->lm_msgtype );
-#else
+#else	/* LDAP_WORLD_P16 */
 		return( tag );
-#endif
+#endif	/* !LDAP_WORLD_P16 */
 	}
 
 	return( -2 );	/* continue looking */
@@ -633,11 +638,20 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 	static int	tblsize;
 
 	if ( tblsize == 0 ) {
+#ifdef FD_SETSIZE
+		/*
+		 * It is invalid to use a set size in excess of the type
+		 * scope, as defined for the fd_set in sys/types.h.  This
+		 * is true for any OS.
+		 */
+		tblsize = FD_SETSIZE;
+#else	/* !FD_SETSIZE*/
 #ifdef USE_SYSCONF
 		tblsize = sysconf( _SC_OPEN_MAX );
 #else /* USE_SYSCONF */
 		tblsize = getdtablesize();
 #endif /* USE_SYSCONF */
+#endif	/* !FD_SETSIZE*/
 	}
 
 	FD_ZERO( &readfds );

@@ -78,16 +78,19 @@ slapd_daemon(
 	int			on = 1;
 
 #ifdef USE_SYSCONF
-        dtblsize = sysconf( _SC_OPEN_MAX );
+	dtblsize = sysconf( _SC_OPEN_MAX );
 #else /* USE_SYSCONF */
-        dtblsize = getdtablesize();
+	dtblsize = getdtablesize();
 #endif /* USE_SYSCONF */
 	/*
 	 * Add greg@greg.rim.or.jp
 	 */
+#ifdef FD_SETSIZE
 	if(dtblsize > FD_SETSIZE) {
 		dtblsize = FD_SETSIZE;
 	}
+#endif	/* !FD_SETSIZE*/
+
 	c = (Connection *) ch_calloc( 1, dtblsize * sizeof(Connection) );
 
 	for ( i = 0; i < dtblsize; i++ ) {
@@ -222,7 +225,7 @@ slapd_daemon(
 #endif
 		pthread_mutex_unlock( &active_threads_mutex );
 
-		switch ( select( dtblsize, &readfds, &writefds, 0, tvp ) ) {
+		switch ( i = select( dtblsize, &readfds, &writefds, 0, tvp ) ) {
 		case -1:	/* failure - try again */
 			Debug( LDAP_DEBUG_CONNS,
 			    "select failed errno %d (%s)\n",
@@ -237,7 +240,7 @@ slapd_daemon(
 			continue;
 
 		default:	/* something happened - deal with it */
-			Debug( LDAP_DEBUG_CONNS, "select activity\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_CONNS, "select activity on %d descriptors\n", i, 0, 0 );
 			;	/* FALL */
 		}
 		pthread_mutex_lock( &currenttime_mutex );

@@ -33,7 +33,7 @@ extern void ch_free( char *p );
 
 #ifndef	SYSERRLIST_IN_STDIO
 extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO
+#endif /* SYSERRLIST_IN_STDIO */
 
 /* Forward references */
 static Rh 	*get_repl_hosts( char *, int *, char ** );
