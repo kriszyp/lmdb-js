@@ -228,8 +228,8 @@ int backend_destroy(void)
 
 	/* destroy each backend type */
 	for( i = 0; i < nBackendInfo; i++ ) {
-		if( backendInfo[i].bi_close ) {
-			backendInfo[i].bi_close(
+		if( backendInfo[i].bi_destroy ) {
+			backendInfo[i].bi_destroy(
 				&backendInfo[i] );
 		}
 	}
