@@ -1,5 +1,9 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.22 Engineering
+	Updated slapd slurpd friendly code
+	Fixed slapd passwd modify referral bug
+
 OpenLDAP 2.0.21 Release
 	Fix slapd empty string indexing/filtering handling (ITS#1507)
 	Changed slapd ACL selfwrite replace logic (ITS#1530)
