@@ -53,7 +53,7 @@ main( int argc, char **argv )
 	int      	lmax, lcur, indexmask, syntaxmask;
 	int		dbnum;
 	unsigned long	id;
-	Backend		*be;
+	Backend		*be = NULL;
 	struct berval	bv;
 	struct berval	*vals[2];
 	extern char	*optarg;

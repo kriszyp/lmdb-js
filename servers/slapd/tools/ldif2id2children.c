@@ -63,7 +63,7 @@ main( int argc, char **argv )
 	int		dbnum;
 	ID		id;
 	struct dbcache	*db, *db2;
-	Backend		*be;
+	Backend		*be = NULL;
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
