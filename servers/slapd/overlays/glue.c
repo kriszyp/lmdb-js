@@ -768,22 +768,22 @@ glue_db_config(
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;
 
 	if ( strcasecmp( argv[0], "glue-sub" ) == 0 ) {
-		int i, async = 0, advertize = 0;
+		int i, async = 0, advertise = 0;
 		BackendDB *b2;
 		struct berval bv, dn;
 		gluenode *gn;
 
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: too few arguments in "
-				"\"glue-sub <suffixDN> [async] [advertize]\"\n", fname, lineno );
+				"\"glue-sub <suffixDN> [async] [advertise]\"\n", fname, lineno );
 			return -1;
 		}
 		for ( i = 2; i < argc; i++ ) {
 			if ( strcasecmp( argv[i], "async" ) == 0 ) {
 				async = 1;
 
-			} else if ( strcasecmp( argv[i], "advertize" ) == 0 ) {
-				advertize = 1;
+			} else if ( strcasecmp( argv[i], "advertise" ) == 0 ) {
+				advertise = 1;
 
 			} else {
 				fprintf( stderr, "%s: line %d: unrecognized option "
@@ -802,8 +802,8 @@ glue_db_config(
 			return -1;
 		}
 		SLAP_DBFLAGS(b2) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
-		if ( advertize ) {
-			SLAP_DBFLAGS(b2) |= SLAP_DBFLAG_GLUE_ADVERTIZE;
+		if ( advertise ) {
+			SLAP_DBFLAGS(b2) |= SLAP_DBFLAG_GLUE_ADVERTISE;
 		}
 		gi = (glueinfo *)ch_realloc( gi, sizeof(glueinfo) +
 			gi->gi_nodes * sizeof(gluenode));

@@ -1597,7 +1597,7 @@ struct slap_backend_db {
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_DBFLAG_GLUE_ADVERTIZE	0x0080U /* advertize in rootDSE */
+#define SLAP_DBFLAG_GLUE_ADVERTISE	0x0080U /* advertise in rootDSE */
 #define SLAP_DBFLAG_OVERLAY		0x0100U	/* this db struct is an overlay */
 #define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0200U	/* this db struct is a global overlay */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
@@ -1616,8 +1616,8 @@ struct slap_backend_db {
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_SUBORDINATE)
 #define	SLAP_GLUE_LINKED(be)		\
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_LINKED)
-#define	SLAP_GLUE_ADVERTIZE(be)	\
-	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_ADVERTIZE)
+#define	SLAP_GLUE_ADVERTISE(be)	\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_ADVERTISE)
 #define SLAP_SHADOW(be)				(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SHADOW)
 #define SLAP_SYNC_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SYNC_SHADOW)
 #define SLAP_SLURP_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SLURP_SHADOW)
