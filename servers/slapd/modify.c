@@ -193,7 +193,7 @@ do_modify(
 		Debug( LDAP_DEBUG_ANY, "do_modify: database is read-only\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "database is read-only", NULL, NULL );
+		                  NULL, "directory is read-only", NULL, NULL );
 		goto cleanup;
 	}
 
@@ -269,7 +269,7 @@ do_modify(
 		}
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		    NULL, "Function not implemented", NULL, NULL );
+		    NULL, "modify function not implemented", NULL, NULL );
 	}
 
 cleanup:

@@ -122,7 +122,7 @@ do_add( Connection *conn, Operation *op )
 			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
 				mod->ml_type, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-				NULL, "no values for type", NULL, NULL );
+				NULL, "no values for attribute type", NULL, NULL );
 			free( mod->ml_type );
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			free( mod );
@@ -161,7 +161,7 @@ do_add( Connection *conn, Operation *op )
 #endif
 	{
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-			NULL, "No attributes provided", NULL, NULL );
+			NULL, "no attributes provided", NULL, NULL );
 		goto done;
 	}
 
@@ -193,7 +193,7 @@ do_add( Connection *conn, Operation *op )
 		Debug( LDAP_DEBUG_ANY, "do_add: database is read-only\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "database is read-only", NULL, NULL );
+			NULL, "directory is read-only", NULL, NULL );
 		goto done;
 	}
 
@@ -273,7 +273,7 @@ do_add( Connection *conn, Operation *op )
 	} else {
 	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "read function not implemented", NULL, NULL );
 	}
 
 done:

@@ -154,7 +154,7 @@ do_compare(
 		(*be->be_compare)( be, conn, op, dn, ndn, &ava );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "compare function not implemented", NULL, NULL );
 	}
 
 cleanup:

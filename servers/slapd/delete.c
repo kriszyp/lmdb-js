@@ -91,7 +91,7 @@ do_delete(
 		Debug( LDAP_DEBUG_ANY, "do_delete: database is read-only\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "database is read-only", NULL, NULL );
+		                  NULL, "directory is read-only", NULL, NULL );
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto cleanup;
 	}
@@ -130,7 +130,7 @@ do_delete(
 
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "delete function not implemented", NULL, NULL );
 	}
 cleanup:
 	if( ndn != NULL ) free( ndn );

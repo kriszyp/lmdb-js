@@ -109,7 +109,7 @@ do_modrdn(
 			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
 				newSuperior, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-				"new superior invalid", NULL, NULL );
+				"invalid new superior DN", NULL, NULL );
 			goto cleanup;
 		}
 
@@ -240,7 +240,7 @@ do_modrdn(
 		}
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "modrdn/moddn function not implemented", NULL, NULL );
 	}
 
 cleanup:
