@@ -170,9 +170,8 @@ replication master, you need to make the following changes to your
 ^ Add a {{EX:replica}} directive for each replica. The {{EX:binddn=}}
 parameter should match the {{EX:updatedn}} option in the corresponding
 slave slapd configuration file, and should name an entry with write
-permission to the slave database (e.g., an entry listed as
-{{EX:rootdn}}, or allowed access via {{EX:access}} directives in
-the slave slapd configuration file).
+permission to the slave database (e.g., an entry allowed access via
+{{EX:access}} directives in the slave slapd configuration file).
 
 + Add a {{EX:replogfile}} directive, which tells slapd where to log
 changes. This file will be read by slurpd.
@@ -191,11 +190,13 @@ to create "chains" of replicas, in most cases this is inappropriate.
 
 + Do include an {{EX:updatedn}} line. The DN given should match the
 DN given in the {{EX:binddn=}} parameter of the corresponding
-{{EX:replica=}} directive in the master slapd config file.
+{{EX:replica=}} directive in the master slapd config file.  The
+{{EX:updatedn}} should generally NOT be the same as the {{EX:rootdn}}
+of the slave database.
 
 + Make sure the DN given in the {{EX:updatedn}} directive has
-permission to write the database (e.g., it is listed as {{EX:rootdn}}
-or is allowed {{EX:access}} by one or more access directives).
+permission to write the database (e.g., it is is allowed {{EX:access}}
+by one or more access directives).
 
 + Use the {{EX:updateref}} directive to define the URL the slave
 should return if an update request is received.
@@ -261,13 +262,12 @@ replica configuration is still supported:
 >		binddn="cn=Replicator,dc=example,dc=com"
 >		bindmethod=simple credentials=secret
 
-Note that the
-DN given by the {{EX:binddn=}} directive must exist in the slave
-slapd's database (or be the rootdn specified in the slapd config
-file) in order for the bind operation to succeed.  The DN should
-also be listed as the {{EX:updatedn}} for the database in the slave's
-slapd.conf(5).  It is generally recommended that this DN be
-different than the {{EX:rootdn}}.
+Note that the DN given by the {{EX:binddn=}} directive must exist
+in the slave slapd's database (or be the rootdn specified in the
+slapd config file) in order for the bind operation to succeed.  The
+DN should also be listed as the {{EX:updatedn}} for the database
+in the slave's slapd.conf(5).  It is generally recommended that
+this DN be different than the {{EX:rootdn}} of the master database.
 
 Note: The use of strong authentication and transport security is
 highly recommended.
@@ -346,42 +346,3 @@ exit, use the command
 
 >	slurpd -r /usr/tmp/replog.slave.example.com:389 -o
 
-!if 0
-
-H2: Replication to an X.500 DSA
-
-In mixed environments where both {{TERM:X.500}} DSAs and slapd are
-used, it may be desirable to replicate changes from a slapd directory
-server to an X.500 {{TERM:DSA}}. This section discusses issues
-involved with this method of replication, and describes the
-currently-available facilities.
-
-To propagate changes from a slapd directory server to an X.500 DSA,
-slurpd runs on the master slapd host, and sends changes to an ldapd
-which acts as a gateway to the X.500 DSA:
-
-!import "replication.gif"; align="center"; \
-	title="Replication from slapd to an X.500 DSA"
-FT: Figure 10.1: Replication from slapd to an X.500 DSA
-
-Note that the X.500 DSA must be a read-only copy. Since the replication
-is one-way, updates from {{TERM:DAP}} clients connecting to the
-X.500 DSA simply cannot be handled.
-
-A problem arises where attribute names differ between the slapd
-directory server and the X.500 DSA. At present, slapd and slurpd
-do not support selective replication of attributes, nor do they
-support translation of attribute names and values. For example,
-slurpd will attempt to update the {{EX:modifiersName}} and
-{{EX:modifyTimeStamp}} attributes on the slave it connects to.
-However, the X.500 DSA may expect these attributes to be named
-{{EX:lastModifiedBy}} and {{EX:lastModifiedTime}}.
-
-A solution to this attribute naming problem is to have the LDAP/DAP
-gateway to map {{EX:modifiersName}} to the Object Identifier
-({{TERM:OID}}) for the {{EX:lastModifiedBy}} attribute and
-{{EX:modifyTimeStamp}} to the OID for the {{EX:lastModifiedTime}}
-attribute. Since attribute names are carried as OIDs over DAP, this
-should perform the appropriate translation of attribute names.
-
-!endif

@@ -311,9 +311,10 @@ The {{EX:binddn=}} parameter gives the DN to bind as for updates
 to the slave slapd. It should be a DN which has read/write access
 to the slave slapd's database.  It must also match the {{EX:updatedn}}
 directive in the slave slapd's config file.  Generally, this DN
-{{should not}} be the same as the {{EX:rootdn}}.  Since DNs are
-likely to contain embedded spaces, the entire {{EX:"binddn=<DN>"}}
-string should be enclosed in double quotes.
+{{should not}} be the same as the {{EX:rootdn}} of the master
+database.  Since DNs are likely to contain embedded spaces, the
+entire {{EX:"binddn=<DN>"}} string should be enclosed in double
+quotes.
 
 The {{EX:bindmethod}} is {{EX:simple}} or {{EX:kerberos}} or {{EX:sasl}},
 depending on whether simple password-based authentication or Kerberos
