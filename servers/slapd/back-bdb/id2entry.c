@@ -210,7 +210,7 @@ int bdb_entry_return(
 		/* nvals are not contiguous with the rest. oh well. */
 		Attribute *a;
 		for (a = e->e_attrs; a; a=a->a_next) {
-			if (a->a_nvals) {
+			if (a->a_nvals != a->a_vals) {
 				ber_bvarray_free( a->a_nvals );
 				a->a_nvals = NULL;
 			}
