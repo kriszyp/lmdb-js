@@ -1093,7 +1093,8 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 	sessionlog *sl;
 	slog_entry *se;
 
-	for ( sl = si->si_logs; sl; ) {
+	sl = si->si_logs;
+	{
 		/* Allocate a record. UUIDs are not NUL-terminated. */
 		se = ch_malloc( sizeof( slog_entry ) + opc->suuid.bv_len + 
 			csn->bv_len + 1 );
