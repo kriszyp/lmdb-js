@@ -32,7 +32,7 @@ dnssrv_back_referrals(
 	struct berval **urls = NULL;
 
 	if( ndn == NULL || *ndn == '\0' ) {
-		*text = "operation upon null (empty) DN disallowed";
+		*text = "DNS SRV operation upon null (empty) DN disallowed";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
