@@ -8,8 +8,6 @@
 # mappings were based upon: draft-ietf-asid-ldapv3-attributes-03.txt
 # (a work in progress)
 #
-# It may be best to avoid use this schema.
-#
 # Note: It seems that the pilot schema evolved beyond what was
 # described in RFC1274.  However, this document attempts to describes
 # RFC1274 as published. 

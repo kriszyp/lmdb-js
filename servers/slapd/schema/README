@@ -1,0 +1,21 @@
+This directory contains schema definitions for use with slapd(5).
+
+File                    Description
+----                    -----------
+core.schema             OpenLDAP "core"
+cosine.schema           COSINE Pilot schema
+inetorgperson.schema    InetOrgPerson schema
+microsoft.ext.schema    Microsoft schema
+microsoft.schema        Microsoft schema
+microsoft.std.schema    Microsoft schema
+misc.schema             misc. schema
+nadf.schema             North America Directory Forum schema
+nis.schema              Network Information Service schema
+openldap.schema         OpenLDAP Project schema
+pilot.schema            old Pilot schema
+
+Additional schema definitions can be submitted using the OpenLDAP
+Issue Tracking System <http://www.openldap.org/its/>.
+
+---
+$OpenLDAP$

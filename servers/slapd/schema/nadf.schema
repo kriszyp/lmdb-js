@@ -4,9 +4,6 @@
 # They were taken from ftp://ftp.gte.com/pub/nadf/nadf-docs/sd-04.ps
 # Our thanks to Harald T. Alvestrand that provided the pointer.
 
-# Some attribute types and object classes defined in the spec
-# and that we did not have are not included in this file.
-
 # This is a preliminary version and is likely to be incorrect in
 # a number of areas
 

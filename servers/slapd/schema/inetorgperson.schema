@@ -1,10 +1,8 @@
 # $OpenLDAP$
 #
-# InetOrgPerson (RFC 2798)
+# InetOrgPerson (RFC2798)
 #
 # Depends upon
-#   The COSINE and Internet X.500 Schema [RFC1274]
-#   
 #   Definition of an X.500 Attribute Type and an Object Class to Hold
 #   Uniform Resource Identifiers (URIs) [RFC2079]
 #	(core.schema)
@@ -12,9 +10,8 @@
 #   A Summary of the X.500(96) User Schema for use with LDAPv3 [RFC2256]
 #	(core.schema)
 #
-#   and X.500 pilot schema
+#   The COSINE and Internet X.500 Schema [RFC1274] (cosine.schema)
    
-
 # carLicense
 # This multivalued field is used to record the values of the license or
 # registration plate associated with an individual.
