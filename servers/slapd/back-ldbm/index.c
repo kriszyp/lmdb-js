@@ -32,9 +32,8 @@ index_add_entry(
 	 * with index_add_values() call
 	 */
 
-	bv.bv_val = ch_strdup( e->e_dn );
+	bv.bv_val = ch_strdup( e->e_ndn );
 	bv.bv_len = strlen( bv.bv_val );
-	(void) dn_normalize_case( bv.bv_val );
 	bvals[0] = &bv;
 	bvals[1] = NULL;
 
@@ -53,7 +52,7 @@ index_add_entry(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_add( %ld, \"%s\" ) 0\n", e->e_id,
-	    e->e_dn, 0 );
+	    e->e_ndn, 0 );
 	return( 0 );
 }
 
