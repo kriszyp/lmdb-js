@@ -164,7 +164,7 @@ modify_add_values(
 						*text = textbuf;
 						snprintf( textbuf, textlen,
 							"modify/%s: %s: value #0 already exists",
-							op, mod->sm_desc->ad_cname.bv_val, 0 );
+							op, mod->sm_desc->ad_cname.bv_val );
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
 				}

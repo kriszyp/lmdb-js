@@ -161,7 +161,7 @@ int main( int argc, char **argv )
      */
     if ( sglob->st->st_read( sglob->st )) {
 	fprintf( stderr, "Malformed slurpd status file \"%s\"\n",
-		sglob->slurpd_status_file, 0, 0 );
+		sglob->slurpd_status_file );
 	SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 17 );
 	rc = 1;
 	goto stop;
