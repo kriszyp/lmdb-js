@@ -85,6 +85,9 @@ passwd_back_search(
 			e->e_attrs = NULL;
 			e->e_dn = ch_strdup( base );
 
+			e->e_ndn = ch_strdup( e->e_dn );
+			(void) dn_normalize( e->e_ndn );
+
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.
 		 	*/
