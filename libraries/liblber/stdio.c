@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <ac/stdarg.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
+#include <lutil.h>
 
 #if !defined(HAVE_VSNPRINTF) && !defined(HAVE_EBCDIC)
 /* Write at most n characters to the buffer in str, return the
