@@ -417,18 +417,24 @@ cache_delete_entry_internal(
     Entry		*e
 )
 {
+	int rc = 0; 	/* return code */
+
 	/* dn tree */
 	if ( avl_delete( &cache->c_dntree, (caddr_t) e, cache_entrydn_cmp )
 		== NULL )
 	{
-		return( -1 );
+		rc = -1;
 	}
 
 	/* id tree */
 	if ( avl_delete( &cache->c_idtree, (caddr_t) e, cache_entryid_cmp )
 		== NULL )
 	{
-		return( -1 );
+		rc = -1;
+	}
+
+	if (rc != 0) {
+		return rc;
 	}
 
 	/* lru */
