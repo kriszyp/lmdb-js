@@ -458,7 +458,9 @@ filter_value_unescape( char *fval )
 				/* escape at end of string */
 				return -1;
 
-			} else if (( v1 = hex2value( fval[v] )) < 0 )  {
+			}
+
+			if (( v1 = hex2value( fval[v] )) >= 0 ) {
 				/* LDAPv3 escape */
 
 				if (( v2 = hex2value( fval[v+1] )) < 0 ) {
