@@ -218,6 +218,7 @@ isOkNetscapeParam( int param )
 	case SLAPI_X_GROUP_ENTRY:
 	case SLAPI_X_GROUP_ATTRIBUTE:
 	case SLAPI_X_GROUP_OPERATION_DN:
+	case SLAPI_X_GROUP_TARGET_ENTRY:
 		return LDAP_SUCCESS;
 	default:
 		return INVALID_PARAM;

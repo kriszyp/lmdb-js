@@ -1618,6 +1618,7 @@ static void init_group_pblock( Operation *op, Entry *target,
 	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ENTRY, (void *)e );
 	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
 	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ATTRIBUTE, (void *)group_at->ad_cname.bv_val );
+	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
 }
 
 static int call_group_preop_plugins( Operation *op )

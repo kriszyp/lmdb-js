@@ -437,6 +437,7 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_X_GROUP_ENTRY			1250		/* e */
 #define SLAPI_X_GROUP_ATTRIBUTE			1251		/* group_at */
 #define SLAPI_X_GROUP_OPERATION_DN		1252		/* op_ndn */
+#define SLAPI_X_GROUP_TARGET_ENTRY		1253		/* target */
 
 #define SLAPI_MANAGEDSAIT       		1000
 
