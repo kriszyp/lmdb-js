@@ -1,5 +1,8 @@
 OpenLDAP Change Log
 
+Changes included in OpenLDAP 1.2.11
+	Fixed /tmp races in ud, ldapsearch, ldbmtest and slurpd
+
 Changes included in OpenLDAP 1.2.10
 	CVS Tag: OPENLDAP_REL_ENG_1_2_10
 	Add slapd -DSLAPD_UNDEFINED_OC_IS_NOT_EXTENSIBLE macro disable
