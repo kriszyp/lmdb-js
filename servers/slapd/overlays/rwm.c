@@ -673,6 +673,18 @@ rwm_over_init(
  		ch_free( rwmap );
  		return -1;
  	}
+
+	{
+		char	*rargv[3];
+
+		/* this rewriteContext by default must be null;
+		 * rules can be added if required */
+		rargv[ 0 ] = "rewriteContext";
+		rargv[ 1 ] = "searchFilter";
+		rargv[ 2 ] = NULL;
+		rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
+	}
+	
 #endif /* ENABLE_REWRITE */
 
 	rwm_map_init( &rwmap->rwm_oc, &mapping );
