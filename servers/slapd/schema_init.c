@@ -802,38 +802,55 @@ nameUIDPretty(
 		return LDAP_INVALID_SYNTAX;
 
 	} else {
-		int rc;
-		struct berval dnval = *val;
-		struct berval uidval = BER_BVNULL;
+		int		rc;
+		struct berval	dnval = *val;
+		struct berval	uidval = BER_BVNULL;
 
 		if( val->bv_val[val->bv_len-1] == 'B'
 			&& val->bv_val[val->bv_len-2] == '\'' )
 		{
-			uidval.bv_val=strrchr( val->bv_val, '#' );
-			if( uidval.bv_val ) {
-				dnval.bv_len = uidval.bv_val - dnval.bv_val;
-				uidval.bv_len = val->bv_len - dnval.bv_len;
-
-				uidval.bv_len--;
-				uidval.bv_val++;
+			uidval.bv_val = strrchr( val->bv_val, '#' );
+			if( uidval.bv_val == NULL
+					|| uidval.bv_val < val->bv_val
+					|| ( uidval.bv_val > val->bv_val && uidval.bv_val[-1] == '\\' ) )
+			{
+				return LDAP_INVALID_SYNTAX;
 			}
+
+			ber_dupbv_x( &dnval, val, ctx );
+
+			dnval.bv_len = uidval.bv_val - val->bv_val;
+			uidval.bv_len = val->bv_len - dnval.bv_len;
+
+			dnval.bv_val[dnval.bv_len] = '\0';
+
+			uidval.bv_len--;
+			uidval.bv_val++;
 		}
 
 		rc = dnPretty( syntax, &dnval, out, ctx );
-		if( rc != LDAP_SUCCESS ) return rc;
+		if ( dnval.bv_val != val->bv_val ) {
+			slap_sl_free( dnval.bv_val, ctx );
+		}
+		if( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
 
 		if( uidval.bv_val ) {
-			char *tmp = slap_sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2, ctx );
-			int i, c, got1;
+			int	i, c, got1;
+			char	*tmp;
+
+			tmp = slap_sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2, ctx );
 			if( tmp == NULL ) {
 				ber_memfree_x( out->bv_val, ctx );
 				return LDAP_OTHER;
 			}
 			out->bv_val = tmp;
 			out->bv_val[out->bv_len++] = '#';
+			out->bv_val[out->bv_len++] = '\'';
 
 			got1 = uidval.bv_len < sizeof("'0'B"); 
-			for(i=0; i<uidval.bv_len; i++) {
+			for( i = 1; i < uidval.bv_len - 2; i++ ) {
 				c = uidval.bv_val[i];
 				switch(c) {
 					case '0':
@@ -841,11 +858,15 @@ nameUIDPretty(
 						break;
 					case '1':
 						got1 = 1;
-					default:
 						out->bv_val[out->bv_len++] = c;
+						break;
+					default:
+						return LDAP_INVALID_SYNTAX;
 				}
 			}
 
+			out->bv_val[out->bv_len++] = '\'';
+			out->bv_val[out->bv_len++] = 'B';
 			out->bv_val[out->bv_len] = '\0';
 		}
 	}
@@ -886,8 +907,16 @@ uniqueMemberNormalize(
 			/* assume presence of optional UID */
 			uid.bv_val = strrchr( out.bv_val, '#' );
 
-			if( uid.bv_val == NULL ) {
-				free( out.bv_val );
+			/* if no '#', or '#' before the beginning
+			 * of the string, or preceded
+			 * by an escape char '\\'...
+			 * (a string of "#'<UID>'B" should be valid,
+			 * since the empty "" DN is legal) */
+			if( uid.bv_val == NULL
+					|| uid.bv_val < out.bv_val
+					|| ( uid.bv_val > out.bv_val && uid.bv_val[-1] == '\\' ) )
+			{
+				slap_sl_free( out.bv_val, ctx );
 				return LDAP_INVALID_SYNTAX;
 			}
 
@@ -907,7 +936,8 @@ uniqueMemberNormalize(
 
 		if( uid.bv_len ) {
 			normalized->bv_val = ch_realloc( normalized->bv_val,
-				normalized->bv_len + uid.bv_len + sizeof("#") );
+				normalized->bv_len + uid.bv_len
+				+ STRLENOF("#") + 1 );
 
 			/* insert the separator */
 			normalized->bv_val[normalized->bv_len++] = '#';
@@ -952,15 +982,19 @@ uniqueMemberMatch(
 			/* assume presence of optional UID */
 			assertedUID.bv_val = strrchr( assertedDN.bv_val, '#' );
 
-			if( assertedUID.bv_val == NULL ) {
+			if( assertedUID.bv_val == NULL
+					|| assertedUID.bv_val < assertedDN.bv_val
+					|| ( assertedUID.bv_val > assertedDN.bv_val && assertedUID.bv_val[-1] == '\\' ) )
+			{
 				return LDAP_INVALID_SYNTAX;
 			}
 
 			assertedUID.bv_len = assertedDN.bv_len -
 				(assertedUID.bv_val - assertedDN.bv_val);
-			assertedDN.bv_len -= assertedUID.bv_len--;
+			assertedDN.bv_len -= assertedUID.bv_len;
 
 			/* trim the separator */
+			assertedUID.bv_len--;
 			assertedUID.bv_val++;
 		}
 	}
@@ -974,20 +1008,30 @@ uniqueMemberMatch(
 			/* assume presence of optional UID */
 			valueUID.bv_val = strrchr( valueDN.bv_val, '#' );
 
-			if( valueUID.bv_val == NULL ) {
+			if( valueUID.bv_val == NULL
+					|| valueUID.bv_val < valueDN.bv_val
+					|| ( valueUID.bv_val > valueDN.bv_val && valueUID.bv_val[-1] == '\\' ) )
+			{
 				return LDAP_INVALID_SYNTAX;
 			}
 
 			valueUID.bv_len = valueDN.bv_len -
-				(assertedUID.bv_val - assertedDN.bv_val);
-			valueDN.bv_len -= valueUID.bv_len--;
+				(valueUID.bv_val - valueDN.bv_val);
+			valueDN.bv_len -= valueUID.bv_len;
 
 			/* trim the separator */
+			valueUID.bv_len--;
 			valueUID.bv_val++;
 		}
 	}
 
 	if( valueUID.bv_len && assertedUID.bv_len ) {
+		match = valueUID.bv_len - assertedUID.bv_len;
+		if ( match ) {
+			*matchp = match;
+			return LDAP_SUCCESS;
+		}
+
 		match = memcmp( valueUID.bv_val, assertedUID.bv_val, valueUID.bv_len );
 		if( match ) {
 			*matchp = match;
