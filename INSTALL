@@ -7,7 +7,7 @@ OpenLDAP on UNIX (and UNIX-like) system.
 It is recommended that you read, or at least skim through, ALL of the
 instructions in this file before attempting to build the software.
 
-It is also recommended your review The OpenLDAP Administrator's Guide
+It is also recommended you review The OpenLDAP Administrator's Guide
 (http://www.openldap.org/doc/admin/) and the Frequently Asked
 Questions (http://www.openldap.org/faq/) pages, in particular the
 Installation section (http://www.openldap.org/faq/index.cgi?file=8)
@@ -219,6 +219,6 @@ shared libraries.
 
 End of OpenLDAP INSTALL file.
 
-$OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.9 2000/08/22
-22:56:27 kurt Exp $
+$OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.11 2000/09/07
+16:14:37 kurt Exp $
 
