@@ -153,8 +153,7 @@ skip_url_prefix(
 	}
 
 	/* skip leading "URL:" (if any) */
-	if ( strncasecmp( p, LDAP_URL_URLCOLON, LDAP_URL_URLCOLON_LEN ) == 0 )
-	{
+	if ( strncasecmp( p, LDAP_URL_URLCOLON, LDAP_URL_URLCOLON_LEN ) == 0 ) {
 		p += LDAP_URL_URLCOLON_LEN;
 	}
 
@@ -895,9 +894,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 		bind.ri_url = (char *)url;
 		err = ldap_send_server_request(
 					ld, ber, ld->ld_msgid, NULL,
-					(ludp->lud_host != NULL || ludp->lud_port != 0)
-						? ludp : NULL,
-					NULL, &bind );
+					NULL, NULL, &bind );
 	}
 
 	ldap_free_urldesc( ludp );

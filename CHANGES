@@ -3,9 +3,10 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.X Engineering
 	Fixed -lldap TLS data ready bug (ITS#821)
 	Fixed -lldap abandon unsent op bug (ITS#837)
+	Fixed -lldap URL search w/o host bug (ITS#843)
 	Fixed slapd spasswd mutex bug
 	Fixed slapd ACL nameuid bug
-	Fixed slapd SASL layerring bug
+	Fixed slapd SASL layering bug
 	Fixed slapd unknown authc method bug (ITS#831)
 	Updated -lldap SASL error reporting
 	Updated -lldap TLS error reporting
