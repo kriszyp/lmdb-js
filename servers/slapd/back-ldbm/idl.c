@@ -622,7 +622,7 @@ idl_insert_key(
 		/* is there a next block? */
 		if ( !first && !ID_BLOCK_NOID(idl, i + 1) ) {
 #else
-		if ( !first && (i + 1) < ID_BLOCK_NIDS(idl) ) {
+		if ( !first && (unsigned long)(i + 1) < ID_BLOCK_NIDS(idl) ) {
 #endif
 			/* read it in */
 			cont_alloc( &k2, &key );
@@ -751,7 +751,7 @@ split:
 #ifndef USE_INDIRECT_NIDS
 			for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) {
 #else
-			for ( j = 0; j < ID_BLOCK_NIDS(idl); j++ ) {
+			for ( j = 0; (unsigned long) j < ID_BLOCK_NIDS(idl); j++ ) {
 #endif
 				cont_id( &k2, ID_BLOCK_ID(idl, j) );
 
