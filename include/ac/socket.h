@@ -186,4 +186,11 @@ LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #  endif
 #endif
 
+#ifndef INET_ADDRSTRLEN
+#	define INET_ADDRSTRLEN 16
+#endif
+#ifndef INET6_ADDRSTRLEN
+#	define INET6_ADDRSTRLEN 46
+#endif
+
 #endif /* _AC_SOCKET_H_ */
