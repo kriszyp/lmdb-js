@@ -2080,7 +2080,7 @@ config_tls_config(ConfigArgs *c) {
 		flag = LDAP_OPT_X_TLS_CRLCHECK; keys = crlkeys;
 #else
 		Debug(LDAP_DEBUG_ANY, "%s: "
-				"disabled tls_option \"TLSCRLCheck\"\n",
+				"disabled tls_option \"TLSCRLCheck\" <%x>\n",
 				c->log, c->type, 0);
 #endif
 		break;
