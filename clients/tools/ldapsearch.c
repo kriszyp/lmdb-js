@@ -450,9 +450,9 @@ void print_entry(
 	} else {
 	    printf( "%s\n", ufn );
 	}
-	free( ufn );
+	ldap_memfree( ufn );
     }
-    free( dn );
+    ldap_memfree( dn );
 
     for ( a = ldap_first_attribute( ld, entry, &ber ); a != NULL;
 	    a = ldap_next_attribute( ld, entry, ber ) ) {
