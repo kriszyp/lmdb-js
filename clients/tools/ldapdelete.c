@@ -144,7 +144,8 @@ static int dodelete(
     int	rc;
 
     if ( verbose ) {
-	printf( "%sdeleting entry %s\n", not ? "!" : "", dn );
+	printf( "%sdeleting entry \"%s\"\n",
+		(not ? "!" : ""), dn );
     }
     if ( not ) {
 	rc = LDAP_SUCCESS;
@@ -152,7 +153,7 @@ static int dodelete(
 	if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_delete" );
 	} else if ( verbose ) {
-	    printf( "entry removed\n" );
+	    printf( "\tremoved\n" );
 	}
     }
 
