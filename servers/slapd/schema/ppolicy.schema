@@ -308,7 +308,7 @@ attributetype   (  1.3.6.1.4.1.42.2.27.8.1.15
 #
 #    The function should return LDAP_SUCCESS for a valid password.
 
-attributetype  (  1.3.6.1.4.1.42.2.27.8.1.99
+attributetype  (  1.3.6.1.4.1.4754.1.99.1
      NAME 'pwdCheckModule'
      EQUALITY caseExactIA5Match
      SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
@@ -330,7 +330,13 @@ objectclass   (  1.3.6.1.4.1.42.2.27.8.2.1
       MAY ( pwdMinAge $ pwdMaxAge $ pwdInHistory $ pwdCheckQuality $ 
       pwdMinLength $ pwdExpireWarning $ pwdGraceLoginLimit $ pwdLockout 
       $ pwdLockoutDuration $ pwdMaxFailure $ pwdFailureCountInterval $ 
-      pwdMustChange $ pwdAllowUserChange $ pwdSafeModify $ pwdCheckModule ) ) 
+      pwdMustChange $ pwdAllowUserChange $ pwdSafeModify ) ) 
+
+objectclass  (   1.3.6.1.4.1.4754.2.99.1
+      NAME 'pwdPolicyChecker'
+      SUP top
+      AUXILIARY
+      MAY ( pwdCheckModule ) )
 
 # 4.3. Attribute Types for Password Policy State Information 
 #     
