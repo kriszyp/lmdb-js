@@ -1586,7 +1586,7 @@ dn_match_cleanup:;
  * acl_check_modlist - check access control on the given entry to see if
  * it allows the given modifications by the user associated with op.
  * returns	1	if mods allowed ok
- *			0	mods not allowed
+ *		0	mods not allowed
  */
 
 int
