@@ -32,7 +32,6 @@ Large projects
 --------------
 Implement character string localization 
 Implement X.500 administrative models (e.g. subentries (RFC 3672), etc.)
-Implement LDAP component matching (RFC 3687)
 Implement LDAP sorted search results control (RFC 2891)
 
 
@@ -50,6 +49,7 @@ Localize tools
 
 Small projects
 --------------
+Add LDIFv2 (XML) support to command line tools
 Implement LDAPprep and SASLprep
 Implement additional matching rules (RFC 3698)
 Add dumpasn1 logging support
