@@ -100,13 +100,12 @@ access_allowed(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "acl", LDAP_LEVEL_ENTRY,
-		   "access_allowed: conn %d %s access to \"%s\" \"%s\" requested\n",
-		   conn->c_connid, access2str( access ), e->e_dn, attr ));
+		"access_allowed: conn %d %s access to \"%s\" \"%s\" requested\n",
+		conn ? conn->c_connid : -1, access2str( access ), e->e_dn, attr ));
 #else
 	Debug( LDAP_DEBUG_ACL,
 		"=> access_allowed: %s access to \"%s\" \"%s\" requested\n",
-	    access2str( access ),
-		e->e_dn, attr );
+	    access2str( access ), e->e_dn, attr );
 #endif
 
 	if ( op == NULL ) {
