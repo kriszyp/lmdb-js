@@ -142,7 +142,7 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 
 	/* find the first non-all-zero byte */
 	for ( i = sizeof(ber_len_t) - 1; i > 0; i-- ) {
-		mask = (0xffU << (i * 8));
+		mask = ((ber_len_t)0xffU << (i * 8));
 		/* not all zero */
 		if ( len & mask )
 			break;
@@ -186,7 +186,7 @@ ber_put_int_or_enum(
 	 * high bit is clear - look for first non-all-zero byte
 	 */
 	for ( i = sizeof(ber_int_t) - 1; i > 0; i-- ) {
-		mask = (0xffU << (i * 8));
+		mask = ((ber_uint_t)0xffU << (i * 8));
 
 		if ( sign ) {
 			/* not all ones */
@@ -203,7 +203,7 @@ ber_put_int_or_enum(
 	 * we now have the "leading byte".  if the high bit on this
 	 * byte matches the sign bit, we need to "back up" a byte.
 	 */
-	mask = (unum & (0x80U << (i * 8)));
+	mask = (unum & ((ber_uint_t)0x80U << (i * 8)));
 	if ( (mask && !sign) || (sign && !mask) )
 		i++;
 
