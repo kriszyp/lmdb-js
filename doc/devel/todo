@@ -42,6 +42,7 @@ Modify libraries to use application specified logging routines
 Modify libraries to use application specified memory allocation routines
 Modify servers to use reentrant library functions
 Extend configure.in to support autodetect of ISODE features.
+Remove ldapconfig.h.edit dependencies.
 Update SLAPD/SLURD Admin Guide
 Port slurpd to NT
 
