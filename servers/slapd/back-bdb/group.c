@@ -79,10 +79,17 @@ bdb_group(
 		txn = boi->boi_txn;
 	}
 
-	if ( txn )
+	if ( txn ) {
 		locker = TXN_ID( txn );
-	else
+	} else {
 		LOCK_ID ( bdb->bi_dbenv, &locker );
+		switch(rc) {
+		case 0:
+			break;
+		default:
+			return 1;
+		}
+	}
 
 	if (dn_match(&target->e_name, gr_ndn)) {
 		/* we already have a LOCKED copy of the entry */

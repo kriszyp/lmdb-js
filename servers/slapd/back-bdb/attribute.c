@@ -67,10 +67,17 @@ bdb_attribute(
 		txn = boi->boi_txn;
 	}
 
-	if ( txn != NULL )
+	if ( txn != NULL ) {
 		locker = TXN_ID ( txn );
-	else
-		LOCK_ID ( bdb->bi_dbenv, &locker );
+	} else {
+		rc = LOCK_ID ( bdb->bi_dbenv, &locker );
+		switch(rc) {
+		case 0:
+			break;
+		default:
+			return LDAP_OTHER;
+		}
+	}
 
 	if (target != NULL && dn_match(&target->e_nname, entry_ndn)) {
 		/* we already have a LOCKED copy of the entry */
