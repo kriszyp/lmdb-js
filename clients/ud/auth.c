@@ -136,25 +136,6 @@ auth( char *who, int implicit )
 	printf("  Authenticating to the directory as \"%s\"...\n", *rdns );
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	/*
-	 * First, if the user has a choice of auth methods, ask which
-	 * one they want to use.  if they want kerberos, ask which
-	 * krbname they want to bind as.
-	 */
-
-	if ( (krbnames = ldap_get_values( ld, mp, "krbName" )) != NULL ) {
-		authmethod = LDAP_AUTH_KRBV4;
-		(void) ldap_value_free(krbnames);
-	} else {
-		authmethod = LDAP_AUTH_SIMPLE;
-	}
-	(void) ldap_msgfree(mp);
-
-	/*
-	 * if they are already kinited, we don't need to ask for a 
-	 * password.
-	 */
-
 	if ( authmethod != LDAP_AUTH_KRBV4 )
 #endif
 	{
