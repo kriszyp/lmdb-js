@@ -553,7 +553,6 @@ ldbm_errno( LDBM ldbm )
 
 /* MMAPED DBM HASHING DATABASE */
 
-#include <ac/alloca.h>
 #include <ac/string.h>
 
 /* #define MDBM_DEBUG */
@@ -690,7 +689,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 
 #ifdef NO_NULL_KEY
 	k.key.dsize = key.dsize + 1;			
-	k.key.dptr = alloca(k.key.dsize);
+	k.key.dptr = malloc(k.key.dsize);
 	*(k.key.dptr) = 'l';
 	memcpy( (void *)(k.key.dptr + 1), key.dptr, key.dsize );	
 #else
@@ -730,6 +729,10 @@ ldbm_fetch( LDBM ldbm, Datum key )
 
 	/* LDBM_UNLOCK; */
 
+#ifdef NO_NULL_KEY
+	free(k.key.dptr);
+#endif
+
 	return d;
 
 }/* Datum ldbm_fetch() */
@@ -754,7 +757,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 
 #ifdef NO_NULL_KEY
 	int_key.dsize = key.dsize + 1;
-	int_key.dptr = alloca( int_key.dsize );
+	int_key.dptr = malloc( int_key.dsize );
 	*(int_key.dptr) = 'l';	/* Must not be NULL !*/
 	memcpy( (void *)(int_key.dptr + 1), key.dptr, key.dsize );
 #else
@@ -771,6 +774,10 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 #ifdef MDBM_DEBUG
 	fprintf( stdout, "<==(mdbm)ldbm_store(rc=%d)\n", rc );
 	fflush( stdout );
+#endif
+
+#ifdef NO_NULL_KEY
+	free(int_key.dptr);
 #endif
 
 	return( rc );
@@ -790,7 +797,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 
 #ifdef NO_NULL_KEY
 	int_key.dsize = key.dsize + 1;
-	int_key.dptr = alloca(int_key.dsize);
+	int_key.dptr = malloc(int_key.dsize);
 	*(int_key.dptr) = 'l';
 	memcpy( (void *)(int_key.dptr + 1), key.dptr, key.dsize );	
 #else
@@ -800,6 +807,9 @@ ldbm_delete( LDBM ldbm, Datum key )
 	rc = mdbm_delete( ldbm, int_key );
 
 	/* LDBM_UNLOCK; */
+#ifdef NO_NULL_KEY
+	free(int_key.dptr);
+#endif
 
 	return( rc );
 
@@ -825,7 +835,7 @@ ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) )
 	/* LDBM_LOCK; */
 
 	in.key.dsize = sz;	/* Assume first key in one pg */
-	in.key.dptr = alloca(sz);
+	in.key.dptr = malloc(sz);
 	
 	in.val.dptr = NULL;	/* Don't need data just key */ 
 	in.val.dsize = 0;
@@ -853,6 +863,8 @@ ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) )
 	}
 
 	/* LDBM_UNLOCK; */
+	
+	free(in.key.dptr);
 
 	return ret;
 

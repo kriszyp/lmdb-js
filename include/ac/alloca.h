@@ -12,6 +12,8 @@
 #ifndef _AC_ALLOCA_H
 #define _AC_ALLOCA_H
 
+#error  "alloca() not supported, use malloc()"
+
 /* AIX requires this to be the first thing in the file.  */
 #ifdef __GNUC__
 # define alloca __builtin_alloca
