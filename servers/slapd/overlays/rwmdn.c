@@ -24,6 +24,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_OVER_RWM
+
 #include <stdio.h>
 
 #include <ac/string.h>
@@ -169,3 +171,5 @@ rwm_dn_massage(
 	return 0;
 }
 #endif /* !ENABLE_REWRITE */
+
+#endif /* SLAPD_OVER_RWM */

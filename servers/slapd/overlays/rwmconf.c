@@ -23,6 +23,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_OVER_RWM
+
 #include <stdio.h>
 
 #include <ac/string.h>
@@ -300,3 +302,5 @@ suffix_massage_config(
 	return 0;
 }
 #endif /* ENABLE_REWRITE */
+
+#endif /* SLAPD_OVER_RWM */

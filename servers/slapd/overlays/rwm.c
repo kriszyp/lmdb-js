@@ -17,6 +17,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_OVER_RWM
+
 #include <stdio.h>
 
 #include "slap.h"
@@ -521,7 +523,7 @@ rwm_config(
 }
 
 static int
-rwm_init(
+rwm_over_init(
 	BackendDB *be
 )
 {
@@ -582,12 +584,12 @@ rwm_destroy(
 static slap_overinst rwm = { { NULL } };
 
 int
-init_module(void)
+rwm_init(void)
 {
 	memset( &rwm, 0, sizeof(slap_overinst) );
 
 	rwm.on_bi.bi_type = "rewrite-remap";
-	rwm.on_bi.bi_db_init = rwm_init;
+	rwm.on_bi.bi_db_init = rwm_over_init;
 	rwm.on_bi.bi_db_config = rwm_config;
 	rwm.on_bi.bi_db_destroy = rwm_destroy;
 
@@ -605,3 +607,10 @@ init_module(void)
 	return overlay_register( &rwm );
 }
 
+#if SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC
+int init_module(int argc, char *argv[]) {
+	return rwm_init();
+}
+#endif
+
+#endif /* SLAPD_OVER_RWM */

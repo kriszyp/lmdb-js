@@ -23,6 +23,8 @@
 
 #include "portable.h"
 
+#ifdef SLAPD_OVER_RWM
+
 #include <stdio.h>
 
 #include <ac/string.h>
@@ -560,3 +562,4 @@ mapping_free( void *v_mapping )
 	ch_free( mapping );
 }
 
+#endif /* SLAPD_OVER_RWM */

@@ -13,8 +13,10 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SRCS = overlays.c dyngroup.c pcache.c
-OBJS = overlays.lo dyngroup.lo pcache.lo
+SRCS = overlays.c dyngroup.c pcache.c \
+	rwm.c rwmconf.c rwmdn.c rwmmap.c
+OBJS = overlays.lo dyngroup.lo pcache.lo \
+	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -36,6 +38,9 @@ dyngroup.la : dyngroup.lo $(@PLAT@_LINK_LIBS)
 
 pcache.la : pcache.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)
+
+rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
 
 install-local:	$(PROGRAMS)
 	@-$(MKDIR) $(DESTDIR)$(moduledir)

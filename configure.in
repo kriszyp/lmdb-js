@@ -247,6 +247,8 @@ OL_ARG_WITH(dyngroup,[    --with-dyngroup	  Dynamic Group overlay no|yes|mod], n
 	[no yes mod])
 OL_ARG_WITH(proxycache,[    --with-proxycache	  Proxy Cache overlay no|yes|mod], no,
 	[no yes mod])
+OL_ARG_WITH(rwm,[    --with-rwm       	  Rewrite/Remap overlay no|yes|mod], no,
+	[no yes mod])
 
 dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
@@ -374,6 +376,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_proxycache != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-proxycache argument])
 	fi
+	if test $ol_with_rwm != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-rwm argument])
+	fi
 
 	# force settings to no
 	ol_enable_slapi=no
@@ -418,6 +423,7 @@ if test $ol_enable_slapd = no ; then
 
 	ol_with_dyngroup=no
 	ol_with_proxycache=no
+	ol_with_rwm=no
 
 elif test $ol_enable_ldbm = no ; then
 	dnl SLAPD without LDBM
@@ -578,6 +584,7 @@ BUILD_SQL_DYNAMIC=static
 
 BUILD_DYNGROUP=no
 BUILD_PROXYCACHE=no
+BUILD_RWM=no
 
 SLAPD_DYNAMIC_OVERLAYS=
 
@@ -813,6 +820,10 @@ else
 	if test $ol_with_proxycache = mod ; then
 		AC_MSG_WARN([building static proxycache overlay])
 		ol_with_proxycache = yes
+	fi
+	if test $ol_with_rwm = mod ; then
+		AC_MSG_WARN([building static rwm overlay])
+		ol_with_rwm = yes
 	fi
 fi
 
@@ -2766,6 +2777,18 @@ if test "$ol_with_proxycache" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_PROXYCACHE,$MFLAG,[define for Proxy Cache overlay])
 fi
 
+if test "$ol_with_rwm " != no ; then
+	BUILD_REWRITE=yes
+	BUILD_RWM=$ol_with_rwm
+	if test "$ol_with_rwm" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS rwm.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_RWM,$MFLAG,[define for Rewrite/Remap overlay])
+fi
+
 if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
@@ -2836,6 +2859,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_SQL_DYNAMIC)
   AC_SUBST(BUILD_DYNGROUP)
   AC_SUBST(BUILD_PROXYCACHE)
+  AC_SUBST(BUILD_RWM)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)

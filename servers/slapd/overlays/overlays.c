@@ -30,6 +30,9 @@ extern int dyngroup_init();
 #if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_STATIC
 extern int pcache_init();
 #endif
+#if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
+extern int rwm_init();
+#endif
 
 static struct {
 	char *name;
@@ -40,6 +43,9 @@ static struct {
 #endif
 #if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_STATIC
 	{ "Proxy Cache", pcache_init },
+#endif
+#if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
+	{ "Rewrite/Remap", rwm_init },
 #endif
 	{ NULL, NULL }
 };
