@@ -12,10 +12,9 @@
 #include <ac/unistd.h>
 #include <ac/stdlib.h>
 
-#include <lutil.h>
-
 #include "back-bdb.h"
 #include "external.h"
+#include <lutil.h>
 
 static struct bdbi_database {
 	char *file;

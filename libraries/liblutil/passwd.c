@@ -78,83 +78,71 @@ static const unsigned char crypt64[] =
 static char *salt_format = NULL;
 #endif
 
-struct pw_scheme;
-
-typedef int (*PASSWD_CHK_FUNC)(
-	const struct pw_scheme *scheme,
-	const struct berval *passwd,
-	const struct berval *cred );
-
-typedef struct berval * (*PASSWD_HASH_FUNC) (
-	const struct pw_scheme *scheme,
-	const struct berval *passwd );
-
-struct pw_scheme {
-	struct berval name;
-	PASSWD_CHK_FUNC chk_fn;
-	PASSWD_HASH_FUNC hash_fn;
+struct pw_slist {
+	struct pw_slist *next;
+	struct lutil_pw_scheme s;
 };
 
 /* password check routines */
 static int chk_md5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 
 static int chk_smd5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 
 #ifdef LUTIL_SHA1_BYTES
 static int chk_ssha1(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 
 static int chk_sha1(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 #endif
 
 #ifdef SLAPD_LMHASH
 static int chk_lanman(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 #endif
 
 #ifdef SLAPD_NS_MTA_MD5
 static int chk_ns_mta_md5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 #endif
 
 #ifdef SLAPD_SPASSWD
 static int chk_sasl(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 #endif
 
 #ifdef SLAPD_KPASSWD
 static int chk_kerberos(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 #endif
 
 #ifdef SLAPD_CRYPT
 static int chk_crypt(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 
 #if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
 static int chk_unix(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
 #endif
@@ -164,41 +152,43 @@ static int chk_unix(
 #ifdef LUTIL_SHA1_BYTES
 /* password hash routines */
 static struct berval *hash_sha1(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd );
 
 static struct berval *hash_ssha1(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd );
 #endif
 
 static struct berval *hash_smd5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd );
 
 static struct berval *hash_md5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd );
 
 #ifdef SLAPD_LMHASH
 static struct berval *hash_lanman(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd );
 #endif
 
 #ifdef SLAPD_CRYPT
 static struct berval *hash_crypt(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd );
 #endif
 
 #ifdef SLAPD_CLEARTEXT
 static struct berval *hash_clear(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd );
 #endif
 
-static const struct pw_scheme pw_schemes[] =
+static struct pw_slist *pw_schemes;
+
+static const struct lutil_pw_scheme pw_schemes_default[] =
 {
 #ifdef LUTIL_SHA1_BYTES
 	{ BER_BVC("{SSHA}"),		chk_ssha1, hash_ssha1 },
@@ -239,16 +229,48 @@ static const struct pw_scheme pw_schemes[] =
 	{ BER_BVNULL, NULL, NULL }
 };
 
-static const struct pw_scheme *get_scheme(
+int lutil_passwd_add(struct lutil_pw_scheme *s)
+{
+	struct pw_slist *ptr;
+
+	ptr = ber_memalloc( sizeof( struct pw_slist ));
+	if (!ptr) return -1;
+	ptr->next = pw_schemes;
+	ptr->s = *s;
+	pw_schemes = ptr;
+	return 0;
+}
+
+void lutil_passwd_init()
+{
+	struct pw_slist *ptr;
+	struct lutil_pw_scheme *s;
+
+	for( s=(struct lutil_pw_scheme *)pw_schemes_default; s->name.bv_val; s++) {
+		if ( lutil_passwd_add( s )) break;
+	}
+}
+
+void lutil_passwd_destroy()
+{
+	struct pw_slist *ptr, *next;
+
+	for( ptr=pw_schemes; ptr; ptr=next ) {
+		next = ptr->next;
+		ber_memfree( ptr );
+	}
+}
+
+static const struct lutil_pw_scheme *get_scheme(
 	const char* scheme )
 {
-	int i;
+	struct pw_slist *pws;
 
-	for( i=0; pw_schemes[i].name.bv_val; i++) {
-		if( pw_schemes[i].name.bv_val == NULL ) continue;
+	if (!pw_schemes) lutil_passwd_init();
 
-		if( strcasecmp(scheme, pw_schemes[i].name.bv_val ) == 0 ) {
-			return &pw_schemes[i];
+	for( pws=pw_schemes; pws; pws=pws->next ) {
+		if( strcasecmp(scheme, pws->s.name.bv_val ) == 0 ) {
+			return &(pws->s);
 		}
 	}
 
@@ -283,7 +305,7 @@ static int is_allowed_scheme(
 }
 
 static struct berval *passwd_scheme(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval * passwd,
 	struct berval *bv,
 	const char** allowed )
@@ -313,7 +335,7 @@ lutil_passwd(
 	const struct berval *cred,		/* user cred */
 	const char **schemes )
 {
-	int i;
+	struct pw_slist *pws;
 
 	if (cred == NULL || cred->bv_len == 0 ||
 		passwd == NULL || passwd->bv_len == 0 )
@@ -321,14 +343,16 @@ lutil_passwd(
 		return -1;
 	}
 
-	for( i=0; pw_schemes[i].name.bv_val != NULL; i++ ) {
-		if( pw_schemes[i].chk_fn ) {
+	if (!pw_schemes) lutil_passwd_init();
+
+	for( pws=pw_schemes; pws; pws=pws->next ) {
+		if( pws->s.chk_fn ) {
 			struct berval x;
-			struct berval *p = passwd_scheme( &pw_schemes[i],
+			struct berval *p = passwd_scheme( &(pws->s),
 				passwd, &x, schemes );
 
 			if( p != NULL ) {
-				return (pw_schemes[i].chk_fn)( &pw_schemes[i], p, cred );
+				return (pws->s.chk_fn)( &(pws->s), p, cred );
 			}
 		}
 	}
@@ -380,7 +404,7 @@ struct berval * lutil_passwd_hash(
 	const struct berval * passwd,
 	const char * method )
 {
-	const struct pw_scheme *sc = get_scheme( method );
+	const struct lutil_pw_scheme *sc = get_scheme( method );
 
 	if( sc == NULL ) return NULL;
 	if( ! sc->hash_fn ) return NULL;
@@ -391,7 +415,7 @@ struct berval * lutil_passwd_hash(
 /* pw_string is only called when SLAPD_LMHASH or SLAPD_CRYPT is defined */
 #if defined(SLAPD_LMHASH) || defined(SLAPD_CRYPT)
 static struct berval * pw_string(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval *passwd )
 {
 	struct berval *pw = ber_memalloc( sizeof( struct berval ) );
@@ -414,7 +438,7 @@ static struct berval * pw_string(
 #endif /* SLAPD_LMHASH || SLAPD_CRYPT */
 
 static struct berval * pw_string64(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval *hash,
 	const struct berval *salt )
 {
@@ -478,7 +502,7 @@ static struct berval * pw_string64(
 
 #ifdef LUTIL_SHA1_BYTES
 static int chk_ssha1(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -521,7 +545,7 @@ static int chk_ssha1(
 }
 
 static int chk_sha1(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -557,7 +581,7 @@ static int chk_sha1(
 #endif
 
 static int chk_smd5(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -601,7 +625,7 @@ static int chk_smd5(
 }
 
 static int chk_md5(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -637,7 +661,7 @@ static int chk_md5(
 
 #ifdef SLAPD_LMHASH
 static int chk_lanman(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred )
 {
@@ -650,7 +674,7 @@ static int chk_lanman(
 
 #ifdef SLAPD_NS_MTA_MD5
 static int chk_ns_mta_md5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred )
 {
@@ -702,7 +726,7 @@ sasl_conn_t *lutil_passwd_sasl_conn = NULL;
 #endif
 
 static int chk_sasl(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -755,7 +779,7 @@ static int chk_sasl(
 
 #ifdef SLAPD_KPASSWD
 static int chk_kerberos(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -928,7 +952,7 @@ static int chk_kerberos(
 
 #ifdef SLAPD_CRYPT
 static int chk_crypt(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -971,7 +995,7 @@ static int chk_crypt(
 
 # if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
 static int chk_unix(
-	const struct pw_scheme *sc,
+	const struct lutil_pw_scheme *sc,
 	const struct berval * passwd,
 	const struct berval * cred )
 {
@@ -1047,7 +1071,7 @@ static int chk_unix(
 
 #ifdef LUTIL_SHA1_BYTES
 static struct berval *hash_ssha1(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval  *passwd )
 {
 	lutil_SHA1_CTX  SHA1context;
@@ -1076,7 +1100,7 @@ static struct berval *hash_ssha1(
 }
 
 static struct berval *hash_sha1(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval  *passwd )
 {
 	lutil_SHA1_CTX  SHA1context;
@@ -1095,7 +1119,7 @@ static struct berval *hash_sha1(
 #endif
 
 static struct berval *hash_smd5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval  *passwd )
 {
 	lutil_MD5_CTX   MD5context;
@@ -1124,7 +1148,7 @@ static struct berval *hash_smd5(
 }
 
 static struct berval *hash_md5(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval  *passwd )
 {
 	lutil_MD5_CTX   MD5context;
@@ -1221,7 +1245,7 @@ static void lmPasswd_to_key(
 }	
 
 static struct berval *hash_lanman(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd )
 {
 
@@ -1269,7 +1293,7 @@ static struct berval *hash_lanman(
 
 #ifdef SLAPD_CRYPT
 static struct berval *hash_crypt(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval *passwd )
 {
 	struct berval hash;
@@ -1330,7 +1354,7 @@ int lutil_salt_format(const char *format)
 
 #ifdef SLAPD_CLEARTEXT
 static struct berval *hash_clear(
-	const struct pw_scheme *scheme,
+	const struct lutil_pw_scheme *scheme,
 	const struct berval  *passwd )
 {
 	return ber_bvdup( (struct berval *) passwd );

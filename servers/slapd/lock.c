@@ -18,8 +18,8 @@
 #include <sys/file.h>
 #endif
 
-#include <lutil.h>
 #include "slap.h"
+#include <lutil.h>
 
 FILE *
 lock_fopen( const char *fname, const char *type, FILE **lfp )
