@@ -23,6 +23,8 @@
 
 #include "slap.h"
 
+#define SLAPD_OVER_GLUE	SLAPD_MOD_STATIC
+
 #if SLAPD_OVER_CHAIN == SLAPD_MOD_STATIC
 extern int chain_init();
 #endif
@@ -31,6 +33,9 @@ extern int denyop_init();
 #endif
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 extern int dyngroup_init();
+#endif
+#if SLAPD_OVER_GLUE == SLAPD_MOD_STATIC
+extern int glue_init();
 #endif
 #if SLAPD_OVER_LASTMOD == SLAPD_MOD_STATIC
 extern int lastmod_init();
@@ -66,6 +71,9 @@ static struct {
 #endif
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 	{ "Dynamic Group", dyngroup_init },
+#endif
+#if SLAPD_OVER_GLUE == SLAPD_MOD_STATIC
+	{ "Backend Glue", glue_init },
 #endif
 #if SLAPD_OVER_LASTMOD == SLAPD_MOD_STATIC
 	{ "Last Modification", lastmod_init },
