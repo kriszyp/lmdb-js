@@ -93,9 +93,7 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
 	void		*private = op->o_bd->be_private;
 	slap_callback	*sc = op->o_callback;
-	LDAPControl	**prev = op->o_ctrls;
-	LDAPControl	**ctrls = NULL, *c[ 2 ], authz;
-	int		i, nctrls = 0, rc = 0;
+	int		rc = 0;
 	int		cache = op->o_do_not_cache;
 	char		*authzid = NULL;
 	BerVarray	ref;
@@ -157,42 +155,11 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 		op->o_bd->be_private = on->on_bi.bi_private;
 	}
 
-	/* Chaining is performed by a privileged user on behalf
-	 * of a normal user, using the ProxyAuthz control. However,
-	 * Binds are done separately, on an anonymous session.
+	/* Chaining can be performed by a privileged user on behalf
+	 * of normal users, using the ProxyAuthz control, by exploiting
+	 * the identity assertion feature of back-ldap; see idassert-*
+	 * directives in slapd-ldap(5).
 	 */
-	if ( op->o_tag != LDAP_REQ_BIND ) {
-		if ( prev ) {
-			for ( i = 0; prev[i]; i++ )
-				/* count and set prev to the last one */ ;
-			nctrls = i;
-
-			ctrls = op->o_tmpalloc((i + 1)*sizeof(LDAPControl *),
-				op->o_tmpmemctx);
-			for ( i = 0; i < nctrls; i++ ) {
-				ctrls[i] = prev[i];
-			}
-
-		} else {
-			ctrls = c;
-		}
-
-		ctrls[nctrls] = &authz;
-		ctrls[nctrls + 1] = NULL;
-		authz.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		authz.ldctl_iscritical = 1;
-		authz.ldctl_value = op->o_dn;
-		if ( !BER_BVISEMPTY( &op->o_dn ) ) {
-			authzid = op->o_tmpalloc( op->o_dn.bv_len + STRLENOF("dn:"),
-				op->o_tmpmemctx );
-			strcpy(authzid, "dn:");
-			strcpy(authzid + STRLENOF("dn:"), op->o_dn.bv_val);
-			authz.ldctl_value.bv_len = op->o_dn.bv_len + STRLENOF("dn:");
-			authz.ldctl_value.bv_val = authzid;
-		}
-		op->o_ctrls = ctrls;
-		op->o_ndn = op->o_bd->be_rootndn;
-	}
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_BIND: {
@@ -374,13 +341,9 @@ end_of_searchref:;
 		break;
 	}
 	op->o_do_not_cache = cache;
-	op->o_ctrls = prev;
 	op->o_bd->be_private = private;
 	op->o_callback = sc;
 	op->o_ndn = ndn;
-	if ( ctrls && ctrls != c ) {
-		op->o_tmpfree( ctrls, op->o_tmpmemctx );
-	}
 	if ( authzid ) {
 		op->o_tmpfree( authzid, op->o_tmpmemctx );
 	}
