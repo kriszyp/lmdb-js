@@ -486,10 +486,55 @@ rdn_attr_value( const char * rdn )
 }
 
 
-int rdn_validate( const char * rdn )
+/* rdn_validate:
+ * 
+ * 1 if rdn is a legal rdn; 
+ * 0 otherwise (including a sequence of rdns)
+ */
+int
+rdn_validate( const char * rdn )
 {
-	/* just a simple check for now */
-	return strchr( rdn, '=' ) != NULL;
+	int	inquote;
+
+	if ( rdn == NULL ) {
+		return( 0 );
+	}
+
+	if ( strchr( rdn, '=' ) == NULL ) {
+		return( 0 );
+	}
+
+	while ( *rdn && ASCII_SPACE( *rdn ) ) {
+		rdn++;
+	}
+
+	if( *rdn == '\0' ) {
+		return( 0 );
+	}
+
+	inquote = 0;
+
+	for ( ; *rdn; rdn++ ) {
+		if ( *rdn == '\\' ) {
+			if ( *(rdn + 1) ) {
+				rdn++;
+			}
+			continue;
+		}
+		if ( inquote ) {
+			if ( *rdn == '"' ) {
+				inquote = 0;
+			}
+		} else {
+			if ( *rdn == '"' ) {
+				inquote = 1;
+			} else if ( DN_SEPARATOR( *rdn ) ) {
+				return( 0 );
+			}
+		}
+	}
+
+	return( 1 );
 }
 
 

@@ -479,7 +479,7 @@ ldbm_back_modrdn(
 	    /* Not a big deal but we may say something */
 #ifdef NEW_LOGGING
 	    LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-		       "ldbm_back_modrdn: old_rdn_type=%s new_rdn_type-%s\n",
+		       "ldbm_back_modrdn: old_rdn_type=%s new_rdn_type=%s\n",
 		       old_rdn_type, new_rdn_type ));
 #else
 	    Debug( LDAP_DEBUG_TRACE,
