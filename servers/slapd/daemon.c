@@ -86,6 +86,7 @@ slapd_daemon(
 		c[i].c_sb.sb_ber.ber_buf = NULL;
 		c[i].c_sb.sb_ber.ber_ptr = NULL;
 		c[i].c_sb.sb_ber.ber_end = NULL;
+		c[i].c_sb.sb_max_incoming = 1 << 18;
 		c[i].c_writewaiter = 0;
 		c[i].c_connid = 0;
 		ldap_pvt_thread_mutex_init( &c[i].c_dnmutex );
