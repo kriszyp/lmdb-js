@@ -175,8 +175,8 @@ static int search_aliases(
 	for (;;) {
 		/* Set curscop to only the aliases in the current scope. Start with
 		 * all the aliases, obtain the IDL for the current scope, and then
-		 * get the intersection of these two IDLs. Make sure to save a copy
-		 * of the scope IDL since it gets clobbered.
+		 * get the intersection of these two IDLs. Add the current scope
+		 * to the cumulative list of candidates.
 		 */
 		BDB_IDL_CPY( curscop, aliases );
 		rs->sr_err = bdb_filter_candidates( op->o_bd, sf, subscop, NULL, NULL );
@@ -187,7 +187,7 @@ static int search_aliases(
 		}
 		BDB_IDL_CPY(subscop2, subscop);
 		rs->sr_err = bdb_idl_intersection(curscop, subscop);
-		BDB_IDL_CPY(subscop, subscop2);
+		bdb_idl_union( ids, subscop2 );
 
 		/* Dereference all of the aliases in the current scope. */
 		cursora = 0;
@@ -214,12 +214,12 @@ static int search_aliases(
 			a = deref_base( op->o_bd, rs, a, &matched, locker, &lockr,
 				tmp, visited );
 			if (a) {
-				/* If the target was not already in our current search scope,
+				/* If the target was not already in our current candidates,
 				 * make note of it in the newsubs list.
 				 * FIXME: Somehow we have to propagate these new scopes back
 				 * up to bdb_search.
 				 */
-				if (bdb_idl_insert(subscop, a->e_id) == 0) {
+				if (bdb_idl_insert(ids, a->e_id) == 0) {
 					bdb_idl_insert(newsubs, a->e_id);
 				}
 				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
@@ -234,11 +234,6 @@ static int search_aliases(
 				rs->sr_text = NULL;
 			}
 		}
-		/* All of the deref'd aliases have been added to subscop. Add these
-		 * to our candidate list.
-		 */
-		bdb_idl_union( ids, subscop );
-
 		/* If this is a OneLevel search, we're done; oldsubs only had one
 		 * ID in it. For a Subtree search, oldsubs may be a list of scope IDs.
 		 */
