@@ -53,7 +53,9 @@ directives of the first backend (and any global directives) are
 used.
 .LP
 Arguments that should be replaced by actual text are shown in
-brackets <>.  The structure of the access control directives is
+brackets <>.
+.SH THE ACCESS DIRECTIVE
+The structure of the access control directives is
 .TP
 .B access to <what> "[ by <who> <access> [ <control> ] ]+"
 Grant access (specified by 
@@ -62,7 +64,7 @@ to a set of entries and/or attributes (specified by
 .BR <what> ) 
 by one or more requestors (specified by 
 .BR <who> ).
-.LP
+.SH THE <WHAT> FIELD
 The field
 .BR <what>
 specifies the entity the access control directive applies to.
@@ -140,7 +142,7 @@ the provided value is used as a regular expression pattern.
 The dn, filter, and attrs statements are additive; they can be used in sequence 
 to select entities the access rule applies to based on naming context,
 value and attribute type simultaneously.
-.LP
+.SH THE <WHO> FIELD
 The field
 .B <who>
 indicates whom the access rules apply to.
@@ -344,7 +346,7 @@ The statements
 and
 .BR sasl_ssf=<n>
 set the required Security Strength Factor (ssf) required to grant access.
-.LP
+.SH THE <ACCESS> FIELD
 The field
 .B <access> ::= [self]{<level>|<priv>}
 determines the access level or the specific access privileges the
@@ -470,6 +472,89 @@ or the (even more silly) example
 .LP
 which grants everybody search and compare privileges, and adds read
 privileges to authenticated clients.
+.SH OPERATION REQUIREMENTS
+Operations require different privileges on different portions of entries.
+.TP
+The
+.B add
+operation requires 
+.B write
+privileges on the meta-attribute 
+.B entry
+of the entry being added, and 
+.B write 
+privileges on the meta-attribute
+.B children
+of the entry's parent.
+.TP
+The 
+.B bind
+operation, when credentials are stored in the directory, requires 
+.B auth
+privileges on the attribute the credentials are stored in (usually
+.BR userPassword ).
+.TP
+The
+.B compare
+operation requires 
+.B compare
+privileges on the attribute that is being compared.
+.B FIXME: should it require also compare privileges on the entry's meta-attribute?
+.TP
+The
+.B delete
+operation requires
+.B write
+privileges on the meta-attribute
+.B entry 
+of the entry being deleted, and
+.B write
+privileges on the
+.B children
+meta-attribute of the entry's parent.
+.TP
+The
+.B modify
+operation requires 
+.B write
+privileges on the attibutes being modified.
+.TP
+The
+.B modrdn
+operation requires
+.B write
+privileges on the meta-attribute
+.B entry
+of the entry whose relative DN is being modified,
+.B write
+privileges on the meta-attribute
+.B children
+of the old and new entry's parents, and
+.B write
+privileges on the attributes that are present in the new relative DN.
+.B Write
+privileges are also required on the attributes that are present 
+in the old relative DN if 
+.B deleteoldrdn
+is set to 1.
+.TP
+The
+.B search
+operation, for each entry, requires
+.B search
+privileges on the attributes that are defined in the filter.
+Then, the resulting entries are tested for 
+.B read
+privileges on the meta-attribute
+.B entry
+and for
+.B read
+access on each value of each attribute that is requested.
+.B Referrals
+are also checked for 
+.B read
+access on the meta-attribute
+.BR entry .
 .SH CAVEATS
 It is strongly recommended to explicitly use the most appropriate
 DN 
