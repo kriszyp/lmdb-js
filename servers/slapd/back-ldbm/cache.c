@@ -553,17 +553,12 @@ try_again:
 		LRU_ADD( cache, ep );
                 
 		LEI(ep)->lei_refcnt++;
-
-		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-
-		return( ep );
 	}
 
 	/* free cache mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
-	return( NULL );
+	return( ep );
 }
 
 /*
