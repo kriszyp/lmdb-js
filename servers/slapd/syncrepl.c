@@ -35,6 +35,9 @@
 
 #include "ldap_rq.h"
 
+static const struct berval slap_syncrepl_bvc = BER_BVC("syncreplxxx");
+static const struct berval slap_syncrepl_cn_bvc = BER_BVC("cn=syncreplxxx");
+
 static void
 syncrepl_del_nonpresent( LDAP *, Operation * );
 
@@ -195,15 +198,15 @@ do_syncrepl(
 	struct berval base_bv = { 0, NULL };
 	struct berval pbase = { 0, NULL };
 	struct berval nbase = { 0, NULL };
-	struct berval sub_bv = { 0, NULL };
 	struct berval psubrdn = { 0, NULL };
 	struct berval nsubrdn = { 0, NULL };
 	struct berval psub = { 0, NULL };
 	struct berval nsub = { 0, NULL };
-	char substr[64];
 	Modifications	*modlist = NULL;
 	Modifications	*ml, *mlnext;
 	char *def_filter_str = NULL;
+
+	struct berval slap_syncrepl_bv = BER_BVNULL;
 
 	const char		*text;
 	int				match;
@@ -376,12 +379,12 @@ do_syncrepl(
 	ber_str2bv( si->base, 0, 0, &base_bv ); 
 	dnPrettyNormal( 0, &base_bv, &pbase, &nbase, op.o_tmpmemctx );
 
-	sprintf( substr, "cn=syncrepl%d", si->id );
-	ber_str2bv( substr, 0, 0, &sub_bv );
-	dnPrettyNormal( 0, &sub_bv, &psubrdn, &nsubrdn, op.o_tmpmemctx );
-
-	build_new_dn( &op.o_req_dn, &pbase, &psubrdn, op.o_tmpmemctx );
-	build_new_dn( &op.o_req_ndn, &nbase, &nsubrdn, op.o_tmpmemctx );
+	ber_dupbv( &slap_syncrepl_bv, (struct berval *) &slap_syncrepl_bvc );
+	slap_syncrepl_bv.bv_len = snprintf( slap_syncrepl_bv.bv_val,
+									slap_syncrepl_bvc.bv_len,
+									"syncrepl%d", si->id );
+	build_new_dn( &op.o_req_dn, &pbase, &slap_syncrepl_bv, op.o_tmpmemctx );
+	build_new_dn( &op.o_req_ndn, &nbase, &slap_syncrepl_bv, op.o_tmpmemctx );
 
 	/* set callback function */
 	cb.sc_response = cookie_callback;
@@ -390,6 +393,21 @@ do_syncrepl(
 	/* search subentry to retrieve cookie */
 	si->syncCookie = NULL;
 	be->be_search( &op, &rs );
+
+	if ( op.o_req_dn.bv_val )
+		ch_free( op.o_req_dn.bv_val );
+	if ( op.o_req_ndn.bv_val )
+		ch_free( op.o_req_ndn.bv_val );
+	if ( op.ors_filter )
+		filter_free( op.ors_filter );
+	if ( op.ors_filterstr.bv_val )
+		ch_free( op.ors_filterstr.bv_val );
+	if ( slap_syncrepl_bv.bv_val )
+		ch_free( slap_syncrepl_bv.bv_val );
+	if ( pbase.bv_val )
+		ch_free( pbase.bv_val );
+	if ( nbase.bv_val )
+		ch_free( nbase.bv_val );
 
 	ber_dupbv( &syncCookie_req, si->syncCookie );
 
@@ -787,8 +805,7 @@ syncrepl_message_to_entry(
 
 	ber_scanf( ber, "{xx" );
 
-	rc = ldap_int_get_controls( ber, &rctrls );
-
+	rc = ldap_pvt_get_controls( ber, &rctrls );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
@@ -964,10 +981,14 @@ syncrepl_entry(
 
 	rc = be->be_search( op, &rs );
 
-	ch_free( op->o_req_dn.bv_val );
-	ch_free( op->o_req_ndn.bv_val );
-	filter_free( op->ors_filter );
-	ch_free( op->ors_filterstr.bv_val );
+	if ( op->o_req_dn.bv_val )
+		ch_free( op->o_req_dn.bv_val );
+	if ( op->o_req_ndn.bv_val )
+		ch_free( op->o_req_ndn.bv_val );
+	if ( op->ors_filter )
+		filter_free( op->ors_filter );
+	if ( op->ors_filterstr.bv_val )
+		ch_free( op->ors_filterstr.bv_val );
 
 	cb.sc_response = null_callback;
 	cb.sc_private = si;
@@ -1118,6 +1139,15 @@ syncrepl_del_nonpresent(
 	be->be_search( op, &rs );
 	op->o_nocaching = 0;
 
+	if ( op->o_req_dn.bv_val )
+		ch_free( op->o_req_dn.bv_val );
+	if ( op->o_req_ndn.bv_val )
+		ch_free( op->o_req_ndn.bv_val );
+	if ( op->ors_filter )
+		filter_free( op->ors_filter );
+	if ( op->ors_filterstr.bv_val )
+		ch_free( op->ors_filterstr.bv_val );
+
 	if ( !LDAP_LIST_EMPTY( &si->nonpresentlist ) ) {
 		np_list = LDAP_LIST_FIRST( &si->nonpresentlist );
 		while ( np_list != NULL ) {
@@ -1138,13 +1168,6 @@ syncrepl_del_nonpresent(
 			ch_free( np_prev );
 		}
 	}
-
-	if ( op->o_req_dn.bv_val )
-		ch_free( op->o_req_dn.bv_val );
-	if ( op->o_req_ndn.bv_val )
-		ch_free( op->o_req_ndn.bv_val );
-	filter_free( op->ors_filter );
-	ch_free( op->ors_filterstr.bv_val );
 
 	return;
 }
@@ -1276,6 +1299,28 @@ syncrepl_add_glue(
 	return;
 }
 
+static struct berval ocbva[] = {
+	BER_BVC("top"),
+	BER_BVC("subentry"),
+	BER_BVC("syncConsumerSubentry"),
+	BER_BVNULL
+};
+
+static struct berval cnbva[] = {
+	BER_BVNULL,
+	BER_BVNULL
+};
+
+static struct berval ssbva[] = {
+	BER_BVC("{}"),
+	BER_BVNULL
+};
+
+static struct berval scbva[] = {
+	BER_BVC("subentry"),
+	BER_BVNULL
+};
+
 void
 syncrepl_updateCookie(
 	syncinfo_t *si,
@@ -1292,13 +1337,6 @@ syncrepl_updateCookie(
 	Modifications *modlist = NULL;
 	Modifications **modtail = &modlist;
 
-	struct berval* ocbva = NULL;
-	struct berval* cnbva = NULL;
-	struct berval* ssbva = NULL;
-	struct berval* scbva = NULL;
-
-	char substr[64];
-	char rdnstr[67];
 	const char	*text;
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
@@ -1306,40 +1344,33 @@ syncrepl_updateCookie(
 	Entry* e = NULL;
 	int rc;
 
-	struct berval sub_bv = { 0, NULL };
-	struct berval psubrdn = { 0, NULL };
+	struct berval slap_syncrepl_dn_bv = BER_BVNULL;
+	struct berval slap_syncrepl_cn_bv = BER_BVNULL;
 	
 	slap_callback cb;
 	SlapReply	rs = {REP_RESULT};
-
-	ocbva = ( struct berval * ) ch_calloc( 4, sizeof( struct berval ));
-	cnbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
-	ssbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
-	scbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
 
 	/* update in memory cookie */
 	if ( si->syncCookie != NULL ) {
 		ber_bvfree( si->syncCookie );
 	}
 	si->syncCookie = ber_dupbv( NULL, syncCookie );
-	ber_str2bv( "top", strlen("top"), 1, &ocbva[0] );
-	ber_str2bv( "subentry", strlen("subentry"), 1, &ocbva[1] );
-	ber_str2bv( "syncConsumerSubentry",
-			strlen("syncConsumerSubentry"), 1, &ocbva[2] );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "objectClass", strlen("objectClass"), 1, &mod->sml_type );
+	mod->sml_desc = slap_schema.si_ad_objectClass;
+	mod->sml_type = mod->sml_desc->ad_cname;
 	mod->sml_bvalues = ocbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
-	sprintf( substr, "syncrepl%d", si->id );
-	sprintf( rdnstr, "cn=%s", substr );
-	ber_str2bv( substr, strlen( substr ), 1, &cnbva[0] );
-	ber_str2bv( rdnstr, strlen( rdnstr ), 1, &psubrdn );
+	ber_dupbv( &cnbva[0], (struct berval *) &slap_syncrepl_bvc );
+	cnbva[0].bv_len = snprintf( cnbva[0].bv_val,
+								slap_syncrepl_bvc.bv_len,
+								"syncrepl%d", si->id );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "cn", strlen("cn"), 1, &mod->sml_type );
+	mod->sml_desc = slap_schema.si_ad_cn;
+	mod->sml_type = mod->sml_desc->ad_cname;
 	mod->sml_bvalues = cnbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
@@ -1347,21 +1378,21 @@ syncrepl_updateCookie(
 	ber_dupbv( &scbva[0], si->syncCookie );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "syncreplCookie", strlen("syncreplCookie"),
-						1, &mod->sml_type );
+	mod->sml_desc = slap_schema.si_ad_syncreplCookie;
+	mod->sml_type = mod->sml_desc->ad_cname;
 	mod->sml_bvalues = scbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
-	ber_str2bv( "{}", strlen("{}"), 1, &ssbva[0] );
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
 	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "subtreeSpecification",
-			strlen("subtreeSpecification"), 1, &mod->sml_type );
+	mod->sml_desc = slap_schema.si_ad_subtreeSpecification;
+	mod->sml_type = mod->sml_desc->ad_cname;
 	mod->sml_bvalues = ssbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
+#if 0
 	rc = slap_mods_check( modlist, 1, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
@@ -1373,6 +1404,7 @@ syncrepl_updateCookie(
 			 text, 0, 0 );
 #endif
 	}
+#endif
 
 	op->o_tag = LDAP_REQ_ADD;
 	rc = slap_mods_opattrs( op, modlist, modtail,
@@ -1395,10 +1427,18 @@ syncrepl_updateCookie(
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
-	build_new_dn( &sub_bv, pdn, &psubrdn, NULL );
-	dnPrettyNormal( NULL, &sub_bv, &e->e_name, &e->e_nname, NULL );
-	ch_free( sub_bv.bv_val );
-	ch_free( psubrdn.bv_val );
+	ber_dupbv( &slap_syncrepl_cn_bv, (struct berval *) &slap_syncrepl_cn_bvc );
+	slap_syncrepl_cn_bv.bv_len = snprintf( slap_syncrepl_cn_bv.bv_val,
+										slap_syncrepl_cn_bvc.bv_len,
+										"cn=syncrepl%d", si->id );
+
+	build_new_dn( &slap_syncrepl_dn_bv, pdn, &slap_syncrepl_cn_bv, NULL );
+	dnPrettyNormal( NULL, &slap_syncrepl_dn_bv, &e->e_name, &e->e_nname, NULL );
+
+	if ( slap_syncrepl_cn_bv.bv_val )
+		ch_free( slap_syncrepl_cn_bv.bv_val );
+	if ( slap_syncrepl_dn_bv.bv_val )
+		ch_free( slap_syncrepl_dn_bv.bv_val );
 
 	e->e_attrs = NULL;
 
@@ -1479,8 +1519,12 @@ update_cookie_retry:
 
 done :
 
-	if ( modlist ) {
-		slap_mods_free( modlist );
+	if ( cnbva[0].bv_val )
+		ch_free( cnbva[0].bv_val );
+
+	for ( ; ml != NULL; ml = mlnext ) {
+		mlnext = ml->sml_next;
+		free( ml );
 	}
 
 	return;
@@ -1618,47 +1662,38 @@ null_callback(
 	return LDAP_SUCCESS;
 }
 
-
-char **
-str2clist( char ***out, char *in, const char *brkstr )
+Entry *
+slap_create_syncrepl_entry(
+	Backend *be,
+	struct berval *context_csn,
+	struct berval *rdn,
+	struct berval *cn
+)
 {
-	char	*str;
-	char	*s;
-	char	*lasts;
-	int	i, j;
-	const char *text;
-	char	**new;
+	Entry* e;
+	int rc;
 
-	/* find last element in list */
-	for (i = 0; *out && *out[i]; i++);
+	struct berval bv;
 
-	/* protect the input string from strtok */
-	str = ch_strdup( in );
+	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
-	if ( *str == '\0' ) {
-		free( str );
-		return( *out );
+	attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
+
+	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &ocbva[1], NULL );
+
+	attr_merge_one( e, slap_schema.si_ad_cn, cn, NULL );
+
+	if ( context_csn ) {
+		attr_merge_one( e, slap_schema.si_ad_syncreplCookie,
+			context_csn, NULL );
 	}
 
-	/* Count words in string */
-	j=1;
-	for ( s = str; *s; s++ ) {
-		if ( strchr( brkstr, *s ) != NULL ) {
-			j++;
-		}
-	}
+	bv.bv_val = "{}";
+	bv.bv_len = sizeof("{}")-1;
+	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
 
-	*out = ch_realloc( *out, ( i + j + 1 ) * sizeof( char * ) );
-	new = *out + i;
-	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
-		s != NULL;
-		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
-	{
-		*new = ch_strdup( s );
-		new++;
-	}
+	build_new_dn( &e->e_name, &be->be_nsuffix[0], rdn, NULL );
+	ber_dupbv( &e->e_nname, &e->e_name );
 
-	*new = NULL;
-	free( str );
-	return( *out );
+	return e;
 }

@@ -43,6 +43,7 @@
 #include "ldif.h"
 
 #ifdef HAVE_WINSOCK
+	/* should be moved to portable.h.nt */
 #define ftruncate(a,b) _chsize(a,b)
 #define truncate(a,b) _lclose( _lcreat(a, 0))
 #define S_IRGRP 0
@@ -239,7 +240,6 @@ struct ri {
     int (*ri_process) LDAP_P(( Ri * ));	/* process the next repl entry */
     void (*ri_wake)   LDAP_P(( Ri * ));	/* wake up a sleeping thread */
 };
-    
 
 
 
@@ -248,12 +248,10 @@ struct ri {
  * be considered private to routines in re.c, and to routines in ri.c.
  */
 typedef struct mi {
-    
     /* Private data */
     char	*mi_type;		/* attr or type */
     char	*mi_val;		/* value */
     int		mi_len;			/* length of mi_val */
-
 } Mi;
 
 
@@ -265,7 +263,6 @@ typedef struct mi {
  */
 typedef struct re Re;
 struct re {
-
     /* Private data */
     ldap_pvt_thread_mutex_t
 		re_mutex;		/* mutex for this Re */

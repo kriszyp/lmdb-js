@@ -376,7 +376,7 @@ ldap_parse_intermediate (
 		goto free_and_return;
 	}
 
-	rc = ldap_int_get_controls( ber, serverctrls );
+	rc = ldap_pvt_get_controls( ber, serverctrls );
 
 free_and_return:
 	ber_free( ber, 0 );

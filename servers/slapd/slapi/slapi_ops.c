@@ -59,12 +59,12 @@ internal_search_entry(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	char *ent2str = NULL;
 	int nentries = 0, len = 0, i = 0;
 	Slapi_Entry **head = NULL, **tp;
-	
-	ent2str = slapi_entry2str( rs->sr_entry, &len );
-	if ( ent2str == NULL ) {
+	Slapi_Entry *entry;
+
+	entry = slapi_entry_dup( rs->sr_entry );
+	if ( entry == NULL ) {
 		return 1;
 	}
 
@@ -77,24 +77,19 @@ internal_search_entry(
 	if ( nentries == 0 ) {
 		tp = (Slapi_Entry **)slapi_ch_malloc( 2 * sizeof(Slapi_Entry *) );
 		if ( tp == NULL ) {
+			slapi_entry_free( entry );
 			return 1;
 		}
 
-		tp[ 0 ] = (Slapi_Entry *)str2entry( ent2str );
-		if ( tp[ 0 ] == NULL ) { 
-			return 1;
-		}
-
+		tp[ 0 ] = entry;
 	} else {
 		tp = (Slapi_Entry **)slapi_ch_realloc( (char *)head,
 				sizeof(Slapi_Entry *) * ( i + 1 ) );
 		if ( tp == NULL ) {
+			slapi_entry_free( entry );
 			return 1;
 		}
-		tp[ i - 1 ] = (Slapi_Entry *)str2entry( ent2str );
-		if ( tp[ i - 1 ] == NULL ) { 
-			return 1;
-		}
+		tp[ i - 1 ] = entry;
 	}
 	tp[ i ] = NULL;
 	          

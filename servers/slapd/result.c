@@ -223,8 +223,8 @@ send_ldap_response(
 	Operation *op,
 	SlapReply *rs )
 {
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement	*ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement	*ber = (BerElement *) &berbuf;
 	int		rc;
 	long	bytes;
 
@@ -602,8 +602,8 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 int
 slap_send_search_entry( Operation *op, SlapReply *rs )
 {
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement	*ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement	*ber = (BerElement *) &berbuf;
 	Attribute	*a, *aa;
 	int		i, j, rc=-1, bytes;
 	char		*edn;
@@ -1193,8 +1193,8 @@ error_return:;
 int
 slap_send_search_reference( Operation *op, SlapReply *rs )
 {
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement	*ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement	*ber = (BerElement *) &berbuf;
 	int rc = 0;
 	int bytes;
 	void *mark;
@@ -1437,8 +1437,8 @@ int slap_read_controls(
 {
 	int rc;
 	struct berval bv;
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *) berbuf;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *) &berbuf;
 	LDAPControl c;
 	ber_len_t	siz, len;
 	Operation myop;

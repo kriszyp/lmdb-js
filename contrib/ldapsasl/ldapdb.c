@@ -38,6 +38,7 @@ typedef struct ldapctx {
 	struct berval id;	/* SASL authcid to bind as */
 	struct berval pw;	/* password for bind */
 	struct berval mech;	/* SASL mech */
+	int use_tls;		/* Issue StartTLS request? */
 } ldapctx;
 
 typedef struct gluectx {
@@ -87,11 +88,11 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     int ret, i, n, *aindx;
     const struct propval *pr;
     LDAP *ld = NULL;
-    gluectx gc = { ctx, sparams };
+    gluectx gc;
     struct berval *dn = NULL, **bvals;
     LDAPMessage *msg, *res;
     char **attrs = NULL, *authzid = NULL;
-    LDAPControl c, *ctrl[2] = {&c, NULL};
+    LDAPControl c, *ctrl[2];
     
     if(!ctx || !sparams || !user) return;
 
@@ -145,14 +146,26 @@ static void ldapdb_auxprop_lookup(void *glob_context,
     i = LDAP_VERSION3;
     ret = ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &i);
 
+    /* If TLS is set and it fails, continue or bail out as requested */
+    if (ctx->use_tls && ldap_start_tls_s(ld, NULL, NULL) != LDAP_SUCCESS) {
+    	if (ctx->use_tls > 1) goto done;
+    }
+
+    gc.lc = ctx;
+    gc.lp = sparams;
     ret = ldap_sasl_interactive_bind_s(ld, NULL, ctx->mech.bv_val, NULL, NULL,
     	LDAP_SASL_QUIET, ldapdb_interact, &gc);
     if (ret != LDAP_SUCCESS) goto done;
     
+    ctrl[0] = &c;
+    ctrl[1] = NULL;
     ret = ldap_whoami_s(ld, &dn, ctrl, NULL);
     if (ret != LDAP_SUCCESS || !dn) goto done;
     
-    if (dn->bv_val && !strncmp(dn->bv_val, "dn:", 3))
+    if (!dn->bv_val || strncmp(dn->bv_val, "dn:", 3)) {
+    	ber_bvfree(dn);
+	goto done;
+    }
     ret = ldap_search_s(ld, dn->bv_val+3, LDAP_SCOPE_BASE, "(objectclass=*)",
     	attrs, 0, &res);
     ber_bvfree(dn);
@@ -210,6 +223,8 @@ static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
 
     if(max_version < SASL_AUXPROP_PLUG_VERSION) return SASL_BADVERS;
     
+    memset(&tmp, 0, sizeof(tmp));
+
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_uri", &tmp.uri, NULL);
     if(!tmp.uri) return SASL_BADPARAM;
 
@@ -222,6 +237,12 @@ static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech",
     	(const char **)&tmp.mech.bv_val, &len);
     tmp.mech.bv_len = len;
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_starttls", &s, NULL);
+    if (s)
+    {
+    	if (!strcasecmp(s, "demand")) tmp.use_tls = 2;
+	else if (!strcasecmp(s, "try")) tmp.use_tls = 1;
+    }
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_rc", &s, &len);
     if (s)
     {

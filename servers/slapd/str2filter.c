@@ -28,8 +28,8 @@ str2filter_x( Operation *op, const char *str )
 {
 	int rc;
 	Filter	*f = NULL;
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 	const char *text = NULL;
 
 #ifdef NEW_LOGGING

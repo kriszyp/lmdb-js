@@ -1515,8 +1515,8 @@ send_pagerequest_response(
 	int		tentries )
 {
 	LDAPControl	ctrl, *ctrls[2];
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement	*ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement	*ber = (BerElement *)&berbuf;
 	struct berval	cookie = { 0, NULL };
 	PagedResultsCookie respcookie;
 
@@ -1579,8 +1579,8 @@ bdb_build_sync_state_ctrl(
 	int res;
 	const char *text = NULL;
 
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 
 	struct berval entryuuid_bv	= { 0, NULL };
 
@@ -1639,8 +1639,8 @@ bdb_build_sync_done_ctrl(
 	struct berval	*csn )
 {
 	int ret;
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
 
@@ -1682,8 +1682,8 @@ bdb_send_ldap_intermediate(
 	int	    state,
 	struct berval *cookie )
 {
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *)berbuf;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
 	struct berval rspdata;
 
 	int ret;

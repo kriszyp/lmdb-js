@@ -1054,8 +1054,10 @@ gotit:
 				cx->op->o_tmpfree( save, cx->op->o_tmpmemctx );
 				if ( nokids ) ei->bei_state |= CACHE_ENTRY_NO_GRANDKIDS;
 			}
-			cx->rc = 0;
+			/* Make sure caller knows it had kids! */
+			cx->tmp[0]=1;
 
+			cx->rc = 0;
 		} else {
 			BDB_IDL_CPY( cx->ids, cx->tmp );
 		}

@@ -60,7 +60,7 @@ or LDAP_SCOPE_SUBTREE, to search the object and all its descendents.
 .LP
 \fIFilter\fP is a string
 representation of the filter to apply in the search.  Simple filters
-can be specified as \fIattributetype=attributevalue\fP.  More complex
+can be specified as \fI(attributetype=attributevalue)\fP.  More complex
 filters are specified using a prefix notation according to the following
 BNF:
 .LP
@@ -81,8 +81,8 @@ described in RFC 2254.  In addition, <attributevalue> can be a single *
 to achieve an attribute existence test, or can contain text and *'s
 interspersed to achieve substring matching.
 .LP
-For example, the filter "mail=*" will find any entries that have a mail
-attribute.  The filter "mail=*@terminator.rs.itd.umich.edu" will find
+For example, the filter "(mail=*)" will find any entries that have a mail
+attribute.  The filter "(mail=*@terminator.rs.itd.umich.edu)" will find
 any entries that have a mail attribute ending in the specified string.
 To put parentheses in a filter, escape them with a backslash '\\'
 character.  See RFC 2254 for a more complete description of allowable
@@ -90,7 +90,7 @@ filters.
 .LP
 \fIAttrs\fP is a null-terminated array of attribute types to return
 from entries that match \fIfilter\fP.
-If NULL is specified, all attributes will be returned.
+If NULL is specified, the return of all user attributes is requested.
 The type "*" (LDAP_ALL_USER_ATTRIBUTES) may be used to request
 all user attributes to be returned.
 The type "+"(LDAP_ALL_OPERATIONAL_ATTRIBUTES) may be used to request
@@ -114,13 +114,12 @@ returns -1 in case of trouble.
 .SH NOTES
 Note that both read
 and list functionality are subsumed by these routines,
-by using a filter like "objectclass=*" and a scope of LDAP_SCOPE_BASE (to
+by using a filter like "(objectclass=*)" and a scope of LDAP_SCOPE_BASE (to
 emulate read) or LDAP_SCOPE_ONELEVEL (to emulate list).
 .LP
 These routines may dynamically allocate memory.  The caller is
 responsible for freeing such memory using supplied deallocation
-routines.  Return values are contained
-in <ldap.h>.
+routines.  Return values are contained in <ldap.h>.
 .SH SEE ALSO
 .BR ldap (3),
 .BR ldap_result (3),

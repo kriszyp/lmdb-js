@@ -745,3 +745,20 @@ int entry_decode(struct berval *bv, Entry **e)
 	*e = x;
 	return 0;
 }
+
+Entry *entry_dup( Entry *e )
+{
+	Entry *ret;
+
+	ret = (Entry *)ch_calloc( 1, sizeof(*ret) );
+
+	ret->e_id = e->e_id;
+	ber_dupbv( &ret->e_name, &e->e_name );
+	ber_dupbv( &ret->e_nname, &e->e_nname );
+	ret->e_attrs = attrs_dup( e->e_attrs );
+	ret->e_ocflags = e->e_ocflags;
+	ret->e_bv.bv_val = NULL;
+	ret->e_bv.bv_len = 0;
+	ret->e_private = NULL;
+}
+

@@ -236,31 +236,29 @@ int root_dse_info( Connection *conn, Entry **entry, const char **text )
 	return -1;
 }
 
-struct runqueue_s syncrepl_rq;
-
-void init_syncrepl( )
-{
-	return;
-}
-
-void* do_syncrepl( void *ctx, void *arg )
-{
-	return NULL;
-}
-
-char** str2clist( char ***out, char *in, const char *brkstr )
-{
-	return NULL;
-}
-
-void syncrepl_add_glue( syncinfo_t *si, LDAP *ld, Operation *op, Entry *e,
-				Modifications *modlist, int syncstate, struct berval* syncUUID,
-				struct berval* syncCookie )
-{
-	return;
-}
-
 int slap_entry2mods( Entry *e, Modifications **mods, const char **text )
 {
 	return -1;
 }
+
+volatile sig_atomic_t slapd_abrupt_shutdown;
+
+int slap_mods_check( Modifications *ml, int update, const char **text,
+					char *textbuf, size_t textlen, void *ctx )
+{
+	return -1;
+}
+
+int slap_mods2entry( Modifications *mods, Entry **e, int repl_user,
+				    int dup, const char **text, char *textbuf, size_t textlen )
+{
+	return -1;
+}
+
+int slap_mods_opattrs( Operation *op, Modifications *mods,
+					   Modifications **modtail, const char **text,
+					   char *textbuf, size_t textlen )
+{
+	return -1;
+}
+

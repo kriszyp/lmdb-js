@@ -97,7 +97,7 @@ ldap_get_entry_controls(
 		goto cleanup_and_return;
 	}
 
-	rc = ldap_int_get_controls( &be, sctrls );
+	rc = ldap_pvt_get_controls( &be, sctrls );
 
 cleanup_and_return:
 	if( rc != LDAP_SUCCESS ) {

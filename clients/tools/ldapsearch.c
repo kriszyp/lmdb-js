@@ -1131,11 +1131,10 @@ print_entry(
 	}
 	write_ldif( LDIF_PUT_VALUE, "dn", bv.bv_val, bv.bv_len );
 
-	rc = ldap_int_get_controls( ber, &ctrls );
-
+	rc = ldap_pvt_get_controls( ber, &ctrls );
 	if( rc != LDAP_SUCCESS ) {
 		fprintf(stderr, _("print_entry: %d\n"), rc );
-		ldap_perror( ld, "ldap_get_entry_controls" );
+		ldap_perror( ld, "ldap_pvt_get_controls" );
 		exit( EXIT_FAILURE );
 	}
 

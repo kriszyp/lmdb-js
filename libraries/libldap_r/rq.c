@@ -174,12 +174,14 @@ ldap_pvt_runqueue_persistent_backload(
 	struct re_s* e;
 	int count = 0;
 
+	ldap_pvt_thread_mutex_lock( &rq->rq_mutex );
 	if ( !LDAP_STAILQ_EMPTY( &rq->task_list )) {
 		LDAP_STAILQ_FOREACH( e, &rq->task_list, tnext ) {
 			if ( e->next_sched.tv_sec == 0 )
 				count++;
 		}
 	}
+	ldap_pvt_thread_mutex_unlock( &rq->rq_mutex );
 	return count;
 }
 

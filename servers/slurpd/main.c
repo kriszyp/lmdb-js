@@ -178,42 +178,43 @@ int main( int argc, char **argv )
     }
 
 
-    if ( slurpd_pid_file != NULL ) {
-	FILE *fp = fopen( slurpd_pid_file, "w" );
-
-	if( fp != NULL ) {
-		fprintf( fp, "%d\n", (int) getpid() );
-		fclose( fp );
-
-	} else {
-		free(slurpd_pid_file);
-		slurpd_pid_file = NULL;
-	}
-    }
-
-    if ( slurpd_args_file != NULL ) {
-	FILE *fp = fopen( slurpd_args_file, "w" );
-
-	if( fp != NULL ) {
-		for ( i = 0; i < argc; i++ ) {
-			fprintf( fp, "%s ", argv[i] );
-		}
-		fprintf( fp, "\n" );
-		fclose( fp );
-	} else {
-		free(slurpd_args_file);
-		slurpd_args_file = NULL;
-	}
-    }
-
     /*
      * Detach from the controlling terminal
      * unless the -d flag is given or in one-shot mode.
      */
 #ifndef HAVE_WINSOCK
-    if ( ! (sglob->no_detach || sglob->one_shot_mode) )
-	lutil_detach( 0, 0 );
+	if ( ! (sglob->no_detach || sglob->one_shot_mode) ) {
+		lutil_detach( 0, 0 );
+	}
 #endif
+
+	if ( slurpd_pid_file != NULL ) {
+		FILE *fp = fopen( slurpd_pid_file, "w" );
+
+		if( fp != NULL ) {
+			fprintf( fp, "%d\n", (int) getpid() );
+			fclose( fp );
+
+		} else {
+		free(slurpd_pid_file);
+		slurpd_pid_file = NULL;
+		}
+	}
+
+	if ( slurpd_args_file != NULL ) {
+		FILE *fp = fopen( slurpd_args_file, "w" );
+
+		if( fp != NULL ) {
+			for ( i = 0; i < argc; i++ ) {
+				fprintf( fp, "%s ", argv[i] );
+			}
+			fprintf( fp, "\n" );
+			fclose( fp );
+		} else {
+			free(slurpd_args_file);
+			slurpd_args_file = NULL;
+		}
+	}
 
     if ( (rc = lutil_pair( sglob->wake_sds )) < 0 ) {
 	SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );

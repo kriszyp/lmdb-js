@@ -114,7 +114,7 @@ ldap_int_put_controls(
 	return LDAP_SUCCESS;
 }
 
-int ldap_int_get_controls(
+int ldap_pvt_get_controls(
 	BerElement *ber,
 	LDAPControl ***ctrls )
 {

@@ -64,3 +64,12 @@ sasl-regexp uidNumber=(.*)\\+gidNumber=(.*),cn=peercred,cn=external,cn=auth
 sasl-regexp uid=(.*),cn=external,cn=auth
 	ldap:///dc=example,dc=com??sub?(uid=$1)
 
+One more update: you can use the ldapdb_starttls keyword to use the
+StartTLS extended operation on an LDAP session. This item may be set
+to either "try" or "demand", e.g.:
+
+ldapdb_uri: ldap://ldap.example.com
+ldapdb_starttls: try
+
+When set to "try" any failure in StartTLS is ignored. When set to "demand"
+then any failure aborts the connection.
