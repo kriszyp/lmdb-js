@@ -56,7 +56,7 @@ int
 ldap_translate_from_t61( LDAP *ld, char **bufp, unsigned long *lenp,
     int free_input )
 {
-	if ( ld->ld_lber_decode_translate_proc == NULL ) {
+	if ( ld->ld_lber_decode_translate_proc == 0 ) {
 		return( LDAP_SUCCESS );
 	}
 	    
@@ -68,7 +68,7 @@ int
 ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
     int free_input )
 {
-	if ( ld->ld_lber_encode_translate_proc == NULL ) {
+	if ( ld->ld_lber_encode_translate_proc == 0 ) {
 		return( LDAP_SUCCESS );
 	}
 	    

@@ -350,7 +350,7 @@ ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 
 		freepasswd = err = 0;
 
-		if ( ld->ld_rebindproc == NULL ) {
+		if ( ld->ld_rebindproc == 0 ) {
 			binddn = passwd = "";
 			authmethod = LDAP_AUTH_SIMPLE;
 		} else {

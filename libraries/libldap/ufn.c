@@ -46,8 +46,8 @@ static LDAPMessage *ldap_ufn_expand LDAP_P(( LDAP *ld, cancelptype cancelproc,
  *	attrsonly	1 => attributes only 0 => attributes and values
  *	res		will contain the result of the search
  *	cancelproc	routine that returns non-zero if operation should be
- *			cancelled.  This can be NULL.  If it is non-NULL, the
- *			routine will be called periodically.
+ *			cancelled.  This can be a null function pointer.  If
+ *			it is not 0, the routine will be called periodically.
  *	cancelparm	void * that is passed to cancelproc
  *	tag[123]	the ldapfilter.conf tag that will be used in phases
  *			1, 2, and 3 of the search, respectively
@@ -427,7 +427,7 @@ ldap_ufn_expand( LDAP *ld, cancelptype cancelproc, void *cancelparm,
 
 		do {
 			*err = ldap_result( ld, msgid, 1, &tv, &tmpres );
-			if ( *err == 0 && cancelproc != NULL &&
+			if ( *err == 0 && cancelproc != 0 &&
 			    (*cancelproc)( cancelparm ) != 0 ) {
 				ldap_abandon( ld, msgid );
 				*err = LDAP_USER_CANCELLED;
