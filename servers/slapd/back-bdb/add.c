@@ -285,8 +285,7 @@ retry:	/* transaction retry */
 		 * no parent!
 		 *  if not attempting to add entry at suffix or with parent ""
 		 */
-		if (( !be_isroot( op->o_bd, &op->o_ndn )
-			|| !dn_match( &pdn, &slap_empty_bv ))
+		if (( !be_isroot( op->o_bd, &op->o_ndn ) || pdn.bv_len > 0 )
 			&& !is_entry_glue( op->oq_add.rs_e ))
 		{
 #ifdef NEW_LOGGING
