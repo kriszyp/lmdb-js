@@ -134,8 +134,8 @@ static char *oc_usermod_attrs[] = {
 
 static char *oc_operational_attrs[] = {
 	/*
-	 * these are operational attributes that *could* be
-	 * modified by users if we supported such.
+	 * these are operational attributes 
+	 * most could be user modifiable
 	 */
 	"objectClasses",
 	"attributeTypes",
@@ -150,6 +150,7 @@ static char *oc_operational_attrs[] = {
 	"supportedControl",
 	"supportedSASLMechanisms",
 	"supportedLDAPversion",
+	"subschemaSubentry",		/* NO USER MOD */
 	NULL
 
 };
@@ -158,6 +159,7 @@ static char *oc_operational_attrs[] = {
 static char *oc_no_usermod_attrs[] = {
 	/*
 	 * Operational and 'no user modification' attributes
+	 * which are STORED in the directory server.
 	 */
 
 	/* RFC2252, 3.2.1 */
@@ -165,7 +167,6 @@ static char *oc_no_usermod_attrs[] = {
 	"createTimestamp",
 	"modifiersName",
 	"modifyTimestamp",
-	"subschemaSubentry",
 
 	NULL
 };
