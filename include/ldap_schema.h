@@ -96,6 +96,23 @@ typedef struct ldap_objectclass {
 	LDAPSchemaExtensionItem **oc_extensions; /* OPTIONAL */
 } LDAPObjectClass;
 
+typedef struct ldap_contentrule {
+	char *cr_oid;		/* REQUIRED */
+	char **cr_names;	/* OPTIONAL */
+	char *cr_desc;		/* OPTIONAL */
+	char **cr_sup_oids;	/* OPTIONAL */
+	int  cr_obsolete;	/* 0=no, 1=yes */
+	char **cr_oc_oids_aux;	/* OPTIONAL */
+	char **cr_at_oids_must;	/* OPTIONAL */
+	char **cr_at_oids_may;	/* OPTIONAL */
+	char **cr_at_oids_not;	/* OPTIONAL */
+	LDAPSchemaExtensionItem **cr_extensions; /* OPTIONAL */
+} LDAPContentRule;
+
+
+/*
+ * Misc macros
+ */
 #define LDAP_SCHEMA_NO				0
 #define LDAP_SCHEMA_YES				1
 
@@ -107,6 +124,7 @@ typedef struct ldap_objectclass {
 #define LDAP_SCHEMA_ABSTRACT			0
 #define LDAP_SCHEMA_STRUCTURAL			1
 #define LDAP_SCHEMA_AUXILIARY			2
+
 
 /*
  * Flags that control how liberal the parsing routines are.
@@ -140,6 +158,10 @@ LDAP_F( LDAP_CONST char * )
 ldap_objectclass2name LDAP_P((
 	LDAPObjectClass * oc ));
 
+LDAP_F( LDAP_CONST char * )
+ldap_contentrule2name LDAP_P((
+	LDAPContentRule * cr ));
+
 LDAP_F( void )
 ldap_syntax_free LDAP_P((
 	LDAPSyntax * syn ));
@@ -160,8 +182,19 @@ LDAP_F( void )
 ldap_objectclass_free LDAP_P((
 	LDAPObjectClass * oc ));
 
+LDAP_F( void )
+ldap_contentrule_free LDAP_P((
+	LDAPContentRule * cr ));
+
 LDAP_F( LDAPObjectClass * )
 ldap_str2objectclass LDAP_P((
+	LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags ));
+
+LDAP_F( LDAPContentRule * )
+ldap_str2contentrule LDAP_P((
 	LDAP_CONST char * s,
 	int * code,
 	LDAP_CONST char ** errp,
@@ -202,6 +235,14 @@ ldap_objectclass2str LDAP_P((
 LDAP_F( struct berval * )
 ldap_objectclass2bv LDAP_P((
 	LDAPObjectClass * oc, struct berval *bv ));
+
+LDAP_F( char * )
+ldap_contentrule2str LDAP_P((
+	LDAPContentRule * cr ));
+
+LDAP_F( struct berval * )
+ldap_contentrule2bv LDAP_P((
+	LDAPContentRule * cr, struct berval *bv ));
 
 LDAP_F( char * )
 ldap_attributetype2str LDAP_P((
