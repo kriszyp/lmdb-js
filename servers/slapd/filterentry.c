@@ -359,6 +359,7 @@ test_ava_filter(
 	AttributeAssertion *ava,
 	int		type )
 {
+	int rc;
 	Attribute	*a;
 
 	if ( !access_allowed( op, e,
@@ -423,12 +424,21 @@ test_ava_filter(
 		return LDAP_COMPARE_FALSE;
 	}
 
+	rc = LDAP_COMPARE_FALSE;
+
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
 		a = attrs_find( a->a_next, ava->aa_desc ) )
 	{
 		MatchingRule *mr;
 		struct berval *bv;
+
+		if (( ava->aa_desc != a->a_desc ) && !access_allowed( op, e,
+			a->a_desc, &ava->aa_value, ACL_SEARCH, NULL ))
+		{
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			continue;
+		}
 
 		switch ( type ) {
 		case LDAP_FILTER_APPROX:
@@ -450,17 +460,23 @@ test_ava_filter(
 			mr = NULL;
 		}
 
-		if( mr == NULL ) continue;
+		if( mr == NULL ) {
+			rc = LDAP_OTHER;
+			continue;
+		}
 
 		for ( bv = a->a_nvals; bv->bv_val != NULL; bv++ ) {
 			int ret;
-			int rc;
+			int tmprc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr, 0,
+			tmprc = value_match( &ret, a->a_desc, mr, 0,
 				bv, &ava->aa_value, &text );
 
-			if( rc != LDAP_SUCCESS ) return rc;
+			if( tmprc != LDAP_SUCCESS ) {
+				rc = tmprc;
+				continue;
+			}
 
 			switch ( type ) {
 			case LDAP_FILTER_EQUALITY:
@@ -479,7 +495,7 @@ test_ava_filter(
 		}
 	}
 
-	return LDAP_COMPARE_FALSE;
+	return rc;
 }
 
 
