@@ -24,16 +24,24 @@
 #include "ldap_defaults.h"
 
 #define UTF8_ISASCII(u)	( !((u) & ~0x7f) )
+#define UCS4_INVALID	0x80000000U
 
+/*
+ * return the number of bytes required to hold the
+ * NULL-terminated UTF-8 string INCLUDING the
+ * termination.
+ */
 ber_len_t ldap_utf8_bytes( const char * p )
 {
 	ber_len_t bytes;
+
+	if( p == NULL ) return 0;
 
 	for( bytes=0; p[bytes] ; bytes++ ) {
 		/* EMPTY */ ;
 	}
 
-	return bytes;
+	return ++bytes;
 }
 
 ber_len_t ldap_utf8_chars( const char * p )
@@ -54,23 +62,28 @@ ber_len_t ldap_utf8_chars( const char * p )
 
 int ldap_utf8_charlen( const char * p )
 {
-	unsigned c;
+	unsigned c = * (const unsigned char *) p;
 
-	if ((c & 0xFE ) == 0xFC) {
+	if ((c & 0xfe ) == 0xfc) {
 		return 6;
 	}
-	if ((c & 0xFC ) == 0xF8) {
+
+	if ((c & 0xfc ) == 0xf8) {
 		return 5;
 	}
-	if ((c & 0xF8 ) == 0xF0) {
+
+	if ((c & 0xf8 ) == 0xf0) {
 		return 4;
 	}
-	if ((c & 0xF0 ) == 0xE0) {
+
+	if ((c & 0xf0 ) == 0xe0) {
 		return 3;
 	}
-	if ((c & 0xE0 ) == 0xC0) {
+
+	if ((c & 0xe0 ) == 0xc0) {
 		return 2;
 	}
+
 	if ((c & 0x80 ) == 0x80) {
 		/* INVALID */
 		return 0;
@@ -79,20 +92,113 @@ int ldap_utf8_charlen( const char * p )
 	return 1;
 }
 
-char* ldap_utf8_next( char * p )
+ber_int_t ldap_utf8_to_ucs4( const char * p )
+{
+	int len, i;
+    ber_int_t c = * (const unsigned char *) p;
+
+    if ((c & 0xFE ) == 0xFC) {
+        len = 6;
+		c &= 0x01;
+
+    } else if ((c & 0xFC ) == 0xF8) {
+        len = 5;
+		c &= 0x03;
+
+    } else if ((c & 0xF8 ) == 0xF0) {
+        len = 4;
+		c &= 0x07;
+
+    } else if ((c & 0xF0 ) == 0xE0) {
+        len = 3;
+		c &= 0x0F;
+
+    } else if ((c & 0xE0 ) == 0xC0) {
+        len = 2;
+		c &= 0x1F;
+
+    } else if ((c & 0x80 ) == 0x80) {
+        return UCS4_INVALID;
+
+    } else {
+    	return c;
+	}
+
+	for(i=1; i < len; i++) {
+		ber_int_t ch = ((const unsigned char *) p)[i];
+
+		if ((ch & 0xc0) != 0x80) {
+			return UCS4_INVALID;
+		}
+
+		c <<= 6;
+		c |= ch & 0x3f;
+	}
+
+	return c;
+}
+
+int ldap_ucs4_to_utf8( ber_int_t c, char *buf )
+{
+	int len=0;
+	unsigned char* p = buf;
+	if(buf == NULL) return 0;
+
+	if ( c < 0 ) {
+		/* not a valid Unicode character */
+
+	} else if( c < 0x80 ) {
+		p[len++] = c;
+
+	} else if( c < 0x800 ) {
+		p[len++] = 0xc0 | ( c >> 6 );
+		p[len++] = 0x80 | ( c & 0x3F );
+
+	} else if( c < 0x10000 ) {
+		p[len++] = 0xe0 | ( c >> 12 );
+		p[len++] = 0x80 | ( (c >> 6) & 0x3F );
+		p[len++] = 0x80 | ( c & 0x3F );
+
+	} else if( c < 0x200000 ) {
+		p[len++] = 0xf0 | ( c >> 18 );
+		p[len++] = 0x80 | ( (c >> 12) & 0x3F );
+		p[len++] = 0x80 | ( (c >> 6) & 0x3F );
+		p[len++] = 0x80 | ( c & 0x3F );
+
+	} else if( c < 0x400000 ) {
+		p[len++] = 0xf8 | ( c >> 24 );
+		p[len++] = 0x80 | ( (c >> 18) & 0x3F );
+		p[len++] = 0x80 | ( (c >> 12) & 0x3F );
+		p[len++] = 0x80 | ( (c >> 6) & 0x3F );
+		p[len++] = 0x80 | ( c & 0x3F );
+
+	} else /* if( c < 0x80000000 ) */ {
+		p[len++] = 0xfc | ( c >> 30 );
+		p[len++] = 0x80 | ( (c >> 24) & 0x3F );
+		p[len++] = 0x80 | ( (c >> 18) & 0x3F );
+		p[len++] = 0x80 | ( (c >> 12) & 0x3F );
+		p[len++] = 0x80 | ( (c >> 6) & 0x3F );
+		p[len++] = 0x80 | ( c & 0x3F );
+	}
+
+	buf[len] = '\0';
+	return len;
+}
+
+char* ldap_utf8_next( const char * p )
 {
 	int len = ldap_utf8_charlen( p );
 
-	return len ? &p[len] : NULL;
+	return len ? (char *) &p[len] : NULL;
 }
 
-char* ldap_utf8_prev( char * p )
+char* ldap_utf8_prev( const char * p )
 {
 	int i;
-	unsigned char *u = p;
+	const unsigned char *u = p;
 
 	for( i = -1; i >= -6 ; i-- ) {
-		if ( u[i] & 0xC0 != 0x80 ) return &p[i];
+		if ( u[i] & 0xC0 != 0x80 ) return (char *) &p[i];
 	}
 
 	return NULL;

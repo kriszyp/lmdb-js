@@ -514,8 +514,8 @@ LIBLDAP_F (ber_len_t) ldap_utf8_bytes( const char * );
 LIBLDAP_F (ber_len_t) ldap_utf8_chars( const char * );
 LIBLDAP_F (int) ldap_utf8_charlen( const char * );
 
-LIBLDAP_F (char*) ldap_utf8_next(char *);
-LIBLDAP_F (char*) ldap_utf8_prev(char *);
+LIBLDAP_F (char*) ldap_utf8_next( const char * );
+LIBLDAP_F (char*) ldap_utf8_prev( const char * );
 
 LIBLDAP_F (int) ldap_utf8_isascii( const char * );
 LIBLDAP_F (int) ldap_utf8_isalpa( const char * );
