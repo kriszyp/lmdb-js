@@ -516,7 +516,7 @@ bdb_back_initialize(
 				" got %s\n", version, 0, 0 );
 		}
 
-		Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_back_initialize)
+		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(bdb_back_initialize)
 			": %s\n", version, 0, 0 );
 	}
 
