@@ -43,7 +43,8 @@ Entry *deref_internal_r(
 	unsigned depth;
 	char **dnlist;
 
-	assert( ( alias != NULL && dn == NULL ) || ( alias == NULL && dn != NULL ) );
+	assert( ( alias != NULL && dn_in == NULL )
+		|| ( alias == NULL && dn_in != NULL ) );
 
 	*matched = NULL;
 	*err = LDAP_SUCCESS;
