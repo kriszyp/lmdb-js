@@ -168,19 +168,20 @@ add_value(
 {
 	int	rc;
 	Datum   key;
-	ID_BLOCK	*idl;
-	char	prefix;
-	char	*realval, *tmpval, *s;
+	ID_BLOCK	*idl = NULL;
+	char	*tmpval = NULL;
+	char	*realval = val;
 	char	buf[BUFSIZ];
+
+	char	prefix = index2prefix( indextype );
 
 	ldbm_datum_init( key );
 
-	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );
 
 	realval = val;
 	tmpval = NULL;
-	idl = NULL;
+
 	if ( prefix != UNKNOWN_PREFIX ) {
               unsigned int     len = strlen( val );
 
@@ -203,7 +204,10 @@ add_value(
 	if ( tmpval != NULL ) {
 		free( tmpval );
 	}
-	idl_free( idl );
+
+	if( idl != NULL ) {
+		idl_free( idl );
+	}
 
 	ldap_pvt_thread_yield();
 
