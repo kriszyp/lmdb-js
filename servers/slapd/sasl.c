@@ -82,7 +82,7 @@ slap_sasl_log(
 
 int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 {
-	char *c, *c1, *dn=NULL;
+	char *c=NULL, *c1, *dn=NULL;
 	int rc, len;
 	sasl_conn_t *ctx;
 
