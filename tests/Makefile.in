@@ -10,10 +10,10 @@ BUILD_LDBM=@BUILD_LDBM@
 BUILD_MONITOR=@BUILD_MONITOR@
 BUILD_CACHE=@BUILD_CACHE@
 
-test:	tests
-tests:	ldbm
-ldbm:	hdb
-hdb:	bdb
+test tests:
+	@$(MAKE) bdb
+	@$(MAKE) hdb
+	@$(MAKE) ldbm
 
 links:	data schema ucdata
 data:
@@ -27,8 +27,7 @@ dirs:	test-db test-repl
 test-db test-repl:
 	@$(MKDIR) $@
 
-test-bdb:	bdb
-bdb:	bdb-$(BUILD_BDB)
+bdb test-bdb:	bdb-$(BUILD_BDB)
 bdb-no:
 	@echo "run configure with --enable-bdb"
 
@@ -36,8 +35,7 @@ bdb-yes bdb-mod:	links dirs FORCE
 	@echo "Initiating LDAP tests for BDB..."
 	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) BACKENDTYPE=$(BUILD_BDB) $(srcdir)/scripts/all $(srcdir) bdb bdb
 
-test-hdb:	hdb
-hdb:	hdb-$(BUILD_HDB)
+hdb test-hdb:	hdb-$(BUILD_HDB)
 hdb-no:
 	@echo "run configure with --enable-hdb"
 
@@ -45,8 +43,7 @@ hdb-yes hdb-mod:	links dirs FORCE
 	@echo "Initiating LDAP tests for HDB..."
 	@MONITORDB=$(BUILD_MONITOR) PROXYCACHE=$(BUILD_CACHE) BACKENDTYPE=$(BUILD_HDB) $(srcdir)/scripts/all $(srcdir) hdb hdb
 
-test-ldbm:	ldbm
-ldbm:	ldbm-$(BUILD_LDBM)
+ldbm test-ldbm:	ldbm-$(BUILD_LDBM)
 ldbm-no:
 	@echo "run configure with --enable-ldbm"
 
@@ -64,8 +61,7 @@ ldbm-yes ldbm-mod:	links dirs FORCE
 		fi ; \
 	fi
 
-passwd: test-passwd
-test-passwd:	links dirs FORCE
+passwd test-passwd:	links dirs FORCE
 	@echo "Initiating LDAP tests..."
 	@$(srcdir)/scripts/passwd-search $(srcdir) passwd
 
