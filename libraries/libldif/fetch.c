@@ -87,6 +87,15 @@ ldif_fetch_url(
 
 	fclose( url );
 
+	if( total == 0 ) {
+		char *newp = ber_memrealloc( p, 1 );
+		if( newp == NULL ) {
+			ber_memfree( p );
+			return -1;
+		}
+		p = newp;
+	}
+
 	*valuep = p;
 	*vlenp = total;
 
