@@ -291,8 +291,7 @@ extern ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
  */
 
 LIBLDAP_F ( struct ldapoptions ) ldap_int_global_options;
-LIBLDAP_F ( void ) ldap_int_initialize LDAP_P((void));
-
+LIBLDAP_F ( void ) ldap_int_initialize LDAP_P((int *));
 
 /* memory.c */
 	/* simple macros to realloc for now */

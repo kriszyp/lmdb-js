@@ -80,7 +80,7 @@ ldap_create( LDAP **ldp )
 
 	*ldp = NULL;
 	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize();
+		ldap_int_initialize(NULL);
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );

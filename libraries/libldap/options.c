@@ -87,7 +87,7 @@ ldap_get_option(
 	const struct ldapoptions *lo;
 
 	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize();
+		ldap_int_initialize(NULL);
 	}
 
 	if(ld == NULL) {
@@ -308,9 +308,18 @@ ldap_set_option(
 	LDAP_CONST void	*invalue)
 {
 	struct ldapoptions *lo;
+	int *dbglvl = NULL;
+
+	/*
+	 * The architecture to turn on debugging has a chicken and egg
+	 * problem. Thus, we introduce a fix here.
+	 */
+
+	if (option == LDAP_OPT_DEBUG_LEVEL)
+	    dbglvl = (int *) invalue;
 
 	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize();
+		ldap_int_initialize(dbglvl);
 	}
 
 	if(ld == NULL) {
