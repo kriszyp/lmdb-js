@@ -1215,7 +1215,7 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 			fi
 
 			dnl Check functions for compatibility
-			AC_CHECK_FUNCS(pthread_kill)
+			AC_CHECK_FUNCS(pthread_kill pthread_rwlock_destroy)
 
 			dnl Check for pthread_detach with <pthread.h> inclusion
 			dnl as it's symbol may have been mangled.

@@ -281,7 +281,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	if ( srv->lud_host == NULL || *srv->lud_host == 0 )
 		addr = htonl( INADDR_LOOPBACK );
 
-	switch ( srv->lud_protocol ) {
+	switch ( ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
 		case LDAP_PROTO_TCP:
 			rc = ldap_connect_to_host( ld, sb, srv->lud_host,
 				addr, port, async );
@@ -321,7 +321,8 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 
 #ifdef HAVE_TLS
 	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
-	    (srv->lud_properties & LDAP_URL_USE_SSL)) {
+		strcmp( srv->lud_scheme, "ldaps" ) == 0 )
+	{
 		rc = ldap_pvt_tls_start( ld, sb, ld->ld_options.ldo_tls_ctx );
 		if (rc != LDAP_SUCCESS)
 			return rc;

@@ -72,7 +72,7 @@ id2entry_delete( Backend *be, Entry *e )
 	    e->e_dn, 0 );
 
 #ifdef notdef
-#ifdef LDAP_DEBUG
+#ifdef LDAP_RDWR_DEBUG
 	/* check for writer lock */
 	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr) == 1);
 #endif

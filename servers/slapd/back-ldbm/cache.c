@@ -685,7 +685,9 @@ cache_release_all( Cache *cache )
 	Debug( LDAP_DEBUG_TRACE, "====> cache_release_all\n", 0, 0, 0 );
 
 	while ( (e = cache->c_lrutail) != NULL && LEI(e)->lei_refcnt == 0 ) {
+#ifdef LDAP_RDWR_DEBUG
 		assert(!ldap_pvt_thread_rdwr_active(&LEI(e)->lei_rdwr));
+#endif
 
 		/* delete from cache and lru q */
 		/* XXX do we need rc ? */

@@ -21,6 +21,18 @@
 
 LDAP_BEGIN_DECL
 
+#define LDAP_PROTO_TCP 1
+#define LDAP_PROTO_UDP 2
+#define LDAP_PROTO_IPC 3
+
+LIBLDAP_F ( int )
+ldap_pvt_url_scheme2proto LDAP_P((
+	const char * ));
+LIBLDAP_F ( int )
+ldap_pvt_url_scheme2tls LDAP_P((
+	const char * ));
+
+
 LIBLDAP_F ( int )
 ldap_pvt_domain2dn LDAP_P((
 	LDAP_CONST char *domain,

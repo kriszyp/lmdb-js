@@ -831,7 +831,7 @@ search_ldap_url(
 	rc = ldap_url_parse( url, &ludp );
 	if ( rc ) {
 		switch ( rc ) {
-		case LDAP_URL_ERR_NOTLDAP:
+		case LDAP_URL_ERR_BADSCHEME:
 			syslog( LOG_ALERT,
 				"Not an LDAP URL: %s", url );
 			break;

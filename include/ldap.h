@@ -173,12 +173,10 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_MANAGEDSAIT "2.16.840.1.113730.3.4.2"
 
 /* Experimental Controls */
-#define LDAP_CONTROL_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.5.1"
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036"
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
-
 
 /* LDAP Extended Operations */
 #define LDAP_EXOP_START_TLS "1.3.6.1.4.1.1466.20037"
@@ -493,8 +491,7 @@ typedef struct ldap_friendly {
  */
 typedef struct ldap_url_desc {
     struct ldap_url_desc *lud_next;
-    unsigned long lud_properties;
-    int		lud_protocol;
+    char	*lud_scheme;
     char	*lud_host;
     int		lud_port;
     char	*lud_dn;
@@ -504,19 +501,11 @@ typedef struct ldap_url_desc {
     char	**lud_exts;
 } LDAPURLDesc;
 
-/* lud_properties */
-#define	LDAP_URL_USE_SSL		0x00000001
-
-/* lud_protocol */
-#define LDAP_PROTO_TCP			0x00
-#define LDAP_PROTO_UDP			0x01	
-#define LDAP_PROTO_LOCAL		0x02
-
 #define LDAP_URL_SUCCESS		0x00	/* Success */
 #define LDAP_URL_ERR_MEM		0x01	/* can't allocate memory space */
 #define LDAP_URL_ERR_PARAM		0x02	/* parameter is bad */
 
-#define LDAP_URL_ERR_NOTLDAP	0x03	/* URL doesn't begin with "ldap[s]://" */
+#define LDAP_URL_ERR_BADSCHEME	0x03	/* URL doesn't begin with "ldap[si]://" */
 #define LDAP_URL_ERR_BADENCLOSURE 0x04	/* URL is missing trailing ">" */
 #define LDAP_URL_ERR_BADURL		0x05	/* URL is bad */
 #define LDAP_URL_ERR_BADHOST	0x06	/* host port is bad */

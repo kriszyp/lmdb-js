@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.307 2000/06/05 21:56:28 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.308 2000/06/05 23:23:19 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -9979,7 +9979,7 @@ done
 				echo "configure: warning: could not locate sched_yield() or pthread_yield()" 1>&2
 			fi
 
-						for ac_func in pthread_kill
+						for ac_func in pthread_kill pthread_rwlock_destroy
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:9986: checking for $ac_func" >&5

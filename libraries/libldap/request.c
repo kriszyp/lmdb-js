@@ -827,6 +827,8 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		ldap_pvt_hex_unescape( ref );
 		len = strlen( ref );
 
+		/* FIXME: we should use the URL Parser */
+
 		if ( len > LDAP_LDAP_REF_STR_LEN && strncasecmp( ref,
 		    LDAP_LDAP_REF_STR, LDAP_LDAP_REF_STR_LEN ) == 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -860,6 +862,13 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 
 			if (( srv = (LDAPURLDesc *)LDAP_CALLOC( 1,
 			    sizeof( LDAPURLDesc ))) == NULL ) {
+				ber_free( ber, 1 );
+				ld->ld_errno = LDAP_NO_MEMORY;
+				return( -1 );
+			}
+
+			if (( srv->lud_scheme = LDAP_STRDUP("ldap")) == NULL ) {
+				LDAP_FREE( (char *)srv );
 				ber_free( ber, 1 );
 				ld->ld_errno = LDAP_NO_MEMORY;
 				return( -1 );
