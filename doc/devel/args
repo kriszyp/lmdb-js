@@ -35,9 +35,6 @@ ldapwhoami		 * DE**HI*   *O QR  UVWXYZ   def*h**  *n*p*    vwxy
 
 
 * LDAPv3 Only 
-	-x simple bind (not recommended excepting for
-		anonymous access, w/ -ZZ, or with ldaps://.
-
 	-M ManageDSAIT
 	-Z StartTLS
 
