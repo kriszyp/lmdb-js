@@ -320,7 +320,11 @@ int main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
-	slapd_daemon_init( urls, port, tls_port );
+	if( slapd_daemon_init( urls, port, tls_port ) != 0 ) {
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
+		goto stop;
+	}
 
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 	if ( username != NULL || groupname != NULL ) {

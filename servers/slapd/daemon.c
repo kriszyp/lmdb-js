@@ -33,7 +33,7 @@ typedef struct slap_listener {
 	struct sockaddr_in	sl_addr;
 } Listener;
 
-Listener **slap_listeners;
+Listener **slap_listeners = NULL;
 
 #ifdef HAVE_WINSOCK2
 /* in nt_main.c */
@@ -196,7 +196,7 @@ static void slapd_close(ber_socket_t s) {
 
 Listener *
 open_listener(
-	char* url,
+	const char* url,
 	int port,
 	int tls_port )
 {
@@ -228,6 +228,8 @@ open_listener(
 	}
 
 #else
+	l.sl_is_tls = lud->lud_ldaps;
+
 	if(! lud->lud_port ) {
 		lud->lud_port = lud->lud_ldaps ? tls_port : port;
 	}
@@ -298,7 +300,7 @@ open_listener(
 			WSAGetLastError(),
 	    	WSAGetLastErrorString(), 0 );
 #endif
-		return( AC_SOCKET_INVALID );
+		return NULL;
 	}
 
 #ifndef HAVE_WINSOCK
@@ -307,7 +309,7 @@ open_listener(
 			"daemon: listener descriptor %ld is too great %ld\n",
 			(long) l.sl_sd, (long) dtblsize, 0 );
 		tcp_close( l.sl_sd );
-		return( AC_SOCKET_INVALID );
+		return NULL;
 	}
 #endif
 
@@ -345,7 +347,7 @@ open_listener(
 			err > -1 && err < sys_nerr
 				? sys_errlist[err] : "unknown" );
 		tcp_close( l.sl_sd );
-		return AC_SOCKET_INVALID;
+		return NULL;
 	}
 
 	l.sl_url = ch_strdup( url );
@@ -353,13 +355,16 @@ open_listener(
 	li = ch_malloc( sizeof( Listener ) );
 	*li = l;
 
+	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
+		l.sl_url, 0, 0 );
+
 	return li;
 }
 
 static int sockinit(void);
 static int sockdestroy(void);
 
-slapd_daemon_init(char *urls, int port, int tls_port )
+int slapd_daemon_init(char *urls, int port, int tls_port )
 {
 	int i, rc;
 	char **u;
@@ -367,6 +372,9 @@ slapd_daemon_init(char *urls, int port, int tls_port )
 #ifndef HAVE_TLS
 	assert( tls_port == 0 );
 #endif
+
+	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s (%d/%d)\n",
+		urls ? urls : "<null>", port, tls_port );
 
 	if( rc = sockinit() ) {
 		return rc;
@@ -390,22 +398,35 @@ slapd_daemon_init(char *urls, int port, int tls_port )
 	FD_ZERO( &slap_daemon.sd_writers );
 
 	if( urls == NULL ) {
-		urls = ch_strdup("ldap://");
+		urls = "ldap:///";
 	}
 
 	u = str2charray( urls, " " );
 
-	if( u == NULL ) {
+	if( u == NULL || u[0] == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "daemon_init: no urls (%s) provided.\n",
+			urls, 0, 0 );
+
 		return -1;
 	}
 
-	for(i = 0; u[i] == NULL; i++ ) {
-		/* EMPTY */ ;
+	for( i=0; u[i] != NULL; i++ ) {
+		Debug( LDAP_DEBUG_TRACE, "daemon_init: listen on %s\n",
+			u[i], 0, 0 );
 	}
+
+	if( i == 0 ) {
+		Debug( LDAP_DEBUG_ANY, "daemon_init: no listeners to open (%s)\n",
+			urls, 0, 0 );
+		return -1;
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners to open...\n",
+		i, 0, 0 );
 
 	slap_listeners = ch_malloc( (i+1)*sizeof(Listener *) );
 
-	for(i = 0; u[i] == NULL; i++ ) {
+	for(i = 0; u[i] != NULL; i++ ) {
 		slap_listeners[i] = open_listener( u[i], port, tls_port );
 
 		if( slap_listeners[i] == NULL ) {
@@ -414,12 +435,12 @@ slapd_daemon_init(char *urls, int port, int tls_port )
 	}
 	slap_listeners[i] = NULL;
 
+	Debug( LDAP_DEBUG_TRACE, "daemon_init: %d listeners opened.\n",
+		i, 0, 0 );
 
 	charray_free( u );
-
 	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
-
-	return 0;
+	return !i;
 }
 
 
