@@ -83,9 +83,10 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/* Create array of LDAPMods for ldap_add() */
 	attrs = ch_malloc( sizeof( LDAPMod * )*i );
 
+	dc.ctx = "addAttrDN";
 	isupdate = be_shadow_update( op );
 	for ( i = 0, a = op->ora_e->e_attrs; a; a = a->a_next ) {
-		int	j, is_oc = 0;
+		int			j, is_oc = 0;
 
 		if ( !isupdate && a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
@@ -154,12 +155,14 @@ meta_back_add( Operation *op, SlapReply *rs )
 				}
 			}
 
-			for ( j = 0; a->a_vals[ j ].bv_val; j++ );
-			attrs[ i ]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
-			for ( j = 0; a->a_vals[ j ].bv_val; j++ ) {
-				attrs[ i ]->mod_vals.modv_bvals[ j ] = &a->a_vals[ j ];
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ )
+				;
+			
+			attrs[ i ]->mod_bvalues = ch_malloc( ( j + 1 ) * sizeof( struct berval * ) );
+			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ ) {
+				attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
 			}
-			attrs[ i ]->mod_vals.modv_bvals[ j ] = NULL;
+			attrs[ i ]->mod_bvalues[ j ] = NULL;
 		}
 		i++;
 	}
@@ -168,7 +171,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	rs->sr_err = ldap_add_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			      attrs, NULL, NULL );
 	for ( --i; i >= 0; --i ) {
-		free( attrs[ i ]->mod_vals.modv_bvals );
+		free( attrs[ i ]->mod_bvalues );
 		free( attrs[ i ] );
 	}
 	free( attrs );
