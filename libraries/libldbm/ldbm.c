@@ -50,8 +50,10 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 		return( dup );
 	}
 	dup.dsize = data.dsize;
-	if ( (dup.dptr = (char *) malloc( data.dsize )) != NULL )
+
+	if ( (dup.dptr = (char *) malloc( data.dsize )) != NULL ) {
 		AC_MEMCPY( dup.dptr, data.dptr, data.dsize );
+	}
 
 	return( dup );
 }
@@ -59,17 +61,13 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 static int ldbm_initialized = 0;
 
 #ifdef HAVE_BERKELEY_DB_THREAD
-#define LDBM_LOCK	((void)0)
-#define LDBM_UNLOCK	((void)0)
+#define LDBM_LOCK	((void) 0)
+#define LDBM_UNLOCK	((void) 0)
 #else
-
-/* Only DB2 or DB3 with DB_THREAD is thread-free */
 static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 #define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
 #define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
-
 #endif
-
 
 
 /*******************************************************************
@@ -99,34 +97,43 @@ ldbm_db_errcall( const char *prefix, char *message )
 }
 
 /*  a dbEnv for BERKELEYv2  */
-DB_ENV           *ldbm_Env = NULL;
+DB_ENV	*ldbm_Env = NULL;
 
 int ldbm_initialize( const char* home )
 {
-	int     err;
+	int	err;
 	u_int32_t	envFlags;
 
 	if(ldbm_initialized++) return 1;
+
+#ifndef HAVE_BERKELEY_DB_THREAD
+	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
+#endif
 
 #if DB_VERSION_MAJOR < 3
 	ldbm_Env = calloc( 1, sizeof( DB_ENV ));
 
 	if( ldbm_Env == NULL ) return 1;
 
-	ldbm_Env->db_errcall   = ldbm_db_errcall;
-	ldbm_Env->db_errpfx    = "==>";
+	ldbm_Env->db_errcall	= ldbm_db_errcall;
+	ldbm_Env->db_errpfx		= "==>";
 #else
 	ldbm_Env = NULL;
 #endif
 
-	envFlags = 
-#if defined( DB_PRIVATE )
-		DB_PRIVATE |
+	envFlags = DB_CREATE;
+
+	/* add optional flags */
+#ifdef DB_PRIVATE
+	envFlags |= DB_PRIVATE;
 #endif
-#if defined( HAVE_BERKELEY_DB_THREAD )
-		DB_THREAD |
+
+#ifdef HAVE_BERKELEY_DB_THREAD
+	envFlags |= DB_THREAD | DB_INIT_CDB | DB_INIT_MPOOL;
+#ifdef DB_MPOOL_PRIVATE
+	envFlags |= DB_MPOOL_PRIVATE;
 #endif
-		DB_CREATE;
+#endif
 
 #if DB_VERSION_MAJOR >= 3
 	err = db_env_create( &ldbm_Env, 0 );
@@ -136,11 +143,11 @@ int ldbm_initialize( const char* home )
 #endif
 
 	if ( err ) {
+#ifdef LDAP_SYSLOG
 		char error[BUFSIZ];
 
 		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
 
-#ifdef LDAP_SYSLOG
 		syslog( LOG_INFO,
 #if DB_VERSION_MAJOR >= 3
 			"ldbm_initialize(): FATAL error in db_env_create() : %s\n",
@@ -156,26 +163,28 @@ int ldbm_initialize( const char* home )
 	ldbm_Env->set_errcall( ldbm_Env, ldbm_db_errcall );
 	ldbm_Env->set_errpfx( ldbm_Env, "==>" );
 
-	envFlags |= DB_INIT_MPOOL | DB_USE_ENVIRON;
+#ifdef HAVE_BERKELEY_DB_THREAD
+	envFlags |= DB_INIT_CDB | DB_INIT_MPOOL;
+#endif
+	envFlags |= DB_USE_ENVIRON;
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-        err = ldbm_Env->open( ldbm_Env, home, envFlags, 0 );
+	err = ldbm_Env->open( ldbm_Env, home, envFlags, 0 );
 #else
-        err = ldbm_Env->open( ldbm_Env, home, NULL, envFlags, 0 );
+	err = ldbm_Env->open( ldbm_Env, home, NULL, envFlags, 0 );
 #endif
-        if ( err != 0 )
-        {
-            char error[BUFSIZ];
 
-            sprintf( error, "%s (%d)\n", STRERROR( err ), err );
-
+	if ( err != 0 ) {
 #ifdef LDAP_SYSLOG
-            syslog( LOG_INFO,
-                    "ldbm_initialize(): FATAL error in dbEnv->open() : %s\n",
-                    error );
+		char error[BUFSIZ];
+
+		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+		syslog( LOG_INFO,
+			"ldbm_initialize(): FATAL error in dbEnv->open() : %s\n",
+			error );
 #endif
-		    ldbm_Env->close( ldbm_Env, 0 );
-            return( 1 );
+		ldbm_Env->close( ldbm_Env, 0 );
+		return( 1 );
 	}
 #endif
 
@@ -190,6 +199,10 @@ int ldbm_shutdown( void )
 	ldbm_Env->close( ldbm_Env, 0 );
 #else
 	db_appexit( ldbm_Env );
+#endif
+
+#ifndef HAVE_BERKELEY_DB_THREAD
+	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
 #endif
 
 	return 0;
@@ -232,33 +245,27 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	LDBM		ret = NULL;
 
 #if DB_VERSION_MAJOR >= 3
-       int err;
-       LDBM_LOCK;
-       err = db_create( &ret, ldbm_Env, 0 );
-       if ( err != 0 )
-       {
-           char error[BUFSIZ];
+	int err;
 
-           sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+	LDBM_LOCK;
 
-           (void)ret->close(ret, 0);
-           return NULL;
-       }
+	err = db_create( &ret, ldbm_Env, 0 );
+	if ( err != 0 ) {
+		(void)ret->close(ret, 0);
+		return NULL;
+	}
 
-       ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
-       ret->set_malloc( ret, ldbm_malloc );
+	ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
+	ret->set_malloc( ret, ldbm_malloc );
 
-       err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
-       LDBM_UNLOCK;
-       if ( err != 0 )
-       {
-           char error[BUFSIZ];
+	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
 
-           sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+	LDBM_UNLOCK;
 
-           (void)ret->close(ret, 0);
-           return NULL;
-       }
+	if ( err != 0 ) {
+		(void)ret->close(ret, 0);
+		return NULL;
+	}
  
 #elif DB_VERSION_MAJOR >= 2
 	DB_INFO dbinfo;
@@ -272,15 +279,16 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	 */
 #else
 	/* set db_cachesize of MPOOL is NOT being used. */
-	if (( ldbm_Env == NULL ) || ( ldbm_Env->mp_info == NULL ))
+	if (( ldbm_Env == NULL ) || ( ldbm_Env->mp_info == NULL )) {
 		dbinfo.db_cachesize = dbcachesize;
+	}
 #endif
 
-	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
-	dbinfo.db_malloc    = ldbm_malloc;
+	dbinfo.db_pagesize	= DEFAULT_DB_PAGE_SIZE;
+	dbinfo.db_malloc	= ldbm_malloc;
 
 	LDBM_LOCK;
-    (void) db_open( name, DB_TYPE, rw, mode, ldbm_Env, &dbinfo, &ret );
+	(void) db_open( name, DB_TYPE, rw, mode, ldbm_Env, &dbinfo, &ret );
 	LDBM_UNLOCK;
 
 #else
@@ -303,7 +311,6 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	LDBM_LOCK;
 	ret = dbopen( name, rw, mode, DB_TYPE, info );
 	LDBM_UNLOCK;
-
 #endif
 
 	return( ret );
@@ -314,7 +321,7 @@ ldbm_close( LDBM ldbm )
 {
 	LDBM_LOCK;
 #if DB_VERSION_MAJOR >= 3
-        ldbm->close( ldbm, 0 );
+	ldbm->close( ldbm, 0 );
 #elif DB_VERSION_MAJOR >= 2
 	(*ldbm->close)( ldbm, 0 );
 #else
@@ -338,13 +345,17 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	int	rc;
 
 	LDBM_LOCK;
+
 #if DB_VERSION_MAJOR >= 3
-        ldbm_datum_init( data );
+	ldbm_datum_init( data );
 
-        data.flags = DB_DBT_MALLOC;
+	data.flags = DB_DBT_MALLOC;
 
-        if ( (rc = ldbm->get( ldbm, NULL, &key, &data, 0 )) != 0 ) {
-            ldbm_datum_free( ldbm, data );
+	if ( (rc = ldbm->get( ldbm, NULL, &key, &data, 0 )) != 0 ) {
+		ldbm_datum_free( ldbm, data );
+		data.dptr = NULL;
+		data.dsize = 0;
+	}
 
 #elif DB_VERSION_MAJOR >= 2
 	ldbm_datum_init( data );
@@ -353,16 +364,20 @@ ldbm_fetch( LDBM ldbm, Datum key )
 
 	if ( (rc = (*ldbm->get)( ldbm, NULL, &key, &data, 0 )) != 0 ) {
 		ldbm_datum_free( ldbm, data );
+		data.dptr = NULL;
+		data.dsize = 0;
+	}
 #else
+
 	if ( (rc = (*ldbm->get)( ldbm, &key, &data, 0 )) == 0 ) {
 		/* Berkeley DB 1.85 don't malloc the data for us */
 		/* duplicate it for to ensure reentrancy */
 		data = ldbm_datum_dup( ldbm, data );
 	} else {
-#endif
 		data.dptr = NULL;
 		data.dsize = 0;
 	}
+#endif
 
 	LDBM_UNLOCK;
 
@@ -377,18 +392,12 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 	LDBM_LOCK;
 
 #if DB_VERSION_MAJOR >= 3
-        rc = ldbm->put( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
-       if ( rc != 0 )
-       {
-           char error[BUFSIZ];
-
-           sprintf( error, "%s (%d)\n", STRERROR( rc ), rc );
-       }
-       rc = (-1) * rc;
+	rc = ldbm->put( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
+	rc = (-1) * rc;
 
 #elif DB_VERSION_MAJOR >= 2
 	rc = (*ldbm->put)( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
-	rc = (-1 ) * rc;
+	rc = (-1) * rc;
 #else
 	rc = (*ldbm->put)( ldbm, &key, &data, flags & ~LDBM_SYNC );
 #endif
@@ -410,10 +419,10 @@ ldbm_delete( LDBM ldbm, Datum key )
 
 #if DB_VERSION_MAJOR >= 3
 	rc = ldbm->del( ldbm, NULL, &key, 0 );
-	rc = (-1 ) * rc;
+	rc = (-1) * rc;
 #elif DB_VERSION_MAJOR >= 2
 	rc = (*ldbm->del)( ldbm, NULL, &key, 0 );
-	rc = (-1 ) * rc;
+	rc = (-1) * rc;
 #else
 	rc = (*ldbm->del)( ldbm, &key, 0 );
 #endif
@@ -441,9 +450,9 @@ ldbm_firstkey( LDBM ldbm, LDBMCursor **dbch )
 
 	/* acquire a cursor for the DB */
 # if DB_VERSION_MAJOR >= 3
-        if ( ldbm->cursor( ldbm, NULL, &dbci, 0 ) )
+	if ( ldbm->cursor( ldbm, NULL, &dbci, 0 ) )
 # elif defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
-    (DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6)
+	(DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6)
 
 	if ( (*ldbm->cursor)( ldbm, NULL, &dbci ))
 
@@ -790,15 +799,13 @@ ldbm_close( LDBM ldbm )
 void
 ldbm_sync( LDBM ldbm )
 {
-
 	/* XXX: Not sure if this is re-entrant need to check code, if so
 	 * you can leave LOCKS out.
 	 */
 
 	LDBM_LOCK;
 	mdbm_sync( ldbm );
-        LDBM_UNLOCK;
-
+	LDBM_UNLOCK;
 }
 
 
@@ -837,9 +844,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 		if ( d.dsize > 0 ) {
 
 			if ( k.val.dptr != NULL ) {
-			    
-			    free( k.val.dptr );
-
+				free( k.val.dptr );
 			}
 
 			if ( (k.val.dptr = malloc( d.dsize )) != NULL ) {
@@ -942,7 +947,6 @@ ldbm_delete( LDBM ldbm, Datum key )
 #endif
 
 	return( rc );
-
 }
 
 
@@ -951,7 +955,6 @@ ldbm_delete( LDBM ldbm, Datum key )
 static Datum
 ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) ) 
 {
-
 	kvpair	out;
 	kvpair	in;
 	Datum	ret;
@@ -976,55 +979,39 @@ ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) )
 	out = fptr( ldbm, in );
 
 	if (out.key.dsize > 0) {
+		ret.dsize = out.key.dsize - delta;
 
-	    ret.dsize = out.key.dsize - delta;
-	    if ((ret.dptr = (char *)malloc(ret.dsize)) == NULL) { 
+		if ((ret.dptr = (char *)malloc(ret.dsize)) == NULL) { 
+			ret.dsize = 0;
+			ret.dptr = NULL;
 
-		ret.dsize = 0;
-		ret.dptr = NULL;
-
-	    } else {
-
-		AC_MEMCPY(ret.dptr, (void *)(out.key.dptr + delta),
-		       ret.dsize );
-
+		} else {
+			AC_MEMCPY(ret.dptr, (void *)(out.key.dptr + delta),
+				ret.dsize );
 	    }
-
 	}
 
 	/* LDBM_UNLOCK; */
 	
 	free(in.key.dptr);
-
 	return ret;
-
 }
-
-
-
 
 Datum
 ldbm_firstkey( LDBM ldbm, LDBMCursor **dbcp )
 {
-
 	return ldbm_get_next( ldbm, mdbm_first );
-
 }
-
-
-
 
 Datum
 ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *dbcp )
 {
-
 	/* XXX:
-	 * don't know if this will affect the LDAP server opertaion 
+	 * don't know if this will affect the LDAP server operation 
 	 * but mdbm cannot take and input key.
 	 */
 
 	return ldbm_get_next( ldbm, mdbm_next );
-
 }
 
 int
@@ -1032,7 +1019,6 @@ ldbm_errno( LDBM ldbm )
 {
 	/* XXX: best we can do with current  mdbm interface */
 	return( errno );
-
 }
 
 
