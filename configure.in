@@ -613,7 +613,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl Check pthread (draft4) flags (depreciated)
 		dnl 	pthread_create() with -threads (OSF/1)
 		dnl
-		dnl Check pthread (final) libraries (depreciated)
+		dnl Check pthread (draft4) libraries (depreciated)
 		dnl 	pthread_mutex_unlock() in -lpthreads -lmach -lexc -lc_r (OSF/1)
 		dnl 	pthread_mutex_lock() in -lpthreads -lmach -lexc (OSF/1)
 		dnl 	pthread_mutex_trylock() in -lpthreads -lexc (OSF/1)
