@@ -62,16 +62,23 @@ int entry_destroy(void)
 Entry *
 str2entry( char *s )
 {
+	return str2entry2( s, 1 );
+}
+
+Entry *
+str2entry2( char *s, int checkvals )
+{
 	int rc;
 	Entry		*e;
-	struct berval	type;
-	struct berval	vals[2];
-	struct berval	nvals[2], *nvalsp;
+	struct berval	*nvalsp;
+	struct berval	*type, *vals, *nvals;
+	char 	*freeval;
 	AttributeDescription *ad, *ad_prev;
 	const char *text;
 	char	*next;
 	int		attr_cnt;
-	int		freeval;
+	int		i, lines;
+	Attribute	ahead, *atail;
 
 	/*
 	 * LDIF is used as the string format.
@@ -105,75 +112,154 @@ str2entry( char *s )
 	e->e_id = NOID;
 
 	/* dn + attributes */
-	vals[1].bv_len = 0;
-	vals[1].bv_val = NULL;
-
+	atail = &ahead;
+	ahead.a_next = NULL;
 	ad = NULL;
 	ad_prev = NULL;
 	attr_cnt = 0;
 	next = s;
+
+	lines = ldif_countlines( s );
+	type = ch_calloc( 1, (lines+1)*3*sizeof(struct berval)+lines );
+	vals = type+lines+1;
+	nvals = vals+lines+1;
+	freeval = (char *)(nvals+lines+1);
+	i = -1;
+
+	/* parse into individual values, record DN */
 	while ( (s = ldif_getline( &next )) != NULL ) {
+		int freev;
 		if ( *s == '\n' || *s == '\0' ) {
 			break;
 		}
+		i++;
 
-		if ( ldif_parse_line2( s, &type, vals, &freeval ) != 0 ) {
+		rc = ldif_parse_line2( s, type+i, vals+i, &freev );
+		freeval[i] = freev;
+		if ( rc ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
 		}
 
-		if ( type.bv_len == dn_bv.bv_len &&
-			strcasecmp( type.bv_val, dn_bv.bv_val ) == 0 ) {
+		if ( type[i].bv_len == dn_bv.bv_len &&
+			strcasecmp( type[i].bv_val, dn_bv.bv_val ) == 0 ) {
 
 			if ( e->e_dn != NULL ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has multiple DNs \"%s\" and \"%s\"\n",
-					(long) e->e_id, e->e_dn, vals[0].bv_val );
-				if ( freeval ) free( vals[0].bv_val );
-				entry_free( e );
-				return NULL;
+					(long) e->e_id, e->e_dn, vals[i].bv_val );
+				goto fail;
 			}
 
-			rc = dnPrettyNormal( NULL, &vals[0], &e->e_name, &e->e_nname, NULL );
-			if ( freeval ) free( vals[0].bv_val );
+			rc = dnPrettyNormal( NULL, &vals[i], &e->e_name, &e->e_nname, NULL );
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "str2entry: "
 					"entry %ld has invalid DN \"%s\"\n",
-					(long) e->e_id, vals[0].bv_val, 0 );
-				entry_free( e );
-				return NULL;
+					(long) e->e_id, vals[i].bv_val, 0 );
+				goto fail;
 			}
+			if ( freeval[i] ) free( vals[i].bv_val );
+			vals[i].bv_val = NULL;
+			i--;
 			continue;
 		}
+	}
+	lines = i+1;
 
-		ad_prev = ad;
-		ad = NULL;
-		rc = slap_bv2ad( &type, &ad, &text );
+	/* check to make sure there was a dn: line */
+	if ( BER_BVISNULL( &e->e_name )) {
+		Debug( LDAP_DEBUG_ANY, "str2entry: entry %ld has no dn\n",
+			(long) e->e_id, 0, 0 );
+		goto fail;
+	}
 
-		if( rc != LDAP_SUCCESS ) {
-			Debug( slapMode & SLAP_TOOL_MODE
-				? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
-				"<= str2entry: str2ad(%s): %s\n", type.bv_val, text, 0 );
-			if( slapMode & SLAP_TOOL_MODE ) {
-				entry_free( e );
-				if ( freeval ) free( vals[0].bv_val );
-				return NULL;
+	/* Make sure all attributes with multiple values are contiguous */
+	if ( checkvals ) {
+		int j, k;
+		struct berval bv;
+		int fv;
+
+		for (i=0; i<lines; i++) {
+			k = i;
+			for ( j=i+1; j<lines; j++ ) {
+				if ( bvmatch( type+i, type+j )) {
+					/* out of order, move intervening attributes down */
+					if ( j != k+1 ) {
+						int l;
+						bv = vals[j];
+						fv = freeval[j];
+						for ( l=j; l>k; l-- ) {
+							type[l] = type[l-1];
+							vals[l] = vals[l-1];
+							freeval[l] = freeval[l-1];
+						}
+						type[l] = type[i];
+						vals[l] = bv;
+						freeval[l] = fv;
+					}
+					i = k = j;
+				}
 			}
+		}
+	}
 
-			rc = slap_bv2undef_ad( &type, &ad, &text );
+	for ( i=0; i<=lines; i++ ) {
+		ad_prev = ad;
+		if ( !ad || ( i<lines && !bvmatch( type+i, &ad->ad_cname ))) {
+			ad = NULL;
+			rc = slap_bv2ad( type+i, &ad, &text );
+
 			if( rc != LDAP_SUCCESS ) {
-				Debug( LDAP_DEBUG_ANY,
-					"<= str2entry: str2undef_ad(%s): %s\n",
-						type.bv_val, text, 0 );
-				entry_free( e );
-				if ( freeval ) free( vals[0].bv_val );
-				return NULL;
+				Debug( slapMode & SLAP_TOOL_MODE
+					? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
+					"<= str2entry: str2ad(%s): %s\n", type[i].bv_val, text, 0 );
+				if( slapMode & SLAP_TOOL_MODE ) {
+					goto fail;
+				}
+
+				rc = slap_bv2undef_ad( type+i, &ad, &text );
+				if( rc != LDAP_SUCCESS ) {
+					Debug( LDAP_DEBUG_ANY,
+						"<= str2entry: str2undef_ad(%s): %s\n",
+							type[i].bv_val, text, 0 );
+					goto fail;
+				}
 			}
 		}
 
-		if ( ad != ad_prev ) {
+		if (( ad_prev && ad != ad_prev ) || ( i == lines )) {
+			int j, k;
+			atail->a_next = (Attribute *) ch_malloc( sizeof(Attribute) );
+			atail = atail->a_next;
+			atail->a_desc = ad_prev;
+			atail->a_vals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
+			if( ad_prev->ad_type->sat_equality &&
+				ad_prev->ad_type->sat_equality->smr_normalize )
+				atail->a_nvals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
+			else
+				atail->a_nvals = NULL;
+			k = i - attr_cnt;
+			for ( j=0; j<attr_cnt; j++ ) {
+				if ( freeval[k] )
+					atail->a_vals[j] = vals[k];
+				else
+					ber_dupbv( atail->a_vals+j, &vals[k] );
+				vals[k].bv_val = NULL;
+				if ( atail->a_nvals ) {
+					atail->a_nvals[j] = nvals[k];
+					nvals[k].bv_val = NULL;
+				}
+				k++;
+			}
+			BER_BVZERO( &atail->a_vals[j] );
+			if ( atail->a_nvals ) {
+				BER_BVZERO( &atail->a_nvals[j] );
+			} else {
+				atail->a_nvals = atail->a_vals;
+			}
 			attr_cnt = 0;
+			if ( i == lines ) break;
 		}
 
 		if( slapMode & SLAP_TOOL_MODE ) {
@@ -185,13 +271,13 @@ str2entry( char *s )
 
 			if( pretty ) {
 				rc = pretty( ad->ad_type->sat_syntax,
-					&vals[0], &pval, NULL );
+					&vals[i], &pval, NULL );
 
 			} else if( validate ) {
 				/*
 			 	 * validate value per syntax
 			 	 */
-				rc = validate( ad->ad_type->sat_syntax, &vals[0] );
+				rc = validate( ad->ad_type->sat_syntax, &vals[i] );
 
 			} else {
 				Debug( LDAP_DEBUG_ANY,
@@ -199,9 +285,7 @@ str2entry( char *s )
 					"no validator for syntax %s\n", 
 					ad->ad_cname.bv_val, attr_cnt,
 					ad->ad_type->sat_syntax->ssyn_oid );
-				entry_free( e );
-				if ( freeval ) free( vals[0].bv_val );
-				return NULL;
+				goto fail;
 			}
 
 			if( rc != 0 ) {
@@ -210,20 +294,15 @@ str2entry( char *s )
 					"for attributeType %s #%d (syntax %s)\n",
 					ad->ad_cname.bv_val, attr_cnt,
 					ad->ad_type->sat_syntax->ssyn_oid );
-				entry_free( e );
-				if ( freeval ) free( vals[0].bv_val );
-				return NULL;
+				goto fail;
 			}
 
 			if( pretty ) {
-				if ( freeval ) free( vals[0].bv_val );
-				vals[0] = pval;
-				freeval = 1;
+				if ( freeval[i] ) free( vals[i].bv_val );
+				vals[i] = pval;
+				freeval[i] = 1;
 			}
 		}
-
-		nvalsp = NULL;
-		nvals[0].bv_val = NULL;
 
 		if( ad->ad_type->sat_equality &&
 			ad->ad_type->sat_equality->smr_normalize )
@@ -232,49 +311,34 @@ str2entry( char *s )
 				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 				ad->ad_type->sat_syntax,
 				ad->ad_type->sat_equality,
-				&vals[0], &nvals[0], NULL );
+				&vals[i], &nvals[i], NULL );
 
 			if( rc ) {
 				Debug( LDAP_DEBUG_ANY,
 			   		"<= str2entry NULL (smr_normalize %d)\n", rc, 0, 0 );
-
-				entry_free( e );
-				if ( freeval ) free( vals[0].bv_val );
-				return NULL;
+				goto fail;
 			}
-
-			nvals[1].bv_len = 0;
-			nvals[1].bv_val = NULL;
-
-			nvalsp = &nvals[0];
 		}
-
-		rc = attr_merge( e, ad, vals, nvalsp );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
-			entry_free( e );
-			if ( freeval ) free( vals[0].bv_val );
-			return( NULL );
-		}
-
-		if ( freeval ) free( vals[0].bv_val );
-		free( nvals[0].bv_val );
 
 		attr_cnt++;
 	}
 
-	/* check to make sure there was a dn: line */
-	if ( e->e_dn == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "str2entry: entry %ld has no dn\n",
-			(long) e->e_id, 0, 0 );
-		entry_free( e );
-		return NULL;
-	}
+	free( type );
+	atail->a_next = NULL;
+	e->e_attrs = ahead.a_next;
 
 	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> 0x%lx\n",
 		e->e_dn, (unsigned long) e, 0 );
 	return( e );
+
+fail:
+	for ( i=0; i<lines; i++ ) {
+		if ( freeval[i] ) free( vals[i].bv_val );
+		free( nvals[i].bv_val );
+	}
+	free( type );
+	entry_free( e );
+	return NULL;
 }
 
 

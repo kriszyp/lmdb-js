@@ -627,6 +627,7 @@ LDAP_SLAPD_V (const Entry) slap_entry_root;
 LDAP_SLAPD_F (int) entry_destroy LDAP_P((void));
 
 LDAP_SLAPD_F (Entry *) str2entry LDAP_P(( char	*s ));
+LDAP_SLAPD_F (Entry *) str2entry2 LDAP_P(( char	*s, int checkvals ));
 LDAP_SLAPD_F (char *) entry2str LDAP_P(( Entry *e, int *len ));
 
 LDAP_SLAPD_F (void) entry_flatsize LDAP_P((

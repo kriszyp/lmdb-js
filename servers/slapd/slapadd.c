@@ -120,7 +120,7 @@ slapadd( int argc, char **argv )
 	Entry *ctxcsn_e;
 	ID	ctxcsn_id, id;
 	int ret;
-	int i;
+	int i, checkvals;
 	struct berval mc;
 	ldap_pvt_thread_t put_tid;
 
@@ -139,6 +139,8 @@ slapadd( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 	}
+
+	checkvals = (slapMode & SLAP_TOOL_QUICK) ? 0 : 1;
 
 	if ( use_thread ) {
 		ldap_pvt_thread_initialize();
@@ -170,7 +172,7 @@ slapadd( int argc, char **argv )
 	}
 
 	while( ldif_read_record( ldiffp, &lineno, &buf, &lmax ) ) {
-		Entry *e = str2entry( buf );
+		Entry *e = str2entry2( buf, checkvals );
 
 		/*
 		 * Initialize text buffer
