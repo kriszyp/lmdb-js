@@ -734,7 +734,7 @@ bdb_idl_insert_key(
 				break;
 			}
 			tmp = id;
-			rc = cursor->c_put( cursor, key, &data, DB_CURRENT );
+			rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 			if ( rc != 0 ) {
 				cursor->c_close( cursor );
 				err = "c_put";
@@ -767,6 +767,7 @@ bdb_idl_insert_key(
 	}
 
 	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_del( bdb, db, key );
 		bdb_idl_cache_put( bdb, db, key, idl, 0 );
 	}
 	return rc;
@@ -862,7 +863,7 @@ bdb_idl_delete_key(
 	}
 	if ( isrange && rc == 0 ) {
 		tmp = ( id == lo ) ? idl[1] : idl[2];
-		rc = cursor->c_put( cursor, key, &data, DB_CURRENT );
+		rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
 		if ( rc != 0 ) {
 			err = "c_put";
 		}
@@ -892,6 +893,7 @@ bdb_idl_delete_key(
 		return rc;
 	}
 	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_del( bdb, db, key );
 		bdb_idl_cache_put( bdb, db, key, idl, 0 );
 	}
 
