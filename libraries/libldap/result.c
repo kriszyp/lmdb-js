@@ -638,20 +638,16 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 	static int	tblsize;
 
 	if ( tblsize == 0 ) {
-#ifdef FD_SETSIZE
-		/*
-		 * It is invalid to use a set size in excess of the type
-		 * scope, as defined for the fd_set in sys/types.h.  This
-		 * is true for any OS.
-		 */
-		tblsize = FD_SETSIZE;
-#else	/* !FD_SETSIZE*/
 #ifdef USE_SYSCONF
 		tblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#else /* !USE_SYSCONF */
 		tblsize = getdtablesize();
-#endif /* USE_SYSCONF */
-#endif	/* !FD_SETSIZE*/
+#endif /* !USE_SYSCONF */
+#ifdef FD_SETSIZE
+		if ( tblsize > FD_SETSIZE ) {
+			tblsize = FD_SETSIZE;
+		}
+#endif	/* FD_SETSIZE */
 	}
 
 	FD_ZERO( &readfds );

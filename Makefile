@@ -318,6 +318,16 @@ makeconfig:	.makefiles buildtools
 	echo "** Set platform to $$PLATFORM with compiler $$CC..."; \
 	echo ""
 
+Make-common: Make-common.dist
+	@if [ -f Make-common ]; then \
+		echo "Make-common.dist newer than Make-common, check for new options" ;\
+		echo "or touch Make-common to ignore."; \
+		exit 1; \
+	fi; \
+	cp Make-common.dist Make-common; \
+	echo "Make-common installed from distribution." ; \
+	echo "  Edit as needed before making!"	; \
+	exit 1
 #
 # rule to build Makefiles by concatenating Make-template file in each
 # subdirectory with global Make-common, .make-platform, and

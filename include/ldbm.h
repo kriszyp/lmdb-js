@@ -46,7 +46,12 @@ extern gdbm_error	gdbm_errno;
 #include <sys/types.h>
 #include <limits.h>
 #include <fcntl.h>
-#include <db.h>
+
+#ifdef HAVE_SLEEPYCAT_DB2
+#	include <db_185.h>
+#else
+#	include <db.h>
+#endif
 
 typedef DBT	Datum;
 #define dsize	size
@@ -85,7 +90,11 @@ extern int	errno;
 #include <sys/types.h>
 #include <limits.h>
 #include <fcntl.h>
-#include <db.h>
+#ifdef HAVE_SLEEPYCAT_DB2
+#	include <db_185.h>
+#else
+#	include <db.h>
+#endif
 
 typedef DBT	Datum;
 #define dsize	size
