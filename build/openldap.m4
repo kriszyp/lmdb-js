@@ -216,33 +216,19 @@ dnl
 dnl ====================================================================
 dnl Check if struct passwd has pw_gecos
 AC_DEFUN([OL_STRUCT_PASSWD_PW_GECOS], [# test for pw_gecos in struct passwd
-AC_CACHE_CHECK([struct passwd for pw_gecos],ol_cv_struct_passwd_pw_gecos,[
-	AC_TRY_COMPILE([#include <pwd.h>],[
-	struct passwd pwd;
-	pwd.pw_gecos = pwd.pw_name;
-],
-	[ol_cv_struct_passwd_pw_gecos=yes],
-	[ol_cv_struct_passwd_pw_gecos=no])])
-if test $ol_cv_struct_passwd_pw_gecos = yes ; then
-	AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
-fi
-])
-dnl
+   AC_CHECK_MEMBER(struct passwd.pw_gecos,,,[#include <pwd.h>])
+   if test $ac_cv_member_struct_passwd_pw_gecos = "yes" ; then
+		AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
+   fi
+])dnl
 dnl --------------------------------------------------------------------
 dnl Check if struct passwd has pw_passwd
 AC_DEFUN([OL_STRUCT_PASSWD_PW_PASSWD], [# test for pw_passwd in struct passwd
-AC_CACHE_CHECK([struct passwd for pw_passwd],ol_cv_struct_passwd_pw_passwd,[
-	AC_TRY_COMPILE([#include <pwd.h>],[
-	struct passwd pwd;
-	pwd.pw_passwd = pwd.pw_name;
-],
-	[ol_cv_struct_passwd_pw_passwd=yes],
-	[ol_cv_struct_passwd_pw_passwd=no])])
-if test $ol_cv_struct_passwd_pw_passwd = yes ; then
-	AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
-fi
-])
-dnl
+   AC_CHECK_MEMBER(struct passwd.pw_passwd,,,[#include <pwd.h>])
+   if test $ac_cv_member_struct_passwd_pw_passwd = "yes" ; then
+		AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
+   fi
+])dnl
 dnl ====================================================================
 dnl Berkeley DB macros
 dnl

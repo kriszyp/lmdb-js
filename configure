@@ -30662,13 +30662,12 @@ _ACEOF
 
 
 # test for pw_gecos in struct passwd
-echo "$as_me:$LINENO: checking struct passwd for pw_gecos" >&5
-echo $ECHO_N "checking struct passwd for pw_gecos... $ECHO_C" >&6
-if test "${ol_cv_struct_passwd_pw_gecos+set}" = set; then
+   echo "$as_me:$LINENO: checking for struct passwd.pw_gecos" >&5
+echo $ECHO_N "checking for struct passwd.pw_gecos... $ECHO_C" >&6
+if test "${ac_cv_member_struct_passwd_pw_gecos+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-
-	cat >conftest.$ac_ext <<_ACEOF
+  cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 /* confdefs.h.  */
 _ACEOF
@@ -30676,13 +30675,13 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 #include <pwd.h>
+
 int
 main ()
 {
-
-	struct passwd pwd;
-	pwd.pw_gecos = pwd.pw_name;
-
+static struct passwd ac_aggr;
+if (ac_aggr.pw_gecos)
+return 0;
   ;
   return 0;
 }
@@ -30699,33 +30698,71 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ol_cv_struct_passwd_pw_gecos=yes
+  ac_cv_member_struct_passwd_pw_gecos=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ol_cv_struct_passwd_pw_gecos=no
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <pwd.h>
+
+int
+main ()
+{
+static struct passwd ac_aggr;
+if (sizeof ac_aggr.pw_gecos)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_member_struct_passwd_pw_gecos=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_member_struct_passwd_pw_gecos=no
 fi
 rm -f conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ol_cv_struct_passwd_pw_gecos" >&5
-echo "${ECHO_T}$ol_cv_struct_passwd_pw_gecos" >&6
-if test $ol_cv_struct_passwd_pw_gecos = yes ; then
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_member_struct_passwd_pw_gecos" >&5
+echo "${ECHO_T}$ac_cv_member_struct_passwd_pw_gecos" >&6
+
+   if test $ac_cv_member_struct_passwd_pw_gecos = "yes" ; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_PW_GECOS 1
 _ACEOF
 
-fi
+   fi
 
 # test for pw_passwd in struct passwd
-echo "$as_me:$LINENO: checking struct passwd for pw_passwd" >&5
-echo $ECHO_N "checking struct passwd for pw_passwd... $ECHO_C" >&6
-if test "${ol_cv_struct_passwd_pw_passwd+set}" = set; then
+   echo "$as_me:$LINENO: checking for struct passwd.pw_passwd" >&5
+echo $ECHO_N "checking for struct passwd.pw_passwd... $ECHO_C" >&6
+if test "${ac_cv_member_struct_passwd_pw_passwd+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-
-	cat >conftest.$ac_ext <<_ACEOF
+  cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 /* confdefs.h.  */
 _ACEOF
@@ -30733,13 +30770,13 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 #include <pwd.h>
+
 int
 main ()
 {
-
-	struct passwd pwd;
-	pwd.pw_passwd = pwd.pw_name;
-
+static struct passwd ac_aggr;
+if (ac_aggr.pw_passwd)
+return 0;
   ;
   return 0;
 }
@@ -30756,24 +30793,63 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ol_cv_struct_passwd_pw_passwd=yes
+  ac_cv_member_struct_passwd_pw_passwd=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ol_cv_struct_passwd_pw_passwd=no
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <pwd.h>
+
+int
+main ()
+{
+static struct passwd ac_aggr;
+if (sizeof ac_aggr.pw_passwd)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_member_struct_passwd_pw_passwd=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_member_struct_passwd_pw_passwd=no
 fi
 rm -f conftest.$ac_objext conftest.$ac_ext
 fi
-echo "$as_me:$LINENO: result: $ol_cv_struct_passwd_pw_passwd" >&5
-echo "${ECHO_T}$ol_cv_struct_passwd_pw_passwd" >&6
-if test $ol_cv_struct_passwd_pw_passwd = yes ; then
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_member_struct_passwd_pw_passwd" >&5
+echo "${ECHO_T}$ac_cv_member_struct_passwd_pw_passwd" >&6
+
+   if test $ac_cv_member_struct_passwd_pw_passwd = "yes" ; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_PW_PASSWD 1
 _ACEOF
 
-fi
+   fi
 
 
 echo "$as_me:$LINENO: checking if toupper() requires islower()" >&5
