@@ -890,6 +890,7 @@ remove_query_data (
 {
 	struct query_info	info;
 	char			filter_str[64];
+	AttributeAssertion	ava;
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
 	slap_callback cb = { NULL, remove_func, NULL, NULL };
@@ -898,6 +899,7 @@ remove_query_data (
 	sreply.sr_nentries = 0;
 	op->ors_filterstr.bv_len = snprintf(filter_str, sizeof(filter_str),
 		"(%s=%s)", ad_queryid->ad_cname.bv_val, query_uuid->bv_val);
+	filter.f_ava = &ava;
 	filter.f_av_desc = ad_queryid;
 	filter.f_av_value = *query_uuid;
 	info.uuid = query_uuid;
@@ -1516,19 +1518,18 @@ consistency_check(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager *qm = cm->qm;
 	Operation op = {0};
+	Connection conn = {0};
 
 	SlapReply rs = {REP_RESULT};
 	CachedQuery* query, *query_prev;
 	int i, return_val, pause = 1;
 	QueryTemplate* templ;
 
+	connection_fake_init( &conn, &op, ctx );
+
 	op.o_bd = &cm->db;
 	op.o_dn = cm->db.be_rootdn;
 	op.o_ndn = cm->db.be_rootndn;
-	op.o_threadctx = ctx;
-
-	op.o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
-	op.o_tmpmfuncs = &sl_mfuncs;
 
       	cm->cc_arg = arg;
 
