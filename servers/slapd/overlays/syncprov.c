@@ -1491,7 +1491,9 @@ shortcut:
 	cb->sc_next = op->o_callback;
 	op->o_callback = cb;
 
+#if 0	/* I don't think we need to shortcircuit back-bdb any more */
 	op->o_sync_mode &= SLAP_CONTROL_MASK;
+#endif
 
 	/* If this is a persistent search and no changes were reported during
 	 * the refresh phase, just invoke the response callback to transition
