@@ -202,9 +202,12 @@ bdb_search(
 		rc = bdb_id2entry( be, NULL, id, &e );
 
 		if ( e == NULL ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"bdb_search: candidate %ld not found\n",
-				id, 0, 0 );
+			if( !BDB_IDL_IS_RANGE(candidates) ) {
+				/* only complain for non-range IDLs */
+				Debug( LDAP_DEBUG_TRACE,
+					"bdb_search: candidate %ld not found\n",
+					id, 0, 0 );
+			}
 
 			goto loop_continue;
 		}
