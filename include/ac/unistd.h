@@ -50,8 +50,8 @@ LDAP_LUTIL_F(char*)(lutil_getpass) LDAP_P((const char *getpass));
 
 #else
 	/* assume we need to declare these externs */
-	LDAP_LIBC_F (char *) optarg;
-	LDAP_LIBC_F (int) optind, opterr, optopt;
+	LDAP_LIBC_V (char *) optarg;
+	LDAP_LIBC_V (int) optind, opterr, optopt;
 #endif
 
 #ifndef HAVE_TEMPNAM

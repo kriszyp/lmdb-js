@@ -60,15 +60,19 @@
 /* LBER library */
 #if defined(LBER_DECL) && defined(_WIN32)
 #	define LBER_F(type)		extern __declspec(LBER_DECL) type
+#	define LBER_V(type)		extern __declspec(LBER_DECL) type
 #else
-#	define LBER_F(type)		type
+#	define LBER_F(type)		extern type
+#	define LBER_V(type)		extern type
 #endif
 
 /* LDAP library */
 #if defined(LDAP_DECL) && defined(_WIN32)
-#	define LDAP_F(type)	extern __declspec(LDAP_DECL) type
+#	define LDAP_F(type)		extern __declspec(LDAP_DECL) type
+#	define LDAP_V(type)		extern __declspec(LDAP_DECL) type
 #else
-#	define LDAP_F(type)	extern type
+#	define LDAP_F(type)		extern type
+#	define LDAP_V(type)		extern type
 #endif
 
 /*
@@ -79,50 +83,64 @@
 #if (defined(__MINGW32__) && !defined(CSTATIC) || \
      defined(_WIN32) && defined(_DLL))
 #	define LDAP_LIBC_F(type)	extern __declspec(dllimport) type
+#	define LDAP_LIBC_V(type)	extern __declspec(dllimport) type
 #else
 #	define LDAP_LIBC_F(type)	extern type
+#	define LDAP_LIBC_V(type)	extern type
 #endif
 
 /* AVL library */
 #if defined(LDAP_AVL_DECL) && defined(_WIN32)
 #	define LDAP_AVL_F(type)	extern __declspec(LDAP_AVL_DECL) type
+#	define LDAP_AVL_V(type)	extern __declspec(LDAP_AVL_DECL) type
 #else
 #	define LDAP_AVL_F(type)	extern type
+#	define LDAP_AVL_V(type)	extern type
 #endif
 
 /* LDBM library */
 #if defined(LDAP_LDBM_DECL) && defined(_WIN32)
 #	define LDAP_LDBM_F(type)	extern __declspec(LDAP_LDBM_DECL) type
+#	define LDAP_LDBM_V(type)	extern __declspec(LDAP_LDBM_DECL) type
 #else
 #	define LDAP_LDBM_F(type)	extern type
+#	define LDAP_LDBM_V(type)	extern type
 #endif
 
 /* LDIF library */
 #if defined(LDAP_LDIF_DECL) && defined(_WIN32)
 #	define LDAP_LDIF_F(type)	extern __declspec(LDAP_LDIF_DECL) type
+#	define LDAP_LDIF_V(type)	extern __declspec(LDAP_LDIF_DECL) type
 #else
 #	define LDAP_LDIF_F(type)	extern type
+#	define LDAP_LDIF_V(type)	extern type
 #endif
 
 /* LUNICODE library */
 #if defined(LDAP_LUNICODE_DECL) && defined(_WIN32)
 #	define LDAP_LUNICODE_F(type)	extern __declspec(LDAP_LUNICODE_DECL) type
+#	define LDAP_LUNICODE_V(type)	extern __declspec(LDAP_LUNICODE_DECL) type
 #else
 #	define LDAP_LUNICODE_F(type)	extern type
+#	define LDAP_LUNICODE_V(type)	extern type
 #endif
 
 /* LUTIL library */
 #if defined(LDAP_LUTIL_DECL) && defined(_WIN32)
 #	define LDAP_LUTIL_F(type)	extern __declspec(LDAP_LUTIL_DECL) type
+#	define LDAP_LUTIL_V(type)	extern __declspec(LDAP_LUTIL_DECL) type
 #else
 #	define LDAP_LUTIL_F(type)	extern type
+#	define LDAP_LUTIL_V(type)	extern type
 #endif
 
 /* SLAPD (as a module exporting symbols) */
 #if defined(LDAP_SLAPD_DECL) && defined(_WIN32)
 #	define LDAP_SLAPD_F(type)	extern __declspec(LDAP_SLAPD_DECL) type
+#	define LDAP_SLAPD_V(type)	extern __declspec(LDAP_SLAPD_DECL) type
 #else
 #	define LDAP_SLAPD_F(type)	extern type
+#	define LDAP_SLAPD_V(type)	extern type
 #endif
 
 #endif /* _LDAP_CDEFS_H */

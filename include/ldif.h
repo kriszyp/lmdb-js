@@ -28,7 +28,7 @@
 LDAP_BEGIN_DECL
 
 /* This is NOT a bogus extern declaration (unlike ldap_debug) */
-LDAP_LDIF_F (int) ldif_debug;
+LDAP_LDIF_V (int) ldif_debug;
 
 #define LDIF_LINE_WIDTH      76      /* maximum length of LDIF lines */
 

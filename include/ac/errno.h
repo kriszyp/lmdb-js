@@ -25,8 +25,8 @@
 #	define		sys_errlist	((char **)0)
 #elif DECL_SYS_ERRLIST 
 	/* have sys_errlist but need declaration */
-	LDAP_LIBC_F (int)      sys_nerr;
-	LDAP_LIBC_F (char)    *sys_errlist[];
+	LDAP_LIBC_V (int)      sys_nerr;
+	LDAP_LIBC_V (char)    *sys_errlist[];
 #endif
 
 #ifdef HAVE_STRERROR
