@@ -1,5 +1,8 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.26 Engineering
+	Fixed back-ldbm indirect IDL bug (ITS#2039)
+
 OpenLDAP 2.0.25 Release
 	Fixed slapd extended op reqdata crash bug (ITS#1721)
 
