@@ -1,0 +1,283 @@
+
+
+
+
+
+
+Network Working Group                                        K. Zeilenga
+Request for Comments: 3674                           OpenLDAP Foundation
+Category: Standards Track                                  December 2003
+
+
+   Feature Discovery in Lightweight Directory Access Protocol (LDAP)
+
+Status of this Memo
+
+   This document specifies an Internet standards track protocol for the
+   Internet community, and requests discussion and suggestions for
+   improvements.  Please refer to the current edition of the "Internet
+   Official Protocol Standards" (STD 1) for the standardization state
+   and status of this protocol.  Distribution of this memo is unlimited.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2003).  All Rights Reserved.
+
+Abstract
+
+   The Lightweight Directory Access Protocol (LDAP) is an extensible
+   protocol with numerous elective features.  This document introduces a
+   general mechanism for discovery of elective features and extensions
+   which cannot be discovered using existing mechanisms.
+
+1.  Background and Intended Use
+
+   The Lightweight Directory Access Protocol (LDAP) [RFC3377] is an
+   extensible protocol with numerous elective features.  LDAP provides
+   mechanisms for a client to discover supported protocol versions,
+   controls, extended operations, Simple Authentication and Security
+   Layer (SASL) mechanisms, and subschema information.  However, these
+   mechanisms are not designed to support general feature discovery.
+
+   This document describes a simple, general-purpose mechanism which
+   clients may use to discover the set of elective features supported by
+   a server.  For example, this mechanism could be used by a client to
+   discover whether or not the server supports requests for all
+   operational attributes, e.g., "+" [RFC3673].  As another example,
+   this mechanism could be used to discover absolute true, e.g., "(&)"
+   and false, e.g., "(|)", search filters [T-F] support.
+
+   This document extends the LDAP Protocol Mechanism registry [RFC3383]
+   to support registration of values of the supportedFeatures attribute.
+   This registry is managed by the Internet Assigned Numbers Authority
+   (IANA).
+
+
+
+
+Zeilenga                    Standards Track                     [Page 1]
+
+RFC 3674               Feature Discovery in LDAP           December 2003
+
+
+   Schema definitions are provided using LDAP description formats
+   [RFC2252].  Definitions provided here are formatted (line wrapped)
+   for readability.
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in BCP 14 [RFC2119].
+
+2.  Discovery of supported features
+
+   Each elective feature whose support may be discovered SHALL be
+   identified by an Object Identifier (OID).  A server advertises its
+   support for a given feature by providing the OID associated with the
+   feature as a value of the 'supportedFeatures' attribute held in the
+   root DSE.  A client may examine the values of this attribute to
+   determine if a particular feature is supported by the server.  A
+   client MUST ignore values it doesn't recognize as they refer to
+   elective features it doesn't implement.
+
+   Features associated with Standard Track protocol mechanisms MUST be
+   registered.  Features associated with other protocol mechanisms
+   SHOULD be registered.  Procedures for registering protocol mechanisms
+   are described in BCP 64 [RFC3383].  The word "Feature" should be
+   placed in the usage field of the submitted LDAP Protocol Mechanism
+   template.
+
+   The 'supportedFeatures' attribute type is described as follows:
+
+      ( 1.3.6.1.4.1.4203.1.3.5
+        NAME 'supportedFeatures'
+        DESC 'features supported by the server'
+        EQUALITY objectIdentifierMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
+        USAGE dSAOperation )
+
+   Servers MUST be capable of recognizing this attribute type by the
+   name 'supportedFeatures'.  Servers MAY recognize the attribute type
+   by other names.
+
+3.  Security Considerations
+
+   As rogue clients can discover features of a server by other means
+   (such as by trial and error), this feature discovery mechanism is not
+   believed to introduce any new security risk to LDAP.
+
+
+
+
+
+
+
+Zeilenga                    Standards Track                     [Page 2]
+
+RFC 3674               Feature Discovery in LDAP           December 2003
+
+
+4.  IANA Considerations
+
+4.1.  Registration of Features as Protocol Mechanisms
+
+   Future specifications detailing LDAP features are to register each
+   feature as a LDAP Protocol Mechanism per guidance given in BCP 64
+   [RFC3383].  A usage of "Feature" in a Protocol Mechanism registration
+   template indicates that the value to be registered is associated with
+   an LDAP feature.
+
+4.2.  Registration of the supportedFeatures descriptor
+
+   The IANA has registered the LDAP 'supportedFeatures' descriptor.  The
+   following registration template is suggested:
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): supportedFeatures
+      Object Identifier: 1.3.6.1.4.1.4203.1.3.5
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Usage: Attribute Type
+      Specification: RFC 3674
+      Author/Change Controller: IESG
+
+   This OID was assigned [ASSIGN] by OpenLDAP Foundation under its IANA
+   assigned private enterprise allocation [PRIVATE] for use in this
+   specification.
+
+5.  Acknowledgment
+
+   This document is based upon input from the IETF LDAPEXT working
+   group.
+
+6.  Intellectual Property Statement
+
+   The IETF takes no position regarding the validity or scope of any
+   intellectual property or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; neither does it represent that it
+   has made any effort to identify any such rights.  Information on the
+   IETF's procedures with respect to rights in standards-track and
+   standards-related documentation can be found in BCP-11.  Copies of
+   claims of rights made available for publication and any assurances of
+   licenses to be made available, or the result of an attempt made to
+   obtain a general license or permission for the use of such
+   proprietary rights by implementors or users of this specification can
+   be obtained from the IETF Secretariat.
+
+
+
+Zeilenga                    Standards Track                     [Page 3]
+
+RFC 3674               Feature Discovery in LDAP           December 2003
+
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights which may cover technology that may be required to practice
+   this standard.  Please address the information to the IETF Executive
+   Director.
+
+7.  References
+
+7.1.  Normative References
+
+   [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                 Requirement Levels", BCP 14, RFC 2119, March 1997.
+
+   [RFC2252]     Wahl, M., Coulbeck, A., Howes, T. and S. Kille,
+                 "Lightweight Directory Access Protocol (v3):  Attribute
+                 Syntax Definitions", RFC 2252, December 1997.
+
+   [RFC3377]     Hodges, J. and R. Morgan, "Lightweight Directory Access
+                 Protocol (v3): Technical Specification", RFC 3377,
+                 September 2002.
+
+   [RFC3383]     Zeilenga, K., "Internet Assigned Numbers Authority
+                 (IANA) Considerations for Lightweight Directory Access
+                 Protocol (LDAP)", BCP 64, RFC 3383, September 2002.
+
+7.2.  Informative References
+
+   [RFC3673]     Zeilenga, K., "Lightweight Directory Access Protocol
+                 version 3 (LDAPv3): All Operational Attributes", RFC
+                 3673, December 2003.
+
+   [T-F]         Zeilenga, K., "LDAP True/False Filters", Work in
+                 Progress.
+
+   [ASSIGN]      OpenLDAP Foundation, "OpenLDAP OID Delegations",
+                 http://www.openldap.org/foundation/oid-delegate.txt.
+
+   [PRIVATE]     IANA, "Private Enterprise Numbers",
+                 http://www.iana.org/assignments/enterprise-numbers.
+
+8.  Author's Address
+
+   Kurt D. Zeilenga
+   OpenLDAP Foundation
+
+   EMail: Kurt@OpenLDAP.org
+
+
+
+
+
+Zeilenga                    Standards Track                     [Page 4]
+
+RFC 3674               Feature Discovery in LDAP           December 2003
+
+
+9.  Full Copyright Statement
+
+   Copyright (C) The Internet Society (2003).  All Rights Reserved.
+
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph are
+   included on all such copies and derivative works.  However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assignees.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+Acknowledgement
+
+   Funding for the RFC Editor function is currently provided by the
+   Internet Society.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga                    Standards Track                     [Page 5]
+
