@@ -27,7 +27,7 @@ static RETSIGTYPE wait4child( int sig );
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 #define MAIN_RETURN(x) return
-struct sockaddr_in	bind_addr;
+static struct sockaddr_in	bind_addr;
 
 void CommenceStartupProcessing( LPCTSTR serverName,
 							   void(*stopper)(int));
@@ -135,6 +135,9 @@ int main( int argc, char **argv )
 #ifdef LOG_LOCAL4
     int	    syslogUser = DEFAULT_SYSLOG_USER;
 #endif
+	
+	int g_argc = argc;
+	char **g_argv = argv;
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	char		*configfile = ".\\slapd.conf";
@@ -151,8 +154,6 @@ int main( int argc, char **argv )
 	}
 #endif
 
-	g_argc = argc;
-	g_argv = argv;
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	{

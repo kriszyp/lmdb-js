@@ -32,8 +32,6 @@ int		ldap_syslog_level = LOG_DEBUG;
 #endif
 
 struct berval **default_referral = NULL;
-int		g_argc;
-char		**g_argv;
 
 /*
  * global variables that need mutex protection

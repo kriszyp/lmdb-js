@@ -953,7 +953,7 @@ LDAP_SLAPD_V (struct berval **)	default_referral;
 LDAP_SLAPD_V (char *)		replogfile;
 LDAP_SLAPD_V (const char) 	Versionstr[];
 LDAP_SLAPD_V (struct slap_limits_set)		deflimit;
-LDAP_SLAPD_V (int)		g_argc;
+
 LDAP_SLAPD_V (slap_access_t)	global_default_access;
 LDAP_SLAPD_V (int)		global_lastmod;
 LDAP_SLAPD_V (int)		global_idletimeout;
@@ -982,7 +982,6 @@ LDAP_SLAPD_V (unsigned long)		num_ops_initiated;
 
 LDAP_SLAPD_V (char *)		slapd_pid_file;
 LDAP_SLAPD_V (char *)		slapd_args_file;
-LDAP_SLAPD_V (char **)		g_argv;
 LDAP_SLAPD_V (time_t)		starttime;
 
 /* use time(3) -- no mutex */

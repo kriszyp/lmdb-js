@@ -24,7 +24,7 @@ char	*conffile	= SLAPD_DEFAULT_CONFIGFILE;
 int		truncatemode = 0;
 int		verbose		= 0;
 int		continuemode = 0;
-int	nosubs		= 0;
+int		nosubordinates = 0;
 
 char	*ldiffile	= NULL;
 FILE	*ldiffp		= NULL;
@@ -233,7 +233,7 @@ slap_tool_init(
 		 * entire context
 		 */
 		if (be->be_glueflags & SLAP_GLUE_INSTANCE)
-			nosubs = 1;
+			nosubordinates = 1;
 
 	} else if ( dbnum == -1 ) {
 		be = &backends[dbnum=0];
@@ -241,7 +241,7 @@ slap_tool_init(
 		 * glue subordinate, find the master.
 		 */
 		while (be->be_glueflags & SLAP_GLUE_SUBORDINATE) {
-			nosubs = 1;
+			nosubordinates = 1;
 			be++;
 		}
 
