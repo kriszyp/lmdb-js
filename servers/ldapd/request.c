@@ -464,7 +464,7 @@ trace_ber(
 		else if ( (pe = ps2pe( input_ps )) == NULLPE ) {
 			fprintf(trace_file, "ps2pe: %s\n",
 			    ps_error( input_ps->ps_errno ) );
-			lber_bprint( (char *) buf, len + 6 );
+			ber_bprint( (char *) buf, len + 6 );
 		} else {
 #ifdef PEPSY_DUMP
 			int				failed = 0;

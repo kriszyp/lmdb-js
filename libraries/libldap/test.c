@@ -954,7 +954,7 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 					if ( nonascii ) {
 						printf( "\t\t\tlength (%ld) (not ascii)\n", vals[i]->bv_len );
 #ifdef BPRINT_NONASCII
-						lber_bprint( vals[i]->bv_val,
+						ber_bprint( vals[i]->bv_val,
 						    vals[i]->bv_len );
 #endif /* BPRINT_NONASCII */
 						continue;
