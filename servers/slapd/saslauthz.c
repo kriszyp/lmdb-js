@@ -370,6 +370,7 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 	if( ndn->bv_val ) {
 		free(ndn->bv_val);
 		ndn->bv_val = NULL;
+		ndn->bv_len = 0;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, DETAIL1,
