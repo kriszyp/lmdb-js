@@ -311,7 +311,7 @@ static void slap_free_listener_addresses(struct sockaddr **sal)
 	ch_free(sal);
 }
 
-#ifdef LDAP_PF_LOCAL
+#if defined(LDAP_PF_LOCAL) || defined(SLAP_X_LISTENER_MOD)
 static int get_url_perms(
 	char 	**exts,
 	mode_t	*perms,
@@ -392,7 +392,7 @@ static int get_url_perms(
 
 	return LDAP_OTHER;
 }
-#endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
 /* port = 0 indicates AF_LOCAL */
 static int slap_get_listener_addresses(
@@ -587,13 +587,12 @@ static int slap_open_listener(
 	struct sockaddr **sal, **psal;
 	int socktype = SOCK_STREAM;	/* default to COTS */
 
-#ifdef LDAP_PF_LOCAL
+#if defined(LDAP_PF_LOCAL) || defined(SLAP_X_LISTENER_MOD)
 	/*
 	 * use safe defaults
 	 */
-	mode_t 	perms = S_IRWXU;
 	int	crit = 1;
-#endif
+#endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
 	rc = ldap_url_parse( url, &lud );
 
@@ -648,10 +647,6 @@ static int slap_open_listener(
 		} else {
 			err = slap_get_listener_addresses(lud->lud_host, 0, &sal);
 		}
-
-		if ( lud->lud_exts ) {
-			err = get_url_perms( lud->lud_exts, &perms, &crit );
-		}
 #else
 
 #ifdef NEW_LOGGING
@@ -676,6 +671,14 @@ static int slap_open_listener(
 			err = slap_get_listener_addresses(lud->lud_host, port, &sal);
 		}
 	}
+
+#if defined(LDAP_PF_LOCAL) || defined(SLAP_X_LISTENER_MOD)
+	if ( lud->lud_exts ) {
+		err = get_url_perms( lud->lud_exts, &l.sl_perms, &crit );
+	} else {
+		l.sl_perms = S_IRWXU;
+	}
+#endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
 	ldap_free_urldesc( lud );
 	if ( err ) {
@@ -820,7 +823,7 @@ static int slap_open_listener(
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL: {
 		char *addr = ((struct sockaddr_un *)*sal)->sun_path;
-		if ( chmod( addr, perms ) < 0 && crit ) {
+		if ( chmod( addr, l.sl_perms ) < 0 && crit ) {
 			int err = sock_errno();
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONNECTION, INFO, 

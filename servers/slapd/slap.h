@@ -1731,6 +1731,9 @@ typedef struct slap_conn {
 struct slap_listener {
 	struct berval sl_url;
 	struct berval sl_name;
+#ifdef SLAP_X_LISTENER_MOD
+	mode_t		sl_perms;
+#endif /* SLAP_X_LISTENER_MOD */
 #ifdef HAVE_TLS
 	int		sl_is_tls;
 #endif
