@@ -600,6 +600,7 @@ ldbm_back_modrdn(
 	}
 
 	(void) cache_delete_entry( &li->li_cache, e );
+	rc = MUST_DESTROY;
 
 	/* XXX: there is no going back! */
 
@@ -629,7 +630,6 @@ ldbm_back_modrdn(
 	    
 	    goto return_results;
 	}
-	rc = MUST_DESTROY;
 	
 	(void) cache_update_entry( &li->li_cache, e );
 
