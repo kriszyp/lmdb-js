@@ -35,7 +35,6 @@ LDAP_BEGIN_DECL
 
 struct slap_conn;
 struct slap_op;
-struct slap_backend_db;
 
 struct ldapconn {
 	struct slap_conn	*conn;
@@ -79,7 +78,6 @@ struct ldaprwmap {
 };
 
 struct ldapinfo {
-	struct slap_backend_db	*be;
 	char		*url;
 	LDAPURLDesc	*lud;
 	struct berval binddn;
