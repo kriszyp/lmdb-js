@@ -28,12 +28,13 @@
  * ldap_int_put_controls
  */
 
-int ldap_int_put_controls(
+int
+ldap_int_put_controls(
 	LDAP *ld,
-	LDAPControl **ctrls,
+	LDAPControl *const *ctrls,
 	BerElement *ber )
 {
-	LDAPControl **c;
+	LDAPControl *const *c;
 
 	assert( ld != NULL );
 	assert( ber != NULL );
@@ -261,7 +262,8 @@ ldap_controls_free( LDAPControl **controls )
 /*
  * Duplicate an array of LDAPControl
  */
-LDAPControl **ldap_controls_dup( LDAPControl **controls )
+LDAPControl **
+ldap_controls_dup( LDAPControl *const *controls )
 {
 	LDAPControl **new;
 	int i;
@@ -303,7 +305,8 @@ LDAPControl **ldap_controls_dup( LDAPControl **controls )
 /*
  * Duplicate a LDAPControl
  */
-LDAPControl *ldap_control_dup( LDAPControl *c )
+LDAPControl *
+ldap_control_dup( const LDAPControl *c )
 {
 	LDAPControl *new;
 
