@@ -75,7 +75,7 @@ static char	*strtok_quote(char *line, char *sep);
 static int      load_ucdata(char *path);
 
 int
-read_config( const char *fname )
+read_config( const char *fname, int depth )
 {
 	FILE	*fp;
 	char	*line, *savefname, *saveline;
@@ -90,8 +90,10 @@ read_config( const char *fname )
 
 	vals[1].bv_val = NULL;
 
-	cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
-	cargv_size = ARGS_STEP + 1;
+	if ( depth == 0 ) {
+		cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
+		cargv_size = ARGS_STEP + 1;
+	}
 
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
@@ -2012,7 +2014,7 @@ read_config( const char *fname )
 			savefname = ch_strdup( cargv[1] );
 			savelineno = lineno;
 
-			if ( read_config( savefname ) != 0 ) {
+			if ( read_config( savefname, depth+1 ) != 0 ) {
 				return( 1 );
 			}
 
@@ -2256,6 +2258,8 @@ read_config( const char *fname )
 		free( saveline );
 	}
 	fclose( fp );
+
+	if ( depth == 0 ) ch_free( cargv );
 
 	if ( load_ucdata( NULL ) < 0 ) return 1;
 	return( 0 );
