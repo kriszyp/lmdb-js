@@ -836,11 +836,22 @@ dn2entry_retry:
 
 		if ( matched != NULL ) {
 			BerVarray erefs;
-			ber_dupbv( &matched_dn, &matched->e_name );
 
-			erefs = is_entry_referral( matched )
-				? get_entry_referrals( op, matched )
-				: NULL;
+			if ( ! access_allowed( op, matched,
+						slap_schema.si_ad_entry,
+						NULL, ACL_DISCLOSE, NULL ) )
+			{
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+
+			} else {
+				ber_dupbv( &matched_dn, &matched->e_name );
+
+				erefs = is_entry_referral( matched )
+					? get_entry_referrals( op, matched )
+					: NULL;
+				rs->sr_err = LDAP_REFERRAL;
+				rs->sr_matched = matched_dn.bv_val;
+			}
 
 #ifdef SLAP_ZONE_ALLOC
 			slap_zn_runlock(bdb->bi_cache.c_zctx, matched);
@@ -849,7 +860,7 @@ dn2entry_retry:
 				matched, &lock);
 			matched = NULL;
 
-			if( erefs ) {
+			if ( erefs ) {
 				rs->sr_ref = referral_rewrite( erefs, &matched_dn,
 					&sop->o_req_dn, sop->oq_search.rs_scope );
 				ber_bvarray_free( erefs );
@@ -861,10 +872,9 @@ dn2entry_retry:
 #endif
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &sop->o_req_dn, sop->oq_search.rs_scope );
+			rs->sr_err = LDAP_REFERRAL;
 		}
 
-		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( sop, rs );
 
 		if ( !opinfo )
@@ -873,20 +883,37 @@ dn2entry_retry:
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
 		}
-		if ( matched_dn.bv_val ) {
+		if ( !BER_BVISNULL( &matched_dn ) ) {
 			ber_memfree( matched_dn.bv_val );
 			rs->sr_matched = NULL;
 		}
 		return rs->sr_err;
 	}
 
+	if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
+				NULL, ACL_DISCLOSE, NULL ) )
+	{
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+
+#ifdef SLAP_ZONE_ALLOC
+		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
+#endif
+		if ( e != &e_root ) {
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+		}
+		send_ldap_result( sop, rs );
+		return 1;
+	}
+
 	if ( !manageDSAit && e != &e_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
-		struct berval matched_dn;
-		BerVarray erefs;
+		struct berval matched_dn = BER_BVNULL;
+		BerVarray erefs = NULL;
 		
 		ber_dupbv( &matched_dn, &e->e_name );
 		erefs = get_entry_referrals( op, e );
+
+		rs->sr_err = LDAP_REFERRAL;
 
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
@@ -894,23 +921,26 @@ dn2entry_retry:
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 		e = NULL;
 
-		if( erefs ) {
+		if ( erefs ) {
 			rs->sr_ref = referral_rewrite( erefs, &matched_dn,
 				&sop->o_req_dn, sop->oq_search.rs_scope );
 			ber_bvarray_free( erefs );
+
+			if ( !rs->sr_ref ) {
+				rs->sr_text = "bad_referral object";
+			}
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_search) ": entry is referral\n",
 			0, 0, 0 );
 
-		if (!rs->sr_ref) rs->sr_text = "bad_referral object";
-		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_matched = matched_dn.bv_val;
 		send_ldap_result( sop, rs );
 
-		if ( !opinfo )
+		if ( !opinfo ) {
 			LOCK_ID_FREE (bdb->bi_dbenv, locker );
+		}
 		ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
 		ber_memfree( matched_dn.bv_val );
@@ -925,6 +955,9 @@ dn2entry_retry:
 #ifdef SLAP_ZONE_ALLOC
 		slap_zn_runlock(bdb->bi_cache.c_zctx, e);
 #endif
+		if ( e != &e_root ) {
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+		}
 		send_ldap_result( sop, rs );
 		return 1;
 	}

@@ -65,19 +65,28 @@ dn2entry_retry:
 	e = ei->bei_e;
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if ( e != NULL ) {
-			rs->sr_matched = ch_strdup( e->e_dn );
-			rs->sr_ref = is_entry_referral( e )
-				? get_entry_referrals( op, e )
-				: NULL;
+			if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
+						NULL, ACL_DISCLOSE, NULL ) )
+			{
+				rs->sr_err = LDAP_NO_SUCH_OBJECT;
+
+			} else {
+				rs->sr_matched = ch_strdup( e->e_dn );
+				rs->sr_ref = is_entry_referral( e )
+					? get_entry_referrals( op, e )
+					: NULL;
+				rs->sr_err = LDAP_REFERRAL;
+			}
+
 			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 			e = NULL;
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+			rs->sr_err = rs->sr_ref ? LDAP_REFERRAL : LDAP_NO_SUCH_OBJECT;
 		}
 
-		rs->sr_err = LDAP_REFERRAL;
 		send_ldap_result( op, rs );
 
 		ber_bvarray_free( rs->sr_ref );
@@ -86,6 +95,13 @@ dn2entry_retry:
 		rs->sr_matched = NULL;
 
 		goto done;
+	}
+
+	rs->sr_err = access_allowed( op, e, slap_schema.si_ad_entry,
+		NULL, ACL_DISCLOSE, NULL );
+	if ( ! rs->sr_err ) {
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto return_results;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
