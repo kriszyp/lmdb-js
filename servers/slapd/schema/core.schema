@@ -533,3 +533,12 @@ attributetype ( 1.3.6.1.4.1.250.1.32
 	EQUALITY caseIgnoreIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
 	SINGLE-VALUE )
+
+# RFC 2459
+attributetype ( 1.2.840.113549.1.9.1
+	NAME ( 'email' 'emailAddress' 'pkcs9email' )
+	DESC 'RFC2459: legacy attribute for email addresses in DNs'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{128} )
+
