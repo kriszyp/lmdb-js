@@ -147,7 +147,7 @@ ldap_pvt_thread_pool_init (
 	ldap_pvt_thread_pool_t *pool_out,
 	int max_concurrency, int max_pending )
 {
-	*pool_out = NULL;
+	*pool_out = (ldap_pvt_thread_pool_t) 0;
 	return(0);
 }
 
