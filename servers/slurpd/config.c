@@ -104,7 +104,7 @@ slurpd_read_config(
 			lineno, cargv[1] );
 		    fprintf( stderr, "line (ignored)\n" );
 		}
-		sprintf( sglob->slapd_replogfile, cargv[1] );
+		strcpy( sglob->slapd_replogfile, cargv[1] );
 	    }
 	} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
 	    add_replica( cargv, cargc );
