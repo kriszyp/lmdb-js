@@ -137,8 +137,6 @@ do_bind(
 
 		pthread_mutex_lock( &conn->c_dnmutex );
 
-		conn->c_protocol = version;
-
 		if ( conn->c_cdn != NULL ) {
 			free( conn->c_cdn );
 			conn->c_cdn = NULL;
@@ -169,8 +167,6 @@ do_bind(
 		}
 		if ( cred.bv_len == 0 ) {
 			pthread_mutex_lock( &conn->c_dnmutex );
-
-			conn->c_protocol = version;
 
 			if ( conn->c_cdn != NULL ) {
 				free( conn->c_cdn );
