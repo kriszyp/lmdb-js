@@ -847,8 +847,6 @@ char *s )
     char *p;
 
     for ( p = s; ( p != NULL ) && ( *p != '\0' ); p++ ) {
-	if ( islower( (unsigned char) *p )) {
-	    *p = toupper( (unsigned char) *p );
-	}
+	    *p = TOUPPER( (unsigned char) *p );
     }
 }
