@@ -7,7 +7,7 @@ slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slapd 
 .B [\-[4|6]]
-.B [\-T {add|auth|cat|dn|index|passwd|test}]
+.B [\-T {acl|add|auth|cat|dn|index|passwd|test}]
 .B [\-d debug\-level]
 .B [\-f slapd\-config\-file]
 .B [\-h URLs]
@@ -66,11 +66,16 @@ Listen on IPv6 addresses only.
 .TP
 .B \-T {a|c|d|i|p|t}
 Run in Tool mode. The additional argument selects whether to run as
-slapadd, slapcat, slapdn, slapindex, slappasswd, or slatest. This option 
-should be the first option specified when it is used. Any remaining options 
-will be interpreted by the corresponding slap tool program. Note that these 
-tool programs will usually be symbolic links to slapd. This option is provided 
-for situations where symbolic links are not provided or not usable.
+slapadd, slapcat, slapdn, slapindex, slappasswd, or slaptest
+(slapacl and slapauth need the entire "\fIacl\fP" and "\fIauth\fP"
+option value to be spelled out, as "\fIa\fP" is reserved to
+.BR slapadd ).
+This option should be the first option specified when it is used;
+any remaining options will be interpreted by the corresponding 
+slap tool program, according to the respective man pages.
+Note that these tool programs will usually be symbolic links to slapd.
+This option is provided for situations where symbolic links 
+are not provided or not usable.
 .TP
 .BI \-d " debug\-level"
 Turn on debugging as defined by
@@ -174,7 +179,7 @@ is also changed to this user's gid, unless the -g option is used to
 override.  Note when used with
 .BR -r ,
 slapd will use the user database in the change root environment.
-.LP
+
 Note that on some systems, running as a non-privileged user will prevent
 passwd back-ends from accessing the encrypted passwords.  Note also that
 any shell back-ends will run as the specified non-privileged user.
@@ -241,7 +246,9 @@ To test whether the configuration file is correct or not, type:
 .BR ldap (3),
 .BR slapd.conf (5),
 .BR slapd.access (5),
+.BR slapacl (8),
 .BR slapadd (8),
+.BR slapauth (8),
 .BR slapcat (8),
 .BR slapdn (8),
 .BR slapindex (8),
