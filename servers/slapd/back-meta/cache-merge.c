@@ -279,8 +279,7 @@ merge_func (
 	op_tmp.orm_modlist = modhead;
 
 	op_tmp.o_callback->sc_response = null_response; 
-	/* FIXME: &op_tmp ??? */
-	if (be->be_modify(op, &sreply ) != 0 ) {
+	if (be->be_modify(&op_tmp, &sreply ) != 0 ) {
 		/* FIXME: cleanup ? */
 		info->err = MERGE_ERR;
 		goto cleanup; 
