@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 
