@@ -254,7 +254,7 @@ static char * pw_string64(
 	int rc;
 	char *string;
 	size_t b64len;
-	size_t len = hashlen + saltlen;
+	size_t len = hashlen;
 	char *b64;
 
 	if( saltlen ) {
