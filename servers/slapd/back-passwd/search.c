@@ -18,8 +18,7 @@
 
 static Entry *pw2entry(
 	Backend *be,
-	struct passwd *pw,
-	char *rdn);
+	struct passwd *pw);
 
 int
 passwd_back_search(
@@ -46,7 +45,7 @@ passwd_back_search(
 	int sent = 0;
 	int err = LDAP_SUCCESS;
 
-	char *rdn = NULL;
+	LDAPRDN *rdn = NULL;
 	char *parent = NULL;
 	char *matched = NULL;
 	char *user = NULL;
@@ -77,7 +76,7 @@ passwd_back_search(
 		matched = (char *) base;
 
 		if( scope != LDAP_SCOPE_ONELEVEL ) {
-			char *type;
+			const char *text;
 			AttributeDescription *desc = NULL;
 
 			/* Create an entry corresponding to the base DN */
@@ -92,34 +91,22 @@ passwd_back_search(
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.
 		 	*/
-			rdn = dn_rdn(NULL, base);
-
-			if( rdn == NULL || (s = strchr(rdn, '=')) == NULL ) {
+			if( ldap_str2rdn( base->bv_val, &rdn, &text, 
+				LDAP_DN_FORMAT_LDAP ) ) {
 				err = LDAP_INVALID_DN_SYNTAX;
-				free(rdn);
 				goto done;
 			}
 
-			val.bv_val = rdn_attr_value(rdn);
-			val.bv_len = strlen( val.bv_val );
-
-			type = rdn_attr_type(rdn);
-
-			{
-				int rc;
-				const char *text;
-				rc = slap_str2ad( type, &desc, &text );
-
-				if( rc != LDAP_SUCCESS ) {
-					err = LDAP_NO_SUCH_OBJECT;
-					free(rdn);
-					goto done;
-				}
+			if( slap_bv2ad( &rdn[0][0]->la_attr, &desc, &text )) {
+				err = LDAP_NO_SUCH_OBJECT;
+				ldap_rdnfree(rdn);
+				goto done;
 			}
 
+			val = rdn[0][0]->la_value;
 			attr_merge( e, desc, vals );
 
-			free(rdn);
+			ldap_rdnfree(rdn);
 			rdn = NULL;
 
 			/* Every entry needs an objectclass. We don't really
@@ -161,7 +148,7 @@ passwd_back_search(
 					return( 0 );
 				}
 
-				e = pw2entry( be, pw, NULL );
+				e = pw2entry( be, pw );
 
 				if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 					/* check size limit */
@@ -183,6 +170,8 @@ passwd_back_search(
 		}
 
 	} else {
+		const char *text = NULL;
+
 		parent = dn_parent( be, nbase->bv_val );
 
 		/* This backend is only one layer deep. Don't answer requests for
@@ -204,20 +193,18 @@ passwd_back_search(
 			goto done;
 		}
 
-		rdn = dn_rdn( NULL, base );
-
-		if ( (user = rdn_attr_value(rdn)) == NULL) {
+		if ( ldap_str2rdn( base->bv_val, &rdn, &text, LDAP_DN_FORMAT_LDAP )) { 
 			err = LDAP_OPERATIONS_ERROR;
 			goto done;
 		}
 
-		if ( (pw = getpwnam( user )) == NULL ) {
+		if ( (pw = getpwnam( rdn[0][0]->la_value.bv_val )) == NULL ) {
 			matched = parent;
 			err = LDAP_NO_SUCH_OBJECT;
 			goto done;
 		}
 
-		e = pw2entry( be, pw, rdn );
+		e = pw2entry( be, pw );
 
 		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 			send_search_entry( be, conn, op,
@@ -233,14 +220,13 @@ done:
 		err, err == LDAP_NO_SUCH_OBJECT ? matched : NULL, NULL,
 		NULL, NULL );
 
-	if( rdn != NULL ) free( rdn );
-	if( user != NULL ) free( user );
+	if( rdn != NULL ) ldap_rdnfree( rdn );
 
 	return( 0 );
 }
 
 static Entry *
-pw2entry( Backend *be, struct passwd *pw, char *rdn )
+pw2entry( Backend *be, struct passwd *pw )
 {
 	size_t pwlen;
 	Entry		*e;

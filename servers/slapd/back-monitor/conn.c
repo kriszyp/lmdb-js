@@ -399,38 +399,22 @@ monitor_subsys_conn_create(
 		*ep = e;
 
 	} else {
-		char 		**values = NULL;
+		LDAPRDN		*values = NULL;
+		const char	*text = NULL;
 		unsigned long 	connid;
 	       
 		/* create exactly the required entry */
 
-#if 0
-		struct berval	rdn;
-
-		/*
-		 * FIXME: we can pass the entire DN 
-		 * only if rdn_attrs does not complain.
-		 */
-		if ( dnExtractRdn( ndn, &rdn ) != LDAP_SUCCESS ) {
+		if ( ldap_str2rdn( ndn->bv_val, &values, &text, LDAP_DN_FORMAT_LDAP ) ) {
 			return( -1 );
 		}
-		if ( rdn_attrs( rdn.bv_val, NULL, &values ) != LDAP_SUCCESS ) {
-			free( rdn.bv_val );
-			return( -1 );
-		}
-		free( rdn.bv_val );
-#else
-		if ( rdn_attrs( ndn->bv_val, NULL, &values ) != LDAP_SUCCESS ) {
-			return( -1 );
-		}
-#endif
 		
 		assert( values );
-		assert( values[ 0 ] );
+		assert( values[ 0 ][ 0 ] );
 
-		connid = atol( values[ 0 ] );
+		connid = atol( values[ 0 ][ 0 ]->la_value.bv_val );
 
-		ldap_value_free( values );
+		ldap_rdnfree( values );
 
 		for ( c = connection_first( &connindex );
 				c != NULL;
