@@ -1130,3 +1130,55 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 #endif /* defined(LDAP_SLAPI) */
 }
 
+/*
+ * Internal API to prime a Slapi_PBlock with a Connection.
+ */
+void slapi_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
+{
+#if defined(LDAP_SLAPI)
+	char *connAuthType;
+	size_t len;
+
+	slapi_pblock_set(pb, SLAPI_CONNECTION, conn);
+	slapi_pblock_set(pb, SLAPI_CONN_ID, (void *)conn->c_connid);
+	switch (conn->c_authz.sai_method) {
+	case LDAP_AUTH_SASL: 
+		len = sizeof(SLAPD_AUTH_SASL) + conn->c_authz.sai_mech.bv_len;
+		connAuthType = slapi_ch_malloc(len);
+		snprintf(connAuthType, len, "%s%s", SLAPD_AUTH_SASL, conn->c_authz.sai_mech.bv_val);
+		break;
+	case LDAP_AUTH_SIMPLE:
+		connAuthType = slapi_ch_strdup(SLAPD_AUTH_SIMPLE);
+		break;
+	case LDAP_AUTH_NONE:
+		connAuthType = slapi_ch_strdup(SLAPD_AUTH_NONE);
+		break;
+	default:
+		connAuthType = NULL;
+		break;
+	}
+	if (conn->c_is_tls && connAuthType == NULL) {
+		connAuthType = slapi_ch_strdup(SLAPD_AUTH_SSL);
+	}
+	if (connAuthType != NULL) {
+		slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, connAuthType);
+	}
+	if (conn->c_authz.sai_dn.bv_val != NULL) {
+		slapi_pblock_set(pb, SLAPI_CONN_DN, slapi_ch_strdup(conn->c_authz.sai_dn.bv_val));
+	}
+#endif /* defined(LDAP_SLAPI) */
+}
+
+int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
+{
+#if defined( LDAP_SLAPI )
+	Connection *conn;
+
+	slapi_pblock_get( pb, SLAPI_CONNECTION, &conn );
+	*isSSL = conn->c_is_tls;
+
+	return LDAP_SUCCESS;
+#else
+	return -1;
+#endif /* defined(LDAP_SLAPI) */
+}
