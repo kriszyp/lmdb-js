@@ -237,12 +237,12 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 			} else {
 				return LDAP_PROTOCOL_ERROR;
 			}
-		}
 
-		if ( bv.bv_val[ 0 ] != ':' ) {
-			return LDAP_PROTOCOL_ERROR;
+		} else {
+			if ( bv.bv_val[ 0 ] != ':' )
+				return LDAP_PROTOCOL_ERROR;
+			bv.bv_val++;
 		}
-		bv.bv_val++;
 
 		bv.bv_val += strspn( bv.bv_val, " " );
 		/* jump here in case no type specification was present
