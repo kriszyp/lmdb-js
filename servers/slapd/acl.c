@@ -845,9 +845,12 @@ acl_mask(
 
 		if ( b->a_group_pat.bv_len && op->o_ndn.bv_len ) {
 			char buf[1024];
-			struct berval bv = { sizeof(buf) - 1, buf };
+			struct berval bv;
 			struct berval ndn = { 0, NULL };
 			int rc;
+
+			bv.bv_len = sizeof(buf) - 1;
+			bv.bv_val = buf; 
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
@@ -1823,8 +1826,11 @@ regex_matches(
 {
 	regex_t re;
 	char newbuf[512];
-	struct berval bv = {sizeof(newbuf), newbuf};
+	struct berval bv;
 	int	rc;
+
+	bv.bv_len = sizeof(newbuf);
+	bv.bv_val = newbuf;
 
 	if(str == NULL) str = "";
 

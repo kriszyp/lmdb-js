@@ -590,7 +590,9 @@ int entry_decode(struct berval *bv, Entry **e)
 	a = NULL;
 
 	while (i = entry_getlen(&ptr)) {
-		struct berval bv = { i, ptr };
+		struct berval bv;
+		bv.bv_len = i;
+		bv.bv_val = ptr;
 		if (a) {
 			a->a_next = (Attribute *)bptr;
 		}

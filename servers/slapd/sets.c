@@ -119,8 +119,11 @@ set_chase (SLAP_SET_GATHER gatherer,
 {
 	BerVarray vals, nset;
 	char attrstr[32];
-	struct berval bv = {attr->bv_len, attrstr};
+	struct berval bv;
 	int i;
+
+	bv.bv_len = attr->bv_len;
+	bv.bv_val = attrstr;
 
 	if (set == NULL)
 		return(ch_calloc(1, sizeof(struct berval)));

@@ -296,8 +296,12 @@ glue_back_search (
 	long stoptime = 0;
 	struct berval bv;
 	glue_state gs = {0};
-	slap_callback cb = {glue_back_response, glue_back_sresult, 
-		glue_back_sendentry, &gs};
+	slap_callback cb;
+
+	cb.sc_response = glue_back_response;
+	cb.sc_sresult = glue_back_sresult;
+	cb.sc_sendentry = glue_back_sendentry;
+	cb.sc_private = &gs;
 
 	gs.prevcb = op->o_callback;
 

@@ -53,7 +53,10 @@ main( int argc, char **argv )
 
 	while( ldif_read_record( ldiffp, &lineno, &buf, &lmax ) ) {
 		Entry *e = str2entry( buf );
-		struct berval bvtext = { textlen, textbuf };
+		struct berval bvtext;
+
+		bvtext.bv_len = textlen;
+		bvtext.bv_val = textbuf;
 
 		if( e == NULL ) {
 			fprintf( stderr, "%s: could not parse entry (line=%d)\n",

@@ -601,11 +601,12 @@ ldap_dnfree( LDAPDN *dn )
 int
 ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 {
-	struct berval	bv = { 0, (char *)str };
+	struct berval	bv;
 
 	assert( str );
 
 	bv.bv_len = strlen( str );
+	bv.bv_val = (char *) str;
 	
 	return ldap_bv2dn( &bv, dn, flags );
 }
@@ -687,7 +688,9 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 
 	for ( ; p < end; p++ ) {
 		int		err;
-		struct berval 	tmpbv = { bv->bv_len - ( p - str ), (char *)p };
+		struct berval 	tmpbv;
+		tmpbv.bv_len = bv->bv_len - ( p - str );
+		tmpbv.bv_val = (char *)p;
 		
 		err = ldap_bv2rdn( &tmpbv, &newRDN, (char **) &p, flags );
 		if ( err != LDAP_SUCCESS ) {
@@ -815,12 +818,13 @@ int
 ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
 	char **n_in, unsigned flags )
 {
-	struct berval	bv = { 0, (char *)str };
+	struct berval	bv;
 
 	assert( str );
 	assert( str[ 0 ] != '\0' );	/* FIXME: is this required? */
 
 	bv.bv_len = strlen( str );
+	bv.bv_val = (char *) str;
 
 	return ldap_bv2rdn( &bv, rdn, n_in, flags );
 }
