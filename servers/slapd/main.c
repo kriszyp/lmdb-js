@@ -198,7 +198,7 @@ main( int argc, char **argv )
 			exit( 1 );
 		}
 
-#ifdef HAVE_PHREADS_FINAL
+#ifdef HAVE_PTHREADS_FINAL
 		pthread_join( listener_tid, (void *) NULL );
 #else
 		pthread_join( listener_tid, (void *) &status );
