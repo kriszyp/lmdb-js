@@ -952,13 +952,16 @@ idl_delete_key (
 	   */
 	cont_alloc( &data, &key );
 #ifndef USE_INDIRECT_NIDS
-	for ( nids = 0; !ID_BLOCK_NOID(idl, nids); nids++ )
-		;	/* NULL */
+	for ( nids = 0; !ID_BLOCK_NOID(idl, nids); nids++ ) {
+		;	/* Empty */
+	}
 
 	for ( j = 0; j<nids; j++ ) 
 #else
 	nids = ID_BLOCK_NIDS(idl);
-	for ( j = idl_find(idl, id); j >= 0; j = -1)	/* execute once */
+	j = idl_find(idl, id);
+	if ( ID_BLOCK_ID(idl, j) > id ) j--;
+	for (; j>=0; j = -1 ) /* execute once */
 #endif
 	{
 		ID_BLOCK *tmp;
