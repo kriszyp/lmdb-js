@@ -73,7 +73,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	}
 
 	(void)ldap_delete_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			NULL, NULL );
+			op->o_ctrls, NULL );
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
