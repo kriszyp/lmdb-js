@@ -8,6 +8,9 @@
 #include <ac/socket.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
 #ifdef HAVE_DIRECT_H
 #include <direct.h>
 #endif

@@ -1,5 +1,10 @@
 /* txn.c - TP support functions of the bdb2 backend */
 
+#include "portable.h"
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
 #include "txn.h"
 
 
