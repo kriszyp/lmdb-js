@@ -359,6 +359,14 @@ int main( int argc, char **argv )
 	}
 #endif
 
+#ifdef SLAPD_MODULES
+	if ( module_init() != 0 ) {
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 17 );
+		goto destroy;
+	}
+#endif
+
 	if ( slap_init( serverMode, serverName ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 18 );
@@ -451,6 +459,10 @@ shutdown:
 destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();
+
+#ifdef SLAPD_MODULES
+	module_kill();
+#endif
 
 stop:
 #ifdef HAVE_NT_EVENT_LOG
