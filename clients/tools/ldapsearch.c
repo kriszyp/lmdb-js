@@ -121,7 +121,11 @@ usage( void )
 	fprintf( stderr, _("  -LL        print responses in LDIF format without comments\n"));
 	fprintf( stderr, _("  -LLL       print responses in LDIF format without comments\n"));
 	fprintf( stderr, _("             and version\n"));
+#ifdef LDAP_SCOPE_SUBORDINATE
+	fprintf( stderr, _("  -s scope   one of base, one, sub or children (search scope)\n"));
+#else /* ! LDAP_SCOPE_SUBORDINATE */
 	fprintf( stderr, _("  -s scope   one of base, one, or sub (search scope)\n"));
+#endif /* ! LDAP_SCOPE_SUBORDINATE */
 	fprintf( stderr, _("  -S attr    sort the results by attribute `attr'\n"));
 	fprintf( stderr, _("  -t         write binary values to files in temporary directory\n"));
 	fprintf( stderr, _("  -tt        write all values to files in temporary directory\n"));
