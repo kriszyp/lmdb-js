@@ -23,13 +23,14 @@
 #include <console.h>
 #endif /* MACOS */
 
-#include "lber.h"
+#include "lber-int.h"
 
 static void usage( char *name )
 {
 	fprintf( stderr, "usage: %s fmt\n", name );
 }
 
+int
 main( int argc, char **argv )
 {
 	long		i;
