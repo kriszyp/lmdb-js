@@ -190,8 +190,8 @@ value_match(
 	int *match,
 	AttributeDescription *ad,
 	MatchingRule *mr,
-	struct berval *v1, /* (unnormalized) stored value */
-	struct berval *v2, /* (normalized) asserted value */
+	struct berval *v1, /* stored value */
+	void *v2, /* assertion */
 	const char ** text )
 {
 	int rc;

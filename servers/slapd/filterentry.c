@@ -501,27 +501,59 @@ test_substring_filter(
     Filter	*f
 )
 {
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	Attribute	*a;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	int		i, rc;
 	char		*p, *end, *realval, *tmp;
 	char		pat[BUFSIZ];
 	char		buf[BUFSIZ];
 	struct berval	*val;
 	regex_t		re;
+#endif
 
 	Debug( LDAP_DEBUG_FILTER, "begin test_substring_filter\n", 0, 0, 0 );
 
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
-		f->f_sub_type, NULL, ACL_SEARCH ) )
+		f->f_sub_desc, NULL, ACL_SEARCH ) )
 	{
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
-	if ( (a = attr_find( e->e_attrs, f->f_sub_type )) == NULL ) {
-		return LDAP_COMPARE_FALSE;
-	}
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	for(a = attrs_find( e->e_attrs, f->f_sub_desc );
+		a != NULL;
+		a = attrs_find( a->a_next, f->f_sub_desc ) )
+#else
+	a = attr_find( e->e_attrs, f->f_sub_type );
+	if ( a != NULL )
+#endif
+	{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		int i;
+		MatchingRule *mr = a->a_desc->ad_type->sat_substr;
 
+		if( mr == NULL ) {
+			continue;
+		}
+
+		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+			int ret;
+			int rc;
+			const char *text;
+
+			rc = value_match( &ret, a->a_desc, mr,
+				a->a_vals[i], f->f_sub,
+				&text );
+
+			if( rc != LDAP_SUCCESS ) {
+				return rc;
+			}
+
+			if ( ret == 0 ) {
+				return LDAP_COMPARE_TRUE;
+			}
+		}
+#else
 	if ( a->a_syntax & SYNTAX_BIN ) {
 		Debug( LDAP_DEBUG_FILTER, "test_substring_filter bin attr\n",
 		    0, 0, 0 );
@@ -616,6 +648,7 @@ test_substring_filter(
 
 	regfree(&re);
 #endif
+	}
 
 	Debug( LDAP_DEBUG_FILTER, "end test_substring_filter 1\n", 0, 0, 0 );
 	return LDAP_COMPARE_FALSE;

@@ -703,7 +703,7 @@ LIBSLAPD_F (int) value_match LDAP_P((
 	AttributeDescription *ad,
 	MatchingRule *mr,
 	struct berval *v1,
-	struct berval *v2,
+	void *v2,
 	const char ** text ));
 LIBSLAPD_F (int) value_find LDAP_P((
 	AttributeDescription *ad,
