@@ -1,0 +1,45 @@
+## Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+
+## (C) Copyright IBM Corp. 1997,2002
+## Redistribution and use in source and binary forms are permitted
+## provided that this notice is preserved and that due credit is 
+## given to IBM Corporation. This software is provided ``as is'' 
+## without express or implied warranty.
+
+
+LIBRARY = libslapi.la
+XLIBRARY = libtmpslapd.a
+
+#all-common: $(LIBRARY) $(PROGRAMS)
+#	@touch plugin.c slapi_pblock.c slapi_utils.c slapi_ops.c
+
+NT_SRCS = nt_err.c
+NT_OBJS = nt_err.lo
+
+LIB_DEFS = -DSLAPI_LIBRARY
+
+SRCS=  plugin.c slapi_pblock.c slapi_utils.c printmsg.c slapi_ops.c  $(@PLAT@_SRCS)
+OBJS=  plugin.lo slapi_pblock.lo slapi_utils.lo printmsg.lo slapi_ops.lo $(@PLAT@_SRCS)
+
+XSRCS= version.c
+
+LDAP_INCDIR= ../../../include -I.. -I.       
+LDAP_LIBDIR= ../../../libraries       
+
+XLIBS = $(LIBRARY)
+XXLIBS = 
+NT_LINK_LIBS = $(AC_LIBS)
+
+XDEFS = $(MODULES_CPPFLAGS)
+
+UNIX_LINK_LIBS = ./libtmpslapd.a ../libbackends.a ../../../libraries/libavl/libavl.a ../../../libraries/liblber/.libs/liblber.a ../../../libraries/libldbm/libldbm.a ../../../libraries/libldif/libldif.a ../../../libraries/liblutil/liblutil.a ../../../libraries/liblunicode/liblunicode.a ../../../libraries/libldap_r/.libs/libldap_r.a ./libtmpslapd.a
+
+BUILD_MOD = @BUILD_SLAPI@
+
+install-local: FORCE
+	if test "$(BUILD_MOD)" = "yes"; then \
+		$(MKDIR) $(DESTDIR)$(libdir); \
+		$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir); \
+	fi
+

@@ -42,7 +42,7 @@ send_ldap_disconnect(
 }
 
 void
-send_ldap_extended(
+slap_send_ldap_extended(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
@@ -73,7 +73,7 @@ send_ldap_sasl(
 }
 
 void
-send_ldap_result(
+slap_send_ldap_result(
 	Connection  *conn, 
 	Operation   *op,
 	ber_int_t     err,
@@ -87,7 +87,7 @@ send_ldap_result(
 }
 
 void
-send_search_result(
+slap_send_search_result(
 	Connection  *conn, 
 	Operation   *op,
 	ber_int_t     err,
@@ -102,7 +102,7 @@ send_search_result(
 }
 
 int
-send_search_entry(
+slap_send_search_entry(
 	Backend *be,
 	Connection  *conn, 
 	Operation   *op,
@@ -116,7 +116,8 @@ send_search_entry(
 	return -1;
 }
 
-int send_search_reference(
+int
+slap_send_search_reference(
 	Backend *be,
 	Connection  *conn, 
 	Operation   *op,
@@ -266,6 +267,17 @@ slap_modrdn2mods(
 	LDAPRDN		*newrdn,
 	int		deleteoldrdn,
 	Modifications	**pmod )
+{
+	return 0;
+}
+
+int
+slap_mods2entry(
+	Modifications *mods,
+	Entry **e,
+	int repl_user,
+	const char **text,
+	char *textbuf, size_t textlen )
 {
 	return 0;
 }

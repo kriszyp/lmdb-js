@@ -395,22 +395,28 @@ long connection_init(
 	if( c == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, INFO, 
-			   "connection_init: skt %d	 connection table full (%d/%d)\n",
-			   s, i, dtblsize );
+			   "connection_init: skt %d connection table full "
+			   "(%d/%d)\n", s, i, dtblsize );
 #else
 		Debug( LDAP_DEBUG_ANY,
-				"connection_init(%d): connection table full (%d/%d)\n",
-				s, i, dtblsize);
+				"connection_init(%d): connection table full "
+				"(%d/%d)\n", s, i, dtblsize);
 #endif
 	    ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	    return -1;
 	}
-    }
+    	}
 #endif
 
-    assert( c != NULL );
+	assert( c != NULL );
 
 	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
+		c->c_send_ldap_result = slap_send_ldap_result;
+		c->c_send_search_entry = slap_send_search_entry;
+		c->c_send_search_result = slap_send_search_result;
+		c->c_send_search_reference = slap_send_search_reference;
+		c->c_send_ldap_extended = slap_send_ldap_extended;
+
 		c->c_authmech.bv_val = NULL;
 		c->c_authmech.bv_len = 0;
 		c->c_dn.bv_val = NULL;

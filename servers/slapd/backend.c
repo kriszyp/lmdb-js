@@ -7,6 +7,7 @@
 
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -16,6 +17,7 @@
 #include <sys/stat.h>
 
 #include "slap.h"
+#include "slapi.h"
 #include "lutil.h"
 #include "lber_pvt.h"
 
@@ -686,12 +688,56 @@ backend_unbind(
 	Operation    *op
 )
 {
-	int	i;
+	int		i;
+	int     rc;
+	Slapi_PBlock *pb = op->o_pb;
+
+#if defined( LDAP_SLAPI )
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+#endif /* defined( LDAP_SLAPI ) */
 
 	for ( i = 0; i < nbackends; i++ ) {
+#if defined( LDAP_SLAPI )
+		slapi_pblock_set( pb, SLAPI_BACKEND, (void *)&backends[i] );
+		rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
+				(Slapi_PBlock *)pb );
+		if ( rc != 0 && rc != LDAP_OTHER ) {
+			/*
+			 * either there is no preOp (unbind) plugins
+			 * or a plugin failed. Just log it.
+			 *
+			 * FIXME: is this correct?
+			 */
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: Unbind preOps failed\n"));
+#else
+			Debug (LDAP_DEBUG_TRACE, " Unbind preOps failed.\n", 0, 0, 0);
+#endif
+		}
+#endif /* defined( LDAP_SLAPI ) */
+
 		if ( backends[i].be_unbind ) {
 			(*backends[i].be_unbind)( &backends[i], conn, op );
 		}
+
+#if defined( LDAP_SLAPI )
+		rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
+				(Slapi_PBlock *)pb );
+		if ( rc != 0 && rc != LDAP_OTHER ) {
+			/*
+			 * either there is no postOp (unbind) plugins
+			 * or a plugin failed. Just log it.
+			 *
+			 * FIXME: is this correct?
+			 */
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_unbind: Unbind postOps failed\n"));
+#else
+			Debug (LDAP_DEBUG_TRACE, " Unbind postOps failed.\n", 0, 0, 0);
+#endif
+		}
+#endif /* defined( LDAP_SLAPI ) */
 	}
 
 	return 0;

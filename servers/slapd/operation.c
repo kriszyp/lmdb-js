@@ -6,6 +6,7 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -13,6 +14,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "slapi.h"
 
 
 void
@@ -42,6 +44,12 @@ slap_op_free( Operation *op )
 	}
 #endif /* LDAP_CLIENT_UPDATE */
 
+#if defined( LDAP_SLAPI )
+	if ( op->o_pb != NULL ) {
+		slapi_pblock_destroy( (Slapi_PBlock *)op->o_pb );
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 	free( (char *) op );
 }
 
@@ -63,6 +71,10 @@ slap_op_alloc(
 
 	op->o_time = slap_get_time();
 	op->o_opid = id;
+
+#if defined( LDAP_SLAPI )
+	op->o_pb = slapi_pblock_new();
+#endif /* defined( LDAP_SLAPI ) */
 
 	return( op );
 }

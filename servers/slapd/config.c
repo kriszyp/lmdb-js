@@ -6,6 +6,7 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -18,6 +19,7 @@
 #include "lutil.h"
 #include "ldap_pvt.h"
 #include "slap.h"
+#include "slapi.h"
 
 #define ARGS_STEP	512
 
@@ -2310,6 +2312,49 @@ read_config( const char *fname, int depth )
 		   		fname, lineno, 0 );
 #endif
 #endif /* !SLAPD_RLOOKUPS */
+
+		/* Netscape plugins */
+		} else if ( strcasecmp( cargv[0], "plugin" ) == 0 ) {
+#if defined( LDAP_SLAPI )
+
+			/*
+			 * a "plugin" line must be inside a database
+			 * definition, since we implement pre-,post- 
+			 * and extended operation plugins
+			 */
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: plugin line must appear "
+					"inside a database definition.\n",
+					fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: plugin "
+				    "line must appear inside a database "
+				    "definition\n", fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+
+			if ( netscape_plugin( be, fname, lineno, cargc, cargv ) 
+					!= LDAP_SUCCESS ) {
+				return( 1 );
+			}
+
+#else /* !defined( LDAP_SLAPI ) */
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, INFO, 
+				"%s: line %d: SLAPI not supported.\n",
+				fname, lineno, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: SLAPI "
+			    "not supported.\n", fname, lineno, 0 );
+#endif
+			return( 1 );
+			
+#endif /* !defined( LDAP_SLAPI ) */
+
+
 
 		/* pass anything else to the current backend info/db config routine */
 		} else {

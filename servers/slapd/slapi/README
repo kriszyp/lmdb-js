@@ -1,0 +1,55 @@
+Files included in this patch:
+
+I. Modified OpenLDAP files
+---------------------------------
+
+1.  top level configure.in				
+2.  slap.h						
+3.  back-ldbm/Makefile.in				
+4.  back-ldbm/config.c					
+5.  back-bdb/Makefile.in					
+6.  back-bdb/config.c					
+7.  slapd/tools/Makefile.in
+8.  ldap/include/Makefile.in				
+9.  slapd/Makefile.in					
+10. operation.c						
+11. root_dse.c						
+12. extended.c						
+13. bind.c						
+14. backend.c						
+15. add.c						
+16. delete.c						
+17. compare.c						
+18. moddify.c
+19. modrdn.c						
+20. search.c						
+21. result.c
+22. mimic.c
+
+
+II. New files 
+-------------------------------
+
+1. slapd/slapi/Makefile.in				
+2. slapd/slapi/ldapload.h				
+3. slapd/slapi/ldapload.c				
+4. slapd/slapi/plugin.h					
+5. slapd/slapi/plugin.c					
+6. slapd/slapi/printmsg.c				  
+7. slapd/slapi/slapi_pblock.h				
+8. slapd/slapi/slapi_pblock.c				  
+9. slapd/slapi/slapi_ops.h				
+10.slapd/slapi/slapi_utils.h				
+11.slapd/slapi/slapi_utils.c				
+12.slapd/slapi/ibm_pblock_params.h			  
+13.slapd/slapi/slapi_common.h				
+14.slapd/slapi/slapi.h					
+15.slapd/slapi/slapi_cl.h				  
+16.ldap/include/slapi-plugin.h				  
+
+III. General procedure
+
+The directory ldap/servers/slapd/slapi should be created and
+files 1-15, section II above should be placed in that directory. 
+The file slapi-plugin.h (16 above) should also be copied into 
+the ldap/include directory.

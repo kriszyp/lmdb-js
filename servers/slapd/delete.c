@@ -16,6 +16,7 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -24,6 +25,7 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#include "slapi.h"
 
 int
 do_delete(
@@ -38,6 +40,8 @@ do_delete(
 	Backend	*be;
 	int rc;
 	int manageDSAit;
+
+	Slapi_PBlock *pb = op->o_pb;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
@@ -153,6 +157,30 @@ do_delete(
 	/* deref suffix alias if appropriate */
 	suffix_alias( be, &ndn );
 
+#if defined( LDAP_SLAPI )
+	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no preOp (delete) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: delete preOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " delete preOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 	/*
 	 * do the delete if 1 && (2 || 3)
 	 * 1) there is a delete function implemented in this backend;
@@ -192,6 +220,23 @@ do_delete(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
+
+#if defined( LDAP_SLAPI )
+	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_DELETE_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no postOp (delete) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: delete postOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " delete postOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
 	free( pdn.bv_val );

@@ -16,6 +16,7 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 #include <ac/string.h>
@@ -24,13 +25,7 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
-
-static int slap_mods2entry(
-	Modifications *mods,
-	Entry **e,
-	int repl_user,
-	const char **text,
-	char *textbuf, size_t textlen );
+#include "slapi.h"
 
 int
 do_add( Connection *conn, Operation *op )
@@ -48,6 +43,8 @@ do_add( Connection *conn, Operation *op )
 	const char *text;
 	int			rc = LDAP_SUCCESS;
 	int	manageDSAit;
+
+	Slapi_PBlock *pb = op->o_pb;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_add: conn %d enter\n", conn->c_connid,0,0 );
@@ -228,6 +225,31 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	}
 
+#if defined( LDAP_SLAPI )
+	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	slapi_pblock_set( pb, SLAPI_ADD_ENTRY, (void *)e );
+	slapi_pblock_set( pb, SLAPI_ADD_TARGET, (void *)dn.bv_val );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_ADD_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no preOp (add) plugins
+		 * or a plugin failed. Just log it
+		 * 
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_add: add preOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " add preOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 	/*
 	 * do the add if 1 && (2 || 3)
 	 * 1) there is an add function implemented in this backend;
@@ -314,6 +336,23 @@ do_add( Connection *conn, Operation *op )
 			      NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
+#if defined( LDAP_SLAPI )
+	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_ADD_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no postOp (Add) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_add: Add postOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " Add postOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 done:
 	if( modlist != NULL ) {
 		slap_mods_free( modlist );
@@ -325,7 +364,8 @@ done:
 	return rc;
 }
 
-static int slap_mods2entry(
+int
+slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
 	int repl_user,

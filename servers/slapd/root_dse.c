@@ -11,13 +11,18 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 #include <ac/string.h>
 
 #include "slap.h"
+#include "slapi.h"
 #include <ldif.h>
 #include "lber_pvt.h"
+#include "slapi/slapi_utils.h"
+
+struct berval *ns_get_supported_extop (int);
 
 static struct berval supportedFeatures[] = {
 	BER_BVC(LDAP_FEATURE_ALL_OPERATIONAL_ATTRS), /* all Operational Attributes ("+") */
@@ -133,6 +138,14 @@ root_dse_info(
 		if( attr_merge( e, ad_supportedExtension, vals ) )
 			return LDAP_OTHER;
 	}
+
+#if defined( LDAP_SLAPI )
+	/* netscape supportedExtension */
+	for ( i = 0; (bv = ns_get_supported_extop(i)) != NULL; i++ ) {
+		vals[0] = *bv;
+		attr_merge( e, ad_supportedExtension, vals );
+	}
+#endif /* defined( LDAP_SLAPI ) */
 
 	/* supportedFeatures */
 	if( attr_merge( e, ad_supportedFeatures, supportedFeatures ) )

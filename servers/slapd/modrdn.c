@@ -29,6 +29,7 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -37,6 +38,7 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#include "slapi.h"
 
 int
 do_modrdn(
@@ -63,6 +65,8 @@ do_modrdn(
 	int rc;
 	const char *text;
 	int manageDSAit;
+
+	Slapi_PBlock *pb = op->o_pb;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modrdn: begin\n", 0, 0, 0 );
@@ -324,6 +328,34 @@ do_modrdn(
 	/* deref suffix alias if appropriate */
 	suffix_alias( be, &ndn );
 
+#if defined( LDAP_SLAPI )
+	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+	slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn.bv_val );
+	slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
+			(void *)newSuperior.bv_val );
+	slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no preOp (modrdn) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_modrdn: modrdn preOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " modrdn preOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 	/*
 	 * do the add if 1 && (2 || 3)
 	 * 1) there is an add function implemented in this backend;
@@ -369,6 +401,23 @@ do_modrdn(
 			NULL, "operation not supported within namingContext",
 			NULL, NULL );
 	}
+
+#if defined( LDAP_SLAPI )
+	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_MODRDN_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no postOp (modrdn) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_modrdn: modrdn postOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " modrdn postOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
 	free( pdn.bv_val );

@@ -106,6 +106,12 @@ get_supported_ctrl(int index)
 	return supportedControls[index].sc_oid;
 }
 
+slap_mask_t
+get_supported_ctrl_mask(int index)
+{
+	return supportedControls[index].sc_mask;
+}
+
 static struct slap_control *
 find_ctrl( const char *oid )
 {

@@ -16,6 +16,7 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -24,6 +25,7 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#include "slapi.h"
 
 int
 do_search(
@@ -43,6 +45,8 @@ do_search(
 	int			rc;
 	const char	*text;
 	int			manageDSAit;
+
+	Slapi_PBlock *pb = op->o_pb;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_search: conn %d\n", conn->c_connid, 0, 0 );
@@ -310,6 +314,37 @@ do_search(
 	/* deref the base if needed */
 	suffix_alias( be, &nbase );
 
+#if defined( LDAP_SLAPI )
+	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)base.bv_val );
+	slapi_pblock_set( pb, SLAPI_SEARCH_SCOPE, (void *)scope );
+	slapi_pblock_set( pb, SLAPI_SEARCH_DEREF, (void *)deref );
+	slapi_pblock_set( pb, SLAPI_SEARCH_SIZELIMIT, (void *)sizelimit );
+	slapi_pblock_set( pb, SLAPI_SEARCH_TIMELIMIT, (void *)timelimit );
+	slapi_pblock_set( pb, SLAPI_SEARCH_FILTER, (void *)filter );
+	slapi_pblock_set( pb, SLAPI_SEARCH_STRFILTER, (void *)fstr.bv_val );
+	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRSONLY, (void *)attrsonly );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_SEARCH_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no preOp (search) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_search: search preOps failed\n"));
+#else
+		Debug(LDAP_DEBUG_TRACE, "search preOps failed.\n", 0, 0, 0);
+#endif
+    }
+#endif /* defined( LDAP_SLAPI ) */
+
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, &pbase, &nbase,
@@ -320,6 +355,23 @@ do_search(
 			NULL, "operation not supported within namingContext",
 			NULL, NULL );
 	}
+
+#if defined( LDAP_SLAPI )
+	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_SEARCH_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no postOp (search) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_search: search postOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " search postOps failed.\n", 0, 0, 0);
+#endif
+    }
+#endif /* defined( LDAP_SLAPI ) */
 
 return_results:;
 #ifdef LDAP_CLIENT_UPDATE

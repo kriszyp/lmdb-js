@@ -429,7 +429,7 @@ send_ldap_disconnect(
 }
 
 void
-send_ldap_result(
+slap_send_ldap_result(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
@@ -545,7 +545,7 @@ send_ldap_sasl(
 }
 
 void
-send_ldap_extended(
+slap_send_ldap_extended(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
@@ -583,7 +583,7 @@ send_ldap_extended(
 
 
 void
-send_search_result(
+slap_send_search_result(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
@@ -661,7 +661,7 @@ send_search_result(
 }
 
 int
-send_search_entry(
+slap_send_search_entry(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
@@ -1214,7 +1214,7 @@ error_return:;
 }
 
 int
-send_search_reference(
+slap_send_search_reference(
     Backend	*be,
     Connection	*conn,
     Operation	*op,

@@ -18,6 +18,7 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -26,6 +27,7 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#include "slapi.h"
 
 int
 do_bind(
@@ -46,6 +48,8 @@ do_bind(
 	const char *text;
 	struct berval cred = { 0, NULL };
 	Backend *be = NULL;
+
+	Slapi_PBlock *pb = op->o_pb;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_bind: conn %d\n", conn->c_connid, 0, 0 );
@@ -526,6 +530,30 @@ do_bind(
 		goto cleanup;
 	}
 
+#if defined( LDAP_SLAPI )
+	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+	slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_BIND_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no preOp (bind) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: Bind preOps  failed\n"));
+#else
+		Debug(LDAP_DEBUG_TRACE, " Bind preOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 	if ( be->be_bind ) {
 		int ret;
 
@@ -591,6 +619,23 @@ do_bind(
 			NULL, "operation not supported within namingContext",
 			NULL, NULL );
 	}
+
+#if defined( LDAP_SLAPI )
+	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_BIND_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no pretOp (bind) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_bind: Bind postOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " Bind postOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
 	conn->c_sasl_bindop = NULL;

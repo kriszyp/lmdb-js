@@ -84,7 +84,13 @@ LDAP_SLAPD_F (AttributeDescription *) ad_find_lang LDAP_P((
 
 LDAP_SLAPD_F (AttributeName *) str2anlist LDAP_P(( AttributeName *an,
 	char *str, const char *brkstr ));
-LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));	
+LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));
+
+/*
+ * add.c
+ */
+LDAP_SLAPD_F (int) slap_mods2entry LDAP_P(( Modifications *mods, Entry **e,
+	int repl_user, const char **text, char *textbuf, size_t textlen ));
 
 /*
  * at.c
@@ -270,6 +276,8 @@ LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 	int senderrors ));
 
 LDAP_SLAPD_F (char *) get_supported_ctrl LDAP_P((int index));
+
+LDAP_SLAPD_F (slap_mask_t) get_supported_ctrl_mask LDAP_P((int index));
 
 /*
  * config.c
@@ -773,7 +781,7 @@ LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op,
 /*
  * result.c
  */
-LDAP_SLAPD_F (void) send_ldap_result LDAP_P((
+LDAP_SLAPD_F (void) slap_send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
 	BerVarray refs,
@@ -791,7 +799,7 @@ LDAP_SLAPD_F (void) send_ldap_disconnect LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *text ));
 
-LDAP_SLAPD_F (void) send_ldap_extended LDAP_P((
+LDAP_SLAPD_F (void) slap_send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text, BerVarray refs,
@@ -803,20 +811,20 @@ LDAP_SLAPD_F (void) send_ldap_partial LDAP_P((
 	const char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
-LDAP_SLAPD_F (void) send_search_result LDAP_P((
+LDAP_SLAPD_F (void) slap_send_search_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
 	BerVarray refs,
 	LDAPControl **ctrls,
 	int nentries ));
 
-LDAP_SLAPD_F (int) send_search_reference LDAP_P((
+LDAP_SLAPD_F (int) slap_send_search_reference LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, BerVarray refs,
 	LDAPControl **ctrls,
 	BerVarray *v2refs ));
 
-LDAP_SLAPD_F (int) send_search_entry LDAP_P((
+LDAP_SLAPD_F (int) slap_send_search_entry LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, AttributeName *attrs, int attrsonly,
 	LDAPControl **ctrls ));

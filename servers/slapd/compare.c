@@ -16,12 +16,14 @@
  */
 
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 #include <ac/socket.h>
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#include "slapi.h"
 
 static int compare_entry(
 	Connection *conn,
@@ -47,6 +49,8 @@ do_compare(
 	int rc = LDAP_SUCCESS;
 	const char *text = NULL;
 	int manageDSAit;
+
+	Slapi_PBlock *pb = op->o_pb;
 
 	ava.aa_desc = NULL;
 
@@ -267,6 +271,32 @@ do_compare(
 	/* deref suffix alias if appropriate */
 	suffix_alias( be, &ndn );
 
+#if defined( LDAP_SLAPI )
+	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
+	slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)desc.bv_val );
+	slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&value );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no preOp (compare) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_compare: compare preOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " compare preOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 	if ( be->be_compare ) {
 		(*be->be_compare)( be, conn, op, &pdn, &ndn, &ava );
 	} else {
@@ -274,6 +304,23 @@ do_compare(
 			NULL, "operation not supported within namingContext",
 			NULL, NULL );
 	}
+
+#if defined( LDAP_SLAPI )
+	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_COMPARE_FN, pb );
+	if ( rc != 0 && rc != LDAP_OTHER ) {
+		/*
+		 * either there is no postOp (compare) plugins
+		 * or a plugin failed. Just log it
+		 *
+		 * FIXME: is this correct?
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_compare: compare postOps failed\n"));
+#else
+		Debug (LDAP_DEBUG_TRACE, " compare postOps failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
 	free( pdn.bv_val );

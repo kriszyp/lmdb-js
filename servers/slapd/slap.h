@@ -1327,6 +1327,8 @@ struct slap_backend_db {
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
 	char	*be_realm;
 	void	*be_private;	/* anything the backend database needs 	   */
+
+	void    *be_pb;         /* Netscape plugin */
 };
 
 struct slap_conn;
@@ -1689,12 +1691,89 @@ typedef struct slap_op {
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 	ValuesReturnFilter *vrFilter; /* Structure represents ValuesReturnFilter */
+
+	void    *o_pb;                  /* Netscape plugin */
+
 } Operation;
 
 #define get_manageDSAit(op)				((int)(op)->o_managedsait)
 #define get_subentries(op)				((int)(op)->o_subentries)
 #define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
 #define get_pagedresults(op)			((int)(op)->o_pagedresults)
+
+
+
+typedef void (*SEND_LDAP_RESULT)(
+				struct slap_conn *conn,
+				struct slap_op *op,
+				ber_int_t err,
+				const char *matched,
+				const char *text,
+				BerVarray ref,
+				LDAPControl **ctrls
+				);
+
+#define send_ldap_result( conn, op, err, matched, text, ref, ctrls  ) \
+(*conn->c_send_ldap_result)( conn, op, err, matched, text, ref, ctrls )
+
+
+typedef int (*SEND_SEARCH_ENTRY)(
+				struct slap_backend_db *be,
+				struct slap_conn *conn,
+				struct slap_op *op,
+				struct slap_entry *e,
+				AttributeName *attrs,
+				int attrsonly,
+				LDAPControl **ctrls
+				);
+
+#define send_search_entry( be, conn, op, e, attrs, attrsonly, ctrls) \
+(*conn->c_send_search_entry)( be, conn, op, e, attrs, attrsonly, ctrls)
+
+
+typedef void (*SEND_SEARCH_RESULT)(
+				struct slap_conn *conn,
+				struct slap_op *op,
+				ber_int_t err,
+				const char *matched,
+				const char *text,
+				BerVarray   refs,
+				LDAPControl **ctrls,
+				int nentries
+				);
+
+#define send_search_result( conn, op, err, matched, text, refs, ctrls, nentries ) \
+(*conn->c_send_search_result)( conn, op, err, matched, text, refs, ctrls, nentries )
+
+
+typedef int (*SEND_SEARCH_REFERENCE)(
+				struct slap_backend_db *be,
+				struct slap_conn *conn,
+				struct slap_op *op,
+				struct slap_entry *e,
+				BerVarray refs,
+				LDAPControl **ctrls,
+				BerVarray *v2refs
+				);
+
+#define send_search_reference( be, conn, op, e,  refs, ctrls, v2refs ) \
+(*conn->c_send_search_reference)( be, conn, op, e,  refs, ctrls, v2refs )
+
+
+typedef void (*SEND_LDAP_EXTENDED)(
+				struct slap_conn *conn,
+				struct slap_op *op,
+				ber_int_t   err,
+				const char  *matched,
+				const char  *text,
+				BerVarray   refs,
+				const char      *rspoid,
+				struct berval *rspdata,
+				LDAPControl **ctrls
+				);
+
+#define send_ldap_extended( conn, op, err, matched, text, refs, rspoid, rspdata, ctrls) \
+(*conn->c_send_ldap_extended)( conn, op, err, matched, text, refs, rspoid, rspdata, ctrls )
 
 
 /*
@@ -1777,6 +1856,20 @@ typedef struct slap_conn {
 	long	c_n_get;		/* num of get calls */
 	long	c_n_read;		/* num of read calls */
 	long	c_n_write;		/* num of write calls */
+
+	void    *c_pb;                  /* Netscape plugin */
+
+    /*
+	 * These are the "callbacks" that are available for back-ends to
+	 * supply data back to connected clients that are connected
+	 * through the "front-end".
+	*/
+	SEND_LDAP_RESULT c_send_ldap_result;
+	SEND_SEARCH_ENTRY c_send_search_entry;
+	SEND_SEARCH_RESULT c_send_search_result;
+	SEND_SEARCH_REFERENCE c_send_search_reference;
+	SEND_LDAP_EXTENDED c_send_ldap_extended;
+	
 } Connection;
 
 #if defined(LDAP_SYSLOG) && defined(LDAP_DEBUG)

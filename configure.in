@@ -186,6 +186,8 @@ OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client
 OL_ARG_ENABLE(slp, [    --enable-slp          enable SLPv2 support], no)dnl     
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
 
+OL_ARG_ENABLE(slapi,[    --enable-slapi   enable installation of slapi library], yes)dnl
+
 dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], yes)dnl
 OL_ARG_WITH(bdb_module,[    --with-bdb-module     module type static|dynamic], static,
@@ -247,6 +249,9 @@ dnl General "enable" options
 # validate options
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
+	if test $ol_enable_slapi = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-slapi argument])
+	fi
 	if test $ol_enable_bdb = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-bdb argument])
 	fi
@@ -351,6 +356,7 @@ if test $ol_enable_slapd = no ; then
 	fi
 
 	# force settings to no
+	ol_enable_slapi=no
 	ol_enable_bdb=no
 	ol_enable_dnssrv=no
 	ol_enable_ldap=no
@@ -521,6 +527,9 @@ BUILD_SLURPD=no
 
 BUILD_THREAD=no
 
+BUILD_SLAPI=no
+SLAPD_SLAPI_DEPEND=
+
 BUILD_BDB=no
 BUILD_DNSSRV=no
 BUILD_LDAP=no
@@ -569,6 +578,7 @@ SASL_LIBS=
 TERMCAP_LIBS=
 TLS_LIBS=
 MODULES_LIBS=
+SLAPI_LIBS=
 AUTH_LIBS=
 
 SLAPD_SLP_LIBS=
@@ -2504,6 +2514,22 @@ OL_SYS_ERRLIST
 dnl ----------------------------------------------------------------
 dnl Sort out defines
 
+if test "$ol_enable_slapi" != no ; then
+	dnl This check is donel also if --enable-modules is used;
+	dnl it is duplicated here, 'cause it'd be cached anyway
+	AC_CHECK_HEADERS(ltdl.h)
+
+	if test $ac_cv_header_ltdl_h != yes ; then
+		AC_MSG_ERROR([could not locate <ltdl.h>])
+	fi
+	AC_CHECK_LIB(ltdl, lt_dlinit, [
+		SLAPI_LIBS=-lltdl
+		AC_DEFINE(HAVE_LIBLTDL,1,[define if you have libtool -ltdl])
+	],[AC_MSG_ERROR([could not locate libtool -lltdl])])
+
+	AC_DEFINE(LDAP_SLAPI,1, [define this to add SLAPI code])
+fi
+
 if test "$ol_enable_debug" != no ; then
 	AC_DEFINE(LDAP_DEBUG,1,
 		[define this to add debugging code])
@@ -2764,6 +2790,12 @@ if test "$ol_enable_rewrite" != no ; then
 	BUILD_REWRITE=yes
 fi
 
+if test "$ol_enable_slapi" != no ; then
+	AC_DEFINE(ENABLE_SLAPI,1,[define to enable slapi library])
+	BUILD_SLAPI=yes
+	SLAPD_SLAPI_DEPEND=libslapi.a
+fi
+
 dnl ----------------------------------------------------------------
 
 dnl
@@ -2789,6 +2821,8 @@ AC_SUBST(PLAT)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
 AC_SUBST(BUILD_SLAPD)
+  AC_SUBST(BUILD_SLAPI)
+  AC_SUBST(SLAPD_SLAPI_DEPEND)
   AC_SUBST(BUILD_BDB)
   AC_SUBST(BUILD_DNSSRV)
   AC_SUBST(BUILD_LDAP)
@@ -2843,6 +2877,7 @@ AC_SUBST(SASL_LIBS)
 AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
+AC_SUBST(SLAPI_LIBS)
 AC_SUBST(AUTH_LIBS)
 
 AC_SUBST(SLAPD_SLP_LIBS)
@@ -2896,6 +2931,7 @@ servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile
 servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
 servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
+servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk  \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \

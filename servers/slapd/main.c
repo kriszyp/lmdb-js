@@ -4,6 +4,7 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
+#include "slapi_common.h"
 
 #include <stdio.h>
 
@@ -16,7 +17,9 @@
 
 #include "ldap_pvt.h"
 
+
 #include "slap.h"
+#include "slapi.h"
 #include "lutil.h"
 #include "ldif.h"
 
@@ -404,6 +407,20 @@ int main( int argc, char **argv )
 	rc = 0;
 	(void) ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
 #endif
+
+#ifdef LDAP_SLAPI
+	if ( slapi_init() != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT, "main: slapi initialization error\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+		    "slapi initialization error\n",
+		    0, 0, 0 );
+#endif
+
+		goto destroy;
+	}
+#endif /* LDAP_SLAPI */
 
 	if ( read_config( configfile, 0 ) != 0 ) {
 		rc = 1;

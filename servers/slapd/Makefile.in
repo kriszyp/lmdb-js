@@ -35,11 +35,11 @@ OBJS	= main.o daemon.o connection.o search.o filter.o add.o cr.o \
 		limits.o backglue.o operational.o matchedValues.o \
 		$(@PLAT@_OBJS)
 
-LDAP_INCDIR= ../../include
+LDAP_INCDIR= ../../include -Islapi
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
-SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a
+SLAPD_STATIC_DEPENDS=@SLAPD_SLAPI_DEPEND@ @SLAPD_NO_STATIC@ libbackends.a
 SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
 SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
 
@@ -48,7 +48,7 @@ XLDFLAGS = $(MODULES_LDFLAGS)
 
 XLIBS = $(SLAPD_STATIC_DEPENDS) $(SLAPD_L)
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
-XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
+XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS) $(SLAPI_LIBS)
 
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
@@ -224,8 +224,17 @@ slapd.exp: libslapd.a
 	dlltool --dllname slapd.exe --input-def slapd.def \
 		--base-file slapd.base --output-exp $@
 
+.slapi: FORCE
+	(cd slapi; $(MAKE) $(MFLAGS) all)
+
+libslapi.a: .slapi
+	$(AR) ruv slapi/libtmpslapd.a $(OBJS)
+	cp slapi/.libs/libslapi.a .
+
 slapd: $(SLAPD_DEPENDS)
-	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) $(WRAP_LIBS)
+	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
+		libslapi.a slapi/libtmpslapd.a \
+		$(WRAP_LIBS)
 
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
@@ -280,7 +289,7 @@ version.c: $(OBJS) $(SLAPD_LIBDEPEND)
 	$(MKVERSION) -s -n Versionstr slapd > $@
 
 depend-local-srv: FORCE
-	@for i in back-* shell-backends tools; do \
+	@for i in back-* shell-backends slapi tools; do \
 		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
@@ -293,7 +302,7 @@ clean-local:
 	rm -f *.exp *.def *.base *.a *.objs symdummy.c
 
 clean-local-srv: FORCE
-	@for i in back-* shell-backends tools; do \
+	@for i in back-* shell-backends slapi tools; do \
 		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
@@ -303,7 +312,7 @@ clean-local-srv: FORCE
 	rm -f *.tmp all-cffiles
 
 veryclean-local-srv: FORCE
-	@for i in back-* shell-backends tools; do \
+	@for i in back-* shell-backends slapi tools; do \
 		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
@@ -317,7 +326,7 @@ install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(localstatedir)
 	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
-	@for i in back-* shell-backends tools; do \
+	@for i in back-* shell-backends slapi tools; do \
 	    if test -d $$i -a -f $$i/Makefile ; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 		( cd $$i; $(MAKE) $(MFLAGS) install ); \
