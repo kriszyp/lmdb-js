@@ -133,6 +133,8 @@ int asserted_value_validate_normalize(
 	void *ctx )
 {
 	int rc;
+	struct berval pval;
+	pval.bv_val = NULL;
 
 	/* we expect the value to be in the assertion syntax */
 	assert( !SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX(usage) );
@@ -147,7 +149,13 @@ int asserted_value_validate_normalize(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+	if( mr->smr_syntax->ssyn_pretty ) {
+		rc = (mr->smr_syntax->ssyn_pretty)( mr->smr_syntax, in, &pval, ctx );
+		in = &pval;
+
+	} else {
+		rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+	}
 
 	if( rc != LDAP_SUCCESS ) {
 		*text = "value does not conform to assertion syntax";
@@ -159,10 +167,15 @@ int asserted_value_validate_normalize(
 			ad ? ad->ad_type->sat_syntax : NULL,
 			mr, in, out, ctx );
 
+		if( pval.bv_val ) ber_memfree_x( pval.bv_val, ctx );
+
 		if( rc != LDAP_SUCCESS ) {
 			*text = "unable to normalize value for matching";
 			return LDAP_INVALID_SYNTAX;
 		}
+
+	} else if ( pval.bv_val != NULL ) {
+		*out = pval;
 
 	} else {
 		ber_dupbv_x( out, in, ctx );
