@@ -12,14 +12,18 @@
  * time/date functions added - R. Scott Guthrie 
  */ 
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
-#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
+
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/unistd.h>
+
 #include "process_form.h"
 
 /*--------------*/

@@ -5,23 +5,33 @@
  * Jens Moller - Dec 11, 1998
  */
 
+#include "portable.h"
+
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include <time.h>
+
+#include <ac/unistd.h>
+#include <ac/string.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldif.h> 
 #include "maint_form.h" /* for HTML Form manipulations */
 
 /* default values */
+#ifndef LDAP_PORT
 #define LDAP_PORT 389
-#define SERVER "ldap.bigfoot.com" 
+#endif
+#ifndef SERVER
+#define SERVER "ldap.bigfoot.com"
+#endif
+#ifndef CONFIG
 #define CONFIG "web_ldap.cfg"
+#endif
 
 #define MAX_ATTRIB 100
 #define MAX_CHARS  256

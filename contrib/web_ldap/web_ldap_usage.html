@@ -3,17 +3,21 @@
 <body text="#000000"
 bgcolor="#FFFFFF">
 
-<h2>web_ldap V 1.1</h2>
+<h2>web_ldap version 1.1, OpenLDAP variant</h2>
+
+This is an OpenLDAP port of the web_ldap program.
+<p>
 <i>
 The files provided in the file set for 'web_ldap'
 were developed under the GNU General Public License (GPL). 
 Under the GPL, the source code is freely-distributed and available
 to the general public. There is no warranty on the software,
 and it does not come with support, however, I would appreciate
-it if you emailed me any bug-fixes you create 
-(<a href="mailto:jens@colomar.com">jens@colomar.com</a>).
+it if you emailed any bug-fixes you create to me
+(<a href="mailto:jens@colomar.com">jens@colomar.com</a>) and
+<a href="mailto:OpenLDAP-bugs@OpenLDAP.org">OpenLDAP-bugs@OpenLDAP.org</a>.
 <p>
-All code here is generic Ansi C, allowing most Unix compilers
+All code here is generic ISO C, allowing most Unix compilers
 to generate the required object files and executable images.
 It was tested against an Apache HTTPD server and uses no
 special HTML functionality that does not appear within V 3.x
@@ -37,7 +41,7 @@ and a sample makefile. You will need the LDAP SDK for your
 specific Unix System (both the UofM libraries and Netscape 
 libraries - which are also free - have been tested).
 <p>
-The tool allows You to specify that actions taken
+The tool allows you to specify that actions taken
 be logged to a file. This provides you a method by which
 you can build out larger applications and see what is happening.
 <p>
@@ -66,7 +70,7 @@ When you execute the application from a command line such as:
 </pre>
 All actions take place in the same directory that the web_ldap 
 program resides in. Most people would typically build an
-application of this nature in one of their own directorys and
+application of this nature in one of their own directories and
 this would give them Read/Write access to all of the files
 associated with the program. Any file restrictions or capabilities
 that you have will be enabled as part of your session.
@@ -94,22 +98,15 @@ If you get errors - start with this simple change.
 
 <h3>Building the application:</h3>
 
-Requires Ansi C (your standard OS compiler or GCC should
+Requires ISO C (your standard OS compiler or GCC should
 work fine).
 <p>
-The make file contains:
+Under OpenLDAP, you should build with the following commands after
+having configured and built OpenLDAP itself:
 <pre>
-web_ldap: web_ldap.o
-        $(CC) -o web_ldap web_ldap.o util.o \
-	libldap.a liblber.a
-		
-
-web_ldap.o: web_ldap.c
-        $(CC) -c web_ldap.c
-
-util.o: util.c
-        $(CC) -c util.c
-
+	cd contrib/web_ldap
+	make depend
+	make
 </pre>	
 
 <h3>Configuration:</h3>
@@ -203,7 +200,7 @@ attribute could have multiple values. This application will
 list all the values it finds for any given attribute.
 
 
-<h3?Where to put the files:</h3>
+<h3>Where to put the files:</h3>
 
 If running this interactively (from a Unix shell prompt),
 all the files can reside in any of your home directories.
@@ -352,4 +349,6 @@ that your modified web_ldap.c program may want to have passed to it.
 <p>
 <hr>
 Jens Moller - Jens@colomar.com - 
-<a href="http://www.colomar.com">COLOMAR Group</a>
+<a href="http://www.colomar.com">COLOMAR Group</a>.<br>
+
+<a href="http://www.OpenLDAP.org/">OpenLDAP</a> - OpenLDAP-devel@OpenLDAP.org.

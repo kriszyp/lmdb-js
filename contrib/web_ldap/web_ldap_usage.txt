@@ -1,13 +1,16 @@
-web_ldap V 1.0 
+web_ldap Version 1.1, OpenLDAP variant
+
+This is an OpenLDAP port of the web_ldap program.
 
 The files provided in the file set for 'web_ldap'
 were developed under the GNU General Public License (GPL). 
 Under the GPL, the source code is freely-distributed and available
 to the general public. There is no warranty on the software,
 and it does not come with support, however, I would appreciate
-it if you emailed me any bug-fixes you create (jens@colomar.com).
+it if you emailed any bug-fixes you create to me (jens@colomar.com)
+and OpenLDAP-bugs@OpenLDAP.org.
 
-All code here is generic Ansi C, allowing most Unix compilers
+All code here is generic ISO C, allowing most Unix compilers
 to generate the required object files and executable images.
 It was tested against an Apache HTTPD server and uses no
 special HTML functionality that does not appear within V 3.x
@@ -60,7 +63,7 @@ When you execute the application from a command line such as:
 
 All actions take place in the same directory that the web_ldap 
 program resides in. Most people would typically build an
-application of this nature in one of their own directorys and
+application of this nature in one of their own directories and
 this would give them Read/Write access to all of the files
 associated with the program. Any file restrictions or capabilities
 that you have will be enabled as part of your session.
@@ -88,23 +91,16 @@ If you get errors - start with this simple change.
 
 Building the application:
 
-Requires Ansi C (your standard OS compiler or GCC should
+Requires ISO C (your standard OS compiler or GCC should
 work fine).
 
-The make file contains:
+Under OpenLDAP, you should build with the following commands after having
+configured and built OpenLDAP itself:
 
-web_ldap: web_ldap.o
-        $(CC) -o web_ldap web_ldap.o util.o \
-	libldap.a liblber.a
-		
+        cd contrib/web_ldap
+        make depend
+        make
 
-web_ldap.o: web_ldap.c
-        $(CC) -c web_ldap.c
-
-util.o: util.c
-        $(CC) -c util.c
-
-	
 
 Configuration:
 
@@ -313,9 +309,10 @@ additional HTML code you add may need to to have proper termination syntax
 (tables are very touchy about this), and you may need to further enhance
 your changes to compensate.
 
-Please test your results on both Netscape's Web Browser and Internet
-Explorer. Nothing is more irritating to end users than getting different
-results based on their Web Browser selection.
+When creating new applications, please test your results on both
+Netscape's Web Browser and Internet Explorer.  Nothing is more
+irritating to end users than getting different results based on their
+Web Browser selection.
 
 The Unix Command line will not allow you to pass some characters into
 an application unless you surround the characters or command with quotes.
@@ -343,4 +340,5 @@ options (such as which configuration file to use), or other options
 that your modified web_ldap.c program may want to have passed to it.
 
 
-Jens Moller - Jens@colomar.com - COLOMAR Group
+Jens Moller - Jens@colomar.com - COLOMAR Group.
+OpenLDAP - OpenLDAP-devel@OpenLDAP.org.
