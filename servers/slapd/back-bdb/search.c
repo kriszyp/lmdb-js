@@ -57,6 +57,9 @@ bdb_search(
 	int		nentries = 0;
 	int		manageDSAit;
 
+	struct slap_limits_set *limit = NULL;
+	int isroot = 0;
+
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_back_search\n",
 		0, 0, 0);
 
@@ -132,21 +135,73 @@ bdb_search(
 		return 1;
 	}
 
-	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
-		tlimit = -1;	/* allow root to set no limit */
+	/* if not root, get appropriate limits */
+	if ( be_isroot( be, op->o_ndn ) ) {
+		isroot = 1;
 	} else {
-		tlimit = (tlimit > be->be_timelimit || tlimit < 1) ?
-			be->be_timelimit : tlimit;
-		stoptime = op->o_time + tlimit;
+		( void ) get_limits( be, op->o_ndn, &limit );
 	}
 
-	if ( slimit == 0 && be_isroot( be, op->o_ndn ) ) {
-		slimit = -1;	/* allow root to set no limit */
-	} else {
-		slimit = (slimit > be->be_sizelimit || slimit < 1) ?
-			be->be_sizelimit : slimit;
+	/* The time/size limits come first because they require very little
+	 * effort, so there's no chance the candidates are selected and then 
+	 * the request is not honored only because of time/size constraints */
+
+	/* if no time limit requested, use soft limit (unless root!) */
+	if ( tlimit <= 0 ) {
+		if ( isroot ) {
+			tlimit = -1;        /* allow root to set no limit */
+		} else {
+			tlimit = limit->lms_t_soft;
+		}
+
+	/* if requested limit higher than hard limit, abort */
+	} else if ( tlimit > limit->lms_t_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_t_hard == 0 ) {
+			tlimit = limit->lms_t_soft;
+
+		/* positive hard limit means abort */
+		} else if ( limit->lms_t_hard > 0 ) {
+			send_search_result( conn, op, 
+					LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;
+			goto done;
+		}
+		
+		/* negative hard limit means no limit */
 	}
 
+	/* compute it anyway; root does not use it */
+	stoptime = op->o_time + tlimit;
+	
+	/* if no size limit requested, use soft limit (unless root!) */
+	if ( slimit == 0 ) {
+		if ( isroot ) {
+			slimit = -1;        /* allow root to set no limit */
+		} else {
+			slimit = limit->lms_s_soft;
+		}
+
+	/* if requested limit higher than hard limit, abort */
+	} else if ( slimit > limit->lms_s_hard ) {
+		/* no hard limit means use soft instead */
+		if ( limit->lms_s_hard == 0 ) {
+			slimit = limit->lms_s_soft;
+
+		/* positive hard limit means abort */
+		} else if ( limit->lms_s_hard > 0 ) {
+			send_search_result( conn, op, 
+					LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 0;	
+			goto done;
+		}
+		
+		/* negative hard limit means no limit */
+	}
+
+	/* select candidates */
 	if ( scope == LDAP_SCOPE_BASE ) {
 		rc = base_candidate( be, e, candidates );
 
@@ -174,6 +229,21 @@ bdb_search(
 
 		rc = 1;
 		goto done;
+	}
+
+	/* if not root and candidates exceed to-be-checked entries, abort */
+	if ( !isroot && limit->lms_s_unchecked != -1 ) {
+		unsigned long n = 
+			1 + (BDB_IDL_IS_RANGE( candidates ) ? candidates[ 2 ] :
+				candidates[ candidates[ 0 ] ])-candidates[ 1 ];
+		
+		if ( n > limit->lms_s_unchecked ) {
+			send_search_result( conn, op, 
+					LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL, 0 );
+			rc = 1;
+			goto done;
+		}
 	}
 
 	for ( id = bdb_idl_first( candidates, &cursor );
