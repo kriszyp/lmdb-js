@@ -7,7 +7,7 @@
 ol_package=OpenLDAP
 ol_major=2
 ol_minor=1
-ol_patch=21
-ol_api_inc=20121
-ol_api_lib=2:121:0
-ol_release_date="05-29-2003"
+ol_patch=22
+ol_api_inc=20122
+ol_api_lib=2:122:0
+ol_release_date="06-26-2003"
