@@ -513,6 +513,7 @@ LDAP_SLAPD_V (volatile sig_atomic_t) slapd_abrupt_shutdown;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
 LDAP_SLAPD_V (int) slapd_register_slp;
 LDAP_SLAPD_V (slap_ssf_t) local_ssf;
+LDAP_SLAPD_V (struct runqueue_s) slapd_rq;
 
 /*
  * dn.c
@@ -1245,8 +1246,6 @@ LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
 /*
  * syncrepl.c
  */
-
-LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P((syncinfo_t *));
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));

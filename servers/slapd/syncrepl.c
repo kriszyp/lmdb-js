@@ -50,8 +50,6 @@ static int null_callback( struct slap_op *, struct slap_rep * );
 
 static AttributeDescription *sync_descs[4];
 
-struct runqueue_s syncrepl_rq;
-
 void
 init_syncrepl(syncinfo_t *si)
 {
@@ -969,10 +967,10 @@ do_syncrepl(
 	 * 3) for Refresh and Success, reschedule to run
 	 * 4) for Persist and Success, reschedule to defer
 	 */
-	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 
-	if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
+	if ( ldap_pvt_runqueue_isrunning( &slapd_rq, rtask )) {
+		ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	}
 
 	if ( dostop ) {
@@ -984,7 +982,7 @@ do_syncrepl(
 			defer = 0;
 		}
 		rtask->interval.tv_sec = si->si_interval;
-		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, defer );
+		ldap_pvt_runqueue_resched( &slapd_rq, rtask, defer );
 		if ( si->si_retrynum ) {
 			for ( i = 0; si->si_retrynum_init[i] != -2; i++ ) {
 				si->si_retrynum[i] = si->si_retrynum_init[i];
@@ -998,19 +996,19 @@ do_syncrepl(
 		}
 
 		if ( !si->si_retrynum || si->si_retrynum[i] == -2 ) {
-			ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
+			ldap_pvt_runqueue_remove( &slapd_rq, rtask );
 			LDAP_STAILQ_REMOVE( &be->be_syncinfo, si, syncinfo_s, si_next );
 			syncinfo_free( si );
 		} else if ( si->si_retrynum[i] >= -1 ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;
 			rtask->interval.tv_sec = si->si_retryinterval[i];
-			ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
+			ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 			slap_wake_listener();
 		}
 	}
 	
-	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 	return NULL;
 }

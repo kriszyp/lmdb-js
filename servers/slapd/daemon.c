@@ -72,6 +72,7 @@ int slap_inet4or6 = AF_INET;
 time_t starttime;
 ber_socket_t dtblsize;
 slap_ssf_t local_ssf = LDAP_PVT_SASL_LOCAL_SSF;
+struct runqueue_s slapd_rq;
 
 Listener **slap_listeners = NULL;
 
@@ -1648,22 +1649,22 @@ slapd_daemon_task(
 		else
 			tvp = NULL;
 
-		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		rtask = ldap_pvt_runqueue_next_sched( &slapd_rq, &cat );
 		while ( cat && cat->tv_sec && cat->tv_sec <= now ) {
-			if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
+			if ( ldap_pvt_runqueue_isrunning( &slapd_rq, rtask )) {
+				ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 			} else {
-				ldap_pvt_runqueue_runtask( &syncrepl_rq, rtask );
-				ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
-				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_runqueue_runtask( &slapd_rq, rtask );
+				ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 				ldap_pvt_thread_pool_submit( &connection_pool,
 											rtask->routine, (void *) rtask );
-				ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 			}
-			rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
+			rtask = ldap_pvt_runqueue_next_sched( &slapd_rq, &cat );
 		}
-		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 		if ( cat != NULL ) {
 			time_t diff = difftime( cat->tv_sec, now );

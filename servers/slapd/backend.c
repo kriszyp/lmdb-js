@@ -261,9 +261,9 @@ int backend_startup(Backend *be)
 		}
 	}
 
-	ldap_pvt_thread_mutex_init( &syncrepl_rq.rq_mutex );
-	LDAP_STAILQ_INIT( &syncrepl_rq.task_list );
-	LDAP_STAILQ_INIT( &syncrepl_rq.run_list );
+	ldap_pvt_thread_mutex_init( &slapd_rq.rq_mutex );
+	LDAP_STAILQ_INIT( &slapd_rq.task_list );
+	LDAP_STAILQ_INIT( &slapd_rq.run_list );
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
@@ -295,10 +295,10 @@ int backend_startup(Backend *be)
 			LDAP_STAILQ_FOREACH( si, &backendDB[i].be_syncinfo, si_next ) {
 				si->si_be = &backendDB[i];
 				init_syncrepl( si );
-				ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-				ldap_pvt_runqueue_insert( &syncrepl_rq,
+				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+				ldap_pvt_runqueue_insert( &slapd_rq,
 						si->si_interval, do_syncrepl, (void *) si );
-				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 			}
 		}
 	}
