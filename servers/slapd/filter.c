@@ -462,27 +462,55 @@ filter_print( Filter *f )
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, "(%s=%s)",
+			f->f_ava->aa_desc->ad_cname,
+		    f->f_ava->aa_value->bv_val );
+#else
 		fprintf( stderr, "(%s=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
+#endif
 		break;
 
 	case LDAP_FILTER_GE:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, "(%s>=%s)",
+			f->f_ava->aa_desc->ad_cname,
+		    f->f_ava->aa_value->bv_val );
+#else
 		fprintf( stderr, "(%s>=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
+#endif
 		break;
 
 	case LDAP_FILTER_LE:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, "(%s<=%s)",
+			f->f_ava->aa_desc->ad_cname,
+		    f->f_ava->aa_value->bv_val );
+#else
 		fprintf( stderr, "(%s<=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
+#endif
 		break;
 
 	case LDAP_FILTER_APPROX:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, "(%s~=%s)",
+			f->f_ava->aa_desc->ad_cname,
+		    f->f_ava->aa_value->bv_val );
+#else
 		fprintf( stderr, "(%s~=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
+#endif
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		fprintf( stderr, "(%s=", f->f_sub_type );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, "(%s=" /*)*/, f->f_sub_desc->ad_cname );
+#else
+		fprintf( stderr, "(%s=" /*)*/, f->f_sub_type );
+#endif
 		if ( f->f_sub_initial != NULL ) {
 			fprintf( stderr, "%s", f->f_sub_initial->bv_val );
 		}
@@ -494,25 +522,32 @@ filter_print( Filter *f )
 		if ( f->f_sub_final != NULL ) {
 			fprintf( stderr, "*%s", f->f_sub_final->bv_val );
 		}
+		fprintf( stderr, /*(*/ ")" );
 		break;
 
 	case LDAP_FILTER_PRESENT:
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		fprintf( stderr, "(%s=*)",
+			f->f_desc->ad_cname );
+#else
 		fprintf( stderr, "%s=*", f->f_type );
+#endif
 		break;
 
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
-		fprintf( stderr, "(%c", f->f_choice == LDAP_FILTER_AND ? '&' :
+		fprintf( stderr, "(%c" /*)*/,
+			f->f_choice == LDAP_FILTER_AND ? '&' :
 		    f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			filter_print( p );
 		}
-		fprintf( stderr, ")" );
+		fprintf( stderr, /*(*/ ")" );
 		break;
 
 	default:
-		fprintf( stderr, "unknown type %lu", f->f_choice );
+		fprintf( stderr, "(unknown filter %lu)", f->f_choice );
 		break;
 	}
 }
