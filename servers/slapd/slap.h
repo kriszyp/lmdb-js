@@ -1593,7 +1593,8 @@ struct slap_backend_db {
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
 #define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_DBFLAG_OVERLAY			0x0080U	/* this db struct is an overlay */
+#define SLAP_DBFLAG_OVERLAY		0x0080U	/* this db struct is an overlay */
+#define	SLAP_DBFLAG_GLOBAL_OVERLAY	0x0100U	/* this db struct is a global overlay */
 #define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
 #define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */

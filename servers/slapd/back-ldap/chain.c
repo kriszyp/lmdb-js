@@ -314,6 +314,8 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 			char		textbuf[ SLAP_TEXT_BUFLEN ];
 			size_t		textlen = sizeof( textbuf );
 
+			assert( SLAP_DBFLAGS( op->o_bd ) & SLAP_DBFLAG_GLOBAL_OVERLAY );
+
 			/* global overlay: create entry */
 			/* NOTE: this is a hack to use the chain overlay
 			 * as global.  I expect to be able to remove this
@@ -504,9 +506,9 @@ ldap_chain_db_config(
 	int		rc;
 
 	be->be_private = on->on_bi.bi_private;
-	if ( strncasecmp( argv[ 0 ], "chain-", sizeof( "chain-" ) - 1 ) == 0 ) {
+	if ( strncasecmp( argv[ 0 ], "chain-", STRLENOF( "chain-" ) ) == 0 ) {
 		argv0 = argv[ 0 ];
-		argv[ 0 ] = &argv[ 0 ][ sizeof( "chain-" ) - 1 ];
+		argv[ 0 ] = &argv[ 0 ][ STRLENOF( "chain-" ) ];
 	}
 	rc = lback->bi_db_config( be, fname, lineno, argc, argv );
 	if ( argv0 ) {
@@ -704,7 +706,7 @@ chain_init( void )
 	int	rc;
 
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,
-			SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
+			/* SLAP_CTRL_FRONTEND| */ SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
 			ldap_chain_parse_ctrl, &sc_chainingBehavior );
 	if ( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "Failed to register chaining behavior control: %d\n", rc );
