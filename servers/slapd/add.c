@@ -29,7 +29,8 @@ static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
 	int repl_user,
-	const char **text );
+	const char **text,
+	char *textbuf, size_t textlen );
 
 int
 do_add( Connection *conn, Operation *op )
@@ -280,7 +281,8 @@ do_add( Connection *conn, Operation *op )
 				}
 			}
 
-			rc = slap_mods2entry( modlist, &e, repl_user, &text );
+			rc = slap_mods2entry( modlist, &e, repl_user, &text,
+				textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
 					NULL, text, NULL, NULL );
@@ -337,10 +339,13 @@ static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
 	int repl_user,
-	const char **text )
+	const char **text,
+	char *textbuf, size_t textlen )
 {
 	Attribute **tail = &(*e)->e_attrs;
 	assert( *tail == NULL );
+
+	*text = textbuf;
 
 	for( ; mods != NULL; mods = mods->sml_next ) {
 		Attribute *attr;
@@ -356,7 +361,9 @@ static int slap_mods2entry(
 			ber_len_t i,j;
 
 			if( !repl_user ) {
-				*text = "attribute provided more than once";
+				snprintf( textbuf, textlen,
+					"attribute '%s' provided more than once",
+					mods->sml_desc->ad_cname.bv_val );
 				return LDAP_TYPE_OR_VALUE_EXISTS;
 			}
 
@@ -382,7 +389,9 @@ static int slap_mods2entry(
 
 			continue;
 #else
-			*text = "attribute provided more than once";
+			snprintf( textbuf, textlen,
+				"attribute '%s' provided more than once",
+				mods->sml_desc->ad_cname.bv_val );
 			return LDAP_TYPE_OR_VALUE_EXISTS;
 #endif
 		}
@@ -402,6 +411,9 @@ static int slap_mods2entry(
 
 						if( rc == 0 ) {
 							/* value exists already */
+							snprintf( textbuf, textlen,
+								"%s: value #%d provided more than once",
+								mods->sml_desc->ad_cname.bv_val, j );
 							return LDAP_TYPE_OR_VALUE_EXISTS;
 						}
 					}
@@ -428,6 +440,9 @@ static int slap_mods2entry(
 
 						if( rc == LDAP_SUCCESS && match == 0 ) {
 							free( asserted.bv_val );
+							snprintf( textbuf, textlen,
+								"%s: value #%d provided more than once",
+								mods->sml_desc->ad_cname.bv_val, j );
 							return LDAP_TYPE_OR_VALUE_EXISTS;
 						}
 					}
