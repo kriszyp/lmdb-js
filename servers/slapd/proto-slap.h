@@ -397,7 +397,9 @@ LDAP_SLAPD_F( int ) slap_modlist2mods(
 	LDAPModList *ml,
 	int update,
 	Modifications **mods,
-	const char **text );
+	const char **text,
+	char *textbuf,
+	size_t textlen );
 
 LDAP_SLAPD_F( int ) slap_mods_opattrs(
 	Operation *op,

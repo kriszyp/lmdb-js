@@ -708,13 +708,9 @@ AC_DEFUN([OL_HEADER_GNU_PTH_PTHREAD_H], [
 dnl ====================================================================
 dnl Check for NT Threads
 AC_DEFUN([OL_NT_THREADS], [
-  	AC_CACHE_CHECK([for NT Threads], [ol_cv_nt_threads], [
-		AC_CHECK_FUNC(_beginthread,
-			[ol_cv_nt_threads=yes],
-			[ol_cv_nt_threads=no])
-	])
+	AC_CHECK_FUNC(_beginthread)
 
-	if test $ol_cv_nt_threads = yes ; then
+	if test $ac_cv_func__beginthread = yes ; then
 		AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT Threads])
 	fi
 ])

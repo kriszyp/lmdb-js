@@ -215,7 +215,11 @@ do_modify(
 		{
 			int update = be->be_update_ndn != NULL;
 			const char *text;
-			rc = slap_modlist2mods( modlist, update, &mods, &text );
+			char textbuf[SLAP_TEXT_BUFLEN];
+			size_t textlen = sizeof textbuf;
+
+			rc = slap_modlist2mods( modlist, update, &mods, &text,
+				textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
@@ -283,7 +287,8 @@ int slap_modlist2mods(
 	LDAPModList *ml,
 	int update,
 	Modifications **mods,
-	const char **text )
+	const char **text,
+	char *textbuf, size_t textlen )
 {
 	int rc;
 	Modifications **modtail = mods;
@@ -303,6 +308,8 @@ int slap_modlist2mods(
 
 		if( rc != LDAP_SUCCESS ) {
 			slap_mods_free( mod );
+			snprintf( textbuf, textlen, "%s: %s", ml->ml_type, text );
+			*text = textbuf;
 			return rc;
 		}
 
@@ -313,7 +320,11 @@ int slap_modlist2mods(
 		{
 			/* attribute requires binary transfer */
 			slap_mods_free( mod );
-			*text = "attribute requires ;binary transfer";
+
+			snprintf( textbuf, textlen,
+				"%s: requires ;binary transfer",
+				ml->ml_type );
+			*text = textbuf;
 			return LDAP_UNDEFINED_TYPE;
 		}
 
@@ -322,14 +333,20 @@ int slap_modlist2mods(
 		{
 			/* attribute requires binary transfer */
 			slap_mods_free( mod );
-			*text = "attribute disallows ;binary transfer";
+			snprintf( textbuf, textlen,
+				"%s: disallows ;binary transfer",
+				ml->ml_type );
+			*text = textbuf;
 			return LDAP_UNDEFINED_TYPE;
 		}
 
 		if (!update && is_at_no_user_mod( ad->ad_type )) {
 			/* user modification disallowed */
 			slap_mods_free( mod );
-			*text = "no user modification allowed";
+			snprintf( textbuf, textlen,
+				"%s: no user modification allowed",
+				ml->ml_type );
+			*text = textbuf;
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 
@@ -347,6 +364,11 @@ int slap_modlist2mods(
 					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
 				slap_mods_free( mod );
 				*text = "no validator for syntax";
+				snprintf( textbuf, textlen,
+					"%s: no validator for syntax %s",
+					ml->ml_type,
+					ad->ad_type->sat_syntax->ssyn_oid );
+				*text = textbuf;
 				return LDAP_INVALID_SYNTAX;
 			}
 
@@ -358,7 +380,10 @@ int slap_modlist2mods(
 
 				if( rc != 0 ) {
 					slap_mods_free( mod );
-					*text = "value contains invalid data";
+					snprintf( textbuf, textlen,
+						"%s: value #%ld contains invalid data",
+						ml->ml_type, (long) nvals );
+					*text = textbuf;
 					return LDAP_INVALID_SYNTAX;
 				}
 			}
@@ -371,7 +396,10 @@ int slap_modlist2mods(
 				&& nvals > 1 && is_at_single_value( ad->ad_type ))
 			{
 				slap_mods_free( mod );
-				*text = "multiple values provided";
+				snprintf( textbuf, textlen,
+					"%s: multiple value provided",
+					ml->ml_type );
+				*text = textbuf;
 				return LDAP_INVALID_SYNTAX;
 			}
 		}

@@ -61,6 +61,7 @@ LDAP_BEGIN_DECL
 #define SLAP_MAX_INCOMING (1<<18 - 1)
 #define SLAP_MAX_WORKER_THREADS		32
 
+#define SLAP_TEXT_BUFLEN (256)
 
 /* psuedo error code indicating abandoned operation */
 #define SLAPD_ABANDON (-1)

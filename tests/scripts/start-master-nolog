@@ -30,7 +30,7 @@ fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND < $CONF > $DBCONF
-$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > /dev/null 2>&1 &
+$SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING >> /dev/null 2>&1 &
 PID=$!
 
 echo "Using ldapsearch to retrieve all the entries..."

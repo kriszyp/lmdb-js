@@ -194,8 +194,12 @@ do_add( Connection *conn, Operation *op )
 #endif
 		{
 			int update = be->be_update_ndn != NULL;
+			char textbuf[SLAP_TEXT_BUFLEN];
+			size_t textlen = sizeof textbuf;
 
-			rc = slap_modlist2mods( modlist, update, &mods, &text );
+			rc = slap_modlist2mods( modlist, update, &mods, &text,
+				textbuf, textlen );
+
 			if( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
 					NULL, text, NULL, NULL );
