@@ -29,7 +29,7 @@ dnssrv_back_bind(
 	char		**edn
 )
 {
-	Debug( LDAP_DEBUG_DEBUG, "DNSSRV: bind %s (%d/%s)\n",
+	Debug( LDAP_DEBUG_TRACE, "DNSSRV: bind %s (%d/%s)\n",
 		dn == NULL ? "" : dn, 
 		method,
 		mech == NULL ? "none" : mech );
