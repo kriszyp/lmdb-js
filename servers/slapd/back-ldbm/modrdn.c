@@ -1,5 +1,18 @@
 /* modrdn.c - ldbm backend modrdn routine */
 
+/*
+ * LDAP v3 newSuperior support.
+ *
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -18,7 +31,8 @@ ldbm_back_modrdn(
     Operation	*op,
     char	*dn,
     char	*newrdn,
-    int		deleteoldrdn
+    int		deleteoldrdn,
+    char	*newSuperior
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;

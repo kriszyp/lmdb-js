@@ -36,7 +36,8 @@ extern int	shell_back_modify LDAP_P(( BackendDB *bd,
 
 extern int	shell_back_modrdn LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char*newrdn, int deleteoldrdn ));
+	char *dn, char*newrdn, int deleteoldrdn,
+        char *newSuperior ));
 
 extern int	shell_back_add LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, Entry *e ));

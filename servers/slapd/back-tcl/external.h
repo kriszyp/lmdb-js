@@ -1,4 +1,4 @@
-/* $Id: external.h,v 1.4 1999/02/17 00:55:03 bcollins Exp $ */
+/* $Id: external.h,v 1.5 1999/02/18 01:18:39 bcollins Exp $ */
 
 #ifndef _TCL_EXTERNAL_H
 #define _TCL_EXTERNAL_H
@@ -40,7 +40,8 @@ extern int tcl_back_modify LDAP_P ((BackendDB * bd,
 
 extern int tcl_back_modrdn LDAP_P ((BackendDB * bd,
 		Connection * conn, Operation * op,
-		char *dn, char *newrdn, int deleteoldrdn));
+		char *dn, char *newrdn, int deleteoldrdn,
+		char *newSuperior));
 
 extern int tcl_back_add LDAP_P ((BackendDB * bd,
 		Connection * conn, Operation * op, Entry * e));

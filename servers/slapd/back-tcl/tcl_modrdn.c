@@ -1,6 +1,6 @@
 /* modrdn.c - tcl modify rdn routines
  *
- * $Id: tcl_modrdn.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
+ * $Id: tcl_modrdn.c,v 1.5 1999/02/28 04:55:49 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -8,6 +8,19 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
+ */
+
+/*
+ * LDAP v3 newSuperior support.
+ *
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
  */
 
 #include "portable.h"
@@ -24,7 +37,8 @@ tcl_back_modrdn (
 	Operation * op,
 	char *dn,
 	char *newrdn,
-	int deleteoldrdn
+	int deleteoldrdn,
+	char *newSuperior
 )
 {
 	char *command, *suf_tcl, *results;

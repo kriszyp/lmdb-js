@@ -1,5 +1,18 @@
 /* modrdn.c - bdb2 backend modrdn routine */
 
+/*
+ * LDAP v3 newSuperior support.
+ *
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -18,7 +31,8 @@ bdb2i_back_modrdn_internal(
     Operation	*op,
     char	*dn,
     char	*newrdn,
-    int		deleteoldrdn
+    int		deleteoldrdn,
+    char	*newSuperior
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -189,7 +203,8 @@ bdb2_back_modrdn(
     Operation	*op,
     char	*dn,
     char	*newrdn,
-    int		deleteoldrdn
+    int		deleteoldrdn,
+    char	*newSuperior
 )
 {
 	DB_LOCK         lock;
@@ -207,7 +222,8 @@ bdb2_back_modrdn(
 	}
 
 	ret = bdb2i_back_modrdn_internal( be, conn, op, dn,
-					newrdn, deleteoldrdn );
+					newrdn, deleteoldrdn,
+					newSuperior );
 
 	(void) bdb2i_leave_backend_w( get_dbenv( be ), lock );
 	bdb2i_stop_timing( be->bd_info, time1, "MODRDN", conn, op );

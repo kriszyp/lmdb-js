@@ -1,5 +1,18 @@
 /* modrdn.c - shell backend modrdn function */
 
+/*
+ * LDAP v3 newSuperior support.
+ *
+ * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * This software is not subject to any license of Silicon Graphics 
+ * Inc. or Purdue University.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * without restriction or fee of any kind as long as this notice
+ * is preserved.
+ *
+ */
+
 #include "portable.h"
 
 #include <stdio.h>
@@ -17,7 +30,8 @@ shell_back_modrdn(
     Operation	*op,
     char	*dn,
     char	*newrdn,
-    int		deleteoldrdn
+    int		deleteoldrdn,
+    char	*newSuperior
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;

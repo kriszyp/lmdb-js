@@ -354,7 +354,8 @@ struct backend_info {
 		char *dn, LDAPModList *m));
 	int	(*bi_op_modrdn) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, char *newrdn, int deleteoldrdn ));
+		char *dn, char *newrdn, int deleteoldrdn,
+		char *newSuperior));
 	int	(*bi_op_add)    LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e));
