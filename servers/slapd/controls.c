@@ -49,6 +49,8 @@ static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 
+#undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
+
 static struct slap_control {
 	char *sc_oid;
 	slap_mask_t sc_mask;
