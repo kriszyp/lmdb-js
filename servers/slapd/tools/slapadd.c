@@ -64,18 +64,8 @@ main( int argc, char **argv )
 			break;
 		}
 
-		/* make sure the DN is valid */
-		if( dn_normalize( e->e_ndn ) == NULL || e->e_ndn[0] == '\0' ) {
-			fprintf( stderr, "%s: invalid dn=\"%s\" (line=%d)\n",
-				progname, e->e_dn, lineno );
-			rc = EXIT_FAILURE;
-			entry_free( e );
-			if( continuemode ) continue;
-			break;
-		}
-
 		/* make sure the DN is not empty */
-		if( e->e_ndn == '\0' ) {
+		if( !e->e_nname.bv_len ) {
 			fprintf( stderr, "%s: empty dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
 			rc = EXIT_FAILURE;

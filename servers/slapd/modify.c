@@ -530,7 +530,7 @@ int slap_modlist2mods(
 			 *	and pretty if appropriate
 			 */
 			for( nvals = 0; ml->ml_bvalues[nvals]; nvals++ ) {
-				struct berval *pval;
+				struct berval *pval = NULL;
 				if( pretty ) {
 					rc = pretty( ad->ad_type->sat_syntax,
 						ml->ml_bvalues[nvals], &pval );

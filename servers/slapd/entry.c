@@ -256,7 +256,6 @@ str2entry( char *s )
 		}
 
 		rc = attr_merge( e, ad, vals );
-
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,

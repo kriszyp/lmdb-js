@@ -80,7 +80,7 @@ slap_tool_init(
 	int argc, char **argv )
 {
 	char *options;
-	char *base = NULL;
+	struct berval base = { 0, NULL };
 	int rc, i, dbnum;
 	int mode = SLAP_TOOL_MODE;
 
@@ -120,7 +120,8 @@ slap_tool_init(
 	while ( (i = getopt( argc, argv, options )) != EOF ) {
 		switch ( i ) {
 		case 'b':
-			base = strdup( optarg );
+			base.bv_val = strdup( optarg );
+			base.bv_len = strlen( optarg );
 
 		case 'c':	/* enable continue mode */
 			continuemode++;
@@ -157,7 +158,7 @@ slap_tool_init(
 		}
 	}
 
-	if ( ( argc != optind ) || (dbnum >= 0 && base != NULL ) ) {
+	if ( ( argc != optind ) || (dbnum >= 0 && base.bv_val != NULL ) ) {
 		usage( tool );
 	}
 
@@ -210,17 +211,18 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
-	if( base != NULL ) {
-		char *tbase = ch_strdup( base );
+	if( base.bv_val != NULL ) {
+		struct berval *nbase = NULL;
 
-		if( dn_normalize( tbase ) == NULL ) {
+		rc = dnNormalize( NULL, &base, &nbase );
+		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: slap_init invalid suffix (\"%s\")\n",
 				progname, base );
 			exit( EXIT_FAILURE );
 		}
 
-		be = select_backend( tbase, 0, 0 );
-		free( tbase );
+		be = select_backend( nbase->bv_val, 0, 0 );
+		ber_bvfree( nbase );
 
 		if( be == NULL ) {
 			fprintf( stderr, "%s: slap_init no backend for \"%s\"\n",
