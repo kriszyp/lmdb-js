@@ -286,7 +286,7 @@ charray_strcasecmp( const char **a1, const char **a2 )
 char *
 slap_strcopy(
 	char *a,
-	char *b
+	const char *b
 )
 {
 	if (!a || !b)

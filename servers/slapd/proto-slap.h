@@ -271,11 +271,16 @@ LDAP_SLAPD_F (void) charray_free LDAP_P(( char **array ));
 LDAP_SLAPD_F (int) charray_inlist LDAP_P(( char **a, const char *s ));
 LDAP_SLAPD_F (char **) charray_dup LDAP_P(( char **a ));
 LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr ));
-LDAP_SLAPD_F (struct berval **) str2bvec LDAP_P(( struct berval **vec, const char *str, const char *brkstr ));
+LDAP_SLAPD_F (struct berval **) str2bvec LDAP_P(( struct berval **vec,
+	const char *str, const char *brkstr ));
 LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
 LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
-LDAP_SLAPD_F (char *) slap_strcopy LDAP_P(( char *a1, char *a2 ));
-	
+
+LDAP_SLAPD_F (char *) slap_strcopy LDAP_P((
+	char *dst, const char *src ));
+LDAP_SLAPD_F (int) bvec_inlist LDAP_P((
+    struct berval **a,
+    struct berval *s ));	
 
 /*
  * controls.c
