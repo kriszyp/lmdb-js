@@ -211,6 +211,9 @@ long connection_init(
 	assert( connections != NULL );
 
 	if( s < 0 ) {
+        Debug( LDAP_DEBUG_ANY,
+			"connection_init(%d): invalid.\n",
+			s );
 		return -1;
 	}
 
@@ -247,6 +250,9 @@ long connection_init(
         }
 
         if( c == NULL ) {
+        	Debug( LDAP_DEBUG_ANY,
+				"connection_init(%d): connection table full (%d/%d).\n",
+				s, i, dtblsize);
             ldap_pvt_thread_mutex_unlock( &connections_mutex );
             return -1;
         }
