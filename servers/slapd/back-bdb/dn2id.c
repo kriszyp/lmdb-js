@@ -77,8 +77,9 @@ bdb_dn2id_add(
 	}
 
 #ifndef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( op->o_bd, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr ))
 #endif
+	{
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = db->put( db, txn, &key, &data, DB_NOOVERWRITE );
 		if( rc != 0 ) {
@@ -95,8 +96,9 @@ bdb_dn2id_add(
 		}
 		
 #ifdef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( op->o_bd, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr ))
 #endif
+	{
 		dnParent( &ptr, &pdn );
 	
 		key.size = pdn.bv_len + 2;
@@ -119,9 +121,9 @@ bdb_dn2id_add(
 #endif
 			goto done;
 		}
-#ifndef BDB_MULTIPLE_SUFFIXES
 	}
 
+#ifndef BDB_MULTIPLE_SUFFIXES
 	while( !be_issuffix( op->o_bd, &ptr ))
 #else
 	for (;;)
@@ -153,9 +155,7 @@ bdb_dn2id_add(
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
-#ifdef BDB_MULTIPLE_SUFFIXES
 	}
-#endif
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
@@ -215,8 +215,9 @@ bdb_dn2id_delete(
 	}
 
 #ifndef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( op->o_bd, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr ))
 #endif
+	{
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = db->del( db, txn, &key, 0 );
 		if( rc != 0 ) {
@@ -233,8 +234,9 @@ bdb_dn2id_delete(
 		}
 
 #ifdef BDB_MULTIPLE_SUFFIXES
-	if( !be_issuffix( op->o_bd, &ptr )) {
+	if( !be_issuffix( op->o_bd, &ptr ))
 #endif
+	{
 		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
@@ -257,13 +259,14 @@ bdb_dn2id_delete(
 #endif
 			goto done;
 		}
-#ifndef BDB_MULTIPLE_SUFFIXES
 	}
 
-	while( !be_issuffix( op->o_bd, &ptr )) {
+#ifndef BDB_MULTIPLE_SUFFIXES
+	while( !be_issuffix( op->o_bd, &ptr ))
 #else
-	for (;;) {
+	for (;;)
 #endif
+	{
 		ptr.bv_val[-1] = DN_SUBTREE_PREFIX;
 
 		rc = bdb_idl_delete_key( op->o_bd, db, txn, &key, e->e_id );
@@ -289,9 +292,7 @@ bdb_dn2id_delete(
 		key.data = pdn.bv_val - 1;
 		ptr = pdn;
 	}
-#ifdef BDB_MULTIPLE_SUFFIXES
 	}
-#endif
 
 done:
 	op->o_tmpfree( buf, op->o_tmpmemctx );
@@ -483,8 +484,8 @@ bdb_dn2idl(
 	op->o_tmpfree( key.data, op->o_tmpmemctx );
 	return rc;
 }
-#else	/* BDB_HIER */
 
+#else	/* BDB_HIER */
 /* Experimental management routines for a hierarchically structured database.
  *
  * Unsupported! Use at your own risk!
@@ -516,8 +517,7 @@ int
 hdb_dup_compare(
 	DB *db, 
 	const DBT *usrkey,
-	const DBT *curkey
-)
+	const DBT *curkey )
 {
 	char *u = (char *)&(((diskNode *)(usrkey->data))->nrdnlen);
 	char *c = (char *)&(((diskNode *)(curkey->data))->nrdnlen);
@@ -540,8 +540,7 @@ hdb_dup_compare(
  */
 int hdb_fix_dn(
 	Entry *e,
-	int checkit
-)
+	int checkit )
 {
 	EntryInfo *ei;
 	int rlen = 0, nrlen = 0;
@@ -1020,7 +1019,8 @@ hdb_dn2idl_internal(
 					 * hdb_cache_load will copy them as needed
 					 */
 					ei.bei_nrdn.bv_val = d->nrdn;
-					ei.bei_rdn.bv_len = len - sizeof(diskNode) - ei.bei_nrdn.bv_len;
+					ei.bei_rdn.bv_len = len - sizeof(diskNode)
+						- ei.bei_nrdn.bv_len;
 					ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
 					bdb_idl_insert( cx->tmp, ei.bei_id );
 					hdb_cache_load( cx->bdb, &ei, &ei2 );
@@ -1034,11 +1034,11 @@ hdb_dn2idl_internal(
 		 */
 		cx->rc = 0;
 		if ( cx->ei->bei_ckids > 0 ) {
-
 			/* Walk the kids tree; order is irrelevant since bdb_idl_insert
 			 * will insert in sorted order.
 			 */
-			avl_apply( cx->ei->bei_kids, apply_func, cx->tmp, -1, AVL_POSTORDER );
+			avl_apply( cx->ei->bei_kids, apply_func,
+				cx->tmp, -1, AVL_POSTORDER );
 		}
 		bdb_cache_entryinfo_unlock( cx->ei );
 	}
@@ -1101,7 +1101,8 @@ hdb_dn2idl(
 	LDAP_LOG ( INDEX, ARGS, 
 		"=> hdb_dn2ididl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2idl( \"%s\" )\n", e->e_nname.bv_val, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> hdb_dn2idl( \"%s\" )\n",
+		e->e_nname.bv_val, 0, 0 );
 #endif
 
 #ifndef BDB_MULTIPLE_SUFFIXES
