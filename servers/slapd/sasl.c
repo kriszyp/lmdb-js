@@ -112,7 +112,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	if( flags & FLAG_GETDN_AUTHCID ) {
 		if( sasl_external_x509dn_convert && conn->c_sasl_bind_mech
 			&& ( strcasecmp( LDAP_SASL_EXTERNAL, conn->c_sasl_bind_mech ) == 0 ) 
-			&& len && dn[0] == '/' and dn[len-1]== '/' )
+			&& len && dn[0] == '/' && dn[len-1]== '/' )
 		{
 			/* check SASL external for X.509 style DN and */
 			/* convert to dn:<dn> form */
