@@ -21,10 +21,10 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
 
 #include <ac/ctype.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #include "fax500.h"
 

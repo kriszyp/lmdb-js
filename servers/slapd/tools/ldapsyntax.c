@@ -23,7 +23,6 @@
 #include <quipu/ds_search.h>
 /* #include <quipu/dap2.h> */
 #include <quipu/dua.h>
-#include <sys/types.h>
 
 #include "lber.h"
 #include "ldap.h"

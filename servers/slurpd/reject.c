@@ -24,7 +24,6 @@
 #include <ac/errno.h>
 #include <ac/unistd.h>
 
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 

@@ -17,7 +17,6 @@
 #include <ac/signal.h>
 #include <ac/unistd.h>
 
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/file.h>
@@ -25,7 +24,6 @@
 
 #include "lutil.h"
 
-/* I'd really like to make do_close an fd_set, but that isn't portable. */
 void
 lutil_detach( int debug, int do_close )
 {

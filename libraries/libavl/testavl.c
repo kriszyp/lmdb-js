@@ -6,7 +6,6 @@
 #include <stdlib.h>
 
 #include <ac/string.h>
-#include <sys/types.h>
 
 #include "avl.h"
 

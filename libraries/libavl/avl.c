@@ -20,7 +20,6 @@ static char avl_version[] = "AVL library version 1.0\n";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 
 #include "avl.h"
 
