@@ -73,7 +73,7 @@ cat /dev/null > $SEARCHOUT
 
 echo "Testing exact searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT \
-	'(sn=jensen)' >> $SEARCHOUT 2>&1
+	'(sn=jENSEN)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
