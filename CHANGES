@@ -13,6 +13,7 @@ OpenLDAP 2.2.21 Release
 	Fixed back-ldap/meta objectClass mapping in updates (ITS#3499)
 	Fixed back-meta DN-valued attribute delete (ITS#3498)
 	Fixed back-sql access checking on search (ITS#3488)
+	Fixed libldap timeout option cleanup (ITS#3487)
 	Build Environment
 		Misc fixes for dynamic modules (ITS#3401, #3428)
 	Documentation
