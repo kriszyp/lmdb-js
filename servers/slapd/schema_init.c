@@ -1667,7 +1667,7 @@ struct mrule_defs_rec {
 };
 
 /*
- * Other matching rules in X.520 that we do not use:
+ * Other matching rules in X.520 that we do not use (yet):
  *
  * 2.5.13.9		numericStringOrderingMatch
  * 2.5.13.13	booleanMatch
@@ -1720,7 +1720,6 @@ struct mrule_defs_rec mrule_defs[] = {
 		NULL, NULL, caseIgnoreSubstringsMatch,
 		caseIgnoreSubstringsIndexer, caseIgnoreSubstringsFilter},
 
-	/* Next three are not in the RFC's, but are needed for compatibility */
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
@@ -1826,18 +1825,26 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		NULL, NULL,
+		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		NULL, NULL,
+		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
 		NULL, NULL, caseIgnoreIA5SubstringsMatch,
 		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
+
+	{"( 1.3.6.1.4.1.4203.666.4.3 NAME 'caseExactIA5SubstringsMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
+		SLAP_MR_SUBSTR,
+		NULL, NULL, caseExactIA5SubstringsMatch,
+		caseExactIA5SubstringsIndexer, caseExactIA5SubstringsFilter},
 
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
