@@ -811,14 +811,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 					adname.bv_val = &anew->an_name.bv_val[1];
 					slap_bv2ad(&adname, &anew->an_desc, &text);
 					if ( !anew->an_desc ) {
-						free( an );
-						free( str );
-						/*
-						 * overwrites input string
-						 * on error!
-						 */
-						strcpy( in, s );
-						return NULL;
+						goto reterr;
 					}
 				} break;
 
@@ -830,14 +823,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 					ocname.bv_val = &anew->an_name.bv_val[1];
 					anew->an_oc = oc_bvfind( &ocname );
 					if ( !anew->an_oc ) {
-						free( an );
-						free( str );
-						/*
-						 * overwrites input string
-						 * on error!
-						 */
-						strcpy( in, s );
-						return NULL;
+						goto reterr;
 					}
 
 					if ( anew->an_name.bv_val[0] == '!' ) {
@@ -849,11 +835,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 				/* old (deprecated) way */
 				anew->an_oc = oc_bvfind( &anew->an_name );
 				if ( !anew->an_oc ) {
-					free( an );
-					free( str );
-					/* overwrites input string on error! */
-					strcpy( in, s );
-					return NULL;
+					goto reterr;
 				}
 			}
 		}
@@ -863,6 +845,19 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	anew->an_name.bv_val = NULL;
 	free( str );
 	return( an );
+
+reterr:
+	for ( i = 0; an[i].an_name.bv_val; i++ ) {
+		free( an[i].an_name.bv_val );
+	}
+	free( an );
+	/*
+	 * overwrites input string
+	 * on error!
+	 */
+	strcpy( in, s );
+	free( str );
+	return NULL;
 }
 
 char **anlist2charray_x( AttributeName *an, int dup, void *ctx )
@@ -964,7 +959,8 @@ anlist2attrs( AttributeName * anlist )
 		}
 	}
 
-	attrs = (char **) ch_realloc( attrs, (i+1) * sizeof( char * ));
+	if ( i != n )
+		attrs = (char **) ch_realloc( attrs, (i+1) * sizeof( char * ));
 
 	return attrs;
 }

@@ -2312,6 +2312,7 @@ add_syncrepl(
 
 	if ( rc < 0 || duplicated_replica_id ) {
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
+		syncinfo_free( si );	
 		return 1;
 	} else {
 		Debug( LDAP_DEBUG_CONFIG,

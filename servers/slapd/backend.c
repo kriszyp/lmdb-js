@@ -483,11 +483,13 @@ int backend_destroy(void)
 			syncinfo_free( si_entry );
 		}
 
-		LDAP_TAILQ_FOREACH( csne, bd->be_pending_csn_list, ce_csn_link ) {
-			LDAP_TAILQ_REMOVE( bd->be_pending_csn_list, csne, ce_csn_link );
-			ch_free( csne->ce_csn->bv_val );
-			ch_free( csne->ce_csn );
-			ch_free( csne );
+		if ( bd->be_pending_csn_list ) {
+			LDAP_TAILQ_FOREACH( csne, bd->be_pending_csn_list, ce_csn_link ) {
+				LDAP_TAILQ_REMOVE( bd->be_pending_csn_list, csne, ce_csn_link );
+				ch_free( csne->ce_csn->bv_val );
+				ch_free( csne->ce_csn );
+				ch_free( csne );
+			}
 		}
 		
 		if ( bd->bd_info->bi_db_destroy ) {

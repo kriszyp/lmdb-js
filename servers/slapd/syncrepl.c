@@ -83,7 +83,9 @@ init_syncrepl(syncinfo_t *si)
 					i++;
 				}
 			}
-			attrs = ( char ** ) ch_realloc( attrs, (i + 1)*sizeof( char * ));
+			attrs = ( char ** ) ch_realloc( attrs, (i + 2)*sizeof( char * ));
+			attrs[i] = ch_strdup("*");
+			attrs[i + 1] = NULL;
 		} else if ( si->si_allopattrs ) {
 			i = 0;
 			while ( attrs[i] ) {
@@ -97,7 +99,9 @@ init_syncrepl(syncinfo_t *si)
 					i++;
 				}
 			}
-			attrs = ( char ** ) ch_realloc( attrs, (i + 1)*sizeof( char * ));
+			attrs = ( char ** ) ch_realloc( attrs, (i + 2)*sizeof( char * ));
+			attrs[i] = ch_strdup("+");
+			attrs[i + 1] = NULL;
 		}
 
 		if ( !si->si_allopattrs ) {
@@ -143,7 +147,10 @@ init_syncrepl(syncinfo_t *si)
 
 	exattrs = anlist2attrs( si->si_exanlist );
 
+
 	if ( exattrs ) {
+
+		for ( n = 0; exattrs[n] != NULL; n++ ) ;
 
 		for ( i = 0; sync_descs[i] != NULL; i++ ) {
 			j = 0;
@@ -181,7 +188,9 @@ init_syncrepl(syncinfo_t *si)
 		}
 
 		for ( i = 0; exattrs[i] != NULL; i++ ) ;
-		exattrs = (char **) ch_realloc( exattrs, (i + 1)*sizeof(char *));
+
+		if ( i != n )
+			exattrs = (char **) ch_realloc( exattrs, (i + 1)*sizeof(char *));
 	}
 
 	si->si_exattrs = exattrs;	
