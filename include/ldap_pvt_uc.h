@@ -143,18 +143,9 @@ LDAP_LUNICODE_F(void) ucstr2upper(
 #define LDAP_UTF8_ARG2NFC	0x4U
 #define LDAP_UTF8_APPROX	0x8U
 
-LDAP_LUNICODE_F(char *) UTF8normalize(
-	struct berval *,
-	unsigned );
-
 LDAP_LUNICODE_F(struct berval *) UTF8bvnormalize(
 	struct berval *,
 	struct berval *,
-	unsigned );
-
-LDAP_LUNICODE_F(int) UTF8normcmp(
-	const char *,
-	const char *,
 	unsigned );
 
 LDAP_LUNICODE_F(int) UTF8bvnormcmp(

@@ -776,16 +776,17 @@ approxIndexer(
 {
 	char *c;
 	int i,j, len, wordcount, keycount=0;
-	struct berval *val, *newkeys;
+	struct berval *newkeys;
 	BerVarray keys=NULL;
 
 	for( j=0; values[j].bv_val != NULL; j++ ) {
+		struct berval val = { 0, NULL };
 		/* Yes, this is necessary */
-		val = UTF8bvnormalize( &values[j], NULL, LDAP_UTF8_APPROX );
-		assert( val != NULL && val->bv_val != NULL );
+		UTF8bvnormalize( &values[j], &val, LDAP_UTF8_APPROX );
+		assert( val.bv_val != NULL );
 
 		/* Isolate how many words there are. There will be a key for each */
-		for( wordcount = 0, c = val->bv_val; *c; c++) {
+		for( wordcount = 0, c = val.bv_val; *c; c++) {
 			len = strcspn(c, SLAPD_APPROX_DELIMITER);
 			if( len >= SLAPD_APPROX_WORDLEN ) wordcount++;
 			c+= len;
@@ -801,7 +802,7 @@ approxIndexer(
 		keys = newkeys;
 
 		/* Get a phonetic copy of each word */
-		for( c = val->bv_val, i = 0; i < wordcount; c += len + 1 ) {
+		for( c = val.bv_val, i = 0; i < wordcount; c += len + 1 ) {
 			len = strlen( c );
 			if( len < SLAPD_APPROX_WORDLEN ) continue;
 			ber_str2bv( phonetic( c ), 0, 0, &keys[keycount] );
@@ -809,7 +810,7 @@ approxIndexer(
 			i++;
 		}
 
-		ber_bvfree( val );
+		ber_memfree( val.bv_val );
 	}
 	keys[keycount].bv_val = NULL;
 	*keysp = keys;
@@ -997,9 +998,7 @@ caseExactMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	*matchp = UTF8normcmp( value->bv_val,
-		((struct berval *) assertedValue)->bv_val,
-		LDAP_UTF8_NOCASEFOLD );
+	*matchp = UTF8bvnormcmp( value, (struct berval *) assertedValue, LDAP_UTF8_NOCASEFOLD );
 	return LDAP_SUCCESS;
 }
 
@@ -1195,8 +1194,7 @@ static int caseExactIgnoreIndexer(
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		struct berval value;
-		ber_str2bv( UTF8normalize( &values[i], casefold ), 0, 0,
-			&value );
+		UTF8bvnormalize( &values[i], &value, casefold );
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1236,8 +1234,9 @@ static int caseExactIgnoreFilter(
 	BerVarray keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
-	struct berval value;
+	struct berval value = { 0, NULL };
 	struct berval digest;
+
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
@@ -1247,8 +1246,7 @@ static int caseExactIgnoreFilter(
 	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
-	ber_str2bv( UTF8normalize( ((struct berval *) assertValue), casefold ),
-		0, 0, &value );
+	UTF8bvnormalize( (struct berval *) assertValue, &value, casefold );
 	/* This usually happens if filter contains bad UTF8 */
 	if( value.bv_val == NULL ) {
 		keys = ch_malloc( sizeof( struct berval ) );
@@ -1316,8 +1314,7 @@ static int caseExactIgnoreSubstringsIndexer(
 
 	nvalues = ch_malloc( sizeof( struct berval ) * (i+1) );
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		ber_str2bv( UTF8normalize( &values[i], casefold ),
-			0, 0, &nvalues[i] );
+		UTF8bvnormalize( &values[i], &nvalues[i], casefold );
 	}
 	nvalues[i].bv_val = NULL;
 	values = nvalues;
@@ -1647,9 +1644,7 @@ caseIgnoreMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	*matchp = UTF8normcmp( value->bv_val,
-		((struct berval *) assertedValue)->bv_val,
-		LDAP_UTF8_CASEFOLD );
+	*matchp = UTF8bvnormcmp( value, (struct berval *) assertedValue, LDAP_UTF8_CASEFOLD );
 	return LDAP_SUCCESS;
 }
 	
