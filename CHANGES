@@ -13,6 +13,7 @@ OpenLDAP 2.0.7 Release
 	Fixed slapd SASL layering bug
 	Fixed slapd unknown authc method bug (ITS#831 ITS#844)
 	Fixed slapd TLSVerifyClient config bug
+	Fixed tools passwd clearing bug
 	Updated -lldap TLS/SASL error reporting
 	Updated -llber large element handling
 	Updated slapadd error reporting
