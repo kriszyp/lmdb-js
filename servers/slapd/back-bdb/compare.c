@@ -107,14 +107,13 @@ bdb_compare(
 
 	}
 
-	if( rc != LDAP_NO_SUCH_ATTRIBUTE ) {
+return_results:
+	send_ldap_result( conn, op, rc,
+		NULL, text, NULL, NULL );
+
+	if( rc == LDAP_COMPARE_FALSE || rc == LDAP_COMPARE_TRUE ) {
 		rc = LDAP_SUCCESS;
 	}
-
-
-return_results:
-	send_ldap_result( conn, op, LDAP_SUCCESS,
-		NULL, text, NULL, NULL );
 
 done:
 	/* free entry */
