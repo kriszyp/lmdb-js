@@ -483,7 +483,7 @@ subtree_candidates(
 			f->f_and->f_sub_initial = NULL;
 			f->f_and->f_sub_any = NULL;
 			f->f_and->f_sub_final = ch_strdup( base );
-			value_normalize( f->f_and->f_sub_final, SYNTAX_CIS );
+			value_normalize( f->f_and->f_sub_final, SYNTAX_DN );
 			f->f_and->f_next = filter;
 			filter = f;
 		}

@@ -11,24 +11,32 @@
 
 #include "slap.h"
 
-#define B4TYPE		0
-#define INTYPE		1
-#define B4EQUAL		2
-#define B4VALUE		3
-#define INVALUE		4
-#define INQUOTEDVALUE	5
-#define B4SEPARATOR	6
+typedef enum DnState {
+	B4TYPE,			/* before attribute type */
+	INTYPE,			/* in     attribute type */
+	B4EQUAL,		/* before '=' */
+	B4VALUE,		/* before attribute value */
+	INVALUE,		/* in     attribute value */
+	INQUOTEDVALUE,		/* in "" in attribute value */
+	B4SEPARATOR,		/* before separator ('+', ',' or ';') */
+} DnState;
 
 /*
- * dn_normalize - put dn into a canonical format.  the dn is
- * normalized in place, as well as returned.
+ * dn_normalize_internal - put dn into a canonical form suitable for storing
+ * in a hash database.  If correct_case == 1, this involves normalizing the case
+ * as well as the format.  The dn is normalized in place as well as returned.
+ *
+ * The dn_normalize() and dn_normalize_case() macros use this function.
  */
 
 char *
-dn_normalize( char *dn )
+dn_normalize_internal( char *dn, int correct_case )
 {
-	char	*d, *s;
-	int	state, gotesc;
+	char	*s, *d;		/* source and destination pointers */
+	char	*type;		/* start of attr.type when state==INTYPE */
+	int	gotesc;		/* last char was '\\' */
+	int	ic;		/* ignore case  */
+	DnState	state;
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> dn_normalize \"%s\"\n", dn, 0, 0 ); */
 
@@ -39,18 +47,28 @@ dn_normalize( char *dn )
 		case B4TYPE:
 			if ( ! SPACE( *s ) ) {
 				state = INTYPE;
-				*d++ = *s;
+				ic = 1;
+				type = d;
+				*d++ = TOUPPER( (unsigned char) *s );
 			}
 			break;
 		case INTYPE:
 			if ( *s == '=' ) {
 				state = B4VALUE;
-				*d++ = *s;
 			} else if ( SPACE( *s ) ) {
 				state = B4EQUAL;
 			} else {
-				*d++ = *s;
+				*d++ = TOUPPER( (unsigned char) *s );
+				break;
 			}
+			/* Check if case is ignored in this type */
+			if ( correct_case ) {
+				*d = '\0';
+				if ( ! (attr_syntax( type ) | SYNTAX_CIS) )
+					ic = 0;
+			}
+			if (state == B4VALUE)
+				*d++ = '=';
 			break;
 		case B4EQUAL:
 			if ( *s == '=' ) {
@@ -58,7 +76,7 @@ dn_normalize( char *dn )
 				*d++ = *s;
 			} else if ( ! SPACE( *s ) ) {
 				/* not a valid dn - but what can we do here? */
-				*d++ = *s;
+				*d++ = TOUPPER( (unsigned char) *s );
 			}
 			break;
 		case B4VALUE:
@@ -67,7 +85,7 @@ dn_normalize( char *dn )
 				*d++ = *s;
 			} else if ( ! SPACE( *s ) ) { 
 				state = INVALUE;
-				*d++ = *s;
+				*d++ = (ic ? TOUPPER((unsigned char) *s) : *s);
 			}
 			break;
 		case INVALUE:
@@ -82,10 +100,10 @@ dn_normalize( char *dn )
 				}
 			} else if ( gotesc && !NEEDSESCAPE( *s ) &&
 			    !SEPARATOR( *s ) ) {
-				*--d = *s;
+				*--d = (ic ? TOUPPER((unsigned char) *s) : *s);
 				d++;
 			} else {
-				*d++ = *s;
+				*d++ = (ic ? TOUPPER((unsigned char) *s) : *s);
 			}
 			break;
 		case INQUOTEDVALUE:
@@ -93,10 +111,10 @@ dn_normalize( char *dn )
 				state = B4SEPARATOR;
 				*d++ = *s;
 			} else if ( gotesc && !NEEDSESCAPE( *s ) ) {
-				*--d = *s;
+				*--d = (ic ? TOUPPER((unsigned char) *s) : *s);
 				d++;
 			} else {
-				*d++ = *s;
+				*d++ = (ic ? TOUPPER((unsigned char) *s) : *s);
 			}
 			break;
 		case B4SEPARATOR:
@@ -122,27 +140,22 @@ dn_normalize( char *dn )
 	return( dn );
 }
 
+
 /*
- * dn_normalize_case - put dn into a canonical form suitable for storing
- * in a hash database.  this involves normalizing the case as well as
- * the format.  the dn is normalized in place as well as returned.
+ * dn_casecmp - compare two DNs after normalizing (private copies of) them
  */
 
-char *
-dn_normalize_case( char *dn )
+int
+dn_casecmp( const char *dn1, const char *dn2 )
 {
-	char	*s;
-
-	/* normalize format */
-	dn_normalize( dn );
-
-	/* normalize case */
-	for ( s = dn; *s; s++ ) {
-		*s = TOUPPER( (unsigned char) *s );
-	}
-
-	return( dn );
+	char *ndn1 = dn_normalize_case( ch_strdup( dn1 ) );
+	char *ndn2 = dn_normalize_case( ch_strdup( dn2 ) );
+	int i = strcmp( ndn1, ndn2 );
+	free( ndn1 );
+	free( ndn2 );
+	return i;
 }
+
 
 /*
  * dn_parent - return a copy of the dn of dn's parent

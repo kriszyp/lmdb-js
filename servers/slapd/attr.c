@@ -279,7 +279,7 @@ attr_syntax_config(
 	    strcasecmp( argv[lasti], "tel" ) == 0 ) {
 		a->asi_syntax = (SYNTAX_CIS | SYNTAX_TEL);
 	} else if ( strcasecmp( argv[lasti], "dn" ) == 0 ) {
-		a->asi_syntax = (SYNTAX_CIS | SYNTAX_DN);
+		a->asi_syntax = SYNTAX_DN;
 	} else if ( strcasecmp( argv[lasti], "caseexactstring" ) == 0 ||
 	    strcasecmp( argv[lasti], "ces" ) == 0 ) {
 		a->asi_syntax = SYNTAX_CES;

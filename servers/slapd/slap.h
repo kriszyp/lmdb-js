@@ -460,6 +460,9 @@ typedef struct slap_conn {
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #endif
 
+#define dn_normalize(dn)	dn_normalize_internal( dn, 0 )
+#define dn_normalize_case(dn)	dn_normalize_internal( dn, 1 )
+
 #include "proto-slap.h"
 
 LDAP_END_DECL

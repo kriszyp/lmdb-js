@@ -208,19 +208,17 @@ read_config( char *fname )
                                 char *alias, *aliased_dn;
 
 								alias = ch_strdup( cargv[1] );
-                                (void) dn_normalize( alias );
+                                (void) dn_normalize_case( alias );
 
                                 aliased_dn = ch_strdup( cargv[2] );
-                                (void) dn_normalize( aliased_dn );
+                                (void) dn_normalize_case( aliased_dn );
 
 
-								if ( strcasecmp( alias, aliased_dn) == 0 ) {
+				if ( strcmp( alias, aliased_dn) == 0 ) {
                                 	Debug( LDAP_DEBUG_ANY,
 "%s: line %d: suffixAlias %s is not different from aliased dn (ignored)\n",
                                     fname, lineno, alias );
 								} else {
-                                	(void) dn_normalize_case( alias );
-                                	(void) dn_normalize_case( aliased_dn );
                                 	charray_add( &be->be_suffixAlias, alias );
                                 	charray_add( &be->be_suffixAlias, aliased_dn );
 								}

@@ -222,7 +222,7 @@ char *bdb2i_derefDN ( BackendDB     *be,
 
 	  Debug( LDAP_DEBUG_TRACE, "<= l&g we have %s vs %s \n", matched, eNew->e_dn, 0 );
 
-	  i = strcasecmp (matched, eNew->e_dn);
+	  i = dn_casecmp (matched, eNew->e_dn);
           /* free reader lock */
           bdb2i_cache_return_entry_r(&li->li_cache, eNew);
 
