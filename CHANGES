@@ -3,6 +3,7 @@ OpenLDAP 2.2 Change Log
 OpenLDAP 2.2.18 Release
 	Fixed libldap schema keyword sensitivity (ITS#3334)
 	Fixed libldap DN filter sensitivity (ITS#3334)
+	Fixed libldap intermediate response tags
 	Fixed slapd matching rule name sensitivity (ITS#3334)
 	Fixed slapd multiple value delete (ITS#3346)
 	Fixed slapd referral memory leak
