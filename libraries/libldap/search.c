@@ -222,7 +222,7 @@ ldap_search(
 BerElement *
 ldap_build_search_req(
 	LDAP *ld,
-	LDAP_CONST char *base_in,
+	LDAP_CONST char *base,
 	ber_int_t scope,
 	LDAP_CONST char *filter_in,
 	char **attrs,
@@ -234,7 +234,6 @@ ldap_build_search_req(
 {
 	BerElement	*ber;
 	int		err;
-	char	*base;
 	char	*filter;
 
 	/*
@@ -266,16 +265,14 @@ ldap_build_search_req(
 		return( NULL );
 	}
 
-	if ( base_in == NULL ) {
+	if ( base == NULL ) {
 		/* no base provided, use session default base */
 		base = ld->ld_options.ldo_defbase;
-	} else {
-		base = (char *) base_in;
-	}
 
-	if ( base == NULL ) {
-		/* no session default base, use top */
-	    base = "";
+		if ( base == NULL ) {
+			/* no session default base, use top */
+			base = "";
+		}
 	}
 
 #ifdef LDAP_CONNECTIONLESS
