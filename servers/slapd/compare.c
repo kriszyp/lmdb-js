@@ -41,7 +41,7 @@ do_compare(
 #endif
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
-	char *text = NULL;
+	const char *text = NULL;
 
 	desc.bv_val = NULL;
 	value.bv_val = NULL;

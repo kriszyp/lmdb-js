@@ -68,7 +68,7 @@ ainfo_dup(
 void
 attr_mask(
     struct ldbminfo	*li,
-    char		*type,
+    const char		*type,
     int			*indexmask )
 {
 	AttrInfo	*a;

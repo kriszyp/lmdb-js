@@ -23,12 +23,12 @@ starttls_extop (
 	SLAP_EXTOP_CALLBACK_FN cb,
 	Connection *conn,
 	Operation *op,
-	char * reqoid,
+	const char * reqoid,
 	struct berval * reqdata,
 	char ** rspoid,
 	struct berval ** rspdata,
 	LDAPControl ***rspctrls,
-	char ** text,
+	const char ** text,
 	struct berval *** refs )
 {
 	void *ctx;

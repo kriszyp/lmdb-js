@@ -41,7 +41,7 @@ str2entry( char *s )
 	struct berval	*vals[2];
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad;
-	char *text;
+	const char *text;
 #else
 	int		nvals = 0;
 	int		maxvals = 0;

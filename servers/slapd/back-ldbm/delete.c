@@ -21,8 +21,8 @@ ldbm_back_delete(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn
+    const char	*dn,
+    const char	*ndn
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;

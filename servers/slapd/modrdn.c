@@ -53,7 +53,7 @@ do_modrdn(
 	Backend	*newSuperior_be = NULL;
 	ber_len_t	length;
 	int rc;
-	char *text;
+	const char *text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 

@@ -20,8 +20,8 @@ shell_back_delete(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn
+    const char	*dn,
+    const char	*ndn
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;

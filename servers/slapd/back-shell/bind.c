@@ -20,10 +20,9 @@ shell_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    char		*dn,
-    char		*ndn,
+    const char		*dn,
+    const char		*ndn,
     int			method,
-	char		*mech,
     struct berval	*cred,
 	char		**edn
 )

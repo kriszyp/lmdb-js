@@ -40,7 +40,7 @@ do_search(
 	char		**attrs = NULL;
 	Backend		*be;
 	int			rc;
-	char		*text;
+	const char		*text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 

@@ -30,7 +30,7 @@
 static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
-	char **text );
+	const char **text );
 #else
 static int	add_created_attrs(Operation *op, Entry *e);
 #endif
@@ -49,7 +49,7 @@ do_add( Connection *conn, Operation *op )
 	LDAPModList	**modtail = &modlist;
 	Modifications *mods = NULL;
 #endif
-	char *text;
+	const char *text;
 	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
@@ -296,7 +296,7 @@ done:
 static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
-	char **text )
+	const char **text )
 {
 	Attribute **tail = &(*e)->e_attrs;
 	assert( *tail == NULL );

@@ -91,7 +91,7 @@ do_extended(
 	ber_tag_t tag;
 	ber_len_t len;
 	extop_list_t *ext;
-	char *text;
+	const char *text;
 	struct berval **refs;
 	char *rspoid;
 	struct berval *rspdata;

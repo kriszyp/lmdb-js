@@ -18,7 +18,7 @@
 #include "slap.h"
 
 int
-root_dse_info( Entry **entry, char **text )
+root_dse_info( Entry **entry, const char **text )
 {
 	char buf[BUFSIZ];
 	Entry		*e;

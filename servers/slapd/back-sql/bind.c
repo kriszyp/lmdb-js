@@ -18,7 +18,7 @@
 #include "sql-wrap.h"
 
 int backsql_bind(Backend *be,Connection *conn,Operation *op,
-	char *dn,char *ndn,int method,char *mech,struct berval *cred,char** edn)
+	char *dn,char *ndn,int method,struct berval *cred,char** edn)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_bind()\n",0,0,0);
  //for now, just return OK, allowing to test modify operations

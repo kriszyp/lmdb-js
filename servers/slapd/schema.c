@@ -20,7 +20,7 @@
 #if defined( SLAPD_SCHEMA_DN )
 
 int
-schema_info( Entry **entry, char **text )
+schema_info( Entry **entry, const char **text )
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
@@ -60,8 +60,8 @@ schema_info( Entry **entry, char **text )
 	attr_merge( e, ad_objectClass, vals );
 
 	{
-		int rc;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+		int rc;
 		AttributeDescription *desc = NULL;
 #else
 		char *desc;

@@ -21,8 +21,8 @@
 DBCache *
 ldbm_cache_open(
     Backend	*be,
-    char	*name,
-    char	*suffix,
+    const char	*name,
+    const char	*suffix,
     int		flags
 )
 {

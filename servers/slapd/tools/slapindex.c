@@ -22,7 +22,7 @@ main( int argc, char **argv )
 	char		*type;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc;
-	char *text;
+	const char *text;
 #else
 	char *desc;
 #endif

@@ -40,7 +40,6 @@ ldap_back_bind(
     char		*dn,
     char		*ndn,
     int			method,
-	char		*mech,
     struct berval	*cred,
 	char		**edn
 )

@@ -30,7 +30,7 @@
 int
 monitor_info(
 	Entry **entry,
-	char **text )
+	const char **text )
 {
 	Entry		*e;
 	char		buf[BUFSIZ];

@@ -609,7 +609,7 @@ backend_check_controls(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	char **text )
+	const char **text )
 {
 	LDAPControl **ctrls;
 	ctrls = op->o_ctrls;

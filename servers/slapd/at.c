@@ -203,7 +203,7 @@ attr_index_cmp(
 
 static int
 attr_index_name_cmp(
-    char 		*type,
+    const char 		*type,
     struct aindexrec	*air
 )
 {

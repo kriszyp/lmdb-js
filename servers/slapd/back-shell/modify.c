@@ -20,8 +20,8 @@ shell_back_modify(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn,
+    const char	*dn,
+    const char	*ndn,
     LDAPModList	*ml
 )
 {

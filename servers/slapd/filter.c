@@ -19,13 +19,14 @@ static int	get_filter_list(
 	BerElement *ber,
 	Filter **f,
 	char **fstr,
-	char **text );
+	const char **text );
+
 static int	get_substring_filter(
 	Connection *conn,
 	BerElement *ber,
 	Filter *f,
 	char **fstr,
-	char **text );
+	const char **text );
 
 int
 get_filter(
@@ -33,7 +34,7 @@ get_filter(
 	BerElement *ber,
 	Filter **filt,
 	char **fstr,
-	char **text )
+	const char **text )
 {
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -327,7 +328,9 @@ get_filter(
 }
 
 static int
-get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr, char **text )
+get_filter_list( Connection *conn, BerElement *ber,
+	Filter **f, char **fstr,
+	const char **text )
 {
 	Filter		**new;
 	int		err;
@@ -368,7 +371,7 @@ get_substring_filter(
     BerElement	*ber,
     Filter	*f,
     char	**fstr,
-	char	**text
+	const char	**text
 )
 {
 	ber_tag_t	tag;
@@ -377,9 +380,10 @@ get_substring_filter(
 	struct berval *value;
 	char		*last;
 	struct berval type;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
-	int		syntax;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	struct berval *nvalue;
+#else
+	int		syntax;
 #endif
 	*text = "error decoding filter";
 
@@ -430,7 +434,9 @@ get_substring_filter(
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
 	{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		unsigned usage;
+#endif
 
 		rc = ber_scanf( ber, "O", &value );
 		if ( rc == LBER_ERROR ) {

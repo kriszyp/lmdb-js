@@ -600,8 +600,6 @@ void connection_closing( Connection *c )
 		/* don't listen on this port anymore */
 		slapd_clr_read( ber_pvt_sb_get_desc( c->c_sb ), 1 );
 
-		/* shutdown I/O -- not yet implemented */
-
 		/* abandon active operations */
 		connection_abandon( c );
 

@@ -37,11 +37,11 @@ ldbm_back_modrdn(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn,
-    char	*newrdn,
+    const char	*dn,
+    const char	*ndn,
+    const char	*newrdn,
     int		deleteoldrdn,
-    char	*newSuperior
+    const char	*newSuperior
 )
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -190,11 +190,12 @@ ldbm_back_modrdn(
 
 	new_parent_dn = p_dn;	/* New Parent unless newSuperior given */
 
-	if ( (np_dn = newSuperior) != NULL) {
+	if ( newSuperior != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, 
-		       "ldbm_back_modrdn: new parent requested...\n",
-		       0, 0, 0 );
+			"ldbm_back_modrdn: new parent \"%s\" requested...\n",
+			newSuperior, 0, 0 );
 
+		np_dn = ch_strdup( newSuperior );
 		np_ndn = ch_strdup( np_dn );
 		(void) dn_normalize( np_ndn );
 

@@ -21,12 +21,12 @@
 int passwd_extop(
 	SLAP_EXTOP_CALLBACK_FN ext_callback,
 	Connection *conn, Operation *op,
-	char *reqoid,
+	const char *reqoid,
 	struct berval *reqdata,
 	char **rspoid,
 	struct berval **rspdata,
 	LDAPControl ***rspctrls,
-	char **text,
+	const char **text,
 	struct berval ***refs )
 {
 	int rc;
@@ -70,7 +70,7 @@ int slap_passwd_parse( struct berval *reqdata,
 	struct berval **id,
 	struct berval **oldpass,
 	struct berval **newpass,
-	char **text )
+	const char **text )
 {
 	int rc = LDAP_SUCCESS;
 	ber_tag_t tag;

@@ -77,7 +77,7 @@ static int ad_keystring(
 int slap_str2ad(
 	const char *str,
 	AttributeDescription **ad,
-	char **text )
+	const char **text )
 {
 	struct berval bv;
 	bv.bv_val = (char *) str;
@@ -89,7 +89,7 @@ int slap_str2ad(
 int slap_bv2ad(
 	struct berval *bv,
 	AttributeDescription **ad,
-	char **text )
+	const char **text )
 {
 	int rtn = LDAP_UNDEFINED_TYPE;
 	int i;
@@ -226,7 +226,7 @@ int ad_inlist(
 	int i;
 	for( i=0; attrs[i] != NULL; i++ ) {
 		AttributeDescription *ad = NULL;
-		char *text;
+		const char *text;
 		int rc;
 		
 		rc = slap_str2ad( attrs[i], &ad, &text );

@@ -34,7 +34,7 @@ static char *	oc_check_required(Entry *e, struct berval *ocname);
 
 int
 entry_schema_check( 
-	Entry *e, Attribute *oldattrs, char** text )
+	Entry *e, Attribute *oldattrs, const char** text )
 {
 	Attribute	*a, *aoc;
 	ObjectClass *oc;
@@ -220,6 +220,9 @@ oc_check_allowed(
 #endif
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/*
+	 * All operational attributions are allowed by schema rules.
+	 */
 	if( is_at_operational(at) ) {
 		return LDAP_SUCCESS;
 	}

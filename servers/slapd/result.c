@@ -505,7 +505,7 @@ send_ldap_extended(
     const char	*matched,
     const char	*text,
     struct berval **refs,
-    char		*rspoid,
+    const char		*rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
 )

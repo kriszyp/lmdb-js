@@ -94,7 +94,7 @@ value_normalize(
 	unsigned usage,
 	struct berval *in,
 	struct berval **out,
-	char **text )
+	const char **text )
 {
 	int rc;
 	MatchingRule *mr;
@@ -176,7 +176,7 @@ value_match(
 	MatchingRule *mr,
 	struct berval *v1, /* (unnormalized) stored value */
 	struct berval *v2, /* (normalized) asserted value */
-	char ** text )
+	const char ** text )
 {
 	/* not yet implemented */
 	return 0;
@@ -237,7 +237,7 @@ int value_find(
 	MatchingRule *mr,
 	struct berval **vals,
 	struct berval *val,
-	char ** text )
+	const char ** text )
 #else
 int
 value_find(

@@ -19,10 +19,10 @@ LDAP_BEGIN_DECL
 Entry *deref_internal_r LDAP_P((
 	Backend *be,
 	Entry *e,
-	char *dn,
+	const char *dn,
 	int *err,
 	Entry **matched,
-	char **text ));
+	const char **text ));
 
 #define deref_entry_r( be, e, err, matched, text ) \
 	deref_internal_r( be, e, NULL, err, matched, text )
@@ -33,7 +33,7 @@ Entry *deref_internal_r LDAP_P((
  * attr.c
  */
 
-void attr_mask LDAP_P(( struct ldbminfo *li, char *type, int *indexmask ));
+void attr_mask LDAP_P(( struct ldbminfo *li, const char *type, int *indexmask ));
 void attr_index_config LDAP_P(( struct ldbminfo *li,
 	const char *fname, int lineno,
 	int argc, char **argv, int init ));
@@ -59,7 +59,7 @@ void cache_release_all LDAP_P(( Cache *cache ));
  */
 
 DBCache * ldbm_cache_open LDAP_P(( Backend *be,
-	char *name, char *suffix, int flags ));
+	const char *name, const char *suffix, int flags ));
 void ldbm_cache_close LDAP_P(( Backend *be, DBCache *db ));
 void ldbm_cache_really_close LDAP_P(( Backend *be, DBCache *db ));
 void ldbm_cache_flush_all LDAP_P(( Backend *be ));
@@ -136,22 +136,20 @@ ID_BLOCK * index_read LDAP_P(( Backend *be,
 	char *type, int indextype, char *val ));
 /* Possible operations supported (op) by index_change_values() */
 int index_change_values LDAP_P(( Backend *be,
-				 char *type,
-				 struct berval **vals,
-				 ID  id,
-				 unsigned int op ));
+	char *type, struct berval **vals,
+	ID  id, unsigned int op ));
 
 /*
  * passwd.c
  */
 extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *reqoid,
+	const char *reqoid,
 	struct berval *reqdata,
 	char **rspoid,
 	struct berval **rspdata,
 	LDAPControl ***rspctrls,
-	char **text,
+	const char **text,
 	struct berval *** refs ));
  
 
@@ -170,7 +168,7 @@ extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
 /* returns LDAP error code indicating error OR SLAPD_ABANDON */
 int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,
-	char *dn, Modifications *mods, Entry *e ));
+	const char *dn, Modifications *mods, Entry *e ));
 
 #ifdef HAVE_CYRUS_SASL
 /*

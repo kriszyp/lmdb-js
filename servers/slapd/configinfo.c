@@ -32,7 +32,7 @@
 
 int
 config_info(
-	Entry **entry, char **text )
+	Entry **entry, const char **text )
 {
 	Entry		*e;
 	char		buf[BUFSIZ];

@@ -29,21 +29,21 @@ ldbm_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*base,
-    char	*nbase,
+    const char	*base,
+    const char	*nbase,
     int		scope,
     int		deref,
     int		slimit,
     int		tlimit,
     Filter	*filter,
-    char	*filterstr,
+    const char	*filterstr,
     char	**attrs,
     int		attrsonly
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		rc, err;
-	char *text;
+	const char *text;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
 	ID		id, cursor;
@@ -190,7 +190,7 @@ ldbm_back_search(
 		if ( deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;
 			int err;
-			char *text;
+			const char *text;
 			
 			e = deref_entry_r( be, e, &err, &matched, &text );
 
@@ -314,13 +314,8 @@ ldbm_back_search(
 					}
 #endif
 
-					result = send_search_entry(be,
-								   conn,
-								   op,
-								   e,
-								   attrs,
-								   attrsonly,
-								   NULL);
+					result = send_search_entry(be, conn, op,
+						e, attrs, attrsonly, NULL);
 
 #ifdef BROKEN_NUM_SUBORDINATES
 					if (idl)

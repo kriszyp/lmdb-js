@@ -41,7 +41,7 @@ do_bind(
 	char *ndn;
 	ber_tag_t	tag;
 	int			rc = LDAP_SUCCESS;
-	char	*text;
+	const char	*text;
 	struct berval	cred;
 	Backend		*be;
 
@@ -340,7 +340,7 @@ do_bind(
 		ndn = suffix_alias( be, ndn );
 
 		ret = (*be->be_bind)( be, conn, op, dn, ndn,
-			method, mech, &cred, &edn );
+			method, &cred, &edn );
 
 		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );

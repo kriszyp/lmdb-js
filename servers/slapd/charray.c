@@ -115,34 +115,6 @@ charray_dup( char **a )
 }
 
 
-char *
-charray2str( char **a )
-{
-	char *s;
-	int i;
-	size_t cur, len = 0;
-
-	if( a == NULL ) return NULL;
-
-	for( i=0 ; a[i] != NULL ; i++ ) {
-		len += strlen( a[i] );
-	}
-
-	if( len == 0 ) return NULL;
-
-	s = ch_malloc( len + 1 );
-
-	cur = 0;
-	for( i=0 ; a[i] != NULL ; i++ ) {
-		len = strlen( a[i] );
-		strncpy( &s[cur], a[i], len );
-		cur += len;
-	}
-	s[len] = '\0';
-	return s;
-}
-
-
 char **
 str2charray( const char *str_in, const char *brkstr )
 {

@@ -29,12 +29,12 @@ ldbm_back_extended(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-	char		*reqoid,
+	const char		*reqoid,
     struct berval	*reqdata,
 	char		**rspoid,
     struct berval	**rspdata,
 	LDAPControl *** rspctrls,
-	char**	text,
+	const char**	text,
     struct berval *** refs 
 )
 {
@@ -45,7 +45,8 @@ ldbm_back_extended(
 			return (exop_table[i].extended)(
 				be, conn, op,
 				reqoid, reqdata,
-				rspoid, rspdata, rspctrls, text, refs );
+				rspoid, rspdata, rspctrls,
+				text, refs );
 		}
 	}
 

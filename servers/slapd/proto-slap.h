@@ -16,12 +16,12 @@ LIBSLAPD_F( struct slap_internal_schema ) slap_schema;
 LIBSLAPD_F (int) slap_str2ad LDAP_P((
 	const char *,
 	AttributeDescription **ad,
-	char **text ));
+	const char **text ));
 
 LIBSLAPD_F (int) slap_bv2ad LDAP_P((
 	struct berval *bv,
 	AttributeDescription **ad,
-	char **text ));
+	const char **text ));
 
 LIBSLAPD_F (AttributeDescription *) ad_dup LDAP_P((
 	AttributeDescription *desc ));
@@ -144,7 +144,7 @@ LIBSLAPD_F (int) get_ava LDAP_P((
 	BerElement *ber,
 	AttributeAssertion **ava,
 	unsigned usage,
-	char **text ));
+	const char **text ));
 LIBSLAPD_F (void) ava_free LDAP_P((
 	AttributeAssertion *ava,
 	int freeit ));
@@ -152,7 +152,7 @@ LIBSLAPD_F (void) ava_free LDAP_P((
 LIBSLAPD_F (int) get_ava LDAP_P((
 	BerElement *ber,
 	Ava *ava,
-	char **text ));
+	const char **text ));
 LIBSLAPD_F (void) ava_free LDAP_P(( Ava *ava, int freeit ));
 #endif
 
@@ -186,7 +186,7 @@ LIBSLAPD_F( int )	backend_check_controls LDAP_P((
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	char **text ));
+	const char **text ));
 
 LIBSLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LIBSLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));
@@ -247,7 +247,6 @@ LIBSLAPD_F (void) charray_free LDAP_P(( char **array ));
 LIBSLAPD_F (int) charray_inlist LDAP_P(( char **a, const char *s ));
 LIBSLAPD_F (char **) charray_dup LDAP_P(( char **a ));
 LIBSLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr ));
-LIBSLAPD_F (char *) charray2str LDAP_P(( char **a ));
 
 /*
  * controls.c
@@ -302,11 +301,11 @@ LIBSLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LIBSLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
 LIBSLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
 LIBSLAPD_F (char **) dn_subtree LDAP_P(( Backend *be, const char *dn ));
-LIBSLAPD_F (char *) dn_rdn LDAP_P(( Backend *be, char *dn ));
-LIBSLAPD_F (int) dn_issuffix LDAP_P(( char *dn, char *suffix ));
+LIBSLAPD_F (char *) dn_rdn LDAP_P(( Backend *be, const char *dn ));
+LIBSLAPD_F (int) dn_issuffix LDAP_P(( const char *dn, const char *suffix ));
 LIBSLAPD_F (int) rdn_validate LDAP_P(( const char* str ));
-LIBSLAPD_F (char *) rdn_attr_value LDAP_P(( char * rdn ));
-LIBSLAPD_F (char *) rdn_attr_type LDAP_P(( char * rdn ));
+LIBSLAPD_F (char *) rdn_attr_value LDAP_P(( const char * rdn ));
+LIBSLAPD_F (char *) rdn_attr_type LDAP_P(( const char * rdn ));
 
 LIBSLAPD_F (void) build_new_dn LDAP_P(( char ** new_dn,
 	const char *e_dn,
@@ -343,12 +342,12 @@ typedef int (*SLAP_EXTOP_CALLBACK_FN) LDAP_P((
 typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
 	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
-	char * reqoid,
+	const char * reqoid,
 	struct berval * reqdata,
 	char ** rspoid,
 	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
-	char ** text,
+	const char ** text,
 	struct berval *** refs ));
 
 typedef int (*SLAP_EXTOP_GETOID_FN) LDAP_P((
@@ -376,7 +375,7 @@ LIBSLAPD_F (int) get_filter LDAP_P((
 	BerElement *ber,
 	Filter **filt,
 	char **fstr,
-	char **text ));
+	const char **text ));
 
 LIBSLAPD_F (void) filter_free LDAP_P(( Filter *f ));
 LIBSLAPD_F (void) filter_print LDAP_P(( Filter *f ));
@@ -385,7 +384,8 @@ LIBSLAPD_F (void) filter_print LDAP_P(( Filter *f ));
  * filterentry.c
  */
 
-LIBSLAPD_F (int) test_filter LDAP_P(( Backend *be, Connection *conn, Operation *op, Entry *e, Filter	*f ));
+LIBSLAPD_F (int) test_filter LDAP_P((
+	Backend *be, Connection *conn, Operation *op, Entry *e, Filter	*f ));
 
 /*
  * lock.c
@@ -408,12 +408,12 @@ LIBSLAPD_F( int ) slap_modlist2mods(
 	LDAPModList *ml,
 	int update,
 	Modifications **mods,
-	char **text );
+	const char **text );
 
 LIBSLAPD_F( int ) slap_mods_opattrs(
 	Operation *op,
 	Modifications **modlist,
-	char **text );
+	const char **text );
 #endif
 
 /*
@@ -446,7 +446,7 @@ LIBSLAPD_F (void) *module_resolve LDAP_P((
 LIBSLAPD_F (char *) supportedControls[];
 
 LIBSLAPD_F (int) monitor_info LDAP_P((
-	Entry **entry, char **text ));
+	Entry **entry, const char **text ));
 
 /*
  * operation.c
@@ -506,12 +506,12 @@ LIBSLAPD_F (void) send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text, struct berval **refs,
-	char *rspoid, struct berval *rspdata,
+	const char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
 LIBSLAPD_F (void) send_ldap_partial LDAP_P((
 	Connection *conn, Operation *op,
-	char *rspoid, struct berval *rspdata,
+	const char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
 LIBSLAPD_F (void) send_search_result LDAP_P((
@@ -544,9 +544,10 @@ LIBSLAPD_F (int) sasl_init(void);
 LIBSLAPD_F (int) sasl_destroy(void);
 LIBSLAPD_F (int) sasl_errldap LDAP_P(( int ));
 LIBSLAPD_F (int) sasl_bind LDAP_P((
-	Connection *, Operation *, 
-	char *, char *, char *, struct berval *, char **));
-
+	Connection *conn, Operation *op, 
+	const char *dn, const char *ndn,
+	const char *mech, struct berval *cred,
+	char **edn ));
 
 /* oc.c */
 LIBSLAPD_F (int) oc_schema_info( Entry *e );
@@ -561,9 +562,11 @@ LIBSLAPD_F (int) syn_schema_info( Entry *e );
  * schema.c
  */
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) oc_check_op_attr LDAP_P(( const char *type ));
 LIBSLAPD_F (int) oc_check_op_usermod_attr LDAP_P(( const char *type ));
 LIBSLAPD_F (int) oc_check_op_no_usermod_attr LDAP_P(( const char *type ));
+#endif
 LIBSLAPD_F (ObjectClass *) oc_find LDAP_P((const char *ocname));
 LIBSLAPD_F (int) oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 
@@ -603,7 +606,7 @@ LIBSLAPD_F (int) register_matching_rule LDAP_P((
 	slap_mr_indexer_func *indexer,
 	slap_mr_filter_func *filter	));
 
-LIBSLAPD_F (int) schema_info LDAP_P(( Entry **entry, char **text ));
+LIBSLAPD_F (int) schema_info LDAP_P(( Entry **entry, const char **text ));
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
@@ -623,7 +626,7 @@ LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
  */
 LIBSLAPD_F (int) entry_schema_check LDAP_P((
 	Entry *e, Attribute *attrs,
-	char** text ));
+	const char** text ));
 
 
 /*
@@ -652,12 +655,12 @@ LIBSLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del, char deli
 LIBSLAPD_F (int) starttls_extop LDAP_P((
 	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
-	char * reqoid,
+	const char * reqoid,
 	struct berval * reqdata,
 	char ** rspoid,
 	struct berval ** rspdata,
 	LDAPControl ***rspctrls,
-	char ** text,
+	const char ** text,
 	struct berval *** refs ));
 
 
@@ -681,19 +684,19 @@ LIBSLAPD_F (int) value_normalize LDAP_P((
 	unsigned usage,
 	struct berval *in,
 	struct berval **out,
-	char ** text ));
+	const char ** text ));
 LIBSLAPD_F (int) value_match LDAP_P((
 	AttributeDescription *ad,
 	MatchingRule *mr,
 	struct berval *v1,
 	struct berval *v2,
-	char ** text ));
+	const char ** text ));
 LIBSLAPD_F (int) value_find LDAP_P((
 	AttributeDescription *ad,
 	MatchingRule *mr,
 	struct berval **values,
 	struct berval *value,
-	char ** text ));
+	const char ** text ));
 #else
 LIBSLAPD_F (int) value_add_fast LDAP_P(( struct berval ***vals, struct berval **addvals, int nvals, int naddvals, int *maxvals ));
 LIBSLAPD_F (void) value_normalize LDAP_P(( char *s, int syntax ));
@@ -715,12 +718,12 @@ LIBSLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 LIBSLAPD_F (int) passwd_extop LDAP_P((
 	SLAP_EXTOP_CALLBACK_FN,
 	Connection *conn, Operation *op,
-	char * reqoid,
+	const char * reqoid,
 	struct berval * reqdata,
 	char ** rspoid,
 	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
-	char ** text,
+	const char ** text,
 	struct berval *** refs ));
 
 LIBSLAPD_F (int) slap_passwd_check(
@@ -740,7 +743,7 @@ LIBSLAPD_F (int) slap_passwd_parse(
 	struct berval **id,
 	struct berval **oldpass,
 	struct berval **newpass,
-	char **text );
+	const char **text );
 
 /*
  * kerberos.c
@@ -801,14 +804,14 @@ LIBSLAPD_F (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 
 LIBSLAPD_F (AccessControl *) global_acl;
 
-LIBSLAPD_F (int)	slap_init LDAP_P((int mode, char* name));
+LIBSLAPD_F (int)	slap_init LDAP_P((int mode, const char* name));
 LIBSLAPD_F (int)	slap_startup LDAP_P(( Backend *be ));
 LIBSLAPD_F (int)	slap_shutdown LDAP_P(( Backend *be ));
 LIBSLAPD_F (int)	slap_destroy LDAP_P((void));
 
 struct sockaddr_in;
 
-LIBSLAPD_F (int) slapd_daemon_init( char *urls );
+LIBSLAPD_F (int) slapd_daemon_init( const char *urls );
 LIBSLAPD_F (int) slapd_daemon_destroy(void);
 LIBSLAPD_F (int) slapd_daemon(void);
 
@@ -823,10 +826,10 @@ LIBSLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LIBSLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));
 
 LIBSLAPD_F (int) config_info LDAP_P((
-	Entry **e, char **text ));
+	Entry **e, const char **text ));
 
 LIBSLAPD_F (int) root_dse_info LDAP_P((
-	Entry **e, char **text ));
+	Entry **e, const char **text ));
 
 LIBSLAPD_F (int) do_abandon LDAP_P((Connection *conn, Operation *op));
 LIBSLAPD_F (int) do_add LDAP_P((Connection *conn, Operation *op));

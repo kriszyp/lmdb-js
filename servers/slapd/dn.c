@@ -253,28 +253,28 @@ dn_parent(
 
 char * dn_rdn( 
     Backend	*be,
-    char	*dn )
+    const char	*dn_in )
 {
-	char	*s;
+	char	*dn, *s;
 	int	inquote;
 
-	if( dn == NULL ) {
+	if( dn_in == NULL ) {
 		return NULL;
 	}
 
-	while(*dn && ASCII_SPACE(*dn)) {
+	while(*dn_in && ASCII_SPACE(*dn_in)) {
 		dn++;
 	}
 
-	if( *dn == '\0' ) {
+	if( *dn_in == '\0' ) {
 		return( NULL );
 	}
 
-	if ( be != NULL && be_issuffix( be, dn ) ) {
+	if ( be != NULL && be_issuffix( be, dn_in ) ) {
 		return( NULL );
 	}
 
-	dn = ch_strdup( dn );
+	dn = ch_strdup( dn_in );
 
 	inquote = 0;
 
@@ -336,8 +336,8 @@ char **dn_subtree(
 
 int
 dn_issuffix(
-    char	*dn,
-    char	*suffix
+    const char	*dn,
+    const char	*suffix
 )
 {
 	int	dnlen, suffixlen;
@@ -378,7 +378,7 @@ dn_issuffix(
  */ 
 
 static char * 
-get_next_substring( char * s, char d )
+get_next_substring( const char * s, char d )
 {
 
 	char	*str, *r;
@@ -421,7 +421,7 @@ get_next_substring( char * s, char d )
  * memory. The returned string will be null-terminated.
  */
 
-char * rdn_attr_type( char * s )
+char * rdn_attr_type( const char * s )
 {
 
 	return get_next_substring( s, '=' );
@@ -439,10 +439,10 @@ char * rdn_attr_type( char * s )
  */
 
 char * 
-rdn_attr_value( char * rdn )
+rdn_attr_value( const char * rdn )
 {
 
-	char	*str;
+	const char	*str;
 
 	if ( (str = strchr( rdn, '=' )) != NULL ) {
 

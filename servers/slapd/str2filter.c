@@ -147,7 +147,7 @@ str2simple( const char *str )
 	char		*value, savechar;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int			rc;
-	char		*text;
+	const char		*text;
 #endif
 
 	Debug( LDAP_DEBUG_FILTER, "str2simple \"%s\"\n", str, 0, 0 );

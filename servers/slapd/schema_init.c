@@ -752,7 +752,7 @@ schema_prep( void )
 
 	for( i=0; ad_map[i].ssam_name; i++ ) {
 		int rc;
-		char *text;
+		const char *text;
 
 		AttributeDescription ** adp = (AttributeDescription **)
 			&(((char *) &slap_schema)[ad_map[i].ssam_offset]);

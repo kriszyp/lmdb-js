@@ -436,7 +436,7 @@ static Listener * open_listener( const char* url )
 static int sockinit(void);
 static int sockdestroy(void);
 
-int slapd_daemon_init( char *urls )
+int slapd_daemon_init( const char *urls )
 {
 	int i, rc;
 	char **u;

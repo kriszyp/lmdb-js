@@ -137,7 +137,6 @@ static char *oc_op_no_usermod_attrs[] = {
 
 	NULL
 };
-#endif
 
 
 /*
@@ -189,6 +188,7 @@ oc_check_op_no_usermod_attr( const char *type )
 	return at->sat_no_user_mod;
 #endif
 }
+#endif
 
 
 struct oindexrec {

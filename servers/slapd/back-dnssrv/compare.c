@@ -20,8 +20,8 @@ dnssrv_back_compare(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn,
+    const char	*dn,
+    const char	*ndn,
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeAssertion *ava
 #else

@@ -34,7 +34,7 @@ get_ava(
     BerElement	*ber,
     AttributeAssertion	**ava,
 	unsigned usage,
-	char **text
+	const char **text
 )
 {
 	int rc;
@@ -96,7 +96,7 @@ int
 get_ava(
     BerElement	*ber,
     Ava		*ava,
-	char **text
+	const char **text
 )
 {
 	if ( ber_scanf( ber, "{ao}", &ava->ava_type, &ava->ava_value )

@@ -47,7 +47,7 @@ send_ldap_extended(
     const char	*matched,
     const char	*text,
 	struct berval **refs,
-    char	*rspoid,
+    const char	*rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
 )
@@ -148,9 +148,9 @@ int sasl_destroy(void) {
 int sasl_bind(
     Connection          *conn,
     Operation           *op,
-    char                *dn,
-    char                *ndn,
-    char                *mech,
+    const char          *dn,
+    const char          *ndn,
+    const char          *mech,
     struct berval       *cred,
     char                **edn)
 {

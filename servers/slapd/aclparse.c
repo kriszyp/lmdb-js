@@ -97,7 +97,7 @@ parse_acl(
 	Access	*b;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	int rc;
-	char *text;
+	const char *text;
 	static AttributeDescription *member = NULL;
 	static AttributeDescription *aci = NULL;
 #endif

@@ -20,68 +20,78 @@ extern int	ldbm_back_db_close LDAP_P(( BackendDB *bd ));
 extern int	ldbm_back_db_destroy LDAP_P(( BackendDB *bd ));
 
 extern int	ldbm_back_db_config LDAP_P(( BackendDB *bd,
-	const char *fname, int lineno, int argc, char **argv ));
+	const char *fname, int lineno,
+	int argc, char **argv ));
 
 extern int ldbm_back_extended LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *reqoid,
+	const char *reqoid,
 	struct berval *reqdata,
 	char **rspoid,
 	struct berval **rspdata,
 	LDAPControl *** rspctrls,
-	char **text,
+	const char **text,
 	struct berval *** refs ));
 
 extern int ldbm_back_bind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char *ndn, int method, char* mech,
+	const char *dn, const char *ndn, int method,
 	struct berval *cred, char** edn ));
 
 extern int	ldbm_back_unbind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op ));
 
 extern int	ldbm_back_search LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, char *base,
-	char *nbase, int scope, int deref, int sizelimit, int timelimit,
-	Filter *filter, char *filterstr, char **attrs, int attrsonly ));
+	Connection *conn, Operation *op,
+	const char *base, const char *nbase,
+	int scope, int deref, int sizelimit, int timelimit,
+	Filter *filter, const char *filterstr,
+	char **attrs, int attrsonly ));
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 extern int	ldbm_back_compare LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char *ndn, AttributeAssertion *ava ));
+	const char *dn, const char *ndn,
+	AttributeAssertion *ava ));
 #else
 extern int	ldbm_back_compare LDAP_P((BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char *ndn, Ava 	*ava ));
+	const char *dn, const char *ndn,
+	Ava 	*ava ));
 #endif
 
 extern int	ldbm_back_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char *ndn, Modifications *ml ));
+	const char *dn, const char *ndn, Modifications *ml ));
 
 extern int	ldbm_back_modrdn LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char *ndn, char* newrdn, int deleteoldrdn,
-	char *newSuperior ));
+	const char *dn, const char *ndn,
+	const char* newrdn, int deleteoldrdn,
+	const char *newSuperior ));
 
 extern int	ldbm_back_add LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, Entry *e ));
 
 extern int	ldbm_back_delete LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, char *dn, char *ndn ));
+	Connection *conn, Operation *op,
+	const char *dn, const char *ndn ));
 
 extern int	ldbm_back_abandon LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, ber_int_t msgid ));
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
-	Entry *target, const char* gr_ndn, const char* op_ndn,
+	Entry *target,
+	const char* gr_ndn, const char* op_ndn,
 	const char* objectclassValue,
 	AttributeDescription* group_at));
 #else
 extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
-	Entry *target, const char* gr_ndn, const char* op_ndn,
-	const char* objectclassValue, const char* group_at));
+	Entry *target,
+	const char* gr_ndn, const char* op_ndn,
+	const char* objectclassValue,
+	const char* group_at));
 #endif
 
 
@@ -100,8 +110,10 @@ extern int ldbm_tool_index_change LDAP_P(( BackendDB *be,
 	AttributeDescription* desc,
 	struct berval **bv, ID id, int op ));
 #else
-extern int ldbm_tool_index_attr LDAP_P(( BackendDB *be, char* type ));
-extern int ldbm_tool_index_change LDAP_P(( BackendDB *be, char* type,
+extern int ldbm_tool_index_attr LDAP_P(( BackendDB *be,
+	char* type ));
+extern int ldbm_tool_index_change LDAP_P(( BackendDB *be,
+	char* type,
 	struct berval **bv, ID id, int op ));
 #endif
 extern int ldbm_tool_sync LDAP_P(( BackendDB *be ));

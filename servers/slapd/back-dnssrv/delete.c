@@ -21,8 +21,8 @@ dnssrv_back_delete(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn
+    const char	*dn,
+    const char	*ndn
 )
 {
 	return dnssrv_back_request( be, conn, op, dn, ndn );

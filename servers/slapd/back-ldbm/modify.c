@@ -31,13 +31,13 @@ int ldbm_modify_internal(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
+    const char	*dn,
     Modifications	*modlist,
     Entry	*e 
 )
 {
 	int rc, err;
-	char *text;
+	const char *text;
 	Modification	*mod;
 	Modifications	*ml;
 	Attribute	*save_attrs;
@@ -205,8 +205,8 @@ ldbm_back_modify(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn,
+    const char	*dn,
+    const char	*ndn,
     Modifications	*modlist
 )
 {

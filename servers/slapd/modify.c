@@ -49,7 +49,7 @@ do_modify(
 	Modifications *mods = NULL;
 	Backend		*be;
 	int rc;
-	char	*text;
+	const char	*text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 
@@ -218,7 +218,7 @@ do_modify(
 		{
 			int update = be->be_update_ndn != NULL;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			char *text;
+			const char *text;
 			rc = slap_modlist2mods( modlist, update, &mods, &text );
 
 			if( rc != LDAP_SUCCESS ) {
@@ -291,7 +291,7 @@ int slap_modlist2mods(
 	LDAPModList *ml,
 	int update,
 	Modifications **mods,
-	char **text )
+	const char **text )
 {
 	int rc;
 	Modifications **modtail = mods;
@@ -385,7 +385,7 @@ int slap_modlist2mods(
 int slap_mods_opattrs(
 	Operation *op,
 	Modifications **modtail,
-	char **text )
+	const char **text )
 {
 	struct berval name, timestamp;
 	time_t now = slap_get_time();

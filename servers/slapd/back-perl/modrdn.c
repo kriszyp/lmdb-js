@@ -39,11 +39,11 @@ perl_back_modrdn(
 	Backend	*be,
 	Connection	*conn,
 	Operation	*op,
-	char	*dn,
-	char	*ndn,
-	char	*newrdn,
+	const char	*dn,
+	const char	*ndn,
+	const char	*newrdn,
 	int		deleteoldrdn,
-	char	*newSuperior
+	const char	*newSuperior
 )
 {
 	int len;

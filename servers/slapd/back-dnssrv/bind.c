@@ -21,18 +21,16 @@ dnssrv_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    char		*dn,
-    char		*ndn,
+    const char		*dn,
+    const char		*ndn,
     int			method,
-	char		*mech,
     struct berval	*cred,
 	char		**edn
 )
 {
-	Debug( LDAP_DEBUG_TRACE, "DNSSRV: bind %s (%d/%s)\n",
+	Debug( LDAP_DEBUG_TRACE, "DNSSRV: bind %s (%d)\n",
 		dn == NULL ? "" : dn, 
-		method,
-		mech == NULL ? "none" : mech );
+		method, NULL );
 		
 	if( method == LDAP_AUTH_SIMPLE && cred != NULL && cred->bv_len ) {
 		Statslog( LDAP_DEBUG_STATS,

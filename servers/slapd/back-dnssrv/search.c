@@ -22,14 +22,14 @@ dnssrv_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*ndn,
+    const char	*dn,
+    const char	*ndn,
     int		scope,
     int		deref,
     int		size,
     int		time,
     Filter	*filter,
-    char	*filterstr,
+    const char	*filterstr,
     char	**attrs,
     int		attrsonly
 )

@@ -21,7 +21,6 @@ bdb2i_back_bind_internal(
     Operation		*op,
     char		*dn,
     int			method,
-	char		*mech,
     struct berval	*cred,
 	char**	edn
 )

@@ -21,12 +21,12 @@ ldbm_back_exop_passwd(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-	char		*reqoid,
+	const char		*reqoid,
     struct berval	*reqdata,
-	char		**rspoid,
+	char			**rspoid,
     struct berval	**rspdata,
-	LDAPControl *** rspctrls,
-	char**	text,
+	LDAPControl		*** rspctrls,
+	const char		**text,
     struct berval	*** refs
 )
 {

@@ -186,9 +186,9 @@ int sasl_destroy( void )
 int sasl_bind(
     Connection          *conn,
     Operation           *op,  
-    char                *dn,  
-    char                *ndn,
-    char                *mech,
+    const char          *dn,  
+    const char          *ndn,
+    const char          *mech,
     struct berval       *cred,
 	char				**edn )
 {
@@ -313,9 +313,9 @@ int sasl_bind(
 int sasl_bind(
     Connection          *conn,
     Operation           *op,  
-    char                *dn,  
-    char                *ndn,
-    char                *mech,
+    const char          *dn,  
+    const char          *ndn,
+    const char          *mech,
     struct berval       *cred,
 	char				**edn )
 {

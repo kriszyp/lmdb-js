@@ -31,7 +31,8 @@ do_delete(
     Operation	*op
 )
 {
-	char	*dn, *ndn = NULL, *text;
+	char *dn, *ndn = NULL;
+	const char *text;
 	Backend	*be;
 	int rc;
 
