@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.12 Engineering
+	Fixed slapd empty DN uniqueMember normalization
 	Fixed slapd empty DN in proxyAuthx control
 	Fixed slapd parsing of auth{cz} "dn:<pat>" rules
 	Fixed slapd set acl recursion (ITS#3140)

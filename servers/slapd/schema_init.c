@@ -873,8 +873,11 @@ uniqueMemberNormalize(
 
 	assert( SLAP_MR_IS_VALUE_OF_SYNTAX( usage ));
 
-	ber_dupbv( &out, val );
-	if( out.bv_len != 0 ) {
+	ber_dupbv_x( &out, val, ctx );
+	if( BER_BVISEMPTY( &out ) ) {
+		*normalized = out;
+
+	} else {
 		struct berval uid = BER_BVNULL;
 
 		if( out.bv_val[out.bv_len-1] == 'B'
@@ -884,7 +887,7 @@ uniqueMemberNormalize(
 			uid.bv_val = strrchr( out.bv_val, '#' );
 
 			if( uid.bv_val == NULL ) {
-				free( out.bv_val );
+				sl_free( out.bv_val, ctx );
 				return LDAP_INVALID_SYNTAX;
 			}
 
@@ -898,7 +901,7 @@ uniqueMemberNormalize(
 		rc = dnNormalize( 0, NULL, NULL, &out, normalized, ctx );
 
 		if( rc != LDAP_SUCCESS ) {
-			free( out.bv_val );
+			sl_free( out.bv_val, ctx );
 			return LDAP_INVALID_SYNTAX;
 		}
 
@@ -918,7 +921,7 @@ uniqueMemberNormalize(
 			normalized->bv_val[normalized->bv_len] = '\0';
 		}
 
-		free( out.bv_val );
+		sl_free( out.bv_val, ctx );
 	}
 
 	return LDAP_SUCCESS;
