@@ -3277,8 +3277,10 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 		break;
 
 	case Cft_Include:
-		if ( !rs )	/* ignored */
+		if ( !rs ) {
+			nocs = 0; /* ignored */
 			break;
+		}
 		type_ad = cfAd_include;
 		break;
 #ifdef SLAPD_MODULES
