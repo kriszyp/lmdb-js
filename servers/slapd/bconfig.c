@@ -65,6 +65,7 @@ typedef struct CfOcInfo {
 	struct berval *co_name;
 	ConfigTable *co_table;
 	ConfigType co_type;
+	ObjectClass *co_oc;
 } CfOcInfo;
 
 typedef struct CfEntryInfo {
@@ -264,7 +265,8 @@ ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgAt:9 NAME 'olcBackend' "
 			"DESC 'A type of backend' "
 			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString X-ORDERED 'SIBLINGS' )", NULL, NULL },
+			"SYNTAX OMsDirectoryString SINGLE-VALUE X-ORDERED 'SIBLINGS' )",
+				NULL, NULL },
 	{ "concurrency", "level", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_CONCUR,
 		&config_generic, "( OLcfgAt:10 NAME 'olcConcurrency' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -277,7 +279,7 @@ ConfigTable config_back_cf_table[] = {
 	{ "database", "type", 2, 2, 0, ARG_MAGIC|CFG_DATABASE,
 		&config_generic, "( OLcfgAt:13 NAME 'olcDatabase' "
 			"DESC 'The backend type for a database instance' "
-			"SUP olcBackend X-ORDERED 'SIBLINGS' )", NULL, NULL },
+			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
 	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_MAGIC,
 		&config_search_base, "( OLcfgAt:14 NAME 'olcDefaultSearchBase' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
@@ -363,7 +365,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "overlay", "overlay", 2, 2, 0, ARG_MAGIC,
 		&config_overlay, "( OLcfgAt:34 NAME 'olcOverlay' "
-			"SUP olcDatabase X-ORDERED 'SIBLINGS' )", NULL, NULL },
+			"SUP olcDatabase SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
 	{ "password-crypt-salt-format", "salt", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_SALT,
 		&config_generic, "( OLcfgAt:35 NAME 'olcPasswordCryptSaltFormat' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
@@ -587,26 +589,27 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Global configuration options' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( cn $ olcConfigFile $ olcConfigDir $ olcAllows $ olcArgsFile $ "
-		 "olcAttributeOptions $ olcAttributeTypes $ olcAuthIDRewrite $ "
+		 "olcAttributeOptions $ olcAuthIDRewrite $ "
 		 "olcAuthzPolicy $ olcAuthzRegexp $ olcConcurrency $ "
 		 "olcConnMaxPending $ olcConnMaxPendingAuth $ olcDefaultSearchBase $ "
-		 "olcDisallows $ olcDitContentRules $ olcGentleHUP $ olcIdleTimeout $ "
+		 "olcDisallows $ olcGentleHUP $ olcIdleTimeout $ "
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
-		 "olcLogLevel $ olcModulePath $ olcObjectClasses $ "
-		 "olcObjectIdentifier $ "
+		 "olcLogLevel $ olcModulePath $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
-		 "olcPlugin $ olcPluginLogFile $ olcReadOnly $ olcReferral $ "
+		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplicaPidFile $ olcReplicaArgsFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ olcRootPW $ "
 		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
-		 "olcSchemaCheck $ olcSchemaDN $ olcSecurity $ olcSizeLimit $ "
+		 "olcSchemaCheck $ olcSecurity $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ olcSrvtab $ "
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
-		 "olcTLSRandFile $ olcTLSVerifyClient ) )", Cft_Global, &cfOc_global },
+		 "olcTLSRandFile $ olcTLSVerifyClient $ "
+		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
+		 "olcDitContentRules ) )", Cft_Global, &cfOc_global },
 	{ "( OLcfgOc:3 "
 		"NAME 'olcSchemaConfig' "
 		"DESC 'OpenLDAP schema object' "
@@ -889,7 +892,7 @@ config_generic(ConfigArgs *c) {
 			rc = 1;
 			break;
 		case CFG_CONCUR:
-			ldap_pvt_thread_set_concurrency(c);
+			ldap_pvt_thread_set_concurrency(c->value_int);
 			break;
 
 		}
@@ -2774,7 +2777,8 @@ config_register_schema(ConfigTable *ct, ConfigOCs *ocs) {
 	for (i=0; ocs[i].def; i++) {
 		if ( ocs[i].oc ) {
 			co = ch_malloc( sizeof(CfOcInfo) );
-			co->co_name = &(*ocs[i].oc)->soc_cname;
+			co->co_oc = *ocs[i].oc;
+			co->co_name = &co->co_oc->soc_cname;
 			co->co_table = ct;
 			co->co_type = ocs[i].cft;
 			avl_insert( &CfOcTree, co, CfOcInfo_cmp, avl_dup_error );
@@ -2940,6 +2944,64 @@ sort_vals( Attribute *a )
 		}
 	}
 	return 0;
+}
+
+/* Sort the attributes of the entry according to the order defined
+ * in the objectclass, with required attributes occurring before
+ * allowed attributes. For any attributes with sequencing dependencies
+ * (e.g., rootDN must be defined after suffix) the objectclass must
+ * list the attributes in the desired sequence.
+ */
+static void
+sort_attrs( Entry *e, CfOcInfo **colst, int nocs )
+{
+	Attribute *a, *head = NULL, *tail = NULL, **prev;
+	int i, j;
+
+	for (i=0; i<nocs; i++) {
+		if ( colst[i]->co_oc->soc_required ) {
+			AttributeType **at = colst[i]->co_oc->soc_required;
+			for (j=0; at[j]; j++) {
+				for (a=e->e_attrs, prev=&e->e_attrs; a;
+					prev = &(*prev)->a_next, a=a->a_next) {
+					if ( a->a_desc == at[j]->sat_ad ) {
+						*prev = a->a_next;
+						if (!head) {
+							head = a;
+							tail = a;
+						} else {
+							tail->a_next = a;
+							tail = a;
+						}
+						break;
+					}
+				}
+			}
+		}
+		if ( colst[i]->co_oc->soc_allowed ) {
+			AttributeType **at = colst[i]->co_oc->soc_allowed;
+			for (j=0; at[j]; j++) {
+				for (a=e->e_attrs, prev=&e->e_attrs; a;
+					prev = &(*prev)->a_next, a=a->a_next) {
+					if ( a->a_desc == at[j]->sat_ad ) {
+						*prev = a->a_next;
+						if (!head) {
+							head = a;
+							tail = a;
+						} else {
+							tail->a_next = a;
+							tail = a;
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+	if ( tail ) {
+		tail->a_next = e->e_attrs;
+		e->e_attrs = head;
+	}
 }
 
 static int
@@ -3177,6 +3239,8 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 #endif
 		break;
 	}
+
+	sort_attrs( e, colst, nocs );
 
 	/* Parse all the values and check for simple syntax errors before
 	 * performing any set actions.
