@@ -399,8 +399,8 @@ dn2entry_retry:
 
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
 		Debug( LDAP_DEBUG_ACL,
-			"<= bdb_entry_get: failed to find objectClass\n",
-			0, 0, 0 ); 
+			"<= bdb_entry_get: failed to find objectClass %s\n",
+			oc->soc_cname, 0, 0 ); 
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
 		goto return_results;
 	}
