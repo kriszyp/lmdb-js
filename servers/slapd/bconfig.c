@@ -3419,7 +3419,7 @@ config_back_add( Operation *op, SlapReply *rs )
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		send_ldap_result( op, rs );
+		goto out;
 	}
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
@@ -3470,7 +3470,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		send_ldap_result( op, rs );
+		goto out;
 	}
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
@@ -3504,7 +3504,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		send_ldap_result( op, rs );
+		goto out;
 	}
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
@@ -3541,7 +3541,7 @@ config_back_search( Operation *op, SlapReply *rs )
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
-		send_ldap_result( op, rs );
+		goto out;
 	}
 
 	cfb = (CfBackInfo *)op->o_bd->be_private;
