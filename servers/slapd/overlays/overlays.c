@@ -29,6 +29,9 @@ extern int denyop_init();
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 extern int dyngroup_init();
 #endif
+#if SLAPD_OVER_DYNLIST == SLAPD_MOD_STATIC
+extern int dynlist_init();
+#endif
 #if SLAPD_OVER_GLUE == SLAPD_MOD_STATIC
 extern int glue_init();
 #endif
@@ -66,6 +69,9 @@ static struct {
 #endif
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 	{ "Dynamic Group", dyngroup_init },
+#endif
+#if SLAPD_OVER_DYNLIST == SLAPD_MOD_STATIC
+	{ "Dynamic List", dynlist_init },
 #endif
 #if SLAPD_OVER_GLUE == SLAPD_MOD_STATIC
 	{ "Backend Glue", glue_init },
