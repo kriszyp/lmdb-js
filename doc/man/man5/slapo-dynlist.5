@@ -1,0 +1,110 @@
+.TH SLAPO-DYNLIST 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2005 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copying restrictions apply.  See the COPYRIGHT file.
+.\" $OpenLDAP$
+.SH NAME
+slapo-dynlist \- dynnamic list overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The
+.B dynlist
+overlay to
+.BR slapd (8)
+allows expansion of dynamic groups and more.
+Any time an entry with a specific objectClass is being returned,
+the LDAP URI-valued occurrences of a specific attribute are
+expanded into the corresponding entries, and the values
+of the attributes listed in the URI are added to the original
+entry.
+No recursion is currently allowed, to avoid potential infinite loops.
+
+.SH CONFIGURATION
+The config directives that are specific to the
+.B dynlist
+overlay must be prefixed by
+.BR dynlist\- ,
+to avoid potential conflicts with directives specific to the underlying 
+database or to other stacked overlays.
+
+.TP
+.B overlay dynlist
+This directive adds the dynlist overlay to the current database,
+or to the frontend, if used before any database instantiation; see
+.BR slapd.conf (5)
+for details.
+
+.LP
+These 
+.B slapd.conf
+configuration options apply to the dynlist overlay. They must appear
+after the
+.B overlay
+directive.
+.TP
+.B dynlist-oc <objectClass>
+The name of the objectClass that triggers the dynamic expansion of the
+data.  This statement is required.
+.TP
+.B dynlist-ad <attributeName>
+The name of the attributeDescription that holds the LDAP URI values that
+will expand; if none is present, no expansion occurs.  If the intersection
+of the attributes requested by the search operation (or the asserted attribute
+for compares) and the attributes listed in the URI is empty, no expansion 
+occurs for that specific URI.  This statement is required.
+.TP
+.B dynlist-member-ad <attributeName>
+The name of the attributeDescription that will list the DN of the entries
+resulting from the internal search.  This statement is optional and, if
+present, changes the behvior of the overlay into that of a dynamic group.
+The <attrs> portion of the URI is ignored, and the DNs of all the entries 
+resulting from the expansion of the URI are listed as values of this 
+attribute.
+
+.LP
+The dynlist overlay may be used with any backend, but it is mainly 
+intended for use with local storage backends.
+In case the URI expansion is very resource-intensive and occurs frequently
+with well-defined patterns, one should consider adding a proxycache
+later on in the overlay stack.
+
+.SH EXAMPLE
+This example collects all the email addresses of a database into a single
+entry; first of all, make sure that slapd.conf contains the directives:
+
+.LP
+.nf
+    include /path/to/dyngroup.schema
+    # ...
+
+    database <database>
+    # ...
+
+    overlay dynlist
+    dynlist-oc groupOfURLs
+    dynlist-ad memberURL
+.fi
+.LP
+and that slapd loads dynlist.la, if compiled as a run-time module;
+then add to the database an entry like
+.LP
+.nf
+    dn: cn=Dynamic List,ou=Groups,dc=example,dc=com
+    objectClass: groupOfURLs
+    cn: Dynamic List
+    memberURL: ldap:///ou=People,dc=example,dc=com?mail?sub?(objectClass=person)
+.fi
+
+If no <attrs> are provided in the URI, all (non-operational) attributes are
+collected.
+
+
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd (8).
+.SH AUTHOR
+Originally implemented by Pierangelo Masarati.
