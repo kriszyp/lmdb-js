@@ -66,24 +66,24 @@ static void smbk5pwd_destroy() {
 #endif
 
 #ifdef DO_SAMBA
-static const char hex[] = "0123456789abcdef";
+static const char hex[] = "0123456789ABCDEF";
 
 /* From liblutil/passwd.c... */
 static void lmPasswd_to_key(
-        const unsigned char *lmPasswd,
-        des_cblock *key)
+	const unsigned char *lmPasswd,
+	des_cblock *key)
 {
-        /* make room for parity bits */
-        ((char *)key)[0] = lmPasswd[0];
-        ((char *)key)[1] = ((lmPasswd[0]&0x01)<<7) | (lmPasswd[1]>>1);
-        ((char *)key)[2] = ((lmPasswd[1]&0x03)<<6) | (lmPasswd[2]>>2);
-        ((char *)key)[3] = ((lmPasswd[2]&0x07)<<5) | (lmPasswd[3]>>3);
-        ((char *)key)[4] = ((lmPasswd[3]&0x0F)<<4) | (lmPasswd[4]>>4);
-        ((char *)key)[5] = ((lmPasswd[4]&0x1F)<<3) | (lmPasswd[5]>>5);
-        ((char *)key)[6] = ((lmPasswd[5]&0x3F)<<2) | (lmPasswd[6]>>6);
-        ((char *)key)[7] = ((lmPasswd[6]&0x7F)<<1);
+	/* make room for parity bits */
+	((char *)key)[0] = lmPasswd[0];
+	((char *)key)[1] = ((lmPasswd[0]&0x01)<<7) | (lmPasswd[1]>>1);
+	((char *)key)[2] = ((lmPasswd[1]&0x03)<<6) | (lmPasswd[2]>>2);
+	((char *)key)[3] = ((lmPasswd[2]&0x07)<<5) | (lmPasswd[3]>>3);
+	((char *)key)[4] = ((lmPasswd[3]&0x0F)<<4) | (lmPasswd[4]>>4);
+	((char *)key)[5] = ((lmPasswd[4]&0x1F)<<3) | (lmPasswd[5]>>5);
+	((char *)key)[6] = ((lmPasswd[5]&0x3F)<<2) | (lmPasswd[6]>>6);
+	((char *)key)[7] = ((lmPasswd[6]&0x7F)<<1);
 
-        des_set_odd_parity( key );
+	des_set_odd_parity( key );
 }
 
 #define MAX_PWLEN 256
@@ -115,23 +115,23 @@ static void lmhash(
 	struct berval *hash
 )
 {
-        char UcasePassword[15];
-        des_cblock key;
-        des_key_schedule schedule;
-        des_cblock StdText = "KGS!@#$%";
+	char UcasePassword[15];
+	des_cblock key;
+	des_key_schedule schedule;
+	des_cblock StdText = "KGS!@#$%";
 	des_cblock hbuf[2];
 
-        strncpy( UcasePassword, passwd->bv_val, 14 );
-        UcasePassword[14] = '\0';
-        ldap_pvt_str2upper( UcasePassword );
+	strncpy( UcasePassword, passwd->bv_val, 14 );
+	UcasePassword[14] = '\0';
+	ldap_pvt_str2upper( UcasePassword );
 
-        lmPasswd_to_key( UcasePassword, &key );
-        des_set_key_unchecked( &key, schedule );
-        des_ecb_encrypt( &StdText, &hbuf[0], schedule , DES_ENCRYPT );
+	lmPasswd_to_key( UcasePassword, &key );
+	des_set_key_unchecked( &key, schedule );
+	des_ecb_encrypt( &StdText, &hbuf[0], schedule , DES_ENCRYPT );
 
-        lmPasswd_to_key( &UcasePassword[7], &key );
-        des_set_key_unchecked( &key, schedule );
-        des_ecb_encrypt( &StdText, &hbuf[1], schedule , DES_ENCRYPT );
+	lmPasswd_to_key( &UcasePassword[7], &key );
+	des_set_key_unchecked( &key, schedule );
+	des_ecb_encrypt( &StdText, &hbuf[1], schedule , DES_ENCRYPT );
 
 	hexify( (char *)hbuf, hash );
 }
@@ -141,20 +141,20 @@ static void nthash(
 	struct berval *hash
 )
 {
-        /* Windows currently only allows 14 character passwords, but
-         * may support up to 256 in the future. We assume this means
+	/* Windows currently only allows 14 character passwords, but
+	 * may support up to 256 in the future. We assume this means
 	 * 256 UCS2 characters, not 256 bytes...
-         */
+	 */
 	char hbuf[HASHLEN];
-        int i;
-        MD4_CTX ctx;
+	int i;
+	MD4_CTX ctx;
 
 	if (passwd->bv_len > MAX_PWLEN*2)
 		passwd->bv_len = MAX_PWLEN*2;
 		
-        MD4_Init( &ctx );
-        MD4_Update( &ctx, passwd->bv_val, passwd->bv_len );
-        MD4_Final( hbuf, &ctx );
+	MD4_Init( &ctx );
+	MD4_Update( &ctx, passwd->bv_val, passwd->bv_len );
+	MD4_Final( hbuf, &ctx );
 
 	hexify( hbuf, hash );
 }
