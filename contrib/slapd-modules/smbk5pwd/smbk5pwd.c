@@ -440,6 +440,8 @@ static int smbk5pwd_exop_passwd(
 			*c++ = *d++;
 			d++;
 		}
+		pwd.bv_len /= 2;
+		pwd.bv_val[pwd.bv_len] = '\0';
 
 		ml = ch_malloc(sizeof(Modifications));
 		ml->sml_next = qpw->rs_mods;
