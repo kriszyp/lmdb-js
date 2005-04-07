@@ -197,6 +197,7 @@ usage( char *name )
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
+		"\t-F dir\tConfiguration directory\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-g group\tGroup (id or name) to run as\n"
 #endif
