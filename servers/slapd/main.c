@@ -192,7 +192,7 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
-		"\t-T {add|auth|cat|dn|index|passwd|test}\n"
+		"\t-T {acl|add|auth|cat|dn|index|passwd|test}\n"
 		"\t\t\tRun in Tool mode\n"
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
