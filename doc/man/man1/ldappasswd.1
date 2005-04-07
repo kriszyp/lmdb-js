@@ -103,7 +103,9 @@ Set the LDAP debugging level to \fIdebuglevel\fP.
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
 .BI \-H \ ldapuri
-Specify URI(s) referring to the ldap server(s).
+Specify URI(s) referring to the ldap server(s); only the protocol/host/port
+fields are allowed; a list of URI, separated by whitespace or commas
+is expected.
 .TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
