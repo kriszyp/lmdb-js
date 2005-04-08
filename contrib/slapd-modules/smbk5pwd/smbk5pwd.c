@@ -66,7 +66,7 @@ static void smbk5pwd_destroy() {
 #endif
 
 #ifdef DO_SAMBA
-static const char hex[] = "0123456789ABCDEF";
+static const char hex[] = "0123456789abcdef";
 
 /* From liblutil/passwd.c... */
 static void lmPasswd_to_key(
