@@ -728,7 +728,7 @@ dynlist_db_destroy(
 static slap_overinst dynlist = { { NULL } };
 
 int
-dynlist_over_init(void)
+dynlist_init(void)
 {
 	dynlist.on_bi.bi_type = "dynlist";
 	dynlist.on_bi.bi_db_init = dynlist_db_init;
@@ -745,7 +745,7 @@ dynlist_over_init(void)
 int
 init_module( int argc, char *argv[] )
 {
-	return dynlist_over_init();
+	return dynlist_init();
 }
 #endif
 
