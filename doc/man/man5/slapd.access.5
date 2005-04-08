@@ -922,43 +922,20 @@ attribute of the authorizing identity and/or on the
 attribute of the authorized identity.
 
 .LP
-Some backends do not honor all the above rules.  In detail:
+Access control to search entries is checked by the frontend,
+so it is fully honored by all backends; for all other operations
+and for the discovery phase of the search operation,
+full ACL semantics is only supported by the primary backends, i.e.
+.BR back-bdb (5),
+.BR back-hdb (5),
+and
+.BR back-ldbm (5).
 
-.TP
-.B bacl-ldap/back-meta
-\fIdo not check\fP
-.B write (=w)
-access, since it is delegated to the remote host(s) serving
-the naming context.
-The same applies to checking
-.B search (=s)
-access to the 
-.B entry
-pseudo-attribute of the
-.B searchBase 
-of a search operation, 
-.B search (=s)
-access to the attributes used in the
-.BR searchFilter ,
-and 
-.B disclose (=d)
-access to the
-.B entry
-pseudo-attribute of any object in case of error: all those checks 
-are delegated to the remote host(s).
-In any case,
-.B read (=r) 
-access is honored locally by the frontend.
-
-.TP
-.B back-shell
-requires
-.B write (=w)
-access to the 
-.B entry 
-pseudo-attribute for the modify operation; in the meanwhile, 
-\fIwrite access to the specific attributes that are modified
-is not checked\fP.
+Some other backend, like
+.BR back-sql (5),
+may fully support them; others may only support a portion of the 
+described semantics, or even differ in some aspects.
+The relevant details are described in the backend-specific man pages.
 
 .SH CAVEATS
 It is strongly recommended to explicitly use the most appropriate
@@ -1038,6 +1015,7 @@ ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR slapd (8),
+.BR slapd-* (5),
 .BR slapacl (8),
 .BR regex (7),
 .BR re_format (7)
