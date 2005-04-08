@@ -17,6 +17,21 @@ This backend is experimental.
 The DNSSRV backend has no backend nor database specific options.
 It is configured simply by "database dnssrv" followed a suffix
 directive, e.g. suffix "".
+.SH ACCESS CONTROL
+The
+.B dnssrv
+backend does not honor all ACL semantics as described in
+.BR slapd.access (5).
+In fact, this backend only implements the
+.B search
+operation when the
+.B manageDSAit
+control (RFC3296) is used, otherwise for every operation a referral,
+whenever appropriate, or an error is returned.
+Currently, there is no means to condition the returning of the referral
+by means of ACLs; no access control is implemented, except for 
+.B read (=r)
+access to the returned entries, which is actually provided by the frontend.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
