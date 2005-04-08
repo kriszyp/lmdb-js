@@ -119,11 +119,12 @@ dnssrv_back_referrals(
 	send_ldap_error( op, rs, LDAP_REFERRAL,
 		"DNS SRV generated referrals" );
 	rs->sr_ref = NULL;
+	rc = LDAP_REFERRAL;
 
 done:
 	if( domain != NULL ) ch_free( domain );
 	if( hostlist != NULL ) ch_free( hostlist );
 	if( hosts != NULL ) ldap_charray_free( hosts );
 	ber_bvarray_free( urls );
-	return rs->sr_err;
+	return rc;
 }
