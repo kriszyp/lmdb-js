@@ -117,6 +117,7 @@ dnssrv_back_referrals(
 	rs->sr_ref = urls;
 	send_ldap_error( op, rs, LDAP_REFERRAL,
 		"DNS SRV generated referrals" );
+	rs->sr_ref = NULL;
 
 done:
 	if( domain != NULL ) ch_free( domain );
