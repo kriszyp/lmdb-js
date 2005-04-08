@@ -920,6 +920,46 @@ privileges are also required on the
 attribute of the authorizing identity and/or on the 
 .B authzFrom
 attribute of the authorized identity.
+
+.LP
+Some backends do not honor all the above rules.  In detail:
+
+.TP
+.B bacl-ldap/back-meta
+\fIdo not check\fP
+.B write (=w)
+access, since it is delegated to the remote host(s) serving
+the naming context.
+The same applies to checking
+.B search (=s)
+access to the 
+.B entry
+pseudo-attribute of the
+.B searchBase 
+of a search operation, 
+.B search (=s)
+access to the attributes used in the
+.BR searchFilter ,
+and 
+.B disclose (=d)
+access to the
+.B entry
+pseudo-attribute of any object in case of error: all those checks 
+are delegated to the remote host(s).
+In any case,
+.B read (=r) 
+access is honored locally by the frontend.
+
+.TP
+.B back-shell
+requires
+.B write (=w)
+access to the 
+.B entry 
+pseudo-attribute for the modify operation; in the meanwhile, 
+\fIwrite access to the specific attributes that are modified
+is not checked\fP.
+
 .SH CAVEATS
 It is strongly recommended to explicitly use the most appropriate
 .B <dnstyle>
