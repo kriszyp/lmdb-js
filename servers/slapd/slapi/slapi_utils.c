@@ -3364,6 +3364,7 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 	case SLAPI_ACL_DELETE:
 	case SLAPI_ACL_ADD:
 	case SLAPI_ACL_SELF:
+		/* FIXME: handle ACL_WADD/ACL_WDEL */
 		slap_access = ACL_WRITE;
 		break;
 	default:
@@ -4000,6 +4001,7 @@ int slapi_int_access_allowed( Operation *op,
 
 	switch ( access ) {
 	case ACL_WRITE:
+		/* FIXME: handle ACL_WADD/ACL_WDEL */
 		slap_access |= SLAPI_ACL_ADD | SLAPI_ACL_DELETE | SLAPI_ACL_WRITE;
 		break;
 	case ACL_READ:

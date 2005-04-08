@@ -101,8 +101,7 @@ ldbm_back_modrdn(
 	}
 
 	/* check entry for "entry" acl */
-	if ( ! access_allowed( op, e,
-		entry, NULL, ACL_WRITE, NULL ) )
+	if ( ! access_allowed( op, e, entry, NULL, ACL_WRITE, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
 			"<=- ldbm_back_modrdn: no write access to entry\n", 0,
@@ -163,8 +162,10 @@ ldbm_back_modrdn(
 		}
 
 		/* check parent for "children" acl */
-		if ( ! access_allowed( op, p,
-			children, NULL, ACL_WRITE, NULL ) )
+		if ( ! access_allowed( op, p, children, NULL,
+				op->oq_modrdn.rs_newSup != NULL ?
+					ACL_WDEL : ACL_WRITE,
+				NULL ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
@@ -197,7 +198,10 @@ ldbm_back_modrdn(
 				p = (Entry *)&slap_entry_root;
 				
 				can_access = access_allowed( op, p,
-						children, NULL, ACL_WRITE, NULL );
+						children, NULL,
+						op->oq_modrdn.rs_newSup ?
+							ACL_WDEL : ACL_WRITE,
+						NULL );
 				p = NULL;
 								
 				/* check parent for "children" acl */
@@ -270,7 +274,7 @@ ldbm_back_modrdn(
 
 			/* check newSuperior for "children" acl */
 			if ( !access_allowed( op, np, children, NULL,
-					      ACL_WRITE, NULL ) )
+					      ACL_WADD, NULL ) )
 			{
 				Debug( LDAP_DEBUG_TRACE,
 				       "ldbm_back_modrdn: no wr to newSup children\n",
@@ -316,7 +320,7 @@ ldbm_back_modrdn(
 					np = (Entry *)&slap_entry_root;
 				
 					can_access = access_allowed( op, np,
-							children, NULL, ACL_WRITE, NULL );
+							children, NULL, ACL_WADD, NULL );
 					np = NULL;
 								
 					/* check parent for "children" acl */

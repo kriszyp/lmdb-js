@@ -1156,7 +1156,19 @@ typedef enum slap_access_e {
 	ACL_SEARCH,
 	ACL_READ,
 	ACL_WRITE,
-	ACL_MANAGE
+	ACL_MANAGE,
+
+	/* ACL level mask and modifiers */
+	ACL_LEVEL_MASK = 0x000f,
+	ACL_QUALIFIER1 = 0x0100,
+	ACL_QUALIFIER2 = 0x0200,
+	ACL_QUALIFIER3 = 0x0400,
+	ACL_QUALIFIER4 = 0x0800,
+	ACL_QUALIFIER_MASK = 0x0f00,
+
+	/* write granularity */
+	ACL_WADD = ACL_WRITE|ACL_QUALIFIER1,
+	ACL_WDEL = ACL_WRITE|ACL_QUALIFIER2
 } slap_access_t;
 
 typedef enum slap_control_e {
@@ -1246,7 +1258,11 @@ typedef struct slap_dn_access {
 typedef struct slap_access {
 	slap_control_t a_type;
 
-#define ACL_ACCESS2PRIV(access)	(0x01U << (access))
+/* strip qualifiers */
+#define ACL_LEVEL(p)			((p) & ACL_LEVEL_MASK)
+#define ACL_QUALIFIERS(p)		((p) & ~ACL_LEVEL_MASK)
+
+#define ACL_ACCESS2PRIV(access)		((0x01U << ACL_LEVEL((access))) | ACL_QUALIFIERS((access)))
 
 #define ACL_PRIV_NONE			ACL_ACCESS2PRIV( ACL_NONE )
 #define ACL_PRIV_DISCLOSE		ACL_ACCESS2PRIV( ACL_DISCLOSE )
@@ -1254,25 +1270,28 @@ typedef struct slap_access {
 #define ACL_PRIV_COMPARE		ACL_ACCESS2PRIV( ACL_COMPARE )
 #define ACL_PRIV_SEARCH			ACL_ACCESS2PRIV( ACL_SEARCH )
 #define ACL_PRIV_READ			ACL_ACCESS2PRIV( ACL_READ )
-#define ACL_PRIV_WRITE			ACL_ACCESS2PRIV( ACL_WRITE )
+#define ACL_PRIV_WADD			ACL_ACCESS2PRIV( ACL_WADD )
+#define ACL_PRIV_WDEL			ACL_ACCESS2PRIV( ACL_WDEL )
+#define ACL_PRIV_WRITE			( ACL_PRIV_WADD | ACL_PRIV_WDEL )
 #define ACL_PRIV_MANAGE			ACL_ACCESS2PRIV( ACL_MANAGE )
 
-#define ACL_PRIV_MASK			0x00ffUL
+/* NOTE: always use the highest level; current: 0x00ffUL */
+#define ACL_PRIV_MASK			((ACL_PRIV_MANAGE - 1) | ACL_QUALIFIER_MASK)
 
 /* priv flags */
 #define ACL_PRIV_LEVEL			0x1000UL
 #define ACL_PRIV_ADDITIVE		0x2000UL
-#define ACL_PRIV_SUBSTRACTIVE	0x4000UL
+#define ACL_PRIV_SUBSTRACTIVE		0x4000UL
 
 /* invalid privs */
 #define ACL_PRIV_INVALID		0x0UL
 
 #define ACL_PRIV_ISSET(m,p)		(((m) & (p)) == (p))
-#define ACL_PRIV_ASSIGN(m,p)	do { (m)  =  (p); } while(0)
+#define ACL_PRIV_ASSIGN(m,p)		do { (m)  =  (p); } while(0)
 #define ACL_PRIV_SET(m,p)		do { (m) |=  (p); } while(0)
 #define ACL_PRIV_CLR(m,p)		do { (m) &= ~(p); } while(0)
 
-#define ACL_INIT(m)				ACL_PRIV_ASSIGN(m, ACL_PRIV_NONE)
+#define ACL_INIT(m)			ACL_PRIV_ASSIGN(m, ACL_PRIV_NONE)
 #define ACL_INVALIDATE(m)		ACL_PRIV_ASSIGN(m, ACL_PRIV_INVALID)
 
 #define ACL_GRANT(m,a)			ACL_PRIV_ISSET((m),ACL_ACCESS2PRIV(a))
@@ -1281,7 +1300,7 @@ typedef struct slap_access {
 
 #define ACL_IS_LEVEL(m)			ACL_PRIV_ISSET((m),ACL_PRIV_LEVEL)
 #define ACL_IS_ADDITIVE(m)		ACL_PRIV_ISSET((m),ACL_PRIV_ADDITIVE)
-#define ACL_IS_SUBTRACTIVE(m)	ACL_PRIV_ISSET((m),ACL_PRIV_SUBSTRACTIVE)
+#define ACL_IS_SUBTRACTIVE(m)		ACL_PRIV_ISSET((m),ACL_PRIV_SUBSTRACTIVE)
 
 #define ACL_LVL_NONE			(ACL_PRIV_NONE|ACL_PRIV_LEVEL)
 #define ACL_LVL_DISCLOSE		(ACL_PRIV_DISCLOSE|ACL_LVL_NONE)
@@ -1289,18 +1308,22 @@ typedef struct slap_access {
 #define ACL_LVL_COMPARE			(ACL_PRIV_COMPARE|ACL_LVL_AUTH)
 #define ACL_LVL_SEARCH			(ACL_PRIV_SEARCH|ACL_LVL_COMPARE)
 #define ACL_LVL_READ			(ACL_PRIV_READ|ACL_LVL_SEARCH)
+#define ACL_LVL_WADD			(ACL_PRIV_WADD|ACL_LVL_READ)
+#define ACL_LVL_WDEL			(ACL_PRIV_WDEL|ACL_LVL_READ)
 #define ACL_LVL_WRITE			(ACL_PRIV_WRITE|ACL_LVL_READ)
 #define ACL_LVL_MANAGE			(ACL_PRIV_MANAGE|ACL_LVL_WRITE)
 
 #define ACL_LVL(m,l)			(((m)&ACL_PRIV_MASK) == ((l)&ACL_PRIV_MASK))
 #define ACL_LVL_IS_NONE(m)		ACL_LVL((m),ACL_LVL_NONE)
-#define ACL_LVL_IS_DISCLOSE(m)	ACL_LVL((m),ACL_LVL_DISCLOSE)
+#define ACL_LVL_IS_DISCLOSE(m)		ACL_LVL((m),ACL_LVL_DISCLOSE)
 #define ACL_LVL_IS_AUTH(m)		ACL_LVL((m),ACL_LVL_AUTH)
-#define ACL_LVL_IS_COMPARE(m)	ACL_LVL((m),ACL_LVL_COMPARE)
-#define ACL_LVL_IS_SEARCH(m)	ACL_LVL((m),ACL_LVL_SEARCH)
+#define ACL_LVL_IS_COMPARE(m)		ACL_LVL((m),ACL_LVL_COMPARE)
+#define ACL_LVL_IS_SEARCH(m)		ACL_LVL((m),ACL_LVL_SEARCH)
 #define ACL_LVL_IS_READ(m)		ACL_LVL((m),ACL_LVL_READ)
+#define ACL_LVL_IS_WADD(m)		ACL_LVL((m),ACL_LVL_WADD)
+#define ACL_LVL_IS_WDEL(m)		ACL_LVL((m),ACL_LVL_WDEL)
 #define ACL_LVL_IS_WRITE(m)		ACL_LVL((m),ACL_LVL_WRITE)
-#define ACL_LVL_IS_MANAGE(m)	ACL_LVL((m),ACL_LVL_MANAGE)
+#define ACL_LVL_IS_MANAGE(m)		ACL_LVL((m),ACL_LVL_MANAGE)
 
 #define ACL_LVL_ASSIGN_NONE(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_NONE)
 #define ACL_LVL_ASSIGN_DISCLOSE(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_DISCLOSE)
@@ -1308,6 +1331,8 @@ typedef struct slap_access {
 #define ACL_LVL_ASSIGN_COMPARE(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_COMPARE)
 #define ACL_LVL_ASSIGN_SEARCH(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_SEARCH)
 #define ACL_LVL_ASSIGN_READ(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_READ)
+#define ACL_LVL_ASSIGN_WADD(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_WADD)
+#define ACL_LVL_ASSIGN_WDEL(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_WDEL)
 #define ACL_LVL_ASSIGN_WRITE(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_WRITE)
 #define ACL_LVL_ASSIGN_MANAGE(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_MANAGE)
 

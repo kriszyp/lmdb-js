@@ -62,7 +62,7 @@ ldbm_back_add(
 #endif
 
 	if ( !access_allowed( op, op->oq_add.rs_e,
-				entry, NULL, ACL_WRITE, NULL ) )
+				entry, NULL, ACL_WADD, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "no write access to entry\n", 0,
 		    0, 0 );
@@ -131,7 +131,7 @@ ldbm_back_add(
 			return rs->sr_err;
 		}
 
-		if ( ! access_allowed( op, p, children, NULL, ACL_WRITE, NULL ) ) {
+		if ( ! access_allowed( op, p, children, NULL, ACL_WADD, NULL ) ) {
 			/* free parent and writer lock */
 			cache_return_entry_w( &li->li_cache, p ); 
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);

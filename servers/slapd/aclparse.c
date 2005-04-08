@@ -1816,6 +1816,12 @@ accessmask2str( slap_mask_t mask, char *buf, int debug )
 		} else if ( ACL_LVL_IS_WRITE(mask) ) {
 			ptr = lutil_strcopy( ptr, "write" );
 
+		} else if ( ACL_LVL_IS_WADD(mask) ) {
+			ptr = lutil_strcopy( ptr, "add" );
+
+		} else if ( ACL_LVL_IS_WDEL(mask) ) {
+			ptr = lutil_strcopy( ptr, "delete" );
+
 		} else if ( ACL_LVL_IS_MANAGE(mask) ) {
 			ptr = lutil_strcopy( ptr, "manage" );
 
@@ -1850,6 +1856,16 @@ accessmask2str( slap_mask_t mask, char *buf, int debug )
 		*ptr++ = 'w';
 	} 
 
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WADD) ) {
+		none = 0;
+		*ptr++ = 'a';
+	} 
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WDEL) ) {
+		none = 0;
+		*ptr++ = 'z';
+	} 
+
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_READ) ) {
 		none = 0;
 		*ptr++ = 'r';
@@ -1877,7 +1893,7 @@ accessmask2str( slap_mask_t mask, char *buf, int debug )
 
 	if ( none && ACL_PRIV_ISSET(mask, ACL_PRIV_NONE) ) {
 		none = 0;
-		*ptr++ = 'n';
+		*ptr++ = '0';
 	} 
 
 	if ( none ) {
@@ -1922,6 +1938,12 @@ str2accessmask( const char *str )
 			} else if( TOLOWER((unsigned char) str[i]) == 'w' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
 
+			} else if( TOLOWER((unsigned char) str[i]) == 'a' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_WADD);
+
+			} else if( TOLOWER((unsigned char) str[i]) == 'z' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_WDEL);
+
 			} else if( TOLOWER((unsigned char) str[i]) == 'r' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_READ);
 
@@ -1963,6 +1985,12 @@ str2accessmask( const char *str )
 
 	} else if ( strcasecmp( str, "read" ) == 0 ) {
 		ACL_LVL_ASSIGN_READ(mask);
+
+	} else if ( strcasecmp( str, "add" ) == 0 ) {
+		ACL_LVL_ASSIGN_WADD(mask);
+
+	} else if ( strcasecmp( str, "delete" ) == 0 ) {
+		ACL_LVL_ASSIGN_WDEL(mask);
 
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
 		ACL_LVL_ASSIGN_WRITE(mask);
@@ -2008,8 +2036,8 @@ acl_usage( void )
 		"<peernamestyle> ::= exact | regex | ip | path\n"
 		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
 		"<access> ::= [[real]self]{<level>|<priv>}\n"
-		"<level> ::= none|disclose|auth|compare|search|read|write|manage\n"
-		"<priv> ::= {=|+|-}{0|d|x|c|s|r|w|m}+\n"
+		"<level> ::= none|disclose|auth|compare|search|read|{write|add|delete}|manage\n"
+		"<priv> ::= {=|+|-}{0|d|x|c|s|r|{w|a|z}|m}+\n"
 		"<control> ::= [ stop | continue | break ]\n"
 	);
 	exit( EXIT_FAILURE );
@@ -2192,6 +2220,12 @@ access2str( slap_access_t access )
 	} else if ( access == ACL_WRITE ) {
 		return "write";
 
+	} else if ( access == ACL_WADD ) {
+		return "add";
+
+	} else if ( access == ACL_WDEL ) {
+		return "delete";
+
 	} else if ( access == ACL_MANAGE ) {
 		return "manage";
 
@@ -2223,6 +2257,12 @@ str2access( const char *str )
 
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
 		return ACL_WRITE;
+
+	} else if ( strcasecmp( str, "add" ) == 0 ) {
+		return ACL_WADD;
+
+	} else if ( strcasecmp( str, "delete" ) == 0 ) {
+		return ACL_WDEL;
 
 	} else if ( strcasecmp( str, "manage" ) == 0 ) {
 		return ACL_MANAGE;

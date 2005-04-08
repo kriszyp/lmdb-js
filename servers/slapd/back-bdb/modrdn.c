@@ -289,7 +289,10 @@ retry:	/* transaction retry */
 
 		/* check parent for "children" acl */
 		rs->sr_err = access_allowed( op, p,
-			children, NULL, ACL_WRITE, NULL );
+			children, NULL,
+			op->oq_modrdn.rs_newSup == NULL ?
+				ACL_WRITE : ACL_WDEL,
+			NULL );
 
 		if ( ! rs->sr_err ) {
 			switch( opinfo.boi_err ) {
@@ -330,7 +333,10 @@ retry:	/* transaction retry */
 
 				/* check parent for "children" acl */
 				rs->sr_err = access_allowed( op, p,
-					children, NULL, ACL_WRITE, NULL );
+					children, NULL,
+					op->oq_modrdn.rs_newSup == NULL ?
+						ACL_WRITE : ACL_WDEL,
+					NULL );
 
 				p = NULL;
 
@@ -437,7 +443,7 @@ retry:	/* transaction retry */
 
 			/* check newSuperior for "children" acl */
 			rs->sr_err = access_allowed( op, np, children,
-				NULL, ACL_WRITE, NULL );
+				NULL, ACL_WADD, NULL );
 
 			if( ! rs->sr_err ) {
 				switch( opinfo.boi_err ) {
@@ -492,7 +498,7 @@ retry:	/* transaction retry */
 
 					/* check parent for "children" acl */
 					rs->sr_err = access_allowed( op, np,
-						children, NULL, ACL_WRITE, NULL );
+						children, NULL, ACL_WADD, NULL );
 
 					np = NULL;
 

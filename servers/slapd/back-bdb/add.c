@@ -177,7 +177,7 @@ retry:	/* transaction retry */
 		}
 
 		rs->sr_err = access_allowed( op, p,
-			children, NULL, ACL_WRITE, NULL );
+			children, NULL, ACL_WADD, NULL );
 
 		if ( ! rs->sr_err ) {
 			switch( opinfo.boi_err ) {
@@ -272,7 +272,7 @@ retry:	/* transaction retry */
 	}
 
 	rs->sr_err = access_allowed( op, op->oq_add.rs_e,
-		entry, NULL, ACL_WRITE, NULL );
+		entry, NULL, ACL_WADD, NULL );
 
 	if ( ! rs->sr_err ) {
 		switch( opinfo.boi_err ) {

@@ -450,7 +450,7 @@ slap_modrdn2mods(
 
 		/* ACL check of newly added attrs */
 		if ( op->o_bd && !access_allowed( op, e, desc,
-			&new_rdn[a_cnt]->la_value, ACL_WRITE, NULL ) ) {
+			&new_rdn[a_cnt]->la_value, ACL_WADD, NULL ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"slap_modrdn2modlist: access to attr \"%s\" "
 				"(new) not allowed\n", 
@@ -500,9 +500,9 @@ slap_modrdn2mods(
 				goto done;		
 			}
 
-			/* ACL check of newly added attrs */
+			/* ACL check of old rdn attrs removal */
 			if ( op->o_bd && !access_allowed( op, e, desc,
-				&old_rdn[d_cnt]->la_value, ACL_WRITE, 
+				&old_rdn[d_cnt]->la_value, ACL_WDEL, 
 				NULL ) ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"slap_modrdn2modlist: access "

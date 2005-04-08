@@ -164,22 +164,26 @@ access_allowed_mask(
 	int				ret = 1;
 	int				count;
 	AccessControl			*a = NULL;
-	Backend *be;
-	int	be_null = 0;
+	Backend				*be;
+	int				be_null = 0;
 
 #ifdef LDAP_DEBUG
-	char accessmaskbuf[ACCESSMASK_MAXLEN];
+	char				accessmaskbuf[ACCESSMASK_MAXLEN];
 #endif
-	slap_mask_t mask;
-	slap_control_t control;
-	const char *attr;
-	regmatch_t matches[MAXREMATCHES];
-	int        st_same_attr = 0;
-	static AccessControlState state_init = ACL_STATE_INIT;
+	slap_mask_t			mask;
+	slap_control_t			control;
+	slap_access_t			access_level;
+	const char			*attr;
+	regmatch_t			matches[MAXREMATCHES];
+	int				st_same_attr = 0;
+	static AccessControlState	state_init = ACL_STATE_INIT;
 
 	assert( e != NULL );
 	assert( desc != NULL );
-	assert( access > ACL_NONE );
+
+	access_level = ACL_LEVEL( access );
+
+	assert( access_level > ACL_NONE );
 	if ( maskp ) ACL_INVALIDATE( *maskp );
 
 	attr = desc->ad_cname.bv_val;
@@ -187,7 +191,7 @@ access_allowed_mask(
 	assert( attr != NULL );
 
 	if( op && op->o_is_auth_check &&
-		( access == ACL_SEARCH || access == ACL_READ ))
+		( access_level == ACL_SEARCH || access_level == ACL_READ ))
 	{
 		access = ACL_AUTH;
 	}
@@ -265,7 +269,7 @@ access_allowed_mask(
 	 * by ACL_WRITE checking as any found here are not provided
 	 * by the user
 	 */
-	if ( access >= ACL_WRITE && is_at_no_user_mod( desc->ad_type )
+	if ( access_level >= ACL_WRITE && is_at_no_user_mod( desc->ad_type )
 		&& desc != slap_schema.si_ad_entry
 		&& desc != slap_schema.si_ad_children )
 	{
@@ -280,9 +284,9 @@ access_allowed_mask(
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( access ),
-			be->be_dfltaccess >= access ? "granted" : "denied",
+			be->be_dfltaccess >= access_level ? "granted" : "denied",
 			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
-		ret = be->be_dfltaccess >= access;
+		ret = be->be_dfltaccess >= access_level;
 
 		if ( maskp ) {
 			int	i;
@@ -302,8 +306,8 @@ access_allowed_mask(
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: global default %s access %s to \"%s\"\n",
 			access2str( access ),
-			frontendDB->be_dfltaccess >= access ? "granted" : "denied", op->o_dn.bv_val );
-		ret = frontendDB->be_dfltaccess >= access;
+			frontendDB->be_dfltaccess >= access_level ? "granted" : "denied", op->o_dn.bv_val );
+		ret = frontendDB->be_dfltaccess >= access_level;
 
 		if ( maskp ) {
 			int	i;
@@ -1929,7 +1933,7 @@ acl_check_modlist(
 			 * This prevents abuse from selfwriters.
 			 */
 			if ( ! access_allowed( op, e,
-				mlist->sml_desc, NULL, ACL_WRITE, &state ) )
+				mlist->sml_desc, NULL, ACL_WDEL, &state ) )
 			{
 				ret = 0;
 				goto done;
@@ -1947,7 +1951,7 @@ acl_check_modlist(
 				bv->bv_val != NULL; bv++ )
 			{
 				if ( ! access_allowed( op, e,
-					mlist->sml_desc, bv, ACL_WRITE, &state ) )
+					mlist->sml_desc, bv, ACL_WADD, &state ) )
 				{
 					ret = 0;
 					goto done;
@@ -1958,7 +1962,7 @@ acl_check_modlist(
 		case LDAP_MOD_DELETE:
 			if ( mlist->sml_values == NULL ) {
 				if ( ! access_allowed( op, e,
-					mlist->sml_desc, NULL, ACL_WRITE, NULL ) )
+					mlist->sml_desc, NULL, ACL_WDEL, NULL ) )
 				{
 					ret = 0;
 					goto done;
@@ -1970,7 +1974,7 @@ acl_check_modlist(
 				bv->bv_val != NULL; bv++ )
 			{
 				if ( ! access_allowed( op, e,
-					mlist->sml_desc, bv, ACL_WRITE, &state ) )
+					mlist->sml_desc, bv, ACL_WDEL, &state ) )
 				{
 					ret = 0;
 					goto done;

@@ -162,7 +162,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 
 	if ( !access_allowed( op, &d, slap_schema.si_ad_entry, 
-			NULL, ACL_WRITE, NULL ) )
+			NULL, ACL_WDEL, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"no write access to entry\n", 
@@ -238,7 +238,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 	/* check parent for "children" acl */
 	if ( !access_allowed( op, &p, slap_schema.si_ad_children, 
-			NULL, ACL_WRITE, NULL ) )
+			NULL, ACL_WDEL, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"no write access to parent\n", 

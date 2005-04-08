@@ -1152,7 +1152,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	/* check "children" pseudo-attribute access to parent */
 	if ( !access_allowed( op, &p, slap_schema.si_ad_children,
-				NULL, ACL_WRITE, NULL ) )
+				NULL, ACL_WADD, NULL ) )
 	{
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		e = &p;
@@ -1170,7 +1170,7 @@ backsql_add( Operation *op, SlapReply *rs )
 
 	if ( !access_allowed_mask( op, op->ora_e,
 				slap_schema.si_ad_entry,
-				NULL, ACL_WRITE, NULL, &mask ) )
+				NULL, ACL_WADD, NULL, &mask ) )
 	{
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		e = op->ora_e;
