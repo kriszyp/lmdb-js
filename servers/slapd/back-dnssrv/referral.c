@@ -67,6 +67,7 @@ dnssrv_back_referrals(
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_ref = default_referral;
 		send_ldap_result( op, rs );
+		rs->sr_ref = NULL;
 		return LDAP_REFERRAL;
 	}
 
@@ -124,5 +125,5 @@ done:
 	if( hostlist != NULL ) ch_free( hostlist );
 	if( hosts != NULL ) ldap_charray_free( hosts );
 	ber_bvarray_free( urls );
-	return rc;
+	return rs->sr_err;
 }
