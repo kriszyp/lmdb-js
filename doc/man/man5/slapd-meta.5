@@ -740,6 +740,22 @@ been written:
 .fi
 .LP
 with the advantage of saving one rewrite pass ...)
+
+.SH ACCESS CONTROL
+The
+.B meta
+backend does not honor all ACL semantics as described in
+.BR slapd.access (5).
+In general, access checking is delegated to the remote server(s).
+Only
+.B read (=r)
+access to the
+.B entry
+pseudo-attribute and to the other attribute values of the entries
+returned by the
+.B search
+operation is honored, which is performed by the frontend.
+
 .SH PROXY CACHE OVERLAY
 The proxy cache overlay 
 allows caching of LDAP search requests (queries) in a local database.

@@ -267,33 +267,6 @@ connection did.
 if start TLS failed.
 .RE
 
-
-
-
-.TP
-.\".B suffixmassage <suffix> <massaged (remote) suffix>
-.\"DNs ending with <suffix> in a request are changed to end with <remote
-.\"suffix> before sending the request to the remote server, and <remote
-.\"suffix> in the results are changed back to <suffix> before returning
-.\"them to the client.
-.\"The <suffix> field must be defined as a valid suffix
-.\"for the current database.
-.\".TP
-.\".B map "{attribute | objectclass} [<local name> | *] {<foreign name> | *}"
-.\"Map attribute names and object classes from the foreign server to
-.\"different values on the local slapd.
-.\"The reason is that some attributes might not be part of the local
-.\"slapd's schema, some attribute names might be different but serve the
-.\"same purpose, etc.
-.\"If local or foreign name is `*', the name is preserved.
-.\"If local name is omitted, the foreign name is removed.
-.\"Unmapped names are preseved if both local and foreign name are `*',
-.\"and removed if local name is omitted and foreign name is `*'.
-.\".TP
-.\".B rewrite*
-.\"The rewrite options are described in the "REWRITING" section of the
-.\".BR slapd-meta (5)
-.\"manual page.
 .TP
 .B suffixmassage, map, rewrite*
 These directives are no longer supported by back-ldap; their 
@@ -307,35 +280,22 @@ recognizes them and automatically instantiates the
 .B rwm
 overlay if available and not instantiated yet.
 This behavior may change in the future.
-.\".SH EXAMPLES
-.\"The following directives map the object class `groupOfNames' to
-.\"the object class `groupOfUniqueNames' and the attribute type
-.\"`member' to the attribute type `uniqueMember':
-.\".LP
-.\".RS
-.\".nf
-.\"map objectclass groupOfNames groupOfUniqueNames
-.\"map attribute uniqueMember member
-.\".fi
-.\".RE
-.\".LP
-.\"This presents a limited attribute set from the foreign
-.\"server:
-.\".LP
-.\".RS
-.\".nf
-.\"map attribute cn *
-.\"map attribute sn *
-.\"map attribute manager *
-.\"map attribute description *
-.\"map attribute *
-.\".fi
-.\".RE
-.\".LP
-.\"These lines map cn, sn, manager, and description to themselves, and 
-.\"any other attribute gets "removed" from the object before it is sent 
-.\"to the client (or sent up to the LDAP server).  This is obviously a 
-.\"simplistic example, but you get the point.
+
+.SH ACCESS CONTROL
+The
+.B ldap
+backend does not honor all ACL semantics as described in
+.BR slapd.access (5).
+In general, access checking is delegated to the remote server(s).
+Only
+.B read (=r)
+access to the
+.B entry
+pseudo-attribute and to the other attribute values of the entries
+returned by the
+.B search
+operation is honored, which is performed by the frontend.
+
 .SH PROXY CACHE OVERLAY
 The proxy cache overlay 
 allows caching of LDAP search requests (queries) in a local database.
