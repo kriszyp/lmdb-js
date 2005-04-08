@@ -33,23 +33,19 @@
 int
 monitor_back_bind( Operation *op, SlapReply *rs )
 {
-#if 0	/* not used yet */
-	monitor_info_t	*mi
-		= (monitor_info_t *) op->o_bd->be_private;
-#endif
-
 	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n", 
 			op->o_req_dn.bv_val, 0, 0 );
 	
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE 
-			&& be_isroot_pw( op ) ) {
+			&& be_isroot_pw( op ) )
+	{
 		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
-		return( 0 );
+		return LDAP_SUCCESS;
 	}
 
 	rs->sr_err = LDAP_INVALID_CREDENTIALS;
 	send_ldap_result( op, rs );
 
-	return( 1 );
+	return rs->sr_err;
 }
 

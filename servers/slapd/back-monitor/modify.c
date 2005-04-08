@@ -32,14 +32,6 @@
 
 int
 monitor_back_modify( Operation *op, SlapReply *rs )
-	/*
-	Backend		*be,
-	Connection	*conn,
-	Operation	*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	Modifications	*modlist
-	*/
 {
 	int 		rc = 0;
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
@@ -53,14 +45,24 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
-			rs->sr_matched = matched->e_name.bv_val;
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+			if ( !access_allowed_mask( op, matched,
+					slap_schema.si_ad_entry,
+					NULL, ACL_DISCLOSE, NULL, NULL ) )
+			{
+				/* do nothing */ ;
+			} else 
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+			{
+				rs->sr_matched = matched->e_dn;
+			}
 		}
 		send_ldap_result( op, rs );
 		if ( matched != NULL ) {
 			rs->sr_matched = NULL;
 			monitor_cache_release( mi, matched );
 		}
-		return( 0 );
+		return rs->sr_err;
 	}
 
 	if ( !acl_check_modlist( op, e, op->oq_modify.rs_modlist )) {
@@ -69,11 +71,21 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 		rc = monitor_entry_modify( op, e );
 	}
 
+#ifdef SLAP_ACL_HONOR_DISCLOSE
+	if ( rc != LDAP_SUCCESS ) {
+		if ( !access_allowed_mask( op, e, slap_schema.si_ad_entry,
+				NULL, ACL_DISCLOSE, NULL, NULL ) )
+		{
+			rc = LDAP_NO_SUCH_OBJECT;
+		}
+	}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+
 	rs->sr_err = rc;
 	send_ldap_result( op, rs );
 
 	monitor_cache_release( mi, e );
 
-	return( 0 );
+	return rs->sr_err;
 }
 
