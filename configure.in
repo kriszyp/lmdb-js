@@ -242,8 +242,8 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
-Overlays="denyop dyngroup dynlist glue lastmod ppolicy proxycache rwm \
-	refint syncprov translucent unique"
+Overlays="denyop dyngroup dynlist glue lastmod ppolicy proxycache \
+	refint rwm syncprov translucent unique"
 
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
@@ -979,7 +979,7 @@ if test "$ol_cv_lib_resolver" != no ; then
 		[define if you have res_query()])
 
 	if test "$ol_enable_dnssrv" != no ; then
-		ol_link_dnssrv=yes;
+		ol_link_dnssrv=yes
 	fi
 
 	if test "$ol_cv_lib_resolver" != yes ; then
@@ -987,8 +987,10 @@ if test "$ol_cv_lib_resolver" != no ; then
 	fi
 fi
 
-if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
-	AC_MSG_ERROR([DNSSRV requires res_query()])
+if test "$ol_enable_dnssrv" = yes -o "$ol_enable_dnssrv" = mod ; then
+	if test "$ol_link_dnssrv" = no ; then
+		AC_MSG_ERROR([DNSSRV requires res_query()])
+	fi
 else
 	ol_enable_dnssrv=no
 fi
