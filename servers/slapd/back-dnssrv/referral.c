@@ -74,10 +74,11 @@ dnssrv_back_referrals(
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> domain=\"%s\"\n",
 		op->o_req_dn.bv_val, domain, 0 );
 
-	if( ( rc = ldap_domain2hostlist( domain, &hostlist ) ) ) {
+	i = ldap_domain2hostlist( domain, &hostlist );
+	if ( i ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"DNSSRV: domain2hostlist(%s) returned %d\n",
-			domain, rc, 0 );
+			domain, i, 0 );
 		rs->sr_text = "no DNS SRV RR available for DN";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
