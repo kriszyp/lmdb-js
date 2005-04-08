@@ -263,7 +263,7 @@ bdb_cf_gen(ConfigArgs *c)
 
 		/* See if a DB_CONFIG file already exists here */
 		bdb->bi_db_config_path = ch_malloc( strlen( bdb->bi_dbenv_home ) +
-			STRLENOF(LDAP_DIRSEP) + STRLENOF("DB_CONFIG"));
+			STRLENOF(LDAP_DIRSEP) + STRLENOF("DB_CONFIG") + 1 );
 		ptr = lutil_strcopy( bdb->bi_db_config_path, bdb->bi_dbenv_home );
 		*ptr++ = LDAP_DIRSEP[0];
 		strcpy( ptr, "DB_CONFIG" );
