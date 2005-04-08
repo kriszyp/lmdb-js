@@ -104,11 +104,11 @@ dnssrv_back_search(
 	for( i=0; hosts[i] != NULL; i++) {
 		struct berval url;
 
-		url.bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
+		url.bv_len = STRLENOF( "ldap://" ) + strlen(hosts[i]);
 		url.bv_val = ch_malloc( url.bv_len + 1 );
 
 		strcpy( url.bv_val, "ldap://" );
-		strcpy( &url.bv_val[sizeof("ldap://")-1], hosts[i] );
+		strcpy( &url.bv_val[STRLENOF( "ldap://" )], hosts[i] );
 
 		if( ber_bvarray_add( &urls, &url ) < 0 ) {
 			free( url.bv_val );
@@ -167,21 +167,20 @@ dnssrv_back_search(
 		send_ldap_error( op, rs, LDAP_SUCCESS, NULL );
 
 	} else {
-		Entry *e = ch_calloc( 1, sizeof(Entry) );
+		Entry e = { 0 };
 		AttributeDescription *ad_objectClass
 			= slap_schema.si_ad_objectClass;
 		AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-		e->e_name.bv_val = strdup( op->o_req_dn.bv_val );
-		e->e_name.bv_len = op->o_req_dn.bv_len;
-		e->e_nname.bv_val = strdup( op->o_req_ndn.bv_val );
-		e->e_nname.bv_len = op->o_req_ndn.bv_len;
+		e.e_name.bv_val = strdup( op->o_req_dn.bv_val );
+		e.e_name.bv_len = op->o_req_dn.bv_len;
+		e.e_nname.bv_val = strdup( op->o_req_ndn.bv_val );
+		e.e_nname.bv_len = op->o_req_ndn.bv_len;
 
-		e->e_attrs = NULL;
-		e->e_private = NULL;
+		e.e_attrs = NULL;
+		e.e_private = NULL;
 
-		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_top->soc_cname );
-		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_referral->soc_cname );
-		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_extensibleObject->soc_cname );
+		attr_mergeit_one( &e, ad_objectClass, &slap_schema.si_oc_referral->soc_cname );
+		attr_mergeit_one( &e, ad_objectClass, &slap_schema.si_oc_extensibleObject->soc_cname );
 
 		if ( ad_dc ) {
 			char		*p;
@@ -201,22 +200,22 @@ dnssrv_back_search(
 				bv.bv_len = strlen( bv.bv_val );
 			}
 
-			attr_mergeit_one( e, ad_dc, &bv );
+			attr_mergeit_one( &e, ad_dc, &bv );
 		}
 
 		if ( ad_associatedDomain ) {
 			struct berval	bv;
 
 			ber_str2bv( domain, 0, 0, &bv );
-			attr_mergeit_one( e, ad_associatedDomain, &bv );
+			attr_mergeit_one( &e, ad_associatedDomain, &bv );
 		}
 
-		attr_mergeit( e, ad_ref, urls );
+		attr_mergeit( &e, ad_ref, urls );
 
-		rc = test_filter( op, e, op->oq_search.rs_filter ); 
+		rc = test_filter( op, &e, op->oq_search.rs_filter ); 
 
 		if( rc == LDAP_COMPARE_TRUE ) {
-			rs->sr_entry = e;
+			rs->sr_entry = &e;
 			rs->sr_attrs = op->oq_search.rs_attrs;
 			rs->sr_flags = REP_ENTRY_MODIFIABLE;
 			send_search_entry( op, rs );
@@ -224,7 +223,7 @@ dnssrv_back_search(
 			rs->sr_attrs = NULL;
 		}
 
-		entry_free( e );
+		entry_clean( &e );
 
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );
