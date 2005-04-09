@@ -29,6 +29,20 @@ manual page.
 Specifies an alternate passwd file to use.
 The default is
 .BR /etc/passwd .
+.SH ACCESS CONTROL
+The
+.B passwd
+backend does not honor any of the access control semantics described in
+.BR slapd.access (5).
+Only
+.B read (=r)
+access to the
+.B entry
+pseudo-attribute and to the other attribute values of the entries
+returned by the
+.B search
+operation is honored, which is performed by the frontend.
+
 .SH FILES
 .TP
 ETCDIR/slapd.conf
