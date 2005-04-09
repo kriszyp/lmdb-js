@@ -335,15 +335,21 @@ done:;
 			if ( ret == LDAP_SUCCESS ) {
 				attr = attr_find( ctxcsn_e->e_attrs,
 									slap_schema.si_ad_contextCSN );
-				value_match( &match, slap_schema.si_ad_entryCSN,
-					slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
-					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					&maxcsn, &attr->a_nvals[0], &text );
+				if ( attr ) {
+					value_match( &match, slap_schema.si_ad_entryCSN,
+						slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						&maxcsn, &attr->a_nvals[0], &text );
+					if ( match > 0 ) {
+						AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
+						attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
+						attr->a_vals[0].bv_len = maxcsn.bv_len;
+					}
+				} else {
+					match = 1;
+					attr_merge_one( ctxcsn_e, slap_schema.si_ad_contextCSN, &maxcsn, NULL );
+				}
 				if ( match > 0 ) {
-					AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
-					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
-					attr->a_vals[0].bv_len = maxcsn.bv_len;
-				
 					ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
 					if( ctxcsn_id == NOID ) {
 						fprintf( stderr, "%s: could not modify ctxcsn\n",
