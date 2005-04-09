@@ -142,6 +142,9 @@ ID bdb_tool_dn2id_get(
 	Opheader ohdr = {0};
 	EntryInfo ei = {0};
 
+	if ( BER_BVISEMPTY(dn) )
+		return 0;
+
 	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
@@ -154,13 +157,31 @@ ID bdb_tool_dn2id_get(
 	return ei.bei_id;
 }
 
+static struct berval ocbva[] = {
+	BER_BVC("locality"),
+	BER_BVC("syncProviderSubentry"),
+	BER_BVNULL
+};
+
 int bdb_tool_id2entry_get(
 	Backend *be,
 	ID id,
 	Entry **e
 )
 {
-	return bdb_id2entry( be, NULL, id, e );
+	int rc = bdb_id2entry( be, NULL, id, e );
+
+	if ( rc == DB_NOTFOUND && id == 0 ) {
+		Entry *dummy = ch_calloc( 1, sizeof(Entry) );
+		dummy->e_name.bv_val = ch_strdup( "" );
+		dummy->e_nname.bv_val = ch_strdup( "" );
+		attr_merge( dummy, slap_schema.si_ad_objectClass, ocbva, NULL );
+		attr_merge_one( dummy, slap_schema.si_ad_structuralObjectClass,
+			&ocbva[0], NULL );
+		*e = dummy;
+		rc = LDAP_SUCCESS;
+	}
+	return rc;
 }
 
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
@@ -510,7 +531,6 @@ ID bdb_tool_entry_modify(
 	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
 	assert ( e->e_id != NOID );
-	assert ( e->e_id != 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=> " LDAP_XSTRING(bdb_tool_entry_modify) "( %ld, \"%s\" )\n",
@@ -547,6 +567,10 @@ ID bdb_tool_entry_modify(
 		goto done;
 	}
 
+#if 0
+	/* FIXME: this is bogus, we don't have the old values to delete
+	 * from the index because the given entry has already been modified.
+	 */
 	rc = bdb_index_entry_del( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
@@ -557,6 +581,7 @@ ID bdb_tool_entry_modify(
 			text->bv_val, 0, 0 );
 		goto done;
 	}
+#endif
 
 	rc = bdb_index_entry_add( &op, tid, e );
 	if( rc != 0 ) {

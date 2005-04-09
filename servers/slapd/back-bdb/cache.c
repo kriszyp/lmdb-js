@@ -316,6 +316,11 @@ bdb_cache_find_ndn(
 		if ( !ei2 ) {
 			int len = ei.bei_nrdn.bv_len;
 				
+			if ( BER_BVISEMPTY( ndn )) {
+				*res = eip;
+				return LDAP_SUCCESS;
+			}
+
 			ei.bei_nrdn.bv_len = ndn->bv_len -
 				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );

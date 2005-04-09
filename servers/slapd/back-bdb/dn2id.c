@@ -418,6 +418,9 @@ int hdb_fix_dn(
 	char *ptr, *nptr;
 	int max = 0;
 
+	if ( !e->e_id )
+		return 0;
+
 	/* count length of all DN components */
 	for ( ei = BEI(e); ei && ei->bei_id; ei=ei->bei_parent ) {
 		rlen += ei->bei_rdn.bv_len + 1;
