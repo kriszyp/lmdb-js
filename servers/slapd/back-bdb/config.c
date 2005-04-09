@@ -83,7 +83,7 @@ static ConfigTable bdbcfg[] = {
 		"( OLcfgAt:1.6 NAME 'dbIDLcacheSize' "
 		"DESC 'IDL cache size in IDLs' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "index", "attr> <[pres,eq,approx,sub]", 3, 3, 0, ARG_MAGIC|BDB_INDEX,
+	{ "index", "attr> <[pres,eq,approx,sub]", 2, 3, 0, ARG_MAGIC|BDB_INDEX,
 		bdb_cf_gen, "( OLcfgAt:1.7 NAME 'dbIndex' "
 		"DESC 'Attribute index parameters' "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
