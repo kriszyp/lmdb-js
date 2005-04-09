@@ -14,6 +14,13 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+#ifndef PATH_MAX
+#define	PATH_MAX	4096
+#endif
+
 typedef struct ConfigTable {
 	char *name;
 	char *what;

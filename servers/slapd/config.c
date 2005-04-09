@@ -39,12 +39,6 @@
 #include "slapi/slapi.h"
 #endif
 #include "lutil.h"
-#ifdef HAVE_LIMITS_H
-#include <limits.h>
-#endif /* HAVE_LIMITS_H */
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif /* ! PATH_MAX */
 #include "config.h"
 
 #define ARGS_STEP	512
