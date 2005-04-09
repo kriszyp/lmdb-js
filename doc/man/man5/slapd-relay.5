@@ -52,7 +52,7 @@ directives described in
 One important issue is that access rules are based on the identity
 that issued the operation.
 After massaging from the virtual to the real naming context, the
-frontend sees the operation as performed by the identty in the
+frontend sees the operation as performed by the identity in the
 real naming context.
 Moreover, since
 .B back-relay
@@ -110,8 +110,7 @@ that looks up the real naming context for each operation, use
   database        relay
   suffix          "dc=virtual,dc=naming,dc=context"
   overlay         rwm
-  suffixmassage   "dc=virtual,dc=naming,dc=context"
-          "dc=real,dc=naming,dc=context"
+  suffixmassage   "dc=real,dc=naming,dc=context"
 .fi
 .LP
 This is useful, for instance, to relay different databases that
@@ -176,6 +175,20 @@ clause) are in the
 and in the
 .BR "virtual naming context" ,
 respectively.
+.SH ACCESS CONTROL
+The
+.B relay
+backend does not honor any of the access control semantics described in
+.BR slapd.access (5);
+all access control is delegated to the relayed database(s).
+Only
+.B read (=r)
+access to the
+.B entry
+pseudo-attribute and to the other attribute values of the entries
+returned by the
+.B search
+operation is honored, which is performed by the frontend.
 .SH FILES
 .TP
 ETCDIR/slapd.conf

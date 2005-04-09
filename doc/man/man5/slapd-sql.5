@@ -649,6 +649,14 @@ for details.
 .SH EXAMPLES
 There are example SQL modules in the slapd/back-sql/rdbms_depend/
 directory in the OpenLDAP source tree.
+.SH ACCESS CONTROL
+The 
+.B sql
+backend honors access control semantics as indicated in
+.BR slapd.access (5),
+including the 
+.B disclose
+access privilege.
 .SH FILES
 
 .TP
