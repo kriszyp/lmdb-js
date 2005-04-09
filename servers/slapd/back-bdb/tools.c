@@ -239,7 +239,10 @@ static int bdb_tool_next_id(
 	EntryInfo *ei = NULL, eidummy;
 	int rc;
 
-	if (ndn.bv_len == 0) return 0;
+	if (ndn.bv_len == 0) {
+		e->e_id = 0;
+		return 0;
+	}
 
 	rc = bdb_cache_find_ndn( op, tid, &ndn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
