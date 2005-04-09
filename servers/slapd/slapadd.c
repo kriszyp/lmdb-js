@@ -115,7 +115,8 @@ slapadd( int argc, char **argv )
 		}
 
 		/* make sure the DN is not empty */
-		if( !e->e_nname.bv_len ) {
+		if( BER_BVISEMPTY( &e->e_nname ) &&
+			!BER_BVISEMPTY( be->be_nsuffix )) {
 			fprintf( stderr, "%s: empty dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
 			rc = EXIT_FAILURE;
