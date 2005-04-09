@@ -2241,6 +2241,10 @@ str2access( const char *str )
 		return ACL_NONE;
 
 	} else if ( strcasecmp( str, "disclose" ) == 0 ) {
+#ifndef SLAP_ACL_HONOR_DISCLOSE
+		fprintf( stderr, "str2access: warning, "
+			"\"disclose\" privilege disabled.\n" );
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		return ACL_DISCLOSE;
 
 	} else if ( strcasecmp( str, "auth" ) == 0 ) {

@@ -137,7 +137,7 @@ dn2entry_retry:
 		{
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		} else
-#endif
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		{
 			rs->sr_err = LDAP_ASSERTION_FAILED;
 		}

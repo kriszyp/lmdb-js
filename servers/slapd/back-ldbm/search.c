@@ -86,14 +86,17 @@ ldbm_back_search(
 
 		if ( matched != NULL ) {
 			BerVarray erefs = NULL;
-			
+
+#ifdef SLAP_ACL_HONOR_DISCLOSE
 			if ( ! access_allowed( op, matched,
 						slap_schema.si_ad_entry,
 						NULL, ACL_DISCLOSE, NULL ) )
 			{
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 
-			} else {
+			} else
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
+			{
 				ber_dupbv( &matched_dn, &matched->e_name );
 
 				erefs = is_entry_referral( matched )
@@ -127,6 +130,7 @@ ldbm_back_search(
 		return rs->sr_err;
 	}
 
+#ifdef SLAP_ACL_HONOR_DISCLOSE
 	if ( ! access_allowed( op, e, slap_schema.si_ad_entry,
 				NULL, ACL_DISCLOSE, NULL ) )
 	{
@@ -138,6 +142,7 @@ ldbm_back_search(
 		send_ldap_result( op, rs );
 		return rs->sr_err;
 	}
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 	if ( !manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
