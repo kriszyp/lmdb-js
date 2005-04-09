@@ -25,6 +25,9 @@
 
 ldap_pvt_thread_mutex_t passwd_mutex;
 
+AttributeDescription *ad_sn;
+AttributeDescription *ad_desc;
+
 int
 passwd_back_initialize(
     BackendInfo	*bi
@@ -32,7 +35,7 @@ passwd_back_initialize(
 {
 	ldap_pvt_thread_mutex_init( &passwd_mutex );
 
-	bi->bi_open = 0;
+	bi->bi_open = passwd_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = 0;
 	bi->bi_destroy = passwd_back_destroy;
@@ -59,6 +62,32 @@ passwd_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	return 0;
+}
+
+int
+passwd_back_open(
+	BackendInfo *bi
+)
+{
+	const char	*text;
+	int		rc;
+
+	rc = slap_str2ad( "sn", &ad_sn, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "passwd_back_open: "
+			"slap_str2ad(\"%s\") returned %d: %s\n",
+			"sn", rc, text );
+		return -1;
+	}
+	rc = slap_str2ad( "description", &ad_desc, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "passwd_back_open: "
+			"slap_str2ad(\"%s\") returned %d: %s\n",
+			"description", rc, text );
+		return -1;
+	}
 
 	return 0;
 }

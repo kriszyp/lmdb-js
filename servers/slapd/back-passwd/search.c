@@ -50,8 +50,7 @@ static void pw_start( Backend *be );
 
 static Entry *pw2entry(
 	Backend *be,
-	struct passwd *pw,
-	const char **text);
+	struct passwd *pw );
 
 int
 passwd_back_search(
@@ -60,7 +59,6 @@ passwd_back_search(
 {
 	struct passwd	*pw;
 	Entry		*e;
-	char		*s;
 	time_t		stoptime;
 
 	LDAPRDN rdn = NULL;
@@ -74,14 +72,13 @@ passwd_back_search(
 
 	/* Handle a query for the base of this backend */
 	if ( be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
-		struct berval	vals[2];
-
-		vals[1].bv_val = NULL;
+		struct berval	val;
 
 		rs->sr_matched = op->o_req_dn.bv_val;
 
 		if( op->ors_scope != LDAP_SCOPE_ONELEVEL ) {
-			AttributeDescription *desc = NULL;
+			AttributeDescription	*desc = NULL;
+			char			*next;
 
 			/* Create an entry corresponding to the base DN */
 			e = (Entry *) ch_calloc(1, sizeof(Entry));
@@ -95,7 +92,7 @@ passwd_back_search(
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.
 		 	*/
-			if( ldap_bv2rdn( &op->o_req_dn, &rdn, (char **)&rs->sr_text, 
+			if( ldap_bv2rdn( &op->o_req_dn, &rdn, &next, 
 				LDAP_DN_FORMAT_LDAP ) )
 			{
 				rs->sr_err = LDAP_INVALID_DN_SYNTAX;
@@ -108,8 +105,7 @@ passwd_back_search(
 				goto done;
 			}
 
-			vals[0] = rdn[0]->la_value;
-			attr_mergeit( e, desc, vals );
+			attr_mergeit_one( e, desc, &rdn[0]->la_value );
 
 			ldap_rdnfree(rdn);
 			rdn = NULL;
@@ -121,9 +117,8 @@ passwd_back_search(
 			 *
 			 * should be a configuratable item
 			 */
-			vals[0].bv_val = "organizationalUnit";
-			vals[0].bv_len = sizeof("organizationalUnit")-1;
-			attr_mergeit( e, ad_objectClass, vals );
+			BER_BVSTR( &val, "organizationalUnit" );
+			attr_mergeit_one( e, ad_objectClass, &val );
 	
 			if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 				rs->sr_entry = e;
@@ -156,7 +151,7 @@ passwd_back_search(
 					return( 0 );
 				}
 
-				if ( !(e = pw2entry( op->o_bd, pw, &rs->sr_text )) ) {
+				if ( !( e = pw2entry( op->o_bd, pw ) ) ) {
 					rs->sr_err = LDAP_OTHER;
 					endpwent();
 					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
@@ -185,6 +180,7 @@ passwd_back_search(
 		}
 
 	} else {
+		char	*next;
 		if (! be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
 			dnParent( &op->o_req_ndn, &parent );
 		}
@@ -208,7 +204,7 @@ passwd_back_search(
 			goto done;
 		}
 
-		if ( ldap_bv2rdn( &op->o_req_dn, &rdn, (char **)&rs->sr_text,
+		if ( ldap_bv2rdn( &op->o_req_dn, &rdn, &next,
 			LDAP_DN_FORMAT_LDAP ))
 		{ 
 			rs->sr_err = LDAP_OTHER;
@@ -224,7 +220,7 @@ passwd_back_search(
 			goto done;
 		}
 
-		e = pw2entry( op->o_bd, pw, &rs->sr_text );
+		e = pw2entry( op->o_bd, pw );
 		ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 		if ( !e ) {
 			rs->sr_err = LDAP_OTHER;
@@ -265,29 +261,14 @@ pw_start(
 }
 
 static Entry *
-pw2entry( Backend *be, struct passwd *pw, const char **text )
+pw2entry( Backend *be, struct passwd *pw )
 {
-	size_t pwlen;
+	size_t		pwlen;
 	Entry		*e;
-	struct berval	vals[2];
+	struct berval	val;
 	struct berval	bv;
 
-	int rc;
-
-	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
-	AttributeDescription *ad_cn = NULL;
-	AttributeDescription *ad_sn = NULL;
-	AttributeDescription *ad_uid = NULL;
-	AttributeDescription *ad_description = NULL;
-
-	rc = slap_str2ad( "cn", &ad_cn, text );
-	if(rc != LDAP_SUCCESS) return NULL;
-	rc = slap_str2ad( "sn", &ad_sn, text );
-	if(rc != LDAP_SUCCESS) return NULL;
-	rc = slap_str2ad( "uid", &ad_uid, text );
-	if(rc != LDAP_SUCCESS) return NULL;
-	rc = slap_str2ad( "description", &ad_description, text );
-	if(rc != LDAP_SUCCESS) return NULL;
+	int		rc;
 
 	/*
 	 * from pw we get pw_name and make it cn
@@ -295,45 +276,43 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 	 */
 
 	pwlen = strlen( pw->pw_name );
-	vals[0].bv_len = (sizeof("uid=,")-1) + ( pwlen + be->be_suffix[0].bv_len );
-	vals[0].bv_val = ch_malloc( vals[0].bv_len + 1 );
+	val.bv_len = STRLENOF("uid=,") + ( pwlen + be->be_suffix[0].bv_len );
+	val.bv_val = ch_malloc( val.bv_len + 1 );
 
 	/* rdn attribute type should be a configuratable item */
-	sprintf( vals[0].bv_val, "uid=%s,%s",
+	sprintf( val.bv_val, "uid=%s,%s",
 		pw->pw_name, be->be_suffix[0].bv_val );
 
-	rc = dnNormalize( 0, NULL, NULL, vals, &bv, NULL );
+	rc = dnNormalize( 0, NULL, NULL, &val, &bv, NULL );
 	if( rc != LDAP_SUCCESS ) {
-		free( vals[0].bv_val );
+		free( val.bv_val );
 		return NULL;
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	e->e_name = vals[0];
+	e->e_name = val;
 	e->e_nname = bv;
 
 	e->e_attrs = NULL;
 
-	vals[1].bv_val = NULL;
-
 	/* objectclasses should be configurable items */
-	vals[0].bv_val = "top";
-	vals[0].bv_len = sizeof("top")-1;
-	attr_mergeit( e, ad_objectClass, vals );
+#if 0
+	/* "top" is redundant */
+	BER_BVSTR( &val, "top" );
+	attr_mergeit_one( e, ad_objectClass, &val );
+#endif
 
-	vals[0].bv_val = "person";
-	vals[0].bv_len = sizeof("person")-1;
-	attr_mergeit( e, ad_objectClass, vals );
+	BER_BVSTR( &val, "person" );
+	attr_mergeit_one( e, slap_schema.si_ad_objectClass, &val );
 
-	vals[0].bv_val = "uidObject";
-	vals[0].bv_len = sizeof("uidObject")-1;
-	attr_mergeit( e, ad_objectClass, vals );
+	BER_BVSTR( &val, "uidObject" );
+	attr_mergeit_one( e, slap_schema.si_ad_objectClass, &val );
 
-	vals[0].bv_val = pw->pw_name;
-	vals[0].bv_len = pwlen;
-	attr_mergeit( e, ad_uid, vals );	/* required by uidObject */
-	attr_mergeit( e, ad_cn, vals );	/* required by person */
-	attr_mergeit( e, ad_sn, vals );	/* required by person */
+	val.bv_val = pw->pw_name;
+	val.bv_len = pwlen;
+	attr_mergeit_one( e, slap_schema.si_ad_uid, &val );	/* required by uidObject */
+	attr_mergeit_one( e, slap_schema.si_ad_cn, &val );	/* required by person */
+	attr_mergeit_one( e, ad_sn, &val );	/* required by person */
 
 #ifdef HAVE_PW_GECOS
 	/*
@@ -344,37 +323,35 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 	if (pw->pw_gecos[0]) {
 		char *s;
 
-		vals[0].bv_val = pw->pw_gecos;
-		vals[0].bv_len = strlen(vals[0].bv_val);
-		attr_mergeit(e, ad_description, vals);
+		ber_str2bv( pw->pw_gecos, 0, 0, &val );
+		attr_mergeit_one( e, ad_desc, &val );
 
-		s = strchr(vals[0].bv_val, ',');
-		if (s) *s = '\0';
+		s = strchr( val.bv_val, ',' );
+		if ( s ) *s = '\0';
 
-		s = strchr(vals[0].bv_val, '&');
-		if (s) {
+		s = strchr( val.bv_val, '&' );
+		if ( s ) {
 			char buf[1024];
 
-			if( vals[0].bv_len + pwlen < sizeof(buf) ) {
-				int i = s - vals[0].bv_val;
-				strncpy(buf, vals[0].bv_val, i);
-				s = buf+i;
-				strcpy(s, pw->pw_name);
+			if( val.bv_len + pwlen < sizeof(buf) ) {
+				int i = s - val.bv_val;
+				strncpy( buf, val.bv_val, i );
+				s = buf + i;
+				strcpy( s, pw->pw_name );
 				*s = TOUPPER((unsigned char)*s);
-				strcat(s, vals[0].bv_val+i+1);
-				vals[0].bv_val = buf;
+				strcat( s, val.bv_val + i + 1 );
+				val.bv_val = buf;
 			}
 		}
-		vals[0].bv_len = strlen(vals[0].bv_val);
+		val.bv_len = strlen( val.bv_val );
 
-		if ( vals[0].bv_len && strcasecmp( vals[0].bv_val, pw->pw_name )) {
-			attr_mergeit( e, ad_cn, vals );
+		if ( val.bv_len && strcasecmp( val.bv_val, pw->pw_name ) ) {
+			attr_mergeit_one( e, slap_schema.si_ad_cn, &val );
 		}
 
-		if ( (s=strrchr(vals[0].bv_val, ' '))) {
-			vals[0].bv_val = s + 1;
-			vals[0].bv_len = strlen(vals[0].bv_val);
-			attr_mergeit(e, ad_sn, vals);
+		if ( ( s = strrchr(val.bv_val, ' ' ) ) ) {
+			ber_str2bv( s + 1, 0, 0, &val );
+			attr_mergeit_one( e, ad_sn, &val );
 		}
 	}
 #endif
