@@ -269,6 +269,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	DB_TXN	*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {0};
 	Entry		dummy = {0};
+	int			fakeroot = 0;
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
@@ -339,6 +340,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
 		locker, &lock );
 
+	e = ei->bei_e;
+
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_modify) ": dn2entry failed (%d)\n",
@@ -348,6 +351,22 @@ retry:	/* transaction retry */
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		case DB_NOTFOUND:
+			if ( BER_BVISEMPTY( &op->o_req_ndn )) {
+				struct berval ocbva[] = {
+					BER_BVC("locality"),
+					BER_BVC("syncProviderSubentry"),
+					BER_BVNULL
+				};
+				e = ch_calloc( 1, sizeof(Entry));
+				e->e_name.bv_val = ch_strdup( "" );
+				ber_dupbv( &e->e_nname, &e->e_name );
+				attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
+				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
+					&ocbva[0], NULL );
+				BEI(e) = ei;
+				fakeroot = 1;
+				rs->sr_err = 0;
+			}
 			break;
 		case LDAP_BUSY:
 			rs->sr_text = "ldap server busy";
@@ -359,7 +378,6 @@ retry:	/* transaction retry */
 		}
 	}
 
-	e = ei->bei_e;
 	/* acquire and lock entry */
 	/* FIXME: dn2entry() should return non-glue entry */
 	if (( rs->sr_err == DB_NOTFOUND ) ||
@@ -510,11 +528,16 @@ retry:	/* transaction retry */
 	} else {
 		/* may have changed in bdb_modify_internal() */
 		e->e_ocflags = dummy.e_ocflags;
-		rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
-		switch( rc ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
+		if ( fakeroot ) {
+			BEI(e) = NULL;
+			entry_free( e );
+		} else {
+			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
+			switch( rc ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			}
 		}
 		dummy.e_attrs = NULL;
 
