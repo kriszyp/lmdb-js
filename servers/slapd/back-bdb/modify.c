@@ -363,7 +363,7 @@ retry:	/* transaction retry */
 				attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
 				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
 					&ocbva[0], NULL );
-				BEI(e) = ei;
+				e->e_private = ei;
 				fakeroot = 1;
 				rs->sr_err = 0;
 			}
@@ -529,7 +529,7 @@ retry:	/* transaction retry */
 		/* may have changed in bdb_modify_internal() */
 		e->e_ocflags = dummy.e_ocflags;
 		if ( fakeroot ) {
-			BEI(e) = NULL;
+			e->e_private = NULL;
 			entry_free( e );
 		} else {
 			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
