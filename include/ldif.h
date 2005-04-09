@@ -85,6 +85,13 @@ ldif_read_record LDAP_P((
 	char **bufp,
 	int *buflen ));
 
+LDAP_LDIF_F( int )
+ldif_must_b64_encode_register LDAP_P((
+	LDAP_CONST char *name,
+	LDAP_CONST char *oid ));
+
+LDAP_LDIF_F( void )
+ldif_must_b64_encode_release LDAP_P(( void ));
 
 #define LDIF_PUT_NOVALUE	0x0000	/* no value */
 #define LDIF_PUT_VALUE		0x0001	/* value w/ auto detection */

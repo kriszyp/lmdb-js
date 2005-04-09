@@ -4031,6 +4031,13 @@ config_back_db_init( Backend *be )
 	return 0;
 }
 
+static int
+config_back_destroy( BackendInfo *bi )
+{
+	ldif_must_b64_encode_release();
+	return 0;
+}
+
 static struct {
 	char *name;
 	AttributeDescription **desc;
@@ -4068,10 +4075,12 @@ static struct {
 int
 config_back_initialize( BackendInfo *bi )
 {
-	ConfigTable *ct = config_back_cf_table;
-	char *argv[4];
-	int i;
-	static char *controls[] = {
+	ConfigTable		*ct = config_back_cf_table;
+	char			*argv[4];
+	int			i;
+	AttributeDescription	*ad = NULL;
+	const char		*text;
+	static char		*controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
 		NULL
 	};
@@ -4081,7 +4090,7 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_open = 0;
 	bi->bi_close = 0;
 	bi->bi_config = 0;
-	bi->bi_destroy = 0;
+	bi->bi_destroy = config_back_destroy;
 
 	bi->bi_db_init = config_back_db_init;
 	bi->bi_db_config = 0;
@@ -4117,6 +4126,18 @@ config_back_initialize( BackendInfo *bi )
 
 	i = config_register_schema( ct, cf_ocs );
 	if ( i ) return i;
+
+	i = slap_str2ad( "olcRootPW", &ad, &text );
+	/* basically, we don't care if it fails */
+	if ( i ) {
+		Debug( LDAP_DEBUG_ANY, "config_back_initialize: "
+			"warning, unable to get \"olcRootPW\" "
+			"attribute description: %d: %s\n",
+			i, text, 0 );
+	} else {
+		(void)ldif_must_b64_encode_register( ad->ad_cname.bv_val,
+			ad->ad_type->sat_oid );
+	}
 
 	/* set up the notable AttributeDescriptions */
 	i = 0;
