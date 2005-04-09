@@ -48,9 +48,10 @@
 
 static void pw_start( Backend *be );
 
-static Entry *pw2entry(
-	Backend *be,
-	struct passwd *pw );
+static int pw2entry(
+	Backend		*be,
+	struct passwd	*pw,
+	Entry		*ep );
 
 int
 passwd_back_search(
@@ -58,7 +59,6 @@ passwd_back_search(
     SlapReply	*rs )
 {
 	struct passwd	*pw;
-	Entry		*e;
 	time_t		stoptime;
 
 	LDAPRDN rdn = NULL;
@@ -66,7 +66,7 @@ passwd_back_search(
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 
-	if (op->ors_tlimit != SLAP_NO_LIMIT ) {
+	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		stoptime = op->o_time + op->ors_tlimit;
 	}
 
@@ -79,15 +79,13 @@ passwd_back_search(
 		if( op->ors_scope != LDAP_SCOPE_ONELEVEL ) {
 			AttributeDescription	*desc = NULL;
 			char			*next;
+			Entry			e = { 0 };
 
 			/* Create an entry corresponding to the base DN */
-			e = (Entry *) ch_calloc(1, sizeof(Entry));
-			e->e_name.bv_val = ch_strdup( op->o_req_dn.bv_val );
-			e->e_name.bv_len = op->o_req_dn.bv_len;
-			e->e_nname.bv_val =  ch_strdup( op->o_req_ndn.bv_val );
-			e->e_nname.bv_len = op->o_req_ndn.bv_len;
-			e->e_attrs = NULL;
-			e->e_private = NULL;
+			e.e_name.bv_val = ch_strdup( op->o_req_dn.bv_val );
+			e.e_name.bv_len = op->o_req_dn.bv_len;
+			e.e_nname.bv_val =  ch_strdup( op->o_req_ndn.bv_val );
+			e.e_nname.bv_len = op->o_req_ndn.bv_len;
 
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.
@@ -105,7 +103,7 @@ passwd_back_search(
 				goto done;
 			}
 
-			attr_mergeit_one( e, desc, &rdn[0]->la_value );
+			attr_mergeit_one( &e, desc, &rdn[0]->la_value );
 
 			ldap_rdnfree(rdn);
 			rdn = NULL;
@@ -118,14 +116,16 @@ passwd_back_search(
 			 * should be a configuratable item
 			 */
 			BER_BVSTR( &val, "organizationalUnit" );
-			attr_mergeit_one( e, ad_objectClass, &val );
+			attr_mergeit_one( &e, ad_objectClass, &val );
 	
-			if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
-				rs->sr_entry = e;
+			if ( test_filter( op, &e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
+				rs->sr_entry = &e;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				send_search_entry( op, rs );
 			}
+
+			entry_clean( &e );
 		}
 
 		if ( op->ors_scope != LDAP_SCOPE_BASE ) {
@@ -134,6 +134,8 @@ passwd_back_search(
 			ldap_pvt_thread_mutex_lock( &passwd_mutex );
 			pw_start( op->o_bd );
 			for ( pw = getpwent(); pw != NULL; pw = getpwent() ) {
+				Entry		e = { 0 };
+
 				/* check for abandon */
 				if ( op->o_abandon ) {
 					endpwent();
@@ -151,14 +153,14 @@ passwd_back_search(
 					return( 0 );
 				}
 
-				if ( !( e = pw2entry( op->o_bd, pw ) ) ) {
+				if ( pw2entry( op->o_bd, pw, &e ) ) {
 					rs->sr_err = LDAP_OTHER;
 					endpwent();
 					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 					goto done;
 				}
 
-				if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
+				if ( test_filter( op, &e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 					/* check size limit */
 					if ( --op->ors_slimit == -1 ) {
 						send_ldap_error( op, rs, LDAP_SIZELIMIT_EXCEEDED, NULL );
@@ -167,13 +169,13 @@ passwd_back_search(
 						return( 0 );
 					}
 
-					rs->sr_entry = e;
+					rs->sr_entry = &e;
 					rs->sr_attrs = op->ors_attrs;
 					rs->sr_flags = REP_ENTRY_MODIFIABLE;
 					send_search_entry( op, rs );
 				}
 
-				entry_free( e );
+				entry_clean( &e );
 			}
 			endpwent();
 			ldap_pvt_thread_mutex_unlock( &passwd_mutex );
@@ -181,6 +183,9 @@ passwd_back_search(
 
 	} else {
 		char	*next;
+		Entry	e = { 0 };
+		int	rc;
+
 		if (! be_issuffix( op->o_bd, &op->o_req_ndn ) ) {
 			dnParent( &op->o_req_ndn, &parent );
 		}
@@ -213,28 +218,29 @@ passwd_back_search(
 
 		ldap_pvt_thread_mutex_lock( &passwd_mutex );
 		pw_start( op->o_bd );
-		if ( (pw = getpwnam( rdn[0]->la_value.bv_val )) == NULL ) {
+		pw = getpwnam( rdn[0]->la_value.bv_val );
+		if ( pw == NULL ) {
 			rs->sr_matched = parent.bv_val;
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 			goto done;
 		}
 
-		e = pw2entry( op->o_bd, pw );
+		rc = pw2entry( op->o_bd, pw, &e );
 		ldap_pvt_thread_mutex_unlock( &passwd_mutex );
-		if ( !e ) {
+		if ( rc ) {
 			rs->sr_err = LDAP_OTHER;
 			goto done;
 		}
 
-		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
-			rs->sr_entry = e;
+		if ( test_filter( op, &e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
+			rs->sr_entry = &e;
 			rs->sr_attrs = op->ors_attrs;
 			rs->sr_flags = REP_ENTRY_MODIFIABLE;
 			send_search_entry( op, rs );
 		}
 
-		entry_free( e );
+		entry_clean( &e );
 	}
 
 done:
@@ -260,11 +266,10 @@ pw_start(
 #endif /* HAVE_SETPWFILE */
 }
 
-static Entry *
-pw2entry( Backend *be, struct passwd *pw )
+static int
+pw2entry( Backend *be, struct passwd *pw, Entry *e )
 {
 	size_t		pwlen;
-	Entry		*e;
 	struct berval	val;
 	struct berval	bv;
 
@@ -286,10 +291,9 @@ pw2entry( Backend *be, struct passwd *pw )
 	rc = dnNormalize( 0, NULL, NULL, &val, &bv, NULL );
 	if( rc != LDAP_SUCCESS ) {
 		free( val.bv_val );
-		return NULL;
+		return( -1 );
 	}
 
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 	e->e_name = val;
 	e->e_nname = bv;
 
@@ -354,7 +358,7 @@ pw2entry( Backend *be, struct passwd *pw )
 			attr_mergeit_one( e, ad_sn, &val );
 		}
 	}
-#endif
+#endif /* HAVE_PW_GECOS */
 
-	return( e );
+	return( 0 );
 }
