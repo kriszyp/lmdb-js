@@ -1397,12 +1397,14 @@ config_suffix(ConfigArgs *c) {
 		SLAP_CONFIG(c->be)) return 1;
 
 	if (c->op == SLAP_CONFIG_EMIT) {
-		if (!BER_BVISNULL( &c->be->be_suffix[0] )) {
+		if ( c->be->be_suffix == NULL
+				|| BER_BVISNULL( &c->be->be_suffix[0] ) )
+		{
+			return 1;
+		} else {
 			value_add( &c->rvalue_vals, c->be->be_suffix );
 			value_add( &c->rvalue_nvals, c->be->be_nsuffix );
 			return 0;
-		} else {
-			return 1;
 		}
 	}
 #ifdef SLAPD_MONITOR_DN

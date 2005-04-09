@@ -227,6 +227,13 @@ monitor_subsys_database_init(
 					be->be_suffix, be->be_nsuffix );
 
 		} else {
+			if ( be->be_suffix == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"monitor_subsys_database_init: "
+					"missing suffix for database %d\n",
+					i, 0, 0 );
+				return -1;
+			}
 			attr_merge( e, slap_schema.si_ad_namingContexts,
 					be->be_suffix, be->be_nsuffix );
 			attr_merge( e_database, slap_schema.si_ad_namingContexts,
