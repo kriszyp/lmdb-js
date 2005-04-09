@@ -323,6 +323,7 @@ at_add(
 	int		code;
 	char	*cname;
 	char	*oid;
+	char	*oidm = NULL;
 
 	if ( !OID_LEADCHAR( at->at_oid[0] )) {
 		/* Expand OID macros */
@@ -332,7 +333,7 @@ at_add(
 			return SLAP_SCHERR_OIDM;
 		}
 		if ( oid != at->at_oid ) {
-			ldap_memfree( at->at_oid );
+			oidm = at->at_oid;
 			at->at_oid = oid;
 		}
 	}
@@ -394,6 +395,7 @@ at_add(
 
 	sat->sat_cname.bv_val = cname;
 	sat->sat_cname.bv_len = strlen( cname );
+	sat->sat_oidmacro = oidm;
 	ldap_pvt_thread_mutex_init(&sat->sat_ad_mutex);
 
 	if ( at->at_sup_oid ) {
@@ -650,12 +652,20 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 	}
 	i = 0;
 	for ( at=start; at; at=LDAP_STAILQ_NEXT(at, sat_next)) {
+		LDAPAttributeType lat, *latp;
 		if ( sys && !(at->sat_flags & SLAP_AT_HARDCODE)) continue;
-		if ( ldap_attributetype2bv( &at->sat_atype, &bv ) == NULL ) {
+		if ( at->sat_oidmacro ) {
+			lat = at->sat_atype;
+			lat.at_oid = at->sat_oidmacro;
+			latp = &lat;
+		} else {
+			latp = &at->sat_atype;
+		}
+		if ( ldap_attributetype2bv( latp, &bv ) == NULL ) {
 			ber_bvarray_free( bva );
 		}
 		if ( !sys ) {
-			idx.bv_len = sprintf(idx.bv_val, "{%02d}", i);
+			idx.bv_len = sprintf(idx.bv_val, "{%d}", i);
 		}
 		bva[i].bv_len = idx.bv_len + bv.bv_len;
 		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );

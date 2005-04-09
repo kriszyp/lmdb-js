@@ -340,6 +340,7 @@ cr_add(
 	ContentRule	*scr;
 	int		code;
 	int		op = 0;
+	char	*oidm = NULL;
 
 	if ( cr->cr_names != NULL ) {
 		int i;
@@ -359,7 +360,7 @@ cr_add(
 			return SLAP_SCHERR_OIDM;
 		}
 		if ( oid != cr->cr_oid ) {
-			ldap_memfree( cr->cr_oid );
+			oidm = cr->cr_oid;
 			cr->cr_oid = oid;
 		}
 	}
@@ -367,6 +368,7 @@ cr_add(
 	scr = (ContentRule *) ch_calloc( 1, sizeof(ContentRule) );
 	AC_MEMCPY( &scr->scr_crule, cr, sizeof(LDAPContentRule) );
 
+	scr->scr_oidmacro = oidm;
 	scr->scr_sclass = oc_find(cr->cr_oid);
 	if ( !scr->scr_sclass ) {
 		*err = cr->cr_oid;
@@ -434,12 +436,20 @@ cr_unparse( BerVarray *res, ContentRule *start, ContentRule *end, int sys )
 	}
 	i = 0;
 	for ( cr=start; cr; cr=LDAP_STAILQ_NEXT(cr, scr_next)) {
+		LDAPContentRule lcr, *lcrp;
 		if ( sys && !(cr->scr_flags & SLAP_CR_HARDCODE)) continue;
-		if ( ldap_contentrule2bv( &cr->scr_crule, &bv ) == NULL ) {
+		if ( cr->scr_oidmacro ) {
+			lcr = cr->scr_crule;
+			lcr.cr_oid = cr->scr_oidmacro;
+			lcrp = &lcr;
+		} else {
+			lcrp = &cr->scr_crule;
+		}
+		if ( ldap_contentrule2bv( lcrp, &bv ) == NULL ) {
 			ber_bvarray_free( bva );
 		}
 		if ( !sys ) {
-			idx.bv_len = sprintf(idx.bv_val, "{%02d}", i);
+			idx.bv_len = sprintf(idx.bv_val, "{%d}", i);
 		}
 		bva[i].bv_len = idx.bv_len + bv.bv_len;
 		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );

@@ -184,7 +184,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 		if ( sys && !(om->som_flags & SLAP_OM_HARDCODE)) continue;
 		for ( j=0; !BER_BVISNULL(&om->som_names[j]); i++,j++ ) {
 			if ( !sys ) {
-				idx.bv_len = sprintf(idx.bv_val, "{%02d}", i );
+				idx.bv_len = sprintf(idx.bv_val, "{%d}", i );
 			}
 			bva[i].bv_len = idx.bv_len + om->som_names[j].bv_len +
 				om->som_subs[j].bv_len + 1;

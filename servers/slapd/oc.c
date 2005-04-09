@@ -467,6 +467,7 @@ oc_add(
 	ObjectClass	*soc;
 	int		code;
 	int		op = 0;
+	char	*oidm = NULL;
 
 	if ( oc->oc_names != NULL ) {
 		int i;
@@ -486,7 +487,7 @@ oc_add(
 			return SLAP_SCHERR_OIDM;
 		}
 		if ( oid != oc->oc_oid ) {
-			ldap_memfree( oc->oc_oid );
+			oidm = oc->oc_oid;
 			oc->oc_oid = oid;
 		}
 	}
@@ -494,6 +495,7 @@ oc_add(
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
 	AC_MEMCPY( &soc->soc_oclass, oc, sizeof(LDAPObjectClass) );
 
+	soc->soc_oidmacro = oidm;
 	if( oc->oc_names != NULL ) {
 		soc->soc_cname.bv_val = soc->soc_names[0];
 	} else {
@@ -560,12 +562,20 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 	}
 	i = 0;
 	for ( oc=start; oc; oc=LDAP_STAILQ_NEXT(oc, soc_next)) {
+		LDAPObjectClass loc, *locp;
 		if ( sys && !(oc->soc_flags & SLAP_OC_HARDCODE)) continue;
-		if ( ldap_objectclass2bv( &oc->soc_oclass, &bv ) == NULL ) {
+		if ( oc->soc_oidmacro ) {
+			loc = oc->soc_oclass;
+			loc.oc_oid = oc->soc_oidmacro;
+			locp = &loc;
+		} else {
+			locp = &oc->soc_oclass;
+		}
+		if ( ldap_objectclass2bv( locp, &bv ) == NULL ) {
 			ber_bvarray_free( bva );
 		}
 		if ( !sys ) {
-			idx.bv_len = sprintf(idx.bv_val, "{%02d}", i);
+			idx.bv_len = sprintf(idx.bv_val, "{%d}", i);
 		}
 		bva[i].bv_len = idx.bv_len + bv.bv_len;
 		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );

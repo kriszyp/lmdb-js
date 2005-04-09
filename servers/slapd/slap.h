@@ -641,6 +641,7 @@ typedef struct slap_attribute_type {
 	Syntax					*sat_syntax;
 
 	AttributeTypeSchemaCheckFN	*sat_check;
+	char					*sat_oidmacro;
 
 #define SLAP_AT_NONE		0x0000U
 #define SLAP_AT_ABSTRACT	0x0100U /* cannot be instantiated */
@@ -700,6 +701,7 @@ typedef struct slap_object_class {
 	AttributeType				**soc_required;
 	AttributeType				**soc_allowed;
 	ObjectClassSchemaCheckFN	*soc_check;
+	char					*soc_oidmacro;
 	slap_mask_t					soc_flags;
 #define soc_oid				soc_oclass.oc_oid
 #define soc_names			soc_oclass.oc_names
@@ -751,6 +753,7 @@ typedef struct slap_content_rule {
 #define scr_at_oids_may		scr_crule.cr_at_oids_may
 #define scr_at_oids_not		scr_crule.cr_at_oids_not
 
+	char				*scr_oidmacro;
 #define 	SLAP_CR_HARDCODE	0x10000U
 	int	scr_flags;
 
