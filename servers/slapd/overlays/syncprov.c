@@ -2057,6 +2057,10 @@ syncprov_db_open(
 	Attribute *a;
 	int rc;
 
+	if ( slapMode & SLAP_TOOL_MODE ) {
+		return 0;
+	}
+
 	rc = overlay_register_control( be, LDAP_CONTROL_SYNC );
 	if ( rc ) {
 		return rc;
@@ -2090,6 +2094,12 @@ syncprov_db_open(
 		op->o_req_ndn = be->be_nsuffix[0];
 		op->ors_scope = LDAP_SCOPE_SUBTREE;
 		syncprov_findcsn( op, FIND_MAXCSN );
+	} else if ( SLAP_SYNC_SHADOW( op->o_bd )) {
+		/* If we're also a consumer, and we didn't find the context entry,
+		 * then don't generate anything, wait for our provider to send it
+		 * to us.
+		 */
+		goto out;
 	}
 
 	if ( BER_BVISEMPTY( &si->si_ctxcsn ) ) {
@@ -2105,6 +2115,7 @@ syncprov_db_open(
 		syncprov_checkpoint( op, &rs, on );
 	}
 
+out:
 	op->o_bd->bd_info = (BackendInfo *)on;
 	return 0;
 }
@@ -2120,6 +2131,9 @@ syncprov_db_close(
     syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 	int i;
 
+	if ( slapMode & SLAP_TOOL_MODE ) {
+		return 0;
+	}
 	if ( si->si_numops ) {
 		Connection conn;
 		char opbuf[OPERATION_BUFFER_SIZE];
