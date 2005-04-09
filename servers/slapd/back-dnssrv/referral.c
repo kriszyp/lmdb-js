@@ -95,11 +95,11 @@ dnssrv_back_referrals(
 	for( i=0; hosts[i] != NULL; i++) {
 		struct berval url;
 
-		url.bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
+		url.bv_len = STRLENOF( "ldap://" ) + strlen( hosts[i] );
 		url.bv_val = ch_malloc( url.bv_len + 1 );
 
 		strcpy( url.bv_val, "ldap://" );
-		strcpy( &url.bv_val[sizeof("ldap://")-1], hosts[i] );
+		strcpy( &url.bv_val[STRLENOF( "ldap://" )], hosts[i] );
 
 		if ( ber_bvarray_add( &urls, &url ) < 0 ) {
 			free( url.bv_val );
