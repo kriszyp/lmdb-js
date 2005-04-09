@@ -235,6 +235,10 @@ static int bdb_tool_next_id(
 			if ( rc ) {
 				return rc;
 			}
+			/* If parent didn't exist, it was created just now
+			 * and its ID is now in e->e_id. Make sure the current
+			 * entry gets added under the new parent ID.
+			 */
 			if ( eid != e->e_id ) {
 				eidummy.bei_id = e->e_id;
 				ei = &eidummy;
