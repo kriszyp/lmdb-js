@@ -475,7 +475,7 @@ ldif_must_b64_encode( LDAP_CONST char *s )
 
 	for ( i = 0; !BER_BVISNULL( &must_b64_encode[i].name ); i++ ) {
 		if ( ber_bvstrcasecmp( &must_b64_encode[i].name, &bv ) == 0
-				|| ber_bvstrcasecmp( &must_b64_encode[i].oid, &bv ) == 0 )
+			|| ber_bvcmp( &must_b64_encode[i].oid, &bv ) == 0 )
 		{
 			return 1;
 		}
