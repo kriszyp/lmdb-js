@@ -4127,8 +4127,9 @@ config_back_initialize( BackendInfo *bi )
 	i = config_register_schema( ct, cf_ocs );
 	if ( i ) return i;
 
+	/* setup olcRootPW to be base64-encoded when written in LDIF form;
+	 * basically, we don't care if it fails */
 	i = slap_str2ad( "olcRootPW", &ad, &text );
-	/* basically, we don't care if it fails */
 	if ( i ) {
 		Debug( LDAP_DEBUG_ANY, "config_back_initialize: "
 			"warning, unable to get \"olcRootPW\" "
