@@ -258,7 +258,57 @@ at_next( AttributeType **at )
 
 	return (*at != NULL);
 }
-	
+
+/*
+ * check whether the two attributeTypes actually __are__ identical,
+ * or rather inconsistent
+ */
+static int
+at_check_dup(
+	AttributeType		*sat,
+	AttributeType		*new_sat )
+{
+	if ( new_sat->sat_oid != NULL ) {
+		if ( sat->sat_oid == NULL ) {
+			return SLAP_SCHERR_ATTR_INCONSISTENT;
+		}
+
+		if ( strcmp( sat->sat_oid, new_sat->sat_oid ) != 0 ) {
+			return SLAP_SCHERR_ATTR_INCONSISTENT;
+		}
+
+	} else {
+		if ( sat->sat_oid != NULL ) {
+			return SLAP_SCHERR_ATTR_INCONSISTENT;
+		}
+	}
+
+	if ( new_sat->sat_names ) {
+		int	i;
+
+		if ( sat->sat_names == NULL ) {
+			return SLAP_SCHERR_ATTR_INCONSISTENT;
+		}
+
+		for ( i = 0; new_sat->sat_names[ i ]; i++ ) {
+			if ( sat->sat_names[ i ] == NULL ) {
+				return SLAP_SCHERR_ATTR_INCONSISTENT;
+			}
+			
+			if ( strcasecmp( sat->sat_names[ i ],
+					new_sat->sat_names[ i ] ) != 0 )
+			{
+				return SLAP_SCHERR_ATTR_INCONSISTENT;
+			}
+		}
+	} else {
+		if ( sat->sat_names != NULL ) {
+			return SLAP_SCHERR_ATTR_INCONSISTENT;
+		}
+	}
+
+	return SLAP_SCHERR_ATTR_DUP;
+}
 
 
 static int
@@ -269,6 +319,7 @@ at_insert(
 	struct aindexrec	*air;
 	char			**names;
 
+
 	if ( sat->sat_oid ) {
 		air = (struct aindexrec *)
 			ch_calloc( 1, sizeof(struct aindexrec) );
@@ -276,16 +327,26 @@ at_insert(
 		air->air_name.bv_len = strlen(sat->sat_oid);
 		air->air_at = sat;
 		if ( avl_insert( &attr_index, (caddr_t) air,
-		                 attr_index_cmp, avl_dup_error ) ) {
+		                 attr_index_cmp, avl_dup_error ) )
+		{
+			AttributeType	*old_sat;
+			int		rc;
+
 			*err = sat->sat_oid;
-			ldap_memfree(air);
-			return SLAP_SCHERR_ATTR_DUP;
+
+			old_sat = at_bvfind( &air->air_name );
+			rc = at_check_dup( old_sat, sat );
+
+			ldap_memfree( air );
+
+			return rc;
 		}
 		/* FIX: temporal consistency check */
-		at_bvfind(&air->air_name);
+		at_bvfind( &air->air_name );
 	}
 
-	if ( (names = sat->sat_names) ) {
+	names = sat->sat_names;
+	if ( names ) {
 		while ( *names ) {
 			air = (struct aindexrec *)
 				ch_calloc( 1, sizeof(struct aindexrec) );
@@ -293,10 +354,19 @@ at_insert(
 			air->air_name.bv_len = strlen(*names);
 			air->air_at = sat;
 			if ( avl_insert( &attr_index, (caddr_t) air,
-			                 attr_index_cmp, avl_dup_error ) ) {
+			                 attr_index_cmp, avl_dup_error ) )
+			{
+				AttributeType	*old_sat;
+				int		rc;
+
 				*err = *names;
+
+				old_sat = at_bvfind( &air->air_name );
+				rc = at_check_dup( old_sat, sat );
+
 				ldap_memfree(air);
-				return SLAP_SCHERR_ATTR_DUP;
+
+				return rc;
 			}
 			/* FIX: temporal consistency check */
 			at_bvfind(&air->air_name);
@@ -597,7 +667,7 @@ at_add(
 		sat->sat_substr = mr;
 	}
 
-	code = at_insert(sat,err);
+	code = at_insert( sat, err );
 	if ( code == 0 && rsat )
 		*rsat = sat;
 	return code;
@@ -628,7 +698,7 @@ at_unparse( BerVarray *res, AttributeType *start, AttributeType *end, int sys )
 	AttributeType *at;
 	int i, num;
 	struct berval bv, *bva = NULL, idx;
-	char ibuf[32], *ptr;
+	char ibuf[32];
 
 	if ( !start )
 		start = LDAP_STAILQ_FIRST( &attr_list );

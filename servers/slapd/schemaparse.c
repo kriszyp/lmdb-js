@@ -43,6 +43,7 @@ static char *const err2text[] = {
 	"AttributeType inappropriate SUPerior",
 	"AttributeType SYNTAX or SUPerior required",
 	"Duplicate attributeType",
+	"Inconsistent attributeType",
 	"MatchingRule not found",
 	"MatchingRule incomplete",
 	"Duplicate matchingRule",
@@ -55,7 +56,8 @@ static char *const err2text[] = {
 	"Duplicate Content Rule",
 	"Content Rule not for STRUCTURAL object class",
 	"Content Rule AUX contains inappropriate object class",
-	"Content Rule attribute type list contains duplicate"
+	"Content Rule attribute type list contains duplicate",
+	NULL
 };
 
 char *
