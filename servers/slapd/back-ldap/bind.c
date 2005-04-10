@@ -360,8 +360,7 @@ struct ldapconn *
 ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
-	struct ldapconn	*lc, lc_curr;
-	int		is_priv = 0;
+	struct ldapconn	*lc, lc_curr = { 0 };
 
 	/* Searches for a ldapconn in the avl tree */
 
@@ -381,7 +380,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 	if ( op->o_do_not_cache || be_isroot( op ) ) {
 		lc_curr.lc_local_ndn = op->o_bd->be_rootndn;
 		lc_curr.lc_conn = NULL;
-		is_priv = 1;
+		lc_curr.lc_ispriv = 1;
 
 	} else {
 		lc_curr.lc_local_ndn = op->o_ndn;
@@ -404,9 +403,10 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 
 		ldap_pvt_thread_mutex_init( &lc->lc_mutex );
 
-		if ( is_priv ) {
+		if ( lc_curr.lc_ispriv ) {
 			ber_dupbv( &lc->lc_cred, &li->acl_passwd );
 			ber_dupbv( &lc->lc_bound_ndn, &li->acl_authcDN );
+			lc->lc_ispriv = lc_curr.lc_ispriv;
 
 		} else {
 			BER_BVZERO( &lc->lc_cred );
@@ -498,12 +498,58 @@ ldap_back_dobind_int(
 		 * It allows to use SASL bind and yet proxyAuthz users
 		 */
 		if ( op->o_conn != NULL &&
+				!op->o_do_not_cache &&
+				!be_isroot( op ) &&
 				( BER_BVISNULL( &lc->lc_bound_ndn ) ||
 				  ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 		{
 			(void)ldap_back_proxy_authz_bind( lc, op, rs );
 			goto done;
 		}
+
+#ifdef HAVE_CYRUS_SASL
+		if ( lc->lc_ispriv && li->acl_authmethod == LDAP_AUTH_SASL ) {
+			void		*defaults = NULL;
+
+#if 0	/* will deal with this later... */
+			if ( sasl_secprops != NULL ) {
+				rs->sr_err = ldap_set_option( lc->lc_ld, LDAP_OPT_X_SASL_SECPROPS,
+					(void *) sasl_secprops );
+
+				if ( rs->sr_err != LDAP_OPT_SUCCESS ) {
+					send_ldap_result( op, rs );
+					lc->lc_bound = 0;
+					goto done;
+				}
+			}
+#endif
+
+			defaults = lutil_sasl_defaults( lc->lc_ld,
+					li->acl_sasl_mech.bv_val,
+					li->acl_sasl_realm.bv_val,
+					li->acl_authcID.bv_val,
+					li->acl_passwd.bv_val,
+					NULL );
+
+			rs->sr_err = ldap_sasl_interactive_bind_s( lc->lc_ld,
+					li->acl_authcDN.bv_val,
+					li->acl_sasl_mech.bv_val, NULL, NULL,
+					LDAP_SASL_QUIET, lutil_sasl_interact,
+					defaults );
+
+			lutil_sasl_freedefs( defaults );
+
+			rs->sr_err = slap_map_api2result( rs );
+			if ( rs->sr_err != LDAP_SUCCESS ) {
+				lc->lc_bound = 0;
+				send_ldap_result( op, rs );
+
+			} else {
+				lc->lc_bound = 1;
+			}
+			goto done;
+		}
+#endif /* HAVE_CYRUS_SASL */
 
 retry:;
 		rs->sr_err = ldap_sasl_bind( lc->lc_ld,
@@ -803,7 +849,7 @@ ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 
 		rs->sr_err = ldap_sasl_interactive_bind_s( lc->lc_ld, binddn.bv_val,
 				li->idassert_sasl_mech.bv_val, NULL, NULL,
-				li->idassert_sasl_flags, lutil_sasl_interact,
+				LDAP_SASL_QUIET, lutil_sasl_interact,
 				defaults );
 
 		lutil_sasl_freedefs( defaults );
@@ -898,7 +944,7 @@ ldap_back_proxy_authz_ctrl(
 		goto done;
 	}
 
-	if ( !op->o_conn ) {
+	if ( !op->o_conn || op->o_do_not_cache || be_isroot( op ) ) {
 		goto done;
 	}
 

@@ -87,8 +87,12 @@ ldap_back_db_init( Backend *be )
  		return -1;
  	}
 
+	BER_BVZERO( &li->acl_authcID );
 	BER_BVZERO( &li->acl_authcDN );
 	BER_BVZERO( &li->acl_passwd );
+
+	li->acl_authmethod = LDAP_AUTH_SIMPLE;
+	BER_BVZERO( &li->acl_sasl_mech );
 
 	li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
 
@@ -97,17 +101,14 @@ ldap_back_db_init( Backend *be )
 	BER_BVZERO( &li->idassert_passwd );
 
 	BER_BVZERO( &li->idassert_authzID );
-	li->idassert_authz = NULL;
 
 	li->idassert_authmethod = LDAP_AUTH_SIMPLE;
-	li->idassert_sasl_flags = LDAP_SASL_QUIET;
 	BER_BVZERO( &li->idassert_sasl_mech );
-	BER_BVZERO( &li->idassert_sasl_realm );
-
-	li->idassert_ppolicy = 0;
 
 	/* by default, use proxyAuthz control on each operation */
 	li->idassert_flags = LDAP_BACK_AUTH_NONE;
+
+	li->idassert_authz = NULL;
 
 	/* initialize flags */
 	li->flags = LDAP_BACK_F_CHASE_REFERRALS;
@@ -217,6 +218,10 @@ ldap_back_db_destroy(
 			ldap_free_urldesc( li->lud );
 			li->lud = NULL;
 		}
+		if ( !BER_BVISNULL( &li->acl_authcID ) ) {
+			ch_free( li->acl_authcID.bv_val );
+			BER_BVZERO( &li->acl_authcID );
+		}
 		if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
 			ch_free( li->acl_authcDN.bv_val );
 			BER_BVZERO( &li->acl_authcDN );
@@ -224,6 +229,14 @@ ldap_back_db_destroy(
 		if ( !BER_BVISNULL( &li->acl_passwd ) ) {
 			ch_free( li->acl_passwd.bv_val );
 			BER_BVZERO( &li->acl_passwd );
+		}
+		if ( !BER_BVISNULL( &li->acl_sasl_mech ) ) {
+			ch_free( li->acl_sasl_mech.bv_val );
+			BER_BVZERO( &li->acl_sasl_mech );
+		}
+		if ( !BER_BVISNULL( &li->acl_sasl_realm ) ) {
+			ch_free( li->acl_sasl_realm.bv_val );
+			BER_BVZERO( &li->acl_sasl_realm );
 		}
 		if ( !BER_BVISNULL( &li->idassert_authcID ) ) {
 			ch_free( li->idassert_authcID.bv_val );

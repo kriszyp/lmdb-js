@@ -37,56 +37,53 @@ struct ldapconn {
 	struct berval 		lc_bound_ndn;
 	struct berval		lc_local_ndn;
 	int			lc_bound;
+	int			lc_ispriv;
 	ldap_pvt_thread_mutex_t	lc_mutex;
 };
 
-struct ldapauth {
-	struct berval	la_authcID;
-	struct berval	la_authcDN;
-	struct berval	la_passwd;
-
-	struct berval	la_authzID;
-	
-	int		la_authmethod;
-	int		la_sasl_flags;
-	struct berval	la_sasl_mech;
-	struct berval	la_sasl_realm;
-	
-#define LDAP_BACK_AUTH_NONE		0x00U
-#define	LDAP_BACK_AUTH_NATIVE_AUTHZ	0x01U
-#define	LDAP_BACK_AUTH_OVERRIDE		0x02U
-	unsigned 	la_flags;
+/*
+ * identity assertion modes
+ */
+enum {
+	LDAP_BACK_IDASSERT_LEGACY,
+	LDAP_BACK_IDASSERT_NOASSERT,
+	LDAP_BACK_IDASSERT_ANONYMOUS,
+	LDAP_BACK_IDASSERT_SELF,
+	LDAP_BACK_IDASSERT_OTHERDN,
+	LDAP_BACK_IDASSERT_OTHERID
 };
 
 struct ldapinfo {
 	char		*url;
 	LDAPURLDesc	*lud;
-	struct ldapauth acl_la;
-#define	acl_authcDN	acl_la.la_authcDN
-#define	acl_passwd	acl_la.la_passwd
+
+	slap_bindconf	acl_la;
+#define	acl_authcID	acl_la.sb_authcId
+#define	acl_authcDN	acl_la.sb_binddn
+#define	acl_passwd	acl_la.sb_cred
+#define	acl_authzID	acl_la.sb_authzId
+#define	acl_authmethod	acl_la.sb_method
+#define	acl_sasl_mech	acl_la.sb_saslmech
+#define	acl_sasl_realm	acl_la.sb_realm
 
 	/* ID assert stuff */
 	int		idassert_mode;
-#define	LDAP_BACK_IDASSERT_LEGACY	0
-#define	LDAP_BACK_IDASSERT_NOASSERT	1
-#define	LDAP_BACK_IDASSERT_ANONYMOUS	2
-#define	LDAP_BACK_IDASSERT_SELF		3
-#define	LDAP_BACK_IDASSERT_OTHERDN	4
-#define	LDAP_BACK_IDASSERT_OTHERID	5
 
-	struct ldapauth	idassert_la;
-#define	idassert_authcID	idassert_la.la_authcID
-#define	idassert_authcDN	idassert_la.la_authcDN
-#define	idassert_passwd		idassert_la.la_passwd
-#define	idassert_authzID	idassert_la.la_authzID
-#define	idassert_authmethod	idassert_la.la_authmethod
-#define	idassert_sasl_flags	idassert_la.la_sasl_flags
-#define	idassert_sasl_mech	idassert_la.la_sasl_mech
-#define	idassert_sasl_realm	idassert_la.la_sasl_realm
-#define	idassert_flags		idassert_la.la_flags
+	slap_bindconf	idassert_la;
+#define	idassert_authcID	idassert_la.sb_authcId
+#define	idassert_authcDN	idassert_la.sb_binddn
+#define	idassert_passwd		idassert_la.sb_cred
+#define	idassert_authzID	idassert_la.sb_authzId
+#define	idassert_authmethod	idassert_la.sb_method
+#define	idassert_sasl_mech	idassert_la.sb_saslmech
+#define	idassert_sasl_realm	idassert_la.sb_realm
+
+	unsigned 	idassert_flags;
+#define LDAP_BACK_AUTH_NONE		0x00U
+#define	LDAP_BACK_AUTH_NATIVE_AUTHZ	0x01U
+#define	LDAP_BACK_AUTH_OVERRIDE		0x02U
+
 	BerVarray	idassert_authz;
-	
-	int		idassert_ppolicy;
 	/* end of ID assert stuff */
 
 	ldap_pvt_thread_mutex_t		conn_mutex;
