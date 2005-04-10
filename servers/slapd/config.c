@@ -725,10 +725,10 @@ static cf_aux_table bindkey[] = {
 	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
 	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
 	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
-	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 's', 0, NULL },
+	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 'b', 0, NULL },
 	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 's', 0, NULL },
-	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 's', 0, NULL },
-	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 's', 0, NULL },
+	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
+	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, NULL },
 	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
 	{ BER_BVNULL, 0, 0, 0, NULL }
 };
@@ -831,24 +831,31 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 void bindconf_free( slap_bindconf *bc ) {
 	if ( !BER_BVISNULL( &bc->sb_binddn ) ) {
 		ch_free( bc->sb_binddn.bv_val );
+		BER_BVZERO( &bc->sb_binddn );
 	}
 	if ( !BER_BVISNULL( &bc->sb_cred ) ) {
 		ch_free( bc->sb_cred.bv_val );
+		BER_BVZERO( &bc->sb_cred );
 	}
-	if ( bc->sb_saslmech ) {
-		ch_free( bc->sb_saslmech );
+	if ( !BER_BVISNULL( &bc->sb_saslmech ) ) {
+		ch_free( bc->sb_saslmech.bv_val );
+		BER_BVZERO( &bc->sb_saslmech );
 	}
 	if ( bc->sb_secprops ) {
 		ch_free( bc->sb_secprops );
+		bc->sb_secprops = NULL;
 	}
-	if ( bc->sb_realm ) {
-		ch_free( bc->sb_realm );
+	if ( !BER_BVISNULL( &bc->sb_realm ) ) {
+		ch_free( bc->sb_realm.bv_val );
+		BER_BVZERO( &bc->sb_realm );
 	}
-	if ( bc->sb_authcId ) {
-		ch_free( bc->sb_authcId );
+	if ( !BER_BVISNULL( &bc->sb_authcId ) ) {
+		ch_free( bc->sb_authcId.bv_val );
+		BER_BVZERO( &bc->sb_authcId );
 	}
 	if ( !BER_BVISNULL( &bc->sb_authzId ) ) {
 		ch_free( bc->sb_authzId.bv_val );
+		BER_BVZERO( &bc->sb_authzId );
 	}
 }
 

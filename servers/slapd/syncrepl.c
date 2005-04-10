@@ -322,13 +322,16 @@ do_syncrep1(
 			}
 		}
 
-		defaults = lutil_sasl_defaults( si->si_ld, si->si_bindconf.sb_saslmech,
-			si->si_bindconf.sb_realm, si->si_bindconf.sb_authcId,
-			si->si_bindconf.sb_cred.bv_val, si->si_bindconf.sb_authzId.bv_val );
+		defaults = lutil_sasl_defaults( si->si_ld,
+			si->si_bindconf.sb_saslmech.bv_val,
+			si->si_bindconf.sb_realm.bv_val,
+			si->si_bindconf.sb_authcId.bv_val,
+			si->si_bindconf.sb_cred.bv_val,
+			si->si_bindconf.sb_authzId.bv_val );
 
 		rc = ldap_sasl_interactive_bind_s( si->si_ld,
 				si->si_bindconf.sb_binddn.bv_val,
-				si->si_bindconf.sb_saslmech,
+				si->si_bindconf.sb_saslmech.bv_val,
 				NULL, NULL,
 				LDAP_SASL_QUIET,
 				lutil_sasl_interact,
@@ -341,13 +344,15 @@ do_syncrep1(
 		 *	2) on err policy : exit, retry, backoff ...
 		 */
 		if ( rc != LDAP_SUCCESS ) {
+			static struct berval bv_GSSAPI = BER_BVC( "GSSAPI" );
+
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 				"ldap_sasl_interactive_bind_s failed (%d)\n",
 				rc, 0, 0 );
 
 			/* FIXME (see above comment) */
 			/* if Kerberos credentials cache is not active, retry */
-			if ( strcmp( si->si_bindconf.sb_saslmech, "GSSAPI" ) == 0 &&
+			if ( ber_bvcmp( &si->si_bindconf.sb_saslmech, &bv_GSSAPI ) == 0 &&
 				rc == LDAP_LOCAL_ERROR )
 			{
 				rc = LDAP_SERVER_DOWN;

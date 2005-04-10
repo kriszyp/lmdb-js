@@ -1481,10 +1481,10 @@ typedef struct slap_bindconf {
 	int sb_method;
 	struct berval sb_binddn;
 	struct berval sb_cred;
-	char *sb_saslmech;
+	struct berval sb_saslmech;
 	char *sb_secprops;
-	char *sb_realm;
-	char *sb_authcId;
+	struct berval sb_realm;
+	struct berval sb_authcId;
 	struct berval sb_authzId;
 } slap_bindconf;
 
