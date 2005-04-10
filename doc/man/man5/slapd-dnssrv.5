@@ -32,6 +32,8 @@ Currently, there is no means to condition the returning of the referral
 by means of ACLs; no access control is implemented, except for 
 .B read (=r)
 access to the returned entries, which is actually provided by the frontend.
+Note, however, that the information returned by this backend is collected
+through the DNS, so it is public by definition.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
