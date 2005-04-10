@@ -396,6 +396,57 @@ oc_destroy( void )
 	}
 }
 
+/*
+ * check whether the two ObjectClasses actually __are__ identical,
+ * or rather inconsistent
+ */
+static int
+oc_check_dup(
+	ObjectClass	*soc,
+	ObjectClass	*new_soc )
+{
+	if ( new_soc->soc_oid != NULL ) {
+		if ( soc->soc_oid == NULL ) {
+			return SLAP_SCHERR_CLASS_INCONSISTENT;
+		}
+
+		if ( strcmp( soc->soc_oid, new_soc->soc_oid ) != 0 ) {
+			return SLAP_SCHERR_CLASS_INCONSISTENT;
+		}
+
+	} else {
+		if ( soc->soc_oid != NULL ) {
+			return SLAP_SCHERR_CLASS_INCONSISTENT;
+		}
+	}
+
+	if ( new_soc->soc_names ) {
+		int	i;
+
+		if ( soc->soc_names == NULL ) {
+			return SLAP_SCHERR_CLASS_INCONSISTENT;
+		}
+
+		for ( i = 0; new_soc->soc_names[ i ]; i++ ) {
+			if ( soc->soc_names[ i ] == NULL ) {
+				return SLAP_SCHERR_CLASS_INCONSISTENT;
+			}
+			
+			if ( strcasecmp( soc->soc_names[ i ],
+					new_soc->soc_names[ i ] ) != 0 )
+			{
+				return SLAP_SCHERR_CLASS_INCONSISTENT;
+			}
+		}
+	} else {
+		if ( soc->soc_names != NULL ) {
+			return SLAP_SCHERR_CLASS_INCONSISTENT;
+		}
+	}
+
+	return SLAP_SCHERR_CLASS_DUP;
+}
+
 static int
 oc_insert(
     ObjectClass		*soc,
@@ -417,13 +468,21 @@ oc_insert(
 		if ( avl_insert( &oc_index, (caddr_t) oir,
 			oc_index_cmp, avl_dup_error ) )
 		{
+			ObjectClass	*old_soc;
+			int		rc;
+
 			*err = soc->soc_oid;
-			ldap_memfree(oir);
-			return SLAP_SCHERR_CLASS_DUP;
+
+			old_soc = oc_bvfind( &oir->oir_name );
+			assert( old_soc != NULL );
+			rc = oc_check_dup( old_soc, soc );
+
+			ldap_memfree( oir );
+			return rc;
 		}
 
 		/* FIX: temporal consistency check */
-		assert( oc_bvfind(&oir->oir_name) != NULL );
+		assert( oc_bvfind( &oir->oir_name ) != NULL );
 	}
 
 	if ( (names = soc->soc_names) ) {
@@ -440,9 +499,17 @@ oc_insert(
 			if ( avl_insert( &oc_index, (caddr_t) oir,
 				oc_index_cmp, avl_dup_error ) )
 			{
+				ObjectClass	*old_soc;
+				int		rc;
+
 				*err = *names;
-				ldap_memfree(oir);
-				return SLAP_SCHERR_CLASS_DUP;
+
+				old_soc = oc_bvfind( &oir->oir_name );
+				assert( old_soc != NULL );
+				rc = oc_check_dup( old_soc, soc );
+
+				ldap_memfree( oir );
+				return rc;
 			}
 
 			/* FIX: temporal consistency check */
@@ -452,7 +519,6 @@ oc_insert(
 		}
 	}
 	LDAP_STAILQ_INSERT_TAIL( &oc_list, soc, soc_next );
-
 
 	return 0;
 }

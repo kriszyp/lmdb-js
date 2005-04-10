@@ -335,6 +335,7 @@ at_insert(
 			*err = sat->sat_oid;
 
 			old_sat = at_bvfind( &air->air_name );
+			assert( old_sat != NULL );
 			rc = at_check_dup( old_sat, sat );
 
 			ldap_memfree( air );
@@ -362,6 +363,7 @@ at_insert(
 				*err = *names;
 
 				old_sat = at_bvfind( &air->air_name );
+				assert( old_sat != NULL );
 				rc = at_check_dup( old_sat, sat );
 
 				ldap_memfree(air);
