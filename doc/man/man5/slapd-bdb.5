@@ -175,7 +175,13 @@ Specify a key for a shared memory BDB environment. By default the
 BDB environment uses memory mapped files. If a non-zero value is
 specified, it will be used as the key to identify a shared memory
 region that will house the environment.
-.B
+.SH ACCESS CONTROL
+The 
+.B bdb
+and
+.B hdb
+backends honor access control semantics as indicated in
+.BR slapd.access (5).
 .SH FILES
 .TP
 ETCDIR/slapd.conf
