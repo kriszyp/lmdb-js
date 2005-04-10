@@ -60,7 +60,7 @@ static ConfigTable ldifcfg[] = {
 		ldif_cf, NULL, NULL, NULL },
 	{ "directory", "dir", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
 		(void *)offsetof(struct ldif_info, li_base_path),
-		"( OLcfgAt:1.1 NAME 'dbDirectory' "
+		"( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
 			"DESC 'Directory for database content' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
@@ -69,11 +69,11 @@ static ConfigTable ldifcfg[] = {
 };
 
 static ConfigOCs ldifocs[] = {
-	{ "( OLcfgOc:2.1 "
-		"NAME 'ldifConfig' "
+	{ "( OLcfgDbOc:2.1 "
+		"NAME 'olcLdifConfig' "
 		"DESC 'LDIF backend configuration' "
 		"SUP olcDatabaseConfig "
-		"MUST ( dbDirectory ) )", Cft_Database,
+		"MUST ( olcDbDirectory ) )", Cft_Database,
 		&ldif_oc },
 	{ NULL, 0, NULL }
 };

@@ -48,25 +48,25 @@ static ConfigTable bdbcfg[] = {
 	{ "", "", 0, 0, 0, ARG_MAGIC,
 		bdb_cf_oc, NULL, NULL, NULL },
 	{ "directory", "dir", 2, 2, 0, ARG_STRING|ARG_MAGIC|BDB_DIRECTORY,
-		bdb_cf_gen, "( OLcfgAt:1.1 NAME 'dbDirectory' "
+		bdb_cf_gen, "( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
 			"DESC 'Directory for database content' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "cachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_cache.c_maxsize),
-		"( OLcfgAt:1.2 NAME 'dbCacheSize' "
+		"( OLcfgDbAt:1.1 NAME 'olcDbCacheSize' "
 			"DESC 'Entry cache size in entries' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "checkpoint", "kbyte> <min", 3, 3, 0, ARG_MAGIC|BDB_CHKPT,
-		bdb_cf_gen, "( OLcfgAt:1.3 NAME 'dbCheckpoint' "
+		bdb_cf_gen, "( OLcfgDbAt:1.2 NAME 'olcDbCheckpoint' "
 			"DESC 'Database checkpoint interval in kbytes and minutes' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
 	{ "dbconfig", "DB_CONFIG setting", 3, 0, 0, ARG_MAGIC|BDB_CONFIG,
-		bdb_cf_gen, "( OLcfgAt:1.13 NAME 'dbConfig' "
+		bdb_cf_gen, "( OLcfgDbAt:1.3 NAME 'olcDbConfig' "
 			"DESC 'BerkeleyDB DB_CONFIG configuration directives' "
 			"SYNTAX OMsDirectoryString )",NULL, NULL },
 	{ "dbnosync", NULL, 1, 2, 0, ARG_ON_OFF|ARG_MAGIC|BDB_NOSYNC,
-		bdb_cf_gen, "( OLcfgAt:1.4 NAME 'dbNoSync' "
+		bdb_cf_gen, "( OLcfgDbAt:1.4 NAME 'olcDbNoSync' "
 			"DESC 'Disable synchronous database writes' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "dirtyread", NULL, 1, 2, 0,
@@ -75,39 +75,39 @@ static ConfigTable bdbcfg[] = {
 #else
 		ARG_IGNORED, NULL,
 #endif
-		"( OLcfgAt:1.5 NAME 'dbDirtyRead' "
+		"( OLcfgDbAt:1.5 NAME 'olcDbDirtyRead' "
 		"DESC 'Allow reads of uncommitted data' "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "idlcachesize", "size", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info,bi_idl_cache_max_size),
-		"( OLcfgAt:1.6 NAME 'dbIDLcacheSize' "
+		"( OLcfgDbAt:1.6 NAME 'olcDbIDLcacheSize' "
 		"DESC 'IDL cache size in IDLs' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "index", "attr> <[pres,eq,approx,sub]", 2, 3, 0, ARG_MAGIC|BDB_INDEX,
-		bdb_cf_gen, "( OLcfgAt:1.7 NAME 'dbIndex' "
+		bdb_cf_gen, "( OLcfgDbAt:0.2 NAME 'olcDbIndex' "
 		"DESC 'Attribute index parameters' "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "linearindex", NULL, 1, 2, 0, ARG_ON_OFF|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_linear_index), 
-		"( OLcfgAt:1.8 NAME 'dbLinearIndex' "
+		"( OLcfgDbAt:1.7 NAME 'olcDbLinearIndex' "
 		"DESC 'Index attributes one at a time' "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "lockdetect", "policy", 2, 2, 0, ARG_MAGIC|BDB_LOCKD,
-		bdb_cf_gen, "( OLcfgAt:1.9 NAME 'dbLockDetect' "
+		bdb_cf_gen, "( OLcfgDbAt:1.8 NAME 'olcDbLockDetect' "
 		"DESC 'Deadlock detection algorithm' "
 		"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "mode", "mode", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_dbenv_mode),
-		"( OLcfgAt:1.10 NAME 'dbMode' "
+		"( OLcfgDbAt:0.3 NAME 'olcDbMode' "
 		"DESC 'Unix permissions of database files' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "searchstack", "depth", 2, 2, 0, ARG_INT|ARG_MAGIC|BDB_SSTACK,
-		bdb_cf_gen, "( OLcfgAt:1.11 NAME 'dbSearchStack' "
+		bdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "shm_key", "key", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_shm_key), 
-		"( OLcfgAt:1.12 NAME 'dbShmKey' "
+		"( OLcfgDbAt:1.10 NAME 'olcDbShmKey' "
 		"DESC 'Key for shared memory region' "
 		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
@@ -115,14 +115,15 @@ static ConfigTable bdbcfg[] = {
 };
 
 static ConfigOCs bdbocs[] = {
-	{ "( OLcfgOc:1.1 "
-		"NAME 'bdbConfig' "
+	{ "( OLcfgDbOc:1.1 "
+		"NAME 'olcBdbConfig' "
 		"DESC 'BDB backend configuration' "
 		"SUP olcDatabaseConfig "
-		"MUST dbDirectory "
-		"MAY ( dbCacheSize $ dbCheckpoint $ dbConfig $ dbNoSync $ "
-		 "dbDirtyRead $ dbIDLcacheSize $ dbIndex $ dbLinearIndex $ "
-		 "dbLockDetect $ dbMode $ dbSearchStack $ dbShmKey ) )",
+		"MUST olcDbDirectory "
+		"MAY ( olcDbCacheSize $ olcDbCheckpoint $ olcDbConfig $ "
+		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
+		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
+		"olcDbMode $ olcDbSearchStack $ olcDbShmKey ) )",
 		 	Cft_Database, &bdb_oc },
 	{ NULL, 0, NULL }
 };

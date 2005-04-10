@@ -635,7 +635,7 @@ bdb_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
-	rc = bdb_back_init_cf(bi);
+	rc = bdb_back_init_cf( bi );
 
 	return rc;
 }
