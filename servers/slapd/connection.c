@@ -26,7 +26,9 @@
 #include "portable.h"
 
 #include <stdio.h>
+#ifdef HAVE_LIMITS_H
 #include <limits.h>
+#endif
 
 #include <ac/socket.h>
 #include <ac/errno.h>

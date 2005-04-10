@@ -17,14 +17,15 @@
 #include "portable.h"
 
 #include <stdio.h>
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
 
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
 
 #include "slap.h"
-
-#include <limits.h>
 
 #include "lutil.h"
 

@@ -25,6 +25,10 @@
 #include <ac/ctype.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
 #include "ldap-int.h"
 
 #ifdef HAVE_CYRUS_SASL

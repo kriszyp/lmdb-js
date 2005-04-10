@@ -16,6 +16,10 @@
 #include "portable.h"
 
 #include <stdio.h>
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
@@ -23,8 +27,6 @@
 #include <ldap_log.h>
 
 #include "slap.h"
-
-#include <limits.h>
 
 #ifdef HAVE_CYRUS_SASL
 # ifdef HAVE_SASL_SASL_H

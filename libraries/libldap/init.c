@@ -23,7 +23,9 @@
 #include <ac/ctype.h>
 #include <ac/time.h>
 
+#ifdef HAVE_LIMITS_H
 #include <limits.h>
+#endif
 
 #include "ldap-int.h"
 #include "ldap_defaults.h"
