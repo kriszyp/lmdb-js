@@ -698,13 +698,16 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 }
 
 static slap_verbmasks tlskey[] = {
-	{ BER_BVC("no"),		SB_TLS_OFF },
-	{ BER_BVC("yes"),		SB_TLS_ON },
+	{ BER_BVC("no"),	SB_TLS_OFF },
+	{ BER_BVC("yes"),	SB_TLS_ON },
 	{ BER_BVC("critical"),	SB_TLS_CRITICAL },
 	{ BER_BVNULL, 0 }
 };
 
 static slap_verbmasks methkey[] = {
+#if 0
+	{ BER_BVC("none"),	LDAP_AUTH_NONE },
+#endif
 	{ BER_BVC("simple"),	LDAP_AUTH_SIMPLE },
 #ifdef HAVE_CYRUS_SASL
 	{ BER_BVC("sasl"),	LDAP_AUTH_SASL },
@@ -755,7 +758,7 @@ int bindconf_parse( const char *word, slap_bindconf *bc ) {
 				ber_str2bv( val, 0, 1, bptr );
 				break;
 
-			case 'i':
+			case 'd':
 				assert( tab->aux );
 				iptr = (int *)((char *)bc + tab->off);
 
@@ -808,8 +811,9 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 			}
 			break;
 
-		case 'i':
+		case 'd':
 			assert( tab->aux );
+			iptr = (int *)((char *)bc + tab->off);
 		
 			for ( i = 0; !BER_BVISNULL( &tab->aux[i].word ); i++ ) {
 				if ( *iptr == tab->aux[i].mask ) {
