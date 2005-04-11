@@ -804,7 +804,7 @@ struct dn2id_cookie {
 	ID dbuf;
 	ID *ids;
 	void *ptr;
-	ID tmp[BDB_IDL_DB_SIZE];
+	ID tmp[BDB_IDL_UM_SIZE];
 	ID *buf;
 	DBT key;
 	DBT data;
