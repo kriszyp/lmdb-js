@@ -54,7 +54,9 @@ static struct berval
 	aci_bv_br_entry		= BER_BVC("[entry]"),
 	aci_bv_br_all		= BER_BVC("[all]"),
 	aci_bv_access_id 	= BER_BVC("access-id"),
+#if 0
 	aci_bv_anonymous	= BER_BVC("anonymous"),
+#endif
 	aci_bv_public		= BER_BVC("public"),
 	aci_bv_users		= BER_BVC("users"),
 	aci_bv_self 		= BER_BVC("self"),
@@ -69,7 +71,9 @@ static struct berval
 	aci_bv_ip_eq		= BER_BVC("IP="),
 #ifdef LDAP_PF_LOCAL
 	aci_bv_path_eq		= BER_BVC("PATH="),
+#if 0
 	aci_bv_dirsep		= BER_BVC(LDAP_DIRSEP),
+#endif
 #endif /* LDAP_PF_LOCAL */
 	
 	aci_bv_group_class 	= BER_BVC(SLAPD_GROUP_CLASS),
@@ -280,7 +284,7 @@ access_allowed_mask(
 	}
 
 	/* use backend default access if no backend acls */
-	if( be != NULL && be->be_acl == NULL ) {
+	if ( /* be != NULL && */ be->be_acl == NULL ) {
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( access ),

@@ -63,7 +63,6 @@ static void		acl_regex_normalized_dn(const char *src, struct berval *pat);
 
 #ifdef LDAP_DEBUG
 static void		print_acl(Backend *be, AccessControl *a);
-static void		print_access(Access *b);
 #endif
 
 static int		check_scope( BackendDB *be, AccessControl *a );
@@ -2462,10 +2461,9 @@ access2text( Access *b, char *ptr )
 void
 acl_unparse( AccessControl *a, struct berval *bv )
 {
-	Access *b;
-	char *ptr;
-	int		to = 0;
-	struct berval abv;
+	Access	*b;
+	char	*ptr;
+	int	to = 0;
 
 	bv->bv_val = aclbuf;
 	bv->bv_len = 0;
@@ -2542,8 +2540,6 @@ acl_unparse( AccessControl *a, struct berval *bv )
 static void
 print_acl( Backend *be, AccessControl *a )
 {
-	int		to = 0;
-	Access	*b;
 	struct berval bv;
 
 	acl_unparse( a, &bv );
