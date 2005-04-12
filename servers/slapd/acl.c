@@ -382,7 +382,7 @@ access_allowed_mask(
 
 	assert( access_level > ACL_NONE );
 
-	ACL_INVALIDATE( mask );
+	ACL_INIT( mask );
 	if ( maskp ) ACL_INVALIDATE( *maskp );
 
 	attr = desc->ad_cname.bv_val;
@@ -1396,7 +1396,7 @@ acl_mask(
 		"=> acl_mask: to %s by \"%s\", (%s) \n",
 		val ? "value" : "all values",
 		op->o_ndn.bv_val ?  op->o_ndn.bv_val : "",
-		accessmask2str( *mask, accessmaskbuf, 1) );
+		accessmask2str( *mask, accessmaskbuf, 1 ) );
 
 
 	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )
