@@ -54,9 +54,8 @@ usage( int tool, const char *progname )
 
 	switch( tool ) {
 	case SLAPACL:
-		options = "\n\t[-U authcID | -D authcDN]"
-			" -b DN -o <var>[=<val>] [-u]"
-			"\n\t[attr[/access][:value]] [...]\n";
+		options = "\n\t[-U authcID | -D authcDN] [-X authzID | -o authzDN=<DN>]"
+			"\n\t-b DN -o <var>[=<val>] [-u] [attr[/access][:value]] [...]\n";
 		break;
 
 	case SLAPADD:
@@ -142,6 +141,9 @@ parse_slapacl( void )
 	} else if ( strncasecmp( optarg, "sasl_ssf", len ) == 0 ) {
 		sasl_ssf = atoi( p );
 
+	} else if ( strncasecmp( optarg, "authzDN", len ) == 0 ) {
+		ber_str2bv( p, 0, 1, &authzDN );
+
 	} else {
 		return -1;
 	}
@@ -214,7 +216,7 @@ slap_tool_init(
 		break;
 
 	case SLAPACL:
-		options = "b:D:d:f:F:o:uU:v";
+		options = "b:D:d:f:F:o:uU:vX:";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 

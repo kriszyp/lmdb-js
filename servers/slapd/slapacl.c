@@ -90,10 +90,18 @@ slapacl( int argc, char **argv )
 	op->o_sasl_ssf = sasl_ssf;
 
 	if ( !BER_BVISNULL( &authcID ) ) {
+		if ( !BER_BVISNULL( &authcDN ) ) {
+			fprintf( stderr, "both authcID=\"%s\" "
+					"and authcDN=\"%s\" provided\n",
+					authcID.bv_val, authcDN.bv_val );
+			rc = 1;
+			goto destroy;
+		}
+
 		rc = slap_sasl_getdn( &conn, op, &authcID, NULL,
 				&authcDN, SLAP_GETDN_AUTHCID );
 		if ( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "ID: <%s> check failed %d (%s)\n",
+			fprintf( stderr, "authcID: <%s> check failed %d (%s)\n",
 					authcID.bv_val, rc,
 					ldap_err2string( rc ) );
 			rc = 1;
@@ -115,9 +123,47 @@ slapacl( int argc, char **argv )
 		authcDN = ndn;
 	}
 
+	if ( !BER_BVISNULL( &authzID ) ) {
+		if ( !BER_BVISNULL( &authzDN ) ) {
+			fprintf( stderr, "both authzID=\"%s\" "
+					"and authzDN=\"%s\" provided\n",
+					authzID.bv_val, authzDN.bv_val );
+			rc = 1;
+			goto destroy;
+		}
+
+		rc = slap_sasl_getdn( &conn, op, &authzID, NULL,
+				&authzDN, SLAP_GETDN_AUTHZID );
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "authzID: <%s> check failed %d (%s)\n",
+					authzID.bv_val, rc,
+					ldap_err2string( rc ) );
+			rc = 1;
+			goto destroy;
+		}
+
+	} else if ( !BER_BVISNULL( &authzDN ) ) {
+		struct berval	ndn;
+
+		rc = dnNormalize( 0, NULL, NULL, &authzDN, &ndn, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "autchDN=\"%s\" normalization failed %d (%s)\n",
+					authzDN.bv_val, rc,
+					ldap_err2string( rc ) );
+			rc = 1;
+			goto destroy;
+		}
+		ch_free( authzDN.bv_val );
+		authzDN = ndn;
+	}
+
 
 	if ( !BER_BVISNULL( &authcDN ) ) {
-		fprintf( stderr, "DN: \"%s\"\n", authcDN.bv_val );
+		fprintf( stderr, "authcDN: \"%s\"\n", authcDN.bv_val );
+	}
+
+	if ( !BER_BVISNULL( &authzDN ) ) {
+		fprintf( stderr, "authzDN: \"%s\"\n", authzDN.bv_val );
 	}
 
 	assert( !BER_BVISNULL( &baseDN ) );
@@ -131,12 +177,16 @@ slapacl( int argc, char **argv )
 	}
 
 	op->o_bd = be;
+	if ( !BER_BVISNULL( &authzDN ) ) {
+		op->o_dn = authzDN;
+		op->o_ndn = authzDN;
+	}
 	if ( !BER_BVISNULL( &authcDN ) ) {
-		op->o_dn = authcDN;
-		op->o_ndn = authcDN;
+		op->o_conn->c_dn = authcDN;
+		op->o_conn->c_ndn = authcDN;
 	}
 
-	if ( !dryrun ) {
+	if ( !dryrun && be ) {
 		ID	id;
 
 		if ( !be->be_entry_open ||
@@ -264,7 +314,7 @@ slapacl( int argc, char **argv )
 destroy:;
 	ber_memfree( e.e_name.bv_val );
 	ber_memfree( e.e_nname.bv_val );
-	if ( !dryrun ) {
+	if ( !dryrun && be ) {
 		if ( ep != &e ) {
 			be_entry_release_r( op, ep );
 		}

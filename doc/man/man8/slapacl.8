@@ -11,6 +11,7 @@ slapacl \- Check access to a list of attributes.
 .B [\-D authcDN | \-U authcID]
 .B \-b DN
 .B [\-u]
+.B [\-X authzID | \-o authzDN=DN]
 .B [attr[/access][:value]] [...]
 .LP
 .SH DESCRIPTION
@@ -62,6 +63,36 @@ rules (see
 .BR slapd.conf (5)
 for details); mutually exclusive with
 .BR \-D .
+.TP
+.BI \-X " authzID"
+specify an authorization ID to be mapped to a
+.B DN
+as by means of
+.B authz-regexp
+or
+.B authz-rewrite
+rules (see
+.BR slapd.conf (5)
+for details); mutually exclusive with \fB\-o\fP \fIauthzDN=DN\fP.
+.TP
+.BI \-o " option[=value]"
+Specify an
+.BR option
+with a(n optional)
+.BR value .
+Possible options/values are:
+.LP
+.nf
+              sockurl
+              domain
+              peername
+              sockname
+              ssf
+              transport_ssf
+              tls_ssf
+              sasl_ssf
+              authzDN
+.fi
 .TP
 .BI \-b " DN"
 specify the 

@@ -42,8 +42,9 @@ typedef struct tool_vars {
 	Filter *tv_filter;
 	struct berval tv_sub_ndn;
 	FILE	*tv_ldiffp;
-	struct berval tv_authcDN;
 	struct berval tv_baseDN;
+	struct berval tv_authcDN;
+	struct berval tv_authzDN;
 	struct berval tv_authcID;
 	struct berval tv_authzID;
 	struct berval tv_mech;
@@ -70,8 +71,9 @@ extern tool_vars tool_globals;
 #define filter tool_globals.tv_filter
 #define sub_ndn tool_globals.tv_sub_ndn
 #define ldiffp tool_globals.tv_ldiffp
-#define authcDN tool_globals.tv_authcDN
 #define baseDN tool_globals.tv_baseDN
+#define authcDN tool_globals.tv_authcDN
+#define authzDN tool_globals.tv_authzDN
 #define authcID tool_globals.tv_authcID
 #define authzID tool_globals.tv_authzID
 #define mech tool_globals.tv_mech
