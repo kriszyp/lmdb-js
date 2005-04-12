@@ -83,6 +83,9 @@ bdb_checkpoint( void *ctx, void *arg )
 	
 	TXN_CHECKPOINT( bdb->bi_dbenv, bdb->bi_txn_cp_kbyte,
 		bdb->bi_txn_cp_min, 0 );
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	return NULL;
 }
 
