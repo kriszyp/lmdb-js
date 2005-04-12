@@ -173,7 +173,7 @@ slap_access_always_allowed(
 	return 1;
 }
 
-static int
+int
 slap_access_allowed(
 	Operation		*op,
 	Entry			*e,
@@ -441,13 +441,11 @@ access_allowed_mask(
 	}
 	assert( op->o_bd != NULL );
 
+	/* this is enforced in backend_add() */
+	assert( op->o_bd->bd_info->bi_access_allowed );
+
 	/* delegate to backend */
-	if ( op->o_bd->bd_info->bi_access_allowed != NULL ) {
-		bi_access_allowed = op->o_bd->bd_info->bi_access_allowed;
-	} else {
-		bi_access_allowed = slap_access_allowed;
-	}
-	ret = bi_access_allowed( op, e, desc, val, access, state, &mask );
+	ret = op->o_bd->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
 	if ( !ret ) {
 		if ( ACL_IS_INVALID( mask ) ) {
 			Debug( LDAP_DEBUG_ACL,

@@ -288,18 +288,12 @@ over_access_allowed(
 	}
 
 	if ( rc == SLAP_CB_CONTINUE && oi->oi_orig->bi_access_allowed ) {
-		/* NOTE: do not copy the structure until requiredy */
-		/* NOTE: by default, oi->oi_orig->bi_access_allowed == NULL;
-		 * only backends that implement a specific hook
-		 * should store it there; by default, slap_access_allowed()
-		 * is invoked if oi->oi_orig->bi_access_allowed == NULL */
-		if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
- 			db = *op->o_bd;
-			db.be_flags |= SLAP_DBFLAG_OVERLAY;
-			op->o_bd = &db;
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
 		}
 
-		op->o_bd->bd_info = oi->oi_orig;
 		rc = oi->oi_orig->bi_access_allowed( op, e,
 			desc, val, access, state, maskp );
 	}
