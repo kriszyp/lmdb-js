@@ -260,7 +260,7 @@ slap_access_allowed(
 	} else {
 		if ( state ) state->as_vi_acl = NULL;
 		a = NULL;
-		ACL_INIT( mask );
+		ACL_PRIV_ASSIGN( mask, *maskp );
 		count = 0;
 		memset( matches, '\0', sizeof( matches ) );
 	}
@@ -313,7 +313,7 @@ vd_access:
 		Debug( LDAP_DEBUG_ACL,
 			"=> slap_access_allowed: \"%s\" (%s) invalid!\n",
 			e->e_dn, attr, 0 );
-		ACL_INIT( mask );
+		ACL_PRIV_ASSIGN( mask, *maskp );
 
 	} else if ( control == ACL_BREAK ) {
 		Debug( LDAP_DEBUG_ACL,
@@ -322,7 +322,7 @@ vd_access:
 		goto done;
 	}
 
-	ret = ACL_GRANT(mask, access);
+	ret = ACL_GRANT( mask, access );
 
 	Debug( LDAP_DEBUG_ACL,
 		"=> slap_access_allowed: %s access %s by %s\n",
@@ -330,7 +330,7 @@ vd_access:
 		accessmask2str( mask, accessmaskbuf, 1 ) );
 
 done:
-	ACL_PRIV_SET( *maskp, mask );
+	ACL_PRIV_ASSIGN( *maskp, mask );
 	return ret;
 }
 
@@ -436,7 +436,7 @@ access_allowed_mask(
 			Debug( LDAP_DEBUG_ACL,
 				"=> access_allowed: \"%s\" (%s) invalid!\n",
 				e->e_dn, attr, 0 );
-			ACL_INIT(mask);
+			ACL_INIT( mask );
 
 		} else if ( control == ACL_BREAK ) {
 			Debug( LDAP_DEBUG_ACL,
