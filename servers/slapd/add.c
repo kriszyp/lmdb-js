@@ -177,11 +177,7 @@ do_add( Operation *op, SlapReply *rs )
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
 	if ( rc == 0 ) {
-		/* FIXME: temporary? */
-		assert( op->ora_e != NULL );
-		assert( op->o_private != NULL );
-		
-		if ( op->ora_e != NULL ) {
+		if ( op->ora_e != NULL && op->o_private != NULL ) {
 			BackendDB	*bd = op->o_bd;
 
 			op->o_bd = (BackendDB *)op->o_private;
