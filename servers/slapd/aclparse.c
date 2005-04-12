@@ -1853,14 +1853,12 @@ accessmask2str( slap_mask_t mask, char *buf, int debug )
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WRITE) ) {
 		none = 0;
 		*ptr++ = 'w';
-	} 
 
-	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WADD) ) {
+	} else if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WADD) ) {
 		none = 0;
 		*ptr++ = 'a';
-	} 
 
-	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WDEL) ) {
+	} else if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WDEL) ) {
 		none = 0;
 		*ptr++ = 'z';
 	} 
