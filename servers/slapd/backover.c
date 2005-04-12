@@ -249,6 +249,58 @@ static int op_rc[] = {
 };
 
 static int
+over_access_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+	BackendDB *be = op->o_bd, db;
+	int rc = SLAP_CB_CONTINUE;
+
+	/* FIXME: used to happen for instance during abandon
+	 * when global overlays are used... */
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+ 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 		db = *op->o_bd;
+		db.be_flags |= SLAP_DBFLAG_OVERLAY;
+		op->o_bd = &db;
+	}
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_access_allowed ) {
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_access_allowed( op, e,
+				desc, val, access, state, maskp );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE && oi->oi_orig->bi_access_allowed ) {
+		op->o_bd->bd_info = oi->oi_orig;
+		rc = oi->oi_orig->bi_access_allowed( op, e,
+			desc, val, access, state, maskp );
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* access not allowed */
+		rc = 0;
+	}
+
+	op->o_bd = be;
+	return rc;
+}
+
+static int
 over_op_func(
 	Operation *op,
 	SlapReply *rs,
@@ -631,6 +683,9 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_operational = over_aux_operational;
 		bi->bi_chk_referrals = over_aux_chk_referrals;
 		bi->bi_chk_controls = over_aux_chk_controls;
+
+		/* this has a specific arglist */
+		bi->bi_access_allowed = over_access_allowed;
 		
 		bi->bi_connection_destroy = over_connection_destroy;
 

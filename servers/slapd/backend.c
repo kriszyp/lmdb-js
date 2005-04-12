@@ -1752,14 +1752,14 @@ int backend_operational(
 	 * add them to the attribute list
 	 */
 	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
-		ad_inlist( slap_schema.si_ad_entryDN, rs->sr_attrs )))
+		ad_inlist( slap_schema.si_ad_entryDN, rs->sr_attrs ) ) )
 	{
 		*ap = slap_operational_entryDN( rs->sr_entry );
 		ap = &(*ap)->a_next;
 	}
 
 	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
-		ad_inlist( slap_schema.si_ad_subschemaSubentry, rs->sr_attrs )))
+		ad_inlist( slap_schema.si_ad_subschemaSubentry, rs->sr_attrs ) ) )
 	{
 		*ap = slap_operational_subschemaSubentry( op->o_bd );
 		ap = &(*ap)->a_next;
@@ -1767,10 +1767,10 @@ int backend_operational(
 
 	/* Let the overlays have a chance at this */
 	be_orig = op->o_bd;
-	if ( SLAP_ISOVERLAY( be_orig ))
+	if ( SLAP_ISOVERLAY( be_orig ) )
 		op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
 
-	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
+	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 		op->o_bd && op->o_bd->be_operational != NULL )
 	{
 		rc = op->o_bd->be_operational( op, rs );

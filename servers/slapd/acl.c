@@ -155,6 +155,319 @@ static int aci_match_set ( struct berval *subj, Operation *op,
  * - can be legally called with op->o_bd == NULL
  */
 
+#ifdef LDAP_DEVEL
+
+static int
+slap_access_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	int				ret = 1;
+	int				count;
+	AccessControl			*a = NULL;
+
+#ifdef LDAP_DEBUG
+	char				accessmaskbuf[ACCESSMASK_MAXLEN];
+#endif
+	slap_mask_t			mask;
+	slap_control_t			control;
+	slap_access_t			access_level;
+	const char			*attr;
+	regmatch_t			matches[MAXREMATCHES];
+	int				st_same_attr = 0;
+
+	assert( op != NULL );
+	assert( e != NULL );
+	assert( desc != NULL );
+	assert( maskp != NULL );
+
+	access_level = ACL_LEVEL( access );
+	attr = desc->ad_cname.bv_val;
+
+	assert( attr != NULL );
+
+#ifdef LDAP_SLAPI
+	if ( op->o_pb != NULL ) {
+		ret = slapi_int_access_allowed( op, e, desc, val, access, state );
+		if ( ret == 0 ) {
+			/* ACL plugin denied access */
+			goto done;
+		}
+	}
+#endif /* LDAP_SLAPI */
+
+	/* grant database root access */
+	if ( be_isroot( op ) ) {
+		Debug( LDAP_DEBUG_ACL, "<= root access granted\n", 0, 0, 0 );
+		mask = ACL_LVL_MANAGE;
+		goto done;
+	}
+
+	/*
+	 * no-user-modification operational attributes are ignored
+	 * by ACL_WRITE checking as any found here are not provided
+	 * by the user
+	 */
+	if ( access_level >= ACL_WRITE && is_at_no_user_mod( desc->ad_type )
+		&& desc != slap_schema.si_ad_entry
+		&& desc != slap_schema.si_ad_children )
+	{
+		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
+			" %s access granted\n",
+			attr, 0, 0 );
+		goto done;
+	}
+
+	/* use backend default access if no backend acls */
+	if ( op->o_bd->be_acl == NULL ) {
+		int	i;
+
+		Debug( LDAP_DEBUG_ACL,
+			"=> slap_access_allowed: backend default %s "
+			"access %s to \"%s\"\n",
+			access2str( access ),
+			op->o_bd->be_dfltaccess >= access_level ? "granted" : "denied",
+			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
+		ret = op->o_bd->be_dfltaccess >= access_level;
+
+		mask = ACL_PRIV_LEVEL;
+		for ( i = ACL_NONE; i <= op->o_bd->be_dfltaccess; i++ ) {
+			ACL_PRIV_SET( mask, ACL_ACCESS2PRIV( i ) );
+		}
+
+		goto done;
+	}
+
+	ret = 0;
+	control = ACL_BREAK;
+
+	if ( st_same_attr ) {
+		assert( state->as_vd_acl != NULL );
+
+		a = state->as_vd_acl;
+		count = state->as_vd_acl_count;
+		if ( !ACL_IS_INVALID( state->as_vd_acl_mask ) ) {
+			mask = state->as_vd_acl_mask;
+			AC_MEMCPY( matches, state->as_vd_acl_matches, sizeof(matches) );
+			goto vd_access;
+		}
+
+	} else {
+		if ( state ) state->as_vi_acl = NULL;
+		a = NULL;
+		ACL_INIT( mask );
+		count = 0;
+		memset( matches, '\0', sizeof( matches ) );
+	}
+
+	while ( ( a = acl_get( a, &count, op, e, desc, val,
+		MAXREMATCHES, matches, state ) ) != NULL )
+	{
+		int i;
+
+		for ( i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++ ) {
+			Debug( LDAP_DEBUG_ACL, "=> match[%d]: %d %d ", i,
+				(int)matches[i].rm_so, (int)matches[i].rm_eo );
+			if ( matches[i].rm_so <= matches[0].rm_eo ) {
+				int n;
+				for ( n = matches[i].rm_so; n < matches[i].rm_eo; n++ ) {
+					Debug( LDAP_DEBUG_ACL, "%c", e->e_ndn[n], 0, 0 );
+				}
+			}
+			Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
+		}
+
+		if ( state ) {
+			if ( state->as_vi_acl == a &&
+				( state->as_recorded & ACL_STATE_RECORDED_NV ) )
+			{
+				Debug( LDAP_DEBUG_ACL,
+					"slap_access_allowed: result from state (%s)\n",
+					attr, 0, 0 );
+				ret = state->as_result;
+				goto done;
+			} else {
+				Debug( LDAP_DEBUG_ACL,
+					"slap_access_allowed: no res from state (%s)\n",
+					attr, 0, 0 );
+			}
+		}
+
+vd_access:
+		control = acl_mask( a, &mask, op,
+			e, desc, val, MAXREMATCHES, matches, count, state );
+
+		if ( control != ACL_BREAK ) {
+			break;
+		}
+
+		memset( matches, '\0', sizeof( matches ) );
+	}
+
+	if ( ACL_IS_INVALID( mask ) ) {
+		Debug( LDAP_DEBUG_ACL,
+			"=> slap_access_allowed: \"%s\" (%s) invalid!\n",
+			e->e_dn, attr, 0 );
+		ACL_INIT( mask );
+
+	} else if ( control == ACL_BREAK ) {
+		Debug( LDAP_DEBUG_ACL,
+			"=> slap_access_allowed: no more rules\n", 0, 0, 0 );
+
+		goto done;
+	}
+
+	ret = ACL_GRANT(mask, access);
+
+	Debug( LDAP_DEBUG_ACL,
+		"=> slap_access_allowed: %s access %s by %s\n",
+		access2str( access ), ret ? "granted" : "denied",
+		accessmask2str( mask, accessmaskbuf, 1 ) );
+
+done:
+	ACL_PRIV_SET( *maskp, mask );
+	return ret;
+}
+
+int
+access_allowed_mask(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	int				ret = 1;
+	AccessControl			*a = NULL;
+	int				be_null = 0;
+
+#ifdef LDAP_DEBUG
+	char				accessmaskbuf[ACCESSMASK_MAXLEN];
+#endif
+	slap_mask_t			mask;
+	slap_control_t			control;
+	slap_access_t			access_level;
+	const char			*attr;
+	int				st_same_attr = 0;
+	static AccessControlState	state_init = ACL_STATE_INIT;
+	BI_access_allowed		*bi_access_allowed = NULL;
+
+	assert( e != NULL );
+	assert( desc != NULL );
+
+	access_level = ACL_LEVEL( access );
+
+	assert( access_level > ACL_NONE );
+
+	ACL_INVALIDATE( mask );
+	if ( maskp ) ACL_INVALIDATE( *maskp );
+
+	attr = desc->ad_cname.bv_val;
+
+	assert( attr != NULL );
+
+	if ( op && op->o_is_auth_check &&
+		( access_level == ACL_SEARCH || access_level == ACL_READ ) )
+	{
+		access = ACL_AUTH;
+	}
+
+	if ( state ) {
+		if ( state->as_vd_ad == desc ) {
+			if ( state->as_recorded ) {
+				if ( ( state->as_recorded & ACL_STATE_RECORDED_NV ) &&
+					val == NULL )
+				{
+					return state->as_result;
+
+				} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
+					val != NULL && state->as_vd_acl == NULL )
+				{
+					return state->as_result;
+				}
+			}
+			st_same_attr = 1;
+		} else {
+			*state = state_init;
+		}
+
+		state->as_vd_ad = desc;
+	}
+
+	Debug( LDAP_DEBUG_ACL,
+		"=> access_allowed: %s access to \"%s\" \"%s\" requested\n",
+		access2str( access ), e->e_dn, attr );
+
+	if ( op == NULL ) {
+		/* no-op call */
+		goto done;
+	}
+
+	if ( op->o_bd == NULL ) {
+		op->o_bd = LDAP_STAILQ_FIRST(&backendDB);
+		be_null = 1;
+#ifdef LDAP_DEVEL
+		/*
+		 * FIXME: experimental; use first backend rules
+		 * iff there is no global_acl (ITS#3100) */
+		if ( frontendDB->be_acl != NULL ) {
+			op->o_bd = frontendDB;
+		}
+#endif
+	}
+	assert( op->o_bd != NULL );
+
+	/* delegate to backend */
+	if ( op->o_bd->bd_info->bi_access_allowed != NULL ) {
+		bi_access_allowed = op->o_bd->bd_info->bi_access_allowed;
+	} else {
+		bi_access_allowed = slap_access_allowed;
+	}
+	ret = bi_access_allowed( op, e, desc, val, access, state, &mask );
+	if ( !ret ) {
+		if ( ACL_IS_INVALID( mask ) ) {
+			Debug( LDAP_DEBUG_ACL,
+				"=> access_allowed: \"%s\" (%s) invalid!\n",
+				e->e_dn, attr, 0 );
+			ACL_INIT(mask);
+
+		} else if ( control == ACL_BREAK ) {
+			Debug( LDAP_DEBUG_ACL,
+				"=> access_allowed: no more rules\n", 0, 0, 0 );
+
+			goto done;
+		}
+
+		ret = ACL_GRANT( mask, access );
+	}
+
+	Debug( LDAP_DEBUG_ACL,
+		"=> access_allowed: %s access %s by %s\n",
+		access2str( access ), ret ? "granted" : "denied",
+		accessmask2str( mask, accessmaskbuf, 1 ) );
+
+done:
+	if ( state != NULL ) {
+		/* If not value-dependent, save ACL in case of more attrs */
+		if ( !( state->as_recorded & ACL_STATE_RECORDED_VD ) ) {
+			state->as_vi_acl = a;
+			state->as_result = ret;
+		}
+		state->as_recorded |= ACL_STATE_RECORDED;
+	}
+	if ( be_null ) op->o_bd = NULL;
+	if ( maskp ) ACL_PRIV_ASSIGN( *maskp, mask );
+	return ret;
+}
+
+#else /* !LDAP_DEVEL */
 int
 access_allowed_mask(
 	Operation		*op,
@@ -194,20 +507,21 @@ access_allowed_mask(
 
 	assert( attr != NULL );
 
-	if( op && op->o_is_auth_check &&
-		( access_level == ACL_SEARCH || access_level == ACL_READ ))
+	if ( op && op->o_is_auth_check &&
+		( access_level == ACL_SEARCH || access_level == ACL_READ ) )
 	{
 		access = ACL_AUTH;
 	}
 
-	if( state ) {
-		if ( state->as_vd_ad==desc) {
+	if ( state ) {
+		if ( state->as_vd_ad == desc ) {
 			if ( state->as_recorded ) {
-				if( state->as_recorded & ACL_STATE_RECORDED_NV &&
+				if ( ( state->as_recorded & ACL_STATE_RECORDED_NV ) &&
 					val == NULL )
 				{
 					return state->as_result;
-				} else if ( state->as_recorded & ACL_STATE_RECORDED_VD &&
+
+				} else if ( ( state->as_recorded & ACL_STATE_RECORDED_VD ) &&
 					val != NULL && state->as_vd_acl == NULL )
 				{
 					return state->as_result;
@@ -223,7 +537,7 @@ access_allowed_mask(
 
 	Debug( LDAP_DEBUG_ACL,
 		"=> access_allowed: %s access to \"%s\" \"%s\" requested\n",
-	    access2str( access ), e->e_dn, attr );
+		access2str( access ), e->e_dn, attr );
 
 	if ( op == NULL ) {
 		/* no-op call */
@@ -257,10 +571,8 @@ access_allowed_mask(
 #endif /* LDAP_SLAPI */
 
 	/* grant database root access */
-	if ( /* be != NULL && */ be_isroot( op ) ) {
-		Debug( LDAP_DEBUG_ACL,
-		    "<= root access granted\n",
-			0, 0, 0 );
+	if ( be_isroot( op ) ) {
+		Debug( LDAP_DEBUG_ACL, "<= root access granted\n", 0, 0, 0 );
 		if ( maskp ) {
 			mask = ACL_LVL_MANAGE;
 		}
@@ -284,9 +596,10 @@ access_allowed_mask(
 	}
 
 	/* use backend default access if no backend acls */
-	if ( /* be != NULL && */ be->be_acl == NULL ) {
+	if ( be->be_acl == NULL ) {
 		Debug( LDAP_DEBUG_ACL,
-			"=> access_allowed: backend default %s access %s to \"%s\"\n",
+			"=> access_allowed: backend default %s "
+			"access %s to \"%s\"\n",
 			access2str( access ),
 			be->be_dfltaccess >= access_level ? "granted" : "denied",
 			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
@@ -310,7 +623,8 @@ access_allowed_mask(
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: global default %s access %s to \"%s\"\n",
 			access2str( access ),
-			frontendDB->be_dfltaccess >= access_level ? "granted" : "denied", op->o_dn.bv_val );
+			frontendDB->be_dfltaccess >= access_level ?
+				"granted" : "denied", op->o_dn.bv_val );
 		ret = frontendDB->be_dfltaccess >= access_level;
 
 		if ( maskp ) {
@@ -329,12 +643,12 @@ access_allowed_mask(
 	ret = 0;
 	control = ACL_BREAK;
 
-	if( st_same_attr ) {
+	if ( st_same_attr ) {
 		assert( state->as_vd_acl != NULL );
 
 		a = state->as_vd_acl;
 		count = state->as_vd_acl_count;
-		if ( !ACL_IS_INVALID( state->as_vd_acl_mask )) {
+		if ( !ACL_IS_INVALID( state->as_vd_acl_mask ) ) {
 			mask = state->as_vd_acl_mask;
 			AC_MEMCPY( matches, state->as_vd_acl_matches, sizeof(matches) );
 			goto vd_access;
@@ -345,33 +659,39 @@ access_allowed_mask(
 		a = NULL;
 		ACL_INIT(mask);
 		count = 0;
-		memset(matches, '\0', sizeof(matches));
+		memset( matches, '\0', sizeof(matches) );
 	}
 
-	while((a = acl_get( a, &count, op, e, desc, val,
-		MAXREMATCHES, matches, state )) != NULL)
+	while ( ( a = acl_get( a, &count, op, e, desc, val,
+		MAXREMATCHES, matches, state ) ) != NULL )
 	{
 		int i;
 
-		for (i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++) {
+		for ( i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++ ) {
 			Debug( LDAP_DEBUG_ACL, "=> match[%d]: %d %d ", i,
-			    (int)matches[i].rm_so, (int)matches[i].rm_eo );
-			if( matches[i].rm_so <= matches[0].rm_eo ) {
+				(int)matches[i].rm_so, (int)matches[i].rm_eo );
+			if ( matches[i].rm_so <= matches[0].rm_eo ) {
 				int n;
-				for ( n = matches[i].rm_so; n < matches[i].rm_eo; n++) {
+				for ( n = matches[i].rm_so; n < matches[i].rm_eo; n++ ) {
 					Debug( LDAP_DEBUG_ACL, "%c", e->e_ndn[n], 0, 0 );
 				}
 			}
 			Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 		}
 
-		if (state) {
-			if (state->as_vi_acl == a && (state->as_recorded & ACL_STATE_RECORDED_NV)) {
-				Debug( LDAP_DEBUG_ACL, "access_allowed: result from state (%s)\n", attr, 0, 0 );
+		if ( state ) {
+			if ( state->as_vi_acl == a &&
+				( state->as_recorded & ACL_STATE_RECORDED_NV ) )
+			{
+				Debug( LDAP_DEBUG_ACL,
+					"access_allowed: result from state (%s)\n",
+					attr, 0, 0 );
 				ret = state->as_result;
 				goto done;
 			} else {
-				Debug( LDAP_DEBUG_ACL, "access_allowed: no res from state (%s)\n", attr, 0, 0);
+				Debug( LDAP_DEBUG_ACL,
+					"access_allowed: no res from state (%s)\n",
+					attr, 0, 0 );
 			}
 		}
 
@@ -383,7 +703,7 @@ vd_access:
 			break;
 		}
 
-		memset(matches, '\0', sizeof(matches));
+		memset( matches, '\0', sizeof(matches) );
 	}
 
 	if ( ACL_IS_INVALID( mask ) ) {
@@ -394,7 +714,7 @@ vd_access:
 
 	} else if ( control == ACL_BREAK ) {
 		Debug( LDAP_DEBUG_ACL,
-			"=> access_allowed: no more rules\n", 0, 0, 0);
+			"=> access_allowed: no more rules\n", 0, 0, 0 );
 
 		goto done;
 	}
@@ -408,19 +728,20 @@ vd_access:
 	ret = ACL_GRANT(mask, access);
 
 done:
-	if( state != NULL ) {
+	if ( state != NULL ) {
 		/* If not value-dependent, save ACL in case of more attrs */
-		if ( !(state->as_recorded & ACL_STATE_RECORDED_VD) ) {
+		if ( !( state->as_recorded & ACL_STATE_RECORDED_VD ) ) {
 			state->as_vi_acl = a;
 			state->as_result = ret;
 		}
 		state->as_recorded |= ACL_STATE_RECORDED;
 	}
-	if (be_null) op->o_bd = NULL;
+	if ( be_null ) op->o_bd = NULL;
 	if ( maskp ) *maskp = mask;
 	return ret;
 }
 
+#endif /* LDAP_DEVEL */
 
 /*
  * acl_get - return the acl applicable to entry e, attribute

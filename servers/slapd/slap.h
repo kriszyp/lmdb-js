@@ -1986,6 +1986,9 @@ typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
 typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
 	Entry *e, int *hasSubs ));
+typedef int (BI_access_allowed) LDAP_P(( struct slap_op *op, Entry *e,
+	AttributeDescription *desc, struct berval *val, slap_access_t access,
+	AccessControlState *state, slap_mask_t *maskp ));
 
 typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
 	struct slap_conn *c ));
@@ -2087,6 +2090,7 @@ struct slap_backend_info {
 	BI_entry_release_rw	*bi_entry_release_rw;
 
 	BI_has_subordinates	*bi_has_subordinates;
+	BI_access_allowed	*bi_access_allowed;
 
 	BI_connection_init	*bi_connection_init;
 	BI_connection_destroy	*bi_connection_destroy;
