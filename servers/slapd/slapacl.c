@@ -45,7 +45,6 @@ print_access(
 	int			rc;
 	slap_mask_t		mask;
 	char			accessmaskbuf[ACCESSMASK_MAXLEN];
-	slap_access_t		access = ACL_AUTH;
 
 	rc = access_allowed_mask( op, e, desc, nval, ACL_AUTH, NULL, &mask );
 
@@ -71,8 +70,24 @@ slapacl( int argc, char **argv )
 	Entry			e = { 0 }, *ep = &e;
 	char			*attr = NULL;
 	int			doclose = 0;
+	BackendDB		*bd;
 
 	slap_tool_init( progname, SLAPACL, argc, argv );
+
+	if ( !dryrun ) {
+		int	i = 0;
+
+		LDAP_STAILQ_FOREACH( bd, &backendDB, be_next ) {
+			if ( bd != be && backend_startup( bd ) ) {
+				fprintf( stderr, "backend_startup(#%d%s%s) failed\n",
+						i,
+						bd->be_suffix ? ": " : "",
+						bd->be_suffix ? bd->be_suffix[0].bv_val : "" );
+				rc = 1;
+				goto destroy;
+			}
+		}
+	}
 
 	argv = &argv[ optind ];
 	argc -= optind;
@@ -338,6 +353,12 @@ destroy:;
 		}
 		if ( doclose ) {
 			be->be_entry_close( be );
+		}
+
+		LDAP_STAILQ_FOREACH( bd, &backendDB, be_next ) {
+			if ( bd != be ) {
+				backend_shutdown( bd );
+			}
 		}
 	}
 
