@@ -177,11 +177,22 @@ do_add( Operation *op, SlapReply *rs )
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
 	if ( rc == 0 ) {
-		if ( op->ora_e ) {
+		/* FIXME: temporary? */
+		assert( op->ora_e != NULL );
+		assert( op->o_private != NULL );
+		
+		if ( op->ora_e != NULL ) {
+			BackendDB	*bd = op->o_bd;
+
+			op->o_bd = (BackendDB *)op->o_private;
+			op->o_private = NULL;
+
 			be_entry_release_w( op, op->ora_e );
+
 			op->ora_e = NULL;
+			op->o_bd = bd;
+			op->o_private = NULL;
 		}
-		op->ora_e = NULL;
 	}
 
 done:;
@@ -338,12 +349,12 @@ fe_op_add( Operation *op, SlapReply *rs )
 				op->o_callback = &cb;
 			}
 			rc = op->o_bd->be_add( op, rs );
-			if ( rc != 0 ) {
+			if ( rc == LDAP_SUCCESS ) {
 				/* NOTE: be_entry_release_w() is
 				 * called by do_add(), so that global
 				 * overlays on the way back can
 				 * at least read the entry */
-				op->ora_e = NULL;
+				op->o_private = op->o_bd;
 			}
 
 #ifndef SLAPD_MULTIMASTER
