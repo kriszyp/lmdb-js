@@ -1040,6 +1040,9 @@
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DYNGROUP
 
+/* define for Dynamic List overlay */
+#undef SLAPD_OVER_DYNLIST
+
 /* define for Backend Glue overlay */
 #undef SLAPD_OVER_GLUE
 
