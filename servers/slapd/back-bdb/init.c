@@ -373,7 +373,7 @@ bdb_db_open( BackendDB *be )
 	/* If we're in server mode and time-based checkpointing is enabled,
 	 * submit a task to perform periodic checkpoints.
 	 */
-	if ( slapMode & SLAP_SERVER_MODE && bdb->bi_txn_cp &&
+	if (( slapMode & SLAP_SERVER_MODE ) && bdb->bi_txn_cp &&
 		bdb->bi_txn_cp_min )  {
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		ldap_pvt_runqueue_insert( &slapd_rq, bdb->bi_txn_cp_min*60,
