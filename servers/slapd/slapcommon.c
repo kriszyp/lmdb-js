@@ -516,7 +516,7 @@ slap_tool_init(
 		/* If the named base is a glue master, operate on the
 		 * entire context
 		 */
-		if (SLAP_GLUE_INSTANCE(be)) {
+		if ( SLAP_GLUE_INSTANCE( be ) ) {
 			nosubordinates = 1;
 		}
 
@@ -577,7 +577,6 @@ startup:;
 #endif
 
 	if ( !dryrun && slap_startup( be ) ) {
-
 		switch ( tool ) {
 		case SLAPTEST:
 			fprintf( stderr, "slap_startup failed "

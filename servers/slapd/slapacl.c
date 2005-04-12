@@ -70,6 +70,7 @@ slapacl( int argc, char **argv )
 	Operation		*op;
 	Entry			e = { 0 }, *ep = &e;
 	char			*attr = NULL;
+	int			doclose = 0;
 
 	slap_tool_init( progname, SLAPACL, argc, argv );
 
@@ -166,6 +167,26 @@ slapacl( int argc, char **argv )
 		fprintf( stderr, "authzDN: \"%s\"\n", authzDN.bv_val );
 	}
 
+	if ( !BER_BVISNULL( &authzDN ) ) {
+		op->o_dn = authzDN;
+		op->o_ndn = authzDN;
+		
+		if ( !BER_BVISNULL( &authcDN ) ) {
+			op->o_conn->c_dn = authcDN;
+			op->o_conn->c_ndn = authcDN;
+
+		} else {
+			op->o_conn->c_dn = authzDN;
+			op->o_conn->c_ndn = authzDN;
+		}
+
+	} else if ( !BER_BVISNULL( &authcDN ) ) {
+		op->o_conn->c_dn = authcDN;
+		op->o_conn->c_ndn = authcDN;
+		op->o_dn = authcDN;
+		op->o_ndn = authcDN;
+	}
+
 	assert( !BER_BVISNULL( &baseDN ) );
 	rc = dnPrettyNormal( NULL, &baseDN, &e.e_name, &e.e_nname, NULL );
 	if ( rc != LDAP_SUCCESS ) {
@@ -177,15 +198,6 @@ slapacl( int argc, char **argv )
 	}
 
 	op->o_bd = be;
-	if ( !BER_BVISNULL( &authzDN ) ) {
-		op->o_dn = authzDN;
-		op->o_ndn = authzDN;
-	}
-	if ( !BER_BVISNULL( &authcDN ) ) {
-		op->o_conn->c_dn = authcDN;
-		op->o_conn->c_ndn = authcDN;
-	}
-
 	if ( !dryrun && be ) {
 		ID	id;
 
@@ -208,6 +220,8 @@ slapacl( int argc, char **argv )
 			rc = 1;
 			goto destroy;
 		}
+
+		doclose = 1;
 
 		id = be->be_dn2id_get( be, &e.e_nname );
 		if ( id == NOID ) {
@@ -312,13 +326,19 @@ slapacl( int argc, char **argv )
 	}
 
 destroy:;
-	ber_memfree( e.e_name.bv_val );
-	ber_memfree( e.e_nname.bv_val );
+	if ( !BER_BVISNULL( &e.e_name ) ) {
+		ber_memfree( e.e_name.bv_val );
+	}
+	if ( !BER_BVISNULL( &e.e_nname ) ) {
+		ber_memfree( e.e_nname.bv_val );
+	}
 	if ( !dryrun && be ) {
 		if ( ep != &e ) {
 			be_entry_release_r( op, ep );
 		}
-		be->be_entry_close( be );
+		if ( doclose ) {
+			be->be_entry_close( be );
+		}
 	}
 
 	slap_tool_destroy();
