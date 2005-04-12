@@ -27,6 +27,7 @@
 
 #include "slap.h"
 #include "back-ldbm.h"
+#include <ldap_rq.h>
 
 DBCache *
 ldbm_cache_open(
@@ -264,10 +265,16 @@ ldbm_cache_sync( Backend *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		i;
+	int		do_log = 1;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		if ( li->li_dbcache[i].dbc_name != NULL && li->li_dbcache[i].dbc_dirty ) {
+			if ( do_log ) {
+				do_log = 0;
+				Debug( LDAP_DEBUG_TRACE, "syncing %s\n",
+					li->li_directory, 0, 0 );
+			}
 			Debug(	LDAP_DEBUG_TRACE, "ldbm syncing db (%s)\n",
 				li->li_dbcache[i].dbc_name, 0, 0 );
 			ldbm_sync( li->li_dbcache[i].dbc_db );
@@ -320,32 +327,30 @@ ldbm_cache_delete(
 
 void *
 ldbm_cache_sync_daemon(
-	void *be_ptr
+	void *ctx,
+	void *arg
 )
 {
-	Backend *be = (Backend *)be_ptr;
+	struct re_s *rtask = arg;
+	Backend *be = rtask->arg;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	Debug( LDAP_DEBUG_ANY, "synchronizer starting for %s\n", li->li_directory, 0, 0 );
-  
-	while (!li->li_dbshutdown) {
-		int i = li->li_dbsyncwaitn;
-
-		sleep( li->li_dbsyncfreq );
-
-		while (i && ldap_pvt_thread_pool_backload(&connection_pool) != 0) {
-			Debug( LDAP_DEBUG_TRACE, "delay syncing %s\n", li->li_directory, 0, 0 );
-			sleep(li->li_dbsyncwaitinterval);
-			i--;
-		}
-
-		if (!li->li_dbshutdown) {
-			Debug( LDAP_DEBUG_TRACE, "syncing %s\n", li->li_directory, 0, 0 );
-			ldbm_cache_sync( be );
-		}
+	/* If server is idle, or we've already waited the limit */
+	if ( li->li_dbsyncwaitcount == li->li_dbsyncwaitn || 
+		ldap_pvt_thread_pool_backload(&connection_pool) < 2 ) {
+		rtask->interval.tv_sec = li->li_dbsyncfreq;
+		li->li_dbsyncwaitcount = 0;
+		ldbm_cache_sync( be );
+	} else {
+		rtask->interval.tv_sec = li->li_dbsyncwaitinterval;
+		li->li_dbsyncwaitcount++;
+		Debug( LDAP_DEBUG_TRACE, "delay #%d syncing %s\n", 
+			li->li_dbsyncwaitcount, li->li_directory, 0 );
 	}
 
-  	Debug( LDAP_DEBUG_ANY, "synchronizer stopping\n", 0, 0, 0 );
-  
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+	ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	return NULL;
 }

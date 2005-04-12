@@ -151,8 +151,7 @@ struct ldbminfo {
 	int			li_dbsyncfreq;
 	int			li_dbsyncwaitn;
 	int			li_dbsyncwaitinterval;
-	ldap_pvt_thread_t	li_dbsynctid;
-	int			li_dbshutdown;
+	int			li_dbsyncwaitcount;
 };
 
 LDAP_END_DECL
