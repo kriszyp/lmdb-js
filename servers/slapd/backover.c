@@ -248,6 +248,7 @@ static int op_rc[] = {
 	SLAP_CB_CONTINUE		/* aux_chk_controls; pass to frontend */
 };
 
+#ifdef SLAP_OVERLAY_ACCESS
 static int
 over_access_allowed(
 	Operation		*op,
@@ -270,14 +271,14 @@ over_access_allowed(
 	oi = op->o_bd->bd_info->bi_private;
 	on = oi->oi_list;
 
- 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
- 		db = *op->o_bd;
-		db.be_flags |= SLAP_DBFLAG_OVERLAY;
-		op->o_bd = &db;
-	}
-
 	for ( ; on; on = on->on_next ) {
 		if ( on->on_bi.bi_access_allowed ) {
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
 			op->o_bd->bd_info = (BackendInfo *)on;
 			rc = on->on_bi.bi_access_allowed( op, e,
 				desc, val, access, state, maskp );
@@ -286,6 +287,12 @@ over_access_allowed(
 	}
 
 	if ( rc == SLAP_CB_CONTINUE && oi->oi_orig->bi_access_allowed ) {
+		if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 			db = *op->o_bd;
+			db.be_flags |= SLAP_DBFLAG_OVERLAY;
+			op->o_bd = &db;
+		}
+
 		op->o_bd->bd_info = oi->oi_orig;
 		rc = oi->oi_orig->bi_access_allowed( op, e,
 			desc, val, access, state, maskp );
@@ -299,6 +306,7 @@ over_access_allowed(
 	op->o_bd = be;
 	return rc;
 }
+#endif /* SLAP_OVERLAY_ACCESS */
 
 static int
 over_op_func(
@@ -684,8 +692,10 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_chk_referrals = over_aux_chk_referrals;
 		bi->bi_chk_controls = over_aux_chk_controls;
 
+#ifdef SLAP_OVERLAY_ACCESS
 		/* this has a specific arglist */
 		bi->bi_access_allowed = over_access_allowed;
+#endif /* SLAP_OVERLAY_ACCESS */
 		
 		bi->bi_connection_destroy = over_connection_destroy;
 

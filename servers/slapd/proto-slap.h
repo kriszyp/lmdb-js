@@ -41,6 +41,17 @@ LDAP_SLAPD_F (int) access_allowed_mask LDAP_P((
 	AccessControlState *state,
 	slap_mask_t *mask ));
 #define access_allowed(op,e,desc,val,access,state) access_allowed_mask(op,e,desc,val,access,state,NULL)
+#ifdef SLAP_OVERLAY_ACCESS
+LDAP_SLAPD_F (int) slap_access_always_allowed LDAP_P((
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp ));
+#endif /* SLAP_OVERLAY_ACCESS */
+
 LDAP_SLAPD_F (int) acl_check_modlist LDAP_P((
 	Operation *op, Entry *e, Modifications *ml ));
 

@@ -155,7 +155,23 @@ static int aci_match_set ( struct berval *subj, Operation *op,
  * - can be legally called with op->o_bd == NULL
  */
 
-#ifdef LDAP_DEVEL
+#ifdef SLAP_OVERLAY_ACCESS
+int
+slap_access_always_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	assert( maskp );
+
+	ACL_PRIV_SET( *maskp, ACL_ACCESS2PRIV( access ) );
+
+	return 1;
+}
 
 static int
 slap_access_allowed(
@@ -467,7 +483,8 @@ done:
 	return ret;
 }
 
-#else /* !LDAP_DEVEL */
+#else /* !SLAP_OVERLAY_ACCESS */
+
 int
 access_allowed_mask(
 	Operation		*op,
@@ -741,7 +758,7 @@ done:
 	return ret;
 }
 
-#endif /* LDAP_DEVEL */
+#endif /* SLAP_OVERLAY_ACCESS */
 
 /*
  * acl_get - return the acl applicable to entry e, attribute

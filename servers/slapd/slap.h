@@ -63,6 +63,7 @@ LDAP_BEGIN_DECL
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
 #define SLAP_ACL_HONOR_MANAGE	/* not yet implemented */
 #define SLAP_DYNACL
+#define SLAP_OVERLAY_ACCESS
 #define LDAP_COMP_MATCH
 #define LDAP_DYNAMIC_OBJECTS
 #define LDAP_SYNC_TIMESTAMP
@@ -1986,9 +1987,11 @@ typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
 typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
 	Entry *e, int *hasSubs ));
+#ifdef SLAP_OVERLAY_ACCESS
 typedef int (BI_access_allowed) LDAP_P(( struct slap_op *op, Entry *e,
 	AttributeDescription *desc, struct berval *val, slap_access_t access,
 	AccessControlState *state, slap_mask_t *maskp ));
+#endif /* SLAP_OVERLAY_ACCESS */
 
 typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
 	struct slap_conn *c ));
@@ -2090,7 +2093,9 @@ struct slap_backend_info {
 	BI_entry_release_rw	*bi_entry_release_rw;
 
 	BI_has_subordinates	*bi_has_subordinates;
+#ifdef SLAP_OVERLAY_ACCESS
 	BI_access_allowed	*bi_access_allowed;
+#endif /* SLAP_OVERLAY_ACCESS */
 
 	BI_connection_init	*bi_connection_init;
 	BI_connection_destroy	*bi_connection_destroy;
