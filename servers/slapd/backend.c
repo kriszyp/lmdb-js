@@ -123,12 +123,6 @@ int backend_init(void)
 			return rc;
 		}
 
-#ifdef SLAP_OVERLAY_ACCESS
-		if ( bi->bi_access_allowed == NULL ) {
-			bi->bi_access_allowed = slap_access_allowed;
-		}
-#endif /* SLAP_OVERLAY_ACCESS */
-
 		LDAP_STAILQ_INSERT_TAIL(&backendInfo, bi, bi_next);
 	}
 
@@ -166,12 +160,6 @@ int backend_add(BackendInfo *aBackendInfo)
 			aBackendInfo->bi_type, 0, 0 );
 		return rc;
 	}
-
-#ifdef SLAP_OVERLAY_ACCESS
-	if ( aBackendInfo->bi_access_allowed == NULL ) {
-		aBackendInfo->bi_access_allowed = slap_access_allowed;
-	}
-#endif /* SLAP_OVERLAY_ACCESS */
 
 	(void)backend_init_controls( aBackendInfo );
 

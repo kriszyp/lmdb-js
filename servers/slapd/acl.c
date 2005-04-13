@@ -303,13 +303,13 @@ slap_access_allowed(
 				( state->as_recorded & ACL_STATE_RECORDED_NV ) )
 			{
 				Debug( LDAP_DEBUG_ACL,
-					"slap_access_allowed: result from state (%s)\n",
+					"=> slap_access_allowed: result from state (%s)\n",
 					attr, 0, 0 );
 				ret = state->as_result;
 				goto done;
 			} else {
 				Debug( LDAP_DEBUG_ACL,
-					"slap_access_allowed: no res from state (%s)\n",
+					"=> slap_access_allowed: no res from state (%s)\n",
 					attr, 0, 0 );
 			}
 		}
@@ -442,10 +442,15 @@ access_allowed_mask(
 	assert( op->o_bd != NULL );
 
 	/* this is enforced in backend_add() */
-	assert( op->o_bd->bd_info->bi_access_allowed );
+	if ( op->o_bd->bd_info->bi_access_allowed ) {
+		/* delegate to backend */
+		ret = op->o_bd->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
 
-	/* delegate to backend */
-	ret = op->o_bd->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
+	} else {
+		/* use default */
+		ret = slap_access_allowed( op, e, desc, val, access, state, &mask );
+	}
+
 	if ( !ret ) {
 		if ( ACL_IS_INVALID( mask ) ) {
 			Debug( LDAP_DEBUG_ACL,

@@ -117,10 +117,6 @@ frontend_init( void )
 	frontendDB->bd_info->bi_op_search = fe_op_search;
 	frontendDB->bd_info->bi_extended = fe_extended;
 
-#ifdef SLAP_OVERLAY_ACCESS
-	frontendDB->bd_info->bi_access_allowed = slap_access_allowed;
-#endif /* SLAP_OVERLAY_ACCESS */
-
 #if 0
 	/* FIXME: is this too early? */
 	return backend_startup_one( frontendDB );
