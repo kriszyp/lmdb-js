@@ -171,63 +171,6 @@ bdb_db_open( BackendDB *be )
 		bdb->bi_idl_cache_size = 0;
 	}
 
-#ifdef BDB_SUBDIRS
-	{
-		char dir[MAXPATHLEN], *ptr;
-		
-		if (bdb->bi_dbenv_home[0] == '.') {
-			/* If home is a relative path, relative subdirs
-			 * are just concat'd by BDB. We don't want the
-			 * path to be concat'd twice, e.g.
-			 * ./test-db/./test-db/tmp
-			 */
-			ptr = dir;
-		} else {
-			ptr = lutil_strcopy( dir, bdb->bi_dbenv_home );
-			*ptr++ = LDAP_DIRSEP[0];
-#ifdef HAVE_EBCDIC
-			__atoe( dir );
-#endif
-		}
-
-		strcpy( ptr, BDB_TMP_SUBDIR );
-#ifdef HAVE_EBCDIC
-		__atoe( ptr );
-#endif
-		rc = bdb->bi_dbenv->set_tmp_dir( bdb->bi_dbenv, dir );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: set_tmp_dir(%s) failed: %s (%d)\n",
-				dir, db_strerror(rc), rc );
-			return rc;
-		}
-
-		strcpy( ptr, BDB_LG_SUBDIR );
-#ifdef HAVE_EBCDIC
-		__atoe( ptr );
-#endif
-		rc = bdb->bi_dbenv->set_lg_dir( bdb->bi_dbenv, dir );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: set_lg_dir(%s) failed: %s (%d)\n",
-				dir, db_strerror(rc), rc );
-			return rc;
-		}
-
-		strcpy( ptr, BDB_DATA_SUBDIR );
-#ifdef HAVE_EBCDIC
-		__atoe( ptr );
-#endif
-		rc = bdb->bi_dbenv->set_data_dir( bdb->bi_dbenv, dir );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_open: set_data_dir(%s) failed: %s (%d)\n",
-				dir, db_strerror(rc), rc );
-			return rc;
-		}
-	}
-#endif
-
 	if( bdb->bi_dbenv_xflags != 0 ) {
 		rc = bdb->bi_dbenv->set_flags( bdb->bi_dbenv,
 			bdb->bi_dbenv_xflags, 1);
