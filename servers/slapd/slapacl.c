@@ -222,8 +222,17 @@ slapacl( int argc, char **argv )
 		op->o_bd = frontendDB;
 	}
 
-	if ( !dryrun && be ) {
+	if ( !dryrun ) {
 		ID	id;
+
+		if ( be == NULL ) {
+			fprintf( stderr, "%s: no target database "
+				"has been found for baseDN=\"%s\"; "
+				"you may try with \"-u\" (dry run).\n",
+				baseDN.bv_val, progname );
+			rc = 1;
+			goto destroy;
+		}
 
 		if ( !be->be_entry_open ||
 			!be->be_entry_close ||
