@@ -205,7 +205,7 @@ static OidRec OidMacros[] = {
 	{ "OLcfgDbOc", "OLcfgOc:2" },
 	{ "OLcfgOvOc", "OLcfgOc:3" },
 	{ "OMsyn", "1.3.6.1.4.1.1466.115.121.1" },
-	{ "OMsInteger", "OMsyn:2" },
+	{ "OMsInteger", "OMsyn:27" },
 	{ "OMsBoolean", "OMsyn:7" },
 	{ "OMsDN", "OMsyn:12" },
 	{ "OMsDirectoryString", "OMsyn:15" },
