@@ -2872,13 +2872,15 @@ config_send( Operation *op, SlapReply *rs, CfEntryInfo *ce, int depth )
 }
 
 static ConfigTable *
-config_find_table( CfOcInfo *co, AttributeDescription *ad )
+config_find_table( CfOcInfo **colst, int nocs, AttributeDescription *ad )
 {
-	int i;
+	int i, j;
 
-	for (i=0; co->co_table[i].name; i++)
-		if ( co->co_table[i].ad == ad )
-			return &co->co_table[i];
+	for (j=0; j<nocs; j++) {
+		for (i=0; colst[j]->co_table[i].name; i++)
+			if ( colst[j]->co_table[i].ad == ad )
+				return &colst[j]->co_table[i];
+	}
 	return NULL;
 }
 
@@ -3022,18 +3024,32 @@ sort_attrs( Entry *e, CfOcInfo **colst, int nocs )
 }
 
 static int
-check_attr( ConfigTable *ct, ConfigArgs *ca, Attribute *a )
+check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 {
+	Attribute *a = NULL;
+	AttributeDescription *ad;
+	BerVarray vals;
+
 	int i, rc = 0, sort = 0;
 
-	if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+	if ( isAttr ) {
+		a = ptr;
+		ad = a->a_desc;
+		vals = a->a_vals;
+	} else {
+		Modifications *ml = ptr;
+		ad = ml->sml_desc;
+		vals = ml->sml_values;
+	}
+
+	if ( a && ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 		sort = 1;
 		rc = sort_vals( a );
 		if ( rc )
 			return rc;
 	}
-	for ( i=0; a->a_nvals[i].bv_val; i++ ) {
-		ca->line = a->a_nvals[i].bv_val;
+	for ( i=0; vals[i].bv_val; i++ ) {
+		ca->line = vals[i].bv_val;
 		if ( sort ) ca->line = strchr( ca->line, '}' ) + 1;
 		rc = config_parse_vals( ct, ca, i );
 		if ( rc )
@@ -3165,12 +3181,42 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 	return 0;
 }
 
+static CfOcInfo **
+count_ocs( Attribute *oc_at, int *nocs )
+{
+	int i, j, n;
+	CfOcInfo co, *coptr, **colst;
+
+	/* count the objectclasses */
+	for ( i=0; oc_at->a_nvals[i].bv_val; i++ );
+	n = i;
+	colst = (CfOcInfo **)ch_malloc( n * sizeof(CfOcInfo *));
+
+	for ( i=0, j=0; i<n; i++) {
+		co.co_name = &oc_at->a_nvals[i];
+		coptr = avl_find( CfOcTree, &co, CfOcInfo_cmp );
+		
+		/* ignore non-config objectclasses. probably should be
+		 * an error, general data doesn't belong here.
+		 */
+		if ( !coptr ) continue;
+
+		/* Ignore the root objectclass, it has no implementation.
+		 */
+		if ( coptr->co_type == Cft_Abstract ) continue;
+		colst[j++] = coptr;
+	}
+	*nocs = j;
+	return colst;
+}
+
+	/* Only the root can be Cft_Global, everything else must
 /* Parse an LDAP entry into config directives */
 static int
 config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 {
 	CfEntryInfo *ce, *last;
-	CfOcInfo co, *coptr, **colst = NULL;
+	CfOcInfo **colst;
 	Attribute *a, *oc_at, *type_attr;
 	AttributeDescription *type_ad = NULL;
 	int i, j, nocs, rc;
@@ -3198,26 +3244,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
 
-	/* count the objectclasses */
-	for ( i=0; oc_at->a_nvals[i].bv_val; i++ );
-	nocs = i;
-	colst = (CfOcInfo **)ch_malloc( nocs * sizeof(CfOcInfo *));
-
-	for ( i=0, j=0; i<nocs; i++) {
-		co.co_name = &oc_at->a_nvals[i];
-		coptr = avl_find( CfOcTree, &co, CfOcInfo_cmp );
-		
-		/* ignore non-config objectclasses. probably should be
-		 * an error, general data doesn't belong here.
-		 */
-		if ( !coptr ) continue;
-
-		/* Ignore the root objectclass, it has no implementation.
-		 */
-		if ( coptr->co_type == Cft_Abstract ) continue;
-		colst[j++] = coptr;
-	}
-	nocs = j;
+	colst = count_ocs( oc_at, &nocs );
 
 	/* Only the root can be Cft_Global, everything else must
 	 * have a parent. Only limited nesting arrangements are allowed.
@@ -3347,26 +3374,19 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 			rc = LDAP_OBJECT_CLASS_VIOLATION;
 			goto leave;
 		}
-		for ( i=0; i<nocs; i++ ) {
-			type_ct = config_find_table( colst[i], type_ad );
-			if ( type_ct ) break;
-		}
+		type_ct = config_find_table( colst, nocs, type_ad );
 		if ( !type_ct ) {
 			rc = LDAP_OBJECT_CLASS_VIOLATION;
 			goto leave;
 		}
-		rc = check_attr( type_ct, &ca, type_attr );
+		rc = check_vals( type_ct, &ca, type_attr, 1);
 		if ( rc ) goto leave;
 	}
 	for ( a=e->e_attrs; a; a=a->a_next ) {
 		if ( a == type_attr || a == oc_at ) continue;
-		ct = NULL;
-		for ( i=0; i<nocs; i++ ) {
-			ct = config_find_table( colst[i], a->a_desc );
-			if ( ct ) break;
-		}
+		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
-		rc = check_attr( ct, &ca, a );
+		rc = check_vals( ct, &ca, a, 1 );
 		if ( rc ) goto leave;
 	}
 
@@ -3383,11 +3403,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	}
 	for ( a=e->e_attrs; a; a=a->a_next ) {
 		if ( a == type_attr || a == oc_at ) continue;
-		ct = NULL;
-		for ( i=0; i<nocs; i++ ) {
-			ct = config_find_table( colst[i], a->a_desc );
-			if ( ct ) break;
-		}
+		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
 			ca.line = a->a_vals[i].bv_val;
@@ -3471,19 +3487,117 @@ out:
 	return rs->sr_err;
 }
 
-/* Modify rules:
- *  for single-valued attributes, should just use REPLACE.
- *    any received DELETE/ADD on a single-valued attr will
- *      be checked (if a DEL value is provided) and then
- *      rewritten as a REPLACE.
- *    any DELETE received without a corresponding ADD will be
- *      rejected with LDAP_CONSTRAINT_VIOLATION.
- */
+static int
+config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
+	char *textbuf, int textsize )
+{
+	CfBackInfo *cfb = (CfBackInfo *)op->o_bd->be_private;
+	int rc = LDAP_UNWILLING_TO_PERFORM;
+	Modifications *ml;
+	Entry *e = ce->ce_entry;
+	Attribute *save_attrs = e->e_attrs, *oc_at;
+	ConfigArgs ca = {0};
+	ConfigTable *ct;
+	CfOcInfo **colst;
+	int i, nocs;
+
+	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
+	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
+
+	colst = count_ocs( oc_at, &nocs );
+
+	e->e_attrs = attrs_dup( e->e_attrs );
+	init_config_argv( &ca );
+
+	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
+		switch (ml->sml_op) {
+		case LDAP_MOD_DELETE:
+		case LDAP_MOD_REPLACE: {
+			BerVarray vals = NULL, nvals;
+			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
+				vals = ml->sml_values;
+				nvals = ml->sml_nvalues;
+				ml->sml_values = NULL;
+				ml->sml_nvalues = NULL;
+			}
+			rc = modify_delete_values(e, &ml->sml_mod,
+				get_permissiveModify(op),
+				&rs->sr_text, textbuf, textsize );
+			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
+				ml->sml_values = vals;
+				ml->sml_nvalues = nvals;
+			}
+			if ( !vals )
+				break;
+			}
+			/* FALLTHRU: LDAP_MOD_REPLACE && vals */
+
+		case LDAP_MOD_ADD:
+		case SLAP_MOD_SOFTADD: {
+			int mop = ml->sml_op;
+			ml->sml_op = LDAP_MOD_ADD;
+			for ( i=0; !BER_BVISNULL( &ml->sml_values[i] ); i++ ) {
+				ct = config_find_table( colst, nocs, ml->sml_desc );
+				if ( !ct ) continue;
+				rc = check_vals( ct, &ca, ml, 0 );
+				if ( rc ) goto out;
+			}
+			rc = modify_add_values(e, &ml->sml_mod,
+				   get_permissiveModify(op),
+				   &rs->sr_text, textbuf, textsize );
+			ml->sml_op = mop;
+			if ( mop == SLAP_MOD_SOFTADD && rc == LDAP_TYPE_OR_VALUE_EXISTS )
+				rc = LDAP_SUCCESS;
+			}
+			break;
+
+			break;
+		case LDAP_MOD_INCREMENT:	/* FIXME */
+			break;
+		default:
+			break;
+		}
+		if(rc != LDAP_SUCCESS) break;
+	}
+	
+	if(rc == LDAP_SUCCESS) {
+		/* check that the entry still obeys the schema */
+		rc = entry_schema_check(op->o_bd, e, NULL,
+				  &rs->sr_text, textbuf, textsize );
+	}
+	if ( rc == LDAP_SUCCESS ) {
+		/* Basic syntax checks are OK. Do the actual settings. */
+		for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+			/* Ignore single-value deletes */
+			if ( is_at_single_value( ml->sml_desc->ad_type ) &&
+				ml->sml_op == LDAP_MOD_DELETE ) continue;
+			
+			ct = config_find_table( colst, nocs, ml->sml_desc );
+			if ( !ct ) continue;
+		}
+	}
+
+out:
+	if ( rc == LDAP_SUCCESS ) {
+		attrs_free( save_attrs );
+	} else {
+		attrs_free( e->e_attrs );
+		e->e_attrs = save_attrs;
+	}
+
+	return rc;
+}
+
 static int
 config_back_modify( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
+	Modifications *ml;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	struct berval rdn;
+	char *ptr;
+	AttributeDescription *rad = NULL;
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -3499,6 +3613,40 @@ config_back_modify( Operation *op, SlapReply *rs )
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		goto out;
 	}
+
+	/* Get type of RDN */
+	rdn = ce->ce_entry->e_nname;
+	ptr = strchr( rdn.bv_val, '=' );
+	rdn.bv_len = ptr - rdn.bv_val;
+	slap_bv2ad( &rdn, &rad, &rs->sr_text );
+
+	/* Some basic validation... */
+	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+		/* Braindead single-value check - the ADD must immediately follow
+		 * the DELETE. We don't check that there's only one ADD; for multiple
+		 * ADDs only the last one will be saved. The drivers don't distinguish
+		 * ADD from REPLACE.
+		 */
+		if ( is_at_single_value( ml->sml_desc->ad_type )) {
+			if (( ml->sml_op == LDAP_MOD_DELETE &&
+				( !ml->sml_next || ml->sml_next->sml_desc != ml->sml_desc ||
+				ml->sml_next->sml_op != LDAP_MOD_ADD )) ||
+
+				/* Also check for REPLACE with no values */
+				( ml->sml_op == LDAP_MOD_REPLACE && !ml->sml_values )) {
+				rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+				rs->sr_text = "Single-Value Delete must be followed by Add";
+				goto out;
+			}
+		}
+		/* Don't allow Modify of RDN; must use ModRdn for that. */
+		if ( ml->sml_desc == rad ) {
+			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
+			rs->sr_text = "Use modrdn to change the entry name";
+			goto out;
+		}
+	}
+
 	ldap_pvt_thread_pool_pause( &connection_pool );
 
 	/* Strategy:
@@ -3507,6 +3655,8 @@ config_back_modify( Operation *op, SlapReply *rs )
 	 * 3) perform the individual config operations.
 	 * 4) store Modified entry in underlying LDIF backend.
 	 */
+	rs->sr_err = config_modify_internal( ce, op, rs, textbuf, sizeof(textbuf) );
+
 	ldap_pvt_thread_pool_resume( &connection_pool );
 out:
 	send_ldap_result( op, rs );
