@@ -340,6 +340,10 @@ int bdb_index_values(
 {
 	int rc;
 
+	/* Never index ID 0 */
+	if ( id == 0 )
+		return 0;
+
 	rc = index_at_values( op, txn, desc,
 		desc->ad_type, &desc->ad_tags,
 		vals, id, opid );
