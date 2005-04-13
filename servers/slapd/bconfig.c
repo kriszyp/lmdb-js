@@ -3721,6 +3721,16 @@ config_back_modify( Operation *op, SlapReply *rs )
 	 * 4) store Modified entry in underlying LDIF backend.
 	 */
 	rs->sr_err = config_modify_internal( ce, op, rs, textbuf, sizeof(textbuf) );
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		BackendDB *be = op->o_bd;
+		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
+		op->o_bd = &cfb->cb_db;
+		sc.sc_next = op->o_callback;
+		op->o_callback = &sc;
+		op->o_bd->be_modify( op, rs );
+		op->o_bd = be;
+		op->o_callback = sc.sc_next;
+	}
 
 	ldap_pvt_thread_pool_resume( &connection_pool );
 out:
