@@ -465,12 +465,12 @@ config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
 }
 
 int
-config_parse_add(ConfigTable *ct, ConfigArgs *c, int valx)
+config_parse_add(ConfigTable *ct, ConfigArgs *c)
 {
 	int rc = 0;
 
 	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
-		ct->ad->ad_cname.bv_val, valx );
+		ct->ad->ad_cname.bv_val, c->valx );
 	c->argc = 1;
 	c->argv[0] = ct->ad->ad_cname.bv_val;
 	if ( fp_parse_line( c ) ) {

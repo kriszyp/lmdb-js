@@ -3050,7 +3050,10 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
 		ca->line = vals[i].bv_val;
-		if ( sort ) ca->line = strchr( ca->line, '}' ) + 1;
+		if ( sort ) {
+			char *idx = strchr( ca->line, '}' );
+			if ( idx ) ca->line = idx+1;
+		}
 		rc = config_parse_vals( ct, ca, i );
 		if ( rc )
 			break;
@@ -3222,8 +3225,8 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	int i, j, nocs, rc;
 	ConfigArgs ca = {0};
 	struct berval pdn;
-	Entry *xe = NULL;
 	ConfigTable *ct, *type_ct = NULL;
+	char *ptr;
 
 	/* Make sure parent exists and entry does not */
 	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
@@ -3393,9 +3396,12 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	/* Basic syntax checks are OK. Do the actual settings. */
 	if ( type_ct ) {
 		ca.line = type_attr->a_vals[0].bv_val;
-		if ( type_ad->ad_type->sat_flags & SLAP_AT_ORDERED )
-			ca.line = strchr( ca.line, '}' ) + 1;
-		rc = config_parse_add( type_ct, &ca, 0 );
+		if ( type_ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+			ptr = strchr( ca.line, '}' );
+			if ( ptr ) ca.line = ptr+1;
+		}
+		ca.valx = 0;
+		rc = config_parse_add( type_ct, &ca );
 		if ( rc ) {
 			rc = LDAP_OTHER;
 			goto leave;
@@ -3407,9 +3413,12 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
 			ca.line = a->a_vals[i].bv_val;
-			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED )
-				ca.line = strchr( ca.line, '}' ) + 1;
-			rc = config_parse_add( ct, &ca, i );
+			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+				ptr = strchr( ca.line, '}' );
+				if ( ptr ) ca.line = ptr+1;
+			}
+			ca.valx = i;
+			rc = config_parse_add( ct, &ca );
 			if ( rc ) {
 				rc = LDAP_OTHER;
 				goto leave;
@@ -3422,6 +3431,8 @@ ok:
 	ce->ce_entry = entry_dup( e );
 	ce->ce_entry->e_private = ce;
 	ce->ce_type = colst[0]->co_type;
+	ce->ce_be = ca.be;
+	ce->ce_bi = ca.bi;
 	if ( !last ) {
 		cfb->cb_root = ce;
 	} else if ( last->ce_kids ) {
@@ -3500,6 +3511,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	ConfigTable *ct;
 	CfOcInfo **colst;
 	int i, nocs;
+	char *ptr;
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
@@ -3507,7 +3519,10 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	colst = count_ocs( oc_at, &nocs );
 
 	e->e_attrs = attrs_dup( e->e_attrs );
+
 	init_config_argv( &ca );
+	ca.be = ce->ce_be;
+	ca.bi = ce->ce_bi;
 
 	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
 		switch (ml->sml_op) {
@@ -3545,11 +3560,19 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			rc = modify_add_values(e, &ml->sml_mod,
 				   get_permissiveModify(op),
 				   &rs->sr_text, textbuf, textsize );
-			ml->sml_op = mop;
-			if ( mop == SLAP_MOD_SOFTADD && rc == LDAP_TYPE_OR_VALUE_EXISTS )
-				rc = LDAP_SUCCESS;
+
+			/* If value already exists, show success here
+			 * and ignore this operation down below.
+			 */
+			if ( mop == SLAP_MOD_SOFTADD ) {
+				if ( rc == LDAP_TYPE_OR_VALUE_EXISTS )
+					rc = LDAP_SUCCESS;
+				else
+					mop = LDAP_MOD_ADD;
 			}
+			ml->sml_op = mop;
 			break;
+			}
 
 			break;
 		case LDAP_MOD_INCREMENT:	/* FIXME */
@@ -3574,6 +3597,46 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			
 			ct = config_find_table( colst, nocs, ml->sml_desc );
 			if ( !ct ) continue;
+
+			switch (ml->sml_op) {
+			case LDAP_MOD_DELETE:
+			case LDAP_MOD_REPLACE: {
+				BerVarray vals = NULL, nvals;
+				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
+					vals = ml->sml_values;
+					nvals = ml->sml_nvalues;
+					ml->sml_values = NULL;
+					ml->sml_nvalues = NULL;
+				}
+#if 0
+				rc = config_del_vals( ct, &ca, ml->sml_values );
+#endif
+				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
+					ml->sml_values = vals;
+					ml->sml_nvalues = nvals;
+				}
+				if ( !vals )
+					break;
+				}
+				/* FALLTHRU: LDAP_MOD_REPLACE && vals */
+
+			case LDAP_MOD_ADD:
+				for (i=0; ml->sml_values[i].bv_val; i++) {
+					ca.line = ml->sml_values[i].bv_val;
+					if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+						ptr = strchr( ca.line, '}' );
+						if ( ptr ) ca.line = ptr+1;
+					}
+					ca.valx = i;
+					rc = config_parse_add( ct, &ca );
+					if ( rc ) {
+						rc = LDAP_OTHER;
+						goto out;
+					}
+				}
+
+				break;
+			}
 		}
 	}
 
@@ -3584,6 +3647,8 @@ out:
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
 	}
+	ch_free( ca.argv );
+	if ( colst ) ch_free( colst );
 
 	return rc;
 }
