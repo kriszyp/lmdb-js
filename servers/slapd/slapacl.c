@@ -86,6 +86,8 @@ slapacl( int argc, char **argv )
 				rc = 1;
 				goto destroy;
 			}
+
+			i++;
 		}
 	}
 
@@ -213,6 +215,13 @@ slapacl( int argc, char **argv )
 	}
 
 	op->o_bd = be;
+	if ( op->o_bd == NULL ) {
+		/* NOTE: if no database could be found (e.g. because
+		 * accessing the rootDSE or so), use the frontendDB
+		 * rules; might need work */
+		op->o_bd = frontendDB;
+	}
+
 	if ( !dryrun && be ) {
 		ID	id;
 
