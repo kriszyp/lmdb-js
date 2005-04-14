@@ -17,6 +17,7 @@ SLAPTOOLS=slapadd slapcat slapdn slapindex slappasswd slaptest slapauth slapacl
 PROGRAMS=slapd $(SLAPTOOLS)
 XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
 XSRCS=version.c
+STRIP=-s
 
 SUBDIRS=back-* shell-backends slapi overlays
 
@@ -361,7 +362,7 @@ install-local-srv: install-slapd install-tools \
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
 	-$(MKDIR) $(DESTDIR)$(localstatedir)/run
-	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+	$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@for i in $(SUBDIRS); do \
 	    if test -d $$i -a -f $$i/Makefile ; then \
