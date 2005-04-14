@@ -24,6 +24,7 @@
 #include <ac/string.h>
 #include <ac/ctype.h>
 #include <ac/errno.h>
+#include <sys/stat.h>
 
 #include "slap.h"
 
@@ -83,6 +84,7 @@ typedef struct {
 	CfEntryInfo *cb_root;
 	BackendDB	cb_db;	/* underlying database */
 	int		cb_got_ldif;
+	int		cb_use_ldif;
 } CfBackInfo;
 
 /* These do nothing in slapd, they're kept only to make them
@@ -2704,7 +2706,16 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 	SlapReply rs = {REP_RESULT};
 	Filter filter = { LDAP_FILTER_PRESENT };
 	struct berval filterstr = BER_BVC("(objectclass=*)");
+	struct stat st;
 
+	/* Is the config directory available? */
+	if ( stat( dir, &st ) < 0 ) {
+		/* No, so don't bother using the backing store.
+		 * All changes will be in-memory only.
+		 */
+		return 0;
+	}
+		
 	cfb->cb_db.bd_info = backend_info( "ldif" );
 	if ( !cfb->cb_db.bd_info )
 		return 0;	/* FIXME: eventually this will be a fatal error */
@@ -2768,6 +2779,8 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 	op->o_bd = &cfb->cb_db;
 	op->o_bd->be_search( op, &rs );
 	
+	cfb->cb_use_ldif = 1;
+
 	return 0;
 }
 
@@ -3397,7 +3410,7 @@ config_back_add( Operation *op, SlapReply *rs )
 	 * 5) perform any necessary renumbering
 	 */
 	rs->sr_err = config_add_internal( cfb, op->ora_e, rs, &renumber );
-	if ( rs->sr_err == LDAP_SUCCESS ) {
+	if ( rs->sr_err == LDAP_SUCCESS && cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
 		op->o_bd = &cfb->cb_db;
@@ -3640,7 +3653,7 @@ config_back_modify( Operation *op, SlapReply *rs )
 	 * 4) store Modified entry in underlying LDIF backend.
 	 */
 	rs->sr_err = config_modify_internal( ce, op, rs, textbuf, sizeof(textbuf) );
-	if ( rs->sr_err == LDAP_SUCCESS ) {
+	if ( rs->sr_err == LDAP_SUCCESS && cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
 		op->o_bd = &cfb->cb_db;
@@ -3882,8 +3895,10 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 			c->bi->bi_cf_table, NO_TABLE );
 		ce = e->e_private;
 		ce->ce_type = Cft_Schema;
-		op->ora_e = e;
-		op->o_bd->be_add( op, rs );
+		if ( op ) {
+			op->ora_e = e;
+			op->o_bd->be_add( op, rs );
+		}
 		ce->ce_bi = c->bi;
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
@@ -3919,8 +3934,10 @@ config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->private = cf;
 		config_build_entry( c, e, cfOc_include, &c->value_dn,
 			c->bi->bi_cf_table, NO_TABLE );
-		op->ora_e = e;
-		op->o_bd->be_add( op, rs );
+		if ( op ) {
+			op->ora_e = e;
+			op->o_bd->be_add( op, rs );
+		}
 		ce = e->e_private;
 		ce->ce_type = Cft_Include;
 		ce->ce_bi = c->bi;
@@ -3965,8 +3982,10 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 		c->private = mp;
 		config_build_entry( c, e, cfOc_module, &c->value_dn,
 			c->bi->bi_cf_table, NO_TABLE );
-		op->ora_e = e;
-		op->o_bd->be_add( op, rs );
+		if ( op ) {
+			op->ora_e = e;
+			op->o_bd->be_add( op, rs );
+		}
 		ce->ce_bi = c->bi;
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
@@ -4001,15 +4020,19 @@ config_back_db_open( BackendDB *be )
 	if ( cfb->cb_got_ldif )
 		return 0;
 
-	op = (Operation *)opbuf;
-	connection_fake_init( &conn, op, cfb );
+	if ( cfb->cb_use_ldif ) {
+		op = (Operation *)opbuf;
+		connection_fake_init( &conn, op, cfb );
 
-	op->o_dn = be->be_rootdn;
-	op->o_ndn = be->be_rootndn;
+		op->o_dn = be->be_rootdn;
+		op->o_ndn = be->be_rootndn;
 
-	op->o_tag = LDAP_REQ_ADD;
-	op->o_callback = &cb;
-	op->o_bd = &cfb->cb_db;
+		op->o_tag = LDAP_REQ_ADD;
+		op->o_callback = &cb;
+		op->o_bd = &cfb->cb_db;
+	} else {
+		op = NULL;
+	}
 
 	/* create root of tree */
 	rdn = config_rdn;
@@ -4022,8 +4045,10 @@ config_back_db_open( BackendDB *be )
 	c.private = cfb->cb_config;
 	ct = c.bi->bi_cf_table;
 	config_build_entry( &c, e, cfOc_global, &rdn, ct, NO_TABLE );
-	op->ora_e = e;
-	op->o_bd->be_add( op, &rs );
+	if ( op ) {
+		op->ora_e = e;
+		op->o_bd->be_add( op, &rs );
+	}
 	ce->ce_bi = c.bi;
 
 	parent = e;
@@ -4039,8 +4064,10 @@ config_back_db_open( BackendDB *be )
 	ce->ce_type = Cft_Schema;
 	c.private = NULL;
 	config_build_entry( &c, e, cfOc_schema, &rdn, ct, NO_TABLE );
-	op->ora_e = e;
-	op->o_bd->be_add( op, &rs );
+	if ( op ) {
+		op->ora_e = e;
+		op->o_bd->be_add( op, &rs );
+	}
 	if ( !ceparent->ce_kids ) {
 		ceparent->ce_kids = ce;
 	} else {
@@ -4081,8 +4108,10 @@ config_back_db_open( BackendDB *be )
 		ce->ce_bi = bi;
 		c.bi = bi;
 		config_build_entry( &c, e, cfOc_backend, &rdn, ct, BI_TABLE );
-		op->ora_e = e;
-		op->o_bd->be_add( op, &rs );
+		if ( op ) {
+			op->ora_e = e;
+			op->o_bd->be_add( op, &rs );
+		}
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
 		} else {
@@ -4118,8 +4147,10 @@ config_back_db_open( BackendDB *be )
 		ce->ce_be = c.be;
 		ce->ce_bi = c.bi;
 		config_build_entry( &c, e, cfOc_database, &rdn, ct, BE_TABLE );
-		op->ora_e = e;
-		op->o_bd->be_add( op, &rs );
+		if ( op ) {
+			op->ora_e = e;
+			op->o_bd->be_add( op, &rs );
+		}
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
 		} else {
@@ -4145,8 +4176,10 @@ config_back_db_open( BackendDB *be )
 				ce->ce_be = c.be;
 				ce->ce_bi = c.bi;
 				config_build_entry( &c, oe, cfOc_overlay, &rdn, ct, BI_TABLE );
-				op->ora_e = oe;
-				op->o_bd->be_add( op, &rs );
+				if ( op ) {
+					op->ora_e = oe;
+					op->o_bd->be_add( op, &rs );
+				}
 				if ( !opar->ce_kids ) {
 					opar->ce_kids = ce;
 				} else {
