@@ -1421,6 +1421,30 @@ LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 	struct berval *value,
 	void *ctx ));
 
+LDAP_SLAPD_F (int) ordered_value_add LDAP_P((
+	Entry *e,
+	AttributeDescription *ad,
+	Attribute *a,
+	BerVarray vals,
+	BerVarray nvals ));
+
+LDAP_SLAPD_F (int) ordered_value_match LDAP_P((
+	int *match,
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	unsigned flags,
+	struct berval *v1,
+	struct berval *v2,
+	const char ** text ));
+
+LDAP_SLAPD_F (void) ordered_value_renumber LDAP_P((
+	Attribute *a,
+	int vals ));
+
+LDAP_SLAPD_F (int) ordered_value_sort LDAP_P((
+	Attribute *a,
+	int do_renumber ));
+
 LDAP_SLAPD_F (int) value_add LDAP_P((
 	BerVarray *vals,
 	BerVarray addvals ));

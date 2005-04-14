@@ -744,59 +744,37 @@ int slap_mods_check(
 				ml->sml_nvalues[nvals].bv_len = 0;
 			}
 
-			if( nvals ) {
-				/* check for duplicates */
-				int		i, j;
+			/* check for duplicates, but ignore Deletes.
+			 */
+			if( nvals > 1 && ml->sml_op != LDAP_MOD_DELETE ) {
+				int		i, j, rc, match;
 				MatchingRule *mr = ad->ad_type->sat_equality;
 
-				/* check if the values we're adding already exist */
-				if( mr == NULL || !mr->smr_match ) {
-					for ( i = 1; ml->sml_values[i].bv_val != NULL; i++ ) {
-						/* test asserted values against themselves */
-						for( j = 0; j < i; j++ ) {
-							if ( bvmatch( &ml->sml_values[i],
-								&ml->sml_values[j] ) )
-							{
-								/* value exists already */
-								snprintf( textbuf, textlen,
-									"%s: value #%d provided more than once",
-									ml->sml_desc->ad_cname.bv_val, j );
-								*text = textbuf;
-								return LDAP_TYPE_OR_VALUE_EXISTS;
-							}
-						}
-					}
+				for ( i = 1; i < nvals ; i++ ) {
+					/* test asserted values against themselves */
+					for( j = 0; j < i; j++ ) {
+						rc = ordered_value_match( &match, ml->sml_desc, mr,
+							SLAP_MR_EQUALITY
+								| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
+								| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+								| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+							ml->sml_nvalues
+								? &ml->sml_nvalues[i]
+								: &ml->sml_values[i],
+							ml->sml_nvalues
+								? &ml->sml_nvalues[j]
+								: &ml->sml_values[j],
+							text );
+						if ( rc == LDAP_SUCCESS && match == 0 ) {
+							/* value exists already */
+							snprintf( textbuf, textlen,
+								"%s: value #%d provided more than once",
+								ml->sml_desc->ad_cname.bv_val, j );
+							*text = textbuf;
+							return LDAP_TYPE_OR_VALUE_EXISTS;
 
-				} else {
-					int rc;
-					int match;
-
-					for ( i = 1; ml->sml_values[i].bv_val != NULL; i++ ) {
-						/* test asserted values against themselves */
-						for( j = 0; j < i; j++ ) {
-							rc = value_match( &match, ml->sml_desc, mr,
-								SLAP_MR_EQUALITY
-									| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
-									| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-									| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-								ml->sml_nvalues
-									? &ml->sml_nvalues[i]
-									: &ml->sml_values[i],
-								ml->sml_nvalues
-									? &ml->sml_nvalues[j]
-									: &ml->sml_values[j],
-								text );
-							if ( rc == LDAP_SUCCESS && match == 0 ) {
-								/* value exists already */
-								snprintf( textbuf, textlen,
-									"%s: value #%d provided more than once",
-									ml->sml_desc->ad_cname.bv_val, j );
-								*text = textbuf;
-								return LDAP_TYPE_OR_VALUE_EXISTS;
-
-							} else if ( rc != LDAP_SUCCESS ) {
-								return rc;
-							}
+						} else if ( rc != LDAP_SUCCESS ) {
+							return rc;
 						}
 					}
 				}

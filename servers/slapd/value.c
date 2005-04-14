@@ -256,3 +256,303 @@ int value_find_ex(
 	slap_sl_free( nval.bv_val, ctx );
 	return LDAP_NO_SUCH_ATTRIBUTE;
 }
+
+/* assign new indexes to an attribute's ordered values */
+void
+ordered_value_renumber( Attribute *a, int vals )
+{
+	char *ptr, ibuf[64];	/* many digits */
+	struct berval ibv, tmp, vtmp;
+	int i;
+
+	ibv.bv_val = ibuf;
+
+	for (i=0; i<vals; i++) {
+		ibv.bv_len = sprintf(ibv.bv_val, "{%d}", i);
+		vtmp = a->a_vals[i];
+		if ( vtmp.bv_val[0] == '{' ) {
+			ptr = strchr(vtmp.bv_val, '}') + 1;
+			vtmp.bv_len -= ptr - vtmp.bv_val;
+			vtmp.bv_val = ptr;
+		}
+		tmp.bv_len = ibv.bv_len + vtmp.bv_len;
+		tmp.bv_val = ch_malloc( tmp.bv_len + 1 );
+		strcpy( tmp.bv_val, ibv.bv_val );
+		AC_MEMCPY( tmp.bv_val + ibv.bv_len, vtmp.bv_val, vtmp.bv_len );
+		tmp.bv_val[tmp.bv_len] = '\0';
+		ch_free( a->a_vals[i].bv_val );
+		a->a_vals[i] = tmp;
+
+		if ( a->a_nvals && a->a_nvals != a->a_vals ) {
+			vtmp = a->a_nvals[i];
+			if ( vtmp.bv_val[0] == '{' ) {
+				ptr = strchr(vtmp.bv_val, '}') + 1;
+				vtmp.bv_len -= ptr - vtmp.bv_val;
+				vtmp.bv_val = ptr;
+			}
+			tmp.bv_len = ibv.bv_len + vtmp.bv_len;
+			tmp.bv_val = ch_malloc( tmp.bv_len + 1 );
+			strcpy( tmp.bv_val, ibv.bv_val );
+			AC_MEMCPY( tmp.bv_val + ibv.bv_len, vtmp.bv_val, vtmp.bv_len );
+			tmp.bv_val[tmp.bv_len] = '\0';
+			ch_free( a->a_nvals[i].bv_val );
+			a->a_nvals[i] = tmp;
+		}
+	}
+}
+
+/* Sort the values in an X-ORDERED VALUES attribute.
+ * If the values have no index, index them in their given order.
+ * If the values have indexes, sort them.
+ * If some are indexed and some are not, return Error.
+ */
+int
+ordered_value_sort( Attribute *a, int do_renumber )
+{
+	int i, vals;
+	int index = 0, noindex = 0, renumber = 0, gotnvals = 0;
+	struct berval tmp;
+	char *ptr;
+
+	if ( a->a_nvals && a->a_nvals != a->a_vals )
+		gotnvals = 1;
+
+	/* count attrs, look for index */
+	for (i=0; a->a_vals[i].bv_val; i++) {
+		if ( a->a_vals[i].bv_val[0] == '{' ) {
+			char *ptr;
+			index = 1;
+			ptr = strchr( a->a_vals[i].bv_val, '}' );
+			if ( !ptr || !ptr[1] )
+				return LDAP_INVALID_SYNTAX;
+			if ( noindex )
+				return LDAP_INVALID_SYNTAX;
+		} else {
+			noindex = 1;
+			if ( index )
+				return LDAP_INVALID_SYNTAX;
+		}
+	}
+	vals = i;
+
+	/* If values have indexes, sort the values */
+	if ( index ) {
+		int *indexes, j, idx;
+		struct berval ntmp;
+
+#if 0
+		/* Strip index from normalized values */
+		if ( !a->a_nvals || a->a_vals == a->a_nvals ) {
+			a->a_nvals = ch_malloc( (vals+1)*sizeof(struct berval));
+			BER_BVZERO(a->a_nvals+vals);
+			for ( i=0; i<vals; i++ ) {
+				ptr = strchr(a->a_vals[i].bv_val, '}') + 1;
+				a->a_nvals[i].bv_len = a->a_vals[i].bv_len -
+					(ptr - a->a_vals[i].bv_val);
+				a->a_nvals[i].bv_val = ch_malloc( a->a_nvals[i].bv_len + 1);
+				strcpy(a->a_nvals[i].bv_val, ptr );
+			}
+		} else {
+			for ( i=0; i<vals; i++ ) {
+				ptr = strchr(a->a_nvals[i].bv_val, '}') + 1;
+				a->a_nvals[i].bv_len -= ptr - a->a_nvals[i].bv_val;
+				strcpy(a->a_nvals[i].bv_val, ptr);
+			}
+		}
+#endif
+				
+		indexes = ch_malloc( vals * sizeof(int) );
+		for ( i=0; i<vals; i++)
+			indexes[i] = strtol(a->a_vals[i].bv_val+1, NULL, 0);
+
+		/* Insertion sort */
+		for ( i=1; i<vals; i++ ) {
+			idx = indexes[i];
+			tmp = a->a_vals[i];
+			if ( gotnvals ) ntmp = a->a_nvals[i];
+			j = i;
+			while ((j > 0) && (indexes[j-1] > idx)) {
+				indexes[j] = indexes[j-1];
+				a->a_vals[j] = a->a_vals[j-1];
+				if ( gotnvals ) a->a_nvals[j] = a->a_nvals[j-1];
+				j--;
+			}
+			indexes[j] = idx;
+			a->a_vals[j] = tmp;
+			if ( gotnvals ) a->a_nvals[j] = ntmp;
+		}
+
+		/* If range is not contiguous, must renumber */
+		if ( indexes[0] != 0 || indexes[vals-1] != vals-1 ) {
+			renumber = 1;
+		}
+	} else {
+		renumber = 1;
+	}
+
+	if ( do_renumber && renumber )
+		ordered_value_renumber( a, vals );
+
+	return 0;
+}
+
+/* A wrapper for value match, handles Equality matches for attributes
+ * with ordered values.
+ */
+int
+ordered_value_match(
+	int *match,
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	unsigned flags,
+	struct berval *v1, /* stored value */
+	struct berval *v2, /* assertion */
+	const char ** text )
+{
+	struct berval bv1, bv2;
+
+	/* X-ORDERED VALUES equality matching:
+	 * If (SLAP_MR_IS_VALUE_OF_ATTRIBUTE_SYNTAX) that means we are
+	 * comparing two attribute values. In this case, we want to ignore
+	 * the ordering index of both values, we just want to know if their
+	 * main values are equal.
+	 *
+	 * If (SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX) then we are comparing
+	 * an assertion against an attribute value.
+	 *    If the assertion has no index, the index of the value is ignored. 
+	 *    If the assertion has only an index, the remainder of the value is
+	 *      ignored.
+	 *    If the assertion has index and value, both are compared.
+	 */
+	if ( ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+		char *ptr;
+		struct berval iv;
+
+		bv1 = *v1;
+		bv2 = *v2;
+		iv = bv2;
+
+		/* Skip past the assertion index */
+		if ( bv2.bv_val[0] == '{' ) {
+			ptr = strchr( bv2.bv_val, '}' ) + 1;
+			bv2.bv_len -= ptr - bv2.bv_val;
+			bv2.bv_val = ptr;
+			v2 = &bv2;
+		}
+
+		if ( SLAP_MR_IS_VALUE_OF_ASSERTION_SYNTAX( flags )) {
+			if ( iv.bv_val[0] == '{' && bv1.bv_val[0] == '{' ) {
+			/* compare index values first */
+				long l1, l2, ret;
+
+				l1 = strtol( bv1.bv_val+1, NULL, 0 );
+				l2 = strtol( iv.bv_val+1, &ptr, 0 );
+
+				ret = l1 - l2;
+
+				/* If not equal, or we're only comparing the index,
+				 * return result now.
+				 */
+				if ( ret || ptr == iv.bv_val + iv.bv_len ) {
+					*match = ( ret < 0 ) ? -1 : (ret > 0 );
+					return LDAP_SUCCESS;
+				}
+			}
+		}
+		/* Skip past the attribute index */
+		if ( bv1.bv_val[0] == '{' ) {
+			ptr = strchr( bv1.bv_val, '}' ) + 1;
+			bv1.bv_len -= ptr - bv1.bv_val;
+			bv1.bv_val = ptr;
+			v1 = &bv1;
+		}
+	}
+
+	if ( !mr || !mr->smr_match ) {
+		*match = ber_bvcmp( v1, v2 );
+		return LDAP_SUCCESS;
+	}
+
+	return value_match( match, ad, mr, flags, v1, v2, text );
+}
+
+int
+ordered_value_add(
+	Entry *e,
+	AttributeDescription *ad,
+	Attribute *a,
+	BerVarray vals,
+	BerVarray nvals
+)
+{
+	int i, j, k, anum, vnum;
+	BerVarray new, nnew = NULL;
+
+	/* count new vals */
+	for (i=0; !BER_BVISNULL( vals+i ); i++) ;
+	vnum = i;
+
+	if ( a ) {
+		for (i=0; !BER_BVISNULL( a->a_vals+i ); i++) ;
+		anum = i;
+		ordered_value_sort( a, 0 );
+	} else {
+		Attribute **ap;
+		anum = 0;
+		for ( ap=&e->e_attrs; *ap; ap = &(*ap)->a_next ) ;
+		a = ch_calloc( 1, sizeof(Attribute) );
+		a->a_desc = ad;
+		*ap = a;
+	}
+
+	new = ch_malloc( (anum+vnum+1) * sizeof(struct berval));
+	if ( a->a_nvals && a->a_nvals != a->a_vals ) {
+		nnew = ch_malloc( (anum+vnum+1) * sizeof(struct berval));
+		/* Shouldn't happen... */
+		if ( !nvals ) nvals = vals;
+	}
+	if ( anum ) {
+		AC_MEMCPY( new, a->a_vals, anum * sizeof(struct berval));
+		if ( nnew )
+			AC_MEMCPY( nnew, a->a_nvals, anum * sizeof(struct berval));
+	}
+
+	for (i=0; i<vnum; i++) {
+		k = -1;
+		if ( vals[i].bv_val[0] == '{' ) {
+			k = strtol( vals[i].bv_val+1, NULL, 0 );
+			if ( k > anum ) k = -1;
+		}
+		/* No index, or index is greater than current number of
+		 * values, just tack onto the end
+		 */
+		if ( k < 0 ) {
+			ber_dupbv( new+anum, vals+i );
+			if ( nnew ) ber_dupbv( nnew+anum, nvals+i );
+
+		/* Indexed, push everything else down one and insert */
+		} else {
+			for (j=anum; j>k; j--) {
+				new[j] = new[j-1];
+				if ( nnew ) nnew[j] = nnew[j-1];
+			}
+			ber_dupbv( new+k, vals+i );
+			if ( nnew ) ber_dupbv( nnew+k, nvals+i );
+		}
+		anum++;
+	}
+	BER_BVZERO( new+anum );
+	ch_free( a->a_vals );
+	a->a_vals = new;
+	if ( nnew ) {
+		BER_BVZERO( nnew+anum );
+		ch_free( a->a_nvals );
+		a->a_nvals = nnew;
+	} else {
+		a->a_nvals = a->a_vals;
+	}
+
+	ordered_value_renumber( a, anum );
+
+	return 0;
+}

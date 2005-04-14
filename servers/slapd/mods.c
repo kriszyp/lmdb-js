@@ -93,14 +93,14 @@ modify_add_values(
 			assert( a->a_vals[0].bv_val );
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[j] ); j++ ) {
 				if ( mod->sm_nvalues ) {
-					rc = value_match( &match, mod->sm_desc, mr,
+					rc = ordered_value_match( &match, mod->sm_desc, mr,
 						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
 							| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
 							| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 						&a->a_nvals[j], &mod->sm_nvalues[i], text );
 				} else {
-					rc = value_match( &match, mod->sm_desc, mr,
-						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					rc = ordered_value_match( &match, mod->sm_desc, mr,
+						SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 						&a->a_vals[j], &mod->sm_values[i], text );
 				}
 
@@ -143,7 +143,12 @@ modify_add_values(
 	}
 
 	/* no - add them */
-	rc = attr_merge( e, mod->sm_desc, pmod.sm_values, pmod.sm_nvalues );
+	if ( mod->sm_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+		rc = ordered_value_add( e, mod->sm_desc, a,
+			pmod.sm_values, pmod.sm_nvalues );
+	} else {
+		rc = attr_merge( e, mod->sm_desc, pmod.sm_values, pmod.sm_nvalues );
+	}
 
 	if ( a != NULL && permissive ) {
 		ch_free( pmod.sm_values );
@@ -229,22 +234,18 @@ modify_delete_values(
 
 			if( mod->sm_nvalues ) {
 				assert( a->a_nvals );
-				rc = (*mr->smr_match)( &match,
-					SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
+				rc = ordered_value_match( &match, a->a_desc, mr,
+					SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
 						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
 						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-					a->a_desc->ad_type->sat_syntax,
-					mr, &a->a_nvals[j],
-					&mod->sm_nvalues[i] );
+					&a->a_nvals[j], &mod->sm_nvalues[i], text );
 			} else {
 #if 0
 				assert( a->a_nvals == NULL );
 #endif
-				rc = (*mr->smr_match)( &match,
-					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					a->a_desc->ad_type->sat_syntax,
-					mr, &a->a_vals[j],
-					&mod->sm_values[i] );
+				rc = ordered_value_match( &match, a->a_desc, mr,
+					SLAP_MR_EQUALITY | SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
+					&a->a_vals[j], &mod->sm_values[i], text );
 			}
 
 			if ( rc != LDAP_SUCCESS ) {
@@ -290,7 +291,7 @@ modify_delete_values(
 	for ( k = 0, j = 0; !BER_BVISNULL( &a->a_vals[k] ); k++ ) {
 		/* skip dummies */
 		if( a->a_vals[k].bv_val == &dummy ) {
-			assert( a->a_nvals == NULL || a->a_nvals[k].bv_val == &dummy );
+			assert( a->a_nvals[k].bv_val == &dummy );
 			continue;
 		}
 		if ( j != k ) {
@@ -317,6 +318,9 @@ modify_delete_values(
 				mod->sm_desc->ad_cname.bv_val );
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
+	} else if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+	/* For an ordered attribute, renumber the value indices */
+		ordered_value_sort( a, 1 );
 	}
 
 return_results:;

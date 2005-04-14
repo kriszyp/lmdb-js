@@ -2884,87 +2884,6 @@ config_find_table( CfOcInfo **colst, int nocs, AttributeDescription *ad )
 	return NULL;
 }
 
-/* Sort the values in an X-ORDERED VALUES attribute.
- * If the values have no index, leave them in their given order.
- * If the values have indexes, sort them.
- * If some are indexed and some are not, return Error.
- *
- * FIXME: This function probably belongs in the frontend somewhere,
- * like slap_mods_check.
- */
-static int
-sort_vals( Attribute *a )
-{
-	int i;
-	int index = 0, noindex = 0;
-
-	/* count attrs, look for index */
-	for (i=0; a->a_vals[i].bv_val; i++) {
-		if ( a->a_vals[i].bv_val[0] == '{' ) {
-			char *ptr;
-			index = 1;
-			ptr = strchr( a->a_vals[i].bv_val, '}' );
-			if ( !ptr || !ptr[1] )
-				return LDAP_INVALID_SYNTAX;
-			if ( noindex )
-				return LDAP_INVALID_SYNTAX;
-		} else {
-			noindex = 1;
-			if ( index )
-				return LDAP_INVALID_SYNTAX;
-		}
-	}
-
-	if ( index ) {
-		int vals = i, *indexes, j, idx;
-		struct berval tmp, ntmp;
-		char *ptr;
-
-#if 0
-		/* Strip index from normalized values */
-		if ( !a->a_nvals || a->a_vals == a->a_nvals ) {
-			a->a_nvals = ch_malloc( (vals+1)*sizeof(struct berval));
-			BER_BVZERO(a->a_nvals+vals);
-			for ( i=0; i<vals; i++ ) {
-				ptr = strchr(a->a_vals[i].bv_val, '}') + 1;
-				a->a_nvals[i].bv_len = a->a_vals[i].bv_len -
-					(ptr - a->a_vals[i].bv_val);
-				a->a_nvals[i].bv_val = ch_malloc( a->a_nvals[i].bv_len + 1);
-				strcpy(a->a_nvals[i].bv_val, ptr );
-			}
-		} else {
-			for ( i=0; i<vals; i++ ) {
-				ptr = strchr(a->a_nvals[i].bv_val, '}') + 1;
-				a->a_nvals[i].bv_len -= ptr - a->a_nvals[i].bv_val;
-				strcpy(a->a_nvals[i].bv_val, ptr);
-			}
-		}
-#endif
-				
-		indexes = ch_malloc( vals * sizeof(int) );
-		for ( i=0; i<vals; i++)
-			indexes[i] = atoi(a->a_vals[i].bv_val+1);
-
-		/* Insertion sort */
-		for ( i=1; i<vals; i++ ) {
-			idx = indexes[i];
-			tmp = a->a_vals[i];
-			ntmp = a->a_nvals[i];
-			j = i;
-			while ((j > 0) && (indexes[j-1] > idx)) {
-				indexes[j] = indexes[j-1];
-				a->a_vals[j] = a->a_vals[j-1];
-				a->a_nvals[j] = a->a_nvals[j-1];
-				j--;
-			}
-			indexes[j] = idx;
-			a->a_vals[j] = tmp;
-			a->a_nvals[j] = ntmp;
-		}
-	}
-	return 0;
-}
-
 /* Sort the attributes of the entry according to the order defined
  * in the objectclass, with required attributes occurring before
  * allowed attributes. For any attributes with sequencing dependencies
@@ -3044,7 +2963,7 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 
 	if ( a && ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
 		sort = 1;
-		rc = sort_vals( a );
+		rc = ordered_value_sort( a, 1 );
 		if ( rc )
 			return rc;
 	}
