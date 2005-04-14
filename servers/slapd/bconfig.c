@@ -3789,7 +3789,7 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 	BER_BVZERO( &vals[1] );
 
 	vals[0] = oc->soc_cname;
-	attr_merge(e, slap_schema.si_ad_objectClass, vals, NULL );
+	attr_merge_normalize(e, slap_schema.si_ad_objectClass, vals, NULL );
 	ptr = strchr(rdn->bv_val, '=');
 	ad_name.bv_val = rdn->bv_val;
 	ad_name.bv_len = ptr - rdn->bv_val;
@@ -3799,7 +3799,7 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 	}
 	vals[0].bv_val = ptr+1;
 	vals[0].bv_len = rdn->bv_len - (vals[0].bv_val - rdn->bv_val);
-	attr_merge(e, ad, vals, NULL );
+	attr_merge_normalize(e, ad, vals, NULL );
 
 	for (at=oc->soc_required; at && *at; at++) {
 		/* Skip the naming attr */
@@ -3809,7 +3809,12 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 			if (ct[i].ad == (*at)->sat_ad) {
 				rc = config_get_vals(&ct[i], c);
 				if (rc == LDAP_SUCCESS) {
-					attr_merge(e, ct[i].ad, c->rvalue_vals, c->rvalue_nvals);
+					if ( c->rvalue_nvals )
+						attr_merge(e, ct[i].ad, c->rvalue_vals,
+							c->rvalue_nvals);
+					else
+						attr_merge_normalize(e, ct[i].ad,
+							c->rvalue_vals, NULL);
 					ber_bvarray_free( c->rvalue_nvals );
 					ber_bvarray_free( c->rvalue_vals );
 				}
@@ -3826,7 +3831,10 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 			if (ct[i].ad == (*at)->sat_ad) {
 				rc = config_get_vals(&ct[i], c);
 				if (rc == LDAP_SUCCESS) {
-					attr_merge(e, ct[i].ad, c->rvalue_vals, c->rvalue_nvals);
+					if ( c->rvalue_nvals )
+						attr_merge(e, ct[i].ad, c->rvalue_vals, c->rvalue_nvals);
+					else
+						attr_merge_normalize(e, ct[i].ad, c->rvalue_vals, NULL);
 					ber_bvarray_free( c->rvalue_nvals );
 					ber_bvarray_free( c->rvalue_vals );
 				}
@@ -3844,14 +3852,17 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 			if (!ct->ad) continue;
 			rc = config_get_vals(ct, c);
 			if (rc == LDAP_SUCCESS) {
-				attr_merge(e, ct->ad, c->rvalue_vals, c->rvalue_nvals);
+				if ( c->rvalue_nvals )
+					attr_merge(e, ct->ad, c->rvalue_vals, c->rvalue_nvals);
+				else
+					attr_merge_normalize(e, ct->ad, c->rvalue_vals, NULL);
 			}
 		}
 	}
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	rc = structural_class(oc_at->a_vals, vals, NULL, &text, textbuf, textlen);
 	BER_BVZERO( &vals[1] );
-	attr_merge(e, slap_schema.si_ad_structuralObjectClass, vals, NULL );
+	attr_merge_normalize(e, slap_schema.si_ad_structuralObjectClass, vals, NULL );
 
 	return 0;
 }
