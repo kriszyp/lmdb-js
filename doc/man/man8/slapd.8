@@ -194,23 +194,20 @@ slapd will use the group database in the change root environment.
 This option provides a cookie for the syncrepl replication consumer.
 The cookie is a comma separated list of name=value pairs.
 Currently supported syncrepl cookie fields are
-.B csn,
-.B sid,
+.B rid
 and
-.B rid.
-.B csn
-is the commit sequence number received by a previous synchronization
-and represents the state of the consumer replica content which the
-syncrepl engine will synchronize to the current provider content.
-.B sid
-is the identity of the per-scope session log with which the 
-provider server can process this syncrepl request to reduce
-synchronization traffic.
+.B csn.
 .B rid
 identifies a replication thread within the consumer server
 and is used to find the syncrepl specification in 
 .BR slapd.conf (5)
-having the matching replication identifier in its definition.
+having the matching replication identifier in its definition. The
+.B rid
+must be provided in order for any other specified values to be used.
+.B csn
+is the commit sequence number received by a previous synchronization
+and represents the state of the consumer replica content which the
+syncrepl engine will synchronize to the current provider content.
 .SH EXAMPLES
 To start 
 .I slapd
