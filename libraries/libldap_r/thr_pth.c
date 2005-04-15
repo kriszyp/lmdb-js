@@ -38,7 +38,7 @@ ldap_int_thread_initialize( void )
 	}
 	detach_attr = pth_attr_new();
 	joined_attr = pth_attr_new();
-#if LDAP_PVT_THREAD_STACK_SIZE
+#ifdef LDAP_PVT_THREAD_SET_STACK_SIZE
 	pth_attr_set( joined_attr, PTH_ATTR_STACK_SIZE, LDAP_PVT_THREAD_STACK_SIZE );
 	pth_attr_set( detach_attr, PTH_ATTR_STACK_SIZE, LDAP_PVT_THREAD_STACK_SIZE );
 #endif

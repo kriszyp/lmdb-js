@@ -110,7 +110,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	pthread_attr_create(&attr);
 #endif
 
-#if defined(LDAP_PVT_THREAD_STACK_SIZE) && LDAP_PVT_THREAD_STACK_SIZE > 0
+#ifdef LDAP_PVT_THREAD_SET_STACK_SIZE
 	/* this should be tunable */
 	pthread_attr_setstacksize( &attr, LDAP_PVT_THREAD_STACK_SIZE );
 #endif
