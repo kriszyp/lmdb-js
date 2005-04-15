@@ -14,13 +14,6 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#ifdef HAVE_LIMITS_H
-#include <limits.h>
-#endif
-#ifndef PATH_MAX
-#define	PATH_MAX	4096
-#endif
-
 typedef struct ConfigTable {
 	char *name;
 	char *what;
@@ -66,7 +59,7 @@ typedef enum {
 #define ARG_PAREN	0x01000000
 #define ARG_NONZERO	0x02000000
 #define ARG_UNIQUE	0x10000000
-#define ARG_MUTEX	0x20000000	/* modify in single-thread mode */
+#define ARG_READONLY	0x20000000	/* no runtime modification support */
 #define ARG_OFFSET	0x40000000
 #define ARG_MAGIC	0x80000000
 
@@ -95,7 +88,7 @@ typedef struct config_args_s {
 	char *tline;
 	const char *fname;
 	unsigned long lineno;
-	char log[PATH_MAX + STRLENOF(": line 18446744073709551615") + 1];
+	char log[MAXPATHLEN + STRLENOF(": line 18446744073709551615") + 1];
 	int depth;
 	int valx;	/* multi-valued value index */
 	/* parsed first val for simple cases */
