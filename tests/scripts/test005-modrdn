@@ -179,6 +179,8 @@ if test $? != 0 ; then
 	exit 1
 fi
 
+# Test that you can use modrdn with an attribute value which was previously
+# present
 
 echo "Testing modrdn(deleteoldrdn=1), modrdn with new rdn already an att val..."
 $LDAPMODRDN -D "$MANAGERDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD > \
@@ -191,15 +193,10 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-# Test that you can use modrdn with an attribute value which was previously
-# present
-
 echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones 1)..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	    'cn=James A Jones 1' > $SEARCHOUT 2>&1
 RC=$?
-
-test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -219,6 +216,20 @@ if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
 	exit 1
 fi
+
+echo "Testing modrdn with newSuperior as child of target "
+$LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+	/dev/null 2>&1  -s 'cn=Sub1, ou=FooBar, cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones 1' \
+	'cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones 1'
+
+RC=$?
+if test $RC == 0 ; then
+	echo "ldapmodrdn succeeded, should have failed!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 exit 0
