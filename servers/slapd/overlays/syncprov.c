@@ -250,62 +250,6 @@ syncprov_done_ctrl(
 	return LDAP_SUCCESS;
 }
 
-#if 0
-/* Generate state based on session log - not implemented yet */
-static int
-syncprov_state_ctrl_from_slog(
-	Operation	*op,
-	SlapReply	*rs,
-	struct slog_entry *slog_e,
-	int			entry_sync_state,
-	LDAPControl	**ctrls,
-	int			num_ctrls,
-	int			send_cookie,
-	struct berval	*cookie)
-{
-	Attribute* a;
-	int ret;
-	int res;
-	const char *text = NULL;
-
-	BerElementBuffer berbuf;
-	BerElement *ber = (BerElement *)&berbuf;
-
-	struct berval entryuuid_bv	= BER_BVNULL;
-
-	ber_init2( ber, NULL, LBER_USE_DER );
-	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
-
-	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
-
-	entryuuid_bv = slog_e->sl_uuid;
-
-	if ( send_cookie && cookie ) {
-		ber_printf( ber, "{eOON}",
-			entry_sync_state, &entryuuid_bv, cookie );
-	} else {
-		ber_printf( ber, "{eON}",
-			entry_sync_state, &entryuuid_bv );
-	}
-
-	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
-	ctrls[num_ctrls]->ldctl_iscritical = (op->o_sync == SLAP_CONTROL_CRITICAL);
-	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
-
-	ber_free_buf( ber );
-
-	if ( ret < 0 ) {
-		Debug( LDAP_DEBUG_TRACE,
-			"slap_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
-	}
-
-	return LDAP_SUCCESS;
-}
-#endif
-
 static int
 syncprov_sendinfo(
 	Operation	*op,
@@ -470,6 +414,7 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 	cb.sc_private = fc;
 
 	fop.o_sync_mode &= SLAP_CONTROL_MASK;	/* turn off sync mode */
+	fop.o_managedsait = SLAP_CONTROL_CRITICAL;
 	fop.o_callback = &cb;
 	fop.o_tag = LDAP_REQ_SEARCH;
 	fop.ors_scope = LDAP_SCOPE_BASE;
@@ -623,6 +568,8 @@ syncprov_findcsn( Operation *op, int mode )
 
 	fop = *op;
 	fop.o_sync_mode &= SLAP_CONTROL_MASK;	/* turn off sync_mode */
+	/* We want pure entries, not referrals */
+	fop.o_managedsait = SLAP_CONTROL_CRITICAL;
 
 	fbuf.bv_val = buf;
 	cf.f_ava = &eq;
@@ -673,8 +620,6 @@ syncprov_findcsn( Operation *op, int mode )
 		fop.ors_attrsonly = 0;
 		fop.ors_attrs = uuid_anlist;
 		fop.ors_slimit = SLAP_NO_LIMIT;
-		/* We want pure entries, not referrals */
-		fop.o_managedsait = SLAP_CONTROL_CRITICAL;
 		cb.sc_private = &pcookie;
 		cb.sc_response = findpres_cb;
 		pcookie.num = 0;
@@ -1084,8 +1029,8 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	Modifications mod;
 	Operation opm;
 	struct berval bv[2];
-	BackendInfo *orig;
 	slap_callback cb = {0};
+	int manage = get_manageDSAit(op);
 
 	mod.sml_values = bv;
 	bv[1].bv_val = NULL;
@@ -1102,9 +1047,10 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	opm.orm_modlist = &mod;
 	opm.o_req_dn = op->o_bd->be_suffix[0];
 	opm.o_req_ndn = op->o_bd->be_nsuffix[0];
-	orig = opm.o_bd->bd_info;
 	opm.o_bd->bd_info = on->on_info->oi_orig;
+	opm.o_managedsait = SLAP_CONTROL_NONCRITICAL;
 	opm.o_bd->be_modify( &opm, rs );
+	opm.o_managedsait = manage;
 }
 
 static void
@@ -1761,6 +1707,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 	}
 
 	srs = op->o_controls[slap_cids.sc_LDAPsync];
+	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 	/* If this is a persistent search, set it up right away */
 	if ( op->o_sync_mode & SLAP_SYNC_PERSIST ) {

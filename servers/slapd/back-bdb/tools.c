@@ -157,12 +157,6 @@ ID bdb_tool_dn2id_get(
 	return ei.bei_id;
 }
 
-static struct berval ocbva[] = {
-	BER_BVC("locality"),
-	BER_BVC("syncProviderSubentry"),
-	BER_BVNULL
-};
-
 int bdb_tool_id2entry_get(
 	Backend *be,
 	ID id,
@@ -173,11 +167,12 @@ int bdb_tool_id2entry_get(
 
 	if ( rc == DB_NOTFOUND && id == 0 ) {
 		Entry *dummy = ch_calloc( 1, sizeof(Entry) );
+		struct berval gluebv = BER_BVC("glue");
 		dummy->e_name.bv_val = ch_strdup( "" );
 		dummy->e_nname.bv_val = ch_strdup( "" );
-		attr_merge( dummy, slap_schema.si_ad_objectClass, ocbva, NULL );
+		attr_merge_one( dummy, slap_schema.si_ad_objectClass, &gluebv, NULL );
 		attr_merge_one( dummy, slap_schema.si_ad_structuralObjectClass,
-			&ocbva[0], NULL );
+			&gluebv, NULL );
 		*e = dummy;
 		rc = LDAP_SUCCESS;
 	}

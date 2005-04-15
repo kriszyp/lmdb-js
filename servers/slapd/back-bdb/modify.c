@@ -352,17 +352,14 @@ retry:	/* transaction retry */
 			goto retry;
 		case DB_NOTFOUND:
 			if ( BER_BVISEMPTY( &op->o_req_ndn )) {
-				struct berval ocbva[] = {
-					BER_BVC("locality"),
-					BER_BVC("syncProviderSubentry"),
-					BER_BVNULL
-				};
+				struct berval gluebv = BER_BVC("glue");
 				e = ch_calloc( 1, sizeof(Entry));
 				e->e_name.bv_val = ch_strdup( "" );
 				ber_dupbv( &e->e_nname, &e->e_name );
-				attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
+				attr_merge_one( e, slap_schema.si_ad_objectClass,
+					&gluebv, NULL );
 				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
-					&ocbva[0], NULL );
+					&gluebv, NULL );
 				e->e_private = ei;
 				fakeroot = 1;
 				rs->sr_err = 0;
