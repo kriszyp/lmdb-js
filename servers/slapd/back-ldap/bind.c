@@ -251,7 +251,7 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
 				&& !ldap_is_ldaps_url( li->url ) )
 	{
-#if 1
+#ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
 		 * use asynchronous StartTLS
 		 * in case, chase referral (not implemented yet)
@@ -315,12 +315,12 @@ retry:;
 				ldap_msgfree( res );
 			}
 		}
-#else
+#else /* ! SLAP_STARTTLS_ASYNCHRONOUS */
 		/*
 		 * use synchronous StartTLS
 		 */
 		rs->sr_err = ldap_start_tls_s( ld, NULL, NULL );
-#endif
+#endif /* ! SLAP_STARTTLS_ASYNCHRONOUS */
 
 		/* if StartTLS is requested, only attempt it if the URL
 		 * is not "ldaps://"; this may occur not only in case

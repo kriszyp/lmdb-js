@@ -113,6 +113,9 @@ typedef enum ldap_back_send_t {
 	LDAP_BACK_SENDRESULT		= (LDAP_BACK_SENDOK|LDAP_BACK_SENDERR)
 } ldap_back_send_t;
 
+/* define to use asynchronous StartTLS */
+#define SLAP_STARTTLS_ASYNCHRONOUS
+
 LDAP_END_DECL
 
 #include "proto-ldap.h"
