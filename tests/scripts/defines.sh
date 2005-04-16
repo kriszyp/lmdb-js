@@ -80,7 +80,7 @@ IDASSERTCONF=$DATADIR/slapd-idassert.conf
 LDAPGLUECONF1=$DATADIR/slapd-ldapglue.conf
 LDAPGLUECONF2=$DATADIR/slapd-ldapgluepeople.conf
 LDAPGLUECONF3=$DATADIR/slapd-ldapgluegroups.conf
-RWMCONF=$DATADIR/slapd-relay.conf
+RELAYCONF=$DATADIR/slapd-relay.conf
 CHAINCONF1=$DATADIR/slapd-chain1.conf
 CHAINCONF2=$DATADIR/slapd-chain2.conf
 GLUESYNCCONF1=$DATADIR/slapd-glue-syncrepl1.conf
@@ -88,6 +88,7 @@ GLUESYNCCONF2=$DATADIR/slapd-glue-syncrepl2.conf
 SQLCONF=$DATADIR/slapd-sql.conf
 TRANSLUCENTLOCALCONF=$DATADIR/slapd-translucent-local.conf
 TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
+METACONF=$DATADIR/slapd-meta.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -176,6 +177,7 @@ LDIFTRANSLUCENTDATA=$DATADIR/test-translucent-data.ldif
 LDIFTRANSLUCENTCONFIG=$DATADIR/test-translucent-config.ldif
 LDIFTRANSLUCENTADD=$DATADIR/test-translucent-add.ldif
 LDIFTRANSLUCENTMERGED=$DATADIR/test-translucent-merged.ldif
+LDIFMETA=$DATADIR/test-meta.ldif
 SQLADD=$DATADIR/sql-add.ldif
 MONITOR=""
 REFDN="c=US"
@@ -193,6 +195,8 @@ TRANSLUCENTROOT="o=translucent"
 TRANSLUCENTUSER="ou=users,o=translucent"
 TRANSLUCENTDN="uid=binder,o=translucent"
 TRANSLUCENTPASSWD="bindtest"
+METABASEDN="ou=Meta,dc=example,dc=com"
+METAMANAGERDN="cn=Manager,$METABASEDN"
 
 LOG1=$TESTDIR/slapd.1.log
 LOG2=$TESTDIR/slapd.2.log
@@ -257,6 +261,7 @@ GLUESYNCOUT=$DATADIR/gluesync.out
 SQLREAD=$DATADIR/sql-read.out
 SQLWRITE=$DATADIR/sql-write.out
 TRANSLUCENTOUT=$DATADIR/translucent.search.out
+METAOUT=$DATADIR/meta.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH
