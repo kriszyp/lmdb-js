@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.24 Engineering
+	Fixed back-bdb ctxcsn/LRU bug (ITS#3666)
 
 OpenLDAP 2.2.24 Release
 	Fixed slapd "chldren:" typo (ITS#3560)
