@@ -70,14 +70,13 @@ bdb_csn_commit(
 	}
 	
 	*ctxcsn_e = ctxcsn_ei->bei_e;
+	*ctxcsn_added = 0;
 
 	slap_get_commit_csn( op, &max_committed_csn );
 
 	if ( max_committed_csn.bv_val == NULL ) {
 		return BDB_CSN_COMMIT;
 	}
-
-	*ctxcsn_added = 0;
 
 	switch( rc ) {
 	case 0:
@@ -87,29 +86,25 @@ bdb_csn_commit(
 			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 			return BDB_CSN_ABORT;
 		} else {
-			Modifications mod;
 			struct berval modvals[2];
-			Entry dummy;
 
 			modvals[0] = max_committed_csn;
 			modvals[1].bv_val = NULL;
 			modvals[1].bv_len = 0;
 
-			mod.sml_op = LDAP_MOD_REPLACE;
-			mod.sml_values = modvals;
-			mod.sml_nvalues = NULL;
-			mod.sml_desc = slap_schema.si_ad_contextCSN;
-			mod.sml_type = mod.sml_desc->ad_cname;
-			mod.sml_next = NULL;
+			attr_delete( &(*ctxcsn_e)->e_attrs, slap_schema.si_ad_contextCSN );
+			ret = attr_merge( *ctxcsn_e, slap_schema.si_ad_contextCSN,
+				modvals, NULL );
 
-			dummy = **ctxcsn_e;
-			ret = bdb_modify_internal( op, tid, &mod, &dummy,
-									&rs->sr_text, textbuf, textlen );						       
 			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 			if ( ret != LDAP_SUCCESS ) {
+				/* destroy the cached copy since it is now corrupted */
+				ctxcsn_ei->bei_e = NULL;
+				(*ctxcsn_e)->e_private = NULL;
+				entry_free( *ctxcsn_e );
+				*ctxcsn_e = NULL;
 				Debug( LDAP_DEBUG_TRACE,
 						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
-				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				switch( ret ) {
 				case DB_LOCK_DEADLOCK:
 				case DB_LOCK_NOTGRANTED:
@@ -119,28 +114,17 @@ bdb_csn_commit(
 				}
 			}
 
-			ret = bdb_id2entry_update( op->o_bd, tid, &dummy );
+			ret = bdb_id2entry_update( op->o_bd, tid, *ctxcsn_e );
 			switch ( ret ) {
 			case 0 :
 				break;
 			case DB_LOCK_DEADLOCK :
 			case DB_LOCK_NOTGRANTED :
-				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				goto rewind;
 			default :
-				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
 				rs->sr_err = ret;
 				rs->sr_text = "context csn update failed";
 				return BDB_CSN_ABORT;
-			}
-			ret = bdb_cache_modify( *ctxcsn_e, dummy.e_attrs, bdb->bi_dbenv, locker, &ctxcsn_lock );
-			if ( ret != LDAP_SUCCESS ) {
-				if ( dummy.e_attrs != e->e_attrs ) attrs_free( dummy.e_attrs );
-				switch( ret ) {
-				case DB_LOCK_DEADLOCK:
-				case DB_LOCK_NOTGRANTED:
-					goto rewind;
-				}
 			}
 		}
 		break;
@@ -203,32 +187,7 @@ bdb_csn_commit(
 			rs->sr_text = "context csn store failed";
 			return BDB_CSN_ABORT;
 		}
-		ret = bdb_index_entry_add( op, tid, *ctxcsn_e );
-		switch ( ret ) {
-		case 0 :
-			break;
-		case DB_LOCK_DEADLOCK :
-		case DB_LOCK_NOTGRANTED :
-			goto rewind;
-		default :
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "context csn indexing failed";
-			return BDB_CSN_ABORT;
-		}
 		break;
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		Debug( LDAP_DEBUG_TRACE,
-				"bdb_csn_commit : bdb_dn2entry retry\n", 0, 0, 0 );
-		goto rewind;
-	case LDAP_BUSY:
-		rs->sr_err = rc;
-		rs->sr_text = "ldap server busy";
-		return BDB_CSN_ABORT;
-	default:
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "internal error";
-		return BDB_CSN_ABORT;
 	}
 
 	return BDB_CSN_COMMIT;
