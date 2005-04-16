@@ -562,7 +562,9 @@ bdb_cache_lru_add(
 			}
 		}
 	}
-	LRU_ADD( &bdb->bi_cache, ei );
+	if ( bdb->bi_cache.c_lruhead != ei ) {
+		LRU_ADD( &bdb->bi_cache, ei );
+	}
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
 }
 
