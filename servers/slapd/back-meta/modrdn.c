@@ -42,8 +42,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 				mnewSuperior = BER_BVNULL;
 	dncookie		dc;
 
-	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
-			&op->o_req_ndn, &candidate, LDAP_BACK_SENDERR );
+	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !lc ) {
 		return rs->sr_err;
 	}
@@ -64,37 +63,36 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	dc.rs = rs;
 
 	if ( op->orr_newSup ) {
-		int nsCandidate, version = LDAP_VERSION3;
+		int	version = LDAP_VERSION3;
 
-		nsCandidate = meta_back_select_unique_candidate( li,
-				op->orr_nnewSup );
+		/*
+		 * NOTE: the newParent, if defined, must be on the 
+		 * same target as the entry to be renamed.  This check
+		 * has been anticipated in meta_back_getconn()
+		 */
+		/*
+		 * FIXME: one possibility is to delete the entry
+		 * from one target and add it to the other;
+		 * unfortunately we'd need write access to both,
+		 * which is nearly impossible; for administration
+		 * needs, the rootdn of the metadirectory could
+		 * be mapped to an administrative account on each
+		 * target (the binddn?); we'll see.
+		 */
+		/*
+		 * NOTE: we need to port the identity assertion
+		 * feature from back-ldap
+		 */
 
-		if ( nsCandidate != candidate ) {
-			/*
-			 * FIXME: one possibility is to delete the entry
-			 * from one target and add it to the other;
-			 * unfortunately we'd need write access to both,
-			 * which is nearly impossible; for administration
-			 * needs, the rootdn of the metadirectory could
-			 * be mapped to an administrative account on each
-			 * target (the binddn?); we'll see.
-			 */
-			/*
-			 * FIXME: is this the correct return code?
-			 */
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			rs->sr_text = "cross-target rename not supported";
-			rc = -1;
-			goto cleanup;
-		}
-
-		ldap_set_option( lc->mc_conns[ nsCandidate ].msc_ld,
+		/* newSuperior needs LDAPv3; if we got here, we can safely
+		 * enforce it */
+		ldap_set_option( lc->mc_conns[ candidate ].msc_ld,
 				LDAP_OPT_PROTOCOL_VERSION, &version );
 
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */
-		dc.rwmap = &li->targets[ nsCandidate ]->mt_rwmap;
+		dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
 		dc.ctx = "newSuperiorDN";
 		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
 			rc = -1;
@@ -105,7 +103,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rc = -1;
@@ -132,7 +130,7 @@ cleanup:;
 	}
 
 	if ( rc == 0 ) {
-		return meta_back_op_result( lc, op, rs ) == LDAP_SUCCESS
+		return meta_back_op_result( lc, op, rs, candidate ) == LDAP_SUCCESS
 			? 0 : 1;
 	} /* else */
 

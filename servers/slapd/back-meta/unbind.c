@@ -47,14 +47,14 @@ meta_back_conn_destroy(
 	
 	lc_curr.mc_conn = conn;
 	
-	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
-	lc = avl_delete( &li->conntree, ( caddr_t )&lc_curr,
+	ldap_pvt_thread_mutex_lock( &li->mi_conn_mutex );
+	lc = avl_delete( &li->mi_conntree, ( caddr_t )&lc_curr,
 			meta_back_conn_cmp );
-	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->mi_conn_mutex );
 
 	if ( lc ) {
-		int i;
-		
+		int	i;
+
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_conn_destroy: destroying conn %ld\n",
 			lc->mc_conn->c_connid, 0, 0 );
@@ -62,13 +62,13 @@ meta_back_conn_destroy(
 		/*
 		 * Cleanup rewrite session
 		 */
-		for ( i = 0; i < li->ntargets; ++i ) {
+		for ( i = 0; i < li->mi_ntargets; ++i ) {
 			if ( lc->mc_conns[ i ].msc_ld == NULL ) {
 				continue;
 			}
 
-			rewrite_session_delete( li->targets[ i ]->mt_rwmap.rwm_rw, conn );
-			meta_clear_one_candidate( &lc->mc_conns[ i ], 1 );
+			rewrite_session_delete( li->mi_targets[ i ]->mt_rwmap.rwm_rw, conn );
+			meta_clear_one_candidate( &lc->mc_conns[ i ] );
 		}
 
 		free( lc->mc_conns );

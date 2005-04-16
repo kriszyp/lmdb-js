@@ -40,7 +40,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	char			*match = NULL,
 				*err = NULL;
 	struct berval		mmatch = BER_BVNULL;
-	int			candidates = 0,
+	int			ncandidates = 0,
 				last = 0,
 				i,
 				count = 0,
@@ -50,13 +50,14 @@ meta_back_compare( Operation *op, SlapReply *rs )
 				*msgid;
 	dncookie		dc;
 
-	lc = meta_back_getconn( op, rs, META_OP_ALLOW_MULTIPLE,
-			&op->o_req_ndn, NULL, LDAP_BACK_SENDERR );
+	char			*candidates = meta_back_candidates_get( op );
+
+	lc = meta_back_getconn( op, rs, NULL, LDAP_BACK_SENDERR );
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 	
-	msgid = ch_calloc( sizeof( int ), li->ntargets );
+	msgid = ch_calloc( sizeof( int ), li->mi_ntargets );
 	if ( msgid == NULL ) {
 		return -1;
 	}
@@ -73,7 +74,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		struct berval mapped_attr = op->orc_ava->aa_desc->ad_cname;
 		struct berval mapped_value = op->orc_ava->aa_value;
 
-		if ( lsc->msc_candidate != META_CANDIDATE ) {
+		if ( candidates[ i ] != META_CANDIDATE ) {
 			msgid[ i ] = -1;
 			continue;
 		}
@@ -81,7 +82,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the compare dn, if needed
 		 */
-		dc.rwmap = &li->targets[ i ]->mt_rwmap;
+		dc.rwmap = &li->mi_targets[ i ]->mt_rwmap;
 
 		switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
@@ -96,21 +97,21 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * if attr is objectClass, try to remap the value
 		 */
 		if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-			ldap_back_map( &li->targets[ i ]->mt_rwmap.rwm_oc,
+			ldap_back_map( &li->mi_targets[ i ]->mt_rwmap.rwm_oc,
 					&op->orc_ava->aa_value,
 					&mapped_value, BACKLDAP_MAP );
 
-			if ( mapped_value.bv_val == NULL || mapped_value.bv_val[0] == '\0' ) {
+			if ( BER_BVISNULL( &mapped_value ) || mapped_value.bv_val[0] == '\0' ) {
 				continue;
 			}
 		/*
 		 * else try to remap the attribute
 		 */
 		} else {
-			ldap_back_map( &li->targets[ i ]->mt_rwmap.rwm_at,
+			ldap_back_map( &li->mi_targets[ i ]->mt_rwmap.rwm_at,
 				&op->orc_ava->aa_desc->ad_cname,
 				&mapped_attr, BACKLDAP_MAP );
-			if ( mapped_attr.bv_val == NULL || mapped_attr.bv_val[0] == '\0' ) {
+			if ( BER_BVISNULL( &mapped_attr ) || mapped_attr.bv_val[0] == '\0' ) {
 				continue;
 			}
 
@@ -159,13 +160,13 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			continue;
 		}
 
-		++candidates;
+		++ncandidates;
 	}
 
 	/*
 	 * wait for replies
 	 */
-	for ( rc = 0, count = 0; candidates > 0; ) {
+	for ( rc = 0, count = 0; ncandidates > 0; ) {
 
 		/*
 		 * FIXME: should we check for abandon?
@@ -214,8 +215,8 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					 * true or flase, got it;
 					 * sending to cache ...
 					 */
-					if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
-						( void )meta_dncache_update_entry( &li->cache, &op->o_req_ndn, i );
+					if ( li->mi_cache.ttl != META_DNCACHE_DISABLED ) {
+						( void )meta_dncache_update_entry( &li->mi_cache, &op->o_req_ndn, i );
 					}
 
 					count++;
@@ -241,11 +242,11 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					break;
 				}
 				msgid[ i ] = -1;
-				--candidates;
+				--ncandidates;
 
 			} else {
 				msgid[ i ] = -1;
-				--candidates;
+				--ncandidates;
 				if ( res ) {
 					ldap_msgfree( res );
 				}
@@ -280,8 +281,7 @@ finish:;
 	} else if ( match != NULL &&  match[0] != '\0' ) {
 		struct berval matched;
 
-		matched.bv_val = match;
-		matched.bv_len = strlen( match );
+		ber_str2bv( match, 0, 0, &matched );
 
 		dc.ctx = "matchedDN";
 		ldap_back_dn_massage( &dc, &matched, &mmatch );

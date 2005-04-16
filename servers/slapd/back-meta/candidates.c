@@ -50,6 +50,18 @@
  * A possible extension will include the handling of multiple suffixes
  */
 
+static int
+meta_back_count_candidates(
+		struct metainfo		*li,
+		struct berval		*ndn
+);
+
+static int
+meta_back_is_candidate_unique(
+		struct metainfo		*li,
+		struct berval		*ndn
+);
+
 /*
  * returns 1 if suffix is candidate for dn, otherwise 0
  *
@@ -78,7 +90,7 @@ meta_back_is_candidate(
  * Note: dn MUST be normalized
  */
 
-int
+static int
 meta_back_count_candidates(
 		struct metainfo		*li,
 		struct berval		*ndn
@@ -91,11 +103,11 @@ meta_back_count_candidates(
 	 * at present I didn't find a place for such checks
 	 * after config.c
 	 */
-	assert( li->targets != NULL );
-	assert( li->ntargets != 0 );
+	assert( li->mi_targets != NULL );
+	assert( li->mi_ntargets != 0 );
 
-	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->targets[ i ]->mt_nsuffix, ndn ) )
+	for ( i = 0; i < li->mi_ntargets; ++i ) {
+		if ( meta_back_is_candidate( &li->mi_targets[ i ]->mt_nsuffix, ndn ) )
 		{
 			++cnt;
 		}
@@ -110,7 +122,7 @@ meta_back_count_candidates(
  * checks whether a candidate is unique
  * Note: dn MUST be normalized
  */
-int
+static int
 meta_back_is_candidate_unique(
 		struct metainfo		*li,
 		struct berval		*ndn
@@ -132,25 +144,21 @@ meta_back_select_unique_candidate(
 		struct berval		*ndn
 )
 {
-	int	i;
-	
-	switch ( meta_back_count_candidates( li, ndn ) ) {
-	case 1:
-		break;
-	case 0:
-	default:
-		return ( li->defaulttarget == META_DEFAULT_TARGET_NONE
-			       	? META_TARGET_NONE : li->defaulttarget );
-	}
+	int	i, candidate = META_TARGET_NONE;
 
-	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->targets[ i ]->mt_nsuffix, ndn ) )
+	for ( i = 0; i < li->mi_ntargets; ++i ) {
+		if ( meta_back_is_candidate( &li->mi_targets[ i ]->mt_nsuffix, ndn ) )
 		{
-			return i;
+			if ( candidate == META_TARGET_NONE ) {
+				candidate = i;
+
+			} else {
+				return META_TARGET_MULTIPLE;
+			}
 		}
 	}
 
-	return META_TARGET_NONE;
+	return candidate;
 }
 
 /*
@@ -160,19 +168,20 @@ meta_back_select_unique_candidate(
  */
 int
 meta_clear_unused_candidates(
-		struct metainfo		*li,
+		Operation		*op,
 		struct metaconn		*lc,
-		int			candidate,
-		int			reallyclean
+		int			candidate
 )
 {
-	int i;
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	int		i;
+	char		*candidates = meta_back_candidates_get( op );
 	
-	for ( i = 0; i < li->ntargets; ++i ) {
+	for ( i = 0; i < li->mi_ntargets; ++i ) {
 		if ( i == candidate ) {
 			continue;
 		}
-		meta_clear_one_candidate( &lc->mc_conns[ i ], reallyclean );
+		candidates[ i ] = META_NOT_CANDIDATE;
 	}
 
 	return 0;
@@ -185,16 +194,9 @@ meta_clear_unused_candidates(
  */
 int
 meta_clear_one_candidate(
-		struct metasingleconn	*lsc,
-		int			reallyclean
+		struct metasingleconn	*lsc
 )
 {
-	lsc->msc_candidate = META_NOT_CANDIDATE;
-
-	if ( !reallyclean ) {
-		return 0;
-	}
-
 	if ( lsc->msc_ld ) {
 		ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
 		lsc->msc_ld = NULL;

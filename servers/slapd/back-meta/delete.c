@@ -40,8 +40,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	struct berval mdn = BER_BVNULL;
 	dncookie dc;
 
-	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
-			&op->o_req_ndn, &candidate, LDAP_BACK_SENDERR );
+	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
@@ -55,7 +54,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "deleteDN";
@@ -73,6 +72,6 @@ meta_back_delete( Operation *op, SlapReply *rs )
 		BER_BVZERO( &mdn );
 	}
 	
-	return meta_back_op_result( lc, op, rs );
+	return meta_back_op_result( lc, op, rs, candidate );
 }
 

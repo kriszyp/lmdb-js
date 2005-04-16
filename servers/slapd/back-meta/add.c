@@ -50,8 +50,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * get the current connection
 	 */
-	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
-			&op->o_req_ndn, &candidate, LDAP_BACK_SENDERR );
+	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
@@ -65,7 +64,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDN";
@@ -75,7 +74,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	/* Count number of attributes in entry */
+	/* Count number of attributes in entry ( +1 ) */
 	for ( i = 1, a = op->ora_e->e_attrs; a; i++, a = a->a_next );
 	
 	/* Create array of LDAPMods for ldap_add() */
@@ -97,7 +96,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			mapped = a->a_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_at,
+			ldap_back_map( &li->mi_targets[ candidate ]->mt_rwmap.rwm_at,
 					&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
 				continue;
@@ -122,11 +121,11 @@ meta_back_add( Operation *op, SlapReply *rs )
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
 				struct ldapmapping	*mapping;
 
-				ldap_back_mapping( &li->targets[ candidate ]->mt_rwmap.rwm_oc,
+				ldap_back_mapping( &li->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
 						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
 
 				if ( mapping == NULL ) {
-					if ( li->targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
+					if ( li->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
 						continue;
 					}
 					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
@@ -178,6 +177,6 @@ meta_back_add( Operation *op, SlapReply *rs )
 		BER_BVZERO( &mdn );
 	}
 
-	return meta_back_op_result( lc, op, rs );
+	return meta_back_op_result( lc, op, rs, candidate );
 }
 

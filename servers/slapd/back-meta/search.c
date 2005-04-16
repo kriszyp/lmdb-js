@@ -47,22 +47,27 @@ meta_send_entry(
 int
 meta_back_search( Operation *op, SlapReply *rs )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn *lc;
-	struct metasingleconn *lsc;
-	struct timeval	tv = { 0, 0 };
-	LDAPMessage	*res = NULL, *e;
-	int	rc = 0, *msgid, sres = LDAP_SUCCESS;
-	char *err = NULL;
-	struct berval match = BER_BVNULL, mmatch = BER_BVNULL;
-	BerVarray v2refs = NULL;
+	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn 	*lc;
+	struct metasingleconn	*lsc;
+	struct timeval		tv = { 0, 0 };
+	LDAPMessage		*res = NULL, *e;
+	int			rc = 0, *msgid, sres = LDAP_SUCCESS;
+	char			*err = NULL;
+	struct berval		match = BER_BVNULL, mmatch = BER_BVNULL;
+	BerVarray		v2refs = NULL;
 		
-	int i, last = 0, candidates = 0, initial_candidates = 0,
-			candidate_match = 0;
-	dncookie dc;
+	int			i, last = 0, ncandidates = 0,
+				initial_candidates = 0, candidate_match = 0;
+	dncookie		dc;
 
-	int	is_scope = 0,
-		is_filter = 0;
+	int			is_scope = 0,
+				is_filter = 0,
+				is_ok = 0;
+
+	void			*savepriv;
+
+	char			*candidates = meta_back_candidates_get( op );
 
 	/*
 	 * controls are set in ldap_back_dobind()
@@ -70,8 +75,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	lc = meta_back_getconn( op, rs, META_OP_ALLOW_MULTIPLE, 
-			&op->o_req_ndn, NULL, LDAP_BACK_SENDERR );
+	lc = meta_back_getconn( op, rs, NULL, LDAP_BACK_SENDERR );
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
@@ -79,7 +83,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	/*
 	 * Array of message id of each target
 	 */
-	msgid = ch_calloc( sizeof( int ), li->ntargets );
+	msgid = ch_calloc( sizeof( int ), li->mi_ntargets );
 	if ( msgid == NULL ) {
 		rs->sr_err = LDAP_OTHER;
  		send_ldap_result( op, rs );
@@ -100,7 +104,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		struct berval	mfilter = BER_BVNULL;
 		char		**mapped_attrs = NULL;
 
-		if ( lsc->msc_candidate != META_CANDIDATE ) {
+		if ( candidates[ i ] != META_CANDIDATE ) {
 			msgid[ i ] = -1;
 			continue;
 		}
@@ -119,12 +123,12 @@ meta_back_search( Operation *op, SlapReply *rs )
 					( void * )&op->ors_slimit);
 		}
 
-		dc.rwmap = &li->targets[ i ]->mt_rwmap;
+		dc.rwmap = &li->mi_targets[ i ]->mt_rwmap;
 
 		/*
 		 * modifies the base according to the scope, if required
 		 */
-		suffixlen = li->targets[ i ]->mt_nsuffix.bv_len;
+		suffixlen = li->mi_targets[ i ]->mt_nsuffix.bv_len;
 		if ( suffixlen > op->o_req_ndn.bv_len ) {
 			switch ( op->ors_scope ) {
 			case LDAP_SCOPE_SUBTREE:
@@ -134,9 +138,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 				 * illegal bases may be turned into 
 				 * the suffix of the target.
 				 */
-				if ( dnIsSuffix( &li->targets[ i ]->mt_nsuffix,
+				if ( dnIsSuffix( &li->mi_targets[ i ]->mt_nsuffix,
 						&op->o_req_ndn ) ) {
-					realbase = li->targets[ i ]->mt_nsuffix;
+					realbase = li->mi_targets[ i ]->mt_nsuffix;
 					is_scope++;
 
 				} else {
@@ -150,17 +154,17 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 			case LDAP_SCOPE_ONELEVEL:
 			{
-				struct berval	rdn = li->targets[ i ]->mt_nsuffix;
+				struct berval	rdn = li->mi_targets[ i ]->mt_nsuffix;
 				rdn.bv_len -= op->o_req_ndn.bv_len + STRLENOF( "," );
 				if ( dnIsOneLevelRDN( &rdn )
-						&& dnIsSuffix( &li->targets[ i ]->mt_nsuffix, &op->o_req_ndn ) )
+						&& dnIsSuffix( &li->mi_targets[ i ]->mt_nsuffix, &op->o_req_ndn ) )
 				{
 					/*
 					 * if there is exactly one level,
 					 * make the target suffix the new
 					 * base, and make scope "base"
 					 */
-					realbase = li->targets[ i ]->mt_nsuffix;
+					realbase = li->mi_targets[ i ]->mt_nsuffix;
 					realscope = LDAP_SCOPE_BASE;
 					is_scope++;
 					break;
@@ -235,7 +239,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		/*
 		 * Maps required attributes
 		 */
-		rc = ldap_back_map_attrs( &li->targets[ i ]->mt_rwmap.rwm_at,
+		rc = ldap_back_map_attrs( &li->mi_targets[ i ]->mt_rwmap.rwm_at,
 				op->ors_attrs, BACKLDAP_MAP,
 				&mapped_attrs );
 		if ( rc != LDAP_SUCCESS ) {
@@ -271,12 +275,12 @@ meta_back_search( Operation *op, SlapReply *rs )
 			continue;
 		}
 		
-		++candidates;
+		++ncandidates;
 
 new_candidate:;
 	}
 
-	initial_candidates = candidates;
+	initial_candidates = ncandidates;
 
 	/* We pull apart the ber result, stuff it into a slapd entry, and
 	 * let send_search_entry stuff it back into ber format. Slow & ugly,
@@ -290,7 +294,7 @@ new_candidate:;
 	 * FIXME: we might use a queue, to balance the load 
 	 * among the candidates
 	 */
-	for ( rc = 0; candidates > 0; ) {
+	for ( rc = 0; ncandidates > 0; ) {
 		int ab, gotit = 0;
 
 		/* check for abandon */
@@ -308,10 +312,14 @@ new_candidate:;
 			}
 
 			if ( op->ors_slimit > 0
-					&& rs->sr_nentries == op->ors_slimit ) {
+					&& rs->sr_nentries == op->ors_slimit )
+			{
 				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 				rs->sr_v2ref = v2refs;
+				savepriv = op->o_private;
+				op->o_private = (void *)i;
 				send_ldap_result( op, rs );
+				op->o_private = savepriv;
 				goto finish;
 			}
 
@@ -336,11 +344,14 @@ new_candidate:;
 			} else if ( rc == -1 ) {
 really_bad:;
 				/* something REALLY bad happened! */
-				( void )meta_clear_unused_candidates( li,
-						lc, -1, 0 );
+				( void )meta_clear_unused_candidates( op,
+						lc, -1 );
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_v2ref = v2refs;
+				savepriv = op->o_private;
+				op->o_private = (void *)i;
 				send_ldap_result( op, rs );
+				op->o_private = savepriv;
 				
 				/* anything else needs be done? */
 
@@ -350,8 +361,13 @@ really_bad:;
 				goto finish;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+				is_ok++;
+
 				e = ldap_first_entry( lsc->msc_ld, res );
+				savepriv = op->o_private;
+				op->o_private = (void *)i;
 				meta_send_entry( op, rs, lc, i, e );
+				op->o_private = savepriv;
 
 				ldap_msgfree( res );
 				res = NULL;
@@ -364,8 +380,9 @@ really_bad:;
 				 * entry that has the base DN
 				 */
 				if ( op->ors_scope == LDAP_SCOPE_BASE
-						&& rs->sr_nentries > 0 ) {
-					candidates = 0;
+						&& rs->sr_nentries > 0 )
+				{
+					ncandidates = 0;
 					sres = LDAP_SUCCESS;
 					break;
 				}
@@ -375,6 +392,8 @@ really_bad:;
 			} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
 				char		**references = NULL;
 				int		cnt;
+
+				is_ok++;
 
 				rc = ldap_parse_reference( lsc->msc_ld, res,
 						&references, &rs->sr_ctrls, 1 );
@@ -408,7 +427,10 @@ really_bad:;
 
 				if ( rs->sr_ref != NULL && !BER_BVISNULL( &rs->sr_ref[ 0 ] ) ) {
 					/* ignore return value by now */
+					savepriv = op->o_private;
+					op->o_private = (void *)i;
 					( void )send_search_reference( op, rs );
+					op->o_private = savepriv;
 
 					ber_bvarray_free( rs->sr_ref );
 					rs->sr_ref = NULL;
@@ -435,16 +457,38 @@ really_bad:;
 				res = NULL;
 
 				sres = slap_map_api2result( rs );
+				switch ( sres ) {
+				case LDAP_NO_SUCH_OBJECT:
+					/* is_ok is touched any time a valid
+					 * (even intermediate) result is
+					 * returned; as a consequence, if
+					 * a candidate returns noSuchObject
+					 * it is ignored and the candidate
+					 * is simply demoted. */
+					if ( is_ok ) {
+						sres = LDAP_SUCCESS;
+					}
+					break;
+
+				case LDAP_SUCCESS:
+					is_ok++;
+					break;
+				}
+
 				if ( err != NULL ) {
 					free( err );
 				}
 				ldap_get_option( lsc->msc_ld,
 						LDAP_OPT_ERROR_STRING, &err );
-				if ( match.bv_val != NULL ) {
+				if ( !BER_BVISNULL( &match ) ) {
 					free( match.bv_val );
+					BER_BVZERO( &match );
 				}
 				ldap_get_option( lsc->msc_ld,
 						LDAP_OPT_MATCHED_DN, &match.bv_val );
+				if ( !BER_BVISNULL( &match ) ) {
+					match.bv_len = strlen( match.bv_val );
+				}
 
 				Debug( LDAP_DEBUG_ANY,
 					"=>meta_back_search [%d] "
@@ -459,7 +503,7 @@ really_bad:;
 				 * the outer cycle finishes
 				 */
 				msgid[ i ] = -1;
-				--candidates;
+				--ncandidates;
 			}
 		}
 
@@ -482,7 +526,7 @@ really_bad:;
 		/*
 		 * FIXME: need a strategy to handle errors
 		 */
-		rc = meta_back_op_result( lc, op, rs );
+		rc = meta_back_op_result( lc, op, rs, META_TARGET_NONE );
 		goto finish;
 	}
 
@@ -492,12 +536,13 @@ really_bad:;
 	 * FIXME: only the last one gets caught!
 	 */
 	if ( candidate_match == initial_candidates
-			&& match.bv_val != NULL && *match.bv_val ) {
+			&& !BER_BVISNULL( &match ) && !BER_BVISEMPTY( &match ) )
+	{
 		dc.ctx = "matchedDN";
-		dc.rwmap = &li->targets[ last ]->mt_rwmap;
+		dc.rwmap = &li->mi_targets[ last ]->mt_rwmap;
 
 		if ( ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
-			mmatch.bv_val = NULL;
+			BER_BVZERO( &mmatch );
 		}
 	}
 
@@ -518,14 +563,18 @@ really_bad:;
 	rs->sr_err = sres;
 	rs->sr_matched = mmatch.bv_val;
 	rs->sr_v2ref = v2refs;
+	savepriv = op->o_private;
+	op->o_private = (void *)i;
 	send_ldap_result( op, rs );
+	op->o_private = savepriv;
 	rs->sr_matched = NULL;
 	rs->sr_v2ref = NULL;
 
 
 finish:;
-	if ( match.bv_val ) {
-		if ( mmatch.bv_val != match.bv_val ) {
+	if ( !BER_BVISNULL( &match ) ) {
+		if ( !BER_BVISNULL( &mmatch ) && mmatch.bv_val != match.bv_val )
+		{
 			free( mmatch.bv_val );
 		}
 		free( match.bv_val );
@@ -567,7 +616,7 @@ meta_send_entry(
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
-	dc.rwmap = &li->targets[ target ]->mt_rwmap;
+	dc.rwmap = &li->mi_targets[ target ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "searchResult";
@@ -593,8 +642,8 @@ meta_send_entry(
 	/*
 	 * cache dn
 	 */
-	if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
-		( void )meta_dncache_update_entry( &li->cache,
+	if ( li->mi_cache.ttl != META_DNCACHE_DISABLED ) {
+		( void )meta_dncache_update_entry( &li->mi_cache,
 				&ent.e_nname, target );
 	}
 
@@ -604,9 +653,9 @@ meta_send_entry(
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		int		last = 0;
 
-		ldap_back_map( &li->targets[ target ]->mt_rwmap.rwm_at, 
+		ldap_back_map( &li->mi_targets[ target ]->mt_rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
-		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
+		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
 			continue;
 		}
 		attr = ( Attribute * )ch_malloc( sizeof( Attribute ) );
@@ -651,19 +700,19 @@ meta_send_entry(
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 
-			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
+			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); ++last );
 
-			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
-				ldap_back_map( &li->targets[ target ]->mt_rwmap.rwm_oc,
+			for ( bv = attr->a_vals; !BER_BVISNULL( bv ); bv++ ) {
+				ldap_back_map( &li->mi_targets[ target ]->mt_rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
-				if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+				if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0') {
 					free( bv->bv_val );
-					bv->bv_val = NULL;
+					BER_BVZERO( bv );
 					if ( --last < 0 ) {
 						break;
 					}
 					*bv = attr->a_vals[ last ];
-					attr->a_vals[ last ].bv_val = NULL;
+					BER_BVZERO( &attr->a_vals[ last ] );
 					bv--;
 
 				} else if ( mapped.bv_val != bv->bv_val ) {
@@ -704,8 +753,7 @@ meta_send_entry(
 					&attr->a_vals[i], &attr->a_nvals[i],
 					NULL );
 			}
-			attr->a_nvals[i].bv_val = NULL;
-			attr->a_nvals[i].bv_len = 0;
+			BER_BVZERO( &attr->a_nvals[i] );
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}

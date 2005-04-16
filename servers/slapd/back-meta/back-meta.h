@@ -148,9 +148,9 @@ extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
 struct metasingleconn {
 	int			msc_candidate;
-#define	META_NOT_CANDIDATE	0
-#define	META_CANDIDATE		1
-#define	META_LAST_CONN		-1
+#define	META_NOT_CANDIDATE	((char)0)
+#define	META_CANDIDATE		((char)1)
+#define	META_LAST_CONN		((char)(-1))
 	
 	LDAP            	*msc_ld;
 	struct berval          	msc_bound_ndn;
@@ -165,14 +165,13 @@ struct metasingleconn {
 
 struct metaconn {
 	struct slap_conn	*mc_conn;
-	struct rewrite_info	*mc_rwinfo;
 	
 	/*
 	 * means that the connection is bound; 
 	 * of course only one target actually is ...
 	 */
 	int             	mc_bound_target;
-#define META_BOUND_NONE		-1
+#define META_BOUND_NONE		(-1)
 #define META_BOUND_ALL		-2
 	/* supersedes the connection stuff */
 	struct metasingleconn	*mc_conns;
@@ -195,45 +194,48 @@ struct metadncache {
 	ldap_pvt_thread_mutex_t mutex;
 	Avlnode			*tree;
 
-#define META_DNCACHE_DISABLED   0
-#define META_DNCACHE_FOREVER    -1
+#define META_DNCACHE_DISABLED   (0)
+#define META_DNCACHE_FOREVER    (-1)
 	long int		ttl;  /* seconds; 0: no cache, -1: no expiry */
 };
 
 struct metainfo {
-	int			ntargets;
-	int			defaulttarget;
-	int			network_timeout;
-#define META_DEFAULT_TARGET_NONE	-1
-	struct metatarget	**targets;
+	int			mi_ntargets;
+	int			mi_defaulttarget;
+	int			mi_network_timeout;
+#define META_DEFAULT_TARGET_NONE	(-1)
+	struct metatarget	**mi_targets;
+	char			*mi_candidates;
 
-	struct rewrite_info	*rwinfo;
-	Backend			*glue_be; 
-
-	struct metadncache	cache;
+	struct metadncache	mi_cache;
 	
-	ldap_pvt_thread_mutex_t	conn_mutex;
-	Avlnode			*conntree;
+	ldap_pvt_thread_mutex_t	mi_conn_mutex;
+	Avlnode			*mi_conntree;
 
 	unsigned		flags;
-/* defined in <back-ldap/back-ldap.h>
+#if 0
+/* defined in <back-ldap/back-ldap.h> */
 #define LDAP_BACK_F_NONE		0x00U
 #define LDAP_BACK_F_SAVECRED		0x01U
 #define LDAP_BACK_F_USE_TLS		0x02U
 #define LDAP_BACK_F_TLS_CRITICAL	( 0x04U | LDAP_BACK_F_USE_TLS )
 #define LDAP_BACK_F_CHASE_REFERRALS	0x8U
-*/
+#endif
 };
 
-#define META_OP_ALLOW_MULTIPLE		0x00
-#define META_OP_REQUIRE_SINGLE		0x01
-#define META_OP_REQUIRE_ALL		0x02
+typedef enum meta_op_type {
+	META_OP_ALLOW_MULTIPLE = 0,
+	META_OP_REQUIRE_SINGLE,
+	META_OP_REQUIRE_ALL
+} meta_op_type;
+
+char *
+meta_back_candidates_get( Operation *op );
+
 extern struct metaconn *
 meta_back_getconn(
 		Operation		*op,
 		SlapReply		*rs,
-		int			op_type,
-		struct berval		*dn,
 		int			*candidate,
 		ldap_back_send_t	sendok
 );
@@ -255,7 +257,8 @@ extern int
 meta_back_op_result(
 		struct metaconn		*lc,
 		Operation		*op,
-		SlapReply		*rs
+		SlapReply		*rs,
+		int			candidate
 );
 
 extern int
@@ -286,18 +289,6 @@ meta_back_is_candidate(
 );
 
 extern int
-meta_back_count_candidates(
-		struct metainfo		*li,
-		struct berval		*ndn
-);
-
-extern int
-meta_back_is_candidate_unique(
-		struct metainfo		*li,
-		struct berval		*ndn
-);
-
-extern int
 meta_back_select_unique_candidate(
 		struct metainfo		*li,
 		struct berval		*ndn
@@ -305,16 +296,14 @@ meta_back_select_unique_candidate(
 
 extern int
 meta_clear_unused_candidates(
-		struct metainfo		*li,
+		Operation		*op,
 		struct metaconn		*lc,
-		int			candidate,
-		int			reallyclean
+		int			candidate
 );
 
 extern int
 meta_clear_one_candidate(
-		struct metasingleconn	*lc,
-		int			reallyclean
+		struct metasingleconn	*lc
 );
 
 /*
@@ -333,6 +322,7 @@ meta_dncache_dup(
 );
 
 #define META_TARGET_NONE	(-1)
+#define META_TARGET_MULTIPLE	(-2)
 extern int
 meta_dncache_get_target(
 		struct metadncache	*cache,

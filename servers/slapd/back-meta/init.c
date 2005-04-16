@@ -78,16 +78,8 @@ meta_back_db_init(
 {
 	struct metainfo	*li;
 
-	struct rewrite_info	*rwinfo;
-
-	rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( rwinfo == NULL ) {
-		return -1;
-	}
-
 	li = ch_calloc( 1, sizeof( struct metainfo ) );
 	if ( li == NULL ) {
-		rewrite_info_delete( &rwinfo );
  		return -1;
  	}
 
@@ -95,11 +87,10 @@ meta_back_db_init(
 	 * At present the default is no default target;
 	 * this may change
 	 */
-	li->defaulttarget = META_DEFAULT_TARGET_NONE;
-	li->rwinfo = rwinfo;
+	li->mi_defaulttarget = META_DEFAULT_TARGET_NONE;
 
-	ldap_pvt_thread_mutex_init( &li->conn_mutex );
-	ldap_pvt_thread_mutex_init( &li->cache.mutex );
+	ldap_pvt_thread_mutex_init( &li->mi_conn_mutex );
+	ldap_pvt_thread_mutex_init( &li->mi_cache.mutex );
 	be->be_private = li;
 
 	return 0;
@@ -189,33 +180,37 @@ meta_back_db_destroy(
 		/*
 		 * Destroy the connection tree
 		 */
-		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+		ldap_pvt_thread_mutex_lock( &li->mi_conn_mutex );
 
-		if ( li->conntree ) {
-			avl_free( li->conntree, conn_free );
+		if ( li->mi_conntree ) {
+			avl_free( li->mi_conntree, conn_free );
 		}
 
 		/*
 		 * Destroy the per-target stuff (assuming there's at
 		 * least one ...)
 		 */
-		for ( i = 0; i < li->ntargets; i++ ) {
-			target_free( li->targets[ i ] );
-			free( li->targets[ i ] );
+		for ( i = 0; i < li->mi_ntargets; i++ ) {
+			target_free( li->mi_targets[ i ] );
+			free( li->mi_targets[ i ] );
 		}
 
-		free( li->targets );
+		free( li->mi_targets );
 
-		ldap_pvt_thread_mutex_lock( &li->cache.mutex );
-		if ( li->cache.tree ) {
-			avl_free( li->cache.tree, meta_dncache_free );
+		ldap_pvt_thread_mutex_lock( &li->mi_cache.mutex );
+		if ( li->mi_cache.tree ) {
+			avl_free( li->mi_cache.tree, meta_dncache_free );
 		}
 		
-		ldap_pvt_thread_mutex_unlock( &li->cache.mutex );
-		ldap_pvt_thread_mutex_destroy( &li->cache.mutex );
+		ldap_pvt_thread_mutex_unlock( &li->mi_cache.mutex );
+		ldap_pvt_thread_mutex_destroy( &li->mi_cache.mutex );
 
-		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
-		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &li->mi_conn_mutex );
+		ldap_pvt_thread_mutex_destroy( &li->mi_conn_mutex );
+
+		if ( li->mi_candidates != NULL ) {
+			ber_memfree_x( li->mi_candidates, NULL );
+		}
 	}
 
 	free( be->be_private );
