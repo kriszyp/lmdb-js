@@ -35,6 +35,17 @@ void bdb_errcall( const DB_ENV *env, const char *pfx, const char * msg )
 	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s\n", pfx, msg, 0 );
 }
 
+#if DB_VERSION_FULL >= 0x04030000
+void bdb_msgcall( const DB_ENV *env, const char *msg )
+{
+#ifdef HAVE_EBCDIC
+	if ( msg[0] > 0x7f )
+		__etoa( msg );
+#endif
+	Debug( LDAP_DEBUG_TRACE, "bdb: %s\n", msg, 0, 0 );
+}
+#endif
+
 #ifdef HAVE_EBCDIC
 
 #undef db_strerror

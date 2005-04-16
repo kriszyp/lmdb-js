@@ -115,7 +115,11 @@ bdb_do_recovery( BackendDB *be )
 	re_dbenv->set_errpfx( re_dbenv, be->be_suffix[0].bv_val );
 	re_dbenv->set_errcall( re_dbenv, bdb_errcall );
 	(void)re_dbenv->set_verbose(re_dbenv, DB_VERB_RECOVERY, 1);
+#if DB_VERSION_FULL < 0x04030000
 	(void)re_dbenv->set_verbose(re_dbenv, DB_VERB_CHKPOINT, 1);
+#else
+	re_dbenv->set_msgcall( re_dbenv, bdb_msgcall );
+#endif
 
 	flags = DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
 		DB_INIT_TXN | DB_USE_ENVIRON | DB_RECOVER;
