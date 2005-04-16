@@ -172,7 +172,7 @@ struct metaconn {
 	 */
 	int             	mc_bound_target;
 #define META_BOUND_NONE		(-1)
-#define META_BOUND_ALL		-2
+#define META_BOUND_ALL		(-2)
 	/* supersedes the connection stuff */
 	struct metasingleconn	*mc_conns;
 };
