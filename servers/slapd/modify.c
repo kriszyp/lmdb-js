@@ -206,7 +206,7 @@ cleanup:
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( modlist != NULL ) slap_mods_free( modlist );
+	if ( op->orm_modlist != NULL ) slap_mods_free( op->orm_modlist );
 
 	return rs->sr_err;
 }
