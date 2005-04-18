@@ -300,6 +300,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs )
 	cb.sc_next = NULL;
 
 	o.o_callback = &cb;
+	o.ors_deref = LDAP_DEREF_NEVER;
 	o.ors_limit = NULL;
 	o.ors_tlimit = SLAP_NO_LIMIT;
 	o.ors_slimit = SLAP_NO_LIMIT;
@@ -516,6 +517,7 @@ dynlist_compare( Operation *op, SlapReply *rs )
 	}
 
 	o.ors_scope = LDAP_SCOPE_BASE;
+	o.ors_deref = LDAP_DEREF_NEVER;
 	an[0].an_name = op->orc_ava->aa_desc->ad_cname;
 	an[0].an_desc = op->orc_ava->aa_desc;
 	BER_BVZERO( &an[1].an_name );
