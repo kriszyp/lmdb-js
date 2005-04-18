@@ -261,6 +261,7 @@ over_access_allowed(
 {
 	slap_overinfo *oi;
 	slap_overinst *on;
+	BackendInfo *bi = op->o_bd->bd_info;
 	BackendDB *be = op->o_bd, db;
 	int rc = SLAP_CB_CONTINUE;
 
@@ -287,14 +288,22 @@ over_access_allowed(
 		}
 	}
 
-	if ( rc == SLAP_CB_CONTINUE && oi->oi_orig->bi_access_allowed ) {
+	if ( rc == SLAP_CB_CONTINUE ) {
+		BI_access_allowed	*bi_access_allowed;
+
 		/* if the database structure was changed, o_bd points to a
 		 * copy of the structure; put the original bd_info in place */
 		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
 			op->o_bd->bd_info = oi->oi_orig;
 		}
 
-		rc = oi->oi_orig->bi_access_allowed( op, e,
+		if ( oi->oi_orig->bi_access_allowed ) {
+			bi_access_allowed = oi->oi_orig->bi_access_allowed;
+		} else {
+			bi_access_allowed = slap_access_allowed;
+		}
+
+		rc = bi_access_allowed( op, e,
 			desc, val, access, state, maskp );
 	}
 	/* should not fall thru this far without anything happening... */
@@ -304,6 +313,8 @@ over_access_allowed(
 	}
 
 	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
 	return rc;
 }
 #endif /* SLAP_OVERLAY_ACCESS */

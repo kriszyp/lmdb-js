@@ -1523,9 +1523,10 @@ backend_attribute(
 		if ( a ) {
 			BerVarray v;
 
-			if ( op->o_conn && access > ACL_NONE && access_allowed( op,
-				e, entry_at, NULL, access,
-				&acl_state ) == 0 ) {
+			if ( op->o_conn && access > ACL_NONE &&
+				access_allowed( op, e, entry_at, NULL,
+						access, &acl_state ) == 0 )
+			{
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto freeit;
 			}
@@ -1535,11 +1536,10 @@ backend_attribute(
 			
 			v = op->o_tmpalloc( sizeof(struct berval) * ( i + 1 ),
 				op->o_tmpmemctx );
-			for ( i = 0,j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
+			for ( i = 0, j = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
 			{
 				if ( op->o_conn && access > ACL_NONE && 
-						access_allowed( op, e,
-							entry_at,
+					access_allowed( op, e, entry_at,
 							&a->a_nvals[i],
 							access,
 							&acl_state ) == 0 )
