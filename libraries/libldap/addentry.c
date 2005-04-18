@@ -43,15 +43,10 @@ ldap_delete_result_entry( LDAPMessage **list, LDAPMessage *e )
 	if ( tmp == NULL )
 		return( NULL );
 
-	if ( prev == NULL ) {
-		if ( tmp->lm_chain )
-			tmp->lm_chain->lm_chain_tail = (*list)->lm_chain_tail;
+	if ( prev == NULL )
 		*list = tmp->lm_chain;
-	} else {
+	else
 		prev->lm_chain = tmp->lm_chain;
-		if ( prev->lm_chain == NULL )
-			(*list)->lm_chain_tail = prev;
-	}
 	tmp->lm_chain = NULL;
 
 	return( tmp );
@@ -64,6 +59,5 @@ ldap_add_result_entry( LDAPMessage **list, LDAPMessage *e )
 	assert( e != NULL );
 
 	e->lm_chain = *list;
-	e->lm_chain_tail = (*list)->lm_chain_tail;
 	*list = e;
 }
