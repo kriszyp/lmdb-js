@@ -302,6 +302,12 @@ config_del_vals(ConfigTable *cf, ConfigArgs *c)
 {
 	int rc = 0;
 
+	/* If there is no handler, just ignore it */
+	if ( cf->arg_type & ARG_MAGIC ) {
+		c->op = LDAP_MOD_DELETE;
+		c->type = cf->arg_type & ARGS_USERLAND;
+		rc = (*((ConfigDriver*)cf->arg_item))(c);
+	}
 	return rc;
 }
 
@@ -505,6 +511,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		c->be = NULL;
 	}
 
+	c->valx = -1;
 	c->fname = fname;
 	init_config_argv( c );
 
@@ -1102,6 +1109,7 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 	c.lineno = lineno;
 	c.argc = argc;
 	c.argv = argv;
+	c.valx = -1;
 	sprintf( c.log, "%s: line %lu", fname, lineno );
 
 	rc = SLAP_CONF_UNKNOWN;

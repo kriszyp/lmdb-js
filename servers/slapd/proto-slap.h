@@ -63,7 +63,7 @@ LDAP_SLAPD_F (int) slap_access_always_allowed LDAP_P((
 LDAP_SLAPD_F (int) acl_check_modlist LDAP_P((
 	Operation *op, Entry *e, Modifications *ml ));
 
-LDAP_SLAPD_F (void) acl_append( AccessControl **l, AccessControl *a );
+LDAP_SLAPD_F (void) acl_append( AccessControl **l, AccessControl *a, int pos );
 
 #ifdef SLAP_DYNACL
 LDAP_SLAPD_F (int) slap_dynacl_register LDAP_P(( slap_dynacl_t *da ));
@@ -76,7 +76,7 @@ LDAP_SLAPD_F (int) acl_init LDAP_P(( void ));
  */
 LDAP_SLAPD_F (void) parse_acl LDAP_P(( Backend *be,
 	const char *fname, int lineno,
-	int argc, char **argv ));
+	int argc, char **argv, int pos ));
 
 LDAP_SLAPD_F (char *) access2str LDAP_P(( slap_access_t access ));
 LDAP_SLAPD_F (slap_access_t) str2access LDAP_P(( const char *str ));

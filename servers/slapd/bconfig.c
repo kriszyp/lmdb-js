@@ -33,6 +33,7 @@
 #endif
 
 #include <lutil.h>
+#include <ldap_rq.h>
 
 #include "config.h"
 
@@ -263,7 +264,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "authid-rewrite", NULL, 2, 0, 0,
 #ifdef SLAP_AUTH_REWRITE
-		ARG_MAGIC|CFG_REWRITE, &config_generic,
+		ARG_MAGIC|CFG_REWRITE|ARG_NO_DELETE|ARG_NO_INSERT, &config_generic,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -274,7 +275,7 @@ ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgGlAt:7 NAME 'olcAuthzPolicy' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "authz-regexp", NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
+	{ "authz-regexp", NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:8 NAME 'olcAuthzRegexp' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
@@ -321,7 +322,6 @@ ConfigTable config_back_cf_table[] = {
 	{ "idletimeout", "timeout", 2, 2, 0, ARG_INT,
 		&global_idletimeout, "( OLcfgGlAt:18 NAME 'olcIdleTimeout' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-/* XXX -- special case? */
 	{ "include", "file", 2, 2, 0, ARG_MAGIC,
 		&config_include, "( OLcfgGlAt:19 NAME 'olcInclude' "
 			"SUP labeledURI )", NULL, NULL },
@@ -493,7 +493,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "sizelimit", "limit",	2, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_SIZE,
 		&config_sizelimit, "( OLcfgGlAt:60 NAME 'olcSizeLimit' "
-			"SYNTAX OMsInteger )", NULL, NULL },
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "sockbuf_max_incoming", "max", 2, 2, 0, ARG_BER_LEN_T,
 		&sockbuf_max_incoming, "( OLcfgGlAt:61 NAME 'olcSockbufMaxIncoming' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -898,22 +898,66 @@ config_generic(ConfigArgs *c) {
 			rc = 1;
 		}
 		return rc;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		int rc = 0;
+		switch(c->type) {
+		/* single-valued attrs, no-ops */
+		case CFG_CONCUR:
+		case CFG_THREADS:
+		case CFG_RO:
+		case CFG_AZPOLICY:
+		case CFG_DEPTH:
+		case CFG_CHECK:
+		case CFG_LASTMOD:
+		case CFG_SSTR_IF_MAX:
+		case CFG_SSTR_IF_MIN:
+			break;
+
+		case CFG_SALT:
+			ch_free( passwd_salt );
+			passwd_salt = NULL;
+			break;
+
+		case CFG_REPLOG:
+			ch_free( c->be->be_replogfile );
+			c->be->be_replogfile = NULL;
+			break;
+
+		case CFG_LOGFILE:
+			ch_free( logfileName );
+			logfileName = NULL;
+			break;
+
+		case CFG_ACL:
+			if ( c->valx < 0 ) {
+				AccessControl *end;
+				if ( c->be == frontendDB )
+					end = NULL;
+				else
+					end = frontendDB->be_acl;
+				acl_destroy( c->be->be_acl, end );
+			} else {
+				AccessControl **prev, *a;
+				int i;
+				for (i=0, prev = &c->be->be_acl; i < c->valx;
+					i++ ) {
+					a = *prev;
+					prev = &a->acl_next;
+				}
+				a = *prev;
+				*prev = a->acl_next;
+				acl_free( a );
+			}
+			break;
+		default:
+			rc = 1;
+			break;
+		}
+		return rc;
 	}
 
  	p = strchr(c->line,'(' /*')'*/);
-	if ( c->op == LDAP_MOD_DELETE ) {
-		int rc = 0;
-		switch(c->type) {
-		case CFG_BACKEND:
-		case CFG_DATABASE:
-			rc = 1;
-			break;
-		case CFG_CONCUR:
-			ldap_pvt_thread_set_concurrency(c->value_int);
-			break;
 
-		}
-	}
 	switch(c->type) {
 		case CFG_BACKEND:
 			if(!(c->bi = backend_info(c->argv[1]))) {
@@ -1049,7 +1093,7 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_ACL:
-			parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv);
+			parse_acl(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx);
 			break;
 
 		case CFG_REPLOG:
@@ -1220,6 +1264,12 @@ config_search_base(ConfigArgs *c) {
 			rc = 0;
 		}
 		return rc;
+	} else if( c->op == LDAP_MOD_DELETE ) {
+		ch_free( default_search_base.bv_val );
+		ch_free( default_search_nbase.bv_val );
+		BER_BVZERO( &default_search_base );
+		BER_BVZERO( &default_search_nbase );
+		return 0;
 	}
 
 	if(c->bi || c->be != frontendDB) {
@@ -1253,6 +1303,17 @@ config_passwd_hash(ConfigArgs *c) {
 			value_add_one(&c->rvalue_vals, &bv);
 		}
 		return i ? 0 : 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( c->valx < 0 ) {
+			ldap_charray_free( default_passwd_hash );
+			default_passwd_hash = NULL;
+		} else {
+			i = c->valx;
+			ch_free( default_passwd_hash[i] );
+			for (; default_passwd_hash[i]; i++ )
+				default_passwd_hash[i] = default_passwd_hash[i+1];
+		}
+		return 0;
 	}
 	if(default_passwd_hash) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1287,7 +1348,15 @@ config_schema_dn(ConfigArgs *c) {
 			rc = 0;
 		}
 		return rc;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		ch_free( c->be->be_schemadn.bv_val );
+		ch_free( c->be->be_schemandn.bv_val );
+		BER_BVZERO( &c->be->be_schemadn );
+		BER_BVZERO( &c->be->be_schemandn );
+		return 0;
 	}
+	ch_free( c->be->be_schemadn.bv_val );
+	ch_free( c->be->be_schemandn.bv_val );
 	c->be->be_schemadn = c->value_dn;
 	c->be->be_schemandn = c->value_ndn;
 	return(0);
@@ -1309,6 +1378,15 @@ config_sizelimit(ConfigArgs *c) {
 		else
 			rc = 1;
 		return rc;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		/* Reset to defaults */
+		lim->lms_s_soft = SLAPD_DEFAULT_SIZELIMIT;
+		lim->lms_s_hard = 0;
+		lim->lms_s_unchecked = -1;
+		lim->lms_s_pr = 0;
+		lim->lms_s_pr_hide = 0;
+		lim->lms_s_pr_total = 0;
+		return 0;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
@@ -1357,6 +1435,11 @@ config_timelimit(ConfigArgs *c) {
 		else
 			rc = 1;
 		return rc;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		/* Reset to defaults */
+		lim->lms_t_soft = SLAPD_DEFAULT_TIMELIMIT;
+		lim->lms_t_hard = 0;
+		return 0;
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
@@ -1393,6 +1476,8 @@ static int
 config_overlay(ConfigArgs *c) {
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		assert(0);
 	}
 	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1])) {
 		/* log error */
@@ -1423,6 +1508,22 @@ config_suffix(ConfigArgs *c) {
 			value_add( &c->rvalue_nvals, c->be->be_nsuffix );
 			return 0;
 		}
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( c->valx < 0 ) {
+			ber_bvarray_free( c->be->be_suffix );
+			ber_bvarray_free( c->be->be_nsuffix );
+			c->be->be_suffix = NULL;
+			c->be->be_nsuffix = NULL;
+		} else {
+			int i = c->valx;
+			ch_free( c->be->be_suffix[i].bv_val );
+			ch_free( c->be->be_nsuffix[i].bv_val );
+			for (; c->be->be_suffix[i].bv_val; i++) {
+				c->be->be_suffix[i] = c->be->be_suffix[i+1];
+				c->be->be_nsuffix[i] = c->be->be_nsuffix[i+1];
+			}
+		}
+		return 0;
 	}
 #ifdef SLAPD_MONITOR_DN
 	if(!strcasecmp(c->argv[1], SLAPD_MONITOR_DN)) {
@@ -1467,6 +1568,16 @@ config_rootdn(ConfigArgs *c) {
 		} else {
 			return 1;
 		}
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		ch_free( c->be->be_rootdn.bv_val );
+		ch_free( c->be->be_rootndn.bv_val );
+		BER_BVZERO( &c->be->be_rootdn );
+		BER_BVZERO( &c->be->be_rootndn );
+		return 0;
+	}
+	if ( !BER_BVISNULL( &c->be->be_rootdn )) {
+		ch_free( c->be->be_rootdn.bv_val );
+		ch_free( c->be->be_rootndn.bv_val );
 	}
 	c->be->be_rootdn = c->value_dn;
 	c->be->be_rootndn = c->value_ndn;
@@ -1482,6 +1593,10 @@ config_rootpw(ConfigArgs *c) {
 			return 0;
 		}
 		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		ch_free( c->be->be_rootpw.bv_val );
+		BER_BVZERO( &c->be->be_rootpw );
+		return 0;
 	}
 
 	tbe = select_backend(&c->be->be_rootndn, 0, 0);
@@ -1491,6 +1606,8 @@ config_rootpw(ConfigArgs *c) {
 			c->log, 0, 0);
 		return(1);
 	}
+	if ( !BER_BVISNULL( &c->be->be_rootpw ))
+		ch_free( c->be->be_rootpw.bv_val );
 	c->be->be_rootpw = c->value_bv;
 	return(0);
 }
@@ -1521,6 +1638,14 @@ config_restrict(ConfigArgs *c) {
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return mask_to_verbs( restrictable_ops, c->be->be_restrictops,
 			&c->rvalue_vals );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( !c->line ) {
+			c->be->be_restrictops = 0;
+		} else {
+			restrictops = verb_to_mask( c->line, restrictable_ops );
+			c->be->be_restrictops ^= restrictops;
+		}
+		return 0;
 	}
 	i = verbs_to_mask( c->argc, c->argv, restrictable_ops, &restrictops );
 	if ( i ) {
@@ -1548,6 +1673,14 @@ config_allows(ConfigArgs *c) {
 	};
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return mask_to_verbs( allowable_ops, global_allows, &c->rvalue_vals );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( !c->line ) {
+			global_allows = 0;
+		} else {
+			allows = verb_to_mask( c->line, allowable_ops );
+			global_allows ^= allows;
+		}
+		return 0;
 	}
 	i = verbs_to_mask(c->argc, c->argv, allowable_ops, &allows);
 	if ( i ) {
@@ -1574,6 +1707,14 @@ config_disallows(ConfigArgs *c) {
 	};
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return mask_to_verbs( disallowable_ops, global_disallows, &c->rvalue_vals );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( !c->line ) {
+			global_disallows = 0;
+		} else {
+			disallows = verb_to_mask( c->line, disallowable_ops );
+			global_disallows ^= disallows;
+		}
+		return 0;
 	}
 	i = verbs_to_mask(c->argc, c->argv, disallowable_ops, &disallows);
 	if ( i ) {
@@ -1600,6 +1741,14 @@ config_requires(ConfigArgs *c) {
 	};
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return mask_to_verbs( requires_ops, c->be->be_requires, &c->rvalue_vals );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( !c->line ) {
+			c->be->be_requires = 0;
+		} else {
+			requires = verb_to_mask( c->line, requires_ops );
+			c->be->be_requires ^= requires;
+		}
+		return 0;
 	}
 	i = verbs_to_mask(c->argc, c->argv, requires_ops, &requires);
 	if ( i ) {
@@ -1637,6 +1786,14 @@ config_loglevel(ConfigArgs *c) {
 
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return mask_to_verbs( loglevel_ops, ldap_syslog, &c->rvalue_vals );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( !c->line ) {
+			ldap_syslog = 0;
+		} else {
+			int level = verb_to_mask( c->line, loglevel_ops );
+			ldap_syslog ^= level;
+		}
+		return 0;
 	}
 
 	ldap_syslog = 0;
@@ -1679,6 +1836,20 @@ config_syncrepl(ConfigArgs *c) {
 			return 0;
 		}
 		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		struct re_s *re;
+
+		if ( c->be->be_syncinfo ) {
+			re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, c->be->be_syncinfo );
+			if ( re ) {
+				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ))
+					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
+				ldap_pvt_runqueue_remove( &slapd_rq, re );
+			}
+			syncinfo_free( c->be->be_syncinfo );
+			c->be->be_syncinfo = NULL;
+		}
+		return 0;
 	}
 	if(SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1702,6 +1873,17 @@ config_referral(ConfigArgs *c) {
 		} else {
 			return 1;
 		}
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( c->valx < 0 ) {
+			ber_bvarray_free( default_referral );
+			default_referral = NULL;
+		} else {
+			int i = c->valx;
+			ch_free( default_referral[i].bv_val );
+			for (; default_referral[i].bv_val; i++ )
+				default_referral[i] = default_referral[i+1];
+		}
+		return 0;
 	}
 	if(validate_global_referral(c->argv[1])) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1866,6 +2048,10 @@ config_replica(ConfigArgs *c) {
 			return 0;
 		}
 		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( c->valx < 0 ) {
+		} else {
+		}
 	}
 	if(SLAP_MONITOR(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1968,6 +2154,11 @@ config_updatedn(ConfigArgs *c) {
 			return 0;
 		}
 		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		ch_free( c->be->be_update_ndn.bv_val );
+		c->be->be_update_ndn.bv_val = NULL;
+		SLAP_DBFLAGS(c->be) ^= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SLURP_SHADOW);
+		return 0;
 	}
 	if(SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -2001,6 +2192,17 @@ config_updateref(ConfigArgs *c) {
 		} else {
 			return 1;
 		}
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		if ( c->valx < 0 ) {
+			ber_bvarray_free( c->be->be_update_refs );
+			c->be->be_update_refs = NULL;
+		} else {
+			int i = c->valx;
+			ch_free( c->be->be_update_refs[i].bv_val );
+			for (; c->be->be_update_refs[i].bv_val; i++)
+				c->be->be_update_refs[i] = c->be->be_update_refs[i+1];
+		}
+		return 0;
 	}
 	if(!SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -2035,6 +2237,7 @@ config_include(ConfigArgs *c) {
 			return 0;
 		}
 		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
 	}
 	cf = ch_calloc( 1, sizeof(ConfigFile));
 	if ( cfn->c_kids ) {
@@ -2074,6 +2277,8 @@ config_tls_option(ConfigArgs *c) {
 	}
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return ldap_pvt_tls_get_option( NULL, flag, &c->value_string );
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		return ldap_pvt_tls_set_option( NULL, flag, NULL );
 	}
 	ch_free(c->value_string);
 	return(ldap_pvt_tls_set_option(NULL, flag, c->argv[1]));
@@ -2113,6 +2318,9 @@ config_tls_config(ConfigArgs *c) {
 			}
 		}
 		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		int i = 0;
+		return ldap_pvt_tls_set_option( NULL, flag, &i );
 	}
 	ch_free( c->value_string );
 	if(isdigit((unsigned char)c->argv[1][0])) {
@@ -2134,6 +2342,11 @@ add_syncrepl(
 	syncinfo_t *si;
 	int	rc = 0;
 
+	if ( !( be->be_search && be->be_add && be->be_modify && be->be_delete )) {
+		Debug( LDAP_DEBUG_ANY, "database %s does not support operations "
+			"required for syncrepl\n", be->be_type, 0, 0 );
+		return 1;
+	}
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
 	if ( si == NULL ) {
@@ -2184,6 +2397,8 @@ add_syncrepl(
 		}
 		si->si_be = be;
 		be->be_syncinfo = si;
+		init_syncrepl( si );
+		ldap_pvt_runqueue_insert( &slapd_rq,si->si_interval,do_syncrepl,si );
 		return 0;
 	}
 }
@@ -2974,7 +3189,7 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 		vals = ml->sml_values;
 	}
 
-	if ( a && ad->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+	if ( a && ( ad->ad_type->sat_flags & SLAP_AT_ORDERED )) {
 		sort = 1;
 		rc = ordered_value_sort( a, 1 );
 		if ( rc )
@@ -3457,10 +3672,18 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	ca.bi = ce->ce_bi;
 
 	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
+		ct = config_find_table( colst, nocs, ml->sml_desc );
 		switch (ml->sml_op) {
 		case LDAP_MOD_DELETE:
 		case LDAP_MOD_REPLACE: {
 			BerVarray vals = NULL, nvals;
+			if ( ct && ( ct->arg_type & ARG_NO_DELETE )) {
+				rc = LDAP_UNWILLING_TO_PERFORM;
+				snprintf(textbuf, textsize, "cannot delete %s",
+					ml->sml_desc );
+				rs->sr_text = textbuf;
+				goto out;
+			}
 			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 				vals = ml->sml_values;
 				nvals = ml->sml_nvalues;
@@ -3482,12 +3705,31 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 		case LDAP_MOD_ADD:
 		case SLAP_MOD_SOFTADD: {
 			int mop = ml->sml_op;
+			int navals = -1;
 			ml->sml_op = LDAP_MOD_ADD;
-			for ( i=0; !BER_BVISNULL( &ml->sml_values[i] ); i++ ) {
-				ct = config_find_table( colst, nocs, ml->sml_desc );
-				if ( !ct ) continue;
-				rc = check_vals( ct, &ca, ml, 0 );
-				if ( rc ) goto out;
+			if ( ct ) {
+				if ( ct->arg_type & ARG_NO_INSERT ) {
+					Attribute *a = attr_find( e->e_attrs, ml->sml_desc );
+					if ( a ) {
+						for (i = 0; a->a_vals[i].bv_val; i++ );
+						navals = i;
+					}
+				}
+				for ( i=0; !BER_BVISNULL( &ml->sml_values[i] ); i++ ) {
+					if ( ml->sml_values[i].bv_val[0] == '{' &&
+						navals >= 0 ) {
+						int j = strtol( ml->sml_values[i].bv_val+1, NULL, 0 );
+						if ( j < navals ) {
+							rc = LDAP_UNWILLING_TO_PERFORM;
+							snprintf(textbuf, textsize, "cannot insert %s",
+								ml->sml_desc );
+							rs->sr_text = textbuf;
+							goto out;
+						}
+					}
+					rc = check_vals( ct, &ca, ml, 0 );
+					if ( rc ) goto out;
+				}
 			}
 			rc = modify_add_values(e, &ml->sml_mod,
 				   get_permissiveModify(op),
@@ -3523,10 +3765,6 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	if ( rc == LDAP_SUCCESS ) {
 		/* Basic syntax checks are OK. Do the actual settings. */
 		for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
-			/* Ignore single-value deletes */
-			if ( is_at_single_value( ml->sml_desc->ad_type ) &&
-				ml->sml_op == LDAP_MOD_DELETE ) continue;
-			
 			ct = config_find_table( colst, nocs, ml->sml_desc );
 			if ( !ct ) continue;
 
@@ -3534,20 +3772,55 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			case LDAP_MOD_DELETE:
 			case LDAP_MOD_REPLACE: {
 				BerVarray vals = NULL, nvals;
+				Attribute *a, *b;
+				a = attr_find( save_attrs, ml->sml_desc );
+				b = attr_find( e->e_attrs, ml->sml_desc );
 				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 					vals = ml->sml_values;
 					nvals = ml->sml_nvalues;
 					ml->sml_values = NULL;
 					ml->sml_nvalues = NULL;
 				}
-#if 0
-				rc = config_del_vals( ct, &ca, ml->sml_values );
-#endif
+				/* If we didn't delete the whole attribute */
+				if ( ml->sml_values && b ) {
+					int j;
+
+					/* Find the index of the deleted values */
+					for (i=0, j=0; a->a_vals[i].bv_val; i++) {
+						struct berval bv1, bv2;
+						bv1 = a->a_nvals[i];
+						bv2 = b->a_nvals[j];
+						if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+							ptr = strchr( bv1.bv_val, '}' ) + 1;
+							bv1.bv_len -= ptr - bv1.bv_val;
+							bv1.bv_val = ptr;
+							ptr = strchr( bv2.bv_val, '}' ) + 1;
+							bv2.bv_len -= ptr - bv2.bv_val;
+							bv2.bv_val = ptr;
+						}
+						if ( bvmatch( &bv1, &bv2 )) {
+							j++;
+							continue;
+						}
+						ca.line = a->a_vals[i].bv_val;
+						ca.valx = j;
+						if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+							ptr = strchr( ca.line, '}' );
+							ca.line = ptr+1;
+						}
+						rc = config_del_vals( ct, &ca );
+						if ( rc != LDAP_SUCCESS ) break;
+					}
+				} else {
+					ca.valx = -1;
+					ca.line = NULL;
+					rc = config_del_vals( ct, &ca );
+				}
 				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 					ml->sml_values = vals;
 					ml->sml_nvalues = nvals;
 				}
-				if ( !vals )
+				if ( !vals || rc != LDAP_SUCCESS )
 					break;
 				}
 				/* FALLTHRU: LDAP_MOD_REPLACE && vals */
@@ -3555,11 +3828,15 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			case LDAP_MOD_ADD:
 				for (i=0; ml->sml_values[i].bv_val; i++) {
 					ca.line = ml->sml_values[i].bv_val;
-					if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+					ca.valx = -1;
+					if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_ORDERED &&
+						ca.line[0] == '{' ) {
 						ptr = strchr( ca.line, '}' );
-						if ( ptr ) ca.line = ptr+1;
+						if ( ptr ) {
+							ca.valx = strtol( ca.line+1, NULL, 0 );
+							ca.line = ptr+1;
+						}
 					}
-					ca.valx = i;
 					rc = config_parse_add( ct, &ca );
 					if ( rc ) {
 						rc = LDAP_OTHER;
@@ -3619,26 +3896,9 @@ config_back_modify( Operation *op, SlapReply *rs )
 
 	/* Some basic validation... */
 	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
-		/* Braindead single-value check - the ADD must immediately follow
-		 * the DELETE. We don't check that there's only one ADD; for multiple
-		 * ADDs only the last one will be saved. The drivers don't distinguish
-		 * ADD from REPLACE.
-		 */
-		if ( is_at_single_value( ml->sml_desc->ad_type )) {
-			if (( ml->sml_op == LDAP_MOD_DELETE &&
-				( !ml->sml_next || ml->sml_next->sml_desc != ml->sml_desc ||
-				ml->sml_next->sml_op != LDAP_MOD_ADD )) ||
-
-				/* Also check for REPLACE with no values */
-				( ml->sml_op == LDAP_MOD_REPLACE && !ml->sml_values )) {
-				rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
-				rs->sr_text = "Single-Value Delete must be followed by Add";
-				goto out;
-			}
-		}
 		/* Don't allow Modify of RDN; must use ModRdn for that. */
 		if ( ml->sml_desc == rad ) {
-			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
+			rs->sr_err = LDAP_NOT_ALLOWED_ON_RDN;
 			rs->sr_text = "Use modrdn to change the entry name";
 			goto out;
 		}

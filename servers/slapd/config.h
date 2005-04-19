@@ -58,8 +58,9 @@ typedef enum {
 #define ARG_MAY_DB	0x00800000	/* May apply to DB */
 #define ARG_PAREN	0x01000000
 #define ARG_NONZERO	0x02000000
+#define	ARG_NO_INSERT	0x04000000	/* no arbitrary inserting */
+#define	ARG_NO_DELETE	0x08000000	/* no runtime deletes */
 #define ARG_UNIQUE	0x10000000
-#define ARG_READONLY	0x20000000	/* no runtime modification support */
 #define ARG_OFFSET	0x40000000
 #define ARG_MAGIC	0x80000000
 

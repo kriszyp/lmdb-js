@@ -37,8 +37,6 @@
 #include "lutil.h"
 #include "lber_pvt.h"
 
-#include "ldap_rq.h"
-
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
 
@@ -297,10 +295,6 @@ int backend_startup(Backend *be)
 		(void)backend_init_controls( bi );
 	}
 
-	ldap_pvt_thread_mutex_init( &slapd_rq.rq_mutex );
-	LDAP_STAILQ_INIT( &slapd_rq.task_list );
-	LDAP_STAILQ_INIT( &slapd_rq.run_list );
-
 	/* open each backend database */
 	i = -1;
 	LDAP_STAILQ_FOREACH(be, &backendDB, be_next) {
@@ -312,34 +306,11 @@ int backend_startup(Backend *be)
 				i, be->bd_info->bi_type, 0 );
 		}
 		/* append global access controls */
-		acl_append( &be->be_acl, frontendDB->be_acl );
+		acl_append( &be->be_acl, frontendDB->be_acl, -1 );
 
 		rc = backend_startup_one( be );
 
 		if ( rc ) return rc;
-
-
-		if ( be->be_syncinfo ) {
-			syncinfo_t *si;
-
-			if ( !( be->be_search && be->be_add &&
-				be->be_modify && be->be_delete )) {
-				Debug( LDAP_DEBUG_ANY,
-					"backend_startup: database(%d) does not support "
-					"operations required for syncrepl", i, 0, 0 );
-				continue;
-			}
-
-			{
-				si = be->be_syncinfo;
-				si->si_be = be;
-				init_syncrepl( si );
-				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-				ldap_pvt_runqueue_insert( &slapd_rq,
-						si->si_interval, do_syncrepl, (void *) si );
-				ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-			}
-		}
 	}
 
 	return rc;

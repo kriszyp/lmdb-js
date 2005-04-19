@@ -305,7 +305,8 @@ parse_acl(
     const char	*fname,
     int		lineno,
     int		argc,
-    char	**argv )
+    char	**argv,
+	int		pos )
 {
 	int		i;
 	char		*left, *right, *style, *next;
@@ -1771,10 +1772,10 @@ parse_acl(
 			default:
 				break;
 			}
-			acl_append( &be->be_acl, a );
+			acl_append( &be->be_acl, a, pos );
 
 		} else {
-			acl_append( &frontendDB->be_acl, a );
+			acl_append( &frontendDB->be_acl, a, pos );
 		}
 	}
 }
@@ -2111,12 +2112,15 @@ access_append( Access **l, Access *a )
 }
 
 void
-acl_append( AccessControl **l, AccessControl *a )
+acl_append( AccessControl **l, AccessControl *a, int pos )
 {
-	for ( ; *l != NULL; l = &(*l)->acl_next ) {
+	int i;
+
+	for (i=0 ; i != pos && *l != NULL; l = &(*l)->acl_next, i++ ) {
 		;	/* Empty */
 	}
-
+	if ( *l && a )
+		a->acl_next = *l;
 	*l = a;
 }
 
