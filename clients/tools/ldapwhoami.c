@@ -108,16 +108,18 @@ handle_private_option( int i )
 int
 main( int argc, char *argv[] )
 {
-	int rc;
-	char	*user = NULL;
+	int		rc;
+	char		*user = NULL;
 
-	LDAP	       *ld = NULL;
+	LDAP		*ld = NULL;
 
-	char *matcheddn = NULL, *text = NULL, **refs = NULL;
-	char	*retoid = NULL;
-	struct berval *retdata = NULL;
+	char		*matcheddn = NULL, *text = NULL, **refs = NULL;
+	char		*retoid = NULL;
+	struct berval	*retdata = NULL;
+	int		id, code;
+	LDAPMessage	*res;
 
-    tool_init();
+	tool_init();
 	prog = lutil_progname( "ldapwhoami", argc, argv );
 
 	/* LDAPv3 only */
@@ -156,7 +158,51 @@ main( int argc, char *argv[] )
 		tool_server_controls( ld, NULL, 0 );
 	}
 
-	rc = ldap_whoami_s( ld, &retdata, NULL, NULL ); 
+	rc = ldap_whoami( ld, NULL, NULL, &id ); 
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_extended_operation" );
+		rc = EXIT_FAILURE;
+		goto skip;
+	}
+
+	for ( ; ; ) {
+		struct timeval	tv;
+
+		if ( tool_check_abandon( ld, id ) ) {
+			return LDAP_CANCELLED;
+		}
+
+		tv.tv_sec = 0;
+		tv.tv_usec = 100000;
+
+		rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, &tv, &res );
+		if ( rc < 0 ) {
+			ldap_perror( ld, "ldapwhoami: ldap_result" );
+			return rc;
+		}
+
+		if ( rc != 0 ) {
+			break;
+		}
+	}
+
+	rc = ldap_parse_result( ld, res,
+		&code, &matcheddn, &text, &refs, NULL, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		rc = EXIT_FAILURE;
+		goto skip;
+	}
+
+	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 1 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_parse_result" );
+		rc = EXIT_FAILURE;
+		goto skip;
+	}
 
 	if( retdata != NULL ) {
 		if( retdata->bv_len == 0 ) {

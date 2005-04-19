@@ -553,14 +553,6 @@ private_conn_setup( LDAP *ld )
 	}
 }
 
-static int gotintr;
-
-RETSIGTYPE
-do_sig( int sig )
-{
-	gotintr = contoper;
-}
-
 int
 main( int argc, char **argv )
 {
@@ -617,10 +609,6 @@ main( int argc, char **argv )
 
 	if ( argv[optind] != NULL ) {
 		attrs = &argv[optind];
-	}
-
-	if ( contoper > 0 ) {
-		SIGNAL( SIGINT, do_sig );
 	}
 
 	if ( infile != NULL ) {
@@ -1018,18 +1006,9 @@ static int dosearch(
 		sortattr ? LDAP_MSG_ALL : LDAP_MSG_ONE,
 		NULL, &res )) > 0 )
 	{
-		switch ( gotintr ) {
-		case 2:
-			rc = ldap_cancel_s( ld, msgid, NULL, NULL );
-			fprintf( stderr, "got interrupt, cancel got %d: %s\n",
-					rc, ldap_err2string( rc ) );
-			return -1;
-
-		case 1:
-			rc = ldap_abandon( ld, msgid );
-			fprintf( stderr, "got interrupt, abandon got %d: %s\n",
-					rc, ldap_err2string( rc ) );
-			return -1;
+		rc = tool_check_abandon( ld, msgid );
+		if ( rc ) {
+			return rc;
 		}
 
 		if( sortattr ) {

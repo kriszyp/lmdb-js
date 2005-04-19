@@ -1010,7 +1010,7 @@ domodify(
 	}
 
 	if ( !not ) {
-		int msgid;
+		int	msgid;
 		if ( newentry ) {
 			rc = ldap_add_ext( ld, dn, pmods, pctrls, NULL, &msgid );
 		} else {
@@ -1114,21 +1114,37 @@ static int process_response(
 	const char *opstr,
 	const char *dn )
 {
-	LDAPMessage *res;
-	int rc = LDAP_OTHER;
+	LDAPMessage	*res;
+	int		rc = LDAP_OTHER;
+	struct timeval	tv = { 0 };
 
-	if( ldap_result( ld, msgid,
+	for ( ; ; ) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 100000;
+
+		rc = ldap_result( ld, msgid,
 #ifdef LDAP_GROUP_TRANSACTION
-		txn ? 0 : 1,
+			txn ? 0 : 1,
 #else
-		1,
+			1,
 #endif
-		NULL, &res ) == -1 ) {
-		ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
-		return rc;
+			&tv, &res );
+		if ( tool_check_abandon( ld, msgid ) ) {
+			return LDAP_CANCELLED;
+		}
+
+		if ( rc == -1 ) {
+			ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+			return rc;
+		}
+
+		if ( rc != 0 ) {
+			break;
+		}
 	}
 
-	if( ldap_msgtype( res ) != LDAP_RES_INTERMEDIATE ) {
+done:;
+	if ( ldap_msgtype( res ) != LDAP_RES_INTERMEDIATE ) {
 		rc = ldap_result2error( ld, res, 1 );
 		if( rc != LDAP_SUCCESS ) ldap_perror( ld, opstr );
 		return rc;

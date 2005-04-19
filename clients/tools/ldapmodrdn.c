@@ -263,10 +263,25 @@ static int domodrdn(
 		return rc;
 	}
 
-	rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
-	if ( rc < 0 ) {
-		ldap_perror( ld, "ldapmodrdn: ldap_result" );
-		return rc;
+	for ( ; ; ) {
+		struct timeval	tv = { 0 };
+
+		if ( tool_check_abandon( ld, id ) ) {
+			return LDAP_CANCELLED;
+		}
+
+		tv.tv_sec = 0;
+		tv.tv_usec = 100000;
+
+		rc = ldap_result( ld, LDAP_RES_ANY, LDAP_MSG_ALL, &tv, &res );
+		if ( rc < 0 ) {
+			ldap_perror( ld, "ldapmodrdn: ldap_result" );
+			return rc;
+		}
+
+		if ( rc != 0 ) {
+			break;
+		}
 	}
 
 	rc = ldap_parse_result( ld, res, &code, &matcheddn, &text, &refs, NULL, 1 );
