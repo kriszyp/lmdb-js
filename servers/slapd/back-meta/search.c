@@ -754,6 +754,7 @@ meta_send_entry(
 					NULL );
 			}
 			BER_BVZERO( &attr->a_nvals[i] );
+
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
@@ -771,6 +772,9 @@ meta_send_entry(
 		attr = ent.e_attrs;
 		ent.e_attrs = attr->a_next;
 		if ( attr->a_vals != &slap_dummy_bv ) {
+			if ( attr->a_nvals != attr->a_vals ) {
+				ber_bvarray_free( attr->a_nvals );
+			}
 			ber_bvarray_free( attr->a_vals );
 		}
 		free( attr );
