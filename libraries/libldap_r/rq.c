@@ -53,6 +53,22 @@ ldap_pvt_runqueue_insert(
 	LDAP_STAILQ_INSERT_TAIL( &rq->task_list, entry, tnext );
 }
 
+struct re_s *
+ldap_pvt_runqueue_find(
+	struct runqueue_s *rq,
+	ldap_pvt_thread_start_t *routine,
+	void *arg
+)
+{
+	struct re_s* e;
+
+	LDAP_STAILQ_FOREACH( e, &rq->task_list, tnext ) {
+		if ( e->routine == routine && e->arg == arg )
+			return e;
+	}
+	return NULL;
+}
+
 void
 ldap_pvt_runqueue_remove(
 	struct runqueue_s* rq,

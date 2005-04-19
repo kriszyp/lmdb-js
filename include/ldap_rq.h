@@ -43,6 +43,13 @@ ldap_pvt_runqueue_insert(
 	void *arg
 );
 
+LDAP_F( struct re_s* )
+ldap_pvt_runqueue_find(
+	struct runqueue_s* rq,
+	ldap_pvt_thread_start_t* routine,
+	void *arg
+);
+
 LDAP_F( void )
 ldap_pvt_runqueue_remove(
 	struct runqueue_s* rq,
