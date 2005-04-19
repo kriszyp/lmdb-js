@@ -3645,6 +3645,12 @@ out:
 	return rs->sr_err;
 }
 
+typedef struct delrec {
+	struct delrec *next;
+	int nidx;
+	int idx[0];
+} delrec;
+
 static int
 config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	char *textbuf, int textsize )
@@ -3659,6 +3665,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	CfOcInfo **colst;
 	int i, nocs;
 	char *ptr;
+	delrec *dels = NULL, *deltail = NULL;
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
@@ -3677,6 +3684,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 		case LDAP_MOD_DELETE:
 		case LDAP_MOD_REPLACE: {
 			BerVarray vals = NULL, nvals;
+			int *idx = NULL;
 			if ( ct && ( ct->arg_type & ARG_NO_DELETE )) {
 				rc = LDAP_UNWILLING_TO_PERFORM;
 				snprintf(textbuf, textsize, "cannot delete %s",
@@ -3690,9 +3698,26 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 				ml->sml_values = NULL;
 				ml->sml_nvalues = NULL;
 			}
-			rc = modify_delete_values(e, &ml->sml_mod,
+			/* If we're deleting by values, remember the indexes of the
+			 * values we deleted.
+			 */
+			if ( ct && ml->sml_values ) {
+				delrec *d;
+				for (i=0; ml->sml_values[i].bv_val; i++);
+				d = ch_malloc( sizeof(delrec) + i * sizeof(int));
+				d->nidx = i;
+				d->next = NULL;
+				if ( dels ) {
+					deltail->next = d;
+				} else {
+					dels = d;
+				}
+				deltail = d;
+				idx = d->idx;
+			}
+			rc = modify_delete_vindex(e, &ml->sml_mod,
 				get_permissiveModify(op),
-				&rs->sr_text, textbuf, textsize );
+				&rs->sr_text, textbuf, textsize, idx );
 			if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 				ml->sml_values = vals;
 				ml->sml_nvalues = nvals;
@@ -3772,9 +3797,11 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			case LDAP_MOD_DELETE:
 			case LDAP_MOD_REPLACE: {
 				BerVarray vals = NULL, nvals;
-				Attribute *a, *b;
-				a = attr_find( save_attrs, ml->sml_desc );
-				b = attr_find( e->e_attrs, ml->sml_desc );
+				Attribute *a;
+				delrec *d = dels;
+
+				a = attr_find( e->e_attrs, ml->sml_desc );
+
 				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 					vals = ml->sml_values;
 					nvals = ml->sml_nvalues;
@@ -3782,40 +3809,39 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 					ml->sml_nvalues = NULL;
 				}
 				/* If we didn't delete the whole attribute */
-				if ( ml->sml_values && b ) {
+				if ( ml->sml_values && a ) {
+					struct berval *mvals;
 					int j;
 
-					/* Find the index of the deleted values */
-					for (i=0, j=0; a->a_vals[i].bv_val; i++) {
-						struct berval bv1, bv2;
-						bv1 = a->a_nvals[i];
-						bv2 = b->a_nvals[j];
-						if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
-							ptr = strchr( bv1.bv_val, '}' ) + 1;
-							bv1.bv_len -= ptr - bv1.bv_val;
-							bv1.bv_val = ptr;
-							ptr = strchr( bv2.bv_val, '}' ) + 1;
-							bv2.bv_len -= ptr - bv2.bv_val;
-							bv2.bv_val = ptr;
+					if ( ml->sml_nvalues )
+						mvals = ml->sml_nvalues;
+					else
+						mvals = ml->sml_values;
+
+					/* use the indexes we saved up above */
+					for (i=0; i < d->nidx; i++) {
+						struct berval bv = *mvals++;
+						if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED &&
+							bv.bv_val[0] == '{' ) {
+							ptr = strchr( bv.bv_val, '}' ) + 1;
+							bv.bv_len -= ptr - bv.bv_val;
+							bv.bv_val = ptr;
 						}
-						if ( bvmatch( &bv1, &bv2 )) {
-							j++;
-							continue;
-						}
-						ca.line = a->a_vals[i].bv_val;
-						ca.valx = j;
-						if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
-							ptr = strchr( ca.line, '}' );
-							ca.line = ptr+1;
-						}
+						ca.line = bv.bv_val;
+						ca.valx = d->idx[i];
 						rc = config_del_vals( ct, &ca );
 						if ( rc != LDAP_SUCCESS ) break;
+						for (j=i+1; j < d->nidx; j++)
+							if ( d->idx[j] >d->idx[i] )
+								d->idx[j]--;
 					}
 				} else {
 					ca.valx = -1;
 					ca.line = NULL;
 					rc = config_del_vals( ct, &ca );
 				}
+				ch_free( dels );
+				dels = d->next;
 				if ( ml->sml_op == LDAP_MOD_REPLACE ) {
 					ml->sml_values = vals;
 					ml->sml_nvalues = nvals;

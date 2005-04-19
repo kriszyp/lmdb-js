@@ -170,10 +170,22 @@ modify_add_values(
 int
 modify_delete_values(
 	Entry	*e,
+	Modification	*m,
+	int	perm,
+	const char	**text,
+	char *textbuf, size_t textlen )
+{
+	return modify_delete_vindex( e, m, perm, text, textbuf, textlen, NULL );
+}
+
+int
+modify_delete_vindex(
+	Entry	*e,
 	Modification	*mod,
 	int	permissive,
 	const char	**text,
-	char *textbuf, size_t textlen )
+	char *textbuf, size_t textlen,
+	int *idx )
 {
 	int		i, j, k, rc = LDAP_SUCCESS;
 	Attribute	*a;
@@ -261,6 +273,9 @@ modify_delete_values(
 			}
 
 			found = 1;
+
+			if ( idx )
+				idx[i] = j;
 
 			/* delete value and mark it as dummy */
 			free( a->a_vals[j].bv_val );

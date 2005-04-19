@@ -904,6 +904,10 @@ LDAP_SLAPD_F( int ) modify_delete_values( Entry *e,
 	Modification *mod,
 	int permissive,
 	const char **text, char *textbuf, size_t textlen );
+LDAP_SLAPD_F( int ) modify_delete_vindex( Entry *e,
+	Modification *mod,
+	int permissive,
+	const char **text, char *textbuf, size_t textlen, int *idx );
 LDAP_SLAPD_F( int ) modify_replace_values( Entry *e,
 	Modification *mod,
 	int permissive,

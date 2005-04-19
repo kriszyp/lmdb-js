@@ -453,7 +453,7 @@ ordered_value_match(
 				/* If not equal, or we're only comparing the index,
 				 * return result now.
 				 */
-				if ( ret || ptr == iv.bv_val + iv.bv_len ) {
+				if ( ret || ptr == iv.bv_val + iv.bv_len - 1 ) {
 					*match = ( ret < 0 ) ? -1 : (ret > 0 );
 					return LDAP_SUCCESS;
 				}
