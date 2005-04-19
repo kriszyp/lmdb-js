@@ -9,6 +9,8 @@ ldapsearch \- LDAP search tool
 [\c
 .BR \-n ]
 [\c
+.BR \-c ]
+[\c
 .BR \-u ]
 [\c
 .BR \-v ]
@@ -98,6 +100,13 @@ If no \fIattrs\fP are listed, all user attributes are returned.  If only
 .B \-n
 Show what would be done, but don't actually perform the search.  Useful for
 debugging in conjunction with -v.
+.TP
+.B \-c
+Trap SIGINT and issue an
+.B abandon
+operation (if the switch appears once), or a
+.B cancel 
+extended operation (if the switch appears twice).
 .TP
 .B \-u
 Include the User Friendly Name form of the Distinguished Name (DN)
