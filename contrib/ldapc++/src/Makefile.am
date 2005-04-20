@@ -85,5 +85,5 @@ noinst_HEADERS = LDAPAddRequest.h \
                 LDAPSearchRequest.h 
 
 libldapcpp_la_LIBADD = -lldap -llber
-libldapcpp_la_LDFLAGS = -version-info 0:2:0
+libldapcpp_la_LDFLAGS = -version-info 0:3:0
 
