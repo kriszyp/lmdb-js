@@ -190,7 +190,7 @@ retry:;
 		exit( EXIT_FAILURE );
 	}
 
-	for ( i = 0; i < maxloop; i++ ) {
+	for ( ; i < maxloop; i++ ) {
 		mod.mod_op = LDAP_MOD_ADD;
 		rc = ldap_modify_s( ld, entry, mods );
 		if ( rc != LDAP_SUCCESS ) {

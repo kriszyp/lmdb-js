@@ -184,7 +184,7 @@ retry:;
 		exit( EXIT_FAILURE );
 	}
 
-	for ( i = 0; i < maxloop; i++ ) {
+	for ( ; i < maxloop; i++ ) {
 		rc = ldap_modrdn2_s( ld, DNs[0], rdns[0], 0 );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modrdn" );

@@ -165,7 +165,7 @@ retry:;
 		exit( EXIT_FAILURE );
 	}
 
-	for ( i = 0; i < maxloop; i++ ) {
+	for ( ; i < maxloop; i++ ) {
 		LDAPMessage *res;
 
 		rc = ldap_search_s( ld, sbase, LDAP_SCOPE_SUBTREE,
