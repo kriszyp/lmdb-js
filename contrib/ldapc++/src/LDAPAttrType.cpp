@@ -13,8 +13,6 @@ LDAPAttrType::LDAPAttrType(){
 
     oid = string ();
     desc = string ();
-    equality = string ();
-    syntax = string ();
     names = StringList ();
     single = false;
 }
@@ -25,8 +23,6 @@ LDAPAttrType::LDAPAttrType (const LDAPAttrType &at){
 
     oid = at.oid;
     desc = at.desc;
-    equality = at.equality;
-    syntax = at.syntax;
     names = at.names;
     single = at.single;
 }
@@ -44,8 +40,6 @@ LDAPAttrType::LDAPAttrType (string at_item) {
     if (a) {
 	this->setNames (a->at_names);
 	this->setDesc (a->at_desc);
-        this->setEquality (a->at_equality_oid);
-        this->setSyntax (a->at_syntax_oid);
 	this->setOid (a->at_oid);
 	this->setSingle (a->at_single_value);
     }
@@ -70,20 +64,6 @@ void LDAPAttrType::setDesc (char *at_desc) {
 	desc = at_desc;
 }
 
-void LDAPAttrType::setEquality (char *at_equality_oid) {
-    equality = string ();
-    if (at_equality_oid) {
-	equality = at_equality_oid;
-    }
-}
-
-void LDAPAttrType::setSyntax (char *at_syntax_oid) {
-    syntax = string ();
-    if (at_syntax_oid) {
-	syntax = at_syntax_oid;
-    }
-}
-
 void LDAPAttrType::setOid (char *at_oid) {
     oid = string ();
     if (at_oid)
@@ -100,14 +80,6 @@ string LDAPAttrType::getOid () {
 
 string LDAPAttrType::getDesc () {
     return desc;
-}
-
-string LDAPAttrType::getEquality () {
-    return equality;
-}
-
-string LDAPAttrType::getSyntax () {
-    return syntax;
 }
 
 StringList LDAPAttrType::getNames () {
