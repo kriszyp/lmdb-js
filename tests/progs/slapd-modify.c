@@ -30,10 +30,12 @@
 #include <ldap.h>
 
 #define LOOPS	100
+#define RETRIES 0
 
 static void
-do_modify( char *uri, char *host, int port, char *manager, char *passwd, char *entry, 
-		char *attr, char *value, int maxloop );
+do_modify( char *uri, char *host, int port, char *manager, char *passwd,
+		char *entry, char *attr, char *value, int maxloop,
+		int maxretries );
 
 
 static void
@@ -49,46 +51,56 @@ main( int argc, char **argv )
 {
 	int		i;
 	char		*uri = NULL;
-	char        *host = "localhost";
-	int			port = -1;
+	char		*host = "localhost";
+	int		port = -1;
 	char		*manager = NULL;
 	char		*passwd = NULL;
 	char		*entry = NULL;
 	char		*ava = NULL;
 	char		*value = NULL;
-	int			loops = LOOPS;
+	int		loops = LOOPS;
+	int		retries = RETRIES;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:a:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:D:w:e:a:l:r:" )) != EOF ) {
 		switch( i ) {
-			case 'H':		/* the server uri */
-				uri = strdup( optarg );
-			break;
-			case 'h':		/* the servers host */
-				host = strdup( optarg );
+		case 'H':		/* the server uri */
+			uri = strdup( optarg );
 			break;
 
-			case 'p':		/* the servers port */
-				port = atoi( optarg );
-			break;
-			case 'D':		/* the servers manager */
-				manager = strdup( optarg );
+		case 'h':		/* the servers host */
+			host = strdup( optarg );
 			break;
 
-			case 'w':		/* the server managers password */
-				passwd = strdup( optarg );
-			break;
-			case 'e':		/* entry to modify */
-				entry = strdup( optarg );
-			break;
-			case 'a':
-				ava = strdup( optarg );
-			break;
-			case 'l':		/* the number of loops */
-				loops = atoi( optarg );
+		case 'p':		/* the servers port */
+			port = atoi( optarg );
 			break;
 
-			default:
-				usage( argv[0] );
+		case 'D':		/* the servers manager */
+			manager = strdup( optarg );
+			break;
+
+		case 'w':		/* the server managers password */
+			passwd = strdup( optarg );
+			break;
+
+		case 'e':		/* entry to modify */
+			entry = strdup( optarg );
+			break;
+
+		case 'a':
+			ava = strdup( optarg );
+			break;
+
+		case 'l':		/* the number of loops */
+			loops = atoi( optarg );
+			break;
+
+		case 'r':
+			retries = atoi( optarg );
+			break;
+
+		default:
+			usage( argv[0] );
 			break;
 		}
 	}
@@ -118,17 +130,19 @@ main( int argc, char **argv )
 	while ( *value && isspace( (unsigned char) *value ))
 		value++;
 
-	do_modify( uri, host, port, manager, passwd, entry, ava, value, loops );
+	do_modify( uri, host, port, manager, passwd, entry, ava, value,
+			loops, retries );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
 do_modify( char *uri, char *host, int port, char *manager,
-	char *passwd, char *entry, char* attr, char* value, int maxloop )
+	char *passwd, char *entry, char* attr, char* value,
+	int maxloop, int maxretries )
 {
 	LDAP	*ld = NULL;
-	int  	i;
+	int  	i = 0, do_retry = maxretries;
 	pid_t	pid;
 	int     rc = LDAP_SUCCESS;
 
@@ -144,7 +158,7 @@ do_modify( char *uri, char *host, int port, char *manager,
 	mods[0] = &mod;
 	mods[1] = NULL;
 
-	
+retry:;
 	if ( uri ) {
 		ldap_initialize( &ld, uri );
 	} else {
@@ -161,26 +175,42 @@ do_modify( char *uri, char *host, int port, char *manager,
 			&version ); 
 	}
 
-	if ( ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
-		 exit( EXIT_FAILURE );
+	if ( do_retry == maxretries ) {
+		fprintf( stderr, "PID=%ld - Modify(%d): entry=\"%s\".\n",
+			(long) pid, maxloop, entry );
 	}
 
-
-	fprintf( stderr, "PID=%ld - Modify(%d): entry=\"%s\".\n",
-		 (long) pid, maxloop, entry );
+	rc = ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_bind" );
+		if ( rc == LDAP_BUSY && do_retry > 0 ) {
+			do_retry--;
+			goto retry;
+		}
+		exit( EXIT_FAILURE );
+	}
 
 	for ( i = 0; i < maxloop; i++ ) {
 		mod.mod_op = LDAP_MOD_ADD;
-		if (( rc = ldap_modify_s( ld, entry, mods )) != LDAP_SUCCESS ) {
+		rc = ldap_modify_s( ld, entry, mods );
+		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				do_retry--;
+				goto retry;
+			}
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
 			continue;
 		}
 		
 		mod.mod_op = LDAP_MOD_DELETE;
-		if (( rc = ldap_modify_s( ld, entry, mods )) != LDAP_SUCCESS ) {
+		rc = ldap_modify_s( ld, entry, mods );
+		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_modify" );
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				do_retry--;
+				goto retry;
+			}
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
 			continue;
 		}

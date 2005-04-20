@@ -34,9 +34,11 @@
 #include <ldap.h>
 
 #define LOOPS	100
+#define RETRIES	0
 
 static void
-do_read( char *uri, char *host, int port, char *entry, int maxloop );
+do_read( char *uri, char *host, int port, char *entry, int maxloop,
+		int maxretries );
 
 static void
 usage( char *name )
@@ -51,35 +53,41 @@ main( int argc, char **argv )
 {
 	int		i;
 	char		*uri = NULL;
-	char        *host = "localhost";
-	int			port = -1;
+	char		*host = "localhost";
+	int		port = -1;
 	char		*entry = NULL;
-	int			loops = LOOPS;
+	int		loops = LOOPS;
+	int		retries = RETRIES;
 
-	while ( (i = getopt( argc, argv, "H:h:p:e:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:e:l:r:" )) != EOF ) {
 		switch( i ) {
-			case 'H':		/* the server uri */
-				uri = strdup( optarg );
-			break;
-			case 'h':		/* the servers host */
-				host = strdup( optarg );
+		case 'H':		/* the server uri */
+			uri = strdup( optarg );
 			break;
 
-			case 'p':		/* the servers port */
-				port = atoi( optarg );
-				break;
+		case 'h':		/* the servers host */
+			host = strdup( optarg );
+			break;
 
-			case 'e':		/* file with entry search request */
-				entry = strdup( optarg );
-				break;
+		case 'p':		/* the servers port */
+			port = atoi( optarg );
+			break;
 
-			case 'l':		/* the number of loops */
-				loops = atoi( optarg );
-				break;
+		case 'e':		/* DN to search for */
+			entry = strdup( optarg );
+			break;
 
-			default:
-				usage( argv[0] );
-				break;
+		case 'l':		/* the number of loops */
+			loops = atoi( optarg );
+			break;
+
+		case 'r':		/* the number of retries */
+			retries = atoi( optarg );
+			break;
+
+		default:
+			usage( argv[0] );
+			break;
 		}
 	}
 
@@ -87,27 +95,27 @@ main( int argc, char **argv )
 		usage( argv[0] );
 
 	if ( *entry == '\0' ) {
-
 		fprintf( stderr, "%s: invalid EMPTY entry DN.\n",
 				argv[0] );
 		exit( EXIT_FAILURE );
-
 	}
 
-	do_read( uri, host, port, entry, ( 20 * loops ));
+	do_read( uri, host, port, entry, ( 20 * loops ), retries );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
-do_read( char *uri, char *host, int port, char *entry, int maxloop )
+do_read( char *uri, char *host, int port, char *entry, int maxloop,
+		int maxretries )
 {
 	LDAP	*ld = NULL;
-	int  	i;
+	int  	i = 0, do_retry = maxretries;
 	char	*attrs[] = { "1.1", NULL };
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
-
+	
+retry:;
 	if ( uri ) {
 		ldap_initialize( &ld, uri );
 	} else {
@@ -124,22 +132,32 @@ do_read( char *uri, char *host, int port, char *entry, int maxloop )
 			&version ); 
 	}
 
-	if ( ldap_bind_s( ld, NULL, NULL, LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
-		 exit( EXIT_FAILURE );
+	if ( do_retry == maxretries ) {
+		fprintf( stderr, "PID=%ld - Read(%d): entry=\"%s\".\n",
+			(long) pid, maxloop, entry );
 	}
 
+	rc = ldap_bind_s( ld, NULL, NULL, LDAP_AUTH_SIMPLE );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_bind" );
+		if ( rc == LDAP_BUSY && do_retry > 0 ) {
+			do_retry--;
+			goto retry;
+		}
+		exit( EXIT_FAILURE );
+	}
 
-	fprintf( stderr, "PID=%ld - Read(%d): entry=\"%s\".\n",
-		 (long) pid, maxloop, entry );
-
-	for ( i = 0; i < maxloop; i++ ) {
+	for ( ; i < maxloop; i++ ) {
 		LDAPMessage *res;
 
 		rc = ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
 				NULL, attrs, 1, &res );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_read" );
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				do_retry--;
+				goto retry;
+			}
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
 			continue;
 
@@ -152,5 +170,4 @@ do_read( char *uri, char *host, int port, char *entry, int maxloop )
 
 	ldap_unbind( ld );
 }
-
 

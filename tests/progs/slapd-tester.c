@@ -43,6 +43,7 @@
 #define MAXARGS      		100
 #define MAXREQS			5000
 #define LOOPS			"100"
+#define RETRIES			"0"
 
 #define TSEARCHFILE		"do_search.0"
 #define TREADFILE		"do_read.0"
@@ -86,6 +87,7 @@ main( int argc, char **argv )
 	char		*dirname = NULL;
 	char		*progdir = NULL;
 	char		*loops = LOOPS;
+	char		*retries = RETRIES;
 	DIR			*datadir;
 	struct dirent	*file;
 	char		*sfile = NULL;
@@ -120,47 +122,51 @@ main( int argc, char **argv )
 	char		*moddn[MAXREQS];
 	int		modnum = 0;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:b:d:j:l:P:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "D:d:H:h:j:l:P:p:r:w:" )) != EOF ) {
 		switch( i ) {
-			case 'H':		/* slapd uri */
-				uri = strdup( optarg );
-			break;
-				
-			case 'h':		/* slapd host */
-				host = strdup( optarg );
+		case 'D':		/* slapd manager */
+			manager = ArgDup( optarg );
 			break;
 
-			case 'p':		/* the servers port number */
-				port = strdup( optarg );
-				break;
-
-			case 'D':		/* slapd manager */
-				manager = ArgDup( optarg );
+		case 'd':		/* data directory */
+			dirname = strdup( optarg );
 			break;
 
-			case 'w':		/* the managers passwd */
-				passwd = ArgDup( optarg );
-				break;
-
-			case 'd':		/* data directory */
-				dirname = strdup( optarg );
+		case 'H':		/* slapd uri */
+			uri = strdup( optarg );
 			break;
 
-			case 'P':		/* prog directory */
-				progdir = strdup( optarg );
+		case 'h':		/* slapd host */
+			host = strdup( optarg );
 			break;
 
-			case 'j':		/* the number of parallel clients */
-				maxkids = atoi( optarg );
-				break;
+		case 'j':		/* the number of parallel clients */
+			maxkids = atoi( optarg );
+			break;
 
-			case 'l':		/* the number of loops per client */
-				loops = strdup( optarg );
-				break;
+		case 'l':		/* the number of loops per client */
+			loops = strdup( optarg );
+			break;
 
-			default:
-				usage( argv[0] );
-				break;
+		case 'P':		/* prog directory */
+			progdir = strdup( optarg );
+			break;
+
+		case 'p':		/* the servers port number */
+			port = strdup( optarg );
+			break;
+
+		case 'r':
+			retries = strdup( optarg );
+			break;
+
+		case 'w':		/* the managers passwd */
+			passwd = ArgDup( optarg );
+			break;
+
+		default:
+			usage( argv[0] );
+			break;
 		}
 	}
 
@@ -246,6 +252,8 @@ main( int argc, char **argv )
 	sargs[sanum++] = passwd;
 	sargs[sanum++] = "-l";
 	sargs[sanum++] = loops;
+	sargs[sanum++] = "-r";
+	sargs[sanum++] = retries;
 	sargs[sanum++] = "-b";
 	sargs[sanum++] = NULL;		/* will hold the search base */
 	sargs[sanum++] = "-f";
@@ -271,6 +279,8 @@ main( int argc, char **argv )
 	}
 	rargs[ranum++] = "-l";
 	rargs[ranum++] = loops;
+	rargs[ranum++] = "-r";
+	rargs[ranum++] = retries;
 	rargs[ranum++] = "-e";
 	rargs[ranum++] = NULL;		/* will hold the read entry */
 	rargs[ranum++] = NULL;
@@ -298,6 +308,8 @@ main( int argc, char **argv )
 	margs[manum++] = passwd;
 	margs[manum++] = "-l";
 	margs[manum++] = loops;
+	margs[manum++] = "-r";
+	margs[manum++] = retries;
 	margs[manum++] = "-e";
 	margs[manum++] = NULL;		/* will hold the modrdn entry */
 	margs[manum++] = NULL;
@@ -325,6 +337,8 @@ main( int argc, char **argv )
 	modargs[modanum++] = passwd;
 	modargs[modanum++] = "-l";
 	modargs[modanum++] = loops;
+	modargs[modanum++] = "-r";
+	modargs[modanum++] = retries;
 	modargs[modanum++] = "-e";
 	modargs[modanum++] = NULL;		/* will hold the modify entry */
 	modargs[modanum++] = "-a";;
@@ -354,6 +368,8 @@ main( int argc, char **argv )
 	aargs[aanum++] = passwd;
 	aargs[aanum++] = "-l";
 	aargs[aanum++] = loops;
+	aargs[aanum++] = "-r";
+	aargs[aanum++] = retries;
 	aargs[aanum++] = "-f";
 	aargs[aanum++] = NULL;		/* will hold the add data file */
 	aargs[aanum++] = NULL;

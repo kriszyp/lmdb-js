@@ -34,9 +34,11 @@
 #include <ldap.h>
 
 #define LOOPS	100
+#define RETRIES	0
 
 static void
-do_search( char *uri, char *host, int port, char *manager, char *passwd, char *sbase, char *filter, int maxloop );
+do_search( char *uri, char *host, int port, char *manager, char *passwd,
+		char *sbase, char *filter, int maxloop, int maxretries );
 
 static void
 usage( char *name )
@@ -51,50 +53,56 @@ main( int argc, char **argv )
 {
 	int		i;
 	char		*uri = NULL;
-	char        *host = "localhost";
-	int			port = -1;
+	char		*host = "localhost";
+	int		port = -1;
 	char		*manager = NULL;
 	char		*passwd = NULL;
-	char        *sbase = NULL;
+	char		*sbase = NULL;
 	char		*filter  = NULL;
-	int			loops = LOOPS;
+	int		loops = LOOPS;
+	int		retries = RETRIES;
 
-	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:p:w:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "b:D:f:H:h:l:p:w:r:" )) != EOF ) {
 		switch( i ) {
-			case 'H':		/* the server uri */
-				uri = strdup( optarg );
-			break;
-			case 'h':		/* the servers host */
-				host = strdup( optarg );
+		case 'H':		/* the server uri */
+			uri = strdup( optarg );
 			break;
 
-			case 'p':		/* the servers port */
-				port = atoi( optarg );
-				break;
-
-			case 'D':		/* the servers manager */
-				manager = strdup( optarg );
+		case 'h':		/* the servers host */
+			host = strdup( optarg );
 			break;
 
-			case 'w':		/* the server managers password */
-				passwd = strdup( optarg );
+		case 'p':		/* the servers port */
+			port = atoi( optarg );
 			break;
 
-			case 'b':		/* file with search base */
-				sbase = strdup( optarg );
+		case 'D':		/* the servers manager */
+			manager = strdup( optarg );
 			break;
 
-			case 'f':		/* the search request */
-				filter = strdup( optarg );
-				break;
+		case 'w':		/* the server managers password */
+			passwd = strdup( optarg );
+			break;
 
-			case 'l':		/* number of loops */
-				loops = atoi( optarg );
-				break;
+		case 'b':		/* file with search base */
+			sbase = strdup( optarg );
+			break;
 
-			default:
-				usage( argv[0] );
-				break;
+		case 'f':		/* the search request */
+			filter = strdup( optarg );
+			break;
+
+		case 'l':		/* number of loops */
+			loops = atoi( optarg );
+			break;
+
+		case 'r':		/* number of retries */
+			retries = atoi( optarg );
+			break;
+
+		default:
+			usage( argv[0] );
+			break;
 		}
 	}
 
@@ -109,20 +117,23 @@ main( int argc, char **argv )
 
 	}
 
-	do_search( uri, host, port, manager, passwd, sbase, filter, ( 10 * loops ));
+	do_search( uri, host, port, manager, passwd, sbase, filter,
+			( 10 * loops ), retries );
 	exit( EXIT_SUCCESS );
 }
 
 
 static void
-do_search( char *uri, char *host, int port, char *manager, char *passwd, char *sbase, char *filter, int maxloop )
+do_search( char *uri, char *host, int port, char *manager, char *passwd,
+		char *sbase, char *filter, int maxloop, int maxretries )
 {
 	LDAP	*ld = NULL;
-	int  	i;
+	int  	i = 0, do_retry = maxretries;
 	char	*attrs[] = { "cn", "sn", NULL };
 	pid_t	pid = getpid();
 	int     rc = LDAP_SUCCESS;
 
+retry:;
 	if ( uri ) {
 		ldap_initialize( &ld, uri );
 	} else {
@@ -139,14 +150,20 @@ do_search( char *uri, char *host, int port, char *manager, char *passwd, char *s
 			&version ); 
 	}
 
-	if ( ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
-		 exit( EXIT_FAILURE );
+	if ( do_retry == maxretries ) {
+		fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
+				(long) pid, maxloop, sbase, filter );
 	}
 
-
-	fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
-				(long) pid, maxloop, sbase, filter );
+	rc = ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE );
+	if ( rc != LDAP_SUCCESS ) {
+		if ( rc == LDAP_BUSY && do_retry == 1 ) {
+			do_retry = 0;
+			goto retry;
+		}
+		ldap_perror( ld, "ldap_bind" );
+		exit( EXIT_FAILURE );
+	}
 
 	for ( i = 0; i < maxloop; i++ ) {
 		LDAPMessage *res;
@@ -155,6 +172,10 @@ do_search( char *uri, char *host, int port, char *manager, char *passwd, char *s
 				filter, attrs, 0, &res );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_search" );
+			if ( rc == LDAP_BUSY && do_retry == 1 ) {
+				do_retry = 0;
+				goto retry;
+			}
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
 			continue;
 

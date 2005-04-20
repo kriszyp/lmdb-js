@@ -34,13 +34,14 @@
 #include <ldap.h>
 
 #define LOOPS	100
+#define RETRIES	0
 
 static char *
 get_add_entry( char *filename, LDAPMod ***mods );
 
 static void
 do_addel( char *uri, char *host, int port, char *manager, char *passwd,
-	char *dn, LDAPMod **attrs, int maxloop );
+	char *dn, LDAPMod **attrs, int maxloop, int maxretries );
 
 static void
 usage( char *name )
@@ -54,48 +55,54 @@ int
 main( int argc, char **argv )
 {
 	int		i;
-	char        *host = "localhost";
+	char		*host = "localhost";
 	char		*uri = NULL;
-	int			port = -1;
+	int		port = -1;
 	char		*manager = NULL;
 	char		*passwd = NULL;
 	char		*filename = NULL;
 	char		*entry = NULL;
-	int			loops = LOOPS;
-	LDAPMod     **attrs = NULL;
+	int		loops = LOOPS;
+	int		retries = RETRIES;
+	LDAPMod		**attrs = NULL;
 
-	while ( (i = getopt( argc, argv, "H:h:p:D:w:f:l:" )) != EOF ) {
+	while ( (i = getopt( argc, argv, "H:h:p:D:w:f:l:r:" )) != EOF ) {
 		switch( i ) {
-			case 'H':		/* the server's URI */
-				uri = strdup( optarg );
-			break;
-			case 'h':		/* the servers host */
-				host = strdup( optarg );
+		case 'H':		/* the server's URI */
+			uri = strdup( optarg );
 			break;
 
-			case 'p':		/* the servers port */
-				port = atoi( optarg );
-				break;
-
-			case 'D':		/* the servers manager */
-				manager = strdup( optarg );
+		case 'h':		/* the servers host */
+			host = strdup( optarg );
 			break;
 
-			case 'w':		/* the server managers password */
-				passwd = strdup( optarg );
+		case 'p':		/* the servers port */
+			port = atoi( optarg );
 			break;
 
-			case 'f':		/* file with entry search request */
-				filename = strdup( optarg );
-				break;
+		case 'D':		/* the servers manager */
+			manager = strdup( optarg );
+			break;
 
-			case 'l':		/* the number of loops */
-				loops = atoi( optarg );
-				break;
+		case 'w':		/* the server managers password */
+			passwd = strdup( optarg );
+			break;
 
-			default:
-				usage( argv[0] );
-				break;
+		case 'f':		/* file with entry search request */
+			filename = strdup( optarg );
+			break;
+
+		case 'l':		/* the number of loops */
+			loops = atoi( optarg );
+			break;
+
+		case 'r':
+			retries = atoi( optarg );
+			break;
+
+		default:
+			usage( argv[0] );
+			break;
 		}
 	}
 
@@ -120,7 +127,8 @@ main( int argc, char **argv )
 
 	}
 
-	do_addel( uri, host, port, manager, passwd, entry, attrs, loops );
+	do_addel( uri, host, port, manager, passwd, entry, attrs,
+			loops, retries );
 
 	exit( EXIT_SUCCESS );
 }
@@ -249,14 +257,16 @@ do_addel(
 	char *passwd,
 	char *entry,
 	LDAPMod **attrs,
-	int maxloop
+	int maxloop,
+	int maxretries
 )
 {
 	LDAP	*ld = NULL;
-	int  	i;
+	int  	i = 0, do_retry = maxretries;
 	pid_t	pid = getpid();
 	int	rc = LDAP_SUCCESS;
 
+retry:;
 	if ( uri ) {
 		ldap_initialize( &ld, uri );
 	} else {
@@ -273,22 +283,31 @@ do_addel(
 			&version ); 
 	}
 
-	if ( ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE )
-				!= LDAP_SUCCESS ) {
-		ldap_perror( ld, "ldap_bind" );
-		 exit( EXIT_FAILURE );
+	if ( do_retry == maxretries ) {
+		fprintf( stderr, "PID=%ld - Add/Delete(%d): entry=\"%s\".\n",
+			(long) pid, maxloop, entry );
 	}
 
+	rc = ldap_bind_s( ld, manager, passwd, LDAP_AUTH_SIMPLE );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_bind" );
+		if ( rc == LDAP_BUSY && do_retry > 0 ) {
+			do_retry--;
+			goto retry;
+		}
+		exit( EXIT_FAILURE );
+	}
 
-	fprintf( stderr, "PID=%ld - Add/Delete(%d): entry=\"%s\".\n",
-					(long) pid, maxloop, entry );
-
-	for ( i = 0; i < maxloop; i++ ) {
+	for ( ; i < maxloop; i++ ) {
 
 		/* add the entry */
 		rc = ldap_add_s( ld, entry, attrs );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_add" );
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				do_retry--;
+				goto retry;
+			}
 			break;
 
 		}
@@ -303,10 +322,12 @@ do_addel(
 		rc = ldap_delete_s( ld, entry );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_delete" );
+			if ( rc == LDAP_BUSY && do_retry > 0 ) {
+				do_retry--;
+				goto retry;
+			}
 			break;
-
 		}
-
 	}
 
 	fprintf( stderr, " PID=%ld - Add/Delete done (%d).\n", (long) pid, rc );
