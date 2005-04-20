@@ -104,7 +104,9 @@ conn_free(
 	struct metaconn		*lc = v_lc;
 	struct metasingleconn	*lsc;
 
-	for ( lsc = lc->mc_conns; !META_LAST( lsc ); lsc++ ) {
+	assert( lc->mc_conns != NULL );
+
+	for ( lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); lsc++ ) {
 		if ( lsc->msc_ld != NULL ) {
 			ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
 		}
@@ -117,7 +119,7 @@ conn_free(
 			ber_memfree( lsc->msc_cred.bv_val );
 		}
 	}
-	free( lc->mc_conns );
+
 	free( lc );
 }
 

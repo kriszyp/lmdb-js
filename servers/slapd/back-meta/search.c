@@ -96,7 +96,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	/*
 	 * Inits searches
 	 */
-	for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); ++i, ++lsc ) {
+	for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); ++i, ++lsc ) {
 		struct berval	realbase = op->o_req_dn;
 		int		realscope = op->ors_scope;
 		ber_len_t	suffixlen = 0;
@@ -300,7 +300,7 @@ new_candidate:;
 		/* check for abandon */
 		ab = op->o_abandon;
 
-		for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); lsc++, i++ ) {
+		for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); lsc++, i++ ) {
 			if ( msgid[ i ] == -1 ) {
 				continue;
 			}

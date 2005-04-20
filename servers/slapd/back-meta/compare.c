@@ -69,7 +69,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	dc.rs = rs;
 	dc.ctx = "compareDN";
 
-	for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); ++i, ++lsc ) {
+	for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); ++i, ++lsc ) {
 		struct berval mdn = BER_BVNULL;
 		struct berval mapped_attr = op->orc_ava->aa_desc->ad_cname;
 		struct berval mapped_value = op->orc_ava->aa_value;
@@ -171,7 +171,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * FIXME: should we check for abandon?
 		 */
-		for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); lsc++, i++ ) {
+		for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); lsc++, i++ ) {
 			int		lrc;
 			LDAPMessage	*res = NULL;
 

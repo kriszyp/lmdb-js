@@ -26,6 +26,7 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/errno.h>
 
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
@@ -70,8 +71,6 @@ meta_back_conn_destroy(
 			rewrite_session_delete( li->mi_targets[ i ]->mt_rwmap.rwm_rw, conn );
 			meta_clear_one_candidate( &lc->mc_conns[ i ] );
 		}
-
-		free( lc->mc_conns );
 		free( lc );
 	}
 

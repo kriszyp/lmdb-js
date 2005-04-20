@@ -128,19 +128,14 @@ metaconn_alloc( int ntargets )
 
 	assert( ntargets > 0 );
 
-	lc = ch_calloc( sizeof( struct metaconn ), 1 );
+	/* malloc once only; leave an extra one for one-past-end */
+	lc = ch_malloc( sizeof( struct metaconn )
+			+ sizeof( struct metasingleconn ) * ( ntargets + 1 ) );
 	if ( lc == NULL ) {
 		return NULL;
 	}
-	
-	/*
-	 * make it a null-terminated array ...
-	 */
-	lc->mc_conns = ch_calloc( sizeof( struct metasingleconn ), ntargets + 1 );
-	if ( lc->mc_conns == NULL ) {
-		free( lc );
-		return NULL;
-	}
+
+	lc->mc_conns = (struct metasingleconn *)&lc[ 1 ];
 
 	/* FIXME: needed by META_LAST() */
 	lc->mc_conns[ ntargets ].msc_candidate = META_LAST_CONN;
@@ -171,10 +166,6 @@ metaconn_free(
 		return;
 	}
 	
-	if ( lc->mc_conns ) {
-		ch_free( lc->mc_conns );
-	}
-
 	free( lc );
 }
 

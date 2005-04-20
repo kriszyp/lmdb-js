@@ -309,7 +309,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op, ldap_back_send_t sendok )
 		return 1;
 	}
 
-	for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); ++i, ++lsc ) {
+	for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); ++i, ++lsc ) {
 		int		rc;
 		struct berval	cred = BER_BVC("");
 		int		msgid;
@@ -432,7 +432,7 @@ meta_back_is_valid( struct metaconn *lc, int candidate )
 		return 0;
 	}
 
-	for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ) && i < candidate; 
+	for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ) && i < candidate; 
 			++i, ++lsc );
 	
 	if ( !META_LAST( lsc ) ) {
@@ -512,7 +512,7 @@ meta_back_op_result(
 		}
 
 	} else {
-		for ( i = 0, lsc = lc->mc_conns; !META_LAST( lsc ); ++i, ++lsc ) {
+		for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); ++i, ++lsc ) {
 			char	*msg = NULL;
 			char	*match = NULL;
 
