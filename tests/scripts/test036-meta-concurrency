@@ -18,17 +18,31 @@ echo "running defines.sh"
 
 echo ""
 
-echo "### this test is currently disabled; enable at own risk ###"
-exit 0
-
 if test $BACKMETA = metano ; then 
 	echo "meta backend not available, test skipped"
 	exit 0
 fi
 
+if test "x$TEST_META" != "xyes" ; then
+	echo "### this test is currently disabled;"
+	echo "### set \"TEST_META=yes\" to enable (at own risk)."
+	exit 0
+else
+	echo "### this test is __very__ experimental; enable at own risk"
+fi
+
 rm -rf $TESTDIR
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
+
+if test "x$DB_CONFIG" != "x" -a -f $DB_CONFIG ; then
+	echo "==> using DB_CONFIG $DB_CONFIG"
+	cp $DB_CONFIG $DBDIR1
+	cp $DB_CONFIG $DBDIR2
+else
+	echo "==> set \"DB_CONFIG\" to the location of the DB_CONFIG file"
+	echo "==> you want to use for the test."
+fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
@@ -112,8 +126,12 @@ for f in $DATADIR/do_* ; do
 	sed -e "s;$BASEDN;$METABASEDN;" $f > $TESTDIR/$f
 done
 
+for f in $TESTDIR/$DATADIR/do_read.* ; do
+	echo "ou=Meta,$METABASEDN" >> $f
+done
+
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT2 -D "cn=Manager,$METABASEDN" -w $PASSWD -l 50 -r 20
+$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT2 -D "cn=Manager,$METABASEDN" -w $PASSWD -l 100 -r 20
 RC=$?
 
 if test $RC != 0 ; then
