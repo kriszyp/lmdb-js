@@ -452,6 +452,7 @@ bdb_dn2idl(
 	((char *)key.data)[0] = prefix;
 	AC_MEMCPY( &((char *)key.data)[1], e->e_nname.bv_val, key.size - 1 );
 
+	BDB_IDL_ZERO( ids );
 	rc = bdb_idl_fetch_key( op->o_bd, db, NULL, &key, ids );
 
 	if( rc != 0 ) {
@@ -905,7 +906,7 @@ struct dn2id_cookie {
 	ID dbuf;
 	ID *ids;
 	void *ptr;
-	ID tmp[BDB_IDL_DB_SIZE];
+	ID tmp[BDB_IDL_UM_SIZE];
 	ID *buf;
 	DBT key;
 	DBT data;
