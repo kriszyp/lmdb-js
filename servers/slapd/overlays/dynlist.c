@@ -211,7 +211,7 @@ dynlist_sc_update( Operation *op, SlapReply *rs )
 
 		/* test access to attribute */
 		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ )
-			/* jst count */ ;
+			/* just count */ ;
 
 		vals = op->o_tmpalloc( ( i + 1 ) * sizeof( struct berval ), op->o_tmpmemctx );
 		if ( a->a_nvals != a->a_vals ) {
@@ -275,7 +275,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs )
 	Attribute	*a;
 	slap_callback	cb;
 	Operation	o = *op;
-	SlapReply	r = *rs;
+	SlapReply	r = { REP_SEARCH };
 	struct berval	*url;
 	Entry		*e;
 	int		e_flags;
