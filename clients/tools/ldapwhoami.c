@@ -212,8 +212,8 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( verbose || ( rc != LDAP_SUCCESS ) || matcheddn || text || refs ) {
-		printf( _("Result: %s (%d)\n"), ldap_err2string( rc ), rc );
+	if( verbose || ( code != LDAP_SUCCESS ) || matcheddn || text || refs ) {
+		printf( _("Result: %s (%d)\n"), ldap_err2string( code ), code );
 
 		if( text && *text ) {
 			printf( _("Additional info: %s\n"), text );
@@ -242,5 +242,5 @@ skip:
 	tool_unbind( ld );
 	tool_destroy();
 
-	return rc == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE;
+	return code == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE;
 }
