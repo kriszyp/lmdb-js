@@ -659,7 +659,9 @@ typedef struct slap_attribute_type {
 #endif
 #define	SLAP_AT_DYNAMIC		0x0400U	/* dynamically generated */
 
-#define	SLAP_AT_ORDERED		0x0001U /* values are ordered */
+#define	SLAP_AT_ORDERED_VAL		0x0001U /* values are ordered */
+#define	SLAP_AT_ORDERED_SIB		0x0002U /* siblings are ordered */
+#define	SLAP_AT_ORDERED		0x0003U /* value has order index */
 #define	SLAP_AT_HARDCODE	0x10000U	/* This is hardcoded schema */
 
 	slap_mask_t					sat_flags;

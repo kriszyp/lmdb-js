@@ -3189,7 +3189,7 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 		vals = ml->sml_values;
 	}
 
-	if ( a && ( ad->ad_type->sat_flags & SLAP_AT_ORDERED )) {
+	if ( a && ( ad->ad_type->sat_flags & SLAP_AT_ORDERED_VAL )) {
 		sort = 1;
 		rc = ordered_value_sort( a, 1 );
 		if ( rc )

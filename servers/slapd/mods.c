@@ -143,7 +143,7 @@ modify_add_values(
 	}
 
 	/* no - add them */
-	if ( mod->sm_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+	if ( mod->sm_desc->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) {
 		rc = ordered_value_add( e, mod->sm_desc, a,
 			pmod.sm_values, pmod.sm_nvalues );
 	} else {
@@ -333,7 +333,7 @@ modify_delete_vindex(
 				mod->sm_desc->ad_cname.bv_val );
 			rc = LDAP_NO_SUCH_ATTRIBUTE;
 		}
-	} else if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+	} else if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED_VAL ) {
 	/* For an ordered attribute, renumber the value indices */
 		ordered_value_sort( a, 1 );
 	}

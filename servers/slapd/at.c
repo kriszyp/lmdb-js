@@ -519,11 +519,16 @@ at_add(
 	if ( sat->sat_extensions ) {
 		for (i=0; sat->sat_extensions[i]; i++) {
 			if (!strcasecmp( sat->sat_extensions[i]->lsei_name,
-				"X-ORDERED" ) && sat->sat_extensions[i]->lsei_values &&
-				!strcasecmp( sat->sat_extensions[i]->lsei_values[0],
-				"VALUES" )) {
-				sat->sat_flags |= SLAP_AT_ORDERED;
-				break;
+				"X-ORDERED" ) && sat->sat_extensions[i]->lsei_values ) {
+				if ( !strcasecmp( sat->sat_extensions[i]->lsei_values[0],
+					"VALUES" )) {
+					sat->sat_flags |= SLAP_AT_ORDERED_VAL;
+					break;
+				} else if ( !strcasecmp( sat->sat_extensions[i]->lsei_values[0],
+					"SIBLINGS" )) {
+					sat->sat_flags |= SLAP_AT_ORDERED_SIB;
+					break;
+				}
 			}
 		}
 	}
