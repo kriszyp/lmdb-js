@@ -27,6 +27,7 @@
 
 #include "slap.h"
 #include "back-ldbm.h"
+#include <ldap_rq.h>
 
 DBCache *
 ldbm_cache_open(
@@ -316,14 +317,25 @@ ldbm_cache_sync( Backend *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		i;
+	int		do_log = 1;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		if ( li->li_dbcache[i].dbc_name != NULL && li->li_dbcache[i].dbc_dirty ) {
 #ifdef NEW_LOGGING
+			if ( do_log ) {
+				do_log = 0;
+				LDAP_LOG( CACHE, ARGS, "syncing %s\n",
+					li->li_directory, 0, 0 );
+			}
 			LDAP_LOG ( CACHE, DETAIL1, "ldbm_cache_sync: "
 				"ldbm syncing db (%s)\n", li->li_dbcache[i].dbc_name, 0, 0 );
 #else
+			if ( do_log ) {
+				do_log = 0;
+				Debug( LDAP_DEBUG_TRACE, "syncing %s\n",
+					li->li_directory, 0, 0 );
+			}
 			Debug(	LDAP_DEBUG_TRACE, "ldbm syncing db (%s)\n",
 				li->li_dbcache[i].dbc_name, 0, 0 );
 #endif
@@ -377,52 +389,30 @@ ldbm_cache_delete(
 
 void *
 ldbm_cache_sync_daemon(
-	void *be_ptr
+	void *ctx,
+	void *arg
 )
 {
-	Backend *be = (Backend *)be_ptr;
+	struct re_s *rtask = arg;
+	Backend *be = rtask->arg;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( CACHE, ARGS, "ldbm_cache_sync_daemon:"
-		" synchronizer starting for %s\n", li->li_directory, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_ANY, "synchronizer starting for %s\n", li->li_directory, 0, 0 );
-#endif
-  
-	while (!li->li_dbshutdown) {
-		int i = li->li_dbsyncwaitn;
-
-		sleep( li->li_dbsyncfreq );
-
-		while (i && ldap_pvt_thread_pool_backload(&connection_pool) != 0) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( CACHE, DETAIL1, "ldbm_cache_sync_daemon:"
-				" delay syncing %s\n", li->li_directory, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE, "delay syncing %s\n", li->li_directory, 0, 0 );
-#endif
-			sleep(li->li_dbsyncwaitinterval);
-			i--;
-		}
-
-		if (!li->li_dbshutdown) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( CACHE, DETAIL1, "ldbm_cache_sync_daemon:"
-				" syncing %s\n", li->li_directory, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE, "syncing %s\n", li->li_directory, 0, 0 );
-#endif
-			ldbm_cache_sync( be );
-		}
+	/* If server is idle, or we've already waited the limit */
+	if ( li->li_dbsyncwaitcount == li->li_dbsyncwaitn || 
+		ldap_pvt_thread_pool_backload(&connection_pool) < 2 ) {
+		rtask->interval.tv_sec = li->li_dbsyncfreq;
+		li->li_dbsyncwaitcount = 0;
+		ldbm_cache_sync( be );
+	} else {
+		rtask->interval.tv_sec = li->li_dbsyncwaitinterval;
+		li->li_dbsyncwaitcount++;
+		Debug( LDAP_DEBUG_TRACE, "delay #%d syncing %s\n", 
+			li->li_dbsyncwaitcount, li->li_directory, 0 );
 	}
 
-#ifdef NEW_LOGGING
-	LDAP_LOG ( CACHE, DETAIL1, "ldbm_cache_sync_daemon:"
-				" synchronizer stopping\n", 0, 0, 0);
-#else
-  	Debug( LDAP_DEBUG_ANY, "synchronizer stopping\n", 0, 0, 0 );
-#endif
-  
+	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
+	ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 0 );
+	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 	return NULL;
 }

@@ -23,6 +23,7 @@
 
 #include "slap.h"
 #include "back-ldbm.h"
+#include <ldap_rq.h>
 
 #if SLAPD_LDBM == SLAPD_MOD_DYNAMIC
 
@@ -190,8 +191,8 @@ ldbm_back_db_init(
 	/* delay interval */
 	li->li_dbsyncwaitinterval = 5;
 
-	/* flag to notify ldbm_cache_sync_daemon to shut down */
-	li->li_dbshutdown = 0;
+	/* current wait counter */
+	li->li_dbsyncwaitcount = 0;
 
 	/* initialize various mutex locks & condition variables */
 	ldap_pvt_thread_rdwr_init( &li->li_giant_rwlock );
@@ -213,24 +214,15 @@ ldbm_back_db_open(
 	li->li_dbenv = ldbm_initialize_env( li->li_directory,
 		li->li_dbcachesize, &li->li_envdirok );
 
-	/* sync thread */
-	if ( li->li_dbsyncfreq > 0 )
+	/* If we're in server mode and a sync frequency was set,
+	 * submit a task to perform periodic db syncs.
+	 */
+	if (( slapMode & SLAP_SERVER_MODE ) && li->li_dbsyncfreq > 0 )
 	{
-		int rc;
-		rc = ldap_pvt_thread_create( &li->li_dbsynctid,
-			0, ldbm_cache_sync_daemon, (void*)be );
-
-		if ( rc != 0 )
-		{
-#ifdef NEW_LOGGING
-			LDAP_LOG ( BACK_LDBM, ERR, "ldbm_back_db_open: sync "
-				"ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
-#else	
-			Debug(	LDAP_DEBUG_ANY,
-				"sync ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
-#endif
-			return 1;
-		}
+		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+		ldap_pvt_runqueue_insert( &syncrepl_rq, li->li_dbsyncfreq,
+			ldbm_cache_sync_daemon, be );
+		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 	}
 
 	return 0;
