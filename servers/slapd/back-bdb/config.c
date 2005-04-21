@@ -186,6 +186,9 @@ bdb_online_index( void *ctx, void *arg )
 	data.dlen = data.ulen = 0;
 
 	while ( 1 ) {
+		if ( slapd_shutdown )
+			break;
+
 		rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &txn, bdb->bi_db_opflags );
 		if ( rc ) 
 			break;
