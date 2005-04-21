@@ -47,13 +47,12 @@
 int
 meta_back_conn_cmp(
 	const void *c1,
-	const void *c2
-	)
+	const void *c2 )
 {
-	struct metaconn *lc1 = ( struct metaconn * )c1;
-        struct metaconn *lc2 = ( struct metaconn * )c2;
+	struct metaconn *mc1 = ( struct metaconn * )c1;
+        struct metaconn *mc2 = ( struct metaconn * )c2;
 	
-	return SLAP_PTRCMP( lc1->mc_conn, lc2->mc_conn );
+	return SLAP_PTRCMP( mc1->mc_conn, mc2->mc_conn );
 }
 
 /*
@@ -65,13 +64,12 @@ meta_back_conn_cmp(
 int
 meta_back_conn_dup(
 	void *c1,
-	void *c2
-	)
+	void *c2 )
 {
-	struct metaconn *lc1 = ( struct metaconn * )c1;
-	struct metaconn *lc2 = ( struct metaconn * )c2;
+	struct metaconn *mc1 = ( struct metaconn * )c1;
+	struct metaconn *mc2 = ( struct metaconn * )c2;
 
-	return( ( lc1->mc_conn == lc2->mc_conn ) ? -1 : 0 );
+	return( ( mc1->mc_conn == mc2->mc_conn ) ? -1 : 0 );
 }
 
 /*
@@ -124,73 +122,73 @@ myprint( Avlnode *root )
 static struct metaconn *
 metaconn_alloc( int ntargets )
 {
-	struct metaconn *lc;
+	struct metaconn *mc;
 
 	assert( ntargets > 0 );
 
 	/* malloc once only; leave an extra one for one-past-end */
-	lc = ch_malloc( sizeof( struct metaconn )
+	mc = ch_malloc( sizeof( struct metaconn )
 			+ sizeof( struct metasingleconn ) * ( ntargets + 1 ) );
-	if ( lc == NULL ) {
+	if ( mc == NULL ) {
 		return NULL;
 	}
 
-	lc->mc_conns = (struct metasingleconn *)&lc[ 1 ];
+	mc->mc_conns = (struct metasingleconn *)&mc[ 1 ];
 
 	/* FIXME: needed by META_LAST() */
-	lc->mc_conns[ ntargets ].msc_candidate = META_LAST_CONN;
+	mc->mc_conns[ ntargets ].msc_candidate = META_LAST_CONN;
 
 	for ( ; ntargets-- > 0; ) {
-		lc->mc_conns[ ntargets ].msc_ld = NULL;
-		BER_BVZERO( &lc->mc_conns[ ntargets ].msc_bound_ndn );
-		BER_BVZERO( &lc->mc_conns[ ntargets ].msc_cred );
-		lc->mc_conns[ ntargets ].msc_bound = META_UNBOUND;
+		mc->mc_conns[ ntargets ].msc_ld = NULL;
+		BER_BVZERO( &mc->mc_conns[ ntargets ].msc_bound_ndn );
+		BER_BVZERO( &mc->mc_conns[ ntargets ].msc_cred );
+		mc->mc_conns[ ntargets ].msc_bound = META_UNBOUND;
 	}
 
-	lc->mc_bound_target = META_BOUND_NONE;
+	mc->mc_auth_target = META_BOUND_NONE;
+	ldap_pvt_thread_mutex_init( &mc->mc_mutex );
 
-	return lc;
+	return mc;
 }
 
 /*
- * metaconn_free
+ * meta_back_conn_free
  *
  * clears a metaconn
  */
-static void
-metaconn_free(
-		struct metaconn *lc
-)
+void
+meta_back_conn_free( struct metaconn *mc )
 {
-	if ( !lc ) {
+	if ( mc == NULL ) {
 		return;
 	}
+
+	ldap_pvt_thread_mutex_destroy( &mc->mc_mutex );
 	
-	free( lc );
+	free( mc );
 }
 
 /*
- * init_one_conn
+ * meta_back_init_one_conn
  * 
  * Initializes one connection
  */
 static int
-init_one_conn(
+meta_back_init_one_conn(
 		Operation		*op,
 		SlapReply		*rs,
 		struct metatarget	*lt, 
-		struct metasingleconn	*lsc,
-		char			*candidate,
+		struct metasingleconn	*msc,
 		ldap_back_send_t	sendok )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metainfo	*mi = ( struct metainfo * )op->o_bd->be_private;
 	int		vers;
 	dncookie	dc;
 
 	/*
 	 * Already init'ed
 	 */
-	if ( lsc->msc_ld != NULL ) {
+	if ( msc->msc_ld != NULL ) {
 		rs->sr_err = LDAP_SUCCESS;
 		goto error_return;
 	}
@@ -198,7 +196,7 @@ init_one_conn(
 	/*
 	 * Attempts to initialize the connection to the target ds
 	 */
-	rs->sr_err = ldap_initialize( &lsc->msc_ld, lt->mt_uri );
+	rs->sr_err = ldap_initialize( &msc->msc_ld, lt->mt_uri );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto error_return;
 	}
@@ -208,16 +206,16 @@ init_one_conn(
 	 * bound with a particular version, then so can we.
 	 */
 	vers = op->o_conn->c_protocol;
-	ldap_set_option( lsc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
+	ldap_set_option( msc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
 
 	/* automatically chase referrals ("chase-referrals"/"dont-chase-referrals" statement) */
-	if ( LDAP_BACK_CHASE_REFERRALS( li ) ) {
-		ldap_set_option( lsc->msc_ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
+	if ( LDAP_BACK_CHASE_REFERRALS( mi ) ) {
+		ldap_set_option( msc->msc_ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
 	}
 
 #ifdef HAVE_TLS
 	/* start TLS ("start-tls"/"try-start-tls" statements) */
-	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
+	if ( ( LDAP_BACK_USE_TLS( mi ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( mi ) ) )
 			&& !ldap_is_ldaps_url( lt->mt_uri ) )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
@@ -227,14 +225,14 @@ init_one_conn(
 		 */
 		int		msgid;
 
-		rs->sr_err = ldap_start_tls( lsc->msc_ld, NULL, NULL, &msgid );
+		rs->sr_err = ldap_start_tls( msc->msc_ld, NULL, NULL, &msgid );
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			LDAPMessage	*res = NULL;
 			int		rc, retries = 1;
 			struct timeval	tv = { 0, 0 };
 
 retry:;
-			rc = ldap_result( lsc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
+			rc = ldap_result( msc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
 			if ( rc < 0 ) {
 				rs->sr_err = LDAP_OTHER;
 
@@ -250,10 +248,10 @@ retry:;
 			} else if ( rc == LDAP_RES_EXTENDED ) {
 				struct berval	*data = NULL;
 
-				rs->sr_err = ldap_parse_extended_result( lsc->msc_ld, res,
+				rs->sr_err = ldap_parse_extended_result( msc->msc_ld, res,
 						NULL, &data, 0 );
 				if ( rs->sr_err == LDAP_SUCCESS ) {
-					rs->sr_err = ldap_result2error( lsc->msc_ld, res, 1 );
+					rs->sr_err = ldap_result2error( msc->msc_ld, res, 1 );
 					res = NULL;
 					
 					/* FIXME: in case a referral 
@@ -261,7 +259,7 @@ retry:;
 					 * using it instead of the 
 					 * configured URI? */
 					if ( rs->sr_err == LDAP_SUCCESS ) {
-						ldap_install_tls( lsc->msc_ld );
+						ldap_install_tls( msc->msc_ld );
 
 					} else if ( rs->sr_err == LDAP_REFERRAL ) {
 						rs->sr_err = LDAP_OTHER;
@@ -288,7 +286,7 @@ retry:;
 		/*
 		 * use synchronous StartTLS
 		 */
-		rs->sr_err = ldap_start_tls_s( lsc->msc_ld, NULL, NULL );
+		rs->sr_err = ldap_start_tls_s( msc->msc_ld, NULL, NULL );
 #endif /* ! SLAP_STARTTLS_ASYNCHRONOUS */
 
 		/* if StartTLS is requested, only attempt it if the URL
@@ -296,9 +294,9 @@ retry:;
 		 * of misconfiguration, but also when used in the chain 
 		 * overlay, where the "uri" can be parsed out of a referral */
 		if ( rs->sr_err == LDAP_SERVER_DOWN
-				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( li ) ) )
+				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( mi ) ) )
 		{
-			ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
+			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
 			goto error_return;
 		}
 	}
@@ -307,13 +305,13 @@ retry:;
 	/*
 	 * Set the network timeout if set
 	 */
-	if ( li->mi_network_timeout != 0 ) {
+	if ( mi->mi_network_timeout != 0 ) {
 		struct timeval	network_timeout;
 
 		network_timeout.tv_usec = 0;
-		network_timeout.tv_sec = li->mi_network_timeout;
+		network_timeout.tv_sec = mi->mi_network_timeout;
 
-		ldap_set_option( lsc->msc_ld, LDAP_OPT_NETWORK_TIMEOUT,
+		ldap_set_option( msc->msc_ld, LDAP_OPT_NETWORK_TIMEOUT,
 				(void *)&network_timeout );
 	}
 
@@ -335,23 +333,23 @@ retry:;
 		 * Rewrite the bind dn if needed
 		 */
 		if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
-					&lsc->msc_bound_ndn ) )
+					&msc->msc_bound_ndn ) )
 		{
 			goto error_return;
 		}
 
 		/* copy the DN idf needed */
-		if ( lsc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
-			ber_dupbv( &lsc->msc_bound_ndn, &op->o_conn->c_dn );
+		if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
+			ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
 		}
 
-		assert( !BER_BVISNULL( &lsc->msc_bound_ndn ) );
+		assert( !BER_BVISNULL( &msc->msc_bound_ndn ) );
 
 	} else {
-		ber_str2bv( "", 0, 1, &lsc->msc_bound_ndn );
+		ber_str2bv( "", 0, 1, &msc->msc_bound_ndn );
 	}
 
-	lsc->msc_bound = META_UNBOUND;
+	msc->msc_bound = META_UNBOUND;
 
 error_return:;
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -360,16 +358,45 @@ error_return:;
 			send_ldap_result( op, rs );
 			rs->sr_text = NULL;
 		}
-
-	} else {
-
-		/*
-		 * The candidate is activated
-		 */
-		*candidate = META_CANDIDATE;
 	}
 
 	return rs->sr_err;
+}
+
+/*
+ * meta_back_retry
+ * 
+ * Retries one connection
+ */
+int
+meta_back_retry(
+		Operation		*op,
+		SlapReply		*rs,
+		struct metaconn		*mc,
+		int			candidate,
+		ldap_back_send_t	sendok )
+{
+	struct metainfo		*mi = (struct metainfo *)op->o_bd->be_private;
+	struct metatarget	*lt = mi->mi_targets[ candidate ];
+	int			rc;
+	struct metasingleconn	*msc = &mc->mc_conns[ candidate ];
+
+	ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
+
+	ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+        msc->msc_ld = NULL;
+        msc->msc_bound = 0;
+
+        /* mc here must be the regular mc, reset and ready for init */
+        rc = meta_back_init_one_conn( op, rs, lt, msc, sendok );
+
+	if ( rc == LDAP_SUCCESS ) {
+        	rc = meta_back_single_dobind( op, msc, sendok, 0 );
+        }
+
+	ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
+
+	return rc == LDAP_SUCCESS ? 1 : 0;
 }
 
 /*
@@ -403,14 +430,14 @@ meta_back_get_candidate(
 	SlapReply	*rs,
 	struct berval	*ndn )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metainfo	*mi = ( struct metainfo * )op->o_bd->be_private;
 	int		candidate;
 
 	/*
 	 * tries to get a unique candidate
 	 * (takes care of default target)
 	 */
-	candidate = meta_back_select_unique_candidate( li, ndn );
+	candidate = meta_back_select_unique_candidate( mi, ndn );
 
 	/*
 	 * if any is found, inits the connection
@@ -460,10 +487,11 @@ meta_back_get_candidate(
 			/* if multiple candidates can serve the operation,
 			 * and a default target is defined, and it is
 			 * a candidate, try using it (FIXME: YMMV) */
-			if ( li->mi_defaulttarget != META_DEFAULT_TARGET_NONE
-				&& meta_back_is_candidate( &li->mi_targets[ li->mi_defaulttarget ]->mt_nsuffix, ndn ) )
+			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
+				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ]->mt_nsuffix,
+						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
 			{
-				candidate = li->mi_defaulttarget;
+				candidate = mi->mi_defaulttarget;
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_text = NULL;
 
@@ -487,25 +515,25 @@ meta_back_candidate_keyfree( void *key, void *data )
 char *
 meta_back_candidates_get( Operation *op )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metainfo	*mi = ( struct metainfo * )op->o_bd->be_private;
 	void		*data = NULL;
 
 	if ( op->o_threadctx ) {
 		ldap_pvt_thread_pool_getkey( op->o_threadctx,
 				meta_back_candidate_keyfree, &data, NULL );
 	} else {
-		data = (void *)li->mi_candidates;
+		data = (void *)mi->mi_candidates;
 	}
 
 	if ( data == NULL ) {
-		data = ber_memalloc_x( sizeof( char ) * li->mi_ntargets, NULL );
+		data = ber_memalloc_x( sizeof( char ) * mi->mi_ntargets, NULL );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
 					meta_back_candidate_keyfree, data,
 					meta_back_candidate_keyfree );
 
 		} else {
-			li->mi_candidates = (char *)data;
+			mi->mi_candidates = (char *)data;
 		}
 	}
 
@@ -552,8 +580,8 @@ meta_back_getconn(
 		int 			*candidate,
 		ldap_back_send_t	sendok )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn	*lc, lc_curr;
+	struct metainfo	*mi = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn	*mc, mc_curr;
 	int		cached = META_TARGET_NONE,
 			i = META_TARGET_NONE,
 			err = LDAP_SUCCESS,
@@ -562,23 +590,24 @@ meta_back_getconn(
 	meta_op_type	op_type = META_OP_REQUIRE_SINGLE;
 	int		parent = 0,
 			newparent = 0;
-	struct berval	ndn = op->o_req_ndn;
+	struct berval	ndn = op->o_req_ndn,
+			pndn;
 
 	char		*candidates = meta_back_candidates_get( op );
 
 	/* Searches for a metaconn in the avl tree */
-	lc_curr.mc_conn = op->o_conn;
-	ldap_pvt_thread_mutex_lock( &li->mi_conn_mutex );
-	lc = (struct metaconn *)avl_find( li->mi_conntree, 
-		(caddr_t)&lc_curr, meta_back_conn_cmp );
-	ldap_pvt_thread_mutex_unlock( &li->mi_conn_mutex );
+	mc_curr.mc_conn = op->o_conn;
+	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+	mc = (struct metaconn *)avl_find( mi->mi_conntree, 
+		(caddr_t)&mc_curr, meta_back_conn_cmp );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
 	switch ( op->o_tag ) {
 	case LDAP_REQ_ADD:
 		/* if we go to selection, the entry must not exist,
 		 * and we must be able to resolve the parent */
 		parent = 1;
-		dnParent( &ndn, &ndn );
+		dnParent( &ndn, &pndn );
 		break;
 
 	case LDAP_REQ_MODRDN:
@@ -619,22 +648,24 @@ meta_back_getconn(
 	if ( op_type == META_OP_REQUIRE_ALL ) {
 
 		/* Looks like we didn't get a bind. Open a new session... */
-		if ( !lc ) {
-			lc = metaconn_alloc( li->mi_ntargets );
-			lc->mc_conn = op->o_conn;
+		if ( !mc ) {
+			mc = metaconn_alloc( mi->mi_ntargets );
+			mc->mc_conn = op->o_conn;
 			new_conn = 1;
 		}
 
-		for ( i = 0; i < li->mi_ntargets; i++ ) {
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 
 			/*
 			 * The target is activated; if needed, it is
 			 * also init'd
 			 */
-			int lerr = init_one_conn( op, rs, li->mi_targets[ i ],
-					&lc->mc_conns[ i ], &candidates[ i ],
-					sendok );
-			if ( lerr != LDAP_SUCCESS ) {
+			int lerr = meta_back_init_one_conn( op, rs, mi->mi_targets[ i ],
+					&mc->mc_conns[ i ], sendok );
+			if ( lerr == LDAP_SUCCESS ) {
+				candidates[ i ] = META_CANDIDATE;
+				
+			} else {
 				
 				/*
 				 * FIXME: in case one target cannot
@@ -642,9 +673,6 @@ meta_back_getconn(
 				 * be tried?
 				 */
 				candidates[ i ] = META_NOT_CANDIDATE;
-#if 0
-				( void )meta_clear_one_candidate( &lc->mc_conns[ i ] );
-#endif
 				err = lerr;
 				continue;
 			}
@@ -655,13 +683,13 @@ meta_back_getconn(
 	/*
 	 * looks in cache, if any
 	 */
-	if ( li->mi_cache.ttl != META_DNCACHE_DISABLED ) {
-		cached = i = meta_dncache_get_target( &li->mi_cache, &op->o_req_ndn );
+	if ( mi->mi_cache.ttl != META_DNCACHE_DISABLED ) {
+		cached = i = meta_dncache_get_target( &mi->mi_cache, &op->o_req_ndn );
 	}
 
 	if ( op_type == META_OP_REQUIRE_SINGLE ) {
 
-		memset( candidates, META_NOT_CANDIDATE, sizeof( char ) * li->mi_ntargets );
+		memset( candidates, META_NOT_CANDIDATE, sizeof( char ) * mi->mi_ntargets );
 
 		/*
 		 * tries to get a unique candidate
@@ -670,6 +698,10 @@ meta_back_getconn(
 		if ( i == META_TARGET_NONE ) {
 			i = meta_back_get_candidate( op, rs, &ndn );
 
+			if ( rs->sr_err == LDAP_NO_SUCH_OBJECT && parent ) {
+				i = meta_back_get_candidate( op, rs, &pndn );
+			}
+	
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				if ( sendok & LDAP_BACK_SENDERR ) {
 					send_ldap_result( op, rs );
@@ -695,33 +727,35 @@ meta_back_getconn(
 				i, op->o_req_ndn.bv_val, 0 );
 
 		/* Retries searching for a metaconn in the avl tree */
-		lc_curr.mc_conn = op->o_conn;
-		ldap_pvt_thread_mutex_lock( &li->mi_conn_mutex );
-		lc = (struct metaconn *)avl_find( li->mi_conntree, 
-			(caddr_t)&lc_curr, meta_back_conn_cmp );
-		ldap_pvt_thread_mutex_unlock( &li->mi_conn_mutex );
+		mc_curr.mc_conn = op->o_conn;
+		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+		mc = (struct metaconn *)avl_find( mi->mi_conntree, 
+			(caddr_t)&mc_curr, meta_back_conn_cmp );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
 		/* Looks like we didn't get a bind. Open a new session... */
-		if ( !lc ) {
-			lc = metaconn_alloc( li->mi_ntargets );
-			lc->mc_conn = op->o_conn;
+		if ( !mc ) {
+			mc = metaconn_alloc( mi->mi_ntargets );
+			mc->mc_conn = op->o_conn;
 			new_conn = 1;
 		}
 
 		/*
 		 * Clear all other candidates
 		 */
-		( void )meta_clear_unused_candidates( op, lc, i );
+		( void )meta_clear_unused_candidates( op, mc, i );
 
 		/*
 		 * The target is activated; if needed, it is
-		 * also init'd. In case of error, init_one_conn
+		 * also init'd. In case of error, meta_back_init_one_conn
 		 * sends the appropriate result.
 		 */
-		err = init_one_conn( op, rs, li->mi_targets[ i ],
-				&lc->mc_conns[ i ], &candidates[ i ],
-				sendok );
-		if ( err != LDAP_SUCCESS ) {
+		err = meta_back_init_one_conn( op, rs, mi->mi_targets[ i ],
+				&mc->mc_conns[ i ], sendok );
+		if ( err == LDAP_SUCCESS ) {
+			candidates[ i ] = META_CANDIDATE;
+
+		} else {
 		
 			/*
 			 * FIXME: in case one target cannot
@@ -730,8 +764,8 @@ meta_back_getconn(
 			 */
 			candidates[ i ] = META_NOT_CANDIDATE;
  			if ( new_conn ) {
-				( void )meta_clear_one_candidate( &lc->mc_conns[ i ] );
-				metaconn_free( lc );
+				( void )meta_clear_one_candidate( &mc->mc_conns[ i ] );
+				meta_back_conn_free( mc );
 			}
 			return NULL;
 		}
@@ -746,28 +780,29 @@ meta_back_getconn(
 	} else {
 
 		/* Looks like we didn't get a bind. Open a new session... */
-		if ( !lc ) {
-			lc = metaconn_alloc( li->mi_ntargets );
-			lc->mc_conn = op->o_conn;
+		if ( !mc ) {
+			mc = metaconn_alloc( mi->mi_ntargets );
+			mc->mc_conn = op->o_conn;
 			new_conn = 1;
 		}
 
-		for ( i = 0; i < li->mi_ntargets; i++ ) {
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			if ( i == cached 
-				|| meta_back_is_candidate( &li->mi_targets[ i ]->mt_nsuffix,
-						&op->o_req_ndn ) )
+				|| meta_back_is_candidate( &mi->mi_targets[ i ]->mt_nsuffix,
+						&op->o_req_ndn, LDAP_SCOPE_SUBTREE ) )
 			{
 
 				/*
 				 * The target is activated; if needed, it is
 				 * also init'd
 				 */
-				int lerr = init_one_conn( op, rs,
-						li->mi_targets[ i ],
-						&lc->mc_conns[ i ],
-						&candidates[ i ],
-						sendok );
-				if ( lerr != LDAP_SUCCESS ) {
+				int lerr = meta_back_init_one_conn( op, rs,
+						mi->mi_targets[ i ],
+						&mc->mc_conns[ i ], sendok );
+				if ( lerr == LDAP_SUCCESS ) {
+					candidates[ i ] = META_CANDIDATE;
+
+				} else {
 				
 					/*
 					 * FIXME: in case one target cannot
@@ -775,10 +810,11 @@ meta_back_getconn(
 					 * be tried?
 					 */
 					candidates[ i ] = META_NOT_CANDIDATE;
-#if 0
-					( void )meta_clear_one_candidate( &lc->mc_conns[ i ] );
-#endif
 					err = lerr;
+
+					Debug( LDAP_DEBUG_ANY, "%s: meta_back_init_one_conn(%d) failed: %d\n",
+						op->o_log_prefix, i, lerr );
+
 					continue;
 				}
 
@@ -789,7 +825,7 @@ meta_back_getconn(
 	}
 
 done:;
-	/* clear out init_one_conn non-fatal errors */
+	/* clear out meta_back_init_one_conn non-fatal errors */
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
 
@@ -798,19 +834,19 @@ done:;
 		/*
 		 * Inserts the newly created metaconn in the avl tree
 		 */
-		ldap_pvt_thread_mutex_lock( &li->mi_conn_mutex );
-		err = avl_insert( &li->mi_conntree, ( caddr_t )lc,
+		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+		err = avl_insert( &mi->mi_conntree, ( caddr_t )mc,
 			       	meta_back_conn_cmp, meta_back_conn_dup );
 
 #if PRINT_CONNTREE > 0
-		myprint( li->mi_conntree );
+		myprint( mi->mi_conntree );
 #endif /* PRINT_CONNTREE */
 		
-		ldap_pvt_thread_mutex_unlock( &li->mi_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld inserted\n",
-			lc->mc_conn->c_connid, 0, 0 );
+			mc->mc_conn->c_connid, 0, 0 );
 		
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
@@ -818,7 +854,7 @@ done:;
 		if ( err != 0 ) {
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "Internal server error";
-			metaconn_free( lc );
+			meta_back_conn_free( mc );
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				send_ldap_result( op, rs );
 				rs->sr_text = NULL;
@@ -829,9 +865,9 @@ done:;
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_getconn: conn %ld fetched\n",
-			lc->mc_conn->c_connid, 0, 0 );
+			mc->mc_conn->c_connid, 0, 0 );
 	}
 	
-	return lc;
+	return mc;
 }
 

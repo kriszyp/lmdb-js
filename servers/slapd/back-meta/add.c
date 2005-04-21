@@ -36,13 +36,14 @@ int
 meta_back_add( Operation *op, SlapReply *rs )
 {
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn	*lc;
+	struct metaconn	*mc;
 	int		i, candidate = -1;
 	int		isupdate;
 	Attribute	*a;
 	LDAPMod		**attrs;
 	struct berval	mdn = BER_BVNULL, mapped;
 	dncookie	dc;
+	int		msgid, do_retry = 1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
@@ -50,12 +51,12 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * get the current connection
 	 */
-	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
-	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
+	if ( !mc || !meta_back_dobind( mc, op, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
-	if ( !meta_back_is_valid( lc, candidate ) ) {
+	if ( !meta_back_is_valid( mc, candidate ) ) {
 		rs->sr_err = LDAP_UNAVAILABLE;
  		send_ldap_result( op, rs );
 		return rs->sr_err;
@@ -165,8 +166,21 @@ meta_back_add( Operation *op, SlapReply *rs )
 	}
 	attrs[ i ] = NULL;
 
-	rs->sr_err = ldap_add_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+retry:;
+#if 0
+	rs->sr_err = ldap_add_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			      attrs, op->o_ctrls, NULL, &msgid );
+	rs->sr_err = meta_back_op_result( op, rs, &mc->mc_conns[ candidate ], msgid, LDAP_BACK_SENDERR );
+#endif
+	rs->sr_err = ldap_add_ext_s( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			      attrs, op->o_ctrls, NULL );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
+			goto retry;
+		}
+	}
+
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ]->mod_bvalues );
 		free( attrs[ i ] );
@@ -177,6 +191,6 @@ meta_back_add( Operation *op, SlapReply *rs )
 		BER_BVZERO( &mdn );
 	}
 
-	return meta_back_op_result( lc, op, rs, candidate );
+	return meta_back_op_result( mc, op, rs, candidate );
 }
 

@@ -51,12 +51,6 @@
  */
 
 static int
-meta_back_count_candidates(
-		struct metainfo		*li,
-		struct berval		*ndn
-);
-
-static int
 meta_back_is_candidate_unique(
 		struct metainfo		*li,
 		struct berval		*ndn
@@ -70,50 +64,22 @@ meta_back_is_candidate_unique(
 int 
 meta_back_is_candidate(
 		struct berval	*nsuffix,
-		struct berval	*ndn
+		struct berval	*ndn,
+		int		scope
 )
 {
-	if ( dnIsSuffix( nsuffix, ndn ) || dnIsSuffix( ndn, nsuffix ) ) {
+	if ( dnIsSuffix( ndn, nsuffix ) ) {
+		return META_CANDIDATE;
+	}
+
+	if ( scope == LDAP_SCOPE_SUBTREE && dnIsSuffix( nsuffix, ndn ) ) {
 		/*
-		 * suffix longer than dn
+		 * suffix longer than dn, but common part matches
 		 */
 		return META_CANDIDATE;
 	}
 
 	return META_NOT_CANDIDATE;
-}
-
-/*
- * meta_back_count_candidates
- *
- * returns a count of the possible candidate targets
- * Note: dn MUST be normalized
- */
-
-static int
-meta_back_count_candidates(
-		struct metainfo		*li,
-		struct berval		*ndn
-)
-{
-	int i, cnt = 0;
-
-	/*
-	 * I know assertions should not check run-time values;
-	 * at present I didn't find a place for such checks
-	 * after config.c
-	 */
-	assert( li->mi_targets != NULL );
-	assert( li->mi_ntargets != 0 );
-
-	for ( i = 0; i < li->mi_ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->mi_targets[ i ]->mt_nsuffix, ndn ) )
-		{
-			++cnt;
-		}
-	}
-
-	return cnt;
 }
 
 /*
@@ -128,7 +94,13 @@ meta_back_is_candidate_unique(
 		struct berval		*ndn
 )
 {
-	return ( meta_back_count_candidates( li, ndn ) == 1 );
+	switch ( meta_back_select_unique_candidate( li, ndn ) ) {
+	case META_TARGET_MULTIPLE:
+	case META_TARGET_NONE:
+		return 0;
+	}
+
+	return 1;
 }
 
 /*
@@ -147,7 +119,7 @@ meta_back_select_unique_candidate(
 	int	i, candidate = META_TARGET_NONE;
 
 	for ( i = 0; i < li->mi_ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->mi_targets[ i ]->mt_nsuffix, ndn ) )
+		if ( meta_back_is_candidate( &li->mi_targets[ i ]->mt_nsuffix, ndn, LDAP_SCOPE_BASE ) )
 		{
 			if ( candidate == META_TARGET_NONE ) {
 				candidate = i;

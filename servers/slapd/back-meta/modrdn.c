@@ -36,11 +36,11 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 {
 	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn		*lc;
-	int			rc = 0;
 	int			candidate = -1;
 	struct berval		mdn = BER_BVNULL,
 				mnewSuperior = BER_BVNULL;
 	dncookie		dc;
+	int			msgid, do_retry = 1;
 
 	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !lc ) {
@@ -95,7 +95,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
 		dc.ctx = "newSuperiorDN";
 		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
-			rc = -1;
+			rs->sr_err = LDAP_OTHER;
 			goto cleanup;
 		}
 	}
@@ -106,15 +106,21 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
-		rc = -1;
+		rs->sr_err = LDAP_OTHER;
 		goto cleanup;
 	}
 
-	rc = ldap_rename_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			op->orr_newrdn.bv_val,
-			mnewSuperior.bv_val,
-			op->orr_deleteoldrdn,
-			op->o_ctrls, NULL ) != LDAP_SUCCESS;
+retry:;
+	rs->sr_err = ldap_rename_s( lc->mc_conns[ candidate ].msc_ld,
+			mdn.bv_val, op->orr_newrdn.bv_val,
+			mnewSuperior.bv_val, op->orr_deleteoldrdn,
+			op->o_ctrls, NULL );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( meta_back_retry( op, rs, lc, candidate, LDAP_BACK_SENDERR ) ) {
+			goto retry;
+		}
+	}
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
@@ -129,13 +135,12 @@ cleanup:;
 		BER_BVZERO( &mnewSuperior );
 	}
 
-	if ( rc == 0 ) {
-		return meta_back_op_result( lc, op, rs, candidate ) == LDAP_SUCCESS
-			? 0 : 1;
-	} /* else */
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		meta_back_op_result( lc, op, rs, candidate );
+	}
 
 	send_ldap_result( op, rs );
 
-	return rc;
+	return rs->sr_err;
 }
 

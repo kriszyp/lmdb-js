@@ -45,6 +45,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	struct berval	mdn = BER_BVNULL;
 	struct berval	mapped;
 	dncookie	dc;
+	int		msgid, do_retry = 1;
 
 	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
@@ -174,8 +175,15 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 	modv[ i ] = 0;
 
+retry:;
 	rs->sr_err = ldap_modify_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			modv, op->o_ctrls, NULL );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( meta_back_retry( op, rs, lc, candidate, LDAP_BACK_SENDERR ) ) {
+			goto retry;
+		}
+	}
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {

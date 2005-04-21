@@ -174,22 +174,31 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); lsc++, i++ ) {
 			int		lrc;
 			LDAPMessage	*res = NULL;
+			struct timeval	tv = { 0 };
+
+			tv.tv_sec = 0;
+			tv.tv_usec = 0;
 
 			if ( msgid[ i ] == -1 ) {
 				continue;
 			}
 
 			lrc = ldap_result( lsc->msc_ld, msgid[ i ],
-					0, NULL, &res );
+					0, &tv, &res );
 
 			if ( lrc == 0 ) {
-				/*
-				 * FIXME: should we yield?
-				 */
-				if ( res ) {
-					ldap_msgfree( res );
-				}
+				assert( res == NULL );
 				continue;
+
+			} else if ( lrc == -1 ) {
+				/* we do not retry in this case;
+				 * only for unique operations... */
+				ldap_get_option( lsc->msc_ld,
+					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+				rres = slap_map_api2result( rs );
+				rres = rc;
+				rc = -1;
+				goto finish;
 
 			} else if ( lrc == LDAP_RES_COMPARE ) {
 				if ( count > 0 ) {
@@ -212,7 +221,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 				case LDAP_COMPARE_FALSE:
 
 					/*
-					 * true or flase, got it;
+					 * true or false, got it;
 					 * sending to cache ...
 					 */
 					if ( li->mi_cache.ttl != META_DNCACHE_DISABLED ) {

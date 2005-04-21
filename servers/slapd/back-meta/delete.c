@@ -34,11 +34,12 @@
 int
 meta_back_delete( Operation *op, SlapReply *rs )
 {
-	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn *lc;
-	int candidate = -1;
-	struct berval mdn = BER_BVNULL;
-	dncookie dc;
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn	*lc;
+	int		candidate = -1;
+	struct berval	mdn = BER_BVNULL;
+	dncookie	dc;
+	int		msgid, do_retry = 1;
 
 	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
@@ -64,8 +65,15 @@ meta_back_delete( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	(void)ldap_delete_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			op->o_ctrls, NULL );
+retry:;
+	rs->sr_err = ldap_delete_ext_s( lc->mc_conns[ candidate ].msc_ld,
+			mdn.bv_val, op->o_ctrls, NULL );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( meta_back_retry( op, rs, lc, candidate, LDAP_BACK_SENDERR ) ) {
+			goto retry;
+		}
+	}
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );

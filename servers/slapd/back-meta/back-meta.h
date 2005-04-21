@@ -165,12 +165,13 @@ struct metasingleconn {
 
 struct metaconn {
 	struct slap_conn	*mc_conn;
+	ldap_pvt_thread_mutex_t	mc_mutex;
 	
 	/*
 	 * means that the connection is bound; 
 	 * of course only one target actually is ...
 	 */
-	int             	mc_bound_target;
+	int             	mc_auth_target;
 #define META_BOUND_NONE		(-1)
 #define META_BOUND_ALL		(-2)
 	/* supersedes the connection stuff */
@@ -237,47 +238,58 @@ meta_back_getconn(
 		Operation		*op,
 		SlapReply		*rs,
 		int			*candidate,
-		ldap_back_send_t	sendok
-);
+		ldap_back_send_t	sendok );
+
+extern int
+meta_back_retry(
+		Operation		*op,
+		SlapReply		*rs,
+		struct metaconn		*mc,
+		int			candidate,
+		ldap_back_send_t	sendok );
+
+extern void
+meta_back_conn_free( struct metaconn *mc );
 
 extern int
 meta_back_dobind(
 		struct metaconn		*lc,
 		Operation		*op,
-		ldap_back_send_t	sendok
-);
+		ldap_back_send_t	sendok );
+
+int
+meta_back_single_dobind(
+	Operation		*op,
+	struct metasingleconn	*msc,
+	ldap_back_send_t	sendok,
+	int			retries );
 
 extern int
 meta_back_is_valid(
 		struct metaconn 	*lc, 
-		int 			candidate 
-);
+		int 			candidate );
 
 extern int
 meta_back_op_result(
 		struct metaconn		*lc,
 		Operation		*op,
 		SlapReply		*rs,
-		int			candidate
-);
+		int			candidate );
 
 extern int
 back_meta_LTX_init_module(
 		int			argc,
-		char			*argv[]
-);
+		char			*argv[] );
 
 extern int
 meta_back_conn_cmp(
 		const void		*c1,
-		const void		*c2
-);
+		const void		*c2 );
 
 extern int
 meta_back_conn_dup(
 		void			*c1,
-		void			*c2
-);
+		void			*c2 );
 
 /*
  * Candidate stuff
@@ -285,26 +297,23 @@ meta_back_conn_dup(
 extern int
 meta_back_is_candidate(
 		struct berval		*nsuffix,
-		struct berval		*ndn
-);
+		struct berval		*ndn,
+		int			scope );
 
 extern int
 meta_back_select_unique_candidate(
 		struct metainfo		*li,
-		struct berval		*ndn
-);
+		struct berval		*ndn );
 
 extern int
 meta_clear_unused_candidates(
 		Operation		*op,
 		struct metaconn		*lc,
-		int			candidate
-);
+		int			candidate );
 
 extern int
 meta_clear_one_candidate(
-		struct metasingleconn	*lc
-);
+		struct metasingleconn	*lc );
 
 /*
  * Dn cache stuff (experimental)
@@ -312,40 +321,33 @@ meta_clear_one_candidate(
 extern int
 meta_dncache_cmp(
 		const void		*c1,
-		const void		*c2
-);
+		const void		*c2 );
 
 extern int
 meta_dncache_dup(
 		void			*c1,
-		void			*c2
-);
+		void			*c2 );
 
 #define META_TARGET_NONE	(-1)
 #define META_TARGET_MULTIPLE	(-2)
 extern int
 meta_dncache_get_target(
 		struct metadncache	*cache,
-		struct berval		*ndn
-);
+		struct berval		*ndn );
 
 extern int
 meta_dncache_update_entry(
 		struct metadncache	*cache,
 		struct berval		*ndn,
-		int			target
-);
+		int			target );
 
 extern int
 meta_dncache_delete_entry(
 		struct metadncache	*cache,
-		struct berval		*ndn
-);
+		struct berval		*ndn );
 
 extern void
-meta_dncache_free(
-		void *entry
-);
+meta_dncache_free( void *entry );
 
 LDAP_END_DECL
 
