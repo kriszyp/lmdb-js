@@ -2323,16 +2323,6 @@ dnaccess2text( slap_dn_access *bdn, char *ptr, int is_realdn )
 		ptr = lutil_strcopy( ptr, bdn->a_pat.bv_val );
 		*ptr++ = '"';
 	}
-
-	if ( bdn->a_at != NULL ) {
-		*ptr++ = ' ';
-		if ( is_realdn ) {
-			ptr = lutil_strcopy( ptr, "real" );
-		}
-		ptr = lutil_strcopy( ptr, "dnattr=" );
-		ptr = lutil_strcopy( ptr, bdn->a_at->ad_cname.bv_val );
-	}
-
 	return ptr;
 }
 
@@ -2346,9 +2336,17 @@ access2text( Access *b, char *ptr )
 	if ( !BER_BVISEMPTY( &b->a_dn_pat ) ) {
 		ptr = dnaccess2text( &b->a_dn, ptr, 0 );
 	}
+	if ( b->a_dn_at ) {
+		ptr = lutil_strcopy( ptr, " dnattr=" );
+		ptr = lutil_strcopy( ptr, b->a_dn_at->ad_cname.bv_val );
+	}
 
 	if ( !BER_BVISEMPTY( &b->a_realdn_pat ) ) {
 		ptr = dnaccess2text( &b->a_realdn, ptr, 1 );
+	}
+	if ( b->a_realdn_at ) {
+		ptr = lutil_strcopy( ptr, " realdnattr=" );
+		ptr = lutil_strcopy( ptr, b->a_realdn_at->ad_cname.bv_val );
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_group_pat ) ) {
