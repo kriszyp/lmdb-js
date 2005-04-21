@@ -81,6 +81,10 @@ typedef struct ConfigOCs {
 #endif
 } ConfigOCs;
 
+struct config_args_s;
+
+typedef int (ConfigDriver)(struct config_args_s *c);
+
 typedef struct config_args_s {
 	int argc;
 	char **argv;
@@ -114,6 +118,7 @@ typedef struct config_args_s {
 	BackendDB *be;
 	BackendInfo *bi;
 	void *private;	/* anything */
+	ConfigDriver *cleanup;
 } ConfigArgs;
 
 #define value_int values.v_int
@@ -123,8 +128,6 @@ typedef struct config_args_s {
 #define value_bv values.v_bv
 #define value_dn values.v_dn.vdn_dn
 #define value_ndn values.v_dn.vdn_ndn
-
-typedef int (ConfigDriver)(ConfigArgs *c);
 
 int config_register_schema(ConfigTable *ct, ConfigOCs *co);
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);

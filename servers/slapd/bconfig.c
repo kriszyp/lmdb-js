@@ -3897,6 +3897,8 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	}
 
 out:
+	if ( ca.cleanup )
+		ca.cleanup( &ca );
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
 	} else {
