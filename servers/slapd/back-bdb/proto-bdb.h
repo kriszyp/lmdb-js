@@ -240,6 +240,9 @@ bdb_idl_cache_del(
 #define bdb_idl_insert				BDB_SYMBOL(idl_insert)
 #define bdb_idl_intersection		BDB_SYMBOL(idl_intersection)
 #define bdb_idl_union				BDB_SYMBOL(idl_union)
+#define bdb_idl_sort				BDB_SYMBOL(idl_sort)
+#define bdb_idl_append				BDB_SYMBOL(idl_append)
+#define bdb_idl_append_one			BDB_SYMBOL(idl_append_one)
 
 #define bdb_idl_fetch_key			BDB_SYMBOL(idl_fetch_key)
 #define bdb_idl_insert_key			BDB_SYMBOL(idl_insert_key)
@@ -283,6 +286,9 @@ bdb_idl_union(
 ID bdb_idl_first( ID *ids, ID *cursor );
 ID bdb_idl_next( ID *ids, ID *cursor );
 
+void bdb_idl_sort( ID *ids );
+int bdb_idl_append( ID *a, ID *b );
+int bdb_idl_append_one( ID *ids, ID id );
 
 #define bdb_bt_compare				BDB_SYMBOL(bt_compare)
 

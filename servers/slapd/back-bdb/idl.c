@@ -1233,3 +1233,132 @@ ID bdb_idl_next( ID *ids, ID *cursor )
 	return NOID;
 }
 
+/* Add one ID to an unsorted list. We still maintain a lo/hi reference
+ * for fast range compaction.
+ */
+int bdb_idl_append_one( ID *ids, ID id )
+{
+	unsigned x;
+
+	if (BDB_IDL_IS_RANGE( ids )) {
+		/* if already in range, treat as a dup */
+		if (id >= BDB_IDL_FIRST(ids) && id <= BDB_IDL_LAST(ids))
+			return -1;
+		if (id < BDB_IDL_FIRST(ids))
+			ids[1] = id;
+		else if (id > BDB_IDL_LAST(ids))
+			ids[2] = id;
+		return 0;
+	}
+	if ( ids[0] ) {
+		ID tmp;
+
+		if (id < ids[1]) {
+			tmp = ids[1];
+			ids[1] = id;
+			id = tmp;
+		} else if ( ids[0] > 1 && id > ids[2] ) {
+			tmp = ids[2];
+			ids[2] = id;
+			id = tmp;
+		}
+	}
+	ids[0]++;
+	if ( ids[0] >= BDB_IDL_DB_MAX ) {
+		ids[0] = NOID;
+	} else {
+		ids[ids[0]] = id;
+	}
+	return 0;
+}
+
+/* Append unsorted list b to unsorted list a. Both lists must have their
+ * lowest value in slot 1 and highest value in slot 2.
+ */
+int bdb_idl_append( ID *a, ID *b )
+{
+	ID ida, idb;
+
+	if ( BDB_IDL_IS_ZERO( b ) ) {
+		return 0;
+	}
+
+	if ( BDB_IDL_IS_ZERO( a ) ) {
+		BDB_IDL_CPY( a, b );
+		return 0;
+	}
+
+	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
+		a[0] + b[0] >= BDB_IDL_UM_MAX ) {
+		ida = IDL_MIN( a[1], b[1] );
+		idb = IDL_MAX( a[2], b[2] );
+		a[0] = NOID;
+		a[1] = ida;
+		a[2] = idb;
+		return 0;
+	}
+
+	if ( b[1] < a[1] ) {
+		ida = a[1];
+		a[1] = b[1];
+	} else {
+		ida = b[1];
+	}
+	a[0]++;
+	a[a[0]] = ida;
+
+	if ( b[0] > 1 && b[2] > a[2] ) {
+		ida = a[2];
+		a[2] = b[2];
+	} else {
+		ida = b[2];
+	}
+	a[0]++;
+	a[a[0]] = ida;
+
+	if ( b[0] > 2 ) {
+		int i = b[0] - 2;
+		AC_MEMCPY(a+a[0]+1, b+3, i * sizeof(ID));
+		a[0] += i;
+	}
+	return 0;
+	
+}
+
+/* Sort an IDL using HeapSort */
+static void
+siftDown(ID *ids, int root, int bottom)
+{
+	int child;
+	ID temp;
+
+	temp = ids[root];
+	while ((child=root*2) <= bottom) {
+		if (child < bottom && ids[child] < ids[child + 1])
+			child++;
+
+		if (temp >= ids[child])
+			break;
+		ids[root] = ids[child];
+		root = child;
+	}
+	ids[root] = temp;
+}
+
+void
+bdb_idl_sort( ID *ids )
+{
+	int i;
+	ID temp;
+
+	for (i = ids[0] / 2; i >= 1; i--)
+		siftDown(ids, i, ids[0]);
+
+	for (i = ids[0]; i > 1; i--)
+	{
+		temp = ids[i];
+		ids[i] = ids[1];
+		ids[1] = temp;
+		siftDown(ids, 1, i-1);
+	}
+}

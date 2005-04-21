@@ -629,6 +629,11 @@ hdb_dn2id_add(
 	key.size = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
 
+	/* Delete parent's IDL cache entry */
+	if ( bdb->bi_idl_cache_size ) {
+		bdb_idl_cache_del( bdb, db, &key );
+	}
+
 	/* Need to make dummy root node once. Subsequent attempts
 	 * will fail harmlessly.
 	 */
@@ -641,9 +646,6 @@ hdb_dn2id_add(
 		db->put( db, txn, &key, &data, DB_NODUPDATA );
 	}
 
-	if ( bdb->bi_idl_cache_size ) {
-		bdb_idl_cache_del( bdb, db, &key );
-	}
 	data.data = d;
 	data.size = sizeof(diskNode) + rlen + nrlen;
 	data.flags = DB_DBT_USERMEM;
@@ -689,7 +691,13 @@ hdb_dn2id_delete(
 	data.dlen = data.size;
 	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
+	/* Delete IDL cache entries */
 	if ( bdb->bi_idl_cache_size ) {
+		/* Ours */
+		key.data = &e->e_id;
+		bdb_idl_cache_del( bdb, db, &key );
+		/* Parent's */
+		key.data = &eip->bei_id;
 		bdb_idl_cache_del( bdb, db, &key );
 	}
 	rc = db->cursor( db, txn, &cursor, bdb->bi_db_opflags );
@@ -922,7 +930,7 @@ apply_func(
 	EntryInfo *ei = data;
 	ID *idl = arg;
 
-	bdb_idl_insert( idl, ei->bei_id );
+	bdb_idl_append_one( idl, ei->bei_id );
 	return 0;
 }
 
@@ -1014,7 +1022,7 @@ hdb_dn2idl_internal(
 					ei.bei_nrdn.bv_val = d->nrdn;
 					ei.bei_rdn.bv_len = len - sizeof(diskNode) - ei.bei_nrdn.bv_len;
 					ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
-					bdb_idl_insert( cx->tmp, ei.bei_id );
+					bdb_idl_append_one( cx->tmp, ei.bei_id );
 					hdb_cache_load( cx->bdb, &ei, &ei2 );
 				}
 			}
@@ -1043,16 +1051,14 @@ saveit:
 gotit:
 	if ( !BDB_IDL_IS_ZERO( cx->tmp )) {
 		if ( cx->prefix == DN_SUBTREE_PREFIX ) {
-			if (cx->ei->bei_state & CACHE_ENTRY_NO_GRANDKIDS) {
-				bdb_idl_union( cx->ids, cx->tmp );
-			} else {
+			bdb_idl_append( cx->ids, cx->tmp );
+			if ( !(cx->ei->bei_state & CACHE_ENTRY_NO_GRANDKIDS)) {
 				ID *save, idcurs;
 				EntryInfo *ei = cx->ei;
 				int nokids = 1;
 				save = cx->op->o_tmpalloc( BDB_IDL_SIZEOF( cx->tmp ),
 					cx->op->o_tmpmemctx );
 				BDB_IDL_CPY( save, cx->tmp );
-				bdb_idl_union( cx->ids, cx->tmp );
 
 				idcurs = 0;
 				for ( cx->id = bdb_idl_first( save, &idcurs );
@@ -1107,8 +1113,8 @@ hdb_dn2idl(
 	cx.ei = e->e_id ? BEI(e) : &bdb->bi_cache.c_dntree;
 	cx.bdb = bdb;
 	cx.db = cx.bdb->bi_dn2id->bdi_db;
-	cx.prefix = op->ors_scope == LDAP_SCOPE_ONELEVEL
-		? DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
+	cx.prefix = (op->ors_scope == LDAP_SCOPE_ONELEVEL) ?
+		DN_ONE_PREFIX : DN_SUBTREE_PREFIX;
 	cx.ids = ids;
 	cx.buf = stack;
 	cx.op = op;
@@ -1126,6 +1132,10 @@ hdb_dn2idl(
 
 	DBTzero(&cx.data);
 
-	return hdb_dn2idl_internal(&cx);
+	hdb_dn2idl_internal(&cx);
+	if ( !BDB_IDL_IS_ZERO( ids ))
+		bdb_idl_sort( ids );
+
+	return cx.rc;
 }
 #endif	/* BDB_HIER */
