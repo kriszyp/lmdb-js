@@ -226,7 +226,7 @@ bdb_online_index( void *ctx, void *arg )
 				continue;
 			}
 			if ( rc == DB_NOTFOUND ) {
-				id++
+				id++;
 				getnext = 1;
 				continue;
 			}

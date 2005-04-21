@@ -124,6 +124,11 @@ bdb_db_cache(
 	if ( !( slapMode & SLAP_TOOL_QUICK ))
 		flags |= DB_AUTO_COMMIT;
 #endif
+	/* Cannot Truncate when Transactions are in use */
+	if ( (slapMode & (SLAP_TOOL_QUICK|SLAP_TRUNCATE_MODE)) ==
+		(SLAP_TOOL_QUICK|SLAP_TRUNCATE_MODE))
+			flags |= DB_TRUNCATE;
+
 	rc = DB_OPEN( db->bdi_db,
 		file, NULL /* name */,
 		BDB_INDEXTYPE, bdb->bi_db_opflags | flags, bdb->bi_dbenv_mode );
