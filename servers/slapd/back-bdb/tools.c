@@ -203,7 +203,7 @@ static int bdb_tool_next_id(
 	struct berval dn = e->e_name;
 	struct berval ndn = e->e_nname;
 	struct berval pdn, npdn;
-	EntryInfo *ei = NULL;
+	EntryInfo *ei = NULL, eidummy;
 	int rc;
 
 	if (ndn.bv_len == 0) return 0;
@@ -212,6 +212,7 @@ static int bdb_tool_next_id(
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( !be_issuffix( op->o_bd, &ndn ) ) {
+			ID eid = e->e_id;
 			dnParent( &dn, &pdn );
 			dnParent( &ndn, &npdn );
 			e->e_name = pdn;
@@ -221,6 +222,14 @@ static int bdb_tool_next_id(
 			e->e_nname = ndn;
 			if ( rc ) {
 				return rc;
+			}
+			/* If parent didn't exist, it was created just now
+			 * and its ID is now in e->e_id. Make sure the current
+			 * entry gets added under the new parent ID.
+			 */
+			if ( eid != e->e_id ) {
+				eidummy.bei_id = e->e_id;
+				ei = &eidummy;
 			}
 		}
 		rc = bdb_next_id( op->o_bd, tid, &e->e_id );
