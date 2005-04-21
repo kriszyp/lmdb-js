@@ -426,8 +426,13 @@ retry:	/* transaction retry */
 			np_dn = op->oq_modrdn.rs_newSup;
 			np_ndn = op->oq_modrdn.rs_nnewSup;
 
-			/* newSuperior == oldParent?, if so ==> ERROR */
+			/* newSuperior == oldParent? - checked above */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
+			if ( dnIsSuffix( np_ndn, &e->e_nname )) {
+				rs->sr_err = LDAP_NAMING_VIOLATION;
+				rs->sr_text = "new superior is invalid";
+				goto return_results;
+			}
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 			rs->sr_err = bdb_dn2entry( op, ltid, np_ndn,
