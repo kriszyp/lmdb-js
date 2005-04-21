@@ -187,8 +187,11 @@ struct bdb_info {
 	alock_info_t	bi_alock_info;
 	char		*bi_db_config_path;
 	BerVarray	bi_db_config;
-	int		bi_db_is_open;
-	int		bi_db_has_config;
+	int		bi_flags;
+#define	BDB_IS_OPEN		0x01
+#define	BDB_HAS_CONFIG	0x02
+#define	BDB_UPD_CONFIG	0x04
+#define	BDB_DEL_INDEX	0x08
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
@@ -271,6 +274,20 @@ struct bdb_op_info {
 	} while (0);
 
 LDAP_END_DECL
+
+/* for the cache of attribute information (which are indexed, etc.) */
+typedef struct bdb_attrinfo {
+	AttributeDescription *ai_desc; /* attribute description cn;lang-en */
+	slap_mask_t ai_indexmask;	/* how the attr is indexed	*/
+	slap_mask_t ai_newmask;	/* new settings to replace old mask */
+#ifdef LDAP_COMP_MATCH
+	ComponentReference* ai_cr; /*component indexing*/
+#endif
+} AttrInfo;
+
+/* These flags must not clash with SLAP_INDEX flags or ops in slap.h! */
+#define	BDB_INDEX_DELETING	0x8000U	/* index is being modified */
+#define	BDB_INDEX_UPDATE_OP	0x03	/* performing an index update */
 
 #include "proto-bdb.h"
 

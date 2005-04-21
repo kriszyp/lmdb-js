@@ -546,7 +546,7 @@ bdb_db_open( BackendDB *be )
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	}
 
-	if ( slapMode & SLAP_SERVER_MODE && bdb->bi_db_has_config ) {
+	if (( slapMode&SLAP_SERVER_MODE ) && ( bdb->bi_flags&BDB_HAS_CONFIG )) {
 		char	buf[SLAP_TEXT_BUFLEN];
 		FILE *f = fopen( bdb->bi_db_config_path, "r" );
 		struct berval bv;
@@ -568,11 +568,11 @@ bdb_db_open( BackendDB *be )
 			fclose( f );
 		} else {
 			/* Eh? It disappeared between config and open?? */
-			bdb->bi_db_has_config = 0;
+			bdb->bi_flags &= ~BDB_HAS_CONFIG;
 		}
 
 	}
-	bdb->bi_db_is_open = 1;
+	bdb->bi_flags |= BDB_IS_OPEN;
 
 	return 0;
 }
@@ -585,7 +585,7 @@ bdb_db_close( BackendDB *be )
 	struct bdb_db_info *db;
 	bdb_idl_cache_entry_t *entry, *next_entry;
 
-	bdb->bi_db_is_open = 0;
+	bdb->bi_flags &= ~BDB_IS_OPEN;
 
 	ber_bvarray_free( bdb->bi_db_config );
 

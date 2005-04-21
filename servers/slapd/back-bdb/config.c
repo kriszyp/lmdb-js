@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include "lutil.h"
+#include "ldap_rq.h"
 
 #ifdef DB_DIRTY_READ
 #	define	SLAP_BDB_ALLOW_DIRTY_READ
@@ -86,6 +87,7 @@ static ConfigTable bdbcfg[] = {
 	{ "index", "attr> <[pres,eq,approx,sub]", 2, 3, 0, ARG_MAGIC|BDB_INDEX,
 		bdb_cf_gen, "( OLcfgDbAt:0.2 NAME 'olcDbIndex' "
 		"DESC 'Attribute index parameters' "
+		"EQUALITY caseIgnoreMatch "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "linearindex", NULL, 1, 2, 0, ARG_ON_OFF|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_linear_index), 
@@ -146,6 +148,141 @@ static slap_verbmasks bdb_lockd[] = {
 	{ BER_BVC("fewest"), DB_LOCK_MINLOCKS },
 	{ BER_BVNULL, 0 }
 };
+
+/* reindex entries on the fly */
+static void *
+bdb_online_index( void *ctx, void *arg )
+{
+	struct re_s *rtask = arg;
+	BackendDB *be = rtask->arg;
+	struct bdb_info *bdb = be->be_private;
+
+	Connection conn = {0};
+	char opbuf[OPERATION_BUFFER_SIZE];
+	Operation *op = (Operation *)opbuf;
+
+	DBC *curs;
+	DBT key, data;
+	DB_TXN *txn;
+	DB_LOCK lock;
+	u_int32_t locker;
+	ID id, nid;
+	EntryInfo *ei;
+	int rc, getnext = 1;
+
+	connection_fake_init( &conn, op, ctx );
+
+	op->o_bd = be;
+
+	DBTzero( &key );
+	DBTzero( &data );
+	
+	id = 1;
+	key.data = &nid;
+	key.size = key.ulen = sizeof(ID);
+	key.flags = DB_DBT_USERMEM;
+
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+	data.dlen = data.ulen = 0;
+
+	while ( 1 ) {
+		rc = TXN_BEGIN( bdb->bi_dbenv, NULL, &txn, bdb->bi_db_opflags );
+		if ( rc ) 
+			break;
+		locker = TXN_ID( txn );
+		if ( getnext ) {
+			getnext = 0;
+			BDB_ID2DISK( id, &nid );
+			rc = bdb->bi_id2entry->bdi_db->cursor(
+				bdb->bi_id2entry->bdi_db, txn, &curs, bdb->bi_db_opflags );
+			if ( rc ) {
+				TXN_ABORT( txn );
+				break;
+			}
+			rc = curs->c_get( curs, &key, &data, DB_SET_RANGE );
+			curs->c_close( curs );
+			if ( rc ) {
+				TXN_ABORT( txn );
+				if ( rc == DB_NOTFOUND )
+					rc = 0;
+				if ( rc == DB_LOCK_DEADLOCK ) {
+					ldap_pvt_thread_yield();
+					continue;
+				}
+				break;
+			}
+			BDB_DISK2ID( &nid, &id );
+		}
+
+		ei = NULL;
+		rc = bdb_cache_find_id( op, txn, id, &ei, 0, locker, &lock );
+		if ( rc ) {
+			TXN_ABORT( txn );
+			if ( rc == DB_LOCK_DEADLOCK ) {
+				ldap_pvt_thread_yield();
+				continue;
+			}
+			if ( rc == DB_NOTFOUND ) {
+				id++
+				getnext = 1;
+				continue;
+			}
+			break;
+		}
+		if ( ei->bei_e ) {
+			rc = bdb_index_entry( op, txn, BDB_INDEX_UPDATE_OP, ei->bei_e );
+			if ( rc == DB_LOCK_DEADLOCK ) {
+				TXN_ABORT( txn );
+				ldap_pvt_thread_yield();
+				continue;
+			}
+			if ( rc == 0 ) {
+				rc = TXN_COMMIT( txn, 0 );
+				txn = NULL;
+			}
+			if ( rc )
+				break;
+		}
+		id++;
+		getnext = 1;
+	}
+out:
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+	ldap_pvt_runqueue_remove( &slapd_rq, rtask );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+
+	return NULL;
+}
+
+/* Cleanup loose ends after Modify completes */
+static int
+bdb_cf_cleanup( ConfigArgs *c )
+{
+	struct bdb_info *bdb = c->be->be_private;
+
+	if ( bdb->bi_flags & BDB_UPD_CONFIG ) {
+		if ( bdb->bi_db_config ) {
+			int i;
+			FILE *f = fopen( bdb->bi_db_config_path, "w" );
+			if ( f ) {
+				for (i=0; bdb->bi_db_config[i].bv_val; i++)
+					fprintf( f, "%s\n", bdb->bi_db_config[i].bv_val );
+				fclose( f );
+			}
+		} else {
+			unlink( bdb->bi_db_config_path );
+		}
+		bdb->bi_flags ^= BDB_UPD_CONFIG;
+	}
+
+	if ( bdb->bi_flags & BDB_DEL_INDEX ) {
+		bdb_attr_flush( bdb );
+		bdb->bi_flags ^= BDB_DEL_INDEX;
+	}
+
+	return 0;
+}
 
 static int
 bdb_cf_gen(ConfigArgs *c)
@@ -234,8 +371,17 @@ bdb_cf_gen(ConfigArgs *c)
 			bdb->bi_txn_cp = 0;
 			break;
 		case BDB_CONFIG:
-			rc = 1;
-			/* FIXME: delete values or the whole file? */
+			if ( c->valx < 0 ) {
+				ber_bvarray_free( bdb->bi_db_config );
+				bdb->bi_db_config = NULL;
+			} else {
+				int i = c->valx;
+				ch_free( bdb->bi_db_config[i].bv_val );
+				for (; bdb->bi_db_config[i].bv_val; i++)
+					bdb->bi_db_config[i] = bdb->bi_db_config[i+1];
+			}
+			bdb->bi_flags |= BDB_UPD_CONFIG;
+			c->cleanup = bdb_cf_cleanup;
 			break;
 		case BDB_DIRECTORY:
 			rc = 1;
@@ -252,12 +398,16 @@ bdb_cf_gen(ConfigArgs *c)
 			for (ptr = c->line; !isspace( *ptr ); ptr++);
 			bv.bv_val = c->line;
 			bv.bv_len = ptr - bv.bv_val;
-			if ( ber_bvmatch( &bv, &defbv )) {
+			if ( bvmatch( &bv, &def )) {
 				bdb->bi_defaultmask = 0;
 			} else {
 				slap_bv2ad( &bv, &ad, &text );
-				if ( ad )
-					bdb_attr_index_free( bdb, ad );
+				if ( ad ) {
+					AttrInfo *ai = bdb_attr_mask( bdb, ad );
+					ai->ai_indexmask |= BDB_INDEX_DELETING;
+					bdb->bi_flags |= BDB_DEL_INDEX;
+					c->cleanup = bdb_cf_cleanup;
+				}
 			}
 			}
 			break;
@@ -278,14 +428,17 @@ bdb_cf_gen(ConfigArgs *c)
 		while (!isspace(*ptr)) ptr++;
 		while (isspace(*ptr)) ptr++;
 		
+		if ( bdb->bi_flags & BDB_IS_OPEN ) {
+			bdb->bi_flags |= BDB_UPD_CONFIG;
+			c->cleanup = bdb_cf_cleanup;
+		} else {
 		/* If we're just starting up...
 		 */
-		if ( !bdb->bi_db_is_open ) {
 			FILE *f;
 			/* If a DB_CONFIG file exists, or we don't know the path
 			 * to the DB_CONFIG file, ignore these directives
 			 */
-			if ( bdb->bi_db_has_config || !bdb->bi_db_config_path )
+			if (( bdb->bi_flags & BDB_HAS_CONFIG ) || !bdb->bi_db_config_path )
 				break;
 			f = fopen( bdb->bi_db_config_path, "a" );
 			if ( f ) {
@@ -314,7 +467,7 @@ bdb_cf_gen(ConfigArgs *c)
 
 		f = fopen( bdb->bi_db_config_path, "r" );
 		if ( f ) {
-			bdb->bi_db_has_config = 1;
+			bdb->bi_flags |= BDB_HAS_CONFIG;
 			fclose(f);
 		}
 		}
@@ -325,7 +478,7 @@ bdb_cf_gen(ConfigArgs *c)
 			bdb->bi_dbenv_xflags |= DB_TXN_NOSYNC;
 		else
 			bdb->bi_dbenv_xflags &= ~DB_TXN_NOSYNC;
-		if ( bdb->bi_db_is_open ) {
+		if ( bdb->bi_flags & BDB_IS_OPEN ) {
 			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC,
 				c->value_int );
 		}
@@ -336,8 +489,10 @@ bdb_cf_gen(ConfigArgs *c)
 			c->argc - 1, &c->argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
-		/* FIXME: must run slapindex on the new attributes */
-		if ( bdb->bi_db_is_open ) {
+		if ( bdb->bi_flags & BDB_IS_OPEN ) {
+			/* Start the task as soon as we finish here */
+			ldap_pvt_runqueue_insert( &slapd_rq, 60,
+				bdb_online_index, c->be );
 		}
 		break;
 

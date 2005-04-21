@@ -28,19 +28,17 @@
 static char presence_keyval[LUTIL_HASH_BYTES] = {0,0,0,1};
 static struct berval presence_key = {LUTIL_HASH_BYTES, presence_keyval};
 
-static slap_mask_t index_mask(
+static AttrInfo *index_mask(
 	Backend *be,
 	AttributeDescription *desc,
 	struct berval *atname )
 {
 	AttributeType *at;
-	slap_mask_t mask = 0;
+	AttrInfo *ai = bdb_attr_mask( be->be_private, desc );
 
-	bdb_attr_mask( be->be_private, desc, &mask );
-
-	if( mask ) {
+	if( ai ) {
 		*atname = desc->ad_cname;
-		return mask;
+		return ai;
 	}
 
 	/* If there is a tagging option, did we ever index the base
@@ -48,11 +46,11 @@ static slap_mask_t index_mask(
 	 */
 	if( slap_ad_is_tagged( desc ) && desc != desc->ad_type->sat_ad ) {
 		/* has tagging option */
-		bdb_attr_mask( be->be_private, desc->ad_type->sat_ad, &mask );
+		ai = bdb_attr_mask( be->be_private, desc->ad_type->sat_ad );
 
-		if ( mask && ( mask ^ SLAP_INDEX_NOTAGS ) ) {
+		if ( ai && ( ai->ai_indexmask ^ SLAP_INDEX_NOTAGS ) ) {
 			*atname = desc->ad_type->sat_cname;
-			return mask;
+			return ai;
 		}
 	}
 
@@ -61,11 +59,11 @@ static slap_mask_t index_mask(
 		/* If no AD, we've never indexed this type */
 		if ( !at->sat_ad ) continue;
 
-		bdb_attr_mask( be->be_private, at->sat_ad, &mask );
+		ai = bdb_attr_mask( be->be_private, at->sat_ad );
 
-		if ( mask && ( mask ^ SLAP_INDEX_NOSUBTYPES ) ) {
+		if ( ai && ( ai->ai_indexmask ^ SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = at->sat_cname;
-			return mask;
+			return ai;
 		}
 	}
 
@@ -76,18 +74,19 @@ int bdb_index_is_indexed(
 	Backend *be,
 	AttributeDescription *desc )
 {
-	slap_mask_t mask;
+	AttrInfo *ai;
 	struct berval prefix;
 
-	mask = index_mask( be, desc, &prefix );
+	ai = index_mask( be, desc, &prefix );
 
-	if( mask == 0 ) {
+	if( !ai )
 		return LDAP_INAPPROPRIATE_MATCHING;
-	}
 
 	return LDAP_SUCCESS;
 }
 
+/* This function is only called when evaluating search filters.
+ */
 int bdb_index_param(
 	Backend *be,
 	AttributeDescription *desc,
@@ -96,15 +95,17 @@ int bdb_index_param(
 	slap_mask_t *maskp,
 	struct berval *prefixp )
 {
+	AttrInfo *ai;
 	int rc;
 	slap_mask_t mask;
 	DB *db;
 
-	mask = index_mask( be, desc, prefixp );
+	ai = index_mask( be, desc, prefixp );
 
-	if( mask == 0 ) {
+	if( !ai ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
+	mask = ai->ai_indexmask;
 
 	rc = bdb_db_cache( be, prefixp->bv_val, &db );
 
@@ -268,6 +269,11 @@ static int index_at_values(
 {
 	int rc;
 	slap_mask_t mask = 0;
+	int ixop = opid;
+	AttrInfo *ai = NULL;
+
+	if ( opid == BDB_INDEX_UPDATE_OP )
+		ixop = SLAP_INDEX_ADD_OP;
 
 	if( type->sat_sup ) {
 		/* recurse */
@@ -280,49 +286,59 @@ static int index_at_values(
 
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
+		ai = bdb_attr_mask( op->o_bd->be_private, type->sat_ad );
+		if ( ai ) {
 #ifdef LDAP_COMP_MATCH
-		/* component indexing */
-		ComponentReference* cr_list, *cr;
+			/* component indexing */
+			if ( ai->ai_cr ) {
+				ComponentReference *cr;
+				for( cr = ai->ai_cr ; cr ; cr = cr->cr_next ) {
+					rc = indexer( op, txn, cr->cr_ad, &type->sat_cname,
+						cr->cr_nvals, id, opid,
+						cr->cr_indexmask );
+				}
+			}
+#endif
+			ad = type->sat_ad;
+			/* If we're updating the index, just set the new bits that aren't
+			 * already in the old mask.
+			 */
+			if ( opid == BDB_INDEX_UPDATE_OP )
+				mask = ai->ai_newmask & ~ai->ai_indexmask;
+			else
+			/* For regular updates, if there is a newmask use it. Otherwise
+			 * just use the old mask.
+			 */
+				mask = ai->ai_newmask ? ai->ai_newmask : ai->ai_indexmask;
+			if( mask ) {
+				rc = indexer( op, txn, ad, &type->sat_cname,
+					vals, id, ixop, mask );
 
-		bdb_attr_mask_cr( op->o_bd->be_private, type->sat_ad, &mask, &cr_list );
-		if ( cr_list ) {
-			for( cr = cr_list ; cr ; cr = cr->cr_next ) {
-				rc = indexer( op, txn, cr->cr_ad, &type->sat_cname,
-					cr->cr_nvals, id, opid,
-					cr->cr_indexmask );
+				if( rc ) return rc;
 			}
 		}
-#else
-		bdb_attr_mask( op->o_bd->be_private, type->sat_ad, &mask );
-#endif
-		ad = type->sat_ad;
-	}
-
-	if( mask ) {
-		rc = indexer( op, txn, ad, &type->sat_cname,
-			vals, id, opid,
-			mask );
-
-		if( rc ) return rc;
 	}
 
 	if( tags->bv_len ) {
 		AttributeDescription *desc;
 
-		mask = 0;
-
 		desc = ad_find_tags( type, tags );
 		if( desc ) {
-			bdb_attr_mask( op->o_bd->be_private, desc, &mask );
-		}
+			ai = bdb_attr_mask( op->o_bd->be_private, desc );
 
-		if( mask ) {
-			rc = indexer( op, txn, desc, &desc->ad_cname,
-				vals, id, opid,
-				mask );
+			if( ai ) {
+				if ( opid == BDB_INDEX_UPDATE_OP )
+					mask = ai->ai_newmask & ~ai->ai_indexmask;
+				else
+					mask = ai->ai_newmask ? ai->ai_newmask : ai->ai_indexmask;
+				if ( mask ) {
+					rc = indexer( op, txn, desc, &desc->ad_cname,
+						vals, id, ixop, mask );
 
-			if( rc ) {
-				return rc;
+					if( rc ) {
+						return rc;
+					}
+				}
 			}
 		}
 	}
@@ -373,14 +389,17 @@ bdb_index_entry(
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
-		opid == SLAP_INDEX_ADD_OP ? "add" : "del",
+		opid == SLAP_INDEX_DELETE_OP ? "del" : "add",
 		(long) e->e_id, e->e_dn );
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
 #ifdef LDAP_COMP_MATCH
+		AttrInfo *ai;
 		/* see if attribute has components to be indexed */
-		bdb_attr_comp_ref( op->o_bd->be_private, ap->a_desc->ad_type->sat_ad, &cr_list );
+		ai = bdb_attr_mask( op->o_bd->be_private, ap->a_desc->ad_type->sat_ad );
+		if ( ai ) cr_list = ai->ai_cr;
+		else cr_list = NULL;
 		if ( attr_converter && cr_list ) {
 			syn = ap->a_desc->ad_type->sat_syntax;
 			ap->a_comp_data = op->o_tmpalloc( sizeof( ComponentData ), op->o_tmpmemctx );
@@ -443,7 +462,7 @@ bdb_index_entry(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
-		opid == SLAP_INDEX_ADD_OP ? "add" : "del",
+		opid == SLAP_INDEX_DELETE_OP ? "del" : "add",
 		(long) e->e_id, e->e_dn );
 
 	return LDAP_SUCCESS;

@@ -297,12 +297,16 @@ comp_equality_candidates (
         MatchingRule *mr = mra->ma_rule;
         Syntax *sat_syntax;
 	ComponentReference* cr_list, *cr;
+	AttrInfo *ai;
 
         BDB_IDL_ALL( bdb, ids );
 
-	bdb_attr_comp_ref ( op->o_bd->be_private, mra->ma_desc, &cr_list );
-	if( !cr_list || !ca->ca_comp_ref )
+	if ( !ca->ca_comp_ref )
 		return 0;
+
+	ai = bdb_attr_mask( op->o_bd->be_private, mra->ma_desc );
+	if( ai )
+		cr_list = ai->ai_cr;
 	/* find a component reference to be indexed */
 	sat_syntax = ca->ca_ma_rule->smr_syntax;
 	for ( cr = cr_list ; cr ; cr = cr->cr_next ) {

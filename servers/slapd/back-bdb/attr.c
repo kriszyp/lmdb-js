@@ -25,14 +25,6 @@
 #include "back-bdb.h"
 #include "lutil.h"
 
-/* for the cache of attribute information (which are indexed, etc.) */
-typedef struct bdb_attrinfo {
-	AttributeDescription *ai_desc; /* attribute description cn;lang-en */
-	slap_mask_t ai_indexmask;	/* how the attr is indexed	*/
-#ifdef LDAP_COMP_MATCH
-	ComponentReference* ai_cr; /*component indexing*/
-#endif
-} AttrInfo;
 
 static int
 ainfo_type_cmp(
@@ -55,50 +47,13 @@ ainfo_cmp(
 	return SLAP_PTRCMP(a->ai_desc, b->ai_desc);
 }
 
-#ifdef LDAP_COMP_MATCH
-void
-bdb_attr_comp_ref(
-	struct bdb_info *bdb,
-	AttributeDescription *desc,
-	ComponentReference** cr )
-{
-	AttrInfo	*a;
-
-	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
-	
-	*cr = a != NULL ? a->ai_cr : 0 ;
-}
-void
-bdb_attr_mask_cr(
-	struct bdb_info *bdb,
-	AttributeDescription *desc,
-	slap_mask_t *indexmask,
-	ComponentReference** cr )
-{
-	AttrInfo	*a;
-
-	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
-	if ( a ) {
-		*indexmask = a->ai_indexmask;
-		*cr = a->ai_cr;
-	} else {
-		*indexmask = 0;
-		*cr = NULL;
-	}
-}
-#endif
-
-void
+AttrInfo *
 bdb_attr_mask(
 	struct bdb_info	*bdb,
-	AttributeDescription *desc,
-	slap_mask_t *indexmask )
+	AttributeDescription *desc )
 {
-	AttrInfo	*a;
 
-	a = (AttrInfo *) avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
-	
-	*indexmask = a != NULL ? a->ai_indexmask : 0;
+	return avl_find( bdb->bi_attrs, desc, ainfo_type_cmp );
 }
 
 int
@@ -254,7 +209,15 @@ bdb_attr_index_config(
 			ad->ad_cname.bv_val, mask, 0 ); 
 
 		a->ai_desc = ad;
-		a->ai_indexmask = mask;
+
+		if ( bdb->bi_flags & BDB_IS_OPEN ) {
+			a->ai_indexmask = 0;
+			a->ai_newmask = mask;
+		} else {
+			a->ai_indexmask = mask;
+			a->ai_newmask = 0;
+		}
+
 #ifdef LDAP_COMP_MATCH
 		if ( cr ) {
 			a_cr = avl_find( bdb->bi_attrs, ad, ainfo_type_cmp );
@@ -283,6 +246,17 @@ bdb_attr_index_config(
 		                 ainfo_cmp, avl_dup_error );
 
 		if( rc ) {
+			if ( bdb->bi_flags & BDB_IS_OPEN ) {
+				AttrInfo *b = avl_find( bdb->bi_attrs, ad, ainfo_type_cmp );
+				/* If we were editing this attr, reset it */
+				b->ai_indexmask &= ~BDB_INDEX_DELETING;
+				/* If this is leftover from a previous add, commit it */
+				if ( b->ai_newmask )
+					b->ai_indexmask = b->ai_newmask;
+				b->ai_newmask = a->ai_newmask;
+				ch_free( a );
+				continue;
+			}
 			fprintf( stderr, "%s: line %d: duplicate index definition "
 				"for attr \"%s\" (ignored)\n",
 				fname, lineno, attrs[i] );
@@ -352,4 +326,39 @@ void bdb_attr_index_free( struct bdb_info *bdb, AttributeDescription *ad )
 	ai = avl_delete( &bdb->bi_attrs, ad, ainfo_type_cmp );
 	if ( ai )
 		bdb_attrinfo_free( ai );
+}
+
+/* Get a list of AttrInfo's to delete */
+
+typedef struct Alist {
+	struct Alist *next;
+	AttrInfo *ptr;
+} Alist;
+
+static int
+bdb_attrinfo_flush( void *v1, void *arg )
+{
+	AttrInfo *ai = v1;
+
+	if ( ai->ai_indexmask & BDB_INDEX_DELETING ) {
+		Alist **al = arg;
+		Alist *a = ch_malloc( sizeof( Alist ));
+		a->ptr = ai;
+		a->next = *al;
+		*al = a;
+	}
+	return 0;
+}
+
+void bdb_attr_flush( struct bdb_info *bdb )
+{
+	Alist *al = NULL, *a2;
+
+	avl_apply( bdb->bi_attrs, bdb_attrinfo_flush, &al, -1, AVL_INORDER );
+
+	while (( a2 = al )) {
+		al = al->next;
+		avl_delete( &bdb->bi_attrs, a2->ptr, ainfo_cmp );
+		ch_free( a2 );
+	}
 }

@@ -31,26 +31,16 @@ LDAP_BEGIN_DECL
  */
 
 #define bdb_attr_mask				BDB_SYMBOL(attr_mask)
+#define bdb_attr_flush				BDB_SYMBOL(attr_flush)
 #define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
 #define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
 #define bdb_attr_index_free			BDB_SYMBOL(attr_index_free)
 #define bdb_attr_index_unparse		BDB_SYMBOL(attr_index_unparse)
 
-#ifdef LDAP_COMP_MATCH
-#define bdb_attr_comp_ref			BDB_SYMBOL(attr_comp_ref)
-#define bdb_attr_mask_cr			BDB_SYMBOL(attr_mask_cr)
-void bdb_attr_comp_ref( struct bdb_info *bdb,
-	AttributeDescription *desc,
-	ComponentReference **cr );
-void bdb_attr_mask_cr( struct bdb_info *bdb,
-	AttributeDescription *desc,
-	slap_mask_t *indexmask,
-	ComponentReference **cr );
-#endif
+AttrInfo *bdb_attr_mask( struct bdb_info *bdb,
+	AttributeDescription *desc );
 
-void bdb_attr_mask( struct bdb_info *bdb,
-	AttributeDescription *desc,
-	slap_mask_t *indexmask );
+void bdb_attr_flush( struct bdb_info *bdb );
 
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
