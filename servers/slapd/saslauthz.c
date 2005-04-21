@@ -1060,6 +1060,7 @@ exact_match:
 		BER_BVZERO( &base );
 	}
 	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
+	op.ors_deref = LDAP_DEREF_NEVER;
 	op.ors_slimit = 1;
 	op.ors_tlimit = SLAP_NO_LIMIT;
 	op.ors_attrs = slap_anlist_no_attrs;

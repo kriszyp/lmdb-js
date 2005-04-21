@@ -1231,6 +1231,7 @@ syncrepl_entry(
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
+	op->ors_deref = LDAP_DEREF_NEVER;
 
 	/* get the entry for this UUID */
 	op->o_req_dn = si->si_base;
@@ -1338,6 +1339,7 @@ retry_add:;
 					op2.o_req_dn = entry->e_name;
 					op2.o_req_ndn = entry->e_nname;
 					op2.ors_scope = LDAP_SCOPE_BASE;
+					op2.ors_deref = LDAP_DEREF_NEVER;
 					op2.ors_attrs = slap_anlist_all_attributes;
 					op2.ors_attrsonly = 0;
 					op2.ors_limit = NULL;
