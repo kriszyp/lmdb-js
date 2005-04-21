@@ -33,6 +33,7 @@ LDAP_BEGIN_DECL
 #define bdb_attr_mask				BDB_SYMBOL(attr_mask)
 #define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
 #define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
+#define bdb_attr_index_free			BDB_SYMBOL(attr_index_free)
 #define bdb_attr_index_unparse		BDB_SYMBOL(attr_index_unparse)
 
 #ifdef LDAP_COMP_MATCH
@@ -57,6 +58,8 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 
 void bdb_attr_index_unparse LDAP_P(( struct bdb_info *bdb, BerVarray *bva ));
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
+void bdb_attr_index_free LDAP_P(( struct bdb_info *bdb,
+	AttributeDescription *ad ));
 
 /*
  * config.c

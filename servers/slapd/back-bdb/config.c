@@ -221,7 +221,50 @@ bdb_cf_gen(ConfigArgs *c)
 			break;
 		}
 		return rc;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		rc = 0;
+		switch( c->type ) {
+		/* single-valued no-ops */
+		case BDB_LOCKD:
+		case BDB_SSTACK:
+			break;
+
+		case BDB_CHKPT:
+			/* FIXME: should stop the checkpoint task too */
+			bdb->bi_txn_cp = 0;
+			break;
+		case BDB_CONFIG:
+			rc = 1;
+			/* FIXME: delete values or the whole file? */
+			break;
+		case BDB_DIRECTORY:
+			rc = 1;
+			/* FIXME: what does this mean? */
+			break;
+		case BDB_NOSYNC:
+			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC, 0 );
+			break;
+		case BDB_INDEX: {
+			AttributeDescription *ad = NULL;
+			struct berval bv, def = BER_BVC("default");
+			char *ptr;
+			const char *text;
+			for (ptr = c->line; !isspace( *ptr ); ptr++);
+			bv.bv_val = c->line;
+			bv.bv_len = ptr - bv.bv_val;
+			if ( ber_bvmatch( &bv, &defbv )) {
+				bdb->bi_defaultmask = 0;
+			} else {
+				slap_bv2ad( &bv, &ad, &text );
+				if ( ad )
+					bdb_attr_index_free( bdb, ad );
+			}
+			}
+			break;
+		}
+		return rc;
 	}
+
 	switch( c->type ) {
 	case BDB_CHKPT:
 		bdb->bi_txn_cp = 1;
@@ -282,6 +325,10 @@ bdb_cf_gen(ConfigArgs *c)
 			bdb->bi_dbenv_xflags |= DB_TXN_NOSYNC;
 		else
 			bdb->bi_dbenv_xflags &= ~DB_TXN_NOSYNC;
+		if ( bdb->bi_db_is_open ) {
+			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC,
+				c->value_int );
+		}
 		break;
 
 	case BDB_INDEX:
@@ -289,6 +336,9 @@ bdb_cf_gen(ConfigArgs *c)
 			c->argc - 1, &c->argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
+		/* FIXME: must run slapindex on the new attributes */
+		if ( bdb->bi_db_is_open ) {
+		}
 		break;
 
 	case BDB_LOCKD:

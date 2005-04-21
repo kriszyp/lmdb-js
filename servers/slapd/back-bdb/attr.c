@@ -330,9 +330,26 @@ bdb_attr_index_unparse( struct bdb_info *bdb, BerVarray *bva )
 	avl_apply( bdb->bi_attrs, bdb_attr_index_unparser, bva, -1, AVL_INORDER );
 }
 
+static void
+bdb_attrinfo_free( AttrInfo *ai )
+{
+#ifdef LDAP_COMP_MATCH
+	free( ai->ai_cr );
+#endif
+	free( ai );
+}
+
 void
 bdb_attr_index_destroy( Avlnode *tree )
 {
-	avl_free( tree, free );
+	avl_free( tree, bdb_attrinfo_free );
 }
 
+void bdb_attr_index_free( struct bdb_info *bdb, AttributeDescription *ad )
+{
+	AttrInfo *ai;
+
+	ai = avl_delete( &bdb->bi_attrs, ad, ainfo_type_cmp );
+	if ( ai )
+		bdb_attrinfo_free( ai );
+}
