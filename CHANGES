@@ -5,6 +5,7 @@ OpenLDAP 2.2.25 Engineering
 	Fixed back-bdb/hdb modrdn (ITS#3657)
 	Fixed back-bdb ctxcsn/LRU bug (ITS#3666)
 	Fixed back-dnssrv referral all but search op crasher bug (ITS#3642)
+	Fixed back-ldbm shutdown hang (ITS#3648)
 	Fixed back-meta memory leak (ITS#3669)
 
 OpenLDAP 2.2.24 Release
