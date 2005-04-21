@@ -713,6 +713,31 @@ ber_strndup( LDAP_CONST char *s, ber_len_t l )
 	return ber_strndup_x( s, l, NULL );
 }
 
+/*
+ * dst is resized as required by src and the value of src is copied into dst
+ * dst->bv_val must be NULL (and dst->bv_len must be 0), or it must be
+ * alloc'ed with the context ctx
+ */
+struct berval *
+ber_bvreplace_x( struct berval *dst, LDAP_CONST struct berval *src, void *ctx )
+{
+	assert( dst != NULL );
+
+	if ( dst->bv_len < src->bv_len ) {
+		dst->bv_val = ber_memrealloc_x( dst->bv_val, src->bv_len + 1, ctx );
+	}
+
+	AC_MEMCPY( dst->bv_val, src->bv_val, src->bv_len + 1 );
+
+	return dst;
+}
+
+struct berval *
+ber_bvreplace( struct berval *dst, LDAP_CONST struct berval *src )
+{
+	return ber_bvreplace_x( dst, src, NULL );
+}
+
 void
 ber_bvarray_free_x( BerVarray a, void *ctx )
 {

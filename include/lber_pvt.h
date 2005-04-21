@@ -135,6 +135,10 @@ LBER_F( char * )
 ber_strdup_x LDAP_P((
 	LDAP_CONST char *, void *ctx ));
 
+LBER_F( struct berval * )
+ber_bvreplace_x LDAP_P((
+	struct berval *dst, LDAP_CONST struct berval *src, void *ctx ));
+
 LBER_F( void )
 ber_bvarray_free_x LDAP_P(( BerVarray p, void *ctx ));
 
