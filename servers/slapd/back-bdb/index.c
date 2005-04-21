@@ -294,7 +294,7 @@ static int index_at_values(
 				ComponentReference *cr;
 				for( cr = ai->ai_cr ; cr ; cr = cr->cr_next ) {
 					rc = indexer( op, txn, cr->cr_ad, &type->sat_cname,
-						cr->cr_nvals, id, opid,
+						cr->cr_nvals, id, ixop,
 						cr->cr_indexmask );
 				}
 			}
