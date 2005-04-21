@@ -86,7 +86,7 @@ monitor_subsys_conn_init(
 	}
 	
 	BER_BVSTR( &bv, "0" );
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
@@ -139,7 +139,7 @@ monitor_subsys_conn_init(
 	}
 	
 	BER_BVSTR( &bv, "0" );
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
@@ -377,15 +377,13 @@ conn_create(
 		buf3
 		);
 
-	bv.bv_val = buf;
-	bv.bv_len = strlen( buf );
-	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+	ber_str2bv( buf, 0, 0, &bv );
+	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, &bv );
 
 	/* connection number */
 	snprintf( buf, sizeof( buf ), "%ld", c->c_connid );
-	bv.bv_val = buf;
-	bv.bv_len = strlen( buf );
-	attr_merge_one( e, mi->mi_ad_monitorConnectionNumber, &bv, NULL );
+	ber_str2bv( buf, 0, 0, &bv );
+	attr_merge_one( e, mi->mi_ad_monitorConnectionNumber, &bv, &bv );
 
 	/* authz DN */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionAuthzDN,
@@ -393,11 +391,11 @@ conn_create(
 
 	/* local address */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionLocalAddress,
-			&c->c_sock_name, NULL );
+			&c->c_sock_name, &bv );
 
 	/* peer address */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionPeerAddress,
-			&c->c_peer_name, NULL );
+			&c->c_peer_name, &bv );
 
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {

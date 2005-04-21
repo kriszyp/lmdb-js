@@ -114,7 +114,7 @@ monitor_subsys_sent_init(
 		ber_dupbv( &monitor_sent[ i ].nrdn, &nrdn );
 	
 		BER_BVSTR( &bv, "0" );
-		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 		mp = monitor_entrypriv_create();
 		if ( mp == NULL ) {

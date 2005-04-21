@@ -81,7 +81,7 @@ init_readOnly( monitor_info_t *mi, Entry *e, slap_mask_t restrictops )
 	struct berval	*tf = ( ( restrictops & SLAP_RESTRICT_OP_MASK ) == SLAP_RESTRICT_OP_WRITES ) ?
 		(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv;
 
-	return attr_merge_one( e, mi->mi_ad_readOnly, tf, NULL );
+	return attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
 }
 
 static int
@@ -92,7 +92,8 @@ init_restrictedOperation( monitor_info_t *mi, Entry *e, slap_mask_t restrictops 
 	for ( i = 0; restricted_ops[ i ].op.bv_val; i++ ) {
 		if ( restrictops & restricted_ops[ i ].tag ) {
 			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
-					&restricted_ops[ i ].op, NULL );
+					&restricted_ops[ i ].op,
+					&restricted_ops[ i ].op );
 			if ( rc ) {
 				return rc;
 			}
@@ -102,7 +103,8 @@ init_restrictedOperation( monitor_info_t *mi, Entry *e, slap_mask_t restrictops 
 	for ( i = 0; restricted_exops[ i ].op.bv_val; i++ ) {
 		if ( restrictops & restricted_exops[ i ].tag ) {
 			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
-					&restricted_exops[ i ].op, NULL );
+					&restricted_exops[ i ].op,
+					&restricted_exops[ i ].op );
 			if ( rc ) {
 				return rc;
 			}
@@ -261,8 +263,7 @@ monitor_subsys_database_init(
 					break;
 				}
 				
-				bv.bv_val = on->on_bi.bi_type;
-				bv.bv_len = strlen( bv.bv_val );
+				ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
 				attr_merge_normalize_one( e, mi->mi_ad_monitorOverlay,
 						&bv, NULL );
 
@@ -277,8 +278,7 @@ monitor_subsys_database_init(
 				snprintf( buf, sizeof( buf ), 
 					"cn=Overlay %d,%s", 
 					j, ms_overlay->mss_dn.bv_val );
-				bv.bv_val = buf;
-				bv.bv_len = strlen( buf );
+				ber_str2bv( buf, 0, 0, &bv );
 				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
 						&bv, NULL );
 			}
@@ -742,7 +742,7 @@ monitor_subsys_database_modify(
 
 	if ( !bvmatch( &a->a_vals[ 0 ], tf ) ) {
 		attr_delete( &e->e_attrs, mi->mi_ad_readOnly );
-		rc = attr_merge_one( e, mi->mi_ad_readOnly, tf, NULL );
+		rc = attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
@@ -813,14 +813,16 @@ monitor_subsys_database_modify(
 			for ( i = 0; !BER_BVISNULL( &restricted_ops[ i ].op ); i++ ) {
 				if ( rp_add & restricted_ops[ i ].tag ) {
 					attr_merge_one( e, mi->mi_ad_restrictedOperation,
-							&restricted_ops[ i ].op, NULL );
+							&restricted_ops[ i ].op,
+							&restricted_ops[ i ].op );
 				}
 			}
 
 			for ( i = 0; !BER_BVISNULL( &restricted_exops[ i ].op ); i++ ) {
 				if ( rp_add & restricted_exops[ i ].tag ) {
 					attr_merge_one( e, mi->mi_ad_restrictedOperation,
-							&restricted_exops[ i ].op, NULL );
+							&restricted_exops[ i ].op,
+							&restricted_exops[ i ].op );
 				}
 			}
 		}
@@ -878,8 +880,7 @@ monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e_database )
 				srchdesc->spd_version,
 				srchdesc->spd_description );
 
-		bv.bv_val = buf;
-		bv.bv_len = strlen( buf );
+		ber_str2bv( buf, 0, 0, &bv );
 		attr_merge_normalize_one( e_database,
 				mi->mi_ad_monitoredInfo, &bv, NULL );
 

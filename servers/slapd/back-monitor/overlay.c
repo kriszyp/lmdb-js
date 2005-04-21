@@ -103,9 +103,7 @@ monitor_subsys_overlay_init(
 			return( -1 );
 		}
 		
-		bv.bv_val = on->on_bi.bi_type;
-		bv.bv_len = strlen( bv.bv_val );
-
+		ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
 		attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
 		attr_merge_normalize_one( e_overlay, mi->mi_ad_monitoredInfo,
@@ -123,9 +121,8 @@ monitor_subsys_overlay_init(
 
 			snprintf( buf, sizeof( buf ), "cn=Database %d,%s",
 					j, ms_database->mss_dn.bv_val );
-			dn.bv_val = buf;
-			dn.bv_len = strlen( buf );
 
+			ber_str2bv( buf, 0, 0, &dn );
 			attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
 					&dn, NULL );
 		}
