@@ -391,11 +391,11 @@ conn_create(
 
 	/* local address */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionLocalAddress,
-			&c->c_sock_name, &bv );
+			&c->c_sock_name, &c->c_sock_name );
 
 	/* peer address */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionPeerAddress,
-			&c->c_peer_name, &bv );
+			&c->c_peer_name, &c->c_peer_name );
 
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
