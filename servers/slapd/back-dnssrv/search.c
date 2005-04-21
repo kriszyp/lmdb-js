@@ -179,8 +179,8 @@ dnssrv_back_search(
 		e.e_attrs = NULL;
 		e.e_private = NULL;
 
-		attr_mergeit_one( &e, ad_objectClass, &slap_schema.si_oc_referral->soc_cname );
-		attr_mergeit_one( &e, ad_objectClass, &slap_schema.si_oc_extensibleObject->soc_cname );
+		attr_merge_one( &e, ad_objectClass, &slap_schema.si_oc_referral->soc_cname, NULL );
+		attr_merge_one( &e, ad_objectClass, &slap_schema.si_oc_extensibleObject->soc_cname, NULL );
 
 		if ( ad_dc ) {
 			char		*p;
@@ -200,17 +200,17 @@ dnssrv_back_search(
 				bv.bv_len = strlen( bv.bv_val );
 			}
 
-			attr_mergeit_one( &e, ad_dc, &bv );
+			attr_merge_normalize_one( &e, ad_dc, &bv, NULL );
 		}
 
 		if ( ad_associatedDomain ) {
 			struct berval	bv;
 
 			ber_str2bv( domain, 0, 0, &bv );
-			attr_mergeit_one( &e, ad_associatedDomain, &bv );
+			attr_merge_normalize_one( &e, ad_associatedDomain, &bv, NULL );
 		}
 
-		attr_mergeit( &e, ad_ref, urls );
+		attr_merge_normalize_one( &e, ad_ref, urls, NULL );
 
 		rc = test_filter( op, &e, op->oq_search.rs_filter ); 
 

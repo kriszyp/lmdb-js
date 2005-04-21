@@ -162,9 +162,9 @@ slapadd( int argc, char **argv )
 			}
 
 			if( sc == NULL ) {
-				struct berval vals[2];
+				struct berval val;
 
-				rc = structural_class( oc->a_vals, vals,
+				rc = structural_class( oc->a_vals, &val,
 					NULL, &text, textbuf, textlen );
 
 				if( rc != LDAP_SUCCESS ) {
@@ -176,11 +176,7 @@ slapadd( int argc, char **argv )
 					break;
 				}
 
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
-
-				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
-					vals, NULL /* FIXME */ );
+				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &val, NULL );
 			}
 
 			/* check schema */
@@ -236,8 +232,7 @@ slapadd( int argc, char **argv )
 			{
 				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				vals[0].bv_val = uuidbuf;
-				attr_merge_normalize_one( e,
-							slap_schema.si_ad_entryUUID, vals, NULL );
+				attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, vals, NULL );
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )

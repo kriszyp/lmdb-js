@@ -103,7 +103,7 @@ passwd_back_search(
 				goto done;
 			}
 
-			attr_mergeit_one( &e, desc, &rdn[0]->la_value );
+			attr_merge_normalize_one( &e, desc, &rdn[0]->la_value, NULL );
 
 			ldap_rdnfree(rdn);
 			rdn = NULL;
@@ -116,7 +116,7 @@ passwd_back_search(
 			 * should be a configuratable item
 			 */
 			BER_BVSTR( &val, "organizationalUnit" );
-			attr_mergeit_one( &e, ad_objectClass, &val );
+			attr_merge_one( &e, ad_objectClass, &val, NULL );
 	
 			if ( test_filter( op, &e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 				rs->sr_entry = &e;
@@ -300,23 +300,17 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 	e->e_attrs = NULL;
 
 	/* objectclasses should be configurable items */
-#if 0
-	/* "top" is redundant */
-	BER_BVSTR( &val, "top" );
-	attr_mergeit_one( e, ad_objectClass, &val );
-#endif
-
 	BER_BVSTR( &val, "person" );
-	attr_mergeit_one( e, slap_schema.si_ad_objectClass, &val );
+	attr_merge_one( e, slap_schema.si_ad_objectClass, &val, NULL );
 
 	BER_BVSTR( &val, "uidObject" );
-	attr_mergeit_one( e, slap_schema.si_ad_objectClass, &val );
+	attr_merge_one( e, slap_schema.si_ad_objectClass, &val, NULL );
 
 	val.bv_val = pw->pw_name;
 	val.bv_len = pwlen;
-	attr_mergeit_one( e, slap_schema.si_ad_uid, &val );	/* required by uidObject */
-	attr_mergeit_one( e, slap_schema.si_ad_cn, &val );	/* required by person */
-	attr_mergeit_one( e, ad_sn, &val );	/* required by person */
+	attr_merge_normalize_one( e, slap_schema.si_ad_uid, &val, NULL );	/* required by uidObject */
+	attr_merge_normalize_one( e, slap_schema.si_ad_cn, &val, NULL );	/* required by person */
+	attr_merge_normalize_one( e, ad_sn, &val, NULL );	/* required by person */
 
 #ifdef HAVE_PW_GECOS
 	/*
@@ -328,7 +322,7 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 		char *s;
 
 		ber_str2bv( pw->pw_gecos, 0, 0, &val );
-		attr_mergeit_one( e, ad_desc, &val );
+		attr_merge_normalize_one( e, ad_desc, &val, NULL );
 
 		s = strchr( val.bv_val, ',' );
 		if ( s ) *s = '\0';
@@ -350,12 +344,12 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 		val.bv_len = strlen( val.bv_val );
 
 		if ( val.bv_len && strcasecmp( val.bv_val, pw->pw_name ) ) {
-			attr_mergeit_one( e, slap_schema.si_ad_cn, &val );
+			attr_merge_normalize_one( e, slap_schema.si_ad_cn, &val, NULL );
 		}
 
 		if ( ( s = strrchr(val.bv_val, ' ' ) ) ) {
 			ber_str2bv( s + 1, 0, 0, &val );
-			attr_mergeit_one( e, ad_sn, &val );
+			attr_merge_normalize_one( e, ad_sn, &val, NULL );
 		}
 	}
 #endif /* HAVE_PW_GECOS */

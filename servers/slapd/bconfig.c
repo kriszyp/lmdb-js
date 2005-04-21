@@ -1885,7 +1885,7 @@ config_syncrepl(ConfigArgs *c) {
 
 static int
 config_referral(ConfigArgs *c) {
-	struct berval vals[2];
+	struct berval val;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if ( default_referral ) {
 			value_add( &c->rvalue_vals, default_referral );
@@ -1912,9 +1912,8 @@ config_referral(ConfigArgs *c) {
 		return(1);
 	}
 
-	ber_str2bv(c->argv[1], 0, 0, &vals[0]);
-	vals[1].bv_val = NULL; vals[1].bv_len = 0;
-	if(value_add(&default_referral, vals)) return(LDAP_OTHER);
+	ber_str2bv(c->argv[1], 0, 0, &val);
+	if(value_add_one(&default_referral, &val)) return(LDAP_OTHER);
 	return(0);
 }
 
@@ -2205,7 +2204,7 @@ config_updatedn(ConfigArgs *c) {
 
 static int
 config_updateref(ConfigArgs *c) {
-	struct berval vals[2];
+	struct berval val;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if ( c->be->be_update_refs ) {
 			value_add( &c->rvalue_vals, c->be->be_update_refs );
@@ -2238,9 +2237,8 @@ config_updateref(ConfigArgs *c) {
 			c->log, c->argv[1], 0);
 		return(1);
 	}
-	ber_str2bv(c->argv[1], 0, 0, &vals[0]);
-	vals[1].bv_val = NULL;
-	if(value_add(&c->be->be_update_refs, vals)) return(LDAP_OTHER);
+	ber_str2bv(c->argv[1], 0, 0, &val);
+	if(value_add_one(&c->be->be_update_refs, &val)) return(LDAP_OTHER);
 	return(0);
 }
 
@@ -4084,7 +4082,7 @@ static int
 config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 	 struct berval *rdn, ConfigTable *ct, int table )
 {
-	struct berval vals[2];
+	struct berval val;
 	struct berval ad_name;
 	AttributeDescription *ad = NULL;
 	int rc, i;
@@ -4095,10 +4093,8 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 	AttributeType **at;
 	Attribute *oc_at;
 
-	BER_BVZERO( &vals[1] );
-
-	vals[0] = oc->soc_cname;
-	attr_merge_normalize(e, slap_schema.si_ad_objectClass, vals, NULL );
+	val = oc->soc_cname;
+	attr_merge_normalize_one(e, slap_schema.si_ad_objectClass, &val, NULL );
 	ptr = strchr(rdn->bv_val, '=');
 	ad_name.bv_val = rdn->bv_val;
 	ad_name.bv_len = ptr - rdn->bv_val;
@@ -4106,9 +4102,9 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 	if ( rc ) {
 		return rc;
 	}
-	vals[0].bv_val = ptr+1;
-	vals[0].bv_len = rdn->bv_len - (vals[0].bv_val - rdn->bv_val);
-	attr_merge_normalize(e, ad, vals, NULL );
+	val.bv_val = ptr+1;
+	val.bv_len = rdn->bv_len - (val.bv_val - rdn->bv_val);
+	attr_merge_normalize_one(e, ad, &val, NULL );
 
 	for (at=oc->soc_required; at && *at; at++) {
 		/* Skip the naming attr */
@@ -4169,9 +4165,8 @@ config_build_entry( ConfigArgs *c, Entry *e, ObjectClass *oc,
 		}
 	}
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
-	rc = structural_class(oc_at->a_vals, vals, NULL, &text, textbuf, textlen);
-	BER_BVZERO( &vals[1] );
-	attr_merge_normalize(e, slap_schema.si_ad_structuralObjectClass, vals, NULL );
+	rc = structural_class(oc_at->a_vals, &val, NULL, &text, textbuf, textlen);
+	attr_merge_normalize_one(e, slap_schema.si_ad_structuralObjectClass, &val, NULL );
 
 	return 0;
 }
