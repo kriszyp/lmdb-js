@@ -471,7 +471,6 @@ ldap_back_dobind_int(
 
 	assert( retries >= 0 );
 
-	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	if ( !lc->lc_bound ) {
 		struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
 
@@ -585,14 +584,19 @@ retry:;
 
 done:;
 	rc = lc->lc_bound;
-	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	return rc;
 }
 
 int
 ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
-	return ldap_back_dobind_int( lc, op, rs, sendok, 1 );
+	int	rc;
+
+	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
+	rc = ldap_back_dobind_int( lc, op, rs, sendok, 1 );
+	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
+
+	return rc;
 }
 
 /*
@@ -705,18 +709,21 @@ retry:;
 int
 ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
+	int	rc;
+
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 	ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
 	lc->lc_ld = NULL;
 	lc->lc_bound = 0;
 
 	/* lc here must be the regular lc, reset and ready for init */
-	if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
-		return 0;
+	rc = ldap_back_prepare_conn( &lc, op, rs, sendok );
+	if ( rc == LDAP_SUCCESS ) {
+		rc = ldap_back_dobind_int( lc, op, rs, sendok, 0 );
 	}
-
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
-	return ldap_back_dobind_int( lc, op, rs, sendok, 0 );
+
+	return rc;
 }
 
 static int
