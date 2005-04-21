@@ -147,13 +147,13 @@ meta_clear_unused_candidates(
 {
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	int		i;
-	char		*candidates = meta_back_candidates_get( op );
+	SlapReply	*candidates = meta_back_candidates_get( op );
 	
 	for ( i = 0; i < li->mi_ntargets; ++i ) {
 		if ( i == candidate ) {
 			continue;
 		}
-		candidates[ i ] = META_NOT_CANDIDATE;
+		candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 	}
 
 	return 0;

@@ -51,7 +51,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	int		rc = LDAP_OTHER,
 			i, gotit = 0, isroot = 0;
 
-	char		*candidates = meta_back_candidates_get( op );
+	SlapReply	*candidates = meta_back_candidates_get( op );
 
 	rs->sr_err = LDAP_SUCCESS;
 
@@ -97,7 +97,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		/*
 		 * Skip non-candidates
 		 */
-		if ( candidates[ i ] != META_CANDIDATE ) {
+		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
 			continue;
 		}
 
@@ -126,7 +126,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 		lerr = meta_back_single_bind( &op2, rs, mc, i );
 		if ( lerr != LDAP_SUCCESS ) {
 			rs->sr_err = lerr;
-			candidates[ i ] = META_NOT_CANDIDATE;
+			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 
 		} else {
 			rc = LDAP_SUCCESS;
@@ -362,7 +362,7 @@ meta_back_dobind( struct metaconn *mc, Operation *op, ldap_back_send_t sendok )
 	struct metasingleconn	*msc;
 	int			bound = 0, i;
 
-	char			*candidates = meta_back_candidates_get( op );
+	SlapReply		*candidates = meta_back_candidates_get( op );
 
 	ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
 
@@ -405,14 +405,14 @@ meta_back_dobind( struct metaconn *mc, Operation *op, ldap_back_send_t sendok )
 			 * due to technical reasons (remote host down?)
 			 * so better clear the handle
 			 */
-			candidates[ i ] = META_NOT_CANDIDATE;
+			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 #if 0
 			( void )meta_clear_one_candidate( msc );
 #endif
 			continue;
 		} /* else */
 		
-		candidates[ i ] = META_CANDIDATE;
+		candidates[ i ].sr_tag = META_CANDIDATE;
 		msc->msc_bound = META_ANONYMOUS;
 		++bound;
 	}

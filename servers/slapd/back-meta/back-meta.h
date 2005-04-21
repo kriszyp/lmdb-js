@@ -148,9 +148,9 @@ extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
 struct metasingleconn {
 	int			msc_candidate;
-#define	META_NOT_CANDIDATE	((char)0)
-#define	META_CANDIDATE		((char)1)
-#define	META_LAST_CONN		((char)(-1))
+#define	META_NOT_CANDIDATE	((ber_tag_t)0)
+#define	META_CANDIDATE		((ber_tag_t)1)
+#define	META_LAST_CONN		((ber_tag_t)(-1))
 	
 	LDAP            	*msc_ld;
 	struct berval          	msc_bound_ndn;
@@ -206,7 +206,7 @@ struct metainfo {
 	int			mi_network_timeout;
 #define META_DEFAULT_TARGET_NONE	(-1)
 	struct metatarget	**mi_targets;
-	char			*mi_candidates;
+	SlapReply		*mi_candidates;
 
 	struct metadncache	mi_cache;
 	
@@ -230,7 +230,7 @@ typedef enum meta_op_type {
 	META_OP_REQUIRE_ALL
 } meta_op_type;
 
-char *
+SlapReply *
 meta_back_candidates_get( Operation *op );
 
 extern struct metaconn *

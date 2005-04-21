@@ -227,7 +227,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct metasingleconn	*msc;
 	struct timeval		tv = { 0, 0 };
 	LDAPMessage		*res = NULL, *e;
-	int			rc = 0, *msgid, sres = LDAP_SUCCESS;
+	int			rc = 0, sres = LDAP_SUCCESS;
 	char			*err = NULL;
 	struct berval		match = BER_BVNULL, mmatch = BER_BVNULL;
 	BerVarray		v2refs = NULL;
@@ -240,7 +240,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 	void			*savepriv;
 
-	char			*candidates = meta_back_candidates_get( op );
+	SlapReply		*candidates = meta_back_candidates_get( op );
 
 	/*
 	 * controls are set in ldap_back_dobind()
@@ -253,16 +253,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	/*
-	 * Array of message id of each target
-	 */
-	msgid = ch_calloc( sizeof( int ), mi->mi_ntargets );
-	if ( msgid == NULL ) {
-		rs->sr_err = LDAP_OTHER;
- 		send_ldap_result( op, rs );
-		return -1;
-	}
-	
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 
@@ -270,13 +260,13 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * Inits searches
 	 */
 	for ( i = 0, msc = &lc->mc_conns[ 0 ]; !META_LAST( msc ); ++i, ++msc ) {
-		msgid[ i ] = -1;
+		candidates[ i ].sr_msgid = -1;
 
-		if ( candidates[ i ] != META_CANDIDATE ) {
+		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
 			continue;
 		}
 
-		switch ( meta_back_search_start( op, rs, &dc, msc, i, &msgid[ i ] ) )
+		switch ( meta_back_search_start( op, rs, &dc, msc, i, &candidates[ i ].sr_msgid ) )
 		{
 		case 0:
 			break;
@@ -299,7 +289,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		int	i;
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ] == META_CANDIDATE ) {
+			if ( candidates[ i ].sr_tag == META_CANDIDATE ) {
 				cnd[ i ] = '*';
 			} else {
 				cnd[ i ] = ' ';
@@ -335,7 +325,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		int	gotit = 0;
 
 		for ( i = 0, msc = &lc->mc_conns[ 0 ]; !META_LAST( msc ); msc++, i++ ) {
-			if ( msgid[ i ] == -1 ) {
+			if ( candidates[ i ].sr_msgid == -1 ) {
 				continue;
 			}
 
@@ -363,7 +353,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 			 * get a LDAP_TIMELIMIT_EXCEEDED from
 			 * one of them ...
 			 */
-			rc = ldap_result( msc->msc_ld, msgid[ i ],
+			rc = ldap_result( msc->msc_ld, candidates[ i ].sr_msgid,
 					0, &tv, &res );
 
 			if ( rc == 0 ) {
@@ -377,8 +367,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 			} else if ( rc == -1 ) {
 really_bad:;
 				/* something REALLY bad happened! */
-				( void )meta_clear_unused_candidates( op,
-						lc, -1 );
+				( void )meta_clear_unused_candidates( op, lc, -1 );
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_v2ref = v2refs;
 				savepriv = op->o_private;
@@ -540,7 +529,7 @@ really_bad:;
 				 * When no candidates are left,
 				 * the outer cycle finishes
 				 */
-				msgid[ i ] = -1;
+				candidates[ i ].sr_msgid = -1;
 				--ncandidates;
 
 			} else {
@@ -552,7 +541,7 @@ really_bad:;
 		/* check for abandon */
 		if ( op->o_abandon ) {
 			for ( i = 0, msc = lc->mc_conns; !META_LAST( msc ); msc++, i++ ) {
-				ldap_abandon_ext( msc->msc_ld, msgid[ i ], NULL, NULL );
+				ldap_abandon_ext( msc->msc_ld, candidates[ i ].sr_msgid, NULL, NULL );
 			}
 
 			rc = SLAPD_ABANDON;
@@ -609,7 +598,7 @@ really_bad:;
 		int	i;
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			if ( candidates[ i ] == META_CANDIDATE ) {
+			if ( candidates[ i ].sr_tag == META_CANDIDATE ) {
 				cnd[ i ] = '*';
 			} else {
 				cnd[ i ] = ' ';
@@ -651,10 +640,6 @@ finish:;
 		free( err );
 	}
 	
-	if ( msgid ) {
-		ch_free( msgid );
-	}
-
 	return rc;
 }
 

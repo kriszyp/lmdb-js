@@ -50,7 +50,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 				*msgid;
 	dncookie		dc;
 
-	char			*candidates = meta_back_candidates_get( op );
+	SlapReply		*candidates = meta_back_candidates_get( op );
 
 	lc = meta_back_getconn( op, rs, NULL, LDAP_BACK_SENDERR );
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
@@ -74,7 +74,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		struct berval mapped_attr = op->orc_ava->aa_desc->ad_cname;
 		struct berval mapped_value = op->orc_ava->aa_value;
 
-		if ( candidates[ i ] != META_CANDIDATE ) {
+		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
 			msgid[ i ] = -1;
 			continue;
 		}

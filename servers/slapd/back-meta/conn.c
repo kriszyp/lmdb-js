@@ -512,7 +512,7 @@ meta_back_candidate_keyfree( void *key, void *data )
 	ber_memfree_x( data, NULL );
 }
 
-char *
+SlapReply *
 meta_back_candidates_get( Operation *op )
 {
 	struct metainfo	*mi = ( struct metainfo * )op->o_bd->be_private;
@@ -526,18 +526,18 @@ meta_back_candidates_get( Operation *op )
 	}
 
 	if ( data == NULL ) {
-		data = ber_memalloc_x( sizeof( char ) * mi->mi_ntargets, NULL );
+		data = ber_memalloc( sizeof( SlapReply ) * mi->mi_ntargets );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
 					meta_back_candidate_keyfree, data,
 					meta_back_candidate_keyfree );
 
 		} else {
-			mi->mi_candidates = (char *)data;
+			mi->mi_candidates = (SlapReply *)data;
 		}
 	}
 
-	return (char *)data;
+	return (SlapReply *)data;
 }
 
 /*
@@ -593,7 +593,7 @@ meta_back_getconn(
 	struct berval	ndn = op->o_req_ndn,
 			pndn;
 
-	char		*candidates = meta_back_candidates_get( op );
+	SlapReply	*candidates = meta_back_candidates_get( op );
 
 	/* Searches for a metaconn in the avl tree */
 	mc_curr.mc_conn = op->o_conn;
@@ -663,7 +663,7 @@ meta_back_getconn(
 			int lerr = meta_back_init_one_conn( op, rs, mi->mi_targets[ i ],
 					&mc->mc_conns[ i ], sendok );
 			if ( lerr == LDAP_SUCCESS ) {
-				candidates[ i ] = META_CANDIDATE;
+				candidates[ i ].sr_tag = META_CANDIDATE;
 				
 			} else {
 				
@@ -672,7 +672,7 @@ meta_back_getconn(
 				 * be init'd, should the other ones
 				 * be tried?
 				 */
-				candidates[ i ] = META_NOT_CANDIDATE;
+				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 				err = lerr;
 				continue;
 			}
@@ -688,8 +688,11 @@ meta_back_getconn(
 	}
 
 	if ( op_type == META_OP_REQUIRE_SINGLE ) {
+		int	j;
 
-		memset( candidates, META_NOT_CANDIDATE, sizeof( char ) * mi->mi_ntargets );
+		for ( j = 0; j < mi->mi_ntargets; j++ ) {
+			candidates[ j ].sr_tag = META_NOT_CANDIDATE;
+		}
 
 		/*
 		 * tries to get a unique candidate
@@ -753,7 +756,7 @@ meta_back_getconn(
 		err = meta_back_init_one_conn( op, rs, mi->mi_targets[ i ],
 				&mc->mc_conns[ i ], sendok );
 		if ( err == LDAP_SUCCESS ) {
-			candidates[ i ] = META_CANDIDATE;
+			candidates[ i ].sr_tag = META_CANDIDATE;
 
 		} else {
 		
@@ -762,7 +765,7 @@ meta_back_getconn(
 			 * be init'd, should the other ones
 			 * be tried?
 			 */
-			candidates[ i ] = META_NOT_CANDIDATE;
+			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
  			if ( new_conn ) {
 				( void )meta_clear_one_candidate( &mc->mc_conns[ i ] );
 				meta_back_conn_free( mc );
@@ -800,7 +803,7 @@ meta_back_getconn(
 						mi->mi_targets[ i ],
 						&mc->mc_conns[ i ], sendok );
 				if ( lerr == LDAP_SUCCESS ) {
-					candidates[ i ] = META_CANDIDATE;
+					candidates[ i ].sr_tag = META_CANDIDATE;
 
 				} else {
 				
@@ -809,7 +812,7 @@ meta_back_getconn(
 					 * be init'd, should the other ones
 					 * be tried?
 					 */
-					candidates[ i ] = META_NOT_CANDIDATE;
+					candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 					err = lerr;
 
 					Debug( LDAP_DEBUG_ANY, "%s: meta_back_init_one_conn(%d) failed: %d\n",
@@ -819,7 +822,7 @@ meta_back_getconn(
 				}
 
 			} else {
-				candidates[ i ] = META_NOT_CANDIDATE;
+				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 			}
 		}
 	}
