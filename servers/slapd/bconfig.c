@@ -160,8 +160,6 @@ enum {
 	CFG_TLS_CA_FILE,
 	CFG_TLS_VERIFY,
 	CFG_TLS_CRLCHECK,
-	CFG_SIZE,
-	CFG_TIME,
 	CFG_CONCUR,
 	CFG_THREADS,
 	CFG_SALT,
@@ -175,7 +173,6 @@ enum {
 	CFG_ATTR,
 	CFG_ATOPT,
 	CFG_CHECK,
-	CFG_AUDITLOG,
 	CFG_REPLOG,
 	CFG_ROOTDSE,
 	CFG_LOGFILE,
@@ -252,7 +249,8 @@ ConfigTable config_back_cf_table[] = {
 			"DESC 'File for slapd command line options' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "attribute",	"attribute", 2, 0, 9, ARG_PAREN|ARG_MAGIC|CFG_ATTR,
+	{ "attribute",	"attribute", 2, 0, 9,
+		ARG_PAREN|ARG_MAGIC|CFG_ATTR|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:4 NAME 'olcAttributeTypes' "
 			"DESC 'OpenLDAP attributeTypes' "
 			"EQUALITY caseIgnoreMatch "
@@ -264,7 +262,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "authid-rewrite", NULL, 2, 0, 0,
 #ifdef SLAP_AUTH_REWRITE
-		ARG_MAGIC|CFG_REWRITE|ARG_NO_DELETE|ARG_NO_INSERT, &config_generic,
+		ARG_MAGIC|CFG_REWRITE|ARG_NO_INSERT, &config_generic,
 #else
 		ARG_IGNORED, NULL,
 #endif
@@ -275,7 +273,7 @@ ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgGlAt:7 NAME 'olcAuthzPolicy' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "authz-regexp", NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP|ARG_NO_DELETE|ARG_NO_INSERT,
+	{ "authz-regexp", NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:8 NAME 'olcAuthzRegexp' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
@@ -305,7 +303,7 @@ ConfigTable config_back_cf_table[] = {
 		&config_disallows, "( OLcfgGlAt:15 NAME 'olcDisallows' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "ditcontentrule",	NULL, 0, 0, 0, ARG_MAGIC|CFG_DIT,
+	{ "ditcontentrule",	NULL, 0, 0, 0, ARG_MAGIC|CFG_DIT|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:16 NAME 'olcDitContentRules' "
 			"DESC 'OpenLDAP DIT content rules' "
 			"EQUALITY caseIgnoreMatch "
@@ -365,13 +363,13 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "modulepath", "path", 2, 2, 0,
 #ifdef SLAPD_MODULES
-		ARG_MAGIC|CFG_MODPATH, &config_generic,
+		ARG_MAGIC|CFG_MODPATH|ARG_NO_DELETE|ARG_NO_INSERT, &config_generic,
 #else
 		ARG_IGNORED, NULL,
 #endif
 		"( OLcfgGlAt:31 NAME 'olcModulePath' "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
-	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC,
+	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:32 NAME 'olcObjectClasses' "
 		"DESC 'OpenLDAP object classes' "
 		"EQUALITY caseIgnoreMatch "
@@ -491,9 +489,9 @@ ConfigTable config_back_cf_table[] = {
 	{ "security", "factors", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_security, "( OLcfgGlAt:59 NAME 'olcSecurity' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "sizelimit", "limit",	2, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_SIZE,
+	{ "sizelimit", "limit",	2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_sizelimit, "( OLcfgGlAt:60 NAME 'olcSizeLimit' "
-			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "sockbuf_max_incoming", "max", 2, 2, 0, ARG_BER_LEN_T,
 		&sockbuf_max_incoming, "( OLcfgGlAt:61 NAME 'olcSockbufMaxIncoming' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -517,9 +515,9 @@ ConfigTable config_back_cf_table[] = {
 	{ "threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_THREADS,
 		&config_generic, "( OLcfgGlAt:66 NAME 'olcThreads' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "timelimit", "limit", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_TIME,
+	{ "timelimit", "limit", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_timelimit, "( OLcfgGlAt:67 NAME 'olcTimeLimit' "
-			"SYNTAX OMsInteger )", NULL, NULL },
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "TLSCACertificateFile", NULL, 0, 0, 0,
 #ifdef HAVE_TLS
 		CFG_TLS_CA_FILE|ARG_STRING|ARG_MAGIC, &config_tls_option,
@@ -909,8 +907,17 @@ config_generic(ConfigArgs *c) {
 		case CFG_DEPTH:
 		case CFG_CHECK:
 		case CFG_LASTMOD:
+		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
 		case CFG_SSTR_IF_MIN:
+			break;
+
+		/* no-ops, requires slapd restart */
+		case CFG_PLUGIN:
+		case CFG_MODLOAD:
+		case CFG_AZREGEXP:
+		case CFG_REWRITE:
+			sprintf(c->log, "change requires slapd restart");
 			break;
 
 		case CFG_SALT:
@@ -949,6 +956,19 @@ config_generic(ConfigArgs *c) {
 				acl_free( a );
 			}
 			break;
+
+		case CFG_LIMITS:
+			/* FIXME: there is no limits_free function */
+		case CFG_ATOPT:
+			/* FIXME: there is no ad_option_free function */
+		case CFG_ROOTDSE:
+			/* FIXME: there is no way to remove attributes added by
+				a DSE file */
+		case CFG_OID:
+		case CFG_OC:
+		case CFG_DIT:
+		case CFG_ATTR:
+		case CFG_MODPATH:
 		default:
 			rc = 1;
 			break;
@@ -2049,6 +2069,7 @@ config_replica(ConfigArgs *c) {
 		}
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
+		/* FIXME: there is no replica_free function */
 		if ( c->valx < 0 ) {
 		} else {
 		}
