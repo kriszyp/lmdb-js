@@ -127,7 +127,7 @@ monitor_subsys_log_init(
 		}
 	}
 
-	attr_merge( e, mi->mi_ad_description, desc, NULL );
+	attr_merge_normalize( e, mi->mi_ad_description, desc, NULL );
 
 	monitor_cache_release( mi, e );
 

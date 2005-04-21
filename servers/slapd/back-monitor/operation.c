@@ -77,8 +77,8 @@ monitor_subsys_ops_init(
 		return( -1 );
 	}
 
-	attr_merge_one( e_op, mi->mi_ad_monitorOpInitiated, &bv_zero, NULL );
-	attr_merge_one( e_op, mi->mi_ad_monitorOpCompleted, &bv_zero, NULL );
+	attr_merge_one( e_op, mi->mi_ad_monitorOpInitiated, &bv_zero, &bv_zero );
+	attr_merge_one( e_op, mi->mi_ad_monitorOpCompleted, &bv_zero, &bv_zero );
 
 	e_tmp = NULL;
 

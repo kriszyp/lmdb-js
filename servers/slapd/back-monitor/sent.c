@@ -97,7 +97,7 @@ monitor_subsys_sent_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -160,7 +160,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -223,7 +223,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -286,7 +286,7 @@ monitor_subsys_sent_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;

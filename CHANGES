@@ -8,6 +8,7 @@ OpenLDAP 2.2.25 Release
 	Fixed back-dnssrv referral all but search op crasher bug (ITS#3642)
 	Fixed back-ldbm shutdown hang (ITS#3648)
 	Fixed back-meta memory leak (ITS#3669)
+	Fixed back-monitor attribute normalization bug (ITS#3659)
 	Removed broken libldap fast synchronous search result processing
 	Build Environment
 		Added improved configure logging

@@ -117,7 +117,7 @@ monitor_subsys_backend_init(
 			for ( j = 0; bi->bi_controls[ j ]; j++ ) {
 				bv.bv_val = bi->bi_controls[ j ];
 				bv.bv_len = strlen( bv.bv_val );
-				attr_merge_one( e, slap_schema.si_ad_supportedControl, &bv, NULL );
+				attr_merge_one( e, slap_schema.si_ad_supportedControl, &bv, &bv );
 			}
 		}
 

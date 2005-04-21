@@ -100,7 +100,7 @@ monitor_subsys_conn_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -164,7 +164,7 @@ monitor_subsys_conn_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -398,13 +398,13 @@ conn_create(
 
 	bv.bv_val = buf;
 	bv.bv_len = strlen( buf );
-	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, &bv );
 
 	/* connection number */
 	snprintf( buf, sizeof( buf ), "%ld", c->c_connid );
 	bv.bv_val = buf;
 	bv.bv_len = strlen( buf );
-	attr_merge_one( e, mi->mi_ad_monitorConnectionNumber, &bv, NULL );
+	attr_merge_one( e, mi->mi_ad_monitorConnectionNumber, &bv, &bv );
 
 	/* authz DN */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionAuthzDN,
@@ -412,11 +412,11 @@ conn_create(
 
 	/* local address */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionLocalAddress,
-			&c->c_sock_name, NULL );
+			&c->c_sock_name, &c->c_sock_name );
 
 	/* peer address */
 	attr_merge_one( e, mi->mi_ad_monitorConnectionPeerAddress,
-			&c->c_peer_name, NULL );
+			&c->c_peer_name, &c->c_peer_name );
 
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
