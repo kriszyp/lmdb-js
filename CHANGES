@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.25 Engineering
+OpenLDAP 2.2.25 Release
 	Fixed back-hdb out-of-order slapadd (ITS#3267)
 	Fixed back-bdb/hdb search crashes (ITS#3638, 3647)
 	Fixed back-bdb/hdb modrdn (ITS#3657)
@@ -8,6 +8,9 @@ OpenLDAP 2.2.25 Engineering
 	Fixed back-dnssrv referral all but search op crasher bug (ITS#3642)
 	Fixed back-ldbm shutdown hang (ITS#3648)
 	Fixed back-meta memory leak (ITS#3669)
+	Removed broken libldap fast synchronous search result processing
+	Build Environment
+		Added improved configure logging
 
 OpenLDAP 2.2.24 Release
 	Fixed slapd "chldren:" typo (ITS#3560)
