@@ -872,8 +872,8 @@ done:;
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"=>meta_back_getconn: conn %ld fetched\n",
-			mc->mc_conn->c_connid, 0, 0 );
+			"%s meta_back_getconn: conn %ld fetched\n",
+			op->o_log_prefix, mc->mc_conn->c_connid, 0 );
 	}
 	
 	return mc;
