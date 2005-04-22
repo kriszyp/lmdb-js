@@ -23,7 +23,7 @@
 #include "portable.h"
 
 /* This file implements "Password Policy for LDAP Directories",
- * based on draft behera-ldap-password-policy-07
+ * based on draft behera-ldap-password-policy-08
  */
 
 #ifdef SLAPD_OVER_PPOLICY
