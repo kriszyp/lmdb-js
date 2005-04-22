@@ -39,6 +39,7 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+#include <ac/time.h>
 
 #include <ldap.h>
 #include "lutil.h"
@@ -234,7 +235,7 @@ static int dodelete(
 	}
 
 	for ( ; ; ) {
-		struct timeval	tv;
+		struct timeval tv;
 
 		if ( tool_check_abandon( ld, id ) ) {
 			return LDAP_CANCELLED;

@@ -52,6 +52,7 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
+#include <ac/time.h>
 
 #include <ldap.h>
 #include "lutil.h"
