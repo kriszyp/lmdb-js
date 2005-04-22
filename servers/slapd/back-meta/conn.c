@@ -847,14 +847,19 @@ done:;
 		
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
-		Debug( LDAP_DEBUG_TRACE,
-			"=>meta_back_getconn: conn %ld inserted\n",
-			mc->mc_conn->c_connid, 0, 0 );
-		
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
 		 */
-		if ( err != 0 ) {
+		if ( err == 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"%s meta_back_getconn: conn %ld inserted\n",
+				op->o_log_prefix, mc->mc_conn->c_connid, 0 );
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"%s meta_back_getconn: conn %ld insert failed\n",
+				op->o_log_prefix, mc->mc_conn->c_connid, 0 );
+		
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "Internal server error";
 			meta_back_conn_free( mc );

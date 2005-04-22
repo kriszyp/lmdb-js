@@ -56,11 +56,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	if ( !meta_back_is_valid( mc, candidate ) ) {
-		rs->sr_err = LDAP_UNAVAILABLE;
- 		send_ldap_result( op, rs );
-		return rs->sr_err;
-	}
+	assert( mc->mc_conns[ candidate ].msc_ld != NULL );
 
 	/*
 	 * Rewrite the add dn, if needed

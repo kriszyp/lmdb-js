@@ -265,11 +265,6 @@ meta_back_single_dobind(
 	int			retries );
 
 extern int
-meta_back_is_valid(
-		struct metaconn 	*lc, 
-		int 			candidate );
-
-extern int
 meta_back_op_result(
 		struct metaconn		*lc,
 		Operation		*op,

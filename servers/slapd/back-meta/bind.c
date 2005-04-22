@@ -424,31 +424,6 @@ done:;
 }
 
 /*
- *
- */
-int
-meta_back_is_valid( struct metaconn *mc, int candidate )
-{
-	struct metasingleconn 	*msc;
-	int			i;
-
-	assert( mc );
-
-	if ( candidate < 0 ) {
-		return 0;
-	}
-
-	for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ) && i < candidate; 
-			++i, ++msc );
-	
-	if ( !META_LAST( msc ) ) {
-		return ( msc->msc_ld != NULL );
-	}
-
-	return 0;
-}
-
-/*
  * meta_back_rebind
  *
  * This is a callback used for chasing referrals using the same

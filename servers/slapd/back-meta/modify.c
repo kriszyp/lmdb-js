@@ -51,12 +51,8 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
-	
-	if ( !meta_back_is_valid( lc, candidate ) ) {
-		rs->sr_err = LDAP_OTHER;
-		send_ldap_result( op, rs );
-		return rs->sr_err;
-	}
+
+	assert( lc->mc_conns[ candidate ].msc_ld != NULL );
 
 	/*
 	 * Rewrite the modify dn, if needed
