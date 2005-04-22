@@ -89,6 +89,7 @@ SQLCONF=$DATADIR/slapd-sql.conf
 TRANSLUCENTLOCALCONF=$DATADIR/slapd-translucent-local.conf
 TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
+METACONF2=$DATADIR/slapd-meta2.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf

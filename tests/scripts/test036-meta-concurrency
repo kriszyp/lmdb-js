@@ -92,7 +92,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $METACONF > $CONF2
+. $CONFFILTER $BACKEND $MONITORDB < $METACONF2 > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -128,6 +128,33 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Starting slapd on TCP/IP port $PORT3..."
+. $CONFFILTER $BACKEND $MONITORDB < $METACONF > $CONF3
+$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+KILLPIDS="$KILLPIDS $PID"
+
+echo "Using ldapsearch to check that slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 cat /dev/null > $SEARCHOUT
 
 mkdir -p $TESTDIR/$DATADIR
@@ -144,7 +171,7 @@ for f in $TESTDIR/$DATADIR/do_read.* ; do
 done
 
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT2 -D "cn=Manager,$METABASEDN" -w $PASSWD -l 50 # -r 20
+$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT3 -D "cn=Manager,$METABASEDN" -w $PASSWD -l 50 # -r 20
 RC=$?
 
 if test $RC != 0 ; then
@@ -154,7 +181,7 @@ if test $RC != 0 ; then
 fi 
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$METABASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$METABASEDN" -h $LOCALHOST -p $PORT3 \
 			'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 

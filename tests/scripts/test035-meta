@@ -65,7 +65,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $METACONF > $CONF2
+. $CONFFILTER $BACKEND $MONITORDB < $METACONF2 > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -101,12 +101,39 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Starting slapd on TCP/IP port $PORT3..."
+. $CONFFILTER $BACKEND $MONITORDB < $METACONF > $CONF3
+$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+KILLPIDS="$KILLPIDS $PID"
+
+echo "Using ldapsearch to check that slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 cat /dev/null > $SEARCHOUT
 
 BASEDN="o=Example,c=US"
 echo "Searching base=\"$BASEDN\"..."
 echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
@@ -120,7 +147,7 @@ fi
 
 BASEDN="o=Example,c=US"
 echo "Modifying database \"$BASEDN\"..."
-$LDAPMODIFY -v -D "cn=Manager,$BASEDN" -h $LOCALHOST -p $PORT2 -w $PASSWD \
+$LDAPMODIFY -v -D "cn=Manager,$BASEDN" -h $LOCALHOST -p $PORT3 -w $PASSWD \
 	-M >> $TESTOUT 2>&1 << EOMODS
 # These operations (updates with objectClass mapping) triggered ITS#3499
 dn: cn=Added Group,ou=Groups,$BASEDN
@@ -212,7 +239,7 @@ fi
 
 echo "Searching base=\"$BASEDN\"..."
 echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "Search failed ($RC)!"
@@ -223,7 +250,7 @@ fi
 BASEDN="o=Example,c=US"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" -M "$FILTER" '*' ref \
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" -M "$FILTER" '*' ref \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -240,7 +267,7 @@ echo "	base=\"$BASEDN\"..."
 echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
 echo "# 	attrs=\"seeAlso\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" "$FILTER" seeAlso \
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" "$FILTER" seeAlso \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -256,7 +283,7 @@ echo "	base=\"$BASEDN\"..."
 echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
 echo "# 	attrs=\"uid\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" "$FILTER" uid \
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" "$FILTER" uid \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -272,7 +299,7 @@ echo "	base=\"$BASEDN\"..."
 echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
 echo "# 	attrs=\"member\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" "$FILTER" member \
+$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" "$FILTER" member \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -296,7 +323,7 @@ fi
 
 BASEDN="o=Example,c=US"
 echo "Changing password to database \"$BASEDN\"..."
-$LDAPPASSWD -h $LOCALHOST -p $PORT2 -D "cn=Manager,$BASEDN" -w $PASSWD \
+$LDAPPASSWD -h $LOCALHOST -p $PORT3 -D "cn=Manager,$BASEDN" -w $PASSWD \
 	-s $PASSWD "cn=Ursula Hampster,ou=Alumni Association,ou=People,$BASEDN" \
 	>> $TESTOUT 2>&1
 RC=$?
@@ -307,7 +334,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Binding with newly changed password to database \"$BASEDN\"..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT2 \
+$LDAPWHOAMI -h $LOCALHOST -p $PORT3 \
 	-D "cn=Ursula Hampster,ou=Alumni Association,ou=People,$BASEDN" \
 	-w $PASSWD >> $TESTOUT 2>&1
 RC=$?
@@ -318,7 +345,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Binding as newly added user to database \"$BASEDN\"..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT2 \
+$LDAPWHOAMI -h $LOCALHOST -p $PORT3 \
 	-D "cn=Added User,ou=Same as above,ou=Meta,$BASEDN" \
 	-w $PASSWD >> $TESTOUT 2>&1
 RC=$?
@@ -329,7 +356,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Changing password to database \"$BASEDN\"..."
-$LDAPPASSWD -h $LOCALHOST -p $PORT2 -D "cn=Manager,$BASEDN" -w $PASSWD \
+$LDAPPASSWD -h $LOCALHOST -p $PORT3 -D "cn=Manager,$BASEDN" -w $PASSWD \
 	-s meta "cn=Added User,ou=Same as above,ou=Meta,$BASEDN" \
 	>> $TESTOUT 2>&1
 RC=$?
@@ -340,7 +367,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Binding with newly changed password to database \"$BASEDN\"..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT2 \
+$LDAPWHOAMI -h $LOCALHOST -p $PORT3 \
 	-D "cn=Added User,ou=Same as above,ou=Meta,$BASEDN" \
 	-w meta >> $TESTOUT 2>&1
 RC=$?
@@ -351,7 +378,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Comparing to database \"$BASEDN\"..."
-$LDAPCOMPARE -h $LOCALHOST -p $PORT2 \
+$LDAPCOMPARE -h $LOCALHOST -p $PORT3 \
 	"cn=Another Added Group,ou=Groups,$BASEDN" \
 	"member:cn=Added Group,ou=Groups,$BASEDN" >> $TESTOUT 2>&1
 RC=$?
