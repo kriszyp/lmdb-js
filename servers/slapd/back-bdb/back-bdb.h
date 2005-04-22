@@ -193,6 +193,7 @@ struct bdb_info {
 #define	BDB_HAS_CONFIG	0x02
 #define	BDB_UPD_CONFIG	0x04
 #define	BDB_DEL_INDEX	0x08
+#define	BDB_RE_OPEN		0x10
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]

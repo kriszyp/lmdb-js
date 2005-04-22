@@ -278,6 +278,7 @@ static int
 bdb_cf_cleanup( ConfigArgs *c )
 {
 	struct bdb_info *bdb = c->be->be_private;
+	int rc = 0;
 
 	if ( bdb->bi_flags & BDB_UPD_CONFIG ) {
 		if ( bdb->bi_db_config ) {
@@ -299,7 +300,16 @@ bdb_cf_cleanup( ConfigArgs *c )
 		bdb->bi_flags ^= BDB_DEL_INDEX;
 	}
 
-	return 0;
+	if ( bdb->bi_flags & BDB_RE_OPEN ) {
+		bdb->bi_flags ^= BDB_RE_OPEN;
+		rc = c->be->bd_info->bi_db_close( c->be );
+		if ( rc == 0 )
+			rc = c->be->bd_info->bi_db_open( c->be );
+		/* If this fails, we need to restart */
+		if ( rc ) 
+			slapd_shutdown = 1;
+	}
+	return rc;
 }
 
 static int
@@ -408,8 +418,13 @@ bdb_cf_gen(ConfigArgs *c)
 			c->cleanup = bdb_cf_cleanup;
 			break;
 		case BDB_DIRECTORY:
-			rc = 1;
-			/* FIXME: what does this mean? */
+			bdb->bi_flags |= BDB_RE_OPEN;
+			bdb->bi_flags ^= BDB_HAS_CONFIG;
+			ch_free( bdb->bi_dbenv_home );
+			bdb->bi_dbenv_home = NULL;
+			ch_free( bdb->bi_db_config_path );
+			bdb->bi_db_config_path = NULL;
+			c->cleanup = bdb_cf_cleanup;
 			break;
 		case BDB_NOSYNC:
 			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC, 0 );
@@ -491,9 +506,13 @@ bdb_cf_gen(ConfigArgs *c)
 		FILE *f;
 		char *ptr;
 
+		if ( bdb->bi_dbenv_home )
+			ch_free( bdb->bi_dbenv_home );
 		bdb->bi_dbenv_home = c->value_string;
 
 		/* See if a DB_CONFIG file already exists here */
+		if ( bdb->bi_db_config_path )
+			ch_free( bdb->bi_db_config_path );
 		bdb->bi_db_config_path = ch_malloc( strlen( bdb->bi_dbenv_home ) +
 			STRLENOF(LDAP_DIRSEP) + STRLENOF("DB_CONFIG") + 1 );
 		ptr = lutil_strcopy( bdb->bi_db_config_path, bdb->bi_dbenv_home );
