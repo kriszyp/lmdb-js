@@ -149,6 +149,21 @@ static slap_verbmasks bdb_lockd[] = {
 	{ BER_BVNULL, 0 }
 };
 
+/* perform periodic checkpoints */
+static void *
+bdb_checkpoint( void *ctx, void *arg )
+{
+	struct re_s *rtask = arg;
+	struct bdb_info *bdb = rtask->arg;
+	
+	TXN_CHECKPOINT( bdb->bi_dbenv, bdb->bi_txn_cp_kbyte,
+		bdb->bi_txn_cp_min, 0 );
+	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	return NULL;
+}
+
 /* reindex entries on the fly */
 static void *
 bdb_online_index( void *ctx, void *arg )
@@ -370,7 +385,13 @@ bdb_cf_gen(ConfigArgs *c)
 			break;
 
 		case BDB_CHKPT:
-			/* FIXME: should stop the checkpoint task too */
+			if ( bdb->bi_txn_cp_task ) {
+				struct re_s *re = bdb->bi_txn_cp_task;
+				bdb->bi_txn_cp_task = NULL;
+				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ))
+					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
+				ldap_pvt_runqueue_remove( &slapd_rq, re );
+			}
 			bdb->bi_txn_cp = 0;
 			break;
 		case BDB_CONFIG:
@@ -423,6 +444,17 @@ bdb_cf_gen(ConfigArgs *c)
 		bdb->bi_txn_cp = 1;
 		bdb->bi_txn_cp_kbyte = strtol( c->argv[1], NULL, 0 );
 		bdb->bi_txn_cp_min = strtol( c->argv[2], NULL, 0 );
+		/* If we're in server mode and time-based checkpointing is enabled,
+		 * submit a task to perform periodic checkpoints.
+		 */
+		if ((slapMode & SLAP_SERVER_MODE) && bdb->bi_txn_cp_min ) {
+			struct re_s *re = bdb->bi_txn_cp_task;
+			if ( re )
+				re->interval.tv_sec = bdb->bi_txn_cp_min * 60;
+			else
+				bdb->bi_txn_cp_task = ldap_pvt_runqueue_insert( &slapd_rq,
+					bdb->bi_txn_cp_min * 60, bdb_checkpoint, bdb );
+		}
 		break;
 
 	case BDB_CONFIG: {

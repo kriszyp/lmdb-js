@@ -171,6 +171,7 @@ struct bdb_info {
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;
+	void		*bi_txn_cp_task;
 
 	int			bi_lock_detect;
 	long		bi_shm_key;

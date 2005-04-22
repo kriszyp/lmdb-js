@@ -76,20 +76,6 @@ bdb_db_init( BackendDB *be )
 	return 0;
 }
 
-static void *
-bdb_checkpoint( void *ctx, void *arg )
-{
-	struct re_s *rtask = arg;
-	struct bdb_info *bdb = rtask->arg;
-	
-	TXN_CHECKPOINT( bdb->bi_dbenv, bdb->bi_txn_cp_kbyte,
-		bdb->bi_txn_cp_min, 0 );
-	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
-	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-	return NULL;
-}
-
 /*
  * Unconditionally perform a database recovery. Only works on
  * databases that were previously opened with transactions and
@@ -533,17 +519,6 @@ bdb_db_open( BackendDB *be )
 
 	if ( !( slapMode & SLAP_TOOL_QUICK )) {
 		XLOCK_ID(bdb->bi_dbenv, &bdb->bi_cache.c_locker);
-	}
-
-	/* If we're in server mode and time-based checkpointing is enabled,
-	 * submit a task to perform periodic checkpoints.
-	 */
-	if (( slapMode & SLAP_SERVER_MODE ) && bdb->bi_txn_cp &&
-		bdb->bi_txn_cp_min )  {
-		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-		ldap_pvt_runqueue_insert( &slapd_rq, bdb->bi_txn_cp_min*60,
-			bdb_checkpoint, bdb );
-		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	}
 
 	if (( slapMode&SLAP_SERVER_MODE ) && ( bdb->bi_flags&BDB_HAS_CONFIG )) {
