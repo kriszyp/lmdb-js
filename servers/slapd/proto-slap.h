@@ -479,6 +479,7 @@ LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
 LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));
+LDAP_SLAPD_F (char *) anlist_unparse LDAP_P(( AttributeName *, char * ));
 
 #ifdef LDAP_SLAPI
 LDAP_SLAPD_V (int) slapi_plugins_used;
@@ -1353,27 +1354,9 @@ LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
  * syncrepl.c
  */
 
-LDAP_SLAPD_F (void) init_syncrepl LDAP_P((syncinfo_t *));
-LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
-LDAP_SLAPD_F (int) syncrepl_message_to_entry LDAP_P((
-					syncinfo_t *, Operation *, LDAPMessage *,
-					Modifications **, Entry **, int ));
-LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
-					syncinfo_t *, Operation*, Entry*,
-					Modifications**,int, struct berval*,
-					struct sync_cookie *,
-					struct berval * ));
-LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
-					syncinfo_t *, Operation *, struct berval *,
-					struct sync_cookie * ));
 LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( 
 					Operation*, Entry* ));
-LDAP_SLAPD_F (Entry*) slap_create_syncrepl_entry LDAP_P((
-					Backend *, struct berval *,
-					struct berval *, struct berval * ));
-LDAP_SLAPD_F (struct berval *) slap_uuidstr_from_normalized LDAP_P((
-					struct berval *, struct berval *, void * ));
-LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( syncinfo_t * ));
+LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( struct syncinfo_s * ));
 
 /* syntax.c */
 LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((

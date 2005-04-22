@@ -1571,16 +1571,12 @@ typedef BackendDB Backend;
  * syncinfo structure for syncrepl
  */
 
+struct syncinfo_s;
+
 #define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
 #define	SLAP_SYNC_UPDATE_MSGID	2
-
-struct nonpresent_entry {
-	struct berval *npe_name;
-	struct berval *npe_nname;
-	LDAP_LIST_ENTRY(nonpresent_entry) npe_link;
-};
 
 struct sync_cookie {
 	struct berval ctxcsn;
@@ -1590,40 +1586,6 @@ struct sync_cookie {
 };
 
 LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
-
-typedef struct syncinfo_s {
-        struct slap_backend_db *si_be;
-        long				si_rid;
-        struct berval		si_provideruri;
-		slap_bindconf		si_bindconf;
-        struct berval		si_filterstr;
-        struct berval		si_base;
-        int					si_scope;
-        int					si_attrsonly;
-		char				*si_anfile;
-		AttributeName		*si_anlist;
-		AttributeName		*si_exanlist;
-		char 				**si_attrs;
-		char				**si_exattrs;
-		int					si_allattrs;
-		int					si_allopattrs;
-		int					si_schemachecking;
-        int					si_type;
-        time_t				si_interval;
-		time_t				*si_retryinterval;
-		int					*si_retrynum_init;
-		int					*si_retrynum;
-		struct sync_cookie	si_syncCookie;
-        int					si_manageDSAit;
-        int					si_slimit;
-		int					si_tlimit;
-		int					si_refreshDelete;
-		int					si_refreshPresent;
-        Avlnode				*si_presentlist;
-		LDAP				*si_ld;
-		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
-		ldap_pvt_thread_mutex_t	si_mutex;
-} syncinfo_t;
 
 LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
 
@@ -1798,7 +1760,7 @@ struct slap_backend_db {
 	struct		be_pcl	*be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	ldap_pvt_thread_mutex_t					*be_pcl_mutexp;
-	syncinfo_t								*be_syncinfo; /* For syncrepl */
+	struct syncinfo_s						*be_syncinfo; /* For syncrepl */
 
 	void    *be_pb;         /* Netscape plugin */
 	struct ConfigTable *be_cf_table;

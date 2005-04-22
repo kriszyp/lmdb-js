@@ -65,7 +65,6 @@ typedef enum {
 #define ARG_MAGIC	0x80000000
 
 #define ARG_BAD_CONF	0xdead0000	/* overload return values */
-#define ARG_UNKNOWN	0xc0de0000
 
 extern ConfigTable config_back_cf_table[];
 
@@ -73,12 +72,6 @@ typedef struct ConfigOCs {
 	char *def;
 	ConfigType cft;
 	ObjectClass **oc;
-#if 0
-	BI_op_add *add;		/* optional, add-specific processing */
-	BI_op_delete *del;	/* mandatory, delete implementation */
-	BI_op_modify *mod;	/* optional, mod-specific */
-	BI_op_modrdn *ren;	/* optional, modrdn... */
-#endif
 } ConfigOCs;
 
 struct config_args_s;
