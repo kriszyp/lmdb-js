@@ -202,6 +202,9 @@ ldap_pvt_thread_pool_setkey LDAP_P((
 	void *data,
 	ldap_pvt_thread_pool_keyfree_t *kfree ));
 
+LDAP_F( void )
+ldap_pvt_thread_pool_purgekey LDAP_P(( void *key ));
+
 LDAP_F( void *)
 ldap_pvt_thread_pool_context LDAP_P(( void ));
 
