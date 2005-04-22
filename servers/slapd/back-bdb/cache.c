@@ -1207,8 +1207,12 @@ bdb_cache_release_all( Cache *cache )
 		cache->c_lruhead = cache->c_eifree->bei_lrunext;
 		bdb_cache_entryinfo_destroy(cache->c_eifree);
 	}
+	cache->c_cursize = 0;
+	cache->c_eiused = 0;
+	cache->c_idtree = NULL;
 	cache->c_lruhead = NULL;
 	cache->c_lrutail = NULL;
+	cache->c_dntree.bei_kids = NULL;
 
 	/* free lru mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );

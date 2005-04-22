@@ -563,6 +563,7 @@ bdb_db_close( BackendDB *be )
 	bdb->bi_flags &= ~BDB_IS_OPEN;
 
 	ber_bvarray_free( bdb->bi_db_config );
+	bdb->bi_db_config = NULL;
 
 	while( bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
@@ -573,13 +574,17 @@ bdb_db_close( BackendDB *be )
 		free( db );
 	}
 	free( bdb->bi_databases );
+	bdb->bi_databases = NULL;
+
 	bdb_attr_index_destroy( bdb->bi_attrs );
+	bdb->bi_attrs = NULL;
 
 	bdb_cache_release_all (&bdb->bi_cache);
 
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_wlock ( &bdb->bi_idl_tree_rwlock );
 		avl_free( bdb->bi_idl_tree, NULL );
+		bdb->bi_idl_tree = NULL;
 		entry = bdb->bi_idl_lru_head;
 		while ( entry != NULL ) {
 			next_entry = entry->idl_lru_next;
@@ -589,11 +594,42 @@ bdb_db_close( BackendDB *be )
 			free( entry );
 			entry = next_entry;
 		}
+		bdb->bi_idl_lru_head = bdb->bi_idl_lru_tail = NULL;
 		ldap_pvt_thread_rdwr_wunlock ( &bdb->bi_idl_tree_rwlock );
 	}
 
 	if ( !( slapMode & SLAP_TOOL_QUICK ) && bdb->bi_dbenv ) {
 		XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+		bdb->bi_cache.c_locker = 0;
+	}
+
+	/* close db environment */
+	if( bdb->bi_dbenv ) {
+		/* force a checkpoint */
+		if ( !( slapMode & SLAP_TOOL_QUICK )) {
+			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_close: txn_checkpoint failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+			}
+		}
+
+		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
+		bdb->bi_dbenv = NULL;
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_close: close failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
+			return rc;
+		}
+	}
+
+	rc = alock_close( &bdb->bi_alock_info );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_close: alock_close failed\n", 0, 0, 0 );
+		return -1;
 	}
 
 	return 0;
@@ -604,35 +640,6 @@ bdb_db_destroy( BackendDB *be )
 {
 	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-
-	/* close db environment */
-	if( bdb->bi_dbenv ) {
-		/* force a checkpoint */
-		if ( !( slapMode & SLAP_TOOL_QUICK )) {
-			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
-					db_strerror(rc), rc, 0 );
-			}
-		}
-
-		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
-		bdb->bi_dbenv = NULL;
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_destroy: close failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-			return rc;
-		}
-	}
-
-	rc = alock_close( &bdb->bi_alock_info );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_db_destroy: alock_close failed\n", 0, 0, 0 );
-		return -1;
-	}
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );
