@@ -74,7 +74,7 @@ typedef struct pass_policy {
 	int pwdMinLength; /* minimum number of chars in password */
 	int pwdExpireWarning; /* number of seconds that warning controls are
 							sent before a password expires */
-	int pwdGraceLoginLimit; /* number of times you can log in with an
+	int pwdGraceAuthNLimit; /* number of times you can log in with an
 							expired password */
 	int pwdLockout; /* 0 = do not lockout passwords, 1 = lock them out */
 	int pwdLockoutDuration; /* time in seconds a password is locked out for */
@@ -101,8 +101,8 @@ typedef struct pw_hist {
 
 /* Operational attributes */
 static AttributeDescription *ad_pwdChangedTime, *ad_pwdAccountLockedTime,
-	*ad_pwdExpirationWarned, *ad_pwdFailureTime, *ad_pwdHistory,
-	*ad_pwdGraceUseTime, *ad_pwdReset, *ad_pwdPolicySubentry;
+	*ad_pwdFailureTime, *ad_pwdHistory, *ad_pwdGraceUseTime, *ad_pwdReset,
+	*ad_pwdPolicySubentry;
 
 static struct schema_info {
 	char *def;
@@ -124,14 +124,6 @@ static struct schema_info {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
 		"SINGLE-VALUE USAGE directoryOperation )",
 		&ad_pwdAccountLockedTime },
-	{	"( 1.3.6.1.4.1.42.2.27.8.1.18 "
-		"NAME ( 'pwdExpirationWarned' ) "
-		"DESC 'The time the user was first warned about the coming expiration of the password' "
-		"EQUALITY generalizedTimeMatch "
-		"ORDERING generalizedTimeOrderingMatch "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
-		"SINGLE-VALUE USAGE directoryOperation NO-USER-MODIFICATION )",
-		&ad_pwdExpirationWarned },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.19 "
 		"NAME ( 'pwdFailureTime' ) "
 		"DESC 'The timestamps of the last consecutive authentication failures' "
@@ -174,7 +166,7 @@ static struct schema_info {
 /* User attributes */
 static AttributeDescription *ad_pwdMinAge, *ad_pwdMaxAge, *ad_pwdInHistory,
 	*ad_pwdCheckQuality, *ad_pwdMinLength, *ad_pwdMaxFailure, 
-	*ad_pwdGraceLoginLimit, *ad_pwdExpireWarning, *ad_pwdLockoutDuration,
+	*ad_pwdGraceAuthNLimit, *ad_pwdExpireWarning, *ad_pwdLockoutDuration,
 	*ad_pwdFailureCountInterval, *ad_pwdCheckModule, *ad_pwdLockout,
 	*ad_pwdMustChange, *ad_pwdAllowUserChange, *ad_pwdSafeModify,
 	*ad_pwdAttribute;
@@ -189,7 +181,7 @@ static struct schema_info pwd_UsSchema[] = {
 	TAB(pwdCheckQuality),
 	TAB(pwdMinLength),
 	TAB(pwdMaxFailure),
-	TAB(pwdGraceLoginLimit),
+	TAB(pwdGraceAuthNLimit),
 	TAB(pwdExpireWarning),
 	TAB(pwdLockout),
 	TAB(pwdLockoutDuration),
@@ -370,8 +362,8 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		pp->pwdMinLength = atoi(a->a_vals[0].bv_val );
 	if ((a = attr_find( pe->e_attrs, ad_pwdMaxFailure )))
 		pp->pwdMaxFailure = atoi(a->a_vals[0].bv_val );
-	if ((a = attr_find( pe->e_attrs, ad_pwdGraceLoginLimit )))
-		pp->pwdGraceLoginLimit = atoi(a->a_vals[0].bv_val );
+	if ((a = attr_find( pe->e_attrs, ad_pwdGraceAuthNLimit )))
+		pp->pwdGraceAuthNLimit = atoi(a->a_vals[0].bv_val );
 	if ((a = attr_find( pe->e_attrs, ad_pwdExpireWarning )))
 		pp->pwdExpireWarning = atoi(a->a_vals[0].bv_val );
 	if ((a = attr_find( pe->e_attrs, ad_pwdFailureCountInterval )))
@@ -846,10 +838,10 @@ grace:
 		if (!pwExpired) goto check_expiring_password;
 		
 		if ((a = attr_find( e->e_attrs, ad_pwdGraceUseTime )) == NULL)
-			ngut = ppb->pp.pwdGraceLoginLimit;
+			ngut = ppb->pp.pwdGraceAuthNLimit;
 		else {
 			for(ngut=0; a->a_nvals[ngut].bv_val; ngut++);
-			ngut = ppb->pp.pwdGraceLoginLimit - ngut;
+			ngut = ppb->pp.pwdGraceAuthNLimit - ngut;
 		}
 
 		/*
@@ -901,19 +893,8 @@ check_expiring_password:
 		 */
 		if (ppb->pp.pwdMaxAge - age < ppb->pp.pwdExpireWarning ) {
 			/*
-			 * Set the warning value, add expiration warned timestamp to the entry.
+			 * Set the warning value.
 			 */
-			if ((a = attr_find( e->e_attrs, ad_pwdExpirationWarned )) == NULL) {
-				m = ch_calloc( sizeof(Modifications), 1 );
-				m->sml_op = LDAP_MOD_ADD;
-				m->sml_type = ad_pwdExpirationWarned->ad_cname;
-				m->sml_desc = ad_pwdExpirationWarned;
-				m->sml_values = ch_calloc( sizeof(struct berval), 2 );
-				ber_str2bv( nowstr, 0, 1, &m->sml_values[0] );
-				m->sml_next = mod;
-				mod = m;
-			}
-			
 			warn = ppb->pp.pwdMaxAge - age; /* seconds left until expiry */
 			if (warn < 0) warn = 0; /* something weird here - why is pwExpired not set? */
 			
@@ -1054,7 +1035,7 @@ ppolicy_restrict(
 			rs->sr_ctrls = ctrls;
 		}
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS, 
 			"Operations are restricted to bind/unbind/abandon/StartTLS/modify password" );
 		return rs->sr_err;
 	}
@@ -1258,7 +1239,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	if (pwcons[op->o_conn->c_conn_idx].restrict && !mod_pw_only) {
 		Debug( LDAP_DEBUG_TRACE,
 			"connection restricted to password changing only\n", 0, 0, 0 );
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS; 
 		rs->sr_text = "Operations are restricted to bind/unbind/abandon/StartTLS/modify password";
 		pErr = PP_changeAfterReset;
 		goto return_results;
@@ -1338,14 +1319,14 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			"change password must use DELETE followed by ADD/REPLACE\n",
 			0, 0, 0 );
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "Must supply old password to be changed as well as new one";
 		pErr = PP_mustSupplyOldPassword;
 		goto return_results;
 	}
 
 	if (!pp.pwdAllowUserChange) {
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "User alteration of password is not allowed";
 		pErr = PP_passwordModNotAllowed;
 		goto return_results;
@@ -1360,7 +1341,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		now = slap_get_time();
 		age = (int)(now - pwtime);
 		if ((pwtime != (time_t)-1) && (age < pp.pwdMinAge)) {
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 			rs->sr_text = "Password is too young to change";
 			pErr = PP_passwordTooYoung;
 			goto return_results;
@@ -1499,18 +1480,6 @@ do_modify:
 			mods->sml_op = LDAP_MOD_DELETE;
 			mods->sml_type.bv_val = NULL;
 			mods->sml_desc = ad_pwdGraceUseTime;
-			mods->sml_values = NULL;
-			mods->sml_nvalues = NULL;
-			mods->sml_next = NULL;
-			modtail->sml_next = mods;
-			modtail = mods;
-		}
-
-		if (attr_find(e->e_attrs, ad_pwdExpirationWarned )) {
-			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			mods->sml_op = LDAP_MOD_DELETE;
-			mods->sml_type.bv_val = NULL;
-			mods->sml_desc = ad_pwdExpirationWarned;
 			mods->sml_values = NULL;
 			mods->sml_nvalues = NULL;
 			mods->sml_next = NULL;
