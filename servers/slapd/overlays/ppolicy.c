@@ -151,7 +151,7 @@ static struct schema_info {
 		"DESC 'The indication that the password has been reset' "
 		"EQUALITY booleanMatch "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
-		"SINGLE-VALUE USAGE directoryOperation NO-USER-MODIFICATION )",
+		"SINGLE-VALUE USAGE directoryOperation )",
 		&ad_pwdReset },
 	{	"( 1.3.6.1.4.1.42.2.27.8.1.23 "
 		"NAME ( 'pwdPolicySubentry' ) "
