@@ -34,44 +34,43 @@
 
 int
 meta_back_conn_destroy(
-		Backend		*be,
-		Connection	*conn
-)
+	Backend		*be,
+	Connection	*conn )
 {
-	struct metainfo	*li = ( struct metainfo * )be->be_private;
-	struct metaconn *lc,
-			lc_curr = { 0 };
+	metainfo_t	*mi = ( metainfo_t * )be->be_private;
+	metaconn_t *mc,
+			mc_curr = { 0 };
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=>meta_back_conn_destroy: fetching conn %ld\n",
 		conn->c_connid, 0, 0 );
 	
-	lc_curr.mc_conn = conn;
+	mc_curr.mc_conn = conn;
 	
-	ldap_pvt_thread_mutex_lock( &li->mi_conn_mutex );
-	lc = avl_delete( &li->mi_conntree, ( caddr_t )&lc_curr,
+	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+	mc = avl_delete( &mi->mi_conntree, ( caddr_t )&mc_curr,
 			meta_back_conn_cmp );
-	ldap_pvt_thread_mutex_unlock( &li->mi_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
-	if ( lc ) {
+	if ( mc ) {
 		int	i;
 
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_conn_destroy: destroying conn %ld\n",
-			lc->mc_conn->c_connid, 0, 0 );
+			mc->mc_conn->c_connid, 0, 0 );
 		
 		/*
 		 * Cleanup rewrite session
 		 */
-		for ( i = 0; i < li->mi_ntargets; ++i ) {
-			if ( lc->mc_conns[ i ].msc_ld == NULL ) {
+		for ( i = 0; i < mi->mi_ntargets; ++i ) {
+			if ( mc->mc_conns[ i ].msc_ld == NULL ) {
 				continue;
 			}
 
-			rewrite_session_delete( li->mi_targets[ i ]->mt_rwmap.rwm_rw, conn );
-			meta_clear_one_candidate( &lc->mc_conns[ i ] );
+			rewrite_session_delete( mi->mi_targets[ i ]->mt_rwmap.rwm_rw, conn );
+			meta_clear_one_candidate( &mc->mc_conns[ i ] );
 		}
-		meta_back_conn_free( lc );
+		meta_back_conn_free( mc );
 	}
 
 	/* no response to unbind */

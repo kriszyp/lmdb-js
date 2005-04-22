@@ -34,26 +34,20 @@
 int
 meta_back_modrdn( Operation *op, SlapReply *rs )
 {
-	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn		*lc;
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t		*mc;
 	int			candidate = -1;
 	struct berval		mdn = BER_BVNULL,
 				mnewSuperior = BER_BVNULL;
 	dncookie		dc;
 	int			msgid, do_retry = 1;
 
-	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
-	if ( !lc ) {
+	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
+	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
-	assert( candidate != META_TARGET_NONE );
-
-	if ( !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
-		return rs->sr_err;
-	}
-
-	assert( lc->mc_conns[ candidate ].msc_ld != NULL );
+	assert( mc->mc_conns[ candidate ].msc_ld != NULL );
 		
 	dc.conn = op->o_conn;
 	dc.rs = rs;
@@ -82,13 +76,13 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 
 		/* newSuperior needs LDAPv3; if we got here, we can safely
 		 * enforce it */
-		ldap_set_option( lc->mc_conns[ candidate ].msc_ld,
+		ldap_set_option( mc->mc_conns[ candidate ].msc_ld,
 				LDAP_OPT_PROTOCOL_VERSION, &version );
 
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */
-		dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
+		dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
 		dc.ctx = "newSuperiorDN";
 		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
 			rs->sr_err = LDAP_OTHER;
@@ -99,7 +93,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rs->sr_err = LDAP_OTHER;
@@ -107,13 +101,13 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	}
 
 retry:;
-	rs->sr_err = ldap_rename_s( lc->mc_conns[ candidate ].msc_ld,
+	rs->sr_err = ldap_rename_s( mc->mc_conns[ candidate ].msc_ld,
 			mdn.bv_val, op->orr_newrdn.bv_val,
 			mnewSuperior.bv_val, op->orr_deleteoldrdn,
 			op->o_ctrls, NULL );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( meta_back_retry( op, rs, lc, candidate, LDAP_BACK_SENDERR ) ) {
+		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}
@@ -132,7 +126,7 @@ cleanup:;
 	}
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
-		meta_back_op_result( lc, op, rs, candidate );
+		meta_back_op_result( mc, op, rs, candidate );
 	}
 
 	send_ldap_result( op, rs );

@@ -83,7 +83,7 @@ typedef struct dncookie {
 } dncookie;
 
 #define META_BIND_NRETRIES	3
-#define META_BIND_TIMEOUT	1000
+#define META_BIND_TIMEOUT	10000
 
 int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
 	struct berval *res);
@@ -105,48 +105,58 @@ void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 #define BACKLDAP_REMAP	1
 char *
 ldap_back_map_filter(
-		struct ldapmap *at_map,
-		struct ldapmap *oc_map,
-		struct berval *f,
-		int remap
-);
+	struct ldapmap *at_map,
+	struct ldapmap *oc_map,
+	struct berval *f,
+	int remap );
 
 int
 ldap_back_map_attrs(
-		struct ldapmap *at_map,
-		AttributeName *a,
-		int remap,
-		char ***mapped_attrs
-);
+	struct ldapmap *at_map,
+	AttributeName *a,
+	int remap,
+	char ***mapped_attrs );
 
 extern int ldap_back_map_config(
-		struct ldapmap	*oc_map,
-		struct ldapmap	*at_map,
-		const char	*fname,
-		int		lineno,
-		int		argc,
-		char		**argv );
+	struct ldapmap	*oc_map,
+	struct ldapmap	*at_map,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv );
 
 extern int
 ldap_back_filter_map_rewrite(
-		dncookie		*dc,
-		Filter			*f,
-		struct berval		*fstr,
-		int			remap );
+	dncookie	*dc,
+	Filter		*f,
+	struct berval	*fstr,
+	int		remap );
 
 /* suffix massaging by means of librewrite */
 #ifdef ENABLE_REWRITE
-extern int suffix_massage_config( struct rewrite_info *info,
-		struct berval *pvnc, struct berval *nvnc,
-		struct berval *prnc, struct berval *nrnc);
+extern int
+suffix_massage_config( struct rewrite_info *info,
+	struct berval *pvnc,
+	struct berval *nvnc,
+	struct berval *prnc,
+	struct berval *nrnc );
 #endif /* ENABLE_REWRITE */
-extern int ldap_back_referral_result_rewrite( dncookie *dc, BerVarray a_vals );
-extern int ldap_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
-extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
+extern int
+ldap_back_referral_result_rewrite(
+	dncookie	*dc,
+	BerVarray	a_vals );
+extern int
+ldap_dnattr_rewrite(
+	dncookie	*dc,
+	BerVarray	a_vals );
+extern int
+ldap_dnattr_result_rewrite(
+	dncookie	*dc,
+	BerVarray	a_vals );
 
 /* (end of) from back-ldap.h before rwm removal */
 
-struct metasingleconn {
+typedef struct metasingleconn_t {
 	int			msc_candidate;
 #define	META_NOT_CANDIDATE	((ber_tag_t)0)
 #define	META_CANDIDATE		((ber_tag_t)1)
@@ -159,11 +169,11 @@ struct metasingleconn {
 #define META_UNBOUND		0
 #define META_BOUND		1
 #define META_ANONYMOUS		2
-};
+} metasingleconn_t;
 
-#define META_LAST(lsc)		((lsc)->msc_candidate == META_LAST_CONN)
+#define META_LAST(msc)		((msc)->msc_candidate == META_LAST_CONN)
 
-struct metaconn {
+typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;
 	ldap_pvt_thread_mutex_t	mc_mutex;
 	
@@ -175,10 +185,10 @@ struct metaconn {
 #define META_BOUND_NONE		(-1)
 #define META_BOUND_ALL		(-2)
 	/* supersedes the connection stuff */
-	struct metasingleconn	*mc_conns;
-};
+	metasingleconn_t	*mc_conns;
+} metaconn_t;
 
-struct metatarget {
+typedef struct metatarget_t {
 	char			*mt_uri;
 	struct berval		mt_psuffix;		/* pretty suffix */
 	struct berval		mt_nsuffix;		/* normalized suffix */
@@ -189,26 +199,26 @@ struct metatarget {
 	struct berval           mt_pseudorootpw;
 
 	struct ldaprwmap	mt_rwmap;
-};
+} metatarget_t;
 
-struct metadncache {
+typedef struct metadncache_t {
 	ldap_pvt_thread_mutex_t mutex;
 	Avlnode			*tree;
 
 #define META_DNCACHE_DISABLED   (0)
 #define META_DNCACHE_FOREVER    (-1)
 	long int		ttl;  /* seconds; 0: no cache, -1: no expiry */
-};
+} metadncache_t;
 
-struct metainfo {
+typedef struct metainfo_t {
 	int			mi_ntargets;
 	int			mi_defaulttarget;
 	int			mi_network_timeout;
 #define META_DEFAULT_TARGET_NONE	(-1)
-	struct metatarget	**mi_targets;
+	metatarget_t		**mi_targets;
 	SlapReply		*mi_candidates;
 
-	struct metadncache	mi_cache;
+	metadncache_t		mi_cache;
 	
 	ldap_pvt_thread_mutex_t	mi_conn_mutex;
 	Avlnode			*mi_conntree;
@@ -222,7 +232,7 @@ struct metainfo {
 #define LDAP_BACK_F_TLS_CRITICAL	( 0x04U | LDAP_BACK_F_USE_TLS )
 #define LDAP_BACK_F_CHASE_REFERRALS	0x8U
 #endif
-};
+} metainfo_t;
 
 typedef enum meta_op_type {
 	META_OP_ALLOW_MULTIPLE = 0,
@@ -233,113 +243,123 @@ typedef enum meta_op_type {
 SlapReply *
 meta_back_candidates_get( Operation *op );
 
-extern struct metaconn *
+extern metaconn_t *
 meta_back_getconn(
-		Operation		*op,
-		SlapReply		*rs,
-		int			*candidate,
-		ldap_back_send_t	sendok );
+	Operation		*op,
+	SlapReply		*rs,
+	int			*candidate,
+	ldap_back_send_t	sendok );
 
 extern int
 meta_back_retry(
-		Operation		*op,
-		SlapReply		*rs,
-		struct metaconn		*mc,
-		int			candidate,
-		ldap_back_send_t	sendok );
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	int			candidate,
+	ldap_back_send_t	sendok );
 
 extern void
-meta_back_conn_free( struct metaconn *mc );
+meta_back_conn_free( metaconn_t *mc );
+
+extern int
+meta_back_init_one_conn(
+	Operation		*op,
+	SlapReply		*rs,
+	metatarget_t		*mt, 
+	metasingleconn_t	*msc,
+	ldap_back_send_t	sendok );
 
 extern int
 meta_back_dobind(
-		struct metaconn		*lc,
-		Operation		*op,
-		ldap_back_send_t	sendok );
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	ldap_back_send_t	sendok );
 
 int
 meta_back_single_dobind(
 	Operation		*op,
-	struct metasingleconn	*msc,
+	SlapReply		*rs,
+	metaconn_t		*msc,
+	int			candidate,
 	ldap_back_send_t	sendok,
 	int			retries );
 
 extern int
 meta_back_op_result(
-		struct metaconn		*lc,
-		Operation		*op,
-		SlapReply		*rs,
-		int			candidate );
+	metaconn_t		*mc,
+	Operation		*op,
+	SlapReply		*rs,
+	int			candidate );
 
 extern int
 back_meta_LTX_init_module(
-		int			argc,
-		char			*argv[] );
+	int			argc,
+	char			*argv[] );
 
 extern int
 meta_back_conn_cmp(
-		const void		*c1,
-		const void		*c2 );
+	const void		*c1,
+	const void		*c2 );
 
 extern int
 meta_back_conn_dup(
-		void			*c1,
-		void			*c2 );
+	void			*c1,
+	void			*c2 );
 
 /*
  * Candidate stuff
  */
 extern int
 meta_back_is_candidate(
-		struct berval		*nsuffix,
-		struct berval		*ndn,
-		int			scope );
+	struct berval		*nsuffix,
+	struct berval		*ndn,
+	int			scope );
 
 extern int
 meta_back_select_unique_candidate(
-		struct metainfo		*li,
-		struct berval		*ndn );
+	metainfo_t		*mi,
+	struct berval		*ndn );
 
 extern int
 meta_clear_unused_candidates(
-		Operation		*op,
-		struct metaconn		*lc,
-		int			candidate );
+	Operation		*op,
+	int			candidate );
 
 extern int
 meta_clear_one_candidate(
-		struct metasingleconn	*lc );
+	metasingleconn_t	*mc );
 
 /*
  * Dn cache stuff (experimental)
  */
 extern int
 meta_dncache_cmp(
-		const void		*c1,
-		const void		*c2 );
+	const void		*c1,
+	const void		*c2 );
 
 extern int
 meta_dncache_dup(
-		void			*c1,
-		void			*c2 );
+	void			*c1,
+	void			*c2 );
 
 #define META_TARGET_NONE	(-1)
 #define META_TARGET_MULTIPLE	(-2)
 extern int
 meta_dncache_get_target(
-		struct metadncache	*cache,
-		struct berval		*ndn );
+	metadncache_t		*cache,
+	struct berval		*ndn );
 
 extern int
 meta_dncache_update_entry(
-		struct metadncache	*cache,
-		struct berval		*ndn,
-		int			target );
+	metadncache_t		*cache,
+	struct berval		*ndn,
+	int			target );
 
 extern int
 meta_dncache_delete_entry(
-		struct metadncache	*cache,
-		struct berval		*ndn );
+	metadncache_t		*cache,
+	struct berval		*ndn );
 
 extern void
 meta_dncache_free( void *entry );

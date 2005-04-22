@@ -35,8 +35,8 @@
 int
 meta_back_add( Operation *op, SlapReply *rs )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn	*mc;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t	*mc;
 	int		i, candidate = -1;
 	int		isupdate;
 	Attribute	*a;
@@ -52,7 +52,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	 * get the current connection
 	 */
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
-	if ( !mc || !meta_back_dobind( mc, op, LDAP_BACK_SENDERR ) ) {
+	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
@@ -61,7 +61,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDN";
@@ -93,7 +93,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			mapped = a->a_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &li->mi_targets[ candidate ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
 					&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
 				continue;
@@ -118,11 +118,11 @@ meta_back_add( Operation *op, SlapReply *rs )
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
 				struct ldapmapping	*mapping;
 
-				ldap_back_mapping( &li->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
+				ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
 						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
 
 				if ( mapping == NULL ) {
-					if ( li->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
+					if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
 						continue;
 					}
 					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];

@@ -34,8 +34,8 @@
 int
 meta_back_modify( Operation *op, SlapReply *rs )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn	*lc;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t	*mc;
 	int		rc = 0;
 	LDAPMod		**modv = NULL;
 	LDAPMod		*mods = NULL;
@@ -45,19 +45,19 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	struct berval	mdn = BER_BVNULL;
 	struct berval	mapped;
 	dncookie	dc;
-	int		msgid, do_retry = 1;
+	int		do_retry = 1;
 
-	lc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
-	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
+	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
-	assert( lc->mc_conns[ candidate ].msc_ld != NULL );
+	assert( mc->mc_conns[ candidate ].msc_ld != NULL );
 
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
-	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "modifyDN";
@@ -99,7 +99,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 			mapped = ml->sml_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &li->mi_targets[ candidate ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
 					&ml->sml_desc->ad_cname, &mapped,
 					BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
@@ -126,11 +126,11 @@ meta_back_modify( Operation *op, SlapReply *rs )
 				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); ) {
 					struct ldapmapping	*mapping;
 
-					ldap_back_mapping( &li->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
+					ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
 							&ml->sml_values[ j ], &mapping, BACKLDAP_MAP );
 
 					if ( mapping == NULL ) {
-						if ( li->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
+						if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
 							continue;
 						}
 						mods[ i ].mod_bvalues[ j ] = &ml->sml_values[ j ];
@@ -172,11 +172,11 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	modv[ i ] = 0;
 
 retry:;
-	rs->sr_err = ldap_modify_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+	rs->sr_err = ldap_modify_ext_s( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			modv, op->o_ctrls, NULL );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( meta_back_retry( op, rs, lc, candidate, LDAP_BACK_SENDERR ) ) {
+		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}
@@ -195,7 +195,7 @@ cleanup:;
 	free( modv );
 
 	if ( rc != -1 ) {
-		return meta_back_op_result( lc, op, rs, candidate );
+		return meta_back_op_result( mc, op, rs, candidate );
 	}
 	
 	send_ldap_result( op, rs );

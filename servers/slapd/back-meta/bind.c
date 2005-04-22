@@ -37,16 +37,16 @@ static LDAP_REBIND_PROC	meta_back_rebind;
 
 static int
 meta_back_single_bind(
-		Operation		*op,
-		SlapReply		*rs,
-		struct metaconn		*mc,
-		int			candidate );
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	int			candidate );
 
 int
 meta_back_bind( Operation *op, SlapReply *rs )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn *mc;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t	*mc;
 
 	int		rc = LDAP_OTHER,
 			i, gotit = 0, isroot = 0;
@@ -90,7 +90,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	 * Each target is scanned ...
 	 */
 	mc->mc_auth_target = META_BOUND_NONE;
-	for ( i = 0; i < li->mi_ntargets; i++ ) {
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		int		lerr;
 		Operation	op2 = *op;
 
@@ -115,11 +115,11 @@ meta_back_bind( Operation *op, SlapReply *rs )
 					0, 0, 0 );
 		}
 
-		if ( isroot && !BER_BVISNULL( &li->mi_targets[ i ]->mt_pseudorootdn ) )
+		if ( isroot && !BER_BVISNULL( &mi->mi_targets[ i ]->mt_pseudorootdn ) )
 		{
-			op2.o_req_dn = li->mi_targets[ i ]->mt_pseudorootdn;
-			op2.o_req_ndn = li->mi_targets[ i ]->mt_pseudorootdn;
-			op2.orb_cred = li->mi_targets[ i ]->mt_pseudorootpw;
+			op2.o_req_dn = mi->mi_targets[ i ]->mt_pseudorootdn;
+			op2.o_req_ndn = mi->mi_targets[ i ]->mt_pseudorootdn;
+			op2.orb_cred = mi->mi_targets[ i ]->mt_pseudorootpw;
 			op2.orb_method = LDAP_AUTH_SIMPLE;
 		}
 		
@@ -171,22 +171,22 @@ meta_back_bind( Operation *op, SlapReply *rs )
  */
 static int
 meta_back_single_bind(
-		Operation		*op,
-		SlapReply		*rs,
-		struct metaconn		*mc,
-		int			candidate
-)
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	int			candidate )
 {
-	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
 	struct berval		mdn = BER_BVNULL;
 	dncookie		dc;
-	struct metasingleconn	*msc = &mc->mc_conns[ candidate ];
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			msgid;
 	
 	/*
 	 * Rewrite the bind dn if needed
 	 */
-	dc.rwmap = &li->mi_targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "bindDN";
@@ -201,6 +201,7 @@ meta_back_single_bind(
 	 * and more in case of failure ... */
 	/* FIXME: should be check if at least some of the op->o_ctrls
 	 * can/should be passed? */
+rebind:;
 	rs->sr_err = ldap_sasl_bind( msc->msc_ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->orb_cred,
 			op->o_ctrls, NULL, &msgid );
@@ -229,10 +230,22 @@ retry:;
 		case -1:
 			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err );
+
+			Debug( LDAP_DEBUG_ANY, "### %s meta_back_single_bind(%s) err=%d\n",
+				op->o_log_prefix, mdn.bv_val, rs->sr_err );
+
 			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries > 0 ) {
-				nretries--;
-				if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
-					goto retry;
+				ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+				msc->msc_ld = NULL;
+			        msc->msc_bound = 0;
+
+			        /* mc here must be the regular mc, reset and ready for init */
+			        rc = meta_back_init_one_conn( op, rs, mt, msc,
+						LDAP_BACK_DONTSEND );
+				if ( rc ) {
+					nretries--;
+					ldap_pvt_thread_yield();
+					goto rebind;
 				}
 			}
 			break;
@@ -256,15 +269,15 @@ retry:;
 	msc->msc_bound = META_BOUND;
 	mc->mc_auth_target = candidate;
 
-	if ( LDAP_BACK_SAVECRED( li ) ) {
+	if ( LDAP_BACK_SAVECRED( mi ) ) {
 		ber_bvreplace( &msc->msc_cred, &op->orb_cred );
 		ldap_set_rebind_proc( msc->msc_ld, meta_back_rebind, msc );
 	}
 
-	if ( li->mi_cache.ttl != META_DNCACHE_DISABLED
+	if ( mi->mi_cache.ttl != META_DNCACHE_DISABLED
 			&& op->o_req_ndn.bv_len != 0 )
 	{
-		( void )meta_dncache_update_entry( &li->mi_cache,
+		( void )meta_dncache_update_entry( &mi->mi_cache,
 				&op->o_req_ndn, candidate );
 	}
 
@@ -282,13 +295,18 @@ return_results:;
 int
 meta_back_single_dobind(
 	Operation		*op,
-	struct metasingleconn	*msc,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	int			candidate,
 	ldap_back_send_t	sendok,
 	int			retries )
 {
-	int		rc;
-	struct berval	cred = BER_BVC( "" );
-	int		msgid;
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
+	int			rc;
+	struct berval		cred = BER_BVC( "" );
+	int			msgid;
 
 	/*
 	 * Otherwise an anonymous bind is performed
@@ -300,9 +318,7 @@ meta_back_single_dobind(
 		BER_BVZERO( &msc->msc_bound_ndn );
 	}
 		
-	if ( /* FIXME: need li ... li->savecred && */ 
-			!BER_BVISNULL( &msc->msc_cred ) )
-	{
+	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 		/* destroy sensitive data */
 		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
 		ber_memfree( msc->msc_cred.bv_val );
@@ -311,23 +327,23 @@ meta_back_single_dobind(
 
 	/* FIXME: should we check if at least some of the op->o_ctrls
 	 * can/should be passed? */
+rebind:;
 	rc = ldap_sasl_bind( msc->msc_ld, "", LDAP_SASL_SIMPLE, &cred,
 			NULL, NULL, &msgid );
 	if ( rc == LDAP_SUCCESS ) {
 		LDAPMessage	*res;
 		struct timeval	tv = { 0, 0 };
-		int		err;
 
 		/*
 		 * handle response!!!
 		 */
 retry:;
+		tv.tv_sec = 0;
+		tv.tv_usec = META_BIND_TIMEOUT;
 		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
 			if ( retries > 0 ) {
 				ldap_pvt_thread_yield();
-				tv.tv_sec = 0;
-				tv.tv_usec = META_BIND_TIMEOUT;
 				retries--;
 				goto retry;
 			}
@@ -337,17 +353,41 @@ retry:;
 
 		case -1:
 			ldap_get_option( msc->msc_ld,
-					LDAP_OPT_ERROR_NUMBER, &rc );
+					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+
+			Debug( LDAP_DEBUG_ANY, "### %s meta_back_single_dobind(\"\") err=%d\n",
+				op->o_log_prefix, rs->sr_err, 0 );
+
+			rc = slap_map_api2result( rs );
+			if ( rc == LDAP_UNAVAILABLE && retries > 0 ) {
+				ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+				msc->msc_ld = NULL;
+			        msc->msc_bound = 0;
+
+			        /* mc here must be the regular mc, reset and ready for init */
+			        rc = meta_back_init_one_conn( op, rs, mt, msc, LDAP_BACK_DONTSEND );
+
+				if ( rc ) {
+					ldap_pvt_thread_yield();
+					retries--;
+					goto rebind;
+				}
+			}
 			break;
 
 		default:
-			rc = ldap_parse_result( msc->msc_ld, res, &err,
+			rc = ldap_parse_result( msc->msc_ld, res, &rs->sr_err,
 					NULL, NULL, NULL, NULL, 1 );
 			if ( rc == LDAP_SUCCESS ) {
-				rc = err;
+				rc = slap_map_api2result( rs );
 			}
 			break;
 		}
+	}
+
+	if ( rc != LDAP_SUCCESS && ( sendok & LDAP_BACK_SENDERR ) ) {
+		rs->sr_err = rc;
+		send_ldap_result( op, rs );
 	}
 
 	return rc;
@@ -357,9 +397,13 @@ retry:;
  * meta_back_dobind
  */
 int
-meta_back_dobind( struct metaconn *mc, Operation *op, ldap_back_send_t sendok )
+meta_back_dobind(
+	Operation		*op,
+	SlapReply		*rs,
+	metaconn_t		*mc,
+	ldap_back_send_t	sendok )
 {
-	struct metasingleconn	*msc;
+	metasingleconn_t	*msc;
 	int			bound = 0, i;
 
 	SlapReply		*candidates = meta_back_candidates_get( op );
@@ -392,7 +436,8 @@ meta_back_dobind( struct metaconn *mc, Operation *op, ldap_back_send_t sendok )
 			continue;
 		}
 
-		rc = meta_back_single_dobind( op, msc, sendok, META_BIND_NRETRIES );
+		rc = meta_back_single_dobind( op, rs, mc, i,
+			LDAP_BACK_DONTSEND, META_BIND_NRETRIES );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "%s meta_back_dobind[%d]: "
 					"(anonymous) err=%d\n",
@@ -420,6 +465,13 @@ meta_back_dobind( struct metaconn *mc, Operation *op, ldap_back_send_t sendok )
 done:;
         ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
 
+	if ( bound == 0 && sendok & LDAP_BACK_SENDERR ) {
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			rs->sr_err = LDAP_BUSY;
+		}
+		send_ldap_result( op, rs );
+	}
+
 	return( bound > 0 );
 }
 
@@ -430,10 +482,14 @@ done:;
  * credentials as the original user on this session.
  */
 static int 
-meta_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
-	ber_int_t msgid, void *params )
+meta_back_rebind(
+	LDAP			*ld,
+	LDAP_CONST char		*url,
+	ber_tag_t		request,
+	ber_int_t		msgid,
+	void			*params )
 {
-	struct metasingleconn	*msc = (struct metasingleconn *)params;
+	metasingleconn_t	*msc = ( metasingleconn_t * )params;
 
 	return ldap_sasl_bind_s( ld, msc->msc_bound_ndn.bv_val,
 			LDAP_SASL_SIMPLE, &msc->msc_cred,
@@ -445,14 +501,14 @@ meta_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
  */
 int
 meta_back_op_result(
-	struct metaconn	*mc,
+	metaconn_t	*mc,
 	Operation	*op,
 	SlapReply	*rs,
 	int		candidate )
 {
 	int			i,
 				rerr = LDAP_SUCCESS;
-	struct metasingleconn	*msc;
+	metasingleconn_t	*msc;
 	char			*rmsg = NULL;
 	char			*rmatch = NULL;
 	int			free_rmsg = 0,

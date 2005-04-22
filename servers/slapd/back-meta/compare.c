@@ -34,9 +34,9 @@
 int
 meta_back_compare( Operation *op, SlapReply *rs )
 {
-	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn		*lc;
-	struct metasingleconn	*lsc;
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t		*mc;
+	metasingleconn_t	*msc;
 	char			*match = NULL,
 				*err = NULL;
 	struct berval		mmatch = BER_BVNULL;
@@ -52,12 +52,12 @@ meta_back_compare( Operation *op, SlapReply *rs )
 
 	SlapReply		*candidates = meta_back_candidates_get( op );
 
-	lc = meta_back_getconn( op, rs, NULL, LDAP_BACK_SENDERR );
-	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+	mc = meta_back_getconn( op, rs, NULL, LDAP_BACK_SENDERR );
+	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 	
-	msgid = ch_calloc( sizeof( int ), li->mi_ntargets );
+	msgid = ch_calloc( sizeof( int ), mi->mi_ntargets );
 	if ( msgid == NULL ) {
 		return -1;
 	}
@@ -69,7 +69,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	dc.rs = rs;
 	dc.ctx = "compareDN";
 
-	for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); ++i, ++lsc ) {
+	for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); ++i, ++msc ) {
 		struct berval mdn = BER_BVNULL;
 		struct berval mapped_attr = op->orc_ava->aa_desc->ad_cname;
 		struct berval mapped_value = op->orc_ava->aa_value;
@@ -82,7 +82,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the compare dn, if needed
 		 */
-		dc.rwmap = &li->mi_targets[ i ]->mt_rwmap;
+		dc.rwmap = &mi->mi_targets[ i ]->mt_rwmap;
 
 		switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		case LDAP_UNWILLING_TO_PERFORM:
@@ -97,7 +97,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * if attr is objectClass, try to remap the value
 		 */
 		if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-			ldap_back_map( &li->mi_targets[ i ]->mt_rwmap.rwm_oc,
+			ldap_back_map( &mi->mi_targets[ i ]->mt_rwmap.rwm_oc,
 					&op->orc_ava->aa_value,
 					&mapped_value, BACKLDAP_MAP );
 
@@ -108,7 +108,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * else try to remap the attribute
 		 */
 		} else {
-			ldap_back_map( &li->mi_targets[ i ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ i ]->mt_rwmap.rwm_at,
 				&op->orc_ava->aa_desc->ad_cname,
 				&mapped_attr, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped_attr ) || mapped_attr.bv_val[0] == '\0' ) {
@@ -136,7 +136,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * that returns determines the result; a constraint on unicity
 		 * of the result ought to be enforced
 		 */
-		 rc = ldap_compare_ext( lc->mc_conns[ i ].msc_ld, mdn.bv_val,
+		 rc = ldap_compare_ext( mc->mc_conns[ i ].msc_ld, mdn.bv_val,
 				mapped_attr.bv_val, &mapped_value,
 				op->o_ctrls, NULL, &msgid[ i ] );
 
@@ -171,7 +171,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * FIXME: should we check for abandon?
 		 */
-		for ( i = 0, lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); lsc++, i++ ) {
+		for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); msc++, i++ ) {
 			int		lrc;
 			LDAPMessage	*res = NULL;
 			struct timeval	tv = { 0 };
@@ -183,7 +183,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 				continue;
 			}
 
-			lrc = ldap_result( lsc->msc_ld, msgid[ i ],
+			lrc = ldap_result( msc->msc_ld, msgid[ i ],
 					0, &tv, &res );
 
 			if ( lrc == 0 ) {
@@ -193,7 +193,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 			} else if ( lrc == -1 ) {
 				/* we do not retry in this case;
 				 * only for unique operations... */
-				ldap_get_option( lsc->msc_ld,
+				ldap_get_option( msc->msc_ld,
 					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
 				rres = slap_map_api2result( rs );
 				rres = rc;
@@ -207,7 +207,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					goto finish;
 				}
 
-				rc = ldap_parse_result( lsc->msc_ld, res,
+				rc = ldap_parse_result( msc->msc_ld, res,
 						&rs->sr_err,
 						NULL, NULL, NULL, NULL, 1 );
 				if ( rc != LDAP_SUCCESS ) {
@@ -224,8 +224,8 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					 * true or false, got it;
 					 * sending to cache ...
 					 */
-					if ( li->mi_cache.ttl != META_DNCACHE_DISABLED ) {
-						( void )meta_dncache_update_entry( &li->mi_cache, &op->o_req_ndn, i );
+					if ( mi->mi_cache.ttl != META_DNCACHE_DISABLED ) {
+						( void )meta_dncache_update_entry( &mi->mi_cache, &op->o_req_ndn, i );
 					}
 
 					count++;
@@ -238,13 +238,13 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					if ( err != NULL ) {
 						free( err );
 					}
-					ldap_get_option( lsc->msc_ld,
+					ldap_get_option( msc->msc_ld,
 						LDAP_OPT_ERROR_STRING, &err );
 
 					if ( match != NULL ) {
 						free( match );
 					}
-					ldap_get_option( lsc->msc_ld,
+					ldap_get_option( msc->msc_ld,
 						LDAP_OPT_MATCHED_DN, &match );
 					
 					last = i;

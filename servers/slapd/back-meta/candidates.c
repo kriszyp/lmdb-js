@@ -52,9 +52,8 @@
 
 static int
 meta_back_is_candidate_unique(
-		struct metainfo		*li,
-		struct berval		*ndn
-);
+	metainfo_t	*mi,
+	struct berval	*ndn );
 
 /*
  * returns 1 if suffix is candidate for dn, otherwise 0
@@ -63,10 +62,9 @@ meta_back_is_candidate_unique(
  */
 int 
 meta_back_is_candidate(
-		struct berval	*nsuffix,
-		struct berval	*ndn,
-		int		scope
-)
+	struct berval	*nsuffix,
+	struct berval	*ndn,
+	int		scope )
 {
 	if ( dnIsSuffix( ndn, nsuffix ) ) {
 		return META_CANDIDATE;
@@ -90,11 +88,10 @@ meta_back_is_candidate(
  */
 static int
 meta_back_is_candidate_unique(
-		struct metainfo		*li,
-		struct berval		*ndn
-)
+	metainfo_t	*mi,
+	struct berval	*ndn )
 {
-	switch ( meta_back_select_unique_candidate( li, ndn ) ) {
+	switch ( meta_back_select_unique_candidate( mi, ndn ) ) {
 	case META_TARGET_MULTIPLE:
 	case META_TARGET_NONE:
 		return 0;
@@ -112,14 +109,13 @@ meta_back_is_candidate_unique(
  */
 int
 meta_back_select_unique_candidate(
-		struct metainfo		*li,
-		struct berval		*ndn
-)
+	metainfo_t	*mi,
+	struct berval	*ndn )
 {
 	int	i, candidate = META_TARGET_NONE;
 
-	for ( i = 0; i < li->mi_ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->mi_targets[ i ]->mt_nsuffix, ndn, LDAP_SCOPE_BASE ) )
+	for ( i = 0; i < mi->mi_ntargets; ++i ) {
+		if ( meta_back_is_candidate( &mi->mi_targets[ i ]->mt_nsuffix, ndn, LDAP_SCOPE_BASE ) )
 		{
 			if ( candidate == META_TARGET_NONE ) {
 				candidate = i;
@@ -140,16 +136,14 @@ meta_back_select_unique_candidate(
  */
 int
 meta_clear_unused_candidates(
-		Operation		*op,
-		struct metaconn		*lc,
-		int			candidate
-)
+	Operation	*op,
+	int		candidate )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	int		i;
 	SlapReply	*candidates = meta_back_candidates_get( op );
 	
-	for ( i = 0; i < li->mi_ntargets; ++i ) {
+	for ( i = 0; i < mi->mi_ntargets; ++i ) {
 		if ( i == candidate ) {
 			continue;
 		}
@@ -166,22 +160,21 @@ meta_clear_unused_candidates(
  */
 int
 meta_clear_one_candidate(
-		struct metasingleconn	*lsc
-)
+	metasingleconn_t	*msc )
 {
-	if ( lsc->msc_ld ) {
-		ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
-		lsc->msc_ld = NULL;
+	if ( msc->msc_ld ) {
+		ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+		msc->msc_ld = NULL;
 	}
 
-	if ( !BER_BVISNULL( &lsc->msc_bound_ndn ) ) {
-		ber_memfree( lsc->msc_bound_ndn.bv_val );
-		BER_BVZERO( &lsc->msc_bound_ndn );
+	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+		ber_memfree( msc->msc_bound_ndn.bv_val );
+		BER_BVZERO( &msc->msc_bound_ndn );
 	}
 
-	if ( !BER_BVISNULL( &lsc->msc_cred ) ) {
-		ber_memfree( lsc->msc_cred.bv_val );
-		BER_BVZERO( &lsc->msc_cred );
+	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+		ber_memfree( msc->msc_cred.bv_val );
+		BER_BVZERO( &msc->msc_cred );
 	}
 
 	return 0;

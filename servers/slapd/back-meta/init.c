@@ -28,8 +28,7 @@
 
 int
 meta_back_open(
-	BackendInfo *bi
-)
+	BackendInfo	*bi )
 {
 	bi->bi_controls = slap_known_controls;
 	return 0;
@@ -37,8 +36,7 @@ meta_back_open(
 
 int
 meta_back_initialize(
-		BackendInfo	*bi
-)
+	BackendInfo	*bi )
 {
 	bi->bi_open = meta_back_open;
 	bi->bi_config = 0;
@@ -73,58 +71,58 @@ meta_back_initialize(
 
 int
 meta_back_db_init(
-		Backend	*be
-)
+	Backend		*be )
 {
-	struct metainfo	*li;
+	metainfo_t	*mi;
 
-	li = ch_calloc( 1, sizeof( struct metainfo ) );
-	if ( li == NULL ) {
+	mi = ch_malloc( sizeof( metainfo_t ) );
+	if ( mi == NULL ) {
  		return -1;
  	}
+	memset( mi, 0, sizeof( metainfo_t ) );
 
 	/*
 	 * At present the default is no default target;
 	 * this may change
 	 */
-	li->mi_defaulttarget = META_DEFAULT_TARGET_NONE;
+	mi->mi_defaulttarget = META_DEFAULT_TARGET_NONE;
 
-	ldap_pvt_thread_mutex_init( &li->mi_conn_mutex );
-	ldap_pvt_thread_mutex_init( &li->mi_cache.mutex );
-	be->be_private = li;
+	ldap_pvt_thread_mutex_init( &mi->mi_conn_mutex );
+	ldap_pvt_thread_mutex_init( &mi->mi_cache.mutex );
+	be->be_private = mi;
 
 	return 0;
 }
 
 static void
 conn_free( 
-	void *v_lc
-)
+	void 		*v_mc )
 {
-	struct metaconn		*lc = v_lc;
-	struct metasingleconn	*lsc;
+	metaconn_t		*mc = v_mc;
+	metasingleconn_t	*msc;
 
-	assert( lc->mc_conns != NULL );
+	assert( mc->mc_conns != NULL );
 
-	for ( lsc = &lc->mc_conns[ 0 ]; !META_LAST( lsc ); lsc++ ) {
-		if ( lsc->msc_ld != NULL ) {
-			ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
+	for ( msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); msc++ ) {
+		if ( msc->msc_ld != NULL ) {
+			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
 		}
-		if ( !BER_BVISNULL( &lsc->msc_bound_ndn ) ) {
-			ber_memfree( lsc->msc_bound_ndn.bv_val );
+		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+			ber_memfree( msc->msc_bound_ndn.bv_val );
 		}
-		if ( !BER_BVISNULL( &lsc->msc_cred ) ) {
+		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 			/* destroy sensitive data */
-			memset( lsc->msc_cred.bv_val, 0, lsc->msc_cred.bv_len );
-			ber_memfree( lsc->msc_cred.bv_val );
+			memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
+			ber_memfree( msc->msc_cred.bv_val );
 		}
 	}
 
-	free( lc );
+	free( mc );
 }
 
 static void
-mapping_free( void *v_mapping )
+mapping_free(
+	void		*v_mapping )
 {
 	struct ldapmapping *mapping = v_mapping;
 	ch_free( mapping->src.bv_val );
@@ -134,84 +132,82 @@ mapping_free( void *v_mapping )
 
 static void
 target_free(
-		struct metatarget *lt
-)
+	metatarget_t	*mt )
 {
-	if ( lt->mt_uri ) {
-		free( lt->mt_uri );
+	if ( mt->mt_uri ) {
+		free( mt->mt_uri );
 	}
-	if ( !BER_BVISNULL( &lt->mt_psuffix ) ) {
-		free( lt->mt_psuffix.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_psuffix ) ) {
+		free( mt->mt_psuffix.bv_val );
 	}
-	if ( !BER_BVISNULL( &lt->mt_nsuffix ) ) {
-		free( lt->mt_nsuffix.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_nsuffix ) ) {
+		free( mt->mt_nsuffix.bv_val );
 	}
-	if ( !BER_BVISNULL( &lt->mt_binddn ) ) {
-		free( lt->mt_binddn.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_binddn ) ) {
+		free( mt->mt_binddn.bv_val );
 	}
-	if ( !BER_BVISNULL( &lt->mt_bindpw ) ) {
-		free( lt->mt_bindpw.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_bindpw ) ) {
+		free( mt->mt_bindpw.bv_val );
 	}
-	if ( !BER_BVISNULL( &lt->mt_pseudorootdn ) ) {
-		free( lt->mt_pseudorootdn.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_pseudorootdn ) ) {
+		free( mt->mt_pseudorootdn.bv_val );
 	}
-	if ( !BER_BVISNULL( &lt->mt_pseudorootpw ) ) {
-		free( lt->mt_pseudorootpw.bv_val );
+	if ( !BER_BVISNULL( &mt->mt_pseudorootpw ) ) {
+		free( mt->mt_pseudorootpw.bv_val );
 	}
-	if ( lt->mt_rwmap.rwm_rw ) {
-		rewrite_info_delete( &lt->mt_rwmap.rwm_rw );
+	if ( mt->mt_rwmap.rwm_rw ) {
+		rewrite_info_delete( &mt->mt_rwmap.rwm_rw );
 	}
-	avl_free( lt->mt_rwmap.rwm_oc.remap, NULL );
-	avl_free( lt->mt_rwmap.rwm_oc.map, mapping_free );
-	avl_free( lt->mt_rwmap.rwm_at.remap, NULL );
-	avl_free( lt->mt_rwmap.rwm_at.map, mapping_free );
+	avl_free( mt->mt_rwmap.rwm_oc.remap, NULL );
+	avl_free( mt->mt_rwmap.rwm_oc.map, mapping_free );
+	avl_free( mt->mt_rwmap.rwm_at.remap, NULL );
+	avl_free( mt->mt_rwmap.rwm_at.map, mapping_free );
 }
 
 int
 meta_back_db_destroy(
-    Backend	*be
-)
+	Backend		*be )
 {
-	struct metainfo *li;
+	metainfo_t	*mi;
 
 	if ( be->be_private ) {
 		int i;
 
-		li = ( struct metainfo * )be->be_private;
+		mi = ( metainfo_t * )be->be_private;
 
 		/*
 		 * Destroy the connection tree
 		 */
-		ldap_pvt_thread_mutex_lock( &li->mi_conn_mutex );
+		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 
-		if ( li->mi_conntree ) {
-			avl_free( li->mi_conntree, conn_free );
+		if ( mi->mi_conntree ) {
+			avl_free( mi->mi_conntree, conn_free );
 		}
 
 		/*
 		 * Destroy the per-target stuff (assuming there's at
 		 * least one ...)
 		 */
-		for ( i = 0; i < li->mi_ntargets; i++ ) {
-			target_free( li->mi_targets[ i ] );
-			free( li->mi_targets[ i ] );
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			target_free( mi->mi_targets[ i ] );
+			free( mi->mi_targets[ i ] );
 		}
 
-		free( li->mi_targets );
+		free( mi->mi_targets );
 
-		ldap_pvt_thread_mutex_lock( &li->mi_cache.mutex );
-		if ( li->mi_cache.tree ) {
-			avl_free( li->mi_cache.tree, meta_dncache_free );
+		ldap_pvt_thread_mutex_lock( &mi->mi_cache.mutex );
+		if ( mi->mi_cache.tree ) {
+			avl_free( mi->mi_cache.tree, meta_dncache_free );
 		}
 		
-		ldap_pvt_thread_mutex_unlock( &li->mi_cache.mutex );
-		ldap_pvt_thread_mutex_destroy( &li->mi_cache.mutex );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_cache.mutex );
+		ldap_pvt_thread_mutex_destroy( &mi->mi_cache.mutex );
 
-		ldap_pvt_thread_mutex_unlock( &li->mi_conn_mutex );
-		ldap_pvt_thread_mutex_destroy( &li->mi_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+		ldap_pvt_thread_mutex_destroy( &mi->mi_conn_mutex );
 
-		if ( li->mi_candidates != NULL ) {
-			ber_memfree_x( li->mi_candidates, NULL );
+		if ( mi->mi_candidates != NULL ) {
+			ber_memfree_x( mi->mi_candidates, NULL );
 		}
 	}
 
