@@ -42,37 +42,38 @@ struct nonpresent_entry {
 };
 
 typedef struct syncinfo_s {
-        struct slap_backend_db *si_be;
-        long				si_rid;
-        struct berval		si_provideruri;
-		slap_bindconf		si_bindconf;
-        struct berval		si_filterstr;
-        struct berval		si_base;
-        int					si_scope;
-        int					si_attrsonly;
-		char				*si_anfile;
-		AttributeName		*si_anlist;
-		AttributeName		*si_exanlist;
-		char 				**si_attrs;
-		char				**si_exattrs;
-		int					si_allattrs;
-		int					si_allopattrs;
-		int					si_schemachecking;
-        int					si_type;
-        time_t				si_interval;
-		time_t				*si_retryinterval;
-		int					*si_retrynum_init;
-		int					*si_retrynum;
-		struct sync_cookie	si_syncCookie;
-        int					si_manageDSAit;
-        int					si_slimit;
-		int					si_tlimit;
-		int					si_refreshDelete;
-		int					si_refreshPresent;
-        Avlnode				*si_presentlist;
-		LDAP				*si_ld;
-		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
-		ldap_pvt_thread_mutex_t	si_mutex;
+	struct slap_backend_db *si_be;
+	struct re_s			*si_re;
+	long				si_rid;
+	struct berval		si_provideruri;
+	slap_bindconf		si_bindconf;
+	struct berval		si_filterstr;
+	struct berval		si_base;
+	int					si_scope;
+	int					si_attrsonly;
+	char				*si_anfile;
+	AttributeName		*si_anlist;
+	AttributeName		*si_exanlist;
+	char 				**si_attrs;
+	char				**si_exattrs;
+	int					si_allattrs;
+	int					si_allopattrs;
+	int					si_schemachecking;
+	int					si_type;
+	time_t				si_interval;
+	time_t				*si_retryinterval;
+	int					*si_retrynum_init;
+	int					*si_retrynum;
+	struct sync_cookie	si_syncCookie;
+	int					si_manageDSAit;
+	int					si_slimit;
+	int					si_tlimit;
+	int					si_refreshDelete;
+	int					si_refreshPresent;
+	Avlnode				*si_presentlist;
+	LDAP				*si_ld;
+	LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
+	ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
 
 static int syncuuid_cmp( const void *, const void * );
@@ -882,7 +883,7 @@ done:
 	return rc;
 }
 
-void *
+static void *
 do_syncrepl(
 	void	*ctx,
 	void	*arg )
@@ -2623,6 +2624,14 @@ add_syncrepl(
 
 	rc = parse_syncrepl_line( cargv, cargc, si );
 
+	if ( rc == 0 ) {
+		si->si_be = be;
+		init_syncrepl( si );
+		si->si_re = ldap_pvt_runqueue_insert( &slapd_rq, si->si_interval,
+			do_syncrepl, si );
+		if ( !si->si_re )
+			rc = -1;
+	}
 	if ( rc < 0 ) {
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
 		syncinfo_free( si );	
@@ -2635,10 +2644,7 @@ add_syncrepl(
 		if ( !si->si_schemachecking ) {
 			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
-		si->si_be = be;
 		be->be_syncinfo = si;
-		init_syncrepl( si );
-		ldap_pvt_runqueue_insert( &slapd_rq,si->si_interval,do_syncrepl,si );
 		return 0;
 	}
 }
@@ -2763,7 +2769,7 @@ syncrepl_config(ConfigArgs *c) {
 		struct re_s *re;
 
 		if ( c->be->be_syncinfo ) {
-			re = ldap_pvt_runqueue_find( &slapd_rq, do_syncrepl, c->be->be_syncinfo );
+			re = c->be->be_syncinfo->si_re;
 			if ( re ) {
 				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ))
 					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
@@ -2772,6 +2778,7 @@ syncrepl_config(ConfigArgs *c) {
 			syncinfo_free( c->be->be_syncinfo );
 			c->be->be_syncinfo = NULL;
 		}
+		SLAP_DBFLAGS(c->be) &= ~(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SYNC_SHADOW);
 		return 0;
 	}
 	if(SLAP_SHADOW(c->be)) {
