@@ -425,6 +425,8 @@ bdb_cf_gen(ConfigArgs *c)
 			ch_free( bdb->bi_db_config_path );
 			bdb->bi_db_config_path = NULL;
 			c->cleanup = bdb_cf_cleanup;
+			ldap_pvt_thread_pool_purgekey( bdb->bi_dbenv );
+			ldap_pvt_thread_pool_purgekey( ((char *)bdb->bi_dbenv) + 1 );
 			break;
 		case BDB_NOSYNC:
 			bdb->bi_dbenv->set_flags( bdb->bi_dbenv, DB_TXN_NOSYNC, 0 );

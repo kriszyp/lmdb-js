@@ -571,7 +571,7 @@ bdb_db_close( BackendDB *be )
 	ber_bvarray_free( bdb->bi_db_config );
 	bdb->bi_db_config = NULL;
 
-	while( bdb->bi_ndatabases-- ) {
+	while( bdb->bi_databases && bdb->bi_ndatabases-- ) {
 		db = bdb->bi_databases[bdb->bi_ndatabases];
 		rc = db->bdi_db->close( db->bdi_db, 0 );
 		/* Lower numbered names are not strdup'd */
@@ -581,9 +581,6 @@ bdb_db_close( BackendDB *be )
 	}
 	free( bdb->bi_databases );
 	bdb->bi_databases = NULL;
-
-	bdb_attr_index_destroy( bdb->bi_attrs );
-	bdb->bi_attrs = NULL;
 
 	bdb_cache_release_all (&bdb->bi_cache);
 
@@ -649,6 +646,8 @@ bdb_db_destroy( BackendDB *be )
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );
 	if( bdb->bi_db_config_path ) ch_free( bdb->bi_db_config_path );
+
+	bdb_attr_index_destroy( bdb->bi_attrs );
 
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
