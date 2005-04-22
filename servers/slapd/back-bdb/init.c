@@ -110,6 +110,12 @@ bdb_do_recovery( BackendDB *be )
 	flags = DB_CREATE | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
 		DB_INIT_TXN | DB_USE_ENVIRON | DB_RECOVER;
 
+	/* If a key was set, use shared memory for the BDB environment */
+	if ( bdb->bi_shm_key ) {
+		re_dbenv->set_shm_key( re_dbenv, bdb->bi_shm_key );
+		flags |= DB_SYSTEM_MEM;
+	}
+
 	/* Open the environment, which will also perform the recovery */
 #ifdef HAVE_EBCDIC
 	strcpy( path, bdb->bi_dbenv_home );
