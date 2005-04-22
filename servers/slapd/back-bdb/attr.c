@@ -305,8 +305,9 @@ bdb_attr_index_unparse( struct bdb_info *bdb, BerVarray *bva )
 }
 
 static void
-bdb_attrinfo_free( AttrInfo *ai )
+bdb_attrinfo_free( void *v )
 {
+	AttrInfo *ai = v;
 #ifdef LDAP_COMP_MATCH
 	free( ai->ai_cr );
 #endif
@@ -359,6 +360,7 @@ void bdb_attr_flush( struct bdb_info *bdb )
 	while (( a2 = al )) {
 		al = al->next;
 		avl_delete( &bdb->bi_attrs, a2->ptr, ainfo_cmp );
+		bdb_attrinfo_free( a2->ptr );
 		ch_free( a2 );
 	}
 }
