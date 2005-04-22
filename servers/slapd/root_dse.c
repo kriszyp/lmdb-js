@@ -187,7 +187,7 @@ root_dse_info(
 		snprintf(buf, sizeof buf, "%d", i);
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
-		if( attr_merge( e, ad_supportedLDAPVersion, &val, NULL ) ) {
+		if( attr_merge_one( e, ad_supportedLDAPVersion, &val, NULL ) ) {
 			return LDAP_OTHER;
 		}
 	}
@@ -199,7 +199,7 @@ root_dse_info(
 		for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
 			val.bv_val = supportedSASLMechanisms[i];
 			val.bv_len = strlen( val.bv_val );
-			if( attr_merge( e, ad_supportedSASLMechanisms, &val, NULL ) ) {
+			if( attr_merge_one( e, ad_supportedSASLMechanisms, &val, NULL ) ) {
 				return LDAP_OTHER;
 			}
 		}
