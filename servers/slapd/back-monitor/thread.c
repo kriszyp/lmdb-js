@@ -229,7 +229,7 @@ monitor_subsys_thread_update(
 	static struct berval	runqueue_bv = BER_BVC( "cn=runqueue" );
 	struct berval		rdn, bv;
 	ber_len_t		len;
-	int which = 0;
+	int which = 0, i;
 	struct re_s *re;
 
 	assert( mi != NULL );
@@ -242,12 +242,13 @@ monitor_subsys_thread_update(
 	else
 		return 0;
 
+	a = attr_find( e->e_attrs, mi->mi_ad_monitoredInfo );
+	if ( a == NULL ) {
+		return -1;
+	}
+
 	switch( which ) {
 	case 1:
-		a = attr_find( e->e_attrs, mi->mi_ad_monitoredInfo );
-		if ( a == NULL ) {
-			return -1;
-		}
 		snprintf( buf, sizeof( buf ), "%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
 		len = strlen( buf );
@@ -258,13 +259,16 @@ monitor_subsys_thread_update(
 		AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 		break;
 	case 2:
-		attr_delete( &e->e_attrs, mi->mi_ad_monitoredInfo );
+		for (i=0; !BER_BVISNULL( a->a_vals+i ); i++) {
+			ch_free( a->a_vals[i].bv_val );
+			BER_BVZERO( a->a_vals+i );
+		}
 		bv.bv_val = buf;
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		LDAP_STAILQ_FOREACH( re, &slapd_rq.run_list, rnext ) {
 			bv.bv_len = snprintf( buf, sizeof( buf ), "%s(%s)",
 				re->tname, re->tspec );
-			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+			value_add_one( &a->a_vals, &bv );
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 		break;
