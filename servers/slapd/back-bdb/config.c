@@ -557,8 +557,10 @@ bdb_cf_gen(ConfigArgs *c)
 
 		if( rc != LDAP_SUCCESS ) return 1;
 		if (( bdb->bi_flags & BDB_IS_OPEN ) && !bdb->bi_index_task ) {
-			/* Start the task as soon as we finish here */
-			bdb->bi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 60,
+			/* Start the task as soon as we finish here. Set a long
+			 * interval (10 hours) so that it only gets scheduled once.
+			 */
+			bdb->bi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 36000,
 				bdb_online_index, c->be,
 				LDAP_XSTRING(bdb_online_index), c->be->be_suffix[0].bv_val );
 		}
