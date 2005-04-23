@@ -353,6 +353,30 @@ bdb_cf_gen(ConfigArgs *c)
 			break;
 
 		case BDB_CONFIG:
+			if (( slapMode&SLAP_SERVER_MODE ) && !( bdb->bi_flags&BDB_IS_OPEN )
+				&& !bdb->bi_db_config ) {
+				char	buf[SLAP_TEXT_BUFLEN];
+				FILE *f = fopen( bdb->bi_db_config_path, "r" );
+				struct berval bv;
+
+				if ( f ) {
+					bdb->bi_flags |= BDB_HAS_CONFIG;
+					while ( fgets( buf, sizeof(buf), f )) {
+						ber_str2bv( buf, 0, 1, &bv );
+						if ( bv.bv_val[bv.bv_len-1] == '\n' ) {
+							bv.bv_len--;
+							bv.bv_val[bv.bv_len] = '\0';
+						}
+						/* shouldn't need this, but ... */
+						if ( bv.bv_val[bv.bv_len-1] == '\r' ) {
+							bv.bv_len--;
+							bv.bv_val[bv.bv_len] = '\0';
+						}
+						ber_bvarray_add( &bdb->bi_db_config, &bv );
+					}
+					fclose( f );
+				}
+			}
 			if ( bdb->bi_db_config ) {
 				int i;
 				struct berval bv;
