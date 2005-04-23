@@ -1982,22 +1982,22 @@ slapd_daemon_task(
 	}
 
 	if( slapd_shutdown == 1 ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 			"daemon: shutdown requested and initiated.\n",
 			0, 0, 0 );
 
 	} else if ( slapd_shutdown == 2 ) {
 #ifdef HAVE_NT_SERVICE_MANAGER
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 			       "daemon: shutdown initiated by Service Manager.\n",
 			       0, 0, 0);
 #else /* !HAVE_NT_SERVICE_MANAGER */
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 			       "daemon: abnormal condition, shutdown initiated.\n",
 			       0, 0, 0 );
 #endif /* !HAVE_NT_SERVICE_MANAGER */
 	} else {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 		       "daemon: no active streams, shutdown initiated.\n",
 		       0, 0, 0 );
 	}
