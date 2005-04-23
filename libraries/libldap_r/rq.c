@@ -55,7 +55,7 @@ ldap_pvt_runqueue_insert(
 		entry->arg = arg;
 		entry->tname = tname;
 		entry->tspec = tspec;
-		LDAP_STAILQ_INSERT_TAIL( &rq->task_list, entry, tnext );
+		LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
 	}
 	return entry;
 }
