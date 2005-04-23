@@ -364,7 +364,7 @@ ConfigTable config_back_cf_table[] = {
 		ARG_IGNORED, NULL,
 #endif
 		"( OLcfgGlAt:31 NAME 'olcModulePath' "
-			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "objectclass", "objectclass", 2, 0, 0, ARG_PAREN|ARG_MAGIC|CFG_OC|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:32 NAME 'olcObjectClasses' "
 		"DESC 'OpenLDAP object classes' "
@@ -606,7 +606,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcDisallows $ olcGentleHUP $ olcIdleTimeout $ "
 		 "olcIndexSubstrIfMaxLen $ olcIndexSubstrIfMinLen $ "
 		 "olcIndexSubstrAnyLen $ olcIndexSubstrAnyStep $ olcLocalSSF $ "
-		 "olcLogLevel $ olcModulePath $ "
+		 "olcLogLevel $ "
 		 "olcPasswordCryptSaltFormat $ olcPasswordHash $ olcPidFile $ "
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplicaPidFile $ olcReplicaArgsFile $ olcReplicationInterval $ "
@@ -661,7 +661,7 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcModuleList' "
 		"DESC 'OpenLDAP dynamic module info' "
 		"SUP olcConfig STRUCTURAL "
-		"MUST olcModuleLoad "
+		"MUST ( olcModulePath $ olcModuleLoad ) "
 		"MAY cn )", Cft_Module, &cfOc_module },
 #endif
 	{ NULL, 0, NULL }
@@ -848,16 +848,9 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 		case CFG_MODPATH: {
-			ModPaths *mp;
-			for (i=0, mp=&modpaths; mp; mp=mp->mp_next, i++) {
-				struct berval bv;
-				if ( BER_BVISNULL( &mp->mp_path ) && !mp->mp_loads )
-					continue;
-				bv.bv_val = c->log;
-				bv.bv_len = sprintf( bv.bv_val, IFMT "%s", i,
-					mp->mp_path.bv_val );
-				value_add_one( &c->rvalue_vals, &bv );
-			}
+			ModPaths *mp = c->private;
+			value_add_one( &c->rvalue_vals, &mp->mp_path );
+
 			rc = c->rvalue_vals ? 0 : 1;
 			}
 			break;
@@ -2815,7 +2808,6 @@ count_ocs( Attribute *oc_at, int *nocs )
 	return colst;
 }
 
-	/* Only the root can be Cft_Global, everything else must
 /* Parse an LDAP entry into config directives */
 static int
 config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
