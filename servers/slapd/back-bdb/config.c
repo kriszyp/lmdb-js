@@ -30,6 +30,12 @@
 #	define	SLAP_BDB_ALLOW_DIRTY_READ
 #endif
 
+#define bdb_cf_oc			BDB_SYMBOL(cf_oc)
+#define bdb_cf_gen			BDB_SYMBOL(cf_gen)
+#define	bdb_cf_cleanup		BDB_SYMBOL(cf_cleanup)
+#define bdb_checkpoint		BDB_SYMBOL(checkpoint)
+#define bdb_online_index	BDB_SYMBOL(online_index)
+
 static ObjectClass *bdb_oc;
 
 static ConfigDriver bdb_cf_oc, bdb_cf_gen;
@@ -267,6 +273,7 @@ bdb_online_index( void *ctx, void *arg )
 out:
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
+	bdb->bi_index_task = NULL;
 	ldap_pvt_runqueue_remove( &slapd_rq, rtask );
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
@@ -299,15 +306,18 @@ bdb_cf_cleanup( ConfigArgs *c )
 		bdb_attr_flush( bdb );
 		bdb->bi_flags ^= BDB_DEL_INDEX;
 	}
-
+	
 	if ( bdb->bi_flags & BDB_RE_OPEN ) {
 		bdb->bi_flags ^= BDB_RE_OPEN;
 		rc = c->be->bd_info->bi_db_close( c->be );
 		if ( rc == 0 )
 			rc = c->be->bd_info->bi_db_open( c->be );
 		/* If this fails, we need to restart */
-		if ( rc ) 
-			slapd_shutdown = 1;
+		if ( rc ) {
+			slapd_shutdown = 2;
+			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(bdb_cf_cleanup)
+				": failed to reopen database, rc=%d", rc, 0, 0 );
+		}
 	}
 	return rc;
 }
@@ -471,7 +481,7 @@ bdb_cf_gen(ConfigArgs *c)
 			else
 				bdb->bi_txn_cp_task = ldap_pvt_runqueue_insert( &slapd_rq,
 					bdb->bi_txn_cp_min * 60, bdb_checkpoint, bdb,
-					"bdb_checkpoint", c->be->be_suffix[0].bv_val );
+					LDAP_XSTRING(bdb_checkpoint), c->be->be_suffix[0].bv_val );
 		}
 		break;
 
@@ -546,11 +556,11 @@ bdb_cf_gen(ConfigArgs *c)
 			c->argc - 1, &c->argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
-		if ( bdb->bi_flags & BDB_IS_OPEN ) {
+		if (( bdb->bi_flags & BDB_IS_OPEN ) && !bdb->bi_index_task ) {
 			/* Start the task as soon as we finish here */
-			ldap_pvt_runqueue_insert( &slapd_rq, 60,
+			bdb->bi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 60,
 				bdb_online_index, c->be,
-				"bdb_online_index", c->be->be_suffix[0].bv_val );
+				LDAP_XSTRING(bdb_online_index), c->be->be_suffix[0].bv_val );
 		}
 		break;
 
