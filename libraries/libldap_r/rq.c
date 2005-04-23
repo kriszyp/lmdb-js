@@ -38,7 +38,9 @@ ldap_pvt_runqueue_insert(
 	struct runqueue_s* rq,
 	time_t interval,
 	ldap_pvt_thread_start_t *routine,
-	void *arg
+	void *arg,
+	char *tname,
+	char *tspec
 )
 {
 	struct re_s* entry;
@@ -51,6 +53,8 @@ ldap_pvt_runqueue_insert(
 		entry->next_sched.tv_usec = 0;
 		entry->routine = routine;
 		entry->arg = arg;
+		entry->tname = tname;
+		entry->tspec = tspec;
 		LDAP_STAILQ_INSERT_TAIL( &rq->task_list, entry, tnext );
 	}
 	return entry;
