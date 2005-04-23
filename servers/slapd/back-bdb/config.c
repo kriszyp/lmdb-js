@@ -470,7 +470,8 @@ bdb_cf_gen(ConfigArgs *c)
 				re->interval.tv_sec = bdb->bi_txn_cp_min * 60;
 			else
 				bdb->bi_txn_cp_task = ldap_pvt_runqueue_insert( &slapd_rq,
-					bdb->bi_txn_cp_min * 60, bdb_checkpoint, bdb );
+					bdb->bi_txn_cp_min * 60, bdb_checkpoint, bdb,
+					"bdb_checkpoint", c->be->be_suffix[0].bv_val );
 		}
 		break;
 
@@ -548,7 +549,8 @@ bdb_cf_gen(ConfigArgs *c)
 		if ( bdb->bi_flags & BDB_IS_OPEN ) {
 			/* Start the task as soon as we finish here */
 			ldap_pvt_runqueue_insert( &slapd_rq, 60,
-				bdb_online_index, c->be );
+				bdb_online_index, c->be,
+				"bdb_online_index", c->be->be_suffix[0].bv_val );
 		}
 		break;
 

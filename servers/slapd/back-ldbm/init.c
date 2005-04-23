@@ -205,7 +205,8 @@ ldbm_back_db_open(
 	{
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		ldap_pvt_runqueue_insert( &slapd_rq, li->li_dbsyncfreq,
-			ldbm_cache_sync_daemon, be );
+			ldbm_cache_sync_daemon, be,
+			"ldbm_cache_sync", be->be_suffix[0].bv_val );
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	}
 

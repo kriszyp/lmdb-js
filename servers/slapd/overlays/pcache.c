@@ -1741,7 +1741,8 @@ proxy_cache_open(
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		ldap_pvt_runqueue_insert( &slapd_rq, cm->cc_period,
-			consistency_check, on );
+			consistency_check, on,
+			"pcache_consistency", be->be_suffix[0].bv_val );
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 		/* Cached database must have the rootdn */

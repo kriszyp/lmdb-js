@@ -2628,7 +2628,7 @@ add_syncrepl(
 		si->si_be = be;
 		init_syncrepl( si );
 		si->si_re = ldap_pvt_runqueue_insert( &slapd_rq, si->si_interval,
-			do_syncrepl, si );
+			do_syncrepl, si, "do_syncrepl", be->be_suffix[0].bv_val );
 		if ( !si->si_re )
 			rc = -1;
 	}

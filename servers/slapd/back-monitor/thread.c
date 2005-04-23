@@ -27,6 +27,8 @@
 #include "slap.h"
 #include "back-monitor.h"
 
+#include <ldap_rq.h>
+
 /*
 *  * initializes log subentry
 *   */
@@ -158,6 +160,57 @@ monitor_subsys_thread_init(
 	*ep = e;
 	ep = &mp->mp_next;
 
+	/*
+	 * Runqueue runners
+	 */
+	snprintf( buf, sizeof( buf ),
+			"dn: cn=Runqueue,%s\n"
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
+			"cn: Runqueue\n"
+			"%s: 0\n"
+			"creatorsName: %s\n"
+			"modifiersName: %s\n"
+			"createTimestamp: %s\n"
+			"modifyTimestamp: %s\n",
+			ms->mss_dn.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_oc_monitoredObject->soc_cname.bv_val,
+			mi->mi_ad_monitoredInfo->ad_cname.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_creatorsName.bv_val,
+			mi->mi_startTime.bv_val,
+			mi->mi_startTime.bv_val );
+
+	e = str2entry( buf );
+	if ( e == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to create entry \"cn=Runqueue,%s\"\n",
+			ms->mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+
+	mp = monitor_entrypriv_create();
+	if ( mp == NULL ) {
+		return -1;
+	}
+	e->e_private = ( void * )mp;
+	mp->mp_info = ms;
+	mp->mp_flags = ms->mss_flags \
+		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+
+	if ( monitor_cache_add( mi, e ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_thread_init: "
+			"unable to add entry \"cn=Runqueue,%s\"\n",
+			ms->mss_ndn.bv_val, 0, 0 );
+		return( -1 );
+	}
+	
+	*ep = e;
+	ep = &mp->mp_next;
+
 	monitor_cache_release( mi, e_thread );
 
 	return( 0 );
@@ -173,29 +226,49 @@ monitor_subsys_thread_update(
 	Attribute		*a;
 	char 			buf[ BACKMONITOR_BUFSIZE ];
 	static struct berval	backload_bv = BER_BVC( "cn=backload" );
-	struct berval		rdn;
+	static struct berval	runqueue_bv = BER_BVC( "cn=runqueue" );
+	struct berval		rdn, bv;
 	ber_len_t		len;
+	int which = 0;
+	struct re_s *re;
 
 	assert( mi != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
-	if ( !dn_match( &rdn, &backload_bv ) ) {
+	if ( dn_match( &rdn, &backload_bv ))
+		which = 1;
+	else if ( dn_match( &rdn, &runqueue_bv ))
+		which = 2;
+	else
 		return 0;
-	}
 
-	a = attr_find( e->e_attrs, mi->mi_ad_monitoredInfo );
-	if ( a == NULL ) {
-		return -1;
-	}
-
-	snprintf( buf, sizeof( buf ), "%d", 
+	switch( which ) {
+	case 1:
+		a = attr_find( e->e_attrs, mi->mi_ad_monitoredInfo );
+		if ( a == NULL ) {
+			return -1;
+		}
+		snprintf( buf, sizeof( buf ), "%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
-	len = strlen( buf );
-	if ( len > a->a_vals[ 0 ].bv_len ) {
-		a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );
+		len = strlen( buf );
+		if ( len > a->a_vals[ 0 ].bv_len ) {
+			a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );
+		}
+		a->a_vals[ 0 ].bv_len = len;
+		AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
+		break;
+	case 2:
+		attr_delete( &e->e_attrs, mi->mi_ad_monitoredInfo );
+		bv.bv_val = buf;
+		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
+		LDAP_STAILQ_FOREACH( re, &slapd_rq.run_list, rnext ) {
+			bv.bv_len = snprintf( buf, sizeof( buf ), "%s(%s)",
+				re->tname, re->tspec );
+			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo, &bv, NULL );
+		}
+		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+		break;
 	}
-	a->a_vals[ 0 ].bv_len = len;
-	AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 
 	/* FIXME: touch modifyTimestamp? */
 
