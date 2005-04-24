@@ -1192,6 +1192,12 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
+	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		be_entry_release_rw( op, rs->sr_entry, 0 );
+		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+		rs->sr_entry = NULL;
+	}
+
 	if ( op->o_res_ber == NULL ) {
 		bytes = send_ldap_ber( op->o_conn, ber );
 		ber_free_buf( ber );
@@ -1214,7 +1220,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
-	    op->o_log_prefix, rs->sr_entry->e_dn, 0, 0, 0 );
+	    op->o_log_prefix, edn, 0, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"<= send_search_entry: conn %lu exit.\n", op->o_connid, 0, 0 );
@@ -1385,6 +1391,12 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode DN error" );
 		goto rel;
+	}
+
+	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		be_entry_release_rw( op, rs->sr_entry, 0 );
+		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+		rs->sr_entry = NULL;
 	}
 
 #ifdef LDAP_CONNECTIONLESS

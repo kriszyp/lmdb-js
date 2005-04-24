@@ -1913,6 +1913,7 @@ typedef struct slap_rep {
 	slap_mask_t sr_flags;
 #define REP_ENTRY_MODIFIABLE	0x0001U
 #define REP_ENTRY_MUSTBEFREED	0x0002U
+#define REP_ENTRY_MUSTRELEASE	0x0004U
 #define REP_MATCHED_MUSTBEFREED	0x0010U
 #define REP_REF_MUSTBEFREED		0x0020U
 } SlapReply;
