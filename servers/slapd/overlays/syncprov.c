@@ -131,7 +131,6 @@ typedef struct opcookie {
 	struct berval sndn;
 	struct berval suuid;	/* UUID of entry */
 	struct berval sctxcsn;
-	syncops	*shead;		/* head of si_ops when we started */
 	int sreference;	/* Is the entry a reference? */
 } opcookie;
 
@@ -986,11 +985,8 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			ber_dupbv_x( &opc->suuid, &a->a_nvals[0], op->o_tmpmemctx );
 	}
 
-	if (saveit) {
-		ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-		opc->shead = si->si_ops;
-	}
-	for (ss = opc->shead, sprev = (syncops *)&si->si_ops; ss;
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+	for (ss = si->si_ops, sprev = (syncops *)&si->si_ops; ss;
 		sprev = ss, ss=snext)
 	{
 		syncmatches *sm;
@@ -1038,16 +1034,21 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 				opc->smatches = sm;
 			} else {
 				/* if found send UPDATE else send ADD */
+				ss->s_inuse++;
+				ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 				syncprov_sendresp( op, opc, ss, &e,
 					found ? LDAP_SYNC_MODIFY : LDAP_SYNC_ADD, 1 );
+				ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+				ss->s_inuse--;
 			}
 		} else if ( !saveit && found ) {
 			/* send DELETE */
+			ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 			syncprov_sendresp( op, opc, ss, NULL, LDAP_SYNC_DELETE, 1 );
+			ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
 		}
 	}
-	if (saveit)
-		ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
 done:
 	if ( op->o_tag != LDAP_REQ_ADD && e ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
