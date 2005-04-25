@@ -230,7 +230,7 @@ meta_back_init_one_conn(
 		rs->sr_err = ldap_start_tls( msc->msc_ld, NULL, NULL, &msgid );
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			LDAPMessage	*res = NULL;
-			int		rc, retries = 1;
+			int		rc, nretries = mt->mt_nretries;
 			struct timeval	tv = { 0, 0 };
 
 retry:;
@@ -239,8 +239,10 @@ retry:;
 				rs->sr_err = LDAP_OTHER;
 
 			} else if ( rc == 0 ) {
-				if ( retries ) {
-					retries--;
+				if ( nretries != 0 ) {
+					if ( nretries > 0 ) {
+						nretries--;
+					}
 					tv.tv_sec = 0;
 					tv.tv_usec = 100000;
 					goto retry;
@@ -393,8 +395,8 @@ meta_back_retry(
         rc = meta_back_init_one_conn( op, rs, mt, msc, sendok );
 
 	if ( rc == LDAP_SUCCESS ) {
-        	rc = meta_back_single_dobind( op, rs, mc, candidate, sendok,
-				META_BIND_NRETRIES );
+        	rc = meta_back_single_dobind( op, rs, mc, candidate,
+				sendok, mt->mt_nretries );
         }
 
 	ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
@@ -787,6 +789,8 @@ meta_back_getconn(
 	 */
 	} else {
 
+		int	ncandidates = 0;
+
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( !mc ) {
 			mc = metaconn_alloc( mi->mi_ntargets );
@@ -809,6 +813,7 @@ meta_back_getconn(
 						&mc->mc_conns[ i ], sendok );
 				if ( lerr == LDAP_SUCCESS ) {
 					candidates[ i ].sr_tag = META_CANDIDATE;
+					ncandidates++;
 
 				} else {
 				
@@ -817,6 +822,9 @@ meta_back_getconn(
 					 * be init'd, should the other ones
 					 * be tried?
 					 */
+					if ( new_conn ) {
+						( void )meta_clear_one_candidate( &mc->mc_conns[ i ] );
+					}
 					candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 					err = lerr;
 
@@ -827,8 +835,27 @@ meta_back_getconn(
 				}
 
 			} else {
+				if ( new_conn ) {
+					( void )meta_clear_one_candidate( &mc->mc_conns[ i ] );
+				}
 				candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 			}
+		}
+
+		if ( ncandidates == 0 ) {
+			if ( new_conn ) {
+				meta_back_conn_free( mc );
+			}
+
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			rs->sr_text = "Unable to select valid candidates";
+
+			if ( sendok & LDAP_BACK_SENDERR ) {
+				send_ldap_result( op, rs );
+				rs->sr_text = NULL;
+			}
+
+			return NULL;
 		}
 	}
 

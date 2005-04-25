@@ -93,6 +93,14 @@ This caches the target that holds a given DN to speed up target
 selection in case multiple targets would result from an uncached
 search; forever means cache never expires; disabled means no DN
 caching; otherwise a valid ( > 0 ) ttl in seconds is required.
+.TP
+.B nretries {forever|never|<nretries>}
+This directive defines how many times a bind should be retried
+in case of temporary failure in contacting a target.  If defined
+before any target specification, it applies to all targets (by default,
+.BR never );
+the global value can be overridden by redefinitions inside each target
+specification.
 .SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:
 .TP

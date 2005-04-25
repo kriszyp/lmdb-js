@@ -75,6 +75,8 @@ new_target( void )
 
 	ldap_back_map_init( &mt->mt_rwmap.rwm_at, &mapping );
 
+	mt->mt_nretries = META_RETRY_UNDEFINED;
+
 	return mt;
 }
 
@@ -133,6 +135,8 @@ meta_back_db_config(
 				fname, lineno );
 			return 1;
 		}
+
+		mi->mi_targets[ i ]->mt_nretries = mi->mi_nretries;
 
 		/*
 		 * uri MUST be legal!
@@ -618,6 +622,43 @@ meta_back_db_config(
 		return ldap_back_map_config( &mi->mi_targets[ i ]->mt_rwmap.rwm_oc, 
 				&mi->mi_targets[ i ]->mt_rwmap.rwm_at,
 				fname, lineno, argc, argv );
+
+	} else if ( strcasecmp( argv[ 0 ], "nretries" ) == 0 ) {
+		int 		i = mi->mi_ntargets - 1;
+		int		nretries = META_RETRY_UNDEFINED;
+
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: need value in \"nretries <value>\"\n",
+				fname, lineno );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "forever" ) == 0 ) {
+			nretries = META_RETRY_FOREVER;
+
+		} else if ( strcasecmp( argv[ 1 ], "never" ) == 0 ) {
+			nretries = META_RETRY_NEVER;
+
+		} else {
+			char	*next;
+
+			nretries = strtol( argv[ 1 ], &next, 10 );
+			if ( next == argv[ 1 ] || next[ 0 ] != '\0' ) {
+				fprintf( stderr,
+	"%s: line %d: unable to parse value \"%s\" in \"nretries <value>\"\n",
+					fname, lineno, argv[ 1 ] );
+				return 1;
+			}
+		}
+
+		if ( i < 0 ) {
+			mi->mi_nretries = nretries;
+
+		} else {
+			mi->mi_targets[ i ]->mt_nretries = nretries;
+		}
+
 	/* anything else */
 	} else {
 		return SLAP_CONF_UNKNOWN;

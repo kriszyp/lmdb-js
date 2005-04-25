@@ -82,7 +82,7 @@ typedef struct dncookie {
 #endif
 } dncookie;
 
-#define META_BIND_NRETRIES	3
+/* TODO: allow to define it on a per-target basis */
 #define META_BIND_TIMEOUT	10000
 
 int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
@@ -198,6 +198,11 @@ typedef struct metatarget_t {
 	struct berval           mt_pseudorootdn;
 	struct berval           mt_pseudorootpw;
 
+	int			mt_nretries;
+#define META_RETRY_UNDEFINED	(-2)
+#define META_RETRY_FOREVER	(-1)
+#define META_RETRY_NEVER	(0)
+
 	struct ldaprwmap	mt_rwmap;
 } metatarget_t;
 
@@ -215,6 +220,8 @@ typedef struct metainfo_t {
 	int			mi_defaulttarget;
 	int			mi_network_timeout;
 #define META_DEFAULT_TARGET_NONE	(-1)
+	int			mi_nretries;
+
 	metatarget_t		**mi_targets;
 	SlapReply		*mi_candidates;
 
