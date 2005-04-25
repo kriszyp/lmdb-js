@@ -77,6 +77,7 @@ typedef struct CfEntryInfo {
 	ConfigType ce_type;
 	BackendInfo *ce_bi;
 	BackendDB *ce_be;
+	void *ce_private;
 } CfEntryInfo;
 
 typedef struct {
@@ -1179,11 +1180,16 @@ config_generic(ConfigArgs *c) {
 			/* Record this load on the current path */
 			{
 				struct berval bv;
+				ModPaths *mp;
 				char *ptr = c->line + STRLENOF("moduleload");
 				while (!isspace(*ptr)) ptr++;
 				while (isspace(*ptr)) ptr++;
 				ber_str2bv(ptr, 0, 1, &bv);
-				ber_bvarray_add( &modcur->mp_loads, &bv );
+				if ( c->op == SLAP_CONFIG_ADD )
+					mp = modcur;
+				else
+					mp = c->private;
+				ber_bvarray_add( &mp->mp_loads, &bv );
 			}
 			break;
 
@@ -1203,6 +1209,7 @@ config_generic(ConfigArgs *c) {
 				mp->mp_next = NULL;
 				mp->mp_loads = NULL;
 				modlast = mp;
+				c->private = mp;
 				if ( c->op == SLAP_CONFIG_ADD )
 					modcur = mp;
 			}
@@ -3124,6 +3131,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	init_config_argv( &ca );
 	ca.be = ce->ce_be;
 	ca.bi = ce->ce_bi;
+	ca.private = ce->ce_private;
 
 	for (ml = op->orm_modlist; ml; ml=ml->sml_next) {
 		ct = config_find_table( colst, nocs, ml->sml_desc );
@@ -3643,6 +3651,7 @@ config_build_schema_inc( ConfigArgs *c, CfEntryInfo *ceparent,
 		config_build_entry( c, e, cfOc_schema, &c->value_dn,
 			c->bi->bi_cf_table, NO_TABLE );
 		ce = e->e_private;
+		ce->ce_private = cf;
 		ce->ce_type = Cft_Schema;
 		if ( op ) {
 			op->ora_e = e;
@@ -3688,6 +3697,7 @@ config_build_includes( ConfigArgs *c, CfEntryInfo *ceparent,
 			op->o_bd->be_add( op, rs );
 		}
 		ce = e->e_private;
+		ce->ce_private = cf;
 		ce->ce_type = Cft_Include;
 		ce->ce_bi = c->bi;
 		if ( !ceparent->ce_kids ) {
@@ -3729,6 +3739,7 @@ config_build_modules( ConfigArgs *c, CfEntryInfo *ceparent,
 		ce = e->e_private;
 		ce->ce_type = Cft_Include;
 		c->private = mp;
+		ce->ce_private = mp;
 		config_build_entry( c, e, cfOc_module, &c->value_dn,
 			c->bi->bi_cf_table, NO_TABLE );
 		if ( op ) {
@@ -3793,6 +3804,7 @@ config_back_db_open( BackendDB *be )
 	c.bi = be->bd_info;
 	c.private = cfb->cb_config;
 	ct = c.bi->bi_cf_table;
+	ce->ce_private = cfb;
 	config_build_entry( &c, e, cfOc_global, &rdn, ct, NO_TABLE );
 	if ( op ) {
 		op->ora_e = e;
