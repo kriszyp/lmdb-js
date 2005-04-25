@@ -3313,6 +3313,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 					ca->valx = -1;
 					ca->line = NULL;
 					rc = config_del_vals( ct, ca );
+					if ( rc ) rc = LDAP_OTHER;
 				}
 				if ( ml->sml_values ) {
 					ch_free( dels );

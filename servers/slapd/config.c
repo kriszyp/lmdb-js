@@ -485,6 +485,8 @@ config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
 	} else {
 		rc = config_check_vals( ct, c, 1 );
 	}
+	if ( rc )
+		rc = LDAP_CONSTRAINT_VIOLATION;
 
 	ch_free( c->tline );
 	return rc;
