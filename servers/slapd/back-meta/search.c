@@ -224,7 +224,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct timeval		tv = { 0, 0 };
 	LDAPMessage		*res = NULL, *e;
 	int			rc = 0, sres = LDAP_SUCCESS;
-	BerVarray		refs = NULL, v2refs = NULL;
 	char			*matched = NULL;
 	int			i, last = 0, ncandidates = 0,
 				initial_candidates = 0, candidate_match = 0;
@@ -333,7 +332,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 			if ( op->ors_slimit > 0 && rs->sr_nentries == op->ors_slimit )
 			{
 				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-				rs->sr_v2ref = v2refs;
 				savepriv = op->o_private;
 				op->o_private = (void *)i;
 				send_ldap_result( op, rs );
@@ -364,12 +362,10 @@ really_bad:;
 				/* something REALLY bad happened! */
 				( void )meta_clear_unused_candidates( op, -1 );
 				rs->sr_err = LDAP_OTHER;
-				rs->sr_v2ref = v2refs;
 				savepriv = op->o_private;
 				op->o_private = (void *)i;
 				send_ldap_result( op, rs );
 				op->o_private = savepriv;
-				rs->sr_v2ref = NULL;
 				
 				/* anything else needs be done? */
 
@@ -390,6 +386,8 @@ really_bad:;
 				ldap_msgfree( res );
 				res = NULL;
 
+				gotit = 1;
+
 				/*
 				 * If scope is BASE, we need to jump out
 				 * as soon as one entry is found; if
@@ -405,8 +403,6 @@ really_bad:;
 					sres = LDAP_SUCCESS;
 					break;
 				}
-
-				gotit = 1;
 
 			} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
 				char		**references = NULL;
@@ -547,12 +543,12 @@ really_bad:;
 					/* cleanup */
 					ldap_value_free( references );
 
-					if ( refs == NULL ) {
-						refs = sr_ref;
+					if ( rs->sr_v2ref == NULL ) {
+						rs->sr_v2ref = sr_ref;
 
 					} else {
 						for ( cnt = 0; !BER_BVISNULL( &sr_ref[ cnt ] ); cnt++ ) {
-							ber_bvarray_add( &refs, &sr_ref[ cnt ] );
+							ber_bvarray_add( &rs->sr_v2ref, &sr_ref[ cnt ] );
 						}
 						ber_memfree( sr_ref );
 					}
@@ -574,6 +570,7 @@ really_bad:;
 					break;
 
 				case LDAP_SUCCESS:
+				case LDAP_REFERRAL:
 					is_ok++;
 					break;
 				}
@@ -609,6 +606,7 @@ really_bad:;
 					ldap_abandon_ext( msc->msc_ld,
 						candidates[ i ].sr_msgid,
 						NULL, NULL );
+					candidates[ i ].sr_msgid = -1;
 				}
 			}
 
@@ -685,19 +683,17 @@ really_bad:;
 	 * important/reasonable
 	 */
 
-	if ( sres == LDAP_SUCCESS && ( v2refs || refs ) ) {
+	if ( sres == LDAP_SUCCESS && rs->sr_v2ref ) {
 		sres = LDAP_REFERRAL;
 	}
 	rs->sr_err = sres;
 	rs->sr_matched = matched;
-	rs->sr_v2ref = v2refs;
-	rs->sr_ref = refs;
+	rs->sr_ref = ( sres == LDAP_REFERRAL ? rs->sr_v2ref : NULL );
 	savepriv = op->o_private;
 	op->o_private = (void *)mi->mi_ntargets;
 	send_ldap_result( op, rs );
 	op->o_private = savepriv;
 	rs->sr_matched = NULL;
-	rs->sr_v2ref = NULL;
 	rs->sr_ref = NULL;
 
 finish:;
@@ -705,8 +701,8 @@ finish:;
 		free( matched );
 	}
 
-	if ( refs ) {
-		ber_bvarray_free( refs );
+	if ( rs->sr_v2ref ) {
+		ber_bvarray_free( rs->sr_v2ref );
 	}
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
