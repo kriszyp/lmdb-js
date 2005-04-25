@@ -841,6 +841,14 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mod
 	op->o_tmpfree( rs.sr_ctrls[0], op->o_tmpmemctx );
 	op->o_private = sop.o_private;
 	rs.sr_ctrls = NULL;
+	/* Check queue again here; if we were hanging in a send and eventually
+	 * recovered, there may be more to send now.
+	 */
+	if ( rs.sr_err == LDAP_SUCCESS && queue && so->s_res ) {
+		ldap_pvt_thread_mutex_lock( &so->s_mutex );
+		rs.sr_err = syncprov_qplay( &sop, on, so );
+		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
+	}
 	return rs.sr_err;
 }
 
