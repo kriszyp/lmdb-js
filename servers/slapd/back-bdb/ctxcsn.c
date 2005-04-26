@@ -42,19 +42,11 @@ bdb_csn_commit(
 	EntryInfo		*ctxcsn_ei = NULL;
 	DB_LOCK			ctxcsn_lock;
 	struct berval	max_committed_csn;
-	DB_LOCK			suffix_lock;
 	int				rc, ret;
 	ID				ctxcsn_id;
-	Entry			*e;
-	char			textbuf[SLAP_TEXT_BUFLEN];
-	size_t			textlen = sizeof textbuf;
 	EntryInfo		*eip = NULL;
 
 	assert( !BER_BVISNULL( &op->o_bd->be_context_csn ) );
-
-	if ( ei ) {
-		e = ei->bei_e;
-	}
 
 	rc =  bdb_dn2entry( op, tid, &op->o_bd->be_context_csn, &ctxcsn_ei,
 			1, locker, &ctxcsn_lock );
@@ -86,33 +78,55 @@ bdb_csn_commit(
 			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 			return BDB_CSN_ABORT;
 		} else {
-			struct berval modvals[2];
+			Entry *e = *ctxcsn_e;
+			Attribute *a = attr_find(e->e_attrs,slap_schema.si_ad_contextCSN);
 
-			modvals[0] = max_committed_csn;
-			modvals[1].bv_val = NULL;
-			modvals[1].bv_len = 0;
-
-			attr_delete( &(*ctxcsn_e)->e_attrs, slap_schema.si_ad_contextCSN );
-			ret = attr_merge( *ctxcsn_e, slap_schema.si_ad_contextCSN,
-				modvals, NULL );
-
-			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
-			if ( ret != LDAP_SUCCESS ) {
-				/* destroy the cached copy since it is now corrupted */
-				ctxcsn_ei->bei_e = NULL;
-				(*ctxcsn_e)->e_private = NULL;
-				entry_free( *ctxcsn_e );
-				*ctxcsn_e = NULL;
-				Debug( LDAP_DEBUG_TRACE,
-						"bdb_csn_commit: modify failed (%d)\n", rs->sr_err, 0, 0 );
-				switch( ret ) {
-				case DB_LOCK_DEADLOCK:
-				case DB_LOCK_NOTGRANTED:
-					goto rewind;
-				default:
-					return BDB_CSN_ABORT;
-				}
+			ret = bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+				ctxcsn_ei, 1, 0, &ctxcsn_lock );
+			switch ( ret ) {
+			case 0 :
+				break;
+			case DB_LOCK_DEADLOCK :
+			case DB_LOCK_NOTGRANTED :
+				op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
+				goto rewind;
+			default :
+				rs->sr_err = ret;
+				rs->sr_text = "context csn lock failed";
+				op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
+				return BDB_CSN_ABORT;
 			}
+
+			/* Is the contextCSN missing, or too short? - should never
+			 * happen, our CSNs are all fixed length and this attribute
+			 * is always populated.
+			 */
+			if ( !a || a->a_vals[0].bv_len < max_committed_csn.bv_len ) {
+				/* If attrs are contiguous, make a new copy.
+				 */
+				if ((void *)e->e_attrs == (void *)(e+1)) {
+					e->e_attrs = attrs_dup( e->e_attrs );
+					if ( a )
+						a = attr_find( e->e_attrs,
+							slap_schema.si_ad_contextCSN );
+				}
+				/* If attr existed and value was too short, free it
+				 * and replace it.
+				 */
+				if ( a ) {
+					ch_free( a->a_vals[0].bv_val );
+					ber_dupbv( a->a_vals, &max_committed_csn );
+				} else {
+				/* Else it never existed, merge it in. */
+					attr_merge_one( e, slap_schema.si_ad_contextCSN,
+						&max_committed_csn, NULL );
+				}
+			} else {
+				/* The usual case - just overwrite the old with the new */
+				strcpy( a->a_vals[0].bv_val, max_committed_csn.bv_val );
+				a->a_vals[0].bv_len = max_committed_csn.bv_len;
+			}
+			op->o_tmpfree( max_committed_csn.bv_val, op->o_tmpmemctx );
 
 			ret = bdb_id2entry_update( op->o_bd, tid, *ctxcsn_e );
 			switch ( ret ) {
@@ -217,7 +231,6 @@ bdb_get_commit_csn(
 	char		csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	int			num_retries = 0;
 	int			ctxcsn_added = 0;
-	int			rc;
 	struct sync_cookie syncCookie = { NULL, -1, NULL};
 	syncinfo_t	*si;
 	u_int32_t	ctxcsn_locker = 0;
