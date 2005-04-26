@@ -75,8 +75,6 @@ new_target( void )
 
 	ldap_back_map_init( &mt->mt_rwmap.rwm_at, &mapping );
 
-	mt->mt_nretries = META_RETRY_UNDEFINED;
-
 	return mt;
 }
 

@@ -89,6 +89,10 @@ meta_back_db_init(
 
 	ldap_pvt_thread_mutex_init( &mi->mi_conn_mutex );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache.mutex );
+
+	/* safe default */
+	mi->mi_nretries = META_RETRY_DEFAULT;
+	
 	be->be_private = mi;
 
 	return 0;

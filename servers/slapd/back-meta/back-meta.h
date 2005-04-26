@@ -202,6 +202,7 @@ typedef struct metatarget_t {
 #define META_RETRY_UNDEFINED	(-2)
 #define META_RETRY_FOREVER	(-1)
 #define META_RETRY_NEVER	(0)
+#define META_RETRY_DEFAULT	(3)
 
 	struct ldaprwmap	mt_rwmap;
 } metatarget_t;
