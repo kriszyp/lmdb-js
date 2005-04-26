@@ -976,6 +976,12 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	if ( op->o_tag != LDAP_REQ_ADD ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = be_entry_get_rw( op, fc.fdn, NULL, NULL, 0, &e );
+		/* If we're sending responses now, make a copy and unlock the DB */
+		if ( e && !saveit ) {
+			Entry *e2 = entry_dup( e );
+			be_entry_release_rw( op, e, 0 );
+			e = e2;
+		}
 		op->o_bd->bd_info = (BackendInfo *)on;
 		if ( rc ) return;
 	} else {
