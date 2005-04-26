@@ -15,3 +15,10 @@ cn: Dan Aykroyd
 sn: Aykroyd
 userPassword: elwood
 description: Elwood Blues
+
+dn: cn=Somewhere,ou=Meta,dc=example,dc=com
+objectClass: referral
+objectClass: extensibleObject
+cn: Somewhere
+ref: ldap://:9010
+

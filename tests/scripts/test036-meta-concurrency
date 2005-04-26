@@ -170,6 +170,13 @@ for f in $TESTDIR/$DATADIR/do_read.* ; do
 	echo "ou=Meta,$METABASEDN" >> $f
 done
 
+# add a read that matches a referral in the local database only, 
+# but selects also the remote as candidate; this should be removed 
+# to compare execution times with test008...
+for f in $TESTDIR/$DATADIR/do_read.* ; do
+	echo "cn=Somewhere,ou=Meta,$METABASEDN" >> $f
+done
+
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR/$DATADIR" -h $LOCALHOST -p $PORT3 -D "cn=Manager,$METABASEDN" -w $PASSWD -l 50 # -r 20
 RC=$?
