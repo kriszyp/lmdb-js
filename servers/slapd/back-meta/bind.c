@@ -181,7 +181,8 @@ meta_back_single_bind(
 	struct berval		mdn = BER_BVNULL;
 	dncookie		dc;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
-	int			msgid;
+	int			msgid,
+				rebinding = 0;
 	
 	/*
 	 * Rewrite the bind dn if needed
@@ -230,11 +231,26 @@ retry:;
 				goto retry;
 			}
 			rs->sr_err = LDAP_BUSY;
-			break;
+			if ( rebinding ) {
+				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+				break;
+			}
+
+			/* FIXME: some times the request times out
+			 * while the other party is not willing to
+			 * send a response any more.  Give it a second
+			 * chance with a freshly bound connection */
+			rebinding = 1;
+			nretries = mt->mt_nretries;
+			/* fallthru */
 
 		case -1:
 			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err );
+
+			if ( rebinding ) {
+				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+			}
 
 			Debug( LDAP_DEBUG_ANY, "### %s meta_back_single_bind: err=%d nretries=%d\n",
 				op->o_log_prefix, rs->sr_err, nretries );
@@ -365,6 +381,7 @@ retry:;
 
 			rc = LDAP_BUSY;
 			if ( rebinding ) {
+				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
 				break;
 			}
 
@@ -379,6 +396,10 @@ retry:;
 		case -1:
 			ldap_get_option( msc->msc_ld,
 					LDAP_OPT_ERROR_NUMBER, &rs->sr_err );
+
+			if ( rebinding ) {
+				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
+			}
 
 			Debug( LDAP_DEBUG_ANY, "### %s meta_back_single_dobind: err=%d nretries=%d\n",
 					op->o_log_prefix, rs->sr_err, nretries );

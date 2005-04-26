@@ -388,6 +388,7 @@ really_bad:;
 
 				gotit = 1;
 
+#if 0
 				/*
 				 * If scope is BASE, we need to jump out
 				 * as soon as one entry is found; if
@@ -395,6 +396,10 @@ really_bad:;
 				 * this should correspond to the sole
 				 * entry that has the base DN
 				 */
+				/* FIXME: this defeats the purpose of
+				 * doing a search with scope == base and
+				 * sizelimit = 1 to determine if a
+				 * candidate is actually unique */
 				if ( op->ors_scope == LDAP_SCOPE_BASE
 						&& rs->sr_nentries > 0 )
 				{
@@ -403,6 +408,7 @@ really_bad:;
 					sres = LDAP_SUCCESS;
 					break;
 				}
+#endif
 
 			} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
 				char		**references = NULL;
@@ -843,12 +849,13 @@ meta_send_entry(
 		}
 
 		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR 
-				|| attr->a_vals == NULL ) {
+				|| attr->a_vals == NULL )
+		{
 			attr->a_vals = (struct berval *)&slap_dummy_bv;
 
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
-				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
-
+				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass )
+		{
 			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); ++last );
 
 			for ( bv = attr->a_vals; !BER_BVISNULL( bv ); bv++ ) {
