@@ -837,9 +837,12 @@ suffix_massage_regexize( const char *s )
 			p = r + 1, i++ )
 		;
 
-	res = ch_calloc( sizeof( char ), strlen( s ) + 4 + 4*i + 1 );
+	res = ch_calloc( sizeof( char ),
+			strlen( s )
+			+ STRLENOF( "(.+,)?" )
+			+ STRLENOF( "[ ]?" ) * i + 1 );
 
-	ptr = lutil_strcopy( res, "(.*)" );
+	ptr = lutil_strcopy( res, "(.+,)?" );
 	for ( i = 0, p = s;
 			( r = strchr( p, ',' ) ) != NULL;
 			p = r + 1 , i++ ) {
@@ -863,13 +866,13 @@ suffix_massage_patternize( const char *s )
 
 	len = strlen( s );
 
-	res = ch_calloc( sizeof( char ), len + sizeof( "%1" ) );
+	res = ch_calloc( sizeof( char ), len + STRLENOF( "%1" ) + 1 );
 	if ( res == NULL ) {
 		return NULL;
 	}
 
 	strcpy( res, "%1" );
-	strcpy( res + sizeof( "%1" ) - 1, s );
+	strcpy( &res[ STRLENOF( "%1" ) ], s );
 
 	return res;
 }

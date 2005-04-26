@@ -314,7 +314,9 @@ meta_back_single_dobind(
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc;
 	struct berval		cred = BER_BVC( "" );
-	int			msgid;
+	int			msgid,
+				rebinding = 0,
+				save_nretries = nretries;
 
 	/*
 	 * Otherwise an anonymous bind is performed
@@ -362,7 +364,17 @@ retry:;
 			}
 
 			rc = LDAP_BUSY;
-			break;
+			if ( rebinding ) {
+				break;
+			}
+
+			/* FIXME: some times the request times out
+			 * while the other party is not willing to
+			 * send a response any more.  Give it a second
+			 * chance with a freshly bound connection */
+			rebinding = 1;
+			nretries = save_nretries;
+			/* fallthru */
 
 		case -1:
 			ldap_get_option( msc->msc_ld,
