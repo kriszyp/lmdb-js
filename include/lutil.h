@@ -150,7 +150,7 @@ lutil_progname LDAP_P((
 	int argc,
 	char *argv[] ));
 
-struct lutil_tm {
+typedef struct lutil_tm {
 	int tm_sec;	/* seconds 0-60 (1 leap second) */
 	int tm_min;	/* minutes 0-59 */
 	int tm_hour;	/* hours 0-23 */
@@ -160,7 +160,7 @@ struct lutil_tm {
 	int tm_usec;	/* microseconds */
 } lutil_tm;
 
-struct lutil_timet {
+typedef struct lutil_timet {
 	unsigned int tt_sec;	/* seconds since 1900 */
 	int tt_gsec;		/* seconds since 1900, high 7 bits */
 	unsigned int tt_usec;	/* microseconds */
