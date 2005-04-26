@@ -480,7 +480,7 @@ glue_open (
 	slap_overinst *on = glue_tool_inst( bi );
 	glueinfo		*gi = on->on_bi.bi_private;
 	static int glueOpened = 0;
-	int i, rc = 0;
+	int i, j, same, bsame = 0, rc = 0;
 
 	if (glueOpened) return 0;
 
@@ -488,7 +488,34 @@ glue_open (
 
 	/* If we were invoked in tool mode, open all the underlying backends */
 	if (slapMode & SLAP_TOOL_MODE) {
-		rc = backend_startup( NULL );
+		for (i = 0; i<gi->gi_nodes; i++) {
+			same = 0;
+			/* Same type as our main backend? */
+			if ( gi->gi_n[i].gn_be->bd_info == on->on_info->oi_orig )
+				bsame = 1;
+
+			/* Loop thru the bd_info's and make sure we only
+			 * invoke their bi_open functions once each.
+			 */
+			for ( j = 0; j<i; j++ ) {
+				if ( gi->gi_n[i].gn_be->bd_info ==
+					gi->gi_n[j].gn_be->bd_info ) {
+					same = 1;
+					break;
+				}
+			}
+			/* OK, it's unique and non-NULL, call it. */
+			if ( !same && gi->gi_n[i].gn_be->bd_info->bi_open )
+				rc = gi->gi_n[i].gn_be->bd_info->bi_open(
+					gi->gi_n[i].gn_be->bd_info );
+			/* Let backend.c take care of the rest of startup */
+			if ( !rc )
+				rc = backend_startup_one( gi->gi_n[i].gn_be );
+			if ( rc ) break;
+		}
+		if ( !rc && !bsame && on->on_info->oi_orig->bi_open )
+			rc = on->on_info->oi_orig->bi_open( on->on_info->oi_orig );
+
 	} /* other case is impossible */
 	return rc;
 }
