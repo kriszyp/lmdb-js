@@ -36,6 +36,7 @@
 #include "lutil.h"
 #include "slap.h"
 #if SLAPD_MODULES
+#define LIBLTDL_DLL_IMPORT	/* Win32: don't re-export libltdl's symbols */
 #include <ltdl.h>
 #endif
 #include <ac/errno.h>
