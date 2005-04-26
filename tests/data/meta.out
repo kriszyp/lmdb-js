@@ -427,6 +427,8 @@ pager: +1 313 555 2844
 facsimileTelephoneNumber: +1 313 555 9700
 telephoneNumber: +1 313 555 5331
 
+# refldap://:9010/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+
 # searching base="o=Example,c=US"...
 dn: cn=Added Group,ou=Groups,o=Example,c=US
 objectClass: groupOfNames
@@ -888,6 +890,8 @@ pager: +1 313 555 2844
 facsimileTelephoneNumber: +1 313 555 9700
 telephoneNumber: +1 313 555 5331
 
+# refldap://:9010/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+
 # 	base="o=Example,c=US"...
 dn: cn=Added Group,ou=Groups,o=Example,c=US
 objectClass: groupOfNames
@@ -1334,6 +1338,12 @@ ou: Same as above
 description: added right after "Who's going to handle this?"
 description: will be preserved
 
+dn: cn=Somewhere,ou=Meta,o=Example,c=US
+objectClass: referral
+objectClass: extensibleObject
+cn: Somewhere
+ref: ldap://:9010
+
 dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
 objectClass: OpenLDAPperson
 cn: Ursula Hampster
@@ -1385,13 +1395,19 @@ seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=Example,c=US
 seeAlso: cn=All Staff,ou=Groups,o=Example,c=US
 
+# refldap://:9010/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+
 # searching filter="(uid=example)"
 # 	attrs="uid"
 # 	base="o=Example,c=US"...
+# refldap://:9010/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+
 # searching filter="(member=cn=Another Added Group,ou=Groups,o=Example,c=US)"
 # 	attrs="member"
 # 	base="o=Example,c=US"...
 dn: cn=Another Added Group,ou=Groups,o=Example,c=US
 member: cn=Added Group,ou=Groups,o=Example,c=US
 member: cn=Another Added Group,ou=Groups,o=Example,c=US
+
+# refldap://:9010/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
 
