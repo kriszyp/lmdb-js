@@ -157,13 +157,14 @@ rwm_dn_massage(
 {
 	int		rc = 0;
 	struct berval	mdn;
+	static char	*dmy = "";
 
 	assert( dc );
 	assert( in );
 	assert( dn );
 
 	rc = rewrite_session( dc->rwmap->rwm_rw, dc->ctx,
-			( in->bv_len ? in->bv_val : "" ), 
+			( in->bv_val ? in->bv_val : dmy ), 
 			dc->conn, &mdn.bv_val );
 	switch ( rc ) {
 	case REWRITE_REGEXEC_OK:
@@ -195,6 +196,10 @@ rwm_dn_massage(
 		}
 		rc = LDAP_OTHER;
 		break;
+	}
+
+	if ( mdn.bv_val == dmy ) {
+		BER_BVZERO( &mdn );
 	}
 
 	return rc;
