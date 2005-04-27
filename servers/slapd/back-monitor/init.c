@@ -201,6 +201,7 @@ monitor_back_register_subsys( monitor_subsys_t *ms )
 
 enum {
 	LIMBO_ENTRY,
+	LIMBO_ENTRY_PARENT,
 	LIMBO_ATTRS,
 	LIMBO_CB
 };
@@ -281,7 +282,7 @@ monitor_back_register_entry(
 		}
 
 		e_new = entry_dup( e );
-		if ( e == NULL ) {
+		if ( e_new == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_back_register_entry(\"%s\"): "
 				"entry_dup() failed\n",
@@ -293,6 +294,7 @@ monitor_back_register_entry(
 		e_new->e_private = ( void * )mp;
 		mp->mp_info = mp_parent->mp_info;
 		mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		mp->mp_cb = cb;
 
 		ep = &mp_parent->mp_children;
 		for ( ; *ep; ) {
@@ -326,7 +328,7 @@ done:;
 		}
 
 	} else {
-		entry_limbo_t	*elp, el = { 0 };
+		entry_limbo_t	**elpp, el = { 0 };
 
 		el.el_type = LIMBO_ENTRY;
 
@@ -341,16 +343,209 @@ done:;
 		
 		el.el_cb = cb;
 
-		elp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
-		if ( elp ) {
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+				*elpp;
+				elpp = &(*elpp)->el_next )
+			/* go to last */;
+
+		*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
+		if ( *elpp == NULL ) {
 			el.el_e->e_private = NULL;
 			entry_free( el.el_e );
 			return -1;
 		}
 
-		el.el_next = (entry_limbo_t *)mi->mi_entry_limbo;
-		*elp = el;
-		mi->mi_entry_limbo = (void *)elp;
+		el.el_next = NULL;
+		**elpp = el;
+	}
+
+	return 0;
+}
+
+int
+monitor_back_register_entry_parent(
+		Entry			*e,
+		monitor_callback_t	*cb,
+		struct berval		*base,
+		int			scope,
+		struct berval		*filter )
+{
+	monitor_info_t 	*mi = ( monitor_info_t * )be_monitor->be_private;
+	struct berval	ndn = BER_BVNULL;
+
+	assert( mi != NULL );
+	assert( e != NULL );
+	assert( e->e_private == NULL );
+
+	if ( BER_BVISNULL( filter ) ) {
+		/* need a filter */
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_back_register_entry_parent(\"\"): "
+			"need a valid filter\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_subsys_opened ) {
+		Entry		*e_parent = NULL,
+				*e_new = NULL,
+				**ep = NULL;
+		struct berval	e_name = BER_BVNULL,
+				e_nname = BER_BVNULL;
+		monitor_entry_t *mp = NULL,
+				*mp_parent = NULL;
+		int		rc = 0;
+
+		if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry_*(\"\"): "
+				"base=%s scope=%d filter=%s : "
+				"unable to find entry\n",
+				base->bv_val ? base->bv_val : "\"\"",
+				scope, filter->bv_val );
+			return -1;
+		}
+
+		if ( monitor_cache_get( mi, &ndn, &e_parent ) != 0 ) {
+			/* entry does not exist */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry_parent(\"%s\"): "
+				"parent entry does not exist\n",
+				ndn.bv_val, 0, 0 );
+			rc = -1;
+			goto done;
+		}
+
+		assert( e_parent->e_private != NULL );
+		mp_parent = ( monitor_entry_t * )e_parent->e_private;
+
+		if ( mp_parent->mp_flags & MONITOR_F_VOLATILE ) {
+			/* entry is volatile; cannot append callback */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry_*(\"%s\"): "
+				"entry is volatile\n",
+				e_parent->e_name.bv_val, 0, 0 );
+			rc = -1;
+			goto done;
+		}
+
+		build_new_dn( &e_name, &e_parent->e_name, &e->e_name, NULL );
+		build_new_dn( &e_nname, &e_parent->e_nname, &e->e_nname, NULL );
+
+		if ( monitor_cache_get( mi, &e_nname, &e_new ) == 0 ) {
+			/* entry already exists */
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry_parent(\"%s\"): "
+				"entry already exists\n",
+				e_name.bv_val, 0, 0 );
+			monitor_cache_release( mi, e_new );
+			rc = -1;
+			goto done;
+		}
+
+		mp = monitor_entrypriv_create();
+		if ( mp == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry_parent(\"%s\"): "
+				"monitor_entrypriv_create() failed\n",
+				e->e_name.bv_val, 0, 0 );
+			rc = -1;
+			goto done;
+		}
+
+		e_new = entry_dup( e );
+		if ( e_new == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry(\"%s\"): "
+				"entry_dup() failed\n",
+				e->e_name.bv_val, 0, 0 );
+			rc = -1;
+			goto done;
+		}
+		ch_free( e_new->e_name.bv_val );
+		ch_free( e_new->e_nname.bv_val );
+		e_new->e_name = e_name;
+		e_new->e_nname = e_nname;
+		
+		e_new->e_private = ( void * )mp;
+		mp->mp_info = mp_parent->mp_info;
+		mp->mp_flags = mp_parent->mp_flags | MONITOR_F_SUB;
+		mp->mp_cb = cb;
+
+		ep = &mp_parent->mp_children;
+		for ( ; *ep; ) {
+			mp_parent = ( monitor_entry_t * )(*ep)->e_private;
+			ep = &mp_parent->mp_next;
+		}
+		*ep = e_new;
+
+		if ( monitor_cache_add( mi, e_new ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry(\"%s\"): "
+				"unable to add entry\n",
+				e->e_name.bv_val, 0, 0 );
+			rc = -1;
+			goto done;
+		}
+
+done:;
+		if ( !BER_BVISNULL( &ndn ) ) {
+			ch_free( ndn.bv_val );
+		}
+
+		if ( rc ) {
+			if ( mp ) {
+				ch_free( mp );
+			}
+			if ( e_new ) {
+				e_new->e_private = NULL;
+				entry_free( e_new );
+			}
+		}
+
+		if ( e_parent ) {
+			monitor_cache_release( mi, e_parent );
+		}
+
+	} else {
+		entry_limbo_t	**elpp, el = { 0 };
+
+		el.el_type = LIMBO_ENTRY_PARENT;
+
+		el.el_e = entry_dup( e );
+		if ( el.el_e == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_back_register_entry(\"%s\"): "
+				"entry_dup() failed\n",
+				e->e_name.bv_val, 0, 0 );
+			return -1;
+		}
+		
+		if ( !BER_BVISNULL( base ) ) {
+			ber_dupbv( &el.el_base, base );
+		}
+		el.el_scope = scope;
+		if ( !BER_BVISNULL( filter ) ) {
+			ber_dupbv( &el.el_filter, filter );
+		}
+
+		el.el_cb = cb;
+
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+				*elpp;
+				elpp = &(*elpp)->el_next )
+			/* go to last */;
+
+		*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
+		if ( *elpp == NULL ) {
+			el.el_e->e_private = NULL;
+			entry_free( el.el_e );
+			return -1;
+		}
+
+		el.el_next = NULL;
+		**elpp = el;
 	}
 
 	return 0;
@@ -373,11 +568,10 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 		struct berval *ndn )
 {
 	Connection	conn = { 0 };
-	char opbuf[OPERATION_BUFFER_SIZE];
+	char		opbuf[OPERATION_BUFFER_SIZE];
 	Operation	*op;
 	SlapReply	rs = { 0 };
 	slap_callback	cb = { NULL, monitor_filter2ndn_cb, NULL, NULL };
-	AttributeName	anlist[ 2 ];
 	int		rc;
 
 	BER_BVZERO( ndn );
@@ -415,9 +609,7 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 	op->ors_scope = scope;
 	ber_dupbv_x( &op->ors_filterstr, filter, op->o_tmpmemctx );
 	op->ors_filter = str2filter_x( op, filter->bv_val );
-	op->ors_attrs = anlist;
-	BER_BVSTR( &anlist[ 0 ].an_name, LDAP_NO_ATTRS );
-	BER_BVZERO( &anlist[ 1 ].an_name );
+	op->ors_attrs = slap_anlist_no_attrs;
 	op->ors_attrsonly = 0;
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = 1;
@@ -579,7 +771,7 @@ done:;
 		}
 
 	} else {
-		entry_limbo_t	*elp, el = { 0 };
+		entry_limbo_t	**elpp, el = { 0 };
 
 		el.el_type = LIMBO_ATTRS;
 		if ( !BER_BVISNULL( &ndn ) ) {
@@ -596,15 +788,20 @@ done:;
 		el.el_a = attrs_dup( a );
 		el.el_cb = cb;
 
-		elp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
-		if ( elp == NULL ) {
-			attrs_free( a );
+		for ( elpp = (entry_limbo_t **)&mi->mi_entry_limbo;
+				*elpp;
+				elpp = &(*elpp)->el_next )
+			/* go to last */;
+
+		*elpp = (entry_limbo_t *)ch_malloc( sizeof( entry_limbo_t ) );
+		if ( *elpp == NULL ) {
+			el.el_e->e_private = NULL;
+			entry_free( el.el_e );
 			return -1;
 		}
 
-		el.el_next = (entry_limbo_t *)mi->mi_entry_limbo;
-		*elp = el;
-		mi->mi_entry_limbo = (void *)elp;;
+		el.el_next = NULL;
+		**elpp = el;
 	}
 
 	return 0;
@@ -886,7 +1083,7 @@ monitor_back_db_init(
 			offsetof(monitor_info_t, mi_ad_monitorTimestamp) },
 		{ "monitorOverlay", "( 1.3.6.1.4.1.4203.666.1.27 "
 			"NAME 'monitorOverlay' "
-			"DESC 'name of overlays defined for a give database' "
+			"DESC 'name of overlays defined for a given database' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
@@ -1351,6 +1548,16 @@ monitor_back_db_open(
 						el->el_e,
 						el->el_cb );
 				break;
+
+			case LIMBO_ENTRY_PARENT:
+				monitor_back_register_entry_parent(
+						el->el_e,
+						el->el_cb,
+						&el->el_base,
+						el->el_scope,
+						&el->el_filter );
+				break;
+				
 
 			case LIMBO_ATTRS:
 				monitor_back_register_entry_attrs(

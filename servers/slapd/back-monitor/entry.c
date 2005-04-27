@@ -32,7 +32,7 @@ monitor_entry_update(
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	monitor_entry_t *mp;
-	int			rc = 0;
+	int		rc = 0;
 
 	assert( mi != NULL );
 	assert( e != NULL );
@@ -91,6 +91,7 @@ monitor_entry_modify(
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	monitor_entry_t *mp;
+	int		rc = 0;
 
 	assert( mi != NULL );
 	assert( e != NULL );
@@ -99,10 +100,21 @@ monitor_entry_modify(
 	mp = ( monitor_entry_t * )e->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_modify ) {
-		return ( *mp->mp_info->mss_modify )( op, e );
+		rc = ( *mp->mp_info->mss_modify )( op, e );
 	}
 
-	return( 0 );
+	if ( rc == 0 && mp->mp_cb ) {
+		struct monitor_callback_t	*mc;
+
+		for ( mc = mp->mp_cb; mc; mc = mc->mc_next ) {
+			rc = ( *mc->mc_modify )( op, e, mc->mc_private );
+			if ( rc != 0 ) {
+				break;
+			}
+		}
+	}
+
+	return rc;
 }
 
 int

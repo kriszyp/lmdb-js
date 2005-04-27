@@ -555,7 +555,7 @@ monitor_subsys_database_modify(
 	
 	i = sscanf( e->e_nname.bv_val, "cn=database %d,", &n );
 	if ( i != 1 )
-		return LDAP_UNWILLING_TO_PERFORM;
+		return /* LDAP_UNWILLING_TO_PERFORM */ 0;
 
 	if ( n < 0 || n >= nBackendDB )
 		return LDAP_NO_SUCH_OBJECT;

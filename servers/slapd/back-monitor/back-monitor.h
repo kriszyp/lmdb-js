@@ -36,6 +36,12 @@ typedef struct monitor_callback_t {
 	int			(*mc_update)( Operation *op, Entry *e, void *priv );
 						/* update callback
 						   for user-defined entries */
+	int			(*mc_modify)( Operation *op, Entry *e, void *priv );
+						/* modify callback
+						   for user-defined entries */
+	int			(*mc_free)( Entry *e, void *priv );
+						/* update callback
+						   for user-defined entries */
 	void			*mc_private;	/* opaque pointer to
 						   private data */
 	struct monitor_callback_t	*mc_next;
@@ -249,6 +255,43 @@ extern BackendDB *be_monitor;
 
 /* increase this bufsize if entries in string form get too big */
 #define BACKMONITOR_BUFSIZE	1024
+
+extern int
+monitor_back_register_entry(
+	Entry			*e,
+	monitor_callback_t	*cb );
+
+extern int
+monitor_back_register_entry_parent(
+	Entry			*e,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter );
+
+extern int
+monitor_filter2ndn(
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter,
+	struct berval		*ndn );
+
+extern int
+monitor_back_register_entry_attrs(
+	struct berval		*ndn_in,
+	Attribute		*a,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter );
+
+extern int
+monitor_back_register_entry_callback(
+	struct berval		*ndn,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter );
 
 LDAP_END_DECL
 
