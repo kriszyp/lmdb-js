@@ -1101,6 +1101,99 @@ monitor_back_db_init(
 			"DESC 'name of restricted operation for a given database' "
 			"SUP managedInfo )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_restrictedOperation ) },
+		{ "monitorConnectionProtocol", "( 1.3.6.1.4.1.4203.666.1.39 "
+			"NAME 'monitorConnectionProtocol' "
+			"DESC 'monitor connection protocol' "
+			"SUP monitoredInfo "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionProtocol) },
+		{ "monitorConnectionOpsReceived", "( 1.3.6.1.4.1.4203.666.1.40 "
+			"NAME 'monitorConnectionOpsReceived' "
+			"DESC 'monitor number of operations received by the connection' "
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsReceived) },
+		{ "monitorConnectionOpsExecuting", "( 1.3.6.1.4.1.4203.666.1.41 "
+			"NAME 'monitorConnectionOpsExecuting' "
+			"DESC 'monitor number of operations in execution within the connection' "
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsExecuting) },
+		{ "monitorConnectionOpsPending", "( 1.3.6.1.4.1.4203.666.1.42 "
+			"NAME 'monitorConnectionOpsPending' "
+			"DESC 'monitor number of pending operations within the connection' "
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsPending) },
+		{ "monitorConnectionOpsCompleted", "( 1.3.6.1.4.1.4203.666.1.43 "
+			"NAME 'monitorConnectionOpsCompleted' "
+			"DESC 'monitor number of operations completed within the connection' "
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsCompleted) },
+		{ "monitorConnectionGet", "( 1.3.6.1.4.1.4203.666.1.44 "
+			"NAME 'monitorConnectionGet' "
+			"DESC 'monitor FIXME???' "
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionGet) },
+		{ "monitorConnectionRead", "( 1.3.6.1.4.1.4203.666.1.45 "
+			"NAME 'monitorConnectionRead' "
+			"DESC 'monitor FIXME???' "
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionRead) },
+		{ "monitorConnectionWrite", "( 1.3.6.1.4.1.4203.666.1.46 "
+			"NAME 'monitorConnectionWrite' "
+			"DESC 'monitor FIXME???' "
+			"SUP monitorCounter "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionWrite) },
+		{ "monitorConnectionMask", "( 1.3.6.1.4.1.4203.666.1.47 "
+			"NAME 'monitorConnectionMask' "
+			"DESC 'monitor connection mask' "
+			"SUP monitoredInfo "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionMask) },
+		{ "monitorConnectionListener", "( 1.3.6.1.4.1.4203.666.1.48 "
+			"NAME 'monitorConnectionListener' "
+			"DESC 'monitor connection listener' "
+			"SUP monitoredInfo "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionListener) },
+		{ "monitorConnectionPeerDomain", "( 1.3.6.1.4.1.4203.666.1.49 "
+			"NAME 'monitorConnectionPeerDomain' "
+			"DESC 'monitor connection peer domain' "
+			"SUP monitoredInfo "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionPeerDomain) },
+		{ "monitorConnectionStartTime", "( 1.3.6.1.4.1.4203.666.1.50 "
+			"NAME 'monitorConnectionStartTime' "
+			"DESC 'monitor connection start time' "
+			"SUP monitorTimestamp "
+			"SINGLE-VALUE "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionStartTime) },
+		{ "monitorConnectionActivityTime", "( 1.3.6.1.4.1.4203.666.1.51 "
+			"NAME 'monitorConnectionActivityTime' "
+			"DESC 'monitor connection activity time' "
+			"SUP monitorTimestamp "
+			"SINGLE-VALUE "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorConnectionActivityTime) },
 #ifdef INTEGRATE_CORE_SCHEMA
 		{ NULL, NULL, 0, -1 },	/* description */
 		{ NULL, NULL, 0, -1 },	/* seeAlso */

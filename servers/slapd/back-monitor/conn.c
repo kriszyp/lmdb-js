@@ -285,36 +285,6 @@ conn_create(
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif
 
-	snprintf( buf, sizeof( buf ),
-		"dn: cn=Connection %ld,%s\n"
-		"objectClass: %s\n"
-		"structuralObjectClass: %s\n"
-		"cn: Connection %ld\n"
-		"creatorsName: %s\n"
-		"modifiersName: %s\n"
-		"createTimestamp: %s\n"
-		"modifyTimestamp: %s\n",
-		c->c_connid, ms->mss_dn.bv_val,
-		mi->mi_oc_monitorConnection->soc_cname.bv_val,
-		mi->mi_oc_monitorConnection->soc_cname.bv_val,
-		c->c_connid,
-		mi->mi_creatorsName.bv_val,
-		mi->mi_creatorsName.bv_val,
-		ctmbuf,
-		mtmbuf );
-		
-	e = str2entry( buf );
-
-	if ( e == NULL) {
-		Debug( LDAP_DEBUG_ANY,
-			"monitor_subsys_conn_create: "
-			"unable to create entry "
-			"\"cn=Connection %ld,%s\" entry\n",
-			c->c_connid, 
-			ms->mss_dn.bv_val, 0 );
-		return( -1 );
-	}
-
 #ifndef HAVE_GMTIME_R
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #endif
@@ -337,65 +307,149 @@ conn_create(
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif /* HAVE_GMTIME_R */
 
-	/* monitored info */
-	sprintf( buf,
-		"%ld "
-		": %ld "
-		": %ld/%ld/%ld/%ld "
-		": %ld/%ld/%ld "
-		": %s%s%s%s%s%s "
-		": %s "
-		": %s "
-		": %s "
-		": %s "
-		": %s "
-		": %s "
-		": %s",
+	snprintf( buf, sizeof( buf ),
+		"dn: cn=Connection %ld,%s\n"
+		"objectClass: %s\n"
+		"structuralObjectClass: %s\n"
+		"cn: Connection %ld\n"
+		
+		/* NOTE: this will disappear, as the exploded data
+		 * has been moved to dedicated attributes */
+		"%s: "
+			"%ld "
+			": %ld "
+			": %ld/%ld/%ld/%ld "
+			": %ld/%ld/%ld "
+			": %s%s%s%s%s%s "
+			": %s "
+			": %s "
+			": %s "
+			": %s "
+			": %s "
+			": %s "
+			": %s\n"
+
+		"%s: %lu\n"
+		"%s: %ld\n"
+
+		"%s: %ld\n"
+		"%s: %ld\n"
+		"%s: %ld\n"
+		"%s: %ld\n"
+
+		"%s: %ld\n"
+		"%s: %ld\n"
+		"%s: %ld\n"
+
+		"%s: %s%s%s%s%s%s\n"
+
+		"%s: %s\n"
+
+		"%s: %s\n"
+		"%s: %s\n"
+		"%s: %s\n"
+		"%s: %s\n"
+
+		"%s: %s\n"
+		"%s: %s\n"
+
+		"creatorsName: %s\n"
+		"modifiersName: %s\n"
+		"createTimestamp: %s\n"
+		"modifyTimestamp: %s\n",
+		c->c_connid, ms->mss_dn.bv_val,
+		mi->mi_oc_monitorConnection->soc_cname.bv_val,
+		mi->mi_oc_monitorConnection->soc_cname.bv_val,
 		c->c_connid,
-		(long) c->c_protocol,
-		c->c_n_ops_received, c->c_n_ops_executing,
-			c->c_n_ops_pending, c->c_n_ops_completed,
-		
-		/* add low-level counters here */
-		c->c_n_get, c->c_n_read, c->c_n_write,
-		
-		c->c_currentber ? "r" : "",
-		c->c_writewaiter ? "w" : "",
-		LDAP_STAILQ_EMPTY( &c->c_ops ) ? "" : "x",
-		LDAP_STAILQ_EMPTY( &c->c_pending_ops ) ? "" : "p",
-		connection_state2str( c->c_conn_state ),
-		c->c_sasl_bind_in_progress ? "S" : "",
-		
-		c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
-		
-		c->c_listener_url.bv_val,
-		c->c_peer_domain.bv_val,
-		c->c_peer_name.bv_val,
-		c->c_sock_name.bv_val,
-		
-		buf2,
-		buf3
-		);
 
-	ber_str2bv( buf, 0, 0, &bv );
-	attr_merge_one( e, mi->mi_ad_monitoredInfo, &bv, &bv );
+		mi->mi_ad_monitoredInfo->ad_cname.bv_val,
+			c->c_connid,
+			(long) c->c_protocol,
+			c->c_n_ops_received, c->c_n_ops_executing,
+				c->c_n_ops_pending, c->c_n_ops_completed,
+			
+			/* add low-level counters here */
+			c->c_n_get, c->c_n_read, c->c_n_write,
+			
+			c->c_currentber ? "r" : "",
+			c->c_writewaiter ? "w" : "",
+			LDAP_STAILQ_EMPTY( &c->c_ops ) ? "" : "x",
+			LDAP_STAILQ_EMPTY( &c->c_pending_ops ) ? "" : "p",
+			connection_state2str( c->c_conn_state ),
+			c->c_sasl_bind_in_progress ? "S" : "",
+			
+			c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
+			
+			c->c_listener_url.bv_val,
+			c->c_peer_domain.bv_val,
+			c->c_peer_name.bv_val,
+			c->c_sock_name.bv_val,
+			
+			buf2,
+			buf3,
 
-	/* connection number */
-	snprintf( buf, sizeof( buf ), "%ld", c->c_connid );
-	ber_str2bv( buf, 0, 0, &bv );
-	attr_merge_one( e, mi->mi_ad_monitorConnectionNumber, &bv, &bv );
+		mi->mi_ad_monitorConnectionNumber->ad_cname.bv_val,
+			c->c_connid,
+		mi->mi_ad_monitorConnectionProtocol->ad_cname.bv_val,
+			(long)c->c_protocol,
 
-	/* authz DN */
-	attr_merge_one( e, mi->mi_ad_monitorConnectionAuthzDN,
-			&c->c_dn, &c->c_ndn );
+		mi->mi_ad_monitorConnectionOpsReceived->ad_cname.bv_val,
+			c->c_n_ops_received,
+		mi->mi_ad_monitorConnectionOpsExecuting->ad_cname.bv_val,
+			c->c_n_ops_executing,
+		mi->mi_ad_monitorConnectionOpsPending->ad_cname.bv_val,
+			c->c_n_ops_pending,
+		mi->mi_ad_monitorConnectionOpsCompleted->ad_cname.bv_val,
+			c->c_n_ops_completed,
 
-	/* local address */
-	attr_merge_one( e, mi->mi_ad_monitorConnectionLocalAddress,
-			&c->c_sock_name, &c->c_sock_name );
+		mi->mi_ad_monitorConnectionGet->ad_cname.bv_val,
+			c->c_n_get,
+		mi->mi_ad_monitorConnectionRead->ad_cname.bv_val,
+			c->c_n_read,
+		mi->mi_ad_monitorConnectionWrite->ad_cname.bv_val,
+			c->c_n_write,
 
-	/* peer address */
-	attr_merge_one( e, mi->mi_ad_monitorConnectionPeerAddress,
-			&c->c_peer_name, &c->c_peer_name );
+		mi->mi_ad_monitorConnectionMask->ad_cname.bv_val,
+			c->c_currentber ? "r" : "",
+			c->c_writewaiter ? "w" : "",
+			LDAP_STAILQ_EMPTY( &c->c_ops ) ? "" : "x",
+			LDAP_STAILQ_EMPTY( &c->c_pending_ops ) ? "" : "p",
+			connection_state2str( c->c_conn_state ),
+			c->c_sasl_bind_in_progress ? "S" : "",
+		
+		mi->mi_ad_monitorConnectionAuthzDN->ad_cname.bv_val,
+			c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
+
+		mi->mi_ad_monitorConnectionListener->ad_cname.bv_val,
+			c->c_listener_url.bv_val,
+		mi->mi_ad_monitorConnectionPeerDomain->ad_cname.bv_val,
+			c->c_peer_domain.bv_val,
+		mi->mi_ad_monitorConnectionLocalAddress->ad_cname.bv_val,
+			c->c_peer_name.bv_val,
+		mi->mi_ad_monitorConnectionPeerAddress->ad_cname.bv_val,
+			c->c_sock_name.bv_val,
+
+		mi->mi_ad_monitorConnectionStartTime->ad_cname.bv_val,
+			buf2,
+		mi->mi_ad_monitorConnectionActivityTime->ad_cname.bv_val,
+			buf3,
+
+		mi->mi_creatorsName.bv_val,
+		mi->mi_creatorsName.bv_val,
+		ctmbuf,
+		mtmbuf );
+		
+	e = str2entry( buf );
+
+	if ( e == NULL) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_conn_create: "
+			"unable to create entry "
+			"\"cn=Connection %ld,%s\" entry\n",
+			c->c_connid, 
+			ms->mss_dn.bv_val, 0 );
+		return( -1 );
+	}
 
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {

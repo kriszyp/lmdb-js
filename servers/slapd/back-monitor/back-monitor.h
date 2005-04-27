@@ -108,6 +108,19 @@ typedef struct monitor_info_t {
 	AttributeDescription	*mi_ad_monitorConnectionPeerAddress;
 	AttributeDescription	*mi_ad_monitorTimestamp;
 	AttributeDescription	*mi_ad_monitorOverlay;
+	AttributeDescription	*mi_ad_monitorConnectionProtocol;
+	AttributeDescription	*mi_ad_monitorConnectionOpsReceived;
+	AttributeDescription	*mi_ad_monitorConnectionOpsExecuting;
+	AttributeDescription	*mi_ad_monitorConnectionOpsPending;
+	AttributeDescription	*mi_ad_monitorConnectionOpsCompleted;
+	AttributeDescription	*mi_ad_monitorConnectionGet;
+	AttributeDescription	*mi_ad_monitorConnectionRead;
+	AttributeDescription	*mi_ad_monitorConnectionWrite;
+	AttributeDescription	*mi_ad_monitorConnectionMask;
+	AttributeDescription	*mi_ad_monitorConnectionListener;
+	AttributeDescription	*mi_ad_monitorConnectionPeerDomain;
+	AttributeDescription	*mi_ad_monitorConnectionStartTime;
+	AttributeDescription	*mi_ad_monitorConnectionActivityTime;
 
 	/*
 	 * Generic description attribute
@@ -254,7 +267,7 @@ typedef struct monitor_subsys_t {
 extern BackendDB *be_monitor;
 
 /* increase this bufsize if entries in string form get too big */
-#define BACKMONITOR_BUFSIZE	1024
+#define BACKMONITOR_BUFSIZE	8192
 
 extern int
 monitor_back_register_entry(
