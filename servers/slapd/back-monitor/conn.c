@@ -174,6 +174,7 @@ monitor_subsys_conn_init(
 int
 monitor_subsys_conn_update(
 	Operation		*op,
+	SlapReply		*rs,
 	Entry                   *e
 )
 {
@@ -225,7 +226,7 @@ monitor_subsys_conn_update(
 		/* FIXME: touch modifyTimestamp? */
 	}
 
-	return( 0 );
+	return SLAP_CB_CONTINUE;
 }
 
 static int
@@ -237,14 +238,12 @@ conn_create(
 )
 {
 	monitor_entry_t *mp;
-	struct tm		*ltm;
-	char			buf[ BACKMONITOR_BUFSIZE ];
-	char			buf2[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-	char			buf3[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	struct tm	*ltm;
+	char		buf[ BACKMONITOR_BUFSIZE ];
+	char		buf2[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	char		buf3[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
-	struct berval           bv;
-
-	Entry			*e;
+	Entry		*e;
 
 	struct tm	*ctm;
 	char		ctmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
@@ -461,7 +460,7 @@ conn_create(
 
 	mp = monitor_entrypriv_create();
 	if ( mp == NULL ) {
-		return -1;
+		return LDAP_OTHER;
 	}
 	e->e_private = ( void * )mp;
 	mp->mp_info = ms;
@@ -469,12 +468,13 @@ conn_create(
 
 	*ep = e;
 
-	return( 0 );
+	return SLAP_CB_CONTINUE;
 }
 
 int 
 monitor_subsys_conn_create( 
 	Operation		*op,
+	SlapReply		*rs,
 	struct berval		*ndn,
 	Entry 			*e_parent,
 	Entry			**ep
@@ -485,7 +485,7 @@ monitor_subsys_conn_create(
 	Connection		*c;
 	int			connindex;
 	monitor_entry_t 	*mp;
-	int			rc = 0;
+	int			rc = SLAP_CB_CONTINUE;
 	monitor_subsys_t	*ms;
 
 	assert( mi != NULL );
@@ -516,7 +516,7 @@ monitor_subsys_conn_create(
 
 					e_tmp = e;
 				}
-				rc = -1;
+				rc = rs->sr_err = LDAP_OTHER;
 				break;
 			}
 			mp = ( monitor_entry_t * )e->e_private;
@@ -544,22 +544,27 @@ monitor_subsys_conn_create(
 		
 		connid = strtol( &ndn->bv_val[ nconn_bv.bv_len ], &next, 10 );
 		if ( next[ 0 ] != ',' ) {
-			return -1;
+			return ( rs->sr_err = LDAP_OTHER );
 		}
 
 		for ( c = connection_first( &connindex );
 				c != NULL;
-				c = connection_next( c, &connindex )) {
+				c = connection_next( c, &connindex ) )
+		{
 			if ( c->c_connid == connid ) {
-				if ( conn_create( mi, c, ep, ms ) || *ep == NULL ) {
-					rc = -1;
+				rc = conn_create( mi, c, ep, ms );
+				if ( rc != SLAP_CB_CONTINUE ) {
+					rs->sr_err = rc;
+
+				} else if ( *ep == NULL ) {
+					rc = rs->sr_err = LDAP_OTHER;
 				}
 
 				break;
 			}
 		}
 		
-		connection_done(c);
+		connection_done( c );
 	}
 
 	return rc;

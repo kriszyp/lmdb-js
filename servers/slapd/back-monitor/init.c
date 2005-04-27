@@ -161,7 +161,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 };
 
 int
-monitor_back_register_subsys( monitor_subsys_t *ms )
+monitor_back_register_subsys(
+	monitor_subsys_t	*ms )
 {
 	int	i = 0;
 
@@ -220,8 +221,8 @@ typedef struct entry_limbo_t {
 
 int
 monitor_back_register_entry(
-		Entry			*e,
-		monitor_callback_t	*cb )
+	Entry			*e,
+	monitor_callback_t	*cb )
 {
 	monitor_info_t 	*mi = ( monitor_info_t * )be_monitor->be_private;
 
@@ -364,11 +365,11 @@ done:;
 
 int
 monitor_back_register_entry_parent(
-		Entry			*e,
-		monitor_callback_t	*cb,
-		struct berval		*base,
-		int			scope,
-		struct berval		*filter )
+	Entry			*e,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter )
 {
 	monitor_info_t 	*mi = ( monitor_info_t * )be_monitor->be_private;
 	struct berval	ndn = BER_BVNULL;
@@ -564,8 +565,11 @@ monitor_filter2ndn_cb( Operation *op, SlapReply *rs )
 }
 
 int
-monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
-		struct berval *ndn )
+monitor_filter2ndn(
+	struct berval	*base,
+	int		scope,
+	struct berval	*filter,
+	struct berval	*ndn )
 {
 	Connection	conn = { 0 };
 	char		opbuf[OPERATION_BUFFER_SIZE];
@@ -652,12 +656,12 @@ monitor_filter2ndn( struct berval *base, int scope, struct berval *filter,
 
 int
 monitor_back_register_entry_attrs(
-		struct berval		*ndn_in,
-		Attribute		*a,
-		monitor_callback_t	*cb,
-		struct berval		*base,
-		int			scope,
-		struct berval		*filter )
+	struct berval		*ndn_in,
+	Attribute		*a,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter )
 {
 	monitor_info_t 	*mi = ( monitor_info_t * )be_monitor->be_private;
 	struct berval	ndn = BER_BVNULL;
@@ -809,11 +813,11 @@ done:;
 
 int
 monitor_back_register_entry_callback(
-		struct berval		*ndn,
-		monitor_callback_t	*cb,
-		struct berval		*base,
-		int			scope,
-		struct berval		*filter )
+	struct berval		*ndn,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter )
 {
 	return monitor_back_register_entry_attrs( ndn, NULL, cb,
 			base, scope, filter );
@@ -836,7 +840,9 @@ monitor_back_get_subsys( const char *name )
 }
 
 monitor_subsys_t *
-monitor_back_get_subsys_by_dn( struct berval *ndn, int sub )
+monitor_back_get_subsys_by_dn(
+	struct berval	*ndn,
+	int		sub )
 {
 	if ( monitor_subsys != NULL ) {
 		int	i;
@@ -862,8 +868,7 @@ monitor_back_get_subsys_by_dn( struct berval *ndn, int sub )
 
 int
 monitor_back_initialize(
-	BackendInfo	*bi
-)
+	BackendInfo	*bi )
 {
 	monitor_subsys_t	*ms;
 	static char		*controls[] = {
@@ -930,8 +935,7 @@ monitor_back_initialize(
 
 int
 monitor_back_db_init(
-	BackendDB	*be
-)
+	BackendDB	*be )
 {
 	monitor_info_t 	*mi;
 	int		i, rc;
@@ -1396,8 +1400,7 @@ monitor_back_db_init(
 
 int
 monitor_back_db_open(
-	BackendDB	*be
-)
+	BackendDB	*be )
 {
 	monitor_info_t 		*mi = (monitor_info_t *)be->be_private;
 	struct monitor_subsys_t	**ms;
@@ -1708,8 +1711,7 @@ monitor_back_config(
 	const char	*fname,
 	int		lineno,
 	int		argc,
-	char		**argv
-)
+	char		**argv )
 {
 	/*
 	 * eventually, will hold backend specific configuration parameters
@@ -1723,8 +1725,7 @@ monitor_back_db_config(
 	const char  *fname,
 	int         lineno,
 	int         argc,
-	char        **argv
-)
+	char        **argv )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
 
@@ -1747,8 +1748,7 @@ monitor_back_db_config(
 
 int
 monitor_back_db_destroy(
-	BackendDB	*be
-)
+	BackendDB	*be )
 {
 	/*
 	 * FIXME: destroys all the data

@@ -219,6 +219,7 @@ monitor_subsys_thread_init(
 int 
 monitor_subsys_thread_update( 
 	Operation		*op,
+	SlapReply		*rs,
 	Entry 			*e
 )
 {
@@ -235,19 +236,22 @@ monitor_subsys_thread_update(
 	assert( mi != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
-	if ( dn_match( &rdn, &backload_bv ))
+	if ( dn_match( &rdn, &backload_bv ) ) {
 		which = 1;
-	else if ( dn_match( &rdn, &runqueue_bv ))
+
+	} else if ( dn_match( &rdn, &runqueue_bv ) ) {
 		which = 2;
-	else
-		return 0;
+
+	} else {
+		return SLAP_CB_CONTINUE;
+	}
 
 	a = attr_find( e->e_attrs, mi->mi_ad_monitoredInfo );
 	if ( a == NULL ) {
-		return -1;
+		return rs->sr_err = LDAP_OTHER;
 	}
 
-	switch( which ) {
+	switch ( which ) {
 	case 1:
 		snprintf( buf, sizeof( buf ), "%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
@@ -258,10 +262,11 @@ monitor_subsys_thread_update(
 		a->a_vals[ 0 ].bv_len = len;
 		AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
 		break;
+
 	case 2:
-		for (i=0; !BER_BVISNULL( a->a_vals+i ); i++) {
+		for ( i = 0; !BER_BVISNULL( a->a_vals + i ); i++) {
 			ch_free( a->a_vals[i].bv_val );
-			BER_BVZERO( a->a_vals+i );
+			BER_BVZERO( a->a_vals + i );
 		}
 		bv.bv_val = buf;
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
@@ -276,6 +281,6 @@ monitor_subsys_thread_update(
 
 	/* FIXME: touch modifyTimestamp? */
 
-	return( 0 );
+	return SLAP_CB_CONTINUE;
 }
 

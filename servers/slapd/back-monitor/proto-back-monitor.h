@@ -28,99 +28,245 @@ LDAP_BEGIN_DECL
 /*
  * backends
  */
-int monitor_subsys_backend_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
+int
+monitor_subsys_backend_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
 
 /*
  * cache
  */
-extern int monitor_cache_cmp LDAP_P(( const void *c1, const void *c2 ));
-extern int monitor_cache_dup LDAP_P(( void *c1, void *c2 ));
-extern int monitor_cache_add LDAP_P(( monitor_info_t *mi, Entry *e ));
-extern int monitor_cache_get LDAP_P(( monitor_info_t *mi, struct berval *ndn, Entry **ep ));
-extern int monitor_cache_dn2entry LDAP_P(( Operation *op, struct berval *ndn, Entry **ep, Entry **matched ));
-extern int monitor_cache_lock LDAP_P(( Entry *e ));
-extern int monitor_cache_release LDAP_P(( monitor_info_t *mi, Entry *e ));
+extern int
+monitor_cache_cmp LDAP_P((
+	const void		*c1,
+	const void		*c2 ));
+extern int
+monitor_cache_dup LDAP_P((
+	void			*c1,
+	void			*c2 ));
+extern int
+monitor_cache_add LDAP_P((
+	monitor_info_t		*mi,
+	Entry			*e ));
+extern int
+monitor_cache_get LDAP_P((
+	monitor_info_t		*mi,
+	struct berval		*ndn,
+	Entry			**ep ));
+extern int
+monitor_cache_dn2entry LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	struct berval		*ndn,
+	Entry			**ep,
+	Entry			**matched ));
+extern int
+monitor_cache_lock LDAP_P((
+	Entry			*e ));
+extern int
+monitor_cache_release LDAP_P((
+	monitor_info_t		*mi,
+	Entry			*e ));
 
 /*
  * connections
  */
-int monitor_subsys_conn_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_conn_update LDAP_P(( Operation *op, Entry *e ));
-int monitor_subsys_conn_create LDAP_P(( Operation *op, struct berval *ndn,
-			Entry *e_parent, Entry **ep ));
+extern int
+monitor_subsys_conn_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_conn_update LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
+extern int
+monitor_subsys_conn_create LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	struct berval		*ndn,
+	Entry			*e_parent,
+	Entry			**ep ));
 
 /*
  * databases 
  */
-int monitor_subsys_database_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_database_modify LDAP_P(( Operation *op, Entry *e ));
+extern int
+monitor_subsys_database_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_database_modify LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
 
 /*
  * entry
  */
-extern int monitor_entry_update LDAP_P(( Operation *op, Entry *e ));
-extern int monitor_entry_create LDAP_P(( Operation *op, struct berval *ndn,
-		Entry *e_parent, Entry **ep ));
-extern int monitor_entry_modify LDAP_P(( Operation *op, Entry *e ));
-int monitor_entry_test_flags LDAP_P(( monitor_entry_t *mp, int cond ));
-extern monitor_entry_t * monitor_entrypriv_create LDAP_P(( void ));
+extern int
+monitor_entry_update LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
+extern int
+monitor_entry_create LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	struct berval		*ndn,
+	Entry			*e_parent,
+	Entry			**ep ));
+extern int
+monitor_entry_modify LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
+extern int
+monitor_entry_test_flags LDAP_P((
+	monitor_entry_t		*mp,
+	int			cond ));
+extern monitor_entry_t *
+monitor_entrypriv_create LDAP_P((
+	void ));
 
 /*
  * init
  */
-extern int monitor_back_register_subsys LDAP_P(( monitor_subsys_t *ms ));
-extern monitor_subsys_t * monitor_back_get_subsys LDAP_P(( const char *name ));
-extern monitor_subsys_t * monitor_back_get_subsys_by_dn LDAP_P(( struct berval *ndn, int sub ));
-extern int monitor_back_register_entry LDAP_P(( Entry *e, monitor_callback_t *cb ));
-extern int monitor_filter2ndn LDAP_P(( struct berval *base, int scope, struct berval *filter, struct berval *ndn ));
-extern int monitor_back_register_entry_attrs LDAP_P(( struct berval *ndn, Attribute *a, monitor_callback_t *cb, struct berval *base, int scope, struct berval *filter ));
-extern int monitor_back_register_entry_callback LDAP_P(( struct berval *ndn, monitor_callback_t *cb, struct berval *base, int scope, struct berval *filter ));
+extern int
+monitor_back_register_subsys LDAP_P((
+	monitor_subsys_t	*ms ));
+extern monitor_subsys_t *
+monitor_back_get_subsys LDAP_P((
+	const char		*name ));
+extern monitor_subsys_t *
+monitor_back_get_subsys_by_dn LDAP_P((
+	struct berval		*ndn,
+	int			sub ));
+extern int
+monitor_back_register_entry LDAP_P((
+	Entry			*e,
+	monitor_callback_t	*cb ));
+extern int
+monitor_back_register_entry_parent LDAP_P((
+	Entry			*e,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter ));
+extern int
+monitor_filter2ndn LDAP_P((
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter,
+	struct berval		*ndn ));
+extern int
+monitor_back_register_entry_attrs LDAP_P((
+	struct berval		*ndn,
+	Attribute		*a,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter ));
+extern int
+monitor_back_register_entry_callback LDAP_P((
+	struct berval		*ndn,
+	monitor_callback_t	*cb,
+	struct berval		*base,
+	int			scope,
+	struct berval		*filter ));
 
 /*
  * listener
  */
-int monitor_subsys_listener_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
+extern int
+monitor_subsys_listener_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
 
 /*
  * log
  */
-int monitor_subsys_log_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_log_modify LDAP_P(( Operation *op, Entry *e ));
+extern int
+monitor_subsys_log_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_log_modify LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
 
 /*
  * operations
  */
-int monitor_subsys_ops_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_ops_update LDAP_P(( Operation *op, Entry *e ));
+extern int
+monitor_subsys_ops_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_ops_update LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
 
 /*
  * overlay
  */
-int monitor_subsys_overlay_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
+extern int
+monitor_subsys_overlay_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
 
 /*
  * sent
  */
-int monitor_subsys_sent_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_sent_update LDAP_P(( Operation *op, Entry *e ));
+extern int
+monitor_subsys_sent_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_sent_update LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
 
 /*
  * threads
  */
-int monitor_subsys_thread_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_thread_update LDAP_P(( Operation *op, Entry *e ));
+extern int
+monitor_subsys_thread_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_thread_update LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
 
 /*
  * time
  */
-int monitor_subsys_time_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_time_update LDAP_P(( Operation *op, Entry *e ));
+extern int monitor_subsys_time_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_time_update LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
 
 /*
  * waiters
  */
-int monitor_subsys_rww_init LDAP_P(( BackendDB *be, monitor_subsys_t *ms ));
-int monitor_subsys_rww_update LDAP_P(( Operation *op, Entry *e ));
+extern int
+monitor_subsys_rww_init LDAP_P((
+	BackendDB		*be,
+	monitor_subsys_t	*ms ));
+extern int
+monitor_subsys_rww_update LDAP_P((
+	Operation		*op,
+	SlapReply		*rs,
+	Entry			*e ));
 
 /* NOTE: this macro assumes that bv has been allocated
  * by ber_* malloc functions or is { 0L, NULL } */

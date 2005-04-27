@@ -155,6 +155,7 @@ monitor_subsys_ops_init(
 int
 monitor_subsys_ops_update(
 	Operation		*op,
+	SlapReply		*rs,
 	Entry                   *e
 )
 {
@@ -217,6 +218,6 @@ monitor_subsys_ops_update(
 
 	/* FIXME: touch modifyTimestamp? */
 
-	return( 0 );
+	return SLAP_CB_CONTINUE;
 }
 

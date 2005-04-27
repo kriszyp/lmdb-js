@@ -48,7 +48,7 @@ monitor_send_children(
 
 	e_ch = NULL;
 	if ( MONITOR_HAS_VOLATILE_CH( mp ) ) {
-		monitor_entry_create( op, NULL, e_parent, &e_ch );
+		monitor_entry_create( op, rs, NULL, e_parent, &e_ch );
 	}
 	monitor_cache_release( mi, e_parent );
 
@@ -86,7 +86,7 @@ monitor_send_children(
 	for ( ; e != NULL; ) {
 		mp = ( monitor_entry_t * )e->e_private;
 
-		monitor_entry_update( op, e );
+		monitor_entry_update( op, rs, e );
 
 		if ( op->o_abandon ) {
 			monitor_cache_release( mi, e );
@@ -134,7 +134,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( op, &op->o_req_ndn, &e, &matched );
+	monitor_cache_dn2entry( op, rs, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
@@ -184,7 +184,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	rs->sr_attrs = op->oq_search.rs_attrs;
 	switch ( op->oq_search.rs_scope ) {
 	case LDAP_SCOPE_BASE:
-		monitor_entry_update( op, e );
+		monitor_entry_update( op, rs, e );
 		rc = test_filter( op, e, op->oq_search.rs_filter );
  		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
@@ -201,7 +201,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_SCOPE_SUBTREE:
-		monitor_entry_update( op, e );
+		monitor_entry_update( op, rs, e );
 		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;

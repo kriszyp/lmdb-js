@@ -41,7 +41,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 	Debug(LDAP_DEBUG_ARGS, "monitor_back_modify:\n", 0, 0, 0);
 
 	/* acquire and lock entry */
-	monitor_cache_dn2entry( op, &op->o_req_ndn, &e, &matched );
+	monitor_cache_dn2entry( op, rs, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		if ( matched ) {
@@ -69,7 +69,7 @@ monitor_back_modify( Operation *op, SlapReply *rs )
 		rc = LDAP_INSUFFICIENT_ACCESS;
 
 	} else {
-		rc = monitor_entry_modify( op, e );
+		rc = monitor_entry_modify( op, rs, e );
 	}
 
 #ifdef SLAP_ACL_HONOR_DISCLOSE

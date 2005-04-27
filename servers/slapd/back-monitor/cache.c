@@ -170,6 +170,7 @@ monitor_cache_get(
 int
 monitor_cache_dn2entry(
 		Operation		*op,
+		SlapReply		*rs,
 		struct berval		*ndn,
 		Entry			**ep,
 		Entry			**matched
@@ -205,7 +206,7 @@ monitor_cache_dn2entry(
 		dnParent( ndn, &p_ndn );
 	}
 
-	rc = monitor_cache_dn2entry( op, &p_ndn, &e_parent, matched );
+	rc = monitor_cache_dn2entry( op, rs, &p_ndn, &e_parent, matched );
 	if ( rc || e_parent == NULL ) {
 		return( -1 );
 	}
@@ -214,7 +215,7 @@ monitor_cache_dn2entry(
 	rc = -1;
 	if ( mp->mp_flags & MONITOR_F_VOLATILE_CH ) {
 		/* parent entry generates volatile children */
-		rc = monitor_entry_create( op, ndn, e_parent, ep );
+		rc = monitor_entry_create( op, rs, ndn, e_parent, ep );
 	}
 
 	if ( !rc ) {

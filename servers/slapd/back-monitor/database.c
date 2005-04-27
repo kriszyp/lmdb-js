@@ -540,13 +540,13 @@ value_mask( BerVarray v, slap_mask_t cur, slap_mask_t *delta )
 int
 monitor_subsys_database_modify(
 	Operation	*op,
+	SlapReply	*rs,
 	Entry		*e
 )
 {
 	monitor_info_t	*mi = (monitor_info_t *)op->o_bd->be_private;
 	int		rc = LDAP_OTHER;
 	Attribute	*save_attrs, *a;
-	Modifications	*modlist = op->oq_modify.rs_modlist;
 	Modifications	*ml;
 	Backend		*be;
 	int		ro_gotval = 1, i, n;
@@ -554,26 +554,33 @@ monitor_subsys_database_modify(
 	struct berval	*tf;
 	
 	i = sscanf( e->e_nname.bv_val, "cn=database %d,", &n );
-	if ( i != 1 )
-		return /* LDAP_UNWILLING_TO_PERFORM */ 0;
+	if ( i != 1 ) {
+		return SLAP_CB_CONTINUE;
+	}
 
-	if ( n < 0 || n >= nBackendDB )
-		return LDAP_NO_SUCH_OBJECT;
+	if ( n < 0 || n >= nBackendDB ) {
+		rs->sr_text = "invalid database index";
+		return ( rs->sr_err = LDAP_NO_SUCH_OBJECT );
+	}
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
-		if ( n == 0 ) break;
+		if ( n == 0 ) {
+			break;
+		}
 		n--;
 	}
 	/* do not allow some changes on back-monitor (needs work)... */
-	if ( SLAP_MONITOR( be ) )
-		return LDAP_UNWILLING_TO_PERFORM;
+	if ( SLAP_MONITOR( be ) ) {
+		rs->sr_text = "no modifications allowed to monitor database entry";
+		return ( rs->sr_err = LDAP_UNWILLING_TO_PERFORM );
+	}
 		
 	rp_cur = be->be_restrictops;
 
 	save_attrs = e->e_attrs;
 	e->e_attrs = attrs_dup( e->e_attrs );
 
-	for ( ml=modlist; ml; ml=ml->sml_next ) {
+	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		Modification *mod = &ml->sml_mod;
 
 		if ( mod->sm_desc == mi->mi_ad_readOnly ) {
@@ -581,7 +588,8 @@ monitor_subsys_database_modify(
 
 			if ( mod->sm_values ) {
 				if ( !BER_BVISNULL( &mod->sm_values[ 1 ] ) ) {
-					rc = LDAP_CONSTRAINT_VIOLATION;
+					rs->sr_text = "attempting to modify multiple values of single-valued attribute";
+					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					goto done;
 				}
 
@@ -592,7 +600,8 @@ monitor_subsys_database_modify(
 					val = 0;
 
 				} else {
-					rc = LDAP_INVALID_SYNTAX;
+					assert( 0 );
+					rc = rs->sr_err = LDAP_INVALID_SYNTAX;
 					goto done;
 				}
 			}
@@ -600,18 +609,18 @@ monitor_subsys_database_modify(
 			switch ( mod->sm_op ) {
 			case LDAP_MOD_DELETE:
 				if ( ro_gotval < 1 ) {
-					rc = LDAP_CONSTRAINT_VIOLATION;
+					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					goto done;
 				}
 				ro_gotval--;
 
 				if ( val == 0 && ( rp_cur & SLAP_RESTRICT_OP_WRITES ) == SLAP_RESTRICT_OP_WRITES ) {
-					rc = LDAP_NO_SUCH_ATTRIBUTE;
+					rc = rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 					goto done;
 				}
 				
 				if ( val == 1 && ( rp_cur & SLAP_RESTRICT_OP_WRITES ) != SLAP_RESTRICT_OP_WRITES ) {
-					rc = LDAP_NO_SUCH_ATTRIBUTE;
+					rc = rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 					goto done;
 				}
 				
@@ -623,7 +632,7 @@ monitor_subsys_database_modify(
 
 			case LDAP_MOD_ADD:
 				if ( ro_gotval > 0 ) {
-					rc = LDAP_CONSTRAINT_VIOLATION;
+					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					goto done;
 				}
 				ro_gotval++;
@@ -641,7 +650,7 @@ monitor_subsys_database_modify(
 				break;
 
 			default:
-				rc = LDAP_OTHER;
+				rc = rs->sr_err = LDAP_OTHER;
 				goto done;
 			}
 
@@ -681,12 +690,12 @@ monitor_subsys_database_modify(
 					rp_delete &= ~mask;
 
 				} else if ( rc == LDAP_OTHER ) {
-					rc = LDAP_TYPE_OR_VALUE_EXISTS;
+					rc = rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
 				}
 				break;
 
 			default:
-				rc = LDAP_OTHER;
+				rc = rs->sr_err = LDAP_OTHER;
 				break;
 			}
 
@@ -700,29 +709,29 @@ monitor_subsys_database_modify(
 			rc = attr_merge( e, mod->sm_desc, mod->sm_values,
 				mod->sm_nvalues );
 			if ( rc ) {
-				rc = LDAP_OTHER;
+				rc = rs->sr_err = LDAP_OTHER;
 				break;
 			}
 
 		} else {
-			rc = LDAP_UNWILLING_TO_PERFORM;
+			rc = rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}
 	}
 
 	/* sanity checks: */
 	if ( ro_gotval < 1 ) {
-		rc = LDAP_CONSTRAINT_VIOLATION;
+		rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 		goto done;
 	}
 
 	if ( ( rp_cur & SLAP_RESTRICT_OP_EXTENDED ) && ( rp_cur & SLAP_RESTRICT_EXOP_MASK ) ) {
-		rc = LDAP_CONSTRAINT_VIOLATION;
+		rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 		goto done;
 	}
 
 	if ( rp_delete & rp_add ) {
-		rc = LDAP_OTHER;
+		rc = rs->sr_err = LDAP_OTHER;
 		goto done;
 	}
 
@@ -753,7 +762,7 @@ monitor_subsys_database_modify(
 			} else {
 				a = attr_find( e->e_attrs, mi->mi_ad_restrictedOperation );
 				if ( a == NULL ) {
-					rc = LDAP_OTHER;
+					rc = rs->sr_err = LDAP_OTHER;
 					goto done;
 				}
 
@@ -833,6 +842,7 @@ monitor_subsys_database_modify(
 done:;
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
+		rc = SLAP_CB_CONTINUE;
 
 	} else {
 		Attribute *tmp = e->e_attrs;

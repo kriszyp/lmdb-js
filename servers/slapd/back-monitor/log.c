@@ -71,8 +71,7 @@ static int replace_values( Entry *e, Modification *mod, int *newlevel );
 int
 monitor_subsys_log_init(
 	BackendDB		*be,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_info_t	*mi;
 	Entry		*e;
@@ -129,8 +128,8 @@ monitor_subsys_log_init(
 int 
 monitor_subsys_log_modify( 
 	Operation		*op,
-	Entry 			*e
-)
+	SlapReply		*rs,
+	Entry 			*e )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	int		rc = LDAP_OTHER;
@@ -154,9 +153,8 @@ monitor_subsys_log_modify(
 		 */
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {
 			( void ) attr_delete( &e->e_attrs, mod->sm_desc );
-			rc = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
-			if ( rc != 0 ) {
-				rc = LDAP_OTHER;
+			rc = rs->sr_err = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
+			if ( rc != LDAP_SUCCESS ) {
 				break;
 			}
 			continue;
@@ -164,8 +162,8 @@ monitor_subsys_log_modify(
 		/*
 		 * only the monitor description attribute can be modified
 		 */
-		} else if ( mod->sm_desc != mi->mi_ad_managedInfo) {
-			rc = LDAP_UNWILLING_TO_PERFORM;
+		} else if ( mod->sm_desc != mi->mi_ad_managedInfo ) {
+			rc = rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}
 
@@ -188,6 +186,7 @@ monitor_subsys_log_modify(
 		}
 
 		if ( rc != LDAP_SUCCESS ) {
+			rs->sr_err = rc;
 			break;
 		}
 	}
@@ -199,7 +198,7 @@ monitor_subsys_log_modify(
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			rc = SLAPD_ABANDON;
+			rc = rs->sr_err = SLAPD_ABANDON;
 
 			goto cleanup;
 		}
@@ -208,6 +207,7 @@ monitor_subsys_log_modify(
 		rc = entry_schema_check( be_monitor, e, save_attrs, 
 				&text, textbuf, sizeof( textbuf ) );
 		if ( rc != LDAP_SUCCESS ) {
+			rs->sr_err = rc;
 			goto cleanup;
 		}
 
@@ -236,7 +236,11 @@ cleanup:;
 	
 	ldap_pvt_thread_mutex_unlock( &monitor_log_mutex );
 
-	return( rc );
+	if ( rc == LDAP_SUCCESS ) {
+		rc = SLAP_CB_CONTINUE;
+	}
+
+	return rc;
 }
 
 static int

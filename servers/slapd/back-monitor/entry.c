@@ -27,12 +27,14 @@
 int
 monitor_entry_update(
 	Operation		*op,
+	SlapReply		*rs,
 	Entry 			*e
 )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	monitor_entry_t *mp;
-	int		rc = 0;
+
+	int		rc = SLAP_CB_CONTINUE;
 
 	assert( mi != NULL );
 	assert( e != NULL );
@@ -41,18 +43,24 @@ monitor_entry_update(
 	mp = ( monitor_entry_t * )e->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_update ) {
-		rc = ( *mp->mp_info->mss_update )( op, e );
+		rc = mp->mp_info->mss_update( op, rs, e );
 	}
 
-	if ( rc == 0 && mp->mp_cb ) {
+	if ( rc == SLAP_CB_CONTINUE && mp->mp_cb ) {
 		struct monitor_callback_t	*mc;
 
 		for ( mc = mp->mp_cb; mc; mc = mc->mc_next ) {
-			rc = ( *mc->mc_update )( op, e, mc->mc_private );
-			if ( rc != 0 ) {
-				break;
+			if ( mc->mc_update ) {
+				rc = mc->mc_update( op, rs, e, mc->mc_private );
+				if ( rc != SLAP_CB_CONTINUE ) {
+					break;
+				}
 			}
 		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = LDAP_SUCCESS;
 	}
 
 	return rc;
@@ -61,13 +69,15 @@ monitor_entry_update(
 int
 monitor_entry_create(
 	Operation		*op,
+	SlapReply		*rs,
 	struct berval		*ndn,
 	Entry			*e_parent,
-	Entry			**ep
-)
+	Entry			**ep )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	monitor_entry_t *mp;
+
+	int		rc = SLAP_CB_CONTINUE;
 
 	assert( mi != NULL );
 	assert( e_parent != NULL );
@@ -77,21 +87,27 @@ monitor_entry_create(
 	mp = ( monitor_entry_t * )e_parent->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_create ) {
-		return ( *mp->mp_info->mss_create )( op, ndn, e_parent, ep );
+		rc = mp->mp_info->mss_create( op, rs, ndn, e_parent, ep );
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = LDAP_SUCCESS;
 	}
 	
-	return( 0 );
+	return rc;
 }
 
 int
 monitor_entry_modify(
 	Operation		*op,
+	SlapReply		*rs,
 	Entry 			*e
 )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 	monitor_entry_t *mp;
-	int		rc = 0;
+
+	int		rc = SLAP_CB_CONTINUE;
 
 	assert( mi != NULL );
 	assert( e != NULL );
@@ -100,18 +116,24 @@ monitor_entry_modify(
 	mp = ( monitor_entry_t * )e->e_private;
 
 	if ( mp->mp_info && mp->mp_info->mss_modify ) {
-		rc = ( *mp->mp_info->mss_modify )( op, e );
+		rc = mp->mp_info->mss_modify( op, rs, e );
 	}
 
-	if ( rc == 0 && mp->mp_cb ) {
+	if ( rc == SLAP_CB_CONTINUE && mp->mp_cb ) {
 		struct monitor_callback_t	*mc;
 
 		for ( mc = mp->mp_cb; mc; mc = mc->mc_next ) {
-			rc = ( *mc->mc_modify )( op, e, mc->mc_private );
-			if ( rc != 0 ) {
-				break;
+			if ( mc->mc_modify ) {
+				rc = mc->mc_modify( op, rs, e, mc->mc_private );
+				if ( rc != SLAP_CB_CONTINUE ) {
+					break;
+				}
 			}
 		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		rc = LDAP_SUCCESS;
 	}
 
 	return rc;
