@@ -28,6 +28,10 @@
 #include "lutil.h"
 #include "back-monitor.h"
 
+#ifndef LDAP_DEVEL
+#define MONITOR_LEGACY_CONN
+#endif
+
 int
 monitor_subsys_conn_init(
 	BackendDB		*be,
@@ -312,7 +316,8 @@ conn_create(
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
 		"cn: Connection %ld\n"
-		
+
+#ifdef MONITOR_LEGACY_CONN
 		/* NOTE: this will disappear, as the exploded data
 		 * has been moved to dedicated attributes */
 		"%s: "
@@ -328,6 +333,7 @@ conn_create(
 			": %s "
 			": %s "
 			": %s\n"
+#endif /* MONITOR_LEGACY_CONN */
 
 		"%s: %lu\n"
 		"%s: %ld\n"
@@ -362,6 +368,7 @@ conn_create(
 		mi->mi_oc_monitorConnection->soc_cname.bv_val,
 		c->c_connid,
 
+#ifdef MONITOR_LEGACY_CONN
 		mi->mi_ad_monitoredInfo->ad_cname.bv_val,
 			c->c_connid,
 			(long) c->c_protocol,
@@ -387,6 +394,7 @@ conn_create(
 			
 			buf2,
 			buf3,
+#endif /* MONITOR_LEGACY_CONN */
 
 		mi->mi_ad_monitorConnectionNumber->ad_cname.bv_val,
 			c->c_connid,

@@ -1138,21 +1138,21 @@ monitor_back_db_init(
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsCompleted) },
 		{ "monitorConnectionGet", "( 1.3.6.1.4.1.4203.666.1.44 "
 			"NAME 'monitorConnectionGet' "
-			"DESC 'monitor FIXME???' "
+			"DESC 'number of times connection_get() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionGet) },
 		{ "monitorConnectionRead", "( 1.3.6.1.4.1.4203.666.1.45 "
 			"NAME 'monitorConnectionRead' "
-			"DESC 'monitor FIXME???' "
+			"DESC 'number of times connection_read() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionRead) },
 		{ "monitorConnectionWrite", "( 1.3.6.1.4.1.4203.666.1.46 "
 			"NAME 'monitorConnectionWrite' "
-			"DESC 'monitor FIXME???' "
+			"DESC 'number of times connection_write() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
