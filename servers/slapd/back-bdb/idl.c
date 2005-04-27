@@ -1238,7 +1238,7 @@ int bdb_idl_append_one( ID *ids, ID id )
 		}
 	}
 	ids[0]++;
-	if ( ids[0] >= BDB_IDL_DB_MAX ) {
+	if ( ids[0] >= BDB_IDL_UM_MAX ) {
 		ids[0] = NOID;
 	} else {
 		ids[ids[0]] = id;
@@ -1324,6 +1324,9 @@ bdb_idl_sort( ID *ids )
 {
 	int i;
 	ID temp;
+
+	if ( BDB_IDL_IS_RANGE( ids ))
+		return;
 
 	for (i = ids[0] / 2; i >= 1; i--)
 		siftDown(ids, i, ids[0]);

@@ -1033,7 +1033,7 @@ hdb_dn2idl(
 	DBTzero(&cx.data);
 
 	hdb_dn2idl_internal(&cx);
-	if ( !BDB_IDL_IS_ZERO( ids ))
+	if ( !BDB_IDL_IS_ZERO( ids ) && !BDB_IDL_IS_RANGE( ids ))
 		bdb_idl_sort( ids );
 
 	return cx.rc;
