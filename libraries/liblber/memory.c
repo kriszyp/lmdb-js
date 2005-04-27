@@ -728,6 +728,7 @@ ber_bvreplace_x( struct berval *dst, LDAP_CONST struct berval *src, void *ctx )
 	}
 
 	AC_MEMCPY( dst->bv_val, src->bv_val, src->bv_len + 1 );
+	dst->bv_len = src->bv_len;
 
 	return dst;
 }
