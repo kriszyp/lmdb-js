@@ -103,6 +103,10 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		if ( op->o_abandon ) {
+			rs->sr_err = SLAPD_ABANDON;
+			goto done;
+		}
 		parent_is_glue = 0;
 		parent_is_leaf = 0;
 		ldap_pvt_thread_yield();
