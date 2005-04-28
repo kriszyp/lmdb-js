@@ -767,7 +767,12 @@ void connection_closing( Connection *c )
 
 		/* wake write blocked operations */
 		slapd_clr_write( sd, 1 );
-		ldap_pvt_thread_cond_signal( &c->c_write_cv );
+		if ( c->c_writewaiter ) {
+			ldap_pvt_thread_cond_signal( &c->c_write_cv );
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+			ldap_pvt_thread_yield();
+			ldap_pvt_thread_mutex_lock( &c->c_mutex );
+		}
 	}
 }
 
