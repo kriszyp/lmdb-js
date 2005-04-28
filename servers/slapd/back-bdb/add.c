@@ -97,7 +97,7 @@ retry:	/* transaction retry */
 		}
 		if ( op->o_abandon ) {
 			rs->sr_err = SLAPD_ABANDON;
-			goto done;
+			goto return_results;
 		}
 		ldap_pvt_thread_yield();
 		bdb_trans_backoff( ++num_retries );

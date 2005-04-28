@@ -85,7 +85,7 @@ retry:	/* transaction retry */
 		}
 		if ( op->o_abandon ) {
 			rs->sr_err = SLAPD_ABANDON;
-			goto done;
+			goto return_results;
 		}
 		parent_is_glue = 0;
 		parent_is_leaf = 0;
