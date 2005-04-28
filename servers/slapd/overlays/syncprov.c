@@ -708,7 +708,6 @@ syncprov_qplay( Operation *op, slap_overinst *on, syncops *so )
 	opc.son = on;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	for (sr = so->s_res; sr; sr=srnext) {
-		int rc;
 		srnext = sr->s_next;
 		opc.sdn = sr->s_dn;
 		opc.sndn = sr->s_ndn;
@@ -756,6 +755,9 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mod
 	Attribute a_uuid = {0};
 	Operation sop = *so->s_op;
 	Opheader ohdr;
+
+	if ( so->s_op->o_abandon )
+		return SLAPD_ABANDON;
 
 	ohdr = *sop.o_hdr;
 	sop.o_hdr = &ohdr;
