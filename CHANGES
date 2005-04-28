@@ -1,5 +1,7 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.27 Engineering
+
 OpenLDAP 2.2.26 Release
 	Fixed back-bdb ldapadd ctxcsn crash (ITS#3685)
 	Fixed back-hdb search crash (ITS#3688)
