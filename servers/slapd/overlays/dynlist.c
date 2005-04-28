@@ -32,6 +32,17 @@
 /* FIXME: the code differs if SLAP_OPATTRS is defined or not;
  * SLAP_OPATTRS is not defined in 2.2 yet, while this overlay
  * expects HEAD code at least later than August 6, 2004. */
+/* FIXME: slap_anlist_no_attrs was introduced in 2.3; here it
+ * is anticipated to allow using this overlay with 2.2. */
+
+#if LDAP_VENDOR_VERSION_MINOR != X && LDAP_VENDOR_VERSION_MINOR < 3
+static AttributeName anlist_no_attrs[] = {
+	{ BER_BVC( LDAP_NO_ATTRS ), NULL, 0, NULL },
+	{ BER_BVNULL, NULL, 0, NULL }
+};
+
+static AttributeName *slap_anlist_no_attrs = anlist_no_attrs;
+#endif
 
 typedef struct dynlist_info {
 	ObjectClass		*dli_oc;
