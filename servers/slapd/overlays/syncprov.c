@@ -842,9 +842,11 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mod
 	op->o_private = sop.o_private;
 	rs.sr_ctrls = NULL;
 	/* Check queue again here; if we were hanging in a send and eventually
-	 * recovered, there may be more to send now.
+	 * recovered, there may be more to send now. But don't check if the
+	 * original psearch has been abandoned.
 	 */
-	if ( rs.sr_err == LDAP_SUCCESS && queue && so->s_res ) {
+	if ( !so->s_op->o_abandon && rs.sr_err == LDAP_SUCCESS && queue
+		&& so->s_res ) {
 		ldap_pvt_thread_mutex_lock( &so->s_mutex );
 		rs.sr_err = syncprov_qplay( &sop, on, so );
 		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
