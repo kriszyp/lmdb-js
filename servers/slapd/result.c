@@ -327,6 +327,11 @@ send_ldap_response(
 	int		rc = LDAP_SUCCESS;
 	long	bytes;
 
+	if ( rs->sr_err == SLAPD_ABANDON ) {
+		rc = SLAPD_ABANDON;
+		goto clean2;
+	}
+
 	if ( op->o_callback ) {
 		int		first = 1;
 		slap_callback	*sc = op->o_callback,
@@ -568,6 +573,10 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_RESULT;
 
+	/* Propagate Abandons so that cleanup callbacks can be processed */
+	if ( rs->sr_err == SLAPD_ABANDON )
+		goto abandon;
+
 	assert( !LDAP_API_ERROR( rs->sr_err ));
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -631,6 +640,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	rs->sr_tag = req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
+abandon:
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {
 			char nbuf[64];
