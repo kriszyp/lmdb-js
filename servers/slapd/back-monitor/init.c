@@ -400,7 +400,7 @@ monitor_back_register_entry_parent(
 		if ( monitor_filter2ndn( base, scope, filter, &ndn ) ) {
 			/* entry does not exist */
 			Debug( LDAP_DEBUG_ANY,
-				"monitor_back_register_entry_*(\"\"): "
+				"monitor_back_register_entry_parent(\"\"): "
 				"base=%s scope=%d filter=%s : "
 				"unable to find entry\n",
 				base->bv_val ? base->bv_val : "\"\"",
@@ -424,7 +424,7 @@ monitor_back_register_entry_parent(
 		if ( mp_parent->mp_flags & MONITOR_F_VOLATILE ) {
 			/* entry is volatile; cannot append callback */
 			Debug( LDAP_DEBUG_ANY,
-				"monitor_back_register_entry_*(\"%s\"): "
+				"monitor_back_register_entry_parent(\"%s\"): "
 				"entry is volatile\n",
 				e_parent->e_name.bv_val, 0, 0 );
 			rc = -1;
@@ -622,6 +622,9 @@ monitor_filter2ndn(
 
 	op->o_nocaching = 1;
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
+
+	op->o_dn = be_monitor->be_rootdn;
+	op->o_ndn = be_monitor->be_rootndn;
 
 	rc = op->o_bd->be_search( op, &rs );
 
