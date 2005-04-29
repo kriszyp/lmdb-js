@@ -38,10 +38,11 @@
  * so it should not be used outside monitor_back_db_init()
  * until monitor_back_db_open is called.
  */
-BackendDB *be_monitor = NULL;
+BackendDB			*be_monitor;
 
-static struct monitor_subsys_t	**monitor_subsys = NULL;
-static int			monitor_subsys_opened = 0;
+static struct monitor_subsys_t	**monitor_subsys;
+static int			monitor_subsys_opened;
+static monitor_info_t		monitor_info;
 
 /*
  * subsystem data
@@ -56,6 +57,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 	{ 
 		SLAPD_MONITOR_BACKEND_NAME, 
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about available backends." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_backend_init,
 		NULL,   /* update */
@@ -64,6 +67,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_CONN_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about connections." ),
+			BER_BVNULL },
 		MONITOR_F_VOLATILE_CH,
 		monitor_subsys_conn_init,
 		monitor_subsys_conn_update,
@@ -72,6 +77,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_DATABASE_NAME, 	
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about configured databases." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_database_init,
 		NULL,   /* update */
@@ -80,6 +87,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_LISTENER_NAME, 	
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about active listeners." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_listener_init,
 		NULL,	/* update */
@@ -88,6 +97,9 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_LOG_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about logging." ),
+		  	BER_BVC( "Set the attribute \"managedInfo\" to the desired log levels." ),
+			BER_BVNULL },
 		MONITOR_F_NONE,
 		monitor_subsys_log_init,
 		NULL,	/* update */
@@ -96,6 +108,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_OPS_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about performed operations." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_ops_init,
 		monitor_subsys_ops_update,
@@ -104,6 +118,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_OVERLAY_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about available overlays." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_overlay_init,
 		NULL,	/* update */
@@ -112,6 +128,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 	}, { 
 		SLAPD_MONITOR_SASL_NAME, 	
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about SASL." ),
+			BER_BVNULL },
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		NULL,   /* update */
@@ -120,6 +138,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_SENT_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains statistics." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_sent_init,
 		monitor_subsys_sent_update,
@@ -128,6 +148,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_THREAD_NAME, 	
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about threads." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_thread_init,
 		monitor_subsys_thread_update,
@@ -136,6 +158,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_TIME_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about time." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_time_init,
 		monitor_subsys_time_update,
@@ -144,6 +168,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_TLS_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about TLS." ),
+			BER_BVNULL },
 		MONITOR_F_NONE,
 		NULL,   /* init */
 		NULL,   /* update */
@@ -152,6 +178,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_RWW_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
+		{ BER_BVC( "This subsystem contains information about read/write waiters." ),
+			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_rww_init,
 		monitor_subsys_rww_update,
@@ -878,73 +906,9 @@ monitor_back_initialize(
 		LDAP_CONTROL_MANAGEDSAIT,
 		NULL
 	};
-
-	bi->bi_controls = controls;
-
-	bi->bi_init = 0;
-	bi->bi_open = 0;
-	bi->bi_config = monitor_back_config;
-	bi->bi_close = 0;
-	bi->bi_destroy = 0;
-
-	bi->bi_db_init = monitor_back_db_init;
-	bi->bi_db_config = monitor_back_db_config;
-	bi->bi_db_open = monitor_back_db_open;
-	bi->bi_db_close = 0;
-	bi->bi_db_destroy = monitor_back_db_destroy;
-
-	bi->bi_op_bind = monitor_back_bind;
-	bi->bi_op_unbind = 0;
-	bi->bi_op_search = monitor_back_search;
-	bi->bi_op_compare = monitor_back_compare;
-	bi->bi_op_modify = monitor_back_modify;
-	bi->bi_op_modrdn = 0;
-	bi->bi_op_add = 0;
-	bi->bi_op_delete = 0;
-	bi->bi_op_abandon = 0;
-
-	bi->bi_extended = 0;
-
-	bi->bi_entry_release_rw = 0;
-	bi->bi_chk_referrals = 0;
-	bi->bi_operational = monitor_back_operational;
-
-	/*
-	 * hooks for slap tools
-	 */
-	bi->bi_tool_entry_open = 0;
-	bi->bi_tool_entry_close = 0;
-	bi->bi_tool_entry_first = 0;
-	bi->bi_tool_entry_next = 0;
-	bi->bi_tool_entry_get = 0;
-	bi->bi_tool_entry_put = 0;
-	bi->bi_tool_entry_reindex = 0;
-	bi->bi_tool_sync = 0;
-	bi->bi_tool_dn2id_get = 0;
-	bi->bi_tool_id2entry_get = 0;
-	bi->bi_tool_entry_modify = 0;
-
-	bi->bi_connection_init = 0;
-	bi->bi_connection_destroy = 0;
-
-	for ( ms = known_monitor_subsys; ms->mss_name != NULL; ms++ ) {
-		if ( monitor_back_register_subsys( ms ) ) {
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
-int
-monitor_back_db_init(
-	BackendDB	*be )
-{
-	monitor_info_t 	*mi;
-	int		i, rc;
-	struct berval	dn, ndn;
-	struct berval	bv;
-	const char	*text;
+	monitor_info_t		*mi = &monitor_info;
+	int			i;
+	const char		*text;
 
 	struct m_s {
 		char	*name;
@@ -959,13 +923,6 @@ monitor_back_db_init(
 			"MUST cn "
 			"MAY ( "
 				"description "
-				"$ l "
-#if 0	/* temporarily disabled */
-				"$ st "
-				"$ street "
-				"$ postalAddress "
-				"$ postalCode "
-#endif
 				"$ seeAlso "
 				"$ labeledURI "
 				"$ monitoredInfo "
@@ -1201,111 +1158,60 @@ monitor_back_db_init(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionActivityTime) },
-#ifdef INTEGRATE_CORE_SCHEMA
-		{ NULL, NULL, 0, -1 },	/* description */
-		{ NULL, NULL, 0, -1 },	/* seeAlso */
-		{ NULL, NULL, 0, -1 },	/* l */
-		{ NULL, NULL, 0, -1 },	/* labeledURI */
-#endif /* INTEGRATE_CORE_SCHEMA */
-		{ NULL, NULL, 0, -1 }
-	}, mat_core[] = {
-		{ "description", "( 2.5.4.13 "
-			"NAME 'description' "
-			"DESC 'RFC2256: descriptive information' "
-			"EQUALITY caseIgnoreMatch "
-			"SUBSTR caseIgnoreSubstringsMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )", 0,
-			offsetof(monitor_info_t, mi_ad_description) },
-		{ "seeAlso", "( 2.5.4.34 "
-			"NAME 'seeAlso' "
-			"DESC 'RFC2256: DN of related object' "
-			"SUP distinguishedName )", 0,
-			offsetof(monitor_info_t, mi_ad_seeAlso) },
-		{ "l", "( 2.5.4.7 "
-			"NAME ( 'l' 'localityName' ) "
-			"DESC 'RFC2256: locality which this object resides in' "
-			"SUP name )", 0,
-			offsetof(monitor_info_t, mi_ad_l) },
-#ifdef MONITOR_DEFINE_LABELEDURI
-		{ "labeledURI", "( 1.3.6.1.4.1.250.1.57 "
-			"NAME 'labeledURI' "
-			"DESC 'RFC2079: Uniform Resource Identifier with optional label' "
-			"EQUALITY caseExactMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", 0,
-			offsetof(monitor_info_t, mi_ad_labeledURI) },
-#endif /* MONITOR_DEFINE_LABELEDURI */
 		{ NULL, NULL, 0, -1 }
 	};
 	
+	bi->bi_controls = controls;
+
+	bi->bi_init = 0;
+	bi->bi_open = 0;
+	bi->bi_config = monitor_back_config;
+	bi->bi_close = 0;
+	bi->bi_destroy = 0;
+
+	bi->bi_db_init = monitor_back_db_init;
+	bi->bi_db_config = monitor_back_db_config;
+	bi->bi_db_open = monitor_back_db_open;
+	bi->bi_db_close = 0;
+	bi->bi_db_destroy = monitor_back_db_destroy;
+
+	bi->bi_op_bind = monitor_back_bind;
+	bi->bi_op_unbind = 0;
+	bi->bi_op_search = monitor_back_search;
+	bi->bi_op_compare = monitor_back_compare;
+	bi->bi_op_modify = monitor_back_modify;
+	bi->bi_op_modrdn = 0;
+	bi->bi_op_add = 0;
+	bi->bi_op_delete = 0;
+	bi->bi_op_abandon = 0;
+
+	bi->bi_extended = 0;
+
+	bi->bi_entry_release_rw = 0;
+	bi->bi_chk_referrals = 0;
+	bi->bi_operational = monitor_back_operational;
+
 	/*
-	 * database monitor can be defined once only
+	 * hooks for slap tools
 	 */
-	if ( be_monitor ) {
-		Debug( LDAP_DEBUG_ANY,
-			"only one monitor backend is allowed\n", 0, 0, 0 );
-		return( -1 );
-	}
-	be_monitor = be;
+	bi->bi_tool_entry_open = 0;
+	bi->bi_tool_entry_close = 0;
+	bi->bi_tool_entry_first = 0;
+	bi->bi_tool_entry_next = 0;
+	bi->bi_tool_entry_get = 0;
+	bi->bi_tool_entry_put = 0;
+	bi->bi_tool_entry_reindex = 0;
+	bi->bi_tool_sync = 0;
+	bi->bi_tool_dn2id_get = 0;
+	bi->bi_tool_id2entry_get = 0;
+	bi->bi_tool_entry_modify = 0;
 
-	/* indicate system schema supported */
-	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
+	bi->bi_connection_init = 0;
+	bi->bi_connection_destroy = 0;
 
-	dn.bv_val = SLAPD_MONITOR_DN;
-	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
-
-	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"unable to normalize monitor DN \"%s\"\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-		return -1;
-	}
-
-	ber_dupbv( &bv, &dn );
-	ber_bvarray_add( &be->be_suffix, &bv );
-	ber_bvarray_add( &be->be_nsuffix, &ndn );
-
-	mi = ( monitor_info_t * )ch_calloc( sizeof( monitor_info_t ), 1 );
-	if ( mi == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"unable to initialize monitor backend\n", 0, 0, 0 );
-		return -1;
-	}
-
-	memset( mi, 0, sizeof( monitor_info_t ) );
-
-	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
-
-	be->be_private = mi;
-	
-#ifdef INTEGRATE_CORE_SCHEMA
-	/* prepare for schema integration */
-	for ( k = 0; mat[ k ].name != NULL; k++ );
-#endif /* INTEGRATE_CORE_SCHEMA */
-
-	for ( i = 0; mat_core[ i ].name != NULL; i++ ) {
-		AttributeDescription	**ad;
-		const char		*text;
-
-		ad = ((AttributeDescription **)&(((char *)mi)[ mat_core[ i ].offset ]));
-		ad[ 0 ] = NULL;
-
-		switch (slap_str2ad( mat_core[ i ].name, ad, &text ) ) {
-		case LDAP_SUCCESS:
-			break;
-
-#ifdef INTEGRATE_CORE_SCHEMA
-		case LDAP_UNDEFINED_TYPE:
-			mat[ k ] = mat_core[ i ];
-			k++;
-			break;
-#endif /* INTEGRATE_CORE_SCHEMA */
-
-		default:
-			Debug( LDAP_DEBUG_ANY,
-				"monitor_back_db_init: %s: %s\n",
-				mat_core[ i ].name, text, 0 );
-			return( -1 );
+	for ( ms = known_monitor_subsys; ms->mss_name != NULL; ms++ ) {
+		if ( monitor_back_register_subsys( ms ) ) {
+			return -1;
 		}
 	}
 
@@ -1402,6 +1308,54 @@ monitor_back_db_init(
 }
 
 int
+monitor_back_db_init(
+	BackendDB	*be )
+{
+	monitor_info_t 	*mi;
+	int		rc;
+	struct berval	dn, ndn;
+	struct berval	bv;
+
+	/*
+	 * database monitor can be defined once only
+	 */
+	if ( be_monitor != NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"only one monitor database is allowed\n", 0, 0, 0 );
+		return( -1 );
+	}
+	be_monitor = be;
+
+	/* indicate system schema supported */
+	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
+
+	dn.bv_val = SLAPD_MONITOR_DN;
+	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;
+
+	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+	if( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"unable to normalize monitor DN \"%s\"\n",
+			SLAPD_MONITOR_DN, 0, 0 );
+		return -1;
+	}
+
+	ber_dupbv( &bv, &dn );
+	ber_bvarray_add( &be->be_suffix, &bv );
+	ber_bvarray_add( &be->be_nsuffix, &ndn );
+
+	/* NOTE: only one monitor database is allowed,
+	 * so we use static storage */
+	mi = &monitor_info;
+
+	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
+
+	be->be_private = mi;
+
+	return 0;
+}
+
+int
 monitor_back_db_open(
 	BackendDB	*be )
 {
@@ -1466,12 +1420,10 @@ monitor_back_db_open(
 		"objectClass: %s\n"
 		"structuralObjectClass: %s\n"
 		"cn: Monitor\n"
-		"%s: This subtree contains monitoring/managing objects.\n"
-		"%s: This object contains information about this server.\n"
-#if 0
-		"%s: createTimestamp reflects the time this server instance was created.\n"
-		"%s: modifyTimestamp reflects the time this server instance was last accessed.\n"
-#endif
+		"description: This subtree contains monitoring/managing objects.\n"
+		"description: This object contains information about this server.\n"
+		"description: Most of the information is contained in operational\n"
+		"description: attributeTypes, which must be explicitly requested.\n"
 		"creatorsName: %s\n"
 		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
@@ -1479,12 +1431,6 @@ monitor_back_db_open(
 		SLAPD_MONITOR_DN,
 		mi->mi_oc_monitorServer->soc_cname.bv_val,
 		mi->mi_oc_monitorServer->soc_cname.bv_val,
-		mi->mi_ad_description->ad_cname.bv_val,
-		mi->mi_ad_description->ad_cname.bv_val,
-#if 0
-		mi->mi_ad_description->ad_cname.bv_val,
-		mi->mi_ad_description->ad_cname.bv_val,
-#endif
 		mi->mi_creatorsName.bv_val,
 		mi->mi_creatorsName.bv_val,
 		mi->mi_startTime.bv_val,
@@ -1512,15 +1458,6 @@ monitor_back_db_open(
 			"unable to add monitoredInfo to \"%s\" entry\n",
 			SLAPD_MONITOR_DN, 0, 0 );
 		return( -1 );
-	}
-
-	if ( mi->mi_l.bv_len ) {
-		if ( attr_merge_normalize_one( e, mi->mi_ad_l, &mi->mi_l, NULL ) ) {
-			Debug( LDAP_DEBUG_ANY,
-				"unable to add locality to \"%s\" entry\n",
-				SLAPD_MONITOR_DN, 0, 0 );
-			return( -1 );
-		}
 	}
 
 	mp = monitor_entrypriv_create();
@@ -1597,6 +1534,11 @@ monitor_back_db_open(
 				"unable to create \"%s\" entry\n", 
 				monitor_subsys[ i ]->mss_dn.bv_val, 0, 0 );
 			return( -1 );
+		}
+
+		if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_desc[ 0 ] ) ) {
+			attr_merge_normalize( e, slap_schema.si_ad_description,
+					monitor_subsys[ i ]->mss_desc, NULL );
 		}
 
 		mp = monitor_entrypriv_create();
@@ -1735,27 +1677,20 @@ monitor_back_db_config(
 	/*
 	 * eventually, will hold database specific configuration parameters
 	 */
-	if ( strcasecmp( argv[ 0 ], "l" ) == 0 ) {
-		if ( argc != 2 ) {
-			return 1;
-		}
-		
-		ber_str2bv( argv[ 1 ], 0, 1, &mi->mi_l );
-
-	} else {
-		return SLAP_CONF_UNKNOWN;
-	}
-
-	return( 0 );
+	return SLAP_CONF_UNKNOWN;
 }
 
 int
 monitor_back_db_destroy(
 	BackendDB	*be )
 {
+	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
+
 	/*
 	 * FIXME: destroys all the data
 	 */
+	/* NOTE: mi points to static storage; don't free it */
+	
 	return 0;
 }
 

@@ -195,7 +195,6 @@ monitor_subsys_database_init(
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
 				"cn: Database %d\n"
-				"description: This object contains the type of the database.\n"
 				"%s: %s\n"
 				"creatorsName: %s\n"
 				"modifiersName: %s\n"
@@ -279,7 +278,8 @@ monitor_subsys_database_init(
 					"cn=Overlay %d,%s", 
 					j, ms_overlay->mss_dn.bv_val );
 				ber_str2bv( buf, 0, 0, &bv );
-				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
+				attr_merge_normalize_one( e,
+						slap_schema.si_ad_seeAlso,
 						&bv, NULL );
 			}
 		}
@@ -375,7 +375,8 @@ monitor_subsys_database_init(
 					j, ms_backend->mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
-				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
+				attr_merge_normalize_one( e,
+						slap_schema.si_ad_seeAlso,
 						&bv, NULL );
 				break;
 			}
@@ -427,7 +428,6 @@ monitor_subsys_database_init(
 						"objectClass: %s\n"
 						"structuralObjectClass: %s\n"
 						"cn: Overlay %d\n"
-						"description: This object contains the type of the overlay.\n"
 						"%s: %s\n"
 						"seeAlso: cn=Overlay %d,%s\n"
 						"creatorsName: %s\n"

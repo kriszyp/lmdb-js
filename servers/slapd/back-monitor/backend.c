@@ -139,7 +139,7 @@ monitor_subsys_backend_init(
 					j, ms_database->mss_dn.bv_val );
 
 			ber_str2bv( buf, 0, 0, &dn );
-			attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
+			attr_merge_normalize_one( e, slap_schema.si_ad_seeAlso,
 					&dn, NULL );
 		}
 		

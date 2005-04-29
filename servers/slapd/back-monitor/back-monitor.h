@@ -81,7 +81,6 @@ typedef struct monitor_info_t {
 	/*
 	 * Config parameters
 	 */
-	struct berval		mi_l;
 	struct berval		mi_startTime;		/* don't free it! */
 	struct berval		mi_creatorsName;	/* don't free it! */
 
@@ -125,13 +124,6 @@ typedef struct monitor_info_t {
 	/*
 	 * Generic description attribute
 	 */
-	AttributeDescription	*mi_ad_description;
-	AttributeDescription	*mi_ad_seeAlso;
-	AttributeDescription	*mi_ad_l;
-#ifdef MONITOR_DEFINE_LABELEDURI
-	/* enable if si_ad_labeledURI is removed from slap_schema */
-	AttributeDescription	*mi_ad_labeledURI;
-#endif /* MONITOR_DEFINE_LABELEDURI */
 	AttributeDescription	*mi_ad_readOnly;
 	AttributeDescription	*mi_ad_restrictedOperation;
 
@@ -245,6 +237,7 @@ typedef struct monitor_subsys_t {
 	struct berval	mss_rdn;
 	struct berval	mss_dn;
 	struct berval	mss_ndn;
+	struct berval	mss_desc[ 3 ];
 	int		mss_flags;
 #define MONITOR_F_OPENED	0x10000000U
 
