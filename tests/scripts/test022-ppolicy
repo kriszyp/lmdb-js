@@ -79,8 +79,8 @@ if test $COUNT != 2 ; then
 	exit 1
 fi
 
-echo "Waiting 30 seconds for lockout to reset..."
-sleep 30
+echo "Waiting 20 seconds for lockout to reset..."
+sleep 20
 
 $LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
 	-b "$BASEDN" -s base >> $SEARCHOUT 2>&1
@@ -91,15 +91,9 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Testing password expiration..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
-	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, ou=People, dc=example, dc=com
-changetype: modify
-replace: pwdChangedTime
-pwdChangedTime: 20031231000001Z
-
-EOMODS
+echo "Testing password expiration"
+echo "Waiting 20 seconds for password to expire..."
+sleep 20
 
 $LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
 	-b "$BASEDN" -s base > $SEARCHOUT 2>&1

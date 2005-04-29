@@ -108,10 +108,7 @@ do_abandon( Operation *op, SlapReply *rs )
 int
 fe_op_abandon( Operation *op, SlapReply *rs )
 {
-	int i;
-
-	for ( i = 0; i < nbackends; i++ ) {
-		op->o_bd = &backends[i];
+	LDAP_STAILQ_FOREACH( op->o_bd, &backendDB, be_next ) {
 		if ( op->o_bd->be_abandon ) {
 			(void)op->o_bd->be_abandon( op, rs );
 		}

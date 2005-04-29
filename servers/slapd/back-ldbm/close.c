@@ -27,16 +27,11 @@ int
 ldbm_back_db_close( Backend *be )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-	if ( li->li_dbsyncfreq > 0 )
-	{
-		li->li_dbshutdown++;
-		ldap_pvt_thread_join( li->li_dbsynctid, (void *) NULL );
-	}
+
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend syncing\n", 0, 0, 0 );
 
 	ldbm_cache_flush_all( be );
 	Debug( LDAP_DEBUG_TRACE, "ldbm backend done syncing\n", 0, 0, 0 );
-
 
 	cache_release_all( &((struct ldbminfo *) be->be_private)->li_cache );
 

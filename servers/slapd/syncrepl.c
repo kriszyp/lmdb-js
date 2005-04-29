@@ -27,15 +27,71 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
+#include "config.h"
+
 #include "ldap_rq.h"
 
 /* FIXME: for ldap_ld_free() */
 #undef ldap_debug
 #include "../../libraries/libldap/ldap-int.h"
 
+struct nonpresent_entry {
+	struct berval *npe_name;
+	struct berval *npe_nname;
+	LDAP_LIST_ENTRY(nonpresent_entry) npe_link;
+};
+
+typedef struct syncinfo_s {
+	struct slap_backend_db *si_be;
+	struct re_s			*si_re;
+	long				si_rid;
+	struct berval		si_provideruri;
+	slap_bindconf		si_bindconf;
+	struct berval		si_filterstr;
+	struct berval		si_base;
+	int					si_scope;
+	int					si_attrsonly;
+	char				*si_anfile;
+	AttributeName		*si_anlist;
+	AttributeName		*si_exanlist;
+	char 				**si_attrs;
+	char				**si_exattrs;
+	int					si_allattrs;
+	int					si_allopattrs;
+	int					si_schemachecking;
+	int					si_type;
+	time_t				si_interval;
+	time_t				*si_retryinterval;
+	int					*si_retrynum_init;
+	int					*si_retrynum;
+	struct sync_cookie	si_syncCookie;
+	int					si_manageDSAit;
+	int					si_slimit;
+	int					si_tlimit;
+	int					si_refreshDelete;
+	int					si_refreshPresent;
+	Avlnode				*si_presentlist;
+	LDAP				*si_ld;
+	LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
+	ldap_pvt_thread_mutex_t	si_mutex;
+} syncinfo_t;
+
 static int syncuuid_cmp( const void *, const void * );
 static void avl_ber_bvfree( void * );
 static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray );
+static int syncrepl_message_to_entry(
+					syncinfo_t *, Operation *, LDAPMessage *,
+					Modifications **, Entry **, int );
+static int syncrepl_entry(
+					syncinfo_t *, Operation*, Entry*,
+					Modifications**,int, struct berval*,
+					struct sync_cookie *,
+					struct berval * );
+static void syncrepl_updateCookie(
+					syncinfo_t *, Operation *, struct berval *,
+					struct sync_cookie * );
+static struct berval * slap_uuidstr_from_normalized(
+					struct berval *, struct berval *, void * );
 
 /* callback functions */
 static int dn_callback( struct slap_op *, struct slap_rep * );
@@ -44,7 +100,7 @@ static int null_callback( struct slap_op *, struct slap_rep * );
 
 static AttributeDescription *sync_descs[4];
 
-void
+static void
 init_syncrepl(syncinfo_t *si)
 {
 	int i, j, k, l, n;
@@ -244,9 +300,9 @@ ldap_sync_search(
 	c[0].ldctl_iscritical = si->si_type < 0;
 	ctrls[0] = &c[0];
 
-	if ( si->si_bindconf.sb_authzId ) {
+	if ( !BER_BVISNULL( &si->si_bindconf.sb_authzId ) ) {
 		c[1].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		ber_str2bv( si->si_bindconf.sb_authzId, 0, 0, &c[1].ldctl_value );
+		c[1].ldctl_value = si->si_bindconf.sb_authzId;
 		c[1].ldctl_iscritical = 1;
 		ctrls[1] = &c[1];
 		ctrls[2] = NULL;
@@ -322,13 +378,16 @@ do_syncrep1(
 			}
 		}
 
-		defaults = lutil_sasl_defaults( si->si_ld, si->si_bindconf.sb_saslmech,
-			si->si_bindconf.sb_realm, si->si_bindconf.sb_authcId,
-			si->si_bindconf.sb_cred, si->si_bindconf.sb_authzId );
+		defaults = lutil_sasl_defaults( si->si_ld,
+			si->si_bindconf.sb_saslmech.bv_val,
+			si->si_bindconf.sb_realm.bv_val,
+			si->si_bindconf.sb_authcId.bv_val,
+			si->si_bindconf.sb_cred.bv_val,
+			si->si_bindconf.sb_authzId.bv_val );
 
 		rc = ldap_sasl_interactive_bind_s( si->si_ld,
-				si->si_bindconf.sb_binddn,
-				si->si_bindconf.sb_saslmech,
+				si->si_bindconf.sb_binddn.bv_val,
+				si->si_bindconf.sb_saslmech.bv_val,
 				NULL, NULL,
 				LDAP_SASL_QUIET,
 				lutil_sasl_interact,
@@ -341,13 +400,15 @@ do_syncrep1(
 		 *	2) on err policy : exit, retry, backoff ...
 		 */
 		if ( rc != LDAP_SUCCESS ) {
+			static struct berval bv_GSSAPI = BER_BVC( "GSSAPI" );
+
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
 				"ldap_sasl_interactive_bind_s failed (%d)\n",
 				rc, 0, 0 );
 
 			/* FIXME (see above comment) */
 			/* if Kerberos credentials cache is not active, retry */
-			if ( strcmp( si->si_bindconf.sb_saslmech, "GSSAPI" ) == 0 &&
+			if ( ber_bvcmp( &si->si_bindconf.sb_saslmech, &bv_GSSAPI ) == 0 &&
 				rc == LDAP_LOCAL_ERROR )
 			{
 				rc = LDAP_SERVER_DOWN;
@@ -363,12 +424,13 @@ do_syncrep1(
 		goto done;
 #endif
 
-	} else {
-		rc = ldap_bind_s( si->si_ld, si->si_bindconf.sb_binddn,
-			si->si_bindconf.sb_cred, si->si_bindconf.sb_method );
+	} else if ( si->si_bindconf.sb_method == LDAP_AUTH_SIMPLE ) {
+		rc = ldap_sasl_bind_s( si->si_ld,
+			si->si_bindconf.sb_binddn.bv_val, LDAP_SASL_SIMPLE,
+			&si->si_bindconf.sb_cred, NULL, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
-				"ldap_bind_s failed (%d)\n", rc, 0, 0 );
+				"ldap_sasl_bind_s failed (%d)\n", rc, 0, 0 );
 			goto done;
 		}
 	}
@@ -392,7 +454,6 @@ do_syncrep1(
 	if ( BER_BVISNULL( &si->si_syncCookie.octet_str )) {
 		/* get contextCSN shadow replica from database */
 		BerVarray csn = NULL;
-		struct berval newcookie;
 
 		assert( si->si_rid < 1000 );
 		op->o_req_ndn = op->o_bd->be_nsuffix[0];
@@ -445,7 +506,7 @@ do_syncrep1(
 done:
 	if ( rc ) {
 		if ( si->si_ld ) {
-			ldap_unbind( si->si_ld );
+			ldap_unbind_ext( si->si_ld, NULL, NULL );
 			si->si_ld = NULL;
 		}
 	}
@@ -815,14 +876,14 @@ done:
 	if ( res ) ldap_msgfree( res );
 
 	if ( rc && si->si_ld ) {
-		ldap_unbind( si->si_ld );
+		ldap_unbind_ext( si->si_ld, NULL, NULL );
 		si->si_ld = NULL;
 	}
 
 	return rc;
 }
 
-void *
+static void *
 do_syncrepl(
 	void	*ctx,
 	void	*arg )
@@ -859,7 +920,7 @@ do_syncrepl(
 		if ( si->si_ld ) {
 			ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 			connection_client_stop( s );
-			ldap_unbind( si->si_ld );
+			ldap_unbind_ext( si->si_ld, NULL, NULL );
 			si->si_ld = NULL;
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_mutex );
@@ -1153,7 +1214,11 @@ syncrepl_entry(
 	SlapReply	rs_add = {REP_RESULT};
 	SlapReply	rs_modify = {REP_RESULT};
 	Filter f = {0};
+#ifdef LDAP_COMP_MATCH
 	AttributeAssertion ava = { NULL, BER_BVNULL, NULL };
+#else
+	AttributeAssertion ava = { NULL, BER_BVNULL };
+#endif
 	int rc = LDAP_SUCCESS;
 	int ret = LDAP_SUCCESS;
 
@@ -1222,6 +1287,7 @@ syncrepl_entry(
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
+	op->ors_deref = LDAP_DEREF_NEVER;
 
 	/* get the entry for this UUID */
 	op->o_req_dn = si->si_base;
@@ -1329,6 +1395,7 @@ retry_add:;
 					op2.o_req_dn = entry->e_name;
 					op2.o_req_ndn = entry->e_nname;
 					op2.ors_scope = LDAP_SCOPE_BASE;
+					op2.ors_deref = LDAP_DEREF_NEVER;
 					op2.ors_attrs = slap_anlist_all_attributes;
 					op2.ors_attrsonly = 0;
 					op2.ors_limit = NULL;
@@ -1529,8 +1596,6 @@ syncrepl_del_nonpresent(
 	AttributeName	an[2];
 
 	struct berval pdn = BER_BVNULL;
-	struct berval org_req_dn = BER_BVNULL;
-	struct berval org_req_ndn = BER_BVNULL;
 
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
@@ -1548,7 +1613,11 @@ syncrepl_del_nonpresent(
 
 	if ( uuids ) {
 		Filter uf;
+#ifdef LDAP_COMP_MATCH
 		AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
+#else
+		AttributeAssertion eq = { NULL, BER_BVNULL };
+#endif
 		int i;
 
 		op->ors_attrsonly = 1;
@@ -1795,10 +1864,6 @@ syncrepl_updateCookie(
 	Modifications mod = {0};
 	struct berval vals[2];
 
-	const char	*text;
-	char txtbuf[SLAP_TEXT_BUFLEN];
-	size_t textlen = sizeof txtbuf;
-
 	int rc;
 
 	slap_callback cb = { NULL };
@@ -1839,7 +1904,6 @@ syncrepl_updateCookie(
 			"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
 	}
 
-done :
 	slap_graduate_commit_csn( op );
 
 	return;
@@ -2164,4 +2228,567 @@ syncinfo_free( syncinfo_t *sie )
 		ch_free( npe );
 	}
 	ch_free( sie );
+}
+
+
+
+/* NOTE: used & documented in slapd.conf(5) */
+#define IDSTR			"rid"
+#define PROVIDERSTR		"provider"
+#define TYPESTR			"type"
+#define INTERVALSTR		"interval"
+#define SEARCHBASESTR		"searchbase"
+#define FILTERSTR		"filter"
+#define SCOPESTR		"scope"
+#define ATTRSSTR		"attrs"
+#define ATTRSONLYSTR		"attrsonly"
+#define SLIMITSTR		"sizelimit"
+#define TLIMITSTR		"timelimit"
+#define SCHEMASTR		"schemachecking"
+
+/* FIXME: undocumented */
+#define OLDAUTHCSTR		"bindprincipal"
+#define EXATTRSSTR		"exattrs"
+#define RETRYSTR		"retry"
+
+/* FIXME: unused */
+#define LASTMODSTR		"lastmod"
+#define LMGENSTR		"gen"
+#define LMNOSTR			"no"
+#define LMREQSTR		"req"
+#define SRVTABSTR		"srvtab"
+#define SUFFIXSTR		"suffix"
+#define MANAGEDSAITSTR		"manageDSAit"
+
+/* mandatory */
+#define GOT_ID			0x0001
+#define GOT_PROVIDER		0x0002
+
+/* check */
+#define GOT_ALL			(GOT_ID|GOT_PROVIDER)
+
+static struct {
+	struct berval key;
+	int val;
+} scopes[] = {
+	{ BER_BVC("base"), LDAP_SCOPE_BASE },
+	{ BER_BVC("one"), LDAP_SCOPE_ONELEVEL },
+#ifdef LDAP_SCOPE_SUBORDINATE
+	{ BER_BVC("children"), LDAP_SCOPE_SUBORDINATE },
+	{ BER_BVC("subordinate"), 0 },
+#endif
+	{ BER_BVC("sub"), LDAP_SCOPE_SUBTREE },
+	{ BER_BVNULL, 0 }
+};
+
+static int
+parse_syncrepl_line(
+	char		**cargv,
+	int		cargc,
+	syncinfo_t	*si
+)
+{
+	int	gots = 0;
+	int	i;
+	char	*val;
+
+	for ( i = 1; i < cargc; i++ ) {
+		if ( !strncasecmp( cargv[ i ], IDSTR "=",
+					STRLENOF( IDSTR "=" ) ) )
+		{
+			int tmp;
+			/* '\0' string terminator accounts for '=' */
+			val = cargv[ i ] + STRLENOF( IDSTR "=" );
+			tmp= atoi( val );
+			if ( tmp >= 1000 || tmp < 0 ) {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					 "syncrepl id %d is out of range [0..999]\n", tmp );
+				return -1;
+			}
+			si->si_rid = tmp;
+			gots |= GOT_ID;
+		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR "=",
+					STRLENOF( PROVIDERSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( PROVIDERSTR "=" );
+			ber_str2bv( val, 0, 1, &si->si_provideruri );
+			gots |= GOT_PROVIDER;
+		} else if ( !strncasecmp( cargv[ i ], SCHEMASTR "=",
+					STRLENOF( SCHEMASTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( SCHEMASTR "=" );
+			if ( !strncasecmp( val, "on", STRLENOF( "on" ) )) {
+				si->si_schemachecking = 1;
+			} else if ( !strncasecmp( val, "off", STRLENOF( "off" ) ) ) {
+				si->si_schemachecking = 0;
+			} else {
+				si->si_schemachecking = 1;
+			}
+		} else if ( !strncasecmp( cargv[ i ], FILTERSTR "=",
+					STRLENOF( FILTERSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( FILTERSTR "=" );
+			ber_str2bv( val, 0, 1, &si->si_filterstr );
+		} else if ( !strncasecmp( cargv[ i ], SEARCHBASESTR "=",
+					STRLENOF( SEARCHBASESTR "=" ) ) )
+		{
+			struct berval	bv;
+			int		rc;
+
+			val = cargv[ i ] + STRLENOF( SEARCHBASESTR "=" );
+			if ( si->si_base.bv_val ) {
+				ch_free( si->si_base.bv_val );
+			}
+			ber_str2bv( val, 0, 0, &bv );
+			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr, "Invalid base DN \"%s\": %d (%s)\n",
+					val, rc, ldap_err2string( rc ) );
+				return -1;
+			}
+		} else if ( !strncasecmp( cargv[ i ], SCOPESTR "=",
+					STRLENOF( SCOPESTR "=" ) ) )
+		{
+			int j;
+			val = cargv[ i ] + STRLENOF( SCOPESTR "=" );
+			for ( j=0; !BER_BVISNULL(&scopes[j].key); j++ ) {
+				if (!strncasecmp( val, scopes[j].key.bv_val,
+					scopes[j].key.bv_len )) {
+					while (!scopes[j].val) j--;
+					si->si_scope = scopes[j].val;
+					break;
+				}
+			}
+			if ( BER_BVISNULL(&scopes[j].key) ) {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"unknown scope \"%s\"\n", val);
+				return -1;
+			}
+		} else if ( !strncasecmp( cargv[ i ], ATTRSONLYSTR "=",
+					STRLENOF( ATTRSONLYSTR "=" ) ) )
+		{
+			si->si_attrsonly = 1;
+		} else if ( !strncasecmp( cargv[ i ], ATTRSSTR "=",
+					STRLENOF( ATTRSSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( ATTRSSTR "=" );
+			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") ) ) {
+				char *attr_fname;
+				attr_fname = ch_strdup( val + STRLENOF(":include:") );
+				si->si_anlist = file2anlist( si->si_anlist, attr_fname, " ,\t" );
+				if ( si->si_anlist == NULL ) {
+					ch_free( attr_fname );
+					return -1;
+				}
+				si->si_anfile = attr_fname;
+			} else {
+				char *str, *s, *next;
+				char delimstr[] = " ,\t";
+				str = ch_strdup( val );
+				for ( s = ldap_pvt_strtok( str, delimstr, &next );
+						s != NULL;
+						s = ldap_pvt_strtok( NULL, delimstr, &next ) )
+				{
+					if ( strlen(s) == 1 && *s == '*' ) {
+						si->si_allattrs = 1;
+						*(val + ( s - str )) = delimstr[0];
+					}
+					if ( strlen(s) == 1 && *s == '+' ) {
+						si->si_allopattrs = 1;
+						*(val + ( s - str )) = delimstr[0];
+					}
+				}
+				ch_free( str );
+				si->si_anlist = str2anlist( si->si_anlist, val, " ,\t" );
+				if ( si->si_anlist == NULL ) {
+					return -1;
+				}
+			}
+		} else if ( !strncasecmp( cargv[ i ], EXATTRSSTR "=",
+					STRLENOF( EXATTRSSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( EXATTRSSTR "=" );
+			if ( !strncasecmp( val, ":include:", STRLENOF(":include:") )) {
+				char *attr_fname;
+				attr_fname = ch_strdup( val + STRLENOF(":include:") );
+				si->si_exanlist = file2anlist(
+									si->si_exanlist, attr_fname, " ,\t" );
+				if ( si->si_exanlist == NULL ) {
+					ch_free( attr_fname );
+					return -1;
+				}
+				ch_free( attr_fname );
+			} else {
+				si->si_exanlist = str2anlist( si->si_exanlist, val, " ,\t" );
+				if ( si->si_exanlist == NULL ) {
+					return -1;
+				}
+			}
+		} else if ( !strncasecmp( cargv[ i ], TYPESTR "=",
+					STRLENOF( TYPESTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( TYPESTR "=" );
+			if ( !strncasecmp( val, "refreshOnly",
+						STRLENOF("refreshOnly") ))
+			{
+				si->si_type = LDAP_SYNC_REFRESH_ONLY;
+			} else if ( !strncasecmp( val, "refreshAndPersist",
+						STRLENOF("refreshAndPersist") ))
+			{
+				si->si_type = LDAP_SYNC_REFRESH_AND_PERSIST;
+				si->si_interval = 60;
+			} else {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"unknown sync type \"%s\"\n", val);
+				return -1;
+			}
+		} else if ( !strncasecmp( cargv[ i ], INTERVALSTR "=",
+					STRLENOF( INTERVALSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( INTERVALSTR "=" );
+			if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
+				si->si_interval = 0;
+			} else {
+				char *hstr;
+				char *mstr;
+				char *dstr;
+				char *sstr;
+				int dd, hh, mm, ss;
+				dstr = val;
+				hstr = strchr( dstr, ':' );
+				if ( hstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return -1;
+				}
+				*hstr++ = '\0';
+				mstr = strchr( hstr, ':' );
+				if ( mstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return -1;
+				}
+				*mstr++ = '\0';
+				sstr = strchr( mstr, ':' );
+				if ( sstr == NULL ) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return -1;
+				}
+				*sstr++ = '\0';
+
+				dd = atoi( dstr );
+				hh = atoi( hstr );
+				mm = atoi( mstr );
+				ss = atoi( sstr );
+				if (( hh > 24 ) || ( hh < 0 ) ||
+					( mm > 60 ) || ( mm < 0 ) ||
+					( ss > 60 ) || ( ss < 0 ) || ( dd < 0 )) {
+					fprintf( stderr, "Error: parse_syncrepl_line: "
+						"invalid interval \"%s\"\n", val );
+					return -1;
+				}
+				si->si_interval = (( dd * 24 + hh ) * 60 + mm ) * 60 + ss;
+			}
+			if ( si->si_interval < 0 ) {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"invalid interval \"%ld\"\n",
+					(long) si->si_interval);
+				return -1;
+			}
+		} else if ( !strncasecmp( cargv[ i ], RETRYSTR "=",
+					STRLENOF( RETRYSTR "=" ) ) )
+		{
+			char **retry_list;
+			int j, k, n;
+
+			val = cargv[ i ] + STRLENOF( RETRYSTR "=" );
+			retry_list = (char **) ch_calloc( 1, sizeof( char * ));
+			retry_list[0] = NULL;
+
+			slap_str2clist( &retry_list, val, " ,\t" );
+
+			for ( k = 0; retry_list && retry_list[k]; k++ ) ;
+			n = k / 2;
+			if ( k % 2 ) {
+				fprintf( stderr,
+						"Error: incomplete syncrepl retry list\n" );
+				for ( k = 0; retry_list && retry_list[k]; k++ ) {
+					ch_free( retry_list[k] );
+				}
+				ch_free( retry_list );
+				exit( EXIT_FAILURE );
+			}
+			si->si_retryinterval = (time_t *) ch_calloc( n + 1, sizeof( time_t ));
+			si->si_retrynum = (int *) ch_calloc( n + 1, sizeof( int ));
+			si->si_retrynum_init = (int *) ch_calloc( n + 1, sizeof( int ));
+			for ( j = 0; j < n; j++ ) {
+				si->si_retryinterval[j] = atoi( retry_list[j*2] );
+				if ( *retry_list[j*2+1] == '+' ) {
+					si->si_retrynum_init[j] = -1;
+					si->si_retrynum[j] = -1;
+					j++;
+					break;
+				} else {
+					si->si_retrynum_init[j] = atoi( retry_list[j*2+1] );
+					si->si_retrynum[j] = atoi( retry_list[j*2+1] );
+				}
+			}
+			si->si_retrynum_init[j] = -2;
+			si->si_retrynum[j] = -2;
+			si->si_retryinterval[j] = 0;
+			
+			for ( k = 0; retry_list && retry_list[k]; k++ ) {
+				ch_free( retry_list[k] );
+			}
+			ch_free( retry_list );
+		} else if ( !strncasecmp( cargv[ i ], MANAGEDSAITSTR "=",
+					STRLENOF( MANAGEDSAITSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( MANAGEDSAITSTR "=" );
+			si->si_manageDSAit = atoi( val );
+		} else if ( !strncasecmp( cargv[ i ], SLIMITSTR "=",
+					STRLENOF( SLIMITSTR "=") ) )
+		{
+			val = cargv[ i ] + STRLENOF( SLIMITSTR "=" );
+			si->si_slimit = atoi( val );
+		} else if ( !strncasecmp( cargv[ i ], TLIMITSTR "=",
+					STRLENOF( TLIMITSTR "=" ) ) )
+		{
+			val = cargv[ i ] + STRLENOF( TLIMITSTR "=" );
+			si->si_tlimit = atoi( val );
+		} else if ( bindconf_parse( cargv[i], &si->si_bindconf )) {
+			fprintf( stderr, "Error: parse_syncrepl_line: "
+				"unknown keyword \"%s\"\n", cargv[ i ] );
+			return -1;
+		}
+	}
+
+	if ( gots != GOT_ALL ) {
+		fprintf( stderr,
+			"Error: Malformed \"syncrepl\" line in slapd config file" );
+		return -1;
+	}
+
+	return 0;
+}
+
+static int
+add_syncrepl(
+	Backend *be,
+	char    **cargv,
+	int     cargc
+)
+{
+	syncinfo_t *si;
+	int	rc = 0;
+
+	if ( !( be->be_search && be->be_add && be->be_modify && be->be_delete )) {
+		Debug( LDAP_DEBUG_ANY, "database %s does not support operations "
+			"required for syncrepl\n", be->be_type, 0, 0 );
+		return 1;
+	}
+	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
+
+	if ( si == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "out of memory in add_syncrepl\n", 0, 0, 0 );
+		return 1;
+	}
+
+	si->si_bindconf.sb_tls = SB_TLS_OFF;
+	si->si_bindconf.sb_method = LDAP_AUTH_SIMPLE;
+	si->si_schemachecking = 0;
+	ber_str2bv( "(objectclass=*)", STRLENOF("(objectclass=*)"), 1,
+		&si->si_filterstr );
+	si->si_base.bv_val = NULL;
+	si->si_scope = LDAP_SCOPE_SUBTREE;
+	si->si_attrsonly = 0;
+	si->si_anlist = (AttributeName *) ch_calloc( 1, sizeof( AttributeName ));
+	si->si_exanlist = (AttributeName *) ch_calloc( 1, sizeof( AttributeName ));
+	si->si_attrs = NULL;
+	si->si_allattrs = 0;
+	si->si_allopattrs = 0;
+	si->si_exattrs = NULL;
+	si->si_type = LDAP_SYNC_REFRESH_ONLY;
+	si->si_interval = 86400;
+	si->si_retryinterval = NULL;
+	si->si_retrynum_init = NULL;
+	si->si_retrynum = NULL;
+	si->si_manageDSAit = 0;
+	si->si_tlimit = 0;
+	si->si_slimit = 0;
+
+	si->si_presentlist = NULL;
+	LDAP_LIST_INIT( &si->si_nonpresentlist );
+	ldap_pvt_thread_mutex_init( &si->si_mutex );
+
+	rc = parse_syncrepl_line( cargv, cargc, si );
+
+	if ( rc == 0 ) {
+		si->si_be = be;
+		init_syncrepl( si );
+		si->si_re = ldap_pvt_runqueue_insert( &slapd_rq, si->si_interval,
+			do_syncrepl, si, "do_syncrepl", be->be_suffix[0].bv_val );
+		if ( !si->si_re )
+			rc = -1;
+	}
+	if ( rc < 0 ) {
+		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
+		syncinfo_free( si );	
+		return 1;
+	} else {
+		Debug( LDAP_DEBUG_CONFIG,
+			"Config: ** successfully added syncrepl \"%s\"\n",
+			BER_BVISNULL( &si->si_provideruri ) ?
+			"(null)" : si->si_provideruri.bv_val, 0, 0 );
+		if ( !si->si_schemachecking ) {
+			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
+		}
+		be->be_syncinfo = si;
+		return 0;
+	}
+}
+
+static void
+syncrepl_unparse( syncinfo_t *si, struct berval *bv )
+{
+	struct berval bc;
+	char buf[BUFSIZ*2], *ptr;
+	int i, len;
+
+	bindconf_unparse( &si->si_bindconf, &bc );
+	ptr = buf;
+	ptr += sprintf( ptr, IDSTR "=%03d " PROVIDERSTR "=%s",
+		si->si_rid, si->si_provideruri.bv_val );
+	if ( !BER_BVISNULL( &bc )) {
+		ptr = lutil_strcopy( ptr, bc.bv_val );
+		free( bc.bv_val );
+	}
+	if ( !BER_BVISEMPTY( &si->si_filterstr )) {
+		ptr = lutil_strcopy( ptr, " " FILTERSTR "=\"" );
+		ptr = lutil_strcopy( ptr, si->si_filterstr.bv_val );
+		*ptr++ = '"';
+	}
+	if ( !BER_BVISNULL( &si->si_base )) {
+		ptr = lutil_strcopy( ptr, " " SEARCHBASESTR "=\"" );
+		ptr = lutil_strcopy( ptr, si->si_base.bv_val );
+		*ptr++ = '"';
+	}
+	for (i=0; !BER_BVISNULL(&scopes[i].key);i++) {
+		if ( si->si_scope == scopes[i].val ) {
+			ptr = lutil_strcopy( ptr, " " SCOPESTR "=" );
+			ptr = lutil_strcopy( ptr, scopes[i].key.bv_val );
+			break;
+		}
+	}
+	if ( si->si_attrsonly ) {
+		ptr = lutil_strcopy( ptr, " " ATTRSONLYSTR "=yes" );
+	}
+	if ( si->si_anfile ) {
+		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=:include:" );
+		ptr = lutil_strcopy( ptr, si->si_anfile );
+	} else if ( si->si_allattrs || si->si_allopattrs ||
+		( si->si_anlist && !BER_BVISNULL(&si->si_anlist[0].an_name) )) {
+		char *old;
+		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=\"" );
+		old = ptr;
+		ptr = anlist_unparse( si->si_anlist, ptr );
+		if ( si->si_allattrs ) {
+			if ( old != ptr ) *ptr++ = ',';
+			*ptr++ = '*';
+		}
+		if ( si->si_allopattrs ) {
+			if ( old != ptr ) *ptr++ = ',';
+			*ptr++ = '+';
+		}
+		*ptr++ = '"';
+	}
+	if ( si->si_exanlist && !BER_BVISNULL(&si->si_exanlist[0].an_name) ) {
+		ptr = lutil_strcopy( ptr, " " EXATTRSSTR "=" );
+		ptr = anlist_unparse( si->si_exanlist, ptr );
+	}
+	ptr = lutil_strcopy( ptr, " " SCHEMASTR "=" );
+	ptr = lutil_strcopy( ptr, si->si_schemachecking ? "on" : "off" );
+	
+	ptr = lutil_strcopy( ptr, " " TYPESTR "=" );
+	ptr = lutil_strcopy( ptr, si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ?
+		"refreshAndPersist" : "refreshOnly" );
+
+	if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
+		int dd, hh, mm, ss;
+
+		dd = si->si_interval;
+		ss = dd % 60;
+		dd /= 60;
+		mm = dd % 60;
+		dd /= 60;
+		hh = dd % 24;
+		dd /= 24;
+		ptr = lutil_strcopy( ptr, " " INTERVALSTR "=" );
+		ptr += sprintf( ptr, "%02d:%02d:%02d:%02d", dd, hh, mm, ss );
+	} else if ( si->si_retryinterval ) {
+		int space=0;
+		ptr = lutil_strcopy( ptr, " " RETRYSTR "=\"" );
+		for (i=0; si->si_retryinterval[i]; i++) {
+			if ( space ) *ptr++ = ' ';
+			space = 1;
+			ptr += sprintf( ptr, "%d", si->si_retryinterval[i] );
+			if ( si->si_retrynum_init[i] == -1 )
+				*ptr++ = '+';
+			else
+				ptr += sprintf( ptr, "%d", si->si_retrynum_init );
+		}
+		*ptr++ = '"';
+	}
+
+	if ( si->si_slimit ) {
+		ptr = lutil_strcopy( ptr, " " SLIMITSTR "=" );
+		ptr += sprintf( ptr, "%d", si->si_slimit );
+	}
+
+	if ( si->si_tlimit ) {
+		ptr = lutil_strcopy( ptr, " " TLIMITSTR "=" );
+		ptr += sprintf( ptr, "%d", si->si_tlimit );
+	}
+	bc.bv_len = ptr - buf;
+	bc.bv_val = buf;
+	ber_dupbv( bv, &bc );
+}
+
+int
+syncrepl_config(ConfigArgs *c) {
+	if (c->op == SLAP_CONFIG_EMIT) {
+		if ( c->be->be_syncinfo ) {
+			struct berval bv;
+			syncrepl_unparse( c->be->be_syncinfo, &bv ); 
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+			return 0;
+		}
+		return 1;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		struct re_s *re;
+
+		if ( c->be->be_syncinfo ) {
+			re = c->be->be_syncinfo->si_re;
+			if ( re ) {
+				if ( ldap_pvt_runqueue_isrunning( &slapd_rq, re ))
+					ldap_pvt_runqueue_stoptask( &slapd_rq, re );
+				ldap_pvt_runqueue_remove( &slapd_rq, re );
+			}
+			syncinfo_free( c->be->be_syncinfo );
+			c->be->be_syncinfo = NULL;
+		}
+		SLAP_DBFLAGS(c->be) &= ~(SLAP_DBFLAG_SHADOW|SLAP_DBFLAG_SYNC_SHADOW);
+		return 0;
+	}
+	if(SLAP_SHADOW(c->be)) {
+		Debug(LDAP_DEBUG_ANY, "%s: "
+			"syncrepl: database already shadowed.\n",
+			c->log, 0, 0);
+		return(1);
+	} else if(add_syncrepl(c->be, c->argv, c->argc)) {
+		return(1);
+	}
+	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SYNC_SHADOW);
+	return(0);
 }

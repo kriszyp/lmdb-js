@@ -39,12 +39,6 @@
 #include "slapi/slapi.h"
 #endif
 #include "lutil.h"
-#ifdef HAVE_LIMITS_H
-#include <limits.h>
-#endif /* HAVE_LIMITS_H */
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif /* ! PATH_MAX */
 #include "config.h"
 
 #define ARGS_STEP	512
@@ -101,6 +95,13 @@ new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **
 	return(c);
 }
 
+void
+init_config_argv( ConfigArgs *c )
+{
+	c->argv = ch_calloc( ARGS_STEP + 1, sizeof( *c->argv ) );
+	c->argv_size = ARGS_STEP + 1;
+}
+
 ConfigTable *config_find_keyword(ConfigTable *Conf, ConfigArgs *c) {
 	int i;
 
@@ -111,51 +112,64 @@ ConfigTable *config_find_keyword(ConfigTable *Conf, ConfigArgs *c) {
 	return Conf+i;
 }
 
-int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
-	int i, rc, arg_user, arg_type, iarg;
+int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
+	int rc, arg_user, arg_type, iarg;
 	long larg;
 	ber_len_t barg;
-	void *ptr;
-
+	
 	arg_type = Conf->arg_type;
 	if(arg_type == ARG_IGNORED) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> ignored\n",
 			c->log, Conf->name, 0);
 		return(0);
 	}
+	if((arg_type & ARG_DN) && c->argc == 1) {
+		c->argc = 2;
+		c->argv[1] = "";
+	}
 	if(Conf->min_args && (c->argc < Conf->min_args)) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> missing <%s> argument\n",
-			c->log, Conf->name, Conf->what);
+		sprintf( c->msg, "<%s> missing <%s> argument",
+			c->argv[0], Conf->what );
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n", c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
 	}
 	if(Conf->max_args && (c->argc > Conf->max_args)) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: extra cruft after <%s> in <%s> line (ignored)\n",
-			c->log, Conf->what, Conf->name);
+		sprintf( c->msg, "<%s> extra cruft after <%s> ignored",
+			c->argv[0], Conf->what );
+		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
 	}
 	if((arg_type & ARG_DB) && !c->be) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> allowed only within database declaration\n",
-			c->log, Conf->name, 0);
+		sprintf( c->msg, "<%s> only allowed within database declaration",
+			c->argv[0] );
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_BI) && c->bi) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any backend %sdeclaration\n",
-			c->log, Conf->name, ((arg_type & ARG_PRE_DB)
-			? "or database " : "") );
+		sprintf( c->msg, "<%s> must occur before any backend %sdeclaration",
+			c->argv[0], (arg_type & ARG_PRE_DB) ? "or database " : "" );
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+			c->log, c->msg, 0 );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_DB) && c->be && c->be != frontendDB) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any database declaration\n",
-			c->log, Conf->name, 0);
+		sprintf( c->msg, "<%s> must occur before any database declaration",
+			c->argv[0] );
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword %s\n",
+			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PAREN) && *c->argv[1] != '(' /*')'*/) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: old <%s> format not supported\n",
-			c->log, Conf->name, 0);
+		sprintf( c->msg, "<%s> old format not supported", c->argv[0] );
+		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARGS_POINTER) && !Conf->arg_item && !(arg_type & ARG_OFFSET)) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: null arg_item for <%s>\n",
-			c->log, Conf->name, 0);
+		sprintf( c->msg, "<%s> invalid config_table, arg_item is NULL",
+			c->argv[0] );
+		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+			c->log, c->msg, 0);
 		return(ARG_BAD_CONF);
 	}
 	c->type = arg_user = (arg_type & ARGS_USERLAND);
@@ -177,18 +191,21 @@ int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 					!strcasecmp(c->argv[1], "false")) {
 					iarg = 0;
 				} else {
-					Debug(LDAP_DEBUG_CONFIG, "%s: ignoring ", c->log, 0, 0);
-					Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%s) in <%s> line\n",
-						Conf->what, c->argv[1], Conf->name);
+					sprintf( c->msg, "<%s> invalid value, ignored",
+						c->argv[0] );
+					Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+						c->log, c->msg, 0 );
 					return(0);
 				}
 				break;
 		}
 		j = (arg_type & ARG_NONZERO) ? 1 : 0;
-		if(iarg < j || larg < j || barg < j ) {
+		if(iarg < j && larg < j && barg < j ) {
 			larg = larg ? larg : (barg ? barg : iarg);
-			Debug(LDAP_DEBUG_CONFIG, "%s: " , c->log, 0, 0);
-			Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%ld) in <%s> line\n", Conf->what, larg, Conf->name);
+			sprintf( c->msg, "<%s> invalid value, ignored",
+				c->argv[0] );
+			Debug(LDAP_DEBUG_CONFIG, "%s: %s\n",
+				c->log, c->msg, 0 );
 			return(ARG_BAD_CONF);
 		}
 		switch(arg_type & ARGS_NUMERIC) {
@@ -198,27 +215,48 @@ int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 			case ARG_BER_LEN_T:	c->value_ber_t = barg;		break;
 		}
 	} else if(arg_type & ARG_STRING) {
-		c->value_string = ch_strdup(c->argv[1]);
+		if ( !check_only )
+			c->value_string = ch_strdup(c->argv[1]);
 	} else if(arg_type & ARG_BERVAL) {
-		ber_str2bv( c->argv[1], 0, 1, &c->value_bv );
+		if ( !check_only )
+			ber_str2bv( c->argv[1], 0, 1, &c->value_bv );
 	} else if(arg_type & ARG_DN) {
 		struct berval bv;
 		ber_str2bv( c->argv[1], 0, 0, &bv );
 		rc = dnPrettyNormal( NULL, &bv, &c->value_dn, &c->value_ndn, NULL );
 		if ( rc != LDAP_SUCCESS ) {
-			Debug(LDAP_DEBUG_CONFIG, "%s: " , c->log, 0, 0);
-			Debug(LDAP_DEBUG_CONFIG, "%s DN is invalid %d (%s)\n",
-				Conf->name, rc, ldap_err2string( rc ));
+			sprintf( c->msg, "<%s> invalid DN %d (%s)",
+				c->argv[0], rc, ldap_err2string( rc ));
+			Debug(LDAP_DEBUG_CONFIG, "%s: %s\n" , c->log, c->msg, 0);
 			return(ARG_BAD_CONF);
 		}
+		if ( check_only ) {
+			ch_free( c->value_ndn.bv_val );
+			ch_free( c->value_dn.bv_val );
+		}
 	}
+	return 0;
+}
+
+int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
+	int rc, arg_type;
+	void *ptr;
+
+	arg_type = Conf->arg_type;
 	if(arg_type & ARG_MAGIC) {
 		if(!c->be) c->be = frontendDB;
+		c->msg[0] = '\0';
 		rc = (*((ConfigDriver*)Conf->arg_item))(c);
+#if 0
 		if(c->be == frontendDB) c->be = NULL;
+#endif
 		if(rc) {
-			Debug(LDAP_DEBUG_CONFIG, "%s: handler for <%s> exited with %d!\n",
-				c->log, Conf->name, rc);
+			if ( !c->msg[0] ) {
+				sprintf( c->msg, "<%s> handler exited with %d",
+					c->argv[0], rc );
+				Debug(LDAP_DEBUG_CONFIG, "%s: %s!\n",
+					c->log, c->msg, 0 );
+			}
 			return(ARG_BAD_CONF);
 		}
 		return(0);
@@ -229,8 +267,10 @@ int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 		else if (c->bi)
 			ptr = c->bi->bi_private;
 		else {
-			Debug(LDAP_DEBUG_CONFIG, "%s: offset for <%s> missing base pointer!\n",
-				c->log, Conf->name, 0);
+			sprintf( c->msg, "<%s> offset is missing base pointer",
+				c->argv[0] );
+			Debug(LDAP_DEBUG_CONFIG, "%s: %s!\n",
+				c->log, c->msg, 0);
 			return(ARG_BAD_CONF);
 		}
 		ptr = (void *)((char *)ptr + (int)Conf->arg_item);
@@ -240,18 +280,18 @@ int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 	if(arg_type & ARGS_POINTER)
 		switch(arg_type & ARGS_POINTER) {
 			case ARG_ON_OFF:
-			case ARG_INT: 		*(int*)ptr = iarg;			break;
-			case ARG_LONG:  	*(long*)ptr = larg;			break;
-			case ARG_BER_LEN_T: 	*(ber_len_t*)ptr = barg;			break;
+			case ARG_INT: 		*(int*)ptr = c->value_int;			break;
+			case ARG_LONG:  	*(long*)ptr = c->value_long;			break;
+			case ARG_BER_LEN_T: 	*(ber_len_t*)ptr = c->value_ber_t;			break;
 			case ARG_STRING: {
 				char *cc = *(char**)ptr;
 				if(cc) {
-					if (arg_type & ARG_UNIQUE) {
+					if ((arg_type & ARG_UNIQUE) && c->op == SLAP_CONFIG_ADD ) {
 						Debug(LDAP_DEBUG_CONFIG, "%s: already set %s!\n",
 							c->log, Conf->name, 0 );
 						return(ARG_BAD_CONF);
 					}
-					ch_free(cc);	/* potential memory leak */
+					ch_free(cc);
 				}
 				*(char **)ptr = c->value_string;
 				break;
@@ -260,13 +300,35 @@ int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 				*(struct berval *)ptr = c->value_bv;
 				break;
 		}
-	return(arg_user);
+	return(0);
+}
+
+int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
+	int rc, arg_type;
+
+	arg_type = Conf->arg_type;
+	if(arg_type == ARG_IGNORED) {
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> ignored\n",
+			c->log, Conf->name, 0);
+		return(0);
+	}
+	rc = config_check_vals( Conf, c, 0 );
+	if ( rc ) return rc;
+	return config_set_vals( Conf, c );
 }
 
 int
 config_del_vals(ConfigTable *cf, ConfigArgs *c)
 {
 	int rc = 0;
+
+	/* If there is no handler, just ignore it */
+	if ( cf->arg_type & ARG_MAGIC ) {
+		c->op = LDAP_MOD_DELETE;
+		c->type = cf->arg_type & ARGS_USERLAND;
+		rc = (*((ConfigDriver*)cf->arg_item))(c);
+	}
+	return rc;
 }
 
 int
@@ -361,7 +423,7 @@ init_config_attrs(ConfigTable *ct) {
 				ct[i].attribute, ldap_scherr2str(code), err );
 			return code;
 		}
-		code = at_add( at, &err );
+		code = at_add( at, 0, NULL, &err );
 		if ( code && code != SLAP_SCHERR_ATTR_DUP ) {
 			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
 				ct[i].attribute, scherr2str(code), err );
@@ -395,7 +457,7 @@ init_config_ocs( ConfigOCs *ocs ) {
 				ocs[i].def, ldap_scherr2str(code), err );
 			return code;
 		}
-		code = oc_add(oc,0,&err);
+		code = oc_add(oc,0,NULL,&err);
 		if ( code && code != SLAP_SCHERR_CLASS_DUP ) {
 			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
 				ocs[i].def, scherr2str(code), err );
@@ -407,6 +469,47 @@ init_config_ocs( ConfigOCs *ocs ) {
 		ldap_memfree(oc);
 	}
 	return 0;
+}
+
+int
+config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
+{
+	int rc = 0;
+
+	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
+		ct->ad->ad_cname.bv_val, valx );
+	c->argc = 1;
+	c->argv[0] = ct->ad->ad_cname.bv_val;
+	if ( fp_parse_line( c ) ) {
+		rc = 1;
+	} else {
+		rc = config_check_vals( ct, c, 1 );
+	}
+	if ( rc )
+		rc = LDAP_CONSTRAINT_VIOLATION;
+
+	ch_free( c->tline );
+	return rc;
+}
+
+int
+config_parse_add(ConfigTable *ct, ConfigArgs *c)
+{
+	int rc = 0;
+
+	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
+		ct->ad->ad_cname.bv_val, c->valx );
+	c->argc = 1;
+	c->argv[0] = ct->ad->ad_cname.bv_val;
+	if ( fp_parse_line( c ) ) {
+		rc = 1;
+	} else {
+		c->op = LDAP_MOD_ADD;
+		rc = config_add_vals( ct, c );
+	}
+
+	ch_free( c->tline );
+	return rc;
 }
 
 int
@@ -430,9 +533,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		c->be = NULL;
 	}
 
+	c->valx = -1;
 	c->fname = fname;
-	c->argv = ch_calloc( ARGS_STEP + 1, sizeof( *c->argv ) );
-	c->argv_size = ARGS_STEP + 1;
+	init_config_argv( c );
 
 	fp = fopen( fname, "r" );
 	if ( fp == NULL ) {
@@ -447,6 +550,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 
 	fp_getline_init(c);
 
+	c->tline = NULL;
+
 	while ( fp_getline( fp, c ) ) {
 		/* skip comments and blank lines */
 		if ( c->line[0] == '#' || c->line[0] == '\0' ) {
@@ -457,8 +562,10 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 				c->fname, c->lineno );
 
 		c->argc = 0;
+		ch_free( c->tline );
 		if ( fp_parse_line( c ) ) {
-			goto badline;
+			rc = 1;
+			goto leave;
 		}
 
 		if ( c->argc < 1 ) {
@@ -466,7 +573,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			continue;
 		}
 
-		c->op = LDAP_MOD_ADD;
+		c->op = SLAP_CONFIG_ADD;
 
 		ct = config_find_keyword( config_back_cf_table, c );
 		if ( ct ) {
@@ -477,10 +584,12 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 				/* XXX a usertype would be opaque here */
 				Debug(LDAP_DEBUG_CONFIG, "%s: unknown user type <%s>\n",
 					c->log, c->argv[0], 0);
-				goto badline;
+				rc = 1;
+				goto leave;
 
 			} else if ( rc == ARG_BAD_CONF ) {
-				goto badline;
+				rc = 1;
+				goto leave;
 			}
 			
 		} else if ( c->bi ) {
@@ -503,7 +612,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 						c->log, *c->argv, 0);
 					continue;
 				default:
-					goto badline;
+					rc = 1;
+					goto leave;
 				}
 			}
 
@@ -528,7 +638,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 						c->log, *c->argv, 0);
 					continue;
 				default:
-					goto badline;
+					rc = 1;
+					goto leave;
 				}
 			}
 
@@ -542,7 +653,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 						c->log, *c->argv, 0);
 					continue;
 				default:
-					goto badline;
+					rc = 1;
+					goto leave;
 				}
 			}
 			
@@ -554,8 +666,6 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 
 		}
 	}
-
-	fclose(fp);
 
 	if ( BER_BVISNULL( &frontendDB->be_schemadn ) ) {
 		ber_str2bv( SLAPD_SCHEMA_DN, STRLENOF( SLAPD_SCHEMA_DN ), 1,
@@ -569,16 +679,14 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			assert( 0 );
 		}
 	}
+	rc = 0;
 
-	ch_free(c->argv);
-	ch_free(c);
-	return(0);
-
-badline:
+leave:
+	ch_free(c->tline);
 	fclose(fp);
 	ch_free(c->argv);
 	ch_free(c);
-	return(1);
+	return(rc);
 }
 
 /* restrictops, allows, disallows, requires, loglevel */
@@ -606,8 +714,7 @@ verbs_to_mask(int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m) {
 
 int
 mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
-	int i, j;
-	struct berval bv;
+	int i;
 
 	if (!m) return 1;
 	for (i=0; !BER_BVISNULL(&v[i].word); i++) {
@@ -620,13 +727,16 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 }
 
 static slap_verbmasks tlskey[] = {
-	{ BER_BVC("no"),		SB_TLS_OFF },
-	{ BER_BVC("yes"),		SB_TLS_ON },
+	{ BER_BVC("no"),	SB_TLS_OFF },
+	{ BER_BVC("yes"),	SB_TLS_ON },
 	{ BER_BVC("critical"),	SB_TLS_CRITICAL },
 	{ BER_BVNULL, 0 }
 };
 
 static slap_verbmasks methkey[] = {
+#if 0
+	{ BER_BVC("none"),	LDAP_AUTH_NONE },
+#endif
 	{ BER_BVC("simple"),	LDAP_AUTH_SIMPLE },
 #ifdef HAVE_CYRUS_SASL
 	{ BER_BVC("sasl"),	LDAP_AUTH_SASL },
@@ -637,79 +747,112 @@ static slap_verbmasks methkey[] = {
 typedef struct cf_aux_table {
 	struct berval key;
 	int off;
-	int quote;
+	char type;
+	char quote;
 	slap_verbmasks *aux;
 } cf_aux_table;
 
 static cf_aux_table bindkey[] = {
-	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 0, tlskey },
-	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 0, methkey },
-	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 1, NULL },
-	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 1, NULL },
-	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 0, NULL },
-	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 0, NULL },
-	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 0, NULL },
-	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 0, NULL },
-	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 1, NULL },
-	{ BER_BVNULL, 0, 0, NULL }
+	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
+	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
+	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
+	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
+	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 'b', 0, NULL },
+	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 's', 0, NULL },
+	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 'b', 0, NULL },
+	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 'b', 0, NULL },
+	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
+	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
 int bindconf_parse( const char *word, slap_bindconf *bc ) {
-	int i, rc = 0;
-	char **cptr;
+	int rc = 0;
 	cf_aux_table *tab;
 
 	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
 		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len )) {
-			cptr = (char **)((char *)bc + tab->off);
-			if ( tab->aux ) {
-				int j;
+			char **cptr;
+			int *iptr, j;
+			struct berval *bptr;
+			const char *val = word + tab->key.bv_len;
+
+			switch ( tab->type ) {
+			case 's':
+				cptr = (char **)((char *)bc + tab->off);
+				*cptr = ch_strdup( val );
+				break;
+
+			case 'b':
+				bptr = (struct berval *)((char *)bc + tab->off);
+				ber_str2bv( val, 0, 1, bptr );
+				break;
+
+			case 'd':
+				assert( tab->aux );
+				iptr = (int *)((char *)bc + tab->off);
+
 				rc = 1;
-				for (j=0; !BER_BVISNULL(&tab->aux[j].word); j++) {
-					if (!strcasecmp(word+tab->key.bv_len, tab->aux[j].word.bv_val)) {
-						int *ptr = (int *)cptr;
-						*ptr = tab->aux[j].mask;
+				for ( j = 0; !BER_BVISNULL( &tab->aux[j].word ); j++ ) {
+					if ( !strcasecmp( val, tab->aux[j].word.bv_val ) ) {
+						*iptr = tab->aux[j].mask;
 						rc = 0;
 					}
 				}
-				if (rc ) {
-					Debug(LDAP_DEBUG_ANY, "invalid bind config value %s\n",
-						word, 0, 0 );
-				}
-				return rc;
+				break;
 			}
-			*cptr = ch_strdup(word+tab->key.bv_len);
-			return 0;
+
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY, "invalid bind config value %s\n",
+					word, 0, 0 );
+			}
+			
+			return rc;
 		}
 	}
+
 	return rc;
 }
 
 int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 	char buf[BUFSIZ], *ptr;
 	cf_aux_table *tab;
-	char **cptr;
 	struct berval tmp;
 
 	ptr = buf;
 	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
+		char **cptr;
+		int *iptr, i;
+		struct berval *bptr;
+
 		cptr = (char **)((char *)bc + tab->off);
-		if ( tab->aux ) {
-			int *ip = (int *)cptr, i;
-			for ( i=0; !BER_BVISNULL(&tab->aux[i].word); i++ ) {
-				if ( *ip == tab->aux[i].mask ) {
+
+		switch ( tab->type ) {
+		case 'b':
+			bptr = (struct berval *)((char *)bc + tab->off);
+			cptr = &bptr->bv_val;
+		case 's':
+			if ( *cptr ) {
+				*ptr++ = ' ';
+				ptr = lutil_strcopy( ptr, tab->key.bv_val );
+				if ( tab->quote ) *ptr++ = '"';
+				ptr = lutil_strcopy( ptr, *cptr );
+				if ( tab->quote ) *ptr++ = '"';
+			}
+			break;
+
+		case 'd':
+			assert( tab->aux );
+			iptr = (int *)((char *)bc + tab->off);
+		
+			for ( i = 0; !BER_BVISNULL( &tab->aux[i].word ); i++ ) {
+				if ( *iptr == tab->aux[i].mask ) {
 					*ptr++ = ' ';
 					ptr = lutil_strcopy( ptr, tab->key.bv_val );
 					ptr = lutil_strcopy( ptr, tab->aux[i].word.bv_val );
 					break;
 				}
 			}
-		} else if ( *cptr ) {
-			*ptr++ = ' ';
-			ptr = lutil_strcopy( ptr, tab->key.bv_val );
-			if ( tab->quote ) *ptr++ = '"';
-			ptr = lutil_strcopy( ptr, *cptr );
-			if ( tab->quote ) *ptr++ = '"';
+			break;
 		}
 	}
 	tmp.bv_val = buf;
@@ -719,26 +862,33 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 }
 
 void bindconf_free( slap_bindconf *bc ) {
-	if ( bc->sb_binddn ) {
-		ch_free( bc->sb_binddn );
+	if ( !BER_BVISNULL( &bc->sb_binddn ) ) {
+		ch_free( bc->sb_binddn.bv_val );
+		BER_BVZERO( &bc->sb_binddn );
 	}
-	if ( bc->sb_cred ) {
-		ch_free( bc->sb_cred );
+	if ( !BER_BVISNULL( &bc->sb_cred ) ) {
+		ch_free( bc->sb_cred.bv_val );
+		BER_BVZERO( &bc->sb_cred );
 	}
-	if ( bc->sb_saslmech ) {
-		ch_free( bc->sb_saslmech );
+	if ( !BER_BVISNULL( &bc->sb_saslmech ) ) {
+		ch_free( bc->sb_saslmech.bv_val );
+		BER_BVZERO( &bc->sb_saslmech );
 	}
 	if ( bc->sb_secprops ) {
 		ch_free( bc->sb_secprops );
+		bc->sb_secprops = NULL;
 	}
-	if ( bc->sb_realm ) {
-		ch_free( bc->sb_realm );
+	if ( !BER_BVISNULL( &bc->sb_realm ) ) {
+		ch_free( bc->sb_realm.bv_val );
+		BER_BVZERO( &bc->sb_realm );
 	}
-	if ( bc->sb_authcId ) {
-		ch_free( bc->sb_authcId );
+	if ( !BER_BVISNULL( &bc->sb_authcId ) ) {
+		ch_free( bc->sb_authcId.bv_val );
+		BER_BVZERO( &bc->sb_authcId );
 	}
-	if ( bc->sb_authzId ) {
-		ch_free( bc->sb_authzId );
+	if ( !BER_BVISNULL( &bc->sb_authzId ) ) {
+		ch_free( bc->sb_authzId.bv_val );
+		BER_BVZERO( &bc->sb_authzId );
 	}
 }
 
@@ -874,12 +1024,12 @@ static int
 fp_parse_line(ConfigArgs *c)
 {
 	char *token;
-	char *tline = ch_strdup(c->line);
 	char *hide[] = { "rootpw", "replica", "bindpw", "pseudorootpw", "dbpasswd", '\0' };
 	char *quote_ptr;
 	int i;
 
-	token = strtok_quote(tline, " \t", &quote_ptr);
+	c->tline = ch_strdup(c->line);
+	token = strtok_quote(c->tline, " \t", &quote_ptr);
 
 	if(token) for(i = 0; hide[i]; i++) if(!strcasecmp(token, hide[i])) break;
 	if(quote_ptr) *quote_ptr = ' ';
@@ -981,6 +1131,7 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 	c.lineno = lineno;
 	c.argc = argc;
 	c.argv = argv;
+	c.valx = -1;
 	sprintf( c.log, "%s: line %lu", fname, lineno );
 
 	rc = SLAP_CONF_UNKNOWN;

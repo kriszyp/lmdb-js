@@ -49,7 +49,6 @@ do_add( Operation *op, SlapReply *rs )
 	struct berval	dn = BER_BVNULL;
 	ber_len_t	len;
 	ber_tag_t	tag;
-	Entry		*e;
 	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
 	Modifications	tmp;
@@ -77,7 +76,7 @@ do_add( Operation *op, SlapReply *rs )
 		return SLAPD_DISCONNECT;
 	}
 
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	op->ora_e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn,
 		op->o_tmpmemctx );
@@ -88,10 +87,10 @@ do_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	ber_dupbv( &e->e_name, &op->o_req_dn );
-	ber_dupbv( &e->e_nname, &op->o_req_ndn );
+	ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
+	ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
 
-	Debug( LDAP_DEBUG_ARGS, "do_add: dn (%s)\n", e->e_dn, 0, 0 );
+	Debug( LDAP_DEBUG_ARGS, "do_add: dn (%s)\n", op->ora_e->e_dn, 0, 0 );
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -150,22 +149,22 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
-	    op->o_log_prefix, e->e_name.bv_val, 0, 0, 0 );
+	    op->o_log_prefix, op->ora_e->e_name.bv_val, 0, 0, 0 );
 
-	if ( dn_match( &e->e_nname, &slap_empty_bv ) ) {
+	if ( dn_match( &op->ora_e->e_nname, &slap_empty_bv ) ) {
 		/* protocolError may be a more appropriate error */
 		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS,
 			"root DSE already exists" );
 		goto done;
 
-	} else if ( dn_match( &e->e_nname, &frontendDB->be_schemandn ) ) {
+	} else if ( dn_match( &op->ora_e->e_nname, &frontendDB->be_schemandn ) ) {
 		send_ldap_error( op, rs, LDAP_ALREADY_EXISTS,
 			"subschema subentry already exists" );
 		goto done;
 	}
 
 	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
-			  textbuf, textlen, NULL );
+		textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
@@ -173,13 +172,23 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 	/* temporary; remove if not invoking backend function */
-	op->ora_e = e;
 	op->ora_modlist = modlist;
 
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
 	if ( rc == 0 ) {
-		e = NULL;
+		if ( op->ora_e != NULL && op->o_private != NULL ) {
+			BackendDB	*bd = op->o_bd;
+
+			op->o_bd = (BackendDB *)op->o_private;
+			op->o_private = NULL;
+
+			be_entry_release_w( op, op->ora_e );
+
+			op->ora_e = NULL;
+			op->o_bd = bd;
+			op->o_private = NULL;
+		}
 	}
 
 done:;
@@ -188,8 +197,8 @@ done:;
 	if ( modlist != NULL ) {
 		slap_mods_free( modlist );
 	}
-	if ( e != NULL ) {
-		entry_free( e );
+	if ( op->ora_e != NULL ) {
+		entry_free( op->ora_e );
 	}
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
@@ -201,7 +210,6 @@ int
 fe_op_add( Operation *op, SlapReply *rs )
 {
 	int		manageDSAit;
-	Entry		*e = op->ora_e;
 	Modifications	*modlist = op->ora_modlist;
 	Modifications	**modtail = &modlist;
 	int		rc = 0;
@@ -214,10 +222,10 @@ fe_op_add( Operation *op, SlapReply *rs )
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	op->o_bd = select_backend( &e->e_nname, manageDSAit, 1 );
+	op->o_bd = select_backend( &op->ora_e->e_nname, manageDSAit, 1 );
 	if ( op->o_bd == NULL ) {
 		rs->sr_ref = referral_rewrite( default_referral,
-			NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
+			NULL, &op->ora_e->e_name, LDAP_SCOPE_DEFAULT );
 		if ( !rs->sr_ref ) rs->sr_ref = default_referral;
 		if ( rs->sr_ref ) {
 			rs->sr_err = LDAP_REFERRAL;
@@ -240,7 +248,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	/* If we've got a glued backend, check the real backend */
 	op_be = op->o_bd;
 	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
-		op->o_bd = select_backend( &e->e_nname, manageDSAit, 0 );
+		op->o_bd = select_backend( &op->ora_e->e_nname, manageDSAit, 0 );
 	}
 
 	/* check restrictions */
@@ -255,7 +263,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_SLAPI
-	if ( op->o_pb ) init_add_pblock( op, &op->o_req_dn, e, manageDSAit );
+	if ( op->o_pb ) init_add_pblock( op, &op->o_req_dn, op->ora_e, manageDSAit );
 #endif /* LDAP_SLAPI */
 
 	/*
@@ -308,8 +316,8 @@ fe_op_add( Operation *op, SlapReply *rs )
 				}
 			}
 
-			rs->sr_err = slap_mods2entry( modlist, &e, repl_user, 0,
-				&rs->sr_text, textbuf, textlen );
+			rs->sr_err = slap_mods2entry( modlist, &op->ora_e,
+				repl_user, 0, &rs->sr_text, textbuf, textlen );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
 				goto done;
@@ -329,7 +337,6 @@ fe_op_add( Operation *op, SlapReply *rs )
 			}
 #endif /* LDAP_SLAPI */
 
-			op->ora_e = e;
 #ifdef SLAPD_MULTIMASTER
 			if ( !repl_user )
 #endif
@@ -337,16 +344,14 @@ fe_op_add( Operation *op, SlapReply *rs )
 				cb.sc_next = op->o_callback;
 				op->o_callback = &cb;
 			}
-			rc = (op->o_bd->be_add)( op, rs );
-			if ( rc == 0 ) {
-				/* FIXME: be_entry_release_w() should be
+			rc = op->o_bd->be_add( op, rs );
+			if ( rc == LDAP_SUCCESS ) {
+				/* NOTE: be_entry_release_w() is
 				 * called by do_add(), so that global
 				 * overlays on the way back can
 				 * at least read the entry */
-				be_entry_release_w( op, e );
-				e = NULL;
+				op->o_private = op->o_bd;
 			}
-			op->ora_e = NULL;
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
@@ -370,7 +375,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
-					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
+					NULL, &op->ora_e->e_name, LDAP_SCOPE_DEFAULT );
 				if ( rs->sr_ref == NULL ) rs->sr_ref = defref;
 				rs->sr_err = LDAP_REFERRAL;
 				if (!rs->sr_ref) rs->sr_ref = default_referral;
@@ -499,56 +504,34 @@ slap_mods2entry(
 
 		if( mods->sml_values[1].bv_val != NULL ) {
 			/* check for duplicates */
-			int		i, j;
+			int		i, j, rc, match;
 			MatchingRule *mr = mods->sml_desc->ad_type->sat_equality;
 
-			/* check if the values we're adding already exist */
-			if( mr == NULL || !mr->smr_match ) {
-				for ( i = 1; mods->sml_values[i].bv_val != NULL; i++ ) {
-					/* test asserted values against themselves */
-					for( j = 0; j < i; j++ ) {
-						if ( bvmatch( &mods->sml_values[i],
-							&mods->sml_values[j] ) )
-						{
-							/* value exists already */
-							snprintf( textbuf, textlen,
-								"%s: value #%d provided more than once",
-								mods->sml_desc->ad_cname.bv_val, j );
-							return LDAP_TYPE_OR_VALUE_EXISTS;
-						}
-					}
-				}
+			for ( i = 1; mods->sml_values[i].bv_val != NULL; i++ ) {
+				/* test asserted values against themselves */
+				for( j = 0; j < i; j++ ) {
+					rc = ordered_value_match( &match, mods->sml_desc, mr,
+						SLAP_MR_EQUALITY
+						| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
+						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+						mods->sml_nvalues
+							? &mods->sml_nvalues[i]
+							: &mods->sml_values[i],
+						mods->sml_nvalues
+							? &mods->sml_nvalues[j]
+							: &mods->sml_values[j],
+						text );
 
-			} else {
-				int	rc;
-				int match;
+					if ( rc == LDAP_SUCCESS && match == 0 ) {
+						/* value exists already */
+						snprintf( textbuf, textlen,
+							"%s: value #%d provided more than once",
+							mods->sml_desc->ad_cname.bv_val, j );
+						return LDAP_TYPE_OR_VALUE_EXISTS;
 
-				for ( i = 1; mods->sml_values[i].bv_val != NULL; i++ ) {
-					/* test asserted values against themselves */
-					for( j = 0; j < i; j++ ) {
-						rc = value_match( &match, mods->sml_desc, mr,
-							SLAP_MR_EQUALITY
-							| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
-							| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
-							| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
-							mods->sml_nvalues
-								? &mods->sml_nvalues[i]
-								: &mods->sml_values[i],
-							mods->sml_nvalues
-								? &mods->sml_nvalues[j]
-								: &mods->sml_values[j],
-							text );
-
-						if ( rc == LDAP_SUCCESS && match == 0 ) {
-							/* value exists already */
-							snprintf( textbuf, textlen,
-								"%s: value #%d provided more than once",
-								mods->sml_desc->ad_cname.bv_val, j );
-							return LDAP_TYPE_OR_VALUE_EXISTS;
-
-						} else if ( rc != LDAP_SUCCESS ) {
-							return rc;
-						}
+					} else if ( rc != LDAP_SUCCESS ) {
+						return rc;
 					}
 				}
 			}

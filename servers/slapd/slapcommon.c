@@ -49,17 +49,17 @@ usage( int tool, const char *progname )
 {
 	char *options = NULL;
 	fprintf( stderr,
-		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]",
+		"usage: %s [-v] [-d debuglevel] [-f configfile] [-F configdir]",
 		progname );
 
 	switch( tool ) {
 	case SLAPACL:
-		options = "\n\t[-U authcID | -D authcDN]"
-			" -b DN [attr[/access][:value]] [...]\n";
+		options = "\n\t[-U authcID | -D authcDN] [-X authzID | -o authzDN=<DN>]"
+			"\n\t-b DN -o <var>[=<val>] [-u] [attr[/access][:value]] [...]\n";
 		break;
 
 	case SLAPADD:
-		options = "\n\t[-n databasenumber | -b suffix]\n"
+		options = " [-c]\n\t[-n databasenumber | -b suffix]\n"
 			"\t[-l ldiffile] [-q] [-u] [-w]\n";
 		break;
 
@@ -68,16 +68,16 @@ usage( int tool, const char *progname )
 		break;
 
 	case SLAPCAT:
-		options = "\n\t[-n databasenumber | -b suffix]"
+		options = " [-c]\n\t[-n databasenumber | -b suffix]"
 			" [-l ldiffile] [-a filter]\n";
 		break;
 
 	case SLAPDN:
-		options = " DN [...]\n";
+		options = "\n\t[-N | -P] DN [...]\n";
 		break;
 
 	case SLAPINDEX:
-		options = "\n\t[-n databasenumber | -b suffix] [-q]\n";
+		options = " [-c]\n\t[-n databasenumber | -b suffix] [-q]\n";
 		break;
 
 	case SLAPTEST:
@@ -91,6 +91,65 @@ usage( int tool, const char *progname )
 	exit( EXIT_FAILURE );
 }
 
+static int
+parse_slapacl( void )
+{
+	size_t	len;
+	char	*p;
+
+	p = strchr( optarg, '=' );
+	if ( p == NULL ) {
+		return -1;
+	}
+
+	len = p - optarg;
+	p++;
+
+	if ( strncasecmp( optarg, "sockurl", len ) == 0 ) {
+		if ( !BER_BVISNULL( &listener_url ) ) {
+			ber_memfree( listener_url.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &listener_url );
+
+	} else if ( strncasecmp( optarg, "domain", len ) == 0 ) {
+		if ( !BER_BVISNULL( &peer_domain ) ) {
+			ber_memfree( peer_domain.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &peer_domain );
+
+	} else if ( strncasecmp( optarg, "peername", len ) == 0 ) {
+		if ( !BER_BVISNULL( &peer_name ) ) {
+			ber_memfree( peer_name.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &peer_name );
+
+	} else if ( strncasecmp( optarg, "sockname", len ) == 0 ) {
+		if ( !BER_BVISNULL( &sock_name ) ) {
+			ber_memfree( sock_name.bv_val );
+		}
+		ber_str2bv( p, 0, 1, &sock_name );
+
+	} else if ( strncasecmp( optarg, "ssf", len ) == 0 ) {
+		ssf = atoi( p );
+
+	} else if ( strncasecmp( optarg, "transport_ssf", len ) == 0 ) {
+		transport_ssf = atoi( p );
+
+	} else if ( strncasecmp( optarg, "tls_ssf", len ) == 0 ) {
+		tls_ssf = atoi( p );
+
+	} else if ( strncasecmp( optarg, "sasl_ssf", len ) == 0 ) {
+		sasl_ssf = atoi( p );
+
+	} else if ( strncasecmp( optarg, "authzDN", len ) == 0 ) {
+		ber_str2bv( p, 0, 1, &authzDN );
+
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
 
 /*
  * slap_tool_init - initialize slap utility, handle program options.
@@ -137,7 +196,7 @@ slap_tool_init(
 		break;
 
 	case SLAPDN:
-		options = "d:f:F:v";
+		options = "d:f:F:NPv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -157,7 +216,7 @@ slap_tool_init(
 		break;
 
 	case SLAPACL:
-		options = "b:D:d:f:F:U:v";
+		options = "b:D:d:f:F:o:uU:vX:";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -205,8 +264,28 @@ slap_tool_init(
 			ber_str2bv( optarg, 0, 0, &mech );
 			break;
 
+		case 'N':
+			if ( dn_mode && dn_mode != SLAP_TOOL_LDAPDN_NORMAL ) {
+				usage( tool, progname );
+			}
+			dn_mode = SLAP_TOOL_LDAPDN_NORMAL;
+			break;
+
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg );
+			break;
+
+		case 'o':
+			if ( parse_slapacl() ) {
+				usage( tool, progname );
+			}
+			break;
+
+		case 'P':
+			if ( dn_mode && dn_mode != SLAP_TOOL_LDAPDN_PRETTY ) {
+				usage( tool, progname );
+			}
+			dn_mode = SLAP_TOOL_LDAPDN_PRETTY;
 			break;
 
 		case 'q':	/* turn on quick */
@@ -437,7 +516,7 @@ slap_tool_init(
 		/* If the named base is a glue master, operate on the
 		 * entire context
 		 */
-		if (SLAP_GLUE_INSTANCE(be)) {
+		if ( SLAP_GLUE_INSTANCE( be ) ) {
 			nosubordinates = 1;
 		}
 
@@ -446,21 +525,24 @@ slap_tool_init(
 			fprintf( stderr, "No available databases\n" );
 			exit( EXIT_FAILURE );
 		}
+		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+			dbnum++;
+			if ( dbnum < 1 ) continue;
 		
-		be = &backends[dbnum=1];
+		 	if ( SLAP_MONITOR(be))
+				continue;
+
 		/* If just doing the first by default and it is a
 		 * glue subordinate, find the master.
 		 */
-		while (SLAP_GLUE_SUBORDINATE(be) || SLAP_MONITOR(be)) {
-			if (SLAP_GLUE_SUBORDINATE(be)) {
+			if ( SLAP_GLUE_SUBORDINATE(be) ) {
 				nosubordinates = 1;
+				continue;
 			}
-			be++;
-			dbnum++;
+			break;
 		}
 
-
-		if ( dbnum >= nbackends ) {
+		if ( !be ) {
 			fprintf( stderr, "Available database(s) "
 					"do not allow %s\n", progname );
 			exit( EXIT_FAILURE );
@@ -482,7 +564,10 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 
 	} else {
-		be = &backends[dbnum];
+		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+			if ( dbnum == 0 ) break;
+			dbnum--;
+		}
 	}
 
 startup:;
@@ -491,8 +576,7 @@ startup:;
 	mal_leaktrace(1);
 #endif
 
-	if ( !dryrun && slap_startup( be ) ) {
-
+	if ( !dryrun && be && slap_startup( be ) ) {
 		switch ( tool ) {
 		case SLAPTEST:
 			fprintf( stderr, "slap_startup failed "
@@ -511,10 +595,10 @@ startup:;
 
 void slap_tool_destroy( void )
 {
-	if ( !dryrun && be != NULL ) {
+	if ( !dryrun ) {
 		slap_shutdown( be );
+		slap_destroy();
 	}
-	slap_destroy();
 #ifdef SLAPD_MODULES
 	if ( slapMode == SLAP_SERVER_MODE ) {
 	/* always false. just pulls in necessary symbol references. */

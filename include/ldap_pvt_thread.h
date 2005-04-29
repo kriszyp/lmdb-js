@@ -44,9 +44,13 @@ ldap_pvt_thread_set_concurrency LDAP_P(( int ));
 #define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 #define LDAP_PVT_THREAD_CREATE_DETACHED 1
 
+#define	LDAP_PVT_THREAD_SET_STACK_SIZE
 #ifndef LDAP_PVT_THREAD_STACK_SIZE
-	/* LARGE stack */
-#define LDAP_PVT_THREAD_STACK_SIZE	(4*1024*1024)
+	/* LARGE stack. Will be twice as large on 64 bit machine. */
+#define LDAP_PVT_THREAD_STACK_SIZE	( 1 * 1024 * 1024 * sizeof(void *) )
+/* May be explicitly defined to zero to disable it */
+#elif LDAP_PVT_THREAD_STACK_SIZE == 0
+#undef LDAP_PVT_THREAD_SET_STACK_SIZE
 #endif
 
 LDAP_F( int )
@@ -197,6 +201,9 @@ ldap_pvt_thread_pool_setkey LDAP_P((
 	void *key,
 	void *data,
 	ldap_pvt_thread_pool_keyfree_t *kfree ));
+
+LDAP_F( void )
+ldap_pvt_thread_pool_purgekey LDAP_P(( void *key ));
 
 LDAP_F( void *)
 ldap_pvt_thread_pool_context LDAP_P(( void ));

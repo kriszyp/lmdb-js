@@ -55,7 +55,7 @@ shell_back_add(
 	}
 
 	if ( ! access_allowed( op, op->oq_add.rs_e,
-		entry, NULL, ACL_WRITE, NULL ) )
+		entry, NULL, ACL_WADD, NULL ) )
 	{
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS, NULL );
 		return -1;

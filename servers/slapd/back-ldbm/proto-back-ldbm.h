@@ -82,7 +82,7 @@ Datum ldbm_cache_fetch LDAP_P(( DBCache *db, Datum key ));
 #endif /* 1 */
 int ldbm_cache_store LDAP_P(( DBCache *db, Datum key, Datum data, int flags ));
 int ldbm_cache_delete LDAP_P(( DBCache *db, Datum key ));
-void *ldbm_cache_sync_daemon LDAP_P(( void *));
+void *ldbm_cache_sync_daemon LDAP_P(( void *ctx, void *arg ));
 
 /*
  * dn2id.c

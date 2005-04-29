@@ -115,7 +115,8 @@ slapadd( int argc, char **argv )
 		}
 
 		/* make sure the DN is not empty */
-		if( !e->e_nname.bv_len ) {
+		if( BER_BVISEMPTY( &e->e_nname ) &&
+			!BER_BVISEMPTY( be->be_nsuffix )) {
 			fprintf( stderr, "%s: empty dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
 			rc = EXIT_FAILURE;
@@ -161,9 +162,9 @@ slapadd( int argc, char **argv )
 			}
 
 			if( sc == NULL ) {
-				struct berval vals[2];
+				struct berval val;
 
-				rc = structural_class( oc->a_vals, vals,
+				rc = structural_class( oc->a_vals, &val,
 					NULL, &text, textbuf, textlen );
 
 				if( rc != LDAP_SUCCESS ) {
@@ -175,11 +176,7 @@ slapadd( int argc, char **argv )
 					break;
 				}
 
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
-
-				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
-					vals, NULL /* FIXME */ );
+				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &val, NULL );
 			}
 
 			/* check schema */
@@ -235,8 +232,7 @@ slapadd( int argc, char **argv )
 			{
 				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				vals[0].bv_val = uuidbuf;
-				attr_merge_normalize_one( e,
-							slap_schema.si_ad_entryUUID, vals, NULL );
+				attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID, vals, NULL );
 			}
 
 			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )
@@ -335,15 +331,21 @@ done:;
 			if ( ret == LDAP_SUCCESS ) {
 				attr = attr_find( ctxcsn_e->e_attrs,
 									slap_schema.si_ad_contextCSN );
-				value_match( &match, slap_schema.si_ad_entryCSN,
-					slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
-					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-					&maxcsn, &attr->a_nvals[0], &text );
+				if ( attr ) {
+					value_match( &match, slap_schema.si_ad_entryCSN,
+						slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						&maxcsn, &attr->a_nvals[0], &text );
+					if ( match > 0 ) {
+						AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
+						attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
+						attr->a_vals[0].bv_len = maxcsn.bv_len;
+					}
+				} else {
+					match = 1;
+					attr_merge_one( ctxcsn_e, slap_schema.si_ad_contextCSN, &maxcsn, NULL );
+				}
 				if ( match > 0 ) {
-					AC_MEMCPY( attr->a_vals[0].bv_val, maxcsn.bv_val, maxcsn.bv_len );
-					attr->a_vals[0].bv_val[maxcsn.bv_len] = '\0';
-					attr->a_vals[0].bv_len = maxcsn.bv_len;
-				
 					ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
 					if( ctxcsn_id == NOID ) {
 						fprintf( stderr, "%s: could not modify ctxcsn\n",

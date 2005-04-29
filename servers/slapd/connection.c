@@ -26,7 +26,9 @@
 #include "portable.h"
 
 #include <stdio.h>
+#ifdef HAVE_LIMITS_H
 #include <limits.h>
+#endif
 
 #include <ac/socket.h>
 #include <ac/errno.h>
@@ -609,6 +611,10 @@ void connection2anonymous( Connection *c )
 		free(c->c_ndn.bv_val);
 	}
 	BER_BVZERO( &c->c_ndn );
+	if(c->c_sasl_authz_dn.bv_val != NULL) {
+		free(c->c_sasl_authz_dn.bv_val);
+	}
+	BER_BVZERO( &c->c_sasl_authz_dn );
 
 	c->c_authz_backend = NULL;
 }
@@ -761,7 +767,12 @@ void connection_closing( Connection *c )
 
 		/* wake write blocked operations */
 		slapd_clr_write( sd, 1 );
-		ldap_pvt_thread_cond_signal( &c->c_write_cv );
+		if ( c->c_writewaiter ) {
+			ldap_pvt_thread_cond_signal( &c->c_write_cv );
+			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+			ldap_pvt_thread_yield();
+			ldap_pvt_thread_mutex_lock( &c->c_mutex );
+		}
 	}
 }
 
@@ -1598,8 +1609,13 @@ static int connection_op_activate( Operation *op )
 
 	if (!op->o_dn.bv_len) {
 		op->o_authz = op->o_conn->c_authz;
-		ber_dupbv( &op->o_dn, &op->o_conn->c_dn );
-		ber_dupbv( &op->o_ndn, &op->o_conn->c_ndn );
+		if ( BER_BVISNULL( &op->o_conn->c_sasl_authz_dn )) {
+			ber_dupbv( &op->o_dn, &op->o_conn->c_dn );
+			ber_dupbv( &op->o_ndn, &op->o_conn->c_ndn );
+		} else {
+			ber_dupbv( &op->o_dn, &op->o_conn->c_sasl_authz_dn );
+			ber_dupbv( &op->o_ndn, &op->o_conn->c_sasl_authz_dn );
+		}
 	}
 	op->o_authtype = op->o_conn->c_authtype;
 	ber_dupbv( &op->o_authmech, &op->o_conn->c_authmech );

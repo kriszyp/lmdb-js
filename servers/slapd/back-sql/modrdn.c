@@ -194,8 +194,9 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if ( !access_allowed( op, &p, slap_schema.si_ad_children, 
-				NULL, ACL_WRITE, NULL ) ) {
+	if ( !access_allowed( op, &p, slap_schema.si_ad_children, NULL,
+			newSuperior ? ACL_WDEL : ACL_WRITE, NULL ) )
+	{
 		Debug( LDAP_DEBUG_TRACE, "   no access to parent\n", 0, 0, 0 );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		goto done;
@@ -250,7 +251,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
 		if ( !access_allowed( op, &n, slap_schema.si_ad_children, 
-					NULL, ACL_WRITE, NULL ) ) {
+					NULL, ACL_WADD, NULL ) ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 					"no access to new parent \"%s\"\n", 
 					new_pdn->bv_val, 0, 0 );

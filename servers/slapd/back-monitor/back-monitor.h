@@ -33,10 +33,16 @@ LDAP_BEGIN_DECL
 #undef MONITOR_DEFINE_LABELEDURI
 
 typedef struct monitor_callback_t {
-	int			(*mc_update)( Operation *op, Entry *e, void *priv );
+	int				(*mc_update)( Operation *op, SlapReply *rs, Entry *e, void *priv );
 						/* update callback
 						   for user-defined entries */
-	void			*mc_private;	/* opaque pointer to
+	int				(*mc_modify)( Operation *op, SlapReply *rs, Entry *e, void *priv );
+						/* modify callback
+						   for user-defined entries */
+	int				(*mc_free)( Entry *e, void *priv );
+						/* update callback
+						   for user-defined entries */
+	void				*mc_private;	/* opaque pointer to
 						   private data */
 	struct monitor_callback_t	*mc_next;
 } monitor_callback_t;
@@ -75,7 +81,6 @@ typedef struct monitor_info_t {
 	/*
 	 * Config parameters
 	 */
-	struct berval		mi_l;
 	struct berval		mi_startTime;		/* don't free it! */
 	struct berval		mi_creatorsName;	/* don't free it! */
 
@@ -102,17 +107,23 @@ typedef struct monitor_info_t {
 	AttributeDescription	*mi_ad_monitorConnectionPeerAddress;
 	AttributeDescription	*mi_ad_monitorTimestamp;
 	AttributeDescription	*mi_ad_monitorOverlay;
+	AttributeDescription	*mi_ad_monitorConnectionProtocol;
+	AttributeDescription	*mi_ad_monitorConnectionOpsReceived;
+	AttributeDescription	*mi_ad_monitorConnectionOpsExecuting;
+	AttributeDescription	*mi_ad_monitorConnectionOpsPending;
+	AttributeDescription	*mi_ad_monitorConnectionOpsCompleted;
+	AttributeDescription	*mi_ad_monitorConnectionGet;
+	AttributeDescription	*mi_ad_monitorConnectionRead;
+	AttributeDescription	*mi_ad_monitorConnectionWrite;
+	AttributeDescription	*mi_ad_monitorConnectionMask;
+	AttributeDescription	*mi_ad_monitorConnectionListener;
+	AttributeDescription	*mi_ad_monitorConnectionPeerDomain;
+	AttributeDescription	*mi_ad_monitorConnectionStartTime;
+	AttributeDescription	*mi_ad_monitorConnectionActivityTime;
 
 	/*
 	 * Generic description attribute
 	 */
-	AttributeDescription	*mi_ad_description;
-	AttributeDescription	*mi_ad_seeAlso;
-	AttributeDescription	*mi_ad_l;
-#ifdef MONITOR_DEFINE_LABELEDURI
-	/* enable if si_ad_labeledURI is removed from slap_schema */
-	AttributeDescription	*mi_ad_labeledURI;
-#endif /* MONITOR_DEFINE_LABELEDURI */
 	AttributeDescription	*mi_ad_readOnly;
 	AttributeDescription	*mi_ad_restrictedOperation;
 
@@ -226,6 +237,7 @@ typedef struct monitor_subsys_t {
 	struct berval	mss_rdn;
 	struct berval	mss_dn;
 	struct berval	mss_ndn;
+	struct berval	mss_desc[ 3 ];
 	int		mss_flags;
 #define MONITOR_F_OPENED	0x10000000U
 
@@ -237,18 +249,18 @@ typedef struct monitor_subsys_t {
 	/* initialize entry and subentries */
 	int		( *mss_open )( BackendDB *, struct monitor_subsys_t *ms );
 	/* update existing dynamic entry and subentries */
-	int		( *mss_update )( Operation *, Entry * );
+	int		( *mss_update )( Operation *, SlapReply *, Entry * );
 	/* create new dynamic subentries */
-	int		( *mss_create )( Operation *,
+	int		( *mss_create )( Operation *, SlapReply *,
 				struct berval *ndn, Entry *, Entry ** );
 	/* modify entry and subentries */
-	int		( *mss_modify )( Operation *, Entry * );
+	int		( *mss_modify )( Operation *, SlapReply *, Entry * );
 } monitor_subsys_t;
 
 extern BackendDB *be_monitor;
 
 /* increase this bufsize if entries in string form get too big */
-#define BACKMONITOR_BUFSIZE	1024
+#define BACKMONITOR_BUFSIZE	8192
 
 LDAP_END_DECL
 

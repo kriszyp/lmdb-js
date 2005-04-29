@@ -1002,7 +1002,6 @@ dnRelativeMatch(
 
 		*matchp = match;
 		return LDAP_SUCCESS;
-
 	}
 
 	if( mr == slap_schema.si_mr_dnSuperiorMatch ) {
@@ -1098,6 +1097,10 @@ rdnMatch(
  * dnParent - dn's parent, in-place
  * note: the incoming dn is assumed to be normalized/prettyfied,
  * so that escaped rdn/ava separators are in '\'+hexpair form
+ *
+ * note: "dn" and "pdn" can point to the same berval;
+ * beware that, in this case, the pointer to the original buffer
+ * will get lost.
  */
 void
 dnParent( 
@@ -1119,8 +1122,8 @@ dnParent(
 	p++;
 
 	assert( ATTR_LEADCHAR( p[ 0 ] ) );
-	pdn->bv_val = p;
 	pdn->bv_len = dn->bv_len - (p - dn->bv_val);
+	pdn->bv_val = p;
 
 	return;
 }

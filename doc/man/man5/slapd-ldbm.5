@@ -123,6 +123,11 @@ Note: changing index settings requires rebuilding indices, see
 Specify the file protection mode that newly created database 
 index files should have.
 The default is 0600.
+.SH ACCESS CONTROL
+The 
+.B ldbm
+backend honors access control semantics as indicated in
+.BR slapd.access (5).
 .SH FILES
 .TP
 ETCDIR/slapd.conf

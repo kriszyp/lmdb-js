@@ -17,7 +17,7 @@ echo "Using $RELAY backend..."
 echo ""
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $RWMCONF > $CONF1
+. $CONFFILTER $BACKEND $MONITORDB < $RELAYCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -38,7 +38,7 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 if test $RC != 0 ; then
-	echo "ldapsearch failed $(RC)!"
+	echo "ldapsearch failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi

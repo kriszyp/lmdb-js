@@ -38,6 +38,8 @@
 #include "slapi/slapi.h"
 #endif
 
+#include "ldap_rq.h"
+
 /*
  * read-only global variables or variables only written by the listener
  * thread (after they are initialized) - no need to protect them with a mutex.
@@ -125,6 +127,10 @@ slap_init( int mode, const char *name )
 
 		ldap_pvt_mp_init( slap_counters.sc_ops_initiated );
 		ldap_pvt_mp_init( slap_counters.sc_ops_completed );
+
+		ldap_pvt_thread_mutex_init( &slapd_rq.rq_mutex );
+		LDAP_STAILQ_INIT( &slapd_rq.task_list );
+		LDAP_STAILQ_INIT( &slapd_rq.run_list );
 
 #ifdef SLAPD_MONITOR
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {

@@ -8,6 +8,8 @@ slapdn \- Check a list of string-represented DNs based on schema syntax.
 .B [\-v]
 .B [\-d level]
 .B [\-f slapd.conf]
+.B [\-F confdir]
+.B [\-N | \-P]
 .B DN [...]
 .LP
 .SH DESCRIPTION
@@ -38,6 +40,16 @@ enable debugging messages as defined by the specified
 specify an alternative
 .BR slapd.conf (5)
 file.
+.TP
+.BI \-N
+only output a normalized form of the DN, suitable to be used
+in a normalization tool; incompatible with
+.BR \-P .
+.TP
+.BI \-P
+only output a prettified form of the DN, suitable to be used
+in a check and beautification tool; incompatible with
+.BR \-N .
 .SH EXAMPLES
 To check a
 .B DN

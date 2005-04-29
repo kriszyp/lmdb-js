@@ -192,11 +192,12 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
-		"\t-T {add|auth|cat|dn|index|passwd|test}\n"
+		"\t-T {acl|add|auth|cat|dn|index|passwd|test}\n"
 		"\t\t\tRun in Tool mode\n"
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
+		"\t-F dir\tConfiguration directory\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-g group\tGroup (id or name) to run as\n"
 #endif

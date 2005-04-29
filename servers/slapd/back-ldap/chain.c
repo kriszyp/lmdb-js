@@ -350,7 +350,7 @@ done:;
 static int
 ldap_chain_response( Operation *op, SlapReply *rs )
 {
-	slap_overinst	*on = (slap_overinst *) op->o_bd->bd_info;
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	void		*private = op->o_bd->be_private;
 	slap_callback	*sc = op->o_callback,
 			sc2 = { 0 };

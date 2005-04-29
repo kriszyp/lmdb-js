@@ -74,8 +74,8 @@ monitor_subsys_ops_init(
 		return( -1 );
 	}
 
-	attr_merge_one( e_op, mi->mi_ad_monitorOpInitiated, &bv_zero, NULL );
-	attr_merge_one( e_op, mi->mi_ad_monitorOpCompleted, &bv_zero, NULL );
+	attr_merge_one( e_op, mi->mi_ad_monitorOpInitiated, &bv_zero, &bv_zero );
+	attr_merge_one( e_op, mi->mi_ad_monitorOpCompleted, &bv_zero, &bv_zero );
 
 	mp = ( monitor_entry_t * )e_op->e_private;
 	mp->mp_children = NULL;
@@ -155,6 +155,7 @@ monitor_subsys_ops_init(
 int
 monitor_subsys_ops_update(
 	Operation		*op,
+	SlapReply		*rs,
 	Entry                   *e
 )
 {
@@ -217,6 +218,6 @@ monitor_subsys_ops_update(
 
 	/* FIXME: touch modifyTimestamp? */
 
-	return( 0 );
+	return SLAP_CB_CONTINUE;
 }
 

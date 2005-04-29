@@ -42,6 +42,7 @@ monitor_subsys_backend_init(
 	int			i;
 	monitor_entry_t		*mp;
 	monitor_subsys_t	*ms_database;
+	BackendInfo			*bi;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -69,14 +70,15 @@ monitor_subsys_backend_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	for ( i = 0; i < nBackendInfo; i++ ) {
+	i = -1;
+	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
-		BackendInfo 	*bi;
+		BackendDB		*be;
 		struct berval 	bv;
 		int		j;
 		Entry		*e;
 
-		bi = &backendInfo[ i ];
+		i++;
 
 		snprintf( buf, sizeof( buf ),
 				"dn: cn=Backend %d,%s\n"
@@ -106,9 +108,7 @@ monitor_subsys_backend_init(
 			return( -1 );
 		}
 		
-		bv.bv_val = bi->bi_type;
-		bv.bv_len = strlen( bv.bv_val );
-
+		ber_str2bv( bi->bi_type, 0, 0, &bv );
 		attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
 		attr_merge_normalize_one( e_backend, mi->mi_ad_monitoredInfo,
@@ -118,27 +118,28 @@ monitor_subsys_backend_init(
 			int j;
 
 			for ( j = 0; bi->bi_controls[ j ]; j++ ) {
-				bv.bv_val = bi->bi_controls[ j ];
-				bv.bv_len = strlen( bv.bv_val );
-				attr_merge_one( e, slap_schema.si_ad_supportedControl, &bv, NULL );
+				ber_str2bv( bi->bi_controls[ j ], 0, 0, &bv );
+				attr_merge_one( e, slap_schema.si_ad_supportedControl,
+						&bv, &bv );
 			}
 		}
 
-		for ( j = 0; j < nBackendDB; j++ ) {
-			BackendDB	*be = &backendDB[ j ];
+		j = -1;
+		LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 			char		buf[ SLAP_LDAPDN_MAXLEN ];
 			struct berval	dn;
 			
+			j++;
+
 			if ( be->bd_info != bi ) {
 				continue;
 			}
 
 			snprintf( buf, sizeof( buf ), "cn=Database %d,%s",
 					j, ms_database->mss_dn.bv_val );
-			dn.bv_val = buf;
-			dn.bv_len = strlen( buf );
 
-			attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
+			ber_str2bv( buf, 0, 0, &dn );
+			attr_merge_normalize_one( e, slap_schema.si_ad_seeAlso,
 					&dn, NULL );
 		}
 		

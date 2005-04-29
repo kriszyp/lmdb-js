@@ -56,8 +56,11 @@ void LDAPAsynConnection::init(const string& hostname, int port){
     ldap_set_option(cur_session, LDAP_OPT_PROTOCOL_VERSION, &opt);
 }
 
-int LDAPAsynConnection::start_tls(){
-    return ldap_start_tls_s( cur_session, NULL, NULL );
+void LDAPAsynConnection::start_tls(){
+    int resCode;
+    if( ldap_start_tls_s( cur_session, NULL, NULL ) != LDAP_SUCCESS ) {
+        throw LDAPException(this);
+    }
 }
 
 LDAPMessageQueue* LDAPAsynConnection::bind(const string& dn,

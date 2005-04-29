@@ -86,6 +86,15 @@ static int chainingResolve = -1;
 static int chainingContinuation = -1;
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
+static int gotintr;
+static int abcan;
+
+RETSIGTYPE
+do_sig( int sig )
+{
+	gotintr = abcan;
+}
+
 /* Set in main() */
 char *prog = NULL;
 
@@ -95,6 +104,17 @@ tool_init( void )
 	ldap_pvt_setlocale(LC_MESSAGES, "");
 	ldap_pvt_bindtextdomain(OPENLDAP_PACKAGE, LDAP_LOCALEDIR);
 	ldap_pvt_textdomain(OPENLDAP_PACKAGE);
+}
+
+void
+tool_destroy( void )
+{
+#ifdef HAVE_CYRUS_SASL
+	sasl_done();
+#endif
+#ifdef HAVE_TLS
+	ldap_pvt_tls_destroy();
+#endif
 }
 
 void
@@ -108,18 +128,19 @@ N_("  -D binddn  bind DN\n"),
 N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
 N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
-N_("             [!]manageDSAit\n")
-N_("             [!]noop\n")
-#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
-N_("             ppolicy\n")
-#endif
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 N_("             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]\n")
 N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
 N_("                     \"referralsPreferred\", \"referralsRequired\"\n")
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+N_("             [!]manageDSAit\n")
+N_("             [!]noop\n")
+#ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
+N_("             ppolicy\n")
+#endif
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n")
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
+N_("             abandon, cancel (SIGINT sends abandon/cancel (not really controls)\n")
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
@@ -342,6 +363,13 @@ tool_args( int argc, char **argv )
 					}
 				}
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+
+			/* this shouldn't go here, really; but it's a feature... */
+			} else if ( strcasecmp( control, "abandon" ) == 0 ) {
+				abcan = LDAP_REQ_ABANDON;
+
+			} else if ( strcasecmp( control, "cancel" ) == 0 ) {
+				abcan = LDAP_REQ_EXTENDED;
 
 			} else {
 				fprintf( stderr, "Invalid general control name: %s\n",
@@ -631,28 +659,28 @@ tool_args( int argc, char **argv )
 
 		if (api.ldapai_info_version != LDAP_API_INFO_VERSION) {
 			fprintf( stderr, "LDAP APIInfo version mismatch: "
-				"got %d, expected %d\n",
+				"library %d, header %d\n",
 				api.ldapai_info_version, LDAP_API_INFO_VERSION );
 			exit( EXIT_FAILURE );
 		}
 
 		if( api.ldapai_api_version != LDAP_API_VERSION ) {
 			fprintf( stderr, "LDAP API version mismatch: "
-				"got %d, expected %d\n",
+				"library %d, header %d\n",
 				api.ldapai_api_version, LDAP_API_VERSION );
 			exit( EXIT_FAILURE );
 		}
 
 		if( strcmp(api.ldapai_vendor_name, LDAP_VENDOR_NAME ) != 0 ) {
 			fprintf( stderr, "LDAP vendor name mismatch: "
-				"got %s, expected %s\n",
+				"library %s, header %s\n",
 				api.ldapai_vendor_name, LDAP_VENDOR_NAME );
 			exit( EXIT_FAILURE );
 		}
 
 		if( api.ldapai_vendor_version != LDAP_VENDOR_VERSION ) {
 			fprintf( stderr, "LDAP vendor version mismatch: "
-				"got %d, expected %d\n",
+				"library %d, header %d\n",
 				api.ldapai_vendor_version, LDAP_VENDOR_VERSION );
 			exit( EXIT_FAILURE );
 		}
@@ -744,6 +772,10 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 #ifdef SIGPIPE
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
+
+	if ( abcan ) {
+		SIGNAL( SIGINT, do_sig );
+	}
 
 	if ( !not ) {
 		int rc;
@@ -916,6 +948,18 @@ tool_bind( LDAP *ld )
 			}
 		}
 	}
+}
+
+void
+tool_unbind( LDAP *ld )
+{
+	int err = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, NULL );
+
+	if ( err != LDAP_OPT_SUCCESS ) {
+		fprintf( stderr, "Could not unset controls\n");
+	}
+
+	(void) ldap_unbind_ext( ld, NULL, NULL );
 }
 
 
@@ -1112,3 +1156,26 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		exit( EXIT_FAILURE );
 	}
 }
+
+int
+tool_check_abandon( LDAP *ld, int msgid )
+{
+	int	rc;
+
+	switch ( gotintr ) {
+	case LDAP_REQ_EXTENDED:
+		rc = ldap_cancel_s( ld, msgid, NULL, NULL );
+		fprintf( stderr, "got interrupt, cancel got %d: %s\n",
+				rc, ldap_err2string( rc ) );
+		return -1;
+
+	case LDAP_REQ_ABANDON:
+		rc = ldap_abandon( ld, msgid );
+		fprintf( stderr, "got interrupt, abandon got %d: %s\n",
+				rc, ldap_err2string( rc ) );
+		return -1;
+	}
+
+	return 0;
+}
+

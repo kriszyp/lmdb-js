@@ -110,7 +110,7 @@ monitor_subsys_rww_init(
 		ber_dupbv( &monitor_rww[ i ].nrdn, &nrdn );
 	
 		BER_BVSTR( &bv, "0" );
-		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 		mp = monitor_entrypriv_create();
 		if ( mp == NULL ) {
@@ -142,6 +142,7 @@ monitor_subsys_rww_init(
 int
 monitor_subsys_rww_update(
 	Operation		*op,
+	SlapReply		*rs,
 	Entry                   *e
 )
 {
@@ -170,7 +171,7 @@ monitor_subsys_rww_update(
 	}
 
 	if ( i == MONITOR_RWW_LAST ) {
-		return 0;
+		return SLAP_CB_CONTINUE;
 	}
 
 	nconns = nwritewaiters = nreadwaiters = 0;
@@ -211,7 +212,7 @@ monitor_subsys_rww_update(
 		a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );
 		if ( BER_BVISNULL( &a->a_vals[ 0 ] ) ) {
 			BER_BVZERO( &a->a_vals[ 0 ] );
-			return( 0 );
+			return SLAP_CB_CONTINUE;
 		}
 	}
 	AC_MEMCPY( a->a_vals[ 0 ].bv_val, buf, len + 1 );
@@ -219,6 +220,6 @@ monitor_subsys_rww_update(
 
 	/* FIXME: touch modifyTimestamp? */
 
-	return( 0 );
+	return SLAP_CB_CONTINUE;
 }
 

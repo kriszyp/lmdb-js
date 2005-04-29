@@ -92,6 +92,28 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Searching database for uniqueMember (approx) ..."
+$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"(uniqueMember~=dc=example,dc=com)" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Searching database for uniqueMember (approx) ..."
+$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"(uniqueMember~=dc=example,dc=com#'001000'B)" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIFOUT=$DNOUT

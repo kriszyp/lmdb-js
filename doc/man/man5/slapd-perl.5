@@ -162,6 +162,20 @@ returned directly to the client.
 .SH EXAMPLE
 There is an example Perl module `SampleLDAP' in the slapd/back-perl/
 direcetory in the OpenLDAP source tree.
+.SH ACCESS CONTROL
+The
+.B passwd
+backend does not honor any of the access control semantics described in
+.BR slapd.access (5);
+all access control is delegated to the underlying PERL scripting.
+Only
+.B read (=r)
+access to the
+.B entry
+pseudo-attribute and to the other attribute values of the entries
+returned by the
+.B search
+operation is honored, which is performed by the frontend.
 .SH WARNING
 The interface of this backend to the perl module MAY change.
 Any suggestions would greatly be appreciated.

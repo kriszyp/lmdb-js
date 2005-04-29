@@ -78,6 +78,21 @@ used by the \fBproxytemplate\fP directive to define cacheable templates.
 Specifies a cacheable template and "time to live" (in sec) <ttl> of queries 
 belonging to the template. 
 
+.TP
+.B response-callback { head | tail }
+Specifies whether the response callback should be placed at the
+.B tail
+(the default) or at the 
+.B head
+(actually, wherever the stacking sequence would make it appear) 
+of the callback list.  This affects how the overlay interacts with other
+overlays, since the proxycache overlay should be executed as early 
+as possible (and thus configured as late as possible), to get 
+a chance to return the cached results; however, if executed early
+at response, it would cache entries that may be later "massaged"
+by other databases and thus returned \fIafter\fP massaging the first
+time, and \fIbefore\fP massaging when cached.
+
 .LP
 The following adds a template with filter string \fB((&sn=)(givenName=))\fP 
 and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 

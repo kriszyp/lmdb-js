@@ -739,6 +739,10 @@ entry_naming_check(
 	ber_len_t	cnt;
 	int		rc = LDAP_SUCCESS;
 
+	if ( BER_BVISEMPTY( &e->e_name )) {
+		return LDAP_SUCCESS;
+	}
+
 	/*
 	 * Get attribute type(s) and attribute value(s) of our RDN
 	 */

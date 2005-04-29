@@ -5,9 +5,11 @@
 slaptest \- Check the suitability of the slapd.conf file.
 .SH SYNOPSIS
 .B SBINDIR/slaptest
-.B [\-v]
 .B [\-d level]
 .B [\-f slapd.conf]
+.B [\-F confdir]
+.B [\-u]
+.B [\-v]
 .LP
 .SH DESCRIPTION
 .LP
@@ -22,9 +24,6 @@ and the backend-specific rules, checking its sanity.
 .LP
 .SH OPTIONS
 .TP
-.B \-v
-enable verbose mode.
-.TP
 .BI \-d " level"
 enable debugging messages as defined by the specified
 .IR level .
@@ -33,6 +32,16 @@ enable debugging messages as defined by the specified
 specify an alternative
 .BR slapd.conf (5)
 file.
+.TP
+.BI \-F " confdir"
+specify a config directory.
+.TP
+.B \-u
+enable dryrun mode (i.e. don't fail if databases cannot be opened,
+but config is fine).
+.TP
+.B \-v
+enable verbose mode.
 .SH EXAMPLES
 To check a 
 .BR slapd.conf (5)

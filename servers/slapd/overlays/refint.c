@@ -80,7 +80,7 @@ refint_db_init(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	refint_data *id = ch_malloc(sizeof(refint_data));
-	refint_attrs *ip;
+
 	id->message = "_init";
 	id->attrs = NULL;
 	id->newdn.bv_val = NULL;
@@ -242,9 +242,9 @@ refint_delete_cb(
 {
 	Attribute *a;
 	BerVarray b = NULL;
-	refint_data *id, *dd = op->o_callback->sc_private;
+	refint_data *dd = op->o_callback->sc_private;
 	refint_attrs *ia, *da = dd->attrs;
-	dependent_data *ip, *dp = NULL;
+	dependent_data *ip;
 	Modifications *mp, *ma;
 	int i;
 
@@ -349,11 +349,11 @@ refint_modrdn_cb(
 {
 	Attribute *a;
 	BerVarray b = NULL;
-	refint_data *id, *dd = op->o_callback->sc_private;
+	refint_data *dd = op->o_callback->sc_private;
 	refint_attrs *ia, *da = dd->attrs;
-	dependent_data *ip = NULL, *dp = NULL;
+	dependent_data *ip = NULL;
 	Modifications *mp;
-	int i, j, fix;
+	int i, fix;
 
 	Debug(LDAP_DEBUG_TRACE, "refint_modrdn_cb <%s>\n",
 		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "NOTHING", 0, 0);
@@ -446,10 +446,9 @@ refint_response(
 	refint_data dd = *id;
 	refint_attrs *ip;
 	dependent_data *dp;
-	char *fstr, *key, *kp, **dnpp, **ndnpp, *cp;
-	BerValue ndn, moddn, pdn;
-	BerVarray b = NULL;
-	int rc, ac, i, j, ksize;
+	BerValue pdn;
+	int rc, ac;
+	Filter ftop, *fptr;
 
 	id->message = "_refint_response";
 
@@ -519,7 +518,6 @@ refint_response(
 	}
 
 	/*
-	** calculate the search key size and allocate it;
 	** build a search filter for all configured attributes;
 	** populate our Operation;
 	** pass our data (attr list, dn) to backend via sc_private;
@@ -529,18 +527,20 @@ refint_response(
 	**
 	*/
 
-	for(ksize = 16, ip = id->attrs; ip; ip = ip->next)
-		ksize += ip->attr->ad_cname.bv_len + op->o_req_dn.bv_len + 3;
-	kp = key = ch_malloc(ksize);
-	if(--ac) kp += sprintf(key, "(|");
-	for(ip = id->attrs; ip; ip = ip->next)
-		kp += sprintf(kp, "(%s=%s)",
-			ip->attr->ad_cname.bv_val, op->o_req_dn.bv_val);
-	if(ac) *kp++ = ')';
-	*kp = 0;
-
-	nop.ors_filter = str2filter_x(&nop, key);
-	ber_str2bv(key, 0, 0, &nop.ors_filterstr);
+	ftop.f_choice = LDAP_FILTER_OR;
+	ftop.f_next = NULL;
+	ftop.f_or = NULL;
+	nop.ors_filter = &ftop;
+	for(ip = id->attrs; ip; ip = ip->next) {
+		fptr = ch_malloc( sizeof(Filter) + sizeof(AttributeAssertion) );
+		fptr->f_choice = LDAP_FILTER_EQUALITY;
+		fptr->f_ava = (AttributeAssertion *)(fptr+1);
+		fptr->f_ava->aa_desc = ip->attr;
+		fptr->f_ava->aa_value = op->o_req_ndn;
+		fptr->f_next = ftop.f_or;
+		ftop.f_or = fptr;
+	}
+	filter2bv( nop.ors_filter, &nop.ors_filterstr );
 
 	/* callback gets the searched dn instead */
 	dd.dn = op->o_req_ndn;
@@ -565,8 +565,11 @@ refint_response(
 	/* search */
 	rc = nop.o_bd->be_search(&nop, &nrs);
 
-	filter_free_x(&nop, nop.ors_filter);
-	ch_free(key);
+	ch_free( nop.ors_filterstr.bv_val );
+	while ( fptr = ftop.f_or ) {
+		ftop.f_or = fptr->f_next;
+		ch_free( fptr );
+	}
 	ch_free(dd.nnewdn.bv_val);
 	ch_free(dd.newdn.bv_val);
 	dd.newdn.bv_val	= NULL;

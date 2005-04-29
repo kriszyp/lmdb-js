@@ -162,7 +162,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 
 	if ( !access_allowed( op, &d, slap_schema.si_ad_entry, 
-			NULL, ACL_WRITE, NULL ) )
+			NULL, ACL_WDEL, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"no write access to entry\n", 
@@ -186,7 +186,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 			"entry \"%s\" has children\n",
 			op->o_req_dn.bv_val, 0, 0 );
 		rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
-		rs->sr_text = "subtree delete not supported";
+		rs->sr_text = "subordinate objects must be deleted first";
 		/* fallthru */
 
 	default:
@@ -238,7 +238,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 
 	/* check parent for "children" acl */
 	if ( !access_allowed( op, &p, slap_schema.si_ad_children, 
-			NULL, ACL_WRITE, NULL ) )
+			NULL, ACL_WDEL, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "   backsql_delete(): "
 			"no write access to parent\n", 

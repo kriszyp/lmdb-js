@@ -22,6 +22,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <ac/string.h>
 
 #include "slap.h"
 #include "back-monitor.h"
@@ -106,9 +107,7 @@ monitor_subsys_listener_init(
 		if ( l[ i ]->sl_is_tls ) {
 			struct berval bv;
 
-			bv.bv_val = "TLS";
-			bv.bv_len = sizeof("TLS")-1;
-
+			BER_BVSTR( &bv, "TLS" );
 			attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
 					&bv, NULL );
 		}

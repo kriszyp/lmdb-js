@@ -62,11 +62,24 @@ slapdn( int argc, char **argv )
 			}
 			
 		} else {
-			fprintf( stderr, "DN: <%s> check succeeded\n"
-					"normalized: <%s>\n"
-					"pretty:     <%s>\n",
-					dn.bv_val,
-					ndn.bv_val, pdn.bv_val );
+			switch ( dn_mode ) {
+			case SLAP_TOOL_LDAPDN_PRETTY:
+				printf( "%s\n", pdn.bv_val );
+				break;
+
+			case SLAP_TOOL_LDAPDN_NORMAL:
+				printf( "%s\n", ndn.bv_val );
+				break;
+
+			default:
+				printf( "DN: <%s> check succeeded\n"
+						"normalized: <%s>\n"
+						"pretty:     <%s>\n",
+						dn.bv_val,
+						ndn.bv_val, pdn.bv_val );
+				break;
+			}
+
 			ch_free( ndn.bv_val );
 			ch_free( pdn.bv_val );
 		}

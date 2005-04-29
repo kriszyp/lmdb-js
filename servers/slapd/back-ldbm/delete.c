@@ -77,8 +77,7 @@ ldbm_back_delete(
 	}
 
 	/* check entry for "entry" acl */
-	if ( ! access_allowed( op, e,
-		entry, NULL, ACL_WRITE, NULL ) )
+	if ( ! access_allowed( op, e, entry, NULL, ACL_WDEL, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
 			"<=- ldbm_back_delete: no write access to entry\n", 0,
@@ -115,7 +114,7 @@ ldbm_back_delete(
 			op->o_req_dn.bv_val, 0, 0);
 
 		send_ldap_error( op, rs, LDAP_NOT_ALLOWED_ON_NONLEAF,
-			"subtree delete not supported" );
+			"subordinate objects must be deleted first");
 		goto return_results;
 	}
 
@@ -134,7 +133,7 @@ ldbm_back_delete(
 
 		/* check parent for "children" acl */
 		if ( ! access_allowed( op, p,
-			children, NULL, ACL_WRITE, NULL ) )
+			children, NULL, ACL_WDEL, NULL ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: no access to parent\n", 0,
@@ -153,7 +152,7 @@ ldbm_back_delete(
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( op, p,
-					children, NULL, ACL_WRITE, NULL );
+					children, NULL, ACL_WDEL, NULL );
 				p = NULL;
 								
 				/* check parent for "children" acl */

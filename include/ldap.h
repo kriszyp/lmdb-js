@@ -221,13 +221,20 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
 #define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
 
-#if 0
 /* LDAP Duplicated Entry Control Extension *//* not implemented in slapd(8) */
 #define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
 #define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
 #define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
 #define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
-#endif
+
+/* LDAP Persistent Search Control *//* not implemented in slapd(8) */
+/* draft-ietf-ldapext-psearch-03.txt (expired) */
+#define LDAP_CONTROL_PERSIST_REQUEST				"2.16.840.1.113730.3.4.3"
+#define LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE	"2.16.840.1.113730.3.4.7"
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_ADD		0x1
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_DELETE	0x2
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_MODIFY	0x4
+#define LDAP_CONTROL_PERSSIT_ENTRY_CHANGE_RENAME	0x8
 
 /* LDAP VLV *//* not implemented in slapd(8) */
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"

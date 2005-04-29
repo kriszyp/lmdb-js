@@ -47,8 +47,15 @@ do_unbind( Operation *op, SlapReply *rs )
 	Statslog( LDAP_DEBUG_STATS, "%s UNBIND\n", op->o_log_prefix,
 		0, 0, 0, 0 );
 
+	if ( frontendDB->be_unbind ) {
+		op->o_bd = frontendDB;
+		(void)frontendDB->be_unbind( op, rs );
+		op->o_bd = NULL;
+	}
+
 	/* pass the unbind to all backends */
-	backend_unbind( op, rs );
+	(void)backend_unbind( op, rs );
 
 	return 0;
 }
+

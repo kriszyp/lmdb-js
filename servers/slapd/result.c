@@ -254,7 +254,9 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 	 * plugin.
 	 */
 
-	if ( o->o_pb && slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 ) {
+	if ( o->o_pb &&
+		slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 )
+	{
 		sctrls = NULL;
 	}
 
@@ -269,10 +271,37 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 #ifdef LDAP_SLAPI
 	if ( c != NULL )
 #endif /* LDAP_SLAPI */
-	for( ; *c != NULL; c++) {
-		rc = send_ldap_control( ber, *c );
+	{
+		for( ; *c != NULL; c++) {
+			rc = send_ldap_control( ber, *c );
+			if( rc == -1 ) return rc;
+		}
+	}
+
+#ifdef LDAP_DEVEL
+	/* this is a hack to avoid having to modify op->s_ctrls */
+	if( o->o_sortedresults ) {
+		BerElementBuffer berbuf;
+		BerElement *sber = (BerElement *) &berbuf;
+		LDAPControl sorted;
+		BER_BVZERO( &sorted.ldctl_value );
+		sorted.ldctl_oid = LDAP_CONTROL_SORTRESPONSE;
+		sorted.ldctl_iscritical = 0;
+
+		ber_init2( sber, NULL, LBER_USE_DER );
+
+		ber_printf( sber, "{i}", LDAP_UNWILLING_TO_PERFORM );
+
+		if( ber_flatten2( ber, &sorted.ldctl_value, 0 ) == -1 ) {
+			return LBER_ERROR;
+		}
+
+		(void) ber_free_buf( ber );
+
+		rc = send_ldap_control( ber, &sorted );
 		if( rc == -1 ) return rc;
 	}
+#endif
 
 #ifdef LDAP_SLAPI
 	if ( sctrls != NULL ) {
@@ -297,6 +326,11 @@ send_ldap_response(
 	BerElement	*ber = (BerElement *) &berbuf;
 	int		rc = LDAP_SUCCESS;
 	long	bytes;
+
+	if ( rs->sr_err == SLAPD_ABANDON ) {
+		rc = SLAPD_ABANDON;
+		goto clean2;
+	}
 
 	if ( op->o_callback ) {
 		int		first = 1;
@@ -539,6 +573,10 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 
 	rs->sr_type = REP_RESULT;
 
+	/* Propagate Abandons so that cleanup callbacks can be processed */
+	if ( rs->sr_err == SLAPD_ABANDON )
+		goto abandon;
+
 	assert( !LDAP_API_ERROR( rs->sr_err ));
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -602,6 +640,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	rs->sr_tag = req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
+abandon:
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
 		if ( op->o_tag == LDAP_REQ_SEARCH ) {
 			char nbuf[64];
@@ -1163,6 +1202,12 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
+	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		be_entry_release_rw( op, rs->sr_entry, 0 );
+		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+		rs->sr_entry = NULL;
+	}
+
 	if ( op->o_res_ber == NULL ) {
 		bytes = send_ldap_ber( op->o_conn, ber );
 		ber_free_buf( ber );
@@ -1185,7 +1230,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
-	    op->o_log_prefix, rs->sr_entry->e_dn, 0, 0, 0 );
+	    op->o_log_prefix, edn, 0, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"<= send_search_entry: conn %lu exit.\n", op->o_connid, 0, 0 );
@@ -1358,6 +1403,12 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		goto rel;
 	}
 
+	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
+		be_entry_release_rw( op, rs->sr_entry, 0 );
+		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
+		rs->sr_entry = NULL;
+	}
+
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0) {
 #endif
@@ -1405,8 +1456,7 @@ str2result(
     char	*s,
     int		*code,
     char	**matched,
-    char	**info
-)
+    char	**info )
 {
 	int	rc;
 	char	*c;
@@ -1567,8 +1617,10 @@ slap_attr_flags( AttributeName *an )
 		flags |= ( SLAP_OPATTRS_NO | SLAP_USERATTRS_YES );
 
 	} else {
-		flags |= an_find( an, &AllOper ) ?  SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
-		flags |= an_find( an, &AllUser ) ?  SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
+		flags |= an_find( an, &AllOper )
+			? SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
+		flags |= an_find( an, &AllUser )
+			? SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
 	}
 
 	return flags;

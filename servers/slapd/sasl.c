@@ -16,6 +16,10 @@
 #include "portable.h"
 
 #include <stdio.h>
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
@@ -23,8 +27,6 @@
 #include <ldap_log.h>
 
 #include "slap.h"
-
-#include <limits.h>
 
 #ifdef HAVE_CYRUS_SASL
 # ifdef HAVE_SASL_SASL_H
@@ -576,7 +578,7 @@ slap_sasl_authorize(
 {
 	Connection *conn = (Connection *)context;
 	struct propval auxvals[3];
-	struct berval authcDN, authzDN;
+	struct berval authcDN, authzDN=BER_BVNULL;
 	int rc;
 
 	/* Simple Binds don't support proxy authorization, ignore it */
@@ -601,17 +603,16 @@ slap_sasl_authorize(
 	}
 
 	AC_MEMCPY( &authcDN, auxvals[0].values[0], sizeof(authcDN) );
+	conn->c_sasl_dn = authcDN;
 
 	/* Nothing to do if no authzID was given */
 	if ( !auxvals[1].name || !auxvals[1].values ) {
-		conn->c_sasl_dn = authcDN;
 		goto ok;
 	}
 	
 	AC_MEMCPY( &authzDN, auxvals[1].values[0], sizeof(authzDN) );
 
 	rc = slap_sasl_authorized( conn->c_sasl_bindop, &authcDN, &authzDN );
-	ch_free( authcDN.bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "SASL Proxy Authorize [conn=%ld]: "
 			"proxy authorization disallowed (%d)\n",
@@ -622,18 +623,19 @@ slap_sasl_authorize(
 		return SASL_NOAUTHZ;
 	}
 
-	conn->c_sasl_dn = authzDN;
+	conn->c_sasl_authz_dn = authzDN;
 ok:
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND authcid=\"%s\"\n",
+			"conn=%lu op=%lu BIND authcid=\"%s\" authzid=\"%s\"\n",
 			conn->c_connid, conn->c_sasl_bindop->o_opid, 
-			auth_identity, 0, 0);
+			auth_identity, requested_user, 0);
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
-		" proxy authorization allowed\n",
-		(long) (conn ? conn->c_connid : -1), 0, 0 );
+		" proxy authorization allowed authzDN=\"%s\"\n",
+		(long) (conn ? conn->c_connid : -1), 
+		authzDN.bv_val ? authzDN.bv_val : "", 0 );
 	return SASL_OK;
 } 
 #else
@@ -682,11 +684,11 @@ slap_sasl_authorize(
 		*errstr = ldap_err2string( rc );
 		return SASL_NOAUTHZ;
 	}
+	conn->c_sasl_dn = authcDN;
 	if( ( authzid == NULL ) || !strcmp( authcid, authzid ) ) {
 		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 		 "Using authcDN=%s\n", (long) (conn ? conn->c_connid : -1), authcDN.bv_val,0 );
 
-		conn->c_sasl_dn = authcDN;
 		goto ok;
 	}
 
@@ -695,13 +697,11 @@ slap_sasl_authorize(
 	rc = slap_sasl_getdn( conn, NULL, &bvauthzid, realm,
 		&authzDN, SLAP_GETDN_AUTHZID );
 	if( rc != LDAP_SUCCESS ) {
-		ch_free( authcDN.bv_val );
 		*errstr = ldap_err2string( rc );
 		return SASL_NOAUTHZ;
 	}
 
 	rc = slap_sasl_authorized(conn->c_sasl_bindop, &authcDN, &authzDN );
-	ch_free( authcDN.bv_val );
 	if( rc ) {
 		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
 			"proxy authorization disallowed (%d)\n",
@@ -711,18 +711,19 @@ slap_sasl_authorize(
 		ch_free( authzDN.bv_val );
 		return SASL_NOAUTHZ;
 	}
-	conn->c_sasl_dn = authzDN;
+	conn->c_sasl_authz_dn = authzDN;
 
 ok:
 	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
-		" authorization allowed\n",
-		(long) (conn ? conn->c_connid : -1), 0, 0 );
+		" authorization allowed authzDN=\"%s\"\n",
+		(long) (conn ? conn->c_connid : -1),
+		authzDN.bv_val ? authzDN.bv_val : "", 0 );
 
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND authcid=\"%s\"\n",
+			"conn=%lu op=%lu BIND authcid=\"%s\" authzid=\"%s\"\n",
 			conn->c_connid, conn->c_sasl_bindop->o_opid, 
-			authcid, 0, 0);
+			authcid, authzid ? authzid : "", 0);
 	}
 
 	*errstr = NULL;

@@ -48,9 +48,7 @@
 #include <ac/errno.h>
 #include <sys/stat.h>
 
-#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
 #include <ac/signal.h>
-#endif
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -234,7 +232,7 @@ urlize(char *url)
 }
 
 
-const char options[] = "a:Ab:E:F:l:Ls:S:tT:uz:"
+const char options[] = "a:Ab:cE:F:l:Ls:S:tT:uz:"
 	"Cd:D:e:f:h:H:IkKMnO:p:P:QR:U:vVw:WxX:y:Y:Z";
 
 int
@@ -363,6 +361,7 @@ handle_private_option( int i )
 
 			domainScope = 1 + crit;
 #endif
+
 #ifdef LDAP_CONTROL_SUBENTRIES
 		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
 			if( subentries ) {
@@ -554,16 +553,6 @@ private_conn_setup( LDAP *ld )
 	}
 }
 
-#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
-static int gotintr;
-
-RETSIGTYPE
-do_sig( int sig )
-{
-	gotintr = 1;
-}
-#endif
-
 int
 main( int argc, char **argv )
 {
@@ -621,10 +610,6 @@ main( int argc, char **argv )
 	if ( argv[optind] != NULL ) {
 		attrs = &argv[optind];
 	}
-
-#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
-	SIGNAL( SIGINT, do_sig );
-#endif
 
 	if ( infile != NULL ) {
 		if ( infile[0] == '-' && infile[1] == '\0' ) {
@@ -708,7 +693,7 @@ getNextPage:
 			}
 
 			err = ber_printf( seber, "b", abs(subentries) == 1 ? 0 : 1 );
-		    	if ( err == -1 ) {
+			if ( err == -1 ) {
 				ber_free( seber, 1 );
 				fprintf( stderr, _("Subentries control encoding error!\n") );
 				return EXIT_FAILURE;
@@ -942,13 +927,8 @@ getNextPage:
 	}
 #endif
 
-	ldap_unbind_ext( ld, NULL, NULL );
-#ifdef HAVE_CYRUS_SASL
-	sasl_done();
-#endif
-#ifdef HAVE_TLS
-	ldap_pvt_tls_destroy();
-#endif
+	tool_unbind( ld );
+	tool_destroy();
 	return( rc );
 }
 
@@ -1026,6 +1006,11 @@ static int dosearch(
 		sortattr ? LDAP_MSG_ALL : LDAP_MSG_ONE,
 		NULL, &res )) > 0 )
 	{
+		rc = tool_check_abandon( ld, msgid );
+		if ( rc ) {
+			return rc;
+		}
+
 		if( sortattr ) {
 			(void) ldap_sort_entries( ld, &res,
 				( *sortattr == '\0' ) ? NULL : sortattr, strcasecmp );
@@ -1122,27 +1107,13 @@ static int dosearch(
 
 		ldap_msgfree( res );
 	}
-#if defined(TEST_ABANDON) || defined(TEST_CANCEL)
-	if ( gotintr ) {
-#ifdef TEST_CANCEL
-		rc = ldap_cancel_s( ld, msgid, NULL, NULL );
-		fprintf( stderr, "got interrupt, cancel got %d\n", rc );
-		return -1;
-#endif
-#ifdef TEST_ABANDON
-		rc = ldap_abandon( ld, msgid );
-		fprintf( stderr, "got interrupt, abandon got %d\n", rc );
-		return -1;
-#endif
-	}
-#endif
 
+done:
 	if ( rc == -1 ) {
 		ldap_perror( ld, "ldap_result" );
 		return( rc );
 	}
 
-done:
 	ldap_msgfree( res );
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	if ( pagedResults ) { 

@@ -41,6 +41,10 @@ static int
 parse_idassert( BackendDB *be, const char *fname, int lineno,
 		int argc, char **argv );
 
+static int
+parse_acl_auth( BackendDB *be, const char *fname, int lineno,
+		int argc, char **argv );
+
 int
 ldap_back_db_config(
 		BackendDB	*be,
@@ -258,47 +262,14 @@ ldap_back_db_config(
 			li->flags |= LDAP_BACK_F_PROPAGATE_TLS;
 		}
 	
-	/* name to use for ldap_back_group */
-	} else if ( strcasecmp( argv[0], "acl-authcdn" ) == 0
-			|| strcasecmp( argv[0], "binddn" ) == 0 )
+	/* remote ACL stuff... */
+	} else if ( strncasecmp( argv[0], "acl-", STRLENOF( "acl-" ) ) == 0
+			|| strncasecmp( argv[0], "bind", STRLENOF( "bind" ) ) == 0 )
 	{
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing name in \"%s <name>\" line\n",
-					fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		if ( strcasecmp( argv[0], "binddn" ) == 0 ) {
-			fprintf( stderr, "%s: line %d: "
-				"\"binddn\" statement is deprecated; "
-				"use \"acl-authcDN\" instead\n",
-				fname, lineno );
-			/* FIXME: some day we'll need to throw an error */
-		}
-
-		ber_str2bv( argv[1], 0, 1, &li->acl_authcDN );
-
-	/* password to use for ldap_back_group */
-	} else if ( strcasecmp( argv[0], "acl-passwd" ) == 0
-			|| strcasecmp( argv[0], "bindpw" ) == 0 )
-	{
-		if ( argc != 2 ) {
-			fprintf( stderr,
-	"%s: line %d: missing password in \"%s <password>\" line\n",
-					fname, lineno, argv[0] );
-			return( 1 );
-		}
-
-		if ( strcasecmp( argv[0], "bindpw" ) == 0 ) {
-			fprintf( stderr, "%s: line %d: "
-				"\"bindpw\" statement is deprecated; "
-				"use \"acl-passwd\" instead\n",
-				fname, lineno );
-			/* FIXME: some day we'll need to throw an error */
-		}
-
-		ber_str2bv( argv[1], 0, 1, &li->acl_passwd );
+		/* NOTE: "bind{DN,pw}" was initially used; it's now
+		 * deprected and undocumented, it can be dropped at some
+		 * point, since nobody should be really using it */
+		return parse_acl_auth( be, fname, lineno, argc, argv );
 
 	/* identity assertion stuff... */
 	} else if ( strncasecmp( argv[0], "idassert-", STRLENOF( "idassert-" ) ) == 0
@@ -783,3 +754,205 @@ parse_idassert(
 
 	return 0;
 }
+
+static int
+parse_acl_auth(
+    BackendDB	*be,
+    const char	*fname,
+    int		lineno,
+    int		argc,
+    char	**argv
+)
+{
+	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
+
+	/* name to use for remote ACL access */
+	if ( strcasecmp( argv[0], "acl-authcdn" ) == 0
+			|| strcasecmp( argv[0], "binddn" ) == 0 )
+	{
+		struct berval	dn;
+		int		rc;
+
+		/* FIXME: "binddn" is no longer documented, and
+		 * temporarily supported for backwards compatibility */
+
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing name in \"%s <name>\" line\n",
+			    fname, lineno, argv[0] );
+			return( 1 );
+		}
+
+		if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
+			fprintf( stderr, "%s: line %d: "
+					"authcDN already defined; replacing...\n",
+					fname, lineno );
+			ch_free( li->acl_authcDN.bv_val );
+		}
+		
+		ber_str2bv( argv[1], 0, 0, &dn );
+		rc = dnNormalize( 0, NULL, NULL, &dn, &li->acl_authcDN, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: acl ID \"%s\" is not a valid DN\n",
+				fname, lineno, argv[1] );
+			return 1;
+		}
+
+	/* password to use for remote ACL access */
+	} else if ( strcasecmp( argv[0], "acl-passwd" ) == 0
+			|| strcasecmp( argv[0], "bindpw" ) == 0 )
+	{
+		/* FIXME: "bindpw" is no longer documented, and
+		 * temporarily supported for backwards compatibility */
+
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing password in \"%s <password>\" line\n",
+			    fname, lineno, argv[0] );
+			return( 1 );
+		}
+
+		if ( !BER_BVISNULL( &li->acl_passwd ) ) {
+			fprintf( stderr, "%s: line %d: "
+					"passwd already defined; replacing...\n",
+					fname, lineno );
+			ch_free( li->acl_passwd.bv_val );
+		}
+		
+		ber_str2bv( argv[1], 0, 1, &li->acl_passwd );
+
+	} else if ( strcasecmp( argv[0], "acl-method" ) == 0 ) {
+		if ( argc < 2 ) {
+			fprintf( stderr,
+	"%s: line %d: missing method in \"%s <method>\" line\n",
+			    fname, lineno, argv[0] );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[1], "none" ) == 0 ) {
+			/* FIXME: is this at all useful? */
+			li->acl_authmethod = LDAP_AUTH_NONE;
+
+			if ( argc != 2 ) {
+				fprintf( stderr,
+	"%s: line %d: trailing args in \"%s %s ...\" line ignored\"\n",
+					fname, lineno, argv[0], argv[1] );
+			}
+
+		} else if ( strcasecmp( argv[1], "simple" ) == 0 ) {
+			li->acl_authmethod = LDAP_AUTH_SIMPLE;
+
+			if ( argc != 2 ) {
+				fprintf( stderr,
+	"%s: line %d: trailing args in \"%s %s ...\" line ignored\"\n",
+					fname, lineno, argv[0], argv[1] );
+			}
+
+		} else if ( strcasecmp( argv[1], "sasl" ) == 0 ) {
+#ifdef HAVE_CYRUS_SASL
+			int	arg;
+
+			for ( arg = 2; arg < argc; arg++ ) {
+				if ( strncasecmp( argv[arg], "mech=", STRLENOF( "mech=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "mech=" );
+
+					if ( !BER_BVISNULL( &li->acl_sasl_mech ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL mech already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->acl_sasl_mech.bv_val );
+					}
+					ber_str2bv( val, 0, 1, &li->acl_sasl_mech );
+
+				} else if ( strncasecmp( argv[arg], "realm=", STRLENOF( "realm=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "realm=" );
+
+					if ( !BER_BVISNULL( &li->acl_sasl_realm ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL realm already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->acl_sasl_realm.bv_val );
+					}
+					ber_str2bv( val, 0, 1, &li->acl_sasl_realm );
+
+				} else if ( strncasecmp( argv[arg], "authcdn=", STRLENOF( "authcdn=" ) ) == 0 ) {
+					char		*val = argv[arg] + STRLENOF( "authcdn=" );
+					struct berval	dn;
+					int		rc;
+
+					if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL authcDN already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->acl_authcDN.bv_val );
+					}
+					if ( strncasecmp( argv[arg], "dn:", STRLENOF( "dn:" ) ) == 0 ) {
+						val += STRLENOF( "dn:" );
+					}
+
+					ber_str2bv( val, 0, 0, &dn );
+					rc = dnNormalize( 0, NULL, NULL, &dn, &li->acl_authcDN, NULL );
+					if ( rc != LDAP_SUCCESS ) {
+						Debug( LDAP_DEBUG_ANY,
+							"%s: line %d: SASL authcdn \"%s\" is not a valid DN\n",
+							fname, lineno, val );
+						return 1;
+					}
+
+				} else if ( strncasecmp( argv[arg], "authcid=", STRLENOF( "authcid=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "authcid=" );
+
+					if ( !BER_BVISNULL( &li->acl_authcID ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL authcID already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->acl_authcID.bv_val );
+					}
+					if ( strncasecmp( argv[arg], "u:", STRLENOF( "u:" ) ) == 0 ) {
+						val += STRLENOF( "u:" );
+					}
+					ber_str2bv( val, 0, 1, &li->acl_authcID );
+
+				} else if ( strncasecmp( argv[arg], "cred=", STRLENOF( "cred=" ) ) == 0 ) {
+					char	*val = argv[arg] + STRLENOF( "cred=" );
+
+					if ( !BER_BVISNULL( &li->acl_passwd ) ) {
+						fprintf( stderr, "%s: line %d: "
+								"SASL cred already defined; replacing...\n",
+			    					fname, lineno );
+						ch_free( li->acl_passwd.bv_val );
+					}
+					ber_str2bv( val, 0, 1, &li->acl_passwd );
+
+				} else {
+					fprintf( stderr, "%s: line %d: "
+							"unknown SASL parameter %s\n",
+		    					fname, lineno, argv[arg] );
+					return 1;
+				}
+			}
+
+			li->acl_authmethod = LDAP_AUTH_SASL;
+
+#else /* !HAVE_CYRUS_SASL */
+			fprintf( stderr, "%s: line %d: "
+					"compile --with-cyrus-sasl to enable SASL auth\n",
+					fname, lineno );
+			return 1;
+#endif /* !HAVE_CYRUS_SASL */
+
+		} else {
+			fprintf( stderr, "%s: line %d: "
+					"unhandled acl-method method %s\n",
+					fname, lineno, argv[1] );
+			return 1;
+		}
+
+	} else {
+		return SLAP_CONF_UNKNOWN;
+	}
+
+	return 0;
+}
+

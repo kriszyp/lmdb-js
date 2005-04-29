@@ -142,6 +142,9 @@ ID bdb_tool_dn2id_get(
 	Opheader ohdr = {0};
 	EntryInfo ei = {0};
 
+	if ( BER_BVISEMPTY(dn) )
+		return 0;
+
 	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
@@ -160,7 +163,20 @@ int bdb_tool_id2entry_get(
 	Entry **e
 )
 {
-	return bdb_id2entry( be, NULL, id, e );
+	int rc = bdb_id2entry( be, NULL, id, e );
+
+	if ( rc == DB_NOTFOUND && id == 0 ) {
+		Entry *dummy = ch_calloc( 1, sizeof(Entry) );
+		struct berval gluebv = BER_BVC("glue");
+		dummy->e_name.bv_val = ch_strdup( "" );
+		dummy->e_nname.bv_val = ch_strdup( "" );
+		attr_merge_one( dummy, slap_schema.si_ad_objectClass, &gluebv, NULL );
+		attr_merge_one( dummy, slap_schema.si_ad_structuralObjectClass,
+			&gluebv, NULL );
+		*e = dummy;
+		rc = LDAP_SUCCESS;
+	}
+	return rc;
 }
 
 Entry* bdb_tool_entry_get( BackendDB *be, ID id )
@@ -215,15 +231,19 @@ static int bdb_tool_next_id(
 	struct berval dn = e->e_name;
 	struct berval ndn = e->e_nname;
 	struct berval pdn, npdn;
-	EntryInfo *ei = NULL;
+	EntryInfo *ei = NULL, eidummy;
 	int rc;
 
-	if (ndn.bv_len == 0) return 0;
+	if (ndn.bv_len == 0) {
+		e->e_id = 0;
+		return 0;
+	}
 
 	rc = bdb_cache_find_ndn( op, tid, &ndn, &ei );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( !be_issuffix( op->o_bd, &ndn ) ) {
+			ID eid = e->e_id;
 			dnParent( &dn, &pdn );
 			dnParent( &ndn, &npdn );
 			e->e_name = pdn;
@@ -233,6 +253,14 @@ static int bdb_tool_next_id(
 			e->e_nname = ndn;
 			if ( rc ) {
 				return rc;
+			}
+			/* If parent didn't exist, it was created just now
+			 * and its ID is now in e->e_id. Make sure the current
+			 * entry gets added under the new parent ID.
+			 */
+			if ( eid != e->e_id ) {
+				eidummy.bei_id = e->e_id;
+				ei = &eidummy;
 			}
 		}
 		rc = bdb_next_id( op->o_bd, tid, &e->e_id );
@@ -501,7 +529,6 @@ ID bdb_tool_entry_modify(
 	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
 	assert ( e->e_id != NOID );
-	assert ( e->e_id != 0 );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=> " LDAP_XSTRING(bdb_tool_entry_modify) "( %ld, \"%s\" )\n",
@@ -538,6 +565,10 @@ ID bdb_tool_entry_modify(
 		goto done;
 	}
 
+#if 0
+	/* FIXME: this is bogus, we don't have the old values to delete
+	 * from the index because the given entry has already been modified.
+	 */
 	rc = bdb_index_entry_del( &op, tid, e );
 	if( rc != 0 ) {
 		snprintf( text->bv_val, text->bv_len,
@@ -548,6 +579,7 @@ ID bdb_tool_entry_modify(
 			text->bv_val, 0, 0 );
 		goto done;
 	}
+#endif
 
 	rc = bdb_index_entry_add( &op, tid, e );
 	if( rc != 0 ) {

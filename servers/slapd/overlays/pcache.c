@@ -789,7 +789,11 @@ remove_query_data (
 {
 	struct query_info	*qi, *qnext;
 	char			filter_str[64];
-	AttributeAssertion	ava;
+#ifdef LDAP_COMP_MATCH
+	AttributeAssertion	ava = { NULL, BER_BVNULL, NULL };
+#else
+	AttributeAssertion	ava = { NULL, BER_BVNULL };
+#endif
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
 	slap_callback cb = { NULL, remove_func, NULL, NULL };
@@ -1499,18 +1503,19 @@ proxy_cache_config(
 	AttributeName*  attr_name;
 	AttributeName* 	attrarray;
 	const char* 	text=NULL;
-	char		*save_argv0 = NULL;
+	char		*argv0 = NULL;
 
 	int 		index, i;
 	int 		num;
 	int		rc = 0;
 
 	if ( strncasecmp( argv[0], "proxycache-", STRLENOF( "proxycache-" ) ) == 0 ) {
-		save_argv0 = argv[0];
-		argv[0] += STRLENOF( "proxycache-" );
+		argv0 = argv[0] + STRLENOF( "proxycache-" );
+	} else {
+		argv0 = argv[0];
 	}
 
-	if ( strcasecmp( argv[0], "proxycache" ) == 0 ) {
+	if ( strcasecmp( argv0, "proxycache" ) == 0 ) {
 		if ( argc < 6 ) {
 			fprintf( stderr, "%s: line %d: missing arguments in \"proxycache"
 				" <backend> <max_entries> <numattrsets> <entry limit> "
@@ -1549,7 +1554,7 @@ proxy_cache_config(
 			qm->attr_sets[i].attrs = NULL;
 		}
 
-	} else if ( strcasecmp( argv[0], "proxyattrset" ) == 0 ) {
+	} else if ( strcasecmp( argv0, "proxyattrset" ) == 0 ) {
 		if ( argc < 3 ) {
 			fprintf( stderr, "%s: line %d: missing arguments in \"proxyattrset "
 				"<index> <attributes>\"\n", fname, lineno );
@@ -1581,7 +1586,7 @@ proxy_cache_config(
 				attr_name->an_name.bv_len = 0;
 			}
 		}
-	} else if ( strcasecmp( argv[0], "proxytemplate" ) == 0 ) {
+	} else if ( strcasecmp( argv0, "proxytemplate" ) == 0 ) {
 		if ( argc != 4 ) {
 			fprintf( stderr, "%s: line %d: missing argument(s) in "
 				"\"proxytemplate <filter> <proj attr set> <TTL>\" line\n",
@@ -1625,7 +1630,7 @@ proxy_cache_config(
 		temp->querystr.bv_val = NULL;
 		cm->numtemplates++;
 
-	} else if ( strcasecmp( argv[0], "response-callback" ) == 0 ) {
+	} else if ( strcasecmp( argv0, "response-callback" ) == 0 ) {
 		/* set to "tail" to put the response callback
 		 * at the end of the callback list; this is required
 		 * in case other overlays are present, so that the
@@ -1654,10 +1659,6 @@ proxy_cache_config(
 	/* anything else */
 	else {
 		rc = cm->db.bd_info->bi_db_config( &cm->db, fname, lineno, argc, argv );
-	}
-
-	if ( save_argv0 ) {
-		argv[0] = save_argv0;
 	}
 
 	return rc;
@@ -1740,7 +1741,8 @@ proxy_cache_open(
 	if ( slapMode & SLAP_SERVER_MODE ) {
 		ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 		ldap_pvt_runqueue_insert( &slapd_rq, cm->cc_period,
-			consistency_check, on );
+			consistency_check, on,
+			"pcache_consistency", be->be_suffix[0].bv_val );
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
 		/* Cached database must have the rootdn */
@@ -1925,7 +1927,7 @@ int pcache_init()
 			ldap_scherr2str(code), err );
 		return code;
 	}
-	code = at_add( at, &err );
+	code = at_add( at, 0, NULL, &err );
 	if ( !code ) {
 		slap_str2ad( at->at_names[0], &ad_queryid, &err );
 	}

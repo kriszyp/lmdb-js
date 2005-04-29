@@ -42,12 +42,22 @@ typedef struct tool_vars {
 	Filter *tv_filter;
 	struct berval tv_sub_ndn;
 	FILE	*tv_ldiffp;
-	struct berval tv_authcDN;
 	struct berval tv_baseDN;
+	struct berval tv_authcDN;
+	struct berval tv_authzDN;
 	struct berval tv_authcID;
 	struct berval tv_authzID;
 	struct berval tv_mech;
 	char	*tv_realm;
+	struct berval tv_listener_url;
+	struct berval tv_peer_domain;
+	struct berval tv_peer_name;
+	struct berval tv_sock_name;
+	slap_ssf_t tv_ssf;
+	slap_ssf_t tv_transport_ssf;
+	slap_ssf_t tv_tls_ssf;
+	slap_ssf_t tv_sasl_ssf;
+	unsigned tv_dn_mode;
 } tool_vars;
 
 extern tool_vars tool_globals;
@@ -61,12 +71,24 @@ extern tool_vars tool_globals;
 #define filter tool_globals.tv_filter
 #define sub_ndn tool_globals.tv_sub_ndn
 #define ldiffp tool_globals.tv_ldiffp
-#define authcDN tool_globals.tv_authcDN
 #define baseDN tool_globals.tv_baseDN
+#define authcDN tool_globals.tv_authcDN
+#define authzDN tool_globals.tv_authzDN
 #define authcID tool_globals.tv_authcID
 #define authzID tool_globals.tv_authzID
 #define mech tool_globals.tv_mech
 #define realm tool_globals.tv_realm
+#define listener_url tool_globals.tv_listener_url
+#define peer_domain tool_globals.tv_peer_domain
+#define peer_name tool_globals.tv_peer_name
+#define sock_name tool_globals.tv_sock_name
+#define ssf tool_globals.tv_ssf
+#define transport_ssf tool_globals.tv_transport_ssf
+#define tls_ssf tool_globals.tv_tls_ssf
+#define sasl_ssf tool_globals.tv_sasl_ssf
+#define dn_mode tool_globals.tv_dn_mode
+#define SLAP_TOOL_LDAPDN_PRETTY		SLAP_LDAPDN_PRETTY
+#define SLAP_TOOL_LDAPDN_NORMAL		(SLAP_LDAPDN_PRETTY << 1)
 
 void slap_tool_init LDAP_P((
 	const char* name,

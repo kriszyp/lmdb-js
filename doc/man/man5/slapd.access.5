@@ -229,10 +229,18 @@ It can have the forms
 	*
 	anonymous
 	users
-	self
+	self[.<selfstyle>]
 
 	dn[.<dnstyle>[,<modifier>]]=<DN>
 	dnattr=<attrname>
+
+	realanonymous
+	realusers
+	realself[.<selfstyle>]
+
+	realdn[.<dnstyle>[,<modifier>]]=<DN>
+	realdnattr=<attrname>
+
 	group[/<objectclass>[/<attrname>]]
 		[.<groupstyle>]=<group>
 	peername[.<peernamestyle>]=<peername>
@@ -246,15 +254,17 @@ It can have the forms
 	tls_ssf=<n>
 	sasl_ssf=<n>
 
-	aci=<attrname>
+	aci[=<attrname>]
+	dynacl/name[.<dynstyle>][=<pattern>]
 .fi
 .LP
 with
 .LP
 .nf
 	<style>={exact|regex|expand}
+	<selfstyle>={level{<n>}}
 	<dnstyle>={{exact|base(object)}|regex
-		|one(level)|sub(tree)|children}
+		|one(level)|sub(tree)|children|level{<n>}}
 	<groupstyle>={exact|expand}
 	<peernamestyle>={<style>|ip|path}
 	<domainstyle>={exact|regex|sub(tree)}
@@ -271,6 +281,11 @@ The wildcard
 .B *
 refers to everybody.
 .LP
+The keywords prefixed by
+.B real
+act as their counterparts without prefix; the checking respectively occurs
+with the \fIauthentication\fP DN and the \fIauthorization\fP DN.
+.LP
 The keyword
 .B anonymous
 means access is granted to unauthenticated clients; it is mostly used 
@@ -286,6 +301,18 @@ The keyword
 .B self
 means access to an entry is allowed to the entry itself (e.g. the entry
 being accessed and the requesting entry must be the same).
+It allows the 
+.B level{<n>}
+style, where \fI<n>\fP indicates what ancestor of the DN 
+is to be used in matches.
+A positive value indicates that the <n>-th ancestor of the user's DN
+is to be considered; a negative value indicates that the <n>-th ancestor
+of the target is to be considered.
+For example, a "\fIby self.level{1} ...\fP" clause would match
+when the object "\fIdc=example,dc=com\fP" is accessed
+by "\fIcn=User,dc=example,dc=com\fP".
+A "\fIby self.level{-1} ...\fP" clause would match when the same user
+accesses the object "\fIou=Address Book,cn=User,dc=example,dc=com\fP".
 .LP
 The statement
 .B dn=<DN>
@@ -360,7 +387,7 @@ the
 the
 .BR one(level) ,
 and the
-.B children
+.BR children
 forms provide
 .B $0
 as the match of the entire string.
@@ -369,7 +396,7 @@ The
 the
 .BR one(level) ,
 and the
-.B children
+.BR children
 forms also provide
 .B $1
 as the match of the rightmost part of the DN as defined in the
@@ -386,6 +413,14 @@ ancestors of a user by defining
 which means that only access to entries that appear in the DN of the
 .B <by>
 clause is allowed.
+.LP
+The 
+.BR level{<n>}
+form is an extension and a generalization of the
+.BR onelevel
+form, which matches all DNs whose <n>-th ancestor is the pattern.
+So, \fIlevel{1}\fP is equivalent to \fIonelevel\fP, 
+and \fIlevel{0}\fP is equivalent to \fIbase\fP.
 .LP
 It is perfectly useless to give any access privileges to a DN 
 that exactly matches the
@@ -413,6 +448,11 @@ The optional parameters
 and
 .B <attrname>
 define the objectClass and the member attributeType of the group entry.
+The defaults are
+.B groupOfNames
+and
+.BR member ,
+respectively.
 The optional style qualifier
 .B <style>
 can be
@@ -580,11 +620,38 @@ The statement
 is undocumented yet.
 .LP
 The statement
-.B aci=<attrname>
+.B aci[=<attrname>]
 means that the access control is determined by the values in the
 .B attrname
 of the entry itself.
+The optional
+.B <attrname>
+indicates what attributeType holds the ACI information in the entry.
+By default, the 
+.B OpenLDAPaci
+operational attribute is used.
 ACIs are experimental; they must be enabled at compile time.
+.LP
+The statement
+.B dynacl/<name>[.<dynstyle>][=<pattern>]
+means that access checking is delegated to the admin-defined method
+indicated by
+.BR <name> ,
+which can be registered at run-time by means of the
+.B moduleload
+statement.
+The fields
+.B <dynstyle>
+and
+.B <pattern>
+are optional, and are directly passed to the registered parsing routine.
+Dynacl is experimental; it must be enabled at compile time.
+If dynacl and ACIs are both enabled, ACIs are cast into the dynacl scheme,
+where 
+.B <name>=aci
+and, optionally,
+.BR <patten>=<attrname> .
+However, the original ACI syntax is preserved for backward compatibility.
 .LP
 The statements
 .BR ssf=<n> ,
@@ -596,15 +663,15 @@ set the minimum required Security Strength Factor (ssf) needed
 to grant access.  The value should be positive integer.
 .SH THE <ACCESS> FIELD
 The field
-.B <access> ::= [self]{<level>|<priv>}
+.B <access> ::= [[real]self]{<level>|<priv>}
 determines the access level or the specific access privileges the
 .B who 
 field will have.
 Its component are defined as
 .LP
 .nf
-	<level> ::= none|auth|compare|search|read|write
-	<priv> ::= {=|+|-}{w|r|s|c|x|0}+
+	<level> ::= none|disclose|auth|compare|search|read|write
+	<priv> ::= {=|+|-}{w|r|s|c|x|d|0}+
 .fi
 .LP
 The modifier
@@ -612,7 +679,12 @@ The modifier
 allows special operations like having a certain access level or privilege
 only in case the operation involves the name of the user that's requesting
 the access.
-It implies the user that requests access is bound.
+It implies the user that requests access is authorized.
+The modifier
+.B realself
+refers to the authenticated DN as opposed to the authorized DN of the
+.B self
+modifier.
 An example is the
 .B selfwrite
 access to the member attribute of a group, which allows one to add/delete
@@ -624,6 +696,7 @@ access model relies on an incremental interpretation of the access
 privileges.
 The possible levels are
 .BR none ,
+.BR disclose ,
 .BR auth ,
 .BR compare ,
 .BR search ,
@@ -633,11 +706,18 @@ and
 Each access level implies all the preceding ones, thus 
 .B write
 access will imply all accesses.
-While
-.B none
-is trivial, 
+.LP
+The
+.B none 
+access level disallows all access including disclosure on error.
+.LP
+The
+.B disclose
+access level allows disclosure of information on error.
+.LP
+The 
 .B auth
-access means that one is allowed access to an attribute to perform
+access level means that one is allowed access to an attribute to perform
 authentication/authorization operations (e.g.
 .BR bind )
 with no other access.
@@ -665,9 +745,11 @@ for read,
 .B s 
 for search,
 .B c 
-for compare, and
+for compare,
 .B x
-for authentication.
+for authentication, and
+.B d
+for disclose.
 More than one of the above privileges can be added in one statement.
 .B 0
 indicates no privileges and is used only by itself (e.g., +0).
@@ -794,10 +876,15 @@ is set to 1.
 .LP
 The
 .B search
-operation, for each entry, requires
+operation, requires 
+.B search (=s)
+privileges on the 
+.B entry
+pseudo-attribute of the searchBase (NOTE: this was introduced with 2.3).
+Then, for each entry, it requires
 .B search (=s)
 privileges on the attributes that are defined in the filter.
-Then, the resulting entries are tested for 
+The resulting entries are finally tested for 
 .B read (=r)
 privileges on the pseudo-attribute
 .B entry
@@ -838,6 +925,23 @@ privileges are also required on the
 attribute of the authorizing identity and/or on the 
 .B authzFrom
 attribute of the authorized identity.
+
+.LP
+Access control to search entries is checked by the frontend,
+so it is fully honored by all backends; for all other operations
+and for the discovery phase of the search operation,
+full ACL semantics is only supported by the primary backends, i.e.
+.BR back-bdb (5),
+.BR back-hdb (5),
+and
+.BR back-ldbm (5).
+
+Some other backend, like
+.BR back-sql (5),
+may fully support them; others may only support a portion of the 
+described semantics, or even differ in some aspects.
+The relevant details are described in the backend-specific man pages.
+
 .SH CAVEATS
 It is strongly recommended to explicitly use the most appropriate
 .B <dnstyle>
@@ -916,6 +1020,7 @@ ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR slapd (8),
+.BR slapd-* (5),
 .BR slapacl (8),
 .BR regex (7),
 .BR re_format (7)

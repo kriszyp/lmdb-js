@@ -20,6 +20,7 @@
 #include <portable.h>
 #include "slap.h"
 #include <db.h>
+#include "alock.h"
 
 LDAP_BEGIN_DECL
 
@@ -40,12 +41,6 @@ LDAP_BEGIN_DECL
 #define BDB_TXN_RETRIES		16
 
 #define BDB_MAX_ADD_LOOP	30
-
-#ifdef BDB_SUBDIRS
-#define BDB_TMP_SUBDIR	"tmp"
-#define BDB_LG_SUBDIR	"log"
-#define BDB_DATA_SUBDIR	"data"
-#endif
 
 #define BDB_SUFFIX		".bdb"
 #define BDB_ID2ENTRY	0
@@ -176,6 +171,8 @@ struct bdb_info {
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;
+	void		*bi_txn_cp_task;
+	void		*bi_index_task;
 
 	int			bi_lock_detect;
 	long		bi_shm_key;
@@ -189,6 +186,15 @@ struct bdb_info {
 	bdb_idl_cache_entry_t	*bi_idl_lru_tail;
 	ldap_pvt_thread_rdwr_t bi_idl_tree_rwlock;
 	ldap_pvt_thread_mutex_t bi_idl_tree_lrulock;
+	alock_info_t	bi_alock_info;
+	char		*bi_db_config_path;
+	BerVarray	bi_db_config;
+	int		bi_flags;
+#define	BDB_IS_OPEN		0x01
+#define	BDB_HAS_CONFIG	0x02
+#define	BDB_UPD_CONFIG	0x04
+#define	BDB_DEL_INDEX	0x08
+#define	BDB_RE_OPEN		0x10
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
@@ -271,6 +277,20 @@ struct bdb_op_info {
 	} while (0);
 
 LDAP_END_DECL
+
+/* for the cache of attribute information (which are indexed, etc.) */
+typedef struct bdb_attrinfo {
+	AttributeDescription *ai_desc; /* attribute description cn;lang-en */
+	slap_mask_t ai_indexmask;	/* how the attr is indexed	*/
+	slap_mask_t ai_newmask;	/* new settings to replace old mask */
+#ifdef LDAP_COMP_MATCH
+	ComponentReference* ai_cr; /*component indexing*/
+#endif
+} AttrInfo;
+
+/* These flags must not clash with SLAP_INDEX flags or ops in slap.h! */
+#define	BDB_INDEX_DELETING	0x8000U	/* index is being modified */
+#define	BDB_INDEX_UPDATE_OP	0x03	/* performing an index update */
 
 #include "proto-bdb.h"
 

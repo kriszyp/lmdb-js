@@ -37,12 +37,14 @@ static char *const err2text[] = {
 	"user-defined ObjectClass includes operational attributes",
 	"user-defined ObjectClass has inappropriate SUPerior",
 	"Duplicate objectClass",
+	"Inconsistent duplicate objectClass",
 	"AttributeType not found",
 	"AttributeType inappropriate matching rule",
 	"AttributeType inappropriate USAGE",
 	"AttributeType inappropriate SUPerior",
 	"AttributeType SYNTAX or SUPerior required",
 	"Duplicate attributeType",
+	"Inconsistent duplicate attributeType",
 	"MatchingRule not found",
 	"MatchingRule incomplete",
 	"Duplicate matchingRule",
@@ -55,7 +57,8 @@ static char *const err2text[] = {
 	"Duplicate Content Rule",
 	"Content Rule not for STRUCTURAL object class",
 	"Content Rule AUX contains inappropriate object class",
-	"Content Rule attribute type list contains duplicate"
+	"Content Rule attribute type list contains duplicate",
+	NULL
 };
 
 char *
@@ -126,7 +129,8 @@ parse_cr(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv )
+    char	**argv,
+	ContentRule **scr )
 {
 	LDAPContentRule *cr;
 	int		code;
@@ -148,7 +152,7 @@ parse_cr(
 		return 1;
 	}
 
-	code = cr_add(cr,1,&err);
+	code = cr_add(cr,1,scr,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
@@ -164,7 +168,8 @@ parse_oc(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv )
+    char	**argv,
+	ObjectClass **soc )
 {
 	LDAPObjectClass *oc;
 	int		code;
@@ -186,7 +191,7 @@ parse_oc(
 		return 1;
 	}
 
-	code = oc_add(oc,1,&err);
+	code = oc_add(oc,1,soc,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
@@ -245,7 +250,8 @@ parse_at(
     const char	*fname,
     int		lineno,
     char	*line,
-    char	**argv )
+    char	**argv,
+	AttributeType **sat )
 {
 	LDAPAttributeType *at;
 	int		code;
@@ -274,7 +280,7 @@ parse_at(
 		return 1;
 	}
 
-	code = at_add(at,&err);
+	code = at_add(at,1,sat,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);

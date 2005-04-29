@@ -147,7 +147,7 @@ ldif_parse_line2(
 	if ( s == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 			_("ldif_parse_line: missing ':' after %s\n"),
-			type );
+			type->bv_val );
 		if ( !freeval ) ber_memfree( line );
 		return( -1 );
 	}
@@ -190,7 +190,8 @@ ldif_parse_line2(
 		if ( *s == '\0' ) {
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
-				_("ldif_parse_line: %s missing base64 value\n"), type );
+				_("ldif_parse_line: %s missing base64 value\n"),
+				type->bv_val );
 			if ( !freeval ) ber_memfree( line );
 			return( -1 );
 		}
@@ -205,7 +206,7 @@ ldif_parse_line2(
 					ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 						_("ldif_parse_line: %s: invalid base64 encoding"
 						" char (%c) 0x%x\n"),
-					    type, p[i], p[i] );
+					    type->bv_val, p[i], p[i] );
 					if ( !freeval ) ber_memfree( line );
 					return( -1 );
 				}
@@ -242,7 +243,8 @@ ldif_parse_line2(
 		if ( *s == '\0' ) {
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
-				_("ldif_parse_line: %s missing URL value\n"), type );
+				_("ldif_parse_line: %s missing URL value\n"),
+				type->bv_val );
 			if ( !freeval ) ber_memfree( line );
 			return( -1 );
 		}
@@ -250,7 +252,7 @@ ldif_parse_line2(
 		if( ldif_fetch_url( s, &value->bv_val, &value->bv_len ) ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 				_("ldif_parse_line: %s: URL \"%s\" fetch failed\n"),
-				type, s );
+				type->bv_val, s );
 			if ( !freeval ) ber_memfree( line );
 			return( -1 );
 		}
@@ -357,6 +359,131 @@ ldif_getline( char **next )
 	} while( *line == '#' );
 
 	return( line );
+}
+
+/*
+ * name and OID of attributeTypes that must be base64 encoded in any case
+ */
+typedef struct must_b64_encode_s {
+	struct berval	name;
+	struct berval	oid;
+} must_b64_encode_s;
+
+static must_b64_encode_s	default_must_b64_encode[] = {
+	{ BER_BVC( "userPassword" ), BER_BVC( "2.5.4.35" ) },
+	{ BER_BVNULL, BER_BVNULL }
+};
+
+static must_b64_encode_s	*must_b64_encode = default_must_b64_encode;
+
+/*
+ * register name and OID of attributeTypes that must always be base64 
+ * encoded
+ *
+ * NOTE: this routine mallocs memory in a static struct which must 
+ * be explicitly freed when no longer required
+ */
+int
+ldif_must_b64_encode_register( LDAP_CONST char *name, LDAP_CONST char *oid )
+{
+	int		i;
+	ber_len_t	len;
+
+	assert( must_b64_encode );
+	assert( name );
+	assert( oid );
+
+	len = strlen( name );
+
+	for ( i = 0; !BER_BVISNULL( &must_b64_encode[i].name ); i++ ) {
+		if ( len != must_b64_encode[i].name.bv_len ) {
+			continue;
+		}
+
+		if ( strcasecmp( name, must_b64_encode[i].name.bv_val ) == 0 ) {
+			break;
+		}
+	}
+
+	if ( !BER_BVISNULL( &must_b64_encode[i].name ) ) {
+		return 1;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &must_b64_encode[i].name ); i++ )
+		/* just count */ ;
+
+	if ( must_b64_encode == default_must_b64_encode ) {
+		must_b64_encode = ber_memalloc( sizeof( must_b64_encode_s ) * ( i + 2 ) );
+
+		for ( i = 0; !BER_BVISNULL( &default_must_b64_encode[i].name ); i++ ) {
+			ber_dupbv( &must_b64_encode[i].name, &default_must_b64_encode[i].name );
+			ber_dupbv( &must_b64_encode[i].oid, &default_must_b64_encode[i].oid );
+		}
+
+	} else {
+		must_b64_encode_s	*tmp;
+
+		tmp = ber_memrealloc( must_b64_encode,
+			sizeof( must_b64_encode_s ) * ( i + 2 ) );
+		if ( tmp == NULL ) {
+			return 1;
+		}
+		must_b64_encode = tmp;
+	}
+
+	ber_str2bv( name, len, 1, &must_b64_encode[i].name );
+	ber_str2bv( oid, 0, 1, &must_b64_encode[i].oid );
+
+	BER_BVZERO( &must_b64_encode[i + 1].name );
+
+	return 0;
+}
+
+void
+ldif_must_b64_encode_release( void )
+{
+	int	i;
+
+	assert( must_b64_encode );
+
+	if ( must_b64_encode == default_must_b64_encode ) {
+		return;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &must_b64_encode[i].name ); i++ ) {
+		ber_memfree( must_b64_encode[i].name.bv_val );
+		ber_memfree( must_b64_encode[i].oid.bv_val );
+	}
+
+	ber_memfree( must_b64_encode );
+
+	must_b64_encode = default_must_b64_encode;
+}
+
+/*
+ * returns 1 iff the string corresponds to the name or the OID of any 
+ * of the attributeTypes listed in must_b64_encode
+ */
+static int
+ldif_must_b64_encode( LDAP_CONST char *s )
+{
+	int		i;
+	struct berval	bv;
+
+	assert( must_b64_encode );
+	assert( s );
+
+	ber_str2bv( s, 0, 0, &bv );
+
+	for ( i = 0; !BER_BVISNULL( &must_b64_encode[i].name ); i++ ) {
+		if ( ber_bvstrcasecmp( &must_b64_encode[i].name, &bv ) == 0
+			|| ber_bvcmp( &must_b64_encode[i].oid, &bv ) == 0 )
+		{
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 /* compatibility with U-Mich off by one bug */
@@ -479,10 +606,7 @@ ldif_sput(
 		&& strstr( name, ";binary" ) == NULL
 #endif
 #ifndef LDAP_PASSWD_DEBUG
-		&& (namelen != (sizeof("userPassword")-1)
-		|| strcasecmp( name, "userPassword" ) != 0)	/* encode userPassword */
-		&& (namelen != (sizeof("2.5.4.35")-1) 
-		|| strcasecmp( name, "2.5.4.35" ) != 0)		/* encode userPassword */
+		&& !ldif_must_b64_encode( name )
 #endif
 	) {
 		int b64 = 0;

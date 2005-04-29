@@ -83,6 +83,10 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		if ( op->o_abandon ) {
+			rs->sr_err = SLAPD_ABANDON;
+			goto return_results;
+		}
 		parent_is_glue = 0;
 		parent_is_leaf = 0;
 		ldap_pvt_thread_yield();
@@ -202,7 +206,7 @@ retry:	/* transaction retry */
 
 		/* check parent for "children" acl */
 		rs->sr_err = access_allowed( op, p,
-			children, NULL, ACL_WRITE, NULL );
+			children, NULL, ACL_WDEL, NULL );
 
 		if ( !rs->sr_err  ) {
 			switch( opinfo.boi_err ) {
@@ -228,7 +232,7 @@ retry:	/* transaction retry */
 
 				/* check parent for "children" acl */
 				rs->sr_err = access_allowed( op, p,
-					children, NULL, ACL_WRITE, NULL );
+					children, NULL, ACL_WDEL, NULL );
 
 				p = NULL;
 
@@ -266,7 +270,7 @@ retry:	/* transaction retry */
 	}
 
 	rs->sr_err = access_allowed( op, e,
-		entry, NULL, ACL_WRITE, NULL );
+		entry, NULL, ACL_WDEL, NULL );
 
 	if ( !rs->sr_err  ) {
 		switch( opinfo.boi_err ) {
@@ -345,7 +349,7 @@ retry:	/* transaction retry */
 				": non-leaf %s\n",
 				op->o_req_dn.bv_val, 0, 0);
 			rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
-			rs->sr_text = "subtree delete not supported";
+			rs->sr_text = "subordinate objects must be deleted first";
 			break;
 		default:
 			Debug(LDAP_DEBUG_ARGS,

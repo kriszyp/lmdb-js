@@ -21,13 +21,13 @@ objectClass: device
 objectClass: pwdPolicy
 cn: Standard Policy
 pwdAttribute: 2.5.4.35
-pwdLockoutDuration: 30
+pwdLockoutDuration: 15
 pwdInHistory: 6
 pwdCheckQuality: 1
-pwdExpireWarning: 300
-pwdMaxAge: 600
+pwdExpireWarning: 10
+pwdMaxAge: 30
 pwdMinLength: 5
-pwdGraceLoginLimit: 3
+pwdGraceAuthnLimit: 3
 pwdAllowUserChange: TRUE
 pwdMustChange: TRUE
 pwdMaxFailure: 3

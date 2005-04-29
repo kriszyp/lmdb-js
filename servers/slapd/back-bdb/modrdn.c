@@ -103,6 +103,10 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		if ( op->o_abandon ) {
+			rs->sr_err = SLAPD_ABANDON;
+			goto return_results;
+		}
 		parent_is_glue = 0;
 		parent_is_leaf = 0;
 		ldap_pvt_thread_yield();
@@ -289,7 +293,10 @@ retry:	/* transaction retry */
 
 		/* check parent for "children" acl */
 		rs->sr_err = access_allowed( op, p,
-			children, NULL, ACL_WRITE, NULL );
+			children, NULL,
+			op->oq_modrdn.rs_newSup == NULL ?
+				ACL_WRITE : ACL_WDEL,
+			NULL );
 
 		if ( ! rs->sr_err ) {
 			switch( opinfo.boi_err ) {
@@ -330,7 +337,10 @@ retry:	/* transaction retry */
 
 				/* check parent for "children" acl */
 				rs->sr_err = access_allowed( op, p,
-					children, NULL, ACL_WRITE, NULL );
+					children, NULL,
+					op->oq_modrdn.rs_newSup == NULL ?
+						ACL_WRITE : ACL_WDEL,
+					NULL );
 
 				p = NULL;
 
@@ -397,8 +407,13 @@ retry:	/* transaction retry */
 			np_dn = op->oq_modrdn.rs_newSup;
 			np_ndn = op->oq_modrdn.rs_nnewSup;
 
-			/* newSuperior == oldParent?, if so ==> ERROR */
+			/* newSuperior == oldParent? - checked above */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
+			if ( dnIsSuffix( np_ndn, &e->e_nname )) {
+				rs->sr_err = LDAP_NAMING_VIOLATION;
+				rs->sr_text = "new superior is invalid";
+				goto return_results;
+			}
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 			rs->sr_err = bdb_dn2entry( op, ltid, np_ndn,
@@ -437,7 +452,7 @@ retry:	/* transaction retry */
 
 			/* check newSuperior for "children" acl */
 			rs->sr_err = access_allowed( op, np, children,
-				NULL, ACL_WRITE, NULL );
+				NULL, ACL_WADD, NULL );
 
 			if( ! rs->sr_err ) {
 				switch( opinfo.boi_err ) {
@@ -492,7 +507,7 @@ retry:	/* transaction retry */
 
 					/* check parent for "children" acl */
 					rs->sr_err = access_allowed( op, np,
-						children, NULL, ACL_WRITE, NULL );
+						children, NULL, ACL_WADD, NULL );
 
 					np = NULL;
 

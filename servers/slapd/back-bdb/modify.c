@@ -62,11 +62,11 @@ int bdb_modify_internal(
 		case LDAP_MOD_REPLACE:
 			if ( mod->sm_desc == slap_schema.si_ad_structuralObjectClass ) {
 				value_match( &match, slap_schema.si_ad_structuralObjectClass,
-				slap_schema.si_ad_structuralObjectClass->ad_type->sat_equality,
-				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-				&mod->sm_values[0], &scbva[0], text );
-				if ( !match )
-					glue_attr_delete = 1;
+					slap_schema.si_ad_structuralObjectClass->
+						ad_type->sat_equality,
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					&mod->sm_values[0], &scbva[0], text );
+				if ( !match ) glue_attr_delete = 1;
 			}
 		}
 		if ( glue_attr_delete )
@@ -181,9 +181,7 @@ int bdb_modify_internal(
 			e->e_ocflags = 0;
 		}
 
-		if ( glue_attr_delete ) {
-			e->e_ocflags = 0;
-		}
+		if ( glue_attr_delete ) e->e_ocflags = 0;
 
 		/* check if modified attribute was indexed
 		 * but not in case of NOOP... */
@@ -271,6 +269,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	DB_TXN	*ltid = NULL, *lt2;
 	struct bdb_op_info opinfo = {0};
 	Entry		dummy = {0};
+	int			fakeroot = 0;
 
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
@@ -311,6 +310,10 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		if ( op->o_abandon ) {
+			rs->sr_err = SLAPD_ABANDON;
+			goto return_results;
+		}
 		ldap_pvt_thread_yield();
 		bdb_trans_backoff( ++num_retries );
 	}
@@ -341,6 +344,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_dn2entry( op, ltid, &op->o_req_ndn, &ei, 1,
 		locker, &lock );
 
+	e = ei->bei_e;
+
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_modify) ": dn2entry failed (%d)\n",
@@ -350,6 +355,19 @@ retry:	/* transaction retry */
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		case DB_NOTFOUND:
+			if ( BER_BVISEMPTY( &op->o_req_ndn )) {
+				struct berval gluebv = BER_BVC("glue");
+				e = ch_calloc( 1, sizeof(Entry));
+				e->e_name.bv_val = ch_strdup( "" );
+				ber_dupbv( &e->e_nname, &e->e_name );
+				attr_merge_one( e, slap_schema.si_ad_objectClass,
+					&gluebv, NULL );
+				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
+					&gluebv, NULL );
+				e->e_private = ei;
+				fakeroot = 1;
+				rs->sr_err = 0;
+			}
 			break;
 		case LDAP_BUSY:
 			rs->sr_text = "ldap server busy";
@@ -361,7 +379,6 @@ retry:	/* transaction retry */
 		}
 	}
 
-	e = ei->bei_e;
 	/* acquire and lock entry */
 	/* FIXME: dn2entry() should return non-glue entry */
 	if (( rs->sr_err == DB_NOTFOUND ) ||
@@ -377,7 +394,7 @@ retry:	/* transaction retry */
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
-					&op->o_req_dn, LDAP_SCOPE_DEFAULT );
+				&op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -427,20 +444,18 @@ retry:	/* transaction retry */
 			&slap_pre_read_bv, preread_ctrl ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- " LDAP_XSTRING(bdb_modify)
-				": pre-read failed!\n", 0, 0, 0 );
+				"<=- " LDAP_XSTRING(bdb_modify) ": pre-read failed!\n",
+				0, 0, 0 );
 			goto return_results;
 		}
 	}
 
 	/* nested transaction */
-	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
-		bdb->bi_db_opflags );
+	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, bdb->bi_db_opflags );
 	rs->sr_text = NULL;
 	if( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_modify) ": txn_begin(2) failed: "
-			"%s (%d)\n",
+			LDAP_XSTRING(bdb_modify) ": txn_begin(2) failed: " "%s (%d)\n",
 			db_strerror(rs->sr_err), rs->sr_err, 0 );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
@@ -472,8 +487,8 @@ retry:	/* transaction retry */
 	rs->sr_err = bdb_id2entry_update( op->o_bd, lt2, &dummy );
 	if ( rs->sr_err != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			LDAP_XSTRING(bdb_modify) ": id2entry update failed "
-			"(%d)\n", rs->sr_err, 0, 0 );
+			LDAP_XSTRING(bdb_modify) ": id2entry update failed " "(%d)\n",
+			rs->sr_err, 0, 0 );
 		switch( rs->sr_err ) {
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
@@ -514,11 +529,16 @@ retry:	/* transaction retry */
 	} else {
 		/* may have changed in bdb_modify_internal() */
 		e->e_ocflags = dummy.e_ocflags;
-		rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
-		switch( rc ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
+		if ( fakeroot ) {
+			e->e_private = NULL;
+			entry_free( e );
+		} else {
+			rc = bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
+			switch( rc ) {
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			}
 		}
 		dummy.e_attrs = NULL;
 

@@ -93,6 +93,14 @@ This caches the target that holds a given DN to speed up target
 selection in case multiple targets would result from an uncached
 search; forever means cache never expires; disabled means no DN
 caching; otherwise a valid ( > 0 ) ttl in seconds is required.
+.TP
+.B nretries {forever|never|<nretries>}
+This directive defines how many times a bind should be retried
+in case of temporary failure in contacting a target.  If defined
+before any target specification, it applies to all targets (by default,
+.BR never );
+the global value can be overridden by redefinitions inside each target
+specification.
 .SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:
 .TP
@@ -740,6 +748,22 @@ been written:
 .fi
 .LP
 with the advantage of saving one rewrite pass ...)
+
+.SH ACCESS CONTROL
+The
+.B meta
+backend does not honor all ACL semantics as described in
+.BR slapd.access (5).
+In general, access checking is delegated to the remote server(s).
+Only
+.B read (=r)
+access to the
+.B entry
+pseudo-attribute and to the other attribute values of the entries
+returned by the
+.B search
+operation is honored, which is performed by the frontend.
+
 .SH PROXY CACHE OVERLAY
 The proxy cache overlay 
 allows caching of LDAP search requests (queries) in a local database.

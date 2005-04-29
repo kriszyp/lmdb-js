@@ -43,6 +43,10 @@ ava_free(
 	AttributeAssertion *ava,
 	int	freeit )
 {
+#ifdef LDAP_COMP_MATCH
+	if ( ava->aa_cf && ava->aa_cf->cf_ca->ca_comp_data.cd_mem_op )
+		nibble_mem_free ( ava->aa_cf->cf_ca->ca_comp_data.cd_mem_op );
+#endif
 	op->o_tmpfree( ava->aa_value.bv_val, op->o_tmpmemctx );
 	if ( freeit ) op->o_tmpfree( (char *) ava, op->o_tmpmemctx );
 }

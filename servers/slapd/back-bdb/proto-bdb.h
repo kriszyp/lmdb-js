@@ -31,25 +31,16 @@ LDAP_BEGIN_DECL
  */
 
 #define bdb_attr_mask				BDB_SYMBOL(attr_mask)
+#define bdb_attr_flush				BDB_SYMBOL(attr_flush)
 #define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
 #define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
+#define bdb_attr_index_free			BDB_SYMBOL(attr_index_free)
 #define bdb_attr_index_unparse		BDB_SYMBOL(attr_index_unparse)
 
-#ifdef LDAP_COMP_MATCH
-#define bdb_attr_comp_ref			BDB_SYMBOL(attr_comp_ref)
-#define bdb_attr_mask_cr			BDB_SYMBOL(attr_mask_cr)
-void bdb_attr_comp_ref( struct bdb_info *bdb,
-	AttributeDescription *desc,
-	ComponentReference **cr );
-void bdb_attr_mask_cr( struct bdb_info *bdb,
-	AttributeDescription *desc,
-	slap_mask_t *indexmask,
-	ComponentReference **cr );
-#endif
+AttrInfo *bdb_attr_mask( struct bdb_info *bdb,
+	AttributeDescription *desc );
 
-void bdb_attr_mask( struct bdb_info *bdb,
-	AttributeDescription *desc,
-	slap_mask_t *indexmask );
+void bdb_attr_flush( struct bdb_info *bdb );
 
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 	const char *fname, int lineno,
@@ -57,6 +48,8 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 
 void bdb_attr_index_unparse LDAP_P(( struct bdb_info *bdb, BerVarray *bva ));
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
+void bdb_attr_index_free LDAP_P(( struct bdb_info *bdb,
+	AttributeDescription *ad ));
 
 /*
  * config.c
@@ -146,7 +139,9 @@ int bdb_fix_dn( Entry *e, int checkit );
 #if DB_VERSION_FULL < 0x04030000
 void bdb_errcall( const char *pfx, char * msg );
 #else
+#define bdb_msgcall					BDB_SYMBOL(msgcall)
 void bdb_errcall( const DB_ENV *env, const char *pfx, const char * msg );
+void bdb_msgcall( const DB_ENV *env, const char * msg );
 #endif
 
 #ifdef HAVE_EBCDIC
@@ -249,6 +244,9 @@ bdb_idl_cache_del(
 #define bdb_idl_insert				BDB_SYMBOL(idl_insert)
 #define bdb_idl_intersection		BDB_SYMBOL(idl_intersection)
 #define bdb_idl_union				BDB_SYMBOL(idl_union)
+#define bdb_idl_sort				BDB_SYMBOL(idl_sort)
+#define bdb_idl_append				BDB_SYMBOL(idl_append)
+#define bdb_idl_append_one			BDB_SYMBOL(idl_append_one)
 
 #define bdb_idl_fetch_key			BDB_SYMBOL(idl_fetch_key)
 #define bdb_idl_insert_key			BDB_SYMBOL(idl_insert_key)
@@ -294,6 +292,9 @@ bdb_idl_union(
 ID bdb_idl_first( ID *ids, ID *cursor );
 ID bdb_idl_next( ID *ids, ID *cursor );
 
+void bdb_idl_sort( ID *ids );
+int bdb_idl_append( ID *a, ID *b );
+int bdb_idl_append_one( ID *ids, ID id );
 
 
 /*

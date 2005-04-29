@@ -42,6 +42,11 @@ suffix   "cn=Nothing"
 bind     on
 .fi
 .RE
+.SH ACCESS CONTROL
+The
+.B null
+backend does not honor any of the access control semantics described in
+.BR slapd.access (5).
 .SH FILES
 .TP
 ETCDIR/slapd.conf

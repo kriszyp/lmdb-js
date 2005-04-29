@@ -45,7 +45,11 @@ static char *style_strings[] = {
 	"one",
 	"subtree",
 	"children",
+	"level",
 	"attrof",
+	"anonymous",
+	"users",
+	"self",
 	"ip",
 	"path",
 	NULL
@@ -59,7 +63,6 @@ static void		acl_regex_normalized_dn(const char *src, struct berval *pat);
 
 #ifdef LDAP_DEBUG
 static void		print_acl(Backend *be, AccessControl *a);
-static void		print_access(Access *b);
 #endif
 
 static int		check_scope( BackendDB *be, AccessControl *a );
@@ -302,7 +305,8 @@ parse_acl(
     const char	*fname,
     int		lineno,
     int		argc,
-    char	**argv )
+    char	**argv,
+	int		pos )
 {
 	int		i;
 	char		*left, *right, *style, *next;
@@ -585,14 +589,39 @@ parse_acl(
 
 			/* get <who> */
 			for ( ; i < argc; i++ ) {
-				slap_style_t sty = ACL_STYLE_REGEX;
-				char *style_modifier = NULL;
-				int expand = 0;
+				slap_style_t	sty = ACL_STYLE_REGEX;
+				char		*style_modifier = NULL;
+				char		*style_level = NULL;
+				int		level = 0;
+				int		expand = 0;
+				slap_dn_access	*bdn = &b->a_dn;
+				int		is_realdn = 0;
 
 				split( argv[i], '=', &left, &right );
 				split( left, '.', &left, &style );
 				if ( style ) {
-					split( style, ',', &style, &style_modifier);
+					split( style, ',', &style, &style_modifier );
+
+					if ( strncasecmp( style, "level", STRLENOF( "level" ) ) == 0 ) {
+						split( style, '{', &style, &style_level );
+						if ( style_level != NULL ) {
+							char *p = strchr( style_level, '}' );
+							if ( p == NULL ) {
+								fprintf( stderr,
+									"%s: line %d: premature eol: "
+									"expecting closing '}' in \"level{n}\"\n",
+									fname, lineno );
+								acl_usage();
+							} else if ( p == style_level ) {
+								fprintf( stderr,
+									"%s: line %d: empty level "
+									"in \"level{n}\"\n",
+									fname, lineno );
+								acl_usage();
+							}
+							p[0] = '\0';
+						}
+					}
 				}
 
 				if ( style == NULL || *style == '\0' ||
@@ -614,6 +643,21 @@ parse_acl(
 
 				} else if ( strcasecmp( style, "children" ) == 0 ) {
 					sty = ACL_STYLE_CHILDREN;
+
+				} else if ( strcasecmp( style, "level" ) == 0 )
+				{
+					char	*next;
+
+					level = strtol( style_level, &next, 10 );
+					if ( next[0] != '\0' ) {
+						fprintf( stderr,
+							"%s: line %d: unable to parse level "
+							"in \"level{n}\"\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					sty = ACL_STYLE_LEVEL;
 
 				} else if ( strcasecmp( style, "regex" ) == 0 ) {
 					sty = ACL_STYLE_REGEX;
@@ -679,38 +723,48 @@ parse_acl(
 						fname, lineno );
 				}
 
-				if ( strcasecmp( argv[i], "*" ) == 0 ) {
+				if ( strncasecmp( left, "real", STRLENOF( "real" ) ) == 0 ) {
+					is_realdn = 1;
+					bdn = &b->a_realdn;
+					left += STRLENOF( "real" );
+				}
+
+				if ( strcasecmp( left, "*" ) == 0 ) {
+					if ( is_realdn ) {
+						acl_usage();
+					}
+
 					ber_str2bv( "*", STRLENOF( "*" ), 1, &bv );
 					sty = ACL_STYLE_REGEX;
 
-				} else if ( strcasecmp( argv[i], "anonymous" ) == 0 ) {
+				} else if ( strcasecmp( left, "anonymous" ) == 0 ) {
 					ber_str2bv("anonymous", STRLENOF( "anonymous" ), 1, &bv);
 					sty = ACL_STYLE_ANONYMOUS;
 
-				} else if ( strcasecmp( argv[i], "users" ) == 0 ) {
+				} else if ( strcasecmp( left, "users" ) == 0 ) {
 					ber_str2bv("users", STRLENOF( "users" ), 1, &bv);
 					sty = ACL_STYLE_USERS;
 
-				} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
+				} else if ( strcasecmp( left, "self" ) == 0 ) {
 					ber_str2bv("self", STRLENOF( "self" ), 1, &bv);
 					sty = ACL_STYLE_SELF;
 
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
 					if ( sty == ACL_STYLE_REGEX ) {
-						b->a_dn_style = ACL_STYLE_REGEX;
+						bdn->a_style = ACL_STYLE_REGEX;
 						if ( right == NULL ) {
 							/* no '=' */
 							ber_str2bv("users",
 								STRLENOF( "users" ),
 								1, &bv);
-							b->a_dn_style = ACL_STYLE_USERS;
+							bdn->a_style = ACL_STYLE_USERS;
 
 						} else if (*right == '\0' ) {
 							/* dn="" */
 							ber_str2bv("anonymous",
 								STRLENOF( "anonymous" ),
 								1, &bv);
-							b->a_dn_style = ACL_STYLE_ANONYMOUS;
+							bdn->a_style = ACL_STYLE_ANONYMOUS;
 
 						} else if ( strcmp( right, "*" ) == 0 ) {
 							/* dn=* */
@@ -718,7 +772,7 @@ parse_acl(
 							ber_str2bv("users",
 								STRLENOF( "users" ),
 								1, &bv);
-							b->a_dn_style = ACL_STYLE_USERS;
+							bdn->a_style = ACL_STYLE_USERS;
 
 						} else if ( strcmp( right, ".+" ) == 0
 							|| strcmp( right, "^.+" ) == 0
@@ -730,7 +784,7 @@ parse_acl(
 							ber_str2bv("users",
 								STRLENOF( "users" ),
 								1, &bv);
-							b->a_dn_style = ACL_STYLE_USERS;
+							bdn->a_style = ACL_STYLE_USERS;
 
 						} else if ( strcmp( right, ".*" ) == 0
 							|| strcmp( right, "^.*" ) == 0
@@ -766,7 +820,7 @@ parse_acl(
 				}
 
 				if ( !BER_BVISNULL( &bv ) ) {
-					if ( !BER_BVISEMPTY( &b->a_dn_pat ) ) {
+					if ( !BER_BVISEMPTY( &bdn->a_pat ) ) {
 						fprintf( stderr,
 						    "%s: line %d: dn pattern already specified.\n",
 						    fname, lineno );
@@ -780,7 +834,7 @@ parse_acl(
 							expand == 0 )
 					{
 						rc = dnNormalize(0, NULL, NULL,
-							&bv, &b->a_dn_pat, NULL);
+							&bv, &bdn->a_pat, NULL);
 						if ( rc != LDAP_SUCCESS ) {
 							fprintf( stderr,
 								"%s: line %d: bad DN \"%s\" in by DN clause\n",
@@ -790,10 +844,34 @@ parse_acl(
 						free( bv.bv_val );
 
 					} else {
-						b->a_dn_pat = bv;
+						bdn->a_pat = bv;
 					}
-					b->a_dn_style = sty;
-					b->a_dn_expand = expand;
+					bdn->a_style = sty;
+					bdn->a_expand = expand;
+					if ( sty == ACL_STYLE_SELF ) {
+						bdn->a_self_level = level;
+
+					} else {
+						if ( level < 0 ) {
+							fprintf( stderr,
+								"%s: line %d: bad negative level \"%d\" "
+								"in by DN clause\n",
+								fname, lineno, level );
+							acl_usage();
+						} else if ( level == 1 ) {
+							fprintf( stderr,
+								"%s: line %d: \"onelevel\" should be used "
+								"instead of \"level{1}\" in by DN clause\n",
+								fname, lineno, 0 );
+						} else if ( level == 0 && sty == ACL_STYLE_LEVEL ) {
+							fprintf( stderr,
+								"%s: line %d: \"base\" should be used "
+								"instead of \"level{0}\" in by DN clause\n",
+								fname, lineno, 0 );
+						}
+
+						bdn->a_level = level;
+					}
 					continue;
 				}
 
@@ -806,14 +884,14 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( b->a_dn_at != NULL ) {
+					if( bdn->a_at != NULL ) {
 						fprintf( stderr,
 							"%s: line %d: dnattr already specified.\n",
 							fname, lineno );
 						acl_usage();
 					}
 
-					rc = slap_str2ad( right, &b->a_dn_at, &text );
+					rc = slap_str2ad( right, &bdn->a_at, &text );
 
 					if( rc != LDAP_SUCCESS ) {
 						fprintf( stderr,
@@ -823,20 +901,20 @@ parse_acl(
 					}
 
 
-					if( !is_at_syntax( b->a_dn_at->ad_type,
+					if( !is_at_syntax( bdn->a_at->ad_type,
 						SLAPD_DN_SYNTAX ) &&
-						!is_at_syntax( b->a_dn_at->ad_type,
+						!is_at_syntax( bdn->a_at->ad_type,
 						SLAPD_NAMEUID_SYNTAX ))
 					{
 						fprintf( stderr,
 							"%s: line %d: dnattr \"%s\": "
 							"inappropriate syntax: %s\n",
 							fname, lineno, right,
-							b->a_dn_at->ad_type->sat_syntax_oid );
+							bdn->a_at->ad_type->sat_syntax_oid );
 						acl_usage();
 					}
 
-					if( b->a_dn_at->ad_type->sat_equality == NULL ) {
+					if( bdn->a_at->ad_type->sat_equality == NULL ) {
 						fprintf( stderr,
 							"%s: line %d: dnattr \"%s\": "
 							"inappropriate matching (no EQUALITY)\n",
@@ -1584,9 +1662,13 @@ parse_acl(
 			}
 
 			/* get <access> */
-			if ( strncasecmp( left, "self", 4 ) == 0 ) {
+			if ( strncasecmp( left, "self", STRLENOF( "self" ) ) == 0 ) {
 				b->a_dn_self = 1;
-				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( &left[4] ) );
+				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( &left[ STRLENOF( "self" ) ] ) );
+
+			} else if ( strncasecmp( left, "realself", STRLENOF( "realself" ) ) == 0 ) {
+				b->a_realdn_self = 1;
+				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( &left[ STRLENOF( "realself" ) ] ) );
 
 			} else {
 				ACL_PRIV_ASSIGN( b->a_access_mask, str2accessmask( left ) );
@@ -1690,10 +1772,10 @@ parse_acl(
 			default:
 				break;
 			}
-			acl_append( &be->be_acl, a );
+			acl_append( &be->be_acl, a, pos );
 
 		} else {
-			acl_append( &frontendDB->be_acl, a );
+			acl_append( &frontendDB->be_acl, a, pos );
 		}
 	}
 }
@@ -1734,6 +1816,12 @@ accessmask2str( slap_mask_t mask, char *buf, int debug )
 		} else if ( ACL_LVL_IS_WRITE(mask) ) {
 			ptr = lutil_strcopy( ptr, "write" );
 
+		} else if ( ACL_LVL_IS_WADD(mask) ) {
+			ptr = lutil_strcopy( ptr, "add" );
+
+		} else if ( ACL_LVL_IS_WDEL(mask) ) {
+			ptr = lutil_strcopy( ptr, "delete" );
+
 		} else if ( ACL_LVL_IS_MANAGE(mask) ) {
 			ptr = lutil_strcopy( ptr, "manage" );
 
@@ -1766,6 +1854,14 @@ accessmask2str( slap_mask_t mask, char *buf, int debug )
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WRITE) ) {
 		none = 0;
 		*ptr++ = 'w';
+
+	} else if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WADD) ) {
+		none = 0;
+		*ptr++ = 'a';
+
+	} else if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WDEL) ) {
+		none = 0;
+		*ptr++ = 'z';
 	} 
 
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_READ) ) {
@@ -1795,7 +1891,7 @@ accessmask2str( slap_mask_t mask, char *buf, int debug )
 
 	if ( none && ACL_PRIV_ISSET(mask, ACL_PRIV_NONE) ) {
 		none = 0;
-		*ptr++ = 'n';
+		*ptr++ = '0';
 	} 
 
 	if ( none ) {
@@ -1840,6 +1936,12 @@ str2accessmask( const char *str )
 			} else if( TOLOWER((unsigned char) str[i]) == 'w' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
 
+			} else if( TOLOWER((unsigned char) str[i]) == 'a' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_WADD);
+
+			} else if( TOLOWER((unsigned char) str[i]) == 'z' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_WDEL);
+
 			} else if( TOLOWER((unsigned char) str[i]) == 'r' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_READ);
 
@@ -1882,6 +1984,12 @@ str2accessmask( const char *str )
 	} else if ( strcasecmp( str, "read" ) == 0 ) {
 		ACL_LVL_ASSIGN_READ(mask);
 
+	} else if ( strcasecmp( str, "add" ) == 0 ) {
+		ACL_LVL_ASSIGN_WADD(mask);
+
+	} else if ( strcasecmp( str, "delete" ) == 0 ) {
+		ACL_LVL_ASSIGN_WDEL(mask);
+
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
 		ACL_LVL_ASSIGN_WRITE(mask);
 
@@ -1905,13 +2013,18 @@ acl_usage( void )
 		"<attrlist> ::= <attr> [val[.<attrstyle>]=<value>] | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n",
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
+			"\t[ realanonymous | realusers | realself | realdn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
+			"\t[realdnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
 			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n"
 			"\t[domain[.<domainstyle>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAPD_ACI_ENABLED
-			"\t[aci=<attrname>]\n"
+			"\t[aci=[<attrname>]]\n"
 #endif
+#ifdef SLAP_DYNACL
+			"\t[dynacl/<name>[.<dynstyle>][=<pattern>]]\n"
+#endif /* SLAP_DYNACL */
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n",
 		"<style> ::= exact | regex | base(Object)\n"
 		"<dnstyle> ::= base(Object) | one(level) | sub(tree) | children | "
@@ -1920,9 +2033,9 @@ acl_usage( void )
 			"sub(tree) | children\n"
 		"<peernamestyle> ::= exact | regex | ip | path\n"
 		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
-		"<access> ::= [self]{<level>|<priv>}\n"
-		"<level> ::= none|disclose|auth|compare|search|read|write|manage\n"
-		"<priv> ::= {=|+|-}{0|d|x|c|s|r|w|m}+\n"
+		"<access> ::= [[real]self]{<level>|<priv>}\n"
+		"<level> ::= none|disclose|auth|compare|search|read|{write|add|delete}|manage\n"
+		"<priv> ::= {=|+|-}{0|d|x|c|s|r|{w|a|z}|m}+\n"
 		"<control> ::= [ stop | continue | break ]\n"
 	);
 	exit( EXIT_FAILURE );
@@ -1999,12 +2112,15 @@ access_append( Access **l, Access *a )
 }
 
 void
-acl_append( AccessControl **l, AccessControl *a )
+acl_append( AccessControl **l, AccessControl *a, int pos )
 {
-	for ( ; *l != NULL; l = &(*l)->acl_next ) {
+	int i;
+
+	for (i=0 ; i != pos && *l != NULL; l = &(*l)->acl_next, i++ ) {
 		;	/* Empty */
 	}
-
+	if ( *l && a )
+		a->acl_next = *l;
 	*l = a;
 }
 
@@ -2013,6 +2129,9 @@ access_free( Access *a )
 {
 	if ( !BER_BVISNULL( &a->a_dn_pat ) ) {
 		free( a->a_dn_pat.bv_val );
+	}
+	if ( !BER_BVISNULL( &a->a_realdn_pat ) ) {
+		free( a->a_realdn_pat.bv_val );
 	}
 	if ( !BER_BVISNULL( &a->a_peername_pat ) ) {
 		free( a->a_peername_pat.bv_val );
@@ -2102,6 +2221,12 @@ access2str( slap_access_t access )
 	} else if ( access == ACL_WRITE ) {
 		return "write";
 
+	} else if ( access == ACL_WADD ) {
+		return "add";
+
+	} else if ( access == ACL_WDEL ) {
+		return "delete";
+
 	} else if ( access == ACL_MANAGE ) {
 		return "manage";
 
@@ -2117,6 +2242,10 @@ str2access( const char *str )
 		return ACL_NONE;
 
 	} else if ( strcasecmp( str, "disclose" ) == 0 ) {
+#ifndef SLAP_ACL_HONOR_DISCLOSE
+		fprintf( stderr, "str2access: warning, "
+			"\"disclose\" privilege disabled.\n" );
+#endif /* SLAP_ACL_HONOR_DISCLOSE */
 		return ACL_DISCLOSE;
 
 	} else if ( strcasecmp( str, "auth" ) == 0 ) {
@@ -2134,6 +2263,12 @@ str2access( const char *str )
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
 		return ACL_WRITE;
 
+	} else if ( strcasecmp( str, "add" ) == 0 ) {
+		return ACL_WADD;
+
+	} else if ( strcasecmp( str, "delete" ) == 0 ) {
+		return ACL_WDEL;
+
 	} else if ( strcasecmp( str, "manage" ) == 0 ) {
 		return ACL_MANAGE;
 	}
@@ -2146,6 +2281,52 @@ str2access( const char *str )
 static char aclbuf[ACLBUF_MAXLEN];
 
 static char *
+dnaccess2text( slap_dn_access *bdn, char *ptr, int is_realdn )
+{
+	*ptr++ = ' ';
+
+	if ( is_realdn ) {
+		ptr = lutil_strcopy( ptr, "real" );
+	}
+
+	if ( ber_bvccmp( &bdn->a_pat, '*' ) ||
+		bdn->a_style == ACL_STYLE_ANONYMOUS ||
+		bdn->a_style == ACL_STYLE_USERS ||
+		bdn->a_style == ACL_STYLE_SELF )
+	{
+		if ( is_realdn ) {
+			assert( ! ber_bvccmp( &bdn->a_pat, '*' ) );
+		}
+			
+		ptr = lutil_strcopy( ptr, bdn->a_pat.bv_val );
+		if ( bdn->a_style == ACL_STYLE_SELF && bdn->a_self_level != 0 ) {
+			int n = sprintf( ptr, ".level{%d}", bdn->a_self_level );
+			if ( n > 0 ) {
+				ptr += n;
+			} /* else ? */
+		}
+
+	} else {
+		ptr = lutil_strcopy( ptr, "dn." );
+		ptr = lutil_strcopy( ptr, style_strings[bdn->a_style] );
+		if ( bdn->a_style == ACL_STYLE_LEVEL ) {
+			int n = sprintf( ptr, "{%d}", bdn->a_level );
+			if ( n > 0 ) {
+				ptr += n;
+			} /* else ? */
+		}
+		if ( bdn->a_expand ) {
+			ptr = lutil_strcopy( ptr, ",expand" );
+		}
+		*ptr++ = '=';
+		*ptr++ = '"';
+		ptr = lutil_strcopy( ptr, bdn->a_pat.bv_val );
+		*ptr++ = '"';
+	}
+	return ptr;
+}
+
+static char *
 access2text( Access *b, char *ptr )
 {
 	char maskbuf[ACCESSMASK_MAXLEN];
@@ -2153,27 +2334,19 @@ access2text( Access *b, char *ptr )
 	ptr = lutil_strcopy( ptr, "\tby" );
 
 	if ( !BER_BVISEMPTY( &b->a_dn_pat ) ) {
-		*ptr++ = ' ';
-		if ( ber_bvccmp( &b->a_dn_pat, '*' ) ||
-			b->a_dn_style == ACL_STYLE_ANONYMOUS ||
-			b->a_dn_style == ACL_STYLE_USERS ||
-			b->a_dn_style == ACL_STYLE_SELF )
-		{
-			ptr = lutil_strcopy( ptr, b->a_dn_pat.bv_val );
-
-		} else {
-			ptr = lutil_strcopy( ptr, "dn." );
-			ptr = lutil_strcopy( ptr, style_strings[b->a_dn_style] );
-			*ptr++ = '=';
-			*ptr++ = '"';
-			ptr = lutil_strcopy( ptr, b->a_dn_pat.bv_val );
-			*ptr++ = '"';
-		}
+		ptr = dnaccess2text( &b->a_dn, ptr, 0 );
 	}
-
-	if ( b->a_dn_at != NULL ) {
+	if ( b->a_dn_at ) {
 		ptr = lutil_strcopy( ptr, " dnattr=" );
 		ptr = lutil_strcopy( ptr, b->a_dn_at->ad_cname.bv_val );
+	}
+
+	if ( !BER_BVISEMPTY( &b->a_realdn_pat ) ) {
+		ptr = dnaccess2text( &b->a_realdn, ptr, 1 );
+	}
+	if ( b->a_realdn_at ) {
+		ptr = lutil_strcopy( ptr, " realdnattr=" );
+		ptr = lutil_strcopy( ptr, b->a_realdn_at->ad_cname.bv_val );
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_group_pat ) ) {
@@ -2261,7 +2434,11 @@ access2text( Access *b, char *ptr )
 	}
 
 	*ptr++ = ' ';
-	if ( b->a_dn_self ) ptr = lutil_strcopy( ptr, "self" );
+	if ( b->a_dn_self ) {
+		ptr = lutil_strcopy( ptr, "self" );
+	} else if ( b->a_realdn_self ) {
+		ptr = lutil_strcopy( ptr, "realself" );
+	}
 	ptr = lutil_strcopy( ptr, accessmask2str( b->a_access_mask, maskbuf, 0 ));
 	if ( !maskbuf[0] ) ptr--;
 
@@ -2284,10 +2461,9 @@ access2text( Access *b, char *ptr )
 void
 acl_unparse( AccessControl *a, struct berval *bv )
 {
-	Access *b;
-	char *ptr;
-	int		to = 0;
-	struct berval abv;
+	Access	*b;
+	char	*ptr;
+	int	to = 0;
 
 	bv->bv_val = aclbuf;
 	bv->bv_len = 0;
@@ -2364,8 +2540,6 @@ acl_unparse( AccessControl *a, struct berval *bv )
 static void
 print_acl( Backend *be, AccessControl *a )
 {
-	int		to = 0;
-	Access	*b;
 	struct berval bv;
 
 	acl_unparse( a, &bv );

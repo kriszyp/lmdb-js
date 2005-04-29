@@ -40,7 +40,6 @@
 
 typedef struct gluenode {
 	BackendDB *gn_be;
-	int	gn_bx;
 	struct berval gn_pdn;
 	int gn_async;
 } gluenode;
@@ -481,7 +480,7 @@ glue_open (
 	slap_overinst *on = glue_tool_inst( bi );
 	glueinfo		*gi = on->on_bi.bi_private;
 	static int glueOpened = 0;
-	int i, rc = 0;
+	int i, j, same, bsame = 0, rc = 0;
 
 	if (glueOpened) return 0;
 
@@ -489,7 +488,34 @@ glue_open (
 
 	/* If we were invoked in tool mode, open all the underlying backends */
 	if (slapMode & SLAP_TOOL_MODE) {
-		rc = backend_startup( NULL );
+		for (i = 0; i<gi->gi_nodes; i++) {
+			same = 0;
+			/* Same type as our main backend? */
+			if ( gi->gi_n[i].gn_be->bd_info == on->on_info->oi_orig )
+				bsame = 1;
+
+			/* Loop thru the bd_info's and make sure we only
+			 * invoke their bi_open functions once each.
+			 */
+			for ( j = 0; j<i; j++ ) {
+				if ( gi->gi_n[i].gn_be->bd_info ==
+					gi->gi_n[j].gn_be->bd_info ) {
+					same = 1;
+					break;
+				}
+			}
+			/* OK, it's unique and non-NULL, call it. */
+			if ( !same && gi->gi_n[i].gn_be->bd_info->bi_open )
+				rc = gi->gi_n[i].gn_be->bd_info->bi_open(
+					gi->gi_n[i].gn_be->bd_info );
+			/* Let backend.c take care of the rest of startup */
+			if ( !rc )
+				rc = backend_startup_one( gi->gi_n[i].gn_be );
+			if ( rc ) break;
+		}
+		if ( !rc && !bsame && on->on_info->oi_orig->bi_open )
+			rc = on->on_info->oi_orig->bi_open( on->on_info->oi_orig );
+
 	} /* other case is impossible */
 	return rc;
 }
@@ -731,23 +757,6 @@ glue_db_destroy (
 }
 
 static int
-glue_db_open (
-	BackendDB *be
-)
-{
-	slap_overinst	*on = (slap_overinst *)be->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
-	int i;
-
-	for ( i=0; i<gi->gi_nodes; i++ ) {
-		int j;
-
-		gi->gi_n[i].gn_be = backendDB + gi->gi_n[i].gn_bx;
-	}
-	return 0;
-}
-
-static int
 glue_db_close( 
 	BackendDB *be
 )
@@ -813,7 +822,7 @@ glue_db_config(
 		}
 		gi = (glueinfo *)ch_realloc( gi, sizeof(glueinfo) +
 			gi->gi_nodes * sizeof(gluenode));
-		gi->gi_n[gi->gi_nodes].gn_bx = b2 - backendDB;
+		gi->gi_n[gi->gi_nodes].gn_be = b2;
 		dnParent( &b2->be_nsuffix[0], &gi->gi_n[gi->gi_nodes].gn_pdn );
 		gi->gi_n[gi->gi_nodes].gn_async = async;
 		gi->gi_nodes++;
@@ -830,7 +839,6 @@ glue_init()
 
 	glue.on_bi.bi_db_init = glue_db_init;
 	glue.on_bi.bi_db_config = glue_db_config;
-	glue.on_bi.bi_db_open = glue_db_open;
 	glue.on_bi.bi_db_close = glue_db_close;
 	glue.on_bi.bi_db_destroy = glue_db_destroy;
 

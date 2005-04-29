@@ -35,14 +35,15 @@
 int
 meta_back_add( Operation *op, SlapReply *rs )
 {
-	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn	*lc;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t	*mc;
 	int		i, candidate = -1;
 	int		isupdate;
 	Attribute	*a;
 	LDAPMod		**attrs;
 	struct berval	mdn = BER_BVNULL, mapped;
 	dncookie	dc;
+	int		msgid, do_retry = 1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
@@ -50,22 +51,17 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * get the current connection
 	 */
-	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
-			&op->o_req_ndn, &candidate, LDAP_BACK_SENDERR );
-	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
+	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
-	if ( !meta_back_is_valid( lc, candidate ) ) {
-		rs->sr_err = LDAP_UNAVAILABLE;
- 		send_ldap_result( op, rs );
-		return rs->sr_err;
-	}
+	assert( mc->mc_conns[ candidate ].msc_ld != NULL );
 
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
+	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDN";
@@ -75,7 +71,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 		return rs->sr_err;
 	}
 
-	/* Count number of attributes in entry */
+	/* Count number of attributes in entry ( +1 ) */
 	for ( i = 1, a = op->ora_e->e_attrs; a; i++, a = a->a_next );
 	
 	/* Create array of LDAPMods for ldap_add() */
@@ -97,7 +93,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			mapped = a->a_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
 					&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
 				continue;
@@ -122,11 +118,11 @@ meta_back_add( Operation *op, SlapReply *rs )
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
 				struct ldapmapping	*mapping;
 
-				ldap_back_mapping( &li->targets[ candidate ]->mt_rwmap.rwm_oc,
+				ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
 						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
 
 				if ( mapping == NULL ) {
-					if ( li->targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
+					if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
 						continue;
 					}
 					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];
@@ -166,8 +162,21 @@ meta_back_add( Operation *op, SlapReply *rs )
 	}
 	attrs[ i ] = NULL;
 
-	rs->sr_err = ldap_add_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+retry:;
+#if 0
+	rs->sr_err = ldap_add_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			      attrs, op->o_ctrls, NULL, &msgid );
+	rs->sr_err = meta_back_op_result( op, rs, &mc->mc_conns[ candidate ], msgid, LDAP_BACK_SENDERR );
+#endif
+	rs->sr_err = ldap_add_ext_s( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
 			      attrs, op->o_ctrls, NULL );
+	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
+		do_retry = 0;
+		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
+			goto retry;
+		}
+	}
+
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ]->mod_bvalues );
 		free( attrs[ i ] );
@@ -178,6 +187,6 @@ meta_back_add( Operation *op, SlapReply *rs )
 		BER_BVZERO( &mdn );
 	}
 
-	return meta_back_op_result( lc, op, rs );
+	return meta_back_op_result( mc, op, rs, candidate );
 }
 

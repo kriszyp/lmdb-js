@@ -37,6 +37,14 @@ static void	bdb_lru_print(Cache *cache);
 
 static int bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset );
 
+/* 4.2.52 */
+#if DB_VERSION_FULL == 0x04020034
+#define	READ_TXN_FLAG	ReadFlag
+static int ReadFlag = DB_TXN_NOT_DURABLE;
+#else
+#define READ_TXN_FLAG	0
+#endif
+
 static EntryInfo *
 bdb_cache_entryinfo_new( Cache *cache )
 {
@@ -308,6 +316,11 @@ bdb_cache_find_ndn(
 		if ( !ei2 ) {
 			int len = ei.bei_nrdn.bv_len;
 				
+			if ( BER_BVISEMPTY( ndn )) {
+				*res = eip;
+				return LDAP_SUCCESS;
+			}
+
 			ei.bei_nrdn.bv_len = ndn->bv_len -
 				(ei.bei_nrdn.bv_val - ndn->bv_val);
 			bdb_cache_entryinfo_unlock( eip );
@@ -1194,8 +1207,12 @@ bdb_cache_release_all( Cache *cache )
 		cache->c_lruhead = cache->c_eifree->bei_lrunext;
 		bdb_cache_entryinfo_destroy(cache->c_eifree);
 	}
+	cache->c_cursize = 0;
+	cache->c_eiused = 0;
+	cache->c_idtree = NULL;
 	cache->c_lruhead = NULL;
 	cache->c_lrutail = NULL;
+	cache->c_dntree.bei_kids = NULL;
 
 	/* free lru mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
@@ -1237,6 +1254,11 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 	int i, rc;
 	void *ctx, *data = NULL;
 
+	if ( slapMode & SLAP_TOOL_MODE ) {
+		*txn = NULL;
+		return 0;
+	}
+
 	/* If no op was provided, try to find the ctx anyway... */
 	if ( op ) {
 		ctx = op->o_threadctx;
@@ -1258,7 +1280,17 @@ bdb_txn_get( Operation *op, DB_ENV *env, DB_TXN **txn, int reset )
 	if ( ldap_pvt_thread_pool_getkey( ctx, ((char *)env)+1, &data, NULL ) ||
 		data == NULL ) {
 		for ( i=0, rc=1; rc != 0 && i<4; i++ ) {
-			rc = TXN_BEGIN( env, NULL, txn, 0 );
+			rc = TXN_BEGIN( env, NULL, txn, READ_TXN_FLAG );
+#if DB_VERSION_FULL == 0x04020034
+			if ( rc == EINVAL && READ_TXN_FLAG ) {
+				READ_TXN_FLAG = 0;
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_txn_get: BerkeleyDB 4.2.52 library needs TXN patch!\n",
+					0, 0, 0 );
+				i--;
+				continue;
+			}
+#endif
 			if (rc) ldap_pvt_thread_yield();
 		}
 		if ( rc != 0) {

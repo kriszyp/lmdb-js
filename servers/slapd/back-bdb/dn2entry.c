@@ -68,10 +68,12 @@ bdb_dn2entry(
 			*e = ei;
 		} else if ( matched && rc == DB_NOTFOUND ) {
 			/* always return EntryInfo */
-			ei = ei->bei_parent;
-			rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 1,
-				locker, lock );
-			if ( rc2 ) rc = rc2;
+			if ( ei->bei_parent ) {
+				ei = ei->bei_parent;
+				rc2 = bdb_cache_find_id( op, tid, ei->bei_id, &ei, 1,
+					locker, lock );
+				if ( rc2 ) rc = rc2;
+			}
 			*e = ei;
 		}
 	}

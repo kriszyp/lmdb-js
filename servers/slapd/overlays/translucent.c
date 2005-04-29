@@ -1,5 +1,22 @@
-/* Copyright 2004, Symas Corporation.
- * All Rights Reserved.
+/* translucent.c - translucent proxy module */
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2004-2005 The OpenLDAP Foundation.
+ * Portions Copyright 2005 Symas Corporation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Symas Corp. for inclusion in
+ * OpenLDAP Software.  This work was sponsored by Hewlett-Packard.
  */
 
 #include "portable.h"

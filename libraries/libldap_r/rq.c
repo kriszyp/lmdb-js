@@ -33,24 +33,47 @@
 #include "ldap_queue.h"
 #include "ldap_rq.h"
 
-void
+struct re_s *
 ldap_pvt_runqueue_insert(
 	struct runqueue_s* rq,
 	time_t interval,
 	ldap_pvt_thread_start_t *routine,
-	void *arg
+	void *arg,
+	char *tname,
+	char *tspec
 )
 {
 	struct re_s* entry;
 
 	entry = (struct re_s *) LDAP_CALLOC( 1, sizeof( struct re_s ));
-	entry->interval.tv_sec = interval;
-	entry->interval.tv_usec = 0;
-	entry->next_sched.tv_sec = time( NULL );
-	entry->next_sched.tv_usec = 0;
-	entry->routine = routine;
-	entry->arg = arg;
-	LDAP_STAILQ_INSERT_TAIL( &rq->task_list, entry, tnext );
+	if ( entry ) {
+		entry->interval.tv_sec = interval;
+		entry->interval.tv_usec = 0;
+		entry->next_sched.tv_sec = time( NULL );
+		entry->next_sched.tv_usec = 0;
+		entry->routine = routine;
+		entry->arg = arg;
+		entry->tname = tname;
+		entry->tspec = tspec;
+		LDAP_STAILQ_INSERT_HEAD( &rq->task_list, entry, tnext );
+	}
+	return entry;
+}
+
+struct re_s *
+ldap_pvt_runqueue_find(
+	struct runqueue_s *rq,
+	ldap_pvt_thread_start_t *routine,
+	void *arg
+)
+{
+	struct re_s* e;
+
+	LDAP_STAILQ_FOREACH( e, &rq->task_list, tnext ) {
+		if ( e->routine == routine && e->arg == arg )
+			return e;
+	}
+	return NULL;
 }
 
 void

@@ -53,18 +53,20 @@ slap_operational_entryDN( Entry *e )
 {
 	Attribute	*a;
 
+	assert( e );
+	assert( !BER_BVISNULL( &e->e_name ) );
+	assert( !BER_BVISNULL( &e->e_nname ) );
+
 	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = slap_schema.si_ad_entryDN;
 
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval ) );
-	ber_dupbv( a->a_vals, &e->e_name );
-	a->a_vals[1].bv_len = 0;
-	a->a_vals[1].bv_val = NULL;
+	ber_dupbv( &a->a_vals[ 0 ], &e->e_name );
+	BER_BVZERO( &a->a_vals[ 1 ] );
 
 	a->a_nvals = ch_malloc( 2 * sizeof( struct berval ) );
-	ber_dupbv( a->a_nvals, &e->e_nname );
-	a->a_nvals[1].bv_len = 0;
-	a->a_nvals[1].bv_val = NULL;
+	ber_dupbv( &a->a_nvals[ 0 ], &e->e_nname );
+	BER_BVZERO( &a->a_nvals[ 1 ] );
 
 	a->a_next = NULL;
 	a->a_flags = 0;

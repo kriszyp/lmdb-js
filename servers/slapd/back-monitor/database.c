@@ -81,7 +81,7 @@ init_readOnly( monitor_info_t *mi, Entry *e, slap_mask_t restrictops )
 	struct berval	*tf = ( ( restrictops & SLAP_RESTRICT_OP_MASK ) == SLAP_RESTRICT_OP_WRITES ) ?
 		(struct berval *)&slap_true_bv : (struct berval *)&slap_false_bv;
 
-	return attr_merge_one( e, mi->mi_ad_readOnly, tf, NULL );
+	return attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
 }
 
 static int
@@ -92,7 +92,8 @@ init_restrictedOperation( monitor_info_t *mi, Entry *e, slap_mask_t restrictops 
 	for ( i = 0; restricted_ops[ i ].op.bv_val; i++ ) {
 		if ( restrictops & restricted_ops[ i ].tag ) {
 			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
-					&restricted_ops[ i ].op, NULL );
+					&restricted_ops[ i ].op,
+					&restricted_ops[ i ].op );
 			if ( rc ) {
 				return rc;
 			}
@@ -102,7 +103,8 @@ init_restrictedOperation( monitor_info_t *mi, Entry *e, slap_mask_t restrictops 
 	for ( i = 0; restricted_exops[ i ].op.bv_val; i++ ) {
 		if ( restrictops & restricted_exops[ i ].tag ) {
 			rc = attr_merge_one( e, mi->mi_ad_restrictedOperation,
-					&restricted_exops[ i ].op, NULL );
+					&restricted_exops[ i ].op,
+					&restricted_exops[ i ].op );
 			if ( rc ) {
 				return rc;
 			}
@@ -166,14 +168,15 @@ monitor_subsys_database_init(
 	mp->mp_children = NULL;
 	ep = &mp->mp_children;
 
-	for ( i = 0; i < nBackendDB; i++ ) {
+	i = -1;
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		char		buf[ BACKMONITOR_BUFSIZE ];
 		int		j;
 		slap_overinfo	*oi = NULL;
-		BackendInfo	*bi;
+		BackendInfo	*bi, *bi2;
 		Entry		*e;
 
-		be = &backendDB[ i ];
+		i++;
 
 		bi = be->bd_info;
 
@@ -192,7 +195,6 @@ monitor_subsys_database_init(
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
 				"cn: Database %d\n"
-				"description: This object contains the type of the database.\n"
 				"%s: %s\n"
 				"creatorsName: %s\n"
 				"modifiersName: %s\n"
@@ -226,6 +228,13 @@ monitor_subsys_database_init(
 					be->be_suffix, be->be_nsuffix );
 
 		} else {
+			if ( be->be_suffix == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"monitor_subsys_database_init: "
+					"missing suffix for database %d\n",
+					i, 0, 0 );
+				return -1;
+			}
 			attr_merge( e, slap_schema.si_ad_namingContexts,
 					be->be_suffix, be->be_nsuffix );
 			attr_merge( e_database, slap_schema.si_ad_namingContexts,
@@ -253,8 +262,7 @@ monitor_subsys_database_init(
 					break;
 				}
 				
-				bv.bv_val = on->on_bi.bi_type;
-				bv.bv_len = strlen( bv.bv_val );
+				ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
 				attr_merge_normalize_one( e, mi->mi_ad_monitorOverlay,
 						&bv, NULL );
 
@@ -269,9 +277,9 @@ monitor_subsys_database_init(
 				snprintf( buf, sizeof( buf ), 
 					"cn=Overlay %d,%s", 
 					j, ms_overlay->mss_dn.bv_val );
-				bv.bv_val = buf;
-				bv.bv_len = strlen( buf );
-				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
+				ber_str2bv( buf, 0, 0, &bv );
+				attr_merge_normalize_one( e,
+						slap_schema.si_ad_seeAlso,
 						&bv, NULL );
 			}
 		}
@@ -356,8 +364,10 @@ monitor_subsys_database_init(
 		}
 #endif /* defined(SLAPD_LDAP) */
 
-		for ( j = 0; j < nBackendInfo; j++ ) {
-			if ( backendInfo[ j ].bi_type == bi->bi_type ) {
+		j = -1;
+		LDAP_STAILQ_FOREACH( bi2, &backendInfo, bi_next ) {
+			j++;
+			if ( bi2->bi_type == bi->bi_type ) {
 				struct berval 		bv;
 
 				snprintf( buf, sizeof( buf ), 
@@ -365,7 +375,8 @@ monitor_subsys_database_init(
 					j, ms_backend->mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
-				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
+				attr_merge_normalize_one( e,
+						slap_schema.si_ad_seeAlso,
 						&bv, NULL );
 				break;
 			}
@@ -417,7 +428,6 @@ monitor_subsys_database_init(
 						"objectClass: %s\n"
 						"structuralObjectClass: %s\n"
 						"cn: Overlay %d\n"
-						"description: This object contains the type of the overlay.\n"
 						"%s: %s\n"
 						"seeAlso: cn=Overlay %d,%s\n"
 						"creatorsName: %s\n"
@@ -530,13 +540,13 @@ value_mask( BerVarray v, slap_mask_t cur, slap_mask_t *delta )
 int
 monitor_subsys_database_modify(
 	Operation	*op,
+	SlapReply	*rs,
 	Entry		*e
 )
 {
 	monitor_info_t	*mi = (monitor_info_t *)op->o_bd->be_private;
 	int		rc = LDAP_OTHER;
 	Attribute	*save_attrs, *a;
-	Modifications	*modlist = op->oq_modify.rs_modlist;
 	Modifications	*ml;
 	Backend		*be;
 	int		ro_gotval = 1, i, n;
@@ -544,23 +554,33 @@ monitor_subsys_database_modify(
 	struct berval	*tf;
 	
 	i = sscanf( e->e_nname.bv_val, "cn=database %d,", &n );
-	if ( i != 1 )
-		return LDAP_UNWILLING_TO_PERFORM;
+	if ( i != 1 ) {
+		return SLAP_CB_CONTINUE;
+	}
 
-	if ( n < 0 || n >= nBackendDB )
-		return LDAP_NO_SUCH_OBJECT;
+	if ( n < 0 || n >= nBackendDB ) {
+		rs->sr_text = "invalid database index";
+		return ( rs->sr_err = LDAP_NO_SUCH_OBJECT );
+	}
 
+	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+		if ( n == 0 ) {
+			break;
+		}
+		n--;
+	}
 	/* do not allow some changes on back-monitor (needs work)... */
-	be = &backendDB[ n ];
-	if ( SLAP_MONITOR( be ) )
-		return LDAP_UNWILLING_TO_PERFORM;
+	if ( SLAP_MONITOR( be ) ) {
+		rs->sr_text = "no modifications allowed to monitor database entry";
+		return ( rs->sr_err = LDAP_UNWILLING_TO_PERFORM );
+	}
 		
 	rp_cur = be->be_restrictops;
 
 	save_attrs = e->e_attrs;
 	e->e_attrs = attrs_dup( e->e_attrs );
 
-	for ( ml=modlist; ml; ml=ml->sml_next ) {
+	for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		Modification *mod = &ml->sml_mod;
 
 		if ( mod->sm_desc == mi->mi_ad_readOnly ) {
@@ -568,7 +588,8 @@ monitor_subsys_database_modify(
 
 			if ( mod->sm_values ) {
 				if ( !BER_BVISNULL( &mod->sm_values[ 1 ] ) ) {
-					rc = LDAP_CONSTRAINT_VIOLATION;
+					rs->sr_text = "attempting to modify multiple values of single-valued attribute";
+					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					goto done;
 				}
 
@@ -579,7 +600,8 @@ monitor_subsys_database_modify(
 					val = 0;
 
 				} else {
-					rc = LDAP_INVALID_SYNTAX;
+					assert( 0 );
+					rc = rs->sr_err = LDAP_INVALID_SYNTAX;
 					goto done;
 				}
 			}
@@ -587,18 +609,18 @@ monitor_subsys_database_modify(
 			switch ( mod->sm_op ) {
 			case LDAP_MOD_DELETE:
 				if ( ro_gotval < 1 ) {
-					rc = LDAP_CONSTRAINT_VIOLATION;
+					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					goto done;
 				}
 				ro_gotval--;
 
 				if ( val == 0 && ( rp_cur & SLAP_RESTRICT_OP_WRITES ) == SLAP_RESTRICT_OP_WRITES ) {
-					rc = LDAP_NO_SUCH_ATTRIBUTE;
+					rc = rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 					goto done;
 				}
 				
 				if ( val == 1 && ( rp_cur & SLAP_RESTRICT_OP_WRITES ) != SLAP_RESTRICT_OP_WRITES ) {
-					rc = LDAP_NO_SUCH_ATTRIBUTE;
+					rc = rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 					goto done;
 				}
 				
@@ -610,7 +632,7 @@ monitor_subsys_database_modify(
 
 			case LDAP_MOD_ADD:
 				if ( ro_gotval > 0 ) {
-					rc = LDAP_CONSTRAINT_VIOLATION;
+					rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 					goto done;
 				}
 				ro_gotval++;
@@ -628,7 +650,7 @@ monitor_subsys_database_modify(
 				break;
 
 			default:
-				rc = LDAP_OTHER;
+				rc = rs->sr_err = LDAP_OTHER;
 				goto done;
 			}
 
@@ -668,12 +690,12 @@ monitor_subsys_database_modify(
 					rp_delete &= ~mask;
 
 				} else if ( rc == LDAP_OTHER ) {
-					rc = LDAP_TYPE_OR_VALUE_EXISTS;
+					rc = rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
 				}
 				break;
 
 			default:
-				rc = LDAP_OTHER;
+				rc = rs->sr_err = LDAP_OTHER;
 				break;
 			}
 
@@ -687,29 +709,29 @@ monitor_subsys_database_modify(
 			rc = attr_merge( e, mod->sm_desc, mod->sm_values,
 				mod->sm_nvalues );
 			if ( rc ) {
-				rc = LDAP_OTHER;
+				rc = rs->sr_err = LDAP_OTHER;
 				break;
 			}
 
 		} else {
-			rc = LDAP_UNWILLING_TO_PERFORM;
+			rc = rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}
 	}
 
 	/* sanity checks: */
 	if ( ro_gotval < 1 ) {
-		rc = LDAP_CONSTRAINT_VIOLATION;
+		rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 		goto done;
 	}
 
 	if ( ( rp_cur & SLAP_RESTRICT_OP_EXTENDED ) && ( rp_cur & SLAP_RESTRICT_EXOP_MASK ) ) {
-		rc = LDAP_CONSTRAINT_VIOLATION;
+		rc = rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
 		goto done;
 	}
 
 	if ( rp_delete & rp_add ) {
-		rc = LDAP_OTHER;
+		rc = rs->sr_err = LDAP_OTHER;
 		goto done;
 	}
 
@@ -729,7 +751,7 @@ monitor_subsys_database_modify(
 
 	if ( !bvmatch( &a->a_vals[ 0 ], tf ) ) {
 		attr_delete( &e->e_attrs, mi->mi_ad_readOnly );
-		rc = attr_merge_one( e, mi->mi_ad_readOnly, tf, NULL );
+		rc = attr_merge_one( e, mi->mi_ad_readOnly, tf, tf );
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
@@ -740,7 +762,7 @@ monitor_subsys_database_modify(
 			} else {
 				a = attr_find( e->e_attrs, mi->mi_ad_restrictedOperation );
 				if ( a == NULL ) {
-					rc = LDAP_OTHER;
+					rc = rs->sr_err = LDAP_OTHER;
 					goto done;
 				}
 
@@ -800,14 +822,16 @@ monitor_subsys_database_modify(
 			for ( i = 0; !BER_BVISNULL( &restricted_ops[ i ].op ); i++ ) {
 				if ( rp_add & restricted_ops[ i ].tag ) {
 					attr_merge_one( e, mi->mi_ad_restrictedOperation,
-							&restricted_ops[ i ].op, NULL );
+							&restricted_ops[ i ].op,
+							&restricted_ops[ i ].op );
 				}
 			}
 
 			for ( i = 0; !BER_BVISNULL( &restricted_exops[ i ].op ); i++ ) {
 				if ( rp_add & restricted_exops[ i ].tag ) {
 					attr_merge_one( e, mi->mi_ad_restrictedOperation,
-							&restricted_exops[ i ].op, NULL );
+							&restricted_exops[ i ].op,
+							&restricted_exops[ i ].op );
 				}
 			}
 		}
@@ -818,6 +842,7 @@ monitor_subsys_database_modify(
 done:;
 	if ( rc == LDAP_SUCCESS ) {
 		attrs_free( save_attrs );
+		rc = SLAP_CB_CONTINUE;
 
 	} else {
 		Attribute *tmp = e->e_attrs;
@@ -865,8 +890,7 @@ monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e_database )
 				srchdesc->spd_version,
 				srchdesc->spd_description );
 
-		bv.bv_val = buf;
-		bv.bv_len = strlen( buf );
+		ber_str2bv( buf, 0, 0, &bv );
 		attr_merge_normalize_one( e_database,
 				mi->mi_ad_monitoredInfo, &bv, NULL );
 

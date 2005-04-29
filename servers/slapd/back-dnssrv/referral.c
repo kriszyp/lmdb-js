@@ -67,16 +67,18 @@ dnssrv_back_referrals(
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_ref = default_referral;
 		send_ldap_result( op, rs );
+		rs->sr_ref = NULL;
 		return LDAP_REFERRAL;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> domain=\"%s\"\n",
 		op->o_req_dn.bv_val, domain, 0 );
 
-	if( ( rc = ldap_domain2hostlist( domain, &hostlist ) ) ) {
+	i = ldap_domain2hostlist( domain, &hostlist );
+	if ( i ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"DNSSRV: domain2hostlist(%s) returned %d\n",
-			domain, rc, 0 );
+			domain, i, 0 );
 		rs->sr_text = "no DNS SRV RR available for DN";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
@@ -93,11 +95,11 @@ dnssrv_back_referrals(
 	for( i=0; hosts[i] != NULL; i++) {
 		struct berval url;
 
-		url.bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
+		url.bv_len = STRLENOF( "ldap://" ) + strlen( hosts[i] );
 		url.bv_val = ch_malloc( url.bv_len + 1 );
 
 		strcpy( url.bv_val, "ldap://" );
-		strcpy( &url.bv_val[sizeof("ldap://")-1], hosts[i] );
+		strcpy( &url.bv_val[STRLENOF( "ldap://" )], hosts[i] );
 
 		if ( ber_bvarray_add( &urls, &url ) < 0 ) {
 			free( url.bv_val );
@@ -117,6 +119,8 @@ dnssrv_back_referrals(
 	rs->sr_ref = urls;
 	send_ldap_error( op, rs, LDAP_REFERRAL,
 		"DNS SRV generated referrals" );
+	rs->sr_ref = NULL;
+	rc = LDAP_REFERRAL;
 
 done:
 	if( domain != NULL ) ch_free( domain );

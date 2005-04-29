@@ -585,7 +585,8 @@ ldap_back_referral_result_rewrite(
 	last--;
 
 	for ( i = 0; !BER_BVISNULL( &a_vals[ i ] ); i++ ) {
-		struct berval	dn, olddn;
+		struct berval	dn,
+				olddn = BER_BVNULL;
 		int		rc;
 		LDAPURLDesc	*ludp;
 

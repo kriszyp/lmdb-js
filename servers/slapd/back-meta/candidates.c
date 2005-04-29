@@ -50,6 +50,11 @@
  * A possible extension will include the handling of multiple suffixes
  */
 
+static int
+meta_back_is_candidate_unique(
+	metainfo_t	*mi,
+	struct berval	*ndn );
+
 /*
  * returns 1 if suffix is candidate for dn, otherwise 0
  *
@@ -57,13 +62,17 @@
  */
 int 
 meta_back_is_candidate(
-		struct berval	*nsuffix,
-		struct berval	*ndn
-)
+	struct berval	*nsuffix,
+	struct berval	*ndn,
+	int		scope )
 {
-	if ( dnIsSuffix( nsuffix, ndn ) || dnIsSuffix( ndn, nsuffix ) ) {
+	if ( dnIsSuffix( ndn, nsuffix ) ) {
+		return META_CANDIDATE;
+	}
+
+	if ( scope == LDAP_SCOPE_SUBTREE && dnIsSuffix( nsuffix, ndn ) ) {
 		/*
-		 * suffix longer than dn
+		 * suffix longer than dn, but common part matches
 		 */
 		return META_CANDIDATE;
 	}
@@ -72,51 +81,23 @@ meta_back_is_candidate(
 }
 
 /*
- * meta_back_count_candidates
- *
- * returns a count of the possible candidate targets
- * Note: dn MUST be normalized
- */
-
-int
-meta_back_count_candidates(
-		struct metainfo		*li,
-		struct berval		*ndn
-)
-{
-	int i, cnt = 0;
-
-	/*
-	 * I know assertions should not check run-time values;
-	 * at present I didn't find a place for such checks
-	 * after config.c
-	 */
-	assert( li->targets != NULL );
-	assert( li->ntargets != 0 );
-
-	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->targets[ i ]->mt_nsuffix, ndn ) )
-		{
-			++cnt;
-		}
-	}
-
-	return cnt;
-}
-
-/*
  * meta_back_is_candidate_unique
  *
  * checks whether a candidate is unique
  * Note: dn MUST be normalized
  */
-int
+static int
 meta_back_is_candidate_unique(
-		struct metainfo		*li,
-		struct berval		*ndn
-)
+	metainfo_t	*mi,
+	struct berval	*ndn )
 {
-	return ( meta_back_count_candidates( li, ndn ) == 1 );
+	switch ( meta_back_select_unique_candidate( mi, ndn ) ) {
+	case META_TARGET_MULTIPLE:
+	case META_TARGET_NONE:
+		return 0;
+	}
+
+	return 1;
 }
 
 /*
@@ -128,29 +109,24 @@ meta_back_is_candidate_unique(
  */
 int
 meta_back_select_unique_candidate(
-		struct metainfo		*li,
-		struct berval		*ndn
-)
+	metainfo_t	*mi,
+	struct berval	*ndn )
 {
-	int	i;
-	
-	switch ( meta_back_count_candidates( li, ndn ) ) {
-	case 1:
-		break;
-	case 0:
-	default:
-		return ( li->defaulttarget == META_DEFAULT_TARGET_NONE
-			       	? META_TARGET_NONE : li->defaulttarget );
-	}
+	int	i, candidate = META_TARGET_NONE;
 
-	for ( i = 0; i < li->ntargets; ++i ) {
-		if ( meta_back_is_candidate( &li->targets[ i ]->mt_nsuffix, ndn ) )
+	for ( i = 0; i < mi->mi_ntargets; ++i ) {
+		if ( meta_back_is_candidate( &mi->mi_targets[ i ]->mt_nsuffix, ndn, LDAP_SCOPE_BASE ) )
 		{
-			return i;
+			if ( candidate == META_TARGET_NONE ) {
+				candidate = i;
+
+			} else {
+				return META_TARGET_MULTIPLE;
+			}
 		}
 	}
 
-	return META_TARGET_NONE;
+	return candidate;
 }
 
 /*
@@ -160,19 +136,18 @@ meta_back_select_unique_candidate(
  */
 int
 meta_clear_unused_candidates(
-		struct metainfo		*li,
-		struct metaconn		*lc,
-		int			candidate,
-		int			reallyclean
-)
+	Operation	*op,
+	int		candidate )
 {
-	int i;
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	int		i;
+	SlapReply	*candidates = meta_back_candidates_get( op );
 	
-	for ( i = 0; i < li->ntargets; ++i ) {
+	for ( i = 0; i < mi->mi_ntargets; ++i ) {
 		if ( i == candidate ) {
 			continue;
 		}
-		meta_clear_one_candidate( &lc->mc_conns[ i ], reallyclean );
+		candidates[ i ].sr_tag = META_NOT_CANDIDATE;
 	}
 
 	return 0;
@@ -185,29 +160,21 @@ meta_clear_unused_candidates(
  */
 int
 meta_clear_one_candidate(
-		struct metasingleconn	*lsc,
-		int			reallyclean
-)
+	metasingleconn_t	*msc )
 {
-	lsc->msc_candidate = META_NOT_CANDIDATE;
-
-	if ( !reallyclean ) {
-		return 0;
+	if ( msc->msc_ld ) {
+		ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+		msc->msc_ld = NULL;
 	}
 
-	if ( lsc->msc_ld ) {
-		ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
-		lsc->msc_ld = NULL;
+	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+		ber_memfree( msc->msc_bound_ndn.bv_val );
+		BER_BVZERO( &msc->msc_bound_ndn );
 	}
 
-	if ( !BER_BVISNULL( &lsc->msc_bound_ndn ) ) {
-		ber_memfree( lsc->msc_bound_ndn.bv_val );
-		BER_BVZERO( &lsc->msc_bound_ndn );
-	}
-
-	if ( !BER_BVISNULL( &lsc->msc_cred ) ) {
-		ber_memfree( lsc->msc_cred.bv_val );
-		BER_BVZERO( &lsc->msc_cred );
+	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+		ber_memfree( msc->msc_cred.bv_val );
+		BER_BVZERO( &msc->msc_cred );
 	}
 
 	return 0;

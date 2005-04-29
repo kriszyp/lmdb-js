@@ -27,6 +27,17 @@ typedef struct ConfigTable {
 	void *notify;
 } ConfigTable;
 
+typedef enum {
+	Cft_Abstract = 0,
+	Cft_Global,
+	Cft_Schema,
+	Cft_Backend,
+	Cft_Database,
+	Cft_Overlay,
+	Cft_Include,
+	Cft_Module
+} ConfigType;
+
 #define ARGS_USERLAND	0x00000fff
 #define ARGS_TYPES	0x000ff000
 #define ARGS_POINTER	0x0003f000
@@ -47,30 +58,38 @@ typedef struct ConfigTable {
 #define ARG_MAY_DB	0x00800000	/* May apply to DB */
 #define ARG_PAREN	0x01000000
 #define ARG_NONZERO	0x02000000
+#define	ARG_NO_INSERT	0x04000000	/* no arbitrary inserting */
+#define	ARG_NO_DELETE	0x08000000	/* no runtime deletes */
 #define ARG_UNIQUE	0x10000000
-#define ARG_MUTEX	0x20000000	/* modify in single-thread mode */
 #define ARG_OFFSET	0x40000000
 #define ARG_MAGIC	0x80000000
 
 #define ARG_BAD_CONF	0xdead0000	/* overload return values */
-#define ARG_UNKNOWN	0xc0de0000
 
 extern ConfigTable config_back_cf_table[];
 
 typedef struct ConfigOCs {
 	char *def;
+	ConfigType cft;
 	ObjectClass **oc;
 } ConfigOCs;
+
+struct config_args_s;
+
+typedef int (ConfigDriver)(struct config_args_s *c);
 
 typedef struct config_args_s {
 	int argc;
 	char **argv;
 	int argv_size;
 	char *line;
+	char *tline;
 	const char *fname;
 	unsigned long lineno;
-	char log[PATH_MAX + STRLENOF(": line 18446744073709551615") + 1];
+	char log[MAXPATHLEN + STRLENOF(": line 18446744073709551615") + 1];
+	char msg[SLAP_TEXT_BUFLEN];
 	int depth;
+	int valx;	/* multi-valued value index */
 	/* parsed first val for simple cases */
 	union {
 		int v_int;
@@ -87,10 +106,13 @@ typedef struct config_args_s {
 	BerVarray rvalue_vals;
 	BerVarray rvalue_nvals;
 #define	SLAP_CONFIG_EMIT	0x2000	/* emit instead of set */
+#define SLAP_CONFIG_ADD		0x4000	/* config file add vs LDAP add */
 	int op;
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
 	BackendDB *be;
 	BackendInfo *bi;
+	void *private;	/* anything */
+	ConfigDriver *cleanup;
 } ConfigArgs;
 
 #define value_int values.v_int
@@ -100,8 +122,6 @@ typedef struct config_args_s {
 #define value_bv values.v_bv
 #define value_dn values.v_dn.vdn_dn
 #define value_ndn values.v_dn.vdn_ndn
-
-typedef int (ConfigDriver)(ConfigArgs *c);
 
 int config_register_schema(ConfigTable *ct, ConfigOCs *co);
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);

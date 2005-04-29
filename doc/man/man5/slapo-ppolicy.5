@@ -75,7 +75,7 @@ object class.  The definition of that class is as follows:
     MAY (
         pwdMinAge $ pwdMaxAge $ pwdInHistory $
         pwdCheckSyntax $ pwdMinLength $
-        pwdExpireWarning $ pwdGraceLoginLimit $
+        pwdExpireWarning $ pwdGraceAuthnLimit $
         pwdLockout $ pwdLockoutDuration $
         pwdMaxFailure $ pwdFailureCountInterval $
         pwdMustChange $ pwdAllowUserChange $
@@ -247,7 +247,7 @@ present, or if the value is zero (0), no warnings will be sent.
    SINGLE-VALUE )
 .RE
 
-.B pwdGraceLoginLimit
+.B pwdGraceAuthnLimit
 .P
 This attribute contains the number of times that an expired password
 may be used to authenticate a user to the directory. If this
@@ -257,7 +257,7 @@ directory.
 .LP
 .RS 4
 (  1.3.6.1.4.1.42.2.27.8.1.8
-   NAME 'pwdGraceLoginLimit'
+   NAME 'pwdGraceAuthnLimit'
    EQUALITY integerMatch
    SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
    SINGLE-VALUE )
@@ -560,28 +560,6 @@ and may only be unlocked by an administrator.
    USAGE directoryOperation)
 .RE
 
-.B pwdExpirationWarned
-.P
-This attribute denotes the time when the first password
-expiration warning was sent to the client regarding this account.
-The amount of time between when this warning is sent and when
-the password actually expires is the amount of time stored in
-the
-.B pwdExpireWarning
-password policy attribute.
-.LP
-.RS 4
-(  1.3.6.1.4.1.42.2.27.8.1.18
-   NAME 'pwdExpirationWarned'
-   DESC 'The time the user was first warned about the
-       coming expiration of their password'
-   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
-   EQUALITY generalizedTimeMatch
-   ORDERING generalizedTimeOrderingMatch
-   SINGLE-VALUE
-   USAGE directoryOperation )
-.RE
-
 .B pwdFailureTime
 .P
 This attribute contains the timestamps of each of the consecutive
@@ -734,7 +712,7 @@ ppolicy_default "cn=Standard,ou=Policies,dc=example,dc=com"
 .LP
 IETF LDAP password policy proposal by P. Behera, L.  Poitou and J.
 Sermersheim:  documented in IETF document
-"draft-behera-ldap-password-policy-07.txt".
+"draft-behera-ldap-password-policy-08.txt".
 
 .SH BUGS
 The LDAP Password Policy specification is not yet an approved standard,
@@ -753,8 +731,8 @@ IETF LDAP password policy proposal by P. Behera, L.
 Poitou and J. Sermersheim.
 The proposal is fully documented in
 the
-IETF document named draft-behera-ldap-password-policy-07.txt,
-written in February of 2004.
+IETF document named draft-behera-ldap-password-policy-08.txt,
+written in October of 2004.
 .P
 .B OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).

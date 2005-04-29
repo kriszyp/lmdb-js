@@ -90,8 +90,7 @@ int cancel_extop( Operation *op, SlapReply *rs )
 
 		o->o_cancel = SLAP_CANCEL_REQ;
 
-		for ( i = 0; i < nbackends; i++ ) {
-			op->o_bd = &backends[i];
+		LDAP_STAILQ_FOREACH( op->o_bd, &backendDB, be_next ) {
 			if( !op->o_bd->be_cancel ) continue;
 
 			op->oq_cancel.rs_msgid = opid;

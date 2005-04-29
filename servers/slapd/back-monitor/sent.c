@@ -114,7 +114,7 @@ monitor_subsys_sent_init(
 		ber_dupbv( &monitor_sent[ i ].nrdn, &nrdn );
 	
 		BER_BVSTR( &bv, "0" );
-		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, NULL );
+		attr_merge_one( e, mi->mi_ad_monitorCounter, &bv, &bv );
 	
 		mp = monitor_entrypriv_create();
 		if ( mp == NULL ) {
@@ -146,8 +146,8 @@ monitor_subsys_sent_init(
 int
 monitor_subsys_sent_update(
 	Operation		*op,
-	Entry                   *e
-)
+	SlapReply		*rs,
+	Entry                   *e )
 {
 	monitor_info_t	*mi = ( monitor_info_t *)op->o_bd->be_private;
 	
@@ -168,7 +168,7 @@ monitor_subsys_sent_update(
 	}
 
 	if ( i == MONITOR_SENT_LAST ) {
-		return 0;
+		return SLAP_CB_CONTINUE;
 	}
 
 	ldap_pvt_thread_mutex_lock(&slap_counters.sc_sent_mutex);
@@ -203,6 +203,6 @@ monitor_subsys_sent_update(
 
 	/* FIXME: touch modifyTimestamp? */
 
-	return 0;
+	return SLAP_CB_CONTINUE;
 }
 

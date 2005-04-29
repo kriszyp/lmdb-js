@@ -616,6 +616,30 @@ int ldap_pvt_thread_pool_setkey(
 	return ENOMEM;
 }
 
+/* Free all elements with this key, no matter which thread they're in.
+ * May only be called while the pool is paused.
+ */
+void ldap_pvt_thread_pool_purgekey( void *key )
+{
+	int i, j;
+	ldap_int_thread_key_t *ctx;
+
+	for ( i=0; i<LDAP_MAXTHR; i++ ) {
+		if ( thread_keys[i].ctx ) {
+			ctx = thread_keys[i].ctx;
+			for ( j=0; j<MAXKEYS; j++ ) {
+				if ( ctx[j].ltk_key == key ) {
+					if (ctx[j].ltk_free)
+						ctx[j].ltk_free( ctx[j].ltk_key, ctx[j].ltk_data );
+					ctx[j].ltk_key = NULL;
+					ctx[j].ltk_free = NULL;
+					break;
+				}
+			}
+		}
+	}
+}
+
 /*
  * This is necessary if the caller does not have access to the
  * thread context handle (for example, a slapd plugin calling

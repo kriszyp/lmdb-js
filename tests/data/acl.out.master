@@ -21,6 +21,22 @@ facsimileTelephoneNumber: +1 313 555 4332
 telephoneNumber: +1 313 555 0895
 
 # Using ldapsearch to retrieve all the entries...
+dn: ou=Add/Delete,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Add/Delete
+
+dn: cn=Added by Bjorn (must succeed),ou=Add/Delete,dc=example,dc=com
+objectClass: inetOrgPerson
+cn: Added by Bjorn (must succeed)
+sn: None
+description: this attribute value has been added __after__entry creation
+description: Bjorn will try to delete this attribute value (should fail)
+
+dn: cn=Added by Bjorn (renamed by Jaj),ou=Add/Delete,dc=example,dc=com
+objectClass: inetOrgPerson
+sn: None
+cn: Added by Bjorn (renamed by Jaj)
+
 dn: cn=All Staff,ou=Groups,dc=example,dc=com
 member: cn=Manager,dc=example,dc=com
 member: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=exam

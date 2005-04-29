@@ -32,6 +32,9 @@ static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseModifyIncrement;
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
+#ifdef LDAP_DEVEL
+static SLAP_CTRL_PARSE_FN parseSortedResults;
+#endif
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 static SLAP_CTRL_PARSE_FN parsePermissiveModify;
 static SLAP_CTRL_PARSE_FN parseDomainScope;
@@ -112,6 +115,12 @@ static struct slap_control control_defs[] = {
  		(int)offsetof(struct slap_control_ids, sc_pagedResults),
 		SLAP_CTRL_SEARCH, NULL,
 		parsePagedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#ifdef LDAP_DEVEL
+	{ LDAP_CONTROL_SORTREQUEST,
+ 		(int)offsetof(struct slap_control_ids, sc_sortedResults),
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH|SLAP_CTRL_HIDE, NULL,
+		parseSortedResults, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
  		(int)offsetof(struct slap_control_ids, sc_domainScope),
@@ -746,19 +755,17 @@ static int parseProxyAuthz (
 		ctrl->ldctl_value.bv_len ?  ctrl->ldctl_value.bv_val : "anonymous",
 		0 );
 
-	if( ctrl->ldctl_value.bv_len == 0 ) {
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"parseProxyAuthz: conn=%lu anonymous\n", 
 			op->o_connid, 0, 0 );
 
 		/* anonymous */
-		free( op->o_dn.bv_val );
-		op->o_dn.bv_len = 0;
-		op->o_dn.bv_val = ch_strdup( "" );
-
-		free( op->o_ndn.bv_val );
+		op->o_ndn.bv_val[ 0 ] = '\0';
 		op->o_ndn.bv_len = 0;
-		op->o_ndn.bv_val = ch_strdup( "" );
+
+		op->o_dn.bv_val[ 0 ] = '\0';
+		op->o_dn.bv_len = 0;
 
 		return LDAP_SUCCESS;
 	}
@@ -782,26 +789,25 @@ static int parseProxyAuthz (
 
 	rc = slap_sasl_authorized( op, &op->o_ndn, &dn );
 
-	if( rc ) {
+	if ( rc ) {
 		ch_free( dn.bv_val );
 		rs->sr_text = "not authorized to assume identity";
 		return LDAP_PROXY_AUTHZ_FAILURE;
 	}
 
-	ch_free( op->o_dn.bv_val );
 	ch_free( op->o_ndn.bv_val );
-
-	op->o_dn.bv_val = NULL;
-	op->o_ndn = dn;
-
-	Statslog( LDAP_DEBUG_STATS, "%s PROXYAUTHZ dn=\"%s\"\n",
-	    op->o_log_prefix, dn.bv_val, 0, 0, 0 );
+	ch_free( op->o_dn.bv_val );
 
 	/*
 	 * NOTE: since slap_sasl_getdn() returns a normalized dn,
 	 * from now on op->o_dn is normalized
 	 */
+	op->o_ndn = dn;
 	ber_dupbv( &op->o_dn, &dn );
+
+
+	Statslog( LDAP_DEBUG_STATS, "%s PROXYAUTHZ dn=\"%s\"\n",
+	    op->o_log_prefix, dn.bv_val, 0, 0, 0 );
 
 	return LDAP_SUCCESS;
 }
@@ -949,6 +955,34 @@ done:;
 	(void)ber_free( ber, 1 );
 	return rc;
 }
+
+#ifdef LDAP_DEVEL
+static int parseSortedResults (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	int		rc = LDAP_SUCCESS;
+
+	if ( op->o_sortedresults != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "sorted results control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "sorted results control value is empty (or absent)";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* blow off parsing the value */
+
+	op->o_sortedresults = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
+
+	return rc;
+}
+#endif
 
 static int parseAssert (
 	Operation *op,

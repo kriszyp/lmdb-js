@@ -169,8 +169,8 @@ monitor_subsys_time_init(
 int
 monitor_subsys_time_update(
 	Operation		*op,
-	Entry                   *e
-)
+	SlapReply		*rs,
+	Entry                   *e )
 {
 	monitor_info_t		*mi = ( monitor_info_t * )op->o_bd->be_private;
 	static struct berval	bv_current = BER_BVC( "cn=current" );
@@ -219,7 +219,7 @@ monitor_subsys_time_update(
 
 		a = attr_find( e->e_attrs, mi->mi_ad_monitorTimestamp );
 		if ( a == NULL ) {
-			return( -1 );
+			return rs->sr_err = LDAP_OTHER;
 		}
 
 		assert( len == a->a_vals[ 0 ].bv_len );
@@ -228,6 +228,6 @@ monitor_subsys_time_update(
 		/* FIXME: touch modifyTimestamp? */
 	}
 
-	return( 0 );
+	return SLAP_CB_CONTINUE;
 }
 

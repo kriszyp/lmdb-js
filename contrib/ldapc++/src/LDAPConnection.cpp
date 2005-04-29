@@ -25,8 +25,8 @@ LDAPConnection::LDAPConnection(const string& hostname, int port,
 LDAPConnection::~LDAPConnection(){
 }
 
-int LDAPConnection::start_tls(){
-    return LDAPAsynConnection::start_tls();
+void LDAPConnection::start_tls(){
+    LDAPAsynConnection::start_tls();
 }
    
 void LDAPConnection::bind(const string& dn, const string& passwd,
@@ -50,9 +50,10 @@ void LDAPConnection::bind(const string& dn, const string& passwd,
             delete msg;
             throw LDAPReferralException(urls);
         }else{
+            string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode);
+            throw LDAPException(resCode, srvMsg);
         }
     }
     delete res;
@@ -97,9 +98,10 @@ bool LDAPConnection::compare(const string& dn, const LDAPAttribute& attr,
         }
         break;
         default :
+            string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode);
+            throw LDAPException(resCode, srvMsg);
     }
 }
 
@@ -130,9 +132,10 @@ void LDAPConnection::del(const string& dn, const LDAPConstraints* cons){
         }
         break;
         default :
+            string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode);
+            throw LDAPException(resCode, srvMsg);
     }
 
 }
@@ -164,9 +167,10 @@ void LDAPConnection::add(const LDAPEntry* le, const LDAPConstraints* cons){
         }
         break;
         default :
+            string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode);
+            throw LDAPException(resCode, srvMsg);
     }
 }
 
@@ -201,7 +205,7 @@ void LDAPConnection::modify(const string& dn, const LDAPModList* mods,
             string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode,srvMsg);
+            throw LDAPException(resCode, srvMsg);
     }
     
 }
@@ -236,9 +240,10 @@ void LDAPConnection::rename(const string& dn, const string& newRDN,
         }
         break;
         default :
+            string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode);
+            throw LDAPException(resCode, srvMsg);
     }
 }
 
@@ -278,10 +283,11 @@ LDAPSearchResults* LDAPConnection::search(const string& base, int scope,
             }
             break;
             default :
+                string srvMsg = res->getErrMsg();
                 delete results; // memcheck
                 delete res;
                 delete msgq;
-                throw LDAPException(resCode);
+                throw LDAPException(resCode, srvMsg);
         }
     }        
     return 0;
@@ -314,9 +320,10 @@ LDAPExtResult* LDAPConnection::extOperation(const string& oid,
         }
         break;
         default :
+            string srvMsg = res->getErrMsg();
             delete res;
             delete msg;
-            throw LDAPException(resCode);
+            throw LDAPException(resCode, srvMsg);
     }
 }
 

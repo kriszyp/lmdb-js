@@ -27,6 +27,8 @@ typedef struct re_s {
 	LDAP_STAILQ_ENTRY(re_s) rnext;
 	ldap_pvt_thread_start_t *routine;
 	void *arg;
+	char *tname;
+	char *tspec;
 } re_t;
 
 typedef struct runqueue_s {
@@ -35,10 +37,19 @@ typedef struct runqueue_s {
 	ldap_pvt_thread_mutex_t	rq_mutex;
 } runqueue_t;
 
-LDAP_F( void )
+LDAP_F( struct re_s* )
 ldap_pvt_runqueue_insert(
 	struct runqueue_s* rq,
 	time_t interval,
+	ldap_pvt_thread_start_t* routine,
+	void *arg,
+	char *tname,
+	char *tspec
+);
+
+LDAP_F( struct re_s* )
+ldap_pvt_runqueue_find(
+	struct runqueue_s* rq,
 	ldap_pvt_thread_start_t* routine,
 	void *arg
 );

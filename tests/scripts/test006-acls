@@ -172,6 +172,103 @@ description: added by bjensen (should fail)
 -
 EOMODS6
 
+$LDAPMODIFY -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+	$TESTOUT 2>&1 << EOMODS7
+dn: ou=Add/Delete,dc=example,dc=com
+changetype: add
+objectClass: organizationalUnit
+ou: Add/Delete
+EOMODS7
+
+$LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
+	$TESTOUT 2>&1 << EOMODS8
+dn: cn=Added by Babs (must fail),ou=Add/Delete,dc=example,dc=com
+changetype: add
+objectClass: inetOrgPerson
+cn: Added by Babs (must fail)
+sn: None
+EOMODS8
+
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
+	$TESTOUT 2>&1 << EOMODS9
+dn: cn=Added by Bjorn (must succeed),ou=Add/Delete,dc=example,dc=com
+changetype: add
+objectClass: inetOrgPerson
+cn: Added by Bjorn (must succeed)
+sn: None
+
+dn: cn=Added by Bjorn (will be deleted),ou=Add/Delete,dc=example,dc=com
+changetype: add
+objectClass: inetOrgPerson
+cn: Added by Bjorn (will be deleted)
+sn: None
+
+dn: cn=Added by Bjorn (will be renamed),ou=Add/Delete,dc=example,dc=com
+changetype: add
+objectClass: inetOrgPerson
+cn: Added by Bjorn (will be renamed)
+sn: None
+
+dn: cn=Added by Bjorn (must succeed),ou=Add/Delete,dc=example,dc=com
+changetype: modify
+add: description
+description: this attribute value has been added __after__entry creation
+description: this attribute value will be deleted by Babs (must succeed)
+description: Bjorn will try to delete this attribute value (should fail)
+-
+EOMODS9
+
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
+	$TESTOUT 2>&1 << EOMODS10
+dn: cn=Added by Bjorn (will be deleted),ou=Add/Delete,dc=example,dc=com
+changetype: delete
+EOMODS10
+
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
+	$TESTOUT 2>&1 << EOMODS11
+dn: cn=Added by Bjorn (will be renamed),ou=Add/Delete,dc=example,dc=com
+changetype: modrdn
+newrdn: cn=Added by Bjorn (renamed by Bjorn)
+deleteoldrdn: 1
+EOMODS11
+
+$LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
+	$TESTOUT 2>&1 << EOMODS12
+dn: cn=Added by Bjorn (will be renamed),ou=Add/Delete,dc=example,dc=com
+changetype: modrdn
+newrdn: cn=Added by Bjorn (renamed by Babs)
+deleteoldrdn: 1
+EOMODS12
+
+$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+	$TESTOUT 2>&1 << EOMODS13
+dn: cn=Added by Bjorn (will be renamed),ou=Add/Delete,dc=example,dc=com
+changetype: modrdn
+newrdn: cn=Added by Bjorn (renamed by Jaj)
+deleteoldrdn: 1
+EOMODS13
+
+$LDAPMODIFY -D "$BJORNSDN" -h $LOCALHOST -p $PORT1 -w bjorn >> \
+	$TESTOUT 2>&1 << EOMODS14
+dn: cn=Added by Bjorn (must succeed),ou=Add/Delete,dc=example,dc=com
+changetype: modify
+delete: description
+description: Bjorn will try to delete this attribute value (should fail)
+-
+EOMODS14
+
+$LDAPMODIFY -D "$BABSDN" -h $LOCALHOST -p $PORT1 -w bjensen >> \
+	$TESTOUT 2>&1 << EOMODS15
+dn: cn=Added by Bjorn (will be deleted),ou=Add/Delete,dc=example,dc=com
+changetype: delete
+
+dn: cn=Added by Bjorn (must succeed),ou=Add/Delete,dc=example,dc=com
+changetype: modify
+delete: description
+description: this attribute value will be deleted by Babs (must succeed)
+-
+EOMODS15
+
 echo "Using ldapsearch to retrieve all the entries..."
 echo "# Using ldapsearch to retrieve all the entries..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \

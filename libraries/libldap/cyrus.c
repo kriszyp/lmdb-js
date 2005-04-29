@@ -25,9 +25,21 @@
 #include <ac/ctype.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
 #include "ldap-int.h"
 
 #ifdef HAVE_CYRUS_SASL
+
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
+#ifndef INT_MAX
+#define	INT_MAX	2147483647	/* 32 bit signed max */
+#endif
 
 #ifdef LDAP_R_COMPILE
 ldap_pvt_thread_mutex_t ldap_int_sasl_mutex;

@@ -22,7 +22,7 @@ using namespace std;
 class LDAPAttrType{
     private :
 	StringList names;
-	string desc, oid, equality, syntax;
+	string desc, oid;
 	bool single;
 	
     public :
@@ -63,16 +63,6 @@ class LDAPAttrType{
 	 */
 	string getOid ();
 
- 	/**
-         * Returns equality matching rule
- 	 */
- 	string getEquality ();
- 	
- 	/**
- 	 * Returns attribute syntax definition
- 	 */
- 	string getSyntax ();
-
 	/**
 	 * Returns attribute name (first one if there are more of them)
 	 */
@@ -84,14 +74,12 @@ class LDAPAttrType{
 	StringList getNames();
 	
 	/**
-	 * Returns true if attribute type allows only single value
+	 * Returns true if attribute type hllows only single value
 	 */
 	bool isSingle();
 	
 	void setNames (char **at_names);
 	void setDesc (char *at_desc);
-	void setEquality (char *at_equality_oid);
- 	void setSyntax (char *at_syntax_oid);      
 	void setOid (char *at_oid);
 	void setSingle (int at_single_value);
 	

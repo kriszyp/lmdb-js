@@ -299,11 +299,9 @@ backsql_dn2id(
 			 */
 			rs->sr_matched = NULL;
 			while ( !be_issuffix( op->o_bd, &pdn ) ) {
-				struct berval	dn;
 				char		*matchedDN = NULL;
 	
-				dn = pdn;
-				dnParent( &dn, &pdn );
+				dnParent( &pdn, &pdn );
 	
 				/*
 				 * Empty DN ("") defaults to LDAP_SUCCESS
