@@ -941,7 +941,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },
 
-	{ "labeledURI", "(  1.3.6.1.4.1.250.1.57 NAME 'labeledURI' "
+	{ "labeledURI", "( 1.3.6.1.4.1.250.1.57 NAME 'labeledURI' "
 			"DESC 'RFC2079: Uniform Resource Identifier with optional label' "
 			"EQUALITY caseExactMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
@@ -983,6 +983,25 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
+
+	{ "description", "( 2.5.4.13 NAME 'description' "
+			"DESC 'RFC2256: descriptive information' "
+			"EQUALITY caseIgnoreMatch "
+			"SUBSTR caseIgnoreSubstringsMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )",
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_description) },
+
+	{ "seeAlso", "( 2.5.4.34 NAME 'seeAlso' "
+			"DESC 'RFC2256: DN of related object' "
+			"SUP distinguishedName )",
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_seeAlso) },
+
 	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0 }
 };
 

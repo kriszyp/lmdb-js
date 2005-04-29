@@ -892,6 +892,8 @@ struct slap_internal_schema {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	AttributeDescription *si_ad_krbName;
 #endif
+	AttributeDescription *si_ad_description;
+	AttributeDescription *si_ad_seeAlso;
         
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
