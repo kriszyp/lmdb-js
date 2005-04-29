@@ -223,7 +223,7 @@ $LDAPMODRDN -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	'cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com' 'cn=James A Jones 1'
 
 RC=$?
-if test $RC == 0 ; then
+if test $RC -eq 0 ; then
 	echo "ldapmodrdn succeeded, should have failed!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
