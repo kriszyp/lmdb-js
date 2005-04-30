@@ -17,7 +17,6 @@ SLAPTOOLS=slapadd slapcat slapdn slapindex slappasswd slaptest slapauth slapacl
 PROGRAMS=slapd $(SLAPTOOLS)
 XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
 XSRCS=version.c
-STRIP=-s
 
 SUBDIRS=back-* shell-backends slapi overlays
 
