@@ -490,6 +490,8 @@ meta_back_dobind(
 		rc = meta_back_single_dobind( op, rs, mc, i,
 				LDAP_BACK_DONTSEND, mt->mt_nretries );
 		if ( rc != LDAP_SUCCESS ) {
+			rs->sr_err = slap_map_api2result( rs );
+
 			Debug( LDAP_DEBUG_ANY, "%s meta_back_dobind[%d]: "
 					"(anonymous) err=%d\n",
 					op->o_log_prefix, i, rc );
