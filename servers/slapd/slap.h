@@ -888,6 +888,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_labeledURI;
 #ifdef SLAPD_AUTHPASSWD
 	AttributeDescription *si_ad_authPassword;
+	AttributeDescription *si_ad_authPasswordSchemes;
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	AttributeDescription *si_ad_krbName;

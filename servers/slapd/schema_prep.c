@@ -969,7 +969,7 @@ static struct slap_schema_ad_map {
 		subschemaAttribute, 0,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_authPassword) },
+		offsetof(struct slap_internal_schema, si_ad_authPasswordSchemes) },
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	{ "krbName", "( 1.3.6.1.4.1.250.1.32 "
