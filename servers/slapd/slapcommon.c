@@ -166,8 +166,8 @@ slap_tool_init(
 	int argc, char **argv )
 {
 	char *options;
-	char *conffile = SLAPD_DEFAULT_CONFIGFILE;
-	char *confdir = SLAPD_DEFAULT_CONFIGDIR;
+	char *conffile = NULL;
+	char *confdir = NULL;
 	struct berval base = BER_BVNULL;
 	char *filterstr = NULL;
 	char *subtree = NULL;

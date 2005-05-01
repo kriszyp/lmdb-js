@@ -2369,7 +2369,7 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 
 /* Configure and read the underlying back-ldif store */
 static int
-config_setup_ldif( BackendDB *be, const char *dir ) {
+config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	CfBackInfo *cfb = be->be_private;
 	ConfigArgs c = {0};
 	ConfigTable *ct;
@@ -2426,35 +2426,37 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 	if ( backend_startup_one( &cfb->cb_db ))
 		return 1;
 
-	op = (Operation *)opbuf;
-	connection_fake_init( &conn, op, cfb );
+	if ( readit ) {
+		op = (Operation *)opbuf;
+		connection_fake_init( &conn, op, cfb );
 
-	filter.f_desc = slap_schema.si_ad_objectClass;
-	
-	op->o_tag = LDAP_REQ_SEARCH;
+		filter.f_desc = slap_schema.si_ad_objectClass;
 
-	op->ors_filter = &filter;
-	op->ors_filterstr = filterstr;
-	op->ors_scope = LDAP_SCOPE_SUBTREE;
+		op->o_tag = LDAP_REQ_SEARCH;
 
-	op->o_dn = be->be_rootdn;
-	op->o_ndn = be->be_rootndn;
+		op->ors_filter = &filter;
+		op->ors_filterstr = filterstr;
+		op->ors_scope = LDAP_SCOPE_SUBTREE;
 
-	op->o_req_dn = be->be_suffix[0];
-	op->o_req_ndn = be->be_nsuffix[0];
+		op->o_dn = be->be_rootdn;
+		op->o_ndn = be->be_rootndn;
 
-	op->ors_tlimit = SLAP_NO_LIMIT;
-	op->ors_slimit = SLAP_NO_LIMIT;
+		op->o_req_dn = be->be_suffix[0];
+		op->o_req_ndn = be->be_nsuffix[0];
 
-	op->ors_attrs = slap_anlist_all_attributes;
-	op->ors_attrsonly = 0;
+		op->ors_tlimit = SLAP_NO_LIMIT;
+		op->ors_slimit = SLAP_NO_LIMIT;
 
-	op->o_callback = &cb;
-	cb.sc_private = cfb;
+		op->ors_attrs = slap_anlist_all_attributes;
+		op->ors_attrsonly = 0;
 
-	op->o_bd = &cfb->cb_db;
-	op->o_bd->be_search( op, &rs );
-	
+		op->o_callback = &cb;
+		cb.sc_private = cfb;
+
+		op->o_bd = &cfb->cb_db;
+		op->o_bd->be_search( op, &rs );
+	}
+
 	cfb->cb_use_ldif = 1;
 
 	return 0;
@@ -2505,15 +2507,32 @@ read_config(const char *fname, const char *dir) {
 
 	cfb = be->be_private;
 
-	/* Setup the underlying back-ldif backend */
-	if ( config_setup_ldif( be, dir ))
-		return 1;
+	/* If no .conf, or a dir was specified, setup the dir */
+	if ( !fname || dir ) {
+		if ( dir ) {
+			/* If explicitly given, check for existence */
+			struct stat st;
 
-#ifdef	SLAP_USE_CONFDIR
-	/* If we read the config from back-ldif, nothing to do here */
-	if ( cfb->cb_got_ldif )
-		return 0;
-#endif
+			if ( stat( dir, &st ) < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"invalid config directory %s, error %d\n",
+						dir, errno, 0 );
+				return 1;
+			}
+		} else {
+			dir = SLAPD_DEFAULT_CONFIGDIR;
+		}
+		/* if fname is defaulted, try reading .d */
+		if ( config_setup_ldif( be, dir, !fname ))
+			return 1;
+
+		/* If we read the config from back-ldif, nothing to do here */
+		if ( cfb->cb_got_ldif )
+			return 0;
+	}
+
+	if ( !fname )
+		fname = SLAPD_DEFAULT_CONFIGFILE;
 	ber_str2bv( fname, 0, 1, &cf_prv.c_file );
 
 	return read_config_file(fname, 0, NULL);

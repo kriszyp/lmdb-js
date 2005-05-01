@@ -252,13 +252,8 @@ int main( int argc, char **argv )
 	int g_argc = argc;
 	char **g_argv = argv;
 
-#ifdef HAVE_NT_SERVICE_MANAGER
-	char		*configfile = ".\\slapd.conf";
-	char		*configdir = ".\\slapd.d";
-#else
-	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
-	char		*configdir = SLAPD_DEFAULT_CONFIGDIR;
-#endif
+	char		*configfile = NULL;
+	char		*configdir = NULL;
 	char	    *serverName;
 	int	    serverMode = SLAP_SERVER_MODE;
 
@@ -778,7 +773,8 @@ unhandled_option:;
 
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
-	lutil_LogStartedEvent( serverName, slap_debug, configfile, urls );
+	lutil_LogStartedEvent( serverName, slap_debug, configfile ?
+		configfile : SLAPD_DEFAULT_CONFIGFILE , urls );
 #endif
 
 	rc = slapd_daemon();
