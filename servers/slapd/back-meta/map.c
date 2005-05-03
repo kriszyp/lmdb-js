@@ -544,7 +544,8 @@ ldap_back_filter_map_rewrite(
 		}
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
-			fdc.ctx, ftmp.bv_val, fstr->bv_val );		
+			fdc.ctx, BER_BVISNULL( &ftmp ) ? "" : ftmp.bv_val,
+			BER_BVISNULL( fstr ) ? "" : fstr->bv_val );		
 		rc = LDAP_SUCCESS;
 		break;
  		
