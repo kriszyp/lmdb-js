@@ -122,7 +122,6 @@ static ConfigDriver config_passwd_hash;
 static ConfigDriver config_schema_dn;
 static ConfigDriver config_sizelimit;
 static ConfigDriver config_timelimit;
-static ConfigDriver config_limits; 
 static ConfigDriver config_overlay;
 static ConfigDriver config_suffix; 
 static ConfigDriver config_deref_depth;
@@ -337,7 +336,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "limits", "limits", 2, 0, 0, ARG_DB|ARG_MAGIC|CFG_LIMITS,
 		&config_generic, "( OLcfgDbAt:0.5 NAME 'olcLimits' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "localSSF", "ssf", 2, 2, 0, ARG_INT,
 		&local_ssf, "( OLcfgGlAt:26 NAME 'olcLocalSSF' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },

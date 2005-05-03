@@ -68,7 +68,7 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgDbAt:1.2 NAME 'olcDbCheckpoint' "
 			"DESC 'Database checkpoint interval in kbytes and minutes' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",NULL, NULL },
-	{ "dbconfig", "DB_CONFIG setting", 3, 0, 0, ARG_MAGIC|BDB_CONFIG,
+	{ "dbconfig", "DB_CONFIG setting", 1, 0, 0, ARG_MAGIC|BDB_CONFIG,
 		bdb_cf_gen, "( OLcfgDbAt:1.3 NAME 'olcDbConfig' "
 			"DESC 'BerkeleyDB DB_CONFIG configuration directives' "
 			"SYNTAX OMsDirectoryString )",NULL, NULL },
