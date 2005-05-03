@@ -281,49 +281,52 @@ parse_acl(
 						acl_usage();
 					}
 					ber_str2bv( right, 0, 1, &a->acl_attrval );
-					if ( style && strcasecmp( style, "regex" ) == 0 ) {
-						int e = regcomp( &a->acl_attrval_re, a->acl_attrval.bv_val,
-							REG_EXTENDED | REG_ICASE | REG_NOSUB );
-						if ( e ) {
-							char buf[512];
-							regerror( e, &a->acl_attrval_re, buf, sizeof(buf) );
-							fprintf( stderr, "%s: line %d: "
-								"regular expression \"%s\" bad because of %s\n",
-								fname, lineno, right, buf );
-							acl_usage();
-						}
-						a->acl_attrval_style = ACL_STYLE_REGEX;
-					} else {
-						/* FIXME: if the attribute has DN syntax,
-						 * we might allow one, subtree and children styles as well */
-						if ( !strcasecmp( style, "exact" ) ) {
-							a->acl_attrval_style = ACL_STYLE_BASE;
-
-						} else if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
-							if ( !strcasecmp( style, "base" ) ) {
+					a->acl_attrval_style = ACL_STYLE_BASE;
+					if ( style ) {
+						if ( strcasecmp( style, "regex" ) == 0 ) {
+							int e = regcomp( &a->acl_attrval_re, a->acl_attrval.bv_val,
+								REG_EXTENDED | REG_ICASE | REG_NOSUB );
+							if ( e ) {
+								char buf[512];
+								regerror( e, &a->acl_attrval_re, buf, sizeof(buf) );
+								fprintf( stderr, "%s: line %d: "
+									"regular expression \"%s\" bad because of %s\n",
+									fname, lineno, right, buf );
+								acl_usage();
+							}
+							a->acl_attrval_style = ACL_STYLE_REGEX;
+						} else {
+							/* FIXME: if the attribute has DN syntax,
+							 * we might allow one, subtree and children styles as well */
+							if ( !strcasecmp( style, "exact" ) ) {
 								a->acl_attrval_style = ACL_STYLE_BASE;
-							} else if ( !strcasecmp( style, "onelevel" ) || !strcasecmp( style, "one" ) ) {
-								a->acl_attrval_style = ACL_STYLE_ONE;
-							} else if ( !strcasecmp( style, "subtree" ) || !strcasecmp( style, "sub" ) ) {
-								a->acl_attrval_style = ACL_STYLE_SUBTREE;
-							} else if ( !strcasecmp( style, "children" ) ) {
-								a->acl_attrval_style = ACL_STYLE_CHILDREN;
+	
+							} else if ( a->acl_attrs[0].an_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+								if ( !strcasecmp( style, "base" ) ) {
+									a->acl_attrval_style = ACL_STYLE_BASE;
+								} else if ( !strcasecmp( style, "onelevel" ) || !strcasecmp( style, "one" ) ) {
+									a->acl_attrval_style = ACL_STYLE_ONE;
+								} else if ( !strcasecmp( style, "subtree" ) || !strcasecmp( style, "sub" ) ) {
+									a->acl_attrval_style = ACL_STYLE_SUBTREE;
+								} else if ( !strcasecmp( style, "children" ) ) {
+									a->acl_attrval_style = ACL_STYLE_CHILDREN;
+								} else {
+									fprintf( stderr, 
+										"%s: line %d: unknown val.<style> \"%s\" "
+										"for attributeType \"%s\" with DN syntax; using \"base\"\n",
+										fname, lineno, style,
+										a->acl_attrs[0].an_desc->ad_cname.bv_val );
+									a->acl_attrval_style = ACL_STYLE_BASE;
+								}
+								
 							} else {
 								fprintf( stderr, 
 									"%s: line %d: unknown val.<style> \"%s\" "
-									"for attributeType \"%s\" with DN syntax; using \"base\"\n",
+									"for attributeType \"%s\"; using \"exact\"\n",
 									fname, lineno, style,
 									a->acl_attrs[0].an_desc->ad_cname.bv_val );
 								a->acl_attrval_style = ACL_STYLE_BASE;
 							}
-							
-						} else {
-							fprintf( stderr, 
-								"%s: line %d: unknown val.<style> \"%s\" "
-								"for attributeType \"%s\"; using \"exact\"\n",
-								fname, lineno, style,
-								a->acl_attrs[0].an_desc->ad_cname.bv_val );
-							a->acl_attrval_style = ACL_STYLE_BASE;
 						}
 					}
 					
