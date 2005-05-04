@@ -2,6 +2,8 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.27 Engineering
 	Fixed ACL val default style parsing crasher (ITS#3700)
+	Build Environment
+		Improved thread set stack size support
 
 OpenLDAP 2.2.26 Release
 	Fixed back-bdb ldapadd ctxcsn crash (ITS#3685)
