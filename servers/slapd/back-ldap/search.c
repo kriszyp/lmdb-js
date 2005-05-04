@@ -119,18 +119,22 @@ retry:
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
-		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
-			if ( do_retry ) {
-				do_retry = 0;
-				if ( ldap_back_retry( lc, op, rs, LDAP_BACK_DONTSEND ) ) {
-					goto retry;
-				}
-			}
-			rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
-			ldap_back_freeconn( op, lc );
-			lc = NULL;
+		if ( rs->sr_err != LDAP_SERVER_DOWN ) {
+			rs->sr_err = slap_map_api2result( rs );
+			rs->sr_text = NULL;
 			goto finish;
 		}
+
+		if ( do_retry ) {
+			do_retry = 0;
+			if ( ldap_back_retry( lc, op, rs, LDAP_BACK_DONTSEND ) ) {
+				goto retry;
+			}
+		}
+		rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
+		ldap_back_freeconn( op, lc );
+		lc = NULL;
+		goto finish;
 	}
 
 	/* We pull apart the ber result, stuff it into a slapd entry, and
