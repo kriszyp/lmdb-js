@@ -1158,6 +1158,14 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionActivityTime) },
+		{ "monitorIsShadow", "( 1.3.6.1.4.1.4203.666.1.52 "
+			"NAME 'monitorIsShadow' "
+			"DESC 'TRUE if the database is shadow' "
+			"EQUALITY booleanMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+			"SINGLE-VALUE "
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorIsShadow) },
 		{ NULL, NULL, 0, -1 }
 	};
 	
