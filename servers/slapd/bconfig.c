@@ -2498,6 +2498,8 @@ int
 read_config(const char *fname, const char *dir) {
 	BackendDB *be;
 	CfBackInfo *cfb;
+	const char *cfdir, *cfname;
+	int rc;
 
 	/* Setup the config backend */
 	be = backend_db_init( "config" );
@@ -2518,11 +2520,12 @@ read_config(const char *fname, const char *dir) {
 						dir, errno, 0 );
 				return 1;
 			}
+			cfdir = dir;
 		} else {
-			dir = SLAPD_DEFAULT_CONFIGDIR;
+			cfdir = SLAPD_DEFAULT_CONFIGDIR;
 		}
 		/* if fname is defaulted, try reading .d */
-		if ( config_setup_ldif( be, dir, !fname ))
+		if ( config_setup_ldif( be, cfdir, !fname ))
 			return 1;
 
 		/* If we read the config from back-ldif, nothing to do here */
@@ -2530,11 +2533,35 @@ read_config(const char *fname, const char *dir) {
 			return 0;
 	}
 
-	if ( !fname )
-		fname = SLAPD_DEFAULT_CONFIGFILE;
-	ber_str2bv( fname, 0, 1, &cf_prv.c_file );
+	if ( fname )
+		cfname = fname;
+	else
+		cfname = SLAPD_DEFAULT_CONFIGFILE;
 
-	return read_config_file(fname, 0, NULL);
+	rc = read_config_file(cfname, 0, NULL);
+
+	if ( rc == 0 )
+		ber_str2bv( cfname, 0, 1, &cf_prv.c_file );
+
+	/* If we got this far and failed, it may be a serious problem. In server
+	 * mode, we should never come to this. However, it may be alright if we're
+	 * using slapadd to create the conf dir.
+	 */
+	while ( rc ) {
+		if ( slapMode & (SLAP_SERVER_MODE|SLAP_TOOL_READMAIN|SLAP_TOOL_READONLY))
+			break;
+		/* If a config file was explicitly given, fail */
+		if ( fname )
+			break;
+		
+		/* Seems to be slapadd with a config dir, let it continue */
+		if ( cfb->cb_use_ldif ) {
+			rc = 0;
+			cfb->cb_got_ldif = 1;
+		}
+		break;
+	}
+	return rc;
 }
 
 static int
@@ -2847,7 +2874,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	CfOcInfo **colst;
 	Attribute *a, *oc_at, *type_attr;
 	AttributeDescription *type_ad = NULL;
-	int i, j, nocs, rc;
+	int i, j, nocs, rc = 0;
 	ConfigArgs ca = {0};
 	struct berval pdn;
 	ConfigTable *ct, *type_ct = NULL;
@@ -4026,6 +4053,80 @@ config_back_destroy( BackendInfo *bi )
 	return 0;
 }
 
+static int
+config_tool_entry_open( BackendDB *be, int mode )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_open )
+		return bi->bi_tool_entry_open( &cfb->cb_db, mode );
+	else
+		return -1;
+	
+}
+
+static int
+config_tool_entry_close( BackendDB *be )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_close )
+		return bi->bi_tool_entry_close( &cfb->cb_db );
+	else
+		return -1;
+}
+
+static ID
+config_tool_entry_first( BackendDB *be )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_first )
+		return bi->bi_tool_entry_first( &cfb->cb_db );
+	else
+		return NOID;
+}
+
+static ID
+config_tool_entry_next( BackendDB *be )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_next )
+		return bi->bi_tool_entry_next( &cfb->cb_db );
+	else
+		return NOID;
+}
+
+static Entry *
+config_tool_entry_get( BackendDB *be, ID id )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_get )
+		return bi->bi_tool_entry_get( &cfb->cb_db, id );
+	else
+		return NULL;
+}
+
+static ID
+config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_put &&
+		config_add_internal( cfb, e, NULL, NULL ) == 0 )
+		return bi->bi_tool_entry_put( &cfb->cb_db, e, text );
+	else
+		return NOID;
+}
+
 static struct {
 	char *name;
 	AttributeDescription **desc;
@@ -4106,6 +4207,13 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_tool_entry_open = config_tool_entry_open;
+	bi->bi_tool_entry_close = config_tool_entry_close;
+	bi->bi_tool_entry_first = config_tool_entry_first;
+	bi->bi_tool_entry_next = config_tool_entry_next;
+	bi->bi_tool_entry_get = config_tool_entry_get;
+	bi->bi_tool_entry_put = config_tool_entry_put;
 
 	argv[3] = NULL;
 	for (i=0; OidMacros[i].name; i++ ) {
