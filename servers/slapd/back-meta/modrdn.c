@@ -40,7 +40,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	struct berval		mdn = BER_BVNULL,
 				mnewSuperior = BER_BVNULL;
 	dncookie		dc;
-	int			msgid, do_retry = 1;
+	int			do_retry = 1;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
@@ -48,7 +48,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	}
 
 	assert( mc->mc_conns[ candidate ].msc_ld != NULL );
-		
+
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 
@@ -82,7 +82,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */
-		dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
+		dc.target = &mi->mi_targets[ candidate ];
 		dc.ctx = "newSuperiorDN";
 		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
 			rs->sr_err = LDAP_OTHER;
@@ -93,7 +93,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
+	dc.target = &mi->mi_targets[ candidate ];
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rs->sr_err = LDAP_OTHER;

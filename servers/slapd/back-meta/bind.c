@@ -115,11 +115,11 @@ meta_back_bind( Operation *op, SlapReply *rs )
 					0, 0, 0 );
 		}
 
-		if ( isroot && !BER_BVISNULL( &mi->mi_targets[ i ]->mt_pseudorootdn ) )
+		if ( isroot && !BER_BVISNULL( &mi->mi_targets[ i ].mt_pseudorootdn ) )
 		{
-			op2.o_req_dn = mi->mi_targets[ i ]->mt_pseudorootdn;
-			op2.o_req_ndn = mi->mi_targets[ i ]->mt_pseudorootdn;
-			op2.orb_cred = mi->mi_targets[ i ]->mt_pseudorootpw;
+			op2.o_req_dn = mi->mi_targets[ i ].mt_pseudorootdn;
+			op2.o_req_ndn = mi->mi_targets[ i ].mt_pseudorootdn;
+			op2.orb_cred = mi->mi_targets[ i ].mt_pseudorootpw;
 			op2.orb_method = LDAP_AUTH_SIMPLE;
 		}
 		
@@ -177,7 +177,7 @@ meta_back_single_bind(
 	int			candidate )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metatarget_t		*mt = &mi->mi_targets[ candidate ];
 	struct berval		mdn = BER_BVNULL;
 	dncookie		dc;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
@@ -187,7 +187,7 @@ meta_back_single_bind(
 	/*
 	 * Rewrite the bind dn if needed
 	 */
-	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
+	dc.target = &mi->mi_targets[ candidate ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "bindDN";
@@ -326,7 +326,7 @@ meta_back_single_dobind(
 	int			nretries )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metatarget_t		*mt = &mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc;
 	struct berval		cred = BER_BVC( "" );
@@ -469,7 +469,7 @@ meta_back_dobind(
 	}
 
 	for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); ++i, ++msc ) {
-		metatarget_t	*mt = mi->mi_targets[ i ];
+		metatarget_t	*mt = &mi->mi_targets[ i ];
 		int		rc;
 
 		/*

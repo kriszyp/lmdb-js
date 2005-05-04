@@ -39,7 +39,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	int		candidate = -1;
 	struct berval	mdn = BER_BVNULL;
 	dncookie	dc;
-	int		msgid, do_retry = 1;
+	int		do_retry = 1;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
 	if ( !mc || !meta_back_dobind( op, rs, mc, LDAP_BACK_SENDERR ) ) {
@@ -51,7 +51,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
+	dc.target = &mi->mi_targets[ candidate ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "deleteDN";

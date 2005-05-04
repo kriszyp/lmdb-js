@@ -70,15 +70,15 @@ struct ldaprwmap {
 
 /* Whatever context ldap_back_dn_massage needs... */
 typedef struct dncookie {
-	struct ldaprwmap *rwmap;
+	struct metatarget_t	*target;
 
 #ifdef ENABLE_REWRITE
-	Connection *conn;
-	char *ctx;
-	SlapReply *rs;
+	Connection		*conn;
+	char			*ctx;
+	SlapReply		*rs;
 #else
-	int normalized;
-	int tofrom;
+	int			normalized;
+	int			tofrom;
 #endif
 } dncookie;
 
@@ -156,6 +156,8 @@ ldap_dnattr_result_rewrite(
 
 /* (end of) from back-ldap.h before rwm removal */
 
+struct metainfo_t;
+
 typedef struct metasingleconn_t {
 	int			msc_candidate;
 #define	META_NOT_CANDIDATE	((ber_tag_t)0)
@@ -169,6 +171,8 @@ typedef struct metasingleconn_t {
 #define META_UNBOUND		0
 #define META_BOUND		1
 #define META_ANONYMOUS		2
+
+	struct metainfo_t	*msc_info;
 } metasingleconn_t;
 
 #define META_LAST(msc)		((msc)->msc_candidate == META_LAST_CONN)
@@ -190,8 +194,10 @@ typedef struct metaconn_t {
 
 typedef struct metatarget_t {
 	char			*mt_uri;
+
 	struct berval		mt_psuffix;		/* pretty suffix */
 	struct berval		mt_nsuffix;		/* normalized suffix */
+
 	struct berval		mt_binddn;
 	struct berval		mt_bindpw;
 
@@ -205,6 +211,9 @@ typedef struct metatarget_t {
 #define META_RETRY_DEFAULT	(3)
 
 	struct ldaprwmap	mt_rwmap;
+
+	unsigned		mt_flags;
+	int			mt_version;
 } metatarget_t;
 
 typedef struct metadncache_t {
@@ -223,7 +232,7 @@ typedef struct metainfo_t {
 #define META_DEFAULT_TARGET_NONE	(-1)
 	int			mi_nretries;
 
-	metatarget_t		**mi_targets;
+	metatarget_t		*mi_targets;
 	SlapReply		*mi_candidates;
 
 	metadncache_t		mi_cache;
@@ -237,9 +246,13 @@ typedef struct metainfo_t {
 #define LDAP_BACK_F_NONE		0x00U
 #define LDAP_BACK_F_SAVECRED		0x01U
 #define LDAP_BACK_F_USE_TLS		0x02U
-#define LDAP_BACK_F_TLS_CRITICAL	( 0x04U | LDAP_BACK_F_USE_TLS )
-#define LDAP_BACK_F_CHASE_REFERRALS	0x8U
+#define LDAP_BACK_F_PROPAGATE_TLS	0x04U
+#define LDAP_BACK_F_TLS_CRITICAL	0x08U
+#define LDAP_BACK_F_TLS_MASK		(LDAP_BACK_F_USE_TLS|LDAP_BACK_F_PROPAGATE_TLS|LDAP_BACK_F_TLS_CRITICAL)
+#define LDAP_BACK_F_CHASE_REFERRALS	0x10U
 #endif
+
+	int			mi_version;
 } metainfo_t;
 
 typedef enum meta_op_type {

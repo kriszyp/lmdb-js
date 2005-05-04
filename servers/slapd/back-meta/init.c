@@ -45,7 +45,7 @@ meta_back_initialize(
 
 	bi->bi_db_init = meta_back_db_init;
 	bi->bi_db_config = meta_back_db_config;
-	bi->bi_db_open = 0;
+	bi->bi_db_open = meta_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = meta_back_db_destroy;
 
@@ -92,8 +92,31 @@ meta_back_db_init(
 
 	/* safe default */
 	mi->mi_nretries = META_RETRY_DEFAULT;
+	mi->mi_version = LDAP_VERSION3;
 	
 	be->be_private = mi;
+
+	return 0;
+}
+
+int
+meta_back_db_open(
+	Backend		*be )
+{
+	metainfo_t	*mi = (metainfo_t *)be->be_private;
+
+	int		i, rc;
+
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		if ( mi->mi_targets[ i ].mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+			mi->mi_targets[ i ].mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+			rc = ldap_back_discover_t_f_support( mi->mi_targets[ i ].mt_uri,
+					mi->mi_targets[ i ].mt_version );
+			if ( rc == LDAP_COMPARE_TRUE ) {
+				mi->mi_targets[ i ].mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
+			}
+		}
+	}
 
 	return 0;
 }
@@ -193,8 +216,7 @@ meta_back_db_destroy(
 		 * least one ...)
 		 */
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			target_free( mi->mi_targets[ i ] );
-			free( mi->mi_targets[ i ] );
+			target_free( &mi->mi_targets[ i ] );
 		}
 
 		free( mi->mi_targets );

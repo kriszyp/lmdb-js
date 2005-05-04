@@ -76,12 +76,12 @@ meta_back_search_start(
 				( void * )&op->ors_slimit);
 	}
 
-	dc->rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
+	dc->target = &mi->mi_targets[ candidate ];
 
 	/*
 	 * modifies the base according to the scope, if required
 	 */
-	suffixlen = mi->mi_targets[ candidate ]->mt_nsuffix.bv_len;
+	suffixlen = mi->mi_targets[ candidate ].mt_nsuffix.bv_len;
 	if ( suffixlen > op->o_req_ndn.bv_len ) {
 		switch ( op->ors_scope ) {
 		case LDAP_SCOPE_SUBTREE:
@@ -93,10 +93,10 @@ meta_back_search_start(
 			 * the requested searchBase already passed
 			 * thru the candidate analyzer...
 			 */
-			if ( dnIsSuffix( &mi->mi_targets[ candidate ]->mt_nsuffix,
+			if ( dnIsSuffix( &mi->mi_targets[ candidate ].mt_nsuffix,
 					&op->o_req_ndn ) )
 			{
-				realbase = mi->mi_targets[ candidate ]->mt_nsuffix;
+				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
 
 			} else {
 				/*
@@ -108,17 +108,17 @@ meta_back_search_start(
 
 		case LDAP_SCOPE_ONELEVEL:
 		{
-			struct berval	rdn = mi->mi_targets[ candidate ]->mt_nsuffix;
+			struct berval	rdn = mi->mi_targets[ candidate ].mt_nsuffix;
 			rdn.bv_len -= op->o_req_ndn.bv_len + STRLENOF( "," );
 			if ( dnIsOneLevelRDN( &rdn )
-					&& dnIsSuffix( &mi->mi_targets[ candidate ]->mt_nsuffix, &op->o_req_ndn ) )
+					&& dnIsSuffix( &mi->mi_targets[ candidate ].mt_nsuffix, &op->o_req_ndn ) )
 			{
 				/*
 				 * if there is exactly one level,
 				 * make the target suffix the new
 				 * base, and make scope "base"
 				 */
-				realbase = mi->mi_targets[ candidate ]->mt_nsuffix;
+				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
 				realscope = LDAP_SCOPE_BASE;
 				break;
 			} /* else continue with the next case */
@@ -175,7 +175,7 @@ meta_back_search_start(
 	/*
 	 * Maps required attributes
 	 */
-	rc = ldap_back_map_attrs( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
+	rc = ldap_back_map_attrs( &mi->mi_targets[ candidate ].mt_rwmap.rwm_at,
 			op->ors_attrs, BACKLDAP_MAP, &mapped_attrs );
 	if ( rc != LDAP_SUCCESS ) {
 		/*
@@ -506,7 +506,7 @@ really_bad:;
 							0, 0, &match );
 
 						dc.ctx = "matchedDN";
-						dc.rwmap = &mi->mi_targets[ i ]->mt_rwmap;
+						dc.target = &mi->mi_targets[ i ];
 
 						if ( !ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
 							if ( mmatch.bv_val == match.bv_val ) {
@@ -764,7 +764,7 @@ meta_send_entry(
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
-	dc.rwmap = &mi->mi_targets[ target ]->mt_rwmap;
+	dc.target = &mi->mi_targets[ target ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "searchResult";
@@ -801,7 +801,7 @@ meta_send_entry(
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		int		last = 0;
 
-		ldap_back_map( &mi->mi_targets[ target ]->mt_rwmap.rwm_at, 
+		ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
 		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
 			continue;
@@ -859,7 +859,7 @@ meta_send_entry(
 			for ( last = 0; !BER_BVISNULL( &attr->a_vals[ last ] ); ++last );
 
 			for ( bv = attr->a_vals; !BER_BVISNULL( bv ); bv++ ) {
-				ldap_back_map( &mi->mi_targets[ target ]->mt_rwmap.rwm_oc,
+				ldap_back_map( &mi->mi_targets[ target ].mt_rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
 				if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0') {
 					free( bv->bv_val );

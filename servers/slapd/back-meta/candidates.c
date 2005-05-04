@@ -115,7 +115,7 @@ meta_back_select_unique_candidate(
 	int	i, candidate = META_TARGET_NONE;
 
 	for ( i = 0; i < mi->mi_ntargets; ++i ) {
-		if ( meta_back_is_candidate( &mi->mi_targets[ i ]->mt_nsuffix, ndn, LDAP_SCOPE_BASE ) )
+		if ( meta_back_is_candidate( &mi->mi_targets[ i ].mt_nsuffix, ndn, LDAP_SCOPE_BASE ) )
 		{
 			if ( candidate == META_TARGET_NONE ) {
 				candidate = i;

@@ -32,6 +32,7 @@ extern BI_close			meta_back_close;
 extern BI_destroy		meta_back_destroy;
 
 extern BI_db_init		meta_back_db_init;
+extern BI_db_open		meta_back_db_open;
 extern BI_db_destroy		meta_back_db_destroy;
 extern BI_db_config		meta_back_db_config;
 
