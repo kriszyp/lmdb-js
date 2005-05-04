@@ -511,11 +511,15 @@ ldap_back_filter_map_rewrite(
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
 			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, ftmp.bv_val, fstr->bv_val );		
+			dc->ctx,
+			BER_BVISNULL( &ftmp ) ? "" : ftmp.bv_val,
+			BER_BVISNULL( fstr ) ? "" : fstr->bv_val );		
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
-			dc->ctx, ftmp.bv_val, fstr->bv_val );		
+			dc->ctx,
+			BER_BVISNULL( &ftmp ) ? "" : ftmp.bv_val,
+			BER_BVISNULL( fstr ) ? "" : fstr->bv_val );		
 #endif /* !NEW_LOGGING */
 		rc = LDAP_SUCCESS;
 		break;
