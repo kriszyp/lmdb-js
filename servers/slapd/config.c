@@ -44,6 +44,13 @@
 #define ARGS_STEP	512
 
 /*
+ * ITS#3705: bail out if unknown config directives appear in slapd.conf
+ */
+#ifdef LDAP_DEVEL
+#define SLAPD_CONF_UNKNOWN_BAILOUT
+#endif /* LDAP_DEVEL */
+
+/*
  * defaults for various global variables
  */
 slap_mask_t		global_allows = 0;
@@ -607,10 +614,16 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+					Debug(LDAP_DEBUG_CONFIG, "%s: "
+						"unknown directive <%s> inside backend info definition\n",
+						c->log, *c->argv, 0);
+#else /* !SLAPD_CONF_UNKNOWN_BAILOUT */
 					Debug(LDAP_DEBUG_CONFIG, "%s: "
 						"unknown directive <%s> inside backend info definition (ignored)\n",
 						c->log, *c->argv, 0);
 					continue;
+#endif /* !SLAPD_CONF_UNKNOWN_BAILOUT */
 				default:
 					rc = 1;
 					goto leave;
@@ -632,11 +645,18 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+					Debug( LDAP_DEBUG_CONFIG, "%s: "
+						"unknown directive <%s> inside backend database "
+						"definition\n",
+						c->log, *c->argv, 0);
+#else /* !SLAPD_CONF_UNKNOWN_BAILOUT */
 					Debug( LDAP_DEBUG_CONFIG, "%s: "
 						"unknown directive <%s> inside backend database "
 						"definition (ignored)\n",
 						c->log, *c->argv, 0);
 					continue;
+#endif /* !SLAPD_CONF_UNKNOWN_BAILOUT */
 				default:
 					rc = 1;
 					goto leave;
@@ -648,10 +668,16 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+					Debug( LDAP_DEBUG_CONFIG, "%s: "
+						"unknown directive <%s> inside global database definition\n",
+						c->log, *c->argv, 0);
+#else /* !SLAPD_CONF_UNKNOWN_BAILOUT */
 					Debug( LDAP_DEBUG_CONFIG, "%s: "
 						"unknown directive <%s> inside global database definition (ignored)\n",
 						c->log, *c->argv, 0);
 					continue;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				default:
 					rc = 1;
 					goto leave;
@@ -659,11 +685,18 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			}
 			
 		} else {
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+			Debug(LDAP_DEBUG_CONFIG, "%s: "
+				"unknown directive <%s> outside backend info and database definitions\n",
+				c->log, *c->argv, 0);
+			rc = 1;
+			goto leave;
+#else /* !SLAPD_CONF_UNKNOWN_BAILOUT */
 			Debug(LDAP_DEBUG_CONFIG, "%s: "
 				"unknown directive <%s> outside backend info and database definitions (ignored)\n",
 				c->log, *c->argv, 0);
 			continue;
-
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 		}
 	}
 
