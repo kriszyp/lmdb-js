@@ -1310,6 +1310,10 @@ rwm_db_config(
     char	**argv
 )
 {
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
 	int		rc = 0;
 	char		*argv0 = NULL;
 
@@ -1326,6 +1330,33 @@ rwm_db_config(
 
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
 		rc = rwm_suffixmassage_config( be, fname, lineno, argc, argv );
+
+	} else if ( strcasecmp( argv[0], "t-f-support" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+		"%s: line %d: \"t-f-support {no|yes|discover}\" needs 1 argument.\n",
+					fname, lineno );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			rwmap->rwm_flags &= ~(RWM_F_SUPPORT_T_F|RWM_F_SUPPORT_T_F_DISCOVER);
+
+		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F;
+
+#if 0
+		/* TODO: not implemented yet */
+		} else if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
+			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F_DISCOVER;
+#endif
+
+		} else {
+			fprintf( stderr,
+	"%s: line %d: unknown value \"%s\" for \"t-f-support {no|yes|discover}\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
 
 	} else {
 		rc = SLAP_CONF_UNKNOWN;
