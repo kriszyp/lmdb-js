@@ -4,7 +4,7 @@ OpenLDAP 2.2.27 Engineering
 	Fixed syncrepl runqueue (ITS#3542)
 	Fixed ACL val default style parsing crasher (ITS#3700)
 	Build Environment
-		Improved thread set stack size support
+		Improved thread set stack size support (ITS#3691)
 
 OpenLDAP 2.2.26 Release
 	Fixed back-bdb ldapadd ctxcsn crash (ITS#3685)
@@ -21,7 +21,7 @@ OpenLDAP 2.2.25 Release
 	Fixed back-monitor attribute normalization bug (ITS#3659)
 	Removed broken libldap fast synchronous search result processing (ITS#3612)
 	Build Environment
-		Added improved configure logging
+		Added improved configure logging (ITS#3605)
 
 OpenLDAP 2.2.24 Release
 	Fixed slapd "chldren:" typo (ITS#3560)
