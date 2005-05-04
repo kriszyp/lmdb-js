@@ -582,8 +582,10 @@ bdb_db_close( BackendDB *be )
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
-		/* force a checkpoint */
-		if ( !( slapMode & SLAP_TOOL_QUICK )) {
+		/* force a checkpoint, but not if we were ReadOnly,
+		 * and not in Quick mode since there are no transactions there.
+		 */
+		if ( !( slapMode & ( SLAP_TOOL_QUICK|SLAP_TOOL_READONLY ))) {
 			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
 			if( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
