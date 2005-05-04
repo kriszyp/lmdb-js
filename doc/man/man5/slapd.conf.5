@@ -409,8 +409,6 @@ disallow (default none).
 disables acceptance of anonymous bind requests.
 .B bind_simple
 disables simple (bind) authentication.
-.B bind_krbv4
-disables Kerberos V4 (bind) authentication.
 .B tls_2_anon
 disables Start TLS from forcing session to anonymous status (see also
 .BR tls_authc ).
@@ -841,11 +839,6 @@ The default is 262143.
 .B sockbuf_max_incoming_auth <integer>
 Specify the maximum incoming LDAP PDU size for authenticated sessions.
 The default is 4194303.
-.TP
-.B srvtab <filename>
-Specify the srvtab file in which the kerberos keys necessary for
-authenticating clients using kerberos can be found. This option is only
-meaningful if you are using Kerberos authentication.
 .TP
 .B threads <integer>
 Specify the maximum size of the primary thread pool.
