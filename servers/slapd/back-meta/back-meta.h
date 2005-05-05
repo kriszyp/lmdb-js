@@ -162,7 +162,6 @@ typedef struct metasingleconn_t {
 	int			msc_candidate;
 #define	META_NOT_CANDIDATE	((ber_tag_t)0)
 #define	META_CANDIDATE		((ber_tag_t)1)
-#define	META_LAST_CONN		((ber_tag_t)(-1))
 	
 	LDAP            	*msc_ld;
 	struct berval          	msc_bound_ndn;
@@ -174,8 +173,6 @@ typedef struct metasingleconn_t {
 
 	struct metainfo_t	*msc_info;
 } metasingleconn_t;
-
-#define META_LAST(msc)		((msc)->msc_candidate == META_LAST_CONN)
 
 typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;

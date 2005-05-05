@@ -36,7 +36,6 @@ meta_back_compare( Operation *op, SlapReply *rs )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t		*mc;
-	metasingleconn_t	*msc;
 	char			*match = NULL,
 				*err = NULL;
 	struct berval		mmatch = BER_BVNULL;
@@ -69,10 +68,11 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	dc.rs = rs;
 	dc.ctx = "compareDN";
 
-	for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); ++i, ++msc ) {
-		struct berval mdn = BER_BVNULL;
-		struct berval mapped_attr = op->orc_ava->aa_desc->ad_cname;
-		struct berval mapped_value = op->orc_ava->aa_value;
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		metasingleconn_t	*msc = &mc->mc_conns[ i ];
+		struct berval		mdn = BER_BVNULL;
+		struct berval		mapped_attr = op->orc_ava->aa_desc->ad_cname;
+		struct berval		mapped_value = op->orc_ava->aa_value;
 
 		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
 			msgid[ i ] = -1;
@@ -171,10 +171,11 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * FIXME: should we check for abandon?
 		 */
-		for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); msc++, i++ ) {
-			int		lrc;
-			LDAPMessage	*res = NULL;
-			struct timeval	tv = { 0 };
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			metasingleconn_t	*msc = &mc->mc_conns[ i ];
+			int			lrc;
+			LDAPMessage		*res = NULL;
+			struct timeval		tv = { 0 };
 
 			tv.tv_sec = 0;
 			tv.tv_usec = 0;

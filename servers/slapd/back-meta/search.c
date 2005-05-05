@@ -220,7 +220,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t		*mc;
-	metasingleconn_t	*msc;
 	struct timeval		tv = { 0, 0 };
 	LDAPMessage		*res = NULL, *e;
 	int			rc = 0, sres = LDAP_SUCCESS;
@@ -249,7 +248,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	/*
 	 * Inits searches
 	 */
-	for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); ++i, ++msc ) {
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		metasingleconn_t	*msc = &mc->mc_conns[ i ];
+
 		candidates[ i ].sr_msgid = -1;
 
 		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
@@ -319,7 +320,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 	for ( rc = 0; ncandidates > 0; ) {
 		int	gotit = 0, doabandon = 0;
 
-		for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); msc++, i++ ) {
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			metasingleconn_t	*msc = &mc->mc_conns[ i ];
+
 			if ( candidates[ i ].sr_msgid == -1 ) {
 				continue;
 			}
@@ -607,7 +610,9 @@ really_bad:;
 
 		/* check for abandon */
 		if ( op->o_abandon || doabandon ) {
-			for ( i = 0, msc = mc->mc_conns; !META_LAST( msc ); msc++, i++ ) {
+			for ( i = 0; i < mi->mi_ntargets; i++ ) {
+				metasingleconn_t	*msc = &mc->mc_conns[ i ];
+
 				if ( candidates[ i ].sr_msgid != -1 ) {
 					ldap_abandon_ext( msc->msc_ld,
 						candidates[ i ].sr_msgid,

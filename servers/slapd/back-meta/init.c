@@ -128,17 +128,24 @@ conn_free(
 	void 		*v_mc )
 {
 	metaconn_t		*mc = v_mc;
-	metasingleconn_t	*msc;
+	int			i, ntargets;
 
 	assert( mc->mc_conns != NULL );
 
-	for ( msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); msc++ ) {
+	/* at least one must be present... */
+	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
+
+	for ( i = 0; i < ntargets; i++ ) {
+		metasingleconn_t	*msc = &mc->mc_conns[ i ];
+
 		if ( msc->msc_ld != NULL ) {
 			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
 		}
+
 		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
 			ber_memfree( msc->msc_bound_ndn.bv_val );
 		}
+
 		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 			/* destroy sensitive data */
 			memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
