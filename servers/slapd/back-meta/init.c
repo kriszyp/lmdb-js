@@ -110,8 +110,10 @@ meta_back_db_open(
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
 		if ( mi->mi_targets[ i ].mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
 			mi->mi_targets[ i ].mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
-			rc = ldap_back_discover_t_f_support( mi->mi_targets[ i ].mt_uri,
-					mi->mi_targets[ i ].mt_version );
+			rc = slap_discover_feature( mi->mi_targets[ i ].mt_uri,
+					mi->mi_targets[ i ].mt_version,
+					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
+					LDAP_FEATURE_ABSOLUTE_FILTERS );
 			if ( rc == LDAP_COMPARE_TRUE ) {
 				mi->mi_targets[ i ].mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
 			}

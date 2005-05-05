@@ -1185,6 +1185,12 @@ LDAP_SLAPD_F (int) root_dse_info LDAP_P((
 LDAP_SLAPD_F (int) read_root_dse_file LDAP_P((
 	const char *file));
 
+LDAP_SLAPD_F (int) slap_discover_feature LDAP_P((
+	const char	*uri,
+	int		version,
+	const char	*attr,
+	const char	*val ));
+
 /*
  * sasl.c
  */
