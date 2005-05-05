@@ -113,12 +113,82 @@ ldap_back_db_init( Backend *be )
 	/* initialize flags */
 	li->flags = LDAP_BACK_F_CHASE_REFERRALS;
 
+	/* initialize version */
+	li->version = LDAP_VERSION3;
+
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 
 	be->be_private = li;
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_NOLASTMOD;
 
 	return 0;
+}
+
+int
+ldap_back_discover_t_f_support( const char *uri, int version )
+{
+	LDAP		*ld;
+	LDAPMessage	*res = NULL, *entry;
+	int		rc, i;
+	struct berval	cred = BER_BVC( "" ),
+			absoluteFilters = BER_BVC( LDAP_FEATURE_ABSOLUTE_FILTERS ),
+			**values = NULL;
+	char		*attrs[ 2 ] = { "supportedFeatures", NULL };
+
+	rc = ldap_initialize( &ld, uri );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	rc = ldap_sasl_bind_s( ld, "", LDAP_SASL_SIMPLE,
+			&cred, NULL, NULL, NULL );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	rc = ldap_search_ext_s( ld, "", LDAP_SCOPE_BASE, "(objectClass=*)",
+			attrs, 0, NULL, NULL, NULL, 0, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	entry = ldap_first_entry( ld, res );
+	if ( entry == NULL ) {
+		goto done;
+	}
+
+	values = ldap_get_values_len( ld, entry, attrs[ 0 ] );
+	if ( values == NULL ) {
+		rc = LDAP_NO_SUCH_ATTRIBUTE;
+		goto done;
+	}
+
+	for ( i = 0; values[ i ] != NULL; i++ ) {
+		if ( bvmatch( &absoluteFilters, values[ i ] ) ) {
+			rc = LDAP_COMPARE_TRUE;
+			goto done;
+		}
+	}
+
+	rc = LDAP_COMPARE_FALSE;
+
+done:;
+	if ( values != NULL ) {
+		ldap_value_free_len( values );
+	}
+
+	if ( res != NULL ) {
+		ldap_msgfree( res );
+	}
+
+	ldap_unbind_ext( ld, NULL, NULL );
+
+	return rc;
 }
 
 int
@@ -174,6 +244,17 @@ ldap_back_db_open( BackendDB *be )
 		ch_free( filter.bv_val );
 	}
 #endif /* SLAPD_MONITOR */
+
+	if ( li->flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+		int		rc;
+
+		li->flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+
+		rc = ldap_back_discover_t_f_support( li->url, li->version );
+		if ( rc == LDAP_COMPARE_TRUE ) {
+			li->flags |= LDAP_BACK_F_SUPPORT_T_F;
+		}
+	}
 
 	return 0;
 }

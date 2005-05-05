@@ -46,6 +46,8 @@ ldap_back_search(
 		Operation	*op,
 		SlapReply	*rs )
 {
+	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
+
 	struct ldapconn *lc;
 	struct timeval	tv;
 	LDAPMessage	*res,
@@ -54,7 +56,11 @@ ldap_back_search(
 			msgid; 
 	struct berval	match = BER_BVNULL;
 	int		i;
-	char		**attrs = NULL;
+	char		**attrs = NULL,
+			*filter = NULL;
+	static struct berval
+			bv_true = BER_BVC( "(?=true)" ),
+			bv_false = BER_BVC( "(?=false)" );
 	int		dontfreetext = 0;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
@@ -109,10 +115,20 @@ ldap_back_search(
 		dontfreetext = 1;
 		goto finish;
 	}
-	
+
+	/* deal with <draft-zeilenga-ldap-t-f> filters */
+	filter = op->ors_filterstr.bv_val;
+	if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
+		if ( bvmatch( &op->ors_filterstr, &bv_true ) ) {
+			filter = "(&)";
+		} else if ( bvmatch( &op->ors_filterstr, &bv_false ) ) {
+			filter = "(|)";
+		}
+	}
+
 retry:
 	rs->sr_err = ldap_search_ext( lc->lc_ld, op->o_req_ndn.bv_val,
-			op->ors_scope, op->ors_filterstr.bv_val,
+			op->ors_scope, filter,
 			attrs, op->ors_attrsonly, ctrls, NULL,
 			tv.tv_sec ? &tv : NULL,
 			op->ors_slimit, &msgid );
