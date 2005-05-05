@@ -76,7 +76,9 @@ struct runqueue_s slapd_rq;
 
 Listener **slap_listeners = NULL;
 
-#define SLAPD_LISTEN 10
+#ifndef SLAPD_LISTEN_BACKLOG
+#define SLAPD_LISTEN_BACKLOG 1024
+#endif
 
 static ber_socket_t wake_sds[2];
 static int emfile;
@@ -1523,7 +1525,7 @@ slapd_daemon_task(
 		}
 #endif
 
-		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN ) == -1 ) {
+		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN_BACKLOG ) == -1 ) {
 			int err = sock_errno();
 
 #ifdef LDAP_PF_INET6
