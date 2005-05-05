@@ -1609,6 +1609,14 @@ config_rootdn(ConfigArgs *c) {
 static int
 config_rootpw(ConfigArgs *c) {
 	Backend *tbe;
+	/* config_add_internal leaves c->be NULL for the global entry, but
+	 * the parser stuffs frontendDB in instead. While the cn=config
+	 * rootpw is technically inside a backend, we expose it in the
+	 * global entry, and need to point to it properly here.
+	 */
+	if (c->be == frontendDB)
+		c->be = LDAP_STAILQ_FIRST(&backendDB);
+
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if (!BER_BVISEMPTY(&c->be->be_rootpw)) {
 			ber_dupbv( &c->value_bv, &c->be->be_rootpw);
@@ -2949,11 +2957,12 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 		/* The cn=schema entry is all hardcoded, so never reparse it */
 		if (last->ce_type == Cft_Global )
 			goto ok;
-		/* FALLTHRU */
-		ca.private = ch_calloc( 1, sizeof(ConfigFile) );
-		cfn = ca.private;
+		cfn = ch_calloc( 1, sizeof(ConfigFile) );
+		ca.private = cfn;
+		break;
 	case Cft_Global:
-		ca.be = LDAP_STAILQ_FIRST(&backendDB);
+		cfn = &cf_prv;
+		ca.private = cfn;
 		break;
 
 	case Cft_Backend:
