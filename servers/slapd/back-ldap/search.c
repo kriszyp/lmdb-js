@@ -93,7 +93,8 @@ munge_filter(
 			}
 
 		} else {
-			continue;
+			gotit = 0;
+			goto done;
 		}
 
 		oldfilter = *filter;
@@ -123,6 +124,7 @@ munge_filter(
 		gotit = 1;
 	}
 
+done:;
 	Debug( LDAP_DEBUG_ARGS, "<= ldap_back_munge_filter \"%s\" (%d)\n",
 			filter->bv_val, gotit, 0 );
 
@@ -227,7 +229,11 @@ fail:;
 			if ( munge_filter( op, &filter ) ) {
 				goto retry;
 			}
-			/* fallthru */
+
+			/* invalid filters return success with no data */
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_text = NULL;
+			goto finish;
 		
 		default:
 			rs->sr_err = slap_map_api2result( rs );
