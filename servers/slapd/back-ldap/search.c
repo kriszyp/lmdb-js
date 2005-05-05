@@ -118,11 +118,22 @@ ldap_back_search(
 
 	/* deal with <draft-zeilenga-ldap-t-f> filters */
 	filter = op->ors_filterstr.bv_val;
-	if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
-		if ( bvmatch( &op->ors_filterstr, &bv_true ) ) {
+	if ( bvmatch( &op->ors_filterstr, &bv_true ) ) {
+		if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
 			filter = "(&)";
-		} else if ( bvmatch( &op->ors_filterstr, &bv_false ) ) {
+
+		} else {
+			/* better than nothing... */
+			filter = "(objectClass=*)";
+		}
+
+	} else if ( bvmatch( &op->ors_filterstr, &bv_false ) ) {
+		if ( li->flags & LDAP_BACK_F_SUPPORT_T_F ) {
 			filter = "(|)";
+
+		} else {
+			/* better than nothing... */
+			filter = "(!(objectClass=*))";
 		}
 	}
 
