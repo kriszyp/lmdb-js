@@ -27,18 +27,7 @@ SRCS = overlays.c \
 	translucent.c \
 	unique.c
 OBJS = overlays.lo \
-	denyop.lo \
-	dyngroup.lo \
-	dynlist.lo \
-	glue.lo \
-	lastmod.lo \
-	pcache.lo \
-	ppolicy.lo \
-	refint.lo \
-	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo \
-	syncprov.lo \
-	translucent.lo \
-	unique.lo
+	@SLAPD_STATIC_OVERLAYS@
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -54,6 +43,10 @@ PROGRAMS = @SLAPD_DYNAMIC_OVERLAYS@
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
+
+static:	$(LIBRARY)
+
+dynamic: $(PROGRAMS)
 
 denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
@@ -79,6 +72,9 @@ ppolicy.la : ppolicy.lo $(@PLAT@_LINK_LIBS)
 refint.la : refint.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ refint.lo version.lo $(LINK_LIBS)
 
+rwm_x.o: rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
+	$(LD) -r -o $@ rwm.o rwmconf.o rwmdn.o rwmmap.o
+	
 rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
 

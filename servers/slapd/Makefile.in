@@ -61,7 +61,7 @@ LDAP_INCDIR= ../../include -I$(srcdir) -I$(srcdir)/slapi -I.
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
-SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a
+SLAPD_STATIC_DEPENDS=@SLAPD_NO_STATIC@ libbackends.a liboverlays.a
 SLAPD_STATIC_BACKENDS=@SLAPD_STATIC_BACKENDS@
 SLAPD_DYNAMIC_BACKENDS=@SLAPD_DYNAMIC_BACKENDS@
 
@@ -70,7 +70,7 @@ SLAPI_LIBS=@LIBSLAPI@ @SLAPI_LIBS@
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 
-XLIBS = $(SLAPD_STATIC_DEPENDS) liboverlays.a $(SLAPD_L)
+XLIBS = $(SLAPD_STATIC_DEPENDS) $(SLAPD_L)
 XXLIBS = $(SLAPD_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(SLAPI_LIBS) $(MODULES_LIBS)
 
@@ -85,7 +85,7 @@ NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) backends.o version.o
 UNIX_SLAPD_DEPENDS = $(SLAPD_STATIC_DEPENDS) backends.o version.o $(SLAPD_L)
 UNIX_SLAPD_OBJECTS = $(OBJS) backends.o version.o
 
-SLAPD_DEPENDS = liboverlays.a $(@PLAT@_SLAPD_DEPENDS)
+SLAPD_DEPENDS = $(@PLAT@_SLAPD_DEPENDS)
 SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 
 # Notes about slapd for Windows
@@ -269,6 +269,9 @@ dummy $(SLAPD_DYNAMIC_BACKENDS): slapd
 	cd $@; $(MAKE) $(MFLAGS) all
 	@touch $@
 
+dynamic_overlays: slapd
+	cd overlays; $(MAKE) $(MFLAGS) dynamic
+
 #
 # In Windows, dynamic backends have to be built after slapd. For this
 # reason, we only build static backends now and dynamic backends later.
@@ -311,7 +314,7 @@ libbackends.a: .backend
 	@ls -l libbackends.a; echo ""
 
 liboverlays.a: FORCE
-	@cd overlays; $(MAKE) $(MFLAGS) all
+	cd overlays; $(MAKE) $(MFLAGS) static
 
 version.c: Makefile
 	@-$(RM) $@
@@ -371,7 +374,7 @@ install-slapd: FORCE
 	    fi; \
 	done
 
-all-cffiles: slapd $(SLAPD_DYNAMIC_BACKENDS)
+all-cffiles: slapd $(SLAPD_DYNAMIC_BACKENDS) dynamic_overlays
 	@if test $(PLAT) = NT; then \
 	    sysconfdir=`cygpath -w $(sysconfdir) | \
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
