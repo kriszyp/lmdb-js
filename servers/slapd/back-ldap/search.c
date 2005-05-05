@@ -46,7 +46,7 @@ ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
  * <draft-zeilenga-ldap-t-f>.
  */
 static int
-munge_filter(
+ldap_back_munge_filter(
 	Operation	*op,
 	struct berval	*filter )
 {
@@ -226,7 +226,7 @@ fail:;
 			goto finish;
 
 		case LDAP_FILTER_ERROR:
-			if ( munge_filter( op, &filter ) ) {
+			if ( ldap_back_munge_filter( op, &filter ) ) {
 				goto retry;
 			}
 
