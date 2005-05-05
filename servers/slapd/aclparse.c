@@ -483,7 +483,8 @@ parse_acl(
 						} else {
 							/* FIXME: if the attribute has DN syntax, we might
 							 * allow one, subtree and children styles as well */
-							if ( !strcasecmp( style, "exact" ) ) {
+							if ( !strcasecmp( style, "base" ) ||
+								!strcasecmp( style, "exact" ) ) {
 								a->acl_attrval_style = ACL_STYLE_BASE;
 
 							} else if ( a->acl_attrs[0].an_desc->ad_type->
