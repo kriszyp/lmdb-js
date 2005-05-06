@@ -24,13 +24,14 @@ if test $BACKMETA = metano ; then
 fi
 
 # to be removed some time...
-if test "x$TEST_META" != "xyes" ; then
-	echo "### this test is currently disabled;"
-	echo "### set \"TEST_META=yes\" to enable (at own risk)."
+if test "x$TEST_META" = "xno" ; then
+	echo "### disabled by \"TEST_META=no\"; unset TEST_META to re-enable"
 	echo ""
 	exit 0
 else
-	echo "### this test is __very__ experimental; enable at own risk"
+	echo "### this test is experimental; in case of problems,"
+	echo "### set \"TEST_META=no\" to disable, and report thru"
+	echo "### the Issue Tracking System <http://www.openldap.org/its/>"
 	echo ""
 fi
 
