@@ -530,12 +530,12 @@ entry_getlen(unsigned char **buf)
 	return len;
 }
 
-/* Add up the size of the entry for a flattened buffer */
-void entry_flatsize(Entry *e, ber_len_t *psiz, ber_len_t *plen, int norm)
+/* Count up the sizes of the components of an entry */
+void entry_partsize(Entry *e, ber_len_t *plen,
+	int *pnattrs, int *pnvals, int norm)
 {
-	ber_len_t siz = sizeof(Entry);
 	ber_len_t len, dnlen, ndnlen;
-	int i;
+	int i, nat = 0, nval = 0;
 	Attribute *a;
 
 	dnlen = e->e_name.bv_len;
@@ -548,32 +548,45 @@ void entry_flatsize(Entry *e, ber_len_t *psiz, ber_len_t *plen, int norm)
 	}
 	for (a=e->e_attrs; a; a=a->a_next) {
 		/* For AttributeDesc, we only store the attr name */
-		siz += sizeof(Attribute);
+		nat++;
 		len += a->a_desc->ad_cname.bv_len+1;
 		len += entry_lenlen(a->a_desc->ad_cname.bv_len);
 		for (i=0; a->a_vals[i].bv_val; i++) {
-			siz += sizeof(struct berval);
+			nval++;
 			len += a->a_vals[i].bv_len + 1;
 			len += entry_lenlen(a->a_vals[i].bv_len);
 		}
 		len += entry_lenlen(i);
-		siz += sizeof(struct berval);	/* empty berval at end */
+		nval++;	/* empty berval at end */
 		if (norm && a->a_nvals != a->a_vals) {
 			for (i=0; a->a_nvals[i].bv_val; i++) {
-				siz += sizeof(struct berval);
+				nval++;
 				len += a->a_nvals[i].bv_len + 1;
 				len += entry_lenlen(a->a_nvals[i].bv_len);
 			}
 			len += entry_lenlen(i);	/* i nvals */
-			siz += sizeof(struct berval);
+			nval++;
 		} else {
 			len += entry_lenlen(0);	/* 0 nvals */
 		}
 	}
-	len += 1;	/* NUL byte at end */
-	len += entry_lenlen(siz);
-	*psiz = siz;
+	len += entry_lenlen(0);	/* NUL byte at end */
+	len += entry_lenlen(nat) + entry_lenlen(nval);
 	*plen = len;
+	*pnattrs = nat;
+	*pnvals = nval;
+}
+
+/* Add up the size of the entry for a flattened buffer */
+ber_len_t entry_flatsize(Entry *e, int norm)
+{
+	ber_len_t len;
+	int nattrs, nvals;
+
+	entry_partsize(e, &len, &nattrs, &nvals, norm);
+	len += sizeof(Entry) + (nattrs * sizeof(Attribute)) +
+		(nvals * sizeof(struct berval));
+	return len;
 }
 
 /* Flatten an Entry into a buffer. The buffer is filled with just the
@@ -585,9 +598,8 @@ void entry_flatsize(Entry *e, ber_len_t *psiz, ber_len_t *plen, int norm)
  */
 int entry_encode(Entry *e, struct berval *bv)
 {
-	ber_len_t siz = sizeof(Entry);
 	ber_len_t len, dnlen, ndnlen;
-	int i;
+	int i, nattrs, nvals;
 	Attribute *a;
 	unsigned char *ptr;
 
@@ -596,12 +608,13 @@ int entry_encode(Entry *e, struct berval *bv)
 	dnlen = e->e_name.bv_len;
 	ndnlen = e->e_nname.bv_len;
 
-	entry_flatsize( e, &siz, &len, 1 );
+	entry_partsize( e, &len, &nattrs, &nvals, 1 );
 
 	bv->bv_len = len;
 	bv->bv_val = ch_malloc(len);
 	ptr = (unsigned char *)bv->bv_val;
-	entry_putlen(&ptr, siz);
+	entry_putlen(&ptr, nattrs);
+	entry_putlen(&ptr, nvals);
 	entry_putlen(&ptr, dnlen);
 	AC_MEMCPY(ptr, e->e_dn, dnlen);
 	ptr += dnlen;
@@ -641,7 +654,6 @@ int entry_encode(Entry *e, struct berval *bv)
 			}
 		}
 	}
-	*ptr = '\0';
 	return 0;
 }
 
@@ -662,7 +674,7 @@ int entry_decode(struct berval *bv, Entry **e, void *ctx)
 int entry_decode(struct berval *bv, Entry **e)
 #endif
 {
-	int i, j, count;
+	int i, j, count, nattrs, nvals;
 	int rc;
 	Attribute *a;
 	Entry *x;
@@ -671,18 +683,28 @@ int entry_decode(struct berval *bv, Entry **e)
 	unsigned char *ptr = (unsigned char *)bv->bv_val;
 	BerVarray bptr;
 
-	i = entry_getlen(&ptr);
-	if (!i) {
+	nattrs = entry_getlen(&ptr);
+	if (!nattrs) {
 		Debug( LDAP_DEBUG_ANY,
-			"entry_decode: entry length was zero\n", 0, 0, 0);
+			"entry_decode: attribute count was zero\n", 0, 0, 0);
 		return LDAP_OTHER;
 	}
+	nvals = entry_getlen(&ptr);
+	if (!nvals) {
+		Debug( LDAP_DEBUG_ANY,
+			"entry_decode: value count was zero\n", 0, 0, 0);
+		return LDAP_OTHER;
+	}
+	i = sizeof(Entry) + (nattrs * sizeof(Attribute)) +
+		(nvals * sizeof(struct berval));
 #ifdef SLAP_ZONE_ALLOC
 	x = slap_zn_calloc(1, i + bv->bv_len, ctx);
 	AC_MEMCPY((char*)x + i, bv->bv_val, bv->bv_len);
 	bv->bv_val = (char*)x + i;
 	ptr = (unsigned char *)bv->bv_val;
-	i = entry_getlen(&ptr);
+	/* pointer is reset, now advance past nattrs and nvals again */
+	entry_getlen(&ptr);
+	entry_getlen(&ptr);
 #else
 	x = ch_calloc(1, i);
 #endif
@@ -768,6 +790,9 @@ int entry_decode(struct berval *bv, Entry **e)
 		} else {
 			a->a_nvals = a->a_vals;
 		}
+		nattrs--;
+		if ( !nattrs )
+			break;
 	}
 
 	if (a) a->a_next = NULL;
