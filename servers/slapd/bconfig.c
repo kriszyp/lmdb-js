@@ -2408,7 +2408,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	ConfigArgs c = {0};
 	ConfigTable *ct;
 	char *argv[3];
-	int rc;
+	int rc = 0;
 	slap_callback cb = { NULL, config_ldif_resp, NULL, NULL };
 	Connection conn = {0};
 	char opbuf[OPERATION_BUFFER_SIZE];
@@ -2488,12 +2488,12 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		cb.sc_private = cfb;
 
 		op->o_bd = &cfb->cb_db;
-		op->o_bd->be_search( op, &rs );
+		rc = op->o_bd->be_search( op, &rs );
 	}
 
 	cfb->cb_use_ldif = 1;
 
-	return 0;
+	return rc;
 }
 
 static int
