@@ -206,6 +206,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_MANAGEDSAIT		"2.16.840.1.113730.3.4.2" /* RFC 3296 */
 #define LDAP_CONTROL_SUBENTRIES			"1.3.6.1.4.1.4203.1.10.1" /* RFC 3672 */
 #define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"  /* RFC 2696 */
+#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"  /* RFC 3876 */
 
 /*  standard track - not implemented in slapd(8) */
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473" /* RFC 2891 */
@@ -213,7 +214,6 @@ typedef struct ldapcontrol {
 
 /* but not yet formalized controls */
 #define LDAP_CONTROL_PROXY_AUTHZ		"2.16.840.1.113730.3.4.18"
-#define LDAP_CONTROL_VALUESRETURNFILTER	"1.2.826.0.1.334810.2.3"
 
 /* various works in progress */
 #define LDAP_CONTROL_ASSERT				"1.3.6.1.4.1.4203.666.5.9"
@@ -275,15 +275,6 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_MODIFY				2
 #define LDAP_SYNC_DELETE				3
 
-/* MS ActiveDirectory controls (for compatibility) */
-#define LDAP_CONTROL_X_DOMAIN_SCOPE		"1.2.840.113556.1.4.1339"
-#define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
-#define LDAP_CONTROL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
-#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
-#define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
-#define LDAP_SEARCH_FLAG_DOMAIN_SCOPE		1 /* do not generate referrals */
-#define LDAP_SEARCH_FLAG_PHANTOM_ROOT		2 /* search all NCs subordinate to base */
-
 /* LDAP Chaining Behavior Control *//* work in progress */
 /* <draft-sermersheim-ldap-chaining>;
  * see also LDAP_REQUIRES_CHAINING, LDAP_CANNOT_CHAIN */
@@ -295,6 +286,15 @@ typedef struct ldapcontrol {
 #define LDAP_REFERRALS_PREFERRED			2
 #define LDAP_REFERRALS_REQUIRED				3
 #endif
+
+/* MS ActiveDirectory controls (for compatibility) */
+#define LDAP_CONTROL_X_DOMAIN_SCOPE		"1.2.840.113556.1.4.1339"
+#define LDAP_CONTROL_X_PERMISSIVE_MODIFY	"1.2.840.113556.1.4.1413"
+#define LDAP_CONTROL_X_INCREMENTAL_VALUES	"1.2.840.113556.1.4.802"
+#define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
+#define LDAP_CONTROL_X_SEARCH_OPTIONS		"1.2.840.113556.1.4.1340"
+#define LDAP_SEARCH_FLAG_DOMAIN_SCOPE		1 /* do not generate referrals */
+#define LDAP_SEARCH_FLAG_PHANTOM_ROOT		2 /* search all NCs subordinate to base */
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 2251 */
@@ -309,11 +309,13 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
+#define LDAP_EXOP_CANCEL		"1.3.6.1.1.8"				/* RFC 3909 */
+#define LDAP_EXOP_X_CANCEL		LDAP_EXOP_CANCEL
+
+/* various works in progress */
+
 #define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"
 #define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
-
-#define LDAP_EXOP_CANCEL		"1.3.6.1.1.8"
-#define LDAP_EXOP_X_CANCEL		LDAP_EXOP_CANCEL
 
 #define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"
 
