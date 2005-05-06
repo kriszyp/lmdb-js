@@ -106,6 +106,9 @@ meta_back_search_start(
 			}
 			break;
 
+#ifdef LDAP_SCOPE_SUBORDINATE
+		case LDAP_SCOPE_SUBORDINATE:
+#endif /* LDAP_SCOPE_SUBORDINATE */
 		case LDAP_SCOPE_ONELEVEL:
 		{
 			struct berval	rdn = mi->mi_targets[ candidate ].mt_nsuffix;
@@ -119,7 +122,14 @@ meta_back_search_start(
 				 * base, and make scope "base"
 				 */
 				realbase = mi->mi_targets[ candidate ].mt_nsuffix;
-				realscope = LDAP_SCOPE_BASE;
+#ifdef LDAP_SCOPE_SUBORDINATE
+				if ( op->ors_scope == LDAP_SCOPE_SUBORDINATE ) {
+					realscope = LDAP_SCOPE_SUBTREE;
+				} else
+#endif /* LDAP_SCOPE_SUBORDINATE */
+				{
+					realscope = LDAP_SCOPE_BASE;
+				}
 				break;
 			} /* else continue with the next case */
 		}
