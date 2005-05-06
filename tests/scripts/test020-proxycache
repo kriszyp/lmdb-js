@@ -199,9 +199,6 @@ else
 	exit 1
 fi
 
-echo "ANSWERABILITY RESULTS" >> $SLAVEOUT
-echo "" >> $SLAVEOUT
-
 echo "Query 8: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid"  
 $LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
 	'(|(cn=*Jones)(sn=Jones))' cn sn title uid >> $SLAVEOUT 2>&1
