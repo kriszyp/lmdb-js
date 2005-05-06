@@ -189,6 +189,13 @@ slapd.def: libbackends.a liboverlays.a version.o
 		    done; \
 		    test -z "$$obj" && continue; \
 		    ;; \
+		*.la) \
+		    if test -n "$LTSTATIC"; then \
+			    base=`expr "$$i" : ".*/\(.*\).la"`; \
+			    path=`expr "$$i" : "\(.*/\).*"`; \
+			    obj=$$path.libs/$$base.a; \
+		    fi; \
+		    ;; \
 		*.o | *.a) \
 		    obj=$$i; \
 	    esac; \
