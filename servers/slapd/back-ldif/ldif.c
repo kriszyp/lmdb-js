@@ -46,6 +46,10 @@ struct ldif_info {
 	ldap_pvt_thread_mutex_t  li_mutex;
 };
 
+#ifdef _WIN32
+#define mkdir(a,b)	mkdir(a)
+#endif
+
 #define LDIF	".ldif"
 
 #define IX_DNL	'{'
