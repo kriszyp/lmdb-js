@@ -309,8 +309,11 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
-#define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
-#define LDAP_EXOP_X_CANCEL		"1.3.6.1.1.8"
+#define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"
+#define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
+
+#define LDAP_EXOP_CANCEL		"1.3.6.1.1.8"
+#define LDAP_EXOP_X_CANCEL		LDAP_EXOP_CANCEL
 
 #define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"
 
