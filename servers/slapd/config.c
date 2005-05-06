@@ -569,7 +569,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		}
 
 		if ( c->argc < 1 ) {
-			Debug(LDAP_DEBUG_CONFIG, "%s: bad config line" 
+			Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: bad config line" 
 				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 				c->log, 0, 0);
 #ifdef SLAPD_CONF_UNKNOWN_BAILOUT
@@ -614,7 +614,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug(LDAP_DEBUG_CONFIG, "%s: "
+					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
 						"unknown directive <%s> inside backend info definition"
 						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, *c->argv, 0);
@@ -642,7 +642,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug( LDAP_DEBUG_CONFIG, "%s: "
+					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
 						"unknown directive <%s> inside backend database "
 						"definition" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, *c->argv, 0);
@@ -660,7 +660,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug( LDAP_DEBUG_CONFIG, "%s: "
+					Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
 						"unknown directive <%s> inside global database definition"
 						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, *c->argv, 0);
@@ -674,7 +674,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			}
 			
 		} else {
-			Debug(LDAP_DEBUG_CONFIG, "%s: "
+			Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: "
 				"unknown directive <%s> outside backend info and database definitions"
 				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 				c->log, *c->argv, 0);
