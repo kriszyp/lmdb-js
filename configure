@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.577 2005/04/08 16:46:18 ando Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.578 2005/05/05 20:57:25 hyc Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -25130,7 +25130,7 @@ if test "$ol_enable_denyop" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS denyop.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS denyop.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS denyop.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_DENYOP $MFLAG
@@ -25145,7 +25145,7 @@ if test "$ol_enable_dyngroup" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS dyngroup.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dyngroup.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dyngroup.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_DYNGROUP $MFLAG
@@ -25160,7 +25160,7 @@ if test "$ol_enable_dynlist" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS dynlist.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dynlist.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS dynlist.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_DYNLIST $MFLAG
@@ -25175,7 +25175,7 @@ if test "$ol_enable_glue" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS glue.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS glue.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS glue.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_GLUE $MFLAG
@@ -25190,7 +25190,7 @@ if test "$ol_enable_lastmod" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS lastmod.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS lastmod.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS lastmod.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_LASTMOD $MFLAG
@@ -25205,7 +25205,7 @@ if test "$ol_enable_ppolicy" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS ppolicy.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS ppolicy.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS ppolicy.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_PPOLICY $MFLAG
@@ -25220,7 +25220,7 @@ if test "$ol_enable_proxycache" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS pcache.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS pcache.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS pcache.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_PROXYCACHE $MFLAG
@@ -25235,7 +25235,7 @@ if test "$ol_enable_refint" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS refint.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS refint.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS refint.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_REFINT $MFLAG
@@ -25266,7 +25266,7 @@ if test "$ol_enable_syncprov" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS syncprov.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS syncprov.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS syncprov.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_SYNCPROV $MFLAG
@@ -25281,7 +25281,7 @@ if test "$ol_enable_translucent" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS translucent.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS translucent.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS translucent.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_TRANSLUCENT $MFLAG
@@ -25296,7 +25296,7 @@ if test "$ol_enable_unique" != no ; then
 		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS unique.la"
 	else
 		MFLAG=SLAPD_MOD_STATIC
-		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS unique.lo"
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS unique.o"
 	fi
 	cat >> confdefs.h <<EOF
 #define SLAPD_OVER_UNIQUE $MFLAG
