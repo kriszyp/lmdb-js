@@ -696,8 +696,12 @@ parse_acl(
 					case ACL_STYLE_REGEX:
 						fprintf( stderr, "%s: line %d: "
 							"\"regex\" style implies "
-							"\"expand\" modifier (ignored)\n",
+							"\"expand\" modifier" 
+							SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 							fname, lineno );
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						acl_usage();
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 
 					case ACL_STYLE_EXPAND:
@@ -706,8 +710,12 @@ parse_acl(
 						fprintf( stderr, "%s: line %d: "
 							"\"expand\" style used "
 							"in conjunction with "
-							"\"expand\" modifier (ignored)\n",
+							"\"expand\" modifier"
+							SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 							fname, lineno );
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						acl_usage();
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 #endif
 						break;
 
@@ -853,7 +861,34 @@ parse_acl(
 						bdn->a_pat = bv;
 					}
 					bdn->a_style = sty;
-					bdn->a_expand = expand;
+					if ( expand ) {
+						char	*exp;
+						int	gotit = 0;
+
+						for ( exp = strchr( bdn->a_pat.bv_val, '$' );
+								exp && exp - bdn->a_pat.bv_val < bdn->a_pat.bv_len;
+								exp = strchr( exp, '$' ) )
+						{
+							if ( isdigit( exp[ 1 ] ) ) {
+								gotit = 1;
+								break;
+							}
+						}
+
+						if ( gotit == 1 ) {
+							bdn->a_expand = expand;
+
+						} else {
+							fprintf( stderr,
+								"%s: line %d: \"expand\" used "
+								"with no expansions in \"pattern\""
+								SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+								fname, lineno );
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+							acl_usage();
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
+						} 
+					}
 					if ( sty == ACL_STYLE_SELF ) {
 						bdn->a_self_level = level;
 

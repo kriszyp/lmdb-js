@@ -73,8 +73,11 @@ ldbm_back_db_config(
 			return( 1 );
 		} else if ( argc > 3 ) {
 			fprintf( stderr,
-"%s: line %d: extra junk after \"index <attr> [pres,eq,approx,sub]\" line (ignored)\n",
+"%s: line %d: extra junk after \"index <attr> [pres,eq,approx,sub]\" line" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 			    fname, lineno );
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+			return( 1 );
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 		}
 		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1] );
 

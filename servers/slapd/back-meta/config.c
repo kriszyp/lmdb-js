@@ -791,7 +791,7 @@ ldap_back_map_config(
 			|| avl_find( map->remap, (caddr_t)&mapping[ 1 ], mapping_cmp ) != NULL)
 	{
 		fprintf( stderr,
-			"%s: line %d: duplicate mapping found (ignored)\n",
+			"%s: line %d: duplicate mapping found" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 			fname, lineno );
 		goto error_return;
 	}

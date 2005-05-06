@@ -69,12 +69,21 @@ LDAP_BEGIN_DECL
 #define LDAP_SYNC_TIMESTAMP
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
+#define SLAPD_CONF_UNKNOWN_BAILOUT
 
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
 #endif
 #endif
 
+/*
+ * ITS#3705: bail out if unknown config directives appear in slapd.conf
+ */
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+#define	SLAPD_CONF_UNKNOWN_IGNORED	""
+#else /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
+#define	SLAPD_CONF_UNKNOWN_IGNORED	" (ignored)"
+#endif /* ! SLAPD_CONF_UNKNOWN_BAILOUT */
 
 /*
  * SLAPD Memory allocation macros

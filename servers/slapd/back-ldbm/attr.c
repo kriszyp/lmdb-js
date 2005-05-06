@@ -201,7 +201,7 @@ attr_index_config(
 
 		if( rc ) {
 			fprintf( stderr, "%s: line %d: duplicate index definition "
-				"for attr \"%s\" (ignored)\n",
+				"for attr \"%s\"" SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 			    fname, lineno, attrs[i] );
 
 			return LDAP_PARAM_ERROR;

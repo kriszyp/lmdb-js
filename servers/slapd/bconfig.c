@@ -1242,7 +1242,11 @@ config_generic(ConfigArgs *c) {
 
 		default:
 			Debug(LDAP_DEBUG_ANY, "%s: unknown CFG_TYPE %d"
-				"(ignored)\n", c->log, c->type, 0);
+				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+				c->log, c->type, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+			return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 
 	}
 	return(0);
@@ -1428,8 +1432,12 @@ config_sizelimit(ConfigArgs *c) {
 					return(1);
 				} else if(next[0] != '\0') {
 					Debug(LDAP_DEBUG_ANY, "%s: "
-						"trailing chars \"%s\" in \"sizelimit <limit>\" line (ignored)\n",
+						"trailing chars \"%s\" in \"sizelimit <limit>\" line"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, next, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+					return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_s_hard = 0;
@@ -1481,8 +1489,12 @@ config_timelimit(ConfigArgs *c) {
 					return(1);
 				} else if(next[0] != '\0') {
 					Debug(LDAP_DEBUG_ANY, "%s: "
-						"trailing chars \"%s\" in \"timelimit <limit>\" line (ignored)\n",
+						"trailing chars \"%s\" in \"timelimit <limit>\" line"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, next, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+					return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_t_hard = 0;
@@ -1500,8 +1512,12 @@ config_overlay(ConfigArgs *c) {
 	}
 	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1])) {
 		/* log error */
-		Debug(LDAP_DEBUG_ANY, "%s: (optional) %s overlay \"%s\" configuration failed (ignored)\n",
+		Debug(LDAP_DEBUG_ANY, "%s: (optional) %s overlay \"%s\" configuration failed"
+			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 			c->log, c->be == frontendDB ? "global " : "", c->argv[1][1]);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+		return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 	} else if(overlay_config(c->be, c->argv[1])) {
 		return(1);
 	}
@@ -1558,8 +1574,12 @@ config_suffix(ConfigArgs *c) {
 	ndn = c->value_ndn;
 	tbe = select_backend(&ndn, 0, 0);
 	if(tbe == c->be) {
-		Debug(LDAP_DEBUG_ANY, "%s: suffix already served by this backend! (ignored)\n",
+		Debug(LDAP_DEBUG_ANY, "%s: suffix already served by this backend!"
+			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 			c->log, 0, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+		return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 		free(pdn.bv_val);
 		free(ndn.bv_val);
 	} else if(tbe) {
@@ -2095,13 +2115,21 @@ config_replica(ConfigArgs *c) {
 				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
 					case 1:
 						Debug(LDAP_DEBUG_ANY, "%s: "
-						"suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
+						"suffix \"%s\" in \"replica\" line is not valid for backend"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, c->argv[i] + STRLENOF("suffix="), 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 					case 2:
 						Debug(LDAP_DEBUG_ANY, "%s: "
-						"unable to normalize suffix in \"replica\" line (ignored)\n",
+						"unable to normalize suffix in \"replica\" line"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, 0, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 				}
 
