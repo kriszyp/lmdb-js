@@ -309,8 +309,13 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
-#define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
-#define LDAP_EXOP_X_CANCEL		"1.3.6.1.1.8"
+#define LDAP_EXOP_WHO_AM_I		"1.3.6.1.4.1.4203.1.11.3"
+#define LDAP_EXOP_X_WHO_AM_I	LDAP_EXOP_WHO_AM_I
+
+#define LDAP_EXOP_CANCEL		"1.3.6.1.1.8"
+#define LDAP_EXOP_X_CANCEL		LDAP_EXOP_CANCEL
+
+#define LDAP_EXOP_X_TURN		"1.3.6.1.4.1.4203.666.6.4"
 
 /* LDAP Grouping of Related Operations *//* a work in progress */
 #ifdef LDAP_DEVEL
@@ -1838,9 +1843,29 @@ ldap_cancel LDAP_P(( LDAP *ld,
 	int				*msgidp ));
 
 LDAP_F( int )
-ldap_cancel_s LDAP_P((
-	LDAP *ld,
+ldap_cancel_s LDAP_P(( LDAP *ld,
 	int cancelid,
+	LDAPControl **sctrl,
+	LDAPControl **cctrl ));
+
+/*
+ * LDAP Turn Extended Operation <draft-zeilenga-ldap-turn-xx.txt>
+ *  in turn.c
+ */
+#define LDAP_API_FEATURE_TURN 1000
+
+LDAP_F( int )
+ldap_turn LDAP_P(( LDAP *ld,
+	int mutual,
+	LDAP_CONST char* identifier,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_turn_s LDAP_P(( LDAP *ld,
+	int mutual,
+	LDAP_CONST char* identifier,
 	LDAPControl **sctrl,
 	LDAPControl **cctrl ));
 

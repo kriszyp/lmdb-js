@@ -178,6 +178,7 @@ chkResponseList(
 			}
 
 			if ( lm->lm_chain == NULL ) {
+				assert(lm->lm_chain_tail == lm);
 				if ((lm->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
 					(lm->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
 					(lm->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
@@ -186,6 +187,8 @@ chkResponseList(
 					tmp = lm;
 				}
 			} else {
+				assert(lm->lm_chain_tail);
+				assert(lm->lm_chain_tail->lm_chain);
 				if ((lm->lm_chain_tail->lm_chain->lm_msgtype
 						== LDAP_RES_SEARCH_ENTRY) ||
 					(lm->lm_chain_tail->lm_chain->lm_msgtype
@@ -217,8 +220,11 @@ chkResponseList(
 		        ? lm->lm_chain : lm->lm_next);
 	    }
 	    if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL ) {
-		    lm->lm_chain->lm_next = lm->lm_next;
-		    lm->lm_chain = NULL;
+			lm->lm_chain->lm_next = lm->lm_next;
+			lm->lm_chain->lm_chain_tail = ( lm->lm_chain_tail != lm ) ? lm->lm_chain_tail : lm->lm_chain;
+			assert(lm->lm_chain->lm_chain_tail);
+			lm->lm_chain = NULL;
+			lm->lm_chain_tail = NULL;
 	    }
 	    lm->lm_next = NULL;
     }
@@ -852,17 +858,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 	/* part of a search response - add to end of list of entries */
 	if (l->lm_chain == NULL) {
-		if ((l->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
-			(l->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
-			(l->lm_msgtype == LDAP_RES_INTERMEDIATE)) {
-			/* do not advance lm_chain_tail in this case */
-			l->lm_chain = new;
-		} else {
-			/*FIXME: ldap_msgfree( l );*/
-			l = new;
-			l->lm_chain_tail = new;
-		}
+		assert(l->lm_chain_tail == l);
+		l->lm_chain = new;
 	} else {
+		assert(l->lm_chain_tail);
+		assert(l->lm_chain_tail->lm_chain);
 		if ((l->lm_chain_tail->lm_chain->lm_msgtype
 				== LDAP_RES_SEARCH_ENTRY) ||
 			(l->lm_chain_tail->lm_chain->lm_msgtype

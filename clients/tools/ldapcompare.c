@@ -46,6 +46,7 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
+#include <ac/time.h>
 #include <sys/stat.h>
 
 #ifdef HAVE_FCNTL_H

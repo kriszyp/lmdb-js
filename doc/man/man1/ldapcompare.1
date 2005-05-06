@@ -13,10 +13,6 @@ ldapcompare \- LDAP compare tool
 [\c
 .BR \-z ]
 [\c
-.BR \-k ]
-[\c
-.BR \-K ]
-[\c
 .BR \-M[M] ]
 [\c
 .BI \-d \ debuglevel\fR]
@@ -85,17 +81,6 @@ Run in verbose mode, with many diagnostics written to standard output.
 .B \-z
 Run in quiet mode, no output is written.  You must check the return
 status.  Useful in shell scripts.
-.TP
-.B \-k
-Use Kerberos IV authentication instead of simple authentication.  It is
-assumed that you already have a valid ticket granting ticket.
-.B ldapcompare
-must be compiled with Kerberos support for this option to have any effect.
-.TP
-.B \-K
-Same as \-k, but only does step 1 of the Kerberos IV bind.  This is useful
-when connecting to a slapd and there is no x500dsa.hostname principal
-registered with your Kerberos Domain Controller(s).
 .TP
 .B \-M[M]
 Enable manage DSA IT control.

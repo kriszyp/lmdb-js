@@ -7,7 +7,7 @@ slurpd \- Standalone LDAP Update Replication Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slurpd [\-d debug\-level]
 .B [\-f slapd\-config\-file] [\-r slapd\-replog\-file]
-.B [\-t temp\-dir] [\-o] [\-k srvtab\-file]
+.B [\-t temp\-dir] [\-o]
 .B 
 .SH DESCRIPTION
 .LP
@@ -121,15 +121,6 @@ temporary files may contain sensitive information.
 This option allows you to specify the location of these temporary files. 
 The default is
 .BR LOCALSTATEDIR/openldap-slurp .
-.TP
-.BI \-k " srvtab\-file"
-Specify the location of the kerberos srvtab file which contains keys
-for the replica 
-.I slapd
-instances.  Overrides the srvtab argument to the
-replica directive in the 
-.I slapd
-configuration file.
 .SH EXAMPLES
 To start 
 .I slurpd

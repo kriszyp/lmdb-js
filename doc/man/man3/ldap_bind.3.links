@@ -3,11 +3,6 @@ ldap_simple_bind.3
 ldap_simple_bind_s.3
 ldap_sasl_bind.3
 ldap_sasl_bind_s.3
-ldap_kerberos_bind_s.3
-ldap_kerberos_bind1.3
-ldap_kerberos_bind1_s.3
-ldap_kerberos_bind2.3
-ldap_kerberos_bind2_s.3
 ldap_unbind.3
 ldap_unbind_ext.3
 ldap_unbind_s.3

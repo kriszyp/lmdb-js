@@ -3,7 +3,7 @@
 .\" Copyright 1998-2005 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_kerberos_bind_s, ldap_kerberos_bind1, ldap_kerberos_bind1_s, ldap_kerberos_bind2, ldap_kerberos_bind2_s, ldap_sasl_bind, ldap_sasl_bind_s, ldap_sasl_interactive_bind_s, ldap_parse_sasl_bind_result, ldap_unbind, ldap_unbind_s \- LDAP bind routines
+ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_sasl_bind, ldap_sasl_bind_s, ldap_sasl_interactive_bind_s, ldap_parse_sasl_bind_result, ldap_unbind, ldap_unbind_s \- LDAP bind routines
 .SH LIBRARY
 OpenLDAP LDAP (libldap, -lldap)
 .SH SYNOPSIS
@@ -23,16 +23,6 @@ OpenLDAP LDAP (libldap, -lldap)
 .BI "int ldap_simple_bind(LDAP *" ld ", const char *" who ", const char *" passwd ");"
 .LP
 .BI "int ldap_simple_bind_s(LDAP *" ld ", const char *" who ", const char *" passwd ");"
-.LP
-.BI "int ldap_kerberos_bind_s(LDAP *" ld ", const char *" who ");"
-.LP
-.BI "int ldap_kerberos_bind1(LDAP *" ld ", const char *" who ");"
-.LP
-.BI "int ldap_kerberos_bind1_s(LDAP *" ld ", const char *" who ");"
-.LP
-.BI "int ldap_kerberos_bind2(LDAP *" ld ", const char *" who ");"
-.LP
-.BI "int ldap_kerberos_bind2_s(LDAP *" ld ", const char *" who ");"
 .LP
 .BI "int ldap_sasl_bind(LDAP *" ld ", const char *" dn ", const char *" mechanism ","
 .RS
@@ -78,9 +68,10 @@ attempted over the connection.  An LDAP bind is required when using
 Version 2 of the LDAP protocol; it is optional for Version 3 but is
 usually needed due to security considerations.
 .LP
-There are many types of bind calls, providing simple authentication, Kerberos
-version 4 authentication, and general routines to do either one, as
-well as calls using
+There are three types of bind calls, ones providing simple authentication,
+ones providing SASL authentication, and general routines capable of doing
+either simple or SASL authentication.
+.LP
 .B SASL
 (Simple Authentication and Security Layer)
 that can negotiate one of many different kinds of authentication.
@@ -88,12 +79,6 @@ Both synchronous and asynchronous versions of each variant of the bind
 call are provided.  All routines
 take \fIld\fP as their first parameter, as returned from
 .BR ldap_init (3).
-.LP
-Kerberos version 4 has been superseded by Kerberos version 5, and the
-Kerberos version 4 support is only provided for backward compatibility. The
-SASL interfaces should be used for new applications. SASL provides
-a general interface for using Kerberos versions 4 and 5 and many other
-security systems.
 .LP
 .SH SIMPLE AUTHENTICATION
 The simplest form of the bind call is
@@ -109,41 +94,6 @@ taking the same parameters but only initiating the bind operation and
 returning the message id of the request it sent.  The result of the
 operation can be obtained by a subsequent call to
 .BR ldap_result (3).
-.SH KERBEROS AUTHENTICATION
-If the LDAP library and LDAP server being contacted have been
-compiled with the KERBEROS option defined,
-Kerberos version 4 authentication can be performed. As mentioned above,
-these Kerberos routines are provided only for backward compatibility.
-.LP
-These routines assume the user already
-has obtained a ticket granting ticket.  The routines take \fIwho\fP, the DN
-of the entry to bind as.  The
-.B ldap_kerberos_bind_s()
-routine does both steps of the Kerberos binding process synchronously.  The
-.B ldap_kerberos_bind1_s()
-and
-.B ldap_kerberos_bind2_s()
-routines allow synchronous access to the
-individual steps, authenticating to the LDAP server and X.500 DSA, respectively.
-The
-.B ldap_kerberos_bind1()
-and
-.B ldap_kerberos_bind2()
-routines provide equivalent asynchronous access.
-.LP
-The
-.B ldap_kerberos_bind_s()
-routine is used to perform both authentication steps when contacting
-an LDAP server that is a gateway to an X.500 DSA.  This kind of server
-configuration is only supported in the (very old) University of Michigan LDAP
-release.  The OpenLDAP package no longer provides this gateway server.
-The standalone LDAP server provided in OpenLDAP may still be configured
-with Kerberos version 4 support, but it only requires one authentication
-step, and will return an error if the second step is attempted.  Therefore,
-only the
-.B ldap_kerberos_bind1()
-routine or its synchronous equivalent may be used when contacting an
-OpenLDAP server.
 .SH GENERAL AUTHENTICATION
 The
 .B ldap_bind()
@@ -152,10 +102,8 @@ and
 routines can be used when the
 authentication method to use needs to be selected at runtime.  They
 both take an extra \fImethod\fP parameter selecting the authentication
-method to use.  It should be set to one of LDAP_AUTH_SIMPLE,
-LDAP_AUTH_KRBV41, or LDAP_AUTH_KRBV42, to select simple authentication,
-Kerberos authentication to the LDAP server, or Kerberos authentication
-to the X.500 DSA, respectively.
+method to use.  It should be set to LDAP_AUTH_SIMPLE
+to select simple authentication.
 .B ldap_bind()
 returns the message id of the request it initiates.
 .B ldap_bind_s()
