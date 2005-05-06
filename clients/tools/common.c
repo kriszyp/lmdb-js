@@ -140,7 +140,7 @@ N_("             ppolicy\n")
 #endif
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n")
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
-N_("             abandon, cancel (SIGINT sends abandon/cancel (not really controls)\n")
+N_("             abandon, cancel (SIGINT sends abandon/cancel; not really controls)\n")
 N_("  -f file    read operations from `file'\n"),
 N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Indentifier(s)\n"),
