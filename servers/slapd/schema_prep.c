@@ -1009,12 +1009,13 @@ static AttributeType slap_at_undefined = {
 	{ "1.1.1", NULL, NULL, 1, NULL,
 		NULL, NULL, NULL, NULL,
 		0, 0, 0, 1, 3, NULL }, /* LDAPAttributeType */
-	{ sizeof("UNDEFINED")-1, "UNDEFINED" }, /* cname */
+	BER_BVC("UNDEFINED"), /* cname */
 	NULL, /* sup */
 	NULL, /* subtypes */
 	NULL, NULL, NULL, NULL,	/* matching rules routines */
 	NULL, /* syntax (this may need to be defined) */
-	(AttributeTypeSchemaCheckFN *) 0, /* schema check function */
+	NULL, /* schema check function */
+	NULL, /* oidmacro */
 	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
 	{ NULL }, /* next */
 	NULL /* attribute description */
