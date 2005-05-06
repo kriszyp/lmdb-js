@@ -1609,8 +1609,7 @@ config_rootdn(ConfigArgs *c) {
 static int
 config_rootpw(ConfigArgs *c) {
 	Backend *tbe;
-	/* config_add_internal leaves c->be NULL for the global entry, but
-	 * the parser stuffs frontendDB in instead. While the cn=config
+	/* config_add_internal sets c->be = frontendDB. While the cn=config
 	 * rootpw is technically inside a backend, we expose it in the
 	 * global entry, and need to point to it properly here.
 	 */
@@ -2963,6 +2962,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	case Cft_Global:
 		cfn = &cf_prv;
 		ca.private = cfn;
+		ca.be = frontendDB;	/* just to get past check_vals */
 		break;
 
 	case Cft_Backend:
@@ -2976,7 +2976,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 			ca.be = last->ce_be;
 		} else {
 			type_ad = cfAd_database;
-			/* dummy, just to get past check_attr */
+			/* dummy, just to get past check_vals */
 			ca.be = frontendDB;
 		}
 		break;
