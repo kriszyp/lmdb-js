@@ -2732,7 +2732,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		for (i=0; si->si_retryinterval[i]; i++) {
 			if ( space ) *ptr++ = ' ';
 			space = 1;
-			ptr += sprintf( ptr, "%d", si->si_retryinterval[i] );
+			ptr += sprintf( ptr, "%d ", si->si_retryinterval[i] );
 			if ( si->si_retrynum_init[i] == -1 )
 				*ptr++ = '+';
 			else
