@@ -42,7 +42,7 @@ SRCS	= main.c globals.c bconfig.c config.c daemon.c \
 
 OBJS	= main.o globals.o bconfig.o config.o daemon.o \
 		connection.o search.o filter.o add.o cr.o \
-		attr.o entry.o backend.o result.o operation.o \
+		attr.o entry.o backend.o backends.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
 		value.o ava.o bind.o unbind.o abandon.o filterentry.o \
 		phonetic.o acl.o str2filter.o aclparse.o init.o user.o \
@@ -80,10 +80,10 @@ BUILD_SRV = @BUILD_SLAPD@
 all-local-srv: all-cffiles
 
 NT_SLAPD_DEPENDS = slapd.exp
-NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) backends.o version.o
+NT_SLAPD_OBJECTS = slapd.exp symdummy.o $(OBJS) version.o
 
-UNIX_SLAPD_DEPENDS = $(SLAPD_STATIC_DEPENDS) backends.o version.o $(SLAPD_L)
-UNIX_SLAPD_OBJECTS = $(OBJS) backends.o version.o
+UNIX_SLAPD_DEPENDS = $(SLAPD_STATIC_DEPENDS) version.o $(SLAPD_L)
+UNIX_SLAPD_OBJECTS = $(OBJS) version.o
 
 SLAPD_DEPENDS = $(@PLAT@_SLAPD_DEPENDS)
 SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
@@ -262,8 +262,8 @@ slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 		$(LN_S) slapd$(EXEEXT) $$i$(EXEEXT); done
 
 
-sslapd: version.o backends.o
-	$(LTLINK) -static -o $@ $(OBJS) version.o backends.o $(LIBS) $(WRAP_LIBS)
+sslapd: version.o
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
 dummy $(SLAPD_DYNAMIC_BACKENDS): slapd
 	cd $@; $(MAKE) $(MFLAGS) all
