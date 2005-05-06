@@ -115,11 +115,11 @@ meta_back_bind( Operation *op, SlapReply *rs )
 					0, 0, 0 );
 		}
 
-		if ( isroot && !BER_BVISNULL( &mi->mi_targets[ i ]->mt_pseudorootdn ) )
+		if ( isroot && !BER_BVISNULL( &mi->mi_targets[ i ].mt_pseudorootdn ) )
 		{
-			op2.o_req_dn = mi->mi_targets[ i ]->mt_pseudorootdn;
-			op2.o_req_ndn = mi->mi_targets[ i ]->mt_pseudorootdn;
-			op2.orb_cred = mi->mi_targets[ i ]->mt_pseudorootpw;
+			op2.o_req_dn = mi->mi_targets[ i ].mt_pseudorootdn;
+			op2.o_req_ndn = mi->mi_targets[ i ].mt_pseudorootdn;
+			op2.orb_cred = mi->mi_targets[ i ].mt_pseudorootpw;
 			op2.orb_method = LDAP_AUTH_SIMPLE;
 		}
 		
@@ -177,7 +177,7 @@ meta_back_single_bind(
 	int			candidate )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metatarget_t		*mt = &mi->mi_targets[ candidate ];
 	struct berval		mdn = BER_BVNULL;
 	dncookie		dc;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
@@ -187,7 +187,7 @@ meta_back_single_bind(
 	/*
 	 * Rewrite the bind dn if needed
 	 */
-	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
+	dc.target = &mi->mi_targets[ candidate ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "bindDN";
@@ -326,7 +326,7 @@ meta_back_single_dobind(
 	int			nretries )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metatarget_t		*mt = &mi->mi_targets[ candidate ];
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	int			rc;
 	struct berval		cred = BER_BVC( "" );
@@ -431,6 +431,9 @@ retry:;
 			}
 			break;
 		}
+
+	} else {
+		rc = slap_map_api2result( rs );
 	}
 
 	rs->sr_err = rc;
@@ -453,12 +456,15 @@ meta_back_dobind(
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 
-	metasingleconn_t	*msc;
 	int			bound = 0, i;
 
 	SlapReply		*candidates = meta_back_candidates_get( op );
 
 	ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"%s meta_back_dobind: conn=%ld\n",
+		op->o_log_prefix, mc->mc_conn->c_connid, 0 );
 
 	/*
 	 * all the targets are bound as pseudoroot
@@ -468,28 +474,37 @@ meta_back_dobind(
 		goto done;
 	}
 
-	for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); ++i, ++msc ) {
-		metatarget_t	*mt = mi->mi_targets[ i ];
-		int		rc;
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		metatarget_t		*mt = &mi->mi_targets[ i ];
+		metasingleconn_t	*msc = &mc->mc_conns[ i ];
+		int			rc;
 
 		/*
-		 * Not a candidate or something wrong with this target ...
+		 * Not a candidate
 		 */
-		if ( msc->msc_ld == NULL ) {
+		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
 			continue;
 		}
+
+		assert( msc->msc_ld != NULL );
 
 		/*
 		 * If the target is already bound it is skipped
 		 */
 		if ( msc->msc_bound == META_BOUND && mc->mc_auth_target == i ) {
 			++bound;
+
+			Debug( LDAP_DEBUG_TRACE, "%s meta_back_dobind[%d]: "
+					"authcTarget\n",
+					op->o_log_prefix, i, 0 );
 			continue;
 		}
 
 		rc = meta_back_single_dobind( op, rs, mc, i,
 				LDAP_BACK_DONTSEND, mt->mt_nretries );
 		if ( rc != LDAP_SUCCESS ) {
+			rs->sr_err = slap_map_api2result( rs );
+
 			Debug( LDAP_DEBUG_ANY, "%s meta_back_dobind[%d]: "
 					"(anonymous) err=%d\n",
 					op->o_log_prefix, i, rc );
@@ -502,13 +517,13 @@ meta_back_dobind(
 			 * so better clear the handle
 			 */
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
-#if 0
-			( void )meta_clear_one_candidate( msc );
-#endif
 			continue;
 		} /* else */
 		
-		candidates[ i ].sr_tag = META_CANDIDATE;
+		Debug( LDAP_DEBUG_TRACE, "%s meta_back_dobind[%d]: "
+				"(anonymous)\n",
+				op->o_log_prefix, i, 0 );
+
 		msc->msc_bound = META_ANONYMOUS;
 		++bound;
 	}
@@ -516,7 +531,11 @@ meta_back_dobind(
 done:;
         ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
 
-	if ( bound == 0 && sendok & LDAP_BACK_SENDERR ) {
+	Debug( LDAP_DEBUG_TRACE,
+		"%s meta_back_dobind: conn=%ld bound=%d\n",
+		op->o_log_prefix, mc->mc_conn->c_connid, bound );
+
+	if ( bound == 0 && ( sendok & LDAP_BACK_SENDERR ) ) {
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_err = LDAP_BUSY;
 		}
@@ -557,16 +576,17 @@ meta_back_op_result(
 	SlapReply	*rs,
 	int		candidate )
 {
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+
 	int			i,
 				rerr = LDAP_SUCCESS;
-	metasingleconn_t	*msc;
 	char			*rmsg = NULL;
 	char			*rmatch = NULL;
 	int			free_rmsg = 0,
 				free_rmatch = 0;
 
 	if ( candidate != META_TARGET_NONE ) {
-		msc = &mc->mc_conns[ candidate ];
+		metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
 		rs->sr_err = LDAP_SUCCESS;
 
@@ -600,9 +620,10 @@ meta_back_op_result(
 		}
 
 	} else {
-		for ( i = 0, msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); ++i, ++msc ) {
-			char	*msg = NULL;
-			char	*match = NULL;
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			metasingleconn_t	*msc = &mc->mc_conns[ i ];
+			char			*msg = NULL;
+			char			*match = NULL;
 
 			rs->sr_err = LDAP_SUCCESS;
 

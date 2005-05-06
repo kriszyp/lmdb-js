@@ -450,8 +450,18 @@ rwm_int_filter_map_rewrite(
 			vtmp,
 			tmp;
 	static struct berval
+#if 0
 			ber_bvfalse = BER_BVC( "(?=false)" ),
+#endif
+			/* better than nothing... */
+			ber_bvfalse = BER_BVC( "(!(objectClass=*))" ),
+			ber_bvtf_false = BER_BVC( "(|)" ),
+#if 0
 			ber_bvtrue = BER_BVC( "(?=true)" ),
+#endif
+			/* better than nothing... */
+			ber_bvtrue = BER_BVC( "(objectClass=*)" ),
+			ber_bvtf_true = BER_BVC( "(&)" ),
 			ber_bvundefined = BER_BVC( "(?=undefined)" ),
 			ber_bverror = BER_BVC( "(?=error)" ),
 			ber_bvunknown = BER_BVC( "(?=unknown)" ),
@@ -666,11 +676,19 @@ rwm_int_filter_map_rewrite(
 	case SLAPD_FILTER_COMPUTED:
 		switch ( f->f_result ) {
 		case LDAP_COMPARE_FALSE:
-			tmp = ber_bvfalse;
+			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
+				tmp = ber_bvtf_false;
+			} else {
+				tmp = ber_bvfalse;
+			}
 			break;
 
 		case LDAP_COMPARE_TRUE:
-			tmp = ber_bvtrue;
+			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
+				tmp = ber_bvtf_true;
+			} else {
+				tmp = ber_bvtrue;
+			}
 			break;
 			
 		case SLAPD_COMPARE_UNDEFINED:

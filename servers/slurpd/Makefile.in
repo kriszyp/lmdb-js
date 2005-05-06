@@ -60,7 +60,7 @@ install-local-srv: FORCE
 	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-slurp
 	@(								\
 	    for prg in $(PROGRAMS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(libexecdir);				\
 	    done							\
 	)

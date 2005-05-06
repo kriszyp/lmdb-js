@@ -376,6 +376,10 @@ slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 	}
 
 	if (sh->sh_stack) {
+		/* round up to doubleword boundary */
+		size += pad + sizeof( ber_len_t );
+		size &= ~pad;
+
 		/* Never shrink blocks */
 		if (size <= p[-1]) {
 			new = p;

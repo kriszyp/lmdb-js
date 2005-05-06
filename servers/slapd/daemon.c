@@ -76,14 +76,17 @@ struct runqueue_s slapd_rq;
 
 Listener **slap_listeners = NULL;
 
-#define SLAPD_LISTEN 10
+#ifndef SLAPD_LISTEN_BACKLOG
+#define SLAPD_LISTEN_BACKLOG 1024
+#endif
 
 static ber_socket_t wake_sds[2];
 static int emfile;
 
 static int waking;
-#define WAKE_LISTENER(w) \
-do { if (w && waking < 5) { waking++; tcp_write( wake_sds[1], "0", 1 ); } } while(0)
+#define WAKE_LISTENER(w) do { \
+	if ((w) && waking < 5) { waking++; tcp_write( wake_sds[1], "0", 1 ); } \
+	} while(0)
 
 volatile sig_atomic_t slapd_shutdown = 0, slapd_gentle_shutdown = 0;
 volatile sig_atomic_t slapd_abrupt_shutdown = 0;
@@ -1523,7 +1526,7 @@ slapd_daemon_task(
 		}
 #endif
 
-		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN ) == -1 ) {
+		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN_BACKLOG ) == -1 ) {
 			int err = sock_errno();
 
 #ifdef LDAP_PF_INET6

@@ -196,17 +196,20 @@ monitor_subsys_database_init(
 				"structuralObjectClass: %s\n"
 				"cn: Database %d\n"
 				"%s: %s\n"
+				"%s: %s\n"
 				"creatorsName: %s\n"
 				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
-				ms->mss_dn.bv_val,
+					ms->mss_dn.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
 				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-				bi->bi_type,
+					bi->bi_type,
+				mi->mi_ad_monitorIsShadow->ad_cname.bv_val,
+					SLAP_SHADOW( be ) ? slap_true_bv.bv_val : slap_false_bv.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
@@ -221,7 +224,7 @@ monitor_subsys_database_init(
 			return( -1 );
 		}
 		
-		if ( SLAP_MONITOR(be) ) {
+		if ( SLAP_MONITOR( be ) ) {
 			attr_merge( e, slap_schema.si_ad_monitorContext,
 					be->be_suffix, be->be_nsuffix );
 			attr_merge( e_database, slap_schema.si_ad_monitorContext,

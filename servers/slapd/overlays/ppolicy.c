@@ -28,10 +28,6 @@
 
 #ifdef SLAPD_OVER_PPOLICY
 
-#if SLAPD_OVER_PPOLICY == SLAPD_MOD_DYNAMIC
-#define	SLAPD_IMPORT
-#endif
-
 #include <ldap.h>
 #include "lutil.h"
 #include "slap.h"

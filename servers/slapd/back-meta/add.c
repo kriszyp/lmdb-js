@@ -43,7 +43,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	LDAPMod		**attrs;
 	struct berval	mdn = BER_BVNULL, mapped;
 	dncookie	dc;
-	int		msgid, do_retry = 1;
+	int		do_retry = 1;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
@@ -61,7 +61,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.rwmap = &mi->mi_targets[ candidate ]->mt_rwmap;
+	dc.target = &mi->mi_targets[ candidate ];
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDN";
@@ -93,7 +93,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			mapped = a->a_desc->ad_cname;
 
 		} else {
-			ldap_back_map( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_at,
+			ldap_back_map( &mi->mi_targets[ candidate ].mt_rwmap.rwm_at,
 					&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 			if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
 				continue;
@@ -118,11 +118,11 @@ meta_back_add( Operation *op, SlapReply *rs )
 			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); ) {
 				struct ldapmapping	*mapping;
 
-				ldap_back_mapping( &mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc,
+				ldap_back_mapping( &mi->mi_targets[ candidate ].mt_rwmap.rwm_oc,
 						&a->a_vals[ j ], &mapping, BACKLDAP_MAP );
 
 				if ( mapping == NULL ) {
-					if ( mi->mi_targets[ candidate ]->mt_rwmap.rwm_oc.drop_missing ) {
+					if ( mi->mi_targets[ candidate ].mt_rwmap.rwm_oc.drop_missing ) {
 						continue;
 					}
 					attrs[ i ]->mod_bvalues[ j ] = &a->a_vals[ j ];

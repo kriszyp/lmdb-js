@@ -35,7 +35,7 @@ fi
 sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKEND}#//"				\
 	-e "s/@RELAY@/${RELAY}/"			\
-	-e "s/^#${RELAY}#//"				\
+	-e "s/^#relay-${RELAY}#//"				\
 	-e "s/^#${BACKENDTYPE}#//"			\
 	-e "s/^#${AC_glue}#//"				\
 	-e "s/^#${AC_ldap}#//"				\
@@ -67,4 +67,4 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@PORT6@;${PORT6};"	\
 	-e "s/@SASL_MECH@/${SASL_MECH}/"	\
 	-e "s/@CACHETTL@/${CACHETTL}/"			\
-	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"   
+	-e "s/@ENTRY_LIMIT@/${CACHE_ENTRY_LIMIT}/"

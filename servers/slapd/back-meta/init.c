@@ -45,7 +45,7 @@ meta_back_initialize(
 
 	bi->bi_db_init = meta_back_db_init;
 	bi->bi_db_config = meta_back_db_config;
-	bi->bi_db_open = 0;
+	bi->bi_db_open = meta_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = meta_back_db_destroy;
 
@@ -92,8 +92,33 @@ meta_back_db_init(
 
 	/* safe default */
 	mi->mi_nretries = META_RETRY_DEFAULT;
+	mi->mi_version = LDAP_VERSION3;
 	
 	be->be_private = mi;
+
+	return 0;
+}
+
+int
+meta_back_db_open(
+	Backend		*be )
+{
+	metainfo_t	*mi = (metainfo_t *)be->be_private;
+
+	int		i, rc;
+
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		if ( mi->mi_targets[ i ].mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+			mi->mi_targets[ i ].mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+			rc = slap_discover_feature( mi->mi_targets[ i ].mt_uri,
+					mi->mi_targets[ i ].mt_version,
+					slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
+					LDAP_FEATURE_ABSOLUTE_FILTERS );
+			if ( rc == LDAP_COMPARE_TRUE ) {
+				mi->mi_targets[ i ].mt_flags |= LDAP_BACK_F_SUPPORT_T_F;
+			}
+		}
+	}
 
 	return 0;
 }
@@ -103,17 +128,24 @@ conn_free(
 	void 		*v_mc )
 {
 	metaconn_t		*mc = v_mc;
-	metasingleconn_t	*msc;
+	int			i, ntargets;
 
 	assert( mc->mc_conns != NULL );
 
-	for ( msc = &mc->mc_conns[ 0 ]; !META_LAST( msc ); msc++ ) {
+	/* at least one must be present... */
+	ntargets = mc->mc_conns[ 0 ].msc_info->mi_ntargets;
+
+	for ( i = 0; i < ntargets; i++ ) {
+		metasingleconn_t	*msc = &mc->mc_conns[ i ];
+
 		if ( msc->msc_ld != NULL ) {
 			ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
 		}
+
 		if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
 			ber_memfree( msc->msc_bound_ndn.bv_val );
 		}
+
 		if ( !BER_BVISNULL( &msc->msc_cred ) ) {
 			/* destroy sensitive data */
 			memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
@@ -193,8 +225,7 @@ meta_back_db_destroy(
 		 * least one ...)
 		 */
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
-			target_free( mi->mi_targets[ i ] );
-			free( mi->mi_targets[ i ] );
+			target_free( &mi->mi_targets[ i ] );
 		}
 
 		free( mi->mi_targets );

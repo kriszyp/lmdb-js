@@ -113,6 +113,9 @@ ldap_back_db_init( Backend *be )
 	/* initialize flags */
 	li->flags = LDAP_BACK_F_CHASE_REFERRALS;
 
+	/* initialize version */
+	li->version = LDAP_VERSION3;
+
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );
 
 	be->be_private = li;
@@ -174,6 +177,19 @@ ldap_back_db_open( BackendDB *be )
 		ch_free( filter.bv_val );
 	}
 #endif /* SLAPD_MONITOR */
+
+	if ( li->flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+		int		rc;
+
+		li->flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+
+		rc = slap_discover_feature( li->url, li->version,
+				slap_schema.si_ad_supportedFeatures->ad_cname.bv_val,
+				LDAP_FEATURE_ABSOLUTE_FILTERS );
+		if ( rc == LDAP_COMPARE_TRUE ) {
+			li->flags |= LDAP_BACK_F_SUPPORT_T_F;
+		}
+	}
 
 	return 0;
 }

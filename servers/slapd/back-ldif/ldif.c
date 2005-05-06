@@ -31,14 +31,24 @@
 #include "lutil.h"
 #include "config.h"
 
+typedef struct enumCookie {
+	Operation *op;
+	SlapReply *rs;
+	Entry **entries;
+	int elen;
+	int eind;
+} enumCookie;
+
 struct ldif_info {
 	struct berval li_base_path;
-	ID tool_current;
-	Entry ** tool_entries;
-	int tool_put_entry_flag;
-	int tool_numentries;
+	enumCookie li_tool_cookie;
+	ID li_tool_current;
 	ldap_pvt_thread_mutex_t  li_mutex;
 };
+
+#ifdef _WIN32
+#define mkdir(a,b)	mkdir(a)
+#endif
 
 #define LDIF	".ldif"
 
@@ -297,12 +307,6 @@ typedef struct bvlist {
 	int off;
 } bvlist;
 
-typedef struct enumCookie {
-	Entry **entries;
-	int elen;
-	int eind;
-	int scope;
-} enumCookie;
 
 static int r_enum_tree(enumCookie *ck, struct berval *path,
 	struct berval *pdn, struct berval *pndn)
@@ -318,11 +322,6 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 		return LDAP_NO_SUCH_OBJECT;
 	}
 
-	if(ck->entries == NULL) {
-		ck->entries = (Entry **) SLAP_MALLOC(sizeof(Entry *) * ENTRY_BUFF_INCREMENT);
-		ck->elen = ENTRY_BUFF_INCREMENT;
-	}
-
 	e = get_entry_for_fd(fd, pdn, pndn);
 	if ( !e ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -331,20 +330,58 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 		return LDAP_BUSY;
 	}
 
-	if ( ck->scope == LDAP_SCOPE_BASE || ck->scope == LDAP_SCOPE_SUBTREE ) {
-		if(! (ck->eind < ck->elen)) { /* grow entries if necessary */	
-			ck->entries = (Entry **) SLAP_REALLOC(ck->entries, sizeof(Entry *) * (ck->elen) * 2);
-			ck->elen *= 2;
-		}
+	if ( ck->op->ors_scope == LDAP_SCOPE_BASE ||
+		ck->op->ors_scope == LDAP_SCOPE_SUBTREE ) {
+		/* Send right away? */
+		if ( ck->rs ) {
+			/*
+			 * if it's a referral, add it to the list of referrals. only do
+			 * this for non-base searches, and don't check the filter
+			 * explicitly here since it's only a candidate anyway.
+			 */
+			if ( !get_manageDSAit( ck->op )
+					&& ck->op->ors_scope != LDAP_SCOPE_BASE
+					&& is_entry_referral( e ) )
+			{
+				BerVarray erefs = get_entry_referrals( ck->op, e );
+				ck->rs->sr_ref = referral_rewrite( erefs,
+						&e->e_name, NULL,
+						ck->op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
+							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
 
-		ck->entries[ck->eind] = e;
-		ck->eind++;
-		fd = 0;
+				send_search_reference( ck->op, ck->rs );
+
+				ber_bvarray_free( ck->rs->sr_ref );
+				ber_bvarray_free( erefs );
+				ck->rs->sr_ref = NULL;
+
+			} else if ( test_filter( ck->op, e, ck->op->ors_filter ) == LDAP_COMPARE_TRUE )
+			{
+				ck->rs->sr_entry = e;
+				ck->rs->sr_attrs = ck->op->ors_attrs;
+				ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
+				send_search_entry(ck->op, ck->rs);
+			}
+			fd = 1;
+		} else {
+		/* Queueing up for tool mode */
+			if(ck->entries == NULL) {
+				ck->entries = (Entry **) SLAP_MALLOC(sizeof(Entry *) * ENTRY_BUFF_INCREMENT);
+				ck->elen = ENTRY_BUFF_INCREMENT;
+			}
+			if(ck->eind >= ck->elen) { /* grow entries if necessary */	
+				ck->entries = (Entry **) SLAP_REALLOC(ck->entries, sizeof(Entry *) * (ck->elen) * 2);
+				ck->elen *= 2;
+			}
+
+			ck->entries[ck->eind++] = e;
+			fd = 0;
+		}
 	} else {
 		fd = 1;
 	}
 
-	if ( ck->scope != LDAP_SCOPE_BASE ) {
+	if ( ck->op->ors_scope != LDAP_SCOPE_BASE ) {
 		DIR * dir_of_path;
 		bvlist *list = NULL, *ptr;
 
@@ -409,10 +446,10 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 		}
 		closedir(dir_of_path);
 
-		if (ck->scope == LDAP_SCOPE_ONELEVEL)
-			ck->scope = LDAP_SCOPE_BASE;
-		else if ( ck->scope == LDAP_SCOPE_SUBORDINATE)
-			ck->scope = LDAP_SCOPE_SUBTREE;
+		if (ck->op->ors_scope == LDAP_SCOPE_ONELEVEL)
+			ck->op->ors_scope = LDAP_SCOPE_BASE;
+		else if ( ck->op->ors_scope == LDAP_SCOPE_SUBORDINATE)
+			ck->op->ors_scope = LDAP_SCOPE_SUBTREE;
 
 		while ( ( ptr = list ) ) {
 			struct berval fpath;
@@ -438,30 +475,17 @@ leave:
 
 static int
 enum_tree(
-	BackendDB *be,
-	struct berval *dn,
-	struct berval *ndn,
-	int * length,
-	Entry ***e,
-	int scope )
+	enumCookie *ck
+)
 {
-	struct ldif_info *ni = (struct ldif_info *) be->be_private;
+	struct ldif_info *ni = (struct ldif_info *) ck->op->o_bd->be_private;
 	struct berval path;
-	int rc;
-	enumCookie ck = {0};
 	struct berval pdn, pndn;
 
-	assert( e != NULL );
-	*e = NULL;
-
-	ck.scope = scope;
-	dnParent( dn, &pdn );
-	dnParent( ndn, &pndn );
-	dn2path(ndn, &be->be_nsuffix[0], &ni->li_base_path, &path);
-	rc = r_enum_tree(&ck, &path, &pdn, &pndn);
-	*length = ck.eind;
-	*e = ck.entries;
-	return rc;
+	dnParent( &ck->op->o_req_dn, &pdn );
+	dnParent( &ck->op->o_req_ndn, &pndn );
+	dn2path( &ck->op->o_req_ndn, &ck->op->o_bd->be_nsuffix[0], &ni->li_base_path, &path);
+	return r_enum_tree(ck, &path, &pdn, &pndn);
 }
 
 /* Get the parent path plus the LDIF suffix */
@@ -728,48 +752,12 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 static int ldif_back_search(Operation *op, SlapReply *rs)
 {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
-	int numentries = 0;
-	int i = 0;
-	Entry ** entries = NULL;
+	enumCookie ck = {0};
 
+	ck.op = op;
+	ck.rs = rs;
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
-	rs->sr_err = enum_tree(op->o_bd, &op->o_req_dn, &op->o_req_ndn, &numentries, &entries, op->ors_scope);
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		for ( i = 0; i < numentries; i++ ) {
-
-
-			/*
-			 * if it's a referral, add it to the list of referrals. only do
-			 * this for non-base searches, and don't check the filter
-			 * explicitly here since it's only a candidate anyway.
-			 */
-			if ( !get_manageDSAit( op )
-					&& op->oq_search.rs_scope != LDAP_SCOPE_BASE
-					&& is_entry_referral( entries[i] ) )
-			{
-				BerVarray erefs = get_entry_referrals( op, entries[i] );
-				rs->sr_ref = referral_rewrite( erefs,
-						&entries[i]->e_name, NULL,
-						op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
-							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
-
-				send_search_reference( op, rs );
-
-				ber_bvarray_free( rs->sr_ref );
-				ber_bvarray_free( erefs );
-				rs->sr_ref = NULL;
-
-			} else if ( test_filter( op, entries[i], op->ors_filter ) == LDAP_COMPARE_TRUE )
-			{
-				rs->sr_entry = entries[i];
-				rs->sr_attrs = op->ors_attrs;
-				rs->sr_flags = REP_ENTRY_MODIFIABLE;
-				send_search_entry(op, rs);
-			}
-			entry_free(entries[i]);
-		}
-	}
-	SLAP_FREE(entries);
+	rs->sr_err = enum_tree( &ck );
 	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
 	send_ldap_result(op, rs);
 
@@ -1064,17 +1052,14 @@ static int ldif_back_compare(Operation *op, SlapReply *rs) {
 
 static int ldif_tool_entry_open(BackendDB * be, int mode) {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
-	ni->tool_entries = NULL;
-	ni->tool_numentries = 0;
-	ni->tool_current = 0;
-	ni->tool_put_entry_flag = 0;
+	ni->li_tool_current = 0;
 	return 0;
 }					
 
 static int ldif_tool_entry_close(BackendDB * be) {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
 
-	SLAP_FREE(ni->tool_entries);
+	SLAP_FREE(ni->li_tool_cookie.entries);
 	return 0;
 }
 
@@ -1084,12 +1069,17 @@ ldif_tool_entry_first(BackendDB *be)
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
 	ID id = 1; /* first entry in the array of entries shifted by one */
 
-	ni->tool_current = 1;
-	if(ni->tool_entries == NULL || ni->tool_put_entry_flag) {
-		(void)enum_tree(be, be->be_suffix, be->be_nsuffix,
-			&ni->tool_numentries, &ni->tool_entries,
-			LDAP_SCOPE_SUBTREE);
-		ni->tool_put_entry_flag = 0;
+	ni->li_tool_current = 1;
+	if(ni->li_tool_cookie.entries == NULL) {
+		Operation op = {0};
+
+		op.o_bd = be;
+		op.o_req_dn = *be->be_suffix;
+		op.o_req_ndn = *be->be_nsuffix;
+		op.ors_scope = LDAP_SCOPE_SUBTREE;
+		ni->li_tool_cookie.op = &op;
+		(void)enum_tree( &ni->li_tool_cookie );
+		ni->li_tool_cookie.op = NULL;
 	}
 	return id;
 }
@@ -1097,28 +1087,22 @@ ldif_tool_entry_first(BackendDB *be)
 static ID ldif_tool_entry_next(BackendDB *be)
 {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
-	ni->tool_current += 1;
-	if(ni->tool_put_entry_flag) {
-		 (void)enum_tree(be, be->be_suffix, be->be_nsuffix,
-			&ni->tool_numentries, &ni->tool_entries,
-			LDAP_SCOPE_SUBTREE);
-		ni->tool_put_entry_flag = 0;
-	}
-	if(ni->tool_current > ni->tool_numentries)
+	ni->li_tool_current += 1;
+	if(ni->li_tool_current > ni->li_tool_cookie.eind)
 		return NOID;
 	else
-		return ni->tool_current;
+		return ni->li_tool_current;
 }
 
 static Entry * ldif_tool_entry_get(BackendDB * be, ID id) {
 	struct ldif_info *ni = (struct ldif_info *) be->be_private;
 	Entry * e;
 
-	if(id > ni->tool_numentries || id < 1)
+	if(id > ni->li_tool_cookie.eind || id < 1)
 		return NULL;
 	else {
-		e = ni->tool_entries[id - 1];
-		ni->tool_entries[id - 1] = NULL;
+		e = ni->li_tool_cookie.entries[id - 1];
+		ni->li_tool_cookie.entries[id - 1] = NULL;
 		return e;
 	}
 }
@@ -1168,7 +1152,6 @@ static ID ldif_tool_entry_put(BackendDB * be, Entry * e, struct berval *text) {
 	}
 
 	if(res == LDAP_SUCCESS) {
-		ni->tool_put_entry_flag = 1;
 		return 1;
 	}
 	else

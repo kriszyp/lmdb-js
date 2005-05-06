@@ -1281,7 +1281,7 @@ backend_group(
 				}
 				
 				if ( rc == 0 ) {
-					rc = 1;
+					rc = LDAP_COMPARE_FALSE;
 					for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
 						if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) !=
 							LDAP_URL_SUCCESS )
@@ -1354,6 +1354,8 @@ loopit:
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 				a->a_nvals, op_ndn, op->o_tmpmemctx );
+				if ( rc == LDAP_NO_SUCH_ATTRIBUTE )
+					rc = LDAP_COMPARE_FALSE;
 			}
 		} else {
 			rc = LDAP_NO_SUCH_ATTRIBUTE;

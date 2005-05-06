@@ -217,49 +217,37 @@ ldap_back_db_config(
 		li->url = ch_strdup( argv[ 1 ] );
 #endif
 
-	} else if ( strncasecmp( argv[0], "tls-", STRLENOF( "tls-" ) ) == 0 ) {
+	} else if ( strcasecmp( argv[0], "tls" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+		"%s: line %d: \"tls <what>\" needs 1 argument.\n",
+					fname, lineno );
+			return( 1 );
+		}
 
-		/* start tls */
-		if ( strcasecmp( argv[0], "tls-start" ) == 0 ) {
-			if ( argc != 1 ) {
-				fprintf( stderr,
-		"%s: line %d: tls-start takes no arguments\n",
-						fname, lineno );
-				return( 1 );
-			}
+		/* start */
+		if ( strcasecmp( argv[1], "start" ) == 0 ) {
 			li->flags |= ( LDAP_BACK_F_USE_TLS | LDAP_BACK_F_TLS_CRITICAL );
 	
 		/* try start tls */
-		} else if ( strcasecmp( argv[0], "tls-try-start" ) == 0 ) {
-			if ( argc != 1 ) {
-				fprintf( stderr,
-		"%s: line %d: tls-try-start takes no arguments\n",
-						fname, lineno );
-				return( 1 );
-			}
+		} else if ( strcasecmp( argv[1], "try-start" ) == 0 ) {
 			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
 			li->flags |= LDAP_BACK_F_USE_TLS;
 	
 		/* propagate start tls */
-		} else if ( strcasecmp( argv[0], "tls-propagate" ) == 0 ) {
-			if ( argc != 1 ) {
-				fprintf( stderr,
-		"%s: line %d: tls-propagate takes no arguments\n",
-						fname, lineno );
-				return( 1 );
-			}
+		} else if ( strcasecmp( argv[1], "propagate" ) == 0 ) {
 			li->flags |= ( LDAP_BACK_F_PROPAGATE_TLS | LDAP_BACK_F_TLS_CRITICAL );
 		
 		/* try start tls */
-		} else if ( strcasecmp( argv[0], "tls-try-propagate" ) == 0 ) {
-			if ( argc != 1 ) {
-				fprintf( stderr,
-		"%s: line %d: tls-try-propagate takes no arguments\n",
-						fname, lineno );
-				return( 1 );
-			}
+		} else if ( strcasecmp( argv[1], "try-propagate" ) == 0 ) {
 			li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
 			li->flags |= LDAP_BACK_F_PROPAGATE_TLS;
+
+		} else {
+			fprintf( stderr,
+		"%s: line %d: \"tls <what>\": unknown argument \"%s\".\n",
+					fname, lineno, argv[1] );
+			return( 1 );
 		}
 	
 	/* remote ACL stuff... */
@@ -291,24 +279,50 @@ ldap_back_db_config(
 		li->flags |= LDAP_BACK_F_SAVECRED;
 
 	} else if ( strcasecmp( argv[0], "chase-referrals" ) == 0 ) {
-		if ( argc != 1 ) {
+		if ( argc != 2 ) {
 			fprintf( stderr,
-	"%s: line %d: \"chase-referrals\" takes no arguments\n",
+	"%s: line %d: \"chase-referrals\" needs 1 argument.\n",
 					fname, lineno );
 			return( 1 );
 		}
 
-		li->flags |= LDAP_BACK_F_CHASE_REFERRALS;
+		/* this is the default; we add it because the default might change... */
+		if ( strcasecmp( argv[1], "yes" ) == 0 ) {
+			li->flags |= LDAP_BACK_F_CHASE_REFERRALS;
 
-	} else if ( strcasecmp( argv[0], "dont-chase-referrals" ) == 0 ) {
-		if ( argc != 1 ) {
+		} else if ( strcasecmp( argv[1], "no" ) == 0 ) {
+			li->flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
+
+		} else {
 			fprintf( stderr,
-	"%s: line %d: \"dont-chase-referrals\" takes no arguments\n",
+		"%s: line %d: \"chase-referrals {yes|no}\": unknown argument \"%s\".\n",
+					fname, lineno, argv[1] );
+			return( 1 );
+		}
+	
+	} else if ( strcasecmp( argv[ 0 ], "t-f-support" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+		"%s: line %d: \"t-f-support {no|yes|discover}\" needs 1 argument.\n",
 					fname, lineno );
 			return( 1 );
 		}
 
-		li->flags &= ~LDAP_BACK_F_CHASE_REFERRALS;
+		if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			li->flags &= ~(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER);
+
+		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			li->flags |= LDAP_BACK_F_SUPPORT_T_F;
+
+		} else if ( strcasecmp( argv[ 1 ], "discover" ) == 0 ) {
+			li->flags |= LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
+
+		} else {
+			fprintf( stderr,
+	"%s: line %d: unknown value \"%s\" for \"t-f-support {no|yes|discover}\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
 
 	/* intercept exop_who_am_i? */
 	} else if ( strcasecmp( argv[0], "proxy-whoami" ) == 0 ) {
@@ -352,6 +366,7 @@ ldap_back_db_config(
 				"triggered by \"%s\" directive.\n",
 				fname, lineno, argv[ 0 ] );
 
+		/* this is the default; we add it because the default might change... */
 			li->rwm_started = 1;
 
 			return ( *be->bd_info->bi_db_config )( be, fname, lineno, argc, argv );
@@ -606,6 +621,8 @@ parse_idassert(
 		ber_bvarray_add( &li->idassert_authz, &rule );
 
 	} else if ( strcasecmp( argv[0], "idassert-method" ) == 0 ) {
+		char	*argv1;
+
 		if ( argc < 2 ) {
 			fprintf( stderr,
 	"%s: line %d: missing method in \"%s <method>\" line\n",
@@ -613,7 +630,12 @@ parse_idassert(
 			return( 1 );
 		}
 
-		if ( strcasecmp( argv[1], "none" ) == 0 ) {
+		argv1 = argv[1];
+		if ( strncasecmp( argv1, "bindmethod=", STRLENOF( "bindmethod=" ) ) == 0 ) {
+			argv1 += STRLENOF( "bindmethod=" );
+		}
+
+		if ( strcasecmp( argv1, "none" ) == 0 ) {
 			/* FIXME: is this at all useful? */
 			li->idassert_authmethod = LDAP_AUTH_NONE;
 
@@ -623,7 +645,7 @@ parse_idassert(
 					fname, lineno, argv[0], argv[1] );
 			}
 
-		} else if ( strcasecmp( argv[1], "simple" ) == 0 ) {
+		} else if ( strcasecmp( argv1, "simple" ) == 0 ) {
 			li->idassert_authmethod = LDAP_AUTH_SIMPLE;
 
 			if ( argc != 2 ) {
@@ -632,7 +654,7 @@ parse_idassert(
 					fname, lineno, argv[0], argv[1] );
 			}
 
-		} else if ( strcasecmp( argv[1], "sasl" ) == 0 ) {
+		} else if ( strcasecmp( argv1, "sasl" ) == 0 ) {
 #ifdef HAVE_CYRUS_SASL
 			int	arg;
 
@@ -823,6 +845,8 @@ parse_acl_auth(
 		ber_str2bv( argv[1], 0, 1, &li->acl_passwd );
 
 	} else if ( strcasecmp( argv[0], "acl-method" ) == 0 ) {
+		char	*argv1;
+
 		if ( argc < 2 ) {
 			fprintf( stderr,
 	"%s: line %d: missing method in \"%s <method>\" line\n",
@@ -830,7 +854,12 @@ parse_acl_auth(
 			return( 1 );
 		}
 
-		if ( strcasecmp( argv[1], "none" ) == 0 ) {
+		argv1 = argv[1];
+		if ( strncasecmp( argv1, "bindmethod=", STRLENOF( "bindmethod=" ) ) == 0 ) {
+			argv1 += STRLENOF( "bindmethod=" );
+		}
+
+		if ( strcasecmp( argv1, "none" ) == 0 ) {
 			/* FIXME: is this at all useful? */
 			li->acl_authmethod = LDAP_AUTH_NONE;
 
@@ -840,7 +869,7 @@ parse_acl_auth(
 					fname, lineno, argv[0], argv[1] );
 			}
 
-		} else if ( strcasecmp( argv[1], "simple" ) == 0 ) {
+		} else if ( strcasecmp( argv1, "simple" ) == 0 ) {
 			li->acl_authmethod = LDAP_AUTH_SIMPLE;
 
 			if ( argc != 2 ) {
@@ -849,7 +878,7 @@ parse_acl_auth(
 					fname, lineno, argv[0], argv[1] );
 			}
 
-		} else if ( strcasecmp( argv[1], "sasl" ) == 0 ) {
+		} else if ( strcasecmp( argv1, "sasl" ) == 0 ) {
 #ifdef HAVE_CYRUS_SASL
 			int	arg;
 

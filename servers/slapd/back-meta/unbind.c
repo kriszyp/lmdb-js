@@ -67,7 +67,7 @@ meta_back_conn_destroy(
 				continue;
 			}
 
-			rewrite_session_delete( mi->mi_targets[ i ]->mt_rwmap.rwm_rw, conn );
+			rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
 			meta_clear_one_candidate( &mc->mc_conns[ i ] );
 		}
 		meta_back_conn_free( mc );

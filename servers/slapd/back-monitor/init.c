@@ -1158,6 +1158,14 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionActivityTime) },
+		{ "monitorIsShadow", "( 1.3.6.1.4.1.4203.666.1.52 "
+			"NAME 'monitorIsShadow' "
+			"DESC 'TRUE if the database is shadow' "
+			"EQUALITY booleanMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+			"SINGLE-VALUE "
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorIsShadow) },
 		{ NULL, NULL, 0, -1 }
 	};
 	
@@ -1364,8 +1372,7 @@ monitor_back_db_open(
 	Entry 			*e, **ep;
 	monitor_entry_t		*mp;
 	int			i;
-	char 			buf[ BACKMONITOR_BUFSIZE ],
-				*end_of_line;
+	char 			buf[ BACKMONITOR_BUFSIZE ];
 	struct berval		bv;
 	struct tm		*tms;
 #ifdef HAVE_GMTIME_R
@@ -1444,20 +1451,36 @@ monitor_back_db_open(
 		return( -1 );
 	}
 
-	bv.bv_val = (char *) Versionstr;
-	end_of_line = strchr( Versionstr, '\n' );
-	if ( end_of_line ) {
-		bv.bv_len = end_of_line - Versionstr;
-	} else {
-		bv.bv_len = strlen( Versionstr );
-	}
+	bv.bv_val = strchr( (char *) Versionstr, '$' );
+	if ( bv.bv_val != NULL ) {
+		char	*end;
 
-	if ( attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
-				&bv, NULL ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"unable to add monitoredInfo to \"%s\" entry\n",
-			SLAPD_MONITOR_DN, 0, 0 );
-		return( -1 );
+		bv.bv_val++;
+		for ( ; bv.bv_val[ 0 ] == ' '; bv.bv_val++ )
+			;
+
+		end = strchr( bv.bv_val, '$' );
+		if ( end != NULL ) {
+			end--;
+
+			for ( ; end > bv.bv_val && end[ 0 ] == ' '; end-- )
+				;
+
+			end++;
+
+			bv.bv_len = end - bv.bv_val;
+
+		} else {
+			bv.bv_len = strlen( bv.bv_val );
+		}
+
+		if ( attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
+					&bv, NULL ) ) {
+			Debug( LDAP_DEBUG_ANY,
+				"unable to add monitoredInfo to \"%s\" entry\n",
+				SLAPD_MONITOR_DN, 0, 0 );
+			return( -1 );
+		}
 	}
 
 	mp = monitor_entrypriv_create();

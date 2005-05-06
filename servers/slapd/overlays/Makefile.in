@@ -26,19 +26,8 @@ SRCS = overlays.c \
 	syncprov.c \
 	translucent.c \
 	unique.c
-OBJS = overlays.lo \
-	denyop.lo \
-	dyngroup.lo \
-	dynlist.lo \
-	glue.lo \
-	lastmod.lo \
-	pcache.lo \
-	ppolicy.lo \
-	refint.lo \
-	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo \
-	syncprov.lo \
-	translucent.lo \
-	unique.lo
+OBJS = overlays.o \
+	@SLAPD_STATIC_OVERLAYS@
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -55,40 +44,47 @@ PROGRAMS = @SLAPD_DYNAMIC_OVERLAYS@
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 
-denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
+static:	$(LIBRARY)
+
+dynamic: $(PROGRAMS)
+
+denyop.la : denyop.lo
 	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
 
-dyngroup.la : dyngroup.lo $(@PLAT@_LINK_LIBS)
+dyngroup.la : dyngroup.lo
 	$(LTLINK_MOD) -module -o $@ dyngroup.lo version.lo $(LINK_LIBS)
 
-dynlist.la : dynlist.lo $(@PLAT@_LINK_LIBS)
+dynlist.la : dynlist.lo
 	$(LTLINK_MOD) -module -o $@ dynlist.lo version.lo $(LINK_LIBS)
 
-glue.la : glue.lo $(@PLAT@_LINK_LIBS)
+glue.la : glue.lo
 	$(LTLINK_MOD) -module -o $@ glue.lo version.lo $(LINK_LIBS)
 
-lastmod.la : lastmod.lo $(@PLAT@_LINK_LIBS)
+lastmod.la : lastmod.lo
 	$(LTLINK_MOD) -module -o $@ lastmod.lo version.lo $(LINK_LIBS)
 
-pcache.la : pcache.lo $(@PLAT@_LINK_LIBS)
+pcache.la : pcache.lo
 	$(LTLINK_MOD) -module -o $@ pcache.lo version.lo $(LINK_LIBS)
 
-ppolicy.la : ppolicy.lo $(@PLAT@_LINK_LIBS)
+ppolicy.la : ppolicy.lo
 	$(LTLINK_MOD) -module -o $@ ppolicy.lo version.lo $(LINK_LIBS) $(MODULES_LIBS)
 
-refint.la : refint.lo $(@PLAT@_LINK_LIBS)
+refint.la : refint.lo
 	$(LTLINK_MOD) -module -o $@ refint.lo version.lo $(LINK_LIBS)
 
-rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
+rwm_x.o: rwm.o rwmconf.o rwmdn.o rwmmap.o
+	$(LD) -r -o $@ rwm.o rwmconf.o rwmdn.o rwmmap.o
+	
+rwm.la : rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
 
-syncprov.la : syncprov.lo $(@PLAT@_LINK_LIBS)
+syncprov.la : syncprov.lo
 	$(LTLINK_MOD) -module -o $@ syncprov.lo version.lo $(LINK_LIBS)
 
-translucent.la : translucent.lo $(@PLAT@_LINK_LIBS)
+translucent.la : translucent.lo
 	$(LTLINK_MOD) -module -o $@ translucent.lo version.lo $(LINK_LIBS)
 
-unique.la : unique.lo $(@PLAT@_LINK_LIBS)
+unique.la : unique.lo
 	$(LTLINK_MOD) -module -o $@ unique.lo version.lo $(LINK_LIBS)
 
 install-local:	$(PROGRAMS)
@@ -101,8 +97,11 @@ MKDEPFLAG = -l
 
 .SUFFIXES: .c .o .lo
 
-.c.lo:
+.c.o:
 	$(LTCOMPILE_LIB) $<
+
+.c.lo:
+	$(LTCOMPILE_MOD) $<
 
 $(LIBRARY): version.lo
 	$(LTLINK_LIB) -o $@ $(OBJS) version.lo

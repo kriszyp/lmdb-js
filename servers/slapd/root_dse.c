@@ -308,3 +308,78 @@ int read_root_dse_file( const char *fname )
 	Debug(LDAP_DEBUG_CONFIG, "rootDSE file %s read.\n", fname, 0, 0);
 	return rc;
 }
+
+int
+slap_discover_feature(
+	const char	*uri,
+	int		version,
+	const char	*attr,
+	const char	*val )
+{
+	LDAP		*ld;
+	LDAPMessage	*res = NULL, *entry;
+	int		rc, i;
+	struct berval	cred = BER_BVC( "" ),
+			bv_val,
+			**values = NULL;
+	char		*attrs[ 2 ] = { NULL, NULL };
+
+	ber_str2bv( val, 0, 0, &bv_val );
+	attrs[ 0 ] = attr;
+
+	rc = ldap_initialize( &ld, uri );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	rc = ldap_sasl_bind_s( ld, "", LDAP_SASL_SIMPLE,
+			&cred, NULL, NULL, NULL );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	rc = ldap_search_ext_s( ld, "", LDAP_SCOPE_BASE, "(objectClass=*)",
+			attrs, 0, NULL, NULL, NULL, 0, &res );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	entry = ldap_first_entry( ld, res );
+	if ( entry == NULL ) {
+		goto done;
+	}
+
+	values = ldap_get_values_len( ld, entry, attrs[ 0 ] );
+	if ( values == NULL ) {
+		rc = LDAP_NO_SUCH_ATTRIBUTE;
+		goto done;
+	}
+
+	for ( i = 0; values[ i ] != NULL; i++ ) {
+		if ( bvmatch( &bv_val, values[ i ] ) ) {
+			rc = LDAP_COMPARE_TRUE;
+			goto done;
+		}
+	}
+
+	rc = LDAP_COMPARE_FALSE;
+
+done:;
+	if ( values != NULL ) {
+		ldap_value_free_len( values );
+	}
+
+	if ( res != NULL ) {
+		ldap_msgfree( res );
+	}
+
+	ldap_unbind_ext( ld, NULL, NULL );
+
+	return rc;
+}
+

@@ -80,6 +80,11 @@ struct ldaprwmap {
 	 */
 	struct ldapmap rwm_oc;
 	struct ldapmap rwm_at;
+
+#define	RWM_F_NONE			0x0000U
+#define	RWM_F_SUPPORT_T_F		0x4000U
+#define	RWM_F_SUPPORT_T_F_DISCOVER	0x8000U
+	unsigned	rwm_flags;
 };
 
 /* Whatever context ldap_back_dn_massage needs... */
@@ -110,7 +115,7 @@ void rwm_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
 int rwm_mapping ( struct ldapmap *map, struct berval *s,
 		struct ldapmapping **m, int remap );
-#define RWM_MAP	0
+#define RWM_MAP		0
 #define RWM_REMAP	1
 char *
 rwm_map_filter(

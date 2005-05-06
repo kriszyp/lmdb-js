@@ -122,7 +122,6 @@ static ConfigDriver config_passwd_hash;
 static ConfigDriver config_schema_dn;
 static ConfigDriver config_sizelimit;
 static ConfigDriver config_timelimit;
-static ConfigDriver config_limits; 
 static ConfigDriver config_overlay;
 static ConfigDriver config_suffix; 
 static ConfigDriver config_deref_depth;
@@ -337,7 +336,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "limits", "limits", 2, 0, 0, ARG_DB|ARG_MAGIC|CFG_LIMITS,
 		&config_generic, "( OLcfgDbAt:0.5 NAME 'olcLimits' "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "localSSF", "ssf", 2, 2, 0, ARG_INT,
 		&local_ssf, "( OLcfgGlAt:26 NAME 'olcLocalSSF' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -1243,7 +1242,11 @@ config_generic(ConfigArgs *c) {
 
 		default:
 			Debug(LDAP_DEBUG_ANY, "%s: unknown CFG_TYPE %d"
-				"(ignored)\n", c->log, c->type, 0);
+				SLAPD_CONF_UNKNOWN_IGNORED ".\n",
+				c->log, c->type, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+			return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 
 	}
 	return(0);
@@ -1429,8 +1432,12 @@ config_sizelimit(ConfigArgs *c) {
 					return(1);
 				} else if(next[0] != '\0') {
 					Debug(LDAP_DEBUG_ANY, "%s: "
-						"trailing chars \"%s\" in \"sizelimit <limit>\" line (ignored)\n",
+						"trailing chars \"%s\" in \"sizelimit <limit>\" line"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, next, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+					return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_s_hard = 0;
@@ -1482,8 +1489,12 @@ config_timelimit(ConfigArgs *c) {
 					return(1);
 				} else if(next[0] != '\0') {
 					Debug(LDAP_DEBUG_ANY, "%s: "
-						"trailing chars \"%s\" in \"timelimit <limit>\" line (ignored)\n",
+						"trailing chars \"%s\" in \"timelimit <limit>\" line"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, next, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+					return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 				}
 			}
 			lim->lms_t_hard = 0;
@@ -1501,8 +1512,12 @@ config_overlay(ConfigArgs *c) {
 	}
 	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1])) {
 		/* log error */
-		Debug(LDAP_DEBUG_ANY, "%s: (optional) %s overlay \"%s\" configuration failed (ignored)\n",
+		Debug(LDAP_DEBUG_ANY, "%s: (optional) %s overlay \"%s\" configuration failed"
+			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 			c->log, c->be == frontendDB ? "global " : "", c->argv[1][1]);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+		return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 	} else if(overlay_config(c->be, c->argv[1])) {
 		return(1);
 	}
@@ -1559,8 +1574,12 @@ config_suffix(ConfigArgs *c) {
 	ndn = c->value_ndn;
 	tbe = select_backend(&ndn, 0, 0);
 	if(tbe == c->be) {
-		Debug(LDAP_DEBUG_ANY, "%s: suffix already served by this backend! (ignored)\n",
+		Debug(LDAP_DEBUG_ANY, "%s: suffix already served by this backend!"
+			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 			c->log, 0, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+		return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 		free(pdn.bv_val);
 		free(ndn.bv_val);
 	} else if(tbe) {
@@ -1610,6 +1629,13 @@ config_rootdn(ConfigArgs *c) {
 static int
 config_rootpw(ConfigArgs *c) {
 	Backend *tbe;
+	/* config_add_internal sets c->be = frontendDB. While the cn=config
+	 * rootpw is technically inside a backend, we expose it in the
+	 * global entry, and need to point to it properly here.
+	 */
+	if (c->be == frontendDB)
+		c->be = LDAP_STAILQ_FIRST(&backendDB);
+
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if (!BER_BVISEMPTY(&c->be->be_rootpw)) {
 			ber_dupbv( &c->value_bv, &c->be->be_rootpw);
@@ -2089,13 +2115,21 @@ config_replica(ConfigArgs *c) {
 				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
 					case 1:
 						Debug(LDAP_DEBUG_ANY, "%s: "
-						"suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
+						"suffix \"%s\" in \"replica\" line is not valid for backend"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, c->argv[i] + STRLENOF("suffix="), 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 					case 2:
 						Debug(LDAP_DEBUG_ANY, "%s: "
-						"unable to normalize suffix in \"replica\" line (ignored)\n",
+						"unable to normalize suffix in \"replica\" line"
+						SLAPD_CONF_UNKNOWN_IGNORED ".\n",
 						c->log, 0, 0);
+#ifdef SLAPD_CONF_UNKNOWN_BAILOUT
+						return 1;
+#endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 						break;
 				}
 
@@ -2369,7 +2403,7 @@ config_ldif_resp( Operation *op, SlapReply *rs )
 
 /* Configure and read the underlying back-ldif store */
 static int
-config_setup_ldif( BackendDB *be, const char *dir ) {
+config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	CfBackInfo *cfb = be->be_private;
 	ConfigArgs c = {0};
 	ConfigTable *ct;
@@ -2426,35 +2460,37 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 	if ( backend_startup_one( &cfb->cb_db ))
 		return 1;
 
-	op = (Operation *)opbuf;
-	connection_fake_init( &conn, op, cfb );
+	if ( readit ) {
+		op = (Operation *)opbuf;
+		connection_fake_init( &conn, op, cfb );
 
-	filter.f_desc = slap_schema.si_ad_objectClass;
-	
-	op->o_tag = LDAP_REQ_SEARCH;
+		filter.f_desc = slap_schema.si_ad_objectClass;
 
-	op->ors_filter = &filter;
-	op->ors_filterstr = filterstr;
-	op->ors_scope = LDAP_SCOPE_SUBTREE;
+		op->o_tag = LDAP_REQ_SEARCH;
 
-	op->o_dn = be->be_rootdn;
-	op->o_ndn = be->be_rootndn;
+		op->ors_filter = &filter;
+		op->ors_filterstr = filterstr;
+		op->ors_scope = LDAP_SCOPE_SUBTREE;
 
-	op->o_req_dn = be->be_suffix[0];
-	op->o_req_ndn = be->be_nsuffix[0];
+		op->o_dn = be->be_rootdn;
+		op->o_ndn = be->be_rootndn;
 
-	op->ors_tlimit = SLAP_NO_LIMIT;
-	op->ors_slimit = SLAP_NO_LIMIT;
+		op->o_req_dn = be->be_suffix[0];
+		op->o_req_ndn = be->be_nsuffix[0];
 
-	op->ors_attrs = slap_anlist_all_attributes;
-	op->ors_attrsonly = 0;
+		op->ors_tlimit = SLAP_NO_LIMIT;
+		op->ors_slimit = SLAP_NO_LIMIT;
 
-	op->o_callback = &cb;
-	cb.sc_private = cfb;
+		op->ors_attrs = slap_anlist_all_attributes;
+		op->ors_attrsonly = 0;
 
-	op->o_bd = &cfb->cb_db;
-	op->o_bd->be_search( op, &rs );
-	
+		op->o_callback = &cb;
+		cb.sc_private = cfb;
+
+		op->o_bd = &cfb->cb_db;
+		op->o_bd->be_search( op, &rs );
+	}
+
 	cfb->cb_use_ldif = 1;
 
 	return 0;
@@ -2497,6 +2533,8 @@ int
 read_config(const char *fname, const char *dir) {
 	BackendDB *be;
 	CfBackInfo *cfb;
+	const char *cfdir, *cfname;
+	int rc;
 
 	/* Setup the config backend */
 	be = backend_db_init( "config" );
@@ -2505,18 +2543,60 @@ read_config(const char *fname, const char *dir) {
 
 	cfb = be->be_private;
 
-	/* Setup the underlying back-ldif backend */
-	if ( config_setup_ldif( be, dir ))
-		return 1;
+	/* If no .conf, or a dir was specified, setup the dir */
+	if ( !fname || dir ) {
+		if ( dir ) {
+			/* If explicitly given, check for existence */
+			struct stat st;
 
-#ifdef	SLAP_USE_CONFDIR
-	/* If we read the config from back-ldif, nothing to do here */
-	if ( cfb->cb_got_ldif )
-		return 0;
-#endif
-	ber_str2bv( fname, 0, 1, &cf_prv.c_file );
+			if ( stat( dir, &st ) < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"invalid config directory %s, error %d\n",
+						dir, errno, 0 );
+				return 1;
+			}
+			cfdir = dir;
+		} else {
+			cfdir = SLAPD_DEFAULT_CONFIGDIR;
+		}
+		/* if fname is defaulted, try reading .d */
+		if ( config_setup_ldif( be, cfdir, !fname ))
+			return 1;
 
-	return read_config_file(fname, 0, NULL);
+		/* If we read the config from back-ldif, nothing to do here */
+		if ( cfb->cb_got_ldif )
+			return 0;
+	}
+
+	if ( fname )
+		cfname = fname;
+	else
+		cfname = SLAPD_DEFAULT_CONFIGFILE;
+
+	rc = read_config_file(cfname, 0, NULL);
+
+	if ( rc == 0 )
+		ber_str2bv( cfname, 0, 1, &cf_prv.c_file );
+
+	/* If we got this far and failed, it may be a serious problem. In server
+	 * mode, we should never come to this. However, it may be alright if we're
+	 * using slapadd to create the conf dir.
+	 */
+	while ( rc ) {
+		if ( slapMode & (SLAP_SERVER_MODE|SLAP_TOOL_READMAIN|SLAP_TOOL_READONLY))
+			break;
+		/* If a config file was explicitly given, fail */
+		if ( fname )
+			break;
+		
+		/* Seems to be slapadd with a config dir, let it continue */
+		if ( cfb->cb_use_ldif ) {
+			rc = 0;
+			cfb->cb_got_ldif = 1;
+		}
+		break;
+	}
+	return rc;
 }
 
 static int
@@ -2829,7 +2909,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	CfOcInfo **colst;
 	Attribute *a, *oc_at, *type_attr;
 	AttributeDescription *type_ad = NULL;
-	int i, j, nocs, rc;
+	int i, j, nocs, rc = 0;
 	ConfigArgs ca = {0};
 	struct berval pdn;
 	ConfigTable *ct, *type_ct = NULL;
@@ -2904,11 +2984,13 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 		/* The cn=schema entry is all hardcoded, so never reparse it */
 		if (last->ce_type == Cft_Global )
 			goto ok;
-		/* FALLTHRU */
-		ca.private = ch_calloc( 1, sizeof(ConfigFile) );
-		cfn = ca.private;
+		cfn = ch_calloc( 1, sizeof(ConfigFile) );
+		ca.private = cfn;
+		break;
 	case Cft_Global:
-		ca.be = LDAP_STAILQ_FIRST(&backendDB);
+		cfn = &cf_prv;
+		ca.private = cfn;
+		ca.be = frontendDB;	/* just to get past check_vals */
 		break;
 
 	case Cft_Backend:
@@ -2922,7 +3004,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 			ca.be = last->ce_be;
 		} else {
 			type_ad = cfAd_database;
-			/* dummy, just to get past check_attr */
+			/* dummy, just to get past check_vals */
 			ca.be = frontendDB;
 		}
 		break;
@@ -4008,6 +4090,80 @@ config_back_destroy( BackendInfo *bi )
 	return 0;
 }
 
+static int
+config_tool_entry_open( BackendDB *be, int mode )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_open )
+		return bi->bi_tool_entry_open( &cfb->cb_db, mode );
+	else
+		return -1;
+	
+}
+
+static int
+config_tool_entry_close( BackendDB *be )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_close )
+		return bi->bi_tool_entry_close( &cfb->cb_db );
+	else
+		return -1;
+}
+
+static ID
+config_tool_entry_first( BackendDB *be )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_first )
+		return bi->bi_tool_entry_first( &cfb->cb_db );
+	else
+		return NOID;
+}
+
+static ID
+config_tool_entry_next( BackendDB *be )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_next )
+		return bi->bi_tool_entry_next( &cfb->cb_db );
+	else
+		return NOID;
+}
+
+static Entry *
+config_tool_entry_get( BackendDB *be, ID id )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_get )
+		return bi->bi_tool_entry_get( &cfb->cb_db, id );
+	else
+		return NULL;
+}
+
+static ID
+config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
+{
+	CfBackInfo *cfb = be->be_private;
+	BackendInfo *bi = cfb->cb_db.bd_info;
+
+	if ( bi && bi->bi_tool_entry_put &&
+		config_add_internal( cfb, e, NULL, NULL ) == 0 )
+		return bi->bi_tool_entry_put( &cfb->cb_db, e, text );
+	else
+		return NOID;
+}
+
 static struct {
 	char *name;
 	AttributeDescription **desc;
@@ -4088,6 +4244,13 @@ config_back_initialize( BackendInfo *bi )
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_tool_entry_open = config_tool_entry_open;
+	bi->bi_tool_entry_close = config_tool_entry_close;
+	bi->bi_tool_entry_first = config_tool_entry_first;
+	bi->bi_tool_entry_next = config_tool_entry_next;
+	bi->bi_tool_entry_get = config_tool_entry_get;
+	bi->bi_tool_entry_put = config_tool_entry_put;
 
 	argv[3] = NULL;
 	for (i=0; OidMacros[i].name; i++ ) {

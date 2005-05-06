@@ -135,7 +135,7 @@ replog( Operation *op )
 	int     count = 0;
 #endif
 	int	subsets = 0;
-	long now = slap_get_time();
+	long	now = slap_get_time();
 	char	*replogfile;
 
 	replogfile = op->o_bd->be_replogfile ? op->o_bd->be_replogfile :

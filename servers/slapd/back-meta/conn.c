@@ -121,29 +121,29 @@ myprint( Avlnode *root )
  */
 static metaconn_t *
 metaconn_alloc(
-	int		ntargets )
+       	Operation 		*op )
 {
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
 	metaconn_t	*mc;
+	int		i, ntargets = mi->mi_ntargets;
 
 	assert( ntargets > 0 );
 
 	/* malloc once only; leave an extra one for one-past-end */
 	mc = ( metaconn_t * )ch_malloc( sizeof( metaconn_t )
-			+ sizeof( metasingleconn_t ) * ( ntargets + 1 ) );
+			+ sizeof( metasingleconn_t ) * ntargets );
 	if ( mc == NULL ) {
 		return NULL;
 	}
 
 	mc->mc_conns = ( metasingleconn_t * )&mc[ 1 ];
 
-	/* FIXME: needed by META_LAST() */
-	mc->mc_conns[ ntargets ].msc_candidate = META_LAST_CONN;
-
-	for ( ; ntargets-- > 0; ) {
-		mc->mc_conns[ ntargets ].msc_ld = NULL;
-		BER_BVZERO( &mc->mc_conns[ ntargets ].msc_bound_ndn );
-		BER_BVZERO( &mc->mc_conns[ ntargets ].msc_cred );
-		mc->mc_conns[ ntargets ].msc_bound = META_UNBOUND;
+	for ( i = 0; i < ntargets; i++ ) {
+		mc->mc_conns[ i ].msc_ld = NULL;
+		BER_BVZERO( &mc->mc_conns[ i ].msc_bound_ndn );
+		BER_BVZERO( &mc->mc_conns[ i ].msc_cred );
+		mc->mc_conns[ i ].msc_bound = META_UNBOUND;
+		mc->mc_conns[ i ].msc_info = mi;
 	}
 
 	mc->mc_auth_target = META_BOUND_NONE;
@@ -328,7 +328,7 @@ retry:;
 	 * If the connection DN is not null, an attempt to rewrite it is made
 	 */
 	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
-		dc.rwmap = &mt->mt_rwmap;
+		dc.target = mt;
 		dc.conn = op->o_conn;
 		dc.rs = rs;
 		dc.ctx = "bindDN";
@@ -381,7 +381,7 @@ meta_back_retry(
 	ldap_back_send_t	sendok )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metatarget_t		*mt = mi->mi_targets[ candidate ];
+	metatarget_t		*mt = &mi->mi_targets[ candidate ];
 	int			rc;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
@@ -493,7 +493,7 @@ meta_back_get_candidate(
 			 * and a default target is defined, and it is
 			 * a candidate, try using it (FIXME: YMMV) */
 			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
-				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ]->mt_nsuffix,
+				&& meta_back_is_candidate( &mi->mi_targets[ mi->mi_defaulttarget ].mt_nsuffix,
 						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
 			{
 				candidate = mi->mi_defaulttarget;
@@ -592,7 +592,9 @@ meta_back_getconn(
 	int		cached = META_TARGET_NONE,
 			i = META_TARGET_NONE,
 			err = LDAP_SUCCESS,
-			new_conn = 0;
+			new_conn = 0,
+			ncandidates = 0;
+
 
 	meta_op_type	op_type = META_OP_REQUIRE_SINGLE;
 	int		parent = 0,
@@ -656,7 +658,7 @@ meta_back_getconn(
 
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( !mc ) {
-			mc = metaconn_alloc( mi->mi_ntargets );
+			mc = metaconn_alloc( op );
 			mc->mc_conn = op->o_conn;
 			new_conn = 1;
 		}
@@ -667,10 +669,11 @@ meta_back_getconn(
 			 * The target is activated; if needed, it is
 			 * also init'd
 			 */
-			int lerr = meta_back_init_one_conn( op, rs, mi->mi_targets[ i ],
+			int lerr = meta_back_init_one_conn( op, rs, &mi->mi_targets[ i ],
 					&mc->mc_conns[ i ], sendok );
 			if ( lerr == LDAP_SUCCESS ) {
 				candidates[ i ].sr_tag = META_CANDIDATE;
+				ncandidates++;
 				
 			} else {
 				
@@ -732,7 +735,7 @@ meta_back_getconn(
 			return NULL;
 		}
 
-		Debug( LDAP_DEBUG_CACHE,
+		Debug( LDAP_DEBUG_TRACE,
 	"==>meta_back_getconn: got target %d for ndn=\"%s\" from cache\n",
 				i, op->o_req_ndn.bv_val, 0 );
 
@@ -745,7 +748,7 @@ meta_back_getconn(
 
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( !mc ) {
-			mc = metaconn_alloc( mi->mi_ntargets );
+			mc = metaconn_alloc( op );
 			mc->mc_conn = op->o_conn;
 			new_conn = 1;
 		}
@@ -760,10 +763,11 @@ meta_back_getconn(
 		 * also init'd. In case of error, meta_back_init_one_conn
 		 * sends the appropriate result.
 		 */
-		err = meta_back_init_one_conn( op, rs, mi->mi_targets[ i ],
+		err = meta_back_init_one_conn( op, rs, &mi->mi_targets[ i ],
 				&mc->mc_conns[ i ], sendok );
 		if ( err == LDAP_SUCCESS ) {
 			candidates[ i ].sr_tag = META_CANDIDATE;
+			ncandidates++;
 
 		} else {
 		
@@ -789,18 +793,16 @@ meta_back_getconn(
 	 */
 	} else {
 
-		int	ncandidates = 0;
-
 		/* Looks like we didn't get a bind. Open a new session... */
 		if ( !mc ) {
-			mc = metaconn_alloc( mi->mi_ntargets );
+			mc = metaconn_alloc( op );
 			mc->mc_conn = op->o_conn;
 			new_conn = 1;
 		}
 
 		for ( i = 0; i < mi->mi_ntargets; i++ ) {
 			if ( i == cached 
-				|| meta_back_is_candidate( &mi->mi_targets[ i ]->mt_nsuffix,
+				|| meta_back_is_candidate( &mi->mi_targets[ i ].mt_nsuffix,
 						&op->o_req_ndn, LDAP_SCOPE_SUBTREE ) )
 			{
 
@@ -809,11 +811,14 @@ meta_back_getconn(
 				 * also init'd
 				 */
 				int lerr = meta_back_init_one_conn( op, rs,
-						mi->mi_targets[ i ],
+						&mi->mi_targets[ i ],
 						&mc->mc_conns[ i ], sendok );
 				if ( lerr == LDAP_SUCCESS ) {
 					candidates[ i ].sr_tag = META_CANDIDATE;
 					ncandidates++;
+
+					Debug( LDAP_DEBUG_TRACE, "%s: meta_back_init_one_conn(%d)\n",
+						op->o_log_prefix, i, 0 );
 
 				} else {
 				
@@ -884,13 +889,13 @@ done:;
 		 */
 		if ( err == 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"%s meta_back_getconn: conn %ld inserted\n",
-				op->o_log_prefix, mc->mc_conn->c_connid, 0 );
+				"%s meta_back_getconn: candidates=%d conn=%ld inserted\n",
+				op->o_log_prefix, ncandidates, mc->mc_conn->c_connid );
 
 		} else {
-			Debug( LDAP_DEBUG_TRACE,
-				"%s meta_back_getconn: conn %ld insert failed\n",
-				op->o_log_prefix, mc->mc_conn->c_connid, 0 );
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
+				op->o_log_prefix, ncandidates, mc->mc_conn->c_connid );
 		
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "Internal server error";
@@ -904,8 +909,8 @@ done:;
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"%s meta_back_getconn: conn %ld fetched\n",
-			op->o_log_prefix, mc->mc_conn->c_connid, 0 );
+			"%s meta_back_getconn: candidates=%d conn=%ld fetched\n",
+			op->o_log_prefix, ncandidates, mc->mc_conn->c_connid );
 	}
 	
 	return mc;

@@ -64,10 +64,11 @@ dyngroup_response( Operation *op, SlapReply *rs )
 				int cache = op->o_do_not_cache;
 				
 				op->o_do_not_cache = 1;
-				if ( backend_group( op, NULL, &op->o_req_ndn,
-					&op->oq_compare.rs_ava->aa_value, NULL, ap->ap_uri ) == 0 )
-					rs->sr_err = LDAP_COMPARE_TRUE;
+				rs->sr_err = backend_group( op, NULL, &op->o_req_ndn,
+					&op->oq_compare.rs_ava->aa_value, NULL, ap->ap_uri );
 				op->o_do_not_cache = cache;
+				if ( rs->sr_err == LDAP_SUCCESS )
+					rs->sr_err = LDAP_COMPARE_TRUE;
 				break;
 			}
 		}
