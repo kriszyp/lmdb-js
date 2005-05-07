@@ -97,12 +97,9 @@ MKDEPFLAG = -l
 
 .SUFFIXES: .c .o .lo
 
-.c.o:
-	$(LTCOMPILE_LIB) $<
-
 .c.lo:
 	$(LTCOMPILE_MOD) $<
 
 $(LIBRARY): version.lo
-	$(LTLINK_LIB) -o $@ $(OBJS) version.lo
+	$(AR) rs $@ $(OBJS)
 
