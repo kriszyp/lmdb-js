@@ -571,7 +571,8 @@ void entry_partsize(Entry *e, ber_len_t *plen,
 		}
 	}
 	len += entry_lenlen(0);	/* NUL byte at end */
-	len += entry_lenlen(nat) + entry_lenlen(nval);
+	len += entry_lenlen(nat);
+	len += entry_lenlen(nval);
 	*plen = len;
 	*pnattrs = nat;
 	*pnvals = nval;
@@ -632,23 +633,23 @@ int entry_encode(Entry *e, struct berval *bv)
 		*ptr++ = '\0';
 		if (a->a_vals) {
 			for (i=0; a->a_vals[i].bv_val; i++);
-			entry_putlen(&ptr, i);
-			for (i=0; a->a_vals[i].bv_val; i++) {
-			entry_putlen(&ptr, a->a_vals[i].bv_len);
-			AC_MEMCPY(ptr, a->a_vals[i].bv_val,
-				a->a_vals[i].bv_len);
-			ptr += a->a_vals[i].bv_len;
-			*ptr++ = '\0';
+				entry_putlen(&ptr, i);
+				for (i=0; a->a_vals[i].bv_val; i++) {
+				entry_putlen(&ptr, a->a_vals[i].bv_len);
+				AC_MEMCPY(ptr, a->a_vals[i].bv_val,
+					a->a_vals[i].bv_len);
+				ptr += a->a_vals[i].bv_len;
+				*ptr++ = '\0';
 			}
 			if (a->a_nvals != a->a_vals) {
 				entry_putlen(&ptr, i);
-			for (i=0; a->a_nvals[i].bv_val; i++) {
-				entry_putlen(&ptr, a->a_nvals[i].bv_len);
-				AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
-				a->a_nvals[i].bv_len);
-				ptr += a->a_nvals[i].bv_len;
-				*ptr++ = '\0';
-			}
+				for (i=0; a->a_nvals[i].bv_val; i++) {
+					entry_putlen(&ptr, a->a_nvals[i].bv_len);
+					AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
+					a->a_nvals[i].bv_len);
+					ptr += a->a_nvals[i].bv_len;
+					*ptr++ = '\0';
+				}
 			} else {
 				entry_putlen(&ptr, 0);
 			}
