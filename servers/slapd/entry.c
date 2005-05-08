@@ -555,7 +555,6 @@ void entry_partsize(Entry *e, ber_len_t *plen,
 			len += entry_lenlen(0);	/* 0 nvals */
 		}
 	}
-	len += entry_lenlen(0);	/* NUL byte at end */
 	len += entry_lenlen(nat);
 	len += entry_lenlen(nval);
 	*plen = len;
