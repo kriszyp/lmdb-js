@@ -475,24 +475,9 @@ entry_id_cmp( const void *v_e1, const void *v_e2 )
 	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
 }
 
+/* This is like a ber_len */
 #define entry_lenlen(l)	(((l) < 0x80) ? 1 : ((l) < 0x100) ? 2 : \
 	((l) < 0x10000) ? 3 : ((l) < 0x1000000) ? 4 : 5)
-#if 0
-/* This is like a ber_len */
-static ber_len_t
-entry_lenlen(ber_len_t len)
-{
-	if (len <= 0x7f)
-		return 1;
-	if (len <= 0xff)
-		return 2;
-	if (len <= 0xffff)
-		return 3;
-	if (len <= 0xffffff)
-		return 4;
-	return 5;
-}
-#endif
 
 static void
 entry_putlen(unsigned char **buf, ber_len_t len)
