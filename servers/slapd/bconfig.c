@@ -1514,6 +1514,9 @@ config_overlay(ConfigArgs *c) {
 	} else if(overlay_config(c->be, c->argv[1])) {
 		return(1);
 	}
+	/* Setup context for subsequent config directives.
+	 * The newly added overlay is at the head of the list.
+	 */
 	oi = (slap_overinfo *)c->be->bd_info;
 	c->bi = &oi->oi_list->on_bi;
 	return(0);
