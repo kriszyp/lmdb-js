@@ -2390,7 +2390,8 @@ syncprov_init()
 		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
 		syncprov_parseCtrl, &slap_cids.sc_LDAPsync );
 	if ( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "Failed to register control %d\n", rc );
+		Debug( LDAP_DEBUG_ANY,
+			"syncprov_init: Failed to register control %d\n", rc, 0, 0 );
 		return rc;
 	}
 
