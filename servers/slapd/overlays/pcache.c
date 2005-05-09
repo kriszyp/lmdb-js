@@ -1652,8 +1652,12 @@ pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	bv.bv_len = sprintf( ca->msg, "olcDatabase=%s", cm->db.bd_info->bi_type );
 	bv.bv_val = ca->msg;
 	ca->be = &cm->db;
-	config_build_entry( op, rs, pe, ca, &bv, cm->db.bd_info->bi_cf_ocs,
-		&pcocs[1] );
+
+	/* We can only create this entry if the database is table-driven
+	 */
+	if ( cm->db.bd_info->bi_cf_ocs )
+		config_build_entry( op, rs, pe, ca, &bv, cm->db.bd_info->bi_cf_ocs,
+			&pcocs[1] );
 
 	return 0;
 }
