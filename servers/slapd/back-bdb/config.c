@@ -30,13 +30,10 @@
 #	define	SLAP_BDB_ALLOW_DIRTY_READ
 #endif
 
-#define bdb_cf_oc			BDB_SYMBOL(cf_oc)
 #define bdb_cf_gen			BDB_SYMBOL(cf_gen)
 #define	bdb_cf_cleanup		BDB_SYMBOL(cf_cleanup)
 #define bdb_checkpoint		BDB_SYMBOL(checkpoint)
 #define bdb_online_index	BDB_SYMBOL(online_index)
-
-static ObjectClass *bdb_oc;
 
 static ConfigDriver bdb_cf_gen;
 
@@ -130,19 +127,9 @@ static ConfigOCs bdbocs[] = {
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbShmKey ) )",
-		 	Cft_Database, &bdb_oc, bdbcfg },
+		 	Cft_Database, bdbcfg },
 	{ NULL, 0, NULL }
 };
-
-static int
-bdb_cf_oc(ConfigArgs *c)
-{
-	if ( c->op == SLAP_CONFIG_EMIT ) {
-		value_add_one( &c->rvalue_vals, &bdb_oc->soc_cname );
-		return 0;
-	}
-	return 1;
-}
 
 static slap_verbmasks bdb_lockd[] = {
 	{ BER_BVC("default"), DB_LOCK_DEFAULT },

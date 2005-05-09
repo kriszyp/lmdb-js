@@ -61,8 +61,6 @@ struct ldif_info {
 
 #define ENTRY_BUFF_INCREMENT 500
 
-static ObjectClass *ldif_oc;
-
 static ConfigTable ldifcfg[] = {
 	{ "directory", "dir", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
 		(void *)offsetof(struct ldif_info, li_base_path),
@@ -79,8 +77,7 @@ static ConfigOCs ldifocs[] = {
 		"NAME 'olcLdifConfig' "
 		"DESC 'LDIF backend configuration' "
 		"SUP olcDatabaseConfig "
-		"MUST ( olcDbDirectory ) )", Cft_Database,
-		&ldif_oc, ldifcfg },
+		"MUST ( olcDbDirectory ) )", Cft_Database, ldifcfg },
 	{ NULL, 0, NULL }
 };
 

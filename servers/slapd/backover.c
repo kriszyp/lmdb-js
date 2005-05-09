@@ -25,6 +25,7 @@
 
 #define SLAPD_TOOLS
 #include "slap.h"
+#include "config.h"
 
 static slap_overinst *overlays;
 
@@ -71,6 +72,8 @@ over_db_config(
 	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
 	BackendInfo *bi_orig = be->bd_info;
+	ConfigArgs ca;
+	ConfigTable *ct;
 	int rc = 0;
 
 	if ( oi->oi_orig->bi_db_config ) {
@@ -123,8 +126,22 @@ over_db_config(
 		if ( rc != SLAP_CONF_UNKNOWN ) return rc;
 	}
 
+	ca.argv = argv;
+	ca.argc = argc;
+	ca.fname = fname;
+	ca.lineno = lineno;
+	ca.be = be;
 	for (; on; on=on->on_next) {
-		if (on->on_bi.bi_db_config) {
+		rc = SLAP_CONF_UNKNOWN;
+		if (on->on_bi.bi_cf_ocs) {
+			ConfigTable *ct;
+			ca.bi = &on->on_bi;
+			ct = config_find_keyword( on->on_bi.bi_cf_ocs->co_table, &ca );
+			if ( ct ) {
+				rc = config_add_vals( ct, &ca );
+			}
+		}
+		if (on->on_bi.bi_db_config && rc == SLAP_CONF_UNKNOWN) {
 			be->bd_info = &on->on_bi;
 			rc = on->on_bi.bi_db_config( be, fname, lineno,
 				argc, argv );

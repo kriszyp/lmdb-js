@@ -86,9 +86,6 @@ static struct berval cfdir;
 static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
 	*cfAd_include;
 
-static ObjectClass *cfOc_schema, *cfOc_global, *cfOc_backend, *cfOc_database,
-	*cfOc_include, *cfOc_overlay, *cfOc_module;
-
 static ConfigFile cf_prv, *cfn = &cf_prv;
 
 static Avlnode *CfOcTree;
@@ -614,19 +611,19 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTLSCertificateKeyFile $ olcTLSCipherSuite $ olcTLSCRLCheck $ "
 		 "olcTLSRandFile $ olcTLSVerifyClient $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
-		 "olcDitContentRules ) )", Cft_Global, &cfOc_global },
+		 "olcDitContentRules ) )", Cft_Global },
 	{ "( OLcfgGlOc:3 "
 		"NAME 'olcSchemaConfig' "
 		"DESC 'OpenLDAP schema object' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( cn $ olcObjectIdentifier $ olcAttributeTypes $ "
 		 "olcObjectClasses $ olcDitContentRules ) )",
-		 	Cft_Schema, &cfOc_schema, NULL, cfAddSchema },
+		 	Cft_Schema, NULL, cfAddSchema },
 	{ "( OLcfgGlOc:4 "
 		"NAME 'olcBackendConfig' "
 		"DESC 'OpenLDAP Backend-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MUST olcBackend )", Cft_Backend, &cfOc_backend, NULL, cfAddBackend },
+		"MUST olcBackend )", Cft_Backend, NULL, cfAddBackend },
 	{ "( OLcfgGlOc:5 "
 		"NAME 'olcDatabaseConfig' "
 		"DESC 'OpenLDAP Database-specific options' "
@@ -637,26 +634,26 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
 		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef ) )",
-		 	Cft_Database, &cfOc_database, NULL, cfAddDatabase },
+		 	Cft_Database, NULL, cfAddDatabase },
 	{ "( OLcfgGlOc:6 "
 		"NAME 'olcOverlayConfig' "
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MUST olcOverlay )", Cft_Overlay, &cfOc_overlay, NULL, cfAddOverlay },
+		"MUST olcOverlay )", Cft_Overlay, NULL, cfAddOverlay },
 	{ "( OLcfgGlOc:7 "
 		"NAME 'olcIncludeFile' "
 		"DESC 'OpenLDAP configuration include file' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcInclude "
 		"MAY ( cn $ olcRootDSE ) )",
-		Cft_Include, &cfOc_include, NULL, cfAddInclude },
+		Cft_Include, NULL, cfAddInclude },
 #ifdef SLAPD_MODULES
 	{ "( OLcfgGlOc:8 "
 		"NAME 'olcModuleList' "
 		"DESC 'OpenLDAP dynamic module info' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST ( olcModulePath $ olcModuleLoad ) "
-		"MAY cn )", Cft_Module, &cfOc_module, NULL, cfAddModule },
+		"MAY cn )", Cft_Module, NULL, cfAddModule },
 #endif
 	{ NULL, 0, NULL }
 };
@@ -2513,7 +2510,7 @@ config_register_schema(ConfigTable *ct, ConfigOCs *ocs) {
 
 	for (i=0; ocs[i].co_def; i++) {
 		if ( ocs[i].co_oc ) {
-			ocs[i].co_name = &((*ocs[i].co_oc)->soc_cname);
+			ocs[i].co_name = &ocs[i].co_oc->soc_cname;
 			if ( !ocs[i].co_table )
 				ocs[i].co_table = ct;
 			avl_insert( &CfOcTree, &ocs[i], CfOc_cmp, avl_dup_error );
@@ -2659,8 +2656,8 @@ sort_attrs( Entry *e, ConfigOCs **colst, int nocs )
 	int i, j;
 
 	for (i=0; i<nocs; i++) {
-		if ( (*colst[i]->co_oc)->soc_required ) {
-			AttributeType **at = (*colst[i]->co_oc)->soc_required;
+		if ( colst[i]->co_oc->soc_required ) {
+			AttributeType **at = colst[i]->co_oc->soc_required;
 			for (j=0; at[j]; j++) {
 				for (a=e->e_attrs, prev=&e->e_attrs; a;
 					prev = &(*prev)->a_next, a=a->a_next) {
@@ -2678,8 +2675,8 @@ sort_attrs( Entry *e, ConfigOCs **colst, int nocs )
 				}
 			}
 		}
-		if ( (*colst[i]->co_oc)->soc_allowed ) {
-			AttributeType **at = (*colst[i]->co_oc)->soc_allowed;
+		if ( colst[i]->co_oc->soc_allowed ) {
+			AttributeType **at = colst[i]->co_oc->soc_allowed;
 			for (j=0; at[j]; j++) {
 				for (a=e->e_attrs, prev=&e->e_attrs; a;
 					prev = &(*prev)->a_next, a=a->a_next) {
@@ -3654,7 +3651,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	val.bv_len = rdn->bv_len - (val.bv_val - rdn->bv_val);
 	attr_merge_normalize_one(e, ad, &val, NULL );
 
-	oc = *main->co_oc;
+	oc = main->co_oc;
 	if ( oc->soc_required )
 		config_build_attrs( e, oc->soc_required, ad, main->co_table, c );
 
@@ -3662,7 +3659,7 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 		config_build_attrs( e, oc->soc_allowed, ad, main->co_table, c );
 
 	if ( extra ) {
-		oc = *extra->co_oc;
+		oc = extra->co_oc;
 		if ( oc->soc_required )
 			config_build_attrs( e, oc->soc_required, ad, main->co_table, c );
 
@@ -3805,6 +3802,7 @@ config_back_db_open( BackendDB *be )
 	/* create root of tree */
 	rdn = config_rdn;
 	c.private = cfb->cb_config;
+	c.be = frontendDB;
 	e = config_build_entry( op, &rs, NULL, &c, &rdn, &CFOC_GLOBAL, NULL );
 	ce = e->e_private;
 	cfb->cb_root = ce;

@@ -464,9 +464,7 @@ init_config_ocs( ConfigOCs *ocs ) {
 				ocs[i].co_def, scherr2str(code), err );
 			return code;
 		}
-		if ( ocs[i].co_oc ) {
-			*ocs[i].co_oc = oc_find(oc->oc_names[0]);
-		}
+		ocs[i].co_oc = oc_find(oc->oc_names[0]);
 		ldap_memfree(oc);
 	}
 	return 0;
@@ -602,7 +600,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 			
 		} else if ( c->bi ) {
 			rc = SLAP_CONF_UNKNOWN;
-			if ( c->bi->bi_cf_ocs->co_table ) {
+			if ( c->bi->bi_cf_ocs ) {
 				ct = config_find_keyword( c->bi->bi_cf_ocs->co_table, c );
 				if ( ct ) {
 					rc = config_add_vals( ct, c );

@@ -92,10 +92,10 @@ typedef int (ConfigCfAdd)(
 typedef struct ConfigOCs {
 	char *co_def;
 	ConfigType co_type;
-	ObjectClass **co_oc;
 	ConfigTable *co_table;
 	ConfigLDAPadd *co_ldadd;
 	ConfigCfAdd *co_cfadd;
+	ObjectClass *co_oc;
 	struct berval *co_name;
 } ConfigOCs;
 
