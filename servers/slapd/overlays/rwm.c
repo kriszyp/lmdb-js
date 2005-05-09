@@ -73,14 +73,14 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 		return LDAP_SUCCESS;
 	}
 
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	op->o_req_ndn = ndn;
 	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
 		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		op->o_req_dn = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
+	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	op->o_req_ndn = ndn;
 
 	return LDAP_SUCCESS;
 }
