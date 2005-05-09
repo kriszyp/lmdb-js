@@ -3661,10 +3661,10 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	if ( extra ) {
 		oc = extra->co_oc;
 		if ( oc->soc_required )
-			config_build_attrs( e, oc->soc_required, ad, main->co_table, c );
+			config_build_attrs( e, oc->soc_required, ad, extra->co_table, c );
 
 		if ( oc->soc_allowed )
-			config_build_attrs( e, oc->soc_allowed, ad, main->co_table, c );
+			config_build_attrs( e, oc->soc_allowed, ad, extra->co_table, c );
 	}
 
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
