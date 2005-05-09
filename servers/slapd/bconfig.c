@@ -1497,6 +1497,7 @@ config_timelimit(ConfigArgs *c) {
 
 static int
 config_overlay(ConfigArgs *c) {
+	slap_overinfo *oi;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
@@ -1513,6 +1514,8 @@ config_overlay(ConfigArgs *c) {
 	} else if(overlay_config(c->be, c->argv[1])) {
 		return(1);
 	}
+	oi = (slap_overinfo *)c->be->bd_info;
+	c->bi = &oi->oi_list->on_bi;
 	return(0);
 }
 
@@ -3810,19 +3813,9 @@ config_back_db_open( BackendDB *be )
 	parent = e;
 	ceparent = ce;
 
-	/* Create schema nodes... cn=schema will contain the hardcoded core
-	 * schema, read-only. Child objects will contain runtime loaded schema
-	 * files.
-	 */
-	rdn = schema_rdn;
-	c.private = NULL;
-	e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_SCHEMA, NULL );
-
-	/* Create includeFile nodes and schema nodes for included schema... */
+	/* Create includeFile nodes */
 	if ( cfb->cb_config->c_kids ) {
 		c.depth = 0;
-		c.private = cfb->cb_config->c_kids;
-		config_build_schema_inc( &c, ce, op, &rs );
 		c.private = cfb->cb_config->c_kids;
 		config_build_includes( &c, ceparent, op, &rs );
 	}
@@ -3833,6 +3826,22 @@ config_back_db_open( BackendDB *be )
 		config_build_modules( &c, ceparent, op, &rs );
 	}
 #endif
+
+	/* Create schema nodes... cn=schema will contain the hardcoded core
+	 * schema, read-only. Child objects will contain runtime loaded schema
+	 * files.
+	 */
+	rdn = schema_rdn;
+	c.private = NULL;
+	e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_SCHEMA, NULL );
+	ce = e->e_private;
+
+	/* Create schema nodes for included schema... */
+	if ( cfb->cb_config->c_kids ) {
+		c.depth = 0;
+		c.private = cfb->cb_config->c_kids;
+		config_build_schema_inc( &c, ce, op, &rs );
+	}
 
 	/* Create backend nodes. Skip if they don't provide a cf_table.
 	 * There usually aren't any of these.
@@ -3874,6 +3883,8 @@ config_back_db_open( BackendDB *be )
 		e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_DATABASE,
 			be->be_cf_ocs );
 		ce = e->e_private;
+		if ( be->be_cf_ocs && be->be_cf_ocs->co_cfadd )
+			be->be_cf_ocs->co_cfadd( op, &rs, e, &c );
 		/* Iterate through overlays */
 		if ( oi ) {
 			slap_overinst *on;
@@ -3888,6 +3899,8 @@ config_back_db_open( BackendDB *be )
 				c.bi = &on->on_bi;
 				oe = config_build_entry( op, &rs, ce, &c, &rdn,
 					&CFOC_OVERLAY, c.bi->bi_cf_ocs );
+				if ( c.bi->bi_cf_ocs && c.bi->bi_cf_ocs->co_cfadd )
+					c.bi->bi_cf_ocs->co_cfadd( op, &rs, oe, &c );
 			}
 		}
 	}

@@ -72,7 +72,7 @@ over_db_config(
 	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
 	BackendInfo *bi_orig = be->bd_info;
-	ConfigArgs ca;
+	ConfigArgs ca = {0};
 	ConfigTable *ct;
 	int rc = 0;
 
