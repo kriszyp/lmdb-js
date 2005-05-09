@@ -70,7 +70,8 @@ MKDEP_CFLAGS = @OL_MKDEP_FLAGS@
 
 MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 
-LIBTOOL = @LIBTOOL@
+# libtool 1.5+ requires "--tag=CC", but leave it off until we migrate
+LIBTOOL = @LIBTOOL@ # --tag=CC
 LIBRELEASE = @OPENLDAP_LIBRELEASE@
 LIBVERSION = @OPENLDAP_LIBVERSION@
 LTVERSION = -release $(LIBRELEASE) -version-info $(LIBVERSION)
@@ -81,9 +82,9 @@ LTONLY_LIB = $(@PLAT@_LTONLY_LIB)
 
 # libtool --only flag for modules: depends on linkage of module
 # The BUILD_MOD macro is defined in each backend Makefile.in file
-LTONLY_yes = static
-LTONLY_mod = shared
-LTONLY_MOD = # --only-$(BUILD_MOD)
+LTONLY_yes = --tag=disable-shared
+LTONLY_mod = --tag=disable-static
+LTONLY_MOD = $(LTONLY_$(BUILD_MOD))
 
 # platform-specific libtool flags
 NT_LTFLAGS_LIB = -no-undefined -avoid-version -rpath $(libdir)
