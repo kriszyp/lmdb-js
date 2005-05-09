@@ -29,6 +29,7 @@ SRCS = overlays.c \
 OBJS = overlays.o \
 	@SLAPD_STATIC_OVERLAYS@
 
+LTONLY_MOD = $(LTONLY_mod)
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
