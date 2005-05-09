@@ -31,49 +31,62 @@ void init_module_AuthenticationFramework() {
 	InitAnyAuthenticationFramework();
 }
 
-
 void InitAnyAuthenticationFramework()
 {
     AsnOid oid0 ={ 9, "\52\206\110\206\367\15\1\1\4" };
     AsnOid oid1 ={ 9, "\52\206\110\206\367\15\1\1\1" };
-    AsnOid oid2 ={ 3, "\125\4\3" };
-    AsnOid oid3 ={ 3, "\125\4\6" };
-    AsnOid oid4 ={ 3, "\125\4\7" };
-    AsnOid oid5 ={ 3, "\125\4\10" };
-    AsnOid oid6 ={ 3, "\125\4\12" };
-    AsnOid oid7 ={ 3, "\125\4\13" };
-    AsnOid oid8 ={ 9, "\52\206\110\206\367\15\1\11\1" };
-    AsnOid oid9 ={ 3, "\125\35\23" };
-    AsnOid oid10 ={ 9, "\140\206\110\1\206\370\102\1\15" };
-    AsnOid oid11 ={ 3, "\125\35\16" };
+    AsnOid oid2 ={ 9, "\52\206\110\206\367\15\1\1\5" };
+    AsnOid oid3 ={ 3, "\125\4\3" };
+    AsnOid oid4 ={ 3, "\125\4\6" };
+    AsnOid oid5 ={ 3, "\125\4\7" };
+    AsnOid oid6 ={ 3, "\125\4\10" };
+    AsnOid oid7 ={ 3, "\125\4\12" };
+    AsnOid oid8 ={ 3, "\125\4\13" };
+    AsnOid oid9 ={ 10, "\11\222\46\211\223\362\54\144\1\3" };
+    AsnOid oid10 ={ 9, "\52\206\110\206\367\15\1\11\1" };
+    AsnOid oid11 ={ 3, "\125\35\23" };
+    AsnOid oid12 ={ 9, "\140\206\110\1\206\370\102\1\15" };
+    AsnOid oid13 ={ 3, "\125\35\16" };
+    AsnOid oid14 ={ 3, "\125\35\25" };
+    AsnOid oid15 ={ 3, "\125\35\24" };
+    AsnOid oid17 ={ 3, "\125\35\34" };
 
 
     InstallAnyByComponentOid (nullOid_ANY_ID, &oid0, sizeof (ComponentNull), (EncodeFcn)BEncAsnNull, (gser_decoder_func*)GDecComponentNull, (ber_tag_decoder_func*)BDecComponentNullTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentNull,(FreeFcn)FreeComponentNull, (PrintFcn)NULL);
 
     InstallAnyByComponentOid (nullOid2_ANY_ID, &oid1, sizeof (ComponentNull), (EncodeFcn)BEncAsnNull, (gser_decoder_func*)GDecComponentNull, (ber_tag_decoder_func*)BDecComponentNullTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentNull,(FreeFcn)FreeComponentNull, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (printableStringOid_ANY_ID, &oid2, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
+    InstallAnyByComponentOid (nullOid3_ANY_ID, &oid2, sizeof (ComponentNull), (EncodeFcn)BEncAsnNull, (gser_decoder_func*)GDecComponentNull, (ber_tag_decoder_func*)BDecComponentNullTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentNull,(FreeFcn)FreeComponentNull, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (printableStringOid2_ANY_ID, &oid3, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
+    InstallAnyByComponentOid (printableStringOid_ANY_ID, &oid3, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (printableStringOid3_ANY_ID, &oid4, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
+    InstallAnyByComponentOid (printableStringOid2_ANY_ID, &oid4, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (printableStringOid4_ANY_ID, &oid5, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
+    InstallAnyByComponentOid (printableStringOid3_ANY_ID, &oid5, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (printableStringOid5_ANY_ID, &oid6, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
+    InstallAnyByComponentOid (printableStringOid4_ANY_ID, &oid6, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (printableStringOid6_ANY_ID, &oid7, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
+    InstallAnyByComponentOid (printableStringOid5_ANY_ID, &oid7, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (iA5StringOid_ANY_ID, &oid8, sizeof (ComponentIA5String), (EncodeFcn)BEncIA5String, (gser_decoder_func*)GDecComponentIA5String, (ber_tag_decoder_func*)BDecComponentIA5StringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentIA5String,(FreeFcn)FreeComponentIA5String, (PrintFcn)NULL);
+    InstallAnyByComponentOid (printableStringOid6_ANY_ID, &oid8, sizeof (ComponentPrintableString), (EncodeFcn)BEncPrintableString, (gser_decoder_func*)GDecComponentPrintableString, (ber_tag_decoder_func*)BDecComponentPrintableStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentPrintableString,(FreeFcn)FreeComponentPrintableString, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (octetStringOid_ANY_ID, &oid9, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+    InstallAnyByComponentOid (printableStringOid7_ANY_ID, &oid9, sizeof (ComponentTeletexString), (EncodeFcn)BEncTeletexString, (gser_decoder_func*)GDecComponentTeletexString, (ber_tag_decoder_func*)BDecComponentTeletexStringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentTeletexString,(FreeFcn)FreeComponentTeletexString, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (octetStringOid2_ANY_ID, &oid10, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+    InstallAnyByComponentOid (iA5StringOid_ANY_ID, &oid10, sizeof (ComponentIA5String), (EncodeFcn)BEncIA5String, (gser_decoder_func*)GDecComponentIA5String, (ber_tag_decoder_func*)BDecComponentIA5StringTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentIA5String,(FreeFcn)FreeComponentIA5String, (PrintFcn)NULL);
 
-    InstallAnyByComponentOid (octetStringOid3_ANY_ID, &oid11, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+    InstallAnyByComponentOid (octetStringOid_ANY_ID, &oid11, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+
+    InstallAnyByComponentOid (octetStringOid2_ANY_ID, &oid12, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+
+    InstallAnyByComponentOid (octetStringOid3_ANY_ID, &oid13, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+
+    InstallAnyByComponentOid (octetStringOid4_ANY_ID, &oid14, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+
+    InstallAnyByComponentOid (octetStringOid5_ANY_ID, &oid15, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
+
+    InstallAnyByComponentOid (octetStringOid7_ANY_ID, &oid17, sizeof (ComponentOcts), (EncodeFcn)BEncAsnOcts, (gser_decoder_func*)GDecComponentOcts, (ber_tag_decoder_func*)BDecComponentOctsTag, (ExtractFcn)NULL,(MatchFcn)MatchingComponentOcts,(FreeFcn)FreeComponentOcts, (PrintFcn)NULL);
 
 }  /* InitAnyAuthenticationFramework */
-
 
 int
 MatchingComponentAlgorithmIdentifier ( char* oid, ComponentSyntaxInfo* csi_attr, ComponentSyntaxInfo* csi_assert ) {

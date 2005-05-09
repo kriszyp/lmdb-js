@@ -316,7 +316,8 @@ typedef struct ComponentTeletexString {
 
 int GEncComponentTeletexString (GenBuf *b, ComponentTeletexString * tel_str);
 int GDecComponentTeletexString ( void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode );
-#define BDecComponentTeletexString BDecComponentOcts
+int BDecComponentTeletexStringTag (void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int mode );
+int BDecComponentTeletexString( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v, AsnLen *bytesDecoded, int mode );
 #define MatchingComponentTeletexString MatchingComponentOcts
 #define ExtractingComponentTeletexString(mem_op,cr,data)
 #define FreeComponentTeletexString FreeComponentOcts
