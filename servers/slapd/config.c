@@ -78,7 +78,8 @@ static int fp_parse_line(ConfigArgs *c);
 
 static char	*strtok_quote(char *line, char *sep, char **quote_ptr);
 
-int read_config_file(const char *fname, int depth, ConfigArgs *cf);
+int read_config_file(const char *fname, int depth, ConfigArgs *cf,
+	ConfigTable *cft );
 
 ConfigArgs *
 new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **argv )
@@ -445,26 +446,26 @@ int
 init_config_ocs( ConfigOCs *ocs ) {
 	int i;
 
-	for (i=0;ocs[i].def;i++) {
+	for (i=0;ocs[i].co_def;i++) {
 		LDAPObjectClass *oc;
 		int code;
 		const char *err;
 
-		oc = ldap_str2objectclass( ocs[i].def, &code, &err,
+		oc = ldap_str2objectclass( ocs[i].co_def, &code, &err,
 			LDAP_SCHEMA_ALLOW_ALL );
 		if ( !oc ) {
 			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
-				ocs[i].def, ldap_scherr2str(code), err );
+				ocs[i].co_def, ldap_scherr2str(code), err );
 			return code;
 		}
 		code = oc_add(oc,0,NULL,&err);
 		if ( code && code != SLAP_SCHERR_CLASS_DUP ) {
 			fprintf( stderr, "init_config_ocs: objectclass \"%s\": %s, %s\n",
-				ocs[i].def, scherr2str(code), err );
+				ocs[i].co_def, scherr2str(code), err );
 			return code;
 		}
-		if ( ocs[i].oc ) {
-			*ocs[i].oc = oc_find(oc->oc_names[0]);
+		if ( ocs[i].co_oc ) {
+			*ocs[i].co_oc = oc_find(oc->oc_names[0]);
 		}
 		ldap_memfree(oc);
 	}
@@ -513,7 +514,7 @@ config_parse_add(ConfigTable *ct, ConfigArgs *c)
 }
 
 int
-read_config_file(const char *fname, int depth, ConfigArgs *cf)
+read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 {
 	FILE *fp;
 	ConfigTable *ct;
@@ -582,7 +583,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 
 		c->op = SLAP_CONFIG_ADD;
 
-		ct = config_find_keyword( config_back_cf_table, c );
+		ct = config_find_keyword( cft, c );
 		if ( ct ) {
 			rc = config_add_vals( ct, c );
 			if ( !rc ) continue;
@@ -601,8 +602,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			
 		} else if ( c->bi ) {
 			rc = SLAP_CONF_UNKNOWN;
-			if ( c->bi->bi_cf_table ) {
-				ct = config_find_keyword( c->bi->bi_cf_table, c );
+			if ( c->bi->bi_cf_ocs->co_table ) {
+				ct = config_find_keyword( c->bi->bi_cf_ocs->co_table, c );
 				if ( ct ) {
 					rc = config_add_vals( ct, c );
 				}
@@ -629,8 +630,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 
 		} else if ( c->be ) {
 			rc = SLAP_CONF_UNKNOWN;
-			if ( c->be->be_cf_table ) {
-				ct = config_find_keyword( c->be->be_cf_table, c );
+			if ( c->be->be_cf_ocs ) {
+				ct = config_find_keyword( c->be->be_cf_ocs->co_table, c );
 				if ( ct ) {
 					rc = config_add_vals( ct, c );
 				}
@@ -1155,7 +1156,7 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 	sprintf( c.log, "%s: line %lu", fname, lineno );
 
 	rc = SLAP_CONF_UNKNOWN;
-	ct = config_find_keyword( be->be_cf_table, &c );
+	ct = config_find_keyword( be->be_cf_ocs->co_table, &c );
 	if ( ct )
 		rc = config_add_vals( ct, &c );
 	return rc;

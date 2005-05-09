@@ -38,7 +38,7 @@
 
 static ObjectClass *bdb_oc;
 
-static ConfigDriver bdb_cf_oc, bdb_cf_gen;
+static ConfigDriver bdb_cf_gen;
 
 enum {
 	BDB_CHKPT = 1,
@@ -52,8 +52,6 @@ enum {
 };
 
 static ConfigTable bdbcfg[] = {
-	{ "", "", 0, 0, 0, ARG_MAGIC,
-		bdb_cf_oc, NULL, NULL, NULL },
 	{ "directory", "dir", 2, 2, 0, ARG_STRING|ARG_MAGIC|BDB_DIRECTORY,
 		bdb_cf_gen, "( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
 			"DESC 'Directory for database content' "
@@ -132,7 +130,7 @@ static ConfigOCs bdbocs[] = {
 		"olcDbNoSync $ olcDbDirtyRead $ olcDbIDLcacheSize $ "
 		"olcDbIndex $ olcDbLinearIndex $ olcDbLockDetect $ "
 		"olcDbMode $ olcDbSearchStack $ olcDbShmKey ) )",
-		 	Cft_Database, &bdb_oc },
+		 	Cft_Database, &bdb_oc, bdbcfg },
 	{ NULL, 0, NULL }
 };
 
@@ -617,10 +615,9 @@ bdb_cf_gen(ConfigArgs *c)
 int bdb_back_init_cf( BackendInfo *bi )
 {
 	int rc;
-	bi->bi_cf_table = bdbcfg;
+	bi->bi_cf_ocs = bdbocs;
 
 	rc = config_register_schema( bdbcfg, bdbocs );
 	if ( rc ) return rc;
-	bdbcfg[0].ad = slap_schema.si_ad_objectClass;
 	return 0;
 }

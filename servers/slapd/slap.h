@@ -1605,6 +1605,8 @@ LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
 #define	SLAP_MAX_CIDS	32	/* Maximum number of supported controls */
 #endif
 
+struct ConfigOCs;	/* config.h */
+
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
@@ -1775,7 +1777,7 @@ struct slap_backend_db {
 	struct syncinfo_s						*be_syncinfo; /* For syncrepl */
 
 	void    *be_pb;         /* Netscape plugin */
-	struct ConfigTable *be_cf_table;
+	struct ConfigOCs *be_cf_ocs;
 
 	void	*be_private;	/* anything the backend database needs 	   */
 	LDAP_STAILQ_ENTRY(slap_backend_db) be_next;
@@ -1989,8 +1991,6 @@ typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
 	struct berval *text ));
 
-struct ConfigTable;	/* config.h */
-
 struct slap_backend_info {
 	char	*bi_type; /* type of backend */
 
@@ -2118,7 +2118,7 @@ struct slap_backend_info {
 	char	bi_ctrls[SLAP_MAX_CIDS + 1];
 
 	unsigned int bi_nDB;	/* number of databases of this type */
-	struct ConfigTable *bi_cf_table;
+	struct ConfigOCs *bi_cf_ocs;
 	void	*bi_private;	/* anything the backend type needs */
 	LDAP_STAILQ_ENTRY(slap_backend_info) bi_next ;
 };

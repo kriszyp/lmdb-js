@@ -63,11 +63,7 @@ struct ldif_info {
 
 static ObjectClass *ldif_oc;
 
-static ConfigDriver ldif_cf;
-
 static ConfigTable ldifcfg[] = {
-	{ "", "", 0, 0, 0, ARG_MAGIC,
-		ldif_cf, NULL, NULL, NULL },
 	{ "directory", "dir", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
 		(void *)offsetof(struct ldif_info, li_base_path),
 		"( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
@@ -84,19 +80,9 @@ static ConfigOCs ldifocs[] = {
 		"DESC 'LDIF backend configuration' "
 		"SUP olcDatabaseConfig "
 		"MUST ( olcDbDirectory ) )", Cft_Database,
-		&ldif_oc },
+		&ldif_oc, ldifcfg },
 	{ NULL, 0, NULL }
 };
-
-static int
-ldif_cf( ConfigArgs *c )
-{
-	if ( c->op == SLAP_CONFIG_EMIT ) {
-		value_add_one( &c->rvalue_vals, &ldif_oc->soc_cname );
-		return 0;
-	}
-	return 1;
-}
 
 static void
 dn2path(struct berval * dn, struct berval * rootdn, struct berval * base_path,
@@ -1169,7 +1155,7 @@ ldif_back_db_init( BackendDB *be )
 
 	ni = ch_calloc( 1, sizeof(struct ldif_info) );
 	be->be_private = ni;
-	be->be_cf_table = be->bd_info->bi_cf_table;
+	be->be_cf_ocs = ldifocs;
 	ldap_pvt_thread_mutex_init(&ni->li_mutex);
 	return 0;
 }
@@ -1214,8 +1200,6 @@ ldif_back_initialize(
 
 	bi->bi_controls = controls;
 
-	bi->bi_cf_table = ldifcfg;
-
 	bi->bi_open = 0;
 	bi->bi_close = 0;
 	bi->bi_config = 0;
@@ -1259,6 +1243,5 @@ ldif_back_initialize(
 
 	rc = config_register_schema( ldifcfg, ldifocs );
 	if ( rc ) return rc;
-	ldifcfg[0].ad = slap_schema.si_ad_objectClass;
 	return 0;
 }
