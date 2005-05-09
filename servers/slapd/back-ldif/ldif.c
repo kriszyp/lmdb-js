@@ -458,12 +458,14 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 
 			list = ptr->next;
 
-			if ( ptr->num.bv_val )
-				AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
-					ptr->num.bv_len );
-			fullpath( path, &ptr->bv, &fpath );
-			r_enum_tree(ck, &fpath, &e->e_name, &e->e_nname );
-			free(fpath.bv_val);
+			if ( rc == LDAP_SUCCESS ) {
+				if ( ptr->num.bv_val )
+					AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
+						ptr->num.bv_len );
+				fullpath( path, &ptr->bv, &fpath );
+				rc = r_enum_tree(ck, &fpath, &e->e_name, &e->e_nname );
+				free(fpath.bv_val);
+			}
 			if ( ptr->num.bv_val )
 				free( ptr->num.bv_val );
 			free(ptr->bv.bv_val);
