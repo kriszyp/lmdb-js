@@ -2406,30 +2406,52 @@ access2text( Access *b, char *ptr )
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_peername_pat ) ) {
-		ptr = lutil_strcopy( ptr, " peername=\"" );
+		ptr = lutil_strcopy( ptr, " peername" );
+		*ptr++ = '.';
+		ptr = lutil_strcopy( ptr, style_strings[b->a_peername_style] );
+		*ptr++ = '=';
+		*ptr++ = '"';
 		ptr = lutil_strcopy( ptr, b->a_peername_pat.bv_val );
 		*ptr++ = '"';
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_sockname_pat ) ) {
-		ptr = lutil_strcopy( ptr, " sockname=\"" );
+		ptr = lutil_strcopy( ptr, " sockname" );
+		*ptr++ = '.';
+		ptr = lutil_strcopy( ptr, style_strings[b->a_sockname_style] );
+		*ptr++ = '=';
+		*ptr++ = '"';
 		ptr = lutil_strcopy( ptr, b->a_sockname_pat.bv_val );
 		*ptr++ = '"';
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_domain_pat ) ) {
-		ptr = lutil_strcopy( ptr, " domain=" );
+		ptr = lutil_strcopy( ptr, " domain" );
+		*ptr++ = '.';
+		ptr = lutil_strcopy( ptr, style_strings[b->a_domain_style] );
+		if ( b->a_domain_expand ) {
+			ptr = lutil_strcopy( ptr, ",expand" );
+		}
+		*ptr++ = '=';
 		ptr = lutil_strcopy( ptr, b->a_domain_pat.bv_val );
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_sockurl_pat ) ) {
-		ptr = lutil_strcopy( ptr, " sockurl=\"" );
+		ptr = lutil_strcopy( ptr, " sockurl" );
+		*ptr++ = '.';
+		ptr = lutil_strcopy( ptr, style_strings[b->a_sockurl_style] );
+		*ptr++ = '=';
+		*ptr++ = '"';
 		ptr = lutil_strcopy( ptr, b->a_sockurl_pat.bv_val );
 		*ptr++ = '"';
 	}
 
 	if ( !BER_BVISEMPTY( &b->a_set_pat ) ) {
-		ptr = lutil_strcopy( ptr, " set=\"" );
+		ptr = lutil_strcopy( ptr, " set" );
+		*ptr++ = '.';
+		ptr = lutil_strcopy( ptr, style_strings[b->a_set_style] );
+		*ptr++ = '=';
+		*ptr++ = '"';
 		ptr = lutil_strcopy( ptr, b->a_set_pat.bv_val );
 		*ptr++ = '"';
 	}
