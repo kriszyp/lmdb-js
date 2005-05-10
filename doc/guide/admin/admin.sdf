@@ -1,0 +1,13 @@
+# $OpenLDAP$
+# Copyright 1999-2005, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+#
+# guide.sdf 
+#
+
+!define DOC_TOC 0
+
+!macro build_html_cover
+!endmacro
+
+!include "master.sdf"

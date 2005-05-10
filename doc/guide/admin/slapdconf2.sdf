@@ -1,59 +1,116 @@
 # $OpenLDAP$
-# Copyright 1999-2005, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2005, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
-H1: The slapd Configuration File
+H1: Configuring slapd
 
 Once the software has been built and installed, you are ready
-to configure {{slapd}}(8) for use at your site. The slapd
-runtime configuration is primarily accomplished through the
-{{slapd.conf}}(5) file, normally installed in the
-{{EX:/usr/local/etc/openldap}} directory.
+to configure {{slapd}}(8) for use at your site. Unlike previous
+OpenLDAP releases, the slapd runtime configuration in 2.3 is
+fully LDAP-enabled and can be managed using the standard LDAP
+operations with data in LDIF. The LDAP configuration engine
+allows all of slapd's configuration options to be changed on the fly,
+generally without requiring a server restart for the changes
+to take effect. The old style {{slapd.conf}}(5) file is still
+supported, but must be converted to the new {{slapd.d}}(5) format
+to allow runtime changes to be saved. While the old style
+configuration uses a single file, normally installed as
+{{F:/usr/local/etc/openldap/slapd.conf}}, the new style
+uses a slapd backend database to store the configuration. The
+the configuration database normally resides in the
+{{F:/usr/local/etc/openldap/slapd.d}} directory.
 
-An alternate configuration file can be specified via a
+An alternate configuration directory (or file) can be specified via a
 command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
-describes the general format of the config file, followed by a
-detailed description of commonly used config file directives.
+describes the general format of the configuration system , followed by a
+detailed description of commonly used config directives.
 
 
-H2: Configuration File Format
+H2: Configuration Layout
 
-The {{slapd.conf}}(5) file consists of three types of configuration
-information: global, backend specific, and database specific.  Global
-information is specified first, followed by information associated
-with a particular backend type, which is then followed by information
-associated with a particular database instance.  Global directives can
-be overridden in backend and/or database directives, and backend directives
-can be overridden by database directives.
+The slapd configuration is stored as a special LDAP directory with
+a predefined schema and DIT. There are specific objectClasses used to
+carry global configuration options, schema definitions, backend and
+database definitions, and assorted other items. A sample config tree
+is shown in Figure 5.1.
 
-Blank lines and comment lines beginning with a '{{EX:#}}' character
+!import "config_dit.gif"; align="center"; title="Sample configuration tree"
+FT[align="Center"] Figure 5.1: Sample configuration tree.
+
+Other objects may be part of the configuration but were omitted from
+the illustration for clarity.
+
+The {{slapd.d}} configuration tree has a very specific structure. The
+root of the tree is named {{EX:cn=config}} and contains global configuration
+settings. Additional settings are contained in separate child entries:
+* Include files
+.. Usually these are just pathnames left over from a converted
+{{EX:slapd.conf}} file.
+.. Otherwise use of Include files is deprecated.
+* Dynamically loaded modules
+.. These may only be used if the {{EX:--enable-modules}} option was
+used to configure the software.
+* Schema definitions
+.. The {{EX:cn=schema,cn=config}} entry contains the system schema (all
+the schema that is hard-coded in slapd).
+.. Child entries of {{EX:cn=schema,cn=config}} contain user schema as
+loaded from config files or added at runtime.
+* Backend-specific configuration 
+* Database-specific configuration
+.. Overlays are defined in children of the Database entry.
+.. Databases and Overlays may also have other miscellaneous children.
+
+The usual rules for LDIF files apply to the configuration information:
+Comment lines beginning with a '{{EX:#}}' character
 are ignored.  If a line begins with white space, it is considered a
 continuation of the previous line (even if the previous line is a
-comment).
+comment). Entries are separated by blank lines.
 
-The general format of slapd.conf is as follows:
+The general layout of the config LDIF is as follows:
 
->	# global configuration directives
->	<global config directives>
+>	# global configuration settings
+>	dn: cn=config
+>	objectClass: olcGlobal
+>	cn: config
+>	<global config settings>
 >
->	# backend definition
->	backend <typeA>
->	<backend-specific directives>
+>	# schema definitions
+>	dn: cn=schema,cn=config
+>	objectClass: olcSchemaConfig
+>	cn: schema
+>	<system schema>
 >
->	# first database definition & config directives
->	database <typeA>
->	<database-specific directives>
+>	dn: cn={X}core,cn=schema,cn=config
+>	objectClass: olcSchemaConfig
+>	cn: {X}core
+>	<core schema>
 >
->	# second database definition & config directives
->	database <typeB>
->	<database-specific directives>
->
->	# second database definition & config directives
->	database <typeA>
->	<database-specific directives>
->
->	# subsequent backend & database definitions & config directives
+>	# additional user-specified schema
 >	...
+>
+>	# backend definitions
+>	dn: olcBackend={X}<typeA>,cn=config
+>	objectClass: olcBackendConfig
+>	olcBackend: {X}<typeA>
+>	<backend-specific settings>
+>
+>	# database definitions
+>	dn: olcDatabase={X}<typeA>,cn=config
+>	objectClass: olcDatabaseConfig
+>	olcDatabase: {X}<typeA>
+>	<database-specific settings>
+>
+>	# subsequent definitions and settings
+>	...
+
+Some of the entries listed above have a numeric index {{EX:"{X}"}} in
+their names. While most configuration settings have an inherent ordering
+dependency (i.e., one setting must take effect before a subsequent one
+may be set), LDAP databases are inherently unordered. The numeric index
+is used to enforce a consistent ordering in the configuration database,
+so that all ordering dependencies are preserved. In most cases the index
+does not have to be provided; it will be automatically generated based
+on the order in which entries are created.
 
 A configuration directive may take arguments.  If so, they are
 separated by white space.  If an argument contains white space,
@@ -68,14 +125,18 @@ and object classes) are also provided in the
 {{F: /usr/local/etc/openldap/schema}} directory.
 
 
-H2: Configuration File Directives
+H2: Configuration Directives
 
 This section details commonly used configuration directives.  For
-a complete list, see the {{slapd.conf}}(5) manual page.  This section
-separates the configuration file directives into global,
+a complete list, see the {{slapd.d}}(5) manual page.  This section
+separates the configuration directives into global,
 backend-specific and data-specific categories, describing each
 directive and its default value (if any), and giving an example of
 its use.
+
+Most of the attributes and objectClasses used in the slapd
+configuration have a prefix of {{EX:"olc"}} (OpenLDAP Configuration)
+in their names.
 
 
 
@@ -287,12 +348,13 @@ perform" error.
 H4: replica
 
 >	replica uri=ldap[s]://<hostname>[:<port>] | host=<hostname>[:<port>]
->		[bindmethod={simple|sasl}]
+>		[bindmethod={simple|kerberos|sasl}]
 >		["binddn=<DN>"]
 >		[saslmech=<mech>]
 >		[authcid=<identity>]
 >		[authzid=<identity>]
 >		[credentials=<password>]
+>		[srvtab=<filename>]
 
 This directive specifies a replication site for this database. The
 {{EX:uri=}} parameter specifies a scheme, a host and optionally a port where
@@ -315,14 +377,20 @@ database.  Since DNs are likely to contain embedded spaces, the
 entire {{EX:"binddn=<DN>"}} string should be enclosed in double
 quotes.
 
-The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}}, depending
-on whether simple password-based authentication or {{TERM:SASL}}
-authentication is to be used when connecting to the slave slapd.
+The {{EX:bindmethod}} is {{EX:simple}} or {{EX:kerberos}} or {{EX:sasl}},
+depending on whether simple password-based authentication or Kerberos
+authentication or {{TERM:SASL}} authentication is to be used when connecting
+to the slave slapd.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
 or IPSEC).  Simple authentication requires specification of
 {{EX:binddn}} and {{EX:credentials}} parameters.
+
+Kerberos authentication is deprecated in favor of SASL authentication
+mechanisms, in particular the {{EX:KERBEROS_V4}} and {{EX:GSSAPI}}
+mechanisms.  Kerberos authentication requires {{EX:binddn}} and
+{{EX:srvtab}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
 requires specification of a mechanism using the {{EX:saslmech}} parameter.
