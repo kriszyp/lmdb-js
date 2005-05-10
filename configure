@@ -8976,7 +8976,7 @@ fi
 
 fi
 
-if test "$ac_cv_header_winsock_h" = yes; then
+if test "$ac_cv_cygwin" != yes && test "$ac_cv_header_winsock_h" = yes; then
 echo $ac_n "checking for winsock""... $ac_c" 1>&6
 echo "configure:8982: checking for winsock" >&5
 if eval "test \"\${ol_cv_winsock+set}\" = set"; then

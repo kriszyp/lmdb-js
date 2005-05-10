@@ -61,13 +61,7 @@ struct ldif_info {
 
 #define ENTRY_BUFF_INCREMENT 500
 
-static ObjectClass *ldif_oc;
-
-static ConfigDriver ldif_cf;
-
 static ConfigTable ldifcfg[] = {
-	{ "", "", 0, 0, 0, ARG_MAGIC,
-		ldif_cf, NULL, NULL, NULL },
 	{ "directory", "dir", 2, 2, 0, ARG_BERVAL|ARG_OFFSET,
 		(void *)offsetof(struct ldif_info, li_base_path),
 		"( OLcfgDbAt:0.1 NAME 'olcDbDirectory' "
@@ -83,20 +77,9 @@ static ConfigOCs ldifocs[] = {
 		"NAME 'olcLdifConfig' "
 		"DESC 'LDIF backend configuration' "
 		"SUP olcDatabaseConfig "
-		"MUST ( olcDbDirectory ) )", Cft_Database,
-		&ldif_oc },
+		"MUST ( olcDbDirectory ) )", Cft_Database, ldifcfg },
 	{ NULL, 0, NULL }
 };
-
-static int
-ldif_cf( ConfigArgs *c )
-{
-	if ( c->op == SLAP_CONFIG_EMIT ) {
-		value_add_one( &c->rvalue_vals, &ldif_oc->soc_cname );
-		return 0;
-	}
-	return 1;
-}
 
 static void
 dn2path(struct berval * dn, struct berval * rootdn, struct berval * base_path,
@@ -349,7 +332,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 						ck->op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
 							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
 
-				send_search_reference( ck->op, ck->rs );
+				rc = send_search_reference( ck->op, ck->rs );
 
 				ber_bvarray_free( ck->rs->sr_ref );
 				ber_bvarray_free( erefs );
@@ -360,9 +343,11 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				ck->rs->sr_entry = e;
 				ck->rs->sr_attrs = ck->op->ors_attrs;
 				ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
-				send_search_entry(ck->op, ck->rs);
+				rc = send_search_entry(ck->op, ck->rs);
 			}
 			fd = 1;
+			if ( rc )
+				goto leave;
 		} else {
 		/* Queueing up for tool mode */
 			if(ck->entries == NULL) {
@@ -456,12 +441,14 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 
 			list = ptr->next;
 
-			if ( ptr->num.bv_val )
-				AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
-					ptr->num.bv_len );
-			fullpath( path, &ptr->bv, &fpath );
-			r_enum_tree(ck, &fpath, &e->e_name, &e->e_nname );
-			free(fpath.bv_val);
+			if ( rc == LDAP_SUCCESS ) {
+				if ( ptr->num.bv_val )
+					AC_MEMCPY( ptr->bv.bv_val + ptr->off, ptr->num.bv_val,
+						ptr->num.bv_len );
+				fullpath( path, &ptr->bv, &fpath );
+				rc = r_enum_tree(ck, &fpath, &e->e_name, &e->e_nname );
+				free(fpath.bv_val);
+			}
 			if ( ptr->num.bv_val )
 				free( ptr->num.bv_val );
 			free(ptr->bv.bv_val);
@@ -1165,7 +1152,7 @@ ldif_back_db_init( BackendDB *be )
 
 	ni = ch_calloc( 1, sizeof(struct ldif_info) );
 	be->be_private = ni;
-	be->be_cf_table = be->bd_info->bi_cf_table;
+	be->be_cf_ocs = ldifocs;
 	ldap_pvt_thread_mutex_init(&ni->li_mutex);
 	return 0;
 }
@@ -1210,8 +1197,6 @@ ldif_back_initialize(
 
 	bi->bi_controls = controls;
 
-	bi->bi_cf_table = ldifcfg;
-
 	bi->bi_open = 0;
 	bi->bi_close = 0;
 	bi->bi_config = 0;
@@ -1255,6 +1240,5 @@ ldif_back_initialize(
 
 	rc = config_register_schema( ldifcfg, ldifocs );
 	if ( rc ) return rc;
-	ldifcfg[0].ad = slap_schema.si_ad_objectClass;
 	return 0;
 }

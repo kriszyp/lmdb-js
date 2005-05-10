@@ -32,6 +32,8 @@
 #include "lutil.h"
 #include "ldap_rq.h"
 
+#include "config.h"
+
 /* query cache structs */
 /* query */
 
@@ -1484,8 +1486,382 @@ consistency_check(
 
 
 #define MAX_ATTR_SETS 500
-static void find_supersets( struct attr_set* attr_sets, int numsets );
-static int compare_sets( struct attr_set* setA, int, int );
+
+/*
+ * compares two sets of attributes (indices i and j)
+ * returns 0: if neither set is contained in the other set
+ *         1: if set i is contained in set j
+ *         2: if set j is contained in set i
+ *         3: the sets are equivalent
+ */
+
+static int
+compare_sets(struct attr_set* set, int i, int j)
+{
+	int k,l,numI,numJ;
+	int common=0;
+	int result=0;
+
+	if (( set[i].attrs == NULL ) && ( set[j].attrs == NULL ))
+		return 3;
+
+	if ( set[i].attrs == NULL )
+		return 2;
+
+	if ( set[j].attrs == NULL )
+		return 1;
+
+	numI = set[i].count;
+	numJ = set[j].count;
+
+	for ( l=0; l < numI; l++ ) {
+		for ( k = 0; k < numJ; k++ ) {
+			if ( strcmp( set[i].attrs[l].an_name.bv_val,
+				     set[j].attrs[k].an_name.bv_val ) == 0 )
+				common++;
+		}
+	}
+
+	if ( common == numI )
+		result = 1;
+
+	if ( common == numJ )
+		result += 2;
+
+	return result;
+}
+
+static void
+find_supersets ( struct attr_set* attr_sets, int numsets )
+{
+	int num[MAX_ATTR_SETS];
+	int i, j, res;
+	int* id_array;
+	for ( i = 0; i < MAX_ATTR_SETS; i++ )
+		num[i] = 0;
+
+	for ( i = 0; i < numsets; i++ ) {
+		attr_sets[i].ID_array = (int*) ch_malloc( sizeof( int ) );
+		attr_sets[i].ID_array[0] = -1;
+    	}
+
+	for ( i = 0; i < numsets; i++ ) {
+		for ( j=i+1; j < numsets; j++ ) {
+			res = compare_sets( attr_sets, i, j );
+			switch ( res ) {
+			case 0:
+				break;
+			case 3:
+			case 1:
+				id_array = attr_sets[i].ID_array;
+				attr_sets[i].ID_array = (int *) ch_realloc( id_array,
+							( num[i] + 2 ) * sizeof( int ));
+				attr_sets[i].ID_array[num[i]] = j;
+				attr_sets[i].ID_array[num[i]+1] = -1;
+				num[i]++;
+				if (res == 1)
+					break;
+			case 2:
+				id_array = attr_sets[j].ID_array;
+				attr_sets[j].ID_array = (int *) ch_realloc( id_array,
+						( num[j] + 2 ) * sizeof( int ));
+				attr_sets[j].ID_array[num[j]] = i;
+				attr_sets[j].ID_array[num[j]+1] = -1;
+				num[j]++;
+				break;
+			}
+		}
+	}
+}
+
+enum {
+	PC_MAIN = 1,
+	PC_ATTR,
+	PC_TEMP,
+	PC_RESP
+};
+
+static ConfigDriver pc_cf_gen;
+static ConfigLDAPadd pc_ldadd;
+static ConfigCfAdd pc_cfadd;
+
+static ConfigTable pccfg[] = {
+	{ "proxycache", "backend> <max_entries> <numattrsets> <entry limit> "
+				"<cycle_time",
+		6, 6, 0, ARG_MAGIC|ARG_NO_DELETE|PC_MAIN, pc_cf_gen,
+		"( OLcfgOvAt:2.1 NAME 'olcProxyCache' "
+			"DESC 'ProxyCache basic parameters' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "proxyattrset", "index> <attributes...",
+		2, 0, 0, ARG_MAGIC|PC_ATTR, pc_cf_gen,
+		"( OLcfgOvAt:2.2 NAME 'olcProxyAttrset' "
+			"DESC 'A set of attributes to cache' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "proxytemplate", "filter> <attrset-index> <TTL",
+		4, 4, 0, ARG_MAGIC|PC_TEMP, pc_cf_gen,
+		"( OLcfgOvAt:2.3 NAME 'olcProxyTemplate' "
+			"DESC 'Filter template, attrset, and cache TTL' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ "response-callback", "head|tail(default)",
+		2, 2, 0, ARG_MAGIC|ARG_STRING|PC_RESP, pc_cf_gen,
+		"( OLcfgOvAt:2.4 NAME 'olcProxyResponseCB' "
+			"DESC 'Response callback position in overlay stack' "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs pcocs[] = {
+	{ "( OLcfgOvOc:2.1 "
+		"NAME 'olcPcacheConfig' "
+		"DESC 'ProxyCache configuration' "
+		"SUP olcOverlayConfig "
+		"MUST ( olcProxyCache $ olcProxyAttrset $ olcProxyTemplate ) "
+		"MAY olcProxyResponseCB )", Cft_Overlay, pccfg, NULL, pc_cfadd },
+	{ "( OLcfgOvOc:2.2 "
+		"NAME 'olcPcacheDatabase' "
+		"DESC 'Cache database configuration' "
+		"AUXILIARY )", Cft_Misc, pccfg, pc_ldadd },
+	{ NULL, 0, NULL }
+};
+
+static int
+pc_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
+{
+	slap_overinst *on;
+	cache_manager *cm;
+
+	if ( p->ce_type != Cft_Overlay || !p->ce_bi ||
+		p->ce_bi->bi_cf_ocs != pcocs )
+		return LDAP_CONSTRAINT_VIOLATION;
+
+	on = (slap_overinst *)p->ce_bi;
+	cm = on->on_bi.bi_private;
+	ca->be = &cm->db;
+	return LDAP_SUCCESS;
+}
+
+static int
+pc_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
+{
+	CfEntryInfo *pe = p->e_private;
+	slap_overinst *on = (slap_overinst *)pe->ce_bi;
+	cache_manager *cm = on->on_bi.bi_private;
+	struct berval bv;
+
+	/* FIXME: should not hardcode "olcDatabase" here */
+	bv.bv_len = sprintf( ca->msg, "olcDatabase=%s", cm->db.bd_info->bi_type );
+	bv.bv_val = ca->msg;
+	ca->be = &cm->db;
+
+	/* We can only create this entry if the database is table-driven
+	 */
+	if ( cm->db.bd_info->bi_cf_ocs )
+		config_build_entry( op, rs, pe, ca, &bv, cm->db.bd_info->bi_cf_ocs,
+			&pcocs[1] );
+
+	return 0;
+}
+
+static int
+pc_cf_gen( ConfigArgs *c )
+{
+	slap_overinst *on = (slap_overinst *)c->bi;
+	cache_manager* 	cm = on->on_bi.bi_private;
+	query_manager*  qm = cm->qm;
+	QueryTemplate* 	temp;
+	AttributeName*  attr_name;
+	AttributeName* 	attrarray;
+	const char* 	text=NULL;
+	int i, num, rc = 0;
+	char *ptr;
+
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		struct berval bv;
+		switch( c->type ) {
+		case PC_MAIN:
+			bv.bv_len = sprintf( c->msg, "%s %d %d %d %d",
+				cm->db.bd_info->bi_type, cm->max_entries, cm->numattrsets,
+				cm->num_entries_limit, cm->cc_period );
+			bv.bv_val = c->msg;
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+		case PC_ATTR:
+			for (i=0; i<cm->numattrsets; i++) {
+				if ( !qm->attr_sets[i].count ) continue;
+
+				bv.bv_len = sprintf( c->msg, "%d", i );
+
+				/* count the attr length */
+				for ( attr_name = qm->attr_sets[i].attrs;
+					attr_name->an_name.bv_val; attr_name++ )
+					bv.bv_len += attr_name->an_name.bv_len + 1;
+
+				bv.bv_val = ch_malloc( bv.bv_len+1 );
+				ptr = lutil_strcopy( bv.bv_val, c->msg );
+				for ( attr_name = qm->attr_sets[i].attrs;
+					attr_name->an_name.bv_val; attr_name++ ) {
+					*ptr++ = ' ';
+					ptr = lutil_strcopy( ptr, attr_name->an_name.bv_val );
+				}
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+			if ( !c->rvalue_vals )
+				rc = 1;
+			break;
+		case PC_TEMP:
+			for (i=0; i<cm->numtemplates; i++) {
+				bv.bv_len = sprintf( c->msg, " %d %d",
+					qm->templates[i].attr_set_index,
+					qm->templates[i].ttl );
+				bv.bv_len += qm->templates[i].querystr.bv_len + 2;
+				bv.bv_val = ch_malloc( bv.bv_len+1 );
+				ptr = bv.bv_val;
+				*ptr++ = '"';
+				ptr = lutil_strcopy( ptr, qm->templates[i].querystr.bv_val );
+				*ptr++ = '"';
+				strcpy( ptr, c->msg );
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+			if ( !c->rvalue_vals )
+				rc = 1;
+			break;
+		case PC_RESP:
+			if ( cm->response_cb == PCACHE_RESPONSE_CB_HEAD ) {
+				bv.bv_val = "head";
+				bv.bv_len = STRLENOF("head");
+			} else {
+				bv.bv_val = "tail";
+				bv.bv_len = STRLENOF("tail");
+			}
+			value_add_one( &c->rvalue_vals, &bv );
+			break;
+		}
+		return rc;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		return 1;	/* FIXME */
+#if 0
+		switch( c->type ) {
+		case PC_ATTR:
+		case PC_TEMP:
+		}
+		return rc;
+#endif
+	}
+
+	switch( c->type ) {
+	case PC_MAIN:
+		cm->numattrsets = atoi( c->argv[3] );
+		if ( cm->numattrsets > MAX_ATTR_SETS ) {
+			sprintf( c->msg, "numattrsets must be <= %d", MAX_ATTR_SETS );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		cm->db.bd_info = backend_info( c->argv[1] );
+		if ( !cm->db.bd_info ) {
+			sprintf( c->msg, "unknown backend type" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+		if ( cm->db.bd_info->bi_db_init( &cm->db ) ) {
+			sprintf( c->msg, "backend %s init failed", c->argv[1] );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			return( 1 );
+		}
+
+		/* This type is in use, needs to be opened */
+		cm->db.bd_info->bi_nDB++;
+
+		cm->max_entries = atoi( c->argv[2] );
+
+		cm->num_entries_limit = atoi( c->argv[4] );
+		cm->cc_period = atoi( c->argv[5] );
+		Debug( LDAP_DEBUG_TRACE,
+				"Total # of attribute sets to be cached = %d\n",
+				cm->numattrsets, 0, 0 );
+		qm->attr_sets = ( struct attr_set * )ch_malloc( cm->numattrsets *
+			    			sizeof( struct attr_set ));
+		for ( i = 0; i < cm->numattrsets; i++ ) {
+			qm->attr_sets[i].attrs = NULL;
+		}
+		break;
+	case PC_ATTR:
+		num = atoi( c->argv[1] );
+		if (num >= cm->numattrsets) {
+			sprintf( c->msg, "attrset index out of bounds" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			return 1;
+		}
+		if ( c->argv[2] && strcmp( c->argv[2], "*" ) ) {
+			qm->attr_sets[num].count = c->argc - 2;
+			qm->attr_sets[num].attrs = (AttributeName*)ch_malloc(
+						(c->argc-1) * sizeof( AttributeName ));
+			attr_name = qm->attr_sets[num].attrs;
+			for ( i = 2; i < c->argc; i++ ) {
+				ber_str2bv( c->argv[i], 0, 1, &attr_name->an_name);
+				attr_name->an_desc = NULL;
+				if ( slap_bv2ad( &attr_name->an_name,
+						&attr_name->an_desc, &text )) {
+					strcpy( c->msg, text );
+					Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+					ch_free( qm->attr_sets[num].attrs );
+					qm->attr_sets[num].attrs = NULL;
+					qm->attr_sets[num].count = 0;
+					return 1;
+				}
+				attr_name++;
+				attr_name->an_name.bv_val = NULL;
+				attr_name->an_name.bv_len = 0;
+			}
+		}
+		break;
+	case PC_TEMP:
+		if (( i = atoi( c->argv[2] )) >= cm->numattrsets ) {
+			sprintf( c->msg, "template index invalid" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			return 1;
+		}
+		num = cm->numtemplates;
+		if ( num == 0 )
+			find_supersets( qm->attr_sets, cm->numattrsets );
+		qm->templates = ( QueryTemplate* )ch_realloc( qm->templates,
+				( num + 2 ) * sizeof( QueryTemplate ));
+		temp = qm->templates + num;
+		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
+		temp->query = temp->query_last = NULL;
+		temp->ttl = atoi( c->argv[3] );
+		temp->no_of_queries = 0;
+
+		ber_str2bv( c->argv[1], 0, 1, &temp->querystr );
+		Debug( LDAP_DEBUG_TRACE, "Template:\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "  query template: %s\n",
+				temp->querystr.bv_val, 0, 0 );
+		temp->attr_set_index = i;
+		Debug( LDAP_DEBUG_TRACE, "  attributes: \n", 0, 0, 0 );
+		if ( ( attrarray = qm->attr_sets[i].attrs ) != NULL ) {
+			for ( i=0; attrarray[i].an_name.bv_val; i++ )
+				Debug( LDAP_DEBUG_TRACE, "\t%s\n",
+					attrarray[i].an_name.bv_val, 0, 0 );
+		}
+		temp++; 
+		temp->querystr.bv_val = NULL;
+		cm->numtemplates++;
+		break;
+	case PC_RESP:
+		if ( strcasecmp( c->argv[1], "head" ) == 0 ) {
+			cm->response_cb = PCACHE_RESPONSE_CB_HEAD;
+
+		} else if ( strcasecmp( c->argv[1], "tail" ) == 0 ) {
+			cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
+
+		} else {
+			sprintf( c->msg, "unknown specifier" );
+			Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
+			return 1;
+		}
+		break;
+	}
+	return rc;
+}
 
 static int
 proxy_cache_config(
@@ -1498,170 +1874,12 @@ proxy_cache_config(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager* 	cm = on->on_bi.bi_private;
-	query_manager*  qm = cm->qm;
-	QueryTemplate* 	temp;
-	AttributeName*  attr_name;
-	AttributeName* 	attrarray;
-	const char* 	text=NULL;
-	char		*argv0 = NULL;
 
-	int 		index, i;
-	int 		num;
-	int		rc = 0;
-
-	if ( strncasecmp( argv[0], "proxycache-", STRLENOF( "proxycache-" ) ) == 0 ) {
-		argv0 = argv[0] + STRLENOF( "proxycache-" );
-	} else {
-		argv0 = argv[0];
-	}
-
-	if ( strcasecmp( argv0, "proxycache" ) == 0 ) {
-		if ( argc < 6 ) {
-			fprintf( stderr, "%s: line %d: missing arguments in \"proxycache"
-				" <backend> <max_entries> <numattrsets> <entry limit> "
-				"<cycle_time>\"\n", fname, lineno );
-			return( 1 );
-		}
-
-		cm->db.bd_info = backend_info( argv[1] );
-		if ( !cm->db.bd_info ) {
-			fprintf( stderr, "%s: line %d: backend %s unknown\n",
-				fname, lineno, argv[1] );
-			return( 1 );
-		}
-		if ( cm->db.bd_info->bi_db_init( &cm->db ) ) return( 1 );
-
-		/* This type is in use, needs to be opened */
-		cm->db.bd_info->bi_nDB++;
-
-		cm->max_entries = atoi( argv[2] );
-
-		cm->numattrsets = atoi( argv[3] );
-		if ( cm->numattrsets > MAX_ATTR_SETS ) {
-			fprintf( stderr, "%s: line %d: numattrsets must be <= %d\n",
-				fname, lineno, MAX_ATTR_SETS );
-			return( 1 );
-		}
-
-		cm->num_entries_limit = atoi( argv[4] );
-		cm->cc_period = atoi( argv[5] );
-		Debug( LDAP_DEBUG_ANY,
-				"Total # of attribute sets to be cached = %d\n",
-				cm->numattrsets, 0, 0 );
-		qm->attr_sets = ( struct attr_set * )ch_malloc( cm->numattrsets *
-			    			sizeof( struct attr_set ));
-		for ( i = 0; i < cm->numattrsets; i++ ) {
-			qm->attr_sets[i].attrs = NULL;
-		}
-
-	} else if ( strcasecmp( argv0, "proxyattrset" ) == 0 ) {
-		if ( argc < 3 ) {
-			fprintf( stderr, "%s: line %d: missing arguments in \"proxyattrset "
-				"<index> <attributes>\"\n", fname, lineno );
-			return( 1 );
-		}
-		Debug( LDAP_DEBUG_ANY, "Attribute Set # %d\n",
-				atoi( argv[1] ), 0, 0 );
-		if (atoi(argv[1]) >= cm->numattrsets) {
-			fprintf( stderr, "%s; line %d index out of bounds \n",
-					fname, lineno );
-			return 1;
-		}
-		index = atoi( argv[1] );
-		if ( argv[2] && strcmp( argv[2], "*" ) ) {
-			qm->attr_sets[index].count = argc - 2;
-			qm->attr_sets[index].attrs = (AttributeName*)ch_malloc(
-						(argc-1) * sizeof( AttributeName ));
-			attr_name = qm->attr_sets[index].attrs;
-			for ( i = 2; i < argc; i++ ) {
-				Debug( LDAP_DEBUG_ANY, "\t %s\n",
-						argv[i], 0, 0 );
-				ber_str2bv( argv[i], 0, 1,
-						&attr_name->an_name);
-				attr_name->an_desc = NULL;
-				slap_bv2ad( &attr_name->an_name,
-						&attr_name->an_desc, &text );
-				attr_name++;
-				attr_name->an_name.bv_val = NULL;
-				attr_name->an_name.bv_len = 0;
-			}
-		}
-	} else if ( strcasecmp( argv0, "proxytemplate" ) == 0 ) {
-		if ( argc != 4 ) {
-			fprintf( stderr, "%s: line %d: missing argument(s) in "
-				"\"proxytemplate <filter> <proj attr set> <TTL>\" line\n",
-				fname, lineno );
-			return( 1 );
-		}
-		if (( i = atoi( argv[2] )) >= cm->numattrsets ) {
-			Debug( LDAP_DEBUG_ANY,
-					"%s: line %d, template index invalid\n",
-					fname, lineno, 0 );
-			return 1;
-		}
-		num = cm->numtemplates;
-		if ( num == 0 )
-			find_supersets( qm->attr_sets, cm->numattrsets );
-		qm->templates = ( QueryTemplate* )ch_realloc( qm->templates,
-				( num + 2 ) * sizeof( QueryTemplate ));
-		temp = qm->templates + num;
-		ldap_pvt_thread_rdwr_init( &temp->t_rwlock );
-		temp->query = temp->query_last = NULL;
-		temp->ttl = atoi( argv[3] );
-		temp->no_of_queries = 0;
-		if ( argv[1] == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-					"Templates string not specified "
-					"for template %d\n", num, 0, 0 );
-			return 1;
-		}
-		ber_str2bv( argv[1], 0, 1, &temp->querystr );
-		Debug( LDAP_DEBUG_ANY, "Template:\n", 0, 0, 0 );
-		Debug( LDAP_DEBUG_ANY, "  query template: %s\n",
-				temp->querystr.bv_val, 0, 0 );
-		temp->attr_set_index = i;
-		Debug( LDAP_DEBUG_ANY, "  attributes: \n", 0, 0, 0 );
-		if ( ( attrarray = qm->attr_sets[i].attrs ) != NULL ) {
-			for ( i=0; attrarray[i].an_name.bv_val; i++ )
-				Debug( LDAP_DEBUG_ANY, "\t%s\n",
-					attrarray[i].an_name.bv_val, 0, 0 );
-		}
-		temp++; 
-		temp->querystr.bv_val = NULL;
-		cm->numtemplates++;
-
-	} else if ( strcasecmp( argv0, "response-callback" ) == 0 ) {
-		/* set to "tail" to put the response callback
-		 * at the end of the callback list; this is required
-		 * in case other overlays are present, so that the
-		 * final entry is cached. */
-
-		if ( argc < 2 ) {
-			Debug( LDAP_DEBUG_ANY,
-					"missing specifier for \"response-callback {head(default)|tail}\" "
-					"callback position\n", 0, 0, 0 );
-			return 1;
-		}
-
-		if ( strcasecmp( argv[1], "head" ) == 0 ) {
-			cm->response_cb = PCACHE_RESPONSE_CB_HEAD;
-
-		} else if ( strcasecmp( argv[1], "tail" ) == 0 ) {
-			cm->response_cb = PCACHE_RESPONSE_CB_TAIL;
-
-		} else {
-			Debug( LDAP_DEBUG_ANY,
-					"unknown specifier %s for \"response-callback {head(default)|tail}\" "
-					"callback position\n", argv[1], 0, 0 );
-			return 1;
-		}
-	}
-	/* anything else */
-	else {
-		rc = cm->db.bd_info->bi_db_config( &cm->db, fname, lineno, argc, argv );
-	}
-
-	return rc;
+	/* Something for the cache database? */
+	if ( cm->db.bd_info && cm->db.bd_info->bi_db_config )
+		return cm->db.bd_info->bi_db_config( &cm->db, fname, lineno,
+			argc, argv );
+	return SLAP_CONF_UNKNOWN;
 }
 
 static int
@@ -1722,9 +1940,9 @@ proxy_cache_open(
 	/* consistency check (add more...) */
 	for ( i = 0; i < cm->numattrsets; i++ ) {
 		if ( cm->qm->attr_sets[i].attrs == NULL ) {
-			fprintf( stderr, "proxy_cache_open(): "
+			Debug( LDAP_DEBUG_ANY, "proxy_cache_open(): "
 				"attr set %d (of %d) missing\n",
-				i, cm->numattrsets );
+				i, cm->numattrsets, 0 );
 			return 1;
 		}
 	}
@@ -1749,12 +1967,12 @@ proxy_cache_open(
 		if ( BER_BVISNULL( &cm->db.be_rootndn )
 				|| BER_BVISEMPTY( &cm->db.be_rootndn ) )
 		{
-			fprintf( stderr, "proxy_cache_open(): "
+			Debug( LDAP_DEBUG_ANY, "proxy_cache_open(): "
 				"underlying database of type \"%s\"\n"
 				"    serving naming context \"%s\"\n"
 				"    has no \"rootdn\", required by \"proxycache\".\n",
 				on->on_info->oi_orig->bi_type,
-				cm->db.be_suffix[0].bv_val );
+				cm->db.be_suffix[0].bv_val, 0 );
 			return 1;
 		}
 	}
@@ -1825,93 +2043,6 @@ proxy_cache_destroy(
 	return rc;
 }
 
-static void
-find_supersets ( struct attr_set* attr_sets, int numsets )
-{
-	int num[MAX_ATTR_SETS];
-	int i, j, res;
-	int* id_array;
-	for ( i = 0; i < MAX_ATTR_SETS; i++ )
-		num[i] = 0;
-
-	for ( i = 0; i < numsets; i++ ) {
-		attr_sets[i].ID_array = (int*) ch_malloc( sizeof( int ) );
-		attr_sets[i].ID_array[0] = -1;
-    	}
-
-	for ( i = 0; i < numsets; i++ ) {
-		for ( j=i+1; j < numsets; j++ ) {
-			res = compare_sets( attr_sets, i, j );
-			switch ( res ) {
-			case 0:
-				break;
-			case 3:
-			case 1:
-				id_array = attr_sets[i].ID_array;
-				attr_sets[i].ID_array = (int *) ch_realloc( id_array,
-							( num[i] + 2 ) * sizeof( int ));
-				attr_sets[i].ID_array[num[i]] = j;
-				attr_sets[i].ID_array[num[i]+1] = -1;
-				num[i]++;
-				if (res == 1)
-					break;
-			case 2:
-				id_array = attr_sets[j].ID_array;
-				attr_sets[j].ID_array = (int *) ch_realloc( id_array,
-						( num[j] + 2 ) * sizeof( int ));
-				attr_sets[j].ID_array[num[j]] = i;
-				attr_sets[j].ID_array[num[j]+1] = -1;
-				num[j]++;
-				break;
-			}
-		}
-	}
-}
-
-/*
- * compares two sets of attributes (indices i and j)
- * returns 0: if neither set is contained in the other set
- *         1: if set i is contained in set j
- *         2: if set j is contained in set i
- *         3: the sets are equivalent
- */
-
-static int
-compare_sets(struct attr_set* set, int i, int j)
-{
-	int k,l,numI,numJ;
-	int common=0;
-	int result=0;
-
-	if (( set[i].attrs == NULL ) && ( set[j].attrs == NULL ))
-		return 3;
-
-	if ( set[i].attrs == NULL )
-		return 2;
-
-	if ( set[j].attrs == NULL )
-		return 1;
-
-	numI = set[i].count;
-	numJ = set[j].count;
-
-	for ( l=0; l < numI; l++ ) {
-		for ( k = 0; k < numJ; k++ ) {
-			if ( strcmp( set[i].attrs[l].an_name.bv_val,
-				     set[j].attrs[k].an_name.bv_val ) == 0 )
-				common++;
-		}
-	}
-
-	if ( common == numI )
-		result = 1;
-
-	if ( common == numJ )
-		result += 2;
-
-	return result;
-}
-
 static slap_overinst proxy_cache;
 
 int pcache_init()
@@ -1923,8 +2054,9 @@ int pcache_init()
 	at = ldap_str2attributetype( queryid_schema, &code, &err,
 		LDAP_SCHEMA_ALLOW_ALL );
 	if ( !at ) {
-		fprintf( stderr, "AttributeType Load failed %s %s\n",
-			ldap_scherr2str(code), err );
+		Debug( LDAP_DEBUG_ANY,
+			"pcache_init: ldap_str2attributetype failed %s %s\n",
+			ldap_scherr2str(code), err, 0 );
 		return code;
 	}
 	code = at_add( at, 0, NULL, &err );
@@ -1933,8 +2065,9 @@ int pcache_init()
 	}
 	ldap_memfree( at );
 	if ( code ) {
-		fprintf( stderr, "AttributeType Load failed %s %s\n",
-			scherr2str(code), err );
+		Debug( LDAP_DEBUG_ANY,
+			"pcache_init: at_add failed %s %s\n",
+			scherr2str(code), err, 0 );
 		return code;
 	}
 
@@ -1945,6 +2078,11 @@ int pcache_init()
 	proxy_cache.on_bi.bi_db_close = proxy_cache_close;
 	proxy_cache.on_bi.bi_db_destroy = proxy_cache_destroy;
 	proxy_cache.on_bi.bi_op_search = proxy_cache_search;
+
+	proxy_cache.on_bi.bi_cf_ocs = pcocs;
+
+	code = config_register_schema( pccfg, pcocs );
+	if ( code ) return code;
 
 	return overlay_register( &proxy_cache );
 }

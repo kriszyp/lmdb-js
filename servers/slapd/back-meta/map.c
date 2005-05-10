@@ -539,6 +539,7 @@ ldap_back_filter_map_rewrite(
 	int		rc;
 	dncookie	fdc;
 	struct berval	ftmp;
+	static char	*dmy = "";
 
 	rc = ldap_back_int_filter_map_rewrite( dc, f, fstr, remap );
 
@@ -553,7 +554,7 @@ ldap_back_filter_map_rewrite(
 	fdc.ctx = "searchFilter";
 	
 	switch ( rewrite_session( fdc.target->mt_rwmap.rwm_rw, fdc.ctx,
-				( !BER_BVISEMPTY( &ftmp ) ? ftmp.bv_val : "" ),
+				( !BER_BVISEMPTY( &ftmp ) ? ftmp.bv_val : dmy ),
 				fdc.conn, &fstr->bv_val ) )
 	{
 	case REWRITE_REGEXEC_OK:
@@ -585,6 +586,10 @@ ldap_back_filter_map_rewrite(
 		}
 		rc = LDAP_OTHER;
 		break;
+	}
+
+	if ( fstr->bv_val == dmy ) {
+		BER_BVZERO( fstr );
 	}
 #endif /* ENABLE_REWRITE */
 

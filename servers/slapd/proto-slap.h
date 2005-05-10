@@ -690,8 +690,10 @@ LDAP_SLAPD_F (Entry *) str2entry LDAP_P(( char	*s ));
 LDAP_SLAPD_F (Entry *) str2entry2 LDAP_P(( char	*s, int checkvals ));
 LDAP_SLAPD_F (char *) entry2str LDAP_P(( Entry *e, int *len ));
 
-LDAP_SLAPD_F (void) entry_flatsize LDAP_P((
-	Entry *e, ber_len_t *siz, ber_len_t *len, int norm ));
+LDAP_SLAPD_F (ber_len_t) entry_flatsize LDAP_P(( Entry *e, int norm ));
+LDAP_SLAPD_F (void) entry_partsize LDAP_P(( Entry *e, ber_len_t *len,
+	int *nattrs, int *nvals, int norm ));
+
 #ifdef SLAP_ZONE_ALLOC
 LDAP_SLAPD_F (int) entry_decode LDAP_P((
 						struct berval *bv, Entry **e, void *ctx ));

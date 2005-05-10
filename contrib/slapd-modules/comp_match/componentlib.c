@@ -1364,6 +1364,52 @@ BDecComponentPrintableString( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len,
 }
 
 /*
+ * Component BER Decoder : TeletexString
+ */
+
+int
+BDecComponentTeletexStringTag ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int mode )
+{
+	return BDecComponentTeletexString ( mem_op, b, 0, 0, v, bytesDecoded, mode|CALL_TAG_DECODER );
+}
+
+int
+BDecComponentTeletexString( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v, AsnLen *bytesDecoded, int mode )
+{
+        char* peek_head;
+        int i, strLen, rc;
+        void* component_values;
+        ComponentTeletexString* k, **k2;
+	AsnOid result;
+                                                                          
+        k = (ComponentTeletexString*) v;
+                                                                          
+        if ( mode & DEC_ALLOC_MODE_0 ) {
+                k2 = (ComponentTeletexString**) v;
+                *k2 = (ComponentTeletexString*) CompAlloc( mem_op, sizeof( ComponentTeletexString ) );
+		if ( !*k2 ) return LDAP_DECODING_ERROR;
+                k = *k2;
+        }
+
+	if ( mode & CALL_TAG_DECODER ) {
+		mode = mode & CALL_CONTENT_DECODER;
+		rc = BDecTeletexString ( mem_op, b, &result, bytesDecoded );
+	} else {
+		rc = BDecTeletexStringContent ( mem_op, b, tagId, len, &result, bytesDecoded );
+	}
+	if ( rc < 0 ) {
+		if ( k ) CompFree ( mem_op, k );
+		return LDAP_DECODING_ERROR;
+	}
+	k->value = result;
+
+	k->comp_desc = get_component_description (BASICTYPE_T61_STR);
+
+	return LDAP_SUCCESS;
+}
+
+
+/*
  * Matching function : Real
  */
 int

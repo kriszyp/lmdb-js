@@ -35,7 +35,8 @@ typedef enum {
 	Cft_Database,
 	Cft_Overlay,
 	Cft_Include,
-	Cft_Module
+	Cft_Module,
+	Cft_Misc	/* backend/overlay defined */
 } ConfigType;
 
 #define ARGS_USERLAND	0x00000fff
@@ -66,15 +67,37 @@ typedef enum {
 
 #define ARG_BAD_CONF	0xdead0000	/* overload return values */
 
-extern ConfigTable config_back_cf_table[];
-
-typedef struct ConfigOCs {
-	char *def;
-	ConfigType cft;
-	ObjectClass **oc;
-} ConfigOCs;
+/* This is a config entry's e_private data */
+typedef struct CfEntryInfo {
+	struct CfEntryInfo *ce_parent;
+	struct CfEntryInfo *ce_sibs;
+	struct CfEntryInfo *ce_kids;
+	Entry *ce_entry;
+	ConfigType ce_type;
+	BackendInfo *ce_bi;
+	BackendDB *ce_be;
+	void *ce_private;
+} CfEntryInfo;
 
 struct config_args_s;
+
+/* Check if the child is allowed to be LDAPAdd'd to the parent */
+typedef int (ConfigLDAPadd)(
+	CfEntryInfo *parent, Entry *child, struct config_args_s *ca);
+
+/* Let the object create children out of slapd.conf */
+typedef int (ConfigCfAdd)(
+	Operation *op, SlapReply *rs, Entry *parent, struct config_args_s *ca );
+
+typedef struct ConfigOCs {
+	char *co_def;
+	ConfigType co_type;
+	ConfigTable *co_table;
+	ConfigLDAPadd *co_ldadd;
+	ConfigCfAdd *co_cfadd;
+	ObjectClass *co_oc;
+	struct berval *co_name;
+} ConfigOCs;
 
 typedef int (ConfigDriver)(struct config_args_s *c);
 
@@ -111,6 +134,7 @@ typedef struct config_args_s {
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
 	BackendDB *be;
 	BackendInfo *bi;
+	Entry *ca_entry;	/* entry being modified */
 	void *private;	/* anything */
 	ConfigDriver *cleanup;
 } ConfigArgs;
@@ -127,3 +151,5 @@ int config_register_schema(ConfigTable *ct, ConfigOCs *co);
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);
 int config_add_vals(ConfigTable *ct, ConfigArgs *c);
 ConfigTable * config_find_keyword(ConfigTable *ct, ConfigArgs *c);
+Entry * config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
+	ConfigArgs *c, struct berval *rdn, ConfigOCs *main, ConfigOCs *extra );

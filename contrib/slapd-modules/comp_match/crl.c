@@ -25,7 +25,7 @@ BDecComponentCertificateListTop( void* mem_op, GenBuf* b, void *v, AsnLen* bytes
 void init_module_CertificateRevokationList() {
 	InstallOidDecoderMapping( "2.5.4.39", NULL,
 		GDecComponentCertificateList,
-		BDecComponentCertificateList,
+		BDecComponentCertificateListTop,
 		ExtractingComponentCertificateList,
 		MatchingComponentCertificateList);
 }

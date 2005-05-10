@@ -901,9 +901,9 @@ limits_parse_one(
 }
 
 static const char *lmpats[] = {
-	"exact",
-	"exact",
-	"onelvel",
+	"base",
+	"base",
+	"onelevel",
 	"subtree",
 	"children",
 	"regex",

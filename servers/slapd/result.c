@@ -791,11 +791,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		/* read back control or LDAP_CONNECTIONLESS */
 	    ber = op->o_res_ber;
 	} else {
-		ber_len_t	siz, len;
 		struct berval	bv;
 
-		entry_flatsize( rs->sr_entry, &siz, &len, 0 );
-		bv.bv_len = siz + len;
+		bv.bv_len = entry_flatsize( rs->sr_entry, 0 );
 		bv.bv_val = op->o_tmpalloc(bv.bv_len, op->o_tmpmemctx );
 
 		ber_init2( ber, &bv, LBER_USE_DER );
@@ -1517,7 +1515,6 @@ int slap_read_controls(
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *) &berbuf;
 	LDAPControl c;
-	ber_len_t	siz, len;
 	Operation myop;
 
 	Debug( LDAP_DEBUG_ANY, "slap_read_controls: (%s) %s\n",
@@ -1527,8 +1524,7 @@ int slap_read_controls(
 	rs->sr_attrs = ( oid == &slap_pre_read_bv ) ?
 		op->o_preread_attrs : op->o_postread_attrs; 
 
-	entry_flatsize( rs->sr_entry, &siz, &len, 0 );
-	bv.bv_len = siz + len;
+	bv.bv_len = entry_flatsize( rs->sr_entry, 0 );
 	bv.bv_val = op->o_tmpalloc(bv.bv_len, op->o_tmpmemctx );
 
 	ber_init2( ber, &bv, LBER_USE_DER );

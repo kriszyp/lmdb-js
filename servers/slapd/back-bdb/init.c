@@ -71,7 +71,7 @@ bdb_db_init( BackendDB *be )
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
 
 	be->be_private = bdb;
-	be->be_cf_table = be->bd_info->bi_cf_table;
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
 	return 0;
 }

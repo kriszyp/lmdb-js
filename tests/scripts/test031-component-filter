@@ -291,6 +291,20 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+FILTER="(certificateRevocationList:componentFilterMatch:=item:{ component \"tbsCertList.revokedCertificates.\2a.userCertificate\", rule integerMatch, value 952069669 })"
+echo "        f=$FILTER ..."
+echo "#         f=$FILTER ..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	"$FILTER" >> $SEARCHOUT 2>&1
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering ldapsearch results..."

@@ -201,6 +201,22 @@ do
   --mode) prevopt="--mode" prev=mode ;;
   --mode=*) mode="$optarg" ;;
 
+  --tag=*)
+  	case "$optarg" in
+	CC)
+		;;
+	disable-shared)
+		build_libtool_libs=no
+		;;
+	disable-static)
+		build_old_libs=no
+		;;
+	*)
+	 	echo "unknown tag"
+		exit 1;
+	esac
+	;;
+
   --preserve-dup-deps) duplicate_deps="yes" ;;
 
   --quiet | --silent)

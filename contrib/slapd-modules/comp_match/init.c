@@ -236,9 +236,11 @@ comp_convert_attr_to_comp LDAP_P (( Attribute* a, Syntax *syn, struct berval* bv
 	ExpBufFreeBuf( buf );
 	GenBufFreeBuf( b );
 	if ( rc == -1 ) {
+#if 0
 		ShutdownNibbleMemLocal ( a->a_comp_data->cd_mem_op );
 		free ( a->a_comp_data );
 		a->a_comp_data = NULL;
+#endif
 		return (void*)NULL;
 	}
 	else {
@@ -470,10 +472,14 @@ comp_test_all_components (
 			{
 				cr->cr_curr = start_compid;
 				rc = comp_test_components ( attr_mem_op, assert_mem_op, comp_elmt, ca );
-				
+				if ( rc != LDAP_COMPARE_FALSE ) {
+					break;
+				}
+#if 0				
 				if ( rc == LDAP_COMPARE_TRUE ) {
 					break;
 				}
+#endif
 			}
 		}
 		break;
@@ -824,6 +830,7 @@ int init_module(int argc, char *argv[]) {
 	/* the initialization for example X.509 certificate */
 	init_module_AuthenticationFramework();
 	init_module_AuthorityKeyIdentifierDefinition();
+	init_module_CertificateRevokationList();
 	init_attribute_aliasing_table ();
 	init_component_description_table ();
 	return 0;

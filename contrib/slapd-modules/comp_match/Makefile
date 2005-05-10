@@ -31,7 +31,7 @@ INCS=$(LDAP_INC) $(SNACC_INC) $(OPENSSL_INC)
 
 SNACC_LIB=$(snaccdir)/c-lib/libcasn1.a
 SSL_LIB=/usr/local/lib/lcrypto
-#LDAP_LIB=-lldap_r -llber
+
 LIBS=$(LDAP_LIB) $(SNACC_LIB) $(SSL_LIB)
 
 all:	compmatch.la

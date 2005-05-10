@@ -10,6 +10,7 @@ slapd \- Stand-alone LDAP Daemon
 .B [\-T {acl|add|auth|cat|dn|index|passwd|test}]
 .B [\-d debug\-level]
 .B [\-f slapd\-config\-file]
+.B [\-F slapd\-config\-directory]
 .B [\-h URLs]
 .B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
 .B [\-r directory]
@@ -27,8 +28,7 @@ is typically invoked at boot time, usually out of
 Upon startup,
 .B slapd
 normally forks and disassociates itself from the invoking tty.
-If configured in
-.BR ETCDIR/slapd.conf ,
+If configured in the config file (or config directory),
 the
 .B slapd
 process will print its process ID (see
@@ -122,6 +122,20 @@ facility.
 .BI \-f " slapd\-config\-file"
 Specifies the slapd configuration file. The default is
 .BR ETCDIR/slapd.conf .
+.TP
+.BI \-F " slapd\-config\-directory"
+Specifies the slapd configuration file. The default is
+.BR ETCDIR/slapd.d .
+If both
+.B -f
+and
+.B -F
+are specified, the config file will be read and converted to
+config directory format and written to the specified directory.
+If neither option is specified, slapd will attempt to read the
+default config directory before trying to use the default
+config file. If a valid config directory exists then the
+default config file is ignored.
 .TP
 .BI \-h " URLlist"
 .B slapd

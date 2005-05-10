@@ -25,17 +25,21 @@ typedef enum AuthenticationFrameworkAnyId
 {
     nullOid_ANY_ID = 0,
     nullOid2_ANY_ID = 1,
-    printableStringOid_ANY_ID = 2,
-    printableStringOid2_ANY_ID = 3,
-    printableStringOid3_ANY_ID = 4,
-    printableStringOid4_ANY_ID = 5,
-    printableStringOid5_ANY_ID = 6,
-    printableStringOid6_ANY_ID = 7,
-    iA5StringOid_ANY_ID = 8,
-    octetStringOid_ANY_ID = 9,
-    octetStringOid2_ANY_ID = 10,
-    octetStringOid3_ANY_ID = 11} AuthenticationFrameworkAnyId;
-
+    nullOid3_ANY_ID = 2,
+    printableStringOid_ANY_ID = 3,
+    printableStringOid2_ANY_ID = 4,
+    printableStringOid3_ANY_ID = 5,
+    printableStringOid4_ANY_ID = 6,
+    printableStringOid5_ANY_ID = 7,
+    printableStringOid6_ANY_ID = 8,
+    printableStringOid7_ANY_ID = 9,
+    iA5StringOid_ANY_ID = 10,
+    octetStringOid_ANY_ID = 11,
+    octetStringOid2_ANY_ID = 12,
+    octetStringOid3_ANY_ID = 13,
+    octetStringOid4_ANY_ID = 14,
+    octetStringOid5_ANY_ID = 15,
+    octetStringOid7_ANY_ID = 17} AuthenticationFrameworkAnyId;
 
 void InitAnyAuthenticationFramework();
 

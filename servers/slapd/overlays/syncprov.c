@@ -25,6 +25,7 @@
 #include <ac/string.h>
 #include "lutil.h"
 #include "slap.h"
+#include "config.h"
 
 /* A modify request on a particular entry */
 typedef struct modinst {
@@ -1994,42 +1995,93 @@ syncprov_operational(
 	return SLAP_CB_CONTINUE;
 }
 
+enum {
+	SP_CHKPT = 1,
+	SP_SESSL
+};
+
+static ConfigDriver sp_cf_gen;
+
+static ConfigTable spcfg[] = {
+	{ "syncprov-checkpoint", "ops> <minutes", 3, 3, 0, ARG_MAGIC|SP_CHKPT,
+		sp_cf_gen, "( OLcfgOvAt:1.1 NAME 'olcSpCheckpoint' "
+			"DESC 'ContextCSN checkpoint interval in ops and minutes' "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "syncprov-sessionlog", "size", 2, 2, 0, ARG_INT|ARG_MAGIC|SP_SESSL,
+		sp_cf_gen, "( OLcfgOvAt:1.2 NAME 'olcSpSessionlog' "
+			"DESC 'Session log size in ops' "
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs spocs[] = {
+	{ "( OLcfgOvOc:1.1 "
+		"NAME 'olcSyncProvConfig' "
+		"DESC 'SyncRepl Provider configuration' "
+		"SUP olcOverlayConfig "
+		"MAY ( olcSpCheckpoint $ olcSpSessionlog ) )",
+			Cft_Overlay, spcfg },
+	{ NULL, 0, NULL }
+};
+
 static int
-syncprov_db_config(
-	BackendDB	*be,
-	const char	*fname,
-	int		lineno,
-	int		argc,
-	char	**argv
-)
+sp_cf_gen(ConfigArgs *c)
 {
-	slap_overinst		*on = (slap_overinst *)be->bd_info;
+	slap_overinst		*on = (slap_overinst *)c->bi;
 	syncprov_info_t		*si = (syncprov_info_t *)on->on_bi.bi_private;
+	int rc = 0;
 
-	if ( strcasecmp( argv[ 0 ], "syncprov-checkpoint" ) == 0 ) {
-		if ( argc != 3 ) {
-			fprintf( stderr, "%s: line %d: wrong number of arguments in "
-				"\"syncprov-checkpoint <ops> <minutes>\"\n", fname, lineno );
-			return -1;
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		switch ( c->type ) {
+		case SP_CHKPT:
+			if ( si->si_chkops || si->si_chktime ) {
+				struct berval bv;
+				bv.bv_len = sprintf( c->msg, "%d %d",
+					si->si_chkops, si->si_chktime );
+				bv.bv_val = c->msg;
+				value_add_one( &c->rvalue_vals, &bv );
+			} else {
+				rc = 1;
+			}
+			break;
+		case SP_SESSL:
+			if ( si->si_logs ) {
+				c->value_int = si->si_logs->sl_size;
+			} else {
+				rc = 1;
+			}
+			break;
 		}
-		si->si_chkops = atoi( argv[1] );
-		si->si_chktime = atoi( argv[2] ) * 60;
-		return 0;
-
-	} else if ( strcasecmp( argv[0], "syncprov-sessionlog" ) == 0 ) {
+		return rc;
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		switch ( c->type ) {
+		case SP_CHKPT:
+			si->si_chkops = 0;
+			si->si_chktime = 0;
+			break;
+		case SP_SESSL:
+			if ( si->si_logs )
+				si->si_logs->sl_size = 0;
+			else
+				rc = LDAP_NO_SUCH_ATTRIBUTE;
+			break;
+		}
+		return rc;
+	}
+	switch ( c->type ) {
+	case SP_CHKPT:
+		si->si_chkops = atoi( c->argv[1] );
+		si->si_chktime = atoi( c->argv[2] ) * 60;
+		break;
+	case SP_SESSL: {
 		sessionlog *sl;
-		int size;
-		if ( argc != 2 ) {
-			fprintf( stderr, "%s: line %d: wrong number of arguments in "
-				"\"syncprov-sessionlog <size>\"\n", fname, lineno );
-			return -1;
-		}
-		size = atoi( argv[1] );
+		int size = c->value_int;
+
 		if ( size < 0 ) {
-			fprintf( stderr,
-				"%s: line %d: session log size %d is negative\n",
-				fname, lineno, size );
-			return -1;
+			sprintf( c->msg, "%s size %d is negative",
+				c->argv[0], size );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+			return ARG_BAD_CONF;
 		}
 		sl = si->si_logs;
 		if ( !sl ) {
@@ -2042,10 +2094,10 @@ syncprov_db_config(
 			si->si_logs = sl;
 		}
 		sl->sl_size = size;
-		return 0;
+		}
+		break;
 	}
-
-	return SLAP_CONF_UNKNOWN;
+	return rc;
 }
 
 /* Cheating - we have no thread pool context for these functions,
@@ -2338,13 +2390,13 @@ syncprov_init()
 		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
 		syncprov_parseCtrl, &slap_cids.sc_LDAPsync );
 	if ( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "Failed to register control %d\n", rc );
+		Debug( LDAP_DEBUG_ANY,
+			"syncprov_init: Failed to register control %d\n", rc, 0, 0 );
 		return rc;
 	}
 
 	syncprov.on_bi.bi_type = "syncprov";
 	syncprov.on_bi.bi_db_init = syncprov_db_init;
-	syncprov.on_bi.bi_db_config = syncprov_db_config;
 	syncprov.on_bi.bi_db_destroy = syncprov_db_destroy;
 	syncprov.on_bi.bi_db_open = syncprov_db_open;
 	syncprov.on_bi.bi_db_close = syncprov_db_close;
@@ -2360,6 +2412,11 @@ syncprov_init()
 	syncprov.on_bi.bi_op_search = syncprov_op_search;
 	syncprov.on_bi.bi_extended = syncprov_op_extended;
 	syncprov.on_bi.bi_operational = syncprov_operational;
+
+	syncprov.on_bi.bi_cf_ocs = spocs;
+
+	rc = config_register_schema( spcfg, spocs );
+	if ( rc ) return rc;
 
 	return overlay_register( &syncprov );
 }
