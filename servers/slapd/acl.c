@@ -920,11 +920,11 @@ acl_get(
 					if ( vdnlen < patlen )
 						continue;
 	
-					if ( a->acl_dn_style == ACL_STYLE_BASE ) {
+					if ( a->acl_attrval_style == ACL_STYLE_BASE ) {
 						if ( vdnlen > patlen )
 							continue;
 	
-					} else if ( a->acl_dn_style == ACL_STYLE_ONE ) {
+					} else if ( a->acl_attrval_style == ACL_STYLE_ONE ) {
 						int rdnlen = -1;
 	
 						if ( !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
@@ -934,11 +934,11 @@ acl_get(
 						if ( rdnlen != vdnlen - patlen - 1 )
 							continue;
 	
-					} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
+					} else if ( a->acl_attrval_style == ACL_STYLE_SUBTREE ) {
 						if ( vdnlen > patlen && !DN_SEPARATOR( val->bv_val[vdnlen - patlen - 1] ) )
 							continue;
 	
-					} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
+					} else if ( a->acl_attrval_style == ACL_STYLE_CHILDREN ) {
 						if ( vdnlen <= patlen )
 							continue;
 	

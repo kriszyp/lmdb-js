@@ -38,10 +38,11 @@
 #include "lber_pvt.h"
 #include "lutil.h"
 
+static const char style_base[] = "base";
 static char *style_strings[] = {
 	"regex",
 	"expand",
-	"base",
+	"exact",
 	"one",
 	"subtree",
 	"children",
@@ -2349,7 +2350,10 @@ dnaccess2text( slap_dn_access *bdn, char *ptr, int is_realdn )
 
 	} else {
 		ptr = lutil_strcopy( ptr, "dn." );
-		ptr = lutil_strcopy( ptr, style_strings[bdn->a_style] );
+		if ( bdn->a_style == ACL_STYLE_BASE )
+			ptr = lutil_strcopy( ptr, style_base );
+		else 
+			ptr = lutil_strcopy( ptr, style_strings[bdn->a_style] );
 		if ( bdn->a_style == ACL_STYLE_LEVEL ) {
 			int n = sprintf( ptr, "{%d}", bdn->a_level );
 			if ( n > 0 ) {
@@ -2537,7 +2541,10 @@ acl_unparse( AccessControl *a, struct berval *bv )
 	if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
 		to++;
 		ptr = lutil_strcopy( ptr, " dn." );
-		ptr = lutil_strcopy( ptr, style_strings[a->acl_dn_style] );
+		if ( a->acl_dn_style == ACL_STYLE_BASE )
+			ptr = lutil_strcopy( ptr, style_base );
+		else
+			ptr = lutil_strcopy( ptr, style_strings[a->acl_dn_style] );
 		*ptr++ = '=';
 		*ptr++ = '"';
 		ptr = lutil_strcopy( ptr, a->acl_dn_pat.bv_val );
@@ -2579,7 +2586,12 @@ acl_unparse( AccessControl *a, struct berval *bv )
 	if ( !BER_BVISEMPTY( &a->acl_attrval ) ) {
 		to++;
 		ptr = lutil_strcopy( ptr, " val." );
-		ptr = lutil_strcopy( ptr, style_strings[a->acl_attrval_style] );
+		if ( a->acl_attrval_style == ACL_STYLE_BASE &&
+			a->acl_attrs[0].an_desc->ad_type->sat_syntax ==
+				slap_schema.si_syn_distinguishedName )
+			ptr = lutil_strcopy( ptr, style_base );
+		else
+			ptr = lutil_strcopy( ptr, style_strings[a->acl_attrval_style] );
 		*ptr++ = '=';
 		*ptr++ = '"';
 		ptr = lutil_strcopy( ptr, a->acl_attrval.bv_val );
