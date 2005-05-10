@@ -1829,6 +1829,7 @@ config_loglevel(ConfigArgs *c) {
 		{ BER_BVC("Parse"),	LDAP_DEBUG_PARSE },
 		{ BER_BVC("Cache"),	LDAP_DEBUG_CACHE },
 		{ BER_BVC("Index"),	LDAP_DEBUG_INDEX },
+		{ BER_BVC("Sync"),	LDAP_DEBUG_SYNC },
 		{ BER_BVC("Any"),	-1 },
 		{ BER_BVNULL,	0 }
 	};
