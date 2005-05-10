@@ -36,6 +36,9 @@ PB:
 !include "install.sdf"; chapter
 PB:
 
+!include "slapdconf2.sdf"; chapter
+PB:
+
 !include "slapdconfig.sdf"; chapter
 PB:
 
