@@ -89,9 +89,9 @@ The general layout of the config LDIF is as follows:
 >	...
 >
 >	# backend definitions
->	dn: olcBackend={X}<typeA>,cn=config
+>	dn: olcBackend=<typeA>,cn=config
 >	objectClass: olcBackendConfig
->	olcBackend: {X}<typeA>
+>	olcBackend: <typeA>
 >	<backend-specific settings>
 >
 >	# database definitions
@@ -358,7 +358,7 @@ H3: Database-specific Directives
 
 Directives in this section are supported by every type of database.
 
-H4: olcDatabase: {<index>}<type>
+H4: olcDatabase: [{<index>}]<type>
 
 This directive names a specific database instance. The numeric {<index>} may
 be provided to distinguish multiple databases of the same type. Usually the
@@ -477,7 +477,7 @@ See the chapter entitled {{SECT:Replication with slurpd}} for more
 information on how to use this directive.
 
 
-H4: olcRootdn: <DN>
+H4: olcRootDN: <DN>
 
 This directive specifies the DN that is not subject to
 access control or administrative limit restrictions for
@@ -487,11 +487,11 @@ DN may refer to a SASL identity.
 
 Entry-based Example:
 
->	olcRootdn: "cn=Manager,dc=example,dc=com"
+>	olcRootDN: "cn=Manager,dc=example,dc=com"
 
 SASL-based Example:
 
->	olcRootdn: "uid=root,cn=example.com,cn=digest-md5,cn=auth"
+>	olcRootDN: "uid=root,cn=example.com,cn=digest-md5,cn=auth"
 
 See the {{SECT:SASL Authentication}} section for information on
 SASL authentication identities.
@@ -531,8 +531,10 @@ H4: olcSuffix: <dn suffix>
 
 This directive specifies the DN suffix of queries that will be
 passed to this backend database. Multiple suffix lines can be
-given, and at least one is required for each database
-definition.
+given, and usually at least one is required for each database
+definition. (Some backend types, such as {{EX:frontend}} and
+{{EX:monitor}} use a hard-coded suffix which may not be overridden
+in the configuration.)
 
 \Example:
 
@@ -713,23 +715,41 @@ If specified multiple times, each {{TERM:URL}} is provided.
 >	olcUpdateref:	ldap://master.example.net
 
 
+H4: Sample Entry
+
+>dn: olcDatabase=frontend,cn=config
+>objectClass: olcDatabaseConfig
+>olcDatabase: frontend
+>olcReadOnly: FALSE
+
 H3: BDB Database Directives
 
 Directives in this category only apply to a {{TERM:BDB}} database.
-That is, they must follow a "database bdb" line and come before any
-subsequent "backend" or "database" line.  For a complete reference
+They are used in an olcDatabase entry in addition to the generic
+database directives defined above. Their use requires the database
+entry to also use the {{EX:olcBdbConfig}} objectClass.
+For a complete reference
 of BDB configuration directives, see {{slapd-bdb}}(5).
 
 
-H4: directory <directory>
+H4: olcDbDirectory: <directory>
 
 This directive specifies the directory where the BDB files
 containing the database and associated indices live.
 
 \Default:
 
->	directory /usr/local/var/openldap-data
+>	olcDbDirectory: /usr/local/var/openldap-data
 
+
+H4: Sample Entry
+
+>dn: olcDatabase=bdb,cn=config
+>objectClass: olcDatabaseConfig
+>objectClass: olcBdbConfig
+>olcDatabase: bdb
+>olcSuffix: "dc=example,dc=com"
+>olcDbDirectory: /usr/local/var/openldap-data
 
 H3: LDBM Database Directives
 
