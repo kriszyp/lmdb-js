@@ -111,9 +111,6 @@ entry_schema_check(
 		}
 	}
 
-	/* it's a REALLY bad idea to disable schema checks */
-	if( !global_schemacheck ) return LDAP_SUCCESS;
-
 	/* find the structural object class attribute */
 	asc = attr_find( e->e_attrs, ad_structuralObjectClass );
 	if ( asc == NULL ) {

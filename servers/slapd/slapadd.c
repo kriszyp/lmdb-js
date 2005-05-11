@@ -145,7 +145,7 @@ slapadd( int argc, char **argv )
 			break;
 		}
 
-		if( global_schemacheck ) {
+		{
 			Attribute *sc = attr_find( e->e_attrs,
 				slap_schema.si_ad_structuralObjectClass );
 			Attribute *oc = attr_find( e->e_attrs,
@@ -176,7 +176,8 @@ slapadd( int argc, char **argv )
 					break;
 				}
 
-				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &val, NULL );
+				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
+					&val, NULL );
 			}
 
 			/* check schema */

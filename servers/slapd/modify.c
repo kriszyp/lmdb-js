@@ -842,7 +842,7 @@ int slap_mods_opattrs(
 	if( op->o_tag == LDAP_REQ_ADD ) {
 		struct berval tmpval;
 
-		if( global_schemacheck ) {
+		{
 			int rc = mods_structural_class( mods, &tmpval,
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) return rc;

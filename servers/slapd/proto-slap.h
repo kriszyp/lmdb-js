@@ -1495,7 +1495,9 @@ LDAP_SLAPD_V (const char) 	Versionstr[];
 
 LDAP_SLAPD_V (int)		global_gentlehup;
 LDAP_SLAPD_V (int)		global_idletimeout;
-LDAP_SLAPD_V (int)		global_schemacheck;
+
+#define global_schemacheck	(1)
+
 LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (char **)	default_passwd_hash;

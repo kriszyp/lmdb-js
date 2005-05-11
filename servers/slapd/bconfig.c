@@ -1089,10 +1089,12 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_CHECK:
+#if 0
 			global_schemacheck = c->value_int;
 			if(!global_schemacheck) Debug(LDAP_DEBUG_ANY, "%s: "
 				"schema checking disabled! your mileage may vary!\n",
 				c->log, 0, 0);
+#endif
 			break;
 
 		case CFG_ACL:
