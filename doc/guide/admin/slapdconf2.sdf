@@ -8,7 +8,7 @@ Once the software has been built and installed, you are ready
 to configure {{slapd}}(8) for use at your site. Unlike previous
 OpenLDAP releases, the slapd runtime configuration in 2.3 is
 fully LDAP-enabled and can be managed using the standard LDAP
-operations with data in LDIF. The LDAP configuration engine
+operations with data in {{TERM:LDIF}}. The LDAP configuration engine
 allows all of slapd's configuration options to be changed on the fly,
 generally without requiring a server restart for the changes
 to take effect. The old style {{slapd.conf}}(5) file is still
@@ -17,13 +17,13 @@ to allow runtime changes to be saved. While the old style
 configuration uses a single file, normally installed as
 {{F:/usr/local/etc/openldap/slapd.conf}}, the new style
 uses a slapd backend database to store the configuration. The
-the configuration database normally resides in the
+configuration database normally resides in the
 {{F:/usr/local/etc/openldap/slapd.d}} directory.
 
 An alternate configuration directory (or file) can be specified via a
 command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
-describes the general format of the configuration system , followed by a
-detailed description of commonly used config directives.
+describes the general format of the configuration system, followed by a
+detailed description of commonly used config settings.
 
 
 H2: Configuration Layout
@@ -89,9 +89,9 @@ The general layout of the config LDIF is as follows:
 >	...
 >
 >	# backend definitions
->	dn: olcBackend={X}<typeA>,cn=config
+>	dn: olcBackend=<typeA>,cn=config
 >	objectClass: olcBackendConfig
->	olcBackend: {X}<typeA>
+>	olcBackend: <typeA>
 >	<backend-specific settings>
 >
 >	# database definitions
@@ -112,11 +112,22 @@ so that all ordering dependencies are preserved. In most cases the index
 does not have to be provided; it will be automatically generated based
 on the order in which entries are created.
 
-A configuration directive may take arguments.  If so, they are
+Configuration directives are specified as values of individual
+attributes.
+Most of the attributes and objectClasses used in the slapd
+configuration have a prefix of {{EX:"olc"}} (OpenLDAP Configuration)
+in their names. Generally there is a one-to-one correspondence
+between the attributes and the old-style {{EX:slapd.conf}} configuration
+keywords, using the keyword as the attribute name, with the "olc"
+prefix attached.
+
+A configuration directive may take arguments.  If so, the arguments are
 separated by white space.  If an argument contains white space,
 the argument should be enclosed in double quotes {{EX:"like this"}}. If
 an argument contains a double quote or a backslash character `{{EX:\}}',
 the character should be preceded by a backslash character `{{EX:\}}'.
+In the descriptions that follow, arguments that should be replaced
+by actual text are shown in brackets {{EX:<>}}.
 
 The distribution contains an example configuration file that will
 be installed in the {{F: /usr/local/etc/openldap}} directory.
@@ -129,125 +140,84 @@ H2: Configuration Directives
 
 This section details commonly used configuration directives.  For
 a complete list, see the {{slapd.d}}(5) manual page.  This section
-separates the configuration directives into global,
-backend-specific and data-specific categories, describing each
-directive and its default value (if any), and giving an example of
-its use.
-
-Most of the attributes and objectClasses used in the slapd
-configuration have a prefix of {{EX:"olc"}} (OpenLDAP Configuration)
-in their names.
+will treat the configuration directives in a top-down order, starting
+with the global directives in the {{EX:cn=config}} entry. Each
+directive will be described along with its default value (if any) and
+an example of its use.
 
 
+H3: cn=config
 
-H3: Global Directives
-
-Directives described in this section apply to all backends
-and databases unless specifically overridden in a backend or
-database definition.  Arguments that should be replaced
-by actual text are shown in brackets {{EX:<>}}.
+Directives contained in this entry generally apply to the server as a whole.
+Most of them are system or connection oriented, not database related.
 
 
-H4: access to <what> [ by <who> <accesslevel> <control> ]+
-
-This directive grants access (specified by <accesslevel>) to a
-set of entries and/or attributes (specified by <what>) by one or
-more requesters (specified by <who>).
-See the {{SECT:Access Control}} section of this chapter for a
-summary of basic usage.
-
-!if 0
-More details discussion of this directive can be found in the
-{{SECT:Advanced Access Control}} chapter.
-!endif
-
-Note: If no {{EX:access}} directives are specified, the default
-access control policy, {{EX:access to * by * read}}, allows all
-both authenticated and anonymous users read access.
-
-
-H4: attributetype <{{REF:RFC2252}} Attribute Type Description>
-
-This directive defines an attribute type.
-Please see the {{SECT:Schema Specification}} chapter
-for information regarding how to use this directive.
-
-H4: idletimeout <integer>
+H4: olcIdleTimeout: <integer>
 
 Specify the number of seconds to wait before forcibly closing
-an idle client connection.  An idletimeout of 0, the default,
+an idle client connection.  A value of 0, the default,
 disables this feature.
 
 
-H4: include <filename>
-
-This directive specifies that slapd should read additional
-configuration information from the given file before continuing
-with the next line of the current file. The included file should
-follow the normal slapd config file format.  The file is commonly
-used to include files containing schema specifications.
-
-Note: You should be careful when using this directive - there is
-no small limit on the number of nested include directives, and no
-loop detection is done.
-
-H4: loglevel <integer>
+H4: olcLogLevel: <level>
 
 This directive specifies the level at which debugging statements
 and operation statistics should be syslogged (currently logged to
 the {{syslogd}}(8) {{EX:LOG_LOCAL4}} facility). You must have
 configured OpenLDAP {{EX:--enable-debug}} (the default) for this
 to work (except for the two statistics levels, which are always
-enabled).  Log levels are additive. To display what numbers
+enabled). Log levels may be specified as integers or by keyword.
+Multiple log levels may be used and the levels are additive.
+To display what levels
 correspond to what kind of debugging, invoke slapd with {{EX:-?}}
-or consult the table below. The possible values for <integer> are:
+or consult the table below. The possible values for <level> are:
 
 !block table; colaligns="RL"; align=Center; \
 	title="Table 5.1: Debugging Levels"
-Level	Description
--1	enable all debugging
-0	no debugging
-1	trace function calls
-2	debug packet handling
-4	heavy trace debugging
-8	connection management
-16	print out packets sent and received
-32	search filter processing
-64	configuration file processing
-128	access control list processing
-256	stats log connections/operations/results
-512	stats log entries sent
-1024	print communication with shell backends
-2048	print entry parsing debugging
+Level	Keyword	Description
+-1	Any	enable all debugging
+0		no debugging
+1	Trace	trace function calls
+2	Packets	debug packet handling
+4	Args	heavy trace debugging
+8	Conns	connection management
+16	BER	print out packets sent and received
+32	Filter	search filter processing
+64	Config	configuration processing
+128	ACL	access control list processing
+256	Stats	stats log connections/operations/results
+512	Stats2	stats log entries sent
+1024	Shell	print communication with shell backends
+2048	Parse	print entry parsing debugging
+4096	Cache	database cache processing
+8192	Index	database indexing
+16384	Sync	syncrepl consumer processing
 !endblock
 
 \Example:
 
-E: loglevel -1
+E: olcLogLevel: -1
 
 This will cause lots and lots of debugging information to be
 logged.
 
+E: olcLogLevel: Conns Filter
+
+Just log the connection and search filter processing.
+
 \Default:
 
-E: loglevel 256
+E: olcLogLevel: Stats
 
 
-H4: objectclass <{{REF:RFC2252}} Object Class Description>
-
-This directive defines an object class.
-Please see the {{SECT:Schema Specification}} chapter for
-information regarding how to use this directive.
-
-
-H4: referral <URI>
+H4: olcReferral <URI>
 
 This directive specifies the referral to pass back when slapd
 cannot find a local database to handle a request.
 
 \Example:
 
->	referral ldap://root.openldap.org
+>	olcReferral: ldap://root.openldap.org
 
 This will refer non-local queries to the global root LDAP server
 at the OpenLDAP Project. Smart LDAP clients can re-ask their
@@ -256,39 +226,99 @@ only going to know how to handle simple LDAP URLs that
 contain a host part and optionally a distinguished name part.
 
 
-H4: sizelimit <integer>
+H4: Sample Entry
 
-This directive specifies the maximum number of entries to return
-from a search operation.
-
-\Default:
-
->	sizelimit 500
-
-
-H4: timelimit <integer>
-
-This directive specifies the maximum number of seconds (in real
-time) slapd will spend answering a search request. If a
-request is not finished in this time, a result indicating an
-exceeded timelimit will be returned.
-
-\Default:
-
->	timelimit 3600
+>dn: cn=config
+>objectClass: olcGlobal
+>cn: config
+>olcIdleTimeout: 30
+>olcLogLevel: Stats
+>olcReferral: ldap://root.openldap.org
 
 
-H3: General Backend Directives
 
-Directives in this section apply only to the backend in which
-they are defined. They are supported by every type of backend.
-Backend directives apply to all databases instances of the
+H3: cn=include
+
+An include entry holds the pathname of one include file. Include files
+are part of the old style slapd.conf configuration system and must be in
+slapd.conf format. Include files were commonly used to load schema
+specifications. While they are still supported, their use is deprecated.
+
+
+H4: olcInclude: <filename>
+
+This directive specifies that slapd should read additional
+configuration information from the given file. 
+
+Note: You should be careful when using this directive - there is
+no small limit on the number of nested include directives, and no
+loop detection is done.
+
+
+H4: Sample Entries
+
+>dn: cn=include{0},cn=config
+>objectClass: olcIncludeFile
+>cn: include{0}
+>olcInclude: ./schema/core.schema
+>
+>dn: cn=include{1},cn=config
+>objectClass: olcIncludeFile
+>cn: include{1}
+>olcInclude: ./schema/cosine.schema
+
+
+H3: cn=schema
+
+The cn=schema entry holds all of the schema definitions that are hard-coded
+in slapd. As such, the values in this entry are generated by slapd so no
+schema values need to be provided in the config file. The entry must still
+be defined though, to serve as a base for the user-defined schema to add
+in underneath.
+
+
+H4: olcAttributeTypes: <{{REF:RFC2252}} Attribute Type Description>
+
+This directive defines an attribute type.
+Please see the {{SECT:Schema Specification}} chapter
+for information regarding how to use this directive.
+
+
+H4: olcObjectClasses: <{{REF:RFC2252}} Object Class Description>
+
+This directive defines an object class.
+Please see the {{SECT:Schema Specification}} chapter for
+information regarding how to use this directive.
+
+
+H4: Sample Entries
+
+>dn: cn=schema,cn=config
+>objectClass: olcSchemaConfig
+>cn: schema
+>
+>dn: cn=test,cn=schema,cn=config
+>objectClass: olcSchemaConfig
+>cn: test
+>olcAttributeTypes: ( 1.1.1
+> NAME 'testAttr'
+> EQUALITY integerMatch
+> SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+>olcAttributeTypes: ( 1.1.2 NAME 'testTwo' EQUALITY caseIgnoreMatch
+> SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.44 )
+>olcObjectClasses: ( 1.1.3 NAME 'testObject'
+> MAY ( testAttr $ testTwo ) AUXILIARY )
+
+
+H3: Backend-specific Directives
+
+Backend directives apply to all database instances of the
 same type and, depending on the directive, may be overridden
 by database directives.
 
-H4: backend <type>
+H4: olcBackend: <type>
 
-This directive marks the beginning of a backend declaration.
+This directive names a backend-specific configuration entry.
 {{EX:<type>}} should be one of the
 supported backend types listed in Table 5.2.
 
@@ -299,6 +329,7 @@ bdb	Berkeley DB transactional backend
 dnssrv	DNS SRV backend
 ldap	Lightweight Directory Access Protocol (Proxy) backend
 ldbm	Lightweight DBM backend
+ldif	Lightweight Data Interchange Format backend
 meta	Meta Directory backend
 monitor	Monitor backend
 passwd	Provides read-only access to {{passwd}}(5)
@@ -309,33 +340,66 @@ sql	SQL Programmable backend
 
 \Example:
 
->	backend bdb
+>	olcBackend: bdb
 
-This marks the beginning of a new {{TERM:BDB}} backend
-definition.
+There are no other directives defined for this entry, so generally
+it will not be needed. However, specific backend types may define
+additional attributes for their particular use.
 
 
-H3: General Database Directives
+H4: Sample Entry
 
-Directives in this section apply only to the database in which
-they are defined. They are supported by every type of database.
+> dn: olcBackend=bdb,cn=config
+> objectClass: olcBackendConfig
+> olcBackend: bdb
 
-H4: database <type>
 
-This directive marks the beginning of a database instance
-declaration.
+H3: Database-specific Directives
+
+Directives in this section are supported by every type of database.
+
+H4: olcDatabase: [{<index>}]<type>
+
+This directive names a specific database instance. The numeric {<index>} may
+be provided to distinguish multiple databases of the same type. Usually the
+index can be omitted, and slapd will generate it automatically.
 {{EX:<type>}} should be one of the
-supported backend types listed in Table 5.2.
+supported backend types listed in Table 5.2 or the {{EX:frontend}} type.
+
+The {{EX:frontend}} is a special database that is used to hold
+database-level options that should be applied to all the other
+databases. Subsequent database definitions may also override some
+frontend settings.
 
 \Example:
 
->	database bdb
+>	olcDatabase: bdb
 
-This marks the beginning of a new {{TERM:BDB}} database instance
-declaration.
+This marks the beginning of a new {{TERM:BDB}} database instance.
 
 
-H4: readonly { on | off }
+H4: olcAccess: to <what> [ by <who> <accesslevel> <control> ]+
+
+This directive grants access (specified by <accesslevel>) to a
+set of entries and/or attributes (specified by <what>) by one or
+more requesters (specified by <who>).
+See the {{SECT:Access Control}} section of this chapter for a
+summary of basic usage.
+
+!if 0
+More detailed discussion of this directive can be found in the
+{{SECT:Advanced Access Control}} chapter.
+!endif
+
+Note: If no {{EX:olcAccess}} directives are specified, the default
+access control policy, {{EX:to * by * read}}, allows all
+users (both authenticated and anonymous) read access.
+
+Note: Access controls defined in the frontend are appended to all
+other databases' controls.
+
+
+H4: olcReadonly { TRUE | FALSE }
 
 This directive puts the database into "read-only" mode. Any
 attempts to modify the database will return an "unwilling to
@@ -343,20 +407,21 @@ perform" error.
 
 \Default:
 
->	readonly off
+>	olcReadonly: FALSE
 
-H4: replica
 
->	replica uri=ldap[s]://<hostname>[:<port>] | host=<hostname>[:<port>]
->		[bindmethod={simple|kerberos|sasl}]
+H4: olcReplica
+
+>	olcReplica: uri=ldap[s]://<hostname>[:<port>] | host=<hostname>[:<port>]
+>		[bindmethod={simple|sasl}]
 >		["binddn=<DN>"]
 >		[saslmech=<mech>]
 >		[authcid=<identity>]
 >		[authzid=<identity>]
 >		[credentials=<password>]
->		[srvtab=<filename>]
 
-This directive specifies a replication site for this database. The
+This directive specifies a replication site for this database for
+use with slurpd. The
 {{EX:uri=}} parameter specifies a scheme, a host and optionally a port where
 the slave slapd instance can be found. Either a domain name
 or IP address may be used for <hostname>. If <port> is not
@@ -377,20 +442,15 @@ database.  Since DNs are likely to contain embedded spaces, the
 entire {{EX:"binddn=<DN>"}} string should be enclosed in double
 quotes.
 
-The {{EX:bindmethod}} is {{EX:simple}} or {{EX:kerberos}} or {{EX:sasl}},
-depending on whether simple password-based authentication or Kerberos
-authentication or {{TERM:SASL}} authentication is to be used when connecting
+The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}},
+depending on whether simple password-based authentication
+or {{TERM:SASL}} authentication is to be used when connecting
 to the slave slapd.
 
 Simple authentication should not be used unless adequate data
 integrity and confidentiality protections are in place (e.g. TLS
 or IPSEC).  Simple authentication requires specification of
 {{EX:binddn}} and {{EX:credentials}} parameters.
-
-Kerberos authentication is deprecated in favor of SASL authentication
-mechanisms, in particular the {{EX:KERBEROS_V4}} and {{EX:GSSAPI}}
-mechanisms.  Kerberos authentication requires {{EX:binddn}} and
-{{EX:srvtab}} parameters.
 
 SASL authentication is generally recommended.  SASL authentication
 requires specification of a mechanism using the {{EX:saslmech}} parameter.
@@ -403,7 +463,7 @@ See the chapter entitled {{SECT:Replication with slurpd}} for more
 information on how to use this directive.
 
 
-H4: replogfile <filename>
+H4: olcReplogfile: <filename>
 
 This directive specifies the name of the replication log file to
 which slapd will log changes. The replication log is typically
@@ -417,7 +477,7 @@ See the chapter entitled {{SECT:Replication with slurpd}} for more
 information on how to use this directive.
 
 
-H4: rootdn <DN>
+H4: olcRootDN: <DN>
 
 This directive specifies the DN that is not subject to
 access control or administrative limit restrictions for
@@ -427,58 +487,71 @@ DN may refer to a SASL identity.
 
 Entry-based Example:
 
->	rootdn "cn=Manager,dc=example,dc=com"
+>	olcRootDN: "cn=Manager,dc=example,dc=com"
 
 SASL-based Example:
 
->	rootdn "uid=root,cn=example.com,cn=digest-md5,cn=auth"
+>	olcRootDN: "uid=root,cn=example.com,cn=digest-md5,cn=auth"
 
 See the {{SECT:SASL Authentication}} section for information on
 SASL authentication identities.
 
 
-H4: rootpw <password>
+H4: olcRootPW: <password>
 
-This directive can be used to specifies a password for the DN for
+This directive can be used to specify a password for the DN for
 the rootdn (when the rootdn is set to a DN within the database).
 
 \Example:
 
->	rootpw secret
+>	olcRootPW: secret
 
-It is also permissible to provide hash of the password in RFC 2307
+It is also permissible to provide a hash of the password in RFC 2307
 form.  {{slappasswd}}(8) may be used to generate the password hash.
 
 \Example:
 
->	rootpw {SSHA}ZKKuqbEKJfKSXhUbHG3fG8MDn9j1v4QN
+>	olcRootPW: {SSHA}ZKKuqbEKJfKSXhUbHG3fG8MDn9j1v4QN
 
 The hash was generated using the command {{EX:slappasswd -s secret}}.
 
 
-H4: suffix <dn suffix>
+H4: olcSizeLimit: <integer>
+
+This directive specifies the maximum number of entries to return
+from a search operation.
+
+\Default:
+
+>	olcSizeLimit: 500
+
+
+
+H4: olcSuffix: <dn suffix>
 
 This directive specifies the DN suffix of queries that will be
 passed to this backend database. Multiple suffix lines can be
-given, and at least one is required for each database
-definition.
+given, and usually at least one is required for each database
+definition. (Some backend types, such as {{EX:frontend}} and
+{{EX:monitor}} use a hard-coded suffix which may not be overridden
+in the configuration.)
 
 \Example:
 
->	suffix "dc=example,dc=com"
+>	olcSuffix: "dc=example,dc=com"
 
 Queries with a DN ending in "dc=example,dc=com"
 will be passed to this backend.
 
 Note: When the backend to pass a query to is selected, slapd
-looks at the suffix line(s) in each database definition in the
-order they appear in the file. Thus, if one database suffix is a
-prefix of another, it must appear after it in the config file.
+looks at the suffix value(s) in each database definition in the
+order in which they were configured. Thus, if one database suffix is a
+prefix of another, it must appear after it in the configuration.
 
 
-H4: syncrepl
+H4: olcSyncrepl
 
->	syncrepl rid=<replica ID>
+>	olcSyncrepl: rid=<replica ID>
 >		provider=ldap[s]://<hostname>[:port]
 >		[type=refreshOnly|refreshAndPersist]
 >		[interval=dd:hh:mm:ss]
@@ -600,7 +673,19 @@ See the {{SECT:LDAP Sync Replication}} chapter of the admin guide
 for more information on how to use this directive.
 
 
-H4: updatedn <DN>
+H4: olcTimeLimit: <integer>
+
+This directive specifies the maximum number of seconds (in real
+time) slapd will spend answering a search request. If a
+request is not finished in this time, a result indicating an
+exceeded timelimit will be returned.
+
+\Default:
+
+>	olcTimeLimit: 3600
+
+
+H4: olcUpdateDN: <DN>
 
 This directive is only applicable in a slave slapd. It specifies
 the DN allowed to make changes to the replica.  This may be the DN
@@ -609,16 +694,16 @@ associated with a SASL identity.
 
 Entry-based Example:
 
->	updatedn "cn=Update Daemon,dc=example,dc=com"
+>	olcUpdateDN: "cn=Update Daemon,dc=example,dc=com"
 
 SASL-based Example:
 
->	updatedn "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
+>	olcUpdateDN: "uid=slurpd,cn=example.com,cn=digest-md5,cn=auth"
 
 See the {{SECT:Replication with slurpd}} chapter for more information
 on how to use this directive.
 
-H4: updateref <URL>
+H4: olcUpdateref: <URL>
 
 This directive is only applicable in a slave slapd. It
 specifies the URL to return to clients which submit update
@@ -627,26 +712,44 @@ If specified multiple times, each {{TERM:URL}} is provided.
 
 \Example:
 
->	updateref	ldap://master.example.net
+>	olcUpdateref:	ldap://master.example.net
 
+
+H4: Sample Entry
+
+>dn: olcDatabase=frontend,cn=config
+>objectClass: olcDatabaseConfig
+>olcDatabase: frontend
+>olcReadOnly: FALSE
 
 H3: BDB Database Directives
 
 Directives in this category only apply to a {{TERM:BDB}} database.
-That is, they must follow a "database bdb" line and come before any
-subsequent "backend" or "database" line.  For a complete reference
+They are used in an olcDatabase entry in addition to the generic
+database directives defined above. Their use requires the database
+entry to also use the {{EX:olcBdbConfig}} objectClass.
+For a complete reference
 of BDB configuration directives, see {{slapd-bdb}}(5).
 
 
-H4: directory <directory>
+H4: olcDbDirectory: <directory>
 
 This directive specifies the directory where the BDB files
 containing the database and associated indices live.
 
 \Default:
 
->	directory /usr/local/var/openldap-data
+>	olcDbDirectory: /usr/local/var/openldap-data
 
+
+H4: Sample Entry
+
+>dn: olcDatabase=bdb,cn=config
+>objectClass: olcDatabaseConfig
+>objectClass: olcBdbConfig
+>olcDatabase: bdb
+>olcSuffix: "dc=example,dc=com"
+>olcDbDirectory: /usr/local/var/openldap-data
 
 H3: LDBM Database Directives
 
