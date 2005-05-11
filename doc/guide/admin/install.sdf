@@ -259,5 +259,5 @@ and enter the appropriate password when requested.
 You should examine the output of this command carefully to make sure
 everything is installed correctly. You will find the configuration files
 for {{slapd}}(8) in {{F:/usr/local/etc/openldap}} by default.  See the
-chapter {{SECT:The slapd Configuration File}} for additional information.
+chapter {{SECT:Configuring slapd}} for additional information.
 
