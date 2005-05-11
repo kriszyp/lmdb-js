@@ -176,14 +176,13 @@ root_dse_info(
 	}
 
 	/* supportedLDAPVersion */
-	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
+		/* don't publish version 2 as we don't really support it
+		 * (even when configured to accept version 2 Bind requests)
+		 * and the value would never be used by true LDAPv2 (or LDAPv3)
+		 * clients.
+		 */
+	for ( i=LDAP_VERSION3; i<=LDAP_VERSION_MAX; i++ ) {
 		char buf[BUFSIZ];
-		if (!( global_allows & SLAP_ALLOW_BIND_V2 ) &&
-			( i < LDAP_VERSION3 ) )
-		{
-			/* version 2 and lower are disallowed */
-			continue;
-		}
 		snprintf(buf, sizeof buf, "%d", i);
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
