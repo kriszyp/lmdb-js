@@ -51,6 +51,13 @@ if test ! -d $RELNAME ; then
 	exit 1
 fi
 
+if test -e $RELNAME/doc/guide/admin/guide.sdf ; then
+	echo "build guide..."
+	( cd $RELNAME/doc/guide/admin ; make guide.html )
+else
+	echo "No guide"
+fi
+
 if test ! -e $RELNAME/build/version.sh ; then
 	echo "No build version"
 	OL_STRING="something"
