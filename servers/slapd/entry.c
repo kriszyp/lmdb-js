@@ -181,24 +181,23 @@ str2entry2( char *s, int checkvals )
 		int fv;
 
 		for (i=0; i<lines; i++) {
-			k = i;
 			for ( j=i+1; j<lines; j++ ) {
 				if ( bvmatch( type+i, type+j )) {
 					/* out of order, move intervening attributes down */
-					if ( j != k+1 ) {
-						int l;
+					if ( j != i+1 ) {
 						bv = vals[j];
 						fv = freeval[j];
-						for ( l=j; l>k; l-- ) {
-							type[l] = type[l-1];
-							vals[l] = vals[l-1];
-							freeval[l] = freeval[l-1];
+						for ( k=j; k>i; k-- ) {
+							type[k] = type[k-1];
+							vals[k] = vals[k-1];
+							freeval[k] = freeval[k-1];
 						}
-						type[l] = type[i];
-						vals[l] = bv;
-						freeval[l] = fv;
+						k++;
+						type[k] = type[i];
+						vals[k] = bv;
+						freeval[k] = fv;
 					}
-					i = k = j;
+					i++;
 				}
 			}
 		}
