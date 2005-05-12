@@ -36,6 +36,7 @@
 
 #include "slapcommon.h"
 #include "lutil.h"
+#include "ldif.h"
 
 tool_vars tool_globals;
 
@@ -43,6 +44,8 @@ tool_vars tool_globals;
 static char *leakfilename;
 static FILE *leakfile;
 #endif
+
+static LDIFFP dummy;
 
 static void
 usage( int tool, const char *progname )
@@ -376,9 +379,10 @@ slap_tool_init(
 	ldap_syslog = 0;
 
 	if ( ldiffile == NULL ) {
-		ldiffp = tool == SLAPCAT ? stdout : stdin;
+		dummy.fp = tool == SLAPCAT ? stdout : stdin;
+		ldiffp = &dummy;
 
-	} else if ((ldiffp = fopen( ldiffile, tool == SLAPCAT ? "w" : "r" ))
+	} else if ((ldiffp = ldif_open( ldiffile, tool == SLAPCAT ? "w" : "r" ))
 		== NULL )
 	{
 		perror( ldiffile );

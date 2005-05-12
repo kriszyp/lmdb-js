@@ -234,11 +234,11 @@ root_dse_info(
  */
 int read_root_dse_file( const char *fname )
 {
-	FILE	*fp;
+	struct LDIFFP	*fp;
 	int rc = 0, lineno = 0, lmax = 0;
 	char	*buf = NULL;
 
-	if ( (fp = fopen( fname, "r" )) == NULL ) {
+	if ( (fp = ldif_open( fname, "r" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"could not open rootdse attr file \"%s\" - absolute path?\n",
 			fname, 0, 0 );
@@ -250,7 +250,7 @@ int read_root_dse_file( const char *fname )
 	if( usr_attr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"read_root_dse_file: SLAP_CALLOC failed", 0, 0, 0 );
-		fclose( fp );
+		ldif_close( fp );
 		return LDAP_OTHER;
 	}
 	usr_attr->e_attrs = NULL;
@@ -302,7 +302,7 @@ int read_root_dse_file( const char *fname )
 
 	ch_free( buf );
 
-	fclose( fp );
+	ldif_close( fp );
 
 	Debug(LDAP_DEBUG_CONFIG, "rootDSE file %s read.\n", fname, 0, 0);
 	return rc;

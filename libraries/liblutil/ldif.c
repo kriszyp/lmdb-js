@@ -745,12 +745,44 @@ int ldif_is_not_printable(
 	return 1;
 }
 
+LDIFFP *
+ldif_open(
+	char *file,
+	char *mode
+)
+{
+	FILE *fp = fopen( file, mode );
+	LDIFFP *lfp = NULL;
+
+	if ( fp ) {
+		lfp = ber_memalloc( sizeof( LDIFFP ));
+		lfp->fp = fp;
+		lfp->prev = NULL;
+	}
+	return lfp;
+}
+
+void
+ldif_close(
+	LDIFFP *lfp
+)
+{
+	LDIFFP *prev;
+
+	while ( lfp ) {
+		fclose( lfp->fp );
+		prev = lfp->prev;
+		ber_memfree( lfp );
+		lfp = prev;
+	}
+}
+
 /*
- * slap_read_ldif - read an ldif record.  Return 1 for success, 0 for EOF.
+ * ldif_read_record - read an ldif record.  Return 1 for success, 0 for EOF.
  */
 int
 ldif_read_record(
-	FILE        *fp,
+	LDIFFP      *lfp,
 	int         *lno,		/* ptr to line number counter              */
 	char        **bufp,     /* ptr to malloced output buffer           */
 	int         *buflenp )  /* ptr to length of *bufp                  */
@@ -762,8 +794,25 @@ ldif_read_record(
 	line     = linebuf;
 	linesize = sizeof( linebuf );
 
-	for ( stop = feof( fp );  !stop;  last_ch = line[len-1] ) {
-		if ( fgets( line, linesize, fp ) == NULL ) {
+	for ( stop = 0;  !stop;  last_ch = line[len-1] ) {
+		/* If we're at the end of this file, see if we should pop
+		 * back to a previous file. (return from an include)
+		 */
+		while ( feof( lfp->fp )) {
+			if ( lfp->prev ) {
+				LDIFFP *tmp = lfp->prev;
+				fclose( lfp->fp );
+				*lfp = *tmp;
+				ber_memfree( tmp );
+			} else {
+				stop = 1;
+				break;
+			}
+		}
+		if ( stop )
+			break;
+
+		if ( fgets( line, linesize, lfp->fp ) == NULL ) {
 			stop = 1;
 			/* Add \n in case the file does not end with newline */
 			line = "\n";
@@ -792,6 +841,38 @@ ldif_read_record(
 					if ( isdigit( (unsigned char) line[0] ) ) {
 						/* skip index */
 						continue;
+					}
+					if ( !strncasecmp( line, "include:",
+						STRLENOF("include:"))) {
+						FILE *fp2;
+						char *ptr;
+						found_entry = 0;
+
+						if ( line[len-1] == '\n' ) {
+							len--;
+							line[len] = '\0';
+						}
+						if ( line[len-1] == '\r' ) {
+							len--;
+							line[len] = '\0';
+						}
+
+						ptr = line + STRLENOF("include:");
+						while (isspace(*ptr)) ptr++;
+						fp2 = ldif_open_url( ptr );
+						if ( fp2 ) {
+							LDIFFP *lnew = ber_memalloc( sizeof( LDIFFP ));
+							lnew->prev = lfp->prev;
+							lnew->fp = lfp->fp;
+							lfp->prev = lnew;
+							lfp->fp = fp2;
+							continue;
+						} else {
+							/* We failed to open the file, this should
+							 * be reported as an error somehow.
+							 */
+							break;
+						}
 					}
 				}
 			}			
