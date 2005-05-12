@@ -2559,7 +2559,10 @@ read_config(const char *fname, const char *dir) {
 			cfdir = SLAPD_DEFAULT_CONFIGDIR;
 		}
 		/* if fname is defaulted, try reading .d */
-		if ( config_setup_ldif( be, cfdir, !fname ))
+		rc = config_setup_ldif( be, cfdir, !fname );
+
+		/* It's OK if the base object doesn't exist yet */
+		if ( rc && rc != LDAP_NO_SUCH_OBJECT )
 			return 1;
 
 		/* If we read the config from back-ldif, nothing to do here */
