@@ -98,7 +98,7 @@ backsql_db_init(
 	backsql_info	*bi;
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_init()\n", 0, 0, 0 );
-	bi = (backsql_info *)ch_calloc( 1, sizeof( backsql_info ) );
+	bi = (backsql_info *)ch_malloc( sizeof( backsql_info ) );
 	memset( bi, '\0', sizeof( backsql_info ) );
 	ldap_pvt_thread_mutex_init( &bi->sql_dbconn_mutex );
 	ldap_pvt_thread_mutex_init( &bi->sql_schema_mutex );
