@@ -85,7 +85,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	}
 
 	if ( !meta_back_dobind( lc, op ) ) {
-		rs->sr_err = LDAP_OTHER;
+		rs->sr_err = LDAP_UNAVAILABLE;
  		send_ldap_result( op, rs );
 		return -1;
 	}
@@ -315,14 +315,6 @@ new_candidate:;
 				break;
 			}
 
-			if ( op->ors_slimit > 0
-					&& rs->sr_nentries == op->ors_slimit ) {
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-				rs->sr_v2ref = v2refs;
-				send_ldap_result( op, rs );
-				goto finish;
-			}
-
 			/*
 			 * FIXME: handle time limit as well?
 			 * Note that target servers are likely 
@@ -357,6 +349,17 @@ new_candidate:;
 				goto finish;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+				if ( op->ors_slimit > 0 && rs->sr_nentries == op->ors_slimit )
+				{
+					ldap_msgfree( res );
+					res = NULL;
+
+					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+					rs->sr_v2ref = v2refs;
+					send_ldap_result( op, rs );
+					goto finish;
+				}
+
 				e = ldap_first_entry( lsc->ld, res );
 				meta_send_entry( op, rs, lc, i, e );
 
