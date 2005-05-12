@@ -45,6 +45,9 @@ testavl: $(XLIBS) testavl.o
 # It's ok for them to be here because the clean rule is harmless, and
 # slapdmsg.res won't get built unless it's declared in OBJS.
 
+slapdmsg.bin: FORCE
+	@if [ ! -f $@ ]; then cp $(srcdir)/$@ .; fi
+
 slapdmsg.res: slapdmsg.rc slapdmsg.bin
 	windres $< -O coff -o $@
 
