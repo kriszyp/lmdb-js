@@ -866,6 +866,8 @@ ldif_read_record(
 							lnew->fp = lfp->fp;
 							lfp->prev = lnew;
 							lfp->fp = fp2;
+							line[len] = '\n';
+							len++;
 							continue;
 						} else {
 							/* We failed to open the file, this should
