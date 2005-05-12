@@ -139,8 +139,8 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_HIDE|SLAP_CTRL_DELETE, NULL,
 		parseTreeDelete, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
-#ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
-	{ LDAP_CONTORL_X_SEARCH_OPTIONS,
+#ifdef LDAP_CONTROL_X_SEARCH_OPTIONS
+	{ LDAP_CONTROL_X_SEARCH_OPTIONS,
  		(int)offsetof(struct slap_control_ids, sc_searchOptions),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
 		parseSearchOptions, LDAP_SLIST_ENTRY_INITIALIZER(next) },
@@ -1316,7 +1316,7 @@ static int parseTreeDelete (
 }
 #endif
 
-#ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
+#ifdef LDAP_CONTROL_X_SEARCH_OPTIONS
 static int parseSearchOptions (
 	Operation *op,
 	SlapReply *rs,
