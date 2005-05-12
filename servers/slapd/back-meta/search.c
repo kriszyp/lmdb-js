@@ -342,16 +342,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 				break;
 			}
 			
-			if ( op->ors_slimit > 0 && rs->sr_nentries == op->ors_slimit )
-			{
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-				savepriv = op->o_private;
-				op->o_private = (void *)i;
-				send_ldap_result( op, rs );
-				op->o_private = savepriv;
-				goto finish;
-			}
-
 			/*
 			 * FIXME: handle time limit as well?
 			 * Note that target servers are likely 
@@ -388,6 +378,19 @@ really_bad:;
 				goto finish;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+				if ( op->ors_slimit > 0 && rs->sr_nentries == op->ors_slimit )
+				{
+					ldap_msgfree( res );
+					res = NULL;
+
+					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+					savepriv = op->o_private;
+					op->o_private = (void *)i;
+					send_ldap_result( op, rs );
+					op->o_private = savepriv;
+					goto finish;
+				}
+
 				is_ok++;
 
 				e = ldap_first_entry( msc->msc_ld, res );
