@@ -934,39 +934,40 @@ next:;
 		}
 	}
 
-	if ( global_schemacheck ) {
-		const char	*text = NULL;
-		char		textbuf[ 1024 ];
-		size_t		textlen = sizeof( textbuf );
+	if ( ( bsi->bsi_flags & BSQL_SF_ALL_OPER )
+			|| an_find( bsi->bsi_attrs, &AllOper )
+			|| an_find( bsi->bsi_attrs, &slap_schema.si_ad_structuralObjectClass->ad_cname ) )
+	{
 		struct berval	bv[ 2 ];
-		struct berval	soc;
-		int rc;
 
 		bv[ 0 ] = bsi->bsi_oc->bom_oc->soc_cname;
 		BER_BVZERO( &bv[ 1 ] );
 
-		rc = structural_class( bv, &soc, NULL, 
-				&text, textbuf, textlen );
-		if ( rc != LDAP_SUCCESS ) {
-      			Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
-				"structural_class() failed %d (%s)\n",
-				bsi->bsi_e->e_name.bv_val,
-				rc, text ? text : "" );
-			entry_clean( bsi->bsi_e );
-			return rc;
-		}
+		if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
+			const char	*text = NULL;
+			char		textbuf[ 1024 ];
+			size_t		textlen = sizeof( textbuf );
+			struct berval	soc;
+			int rc;
 
-		if ( ( bsi->bsi_flags & BSQL_SF_ALL_OPER )
-				|| an_find( bsi->bsi_attrs, &AllOper )
-				|| an_find( bsi->bsi_attrs, &slap_schema.si_ad_structuralObjectClass->ad_cname ) )
-		{
-			rc = attr_merge_normalize_one( bsi->bsi_e,
-					slap_schema.si_ad_structuralObjectClass,
-					&soc, bsi->bsi_op->o_tmpmemctx );
+			rc = structural_class( bv, &soc, NULL, 
+					&text, textbuf, textlen );
 			if ( rc != LDAP_SUCCESS ) {
+      				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(%s): "
+					"structural_class() failed %d (%s)\n",
+					bsi->bsi_e->e_name.bv_val,
+					rc, text ? text : "" );
 				entry_clean( bsi->bsi_e );
 				return rc;
 			}
+		}
+
+		rc = attr_merge_normalize_one( bsi->bsi_e,
+				slap_schema.si_ad_structuralObjectClass,
+				&bv[ 0 ], bsi->bsi_op->o_tmpmemctx );
+		if ( rc != LDAP_SUCCESS ) {
+			entry_clean( bsi->bsi_e );
+			return rc;
 		}
 	}
 

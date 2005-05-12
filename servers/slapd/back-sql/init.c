@@ -474,6 +474,7 @@ backsql_db_open(
 		/* enable if only one suffix is defined */
 		bi->sql_flags |= BSQLF_USE_SUBTREE_SHORTCUT;
 	}
+	bi->sql_flags |= BSQLF_CHECK_SCHEMA;
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_open(): "
 		"test succeeded, schema map loaded\n", 0, 0, 0 );

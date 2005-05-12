@@ -155,7 +155,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 		goto do_transact;
 	}
 
-	if ( global_schemacheck ) {
+	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
 		entry_clean( &m );

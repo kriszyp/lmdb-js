@@ -561,6 +561,36 @@ backsql_db_config(
 			return -1;
 		}
 
+	} else if ( !strcasecmp( argv[ 0 ], "check_schema") ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing { yes | no }"
+				"in \"check_schema\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			bi->sql_flags |= BSQLF_CHECK_SCHEMA;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			bi->sql_flags &= ~BSQLF_CHECK_SCHEMA;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"\"check_schema\" directive arg "
+				"must be \"yes\" or \"no\"\n",
+				fname, lineno, 0 );
+			return 1;
+
+		}
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"check_schema=%s\n", 
+			BACKSQL_CHECK_SCHEMA( bi ) ? "yes" : "no",
+			0, 0 );
+
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}

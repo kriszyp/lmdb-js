@@ -446,7 +446,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if ( global_schemacheck ) {
+	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
 		entry_clean( &r );
