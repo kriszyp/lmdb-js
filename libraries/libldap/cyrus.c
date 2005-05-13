@@ -807,7 +807,7 @@ ldap_int_sasl_bind(
 				sasl_dispose( &oldctx );
 				ldap_pvt_sasl_remove( ld->ld_defconn->lconn_sb );
 			}
-			ldap_pvt_sasl_install( ld->ld_conns->lconn_sb, ctx );
+			ldap_pvt_sasl_install( ld->ld_defconn->lconn_sb, ctx );
 			ld->ld_defconn->lconn_sasl_sockctx = ctx;
 		}
 	}
