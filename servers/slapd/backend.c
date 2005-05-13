@@ -821,7 +821,7 @@ backend_check_controls(
 				break;
 
 			case LDAP_COMPARE_FALSE:
-				if ( !op->o_bd->be_ctrls[ cid ] )
+				if ( !op->o_bd->be_ctrls[ cid ] && (*ctrls)->ldctl_iscritical )
 				{
 					/* Per RFC 2251 (and LDAPBIS discussions), if the control
 					 * is recognized and appropriate for the operation (which
@@ -829,10 +829,11 @@ backend_check_controls(
 					 * use of the control when performing the operation.
 					 * 
 					 * Here we find that operation extended by the control
-					 * is not unavailable in a particular context, hence the
-					 * return of unwillingToPerform.
+					 * is unavailable in a particular context, and the control
+					 * is marked Critical, hence the return of
+					 * unwillingToPerform.
 					 */
-					rs->sr_text = "control unavailable in context";
+					rs->sr_text = "critical control unavailable in context";
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 					goto done;
 				}
