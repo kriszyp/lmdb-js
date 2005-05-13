@@ -495,9 +495,8 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 
 		e_id = bsi.bsi_base_id;
 
-		rs->sr_err = entry_schema_check( op->o_bd, &r,
-				NULL,
-				&rs->sr_text, textbuf, sizeof( textbuf ) );
+		rs->sr_err = entry_schema_check( op->o_bd, &r, NULL, 0,
+			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"entry failed schema check -- aborting\n",

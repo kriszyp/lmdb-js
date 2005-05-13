@@ -52,8 +52,8 @@ bdb_add(Operation *op, SlapReply *rs )
 	ctrls[num_ctrls] = 0;
 
 	/* check entry's schema */
-	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e,
-		NULL, &rs->sr_text, textbuf, textlen );
+	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL, 0,
+		&rs->sr_text, textbuf, textlen );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(bdb_add) ": entry failed schema check: "
@@ -191,8 +191,8 @@ retry:	/* transaction retry */
 			}
 
 			Debug( LDAP_DEBUG_TRACE,
-				LDAP_XSTRING(bdb_add) ": no write access "
-				"to parent\n", 0, 0, 0 );
+				LDAP_XSTRING(bdb_add) ": no write access to parent\n",
+				0, 0, 0 );
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 			rs->sr_text = "no write access to parent";
 			goto return_results;;

@@ -187,7 +187,7 @@ do_modify(
 	}
 
 	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
-			textbuf, textlen, NULL );
+		textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
@@ -441,8 +441,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 					goto cleanup;
 				}
 			}
-
-
 
 			if ( !repl_user ) {
 				for( modtail = &modlist;
