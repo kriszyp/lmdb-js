@@ -147,7 +147,6 @@ enum {
 	CFG_DIT,
 	CFG_ATTR,
 	CFG_ATOPT,
-	CFG_CHECK,
 	CFG_REPLOG,
 	CFG_ROOTDSE,
 	CFG_LOGFILE,
@@ -455,9 +454,6 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "saslRegexp",	NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, NULL, NULL, NULL },
-	{ "schemacheck", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,
-		&config_generic, "( OLcfgGlAt:57 NAME 'olcSchemaCheck' "
-			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "schemadn", "dn", 2, 2, 0, ARG_MAY_DB|ARG_DN|ARG_MAGIC,
 		&config_schema_dn, "( OLcfgGlAt:58 NAME 'olcSchemaDN' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
@@ -604,7 +600,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ olcRootPW $ "
 		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
-		 "olcSchemaCheck $ olcSecurity $ olcSizeLimit $ "
+		 "olcSecurity $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ olcSrvtab $ "
 		 "olcThreads $ olcTimeLimit $ olcTLSCACertificateFile $ "
 		 "olcTLSCACertificatePath $ olcTLSCertificateFile $ "
@@ -765,9 +761,6 @@ config_generic(ConfigArgs *c) {
 			}
 			break;
 			
-		case CFG_CHECK:
-			c->value_int = global_schemacheck;
-			break;
 		case CFG_ACL: {
 			AccessControl *a;
 			char *src, *dst, ibuf[11];
@@ -885,7 +878,6 @@ config_generic(ConfigArgs *c) {
 		case CFG_RO:
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
-		case CFG_CHECK:
 		case CFG_LASTMOD:
 		case CFG_SASLSECP:
 		case CFG_SSTR_IF_MAX:
@@ -1086,15 +1078,6 @@ config_generic(ConfigArgs *c) {
 			for(i = 1; i < c->argc; i++)
 				if(ad_define_option(c->argv[i], c->fname, c->lineno))
 					return(1);
-			break;
-
-		case CFG_CHECK:
-#if 0
-			global_schemacheck = c->value_int;
-			if(!global_schemacheck) Debug(LDAP_DEBUG_ANY, "%s: "
-				"schema checking disabled! your mileage may vary!\n",
-				c->log, 0, 0);
-#endif
 			break;
 
 		case CFG_ACL:
