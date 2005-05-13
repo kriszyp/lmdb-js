@@ -378,8 +378,7 @@ really_bad:;
 				goto finish;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
-				if ( op->ors_slimit > 0 && rs->sr_nentries == op->ors_slimit )
-				{
+				if ( --op->ors_slimit == -1 ) {
 					ldap_msgfree( res );
 					res = NULL;
 
