@@ -1324,6 +1324,7 @@ static int parseSearchOptions (
 {
 	BerElement *ber;
 	ber_int_t search_flags;
+	ber_tag_t tag;
 
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
 		rs->sr_text = "searchOptions control value not empty";
