@@ -98,8 +98,7 @@ int backend_init(void)
 		return -1;
 	}
 
-	for( bi=slap_binfo; bi->bi_type != NULL; bi++,nBackendInfo++ )
-	{
+	for( bi=slap_binfo; bi->bi_type != NULL; bi++,nBackendInfo++ ) {
 		assert( bi->bi_init );
 
 		rc = bi->bi_init( bi );
@@ -853,6 +852,12 @@ backend_check_controls(
 				goto done;
 			}
 		}
+	}
+
+	/* check should be generalized */
+	if( get_manageDIT(op) && !be_isroot(op)) {
+		rs->sr_text = "requires manager authorization";
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
 
 done:;

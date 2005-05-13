@@ -42,20 +42,9 @@ int bdb_modify_internal(
 	Attribute	*save_attrs;
 	Attribute 	*ap;
 	int			glue_attr_delete = 0;
-	int	manage=0;
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_modify_internal: 0x%08lx: %s\n",
 		e->e_id, e->e_dn, 0);
-
-	if( get_manageDIT(op) ) {
-		AttributeDescription *entry = slap_schema.si_ad_entry;
-		if( !access_allowed( op, e, entry, NULL, ACL_MANAGE, NULL )) {
-			*text = "not authorized to manage entry";
-			return LDAP_INSUFFICIENT_ACCESS;
-		}
-
-		manage = 1;
-	}
 
 	if ( !acl_check_modlist( op, e, modlist )) {
 		return LDAP_INSUFFICIENT_ACCESS;
@@ -207,7 +196,7 @@ int bdb_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( op->o_bd, e, save_attrs, manage,
+	rc = entry_schema_check( op->o_bd, e, save_attrs, get_manageDIT(op),
 		text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS || op->o_noop ) {
 		attrs_free( e->e_attrs );

@@ -658,20 +658,23 @@ typedef struct slap_attribute_type {
 	AttributeTypeSchemaCheckFN	*sat_check;
 	char					*sat_oidmacro;
 
-#define SLAP_AT_NONE		0x0000U
-#define SLAP_AT_ABSTRACT	0x0100U /* cannot be instantiated */
-#define SLAP_AT_FINAL		0x0200U /* cannot be subtyped */
+#define SLAP_AT_NONE			0x0000U
+#define SLAP_AT_ABSTRACT		0x0100U /* cannot be instantiated */
+#define SLAP_AT_FINAL			0x0200U /* cannot be subtyped */
 #ifdef LDAP_DEVEL
-#define SLAP_AT_HIDE		0x0000U /* publish everything */
+#define SLAP_AT_HIDE			0x0000U /* publish everything */
 #else
-#define SLAP_AT_HIDE		0x8000U /* hide attribute */
+#define SLAP_AT_HIDE			0x8000U /* hide attribute */
 #endif
-#define	SLAP_AT_DYNAMIC		0x0400U	/* dynamically generated */
+#define	SLAP_AT_DYNAMIC			0x0400U	/* dynamically generated */
+
+#define SLAP_AT_MANAGEABLE		0x0800U	/* no-user-mod can be by-passed */
 
 #define	SLAP_AT_ORDERED_VAL		0x0001U /* values are ordered */
 #define	SLAP_AT_ORDERED_SIB		0x0002U /* siblings are ordered */
-#define	SLAP_AT_ORDERED		0x0003U /* value has order index */
-#define	SLAP_AT_HARDCODE	0x10000U	/* This is hardcoded schema */
+#define	SLAP_AT_ORDERED			0x0003U /* value has order index */
+
+#define	SLAP_AT_HARDCODE	0x10000U	/* hardcoded schema */
 
 	slap_mask_t					sat_flags;
 
@@ -2354,6 +2357,9 @@ typedef struct slap_op {
 	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
 
+	char o_nocaching;
+	char o_delete_glue_parent;
+
 #define SLAP_CONTROL_NONE	0
 #define SLAP_CONTROL_IGNORED	1
 #define SLAP_CONTROL_NONCRITICAL 2
@@ -2444,9 +2450,6 @@ typedef struct slap_op {
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
-
-	int o_nocaching;
-	int	o_delete_glue_parent;
 
 } Operation;
 #define	OPERATION_BUFFER_SIZE	(sizeof(Operation)+sizeof(Opheader)+SLAP_MAX_CIDS*sizeof(void *))
@@ -2671,6 +2674,8 @@ typedef struct slap_counters_t {
 #else
 #define SLAP_CTRL_HIDE				0x80000000U
 #endif
+
+#define SLAP_CTRL_REQUIRES_ROOT		0x40000000U /* for ManageDIT */
 
 #define SLAP_CTRL_GLOBAL			0x00800000U
 #define SLAP_CTRL_GLOBAL_SEARCH		0x00010000U	/* for NOOP */

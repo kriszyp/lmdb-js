@@ -164,7 +164,7 @@ static struct slap_control control_defs[] = {
 #endif
 	{ LDAP_CONTROL_MANAGEDIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDIT),
-		SLAP_CTRL_ACCESS, NULL,
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE, NULL,
 		parseManageDIT, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_MANAGEDSAIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDSAit),
@@ -410,8 +410,8 @@ slap_global_control( Operation *op, const char *oid, int *cid )
 	if ( cid ) *cid = ctrl->sc_cid;
 
 	if ( ( ctrl->sc_mask & SLAP_CTRL_GLOBAL ) ||
-			( ( op->o_tag & LDAP_REQ_SEARCH ) &&
-			( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ) ) )
+		( ( op->o_tag & LDAP_REQ_SEARCH ) &&
+		( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ) ) )
 	{
 		return LDAP_COMPARE_TRUE;
 	}
