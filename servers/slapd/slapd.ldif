@@ -40,7 +40,7 @@ dn: cn=schema,cn=config
 objectClass: olcSchemaConfig
 cn: schema
 
-include:		%SYSCONFDIR%/schema/core.ldif
+include:		file:///%SYSCONFDIR%/schema/core.ldif
 
 # Frontend settings
 #
