@@ -63,6 +63,7 @@ int   use_tls = 0;
 int	  assertctl;
 char *assertion = NULL;
 char *authzid = NULL;
+int   manageDIT = 0;
 int   manageDSAit = 0;
 int   noop = 0;
 int   ppolicy = 0;
@@ -133,6 +134,7 @@ N_("             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]\n")
 N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
 N_("                     \"referralsPreferred\", \"referralsRequired\"\n")
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+N_("             [!]manageDIT\n")
 N_("             [!]manageDSAit\n")
 N_("             [!]noop\n")
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
@@ -255,6 +257,20 @@ tool_args( int argc, char **argv )
 
 				assert( authzid == NULL );
 				authzid = cvalue;
+
+			} else if ( strcasecmp( control, "manageDIT" ) == 0 ) {
+				if( manageDIT ) {
+					fprintf( stderr,
+						"manageDIT control previously specified\n");
+					exit( EXIT_FAILURE );
+				}
+				if( cvalue != NULL ) {
+					fprintf( stderr,
+						"manageDIT: no control value expected\n" );
+					usage();
+				}
+
+				manageDIT = 1 + crit;
 
 			} else if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
 				if( manageDSAit ) {
@@ -720,7 +736,12 @@ tool_args( int argc, char **argv )
 		}
 	}
 	if( protocol == LDAP_VERSION2 ) {
-		if( authzid || manageDSAit || noop || ppolicy ) {
+		if( assertctl || authzid || manageDIT || manageDSAit ||
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+			chaining ||
+#endif
+			noop || ppolicy || preread || postread )
+		{
 			fprintf( stderr, "%s: -e/-M incompatible with LDAPv2\n", prog );
 			exit( EXIT_FAILURE );
 		}
@@ -968,7 +989,7 @@ void
 tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 {
 	int i = 0, j, crit = 0, err;
-	LDAPControl c[9], **ctrls;
+	LDAPControl c[10], **ctrls;
 
 	ctrls = (LDAPControl**) malloc(sizeof(c) + (count+1)*sizeof(LDAPControl*));
 	if ( ctrls == NULL ) {
@@ -1010,6 +1031,14 @@ tool_server_controls( LDAP *ld, LDAPControl *extra_c, int count )
 		c[i].ldctl_value.bv_val = authzid;
 		c[i].ldctl_value.bv_len = strlen( authzid );
 		c[i].ldctl_iscritical = 1;
+		ctrls[i] = &c[i];
+		i++;
+	}
+
+	if ( manageDIT ) {
+		c[i].ldctl_oid = LDAP_CONTROL_MANAGEDIT;
+		BER_BVZERO( &c[i].ldctl_value );
+		c[i].ldctl_iscritical = manageDIT > 1;
 		ctrls[i] = &c[i];
 		i++;
 	}

@@ -58,7 +58,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing modify, add, and delete..."
-$LDAPMODIFY -v -MM -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+	-e \!ManageDIT > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 
@@ -69,12 +70,20 @@ dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 changetype: modify
 replace: objectClass
 objectClass: testPerson
+-
+replace: objectClass
+objectClass: structuralObjectClass
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 # update structural object class of entry via objectClass modify
 changetype: modify
 delete: objectClass
 objectClass: OpenLDAPperson
+-
+add: objectClass
+objectClass: testPerson
+-
+delete: structuralObjectClass
 -
 add: objectClass
 objectClass: testPerson
