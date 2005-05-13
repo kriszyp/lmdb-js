@@ -942,24 +942,16 @@ meta_send_entry(
 	send_search_entry( op, rs );
 	rs->sr_entry = NULL;
 	rs->sr_attrs = NULL;
-	while ( ent.e_attrs ) {
-		attr = ent.e_attrs;
-		ent.e_attrs = attr->a_next;
-		if ( attr->a_vals != &slap_dummy_bv ) {
-			if ( attr->a_nvals != attr->a_vals ) {
-				ber_bvarray_free( attr->a_nvals );
-			}
-			ber_bvarray_free( attr->a_vals );
-		}
-		free( attr );
-	}
 	
-	if ( ent.e_dn && ent.e_dn != bdn.bv_val ) {
-		free( ent.e_dn );
+	if ( !BER_BVISNULL( &ent.e_name ) && ent.e_name.bv_val != bdn.bv_val ) {
+		free( ent.e_name.bv_val );
+		BER_BVZERO( &ent.e_name );
 	}
-	if ( ent.e_ndn ) {
-		free( ent.e_ndn );
+	if ( !BER_BVISNULL( &ent.e_nname ) ) {
+		free( ent.e_nname.bv_val );
+		BER_BVZERO( &ent.e_nname );
 	}
+	entry_clean( &ent );
 
 	return LDAP_SUCCESS;
 }

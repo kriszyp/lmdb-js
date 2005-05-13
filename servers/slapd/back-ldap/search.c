@@ -38,8 +38,7 @@
 
 static int
 ldap_build_entry( Operation *op, LDAPMessage *e, Entry *ent,
-	 struct berval *bdn, int flags );
-#define LDAP_BUILD_ENTRY_PRIVATE	0x01
+	 struct berval *bdn );
 
 /*
  * Quick'n'dirty rewrite of filter in case of error, to deal with
@@ -269,35 +268,23 @@ fail:;
 			do_retry = 0;
 
 			e = ldap_first_entry( lc->lc_ld, res );
-			rc = ldap_build_entry( op, e, &ent, &bdn,
-					LDAP_BUILD_ENTRY_PRIVATE );
+			rc = ldap_build_entry( op, e, &ent, &bdn );
 		       if ( rc == LDAP_SUCCESS ) {
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_flags = 0;
 				abort = send_search_entry( op, rs );
-				while ( ent.e_attrs ) {
-					Attribute	*a;
-
-					a = ent.e_attrs;
-					ent.e_attrs = a->a_next;
-
-					if ( a->a_nvals != a->a_vals ) {
-						ber_bvarray_free( a->a_nvals );
-					}
-					if ( a->a_vals != &slap_dummy_bv ) {
-						ber_bvarray_free( a->a_vals );
-					}
-					ch_free( a );
+				if ( !BER_BVISNULL( &ent.e_name ) && ( ent.e_name.bv_val != bdn.bv_val ) )
+				{
+					free( ent.e_name.bv_val );
+					BER_BVZERO( &ent.e_name );
 				}
-				
-				if ( ent.e_dn && ( ent.e_dn != bdn.bv_val ) ) {
-					free( ent.e_dn );
+				if ( !BER_BVISNULL( &ent.e_nname ) ) {
+					free( ent.e_nname.bv_val );
+					BER_BVZERO( &ent.e_nname );
 				}
-				if ( ent.e_ndn ) {
-					free( ent.e_ndn );
-				}
+				entry_clean( &ent );
 			}
 			ldap_msgfree( res );
 			if ( abort ) {
@@ -445,15 +432,13 @@ ldap_build_entry(
 		Operation	*op,
 		LDAPMessage	*e,
 		Entry		*ent,
-		struct berval	*bdn,
-		int		flags )
+		struct berval	*bdn )
 {
 	struct berval	a;
 	BerElement	ber = *e->lm_ber;
 	Attribute	*attr, **attrp;
 	const char	*text;
 	int		last;
-	int		private = flags & LDAP_BUILD_ENTRY_PRIVATE;
 
 	/* safe assumptions ... */
 	assert( ent );
@@ -530,13 +515,7 @@ ldap_build_entry(
 			 * Note: attr->a_vals can be null when using
 			 * values result filter
 			 */
-			if ( private ) {
-				attr->a_vals = (struct berval *)&slap_dummy_bv;
-				
-			} else {
-				attr->a_vals = ch_malloc( sizeof( struct berval ) );
-				BER_BVZERO( &attr->a_vals[ 0 ] );
-			}
+			attr->a_vals = (struct berval *)&slap_dummy_bv;
 			last = 0;
 
 		} else {
@@ -708,7 +687,7 @@ retry:
 
 	*ent = ch_calloc( 1, sizeof( Entry ) );
 
-	rc = ldap_build_entry( op, e, *ent, &bdn, 0 );
+	rc = ldap_build_entry( op, e, *ent, &bdn );
 
 	if ( rc != LDAP_SUCCESS ) {
 		ch_free( *ent );

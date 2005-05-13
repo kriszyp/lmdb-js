@@ -868,7 +868,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 			/* just count */ ;
 
 		if ( last == 0 ) {
-			/* empty? for now, we leave it in place */
+			/* empty? leave it in place because of attrsonly and vlv */
 			goto next_attr;
 		}
 		last--;
