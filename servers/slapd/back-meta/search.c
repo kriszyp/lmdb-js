@@ -349,8 +349,7 @@ new_candidate:;
 				goto finish;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
-				if ( op->ors_slimit > 0 && rs->sr_nentries == op->ors_slimit )
-				{
+				if ( --op->ors_slimit == -1 ) {
 					ldap_msgfree( res );
 					res = NULL;
 
@@ -374,7 +373,8 @@ new_candidate:;
 				 * entry that has the base DN
 				 */
 				if ( op->ors_scope == LDAP_SCOPE_BASE
-						&& rs->sr_nentries > 0 ) {
+						&& rs->sr_nentries > 0 )
+				{
 					candidates = 0;
 					sres = LDAP_SUCCESS;
 					break;
