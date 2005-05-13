@@ -2208,6 +2208,7 @@ struct slap_control_ids {
 	int sc_preRead;
 	int sc_postRead;
 	int sc_proxyAuthz;
+	int sc_manageDIT;
 	int sc_manageDSAit;
 	int sc_modifyIncrement;
 	int sc_noOp;
@@ -2368,6 +2369,9 @@ typedef struct slap_op {
 
 	char o_ctrlflag[SLAP_MAX_CIDS];	/* per-control flags */
 	void **o_controls;		/* per-control state */
+
+#define o_managedit				o_ctrlflag[slap_cids.sc_manageDIT]
+#define get_manageDIT(op)		_SCM((op)->o_managedit)
 
 #define o_managedsait	o_ctrlflag[slap_cids.sc_manageDSAit]
 #define get_manageDSAit(op)				_SCM((op)->o_managedsait)
