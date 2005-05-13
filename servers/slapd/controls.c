@@ -1236,7 +1236,7 @@ static int parseSubentries (
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
 
-	if ( (void *)(ctrl->ldctl_value.bv_val[2] != 0x00)) {
+	if (ctrl->ldctl_value.bv_val[2]) {
 		set_subentries_visibility( op );
 	}
 

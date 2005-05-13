@@ -821,8 +821,7 @@ backend_check_controls(
 				break;
 
 			case LDAP_COMPARE_FALSE:
-				if ( !op->o_bd->be_ctrls[ cid ] && (*ctrls)->ldctl_iscritical )
-				{
+				if ( !op->o_bd->be_ctrls[cid] && (*ctrls)->ldctl_iscritical ) {
 					/* Per RFC 2251 (and LDAPBIS discussions), if the control
 					 * is recognized and appropriate for the operation (which
 					 * we've already verified), then the server should make
@@ -844,6 +843,11 @@ backend_check_controls(
 
 			default:
 				/* unreachable */
+				Debug( LDAP_DEBUG_ANY,
+					"backend_check_controls: unable to check control: %s\n",
+					(*ctrls)->ldctl_oid, 0, 0 );
+				assert( 0 );
+
 				rs->sr_text = "unable to check control";
 				rs->sr_err = LDAP_OTHER;
 				goto done;
