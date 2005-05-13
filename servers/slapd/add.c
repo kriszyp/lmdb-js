@@ -214,6 +214,8 @@ fe_op_add( Operation *op, SlapReply *rs )
 	Modifications	**modtail = &modlist;
 	int		rc = 0;
 	BackendDB *op_be;
+	char		textbuf[ SLAP_TEXT_BUFLEN ];
+	size_t		textlen = sizeof( textbuf );
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -262,6 +264,14 @@ fe_op_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	rs->sr_err = slap_mods_no_user_mod_check( op, modlist,
+		&rs->sr_text, textbuf, textlen );
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto done;
+	}
+
 #ifdef LDAP_SLAPI
 	if ( op->o_pb ) init_add_pblock( op, &op->o_req_dn, op->ora_e, manageDSAit );
 #endif /* LDAP_SLAPI */
@@ -280,16 +290,13 @@ fe_op_add( Operation *op, SlapReply *rs )
 #endif
 		{
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
-			char		textbuf[ SLAP_TEXT_BUFLEN ];
-			size_t		textlen = sizeof( textbuf );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
 
 			if ( !update ) {
-				rs->sr_err = slap_mods_no_update_check( modlist,
-						&rs->sr_text,
-				  		textbuf, textlen );
+				rs->sr_err = slap_mods_no_user_mod_check( op, modlist,
+					&rs->sr_text, textbuf, textlen );
 
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );

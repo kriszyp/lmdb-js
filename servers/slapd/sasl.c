@@ -386,8 +386,8 @@ slap_auxprop_store(
 	rc = slap_mods_check( modlist, &text, textbuf, textlen, NULL );
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = slap_mods_no_update_check( modlist, &text,
-				textbuf, textlen );
+		rc = slap_mods_no_user_mod_check( &op, modlist,
+			&text, textbuf, textlen );
 
 		if ( rc == LDAP_SUCCESS ) {
 			rc = slap_mods_opattrs( &op, modlist, modtail,
