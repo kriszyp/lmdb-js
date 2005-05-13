@@ -433,12 +433,14 @@ bdb_db_destroy( BackendDB *be )
 
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
-		/* force a checkpoint */
-		rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
+		/* force a checkpoint, but not if we were ReadOnly. */
+		if ( !( slapMode & SLAP_TOOL_READONLY )) {
+			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+			}
 		}
 
 		rc = bdb->bi_dbenv->close( bdb->bi_dbenv, 0 );
