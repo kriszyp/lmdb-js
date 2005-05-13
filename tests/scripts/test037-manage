@@ -65,6 +65,16 @@ version: 1
 
 # LEADING COMMENT AND WHITE SPACE
 
+dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
+ dc=com
+# add obsolete objectclass
+changetype: modify
+add: objectClass
+objectClass: obsoletePerson
+-
+add: testObsolete
+testObsolete: TRUE
+
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 # update structural object class of entry via objectClass replace
 changetype: modify

@@ -110,7 +110,7 @@ LDAP_BEGIN_DECL
 #endif
 
 #define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
-#define SLAPD_ANONYMOUS "cn=anonymous"
+#define SLAPD_ANONYMOUS ""
 
 /* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
  * This is a value used internally by the backends. It is needed to allow
