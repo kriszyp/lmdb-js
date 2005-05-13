@@ -1299,7 +1299,7 @@ typedef struct slap_access {
 #define ACL_PRIV_MANAGE			ACL_ACCESS2PRIV( ACL_MANAGE )
 
 /* NOTE: always use the highest level; current: 0x00ffUL */
-#define ACL_PRIV_MASK			((ACL_PRIV_MANAGE - 1) | ACL_QUALIFIER_MASK)
+#define ACL_PRIV_MASK			(ACL_PRIV_MANAGE | ACL_QUALIFIER_MASK)
 
 /* priv flags */
 #define ACL_PRIV_LEVEL			0x1000UL
