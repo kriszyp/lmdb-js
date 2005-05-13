@@ -13,11 +13,11 @@ OpenLDAP LDAP (libldap, -lldap)
 .LP
 .ft B
 char *ldap_first_attribute(
-	LDAP *ld, LDAPMessage entry, BerElement **berptr )
+	LDAP *ld, LDAPMessage *entry, BerElement **berptr )
 .LP
 .ft B
 char *ldap_next_attribute(
-	LDAP *ld, LDAPMessage entry, BerElement *ber )
+	LDAP *ld, LDAPMessage *entry, BerElement *ber )
 .SH DESCRIPTION
 The
 .B ldap_first_attribute()
