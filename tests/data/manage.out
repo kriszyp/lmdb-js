@@ -18,6 +18,8 @@ owner: cn=Manager,dc=example,dc=com
 cn: All Staff
 description: Everyone in the sample data
 objectClass: groupOfNames
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Alumni Assoc Staff,ou=Groups,dc=example,dc=com
 member: cn=Manager,dc=example,dc=com
@@ -31,10 +33,14 @@ owner: cn=Manager,dc=example,dc=com
 description: All Alumni Assoc Staff
 cn: Alumni Assoc Staff
 objectClass: groupOfNames
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: organizationalUnit
 ou: Alumni Association
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
  dc=com
@@ -57,7 +63,9 @@ homePhone: +1 313 555 2333
 pager: +1 313 555 3233
 facsimileTelephoneNumber: +1 313 555 2274
 telephoneNumber: +1 313 555 9022
+creatorsName: cn=Manager,dc=example,dc=com
 testObsolete: TRUE
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc
  =com
@@ -78,6 +86,8 @@ homePhone: +1 313 555 5444
 pager: +1 313 555 4474
 facsimileTelephoneNumber: +1 313 555 2177
 telephoneNumber: +1 313 555 0355
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -95,6 +105,8 @@ facsimileTelephoneNumber: +1 313 555 3223
 telephoneNumber: +1 313 555 3664
 mail: dots@mail.alumni.example.com
 homePhone: +1 313 555 0454
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: dc=example,dc=com
 objectClass: top
@@ -111,10 +123,15 @@ description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: ou=Groups,dc=example,dc=com
 objectClass: organizationalUnit
 ou: Groups
+creatorsName: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=
+ example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: ou=Information Technology Division,ou=People,dc=example,dc=com
 objectClass: organizationalUnit
@@ -258,6 +275,8 @@ description:: UF7Dg8KDw4LCg8ODwoLDgsKCw4PCg8OCwoPDg8KCw4LCjMODwoPDgsKDw4PCgsOC
  i8ODwoPDgsKDw4PCgsOCwo3Dg8KDw4LCgsODwoLDgsKJw4PCg8OCwoLDg8KCw4LCtTTDg8KDw4LCg
  8ODwoLDgsKow4PCg8OCwoPDg8KCw4LCl8ODwoPDgsKDw4PCgsOCwrtWw4PCg8OCwoLDg8KCw4LCi8
  ODwoPDgsKDw4PCgsOCwo3Dg8KDw4LCg8ODwoLDgsKow4PCg8OCwoLDg8KCw4LCnw==
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=ITD Staff,ou=Groups,dc=example,dc=com
 owner: cn=Manager,dc=example,dc=com
@@ -271,6 +290,8 @@ uniqueMember: cn=James A Jones 2,ou=Information Technology Division,ou=People,
  dc=example,dc=com
 uniqueMember: cn=John Doe,ou=Information Technology Division,ou=People,dc=exam
  ple,dc=com
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -290,6 +311,8 @@ pager: +1 313 555 3923
 mail: jaj@mail.alumni.example.com
 facsimileTelephoneNumber: +1 313 555 4332
 telephoneNumber: +1 313 555 0895
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example
  ,dc=com
@@ -309,6 +332,8 @@ postalAddress: Info Tech Division $ 535 W William $ Anytown, MI 48103
 pager: +1 313 555 2833
 facsimileTelephoneNumber: +1 313 555 8688
 telephoneNumber: +1 313 555 7334
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Jane Doe,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -327,6 +352,8 @@ homePhone: +1 313 555 5445
 pager: +1 313 555 1220
 facsimileTelephoneNumber: +1 313 555 2311
 telephoneNumber: +1 313 555 4774
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -344,6 +371,8 @@ homePhone: +1 313 555 2333
 pager: +1 313 555 6442
 facsimileTelephoneNumber: +1 313 555 2756
 telephoneNumber: +1 313 555 8232
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=John Doe,ou=Information Technology Division,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -361,6 +390,8 @@ homePhone: +1 313 555 3774
 pager: +1 313 555 6573
 facsimileTelephoneNumber: +1 313 555 4544
 telephoneNumber: +1 313 555 9394
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Manager,dc=example,dc=com
 objectClass: person
@@ -370,6 +401,8 @@ cn: Dir Man
 sn: Manager
 description: Manager of the directory
 userPassword:: c2VjcmV0
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Mark Elliot,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -387,6 +420,8 @@ mail: melliot@mail.alumni.example.com
 pager: +1 313 555 7671
 facsimileTelephoneNumber: +1 313 555 7762
 telephoneNumber: +1 313 555 4177
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: ou=People,dc=example,dc=com
 objectClass: organizationalUnit
@@ -394,6 +429,8 @@ objectClass: extensibleObject
 ou: People
 uidNumber: 0
 gidNumber: 0
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 
 dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
@@ -409,4 +446,6 @@ homePhone: +1 313 555 8421
 pager: +1 313 555 2844
 facsimileTelephoneNumber: +1 313 555 9700
 telephoneNumber: +1 313 555 5331
+creatorsName: cn=Manager,dc=example,dc=com
+modifiersName: cn=Manager,dc=example,dc=com
 

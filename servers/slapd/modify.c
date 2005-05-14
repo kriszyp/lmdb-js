@@ -573,14 +573,26 @@ slap_mods_no_user_mod_check(
 	size_t textlen )
 {
 	for ( ; ml != NULL; ml = ml->sml_next ) {
-		if ( is_at_no_user_mod( ml->sml_desc->ad_type ) ) {
+		if ( !is_at_no_user_mod( ml->sml_desc->ad_type ) ) continue;
+
+		if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
+			continue;
+		}
+
+		if( get_manageDIT( op )) {
+			/* attribute not manageable */
+			snprintf( textbuf, textlen,
+				"%s: no-user-modification attribute not manageable",
+				ml->sml_type.bv_val );
+		} else {
 			/* user modification disallowed */
 			snprintf( textbuf, textlen,
 				"%s: no user modification allowed",
 				ml->sml_type.bv_val );
-			*text = textbuf;
-			return LDAP_CONSTRAINT_VIOLATION;
 		}
+
+		*text = textbuf;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
 	return LDAP_SUCCESS;

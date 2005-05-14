@@ -59,9 +59,13 @@ $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 	-e \!manageDIT > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
+#
 # Working Tests
+#
 
+#
 # ObjectClass tests
+#
 
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
  dc=com
@@ -76,6 +80,22 @@ dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
 changetype: modify
 add: testObsolete
 testObsolete: TRUE
+
+#
+# create/modify timestamp test
+#
+
+dn: ou=Groups,dc=example,dc=com
+# change creatorsName
+changetype: modify
+replace: creatorsName
+creatorsName: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
+
+dn: cn=ITD Staff,ou=Groups,dc=example,dc=com
+# change modifiersName
+changetype: modify
+replace: modifiersName
+modifiersName: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 
 EOMODS
 
@@ -94,24 +114,6 @@ version: 1
 #
 # Non-working tests
 #
-
-#dn: cn=ITD Staff,ou=Groups,dc=example,dc=com
-# change entryUUID
-#changetype: modify
-#replace: entryUUID
-#entryUUID: B51EE239-C24A-11D9-A541-000D9342AD1E
-
-dn: ou=Groups,dc=example,dc=com
-# change creatorsName
-changetype: modify
-replace: creatorsName
-creatorsName: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
-
-dn: cn=ITD Staff,ou=Groups,dc=example,dc=com
-# change modifiersName
-changetype: modify
-replace: modifiersName
-modifiersName: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,
  dc=com
@@ -157,7 +159,7 @@ fi
 
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	    'objectClass=*' > $SEARCHOUT 2>&1
+    'objectClass=*' '*' creatorsName modifiersName > $SEARCHOUT 2>&1
 RC=$?
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 if test $RC != 0 ; then
