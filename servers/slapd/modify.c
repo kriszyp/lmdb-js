@@ -575,15 +575,16 @@ slap_mods_no_user_mod_check(
 	for ( ; ml != NULL; ml = ml->sml_next ) {
 		if ( !is_at_no_user_mod( ml->sml_desc->ad_type ) ) continue;
 
-		if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
-			continue;
-		}
-
 		if( get_manageDIT( op )) {
+			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
+				continue;
+			}
+
 			/* attribute not manageable */
 			snprintf( textbuf, textlen,
 				"%s: no-user-modification attribute not manageable",
 				ml->sml_type.bv_val );
+
 		} else {
 			/* user modification disallowed */
 			snprintf( textbuf, textlen,

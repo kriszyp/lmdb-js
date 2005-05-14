@@ -264,7 +264,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = slap_mods_no_user_mod_check( op, modlist,
+	rs->sr_err = slap_mods_obsolete_check( op, modlist,
 		&rs->sr_text, textbuf, textlen );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
