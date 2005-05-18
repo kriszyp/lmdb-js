@@ -7,6 +7,7 @@ OpenLDAP 2.2.27 Engineering
 	Fixed back-meta/backglue sizelimit interaction (ITS#3724)
 	Fixed syncrepl runqueue (ITS#3542)
 	Fixed ACL val default style parsing crasher (ITS#3700)
+	Disabled slapd broken undocumented configuration directive
 	Build Environment
 		Improved thread set stack size support (ITS#3691)
 
