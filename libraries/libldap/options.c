@@ -166,7 +166,7 @@ ldap_get_option(
 
 	case LDAP_OPT_SOCKBUF:
 		if( ld == NULL ) break;
-		outvalue = ld->ld_sb;
+		*(Sockbuf **)outvalue = ld->ld_sb;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMEOUT:
