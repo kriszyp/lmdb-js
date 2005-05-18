@@ -254,6 +254,16 @@ static int indexer(
 	}
 
 done:
+	switch( rc ) {
+	/* The callers all know how to deal with these results */
+	case 0:
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		break;
+	/* Anything else is bad news */
+	default:
+		rc = LDAP_OTHER;
+	}
 	return rc;
 }
 
