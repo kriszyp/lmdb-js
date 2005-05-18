@@ -66,6 +66,9 @@ ldif_parse_line2 LDAP_P((
 	struct berval *value,
 	int *freeval ));
 
+LDAP_LDIF_F( FILE * )
+ldif_open_url LDAP_P(( LDAP_CONST char *urlstr ));
+
 LDAP_LDIF_F( int )
 ldif_fetch_url LDAP_P((
 	LDAP_CONST char *line,
@@ -78,9 +81,23 @@ ldif_getline LDAP_P(( char **next ));
 LDAP_LDIF_F( int )
 ldif_countlines LDAP_P(( LDAP_CONST char *line ));
 
+/* ldif_ropen, rclose, read_record - just for reading LDIF files,
+ * no special open/close needed to write LDIF files.
+ */
+typedef struct LDIFFP {
+	FILE *fp;
+	struct LDIFFP *prev;
+} LDIFFP;
+
+LDAP_LDIF_F( LDIFFP * )
+ldif_open LDAP_P(( char *file, char *mode ));
+
+LDAP_LDIF_F( void )
+ldif_close LDAP_P(( LDIFFP * ));
+
 LDAP_LDIF_F( int )
 ldif_read_record LDAP_P((
-	FILE *fp,
+	LDIFFP *fp,
 	int *lineno,
 	char **bufp,
 	int *buflen ));

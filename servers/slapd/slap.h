@@ -1181,6 +1181,9 @@ typedef enum slap_access_e {
 	ACL_WRITE,
 	ACL_MANAGE,
 
+	/* always leave at end of levels but not greater than ACL_LEVEL_MASK */
+	ACL_LAST,
+
 	/* ACL level mask and modifiers */
 	ACL_LEVEL_MASK = 0x000f,
 	ACL_QUALIFIER1 = 0x0100,
@@ -2350,6 +2353,9 @@ typedef struct slap_op {
 	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
 
+	char o_nocaching;
+	char o_delete_glue_parent;
+
 #define SLAP_CONTROL_NONE	0
 #define SLAP_CONTROL_IGNORED	1
 #define SLAP_CONTROL_NONCRITICAL 2
@@ -2437,10 +2443,6 @@ typedef struct slap_op {
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
-
-	int o_nocaching;
-	int	o_delete_glue_parent;
-
 } Operation;
 #define	OPERATION_BUFFER_SIZE	(sizeof(Operation)+sizeof(Opheader)+SLAP_MAX_CIDS*sizeof(void *))
 

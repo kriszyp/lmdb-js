@@ -561,6 +561,36 @@ backsql_db_config(
 			return -1;
 		}
 
+	} else if ( !strcasecmp( argv[ 0 ], "check_schema") ) {
+		if ( argc < 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing { yes | no }"
+				"in \"check_schema\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			bi->sql_flags |= BSQLF_CHECK_SCHEMA;
+
+		} else if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			bi->sql_flags &= ~BSQLF_CHECK_SCHEMA;
+
+		} else {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"\"check_schema\" directive arg "
+				"must be \"yes\" or \"no\"\n",
+				fname, lineno, 0 );
+			return 1;
+
+		}
+		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
+			"check_schema=%s\n", 
+			BACKSQL_CHECK_SCHEMA( bi ) ? "yes" : "no",
+			0, 0 );
+
 	} else {
 		return SLAP_CONF_UNKNOWN;
 	}
@@ -580,13 +610,13 @@ read_baseObject(
 	const char	*fname )
 {
 	backsql_info 	*bi = (backsql_info *)be->be_private;
-	FILE		*fp;
+	LDIFFP		*fp;
 	int		rc = 0, lineno = 0, lmax = 0;
 	char		*buf = NULL;
 
 	assert( fname );
 
-	fp = fopen( fname, "r" );
+	fp = ldif_open( fname, "r" );
 	if ( fp == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"could not open back-sql baseObject "
@@ -600,7 +630,7 @@ read_baseObject(
 	if ( bi->sql_baseObject == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"read_baseObject_file: SLAP_CALLOC failed", 0, 0, 0 );
-		fclose( fp );
+		ldif_close( fp );
 		return LDAP_NO_MEMORY;
 	}
 	bi->sql_baseObject->e_name = be->be_suffix[0];
@@ -658,7 +688,7 @@ read_baseObject(
 
 	ch_free( buf );
 
-	fclose( fp );
+	ldif_close( fp );
 
 	Debug( LDAP_DEBUG_CONFIG, "back-sql baseObject file \"%s\" read.\n",
 			fname, 0, 0 );

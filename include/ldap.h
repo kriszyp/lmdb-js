@@ -220,6 +220,9 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_NOOP				"1.3.6.1.4.1.4203.666.5.2"
 #define LDAP_CONTROL_PRE_READ			"1.3.6.1.4.1.4203.666.5.10.1"
 #define LDAP_CONTROL_POST_READ			"1.3.6.1.4.1.4203.666.5.10.2"
+#define LDAP_CONTROL_NO_SUBORDINATES	"1.3.6.1.4.1.4203.666.5.11"
+#define LDAP_CONTROL_MANAGEDIT			"1.3.6.1.4.1.4203.666.5.12"
+#define LDAP_CONTROL_SLURP				"1.3.6.1.4.1.4203.666.5.13"
 
 /* LDAP Duplicated Entry Control Extension *//* not implemented in slapd(8) */
 #define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"

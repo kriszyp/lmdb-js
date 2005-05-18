@@ -30,6 +30,7 @@
 #include <ac/string.h>
 
 #include "slapcommon.h"
+#include "ldif.h"
 
 int
 slapcat( int argc, char **argv )
@@ -101,8 +102,8 @@ slapcat( int argc, char **argv )
 			break;
 		}
 
-		fputs( data, ldiffp );
-		fputs( "\n", ldiffp );
+		fputs( data, ldiffp->fp );
+		fputs( "\n", ldiffp->fp );
 	}
 
 	be->be_entry_close( be );

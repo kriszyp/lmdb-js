@@ -29,6 +29,7 @@ SRCS = overlays.c \
 OBJS = overlays.o \
 	@SLAPD_STATIC_OVERLAYS@
 
+LTONLY_MOD = $(LTONLY_mod)
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
 
@@ -76,7 +77,8 @@ rwm_x.o: rwm.o rwmconf.o rwmdn.o rwmmap.o
 	$(LD) -r -o $@ rwm.o rwmconf.o rwmdn.o rwmmap.o
 	
 rwm.la : rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
-	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo \
+		version.lo $(LINK_LIBS) $(LDAP_LIBLREWRITE_LA)
 
 syncprov.la : syncprov.lo
 	$(LTLINK_MOD) -module -o $@ syncprov.lo version.lo $(LINK_LIBS)
@@ -97,12 +99,9 @@ MKDEPFLAG = -l
 
 .SUFFIXES: .c .o .lo
 
-.c.o:
-	$(LTCOMPILE_LIB) $<
-
 .c.lo:
 	$(LTCOMPILE_MOD) $<
 
 $(LIBRARY): version.lo
-	$(LTLINK_LIB) -o $@ $(OBJS) version.lo
+	$(AR) rs $@ $(OBJS)
 

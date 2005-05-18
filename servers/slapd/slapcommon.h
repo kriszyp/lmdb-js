@@ -41,7 +41,7 @@ typedef struct tool_vars {
 	int tv_dryrun;
 	Filter *tv_filter;
 	struct berval tv_sub_ndn;
-	FILE	*tv_ldiffp;
+	struct LDIFFP	*tv_ldiffp;
 	struct berval tv_baseDN;
 	struct berval tv_authcDN;
 	struct berval tv_authzDN;

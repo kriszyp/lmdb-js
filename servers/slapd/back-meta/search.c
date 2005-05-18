@@ -342,16 +342,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 				break;
 			}
 			
-			if ( op->ors_slimit > 0 && rs->sr_nentries == op->ors_slimit )
-			{
-				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
-				savepriv = op->o_private;
-				op->o_private = (void *)i;
-				send_ldap_result( op, rs );
-				op->o_private = savepriv;
-				goto finish;
-			}
-
 			/*
 			 * FIXME: handle time limit as well?
 			 * Note that target servers are likely 
@@ -388,6 +378,18 @@ really_bad:;
 				goto finish;
 
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+				if ( --op->ors_slimit == -1 ) {
+					ldap_msgfree( res );
+					res = NULL;
+
+					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+					savepriv = op->o_private;
+					op->o_private = (void *)i;
+					send_ldap_result( op, rs );
+					op->o_private = savepriv;
+					goto finish;
+				}
+
 				is_ok++;
 
 				e = ldap_first_entry( msc->msc_ld, res );
@@ -939,24 +941,16 @@ meta_send_entry(
 	send_search_entry( op, rs );
 	rs->sr_entry = NULL;
 	rs->sr_attrs = NULL;
-	while ( ent.e_attrs ) {
-		attr = ent.e_attrs;
-		ent.e_attrs = attr->a_next;
-		if ( attr->a_vals != &slap_dummy_bv ) {
-			if ( attr->a_nvals != attr->a_vals ) {
-				ber_bvarray_free( attr->a_nvals );
-			}
-			ber_bvarray_free( attr->a_vals );
-		}
-		free( attr );
-	}
 	
-	if ( ent.e_dn && ent.e_dn != bdn.bv_val ) {
-		free( ent.e_dn );
+	if ( !BER_BVISNULL( &ent.e_name ) && ent.e_name.bv_val != bdn.bv_val ) {
+		free( ent.e_name.bv_val );
+		BER_BVZERO( &ent.e_name );
 	}
-	if ( ent.e_ndn ) {
-		free( ent.e_ndn );
+	if ( !BER_BVISNULL( &ent.e_nname ) ) {
+		free( ent.e_nname.bv_val );
+		BER_BVZERO( &ent.e_nname );
 	}
+	entry_clean( &ent );
 
 	return LDAP_SUCCESS;
 }

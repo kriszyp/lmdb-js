@@ -868,7 +868,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 			/* just count */ ;
 
 		if ( last == 0 ) {
-			/* empty? for now, we leave it in place */
+			/* empty? leave it in place because of attrsonly and vlv */
 			goto next_attr;
 		}
 		last--;
@@ -1045,16 +1045,24 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 
 fail:;
+	if ( e != NULL && e != rs->sr_entry ) {
+		if ( e->e_name.bv_val == dn.bv_val ) {
+			BER_BVZERO( &e->e_name );
+		}
+
+		if ( e->e_nname.bv_val == ndn.bv_val ) {
+			BER_BVZERO( &e->e_nname );
+		}
+
+		entry_free( e );
+	}
+
 	if ( !BER_BVISNULL( &dn ) ) {
 		ch_free( dn.bv_val );
 	}
 
 	if ( !BER_BVISNULL( &ndn ) ) {
 		ch_free( ndn.bv_val );
-	}
-
-	if ( e != NULL && e != rs->sr_entry ) {
-		entry_free( e );
 	}
 
 	return rc;

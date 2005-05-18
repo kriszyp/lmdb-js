@@ -139,8 +139,8 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_HIDE|SLAP_CTRL_DELETE, NULL,
 		parseTreeDelete, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
-#ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
-	{ LDAP_CONTORL_X_SEARCH_OPTIONS,
+#ifdef LDAP_CONTROL_X_SEARCH_OPTIONS
+	{ LDAP_CONTROL_X_SEARCH_OPTIONS,
  		(int)offsetof(struct slap_control_ids, sc_searchOptions),
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_SEARCH, NULL,
 		parseSearchOptions, LDAP_SLIST_ENTRY_INITIALIZER(next) },
@@ -1236,7 +1236,7 @@ static int parseSubentries (
 		? SLAP_CONTROL_CRITICAL
 		: SLAP_CONTROL_NONCRITICAL;
 
-	if ( (void *)(ctrl->ldctl_value.bv_val[2] != 0x00)) {
+	if (ctrl->ldctl_value.bv_val[2]) {
 		set_subentries_visibility( op );
 	}
 
@@ -1316,7 +1316,7 @@ static int parseTreeDelete (
 }
 #endif
 
-#ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
+#ifdef LDAP_CONTROL_X_SEARCH_OPTIONS
 static int parseSearchOptions (
 	Operation *op,
 	SlapReply *rs,
@@ -1324,6 +1324,7 @@ static int parseSearchOptions (
 {
 	BerElement *ber;
 	ber_int_t search_flags;
+	ber_tag_t tag;
 
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
 		rs->sr_text = "searchOptions control value not empty";

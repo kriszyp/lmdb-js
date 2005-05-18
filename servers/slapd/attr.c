@@ -46,7 +46,9 @@ attr_free( Attribute *a )
 	if ( a->a_nvals && a->a_nvals != a->a_vals ) {
 		ber_bvarray_free( a->a_nvals );
 	}
-	ber_bvarray_free( a->a_vals );
+	if ( a->a_vals != &slap_dummy_bv ) {
+		ber_bvarray_free( a->a_vals );
+	}
 	free( a );
 }
 

@@ -176,14 +176,13 @@ root_dse_info(
 	}
 
 	/* supportedLDAPVersion */
-	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
+		/* don't publish version 2 as we don't really support it
+		 * (even when configured to accept version 2 Bind requests)
+		 * and the value would never be used by true LDAPv2 (or LDAPv3)
+		 * clients.
+		 */
+	for ( i=LDAP_VERSION3; i<=LDAP_VERSION_MAX; i++ ) {
 		char buf[BUFSIZ];
-		if (!( global_allows & SLAP_ALLOW_BIND_V2 ) &&
-			( i < LDAP_VERSION3 ) )
-		{
-			/* version 2 and lower are disallowed */
-			continue;
-		}
 		snprintf(buf, sizeof buf, "%d", i);
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
@@ -235,11 +234,11 @@ root_dse_info(
  */
 int read_root_dse_file( const char *fname )
 {
-	FILE	*fp;
+	struct LDIFFP	*fp;
 	int rc = 0, lineno = 0, lmax = 0;
 	char	*buf = NULL;
 
-	if ( (fp = fopen( fname, "r" )) == NULL ) {
+	if ( (fp = ldif_open( fname, "r" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"could not open rootdse attr file \"%s\" - absolute path?\n",
 			fname, 0, 0 );
@@ -251,7 +250,7 @@ int read_root_dse_file( const char *fname )
 	if( usr_attr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"read_root_dse_file: SLAP_CALLOC failed", 0, 0, 0 );
-		fclose( fp );
+		ldif_close( fp );
 		return LDAP_OTHER;
 	}
 	usr_attr->e_attrs = NULL;
@@ -303,7 +302,7 @@ int read_root_dse_file( const char *fname )
 
 	ch_free( buf );
 
-	fclose( fp );
+	ldif_close( fp );
 
 	Debug(LDAP_DEBUG_CONFIG, "rootDSE file %s read.\n", fname, 0, 0);
 	return rc;

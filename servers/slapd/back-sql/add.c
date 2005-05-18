@@ -986,7 +986,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			op->ora_e->e_name.bv_val, 0, 0 );
 
 	/* check schema */
-	if ( global_schemacheck ) {
+	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
 		rs->sr_err = entry_schema_check( op->o_bd, op->ora_e,
