@@ -1013,7 +1013,6 @@ cache_entries(
 	slap_overinst *on = si->on;
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager*		qm = cm->qm;
-	int		i;
 	int		return_val = 0;
 	Entry		*e;
 	struct berval	crp_uuid;
@@ -1181,8 +1180,7 @@ add_filter_attrs(
 			(*new_attrs)[i].an_name = attrs[i].an_name;
 			(*new_attrs)[i].an_desc = attrs[i].an_desc;
 		}
-		(*new_attrs)[count].an_name.bv_val = NULL;
-		(*new_attrs)[count].an_name.bv_len = 0;
+		BER_BVZERO( &(*new_attrs)[count].an_name );
 		alluser = an_find(*new_attrs, &AllUser);
 		allop = an_find(*new_attrs, &AllOper);
 	}
@@ -1220,7 +1218,6 @@ proxy_cache_search(
 	int i = -1;
 
 	AttributeName	*filter_attrs = NULL;
-	AttributeName	*new_attrs = NULL;
 
 	Query		query;
 
@@ -1944,7 +1941,6 @@ proxy_cache_open(
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	cache_manager	*cm = on->on_bi.bi_private;
 	int		rc = 0;
-	int		i;
 
 	/* need to inherit something from the original database... */
 	cm->db.be_def_limit = be->be_def_limit;
