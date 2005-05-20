@@ -651,10 +651,12 @@ free_query (CachedQuery* qc)
 	free(qc->q_uuid.bv_val);
 	filter_free(q->filter);
 	free (q->base.bv_val);
-	for (i=0; q->attrs[i].an_name.bv_val; i++) {
-		free(q->attrs[i].an_name.bv_val);
+	if ( q->attrs ) {
+		for (i=0; q->attrs[i].an_name.bv_val; i++) {
+			free(q->attrs[i].an_name.bv_val);
+		}
+		free(q->attrs);
 	}
-	free(q->attrs);
 	free(qc);
 }
 
@@ -1046,8 +1048,9 @@ filter2template(
 
 	(*filter_attrs)[*filter_cnt].an_desc = ad;
 	(*filter_attrs)[*filter_cnt].an_name = ad->ad_cname;
-	(*filter_attrs)[*filter_cnt+1].an_name.bv_val = NULL;
-	(*filter_attrs)[*filter_cnt+1].an_name.bv_len = 0;
+	(*filter_attrs)[*filter_cnt].an_oc = NULL;
+	(*filter_attrs)[*filter_cnt].an_oc_exclude = 0;
+	BER_BVZERO( &(*filter_attrs)[*filter_cnt+1].an_name );
 	(*filter_cnt)++;
 	return 0;
 }
@@ -1266,10 +1269,11 @@ add_filter_attrs(
 	*new_attrs = (AttributeName*)(op->o_tmpalloc((count+1)*
 		sizeof(AttributeName), op->o_tmpmemctx));
 	if (attrs == NULL) {
-		(*new_attrs)[0].an_name.bv_val = "*";
-		(*new_attrs)[0].an_name.bv_len = 1;
-		(*new_attrs)[1].an_name.bv_val = NULL;
-		(*new_attrs)[1].an_name.bv_len = 0;
+		BER_BVSTR( &(*new_attrs)[0].an_name, "*" );
+		(*new_attrs)[0].an_desc = NULL;
+		(*new_attrs)[0].an_oc = NULL;
+		(*new_attrs)[0].an_oc_exclude = 0;
+		BER_BVZERO( &(*new_attrs)[1].an_name );
 		alluser = 1;
 		allop = 0;
 	} else {
@@ -1277,8 +1281,7 @@ add_filter_attrs(
 			(*new_attrs)[i].an_name = attrs[i].an_name;
 			(*new_attrs)[i].an_desc = attrs[i].an_desc;
 		}
-		(*new_attrs)[count].an_name.bv_val = NULL;
-		(*new_attrs)[count].an_name.bv_len = 0;
+		BER_BVZERO( &(*new_attrs)[count].an_name );
 		alluser = an_find(*new_attrs, &AllUser);
 		allop = an_find(*new_attrs, &AllOper);
 	}
@@ -1295,9 +1298,10 @@ add_filter_attrs(
 					(count+2)*sizeof(AttributeName), op->o_tmpmemctx));
 		(*new_attrs)[count].an_name = filter_attrs[i].an_name;
 		(*new_attrs)[count].an_desc = filter_attrs[i].an_desc;
+		(*new_attrs)[count].an_oc = filter_attrs[i].an_oc;
+		(*new_attrs)[count].an_oc_exclude = filter_attrs[i].an_oc_exclude;
 		count++;
-		(*new_attrs)[count].an_name.bv_val = NULL;
-		(*new_attrs)[count].an_name.bv_len = 0;
+		BER_BVZERO( &(*new_attrs)[count].an_name );
 	}
 }
 
@@ -1425,15 +1429,18 @@ proxy_cache_search(
 			for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
 				ber_dupbv( &query.attrs[count].an_name, &op->ors_attrs[count].an_name );
 				query.attrs[count].an_desc = op->ors_attrs[count].an_desc;
+				query.attrs[count].an_oc = op->ors_attrs[count].an_oc;
+				query.attrs[count].an_oc_exclude = op->ors_attrs[count].an_oc_exclude;
 			}
 			if ( oc_attr_absent ) {
 				query.attrs[ count ].an_desc = slap_schema.si_ad_objectClass;
 				ber_dupbv( &query.attrs[count].an_name,
 					&slap_schema.si_ad_objectClass->ad_cname );
+				query.attrs[ count ].an_oc = NULL;
+				query.attrs[ count ].an_oc_exclude = 0;
 				count++;
 			}
-			query.attrs[ count ].an_name.bv_val = NULL;
-			query.attrs[ count ].an_name.bv_len = 0;
+			BER_BVZERO( &query.attrs[ count ].an_name );
 		}
 		op->o_tmpfree(op->ors_attrs, op->o_tmpmemctx);
 		add_filter_attrs(op, &op->ors_attrs, query.attrs, filter_attrs);
@@ -1728,9 +1735,10 @@ proxy_cache_config(
 				attr_name->an_desc = NULL;
 				slap_bv2ad( &attr_name->an_name,
 						&attr_name->an_desc, &text );
+				attr_name->an_oc = NULL;
+				attr_name->an_oc_exclude = 0;
 				attr_name++;
-				attr_name->an_name.bv_val = NULL;
-				attr_name->an_name.bv_len = 0;
+				BER_BVZERO( &attr_name->an_name );
 			}
 		}
 	} else if ( strcasecmp( argv[0], "proxytemplate" ) == 0 ) {
@@ -1864,7 +1872,7 @@ proxy_cache_open(
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
 	cache_manager *cm = on->on_bi.bi_private;
-	int rc = 0;
+	int rc = 0, i;
 
 	rc = backend_startup_one( &cm->db );
 
