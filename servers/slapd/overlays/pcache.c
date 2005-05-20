@@ -636,10 +636,12 @@ free_query (CachedQuery* qc)
 	free(qc->q_uuid.bv_val);
 	filter_free(q->filter);
 	free (q->base.bv_val);
-	for (i=0; q->attrs[i].an_name.bv_val; i++) {
-		free(q->attrs[i].an_name.bv_val);
+	if ( q->attrs ) {
+		for (i=0; q->attrs[i].an_name.bv_val; i++) {
+			free(q->attrs[i].an_name.bv_val);
+		}
+		free(q->attrs);
 	}
-	free(q->attrs);
 	free(qc);
 }
 
@@ -984,8 +986,9 @@ filter2template(
 
 	(*filter_attrs)[*filter_cnt].an_desc = ad;
 	(*filter_attrs)[*filter_cnt].an_name = ad->ad_cname;
-	(*filter_attrs)[*filter_cnt+1].an_name.bv_val = NULL;
-	(*filter_attrs)[*filter_cnt+1].an_name.bv_len = 0;
+	(*filter_attrs)[*filter_cnt].an_oc = NULL;
+	(*filter_attrs)[*filter_cnt].an_oc_exclude = 0;
+	BER_BVZERO( &(*filter_attrs)[*filter_cnt+1].an_name );
 	(*filter_cnt)++;
 	return 0;
 }
@@ -1166,10 +1169,11 @@ add_filter_attrs(
 	*new_attrs = (AttributeName*)(op->o_tmpalloc((count+1)*
 		sizeof(AttributeName), op->o_tmpmemctx));
 	if (attrs == NULL) {
-		(*new_attrs)[0].an_name.bv_val = "*";
-		(*new_attrs)[0].an_name.bv_len = 1;
-		(*new_attrs)[1].an_name.bv_val = NULL;
-		(*new_attrs)[1].an_name.bv_len = 0;
+		BER_BVSTR( &(*new_attrs)[0].an_name, "*" );
+		(*new_attrs)[0].an_desc = NULL;
+		(*new_attrs)[0].an_oc = NULL;
+		(*new_attrs)[0].an_oc_exclude = 0;
+		BER_BVZERO( &(*new_attrs)[1].an_name );
 		alluser = 1;
 		allop = 0;
 	} else {
@@ -1195,9 +1199,10 @@ add_filter_attrs(
 					(count+2)*sizeof(AttributeName), op->o_tmpmemctx));
 		(*new_attrs)[count].an_name = filter_attrs[i].an_name;
 		(*new_attrs)[count].an_desc = filter_attrs[i].an_desc;
+		(*new_attrs)[count].an_oc = NULL;
+		(*new_attrs)[count].an_oc_exclude = 0;
 		count++;
-		(*new_attrs)[count].an_name.bv_val = NULL;
-		(*new_attrs)[count].an_name.bv_len = 0;
+		BER_BVZERO( &(*new_attrs)[count].an_name );
 	}
 }
 
@@ -1312,15 +1317,18 @@ proxy_cache_search(
 			for ( count = 0; !BER_BVISNULL( &op->ors_attrs[ count ].an_name ); count++ ) {
 				ber_dupbv( &query.attrs[count].an_name, &op->ors_attrs[count].an_name );
 				query.attrs[count].an_desc = op->ors_attrs[count].an_desc;
+				query.attrs[count].an_oc = op->ors_attrs[count].an_oc;
+				query.attrs[count].an_oc_exclude = op->ors_attrs[count].an_oc_exclude;
 			}
 			if ( oc_attr_absent ) {
 				query.attrs[ count ].an_desc = slap_schema.si_ad_objectClass;
 				ber_dupbv( &query.attrs[count].an_name,
 					&slap_schema.si_ad_objectClass->ad_cname );
+				query.attrs[ count ].an_oc = NULL;
+				query.attrs[ count ].an_oc_exclude = 0;
 				count++;
 			}
-			query.attrs[ count ].an_name.bv_val = NULL;
-			query.attrs[ count ].an_name.bv_len = 0;
+			BER_BVZERO( &query.attrs[ count ].an_name );
 		}
 		add_filter_attrs(op, &op->ors_attrs, query.attrs, filter_attrs);
 
@@ -1808,9 +1816,10 @@ pc_cf_gen( ConfigArgs *c )
 					qm->attr_sets[num].count = 0;
 					return 1;
 				}
+				attr_name->an_oc = NULL;
+				attr_name->an_oc_exclude = 0;
 				attr_name++;
-				attr_name->an_name.bv_val = NULL;
-				attr_name->an_name.bv_len = 0;
+				BER_BVZERO( &attr_name->an_name );
 			}
 		}
 		break;
@@ -1936,16 +1945,6 @@ proxy_cache_open(
 	cache_manager	*cm = on->on_bi.bi_private;
 	int		rc = 0;
 	int		i;
-
-	/* consistency check (add more...) */
-	for ( i = 0; i < cm->numattrsets; i++ ) {
-		if ( cm->qm->attr_sets[i].attrs == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "proxy_cache_open(): "
-				"attr set %d (of %d) missing\n",
-				i, cm->numattrsets, 0 );
-			return 1;
-		}
-	}
 
 	/* need to inherit something from the original database... */
 	cm->db.be_def_limit = be->be_def_limit;
