@@ -3305,7 +3305,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	
 	if(rc == LDAP_SUCCESS) {
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check(op->o_bd, e, NULL, 0,
+		rc = entry_schema_check(op->o_bd, e, NULL,
 			&rs->sr_text, ca->msg, sizeof(ca->msg) );
 	}
 	if ( rc == LDAP_SUCCESS ) {
