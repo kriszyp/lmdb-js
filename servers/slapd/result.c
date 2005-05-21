@@ -577,7 +577,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	if ( rs->sr_err == SLAPD_ABANDON )
 		goto abandon;
 
-	assert( !LDAP_API_ERROR( rs->sr_err ));
+	assert( !LDAP_API_ERROR( rs->sr_err ) );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"send_ldap_result: %s p=%d\n",
