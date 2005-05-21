@@ -48,6 +48,9 @@ ldap_back_initialize( BackendInfo *bi )
 
 	bi->bi_db_init = ldap_back_db_init;
 	bi->bi_db_config = ldap_back_db_config;
+#ifdef LDAP_BACK_BCONFIG
+	bi->bi_db_config = config_generic_wrapper;
+#endif /* LDAP_BACK_BCONFIG */
 	bi->bi_db_open = ldap_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = ldap_back_db_destroy;
@@ -70,10 +73,13 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
 
-	if ( chain_init( ) ) {
+	if ( chain_init() ) {
 		return -1;
 	}
 
+#ifdef LDAP_BACK_BCONFIG
+	return ldap_back_init_cf( bi );
+#endif
 	return 0;
 }
 
@@ -120,6 +126,8 @@ ldap_back_db_init( Backend *be )
 
 	be->be_private = li;
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_NOLASTMOD;
+
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
 	return 0;
 }

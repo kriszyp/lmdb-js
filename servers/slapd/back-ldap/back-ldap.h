@@ -45,7 +45,7 @@ struct ldapconn {
  * identity assertion modes
  */
 enum {
-	LDAP_BACK_IDASSERT_LEGACY,
+	LDAP_BACK_IDASSERT_LEGACY = 1,
 	LDAP_BACK_IDASSERT_NOASSERT,
 	LDAP_BACK_IDASSERT_ANONYMOUS,
 	LDAP_BACK_IDASSERT_SELF,
@@ -57,26 +57,26 @@ struct ldapinfo {
 	char		*url;
 	LDAPURLDesc	*lud;
 
-	slap_bindconf	acl_la;
-#define	acl_authcID	acl_la.sb_authcId
-#define	acl_authcDN	acl_la.sb_binddn
-#define	acl_passwd	acl_la.sb_cred
-#define	acl_authzID	acl_la.sb_authzId
-#define	acl_authmethod	acl_la.sb_method
-#define	acl_sasl_mech	acl_la.sb_saslmech
-#define	acl_sasl_realm	acl_la.sb_realm
+	slap_bindconf	acl_sb;
+#define	acl_authcID	acl_sb.sb_authcId
+#define	acl_authcDN	acl_sb.sb_binddn
+#define	acl_passwd	acl_sb.sb_cred
+#define	acl_authzID	acl_sb.sb_authzId
+#define	acl_authmethod	acl_sb.sb_method
+#define	acl_sasl_mech	acl_sb.sb_saslmech
+#define	acl_sasl_realm	acl_sb.sb_realm
 
 	/* ID assert stuff */
 	int		idassert_mode;
 
-	slap_bindconf	idassert_la;
-#define	idassert_authcID	idassert_la.sb_authcId
-#define	idassert_authcDN	idassert_la.sb_binddn
-#define	idassert_passwd		idassert_la.sb_cred
-#define	idassert_authzID	idassert_la.sb_authzId
-#define	idassert_authmethod	idassert_la.sb_method
-#define	idassert_sasl_mech	idassert_la.sb_saslmech
-#define	idassert_sasl_realm	idassert_la.sb_realm
+	slap_bindconf	idassert_sb;
+#define	idassert_authcID	idassert_sb.sb_authcId
+#define	idassert_authcDN	idassert_sb.sb_binddn
+#define	idassert_passwd		idassert_sb.sb_cred
+#define	idassert_authzID	idassert_sb.sb_authzId
+#define	idassert_authmethod	idassert_sb.sb_method
+#define	idassert_sasl_mech	idassert_sb.sb_saslmech
+#define	idassert_sasl_realm	idassert_sb.sb_realm
 
 	unsigned 	idassert_flags;
 #define LDAP_BACK_AUTH_NONE		0x00U
@@ -93,11 +93,15 @@ struct ldapinfo {
 #define LDAP_BACK_F_USE_TLS		0x02U
 #define LDAP_BACK_F_PROPAGATE_TLS	0x04U
 #define LDAP_BACK_F_TLS_CRITICAL	0x08U
-#define LDAP_BACK_F_TLS_MASK		(LDAP_BACK_F_USE_TLS|LDAP_BACK_F_PROPAGATE_TLS|LDAP_BACK_F_TLS_CRITICAL)
+#define LDAP_BACK_F_TLS_USE_MASK	(LDAP_BACK_F_USE_TLS|LDAP_BACK_F_TLS_CRITICAL)
+#define LDAP_BACK_F_TLS_PROPAGATE_MASK	(LDAP_BACK_F_PROPAGATE_TLS|LDAP_BACK_F_TLS_CRITICAL)
+#define LDAP_BACK_F_TLS_MASK		(LDAP_BACK_F_TLS_USE_MASK|LDAP_BACK_F_TLS_PROPAGATE_MASK)
 #define LDAP_BACK_F_CHASE_REFERRALS	0x10U
+#define LDAP_BACK_F_PROXY_WHOAMI	0x20U
 
 #define	LDAP_BACK_F_SUPPORT_T_F			0x80U
 #define	LDAP_BACK_F_SUPPORT_T_F_DISCOVER	0x40U
+#define	LDAP_BACK_F_SUPPORT_T_F_MASK		(LDAP_BACK_F_SUPPORT_T_F|LDAP_BACK_F_SUPPORT_T_F_DISCOVER)
 
 #define LDAP_BACK_SAVECRED(li)		( (li)->flags & LDAP_BACK_F_SAVECRED )
 #define LDAP_BACK_USE_TLS(li)		( (li)->flags & LDAP_BACK_F_USE_TLS )
