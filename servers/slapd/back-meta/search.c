@@ -942,8 +942,10 @@ meta_send_entry(
 	rs->sr_entry = NULL;
 	rs->sr_attrs = NULL;
 	
-	if ( !BER_BVISNULL( &ent.e_name ) && ent.e_name.bv_val != bdn.bv_val ) {
-		free( ent.e_name.bv_val );
+	if ( !BER_BVISNULL( &ent.e_name ) ) {
+		if ( ent.e_name.bv_val != bdn.bv_val ) {
+			free( ent.e_name.bv_val );
+		}
 		BER_BVZERO( &ent.e_name );
 	}
 	if ( !BER_BVISNULL( &ent.e_nname ) ) {
