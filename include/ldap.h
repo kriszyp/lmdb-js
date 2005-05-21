@@ -280,7 +280,7 @@ typedef struct ldapcontrol {
 
 /* LDAP Chaining Behavior Control *//* work in progress */
 /* <draft-sermersheim-ldap-chaining>;
- * see also LDAP_REQUIRES_CHAINING, LDAP_CANNOT_CHAIN */
+ * see also LDAP_NO_REFERRALS_FOUND, LDAP_CANNOT_CHAIN */
 #ifdef LDAP_DEVEL
 #define LDAP_CONTROL_X_CHAINING_BEHAVIOR	"1.3.6.1.4.1.4203.666.11.3"
 
@@ -582,7 +582,7 @@ typedef struct ldapcontrol {
 /* for the Chaining Behavior control (consecutive result codes requested;
  * see <draft-sermersheim-ldap-chaining> ) */
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-#define	LDAP_REQUIRES_CHAINING			0x4110
+#define	LDAP_NO_REFERRALS_FOUND			0x4110
 #define LDAP_CANNOT_CHAIN			0x4111
 #endif
 
