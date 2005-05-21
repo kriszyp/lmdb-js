@@ -121,6 +121,7 @@ typedef struct monitor_info_t {
 	AttributeDescription	*mi_ad_monitorConnectionStartTime;
 	AttributeDescription	*mi_ad_monitorConnectionActivityTime;
 	AttributeDescription	*mi_ad_monitorIsShadow;
+	AttributeDescription	*mi_ad_monitorUpdateRef;
 
 	/*
 	 * Generic description attribute
