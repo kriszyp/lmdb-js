@@ -3167,7 +3167,7 @@ out:
 typedef struct delrec {
 	struct delrec *next;
 	int nidx;
-	int idx[0];
+	int idx[1];
 } delrec;
 
 static int
@@ -3226,7 +3226,7 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			if ( ct && ml->sml_values ) {
 				delrec *d;
 				for (i=0; ml->sml_values[i].bv_val; i++);
-				d = ch_malloc( sizeof(delrec) + i * sizeof(int));
+				d = ch_malloc( sizeof(delrec) + (i - 1)* sizeof(int));
 				d->nidx = i;
 				d->next = NULL;
 				if ( dels ) {
