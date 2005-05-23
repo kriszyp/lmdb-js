@@ -1493,9 +1493,10 @@ LDAP_SLAPD_V (int) slapMode;
 #define	SLAP_TOOL_READONLY	0x0400
 #define	SLAP_TOOL_QUICK		0x0800
 
+#define SB_TLS_DEFAULT		(-1)
 #define SB_TLS_OFF		0
 #define SB_TLS_ON		1
-#define SB_TLS_CRITICAL	2
+#define SB_TLS_CRITICAL		2
 
 typedef struct slap_bindconf {
 	int sb_tls;
