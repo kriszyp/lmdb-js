@@ -66,6 +66,7 @@ to the target server(s), generating an error.
 The current implementation automatically sets lastmod to off, so its use
 is redundant and should be omitted, because the lastmod directive will
 be deprecated in the future.
+
 .TP
 .B uri <ldapurl>
 LDAP server to use.  Multiple URIs can be set in in a single
@@ -76,19 +77,20 @@ call the first server of the list that responds, e.g.
 \fBuri "ldap://host/ ldap://backup-host"\fP
 
 The URI list is space- or comma-separated.
+This statement is mandatory.
 .\".TP
 .\".B server <hostport>
 .\"Obsolete option; same as `uri ldap://<hostport>/'.
 .HP
 .hy 0
-.B acl-method 
+.B acl-bind
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authzId=<authorization ID>]
 .RS
 Allows to define the parameters of the authentication method that is 
 internally used by the proxy to collect info related to access control.
-The identity defined by this directive, along with the properties
+The identity defined by this directive, according to the properties
 associated to the authentication method, is supposed to have read access 
 on the target server to attributes used on the proxy for ACL checking.
 The
@@ -96,87 +98,109 @@ The
 field is currently ignored.
 There is no risk of giving away such values; they are only used to
 check permissions.
+The default is to use
+.BR simple ,
+with empty binddn and credentials,
+which means that the related operations will be performed anonymously.
+
 .B This identity is by no means implicitly used by the proxy 
 .B when the client connects anonymously.
 See the
-.B idassert-*
+.B idassert-bind
 feature instead.
 This directive obsoletes
-.B acl-authcDN
+.BR acl-authcDN ,
 and
 .BR acl-passwd .
 .RE
-.TP
-.B acl-authcDN "<administrative DN for access control purposes>"
-DN which is used to query the target server for acl checking; it
-is supposed to have read access on the target server to attributes used
-on the proxy for acl checking.
-There is no risk of giving away such values; they are only used to
-check permissions.
-.B The acl-authcDN identity is by no means implicitly used by the proxy 
-.B when the client connects anonymously.
-See the
-.B idassert-*
-feature instead.
-This configure statement is deprecated in favor of
-.BR acl-method .
-.TP
-.B acl-passwd <password>
-Password used with the
-.B 
-acl-authcDN
-above.
-This configure statement is deprecated in favor of
-.BR acl-method .
-.TP
-.B idassert-authcdn "<administrative DN for proxyAuthz purposes>"
-DN which is used to propagate the client's identity to the target
-by means of the proxyAuthz control when the client does not
-belong to the DIT fragment that is being proxyied by back-ldap.
-This is useful when operations performed by users bound to another 
-backend are propagated through back-ldap.
-This requires the entry with 
-.B idassert-authcdn
-identity on the remote server to have
+
+.HP
+.hy 0
+.B idassert-bind
+.B bindmethod=none|simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
+.B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authzId=<authorization ID>]
+.B [authz={native|proxyauthz}] [mode=<mode>] [flags=<flags>]
+.RS
+Allows to define the parameters of the authentication method that is 
+internally used by the proxy to authorize connections that are 
+authenticated by other databases.
+The identity defined by this directive, according to the properties
+associated to the authentication method, is supposed to have auth access 
+on the target server to attributes used on the proxy for authentication
+and authorization, and to be allowed to authorize the users.
+This requires to have
 .B proxyAuthz
 privileges on a wide set of DNs, e.g.
 .BR authzTo=dn.subtree:"" ,
 and the remote server to have
 .B authz-policy
-set to 
+set to
 .B to
-or 
+or
 .BR both .
-See 
+See
 .BR slapd.conf (5)
 for details on these statements and for remarks and drawbacks about
 their usage.
-.TP
-.B idassert-passwd <password>
-Password used with the
-.B idassert-authcdn
-above.
-.TP
-.B idassert-mode <mode> [<flags>]
-defines what type of
-.I identity assertion
-is used.
+The supported bindmethods are
+
+\fBnone|simple|sasl\fP
+
+where
+.B none
+is the default, i.e. no \fIidentity assertion\fP is performed.
+
+The authz parameter is used to instruct the SASL bind to exploit 
+.B native 
+SASL authorization, if available; since connections are cached,
+this should only be used when authorizing with a fixed identity
+(e.g. by means of the 
+.B authzDN
+or
+.B authzID
+parameters).
+Otherwise, the default
+.B proxyauthz
+is used, i.e. the proxyAuthz control is added to all operations.
+
 The supported modes are:
 
-\fB<mode> := {legacy|anonymous|none|<id>|self}\fP
+\fB<mode> := {legacy|anonymous|none|self}\fP
 
-\fB<flags> := {override}\fP
+If 
+.B <mode>
+is not present, and 
+.B authzId
+is given, the proxy always authorizes that identity.
+.B <authorization ID>
+can be 
 
-\fB<id> := {u:<ID>|[dn:]<DN>}\fP
+\fBu:<user>\fP
 
-The default is 
+\fB[dn:]<DN>\fP
+
+The former is supposed to be expanded by the remote server according 
+to the authz rules; see
+.BR slapd.conf (5)
+for details.
+In the latter case, whether or not the 
+.B dn:
+prefix is present, the string must pass DN validation and normalization.
+
+The default mode is 
 .BR legacy ,
-which implies that the proxy will bind as
-.I idassert-authcdn
+which implies that the proxy will either perform a simple bind as the
+.I authcDN
+or a SASL bind as the
+.I authcID
 and assert the client's identity when it is not anonymous.
 Direct binds are always proxied.
-The other modes imply that the proxy will always bind as 
-.IR idassert-authcdn ,
+The other modes imply that the proxy will always either perform a simple bind 
+as the
+.IR authcDN
+or a SASL bind as the
+.IR authcID ,
 unless restricted by
 .BR idassert-authzFrom
 rules (see below), in which case the operation will fail;
@@ -194,19 +218,10 @@ identity
 will be asserted;
 .BR none ,
 which means that no proxyAuthz control will be used, so the
-.I idassert-authcdn
+.I authcDN
+or the
+.I authcID
 identity will be asserted.
-Moreover, if a string prefixed with
-.B u:
-or 
-.B dn:
-is used as 
-.BR <mode> ,
-that identity will be asserted.
-Ths string is also treated as a DN if it is not prefixed
-by any recognized type indicator.  Whether or not the 
-.B dn: 
-prefix is present, the string must pass DN validation and normalization.
 For all modes that require the use of the
 .I proxyAuthz 
 control, on the remote server the proxy identity must have appropriate 
@@ -215,6 +230,7 @@ permissions, or the asserted identities must have appropriate
 .I authzFrom 
 permissions.  Note, however, that the ID assertion feature is mostly 
 useful when the asserted identities do not exist on the remote server.
+
 When the 
 .B override
 flag is used, identity assertion takes place even when the database
@@ -222,7 +238,15 @@ is authorizing for the identity of the client, i.e. after binding
 with the provided identity, and thus authenticating it, the proxy
 performs the identity assertion using the configured identity and
 authentication method.
+
+This directive obsoletes
+.BR idassert-authcDN ,
+.BR idassert-passwd ,
+.BR idassert-mode ,
+and
+.BR idassert-method .
 .RE
+
 .TP
 .B idassert-authzFrom <authz-regexp>
 if defined, selects what
@@ -238,66 +262,114 @@ See
 section related to
 .BR authz-policy ,
 for details on the syntax of this field.
+
 .TP
-.B idassert-method <method> [<saslargs>]
-where valid method values are
-
-\fB<method> := {none|simple|sasl}\fP
-
-\fB<saslargs> := [mech=<mech>] [realm=<realm>] [authcid=<authcid>] [cred=<cred>] [authz={native|proxyauthz}]\fP
-
-If method is 
-.IR sasl ,
-extra parameters can be given as described above.
-The default is
-.BR simple ;
-.B none
-inhibits proxy authorization;
-.B sasl
-uses a SASL bind with the above parameters; if required,
-.I authorization
-is performed by means of native SASL mechanism, and no proxyAuthz
-is used for subsequent operations.
-.RE
-.TP
-.B proxy-whoami
+.B proxy-whoami {NO|yes}
 Turns on proxying of the WhoAmI extended operation. If this option is
 given, back-ldap will replace slapd's original WhoAmI routine with its
 own. On slapd sessions that were authenticated by back-ldap, the WhoAmI
 request will be forwarded to the remote LDAP server. Other sessions will
 be handled by the local slapd, as before. This option is mainly useful
 in conjunction with Proxy Authorization.
+
 .TP
-.B rebind-as-user
+.B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.  Useful in conjunction with
-\fBchase-referrals\fP, useless if \fBdont-chase-referrals\fP is set.
-.LP
-.B chase-referrals
-.br
-.B dont-chase-referrals
-.RS
+for rebinds when chasing referrals.  Useful when
+\fBchase-referrals\fP is set to \fByes\P, useless otherwise.
+
+.TP
+.B chase-referrals {YES|no}
 enable/disable automatic referral chasing, which is delegated to the
 underlying libldap, with rebinding eventually performed if the
 \fBrebind-as-user\fP directive is used.  The default is to chase referrals.
-.RE
 
-.LP
-.B tls-start
-.br
-.B tls-try-start
-.br
-.B tls-propagate
-.br
-.B tls-try-propagate
-.RS
+.TP
+.B tls {[try-]start|[try-]propagate}
 execute the start TLS extended operation when the connection is initialized;
 only works if the URI directive protocol scheme is not \fBldaps://\fP.
-The \fBtls-propagate\fP version issues the Start TLS exop only if the original
+\fBpropagate\fP issues the Start TLS exop only if the original
 connection did.
-\fBtry-start-tls\fP and \fBtry-propagate-tls\fP continue operations
-if start TLS failed.
-.RE
+The \fBtry-\fP prefix instructs the proxy to continue operations
+if start TLS failed; its use is highly deprecated.
+
+.TP
+.B t-f-support {NO|yes|discover}
+enable if the remote server supports absolute filters
+(see \fIdraft-zeilenga-ldap-t-f\fP for details).
+If set to
+.BR discover ,
+support is detected by reading the remote server's rootDSE.
+
+.SH BACKWARD COMPATIBILITY
+The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
+as a side-effect, some of the traditional directives have been
+deprecated and should be no longer used.
+
+.TP
+.B server <hostname[:port]>
+this directive is no longer supported.  Use the 
+.B uri
+directive as described above.
+
+.TP
+.B acl-authcDN "<administrative DN for access control purposes>"
+DN which is used to query the target server for acl checking; it
+is supposed to have read access on the target server to attributes used
+on the proxy for acl checking.
+There is no risk of giving away such values; they are only used to
+check permissions.
+.B The acl-authcDN identity is by no means implicitly used by the proxy 
+.B when the client connects anonymously.
+See the
+.B idassert-*
+feature instead.
+This directive is obsoleted by
+.BR acl-bind ,
+and may dismissed in the future.
+
+.TP
+.B acl-passwd <password>
+Password used with the
+.B 
+acl-authcDN
+above.
+This directive is obsoleted by
+.BR acl-bind ,
+and may be dismissed in the future.
+
+.TP
+.B idassert-authcDN "<administrative DN for proxyAuthz purposes>"
+DN which is used to propagate the client's identity to the target
+by means of the proxyAuthz control when the client does not
+belong to the DIT fragment that is being proxyied by back-ldap.
+This directive is obsoleted by
+.BR idassert-bind ,
+and may be dismissed in the future.
+
+.TP
+.B idassert-passwd <password>
+Password used with the
+.B idassert-authcDN
+above.
+This directive is obsoleted by
+.BR idassert-bind ,
+and may be dismissed in the future.
+
+.TP
+.B idassert-mode <mode> [<flags>]
+defines what type of
+.I identity assertion
+is used.
+This directive is obsoleted by
+.BR idassert-bind ,
+and may be dismissed in the future.
+
+.TP
+.B idassert-method <method> [<saslargs>]
+This directive is obsoleted by
+.BR idassert-bind ,
+and may be dismissed in the future.
 
 .TP
 .B suffixmassage, map, rewrite*
@@ -335,12 +407,35 @@ returned by the
 .B search
 operation is honored, which is performed by the frontend.
 
-.SH PROXY CACHE OVERLAY
-The proxy cache overlay 
-allows caching of LDAP search requests (queries) in a local database.
+.SH OVERLAYS
+The LDAP backend provides basic proxying functionalities to many overlays.
+The 
+.B chain
+overlay, described in
+.BR slapo\-chain (5),
+and the
+.B translucent
+overlay, described in
+.BR slapo\-translucent (5),
+deserve a special mention.
+
+Conversely, there are many overlays that are best used in conjunction
+with the LDAP backend.
+The
+.B proxycache 
+overlay allows caching of LDAP search requests (queries) 
+in a local database.
 See 
-.BR slapo-pcache (5)
+.BR slapo\-pcache (5)
 for details.
+The
+.B rwm
+overlay provides DN rewrite and attribute/objectClass mapping
+capabilities to the underlying database.
+See 
+.BR slapo\-rwm (5)
+for details.
+
 .SH FILES
 .TP
 ETCDIR/slapd.conf
@@ -348,8 +443,10 @@ default slapd configuration file
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd\-meta (5),
+.BR slapo\-chain (5),
 .BR slapo\-pcache (5),
 .BR slapo\-rwm (5),
+.BR slapo\-translucent (5),
 .BR slapd (8),
 .BR ldap (3).
 .SH AUTHOR
