@@ -1521,7 +1521,7 @@ struct slap_replica_info {
 
 typedef struct slap_verbmasks {
 	struct berval word;
-	const int mask;
+	const slap_mask_t mask;
 } slap_verbmasks;
 
 #define SLAP_LIMIT_TIME	1
