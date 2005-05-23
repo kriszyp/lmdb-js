@@ -753,9 +753,7 @@ static slap_verbmasks tlskey[] = {
 };
 
 static slap_verbmasks methkey[] = {
-#if 0
 	{ BER_BVC("none"),	LDAP_AUTH_NONE },
-#endif
 	{ BER_BVC("simple"),	LDAP_AUTH_SIMPLE },
 #ifdef HAVE_CYRUS_SASL
 	{ BER_BVC("sasl"),	LDAP_AUTH_SASL },
