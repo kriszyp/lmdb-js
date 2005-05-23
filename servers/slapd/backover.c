@@ -72,12 +72,14 @@ over_db_config(
 	slap_overinfo *oi = be->bd_info->bi_private;
 	slap_overinst *on = oi->oi_list;
 	BackendInfo *bi_orig = be->bd_info;
+	struct ConfigOCs *be_cf_ocs = be->be_cf_ocs;
 	ConfigArgs ca = {0};
 	ConfigTable *ct;
 	int rc = 0;
 
 	if ( oi->oi_orig->bi_db_config ) {
 		be->bd_info = oi->oi_orig;
+		be->be_cf_ocs = oi->oi_orig->bi_cf_ocs;
 		rc = oi->oi_orig->bi_db_config( be, fname, lineno,
 			argc, argv );
 
@@ -149,6 +151,8 @@ over_db_config(
 		}
 	}
 	be->bd_info = bi_orig;
+	be->be_cf_ocs = be_cf_ocs;
+	
 	return rc;
 }
 
