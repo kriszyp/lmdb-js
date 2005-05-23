@@ -61,10 +61,11 @@ and
 .B meta
 database.
 This is because operational attributes related to entry creation and
-modification should not be used, as they could be passed to the target
-servers, generating an error.
-The current implementation automatically sets ldapmod to off, so its use
-is redundant and can be safely omitted.
+modification should not be proxied, as they could be mistakenly written
+to the target server(s), generating an error.
+The current implementation automatically sets lastmod to off, so its use
+is redundant and should be omitted, because the lastmod directive will
+be deprecated in the future.
 .TP
 .B uri <ldapurl>
 LDAP server to use.  Multiple URIs can be set in in a single
@@ -78,6 +79,33 @@ The URI list is space- or comma-separated.
 .\".TP
 .\".B server <hostport>
 .\"Obsolete option; same as `uri ldap://<hostport>/'.
+.HP
+.hy 0
+.B acl-method 
+.B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
+.B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authzId=<authorization ID>]
+.RS
+Allows to define the parameters of the authentication method that is 
+internally used by the proxy to collect info related to access control.
+The identity defined by this directive, along with the properties
+associated to the authentication method, is supposed to have read access 
+on the target server to attributes used on the proxy for ACL checking.
+The
+.B secprops
+field is currently ignored.
+There is no risk of giving away such values; they are only used to
+check permissions.
+.B This identity is by no means implicitly used by the proxy 
+.B when the client connects anonymously.
+See the
+.B idassert-*
+feature instead.
+This directive obsoletes
+.B acl-authcDN
+and
+.BR acl-passwd .
+.RE
 .TP
 .B acl-authcDN "<administrative DN for access control purposes>"
 DN which is used to query the target server for acl checking; it
@@ -90,12 +118,16 @@ check permissions.
 See the
 .B idassert-*
 feature instead.
+This configure statement is deprecated in favor of
+.BR acl-method .
 .TP
 .B acl-passwd <password>
 Password used with the
 .B 
 acl-authcDN
 above.
+This configure statement is deprecated in favor of
+.BR acl-method .
 .TP
 .B idassert-authcdn "<administrative DN for proxyAuthz purposes>"
 DN which is used to propagate the client's identity to the target
@@ -272,14 +304,21 @@ if start TLS failed.
 These directives are no longer supported by back-ldap; their 
 functionality is now delegated to the
 .B rwm
-overlay; see
+overlay.  Essentially, add a statement
+
+.B overlay rwm
+
+first, and prefix all rewrite/map statements with
+.B rwm-
+to obtain the original behavior.
+See
 .BR slapo-rwm (5)
 for details.
-However, to ease update from existing configurations, back-ldap still 
-recognizes them and automatically instantiates the
-.B rwm
-overlay if available and not instantiated yet.
-This behavior may change in the future.
+.\" However, to ease update from existing configurations, back-ldap still 
+.\" recognizes them and automatically instantiates the
+.\" .B rwm
+.\" overlay if available and not instantiated yet.
+.\" This behavior may change in the future.
 
 .SH ACCESS CONTROL
 The
