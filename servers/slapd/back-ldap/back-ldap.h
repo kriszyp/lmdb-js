@@ -65,6 +65,7 @@ struct ldapinfo {
 #define	acl_authmethod	acl_sb.sb_method
 #define	acl_sasl_mech	acl_sb.sb_saslmech
 #define	acl_sasl_realm	acl_sb.sb_realm
+#define	acl_secprops	acl_sb.sb_secprops
 
 	/* ID assert stuff */
 	int		idassert_mode;
@@ -77,6 +78,7 @@ struct ldapinfo {
 #define	idassert_authmethod	idassert_sb.sb_method
 #define	idassert_sasl_mech	idassert_sb.sb_saslmech
 #define	idassert_sasl_realm	idassert_sb.sb_realm
+#define	idassert_secprops	idassert_sb.sb_secprops
 
 	unsigned 	idassert_flags;
 #define LDAP_BACK_AUTH_NONE		0x00U
