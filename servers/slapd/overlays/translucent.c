@@ -585,6 +585,7 @@ static int translucent_config(
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	overlay_stack *ov = on->on_bi.bi_private;
 	void *private = be->be_private;
+	void *be_cf_ocs = be->be_cf_ocs;
 	int rc;
 
 	/* "this should never happen" */
@@ -594,8 +595,10 @@ static int translucent_config(
 	}
 
 	be->be_private = ov->private;
+	be->be_cf_ocs = ov->info->bi_cf_ocs;
 	rc = ov->info->bi_db_config ? ov->info->bi_db_config(be, fname, lineno, argc, argv) : 0;
 	be->be_private = private;
+	be->be_cf_ocs = be_cf_ocs;
 
 	/* pass okay or error up, SLAP_CONF_UNKNOWN might be ours */
 	if(rc == 0 || rc == 1) return(rc);
