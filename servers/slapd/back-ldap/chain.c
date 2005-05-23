@@ -740,12 +740,11 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	return 0;
 }
 
-#define	LDAP_BACK_C_MASK		0x80000000U
 static slap_verbmasks chaining_mode[] = {
-	{ BER_BVC("referralsRequired"),		(LDAP_REFERRALS_REQUIRED|LDAP_BACK_C_MASK) },
-	{ BER_BVC("referralsPreferred"),	(LDAP_REFERRALS_PREFERRED|LDAP_BACK_C_MASK) },
-	{ BER_BVC("chainingRequired"),		(LDAP_CHAINING_REQUIRED|LDAP_BACK_C_MASK) },
-	{ BER_BVC("chainingPreferred"),		(LDAP_CHAINING_PREFERRED|LDAP_BACK_C_MASK) },
+	{ BER_BVC("referralsRequired"),		LDAP_REFERRALS_REQUIRED },
+	{ BER_BVC("referralsPreferred"),	LDAP_REFERRALS_PREFERRED },
+	{ BER_BVC("chainingRequired"),		LDAP_CHAINING_REQUIRED },
+	{ BER_BVC("chainingPreferred"),		LDAP_CHAINING_PREFERRED },
 	{ BER_BVNULL,				0 }
 };
 
@@ -761,26 +760,23 @@ chain_cf_gen( ConfigArgs *c )
 		switch( c->type ) {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 		case PC_CHAINING: {
-			BerVarray	resolve = NULL;
-			BerVarray	continuation = NULL;
+			struct berval	resolve = BER_BVNULL,
+					continuation = BER_BVNULL;
 
 			if ( !( lc->lc_flags & LDAP_CHAIN_F_CHAINING ) ) {
 				return 1;
 			}
 
-			mask_to_verbs( chaining_mode, ( ( ( lc->lc_chaining_ctrlflag & SLAP_CH_RESOLVE_MASK ) >> SLAP_CH_RESOLVE_SHIFT ) | LDAP_BACK_C_MASK ), &resolve );
-			mask_to_verbs( chaining_mode, ( ( ( lc->lc_chaining_ctrlflag & SLAP_CH_CONTINUATION_MASK ) >> SLAP_CH_CONTINUATION_SHIFT ) | LDAP_BACK_C_MASK ), &continuation );
+			enum_to_verb( chaining_mode, ( ( lc->lc_chaining_ctrlflag & SLAP_CH_RESOLVE_MASK ) >> SLAP_CH_RESOLVE_SHIFT ), &resolve );
+			enum_to_verb( chaining_mode, ( ( lc->lc_chaining_ctrlflag & SLAP_CH_CONTINUATION_MASK ) >> SLAP_CH_CONTINUATION_SHIFT ), &continuation );
 
-			c->value_bv.bv_len = STRLENOF( "resolve=" ) + resolve[0].bv_len
+			c->value_bv.bv_len = STRLENOF( "resolve=" ) + resolve.bv_len
 				+ STRLENOF( " " )
-				+ STRLENOF( "continuation=" ) + continuation[0].bv_len;
+				+ STRLENOF( "continuation=" ) + continuation.bv_len;
 			c->value_bv.bv_val = ch_malloc( c->value_bv.bv_len + 1 );
 			snprintf( c->value_bv.bv_val, c->value_bv.bv_len + 1,
 				"resolve=%s continuation=%s",
-				resolve[0].bv_val, continuation[0].bv_val );
-
-			ber_bvarray_free( resolve );
-			ber_bvarray_free( continuation );
+				resolve.bv_val, continuation.bv_val );
 
 			if ( lc->lc_chaining_ctrl.ldctl_iscritical ) {
 				c->value_bv.bv_val = ch_realloc( c->value_bv.bv_val,

@@ -72,7 +72,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "tls", "what", 2, 2, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_TLS,
+		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_TLS,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.1 "
 			"NAME 'olcDbStartTLS' "
 			"DESC 'StartTLS' "
@@ -172,7 +172,7 @@ static ConfigTable ldapcfg[] = {
 			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
 	{ "rebind-as-user", "NO|yes", 1, 2, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_REBIND,
+		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_REBIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.10 "
 			"NAME 'olcDbRebindAsUser' "
 			"DESC 'Rebind as user' "
@@ -180,7 +180,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "chase-referrals", "YES|no", 2, 2, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_CHASE,
+		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_CHASE,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.11 "
 			"NAME 'olcDbChaseReferrals' "
 			"DESC 'Chase referrals' "
@@ -188,7 +188,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "t-f-support", "NO|yes|discover", 2, 2, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_T_F,
+		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_T_F,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.12 "
 			"NAME 'olcDbTFSupport' "
 			"DESC 'Absolute filters support' "
@@ -196,7 +196,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "proxy-whoami", "NO|yes", 1, 2, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_WHOAMI,
+		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_WHOAMI,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.13 "
 			"NAME 'olcDbProxyWhoAmI' "
 			"DESC 'Proxy whoAmI exop' "
@@ -240,9 +240,8 @@ static ConfigOCs ldapocs[] = {
 	{ NULL, 0, NULL }
 };
 
-#define	LDAP_BACK_C_MASK		0x80000000U
-#define	LDAP_BACK_C_NO			(0x0U|LDAP_BACK_C_MASK)
-#define	LDAP_BACK_C_YES			(0x1U|LDAP_BACK_C_MASK)
+#define	LDAP_BACK_C_NO			(0x0U)
+#define	LDAP_BACK_C_YES			(0x1U)
 static slap_verbmasks yn_mode[] = {
 	{ BER_BVC( "yes" ),		LDAP_BACK_C_YES},
 	{ BER_BVC( "no" ),		LDAP_BACK_C_NO },
@@ -258,17 +257,17 @@ static slap_verbmasks idassert_mode[] = {
 };
 
 static slap_verbmasks tls_mode[] = {
-	{ BER_BVC( "propagate" ),	(LDAP_BACK_C_MASK|LDAP_BACK_F_TLS_PROPAGATE_MASK) },
-	{ BER_BVC( "try-propagate" ),	(LDAP_BACK_C_MASK|LDAP_BACK_F_PROPAGATE_TLS) },
-	{ BER_BVC( "start" ),		(LDAP_BACK_C_MASK|LDAP_BACK_F_TLS_USE_MASK) },
-	{ BER_BVC( "try-start" ),	(LDAP_BACK_C_MASK|LDAP_BACK_F_USE_TLS) },
+	{ BER_BVC( "propagate" ),	LDAP_BACK_F_TLS_PROPAGATE_MASK },
+	{ BER_BVC( "try-propagate" ),	LDAP_BACK_F_PROPAGATE_TLS },
+	{ BER_BVC( "start" ),		LDAP_BACK_F_TLS_USE_MASK },
+	{ BER_BVC( "try-start" ),	LDAP_BACK_F_USE_TLS },
 	{ BER_BVC( "none" ),		LDAP_BACK_C_NO },
 	{ BER_BVNULL,			0 }
 };
 
 static slap_verbmasks t_f_mode[] = {
-	{ BER_BVC( "yes" ),		(LDAP_BACK_C_MASK|LDAP_BACK_F_SUPPORT_T_F) },
-	{ BER_BVC( "discover" ),	(LDAP_BACK_C_MASK|LDAP_BACK_F_SUPPORT_T_F_DISCOVER) },
+	{ BER_BVC( "yes" ),		LDAP_BACK_F_SUPPORT_T_F },
+	{ BER_BVC( "discover" ),	LDAP_BACK_F_SUPPORT_T_F_DISCOVER },
 	{ BER_BVC( "no" ),		LDAP_BACK_C_NO },
 	{ BER_BVNULL,			0 }
 };
@@ -281,7 +280,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 	int		i;
 
 	if ( c->op == SLAP_CONFIG_EMIT ) {
+		struct berval	bv = BER_BVNULL;
 		rc = 0;
+
 		switch( c->type ) {
 		case LDAP_BACK_CFG_URI:
 			if ( li->url != NULL ) {
@@ -292,21 +293,17 @@ ldap_back_cf_gen( ConfigArgs *c )
 			}
 			break;
 
-		case LDAP_BACK_CFG_TLS: {
-			BerVarray	bva = NULL;
-
-			mask_to_verbs( tls_mode, ( ( li->flags & LDAP_BACK_F_TLS_MASK ) | LDAP_BACK_C_MASK ), &bva );
-			if ( bva == NULL ) {
+		case LDAP_BACK_CFG_TLS:
+			enum_to_verb( tls_mode, ( li->flags & LDAP_BACK_F_TLS_MASK ), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
 				rc = 1;
 
 			} else {
-				c->value_string = bva[ 0 ].bv_val;
-				free( bva );
+				ber_dupbv( &c->value_bv, &bv );
 			}
 			break;
-		}
 
 		case LDAP_BACK_CFG_ACL_AUTHCDN:
 		case LDAP_BACK_CFG_ACL_PASSWD:
@@ -361,7 +358,8 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_IDASSERT_BIND: {
 			int		i;
 			struct berval	bv = BER_BVNULL,
-					mode = BER_BVNULL;
+					bc = BER_BVNULL;
+			char		*ptr;
 
 			if ( li->idassert_authmethod != LDAP_AUTH_NONE ) {
 				switch ( li->idassert_mode ) {
@@ -370,44 +368,86 @@ ldap_back_cf_gen( ConfigArgs *c )
 					break;
 
 				default: {
-					BerVarray	bva = NULL;
-					mask_to_verbs( idassert_mode, li->idassert_mode, &bva );
-					if ( bva == NULL ) {
+					struct berval	mode = BER_BVNULL;
+
+					enum_to_verb( idassert_mode, li->idassert_mode, &mode );
+					if ( BER_BVISNULL( &mode ) ) {
 						/* there's something wrong... */
 						assert( 0 );
 						rc = 1;
 	
 					} else {
-						mode = bva[ 0 ];
-						free( bva );
+						bv.bv_len = STRLENOF( "mode=" ) + mode.bv_len;
+						bv.bv_val = ch_malloc( bv.bv_len + 1 );
+
+						ptr = lutil_strcopy( bv.bv_val, "mode=" );
+						ptr = lutil_strcopy( ptr, mode.bv_val );
 					}
 					break;
 				}
 				}
+
+				if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
+					ber_len_t	len = bv.bv_len + STRLENOF( "authz=native" );
+
+					if ( !BER_BVISEMPTY( &bv ) ) {
+						len += STRLENOF( " " );
+					}
+
+					bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
+
+					ptr = bv.bv_val + bv.bv_len;
+
+					if ( !BER_BVISEMPTY( &bv ) ) {
+						ptr = lutil_strcopy( ptr, " " );
+					}
+
+					(void)lutil_strcopy( ptr, "authz=native" );
+				}
+
+				if ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
+					ber_len_t	len = bv.bv_len + STRLENOF( "flags=override" );
+
+					if ( !BER_BVISEMPTY( &bv ) ) {
+						len += STRLENOF( " " );
+					}
+
+					bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
+
+					ptr = bv.bv_val + bv.bv_len;
+
+					if ( !BER_BVISEMPTY( &bv ) ) {
+						ptr = lutil_strcopy( ptr, " " );
+					}
+
+					(void)lutil_strcopy( ptr, "flags=override" );
+				}
 			}
 
-			bindconf_unparse( &li->idassert_sb, &bv );
 
-			if ( !BER_BVISNULL( &mode ) ) {
+
+			bindconf_unparse( &li->idassert_sb, &bc );
+
+			if ( !BER_BVISNULL( &bv ) ) {
 				char	*ptr;
 
-				c->value_bv.bv_len = STRLENOF( "mode=" ) + mode.bv_len + bv.bv_len;
-				c->value_bv.bv_val = ch_malloc( c->value_bv.bv_len + 1 );
+				c->value_bv.bv_len = bv.bv_len + bc.bv_len;
+				c->value_bv.bv_val = ch_realloc( bv.bv_val, c->value_bv.bv_len + 1 );
 
-				ptr = lutil_strcopy( c->value_bv.bv_val, "mode=" );
-				ptr = lutil_strcopy( ptr, mode.bv_val );
-				ptr = lutil_strcopy( ptr, bv.bv_val );
+				assert( bc.bv_val[ 0 ] == ' ' );
 
-				free( mode.bv_val );
-				free( bv.bv_val );
+				ptr = lutil_strcopy( c->value_bv.bv_val, bv.bv_val );
+				(void)lutil_strcopy( ptr, bc.bv_val );
+
+				free( bc.bv_val );
 
 			} else {
-				for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
+				for ( i = 0; isspace( bc.bv_val[ i ] ); i++ )
 					/* count spaces */ ;
 
 				if ( i ) {
-					bv.bv_len -= i;
-					AC_MEMCPY( bv.bv_val, &bv.bv_val[ i ], bv.bv_len + 1 );
+					bc.bv_len -= i;
+					AC_MEMCPY( bc.bv_val, &bc.bv_val[ i ], bc.bv_len + 1 );
 				}
 
 				c->value_bv = bv;
@@ -416,69 +456,53 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 		}
 
-		case LDAP_BACK_CFG_REBIND: {
-			BerVarray	bva = NULL;
-
-			mask_to_verbs( yn_mode, ( ( li->flags & LDAP_BACK_F_SAVECRED ) | LDAP_BACK_C_MASK ), &bva );
-			if ( bva == NULL ) {
+		case LDAP_BACK_CFG_REBIND:
+			enum_to_verb( yn_mode, ( ( li->flags & LDAP_BACK_F_SAVECRED ) == LDAP_BACK_F_SAVECRED ), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
 				rc = 1;
 
 			} else {
-				c->value_string = bva[ 0 ].bv_val;
-				free( bva );
+				ber_dupbv( &c->value_bv, &bv );
 			}
 			break;
-		}
 
-		case LDAP_BACK_CFG_CHASE: {
-			BerVarray	bva = NULL;
-
-			mask_to_verbs( yn_mode, ( ( li->flags & LDAP_BACK_F_CHASE_REFERRALS ) | LDAP_BACK_C_MASK ), &bva );
-			if ( bva == NULL ) {
+		case LDAP_BACK_CFG_CHASE:
+			enum_to_verb( yn_mode, ( ( li->flags & LDAP_BACK_F_CHASE_REFERRALS ) == LDAP_BACK_F_CHASE_REFERRALS ), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
 				rc = 1;
 
 			} else {
-				c->value_string = bva[ 0 ].bv_val;
-				free( bva );
+				ber_dupbv( &c->value_bv, &bv );
 			}
 			break;
-		}
 
-		case LDAP_BACK_CFG_T_F: {
-			BerVarray	bva = NULL;
-
-			mask_to_verbs( t_f_mode, ( ( li->flags & LDAP_BACK_F_SUPPORT_T_F_MASK ) | LDAP_BACK_C_MASK ), &bva );
-			if ( bva == NULL ) {
+		case LDAP_BACK_CFG_T_F:
+			enum_to_verb( t_f_mode, ( ( li->flags & LDAP_BACK_F_SUPPORT_T_F_MASK ) == LDAP_BACK_F_SUPPORT_T_F_MASK ), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
 				rc = 1;
 
 			} else {
-				c->value_string = bva[ 0 ].bv_val;
-				free( bva );
+				ber_dupbv( &c->value_bv, &bv );
 			}
 			break;
-		}
 
-		case LDAP_BACK_CFG_WHOAMI: {
-			BerVarray	bva = NULL;
-
-			mask_to_verbs( yn_mode, ( ( li->flags & LDAP_BACK_F_PROXY_WHOAMI ) | LDAP_BACK_C_MASK ), &bva );
-			if ( bva == NULL ) {
+		case LDAP_BACK_CFG_WHOAMI:
+			enum_to_verb( yn_mode, ( ( li->flags & LDAP_BACK_F_PROXY_WHOAMI ) == LDAP_BACK_F_PROXY_WHOAMI ), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
 				/* there's something wrong... */
 				assert( 0 );
 				rc = 1;
 
 			} else {
-				c->value_string = bva[ 0 ].bv_val;
-				free( bva );
+				ber_dupbv( &c->value_bv, &bv );
 			}
 			break;
-		}
 
 		default:
 			/* we need to handle all... */
@@ -691,7 +715,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		li->flags &= ~LDAP_BACK_F_TLS_MASK;
-		li->flags |= ( tls_mode[i].mask & ~LDAP_BACK_C_MASK );
+		li->flags |= tls_mode[i].mask;
 		break;
 
 	case LDAP_BACK_CFG_ACL_AUTHCDN:
@@ -854,6 +878,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_METHOD:
+		/* no longer supported */
+		fprintf( stderr, "%s: %d: "
+			"\"idassert-method <args>\": "
+			"no longer supported; use \"idassert-bind\".\n",
+			c->fname, c->lineno );
+		return 1;
+
 	case LDAP_BACK_CFG_IDASSERT_BIND:
 		for ( i = 1; i < c->argc; i++ ) {
 			if ( strncasecmp( c->argv[ i ], "mode=", STRLENOF( "mode=" ) ) == 0 ) {
@@ -870,6 +901,59 @@ ldap_back_cf_gen( ConfigArgs *c )
 				}
 
 				li->idassert_mode = idassert_mode[ j ].mask;
+
+			} else if ( strncasecmp( c->argv[ i ], "authz=", STRLENOF( "authz=" ) ) == 0 ) {
+				char	*argvi = c->argv[ i ] + STRLENOF( "authz=" );
+
+				if ( strcasecmp( argvi, "native" ) == 0 ) {
+					if ( li->idassert_authmethod != LDAP_AUTH_SASL ) {
+						fprintf( stderr, "%s: %d: "
+							"\"idassert-bind <args>\": "
+							"authz=\"native\" incompatible "
+							"with auth method.\n",
+							c->fname, c->lineno );
+						return 1;
+					}
+					li->idassert_flags |= LDAP_BACK_AUTH_NATIVE_AUTHZ;
+
+				} else if ( strcasecmp( argvi, "proxyAuthz" ) == 0 ) {
+					li->idassert_flags &= ~LDAP_BACK_AUTH_NATIVE_AUTHZ;
+
+				} else {
+					fprintf( stderr, "%s: %d: "
+						"\"idassert-bind <args>\": "
+						"unknown authz \"%s\".\n",
+						c->fname, c->lineno, argvi );
+					return 1;
+				}
+
+			} else if ( strncasecmp( c->argv[ i ], "flags=", STRLENOF( "flags=" ) ) == 0 ) {
+				char	*argvi = c->argv[ i ] + STRLENOF( "flags=" );
+				char	**flags = ldap_str2charray( argvi, "," );
+				int	j;
+
+				if ( flags == NULL ) {
+					fprintf( stderr, "%s: %d: "
+						"\"idassert-bind <args>\": "
+						"unable to parse flags \"%s\".\n",
+						c->fname, c->lineno, argvi );
+					return 1;
+				}
+
+				for ( j = 0; flags[ j ] != NULL; j++ ) {
+					if ( strcasecmp( flags[ j ], "override" ) == 0 ) {
+						li->idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
+
+					} else {
+						fprintf( stderr, "%s: %d: "
+							"\"idassert-bind <args>\": "
+							"unknown flag \"%s\".\n",
+							c->fname, c->lineno, flags[ j ] );
+						return 1;
+					}
+				}
+
+				ldap_charray_free( flags );
 
 			} else if ( bindconf_parse( c->argv[ i ], &li->idassert_sb ) ) {
 				return 1;
@@ -935,7 +1019,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		li->flags &= ~LDAP_BACK_F_SUPPORT_T_F_MASK;
-		li->flags |= ( t_f_mode[i].mask & ~LDAP_BACK_C_MASK );
+		li->flags |= t_f_mode[i].mask;
 		break;
 
 	case LDAP_BACK_CFG_WHOAMI: {

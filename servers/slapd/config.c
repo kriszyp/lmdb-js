@@ -745,6 +745,21 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 	return 0;
 }
 
+int
+enum_to_verb(slap_verbmasks *v, slap_mask_t m, struct berval *bv) {
+	int i;
+
+	for (i=0; !BER_BVISNULL(&v[i].word); i++) {
+		if ( m == v[i].mask ) {
+			if ( bv != NULL ) {
+				*bv = v[i].word;
+			}
+			return i;
+		}
+	}
+	return -1;
+}
+
 static slap_verbmasks tlskey[] = {
 	{ BER_BVC("no"),	SB_TLS_OFF },
 	{ BER_BVC("yes"),	SB_TLS_ON },
