@@ -27,7 +27,7 @@ if [ x"$WITH_SASL" = x"yes" -a x"$USE_SASL" != x"no" ] ; then
 	if [ x"$USE_SASL" = x"yes" ] ; then
 		USE_SASL=DIGEST-MD5
 	fi
-	SASL_MECH="\"mech=$USE_SASL\""
+	SASL_MECH="\"saslmech=$USE_SASL\""
 else
 	SASL="nosasl"
 	SASL_MECH=
