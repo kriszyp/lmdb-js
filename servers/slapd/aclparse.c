@@ -342,8 +342,8 @@ parse_acl(
 				strcmp(a->acl_dn_pat.bv_val, "*") == 0 )
 			{
 				free( a->acl_dn_pat.bv_val );
-				a->acl_dn_pat.bv_val = NULL;
-				a->acl_dn_pat.bv_len = 0;
+				BER_BVZERO( &a->acl_dn_pat );
+				a->acl_dn_style = ACL_STYLE_REGEX;
 			}
 			
 			if( a->acl_dn_pat.bv_len != 0 ||
