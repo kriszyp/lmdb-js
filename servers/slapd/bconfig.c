@@ -234,7 +234,7 @@ static ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgGlAt:5 NAME 'olcAttributeOptions' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "authid-rewrite", NULL, 2, 0, 0,
+	{ "authid-rewrite", NULL, 2, 0, STRLENOF( "authid-rewrite" ),
 #ifdef SLAP_AUTH_REWRITE
 		ARG_MAGIC|CFG_REWRITE|ARG_NO_INSERT, &config_generic,
 #else
@@ -1207,9 +1207,27 @@ config_generic(ConfigArgs *c) {
 #ifdef SLAP_AUTH_REWRITE
 		case CFG_REWRITE: {
 			struct berval bv;
+			char *line;
+			
 			if(slap_sasl_rewrite_config(c->fname, c->lineno, c->argc, c->argv))
 				return(1);
-			ber_str2bv( c->line, 0, 1, &bv );
+
+			if ( c->argc > 1 ) {
+				char	*s;
+
+				/* quote all args but the first */
+				line = ldap_charray2str( c->argv, "\" \"" );
+				ber_str2bv( line, 0, 0, &bv );
+				s = strchr( bv.bv_val, '"' );
+				assert( s != NULL );
+				/* move the trailing quote of argv[0] to the end */
+				AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
+				bv.bv_val[ bv.bv_len - 1 ] = '"';
+
+			} else {
+				ber_str2bv( c->argv[ 0 ], 0, 1, &bv );
+			}
+			
 			ber_bvarray_add( &authz_rewrites, &bv );
 			}
 			break;
