@@ -2066,7 +2066,7 @@ int pcache_init()
 		return code;
 	}
 
-	proxy_cache.on_bi.bi_type = "proxycache";
+	proxy_cache.on_bi.bi_type = "pcache";
 	proxy_cache.on_bi.bi_db_init = proxy_cache_init;
 	proxy_cache.on_bi.bi_db_config = proxy_cache_config;
 	proxy_cache.on_bi.bi_db_open = proxy_cache_open;
