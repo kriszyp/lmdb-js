@@ -686,18 +686,6 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 		}
 	}
 
-	if ( BER_BVISNULL( &frontendDB->be_schemadn ) ) {
-		ber_str2bv( SLAPD_SCHEMA_DN, STRLENOF( SLAPD_SCHEMA_DN ), 1,
-			&frontendDB->be_schemadn );
-		rc = dnNormalize( 0, NULL, NULL, &frontendDB->be_schemadn, &frontendDB->be_schemandn, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug(LDAP_DEBUG_ANY, "%s: "
-				"unable to normalize default schema DN \"%s\"\n",
-				c->log, frontendDB->be_schemadn.bv_val, 0 );
-			/* must not happen */
-			assert( 0 );
-		}
-	}
 	rc = 0;
 
 leave:

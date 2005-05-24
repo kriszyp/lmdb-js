@@ -2567,8 +2567,10 @@ read_config(const char *fname, const char *dir) {
 			return 1;
 
 		/* If we read the config from back-ldif, nothing to do here */
-		if ( cfb->cb_got_ldif )
-			return 0;
+		if ( cfb->cb_got_ldif ) {
+			rc = 0;
+			goto done;
+		}
 	}
 
 	if ( fname )
@@ -2598,6 +2600,20 @@ read_config(const char *fname, const char *dir) {
 			cfb->cb_got_ldif = 1;
 		}
 		break;
+	}
+
+done:
+	if ( rc == 0 && BER_BVISNULL( &frontendDB->be_schemadn ) ) {
+		ber_str2bv( SLAPD_SCHEMA_DN, STRLENOF( SLAPD_SCHEMA_DN ), 1,
+			&frontendDB->be_schemadn );
+		rc = dnNormalize( 0, NULL, NULL, &frontendDB->be_schemadn, &frontendDB->be_schemandn, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug(LDAP_DEBUG_ANY, "read_config: "
+				"unable to normalize default schema DN \"%s\"\n",
+				frontendDB->be_schemadn.bv_val, 0, 0 );
+			/* must not happen */
+			assert( 0 );
+		}
 	}
 	return rc;
 }
