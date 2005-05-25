@@ -524,6 +524,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 				ldap_free_urllist( li->lud );
 				li->lud = NULL;
 			}
+			
+			/* better cleanup the cached connections... */
+			/* NOTE: don't worry about locking: if we got here,
+			 * other threads are suspended. */
+			avl_free( li->conntree, ldap_back_conn_free );
+			
 			break;
 
 		case LDAP_BACK_CFG_TLS:
