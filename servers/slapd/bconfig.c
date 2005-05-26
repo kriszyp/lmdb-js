@@ -968,11 +968,20 @@ config_generic(ConfigArgs *c) {
 				c->be = LDAP_STAILQ_FIRST(&backendDB);
 			} else if ( !strcasecmp( c->argv[1], "frontend" )) {
 				c->be = frontendDB;
-			} else if(!(c->be = backend_db_init(c->argv[1]))) {
-				sprintf( c->msg, "<%s> failed init", c->argv[0] );
-				Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-					c->log, c->msg, c->argv[1] );
-				return(1);
+			} else {
+				c->be = backend_db_init(c->argv[1]);
+				if ( !c->be ) {
+					sprintf( c->msg, "<%s> failed init", c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
+						c->log, c->msg, c->argv[1] );
+					return(1);
+				}
+				if ( CONFIG_ONLINE_ADD(c) && backend_startup_one( c->be )) {
+					sprintf( c->msg, "<%s> failed startup", c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
+						c->log, c->msg, c->argv[1] );
+					return(1);
+				}
 			}
 			break;
 
