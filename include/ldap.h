@@ -726,6 +726,17 @@ ldap_set_rebind_proc LDAP_P((
 	LDAP_REBIND_PROC *rebind_proc,
 	void *params ));
 
+/* V3 referral selection Function Callback Prototype */
+typedef int (LDAP_NEXTREF_PROC) LDAP_P((
+	LDAP *ld, char ***refsp, int *cntp,
+	void *params ));
+
+LDAP_F( int )
+ldap_set_nextref_proc LDAP_P((
+	LDAP *ld,
+	LDAP_NEXTREF_PROC *nextref_proc,
+	void *params ));
+
 /*
  * in controls.c:
  */

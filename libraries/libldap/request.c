@@ -657,6 +657,36 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 	ldap_free_request_int( ld, lr );
 }
 
+/*
+ * call first time with *cntp = -1
+ * when returns *cntp == -1, no referrals are left
+ *
+ * NOTE: may replace *refsp, or shuffle the contents
+ * of the original array.
+ */
+static int ldap_int_nextref(
+	LDAP			*ld,
+	char			***refsp,
+	int			*cntp,
+	void			*params )
+{
+	assert( refsp != NULL );
+	assert( *refsp != NULL );
+	assert( cntp != NULL );
+
+	if ( *cntp < -1 ) {
+		*cntp = -1;
+		return -1;
+	}
+
+	(*cntp)++;
+
+	if ( (*refsp)[ *cntp ] == NULL ) {
+		*cntp = -1;
+	}
+
+	return 0;
+}
 
 /*
  * Chase v3 referrals
@@ -718,8 +748,18 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 
 	refarray = refs;
 	refs = NULL;
+
+	if ( ld->ld_nextref_proc == NULL ) {
+		ld->ld_nextref_proc = ldap_int_nextref;
+	}
+
 	/* parse out & follow referrals */
-	for( i=0; refarray[i] != NULL; i++) {
+	i = -1;
+	for ( ld->ld_nextref_proc( ld, &refarray, &i, ld->ld_nextref_params );
+			i != -1;
+			ld->ld_nextref_proc( ld, &refarray, &i, ld->ld_nextref_params ) )
+	{
+
 		/* Parse the referral URL */
 		if (( rc = ldap_url_parse_ext( refarray[i], &srv)) != LDAP_SUCCESS) {
 			ld->ld_errno = rc;
