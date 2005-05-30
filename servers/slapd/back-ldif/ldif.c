@@ -332,11 +332,12 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 						ck->op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
 							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
 
+				ck->rs->sr_entry = e;
 				rc = send_search_reference( ck->op, ck->rs );
-
 				ber_bvarray_free( ck->rs->sr_ref );
 				ber_bvarray_free( erefs );
 				ck->rs->sr_ref = NULL;
+				ck->rs->sr_entry = NULL;
 
 			} else if ( test_filter( ck->op, e, ck->op->ors_filter ) == LDAP_COMPARE_TRUE )
 			{
@@ -344,6 +345,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				ck->rs->sr_attrs = ck->op->ors_attrs;
 				ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				rc = send_search_entry(ck->op, ck->rs);
+				ck->rs->sr_entry = NULL;
 			}
 			fd = 1;
 			if ( rc )
