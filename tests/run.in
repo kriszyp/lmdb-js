@@ -113,6 +113,9 @@ while test $# -gt 0 ; do
 done
 
 BACKENDTYPE=`eval 'echo $AC_'$BACKEND`
+if test "x$BACKENDTYPE" = "x" ; then
+	BACKENDTYPE="unknown"
+fi
 export BACKEND BACKENDTYPE WAIT KILLSERVERS PRESERVE USERDATA
 
 if test $# = 0 ; then
