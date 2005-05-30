@@ -1401,6 +1401,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		goto rel;
 	}
 
+	rc = 0;
 	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
 		be_entry_release_rw( op, rs->sr_entry, 0 );
 		rs->sr_flags ^= REP_ENTRY_MUSTRELEASE;
