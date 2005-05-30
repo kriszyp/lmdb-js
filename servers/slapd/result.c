@@ -1536,6 +1536,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 		goto rel;
 	}
 
+	rc = 0;
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0) {
 #endif
