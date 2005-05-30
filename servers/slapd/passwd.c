@@ -78,10 +78,9 @@ int passwd_extop(
 		return rs->sr_err;
 	}
 
-	if ( id.bv_len ) {
-		ber_dupbv_x( &op->o_req_dn, &id, op->o_tmpmemctx );
-		/* ndn is in tmpmem, so we don't need to free it */
-		rs->sr_err = dnNormalize( 0, NULL, NULL, &id, &op->o_req_ndn, op->o_tmpmemctx );
+	if ( !BER_BVISEMPTY( &id ) ) {
+		rs->sr_err = dnPrettyNormal( NULL, &id, &op->o_req_dn,
+				&op->o_req_ndn, op->o_tmpmemctx );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "Invalid DN";
 			rc = rs->sr_err;
@@ -315,7 +314,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto decoding_error;
 		}
 
-		tag = ber_peek_tag( ber, &len);
+		tag = ber_peek_tag( ber, &len );
 	}
 
 	if( tag == LDAP_TAG_EXOP_MODIFY_PASSWD_OLD ) {
