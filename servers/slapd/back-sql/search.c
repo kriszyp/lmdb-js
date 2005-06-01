@@ -2399,7 +2399,7 @@ backsql_entry_clean(
 
 	ctx = ldap_pvt_thread_pool_context();
 
-	if ( ctx == NULL || ctx == op->o_tmpmemctx ) {
+	if ( ctx == NULL || ctx != op->o_tmpmemctx ) {
 		if ( !BER_BVISNULL( &e->e_name ) ) {
 			op->o_tmpfree( e->e_name.bv_val, op->o_tmpmemctx );
 			BER_BVZERO( &e->e_name );
