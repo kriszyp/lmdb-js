@@ -1494,7 +1494,7 @@ done:;
 	}
 
 	if ( !BER_BVISNULL( &p.e_nname ) ) {
-		entry_clean( &p );
+		backsql_entry_clean( op, &p );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_add(\"%s\"): %d \"%s\"\n",

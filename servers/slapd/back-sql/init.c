@@ -74,6 +74,7 @@ sql_back_initialize(
 	bi->bi_chk_referrals = 0;
 	bi->bi_operational = backsql_operational;
 	bi->bi_entry_get_rw = backsql_entry_get;
+	bi->bi_entry_release_rw = backsql_entry_release;
  
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = backsql_connection_destroy;

@@ -862,7 +862,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 			&bsi->bsi_oc->bom_oc->soc_cname,
 			bsi->bsi_op->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
-		entry_clean( bsi->bsi_e );
+		backsql_entry_clean( op, bsi->bsi_e );
 		return rc;
 	}
 
@@ -966,7 +966,7 @@ next:;
 					"structural_class() failed %d (%s)\n",
 					bsi->bsi_e->e_name.bv_val,
 					rc, text ? text : "" );
-				entry_clean( bsi->bsi_e );
+				backsql_entry_clean( op, bsi->bsi_e );
 				return rc;
 			}
 
@@ -977,7 +977,7 @@ next:;
 					"to entry\n",
 					bsi->bsi_e->e_name.bv_val, soc.bv_val,
 					bsi->bsi_oc->bom_oc->soc_cname.bv_val );
-				entry_clean( bsi->bsi_e );
+				backsql_entry_clean( op, bsi->bsi_e );
 				return rc;
 			}
 		}
@@ -987,7 +987,7 @@ next:;
 				&bsi->bsi_oc->bom_oc->soc_cname,
 				bsi->bsi_op->o_tmpmemctx );
 		if ( rc != LDAP_SUCCESS ) {
-			entry_clean( bsi->bsi_e );
+			backsql_entry_clean( op, bsi->bsi_e );
 			return rc;
 		}
 	}

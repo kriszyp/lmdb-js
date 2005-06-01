@@ -158,7 +158,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		entry_clean( &m );
+		backsql_entry_clean( op, &m );
 
 		bsi.bsi_e = &m;
 		rs->sr_err = backsql_id2entry( &bsi, &bsi.bsi_base_id );
@@ -212,7 +212,7 @@ done:;
 	}
 
 	if ( !BER_BVISNULL( &m.e_nname ) ) {
-		entry_clean( &m );
+		backsql_entry_clean( op, &m );
 	}
 
 	if ( bsi.bsi_attrs != NULL ) {

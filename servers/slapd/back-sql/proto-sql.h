@@ -169,6 +169,8 @@ int backsql_init_search( backsql_srch_info *bsi,
 		Operation *op, SlapReply *rs, AttributeName *attrs,
 		unsigned flags );
 
+void backsql_entry_clean( Operation *op, Entry *e );
+
 /*
  * sql-wrap.h
  */
@@ -283,6 +285,7 @@ extern BI_op_delete		backsql_delete;
 
 extern BI_operational		backsql_operational;
 extern BI_entry_get_rw		backsql_entry_get;
+extern BI_entry_release_rw	backsql_entry_release;
 
 extern BI_connection_destroy	backsql_connection_destroy;
 

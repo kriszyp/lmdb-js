@@ -449,7 +449,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		entry_clean( &r );
+		backsql_entry_clean( op, &r );
 		(void)backsql_free_entryID( op, &e_id, 0 );
 
 		bsi.bsi_e = &r;
@@ -574,15 +574,15 @@ done:;
 	}
 
 	if ( !BER_BVISNULL( &r.e_nname ) ) {
-		entry_clean( &r );
+		backsql_entry_clean( op, &r );
 	}
 
 	if ( !BER_BVISNULL( &p.e_nname ) ) {
-		entry_clean( &p );
+		backsql_entry_clean( op, &p );
 	}
 
 	if ( !BER_BVISNULL( &n.e_nname ) ) {
-		entry_clean( &n );
+		backsql_entry_clean( op, &n );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modrdn()\n", 0, 0, 0 );
