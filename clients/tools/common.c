@@ -134,7 +134,9 @@ N_("             [!]chaining[=<resolveBehavior>[/<continuationBehavior>]]\n")
 N_("                     one of \"chainingPreferred\", \"chainingRequired\",\n")
 N_("                     \"referralsPreferred\", \"referralsRequired\"\n")
 #endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
+#ifdef LDAP_DEVEL
 N_("             [!]manageDIT\n")
+#endif
 N_("             [!]manageDSAit\n")
 N_("             [!]noop\n")
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
