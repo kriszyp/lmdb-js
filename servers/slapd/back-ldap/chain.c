@@ -695,11 +695,13 @@ static ConfigTable chaincfg[] = {
 };
 
 static ConfigOCs chainocs[] = {
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	{ "( OLcfgOvOc:3.1 "
 		"NAME 'olcChainConfig' "
 		"DESC 'Chain configuration' "
 		"SUP olcOverlayConfig "
 		"MAY olcChainingBehavior )", Cft_Overlay, chaincfg, NULL, chain_cfadd },
+#endif
 	{ "( OLcfgOvOc:3.2 "
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
