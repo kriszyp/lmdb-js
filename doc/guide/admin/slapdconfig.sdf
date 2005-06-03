@@ -958,7 +958,7 @@ attribute and various {{EX:<who>}} selectors.
 
 >	access to dn.subtree="dc=example,dc=com" attr=homePhone
 >		by self write
->		by dn.children=dc=example,dc=com" search
+>		by dn.children="dc=example,dc=com" search
 >		by peername.regex=IP:10\..+ read
 >	access to dn.subtree="dc=example,dc=com"
 >		by self write
