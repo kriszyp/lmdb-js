@@ -47,7 +47,7 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = ldap_back_db_init;
-	bi->bi_db_config = ldap_back_db_config;
+	bi->bi_db_config = config_generic_wrapper;
 	bi->bi_db_open = ldap_back_db_open;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = ldap_back_db_destroy;
@@ -70,11 +70,11 @@ ldap_back_initialize( BackendInfo *bi )
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
 
-	if ( chain_init( ) ) {
+	if ( chain_init() ) {
 		return -1;
 	}
 
-	return 0;
+	return ldap_back_init_cf( bi );
 }
 
 int
@@ -91,8 +91,9 @@ ldap_back_db_init( Backend *be )
 	BER_BVZERO( &li->acl_authcDN );
 	BER_BVZERO( &li->acl_passwd );
 
-	li->acl_authmethod = LDAP_AUTH_SIMPLE;
+	li->acl_authmethod = LDAP_AUTH_NONE;
 	BER_BVZERO( &li->acl_sasl_mech );
+	li->acl_sb.sb_tls = SB_TLS_DEFAULT;
 
 	li->idassert_mode = LDAP_BACK_IDASSERT_LEGACY;
 
@@ -102,8 +103,9 @@ ldap_back_db_init( Backend *be )
 
 	BER_BVZERO( &li->idassert_authzID );
 
-	li->idassert_authmethod = LDAP_AUTH_SIMPLE;
+	li->idassert_authmethod = LDAP_AUTH_NONE;
 	BER_BVZERO( &li->idassert_sasl_mech );
+	li->idassert_sb.sb_tls = SB_TLS_DEFAULT;
 
 	/* by default, use proxyAuthz control on each operation */
 	li->idassert_flags = LDAP_BACK_AUTH_NONE;
@@ -120,6 +122,8 @@ ldap_back_db_init( Backend *be )
 
 	be->be_private = li;
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_NOLASTMOD;
+
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
 
 	return 0;
 }
