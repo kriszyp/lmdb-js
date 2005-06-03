@@ -280,7 +280,7 @@ typedef struct ldapcontrol {
 
 /* LDAP Chaining Behavior Control *//* work in progress */
 /* <draft-sermersheim-ldap-chaining>;
- * see also LDAP_REQUIRES_CHAINING, LDAP_CANNOT_CHAIN */
+ * see also LDAP_NO_REFERRALS_FOUND, LDAP_CANNOT_CHAIN */
 #ifdef LDAP_DEVEL
 #define LDAP_CONTROL_X_CHAINING_BEHAVIOR	"1.3.6.1.4.1.4203.666.11.3"
 
@@ -582,7 +582,7 @@ typedef struct ldapcontrol {
 /* for the Chaining Behavior control (consecutive result codes requested;
  * see <draft-sermersheim-ldap-chaining> ) */
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
-#define	LDAP_REQUIRES_CHAINING			0x4110
+#define	LDAP_NO_REFERRALS_FOUND			0x4110
 #define LDAP_CANNOT_CHAIN			0x4111
 #endif
 
@@ -724,6 +724,17 @@ LDAP_F( int )
 ldap_set_rebind_proc LDAP_P((
 	LDAP *ld,
 	LDAP_REBIND_PROC *rebind_proc,
+	void *params ));
+
+/* V3 referral selection Function Callback Prototype */
+typedef int (LDAP_NEXTREF_PROC) LDAP_P((
+	LDAP *ld, char ***refsp, int *cntp,
+	void *params ));
+
+LDAP_F( int )
+ldap_set_nextref_proc LDAP_P((
+	LDAP *ld,
+	LDAP_NEXTREF_PROC *nextref_proc,
 	void *params ));
 
 /*

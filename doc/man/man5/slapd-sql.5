@@ -311,6 +311,13 @@ consistency with the rest of slapd.  This may change in the future.
 .RE
 
 .TP
+.B check_schema { YES | no }
+Instructs the database to check schema adherence of entries after
+modifications, and structural objectClass chain when entries are built.
+By default it is set to 
+.BR yes .
+
+.TP
 .B sqllayer <name> [...]
 Loads the layer \fB<name>\fP onto a stack of helpers that are used 
 to map DNs from LDAP to SQL representation and vice-versa.

@@ -310,11 +310,11 @@ main( int argc, char **argv )
 	}
 #endif
 
-	if ( assertion || authzid || manageDSAit || noop || preread || postread
+	if ( assertion || authzid || manageDIT || manageDSAit || noop
 #ifdef LDAP_GROUP_TRANSACTION
 		|| txn
 #endif
-		)
+		|| preread || postread )
 	{
 		int err;
 		int i = 0;

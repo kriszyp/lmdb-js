@@ -325,7 +325,11 @@ typedef mpz_t		ldap_pvt_mp_t;
  * Use unsigned long
  */
 
-typedef	unsigned long	ldap_pvt_mp_t;
+#ifdef HAVE_LONG_LONG
+typedef	unsigned long long	ldap_pvt_mp_t;
+#else /* !HAVE_LONG_LONG */
+typedef	unsigned long		ldap_pvt_mp_t;
+#endif /* !HAVE_LONG_LONG */
 
 #define ldap_pvt_mp_init(mp) \
 	(mp) = 0

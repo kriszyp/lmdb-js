@@ -28,6 +28,9 @@
 #define LDAP_OPT_REBIND_PROC 0x4e814d
 #define LDAP_OPT_REBIND_PARAMS 0x4e814e
 
+#define LDAP_OPT_NEXTREF_PROC 0x4e815d
+#define LDAP_OPT_NEXTREF_PARAMS 0x4e815e
+
 static const LDAPAPIFeatureInfo features[] = {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP
 	{	/* OpenLDAP Extensions API Feature */
@@ -166,7 +169,7 @@ ldap_get_option(
 
 	case LDAP_OPT_SOCKBUF:
 		if( ld == NULL ) break;
-		outvalue = ld->ld_sb;
+		*(Sockbuf **)outvalue = ld->ld_sb;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMEOUT:
@@ -454,6 +457,14 @@ ldap_set_option(
 	case LDAP_OPT_REBIND_PARAMS: {
 			lo->ldo_rebind_params = (void *)invalue;		
 		} return LDAP_OPT_SUCCESS;
+
+	/* Only accessed from inside this function by ldap_set_nextref_proc() */
+	case LDAP_OPT_NEXTREF_PROC: {
+			lo->ldo_nextref_proc = (LDAP_NEXTREF_PROC *)invalue;		
+		} return LDAP_OPT_SUCCESS;
+	case LDAP_OPT_NEXTREF_PARAMS: {
+			lo->ldo_nextref_params = (void *)invalue;		
+		} return LDAP_OPT_SUCCESS;
 	}
 
 	if(invalue == NULL) {
@@ -668,5 +679,16 @@ ldap_set_rebind_proc( LDAP *ld, LDAP_REBIND_PROC *proc, void *params )
 	if( rc != LDAP_OPT_SUCCESS ) return rc;
 
 	rc = ldap_set_option( ld, LDAP_OPT_REBIND_PARAMS, (void *)params );
+	return rc;
+}
+
+int
+ldap_set_nextref_proc( LDAP *ld, LDAP_NEXTREF_PROC *proc, void *params )
+{
+	int rc;
+	rc = ldap_set_option( ld, LDAP_OPT_NEXTREF_PROC, (void *)proc );
+	if( rc != LDAP_OPT_SUCCESS ) return rc;
+
+	rc = ldap_set_option( ld, LDAP_OPT_NEXTREF_PARAMS, (void *)params );
 	return rc;
 }

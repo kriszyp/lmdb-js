@@ -198,6 +198,8 @@ struct ldapoptions {
 	/* LDAP rebind callback function */
 	LDAP_REBIND_PROC *ldo_rebind_proc;
 	void *ldo_rebind_params;
+	LDAP_NEXTREF_PROC *ldo_nextref_proc;
+	void *ldo_nextref_params;
 
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
@@ -311,8 +313,10 @@ struct ldap {
 
 #define ld_sctrls		ld_options.ldo_sctrls
 #define ld_cctrls		ld_options.ldo_cctrls
-#define ld_rebind_proc	ld_options.ldo_rebind_proc
+#define ld_rebind_proc		ld_options.ldo_rebind_proc
 #define ld_rebind_params	ld_options.ldo_rebind_params
+#define ld_nextref_proc		ld_options.ldo_nextref_proc
+#define ld_nextref_params	ld_options.ldo_nextref_params
 
 #define ld_version		ld_options.ldo_version
 

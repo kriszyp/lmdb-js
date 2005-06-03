@@ -170,7 +170,7 @@ main( int argc, char **argv )
 
 	tool_bind( ld );
 
-	if ( assertion || authzid || manageDSAit || noop ) {
+	if ( assertion || authzid || manageDIT || manageDSAit || noop ) {
 		tool_server_controls( ld, NULL, 0 );
 	}
 

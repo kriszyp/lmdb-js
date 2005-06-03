@@ -9,7 +9,9 @@ output in multiple formats.
     sdf -2html guide.sdf    # generate HTML for release
     sdf -2txt guide.sdf     # generate TXT for release
 
-More information (and SDF software) can be obtained from the
-SDF website at:
-    http://www.mincom.com/mtr/sdf/
+More information about STF can be obtained from the CPAN at:
+	http://search.cpan.org/src/IANC/sdf-2.001/doc/catalog.html
+
+SDF itself can be obtained at:
+	http://search.cpan.org/~ianc/sdf-2.001/
 
