@@ -139,6 +139,11 @@ typedef struct config_args_s {
 	ConfigDriver *cleanup;
 } ConfigArgs;
 
+/* If lineno is zero, we have an actual LDAP Add request from a client.
+ * Otherwise, we're reading a config file or a config dir.
+ */
+#define CONFIG_ONLINE_ADD(ca)	(!((ca)->lineno))
+
 #define value_int values.v_int
 #define value_long values.v_long
 #define value_ber_t values.v_ber_t

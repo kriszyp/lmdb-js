@@ -110,7 +110,7 @@ LDAP_BEGIN_DECL
 #endif
 
 #define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
-#define SLAPD_ANONYMOUS "cn=anonymous"
+#define SLAPD_ANONYMOUS ""
 
 /* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
  * This is a value used internally by the backends. It is needed to allow
@@ -658,20 +658,23 @@ typedef struct slap_attribute_type {
 	AttributeTypeSchemaCheckFN	*sat_check;
 	char					*sat_oidmacro;
 
-#define SLAP_AT_NONE		0x0000U
-#define SLAP_AT_ABSTRACT	0x0100U /* cannot be instantiated */
-#define SLAP_AT_FINAL		0x0200U /* cannot be subtyped */
+#define SLAP_AT_NONE			0x0000U
+#define SLAP_AT_ABSTRACT		0x0100U /* cannot be instantiated */
+#define SLAP_AT_FINAL			0x0200U /* cannot be subtyped */
 #ifdef LDAP_DEVEL
-#define SLAP_AT_HIDE		0x0000U /* publish everything */
+#define SLAP_AT_HIDE			0x0000U /* publish everything */
 #else
-#define SLAP_AT_HIDE		0x8000U /* hide attribute */
+#define SLAP_AT_HIDE			0x8000U /* hide attribute */
 #endif
-#define	SLAP_AT_DYNAMIC		0x0400U	/* dynamically generated */
+#define	SLAP_AT_DYNAMIC			0x0400U	/* dynamically generated */
+
+#define SLAP_AT_MANAGEABLE		0x0800U	/* no-user-mod can be by-passed */
 
 #define	SLAP_AT_ORDERED_VAL		0x0001U /* values are ordered */
 #define	SLAP_AT_ORDERED_SIB		0x0002U /* siblings are ordered */
-#define	SLAP_AT_ORDERED		0x0003U /* value has order index */
-#define	SLAP_AT_HARDCODE	0x10000U	/* This is hardcoded schema */
+#define	SLAP_AT_ORDERED			0x0003U /* value has order index */
+
+#define	SLAP_AT_HARDCODE	0x10000U	/* hardcoded schema */
 
 	slap_mask_t					sat_flags;
 
@@ -1302,7 +1305,7 @@ typedef struct slap_access {
 #define ACL_PRIV_MANAGE			ACL_ACCESS2PRIV( ACL_MANAGE )
 
 /* NOTE: always use the highest level; current: 0x00ffUL */
-#define ACL_PRIV_MASK			((ACL_PRIV_MANAGE - 1) | ACL_QUALIFIER_MASK)
+#define ACL_PRIV_MASK			((ACL_ACCESS2PRIV(ACL_LAST) - 1) | ACL_QUALIFIER_MASK)
 
 /* priv flags */
 #define ACL_PRIV_LEVEL			0x1000UL
@@ -1490,9 +1493,10 @@ LDAP_SLAPD_V (int) slapMode;
 #define	SLAP_TOOL_READONLY	0x0400
 #define	SLAP_TOOL_QUICK		0x0800
 
+#define SB_TLS_DEFAULT		(-1)
 #define SB_TLS_OFF		0
 #define SB_TLS_ON		1
-#define SB_TLS_CRITICAL	2
+#define SB_TLS_CRITICAL		2
 
 typedef struct slap_bindconf {
 	int sb_tls;
@@ -1517,7 +1521,7 @@ struct slap_replica_info {
 
 typedef struct slap_verbmasks {
 	struct berval word;
-	const int mask;
+	const slap_mask_t mask;
 } slap_verbmasks;
 
 #define SLAP_LIMIT_TIME	1
@@ -2211,6 +2215,7 @@ struct slap_control_ids {
 	int sc_preRead;
 	int sc_postRead;
 	int sc_proxyAuthz;
+	int sc_manageDIT;
 	int sc_manageDSAit;
 	int sc_modifyIncrement;
 	int sc_noOp;
@@ -2375,6 +2380,9 @@ typedef struct slap_op {
 	char o_ctrlflag[SLAP_MAX_CIDS];	/* per-control flags */
 	void **o_controls;		/* per-control state */
 
+#define o_managedit				o_ctrlflag[slap_cids.sc_manageDIT]
+#define get_manageDIT(op)		_SCM((op)->o_managedit)
+
 #define o_managedsait	o_ctrlflag[slap_cids.sc_manageDSAit]
 #define get_manageDSAit(op)				_SCM((op)->o_managedsait)
 
@@ -2443,6 +2451,7 @@ typedef struct slap_op {
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
+
 } Operation;
 #define	OPERATION_BUFFER_SIZE	(sizeof(Operation)+sizeof(Opheader)+SLAP_MAX_CIDS*sizeof(void *))
 
@@ -2666,6 +2675,8 @@ typedef struct slap_counters_t {
 #else
 #define SLAP_CTRL_HIDE				0x80000000U
 #endif
+
+#define SLAP_CTRL_REQUIRES_ROOT		0x40000000U /* for ManageDIT */
 
 #define SLAP_CTRL_GLOBAL			0x00800000U
 #define SLAP_CTRL_GLOBAL_SEARCH		0x00010000U	/* for NOOP */

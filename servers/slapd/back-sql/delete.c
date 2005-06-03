@@ -474,11 +474,11 @@ done:;
 	}
 
 	if ( !BER_BVISNULL( &d.e_nname ) ) {
-		entry_clean( &d );
+		backsql_entry_clean( op, &d );
 	}
 
 	if ( !BER_BVISNULL( &p.e_nname ) ) {
-		entry_clean( &p );
+		backsql_entry_clean( op, &p );
 	}
 
 	return rs->sr_err;

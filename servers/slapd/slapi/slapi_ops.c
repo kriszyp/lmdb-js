@@ -455,23 +455,22 @@ slapi_int_ldapmod_to_entry(
 			size_t	textlen = sizeof( textbuf );
 
 			rc = slap_mods_check( modlist, &text, 
-					textbuf, textlen, NULL );
+				textbuf, textlen, NULL );
 			if ( rc != LDAP_SUCCESS) {
 				goto cleanup;
 			}
 
 			if ( !update ) {
-				rc = slap_mods_no_update_check( modlist,
-						&text, textbuf, textlen );
+				rc = slap_mods_no_user_mod_check( op, modlist,
+					&text, textbuf, textlen );
 				if ( rc != LDAP_SUCCESS) {
 					goto cleanup;
 				}
 			}
 
 			if ( !repl_user ) {
-				rc = slap_mods_opattrs( op,
-						modlist, modtail, &text, 
-						textbuf, textlen, 1 );
+				rc = slap_mods_opattrs( op, modlist, modtail,
+					&text, textbuf, textlen, 1 );
 				if ( rc != LDAP_SUCCESS) {
 					goto cleanup;
 				}
@@ -488,8 +487,7 @@ slapi_int_ldapmod_to_entry(
 		}
 	}
 
-cleanup:
-
+cleanup:;
 	if ( dn.bv_val )
 		slapi_ch_free( (void **)&dn.bv_val );
 	if ( modlist != NULL )
@@ -1030,14 +1028,14 @@ slapi_modify_internal(
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			rs.sr_err = slap_mods_check( modlist,
-					&text, textbuf, textlen, NULL );
+				&text, textbuf, textlen, NULL );
 			if ( rs.sr_err != LDAP_SUCCESS ) {
 				goto cleanup;
 			}
 
 			if ( !update ) {
-				rs.sr_err = slap_mods_no_update_check( modlist,
-						&text, textbuf, textlen );
+				rs.sr_err = slap_mods_no_user_mod_check( op, modlist,
+					&text, textbuf, textlen );
 				if ( rs.sr_err != LDAP_SUCCESS ) {
 					goto cleanup;
 				}

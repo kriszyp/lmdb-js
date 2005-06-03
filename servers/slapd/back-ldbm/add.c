@@ -46,7 +46,7 @@ ldbm_back_add(
 		op->o_req_dn.bv_val, 0, 0);
 	
 	rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e, NULL,
-		&rs->sr_text, textbuf, textlen );
+		get_manageDIT(op), &rs->sr_text, textbuf, textlen );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",

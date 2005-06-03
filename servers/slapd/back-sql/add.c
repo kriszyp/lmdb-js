@@ -91,11 +91,8 @@ backsql_modify_delete_all_values(
 		backsql_PrintErrors( bi->sql_db_env, dbh, 
 				asth, rc );
 
-		if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-			rs->sr_text = "SQL-backend error";
-			return rs->sr_err = LDAP_OTHER;
-		}
-		return LDAP_SUCCESS;
+		rs->sr_text = "SQL-backend error";
+		return rs->sr_err = LDAP_OTHER;
 	}
 
 	rc = backsql_BindParamID( asth, 1, SQL_PARAM_INPUT, &e_id->eid_keyval );
@@ -109,12 +106,8 @@ backsql_modify_delete_all_values(
 				asth, rc );
 		SQLFreeStmt( asth, SQL_DROP );
 
-		if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-			rs->sr_text = "SQL-backend error";
-			return rs->sr_err = LDAP_OTHER;
-		}
-
-		return LDAP_SUCCESS;
+		rs->sr_text = "SQL-backend error";
+		return rs->sr_err = LDAP_OTHER;
 	}
 			
 	rc = SQLExecute( asth );
@@ -127,12 +120,8 @@ backsql_modify_delete_all_values(
 				asth, rc );
 		SQLFreeStmt( asth, SQL_DROP );
 
-		if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-			rs->sr_text = "SQL-backend error";
-			return rs->sr_err = LDAP_OTHER;
-		}
-
-		return LDAP_SUCCESS;
+		rs->sr_text = "SQL-backend error";
+		return rs->sr_err = LDAP_OTHER;
 	}
 
 	backsql_BindRowAsStrings( asth, &row );
@@ -161,12 +150,8 @@ backsql_modify_delete_all_values(
 				backsql_PrintErrors( bi->sql_db_env, dbh, 
 						sth, rc );
 
-				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-					rs->sr_text = "SQL-backend error";
-					return rs->sr_err = LDAP_OTHER;
-				}
-
-				continue;
+				rs->sr_text = "SQL-backend error";
+				return rs->sr_err = LDAP_OTHER;
 			}
 
 	   		if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {
@@ -182,12 +167,8 @@ backsql_modify_delete_all_values(
 						sth, rc );
 					SQLFreeStmt( sth, SQL_DROP );
 
-					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-						rs->sr_text = "SQL-backend error";
-						return rs->sr_err = LDAP_OTHER;
-					}
-
-					continue;
+					rs->sr_text = "SQL-backend error";
+					return rs->sr_err = LDAP_OTHER;
 				}
 
 			} else {
@@ -205,12 +186,8 @@ backsql_modify_delete_all_values(
 					sth, rc );
 				SQLFreeStmt( sth, SQL_DROP );
 
-				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-					rs->sr_text = "SQL-backend error";
-					return rs->sr_err = LDAP_OTHER;
-				}
-
-				continue;
+				rs->sr_text = "SQL-backend error";
+				return rs->sr_err = LDAP_OTHER;
 			}
 #ifdef BACKSQL_ARBITRARY_KEY
 			Debug( LDAP_DEBUG_TRACE,
@@ -240,12 +217,8 @@ backsql_modify_delete_all_values(
 					sth, rc );
 				SQLFreeStmt( sth, SQL_DROP );
 
-				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-					rs->sr_text = "SQL-backend error";
-					return rs->sr_err = LDAP_OTHER;
-				}
-
-				continue;
+				rs->sr_text = "SQL-backend error";
+				return rs->sr_err = LDAP_OTHER;
 			}
 	 
 			Debug( LDAP_DEBUG_TRACE, 
@@ -267,21 +240,15 @@ backsql_modify_delete_all_values(
 					/* SQL procedure executed fine 
 					 * but returned an error */
 					rs->sr_err = BACKSQL_SANITIZE_ERROR( prc );
-					rs->sr_text = op->ora_e->e_name.bv_val;
-					SQLFreeStmt( sth, SQL_DROP );
-					return rs->sr_err;
 
 				} else {
 					backsql_PrintErrors( bi->sql_db_env, dbh,
 							sth, rc );
-					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) 
-					{
-						rs->sr_err = LDAP_OTHER;
-						rs->sr_text = op->ora_e->e_name.bv_val;
-						SQLFreeStmt( sth, SQL_DROP );
-						return rs->sr_err;
-					}
+					rs->sr_err = LDAP_OTHER;
 				}
+				rs->sr_text = op->ora_e->e_name.bv_val;
+				SQLFreeStmt( sth, SQL_DROP );
+				return rs->sr_err;
 			}
 			SQLFreeStmt( sth, SQL_DROP );
 		}
@@ -551,12 +518,10 @@ add_only:;
 					backsql_PrintErrors( bi->sql_db_env,
 							dbh, sth, rc );
 
-					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-						SQLFreeStmt( sth, SQL_DROP );
-						rs->sr_err = LDAP_OTHER;
-						rs->sr_text = "SQL-backend error";
-						goto done;
-					}
+					SQLFreeStmt( sth, SQL_DROP );
+					rs->sr_err = LDAP_OTHER;
+					rs->sr_text = "SQL-backend error";
+					goto done;
 				}
 				SQLFreeStmt( sth, SQL_DROP );
 			}
@@ -676,11 +641,9 @@ add_only:;
 						sth, rc );
 					SQLFreeStmt( sth, SQL_DROP );
 
-					if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-						rs->sr_text = "SQL-backend error";
-						rs->sr_err = LDAP_OTHER;
-						goto done;
-					}
+					rs->sr_text = "SQL-backend error";
+					rs->sr_err = LDAP_OTHER;
+					goto done;
 				}
 
 				Debug( LDAP_DEBUG_TRACE,
@@ -709,13 +672,10 @@ add_only:;
 					} else {
 						backsql_PrintErrors( bi->sql_db_env,
 								dbh, sth, rc );
-						if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) )
-						{
-							SQLFreeStmt( sth, SQL_DROP );
-							rs->sr_err = LDAP_OTHER;
-							rs->sr_text = at->bam_ad->ad_cname.bv_val;
-							goto done;
-						}
+						SQLFreeStmt( sth, SQL_DROP );
+						rs->sr_err = LDAP_OTHER;
+						rs->sr_text = at->bam_ad->ad_cname.bv_val;
+						goto done;
 					}
 				}
 				SQLFreeStmt( sth, SQL_DROP );
@@ -823,13 +783,8 @@ backsql_add_attr(
 
 		rc = backsql_Prepare( dbh, &sth, at_rec->bam_add_proc, 0 );
 		if ( rc != SQL_SUCCESS ) {
-
-			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-				rs->sr_text = "SQL-backend error";
-				return rs->sr_err = LDAP_OTHER;
-			}
-
-			return LDAP_SUCCESS;
+			rs->sr_text = "SQL-backend error";
+			return rs->sr_err = LDAP_OTHER;
 		}
 
 		if ( BACKSQL_IS_ADD( at_rec->bam_expect_return ) ) {
@@ -844,12 +799,8 @@ backsql_add_attr(
 					sth, rc );
 				SQLFreeStmt( sth, SQL_DROP );
 
-				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-					rs->sr_text = "SQL-backend error";
-					return rs->sr_err = LDAP_OTHER;
-				}
-
-				return LDAP_SUCCESS;
+				rs->sr_text = "SQL-backend error";
+				return rs->sr_err = LDAP_OTHER;
 			}
 
 		} else {
@@ -869,12 +820,8 @@ backsql_add_attr(
 				sth, rc );
 			SQLFreeStmt( sth, SQL_DROP );
 
-			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-				rs->sr_text = "SQL-backend error";
-				return rs->sr_err = LDAP_OTHER;
-			}
-
-			return LDAP_SUCCESS;
+			rs->sr_text = "SQL-backend error";
+			return rs->sr_err = LDAP_OTHER;
 		}
 
 		currpos = pno + 2 - po;
@@ -894,12 +841,8 @@ backsql_add_attr(
 				sth, rc );
 			SQLFreeStmt( sth, SQL_DROP );
 
-			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-				rs->sr_text = "SQL-backend error";
-				return rs->sr_err = LDAP_OTHER;
-			}
-
-			return LDAP_SUCCESS;
+			rs->sr_text = "SQL-backend error";
+			return rs->sr_err = LDAP_OTHER;
 		}
 
 #ifdef LDAP_DEBUG
@@ -930,12 +873,10 @@ backsql_add_attr(
 			} else {
 				backsql_PrintErrors( bi->sql_db_env, dbh,
 						sth, rc );
-				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
-					rs->sr_err = LDAP_OTHER;
-					rs->sr_text = op->ora_e->e_name.bv_val;
-					SQLFreeStmt( sth, SQL_DROP );
-					return rs->sr_err;
-				}
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = op->ora_e->e_name.bv_val;
+				SQLFreeStmt( sth, SQL_DROP );
+				return rs->sr_err;
 			}
 		}
 		SQLFreeStmt( sth, SQL_DROP );
@@ -989,9 +930,8 @@ backsql_add( Operation *op, SlapReply *rs )
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		rs->sr_err = entry_schema_check( op->o_bd, op->ora_e,
-				NULL,
-				&rs->sr_text, textbuf, sizeof( textbuf ) );
+		rs->sr_err = entry_schema_check( op->o_bd, op->ora_e, NULL, 0,
+			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"entry failed schema check -- aborting\n",
@@ -1554,7 +1494,7 @@ done:;
 	}
 
 	if ( !BER_BVISNULL( &p.e_nname ) ) {
-		entry_clean( &p );
+		backsql_entry_clean( op, &p );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_add(\"%s\"): %d \"%s\"\n",

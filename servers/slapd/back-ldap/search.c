@@ -275,8 +275,8 @@ fail:;
 				rs->sr_operational_attrs = NULL;
 				rs->sr_flags = 0;
 				abort = send_search_entry( op, rs );
-				if ( !BER_BVISNULL( &ent.e_name ) && ( ent.e_name.bv_val != bdn.bv_val ) )
-				{
+				if ( !BER_BVISNULL( &ent.e_name ) ) {
+					assert( ent.e_name.bv_val != bdn.bv_val );
 					free( ent.e_name.bv_val );
 					BER_BVZERO( &ent.e_name );
 				}

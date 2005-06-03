@@ -510,14 +510,15 @@ ldap_back_dobind_int(
 		if ( lc->lc_ispriv && li->acl_authmethod == LDAP_AUTH_SASL ) {
 			void		*defaults = NULL;
 
-#if 0	/* will deal with this later... */
-			if ( sasl_secprops != NULL ) {
-				rs->sr_err = ldap_set_option( lc->lc_ld, LDAP_OPT_X_SASL_SECPROPS,
-					(void *) sasl_secprops );
+#if 1	/* will deal with this later... */
+			if ( li->acl_secprops != NULL ) {
+				rc = ldap_set_option( lc->lc_ld,
+					LDAP_OPT_X_SASL_SECPROPS, li->acl_secprops);
 
-				if ( rs->sr_err != LDAP_OPT_SUCCESS ) {
-					send_ldap_result( op, rs );
-					lc->lc_bound = 0;
+				if( rc != LDAP_OPT_SUCCESS ) {
+					Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
+						"(%s,SECPROPS,\"%s\") failed!\n",
+						li->url, li->acl_secprops, 0 );
 					goto done;
 				}
 			}

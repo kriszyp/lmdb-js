@@ -332,11 +332,12 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 						ck->op->oq_search.rs_scope == LDAP_SCOPE_ONELEVEL
 							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
 
+				ck->rs->sr_entry = e;
 				rc = send_search_reference( ck->op, ck->rs );
-
 				ber_bvarray_free( ck->rs->sr_ref );
 				ber_bvarray_free( erefs );
 				ck->rs->sr_ref = NULL;
+				ck->rs->sr_entry = NULL;
 
 			} else if ( test_filter( ck->op, e, ck->op->ors_filter ) == LDAP_COMPARE_TRUE )
 			{
@@ -344,6 +345,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				ck->rs->sr_attrs = ck->op->ors_attrs;
 				ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				rc = send_search_entry(ck->op, ck->rs);
+				ck->rs->sr_entry = NULL;
 			}
 			fd = 1;
 			if ( rc )
@@ -553,8 +555,8 @@ static int apply_modify_to_entry(Entry * entry,
 			entry->e_ocflags = 0;
 		}
 		/* check that the entry still obeys the schema */
-		rc = entry_schema_check(op->o_bd, entry, NULL,
-				  &rs->sr_text, textbuf, sizeof( textbuf ) );
+		rc = entry_schema_check(op->o_bd, entry, NULL, 0,
+			  &rs->sr_text, textbuf, sizeof( textbuf ) );
 	}
 	return rc;
 }
@@ -760,8 +762,8 @@ static int ldif_back_add(Operation *op, SlapReply *rs) {
 	int statres;
 	char textbuf[SLAP_TEXT_BUFLEN];
 
-	rs->sr_err = entry_schema_check(op->o_bd, e,
-				  NULL, &rs->sr_text, textbuf, sizeof( textbuf ) );
+	rs->sr_err = entry_schema_check(op->o_bd, e, NULL, 0,
+		&rs->sr_text, textbuf, sizeof( textbuf ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) goto send_res;
 				
 	ldap_pvt_thread_mutex_lock(&ni->li_mutex);

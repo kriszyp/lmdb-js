@@ -2096,7 +2096,7 @@ backsql_search( Operation *op, SlapReply *rs )
 					} else {
 						rs->sr_err = LDAP_OTHER;
 					}
-					entry_clean( &user_entry2 );
+					backsql_entry_clean( op, &user_entry2 );
 				}
 				if ( bsi2.bsi_attrs != NULL ) {
 					op->o_tmpfree( bsi2.bsi_attrs,
@@ -2218,7 +2218,7 @@ backsql_search( Operation *op, SlapReply *rs )
 
 next_entry:;
 		if ( e == &user_entry ) {
-			entry_clean( &user_entry );
+			backsql_entry_clean( op, &user_entry );
 		}
 
 next_entry2:;
@@ -2245,10 +2245,10 @@ send_results:;
 		send_ldap_result( op, rs );
 	}
 
-	entry_clean( &base_entry );
+	backsql_entry_clean( op, &base_entry );
 
 	/* in case we got here accidentally */
-	entry_clean( &user_entry );
+	backsql_entry_clean( op, &user_entry );
 
 	if ( rs->sr_v2ref ) {
 		ber_bvarray_free( rs->sr_v2ref );
@@ -2390,3 +2390,39 @@ return_results:;
 	return rc;
 }
 
+void
+backsql_entry_clean(
+		Operation	*op,
+		Entry		*e )
+{
+	void *ctx;
+
+	ctx = ldap_pvt_thread_pool_context();
+
+	if ( ctx == NULL || ctx != op->o_tmpmemctx ) {
+		if ( !BER_BVISNULL( &e->e_name ) ) {
+			op->o_tmpfree( e->e_name.bv_val, op->o_tmpmemctx );
+			BER_BVZERO( &e->e_name );
+		}
+
+		if ( !BER_BVISNULL( &e->e_nname ) ) {
+			op->o_tmpfree( e->e_nname.bv_val, op->o_tmpmemctx );
+			BER_BVZERO( &e->e_nname );
+		}
+	}
+
+	entry_clean( e );
+}
+
+int
+backsql_entry_release(
+		Operation	*op,
+		Entry		*e,
+		int		rw )
+{
+	backsql_entry_clean( op, e );
+
+	ch_free( e );
+
+	return 0;
+}

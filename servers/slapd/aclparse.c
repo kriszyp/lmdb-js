@@ -539,6 +539,7 @@ parse_acl(
 			{
 				free( a->acl_dn_pat.bv_val );
 				BER_BVZERO( &a->acl_dn_pat );
+				a->acl_dn_style = ACL_STYLE_REGEX;
 			}
 			
 			if ( !BER_BVISEMPTY( &a->acl_dn_pat ) ||

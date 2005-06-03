@@ -31,6 +31,7 @@ static char * oc_check_required(
 
 static int entry_naming_check(
 	Entry *e,
+	int manage,
 	const char** text,
 	char *textbuf, size_t textlen );
 /*
@@ -45,6 +46,7 @@ entry_schema_check(
 	Backend *be,
 	Entry *e,
 	Attribute *oldattrs,
+	int manage,
 	const char** text,
 	char *textbuf, size_t textlen )
 {
@@ -151,7 +153,7 @@ entry_schema_check(
 		return LDAP_OTHER;
 	}
 
-	if( sc->soc_obsolete ) {
+	if( !manage && sc->soc_obsolete ) {
 		snprintf( textbuf, textlen, 
 			"structuralObjectClass '%s' is OBSOLETE",
 			asc->a_vals[0].bv_val );
@@ -201,7 +203,7 @@ entry_schema_check(
 
 	/* naming check */
 	if ( !is_entry_objectclass ( e, slap_schema.si_oc_glue, 0 ) ) {
-		rc = entry_naming_check( e, text, textbuf, textlen );
+		rc = entry_naming_check( e, manage, text, textbuf, textlen );
 		if( rc != LDAP_SUCCESS ) {
 			return rc;
 		}
@@ -217,7 +219,7 @@ entry_schema_check(
 
 	/* check that the entry has required attrs of the content rule */
 	if( cr ) {
-		if( cr->scr_obsolete ) {
+		if( !manage && cr->scr_obsolete ) {
 			snprintf( textbuf, textlen, 
 				"content rule '%s' is obsolete",
 				ldap_contentrule2name( &cr->scr_crule ));
@@ -292,7 +294,7 @@ entry_schema_check(
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
 
-		if ( oc->soc_obsolete ) {
+		if ( !manage && oc->soc_obsolete ) {
 			/* disallow obsolete classes */
 			snprintf( textbuf, textlen, 
 				"objectClass '%s' is OBSOLETE",
@@ -727,6 +729,7 @@ int mods_structural_class(
 static int
 entry_naming_check(
 	Entry *e,
+	int manage,
 	const char** text,
 	char *textbuf, size_t textlen )
 {
@@ -787,7 +790,7 @@ entry_naming_check(
 			break;
 		}
 
-		if( desc->ad_type->sat_obsolete ) {
+		if( !manage && desc->ad_type->sat_obsolete ) {
 			snprintf( textbuf, textlen, 
 				"naming attribute '%s' is obsolete",
 				ava->la_attr.bv_val );

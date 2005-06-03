@@ -187,7 +187,7 @@ do_modify(
 	}
 
 	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
-			textbuf, textlen, NULL );
+		textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
@@ -226,6 +226,8 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	int		increment = op->orm_increment;
 	int		rc = 0;
 	BackendDB *op_be;
+	char		textbuf[ SLAP_TEXT_BUFLEN ];
+	size_t		textlen = sizeof( textbuf );
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
@@ -348,6 +350,15 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
+	{
+		rs->sr_err = slap_mods_obsolete_check( op, modlist,
+			&rs->sr_text, textbuf, textlen );
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			send_ldap_result( op, rs );
+			goto cleanup;
+		}
+	}
+
 	/* check for modify/increment support */
 	if( increment && !SLAP_INCREMENT( op->o_bd ) ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -427,22 +438,18 @@ fe_op_modify( Operation *op, SlapReply *rs )
 #endif
 		{
 			int		update = !BER_BVISEMPTY( &op->o_bd->be_update_ndn );
-			char		textbuf[ SLAP_TEXT_BUFLEN ];
-			size_t		textlen = sizeof( textbuf );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			op->o_bd = op_be;
 
 			if ( !update ) {
-				rs->sr_err = slap_mods_no_update_check( modlist,
-						&rs->sr_text, textbuf, textlen );
+				rs->sr_err = slap_mods_no_user_mod_check( op, modlist,
+					&rs->sr_text, textbuf, textlen );
 				if ( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
 					goto cleanup;
 				}
 			}
-
-
 
 			if ( !repl_user ) {
 				for( modtail = &modlist;
@@ -521,24 +528,72 @@ cleanup:;
 }
 
 /*
- * Do non-update constraint checking.
+ * Obsolete constraint checking.
  */
 int
-slap_mods_no_update_check(
+slap_mods_obsolete_check(
+	Operation *op,
+	Modifications *ml,
+	const char **text,
+	char *textbuf,
+	size_t textlen )
+{
+	if( get_manageDIT( op ) ) return LDAP_SUCCESS;
+
+	for ( ; ml != NULL; ml = ml->sml_next ) {
+		if ( is_at_obsolete( ml->sml_desc->ad_type ) &&
+			(( ml->sml_op != LDAP_MOD_REPLACE &&
+				ml->sml_op != LDAP_MOD_DELETE ) ||
+					ml->sml_values != NULL ))
+		{
+			/*
+			 * attribute is obsolete,
+			 * only allow replace/delete with no values
+			 */
+			snprintf( textbuf, textlen,
+				"%s: attribute is obsolete",
+				ml->sml_type.bv_val );
+			*text = textbuf;
+			return LDAP_CONSTRAINT_VIOLATION;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * No-user-modification constraint checking.
+ */
+int
+slap_mods_no_user_mod_check(
+	Operation *op,
 	Modifications *ml,
 	const char **text,
 	char *textbuf,
 	size_t textlen )
 {
 	for ( ; ml != NULL; ml = ml->sml_next ) {
-		if ( is_at_no_user_mod( ml->sml_desc->ad_type ) ) {
+		if ( !is_at_no_user_mod( ml->sml_desc->ad_type ) ) continue;
+
+		if( get_manageDIT( op )) {
+			if ( ml->sml_desc->ad_type->sat_flags & SLAP_AT_MANAGEABLE ) {
+				continue;
+			}
+
+			/* attribute not manageable */
+			snprintf( textbuf, textlen,
+				"%s: no-user-modification attribute not manageable",
+				ml->sml_type.bv_val );
+
+		} else {
 			/* user modification disallowed */
 			snprintf( textbuf, textlen,
 				"%s: no user modification allowed",
 				ml->sml_type.bv_val );
-			*text = textbuf;
-			return LDAP_CONSTRAINT_VIOLATION;
 		}
+
+		*text = textbuf;
+		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
 	return LDAP_SUCCESS;
@@ -603,17 +658,6 @@ int slap_mods_check(
 		}
 
 #if 0
-		/* moved to slap_mods_no_update_check() */
-		if (!update && is_at_no_user_mod( ad->ad_type )) {
-			/* user modification disallowed */
-			snprintf( textbuf, textlen,
-				"%s: no user modification allowed",
-				ml->sml_type.bv_val );
-			*text = textbuf;
-			return LDAP_CONSTRAINT_VIOLATION;
-		}
-#endif
-
 		if ( is_at_obsolete( ad->ad_type ) &&
 			(( ml->sml_op != LDAP_MOD_REPLACE &&
 				ml->sml_op != LDAP_MOD_DELETE ) ||
@@ -629,6 +673,7 @@ int slap_mods_check(
 			*text = textbuf;
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
+#endif
 
 		if ( ml->sml_op == LDAP_MOD_INCREMENT &&
 #ifdef SLAPD_REAL_SYNTAX

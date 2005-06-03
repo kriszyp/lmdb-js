@@ -1166,6 +1166,13 @@ monitor_back_initialize(
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorIsShadow) },
+		{ "monitorUpdateRef", "( 1.3.6.1.4.1.4203.666.1.53 "
+			"NAME 'monitorUpdateRef' "
+			"DESC 'update referral for shadow databases' "
+			"SUP monitoredInfo "
+			"SINGLE-VALUE "
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorUpdateRef) },
 		{ NULL, NULL, 0, -1 }
 	};
 	

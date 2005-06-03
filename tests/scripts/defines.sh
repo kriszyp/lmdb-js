@@ -86,6 +86,7 @@ CHAINCONF2=$DATADIR/slapd-chain2.conf
 GLUESYNCCONF1=$DATADIR/slapd-glue-syncrepl1.conf
 GLUESYNCCONF2=$DATADIR/slapd-glue-syncrepl2.conf
 SQLCONF=$DATADIR/slapd-sql.conf
+SQLSRMASTERCONF=$DATADIR/slapd-sql-syncrepl-master.conf
 TRANSLUCENTLOCALCONF=$DATADIR/slapd-translucent-local.conf
 TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
@@ -209,7 +210,9 @@ SLAPADDLOG1=$TESTDIR/slapadd.1.log
 SLURPLOG=$TESTDIR/slurp.log
 
 SEARCHOUT=$TESTDIR/ldapsearch.out
+SEARCHOUT2=$TESTDIR/ldapsearch2.out
 SEARCHFLT=$TESTDIR/ldapsearch.flt
+SEARCHFLT2=$TESTDIR/ldapsearch2.flt
 LDIFFLT=$TESTDIR/ldif.flt
 TESTOUT=$TESTDIR/test.out
 INITOUT=$TESTDIR/init.out
@@ -264,6 +267,7 @@ SQLWRITE=$DATADIR/sql-write.out
 TRANSLUCENTOUT=$DATADIR/translucent.search.out
 METAOUT=$DATADIR/meta.out
 METACONCURRENCYOUT=$DATADIR/metaconcurrency.out
+MANAGEOUT=$DATADIR/manage.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

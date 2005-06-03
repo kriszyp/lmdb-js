@@ -98,8 +98,7 @@ int backend_init(void)
 		return -1;
 	}
 
-	for( bi=slap_binfo; bi->bi_type != NULL; bi++,nBackendInfo++ )
-	{
+	for( bi=slap_binfo; bi->bi_type != NULL; bi++,nBackendInfo++ ) {
 		assert( bi->bi_init );
 
 		rc = bi->bi_init( bi );
@@ -821,18 +820,18 @@ backend_check_controls(
 				break;
 
 			case LDAP_COMPARE_FALSE:
-				if ( !op->o_bd->be_ctrls[ cid ] )
-				{
+				if ( !op->o_bd->be_ctrls[cid] && (*ctrls)->ldctl_iscritical ) {
 					/* Per RFC 2251 (and LDAPBIS discussions), if the control
 					 * is recognized and appropriate for the operation (which
 					 * we've already verified), then the server should make
 					 * use of the control when performing the operation.
 					 * 
 					 * Here we find that operation extended by the control
-					 * is not unavailable in a particular context, hence the
-					 * return of unwillingToPerform.
+					 * is unavailable in a particular context, and the control
+					 * is marked Critical, hence the return of
+					 * unwillingToPerform.
 					 */
-					rs->sr_text = "control unavailable in context";
+					rs->sr_text = "critical control unavailable in context";
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 					goto done;
 				}
@@ -843,11 +842,22 @@ backend_check_controls(
 
 			default:
 				/* unreachable */
+				Debug( LDAP_DEBUG_ANY,
+					"backend_check_controls: unable to check control: %s\n",
+					(*ctrls)->ldctl_oid, 0, 0 );
+				assert( 0 );
+
 				rs->sr_text = "unable to check control";
 				rs->sr_err = LDAP_OTHER;
 				goto done;
 			}
 		}
+	}
+
+	/* check should be generalized */
+	if( get_manageDIT(op) && !be_isroot(op)) {
+		rs->sr_text = "requires manager authorization";
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
 
 done:;

@@ -686,18 +686,6 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 		}
 	}
 
-	if ( BER_BVISNULL( &frontendDB->be_schemadn ) ) {
-		ber_str2bv( SLAPD_SCHEMA_DN, STRLENOF( SLAPD_SCHEMA_DN ), 1,
-			&frontendDB->be_schemadn );
-		rc = dnNormalize( 0, NULL, NULL, &frontendDB->be_schemadn, &frontendDB->be_schemandn, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug(LDAP_DEBUG_ANY, "%s: "
-				"unable to normalize default schema DN \"%s\"\n",
-				c->log, frontendDB->be_schemadn.bv_val, 0 );
-			/* must not happen */
-			assert( 0 );
-		}
-	}
 	rc = 0;
 
 leave:
@@ -745,6 +733,21 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 	return 0;
 }
 
+int
+enum_to_verb(slap_verbmasks *v, slap_mask_t m, struct berval *bv) {
+	int i;
+
+	for (i=0; !BER_BVISNULL(&v[i].word); i++) {
+		if ( m == v[i].mask ) {
+			if ( bv != NULL ) {
+				*bv = v[i].word;
+			}
+			return i;
+		}
+	}
+	return -1;
+}
+
 static slap_verbmasks tlskey[] = {
 	{ BER_BVC("no"),	SB_TLS_OFF },
 	{ BER_BVC("yes"),	SB_TLS_ON },
@@ -753,9 +756,7 @@ static slap_verbmasks tlskey[] = {
 };
 
 static slap_verbmasks methkey[] = {
-#if 0
 	{ BER_BVC("none"),	LDAP_AUTH_NONE },
-#endif
 	{ BER_BVC("simple"),	LDAP_AUTH_SIMPLE },
 #ifdef HAVE_CYRUS_SASL
 	{ BER_BVC("sasl"),	LDAP_AUTH_SASL },

@@ -164,8 +164,8 @@ int ldbm_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( op->o_bd, e, save_attrs, text, textbuf, textlen );
-
+	rc = entry_schema_check( op->o_bd, e, save_attrs, get_manageDIT(op),
+		text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
 			*text, 0, 0 );

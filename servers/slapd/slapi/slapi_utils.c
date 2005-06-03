@@ -4118,7 +4118,8 @@ int slapi_entry_schema_check( Slapi_PBlock *pb, Slapi_Entry *e )
 	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void **)&be ) != 0 )
 		return -1;
 
-	rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
+	rc = entry_schema_check( be, e, NULL, 0,
+		&text, textbuf, textlen );
 
 	return ( rc == LDAP_SUCCESS ) ? 0 : 1;
 #else

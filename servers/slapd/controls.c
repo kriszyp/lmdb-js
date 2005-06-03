@@ -28,6 +28,9 @@ static SLAP_CTRL_PARSE_FN parseAssert;
 static SLAP_CTRL_PARSE_FN parsePreRead;
 static SLAP_CTRL_PARSE_FN parsePostRead;
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
+#ifdef LDAP_DEVEL
+static SLAP_CTRL_PARSE_FN parseManageDIT;
+#endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseModifyIncrement;
 static SLAP_CTRL_PARSE_FN parseNoOp;
@@ -160,6 +163,12 @@ static struct slap_control control_defs[] = {
  		(int)offsetof(struct slap_control_ids, sc_modifyIncrement),
 		SLAP_CTRL_HIDE|SLAP_CTRL_MODIFY, NULL,
 		parseModifyIncrement, LDAP_SLIST_ENTRY_INITIALIZER(next) },
+#endif
+#ifdef LDAP_DEVEL
+	{ LDAP_CONTROL_MANAGEDIT,
+ 		(int)offsetof(struct slap_control_ids, sc_manageDIT),
+		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE, NULL,
+		parseManageDIT, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDSAit),
@@ -405,8 +414,8 @@ slap_global_control( Operation *op, const char *oid, int *cid )
 	if ( cid ) *cid = ctrl->sc_cid;
 
 	if ( ( ctrl->sc_mask & SLAP_CTRL_GLOBAL ) ||
-			( ( op->o_tag & LDAP_REQ_SEARCH ) &&
-			( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ) ) )
+		( ( op->o_tag & LDAP_REQ_SEARCH ) &&
+		( ctrl->sc_mask & SLAP_CTRL_GLOBAL_SEARCH ) ) )
 	{
 		return LDAP_COMPARE_TRUE;
 	}
@@ -709,6 +718,30 @@ static int parseModifyIncrement (
 
 	return LDAP_SUCCESS;
 }
+
+#ifdef LDAP_DEVEL
+static int parseManageDIT (
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	if ( op->o_managedit != SLAP_CONTROL_NONE ) {
+		rs->sr_text = "manageDIT control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len ) {
+		rs->sr_text = "manageDIT control value not empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	op->o_managedit = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
+
+	return LDAP_SUCCESS;
+}
+#endif
 
 static int parseManageDSAit (
 	Operation *op,

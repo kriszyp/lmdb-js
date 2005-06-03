@@ -181,7 +181,7 @@ return_results:;
 	}
 
 	if ( !BER_BVISNULL( &e.e_nname ) ) {
-		entry_clean( &e );
+		backsql_entry_clean( op, &e );
 	}
 
 	if ( bsi.bsi_attrs != NULL ) {

@@ -247,6 +247,11 @@ monitor_subsys_database_init(
 		(void)init_readOnly( mi, e, be->be_restrictops );
 		(void)init_restrictedOperation( mi, e, be->be_restrictops );
 
+		if ( SLAP_SHADOW( be ) && be->be_update_refs ) {
+			attr_merge_normalize( e, mi->mi_ad_monitorUpdateRef,
+					be->be_update_refs, NULL );
+		}
+
 		if ( oi != NULL ) {
 			slap_overinst	*on = oi->oi_list,
 					*on1 = on;

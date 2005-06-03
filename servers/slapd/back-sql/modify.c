@@ -158,7 +158,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 	if ( BACKSQL_CHECK_SCHEMA( bi ) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		entry_clean( &m );
+		backsql_entry_clean( op, &m );
 
 		bsi.bsi_e = &m;
 		rs->sr_err = backsql_id2entry( &bsi, &bsi.bsi_base_id );
@@ -167,9 +167,8 @@ backsql_modify( Operation *op, SlapReply *rs )
 			goto do_transact;
 		}
 
-		rs->sr_err = entry_schema_check( op->o_bd, &m,
-				NULL,
-				&rs->sr_text, textbuf, sizeof( textbuf ) );
+		rs->sr_err = entry_schema_check( op->o_bd, &m, NULL, 0,
+			&rs->sr_text, textbuf, sizeof( textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_add(\"%s\"): "
 				"entry failed schema check -- aborting\n",
@@ -213,7 +212,7 @@ done:;
 	}
 
 	if ( !BER_BVISNULL( &m.e_nname ) ) {
-		entry_clean( &m );
+		backsql_entry_clean( op, &m );
 	}
 
 	if ( bsi.bsi_attrs != NULL ) {

@@ -689,18 +689,17 @@ dynlist_db_open(
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	dynlist_info	*dli = (dynlist_info *)on->on_bi.bi_private;
-	int		rc = 0;
 	ber_len_t	len;
 	char		*ptr;
 
 	if ( dli->dli_oc == NULL ) {
 		fprintf( stderr, "dynlist_db_open(): missing \"dynlist-oc <ObjectClass>\"\n" );
-		rc = -1;
+		return -1;
 	}
 
 	if ( dli->dli_ad == NULL ) {
 		fprintf( stderr, "dynlist_db_open(): missing \"dynlist-ad <AttributeDescription>\"\n" );
-		rc = -1;
+		return -1;
 	}
 
 	len = STRLENOF( "(!(objectClass=" "))" )
@@ -715,7 +714,7 @@ dynlist_db_open(
 	ptr = lutil_strcopy( ptr, "))" );
 	dli->dli_default_filter.bv_len = ptr - dli->dli_default_filter.bv_val;
 
-	return rc;
+	return 0;
 }
 
 static int

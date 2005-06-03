@@ -53,6 +53,7 @@ slapadd( int argc, char **argv )
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 	const char *progname = "slapadd";
+	int manage = 0;	
 
 	struct berval csn;
 	struct berval maxcsn;
@@ -176,11 +177,13 @@ slapadd( int argc, char **argv )
 					break;
 				}
 
-				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &val, NULL );
+				attr_merge_one( e, slap_schema.si_ad_structuralObjectClass,
+					&val, NULL );
 			}
 
 			/* check schema */
-			rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
+			rc = entry_schema_check( be, e, NULL, manage,
+				&text, textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "%s: dn=\"%s\" (line=%d): (%d) %s\n",

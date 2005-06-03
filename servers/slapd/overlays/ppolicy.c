@@ -55,7 +55,7 @@ typedef struct pp_info {
  * used by all instances
  */
 typedef struct pw_conn {
-	int restrict;		/* TRUE if connection is restricted */
+	int restricted;		/* TRUE if connection is restricted */
 } pw_conn;
 
 static pw_conn *pwcons;
@@ -792,7 +792,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			 * that we are disallowed from doing anything
 			 * other than change password.
 			 */
-			pwcons[op->o_conn->c_conn_idx].restrict = 1;
+			pwcons[op->o_conn->c_conn_idx].restricted = 1;
 
 			ppb->pErr = PP_changeAfterReset;
 
@@ -998,11 +998,11 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-/* Reset the restrict flag for the next session on this connection */
+/* Reset the restricted flag for the next session on this connection */
 static int
 ppolicy_unbind( Operation *op, SlapReply *rs )
 {
-	pwcons[op->o_conn->c_conn_idx].restrict = 0;
+	pwcons[op->o_conn->c_conn_idx].restricted = 0;
 	return SLAP_CB_CONTINUE;
 }
 
@@ -1020,7 +1020,7 @@ ppolicy_restrict(
 		send_ctrl = 1;
 	}
 
-	if ( op->o_conn && pwcons[op->o_conn->c_conn_idx].restrict ) {
+	if ( op->o_conn && pwcons[op->o_conn->c_conn_idx].restricted ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"connection restricted to password changing only\n", 0, 0, 0);
 		if ( send_ctrl ) {
@@ -1233,7 +1233,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		}
 	}
 	
-	if (pwcons[op->o_conn->c_conn_idx].restrict && !mod_pw_only) {
+	if (pwcons[op->o_conn->c_conn_idx].restricted && !mod_pw_only) {
 		Debug( LDAP_DEBUG_TRACE,
 			"connection restricted to password changing only\n", 0, 0, 0 );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS; 

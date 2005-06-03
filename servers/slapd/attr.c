@@ -46,6 +46,10 @@ attr_free( Attribute *a )
 	if ( a->a_nvals && a->a_nvals != a->a_vals ) {
 		ber_bvarray_free( a->a_nvals );
 	}
+	/* a_vals may be equal to slap_dummy_bv, a static empty berval;
+	 * this is used as a placeholder for attributes that do not carry
+	 * values, e.g. when proxying search entries with the "attrsonly"
+	 * bit set. */
 	if ( a->a_vals != &slap_dummy_bv ) {
 		ber_bvarray_free( a->a_vals );
 	}
