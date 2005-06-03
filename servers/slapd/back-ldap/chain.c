@@ -740,6 +740,7 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	return 0;
 }
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static slap_verbmasks chaining_mode[] = {
 	{ BER_BVC("referralsRequired"),		LDAP_REFERRALS_REQUIRED },
 	{ BER_BVC("referralsPreferred"),	LDAP_REFERRALS_PREFERRED },
@@ -747,6 +748,7 @@ static slap_verbmasks chaining_mode[] = {
 	{ BER_BVC("chainingPreferred"),		LDAP_CHAINING_PREFERRED },
 	{ BER_BVNULL,				0 }
 };
+#endif
 
 static int
 chain_cf_gen( ConfigArgs *c )
@@ -1288,9 +1290,9 @@ static slap_overinst ldapchain;
 int
 chain_init( void )
 {
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	int	rc;
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,
 			/* SLAP_CTRL_GLOBAL| */ SLAP_CTRL_ACCESS|SLAP_CTRL_HIDE, NULL,
 			ldap_chain_parse_ctrl, &sc_chainingBehavior );
