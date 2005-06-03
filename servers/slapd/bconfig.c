@@ -90,8 +90,8 @@ static ConfigFile cf_prv, *cfn = &cf_prv;
 
 static Avlnode *CfOcTree;
 
-static int config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs,
-	int *renumber );
+static int config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca,
+	SlapReply *rs, int *renumber );
 
 static ConfigDriver config_fname;
 static ConfigDriver config_cfdir;
@@ -972,12 +972,6 @@ config_generic(ConfigArgs *c) {
 				c->be = backend_db_init(c->argv[1]);
 				if ( !c->be ) {
 					sprintf( c->msg, "<%s> failed init", c->argv[0] );
-					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
-						c->log, c->msg, c->argv[1] );
-					return(1);
-				}
-				if ( CONFIG_ONLINE_ADD(c) && backend_startup_one( c->be )) {
-					sprintf( c->msg, "<%s> failed startup", c->argv[0] );
 					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
 						c->log, c->msg, c->argv[1] );
 					return(1);
@@ -2401,14 +2395,19 @@ config_find_base( CfEntryInfo *root, struct berval *dn, CfEntryInfo **last )
 	return root;
 }
 
+typedef struct setup_cookie {
+	CfBackInfo *cfb;
+	ConfigArgs *ca;
+} setup_cookie;
+
 static int
 config_ldif_resp( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH ) {
-		CfBackInfo *cfb = op->o_callback->sc_private;
+		setup_cookie *sc = op->o_callback->sc_private;
 
-		cfb->cb_got_ldif = 1;
-		rs->sr_err = config_add_internal( cfb, rs->sr_entry, NULL, NULL );
+		sc->cfb->cb_got_ldif = 1;
+		rs->sr_err = config_add_internal( sc->cfb, rs->sr_entry, sc->ca, NULL, NULL );
 	}
 	return rs->sr_err;
 }
@@ -2421,6 +2420,7 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 	ConfigTable *ct;
 	char *argv[3];
 	int rc = 0;
+	setup_cookie sc;
 	slap_callback cb = { NULL, config_ldif_resp, NULL, NULL };
 	Connection conn = {0};
 	char opbuf[OPERATION_BUFFER_SIZE];
@@ -2497,7 +2497,9 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 		op->ors_attrsonly = 0;
 
 		op->o_callback = &cb;
-		cb.sc_private = cfb;
+		sc.cfb = cfb;
+		sc.ca = &c;
+		cb.sc_private = &sc;
 
 		op->o_bd = &cfb->cb_db;
 		rc = op->o_bd->be_search( op, &rs );
@@ -3005,13 +3007,12 @@ cfAddOverlay( CfEntryInfo *p, Entry *e, struct config_args_s *ca )
 
 /* Parse an LDAP entry into config directives */
 static int
-config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
+config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, int *renum )
 {
 	CfEntryInfo *ce, *last;
 	ConfigOCs **colst;
 	Attribute *a, *oc_at;
 	int i, j, nocs, rc = 0;
-	ConfigArgs ca = {0};
 	struct berval pdn;
 	ConfigTable *ct;
 	char *ptr;
@@ -3035,15 +3036,17 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	oc_at = attr_find( e->e_attrs, slap_schema.si_ad_objectClass );
 	if ( !oc_at ) return LDAP_OBJECT_CLASS_VIOLATION;
 
+	memset( ca, 0, sizeof(ConfigArgs));
+
 	/* Fake the coordinates based on whether we're part of an
 	 * LDAP Add or if reading the config dir
 	 */
 	if ( rs ) {
-		ca.fname = "slapd";
-		ca.lineno = 0;
+		ca->fname = "slapd";
+		ca->lineno = 0;
 	} else {
-		ca.fname = cfdir.bv_val;
-		ca.lineno = 1;
+		ca->fname = cfdir.bv_val;
+		ca->lineno = 1;
 	}
 
 	colst = count_ocs( oc_at, &nocs );
@@ -3054,8 +3057,8 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	rc = LDAP_CONSTRAINT_VIOLATION;
 	if ( colst[0]->co_type == Cft_Global && !last ) {
 		cfn = &cf_prv;
-		ca.private = cfn;
-		ca.be = frontendDB;	/* just to get past check_vals */
+		ca->private = cfn;
+		ca->be = frontendDB;	/* just to get past check_vals */
 		rc = LDAP_SUCCESS;
 	}
 
@@ -3065,7 +3068,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	if ( last ) {
 		for ( i=0; i<nocs; i++ ) {
 			if ( colst[i]->co_ldadd &&
-				( rc = colst[i]->co_ldadd( last, e, &ca ))
+				( rc = colst[i]->co_ldadd( last, e, ca ))
 					!= LDAP_CONSTRAINT_VIOLATION ) {
 				break;
 			}
@@ -3101,7 +3104,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 	if ( rc )
 		goto leave;
 
-	init_config_argv( &ca );
+	init_config_argv( ca );
 
 	/* Make sure we process attrs in the required order */
 	sort_attrs( e, colst, nocs );
@@ -3110,7 +3113,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 		if ( a == oc_at ) continue;
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
-		rc = check_vals( ct, &ca, a, 1 );
+		rc = check_vals( ct, ca, a, 1 );
 		if ( rc ) goto leave;
 	}
 
@@ -3120,13 +3123,13 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
-			ca.line = a->a_vals[i].bv_val;
+			ca->line = a->a_vals[i].bv_val;
 			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
-				ptr = strchr( ca.line, '}' );
-				if ( ptr ) ca.line = ptr+1;
+				ptr = strchr( ca->line, '}' );
+				if ( ptr ) ca->line = ptr+1;
 			}
-			ca.valx = i;
-			rc = config_parse_add( ct, &ca );
+			ca->valx = i;
+			rc = config_parse_add( ct, ca );
 			if ( rc ) {
 				rc = LDAP_OTHER;
 				goto leave;
@@ -3134,14 +3137,36 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs, int *renum )
 		}
 	}
 ok:
+	/* Newly added databases and overlays need to be started up */
+	if ( CONFIG_ONLINE_ADD( ca )) {
+		if ( colst[0]->co_type == Cft_Database ) {
+			rc = backend_startup_one( ca->be );
+
+		} else if ( colst[0]->co_type == Cft_Overlay ) {
+			if ( ca->bi->bi_db_open ) {
+				BackendInfo *bi_orig = ca->be->bd_info;
+				ca->be->bd_info = ca->bi;
+				rc = ca->bi->bi_db_open( ca->be );
+				ca->be->bd_info = bi_orig;
+			}
+		}
+		if ( rc ) {
+			sprintf( ca->msg, "<%s> failed startup", ca->argv[0] );
+			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
+				ca->log, ca->msg, ca->argv[1] );
+			rc = LDAP_OTHER;
+			goto leave;
+		}
+	}
+
 	ce = ch_calloc( 1, sizeof(CfEntryInfo) );
 	ce->ce_parent = last;
 	ce->ce_entry = entry_dup( e );
 	ce->ce_entry->e_private = ce;
 	ce->ce_type = colst[0]->co_type;
-	ce->ce_be = ca.be;
-	ce->ce_bi = ca.bi;
-	ce->ce_private = ca.private;
+	ce->ce_be = ca->be;
+	ce->ce_bi = ca->bi;
+	ce->ce_private = ca->private;
 	if ( !last ) {
 		cfb->cb_root = ce;
 	} else if ( last->ce_kids ) {
@@ -3155,7 +3180,7 @@ ok:
 	}
 
 leave:
-	ch_free( ca.argv );
+	ch_free( ca->argv );
 	if ( colst ) ch_free( colst );
 	return rc;
 }
@@ -3169,6 +3194,7 @@ config_back_add( Operation *op, SlapReply *rs )
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
 	int renumber;
+	ConfigArgs ca;
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -3186,8 +3212,10 @@ config_back_add( Operation *op, SlapReply *rs )
 	 * 4) store entry in underlying database
 	 * 5) perform any necessary renumbering
 	 */
-	rs->sr_err = config_add_internal( cfb, op->ora_e, rs, &renumber );
-	if ( rs->sr_err == LDAP_SUCCESS && cfb->cb_use_ldif ) {
+	rs->sr_err = config_add_internal( cfb, op->ora_e, &ca, rs, &renumber );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		rs->sr_text = ca.msg;
+	} else if ( cfb->cb_use_ldif ) {
 		BackendDB *be = op->o_bd;
 		slap_callback sc = { NULL, slap_null_cb, NULL, NULL };
 		op->o_bd = &cfb->cb_db;
@@ -4046,9 +4074,10 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 {
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
+	ConfigArgs ca;
 
 	if ( bi && bi->bi_tool_entry_put &&
-		config_add_internal( cfb, e, NULL, NULL ) == 0 )
+		config_add_internal( cfb, e, &ca, NULL, NULL ) == 0 )
 		return bi->bi_tool_entry_put( &cfb->cb_db, e, text );
 	else
 		return NOID;
