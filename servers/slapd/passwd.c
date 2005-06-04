@@ -213,6 +213,7 @@ int passwd_extop(
 	ml->sml_nvalues = NULL;
 	ml->sml_desc = slap_schema.si_ad_userPassword;
 	ml->sml_op = LDAP_MOD_REPLACE;
+	ml->sml_flags = 0;
 	ml->sml_next = qpw->rs_mods;
 	qpw->rs_mods = ml;
 

@@ -2260,6 +2260,16 @@ acl_check_modlist(
 
 	for ( ; mlist != NULL; mlist = mlist->sml_next ) {
 		/*
+		 * Internal mods are ignored by ACL_WRITE checking
+		 */
+		if ( mlist->sml_flags & SLAP_MOD_INTERNAL ) {
+			Debug( LDAP_DEBUG_ACL, "acl: internal mod %s:"
+				" modify access granted\n",
+				mlist->sml_desc->ad_cname.bv_val, 0, 0 );
+			continue;
+		}
+
+		/*
 		 * no-user-modification operational attributes are ignored
 		 * by ACL_WRITE checking as any found here are not provided
 		 * by the user

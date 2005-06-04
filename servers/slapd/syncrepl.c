@@ -1094,6 +1094,7 @@ syncrepl_message_to_entry(
 		mod  = (Modifications *) ch_malloc( sizeof( Modifications ));
 
 		mod->sml_op = LDAP_MOD_REPLACE;
+		mod->sml_flags = 0;
 		mod->sml_next = NULL;
 		mod->sml_desc = NULL;
 		mod->sml_type = tmp.sml_type;
@@ -1470,6 +1471,7 @@ retry_add:;
 			for ( i = 0; i < dni.attrs; i++ ) {
 				mod = ch_malloc( sizeof( Modifications ) );
 				mod->sml_op = LDAP_MOD_DELETE;
+				mod->sml_flags = 0;
 				mod->sml_desc = dni.ads[i];
 				mod->sml_type = mod->sml_desc->ad_cname;
 				mod->sml_values = NULL;
@@ -1496,6 +1498,7 @@ retry_add:;
 
 			mod = (Modifications *)ch_calloc(1, sizeof(Modifications));
 			mod->sml_op = LDAP_MOD_REPLACE;
+			mod->sml_flags = 0;
 			mod->sml_desc = slap_schema.si_ad_entryUUID;
 			mod->sml_type = mod->sml_desc->ad_cname;
 			ber_dupbv( &uuid_bv, &syncUUID_strrep );
@@ -1676,6 +1679,7 @@ syncrepl_del_nonpresent(
 			if ( rs_delete.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF ) {
 				Modifications mod1, mod2;
 				mod1.sml_op = LDAP_MOD_REPLACE;
+				mod1.sml_flags = 0;
 				mod1.sml_desc = slap_schema.si_ad_objectClass;
 				mod1.sml_type = mod1.sml_desc->ad_cname;
 				mod1.sml_values = &gcbva[0];
@@ -1683,6 +1687,7 @@ syncrepl_del_nonpresent(
 				mod1.sml_next = &mod2;
 
 				mod2.sml_op = LDAP_MOD_REPLACE;
+				mod2.sml_flags = 0;
 				mod2.sml_desc = slap_schema.si_ad_structuralObjectClass;
 				mod2.sml_type = mod2.sml_desc->ad_cname;
 				mod2.sml_values = &gcbva[1];

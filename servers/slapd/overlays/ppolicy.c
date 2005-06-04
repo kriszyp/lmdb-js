@@ -238,6 +238,7 @@ account_locked( Operation *op, Entry *e,
 
 			m = ch_calloc( sizeof(Modifications), 1 );
 			m->sml_op = LDAP_MOD_DELETE;
+			m->sml_flags = 0;
 			m->sml_type = ad_pwdAccountLockedTime->ad_cname;
 			m->sml_desc = ad_pwdAccountLockedTime;
 			m->sml_next = *mod;
@@ -713,6 +714,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 
 		m = ch_calloc( sizeof(Modifications), 1 );
 		m->sml_op = LDAP_MOD_ADD;
+		m->sml_flags = 0;
 		m->sml_type = ad_pwdFailureTime->ad_cname;
 		m->sml_desc = ad_pwdFailureTime;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
@@ -759,6 +761,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			 */
 			m = ch_calloc( sizeof(Modifications), 1 );
 			m->sml_op = LDAP_MOD_REPLACE;
+			m->sml_flags = 0;
 			m->sml_type = ad_pwdAccountLockedTime->ad_cname;
 			m->sml_desc = ad_pwdAccountLockedTime;
 			m->sml_values = ch_calloc( sizeof(struct berval), 2 );
@@ -774,6 +777,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 		if ( attr_find( e->e_attrs, ad_pwdFailureTime )) {
 			m = ch_calloc( sizeof(Modifications), 1 );
 			m->sml_op = LDAP_MOD_DELETE;
+			m->sml_flags = 0;
 			m->sml_type = ad_pwdFailureTime->ad_cname;
 			m->sml_desc = ad_pwdFailureTime;
 			m->sml_next = mod;
@@ -859,6 +863,7 @@ grace:
 		 */
 		m = ch_calloc( sizeof(Modifications), 1 );
 		m->sml_op = LDAP_MOD_ADD;
+		m->sml_flags = 0;
 		m->sml_type = ad_pwdGraceUseTime->ad_cname;
 		m->sml_desc = ad_pwdGraceUseTime;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
@@ -1299,6 +1304,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	if (pp.pwdSafeModify && oldpw.bv_val ) {
 		ml = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		ml->sml_op = LDAP_MOD_DELETE;
+		ml->sml_flags = SLAP_MOD_INTERNAL;
 		ml->sml_desc = pp.ad;
 		ml->sml_type = pp.ad->ad_cname;
 		ml->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
@@ -1467,6 +1473,7 @@ do_modify:
 			mods->sml_op = LDAP_MOD_DELETE;
 			mods->sml_values = NULL;
 		}
+		mods->sml_flags = SLAP_MOD_INTERNAL;
 		mods->sml_nvalues = NULL;
 		mods->sml_next = NULL;
 		modtail->sml_next = mods;
@@ -1475,6 +1482,7 @@ do_modify:
 		if (attr_find(e->e_attrs, ad_pwdGraceUseTime )) {
 			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
 			mods->sml_type.bv_val = NULL;
 			mods->sml_desc = ad_pwdGraceUseTime;
 			mods->sml_values = NULL;
@@ -1488,6 +1496,7 @@ do_modify:
 		if ((zapReset) && (attr_find(e->e_attrs, ad_pwdReset ))) {
 			mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
 			mods->sml_type.bv_val = NULL;
 			mods->sml_desc = ad_pwdReset;
 			mods->sml_values = NULL;
@@ -1517,6 +1526,7 @@ do_modify:
 				 */
 				mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mods->sml_op = LDAP_MOD_DELETE;
+				mods->sml_flags = SLAP_MOD_INTERNAL;
 				mods->sml_type.bv_val = NULL;
 				mods->sml_desc = ad_pwdHistory;
 				mods->sml_nvalues = NULL;
@@ -1549,6 +1559,7 @@ do_modify:
 			if ((pa = attr_find( e->e_attrs, pp.ad )) != NULL) {
 				mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
 				mods->sml_op = LDAP_MOD_ADD;
+				mods->sml_flags = SLAP_MOD_INTERNAL;
 				mods->sml_type.bv_val = NULL;
 				mods->sml_desc = ad_pwdHistory;
 				mods->sml_nvalues = NULL;
