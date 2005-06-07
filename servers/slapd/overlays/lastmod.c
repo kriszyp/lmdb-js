@@ -378,11 +378,8 @@ best_guess( Operation *op,
 	}
 
 	if ( bv_modifyTimestamp ) {
-		struct tm	*tm;
-#ifdef HAVE_GMTIME_R
-		struct tm	tm_buf;
-#endif
 		char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+		struct berval timestamp;
 		time_t		currtime;
 
 		/* best guess */
@@ -392,18 +389,11 @@ best_guess( Operation *op,
 		/* maybe we better use the time the operation was initiated */
 		currtime = op->o_time;
 
-#ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-		tm = gmtime( &currtime );
-#else /* HAVE_GMTIME_R */
-		tm = gmtime_r( &currtime, &tm_buf );
-#endif /* HAVE_GMTIME_R */
-		lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
-#ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-#endif
+		timestamp.bv_val = tmbuf;
+		timestamp.bv_len = sizeof(tmbuf);
+		slap_timestamp( &currtime, &timestamp );
 
-		ber_str2bv( tmbuf, 0, 1, bv_modifyTimestamp );
+		ber_dupbv( bv_modifyTimestamp, &timestamp );
 		ber_dupbv( bv_nmodifyTimestamp, bv_modifyTimestamp );
 	}
 
@@ -904,14 +894,11 @@ lastmod_db_open(
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	lastmod_info_t	*lmi = (lastmod_info_t *)on->on_bi.bi_private;
 	char		buf[ 8192 ];
-	struct tm		*tms;
-#ifdef HAVE_GMTIME_R
-	struct tm		tm_buf;
-#endif
 	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
 	char			csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 	struct berval		entryCSN;
+	struct berval timestamp;
 
 	if ( !SLAP_LASTMOD( be ) ) {
 		fprintf( stderr, "set \"lastmod on\" to make this overlay effective\n" );
@@ -921,16 +908,9 @@ lastmod_db_open(
 	/*
 	 * Start
 	 */
-#ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	tms = gmtime( &starttime );
-#else /* HAVE_GMTIME_R */
-	tms = gmtime_r( &starttime, &tm_buf );
-#endif /* HAVE_GMTIME_R */
-	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
-#ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-#endif
+	timestamp.bv_val = tmbuf;
+	timestamp.bv_len = sizeof(tmbuf);
+	slap_timestamp( &starttime, &timestamp );
 
 	slap_get_csn( NULL, csnbuf, sizeof(csnbuf), &entryCSN, 0 );
 

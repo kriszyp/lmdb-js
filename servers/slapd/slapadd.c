@@ -196,7 +196,6 @@ slapadd( int argc, char **argv )
 		}
 
 		if ( SLAP_LASTMOD(be) ) {
-			struct tm *ltm;
 			time_t now = slap_get_time();
 			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 			struct berval vals[ 2 ];
@@ -213,14 +212,13 @@ slapadd( int argc, char **argv )
 			nvals[1].bv_len = 0;
 			nvals[1].bv_val = NULL;
 
-			ltm = gmtime(&now);
-			lutil_gentime( timebuf, sizeof(timebuf), ltm );
-
 			csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), 0, 0 );
 			csn.bv_val = csnbuf;
 
 			timestamp.bv_val = timebuf;
-			timestamp.bv_len = strlen(timebuf);
+			timestamp.bv_len = sizeof(timebuf);
+
+			slap_timestamp( &now, &timestamp );
 
 			if ( BER_BVISEMPTY( &be->be_rootndn ) ) {
 				BER_BVSTR( &name, SLAPD_ANONYMOUS );

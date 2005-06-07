@@ -683,10 +683,10 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 	int pwExpired = 0;
 	int ngut = -1, warn = -1, age, rc, i;
 	Attribute *a;
-	struct tm *tm;
 	time_t now, then, pwtime = (time_t)-1;
 	const char *txt;
 	char nowstr[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+	struct berval timestamp;
 	BackendInfo *bi = op->o_bd->bd_info;
 	Entry *e;
 
@@ -704,10 +704,9 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 	}
 
 	now = slap_get_time(); /* stored for later consideration */
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	tm = gmtime(&now);
-	lutil_gentime( nowstr, sizeof(nowstr), tm );
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+	timestamp.bv_val = nowstr;
+	timestamp.bv_len = sizeof(nowstr);
+	slap_timestamp( &now, &timestamp );
 
 	if ( rs->sr_err == LDAP_INVALID_CREDENTIALS ) {
 		int i = 0, fc = 0;
@@ -719,7 +718,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 		m->sml_desc = ad_pwdFailureTime;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 
-		ber_str2bv( nowstr, 0, 1, &m->sml_values[0] );
+		ber_dupbv( &m->sml_values[0], &timestamp );
 		m->sml_next = mod;
 		mod = m;
 
@@ -765,7 +764,7 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 			m->sml_type = ad_pwdAccountLockedTime->ad_cname;
 			m->sml_desc = ad_pwdAccountLockedTime;
 			m->sml_values = ch_calloc( sizeof(struct berval), 2 );
-			ber_str2bv( nowstr, 0, 1, &m->sml_values[0] );
+			ber_dupbv( &m->sml_values[0], &timestamp );
 			m->sml_next = mod;
 			mod = m;
 		}
@@ -867,7 +866,7 @@ grace:
 		m->sml_type = ad_pwdGraceUseTime->ad_cname;
 		m->sml_desc = ad_pwdGraceUseTime;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
-		ber_str2bv( nowstr, 0, 1, &m->sml_values[0] );
+		ber_dupbv( &m->sml_values[0], &timestamp );
 		m->sml_next = mod;
 		mod = m;
 
@@ -1129,16 +1128,11 @@ ppolicy_add(
 		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_shadow_update( op )) {
 			struct berval timestamp;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-			struct tm *ltm;
 			time_t now = slap_get_time();
 
-			ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-			ltm = gmtime( &now );
-			lutil_gentime( timebuf, sizeof(timebuf), ltm );
-			ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
 			timestamp.bv_val = timebuf;
-			timestamp.bv_len = strlen(timebuf);
+			timestamp.bv_len = sizeof(timebuf);
+			slap_timestamp( &now, &timestamp );
 
 			attr_merge_one( op->ora_e, ad_pwdChangedTime, &timestamp, NULL );
 		}
@@ -1443,7 +1437,6 @@ do_modify:
 	if ((pwmod) && (!be_shadow_update( op ))) {
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-		struct tm *ltm;
 		time_t now = slap_get_time();
 		Attribute *ga;
 		
@@ -1452,13 +1445,10 @@ do_modify:
 		 * up to date.
 		 */
 
-		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-		ltm = gmtime( &now );
-		lutil_gentime( timebuf, sizeof(timebuf), ltm );
-		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
 		timestamp.bv_val = timebuf;
-		timestamp.bv_len = strlen(timebuf);
+		timestamp.bv_len = sizeof(timebuf);
+		slap_timestamp( &now, &timestamp );
+
 		mods = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mods->sml_type.bv_val = NULL;
 		mods->sml_desc = ad_pwdChangedTime;

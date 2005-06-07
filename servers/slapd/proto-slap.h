@@ -897,6 +897,10 @@ LDAP_SLAPD_F( int ) slap_mods_check(
 	const char **text,
 	char *textbuf, size_t textlen, void *ctx );
 
+LDAP_SLAPD_F( void ) slap_timestamp(
+	time_t *tm,
+	struct berval *bv );
+
 LDAP_SLAPD_F( int ) slap_mods_opattrs(
 	Operation *op,
 	Modifications *mods,

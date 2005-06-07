@@ -832,6 +832,28 @@ int slap_mods_check(
 	return LDAP_SUCCESS;
 }
 
+/* Enter with bv->bv_len = sizeof buffer, returns with
+ * actual length of string
+ */
+void slap_timestamp( time_t *tm, struct berval *bv )
+{
+	struct tm *ltm;
+#ifdef HAVE_GMTIME_R
+	struct tm ltm_buf;
+
+	ltm = gmtime_r( tm, &ltm_buf );
+#else
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+	ltm = gmtime( &tm );
+#endif
+
+	bv->bv_len = lutil_gentime( bv->bv_val, bv->bv_len, ltm );
+
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
+}
+
 int slap_mods_opattrs(
 	Operation *op,
 	Modifications *mods,
@@ -853,28 +875,14 @@ int slap_mods_opattrs(
 	assert( *modtail == NULL );
 
 	if ( SLAP_LASTMOD( op->o_bd )) {
-		struct tm *ltm;
-#ifdef HAVE_GMTIME_R
-		struct tm ltm_buf;
-#endif
 		time_t now = slap_get_time();
-
-#ifdef HAVE_GMTIME_R
-		ltm = gmtime_r( &now, &ltm_buf );
-#else
-		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-		ltm = gmtime( &now );
-#endif /* HAVE_GMTIME_R */
-		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 
 		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, manage_ctxcsn );
 
-#ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-#endif
-
 		timestamp.bv_val = timebuf;
-		timestamp.bv_len = strlen(timebuf);
+		timestamp.bv_len = sizeof(timebuf);
+
+		slap_timestamp( &now, &timestamp );
 
 		if( op->o_dn.bv_len == 0 ) {
 			BER_BVSTR( &name, SLAPD_ANONYMOUS );
