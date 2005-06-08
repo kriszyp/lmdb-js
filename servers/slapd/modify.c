@@ -104,6 +104,7 @@ do_modify(
 
 		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
 		mod->sml_op = mop;
+		mod->sml_flags = 0;
 		mod->sml_type = tmp.sml_type;
 		mod->sml_values = tmp.sml_values;
 		mod->sml_nvalues = NULL;
@@ -831,6 +832,28 @@ int slap_mods_check(
 	return LDAP_SUCCESS;
 }
 
+/* Enter with bv->bv_len = sizeof buffer, returns with
+ * actual length of string
+ */
+void slap_timestamp( time_t *tm, struct berval *bv )
+{
+	struct tm *ltm;
+#ifdef HAVE_GMTIME_R
+	struct tm ltm_buf;
+
+	ltm = gmtime_r( tm, &ltm_buf );
+#else
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+	ltm = gmtime( &tm );
+#endif
+
+	bv->bv_len = lutil_gentime( bv->bv_val, bv->bv_len, ltm );
+
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
+}
+
 int slap_mods_opattrs(
 	Operation *op,
 	Modifications *mods,
@@ -852,28 +875,14 @@ int slap_mods_opattrs(
 	assert( *modtail == NULL );
 
 	if ( SLAP_LASTMOD( op->o_bd )) {
-		struct tm *ltm;
-#ifdef HAVE_GMTIME_R
-		struct tm ltm_buf;
-#endif
 		time_t now = slap_get_time();
-
-#ifdef HAVE_GMTIME_R
-		ltm = gmtime_r( &now, &ltm_buf );
-#else
-		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-		ltm = gmtime( &now );
-#endif /* HAVE_GMTIME_R */
-		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 
 		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, manage_ctxcsn );
 
-#ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-#endif
-
 		timestamp.bv_val = timebuf;
-		timestamp.bv_len = strlen(timebuf);
+		timestamp.bv_len = sizeof(timebuf);
+
+		slap_timestamp( &now, &timestamp );
 
 		if( op->o_dn.bv_len == 0 ) {
 			BER_BVSTR( &name, SLAPD_ANONYMOUS );
@@ -894,6 +903,7 @@ int slap_mods_opattrs(
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
+			mod->sml_flags = SLAP_MOD_INTERNAL;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
 			mod->sml_values =
@@ -920,6 +930,7 @@ int slap_mods_opattrs(
 		
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
+			mod->sml_flags = SLAP_MOD_INTERNAL;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_entryUUID;
 			mod->sml_values =
@@ -942,6 +953,7 @@ int slap_mods_opattrs(
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
+			mod->sml_flags = SLAP_MOD_INTERNAL;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_creatorsName;
 			mod->sml_values =
@@ -961,6 +973,7 @@ int slap_mods_opattrs(
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
+			mod->sml_flags = SLAP_MOD_INTERNAL;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_createTimestamp;
 			mod->sml_values =
@@ -978,6 +991,7 @@ int slap_mods_opattrs(
 	if ( SLAP_LASTMOD( op->o_bd )) {
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
+		mod->sml_flags = SLAP_MOD_INTERNAL;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_entryCSN;
 		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
@@ -991,6 +1005,7 @@ int slap_mods_opattrs(
 
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
+		mod->sml_flags = SLAP_MOD_INTERNAL;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_modifiersName;
 		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
@@ -1009,6 +1024,7 @@ int slap_mods_opattrs(
 
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
+		mod->sml_flags = SLAP_MOD_INTERNAL;
 		mod->sml_type.bv_val = NULL;
 		mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
 		mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );

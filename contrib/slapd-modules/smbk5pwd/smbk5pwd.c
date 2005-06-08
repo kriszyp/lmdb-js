@@ -373,6 +373,9 @@ static int smbk5pwd_exop_passwd(
 
 		ml->sml_desc = ad_krb5Key;
 		ml->sml_op = LDAP_MOD_REPLACE;
+#ifdef SLAP_MOD_INTERNAL
+		ml->sml_flags = SLAP_MOD_INTERNAL;
+#endif
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 		
@@ -382,6 +385,9 @@ static int smbk5pwd_exop_passwd(
 		
 		ml->sml_desc = ad_krb5KeyVersionNumber;
 		ml->sml_op = LDAP_MOD_REPLACE;
+#ifdef SLAP_MOD_INTERNAL
+		ml->sml_flags = SLAP_MOD_INTERNAL;
+#endif
 		ml->sml_values = ch_malloc( 2 * sizeof(struct berval));
 		ml->sml_values[0].bv_val = ch_malloc( 64 );
 		ml->sml_values[0].bv_len = sprintf(ml->sml_values[0].bv_val,
@@ -430,6 +436,9 @@ static int smbk5pwd_exop_passwd(
 		
 		ml->sml_desc = ad_sambaNTPassword;
 		ml->sml_op = LDAP_MOD_REPLACE;
+#ifdef SLAP_MOD_INTERNAL
+		ml->sml_flags = SLAP_MOD_INTERNAL;
+#endif
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 
@@ -454,6 +463,9 @@ static int smbk5pwd_exop_passwd(
 		
 		ml->sml_desc = ad_sambaLMPassword;
 		ml->sml_op = LDAP_MOD_REPLACE;
+#ifdef SLAP_MOD_INTERNAL
+		ml->sml_flags = SLAP_MOD_INTERNAL;
+#endif
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 
@@ -472,6 +484,9 @@ static int smbk5pwd_exop_passwd(
 		
 		ml->sml_desc = ad_sambaPwdLastSet;
 		ml->sml_op = LDAP_MOD_REPLACE;
+#ifdef SLAP_MOD_INTERNAL
+		ml->sml_flags = SLAP_MOD_INTERNAL;
+#endif
 		ml->sml_values = keys;
 		ml->sml_nvalues = NULL;
 	}

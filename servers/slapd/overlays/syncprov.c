@@ -1151,6 +1151,7 @@ syncprov_checkpoint( Operation *op, SlapReply *rs, slap_overinst *on )
 	mod.sml_nvalues = NULL;
 	mod.sml_desc = slap_schema.si_ad_contextCSN;
 	mod.sml_op = LDAP_MOD_REPLACE;
+	mod.sml_flags = 0;
 	mod.sml_next = NULL;
 
 	cb.sc_response = slap_null_cb;

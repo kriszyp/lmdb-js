@@ -268,58 +268,6 @@ monitor_subsys_rww_update LDAP_P((
 	SlapReply		*rs,
 	Entry			*e ));
 
-/* NOTE: this macro assumes that bv has been allocated
- * by ber_* malloc functions or is { 0L, NULL } */
-#if defined(HAVE_BIGNUM)
-#define UI2BV(bv,ui) \
-	do { \
-		char		*val; \
-		ber_len_t	len; \
-		val = BN_bn2dec(ui); \
-		if (val) { \
-			len = strlen(val); \
-			if ( len > (bv)->bv_len ) { \
-				(bv)->bv_val = ber_memrealloc( (bv)->bv_val, len + 1 ); \
-			} \
-			AC_MEMCPY((bv)->bv_val, val, len + 1); \
-			(bv)->bv_len = len; \
-			OPENSSL_free(val); \
-		} else { \
-			ber_memfree( (bv)->bv_val ); \
-			BER_BVZERO( (bv) ); \
-		} \
-	} while ( 0 )
-#elif defined(HAVE_GMP)
-/* NOTE: according to the documentation, the result 
- * of mpz_sizeinbase() can exceed the length of the
- * string representation of the number by 1
- */
-#define UI2BV(bv,ui) \
-	do { \
-		ber_len_t	len = mpz_sizeinbase( (ui), 10 ); \
-		if ( len > (bv)->bv_len ) { \
-			(bv)->bv_val = ber_memrealloc( (bv)->bv_val, len + 1 ); \
-		} \
-		(void)mpz_get_str( (bv)->bv_val, 10, (ui) ); \
-		if ( (bv)->bv_val[ len - 1 ] == '\0' ) { \
-			len--; \
-		} \
-		(bv)->bv_len = len; \
-	} while ( 0 )
-#else /* ! HAVE_BIGNUM && ! HAVE_GMP */
-#define UI2BV(bv,ui) \
-	do { \
-		char		buf[] = "+9223372036854775807L"; \
-		ber_len_t	len; \
-		snprintf( buf, sizeof( buf ), "%lu", (ui) ); \
-		len = strlen( buf ); \
-		if ( len > (bv)->bv_len ) { \
-			(bv)->bv_val = ber_memrealloc( (bv)->bv_val, len + 1 ); \
-		} \
-		AC_MEMCPY( (bv)->bv_val, buf, len + 1 ); \
-	} while ( 0 )
-#endif /* ! HAVE_GMP */
-
 /*
  * former external.h
  */

@@ -604,6 +604,7 @@ slapi_entry_add_values( Slapi_Entry *e, const char *type, struct berval **vals )
 	char			textbuf[SLAP_TEXT_BUFLEN];
 
 	mod.sm_op = LDAP_MOD_ADD;
+	mod.sm_flags = 0;
 	mod.sm_desc = NULL;
 	mod.sm_type.bv_val = (char *)type;
 	mod.sm_type.bv_len = strlen( type );
@@ -676,6 +677,7 @@ slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **val
 	char			textbuf[SLAP_TEXT_BUFLEN];
 
 	mod.sm_op = LDAP_MOD_DELETE;
+	mod.sm_flags = 0;
 	mod.sm_desc = NULL;
 	mod.sm_type.bv_val = (char *)type;
 	mod.sm_type.bv_len = strlen( type );
@@ -3524,6 +3526,7 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 
 		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
 		mod->sml_op = (*modp)->mod_op & (~LDAP_MOD_BVALUES);
+		mod->sml_flags = 0;
 		mod->sml_type.bv_val = (*modp)->mod_type;
 		mod->sml_type.bv_len = strlen( mod->sml_type.bv_val );
 		mod->sml_desc = NULL;

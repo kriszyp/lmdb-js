@@ -406,6 +406,7 @@ slapi_int_ldapmod_to_entry(
 				mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
 				mod->sml_op = LDAP_MOD_ADD;
+				mod->sml_flags = 0;
 				mod->sml_next = NULL;
 				mod->sml_desc = NULL;
 				mod->sml_type = tmp.sml_type;
@@ -431,6 +432,7 @@ slapi_int_ldapmod_to_entry(
 					mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
 					mod->sml_op = LDAP_MOD_ADD;
+					mod->sml_flags = 0;
 					mod->sml_next = NULL;
 					mod->sml_desc = NULL;
 					mod->sml_type = tmp.sml_type;
@@ -965,6 +967,7 @@ slapi_modify_internal(
 			mod  = (Modifications *)ch_malloc( sizeof(Modifications) );
 
 			mod->sml_op = pMod->mod_op & LDAP_MOD_OP;
+			mod->sml_flags = 0;
 			mod->sml_next = NULL;
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;
@@ -982,6 +985,7 @@ slapi_modify_internal(
 			mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 
 			mod->sml_op = pMod->mod_op & LDAP_MOD_OP;
+			mod->sml_flags = 0;
 			mod->sml_next = NULL;
 			mod->sml_desc = NULL;
 			mod->sml_type = tmp.sml_type;

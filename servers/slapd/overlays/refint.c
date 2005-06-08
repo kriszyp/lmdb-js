@@ -291,6 +291,7 @@ refint_delete_cb(
 				mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
 
 				mp->sml_op = LDAP_MOD_ADD;
+				mp->sml_flags = 0;
 				ber_dupbv(&mp->sml_values[0],  &dd->nothing);
 				ber_dupbv(&mp->sml_nvalues[0], &dd->nnothing);
 				mp->sml_next = ma;
@@ -305,6 +306,7 @@ refint_delete_cb(
 			mp->sml_values[1].bv_len = mp->sml_nvalues[1].bv_len = 0;
 			mp->sml_values[1].bv_val = mp->sml_nvalues[1].bv_val = NULL;
 			mp->sml_op = LDAP_MOD_DELETE;
+			mp->sml_flags = 0;
 			ber_dupbv(&mp->sml_values[0], &dd->dn);
 			ber_dupbv(&mp->sml_nvalues[0], &mp->sml_values[0]);
 			mp->sml_next = ma;
@@ -389,6 +391,7 @@ refint_modrdn_cb(
 			}
 			mp = ch_malloc(sizeof(Modifications));
 			mp->sml_op = LDAP_MOD_ADD;
+			mp->sml_flags = 0;
 			mp->sml_desc = ia->attr;		/* XXX */
 			mp->sml_type = ia->attr->ad_cname;
 			mp->sml_values  = ch_malloc(2 * sizeof(BerValue));
@@ -401,6 +404,7 @@ refint_modrdn_cb(
 			ip->mm = mp;
 			mp = ch_malloc(sizeof(Modifications));
 			mp->sml_op = LDAP_MOD_DELETE;
+			mp->sml_flags = 0;
 			mp->sml_desc = ia->attr;		/* XXX */
 			mp->sml_type = ia->attr->ad_cname;
 			mp->sml_values  = ch_malloc(2 * sizeof(BerValue));

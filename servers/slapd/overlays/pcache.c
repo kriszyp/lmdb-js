@@ -854,6 +854,7 @@ remove_query_data (
 			vals[1].bv_val = NULL;
 			vals[1].bv_len = 0;
 			mod.sml_op = LDAP_MOD_DELETE;
+			mod.sml_flags = 0;
 			mod.sml_desc = ad_queryid;
 			mod.sml_type = ad_queryid->ad_cname;
 			mod.sml_values = vals;

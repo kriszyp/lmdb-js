@@ -195,6 +195,22 @@ int ldap_pvt_thread_pool_setkey (
 	return(0);
 }
 
+void ldap_pvt_thread_pool_purgekey( void *key )
+{
+}
+
+int ldap_pvt_thread_pool_pause ( 
+	ldap_pvt_thread_pool_t *tpool )
+{
+	return(0);
+}
+
+int ldap_pvt_thread_pool_resume ( 
+	ldap_pvt_thread_pool_t *tpool )
+{
+	return(0);
+}
+
 void *ldap_pvt_thread_pool_context( )
 {
 	return(NULL);

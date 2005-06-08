@@ -183,7 +183,13 @@ slap_get_csn(
 {
 	if ( csn == NULL ) return LDAP_OTHER;
 
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+#endif
 	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
 	csn->bv_val = csnbuf;
 
 	if ( manage_ctxcsn )

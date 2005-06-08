@@ -1145,7 +1145,13 @@ typedef struct slap_entry {
  * A list of LDAPMods
  */
 typedef struct slap_mod {
-	int sm_op;
+	short sm_op;
+	short sm_flags;
+/* Set for internal mods, will bypass ACL checks. Only needed when
+ * running as non-root user, for user modifiable attributes.
+ */
+#define	SLAP_MOD_INTERNAL	0x01
+
 	AttributeDescription *sm_desc;
 	struct berval sm_type;
 	BerVarray sm_values;
@@ -1155,6 +1161,7 @@ typedef struct slap_mod {
 typedef struct slap_mod_list {
 	Modification sml_mod;
 #define sml_op		sml_mod.sm_op
+#define sml_flags	sml_mod.sm_flags
 #define sml_desc	sml_mod.sm_desc
 #define	sml_type	sml_mod.sm_type
 #define sml_values	sml_mod.sm_values
