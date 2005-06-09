@@ -208,7 +208,6 @@ is set to 8192).
 This is \fIexperimental\fP and may change in future releases.
 
 .TP
-.TP
 .B strcast_func <SQL function name>
 Specifies the name of a function that converts a given value to a string
 for appropriate ordering.  This is used in "SELECT DISTINCT" statements
@@ -216,6 +215,7 @@ for strongly typed RDBMSes with little implicit casting (like PostgreSQL),
 when a literal string is specified.
 This is \fIexperimental\fP and may change in future releases.
 
+.TP
 .B concat_pattern <pattern>
 This statement defines the
 .B pattern 
@@ -234,6 +234,17 @@ is known to work as well.
 Carefully check the documentation of your RDBMS or stay with the examples
 for supported ones.
 This is \fIexperimental\fP and may change in future releases.
+
+.TP
+.B aliasing_keyword <string>
+Define the aliasing keyword.  Some RDBMSes use the word "\fIAS\fP"
+(the default), others don't use any.
+
+.TP
+.B aliasing_quote <string>
+Define the quoting char of the aliasing keyword.  Some RDBMSes 
+don't require any (the default), others may require single 
+or double quotes.
 
 .TP
 .B has_ldapinfo_dn_ru { NO | yes }

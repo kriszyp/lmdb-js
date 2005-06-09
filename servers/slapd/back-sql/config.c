@@ -591,12 +591,12 @@ backsql_db_config(
 			BACKSQL_CHECK_SCHEMA( bi ) ? "yes" : "no",
 			0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "aliasing" ) ) {
+	} else if ( !strcasecmp( argv[ 0 ], "aliasing_keyword" ) ) {
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
 				"missing arg "
-				"in \"aliasing <string>\" directive\n",
+				"in \"aliasing_keyword <string>\" directive\n",
 				fname, lineno, 0 );
 			return 1;
 		}
