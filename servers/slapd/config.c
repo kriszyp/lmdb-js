@@ -732,6 +732,7 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 		if (( m & v[i].mask ) == v[i].mask ) {
 			value_add_one( bva, &v[i].word );
 			m ^= v[i].mask;
+			if ( !m ) break;
 		}
 	}
 	return 0;
