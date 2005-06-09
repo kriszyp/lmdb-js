@@ -120,7 +120,7 @@ example=> <control-D>
 
 3.1.5) Run the test:
 [root@localhost]# cd $SOURCES/tests
-[root@localhost]# SLAPD_USE_SQL=postgres ./run test031
+[root@localhost]# SLAPD_USE_SQL=pgsql ./run test031
 
 3.2) MySQL
 
