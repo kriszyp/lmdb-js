@@ -580,7 +580,7 @@ startup:;
 	mal_leaktrace(1);
 #endif
 
-	if ( !dryrun && be && slap_startup( be ) ) {
+	if ( !dryrun && slap_startup( be ) ) {
 		switch ( tool ) {
 		case SLAPTEST:
 			fprintf( stderr, "slap_startup failed "
