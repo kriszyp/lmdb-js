@@ -1807,7 +1807,8 @@ slapd_daemon_task(
 			int	r, w;
 
 			r = SLAP_EVENT_IS_READ( i );
-			w = SLAP_EVENT_IS_WRITE( i );
+			/* writefds was not initialized if nwriters was zero */
+			w = nwriters ? SLAP_EVENT_IS_WRITE( i ) : 0;
 			if ( r || w ) {
 				Debug( LDAP_DEBUG_CONNS, " %d%s%s", i,
 				    r ? "r" : "", w ? "w" : "" );
