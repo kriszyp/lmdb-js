@@ -11,6 +11,7 @@ OpenLDAP 2.2.27 Engineering
 	Fixed ACL dn=* <what> clause
 	Fixed ACL val default style parsing crasher (ITS#3700)
 	Disabled slapd broken undocumented configuration directive
+	Fixed libldap sasl connection assert (ITS#3278)
 	Build Environment
 		Improved thread set stack size support (ITS#3691)
 
