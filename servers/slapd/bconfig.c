@@ -1157,21 +1157,35 @@ config_generic(ConfigArgs *c) {
 
 #ifdef SLAPD_MODULES
 		case CFG_MODLOAD:
+			/* If we're just adding a module on an existing modpath,
+			 * make sure we've selected the current path.
+			 */
+			if ( c->op == LDAP_MOD_ADD && modcur != c->private ) {
+				modcur = c->private;
+				/* This should never fail */
+				if ( module_path( modcur->mp_path.bv_val )) {
+					sprintf( c->msg, "<%s> module path no longer valid",
+						c->argv[0] );
+					Debug(LDAP_DEBUG_ANY, "%s: %s (%s)\n",
+						c->log, c->msg, modcur->mp_path.bv_val );
+					return(1);
+				}
+			}
 			if(module_load(c->argv[1], c->argc - 2, (c->argc > 2) ? c->argv + 2 : NULL))
 				return(1);
 			/* Record this load on the current path */
 			{
 				struct berval bv;
-				ModPaths *mp;
-				char *ptr = c->line + STRLENOF("moduleload");
-				while (!isspace(*ptr)) ptr++;
-				while (isspace(*ptr)) ptr++;
+				char *ptr;
+				if ( c->op == SLAP_CONFIG_ADD ) {
+					ptr = c->line + STRLENOF("moduleload");
+					while (!isspace(*ptr)) ptr++;
+					while (isspace(*ptr)) ptr++;
+				} else {
+					ptr = c->line;
+				}
 				ber_str2bv(ptr, 0, 1, &bv);
-				if ( c->op == SLAP_CONFIG_ADD )
-					mp = modcur;
-				else
-					mp = c->private;
-				ber_bvarray_add( &mp->mp_loads, &bv );
+				ber_bvarray_add( &modcur->mp_loads, &bv );
 			}
 			break;
 
@@ -1192,8 +1206,7 @@ config_generic(ConfigArgs *c) {
 				mp->mp_loads = NULL;
 				modlast = mp;
 				c->private = mp;
-				if ( c->op == SLAP_CONFIG_ADD )
-					modcur = mp;
+				modcur = mp;
 			}
 			
 			break;
