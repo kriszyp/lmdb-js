@@ -844,7 +844,7 @@ void slap_timestamp( time_t *tm, struct berval *bv )
 	ltm = gmtime_r( tm, &ltm_buf );
 #else
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-	ltm = gmtime( &tm );
+	ltm = gmtime( tm );
 #endif
 
 	bv->bv_len = lutil_gentime( bv->bv_val, bv->bv_len, ltm );
