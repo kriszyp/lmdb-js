@@ -719,6 +719,9 @@ verbs_to_mask(int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m) {
 	return(0);
 }
 
+/* Mask keywords that represent multiple bits should occur before single
+ * bit keywords in the verbmasks array.
+ */
 int
 mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 	int i;
@@ -728,6 +731,7 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 		if (!v[i].mask) continue;
 		if (( m & v[i].mask ) == v[i].mask ) {
 			value_add_one( bva, &v[i].word );
+			m ^= v[i].mask;
 		}
 	}
 	return 0;
