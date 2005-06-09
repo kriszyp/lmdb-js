@@ -242,7 +242,7 @@ struct berbuf * backsql_strfcat( struct berbuf *dest, const char *fmt, ... );
 int backsql_entry_addattr( Entry *e, AttributeDescription *ad, 
 		struct berval *at_val, void *memctx );
 
-int backsql_merge_from_clause( struct berbuf *dest_from, 
+int backsql_merge_from_clause( backsql_info *bi, struct berbuf *dest_from, 
 		struct berval *src_from );
 
 int backsql_split_pattern( const char *pattern, BerVarray *split_pattern,

@@ -100,19 +100,21 @@ backsql_dup_attr( void *v_m1, void *v_m2 )
 
 static int
 backsql_make_attr_query( 
+	backsql_info		*bi,
 	backsql_oc_map_rec 	*oc_map,
 	backsql_at_map_rec 	*at_map )
 {
 	struct berbuf	bb = BB_NULL;
 
-	backsql_strfcat( &bb, "lblblblbcbl", 
+	backsql_strfcat( &bb, "lblbbbblblbcbl", 
 			(ber_len_t)STRLENOF( "SELECT " ), "SELECT ", 
 			&at_map->bam_sel_expr, 
-			(ber_len_t)STRLENOF( " " BACKSQL_ALIASING BACKSQL_ALIASING_QUOTE ),
-				" " BACKSQL_ALIASING BACKSQL_ALIASING_QUOTE, 
+			(ber_len_t)STRLENOF( " " ), " ",
+			&bi->sql_aliasing,
+			&bi->sql_aliasing_quote, 
 			&at_map->bam_ad->ad_cname,
-			(ber_len_t)STRLENOF( BACKSQL_ALIASING_QUOTE " FROM " ),
-				BACKSQL_ALIASING_QUOTE " FROM ", 
+			&bi->sql_aliasing_quote,
+			(ber_len_t)STRLENOF( " FROM " ), " FROM ", 
 			&at_map->bam_from_tbls, 
 			(ber_len_t)STRLENOF( " WHERE " ), " WHERE ", 
 			&oc_map->bom_keytbl,
@@ -126,12 +128,11 @@ backsql_make_attr_query(
 				&at_map->bam_join_where );
 	}
 
-	backsql_strfcat( &bb, "lbl", 
-			(ber_len_t)STRLENOF( " ORDER BY " BACKSQL_ALIASING_QUOTE ),
-				" ORDER BY " BACKSQL_ALIASING_QUOTE,
+	backsql_strfcat( &bb, "lbbb", 
+			(ber_len_t)STRLENOF( " ORDER BY " ), " ORDER BY ",
+			&bi->sql_aliasing_quote,
 			&at_map->bam_ad->ad_cname,
-			(ber_len_t)STRLENOF( BACKSQL_ALIASING_QUOTE ),
-				BACKSQL_ALIASING_QUOTE );
+			&bi->sql_aliasing_quote );
 
 	at_map->bam_query = bb.bb_val.bv_val;
 
@@ -162,7 +163,7 @@ backsql_make_attr_query(
 }
 
 static int
-backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
+backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 {
 	backsql_at_map_rec	*at_map;
 	char			s[] = "+9223372036854775807L";
@@ -183,7 +184,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	
 	bb.bb_len = at_map->bam_from_tbls.bv_len + 1;
 	bb.bb_val = at_map->bam_from_tbls;
-	backsql_merge_from_clause( &bb, &oc_map->bom_keytbl );
+	backsql_merge_from_clause( bi, &bb, &oc_map->bom_keytbl );
 	at_map->bam_from_tbls = bb.bb_val;
 
 	BER_BVZERO( &bb.bb_val );
@@ -240,7 +241,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	at_map->bam_expect_return = 0;
 	at_map->bam_next = NULL;
 
-	backsql_make_attr_query( oc_map, at_map );
+	backsql_make_attr_query( bi, oc_map, at_map );
 	if ( avl_insert( &oc_map->bom_attrs, at_map, backsql_cmp_attr, backsql_dup_attr ) == BACKSQL_DUPLICATE ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add_sysmaps(): "
 				"duplicate attribute \"%s\" in objectClass \"%s\" map\n",
@@ -359,7 +360,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		}
 
 		ber_str2bv( at_row.cols[ 2 ], 0, 0, &bv );
-		backsql_merge_from_clause( &bb, &bv );
+		backsql_merge_from_clause( bas->bas_bi, &bb, &bv );
 		at_map->bam_from_tbls = bb.bb_val;
 		if ( at_row.value_len[ 3 ] < 0 ) {
 			BER_BVZERO( &at_map->bam_join_where );
@@ -386,7 +387,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		if ( next == at_row.cols[ 7 ] || next[0] != '\0' ) {
 			/* error */
 		}
-		backsql_make_attr_query( oc_map, at_map );
+		backsql_make_attr_query( bas->bas_bi, oc_map, at_map );
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_attr_mapping(): "
 			"preconstructed query \"%s\"\n",
 			at_map->bam_query, 0, 0 );
@@ -419,7 +420,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		"autoadding 'objectClass' and 'ref' mappings\n",
 		BACKSQL_OC_NAME( oc_map ), 0, 0 );
 
-	(void)backsql_add_sysmaps( oc_map );
+	(void)backsql_add_sysmaps( bas->bas_bi, oc_map );
 
 	return BACKSQL_AVL_CONTINUE;
 }

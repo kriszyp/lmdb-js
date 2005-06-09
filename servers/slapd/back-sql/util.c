@@ -275,7 +275,7 @@ backsql_entry_addattr(
 }
 
 static char *
-backsql_get_table_spec( char **p )
+backsql_get_table_spec( backsql_info *bi, char **p )
 {
 	char		*s, *q;
 	struct berbuf	res = BB_NULL;
@@ -312,13 +312,19 @@ backsql_get_table_spec( char **p )
 	}
 
 	/* oracle doesn't understand "AS" :( and other RDBMSes don't need it */
-	backsql_strcat( &res, " " BACKSQL_ALIASING BACKSQL_ALIASING_QUOTE, s, BACKSQL_ALIASING_QUOTE, NULL );
+	backsql_strfcat( &res, "lbbsb",
+			STRLENOF( " " ), " ",
+			&bi->sql_aliasing,
+			&bi->sql_aliasing_quote,
+			s,
+			&bi->sql_aliasing_quote );
 
 	return res.bb_val.bv_val;
 }
 
 int
 backsql_merge_from_clause( 
+	backsql_info	*bi,
 	struct berbuf	*dest_from,
 	struct berval	*src_from )
 {
@@ -340,7 +346,7 @@ backsql_merge_from_clause(
 	}
 	
 	while ( *p ) {
-		s = backsql_get_table_spec( &p );
+		s = backsql_get_table_spec( bi, &p );
 
 #ifdef BACKSQL_TRACE
 		Debug( LDAP_DEBUG_TRACE, "backsql_merge_from_clause(): "

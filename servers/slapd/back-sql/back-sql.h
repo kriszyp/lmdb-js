@@ -493,6 +493,10 @@ typedef struct backsql_info {
 	BerVarray	sql_concat_func;
 	struct berval	sql_strcast_func;
 
+	struct berval	sql_aliasing;
+	struct berval	sql_aliasing_quote;
+	struct berval	sql_dn_oc_aliasing;
+
 	AttributeName	*sql_anlist;
 
 	unsigned int	sql_flags;
