@@ -2,6 +2,7 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.27 Engineering
 	Fixed back-bdb/hdb slapcat checkpoint on close (ITS#3703)
+	Fixed back-bdb/hdb internal error code assert (ITS#3731)
 	Fixed back-ldap/back-meta debug output of NULL strings (ITS#3698)
 	Fixed back-meta sizelimit bug (ITS#3720)
 	Fixed back-meta/backglue sizelimit interaction (ITS#3724)
