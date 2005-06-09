@@ -35,6 +35,18 @@ file.
 .TP
 .BI \-F " confdir"
 specify a config directory.
+If both
+.B -f
+and
+.B -F
+are specified, the config file will be read and converted to
+config directory format and written to the specified directory.
+If neither option is specified, slaptest will attempt to read the
+default config directory before trying to use the default
+config file. If a valid config directory exists then the
+default config file is ignored. If dryrun mode is also specified,
+no conversion will occur. All of the slap tools that
+use the config options observe this same behavior.
 .TP
 .B \-u
 enable dryrun mode (i.e. don't fail if databases cannot be opened,
