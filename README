@@ -19,7 +19,7 @@ REQUIRED SOFTWARE
         POSIX REGEX software (required)
 
     SLAPD:
-        BDB and HDB backends require (latest) Sleepycat Berkeley DB 4.2
+        BDB and HDB backends require Sleepycat Berkeley DB 4.2
         LDBM backend requires a compatible database manager
             [Berkeley DB, GDBM, etc.]
 
@@ -38,24 +38,26 @@ MAKING AND INSTALLING THE DISTRIBUTION
 
 
 DOCUMENTATION
-    There are man pages for most programs in the distribution and
-    routines in the various libraries.  See ldap(3) for details.
+    The OpenLDAP Administrator's Guide is available in the
+    guide.html file in the doc/guide/admin directory.  The
+    guide and a number of other documents are available at
+    <http://www.openldap.org/doc/guide/admin/guide.html>.
+
+    The distribution also includes manual pages for most programs
+    and library APIs.  See ldap(3) for details.
 
     The OpenLDAP website is available and contains the latest LDAP
     news, releases announcements, pointers to other LDAP resources,
     etc..  It is located at <http://www.OpenLDAP.org/>.
-
-    The OpenLDAP Administrator's Guide and other documentation is
-    available at <http://www.openldap.org/doc/>.
 
     The OpenLDAP Software FAQ is available at
     <http://www.openldap.org/faq/>.
 
 
 SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
-    OpenLDAP is user supported.  If you have problems, please review
-    the OpenLDAP FAQ <http://www.openldap.org/faq/> and archives
-    of the OpenLDAP-software and OpenLDAP-bugs mailing lists
+    OpenLDAP Software is user supported.  If you have problems, please
+    review the OpenLDAP FAQ <http://www.openldap.org/faq/> and
+    archives of the OpenLDAP-software and OpenLDAP-bugs mailing lists
     <http://www.openldap.org/lists/>.  If you cannot find the answer,
     please enquire on the OpenLDAP-software list.
 
