@@ -321,7 +321,7 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"delobjclasses_stmt=%s\n", bi->sql_delobjclasses_stmt, 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "has_ldapinfo_dn_ru") ) {
+	} else if ( !strcasecmp( argv[ 0 ], "has_ldapinfo_dn_ru" ) ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
@@ -352,7 +352,7 @@ backsql_db_config(
 			"has_ldapinfo_dn_ru=%s\n", 
 			BACKSQL_HAS_LDAPINFO_DN_RU( bi ) ? "yes" : "no", 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "fail_if_no_mapping") ) {
+	} else if ( !strcasecmp( argv[ 0 ], "fail_if_no_mapping" ) ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
@@ -381,7 +381,7 @@ backsql_db_config(
 			"fail_if_no_mapping=%s\n", 
 			BACKSQL_FAIL_IF_NO_MAPPING( bi ) ? "yes" : "no", 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "allow_orphans") ) {
+	} else if ( !strcasecmp( argv[ 0 ], "allow_orphans" ) ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
@@ -443,7 +443,7 @@ backsql_db_config(
 			return 1;
 		}
 
-	} else if ( !strcasecmp( argv[ 0 ], "sqllayer") ) {
+	} else if ( !strcasecmp( argv[ 0 ], "sqllayer" ) ) {
 		if ( backsql_api_config( bi, argv[ 1 ], argc - 2, &argv[ 2 ] ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
@@ -466,7 +466,7 @@ backsql_db_config(
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_db_config(): "
 			"id_query=%s\n", bi->sql_id_query, 0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "use_subtree_shortcut") ) {
+	} else if ( !strcasecmp( argv[ 0 ], "use_subtree_shortcut" ) ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
@@ -496,7 +496,7 @@ backsql_db_config(
 			BACKSQL_USE_SUBTREE_SHORTCUT( bi ) ? "yes" : "no",
 			0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "fetch_all_attrs") ) {
+	} else if ( !strcasecmp( argv[ 0 ], "fetch_all_attrs" ) ) {
 		if ( argc < 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
@@ -526,7 +526,7 @@ backsql_db_config(
 			BACKSQL_FETCH_ALL_ATTRS( bi ) ? "yes" : "no",
 			0, 0 );
 
-	} else if ( !strcasecmp( argv[ 0 ], "fetch_attrs") ) {
+	} else if ( !strcasecmp( argv[ 0 ], "fetch_attrs" ) ) {
 		char	*str, *s, *next;
 		char	delimstr[] = ",";
 
@@ -561,8 +561,8 @@ backsql_db_config(
 			return -1;
 		}
 
-	} else if ( !strcasecmp( argv[ 0 ], "check_schema") ) {
-		if ( argc < 2 ) {
+	} else if ( !strcasecmp( argv[ 0 ], "check_schema" ) ) {
+		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<==backsql_db_config (%s line %d): "
 				"missing { yes | no }"
@@ -590,6 +590,41 @@ backsql_db_config(
 			"check_schema=%s\n", 
 			BACKSQL_CHECK_SCHEMA( bi ) ? "yes" : "no",
 			0, 0 );
+
+	} else if ( !strcasecmp( argv[ 0 ], "aliasing_keyword" ) ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing arg "
+				"in \"aliasing_keyword <string>\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( ! BER_BVISNULL( &bi->sql_aliasing ) ) {
+			ch_free( bi->sql_aliasing.bv_val );
+		}
+
+		ber_str2bv( argv[ 1 ], strlen( argv[ 1 ] ) + 1, 1,
+			&bi->sql_aliasing );
+		/* add a trailing space... */
+		bi->sql_aliasing.bv_val[ bi->sql_aliasing.bv_len - 1] = ' ';
+
+	} else if ( !strcasecmp( argv[ 0 ], "aliasing_quote" ) ) {
+		if ( argc != 2 ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"<==backsql_db_config (%s line %d): "
+				"missing arg "
+				"in \"aliasing_quote <string>\" directive\n",
+				fname, lineno, 0 );
+			return 1;
+		}
+
+		if ( ! BER_BVISNULL( &bi->sql_aliasing_quote ) ) {
+			ch_free( bi->sql_aliasing_quote.bv_val );
+		}
+
+		ber_str2bv( argv[ 1 ], 0, 1, &bi->sql_aliasing_quote );
 
 	} else {
 		return SLAP_CONF_UNKNOWN;

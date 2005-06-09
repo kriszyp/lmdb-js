@@ -147,6 +147,9 @@ backsql_db_destroy(
 	free( bi->sql_renentry_stmt );
 	free( bi->sql_delobjclasses_stmt );
 
+	free( bi->sql_aliasing.bv_val );
+	free( bi->sql_aliasing_quote.bv_val );
+
 	if ( bi->sql_anlist ) {
 		int	i;
 
@@ -199,6 +202,21 @@ backsql_db_open(
 				backsql_def_concat_func, 0, 0 );
 			return 1;
 		}
+	}
+
+	/*
+	 * see back-sql.h for default values
+	 */
+	if ( BER_BVISNULL( &bi->sql_aliasing ) ) {
+		ber_str2bv( BACKSQL_ALIASING,
+			STRLENOF( BACKSQL_ALIASING ),
+			1, &bi->sql_aliasing );
+	}
+
+	if ( BER_BVISNULL( &bi->sql_aliasing_quote ) ) {
+		ber_str2bv( BACKSQL_ALIASING_QUOTE,
+			STRLENOF( BACKSQL_ALIASING_QUOTE ),
+			1, &bi->sql_aliasing_quote );
 	}
 
 	/*
@@ -445,20 +463,30 @@ backsql_db_open(
 		bi->sql_id_query = bb.bb_val.bv_val;
 	}
 
-       	/*
+	/*
 	 * Prepare children ID selection query
 	 */
-	bi->sql_has_children_query = NULL;
-
-	bb.bb_val.bv_val = NULL;
-	bb.bb_val.bv_len = 0;
+	BER_BVZERO( &bb.bb_val );
 	bb.bb_len = 0;
-	backsql_strfcat( &bb, "sb",
+	backsql_strfcat( &bb, "sbsb",
 			"SELECT COUNT(distinct subordinates.id) "
-			"FROM ldap_entries,ldap_entries " BACKSQL_ALIASING "subordinates "
+			"FROM ldap_entries,ldap_entries ",
+			&bi->sql_aliasing, "subordinates "
 			"WHERE subordinates.parent=ldap_entries.id AND ",
 			&bi->sql_children_cond );
 	bi->sql_has_children_query = bb.bb_val.bv_val;
+ 
+	/*
+	 * Prepare DN and objectClass aliasing bit of query
+	 */
+	BER_BVZERO( &bb.bb_val );
+	bb.bb_len = 0;
+	backsql_strfcat( &bb, "sbbsbsbbsb",
+			" ", &bi->sql_aliasing, &bi->sql_aliasing_quote,
+			"objectClass", &bi->sql_aliasing_quote,
+			",ldap_entries.dn ", &bi->sql_aliasing,
+			&bi->sql_aliasing_quote, "dn", &bi->sql_aliasing_quote );
+	bi->sql_dn_oc_aliasing = bb.bb_val;
  
 	backsql_free_db_conn( op );
 	if ( !BACKSQL_SCHEMA_LOADED( bi ) ) {
@@ -475,6 +503,7 @@ backsql_db_open(
 		/* enable if only one suffix is defined */
 		bi->sql_flags |= BSQLF_USE_SUBTREE_SHORTCUT;
 	}
+
 	bi->sql_flags |= BSQLF_CHECK_SCHEMA;
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_open(): "
