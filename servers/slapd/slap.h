@@ -2291,6 +2291,7 @@ typedef struct slap_op {
 
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
+	int			o_tincr;	/* counter for multiple ops with same o_time */
 
 	BackendDB	*o_bd;	/* backend DB processing this op */
 	struct berval	o_req_dn;	/* DN of target of request */
