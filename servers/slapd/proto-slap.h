@@ -207,6 +207,7 @@ LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 #define attr_mergeit( e, d, v ) attr_merge( e, d, v, NULL /* FIXME */ )
 #define attr_mergeit_one( e, d, v ) attr_merge_one( e, d, v, NULL /* FIXME */ )
 
+LDAP_SLAPD_F (Attribute *) attr_alloc LDAP_P(( AttributeDescription *ad ));
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	BerVarray vals,

@@ -40,6 +40,23 @@
 
 #include "slap.h"
 
+Attribute *
+attr_alloc( AttributeDescription *ad )
+{
+	Attribute *a = ch_malloc( sizeof(Attribute) );
+
+	a->a_desc = ad;
+	a->a_next = NULL;
+	a->a_flags = 0;
+	a->a_vals = NULL;
+	a->a_nvals = NULL;
+#ifdef LDAP_COMP_MATCH
+	a->a_comp_data = NULL;
+#endif
+
+	return a;
+}
+
 void
 attr_free( Attribute *a )
 {
@@ -91,7 +108,7 @@ attr_dup( Attribute *a )
 
 	if ( a == NULL) return NULL;
 
-	tmp = ch_malloc( sizeof(Attribute) );
+	tmp = attr_alloc( a->a_desc );
 
 	if ( a->a_vals != NULL ) {
 		int i;
@@ -128,14 +145,6 @@ attr_dup( Attribute *a )
 		tmp->a_vals = NULL;
 		tmp->a_nvals = NULL;
 	}
-
-	tmp->a_desc = a->a_desc;
-	tmp->a_next = NULL;
-	tmp->a_flags = 0;
-#ifdef LDAP_COMP_MATCH
-	tmp->a_comp_data = NULL;
-#endif
-
 	return tmp;
 }
 
@@ -157,7 +166,6 @@ attrs_dup( Attribute *a )
 
 	return tmp;
 }
-
 
 
 /*
@@ -189,15 +197,7 @@ attr_merge(
 	}
 
 	if ( *a == NULL ) {
-		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
-		(*a)->a_desc = desc;
-		(*a)->a_vals = NULL;
-		(*a)->a_nvals = NULL;
-		(*a)->a_next = NULL;
-		(*a)->a_flags = 0;
-#ifdef LDAP_COMP_MATCH
-		(*a)->a_comp_data = NULL;
-#endif
+		*a = attr_alloc( desc );
 	} else {
 		/*
 		 * FIXME: if the attribute already exists, the presence
@@ -280,15 +280,7 @@ attr_merge_one(
 	}
 
 	if ( *a == NULL ) {
-		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
-		(*a)->a_desc = desc;
-		(*a)->a_vals = NULL;
-		(*a)->a_nvals = NULL;
-		(*a)->a_next = NULL;
-		(*a)->a_flags = 0;
-#ifdef LDAP_COMP_MATCH
-		(*a)->a_comp_data = NULL;
-#endif
+		*a = attr_alloc( desc );
 	}
 
 	rc = value_add_one( &(*a)->a_vals, val );

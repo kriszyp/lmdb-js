@@ -293,7 +293,7 @@ static struct {
 		"SUP auditObject STRUCTURAL )", &log_ocs[LOG_EN_DELETE] },
 	{ "( " LOG_SCHEMA_OC ".4 NAME 'auditAbandon' "
 		"DESC 'Abandon operation' "
-		"SUP auditReadObject STRUCTURAL "
+		"SUP auditObject STRUCTURAL "
 		"MUST reqId )", &log_ocs[LOG_EN_ABANDON] },
 	{ "( " LOG_SCHEMA_OC ".5 NAME 'auditAdd' "
 		"DESC 'Add operation' "
@@ -301,14 +301,14 @@ static struct {
 		"MUST reqMod )", &log_ocs[LOG_EN_ADD] },
 	{ "( " LOG_SCHEMA_OC ".6 NAME 'auditBind' "
 		"DESC 'Bind operation' "
-		"SUP auditReadObject STRUCTURAL "
+		"SUP auditObject STRUCTURAL "
 		"MUST reqMethod )", &log_ocs[LOG_EN_BIND] },
 	{ "( " LOG_SCHEMA_OC ".7 NAME 'auditCompare' "
 		"DESC 'Compare operation' "
 		"SUP auditReadObject STRUCTURAL "
 		"MUST reqAssertion )", &log_ocs[LOG_EN_COMPARE] },
 	{ "( " LOG_SCHEMA_OC ".8 NAME 'auditModify' "
-		"DESC 'Add or Modify operation' "
+		"DESC 'Modify operation' "
 		"SUP auditWriteObject STRUCTURAL "
 		"MUST reqMod )", &log_ocs[LOG_EN_MODIFY] },
 	{ "( " LOG_SCHEMA_OC ".9 NAME 'auditModRDN' "
@@ -324,7 +324,7 @@ static struct {
 			"reqTimeLimit ) )", &log_ocs[LOG_EN_SEARCH] },
 	{ "( " LOG_SCHEMA_OC ".11 NAME 'auditExtended' "
 		"DESC 'Extended operation' "
-		"SUP auditReadObject STRUCTURAL "
+		"SUP auditObject STRUCTURAL "
 		"MAY reqData )", &log_ocs[LOG_EN_EXTENDED] },
 	{ NULL, NULL }
 };
