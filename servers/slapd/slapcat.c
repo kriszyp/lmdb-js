@@ -31,6 +31,14 @@
 
 #include "slapcommon.h"
 
+static int gotsig;
+
+static RETSIGTYPE
+slapcat_sig( int sig )
+{
+	gotsig=1;
+}
+
 int
 slapcat( int argc, char **argv )
 {
@@ -40,6 +48,15 @@ slapcat( int argc, char **argv )
 	const char *progname = "slapcat";
 
 	slap_tool_init( progname, SLAPCAT, argc, argv );
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, slapcat_sig );
+#endif
+#ifdef SIGHUP
+	(void) SIGNAL( SIGHUP, slapcat_sig );
+#endif
+	(void) SIGNAL( SIGINT, slapcat_sig );
+	(void) SIGNAL( SIGTERM, slapcat_sig );
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
@@ -58,15 +75,19 @@ slapcat( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
+	op.o_bd = be;
 	for ( id = be->be_entry_first( be );
 		id != NOID;
 		id = be->be_entry_next( be ) )
 	{
 		char *data;
 		int len;
-		Entry* e = be->be_entry_get( be, id );
-		op.o_bd = be;
+		Entry* e;
 
+		if ( gotsig )
+			break;
+
+		e = be->be_entry_get( be, id );
 		if ( e == NULL ) {
 			printf("# no data for entry id=%08lx\n\n", (long) id );
 			rc = EXIT_FAILURE;
