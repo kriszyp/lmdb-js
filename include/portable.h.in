@@ -1034,6 +1034,9 @@
 /* define to support SQL backend */
 #undef SLAPD_SQL
 
+/* define for In-Directory Access Logging overlay */
+#undef SLAPD_OVER_ACCESSLOG
+
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DENYOP
 
