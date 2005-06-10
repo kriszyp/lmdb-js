@@ -242,7 +242,7 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
-Overlays="denyop dyngroup dynlist glue lastmod ppolicy proxycache \
+Overlays="accesslog denyop dyngroup dynlist glue lastmod ppolicy proxycache \
 	refint rwm syncprov translucent unique"
 
 AC_ARG_WITH(xxslapoverlays,[
@@ -250,6 +250,8 @@ SLAPD Overlay Options:])
 
 OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no|yes|mod],
 	no, [no yes mod])dnl
+OL_ARG_ENABLE(accesslog,[    --enable-accesslog  	  In-Directory Access Logging overlay no|yes|mod],
+	no, [no yes mod])
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod],
 	no, [no yes mod])
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay no|yes|mod],
@@ -522,7 +524,7 @@ BUILD_RELAY=no
 BUILD_SHELL=no
 BUILD_SQL=no
 
-BUILD_CHAIN=no
+BUILD_ACCESSLOG=no
 BUILD_DENYOP=no
 BUILD_DYNGROUP=no
 BUILD_DYNLIST=no
@@ -2767,6 +2769,18 @@ if test "$ol_link_sql" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_SQL,$MFLAG,[define to support SQL backend])
 fi
 
+if test "$ol_enable_accesslog" != no ; then
+	BUILD_ACCESSLOG=$ol_enable_accesslog
+	if test "$ol_enable_accesslog" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS accesslog.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS accesslog.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_ACCESSLOG,$MFLAG,[define for In-Directory Access Logging overlay])
+fi
+
 if test "$ol_enable_denyop" != no ; then
 	BUILD_DENYOP=$ol_enable_denyop
 	if test "$ol_enable_denyop" = mod ; then
@@ -2968,7 +2982,7 @@ dnl backends
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_SQL)
 dnl overlays
-  AC_SUBST(BUILD_CHAIN)
+  AC_SUBST(BUILD_ACCESSLOG)
   AC_SUBST(BUILD_DENYOP)
   AC_SUBST(BUILD_DYNGROUP)
   AC_SUBST(BUILD_DYNLIST)

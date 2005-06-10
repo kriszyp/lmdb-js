@@ -135,7 +135,8 @@ config directory format and written to the specified directory.
 If neither option is specified, slapd will attempt to read the
 default config directory before trying to use the default
 config file. If a valid config directory exists then the
-default config file is ignored.
+default config file is ignored. All of the slap tools that
+use the config options observe this same behavior.
 .TP
 .BI \-h " URLlist"
 .B slapd

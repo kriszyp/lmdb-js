@@ -1834,6 +1834,7 @@ config_loglevel(ConfigArgs *c) {
 	int i;
 	char *next;
 	slap_verbmasks loglevel_ops[] = {
+		{ BER_BVC("Any"),	-1 },
 		{ BER_BVC("Trace"),	LDAP_DEBUG_TRACE },
 		{ BER_BVC("Packets"),	LDAP_DEBUG_PACKETS },
 		{ BER_BVC("Args"),	LDAP_DEBUG_ARGS },
@@ -1849,7 +1850,6 @@ config_loglevel(ConfigArgs *c) {
 		{ BER_BVC("Cache"),	LDAP_DEBUG_CACHE },
 		{ BER_BVC("Index"),	LDAP_DEBUG_INDEX },
 		{ BER_BVC("Sync"),	LDAP_DEBUG_SYNC },
-		{ BER_BVC("Any"),	-1 },
 		{ BER_BVNULL,	0 }
 	};
 

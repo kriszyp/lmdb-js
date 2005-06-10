@@ -39,6 +39,8 @@
 
 static ldap_pvt_thread_mutex_t	slap_op_mutex;
 static LDAP_STAILQ_HEAD(s_o, slap_op)	slap_free_ops;
+static time_t last_time;
+static int last_incr;
 
 void slap_op_init(void)
 {
@@ -142,6 +144,12 @@ slap_op_alloc(
 	op->o_tag = tag;
 
 	op->o_time = slap_get_time();
+	if ( op->o_time == last_time ) {
+		op->o_tincr = ++last_incr;
+	} else {
+		last_time = op->o_time;
+		last_incr = 0;	/* o_tincr is alredy zero */
+	}
 	op->o_opid = id;
 	op->o_res_ber = NULL;
 

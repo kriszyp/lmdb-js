@@ -580,7 +580,8 @@ startup:;
 	mal_leaktrace(1);
 #endif
 
-	if ( !dryrun && be && slap_startup( be ) ) {
+	/* slapdn doesn't specify a backend to startup */
+	if ( !dryrun && tool != SLAPDN && slap_startup( be ) ) {
 		switch ( tool ) {
 		case SLAPTEST:
 			fprintf( stderr, "slap_startup failed "
