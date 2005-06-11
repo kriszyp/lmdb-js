@@ -275,6 +275,42 @@ H4: Sample Entries
 >olcInclude: ./schema/cosine.schema
 
 
+H3: cn=module
+
+If support for dynamically loaded modules was enabled when configuring
+slapd, {{EX:cn=module}} entries may be used to specify sets of modules to load.
+Module entries must have the {{EX:olcModuleList}} objectClass.
+
+
+H4: olcModuleLoad: <filename>
+
+Specify the name of a dynamically loadable module to load. The filename
+may be an absolute path name or a simple filename. Non-absolute names
+are searched for in the directories specified by the {{EX:olcModulePath}}
+directive.
+
+
+H4: olcModulePath: <pathspec>
+
+Specify a list of directories to search for loadable modules. Typically the
+path is colon-separated but this depends on the operating system.
+
+
+H4: Sample Entries
+
+>dn: cn=module{0},cn=config
+>objectClass: olcModuleList
+>cn: module{0}
+>olcModuleLoad: /usr/local/lib/smbk5pwd.la
+>
+>dn: cn=module{1},cn=config
+>objectClass: olcModuleList
+>cn: module{1}
+>olcModulePath: /usr/local/lib:/usr/local/lib/slapd
+>olcModuleLoad: accesslog.la
+>olcModuleLoad: pcache.la
+
+
 H3: cn=schema
 
 The cn=schema entry holds all of the schema definitions that are hard-coded
@@ -815,11 +851,11 @@ the root, boot, or swap filesystems. See the FAQ-o-Matic and the SleepyCat
 documentation for more details.
 
 
-H4: olcDbNosync: <TRUE|FALSE>
+H4: olcDbNosync: { TRUE | FALSE }
 
 This option causes on-disk database contents to not be immediately
 synchronized with in memory changes upon change.  Setting this option
-to TRUE may improve performance at the expense of data integrity. This
+to {{EX:TRUE}} may improve performance at the expense of data integrity. This
 directive has the same effect as using
 >	olcDbConfig: set_flags DB_TXN_NOSYNC
 
@@ -870,7 +906,7 @@ stopped before the index task completes, indexing will have to be
 manually completed using the slapindex tool.
 
 
-H4: olcDbLinearIndex: <TRUE|FALSE>
+H4: olcDbLinearIndex: { TRUE | FALSE }
 
 If this setting is {{EX:TRUE}} slapindex will index one attribute
 at a time. The default settings is {{EX:FALSE}} in which case all
