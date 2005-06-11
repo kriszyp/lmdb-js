@@ -746,71 +746,92 @@ containing the database and associated indices live.
 >	olcDbDirectory: /usr/local/var/openldap-data
 
 
-H4: Sample Entry
-
->dn: olcDatabase=bdb,cn=config
->objectClass: olcDatabaseConfig
->objectClass: olcBdbConfig
->olcDatabase: bdb
->olcSuffix: "dc=example,dc=com"
->olcDbDirectory: /usr/local/var/openldap-data
-
-H3: LDBM Database Directives
-
-Directives in this category only apply to a {{TERM:LDBM}} database.
-That is, they must follow a "database ldbm" line and come before
-any subsequent "backend" or "database" line.  For a complete reference
-of LDBM configuration directives, see {{slapd-ldbm}}(5).
-
-H4: cachesize <integer>
+H4: olcDbCachesize: <integer>
 
 This directive specifies the size in entries of the in-memory
-cache maintained by the LDBM backend database instance.
+cache maintained by the BDB backend database instance.
 
 \Default:
 
->	cachesize 1000
+>	olcDbCachesize: 1000
 
 
-H4: dbcachesize <integer>
+H4: olcDbCheckpoint: <kbyte> <min>
 
-This directive specifies the size in bytes of the in-memory cache
-associated with each open index file. If not supported by the
-underlying database method, this directive is ignored without
-comment. Increasing this number uses more memory but can
-cause a dramatic performance increase, especially during
-modifies or when building indices.
+This directive specifies how often to checkpoint the BDB transaction log.
+A checkpoint operation flushes the database buffers to disk and writes a
+checkpoint record in the log.
+The checkpoint will occur if either <kbyte> data has been written or
+<min> minutes have passed since the last checkpont. Both arguments default
+to zero, in which case they are ignored. When the <min> argument is
+non-zero, an internal task will run every <min> minutes to perform the
+checkpoint. See the Berkeley DB reference guide for more details.
 
-\Default:
+\Example:
 
->	dbcachesize 100000
-
-
-H4: dbnolocking
-
-This option, if present, disables database locking.
-Enabling this option may improve performance at the expense
-of data security.
+>	olcDbCheckpoint: 1024 10
 
 
-H4: dbnosync
+H4: olcDbConfig: <DB_CONFIG setting>
+
+This attribute specifies a configuration directive to be placed in the
+{{EX:DB_CONFIG}} file of the database directory. At server startup time, if
+no such file exists yet, the {{EX:DB_CONFIG}} file will be created and the
+settings in this attribute will be written to it. If the file exists,
+its contents will be read and displayed in this attribute. The attribute
+is multi-valued, to accomodate multiple configuration directives. No default
+is provided, but it is essential to use proper settings here to get the
+best server performance.
+
+\Example:
+
+>	olcDbConfig: set_cachesize 0 10485760 0
+>	olcDbConfig: set_lg_bsize 2097512
+>	olcDbConfig: set_lg_dir /var/tmp/bdb-log
+>	olcDbConfig: set_flags DB_LOG_AUTOREMOVE
+
+In this example, the BDB cache is set to 10MB, the BDB transaction log
+buffer size is set to 2MB, and the transaction log files are to be stored
+in the /var/tmp/bdb-log directory. Also a flag is set to tell BDB to
+delete transaction log files as soon as their contents have been
+checkpointed and they are no longer needed. Without this setting the
+transaction log files will continue to accumulate until some other
+cleanup procedure removes them. See the SleepyCat documentation for the
+{{EX:db_archive}} command for details.
+
+Ideally the BDB cache must be
+at least as large as the working set of the database, the log buffer size
+should be large enough to accomodate most transactions without overflowing,
+and the log directory must be on a separate physical disk from the main
+database files. And both the database directory and the log directory
+should be separate from disks used for regular system activities such as
+the root, boot, or swap filesystems. See the FAQ-o-Matic and the SleepyCat
+documentation for more details.
+
+
+H4: olcDbNosync: <TRUE|FALSE>
 
 This option causes on-disk database contents to not be immediately
-synchronized with in memory changes upon change.  Enabling this option
-may improve performance at the expense of data integrity.
+synchronized with in memory changes upon change.  Setting this option
+to TRUE may improve performance at the expense of data integrity. This
+directive has the same effect as using
+>	olcDbConfig: set_flags DB_TXN_NOSYNC
 
 
-H4: directory <directory>
+H4: olcDbIDLcacheSize: <integer>
 
-This directive specifies the directory where the LDBM files
-containing the database and associated indices live.
+Specify the size of the in-memory index cache, in index slots. The
+default is zero. A larger value will speed up frequent searches of
+indexed entries. The optimal size will depend on the data and search
+characteristics of the database, but using a number three times
+the entry cache size is a good starting point.
 
-\Default:
+\Example:
 
->	directory /usr/local/var/openldap-data
+>	olcDbIDLcacheSize: 3000
 
 
-H4: index {<attrlist> | default} [pres,eq,approx,sub,none]
+H4: olcDbIndex: {<attrlist> | default} [pres,eq,approx,sub,none]
 
 This directive specifies the indices to maintain for the given
 attribute. If only an {{EX:<attrlist>}} is given, the default
@@ -818,10 +839,10 @@ indices are maintained.
 
 \Example:
 
->	index default pres,eq
->	index uid
->	index cn,sn pres,eq,sub
->	index objectClass eq
+>	olcDbIndex: default pres,eq
+>	olcDbIndex: uid
+>	olcDbIndex: cn,sn pres,eq,sub
+>	olcDbIndex: objectClass eq
 
 The first line sets the default set of indices to maintain to
 present and equality.  The second line causes the default (pres,eq)
@@ -834,19 +855,94 @@ attribute type.
 By default, no indices are maintained.  It is generally advised
 that minimally an equality index upon objectClass be maintained.
 
->	index objectClass eq
+>	olcDbindex: objectClass eq
+
+If this setting is changed while slapd is running, an internal task
+will be run to generate the changed index data. All server operations
+can continue as normal while the indexer does its work.  If slapd is
+stopped before the index task completes, indexing will have to be
+manually completed using the slapindex tool.
 
 
+H4: olcDbLinearIndex: <TRUE|FALSE>
 
-H4: mode <integer>
+If this setting is {{EX:TRUE}} slapindex will index one attribute
+at a time. The default settings is {{EX:FALSE}} in which case all
+indexed attributes of an entry are processed at the same time. When
+enabled, each indexed attribute is processed individually, using
+multiple passes through the entire database. This option improves
+slapindex performance when the database size exceeds the BDB cache
+size. When the BDB cache is large enough, this option is not needed
+and will decrease performance. Also by default, slapadd performs
+full indexing and so a separate slapindex run is not needed. With
+this option, slapadd does no indexing and slapindex must be used.
+
+
+H4: olcDbMode: <integer>
 
 This directive specifies the file protection mode that newly
 created database index files should have.
 
 \Default:
 
->	mode 0600
+>	olcDbMode: 0600
 
+
+H4: olcDbSearchStack: <integer>
+
+Specify the depth of the stack used for search filter evaluation.
+Search filters are evaluated on a stack to accomodate nested {{EX:AND}} /
+{{EX:OR}} clauses. An individual stack is allocated for each server thread.
+The depth of the stack determines how complex a filter can be evaluated
+without requiring any additional memory allocation. Filters that are
+nested deeper than the search stack depth will cause a separate stack to
+be allocated for that particular search operation. These separate allocations
+can have a major negative impact on server performance, but specifying
+too much stack will also consume a great deal of memory. Each search
+uses 512K bytes per level on a 32-bit machine, or 1024K bytes per level
+on a 64-bit machine. The default stack depth is 16, thus 8MB or 16MB
+per thread is used on 32 and 64 bit machines, respectively. Also the
+512KB size of a single stack slot is set by a compile-time constant which
+may be changed if needed; the code must be recompiled for the change
+to take effect.
+
+\Default:
+
+>	olcDbSearchStack: 16
+
+
+H4: olcDbShmKey: <integer>
+
+Specify a key for a shared memory BDB environment. By default the BDB
+environment uses memory mapped files. If a non-zero value is specified,
+it will be used as the key to identify a shared memory region that will
+house the environment.
+
+\Example:
+
+>	olcDbShmKey: 42
+
+
+H4: Sample Entry
+
+>dn: olcDatabase=bdb,cn=config
+>objectClass: olcDatabaseConfig
+>objectClass: olcBdbConfig
+>olcDatabase: bdb
+>olcSuffix: "dc=example,dc=com"
+>olcDbDirectory: /usr/local/var/openldap-data
+>olcDbCacheSize: 1000
+>olcDbCheckpoint: 1024 10
+>olcDbConfig: set_cachesize 0 10485760 0
+>olcDbConfig: set_lg_bsize 2097152
+>olcDbConfig: set_lg_dir /var/tmp/bdb-log
+>olcDbConfig: set_flags DB_LOG_AUTOREMOVE
+>olcDbIDLcacheSize: 3000
+>olcDbIndex: objectClass eq
+
+
+Note: the remainder of this chapter has not yet been updated to reflect
+the new cn=config mechanisms.
 
 H2: Access Control
 
