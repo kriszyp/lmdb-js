@@ -25,6 +25,11 @@ command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
 describes the general format of the configuration system, followed by a
 detailed description of commonly used config settings.
 
+Note: the current version of {{slurpd}} has not been updated for
+compatibility with this new configuration engine. If you must use
+slurpd for replication at your site, you will have to maintain an
+old-style {{slapd.conf}} file for slurpd to use.
+
 
 H2: Configuration Layout
 
@@ -1340,9 +1345,6 @@ consult the {{Advanced Access Control}} chapter.
 !endif
 
 
-Note: the remainder of this chapter has not yet been updated to reflect
-the new cn=config mechanisms.
-
 H2: Configuration Example
 
 The following is an example configuration, interspersed
@@ -1352,81 +1354,95 @@ database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
 
-E:  1.	# example config file - global configuration section
-E:  2.	include /usr/local/etc/schema/core.schema
-E:  3.	referral ldap://root.openldap.org
-E:  4.	access to * by * read
- 
-Line 1 is a comment. Line 2 includes another config file
-which contains {{core}} schema definitions.
-The {{EX:referral}} directive on line 3
+E:  1.	# example config file - global configuration entry
+E:  2.	dn: cn=config
+E:  3.	objectClass: olcGlobal
+E:  4.	cn: config
+E:  5.	olcReferral: ldap://root.openldap.org
+E:  6.	
+
+Line 1 is a comment. Lines 2-4 identify this as the global
+configuration entry.
+The {{EX:olcReferral:}} directive on line 5
 means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
 standard port (389) at the host {{EX:root.openldap.org}}.
+Line 6 is a blank line, indicating the end of this entry.
 
-Line 4 is a global access control.  It applies to all
-entries (after any applicable database-specific access
-controls).
+E:  7.	# internal schema
+E:  8.	dn: cn=schema,cn=config
+E:  9.	objectClass: olcSchemaConfig
+E: 10.	cn: schema
+E: 11.	
 
-The next section of the configuration file defines a BDB
-backend that will handle queries for things in the
-"dc=example,dc=com" portion of the tree. The
-database is to be replicated to two slave slapds, one on
-truelies, the other on judgmentday. Indices are to be
-maintained for several attributes, and the {{EX:userPassword}}
-attribute is to be protected from unauthorized access.
+Line 7 is a comment. Lines 8-10 identify this as the root of
+the schema subtree. The actual schema definitions in this entry
+are hardcoded into slapd so no additional attributes are specified here.
+Line 11 is a blank line, indicating the end of this entry.
 
-E:  5.	# BDB definition for the example.com
-E:  6.	database bdb
-E:  7.	suffix "dc=example,dc=com"
-E:  8.	directory /usr/local/var/openldap-data
-E:  9.	rootdn "cn=Manager,dc=example,dc=com"
-E: 10.	rootpw secret
-E: 11.	# replication directives
-E: 12.	replogfile /usr/local/var/openldap/slapd.replog
-E: 13.	replica uri=ldap://slave1.example.com:389
-E: 14.		binddn="cn=Replicator,dc=example,dc=com"
-E: 15.		bindmethod=simple credentials=secret
-E: 16.	replica uri=ldaps://slave2.example.com:636
-E: 17.		binddn="cn=Replicator,dc=example,dc=com"
-E: 18.		bindmethod=simple credentials=secret
-E: 19.	# indexed attribute definitions
-E: 20.	index uid pres,eq
-E: 21.	index cn,sn,uid pres,eq,approx,sub
-E: 22.	index objectClass eq
-E: 23.	# database access control definitions
-E: 24.	access to attr=userPassword
-E: 25.		by self write
-E: 26.		by anonymous auth
-E: 27.		by dn.base="cn=Admin,dc=example,dc=com" write
-E: 28.		by * none
-E: 29.	access to *
-E: 30.		by self write
-E: 31.		by dn.base="cn=Admin,dc=example,dc=com" write
-E: 32.		by * read
+E: 12.	# include the core schema
+E: 13.	include: file:///usr/local/etc/openldap/schema/core.ldif
+E: 14.	
 
-Line 5 is a comment. The start of the database definition is marked
-by the database keyword on line 6. Line 7 specifies the DN suffix
-for queries to pass to this database. Line 8 specifies the directory
+Line 12 is a comment. Line 13 is an LDIF include directive which
+accesses the {{core}} schema definitions in LDIF format. Line 14
+is a blank line.
+
+Next comes the database definitions. The first database is the
+special {{EX:frontend}} database whose settings are applied globally
+to all the other databases.
+
+E: 15.	# global database parameters
+E: 16.	dn: olcDatabase=frontend,cn=config
+E: 17.	objectClass: olcDatabaseConfig
+E: 18.	olcDatabase: frontend
+E: 19.	olcAccess: to * by * read
+E: 20.	
+
+Line 15 is a comment. Lines 16-18 identify this entry as the global
+database entry. Line 19 is a global access control. It applies to all
+entries (after any applicable database-specific access controls).
+
+The next entry defines a BDB backend that will handle queries for things
+in the "dc=example,dc=com" portion of the tree. Indices are to be maintained
+for several attributes, and the {{EX:userPassword}} attribute is to be
+protected from unauthorized access.
+
+E: 21.	# BDB definition for example.com
+E: 22.	dn: olcDatabase=bdb,cn=config
+E: 23.	objectClass: olcDatabaseConfig
+E: 24.	olcDatabase: bdb
+E: 25.	olcSuffix: "dc=example,dc=com"
+E: 26.	olcDbDirectory: /usr/local/var/openldap-data
+E: 27.	olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 28.	olcRootPW: secret
+E: 29.	olcDbIndex: uid pres,eq
+E: 30.	olcDbIndex: cn,sn,uid pres,eq,approx,sub
+E: 31.	olcDbIndex: objectClass eq
+E: 32.	olcAccess: to attr=userPassword
+E: 33.	  by self write
+E: 34.	  by anonymous auth
+E: 35.	  by dn.base="cn=Admin,dc=example,dc=com" write
+E: 36.	  by * none
+E: 37.	olcAccess: to *
+E: 38.	  by self write
+E: 39.	  by dn.base="cn=Admin,dc=example,dc=com" write
+E: 40.	  by * read
+E: 41.	
+
+Line 21 is a comment. Lines 22-24 identify this entry as a BDB database
+configuration entry.  Line 25 specifies the DN suffix
+for queries to pass to this database. Line 26 specifies the directory
 in which the database files will live.
 
-Lines 9 and 10 identify the database {{super-user}} entry and associated
+Lines 27 and 28 identify the database {{super-user}} entry and associated
 password. This entry is not subject to access control or size or
 time limit restrictions.
 
-Lines 11 through 18 are for replication. Line 12 specifies the
-replication log file (where changes to the database are logged -
-this file is written by slapd and read by slurpd). Lines 13 through
-15 specify the hostname and port for a replicated host, the DN to
-bind as when performing updates, the bind method (simple) and the
-credentials (password) for the binddn. Lines 16 through 18 specify
-a second replication site.  See the {{SECT:Replication with slurpd}}
-chapter for more information on these directives.
-
-Lines 20 through 22 indicate the indices to maintain for various
+Lines 29 through 31 indicate the indices to maintain for various
 attributes.
 
-Lines 24 through 32 specify access control for entries in this
+Lines 32 through 40 specify access control for entries in this
 database.  As this is the first database, the controls also apply
 to entries not held in any database (such as the Root DSE).  For
 all applicable entries, the {{EX:userPassword}} attribute is writable
@@ -1435,16 +1451,20 @@ authentication/authorization purposes, but is otherwise not readable.
 All other attributes are writable by the entry and the "admin"
 entry, but may be read by all users (authenticated or not).
 
+Line 41 is a blank line, indicating the end of this entry.
+
 The next section of the example configuration file defines another
 BDB database. This one handles queries involving the
 {{EX:dc=example,dc=net}} subtree but is managed by the same entity
-as the first database.  Note that without line 39, the read access
-would be allowed due to the global access rule at line 4.
+as the first database.  Note that without line 50, the read access
+would be allowed due to the global access rule at line 19.
 
-E: 33.	# BDB definition for example.net
-E: 34.	database bdb
-E: 35.	suffix "dc=example,dc=net"
-E: 36.	directory /usr/local/var/openldap-data-net
-E: 37.	rootdn "cn=Manager,dc=example,dc=com"
-E: 38.	index objectClass eq
-E: 39.	access to * by users read
+E: 42.	# BDB definition for example.net
+E: 43.	dn: olcDatabase=bdb,cn=config
+E: 44.	objectClass: olcDatabaseConfig
+E: 45.	olcDatabase: bdb
+E: 46.	olcSuffix: "dc=example,dc=net"
+E: 47.	olcDbDirectory: /usr/local/var/openldap-data-net
+E: 48.	olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 49.	olcDbIndex: objectClass eq
+E: 50.	olcAccess: to * by users read
