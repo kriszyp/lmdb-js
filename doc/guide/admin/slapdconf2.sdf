@@ -1263,6 +1263,10 @@ own DN from the attribute, not other values. The addition of
 the entry attribute is required because access to the entry is
 required to access any of the entry's attributes.
 
+
+
+H3: Access Control Ordering
+
 Since the ordering of {{EX:olcAccess}} directives is essential to their
 proper evaluation, but LDAP attributes normally do not preserve the
 ordering of their values, OpenLDAP uses a custom schema extension to
@@ -1291,8 +1295,8 @@ when you read them back using slapcat or ldapsearch they will contain
 
 The numeric index may be used to specify a particular value to change
 when using ldapmodify to edit the access rules. This index can be used
-instead of the actual access value. Using this shorthand form can be
-very helpful when a large number of access rules are being managed.
+instead of (or in addition to) the actual access value. Using this 
+numeric index is very helpful when multiple access rules are being managed.
 
 For example, if we needed to change the second rule above to grant
 write access instead of search, we could try this LDIF:
@@ -1305,7 +1309,7 @@ write access instead of search, we could try this LDIF:
 >	olcAccess: to dn.children="dc=example,dc=com" by * write
 >	-
 
-But this example will not guarantee that the existing values remain in
+But this example {{B:will not}} guarantee that the existing values remain in
 their original order, so it will most likely yield a broken security
 configuration. Instead, the numeric index should be used:
 
@@ -1317,9 +1321,9 @@ configuration. Instead, the numeric index should be used:
 >	olcAccess: {1}to dn.children="dc=example,dc=com" by * write
 >	-
 
-This example deletes whatever rule is in slot 1 of the olcAccess
+This example deletes whatever rule is in value #1 of the {{EX:olcAccess}}
 attribute (regardless of its value) and adds a new value that is
-explicitly placed in slot 1. The result will be
+explicitly inserted as value #1. The result will be
 
 >	olcAccess: {0}to attr=member,entry
 > 		by dnattr=member selfwrite
