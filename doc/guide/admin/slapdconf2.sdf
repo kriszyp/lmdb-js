@@ -942,16 +942,14 @@ H4: Sample Entry
 >olcDbIndex: objectClass eq
 
 
-Note: the remainder of this chapter has not yet been updated to reflect
-the new cn=config mechanisms.
-
 H2: Access Control
 
 Access to slapd entries and attributes is controlled by the
-access configuration file directive. The general form of an
-access line is:
+olcAccess attribute, whose values are a sequence of access directives.
+The general form of the olcAccess configuration is:
 
->	<access directive> ::= access to <what>
+>	olcAccess: <access directive>
+>	<access directive> ::= to <what>
 >		[by <who> <access> <control>]+
 >	<what> ::= * |
 >		[dn[.<basic-style>]=<regex> | dn.<scope-style>=<DN>]
@@ -1131,12 +1129,13 @@ H3: Access Control Evaluation
 
 When evaluating whether some requester should be given access to
 an entry and/or attribute, slapd compares the entry and/or attribute
-to the {{EX:<what>}} selectors given in the configuration file.
+to the {{EX:<what>}} selectors given in the configuration.
 For each entry, access controls provided in the database which holds
 the entry (or the first database if not held in any database) apply
-first, followed by the global access directives.  Within this
+first, followed by the global access directives (which are held in
+the {{EX:frontend}} database definition).  Within this
 priority, access directives are examined in the order in which they
-appear in the config file.  Slapd stops with the first {{EX:<what>}}
+appear in the configuration attribute.  Slapd stops with the first {{EX:<what>}}
 selector that matches the entry and/or attribute. The corresponding
 access directive is the one slapd will use to evaluate access.
 
@@ -1154,7 +1153,7 @@ access is denied.
 The order of evaluation of access directives makes their placement
 in the configuration file important. If one access directive is
 more specific than another in terms of the entries it selects, it
-should appear first in the config file. Similarly, if one {{EX:<who>}}
+should appear first in the configuration. Similarly, if one {{EX:<who>}}
 selector is more specific than another it should come first in the
 access directive. The access control examples given below should
 help make this clear.
@@ -1168,17 +1167,17 @@ section shows some examples of its use for descriptive purposes.
 
 A simple example:
 
->	access to * by * read
+>	olcAccess: to * by * read
 
 This access directive grants read access to everyone.
 
->	access to *
+>	olcAccess: to *
 >		by self write
 >		by anonymous auth
 >		by * read
 
 This directive allows the user to modify their entry, allows anonymous
-to authentication against these entries, and allows all others to
+to authenticate against these entries, and allows all others to
 read these entries.  Note that only the first {{EX:by <who>}} clause
 which matches applies.  Hence, the anonymous users are granted
 {{EX:auth}}, not {{EX:read}}.  The last clause could just as well
@@ -1188,25 +1187,25 @@ It is often desirable to restrict operations based upon the level
 of protection in place.  The following shows how security strength
 factors (SSF) can be used.
 
->	access to *
+>	olcAccess: to *
 >		by ssf=128 self write
 >		by ssf=64 anonymous auth
 >		by ssf=64 users read
 
 This directive allows users to modify their own entries if security
-protections have of strength 128 or better have been established,
+protections of strength 128 or better have been established,
 allows authentication access to anonymous users, and read access
-when 64 or better security protections have been established.  If
-client has not establish sufficient security protections, the
+when strength 64 or better security protections have been established.  If
+the client has not establish sufficient security protections, the
 implicit {{EX:by * none}} clause would be applied.
 
-The following example shows the use of a style specifiers to select
+The following example shows the use of style specifiers to select
 the entries by DN in two access directives where ordering is
 significant.
 
->	access to dn.children="dc=example,dc=com"
+>	olcAccess: to dn.children="dc=example,dc=com"
 > 		by * search
->	access to dn.children="dc=com"
+>	olcAccess: to dn.children="dc=com"
 > 		by * read
 
 Read access is granted to entries under the {{EX:dc=com}} subtree,
@@ -1217,10 +1216,10 @@ order of these access directives was reversed, the trailing directive
 would never be reached, since all entries under {{EX:dc=example,dc=com}}
 are also under {{EX:dc=com}} entries.
 
-Also note that if no {{EX:access to}} directive matches or no {{EX:by
-<who>}} clause, {{B:access is denied}}.  That is, every {{EX:access
+Also note that if no {{EX:olcAccess: to}} directive matches or no {{EX:by
+<who>}} clause, {{B:access is denied}}.  That is, every {{EX:olcAccess:
 to}} directive ends with an implicit {{EX:by * none}} clause and
-every access list ends with an implicit {{EX:access to * by * none}}
+every access list ends with an implicit {{EX:olcAccess: to * by * none}}
 directive.
 
 The next example again shows the importance of ordering, both of
@@ -1228,11 +1227,11 @@ the access directives and the {{EX:by <who>}} clauses.  It also
 shows the use of an attribute selector to grant access to a specific
 attribute and various {{EX:<who>}} selectors.
 
->	access to dn.subtree="dc=example,dc=com" attr=homePhone
+>	olcAccess: to dn.subtree="dc=example,dc=com" attr=homePhone
 >		by self write
 >		by dn.children=dc=example,dc=com" search
 >		by peername.regex=IP:10\..+ read
->	access to dn.subtree="dc=example,dc=com"
+>	olcAccess: to dn.subtree="dc=example,dc=com"
 >		by self write
 >		by dn.children="dc=example,dc=com" search
 >		by anonymous auth
@@ -1254,7 +1253,7 @@ create a group and allow people to add and remove only
 their own DN from the member attribute, you could accomplish
 it with an access directive like this:
 
->	access to attr=member,entry
+>	olcAccess: to attr=member,entry
 > 		by dnattr=member selfwrite
 
 The dnattr {{EX:<who>}} selector says that the access applies to
@@ -1264,15 +1263,85 @@ own DN from the attribute, not other values. The addition of
 the entry attribute is required because access to the entry is
 required to access any of the entry's attributes.
 
+Since the ordering of {{EX:olcAccess}} directives is essential to their
+proper evaluation, but LDAP attributes normally do not preserve the
+ordering of their values, OpenLDAP uses a custom schema extension to
+maintain a fixed ordering of these values. This ordering is maintained
+by prepending a {{EX:"{X}"}} numeric index to each value, similarly to
+the approach used for ordering the configuration entries. These index
+tags are maintained automatically by slapd and do not need to be specified
+when originally defining the values. For example, when you create the
+settings
+
+>	olcAccess: to attr=member,entry
+> 		by dnattr=member selfwrite
+>	olcAccess: to dn.children="dc=example,dc=com"
+> 		by * search
+>	olcAccess: to dn.children="dc=com"
+> 		by * read
+
+when you read them back using slapcat or ldapsearch they will contain
+
+>	olcAccess: {0}to attr=member,entry
+> 		by dnattr=member selfwrite
+>	olcAccess: {1}to dn.children="dc=example,dc=com"
+> 		by * search
+>	olcAccess: {2}to dn.children="dc=com"
+> 		by * read
+
+The numeric index may be used to specify a particular value to change
+when using ldapmodify to edit the access rules. This index can be used
+instead of the actual access value. Using this shorthand form can be
+very helpful when a large number of access rules are being managed.
+
+For example, if we needed to change the second rule above to grant
+write access instead of search, we could try this LDIF:
+
+>	changetype: modify
+>	delete: olcAccess
+>	olcAccess: to dn.children="dc=example,dc=com" by * search
+>	-
+>	add: olcAccess
+>	olcAccess: to dn.children="dc=example,dc=com" by * write
+>	-
+
+But this example will not guarantee that the existing values remain in
+their original order, so it will most likely yield a broken security
+configuration. Instead, the numeric index should be used:
+
+>	changetype: modify
+>	delete: olcAccess
+>	olcAccess: {1}
+>	-
+>	add: olcAccess
+>	olcAccess: {1}to dn.children="dc=example,dc=com" by * write
+>	-
+
+This example deletes whatever rule is in slot 1 of the olcAccess
+attribute (regardless of its value) and adds a new value that is
+explicitly placed in slot 1. The result will be
+
+>	olcAccess: {0}to attr=member,entry
+> 		by dnattr=member selfwrite
+>	olcAccess: {1}to dn.children="dc=example,dc=com"
+> 		by * write
+>	olcAccess: {2}to dn.children="dc=com"
+> 		by * read
+
+which is exactly what was intended.
+
 !if 0
 For more details on how to use the {{EX:access}} directive,
 consult the {{Advanced Access Control}} chapter.
 !endif
 
 
-H2: Configuration File Example
+Note: the remainder of this chapter has not yet been updated to reflect
+the new cn=config mechanisms.
 
-The following is an example configuration file, interspersed
+H2: Configuration Example
+
+The following is an example configuration, interspersed
 with explanatory text. It defines two databases to handle
 different parts of the {{TERM:X.500}} tree; both are {{TERM:BDB}}
 database instances. The line numbers shown are provided for
