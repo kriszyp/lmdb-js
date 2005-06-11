@@ -648,8 +648,8 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcModuleList' "
 		"DESC 'OpenLDAP dynamic module info' "
 		"SUP olcConfig STRUCTURAL "
-		"MUST ( olcModulePath $ olcModuleLoad ) "
-		"MAY cn )", Cft_Module, NULL, cfAddModule },
+		"MAY ( cn $ olcModulePath $ olcModuleLoad ) )",
+		Cft_Module, NULL, cfAddModule },
 #endif
 	{ NULL, 0, NULL }
 };
@@ -833,7 +833,8 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_MODPATH: {
 			ModPaths *mp = c->private;
-			value_add_one( &c->rvalue_vals, &mp->mp_path );
+			if ( !BER_BVISNULL( &mp->mp_path ))
+				value_add_one( &c->rvalue_vals, &mp->mp_path );
 
 			rc = c->rvalue_vals ? 0 : 1;
 			}
