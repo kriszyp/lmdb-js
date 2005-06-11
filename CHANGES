@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.27 Engineering
+OpenLDAP 2.2.27 Release
 	Fixed back-bdb/hdb slapcat checkpoint on close (ITS#3703)
 	Fixed back-bdb/hdb internal error code assert (ITS#3731)
 	Fixed back-ldap/back-meta debug output of NULL strings (ITS#3698)
@@ -384,5 +384,5 @@ OpenLDAP 2.2.5 Release
 
 
 OpenLDAP 2.2.4 Release
-	Initial release for "general" use.
+	Initial release for "general use".
 
