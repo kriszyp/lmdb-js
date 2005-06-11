@@ -1161,7 +1161,7 @@ config_generic(ConfigArgs *c) {
 			/* If we're just adding a module on an existing modpath,
 			 * make sure we've selected the current path.
 			 */
-			if ( c->op == LDAP_MOD_ADD && modcur != c->private ) {
+			if ( c->op == LDAP_MOD_ADD && c->private && modcur != c->private ) {
 				modcur = c->private;
 				/* This should never fail */
 				if ( module_path( modcur->mp_path.bv_val )) {
