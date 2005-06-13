@@ -332,7 +332,7 @@ bdb_idl_cache_put(
 	ee = (bdb_idl_cache_entry_t *) ch_malloc(
 		sizeof( bdb_idl_cache_entry_t ) );
 	ee->db = db;
-	if ( rc == DB_NOTFOUND) {
+	if ( rc == DB_NOTFOUND || BDB_IDL_IS_ZERO( ids )) {
 		ee->idl = NULL;
 	} else {
 		ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );

@@ -124,7 +124,7 @@ alock_test_lock ( int fd, int slot )
 
 	res = lockf (fd, F_TEST, (off_t) ALOCK_SLOT_SIZE);
 	if (res == -1) {
-		if (errno == EACCES) { 
+		if (errno == EACCES || errno == EAGAIN) { 
 			return ALOCK_LOCKED;
 		} else {
 			return -1;
