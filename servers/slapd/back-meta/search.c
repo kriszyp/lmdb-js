@@ -54,13 +54,13 @@ meta_back_search_start(
 )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	struct berval		realbase = op->o_req_dn;
-	int			realscope = op->ors_scope;
-	ber_len_t		suffixlen = 0;
-	struct berval		mbase = BER_BVNULL; 
-	struct berval		mfilter = BER_BVNULL;
-	char			**mapped_attrs = NULL;
-	int			rc;
+	struct berval	realbase = op->o_req_dn;
+	int		realscope = op->ors_scope;
+	ber_len_t	suffixlen = 0;
+	struct berval	mbase = BER_BVNULL; 
+	struct berval	mfilter = BER_BVNULL;
+	char		**mapped_attrs = NULL;
+	int		rc;
 
 	/* should we check return values? */
 	if ( op->ors_deref != -1 ) {
@@ -228,18 +228,19 @@ done:;
 int
 meta_back_search( Operation *op, SlapReply *rs )
 {
-	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metaconn_t		*mc;
-	struct timeval		tv = { 0, 0 };
-	LDAPMessage		*res = NULL, *e;
-	int			rc = 0, sres = LDAP_SUCCESS;
-	char			*matched = NULL;
-	int			i, last = 0, ncandidates = 0,
-				initial_candidates = 0, candidate_match = 0;
-	dncookie		dc;
-	int			is_ok = 0;
-	void			*savepriv;
-	SlapReply		*candidates = meta_back_candidates_get( op );
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+	metaconn_t	*mc;
+	struct timeval	tv = { 0, 0 };
+	time_t		stoptime;
+	LDAPMessage	*res = NULL, *e;
+	int		rc = 0, sres = LDAP_SUCCESS;
+	char		*matched = NULL;
+	int		i, last = 0, ncandidates = 0,
+			initial_candidates = 0, candidate_match = 0;
+	dncookie	dc;
+	int		is_ok = 0;
+	void		*savepriv;
+	SlapReply	*candidates = meta_back_candidates_get( op );
 
 	/*
 	 * controls are set in ldap_back_dobind()
@@ -321,6 +322,11 @@ meta_back_search( Operation *op, SlapReply *rs )
 	 * but this is necessary for version matching, and for ACL processing.
 	 */
 
+	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
+		stoptime = op->o_time + op->ors_tlimit;
+		tv.tv_sec = 0;
+	}
+
 	/*
 	 * In case there are no candidates, no cycle takes place...
 	 *
@@ -357,6 +363,19 @@ meta_back_search( Operation *op, SlapReply *rs )
 
 				/* FIXME: res should not need to be freed */
 				assert( res == NULL );
+
+				/* check time limit */
+				if ( op->ors_tlimit != SLAP_NO_LIMIT
+						&& slap_get_time() > stoptime )
+				{
+					doabandon = 1;
+					rc = rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
+					savepriv = op->o_private;
+					op->o_private = (void *)i;
+					send_ldap_result( op, rs );
+					op->o_private = savepriv;
+					goto finish;
+				}
 
 				continue;
 

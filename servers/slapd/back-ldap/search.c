@@ -137,6 +137,7 @@ ldap_back_search(
 {
 	struct ldapconn *lc;
 	struct timeval	tv;
+	time_t		stoptime;
 	LDAPMessage	*res,
 			*e;
 	int		rc = 0,
@@ -171,6 +172,7 @@ ldap_back_search(
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		tv.tv_sec = op->ors_tlimit;
 		tv.tv_usec = 0;
+		stoptime = op->o_time + op->ors_tlimit;
 
 	} else {
 		tv.tv_sec = 0;
@@ -260,9 +262,18 @@ fail:;
 			tv.tv_usec = 100000;
 			ldap_pvt_thread_yield();
 
+			/* check time limit */
+			if ( op->ors_tlimit != SLAP_NO_LIMIT
+					&& slap_get_time() > stoptime )
+			{
+				ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
+				rc = rs->sr_err = LDAP_TIMELIMIT_EXCEEDED;
+				goto finish;
+			}
+
 		} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
-			Entry		ent = {0};
-			struct berval	bdn;
+			Entry		ent = { 0 };
+			struct berval	bdn = BER_BVNULL;
 			int		abort = 0;
 
 			do_retry = 0;
