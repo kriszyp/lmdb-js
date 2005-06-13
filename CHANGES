@@ -374,7 +374,7 @@ OpenLDAP 2.2.5 Release
 	Fixed slapcat backglue subsequent subordinates bug (ITS#2924)
 	Updated slappasswd error reporting (ITS#2906)
 	Fixed CYGWIN/MINGW threading bug (ITS#2921)
-	Fixed GYGWIN/MINGW ldapsearch glob problem (ITS#2922)
+	Fixed CYGWIN/MINGW ldapsearch glob problem (ITS#2922)
 	Build environment
 		Fixed slapd passwd portable C bug (ITS#2900)
 		Fixed librewrite portable C bug (ITS#2908)
