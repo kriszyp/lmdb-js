@@ -775,7 +775,8 @@ and the {{TERM:HDB}} database.
 They are used in an olcDatabase entry in addition to the generic
 database directives defined above.  For a complete reference
 of BDB/HDB configuration directives, see {{slapd-bdb}}(5). BDB and
-HDB database entries must have the {{EX:olcBdbConfig}} objectClass.
+HDB database entries must have the {{EX:olcBdbConfig}} objectClass in
+addition to the {{EX:olcDatabaseConfig}} class.
 
 
 H4: olcDbDirectory: <directory>
@@ -1447,38 +1448,39 @@ protected from unauthorized access.
 E: 21.	# BDB definition for example.com
 E: 22.	dn: olcDatabase=bdb,cn=config
 E: 23.	objectClass: olcDatabaseConfig
-E: 24.	olcDatabase: bdb
-E: 25.	olcSuffix: "dc=example,dc=com"
-E: 26.	olcDbDirectory: /usr/local/var/openldap-data
-E: 27.	olcRootDN: "cn=Manager,dc=example,dc=com"
-E: 28.	olcRootPW: secret
-E: 29.	olcDbIndex: uid pres,eq
-E: 30.	olcDbIndex: cn,sn,uid pres,eq,approx,sub
-E: 31.	olcDbIndex: objectClass eq
-E: 32.	olcAccess: to attr=userPassword
-E: 33.	  by self write
-E: 34.	  by anonymous auth
-E: 35.	  by dn.base="cn=Admin,dc=example,dc=com" write
-E: 36.	  by * none
-E: 37.	olcAccess: to *
-E: 38.	  by self write
-E: 39.	  by dn.base="cn=Admin,dc=example,dc=com" write
-E: 40.	  by * read
-E: 41.	
+E: 24.	objectClass: olcBdbConfig
+E: 25.	olcDatabase: bdb
+E: 26.	olcSuffix: "dc=example,dc=com"
+E: 27.	olcDbDirectory: /usr/local/var/openldap-data
+E: 28.	olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 29.	olcRootPW: secret
+E: 30.	olcDbIndex: uid pres,eq
+E: 31.	olcDbIndex: cn,sn,uid pres,eq,approx,sub
+E: 32.	olcDbIndex: objectClass eq
+E: 33.	olcAccess: to attr=userPassword
+E: 34.	  by self write
+E: 35.	  by anonymous auth
+E: 36.	  by dn.base="cn=Admin,dc=example,dc=com" write
+E: 37.	  by * none
+E: 38.	olcAccess: to *
+E: 39.	  by self write
+E: 40.	  by dn.base="cn=Admin,dc=example,dc=com" write
+E: 41.	  by * read
+E: 42.	
 
-Line 21 is a comment. Lines 22-24 identify this entry as a BDB database
-configuration entry.  Line 25 specifies the DN suffix
-for queries to pass to this database. Line 26 specifies the directory
+Line 21 is a comment. Lines 22-25 identify this entry as a BDB database
+configuration entry.  Line 26 specifies the DN suffix
+for queries to pass to this database. Line 27 specifies the directory
 in which the database files will live.
 
-Lines 27 and 28 identify the database {{super-user}} entry and associated
+Lines 28 and 29 identify the database {{super-user}} entry and associated
 password. This entry is not subject to access control or size or
 time limit restrictions.
 
-Lines 29 through 31 indicate the indices to maintain for various
+Lines 30 through 32 indicate the indices to maintain for various
 attributes.
 
-Lines 32 through 40 specify access control for entries in this
+Lines 33 through 41 specify access control for entries in this
 database.  As this is the first database, the controls also apply
 to entries not held in any database (such as the Root DSE).  For
 all applicable entries, the {{EX:userPassword}} attribute is writable
@@ -1487,20 +1489,21 @@ authentication/authorization purposes, but is otherwise not readable.
 All other attributes are writable by the entry and the "admin"
 entry, but may be read by all users (authenticated or not).
 
-Line 41 is a blank line, indicating the end of this entry.
+Line 42 is a blank line, indicating the end of this entry.
 
 The next section of the example configuration file defines another
 BDB database. This one handles queries involving the
 {{EX:dc=example,dc=net}} subtree but is managed by the same entity
-as the first database.  Note that without line 50, the read access
+as the first database.  Note that without line 51, the read access
 would be allowed due to the global access rule at line 19.
 
 E: 42.	# BDB definition for example.net
 E: 43.	dn: olcDatabase=bdb,cn=config
 E: 44.	objectClass: olcDatabaseConfig
-E: 45.	olcDatabase: bdb
-E: 46.	olcSuffix: "dc=example,dc=net"
-E: 47.	olcDbDirectory: /usr/local/var/openldap-data-net
-E: 48.	olcRootDN: "cn=Manager,dc=example,dc=com"
-E: 49.	olcDbIndex: objectClass eq
-E: 50.	olcAccess: to * by users read
+E: 45.	objectClass: olcBdbConfig
+E: 46.	olcDatabase: bdb
+E: 47.	olcSuffix: "dc=example,dc=net"
+E: 48.	olcDbDirectory: /usr/local/var/openldap-data-net
+E: 49.	olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 50.	olcDbIndex: objectClass eq
+E: 51.	olcAccess: to * by users read
