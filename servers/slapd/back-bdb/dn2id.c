@@ -557,6 +557,7 @@ hdb_dn2id_delete(
 	diskNode *d;
 	int rc, nrlen;
 	ID	nid;
+	unsigned char dlen[2];
 
 	DBTzero(&key);
 	key.size = sizeof(ID);
@@ -586,13 +587,16 @@ hdb_dn2id_delete(
 	d = op->o_tmpalloc( data.size, op->o_tmpmemctx );
 	d->nrdnlen[1] = BEI(e)->bei_nrdn.bv_len & 0xff;
 	d->nrdnlen[0] = (BEI(e)->bei_nrdn.bv_len >> 8) | 0x80;
+	dlen[0] = d->nrdnlen[0];
+	dlen[1] = d->nrdnlen[1];
 	strcpy( d->nrdn, BEI(e)->bei_nrdn.bv_val );
 	data.data = d;
 
 	/* Delete our ID from the parent's list */
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
 	if ( rc == 0 ) {
-		if ( !strcmp( d->nrdn, BEI(e)->bei_nrdn.bv_val ))
+		if ( dlen[1] == d->nrdnlen[1] && dlen[0] != d->nrdnlen[0] &&
+			!strcmp( d->nrdn, BEI(e)->bei_nrdn.bv_val ))
 			rc = cursor->c_del( cursor, 0 );
 		else
 			rc = DB_NOTFOUND;
