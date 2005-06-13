@@ -27,33 +27,33 @@ insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expe
 --	delete_proc	a procedure to delete the attribute; it takes the value of the attribute that is added, and the "keytbl.keycol" of the entry it is associated to
 --	param_order	a mask that marks if the "keytbl.keycol" value comes before or after the value in add_proc (1) and delete_proc (2)
 --	expect_return	a mask that marks whether add_proc (1) and delete_proc(2) are expected to return a value or not
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (1,1,'cn','text(persons.name||'' ''||persons.surname)','persons',NULL,'SELECT update_person_cn(?,?)',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (1,1,'cn','text(persons.name||'' ''||persons.surname)','persons',NULL,'SELECT update_person_cn(?,?)','SELECT 1 FROM persons WHERE persons.name=? AND persons.id=? AND 1=0',3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (2,1,'telephoneNumber','phones.phone','persons,phones','phones.pers_id=persons.id','SELECT add_phone(?,?)','DELETE FROM phones WHERE phone=? AND pers_id=?',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (3,1,'givenName','persons.name','persons',NULL,'UPDATE persons SET name=? WHERE id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (3,1,'givenName','persons.name','persons',NULL,'UPDATE persons SET name=? WHERE id=?','UPDATE persons SET name='''' WHERE (name=? OR name='''') AND id=?',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (4,1,'sn','persons.surname','persons',NULL,'UPDATE persons SET surname=? WHERE id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (4,1,'sn','persons.surname','persons',NULL,'UPDATE persons SET surname=? WHERE id=?','UPDATE persons SET surname='''' WHERE (surname=? OR surname='''') AND id=?',3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (5,1,'userPassword','persons.password','persons','persons.password IS NOT NULL','UPDATE persons SET password=? WHERE id=?','UPDATE persons SET password=NULL WHERE password=? AND id=?',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (6,1,'seeAlso','seeAlso.dn','ldap_entries AS seeAlso,documents,authors_docs,persons','seeAlso.keyval=documents.id AND seeAlso.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (6,1,'seeAlso','seeAlso.dn','ldap_entries AS seeAlso,documents,authors_docs,persons','seeAlso.keyval=documents.id AND seeAlso.oc_map_id=2 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id',NULL,'DELETE from authors_docs WHERE authors_docs.doc_id=(SELECT documents.id FROM documents,ldap_entries AS seeAlso WHERE seeAlso.keyval=documents.id AND seeAlso.oc_map_id=2 AND seeAlso.dn=?) AND authors_docs.pers_id=?',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (7,2,'description','documents.abstract','documents',NULL,'UPDATE documents SET abstract=? WHERE id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (7,2,'description','documents.abstract','documents',NULL,'UPDATE documents SET abstract=? WHERE id=?','UPDATE documents SET abstract='''' WHERE abstract=? AND id=?',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (8,2,'documentTitle','documents.title','documents',NULL,'UPDATE documents SET title=? WHERE id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (8,2,'documentTitle','documents.title','documents',NULL,'UPDATE documents SET title=? WHERE id=?','UPDATE documents SET title='''' WHERE title=? AND id=?',3,0);
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (9,2,'documentAuthor','documentAuthor.dn','ldap_entries AS documentAuthor,documents,authors_docs,persons','documentAuthor.keyval=persons.id AND documentAuthor.oc_map_id=1 AND authors_docs.doc_id=documents.id AND authors_docs.pers_id=persons.id','INSERT INTO authors_docs (pers_id,doc_id) VALUES ((SELECT ldap_entries.keyval FROM ldap_entries WHERE upper(?)=upper(ldap_entries.dn)),?)','DELETE FROM authors_docs WHERE authors_docs.pers_id=(SELECT ldap_entries.keyval FROM ldap_entries WHERE upper(?)=upper(ldap_entries.dn)) AND authors_docs.doc_id=?',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (10,2,'documentIdentifier','''document ''||text(documents.id)','documents',NULL,NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (10,2,'documentIdentifier','''document ''||text(documents.id)','documents',NULL,NULL,'SELECT 1 FROM documents WHERE title=? AND id=? AND 1=0',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (11,3,'o','institutes.name','institutes',NULL,'UPDATE institutes SET name=? WHERE id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (11,3,'o','institutes.name','institutes',NULL,'UPDATE institutes SET name=? WHERE id=?','UPDATE institutes SET name='''' WHERE name=? AND id=?',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (12,3,'dc','lower(institutes.name)','institutes,ldap_entries AS dcObject,ldap_entry_objclasses AS auxObjectClass','institutes.id=dcObject.keyval AND dcObject.oc_map_id=3 AND dcObject.id=auxObjectClass.entry_id AND auxObjectClass.oc_name=''dcObject''',NULL,NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (12,3,'dc','lower(institutes.name)','institutes,ldap_entries AS dcObject,ldap_entry_objclasses AS auxObjectClass','institutes.id=dcObject.keyval AND dcObject.oc_map_id=3 AND dcObject.id=auxObjectClass.entry_id AND auxObjectClass.oc_name=''dcObject''',NULL,'SELECT 1 FROM institutes WHERE lower(name)=? AND id=? and 1=0',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (13,4,'ou','referrals.name','referrals',NULL,'UPDATE referrals SET name=? WHERE id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (13,4,'ou','referrals.name','referrals',NULL,'UPDATE referrals SET name=? WHERE id=?','SELECT 1 FROM referrals WHERE name=? AND id=? and 1=0',3,0);
 
-insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (14,4,'ref','referrals.url','referrals',NULL,'UPDATE referrals SET url=? WHERE id=?',NULL,3,0);
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (14,4,'ref','referrals.url','referrals',NULL,'UPDATE referrals SET url=? WHERE id=?','SELECT 1 FROM referrals WHERE url=? and id=? and 1=0',3,0);
 
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry

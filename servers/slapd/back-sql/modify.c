@@ -124,23 +124,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 	}
 
 	oc = backsql_id2oc( bi, bsi.bsi_base_id.eid_oc_id );
-	if ( oc == NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
-			"cannot determine objectclass of entry -- aborting\n",
-			0, 0, 0 );
-		/*
-		 * FIXME: should never occur, since the entry was built!!!
-		 */
-
-		/*
-		 * FIXME: we don't want to send back 
-		 * excessively detailed messages
-		 */
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "SQL-backend error";
-		e = NULL;
-		goto done;
-	}
+	assert( oc != NULL );
 
 	if ( !acl_check_modlist( op, &m, op->oq_modify.rs_modlist ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;

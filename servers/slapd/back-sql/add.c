@@ -246,7 +246,7 @@ backsql_modify_delete_all_values(
 							sth, rc );
 					rs->sr_err = LDAP_OTHER;
 				}
-				rs->sr_text = op->ora_e->e_name.bv_val;
+				rs->sr_text = op->o_req_dn.bv_val;
 				SQLFreeStmt( sth, SQL_DROP );
 				return rs->sr_err;
 			}
