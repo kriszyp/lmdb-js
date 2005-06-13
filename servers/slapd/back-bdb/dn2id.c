@@ -629,6 +629,7 @@ hdb_dn2id(
 	int		rc = 0, nrlen;
 	diskNode *d;
 	char	*ptr;
+	unsigned char dlen[2];
 	ID idp;
 
 	nrlen = dn_rdnlen( op->o_bd, in );
@@ -653,12 +654,15 @@ hdb_dn2id(
 	d = op->o_tmpalloc( data.size * 3, op->o_tmpmemctx );
 	d->nrdnlen[1] = nrlen & 0xff;
 	d->nrdnlen[0] = (nrlen >> 8) | 0x80;
+	dlen[0] = d->nrdnlen[0];
+	dlen[1] = d->nrdnlen[1];
 	ptr = lutil_strncopy( d->nrdn, in->bv_val, nrlen );
 	*ptr = '\0';
 	data.data = d;
 
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
-	if ( rc == 0 && strncmp( d->nrdn, in->bv_val, nrlen )) {
+	if ( rc == 0 && (dlen[1] != d->nrdnlen[1] || dlen[0] != d->nrdnlen[0] ||
+		strncmp( d->nrdn, in->bv_val, nrlen ))) {
 		rc = DB_NOTFOUND;
 	}
 	if ( rc == 0 ) {
