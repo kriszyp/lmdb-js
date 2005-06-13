@@ -106,6 +106,14 @@ MKDEPFLAG = -l
 .c.lo:
 	$(LTCOMPILE_MOD) $<
 
-$(LIBRARY): version.lo
+$(LIBRARY): $(OBJS) version.lo
 	$(AR) rs $@ $(OBJS)
+
+# Must fixup depends for non-libtool objects
+depend-local:
+	@if test -n "$(OBJS)"; then \
+	OBJ2=`echo $(OBJS) | $(SED) -e 's/\.o//g'`; \
+	SCR=''; for i in $$OBJ2; do SCR="$$SCR -e s/^$$i.lo:/$$i.o:/"; done; \
+	mv Makefile Makefile.bak; $(SED) $$SCR Makefile.bak > Makefile && \
+	$(RM) Makefile.bak; fi
 
