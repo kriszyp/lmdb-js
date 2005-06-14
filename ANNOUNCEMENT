@@ -29,6 +29,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
         * LDIF tools - data conversion tools for use with slapd
         * LDAP tools - A collection of command line LDAP utilities
         * Admin Guide, Manual Pages - associated documentation
+        * SNACC - ASN.1 development tools for OpenLDAP
 
     In addition, there are some contributed components:
 
@@ -50,7 +51,7 @@ ACKNOWLEDGEMENTS
 AVAILABILITY
 
     This software is available under the OpenLDAP Public License,
-    an unrestrictive, "free", open-source license.  For download
+    an non-restrictive, "free", open-source license.  For download
     information is available at:
 
         http://www.OpenLDAP.org/software/download/
