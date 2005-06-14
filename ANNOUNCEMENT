@@ -28,6 +28,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
         * -llber - a lightweight BER/DER encoding/decoding library
         * LDIF tools - data conversion tools for use with slapd
         * LDAP tools - A collection of command line LDAP utilities
+        * Admin Guide, Manual Pages - associated documentation
 
     In addition, there are some contributed components:
 
