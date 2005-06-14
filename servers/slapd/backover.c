@@ -659,6 +659,27 @@ overlay_register_control( BackendDB *be, const char *oid )
 	return rc;
 }
 
+void
+overlay_destroy_one( BackendDB *be, slap_overinst *on )
+{
+	slap_overinfo *oi = on->on_info;
+	slap_overinst **oidx;
+
+	for ( oidx = &oi->oi_list; *oidx; oidx = &(*oidx)->on_next ) {
+		if ( *oidx == on ) {
+			*oidx = on->on_next;
+			if ( on->on_bi.bi_db_destroy ) {
+				BackendInfo *bi_orig = be->bd_info;
+				be->bd_info = (BackendInfo *)on;
+				on->on_bi.bi_db_destroy( be );
+				be->bd_info = bi_orig;
+			}
+			free( on );
+			break;
+		}
+	}
+}
+
 /* add an overlay to a particular backend. */
 int
 overlay_config( BackendDB *be, const char *ov )

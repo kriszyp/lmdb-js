@@ -392,49 +392,54 @@ int backend_shutdown( Backend *be )
 	return 0;
 }
 
+void backend_destroy_one( BackendDB *bd )
+{
+	LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
+
+	if ( bd->be_syncinfo ) {
+		syncinfo_free( bd->be_syncinfo );
+	}
+
+	if ( bd->be_pending_csn_list ) {
+		struct slap_csn_entry *csne;
+		csne = LDAP_TAILQ_FIRST( bd->be_pending_csn_list );
+		while ( csne ) {
+			struct slap_csn_entry *tmp_csne = csne;
+
+			LDAP_TAILQ_REMOVE( bd->be_pending_csn_list, csne, ce_csn_link );
+			ch_free( csne->ce_csn.bv_val );
+			csne = LDAP_TAILQ_NEXT( csne, ce_csn_link );
+			ch_free( tmp_csne );
+		}
+	}
+
+	if ( bd->bd_info->bi_db_destroy ) {
+		bd->bd_info->bi_db_destroy( bd );
+	}
+	ber_bvarray_free( bd->be_suffix );
+	ber_bvarray_free( bd->be_nsuffix );
+	if ( !BER_BVISNULL( &bd->be_rootdn ) ) {
+		free( bd->be_rootdn.bv_val );
+	}
+	if ( !BER_BVISNULL( &bd->be_rootndn ) ) {
+		free( bd->be_rootndn.bv_val );
+	}
+	if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
+		free( bd->be_rootpw.bv_val );
+	}
+	acl_destroy( bd->be_acl, frontendDB->be_acl );
+	free( bd );
+}
+
 int backend_destroy(void)
 {
 	int i;
 	BackendDB *bd;
 	BackendInfo *bi;
-	struct slap_csn_entry *csne;
 
 	/* destroy each backend database */
 	while (( bd = LDAP_STAILQ_FIRST(&backendDB))) {
-		LDAP_STAILQ_REMOVE_HEAD(&backendDB, be_next);
-
-		if ( bd->be_syncinfo ) {
-			syncinfo_free( bd->be_syncinfo );
-		}
-
-		if ( bd->be_pending_csn_list ) {
-			csne = LDAP_TAILQ_FIRST( bd->be_pending_csn_list );
-			while ( csne ) {
-				struct slap_csn_entry *tmp_csne = csne;
-
-				LDAP_TAILQ_REMOVE( bd->be_pending_csn_list, csne, ce_csn_link );
-				ch_free( csne->ce_csn.bv_val );
-				csne = LDAP_TAILQ_NEXT( csne, ce_csn_link );
-				ch_free( tmp_csne );
-			}
-		}
-		
-		if ( bd->bd_info->bi_db_destroy ) {
-			bd->bd_info->bi_db_destroy( bd );
-		}
-		ber_bvarray_free( bd->be_suffix );
-		ber_bvarray_free( bd->be_nsuffix );
-		if ( !BER_BVISNULL( &bd->be_rootdn ) ) {
-			free( bd->be_rootdn.bv_val );
-		}
-		if ( !BER_BVISNULL( &bd->be_rootndn ) ) {
-			free( bd->be_rootndn.bv_val );
-		}
-		if ( !BER_BVISNULL( &bd->be_rootpw ) ) {
-			free( bd->be_rootpw.bv_val );
-		}
-		acl_destroy( bd->be_acl, frontendDB->be_acl );
-		free( bd );
+		backend_destroy_one( bd );
 	}
 
 	/* destroy each backend type */

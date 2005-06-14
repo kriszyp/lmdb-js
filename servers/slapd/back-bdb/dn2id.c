@@ -595,7 +595,7 @@ hdb_dn2id_delete(
 	/* Delete our ID from the parent's list */
 	rc = cursor->c_get( cursor, &key, &data, DB_GET_BOTH_RANGE );
 	if ( rc == 0 ) {
-		if ( dlen[1] == d->nrdnlen[1] && dlen[0] != d->nrdnlen[0] &&
+		if ( dlen[1] == d->nrdnlen[1] && dlen[0] == d->nrdnlen[0] &&
 			!strcmp( d->nrdn, BEI(e)->bei_nrdn.bv_val ))
 			rc = cursor->c_del( cursor, 0 );
 		else

@@ -258,6 +258,7 @@ LDAP_SLAPD_F (int) backend_startup_one LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_sync LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_shutdown LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_destroy LDAP_P((void));
+LDAP_SLAPD_F (void) backend_destroy_one LDAP_P((BackendDB *bd));
 
 LDAP_SLAPD_F (BackendInfo *) backend_info LDAP_P(( const char *type ));
 LDAP_SLAPD_F (BackendDB *) backend_db_init LDAP_P(( const char *type ));
@@ -348,6 +349,9 @@ LDAP_SLAPD_F (int) glue_sub_init( void );
 
 LDAP_SLAPD_F (int) overlay_register LDAP_P(( slap_overinst *on ));
 LDAP_SLAPD_F (int) overlay_config LDAP_P(( BackendDB *be, const char *ov ));
+LDAP_SLAPD_F (void) overlay_destroy_one LDAP_P((
+	BackendDB *be,
+	slap_overinst *on ));
 LDAP_SLAPD_F (slap_overinst *) overlay_next LDAP_P(( slap_overinst *on ));
 LDAP_SLAPD_F (slap_overinst *) overlay_find LDAP_P(( const char *name ));
 LDAP_SLAPD_F (int) overlay_is_over LDAP_P(( BackendDB *be ));

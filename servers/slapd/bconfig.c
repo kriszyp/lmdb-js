@@ -3169,6 +3169,10 @@ ok:
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
 				ca->log, ca->msg, ca->argv[1] );
 			rc = LDAP_OTHER;
+			if ( colst[0]->co_type == Cft_Database )
+				backend_destroy_one( ca->be );
+			else
+				overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 			goto leave;
 		}
 	}
