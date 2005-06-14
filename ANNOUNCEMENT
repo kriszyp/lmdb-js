@@ -14,12 +14,11 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
               provider now an "overlay"
             - Numerous access control enhancements, including
               experimental "don't disclose on error" capability
+            - Configuration backend
         * LDAPv3 extensions, including:
+            - LDAP Password Policy
             - LDAP Component Matching (requires OpenLDAP snacc)
             - LDAP Modify Increment
-
-    Additional functionality is expected to be added prior to
-    general release.
 
     This release includes the following major components:
 
@@ -34,7 +33,6 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
 
         * LDAPC++ - a LDAP C++ SDK
         * Various slapd modules and slapi plugins
-
 
 
 ACKNOWLEDGEMENTS
@@ -99,6 +97,6 @@ SUPPORTED PLATFORMS
 ---
 OpenLDAP is a registered trademark of the OpenLDAP Foundation.
 
-Copyright 1999-2004 The OpenLDAP Foundation, Redwood City,
+Copyright 1999-2005 The OpenLDAP Foundation, Redwood City,
 California, USA.  All Rights Reserved.  Permission to copy and
 distribute verbatim copies of this document is granted.
