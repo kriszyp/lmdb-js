@@ -413,12 +413,13 @@ password_scheme( struct berval *cred, struct berval *sch )
 
 	for(e = 1; cred->bv_val[e] && cred->bv_val[e] != '}'; e++);
 	if (cred->bv_val[e]) {
+		int rc;
 		char *sc = ch_calloc( sizeof(char), e + 2);
 		sc[e + 1] = '\0'; /* terminate string */
 		strncpy( sc, cred->bv_val, e + 1);
-		e = lutil_passwd_scheme( sc );
+		rc = lutil_passwd_scheme( sc );
 		free( sc );
-		if (e && sch) {
+		if (rc && sch) {
 			sch->bv_val = cred->bv_val;
 			sch->bv_len = e;
 			return LDAP_SUCCESS;
