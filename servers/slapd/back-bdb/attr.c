@@ -271,7 +271,7 @@ bdb_attr_index_config(
 	return LDAP_SUCCESS;
 }
 
-static int
+static void
 bdb_attr_index_unparser( void *v1, void *v2 )
 {
 	AttrInfo *ai = v1;

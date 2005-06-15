@@ -1028,6 +1028,7 @@ accesslog_db_destroy(
 	log_info *li = on->on_bi.bi_private;
 	
 	free( li );
+	return LDAP_SUCCESS;
 }
 
 int accesslog_init()
