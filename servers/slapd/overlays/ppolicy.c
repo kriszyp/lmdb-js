@@ -228,6 +228,9 @@ account_locked( Operation *op, Entry *e,
 			struct berval bv;
 			Modifications *m;
 
+			if (!pp->pwdLockoutDuration)
+				return 1;
+
 			if ((then = parse_time( vals[0].bv_val )) == (time_t)0)
 				return 1;
 
