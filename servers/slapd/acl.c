@@ -88,7 +88,7 @@ typedef enum slap_aci_scope_t {
 	SLAP_ACI_SCOPE_SUBTREE		= ( SLAP_ACI_SCOPE_ENTRY | SLAP_ACI_SCOPE_CHILDREN )
 } slap_aci_scope_t;
 
-static AccessControl * acl_get(
+static AccessControl * slap_acl_get(
 	AccessControl *ac, int *count,
 	Operation *op, Entry *e,
 	AttributeDescription *desc,
@@ -96,7 +96,7 @@ static AccessControl * acl_get(
 	int nmatch, regmatch_t *matches,
 	AccessControlState *state );
 
-static slap_control_t acl_mask(
+static slap_control_t slap_acl_mask(
 	AccessControl *ac, slap_mask_t *mask,
 	Operation *op, Entry *e,
 	AttributeDescription *desc,
@@ -142,7 +142,7 @@ static int aci_match_set ( struct berval *subj, Operation *op,
  * the whole attribute is assumed (all values).
  *
  * This routine loops through all access controls and calls
- * acl_mask() on each applicable access control.
+ * slap_acl_mask() on each applicable access control.
  * The loop exits when a definitive answer is reached or
  * or no more controls remain.
  *
@@ -281,7 +281,7 @@ slap_access_allowed(
 		memset( matches, '\0', sizeof( matches ) );
 	}
 
-	while ( ( a = acl_get( a, &count, op, e, desc, val,
+	while ( ( a = slap_acl_get( a, &count, op, e, desc, val,
 		MAXREMATCHES, matches, state ) ) != NULL )
 	{
 		int i;
@@ -315,7 +315,7 @@ slap_access_allowed(
 		}
 
 vd_access:
-		control = acl_mask( a, &mask, op,
+		control = slap_acl_mask( a, &mask, op,
 			e, desc, val, MAXREMATCHES, matches, count, state );
 
 		if ( control != ACL_BREAK ) {
@@ -683,7 +683,7 @@ access_allowed_mask(
 		memset( matches, '\0', sizeof(matches) );
 	}
 
-	while ( ( a = acl_get( a, &count, op, e, desc, val,
+	while ( ( a = slap_acl_get( a, &count, op, e, desc, val,
 		MAXREMATCHES, matches, state ) ) != NULL )
 	{
 		int i;
@@ -717,7 +717,7 @@ access_allowed_mask(
 		}
 
 vd_access:
-		control = acl_mask( a, &mask, op,
+		control = slap_acl_mask( a, &mask, op,
 			e, desc, val, MAXREMATCHES, matches, count, state );
 
 		if ( control != ACL_BREAK ) {
@@ -765,13 +765,13 @@ done:
 #endif /* SLAP_OVERLAY_ACCESS */
 
 /*
- * acl_get - return the acl applicable to entry e, attribute
+ * slap_acl_get - return the acl applicable to entry e, attribute
  * attr.  the acl returned is suitable for use in subsequent calls to
  * acl_access_allowed().
  */
 
 static AccessControl *
-acl_get(
+slap_acl_get(
 	AccessControl *a,
 	int			*count,
 	Operation	*op,
@@ -1353,7 +1353,7 @@ acl_mask_dnattr(
 
 
 /*
- * acl_mask - modifies mask based upon the given acl and the
+ * slap_acl_mask - modifies mask based upon the given acl and the
  * requested access to entry e, attribute attr, value val.  if val
  * is null, access to the whole attribute is assumed (all values).
  *
@@ -1362,7 +1362,7 @@ acl_mask_dnattr(
  */
 
 static slap_control_t
-acl_mask(
+slap_acl_mask(
 	AccessControl		*a,
 	slap_mask_t		*mask,
 	Operation		*op,
@@ -1978,7 +1978,7 @@ acl_mask(
 				continue;
 			}
 
-			/* this could be improved by changing acl_mask so that it can deal with
+			/* this could be improved by changing slap_acl_mask so that it can deal with
 			 * by clauses that return grant/deny pairs.  Right now, it does either
 			 * additive or subtractive rights, but not both at the same time.  So,
 			 * we need to combine the grant/deny pair into a single rights mask in
@@ -2131,7 +2131,7 @@ acl_mask(
 				continue;
 			}
 
-			/* this could be improved by changing acl_mask so that it can deal with
+			/* this could be improved by changing slap_acl_mask so that it can deal with
 			 * by clauses that return grant/deny pairs.  Right now, it does either
 			 * additive or subtractive rights, but not both at the same time.  So,
 			 * we need to combine the grant/deny pair into a single rights mask in
