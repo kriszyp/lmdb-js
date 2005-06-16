@@ -64,6 +64,7 @@ ldap_back_munge_filter(
 		static struct berval
 			bv_true = BER_BVC( "(?=true)" ),
 			bv_false = BER_BVC( "(?=false)" ),
+			bv_undefined = BER_BVC( "(?=undefined)" ),
 			bv_t = BER_BVC( "(&)" ),
 			bv_f = BER_BVC( "(|)" ),
 			bv_T = BER_BVC( "(objectClass=*)" ),
@@ -91,13 +92,18 @@ ldap_back_munge_filter(
 				newbv = &bv_F;
 			}
 
+		} else if ( strncmp( ptr, bv_undefined.bv_val, bv_undefined.bv_len ) == 0 )
+		{
+			oldbv = &bv_undefined;
+			newbv = &bv_F;
+
 		} else {
 			gotit = 0;
 			goto done;
 		}
 
 		oldfilter = *filter;
-		if ( !( li->flags & LDAP_BACK_F_SUPPORT_T_F ) ) {
+		if ( newbv->bv_len > oldbv->bv_len ) {
 			filter->bv_len += newbv->bv_len - oldbv->bv_len;
 			if ( filter->bv_val == op->ors_filterstr.bv_val ) {
 				filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
