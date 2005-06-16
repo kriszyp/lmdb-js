@@ -485,12 +485,19 @@ bdb_cf_gen(ConfigArgs *c)
 		 */
 		if ((slapMode & SLAP_SERVER_MODE) && bdb->bi_txn_cp_min ) {
 			struct re_s *re = bdb->bi_txn_cp_task;
-			if ( re )
+			if ( re ) {
 				re->interval.tv_sec = bdb->bi_txn_cp_min * 60;
-			else
+			} else {
+				if ( c->be->be_suffix == NULL || BER_BVISNULL( &c->be->be_suffix[0] ) ) {
+					fprintf( stderr, "%s: "
+						"\"checkpoint\" must occur after \"suffix\".\n",
+						c->log );
+					return 1;
+				}
 				bdb->bi_txn_cp_task = ldap_pvt_runqueue_insert( &slapd_rq,
 					bdb->bi_txn_cp_min * 60, bdb_checkpoint, bdb,
 					LDAP_XSTRING(bdb_checkpoint), c->be->be_suffix[0].bv_val );
+			}
 		}
 		break;
 
@@ -569,6 +576,12 @@ bdb_cf_gen(ConfigArgs *c)
 			/* Start the task as soon as we finish here. Set a long
 			 * interval (10 hours) so that it only gets scheduled once.
 			 */
+			if ( c->be->be_suffix == NULL || BER_BVISNULL( &c->be->be_suffix[0] ) ) {
+				fprintf( stderr, "%s: "
+					"\"index\" must occur after \"suffix\".\n",
+					c->log );
+				return 1;
+			}
 			bdb->bi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 36000,
 				bdb_online_index, c->be,
 				LDAP_XSTRING(bdb_online_index), c->be->be_suffix[0].bv_val );
