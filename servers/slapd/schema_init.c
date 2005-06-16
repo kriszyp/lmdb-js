@@ -2321,7 +2321,7 @@ integerBitAndMatch(
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
-	*matchp = (lValue & lAssertedValue) ? 0 : 1;
+	*matchp = ((lValue & lAssertedValue) == lAssertedValue) ? 0 : 1;
 	return LDAP_SUCCESS;
 }
 
@@ -2352,7 +2352,7 @@ integerBitOrMatch(
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
 
-	*matchp = (lValue | lAssertedValue) ? 0 : -1;
+	*matchp = ((lValue & lAssertedValue) != 0) ? 0 : -1;
 	return LDAP_SUCCESS;
 }
 
