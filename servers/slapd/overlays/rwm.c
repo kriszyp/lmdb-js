@@ -583,6 +583,42 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static slap_callback	*rwm_cb;
+
+static void
+rwm_keyfree(
+	void		*key,
+	void		*data )
+{
+	ber_memfree_x( data, NULL );
+}
+
+static slap_callback *
+rwm_callback_get( Operation *op )
+{
+	void		*data = NULL;
+
+	if ( op->o_threadctx ) {
+		ldap_pvt_thread_pool_getkey( op->o_threadctx,
+				rwm_keyfree, &data, NULL );
+	} else {
+		data = rwm_cb;
+	}
+
+	if ( data == NULL ) {
+		data = ber_memalloc( sizeof( slap_callback ) );
+		if ( op->o_threadctx ) {
+			ldap_pvt_thread_pool_setkey( op->o_threadctx,
+					rwm_keyfree, data, rwm_keyfree );
+
+		} else {
+			rwm_cb = (slap_callback *)data;
+		}
+	}
+
+	return (slap_callback *)data;
+}
+
 static int
 rwm_swap_attrs( Operation *op, SlapReply *rs )
 {
@@ -591,18 +627,6 @@ rwm_swap_attrs( Operation *op, SlapReply *rs )
 
 	rs->sr_attrs = an;
 	
-	return SLAP_CB_CONTINUE;
-}
-
-static int rwm_freeself( Operation *op, SlapReply *rs )
-{
-	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_RESULT ) {
-		assert( op->o_callback );
-
-		op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
-		op->o_callback = NULL;
-	}
-
 	return SLAP_CB_CONTINUE;
 }
 
@@ -619,7 +643,7 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	struct berval		fstr = BER_BVNULL;
 	Filter			*f = NULL;
 
-	slap_callback		*cb;
+	slap_callback		*cb = NULL;
 	AttributeName		*an = NULL;
 
 	char			*text = NULL;
@@ -679,15 +703,10 @@ rwm_op_search( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	cb = (slap_callback *) op->o_tmpcalloc( sizeof( slap_callback ),
-			1, op->o_tmpmemctx );
-	if ( cb == NULL ) {
-		rc = LDAP_NO_MEMORY;
-		goto error_return;
-	}
+	cb = rwm_callback_get( op );
 
 	cb->sc_response = rwm_swap_attrs;
-	cb->sc_cleanup = rwm_freeself;
+	cb->sc_cleanup = NULL;
 	cb->sc_private = (void *)op->ors_attrs;
 	cb->sc_next = op->o_callback;
 
