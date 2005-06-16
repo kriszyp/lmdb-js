@@ -453,18 +453,27 @@ ldap_int_back_filter_map_rewrite(
 		ber_memfree( vtmp.bv_val );
 		} break;
 
-	case SLAPD_FILTER_COMPUTED:
-		ber_str2bv(
-			f->f_result == LDAP_COMPARE_FALSE ? "(?=false)" :
-			f->f_result == LDAP_COMPARE_TRUE ? "(?=true)" :
-			f->f_result == SLAPD_COMPARE_UNDEFINED ? "(?=undefined)" :
-			"(?=error)",
-			f->f_result == LDAP_COMPARE_FALSE ? sizeof("(?=false)")-1 :
-			f->f_result == LDAP_COMPARE_TRUE ? sizeof("(?=true)")-1 :
-			f->f_result == SLAPD_COMPARE_UNDEFINED ? sizeof("(?=undefined)")-1 :
-			sizeof("(?=error)")-1,
-			1, fstr );
-		return LDAP_COMPARE_FALSE;
+	case SLAPD_FILTER_COMPUTED: {
+		struct berval	bv;
+
+		switch ( f->f_result ) {
+		default:
+			ber_str2bv( "(?=error)", sizeof("(?=error)") - 1,
+					1, fstr );
+			return LDAP_COMPARE_FALSE;
+			
+		case LDAP_COMPARE_FALSE:
+		case SLAPD_COMPARE_UNDEFINED:
+			BER_BVSTR( &bv, "(!(objectClass=*))" );
+			break;
+
+		case LDAP_COMPARE_TRUE:
+			BER_BVSTR( &bv, "(objectClass=*)" );
+			break;
+		}
+			
+		ber_dupbv( fstr, &bv );
+		} return LDAP_SUCCESS;
 
 	default:
 		ber_str2bv( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr );
