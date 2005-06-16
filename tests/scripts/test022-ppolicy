@@ -315,7 +315,7 @@ echo "Testing hashed length requirement..."
 
 $LDAPMODIFY -h $LOCALHOST -p $PORT1 -D "$USER" -w failexpect > \
 	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, ou=People, o=University of Michigan, c=US
+dn: $USER
 changetype: modify
 delete: userPassword
 userPassword: failexpect
