@@ -50,25 +50,26 @@ Other database options are described in the
 .BR slapd.conf (5)
 manual page.
 .LP
-Note: as with the
-.B ldap
-backend, operational attributes related to entry creation/modification
-should not be used, as they would be passed to the target servers,
-generating an error.
-Moreover, it makes little sense to use such attributes in proxying, as
-the proxy server doesn't actually store data, so it should have no
-knowledge of such attributes.
-While code to strip the modification attributes has been put in place
-(and #ifdef'd), it implies unmotivated overhead.
-So it is strongly recommended to set
+Note: In early versions of back-ldap and back-meta it was recommended to always set
+.LP
 .RS
+.nf
 lastmod  off
+.fi
 .RE
+.LP
 for every
 .B ldap
 and
 .B meta
-backend.
+database.
+This is because operational attributes related to entry creation and
+modification should not be proxied, as they could be mistakenly written
+to the target server(s), generating an error.
+The current implementation automatically sets lastmod to off, so its use
+is redundant and should be omitted, because the lastmod directive will
+be deprecated in the future.
+
 .SH SPECIAL CONFIGURATION DIRECTIVES
 Target configuration starts with the "uri" directive.
 All the configuration directives that are not specific to targets
