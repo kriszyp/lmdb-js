@@ -583,7 +583,7 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
-static slap_callback	*rwm_cb;
+static slap_callback	rwm_cb;
 
 static void
 rwm_keyfree(
@@ -598,22 +598,16 @@ rwm_callback_get( Operation *op )
 {
 	void		*data = NULL;
 
-	if ( op->o_threadctx ) {
-		ldap_pvt_thread_pool_getkey( op->o_threadctx,
-				rwm_keyfree, &data, NULL );
-	} else {
-		data = rwm_cb;
+	if ( op->o_threadctx == NULL ) {
+		return &rwm_cb;
 	}
 
+	ldap_pvt_thread_pool_getkey( op->o_threadctx,
+			rwm_keyfree, &data, NULL );
 	if ( data == NULL ) {
-		data = ber_memalloc( sizeof( slap_callback ) );
-		if ( op->o_threadctx ) {
-			ldap_pvt_thread_pool_setkey( op->o_threadctx,
-					rwm_keyfree, data, rwm_keyfree );
-
-		} else {
-			rwm_cb = (slap_callback *)data;
-		}
+		data = ch_calloc( sizeof( slap_callback ), 1 );
+		ldap_pvt_thread_pool_setkey( op->o_threadctx,
+				rwm_keyfree, data, rwm_keyfree );
 	}
 
 	return (slap_callback *)data;
