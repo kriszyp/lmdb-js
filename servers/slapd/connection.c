@@ -1474,16 +1474,32 @@ connection_input(
 	 * already pending ops, let them go first.  Abandon operations
 	 * get exceptions to some, but not all, cases.
 	 */
-	if (tag != LDAP_REQ_ABANDON && conn->c_conn_state == SLAP_C_CLOSING) {
-		defer = "closing";
-	} else if (tag != LDAP_REQ_ABANDON && conn->c_writewaiter) {
-		defer = "awaiting write";
-	} else if (conn->c_n_ops_executing >= connection_pool_max/2) {
-		defer = "too many executing";
-	} else if (conn->c_conn_state == SLAP_C_BINDING) {
-		defer = "binding";
-	} else if (tag != LDAP_REQ_ABANDON && conn->c_n_ops_pending) {
-		defer = "pending operations";
+	switch( tag ){
+	default:
+		/* Abandon and Unbind are exempt from these checks */
+		if (conn->c_conn_state == SLAP_C_CLOSING) {
+			defer = "closing";
+			break;
+		} else if (conn->c_writewaiter) {
+			defer = "awaiting write";
+			break;
+		} else if (conn->c_n_ops_pending) {
+			defer = "pending operations";
+			break;
+		}
+		/* FALLTHRU */
+	case LDAP_REQ_ABANDON:
+		/* Unbind is exempt from these checks */
+		if (conn->c_n_ops_executing >= connection_pool_max/2) {
+			defer = "too many executing";
+			break;
+		} else if (conn->c_conn_state == SLAP_C_BINDING) {
+			defer = "binding";
+			break;
+		}
+		/* FALLTHRU */
+	case LDAP_REQ_UNBIND:
+		break;
 	}
 
 	if( defer ) {
