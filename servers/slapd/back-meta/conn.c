@@ -533,7 +533,7 @@ meta_back_candidates_get( Operation *op )
 	}
 
 	if ( data == NULL ) {
-		data = ber_memalloc( sizeof( SlapReply ) * mi->mi_ntargets );
+		data = ch_calloc( sizeof( SlapReply ), mi->mi_ntargets );
 		if ( op->o_threadctx ) {
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
 					meta_back_candidate_keyfree, data,
