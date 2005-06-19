@@ -129,7 +129,7 @@ metaconn_alloc(
 
 	assert( ntargets > 0 );
 
-	/* malloc once only; leave an extra one for one-past-end */
+	/* malloc all in one */
 	mc = ( metaconn_t * )ch_malloc( sizeof( metaconn_t )
 			+ sizeof( metasingleconn_t ) * ntargets );
 	if ( mc == NULL ) {
@@ -512,39 +512,59 @@ meta_back_get_candidate(
 }
 
 static void
-meta_back_candidate_keyfree(
+meta_back_candidates_keyfree(
 	void		*key,
 	void		*data )
 {
+	metacandidates_t	*mc = (metacandidates_t *)data;
+
+	ber_memfree_x( mc->mc_candidates, NULL );
 	ber_memfree_x( data, NULL );
 }
 
 SlapReply *
 meta_back_candidates_get( Operation *op )
 {
-	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	void		*data = NULL;
+	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
+	metacandidates_t	*mc;
+	SlapReply		*rs;
 
 	if ( op->o_threadctx ) {
+		void		*data = NULL;
+
 		ldap_pvt_thread_pool_getkey( op->o_threadctx,
-				meta_back_candidate_keyfree, &data, NULL );
+				meta_back_candidates_keyfree, &data, NULL );
+		mc = (metacandidates_t *)data;
+
 	} else {
-		data = (void *)mi->mi_candidates;
+		mc = mi->mi_candidates;
 	}
 
-	if ( data == NULL ) {
-		data = ch_calloc( sizeof( SlapReply ), mi->mi_ntargets );
+	if ( mc == NULL ) {
+		mc = ch_calloc( sizeof( metacandidates_t ), 1 );
+		mc->mc_ntargets = mi->mi_ntargets;
+		mc->mc_candidates = ch_calloc( sizeof( SlapReply ), mc->mc_ntargets );
 		if ( op->o_threadctx ) {
+			void		*data = NULL;
+
+			data = (void *)mc;
 			ldap_pvt_thread_pool_setkey( op->o_threadctx,
-					meta_back_candidate_keyfree, data,
-					meta_back_candidate_keyfree );
+					meta_back_candidates_keyfree, data,
+					meta_back_candidates_keyfree );
 
 		} else {
-			mi->mi_candidates = (SlapReply *)data;
+			mi->mi_candidates = mc;
 		}
+
+	} else if ( mc->mc_ntargets < mi->mi_ntargets ) {
+		/* NOTE: in the future, may want to allow back-config
+		 * to add/remove targets from back-meta... */
+		mc->mc_ntargets = mi->mi_ntargets;
+		mc->mc_candidates = ch_realloc( mc->mc_candidates,
+				sizeof( SlapReply ) * mc->mc_ntargets );
 	}
 
-	return (SlapReply *)data;
+	return mc->mc_candidates;
 }
 
 /*

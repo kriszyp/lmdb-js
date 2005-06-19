@@ -267,6 +267,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
 			continue;
 		}
+
 		candidates[ i ].sr_err = LDAP_SUCCESS;
 		candidates[ i ].sr_matched = NULL;
 		candidates[ i ].sr_text = NULL;

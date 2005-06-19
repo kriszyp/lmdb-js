@@ -38,7 +38,7 @@ meta_back_conn_destroy(
 	Connection	*conn )
 {
 	metainfo_t	*mi = ( metainfo_t * )be->be_private;
-	metaconn_t *mc,
+	metaconn_t	*mc,
 			mc_curr = { 0 };
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -63,12 +63,11 @@ meta_back_conn_destroy(
 		 * Cleanup rewrite session
 		 */
 		for ( i = 0; i < mi->mi_ntargets; ++i ) {
-			if ( mc->mc_conns[ i ].msc_ld == NULL ) {
-				continue;
-			}
-
 			rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
-			meta_clear_one_candidate( &mc->mc_conns[ i ] );
+
+			if ( mc->mc_conns[ i ].msc_ld != NULL ) {
+				meta_clear_one_candidate( &mc->mc_conns[ i ] );
+			}
 		}
 		meta_back_conn_free( mc );
 	}

@@ -222,6 +222,11 @@ typedef struct metadncache_t {
 	long int		ttl;  /* seconds; 0: no cache, -1: no expiry */
 } metadncache_t;
 
+typedef struct metacandidates_t {
+	int			mc_ntargets;
+	SlapReply		*mc_candidates;
+} metacandidates_t;
+
 typedef struct metainfo_t {
 	int			mi_ntargets;
 	int			mi_defaulttarget;
@@ -230,7 +235,7 @@ typedef struct metainfo_t {
 	int			mi_nretries;
 
 	metatarget_t		*mi_targets;
-	SlapReply		*mi_candidates;
+	metacandidates_t	*mi_candidates;
 
 	metadncache_t		mi_cache;
 	
