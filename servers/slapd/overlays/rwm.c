@@ -228,6 +228,32 @@ cleanup_attr:;
 	return SLAP_CB_CONTINUE;
 }
 
+#ifdef ENABLE_REWRITE
+static int
+rwm_conn_init( BackendDB *be, Connection *conn )
+{
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	( void )rewrite_session_init( rwmap->rwm_rw, conn );
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+rwm_conn_destroy( BackendDB *be, Connection *conn )
+{
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	( void )rewrite_session_delete( rwmap->rwm_rw, conn );
+
+	return SLAP_CB_CONTINUE;
+}
+#endif /* ENABLE_REWRITE */
+
 static int
 rwm_op_bind( Operation *op, SlapReply *rs )
 {
@@ -237,9 +263,6 @@ rwm_op_bind( Operation *op, SlapReply *rs )
 	int			rc;
 
 #ifdef ENABLE_REWRITE
-	( void )rewrite_session_delete( rwmap->rwm_rw, op->o_conn );
-	( void )rewrite_session_init( rwmap->rwm_rw, op->o_conn );
-
 	rc = rwm_op_dn_massage( op, rs, "bindDN" );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
@@ -1494,6 +1517,11 @@ rwm_init(void)
 
 	rwm.on_bi.bi_operational = rwm_operational;
 	rwm.on_bi.bi_chk_referrals = 0 /* rwm_chk_referrals */ ;
+
+#ifdef ENABLE_REWRITE
+	rwm.on_bi.bi_connection_init = rwm_conn_init;
+	rwm.on_bi.bi_connection_destroy = rwm_conn_destroy;
+#endif /* ENABLE_REWRITE */
 
 	rwm.on_response = rwm_response;
 
