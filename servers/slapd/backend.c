@@ -778,7 +778,7 @@ backend_connection_init(
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->be_connection_init ) {
-			be->be_connection_init( be, conn);
+			be->be_connection_init( be, conn );
 		}
 	}
 
