@@ -230,45 +230,6 @@ over_back_response ( Operation *op, SlapReply *rs )
 	return rc;
 }
 
-enum op_which {
-	op_bind = 0,
-	op_unbind,
-	op_search,
-	op_compare,
-	op_modify,
-	op_modrdn,
-	op_add,
-	op_delete,
-	op_abandon,
-	op_cancel,
-	op_extended,
-	op_aux_operational,
-	op_aux_chk_referrals,
-	op_aux_chk_controls,
-	op_last
-};
-
-/*
- * default return code in case of missing backend function
- * and overlay stack returning SLAP_CB_CONTINUE
- */
-static int op_rc[] = {
-	LDAP_UNWILLING_TO_PERFORM,	/* bind */
-	LDAP_UNWILLING_TO_PERFORM,	/* unbind */
-	LDAP_UNWILLING_TO_PERFORM,	/* search */
-	SLAP_CB_CONTINUE,		/* compare; pass to frontend */
-	LDAP_UNWILLING_TO_PERFORM,	/* modify */
-	LDAP_UNWILLING_TO_PERFORM,	/* modrdn */
-	LDAP_UNWILLING_TO_PERFORM,	/* add */
-	LDAP_UNWILLING_TO_PERFORM,	/* delete */
-	LDAP_UNWILLING_TO_PERFORM,	/* abandon */
-	LDAP_UNWILLING_TO_PERFORM,	/* cancel */
-	LDAP_UNWILLING_TO_PERFORM,	/* extended */
-	LDAP_SUCCESS,			/* aux_operational */
-	LDAP_SUCCESS,			/* aux_chk_referrals */
-	SLAP_CB_CONTINUE		/* aux_chk_controls; pass to frontend */
-};
-
 #ifdef SLAP_OVERLAY_ACCESS
 static int
 over_access_allowed(
@@ -339,6 +300,45 @@ over_access_allowed(
 	return rc;
 }
 #endif /* SLAP_OVERLAY_ACCESS */
+
+enum op_which {
+	op_bind = 0,
+	op_unbind,
+	op_search,
+	op_compare,
+	op_modify,
+	op_modrdn,
+	op_add,
+	op_delete,
+	op_abandon,
+	op_cancel,
+	op_extended,
+	op_aux_operational,
+	op_aux_chk_referrals,
+	op_aux_chk_controls,
+	op_last
+};
+
+/*
+ * default return code in case of missing backend function
+ * and overlay stack returning SLAP_CB_CONTINUE
+ */
+static int op_rc[] = {
+	LDAP_UNWILLING_TO_PERFORM,	/* bind */
+	LDAP_UNWILLING_TO_PERFORM,	/* unbind */
+	LDAP_UNWILLING_TO_PERFORM,	/* search */
+	SLAP_CB_CONTINUE,		/* compare; pass to frontend */
+	LDAP_UNWILLING_TO_PERFORM,	/* modify */
+	LDAP_UNWILLING_TO_PERFORM,	/* modrdn */
+	LDAP_UNWILLING_TO_PERFORM,	/* add */
+	LDAP_UNWILLING_TO_PERFORM,	/* delete */
+	LDAP_UNWILLING_TO_PERFORM,	/* abandon */
+	LDAP_UNWILLING_TO_PERFORM,	/* cancel */
+	LDAP_UNWILLING_TO_PERFORM,	/* extended */
+	LDAP_SUCCESS,			/* aux_operational */
+	LDAP_SUCCESS,			/* aux_chk_referrals */
+	SLAP_CB_CONTINUE		/* aux_chk_controls; pass to frontend */
+};
 
 static int
 over_op_func(
@@ -491,16 +491,23 @@ over_aux_chk_controls( Operation *op, SlapReply *rs )
 	return over_op_func( op, rs, op_aux_chk_controls );
 }
 
+enum conn_which {
+	conn_init = 0,
+	conn_destroy
+};
+
 static int
-over_connection_destroy(
+over_connection_func(
 	BackendDB	*bd,
-	Connection	*conn
+	Connection	*conn,
+	enum conn_which	which
 )
 {
-	slap_overinfo *oi;
-	slap_overinst *on;
-	BackendDB db;
-	int rc = SLAP_CB_CONTINUE;
+	slap_overinfo		*oi;
+	slap_overinst		*on;
+	BackendDB		db;
+	int			rc = SLAP_CB_CONTINUE;
+	BI_connection_init	**func;
 
 	/* FIXME: used to happen for instance during abandon
 	 * when global overlays are used... */
@@ -509,23 +516,25 @@ over_connection_destroy(
 	oi = bd->bd_info->bi_private;
 	on = oi->oi_list;
 
- 	if ( !SLAP_ISOVERLAY( bd )) {
+ 	if ( !SLAP_ISOVERLAY( bd ) ) {
  		db = *bd;
 		db.be_flags |= SLAP_DBFLAG_OVERLAY;
 		bd = &db;
 	}
 
-	for (; on; on=on->on_next ) {
-		if ( on->on_bi.bi_connection_destroy ) {
+	for ( ; on; on = on->on_next ) {
+		func = &on->on_bi.bi_connection_init;
+		if ( func[ which ] ) {
 			bd->bd_info = (BackendInfo *)on;
-			rc = on->on_bi.bi_connection_destroy( bd, conn );
+			rc = func[ which ]( bd, conn );
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
 
-	if ( oi->oi_orig->bi_connection_destroy && rc == SLAP_CB_CONTINUE ) {
+	func = &oi->oi_orig->bi_connection_init;
+	if ( func[ which ] && rc == SLAP_CB_CONTINUE ) {
 		bd->bd_info = oi->oi_orig;
-		rc = oi->oi_orig->bi_connection_destroy( bd, conn );
+		rc = func[ which ]( bd, conn );
 	}
 	/* should not fall thru this far without anything happening... */
 	if ( rc == SLAP_CB_CONTINUE ) {
@@ -533,6 +542,24 @@ over_connection_destroy(
 	}
 
 	return rc;
+}
+
+static int
+over_connection_init(
+	BackendDB	*bd,
+	Connection	*conn
+)
+{
+	return over_connection_func( bd, conn, conn_init );
+}
+
+static int
+over_connection_destroy(
+	BackendDB	*bd,
+	Connection	*conn
+)
+{
+	return over_connection_func( bd, conn, conn_destroy );
 }
 
 int
@@ -750,6 +777,7 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_access_allowed = over_access_allowed;
 #endif /* SLAP_OVERLAY_ACCESS */
 		
+		bi->bi_connection_init = over_connection_init;
 		bi->bi_connection_destroy = over_connection_destroy;
 
 		be->bd_info = bi;
