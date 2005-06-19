@@ -24,6 +24,7 @@ GLUE=${AC_glue-glueno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
+RETCODE=${AC_retcode-retcodeno}
 RWM=${AC_rwm-rwmno}
 TRANSLUCENT=${AC_translucent-translucentno}
 UNIQUE=${AC_unique-uniqueno}
@@ -72,6 +73,7 @@ REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
+RETCODECONF=$DATADIR/slapd-retcode.conf
 UNIQUECONF=$DATADIR/slapd-unique.conf
 LIMITSCONF=$DATADIR/slapd-limits.conf
 DNCONF=$DATADIR/slapd-dn.conf
@@ -191,6 +193,7 @@ BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,OU=People,dc=exampl
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,OU=People,dc=example,dc=com"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 REFINTDN="cn=Manager,o=refint"
+RETCODEDN="ou=RetCodes,$BASEDN"
 UNIQUEDN="cn=Manager,o=unique"
 EMPTYDNDN="cn=Manager,c=US"
 TRANSLUCENTROOT="o=translucent"

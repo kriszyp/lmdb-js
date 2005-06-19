@@ -1061,6 +1061,9 @@
 /* define for Referential Integrity overlay */
 #undef SLAPD_OVER_REFINT
 
+/* define for Return Code testing overlay */
+#undef SLAPD_OVER_RETCODE
+
 /* define for Rewrite/Remap overlay */
 #undef SLAPD_OVER_RWM
 
