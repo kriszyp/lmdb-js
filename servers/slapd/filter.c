@@ -382,24 +382,39 @@ get_ssa(
 
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
+			if ( ssa.sa_initial.bv_val != NULL
+				|| ssa.sa_any != NULL 
+				|| ssa.sa_final.bv_val != NULL )
+			{
+				rc = LDAP_PROTOCOL_ERROR;
+				goto return_error;
+			}
 			usage = SLAP_MR_SUBSTR_INITIAL;
 			break;
 
 		case LDAP_SUBSTRING_ANY:
+			if ( ssa.sa_final.bv_val != NULL ) {
+				rc = LDAP_PROTOCOL_ERROR;
+				goto return_error;
+			}
 			usage = SLAP_MR_SUBSTR_ANY;
 			break;
 
 		case LDAP_SUBSTRING_FINAL:
+			if ( ssa.sa_final.bv_val != NULL ) {
+				rc = LDAP_PROTOCOL_ERROR;
+				goto return_error;
+			}
+
 			usage = SLAP_MR_SUBSTR_FINAL;
 			break;
 
 		default:
-			rc = LDAP_PROTOCOL_ERROR;
-
 			Debug( LDAP_DEBUG_FILTER,
 				"  unknown substring choice=%ld\n",
 				(long) tag, 0, 0 );
 
+			rc = LDAP_PROTOCOL_ERROR;
 			goto return_error;
 		}
 
@@ -407,57 +422,28 @@ get_ssa(
 		rc = asserted_value_validate_normalize(
 			ssa.sa_desc, ssa.sa_desc->ad_type->sat_equality,
 			usage, &value, &nvalue, text, op->o_tmpmemctx );
-
-		if( rc != LDAP_SUCCESS ) {
-			goto return_error;
-		}
-
-		rc = LDAP_PROTOCOL_ERROR;
+		if( rc != LDAP_SUCCESS ) goto return_error;
 
 		switch ( tag ) {
 		case LDAP_SUBSTRING_INITIAL:
 			Debug( LDAP_DEBUG_FILTER, "  INITIAL\n", 0, 0, 0 );
-
-			if ( ssa.sa_initial.bv_val != NULL
-				|| ssa.sa_any != NULL 
-				|| ssa.sa_final.bv_val != NULL )
-			{
-				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
-				goto return_error;
-			}
-
 			ssa.sa_initial = nvalue;
 			break;
 
 		case LDAP_SUBSTRING_ANY:
 			Debug( LDAP_DEBUG_FILTER, "  ANY\n", 0, 0, 0 );
-
-			if ( ssa.sa_final.bv_val != NULL ) {
-				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
-				goto return_error;
-			}
-
 			ber_bvarray_add_x( &ssa.sa_any, &nvalue, op->o_tmpmemctx );
 			break;
 
 		case LDAP_SUBSTRING_FINAL:
 			Debug( LDAP_DEBUG_FILTER, "  FINAL\n", 0, 0, 0 );
-
-			if ( ssa.sa_final.bv_val != NULL ) {
-				slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
-				goto return_error;
-			}
-
 			ssa.sa_final = nvalue;
 			break;
 
 		default:
-			Debug( LDAP_DEBUG_FILTER,
-				"  unknown substring type=%ld\n",
-				(long) tag, 0, 0 );
-
 			assert( 0 );
 			slap_sl_free( nvalue.bv_val, op->o_tmpmemctx );
+			rc = LDAP_PROTOCOL_ERROR;
 
 return_error:
 			Debug( LDAP_DEBUG_FILTER, "  error=%ld\n",
@@ -477,7 +463,6 @@ return_error:
 	}
 
 	Debug( LDAP_DEBUG_FILTER, "end get_ssa\n", 0, 0, 0 );
-
 	return rc /* LDAP_SUCCESS */ ;
 }
 
