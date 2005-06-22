@@ -306,7 +306,7 @@ do_syncrep1(
 
 			/* FIXME (see above comment) */
 			/* if Kerberos credentials cache is not active, retry */
-			if ( strcmp( si->si_saslmech, "GSSAPI" ) == 0 &&
+			if ( si->si_saslmech && !strcmp( si->si_saslmech, "GSSAPI" ) &&
 				rc == LDAP_LOCAL_ERROR )
 			{
 				rc = LDAP_SERVER_DOWN;
