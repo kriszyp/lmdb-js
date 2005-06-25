@@ -144,21 +144,18 @@ static char * slurp_file(int fd) {
 	return entry;
 }
 
-static int spew_file(int fd, char * spew) {
-	int written = 0;
+static int spew_file(int fd, char * spew, int len) {
 	int writeres = 0;
-	int len = strlen(spew);
-	char * spewptr = spew;
 	
-	while(written < len) {
-		writeres = write(fd, spewptr, len - written);
+	while(len > 0) {
+		writeres = write(fd, spew, len);
 		if(writeres == -1) {
 			perror("could not spew write");
 			return -1;
 		}
 		else {
-			spewptr += writeres;
-			written += writeres;
+			spew += writeres;
+			len -= writeres;
 		}
 	}
 	return writeres;
@@ -171,7 +168,7 @@ static int spew_entry(Entry * e, struct berval * path) {
 	int entry_length;
 	char * entry_as_string;
 
-	openres = open(path->bv_val, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	openres = open(path->bv_val, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR | S_IWUSR);
 	if(openres == -1) {
 		if(errno == ENOENT)
 			rs = LDAP_NO_SUCH_OBJECT;
@@ -204,7 +201,7 @@ static int spew_entry(Entry * e, struct berval * path) {
 			close(openres);
 		}
 		else {
-			spew_res = spew_file(openres, entry_as_string);
+			spew_res = spew_file(openres, entry_as_string, entry_length);
 			close(openres);
 			if(spew_res == -1)
 				rs = LDAP_UNWILLING_TO_PERFORM;
