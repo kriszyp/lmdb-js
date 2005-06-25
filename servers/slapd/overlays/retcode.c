@@ -183,9 +183,10 @@ retcode_cb_response( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		rdc->rdc_flags = SLAP_CB_CONTINUE;
+		return 0;
 	}
 
-	return 0;
+	return SLAP_CB_CONTINUE;
 }
 
 static int
@@ -252,8 +253,13 @@ retcode_op_func( Operation *op, SlapReply *rs )
 			case LDAP_REQ_ADD:
 				return retcode_op_add( op, rs );
 
-			case LDAP_REQ_MODIFY:
 			case LDAP_REQ_BIND:
+				if ( be_isroot_pw( op ) ) {
+					return SLAP_CB_CONTINUE;
+				}
+				/* fallthru */
+
+			case LDAP_REQ_MODIFY:
 			case LDAP_REQ_DELETE:
 			case LDAP_REQ_MODRDN:
 			case LDAP_REQ_COMPARE:
