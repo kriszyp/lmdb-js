@@ -243,16 +243,10 @@ typedef struct metainfo_t {
 	Avlnode			*mi_conntree;
 
 	unsigned		flags;
-#if 0
-/* defined in <back-ldap/back-ldap.h> */
-#define LDAP_BACK_F_NONE		0x00U
-#define LDAP_BACK_F_SAVECRED		0x01U
-#define LDAP_BACK_F_USE_TLS		0x02U
-#define LDAP_BACK_F_PROPAGATE_TLS	0x04U
-#define LDAP_BACK_F_TLS_CRITICAL	0x08U
-#define LDAP_BACK_F_TLS_MASK		(LDAP_BACK_F_USE_TLS|LDAP_BACK_F_PROPAGATE_TLS|LDAP_BACK_F_TLS_CRITICAL)
-#define LDAP_BACK_F_CHASE_REFERRALS	0x10U
-#endif
+/* uses flags as defined in <back-ldap/back-ldap.h> */
+#define	META_BACK_F_ONERR_STOP	0x00010000U
+#define	META_BACK_ONERR_STOP(mi)	( (mi)->flags & META_BACK_F_ONERR_STOP )
+#define	META_BACK_ONERR_CONTINUE(mi)	( !META_BACK_ONERR_CONTINUE( (mi) ) )
 
 	int			mi_version;
 } metainfo_t;
