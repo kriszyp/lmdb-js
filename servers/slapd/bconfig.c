@@ -2781,14 +2781,25 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 			return rc;
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
-		ca->line = vals[i].bv_val;
-		if ( sort ) {
-			char *idx = strchr( ca->line, '}' );
-			if ( idx ) ca->line = idx+1;
+		int freeline = 0;
+		if ( ad && ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+			ca->line = ch_malloc( vals[i].bv_len + STRLENOF( "\"\"" ) + 1 );
+			sprintf( ca->line, "\"%s\"", vals[i].bv_val );
+			freeline = 1;
+		} else {
+			ca->line = vals[i].bv_val;
+			if ( sort ) {
+				char *idx = strchr( ca->line, '}' );
+				if ( idx ) ca->line = idx+1;
+			}
 		}
 		rc = config_parse_vals( ct, ca, i );
-		if ( rc )
+		if ( freeline ) {
+			ch_free( ca->line );
+		}
+		if ( rc ) {
 			break;
+		}
 	}
 	return rc;
 }
@@ -3137,13 +3148,24 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
-			ca->line = a->a_vals[i].bv_val;
-			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
-				ptr = strchr( ca->line, '}' );
-				if ( ptr ) ca->line = ptr+1;
+			int freeline = 0;
+
+			if ( a->a_desc && a->a_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+				ca->line = ch_malloc( a->a_vals[i].bv_len + STRLENOF( "\"\"" ) + 1 );
+				sprintf( ca->line, "\"%s\"", a->a_vals[i].bv_val );
+				freeline = 1;
+			} else {
+				ca->line = a->a_vals[i].bv_val;
+				if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+					ptr = strchr( ca->line, '}' );
+					if ( ptr ) ca->line = ptr+1;
+				}
 			}
 			ca->valx = i;
 			rc = config_parse_add( ct, ca );
+			if ( freeline ) {
+				ch_free( ca->line );
+			}
 			if ( rc ) {
 				rc = LDAP_OTHER;
 				goto leave;
