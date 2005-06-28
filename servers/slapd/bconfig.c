@@ -159,6 +159,8 @@ enum {
 	CFG_SASLSECP,
 	CFG_SSTR_IF_MAX,
 	CFG_SSTR_IF_MIN,
+
+	CFG_LAST
 };
 
 typedef struct {
@@ -270,7 +272,7 @@ static ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgGlAt:13 NAME 'olcDatabase' "
 			"DESC 'The backend type for a database instance' "
 			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
-	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_MAGIC,
+	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_search_base, "( OLcfgGlAt:14 NAME 'olcDefaultSearchBase' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "disallows", "features", 2, 0, 8, ARG_PRE_DB|ARG_MAGIC,
@@ -415,7 +417,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:49 NAME 'olcReverseLookup' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
-	{ "rootdn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
+	{ "rootdn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_rootdn, "( OLcfgDbAt:0.8 NAME 'olcRootDN' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "rootDSE", "file", 2, 2, 0, ARG_MAGIC|CFG_ROOTDSE,
@@ -454,7 +456,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "saslRegexp",	NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, NULL, NULL, NULL },
-	{ "schemadn", "dn", 2, 2, 0, ARG_MAY_DB|ARG_DN|ARG_MAGIC,
+	{ "schemadn", "dn", 2, 2, 0, ARG_MAY_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_schema_dn, "( OLcfgGlAt:58 NAME 'olcSchemaDN' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "security", "factors", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
@@ -477,7 +479,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:63 NAME 'olcSrvtab' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
+	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_suffix, "( OLcfgDbAt:0.10 NAME 'olcSuffix' "
 			"SYNTAX OMsDN )", NULL, NULL },
 	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
@@ -555,7 +557,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "ucdata-path", "path", 2, 2, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL },
-	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_MAGIC,
+	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_updatedn, "( OLcfgDbAt:0.12 NAME 'olcUpdateDN' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "updateref", "url", 2, 2, 0, ARG_DB|ARG_MAGIC,
@@ -2781,22 +2783,12 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 			return rc;
 	}
 	for ( i=0; vals[i].bv_val; i++ ) {
-		int freeline = 0;
-		if ( ad && ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
-			ca->line = ch_malloc( vals[i].bv_len + STRLENOF( "\"\"" ) + 1 );
-			sprintf( ca->line, "\"%s\"", vals[i].bv_val );
-			freeline = 1;
-		} else {
-			ca->line = vals[i].bv_val;
-			if ( sort ) {
-				char *idx = strchr( ca->line, '}' );
-				if ( idx ) ca->line = idx+1;
-			}
+		ca->line = vals[i].bv_val;
+		if ( sort ) {
+			char *idx = strchr( ca->line, '}' );
+			if ( idx ) ca->line = idx+1;
 		}
 		rc = config_parse_vals( ct, ca, i );
-		if ( freeline ) {
-			ch_free( ca->line );
-		}
 		if ( rc ) {
 			break;
 		}
@@ -3148,24 +3140,13 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 		ct = config_find_table( colst, nocs, a->a_desc );
 		if ( !ct ) continue;	/* user data? */
 		for (i=0; a->a_vals[i].bv_val; i++) {
-			int freeline = 0;
-
-			if ( a->a_desc && a->a_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
-				ca->line = ch_malloc( a->a_vals[i].bv_len + STRLENOF( "\"\"" ) + 1 );
-				sprintf( ca->line, "\"%s\"", a->a_vals[i].bv_val );
-				freeline = 1;
-			} else {
-				ca->line = a->a_vals[i].bv_val;
-				if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
-					ptr = strchr( ca->line, '}' );
-					if ( ptr ) ca->line = ptr+1;
-				}
+			ca->line = a->a_vals[i].bv_val;
+			if ( a->a_desc->ad_type->sat_flags & SLAP_AT_ORDERED ) {
+				ptr = strchr( ca->line, '}' );
+				if ( ptr ) ca->line = ptr+1;
 			}
 			ca->valx = i;
 			rc = config_parse_add( ct, ca );
-			if ( freeline ) {
-				ch_free( ca->line );
-			}
 			if ( rc ) {
 				rc = LDAP_OTHER;
 				goto leave;
@@ -4210,6 +4191,9 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_next = config_tool_entry_next;
 	bi->bi_tool_entry_get = config_tool_entry_get;
 	bi->bi_tool_entry_put = config_tool_entry_put;
+
+	/* Make sure we don't exceed the bits reserved for userland */
+	assert( ( ( CFG_LAST - 1 ) & ARGS_USERLAND ) == ( CFG_LAST - 1 ) );
 
 	argv[3] = NULL;
 	for (i=0; OidMacros[i].name; i++ ) {

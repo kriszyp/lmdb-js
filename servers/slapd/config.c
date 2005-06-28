@@ -473,17 +473,34 @@ init_config_ocs( ConfigOCs *ocs ) {
 int
 config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
 {
-	int rc = 0;
+	int 	rc = 0;
+	char	*saveline = NULL;
 
 	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
 		ct->ad->ad_cname.bv_val, valx );
 	c->argc = 1;
 	c->argv[0] = ct->ad->ad_cname.bv_val;
+
+	if ( ( ct->arg_type & ARG_QUOTE ) && c->line[ 0 ] != '"' ) {
+		ber_len_t	len;
+
+		saveline = c->line;
+		len = strlen( c->line );
+		c->line = ch_malloc( len + STRLENOF( "\"\"" ) + 1 );
+		sprintf( c->line, "\"%s\"", saveline );
+	}
+
 	if ( fp_parse_line( c ) ) {
 		rc = 1;
 	} else {
 		rc = config_check_vals( ct, c, 1 );
 	}
+
+	if ( saveline ) {
+		ch_free( c->line );
+		c->line = saveline;
+	}
+
 	if ( rc )
 		rc = LDAP_CONSTRAINT_VIOLATION;
 
@@ -494,17 +511,34 @@ config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx)
 int
 config_parse_add(ConfigTable *ct, ConfigArgs *c)
 {
-	int rc = 0;
+	int	rc = 0;
+	char	*saveline = NULL;
 
 	snprintf( c->log, sizeof( c->log ), "%s: value #%d",
 		ct->ad->ad_cname.bv_val, c->valx );
 	c->argc = 1;
 	c->argv[0] = ct->ad->ad_cname.bv_val;
+
+	if ( ( ct->arg_type & ARG_QUOTE ) && c->line[ 0 ] != '"' ) {
+		ber_len_t	len;
+
+		saveline = c->line;
+		len = strlen( c->line );
+			
+		c->line = ch_malloc( len + STRLENOF( "\"\"" ) + 1 );
+		sprintf( c->line, "\"%s\"", saveline );
+	}
+
 	if ( fp_parse_line( c ) ) {
 		rc = 1;
 	} else {
 		c->op = LDAP_MOD_ADD;
 		rc = config_add_vals( ct, c );
+	}
+
+	if ( saveline ) {
+		ch_free( c->line );
+		c->line = saveline;
 	}
 
 	ch_free( c->tline );
