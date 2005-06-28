@@ -58,6 +58,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			&op->o_req_ndn, &candidate );
 	if ( !lc ) {
 		send_ldap_result( op, rs );
+		return -1;
 	}
 
 	if ( !meta_back_dobind( lc, op )
