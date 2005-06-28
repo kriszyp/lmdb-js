@@ -707,6 +707,27 @@ meta_back_getconn(
 				continue;
 			}
 		}
+
+		if ( ncandidates == 0 ) {
+			if ( new_conn ) {
+				meta_back_conn_free( mc );
+			}
+
+			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			rs->sr_text = "Unable to select valid candidates";
+
+			if ( sendok & LDAP_BACK_SENDERR ) {
+				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
+					rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
+				}
+				send_ldap_result( op, rs );
+				rs->sr_text = NULL;
+				rs->sr_matched = NULL;
+			}
+
+			return NULL;
+		}
+
 		goto done;
 	}
 	
@@ -737,8 +758,12 @@ meta_back_getconn(
 	
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				if ( sendok & LDAP_BACK_SENDERR ) {
+					if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
+						rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
+					}
 					send_ldap_result( op, rs );
 					rs->sr_text = NULL;
+					rs->sr_matched = NULL;
 				}
 				return NULL;
 			}
@@ -876,8 +901,12 @@ meta_back_getconn(
 			rs->sr_text = "Unable to select valid candidates";
 
 			if ( sendok & LDAP_BACK_SENDERR ) {
+				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
+					rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
+				}
 				send_ldap_result( op, rs );
 				rs->sr_text = NULL;
+				rs->sr_matched = NULL;
 			}
 
 			return NULL;
