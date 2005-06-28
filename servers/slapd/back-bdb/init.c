@@ -69,6 +69,8 @@ bdb_db_init( BackendDB *be )
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
+	ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
+	ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 
 	be->be_private = bdb;
 	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
@@ -385,8 +387,6 @@ bdb_db_open( BackendDB *be )
 
 	if ( bdb->bi_idl_cache_max_size ) {
 		bdb->bi_idl_tree = NULL;
-		ldap_pvt_thread_rdwr_init( &bdb->bi_idl_tree_rwlock );
-		ldap_pvt_thread_mutex_init( &bdb->bi_idl_tree_lrulock );
 		bdb->bi_idl_cache_size = 0;
 	}
 
@@ -630,10 +630,8 @@ bdb_db_destroy( BackendDB *be )
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_database_mutex );
-	if ( bdb->bi_idl_cache_max_size ) {
-		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
-		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
-	}
+	ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 
 	ch_free( bdb );
 	be->be_private = NULL;
