@@ -212,14 +212,21 @@ int
 ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
+	int		rc = 0;
 
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = avl_delete( &li->conntree, (caddr_t)lc,
 			ldap_back_conn_cmp );
-	ldap_back_conn_free( (void *)lc );
+	if ( lc == NULL ) {
+		/* something BAD happened */
+		rc = -1;
+
+	} else {
+		ldap_back_conn_free( (void *)lc );
+	}
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
-	return 0;
+	return rc;
 }
 
 static int
