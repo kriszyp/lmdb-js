@@ -286,7 +286,7 @@ fail:;
 
 			e = ldap_first_entry( lc->lc_ld, res );
 			rc = ldap_build_entry( op, e, &ent, &bdn );
-		       if ( rc == LDAP_SUCCESS ) {
+			if ( rc == LDAP_SUCCESS ) {
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;

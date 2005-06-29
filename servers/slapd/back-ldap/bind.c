@@ -101,17 +101,25 @@ done:;
 
 	/* must re-insert if local DN changed as result of bind */
 	if ( lc->lc_bound && !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) {
-		int	lerr;
+		struct ldapconn	*tmplc;
+		int		lerr;
 
 		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
-		lc = avl_delete( &li->conntree, (caddr_t)lc,
+		tmplc = avl_delete( &li->conntree, (caddr_t)lc,
 				ldap_back_conn_cmp );
-		if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
-			ch_free( lc->lc_local_ndn.bv_val );
+		if ( tmplc != NULL ) {
+			if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
+				ch_free( lc->lc_local_ndn.bv_val );
+			}
+			ber_dupbv( &lc->lc_local_ndn, &op->o_req_ndn );
+			lerr = avl_insert( &li->conntree, (caddr_t)lc,
+				ldap_back_conn_cmp, ldap_back_conn_dup );
+
+		} else {
+			/* something BAD happened */
+			lerr = -1;
+			rc = LDAP_OTHER;
 		}
-		ber_dupbv( &lc->lc_local_ndn, &op->o_req_ndn );
-		lerr = avl_insert( &li->conntree, (caddr_t)lc,
-			ldap_back_conn_cmp, ldap_back_conn_dup );
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		if ( lerr == -1 ) {
 			ldap_back_conn_free( lc );
@@ -444,6 +452,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( rs->sr_err != 0 ) {
 			ldap_back_conn_free( lc );
+			rs->sr_err = LDAP_OTHER;
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
 				send_ldap_error( op, rs, LDAP_OTHER,
 				"internal server error" );

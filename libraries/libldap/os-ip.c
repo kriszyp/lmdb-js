@@ -903,6 +903,7 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 #endif
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
+	assert( sip != NULL );
 
 #ifdef HAVE_POLL
 	{
