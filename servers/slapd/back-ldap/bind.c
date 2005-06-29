@@ -347,6 +347,9 @@ retry:;
 			ldap_unbind_ext_s( ld, NULL, NULL );
 			goto error_return;
 		}
+
+		/* in case Start TLS is not critical */
+		rs->sr_err = LDAP_SUCCESS;
 	}
 #endif /* HAVE_TLS */
 
