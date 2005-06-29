@@ -39,6 +39,7 @@ struct ldapconn {
 	int			lc_bound;
 	int			lc_ispriv;
 	ldap_pvt_thread_mutex_t	lc_mutex;
+	unsigned		lc_refcnt;
 };
 
 /*

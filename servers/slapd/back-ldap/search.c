@@ -157,7 +157,7 @@ ldap_back_search(
 	LDAPControl	**ctrls = NULL;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc ) {
+	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
@@ -165,9 +165,6 @@ ldap_back_search(
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	if ( !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
-		return rs->sr_err;
-	}
 
 	/* should we check return values? */
 	if ( op->ors_deref != -1 ) {
@@ -439,6 +436,10 @@ finish:;
 
 	if ( attrs ) {
 		ch_free( attrs );
+	}
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, rs, lc );
 	}
 
 	return rc;
@@ -720,6 +721,10 @@ cleanup:
 
 	if ( filter ) {
 		ch_free( filter );
+	}
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, &rs, lc );
 	}
 
 	return rc;

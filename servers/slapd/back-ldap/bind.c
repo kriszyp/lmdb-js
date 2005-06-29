@@ -101,29 +101,36 @@ done:;
 
 	/* must re-insert if local DN changed as result of bind */
 	if ( lc->lc_bound && !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) {
-		struct ldapconn	*tmplc;
 		int		lerr;
 
 		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
-		tmplc = avl_delete( &li->conntree, (caddr_t)lc,
-				ldap_back_conn_cmp );
-		if ( tmplc != NULL ) {
-			if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
-				ch_free( lc->lc_local_ndn.bv_val );
-			}
-			ber_dupbv( &lc->lc_local_ndn, &op->o_req_ndn );
-			lerr = avl_insert( &li->conntree, (caddr_t)lc,
-				ldap_back_conn_cmp, ldap_back_conn_dup );
-
-		} else {
-			/* something BAD happened */
-			lerr = -1;
-			rc = LDAP_OTHER;
+		/* wait for all other ops to release the connection */
+		while ( lc->lc_refcnt > 1 ) {
+			ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+			ldap_pvt_thread_yield();
+			ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 		}
+		assert( lc->lc_refcnt == 1 );
+		lc = avl_delete( &li->conntree, (caddr_t)lc,
+				ldap_back_conn_cmp );
+		assert( lc != NULL );
+
+		if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
+			ch_free( lc->lc_local_ndn.bv_val );
+		}
+		ber_dupbv( &lc->lc_local_ndn, &op->o_req_ndn );
+		lerr = avl_insert( &li->conntree, (caddr_t)lc,
+			ldap_back_conn_cmp, ldap_back_conn_dup );
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		if ( lerr == -1 ) {
+			/* handle this! (e.g. wait until refcnt goes to 1...) */
 			ldap_back_conn_free( lc );
+			lc = NULL;
 		}
+	}
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, rs, lc );
 	}
 
 	return( rc );
@@ -223,13 +230,12 @@ ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 	int		rc = 0;
 
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
-	lc = avl_delete( &li->conntree, (caddr_t)lc,
-			ldap_back_conn_cmp );
-	if ( lc == NULL ) {
-		/* something BAD happened */
-		rc = -1;
+	assert( lc->lc_refcnt > 0 );
+	if ( --lc->lc_refcnt == 0 ) {
+		lc = avl_delete( &li->conntree, (caddr_t)lc,
+				ldap_back_conn_cmp );
+		assert( lc != NULL );
 
-	} else {
 		ldap_back_conn_free( (void *)lc );
 	}
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
@@ -358,6 +364,7 @@ retry:;
 		memset( *lcp, 0, sizeof( struct ldapconn ) );
 	}
 	(*lcp)->lc_ld = ld;
+	(*lcp)->lc_refcnt = 1;
 
 error_return:;
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -407,10 +414,13 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = (struct ldapconn *)avl_find( li->conntree, 
 			(caddr_t)&lc_curr, ldap_back_conn_cmp );
+	if ( lc != NULL ) {
+		lc->lc_refcnt++;
+	}
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	/* Looks like we didn't get a bind. Open a new session... */
-	if ( !lc ) {
+	if ( lc == NULL ) {
 		/* lc here must be NULL */
 		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 			return NULL;
@@ -440,6 +450,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 
 		/* Inserts the newly created ldapconn in the avl tree */
 		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+		assert( lc->lc_refcnt == 1 );
 		rs->sr_err = avl_insert( &li->conntree, (caddr_t)lc,
 			ldap_back_conn_cmp, ldap_back_conn_dup );
 
@@ -450,7 +461,8 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %p inserted\n", (void *) lc, 0, 0 );
+			"=>ldap_back_getconn: conn %p inserted (refcnt=%u)\n",
+			(void *)lc, lc->lc_refcnt, 0 );
 	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( rs->sr_err != 0 ) {
@@ -464,10 +476,25 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		}
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %p fetched\n", (void *) lc, 0, 0 );
+			"=>ldap_back_getconn: conn %p fetched (refcnt=%u)\n",
+			(void *)lc, lc->lc_refcnt, 0 );
 	}
 	
 	return lc;
+}
+
+void
+ldap_back_release_conn(
+	Operation		*op,
+	SlapReply		*rs,
+	struct ldapconn		*lc )
+{
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+	
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+	assert( lc->lc_refcnt > 0 );
+	lc->lc_refcnt--;
+	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 }
 
 /*

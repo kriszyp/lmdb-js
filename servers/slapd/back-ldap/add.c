@@ -54,6 +54,7 @@ ldap_back_add(
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
+		lc = NULL;
 		goto cleanup;
 	}
 
@@ -114,6 +115,10 @@ cleanup:
 			ch_free( attrs[ i ]->mod_vals.modv_bvals );
 		}
 		ch_free( attrs );
+	}
+
+	if ( lc ) {
+		ldap_back_release_conn( op, rs, lc );
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "<== ldap_back_add(\"%s\"): %d\n",

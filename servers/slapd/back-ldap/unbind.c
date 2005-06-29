@@ -53,8 +53,10 @@ ldap_back_conn_destroy(
 
 	if ( lc ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_conn_destroy: destroying conn %ld\n",
-			lc->lc_conn->c_connid, 0, 0 );
+			"=>ldap_back_conn_destroy: destroying conn %ld (refcnt=%u)\n",
+			lc->lc_conn->c_connid, lc->lc_refcnt, 0 );
+
+		assert( lc->lc_refcnt == 0 );
 
 		/*
 		 * Needs a test because the handler may be corrupted,

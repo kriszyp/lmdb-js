@@ -1573,6 +1573,11 @@ retry:
 		if (rs->sr_err != LDAP_SUCCESS) {
 			rs->sr_err = slap_map_api2result( rs );
 		}
+
+		if ( lc != NULL ) {
+			ldap_back_release_conn( &op2, rs, lc );
+		}
+
 	} else {
 	/* else just do the same as before */
 		bv = (struct berval *) ch_malloc( sizeof(struct berval) );
