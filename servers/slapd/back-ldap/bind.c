@@ -605,16 +605,20 @@ retry:;
 
 		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 			if ( retries > 0 ) {
-				ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
-				lc->lc_ld = NULL;
+				ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+				assert( lc->lc_refcnt > 0 );
+				if ( lc->lc_refcnt == 1 ) {
+					ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+					lc->lc_ld = NULL;
 
-				/* lc here must be the regular lc, reset and ready for init */
-				if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
-					return 0;
+					/* lc here must be the regular lc, reset and ready for init */
+					rs->sr_err = ldap_back_prepare_conn( &lc, op, rs, sendok );
 				}
-
-				retries--;
-				goto retry;
+				ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+				if ( rs->sr_err == LDAP_SUCCESS ) {
+					retries--;
+					goto retry;
+				}
 			}
 
 			ldap_back_freeconn( op, lc );
@@ -756,19 +760,26 @@ retry:;
 int
 ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
-	int	rc;
+	int		rc = 0;
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+	
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
-	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
-	ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
-	lc->lc_ld = NULL;
-	lc->lc_bound = 0;
+	if ( lc->lc_refcnt == 1 ) {
+		ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
+		ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+		lc->lc_ld = NULL;
+		lc->lc_bound = 0;
 
-	/* lc here must be the regular lc, reset and ready for init */
-	rc = ldap_back_prepare_conn( &lc, op, rs, sendok );
-	if ( rc == LDAP_SUCCESS ) {
-		rc = ldap_back_dobind_int( lc, op, rs, sendok, 0 );
+		/* lc here must be the regular lc, reset and ready for init */
+		rc = ldap_back_prepare_conn( &lc, op, rs, sendok );
+		if ( rc == LDAP_SUCCESS ) {
+			rc = ldap_back_dobind_int( lc, op, rs, sendok, 0 );
+		}
+		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	}
-	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
+
+	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	return rc;
 }
