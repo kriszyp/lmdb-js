@@ -339,6 +339,7 @@ meta_back_getconn(
 			}
 
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
+			rs->sr_text = NULL;
 			return NULL;
 		}
 				
