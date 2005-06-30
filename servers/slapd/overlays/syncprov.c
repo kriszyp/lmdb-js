@@ -2114,6 +2114,18 @@ typedef struct thread_keys {
 /* A fake thread context */
 static thread_keys thrctx[MAXKEYS];
 
+/* ITS#3456 we cannot run this search on the main thread, must use a
+ * child thread in order to insure we have a big enough stack.
+ */
+static void *
+syncprov_db_otask(
+	void *ptr
+)
+{
+	syncprov_findcsn( ptr, FIND_MAXCSN );
+	return NULL;
+}
+
 /* Read any existing contextCSN from the underlying db.
  * Then search for any entries newer than that. If no value exists,
  * just generate it. Cache whatever result.
@@ -2155,6 +2167,8 @@ syncprov_db_open(
 		slap_schema.si_ad_contextCSN, 0, &e );
 
 	if ( e ) {
+		ldap_pvt_thread_t tid;
+
 		a = attr_find( e->e_attrs, slap_schema.si_ad_contextCSN );
 		if ( a ) {
 			si->si_ctxcsn.bv_len = a->a_nvals[0].bv_len;
@@ -2166,13 +2180,12 @@ syncprov_db_open(
 			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
 		be_entry_release_rw( op, e, 0 );
-#if 0	/* ITS#3456, can't check this here. I think we're fine without it. */
 		op->o_bd->bd_info = (BackendInfo *)on;
 		op->o_req_dn = be->be_suffix[0];
 		op->o_req_ndn = be->be_nsuffix[0];
 		op->ors_scope = LDAP_SCOPE_SUBTREE;
-		syncprov_findcsn( op, FIND_MAXCSN );
-#endif
+		ldap_pvt_thread_create( &tid, 0, syncprov_db_otask, op );
+		ldap_pvt_thread_join( tid, NULL );
 	} else if ( SLAP_SYNC_SHADOW( op->o_bd )) {
 		/* If we're also a consumer, and we didn't find the context entry,
 		 * then don't generate anything, wait for our provider to send it
