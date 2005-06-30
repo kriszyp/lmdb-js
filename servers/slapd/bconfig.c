@@ -308,7 +308,7 @@ static ConfigTable config_back_cf_table[] = {
 	{ "index_substr_any_len", "len", 2, 2, 0, ARG_INT|ARG_NONZERO,
 		&index_substr_any_len, "( OLcfgGlAt:22 NAME 'olcIndexSubstrAnyLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "index_substr_step", "step", 2, 2, 0, ARG_INT|ARG_NONZERO,
+	{ "index_substr_any_step", "step", 2, 2, 0, ARG_INT|ARG_NONZERO,
 		&index_substr_any_step, "( OLcfgGlAt:23 NAME 'olcIndexSubstrAnyStep' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "lastmod", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD,
