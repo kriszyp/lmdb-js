@@ -262,6 +262,12 @@ do_abandon(
 		}
 	}
 
+#ifdef LDAP_R_COMPILE
+	/* ld_abandoned is actually protected by the ld_res_mutex;
+	 * give up the ld_req_mutex and get the other */
+	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+	ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+#endif
 	i = 0;
 	if ( ld->ld_abandoned != NULL ) {
 		for ( ; ld->ld_abandoned[i] != -1; i++ )
@@ -276,7 +282,7 @@ do_abandon(
 	if ( ld->ld_abandoned == NULL ) {
 		ld->ld_abandoned = old_abandon;
 		ld->ld_errno = LDAP_NO_MEMORY;
-		return( ld->ld_errno );
+		goto done;
 	}
 
 	ld->ld_abandoned[i] = msgid;
@@ -286,5 +292,10 @@ do_abandon(
 		ld->ld_errno = LDAP_SUCCESS;
 	}
 
+done:;
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 	return( ld->ld_errno );
 }
