@@ -130,7 +130,7 @@ do_abandon(
 		}
 		if ( lr->lr_origid == msgid ) {/* child:  abandon it */
 			(void) do_abandon( ld,
-				msgid, lr->lr_msgid, sctrls, cctrls );
+				lr->lr_origid, lr->lr_msgid, sctrls, cctrls );
 		}
 	}
 
@@ -159,6 +159,15 @@ do_abandon(
 	if ( err == 0 ) {
 		ld->ld_errno = LDAP_SUCCESS;
 		return LDAP_SUCCESS;
+	}
+
+	/* fetch again the request that we are abandoning */
+	if ( lr != NULL ) {
+		for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
+			if ( lr->lr_msgid == msgid ) {	/* this message */
+				break;
+			}
+		}
 	}
 
 	err = 0;
