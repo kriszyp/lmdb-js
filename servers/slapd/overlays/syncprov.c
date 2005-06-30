@@ -2166,11 +2166,13 @@ syncprov_db_open(
 			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
 		be_entry_release_rw( op, e, 0 );
+#if 0	/* ITS#3456, can't check this here. I think we're fine without it. */
 		op->o_bd->bd_info = (BackendInfo *)on;
 		op->o_req_dn = be->be_suffix[0];
 		op->o_req_ndn = be->be_nsuffix[0];
 		op->ors_scope = LDAP_SCOPE_SUBTREE;
 		syncprov_findcsn( op, FIND_MAXCSN );
+#endif
 	} else if ( SLAP_SYNC_SHADOW( op->o_bd )) {
 		/* If we're also a consumer, and we didn't find the context entry,
 		 * then don't generate anything, wait for our provider to send it
@@ -2185,11 +2187,10 @@ syncprov_db_open(
 	}
 
 	/* If our ctxcsn is different from what was read from the root
-	 * entry, write the new value out.
+	 * entry, make sure we do a checkpoint on close
 	 */
 	if ( strcmp( si->si_ctxcsnbuf, ctxcsnbuf )) {
-		SlapReply rs = {REP_RESULT};
-		syncprov_checkpoint( op, &rs, on );
+		si->si_numops++;
 	}
 
 out:
