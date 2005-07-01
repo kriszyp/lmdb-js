@@ -509,10 +509,21 @@ bdb_cf_gen(ConfigArgs *c)
 		break;
 
 	case BDB_CONFIG: {
-		char *ptr = c->line + STRLENOF("dbconfig");
+		char *ptr = c->line;
 		struct berval bv;
-		while (!isspace(*ptr)) ptr++;
-		while (isspace(*ptr)) ptr++;
+
+		if ( c->op == SLAP_CONFIG_ADD ) {
+			ptr += STRLENOF("dbconfig");
+			while (!isspace(*ptr)) ptr++;
+			while (isspace(*ptr)) ptr++;
+		} else {
+			if (*ptr == '{') {
+				ptr = strchr( ptr+1, '}');
+				if (!ptr)
+					return(1);
+				ptr++;
+			}
+		}
 		
 		if ( bdb->bi_flags & BDB_IS_OPEN ) {
 			bdb->bi_flags |= BDB_UPD_CONFIG;
