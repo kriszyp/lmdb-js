@@ -118,9 +118,16 @@ static ConfigTable bdbcfg[] = {
 };
 
 static ConfigOCs bdbocs[] = {
-	{ "( OLcfgDbOc:1.1 "
+	{
+#ifdef BDB_HIER
+		"( OLcfgDbOc:1.2 "
+		"NAME 'olcHdbConfig' "
+		"DESC 'HDB backend configuration' "
+#else
+		"( OLcfgDbOc:1.1 "
 		"NAME 'olcBdbConfig' "
 		"DESC 'BDB backend configuration' "
+#endif
 		"SUP olcDatabaseConfig "
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCacheSize $ olcDbCheckpoint $ olcDbConfig $ "
