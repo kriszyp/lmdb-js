@@ -654,7 +654,7 @@ glue_tool_entry_put (
 )
 {
 	BackendDB *be, b2;
-	int rc;
+	int rc = NOID;
 
 	b2 = *b0;
 	b2.bd_info = (BackendInfo *)glue_tool_inst( b0->bd_info );
@@ -665,18 +665,26 @@ glue_tool_entry_put (
 		return NOID;
 
 	if (!glueBack) {
-		rc = be->be_entry_open (be, glueMode);
-		if (rc != 0)
+		if ( be->be_entry_open ) {
+			rc = be->be_entry_open (be, glueMode);
+		}
+		if (rc != 0) {
 			return NOID;
+		}
 	} else if (be != glueBack) {
 		/* If this entry belongs in a different branch than the
 		 * previous one, close the current database and open the
 		 * new one.
 		 */
-		glueBack->be_entry_close (glueBack);
-		rc = be->be_entry_open (be, glueMode);
-		if (rc != 0)
+		if ( glueBack->be_entry_close ) {
+			glueBack->be_entry_close (glueBack);
+		}
+		if ( be->be_entry_open ) {
+			rc = be->be_entry_open (be, glueMode);
+		}
+		if (rc != 0) {
 			return NOID;
+		}
 	}
 	glueBack = be;
 	return be->be_entry_put (be, e, text);
@@ -854,7 +862,7 @@ glue_init()
 	glue.on_bi.bi_op_search = glue_op_search;
 	glue.on_bi.bi_op_modify = glue_op_func;
 	glue.on_bi.bi_op_modrdn = glue_op_func;
-	glue.on_bi.bi_op_add = glue_op_func;
+	 glue.on_bi.bi_op_add = glue_op_func;
 	glue.on_bi.bi_op_delete = glue_op_func;
 
 	glue.on_bi.bi_chk_referrals = glue_chk_referrals;
