@@ -549,14 +549,23 @@ glue_entry_release_rw (
 )
 {
 	BackendDB *b0, b2;
-	int rc;
+	int rc = -1;
 
 	b0 = op->o_bd;
 	b2 = *op->o_bd;
 	b2.bd_info = (BackendInfo *)glue_tool_inst( op->o_bd->bd_info );
 	op->o_bd = glue_back_select (&b2, &e->e_nname);
 
-	rc = op->o_bd->be_release( op, e, rw );
+	if ( op->o_bd->be_release ) {
+		rc = op->o_bd->be_release( op, e, rw );
+
+	} else {
+		/* FIXME: mimic be_entry_release_rw
+		 * when no be_release() available */
+		/* free entry */
+		entry_free( e );
+		rc = 0;
+	}
 	op->o_bd = b0;
 	return rc;
 }
