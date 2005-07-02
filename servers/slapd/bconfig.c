@@ -225,6 +225,10 @@ static ConfigTable config_back_cf_table[] = {
 			"DESC 'File for slapd command line options' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "attributeoptions", NULL, 0, 0, 0, ARG_MAGIC|CFG_ATOPT,
+		&config_generic, "( OLcfgGlAt:5 NAME 'olcAttributeOptions' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "attribute",	"attribute", 2, 0, 9,
 		ARG_PAREN|ARG_MAGIC|CFG_ATTR|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:4 NAME 'olcAttributeTypes' "
@@ -232,10 +236,6 @@ static ConfigTable config_back_cf_table[] = {
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 				NULL, NULL },
-	{ "attributeoptions", NULL, 0, 0, 0, ARG_MAGIC|CFG_ATOPT,
-		&config_generic, "( OLcfgGlAt:5 NAME 'olcAttributeOptions' "
-			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "authid-rewrite", NULL, 2, 0, STRLENOF( "authid-rewrite" ),
 #ifdef SLAP_AUTH_REWRITE
 		ARG_MAGIC|CFG_REWRITE|ARG_NO_INSERT, &config_generic,
