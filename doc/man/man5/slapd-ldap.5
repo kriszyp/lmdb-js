@@ -231,6 +231,10 @@ permissions, or the asserted identities must have appropriate
 permissions.  Note, however, that the ID assertion feature is mostly 
 useful when the asserted identities do not exist on the remote server.
 
+Flags can be
+
+\fBoverride,{prescriptive|non-prescriptive}\fP
+
 When the 
 .B override
 flag is used, identity assertion takes place even when the database
@@ -238,6 +242,20 @@ is authorizing for the identity of the client, i.e. after binding
 with the provided identity, and thus authenticating it, the proxy
 performs the identity assertion using the configured identity and
 authentication method.
+
+When the
+.B prescriptive
+flag is used (the default), operations fail with
+\fIinappropriateAuthentication\fP
+for those identities whose assertion is not allowed by the
+.B idassert-authzFrom
+patterns.
+If the 
+.B non-prescriptive
+flag is used, operations are performed anonymously for those identities 
+whose assertion is not allowed by the
+.B idassert-authzFrom
+patterns.
 
 This directive obsoletes
 .BR idassert-authcDN ,
