@@ -68,7 +68,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Testing searching for timelimitExceeded..."
+echo "Testing search for timelimitExceeded..."
 $LDAPSEARCH -b "cn=timelimitExceeded,ou=RetCodes,$BASEDN" \
 	-h $LOCALHOST -p $PORT1 '(objectClass=*)' >> $TESTOUT 2>&1
 RC=$?
@@ -78,7 +78,7 @@ if test $RC != 3 ; then
 	exit $RC
 fi
 
-echo "Testing modifying for unwillingToPerform..."
+echo "Testing modify for unwillingToPerform..."
 $LDAPMODIFY -D "$MANAGERDN" -w $PASSWD \
 	-h $LOCALHOST -p $PORT1 >> $TESTOUT 2>&1 << EOMODS
 dn: cn=unwillingToPerform,ou=RetCodes,$BASEDN
@@ -87,6 +87,16 @@ EOMODS
 RC=$?
 if test $RC != 53 ; then
 	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing compare for success after sleep (2 s)..."
+$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+	"cn=Success w/ Delay,ou=RetCodes,$BASEDN" "cn:foo" >> $TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapcompare failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
