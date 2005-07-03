@@ -85,6 +85,7 @@ struct ldapinfo {
 #define LDAP_BACK_AUTH_NONE		0x00U
 #define	LDAP_BACK_AUTH_NATIVE_AUTHZ	0x01U
 #define	LDAP_BACK_AUTH_OVERRIDE		0x02U
+#define	LDAP_BACK_AUTH_PRESCRIPTIVE	0x04U
 
 	BerVarray	idassert_authz;
 	/* end of ID assert stuff */

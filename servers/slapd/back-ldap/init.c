@@ -108,7 +108,7 @@ ldap_back_db_init( Backend *be )
 	li->idassert_sb.sb_tls = SB_TLS_DEFAULT;
 
 	/* by default, use proxyAuthz control on each operation */
-	li->idassert_flags = LDAP_BACK_AUTH_NONE;
+	li->idassert_flags = LDAP_BACK_AUTH_PRESCRIPTIVE;
 
 	li->idassert_authz = NULL;
 

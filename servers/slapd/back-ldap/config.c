@@ -362,6 +362,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 			char		*ptr;
 
 			if ( li->idassert_authmethod != LDAP_AUTH_NONE ) {
+				ber_len_t	len = bv.bv_len
+					+ STRLENOF( "flags=override,non-prescriptive" );
+
 				switch ( li->idassert_mode ) {
 				case LDAP_BACK_IDASSERT_OTHERID:
 				case LDAP_BACK_IDASSERT_OTHERDN:
@@ -405,26 +408,34 @@ ldap_back_cf_gen( ConfigArgs *c )
 					(void)lutil_strcopy( ptr, "authz=native" );
 				}
 
-				if ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
-					ber_len_t	len = bv.bv_len + STRLENOF( "flags=override" );
-
-					if ( !BER_BVISEMPTY( &bv ) ) {
-						len += STRLENOF( " " );
-					}
-
-					bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
-
-					ptr = bv.bv_val + bv.bv_len;
-
-					if ( !BER_BVISEMPTY( &bv ) ) {
-						ptr = lutil_strcopy( ptr, " " );
-					}
-
-					(void)lutil_strcopy( ptr, "flags=override" );
+				/* flags */
+				if ( !BER_BVISEMPTY( &bv ) ) {
+					len += STRLENOF( " " );
 				}
+
+				bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
+
+				ptr = &bv.bv_val[ bv.bv_len ];
+
+				if ( !BER_BVISEMPTY( &bv ) ) {
+					ptr = lutil_strcopy( ptr, " " );
+				}
+
+				ptr = lutil_strcopy( ptr, "flags=" );
+
+				if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+					ptr = lutil_strcopy( ptr, "prescriptive" );
+				} else {
+					ptr = lutil_strcopy( ptr, "non-prescriptive" );
+				}
+
+				if ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
+					ptr = lutil_strcopy( ptr, ",override" );
+				}
+
+				bv.bv_len = ( ptr - bv.bv_val );
+				/* end-of-flags */
 			}
-
-
 
 			bindconf_unparse( &li->idassert_sb, &bc );
 
@@ -824,6 +835,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 				if ( strcasecmp( c->argv[ i ], "override" ) == 0 ) {
 					li->idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
 
+				} else if ( strcasecmp( c->argv[ i ], "prescriptive" ) == 0 ) {
+					li->idassert_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
+
+				} else if ( strcasecmp( c->argv[ i ], "non-prescriptive" ) == 0 ) {
+					li->idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
+
 				} else {
 					Debug( LDAP_DEBUG_ANY,
                                         	"%s: line %d: unknown flag #%d "
@@ -950,6 +967,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 				for ( j = 0; flags[ j ] != NULL; j++ ) {
 					if ( strcasecmp( flags[ j ], "override" ) == 0 ) {
 						li->idassert_flags |= LDAP_BACK_AUTH_OVERRIDE;
+
+					} else if ( strcasecmp( flags[ j ], "prescriptive" ) == 0 ) {
+						li->idassert_flags |= LDAP_BACK_AUTH_PRESCRIPTIVE;
+
+					} else if ( strcasecmp( flags[ j ], "non-prescriptive" ) == 0 ) {
+						li->idassert_flags &= ( ~LDAP_BACK_AUTH_PRESCRIPTIVE );
 
 					} else {
 						fprintf( stderr, "%s: %d: "

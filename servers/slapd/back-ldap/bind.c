@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 
+#include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 
@@ -103,13 +104,23 @@ done:;
 	if ( lc->lc_bound && !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) {
 		int		lerr;
 
-		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 		/* wait for all other ops to release the connection */
-		while ( lc->lc_refcnt > 1 ) {
-			ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+retry_lock:;
+		switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+		case LDAP_PVT_THREAD_EBUSY:
+		default:
 			ldap_pvt_thread_yield();
-			ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+			goto retry_lock;
+
+		case 0:
+			if ( lc->lc_refcnt > 1 ) {
+				ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+				ldap_pvt_thread_yield();
+				goto retry_lock;
+			}
+			break;
 		}
+
 		assert( lc->lc_refcnt == 1 );
 		lc = avl_delete( &li->conntree, (caddr_t)lc,
 				ldap_back_conn_cmp );
@@ -229,7 +240,17 @@ ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	int		rc = 0;
 
-	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
 	assert( lc->lc_refcnt > 0 );
 	if ( --lc->lc_refcnt == 0 ) {
 		lc = avl_delete( &li->conntree, (caddr_t)lc,
@@ -411,7 +432,17 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		lc_curr.lc_local_ndn = op->o_ndn;
 	}
 
-	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
 	lc = (struct ldapconn *)avl_find( li->conntree, 
 			(caddr_t)&lc_curr, ldap_back_conn_cmp );
 	if ( lc != NULL ) {
@@ -449,7 +480,17 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		lc->lc_bound = 0;
 
 		/* Inserts the newly created ldapconn in the avl tree */
-		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+retry_lock2:;
+		switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+		case LDAP_PVT_THREAD_EBUSY:
+		default:
+			ldap_pvt_thread_yield();
+			goto retry_lock2;
+
+		case 0:
+			break;
+		}
+
 		assert( lc->lc_refcnt == 1 );
 		rs->sr_err = avl_insert( &li->conntree, (caddr_t)lc,
 			ldap_back_conn_cmp, ldap_back_conn_dup );
@@ -470,10 +511,11 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 			rs->sr_err = LDAP_OTHER;
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
 				send_ldap_error( op, rs, LDAP_OTHER,
-				"internal server error" );
+					"internal server error" );
 			}
 			return NULL;
 		}
+
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %p fetched (refcnt=%u)\n",
@@ -490,8 +532,18 @@ ldap_back_release_conn(
 	struct ldapconn		*lc )
 {
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
-	
-	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
 	assert( lc->lc_refcnt > 0 );
 	lc->lc_refcnt--;
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
@@ -544,7 +596,6 @@ ldap_back_dobind_int(
 		 */
 		if ( op->o_conn != NULL &&
 				!op->o_do_not_cache &&
-				!be_isroot( op ) &&
 				( BER_BVISNULL( &lc->lc_bound_ndn ) ||
 				  ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 		{
@@ -605,7 +656,17 @@ retry:;
 
 		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 			if ( retries > 0 ) {
-				ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+retry_lock:;
+				switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+				case LDAP_PVT_THREAD_EBUSY:
+				default:
+					ldap_pvt_thread_yield();
+					goto retry_lock;
+
+				case 0:
+					break;
+				}
+
 				assert( lc->lc_refcnt > 0 );
 				if ( lc->lc_refcnt == 1 ) {
 					ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
@@ -763,7 +824,16 @@ ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_se
 	int		rc = 0;
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
 	
-	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
 
 	if ( lc->lc_refcnt == 1 ) {
 		ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
@@ -830,19 +900,30 @@ ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		break;
 
 	default:
-		if ( li->idassert_authz ) {
+		/* NOTE: rootdn can always idassert */
+		if ( li->idassert_authz && !be_isroot( op ) ) {
 			struct berval authcDN;
 
 			if ( BER_BVISNULL( &op->o_conn->c_ndn ) ) {
 				authcDN = slap_empty_bv;
+
 			} else {
 				authcDN = op->o_conn->c_ndn;
 			}	
 			rs->sr_err = slap_sasl_matches( op, li->idassert_authz,
 					&authcDN, &authcDN );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
-				send_ldap_result( op, rs );
-				lc->lc_bound = 0;
+				if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+					send_ldap_result( op, rs );
+					lc->lc_bound = 0;
+
+				} else {
+					rs->sr_err = LDAP_SUCCESS;
+					binddn = slap_empty_bv;
+					bindcred = slap_empty_bv;
+					break;
+				}
+
 				goto done;
 			}
 		}
@@ -1055,7 +1136,7 @@ ldap_back_proxy_authz_ctrl(
 			goto done;
 		}
 
-	} else if ( li->idassert_authz ) {
+	} else if ( li->idassert_authz && !be_isroot( op ) ) {
 		int		rc;
 		struct berval authcDN;
 
@@ -1067,9 +1148,12 @@ ldap_back_proxy_authz_ctrl(
 		rc = slap_sasl_matches( op, li->idassert_authz,
 				&authcDN, & authcDN );
 		if ( rc != LDAP_SUCCESS ) {
-			/* op->o_conn->c_ndn is not authorized
-			 * to use idassert */
-			return rc;
+			if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+				/* op->o_conn->c_ndn is not authorized
+				 * to use idassert */
+				return rc;
+			}
+			return rs->sr_err;
 		}
 	}
 
