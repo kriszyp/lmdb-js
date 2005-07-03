@@ -881,7 +881,7 @@ slap_acl_get(
 
 			if( state && !( state->as_recorded & ACL_STATE_RECORDED_VD )) {
 				state->as_recorded |= ACL_STATE_RECORDED_VD;
-				state->as_vd_acl = prev;
+				state->as_vd_acl = a;
 				state->as_vd_acl_count = *count;
 				state->as_vd_access = a->acl_access;
 				state->as_vd_access_count = 1;
