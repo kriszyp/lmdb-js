@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 
+#include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 
@@ -136,8 +137,6 @@ metaconn_alloc(
 		return NULL;
 	}
 
-	mc->mc_conns = ( metasingleconn_t * )&mc[ 1 ];
-
 	for ( i = 0; i < ntargets; i++ ) {
 		mc->mc_conns[ i ].msc_ld = NULL;
 		BER_BVZERO( &mc->mc_conns[ i ].msc_bound_ndn );
@@ -148,6 +147,7 @@ metaconn_alloc(
 
 	mc->mc_auth_target = META_BOUND_NONE;
 	ldap_pvt_thread_mutex_init( &mc->mc_mutex );
+	mc->mc_refcnt = 1;
 
 	return mc;
 }
@@ -626,7 +626,16 @@ meta_back_getconn(
 
 	/* Searches for a metaconn in the avl tree */
 	mc_curr.mc_conn = op->o_conn;
-	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
 	mc = (metaconn_t *)avl_find( mi->mi_conntree, 
 		(caddr_t)&mc_curr, meta_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
@@ -786,7 +795,16 @@ meta_back_getconn(
 
 		/* Retries searching for a metaconn in the avl tree */
 		mc_curr.mc_conn = op->o_conn;
-		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+retry_lock2:;
+		switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+		case LDAP_PVT_THREAD_EBUSY:
+		default:
+			ldap_pvt_thread_yield();
+			goto retry_lock2;
+
+		case 0:
+			break;
+		}
 		mc = (metaconn_t *)avl_find( mi->mi_conntree, 
 			(caddr_t)&mc_curr, meta_back_conn_cmp );
 		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
@@ -810,12 +828,7 @@ meta_back_getconn(
 		 */
 		err = meta_back_init_one_conn( op, rs, &mi->mi_targets[ i ],
 				&mc->mc_conns[ i ], sendok );
-		if ( err == LDAP_SUCCESS ) {
-			candidates[ i ].sr_tag = META_CANDIDATE;
-			ncandidates++;
-
-		} else {
-		
+		if ( err != LDAP_SUCCESS ) {
 			/*
 			 * FIXME: in case one target cannot
 			 * be init'd, should the other ones
@@ -828,6 +841,9 @@ meta_back_getconn(
 			}
 			return NULL;
 		}
+
+		candidates[ i ].sr_tag = META_CANDIDATE;
+		ncandidates++;
 
 		if ( candidate ) {
 			*candidate = i;
@@ -923,7 +939,16 @@ done:;
 		/*
 		 * Inserts the newly created metaconn in the avl tree
 		 */
-		ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+retry_lock3:;
+		switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+		case LDAP_PVT_THREAD_EBUSY:
+		default:
+			ldap_pvt_thread_yield();
+			goto retry_lock3;
+
+		case 0:
+			break;
+		}
 		err = avl_insert( &mi->mi_conntree, ( caddr_t )mc,
 			       	meta_back_conn_cmp, meta_back_conn_dup );
 
@@ -936,12 +961,7 @@ done:;
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
 		 */
-		if ( err == 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"%s meta_back_getconn: candidates=%d conn=%ld inserted\n",
-				op->o_log_prefix, ncandidates, mc->mc_conn->c_connid );
-
-		} else {
+		if ( err != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s meta_back_getconn: candidates=%d conn=%ld insert failed\n",
 				op->o_log_prefix, ncandidates, mc->mc_conn->c_connid );
@@ -955,6 +975,10 @@ done:;
 			}
 			return NULL;
 		}
+
+		Debug( LDAP_DEBUG_TRACE,
+			"%s meta_back_getconn: candidates=%d conn=%ld inserted\n",
+			op->o_log_prefix, ncandidates, mc->mc_conn->c_connid );
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,

@@ -177,6 +177,7 @@ typedef struct metasingleconn_t {
 typedef struct metaconn_t {
 	struct slap_conn	*mc_conn;
 	ldap_pvt_thread_mutex_t	mc_mutex;
+	unsigned		mc_refcnt;
 	
 	/*
 	 * means that the connection is bound; 
@@ -186,7 +187,10 @@ typedef struct metaconn_t {
 #define META_BOUND_NONE		(-1)
 #define META_BOUND_ALL		(-2)
 	/* supersedes the connection stuff */
-	metasingleconn_t	*mc_conns;
+	metasingleconn_t	mc_conns[ 1 ];
+	/* NOTE: mc_conns must be last, because
+	 * the required number of conns is malloc'ed
+	 * in one block with the metaconn_t structure */
 } metaconn_t;
 
 typedef struct metatarget_t {
