@@ -324,7 +324,7 @@ slap_discover_feature(
 	char		*attrs[ 2 ] = { NULL, NULL };
 
 	ber_str2bv( val, 0, 0, &bv_val );
-	attrs[ 0 ] = attr;
+	attrs[ 0 ] = (char *) attr;
 
 	rc = ldap_initialize( &ld, uri );
 	if ( rc != LDAP_SUCCESS ) {
