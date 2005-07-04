@@ -271,6 +271,11 @@ meta_back_getconn(
 	int			*candidate,
 	ldap_back_send_t	sendok );
 
+extern void
+meta_back_release_conn(
+       	Operation 		*op,
+	metaconn_t		*mc );
+
 extern int
 meta_back_retry(
 	Operation		*op,
@@ -280,7 +285,8 @@ meta_back_retry(
 	ldap_back_send_t	sendok );
 
 extern void
-meta_back_conn_free( metaconn_t *mc );
+meta_back_conn_free(
+	metaconn_t		*mc );
 
 extern int
 meta_back_init_one_conn(
@@ -304,7 +310,8 @@ meta_back_single_dobind(
 	metaconn_t		*msc,
 	int			candidate,
 	ldap_back_send_t	sendok,
-	int			retries );
+	int			retries,
+	int			dolock );
 
 extern int
 meta_back_op_result(

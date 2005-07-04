@@ -784,6 +784,8 @@ finish:;
 		}
 	}
 
+	meta_back_release_conn( op, mc );
+
 	return rc;
 }
 

@@ -68,7 +68,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		send_ldap_result( op, rs );
-		return rs->sr_err;
+		goto done;
 	}
 
 	/* Count number of attributes in entry ( +1 ) */
@@ -187,6 +187,11 @@ retry:;
 		BER_BVZERO( &mdn );
 	}
 
-	return meta_back_op_result( mc, op, rs, candidate );
+	(void)meta_back_op_result( mc, op, rs, candidate );
+
+done:;
+	meta_back_release_conn( op, mc );
+
+	return rs->sr_err;
 }
 

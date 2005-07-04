@@ -157,17 +157,43 @@ metaconn_alloc(
  *
  * clears a metaconn
  */
+
 void
 meta_back_conn_free(
 	metaconn_t	*mc )
 {
-	if ( mc == NULL ) {
-		return;
-	}
+	assert( mc != NULL );
+	assert( mc->mc_refcnt == 0 );
 
 	ldap_pvt_thread_mutex_destroy( &mc->mc_mutex );
-	
 	free( mc );
+}
+
+static void
+meta_back_freeconn(
+	Operation	*op,
+	metaconn_t	*mc )
+{
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+
+	assert( mc != NULL );
+
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
+	if ( --mc->mc_refcnt == 0 ) {
+		meta_back_conn_free( mc );
+	}
+
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 }
 
 /*
@@ -382,24 +408,41 @@ meta_back_retry(
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metatarget_t		*mt = &mi->mi_targets[ candidate ];
-	int			rc;
+	int			rc = LDAP_UNAVAILABLE;
 	metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 
-	ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
 
-	ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
-        msc->msc_ld = NULL;
-        msc->msc_bound = 0;
+	case 0:
+		break;
+	}
 
-        /* mc here must be the regular mc, reset and ready for init */
-        rc = meta_back_init_one_conn( op, rs, mt, msc, sendok );
+	assert( mc->mc_refcnt > 0 );
 
-	if ( rc == LDAP_SUCCESS ) {
-        	rc = meta_back_single_dobind( op, rs, mc, candidate,
-				sendok, mt->mt_nretries );
-        }
+	if ( mc->mc_refcnt == 1 ) {
+		ldap_pvt_thread_mutex_lock( &mc->mc_mutex );
 
-	ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
+		ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
+		msc->msc_ld = NULL;
+		msc->msc_bound = 0;
+
+		/* mc here must be the regular mc, reset and ready for init */
+		rc = meta_back_init_one_conn( op, rs, mt, msc, sendok );
+
+		if ( rc == LDAP_SUCCESS ) {
+        		rc = meta_back_single_dobind( op, rs, mc, candidate,
+					sendok, mt->mt_nretries, 0 );
+        	}
+
+		ldap_pvt_thread_mutex_unlock( &mc->mc_mutex );
+	}
+
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
 	return rc == LDAP_SUCCESS ? 1 : 0;
 }
@@ -608,7 +651,8 @@ meta_back_getconn(
 	ldap_back_send_t	sendok )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	metaconn_t	*mc, mc_curr;
+	metaconn_t	*mc = NULL,
+			mc_curr = { 0 };
 	int		cached = META_TARGET_NONE,
 			i = META_TARGET_NONE,
 			err = LDAP_SUCCESS,
@@ -638,6 +682,9 @@ retry_lock:;
 	}
 	mc = (metaconn_t *)avl_find( mi->mi_conntree, 
 		(caddr_t)&mc_curr, meta_back_conn_cmp );
+	if ( mc ) {
+		mc->mc_refcnt++;
+	}
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
 	switch ( op->o_tag ) {
@@ -686,7 +733,7 @@ retry_lock:;
 	if ( op_type == META_OP_REQUIRE_ALL ) {
 
 		/* Looks like we didn't get a bind. Open a new session... */
-		if ( !mc ) {
+		if ( mc == NULL ) {
 			mc = metaconn_alloc( op );
 			mc->mc_conn = op->o_conn;
 			new_conn = 1;
@@ -719,7 +766,10 @@ retry_lock:;
 
 		if ( ncandidates == 0 ) {
 			if ( new_conn ) {
-				meta_back_conn_free( mc );
+				meta_back_freeconn( op, mc );
+
+			} else {
+				meta_back_release_conn( op, mc );
 			}
 
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
@@ -793,27 +843,34 @@ retry_lock:;
 	"==>meta_back_getconn: got target %d for ndn=\"%s\" from cache\n",
 				i, op->o_req_ndn.bv_val, 0 );
 
-		/* Retries searching for a metaconn in the avl tree */
-		mc_curr.mc_conn = op->o_conn;
+		if ( mc == NULL ) {
+			/* Retries searching for a metaconn in the avl tree
+			 * the reason is that the connection might have been
+			 * created by meta_back_get_candidate() */
+			mc_curr.mc_conn = op->o_conn;
 retry_lock2:;
-		switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-		case LDAP_PVT_THREAD_EBUSY:
-		default:
-			ldap_pvt_thread_yield();
-			goto retry_lock2;
+			switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+			case LDAP_PVT_THREAD_EBUSY:
+			default:
+				ldap_pvt_thread_yield();
+				goto retry_lock2;
 
-		case 0:
-			break;
-		}
-		mc = (metaconn_t *)avl_find( mi->mi_conntree, 
-			(caddr_t)&mc_curr, meta_back_conn_cmp );
-		ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+			case 0:
+				break;
+			}
+			mc = (metaconn_t *)avl_find( mi->mi_conntree, 
+				(caddr_t)&mc_curr, meta_back_conn_cmp );
+			if ( mc != NULL ) {
+				mc->mc_refcnt++;
+			}
+			ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
-		/* Looks like we didn't get a bind. Open a new session... */
-		if ( !mc ) {
-			mc = metaconn_alloc( op );
-			mc->mc_conn = op->o_conn;
-			new_conn = 1;
+			/* Looks like we didn't get a bind. Open a new session... */
+			if ( mc == NULL ) {
+				mc = metaconn_alloc( op );
+				mc->mc_conn = op->o_conn;
+				new_conn = 1;
+			}
 		}
 
 		/*
@@ -836,8 +893,11 @@ retry_lock2:;
 			 */
 			candidates[ i ].sr_tag = META_NOT_CANDIDATE;
  			if ( new_conn ) {
-				( void )meta_clear_one_candidate( &mc->mc_conns[ i ] );
-				meta_back_conn_free( mc );
+				(void)meta_clear_one_candidate( &mc->mc_conns[ i ] );
+				meta_back_freeconn( op, mc );
+
+			} else {
+				meta_back_release_conn( op, mc );
 			}
 			return NULL;
 		}
@@ -855,7 +915,7 @@ retry_lock2:;
 	} else {
 
 		/* Looks like we didn't get a bind. Open a new session... */
-		if ( !mc ) {
+		if ( mc == NULL ) {
 			mc = metaconn_alloc( op );
 			mc->mc_conn = op->o_conn;
 			new_conn = 1;
@@ -910,7 +970,10 @@ retry_lock2:;
 
 		if ( ncandidates == 0 ) {
 			if ( new_conn ) {
-				meta_back_conn_free( mc );
+				meta_back_freeconn( op, mc );
+
+			} else {
+				meta_back_release_conn( op, mc );
 			}
 
 			rs->sr_err = LDAP_NO_SUCH_OBJECT;
@@ -960,6 +1023,9 @@ retry_lock3:;
 
 		/*
 		 * Err could be -1 in case a duplicate metaconn is inserted
+		 *
+		 * FIXME: what if the same client issues more than one
+		 * asynchronous operations?
 		 */
 		if ( err != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -968,7 +1034,7 @@ retry_lock3:;
 		
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "Internal server error";
-			meta_back_conn_free( mc );
+			meta_back_freeconn( op, mc );
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				send_ldap_result( op, rs );
 				rs->sr_text = NULL;
@@ -989,3 +1055,27 @@ retry_lock3:;
 	return mc;
 }
 
+void
+meta_back_release_conn(
+       	Operation 		*op,
+	metaconn_t		*mc )
+{
+	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
+
+	assert( mc != NULL );
+
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
+	assert( mc->mc_refcnt > 0 );
+	mc->mc_refcnt--;
+	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
+}

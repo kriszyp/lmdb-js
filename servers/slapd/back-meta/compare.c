@@ -35,7 +35,7 @@ int
 meta_back_compare( Operation *op, SlapReply *rs )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
-	metaconn_t		*mc;
+	metaconn_t		*mc = NULL;
 	char			*match = NULL,
 				*err = NULL;
 	struct berval		mmatch = BER_BVNULL;
@@ -58,7 +58,9 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	
 	msgid = ch_calloc( sizeof( int ), mi->mi_ntargets );
 	if ( msgid == NULL ) {
-		return -1;
+		send_ldap_error( op, rs, LDAP_OTHER, NULL );
+		rc = LDAP_OTHER;
+		goto done;
 	}
 
 	/*
@@ -314,7 +316,10 @@ finish:;
 	if ( msgid ) {
 		free( msgid );
 	}
-	
+
+done:;
+	meta_back_release_conn( op, mc );
+
 	return rc;
 }
 

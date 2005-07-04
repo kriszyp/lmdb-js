@@ -57,6 +57,7 @@ retry_lock:;
 	case 0:
 		break;
 	}
+
 	mc = avl_delete( &mi->mi_conntree, ( caddr_t )&mc_curr,
 			meta_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
@@ -68,6 +69,8 @@ retry_lock:;
 			"=>meta_back_conn_destroy: destroying conn %ld\n",
 			mc->mc_conn->c_connid, 0, 0 );
 		
+		assert( mc->mc_refcnt == 0 );
+
 		/*
 		 * Cleanup rewrite session
 		 */
