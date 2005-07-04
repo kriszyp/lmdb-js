@@ -562,7 +562,8 @@ ldap_back_dobind_int(
 	Operation		*op,
 	SlapReply		*rs,
 	ldap_back_send_t	sendok,
-	int			retries )
+	int			retries,
+	int			dolock )
 {	
 	int		rc;
 	ber_int_t	msgid;
@@ -656,15 +657,17 @@ retry:;
 
 		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 			if ( retries > 0 ) {
+				if ( dolock ) {
 retry_lock:;
-				switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-				case LDAP_PVT_THREAD_EBUSY:
-				default:
-					ldap_pvt_thread_yield();
-					goto retry_lock;
+					switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+					case LDAP_PVT_THREAD_EBUSY:
+					default:
+						ldap_pvt_thread_yield();
+						goto retry_lock;
 
-				case 0:
-					break;
+					case 0:
+						break;
+					}
 				}
 
 				assert( lc->lc_refcnt > 0 );
@@ -675,7 +678,9 @@ retry_lock:;
 					/* lc here must be the regular lc, reset and ready for init */
 					rs->sr_err = ldap_back_prepare_conn( &lc, op, rs, sendok );
 				}
-				ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+				if ( dolock ) {
+					ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+				}
 				if ( rs->sr_err == LDAP_SUCCESS ) {
 					retries--;
 					goto retry;
@@ -705,7 +710,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_s
 	int	rc;
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
-	rc = ldap_back_dobind_int( lc, op, rs, sendok, 1 );
+	rc = ldap_back_dobind_int( lc, op, rs, sendok, 1, 1 );
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 
 	return rc;
@@ -844,7 +849,7 @@ retry_lock:;
 		/* lc here must be the regular lc, reset and ready for init */
 		rc = ldap_back_prepare_conn( &lc, op, rs, sendok );
 		if ( rc == LDAP_SUCCESS ) {
-			rc = ldap_back_dobind_int( lc, op, rs, sendok, 0 );
+			rc = ldap_back_dobind_int( lc, op, rs, sendok, 0, 0 );
 		}
 		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	}
