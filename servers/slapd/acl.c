@@ -3173,7 +3173,7 @@ dynacl_aci_parse( const char *fname, int lineno, slap_style_t sty, const char *r
 	if ( sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE ) {
 		fprintf( stderr, "%s: line %d: "
 			"inappropriate style \"%s\" in \"aci\" by clause\n",
-			fname, lineno, sty );
+			fname, lineno, style_strings[sty] );
 		return -1;
 	}
 

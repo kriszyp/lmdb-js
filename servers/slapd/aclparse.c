@@ -39,7 +39,7 @@
 #include "lutil.h"
 
 static const char style_base[] = "base";
-static char *style_strings[] = {
+char *style_strings[] = {
 	"regex",
 	"expand",
 	"exact",
