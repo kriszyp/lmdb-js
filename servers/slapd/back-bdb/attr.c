@@ -271,7 +271,7 @@ bdb_attr_index_config(
 	return LDAP_SUCCESS;
 }
 
-static void
+static int
 bdb_attr_index_unparser( void *v1, void *v2 )
 {
 	AttrInfo *ai = v1;
@@ -289,6 +289,7 @@ bdb_attr_index_unparser( void *v1, void *v2 )
 		bv.bv_val = ptr;
 		ber_bvarray_add( bva, &bv );
 	}
+	return 0;
 }
 
 static AttributeDescription addef = { NULL, NULL, BER_BVC("default") };
