@@ -105,7 +105,7 @@ Do not use the subtree condition when the searchBase is the database
 suffix, and the scope is subtree; rather collect all entries.
 
 .RE
-.SH STAMEMENT CONFIGURATION
+.SH STATEMENT CONFIGURATION
 These options specify SQL query templates for loading schema mapping
 metainformation, adding and deleting entries to ldap_entries, etc.
 All these and subtree_cond should have the given default values.
@@ -250,7 +250,7 @@ or double quotes.
 .B has_ldapinfo_dn_ru { NO | yes }
 Explicitly inform the backend whether the dn_ru column
 (DN in reverse uppercased form) is present in table \fIldap_entries\fP.
-Overrides automatic check (this is required, ofr instance,
+Overrides automatic check (this is required, for instance,
 by PostgreSQL/unixODBC).
 This is \fIexperimental\fP and may change in future releases.
 
@@ -642,7 +642,7 @@ to existing RDBMS storages that need to be published in LDAP form.
 .LP
 The \fBhasSubordintes\fP operational attribute is honored by back-sql
 in search results and in compare operations; it is partially honored
-also in filtering.  Owing to design limitations, a (braindead?) filter
+also in filtering.  Owing to design limitations, a (brain-dead?) filter
 of the form
 \fB(!(hasSubordinates=TRUE))\fP
 will give no results instead of returning all the leaf entries, because

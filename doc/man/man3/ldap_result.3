@@ -62,13 +62,13 @@ the responses of a search operation.
 .LP
 A search response is made up of zero or
 more search entries, zero or more search references, and zero or
-more extended parital responses followed by a search result.  If
+more extended partial responses followed by a search result.  If
 \fIall\fP is set to 0, search entries will be returned one at a
 time as they come in, via separate calls to
 .BR ldap_result() .
 If it's set to 1, the search
 response will only be returned in its entirety, i.e., after all entries,
-all references, all extended parital responses, and the final search
+all references, all extended partial responses, and the final search
 result have been received.
 .LP
 Upon success, the type of the result received is returned and the

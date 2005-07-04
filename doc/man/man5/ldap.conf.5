@@ -55,7 +55,8 @@ The different configuration options are:
 Specifies the URI(s) of an LDAP server(s) to which the
 .I LDAP 
 library should connect.  The URI scheme may be either
-.BR ldap or
+.B ldap
+or
 .B ldaps 
 which refer to LDAP over TCP and LDAP over SSL (TLS) respectively.
 Each server's name can be specified as a
@@ -260,7 +261,7 @@ is immediately terminated. This is the default setting.
 .TP
 .B TLS_CRLCHECK <level>
 Specifies if the Certificate Revocation List (CRL) of the CA should be 
-used to verify if the server certicates have not been revoked. This
+used to verify if the server certificates have not been revoked. This
 requires
 .B TLS_CACERTDIR
 parameter to be set.

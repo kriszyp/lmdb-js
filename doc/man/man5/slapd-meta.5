@@ -135,7 +135,7 @@ Multiple URIs may be defined in a single argument.  The URIs must
 be separated by TABs (e.g. '\\t'; commas or spaces, unlike back-ldap,
 will not work,
 because they are legal in the <naming context>, and we don't want to use
-URL-encoded <namimg context>s), and the additional URIs must have
+URL-encoded <naming context>s), and the additional URIs must have
 no <naming context> part.  This causes the underlying library
 to contact the first server of the list that responds.
 .RE
@@ -191,12 +191,12 @@ enable if the remote server supports absolute filters
 (see \fIdraft-zeilenga-ldap-t-f\fP for details).
 If set to
 .BR discover ,
-support is detected by reading the remote server's rootDSE.
+support is detected by reading the remote server's root DSE.
 
 .TP
 .B onerr {CONTINUE|stop}
 This directive allows to select the behavior in case an error is returned
-by one targe during a search. 
+by one target during a search.
 The default, \fBcontinue\fP, consists in continuing the operation, 
 trying to return as much data as possible.
 If this statement is set to \fBstop\fP, the search is terminated as soon 
@@ -405,7 +405,7 @@ of flags.
 The underlying concept is to build a lightweight rewrite module
 for the slapd server (initially dedicated to the LDAP backend).
 .SH Passes
-An incoming string is matched agains a set of rules.
+An incoming string is matched against a set of rules.
 Rules are made of a regex match pattern, a substitution pattern
 and a set of actions, described by a set of flags.
 In case of match a string rewriting is performed according to the
@@ -415,7 +415,7 @@ The actions, if any, are finally performed.
 The substitution pattern allows map resolution of substrings.
 A map is a generic object that maps a substitution pattern to a value.
 The flags are divided in "Pattern matching Flags" and "Action Flags";
-the former alter the regex match pattern behaviorm while the latter
+the former alter the regex match pattern behavior while the latter
 alter the action that is taken after substitution.
 .SH "Pattern Matching Flags"
 .TP
@@ -527,7 +527,7 @@ operation structure which can be dereferenced later; operator
 assigns a variable in the rewrite context scope; operator
 .B &&
 assigns a variable that scopes the entire session, e.g. its value
-can be derefenced later by other rewrite contexts
+can be dereferenced later by other rewrite contexts
 .TP
 .B *
 variable dereferencing; <name> must refer to a variable that is
@@ -619,7 +619,7 @@ altering too much the configuration file).
 <Context name> is the name that identifies the context, i.e. the name
 used by the application to refer to the set of rules it contains.
 It is used also to reference sub contexts in string rewriting.
-A context may aliase another one.
+A context may alias another one.
 In this case the alias context contains no rule, and any reference to
 it will result in accessing the aliased one.
 .TP
