@@ -93,6 +93,14 @@ The port may be specified as a number.
 is deprecated in favor of
 .BR URI.
 .TP
+.B REFERRALS <on/true/yes/off/false/no>
+Specifies if the client should automatically follow referrals returned
+by LDAP servers.
+The default is on.
+Note that the command line tools
+.BR ldapsearch (1)
+&co always override this option.
+.TP
 .B SIZELIMIT <integer>
 Specifies a size limit to use when performing searches.  The
 number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
@@ -302,7 +310,9 @@ user ldap configuration file
 .I  $CWD/ldaprc
 local ldap configuration file
 .SH "SEE ALSO"
-.BR ldap (3)
+.BR ldap (3),
+.BR openssl (1),
+.BR sasl (3)
 .SH AUTHOR
 Kurt Zeilenga, The OpenLDAP Project
 .SH ACKNOWLEDGEMENTS
