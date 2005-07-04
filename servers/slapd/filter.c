@@ -173,7 +173,7 @@ get_filter(
 		if( err != LDAP_SUCCESS ) {
 			/* unrecognized attribute description or other error */
 			Debug( LDAP_DEBUG_ANY, 
-				"get_filter: conn %d unknown attribute "
+				"get_filter: conn %lu unknown attribute "
 				"type=%s (%d)\n",
 				op->o_connid, type.bv_val, err );
 
@@ -349,8 +349,8 @@ get_ssa(
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, 
-			"get_ssa: conn %d unknown attribute type=%s (%d)\n",
-			op->o_connid, desc.bv_val, rc );
+			"get_ssa: conn %lu unknown attribute type=%s (%ld)\n",
+			op->o_connid, desc.bv_val, (long) rc );
 
 		/* skip over the rest of this filter */
 		for ( tag = ber_first_element( ber, &len, &last );
@@ -882,7 +882,7 @@ get_simple_vrFilter(
 		if( err != LDAP_SUCCESS ) {
 			/* unrecognized attribute description or other error */
 			Debug( LDAP_DEBUG_ANY, 
-				"get_simple_vrFilter: conn %d unknown "
+				"get_simple_vrFilter: conn %lu unknown "
 				"attribute type=%s (%d)\n",
 				op->o_connid, type.bv_val, err );
 

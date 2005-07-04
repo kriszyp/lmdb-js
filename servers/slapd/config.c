@@ -92,7 +92,7 @@ new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **
 	c->argc   = argc;
 	c->argv   = argv; 
 	c->lineno = lineno;
-	snprintf( c->log, sizeof( c->log ), "%s: line %lu", fname, lineno );
+	snprintf( c->log, sizeof( c->log ), "%s: line %d", fname, lineno );
 	return(c);
 }
 
@@ -1191,7 +1191,7 @@ int config_generic_wrapper( Backend *be, const char *fname, int lineno,
 	c.argc = argc;
 	c.argv = argv;
 	c.valx = -1;
-	sprintf( c.log, "%s: line %lu", fname, lineno );
+	sprintf( c.log, "%s: line %d", fname, lineno );
 
 	rc = SLAP_CONF_UNKNOWN;
 	ct = config_find_keyword( be->be_cf_ocs->co_table, &c );

@@ -1495,10 +1495,11 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	assert( conn );
 	assert( id );
 
-	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: conn %d id=%s [len=%d]\n", 
+	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: conn %lu id=%s [len=%lu]\n", 
 		conn->c_connid,
 		BER_BVISNULL( id ) ? "NULL" : ( BER_BVISEMPTY( id ) ? "<empty>" : id->bv_val ),
-		BER_BVISNULL( id ) ? 0 : ( BER_BVISEMPTY( id ) ? 0 : id->bv_len ) );
+		BER_BVISNULL( id ) ? 0 : ( BER_BVISEMPTY( id ) ? 0 :
+		                           (unsigned long) id->bv_len ) );
 
 	if ( !op ) {
 		op = conn->c_sasl_bindop;

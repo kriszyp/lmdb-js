@@ -447,7 +447,8 @@ get_componentId( Operation *op, ComponentAssertionValue* cav,
 
 	type = peek_componentId_type( cav );
 
-	Debug( LDAP_DEBUG_FILTER, "get_compId [%d]\n", type, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "get_compId [%lu]\n",
+		(unsigned long) type, 0, 0 );
 	len = 0;
 	_cid.ci_type = type;
 	_cid.ci_next = NULL;

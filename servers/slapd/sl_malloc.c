@@ -633,7 +633,7 @@ print_slheap(int level, void *ctx)
 		Debug(level, "free list:\n", 0, 0, 0);
 		so = LDAP_LIST_FIRST(&sh->sh_free[i-order_start]);
 		while (so) {
-			Debug(level, "%x\n",so->so_ptr, 0, 0);
+			Debug(level, "%lx\n", (unsigned long) so->so_ptr, 0, 0);
 			so = LDAP_LIST_NEXT(so, so_link);
 		}
 	}

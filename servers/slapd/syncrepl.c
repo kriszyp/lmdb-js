@@ -2663,7 +2663,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 
 	bindconf_unparse( &si->si_bindconf, &bc );
 	ptr = buf;
-	ptr += sprintf( ptr, IDSTR "=%03d " PROVIDERSTR "=%s",
+	ptr += sprintf( ptr, IDSTR "=%03ld " PROVIDERSTR "=%s",
 		si->si_rid, si->si_provideruri.bv_val );
 	if ( !BER_BVISNULL( &bc )) {
 		ptr = lutil_strcopy( ptr, bc.bv_val );
@@ -2737,7 +2737,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		for (i=0; si->si_retryinterval[i]; i++) {
 			if ( space ) *ptr++ = ' ';
 			space = 1;
-			ptr += sprintf( ptr, "%d ", si->si_retryinterval[i] );
+			ptr += sprintf( ptr, "%ld ", (long) si->si_retryinterval[i] );
 			if ( si->si_retrynum_init[i] == -1 )
 				*ptr++ = '+';
 			else
