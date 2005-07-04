@@ -17,6 +17,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <ac/ctype.h>
 #include <ac/string.h>
 
 #include "back-bdb.h"
