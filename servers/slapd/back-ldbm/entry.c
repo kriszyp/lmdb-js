@@ -118,7 +118,7 @@ int ldbm_back_entry_get(
 	if ( oc && !is_entry_objectclass( e, oc, 0 )) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_entry_get: failed to find objectClass %s\n",
-			oc->soc_cname, 0, 0 ); 
+			oc->soc_cname.bv_val, 0, 0 ); 
 		rc = LDAP_NO_SUCH_ATTRIBUTE;
 		goto return_results;
 	}
