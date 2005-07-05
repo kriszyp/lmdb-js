@@ -209,7 +209,10 @@ bdb_db_recover( BackendDB *be )
 #endif
 
 	if( rc == ENOENT ) {
-		goto re_exit;
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_db_recover: DB environment files are missing, assuming it was "
+			"manually recovered\n", 0, 0, 0 );
+		return 0;
 	}
 	else if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
