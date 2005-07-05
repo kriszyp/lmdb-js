@@ -1440,6 +1440,7 @@ typedef struct slap_acl {
 	regex_t		acl_dn_re;
 	struct berval	acl_dn_pat;
 	AttributeName	*acl_attrs;
+	MatchingRule	*acl_attrval_mr;
 	slap_style_t	acl_attrval_style;
 	regex_t		acl_attrval_re;
 	struct berval	acl_attrval;

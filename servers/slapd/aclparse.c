@@ -452,6 +452,8 @@ parse_acl(
 					}
 
 				} else if ( strncasecmp( left, "val", 3 ) == 0 ) {
+					char	*mr;
+					
 					if ( !BER_BVISEMPTY( &a->acl_attrval ) ) {
 						fprintf( stderr,
 				"%s: line %d: attr val already specified in to clause.\n",
@@ -465,8 +467,34 @@ parse_acl(
 							fname, lineno );
 						acl_usage();
 					}
+
 					ber_str2bv( right, 0, 1, &a->acl_attrval );
 					a->acl_attrval_style = ACL_STYLE_BASE;
+
+					mr = strchr( left, '/' );
+					if ( mr != NULL ) {
+						mr[ 0 ] = '\0';
+						mr++;
+
+						a->acl_attrval_mr = mr_find( mr );
+						if ( a->acl_attrval_mr == NULL ) {
+							fprintf( stderr, "%s: line %d: "
+								"invalid matching rule \"%s\".\n",
+								fname, lineno, mr );
+							acl_usage();
+						}
+
+						if( !mr_usable_with_at( a->acl_attrval_mr, a->acl_attrs[ 0 ].an_desc->ad_type ) )
+						{
+							fprintf( stderr, "%s: line %d: "
+								"matching rule \"%s\" use "
+								"with attr \"%s\" not appropriate.\n",
+								fname, lineno, mr,
+								a->acl_attrs[ 0 ].an_name.bv_val );
+							acl_usage();
+						}
+					}
+					
 					if ( style != NULL ) {
 						if ( strcasecmp( style, "regex" ) == 0 ) {
 							int e = regcomp( &a->acl_attrval_re, a->acl_attrval.bv_val,
@@ -491,6 +519,8 @@ parse_acl(
 							} else if ( a->acl_attrs[0].an_desc->ad_type->
 								sat_syntax == slap_schema.si_syn_distinguishedName )
 							{
+								struct berval	bv;
+
 								if ( !strcasecmp( style, "baseObject" ) ||
 									!strcasecmp( style, "base" ) )
 								{
@@ -515,6 +545,18 @@ parse_acl(
 									a->acl_attrval_style = ACL_STYLE_BASE;
 								}
 
+								bv = a->acl_attrval;
+								rc = dnNormalize( 0, NULL, NULL, &bv, &a->acl_attrval, NULL );
+								if ( rc != LDAP_SUCCESS ) {
+									fprintf( stderr, 
+										"%s: line %d: unable to normalize DN \"%s\" "
+										"for attributeType \"%s\" (%d).\n",
+										fname, lineno, bv.bv_val,
+										a->acl_attrs[0].an_desc->ad_cname.bv_val, rc );
+									acl_usage();
+								}
+								ber_memfree( bv.bv_val );
+
 							} else {
 								fprintf( stderr, 
 									"%s: line %d: unknown val.<style> \"%s\" "
@@ -525,7 +567,21 @@ parse_acl(
 							}
 						}
 					}
-					
+
+					/* Check for appropriate matching rule */
+					if ( a->acl_attrval_style != ACL_STYLE_REGEX ) {
+						if ( a->acl_attrval_mr == NULL ) {
+							a->acl_attrval_mr = a->acl_attrs[ 0 ].an_desc->ad_type->sat_equality;
+						}
+
+						if ( a->acl_attrval_mr == NULL ) {
+							fprintf( stderr, "%s: line %d: "
+								"attr \"%s\" must have an EQUALITY matching rule.\n",
+								fname, lineno, a->acl_attrs[ 0 ].an_name.bv_val );
+							acl_usage();
+						}
+					}
+
 				} else {
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",
@@ -2053,7 +2109,7 @@ acl_usage( void )
 		"<access clause> ::= access to <what> "
 				"[ by <who> <access> [ <control> ] ]+ \n"
 		"<what> ::= * | [dn[.<dnstyle>]=<DN>] [filter=<filter>] [attrs=<attrlist>]\n"
-		"<attrlist> ::= <attr> [val[.<attrstyle>]=<value>] | <attr> , <attrlist>\n"
+		"<attrlist> ::= <attr> [val[/matchingRule][.<attrstyle>]=<value>] | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n",
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[ realanonymous | realusers | realself | realdn[.<dnstyle>]=<DN> ]\n"

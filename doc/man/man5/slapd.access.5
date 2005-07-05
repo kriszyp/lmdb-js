@@ -82,7 +82,7 @@ It can have the forms
 .nf
 	[dn[.<dnstyle>]=]<dnpattern>
 	filter=<ldapfilter>
-	attrs=<attrlist>[ val[.<attrstyle>]=<attrval>]
+	attrs=<attrlist>[ val[/matchingRule][.<attrstyle>]=<attrval>]
 .fi
 .LP
 with
@@ -190,13 +190,13 @@ form is given,
 is implied, i.e. all attributes are addressed.
 .LP
 Using the form
-.B attrs=<attr> val[.<attrstyle>]=<attrval>
+.B attrs=<attr> val[/matchingRule][.<attrstyle>]=<attrval>
 specifies access to a particular value of a single attribute.
 In this case, only a single attribute type may be given. The
 .B <attrstyle>
 .B exact
 (the default) uses the attribute's equality matching rule to compare the
-value. If the
+value, unless a different (and compatible) matching rule is specified. If the
 .B <attrstyle>
 is
 .BR regex ,
