@@ -2741,7 +2741,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 			if ( si->si_retrynum_init[i] == -1 )
 				*ptr++ = '+';
 			else
-				ptr += sprintf( ptr, "%d", si->si_retrynum_init );
+				ptr += sprintf( ptr, "%d", si->si_retrynum_init[i] );
 		}
 		*ptr++ = '"';
 	}
