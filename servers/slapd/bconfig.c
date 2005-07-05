@@ -3201,7 +3201,7 @@ leave:
 	if ( rc ) {
 		if ( (colst[0]->co_type == Cft_Database) && ca->be ) {
 			backend_destroy_one( ca->be );
-		} else if ( (colst[0]->co_type == Cft_Database) && ca->bi ) {
+		} else if ( (colst[0]->co_type == Cft_Overlay) && ca->bi ) {
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 		}
 	}
