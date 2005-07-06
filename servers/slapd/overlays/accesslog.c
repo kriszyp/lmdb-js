@@ -670,7 +670,7 @@ static Entry *accesslog_entry( Operation *op, int logop ) {
 		attr_merge_one( e, ad_reqType, &lo->word, NULL );
 	}
 
-	rdn.bv_len = sprintf( rdn.bv_val, "%d", op->o_connid );
+	rdn.bv_len = sprintf( rdn.bv_val, "%lu", op->o_connid );
 	attr_merge_one( e, ad_reqSession, &rdn, NULL );
 
 	if ( BER_BVISNULL( &op->o_dn )) 

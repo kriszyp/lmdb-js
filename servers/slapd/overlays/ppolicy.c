@@ -629,9 +629,9 @@ make_pwd_history_value( char *timebuf, struct berval *bv, Attribute *pa )
 	int nlen;
 
 	snprintf( str, MAX_PWD_HISTORY_SZ,
-		  "%s#%s#%d#", timebuf,
+		  "%s#%s#%lu#", timebuf,
 		  pa->a_desc->ad_type->sat_syntax->ssyn_oid,
-		  pa->a_nvals[0].bv_len );
+		  (unsigned long) pa->a_nvals[0].bv_len );
 	str[MAX_PWD_HISTORY_SZ-1] = 0;
 	nlen = strlen(str);
 
