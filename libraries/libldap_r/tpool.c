@@ -33,7 +33,7 @@ enum ldap_int_thread_pool_state {
 	LDAP_INT_THREAD_POOL_RUNNING,
 	LDAP_INT_THREAD_POOL_FINISHING,
 	LDAP_INT_THREAD_POOL_STOPPING,
-	LDAP_INT_THREAD_POOL_PAUSING,
+	LDAP_INT_THREAD_POOL_PAUSING
 };
 
 typedef struct ldap_int_thread_key_s {
