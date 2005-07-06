@@ -59,7 +59,7 @@ static char *dnsuffix;
 static char *
 get_line( char *line, int len, FILE *fp, const char *prompt )
 {
-	printf(prompt);
+	fputs(prompt, stdout);
 
 	if ( fgets( line, len, fp ) == NULL )
 		return( NULL );
