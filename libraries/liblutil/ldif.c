@@ -747,8 +747,8 @@ int ldif_is_not_printable(
 
 LDIFFP *
 ldif_open(
-	char *file,
-	char *mode
+	LDAP_CONST char *file,
+	LDAP_CONST char *mode
 )
 {
 	FILE *fp = fopen( file, mode );
