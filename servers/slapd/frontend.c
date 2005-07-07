@@ -82,6 +82,8 @@ frontend_init( void )
 	/* info */
 	frontendDB->bd_info = &slap_frontendInfo;
 
+	SLAP_BFLAGS(frontendDB) |= SLAP_BFLAG_FRONTEND;
+
 	/* name */
 	frontendDB->bd_info->bi_type = "frontend";
 
