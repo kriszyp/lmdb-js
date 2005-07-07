@@ -41,7 +41,9 @@ static SLAP_CTRL_PARSE_FN parseSortedResults;
 static SLAP_CTRL_PARSE_FN parseValuesReturnFilter;
 static SLAP_CTRL_PARSE_FN parsePermissiveModify;
 static SLAP_CTRL_PARSE_FN parseDomainScope;
+#ifdef SLAP_CONTROL_X_TREE_DELETE
 static SLAP_CTRL_PARSE_FN parseTreeDelete;
+#endif
 static SLAP_CTRL_PARSE_FN parseSearchOptions;
 static SLAP_CTRL_PARSE_FN parseSubentries;
 
@@ -1325,7 +1327,7 @@ static int parseDomainScope (
 }
 #endif
 
-#ifdef LDAP_CONTROL_X_TREE_DELETE
+#ifdef SLAP_CONTROL_X_TREE_DELETE
 static int parseTreeDelete (
 	Operation *op,
 	SlapReply *rs,

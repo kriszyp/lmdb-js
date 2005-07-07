@@ -2429,7 +2429,7 @@ typedef struct slap_op {
 #define get_domainScope(op)				(0)
 #endif
 
-#ifdef LDAP_CONTROL_X_TREE_DELETE
+#ifdef SLAP_CONTROL_X_TREE_DELETE
 #define	o_tree_delete	o_ctrlflag[slap_cids.sc_treeDelete]
 #define get_treeDelete(op)				((int)(op)->o_tree_delete)
 #else
