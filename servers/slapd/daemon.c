@@ -2013,9 +2013,6 @@ slapd_daemon_task(
 		close_listeners ( 0 );
 	}
 
-	free ( slap_listeners );
-	slap_listeners = NULL;
-
 	if( !slapd_gentle_shutdown ) {
 		slapd_abrupt_shutdown = 1;
 		connections_shutdown();
@@ -2025,6 +2022,9 @@ slapd_daemon_task(
 	    "slapd shutdown: waiting for %d threads to terminate\n",
 	    ldap_pvt_thread_pool_backload(&connection_pool), 0, 0 );
 	ldap_pvt_thread_pool_destroy(&connection_pool, 1);
+
+	free ( slap_listeners );
+	slap_listeners = NULL;
 
 	return NULL;
 }
