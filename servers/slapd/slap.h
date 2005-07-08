@@ -2111,7 +2111,7 @@ struct slap_backend_info {
 	slap_mask_t	bi_flags; /* backend flags */
 #define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
 #define SLAP_BFLAG_CONFIG			0x0002U /* a config backend */
-#define SLAP_BFLAG_FRONTEND			0x0004U /* the frontendD */
+#define SLAP_BFLAG_FRONTEND			0x0004U /* the frontendDB */
 #define SLAP_BFLAG_NOLASTMODCMD		0x0010U
 #define SLAP_BFLAG_INCREMENT		0x0100U
 #define SLAP_BFLAG_ALIASES			0x1000U
