@@ -197,11 +197,21 @@ static const struct pw_scheme *get_scheme(
 	const char* scheme )
 {
 	struct pw_slist *pws;
+	struct berval bv;
 
 	if (!pw_inited) lutil_passwd_init();
 
+	bv.bv_val = strchr( scheme, '}' );
+	if ( !bv.bv_val )
+		return NULL;
+
+	bv.bv_len = bv.bv_val - scheme + 1;
+	bv.bv_val = scheme;
+
 	for( pws=pw_schemes; pws; pws=pws->next ) {
-		if( strcasecmp(scheme, pws->s.name.bv_val ) == 0 ) {
+		if( bv.bv_len != pws->s.name.bv_len )
+			continue;
+		if( strncasecmp(bv.bv_val, pws->s.name.bv_val, bv.bv_len ) == 0 ) {
 			return &(pws->s);
 		}
 	}
