@@ -206,7 +206,7 @@ static const struct pw_scheme *get_scheme(
 		return NULL;
 
 	bv.bv_len = bv.bv_val - scheme + 1;
-	bv.bv_val = scheme;
+	bv.bv_val = (char *) scheme;
 
 	for( pws=pw_schemes; pws; pws=pws->next ) {
 		if( bv.bv_len != pws->s.name.bv_len )
