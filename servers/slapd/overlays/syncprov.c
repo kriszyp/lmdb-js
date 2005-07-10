@@ -548,7 +548,7 @@ syncprov_findcsn( Operation *op, int mode )
 	SlapReply frs = { REP_RESULT };
 	char buf[LDAP_LUTIL_CSNSTR_BUFSIZE + STRLENOF("(entryCSN<=)")];
 	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
-	struct berval fbuf, maxcsn;
+	struct berval maxcsn;
 	Filter cf, af;
 #ifdef LDAP_COMP_MATCH
 	AttributeAssertion eq = { NULL, BER_BVNULL, NULL };
@@ -572,7 +572,6 @@ syncprov_findcsn( Operation *op, int mode )
 	/* We want pure entries, not referrals */
 	fop.o_managedsait = SLAP_CONTROL_CRITICAL;
 
-	fbuf.bv_val = buf;
 	cf.f_ava = &eq;
 	cf.f_av_desc = slap_schema.si_ad_entryCSN;
 	cf.f_next = NULL;
@@ -581,13 +580,13 @@ syncprov_findcsn( Operation *op, int mode )
 	fop.ors_limit = NULL;
 	fop.ors_tlimit = SLAP_NO_LIMIT;
 	fop.ors_filter = &cf;
-	fop.ors_filterstr = fbuf;
+	fop.ors_filterstr.bv_val = buf;
 
 	switch( mode ) {
 	case FIND_MAXCSN:
 		cf.f_choice = LDAP_FILTER_GE;
 		cf.f_av_value = si->si_ctxcsn;
-		fbuf.bv_len = sprintf( buf, "(entryCSN>=%s)",
+		fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN>=%s)",
 			cf.f_av_value.bv_val );
 		fop.ors_attrsonly = 0;
 		fop.ors_attrs = csn_anlist;
@@ -601,7 +600,7 @@ syncprov_findcsn( Operation *op, int mode )
 	case FIND_CSN:
 		cf.f_choice = LDAP_FILTER_LE;
 		cf.f_av_value = srs->sr_state.ctxcsn;
-		fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)",
+		fop.ors_filterstr.bv_len = sprintf( buf, "(entryCSN<=%s)",
 			cf.f_av_value.bv_val );
 		fop.ors_attrsonly = 1;
 		fop.ors_attrs = slap_anlist_no_attrs;
@@ -1075,7 +1074,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		}
 	}
 	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
-done:
+
 	if ( op->o_tag != LDAP_REQ_ADD && e ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		be_entry_release_rw( op, e, 0 );
