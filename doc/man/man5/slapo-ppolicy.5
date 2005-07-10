@@ -41,7 +41,7 @@ and no default is given, then no policies will be enforced.
 Specify that cleartext passwords present in Add and Modify requests should
 be hashed before being stored in the database. This violates the X.500
 information model, but may be needed to compensate for LDAP clients that
-don't use the PasswordModify exop to manage passwords.
+don't use the Password Modify exop to manage passwords.
 .TP
 .B ppolicy_use_lockout
 A client will always receive an LDAP
@@ -507,7 +507,7 @@ object.  If it does not exist, the
 module will enforce the default password policy rules on the
 user associated with this authenticating DN. If there is no
 default, or the referenced subentry does not exist, then no
-policy rules wil be enforced.
+policy rules will be enforced.
 .LP
 .RS 4
 (  1.3.6.1.4.1.42.2.27.8.1.23

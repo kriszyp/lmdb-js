@@ -243,7 +243,7 @@ OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 Overlays="accesslog denyop dyngroup dynlist glue lastmod ppolicy proxycache \
-	refint rwm syncprov translucent unique"
+	refint retcode rwm syncprov translucent unique"
 
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
@@ -267,6 +267,8 @@ OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay no|yes|mod
 OL_ARG_ENABLE(proxycache,[    --enable-proxycache	  Proxy Cache overlay no|yes|mod],
 	no, [no yes mod])
 OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(retcode,[    --enable-retcode	  Return Code testing overlay no|yes|mod],
 	no, [no yes mod])
 OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod],
 	no, [no yes mod])
@@ -533,6 +535,7 @@ BUILD_LASTMOD=no
 BUILD_PPOLICY=no
 BUILD_PROXYCACHE=no
 BUILD_REFINT=no
+BUILD_RETCODE=no
 BUILD_RWM=no
 BUILD_SYNCPROV=no
 BUILD_TRANSLUCENT=no
@@ -2877,6 +2880,18 @@ if test "$ol_enable_refint" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_REFINT,$MFLAG,[define for Referential Integrity overlay])
 fi
 
+if test "$ol_enable_retcode" != no ; then
+	BUILD_RETCODE=$ol_enable_retcode
+	if test "$ol_enable_retcode" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS retcode.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS retcode.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_RETCODE,$MFLAG,[define for Referential Integrity overlay])
+fi
+
 if test "$ol_enable_rwm" != no ; then
 	BUILD_REWRITE=yes
 	BUILD_RWM=$ol_enable_rwm
@@ -2991,6 +3006,7 @@ dnl overlays
   AC_SUBST(BUILD_PPOLICY)
   AC_SUBST(BUILD_PROXYCACHE)
   AC_SUBST(BUILD_REFINT)
+  AC_SUBST(BUILD_RETCODE)
   AC_SUBST(BUILD_RWM)
   AC_SUBST(BUILD_SYNCPROV)
   AC_SUBST(BUILD_TRANSLUCENT)

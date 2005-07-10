@@ -251,7 +251,7 @@ wait4msg(
 	LDAPMessage **result )
 {
 	int		rc;
-	struct timeval	tv, *tvp;
+	struct timeval	tv, tv0, *tvp;
 	time_t		start_time = 0;
 	time_t		tmp_time;
 	LDAPConn	*lc, *nextlc;
@@ -272,6 +272,7 @@ wait4msg(
 	if ( timeout == NULL ) {
 		tvp = NULL;
 	} else {
+		tv0 = *timeout;
 		tv = *timeout;
 		tvp = &tv;
 		start_time = time( NULL );
@@ -358,11 +359,12 @@ wait4msg(
 
 		if ( rc == -2 && tvp != NULL ) {
 			tmp_time = time( NULL );
-			if (( tv.tv_sec -=  ( tmp_time - start_time )) <= 0 ) {
+			if (( tv0.tv_sec -=  ( tmp_time - start_time )) <= 0 ) {
 				rc = 0;	/* timed out */
 				ld->ld_errno = LDAP_TIMEOUT;
 				break;
 			}
+			tv.tv_sec = tv0.tv_sec;
 
 			Debug( LDAP_DEBUG_TRACE, "wait4msg:  %ld secs to go\n",
 			       (long) tv.tv_sec, 0, 0 );

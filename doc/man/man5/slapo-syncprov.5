@@ -15,7 +15,7 @@ the root entry of the database.
 
 The contextCSN is updated for every write operation performed against the
 database. To reduce database contention, the contextCSN is only updated in
-memory. The value is written to the detabase on server shutdown and read into
+memory. The value is written to the database on server shutdown and read into
 memory on startup, and maintained in memory thereafter. Checkpoints may be
 configured to write the contextCSN into the underlying database to minimize
 recovery time after an unclean shutdown.

@@ -16,7 +16,7 @@ The Kerberos support is written for Heimdal using its hdb-ldap backend.
 If a PasswordModify is performed on an entry that has the krb5KDCEntry
 objectclass, then the krb5Key and krb5KeyVersionNumber will be updated
 using the new password in the PasswordModify request. Additionally, a
-new "{K5KEY}" password hash mechanism is provided. krb5KDCEntries that
+new "{K5KEY}" password hash mechanism is provided. For krb5KDCEntries that
 have this hash specifier in their userPassword attribute, Simple Binds
 will be checked against the Kerberos keys of the Entry. No data is
 needed after the "{K5KEY}" hash specifier in the userPassword, it is
@@ -50,7 +50,10 @@ paths are used. You can change the DEFS macro if you only want one or the
 other of Kerberos or Samba support.
 
 This overlay is only set up to be built as a dynamically loaded module.
-If you need to build it statically, you will have to move it into the
+On most platforms, in order for the module to be usable, all of the 
+library dependencies must also be available as shared libraries.
+
+If you need to build the overlay statically, you will have to move it into the
 slapd/overlays directory and edit the Makefile and overlays.c to reference
 it. You will also have to define SLAPD_OVER_SMBK5PWD to SLAPD_MOD_STATIC,
 and add the relevant libraries to the main slapd link command.

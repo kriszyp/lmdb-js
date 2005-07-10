@@ -944,7 +944,7 @@ setting must be chosen to enable SASL EXTERNAL authentication.
 .TP
 .B TLSCRLCheck <level>
 Specifies if the Certificate Revocation List (CRL) of the CA should be 
-used to verify if the client certicates have not been revoked. This
+used to verify if the client certificates have not been revoked. This
 requires
 .B TLSCACertificatePath
 parameter to be set.
@@ -1155,13 +1155,13 @@ The
 .BR unchecked
 specifier sets a limit on the number of candidates a search request is allowed
 to examine.
-The rationale behind it is that searches for non-properly indicized
+The rationale behind it is that searches for non-properly indexed
 attributes may result in large sets of candidates, which must be 
 examined by
 .BR slapd (8)
 to determine whether they match the search filter or not.
 The
-.B unckeched
+.B unchecked
 limit provides a means to drop such operations before they are even 
 started.
 If the selected candidates exceed the 

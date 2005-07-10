@@ -231,6 +231,10 @@ permissions, or the asserted identities must have appropriate
 permissions.  Note, however, that the ID assertion feature is mostly 
 useful when the asserted identities do not exist on the remote server.
 
+Flags can be
+
+\fBoverride,{prescriptive|non-prescriptive}\fP
+
 When the 
 .B override
 flag is used, identity assertion takes place even when the database
@@ -238,6 +242,20 @@ is authorizing for the identity of the client, i.e. after binding
 with the provided identity, and thus authenticating it, the proxy
 performs the identity assertion using the configured identity and
 authentication method.
+
+When the
+.B prescriptive
+flag is used (the default), operations fail with
+\fIinappropriateAuthentication\fP
+for those identities whose assertion is not allowed by the
+.B idassert-authzFrom
+patterns.
+If the 
+.B non-prescriptive
+flag is used, operations are performed anonymously for those identities 
+whose assertion is not allowed by the
+.B idassert-authzFrom
+patterns.
 
 This directive obsoletes
 .BR idassert-authcDN ,
@@ -276,7 +294,7 @@ in conjunction with Proxy Authorization.
 .B rebind-as-user {NO|yes}
 If this option is given, the client's bind credentials are remembered
 for rebinds when chasing referrals.  Useful when
-\fBchase-referrals\fP is set to \fByes\P, useless otherwise.
+\fBchase-referrals\fP is set to \fByes\fP, useless otherwise.
 
 .TP
 .B chase-referrals {YES|no}
@@ -299,7 +317,7 @@ enable if the remote server supports absolute filters
 (see \fIdraft-zeilenga-ldap-t-f\fP for details).
 If set to
 .BR discover ,
-support is detected by reading the remote server's rootDSE.
+support is detected by reading the remote server's root DSE.
 
 .SH BACKWARD COMPATIBILITY
 The LDAP backend has been heavily reworked between releases 2.2 and 2.3;
@@ -342,7 +360,7 @@ and may be dismissed in the future.
 .B idassert-authcDN "<administrative DN for proxyAuthz purposes>"
 DN which is used to propagate the client's identity to the target
 by means of the proxyAuthz control when the client does not
-belong to the DIT fragment that is being proxyied by back-ldap.
+belong to the DIT fragment that is being proxied by back-ldap.
 This directive is obsoleted by
 .BR idassert-bind ,
 and may be dismissed in the future.

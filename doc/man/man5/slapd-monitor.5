@@ -12,13 +12,20 @@ The monitor backend to
 is not an actual database; if enabled, it is automatically generated
 and dynamically maintained by slapd with information about the running 
 status of the daemon.
-
+.LP
+To inspect all monitor information, issue a subtree search with base
+cn=Monitor, requesting that attributes "+" and "*" are returned.
+The monitor backend produces mostly operational attributes, and LDAP
+only returns operational attributes that are explicitly requested.
+Requesting attribute "+" is an extension which requests all operational
+attributes.
 .SH CONFIGURATION
 These
 .B slapd.conf
 options apply to the monitor backend database.
 That is, they must follow a "database monitor" line and come before any
 subsequent "backend" or "database" lines.
+.LP
 As opposed to most databases, the monitor database can be instantiated
 only once, i.e. only one occurrence of "database monitor" can occur
 in the 

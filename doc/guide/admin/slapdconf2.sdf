@@ -774,9 +774,10 @@ Directives in this category apply to both the {{TERM:BDB}}
 and the {{TERM:HDB}} database.
 They are used in an olcDatabase entry in addition to the generic
 database directives defined above.  For a complete reference
-of BDB/HDB configuration directives, see {{slapd-bdb}}(5). BDB and
-HDB database entries must have the {{EX:olcBdbConfig}} objectClass in
-addition to the {{EX:olcDatabaseConfig}} class.
+of BDB/HDB configuration directives, see {{slapd-bdb}}(5). In
+addition to the {{EX:olcDatabaseConfig}} objectClass, BDB and HDB
+database entries must have the {{EX:olcBdbConfig}} and
+{{EX:olcHdbConfig}} objectClass, respectively.
 
 
 H4: olcDbDirectory: <directory>
@@ -970,7 +971,7 @@ H4: Sample Entry
 
 >dn: olcDatabase=hdb,cn=config
 >objectClass: olcDatabaseConfig
->objectClass: olcBdbConfig
+>objectClass: olcHdbConfig
 >olcDatabase: hdb
 >olcSuffix: "dc=example,dc=com"
 >olcDbDirectory: /usr/local/var/openldap-data

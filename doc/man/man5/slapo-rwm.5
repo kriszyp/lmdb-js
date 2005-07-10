@@ -39,7 +39,7 @@ slapd's schema, some attribute names might be different but serve the
 same purpose, etc.
 If local or foreign name is `*', the name is preserved.
 If local name is omitted, the foreign name is removed.
-Unmapped names are preseved if both local and foreign name are `*',
+Unmapped names are preserved if both local and foreign name are `*',
 and removed if local name is omitted and foreign name is `*'.
 .LP
 The local 
@@ -120,7 +120,7 @@ The underlying concept is to build a lightweight rewrite module
 for the slapd server (initially dedicated to the LDAP backend):
 .LP
 .SH Passes
-An incoming string is matched agains a set of 
+An incoming string is matched against a set of
 .IR rewriteRules .
 Rules are made of a 
 .IR "regex match pattern" , 
@@ -256,7 +256,7 @@ operation structure which can be dereferenced later; operator
 assigns a variable in the rewrite context scope; operator
 .B &&
 assigns a variable that scopes the entire session, e.g. its value
-can be derefenced later by other rewrite contexts
+can be dereferenced later by other rewrite contexts
 .TP
 .B *
 variable dereferencing; <name> must refer to a variable that is
@@ -363,7 +363,7 @@ altering too much the configuration file).
 <Context name> is the name that identifies the context, i.e. the name
 used by the application to refer to the set of rules it contains.
 It is used also to reference sub contexts in string rewriting.
-A context may aliase another one.
+A context may alias another one.
 In this case the alias context contains no rule, and any reference to
 it will result in accessing the aliased one.
 .TP

@@ -9,7 +9,7 @@ ETCDIR/slapd.conf
 .LP
 The 
 .B lastmod
-overlay creates aa service entry rooted at the suffix of the database
+overlay creates a service entry rooted at the suffix of the database
 it's stacked onto, which holds the DN, the modification type,
 the modifiersName and the modifyTimestamp of the last write operation
 performed on that database.
@@ -80,7 +80,7 @@ of the overlay.
 .B lastmodEnabled
 .P
 This attribute contains a boolean flag that determines the status
-of the overlay.  It can be latered via protocol by issuing a modify
+of the overlay.  It can be altered via protocol by issuing a modify
 operation that replaces the value of the attribute.
 .LP
 .RS 4
@@ -104,7 +104,7 @@ operational, since they can logically be altered only by the DSA.
 
 .B lastmodDN
 .P
-This attribute contains the distingyished name of the entry 
+This attribute contains the distinguished name of the entry
 that was last modified within the naming context of a database.
 .LP
 .RS 4
@@ -172,7 +172,7 @@ So far, the OIDs for the schema haven't been assigned yet.
 
 .SH ACKNOWLEDGEMENTS
 .P
-This module was written in 2004 by Pierangelo Masarati in fulfilment
+This module was written in 2004 by Pierangelo Masarati in fulfillment
 of requirements from SysNet s.n.c.; this man page has been copied
 from 
 .BR slapo-ppolicy (5),
