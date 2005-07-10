@@ -134,7 +134,7 @@ ldap_parse_passwordpolicy_control(
 	ber_tag_t tag;
 	ber_len_t berLen;
         char *last;
-        LDAPPasswordPolicyError err = PP_noError;
+	int err = PP_noError;
         
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -172,7 +172,7 @@ ldap_parse_passwordpolicy_control(
                     
                     break;
                 case PPOLICY_ERROR:
-                    if (ber_get_enum( ber, (int *)&err ) == LBER_DEFAULT) goto exit;
+                    if (ber_get_enum( ber, &err ) == LBER_DEFAULT) goto exit;
                     break;
                 default:
                     goto exit;
