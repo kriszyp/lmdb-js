@@ -641,7 +641,7 @@ dn2entry_retry:
 	for ( id = bdb_idl_first( candidates, &cursor );
 		  id != NOID ; id = bdb_idl_next( candidates, &cursor ) )
 	{
-		int scopeok = 0;
+		int scopeok;
 
 loop_begin:
 
@@ -731,6 +731,7 @@ fetch_entry_retry:
 		 * scope while we are looking at it, and unless we're using
 		 * BDB_HIER, its parents cannot be moved either.
 		 */
+		scopeok = 0;
 		switch( op->ors_scope ) {
 		case LDAP_SCOPE_BASE:
 			/* This is always true, yes? */
