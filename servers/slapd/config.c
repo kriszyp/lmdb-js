@@ -1083,9 +1083,16 @@ static int
 fp_parse_line(ConfigArgs *c)
 {
 	char *token;
-	char *hide[] = { "rootpw", "replica", "bindpw", "pseudorootpw", "dbpasswd", '\0' };
+	static char *const hide[] = {
+		"rootpw", "replica", "syncrepl",  /* in slapd */
+		"acl-bind", "acl-method", "idassert-bind",  /* in back-ldap */
+		"acl-passwd", "bindpw",  /* in back-<ldap/meta> */
+		"pseudorootpw",  /* in back-meta */
+		"dbpasswd",  /* in back-sql */
+		NULL
+	};
 	char *quote_ptr;
-	int i = -1;
+	int i = (int)(sizeof(hide)/sizeof(hide[0])) - 1;
 
 	c->tline = ch_strdup(c->line);
 	token = strtok_quote(c->tline, " \t", &quote_ptr);
@@ -1096,8 +1103,8 @@ fp_parse_line(ConfigArgs *c)
 		hide[i] ? hide[i] : c->line, hide[i] ? " ***" : "");
 	if(quote_ptr) *quote_ptr = '\0';
 
-	for(; token; token = strtok_quote(NULL, " \t", &quote_ptr)) {
-		if(c->argc == c->argv_size - 1) {
+	for(;; token = strtok_quote(NULL, " \t", &quote_ptr)) {
+		if(c->argc >= c->argv_size) {
 			char **tmp;
 			tmp = ch_realloc(c->argv, (c->argv_size + ARGS_STEP) * sizeof(*c->argv));
 			if(!tmp) {
@@ -1107,6 +1114,8 @@ fp_parse_line(ConfigArgs *c)
 			c->argv = tmp;
 			c->argv_size += ARGS_STEP;
 		}
+		if(token == NULL)
+			break;
 		c->argv[c->argc++] = token;
 	}
 	c->argv[c->argc] = NULL;
