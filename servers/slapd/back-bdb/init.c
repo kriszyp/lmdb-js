@@ -605,6 +605,32 @@ bdb_db_close( BackendDB *be )
 				db_strerror(rc), rc, 0 );
 			return rc;
 		}
+
+#if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR == 2
+		/* Delete the environment if we were in quick mode. This
+		 * works around a bug in bdb4.2 that interferes with the
+		 * operation of db_stat and other tools after a slapadd -q
+		 * or slapindex -q has taken place.
+		 */
+		if( slapMode & SLAP_TOOL_QUICK ) {
+			rc = db_env_create( &bdb->bi_dbenv, 0 );
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_close: db_env_create failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+				return rc;
+			}
+			rc = bdb->bi_dbenv->remove(bdb->bi_dbenv, bdb->bi_dbenv_home,
+					DB_FORCE);
+			bdb->bi_dbenv = NULL;
+			if( rc != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bdb_db_close: dbenv_remove failed: %s (%d)\n",
+					db_strerror(rc), rc, 0 );
+				return rc;
+			}
+		}
+#endif
 	}
 
 	rc = alock_close( &bdb->bi_alock_info );
