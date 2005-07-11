@@ -1716,7 +1716,7 @@ pc_cf_gen( ConfigArgs *c )
 			break;
 		case PC_TEMP:
 			for (i=0; i<cm->numtemplates; i++) {
-				bv.bv_len = sprintf( c->msg, " %d %d",
+				bv.bv_len = sprintf( c->msg, " %d %ld",
 					qm->templates[i].attr_set_index,
 					qm->templates[i].ttl );
 				bv.bv_len += qm->templates[i].querystr.bv_len + 2;

@@ -2308,7 +2308,7 @@ slapi_timer_get_time( char *label )
 {
 #ifdef LDAP_SLAPI
 	unsigned long start = slapi_timer_current_time();
-	printf("%10ld %10ld usec %s\n", start, 0, label);
+	printf("%10ld %10d usec %s\n", start, 0, label);
 	return start;
 #else /* LDAP_SLAPI */
 	return 0;

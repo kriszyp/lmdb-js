@@ -449,7 +449,7 @@ fe_op_bind( Operation *op, SlapReply *rs )
 
 		send_ldap_result( op, rs );
 		Debug( LDAP_DEBUG_TRACE,
-			"do_bind: v%d unknown authentication method (%ld)\n",
+			"do_bind: v%d unknown authentication method (%d)\n",
 			op->o_protocol, op->orb_method, 0 );
 		goto cleanup;
 	}

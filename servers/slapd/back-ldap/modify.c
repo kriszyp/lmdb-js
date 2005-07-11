@@ -122,6 +122,10 @@ cleanup:;
 	}
 	ch_free( modv );
 
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, rs, lc );
+	}
+
 	return rc;
 }
 

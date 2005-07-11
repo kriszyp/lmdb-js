@@ -74,6 +74,8 @@ LDAP_SLAPD_F (int) acl_init LDAP_P(( void ));
 /*
  * aclparse.c
  */
+LDAP_SLAPD_V (char *) style_strings[];
+
 LDAP_SLAPD_F (void) parse_acl LDAP_P(( Backend *be,
 	const char *fname, int lineno,
 	int argc, char **argv, int pos ));

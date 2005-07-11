@@ -17,6 +17,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <ac/ctype.h>
 #include <ac/string.h>
 
 #include "back-bdb.h"
@@ -66,7 +67,7 @@ static ConfigTable bdbcfg[] = {
 	{ "dbconfig", "DB_CONFIG setting", 1, 0, 0, ARG_MAGIC|BDB_CONFIG,
 		bdb_cf_gen, "( OLcfgDbAt:1.3 NAME 'olcDbConfig' "
 			"DESC 'BerkeleyDB DB_CONFIG configuration directives' "
-			"SYNTAX OMsDirectoryString )",NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",NULL, NULL },
 	{ "dbnosync", NULL, 1, 2, 0, ARG_ON_OFF|ARG_MAGIC|BDB_NOSYNC,
 		bdb_cf_gen, "( OLcfgDbAt:1.4 NAME 'olcDbNoSync' "
 			"DESC 'Disable synchronous database writes' "
@@ -118,9 +119,16 @@ static ConfigTable bdbcfg[] = {
 };
 
 static ConfigOCs bdbocs[] = {
-	{ "( OLcfgDbOc:1.1 "
+	{
+#ifdef BDB_HIER
+		"( OLcfgDbOc:1.2 "
+		"NAME 'olcHdbConfig' "
+		"DESC 'HDB backend configuration' "
+#else
+		"( OLcfgDbOc:1.1 "
 		"NAME 'olcBdbConfig' "
 		"DESC 'BDB backend configuration' "
+#endif
 		"SUP olcDatabaseConfig "
 		"MUST olcDbDirectory "
 		"MAY ( olcDbCacheSize $ olcDbCheckpoint $ olcDbConfig $ "
@@ -485,21 +493,32 @@ bdb_cf_gen(ConfigArgs *c)
 		 */
 		if ((slapMode & SLAP_SERVER_MODE) && bdb->bi_txn_cp_min ) {
 			struct re_s *re = bdb->bi_txn_cp_task;
-			if ( re )
+			if ( re ) {
 				re->interval.tv_sec = bdb->bi_txn_cp_min * 60;
-			else
+			} else {
+				if ( c->be->be_suffix == NULL || BER_BVISNULL( &c->be->be_suffix[0] ) ) {
+					fprintf( stderr, "%s: "
+						"\"checkpoint\" must occur after \"suffix\".\n",
+						c->log );
+					return 1;
+				}
 				bdb->bi_txn_cp_task = ldap_pvt_runqueue_insert( &slapd_rq,
 					bdb->bi_txn_cp_min * 60, bdb_checkpoint, bdb,
 					LDAP_XSTRING(bdb_checkpoint), c->be->be_suffix[0].bv_val );
+			}
 		}
 		break;
 
 	case BDB_CONFIG: {
-		char *ptr = c->line + STRLENOF("dbconfig");
+		char *ptr = c->line;
 		struct berval bv;
-		while (!isspace(*ptr)) ptr++;
-		while (isspace(*ptr)) ptr++;
-		
+
+		if ( c->op == SLAP_CONFIG_ADD ) {
+			ptr += STRLENOF("dbconfig");
+			while (!isspace(*ptr)) ptr++;
+			while (isspace(*ptr)) ptr++;
+		}
+
 		if ( bdb->bi_flags & BDB_IS_OPEN ) {
 			bdb->bi_flags |= BDB_UPD_CONFIG;
 			c->cleanup = bdb_cf_cleanup;
@@ -569,6 +588,12 @@ bdb_cf_gen(ConfigArgs *c)
 			/* Start the task as soon as we finish here. Set a long
 			 * interval (10 hours) so that it only gets scheduled once.
 			 */
+			if ( c->be->be_suffix == NULL || BER_BVISNULL( &c->be->be_suffix[0] ) ) {
+				fprintf( stderr, "%s: "
+					"\"index\" must occur after \"suffix\".\n",
+					c->log );
+				return 1;
+			}
 			bdb->bi_index_task = ldap_pvt_runqueue_insert( &slapd_rq, 36000,
 				bdb_online_index, c->be,
 				LDAP_XSTRING(bdb_online_index), c->be->be_suffix[0].bv_val );

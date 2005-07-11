@@ -108,7 +108,8 @@ meta_back_db_open(
 	int		i, rc;
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		if ( mi->mi_targets[ i ].mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER ) {
+		if ( mi->mi_targets[ i ].mt_flags & LDAP_BACK_F_SUPPORT_T_F_DISCOVER )
+		{
 			mi->mi_targets[ i ].mt_flags &= ~LDAP_BACK_F_SUPPORT_T_F_DISCOVER;
 			rc = slap_discover_feature( mi->mi_targets[ i ].mt_uri,
 					mi->mi_targets[ i ].mt_version,

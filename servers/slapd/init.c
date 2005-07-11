@@ -103,17 +103,17 @@ slap_init( int mode, const char *name )
 
 	switch ( slapMode & SLAP_MODE ) {
 	case SLAP_SERVER_MODE:
+		ldap_pvt_thread_pool_init( &connection_pool,
+				connection_pool_max, 0);
+
+		/* FALLTHRU */
 	case SLAP_TOOL_MODE:
 		Debug( LDAP_DEBUG_TRACE,
 			"%s init: initiated %s.\n",	name,
 			(mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server",
 			0 );
 
-
 		slap_name = name;
-
-		ldap_pvt_thread_pool_init( &connection_pool,
-				connection_pool_max, 0);
 
 		ldap_pvt_thread_mutex_init( &entry2str_mutex );
 		ldap_pvt_thread_mutex_init( &replog_mutex );

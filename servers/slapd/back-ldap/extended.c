@@ -68,7 +68,8 @@ ldap_back_extended(
 				op->o_ctrls = oldctrls;
 				send_ldap_result( op, rs );
 				rs->sr_text = NULL;
-				return rs->sr_err;
+				rc = rs->sr_err;
+				goto done;
 			}
 
 			rc = ( *exop_table[i].extended )( op, rs );
@@ -79,6 +80,11 @@ ldap_back_extended(
 			}
 			op->o_ctrls = oldctrls;
 
+done:;
+			if ( lc != NULL ) {
+				ldap_back_release_conn( op, rs, lc );
+			}
+			
 			return rc;
 		}
 	}
@@ -168,6 +174,10 @@ retry:
 		rs->sr_matched = NULL;
 		rs->sr_text = NULL;
 		rc = -1;
+	}
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, rs, lc );
 	}
 
 	return rc;

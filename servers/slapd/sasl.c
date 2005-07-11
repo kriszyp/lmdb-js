@@ -163,6 +163,8 @@ typedef struct lookup_info {
 
 static slap_response sasl_ap_lookup;
 
+static struct berval sc_cleartext = BER_BVC("{CLEARTEXT}");
+
 static int
 sasl_ap_lookup( Operation *op, SlapReply *rs )
 {
@@ -210,6 +212,34 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 			sl->list[i].name );
 		}
 		for ( bv = a->a_vals; bv->bv_val; bv++ ) {
+			/* ITS#3846 don't give hashed passwords to SASL */
+			if ( ad == slap_schema.si_ad_userPassword &&
+				bv->bv_val[0] == '{' ) {
+				rc = lutil_passwd_scheme( bv->bv_val );
+				if ( rc ) {
+					/* If it's not a recognized scheme, just assume it's
+					 * a cleartext password that happened to include brackets.
+					 *
+					 * If it's a recognized scheme, skip this value, unless the
+					 * scheme is {CLEARTEXT}. In that case, skip over the
+					 * scheme name and use the remainder. If there is nothing
+					 * past the scheme name, skip this value.
+					 */
+#ifdef SLAPD_CLEARTEXT
+					if ( !strncasecmp( bv->bv_val, sc_cleartext.bv_val,
+						sc_cleartext.bv_len )) {
+						struct berval cbv;
+						cbv.bv_len = bv->bv_len - sc_cleartext.bv_len;
+						if ( cbv.bv_len ) {
+							cbv.bv_val = bv->bv_val + sc_cleartext.bv_len;
+							sl->sparams->utils->prop_set( sl->sparams->propctx,
+								sl->list[i].name, cbv.bv_val, cbv.bv_len );
+						}
+					}
+#endif
+					continue;
+				}
+			}
 			sl->sparams->utils->prop_set( sl->sparams->propctx,
 				sl->list[i].name, bv->bv_val, bv->bv_len );
 		}
@@ -1495,10 +1525,11 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	assert( conn );
 	assert( id );
 
-	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: conn %d id=%s [len=%d]\n", 
+	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: conn %lu id=%s [len=%lu]\n", 
 		conn->c_connid,
 		BER_BVISNULL( id ) ? "NULL" : ( BER_BVISEMPTY( id ) ? "<empty>" : id->bv_val ),
-		BER_BVISNULL( id ) ? 0 : ( BER_BVISEMPTY( id ) ? 0 : id->bv_len ) );
+		BER_BVISNULL( id ) ? 0 : ( BER_BVISEMPTY( id ) ? 0 :
+		                           (unsigned long) id->bv_len ) );
 
 	if ( !op ) {
 		op = conn->c_sasl_bindop;

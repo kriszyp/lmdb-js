@@ -35,7 +35,7 @@ int
 meta_back_delete( Operation *op, SlapReply *rs )
 {
 	metainfo_t	*mi = ( metainfo_t * )op->o_bd->be_private;
-	metaconn_t	*mc;
+	metaconn_t	*mc = NULL;
 	int		candidate = -1;
 	struct berval	mdn = BER_BVNULL;
 	dncookie	dc;
@@ -58,7 +58,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		send_ldap_result( op, rs );
-		return -1;
+		goto done;
 	}
 
 retry:;
@@ -76,6 +76,11 @@ retry:;
 		BER_BVZERO( &mdn );
 	}
 	
-	return meta_back_op_result( mc, op, rs, candidate );
+	rs->sr_err = meta_back_op_result( mc, op, rs, candidate );
+
+done:;
+	meta_back_release_conn( op, mc );
+
+	return rs->sr_err;
 }
 

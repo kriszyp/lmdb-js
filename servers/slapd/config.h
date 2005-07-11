@@ -62,6 +62,7 @@ typedef enum {
 #define	ARG_NO_INSERT	0x04000000	/* no arbitrary inserting */
 #define	ARG_NO_DELETE	0x08000000	/* no runtime deletes */
 #define ARG_UNIQUE	0x10000000
+#define	ARG_QUOTE	0x20000000	/* wrap with quotes before parsing */
 #define ARG_OFFSET	0x40000000
 #define ARG_MAGIC	0x80000000
 

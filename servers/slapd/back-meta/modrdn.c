@@ -131,6 +131,8 @@ cleanup:;
 
 	send_ldap_result( op, rs );
 
+	meta_back_release_conn( op, mc );
+
 	return rs->sr_err;
 }
 

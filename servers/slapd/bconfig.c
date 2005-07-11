@@ -159,6 +159,8 @@ enum {
 	CFG_SASLSECP,
 	CFG_SSTR_IF_MAX,
 	CFG_SSTR_IF_MIN,
+
+	CFG_LAST
 };
 
 typedef struct {
@@ -223,6 +225,10 @@ static ConfigTable config_back_cf_table[] = {
 			"DESC 'File for slapd command line options' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
+	{ "attributeoptions", NULL, 0, 0, 0, ARG_MAGIC|CFG_ATOPT,
+		&config_generic, "( OLcfgGlAt:5 NAME 'olcAttributeOptions' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "attribute",	"attribute", 2, 0, 9,
 		ARG_PAREN|ARG_MAGIC|CFG_ATTR|ARG_NO_DELETE|ARG_NO_INSERT,
 		&config_generic, "( OLcfgGlAt:4 NAME 'olcAttributeTypes' "
@@ -230,10 +236,6 @@ static ConfigTable config_back_cf_table[] = {
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 				NULL, NULL },
-	{ "attributeoptions", NULL, 0, 0, 0, ARG_MAGIC|CFG_ATOPT,
-		&config_generic, "( OLcfgGlAt:5 NAME 'olcAttributeOptions' "
-			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "authid-rewrite", NULL, 2, 0, STRLENOF( "authid-rewrite" ),
 #ifdef SLAP_AUTH_REWRITE
 		ARG_MAGIC|CFG_REWRITE|ARG_NO_INSERT, &config_generic,
@@ -270,7 +272,7 @@ static ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgGlAt:13 NAME 'olcDatabase' "
 			"DESC 'The backend type for a database instance' "
 			"SUP olcBackend SINGLE-VALUE X-ORDERED 'SIBLINGS' )", NULL, NULL },
-	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_MAGIC,
+	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_search_base, "( OLcfgGlAt:14 NAME 'olcDefaultSearchBase' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "disallows", "features", 2, 0, 8, ARG_PRE_DB|ARG_MAGIC,
@@ -306,7 +308,7 @@ static ConfigTable config_back_cf_table[] = {
 	{ "index_substr_any_len", "len", 2, 2, 0, ARG_INT|ARG_NONZERO,
 		&index_substr_any_len, "( OLcfgGlAt:22 NAME 'olcIndexSubstrAnyLen' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
-	{ "index_substr_step", "step", 2, 2, 0, ARG_INT|ARG_NONZERO,
+	{ "index_substr_any_step", "step", 2, 2, 0, ARG_INT|ARG_NONZERO,
 		&index_substr_any_step, "( OLcfgGlAt:23 NAME 'olcIndexSubstrAnyStep' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "lastmod", "on|off", 2, 2, 0, ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD,
@@ -415,7 +417,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:49 NAME 'olcReverseLookup' "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
-	{ "rootdn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
+	{ "rootdn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_rootdn, "( OLcfgDbAt:0.8 NAME 'olcRootDN' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "rootDSE", "file", 2, 2, 0, ARG_MAGIC|CFG_ROOTDSE,
@@ -454,7 +456,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "saslRegexp",	NULL, 3, 3, 0, ARG_MAGIC|CFG_AZREGEXP,
 		&config_generic, NULL, NULL, NULL },
-	{ "schemadn", "dn", 2, 2, 0, ARG_MAY_DB|ARG_DN|ARG_MAGIC,
+	{ "schemadn", "dn", 2, 2, 0, ARG_MAY_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_schema_dn, "( OLcfgGlAt:58 NAME 'olcSchemaDN' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "security", "factors", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
@@ -477,7 +479,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:63 NAME 'olcSrvtab' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
-	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_MAGIC,
+	{ "suffix",	"suffix", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_suffix, "( OLcfgDbAt:0.10 NAME 'olcSuffix' "
 			"SYNTAX OMsDN )", NULL, NULL },
 	{ "syncrepl", NULL, 0, 0, 0, ARG_DB|ARG_MAGIC,
@@ -555,7 +557,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "ucdata-path", "path", 2, 2, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL },
-	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_MAGIC,
+	{ "updatedn", "dn", 2, 2, 0, ARG_DB|ARG_DN|ARG_QUOTE|ARG_MAGIC,
 		&config_updatedn, "( OLcfgDbAt:0.12 NAME 'olcUpdateDN' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "updateref", "url", 2, 2, 0, ARG_DB|ARG_MAGIC,
@@ -692,7 +694,8 @@ config_generic(ConfigArgs *c) {
 			if ( !c->rvalue_vals ) rc = 1;
 			break;
 		case CFG_RO:
-			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) != 0;
+			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) ==
+				SLAP_RESTRICT_OP_WRITES;
 			break;
 		case CFG_AZPOLICY:
 			c->value_string = ch_strdup( slap_sasl_getpolicy());
@@ -2787,8 +2790,9 @@ check_vals( ConfigTable *ct, ConfigArgs *ca, void *ptr, int isAttr )
 			if ( idx ) ca->line = idx+1;
 		}
 		rc = config_parse_vals( ct, ca, i );
-		if ( rc )
+		if ( rc ) {
 			break;
+		}
 	}
 	return rc;
 }
@@ -3169,10 +3173,6 @@ ok:
 			Debug(LDAP_DEBUG_ANY, "%s: %s (%s)!\n",
 				ca->log, ca->msg, ca->argv[1] );
 			rc = LDAP_OTHER;
-			if ( colst[0]->co_type == Cft_Database )
-				backend_destroy_one( ca->be );
-			else
-				overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 			goto leave;
 		}
 	}
@@ -3198,6 +3198,14 @@ ok:
 	}
 
 leave:
+	if ( rc ) {
+		if ( (colst[0]->co_type == Cft_Database) && ca->be ) {
+			backend_destroy_one( ca->be );
+		} else if ( (colst[0]->co_type == Cft_Overlay) && ca->bi ) {
+			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
+		}
+	}
+
 	ch_free( ca->argv );
 	if ( colst ) ch_free( colst );
 	return rc;
@@ -4188,6 +4196,9 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_tool_entry_next = config_tool_entry_next;
 	bi->bi_tool_entry_get = config_tool_entry_get;
 	bi->bi_tool_entry_put = config_tool_entry_put;
+
+	/* Make sure we don't exceed the bits reserved for userland */
+	assert( ( ( CFG_LAST - 1 ) & ARGS_USERLAND ) == ( CFG_LAST - 1 ) );
 
 	argv[3] = NULL;
 	for (i=0; OidMacros[i].name; i++ ) {

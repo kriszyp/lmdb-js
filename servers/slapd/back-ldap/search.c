@@ -64,6 +64,7 @@ ldap_back_munge_filter(
 		static struct berval
 			bv_true = BER_BVC( "(?=true)" ),
 			bv_false = BER_BVC( "(?=false)" ),
+			bv_undefined = BER_BVC( "(?=undefined)" ),
 			bv_t = BER_BVC( "(&)" ),
 			bv_f = BER_BVC( "(|)" ),
 			bv_T = BER_BVC( "(objectClass=*)" ),
@@ -91,13 +92,18 @@ ldap_back_munge_filter(
 				newbv = &bv_F;
 			}
 
+		} else if ( strncmp( ptr, bv_undefined.bv_val, bv_undefined.bv_len ) == 0 )
+		{
+			oldbv = &bv_undefined;
+			newbv = &bv_F;
+
 		} else {
 			gotit = 0;
 			goto done;
 		}
 
 		oldfilter = *filter;
-		if ( !( li->flags & LDAP_BACK_F_SUPPORT_T_F ) ) {
+		if ( newbv->bv_len > oldbv->bv_len ) {
 			filter->bv_len += newbv->bv_len - oldbv->bv_len;
 			if ( filter->bv_val == op->ors_filterstr.bv_val ) {
 				filter->bv_val = op->o_tmpalloc( filter->bv_len + 1,
@@ -151,7 +157,7 @@ ldap_back_search(
 	LDAPControl	**ctrls = NULL;
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
-	if ( !lc ) {
+	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
@@ -159,9 +165,6 @@ ldap_back_search(
 	 * FIXME: in case of values return filter, we might want
 	 * to map attrs and maybe rewrite value
 	 */
-	if ( !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
-		return rs->sr_err;
-	}
 
 	/* should we check return values? */
 	if ( op->ors_deref != -1 ) {
@@ -280,7 +283,7 @@ fail:;
 
 			e = ldap_first_entry( lc->lc_ld, res );
 			rc = ldap_build_entry( op, e, &ent, &bdn );
-		       if ( rc == LDAP_SUCCESS ) {
+			if ( rc == LDAP_SUCCESS ) {
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_operational_attrs = NULL;
@@ -433,6 +436,10 @@ finish:;
 
 	if ( attrs ) {
 		ch_free( attrs );
+	}
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, rs, lc );
 	}
 
 	return rc;
@@ -714,6 +721,10 @@ cleanup:
 
 	if ( filter ) {
 		ch_free( filter );
+	}
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, &rs, lc );
 	}
 
 	return rc;

@@ -23,6 +23,7 @@ SRCS = overlays.c \
 	pcache.c \
 	ppolicy.c \
 	refint.c \
+	retcode.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c \
 	syncprov.c \
 	translucent.c \
@@ -76,6 +77,9 @@ ppolicy.la : ppolicy.lo
 
 refint.la : refint.lo
 	$(LTLINK_MOD) -module -o $@ refint.lo version.lo $(LINK_LIBS)
+
+retcode.la : retcode.lo
+	$(LTLINK_MOD) -module -o $@ retcode.lo version.lo $(LINK_LIBS)
 
 rwm_x.o: rwm.o rwmconf.o rwmdn.o rwmmap.o
 	$(LD) -r -o $@ rwm.o rwmconf.o rwmdn.o rwmmap.o

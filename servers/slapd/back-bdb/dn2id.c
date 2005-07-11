@@ -670,7 +670,7 @@ hdb_dn2id(
 		rc = DB_NOTFOUND;
 	}
 	if ( rc == 0 ) {
-		ptr = data.data + data.size - sizeof(ID);
+		ptr = (char *) data.data + data.size - sizeof(ID);
 		BDB_DISK2ID( ptr, &ei->bei_id );
 		ei->bei_rdn.bv_len = data.size - sizeof(diskNode) - nrlen;
 		ptr = d->nrdn + nrlen + 1;
@@ -731,7 +731,7 @@ hdb_dn2id_parent(
 			rc = LDAP_OTHER;
 		} else {
 			db_recno_t dkids;
-			ptr = data.data + data.size - sizeof(ID);
+			ptr = (char *) data.data + data.size - sizeof(ID);
 			BDB_DISK2ID( ptr, idp );
 			ei->bei_nrdn.bv_len = (d->nrdnlen[0] << 8) | d->nrdnlen[1];
 			ber_str2bv( d->nrdn, ei->bei_nrdn.bv_len, 1, &ei->bei_nrdn );

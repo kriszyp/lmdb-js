@@ -267,6 +267,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		if ( candidates[ i ].sr_tag != META_CANDIDATE ) {
 			continue;
 		}
+
 		candidates[ i ].sr_err = LDAP_SUCCESS;
 		candidates[ i ].sr_matched = NULL;
 		candidates[ i ].sr_text = NULL;
@@ -359,8 +360,6 @@ meta_back_search( Operation *op, SlapReply *rs )
 					0, &tv, &res );
 
 			if ( rc == 0 ) {
-				/* timeout exceeded */
-
 				/* FIXME: res should not need to be freed */
 				assert( res == NULL );
 
@@ -514,7 +513,7 @@ really_bad:;
 							(char **)&candidates[ i ].sr_matched,
 							NULL /* (char **)&candidates[ i ].sr_text */ ,
 							&references,
-							&candidates[ i ].sr_ctrls, 1 ) )
+							&candidates[ i ].sr_ctrls, 1 ) != LDAP_SUCCESS )
 				{
 					res = NULL;
 					ldap_get_option( msc->msc_ld,
@@ -523,6 +522,7 @@ really_bad:;
 					sres = slap_map_api2result( rs );
 					goto really_bad;
 				}
+
 				rs->sr_err = candidates[ i ].sr_err;
 				sres = slap_map_api2result( rs );
 				res = NULL;
@@ -596,6 +596,15 @@ really_bad:;
 
 				rs->sr_err = candidates[ i ].sr_err;
 				sres = slap_map_api2result( rs );
+
+				snprintf( buf, sizeof( buf ),
+					"%s meta_back_search[%d] "
+					"match=\"%s\" err=%d\n",
+					op->o_log_prefix, i,
+					candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
+					candidates[ i ].sr_err );
+				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
+
 				switch ( sres ) {
 				case LDAP_NO_SUCH_OBJECT:
 					/* is_ok is touched any time a valid
@@ -613,15 +622,17 @@ really_bad:;
 				case LDAP_REFERRAL:
 					is_ok++;
 					break;
-				}
 
-				snprintf( buf, sizeof( buf ),
-					"%s meta_back_search[%d] "
-					"match=\"%s\" err=%d\n",
-					op->o_log_prefix, i,
-					candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
-					candidates[ i ].sr_err );
-				Debug( LDAP_DEBUG_ANY, "%s", buf, 0, 0 );
+				default:
+					if ( META_BACK_ONERR_STOP( mi ) ) {
+						savepriv = op->o_private;
+						op->o_private = (void *)i;
+						send_ldap_result( op, rs );
+						op->o_private = savepriv;
+						goto finish;
+					}
+					break;
+				}
 
 				last = i;
 				rc = 0;
@@ -772,6 +783,8 @@ finish:;
 			candidates[ i ].sr_ctrls = NULL;
 		}
 	}
+
+	meta_back_release_conn( op, mc );
 
 	return rc;
 }

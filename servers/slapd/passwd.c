@@ -510,8 +510,10 @@ static int slapd_crypt( const char *key, const char *salt, char **hash )
 		if ( hash ) {
 			*hash = ber_strdup( cr );
 			rc = LUTIL_PASSWD_OK;
+
+		} else {
+			rc = strcmp( salt, cr ) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 		}
-		rc = strcmp( salt, cr ) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );

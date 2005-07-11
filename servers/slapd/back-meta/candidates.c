@@ -103,9 +103,10 @@ meta_back_is_candidate_unique(
 /*
  * meta_back_select_unique_candidate
  *
- * returns the index of the candidate in case it is unique, otherwise -1
- * Note: dn MUST be normalized.
- * Note: if defined, the default candidate is returned in case of no match.
+ * returns the index of the candidate in case it is unique, otherwise
+ * META_TARGET_NONE if none matches, or
+ * META_TARGET_MULTIPLE if more than one matches
+ * Note: ndn MUST be normalized.
  */
 int
 meta_back_select_unique_candidate(

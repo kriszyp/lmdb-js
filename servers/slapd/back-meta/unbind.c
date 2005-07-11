@@ -24,9 +24,9 @@
 
 #include <stdio.h>
 
+#include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
-#include <ac/errno.h>
 
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
@@ -38,7 +38,7 @@ meta_back_conn_destroy(
 	Connection	*conn )
 {
 	metainfo_t	*mi = ( metainfo_t * )be->be_private;
-	metaconn_t *mc,
+	metaconn_t	*mc,
 			mc_curr = { 0 };
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -47,7 +47,17 @@ meta_back_conn_destroy(
 	
 	mc_curr.mc_conn = conn;
 	
-	ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
 	mc = avl_delete( &mi->mi_conntree, ( caddr_t )&mc_curr,
 			meta_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
@@ -59,16 +69,17 @@ meta_back_conn_destroy(
 			"=>meta_back_conn_destroy: destroying conn %ld\n",
 			mc->mc_conn->c_connid, 0, 0 );
 		
+		assert( mc->mc_refcnt == 0 );
+
 		/*
 		 * Cleanup rewrite session
 		 */
 		for ( i = 0; i < mi->mi_ntargets; ++i ) {
-			if ( mc->mc_conns[ i ].msc_ld == NULL ) {
-				continue;
-			}
-
 			rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
-			meta_clear_one_candidate( &mc->mc_conns[ i ] );
+
+			if ( mc->mc_conns[ i ].msc_ld != NULL ) {
+				meta_clear_one_candidate( &mc->mc_conns[ i ] );
+			}
 		}
 		meta_back_conn_free( mc );
 	}

@@ -2240,21 +2240,22 @@ syncinfo_free( syncinfo_t *sie )
 /* NOTE: used & documented in slapd.conf(5) */
 #define IDSTR			"rid"
 #define PROVIDERSTR		"provider"
+#define SCHEMASTR		"schemachecking"
+#define FILTERSTR		"filter"
+#define SEARCHBASESTR		"searchbase"
+#define SCOPESTR		"scope"
+#define ATTRSONLYSTR		"attrsonly"
+#define ATTRSSTR		"attrs"
 #define TYPESTR			"type"
 #define INTERVALSTR		"interval"
-#define SEARCHBASESTR		"searchbase"
-#define FILTERSTR		"filter"
-#define SCOPESTR		"scope"
-#define ATTRSSTR		"attrs"
-#define ATTRSONLYSTR		"attrsonly"
+#define RETRYSTR		"retry"
 #define SLIMITSTR		"sizelimit"
 #define TLIMITSTR		"timelimit"
-#define SCHEMASTR		"schemachecking"
 
 /* FIXME: undocumented */
 #define OLDAUTHCSTR		"bindprincipal"
 #define EXATTRSSTR		"exattrs"
-#define RETRYSTR		"retry"
+#define MANAGEDSAITSTR		"manageDSAit"
 
 /* FIXME: unused */
 #define LASTMODSTR		"lastmod"
@@ -2263,7 +2264,6 @@ syncinfo_free( syncinfo_t *sie )
 #define LMREQSTR		"req"
 #define SRVTABSTR		"srvtab"
 #define SUFFIXSTR		"suffix"
-#define MANAGEDSAITSTR		"manageDSAit"
 
 /* mandatory */
 #define GOT_ID			0x0001
@@ -2278,11 +2278,13 @@ static struct {
 } scopes[] = {
 	{ BER_BVC("base"), LDAP_SCOPE_BASE },
 	{ BER_BVC("one"), LDAP_SCOPE_ONELEVEL },
+	{ BER_BVC("onelevel"), LDAP_SCOPE_ONELEVEL },	/* OpenLDAP extension */
 #ifdef LDAP_SCOPE_SUBORDINATE
 	{ BER_BVC("children"), LDAP_SCOPE_SUBORDINATE },
-	{ BER_BVC("subordinate"), 0 },
+	{ BER_BVC("subordinate"), LDAP_SCOPE_SUBORDINATE },
 #endif
 	{ BER_BVC("sub"), LDAP_SCOPE_SUBTREE },
+	{ BER_BVC("subtree"), LDAP_SCOPE_SUBTREE },	/* OpenLDAP extension */
 	{ BER_BVNULL, 0 }
 };
 
@@ -2357,9 +2359,7 @@ parse_syncrepl_line(
 			int j;
 			val = cargv[ i ] + STRLENOF( SCOPESTR "=" );
 			for ( j=0; !BER_BVISNULL(&scopes[j].key); j++ ) {
-				if (!strncasecmp( val, scopes[j].key.bv_val,
-					scopes[j].key.bv_len )) {
-					while (!scopes[j].val) j--;
+				if (!strcasecmp( val, scopes[j].key.bv_val )) {
 					si->si_scope = scopes[j].val;
 					break;
 				}
@@ -2663,7 +2663,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 
 	bindconf_unparse( &si->si_bindconf, &bc );
 	ptr = buf;
-	ptr += sprintf( ptr, IDSTR "=%03d " PROVIDERSTR "=%s",
+	ptr += sprintf( ptr, IDSTR "=%03ld " PROVIDERSTR "=%s",
 		si->si_rid, si->si_provideruri.bv_val );
 	if ( !BER_BVISNULL( &bc )) {
 		ptr = lutil_strcopy( ptr, bc.bv_val );
@@ -2737,11 +2737,11 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		for (i=0; si->si_retryinterval[i]; i++) {
 			if ( space ) *ptr++ = ' ';
 			space = 1;
-			ptr += sprintf( ptr, "%d ", si->si_retryinterval[i] );
+			ptr += sprintf( ptr, "%ld ", (long) si->si_retryinterval[i] );
 			if ( si->si_retrynum_init[i] == -1 )
 				*ptr++ = '+';
 			else
-				ptr += sprintf( ptr, "%d", si->si_retrynum_init );
+				ptr += sprintf( ptr, "%d", si->si_retrynum_init[i] );
 		}
 		*ptr++ = '"';
 	}

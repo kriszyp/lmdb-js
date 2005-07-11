@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 
+#include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 
@@ -101,11 +102,30 @@ done:;
 
 	/* must re-insert if local DN changed as result of bind */
 	if ( lc->lc_bound && !dn_match( &op->o_req_ndn, &lc->lc_local_ndn ) ) {
-		int	lerr;
+		int		lerr;
 
-		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+		/* wait for all other ops to release the connection */
+retry_lock:;
+		switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+		case LDAP_PVT_THREAD_EBUSY:
+		default:
+			ldap_pvt_thread_yield();
+			goto retry_lock;
+
+		case 0:
+			if ( lc->lc_refcnt > 1 ) {
+				ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+				ldap_pvt_thread_yield();
+				goto retry_lock;
+			}
+			break;
+		}
+
+		assert( lc->lc_refcnt == 1 );
 		lc = avl_delete( &li->conntree, (caddr_t)lc,
 				ldap_back_conn_cmp );
+		assert( lc != NULL );
+
 		if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
 			ch_free( lc->lc_local_ndn.bv_val );
 		}
@@ -114,8 +134,14 @@ done:;
 			ldap_back_conn_cmp, ldap_back_conn_dup );
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		if ( lerr == -1 ) {
+			/* handle this! (e.g. wait until refcnt goes to 1...) */
 			ldap_back_conn_free( lc );
+			lc = NULL;
 		}
+	}
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, rs, lc );
 	}
 
 	return( rc );
@@ -212,14 +238,30 @@ int
 ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
+	int		rc = 0;
 
-	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
-	lc = avl_delete( &li->conntree, (caddr_t)lc,
-			ldap_back_conn_cmp );
-	ldap_back_conn_free( (void *)lc );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
+	assert( lc->lc_refcnt > 0 );
+	if ( --lc->lc_refcnt == 0 ) {
+		lc = avl_delete( &li->conntree, (caddr_t)lc,
+				ldap_back_conn_cmp );
+		assert( lc != NULL );
+
+		ldap_back_conn_free( (void *)lc );
+	}
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
-	return 0;
+	return rc;
 }
 
 static int
@@ -332,6 +374,9 @@ retry:;
 			ldap_unbind_ext_s( ld, NULL, NULL );
 			goto error_return;
 		}
+
+		/* in case Start TLS is not critical */
+		rs->sr_err = LDAP_SUCCESS;
 	}
 #endif /* HAVE_TLS */
 
@@ -340,6 +385,7 @@ retry:;
 		memset( *lcp, 0, sizeof( struct ldapconn ) );
 	}
 	(*lcp)->lc_ld = ld;
+	(*lcp)->lc_refcnt = 1;
 
 error_return:;
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -386,13 +432,26 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		lc_curr.lc_local_ndn = op->o_ndn;
 	}
 
-	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
 	lc = (struct ldapconn *)avl_find( li->conntree, 
 			(caddr_t)&lc_curr, ldap_back_conn_cmp );
+	if ( lc != NULL ) {
+		lc->lc_refcnt++;
+	}
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	/* Looks like we didn't get a bind. Open a new session... */
-	if ( !lc ) {
+	if ( lc == NULL ) {
 		/* lc here must be NULL */
 		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 			return NULL;
@@ -421,7 +480,18 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		lc->lc_bound = 0;
 
 		/* Inserts the newly created ldapconn in the avl tree */
-		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
+retry_lock2:;
+		switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+		case LDAP_PVT_THREAD_EBUSY:
+		default:
+			ldap_pvt_thread_yield();
+			goto retry_lock2;
+
+		case 0:
+			break;
+		}
+
+		assert( lc->lc_refcnt == 1 );
 		rs->sr_err = avl_insert( &li->conntree, (caddr_t)lc,
 			ldap_back_conn_cmp, ldap_back_conn_dup );
 
@@ -432,23 +502,51 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %p inserted\n", (void *) lc, 0, 0 );
+			"=>ldap_back_getconn: conn %p inserted (refcnt=%u)\n",
+			(void *)lc, lc->lc_refcnt, 0 );
 	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( rs->sr_err != 0 ) {
 			ldap_back_conn_free( lc );
+			rs->sr_err = LDAP_OTHER;
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
 				send_ldap_error( op, rs, LDAP_OTHER,
-				"internal server error" );
+					"internal server error" );
 			}
 			return NULL;
 		}
+
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"=>ldap_back_getconn: conn %p fetched\n", (void *) lc, 0, 0 );
+			"=>ldap_back_getconn: conn %p fetched (refcnt=%u)\n",
+			(void *)lc, lc->lc_refcnt, 0 );
 	}
 	
 	return lc;
+}
+
+void
+ldap_back_release_conn(
+	Operation		*op,
+	SlapReply		*rs,
+	struct ldapconn		*lc )
+{
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
+	assert( lc->lc_refcnt > 0 );
+	lc->lc_refcnt--;
+	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 }
 
 /*
@@ -464,7 +562,8 @@ ldap_back_dobind_int(
 	Operation		*op,
 	SlapReply		*rs,
 	ldap_back_send_t	sendok,
-	int			retries )
+	int			retries,
+	int			dolock )
 {	
 	int		rc;
 	ber_int_t	msgid;
@@ -498,7 +597,6 @@ ldap_back_dobind_int(
 		 */
 		if ( op->o_conn != NULL &&
 				!op->o_do_not_cache &&
-				!be_isroot( op ) &&
 				( BER_BVISNULL( &lc->lc_bound_ndn ) ||
 				  ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) ) )
 		{
@@ -559,16 +657,34 @@ retry:;
 
 		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 			if ( retries > 0 ) {
-				ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
-				lc->lc_ld = NULL;
+				if ( dolock ) {
+retry_lock:;
+					switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+					case LDAP_PVT_THREAD_EBUSY:
+					default:
+						ldap_pvt_thread_yield();
+						goto retry_lock;
 
-				/* lc here must be the regular lc, reset and ready for init */
-				if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
-					return 0;
+					case 0:
+						break;
+					}
 				}
 
-				retries--;
-				goto retry;
+				assert( lc->lc_refcnt > 0 );
+				if ( lc->lc_refcnt == 1 ) {
+					ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+					lc->lc_ld = NULL;
+
+					/* lc here must be the regular lc, reset and ready for init */
+					rs->sr_err = ldap_back_prepare_conn( &lc, op, rs, sendok );
+				}
+				if ( dolock ) {
+					ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+				}
+				if ( rs->sr_err == LDAP_SUCCESS ) {
+					retries--;
+					goto retry;
+				}
 			}
 
 			ldap_back_freeconn( op, lc );
@@ -594,7 +710,7 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_s
 	int	rc;
 
 	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
-	rc = ldap_back_dobind_int( lc, op, rs, sendok, 1 );
+	rc = ldap_back_dobind_int( lc, op, rs, sendok, 1, 1 );
 	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 
 	return rc;
@@ -710,19 +826,35 @@ retry:;
 int
 ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
-	int	rc;
+	int		rc = 0;
+	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
+	
+retry_lock:;
+	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
 
-	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
-	ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
-	lc->lc_ld = NULL;
-	lc->lc_bound = 0;
-
-	/* lc here must be the regular lc, reset and ready for init */
-	rc = ldap_back_prepare_conn( &lc, op, rs, sendok );
-	if ( rc == LDAP_SUCCESS ) {
-		rc = ldap_back_dobind_int( lc, op, rs, sendok, 0 );
+	case 0:
+		break;
 	}
-	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
+
+	if ( lc->lc_refcnt == 1 ) {
+		ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
+		ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+		lc->lc_ld = NULL;
+		lc->lc_bound = 0;
+
+		/* lc here must be the regular lc, reset and ready for init */
+		rc = ldap_back_prepare_conn( &lc, op, rs, sendok );
+		if ( rc == LDAP_SUCCESS ) {
+			rc = ldap_back_dobind_int( lc, op, rs, sendok, 0, 0 );
+		}
+		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
+	}
+
+	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	return rc;
 }
@@ -773,19 +905,30 @@ ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 		break;
 
 	default:
-		if ( li->idassert_authz ) {
+		/* NOTE: rootdn can always idassert */
+		if ( li->idassert_authz && !be_isroot( op ) ) {
 			struct berval authcDN;
 
 			if ( BER_BVISNULL( &op->o_conn->c_ndn ) ) {
 				authcDN = slap_empty_bv;
+
 			} else {
 				authcDN = op->o_conn->c_ndn;
 			}	
 			rs->sr_err = slap_sasl_matches( op, li->idassert_authz,
 					&authcDN, &authcDN );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
-				send_ldap_result( op, rs );
-				lc->lc_bound = 0;
+				if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+					send_ldap_result( op, rs );
+					lc->lc_bound = 0;
+
+				} else {
+					rs->sr_err = LDAP_SUCCESS;
+					binddn = slap_empty_bv;
+					bindcred = slap_empty_bv;
+					break;
+				}
+
 				goto done;
 			}
 		}
@@ -998,7 +1141,7 @@ ldap_back_proxy_authz_ctrl(
 			goto done;
 		}
 
-	} else if ( li->idassert_authz ) {
+	} else if ( li->idassert_authz && !be_isroot( op ) ) {
 		int		rc;
 		struct berval authcDN;
 
@@ -1010,9 +1153,12 @@ ldap_back_proxy_authz_ctrl(
 		rc = slap_sasl_matches( op, li->idassert_authz,
 				&authcDN, & authcDN );
 		if ( rc != LDAP_SUCCESS ) {
-			/* op->o_conn->c_ndn is not authorized
-			 * to use idassert */
-			return rc;
+			if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+				/* op->o_conn->c_ndn is not authorized
+				 * to use idassert */
+				return rc;
+			}
+			return rs->sr_err;
 		}
 	}
 

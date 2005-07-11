@@ -450,15 +450,9 @@ rwm_int_filter_map_rewrite(
 			vtmp,
 			tmp;
 	static struct berval
-#if 0
-			ber_bvfalse = BER_BVC( "(?=false)" ),
-#endif
 			/* better than nothing... */
 			ber_bvfalse = BER_BVC( "(!(objectClass=*))" ),
 			ber_bvtf_false = BER_BVC( "(|)" ),
-#if 0
-			ber_bvtrue = BER_BVC( "(?=true)" ),
-#endif
 			/* better than nothing... */
 			ber_bvtrue = BER_BVC( "(objectClass=*)" ),
 			ber_bvtf_true = BER_BVC( "(&)" ),
@@ -678,9 +672,12 @@ rwm_int_filter_map_rewrite(
 		case LDAP_COMPARE_FALSE:
 			if ( dc->rwmap->rwm_flags & RWM_F_SUPPORT_T_F ) {
 				tmp = ber_bvtf_false;
-			} else {
-				tmp = ber_bvfalse;
+				break;
 			}
+			/* fallthru */
+
+		case SLAPD_COMPARE_UNDEFINED:
+			tmp = ber_bvfalse;
 			break;
 
 		case LDAP_COMPARE_TRUE:
@@ -689,10 +686,6 @@ rwm_int_filter_map_rewrite(
 			} else {
 				tmp = ber_bvtrue;
 			}
-			break;
-			
-		case SLAPD_COMPARE_UNDEFINED:
-			tmp = ber_bvundefined;
 			break;
 			
 		default:

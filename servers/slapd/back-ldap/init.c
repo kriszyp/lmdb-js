@@ -108,7 +108,7 @@ ldap_back_db_init( Backend *be )
 	li->idassert_sb.sb_tls = SB_TLS_DEFAULT;
 
 	/* by default, use proxyAuthz control on each operation */
-	li->idassert_flags = LDAP_BACK_AUTH_NONE;
+	li->idassert_flags = LDAP_BACK_AUTH_PRESCRIPTIVE;
 
 	li->idassert_authz = NULL;
 
@@ -202,8 +202,10 @@ void
 ldap_back_conn_free( void *v_lc )
 {
 	struct ldapconn	*lc = v_lc;
-	
-	ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+
+	if ( lc->lc_ld != NULL ) {	
+		ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+	}
 	if ( !BER_BVISNULL( &lc->lc_bound_ndn ) ) {
 		ch_free( lc->lc_bound_ndn.bv_val );
 	}

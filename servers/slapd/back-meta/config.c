@@ -351,14 +351,33 @@ meta_back_db_config(
 		
 	/* save bind creds for referral rebinds? */
 	} else if ( strcasecmp( argv[ 0 ], "rebind-as-user" ) == 0 ) {
-		if (argc != 1) {
+		if ( argc > 2 ) {
 			fprintf( stderr,
-	"%s: line %d: rebind-as-user takes no arguments\n",
+	"%s: line %d: \"rebind-as-user {NO|yes}\" takes 1 argument.\n",
 			    fname, lineno );
 			return( 1 );
 		}
 
-		mi->flags |= LDAP_BACK_F_SAVECRED;
+		if ( argc == 1 ) {
+			fprintf( stderr,
+	"%s: line %d: deprecated use of \"rebind-as-user {NO|yes}\" with no arguments.\n",
+			    fname, lineno );
+			mi->flags |= LDAP_BACK_F_SAVECRED;
+
+		} else {
+			if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+				mi->flags &= ~LDAP_BACK_F_SAVECRED;
+
+			} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+				mi->flags |= LDAP_BACK_F_SAVECRED;
+
+			} else {
+				fprintf( stderr,
+	"%s: line %d: \"rebind-as-user {NO|yes}\" unknown argument \"%s\".\n",
+				    fname, lineno, argv[ 1 ] );
+				return 1;
+			}
+		}
 
 	} else if ( strcasecmp( argv[ 0 ], "chase-referrals" ) == 0 ) {
 		unsigned	*flagsp = mi->mi_ntargets ?
@@ -381,7 +400,7 @@ meta_back_db_config(
 
 		} else {
 			fprintf( stderr,
-		"%s: line %d: \"chase-referrals {yes|no}\": unknown argument \"%s\".\n",
+		"%s: line %d: \"chase-referrals {YES|no}\": unknown argument \"%s\".\n",
 					fname, lineno, argv[ 1 ] );
 			return( 1 );
 		}
@@ -430,7 +449,7 @@ meta_back_db_config(
 
 		if ( argc != 2 ) {
 			fprintf( stderr,
-		"%s: line %d: \"t-f-support {no|yes|discover}\" needs 1 argument.\n",
+		"%s: line %d: \"t-f-support {NO|yes|discover}\" needs 1 argument.\n",
 					fname, lineno );
 			return( 1 );
 		}
@@ -447,6 +466,28 @@ meta_back_db_config(
 		} else {
 			fprintf( stderr,
 	"%s: line %d: unknown value \"%s\" for \"t-f-support {no|yes|discover}\".\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
+	/* onerr? */
+	} else if ( strcasecmp( argv[ 0 ], "onerr" ) == 0 ) {
+		if ( argc != 2 ) {
+			fprintf( stderr,
+	"%s: line %d: \"onerr {CONTINUE|stop}\" takes 1 argument\n",
+			    fname, lineno );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[ 1 ], "continue" ) == 0 ) {
+			mi->flags &= ~META_BACK_F_ONERR_STOP;
+
+		} else if ( strcasecmp( argv[ 1 ], "stop" ) == 0 ) {
+			mi->flags |= META_BACK_F_ONERR_STOP;
+
+		} else {
+			fprintf( stderr,
+	"%s: line %d: \"onerr {CONTINUE|stop}\": invalid arg \"%s\".\n",
 				fname, lineno, argv[ 1 ] );
 			return 1;
 		}

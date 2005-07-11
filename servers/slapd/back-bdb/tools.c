@@ -35,7 +35,7 @@ static dn_id hbuf[HOLE_SIZE], *holes = hbuf;
 static unsigned nhmax = HOLE_SIZE;
 static unsigned nholes;
 
-Avlnode *index_attrs, index_dummy;
+static Avlnode *index_attrs, index_dummy;
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )

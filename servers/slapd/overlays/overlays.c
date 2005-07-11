@@ -47,6 +47,9 @@ extern int pcache_init();
 #if SLAPD_OVER_REFINT == SLAPD_MOD_STATIC
 extern int refint_init();
 #endif
+#if SLAPD_OVER_RETCODE == SLAPD_MOD_STATIC
+extern int retcode_init();
+#endif
 #if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
 extern int rwm_init();
 #endif
@@ -87,6 +90,9 @@ static struct {
 #endif
 #if SLAPD_OVER_REFINT == SLAPD_MOD_STATIC
 	{ "Referential Integrity", refint_init },
+#endif
+#if SLAPD_OVER_RETCODE == SLAPD_MOD_STATIC
+	{ "Return Code", retcode_init },
 #endif
 #if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
 	{ "Rewrite/Remap", rwm_init },

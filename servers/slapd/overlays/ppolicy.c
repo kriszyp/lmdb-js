@@ -228,6 +228,9 @@ account_locked( Operation *op, Entry *e,
 			struct berval bv;
 			Modifications *m;
 
+			if (!pp->pwdLockoutDuration)
+				return 1;
+
 			if ((then = parse_time( vals[0].bv_val )) == (time_t)0)
 				return 1;
 
@@ -413,12 +416,9 @@ password_scheme( struct berval *cred, struct berval *sch )
 
 	for(e = 1; cred->bv_val[e] && cred->bv_val[e] != '}'; e++);
 	if (cred->bv_val[e]) {
-		char *sc = ch_calloc( sizeof(char), e + 2);
-		sc[e + 1] = '\0'; /* terminate string */
-		strncpy( sc, cred->bv_val, e + 1);
-		e = lutil_passwd_scheme( sc );
-		free( sc );
-		if (e && sch) {
+		int rc;
+		rc = lutil_passwd_scheme( cred->bv_val );
+		if (rc && sch) {
 			sch->bv_val = cred->bv_val;
 			sch->bv_len = e;
 			return LDAP_SUCCESS;
@@ -625,9 +625,9 @@ make_pwd_history_value( char *timebuf, struct berval *bv, Attribute *pa )
 	int nlen;
 
 	snprintf( str, MAX_PWD_HISTORY_SZ,
-		  "%s#%s#%d#", timebuf,
+		  "%s#%s#%lu#", timebuf,
 		  pa->a_desc->ad_type->sat_syntax->ssyn_oid,
-		  pa->a_nvals[0].bv_len );
+		  (unsigned long) pa->a_nvals[0].bv_len );
 	str[MAX_PWD_HISTORY_SZ-1] = 0;
 	nlen = strlen(str);
 

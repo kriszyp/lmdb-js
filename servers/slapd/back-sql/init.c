@@ -39,9 +39,9 @@ sql_back_initialize(
 #if 0 /* needs improvements */
 		LDAP_CONTROL_NOOP,
 #endif
-#ifdef LDAP_CONTROL_X_TREE_DELETE
-		LDAP_CONTROL_X_TREE_DELETE,
-#endif /* LDAP_CONTROL_X_TREE_DELETE */
+#ifdef SLAP_CONTROL_X_TREE_DELETE
+		SLAP_CONTROL_X_TREE_DELETE,
+#endif /* SLAP_CONTROL_X_TREE_DELETE */
 		NULL
 	};
 

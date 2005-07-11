@@ -50,6 +50,7 @@ extern BI_entry_get_rw		ldap_back_entry_get;
 
 int ldap_back_freeconn( Operation *op, struct ldapconn *lc );
 struct ldapconn *ldap_back_getconn(struct slap_op *op, struct slap_rep *rs, ldap_back_send_t sendok);
+void ldap_back_release_conn( struct slap_op *op, struct slap_rep *rs, struct ldapconn *lc );
 int ldap_back_dobind(struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok);
 int ldap_back_retry(struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok);
 int ldap_back_map_result(SlapReply *rs);

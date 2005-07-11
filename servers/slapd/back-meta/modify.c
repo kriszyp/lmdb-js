@@ -195,11 +195,15 @@ cleanup:;
 	free( modv );
 
 	if ( rc != -1 ) {
-		return meta_back_op_result( mc, op, rs, candidate );
-	}
-	
-	send_ldap_result( op, rs );
+		rc = meta_back_op_result( mc, op, rs, candidate );
 
-	return rs->sr_err;
+	} else {
+		send_ldap_result( op, rs );
+		rc = 0;
+	}
+
+	meta_back_release_conn( op, mc );
+
+	return rc;
 }
 

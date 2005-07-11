@@ -228,6 +228,32 @@ cleanup_attr:;
 	return SLAP_CB_CONTINUE;
 }
 
+#ifdef ENABLE_REWRITE
+static int
+rwm_conn_init( BackendDB *be, Connection *conn )
+{
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	( void )rewrite_session_init( rwmap->rwm_rw, conn );
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+rwm_conn_destroy( BackendDB *be, Connection *conn )
+{
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	( void )rewrite_session_delete( rwmap->rwm_rw, conn );
+
+	return SLAP_CB_CONTINUE;
+}
+#endif /* ENABLE_REWRITE */
+
 static int
 rwm_op_bind( Operation *op, SlapReply *rs )
 {
@@ -237,9 +263,6 @@ rwm_op_bind( Operation *op, SlapReply *rs )
 	int			rc;
 
 #ifdef ENABLE_REWRITE
-	( void )rewrite_session_delete( rwmap->rwm_rw, op->o_conn );
-	( void )rewrite_session_init( rwmap->rwm_rw, op->o_conn );
-
 	rc = rwm_op_dn_massage( op, rs, "bindDN" );
 #else /* ! ENABLE_REWRITE */
 	rc = 1;
@@ -583,6 +606,36 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+static slap_callback	rwm_cb;
+
+static void
+rwm_keyfree(
+	void		*key,
+	void		*data )
+{
+	ber_memfree_x( data, NULL );
+}
+
+static slap_callback *
+rwm_callback_get( Operation *op )
+{
+	void		*data = NULL;
+
+	if ( op->o_threadctx == NULL ) {
+		return &rwm_cb;
+	}
+
+	ldap_pvt_thread_pool_getkey( op->o_threadctx,
+			rwm_keyfree, &data, NULL );
+	if ( data == NULL ) {
+		data = ch_calloc( sizeof( slap_callback ), 1 );
+		ldap_pvt_thread_pool_setkey( op->o_threadctx,
+				rwm_keyfree, data, rwm_keyfree );
+	}
+
+	return (slap_callback *)data;
+}
+
 static int
 rwm_swap_attrs( Operation *op, SlapReply *rs )
 {
@@ -591,18 +644,6 @@ rwm_swap_attrs( Operation *op, SlapReply *rs )
 
 	rs->sr_attrs = an;
 	
-	return SLAP_CB_CONTINUE;
-}
-
-static int rwm_freeself( Operation *op, SlapReply *rs )
-{
-	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_RESULT ) {
-		assert( op->o_callback );
-
-		op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
-		op->o_callback = NULL;
-	}
-
 	return SLAP_CB_CONTINUE;
 }
 
@@ -619,7 +660,7 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	struct berval		fstr = BER_BVNULL;
 	Filter			*f = NULL;
 
-	slap_callback		*cb;
+	slap_callback		*cb = NULL;
 	AttributeName		*an = NULL;
 
 	char			*text = NULL;
@@ -679,15 +720,10 @@ rwm_op_search( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	cb = (slap_callback *) op->o_tmpcalloc( sizeof( slap_callback ),
-			1, op->o_tmpmemctx );
-	if ( cb == NULL ) {
-		rc = LDAP_NO_MEMORY;
-		goto error_return;
-	}
+	cb = rwm_callback_get( op );
 
 	cb->sc_response = rwm_swap_attrs;
-	cb->sc_cleanup = rwm_freeself;
+	cb->sc_cleanup = NULL;
 	cb->sc_private = (void *)op->ors_attrs;
 	cb->sc_next = op->o_callback;
 
@@ -1481,6 +1517,11 @@ rwm_init(void)
 
 	rwm.on_bi.bi_operational = rwm_operational;
 	rwm.on_bi.bi_chk_referrals = 0 /* rwm_chk_referrals */ ;
+
+#ifdef ENABLE_REWRITE
+	rwm.on_bi.bi_connection_init = rwm_conn_init;
+	rwm.on_bi.bi_connection_destroy = rwm_conn_destroy;
+#endif /* ENABLE_REWRITE */
 
 	rwm.on_response = rwm_response;
 

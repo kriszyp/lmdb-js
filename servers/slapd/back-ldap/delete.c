@@ -45,8 +45,7 @@ ldap_back_delete(
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
-		rc = -1;
-		goto cleanup;
+		return -1;
 	}
 
 	ctrls = op->o_ctrls;
@@ -70,6 +69,10 @@ retry:
 
 cleanup:
 	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
+
+	if ( lc != NULL ) {
+		ldap_back_release_conn( op, rs, lc );
+	}
 
 	return rc;
 }
