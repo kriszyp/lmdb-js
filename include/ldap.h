@@ -1959,7 +1959,7 @@ ldap_parse_vlv_control LDAP_P((
  * LDAP Transactions
  *	in txn.c
  */
-#ifdef LDAP_GROUPING_TRANSACTION
+#ifdef LDAP_GROUP_TRANSACTION
 LDAP_F( int )
 ldap_parse_txn_create LDAP_P((
 	LDAP *ld,
