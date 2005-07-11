@@ -225,7 +225,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	LDAPMod		**modv = NULL;
 #endif
 	int		increment = op->orm_increment;
-	int		rc = 0;
 	BackendDB *op_be;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
 	size_t		textlen = sizeof( textbuf );

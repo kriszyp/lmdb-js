@@ -99,7 +99,7 @@ slap_sl_mem_create(
 	ber_len_t size_shift;
 	int pad = 2*sizeof(int)-1, pad_shift;
 	int order = -1, order_start = -1, order_end = -1;
-	int i, k;
+	int i;
 	struct slab_object *so;
 
 #ifdef NO_THREADS
@@ -247,7 +247,7 @@ slap_sl_malloc(
 	struct slab_object *so_new, *so_left, *so_right;
 	ber_len_t *ptr, *new;
 	unsigned long diff;
-	int i, j, k;
+	int i, j;
 
 	/* ber_set_option calls us like this */
 	if (!ctx) return ber_memalloc_x(size, NULL);
@@ -347,12 +347,8 @@ void *
 slap_sl_realloc(void *ptr, ber_len_t size, void *ctx)
 {
 	struct slab_heap *sh = ctx;
-	int size_shift;
-	int pad = 2*sizeof(int)-1, pad_shift;
-	int order_start = -1, order = -1;
-	struct slab_object *so;
+	int pad = 2*sizeof(int) -1;
 	ber_len_t *p = (ber_len_t *)ptr, *new;
-	unsigned long diff;
 
 	if (ptr == NULL)
 		return slap_sl_malloc(size, ctx);
@@ -420,7 +416,7 @@ slap_sl_free(void *ptr, void *ctx)
 	int order_start = -1, order = -1;
 	struct slab_object *so;
 	unsigned long diff;
-	int i, k, inserted = 0;
+	int i, inserted = 0;
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);

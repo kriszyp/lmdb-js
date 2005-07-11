@@ -253,7 +253,6 @@ int
 slap_controls_init( void )
 {
 	int i, rc;
-	struct slap_control *sc;
 
 	rc = LDAP_SUCCESS;
 
@@ -326,10 +325,9 @@ int
 get_supported_controls(char ***ctrloidsp,
 	slap_mask_t **ctrlmasks)
 {
-	int i, n;
+	int n;
 	char **oids;
 	slap_mask_t *masks;
-	int rc;
 	struct slap_control *sc;
 
 	n = 0;
@@ -1026,7 +1024,6 @@ static int parseAssert (
 {
 	BerElement	*ber;
 	struct berval	fstr = BER_BVNULL;
-	const char *err_msg = "";
 
 	if ( op->o_assert != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "assert control specified multiple times";
@@ -1199,7 +1196,6 @@ int parseValuesReturnFilter (
 {
 	BerElement	*ber;
 	struct berval	fstr = BER_BVNULL;
-	const char *err_msg = "";
 
 	if ( op->o_valuesreturnfilter != SLAP_CONTROL_NONE ) {
 		rs->sr_text = "valuesReturnFilter control specified multiple times";

@@ -63,8 +63,6 @@ void slap_op_destroy(void)
 void
 slap_op_free( Operation *op )
 {
-	struct berval slap_empty_bv_dup;
-
 	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
 
 	if ( op->o_ber != NULL ) {
@@ -124,7 +122,6 @@ slap_op_alloc(
 )
 {
 	Operation	*op;
-	struct berval slap_empty_bv_dup;
 
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	if ((op = LDAP_STAILQ_FIRST( &slap_free_ops ))) {

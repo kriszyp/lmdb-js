@@ -25,7 +25,6 @@
 int
 starttls_extop ( Operation *op, SlapReply *rs )
 {
-	void *ctx;
 	int rc;
 
 	if ( op->ore_reqdata != NULL ) {

@@ -331,7 +331,6 @@ int backend_num( Backend *be )
 
 int backend_shutdown( Backend *be )
 {
-	int i;
 	int rc = 0;
 	BackendInfo *bi;
 
@@ -433,7 +432,6 @@ void backend_destroy_one( BackendDB *bd )
 
 int backend_destroy(void)
 {
-	int i;
 	BackendDB *bd;
 	BackendInfo *bi;
 
@@ -540,7 +538,6 @@ void
 be_db_close( void )
 {
 	BackendDB *be;
-	int	i;
 
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->bd_info->bi_db_close ) {
@@ -560,7 +557,7 @@ select_backend(
 	int manageDSAit,
 	int noSubs )
 {
-	int		i, j;
+	int		j;
 	ber_len_t	len, dnlen = dn->bv_len;
 	Backend		*be, *b2 = NULL;
 

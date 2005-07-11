@@ -646,7 +646,6 @@ bdb_db_close( BackendDB *be )
 static int
 bdb_db_destroy( BackendDB *be )
 {
-	int rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	if( bdb->bi_dbenv_home ) ch_free( bdb->bi_dbenv_home );

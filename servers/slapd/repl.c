@@ -126,8 +126,6 @@ replog1( struct slap_replica_info *ri, Operation *op, FILE *fp, long now);
 void
 replog( Operation *op )
 {
-	Modifications	*ml = NULL;
-	Attribute	*a = NULL;
 	FILE	*fp, *lfp;
 	int	i;
 /* undef NO_LOG_WHEN_NO_REPLICAS */
@@ -278,7 +276,7 @@ replog1(
 
 	case LDAP_REQ_MODIFY:
 		for ( ml = op->orm_modlist; ml != NULL; ml = ml->sml_next ) {
-			char *did, *type = ml->sml_desc->ad_cname.bv_val;
+			char *did = NULL, *type = ml->sml_desc->ad_cname.bv_val;
 			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
 				did = "add"; break;

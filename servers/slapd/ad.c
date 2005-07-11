@@ -510,7 +510,6 @@ int ad_inlist(
 	for( ; attrs->an_name.bv_val; attrs++ ) {
 		AttributeType *a;
 		ObjectClass *oc;
-		int rc;
 		
 		if ( attrs->an_desc ) {
 			int lr;
@@ -584,8 +583,6 @@ int ad_inlist(
 		}
 		if( oc != NULL ) {
 			if ( attrs->an_oc_exclude ) {
-				int gotit = 0;
-
 				if ( oc == slap_schema.si_oc_extensibleObject ) {
 					/* extensibleObject allows the return of anything */
 					return 0;

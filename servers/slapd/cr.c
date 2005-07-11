@@ -412,7 +412,7 @@ cr_unparse( BerVarray *res, ContentRule *start, ContentRule *end, int sys )
 	ContentRule *cr;
 	int i, num;
 	struct berval bv, *bva = NULL, idx;
-	char ibuf[32], *ptr;
+	char ibuf[32];
 
 	if ( !start )
 		start = LDAP_STAILQ_FIRST( &cr_list );

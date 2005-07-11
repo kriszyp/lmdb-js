@@ -70,7 +70,6 @@ str2entry2( char *s, int checkvals )
 {
 	int rc;
 	Entry		*e;
-	struct berval	*nvalsp;
 	struct berval	*type, *vals, *nvals;
 	char 	*freeval;
 	AttributeDescription *ad, *ad_prev;

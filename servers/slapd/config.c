@@ -241,7 +241,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 
 int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 	int rc, arg_type;
-	void *ptr;
+	void *ptr = NULL;
 
 	arg_type = Conf->arg_type;
 	if(arg_type & ARG_MAGIC) {
@@ -1085,7 +1085,7 @@ fp_parse_line(ConfigArgs *c)
 	char *token;
 	char *hide[] = { "rootpw", "replica", "bindpw", "pseudorootpw", "dbpasswd", '\0' };
 	char *quote_ptr;
-	int i;
+	int i = -1;
 
 	c->tline = ch_strdup(c->line);
 	token = strtok_quote(c->tline, " \t", &quote_ptr);

@@ -404,7 +404,7 @@ octetStringSubstringsIndexer(
 	BerVarray *keysp,
 	void *ctx )
 {
-	ber_len_t i, j, len, nkeys;
+	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	BerVarray keys;
 
@@ -521,7 +521,7 @@ octetStringSubstringsFilter (
 {
 	SubstringsAssertion *sa;
 	char pre;
-	ber_len_t len, max, nkeys = 0;
+	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	BerVarray keys;
 	HASH_CONTEXT HASHcontext;
@@ -2362,7 +2362,6 @@ serialNumberAndIssuerValidate(
 	struct berval *in )
 {
 	int rc;
-	int state;
 	ber_len_t n;
 	struct berval sn, i;
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
@@ -2396,7 +2395,6 @@ serialNumberAndIssuerPretty(
 	void *ctx )
 {
 	int rc;
-	int state;
 	ber_len_t n;
 	struct berval sn, i, newi;
 
@@ -2471,7 +2469,6 @@ serialNumberAndIssuerNormalize(
 	void *ctx )
 {
 	int rc;
-	int state;
 	ber_len_t n;
 	struct berval sn, i, newi;
 
@@ -2900,7 +2897,6 @@ int generalizedTimeIndexer(
 	void *ctx )
 {
 	int i, j;
-	size_t slen, mlen;
 	BerVarray keys;
 	char tmp[5];
 	BerValue bvtmp; /* 40 bit index */
