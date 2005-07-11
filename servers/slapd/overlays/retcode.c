@@ -1,5 +1,5 @@
 /* retcode.c - customizable response for client testing purposes */
-/* $Header$ */
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 2005 The OpenLDAP Foundation.
@@ -360,8 +360,7 @@ retcode_op_func( Operation *op, SlapReply *rs )
 
 			if ( rdi->rdi_ref != NULL ) {
 				ref = rdi->rdi_ref;
-
-			} else if ( default_referral != NULL ) {
+			} else {
 				ref = default_referral;
 			}
 
