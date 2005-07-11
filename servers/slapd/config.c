@@ -78,9 +78,6 @@ static int fp_parse_line(ConfigArgs *c);
 
 static char	*strtok_quote(char *line, char *sep, char **quote_ptr);
 
-int read_config_file(const char *fname, int depth, ConfigArgs *cf,
-	ConfigTable *cft );
-
 ConfigArgs *
 new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **argv )
 {

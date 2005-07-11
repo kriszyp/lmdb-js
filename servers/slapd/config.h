@@ -154,8 +154,18 @@ typedef struct config_args_s {
 #define value_ndn values.v_dn.vdn_ndn
 
 int config_register_schema(ConfigTable *ct, ConfigOCs *co);
+int config_del_vals(ConfigTable *cf, ConfigArgs *c);
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);
 int config_add_vals(ConfigTable *ct, ConfigArgs *c);
+
+void init_config_argv( ConfigArgs *c );
+int init_config_attrs(ConfigTable *ct);
+int init_config_ocs( ConfigOCs *ocs );
+int config_parse_vals(ConfigTable *ct, ConfigArgs *c, int valx);
+int config_parse_add(ConfigTable *ct, ConfigArgs *c);
+int read_config_file(const char *fname, int depth, ConfigArgs *cf,
+	ConfigTable *cft );
+
 ConfigTable * config_find_keyword(ConfigTable *ct, ConfigArgs *c);
 Entry * config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 	ConfigArgs *c, struct berval *rdn, ConfigOCs *main, ConfigOCs *extra );
