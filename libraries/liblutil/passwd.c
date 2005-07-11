@@ -778,9 +778,7 @@ static int chk_crypt(
 	const struct berval * cred,
 	const char **text )
 {
-	char *cr;
 	unsigned int i;
-	int rc;
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {
@@ -817,7 +815,7 @@ static int chk_unix(
 	const char **text )
 {
 	unsigned int i;
-	char *pw,*cr;
+	char *pw;
 
 	for( i=0; i<cred->bv_len; i++) {
 		if(cred->bv_val[i] == '\0') {

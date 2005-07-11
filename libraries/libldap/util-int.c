@@ -463,7 +463,7 @@ static int copy_hostent(
 	int	n_alias=0;
 	int	total_alias_len=0;
 	int	n_addr=0;
-	int	total_addr_len;
+	int	total_addr_len=0;
 	int	total_len;
 	  
 	/* calculate the size needed for the buffer */

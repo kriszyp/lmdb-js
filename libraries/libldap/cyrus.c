@@ -207,7 +207,7 @@ sb_sasl_pkt_length( const unsigned char *buf, int debuglevel )
 		| buf[1] << 16
 		| buf[2] << 8
 		| buf[3];
-   
+
 	if ( size > SASL_MAX_BUFF_SIZE ) {
 		/* somebody is trying to mess me up. */
 		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
@@ -895,7 +895,7 @@ void ldap_pvt_sasl_secprops_unparse(
 	comma = 0;
 	for ( i=0; !BER_BVISNULL( &sprops[i].key ); i++ ) {
 		if ( sprops[i].ival ) {
-			int v;
+			int v = 0;
 
 			switch( sprops[i].ival ) {
 			case GOT_MINSSF: v = secprops->min_ssf; break;
@@ -928,7 +928,7 @@ void ldap_pvt_sasl_secprops_unparse(
 	comma = 0;
 	for ( i=0; !BER_BVISNULL( &sprops[i].key ); i++ ) {
 		if ( sprops[i].ival ) {
-			int v;
+			int v = 0;
 
 			switch( sprops[i].ival ) {
 			case GOT_MINSSF: v = secprops->min_ssf; break;

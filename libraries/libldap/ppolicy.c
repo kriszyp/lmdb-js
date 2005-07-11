@@ -130,7 +130,7 @@ ldap_parse_passwordpolicy_control(
         LDAPPasswordPolicyError *errorp )
 {
 	BerElement  *ber;
-	int i, exp = -1, grace = -1;
+	int exp = -1, grace = -1;
 	ber_tag_t tag;
 	ber_len_t berLen;
         char *last;
