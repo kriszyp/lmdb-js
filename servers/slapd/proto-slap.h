@@ -206,6 +206,10 @@ LDAP_SLAPD_F (void) at_unparse LDAP_P((
 LDAP_SLAPD_F (void) attr_free LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 
+#ifdef LDAP_COMP_MATCH
+LDAP_SLAPD_F (void) comp_tree_free LDAP_P(( Attribute *a ));
+#endif
+
 #define attr_mergeit( e, d, v ) attr_merge( e, d, v, NULL /* FIXME */ )
 #define attr_mergeit_one( e, d, v ) attr_merge_one( e, d, v, NULL /* FIXME */ )
 
@@ -381,16 +385,47 @@ LDAP_SLAPD_F (void) ch_free LDAP_P(( void * ));
  * component.c
  */
 #ifdef LDAP_COMP_MATCH
+struct comp_attribute_aliasing;
+
 LDAP_SLAPD_F (int) test_comp_filter_entry LDAP_P((
 	Operation* op,
 	Entry* e,
 	MatchingRuleAssertion* mr));
+
+LDAP_SLAPD_F (int) dup_comp_filter LDAP_P((
+	Operation* op,
+	struct berval *bv,
+	ComponentFilter *in_f,
+	ComponentFilter **out_f ));
+
+LDAP_SLAPD_F (int) get_aliased_filter_aa LDAP_P((
+	Operation* op,
+	AttributeAssertion* a_assert,
+	struct comp_attribute_aliasing* aa,
+	const char** text ));
+
+LDAP_SLAPD_F (int) get_aliased_filter LDAP_P((
+	Operation* op,
+	MatchingRuleAssertion* ma,
+	struct comp_attribute_aliasing* aa,
+	const char** text ));
 
 LDAP_SLAPD_F (int) get_comp_filter LDAP_P((
 	Operation* op,
 	BerValue* bv,
 	ComponentFilter** filt,
 	const char **text ));
+
+LDAP_SLAPD_F (int) insert_component_reference LDAP_P((
+	ComponentReference *cr,
+	ComponentReference** cr_list ));
+
+LDAP_SLAPD_F (int) is_component_reference LDAP_P((
+	char *attr ));
+
+LDAP_SLAPD_F (int) extract_component_reference LDAP_P((
+	char* attr,
+	ComponentReference** cr ));
 
 LDAP_SLAPD_F (int) componentFilterMatch LDAP_P(( 
 	int *matchp, 
@@ -415,6 +450,10 @@ LDAP_SLAPD_F (int) allComponentsMatch LDAP_P((
         MatchingRule *mr,
         struct berval *value,
         void *assertedValue ));
+
+LDAP_SLAPD_F (ComponentReference*) dup_comp_ref LDAP_P((
+	Operation *op,
+	ComponentReference *cr ));
                                                                           
 LDAP_SLAPD_F (int) componentFilterValidate LDAP_P(( 
 	Syntax *syntax,
@@ -423,6 +462,12 @@ LDAP_SLAPD_F (int) componentFilterValidate LDAP_P((
 LDAP_SLAPD_F (int) allComponentsValidate LDAP_P((
         Syntax *syntax,
         struct berval* bv ));
+
+LDAP_SLAPD_F (void) component_free LDAP_P((
+	ComponentFilter *f ));
+
+LDAP_SLAPD_F (void) free_ComponentData LDAP_P((
+	Attribute *a ));
 
 LDAP_SLAPD_V (test_membership_func*) is_aliased_attribute;
 
