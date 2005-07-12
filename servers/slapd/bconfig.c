@@ -1874,7 +1874,7 @@ config_loglevel(ConfigArgs *c) {
 	for( i=1; i < c->argc; i++ ) {
 		int	level;
 
-		if ( isdigit( c->argv[i][0] ) ) {
+		if ( isdigit( c->argv[i][0] ) || c->argv[i][0] == '-' ) {
 			level = strtol( c->argv[i], &next, 10 );
 			if ( next == NULL || next[0] != '\0' ) {
 				sprintf( c->msg, "<%s> unable to parse level", c->argv[0] );
