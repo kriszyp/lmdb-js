@@ -972,11 +972,11 @@ bdb_cache_modify(
  */
 int
 bdb_cache_modrdn(
+	struct bdb_info *bdb,
 	Entry *e,
 	struct berval *nrdn,
 	Entry *new,
 	EntryInfo *ein,
-	DB_ENV *env,
 	u_int32_t locker,
 	DB_LOCK *lock )
 {
@@ -985,7 +985,7 @@ bdb_cache_modrdn(
 	int rc;
 
 	/* Get write lock on data */
-	rc =  bdb_cache_entry_db_relock( env, locker, ei, 1, 0, lock );
+	rc =  bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ei, 1, 0, lock );
 	if ( rc ) return rc;
 
 	/* If we've done repeated mods on a cached entry, then e_attrs
@@ -1030,12 +1030,11 @@ bdb_cache_modrdn(
 	}
 #ifdef BDB_HIER
 	{
-		int max = ei->bei_modrdns;
 		/* Record the generation number of this change */
-		for ( pei = ein; pei->bei_parent; pei = pei->bei_parent ) {
-			if ( pei->bei_modrdns > max ) max = pei->bei_modrdns;
-		}
-		ei->bei_modrdns = max + 1;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_modrdns_mutex );
+		bdb->bi_modrdns++;
+		ei->bei_modrdns = bdb->bi_modrdns;
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_modrdns_mutex );
 	}
 #endif
 	avl_insert( &ein->bei_kids, ei, bdb_rdn_cmp, avl_dup_error );

@@ -195,6 +195,10 @@ struct bdb_info {
 #define	BDB_UPD_CONFIG	0x04
 #define	BDB_DEL_INDEX	0x08
 #define	BDB_RE_OPEN		0x10
+#ifdef BDB_HIER
+	int		bi_modrdns;		/* number of modrdns completed */
+	ldap_pvt_thread_mutex_t	bi_modrdns_mutex;
+#endif
 };
 
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
