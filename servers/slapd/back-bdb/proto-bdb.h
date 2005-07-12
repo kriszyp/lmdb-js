@@ -451,11 +451,11 @@ int bdb_cache_add(
 	u_int32_t locker
 );
 int bdb_cache_modrdn(
+	struct bdb_info *bdb,
 	Entry	*e,
 	struct berval *nrdn,
 	Entry	*new,
 	EntryInfo *ein,
-	DB_ENV *env,
 	u_int32_t locker,
 	DB_LOCK *lock
 );
