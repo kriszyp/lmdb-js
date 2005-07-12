@@ -206,7 +206,7 @@ static struct slap_daemon {
 #define SLAP_EVENT_FD(i)	SLAP_EV_PTRFD(revents[i].data.ptr)
 #define	SLAP_SOCK_SET_MUTE(s)	SLAP_SOCK_CLR_READ(s)
 #define	SLAP_SOCK_CLR_MUTE(s)	SLAP_SOCK_SET_READ(s)
-#define	SLAP_SOCK_IS_MUTE(s)	!SLAP_SOCK_IS_READ(s)
+#define	SLAP_SOCK_IS_MUTE(s)	(!SLAP_SOCK_IS_READ(s))
 
 #define SLAP_SOCK_SET_INIT	\
 	slap_daemon.sd_epolls = ch_malloc(sizeof(struct epoll_event) * dtblsize * 2);	\
@@ -301,7 +301,7 @@ static struct slap_daemon {
 
 #define	SLAP_SOCK_SET_MUTE(s)	FD_CLR(s, &readfds)
 #define SLAP_SOCK_CLR_MUTE(s)	FD_SET(s, &readfds)
-#define	SLAP_SOCK_IS_MUTE(s)	FD_ISSET(s, &readfds)
+#define	SLAP_SOCK_IS_MUTE(s)	(!FD_ISSET(s, &readfds))
 
 #endif
 
