@@ -459,7 +459,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 #ifdef BACKSQL_COUNTQUERY
 	unsigned long		count,
 				countsize = sizeof( count ),
-				j;
+				j,
+				append = 0;
 	Attribute		*attr = NULL;
 
 	slap_mr_normalize_func		*normfunc = NULL;
@@ -581,7 +582,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		}
 
 	} else {
-		Attribute	**ap;
+		append = 1;
 
 		/* Make space for the array of values */
 		attr = (Attribute *) ch_malloc( sizeof( Attribute ) );
@@ -609,10 +610,6 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		} else {
 			attr->a_nvals = attr->a_vals;
 		}
-
-		for ( ap = &bsi->bsi_e->e_attrs; (*ap) != NULL; ap = &(*ap)->a_next )
-			/* goto last */ ;
-		*ap =  attr;
 	}
 #endif /* BACKSQL_COUNTQUERY */
 
@@ -803,6 +800,20 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 			}
 		}
 	}
+
+#ifdef BACKSQL_COUNTQUERY
+	if ( BER_BVISNULL( &attr->a_vals[ 0 ] ) ) {
+		/* don't leave around attributes with no values */
+		attr_free( attr );
+
+	} else if ( append ) {
+		Attribute	**ap;
+
+		for ( ap = &bsi->bsi_e->e_attrs; (*ap) != NULL; ap = &(*ap)->a_next )
+			/* goto last */ ;
+		*ap =  attr;
+	}
+#endif /* BACKSQL_COUNTQUERY */
 
 	backsql_FreeRow( &row );
 	SQLFreeStmt( sth, SQL_DROP );
