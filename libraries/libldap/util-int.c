@@ -195,7 +195,7 @@ int ldap_pvt_gethostbyname_a(
 #endif	
 }
 
-#if !defined( GETNAMEINFO ) && !defined( HAVE_HERROR )
+#if !defined( HAVE_GETNAMEINFO ) && !defined( HAVE_HSTRERROR )
 static const char *
 hp_strerror( int err )
 {
