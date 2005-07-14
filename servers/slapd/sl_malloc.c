@@ -95,7 +95,7 @@ slap_sl_mem_create(
 	void *ctx
 )
 {
-	struct slab_heap *sh = NULL;
+	struct slab_heap *sh;
 	ber_len_t size_shift;
 	int pad = 2*sizeof(int)-1, pad_shift;
 	int order = -1, order_start = -1, order_end = -1;
@@ -105,8 +105,10 @@ slap_sl_mem_create(
 #ifdef NO_THREADS
 	sh = slheap;
 #else
+	void *sh_tmp = NULL;
 	ldap_pvt_thread_pool_getkey(
-		ctx, (void *)slap_sl_mem_init, (void **)&sh, NULL );
+		ctx, (void *)slap_sl_mem_init, &sh_tmp, NULL );
+	sh = sh_tmp;
 #endif
 
 	/* round up to doubleword boundary */
@@ -549,8 +551,8 @@ slap_sl_free(void *ptr, void *ctx)
 void *
 slap_sl_context( void *ptr )
 {
-	struct slab_heap *sh = NULL;
-	void *ctx;
+	struct slab_heap *sh;
+	void *ctx, *sh_tmp;
 
 	if ( slapMode & SLAP_TOOL_MODE ) return NULL;
 
@@ -559,8 +561,10 @@ slap_sl_context( void *ptr )
 #else
 	ctx = ldap_pvt_thread_pool_context();
 
-	ldap_pvt_thread_pool_getkey(ctx, (void *)slap_sl_mem_init,
-			(void **)&sh, NULL);
+	sh_tmp = NULL;
+	ldap_pvt_thread_pool_getkey(
+		ctx, (void *)slap_sl_mem_init, &sh_tmp, NULL);
+	sh = sh_tmp;
 #endif
 
 	if (sh && ptr >= sh->sh_base && ptr <= sh->sh_end) {
