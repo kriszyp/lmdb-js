@@ -386,7 +386,7 @@ try_read1msg(
 	LDAPMessage **result )
 {
 	BerElement	*ber;
-	LDAPMessage	*new, *l, *prev, *tmp, *chain_head;
+	LDAPMessage	*new, *l, *prev;
 	ber_int_t	id;
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -397,6 +397,7 @@ try_read1msg(
 	int		rc, refer_cnt, hadref, simple_request;
 	ber_int_t	lderr;
 #ifdef LDAP_CONNECTIONLESS
+	LDAPMessage	*tmp, *chain_head;
 	int		firstmsg = 1, moremsgs = 0, isv2 = 0;
 #endif
 	/*

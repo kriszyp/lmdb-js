@@ -1551,10 +1551,7 @@ slapi_send_ldap_result(
 {
 #ifdef LDAP_SLAPI
 	Operation	*op;
-	struct berval	*s;
 	char		*extOID = NULL;
-	struct berval	*extValue = NULL;
-	int		rc;
 	SlapReply	rs = { REP_RESULT };
 
 	slapi_pblock_get( pb, SLAPI_OPERATION, &op );
@@ -4205,7 +4202,6 @@ const char *slapi_entry_get_uniqueid( const Slapi_Entry *e )
 {
 #ifdef LDAP_SLAPI
 	Attribute *attr;
-	const char *uniqueid;
 
 	attr = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
 	if ( attr == NULL ) {

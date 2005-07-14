@@ -61,7 +61,7 @@ internal_search_entry(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	int nentries = 0, len = 0, i = 0;
+	int nentries = 0, i = 0;
 	Slapi_Entry **head = NULL, **tp;
 	Slapi_Entry *entry;
 

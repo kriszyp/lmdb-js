@@ -236,7 +236,7 @@ int slapi_register_object_extension(
 int slapi_int_create_object_extensions(int objecttype, void *object)
 {
 #ifdef LDAP_SLAPI
-	int i, rc;
+	int i;
 	struct slapi_extension_block *eblock;
 	void **peblock;
 	void *parent;
@@ -289,7 +289,7 @@ int slapi_int_create_object_extensions(int objecttype, void *object)
 int slapi_int_free_object_extensions(int objecttype, void *object)
 {
 #ifdef LDAP_SLAPI
-	int i, rc;
+	int i;
 	struct slapi_extension_block *eblock;
 	void **peblock;
 	void *parent;
@@ -330,7 +330,7 @@ int slapi_int_free_object_extensions(int objecttype, void *object)
 int slapi_int_clear_object_extensions(int objecttype, void *object)
 {
 #ifdef LDAP_SLAPI
-	int i, rc;
+	int i;
 	struct slapi_extension_block *eblock;
 	void *parent;
 
