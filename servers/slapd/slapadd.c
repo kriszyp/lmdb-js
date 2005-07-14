@@ -63,8 +63,7 @@ slapadd( int argc, char **argv )
 	ID	ctxcsn_id, id;
 	int ret;
 	struct berval bvtext;
-	int i, checkvals;
-	struct berval mc;
+	int checkvals;
 	slap_tool_init( progname, SLAPADD, argc, argv );
 
 	if( !be->be_entry_open ||
@@ -314,7 +313,6 @@ slapadd( int argc, char **argv )
 			}
 		}
 
-done:;
 		entry_free( e );
 	}
 

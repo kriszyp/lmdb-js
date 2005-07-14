@@ -555,7 +555,7 @@ hdb_dn2id_delete(
 	DBT		key, data;
 	DBC	*cursor;
 	diskNode *d;
-	int rc, nrlen;
+	int rc;
 	ID	nid;
 	unsigned char dlen[2];
 
@@ -705,7 +705,6 @@ hdb_dn2id_parent(
 	int		rc = 0;
 	diskNode *d;
 	char	*ptr;
-	unsigned char *pt2;
 	ID	nid;
 
 	DBTzero(&key);

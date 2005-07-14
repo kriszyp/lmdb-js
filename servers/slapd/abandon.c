@@ -36,7 +36,6 @@ do_abandon( Operation *op, SlapReply *rs )
 {
 	ber_int_t	id;
 	Operation	*o;
-	int		i;
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon\n", 0, 0, 0 );
 

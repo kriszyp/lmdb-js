@@ -2659,7 +2659,7 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 {
 	struct berval bc;
 	char buf[BUFSIZ*2], *ptr;
-	int i, len;
+	int i;
 
 	bindconf_unparse( &si->si_bindconf, &bc );
 	ptr = buf;

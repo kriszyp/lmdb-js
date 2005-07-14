@@ -570,7 +570,6 @@ meta_back_candidates_get( Operation *op )
 {
 	metainfo_t		*mi = ( metainfo_t * )op->o_bd->be_private;
 	metacandidates_t	*mc;
-	SlapReply		*rs;
 
 	if ( op->o_threadctx ) {
 		void		*data = NULL;

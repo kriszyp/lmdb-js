@@ -604,7 +604,7 @@ oc_unparse( BerVarray *res, ObjectClass *start, ObjectClass *end, int sys )
 	ObjectClass *oc;
 	int i, num;
 	struct berval bv, *bva = NULL, idx;
-	char ibuf[32], *ptr;
+	char ibuf[32];
 
 	if ( !start )
 		start = LDAP_STAILQ_FIRST( &oc_list );

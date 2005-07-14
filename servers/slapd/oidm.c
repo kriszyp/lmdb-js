@@ -156,7 +156,7 @@ void oidm_unparse( BerVarray *res, OidMacro *start, OidMacro *end, int sys )
 {
 	OidMacro *om;
 	int i, j, num;
-	struct berval bv, *bva = NULL, idx;
+	struct berval *bva = NULL, idx;
 	char ibuf[32], *ptr;
 
 	if ( !start )

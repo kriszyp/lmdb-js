@@ -246,7 +246,6 @@ bdb_db_recover( BackendDB *be )
 		return bdb_do_recovery( be );
 	}
 
-re_exit:
 	Debug( LDAP_DEBUG_ANY,
 		"bdb_db_recover: Database cannot be recovered. "\
 		"Restore from backup!\n", 0, 0, 0);

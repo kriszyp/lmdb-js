@@ -50,10 +50,6 @@
  * A possible extension will include the handling of multiple suffixes
  */
 
-static int
-meta_back_is_candidate_unique(
-	metainfo_t	*mi,
-	struct berval	*ndn );
 
 /*
  * returns 1 if suffix is candidate for dn, otherwise 0
@@ -80,6 +76,7 @@ meta_back_is_candidate(
 	return META_NOT_CANDIDATE;
 }
 
+#if 0
 /*
  * meta_back_is_candidate_unique
  *
@@ -99,6 +96,7 @@ meta_back_is_candidate_unique(
 
 	return 1;
 }
+#endif /* 0 */
 
 /*
  * meta_back_select_unique_candidate

@@ -176,9 +176,7 @@ slap_dup_sync_cookie(
 	struct sync_cookie *src
 )
 {
-	int i;
 	struct sync_cookie *new;
-	struct berval tmp_bv;
 
 	if ( src == NULL )
 		return NULL;

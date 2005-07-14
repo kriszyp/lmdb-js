@@ -99,7 +99,7 @@ componentFilterMatch (
 {
 	ComponentSyntaxInfo *csi_attr = (ComponentSyntaxInfo*)value;
 	MatchingRuleAssertion * ma = (MatchingRuleAssertion*)assertedValue;
-	int num_attr, rc, i;
+	int rc;
 
 	if ( !mr || !ma->ma_cf ) return LDAP_INAPPROPRIATE_MATCHING;
 
@@ -154,8 +154,6 @@ allComponentsMatch(
 static int
 slapd_ber2cav( struct berval* bv, ComponentAssertionValue* cav )
 {
-	int len;
-
 	cav->cav_ptr = cav->cav_buf = bv->bv_val;
 	cav->cav_end = bv->bv_val + bv->bv_len;
 
@@ -165,11 +163,9 @@ slapd_ber2cav( struct berval* bv, ComponentAssertionValue* cav )
 ComponentReference*
 dup_comp_ref ( Operation* op, ComponentReference* cr )
 {
-	int rc, count = 0;
 	ComponentReference* dup_cr;
 	ComponentId* ci_curr;
 	ComponentId** ci_temp;
-	ber_int_t type;
 
 	dup_cr = op->o_tmpalloc( sizeof( ComponentReference ), op->o_tmpmemctx );
 
@@ -234,7 +230,6 @@ dup_comp_filter_item (
 	ComponentAssertion* in_ca,
 	ComponentAssertion** out_ca )
 {
-	ComponentAssertion* ca;
 	int len;
 
 	if ( !in_ca->ca_comp_ref ) return SLAPD_DISCONNECT;
@@ -301,9 +296,7 @@ dup_comp_filter (
 int
 get_aliased_filter_aa ( Operation* op, AttributeAssertion* a_assert, AttributeAliasing* aa, const char** text )
 {
-	int rc;
 	struct berval assert_bv;
-	ComponentAssertion* ca;
 
 	Debug( LDAP_DEBUG_FILTER, "get_aliased_filter\n", 0, 0, 0 );
 
@@ -324,9 +317,7 @@ get_aliased_filter( Operation* op,
 	MatchingRuleAssertion* ma, AttributeAliasing* aa,
 	const char** text )
 {
-	int rc;
 	struct berval assert_bv;
-	ComponentAssertion* ca;
 
 	Debug( LDAP_DEBUG_FILTER, "get_aliased_filter\n", 0, 0, 0 );
 
@@ -956,7 +947,6 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 {
 	int rc;
 	ComponentAssertion* _ca;
-	struct berval t_bv;
 	struct berval value;
 	MatchingRule* mr;
 
@@ -1268,7 +1258,7 @@ test_comp_filter_item(
 	ComponentSyntaxInfo *csi_attr,
 	ComponentAssertion *ca )
 {
-	int rc, len;
+	int rc;
 	void *attr_nm, *assert_nm;
 
 	if ( strcmp(ca->ca_ma_rule->smr_mrule.mr_oid,

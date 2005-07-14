@@ -53,7 +53,6 @@ root_dse_info(
 {
 	Entry		*e;
 	struct berval val, *bv;
-	struct berval nval;
 	int		i, j;
 	char ** supportedSASLMechanisms;
 	BackendDB *be;

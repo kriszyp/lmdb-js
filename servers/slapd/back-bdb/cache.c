@@ -884,9 +884,11 @@ bdb_cache_add(
 	u_int32_t locker )
 {
 	EntryInfo *new, ei;
-	struct berval rdn = e->e_name;
 	DB_LOCK lock;
 	int rc;
+#ifdef BDB_HIER
+	struct berval rdn = e->e_name;
+#endif
 
 	ei.bei_id = e->e_id;
 	ei.bei_parent = eip;
@@ -981,8 +983,10 @@ bdb_cache_modrdn(
 	DB_LOCK *lock )
 {
 	EntryInfo *ei = BEI(e), *pei;
-	struct berval rdn;
 	int rc;
+#ifdef BDB_HIER
+	struct berval rdn;
+#endif
 
 	/* Get write lock on data */
 	rc =  bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ei, 1, 0, lock );

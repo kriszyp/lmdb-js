@@ -74,7 +74,6 @@ over_db_config(
 	BackendInfo *bi_orig = be->bd_info;
 	struct ConfigOCs *be_cf_ocs = be->be_cf_ocs;
 	ConfigArgs ca = {0};
-	ConfigTable *ct;
 	int rc = 0;
 
 	if ( oi->oi_orig->bi_db_config ) {

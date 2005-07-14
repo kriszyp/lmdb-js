@@ -71,7 +71,6 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	dc.ctx = "compareDN";
 
 	for ( i = 0; i < mi->mi_ntargets; i++ ) {
-		metasingleconn_t	*msc = &mc->mc_conns[ i ];
 		struct berval		mdn = BER_BVNULL;
 		struct berval		mapped_attr = op->orc_ava->aa_desc->ad_cname;
 		struct berval		mapped_value = op->orc_ava->aa_value;

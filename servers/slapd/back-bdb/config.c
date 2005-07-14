@@ -263,7 +263,7 @@ bdb_online_index( void *ctx, void *arg )
 		id++;
 		getnext = 1;
 	}
-out:
+
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	bdb->bi_index_task = NULL;

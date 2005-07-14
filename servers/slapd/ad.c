@@ -990,8 +990,6 @@ file2anlist( AttributeName *an, const char *fname, const char *brkstr )
 	}
 
 	while ( fgets( lcur, LBUFSIZ, fp ) != NULL ) {
-		char *str, *s, *next;
-		const char *delimstr = brkstr;
 		if ( ( c = strchr( lcur, '\n' ) ) ) {
 			if ( c == line ) {
 				*c = '\0';

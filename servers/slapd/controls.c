@@ -32,7 +32,9 @@ static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseManageDIT;
 #endif
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
+#ifdef LDAP_CONTROL_MODIFY_INCREMENT
 static SLAP_CTRL_PARSE_FN parseModifyIncrement;
+#endif
 static SLAP_CTRL_PARSE_FN parseNoOp;
 static SLAP_CTRL_PARSE_FN parsePagedResults;
 #ifdef LDAP_DEVEL
@@ -672,7 +674,6 @@ int get_ctrls(
 			rs->sr_text = "critical extension is not recognized";
 			goto return_results;
 		}
-next_ctrl:;
 	}
 
 return_results:
@@ -693,6 +694,7 @@ return_results:
 	return rs->sr_err;
 }
 
+#ifdef LDAP_CONTROL_MODIFY_INCREMENT
 static int parseModifyIncrement (
 	Operation *op,
 	SlapReply *rs,
@@ -718,6 +720,7 @@ static int parseModifyIncrement (
 
 	return LDAP_SUCCESS;
 }
+#endif
 
 #ifdef LDAP_DEVEL
 static int parseManageDIT (

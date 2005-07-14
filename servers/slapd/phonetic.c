@@ -43,6 +43,7 @@
 			 ispunct((unsigned char) (x)) || \
 			 isdigit((unsigned char) (x)) || (x) == '\0')
 
+#if 0
 static char *
 first_word( char *s )
 {
@@ -98,6 +99,7 @@ word_dup( char *w )
 
 	return( ret );
 }
+#endif /* 0 */
 
 #ifndef MAXPHONEMELEN
 #define MAXPHONEMELEN	4

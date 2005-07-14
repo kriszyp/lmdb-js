@@ -494,6 +494,7 @@ done:
 	return( rc );
 }
 
+#ifndef SLAP_AUTH_REWRITE
 static int slap_sasl_rx_off(char *rep, int *off)
 {
 	const char *c;
@@ -527,6 +528,7 @@ static int slap_sasl_rx_off(char *rep, int *off)
 	off[n] = -1;
 	return( LDAP_SUCCESS );
 }
+#endif /* ! SLAP_AUTH_REWRITE */
 
 #ifdef SLAP_AUTH_REWRITE
 int slap_sasl_rewrite_config( 
@@ -644,7 +646,6 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 void slap_sasl_regexp_unparse( BerVarray *out )
 {
 	int i;
-	struct berval bv;
 	BerVarray bva = NULL;
 	char ibuf[32], *ptr;
 	struct berval idx;
@@ -670,6 +671,7 @@ void slap_sasl_regexp_unparse( BerVarray *out )
 	*out = bva;
 }
 
+#ifndef SLAP_AUTH_REWRITE
 /* Perform replacement on regexp matches */
 static void slap_sasl_rx_exp(
 	const char *rep,
@@ -721,6 +723,7 @@ static void slap_sasl_rx_exp(
 
 	out->bv_val[insert] = '\0';
 }
+#endif /* ! SLAP_AUTH_REWRITE */
 
 /* Take the passed in SASL name and attempt to convert it into an
    LDAP URI to find the matching LDAP entry, using the pattern matching
@@ -1102,7 +1105,7 @@ slap_sasl_check_authz( Operation *op,
 	AttributeDescription *ad,
 	struct berval *authc )
 {
-	int i, rc;
+	int rc;
 	BerVarray vals = NULL;
 
 	Debug( LDAP_DEBUG_TRACE,
