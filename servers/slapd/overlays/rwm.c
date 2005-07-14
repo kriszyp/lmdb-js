@@ -258,8 +258,6 @@ static int
 rwm_op_bind( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
-	struct ldaprwmap	*rwmap = 
-			(struct ldaprwmap *)on->on_bi.bi_private;
 	int			rc;
 
 #ifdef ENABLE_REWRITE

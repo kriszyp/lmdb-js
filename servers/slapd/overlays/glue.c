@@ -164,7 +164,6 @@ static int
 glue_op_func ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	BI_op_modify **func;
@@ -196,7 +195,6 @@ static int
 glue_chk_referrals ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int rc;
@@ -218,7 +216,6 @@ static int
 glue_chk_controls ( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 	BackendDB *b0 = op->o_bd;
 	BackendInfo *bi0 = op->o_bd->bd_info;
 	int rc = SLAP_CB_CONTINUE;
@@ -527,9 +524,8 @@ glue_close (
 )
 {
 	slap_overinst *on = glue_tool_inst( bi );
-	glueinfo		*gi = on->on_bi.bi_private;
 	static int glueClosed = 0;
-	int i, rc = 0;
+	int rc = 0;
 
 	if (glueClosed) return 0;
 
@@ -803,7 +799,6 @@ glue_db_config(
 		int i, async = 0, advertise = 0;
 		BackendDB *b2;
 		struct berval bv, dn;
-		gluenode *gn;
 
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: too few arguments in "

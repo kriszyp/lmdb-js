@@ -570,7 +570,7 @@ refint_response(
 	rc = nop.o_bd->be_search(&nop, &nrs);
 
 	ch_free( nop.ors_filterstr.bv_val );
-	while ( fptr = ftop.f_or ) {
+	while ( (fptr = ftop.f_or) != NULL ) {
 		ftop.f_or = fptr->f_next;
 		ch_free( fptr );
 	}

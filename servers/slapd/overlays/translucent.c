@@ -221,7 +221,6 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	overlay_stack *ov = on->on_bi.bi_private;
-	translucent_configuration *cf = ov->config;
 	void *private = op->o_bd->be_private;
 	Entry ne, *e, *re = NULL;
 	Attribute *a, *ax;
@@ -393,11 +392,9 @@ static int translucent_compare(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	overlay_stack *ov = on->on_bi.bi_private;
 	void *private = op->o_bd->be_private;
-	translucent_configuration *cf = ov->config;
 
 	AttributeAssertion *ava = op->orc_ava;
-	Attribute *a, *an, *ra, *as = NULL;
-	Entry *e, *ee, *re;
+	Entry *e;
 	int rc;
 
 	Debug(LDAP_DEBUG_TRACE, "==> translucent_compare: <%s> %s:%s\n",
@@ -440,9 +437,8 @@ static int translucent_search_cb(Operation *op, SlapReply *rs) {
 	slap_overinst *on;
 	Entry *e, *re = NULL;
 	Attribute *a, *ax, *an, *as = NULL;
-	BerVarray b, bx;
 	void *private;
-	int i, rc, size;
+	int rc;
 
 	if(!op || !rs || rs->sr_type != REP_SEARCH || !rs->sr_entry)
 		return(SLAP_CB_CONTINUE);
@@ -525,7 +521,6 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	slap_overinst *on = (slap_overinst *) op->o_bd->bd_info;
 	slap_callback cb = { NULL, NULL, NULL, NULL };
 	overlay_stack *ov = on->on_bi.bi_private;
-	translucent_configuration *cf = ov->config;
 	void *private = op->o_bd->be_private;
 	int rc;
 
@@ -708,7 +703,6 @@ static int translucent_open(BackendDB *be) {
 static int translucent_close(BackendDB *be) {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	overlay_stack *ov = on->on_bi.bi_private;
-	translucent_configuration *cf = ov->config;
 	void *private = be->be_private;
 	int rc;
 

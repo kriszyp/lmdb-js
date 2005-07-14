@@ -342,7 +342,6 @@ static struct {
 static int
 log_age_parse(char *agestr)
 {
-	char *ptr;
 	int t1, t2;
 	int gotdays = 0;
 

@@ -159,8 +159,6 @@ syncprov_state_ctrl(
 {
 	Attribute* a;
 	int ret;
-	int res;
-	const char *text = NULL;
 
 	BerElementBuffer berbuf;
 	BerElement *ber = (BerElement *)&berbuf;
@@ -402,7 +400,6 @@ syncprov_findbase( Operation *op, fbase_cookie *fc )
 {
 	opcookie *opc = op->o_callback->sc_private;
 	slap_overinst *on = opc->son;
-	syncprov_info_t		*si = on->on_bi.bi_private;
 
 	slap_callback cb = {0};
 	Operation fop;
@@ -746,7 +743,6 @@ static int
 syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry **e, int mode, int queue )
 {
 	slap_overinst *on = opc->son;
-	syncprov_info_t *si = on->on_bi.bi_private;
 
 	SlapReply rs = { REP_SEARCH };
 	LDAPControl *ctrls[2];
@@ -1231,7 +1227,6 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	struct berval *oldcsn, struct berval *ctxcsn )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	syncprov_info_t		*si = on->on_bi.bi_private;
 	slog_entry *se;
 	int i, j, ndel, num, nmods, mmods;
 	BerVarray uuids;
@@ -1692,11 +1687,9 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 {
 	searchstate *ss = op->o_callback->sc_private;
 	slap_overinst *on = ss->ss_on;
-	syncprov_info_t		*si = on->on_bi.bi_private;
 	sync_control *srs = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF ) {
-		int i;
 		/* If we got a referral without a referral object, there's
 		 * something missing that we cannot replicate. Just ignore it.
 		 * The consumer will abort because we didn't send the expected
