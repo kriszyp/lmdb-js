@@ -300,13 +300,11 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 			ber_dupbv( &lc->cred, &li->bindpw );
 			ber_dupbv( &lc->bound_dn, &li->binddn );
 		} else {
-			lc->cred.bv_len = 0;
-			lc->cred.bv_val = NULL;
-			lc->bound_dn.bv_val = NULL;
-			lc->bound_dn.bv_len = 0;
+			BER_BVZERO( &lc->cred );
+			BER_BVZERO( &lc->bound_dn );
 			if ( op->o_conn && op->o_conn->c_dn.bv_len != 0
-					&& ( op->o_bd == op->o_conn->c_authz_backend ) ) {
-				
+					&& ( op->o_bd == op->o_conn->c_authz_backend ) )
+			{
 				dncookie dc;
 				struct berval bv;
 
@@ -324,6 +322,7 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 #endif
 
 				if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn, &bv ) ) {
+					ldap_back_conn_free( lc );
 					send_ldap_result( op, rs );
 					return NULL;
 				}
