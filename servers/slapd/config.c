@@ -34,6 +34,10 @@
 #include <ac/socket.h>
 #include <ac/errno.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "slap.h"
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
@@ -549,6 +553,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 	ConfigTable *ct;
 	ConfigArgs *c;
 	int rc;
+	struct stat s;
 
 	c = ch_calloc( 1, sizeof( ConfigArgs ) );
 	if ( c == NULL ) {
@@ -566,6 +571,22 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 	c->valx = -1;
 	c->fname = fname;
 	init_config_argv( c );
+
+	if ( stat( fname, &s ) != 0 ) {
+		ldap_syslog = 1;
+		Debug(LDAP_DEBUG_ANY,
+		    "could not stat config file \"%s\": %s (%d)\n",
+		    fname, strerror(errno), errno);
+		return(1);
+	}
+
+	if ( !S_ISREG( s.st_mode ) ) {
+		ldap_syslog = 1;
+		Debug(LDAP_DEBUG_ANY,
+		    "regular file expected, got \"%s\"\n",
+		    fname, 0, 0 );
+		return(1);
+	}
 
 	fp = fopen( fname, "r" );
 	if ( fp == NULL ) {
