@@ -1144,7 +1144,6 @@ static int process_response(
 		}
 	}
 
-done:;
 	if ( ldap_msgtype( res ) != LDAP_RES_INTERMEDIATE ) {
 		rc = ldap_result2error( ld, res, 1 );
 		if( rc != LDAP_SUCCESS ) ldap_perror( ld, opstr );
