@@ -1546,13 +1546,29 @@ config_overlay(ConfigArgs *c) {
 }
 
 static int
-config_suffix(ConfigArgs *c) {
+config_suffix(ConfigArgs *c)
+{
 	Backend *tbe;
 	struct berval pdn, ndn;
 	int rc;
+	char	*notallowed = NULL;
 
-	if (c->be == frontendDB || SLAP_MONITOR(c->be) ||
-		SLAP_CONFIG(c->be)) return 1;
+	if ( c->be == frontendDB ) {
+		notallowed = "frontend";
+
+	} else if ( SLAP_MONITOR(c->be) ) {
+		notallowed = "monitor";
+
+	} else if ( SLAP_CONFIG(c->be) ) {
+		notallowed = "config";
+	}
+
+	if ( notallowed != NULL ) {
+		Debug(LDAP_DEBUG_ANY,
+			"%s: suffix <%s> not allowed in %s database.\n",
+			c->log, c->value_dn.bv_val, notallowed );
+		return 1;
+	}
 
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if ( c->be->be_suffix == NULL
@@ -1581,6 +1597,7 @@ config_suffix(ConfigArgs *c) {
 		}
 		return 0;
 	}
+
 #ifdef SLAPD_MONITOR_DN
 	if(!strcasecmp(c->argv[1], SLAPD_MONITOR_DN)) {
 		sprintf( c->msg, "<%s> DN is reserved for monitoring slapd",
