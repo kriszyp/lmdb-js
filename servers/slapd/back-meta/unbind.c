@@ -39,6 +39,8 @@ meta_back_conn_destroy(
 {
 	struct metainfo	*li = ( struct metainfo * )be->be_private;
 	struct metaconn *lc, lc_curr;
+	int		i;
+		
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_META, ENTRY,
@@ -56,9 +58,14 @@ meta_back_conn_destroy(
 			meta_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
+	/*
+	 * Cleanup rewrite session
+	 */
+	for ( i = 0; i < li->ntargets; ++i ) {
+		rewrite_session_delete( li->targets[ i ]->rwmap.rwm_rw, conn );
+	}
+
 	if ( lc ) {
-		int i;
-		
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, INFO,
 			"meta_back_conn_destroy: destroying conn %ld\n",
@@ -77,7 +84,6 @@ meta_back_conn_destroy(
 				continue;
 			}
 
-			rewrite_session_delete( li->targets[ i ]->rwmap.rwm_rw, conn );
 			meta_clear_one_candidate( &lc->conns[ i ], 1 );
 		}
 

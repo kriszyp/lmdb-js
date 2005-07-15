@@ -222,9 +222,19 @@ meta_back_db_destroy(
 
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );
+
+		if ( li->rwinfo ) {
+#if 0
+			/* FIXME: needs work */
+			(void)rewrite_info_delete( li->rwinfo );
+#endif
+		}
+
+		free( li );
+
+		be->be_private = NULL;
 	}
 
-	free( be->be_private );
 	return 0;
 }
 
