@@ -40,6 +40,8 @@ meta_back_conn_destroy(
 	metainfo_t	*mi = ( metainfo_t * )be->be_private;
 	metaconn_t	*mc,
 			mc_curr = { 0 };
+	int		i;
+
 
 	Debug( LDAP_DEBUG_TRACE,
 		"=>meta_back_conn_destroy: fetching conn %ld\n",
@@ -63,8 +65,6 @@ retry_lock:;
 	ldap_pvt_thread_mutex_unlock( &mi->mi_conn_mutex );
 
 	if ( mc ) {
-		int	i;
-
 		Debug( LDAP_DEBUG_TRACE,
 			"=>meta_back_conn_destroy: destroying conn %ld\n",
 			mc->mc_conn->c_connid, 0, 0 );
@@ -75,13 +75,19 @@ retry_lock:;
 		 * Cleanup rewrite session
 		 */
 		for ( i = 0; i < mi->mi_ntargets; ++i ) {
-			rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
-
 			if ( mc->mc_conns[ i ].msc_ld != NULL ) {
 				meta_clear_one_candidate( &mc->mc_conns[ i ] );
 			}
 		}
+
 		meta_back_conn_free( mc );
+	}
+
+	/*
+	 * Cleanup rewrite session
+	 */
+	for ( i = 0; i < mi->mi_ntargets; ++i ) {
+		rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
 	}
 
 	/* no response to unbind */
