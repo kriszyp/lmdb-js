@@ -3,15 +3,19 @@
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
-slapd-monitor \- Monitor backend to slapd
+.B slapd-monitor 
+\- Monitor backend to slapd
 .SH SYNOPSIS
 ETCDIR/slapd.conf
 .SH DESCRIPTION
-The monitor backend to
+The 
+.B monitor 
+backend to
 .BR slapd (8)
 is not an actual database; if enabled, it is automatically generated
-and dynamically maintained by slapd with information about the running 
-status of the daemon.
+and dynamically maintained by 
+.B slapd 
+with information about the running status of the daemon.
 .LP
 To inspect all monitor information, issue a subtree search with base
 cn=Monitor, requesting that attributes "+" and "*" are returned.
@@ -22,19 +26,23 @@ attributes.
 .SH CONFIGURATION
 These
 .B slapd.conf
-options apply to the monitor backend database.
+options apply to the 
+.B monitor 
+backend database.
 That is, they must follow a "database monitor" line and come before any
 subsequent "backend" or "database" lines.
 .LP
-As opposed to most databases, the monitor database can be instantiated
-only once, i.e. only one occurrence of "database monitor" can occur
-in the 
+As opposed to most databases, the 
+.B monitor 
+database can be instantiated only once, i.e. only one occurrence 
+of "database monitor" can occur in the 
 .BR slapd.conf (5)
 file.
 Moreover, the suffix of the database cannot be explicitly set by means
 of the 
 .B suffix
-directive; on the contrary, the suffix is automatically set
+directive.
+The suffix is automatically set
 to "\fIcn=Monitor\fP".
 .LP
 The
@@ -46,15 +54,14 @@ and the
 directives, and the usual ACL directives, e.g. the
 .B access
 directive.
-.LP
-The following directives can be used:
-.TP
-.B l <locality>
-The
-.B <locality>
-string is added to the "\fIcn=Monitor\fP" entry as value of the
-.B l
-attribute (Note: this may be subjected to changes).
+.\".LP
+.\"The following directives can be used:
+.\".TP
+.\".BI l \ <locality>
+.\"The additional argument \fI<locality>\fP,
+.\"a string, is added to the "\fIcn=Monitor\fP" entry as value of the
+.\".B l
+.\"attribute (Note: this may be subjected to changes).
 .LP
 Other database options are described in the
 .BR slapd.conf (5)
@@ -62,7 +69,7 @@ manual page.
 .SH USAGE
 The usage is:
 .TP
-1) enable the monitor backend at configure:
+1) enable the \fBmonitor\fP backend at configure:
 .LP
 .RS
 .nf
@@ -70,9 +77,7 @@ configure --enable-monitor
 .fi
 .RE
 .TP
-2) activate the monitor database in the
-.BR slapd.conf (5)
-file:
+2) activate the \fBmonitor\fP database in the \fBslapd.conf\fP(5) file:
 .LP
 .RS
 .nf
@@ -80,9 +85,7 @@ database monitor
 .fi
 .RE
 .TP
-3) add ACLs as detailed in
-.BR slapd.access (5)
-to control access to the database, e.g.:
+3) add ACLs as detailed in \fBslapd.access\fP(5) to control access to the database, e.g.:
 .LP
 .RS
 .nf
@@ -94,7 +97,9 @@ access to dn.subtree="cn=Monitor"
 .RE
 .TP
 4) ensure that the \fBcore.schema\fP file is loaded.
-The monitor backend relies on some standard track attributeTypes
+The 
+.B monitor 
+backend relies on some standard track attributeTypes
 that must be already defined when the backend is started.
 .SH ACCESS CONTROL
 The 
@@ -105,10 +110,12 @@ including the
 .B disclose
 access privilege, on all currently implemented operations.
 .SH KNOWN LIMITATIONS
-The monitor backend does not honor size/time limits in search operations.
+The 
+.B monitor 
+backend does not honor size/time limits in search operations.
 .SH FILES
 .TP
-ETCDIR/slapd.conf
+.B ETCDIR/slapd.conf
 default slapd configuration file
 .SH SEE ALSO
 .BR slapd.conf (5),
