@@ -58,13 +58,6 @@ meta_back_conn_destroy(
 			meta_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
-	/*
-	 * Cleanup rewrite session
-	 */
-	for ( i = 0; i < li->ntargets; ++i ) {
-		rewrite_session_delete( li->targets[ i ]->rwmap.rwm_rw, conn );
-	}
-
 	if ( lc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, INFO,
@@ -89,6 +82,13 @@ meta_back_conn_destroy(
 
 		free( lc->conns );
 		free( lc );
+	}
+
+	/*
+	 * Cleanup rewrite session
+	 */
+	for ( i = 0; i < li->ntargets; ++i ) {
+		rewrite_session_delete( li->targets[ i ]->rwmap.rwm_rw, conn );
 	}
 
 	/* no response to unbind */
