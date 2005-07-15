@@ -5,6 +5,7 @@ OpenLDAP 2.2.28 Engineering
 	Fixed back-bdb/hdb - check for BDB TXN patch
 	Fixed back-hdb nested modrdn bug (ITS#3857)
 	Fixed back-ldap/meta undefined filter propagation (ITS#3785)
+	Fixed back-ldap memory leak (ITS#3862)
 	Fixed back-meta add w/o parent add (ITS#3804)
 	Fixed back-meta control propagation bug (ITS#3813)
 	Fixed syncrepl SASL bind crash (ITS#3792)
