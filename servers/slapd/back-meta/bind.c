@@ -358,7 +358,7 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		}
 
 		rc = ldap_sasl_bind( lsc->ld, "", LDAP_SASL_SIMPLE, &cred,
-				op->o_ctrls, NULL, &msgid );
+				NULL, NULL, &msgid );
 		if ( rc == LDAP_SUCCESS ) {
 			LDAPMessage	*res;
 			struct timeval	tv = { 0, 0 };
