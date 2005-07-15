@@ -970,9 +970,11 @@ type of backend.
 Mark the beginning of a backend definition. <databasetype>
 should be one of
 .BR bdb ,
+.BR config ,
 .BR dnssrv ,
 .BR ldap ,
 .BR ldbm ,
+.BR ldif ,
 .BR meta ,
 .BR monitor ,
 .BR null ,
@@ -980,9 +982,8 @@ should be one of
 .BR perl ,
 .BR relay ,
 .BR shell ,
-.BR sql ,
 or
-.BR tcl ,
+.BR sql ,
 depending on which backend will serve the database.
 
 .SH GENERAL DATABASE OPTIONS
@@ -998,9 +999,11 @@ option are mandatory for each database.
 Mark the beginning of a new database instance definition. <databasetype>
 should be one of
 .BR bdb ,
+.BR config ,
 .BR dnssrv ,
 .BR ldap ,
 .BR ldbm ,
+.BR ldif ,
 .BR meta ,
 .BR monitor ,
 .BR null ,
@@ -1008,9 +1011,8 @@ should be one of
 .BR perl ,
 .BR relay ,
 .BR shell ,
-.BR sql ,
 or
-.BR tcl ,
+.BR sql ,
 depending on which backend will serve the database.
 .TP
 .B lastmod on | off
@@ -1552,11 +1554,8 @@ However, it takes more care than with the LDBM backend to configure
 it properly.
 It uses the Sleepycat Berkeley DB (BDB) package to store data.
 .TP
-.B ldbm
-This is the database backend which is easiest to configure.
-However, it does not offer the data durability features of the BDB
-backend.
-It uses Berkeley DB or GDBM to store data.
+.B config
+This backend is used to manage the configuration of slapd run-time.
 .TP
 .B dnssrv
 This backend is experimental.
@@ -1566,6 +1565,18 @@ Domain Name System.
 .B ldap
 This backend acts as a proxy to forward incoming requests to another
 LDAP server.
+.TP
+.B ldbm
+This is the database backend which is easiest to configure.
+However, it does not offer the data durability features of the BDB
+backend.
+It uses Berkeley DB or GDBM to store data.
+.TP
+.B ldif
+This database uses the filesystem to build the tree structure
+of the database, using plain ascii files to store data.
+Its usage should be limited to very simple databases, where performances
+are not a requirement.
 .TP
 .B meta
 This backend performs basic LDAP proxying with respect to a set of
@@ -1610,13 +1621,6 @@ It is primarily intended to be used in prototypes.
 .B sql
 This backend is experimental.
 It services LDAP requests from an SQL database.
-.TP
-.B tcl
-This backend is experimental.
-It embeds a
-.BR Tcl (3tcl)
-interpreter into slapd.
-It runs Tcl commands to implement LDAP operations.
 .SH EXAMPLES
 .LP
 Here is a short example of a configuration file:
@@ -1664,6 +1668,7 @@ default slapd configuration file
 .BR slapd\-dnssrv (5),
 .BR slapd\-ldap (5),
 .BR slapd\-ldbm (5),
+.BR slapd\-ldif (5),
 .BR slapd\-meta (5),
 .BR slapd\-monitor (5),
 .BR slapd\-null (5),
