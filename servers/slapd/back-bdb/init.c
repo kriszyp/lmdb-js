@@ -546,7 +546,7 @@ bdb_db_close( BackendDB *be )
 	bdb_idl_cache_entry_t *entry, *next_entry;
 
 	/* backend_shutdown closes everything, even if not all were opened */
-	if ( !bdb->bi_flags & BDB_IS_OPEN )
+	if ( !( bdb->bi_flags & BDB_IS_OPEN ))
 		return 0;
 
 	bdb->bi_flags &= ~BDB_IS_OPEN;
