@@ -1231,6 +1231,7 @@ slap_schema_load( void )
 					mr->smr_filter = ad_map[i].ssam_mr_filter;
 				}
 
+				/* FIXME: no-one will free this at exit */
 				(*adp)->ad_type->sat_equality = mr;
 			}
 		}
