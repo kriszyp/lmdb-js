@@ -612,6 +612,7 @@ void
 ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 {
 	if ( lr->lr_prev == NULL ) {
+		assert( ld->ld_requests == lr );
 		ld->ld_requests = lr->lr_next;
 	} else {
 		lr->lr_prev->lr_next = lr->lr_next;
