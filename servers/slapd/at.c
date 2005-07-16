@@ -475,28 +475,33 @@ at_add(
 
 		if ( supsat == NULL ) {
 			*err = at->at_sup_oid;
-			return SLAP_SCHERR_ATTR_NOT_FOUND;
+			code = SLAP_SCHERR_ATTR_NOT_FOUND;
+			goto error_return;
 		}
 
 		sat->sat_sup = supsat;
 
 		if ( at_append_to_list(sat, &supsat->sat_subtypes) ) {
-			return SLAP_SCHERR_OUTOFMEM;
+			code = SLAP_SCHERR_OUTOFMEM;
+			goto error_return;
 		}
 
 		if ( sat->sat_usage != supsat->sat_usage ) {
 			/* subtypes must have same usage as their SUP */
-			return SLAP_SCHERR_ATTR_BAD_USAGE;
+			code = SLAP_SCHERR_ATTR_BAD_USAGE;
+			goto error_return;
 		}
 
 		if ( supsat->sat_obsolete && !sat->sat_obsolete ) {
 			/* subtypes must be obsolete if super is */
-			return SLAP_SCHERR_ATTR_BAD_SUP;
+			code = SLAP_SCHERR_ATTR_BAD_SUP;
+			goto error_return;
 		}
 
 		if ( sat->sat_flags & SLAP_AT_FINAL ) {
 			/* cannot subtype a "final" attribute type */
-			return SLAP_SCHERR_ATTR_BAD_SUP;
+			code = SLAP_SCHERR_ATTR_BAD_SUP;
+			goto error_return;
 		}
 	}
 
@@ -540,17 +545,20 @@ at_add(
 		syn = syn_find(sat->sat_syntax_oid);
 		if ( syn == NULL ) {
 			*err = sat->sat_syntax_oid;
-			return SLAP_SCHERR_SYN_NOT_FOUND;
+			code = SLAP_SCHERR_SYN_NOT_FOUND;
+			goto error_return;
 		}
 
 		if( sat->sat_syntax != NULL && sat->sat_syntax != syn ) {
-			return SLAP_SCHERR_ATTR_BAD_SUP;
+			code = SLAP_SCHERR_ATTR_BAD_SUP;
+			goto error_return;
 		}
 
 		sat->sat_syntax = syn;
 
 	} else if ( sat->sat_syntax == NULL ) {
-		return SLAP_SCHERR_ATTR_INCOMPLETE;
+		code = SLAP_SCHERR_ATTR_INCOMPLETE;
+		goto error_return;
 	}
 
 	if ( sat->sat_equality_oid ) {
@@ -558,18 +566,21 @@ at_add(
 
 		if( mr == NULL ) {
 			*err = sat->sat_equality_oid;
-			return SLAP_SCHERR_MR_NOT_FOUND;
+			code = SLAP_SCHERR_MR_NOT_FOUND;
+			goto error_return;
 		}
 
 		if(( mr->smr_usage & SLAP_MR_EQUALITY ) != SLAP_MR_EQUALITY ) {
 			*err = sat->sat_equality_oid;
-			return SLAP_SCHERR_ATTR_BAD_MR;
+			code = SLAP_SCHERR_ATTR_BAD_MR;
+			goto error_return;
 		}
 
 		if( sat->sat_syntax != mr->smr_syntax ) {
 			if( mr->smr_compat_syntaxes == NULL ) {
 				*err = sat->sat_equality_oid;
-				return SLAP_SCHERR_ATTR_BAD_MR;
+				code = SLAP_SCHERR_ATTR_BAD_MR;
+				goto error_return;
 			}
 
 			for(i=0; mr->smr_compat_syntaxes[i]; i++) {
@@ -581,7 +592,8 @@ at_add(
 
 			if( i >= 0 ) {
 				*err = sat->sat_equality_oid;
-				return SLAP_SCHERR_ATTR_BAD_MR;
+				code = SLAP_SCHERR_ATTR_BAD_MR;
+				goto error_return;
 			}
 		}
 
@@ -592,25 +604,29 @@ at_add(
 	if ( sat->sat_ordering_oid ) {
 		if( !sat->sat_equality ) {
 			*err = sat->sat_ordering_oid;
-			return SLAP_SCHERR_ATTR_BAD_MR;
+			code = SLAP_SCHERR_ATTR_BAD_MR;
+			goto error_return;
 		}
 
 		mr = mr_find(sat->sat_ordering_oid);
 
 		if( mr == NULL ) {
 			*err = sat->sat_ordering_oid;
-			return SLAP_SCHERR_MR_NOT_FOUND;
+			code = SLAP_SCHERR_MR_NOT_FOUND;
+			goto error_return;
 		}
 
 		if(( mr->smr_usage & SLAP_MR_ORDERING ) != SLAP_MR_ORDERING ) {
 			*err = sat->sat_ordering_oid;
-			return SLAP_SCHERR_ATTR_BAD_MR;
+			code = SLAP_SCHERR_ATTR_BAD_MR;
+			goto error_return;
 		}
 
 		if( sat->sat_syntax != mr->smr_syntax ) {
 			if( mr->smr_compat_syntaxes == NULL ) {
 				*err = sat->sat_ordering_oid;
-				return SLAP_SCHERR_ATTR_BAD_MR;
+				code = SLAP_SCHERR_ATTR_BAD_MR;
+				goto error_return;
 			}
 
 			for(i=0; mr->smr_compat_syntaxes[i]; i++) {
@@ -622,7 +638,8 @@ at_add(
 
 			if( i >= 0 ) {
 				*err = sat->sat_ordering_oid;
-				return SLAP_SCHERR_ATTR_BAD_MR;
+				code = SLAP_SCHERR_ATTR_BAD_MR;
+				goto error_return;
 			}
 		}
 
@@ -632,19 +649,22 @@ at_add(
 	if ( sat->sat_substr_oid ) {
 		if( !sat->sat_equality ) {
 			*err = sat->sat_substr_oid;
-			return SLAP_SCHERR_ATTR_BAD_MR;
+			code = SLAP_SCHERR_ATTR_BAD_MR;
+			goto error_return;
 		}
 
 		mr = mr_find(sat->sat_substr_oid);
 
 		if( mr == NULL ) {
 			*err = sat->sat_substr_oid;
-			return SLAP_SCHERR_MR_NOT_FOUND;
+			code = SLAP_SCHERR_MR_NOT_FOUND;
+			goto error_return;
 		}
 
 		if(( mr->smr_usage & SLAP_MR_SUBSTR ) != SLAP_MR_SUBSTR ) {
 			*err = sat->sat_substr_oid;
-			return SLAP_SCHERR_ATTR_BAD_MR;
+			code = SLAP_SCHERR_ATTR_BAD_MR;
+			goto error_return;
 		}
 
 		/* due to funky LDAP builtin substring rules,
@@ -655,7 +675,8 @@ at_add(
 		if( sat->sat_syntax != sat->sat_equality->smr_syntax ) {
 			if( sat->sat_equality->smr_compat_syntaxes == NULL ) {
 				*err = sat->sat_substr_oid;
-				return SLAP_SCHERR_ATTR_BAD_MR;
+				code = SLAP_SCHERR_ATTR_BAD_MR;
+				goto error_return;
 			}
 
 			for(i=0; sat->sat_equality->smr_compat_syntaxes[i]; i++) {
@@ -669,7 +690,8 @@ at_add(
 
 			if( i >= 0 ) {
 				*err = sat->sat_substr_oid;
-				return SLAP_SCHERR_ATTR_BAD_MR;
+				code = SLAP_SCHERR_ATTR_BAD_MR;
+				goto error_return;
 			}
 		}
 
@@ -677,8 +699,17 @@ at_add(
 	}
 
 	code = at_insert( sat, err );
-	if ( code == 0 && rsat )
+	if ( code != 0 ) {
+error_return:;
+		if ( sat ) {
+			ldap_pvt_thread_mutex_destroy( &sat->sat_ad_mutex );
+			ch_free( sat );
+		}
+
+	} else if ( rsat ) {
 		*rsat = sat;
+	}
+
 	return code;
 }
 

@@ -844,6 +844,13 @@ stop:
 
 	config_destroy();
 
+	if ( configfile )
+		ch_free( configfile );
+	if ( configdir )
+		ch_free( configdir );
+	if ( urls )
+		ch_free( urls );
+
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );
 #endif
