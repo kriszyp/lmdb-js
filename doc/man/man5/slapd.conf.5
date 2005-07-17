@@ -1658,6 +1658,15 @@ lastmod   off
 "OpenLDAP Administrator's Guide" contains a longer annotated
 example of a configuration file.
 The original ETCDIR/slapd.conf is another example.
+.SH OBSOLETED DIRECTIVES
+.TP
+.B subordinate
+This directive was used in OpenLDAP 2.1 and 2.2 to glue a database
+with its superior.  The same functionality is now provided by the
+.B glue
+overlay; see
+.BR slapo-glue (5)
+for details.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
