@@ -35,8 +35,7 @@
 int
 monitor_subsys_conn_init(
 	BackendDB		*be,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_info_t	*mi;
 	Entry		*e, **ep, *e_conn;
@@ -175,8 +174,7 @@ int
 monitor_subsys_conn_update(
 	Operation		*op,
 	SlapReply		*rs,
-	Entry                   *e
-)
+	Entry                   *e )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 
@@ -234,8 +232,7 @@ conn_create(
 	monitor_info_t		*mi,
 	Connection		*c,
 	Entry			**ep,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_entry_t *mp;
 	struct tm	*ltm;
@@ -477,8 +474,7 @@ monitor_subsys_conn_create(
 	SlapReply		*rs,
 	struct berval		*ndn,
 	Entry 			*e_parent,
-	Entry			**ep
-)
+	Entry			**ep )
 {
 	monitor_info_t	*mi = ( monitor_info_t * )op->o_bd->be_private;
 
@@ -503,9 +499,11 @@ monitor_subsys_conn_create(
 		/* create all the children of e_parent */
 		for ( c = connection_first( &connindex );
 				c != NULL;
-				c = connection_next( c, &connindex ))
+				c = connection_next( c, &connindex ) )
 		{
-			if ( conn_create( mi, c, &e, ms ) || e == NULL ) {
+			if ( conn_create( mi, c, &e, ms ) != SLAP_CB_CONTINUE
+					|| e == NULL )
+			{
 				for ( ; e_tmp != NULL; ) {
 					mp = ( monitor_entry_t * )e_tmp->e_private;
 					e = mp->mp_next;
@@ -523,7 +521,7 @@ monitor_subsys_conn_create(
 			mp->mp_next = e_tmp;
 			e_tmp = e;
 		}
-		connection_done(c);
+		connection_done( c );
 		*ep = e;
 
 	} else {
