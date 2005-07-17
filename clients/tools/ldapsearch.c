@@ -466,7 +466,7 @@ handle_private_option( int i )
 		++ldif;
 		break;
 	case 's':	/* search scope */
-		if ( strncasecmp( optarg, "base", sizeof("base"-1) ) == 0 ) {
+		if ( strncasecmp( optarg, "base", sizeof("base")-1 ) == 0 ) {
 			scope = LDAP_SCOPE_BASE;
 		} else if ( strncasecmp( optarg, "one", sizeof("one")-1 ) == 0 ) {
 			scope = LDAP_SCOPE_ONELEVEL;
