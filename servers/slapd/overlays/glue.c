@@ -650,7 +650,7 @@ glue_tool_entry_put (
 )
 {
 	BackendDB *be, b2;
-	int rc = NOID;
+	int rc = -1;
 
 	b2 = *b0;
 	b2.bd_info = (BackendInfo *)glue_tool_inst( b0->bd_info );
