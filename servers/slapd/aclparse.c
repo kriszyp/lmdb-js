@@ -961,12 +961,12 @@ parse_acl(
 							fprintf( stderr,
 								"%s: line %d: \"onelevel\" should be used "
 								"instead of \"level{1}\" in by DN clause\n",
-								fname, lineno, 0 );
+								fname, lineno );
 						} else if ( level == 0 && sty == ACL_STYLE_LEVEL ) {
 							fprintf( stderr,
 								"%s: line %d: \"base\" should be used "
 								"instead of \"level{0}\" in by DN clause\n",
-								fname, lineno, 0 );
+								fname, lineno );
 						}
 
 						bdn->a_level = level;
@@ -1034,7 +1034,7 @@ parse_acl(
 						fprintf( stderr, "%s: line %d: "
 							"deprecated group style \"regex\"; "
 							"use \"expand\" instead\n",
-							fname, lineno, style );
+							fname, lineno );
 						sty = ACL_STYLE_EXPAND;
 						break;
 
