@@ -625,7 +625,7 @@ retcode_db_config(
 			fprintf( stderr, "%s: line %d: retcode: "
 				"\"retcode-item <RDN> <retcode> [<text>]\": "
 				"missing args\n",
-				fname, lineno, argv[ 1 ] );
+				fname, lineno );
 			return 1;
 		}
 
