@@ -388,7 +388,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 		while(1) {
 			struct berval fname, itmp;
 			struct dirent * dir;
-			bvlist *bvl, *prev;
+			bvlist *bvl, **prev;
 
 			dir = readdir(dir_of_path);
 			if(dir == NULL) break; /* end of the directory */
@@ -416,15 +416,14 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				}
 			}
 
-			for (ptr = list, prev = (bvlist *)&list; ptr;
-				prev = ptr, ptr = ptr->next) {
+			for (prev = &list; (ptr = *prev) != NULL; prev = &ptr->next) {
 				int cmp = strcmp( bvl->bv.bv_val, ptr->bv.bv_val );
 				if ( !cmp && bvl->num.bv_val )
 					cmp = bvl->inum - ptr->inum;
 				if ( cmp < 0 )
 					break;
 			}
-			prev->next = bvl;
+			*prev = bvl;
 			bvl->next = ptr;
 				
 		}
