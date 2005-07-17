@@ -970,11 +970,6 @@ ldap_attributetype2bv(  LDAPAttributeType * at, struct berval *bv )
 #define TK_DOLLAR	6
 #define TK_QDESCR	TK_QDSTRING
 
-struct token {
-	int type;
-	char *sval;
-};
-
 static int
 get_token( const char ** sp, char ** token_val )
 {
