@@ -338,8 +338,7 @@ handle_private_option( int i )
 					exit( EXIT_FAILURE );
 				}
 			} else {
-				fprintf( stderr, _("Invalid value for PagedResultsControl.\n"),
-					cvalue);
+				fprintf(stderr, _("Invalid value for PagedResultsControl.\n"));
 				exit( EXIT_FAILURE );
 			}
 			pageSize = (ber_int_t) tmp;
