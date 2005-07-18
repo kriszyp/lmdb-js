@@ -902,7 +902,7 @@ strip_cav_str( ComponentAssertionValue* cav, char* str)
 /*
  * TAG : "item", "and", "or", "not"
  */
-static int
+static ber_tag_t
 strip_cav_tag( ComponentAssertionValue* cav )
 {
 
