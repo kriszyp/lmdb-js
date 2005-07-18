@@ -1296,8 +1296,6 @@ config_cfdir(ConfigArgs *c) {
 
 static int
 config_search_base(ConfigArgs *c) {
-	struct berval dn;
-
 	if(c->op == SLAP_CONFIG_EMIT) {
 		int rc = 1;
 		if (!BER_BVISEMPTY(&default_search_base)) {
@@ -1551,7 +1549,6 @@ config_suffix(ConfigArgs *c)
 {
 	Backend *tbe;
 	struct berval pdn, ndn;
-	int rc;
 	char	*notallowed = NULL;
 
 	if ( c->be == frontendDB ) {
@@ -3048,7 +3045,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	CfEntryInfo *ce, *last;
 	ConfigOCs **colst;
 	Attribute *a, *oc_at;
-	int i, j, nocs, rc = 0;
+	int i, nocs, rc = 0;
 	struct berval pdn;
 	ConfigTable *ct;
 	char *ptr;
@@ -3236,7 +3233,6 @@ static int
 config_back_add( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
-	CfEntryInfo *ce, *last;
 	int renumber;
 	ConfigArgs ca;
 
@@ -3289,7 +3285,6 @@ static int
 config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 	ConfigArgs *ca )
 {
-	CfBackInfo *cfb = (CfBackInfo *)op->o_bd->be_private;
 	int rc = LDAP_UNWILLING_TO_PERFORM;
 	Modifications *ml;
 	Entry *e = ce->ce_entry;
@@ -3644,7 +3639,6 @@ config_back_search( Operation *op, SlapReply *rs )
 {
 	CfBackInfo *cfb;
 	CfEntryInfo *ce, *last;
-	int rc;
 
 	if ( !be_isroot( op ) ) {
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -3879,12 +3873,11 @@ config_back_db_open( BackendDB *be )
 	CfBackInfo *cfb = be->be_private;
 	struct berval rdn;
 	Entry *e, *parent;
-	CfEntryInfo *ce, *ceparent, *ceprev;
-	int i, rc;
+	CfEntryInfo *ce, *ceparent;
+	int i;
 	BackendInfo *bi;
 	BackendDB *bptr;
 	ConfigArgs c;
-	ConfigTable *ct;
 	Connection conn = {0};
 	char opbuf[OPERATION_BUFFER_SIZE];
 	Operation *op;
