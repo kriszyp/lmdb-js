@@ -255,6 +255,9 @@ fail:;
 	{
 		/* check for abandon */
 		if ( op->o_abandon ) {
+			if ( rc > 0 ) {
+				ldap_msgfree( res );
+			}
 			ldap_abandon_ext( lc->lc_ld, msgid, NULL, NULL );
 			rc = SLAPD_ABANDON;
 			goto finish;
