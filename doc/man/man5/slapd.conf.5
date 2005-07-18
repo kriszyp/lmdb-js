@@ -1628,6 +1628,100 @@ It is primarily intended to be used in prototypes.
 .B sql
 This backend is experimental.
 It services LDAP requests from an SQL database.
+.SH OVERLAYS
+The following overlays can be compiled into slapd.
+They are documented in the
+.BR slapo-<overlay> (5)
+manual pages.
+.TP
+.B accesslog
+Access Logging.
+This overlay can record accesses to a given backend database on another
+database.
+.TP
+.B auditlog
+Audit Logging.
+This overlay records changes on a given backend database to an LDIF log
+file.
+By default it is not built.
+.TP
+.B chain
+Chaining.
+This overlay allows automatic referral chasing when a referral would
+have been returned.
+.TP
+.B denyop
+Deny Operation.
+This overlay allows selected operations to be denied, similar to the
+\fBrestrict\fP option.
+.TP
+.B dyngroup
+Dynamic Group.
+This is a demo overlay which extends the Compare operation to detect
+members of a dynamic group.
+It has no effect on any other operations.
+.TP
+.B dynlist
+Dynamic List.
+This overlay allows expansion of dynamic groups and more.
+.TP
+.B glue
+Backend Glue.
+This overlay glues multiple databases into a single namingContext.
+.TP
+.B lastmod
+Last Modification.
+This overlay maintains a service entry in the database with the DN,
+modification type, modifiersName and modifyTimestamp of the last write
+operation performed on that database.
+.TP
+.B pcache
+Proxycache.
+This overlay allows caching of LDAP search requests in a local database.
+.TP
+.B ppolicy
+Password Policy.
+This overlay provides a variety of password control mechanisms,
+e.g. password aging, password reuse and duplication control, mandatory
+password resets, etc.
+.TP
+.B refint
+Referential Integrity.
+This overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to maintain the cohesiveness of a schema which utilizes reference
+attributes.
+.TP
+.B retcode
+Return Code.
+This overlay is useful to test the behavior of clients when
+server-generated erroneous and/or unusual responses occur.
+.TP
+.B rwm
+Rewrite/remap.
+This overlay is experimental.
+It performs basic DN/data rewrite and
+objectClass/attributeType mapping.
+.TP
+.B syncprov
+Syncrepl Provider.
+This overlay implements the provider-side support for
+.B syncrepl
+replication, including persistent search functionality.
+.TP
+.B translucent
+Translucent Proxy.
+This overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to create a "translucent proxy".
+Content of entries retrieved from a remote LDAP server can be partially
+overridden by the database.
+.TP
+.B unique
+Attribute Uniqueness.
+This overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to enforce the uniqueness of some or all attributes within a subtree.
 .SH EXAMPLES
 .LP
 Here is a short example of a configuration file:
