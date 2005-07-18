@@ -972,6 +972,7 @@ should be one of
 .BR bdb ,
 .BR config ,
 .BR dnssrv ,
+.BR hdb ,
 .BR ldap ,
 .BR ldbm ,
 .BR ldif ,
@@ -1001,6 +1002,7 @@ should be one of
 .BR bdb ,
 .BR config ,
 .BR dnssrv ,
+.BR hdb ,
 .BR ldap ,
 .BR ldbm ,
 .BR ldif ,
@@ -1562,6 +1564,10 @@ This backend is experimental.
 It serves up referrals based upon SRV resource records held in the
 Domain Name System.
 .TP
+.B hdb
+This is a variant of the BDB backend that uses a hierarchical database
+layout which supports subtree renames.
+.TP
 .B ldap
 This backend acts as a proxy to forward incoming requests to another
 LDAP server.
@@ -1675,6 +1681,7 @@ default slapd configuration file
 .BR ldap (3),
 .BR slapd\-bdb (5),
 .BR slapd\-dnssrv (5),
+.BR slapd\-hdb (5),
 .BR slapd\-ldap (5),
 .BR slapd\-ldbm (5),
 .BR slapd\-ldif (5),
