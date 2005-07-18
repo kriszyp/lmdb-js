@@ -32,6 +32,7 @@
 #include "slapi/slapi.h"
 #endif
 
+#include <ldif.h>
 #include <lutil.h>
 
 #include "config.h"
