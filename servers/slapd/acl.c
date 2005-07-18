@@ -373,7 +373,6 @@ access_allowed_mask(
 	const char			*attr;
 	int				st_same_attr = 0;
 	static AccessControlState	state_init = ACL_STATE_INIT;
-	BI_access_allowed		*bi_access_allowed = NULL;
 
 	assert( e != NULL );
 	assert( desc != NULL );
