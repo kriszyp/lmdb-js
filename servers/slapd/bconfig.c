@@ -1529,7 +1529,7 @@ config_overlay(ConfigArgs *c) {
 		/* log error */
 		Debug( SLAPD_DEBUG_CONFIG_ERROR, "%s: (optional) %s overlay \"%s\" configuration failed"
 			SLAPD_CONF_UNKNOWN_IGNORED ".\n",
-			c->log, c->be == frontendDB ? "global " : "", c->argv[1][1]);
+			c->log, c->be == frontendDB ? "global " : "", &c->argv[1][1]);
 #ifdef SLAPD_CONF_UNKNOWN_BAILOUT
 		return 1;
 #endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
