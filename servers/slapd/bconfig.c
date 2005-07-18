@@ -2279,7 +2279,7 @@ config_updateref(ConfigArgs *c) {
 
 static int
 config_include(ConfigArgs *c) {
-	unsigned long savelineno = c->lineno;
+	int savelineno = c->lineno;
 	int rc;
 	ConfigFile *cf;
 	ConfigFile *cfsave = cfn;

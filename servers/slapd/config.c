@@ -609,7 +609,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 			continue;
 		}
 
-		snprintf( c->log, sizeof( c->log ), "%s: line %lu",
+		snprintf( c->log, sizeof( c->log ), "%s: line %d",
 				c->fname, c->lineno );
 
 		c->argc = 0;
@@ -1117,7 +1117,7 @@ fp_parse_line(ConfigArgs *c)
 
 	if(token) for(i = 0; hide[i]; i++) if(!strcasecmp(token, hide[i])) break;
 	if(quote_ptr) *quote_ptr = ' ';
-	Debug(LDAP_DEBUG_CONFIG, "line %lu (%s%s)\n", c->lineno,
+	Debug(LDAP_DEBUG_CONFIG, "line %d (%s%s)\n", c->lineno,
 		hide[i] ? hide[i] : c->line, hide[i] ? " ***" : "");
 	if(quote_ptr) *quote_ptr = '\0';
 
@@ -1126,7 +1126,7 @@ fp_parse_line(ConfigArgs *c)
 			char **tmp;
 			tmp = ch_realloc(c->argv, (c->argv_size + ARGS_STEP) * sizeof(*c->argv));
 			if(!tmp) {
-				Debug(LDAP_DEBUG_ANY, "line %lu: out of memory\n", c->lineno, 0, 0);
+				Debug(LDAP_DEBUG_ANY, "line %d: out of memory\n", c->lineno, 0, 0);
 				return -1;
 			}
 			c->argv = tmp;

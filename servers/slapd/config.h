@@ -109,7 +109,7 @@ typedef struct config_args_s {
 	char *line;
 	char *tline;
 	const char *fname;
-	unsigned long lineno;
+	int lineno;
 	char log[MAXPATHLEN + STRLENOF(": line 18446744073709551615") + 1];
 	char msg[SLAP_TEXT_BUFLEN];
 	int depth;
