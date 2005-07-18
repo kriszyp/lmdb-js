@@ -182,6 +182,9 @@ fail:;
 	{
 		/* check for abandon */
 		if ( op->o_abandon ) {
+			if ( rc > 0 ) {
+				ldap_msgfree( res );
+			}
 			ldap_abandon( lc->ld, msgid );
 			rc = 0;
 			goto finish;
