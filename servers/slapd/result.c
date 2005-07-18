@@ -293,7 +293,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 		ber_printf( sber, "{i}", LDAP_UNWILLING_TO_PERFORM );
 
 		if( ber_flatten2( ber, &sorted.ldctl_value, 0 ) == -1 ) {
-			return LBER_ERROR;
+			return -1;
 		}
 
 		(void) ber_free_buf( ber );
