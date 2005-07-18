@@ -40,6 +40,9 @@ typedef struct slapi_mod		Slapi_Mod;
 typedef struct slapi_mods		Slapi_Mods;
 typedef struct slapi_componentid	Slapi_ComponentId;
 
+#define SLAPI_ATTR_UNIQUEID	"entryUUID"
+#define SLAPI_ATTR_OBJECTCLASS	"objectClass"
+
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
 int slapi_pblock_set( Slapi_PBlock *pb, int arg, void *value );
@@ -266,12 +269,60 @@ Slapi_PBlock *slapi_delete_internal( char * dn,  LDAPControl **controls,
 Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
 	int deloldrdn, LDAPControl **controls,
 	int log_change );
-#if 0
-Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
-	char *newParent, int deloldrdn, LDAPControl **controls,
-	int log_change );
-#endif
+Slapi_PBlock *slapi_rename_internal( const char * olddn, const char *newrdn,
+	const char *newsuperior, int delolrdn,
+	LDAPControl **controls, int log_change );
 void slapi_free_search_results_internal(Slapi_PBlock *pb);
+
+/* new internal add/delete/search/modify routines */
+typedef void (*plugin_result_callback)( int rc, void *callback_data );
+typedef int (*plugin_referral_entry_callback)( char * referral,
+	void *callback_data );
+typedef int (*plugin_search_entry_callback)( Slapi_Entry *e,
+	void *callback_data );
+void slapi_free_search_results_internal( Slapi_PBlock *pb );
+
+#define SLAPI_OP_FLAG_LOG_CHANGE	0x0001
+#define SLAPI_OP_FLAG_NEVER_CHAIN	0x0800
+
+int slapi_search_internal_pb( Slapi_PBlock *pb );
+int slapi_search_internal_callback_pb( Slapi_PBlock *pb, void *callback_data,
+	plugin_result_callback prc, plugin_search_entry_callback psec,
+	plugin_referral_entry_callback prec );
+int slapi_add_internal_pb( Slapi_PBlock *pb );
+int slapi_modify_internal_pb( Slapi_PBlock *pb );
+int slapi_modrdn_internal_pb( Slapi_PBlock *pb );
+int slapi_delete_internal_pb( Slapi_PBlock *pb );
+
+int slapi_seq_internal_callback_pb(Slapi_PBlock *pb, void *callback_data,
+        plugin_result_callback res_callback,
+        plugin_search_entry_callback srch_callback,
+        plugin_referral_entry_callback ref_callback);
+
+void slapi_search_internal_set_pb( Slapi_PBlock *pb, const char *base,
+	int scope, const char *filter, char **attrs, int attrsonly,
+	LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_add_entry_internal_set_pb( Slapi_PBlock *pb, Slapi_Entry *e,
+	LDAPControl **controls, Slapi_ComponentId *plugin_identity,
+	int operation_flags );
+int slapi_add_internal_set_pb( Slapi_PBlock *pb, const char *dn,
+	LDAPMod **attrs, LDAPControl **controls,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_modify_internal_set_pb( Slapi_PBlock *pb, const char *dn,
+	LDAPMod **mods, LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_rename_internal_set_pb( Slapi_PBlock *pb, const char *olddn,
+	const char *newrdn, const char *newsuperior, int deloldrdn,
+	LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_delete_internal_set_pb( Slapi_PBlock *pb, const char *dn,
+	LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_seq_internal_set_pb( Slapi_PBlock *pb, char *ibase, int type,
+	char *attrname, char *val, char **attrs, int attrsonly,
+	LDAPControl **controls, Slapi_ComponentId *plugin_identity,
+	int operation_flags );
 
 /* connection related routines */
 int slapi_is_connection_ssl(Slapi_PBlock *pPB, int *isSSL);
@@ -415,6 +466,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_PLUGIN_OBJECT			10
 #define SLAPI_PLUGIN_DESTROY_FN			11
 #define SLAPI_PLUGIN_DESCRIPTION		12
+#define SLAPI_PLUGIN_IDENTITY			13
 
 /* internal opreations params */
 #define SLAPI_PLUGIN_INTOP_RESULT		15
@@ -568,6 +620,8 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_CONFIG_ARGV			43
 
 /*  operational params */
+#define SLAPI_TARGET_ADDRESS			48
+#define SLAPI_TARGET_UNIQUEID			49
 #define SLAPI_TARGET_DN				50
 #define SLAPI_REQCONTROLS			51
 
@@ -578,6 +632,10 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 /* add params */
 #define SLAPI_ADD_TARGET			SLAPI_TARGET_DN
 #define SLAPI_ADD_ENTRY				60
+#define SLAPI_ADD_EXISTING_DN_ENTRY		61
+#define SLAPI_ADD_PARENT_ENTRY			62
+#define SLAPI_ADD_PARENT_UNIQUEID		63
+#define SLAPI_ADD_EXISTING_UNIQUEID_ENTRY	64
 
 /* bind params */
 #define SLAPI_BIND_TARGET			SLAPI_TARGET_DN
@@ -593,16 +651,23 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 
 /* delete params */
 #define SLAPI_DELETE_TARGET			SLAPI_TARGET_DN
+#define SLAPI_DELETE_EXISTING_ENTRY		SLAPI_ADD_EXISTING_DN_ENTRY
 
 /* modify params */
 #define SLAPI_MODIFY_TARGET			SLAPI_TARGET_DN
 #define SLAPI_MODIFY_MODS			90
+#define SLAPI_MODIFY_EXISTING_ENTRY		SLAPI_ADD_EXISTING_DN_ENTRY
 
 /* modrdn params */
 #define SLAPI_MODRDN_TARGET			SLAPI_TARGET_DN
 #define SLAPI_MODRDN_NEWRDN			100
 #define SLAPI_MODRDN_DELOLDRDN			101
 #define SLAPI_MODRDN_NEWSUPERIOR		102	/* v3 only */
+#define SLAPI_MODRDN_EXISTING_ENTRY             SLAPI_ADD_EXISTING_DN_ENTRY
+#define SLAPI_MODRDN_PARENT_ENTRY		104
+#define SLAPI_MODRDN_NEWPARENT_ENTRY		105
+#define SLAPI_MODRDN_TARGET_ENTRY		106
+#define SLAPI_MODRDN_NEWSUPERIOR_ADDRESS	107
 
 /* search params */
 #define SLAPI_SEARCH_TARGET			SLAPI_TARGET_DN
