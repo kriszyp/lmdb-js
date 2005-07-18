@@ -265,7 +265,7 @@ struct bdb_op_info {
 /* Copy an ID "src" to pointer "dst" in big-endian byte order */
 #define BDB_ID2DISK( src, dst )	\
 	do { int i0; ID tmp; unsigned char *_p;	\
-		tmp = (src); _p = (char *)(dst);	\
+		tmp = (src); _p = (unsigned char *)(dst);	\
 		for ( i0=sizeof(ID)-1; i0>=0; i0-- ) {	\
 			_p[i0] = tmp & 0xff; tmp >>= 8;	\
 		} \
