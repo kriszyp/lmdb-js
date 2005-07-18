@@ -1192,7 +1192,7 @@ static int parsePostRead (
 	return LDAP_SUCCESS;
 }
 
-int parseValuesReturnFilter (
+static int parseValuesReturnFilter (
 	Operation *op,
 	SlapReply *rs,
 	LDAPControl *ctrl )

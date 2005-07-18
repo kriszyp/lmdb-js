@@ -1022,7 +1022,7 @@ do_syncrepl(
 	return NULL;
 }
 
-int
+static int
 syncrepl_message_to_entry(
 	syncinfo_t	*si,
 	Operation	*op,
@@ -1193,7 +1193,7 @@ typedef struct dninfo {
 	AttributeDescription **ads;
 } dninfo;
 
-int
+static int
 syncrepl_entry(
 	syncinfo_t* si,
 	Operation *op,
@@ -1858,7 +1858,7 @@ syncrepl_add_glue(
 	return;
 }
 
-void
+static void
 syncrepl_updateCookie(
 	syncinfo_t *si,
 	Operation *op,
@@ -2072,7 +2072,7 @@ null_callback(
 	return LDAP_SUCCESS;
 }
 
-struct berval *
+static struct berval *
 slap_uuidstr_from_normalized(
 	struct berval* uuidstr,
 	struct berval* normalized,

@@ -2063,7 +2063,7 @@ int slapd_daemon( void )
 
 }
 
-int sockinit(void)
+static int sockinit(void)
 {
 #if defined( HAVE_WINSOCK2 )
     WORD wVersionRequested;
@@ -2104,7 +2104,7 @@ int sockinit(void)
 	return 0;
 }
 
-int sockdestroy(void)
+static int sockdestroy(void)
 {
 #if defined( HAVE_WINSOCK2 ) || defined( HAVE_WINSOCK )
 	WSACleanup();

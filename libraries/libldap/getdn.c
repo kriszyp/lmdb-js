@@ -557,7 +557,7 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
  * LDAPAVA helpers (will become part of the API for operations 
  * on structural representations of DNs).
  */
-LDAPAVA *
+static LDAPAVA *
 ldapava_new( const struct berval *attr, const struct berval *val, 
 		unsigned flags, void *ctx )
 {
