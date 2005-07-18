@@ -3318,8 +3318,6 @@ config_modify_internal( CfEntryInfo *ce, Operation *op, SlapReply *rs,
 			int *idx = NULL;
 			if ( ct && ( ct->arg_type & ARG_NO_DELETE )) {
 				rc = LDAP_OTHER;
-				snprintf( ca->msg, sizeof(ca->msg),
-					"<%s> cannot be deleted" );
 				snprintf(ca->msg, sizeof(ca->msg), "cannot delete %s",
 					ml->sml_desc->ad_cname.bv_val );
 				goto out;
