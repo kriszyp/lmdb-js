@@ -168,8 +168,8 @@ monitor_subsys_ops_update(
 	Attribute		*a;
 	static struct berval	bv_ops = BER_BVC( "cn=operations" );
 
-	assert( mi );
-	assert( e );
+	assert( mi != NULL );
+	assert( e != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
 

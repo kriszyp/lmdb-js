@@ -71,7 +71,7 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 	const char		*text;
 	int			rc;
 
-	assert( m );
+	assert( m != NULL );
 
 	*m = NULL;
 	
@@ -110,7 +110,7 @@ rwm_mapping( struct ldapmap *map, struct berval *s, struct ldapmapping **m, int 
 	Avlnode *tree;
 	struct ldapmapping fmapping;
 
-	assert( m );
+	assert( m != NULL );
 
 	if ( remap == RWM_REMAP ) {
 		tree = map->remap;
@@ -163,7 +163,7 @@ rwm_map_attrnames(
 {
 	int		i, j;
 
-	assert( anp );
+	assert( anp != NULL );
 
 	*anp = NULL;
 
@@ -791,7 +791,7 @@ rwm_referral_rewrite(
 	struct berval		dn = BER_BVNULL,
 				ndn = BER_BVNULL;
 
-	assert( a_vals );
+	assert( a_vals != NULL );
 
 	/*
 	 * Rewrite the dn if needed

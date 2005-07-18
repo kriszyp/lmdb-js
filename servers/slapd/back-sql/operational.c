@@ -84,7 +84,7 @@ backsql_operational_entryCSN( Operation *op )
 
 #ifdef BACKSQL_SYNCPROV
 	if ( op->o_sync && op->o_tag == LDAP_REQ_SEARCH ) {
-		assert( op->o_private );
+		assert( op->o_private != NULL );
 
 		entryCSN = *((struct berval *)op->o_private);
 
@@ -164,7 +164,7 @@ backsql_operational(
 		case LDAP_COMPARE_TRUE:
 		case LDAP_COMPARE_FALSE:
 			*ap = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
-			assert( *ap );
+			assert( *ap != NULL );
 			ap = &(*ap)->a_next;
 			rc = 0;
 			break;

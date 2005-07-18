@@ -127,8 +127,8 @@ cr_insert(
 		cir->cir_name.bv_len = strlen( scr->scr_oid );
 		cir->cir_cr = scr;
 
-		assert( cir->cir_name.bv_val );
-		assert( cir->cir_cr );
+		assert( cir->cir_name.bv_val != NULL );
+		assert( cir->cir_cr != NULL );
 
 		if ( avl_insert( &cr_index, (caddr_t) cir,
 		                 cr_index_cmp, avl_dup_error ) )
@@ -150,8 +150,8 @@ cr_insert(
 			cir->cir_name.bv_len = strlen( *names );
 			cir->cir_cr = scr;
 
-			assert( cir->cir_name.bv_val );
-			assert( cir->cir_cr );
+			assert( cir->cir_name.bv_val != NULL );
+			assert( cir->cir_cr != NULL );
 
 			if ( avl_insert( &cr_index, (caddr_t) cir,
 			                 cr_index_cmp, avl_dup_error ) )

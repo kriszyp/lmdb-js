@@ -183,8 +183,8 @@ ID ldbm_tool_entry_put(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
-	assert( text );
-	assert( text->bv_val );
+	assert( text != NULL );
+	assert( text->bv_val != NULL );
 	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
 	if ( next_id_get( be, &id ) || id == NOID ) {

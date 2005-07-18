@@ -155,7 +155,7 @@ ber_memfree_x( void *p, void *ctx )
 		return;
 	}
 
-	assert( ber_int_memory_fns->bmf_free );
+	assert( ber_int_memory_fns->bmf_free != 0 );
 
 	(*ber_int_memory_fns->bmf_free)( p, ctx );
 }

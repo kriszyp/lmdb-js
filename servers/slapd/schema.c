@@ -103,7 +103,7 @@ schema_info( Entry **entry, const char **text )
 		}
 
 		nvals[0].bv_val = strchr( frontendDB->be_schemandn.bv_val, '=' );
-		assert( nvals[0].bv_val );
+		assert( nvals[0].bv_val != NULL );
 		nvals[0].bv_val++;
 		nvals[0].bv_len = frontendDB->be_schemandn.bv_len -
 			(nvals[0].bv_val - frontendDB->be_schemandn.bv_val);

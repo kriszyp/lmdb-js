@@ -207,7 +207,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 			}
 		
 			if ( mapping != NULL ) {
-				assert( mapping->m_dst_ad );
+				assert( mapping->m_dst_ad != NULL );
 				(*ap)->a_desc = mapping->m_dst_ad;
 			}
 		}
@@ -344,7 +344,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			}
 
 		} else {
-			assert( mapping->m_dst_ad );
+			assert( mapping->m_dst_ad != NULL );
 			ad = mapping->m_dst_ad;
 		}
 
@@ -524,7 +524,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 next_mod:;
 		if ( mapping != NULL ) {
 			/* use new attribute description */
-			assert( mapping->m_dst_ad );
+			assert( mapping->m_dst_ad != NULL );
 			(*mlp)->sml_desc = mapping->m_dst_ad;
 		}
 
@@ -972,7 +972,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 
 		if ( mapping != NULL ) {
 			/* rewrite the attribute description */
-			assert( mapping->m_dst_ad );
+			assert( mapping->m_dst_ad != NULL );
 			(*ap)->a_desc = mapping->m_dst_ad;
 		}
 
@@ -1004,7 +1004,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	dncookie		dc;
 	int			rc;
 
-	assert( rs->sr_entry );
+	assert( rs->sr_entry != NULL );
 
 	/*
 	 * Rewrite the dn of the result, if needed

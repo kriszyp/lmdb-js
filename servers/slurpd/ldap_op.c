@@ -321,7 +321,7 @@ op_ldap_modify(
 		continue;
 	    }
 
-	    assert( ldm );
+	    assert( ldm != NULL );
 
 	    /*
 	     * We should have an attribute: value pair here.
@@ -505,7 +505,7 @@ op_ldap_modrdn(
     }
 #endif /* LDAP_DEBUG */
 
-    assert( newrdn );
+    assert( newrdn != NULL );
 
     /* Do the modrdn */
     rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, newrdn, newsup, drdnflag );

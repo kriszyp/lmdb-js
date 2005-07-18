@@ -954,7 +954,7 @@ static int oc_filter(
 {
 	int rc = 0;
 
-	assert( f );
+	assert( f != NULL );
 
 	if( cur > *max ) *max = cur;
 

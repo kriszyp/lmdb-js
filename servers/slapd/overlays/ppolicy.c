@@ -212,7 +212,7 @@ account_locked( Operation *op, Entry *e,
 {
 	Attribute       *la;
 
-	assert(mod);
+	assert(mod != NULL);
 
 	if ( (la = attr_find( e->e_attrs, ad_pwdAccountLockedTime )) != NULL ) {
 		BerVarray vals = la->a_nvals;
@@ -1449,7 +1449,7 @@ do_modify:
 			ber_dupbv( &mods->sml_values[0], &timestamp );
 			mods->sml_values[1].bv_len = 0;
 			mods->sml_values[1].bv_val = NULL;
-			assert( mods->sml_values[0].bv_val );
+			assert( mods->sml_values[0].bv_val != NULL );
 		} else {
 			mods->sml_op = LDAP_MOD_DELETE;
 			mods->sml_values = NULL;

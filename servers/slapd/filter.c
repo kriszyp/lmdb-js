@@ -779,8 +779,8 @@ filter_escape_value_x(
 	void *ctx )
 {
 	ber_len_t i;
-	assert( in );
-	assert( out );
+	assert( in != NULL );
+	assert( out != NULL );
 
 	i = in->bv_len * 3 + 1;
 	out->bv_val = ctx ? slap_sl_malloc( i, ctx ) : ch_malloc( i );

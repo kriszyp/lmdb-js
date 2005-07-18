@@ -444,7 +444,7 @@ static int test_mra_filter(
 				int		ret;
 				const char	*text;
 
-				assert( ad );
+				assert( ad != NULL );
 
 				if ( mra->ma_desc ) {
 					/* have a mra type? check for subtype */
@@ -588,7 +588,7 @@ test_ava_filter(
 		}
 
 		mr = slap_schema.si_ad_entryDN->ad_type->sat_equality;
-		assert( mr );
+		assert( mr != NULL );
 
 		rc = value_match( &match, slap_schema.si_ad_entryDN, mr,
 			SLAP_MR_EXT, &e->e_nname, &ava->aa_value, &text );

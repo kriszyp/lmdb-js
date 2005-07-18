@@ -39,7 +39,7 @@ backsql_free_entryID( Operation *op, backsql_entryID *id, int freeit )
 {
 	backsql_entryID 	*next;
 
-	assert( id );
+	assert( id != NULL );
 
 	next = id->eid_next;
 
@@ -154,7 +154,7 @@ backsql_dn2id(
 	/* begin TimesTen */
 	Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): id_query \"%s\"\n",
 			ndn->bv_val, bi->sql_id_query, 0 );
-	assert( bi->sql_id_query );
+	assert( bi->sql_id_query != NULL );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_id_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -367,7 +367,7 @@ backsql_count_children(
 	/* begin TimesTen */
 	Debug(LDAP_DEBUG_TRACE, "children id query \"%s\"\n", 
 			bi->sql_has_children_query, 0, 0);
-	assert( bi->sql_has_children_query );
+	assert( bi->sql_has_children_query != NULL );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_has_children_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -470,8 +470,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	slap_syntax_transform_func	*pretty = NULL;
 #endif /* BACKSQL_PRETTY_VALIDATE */
 
-	assert( at );
-	assert( bsi );
+	assert( at != NULL );
+	assert( bsi != NULL );
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_attr_vals(): "
@@ -836,7 +836,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_id2entry()\n", 0, 0, 0 );
 
-	assert( bsi->bsi_e );
+	assert( bsi->bsi_e != NULL );
 
 	memset( bsi->bsi_e, 0, sizeof( Entry ) );
 

@@ -892,8 +892,8 @@ nameUIDPretty(
 	struct berval *out,
 	void *ctx )
 {
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 
 	Debug( LDAP_DEBUG_TRACE, ">>> nameUIDPretty: <%s>\n", val->bv_val, 0, 0 );
@@ -2398,8 +2398,8 @@ serialNumberAndIssuerPretty(
 	ber_len_t n;
 	struct berval sn, i, newi;
 
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerPretty: <%s>\n",
 		val->bv_val, 0, 0 );
@@ -2472,8 +2472,8 @@ serialNumberAndIssuerNormalize(
 	ber_len_t n;
 	struct berval sn, i, newi;
 
-	assert( val );
-	assert( out );
+	assert( val != NULL );
+	assert( out != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, ">>> serialNumberAndIssuerNormalize: <%s>\n",
 		val->bv_val, 0, 0 );

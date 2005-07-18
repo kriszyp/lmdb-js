@@ -99,7 +99,7 @@ int backend_init(void)
 	}
 
 	for( bi=slap_binfo; bi->bi_type != NULL; bi++,nBackendInfo++ ) {
-		assert( bi->bi_init );
+		assert( bi->bi_init != 0 );
 
 		rc = bi->bi_init( bi );
 
@@ -202,7 +202,7 @@ int backend_startup_one(Backend *be)
 {
 	int		rc = 0;
 
-	assert( be );
+	assert( be != NULL );
 
 	be->be_pending_csn_list = (struct be_pcl *)
 		ch_calloc( 1, sizeof( struct be_pcl ));
@@ -1613,9 +1613,9 @@ backend_access(
 	Backend		*be = op->o_bd;
 
 	/* pedantic */
-	assert( op );
-	assert( op->o_conn );
-	assert( edn );
+	assert( op != NULL );
+	assert( op->o_conn != NULL );
+	assert( edn != NULL );
 	assert( access > ACL_NONE );
 
 	op->o_bd = select_backend( edn, 0, 0 );

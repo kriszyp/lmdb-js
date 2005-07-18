@@ -75,8 +75,8 @@ cache_entry_private_init( Entry*e )
 void
 cache_entry_commit( Entry *e )
 {
-	assert( e );
-	assert( e->e_private );
+	assert( e != NULL );
+	assert( e->e_private != NULL );
 	assert( LEI(e)->lei_state == CACHE_ENTRY_CREATING );
 	/* assert( LEI(e)->lei_refcnt == 1 ); */
 
@@ -86,7 +86,7 @@ cache_entry_commit( Entry *e )
 static int
 cache_entry_private_destroy( Entry*e )
 {
-	assert( e->e_private );
+	assert( e->e_private != NULL );
 
 	free( e->e_private );
 	e->e_private = NULL;
@@ -106,7 +106,7 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	assert( e->e_private );
+	assert( e->e_private != NULL );
 
 	id = e->e_id;
 	refcnt = --LEI(e)->lei_refcnt;
@@ -326,7 +326,7 @@ cache_update_entry(
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	assert( e->e_private );
+	assert( e->e_private != NULL );
 
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
 	                 entry_dn_cmp, avl_dup_error ) != 0 )
@@ -437,7 +437,7 @@ try_again:
 		 * we do not need to lock the entry if we only
 		 * check the state, refcnt, LRU, and id.
 		 */
-		assert( ep->e_private );
+		assert( ep->e_private != NULL );
 
 		/* save id */
 		id = ep->e_id;
@@ -509,7 +509,7 @@ try_again:
 
 		count++;
 
-		assert( ep->e_private );
+		assert( ep->e_private != NULL );
 
 		ep_id = ep->e_id; 
 		state = LEI(ep)->lei_state;
@@ -575,7 +575,7 @@ cache_delete_entry(
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	assert( e->e_private );
+	assert( e->e_private != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry( %ld )\n",
 		e->e_id, 0, 0 );

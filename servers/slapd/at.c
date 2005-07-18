@@ -228,7 +228,7 @@ at_destroy( void )
 int
 at_start( AttributeType **at )
 {
-	assert( at );
+	assert( at != NULL );
 
 	*at = LDAP_STAILQ_FIRST(&attr_list);
 
@@ -238,7 +238,7 @@ at_start( AttributeType **at )
 int
 at_next( AttributeType **at )
 {
-	assert( at );
+	assert( at != NULL );
 
 #if 1	/* pedantic check */
 	{
@@ -250,7 +250,7 @@ at_next( AttributeType **at )
 			}
 		}
 
-		assert( tmp );
+		assert( tmp != NULL );
 	}
 #endif
 

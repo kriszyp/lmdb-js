@@ -176,8 +176,8 @@ monitor_subsys_time_update(
 	static struct berval	bv_current = BER_BVC( "cn=current" );
 	struct berval		rdn;
 
-	assert( mi );
-	assert( e );
+	assert( mi != NULL );
+	assert( e != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
 	

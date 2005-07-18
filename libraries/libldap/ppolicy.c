@@ -138,7 +138,7 @@ ldap_parse_passwordpolicy_control(
         
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( ctrl );
+	assert( ctrl != NULL );
 
 	/* Create a BerElement from the berval returned in the control. */
 	ber = ber_init(&ctrl->ldctl_value);

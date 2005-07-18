@@ -339,8 +339,8 @@ map_ldap_destroy(
 {
 	struct ldap_map_data *data;
 
-	assert( pmap );
-	assert( *pmap );
+	assert( pmap != NULL );
+	assert( *pmap != NULL );
 	
 	data = ( struct ldap_map_data * )(*pmap)->lb_private;
 

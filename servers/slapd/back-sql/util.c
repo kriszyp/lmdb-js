@@ -71,7 +71,7 @@ backsql_strcat( struct berbuf *dest, ... )
 	ber_len_t	cdlen, cslen, grow;
 	char		*cstr;
 
-	assert( dest );
+	assert( dest != NULL );
 	assert( dest->bb_val.bv_val == NULL 
 			|| dest->bb_val.bv_len == strlen( dest->bb_val.bv_val ) );
  
@@ -138,8 +138,8 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 	va_list		strs;
 	ber_len_t	cdlen;
 
-	assert( dest );
-	assert( fmt );
+	assert( dest != NULL );
+	assert( fmt != NULL );
 	assert( dest->bb_len == 0 || dest->bb_len > dest->bb_val.bv_len );
 	assert( dest->bb_val.bv_val == NULL 
 			|| dest->bb_val.bv_len == strlen( dest->bb_val.bv_val ) );
@@ -225,7 +225,7 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 #endif /* BACKSQL_TRACE */
 		}
 
-		assert( cstr );
+		assert( cstr != NULL );
 		
 		AC_MEMCPY( dest->bb_val.bv_val + cdlen, cstr, cslen + 1 );
 		cdlen += cslen;
@@ -280,8 +280,8 @@ backsql_get_table_spec( backsql_info *bi, char **p )
 	char		*s, *q;
 	struct berbuf	res = BB_NULL;
 
-	assert( p );
-	assert( *p );
+	assert( p != NULL );
+	assert( *p != NULL );
 
 	s = *p;
 	while ( **p && **p != ',' ) {
@@ -397,8 +397,8 @@ backsql_split_pattern(
 
 #define SPLIT_CHAR	'?'
 	
-	assert( _pattern );
-	assert( split_pattern );
+	assert( _pattern != NULL );
+	assert( split_pattern != NULL );
 
 	pattern = ch_strdup( _pattern );
 
@@ -457,7 +457,7 @@ backsql_prepare_pattern(
 	int		i;
 	struct berbuf	bb = BB_NULL;
 
-	assert( res );
+	assert( res != NULL );
 
 	for ( i = 0; values[i].bv_val; i++ ) {
 		if ( split_pattern[i].bv_val == NULL ) {
@@ -496,9 +496,9 @@ backsql_entryUUID(
 
 	/* entryUUID is generated as "%08x-%04x-%04x-0000-eaddrXXX"
 	 * with eid_oc_id as %08x and hi and lo eid_id as %04x-%04x */
-	assert( bi );
-	assert( id );
-	assert( entryUUID );
+	assert( bi != NULL );
+	assert( id != NULL );
+	assert( entryUUID != NULL );
 
 #ifdef BACKSQL_ARBITRARY_KEY
 	snprintf( uuidbuf, sizeof( uuidbuf ),

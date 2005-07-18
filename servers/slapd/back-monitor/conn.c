@@ -183,8 +183,8 @@ monitor_subsys_conn_update(
 				current_bv = BER_BVC( "cn=current" );
 	struct berval		rdn;
 
-	assert( mi );
-	assert( e );
+	assert( mi != NULL );
+	assert( e != NULL );
 
 	dnRdn( &e->e_nname, &rdn );
 	

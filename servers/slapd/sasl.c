@@ -1522,8 +1522,8 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	int rc, is_dn = SET_NONE, do_norm = 1;
 	struct berval dn2, *mech;
 
-	assert( conn );
-	assert( id );
+	assert( conn != NULL );
+	assert( id != NULL );
 
 	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: conn %lu id=%s [len=%lu]\n", 
 		conn->c_connid,

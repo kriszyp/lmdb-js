@@ -437,8 +437,8 @@ rewrite_xmap_destroy(
 {
 	struct rewrite_map *map;
 
-	assert( pmap );
-	assert( *pmap );
+	assert( pmap != NULL );
+	assert( *pmap != NULL );
 
 	map = *pmap;
 

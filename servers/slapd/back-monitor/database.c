@@ -280,7 +280,7 @@ monitor_subsys_database_init(
 						break;
 					}
 				}
-				assert( on2 );
+				assert( on2 != NULL );
 
 				snprintf( buf, sizeof( buf ), 
 					"cn=Overlay %d,%s", 
@@ -429,7 +429,7 @@ monitor_subsys_database_init(
 						break;
 					}
 				}
-				assert( on2 );
+				assert( on2 != NULL );
 
 				snprintf( buf, sizeof( buf ),
 						"dn: cn=Overlay %d,cn=Database %d,%s\n"

@@ -558,9 +558,9 @@ static int get_url_perms(
 {
 	int	i;
 
-	assert( exts );
-	assert( perms );
-	assert( crit );
+	assert( exts != NULL );
+	assert( perms != NULL );
+	assert( crit != NULL );
 
 	*crit = 0;
 	for ( i = 0; exts[ i ]; i++ ) {

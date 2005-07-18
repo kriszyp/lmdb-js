@@ -72,8 +72,8 @@ limits_get(
 {
 	struct slap_limits **lm;
 
-	assert( op );
-	assert( limit );
+	assert( op != NULL );
+	assert( limit != NULL );
 
 	Debug( LDAP_DEBUG_TRACE, "==> limits_get: %s dn=\"%s\"\n",
 			op->o_log_prefix,
@@ -238,8 +238,8 @@ limits_add(
 	struct slap_limits	*lm;
 	unsigned		type, style;
 	
-	assert( be );
-	assert( limit );
+	assert( be != NULL );
+	assert( limit != NULL );
 
 	type = flags & SLAP_LIMITS_TYPE_MASK;
 	style = flags & SLAP_LIMITS_MASK;
@@ -304,8 +304,8 @@ limits_add(
 
 	switch ( type ) {
 	case SLAP_LIMITS_TYPE_GROUP:
-		assert( group_oc );
-		assert( group_ad );
+		assert( group_oc != NULL );
+		assert( group_ad != NULL );
 		lm->lm_group_oc = group_oc;
 		lm->lm_group_ad = group_ad;
 		break;
@@ -342,7 +342,7 @@ limits_parse(
 	ObjectClass		*group_oc = NULL;
 	AttributeDescription	*group_ad = NULL;
 
-	assert( be );
+	assert( be != NULL );
 
 	if ( argc < 3 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -637,8 +637,8 @@ limits_parse_one(
 	struct slap_limits_set 	*limit
 )
 {
-	assert( arg );
-	assert( limit );
+	assert( arg != NULL );
+	assert( limit != NULL );
 
 	if ( strncasecmp( arg, "time", STRLENOF( "time" ) ) == 0 ) {
 		arg += STRLENOF( "time" );
@@ -1075,8 +1075,8 @@ t_hard:
 int
 limits_check( Operation *op, SlapReply *rs )
 {
-	assert( op );
-	assert( rs );
+	assert( op != NULL );
+	assert( rs != NULL );
 	/* FIXME: should this be always true? */
 	assert( op->o_tag == LDAP_REQ_SEARCH);
 

@@ -322,7 +322,7 @@ backsql_open_db_conn( backsql_info *bi, unsigned long ldap_cid, backsql_db_conn 
 	backsql_db_conn		*dbc;
 	int			rc;
 
-	assert( pdbc );
+	assert( pdbc != NULL );
 	*pdbc = NULL;
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_open_db_conn()\n", 0, 0, 0 );
@@ -435,7 +435,7 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_get_db_conn()\n", 0, 0, 0 );
 
-	assert( dbh );
+	assert( dbh != NULL );
 	*dbh = SQL_NULL_HDBC;
 
 	tmp.ldap_cid = op->o_connid;

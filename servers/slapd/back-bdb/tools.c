@@ -327,8 +327,8 @@ ID bdb_tool_entry_put(
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 
-	assert( text );
-	assert( text->bv_val );
+	assert( text != NULL );
+	assert( text->bv_val != NULL );
 	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
 	Debug( LDAP_DEBUG_TRACE, "=> " LDAP_XSTRING(bdb_tool_entry_put)
@@ -524,8 +524,8 @@ ID bdb_tool_entry_modify(
 	assert( be != NULL );
 	assert( slapMode & SLAP_TOOL_MODE );
 
-	assert( text );
-	assert( text->bv_val );
+	assert( text != NULL );
+	assert( text->bv_val != NULL );
 	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
 	assert ( e->e_id != NOID );

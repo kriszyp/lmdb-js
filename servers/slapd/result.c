@@ -50,7 +50,7 @@ int slap_null_cb( Operation *op, SlapReply *rs )
 
 int slap_freeself_cb( Operation *op, SlapReply *rs )
 {
-	assert( op->o_callback );
+	assert( op->o_callback != NULL );
 
 	op->o_tmpfree( op->o_callback, op->o_tmpmemctx );
 	op->o_callback = NULL;

@@ -453,8 +453,8 @@ rewrite_subst_destroy(
 	int			n;
 	struct rewrite_subst	*subst;
 
-	assert( psubst );
-	assert( *psubst );
+	assert( psubst != NULL );
+	assert( *psubst != NULL );
 
 	subst = *psubst;
 

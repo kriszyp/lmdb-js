@@ -131,11 +131,11 @@ int slap_parse_user( struct berval *id, struct berval *user,
 {
 	char	u;
 	
-	assert( id );
+	assert( id != NULL );
 	assert( !BER_BVISNULL( id ) );
-	assert( user );
-	assert( realm );
-	assert( mech );
+	assert( user != NULL );
+	assert( realm != NULL );
+	assert( mech != NULL );
 
 	u = id->bv_val[ 0 ];
 	

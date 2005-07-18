@@ -223,7 +223,7 @@ slapi_int_get_plugins(
 	int		numPB = 0;
 	int		rc = LDAP_SUCCESS;
 
-	assert( ppFuncPtrs );
+	assert( ppFuncPtrs != NULL );
 
 	/*
 	 * First, count the plugins associated with a specific
@@ -610,7 +610,7 @@ slapi_int_load_plugin(
 	int		rc = LDAP_SUCCESS;
 	SLAPI_FUNC	fpInitFunc = NULL;
 
-	assert( pLdHandle );
+	assert( pLdHandle != NULL );
 
 	if ( lt_dlinit() ) {
 		return LDAP_LOCAL_ERROR;
@@ -768,7 +768,7 @@ slapi_int_plugin_unparse(
 )
 {
 	Slapi_PBlock *pp;
-	int i, j, rc;
+	int i, j;
 	char **argv, ibuf[32], *ptr;
 	struct berval idx, bv;
 

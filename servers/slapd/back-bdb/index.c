@@ -170,7 +170,7 @@ static int indexer(
 	DB *db;
 	struct berval *keys;
 
-	assert( mask );
+	assert( mask != 0 );
 
 	rc = bdb_db_cache( op->o_bd, atname->bv_val, &db );
 	

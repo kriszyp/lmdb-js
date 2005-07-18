@@ -1206,7 +1206,7 @@ int ldap_pvt_sasl_mutex_lock(void *mutex)
 		return SASL_OK;
 	}
 #else /* !LDAP_DEBUG_R_SASL */
-	assert( mutex );
+	assert( mutex != NULL );
 #endif /* !LDAP_DEBUG_R_SASL */
 	return ldap_pvt_thread_mutex_lock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
@@ -1219,7 +1219,7 @@ int ldap_pvt_sasl_mutex_unlock(void *mutex)
 		return SASL_OK;
 	}
 #else /* !LDAP_DEBUG_R_SASL */
-	assert( mutex );
+	assert( mutex != NULL );
 #endif /* !LDAP_DEBUG_R_SASL */
 	return ldap_pvt_thread_mutex_unlock( (ldap_pvt_thread_mutex_t *)mutex )
 		? SASL_FAIL : SASL_OK;
@@ -1232,7 +1232,7 @@ void ldap_pvt_sasl_mutex_dispose(void *mutex)
 		return;
 	}
 #else /* !LDAP_DEBUG_R_SASL */
-	assert( mutex );
+	assert( mutex != NULL );
 #endif /* !LDAP_DEBUG_R_SASL */
 	(void) ldap_pvt_thread_mutex_destroy( (ldap_pvt_thread_mutex_t *)mutex );
 	LDAP_FREE( mutex );

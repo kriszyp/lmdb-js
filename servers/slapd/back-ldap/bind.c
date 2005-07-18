@@ -1280,7 +1280,7 @@ ldap_back_proxy_authz_ctrl_free( Operation *op, LDAPControl ***pctrls )
 	 * added by back-ldap, so it's the only one we explicitly 
 	 * free */
 	if ( ctrls && ctrls != op->o_ctrls ) {
-		assert( ctrls[ 0 ] );
+		assert( ctrls[ 0 ] != NULL );
 
 		if ( !BER_BVISNULL( &ctrls[ 0 ]->ldctl_value ) ) {
 			free( ctrls[ 0 ]->ldctl_value.bv_val );

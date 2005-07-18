@@ -470,7 +470,7 @@ slap_passwd_hash_type(
 	new->bv_len = 0;
 	new->bv_val = NULL;
 
-	assert( hash );
+	assert( hash != NULL );
 
 	lutil_passwd_hash( cred , hash, new, text );
 }

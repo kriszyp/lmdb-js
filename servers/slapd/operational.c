@@ -53,7 +53,7 @@ slap_operational_entryDN( Entry *e )
 {
 	Attribute	*a;
 
-	assert( e );
+	assert( e != NULL );
 	assert( !BER_BVISNULL( &e->e_name ) );
 	assert( !BER_BVISNULL( &e->e_nname ) );
 

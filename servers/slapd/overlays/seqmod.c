@@ -61,7 +61,7 @@ seqmod_op_cleanup( Operation *op, SlapReply *rs )
 	/* This op is done, remove it */
 	ldap_pvt_thread_mutex_lock( &sm->sm_mutex );
 	av = avl_find2( sm->sm_mods, &mtdummy, sm_avl_cmp );
-	assert(av);
+	assert(av != NULL);
 
 	mt = av->avl_data;
 

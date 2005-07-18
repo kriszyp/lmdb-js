@@ -1063,7 +1063,7 @@ bdb_cache_delete(
 	EntryInfo *ei = BEI(e);
 	int	rc;
 
-	assert( e->e_private );
+	assert( e->e_private != NULL );
 
 	/* Set this early, warn off any queriers */
 	ei->bei_state |= CACHE_ENTRY_DELETED;

@@ -177,7 +177,7 @@ rewrite_session_return(
 		struct rewrite_session *session
 )
 {
-	assert( session );
+	assert( session != NULL );
 	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
 }
 

@@ -477,7 +477,7 @@ slap_sl_free(void *ptr, void *ctx)
 						Debug(LDAP_DEBUG_TRACE, "slap_sl_free: "
 							"free object not found while bit is clear.\n",
 							0, 0, 0);
-						assert(so);
+						assert(so != NULL);
 
 					}
 				} else {
@@ -527,7 +527,7 @@ slap_sl_free(void *ptr, void *ctx)
 						Debug(LDAP_DEBUG_TRACE, "slap_sl_free: "
 							"free object not found while bit is clear.\n",
 							0, 0, 0 );
-						assert( so );
+						assert(so != NULL);
 
 					}
 				} else {

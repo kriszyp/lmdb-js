@@ -462,8 +462,8 @@ oc_insert(
 		oir->oir_name.bv_len = strlen( soc->soc_oid );
 		oir->oir_oc = soc;
 
-		assert( oir->oir_name.bv_val );
-		assert( oir->oir_oc );
+		assert( oir->oir_name.bv_val != NULL );
+		assert( oir->oir_oc != NULL );
 
 		if ( avl_insert( &oc_index, (caddr_t) oir,
 			oc_index_cmp, avl_dup_error ) )
@@ -493,8 +493,8 @@ oc_insert(
 			oir->oir_name.bv_len = strlen( *names );
 			oir->oir_oc = soc;
 
-			assert( oir->oir_name.bv_val );
-			assert( oir->oir_oc );
+			assert( oir->oir_name.bv_val != NULL );
+			assert( oir->oir_oc != NULL );
 
 			if ( avl_insert( &oc_index, (caddr_t) oir,
 				oc_index_cmp, avl_dup_error ) )

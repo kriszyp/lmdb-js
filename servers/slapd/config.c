@@ -865,7 +865,7 @@ int bindconf_parse( const char *word, slap_bindconf *bc ) {
 				break;
 
 			case 'd':
-				assert( tab->aux );
+				assert( tab->aux != NULL );
 				iptr = (int *)((char *)bc + tab->off);
 
 				rc = 1;
@@ -918,7 +918,7 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 			break;
 
 		case 'd':
-			assert( tab->aux );
+			assert( tab->aux != NULL );
 			iptr = (int *)((char *)bc + tab->off);
 		
 			for ( i = 0; !BER_BVISNULL( &tab->aux[i].word ); i++ ) {

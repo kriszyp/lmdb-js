@@ -156,8 +156,8 @@ monitor_subsys_sent_update(
 	Attribute		*a;
 	int			i;
 
-	assert( mi );
-	assert( e );
+	assert( mi != NULL );
+	assert( e != NULL );
 
 	dnRdn( &e->e_nname, &nrdn );
 
@@ -195,7 +195,7 @@ monitor_subsys_sent_update(
 	ldap_pvt_thread_mutex_unlock(&slap_counters.sc_sent_mutex);
 	
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
-	assert( a );
+	assert( a != NULL );
 
 	/* NOTE: no minus sign is allowed in the counters... */
 	UI2BV( &a->a_vals[ 0 ], n );

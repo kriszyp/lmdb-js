@@ -600,7 +600,7 @@ overlay_find( const char *over_type )
 {
 	slap_overinst *on = overlays;
 
-	assert( over_type );
+	assert( over_type != NULL );
 
 	for ( ; on; on = on->on_next ) {
 		if ( strcmp( on->on_bi.bi_type, over_type ) == 0 ) {
@@ -635,7 +635,7 @@ overlay_is_inst( BackendDB *be, const char *over_type )
 {
 	slap_overinst	*on;
 
-	assert( be );
+	assert( be != NULL );
 
 	if ( !overlay_is_over( be ) ) {
 		return 0;

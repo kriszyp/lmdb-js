@@ -910,13 +910,13 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &tmpval );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_nvalues[0], &tmpval );
 			mod->sml_nvalues[1].bv_len = 0;
 			mod->sml_nvalues[1].bv_val = NULL;
-			assert( mod->sml_nvalues[0].bv_val );
+			assert( mod->sml_nvalues[0].bv_val != NULL );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 		}
@@ -937,7 +937,7 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &tmpval );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			(*mod->sml_desc->ad_type->sat_equality->smr_normalize)(
@@ -960,13 +960,13 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &name );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues =
 				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_nvalues[0], &nname );
 			mod->sml_nvalues[1].bv_len = 0;
 			mod->sml_nvalues[1].bv_val = NULL;
-			assert( mod->sml_nvalues[0].bv_val );
+			assert( mod->sml_nvalues[0].bv_val != NULL );
 			*modtail = mod;
 			modtail = &mod->sml_next;
 
@@ -980,7 +980,7 @@ int slap_mods_opattrs(
 			ber_dupbv( &mod->sml_values[0], &timestamp );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
-			assert( mod->sml_values[0].bv_val );
+			assert( mod->sml_values[0].bv_val != NULL );
 			mod->sml_nvalues = NULL;
 			*modtail = mod;
 			modtail = &mod->sml_next;
@@ -997,7 +997,7 @@ int slap_mods_opattrs(
 		ber_dupbv( &mod->sml_values[0], &csn );
 		mod->sml_values[1].bv_len = 0;
 		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
+		assert( mod->sml_values[0].bv_val != NULL );
 		mod->sml_nvalues = NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;
@@ -1011,13 +1011,13 @@ int slap_mods_opattrs(
 		ber_dupbv( &mod->sml_values[0], &name );
 		mod->sml_values[1].bv_len = 0;
 		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
+		assert( mod->sml_values[0].bv_val != NULL );
 		mod->sml_nvalues =
 			(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 		ber_dupbv( &mod->sml_nvalues[0], &nname );
 		mod->sml_nvalues[1].bv_len = 0;
 		mod->sml_nvalues[1].bv_val = NULL;
-		assert( mod->sml_nvalues[0].bv_val );
+		assert( mod->sml_nvalues[0].bv_val != NULL );
 		*modtail = mod;
 		modtail = &mod->sml_next;
 
@@ -1030,7 +1030,7 @@ int slap_mods_opattrs(
 		ber_dupbv( &mod->sml_values[0], &timestamp );
 		mod->sml_values[1].bv_len = 0;
 		mod->sml_values[1].bv_val = NULL;
-		assert( mod->sml_values[0].bv_val );
+		assert( mod->sml_values[0].bv_val != NULL );
 		mod->sml_nvalues = NULL;
 		*modtail = mod;
 		modtail = &mod->sml_next;

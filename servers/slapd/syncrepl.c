@@ -1465,7 +1465,7 @@ retry_add:;
 
 			op->o_tag = LDAP_REQ_MODIFY;
 
-			assert( *modlist );
+			assert( *modlist != NULL );
 
 			/* Delete all the old attrs */
 			for ( i = 0; i < dni.attrs; i++ ) {

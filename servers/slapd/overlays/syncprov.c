@@ -1696,7 +1696,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 		 * control.
 		 */
 		if ( !rs->sr_entry ) {
-			assert( rs->sr_entry );
+			assert( rs->sr_entry != NULL );
 			Debug( LDAP_DEBUG_ANY, "bogus referral in context\n",0,0,0 );
 			return SLAP_CB_CONTINUE;
 		}

@@ -166,7 +166,7 @@ slap_access_always_allowed(
 	AccessControlState	*state,
 	slap_mask_t		*maskp )
 {
-	assert( maskp );
+	assert( maskp != NULL );
 
 	ACL_PRIV_SET( *maskp, ACL_ACCESS2PRIV( access ) );
 
@@ -3208,7 +3208,7 @@ dynacl_aci_unparse( void *priv, struct berval *bv )
 	AttributeDescription	*ad = ( AttributeDescription * )priv;
 	char *ptr;
 
-	assert( ad );
+	assert( ad != NULL );
 
 	bv->bv_val = ch_malloc( STRLENOF(" aci=") + ad->ad_cname.bv_len + 1 );
 	ptr = lutil_strcopy( bv->bv_val, " aci=" );

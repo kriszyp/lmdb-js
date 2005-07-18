@@ -459,7 +459,7 @@ ldap_build_entry(
 	int		last;
 
 	/* safe assumptions ... */
-	assert( ent );
+	assert( ent != NULL );
 	BER_BVZERO( &ent->e_bv );
 
 	if ( ber_scanf( &ber, "{m{", bdn ) == LBER_ERROR ) {

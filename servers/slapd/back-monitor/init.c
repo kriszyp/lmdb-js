@@ -216,7 +216,7 @@ monitor_back_register_subsys(
 
 		/* FIXME: this should only be possible
 		 * if be_monitor is already initialized */
-		assert( be_monitor );
+		assert( be_monitor != NULL );
 
 		if ( ms->mss_open && ( *ms->mss_open )( be_monitor, ms ) ) {
 			return -1;
@@ -1387,7 +1387,7 @@ monitor_back_db_open(
 #endif
 	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
-	assert( be_monitor );
+	assert( be_monitor != NULL );
 	if ( be != be_monitor ) {
 		be_monitor = be;
 	}
@@ -1590,7 +1590,7 @@ monitor_back_db_open(
 		ep = &mp->mp_next;
 	}
 
-	assert( be );
+	assert( be != NULL );
 
 	be->be_private = mi;
 	

@@ -247,10 +247,10 @@ backsql_db_open(
 
 	/* normalize filter values only if necessary */
 	bi->sql_caseIgnoreMatch = mr_find( "caseIgnoreMatch" );
-	assert( bi->sql_caseIgnoreMatch );
+	assert( bi->sql_caseIgnoreMatch != NULL );
 
 	bi->sql_telephoneNumberMatch = mr_find( "telephoneNumberMatch" );
-	assert( bi->sql_telephoneNumberMatch );
+	assert( bi->sql_telephoneNumberMatch != NULL );
 
 	if ( bi->sql_dbuser == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "

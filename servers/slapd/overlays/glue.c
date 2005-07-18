@@ -69,7 +69,7 @@ glue_back_select (
 	int i;
 
 	for (i = 0; i<gi->gi_nodes; i++) {
-		assert( gi->gi_n[i].gn_be->be_nsuffix );
+		assert( gi->gi_n[i].gn_be->be_nsuffix != NULL );
 
 		if (dnIsSuffix(dn, &gi->gi_n[i].gn_be->be_nsuffix[0])) {
 			return gi->gi_n[i].gn_be;
@@ -338,8 +338,8 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			}
 			op->o_bd = btmp;
 
-			assert( op->o_bd->be_suffix );
-			assert( op->o_bd->be_nsuffix );
+			assert( op->o_bd->be_suffix != NULL );
+			assert( op->o_bd->be_nsuffix != NULL );
 			
 			if (scope0 == LDAP_SCOPE_ONELEVEL && 
 				dn_match(pdn, &ndn))

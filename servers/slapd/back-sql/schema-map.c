@@ -800,9 +800,9 @@ backsql_supad2at( backsql_oc_map_rec *objclass, AttributeDescription *supad,
 	struct supad2at_t	va = { 0 };
 	int			rc;
 
-	assert( objclass );
-	assert( supad );
-	assert( pret );
+	assert( objclass != NULL );
+	assert( supad != NULL );
+	assert( pret != NULL );
 
 	*pret = NULL;
 

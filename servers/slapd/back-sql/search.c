@@ -272,7 +272,7 @@ backsql_init_search(
 		int	getentry = BACKSQL_IS_GET_ENTRY( flags );
 		int	gotit = 0;
 
-		assert( op->o_bd->be_private );
+		assert( op->o_bd->be_private != NULL );
 
 		rc = backsql_dn2id( op, rs, dbh, nbase, &bsi->bsi_base_id,
 				matched, 1 );
@@ -1250,7 +1250,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	backsql_info		*bi = (backsql_info *)bsi->bsi_op->o_bd->be_private;
 	int			rc;
 
-	assert( query );
+	assert( query != NULL );
 	BER_BVZERO( query );
 
 	bsi->bsi_use_subtree_shortcut = 0;
@@ -1344,7 +1344,7 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 			int		i;
 			BackendDB	*bd = bsi->bsi_op->o_bd;
 
-			assert( bd->be_nsuffix );
+			assert( bd->be_nsuffix != NULL );
 
 			for ( i = 0; !BER_BVISNULL( &bd->be_nsuffix[ i ] ); i++ )
 			{

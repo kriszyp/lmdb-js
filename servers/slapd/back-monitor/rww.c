@@ -206,7 +206,7 @@ monitor_subsys_rww_update(
 	snprintf( buf, sizeof( buf ), "%ld", num );
 
 	a = attr_find( e->e_attrs, mi->mi_ad_monitorCounter );
-	assert( a );
+	assert( a != NULL );
 	len = strlen( buf );
 	if ( len > a->a_vals[ 0 ].bv_len ) {
 		a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );

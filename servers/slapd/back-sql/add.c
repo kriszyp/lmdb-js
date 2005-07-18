@@ -66,7 +66,7 @@ backsql_modify_delete_all_values(
 	SQLHSTMT	asth = SQL_NULL_HSTMT;
 	BACKSQL_ROW_NTS	row;
 
-	assert( at );
+	assert( at != NULL );
 	if ( at->bam_delete_proc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"   backsql_modify_delete_all_values(): "

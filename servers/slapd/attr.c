@@ -126,7 +126,7 @@ attr_dup( Attribute *a )
 		BER_BVZERO( &tmp->a_vals[i] );
 
 		/* a_nvals must be non null; it may be equal to a_vals */
-		assert( a->a_nvals );
+		assert( a->a_nvals != NULL );
 
 		if ( a->a_nvals != a->a_vals ) {
 			tmp->a_nvals = ch_malloc( (i + 1) * sizeof(struct berval) );

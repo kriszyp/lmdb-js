@@ -41,7 +41,7 @@ monitor_back_operational(
 {
 	Attribute	**ap;
 
-	assert( rs->sr_entry );
+	assert( rs->sr_entry != NULL );
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count */ ;
@@ -54,11 +54,11 @@ monitor_back_operational(
 
 		mp = ( monitor_entry_t * )rs->sr_entry->e_private;
 
-		assert( mp );
+		assert( mp != NULL );
 
 		hs = MONITOR_HAS_CHILDREN( mp );
 		*ap = slap_operational_hasSubordinate( hs );
-		assert( *ap );
+		assert( *ap != NULL );
 		ap = &(*ap)->a_next;
 	}
 	

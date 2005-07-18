@@ -228,7 +228,7 @@ static int dnlist_subordinate(
 	BerVarray dnlist,
 	struct berval *dn )
 {
-	assert( dnlist );
+	assert( dnlist != NULL );
 
 	for( ; dnlist->bv_val != NULL; dnlist++ ) {
 		if( dnIsSuffix( dnlist, dn ) ) {

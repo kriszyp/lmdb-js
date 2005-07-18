@@ -48,8 +48,8 @@ add_replica_info(
 {
 	int i = 0;
 
-	assert( be );
-	assert( host );
+	assert( be != NULL );
+	assert( host != NULL );
 
 	if ( be->be_replica != NULL ) {
 		for ( ; be->be_replica[ i ] != NULL; i++ );

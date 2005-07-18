@@ -87,8 +87,8 @@ dynlist_make_filter( Operation *op, struct berval *oldf, struct berval *newf )
 
 	char		*ptr;
 
-	assert( oldf );
-	assert( newf );
+	assert( oldf != NULL );
+	assert( newf != NULL );
 	assert( !BER_BVISNULL( oldf ) );
 	assert( !BER_BVISEMPTY( oldf ) );
 

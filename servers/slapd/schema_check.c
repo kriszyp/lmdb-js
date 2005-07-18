@@ -79,7 +79,7 @@ entry_schema_check(
 		const char *type = a->a_desc->ad_cname.bv_val;
 
 		/* there should be at least one value */
-		assert( a->a_vals );
+		assert( a->a_vals != NULL );
 		assert( a->a_vals[0].bv_val != NULL ); 
 
 		if( a->a_desc->ad_type->sat_check ) {

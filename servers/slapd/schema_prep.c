@@ -297,8 +297,8 @@ static int objectSubClassIndexer(
 
 				ocvalues[noc] = sup->soc_cname;
 
-				assert( ocvalues[noc].bv_val );
-				assert( ocvalues[noc].bv_len );
+				assert( ocvalues[noc].bv_val != NULL );
+				assert( ocvalues[noc].bv_len != 0 );
 
 				noc++;
 

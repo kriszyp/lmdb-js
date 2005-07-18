@@ -132,8 +132,8 @@ chaining_control_remove(
 	 * added by the chain overlay, so it's the only one we explicitly 
 	 * free */
 	if ( op->o_ctrls != oldctrls ) {
-		assert( op->o_ctrls );
-		assert( op->o_ctrls[ 0 ] );
+		assert( op->o_ctrls != NULL );
+		assert( op->o_ctrls[ 0 ] != NULL );
 
 		free( op->o_ctrls );
 
