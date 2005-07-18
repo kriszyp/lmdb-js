@@ -1737,6 +1737,11 @@ pidfile   LOCALSTATEDIR/slapd.pid
 attributeoptions x-hidden lang-
 access to attr=name;x-hidden by * =cs
 
+# Protect passwords.  See \fBslapd.access\fP(5).
+access    to attrs=userPassword  by * auth
+# Read access to other attributes and entries.
+access    to *  by * read
+
 database  bdb
 suffix    "dc=our-domain,dc=com"
 # The database directory MUST exist prior to
