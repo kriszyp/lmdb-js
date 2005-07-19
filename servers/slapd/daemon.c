@@ -1362,14 +1362,14 @@ slapd_handle_listener(
 
 			if( getpeereid( s, &uid, &gid ) == 0 ) {
 				authid.bv_val = ch_malloc(
-					STRLENOF( "gidNumber=4294967295+uidNumber=4294967295,"
+					STRLENOF( "uidNumber=4294967295+gidNumber=4294967295,"
 					"cn=peercred,cn=external,cn=auth" ) + 1 );
 				authid.bv_len = sprintf( authid.bv_val,
-					"gidNumber=%d+uidNumber=%d,"
+					"uidNumber=%d+gidNumber=%d,"
 					"cn=peercred,cn=external,cn=auth",
 					(int) gid, (int) uid );
 				assert( authid.bv_len <=
-					STRLENOF( "gidNumber=4294967295+uidNumber=4294967295,"
+					STRLENOF( "uidNumber=4294967295+gidNumber=4294967295,"
 					"cn=peercred,cn=external,cn=auth" ) );
 			}
 		}
