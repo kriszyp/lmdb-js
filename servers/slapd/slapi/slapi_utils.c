@@ -3450,13 +3450,6 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 		return LDAP_OTHER;
 	}
 
-	for ( mp = ml; mp != NULL; mp = mp->sml_next ) {
-		rc = slap_bv2ad( &mp->sml_type, &mp->sml_desc, (const char **)errbuf );
-		if ( rc != LDAP_SUCCESS ) {
-			break;
-		}
-	}
-
 	if ( rc == LDAP_SUCCESS ) {
 		rc = acl_check_modlist( op, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -3563,13 +3556,18 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 		int i;
 		char **p;
 		struct berval **bvp;
+		const char *text;
+		AttributeDescription *ad = NULL;
+
+		if ( slap_str2ad( (*modp)->mod_type, &ad, &text ) != LDAP_SUCCESS )
+			continue;
 
 		mod = (Modifications *) ch_malloc( sizeof(Modifications) );
 		mod->sml_op = (*modp)->mod_op & (~LDAP_MOD_BVALUES);
 		mod->sml_flags = 0;
 		mod->sml_type.bv_val = (*modp)->mod_type;
 		mod->sml_type.bv_len = strlen( mod->sml_type.bv_val );
-		mod->sml_desc = NULL;
+		mod->sml_desc = ad;
 		mod->sml_next = NULL;
 
 		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
