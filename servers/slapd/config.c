@@ -417,6 +417,8 @@ init_config_attrs(ConfigTable *ct) {
 	const char *err;
 
 	for (i=0; ct[i].name; i++ ) {
+		int		freeit = 0;
+
 		if ( !ct[i].attribute ) continue;
 		at = ldap_str2attributetype( ct[i].attribute,
 			&code, &err, LDAP_SCHEMA_ALLOW_ALL );
@@ -425,19 +427,29 @@ init_config_attrs(ConfigTable *ct) {
 				ct[i].attribute, ldap_scherr2str(code), err );
 			return code;
 		}
+
 		code = at_add( at, 0, NULL, &err );
-		if ( code && code != SLAP_SCHERR_ATTR_DUP ) {
-			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
-				ct[i].attribute, scherr2str(code), err );
-			return code;
+		if ( code ) {
+			if ( code == SLAP_SCHERR_ATTR_DUP ) {
+				freeit = 1;
+
+			} else {
+				fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s, %s\n",
+					ct[i].attribute, scherr2str(code), err );
+				return code;
+			}
 		}
 		code = slap_str2ad( at->at_names[0], &ct[i].ad, &err );
+		if ( freeit ) {
+			ldap_attributetype_free( at );
+		} else {
+			ldap_memfree( at );
+		}
 		if ( code ) {
 			fprintf( stderr, "init_config_attrs: AttributeType \"%s\": %s\n",
 				ct[i].attribute, err );
 			return code;
 		}
-		ldap_memfree( at );
 	}
 
 	return 0;

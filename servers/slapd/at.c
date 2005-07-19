@@ -730,6 +730,11 @@ error_return:;
 			ch_free( sat );
 		}
 
+		if ( oidm ) {
+			SLAP_FREE( at->at_oid );
+			at->at_oid = oidm;
+		}
+
 	} else if ( rsat ) {
 		*rsat = sat;
 	}
