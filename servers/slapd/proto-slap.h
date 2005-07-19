@@ -1681,11 +1681,11 @@ LDAP_SLAPD_F (int) fe_extended LDAP_P((Operation *op, SlapReply *rs));
 	do { \
 		char		buf[] = "+9223372036854775807L"; \
 		ber_len_t	len; \
-		snprintf( buf, sizeof( buf ), UI2BV_FORMAT, (ui) ); \
-		len = strlen( buf ); \
+		len = snprintf( buf, sizeof( buf ), UI2BV_FORMAT, (ui) ); \
 		if ( len > (bv)->bv_len ) { \
 			(bv)->bv_val = ber_memrealloc_x( (bv)->bv_val, len + 1, (ctx) ); \
 		} \
+		(bv)->bv_len = len; \
 		AC_MEMCPY( (bv)->bv_val, buf, len + 1 ); \
 	} while ( 0 )
 #endif /* ! HAVE_GMP */
