@@ -1550,7 +1550,7 @@ int slap_read_controls(
 	c.ldctl_oid = oid->bv_val;
 	c.ldctl_iscritical = 0;
 
-	if ( ctrl == NULL ) {
+	if ( *ctrl == NULL ) {
 		/* first try */
 		*ctrl = (LDAPControl *) slap_sl_calloc( 1, sizeof(LDAPControl), NULL );
 	} else {
