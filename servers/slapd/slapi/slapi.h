@@ -57,21 +57,6 @@ LDAP_BEGIN_DECL
 #define FALSE 0
 #endif
 
-#if 0	/* unused (yet?) */
-#define dn_normalize_case	dn_normalize
-#define SLAPD_NO_MEMORY    	7
-#define ANYBODY_STRING 		"CN=ANYBODY"
-
-extern int slap_debug;
-
-extern int dn_check(char *, int *);
-
-typedef struct strlist {
-	char *string;
-	struct strlist *next;
-} StrList;
-#endif
-
 /*
  * Was: slapi_utils.h
  */
@@ -82,11 +67,6 @@ typedef struct _Audit_record Audit_record;
 #define SLAPI_CONTROL_PAGED_RESULTS_OID		LDAP_CONTROL_PAGEDRESULTS
 
 typedef int (*SLAPI_FUNC)( Slapi_PBlock *pb );
-
-#if 0	/* unused (yet?) */
-#define DOMAIN "Domain"
-#define TCPIPPATH "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"
-#endif
 
 typedef struct _slapi_control {
         int			s_ctrl_num;
@@ -286,7 +266,9 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_X_CONN_SSF			1303
 #define SLAPI_X_CONN_SASL_CONTEXT		1304
 
-#define SLAPI_X_CONFIG_ARGV	1400
+/* really private stuff */
+#define SLAPI_X_CONFIG_ARGV			1400
+#define SLAPI_X_INTOP_FLAGS			1401
 
 #define SLAPD_AUTH_NONE   "none"
 #define SLAPD_AUTH_SIMPLE "simple"
@@ -451,6 +433,8 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_CONFIG_ARGC			42
 #define SLAPI_CONFIG_ARGV			43
 
+#define SLAPI_TARGET_ADDRESS			48
+#define SLAPI_TARGET_UNIQUEID			49
 #define SLAPI_TARGET_DN				50
 #define SLAPI_REQCONTROLS			51
 
@@ -464,6 +448,10 @@ extern Backend * slapi_cl_get_be(char *dn);
 
 #define SLAPI_ADD_TARGET			SLAPI_TARGET_DN
 #define SLAPI_ADD_ENTRY				60
+#define SLAPI_ADD_EXISTING_DN_ENTRY		61
+#define SLAPI_ADD_PARENT_ENTRY			62
+#define SLAPI_ADD_PARENT_UNIQUEID		63
+#define SLAPI_ADD_EXISTING_UNIQUEID_ENTRY	64
 
 #define SLAPI_BIND_TARGET			SLAPI_TARGET_DN
 #define SLAPI_BIND_METHOD			70
@@ -476,14 +464,21 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_COMPARE_VALUE			81
 
 #define SLAPI_DELETE_TARGET			SLAPI_TARGET_DN
+#define SLAPI_DELETE_EXISTING_ENTRY		SLAPI_ADD_EXISTING_DN_ENTRY
 
 #define SLAPI_MODIFY_TARGET			SLAPI_TARGET_DN
 #define SLAPI_MODIFY_MODS			90
+#define SLAPI_MODIFY_EXISTING_ENTRY		SLAPI_ADD_EXISTING_DN_ENTRY
 
 #define SLAPI_MODRDN_TARGET			SLAPI_TARGET_DN
 #define SLAPI_MODRDN_NEWRDN			100
 #define SLAPI_MODRDN_DELOLDRDN			101
 #define SLAPI_MODRDN_NEWSUPERIOR		102
+#define SLAPI_MODRDN_EXISTING_ENTRY             SLAPI_ADD_EXISTING_DN_ENTRY
+#define SLAPI_MODRDN_PARENT_ENTRY		104
+#define SLAPI_MODRDN_NEWPARENT_ENTRY		105
+#define SLAPI_MODRDN_TARGET_ENTRY		106
+#define SLAPI_MODRDN_NEWSUPERIOR_ADDRESS	107
 
 #define SLAPI_SEARCH_TARGET			SLAPI_TARGET_DN
 #define SLAPI_SEARCH_SCOPE			110

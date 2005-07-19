@@ -3738,7 +3738,7 @@ int slapi_compute_add_evaluator(slapi_compute_callback_t function)
 		goto done;
 	}
 
-	rc = slapi_int_register_plugin( NULL, pPlugin );
+	rc = slapi_int_register_plugin( frontendDB, pPlugin );
 	if ( rc != 0 ) {
 		rc = LDAP_OTHER;
 		goto done;
@@ -3783,7 +3783,7 @@ int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function)
 		goto done;
 	}
 
-	rc = slapi_int_register_plugin( NULL, pPlugin );
+	rc = slapi_int_register_plugin( frontendDB, pPlugin );
 	if ( rc != 0 ) {
 		rc = LDAP_OTHER;
 		goto done;
@@ -3812,7 +3812,7 @@ int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slap
 	int rc = 0;
 	slapi_compute_callback_t *pGetPlugin, *tmpPlugin;
 
-	rc = slapi_int_get_plugins( NULL, SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN, (SLAPI_FUNC **)&tmpPlugin );
+	rc = slapi_int_get_plugins( frontendDB, SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN, (SLAPI_FUNC **)&tmpPlugin );
 	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
 		/* Nothing to do; front-end should ignore. */
 		return 0;
@@ -3998,6 +3998,8 @@ int slapi_int_access_allowed( Operation *op,
 		/* internal operation */
 		return 1;
 	}
+
+	return 1;
 
 	switch ( access ) {
 	case ACL_WRITE:

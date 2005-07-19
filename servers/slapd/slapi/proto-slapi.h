@@ -309,6 +309,46 @@ extern Slapi_PBlock *slapi_delete_internal( char * dn,  LDAPControl **controls,
 		int log_change );
 extern Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
 		int deloldrdn, LDAPControl **controls, int log_change);
+
+int slapi_search_internal_pb( Slapi_PBlock *pb );
+int slapi_search_internal_callback_pb( Slapi_PBlock *pb, void *callback_data,
+	plugin_result_callback prc, plugin_search_entry_callback psec,
+	plugin_referral_entry_callback prec );
+int slapi_add_internal_pb( Slapi_PBlock *pb );
+int slapi_modify_internal_pb( Slapi_PBlock *pb );
+int slapi_modrdn_internal_pb( Slapi_PBlock *pb );
+int slapi_delete_internal_pb( Slapi_PBlock *pb );
+
+int slapi_seq_internal_callback_pb(Slapi_PBlock *pb, void *callback_data,
+        plugin_result_callback res_callback,
+        plugin_search_entry_callback srch_callback,
+        plugin_referral_entry_callback ref_callback);
+
+void slapi_search_internal_set_pb( Slapi_PBlock *pb, const char *base,
+	int scope, const char *filter, char **attrs, int attrsonly,
+	LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_add_entry_internal_set_pb( Slapi_PBlock *pb, Slapi_Entry *e,
+	LDAPControl **controls, Slapi_ComponentId *plugin_identity,
+	int operation_flags );
+int slapi_add_internal_set_pb( Slapi_PBlock *pb, const char *dn,
+	LDAPMod **attrs, LDAPControl **controls,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_modify_internal_set_pb( Slapi_PBlock *pb, const char *dn,
+	LDAPMod **mods, LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_rename_internal_set_pb( Slapi_PBlock *pb, const char *olddn,
+	const char *newrdn, const char *newsuperior, int deloldrdn,
+	LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_delete_internal_set_pb( Slapi_PBlock *pb, const char *dn,
+	LDAPControl **controls, const char *uniqueid,
+	Slapi_ComponentId *plugin_identity, int operation_flags );
+void slapi_seq_internal_set_pb( Slapi_PBlock *pb, char *ibase, int type,
+	char *attrname, char *val, char **attrs, int attrsonly,
+	LDAPControl **controls, Slapi_ComponentId *plugin_identity,
+	int operation_flags );
+
 extern char **slapi_get_supported_extended_ops(void);
 extern struct berval *slapi_int_get_supported_extop( int );
 extern Connection *slapi_int_init_connection(char *DN, int OpType);
