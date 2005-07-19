@@ -1751,17 +1751,20 @@ int backend_operational(
 		ap = &(*ap)->a_next;
 	}
 
-	/* Let the overlays have a chance at this */
-	be_orig = op->o_bd;
-	if ( SLAP_ISOVERLAY( be_orig ) )
-		op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
-
-	if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
-		op->o_bd && op->o_bd->be_operational != NULL )
+	if ( op->o_bd != NULL )
 	{
-		rc = op->o_bd->be_operational( op, rs );
+		/* Let the overlays have a chance at this */
+		be_orig = op->o_bd;
+		if ( SLAP_ISOVERLAY( be_orig ) )
+			op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
+
+		if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
+			op->o_bd && op->o_bd->be_operational != NULL )
+		{
+			rc = op->o_bd->be_operational( op, rs );
+		}
+		op->o_bd = be_orig;
 	}
-	op->o_bd = be_orig;
 
 	return rc;
 }
