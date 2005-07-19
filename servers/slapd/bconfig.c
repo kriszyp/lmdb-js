@@ -1564,7 +1564,9 @@ config_suffix(ConfigArgs *c)
 	if ( notallowed != NULL ) {
 		Debug(LDAP_DEBUG_ANY,
 			"%s: suffix <%s> not allowed in %s database.\n",
-			c->log, c->value_dn.bv_val, notallowed );
+			c->log,
+			BER_BVISNULL( &c->value_dn ) ? "NULL" : c->value_dn.bv_val,
+			notallowed );
 		return 1;
 	}
 
