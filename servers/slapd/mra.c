@@ -57,12 +57,10 @@ get_mra(
 	struct berval type = BER_BVNULL;
 	struct berval value = BER_BVNULL;
 	struct berval rule_text = BER_BVNULL;
-	MatchingRuleAssertion ma;
+	MatchingRuleAssertion ma = { 0 };
 #ifdef LDAP_COMP_MATCH
 	AttributeAliasing* aa = NULL;
 #endif
-
-	memset( &ma, 0, sizeof ma);
 
 	rtag = ber_scanf( ber, "{t" /*"}"*/, &tag );
 
