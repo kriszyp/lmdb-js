@@ -58,13 +58,11 @@ typedef struct Attr_option {
 	int           prefix;	/* NAME is a tag and range prefix */
 } Attr_option;
 
-/* Options sorted by name, and number of options */
-static Attr_option internal_options[] = {
-	{ { sizeof("lang-")-1, "lang-" }, 1 },
-	{ { sizeof("range=")-1, "range=" }, 1 } };
+static Attr_option lang_option = { { sizeof("lang-")-1, "lang-" }, 1 };
 
-static Attr_option *options = internal_options;
-static int option_count = 2;
+/* Options sorted by name, and number of options */
+static Attr_option *options = &lang_option;
+static int option_count = 1;
 
 static Attr_option *ad_find_option_definition( const char *opt, int optlen );
 
@@ -1031,7 +1029,7 @@ ad_define_option( const char *name, const char *fname, int lineno )
 	int i;
 	unsigned int optlen;
 
-	if ( options == internal_options ) {
+	if ( options == &lang_option ) {
 		options = NULL;
 		option_count = 0;
 	}
