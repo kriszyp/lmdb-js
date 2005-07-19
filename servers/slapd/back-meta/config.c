@@ -500,8 +500,8 @@ meta_back_db_config(
 	} else if ( strcasecmp( argv[ 0 ], "timeout" ) == 0 ) {
 		char	*sep, *next;
 		time_t	*tv = mi->mi_ntargets ?
-				&mi->mi_targets[ mi->mi_ntargets - 1 ].mt_timeout
-				: &mi->mi_timeout;
+				mi->mi_targets[ mi->mi_ntargets - 1 ].mt_timeout
+				: mi->mi_timeout;
 		int	c;
 
 		if ( argc < 2 ) {
