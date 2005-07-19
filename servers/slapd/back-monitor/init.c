@@ -618,7 +618,11 @@ monitor_filter2ndn(
 	op->o_tag = LDAP_REQ_SEARCH;
 
 	/* use global malloc for now */
-	op->o_tmpmemctx = NULL;
+	if ( op->o_tmpmemctx ) {
+		/* FIXME: connection_fake_init() calls slap_sl_mem_create, so we destroy it for now */
+		slap_sl_mem_destroy( NULL, op->o_tmpmemctx );
+		op->o_tmpmemctx = NULL;
+	}
 	op->o_tmpmfuncs = &ch_mfuncs;
 
 	op->o_bd = be_monitor;
@@ -631,7 +635,7 @@ monitor_filter2ndn(
 	} else {
 		if ( dnPrettyNormal( NULL, base, &op->o_req_dn, &op->o_req_ndn,
 					op->o_tmpmemctx ) ) {
-			/* error */
+			return -1;
 		}
 	}
 
