@@ -1672,11 +1672,16 @@ LDAP_SLAPD_F (int) fe_extended LDAP_P((Operation *op, SlapReply *rs));
 		(bv)->bv_len = len; \
 	} while ( 0 )
 #else /* ! HAVE_BIGNUM && ! HAVE_GMP */
+#ifdef HAVE_LONG_LONG
+#define UI2BV_FORMAT	"%llu"
+#else /* ! HAVE_LONG_LONG */
+#define UI2BV_FORMAT	"%lu"
+#endif /* ! HAVE_LONG_LONG */
 #define UI2BVX(bv,ui,ctx) \
 	do { \
 		char		buf[] = "+9223372036854775807L"; \
 		ber_len_t	len; \
-		snprintf( buf, sizeof( buf ), "%lu", (ui) ); \
+		snprintf( buf, sizeof( buf ), UI2BV_FORMAT, (ui) ); \
 		len = strlen( buf ); \
 		if ( len > (bv)->bv_len ) { \
 			(bv)->bv_val = ber_memrealloc_x( (bv)->bv_val, len + 1, (ctx) ); \
