@@ -39,7 +39,11 @@
 
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
-#endif
+
+static int call_pre_result_plugins( Operation *, SlapReply * );
+static int call_pre_referral_plugins( Operation *, SlapReply * );
+static int call_pre_entry_plugins( Operation *, SlapReply *, int * );
+#endif /* LDAP_SLAPI */
 
 const struct berval slap_dummy_bv = BER_BVNULL;
 
@@ -611,24 +615,8 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 		}
 	}
 
-#ifdef LDAP_SLAPI
-	/*
-	 * Call pre-result plugins. To avoid infinite recursion plugins
-	 * should just set SLAPI_RESULT_CODE rather than sending a
-	 * result if they wish to change the result.
-	 */
-	if ( op->o_callback == NULL && op->o_pb != NULL ) {
-		slapi_int_pblock_set_operation( op->o_pb, op );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE,
-			(void *)rs->sr_err );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT,
-			(void *)rs->sr_text );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED,
-			(void *)rs->sr_matched );
-
-		(void) slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN,
-			op->o_pb );
-	}
+#ifdef notdef
+	(void) call_pre_result_plugins( op, rs );
 #endif /* LDAP_SLAPI */
 
 	if ( op->o_protocol < LDAP_VERSION3 ) {
@@ -722,8 +710,9 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef LDAP_SLAPI
 	/* Support for computed attribute plugins */
 	computed_attr_context	 ctx;
-	AttributeName	*anp;
+	AttributeName		*anp;
 #endif
+	int			 attrsonly;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
 	/* a_flags: array of flags telling if the i-th element will be
@@ -775,6 +764,15 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: conn %lu dn=\"%s\"%s\n",
 		op->o_connid, rs->sr_entry->e_name.bv_val,
 		op->ors_attrsonly ? " (attrsOnly)" : "" );
+
+	attrsonly = op->ors_attrsonly;
+
+#ifdef notdef
+	rc = call_pre_entry_plugins( op, rs, &attrsonly );
+	if ( rc < 0 ) {
+		goto error_return;
+	}
+#endif /* LDAP_SLAPI */
 
 	if ( !access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL )) {
 		Debug( LDAP_DEBUG_ACL,
@@ -906,7 +904,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( op->ors_attrsonly ) {
+		if ( attrsonly ) {
 			if ( ! access_allowed( op, rs->sr_entry, desc, NULL,
 				ACL_READ, &acl_state ) )
 			{
@@ -1085,7 +1083,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			goto error_return;
 		}
 
-		if ( ! op->ors_attrsonly ) {
+		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( op, rs->sr_entry,
 					desc, &a->a_vals[i], ACL_READ, &acl_state ) )
@@ -1134,7 +1132,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	if ( op->o_pb ) {
 		ctx.cac_pb = op->o_pb;
 		ctx.cac_attrs = rs->sr_attrs;
-		ctx.cac_attrsonly = op->ors_attrsonly;
+		ctx.cac_attrsonly = attrsonly;
 		ctx.cac_userattrs = userattrs;
 		ctx.cac_opattrs = rs->sr_attr_flags;
 		ctx.cac_acl_state = acl_state;
@@ -1318,6 +1316,12 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_reference: dn=\"%s\"\n",
 		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "(null)", 0, 0 );
+
+#ifdef notdef
+	rc = call_pre_referral_plugins( op, rs );
+	if ( rc < 0 )
+		goto rel;
+#endif /* LDAP_SLAPI */
 
 	if (  rs->sr_entry && ! access_allowed( op, rs->sr_entry,
 		ad_entry, NULL, ACL_READ, NULL ) )
@@ -1623,3 +1627,153 @@ slap_attr_flags( AttributeName *an )
 	return flags;
 }
 
+#ifdef LDAP_SLAPI
+static AttributeName *charray2anlist( Operation *op, char **attrs )
+{
+	AttributeName *an;
+	int i;
+
+	if ( attrs != NULL ) {
+		for ( i = 0; attrs[i] != NULL; i++ )
+			;
+		an = (AttributeName *)op->o_tmpalloc( (i + 1) * sizeof(AttributeName), op->o_tmpmemctx );
+		for ( i = 0; attrs[i] != NULL; i++ ) {
+			const char *dummy;
+
+			an[i].an_name.bv_val = attrs[i];
+			an[i].an_name.bv_len = strlen( attrs[i] );
+			an[i].an_oc = NULL;
+			an[i].an_oc_exclude = 0;
+			slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
+		}
+	} else {
+		an = NULL;
+	}
+
+	return an;
+}
+
+/*
+ * Call pre-response plugins. To avoid infinite recursion plugins
+ * should just set SLAPI_RESULT_CODE rather than sending a
+ * result if they wish to change the result. Similarly, pre-entry
+ * plugins can either abort sending the entry or change the list
+ * of sent attributes, but they can't call send_search_entry().
+ */
+
+static int call_pre_entry_plugins( Operation *op, SlapReply *rs, int *pAttributesOnly )
+{
+	int rc;
+	char **attrs = NULL;
+	char **filteredAttributes = NULL;
+	Slapi_PBlock *pb;
+
+	if ( op->o_callback != NULL || op->o_pb == NULL ) {
+		return 0;
+	}
+
+	/*
+	 * A new parameter block is allocated to avoid trampling on the
+	 * operation SLAPI state.
+	 */
+	pb = slapi_pblock_new();
+
+	slapi_int_pblock_set_operation( pb, op );
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
+	attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
+	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRS, (void *)attrs );
+	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRSONLY, (void *)*pAttributesOnly );
+	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)rs->sr_entry );
+
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_ENTRY_FN, pb );
+	if ( rc < 0 ) {
+		slapi_pblock_destroy( pb );
+		return rc;
+	}
+
+	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
+	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRS, (void **)&filteredAttributes );
+	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRSONLY, (void **)pAttributesOnly );
+	slapi_pblock_get( pb, SLAPI_SEARCH_RESULT_ENTRY, (void **)&rs->sr_entry );
+
+	if ( filteredAttributes != attrs ) {
+		/*
+		 * Support for filtering attributes; useful for implementing
+		 * replication providers
+		 */
+		rs->sr_attrs = charray2anlist( op, filteredAttributes );
+		slapi_ch_free( (void **)&filteredAttributes );
+	}
+
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL );
+	slapi_pblock_destroy( pb );
+
+	return rc;
+}
+
+static int call_pre_result_plugins( Operation *op, SlapReply *rs )
+{
+	int rc;
+
+	if ( op->o_callback != NULL || op->o_pb == NULL ) {
+		return 0;
+	}
+
+#define pb op->o_pb
+
+	slapi_int_pblock_set_operation( pb, op );
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
+	slapi_pblock_set( pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
+	slapi_pblock_set( pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
+	slapi_pblock_set( pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, pb );
+	if ( rc < 0 ) {
+		return rc;
+	}
+
+	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
+	slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
+	slapi_pblock_get( pb, SLAPI_RESULT_TEXT, (void **)&rs->sr_text );
+	slapi_pblock_get( pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
+
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL );
+
+#undef pb
+
+	return rc;
+}
+
+static int call_pre_referral_plugins( Operation *op, SlapReply *rs )
+{
+	int rc;
+	Slapi_PBlock *pb;
+
+	if ( op->o_callback != NULL || op->o_pb == NULL ) {
+		return 0;
+	}
+
+	/*
+	 * A new parameter block is allocated to avoid trampling on the
+	 * operation SLAPI state.
+	 */
+	pb = slapi_pblock_new();
+
+	slapi_int_pblock_set_operation( pb, op );
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
+	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)rs->sr_entry );
+
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_REFERRAL_FN, pb );
+	if ( rc < 0 ) {
+		return rc;
+	}
+
+	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
+	slapi_pblock_get( pb, SLAPI_SEARCH_RESULT_ENTRY, (void **)&rs->sr_entry );
+
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL );
+	slapi_pblock_destroy( pb );
+
+	return rc;
+}
+#endif /* LDAP_SLAPI */
