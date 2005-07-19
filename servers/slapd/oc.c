@@ -385,6 +385,7 @@ oc_destroy( void )
 		if (o->soc_sups) ldap_memfree(o->soc_sups);
 		if (o->soc_required) ldap_memfree(o->soc_required);
 		if (o->soc_allowed) ldap_memfree(o->soc_allowed);
+		if (o->soc_oidmacro) ldap_memfree(o->soc_oidmacro);
 		ldap_objectclass_free((LDAPObjectClass *)o);
 	}
 	
