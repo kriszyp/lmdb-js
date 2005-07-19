@@ -634,7 +634,7 @@ hdb_dn2id(
 	diskNode *d;
 	char	*ptr;
 	unsigned char dlen[2];
-	ID idp;
+	ID idp, parentID;
 
 	nrlen = dn_rdnlen( op->o_bd, in );
 	if (!nrlen) nrlen = in->bv_len;
@@ -644,7 +644,8 @@ hdb_dn2id(
 	key.data = &idp;
 	key.ulen = sizeof(ID);
 	key.flags = DB_DBT_USERMEM;
-	BDB_ID2DISK( ei->bei_parent->bei_id, &idp );
+	parentID = ( ei->bei_parent != NULL ) ? ei->bei_parent->bei_id : 0;
+	BDB_ID2DISK( parentID, &idp );
 
 	DBTzero(&data);
 	data.size = sizeof(diskNode) + nrlen - sizeof(ID) - 1;
