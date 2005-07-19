@@ -159,19 +159,22 @@ Support for the latter two schemes depends on selected configuration
 options.  Hosts may be specified by name or IPv4 and IPv6 address formats.
 Ports, if specified, must be numeric.  The default ldap:// port is 389
 and the default ldaps:// port is 636.
-The socket permissions for LDAP over IPC are indicated by
+
+The listener permissions are indicated by
 "x-mod=-rwxrwxrwx", "x-mod=0777" or "x-mod=777", where any 
-of the "rwx" can be "-" to suppress the related permission (note, 
-however, that sockets only honor the "w" permission), while any 
+of the "rwx" can be "-" to suppress the related permission, while any 
 of the "7" can be any legal octal digit, according to chmod(1).
-While LDAP over IPC requires write permissions on the socket to allow
-any operation, the other listeners can take advantage of the "x-mod"
-extension to apply rough limitations to users, e.g. allow read operations
+The listeners can take advantage of the "x-mod"
+extension to apply rough limitations to operations, e.g. allow read operations
 ("r", which applies to search and compare), write operations ("w", 
 which applies to add, delete, modify and modrdn), and execute operations
 ("x", which means bind is required).
-"User" permissions apply to bound users, while "other" apply
-to anonymous users.
+"User" permissions apply to authenticated users, while "other" apply
+to anonymous users; "group" permissions are ignored.
+For example, "ldap:///????x-mod=-rw-------" means that read and write is only allowed
+for authenticated connections, and bind is required for all operations.
+This feature is experimental, and requires to be manually enabled
+at configure time.
 .TP
 .BI \-r " directory"
 Specifies a directory to become the root directory.  slapd will
