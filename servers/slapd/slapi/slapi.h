@@ -269,6 +269,10 @@ extern Backend * slapi_cl_get_be(char *dn);
 /* really private stuff */
 #define SLAPI_X_CONFIG_ARGV			1400
 #define SLAPI_X_INTOP_FLAGS			1401
+#define SLAPI_X_INTOP_RESULT_CALLBACK		1402
+#define SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK	1403
+#define SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK	1404
+#define SLAPI_X_INTOP_CALLBACK_DATA		1405
 
 #define SLAPD_AUTH_NONE   "none"
 #define SLAPD_AUTH_SIMPLE "simple"
