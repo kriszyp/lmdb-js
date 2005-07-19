@@ -45,6 +45,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	struct berval	mdn = BER_BVNULL;
 	struct berval	mapped;
 	dncookie	dc;
+	int		msgid;
 	int		do_retry = 1;
 
 	mc = meta_back_getconn( op, rs, &candidate, LDAP_BACK_SENDERR );
@@ -172,12 +173,43 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	modv[ i ] = 0;
 
 retry:;
-	rs->sr_err = ldap_modify_ext_s( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
-			modv, op->o_ctrls, NULL );
+	rs->sr_err = ldap_modify_ext( mc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			modv, op->o_ctrls, NULL, &msgid );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
 		if ( meta_back_retry( op, rs, mc, candidate, LDAP_BACK_SENDERR ) ) {
 			goto retry;
+		}
+
+	} else if ( rs->sr_err == LDAP_SUCCESS ) {
+		struct timeval	tv, *tvp = NULL;
+		LDAPMessage	*res = NULL;
+
+		if ( mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODIFY ] != 0 ) {
+			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODIFY ];
+			tv.tv_usec = 0;
+			tvp = &tv;
+		}
+
+		rs->sr_err = ldap_result( mc->mc_conns[ candidate ].msc_ld,
+			msgid, LDAP_MSG_ONE, tvp, &res );
+		switch ( rs->sr_err ) {
+		case -1:
+			rs->sr_err = LDAP_OTHER;
+			rc = -1;
+			break;
+
+		case 0:
+			ldap_abandon_ext( mc->mc_conns[ candidate ].msc_ld,
+				msgid, NULL, NULL );
+			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
+				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
+			rc = -1;
+			break;
+
+		default:
+			ldap_msgfree( res );
+			break;
 		}
 	}
 

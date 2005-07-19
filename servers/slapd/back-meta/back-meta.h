@@ -193,6 +193,14 @@ typedef struct metaconn_t {
 	 * in one block with the metaconn_t structure */
 } metaconn_t;
 
+enum {
+	META_OP_ADD = 0,
+	META_OP_DELETE,
+	META_OP_MODIFY,
+	META_OP_MODRDN,
+	META_OP_LAST
+};
+
 typedef struct metatarget_t {
 	char			*mt_uri;
 
@@ -215,6 +223,7 @@ typedef struct metatarget_t {
 
 	unsigned		mt_flags;
 	int			mt_version;
+	time_t			mt_timeout[ META_OP_LAST ];
 } metatarget_t;
 
 typedef struct metadncache_t {
@@ -253,6 +262,7 @@ typedef struct metainfo_t {
 #define	META_BACK_ONERR_CONTINUE(mi)	( !META_BACK_ONERR_CONTINUE( (mi) ) )
 
 	int			mi_version;
+	time_t			mi_timeout[ META_OP_LAST ];
 } metainfo_t;
 
 typedef enum meta_op_type {
