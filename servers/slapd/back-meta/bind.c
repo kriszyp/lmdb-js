@@ -276,6 +276,8 @@ retry_lock:;
 					msc->msc_ld = NULL;
 				        msc->msc_bound = 0;
 
+					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
+
 				        /* mc here must be the regular mc,
 					 * reset and ready for init */
 				        rc = meta_back_init_one_conn( op, rs,
@@ -448,6 +450,8 @@ retry_lock:;
 					ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
 					msc->msc_ld = NULL;
 				        msc->msc_bound = 0;
+
+					( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
 
 				        /* mc here must be the regular mc,
 					 * reset and ready for init */
