@@ -615,7 +615,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 		}
 	}
 
-#ifdef notdef
+#ifdef LDAP_SLAPI
 	(void) call_pre_result_plugins( op, rs );
 #endif /* LDAP_SLAPI */
 
