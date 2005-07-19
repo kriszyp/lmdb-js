@@ -211,6 +211,7 @@ extern int slapi_filter_get_ava( Slapi_Filter *f, char **type, struct berval **b
 extern Slapi_Filter *slapi_filter_list_first( Slapi_Filter *f );
 extern Slapi_Filter *slapi_filter_list_next( Slapi_Filter *f, Slapi_Filter *fprev );
 extern int slapi_filter_get_attribute_type( Slapi_Filter *f, char **type ); 
+extern int slapi_x_filter_set_attribute_type( Slapi_Filter *f, const char *type );
 extern int slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 	char ***any, char **final );
 extern Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);

@@ -1939,6 +1939,49 @@ slapi_filter_get_attribute_type( Slapi_Filter *f, char **type )
 }
 
 int
+slapi_x_filter_set_attribute_type( Slapi_Filter *f, const char *type )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription **adp, *ad = NULL;
+	const char *text;
+	int rc;
+
+	if ( f == NULL ) {
+		return -1;
+	}
+
+	switch ( f->f_choice ) {
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_APPROX:
+		adp = &f->f_av_desc;
+		break;
+	case LDAP_FILTER_SUBSTRINGS:
+		adp = &f->f_sub_desc;
+		break;
+	case LDAP_FILTER_PRESENT:
+		adp = &f->f_desc;
+		break;
+	case LDAP_FILTER_EXT:
+		adp = &f->f_mr_desc;
+		break;
+	default:
+		/* Complex filters need not apply. */
+		return -1;
+	}
+
+	rc = slap_str2ad( type, &ad, &text );
+	if ( rc == LDAP_SUCCESS )
+		*adp = ad;
+
+	return ( rc == LDAP_SUCCESS ) ? 0 : -1;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+int
 slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 	char ***any, char **final )
 {
