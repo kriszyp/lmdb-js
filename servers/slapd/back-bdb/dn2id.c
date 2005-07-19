@@ -676,7 +676,7 @@ hdb_dn2id(
 		ei->bei_rdn.bv_len = data.size - sizeof(diskNode) - nrlen;
 		ptr = d->nrdn + nrlen + 1;
 		ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
-		if ( !ei->bei_parent->bei_dkids ) {
+		if ( ei->bei_parent != NULL && !ei->bei_parent->bei_dkids ) {
 			db_recno_t dkids;
 			/* How many children does the parent have? */
 			/* FIXME: do we need to lock the parent
