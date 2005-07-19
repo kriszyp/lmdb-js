@@ -90,8 +90,6 @@ retry_lock:;
 		rewrite_session_delete( mi->mi_targets[ i ].mt_rwmap.rwm_rw, conn );
 	}
 
-	/* no response to unbind */
-
 	return 0;
 }
 

@@ -217,8 +217,7 @@ meta_back_init_one_conn(
 	 * Already init'ed
 	 */
 	if ( msc->msc_ld != NULL ) {
-		rs->sr_err = LDAP_SUCCESS;
-		goto error_return;
+		return rs->sr_err = LDAP_SUCCESS;
 	}
        
 	/*
@@ -242,14 +241,14 @@ meta_back_init_one_conn(
 	}
 
 #ifdef HAVE_TLS
-	/* start TLS ("start-tls"/"try-start-tls" statements) */
+	/* start TLS ("tls [try-]{start|propagate}" statement) */
 	if ( ( LDAP_BACK_USE_TLS( mi ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( mi ) ) )
 			&& !ldap_is_ldaps_url( mt->mt_uri ) )
 	{
 #ifdef SLAP_STARTTLS_ASYNCHRONOUS
 		/*
-		 * use asynchronous StartTLS
-		 * in case, chase referral (not implemented yet)
+		 * use asynchronous StartTLS; in case, chase referral
+		 * FIXME: OpenLDAP does not return referral on StartTLS yet
 		 */
 		int		msgid;
 
@@ -346,11 +345,6 @@ retry:;
 	}
 
 	/*
-	 * Sets a cookie for the rewrite session
-	 */
-	( void )rewrite_session_init( mt->mt_rwmap.rwm_rw, op->o_conn );
-
-	/*
 	 * If the connection DN is not null, an attempt to rewrite it is made
 	 */
 	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
@@ -382,7 +376,13 @@ retry:;
 	msc->msc_bound = META_UNBOUND;
 
 error_return:;
-	if ( rs->sr_err != LDAP_SUCCESS ) {
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		/*
+		 * Sets a cookie for the rewrite session
+		 */
+		( void )rewrite_session_init( mt->mt_rwmap.rwm_rw, op->o_conn );
+
+	} else {
 		rs->sr_err = slap_map_api2result( rs );
 		if ( sendok & LDAP_BACK_SENDERR ) {
 			send_ldap_result( op, rs );

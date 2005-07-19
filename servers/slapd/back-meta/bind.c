@@ -276,9 +276,10 @@ retry_lock:;
 					msc->msc_ld = NULL;
 				        msc->msc_bound = 0;
 
-				        /* mc here must be the regular mc, reset and ready for init */
-				        rc = meta_back_init_one_conn( op, rs, mt, msc,
-							LDAP_BACK_DONTSEND );
+				        /* mc here must be the regular mc,
+					 * reset and ready for init */
+				        rc = meta_back_init_one_conn( op, rs,
+						mt, msc, LDAP_BACK_DONTSEND );
 
 				} else {
 					/* can't do anything about it */
@@ -448,8 +449,10 @@ retry_lock:;
 					msc->msc_ld = NULL;
 				        msc->msc_bound = 0;
 
-				        /* mc here must be the regular mc, reset and ready for init */
-				        rc = meta_back_init_one_conn( op, rs, mt, msc, LDAP_BACK_DONTSEND );
+				        /* mc here must be the regular mc,
+					 * reset and ready for init */
+				        rc = meta_back_init_one_conn( op, rs,
+						mt, msc, LDAP_BACK_DONTSEND );
 				
 
 				} else {
