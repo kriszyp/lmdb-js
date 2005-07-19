@@ -214,7 +214,31 @@ at_destroy( void )
 		a = LDAP_STAILQ_FIRST(&attr_list);
 		LDAP_STAILQ_REMOVE_HEAD(&attr_list, sat_next);
 
-		if (a->sat_subtypes) ldap_memfree(a->sat_subtypes);
+		if ( a->sat_equality ) {
+			MatchingRule	*mr;
+
+			mr = mr_find( a->sat_equality->smr_oid );
+			assert( mr != NULL );
+			if ( mr != a->sat_equality ) {
+				ch_free( a->sat_equality );
+				a->sat_equality = NULL;
+			}
+		}
+
+		assert( a->sat_syntax != NULL );
+		if ( a->sat_syntax != NULL ) {
+			Syntax		*syn;
+
+			syn = syn_find( a->sat_syntax->ssyn_oid );
+			assert( syn != NULL );
+			if ( syn != a->sat_syntax ) {
+				ch_free( a->sat_syntax );
+				a->sat_syntax = NULL;
+			}
+		}
+
+		if ( a->sat_oidmacro ) ldap_memfree( a->sat_oidmacro );
+		if ( a->sat_subtypes ) ldap_memfree( a->sat_subtypes );
 		ad_destroy(a->sat_ad);
 		ldap_pvt_thread_mutex_destroy(&a->sat_ad_mutex);
 		ldap_attributetype_free((LDAPAttributeType *)a);
@@ -383,10 +407,10 @@ at_insert(
 
 int
 at_add(
-    LDAPAttributeType	*at,
-	int				user,
-	AttributeType	**rsat,
-    const char		**err )
+	LDAPAttributeType	*at,
+	int			user,
+	AttributeType		**rsat,
+	const char		**err )
 {
 	AttributeType	*sat;
 	MatchingRule	*mr;
