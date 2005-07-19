@@ -1005,16 +1005,6 @@ static int slap_open_listener(
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL: {
 		char *addr = ((struct sockaddr_un *)*sal)->sun_path;
-#if 0 /* don't muck with socket perms */
-		if ( chmod( addr, l.sl_perms ) < 0 && crit ) {
-			int err = sock_errno();
-			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
-			       (long) l.sl_sd, err, sock_errstr(err) );
-			tcp_close( l.sl_sd );
-			slap_free_listener_addresses(psal);
-			return -1;
-		}
-#endif
 		l.sl_name.bv_len = strlen(addr) + sizeof("PATH=") - 1;
 		l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len + 1 );
 		snprintf( l.sl_name.bv_val, l.sl_name.bv_len + 1, 
