@@ -191,11 +191,11 @@ retry:;
 			tvp = &tv;
 		}
 
-		rs->sr_err = ldap_result( mc->mc_conns[ candidate ].msc_ld,
+		rs->sr_err = LDAP_OTHER;
+		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
 			msgid, LDAP_MSG_ONE, tvp, &res );
-		switch ( rs->sr_err ) {
+		switch ( rc ) {
 		case -1:
-			rs->sr_err = LDAP_OTHER;
 			rc = -1;
 			break;
 
@@ -207,7 +207,17 @@ retry:;
 			rc = -1;
 			break;
 
+		case LDAP_RES_MODIFY:
+			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
+				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
+			if ( rc != LDAP_SUCCESS ) {
+				rs->sr_err = rc;
+			}
+			rc = 0;
+			break;
+
 		default:
+			rc = -1;
 			ldap_msgfree( res );
 			break;
 		}

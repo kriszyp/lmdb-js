@@ -115,6 +115,7 @@ retry:;
 	} else if ( rs->sr_err == LDAP_SUCCESS ) {
 		struct timeval	tv, *tvp = NULL;
 		LDAPMessage	*res = NULL;
+		int		rc;
 
 		if ( mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODRDN ] != 0 ) {
 			tv.tv_sec = mi->mi_targets[ candidate ].mt_timeout[ META_OP_MODRDN ];
@@ -122,11 +123,11 @@ retry:;
 			tvp = &tv;
 		}
 
-		rs->sr_err = ldap_result( mc->mc_conns[ candidate ].msc_ld,
+		rs->sr_err = LDAP_OTHER;
+		rc = ldap_result( mc->mc_conns[ candidate ].msc_ld,
 			msgid, LDAP_MSG_ONE, tvp, &res );
-		switch ( rs->sr_err ) {
+		switch ( rc ) {
 		case -1:
-			rs->sr_err = LDAP_OTHER;
 			break;
 
 		case 0:
@@ -134,6 +135,14 @@ retry:;
 				msgid, NULL, NULL );
 			rs->sr_err = op->o_protocol >= LDAP_VERSION3 ?
 				LDAP_ADMINLIMIT_EXCEEDED : LDAP_OPERATIONS_ERROR;
+			break;
+
+		case LDAP_RES_RENAME:
+			rc = ldap_parse_result( mc->mc_conns[ candidate ].msc_ld,
+				res, &rs->sr_err, NULL, NULL, NULL, NULL, 1 );
+			if ( rc != LDAP_SUCCESS ) {
+				rs->sr_err = rc;
+			}
 			break;
 
 		default:
@@ -157,9 +166,9 @@ cleanup:;
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		meta_back_op_result( mc, op, rs, candidate );
+	} else {
+		send_ldap_result( op, rs );
 	}
-
-	send_ldap_result( op, rs );
 
 	meta_back_release_conn( op, mc );
 
