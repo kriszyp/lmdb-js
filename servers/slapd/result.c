@@ -1719,27 +1719,23 @@ static int call_pre_result_plugins( Operation *op, SlapReply *rs )
 		return 0;
 	}
 
-#define pb op->o_pb
+	slapi_int_pblock_set_operation( op->o_pb, op );
+	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
 
-	slapi_int_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
-	slapi_pblock_set( pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-	slapi_pblock_set( pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
-	slapi_pblock_set( pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, pb );
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
 	if ( rc < 0 ) {
 		return rc;
 	}
 
-	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
-	slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
-	slapi_pblock_get( pb, SLAPI_RESULT_TEXT, (void **)&rs->sr_text );
-	slapi_pblock_get( pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
+	slapi_pblock_get( op->o_pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
+	slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
+	slapi_pblock_get( op->o_pb, SLAPI_RESULT_TEXT, (void **)&rs->sr_text );
+	slapi_pblock_get( op->o_pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
 
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL );
-
-#undef pb
+	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS, NULL );
 
 	return rc;
 }
