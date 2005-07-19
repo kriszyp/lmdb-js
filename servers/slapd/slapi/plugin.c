@@ -36,8 +36,6 @@ static int slapi_int_load_plugin( Slapi_PBlock *, const char *, const char *, in
 
 /* pointer to link list of extended objects */
 static ExtendedOp *pGExtendedOps = NULL;
-/* global plugins not associated with a specific backend */
-static Slapi_PBlock *pGPlugins = NULL;
 
 /*********************************************************************
  * Function Name:      plugin_pblock_new
@@ -93,7 +91,7 @@ plugin_pblock_new(
 	}
 
 	av2 = ldap_charray_dup( argv );
-	if ( !av2 ) {
+	if ( av2 == NULL ) {
 		rc = LDAP_NO_MEMORY;
 		goto done;
 	}
@@ -132,7 +130,7 @@ done:
 	if ( rc != 0 && pPlugin != NULL ) {
 		slapi_pblock_destroy( pPlugin );
 		pPlugin = NULL;
-		if ( av2 ) {
+		if ( av2 != NULL ) {
 			ldap_charray_free( av2 );
 		}
 	}
@@ -165,33 +163,23 @@ slapi_int_register_plugin(
 	Slapi_PBlock *pSavePB;
 	int    rc = LDAP_SUCCESS;
 
-	pTmpPB = ( be == NULL ) ? pGPlugins : (Slapi_PBlock *)(be->be_pb);
+	assert( be != NULL ); /* global plugins are now stored in frontendDB */
 
+	pTmpPB = (Slapi_PBlock *)be->be_pb;
 	if ( pTmpPB == NULL ) {
-		if ( be != NULL )
-			be->be_pb = (void *)pPB;
-		else
-			pGPlugins = pPB;
+		be->be_pb = (void *)pPB;
 	} else {
 		while ( pTmpPB != NULL && rc == LDAP_SUCCESS ) {
 			pSavePB = pTmpPB;
-			rc = slapi_pblock_get( pTmpPB, SLAPI_IBM_PBLOCK,
-					&pTmpPB );
-			if ( rc != LDAP_SUCCESS ) {
-				rc = LDAP_OTHER;
-			}
+			rc = slapi_pblock_get( pTmpPB, SLAPI_IBM_PBLOCK, &pTmpPB );
 		}
 
 		if ( rc == LDAP_SUCCESS ) { 
-			rc = slapi_pblock_set( pSavePB, SLAPI_IBM_PBLOCK,
-					(void *)pPB ); 
-			if ( rc != LDAP_SUCCESS ) {
-				rc = LDAP_OTHER;
-			}
+			rc = slapi_pblock_set( pSavePB, SLAPI_IBM_PBLOCK, (void *)pPB ); 
 		}
 	}
      
-	return rc;
+	return ( rc != LDAP_SUCCESS ) ? LDAP_OTHER : LDAP_SUCCESS;
 }
        
 /*********************************************************************
@@ -224,12 +212,13 @@ slapi_int_get_plugins(
 	int		rc = LDAP_SUCCESS;
 
 	assert( ppFuncPtrs != NULL );
+	assert( be != NULL );
 
 	/*
 	 * First, count the plugins associated with a specific
 	 * backend.
 	 */
-	if ( be != NULL ) {
+	if ( be != frontendDB ) {
 		pCurrentPB = (Slapi_PBlock *)be->be_pb;
 
 		while ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
@@ -239,11 +228,10 @@ slapi_int_get_plugins(
 					numPB++;
 				}
 				rc = slapi_pblock_get( pCurrentPB,
-						SLAPI_IBM_PBLOCK, &pCurrentPB );
+					SLAPI_IBM_PBLOCK, &pCurrentPB );
 			}
 		}
 	}
-
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
@@ -251,19 +239,18 @@ slapi_int_get_plugins(
 	/*
 	 * Then, count the global plugins.
 	 */
-	pCurrentPB = pGPlugins;
+	pCurrentPB = (Slapi_PBlock *)frontendDB->be_pb;
 
-	while  ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
+	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
 		if ( rc == LDAP_SUCCESS ) {
 			if ( FuncPtr != NULL )  {
 				numPB++;
 			}
 			rc = slapi_pblock_get( pCurrentPB,
-					SLAPI_IBM_PBLOCK, &pCurrentPB );
+				SLAPI_IBM_PBLOCK, &pCurrentPB );
 		}
 	}
-
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
@@ -285,7 +272,7 @@ slapi_int_get_plugins(
 		goto done;
 	}
 
-	if ( be != NULL ) {
+	if ( be != frontendDB ) {
 		pCurrentPB = (Slapi_PBlock *)be->be_pb;
 
 		while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
@@ -301,7 +288,7 @@ slapi_int_get_plugins(
 		}
 	}
 
-	pCurrentPB = pGPlugins;
+	pCurrentPB = (Slapi_PBlock *)frontendDB->be_pb;
 
 	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
@@ -775,8 +762,14 @@ slapi_int_plugin_unparse(
 	*out = NULL;
 	idx.bv_val = ibuf;
 	i = 0;
-	for ( pp=be->be_pb; pp; slapi_pblock_get( pp, SLAPI_IBM_PBLOCK, &pp ) ) {
+
+	for ( pp = be->be_pb;
+	      pp != NULL;
+	      slapi_pblock_get( pp, SLAPI_IBM_PBLOCK, &pp ) )
+	{
 		slapi_pblock_get( pp, SLAPI_X_CONFIG_ARGV, &argv );
+		if ( argv == NULL ) /* could be dynamic plugin */
+			continue;
 		idx.bv_len = sprintf( idx.bv_val, "{%d}", i );
 		bv.bv_len = idx.bv_len;
 		for (j=1; argv[j]; j++) {
