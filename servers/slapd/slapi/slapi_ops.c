@@ -1346,6 +1346,10 @@ int slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 
 cleanup:
 	slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK, NULL );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK, NULL );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, NULL );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_CALLBACK_DATA, NULL );
 
 	if ( freeFilter && filter != NULL )
 		slapi_filter_free( filter, 1 );

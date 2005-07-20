@@ -1578,7 +1578,7 @@ slapi_send_ldap_result(
 		return;
 	}
 
-	if (op->o_tag == LDAP_REQ_SEARCH)
+	if ( op->o_tag == LDAP_REQ_SEARCH )
 		rs.sr_nentries = nentries;
 
 	send_ldap_result( op, &rs );
