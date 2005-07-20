@@ -44,7 +44,7 @@ seeAlso: documentTitle=book1,dc=example,dc=com
 givenName: Torvlobnor
 telephoneNumber: 545-4563
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
@@ -139,7 +139,7 @@ documentTitle: War and Peace
 documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
 documentIdentifier: document 3
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
@@ -237,7 +237,7 @@ documentTitle: War and Peace
 documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
 documentIdentifier: document 3
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
@@ -310,7 +310,7 @@ documentTitle: War and Peace
 documentAuthor: cn=Lev Tolstoij,dc=example,dc=com
 documentIdentifier: document 3
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve all the entries...
 dn: cn=Akakiy Zinberstein,dc=example,dc=com
@@ -383,7 +383,7 @@ documentTitle: War and Peace
 documentAuthor: cn=Lev Tolstoij,dc=subnet,dc=example,dc=com
 documentIdentifier: document 3
 
-# refldap://localhost:9010/dc=example,dc=com??sub
+# refldap://localhost:9012/dc=example,dc=com??sub
 
 # Using ldapsearch to retrieve the modified entry...
 dn: ou=Referral,dc=example,dc=com

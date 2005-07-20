@@ -20,5 +20,5 @@ dn: cn=Somewhere,ou=Meta,dc=example,dc=com
 objectClass: referral
 objectClass: extensibleObject
 cn: Somewhere
-ref: ldap://:9010
+ref: ldap://localhost:9016
 

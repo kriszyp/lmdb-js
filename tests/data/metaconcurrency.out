@@ -426,5 +426,5 @@ pager: +1 313 555 2844
 facsimileTelephoneNumber: +1 313 555 9700
 telephoneNumber: +1 313 555 5331
 
-# refldap://:9010/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
+# refldap://localhost:9016/cn=Somewhere,ou=Meta,dc=example,dc=com??sub
 
