@@ -3382,16 +3382,20 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 	Backend *be;
 	Connection *conn;
 	Operation *op;
-	int ret;
+	int rc;
 	slap_access_t slap_access;
 	AttributeDescription *ad = NULL;
 	const char *text;
 
-	ret = slap_str2ad( attr, &ad, &text );
-	if ( ret != LDAP_SUCCESS ) {
-		return ret;
+	rc = slap_str2ad( attr, &ad, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
 
+	/*
+	 * Whilst the SLAPI access types are arranged as a bitmask, the
+	 * documentation indicates that they are to be used separately.
+	 */
 	switch ( access & SLAPI_ACL_ALL ) {
 	case SLAPI_ACL_COMPARE:
 		slap_access = ACL_COMPARE;
@@ -3403,12 +3407,16 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 		slap_access = ACL_READ;
 		break;
 	case SLAPI_ACL_WRITE:
-	case SLAPI_ACL_DELETE:
-	case SLAPI_ACL_ADD:
-	case SLAPI_ACL_SELF:
-		/* FIXME: handle ACL_WADD/ACL_WDEL */
 		slap_access = ACL_WRITE;
 		break;
+	case SLAPI_ACL_DELETE:
+		slap_access = ACL_WDEL;
+		break;
+	case SLAPI_ACL_ADD:
+		slap_access = ACL_WADD;
+		break;
+	case SLAPI_ACL_SELF:  /* not documented */
+	case SLAPI_ACL_PROXY: /* not documented */
 	default:
 		return LDAP_INSUFFICIENT_ACCESS;
 		break;
@@ -3426,9 +3434,11 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 		return LDAP_PARAM_ERROR;
 	}
 
-	ret = access_allowed( op, e, ad, val, slap_access, NULL );
+	if ( access_allowed( op, e, ad, val, slap_access, NULL ) ) {
+		return LDAP_SUCCESS;
+	}
 
-	return ret ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+	return LDAP_INSUFFICIENT_ACCESS;
 #else
 	return LDAP_UNWILLING_TO_PERFORM;
 #endif
@@ -4040,21 +4050,24 @@ int slapi_int_access_allowed( Operation *op,
 		return 1;
 	}
 
-	return 1;
-
 	switch ( access ) {
-	case ACL_WRITE:
-		/* FIXME: handle ACL_WADD/ACL_WDEL */
-		slap_access |= SLAPI_ACL_ADD | SLAPI_ACL_DELETE | SLAPI_ACL_WRITE;
-		break;
-	case ACL_READ:
-		slap_access |= SLAPI_ACL_READ;
+	case ACL_COMPARE:
+                slap_access |= SLAPI_ACL_COMPARE;
 		break;
 	case ACL_SEARCH:
 		slap_access |= SLAPI_ACL_SEARCH;
 		break;
-	case ACL_COMPARE:
-                slap_access = ACL_COMPARE;
+	case ACL_READ:
+		slap_access |= SLAPI_ACL_READ;
+		break;
+	case ACL_WRITE:
+		slap_access |= SLAPI_ACL_WRITE;
+		break;
+	case ACL_WDEL:
+		slap_access |= SLAPI_ACL_DELETE;
+		break;
+	case ACL_WADD:
+		slap_access |= SLAPI_ACL_ADD;
 		break;
 	default:
 		break;
