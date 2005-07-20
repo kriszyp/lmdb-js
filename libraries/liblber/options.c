@@ -62,6 +62,7 @@ ber_get_option(
 #else
 			return LBER_OPT_ERROR;
 #endif
+
 		case LBER_OPT_LOG_PRINT_FILE:
 			*((FILE**)outvalue) = (FILE*)ber_pvt_err_file;
 			return LBER_OPT_SUCCESS;
@@ -167,7 +168,6 @@ ber_set_option(
 			
 		ber_int_memory_fns->bmf_free( ber_int_memory_fns, NULL );
 		ber_int_memory_fns = NULL;
-		ber_int_options.lbo_valid = LBER_UNINITIALIZED;
 		return LBER_OPT_SUCCESS;
 	}
 
