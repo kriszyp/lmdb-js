@@ -424,12 +424,13 @@ conn_create(
 		mi->mi_ad_monitorConnectionAuthzDN->ad_cname.bv_val,
 			c->c_dn.bv_len ? c->c_dn.bv_val : SLAPD_ANONYMOUS,
 
+		/* NOTE: client connections leave the c_peer_* fields NULL */
 		mi->mi_ad_monitorConnectionListener->ad_cname.bv_val,
 			c->c_listener_url.bv_val,
 		mi->mi_ad_monitorConnectionPeerDomain->ad_cname.bv_val,
-			c->c_peer_domain.bv_val,
+			BER_BVISNULL( &c->c_peer_domain ) ? "unknown" : c->c_peer_domain.bv_val,
 		mi->mi_ad_monitorConnectionLocalAddress->ad_cname.bv_val,
-			c->c_peer_name.bv_val,
+			BER_BVISNULL( &c->c_peer_name ) ? "unknown" : c->c_peer_name.bv_val,
 		mi->mi_ad_monitorConnectionPeerAddress->ad_cname.bv_val,
 			c->c_sock_name.bv_val,
 
