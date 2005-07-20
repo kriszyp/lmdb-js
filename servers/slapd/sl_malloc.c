@@ -73,6 +73,8 @@ slap_sl_mem_destroy(
 		ber_memfree_x(sh->sh_base, NULL);
 		ber_memfree_x(sh, NULL);
 	}
+
+	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, NULL );
 }
 
 BerMemoryFunctions slap_sl_mfuncs =

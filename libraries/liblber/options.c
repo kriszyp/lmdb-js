@@ -43,10 +43,12 @@ ber_get_option(
 	}
 
 	if(item == NULL) {
-		if(option == LBER_OPT_BER_DEBUG) {
+		switch ( option ) {
+		case LBER_OPT_BER_DEBUG:
 			* (int *) outvalue = ber_int_debug;
 			return LBER_OPT_SUCCESS;
-		} else if(option == LBER_OPT_MEMORY_INUSE) {
+
+		case LBER_OPT_MEMORY_INUSE:
 			/* The memory inuse is a global variable on kernal implementations.
 			 * This means that memory debug is shared by all LDAP processes
 			 * so for this variable to have much meaning, only one LDAP process
@@ -60,7 +62,7 @@ ber_get_option(
 #else
 			return LBER_OPT_ERROR;
 #endif
-		} else if(option == LBER_OPT_LOG_PRINT_FILE) {
+		case LBER_OPT_LOG_PRINT_FILE:
 			*((FILE**)outvalue) = (FILE*)ber_pvt_err_file;
 			return LBER_OPT_SUCCESS;
 		}
@@ -124,11 +126,10 @@ ber_set_option(
 	if( (ber_int_options.lbo_valid == LBER_UNINITIALIZED)
 		&& ( ber_int_memory_fns == NULL )
 		&& ( option == LBER_OPT_MEMORY_FNS )
-		&& ( invalue != NULL ))
+		&& ( invalue != NULL ) )
 	{
 		const BerMemoryFunctions *f =
 			(const BerMemoryFunctions *) invalue;
-
 		/* make sure all functions are provided */
 		if(!( f->bmf_malloc && f->bmf_calloc
 			&& f->bmf_realloc && f->bmf_free ))
@@ -151,6 +152,25 @@ ber_set_option(
 		return LBER_OPT_SUCCESS;
 	}
 
+	if ( option == LBER_OPT_MEMORY_FNS ) {
+		if ( ber_int_options.lbo_valid != LBER_INITIALIZED ) {
+			return LBER_OPT_ERROR;
+		}
+
+		if ( invalue != NULL ) {
+			return LBER_OPT_ERROR;
+		}
+
+		if ( ber_int_memory_fns == NULL ) {	
+			return LBER_OPT_ERROR;
+		}
+			
+		ber_int_memory_fns->bmf_free( ber_int_memory_fns, NULL );
+		ber_int_memory_fns = NULL;
+		ber_int_options.lbo_valid = LBER_UNINITIALIZED;
+		return LBER_OPT_SUCCESS;
+	}
+
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if(invalue == NULL) {
@@ -160,17 +180,20 @@ ber_set_option(
 	}
 
 	if(item == NULL) {
-		if(option == LBER_OPT_BER_DEBUG) {
+		switch ( option ) {
+		case LBER_OPT_BER_DEBUG:
 			ber_int_debug = * (const int *) invalue;
 			return LBER_OPT_SUCCESS;
 
-		} else if(option == LBER_OPT_LOG_PRINT_FN) {
+		case LBER_OPT_LOG_PRINT_FN:
 			ber_pvt_log_print = (BER_LOG_PRINT_FN) invalue;
 			return LBER_OPT_SUCCESS;
-		} else if(option == LBER_OPT_LOG_PRINT_FILE) {
+
+		case LBER_OPT_LOG_PRINT_FILE:
 			ber_pvt_err_file = (void *) invalue;
 			return LBER_OPT_SUCCESS;
-		} else if(option == LBER_OPT_MEMORY_INUSE) {
+
+		case LBER_OPT_MEMORY_INUSE:
 			/* The memory inuse is a global variable on kernal implementations.
 			 * This means that memory debug is shared by all LDAP processes
 			 * so for this variable to have much meaning, only one LDAP process
@@ -184,8 +207,9 @@ ber_set_option(
 #else
 			return LBER_OPT_ERROR;
 #endif
-		} else if(option == LBER_OPT_LOG_PROC) {
+		case LBER_OPT_LOG_PROC:
 			ber_int_log_proc = (BER_LOG_FN)invalue;
+			return LBER_OPT_SUCCESS;
 		}
 
 		ber_errno = LBER_ERROR_PARAM;
