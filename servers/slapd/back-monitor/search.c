@@ -125,7 +125,7 @@ monitor_send_children(
 			if ( rc ) {
 				/* FIXME: may leak generated children */
 				if ( nonvolatile == 0 ) {
-					for ( e_tmp = e; e_tmp != NULL; ) {
+					for ( ; e_tmp != NULL; ) {
 						mp = ( monitor_entry_t * )e_tmp->e_private;
 						e = e_tmp;
 						e_tmp = mp->mp_next;
@@ -135,9 +135,6 @@ monitor_send_children(
 							break;
 						}
 					}
-
-				} else {
-					monitor_cache_release( mi, e );
 				}
 
 				return( rc );
