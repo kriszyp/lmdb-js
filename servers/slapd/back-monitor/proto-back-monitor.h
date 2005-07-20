@@ -68,6 +68,10 @@ monitor_cache_release LDAP_P((
 	monitor_info_t		*mi,
 	Entry			*e ));
 
+extern int
+monitor_cache_destroy LDAP_P((
+	monitor_info_t		*mi ));
+
 /*
  * connections
  */

@@ -1706,7 +1706,9 @@ monitor_back_db_config(
 	int         argc,
 	char        **argv )
 {
+#if 0
 	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
+#endif
 
 	/*
 	 * eventually, will hold database specific configuration parameters
@@ -1724,6 +1726,12 @@ monitor_back_db_destroy(
 	 * FIXME: destroys all the data
 	 */
 	/* NOTE: mi points to static storage; don't free it */
+	
+	(void)monitor_cache_destroy( mi );
+
+	if ( monitor_subsys ) {
+		ch_free( monitor_subsys );
+	}
 	
 	return 0;
 }

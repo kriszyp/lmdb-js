@@ -267,3 +267,40 @@ monitor_cache_release(
 	return( 0 );
 }
 
+static void
+monitor_entry_destroy( void *v_mc )
+{
+	monitor_cache_t		*mc = (monitor_cache_t *)v_mc;
+
+	if ( mc->mc_e != NULL ) {
+		monitor_entry_t *mp;
+
+		assert( mc->mc_e->e_private != NULL );
+	
+		mp = ( monitor_entry_t * )mc->mc_e->e_private;
+
+		if ( mp->mp_cb ) {
+			/* TODO */
+		}
+
+		ldap_pvt_thread_mutex_destroy( &mp->mp_mutex );
+
+		ch_free( mp );
+		mc->mc_e->e_private = NULL;
+		entry_free( mc->mc_e );
+	}
+
+	ch_free( mc );
+}
+
+int
+monitor_cache_destroy(
+	monitor_info_t	*mi )
+{
+	if ( mi->mi_cache ) {
+		avl_free( mi->mi_cache, monitor_entry_destroy );
+	}
+
+	return 0;
+}
+
