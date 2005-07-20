@@ -792,15 +792,6 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 		manageDsaIt = isCritical ? SLAP_CONTROL_CRITICAL : SLAP_CONTROL_NONCRITICAL; 
 	}
 
-	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 1 );
-	if ( op->o_bd == NULL ) {
-		rs.sr_err =  LDAP_PARTIAL_RESULTS;
-		goto cleanup;
-	}
-
-	op->o_dn = pConn->c_dn = op->o_bd->be_rootdn;
-	op->o_ndn = pConn->c_ndn = op->o_bd->be_rootndn;
-
 	dn.bv_val = (char *)olddn;
 	dn.bv_len = strlen( olddn );
 
@@ -813,6 +804,15 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 		goto cleanup;
 	}
+
+	op->o_bd = select_backend( &op->o_req_ndn, manageDsaIt, 1 );
+	if ( op->o_bd == NULL ) {
+		rs.sr_err =  LDAP_PARTIAL_RESULTS;
+		goto cleanup;
+	}
+
+	op->o_dn = pConn->c_dn = op->o_bd->be_rootdn;
+	op->o_ndn = pConn->c_ndn = op->o_bd->be_rootndn;
 
 	newrdn.bv_val = (char *)lnewrdn;
 	newrdn.bv_len = strlen( lnewrdn );
