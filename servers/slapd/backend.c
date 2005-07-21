@@ -382,9 +382,11 @@ int backend_shutdown( Backend *be )
 	return 0;
 }
 
-void backend_destroy_one( BackendDB *bd )
+void backend_destroy_one( BackendDB *bd, int dynamic )
 {
-	LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
+	if ( dynamic ) {
+		LDAP_STAILQ_REMOVE(&backendDB, bd, slap_backend_db, be_next );
+	}
 
 	if ( bd->be_syncinfo ) {
 		syncinfo_free( bd->be_syncinfo );
@@ -401,6 +403,7 @@ void backend_destroy_one( BackendDB *bd )
 			csne = LDAP_TAILQ_NEXT( csne, ce_csn_link );
 			ch_free( tmp_csne );
 		}
+		ch_free( bd->be_pending_csn_list );
 	}
 
 	if ( bd->bd_info->bi_db_destroy ) {
@@ -418,7 +421,9 @@ void backend_destroy_one( BackendDB *bd )
 		free( bd->be_rootpw.bv_val );
 	}
 	acl_destroy( bd->be_acl, frontendDB->be_acl );
-	free( bd );
+	if ( dynamic ) {
+		free( bd );
+	}
 }
 
 int backend_destroy(void)
@@ -428,7 +433,7 @@ int backend_destroy(void)
 
 	/* destroy each backend database */
 	while (( bd = LDAP_STAILQ_FIRST(&backendDB))) {
-		backend_destroy_one( bd );
+		backend_destroy_one( bd, 1 );
 	}
 
 	/* destroy each backend type */

@@ -295,10 +295,11 @@ alock_query_slot ( alock_info_t * info )
 	
 	(void) memset ((void *) &slot_data, 0, sizeof (alock_slot_t));
 	alock_read_slot (info, &slot_data);
-	if (slot_data.al_lock == ALOCK_UNLOCKED) return ALOCK_UNLOCKED;
 
 	if (slot_data.al_appname != NULL) free (slot_data.al_appname);
 	slot_data.al_appname = NULL;
+
+	if (slot_data.al_lock == ALOCK_UNLOCKED) return ALOCK_UNLOCKED;
 
 	res = alock_test_lock (info->al_fd, info->al_slot);
 	if (res < 0) return -1;

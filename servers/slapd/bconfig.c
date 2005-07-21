@@ -2541,6 +2541,8 @@ config_setup_ldif( BackendDB *be, const char *dir, int readit ) {
 
 		op->o_bd = &cfb->cb_db;
 		rc = op->o_bd->be_search( op, &rs );
+
+		slap_sl_mem_destroy( NULL, op->o_tmpmemctx );
 	}
 
 	cfb->cb_use_ldif = 1;
@@ -3218,7 +3220,7 @@ ok:
 leave:
 	if ( rc ) {
 		if ( (colst[0]->co_type == Cft_Database) && ca->be ) {
-			backend_destroy_one( ca->be );
+			backend_destroy_one( ca->be, 1 );
 		} else if ( (colst[0]->co_type == Cft_Overlay) && ca->bi ) {
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 		}
@@ -4005,6 +4007,8 @@ config_back_db_open( BackendDB *be )
 			}
 		}
 	}
+	if ( op )
+		slap_sl_mem_destroy( NULL, op->o_tmpmemctx );
 
 	return 0;
 }
@@ -4044,21 +4048,30 @@ config_back_db_close( BackendDB *be )
 {
 	CfBackInfo *cfb = be->be_private;
 
-	/* Note - this is asymmetric; cfb->cb_config was allocated in db_init
-	 * not db_open. We cannot re-open this DB after a close. (Not that we
-	 * ever could anyway.)
-	 */
-	cfb_free_cffile( cfb->cb_config );
-	cfb->cb_config = NULL;
-
 	cfb_free_entries( cfb->cb_root );
 	cfb->cb_root = NULL;
+
+	backend_shutdown( &cfb->cb_db );
 	return 0;
 }
 
 static int
 config_back_db_destroy( BackendDB *be )
 {
+	CfBackInfo *cfb = be->be_private;
+
+	cfb_free_cffile( cfb->cb_config );
+
+	ch_free( cfdir.bv_val );
+
+	avl_free( CfOcTree, NULL );
+
+	cfb->cb_db.be_suffix = NULL;
+	cfb->cb_db.be_nsuffix = NULL;
+	cfb->cb_db.be_rootdn.bv_val = NULL;
+	cfb->cb_db.be_rootndn.bv_val = NULL;
+	backend_destroy_one( &cfb->cb_db, 0 );
+
 	free( be->be_private );
 	return 0;
 }

@@ -1164,6 +1164,8 @@ ldif_back_db_destroy(
 			   )
 {
 	struct ldif_info *ni = be->be_private;
+
+	ch_free(ni->li_base_path.bv_val);
 	ldap_pvt_thread_mutex_destroy(&ni->li_mutex);
 	free( be->be_private );
 	return 0;

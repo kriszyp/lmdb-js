@@ -385,6 +385,7 @@ ordered_value_sort( Attribute *a, int do_renumber )
 		if ( indexes[0] != 0 || indexes[vals-1] != vals-1 ) {
 			renumber = 1;
 		}
+		ch_free( indexes );
 	} else {
 		renumber = 1;
 	}
