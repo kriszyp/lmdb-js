@@ -52,9 +52,9 @@ slapi_int_send_ldap_result_shim(
 
 	assert( op->o_pb != NULL );
 
-	slapi_pblock_get( op->o_pb, SLAPI_RESCONTROLS, (void **)&controls );
+	slapi_pblock_get( op->o_pb, SLAPI_RESCONTROLS,             (void **)&controls );
 	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_RESULT_CALLBACK, (void **)&prc );
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA, &callback_data );
+	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA,   &callback_data );
 
 	assert( controls == NULL );
 
@@ -72,7 +72,7 @@ slapi_int_send_ldap_result_shim(
 		controls[i] = NULL;
 	}
 
-	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS, (void *)controls );
+	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS,         (void *)controls );
 	slapi_pblock_set( op->o_pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs->sr_err );
 
 	if ( prc != NULL ) {
@@ -92,8 +92,8 @@ slapi_int_send_search_entry_shim(
 
 	assert( op->o_pb != NULL );
 
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK, &psec );
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA, &callback_data );
+	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK, (void **)&psec );
+	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA,         &callback_data );
 
 	if ( psec != NULL ) {
 		return (*psec)( rs->sr_entry, callback_data );
@@ -123,8 +123,8 @@ slapi_int_send_search_reference_shim(
 
 	assert( op->o_pb != NULL );
 
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, &prec );
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA, &callback_data );
+	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, (void **)&prec );
+	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA,           &callback_data );
 
 	if ( prec != NULL ) {
 		for ( i = 0; rs->sr_ref[i].bv_val != NULL; i++ ) {
