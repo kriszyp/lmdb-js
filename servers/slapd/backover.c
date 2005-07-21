@@ -304,7 +304,7 @@ over_access_allowed(
  * default return code in case of missing backend function
  * and overlay stack returning SLAP_CB_CONTINUE
  */
-static int op_rc[] = {
+static int op_rc[ op_last ] = {
 	LDAP_UNWILLING_TO_PERFORM,	/* bind */
 	LDAP_UNWILLING_TO_PERFORM,	/* unbind */
 	LDAP_UNWILLING_TO_PERFORM,	/* search */
