@@ -48,19 +48,12 @@ LDAP_BEGIN_DECL
  * Was: slapi_common.h
  */
 
-/* a little naif ... */
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
 /*
  * Was: slapi_utils.h
  */
 typedef struct _Audit_record Audit_record;
+
+#define SLAPI_OVERLAY_NAME			"slapi"
 
 #define SLAPI_CONTROL_MANAGEDSAIT_OID		LDAP_CONTROL_MANAGEDSAIT
 #define SLAPI_CONTROL_SORTEDSEARCH_OID		LDAP_CONTROL_SORTREQUEST
@@ -133,51 +126,6 @@ struct slapi_pblock {
  */
 
 #define SLAPI_PLUGIN_IS_POST_FN(x) ((x) >= SLAPI_PLUGIN_POST_BIND_FN && (x) <= SLAPI_PLUGIN_POST_RESULT_FN)
-
-/*
- * Was: slapi_cl.h
- */
-
-#if 0
-#define TIME_SIZE 20
-#define OBJECTCLASS "objectclass"
-#define TOP "top"
-#define CHANGE_TIME "changetime"
-#define CHANGE_TYPE "changetype"
-#define CHANGE_TARGETDN "targetdn"
-#define CHANGES	"changes"
-#define CHANGE_NUMBER "changenumber"
-/*
- * FIXME: I get complaints like "ADD" being redefined - first definition
- * being in "/usr/include/arpa/nameser.h:552"
- */
-#undef ADD
-#define ADD "add: "
-#define ADDLEN 5
-#define DEL "delete: "
-#define DELLEN 8
-#define REPLACE "replace: "
-#define REPLEN 9
-#define MOD "modify"
-#define MODRDN "modrdn"
-#define CHANGE_LOGENTRY "changelogentry"
-#define IBM_CHANGE_LOGENTRY "ibm-changelog"
-#define CL_NEWRDN "newrdn"
-#define CL_DELRDN "deleteoldrdn"
-#define CHANGE_INITIATOR "ibm-changeInitiatorsName" 
-
-extern void slapi_register_changelog_suffix(char *suffix);
-extern char **slapi_get_changelog_suffixes();
-extern void slapi_update_changelog_counters(long curNum, long numEntries);
-extern char *slapi_get_cl_firstNum();
-extern char *slapi_get_cl_lastNum();
-extern int slapi_add_to_changelog(Slapi_Entry *ent, char *suffix, char *chNum, Operation* op);	
-extern int slapi_delete_changelog(char *dn, char *suffix, char *chNum, Operation* op);	
-extern int slapi_modify_changelog(char *dn,LDAPMod	*mods,char *suffix, char *chNum, Operation* op); 
-extern int slapi_modifyrdn_changelog(char *olddn, char *newRdn, int delRdn, char *suffix, char *chNum, Operation* op);
-extern Backend * slapi_cl_get_be(char *dn);
-#endif
-
 
 /*
  * Attribute flags returned by slapi_attr_get_flags()

@@ -445,7 +445,7 @@ slapi_pblock_new()
 
 	pb = (Slapi_PBlock *) ch_malloc(sizeof(Slapi_PBlock));
 	if ( pb != NULL ) {
-		pb->ckParams = TRUE;
+		pb->ckParams = 1;
 		ldap_pvt_thread_mutex_init( &pb->pblockMutex );
 		memset( pb->curParams, 0, sizeof(pb->curParams) );
 		memset( pb->curVals, 0, sizeof(pb->curVals) );

@@ -808,7 +808,6 @@ slapi_over_access_allowed(
 	return rc;
 }
 
-#if 0
 static int
 slapi_over_acl_group(
 	Operation		*op,
@@ -818,12 +817,46 @@ slapi_over_acl_group(
 	ObjectClass		*group_oc,
 	AttributeDescription	*group_at )
 {
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ENTRY, (void *)e );
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_ATTRIBUTE, (void *)group_at->ad_cname.bv_val );
-	slapi_pblock_set( op->o_pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
+	Slapi_Entry		*e;
+	int			rc;
+	Slapi_PBlock		*pb = op->o_pb;
+
+	if ( pb == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
+	if ( e == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	slapi_pblock_set( pb, SLAPI_X_GROUP_ENTRY,        (void *)e );
+	slapi_pblock_set( pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
+	slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,    (void *)group_at->ad_cname.bv_val );
+	slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
+
+	rc = slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_PRE_GROUP_FN, pb );
+	if ( rc == 0 )
+		rc = SLAP_CB_CONTINUE;
+	else
+		slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rc );
+
+	slapi_pblock_set( pb, SLAPI_X_GROUP_ENTRY,         NULL );
+	slapi_pblock_set( pb, SLAPI_X_GROUP_OPERATION_DN,  NULL );
+	slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,     NULL );
+	slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY,  NULL );
+
+	if ( e != target )
+		be_entry_release_r( op, e );
+
+	/*
+	 * XXX don't call POST_GROUP_FN, I have no idea what the point of
+	 * that plugin function was anyway
+	 */
+	return rc;
 }
 
+#if 0
 static int
 slapi_over_compute_output_attr_access(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
 {
@@ -855,7 +888,7 @@ slapi_int_overlay_init()
 {
 	memset( &slapi, 0, sizeof(slapi) );
 
-	slapi.on_bi.bi_type = "slapi";
+	slapi.on_bi.bi_type = SLAPI_OVERLAY_NAME;
 
 	slapi.on_bi.bi_op_bind = slapi_op_func;
 	slapi.on_bi.bi_op_unbind = slapi_op_func;

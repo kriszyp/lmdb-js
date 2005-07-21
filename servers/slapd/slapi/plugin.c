@@ -111,7 +111,7 @@ plugin_pblock_new(
 		goto done;
 	}
 
-	rc = slapi_int_load_plugin( pPlugin, path, initfunc, TRUE, NULL, &hdLoadHandle );
+	rc = slapi_int_load_plugin( pPlugin, path, initfunc, 1, NULL, &hdLoadHandle );
 	if ( rc != 0 ) {
 		goto done;
 	}
@@ -618,7 +618,7 @@ slapi_int_load_plugin(
 		return LDAP_LOCAL_ERROR;
 	}
 
-	if ( doInit == TRUE ) {
+	if ( doInit ) {
 		rc = ( *fpInitFunc )( pPlugin );
 		if ( rc != LDAP_SUCCESS ) {
 			lt_dlclose( *pLdHandle );
@@ -703,9 +703,9 @@ slapi_int_read_config(
 	}
 
 	/* automatically instantiate overlay if necessary */
-	if ( !overlay_is_inst( be, "slapi" ) ) {
-		if ( overlay_config( be, "slapi" ) != 0 ) {
-			fprintf( stderr, "failed to instantiate SLAPI overlay\n");
+	if ( !overlay_is_inst( be, SLAPI_OVERLAY_NAME ) ) {
+		if ( overlay_config( be, SLAPI_OVERLAY_NAME ) != 0 ) {
+			fprintf( stderr, "Failed to instantiate SLAPI overlay\n");
 			return -1;
 		}
 	}
