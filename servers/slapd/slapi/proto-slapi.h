@@ -352,7 +352,7 @@ void slapi_seq_internal_set_pb( Slapi_PBlock *pb, char *ibase, int type,
 
 extern char **slapi_get_supported_extended_ops(void);
 extern struct berval *slapi_int_get_supported_extop( int );
-extern Connection *slapi_int_init_connection(char *DN, int OpType);
+extern int slapi_int_init_connection(Slapi_PBlock *pb, SlapReply *rs, int OpType, Connection **pConn);
 extern void slapi_int_connection_destroy( Connection **pConn );
 
 /*

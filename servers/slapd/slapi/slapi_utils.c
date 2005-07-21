@@ -532,24 +532,27 @@ int
 slapi_entry_has_children(const Slapi_Entry *e)
 {
 #ifdef LDAP_SLAPI
-	Connection *pConn;
+	Connection *conn;
 	Operation *op;
 	int hasSubordinates = 0;
+	int rc;
+	Slapi_PBlock *pb;
+	SlapReply rs = { REP_RESULT };
 
-	pConn = slapi_int_init_connection( NULL, LDAP_REQ_SEARCH );
-	if ( pConn == NULL ) {
-		return 0;
-	}
+	pb = slapi_pblock_new();
 
-	op = (Operation *)pConn->c_pending_ops.stqh_first;
-	op->o_bd = select_backend( (struct berval *)&e->e_nname, 0, 0 );
-	if ( op->o_bd == NULL ) {
+	slapi_pblock_set( pb, SLAPI_TARGET_DN, slapi_entry_get_dn((Entry *)e) );
+
+	rc = slapi_int_init_connection( pb, &rs, LDAP_REQ_SEARCH, &conn );
+	if ( rc != LDAP_SUCCESS ) {
+		slapi_pblock_destroy( pb );
 		return 0;
 	}
 
 	op->o_bd->be_has_subordinates( op, (Entry *)e, &hasSubordinates );
 
-	slapi_int_connection_destroy( &pConn );
+	slapi_int_connection_destroy( &conn );
+	slapi_pblock_destroy( pb );
 
 	return ( hasSubordinates == LDAP_COMPARE_TRUE );
 #else
@@ -2466,8 +2469,9 @@ static int slapi_int_pblock_set_connection( Slapi_PBlock *pb, Connection *conn )
 	int rc;
 
 	rc = slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
-	if ( rc != LDAP_SUCCESS )
+	if ( rc != LDAP_SUCCESS ) {
 		return rc;
+	}
 
 	if ( strncmp( conn->c_peer_name.bv_val, "IP=", 3 ) == 0 ) {
 		rc = slapi_pblock_set( pb, SLAPI_CONN_CLIENTIP, (void *)&conn->c_peer_name.bv_val[3] );
@@ -2529,7 +2533,8 @@ static int slapi_int_pblock_set_connection( Slapi_PBlock *pb, Connection *conn )
 			return rc;
 	}
 
-	if ( conn->c_authz.sai_dn.bv_val != NULL ) {
+	if ( conn->c_authz.sai_method != LDAP_AUTH_NONE &&
+	     conn->c_authz.sai_dn.bv_val != NULL ) {
 		/* slapi_pblock_set dups this itself */
 		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)conn->c_authz.sai_dn.bv_val);
 		if ( rc != LDAP_SUCCESS )
@@ -2560,11 +2565,16 @@ int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 	int isUpdateDn = 0;
 	int rc;
 	char *opAuthType;
+	void *existingOp = NULL;
 
 	if ( op->o_bd != NULL ) {
 		isRoot = be_isroot( op );
 		isUpdateDn = be_isupdate( op );
 	}
+
+	/* This should only be called once per operation */
+	slapi_pblock_get( pb, SLAPI_OPERATION, &existingOp );
+	assert( existingOp == NULL );
 
 	rc = slapi_int_pblock_set_backend( pb, op->o_bd );
 	if ( rc != LDAP_SUCCESS )
@@ -4078,8 +4088,6 @@ int slapi_int_access_allowed( Operation *op,
 		/* nothing to do; allowed access */
 		return 1;
 	}
-
-	slapi_int_pblock_set_operation( op->o_pb, op );
 
 	rc = 1; /* default allow policy */
 

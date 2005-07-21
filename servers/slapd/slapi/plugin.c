@@ -212,7 +212,10 @@ slapi_int_get_plugins(
 	int		rc = LDAP_SUCCESS;
 
 	assert( ppFuncPtrs != NULL );
-	assert( be != NULL );
+
+	if ( be == NULL ) {
+		goto done;
+	}
 
 	/*
 	 * First, count the plugins associated with a specific
