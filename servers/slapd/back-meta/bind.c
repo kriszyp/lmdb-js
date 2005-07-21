@@ -223,8 +223,11 @@ retry:;
 		tv.tv_usec = META_BIND_TIMEOUT;
 		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
-			Debug( LDAP_DEBUG_ANY, "%s meta_back_single_bind: ldap_result=%d nretries=%d\n",
-				op->o_log_prefix, 0, nretries );
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_single_bind: "
+				"ldap_result=0 nretries=%d%s\n",
+				op->o_log_prefix, nretries,
+				rebinding ? " rebinding" : "" );
 
 			if ( nretries != META_RETRY_NEVER ) {
 				ldap_pvt_thread_yield();
@@ -255,7 +258,9 @@ retry:;
 				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
 			}
 
-			Debug( LDAP_DEBUG_ANY, "### %s meta_back_single_bind: err=%d nretries=%d\n",
+			Debug( LDAP_DEBUG_ANY,
+				"### %s meta_back_single_bind: "
+				"err=%d nretries=%d\n",
 				op->o_log_prefix, rs->sr_err, nretries );
 
 			rc = slap_map_api2result( rs );
@@ -395,8 +400,11 @@ retry:;
 		tv.tv_usec = META_BIND_TIMEOUT;
 		switch ( ldap_result( msc->msc_ld, msgid, 0, &tv, &res ) ) {
 		case 0:
-			Debug( LDAP_DEBUG_ANY, "%s meta_back_single_dobind: ldap_result=%d nretries=%d\n",
-				op->o_log_prefix, 0, nretries );
+			Debug( LDAP_DEBUG_ANY,
+				"%s meta_back_single_dobind: "
+				"ldap_result=0 nretries=%d%s\n",
+				op->o_log_prefix, nretries,
+				rebinding ? " rebinding" : "" );
 
 			if ( nretries != META_RETRY_NEVER ) {
 				ldap_pvt_thread_yield();
@@ -428,8 +436,10 @@ retry:;
 				ldap_abandon_ext( msc->msc_ld, msgid, NULL, NULL );
 			}
 
-			Debug( LDAP_DEBUG_ANY, "### %s meta_back_single_dobind: err=%d nretries=%d\n",
-					op->o_log_prefix, rs->sr_err, nretries );
+			Debug( LDAP_DEBUG_ANY,
+				"### %s meta_back_single_dobind: "
+				"err=%d nretries=%d\n",
+				op->o_log_prefix, rs->sr_err, nretries );
 
 			rc = slap_map_api2result( rs );
 			if ( rc == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
