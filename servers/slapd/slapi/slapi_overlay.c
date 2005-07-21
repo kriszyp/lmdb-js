@@ -131,6 +131,8 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 	int			rc;
 	Slapi_PBlock		*pb;
 
+	assert( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF );
+
 	pb = slapi_pblock_new();
 
 	slapi_int_pblock_set_operation( pb, op );
@@ -204,6 +206,8 @@ static int
 slapi_over_result( Operation *op, SlapReply *rs, int type )
 {
 	int rc;
+
+	assert( rs->sr_type == REP_RESULT );
 
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE,    (void *)rs->sr_err );
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT,    (void *)rs->sr_text );
@@ -662,23 +666,25 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	/*
 	 * Find the SLAPI operation information for this LDAP
 	 * operation; this will contain the preop and postop
-	 * plugin types, as well as any additional information
-	 * we need to complete.
+	 * plugin types, as well as optional callbacks for
+	 * setting up the SLAPI environment.
 	 */
 	which = slapi_tag2op( op->o_tag );
 	if ( which >= op_last ) {
+		/* invalid operation, but let someone else deal with it */
 		return SLAP_CB_CONTINUE;
 	}
 
 	opinfo = &slapi_op_dispatch_table[which];
 	if ( opinfo == NULL || opinfo->soi_preop == 0 ) {
+		/* no SLAPI plugin types for this operation */
 		return SLAP_CB_CONTINUE;
 	}
 
 	slapi_int_pblock_set_operation( pb, op );
 
-	cb.sc_response = slapi_op_response;
-	cb.sc_cleanup = slapi_op_cleanup;
+	cb.sc_response = slapi_op_response; /* call pre-entry/result plugins */
+	cb.sc_cleanup = slapi_op_cleanup;  /* call post-entry/result plugins */
 	cb.sc_private = opinfo;
 	cb.sc_next = op->o_callback;
 	op->o_callback = &cb;
@@ -705,6 +711,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	 * backend (for the success case).
 	 */
 	if ( opinfo->soi_callback == NULL ) {
+		/* default behaviour is preop plugin can abort operation */
 		if ( rs->sr_err < 0 ) {
 			slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
 			goto cleanup;
