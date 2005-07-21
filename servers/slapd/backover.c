@@ -29,7 +29,12 @@
 
 static slap_overinst *overlays;
 
-enum db_which { db_open = 0, db_close, db_destroy };
+enum db_which {
+	db_open = 0,
+	db_close,
+	db_destroy,
+	db_last
+};
 
 static int
 over_db_func(
@@ -490,7 +495,8 @@ over_aux_chk_controls( Operation *op, SlapReply *rs )
 
 enum conn_which {
 	conn_init = 0,
-	conn_destroy
+	conn_destroy,
+	conn_last
 };
 
 static int
