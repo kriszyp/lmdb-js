@@ -1522,6 +1522,9 @@ int slap_read_controls(
 	BerElement *ber = (BerElement *) &berbuf;
 	LDAPControl c;
 	Operation myop;
+#ifdef LDAP_SLAPI
+	Slapi_PBlock *pb;
+#endif
 
 	Debug( LDAP_DEBUG_ANY, "slap_read_controls: (%s) %s\n",
 		oid->bv_val, e->e_dn, 0 );
@@ -1540,8 +1543,15 @@ int slap_read_controls(
 	myop = *op;
 	myop.o_bd = NULL;
 	myop.o_res_ber = ber;
+#ifdef LDAP_SLAPI
+	pb = myop.o_pb;
+	myop.o_pb = NULL;
+#endif
 
 	rc = slap_send_search_entry( &myop, rs );
+#ifdef LDAP_SLAPI
+	myop.o_pb = pb;
+#endif
 	if( rc ) return rc;
 
 	rc = ber_flatten2( ber, &c.ldctl_value, 0 );
@@ -1720,7 +1730,6 @@ static int call_pre_result_plugins( Operation *op, SlapReply *rs )
 		return 0;
 	}
 
-	slapi_int_pblock_set_operation( op->o_pb, op );
 	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );

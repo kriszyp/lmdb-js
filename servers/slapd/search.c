@@ -500,14 +500,5 @@ static void call_search_postop_plugins( Operation *op )
 	}
 }
 
-void slapi_int_dummy(void)
-{
-	/*
-	 * XXX slapi_search_internal() was no getting pulled
-	 * in; all manner of linker flags failed to link it.
-	 * FIXME
-	 */
-	slapi_search_internal( NULL, 0, NULL, NULL, NULL, 0 );
-}
 #endif /* LDAP_SLAPI */
 
