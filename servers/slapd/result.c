@@ -767,9 +767,10 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	attrsonly = op->ors_attrsonly;
 
-#ifdef notdef
+#ifdef LDAP_SLAPI
 	rc = call_pre_entry_plugins( op, rs, &attrsonly );
 	if ( rc < 0 ) {
+		rc = 0;
 		goto error_return;
 	}
 #endif /* LDAP_SLAPI */
