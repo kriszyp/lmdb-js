@@ -466,11 +466,14 @@ enum_tree(
 	struct ldif_info *ni = (struct ldif_info *) ck->op->o_bd->be_private;
 	struct berval path;
 	struct berval pdn, pndn;
+	int rc;
 
 	dnParent( &ck->op->o_req_dn, &pdn );
 	dnParent( &ck->op->o_req_ndn, &pndn );
 	dn2path( &ck->op->o_req_ndn, &ck->op->o_bd->be_nsuffix[0], &ni->li_base_path, &path);
-	return r_enum_tree(ck, &path, &pdn, &pndn);
+	rc = r_enum_tree(ck, &path, &pdn, &pndn);
+	ch_free( path.bv_val );
+	return rc;
 }
 
 /* Get the parent path plus the LDIF suffix */
