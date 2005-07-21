@@ -87,7 +87,7 @@ static struct berval cfdir;
 static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
 	*cfAd_include;
 
-static ConfigFile cf_prv, *cfn = &cf_prv;
+static ConfigFile *cfn;
 
 static Avlnode *CfOcTree;
 
@@ -2630,7 +2630,7 @@ read_config(const char *fname, const char *dir) {
 	rc = read_config_file(cfname, 0, NULL, config_back_cf_table);
 
 	if ( rc == 0 )
-		ber_str2bv( cfname, 0, 1, &cf_prv.c_file );
+		ber_str2bv( cfname, 0, 1, &cfb->cb_config->c_file );
 
 	/* If we got this far and failed, it may be a serious problem. In server
 	 * mode, we should never come to this. However, it may be alright if we're
@@ -2980,10 +2980,7 @@ cfAddInclude( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 	if ( ca->lineno )
 		return LDAP_COMPARE_TRUE;
 
-	if ( p->ce_type == Cft_Global )
-		cfn = &cf_prv;
-	else
-		cfn = p->ce_private;
+	cfn = p->ce_private;
 	ca->private = cfn;
 	return LDAP_SUCCESS;
 }
@@ -2995,7 +2992,7 @@ cfAddSchema( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 
 	/* This entry is hardcoded, don't re-parse it */
 	if ( p->ce_type == Cft_Global ) {
-		cfn = &cf_prv;
+		cfn = p->ce_private;
 		ca->private = cfn;
 		return LDAP_COMPARE_TRUE;
 	}
@@ -3095,7 +3092,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, ConfigArgs *ca, SlapReply *rs, i
 	 */
 	rc = LDAP_CONSTRAINT_VIOLATION;
 	if ( colst[0]->co_type == Cft_Global && !last ) {
-		cfn = &cf_prv;
+		cfn = cfb->cb_config;
 		ca->private = cfn;
 		ca->be = frontendDB;	/* just to get past check_vals */
 		rc = LDAP_SUCCESS;
@@ -4012,21 +4009,68 @@ config_back_db_open( BackendDB *be )
 	return 0;
 }
 
+static void
+cfb_free_cffile( ConfigFile *cf )
+{
+	ConfigFile *next;
+
+	for (; cf; cf=next) {
+		next = cf->c_sibs;
+		if ( cf->c_kids )
+			cfb_free_cffile( cf->c_kids );
+		ch_free( cf->c_file.bv_val );
+		ber_bvarray_free( cf->c_dseFiles );
+		ch_free( cf );
+	}
+}
+
+static void
+cfb_free_entries( CfEntryInfo *ce )
+{
+	CfEntryInfo *next;
+
+	for (; ce; ce=next) {
+		next = ce->ce_sibs;
+		if ( ce->ce_kids )
+			cfb_free_entries( ce->ce_kids );
+		ce->ce_entry->e_private = NULL;
+		entry_free( ce->ce_entry );
+		ch_free( ce );
+	}
+}
+
 static int
-config_back_db_destroy( Backend *be )
+config_back_db_close( BackendDB *be )
+{
+	CfBackInfo *cfb = be->be_private;
+
+	/* Note - this is asymmetric; cfb->cb_config was allocated in db_init
+	 * not db_open. We cannot re-open this DB after a close. (Not that we
+	 * ever could anyway.)
+	 */
+	cfb_free_cffile( cfb->cb_config );
+	cfb->cb_config = NULL;
+
+	cfb_free_entries( cfb->cb_root );
+	cfb->cb_root = NULL;
+	return 0;
+}
+
+static int
+config_back_db_destroy( BackendDB *be )
 {
 	free( be->be_private );
 	return 0;
 }
 
 static int
-config_back_db_init( Backend *be )
+config_back_db_init( BackendDB *be )
 {
 	struct berval dn;
 	CfBackInfo *cfb;
 
 	cfb = ch_calloc( 1, sizeof(CfBackInfo));
-	cfb->cb_config = &cf_prv;
+	cfb->cb_config = ch_calloc( 1, sizeof(ConfigFile));
 	be->be_private = cfb;
 
 	ber_dupbv( &be->be_rootdn, &config_rdn );
@@ -4181,7 +4225,7 @@ config_back_initialize( BackendInfo *bi )
 	bi->bi_db_init = config_back_db_init;
 	bi->bi_db_config = 0;
 	bi->bi_db_open = config_back_db_open;
-	bi->bi_db_close = 0;
+	bi->bi_db_close = config_back_db_close;
 	bi->bi_db_destroy = config_back_db_destroy;
 
 	bi->bi_op_bind = config_back_bind;
