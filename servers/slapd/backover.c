@@ -300,24 +300,6 @@ over_access_allowed(
 }
 #endif /* SLAP_OVERLAY_ACCESS */
 
-enum op_which {
-	op_bind = 0,
-	op_unbind,
-	op_search,
-	op_compare,
-	op_modify,
-	op_modrdn,
-	op_add,
-	op_delete,
-	op_abandon,
-	op_cancel,
-	op_extended,
-	op_aux_operational,
-	op_aux_chk_referrals,
-	op_aux_chk_controls,
-	op_last
-};
-
 /*
  * default return code in case of missing backend function
  * and overlay stack returning SLAP_CB_CONTINUE
@@ -339,35 +321,16 @@ static int op_rc[] = {
 	SLAP_CB_CONTINUE		/* aux_chk_controls; pass to frontend */
 };
 
-static int
-over_op_func(
+int overlay_op_walk(
 	Operation *op,
 	SlapReply *rs,
-	enum op_which which
+	slap_operation_t which,
+	slap_overinfo *oi,
+	slap_overinst *on
 )
 {
-	slap_overinfo *oi;
-	slap_overinst *on;
 	BI_op_bind **func;
-	BackendDB *be = op->o_bd, db;
-	slap_callback cb = {NULL, over_back_response, NULL, NULL};
 	int rc = SLAP_CB_CONTINUE;
-
-	/* FIXME: used to happen for instance during abandon
-	 * when global overlays are used... */
-	assert( op->o_bd != NULL );
-
-	oi = op->o_bd->bd_info->bi_private;
-	on = oi->oi_list;
-
- 	if ( !SLAP_ISOVERLAY( op->o_bd )) {
- 		db = *op->o_bd;
-		db.be_flags |= SLAP_DBFLAG_OVERLAY;
-		op->o_bd = &db;
-	}
-	cb.sc_next = op->o_callback;
-	cb.sc_private = oi;
-	op->o_callback = &cb;
 
 	for (; on; on=on->on_next ) {
 		func = &on->on_bi.bi_op_bind;
@@ -393,14 +356,49 @@ over_op_func(
 	 */
 	if ( rc == LDAP_UNWILLING_TO_PERFORM ) {
 		slap_callback *sc_next;
-		for ( ; op->o_callback && op->o_callback != cb.sc_next; 
-			op->o_callback = sc_next ) {
+		for ( ; op->o_callback && op->o_callback->sc_response !=
+			over_back_response; op->o_callback = sc_next ) {
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
 				op->o_callback->sc_cleanup( op, rs );
 			}
 		}
 	}
+	return rc;
+}
+
+static int
+over_op_func(
+	Operation *op,
+	SlapReply *rs,
+	slap_operation_t which
+)
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+	BI_op_bind **func;
+	BackendDB *be = op->o_bd, db;
+	slap_callback cb = {NULL, over_back_response, NULL, NULL};
+	int rc = SLAP_CB_CONTINUE;
+
+	/* FIXME: used to happen for instance during abandon
+	 * when global overlays are used... */
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+ 	if ( !SLAP_ISOVERLAY( op->o_bd )) {
+ 		db = *op->o_bd;
+		db.be_flags |= SLAP_DBFLAG_OVERLAY;
+		op->o_bd = &db;
+	}
+	cb.sc_next = op->o_callback;
+	cb.sc_private = oi;
+	op->o_callback = &cb;
+
+	rc = overlay_op_walk( op, rs, which, oi, on );
+
 	op->o_bd = be;
 	op->o_callback = cb.sc_next;
 	return rc;
