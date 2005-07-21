@@ -138,15 +138,17 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)rs->sr_entry );
 
 	rc = slapi_int_call_plugins( op->o_bd, type, pb );
-	if ( rc == 0 )
+	if ( rc >= 0 ) /* 1 means no plugins called */
 		rc = SLAP_CB_CONTINUE;
+	else
+		rc = LDAP_SUCCESS; /* confusing: don't abort, but don't send */
 
-	if ( rs->sr_type == REP_SEARCH ) {
+	if ( rc == SLAP_CB_CONTINUE && rs->sr_type == REP_SEARCH ) {
 		/* XXX we shouldn't need this here */
 		slapi_over_operational( op, rs );
 	}
 
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL );
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL ); /* don't free */
 	slapi_pblock_destroy(pb);
 
 	return rc;
@@ -203,27 +205,21 @@ slapi_over_result( Operation *op, SlapReply *rs, int type )
 {
 	int rc;
 
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE,    (void *)rs->sr_err );
+	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT,    (void *)rs->sr_text );
 	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
 
 	rc = slapi_int_call_plugins( op->o_bd, type, op->o_pb );
-	if ( rc < 0 ) {
-		return rc;
-	}
-
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_TEXT, (void **)&rs->sr_text );
+	
+	slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,    (void **)&rs->sr_err );
+	slapi_pblock_get( op->o_pb, SLAPI_RESULT_TEXT,    (void **)&rs->sr_text );
 	slapi_pblock_get( op->o_pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
 
-	if ( rc == 0 && type == SLAPI_PLUGIN_PRE_RESULT_FN ) {
+	if ( type == SLAPI_PLUGIN_PRE_RESULT_FN ) {
 		rc = slapi_over_merge_controls( op, rs, op->o_pb );
 	}
 
-	if ( rc == 0 )
-		rc = SLAP_CB_CONTINUE;
-
-	return rc;
+	return SLAP_CB_CONTINUE;
 }
 
 static int
