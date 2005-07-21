@@ -1,4 +1,4 @@
-/* glue.c - backend glue overlay */
+/* slapi_overlay.c - SLAPI overlay */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
@@ -89,7 +89,7 @@ slapi_over_compute_output(
 }
 
 static int
-slapi_over_operational( Operation *op, SlapReply *rs )
+slapi_over_aux_operational( Operation *op, SlapReply *rs )
 {
 	/* Support for computed attribute plugins */
 	computed_attr_context    ctx;
@@ -145,7 +145,7 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 
 	if ( rc == SLAP_CB_CONTINUE && rs->sr_type == REP_SEARCH ) {
 		/* XXX we shouldn't need this here */
-		slapi_over_operational( op, rs );
+		slapi_over_aux_operational( op, rs );
 	}
 
 	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL ); /* don't free */
@@ -624,7 +624,7 @@ slapi_op_cleanup( Operation *op, SlapReply *rs )
 
 	switch ( rs->sr_type ) {
 	case REP_RESULT:
-		rc = slapi_over_search( op, rs, SLAPI_PLUGIN_POST_RESULT_FN );
+		rc = slapi_over_result( op, rs, SLAPI_PLUGIN_POST_RESULT_FN );
 		break;
 	case REP_SEARCH:
 		rc = slapi_over_search( op, rs, SLAPI_PLUGIN_POST_ENTRY_FN );
@@ -903,7 +903,7 @@ slapi_int_overlay_init()
 
 	slapi.on_bi.bi_extended = slapi_over_extended;
 	slapi.on_bi.bi_access_allowed = slapi_over_access_allowed;
-	slapi.on_bi.bi_operational = slapi_over_operational;
+	slapi.on_bi.bi_operational = slapi_over_aux_operational;
 
 	return overlay_register( &slapi );
 }
