@@ -154,10 +154,10 @@ glue_op_response ( Operation *op, SlapReply *rs )
 }
 
 enum glue_which {
-	op_modify = 0,
-	op_modrdn,
-	op_add,
-	op_delete
+	glue_op_modify = 0,
+	glue_op_modrdn,
+	glue_op_add,
+	glue_op_delete
 };
 
 static int
@@ -174,10 +174,10 @@ glue_op_func ( Operation *op, SlapReply *rs )
 	b0->bd_info = on->on_info->oi_orig;
 
 	switch(op->o_tag) {
-	case LDAP_REQ_ADD: which = op_add; break;
-	case LDAP_REQ_DELETE: which = op_delete; break;
-	case LDAP_REQ_MODIFY: which = op_modify; break;
-	case LDAP_REQ_MODRDN: which = op_modrdn; break;
+	case LDAP_REQ_ADD: which = glue_op_add; break;
+	case LDAP_REQ_DELETE: which = glue_op_delete; break;
+	case LDAP_REQ_MODIFY: which = glue_op_modify; break;
+	case LDAP_REQ_MODRDN: which = glue_op_modrdn; break;
 	}
 
 	func = &op->o_bd->bd_info->bi_op_modify;
