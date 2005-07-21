@@ -76,7 +76,7 @@ LDAP_BEGIN_DECL
 #endif
 #endif
 
-#ifdef LDAP_SLAPI
+#if defined(LDAP_SLAPI) && !defined(SLAP_OVERLAY_ACCESS)
 #define SLAP_OVERLAY_ACCESS
 #endif
 
