@@ -76,6 +76,10 @@ LDAP_BEGIN_DECL
 #endif
 #endif
 
+#ifdef LDAP_SLAPI
+#define SLAP_OVERLAY_ACCESS
+#endif
+
 /*
  * ITS#3705: bail out if unknown config directives appear in slapd.conf
  */
@@ -2168,6 +2172,24 @@ typedef struct slap_callback {
 } slap_callback;
 
 struct slap_overinfo;
+
+typedef enum slap_operation_e {
+	op_bind = 0,
+	op_unbind,
+	op_search,
+	op_compare,
+	op_modify,
+	op_modrdn,
+	op_add,
+	op_delete,
+	op_abandon,
+	op_cancel,
+	op_extended,
+	op_aux_operational,
+	op_aux_chk_referrals,
+	op_aux_chk_controls,
+	op_last
+} slap_operation_t;
 
 typedef struct slap_overinst {
 	BackendInfo on_bi;
