@@ -654,7 +654,17 @@ slap_sasl_authorize(
 		return SASL_NOAUTHZ;
 	}
 
-	conn->c_sasl_authz_dn = authzDN;
+	/* FIXME: we need yet another dup because slap_sasl_getdn()
+	 * is using the bind operation slab */
+	if ( conn->c_sasl_bindop ) {
+		ber_dupbv( &conn->c_sasl_authz_dn, &authzDN );
+		slap_sl_free( authzDN.bv_val,
+				conn->c_sasl_bindop->o_tmpmemctx );
+
+	} else {
+		conn->c_sasl_authz_dn = authzDN;
+	}
+
 ok:
 	if (conn->c_sasl_bindop) {
 		Statslog( LDAP_DEBUG_STATS,
