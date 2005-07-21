@@ -69,13 +69,13 @@ slap_op_free( Operation *op )
 		ber_free( op->o_ber, 1 );
 	}
 	if ( !BER_BVISNULL( &op->o_dn ) ) {
-		free( op->o_dn.bv_val );
+		ch_free( op->o_dn.bv_val );
 	}
 	if ( !BER_BVISNULL( &op->o_ndn ) ) {
-		free( op->o_ndn.bv_val );
+		ch_free( op->o_ndn.bv_val );
 	}
 	if ( !BER_BVISNULL( &op->o_authmech ) ) {
-		free( op->o_authmech.bv_val );
+		ch_free( op->o_authmech.bv_val );
 	}
 	if ( op->o_ctrls != NULL ) {
 		slap_free_ctrls( op, op->o_ctrls );

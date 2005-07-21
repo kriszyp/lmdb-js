@@ -38,10 +38,6 @@
 
 #include "ldap_rq.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif
-
 static BackendInfo	slap_frontendInfo;
 static BackendDB	slap_frontendDB;
 BackendDB	*frontendDB;

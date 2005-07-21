@@ -37,10 +37,6 @@
 #include "lber_pvt.h"
 #include "lutil.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif /* LDAPI_SLAPI */
-
 #define ACL_BUF_SIZE 	1024	/* use most appropriate size */
 
 /*
@@ -206,16 +202,6 @@ slap_access_allowed(
 	attr = desc->ad_cname.bv_val;
 
 	assert( attr != NULL );
-
-#ifdef LDAP_SLAPI
-	if ( op->o_pb != NULL ) {
-		ret = slapi_int_access_allowed( op, e, desc, val, access, state );
-		if ( ret == 0 ) {
-			/* ACL plugin denied access */
-			goto done;
-		}
-	}
-#endif /* LDAP_SLAPI */
 
 	/* grant database root access */
 	if ( be_isroot( op ) ) {
@@ -579,16 +565,6 @@ access_allowed_mask(
 		}
 	}
 	assert( be != NULL );
-
-#ifdef LDAP_SLAPI
-	if ( op->o_pb != NULL ) {
-		ret = slapi_int_access_allowed( op, e, desc, val, access, state );
-		if ( ret == 0 ) {
-			/* ACL plugin denied access */
-			goto done;
-		}
-	}
-#endif /* LDAP_SLAPI */
 
 	/* grant database root access */
 	if ( be_isroot( op ) ) {

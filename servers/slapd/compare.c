@@ -30,9 +30,6 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif
 
 static int compare_entry(
 	Operation *op,
@@ -240,35 +237,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 		op->o_log_prefix, op->o_req_dn.bv_val,
 		ava.aa_desc->ad_cname.bv_val, 0, 0 );
 
-#if defined( LDAP_SLAPI )
-#define	pb	op->o_pb
-	if ( pb ) {
-		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_COMPARE_TARGET, (void *)op->o_req_dn.bv_val );
-		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-		slapi_pblock_set( pb, SLAPI_COMPARE_TYPE, (void *)ava.aa_desc->ad_cname.bv_val );
-		slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&ava.aa_value );
-
-		rs->sr_err = slapi_int_call_plugins( op->o_bd,
-			SLAPI_PLUGIN_PRE_COMPARE_FN, pb );
-		if ( rs->sr_err < 0 ) {
-			/*
-			 * A preoperation plugin failure will abort the
-			 * entire operation.
-			 */
-			Debug(LDAP_DEBUG_TRACE,
-				"do_compare: compare preoperation plugin failed\n",
-				0, 0, 0);
-			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
-				(void *)&rs->sr_err ) != 0 ) || rs->sr_err == LDAP_SUCCESS )
-			{
-				rs->sr_err = LDAP_OTHER;
-			}
-			goto cleanup;
-		}
-	}
-#endif /* defined( LDAP_SLAPI ) */
-
 	op->orc_ava = &ava;
 	if ( ava.aa_desc == slap_schema.si_ad_entryDN ) {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
@@ -394,15 +362,6 @@ fe_op_compare( Operation *op, SlapReply *rs )
 			ber_bvarray_free_x( vals, op->o_tmpmemctx );
 		}
 	}
-
-#if defined( LDAP_SLAPI )
-	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
-		SLAPI_PLUGIN_POST_COMPARE_FN, pb ) < 0 )
-	{
-		Debug(LDAP_DEBUG_TRACE,
-			"do_compare: compare postoperation plugins failed\n", 0, 0, 0 );
-	}
-#endif /* defined( LDAP_SLAPI ) */
 
 cleanup:;
 	return rs->sr_err;

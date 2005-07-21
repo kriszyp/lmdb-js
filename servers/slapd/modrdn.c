@@ -39,9 +39,6 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif
 
 int
 do_modrdn(
@@ -285,34 +282,6 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 		}
 	}
 
-#if defined( LDAP_SLAPI )
-#define	pb	op->o_pb
-	if ( pb ) {
-		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)op->o_req_dn.bv_val );
-		slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)op->orr_newrdn.bv_val );
-		slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
-				(void *)op->orr_newSup->bv_val );
-		slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)op->orr_deleteoldrdn);
-		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-
-		rs->sr_err = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
-		if ( rs->sr_err < 0 ) {
-			/*
-			 * A preoperation plugin failure will abort the
-			 * entire operation.
-			 */
-			Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn preoperation plugin "
-					"failed.\n", 0, 0, 0);
-			if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 ) ||
-				 rs->sr_err == LDAP_SUCCESS ) {
-				rs->sr_err = LDAP_OTHER;
-			}
-			goto cleanup;
-		}
-	}
-#endif /* defined( LDAP_SLAPI ) */
-
 	/*
 	 * do the modrdn if 1 && (2 || 3)
 	 * 1) there is a modrdn function implemented in this backend;
@@ -402,13 +371,6 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
 	}
-
-#if defined( LDAP_SLAPI )
-	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_MODRDN_FN, pb ) < 0 ) {
-		Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn postoperation plugins "
-				"failed.\n", 0, 0, 0);
-	}
-#endif /* defined( LDAP_SLAPI ) */
 
 cleanup:;
 	return rs->sr_err;

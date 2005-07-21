@@ -1989,6 +1989,12 @@ typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
 typedef int (BI_access_allowed) LDAP_P(( struct slap_op *op, Entry *e,
 	AttributeDescription *desc, struct berval *val, slap_access_t access,
 	AccessControlState *state, slap_mask_t *maskp ));
+typedef int (BI_acl_group) LDAP_P(( struct slap_op *op, Entry *target,
+	struct berval *gr_ndn, struct berval *op_ndn,
+	ObjectClass *group_oc, AttributeDescription *group_at ));
+typedef int (BI_acl_attribute) LDAP_P(( struct slap_op *op, Entry *target,
+	struct berval *entry_ndn, AttributeDescription *entry_at,
+	BerVarray *vals, slap_access_t access ));
 #endif /* SLAP_OVERLAY_ACCESS */
 
 typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
@@ -2091,6 +2097,8 @@ struct slap_backend_info {
 	BI_has_subordinates	*bi_has_subordinates;
 #ifdef SLAP_OVERLAY_ACCESS
 	BI_access_allowed	*bi_access_allowed;
+	BI_acl_group		*bi_acl_group;
+	BI_acl_attribute	*bi_acl_attribute;
 #endif /* SLAP_OVERLAY_ACCESS */
 
 	BI_connection_init	*bi_connection_init;

@@ -37,14 +37,6 @@
 
 #include "slap.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-
-static int call_pre_result_plugins( Operation *, SlapReply * );
-static int call_pre_referral_plugins( Operation *, SlapReply * );
-static int call_pre_entry_plugins( Operation *, SlapReply *, int * );
-#endif /* LDAP_SLAPI */
-
 const struct berval slap_dummy_bv = BER_BVNULL;
 
 int slap_null_cb( Operation *op, SlapReply *rs )
@@ -250,36 +242,16 @@ static int
 send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 {
 	int rc;
-#ifdef LDAP_SLAPI
-	LDAPControl **sctrls = NULL;
 
-	/*
-	 * Retrieve any additional controls that may be set by the
-	 * plugin.
-	 */
-
-	if ( o->o_pb &&
-		slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 )
-	{
-		sctrls = NULL;
-	}
-
-	if ( c == NULL && sctrls == NULL ) return 0;
-#else
-	if( c == NULL ) return 0;
-#endif /* LDAP_SLAPI */
+	if( c == NULL )
+		return 0;
 
 	rc = ber_printf( ber, "t{"/*}*/, LDAP_TAG_CONTROLS );
 	if( rc == -1 ) return rc;
 
-#ifdef LDAP_SLAPI
-	if ( c != NULL )
-#endif /* LDAP_SLAPI */
-	{
-		for( ; *c != NULL; c++) {
-			rc = send_ldap_control( ber, *c );
-			if( rc == -1 ) return rc;
-		}
+	for( ; *c != NULL; c++) {
+		rc = send_ldap_control( ber, *c );
+		if( rc == -1 ) return rc;
 	}
 
 #ifdef LDAP_DEVEL
@@ -306,15 +278,6 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 		if( rc == -1 ) return rc;
 	}
 #endif
-
-#ifdef LDAP_SLAPI
-	if ( sctrls != NULL ) {
-		for ( c = sctrls; *c != NULL; c++ ) {
-			rc = send_ldap_control( ber, *c );
-			if( rc == -1 ) return rc;
-		}
-	}
-#endif /* LDAP_SLAPI */
 
 	rc = ber_printf( ber, /*{*/"N}" );
 
@@ -480,15 +443,6 @@ send_ldap_response(
 		goto cleanup;
 	}
 
-#ifdef LDAP_SLAPI
-	if ( op->o_pb ) {
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED,
-			(void *)rs->sr_matched );
-		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
-	}
-#endif /* LDAP_SLAPI */
-
 	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
 	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
 	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, (unsigned long)bytes );
@@ -615,10 +569,6 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 		}
 	}
 
-#ifdef LDAP_SLAPI
-	(void) call_pre_result_plugins( op, rs );
-#endif /* LDAP_SLAPI */
-
 	if ( op->o_protocol < LDAP_VERSION3 ) {
 		tmp = v2ref( rs->sr_ref, rs->sr_text );
 		rs->sr_text = tmp;
@@ -707,11 +657,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	char		*edn;
 	int		userattrs;
 	AccessControlState acl_state = ACL_STATE_INIT;
-#ifdef LDAP_SLAPI
-	/* Support for computed attribute plugins */
-	computed_attr_context	 ctx;
-	AttributeName		*anp;
-#endif
 	int			 attrsonly;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
@@ -766,14 +711,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		op->ors_attrsonly ? " (attrsOnly)" : "" );
 
 	attrsonly = op->ors_attrsonly;
-
-#ifdef LDAP_SLAPI
-	rc = call_pre_entry_plugins( op, rs, &attrsonly );
-	if ( rc < 0 ) {
-		rc = 0;
-		goto error_return;
-	}
-#endif /* LDAP_SLAPI */
 
 	if ( !access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL )) {
 		Debug( LDAP_DEBUG_ACL,
@@ -1125,46 +1062,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		}
 	}
 
-#ifdef LDAP_SLAPI
-	/*
-	 * First, setup the computed attribute context that is
-	 * passed to all plugins.
-	 */
-	if ( op->o_pb ) {
-		ctx.cac_pb = op->o_pb;
-		ctx.cac_attrs = rs->sr_attrs;
-		ctx.cac_attrsonly = attrsonly;
-		ctx.cac_userattrs = userattrs;
-		ctx.cac_opattrs = rs->sr_attr_flags;
-		ctx.cac_acl_state = acl_state;
-		ctx.cac_private = (void *)ber;
-
-		/*
-		 * For each client requested attribute, call the plugins.
-		 */
-		if ( rs->sr_attrs != NULL ) {
-			for ( anp = rs->sr_attrs; anp->an_name.bv_val != NULL; anp++ ) {
-				rc = compute_evaluator( &ctx, anp->an_name.bv_val,
-					rs->sr_entry, slapi_int_compute_output_ber );
-				if ( rc == 1 ) break;
-			}
-		} else {
-			/*
-			 * Technically we shouldn't be returning operational attributes
-			 * when the user requested only user attributes. We'll let the
-			 * plugin decide whether to be naughty or not.
-			 */
-			rc = compute_evaluator( &ctx, "*",
-				rs->sr_entry, slapi_int_compute_output_ber );
-		}
-		if ( rc == 1 ) {
-			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-			send_ldap_error( op, rs, LDAP_OTHER, "computed attribute error" );
-			goto error_return;
-		}
-	}
-#endif /* LDAP_SLAPI */
-
 	/* free e_flags */
 	if ( e_flags ) {
 		slap_sl_free( e_flags, op->o_tmpmemctx );
@@ -1317,12 +1214,6 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_reference: dn=\"%s\"\n",
 		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "(null)", 0, 0 );
-
-#ifdef notdef
-	rc = call_pre_referral_plugins( op, rs );
-	if ( rc < 0 )
-		goto rel;
-#endif /* LDAP_SLAPI */
 
 	if (  rs->sr_entry && ! access_allowed( op, rs->sr_entry,
 		ad_entry, NULL, ACL_READ, NULL ) )
@@ -1522,9 +1413,6 @@ int slap_read_controls(
 	BerElement *ber = (BerElement *) &berbuf;
 	LDAPControl c;
 	Operation myop;
-#ifdef LDAP_SLAPI
-	Slapi_PBlock *pb;
-#endif
 
 	Debug( LDAP_DEBUG_ANY, "slap_read_controls: (%s) %s\n",
 		oid->bv_val, e->e_dn, 0 );
@@ -1543,15 +1431,8 @@ int slap_read_controls(
 	myop = *op;
 	myop.o_bd = NULL;
 	myop.o_res_ber = ber;
-#ifdef LDAP_SLAPI
-	pb = myop.o_pb;
-	myop.o_pb = NULL;
-#endif
 
 	rc = slap_send_search_entry( &myop, rs );
-#ifdef LDAP_SLAPI
-	myop.o_pb = pb;
-#endif
 	if( rc ) return rc;
 
 	rc = ber_flatten2( ber, &c.ldctl_value, 0 );
@@ -1638,148 +1519,3 @@ slap_attr_flags( AttributeName *an )
 	return flags;
 }
 
-#ifdef LDAP_SLAPI
-static AttributeName *charray2anlist( Operation *op, char **attrs )
-{
-	AttributeName *an;
-	int i;
-
-	if ( attrs != NULL ) {
-		for ( i = 0; attrs[i] != NULL; i++ )
-			;
-		an = (AttributeName *)op->o_tmpalloc( (i + 1) * sizeof(AttributeName), op->o_tmpmemctx );
-		for ( i = 0; attrs[i] != NULL; i++ ) {
-			const char *dummy;
-
-			an[i].an_name.bv_val = attrs[i];
-			an[i].an_name.bv_len = strlen( attrs[i] );
-			an[i].an_oc = NULL;
-			an[i].an_oc_exclude = 0;
-			slap_bv2ad( &an[i].an_name, &an[i].an_desc, &dummy );
-		}
-	} else {
-		an = NULL;
-	}
-
-	return an;
-}
-
-/*
- * Call pre-response plugins. To avoid infinite recursion plugins
- * should just set SLAPI_RESULT_CODE rather than sending a
- * result if they wish to change the result. Similarly, pre-entry
- * plugins can either abort sending the entry or change the list
- * of sent attributes, but they can't call send_search_entry().
- */
-
-static int call_pre_entry_plugins( Operation *op, SlapReply *rs, int *pAttributesOnly )
-{
-	int rc;
-	char **attrs = NULL;
-	char **filteredAttributes = NULL;
-	Slapi_PBlock *pb;
-
-	if ( op->o_callback != NULL || op->o_pb == NULL ) {
-		return 0;
-	}
-
-	/*
-	 * A new parameter block is allocated to avoid trampling on the
-	 * operation SLAPI state.
-	 */
-	pb = slapi_pblock_new();
-
-	slapi_int_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
-	attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
-	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRS, (void *)attrs );
-	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRSONLY, (void *)*pAttributesOnly );
-	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)rs->sr_entry );
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_ENTRY_FN, pb );
-	if ( rc < 0 ) {
-		slapi_pblock_destroy( pb );
-		return rc;
-	}
-
-	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
-	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRS, (void **)&filteredAttributes );
-	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRSONLY, (void **)pAttributesOnly );
-	slapi_pblock_get( pb, SLAPI_SEARCH_RESULT_ENTRY, (void **)&rs->sr_entry );
-
-	if ( filteredAttributes != attrs ) {
-		/*
-		 * Support for filtering attributes; useful for implementing
-		 * replication providers
-		 */
-		rs->sr_attrs = charray2anlist( op, filteredAttributes );
-		slapi_ch_free( (void **)&filteredAttributes );
-	}
-
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL );
-	slapi_pblock_destroy( pb );
-
-	return rc;
-}
-
-static int call_pre_result_plugins( Operation *op, SlapReply *rs )
-{
-	int rc;
-
-	if ( op->o_callback != NULL || op->o_pb == NULL ) {
-		return 0;
-	}
-
-	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
-	if ( rc < 0 ) {
-		return rc;
-	}
-
-	slapi_pblock_get( op->o_pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_TEXT, (void **)&rs->sr_text );
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
-
-	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS, NULL );
-
-	return rc;
-}
-
-static int call_pre_referral_plugins( Operation *op, SlapReply *rs )
-{
-	int rc;
-	Slapi_PBlock *pb;
-
-	if ( op->o_callback != NULL || op->o_pb == NULL ) {
-		return 0;
-	}
-
-	/*
-	 * A new parameter block is allocated to avoid trampling on the
-	 * operation SLAPI state.
-	 */
-	pb = slapi_pblock_new();
-
-	slapi_int_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
-	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)rs->sr_entry );
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_REFERRAL_FN, pb );
-	if ( rc < 0 ) {
-		return rc;
-	}
-
-	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&rs->sr_ctrls );
-	slapi_pblock_get( pb, SLAPI_SEARCH_RESULT_ENTRY, (void **)&rs->sr_entry );
-
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL );
-	slapi_pblock_destroy( pb );
-
-	return rc;
-}
-#endif /* LDAP_SLAPI */

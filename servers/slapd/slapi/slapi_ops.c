@@ -204,10 +204,10 @@ slapi_int_pblock_get_backend( Slapi_PBlock *pb, Operation *op )
 }
 
 static int
-slapi_int_pblock_get_connection( Slapi_PBlock *pb, Connection *conn )
+slapi_int_pblock_get_connection( Slapi_PBlock *pb, Operation *op )
 {
 	char *connDn = NULL;
-	Operation *op;
+	Connection *conn = op->o_conn;
 
 	slapi_pblock_get( pb, SLAPI_X_CONN_SSF, (void **)&conn->c_ssf );
 	slapi_pblock_get( pb, SLAPI_X_CONN_SASL_CONTEXT, (void **)&conn->c_sasl_authctx );
@@ -251,11 +251,6 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 		return rc;
 	}
 
-	rc = slapi_int_pblock_get_connection( pb, op->o_conn );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
-
 	rc = slapi_int_pblock_get_backend( pb, op );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
@@ -274,6 +269,11 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 		op->o_ndn.bv_val = requestorDn;
 		op->o_ndn.bv_len = strlen( requestorDn );
 		op->o_dn = op->o_ndn;
+	}
+
+	rc = slapi_int_pblock_get_connection( pb, op );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
 
 	slapi_pblock_get( pb, SLAPI_REQCONTROLS, (void **)&controls );

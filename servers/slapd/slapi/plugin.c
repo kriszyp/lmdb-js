@@ -701,6 +701,14 @@ slapi_int_read_config(
 			fname, lineno );
 		return 1;
 	}
+
+	/* automatically instantiate overlay if necessary */
+	if ( !overlay_is_inst( be, "slapi" ) ) {
+		if ( overlay_config( be, "slapi" ) != 0 ) {
+			fprintf( stderr, "failed to instantiate SLAPI overlay\n");
+			return -1;
+		}
+	}
 	
 	if ( strcasecmp( argv[1], "preoperation" ) == 0 ) {
 		iType = SLAPI_PLUGIN_PREOPERATION;
@@ -813,6 +821,5 @@ slapi_int_initialize(void)
 		return -1;
 	}
 
-	return 0;
+	return slapi_int_overlay_init();
 }
-

@@ -2616,6 +2616,14 @@ int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
+	rc = slapi_pblock_set( pb, SLAPI_TARGET_DN, (void *)op->o_req_dn.bv_val );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	rc = slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)get_manageDSAit( op ) );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
 	rc = slapi_pblock_get( pb, SLAPI_CONN_AUTHMETHOD, (void *)&opAuthType );
 	if ( rc == LDAP_SUCCESS && opAuthType != NULL ) {
 		/* Not quite sure what the point of this is. */
@@ -3669,104 +3677,6 @@ void slapi_int_free_ldapmods (LDAPMod **mods)
  * allow for dynamically generated operational attributes, a very
  * useful thing indeed.
  */
-
-/*
- * Write the computed attribute to a BerElement. Complementary 
- * functions need to be defined for anything that replaces 
- * op->o_callback->sc_sendentry, if you wish to make computed
- * attributes available to it.
- */
-int slapi_int_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
-{
-#ifdef LDAP_SLAPI
-	Operation *op = NULL;
-	BerElement *ber;
-	AttributeDescription *desc = NULL;
-	int rc;
-	int i;
-
-	if ( c == NULL ) {
-		return 1;
-	}
-
-	if ( a == NULL ) {
-		return 1;
-	}
-
-	if ( e == NULL ) {
-		return 1;
-	}
-
-	rc = slapi_pblock_get( c->cac_pb, SLAPI_OPERATION, (void *)&op );
-	if ( rc != 0 || op == NULL ) {
-		return rc;
-	}
-
-	ber = (BerElement *)c->cac_private;
-	desc = a->a_desc;
-
-	if ( c->cac_attrs == NULL ) {
-		/* All attrs request, skip operational attributes */
-		if ( is_at_operational( desc->ad_type ) ) {
-			return 0;
-		}
-	} else {
-		/* Specific attrs requested */
-		if ( is_at_operational( desc->ad_type ) ) {
-			if ( !c->cac_opattrs && !ad_inlist( desc, c->cac_attrs ) ) {
-				return 0;
-			}
-		} else {
-			if ( !c->cac_userattrs && !ad_inlist( desc, c->cac_attrs ) ) {
-				return 0;
-			}
-		}
-	}
-
-	if ( !access_allowed( op, e, desc, NULL, ACL_READ, &c->cac_acl_state) ) {
-		slapi_log_error( SLAPI_LOG_ACL, "slapi_int_compute_output_ber",
-			"acl: access to attribute %s not allowed\n",
-			desc->ad_cname.bv_val );
-		return 0;
-	}
-
-	rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname );
-	if (rc == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "slapi_int_compute_output_ber",
-			"ber_printf failed\n");
-		return 1;
-	}
-
-	if ( !c->cac_attrsonly && a->a_vals != NULL ) {
-		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
-			if ( !access_allowed( op, e,
-				desc, &a->a_vals[i], ACL_READ, &c->cac_acl_state)) {
-				slapi_log_error( SLAPI_LOG_ACL, "slapi_int_compute_output_ber",
-					"conn %lu "
-					"acl: access to %s, value %d not allowed\n",
-					op->o_connid, desc->ad_cname.bv_val, i  );
-				continue;
-			}
-	
-			if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
-				slapi_log_error( SLAPI_LOG_BER, "slapi_int_compute_output_ber",
-					"ber_printf failed\n");
-				return 1;
-			}
-		}
-	}
-
-	if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "slapi_int_compute_output_ber",
-			"ber_printf failed\n" );
-		return 1;
-	}
-
-	return 0;
-#else
-	return 1;
-#endif
-}
 
 /*
  * For some reason Sun don't use the normal plugin mechanism

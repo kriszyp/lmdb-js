@@ -599,20 +599,20 @@ void connection2anonymous( Connection *c )
 	}
 
 	if(c->c_authmech.bv_val != NULL ) {
-		free(c->c_authmech.bv_val);
+		ch_free(c->c_authmech.bv_val);
 	}
 	BER_BVZERO( &c->c_authmech );
 
 	if(c->c_dn.bv_val != NULL) {
-		free(c->c_dn.bv_val);
+		ch_free(c->c_dn.bv_val);
 	}
 	BER_BVZERO( &c->c_dn );
 	if(c->c_ndn.bv_val != NULL) {
-		free(c->c_ndn.bv_val);
+		ch_free(c->c_ndn.bv_val);
 	}
 	BER_BVZERO( &c->c_ndn );
 	if(c->c_sasl_authz_dn.bv_val != NULL) {
-		free(c->c_sasl_authz_dn.bv_val);
+		ch_free(c->c_sasl_authz_dn.bv_val);
 	}
 	BER_BVZERO( &c->c_sasl_authz_dn );
 

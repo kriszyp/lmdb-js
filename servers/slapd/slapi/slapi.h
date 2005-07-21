@@ -83,15 +83,10 @@ typedef struct _ExtendedOp {
 
 /* Computed attribute support */
 struct _computed_attr_context {
-	/* slap_send_search_entry() argblock */
 	Slapi_PBlock	*cac_pb;
-	AttributeName	*cac_attrs;
-	int		cac_attrsonly : 1;
-	int		cac_userattrs : 1;
-	int 		cac_opattrs : 1;
-	AccessControlState	cac_acl_state;
-	/* private data */
-	void *cac_private;
+	Operation	*cac_op;
+	AccessControlState *cac_acl_state;
+	void		*cac_private;
 };
 
 /* for slapi_attr_type_cmp() */

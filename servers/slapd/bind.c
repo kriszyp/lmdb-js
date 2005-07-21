@@ -32,10 +32,6 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#ifdef LDAP_SLAPI
-#include "slapi/slapi.h"
-#endif
-
 
 int
 do_bind(
@@ -327,27 +323,6 @@ fe_op_bind( Operation *op, SlapReply *rs )
 			op->o_conn->c_sasl_bind_in_progress = 0;
 		}
 
-#ifdef LDAP_SLAPI
-#define	pb	op->o_pb
-		/*
-		 * Normally post-operation plugins are called only after the
-		 * backend operation. Because the front-end performs SASL
-		 * binds on behalf of the backend, we'll make a special
-		 * exception to call the post-operation plugins after a
-		 * SASL bind.
-		 */
-		if ( pb ) {
-			slapi_int_pblock_set_operation( pb, op );
-			slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)op->o_req_dn.bv_val );
-			slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)op->orb_method );
-			slapi_pblock_set( pb,
-				SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
-			slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
-			(void) slapi_int_call_plugins( op->o_bd,
-				SLAPI_PLUGIN_POST_BIND_FN, pb );
-		}
-#endif /* LDAP_SLAPI */
-
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 		goto cleanup;
@@ -476,84 +451,6 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-#ifdef LDAP_SLAPI
-	if ( pb ) {
-		int rc;
-		slapi_int_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)op->o_req_dn.bv_val );
-		slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)op->orb_method );
-		slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
-		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
-		slapi_pblock_set( pb, SLAPI_CONN_DN, (void *)(0) );
-
-		rc = slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
-
-		Debug(LDAP_DEBUG_TRACE,
-			"do_bind: Bind preoperation plugin returned %d.\n",
-			rs->sr_err, 0, 0);
-
-		switch ( rc ) {
-		case SLAPI_BIND_SUCCESS:
-			/* Continue with backend processing */
-			break;
-		case SLAPI_BIND_FAIL:
-			/* Failure, server sends result */
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			send_ldap_result( op, rs );
-			goto cleanup;
-			break;
-		case SLAPI_BIND_ANONYMOUS:
-			/* SLAPI_BIND_ANONYMOUS is undocumented XXX */
-		default:
-			/* Authoritative, plugin sent result, or no plugins called. */
-			if ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,
-				(void *)&rs->sr_err) != 0 )
-			{
-				rs->sr_err = LDAP_OTHER;
-			}
-
-			BER_BVZERO( &op->orb_edn );
-
-			if ( rs->sr_err == LDAP_SUCCESS ) {
-				slapi_pblock_get( pb, SLAPI_CONN_DN,
-					(void *)&op->orb_edn.bv_val );
-				if ( BER_BVISNULL( &op->orb_edn ) ) {
-					if ( rc == 1 ) {
-						/* No plugins were called; continue. */
-						break;
-					}
-				} else {
-					op->orb_edn.bv_len = strlen( op->orb_edn.bv_val );
-				}
-				rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn,
-					&op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
-				ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-				ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
-				ber_dupbv(&op->o_conn->c_ndn, &op->o_req_ndn);
-				op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
-				BER_BVZERO( &op->o_req_dn );
-				op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-				BER_BVZERO( &op->o_req_ndn );
-				if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
-					ber_len_t max = sockbuf_max_incoming_auth;
-					ber_sockbuf_ctrl( op->o_conn->c_sb,
-						LBER_SB_OPT_SET_MAX_INCOMING, &max );
-				}
-				/* log authorization identity */
-				Statslog( LDAP_DEBUG_STATS,
-					"%s BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
-					op->o_log_prefix,
-					BER_BVISNULL( &op->o_conn->c_dn )
-						? "<empty>" : op->o_conn->c_dn.bv_val,
-					mech.bv_val, 0, 0 );
-				ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-			}
-			goto cleanup;
-			break;
-		}
-	}
-#endif /* LDAP_SLAPI */
-
 	if( op->o_bd->be_bind ) {
 		rs->sr_err = (op->o_bd->be_bind)( op, rs );
 
@@ -603,16 +500,6 @@ fe_op_bind( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within naming context" );
 	}
-
-#ifdef LDAP_SLAPI
-	if ( pb != NULL &&
-		slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb ) < 0 )
-	{
-		Debug(LDAP_DEBUG_TRACE,
-			"do_bind: Bind postoperation plugins failed.\n",
-			0, 0, 0);
-	}
-#endif /* LDAP_SLAPI */
 
 cleanup:;
 	return rs->sr_err;
