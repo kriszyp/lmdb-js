@@ -25,6 +25,8 @@ char ber_pvt_opt_on;	/* used to get a non-NULL address for *_OPT_ON */
 struct lber_options ber_int_options = {
 	LBER_UNINITIALIZED, 0, 0, 0 };
 
+static BerMemoryFunctions	ber_int_memory_fns_datum;
+
 int
 ber_get_option(
 	void	*item,
@@ -139,35 +141,11 @@ ber_set_option(
 			return LBER_OPT_ERROR;
 		}
 
-		ber_int_memory_fns = (BerMemoryFunctions *)
-			(*(f->bmf_malloc))(sizeof(BerMemoryFunctions), NULL);
-
-		if ( ber_int_memory_fns == NULL ) {
-			ber_errno = LBER_ERROR_MEMORY;
-			return LBER_OPT_ERROR;
-		}
+		ber_int_memory_fns = &ber_int_memory_fns_datum;
 
 		AC_MEMCPY(ber_int_memory_fns, f, sizeof(BerMemoryFunctions));
 
 		ber_int_options.lbo_valid = LBER_INITIALIZED;
-		return LBER_OPT_SUCCESS;
-	}
-
-	if ( option == LBER_OPT_MEMORY_FNS ) {
-		if ( ber_int_options.lbo_valid != LBER_INITIALIZED ) {
-			return LBER_OPT_ERROR;
-		}
-
-		if ( invalue != NULL ) {
-			return LBER_OPT_ERROR;
-		}
-
-		if ( ber_int_memory_fns == NULL ) {	
-			return LBER_OPT_ERROR;
-		}
-			
-		ber_int_memory_fns->bmf_free( ber_int_memory_fns, NULL );
-		ber_int_memory_fns = NULL;
 		return LBER_OPT_SUCCESS;
 	}
 
