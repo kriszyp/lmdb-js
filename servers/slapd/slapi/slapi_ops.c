@@ -747,10 +747,10 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		return -1;
 	}
 
-	slapi_pblock_get( pb, SLAPI_ADD_ENTRY, &argEntry );
-	slapi_pblock_get( pb, SLAPI_ADD_TARGET, &dn );
-	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, &mods );
-	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS, &operation_flags );
+	slapi_pblock_get( pb, SLAPI_ADD_ENTRY,     (void **)&argEntry );
+	slapi_pblock_get( pb, SLAPI_ADD_TARGET,    (void **)&dn );
+	slapi_pblock_get( pb, SLAPI_MODIFY_MODS,   (void **)&mods );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS, (void **)&operation_flags );
 
 	if ( argEntry != NULL ) {
 		/*
@@ -771,8 +771,9 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 	}
 
 	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_ADD, &conn );
-	if ( rs.sr_err != LDAP_SUCCESS )
+	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
+	}
 
 	if ( argEntry != NULL ) {
 		entry = slapi_entry_dup( argEntry );
@@ -861,10 +862,10 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 		return -1;
 	}
 
-	slapi_pblock_get( pb, SLAPI_MODRDN_NEWRDN, &lnewrdn );
-	slapi_pblock_get( pb, SLAPI_MODRDN_NEWSUPERIOR, &newsuperior );
-	slapi_pblock_get( pb, SLAPI_MODRDN_DELOLDRDN, &deloldrdn );
-	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS, &operation_flags );
+	slapi_pblock_get( pb, SLAPI_MODRDN_NEWRDN,      (void **)&lnewrdn );
+	slapi_pblock_get( pb, SLAPI_MODRDN_NEWSUPERIOR, (void **)&newsuperior );
+	slapi_pblock_get( pb, SLAPI_MODRDN_DELOLDRDN,   (void **)&deloldrdn );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS,      (void **)&operation_flags );
 
 	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_MODRDN, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
@@ -970,8 +971,8 @@ int slapi_modify_internal_pb( Slapi_PBlock *pb )
 		return -1;
 	}
 
-	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, &mods );
-	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS, &operation_flags );
+	slapi_pblock_get( pb, SLAPI_MODIFY_MODS,   (void **)&mods );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS, (void **)&operation_flags );
 
 	if ( mods == NULL || mods[0] == NULL ) {
 		rs.sr_err = LDAP_PARAM_ERROR ;
@@ -1210,24 +1211,25 @@ int slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 		return -1;
 	}
 
-	slapi_pblock_get( pb, SLAPI_SEARCH_SCOPE, &scope );
-	slapi_pblock_get( pb, SLAPI_SEARCH_FILTER, &filter );
-	slapi_pblock_get( pb, SLAPI_SEARCH_STRFILTER, &filStr );
-	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRS, &attrs );
-	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRSONLY, &attrsonly );
-	slapi_pblock_get( pb, SLAPI_REQCONTROLS, &controls );
-	slapi_pblock_get( pb, SLAPI_TARGET_UNIQUEID, &uniqueid );
-	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS, &operation_flags );
+	slapi_pblock_get( pb, SLAPI_SEARCH_SCOPE,     (void **)&scope );
+	slapi_pblock_get( pb, SLAPI_SEARCH_FILTER,    (void **)&filter );
+	slapi_pblock_get( pb, SLAPI_SEARCH_STRFILTER, (void **)&filStr );
+	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRS,     (void **)&attrs );
+	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRSONLY, (void **)&attrsonly );
+	slapi_pblock_get( pb, SLAPI_REQCONTROLS,      (void **)&controls );
+	slapi_pblock_get( pb, SLAPI_TARGET_UNIQUEID,  (void **)&uniqueid );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS,    (void **)&operation_flags );
 
 	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_SEARCH, &conn );
-	if ( rs.sr_err != LDAP_SUCCESS )
+	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
+	}
 
 	/* search callback and arguments */
-	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK, prc );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK, psec );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, prec );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_CALLBACK_DATA, callback_data );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK,         (void *)prc );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK,   (void *)psec );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, (void *)prec );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_CALLBACK_DATA,           (void *)callback_data );
 
 	op = (Operation *)conn->c_pending_ops.stqh_first;
 
@@ -1345,11 +1347,11 @@ int slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 	}
 
 cleanup:
-	slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK, NULL );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK, NULL );
+	slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT,            (void *)rs.sr_err );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK,         NULL );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK,   NULL );
 	slapi_pblock_set( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, NULL );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_CALLBACK_DATA, NULL );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_CALLBACK_DATA,           NULL );
 
 	if ( freeFilter && filter != NULL )
 		slapi_filter_free( filter, 1 );
@@ -1380,16 +1382,16 @@ void slapi_search_internal_set_pb( Slapi_PBlock *pb,
 	int operation_flags )
 {
 #ifdef LDAP_SLAPI
-	slapi_pblock_set( pb, SLAPI_SEARCH_TARGET, (void *)base );
-	slapi_pblock_set( pb, SLAPI_SEARCH_SCOPE, (void *)scope );
-	slapi_pblock_set( pb, SLAPI_SEARCH_FILTER, NULL );
+	slapi_pblock_set( pb, SLAPI_SEARCH_TARGET,    (void *)base );
+	slapi_pblock_set( pb, SLAPI_SEARCH_SCOPE,     (void *)scope );
+	slapi_pblock_set( pb, SLAPI_SEARCH_FILTER,     NULL );
 	slapi_pblock_set( pb, SLAPI_SEARCH_STRFILTER, (void *)filter );
-	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRS, (void *)attrs );
+	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRS,     (void *)attrs );
 	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRSONLY, (void *)attrsonly );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)controls );
-	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID, (void *)uniqueid );
-	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY, (void *)plugin_identity );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS, (void *)operation_flags );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS,      (void *)controls );
+	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID,  (void *)uniqueid );
+	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY,  (void *)plugin_identity );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,    (void *)operation_flags );
 #endif /* LDAP_SLAPI */
 }
 
@@ -1430,12 +1432,12 @@ void slapi_modify_internal_set_pb( Slapi_PBlock *pb,
 	int operation_flags )
 {
 #ifdef LDAP_SLAPI
-	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn );
-	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)mods );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)controls );
+	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET,   (void *)dn );
+	slapi_pblock_set( pb, SLAPI_MODIFY_MODS,     (void *)mods );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS,     (void *)controls );
 	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID, (void *)uniqueid );
 	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY, (void *)plugin_identity );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS, (void *)operation_flags );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,   (void *)operation_flags );
 #endif /* LDAP_SLAPI */
 }
 
@@ -1483,11 +1485,11 @@ int slapi_add_internal_set_pb( Slapi_PBlock *pb,
 	int operation_flags )
 {
 #ifdef LDAP_SLAPI
-	slapi_pblock_set( pb, SLAPI_ADD_TARGET, (void *)dn );
-	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)attrs );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)controls );
+	slapi_pblock_set( pb, SLAPI_ADD_TARGET,      (void *)dn );
+	slapi_pblock_set( pb, SLAPI_MODIFY_MODS,     (void *)attrs );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS,     (void *)controls );
 	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY, (void *)plugin_identity );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS, (void *)operation_flags );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,   (void *)operation_flags );
 
 	return 0;
 #else
@@ -1526,10 +1528,10 @@ void slapi_add_entry_internal_set_pb( Slapi_PBlock *pb,
 	int operation_flags )
 {
 #ifdef LDAP_SLAPI
-	slapi_pblock_set( pb, SLAPI_ADD_ENTRY, (void *)e );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)controls );
+	slapi_pblock_set( pb, SLAPI_ADD_ENTRY,       (void *)e );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS,     (void *)controls );
 	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY, (void *)plugin_identity );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS, (void *)operation_flags );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,   (void *)operation_flags );
 #endif /* LDAP_SLAPI */
 }
 
@@ -1568,14 +1570,14 @@ void slapi_rename_internal_set_pb( Slapi_PBlock *pb,
 	int operation_flags )
 {
 #ifdef LDAP_SLAPI
-	slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)olddn );
-	slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn );
+	slapi_pblock_set( pb, SLAPI_MODRDN_TARGET,      (void *)olddn );
+	slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN,      (void *)newrdn );
 	slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR, (void *)newsuperior );
-	slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)controls );
-	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID, (void *)uniqueid );
-	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY, (void *)plugin_identity );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS, (void *)operation_flags );
+	slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN,   (void *)deloldrdn );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS,        (void *)controls );
+	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID,    (void *)uniqueid );
+	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY,    (void *)plugin_identity );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,      (void *)operation_flags );
 #endif /* LDAP_SLAPI */
 }
 
@@ -1627,11 +1629,11 @@ void slapi_delete_internal_set_pb( Slapi_PBlock *pb,
 	int operation_flags )
 {
 #ifdef LDAP_SLAPI
-	slapi_pblock_set( pb, SLAPI_TARGET_DN, (void *)dn );
-	slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)controls );
+	slapi_pblock_set( pb, SLAPI_TARGET_DN,       (void *)dn );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS,     (void *)controls );
 	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID, (void *)uniqueid );
 	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY, (void *)plugin_identity );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS, (void *)operation_flags );
+	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,   (void *)operation_flags );
 #endif /* LDAP_SLAPI */
 }
 
