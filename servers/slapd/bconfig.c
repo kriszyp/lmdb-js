@@ -4051,7 +4051,10 @@ config_back_db_close( BackendDB *be )
 	cfb_free_entries( cfb->cb_root );
 	cfb->cb_root = NULL;
 
-	backend_shutdown( &cfb->cb_db );
+	if ( cfb->cb_db.bd_info ) {
+		backend_shutdown( &cfb->cb_db );
+	}
+
 	return 0;
 }
 
@@ -4066,13 +4069,17 @@ config_back_db_destroy( BackendDB *be )
 
 	avl_free( CfOcTree, NULL );
 
-	cfb->cb_db.be_suffix = NULL;
-	cfb->cb_db.be_nsuffix = NULL;
-	cfb->cb_db.be_rootdn.bv_val = NULL;
-	cfb->cb_db.be_rootndn.bv_val = NULL;
-	backend_destroy_one( &cfb->cb_db, 0 );
+	if ( cfb->cb_db.bd_info ) {
+		cfb->cb_db.be_suffix = NULL;
+		cfb->cb_db.be_nsuffix = NULL;
+		BER_BVZERO( &cfb->cb_db.be_rootdn );
+		BER_BVZERO( &cfb->cb_db.be_rootndn );
+
+		backend_destroy_one( &cfb->cb_db, 0 );
+	}
 
 	free( be->be_private );
+
 	return 0;
 }
 
