@@ -163,7 +163,7 @@ slapi_int_register_plugin(
 	Slapi_PBlock *pSavePB;
 	int    rc = LDAP_SUCCESS;
 
-	assert( be != NULL ); /* global plugins are now stored in frontendDB */
+	assert( be != NULL );
 
 	pTmpPB = (Slapi_PBlock *)be->be_pb;
 	if ( pTmpPB == NULL ) {
@@ -217,32 +217,7 @@ slapi_int_get_plugins(
 		goto done;
 	}
 
-	/*
-	 * First, count the plugins associated with a specific
-	 * backend.
-	 */
-	if ( be != frontendDB ) {
-		pCurrentPB = (Slapi_PBlock *)be->be_pb;
-
-		while ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
-			rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
-			if ( rc == LDAP_SUCCESS ) {
-				if ( FuncPtr != NULL )  {
-					numPB++;
-				}
-				rc = slapi_pblock_get( pCurrentPB,
-					SLAPI_IBM_PBLOCK, &pCurrentPB );
-			}
-		}
-	}
-	if ( rc != LDAP_SUCCESS ) {
-		goto done;
-	}
-
-	/*
-	 * Then, count the global plugins.
-	 */
-	pCurrentPB = (Slapi_PBlock *)frontendDB->be_pb;
+	pCurrentPB = (Slapi_PBlock *)be->be_pb;
 
 	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
@@ -253,9 +228,6 @@ slapi_int_get_plugins(
 			rc = slapi_pblock_get( pCurrentPB,
 				SLAPI_IBM_PBLOCK, &pCurrentPB );
 		}
-	}
-	if ( rc != LDAP_SUCCESS ) {
-		goto done;
 	}
 
 	if ( numPB == 0 ) {
@@ -275,23 +247,7 @@ slapi_int_get_plugins(
 		goto done;
 	}
 
-	if ( be != frontendDB ) {
-		pCurrentPB = (Slapi_PBlock *)be->be_pb;
-
-		while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
-			rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
-			if ( rc == LDAP_SUCCESS ) {
-				if ( FuncPtr != NULL )  {
-					*pTmpFuncPtr = FuncPtr;
-					pTmpFuncPtr++;
-				} 
-				rc = slapi_pblock_get( pCurrentPB,
-						SLAPI_IBM_PBLOCK, &pCurrentPB );
-			}
-		}
-	}
-
-	pCurrentPB = (Slapi_PBlock *)frontendDB->be_pb;
+	pCurrentPB = (Slapi_PBlock *)be->be_pb;
 
 	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
@@ -304,7 +260,7 @@ slapi_int_get_plugins(
 					SLAPI_IBM_PBLOCK, &pCurrentPB );
 		}
 	}
-	*pTmpFuncPtr = NULL ;
+
 
 done:
 	if ( rc != LDAP_SUCCESS && *ppFuncPtrs != NULL ) {
