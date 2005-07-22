@@ -1633,7 +1633,7 @@ fe_aux_operational(
 		ap = &(*ap)->a_next;
 	}
 
-	if ( op->o_bd != NULL )
+	if ( op->o_bd != NULL && op->o_bd != frontendDB )
 	{
 		/* Let the overlays have a chance at this */
 		be_orig = op->o_bd;
