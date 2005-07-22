@@ -2616,10 +2616,6 @@ int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set( pb, SLAPI_TARGET_DN, (void *)op->o_req_dn.bv_val );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
 	rc = slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)get_manageDSAit( op ) );
 	if ( rc != LDAP_SUCCESS )
 		return rc;

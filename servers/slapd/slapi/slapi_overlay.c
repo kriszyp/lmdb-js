@@ -700,6 +700,10 @@ slapi_op_func( Operation *op, SlapReply *rs )
 
 	slapi_int_pblock_set_operation( pb, op );
 
+	slapi_pblock_set( pb, SLAPI_TARGET_ADDRESS, NULL );
+	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID, NULL );
+	slapi_pblock_set( pb, SLAPI_TARGET_DN, (void *)op->o_req_dn.bv_val );
+	
 	cb.sc_response = slapi_over_response; /* call pre-entry/result plugins */
 	cb.sc_cleanup = slapi_over_cleanup;  /* call post-entry/result plugins */
 	cb.sc_private = opinfo;
