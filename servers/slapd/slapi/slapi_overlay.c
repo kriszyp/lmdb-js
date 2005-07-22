@@ -174,7 +174,7 @@ slapi_over_count_controls( LDAPControl **controls )
 	int			i;
 
 	if ( controls == NULL )
-		return i;
+		return 0;
 
 	for ( i = 0; controls[i] != NULL; i++ )
 		;
@@ -191,15 +191,15 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs )
 	int			nResControls = 0;
 	int			i;
 
-	nResControls = slapi_over_count_controls( rs->sr_ctrls );
-
 	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&slapiControls );
 	nSlapiControls = slapi_over_count_controls( slapiControls );
 
-	if ( nResControls + nSlapiControls == 0 ) {
+	if ( nSlapiControls == 0 ) {
 		/* short-circuit */
 		return LDAP_SUCCESS;
 	}
+
+	nResControls = slapi_over_count_controls( rs->sr_ctrls );
 
 	/* XXX this is a bit tricky, rs->sr_ctrls may have been allocated on stack */
 	mergedControls = (LDAPControl **)op->o_tmpalloc( ( nResControls + nSlapiControls + 1 ) *
