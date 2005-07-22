@@ -265,11 +265,15 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 	if ( isRoot || requestorDn == NULL ) {
 		op->o_dn = op->o_bd->be_rootdn;
 		op->o_ndn = op->o_bd->be_rootndn;
+		isRoot = 1;
 	} else {
 		op->o_ndn.bv_val = requestorDn;
 		op->o_ndn.bv_len = strlen( requestorDn );
 		op->o_dn = op->o_ndn;
 	}
+
+	if ( isRoot )
+		slapi_pblock_set( pb, SLAPI_REQUESTOR_ISROOT, (void *)isRoot );
 
 	rc = slapi_int_pblock_get_connection( pb, op );
 	if ( rc != LDAP_SUCCESS ) {
