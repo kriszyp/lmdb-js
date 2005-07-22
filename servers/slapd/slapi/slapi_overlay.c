@@ -599,7 +599,7 @@ slapi_tag2op( ber_tag_t tag )
 }
 
 static int
-slapi_op_response( Operation *op, SlapReply *rs )
+slapi_over_response( Operation *op, SlapReply *rs )
 {
 	int			rc;
 
@@ -622,7 +622,7 @@ slapi_op_response( Operation *op, SlapReply *rs )
 }
 
 static int
-slapi_op_cleanup( Operation *op, SlapReply *rs )
+slapi_over_cleanup( Operation *op, SlapReply *rs )
 {
 	int			rc;
 
@@ -683,8 +683,8 @@ slapi_op_func( Operation *op, SlapReply *rs )
 
 	slapi_int_pblock_set_operation( pb, op );
 
-	cb.sc_response = slapi_op_response; /* call pre-entry/result plugins */
-	cb.sc_cleanup = slapi_op_cleanup;  /* call post-entry/result plugins */
+	cb.sc_response = slapi_over_response; /* call pre-entry/result plugins */
+	cb.sc_cleanup = slapi_over_cleanup;  /* call post-entry/result plugins */
 	cb.sc_private = opinfo;
 	cb.sc_next = op->o_callback;
 	op->o_callback = &cb;
