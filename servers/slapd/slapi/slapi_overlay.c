@@ -145,11 +145,6 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 	else
 		rc = LDAP_SUCCESS; /* confusing: don't abort, but don't send */
 
-	if ( rc == SLAP_CB_CONTINUE && rs->sr_type == REP_SEARCH ) {
-		/* XXX we shouldn't need this here */
-		slapi_over_aux_operational( op, rs );
-	}
-
 	slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL ); /* don't free */
 	slapi_pblock_destroy(pb);
 

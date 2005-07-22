@@ -42,6 +42,55 @@ static BackendInfo	slap_frontendInfo;
 static BackendDB	slap_frontendDB;
 BackendDB	*frontendDB;
 
+static int
+fe_aux_operational(
+	Operation *op,
+	SlapReply *rs )
+{
+	Attribute	**ap;
+	int		rc = 0;
+	BackendDB	*be_orig;
+
+	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
+		/* just count them */ ;
+
+	/*
+	 * If operational attributes (allegedly) are required, 
+	 * and the backend supports specific operational attributes, 
+	 * add them to the attribute list
+	 */
+	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
+		ad_inlist( slap_schema.si_ad_entryDN, rs->sr_attrs ) ) )
+	{
+		*ap = slap_operational_entryDN( rs->sr_entry );
+		ap = &(*ap)->a_next;
+	}
+
+	if ( SLAP_OPATTRS( rs->sr_attr_flags ) || ( rs->sr_attrs &&
+		ad_inlist( slap_schema.si_ad_subschemaSubentry, rs->sr_attrs ) ) )
+	{
+		*ap = slap_operational_subschemaSubentry( op->o_bd );
+		ap = &(*ap)->a_next;
+	}
+
+	if ( op->o_bd != NULL )
+	{
+		/* Let the overlays have a chance at this */
+		be_orig = op->o_bd;
+		if ( SLAP_ISOVERLAY( be_orig ) )
+			op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
+
+		if ( ( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
+			op->o_bd && op->o_bd->be_operational != NULL )
+		{
+			rc = op->o_bd->be_operational( op, rs );
+		}
+		op->o_bd = be_orig;
+	}
+
+	return rc;
+}
+
 int
 frontend_init( void )
 {
@@ -114,6 +163,7 @@ frontend_init( void )
 	frontendDB->bd_info->bi_op_modrdn = fe_op_modrdn;
 	frontendDB->bd_info->bi_op_search = fe_op_search;
 	frontendDB->bd_info->bi_extended = fe_extended;
+	frontendDB->bd_info->bi_operational = fe_aux_operational;
 
 #if 0
 	/* FIXME: is this too early? */
