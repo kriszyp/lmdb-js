@@ -1634,6 +1634,7 @@ LDAP_SLAPD_F (int) fe_op_delete LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) fe_op_modify LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) fe_op_modrdn LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) fe_op_search LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_aux_operational LDAP_P((Operation *op, SlapReply *rs));
 #if 0
 LDAP_SLAPD_F (int) fe_op_unbind LDAP_P((Operation *op, SlapReply *rs));
 #endif

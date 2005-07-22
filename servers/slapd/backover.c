@@ -912,7 +912,7 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_chk_controls = over_aux_chk_controls;
 
 #ifdef SLAP_OVERLAY_ACCESS
-		/* this has a specific arglist */
+		/* these have specific arglists */
 		bi->bi_access_allowed = over_access_allowed;
 		bi->bi_acl_group = over_acl_group;
 		bi->bi_acl_attribute = over_acl_attribute;
