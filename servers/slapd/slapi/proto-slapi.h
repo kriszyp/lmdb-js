@@ -42,7 +42,7 @@ LDAP_SLAPI_F (int) slapi_int_access_allowed LDAP_P((Operation *op,
 LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));
 
 /* slapi_ops.c */
-LDAP_SLAPI_F (int) slapi_int_init_connection LDAP_P((Slapi_PBlock *pb, SlapReply *rs, int OpType, Connection **pConn));
+LDAP_SLAPI_F (int) slapi_int_connection_init LDAP_P((Slapi_PBlock *pb, SlapReply *rs, int OpType, Connection **pConn));
 LDAP_SLAPI_F (void) slapi_int_connection_destroy LDAP_P(( Connection **pConn ));
 
 /* slapi_pblock.c */

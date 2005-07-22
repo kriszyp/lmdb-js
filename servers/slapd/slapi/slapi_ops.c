@@ -215,16 +215,16 @@ slapi_int_pblock_get_connection( Slapi_PBlock *pb, Operation *op )
 	slapi_pblock_get( pb, SLAPI_X_CONN_SSF, (void **)&conn->c_ssf );
 	slapi_pblock_get( pb, SLAPI_X_CONN_SASL_CONTEXT, (void **)&conn->c_sasl_authctx );
 
-	if ( slapi_pblock_get( pb, SLAPI_CONN_DN, (void **)&connDn ) != 0 ||
-	     connDn == NULL ) {
+	if ( slapi_pblock_get( pb, SLAPI_CONN_DN, (void **)&connDn ) != 0
+			|| connDn == NULL )
+	{
 		/* default to operation DN */
 		conn->c_ndn = op->o_ndn;
 		conn->c_dn = op->o_ndn;
+
 	} else {
 		/* NB: conn DN must be normalized */
-		conn->c_ndn.bv_val = connDn;
-		conn->c_ndn.bv_len = strlen( connDn );
-
+		ber_str2bv( connDn, 0, 0, &conn->c_ndn );
 		conn->c_dn = conn->c_ndn;
 	}
 
@@ -242,8 +242,9 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 	int rc;
 
 	/* All internal operations must specify a target DN */
-	if ( slapi_pblock_get( pb, SLAPI_TARGET_DN, (void **)&targetDn.bv_val ) != 0 ||
-	     targetDn.bv_val == NULL ) {
+	if ( slapi_pblock_get( pb, SLAPI_TARGET_DN, (void **)&targetDn.bv_val ) != 0
+			|| targetDn.bv_val == NULL )
+	{
 		return LDAP_PARAM_ERROR; 
 	}
 
@@ -270,8 +271,7 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 		op->o_ndn = op->o_bd->be_rootndn;
 		isRoot = 1;
 	} else {
-		op->o_ndn.bv_val = requestorDn;
-		op->o_ndn.bv_len = strlen( requestorDn );
+		ber_str2bv( requestorDn, 0, 0, &op->o_ndn );
 		op->o_dn = op->o_ndn;
 	}
 
@@ -293,7 +293,7 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 }
 
 int
-slapi_int_init_connection( Slapi_PBlock *pb,
+slapi_int_connection_init( Slapi_PBlock *pb,
 	SlapReply *rs,
 	int OpType,
 	Connection **pConn )
@@ -323,12 +323,9 @@ slapi_int_init_connection( Slapi_PBlock *pb,
 
 	/* connection object authorization information */
 	conn->c_authtype = LDAP_AUTH_NONE;
-	conn->c_authmech.bv_val = NULL;
-	conn->c_authmech.bv_len = 0;
-	conn->c_dn.bv_val = NULL;
-	conn->c_dn.bv_len = 0;
-	conn->c_ndn.bv_val = NULL;
-	conn->c_ndn.bv_len = 0;
+	BER_BVZERO( &conn->c_authmech );
+	BER_BVZERO( &conn->c_dn );
+	BER_BVZERO( &conn->c_ndn );
 
 	conn->c_listener = &slap_unknown_listener;
 	ber_dupbv( &conn->c_peer_domain, (struct berval *)&slap_unknown_bv );
@@ -336,8 +333,7 @@ slapi_int_init_connection( Slapi_PBlock *pb,
 
 	LDAP_STAILQ_INIT( &conn->c_ops );
 
-	conn->c_sasl_bind_mech.bv_val = NULL;
-	conn->c_sasl_bind_mech.bv_len = 0;
+	BER_BVZERO( &conn->c_sasl_bind_mech );
 	conn->c_sasl_authctx = NULL;
 	conn->c_sasl_sockctx = NULL;
 	conn->c_sasl_extra = NULL;
@@ -392,8 +388,7 @@ slapi_int_init_connection( Slapi_PBlock *pb,
 	/* operation object */
 	op->o_tag = OpType;
 	op->o_protocol = LDAP_VERSION3; 
-	op->o_authmech.bv_val = NULL; 
-	op->o_authmech.bv_len = 0; 
+	BER_BVZERO( &op->o_authmech );
 	op->o_time = slap_get_time();
 	op->o_do_not_cache = 1;
 	op->o_threadctx = ldap_pvt_thread_pool_context();
@@ -713,7 +708,7 @@ slapi_delete_internal_pb( Slapi_PBlock *pb )
 
 	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS, &operation_flags );
 
-	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_DELETE, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_DELETE, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -787,7 +782,7 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		slapi_pblock_set( pb, SLAPI_ADD_TARGET, &entry->e_nname.bv_val );
 	}
 
-	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_ADD, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_ADD, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -884,7 +879,7 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 	slapi_pblock_get( pb, SLAPI_MODRDN_DELOLDRDN,   (void **)&deloldrdn );
 	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS,      (void **)&operation_flags );
 
-	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_MODRDN, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_MODRDN, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -996,7 +991,7 @@ int slapi_modify_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_MODIFY, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_MODIFY, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -1237,7 +1232,7 @@ int slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 	slapi_pblock_get( pb, SLAPI_TARGET_UNIQUEID,  (void **)&uniqueid );
 	slapi_pblock_get( pb, SLAPI_X_INTOP_FLAGS,    (void **)&operation_flags );
 
-	rs.sr_err = slapi_int_init_connection( pb, &rs, LDAP_REQ_SEARCH, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_SEARCH, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}

@@ -541,15 +541,19 @@ slapi_entry_has_children(const Slapi_Entry *e)
 
 	pb = slapi_pblock_new();
 
-	slapi_pblock_set( pb, SLAPI_TARGET_DN, slapi_entry_get_dn((Entry *)e) );
+	slapi_pblock_set( pb, SLAPI_TARGET_DN, slapi_entry_get_dn( (Entry *)e ) );
 
-	rc = slapi_int_init_connection( pb, &rs, LDAP_REQ_SEARCH, &conn );
+	rc = slapi_int_connection_init( pb, &rs, LDAP_REQ_SEARCH, &conn );
 	if ( rc != LDAP_SUCCESS ) {
 		slapi_pblock_destroy( pb );
 		return 0;
 	}
 
-	op->o_bd->be_has_subordinates( op, (Entry *)e, &hasSubordinates );
+	op = conn->c_pending_ops.stqh_first;
+	op->o_bd = select_backend( &e->e_ndn, 0, 0 );
+	if ( op->o_bd != NULL ) {
+		op->o_bd->be_has_subordinates( op, (Entry *)e, &hasSubordinates );
+	}
 
 	slapi_int_connection_destroy( &conn );
 	slapi_pblock_destroy( pb );
