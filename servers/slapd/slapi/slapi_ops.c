@@ -49,12 +49,13 @@ slapi_int_send_ldap_result_shim(
 	size_t			i;
 	plugin_result_callback	prc = NULL;
 	void			*callback_data = NULL;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
 
-	assert( op->o_pb != NULL );
+	assert( pb != NULL );	
 
-	slapi_pblock_get( op->o_pb, SLAPI_RESCONTROLS,             (void **)&controls );
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_RESULT_CALLBACK, (void **)&prc );
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA,   &callback_data );
+	slapi_pblock_get( pb, SLAPI_RESCONTROLS,             (void **)&controls );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_RESULT_CALLBACK, (void **)&prc );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_CALLBACK_DATA,   &callback_data );
 
 	assert( controls == NULL );
 
@@ -72,8 +73,8 @@ slapi_int_send_ldap_result_shim(
 		controls[i] = NULL;
 	}
 
-	slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS,         (void *)controls );
-	slapi_pblock_set( op->o_pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs->sr_err );
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS,         (void *)controls );
+	slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs->sr_err );
 
 	if ( prc != NULL ) {
 		(*prc)( rs->sr_err, callback_data );
@@ -89,11 +90,12 @@ slapi_int_send_search_entry_shim(
 {
 	plugin_search_entry_callback	psec = NULL;
 	void				*callback_data = NULL;
+	Slapi_PBlock			*pb = SLAPI_OPERATION_PBLOCK( op );
 
-	assert( op->o_pb != NULL );
+	assert( pb != NULL );
 
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK, (void **)&psec );
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA,         &callback_data );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK, (void **)&psec );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_CALLBACK_DATA,         &callback_data );
 
 	if ( psec != NULL ) {
 		return (*psec)( rs->sr_entry, callback_data );
@@ -107,7 +109,7 @@ slapi_int_send_ldap_extended_shim(
 	Operation	*op,	
 	SlapReply	*rs )
 {
-	assert( op->o_pb != NULL );
+	assert( SLAPI_OPERATION_PBLOCK( op ) != NULL );
 
 	return;
 }
@@ -120,11 +122,12 @@ slapi_int_send_search_reference_shim(
 	int				i, rc = LDAP_SUCCESS;
 	plugin_referral_entry_callback	prec = NULL;
 	void				*callback_data = NULL;
+	Slapi_PBlock			*pb = SLAPI_OPERATION_PBLOCK( op );
 
-	assert( op->o_pb != NULL );
+	assert( pb != NULL );
 
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, (void **)&prec );
-	slapi_pblock_get( op->o_pb, SLAPI_X_INTOP_CALLBACK_DATA,           &callback_data );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, (void **)&prec );
+	slapi_pblock_get( pb, SLAPI_X_INTOP_CALLBACK_DATA,           &callback_data );
 
 	if ( prec != NULL ) {
 		for ( i = 0; rs->sr_ref[i].bv_val != NULL; i++ ) {
@@ -395,8 +398,8 @@ slapi_int_init_connection( Slapi_PBlock *pb,
 
 	rc = slapi_int_pblock_get_operation( pb, op, rs );
 
-	slapi_pblock_set( op->o_pb, SLAPI_OPERATION, op );
-	slapi_pblock_set( op->o_pb, SLAPI_CONNECTION, conn );
+	slapi_pblock_set( pb, SLAPI_OPERATION, op );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, conn );
 
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
@@ -414,6 +417,7 @@ void slapi_int_connection_destroy( Connection **pConn )
 {
 	Connection *conn = *pConn;
 	Operation *op;
+	Slapi_PBlock *pb = SLAPI_OPERATION_PBLOCK( op );
 
 	if ( conn == NULL ) {
 		return;
@@ -434,8 +438,8 @@ void slapi_int_connection_destroy( Connection **pConn )
 		ber_sockbuf_free( conn->c_sb );
 	}
 
-	slapi_pblock_set( op->o_pb, SLAPI_OPERATION, NULL );
-	slapi_pblock_set( op->o_pb, SLAPI_CONNECTION, NULL );
+	slapi_pblock_set( pb, SLAPI_OPERATION, NULL );
+	slapi_pblock_set( pb, SLAPI_CONNECTION, NULL );
 
 	if ( op != NULL ) {
 		slapi_ch_free( (void **)&op );

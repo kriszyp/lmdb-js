@@ -3964,8 +3964,10 @@ int slapi_int_access_allowed( Operation *op,
 #ifdef LDAP_SLAPI
 	int rc, slap_access = 0;
 	slapi_acl_callback_t *pGetPlugin, *tmpPlugin;
+	Slapi_PBlock *pb;
 
-	if ( op->o_pb == NULL ) {
+	pb = SLAPI_OPERATION_PBLOCK( op );
+	if ( pb == NULL ) {
 		/* internal operation */
 		return 1;
 	}
@@ -4006,8 +4008,8 @@ int slapi_int_access_allowed( Operation *op,
 		 * 0	access denied
 		 * 1	access granted
 		 */
-		rc = (*pGetPlugin)( op->o_pb, entry, desc->ad_cname.bv_val,
-					val, slap_access, (void *)state );
+		rc = (*pGetPlugin)( pb, entry, desc->ad_cname.bv_val,
+				    val, slap_access, (void *)state );
 		if ( rc == 0 ) {
 			break;
 		}

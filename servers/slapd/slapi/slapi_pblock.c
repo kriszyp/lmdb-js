@@ -583,7 +583,7 @@ slapi_int_pblock_get_first( Backend *be, Slapi_PBlock **pb )
 {
 #if defined(LDAP_SLAPI)
 	assert( pb != NULL );
-	*pb = (Slapi_PBlock *)be->be_pb;
+	*pb = SLAPI_BACKEND_PBLOCK( be );
 	return (*pb == NULL ? LDAP_OTHER : LDAP_SUCCESS);
 #else /* LDAP_SLAPI */
 	return LDAP_OTHER;

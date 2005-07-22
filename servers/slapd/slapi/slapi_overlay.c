@@ -96,7 +96,7 @@ slapi_over_aux_operational( Operation *op, SlapReply *rs )
 	AttributeName		*anp;
 	AccessControlState	acl_state = ACL_STATE_INIT;
 
-	ctx.cac_pb = op->o_pb;
+	ctx.cac_pb = SLAPI_OPERATION_PBLOCK( op );
 	ctx.cac_op = op;
 	ctx.cac_private = rs;
 	ctx.cac_acl_state = &acl_state;
@@ -154,17 +154,17 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 static int
 slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 {
-	LDAPControl **slapiControls = NULL, **resControls;
-	int nSlapiControls = 0;
-	int nResControls = 0;
-	int i;
+	LDAPControl		**slapiControls = NULL, **resControls;
+	int			nSlapiControls = 0;
+	int			nResControls = 0;
+	int			i;
 
 	/* merge in controls */
 	if ( rs->sr_ctrls != NULL ) {
 		for ( nResControls = 0; rs->sr_ctrls[nResControls] != NULL; nResControls++ )
 			;
 	}
-	slapi_pblock_get( op->o_pb, SLAPI_RESCONTROLS, (void **)&slapiControls );
+	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&slapiControls );
 	if ( slapiControls != NULL ) {
 		for ( nSlapiControls = 0; slapiControls[nSlapiControls] != NULL; nSlapiControls++ )
 			;
@@ -189,7 +189,7 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 
 	if ( slapiControls != NULL ) {
 		slapi_ch_free( (void **)&slapiControls );
-		slapi_pblock_set( op->o_pb, SLAPI_RESCONTROLS, NULL ); /* don't free */
+		slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL ); /* don't free */
 	}
 
 	rs->sr_ctrls = resControls;
@@ -200,22 +200,23 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 static int
 slapi_over_result( Operation *op, SlapReply *rs, int type )
 {
-	int rc;
+	int			rc;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
 
 	assert( rs->sr_type == REP_RESULT );
 
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE,    (void *)rs->sr_err );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT,    (void *)rs->sr_text );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+	slapi_pblock_set( pb, SLAPI_RESULT_CODE,    (void *)rs->sr_err );
+	slapi_pblock_set( pb, SLAPI_RESULT_TEXT,    (void *)rs->sr_text );
+	slapi_pblock_set( pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
 
-	rc = slapi_int_call_plugins( op->o_bd, type, op->o_pb );
+	rc = slapi_int_call_plugins( op->o_bd, type, pb );
 	
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE,    (void **)&rs->sr_err );
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_TEXT,    (void **)&rs->sr_text );
-	slapi_pblock_get( op->o_pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
+	slapi_pblock_get( pb, SLAPI_RESULT_CODE,    (void **)&rs->sr_err );
+	slapi_pblock_get( pb, SLAPI_RESULT_TEXT,    (void **)&rs->sr_text );
+	slapi_pblock_get( pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
 
 	if ( type == SLAPI_PLUGIN_PRE_RESULT_FN ) {
-		rc = slapi_over_merge_controls( op, rs, op->o_pb );
+		rc = slapi_over_merge_controls( op, rs, pb );
 	}
 
 	return SLAP_CB_CONTINUE;
@@ -642,7 +643,7 @@ slapi_over_cleanup( Operation *op, SlapReply *rs )
 static int
 slapi_op_func( Operation *op, SlapReply *rs )
 {
-	Slapi_PBlock		*pb = op->o_pb;
+	Slapi_PBlock		*pb;
 	slap_operation_t	which;
 	struct slapi_op_info	*opinfo;
 	int			rc, flags = 0;
@@ -650,11 +651,13 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	slap_overinst		*on;
 	slap_callback		cb;
 
+	pb = SLAPI_OPERATION_PBLOCK( op );
+
 	/*
 	 * We check for op->o_extensions to verify that we are not
 	 * processing a SLAPI internal operation. XXX
 	 */
-	if ( op->o_pb == NULL || op->o_extensions == NULL ) {
+	if ( pb == NULL || op->o_extensions == NULL ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -749,11 +752,16 @@ cleanup:
 static int
 slapi_over_extended( Operation *op, SlapReply *rs )
 {
-	Slapi_PBlock	*pb = op->o_pb;
+	Slapi_PBlock	*pb;
 	SLAPI_FUNC	callback;
 	int		sentResult = 0;
 	int		rc;
 	struct berval	reqdata = BER_BVNULL;
+
+	pb = SLAPI_OPERATION_PBLOCK( op );
+	if ( pb == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
 
 	slapi_int_get_extop_plugin( &op->ore_reqoid, &callback );
 	if ( callback == NULL ) {
@@ -821,7 +829,7 @@ slapi_over_acl_group(
 {
 	Slapi_Entry		*e;
 	int			rc;
-	Slapi_PBlock		*pb = op->o_pb;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
 	BackendDB		*be = NULL;
 	BackendDB		*be_orig = op->o_bd;
 

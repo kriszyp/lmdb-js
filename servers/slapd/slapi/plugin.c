@@ -165,9 +165,9 @@ slapi_int_register_plugin(
 
 	assert( be != NULL );
 
-	pTmpPB = (Slapi_PBlock *)be->be_pb;
+	pTmpPB = SLAPI_BACKEND_PBLOCK( be );
 	if ( pTmpPB == NULL ) {
-		be->be_pb = (void *)pPB;
+		SLAPI_BACKEND_PBLOCK( be ) = pPB;
 	} else {
 		while ( pTmpPB != NULL && rc == LDAP_SUCCESS ) {
 			pSavePB = pTmpPB;
@@ -217,7 +217,7 @@ slapi_int_get_plugins(
 		goto done;
 	}
 
-	pCurrentPB = (Slapi_PBlock *)be->be_pb;
+	pCurrentPB = SLAPI_BACKEND_PBLOCK( be );
 
 	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS ) {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
@@ -247,7 +247,7 @@ slapi_int_get_plugins(
 		goto done;
 	}
 
-	pCurrentPB = (Slapi_PBlock *)be->be_pb;
+	pCurrentPB = SLAPI_BACKEND_PBLOCK( be );
 
 	while ( pCurrentPB != NULL && rc == LDAP_SUCCESS )  {
 		rc = slapi_pblock_get( pCurrentPB, functype, &FuncPtr );
@@ -732,7 +732,7 @@ slapi_int_plugin_unparse(
 	idx.bv_val = ibuf;
 	i = 0;
 
-	for ( pp = be->be_pb;
+	for ( pp = SLAPI_BACKEND_PBLOCK( be );
 	      pp != NULL;
 	      slapi_pblock_get( pp, SLAPI_IBM_PBLOCK, &pp ) )
 	{
