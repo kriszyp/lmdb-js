@@ -657,7 +657,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	 * We check for op->o_extensions to verify that we are not
 	 * processing a SLAPI internal operation. XXX
 	 */
-	if ( pb == NULL || op->o_extensions == NULL ) {
+	if ( pb == NULL || op->o_hdr->oh_extensions == NULL ) {
 		return SLAP_CB_CONTINUE;
 	}
 

@@ -65,7 +65,7 @@ static int get_extension_block(int objecttype, void *object, struct slapi_extens
 		*parent = NULL;
 		break;	
 	case SLAPI_X_EXT_OPERATION:
-		*eblock = ((Operation *)object)->o_extensions;
+		*eblock = ((Operation *)object)->o_hdr->oh_extensions;
 		*parent = ((Operation *)object)->o_conn;
 		break;	
 	default:
@@ -247,7 +247,7 @@ int slapi_int_create_object_extensions(int objecttype, void *object)
 		parent = NULL;
 		break;	
 	case SLAPI_X_EXT_OPERATION:
-		peblock = &(((Operation *)object)->o_extensions);
+		peblock = &(((Operation *)object)->o_hdr->oh_extensions);
 		parent = ((Operation *)object)->o_conn;
 		break;
 	default:
@@ -300,7 +300,7 @@ int slapi_int_free_object_extensions(int objecttype, void *object)
 		parent = NULL;
 		break;	
 	case SLAPI_X_EXT_OPERATION:
-		peblock = &(((Operation *)object)->o_extensions);
+		peblock = &(((Operation *)object)->o_hdr->oh_extensions);
 		parent = ((Operation *)object)->o_conn;
 		break;	
 	default:

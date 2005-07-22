@@ -55,9 +55,12 @@ typedef struct _Audit_record Audit_record;
 
 #define SLAPI_OVERLAY_NAME			"slapi"
 
-#define SLAPI_OPERATION_PBLOCK(_op)		((op)->o_pb)
-#define SLAPI_CONNECTION_PBLOCK(_conn)		((conn)->c_pb);
-#define SLAPI_BACKEND_PBLOCK(_be)		((be)->be_pb)
+#define SLAPI_OPERATION_PBLOCK(_op)		((_op)->o_hdr->oh_pb)
+#define SLAPI_CONNECTION_PBLOCK(_conn)		((_conn)->c_pb);
+#define SLAPI_BACKEND_PBLOCK(_be)		((_be)->be_pb)
+
+#define SLAPI_OPERATION_EXTENSIONS(_op)		((_op)->o_hdr->oh_extensions)
+#define SLAPI_CONNECTION_EXTENSIONS(_conn)	((_conn)->c_extensions)
 
 #define SLAPI_CONTROL_MANAGEDSAIT_OID		LDAP_CONTROL_MANAGEDSAIT
 #define SLAPI_CONTROL_SORTEDSEARCH_OID		LDAP_CONTROL_SORTREQUEST

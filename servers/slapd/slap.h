@@ -2317,11 +2317,6 @@ typedef struct slap_op {
 
 #define o_log_prefix o_hdr->oh_log_prefix
 
-#ifdef LDAP_SLAPI
-#define o_pb o_hdr->oh_pb
-#define o_extensions o_hdr->oh_extensions
-#endif
-
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
 	int			o_tincr;	/* counter for multiple ops with same o_time */

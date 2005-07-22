@@ -309,9 +309,10 @@ slapi_int_init_connection( Slapi_PBlock *pb,
 
 	op = (Operation *) slapi_ch_calloc( 1, OPERATION_BUFFER_SIZE );
 	op->o_hdr = (Opheader *)(op + 1);
+	op->o_hdr->oh_pb = pb;
+	op->o_hdr->oh_extensions = NULL;
+
 	op->o_controls = (void **)(op->o_hdr + 1);
-	op->o_pb = pb;
-	op->o_extensions = NULL;
 
 	conn->c_pending_ops.stqh_first = op;
 
