@@ -102,12 +102,10 @@ slapi_over_aux_operational( Operation *op, SlapReply *rs )
 	/* Support for computed attribute plugins */
 	computed_attr_context    ctx;
 	AttributeName		*anp;
-	AccessControlState	acl_state = ACL_STATE_INIT;
 
 	ctx.cac_pb = slapi_over_pblock_new( op );
 	ctx.cac_op = op;
 	ctx.cac_private = rs;
-	ctx.cac_acl_state = &acl_state;
 
 	if ( rs->sr_entry != NULL ) {
 		/*

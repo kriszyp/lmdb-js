@@ -74,7 +74,6 @@ typedef struct _ExtendedOp {
 struct _computed_attr_context {
 	Slapi_PBlock	*cac_pb;
 	Operation	*cac_op;
-	AccessControlState *cac_acl_state;
 	void		*cac_private;
 };
 
