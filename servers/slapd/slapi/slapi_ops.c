@@ -418,13 +418,14 @@ void slapi_int_connection_destroy( Connection **pConn )
 {
 	Connection *conn = *pConn;
 	Operation *op;
-	Slapi_PBlock *pb = SLAPI_OPERATION_PBLOCK( op );
+	Slapi_PBlock *pb;
 
 	if ( conn == NULL ) {
 		return;
 	}
 
 	op = (Operation *)conn->c_pending_ops.stqh_first;
+	pb = SLAPI_OPERATION_PBLOCK( op );
 
 	slap_graduate_commit_csn( op );
 
