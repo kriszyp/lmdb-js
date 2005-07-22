@@ -154,7 +154,7 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 static int
 slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 {
-	LDAPControl		**slapiControls = NULL, **resControls;
+	LDAPControl		**slapiControls = NULL, **mergedControls;
 	int			nSlapiControls = 0;
 	int			nResControls = 0;
 	int			i;
@@ -170,29 +170,34 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 			;
 	}
 
+	if ( nResControls + nSlapiControls == 0 ) {
+		/* short-circuit */
+		return LDAP_SUCCESS;
+	}
+
 	/* XXX this is a bit tricky, rs->sr_ctrls may have been allocated on stack */
-	resControls = (LDAPControl **)op->o_tmpalloc( ( nResControls + nSlapiControls + 1 ) *
-							sizeof( LDAPControl *), op->o_tmpmemctx );
-	if ( resControls == NULL ) {
+	mergedControls = (LDAPControl **)op->o_tmpalloc( ( nResControls + nSlapiControls + 1 ) *
+							 sizeof( LDAPControl *), op->o_tmpmemctx );
+	if ( mergedControls == NULL ) {
 		return LDAP_OTHER;
 	}
 
 	if ( rs->sr_ctrls != NULL ) {
 		for ( i = 0; i < nResControls; i++ )
-			resControls[i] = rs->sr_ctrls[i];
+			mergedControls[i] = rs->sr_ctrls[i];
 	}
 	if ( slapiControls != NULL ) {
 		for ( i = 0; i < nSlapiControls; i++ )
-			resControls[nResControls + i] = slapiControls[i];
+			mergedControls[nResControls + i] = slapiControls[i];
 	}
-	resControls[nResControls + nSlapiControls] = NULL;
+	mergedControls[nResControls + nSlapiControls] = NULL;
 
 	if ( slapiControls != NULL ) {
 		slapi_ch_free( (void **)&slapiControls );
 		slapi_pblock_set( pb, SLAPI_RESCONTROLS, NULL ); /* don't free */
 	}
 
-	rs->sr_ctrls = resControls;
+	rs->sr_ctrls = mergedControls;
 
 	return LDAP_SUCCESS;
 }
@@ -291,7 +296,8 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 				op->orb_edn.bv_len = strlen( op->orb_edn.bv_val );
 			}
 			rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn,
-			&op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+				&op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
+
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 			ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
 			ber_dupbv(&op->o_conn->c_ndn, &op->o_req_ndn);
@@ -304,6 +310,7 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 				ber_sockbuf_ctrl( op->o_conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
+
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
 				"%s BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
@@ -311,7 +318,8 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 				BER_BVISNULL( &op->o_conn->c_dn )
 					? "<empty>" : op->o_conn->c_dn.bv_val,
 				op->orb_tmp_mech.bv_val, 0, 0 );
-		
+
+			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 			return -1;
 		}
 		break;
