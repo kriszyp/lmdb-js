@@ -289,7 +289,7 @@ dynlist_send_entry( Operation *op, SlapReply *rs )
 	SlapReply	r = { REP_SEARCH };
 	struct berval	*url;
 	Entry		*e;
-	int		e_flags;
+	slap_mask_t	e_flags;
 	int		opattrs,
 			userattrs;
 	dynlist_sc_t	dlc = { 0 };

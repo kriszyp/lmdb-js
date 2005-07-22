@@ -998,7 +998,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	Entry			*e = NULL;
-	int			flags;
+	slap_mask_t		flags;
 	struct berval		dn = BER_BVNULL,
 				ndn = BER_BVNULL;
 	dncookie		dc;
