@@ -51,14 +51,6 @@ getPBlockClass( int param )
 	case SLAPI_DB2LDIF_PRINTKEY:
 	case SLAPI_LDIF2DB_REMOVEDUPVALS:
 	case SLAPI_MANAGEDSAIT:
-	case SLAPI_IBM_BROADCAST_BE:
-	case SLAPI_IBM_REPLICATE:
-	case SLAPI_IBM_CL_MAX_ENTRIES:
-	case SLAPI_IBM_CL_FIRST_ENTRY:
-	case SLAPI_IBM_CL_LAST_ENTRY:
-	case SLAPI_IBM_EVENT_ENABLED:
-	case SLAPI_IBM_EVENT_MAXREG:
-	case SLAPI_IBM_EVENT_REGPERCONN:
 	case SLAPI_REQUESTOR_ISUPDATEDN:
 	case SLAPI_X_CONN_IS_UDP:
 	case SLAPI_X_CONN_SSF:
@@ -73,7 +65,6 @@ getPBlockClass( int param )
 		return PBLOCK_CLASS_LONG_INTEGER;
 		break;
 
-	case SLAPI_PLUGIN_DB_INIT_FN:
 	case SLAPI_PLUGIN_DESTROY_FN:
 	case SLAPI_PLUGIN_DB_BIND_FN:
 	case SLAPI_PLUGIN_DB_UNBIND_FN:
@@ -169,9 +160,6 @@ getPBlockClass( int param )
 	case SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK:
 	case SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK:
 	case SLAPI_X_INTOP_CALLBACK_DATA:
-	case SLAPI_IBM_CONN_DN_ALT:
-	case SLAPI_IBM_CONN_DN_ORIG:
-	case SLAPI_IBM_GSSAPI_CONTEXT:
 	case SLAPI_PLUGIN_MR_OID:
 	case SLAPI_PLUGIN_MR_TYPE:
 	case SLAPI_PLUGIN_MR_VALUE:
@@ -355,8 +343,6 @@ set( Slapi_PBlock *pb, int param, void *val )
 	switch ( param ) {
         case SLAPI_CONN_DN:
         case SLAPI_CONN_AUTHMETHOD:
-        case SLAPI_IBM_CONN_DN_ALT:
-        case SLAPI_IBM_CONN_DN_ORIG:
         case SLAPI_RESULT_TEXT:
         case SLAPI_RESULT_MATCHED:
 		freeit = 1;
@@ -477,17 +463,6 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 		str = NULL;
 	}
 
-	get( pb, SLAPI_IBM_CONN_DN_ALT, (void **)&str );
-	if ( str != NULL ) {
-		ch_free( str );
-		str = NULL;
-	}
-
-	get( pb, SLAPI_IBM_CONN_DN_ORIG, (void **)&str );
-	if ( str != NULL ) {
-		ch_free( str );
-	}
-
 	get( pb, SLAPI_RESULT_TEXT, (void **)&str );
 	if ( str != NULL ) {
 		ch_free( str );
@@ -530,8 +505,6 @@ slapi_pblock_set( Slapi_PBlock *pb, int arg, void *value )
 	switch ( arg ) {
         case SLAPI_CONN_DN:
         case SLAPI_CONN_AUTHMETHOD:
-        case SLAPI_IBM_CONN_DN_ALT:
-        case SLAPI_IBM_CONN_DN_ORIG:
         case SLAPI_RESULT_TEXT:
         case SLAPI_RESULT_MATCHED:
 		if ( value != NULL ) {
