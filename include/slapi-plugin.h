@@ -43,6 +43,8 @@ typedef struct slapi_componentid	Slapi_ComponentId;
 #define SLAPI_ATTR_UNIQUEID	"entryUUID"
 #define SLAPI_ATTR_OBJECTCLASS	"objectClass"
 
+#ifndef SLAP
+
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
 int slapi_pblock_set( Slapi_PBlock *pb, int arg, void *value );
@@ -509,7 +511,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_PLUGIN_EXT_OP_FN			300
 #define SLAPI_PLUGIN_EXT_OP_OIDLIST		301
 
-/* functions for preoperation functions */
+/* preoperation */
 #define SLAPI_PLUGIN_PRE_BIND_FN		401
 #define SLAPI_PLUGIN_PRE_UNBIND_FN		402
 #define SLAPI_PLUGIN_PRE_SEARCH_FN		403
@@ -523,7 +525,19 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_PLUGIN_PRE_REFERRAL_FN		411
 #define SLAPI_PLUGIN_PRE_RESULT_FN		412
 
-/*  functions for postoperation functions*/
+/* internal preoperation */
+#define SLAPI_PLUGIN_INTERNAL_PRE_ADD_FN	420
+#define SLAPI_PLUGIN_INTERNAL_PRE_MODIFY_FN	421
+#define SLAPI_PLUGIN_INTERNAL_PRE_MODRDN_FN	422
+#define SLAPI_PLUGIN_INTERNAL_PRE_DELETE_FN	423
+
+/* backend preoperation */
+#define SLAPI_PLUGIN_BE_PRE_ADD_FN		450
+#define SLAPI_PLUGIN_BE_PRE_MODIFY_FN		451
+#define SLAPI_PLUGIN_BE_PRE_MODRDN_FN		452
+#define SLAPI_PLUGIN_BE_PRE_DELETE_FN		453
+
+/* postoperation */
 #define SLAPI_PLUGIN_POST_BIND_FN		501
 #define SLAPI_PLUGIN_POST_UNBIND_FN		502
 #define SLAPI_PLUGIN_POST_SEARCH_FN		503
@@ -536,6 +550,18 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_PLUGIN_POST_ENTRY_FN		510
 #define SLAPI_PLUGIN_POST_REFERRAL_FN		511
 #define SLAPI_PLUGIN_POST_RESULT_FN		512
+
+/* internal postoperation */
+#define SLAPI_PLUGIN_INTERNAL_POST_ADD_FN	520
+#define SLAPI_PLUGIN_INTERNAL_POST_MODIFY_FN	521
+#define SLAPI_PLUGIN_INTERNAL_POST_MODRDN_FN	522
+#define SLAPI_PLUGIN_INTERNAL_POST_DELETE_FN	523
+
+/* backend postoperation */
+#define SLAPI_PLUGIN_BE_POST_ADD_FN		550
+#define SLAPI_PLUGIN_BE_POST_MODIFY_FN		551
+#define SLAPI_PLUGIN_BE_POST_MODRDN_FN		552
+#define SLAPI_PLUGIN_BE_POST_DELETE_FN		553
 
 #define SLAPI_OPERATION_TYPE			590
 
@@ -696,6 +722,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 
 #define SLAPI_FAIL_DISKFULL		-2
 #define SLAPI_FAIL_GENERAL		-1
+#define SLAPI_PLUGIN_EXTENDED_NOT_HANDLED -2
 #define SLAPI_BIND_SUCCESS		0
 #define SLAPI_BIND_FAIL			2
 #define SLAPI_BIND_ANONYMOUS		3

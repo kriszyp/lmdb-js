@@ -207,6 +207,24 @@
 #	define LDAP_SLAPD_V(type)	extern type
 #endif
 
+/* SLAPD (as a dynamic library exporting symbols) */
+#if defined(_WIN32) && defined(SLAPD_IMPORT)
+#	define LDAP_SLAPI_F(type)	extern __declspec(dllimport) type
+#	define LDAP_SLAPI_V(type)	extern __declspec(dllimport) type
+#else
+#	define LDAP_SLAPI_F(type)	extern type
+#	define LDAP_SLAPI_V(type)	extern type
+#endif
+
+/* SLAPD (as a dynamic library exporting symbols) */
+#if defined(_WIN32) && defined(SLAPD_IMPORT)
+#	define SLAPI_F(type)		extern __declspec(dllimport) type
+#	define SLAPI_V(type)		extern __declspec(dllimport) type
+#else
+#	define SLAPI_F(type)		extern type
+#	define SLAPI_V(type)		extern type
+#endif
+
 /*
  * C library. Mingw32 links with the dynamic C run-time library by default,
  * so the explicit definition of CSTATIC will keep dllimport from
