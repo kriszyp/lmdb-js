@@ -303,6 +303,142 @@ over_access_allowed(
 
 	return rc;
 }
+
+static int
+over_acl_group(
+	Operation		*op,
+	Entry			*e,
+	struct berval		*gr_ndn,
+	struct berval		*op_ndn,
+	ObjectClass		*group_oc,
+	AttributeDescription	*group_at )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+	BackendInfo *bi = op->o_bd->bd_info;
+	BackendDB *be = op->o_bd, db;
+	int rc = SLAP_CB_CONTINUE;
+
+	/* FIXME: used to happen for instance during abandon
+	 * when global overlays are used... */
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_acl_group ) {
+			/* NOTE: do not copy the structure until required */
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_acl_group( op, e,
+				gr_ndn, op_ndn, group_oc, group_at );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		BI_acl_group		*bi_acl_group;
+
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
+		}
+
+		if ( oi->oi_orig->bi_acl_group ) {
+			bi_acl_group = oi->oi_orig->bi_acl_group;
+		} else {
+			bi_acl_group = backend_group;
+		}
+
+		rc = bi_acl_group( op, e,
+			gr_ndn, op_ndn, group_oc, group_at );
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* access not allowed */
+		rc = 0;
+	}
+
+	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
+	return rc;
+}
+
+static int
+over_acl_attribute(
+	Operation		*op,
+	Entry			*target,
+	struct berval		*entry_ndn,
+	AttributeDescription	*entry_at,
+	BerVarray		*vals,
+	slap_access_t		access )
+{
+	slap_overinfo *oi;
+	slap_overinst *on;
+	BackendInfo *bi = op->o_bd->bd_info;
+	BackendDB *be = op->o_bd, db;
+	int rc = SLAP_CB_CONTINUE;
+
+	/* FIXME: used to happen for instance during abandon
+	 * when global overlays are used... */
+	assert( op->o_bd != NULL );
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
+
+	for ( ; on; on = on->on_next ) {
+		if ( on->on_bi.bi_acl_attribute ) {
+			/* NOTE: do not copy the structure until required */
+		 	if ( !SLAP_ISOVERLAY( op->o_bd ) ) {
+ 				db = *op->o_bd;
+				db.be_flags |= SLAP_DBFLAG_OVERLAY;
+				op->o_bd = &db;
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on;
+			rc = on->on_bi.bi_acl_attribute( op, target,
+				entry_ndn, entry_at, vals, access );
+			if ( rc != SLAP_CB_CONTINUE ) break;
+		}
+	}
+
+	if ( rc == SLAP_CB_CONTINUE ) {
+		BI_acl_attribute		*bi_acl_attribute;
+
+		/* if the database structure was changed, o_bd points to a
+		 * copy of the structure; put the original bd_info in place */
+		if ( SLAP_ISOVERLAY( op->o_bd ) ) {
+			op->o_bd->bd_info = oi->oi_orig;
+		}
+
+		if ( oi->oi_orig->bi_acl_attribute ) {
+			bi_acl_attribute = oi->oi_orig->bi_acl_attribute;
+		} else {
+			bi_acl_attribute = backend_attribute;
+		}
+
+		rc = bi_acl_attribute( op, target,
+			entry_ndn, entry_at, vals, access );
+	}
+	/* should not fall thru this far without anything happening... */
+	if ( rc == SLAP_CB_CONTINUE ) {
+		/* access not allowed */
+		rc = 0;
+	}
+
+	op->o_bd = be;
+	op->o_bd->bd_info = bi;
+
+	return rc;
+}
 #endif /* SLAP_OVERLAY_ACCESS */
 
 /*
@@ -778,6 +914,8 @@ overlay_config( BackendDB *be, const char *ov )
 #ifdef SLAP_OVERLAY_ACCESS
 		/* this has a specific arglist */
 		bi->bi_access_allowed = over_access_allowed;
+		bi->bi_acl_group = over_acl_group;
+		bi->bi_acl_attribute = over_acl_attribute;
 #endif /* SLAP_OVERLAY_ACCESS */
 		
 		bi->bi_connection_init = over_connection_init;
