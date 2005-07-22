@@ -261,6 +261,8 @@ slapi_int_get_plugins(
 		}
 	}
 
+	*pTmpFuncPtr = NULL;
+
 
 done:
 	if ( rc != LDAP_SUCCESS && *ppFuncPtrs != NULL ) {
