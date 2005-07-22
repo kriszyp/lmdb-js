@@ -930,7 +930,7 @@ slapi_over_acl_group(
 	slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
 
 	rc = slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_PRE_GROUP_FN, pb );
-	if ( rc == 0 )
+	if ( rc >= 0 ) /* 1 means no plugins called */
 		rc = SLAP_CB_CONTINUE;
 	else
 		slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rc );
