@@ -43,8 +43,6 @@ typedef struct slapi_componentid	Slapi_ComponentId;
 #define SLAPI_ATTR_UNIQUEID	"entryUUID"
 #define SLAPI_ATTR_OBJECTCLASS	"objectClass"
 
-#ifndef SLAP
-
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
 int slapi_pblock_set( Slapi_PBlock *pb, int arg, void *value );
