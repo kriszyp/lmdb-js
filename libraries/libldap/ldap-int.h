@@ -119,7 +119,7 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOL_TLS			3
 
 #define LDAP_BOOLEANS	unsigned long
-#define LDAP_BOOL(n)	(1 << (n))
+#define LDAP_BOOL(n)	((LDAP_BOOLEANS)1 << (n))
 #define LDAP_BOOL_GET(lo, bool)	\
 	((lo)->ldo_booleans & LDAP_BOOL(bool) ? -1 : 0)
 #define LDAP_BOOL_SET(lo, bool) ((lo)->ldo_booleans |= LDAP_BOOL(bool))
