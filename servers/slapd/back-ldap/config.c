@@ -589,7 +589,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 	switch( c->type ) {
 	case LDAP_BACK_CFG_URI: {
 		LDAPURLDesc	*tmpludp;
+#if 0
 		char		**urllist;
+#endif
 		int		urlrc, i;
 
 		if ( c->argc != 2 ) {
@@ -683,7 +685,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				tmpludp;
 				i++, tmpludp = tmpludp->lud_next )
 			/* just count */
-		
+			;
 		urllist = ch_calloc( sizeof( char * ), i + 1 );
 
 		for ( i = 0, tmpludp = li->lud;
@@ -1170,7 +1172,9 @@ ldap_back_db_config(
 	/* URI of server to query (obsoletes "server" directive) */
 	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
 		LDAPURLDesc	*tmpludp;
+#if 0
 		char		**urllist;
+#endif
 		int		urlrc, i;
 
 		if ( argc != 2 ) {
@@ -1262,7 +1266,7 @@ ldap_back_db_config(
 				tmpludp;
 				i++, tmpludp = tmpludp->lud_next )
 			/* just count */
-		
+			;
 		urllist = ch_calloc( sizeof( char * ), i + 1 );
 
 		for ( i = 0, tmpludp = li->lud;
