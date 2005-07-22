@@ -4084,6 +4084,7 @@ config_back_db_init( BackendDB *be )
 
 	cfb = ch_calloc( 1, sizeof(CfBackInfo));
 	cfb->cb_config = ch_calloc( 1, sizeof(ConfigFile));
+	cfn = cfb->cb_config;
 	be->be_private = cfb;
 
 	ber_dupbv( &be->be_rootdn, &config_rdn );
