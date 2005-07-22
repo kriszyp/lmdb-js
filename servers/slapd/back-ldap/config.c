@@ -106,7 +106,7 @@ static ConfigTable ldapcfg[] = {
 		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "acl-bind", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
+		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.4 "
 			"NAME 'olcDbACLBind' "
 			"DESC 'Remote ACL administrative identity auth bind configuration' "
@@ -144,7 +144,7 @@ static ConfigTable ldapcfg[] = {
 		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-bind", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
+		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.7 "
 			"NAME 'olcDbIDAssertBind' "
 			"DESC 'Remote Identity Assertion administrative identity auth bind configuration' "
@@ -152,7 +152,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "idassert-method", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
+		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_METHOD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-mode", "mode>|u:<user>|[dn:]<DN", 2, 0, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_MODE,
@@ -301,7 +301,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				c->value_bv = bv;
 			}
 			break;
 
@@ -315,17 +315,18 @@ ldap_back_cf_gen( ConfigArgs *c )
 		case LDAP_BACK_CFG_ACL_BIND: {
 			int	i;
 
-			bindconf_unparse( &li->acl_sb, &c->value_bv );
+			bindconf_unparse( &li->acl_sb, &bv );
 
-			for ( i = 0; isspace( c->value_bv.bv_val[ i ] ); i++ )
+			for ( i = 0; isspace( bv.bv_val[ i ] ); i++ )
 				/* count spaces */ ;
 
 			if ( i ) {
-				c->value_bv.bv_len -= i;
-				AC_MEMCPY( c->value_bv.bv_val, &c->value_bv.bv_val[ i ],
-						c->value_bv.bv_len + 1 );
+				bv.bv_len -= i;
+				AC_MEMCPY( bv.bv_val, &bv.bv_val[ i ],
+					bv.bv_len + 1 );
 			}
-			
+
+			c->value_string = bv.bv_val;
 			break;
 		}
 
@@ -347,18 +348,14 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 			for ( i = 0; !BER_BVISNULL( &li->idassert_authz[ i ] ); i++ )
 			{
-				struct berval	bv;
-
-				ber_dupbv( &bv, &li->idassert_authz[ i ] );
-				ber_bvarray_add( &c->rvalue_vals, &bv );
+				value_add_one( &c->rvalue_vals, &li->idassert_authz[ i ] );
 			}
 			break;
 		}
 
 		case LDAP_BACK_CFG_IDASSERT_BIND: {
 			int		i;
-			struct berval	bv = BER_BVNULL,
-					bc = BER_BVNULL;
+			struct berval	bc = BER_BVNULL;
 			char		*ptr;
 
 			if ( li->idassert_authmethod != LDAP_AUTH_NONE ) {
@@ -440,12 +437,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 			bindconf_unparse( &li->idassert_sb, &bc );
 
 			if ( !BER_BVISNULL( &bv ) ) {
-				c->value_bv.bv_len = bv.bv_len + bc.bv_len;
-				c->value_bv.bv_val = ch_realloc( bv.bv_val, c->value_bv.bv_len + 1 );
+				ber_len_t	len = bv.bv_len + bc.bv_len;
+
+				c->value_string = ch_realloc( bv.bv_val, len + 1 );
 
 				assert( bc.bv_val[ 0 ] == ' ' );
 
-				(void)lutil_strcopy( &c->value_bv.bv_val[ bv.bv_len ], bc.bv_val );
+				(void)lutil_strcopy( &c->value_string[ bv.bv_len ], bc.bv_val );
 
 				free( bc.bv_val );
 
@@ -458,7 +456,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 					AC_MEMCPY( bc.bv_val, &bc.bv_val[ i ], bc.bv_len + 1 );
 				}
 
-				c->value_bv = bv;
+				c->value_string = bv.bv_val;
 			}
 			
 			break;
@@ -472,7 +470,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				c->value_bv = bv;
 			}
 			break;
 
@@ -484,7 +482,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				c->value_bv = bv;
 			}
 			break;
 
@@ -496,7 +494,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				c->value_bv = bv;
 			}
 			break;
 
@@ -508,7 +506,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				ber_dupbv( &c->value_bv, &bv );
+				c->value_bv = bv;
 			}
 			break;
 
@@ -1602,10 +1600,10 @@ retry:
 	/* else just do the same as before */
 		bv = (struct berval *) ch_malloc( sizeof(struct berval) );
 		if ( !BER_BVISEMPTY( &op->o_dn ) ) {
-			bv->bv_len = op->o_dn.bv_len + sizeof("dn:") - 1;
+			bv->bv_len = op->o_dn.bv_len + STRLENOF("dn:");
 			bv->bv_val = ch_malloc( bv->bv_len + 1 );
-			AC_MEMCPY( bv->bv_val, "dn:", sizeof("dn:") - 1 );
-			AC_MEMCPY( &bv->bv_val[sizeof("dn:") - 1], op->o_dn.bv_val,
+			AC_MEMCPY( bv->bv_val, "dn:", STRLENOF("dn:") );
+			AC_MEMCPY( &bv->bv_val[STRLENOF("dn:")], op->o_dn.bv_val,
 				op->o_dn.bv_len );
 			bv->bv_val[bv->bv_len] = '\0';
 		} else {
