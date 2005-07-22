@@ -222,6 +222,8 @@ fe_extended( Operation *op, SlapReply *rs )
 				}
 			}
 
+			if ( op->o_bd == NULL )
+				op->o_bd = frontendDB;
 			send_ldap_extended( op, rs );
 
 			if ( rs->sr_ref != default_referral ) {
