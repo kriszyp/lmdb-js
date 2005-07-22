@@ -87,13 +87,6 @@ slapi_over_compute_output(
 		}
 	}
 
-	if ( !access_allowed( op, entry, desc, NULL, ACL_READ, c->cac_acl_state) ) {
-		slapi_log_error( SLAPI_LOG_ACL, "slapi_over_compute_output",
-			"acl: access to attribute %s not allowed\n",
-			desc->ad_cname.bv_val );
-		return 0;
-	}
-
 	/* XXX perhaps we should check for existing attributes and merge */
 	for ( a = &rs->sr_operational_attrs; *a != NULL; a = &(*a)->a_next )
 		;
