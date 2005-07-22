@@ -1554,7 +1554,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 	if ( !op ) {
 		op = conn->c_sasl_bindop;
 	}
-	assert( op );
+	assert( op != NULL );
 
 	BER_BVZERO( dn );
 
