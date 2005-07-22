@@ -97,8 +97,7 @@ slap_op_free( Operation *op )
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( SLAPI_OPERATION_PBLOCK( op ) ) {
-		slapi_pblock_destroy( SLAPI_OPERATION_PBLOCK( op ) );
+	if ( slapi_plugins_used ) {
 		slapi_int_free_object_extensions( SLAPI_X_EXT_OPERATION, op );
 	}
 #endif /* defined( LDAP_SLAPI ) */
@@ -152,7 +151,6 @@ slap_op_alloc(
 
 #if defined( LDAP_SLAPI )
 	if ( slapi_plugins_used ) {
-		SLAPI_OPERATION_PBLOCK( op ) = slapi_pblock_new();
 		slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 	}
 #endif /* defined( LDAP_SLAPI ) */

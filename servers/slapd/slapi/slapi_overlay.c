@@ -32,6 +32,20 @@
 
 static slap_overinst slapi;
 
+static Slapi_PBlock *
+slapi_over_pblock_new ( Operation *op )
+{
+	Slapi_PBlock		*pb;
+
+	pb = slapi_pblock_new();
+	if ( pb == NULL )
+		return NULL;
+
+	slapi_int_pblock_set_operation( pb, op );
+
+	return pb;
+}
+
 static int
 slapi_over_compute_output(
 	computed_attr_context *c,
@@ -97,7 +111,7 @@ slapi_over_aux_operational( Operation *op, SlapReply *rs )
 	AttributeName		*anp;
 	AccessControlState	acl_state = ACL_STATE_INIT;
 
-	ctx.cac_pb = SLAPI_OPERATION_PBLOCK( op );
+	ctx.cac_pb = slapi_over_pblock_new( op );
 	ctx.cac_op = op;
 	ctx.cac_private = rs;
 	ctx.cac_acl_state = &acl_state;
@@ -123,6 +137,8 @@ slapi_over_aux_operational( Operation *op, SlapReply *rs )
 		}
 	}
 
+	slapi_pblock_destroy( ctx.cac_pb );
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -134,11 +150,9 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 
 	assert( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF );
 
-	pb = slapi_pblock_new(); /* create a new pblock to not trample on
-				  * result controls
-				  */
+	/* create a new pblock to not trample on result controls */
+	pb = slapi_over_pblock_new( op );
 
-	slapi_int_pblock_set_operation( pb, op );
 	slapi_pblock_set( pb, SLAPI_RESCONTROLS,         (void *)rs->sr_ctrls );
 	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)rs->sr_entry );
 
@@ -169,8 +183,9 @@ slapi_over_count_controls( LDAPControl **controls )
 }
 
 static int
-slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
+slapi_over_merge_controls( Operation *op, SlapReply *rs )
 {
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
 	LDAPControl		**slapiControls = NULL, **mergedControls;
 	int			nSlapiControls = 0;
 	int			nResControls = 0;
@@ -235,23 +250,27 @@ slapi_over_result( Operation *op, SlapReply *rs, int type )
 	slapi_pblock_get( pb, SLAPI_RESULT_MATCHED, (void **)&rs->sr_matched );
 
 	if ( type == SLAPI_PLUGIN_PRE_RESULT_FN ) {
-		rc = slapi_over_merge_controls( op, rs, pb );
+		rc = slapi_over_merge_controls( op, rs );
 	}
 
 	return SLAP_CB_CONTINUE;
 }
 
 static int
-slapi_op_add_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_add_init( Operation *op, SlapReply *rs )
 {
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+
 	slapi_pblock_set( pb, SLAPI_ADD_ENTRY, (void *)op->ora_e );
 
 	return LDAP_SUCCESS;
 }
 
 static int
-slapi_op_bind_preop_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_bind_preop_init( Operation *op, SlapReply *rs )
 {
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+
 	slapi_pblock_set( pb, SLAPI_BIND_TARGET,      (void *)op->o_req_dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_BIND_METHOD,      (void *)op->orb_method );
 	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
@@ -261,9 +280,10 @@ slapi_op_bind_preop_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_bind_postop_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_bind_postop_init( Operation *op, SlapReply *rs )
 {
-	char *dn = NULL;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	char			*dn = NULL;
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		/* fix for ITS#2971 */
@@ -274,9 +294,10 @@ slapi_op_bind_postop_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_bind_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_bind_callback( Operation *op, SlapReply *rs )
 {
-	int rc = rs->sr_err;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	int			rc = rs->sr_err;
 
 	switch ( rc ) {
 	case SLAPI_BIND_SUCCESS:
@@ -340,8 +361,10 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_compare_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_compare_init( Operation *op, SlapReply *rs )
 {
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+
 	slapi_pblock_set( pb, SLAPI_COMPARE_TYPE,  (void *)op->orc_ava->aa_desc->ad_cname.bv_val );
 	slapi_pblock_set( pb, SLAPI_COMPARE_VALUE, (void *)&op->orc_ava->aa_value );
 
@@ -349,9 +372,10 @@ slapi_op_compare_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_modify_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_modify_init( Operation *op, SlapReply *rs )
 {
-	LDAPMod		**modv = NULL;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	LDAPMod			**modv = NULL;
 
 	modv = slapi_int_modifications2ldapmods( &op->orm_modlist );
 	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
@@ -360,9 +384,10 @@ slapi_op_modify_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_modify_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_modify_callback( Operation *op, SlapReply *rs )
 {
-	LDAPMod		**modv = NULL;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	LDAPMod			**modv = NULL;
 
 	/* check preoperation result code */
 	if ( rs->sr_err < 0 ) {
@@ -389,9 +414,10 @@ slapi_op_modify_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_modify_cleanup( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_modify_cleanup( Operation *op, SlapReply *rs )
 {
-	LDAPMod		**modv = NULL;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	LDAPMod			**modv = NULL;
 
 	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
 
@@ -402,8 +428,10 @@ slapi_op_modify_cleanup( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_modrdn_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_modrdn_init( Operation *op, SlapReply *rs )
 {
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+
 	slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN,      (void *)op->orr_newrdn.bv_val );
 	slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR, (void *)op->orr_newSup->bv_val );
 	slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN,   (void *)op->orr_deleteoldrdn );
@@ -412,9 +440,10 @@ slapi_op_modrdn_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_search_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_search_init( Operation *op, SlapReply *rs )
 {
-	char		**attrs;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	char			**attrs;
 
 	attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
 
@@ -431,8 +460,10 @@ slapi_op_search_init( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_search_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_search_callback( Operation *op, SlapReply *rs )
 {
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+
 	/* check preoperation result code */
 	if ( rs->sr_err < 0 ) {
 		slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
@@ -471,9 +502,10 @@ slapi_op_search_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 }
 
 static int
-slapi_op_search_cleanup( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
+slapi_op_search_cleanup( Operation *op, SlapReply *rs )
 {
-	char		**attrs = NULL;
+	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	char			**attrs = NULL;
 
 	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRS,     (void *)&attrs );
 
@@ -483,15 +515,13 @@ slapi_op_search_cleanup( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 	return LDAP_SUCCESS;
 }
 
-typedef int (slapi_over_callback)( Operation *, SlapReply *rs, Slapi_PBlock * );
-
 struct slapi_op_info {
-	int soi_preop;				/* preoperation plugin parameter */
-	int soi_postop;				/* postoperation plugin parameter */
-	slapi_over_callback *soi_preop_init;	/* preoperation pblock init function */
-	slapi_over_callback *soi_callback; 	/* preoperation result handler */
-	slapi_over_callback *soi_postop_init;	/* postoperation pblock init function */
-	slapi_over_callback *soi_cleanup;	/* cleanup function */
+	int soi_preop;			/* preoperation plugin parameter */
+	int soi_postop;			/* postoperation plugin parameter */
+	slap_response *soi_preop_init;	/* preoperation pblock init function */
+	slap_response *soi_callback; 	/* preoperation result handler */
+	slap_response *soi_postop_init;	/* postoperation pblock init function */
+	slap_response *soi_cleanup;	/* cleanup function */
 } slapi_op_dispatch_table[] = {
 	{
 		SLAPI_PLUGIN_PRE_BIND_FN,
@@ -670,13 +700,11 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	slap_overinst		*on;
 	slap_callback		cb;
 
-	pb = SLAPI_OPERATION_PBLOCK( op );
-
 	/*
 	 * We check for op->o_extensions to verify that we are not
 	 * processing a SLAPI internal operation. XXX
 	 */
-	if ( pb == NULL || op->o_hdr->oh_extensions == NULL ) {
+	if ( op->o_hdr->oh_extensions == NULL ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -698,15 +726,16 @@ slapi_op_func( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	slapi_int_pblock_set_operation( pb, op );
+	pb = slapi_over_pblock_new( op );
 
+	/* XXX we need to fill this out for MMR support */
 	slapi_pblock_set( pb, SLAPI_TARGET_ADDRESS, NULL );
 	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID, NULL );
 	slapi_pblock_set( pb, SLAPI_TARGET_DN, (void *)op->o_req_dn.bv_val );
 	
 	cb.sc_response = slapi_over_response; /* call pre-entry/result plugins */
 	cb.sc_cleanup = slapi_over_cleanup;  /* call post-entry/result plugins */
-	cb.sc_private = opinfo;
+	cb.sc_private = pb;
 	cb.sc_next = op->o_callback;
 	op->o_callback = &cb;
 
@@ -714,9 +743,9 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	 * Call preoperation plugins 
 	 */
 	if ( opinfo->soi_preop_init != NULL ) {
-		rs->sr_err = (opinfo->soi_preop_init)( op, rs, pb );
+		rs->sr_err = (opinfo->soi_preop_init)( op, rs );
 		if ( rs->sr_err != LDAP_SUCCESS )
-			return rs->sr_err;
+			goto cleanup;
 	}
 
 	rs->sr_err = slapi_int_call_plugins( op->o_bd, opinfo->soi_preop, pb );
@@ -738,7 +767,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 			goto cleanup;
 		}
 	} else {
-		rc = (opinfo->soi_callback)( op, rs, pb );
+		rc = (opinfo->soi_callback)( op, rs );
 		if ( rc )
 			goto cleanup;
 	}
@@ -762,17 +791,18 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	slapi_pblock_set( pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
 
 	if ( opinfo->soi_postop_init != NULL ) {
-		(opinfo->soi_postop_init)( op, rs, pb );
+		(opinfo->soi_postop_init)( op, rs );
 	}
 
 	slapi_int_call_plugins( op->o_bd, opinfo->soi_postop, pb );
 
 cleanup:
 	if ( opinfo->soi_cleanup != NULL ) {
-		(opinfo->soi_cleanup)( op, rs, pb );
+		(opinfo->soi_cleanup)( op, rs );
 	}
 
 	op->o_callback = cb.sc_next;
+	slapi_pblock_destroy(pb);
 
 	return rs->sr_err;
 }
@@ -786,17 +816,12 @@ slapi_over_extended( Operation *op, SlapReply *rs )
 	int		rc;
 	struct berval	reqdata = BER_BVNULL;
 
-	pb = SLAPI_OPERATION_PBLOCK( op );
-	if ( pb == NULL ) {
-		return SLAP_CB_CONTINUE;
-	}
-
 	slapi_int_get_extop_plugin( &op->ore_reqoid, &callback );
 	if ( callback == NULL ) {
 		return SLAP_CB_CONTINUE;
 	}
 
-	slapi_int_pblock_set_operation( pb, op );
+	pb = slapi_over_pblock_new( op );
 
 	if ( op->ore_reqdata != NULL ) {
 		reqdata = *op->ore_reqdata;
@@ -807,8 +832,10 @@ slapi_over_extended( Operation *op, SlapReply *rs )
 
 	rc = (*callback)( pb );
 	if ( rc == SLAPI_PLUGIN_EXTENDED_SENT_RESULT ) {
+		slapi_pblock_destroy( pb );
 		return rc;
 	} else if ( rc == SLAPI_PLUGIN_EXTENDED_NOT_HANDLED ) {
+		slapi_pblock_destroy( pb );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -824,6 +851,8 @@ slapi_over_extended( Operation *op, SlapReply *rs )
 	if ( rs->sr_rspdata != NULL )
 		ber_bvfree( rs->sr_rspdata );
 
+	slapi_pblock_destroy( pb );
+
 	return rs->sr_err;
 }
 
@@ -837,12 +866,25 @@ slapi_over_access_allowed(
 	AccessControlState	*state,
 	slap_mask_t		*maskp )
 {
-	int rc;
+	int			rc;
+	Slapi_PBlock		*pb;
+	slap_callback		cb;
+
+	pb = slapi_over_pblock_new( op );
+
+	cb.sc_response = NULL;
+	cb.sc_cleanup = NULL;
+	cb.sc_private = pb;
+	cb.sc_next = op->o_callback;
+	op->o_callback = &cb;
 
 	rc = slapi_int_access_allowed( op, e, desc, val, access, state );
 	if ( rc != 0 ) {
 		rc = SLAP_CB_CONTINUE;
 	}
+
+	op->o_callback = cb.sc_next;
+	slapi_pblock_destroy( pb );
 
 	return rc;
 }
@@ -858,13 +900,9 @@ slapi_over_acl_group(
 {
 	Slapi_Entry		*e;
 	int			rc;
-	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
+	Slapi_PBlock		*pb;
 	BackendDB		*be = NULL;
 	BackendDB		*be_orig = op->o_bd;
-
-	if ( pb == NULL ) {
-		return SLAP_CB_CONTINUE;
-	}
 
 	if ( target != NULL && dn_match( &target->e_nname, gr_ndn ) ) {
 		e = target;
@@ -884,6 +922,8 @@ slapi_over_acl_group(
 		return SLAP_CB_CONTINUE;
 	}
 
+	pb = slapi_over_pblock_new( op );
+
 	slapi_pblock_set( pb, SLAPI_X_GROUP_ENTRY,        (void *)e );
 	slapi_pblock_set( pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
 	slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,    (void *)group_at->ad_cname.bv_val );
@@ -895,10 +935,7 @@ slapi_over_acl_group(
 	else
 		slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rc );
 
-	slapi_pblock_set( pb, SLAPI_X_GROUP_ENTRY,         NULL );
-	slapi_pblock_set( pb, SLAPI_X_GROUP_OPERATION_DN,  NULL );
-	slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,     NULL );
-	slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY,  NULL );
+	slapi_pblock_destroy( pb );
 
 	if ( e != target ) {
 		op->o_bd = be;

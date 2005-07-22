@@ -309,8 +309,13 @@ slapi_int_init_connection( Slapi_PBlock *pb,
 
 	op = (Operation *) slapi_ch_calloc( 1, OPERATION_BUFFER_SIZE );
 	op->o_hdr = (Opheader *)(op + 1);
-	op->o_hdr->oh_pb = pb;
 	op->o_hdr->oh_extensions = NULL;
+
+	op->o_callback = (slap_callback *) slapi_ch_calloc( 1, sizeof(slap_callback) );
+	op->o_callback->sc_response = NULL;
+	op->o_callback->sc_cleanup = NULL;
+	op->o_callback->sc_private = pb;
+	op->o_callback->sc_next = NULL;
 
 	op->o_controls = (void **)(op->o_hdr + 1);
 
@@ -435,7 +440,9 @@ void slapi_int_connection_destroy( Connection **pConn )
 	if ( op->o_req_ndn.bv_val != NULL ) {
 		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
 	}
-
+	if ( op->o_callback != NULL ) {
+		slapi_ch_free( (void **)&op->o_callback );
+	}
 	if ( conn->c_sb != NULL ) {
 		ber_sockbuf_free( conn->c_sb );
 	}

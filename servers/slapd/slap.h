@@ -2292,7 +2292,6 @@ typedef struct slap_op_header {
 	char		oh_log_prefix[sizeof("conn=18446744073709551615 op=18446744073709551615")];
 
 #ifdef LDAP_SLAPI
-	void    *oh_pb;                  /* NS-SLAPI plugin */
 	void	*oh_extensions;		/* NS-SLAPI plugin */
 #endif
 } Opheader;

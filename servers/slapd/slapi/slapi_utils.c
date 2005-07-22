@@ -2403,19 +2403,13 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
  */
 static int slapi_int_pblock_set_backend( Slapi_PBlock *pb, Backend *be )
 {
-	int rc;
-	
-	rc = slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
 	
 	if ( be != NULL ) {
-		rc = slapi_pblock_set( pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type );
-		if ( rc != LDAP_SUCCESS )
-			return rc;
+		slapi_pblock_set( pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type );
 	}
 
-	return LDAP_SUCCESS;
+	return 0;
 }
 
 /*
@@ -2468,40 +2462,25 @@ static int slapi_int_pblock_set_connection( Slapi_PBlock *pb, Connection *conn )
 	char *connAuthType;
 	int rc;
 
-	rc = slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
+	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
 
 	if ( strncmp( conn->c_peer_name.bv_val, "IP=", 3 ) == 0 ) {
-		rc = slapi_pblock_set( pb, SLAPI_CONN_CLIENTIP, (void *)&conn->c_peer_name.bv_val[3] );
-		if ( rc != LDAP_SUCCESS )
-			return rc;
+		slapi_pblock_set( pb, SLAPI_CONN_CLIENTIP, (void *)&conn->c_peer_name.bv_val[3] );
 	} else if ( strncmp( conn->c_peer_name.bv_val, "PATH=", 5 ) == 0 ) {
-		rc = slapi_pblock_set( pb, SLAPI_X_CONN_CLIENTPATH, (void *)&conn->c_peer_name.bv_val[5] );
-		if ( rc != LDAP_SUCCESS )
-			return rc;
+		slapi_pblock_set( pb, SLAPI_X_CONN_CLIENTPATH, (void *)&conn->c_peer_name.bv_val[5] );
 	}
 
 	if ( strncmp( conn->c_sock_name.bv_val, "IP=", 3 ) == 0 ) {
-		rc = slapi_pblock_set( pb, SLAPI_CONN_SERVERIP, (void *)&conn->c_sock_name.bv_val[3] );
-		if ( rc != LDAP_SUCCESS )
-			return rc;
+		slapi_pblock_set( pb, SLAPI_CONN_SERVERIP, (void *)&conn->c_sock_name.bv_val[3] );
 	} else if ( strncmp( conn->c_sock_name.bv_val, "PATH=", 5 ) == 0 ) {
-		rc = slapi_pblock_set( pb, SLAPI_X_CONN_SERVERPATH, (void *)&conn->c_sock_name.bv_val[5] );
-		if ( rc != LDAP_SUCCESS )
-			return rc;
+		slapi_pblock_set( pb, SLAPI_X_CONN_SERVERPATH, (void *)&conn->c_sock_name.bv_val[5] );
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	rc = slapi_pblock_set( pb, SLAPI_X_CONN_IS_UDP, (void *)conn->c_is_udp );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	slapi_pblock_set( pb, SLAPI_X_CONN_IS_UDP, (void *)conn->c_is_udp );
 #endif
 
-	rc = slapi_pblock_set( pb, SLAPI_CONN_ID, (void *)conn->c_connid );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	slapi_pblock_set( pb, SLAPI_CONN_ID, (void *)conn->c_connid );
 
 	/* Returns pointer to static string */
 	connAuthType = Authorization2AuthType( &conn->c_authz,
@@ -2512,9 +2491,7 @@ static int slapi_int_pblock_set_connection( Slapi_PBlock *pb, Connection *conn )
 #endif
 		1 );
 	if ( connAuthType != NULL ) {
-		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
-		if ( rc != LDAP_SUCCESS )
-			return rc;
+		slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
 	}
 
 	/* Returns pointer to allocated string */
@@ -2526,32 +2503,24 @@ static int slapi_int_pblock_set_connection( Slapi_PBlock *pb, Connection *conn )
 #endif
 		0 );
 	if ( connAuthType != NULL ) {
-		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHMETHOD, (void *)connAuthType);
+		slapi_pblock_set(pb, SLAPI_CONN_AUTHMETHOD, (void *)connAuthType);
 		/* slapi_pblock_set dups this itself */
 		slapi_ch_free( (void **)&connAuthType );
-		if ( rc != LDAP_SUCCESS )
-			return rc;
 	}
 
 	if ( conn->c_authz.sai_method != LDAP_AUTH_NONE &&
 	     conn->c_authz.sai_dn.bv_val != NULL ) {
 		/* slapi_pblock_set dups this itself */
-		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)conn->c_authz.sai_dn.bv_val);
-		if ( rc != LDAP_SUCCESS )
-			return rc;
+		slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)conn->c_authz.sai_dn.bv_val);
 	}
 
-	rc = slapi_pblock_set(pb, SLAPI_X_CONN_SSF, (void *)conn->c_ssf);
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	slapi_pblock_set(pb, SLAPI_X_CONN_SSF, (void *)conn->c_ssf);
 
-	rc = slapi_pblock_set(pb, SLAPI_X_CONN_SASL_CONTEXT,
+	slapi_pblock_set(pb, SLAPI_X_CONN_SASL_CONTEXT,
 		( conn->c_sasl_authctx != NULL ? conn->c_sasl_authctx :
 						 conn->c_sasl_sockctx ) );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
 
-	return rc;
+	return 0;
 }
 #endif /* LDAP_SLAPI */
 
@@ -2566,69 +2535,41 @@ int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 	int rc;
 	char *opAuthType;
 	void *existingOp = NULL;
+	BackendDB *be_orig;
 
-	if ( op->o_bd != NULL ) {
-		isRoot = be_isroot( op );
-		isUpdateDn = be_isupdate( op );
+	be_orig = op->o_bd;
+
+	if ( op->o_req_ndn.bv_len ) {
+		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+		if ( op->o_bd != NULL ) {
+			isRoot = be_isroot( op );
+			isUpdateDn = be_isupdate( op );
+		}
 	}
 
 	/* This should only be called once per operation */
 	slapi_pblock_get( pb, SLAPI_OPERATION, &existingOp );
 	assert( existingOp == NULL );
 
-	rc = slapi_int_pblock_set_backend( pb, op->o_bd );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	slapi_int_pblock_set_backend( pb, op->o_bd );
+	slapi_int_pblock_set_connection( pb, op->o_conn );
 
-	rc = slapi_int_pblock_set_connection( pb, op->o_conn );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	slapi_pblock_set( pb, SLAPI_OPERATION,            (void *)op );
+	slapi_pblock_set( pb, SLAPI_OPINITIATED_TIME,     (void *)op->o_time );
+	slapi_pblock_set( pb, SLAPI_OPERATION_ID,         (void *)op->o_opid );
+	slapi_pblock_set( pb, SLAPI_OPERATION_TYPE,       (void *)op->o_tag );
+	slapi_pblock_set( pb, SLAPI_REQUESTOR_ISROOT,     (void *)isRoot );
+	slapi_pblock_set( pb, SLAPI_REQUESTOR_ISUPDATEDN, (void *)isUpdateDn );
+	slapi_pblock_set( pb, SLAPI_REQCONTROLS,          (void *)op->o_ctrls );
+	slapi_pblock_set( pb, SLAPI_REQUESTOR_DN,         (void *)op->o_ndn.bv_val );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT,          (void *)get_manageDSAit( op ) );
+	slapi_pblock_get( pb, SLAPI_CONN_AUTHMETHOD,      (void *)&opAuthType );
+	if ( opAuthType != NULL )
+		slapi_pblock_set( pb, SLAPI_OPERATION_AUTHTYPE, (void *)opAuthType );
 
-	rc = slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
+	op->o_bd = be_orig;
 
-	rc = slapi_pblock_set( pb, SLAPI_OPINITIATED_TIME, (void *)op->o_time );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_OPERATION_ID, (void *)op->o_opid );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_OPERATION_TYPE, (void *)op->o_tag );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_REQUESTOR_ISROOT, (void *)isRoot );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_REQUESTOR_ISUPDATEDN, (void *)isUpdateDn );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
-	if ( rc != LDAP_SUCCESS)
-		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_REQUESTOR_DN, (void *)op->o_ndn.bv_val );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
-	rc = slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)get_manageDSAit( op ) );
-	if ( rc != LDAP_SUCCESS )
-		return rc;
-
-	rc = slapi_pblock_get( pb, SLAPI_CONN_AUTHMETHOD, (void *)&opAuthType );
-	if ( rc == LDAP_SUCCESS && opAuthType != NULL ) {
-		/* Not quite sure what the point of this is. */
-		rc = slapi_pblock_set( pb, SLAPI_OPERATION_AUTHTYPE, (void *)opAuthType );
-		if ( rc != LDAP_SUCCESS )
-			return rc;
-	}
-
-	return LDAP_SUCCESS;
+	return 0;
 #else
 	return -1;
 #endif
