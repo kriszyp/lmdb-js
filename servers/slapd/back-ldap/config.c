@@ -362,8 +362,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			char		*ptr;
 
 			if ( li->idassert_authmethod != LDAP_AUTH_NONE ) {
-				ber_len_t	len = bv.bv_len
-					+ STRLENOF( "flags=override,non-prescriptive" );
+				ber_len_t	len;
 
 				switch ( li->idassert_mode ) {
 				case LDAP_BACK_IDASSERT_OTHERID:
@@ -391,7 +390,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				}
 
 				if ( li->idassert_flags & LDAP_BACK_AUTH_NATIVE_AUTHZ ) {
-					ber_len_t	len = bv.bv_len + STRLENOF( "authz=native" );
+					len = bv.bv_len + STRLENOF( "authz=native" );
 
 					if ( !BER_BVISEMPTY( &bv ) ) {
 						len += STRLENOF( " " );
@@ -399,7 +398,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 
 					bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
 
-					ptr = bv.bv_val + bv.bv_len;
+					ptr = &bv.bv_val[ bv.bv_len ];
 
 					if ( !BER_BVISEMPTY( &bv ) ) {
 						ptr = lutil_strcopy( ptr, " " );
@@ -408,6 +407,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 					(void)lutil_strcopy( ptr, "authz=native" );
 				}
 
+				len = bv.bv_len + STRLENOF( "flags=non-prescriptive,override" );
 				/* flags */
 				if ( !BER_BVISEMPTY( &bv ) ) {
 					len += STRLENOF( " " );
@@ -440,15 +440,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 			bindconf_unparse( &li->idassert_sb, &bc );
 
 			if ( !BER_BVISNULL( &bv ) ) {
-				char	*ptr;
-
 				c->value_bv.bv_len = bv.bv_len + bc.bv_len;
 				c->value_bv.bv_val = ch_realloc( bv.bv_val, c->value_bv.bv_len + 1 );
 
 				assert( bc.bv_val[ 0 ] == ' ' );
 
-				ptr = lutil_strcopy( c->value_bv.bv_val, bv.bv_val );
-				(void)lutil_strcopy( ptr, bc.bv_val );
+				(void)lutil_strcopy( &c->value_bv.bv_val[ bv.bv_len ], bc.bv_val );
 
 				free( bc.bv_val );
 
