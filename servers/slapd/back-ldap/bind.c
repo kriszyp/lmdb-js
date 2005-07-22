@@ -1090,8 +1090,12 @@ ldap_back_proxy_authz_ctrl(
 
 	rs->sr_err = LDAP_SUCCESS;
 
+	/* FIXME: SASL/EXTERNAL over ldapi:// doesn't honor the authcID,
+	 * but if it is not set this test fails.  We need a different
+	 * means to detect if idassert is enabled */
 	if ( ( BER_BVISNULL( &li->idassert_authcID ) || BER_BVISEMPTY( &li->idassert_authcID ) )
-			&& ( BER_BVISNULL( &li->idassert_authcDN ) || BER_BVISEMPTY( &li->idassert_authcDN ) ) ) {
+			&& ( BER_BVISNULL( &li->idassert_authcDN ) || BER_BVISEMPTY( &li->idassert_authcDN ) ) )
+	{
 		goto done;
 	}
 
@@ -1153,7 +1157,8 @@ ldap_back_proxy_authz_ctrl(
 		rc = slap_sasl_matches( op, li->idassert_authz,
 				&authcDN, & authcDN );
 		if ( rc != LDAP_SUCCESS ) {
-			if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) {
+			if ( li->idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE )
+			{
 				/* op->o_conn->c_ndn is not authorized
 				 * to use idassert */
 				return rc;
@@ -1249,7 +1254,7 @@ ldap_back_proxy_authz_ctrl(
 		ctrls[ 0 ]->ldctl_value.bv_len = assertedID.bv_len + STRLENOF( "dn:" );
 		ctrls[ 0 ]->ldctl_value.bv_val = ch_malloc( ctrls[ 0 ]->ldctl_value.bv_len + 1 );
 		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val, "dn:", STRLENOF( "dn:" ) );
-		AC_MEMCPY( ctrls[ 0 ]->ldctl_value.bv_val + STRLENOF( "dn:" ),
+		AC_MEMCPY( &ctrls[ 0 ]->ldctl_value.bv_val[ STRLENOF( "dn:" ) ],
 				assertedID.bv_val, assertedID.bv_len + 1 );
 		break;
 	}
