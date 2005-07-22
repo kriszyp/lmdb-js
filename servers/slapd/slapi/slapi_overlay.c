@@ -950,7 +950,8 @@ slapi_over_acl_group(
 		rc = LDAP_NO_SUCH_OBJECT; /* return SLAP_CB_CONTINUE for correctness? */
 	}
 
-	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
+	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache &&
+	     rc != SLAP_CB_CONTINUE ) {
 		g = op->o_tmpalloc( sizeof( GroupAssertion ) + gr_ndn->bv_len,
 			op->o_tmpmemctx );
 		g->ga_be = op->o_bd;
