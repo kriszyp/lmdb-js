@@ -359,7 +359,6 @@ access_allowed_mask(
 	const char			*attr;
 	int				st_same_attr = 0;
 	static AccessControlState	state_init = ACL_STATE_INIT;
-	BackendDB			*be_orig;
 
 	assert( e != NULL );
 	assert( desc != NULL );
@@ -430,15 +429,25 @@ access_allowed_mask(
 	/* this is enforced in backend_add() */
 	if ( op->o_bd->bd_info->bi_access_allowed ) {
 		/* delegate to backend */
-		ret = op->o_bd->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
+		ret = op->o_bd->bd_info->bi_access_allowed( op, e,
+				desc, val, access, state, &mask );
 
 	} else {
-		/* use default (but pass through frontend for global ACL overlays) */
-		be_orig = op->o_bd;
+#if 0
+		/* FIXME: this doesn't work because frontendDB doesn't have
+		 * the right rootn, ACLs and so. */
+		BackendDB	*be_orig;
 
+		/* use default (but pass through frontend
+		 * for global ACL overlays) */
+		be_orig = op->o_bd;
 		op->o_bd = frontendDB;
-		ret = frontendDB->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
+		ret = frontendDB->bd_info->bi_access_allowed( op, e,
+				desc, val, access, state, &mask );
 		op->o_bd = be_orig;
+#endif
+		ret = slap_access_allowed( op, e, 
+				desc, val, access, state, &mask );
 	}
 
 	if ( !ret ) {
