@@ -1639,6 +1639,20 @@ LDAP_SLAPD_F (int) fe_aux_operational LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) fe_op_unbind LDAP_P((Operation *op, SlapReply *rs));
 #endif
 LDAP_SLAPD_F (int) fe_extended LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_acl_group LDAP_P((
+	Operation *op,
+	Entry	*target,
+	struct berval *gr_ndn,
+	struct berval *op_ndn,
+	ObjectClass *group_oc,
+	AttributeDescription *group_at ));
+LDAP_SLAPD_F (int) fe_acl_attribute LDAP_P((
+	Operation *op,
+	Entry	*target,
+	struct berval	*edn,
+	AttributeDescription *entry_at,
+	BerVarray *vals,
+	slap_access_t access ));
 
 /* NOTE: this macro assumes that bv has been allocated
  * by ber_* malloc functions or is { 0L, NULL } */

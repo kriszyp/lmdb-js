@@ -359,6 +359,7 @@ access_allowed_mask(
 	const char			*attr;
 	int				st_same_attr = 0;
 	static AccessControlState	state_init = ACL_STATE_INIT;
+	BackendDB			*be_orig;
 
 	assert( e != NULL );
 	assert( desc != NULL );
@@ -432,8 +433,12 @@ access_allowed_mask(
 		ret = op->o_bd->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
 
 	} else {
-		/* use default */
-		ret = slap_access_allowed( op, e, desc, val, access, state, &mask );
+		/* use default (but pass through frontend for global ACL overlays) */
+		be_orig = op->o_bd;
+
+		op->o_bd = frontendDB;
+		ret = frontendDB->bd_info->bi_access_allowed( op, e, desc, val, access, state, &mask );
+		op->o_bd = be_orig;
 	}
 
 	if ( !ret ) {

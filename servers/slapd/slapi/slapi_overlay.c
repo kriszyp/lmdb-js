@@ -822,13 +822,28 @@ slapi_over_acl_group(
 	Slapi_Entry		*e;
 	int			rc;
 	Slapi_PBlock		*pb = op->o_pb;
+	BackendDB		*be = NULL;
+	BackendDB		*be_orig = op->o_bd;
 
 	if ( pb == NULL ) {
 		return SLAP_CB_CONTINUE;
 	}
 
-	rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
-	if ( e == NULL ) {
+	if ( target != NULL && dn_match( &target->e_nname, gr_ndn ) ) {
+		e = target;
+		rc = 0;
+	} else {
+		be = select_backend( gr_ndn, 0, 0 );
+		if ( be == NULL ) {
+			rc = LDAP_NO_SUCH_OBJECT;
+		} else {
+			op->o_bd = be;
+			rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
+			op->o_bd = be_orig;
+		}
+	}
+
+	if ( rc ) {
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -848,8 +863,11 @@ slapi_over_acl_group(
 	slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,     NULL );
 	slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY,  NULL );
 
-	if ( e != target )
+	if ( e != target ) {
+		op->o_bd = be;
 		be_entry_release_r( op, e );
+		op->o_bd = be_orig;
+	}
 
 	/*
 	 * XXX don't call POST_GROUP_FN, I have no idea what the point of
@@ -857,33 +875,6 @@ slapi_over_acl_group(
 	 */
 	return rc;
 }
-
-#if 0
-static int
-slapi_over_compute_output_attr_access(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
-{
-	struct berval	*nval = (struct berval *)c->cac_private;
-
-	return access_allowed( c->cac_op, e, a->a_desc, nval, ACL_AUTH, NULL ) == 0;
-}
-
-static int
-slapi_over_acl_attribute(
-	Operation		*op,
-	Entry			*target,
-	struct berval		*entry_ndn,
-	AttributeDescription	*entry_at,
-	BerVarray		*vals,
-	slap_access_t		access )
-{
-	computed_attr_context	ctx;
-
-	ctx.cac_pb = op->o_pb;
-	ctx.cac_op = op;
-	ctx.cac_acl_state = NULL;
-	ctx.cac_private = nval;
-}
-#endif
 
 int
 slapi_int_overlay_init()
@@ -906,6 +897,7 @@ slapi_int_overlay_init()
 	slapi.on_bi.bi_extended = slapi_over_extended;
 	slapi.on_bi.bi_access_allowed = slapi_over_access_allowed;
 	slapi.on_bi.bi_operational = slapi_over_aux_operational;
+	slapi.on_bi.bi_acl_group = slapi_over_acl_group;
 
 	return overlay_register( &slapi );
 }

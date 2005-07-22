@@ -1182,7 +1182,7 @@ be_entry_get_rw(
 }
 
 int 
-backend_group(
+fe_acl_group(
 	Operation *op,
 	Entry	*target,
 	struct berval *gr_ndn,
@@ -1195,8 +1195,6 @@ backend_group(
 	int rc;
 	GroupAssertion *g;
 	Backend *be = op->o_bd;
-
-	if ( op->o_abandon ) return SLAPD_ABANDON;
 
 	op->o_bd = select_backend( gr_ndn, 0, 0 );
 
@@ -1350,7 +1348,32 @@ done:
 }
 
 int 
-backend_attribute(
+backend_group(
+	Operation *op,
+	Entry	*target,
+	struct berval *gr_ndn,
+	struct berval *op_ndn,
+	ObjectClass *group_oc,
+	AttributeDescription *group_at )
+{
+	int			rc;
+	BackendDB		*be_orig;
+
+	if ( op->o_abandon ) {
+		return SLAPD_ABANDON;
+	}
+
+	be_orig = op->o_bd;
+	op->o_bd = frontendDB;
+	rc = frontendDB->be_group( op, target, gr_ndn,
+		op_ndn, group_oc, group_at );
+	op->o_bd = be_orig;
+
+	return rc;
+}
+
+int 
+fe_acl_attribute(
 	Operation *op,
 	Entry	*target,
 	struct berval	*edn,
@@ -1454,6 +1477,27 @@ freeit:		if ( e != target ) {
 	}
 
 	op->o_bd = be;
+	return rc;
+}
+
+int 
+backend_attribute(
+	Operation *op,
+	Entry	*target,
+	struct berval	*edn,
+	AttributeDescription *entry_at,
+	BerVarray *vals,
+	slap_access_t access )
+{
+	int			rc;
+	BackendDB		*be_orig;
+
+	be_orig = op->o_bd;
+	op->o_bd = frontendDB;
+	rc = frontendDB->be_attribute( op, target, edn,
+		entry_at, vals, access );
+	op->o_bd = be_orig;
+
 	return rc;
 }
 
@@ -1563,9 +1607,9 @@ fe_aux_operational(
 	Operation *op,
 	SlapReply *rs )
 {
-	Attribute	**ap;
-	int		rc = 0;
-	BackendDB	*be_orig;
+	Attribute		**ap;
+	int			rc = 0;
+	BackendDB		*be_orig;
 
 	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
 		/* just count them */ ;
