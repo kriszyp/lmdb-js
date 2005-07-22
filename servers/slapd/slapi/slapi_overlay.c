@@ -80,6 +80,7 @@ slapi_over_compute_output(
 		return 0;
 	}
 
+	/* XXX perhaps we should check for existing attributes and merge */
 	for ( a = &rs->sr_operational_attrs; *a != NULL; a = &(*a)->a_next )
 		;
 
@@ -133,10 +134,12 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 
 	assert( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF );
 
-	pb = slapi_pblock_new();
+	pb = slapi_pblock_new(); /* create a new pblock to not trample on
+				  * result controls
+				  */
 
 	slapi_int_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_RESCONTROLS, (void *)rs->sr_ctrls );
+	slapi_pblock_set( pb, SLAPI_RESCONTROLS,         (void *)rs->sr_ctrls );
 	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)rs->sr_entry );
 
 	rc = slapi_int_call_plugins( op->o_bd, type, pb );
@@ -152,6 +155,20 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 }
 
 static int
+slapi_over_count_controls( LDAPControl **controls )
+{
+	int			i;
+
+	if ( controls == NULL )
+		return i;
+
+	for ( i = 0; controls[i] != NULL; i++ )
+		;
+
+	return i;
+}
+
+static int
 slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 {
 	LDAPControl		**slapiControls = NULL, **mergedControls;
@@ -159,16 +176,10 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 	int			nResControls = 0;
 	int			i;
 
-	/* merge in controls */
-	if ( rs->sr_ctrls != NULL ) {
-		for ( nResControls = 0; rs->sr_ctrls[nResControls] != NULL; nResControls++ )
-			;
-	}
+	nResControls = slapi_over_count_controls( rs->sr_ctrls );
+
 	slapi_pblock_get( pb, SLAPI_RESCONTROLS, (void **)&slapiControls );
-	if ( slapiControls != NULL ) {
-		for ( nSlapiControls = 0; slapiControls[nSlapiControls] != NULL; nSlapiControls++ )
-			;
-	}
+	nSlapiControls = slapi_over_count_controls( slapiControls );
 
 	if ( nResControls + nSlapiControls == 0 ) {
 		/* short-circuit */
@@ -179,7 +190,7 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 	mergedControls = (LDAPControl **)op->o_tmpalloc( ( nResControls + nSlapiControls + 1 ) *
 							 sizeof( LDAPControl *), op->o_tmpmemctx );
 	if ( mergedControls == NULL ) {
-		return LDAP_OTHER;
+		return LDAP_NO_MEMORY;
 	}
 
 	if ( rs->sr_ctrls != NULL ) {
@@ -202,6 +213,9 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs, Slapi_PBlock *pb)
 	return LDAP_SUCCESS;
 }
 
+/*
+ * Call pre- and post-result plugins
+ */
 static int
 slapi_over_result( Operation *op, SlapReply *rs, int type )
 {
@@ -275,10 +289,7 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 		return rs->sr_err;
 		break;
 	case SLAPI_BIND_ANONYMOUS: /* undocumented */
-	default:
-		/*
-		 * Plugin sent authoritative result or no plugins were called
-		 */
+	default: /* plugin sent result or no plugins called */
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err ) != 0 ) {
 			rs->sr_err = LDAP_OTHER;
 		}
@@ -475,12 +486,12 @@ slapi_op_search_cleanup( Operation *op, SlapReply *rs, Slapi_PBlock *pb )
 typedef int (slapi_over_callback)( Operation *, SlapReply *rs, Slapi_PBlock * );
 
 struct slapi_op_info {
-	int soi_preop;
-	int soi_postop;
-	slapi_over_callback *soi_preop_init;
-	slapi_over_callback *soi_callback; 
-	slapi_over_callback *soi_postop_init;
-	slapi_over_callback *soi_cleanup;
+	int soi_preop;				/* preoperation plugin parameter */
+	int soi_postop;				/* postoperation plugin parameter */
+	slapi_over_callback *soi_preop_init;	/* preoperation pblock init function */
+	slapi_over_callback *soi_callback; 	/* preoperation result handler */
+	slapi_over_callback *soi_postop_init;	/* postoperation pblock init function */
+	slapi_over_callback *soi_cleanup;	/* cleanup function */
 } slapi_op_dispatch_table[] = {
 	{
 		SLAPI_PLUGIN_PRE_BIND_FN,
@@ -729,7 +740,12 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	}
 
 	/*
-	 * Call actual backend (or next overlay in stack)
+	 * Call actual backend (or next overlay in stack). We need to
+	 * do this rather than returning SLAP_CB_CONTINUE and calling
+	 * postoperation plugins in a response handler to match the
+	 * behaviour of SLAPI in OpenLDAP 2.2, where postoperation
+	 * plugins are called after the backend has completely
+	 * finished processing the operation.
 	 */
 	on = (slap_overinst *)op->o_bd->bd_info;
 	oi = on->on_info;
@@ -820,8 +836,9 @@ slapi_over_access_allowed(
 	int rc;
 
 	rc = slapi_int_access_allowed( op, e, desc, val, access, state );
-	if ( rc != 0 )
+	if ( rc != 0 ) {
 		rc = SLAP_CB_CONTINUE;
+	}
 
 	return rc;
 }
@@ -899,21 +916,21 @@ slapi_int_overlay_init()
 
 	slapi.on_bi.bi_type = SLAPI_OVERLAY_NAME;
 
-	slapi.on_bi.bi_op_bind = slapi_op_func;
-	slapi.on_bi.bi_op_unbind = slapi_op_func;
-	slapi.on_bi.bi_op_search = slapi_op_func;
-	slapi.on_bi.bi_op_compare = slapi_op_func;
-	slapi.on_bi.bi_op_modify = slapi_op_func;
-	slapi.on_bi.bi_op_modrdn = slapi_op_func;
-	slapi.on_bi.bi_op_add = slapi_op_func;
-	slapi.on_bi.bi_op_delete = slapi_op_func;
-	slapi.on_bi.bi_op_abandon = slapi_op_func;
-	slapi.on_bi.bi_op_cancel = slapi_op_func;
+	slapi.on_bi.bi_op_bind 		= slapi_op_func;
+	slapi.on_bi.bi_op_unbind	= slapi_op_func;
+	slapi.on_bi.bi_op_search	= slapi_op_func;
+	slapi.on_bi.bi_op_compare	= slapi_op_func;
+	slapi.on_bi.bi_op_modify	= slapi_op_func;
+	slapi.on_bi.bi_op_modrdn	= slapi_op_func;
+	slapi.on_bi.bi_op_add		= slapi_op_func;
+	slapi.on_bi.bi_op_delete	= slapi_op_func;
+	slapi.on_bi.bi_op_abandon	= slapi_op_func;
+	slapi.on_bi.bi_op_cancel	= slapi_op_func;
 
-	slapi.on_bi.bi_extended = slapi_over_extended;
-	slapi.on_bi.bi_access_allowed = slapi_over_access_allowed;
-	slapi.on_bi.bi_operational = slapi_over_aux_operational;
-	slapi.on_bi.bi_acl_group = slapi_over_acl_group;
+	slapi.on_bi.bi_extended		= slapi_over_extended;
+	slapi.on_bi.bi_access_allowed	= slapi_over_access_allowed;
+	slapi.on_bi.bi_operational	= slapi_over_aux_operational;
+	slapi.on_bi.bi_acl_group	= slapi_over_acl_group;
 
 	return overlay_register( &slapi );
 }
