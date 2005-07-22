@@ -901,52 +901,73 @@ slapi_over_acl_group(
 	Slapi_Entry		*e;
 	int			rc;
 	Slapi_PBlock		*pb;
-	BackendDB		*be = NULL;
-	BackendDB		*be_orig = op->o_bd;
+	BackendDB		*be = op->o_bd;
+	GroupAssertion		*g;
+
+	op->o_bd = select_backend( gr_ndn, 0, 0 );
+
+	for ( g = op->o_groups; g; g = g->ga_next ) {
+		if ( g->ga_be != op->o_bd || g->ga_oc != group_oc ||
+			g->ga_at != group_at || g->ga_len != gr_ndn->bv_len )
+		{
+			continue;
+		}
+		if ( strcmp( g->ga_ndn, gr_ndn->bv_val ) == 0 ) {
+			break;
+		}
+	}
+	if ( g != NULL ) {
+		rc = g->ga_res;
+		goto done;
+	}
 
 	if ( target != NULL && dn_match( &target->e_nname, gr_ndn ) ) {
 		e = target;
 		rc = 0;
 	} else {
-		be = select_backend( gr_ndn, 0, 0 );
-		if ( be == NULL ) {
-			rc = LDAP_NO_SUCH_OBJECT;
-		} else {
-			op->o_bd = be;
-			rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
-			op->o_bd = be_orig;
+		rc = be_entry_get_rw( op, gr_ndn, group_oc, group_at, 0, &e );
+	}
+	if ( e != NULL ) {
+		pb = slapi_over_pblock_new( op );
+
+		slapi_pblock_set( pb, SLAPI_X_GROUP_ENTRY,        (void *)e );
+		slapi_pblock_set( pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
+		slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,    (void *)group_at->ad_cname.bv_val );
+		slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
+
+		rc = slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_PRE_GROUP_FN, pb );
+		if ( rc >= 0 ) /* 1 means no plugins called */
+			rc = SLAP_CB_CONTINUE;
+		else
+			slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rc );
+
+		slapi_pblock_destroy( pb );
+
+		if ( e != target ) {
+			be_entry_release_r( op, e );
 		}
+	} else {
+		rc = LDAP_NO_SUCH_OBJECT; /* return SLAP_CB_CONTINUE for correctness? */
 	}
 
-	if ( rc ) {
-		return SLAP_CB_CONTINUE;
+	if ( op->o_tag != LDAP_REQ_BIND && !op->o_do_not_cache ) {
+		g = op->o_tmpalloc( sizeof( GroupAssertion ) + gr_ndn->bv_len,
+			op->o_tmpmemctx );
+		g->ga_be = op->o_bd;
+		g->ga_oc = group_oc;
+		g->ga_at = group_at;
+		g->ga_res = rc;
+		g->ga_len = gr_ndn->bv_len;
+		strcpy( g->ga_ndn, gr_ndn->bv_val );
+		g->ga_next = op->o_groups;
+		op->o_groups = g;
 	}
-
-	pb = slapi_over_pblock_new( op );
-
-	slapi_pblock_set( pb, SLAPI_X_GROUP_ENTRY,        (void *)e );
-	slapi_pblock_set( pb, SLAPI_X_GROUP_OPERATION_DN, (void *)op_ndn->bv_val );
-	slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,    (void *)group_at->ad_cname.bv_val );
-	slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
-
-	rc = slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_PRE_GROUP_FN, pb );
-	if ( rc >= 0 ) /* 1 means no plugins called */
-		rc = SLAP_CB_CONTINUE;
-	else
-		slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rc );
-
-	slapi_pblock_destroy( pb );
-
-	if ( e != target ) {
-		op->o_bd = be;
-		be_entry_release_r( op, e );
-		op->o_bd = be_orig;
-	}
-
 	/*
 	 * XXX don't call POST_GROUP_FN, I have no idea what the point of
 	 * that plugin function was anyway
 	 */
+done:
+	op->o_bd = be;
 	return rc;
 }
 
