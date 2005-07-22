@@ -506,7 +506,7 @@ static int unique_modrdn(
 	Operation nop = *op;
 
 	char *key, *kp;
-	int i, rc, ks = 16;		/* a handful of extra bytes */
+	int i, ks = 16;			/* a handful of extra bytes */
 	LDAPRDN	newrdn;
 	struct berval bv[2];
 

@@ -517,7 +517,6 @@ over_op_func(
 {
 	slap_overinfo *oi;
 	slap_overinst *on;
-	BI_op_bind **func;
 	BackendDB *be = op->o_bd, db;
 	slap_callback cb = {NULL, over_back_response, NULL, NULL};
 	int rc = SLAP_CB_CONTINUE;

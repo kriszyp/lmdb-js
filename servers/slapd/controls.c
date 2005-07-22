@@ -448,7 +448,6 @@ int slap_parse_ctrl(
 	const char **text )
 {
 	struct slap_control *sc;
-	int rc;
 
 	sc = find_ctrl( control->ldctl_oid );
 	if( sc != NULL ) {
