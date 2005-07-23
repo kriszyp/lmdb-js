@@ -37,6 +37,12 @@
 
 #define PRINT_CONNTREE 0
 
+/*
+ * FIXME: temporarily disable pooled connections, as there seem to be
+ * some concurrency problem
+ */
+/* #undef LDAP_BACK_POOLED_CONNS */
+
 static LDAP_REBIND_PROC	ldap_back_rebind;
 
 static int
@@ -92,9 +98,8 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 			if ( !BER_BVISNULL( &lc->lc_cred ) ) {
 				memset( lc->lc_cred.bv_val, 0,
 						lc->lc_cred.bv_len );
-				ch_free( lc->lc_cred.bv_val );
 			}
-			ber_dupbv( &lc->lc_cred, &op->orb_cred );
+			ber_bvreplace( &lc->lc_cred, &op->orb_cred );
 			ldap_set_rebind_proc( lc->lc_ld, ldap_back_rebind, lc );
 		}
 	}
@@ -126,15 +131,12 @@ retry_lock:;
 				ldap_back_conn_cmp );
 		assert( lc != NULL );
 
-		if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
-			ch_free( lc->lc_local_ndn.bv_val );
-		}
-		ber_dupbv( &lc->lc_local_ndn, &op->o_req_ndn );
+		ber_bvreplace( &lc->lc_local_ndn, &op->o_req_ndn );
 		lerr = avl_insert( &li->conntree, (caddr_t)lc,
 			ldap_back_conn_cmp, ldap_back_conn_dup );
 		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		if ( lerr == -1 ) {
-			/* handle this! (e.g. wait until refcnt goes to 1...) */
+			/* we can do this because lc_refcnt == 1 */
 			ldap_back_conn_free( lc );
 			lc = NULL;
 		}
@@ -238,12 +240,22 @@ int
 ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
-	int		rc = 0;
 
 retry_lock:;
 	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
 	case LDAP_PVT_THREAD_EBUSY:
 	default:
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+
+	switch ( ldap_pvt_thread_mutex_trylock( &lc->lc_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 		ldap_pvt_thread_yield();
 		goto retry_lock;
 
@@ -257,11 +269,17 @@ retry_lock:;
 				ldap_back_conn_cmp );
 		assert( lc != NULL );
 
+		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
+
 		ldap_back_conn_free( (void *)lc );
+
+	} else {
+		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	}
+
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
-	return rc;
+	return 0;
 }
 
 static int
@@ -381,8 +399,7 @@ retry:;
 #endif /* HAVE_TLS */
 
 	if ( *lcp == NULL ) {
-		*lcp = (struct ldapconn *)ch_malloc( sizeof( struct ldapconn ) );
-		memset( *lcp, 0, sizeof( struct ldapconn ) );
+		*lcp = (struct ldapconn *)ch_calloc( 1, sizeof( struct ldapconn ) );
 	}
 	(*lcp)->lc_ld = ld;
 	(*lcp)->lc_refcnt = 1;
@@ -423,12 +440,16 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 	}
 	
 	/* Internal searches are privileged and shared. So is root. */
+#ifdef LDAP_BACK_POOLED_CONNS
+	/* FIXME: there seem to be concurrency issues */
 	if ( op->o_do_not_cache || be_isroot( op ) ) {
 		lc_curr.lc_local_ndn = op->o_bd->be_rootndn;
 		lc_curr.lc_conn = NULL;
 		lc_curr.lc_ispriv = 1;
 
-	} else {
+	} else 
+#endif /* LDAP_BACK_POOLED_CONNS */
+	{
 		lc_curr.lc_local_ndn = op->o_ndn;
 	}
 
@@ -452,7 +473,6 @@ retry_lock:;
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if ( lc == NULL ) {
-		/* lc here must be NULL */
 		if ( ldap_back_prepare_conn( &lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 			return NULL;
 		}
@@ -471,7 +491,7 @@ retry_lock:;
 			BER_BVZERO( &lc->lc_cred );
 			BER_BVZERO( &lc->lc_bound_ndn );
 			if ( op->o_conn && !BER_BVISEMPTY( &op->o_ndn )
-					&& op->o_bd == op->o_conn->c_authz_backend )
+				&& op->o_bd->be_private == op->o_conn->c_authz_backend->be_private )
 			{
 				ber_dupbv( &lc->lc_bound_ndn, &op->o_ndn );
 			}
@@ -544,8 +564,20 @@ retry_lock:;
 		break;
 	}
 
+	switch ( ldap_pvt_thread_mutex_trylock( &lc->lc_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;
+	}
+	
 	assert( lc->lc_refcnt > 0 );
 	lc->lc_refcnt--;
+	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 }
 
@@ -555,6 +587,9 @@ retry_lock:;
  * Note: as the check for the value of lc->lc_bound was already here, I removed
  * it from all the callers, and I made the function return the flag, so
  * it can be used to simplify the check.
+ *
+ * Note: lc_mutex is locked; dolock indicates whether li->conn_mutex
+ * must be locked or not
  */
 static int
 ldap_back_dobind_int(
@@ -840,8 +875,18 @@ retry_lock:;
 		break;
 	}
 
+	switch ( ldap_pvt_thread_mutex_trylock( &lc->lc_mutex ) ) {
+	case LDAP_PVT_THREAD_EBUSY:
+	default:
+		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
+		ldap_pvt_thread_yield();
+		goto retry_lock;
+
+	case 0:
+		break;	
+	}
+
 	if ( lc->lc_refcnt == 1 ) {
-		ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
 		ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
 		lc->lc_ld = NULL;
 		lc->lc_bound = 0;
@@ -851,9 +896,9 @@ retry_lock:;
 		if ( rc == LDAP_SUCCESS ) {
 			rc = ldap_back_dobind_int( lc, op, rs, sendok, 0, 0 );
 		}
-		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	}
 
+	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	return rc;
