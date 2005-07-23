@@ -26,6 +26,7 @@
 
 #include <lutil.h>
 #include "slap.h"
+#include "config.h"
 #include "lber_pvt.h"
 #include "back-monitor.h"
 
@@ -920,7 +921,7 @@ monitor_back_initialize(
 		slap_mask_t flags;
 		int	offset;
 	} moc[] = {
-		{ "monitor", "( 1.3.6.1.4.1.4203.666.3.2 "
+		{ "monitor", "( 1.3.6.1.4.1.4203.666.3.16.1 "
 			"NAME 'monitor' "
 			"DESC 'OpenLDAP system monitoring' "
 			"SUP top STRUCTURAL "
@@ -934,44 +935,44 @@ monitor_back_initialize(
 				"$ monitorOverlay "
 			") )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitor) },
-		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.7 "
+		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.3.16.2 "
 			"NAME 'monitorServer' "
 			"DESC 'Server monitoring root entry' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorServer) },
-		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.3.8 "
+		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.3.16.3 "
 			"NAME 'monitorContainer' "
 			"DESC 'monitor container class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorContainer) },
-		{ "monitorCounterObject", "( 1.3.6.1.4.1.4203.666.3.9 "
+		{ "monitorCounterObject", "( 1.3.6.1.4.1.4203.666.3.16.4 "
 			"NAME 'monitorCounterObject' "
 			"DESC 'monitor counter class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorCounterObject) },
-		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.10 "
+		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.16.5 "
 			"NAME 'monitorOperation' "
 			"DESC 'monitor operation class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorOperation) },
-		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.11 "
+		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.16.6 "
 			"NAME 'monitorConnection' "
 			"DESC 'monitor connection class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitorConnection) },
-		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.12 "
+		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.16.7 "
 			"NAME 'managedObject' "
 			"DESC 'monitor managed entity class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_managedObject) },
-		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.14 "
+		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.16.8 "
 			"NAME 'monitoredObject' "
 			"DESC 'monitor monitored entity class' "
 			"SUP monitor STRUCTURAL )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 			offsetof(monitor_info_t, mi_oc_monitoredObject) },
 		{ NULL, NULL, 0, -1 }
 	}, mat[] = {
-		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.14 "
+		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.1.55.1 "
 			"NAME 'monitoredInfo' "
 			"DESC 'monitored info' "
 			/* "SUP name " */
@@ -981,12 +982,12 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitoredInfo) },
-		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.1.15 "
+		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.1.55.2 "
 			"NAME 'managedInfo' "
 			"DESC 'monitor managed info' "
 			"SUP name )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_managedInfo) },
-		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.1.16 "
+		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.1.55.3 "
 			"NAME 'monitorCounter' "
 			"DESC 'monitor counter' "
 			"EQUALITY integerMatch "
@@ -995,28 +996,28 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorCounter) },
-		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.1.17 "
+		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.1.55.4 "
 			"NAME 'monitorOpCompleted' "
 			"DESC 'monitor completed operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOpCompleted) },
-		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.1.18 "
+		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.1.55.5 "
 			"NAME 'monitorOpInitiated' "
 			"DESC 'monitor initiated operations' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOpInitiated) },
-		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.1.19 "
+		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.1.55.6 "
 			"NAME 'monitorConnectionNumber' "
 			"DESC 'monitor connection number' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionNumber) },
-		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.1.20 "
+		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.1.55.7 "
 			"NAME 'monitorConnectionAuthzDN' "
 			"DESC 'monitor connection authorization DN' "
 			/* "SUP distinguishedName " */
@@ -1025,21 +1026,21 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionAuthzDN) },
-		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.1.21 "
+		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.1.55.8 "
 			"NAME 'monitorConnectionLocalAddress' "
 			"DESC 'monitor connection local address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionLocalAddress) },
-		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.1.22 "
+		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.1.55.9 "
 			"NAME 'monitorConnectionPeerAddress' "
 			"DESC 'monitor connection peer address' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionPeerAddress) },
-		{ "monitorTimestamp", "( 1.3.6.1.4.1.4203.666.1.24 "
+		{ "monitorTimestamp", "( 1.3.6.1.4.1.4203.666.1.55.10 "
 			"NAME 'monitorTimestamp' "
 			"DESC 'monitor timestamp' "
 			"EQUALITY generalizedTimeMatch "
@@ -1049,14 +1050,14 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorTimestamp) },
-		{ "monitorOverlay", "( 1.3.6.1.4.1.4203.666.1.27 "
+		{ "monitorOverlay", "( 1.3.6.1.4.1.4203.666.1.55.11 "
 			"NAME 'monitorOverlay' "
 			"DESC 'name of overlays defined for a given database' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorOverlay) },
-		{ "readOnly", "( 1.3.6.1.4.1.4203.666.1.31 "
+		{ "readOnly", "( 1.3.6.1.4.1.4203.666.1.55.12 "
 			"NAME 'readOnly' "
 			"DESC 'read/write status of a given database' "
 			"EQUALITY booleanMatch "
@@ -1064,89 +1065,89 @@ monitor_back_initialize(
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_readOnly) },
-		{ "restrictedOperation", "( 1.3.6.1.4.1.4203.666.1.32 "
+		{ "restrictedOperation", "( 1.3.6.1.4.1.4203.666.1.55.13 "
 			"NAME 'restrictedOperation' "
 			"DESC 'name of restricted operation for a given database' "
 			"SUP managedInfo )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_restrictedOperation ) },
-		{ "monitorConnectionProtocol", "( 1.3.6.1.4.1.4203.666.1.39 "
+		{ "monitorConnectionProtocol", "( 1.3.6.1.4.1.4203.666.1.55.14 "
 			"NAME 'monitorConnectionProtocol' "
 			"DESC 'monitor connection protocol' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionProtocol) },
-		{ "monitorConnectionOpsReceived", "( 1.3.6.1.4.1.4203.666.1.40 "
+		{ "monitorConnectionOpsReceived", "( 1.3.6.1.4.1.4203.666.1.55.15 "
 			"NAME 'monitorConnectionOpsReceived' "
 			"DESC 'monitor number of operations received by the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsReceived) },
-		{ "monitorConnectionOpsExecuting", "( 1.3.6.1.4.1.4203.666.1.41 "
+		{ "monitorConnectionOpsExecuting", "( 1.3.6.1.4.1.4203.666.1.55.16 "
 			"NAME 'monitorConnectionOpsExecuting' "
 			"DESC 'monitor number of operations in execution within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsExecuting) },
-		{ "monitorConnectionOpsPending", "( 1.3.6.1.4.1.4203.666.1.42 "
+		{ "monitorConnectionOpsPending", "( 1.3.6.1.4.1.4203.666.1.55.17 "
 			"NAME 'monitorConnectionOpsPending' "
 			"DESC 'monitor number of pending operations within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsPending) },
-		{ "monitorConnectionOpsCompleted", "( 1.3.6.1.4.1.4203.666.1.43 "
+		{ "monitorConnectionOpsCompleted", "( 1.3.6.1.4.1.4203.666.1.55.18 "
 			"NAME 'monitorConnectionOpsCompleted' "
 			"DESC 'monitor number of operations completed within the connection' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionOpsCompleted) },
-		{ "monitorConnectionGet", "( 1.3.6.1.4.1.4203.666.1.44 "
+		{ "monitorConnectionGet", "( 1.3.6.1.4.1.4203.666.1.55.19 "
 			"NAME 'monitorConnectionGet' "
 			"DESC 'number of times connection_get() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionGet) },
-		{ "monitorConnectionRead", "( 1.3.6.1.4.1.4203.666.1.45 "
+		{ "monitorConnectionRead", "( 1.3.6.1.4.1.4203.666.1.55.20 "
 			"NAME 'monitorConnectionRead' "
 			"DESC 'number of times connection_read() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionRead) },
-		{ "monitorConnectionWrite", "( 1.3.6.1.4.1.4203.666.1.46 "
+		{ "monitorConnectionWrite", "( 1.3.6.1.4.1.4203.666.1.55.21 "
 			"NAME 'monitorConnectionWrite' "
 			"DESC 'number of times connection_write() was called so far' "
 			"SUP monitorCounter "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionWrite) },
-		{ "monitorConnectionMask", "( 1.3.6.1.4.1.4203.666.1.47 "
+		{ "monitorConnectionMask", "( 1.3.6.1.4.1.4203.666.1.55.22 "
 			"NAME 'monitorConnectionMask' "
 			"DESC 'monitor connection mask' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionMask) },
-		{ "monitorConnectionListener", "( 1.3.6.1.4.1.4203.666.1.48 "
+		{ "monitorConnectionListener", "( 1.3.6.1.4.1.4203.666.1.55.23 "
 			"NAME 'monitorConnectionListener' "
 			"DESC 'monitor connection listener' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionListener) },
-		{ "monitorConnectionPeerDomain", "( 1.3.6.1.4.1.4203.666.1.49 "
+		{ "monitorConnectionPeerDomain", "( 1.3.6.1.4.1.4203.666.1.55.24 "
 			"NAME 'monitorConnectionPeerDomain' "
 			"DESC 'monitor connection peer domain' "
 			"SUP monitoredInfo "
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionPeerDomain) },
-		{ "monitorConnectionStartTime", "( 1.3.6.1.4.1.4203.666.1.50 "
+		{ "monitorConnectionStartTime", "( 1.3.6.1.4.1.4203.666.1.55.25 "
 			"NAME 'monitorConnectionStartTime' "
 			"DESC 'monitor connection start time' "
 			"SUP monitorTimestamp "
@@ -1154,7 +1155,7 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionStartTime) },
-		{ "monitorConnectionActivityTime", "( 1.3.6.1.4.1.4203.666.1.51 "
+		{ "monitorConnectionActivityTime", "( 1.3.6.1.4.1.4203.666.1.55.26 "
 			"NAME 'monitorConnectionActivityTime' "
 			"DESC 'monitor connection activity time' "
 			"SUP monitorTimestamp "
@@ -1162,7 +1163,7 @@ monitor_back_initialize(
 			"NO-USER-MODIFICATION "
 			"USAGE directoryOperation )", SLAP_AT_FINAL|SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorConnectionActivityTime) },
-		{ "monitorIsShadow", "( 1.3.6.1.4.1.4203.666.1.52 "
+		{ "monitorIsShadow", "( 1.3.6.1.4.1.4203.666.1.55.27 "
 			"NAME 'monitorIsShadow' "
 			"DESC 'TRUE if the database is shadow' "
 			"EQUALITY booleanMatch "
@@ -1170,16 +1171,38 @@ monitor_back_initialize(
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorIsShadow) },
-		{ "monitorUpdateRef", "( 1.3.6.1.4.1.4203.666.1.53 "
+		{ "monitorUpdateRef", "( 1.3.6.1.4.1.4203.666.1.55.28 "
 			"NAME 'monitorUpdateRef' "
 			"DESC 'update referral for shadow databases' "
 			"SUP monitoredInfo "
 			"SINGLE-VALUE "
 			"USAGE directoryOperation )", SLAP_AT_HIDE,
 			offsetof(monitor_info_t, mi_ad_monitorUpdateRef) },
+		{ "monitorRuntimeConfig", "( 1.3.6.1.4.1.4203.666.1.55.29 "
+			"NAME 'monitorRuntimeConfig' "
+			"DESC 'TRUE if component allows runtime configuration' "
+			"EQUALITY booleanMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 "
+			"SINGLE-VALUE "
+			"USAGE directoryOperation )", SLAP_AT_HIDE,
+			offsetof(monitor_info_t, mi_ad_monitorRuntimeConfig) },
 		{ NULL, NULL, 0, -1 }
 	};
-	
+	static ConfigTable monitorcfg[] = {
+		{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
+			NULL, NULL, NULL, NULL }
+	};
+	static ConfigOCs monitorocs[] = {
+		{ "( OLcfgDbOc:4.1 "
+			"NAME 'olcMonitorConfig' "
+			"DESC 'Monitor backend configuration' "
+			"SUP olcDatabaseConfig "
+			")",
+			 	Cft_Database, monitorcfg },
+		{ NULL, 0, NULL }
+	};
+	int		rc;
+
 	bi->bi_controls = controls;
 
 	bi->bi_init = 0;
@@ -1228,6 +1251,19 @@ monitor_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 
+	/*
+	 * configuration objectClasses (fake)
+	 */
+	bi->bi_cf_ocs = monitorocs;
+
+	rc = config_register_schema( monitorcfg, monitorocs );
+	if ( rc ) {
+		return rc;
+	}
+
+	/*
+	 * register subsys
+	 */
 	for ( ms = known_monitor_subsys; ms->mss_name != NULL; ms++ ) {
 		if ( monitor_back_register_subsys( ms ) ) {
 			return -1;
