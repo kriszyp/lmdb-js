@@ -80,6 +80,8 @@ monitor_subsys_overlay_init(
 				"objectClass: %s\n"
 				"structuralObjectClass: %s\n"
 				"cn: Overlay %d\n"
+				"%s: %s\n"
+				"%s: %s\n"
 				"creatorsName: %s\n"
 				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
@@ -89,6 +91,10 @@ monitor_subsys_overlay_init(
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
+				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
+					on->on_bi.bi_type,
+				mi->mi_ad_monitorRuntimeConfig->ad_cname.bv_val,
+					on->on_bi.bi_cf_ocs ? "TRUE" : "FALSE",
 				mi->mi_creatorsName.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
@@ -104,8 +110,6 @@ monitor_subsys_overlay_init(
 		}
 		
 		ber_str2bv( on->on_bi.bi_type, 0, 0, &bv );
-		attr_merge_normalize_one( e, mi->mi_ad_monitoredInfo,
-				&bv, NULL );
 		attr_merge_normalize_one( e_overlay, mi->mi_ad_monitoredInfo,
 				&bv, NULL );
 
