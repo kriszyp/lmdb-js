@@ -252,29 +252,13 @@ retry_lock:;
 		break;
 	}
 
-	switch ( ldap_pvt_thread_mutex_trylock( &lc->lc_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
-
 	assert( lc->lc_refcnt > 0 );
 	if ( --lc->lc_refcnt == 0 ) {
 		lc = avl_delete( &li->conntree, (caddr_t)lc,
 				ldap_back_conn_cmp );
 		assert( lc != NULL );
 
-		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
-
 		ldap_back_conn_free( (void *)lc );
-
-	} else {
-		ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	}
 
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
@@ -424,6 +408,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
 	struct ldapconn	*lc, lc_curr = { 0 };
+	int		refcnt = 1;
 
 	/* Searches for a ldapconn in the avl tree */
 
@@ -467,7 +452,7 @@ retry_lock:;
 	lc = (struct ldapconn *)avl_find( li->conntree, 
 			(caddr_t)&lc_curr, ldap_back_conn_cmp );
 	if ( lc != NULL ) {
-		lc->lc_refcnt++;
+		refcnt = ++lc->lc_refcnt;
 	}
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
@@ -523,7 +508,7 @@ retry_lock2:;
 
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %p inserted (refcnt=%u)\n",
-			(void *)lc, lc->lc_refcnt, 0 );
+			(void *)lc, refcnt, 0 );
 	
 		/* Err could be -1 in case a duplicate ldapconn is inserted */
 		if ( rs->sr_err != 0 ) {
@@ -539,7 +524,7 @@ retry_lock2:;
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_getconn: conn %p fetched (refcnt=%u)\n",
-			(void *)lc, lc->lc_refcnt, 0 );
+			(void *)lc, refcnt, 0 );
 	}
 	
 	return lc;
@@ -564,20 +549,8 @@ retry_lock:;
 		break;
 	}
 
-	switch ( ldap_pvt_thread_mutex_trylock( &lc->lc_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
-	
 	assert( lc->lc_refcnt > 0 );
 	lc->lc_refcnt--;
-	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 }
 
@@ -875,17 +848,6 @@ retry_lock:;
 		break;
 	}
 
-	switch ( ldap_pvt_thread_mutex_trylock( &lc->lc_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;	
-	}
-
 	if ( lc->lc_refcnt == 1 ) {
 		ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
 		lc->lc_ld = NULL;
@@ -898,7 +860,6 @@ retry_lock:;
 		}
 	}
 
-	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	return rc;
