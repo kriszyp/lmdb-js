@@ -37,12 +37,6 @@
 
 #define PRINT_CONNTREE 0
 
-/*
- * FIXME: temporarily disable pooled connections, as there seem to be
- * some concurrency problem
- */
-/* #undef LDAP_BACK_POOLED_CONNS */
-
 static LDAP_REBIND_PROC	ldap_back_rebind;
 
 static int
@@ -425,16 +419,13 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 	}
 	
 	/* Internal searches are privileged and shared. So is root. */
-#ifdef LDAP_BACK_POOLED_CONNS
 	/* FIXME: there seem to be concurrency issues */
 	if ( op->o_do_not_cache || be_isroot( op ) ) {
 		lc_curr.lc_local_ndn = op->o_bd->be_rootndn;
 		lc_curr.lc_conn = NULL;
 		lc_curr.lc_ispriv = 1;
 
-	} else 
-#endif /* LDAP_BACK_POOLED_CONNS */
-	{
+	} else {
 		lc_curr.lc_local_ndn = op->o_ndn;
 	}
 
