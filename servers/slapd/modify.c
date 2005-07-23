@@ -541,13 +541,14 @@ int slap_mods_check(
 		AttributeDescription *ad = NULL;
 
 		/* convert to attribute description */
-		rc = slap_bv2ad( &ml->sml_type, &ml->sml_desc, text );
-
-		if( rc != LDAP_SUCCESS ) {
-			snprintf( textbuf, textlen, "%s: %s",
-				ml->sml_type.bv_val, *text );
-			*text = textbuf;
-			return rc;
+		if ( ml->sml_desc == NULL ) {
+			rc = slap_bv2ad( &ml->sml_type, &ml->sml_desc, text );
+			if( rc != LDAP_SUCCESS ) {
+				snprintf( textbuf, textlen, "%s: %s",
+					ml->sml_type.bv_val, *text );
+				*text = textbuf;
+				return rc;
+			}
 		}
 
 		ad = ml->sml_desc;
