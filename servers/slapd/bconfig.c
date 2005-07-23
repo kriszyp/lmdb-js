@@ -1854,11 +1854,12 @@ config_requires(ConfigArgs *c) {
 	return(0);
 }
 
+static slap_verbmasks	*loglevel_ops;
+
 static int
-config_loglevel(ConfigArgs *c) {
-	int i;
-	char *next;
-	slap_verbmasks loglevel_ops[] = {
+loglevel_init( void )
+{
+	slap_verbmasks	lo[] = {
 		{ BER_BVC("Any"),	-1 },
 		{ BER_BVC("Trace"),	LDAP_DEBUG_TRACE },
 		{ BER_BVC("Packets"),	LDAP_DEBUG_PACKETS },
@@ -1877,6 +1878,39 @@ config_loglevel(ConfigArgs *c) {
 		{ BER_BVC("Sync"),	LDAP_DEBUG_SYNC },
 		{ BER_BVNULL,	0 }
 	};
+
+	return slap_verbmasks_init( &loglevel_ops, lo );
+}
+
+static slap_mask_t	loglevel_ignore[] = { -1, 0 };
+
+int
+slap_loglevel_register( slap_mask_t m, struct berval *s )
+{
+	int	rc;
+
+	if ( loglevel_ops == NULL ) {
+		loglevel_init();
+	}
+
+	rc = slap_verbmasks_append( &loglevel_ops, m, s, loglevel_ignore );
+
+	if ( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "slap_loglevel_register(%d, \"%s\") failed\n",
+			m, s->bv_val, 0 );
+	}
+
+	return rc;
+}
+
+static int
+config_loglevel(ConfigArgs *c) {
+	int i;
+	char *next;
+
+	if ( loglevel_ops == NULL ) {
+		loglevel_init();
+	}
 
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return mask_to_verbs( loglevel_ops, ldap_syslog, &c->rvalue_vals );

@@ -803,6 +803,94 @@ mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
 }
 
 int
+slap_verbmasks_init( slap_verbmasks **vp, slap_verbmasks *v )
+{
+	int		i;
+
+	assert( *vp == NULL );
+
+	for ( i = 0; !BER_BVISNULL( &v[ i ].word ); i++ )
+		;
+
+	*vp = ch_calloc( i + 1, sizeof( slap_verbmasks ) );
+
+	for ( i = 0; !BER_BVISNULL( &v[ i ].word ); i++ ) {
+		ber_dupbv( &(*vp)[ i ].word, &v[ i ].word );
+		*((slap_mask_t *)&(*vp)[ i ].mask) = v[ i ].mask;
+	}
+
+	BER_BVZERO( &(*vp)[ i ].word );
+
+	return 0;		
+}
+
+int
+slap_verbmasks_destroy( slap_verbmasks *v )
+{
+	int		i;
+
+	assert( v != NULL );
+
+	for ( i = 0; !BER_BVISNULL( &v[ i ].word ); i++ ) {
+		ch_free( v[ i ].word.bv_val );
+	}
+
+	ch_free( v );
+
+	return 0;
+}
+
+int
+slap_verbmasks_append(
+	slap_verbmasks	**vp,
+	slap_mask_t	m,
+	struct berval	*v,
+	slap_mask_t	*ignore )
+{
+	int	i;
+
+	if ( !m ) {
+		return 1;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &(*vp)[ i ].word ); i++ ) {
+		if ( !(*vp)[ i ].mask ) continue;
+
+		if ( ignore != NULL ) {
+			int	j;
+
+			for ( j = 0; ignore[ j ] != 0; j++ ) {
+				if ( (*vp)[ i ].mask == ignore[ j ] ) {
+					goto check_next;
+				}
+			}
+		}
+
+		if ( ( m & (*vp)[ i ].mask ) == (*vp)[ i ].mask ) {
+			if ( ber_bvstrcasecmp( v, &(*vp)[ i ].word ) == 0 ) {
+				/* already set; ignore */
+				return 0;
+			}
+			/* conflicts */
+			return 1;
+		}
+
+		if ( m & (*vp)[ i ].mask ) {
+			/* conflicts */
+			return 1;
+		}
+check_next:;
+	}
+
+	*vp = ch_realloc( *vp, sizeof( slap_verbmasks ) * ( i + 2 ) );
+	ber_dupbv( &(*vp)[ i ].word, v );
+	*((slap_mask_t *)&(*vp)[ i ].mask) = m;
+	BER_BVZERO( &(*vp)[ i + 1 ].word );
+
+	return 0;
+}
+
+int
 enum_to_verb(slap_verbmasks *v, slap_mask_t m, struct berval *bv) {
 	int i;
 

@@ -343,16 +343,8 @@ LDAP_SLAPD_F (int) backend_operational LDAP_P((
 LDAP_SLAPD_V(BackendInfo) slap_binfo[]; 
 
 /*
- * backglue.c
- */
-
-LDAP_SLAPD_F (int) glue_back_initialize( BackendInfo *bi );
-LDAP_SLAPD_F (int) glue_sub_init( void );
-
-/*
  * backover.c
  */
-
 LDAP_SLAPD_F (int) overlay_register LDAP_P(( slap_overinst *on ));
 LDAP_SLAPD_F (int) overlay_config LDAP_P(( BackendDB *be, const char *ov ));
 LDAP_SLAPD_F (void) overlay_destroy_one LDAP_P((
@@ -371,6 +363,11 @@ LDAP_SLAPD_F (int) overlay_op_walk LDAP_P((
 	slap_operation_t which,
 	slap_overinfo *oi,
 	slap_overinst *on ));
+
+/*
+ * bconfig.c
+ */
+LDAP_SLAPD_F (int) slap_loglevel_register LDAP_P (( slap_mask_t m, struct berval *s ));
 
 /*
  * ch_malloc.c
@@ -537,6 +534,10 @@ LDAP_SLAPD_F (int) mask_to_verbs LDAP_P((
 	slap_verbmasks *v, slap_mask_t m, BerVarray *bva ));
 LDAP_SLAPD_F (int) enum_to_verb LDAP_P((
 	slap_verbmasks *v, slap_mask_t m, struct berval *bv ));
+LDAP_SLAPD_F (int) slap_verbmasks_init LDAP_P(( slap_verbmasks **vp, slap_verbmasks *v ));
+LDAP_SLAPD_F (int) slap_verbmasks_destroy LDAP_P(( slap_verbmasks *v ));
+LDAP_SLAPD_F (int) slap_verbmasks_append LDAP_P(( slap_verbmasks **vp,
+	slap_mask_t m, struct berval *v, slap_mask_t *ignore ));
 LDAP_SLAPD_F (int) bindconf_parse LDAP_P((
 	const char *word,  slap_bindconf *bc ));
 LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
