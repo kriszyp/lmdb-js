@@ -152,7 +152,7 @@ ldap_back_search(
 			filter = BER_BVNULL;
 	int		i;
 	char		**attrs = NULL;
-	int		dontfreetext = 0;
+	int		freetext = 0;
 	int		do_retry = 1;
 	LDAPControl	**ctrls = NULL;
 
@@ -201,7 +201,6 @@ ldap_back_search(
 	ctrls = op->o_ctrls;
 	rc = ldap_back_proxy_authz_ctrl( lc, op, rs, &ctrls );
 	if ( rc != LDAP_SUCCESS ) {
-		dontfreetext = 1;
 		goto finish;
 	}
 
@@ -355,6 +354,7 @@ fail:;
 			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match.bv_val, (char **)&rs->sr_text,
 					&references, &rs->sr_ctrls, 1 );
+			freetext = 1;
 			if ( rc != LDAP_SUCCESS ) {
 				rs->sr_err = rc;
 			}
@@ -426,7 +426,7 @@ finish:;
 	}
 
 	if ( rs->sr_text ) {
-		if ( !dontfreetext ) {
+		if ( freetext ) {
 			LDAP_FREE( (char *)rs->sr_text );
 		}
 		rs->sr_text = NULL;
