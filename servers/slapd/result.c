@@ -690,7 +690,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				*sc_next = op->o_callback;
 
 		rc = SLAP_CB_CONTINUE;
-		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next )
+		{
 			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_response ) {
 				rc = op->o_callback->sc_response( op, rs );
