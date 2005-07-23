@@ -349,9 +349,20 @@ fe_access_allowed(
 	BackendDB		*be_orig;
 	int			rc;
 
+	/*
+	 * NOTE: control gets here if FIXME
+	 * if an appropriate backend cannot be selected for the operation,
+	 * we assume that the frontend should handle this
+	 * FIXME: should select_backend() take care of this,
+	 * and return frontendDB instead of NULL?  maybe for some value
+	 * of the flags?
+	 */
 	be_orig = op->o_bd;
 
 	op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+	if ( op->o_bd == NULL ) {
+		op->o_bd = frontendDB;
+	}
 	rc = slap_access_allowed( op, e, desc, val, access, state, maskp );
 	op->o_bd = be_orig;
 
