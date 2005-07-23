@@ -120,7 +120,7 @@ frontend_init( void )
 	frontendDB->bd_info->bi_entry_release_rw = fe_entry_release_rw;
 #endif
 #ifdef SLAP_OVERLAY_ACCESS
-	frontendDB->bd_info->bi_access_allowed = slap_access_allowed;
+	frontendDB->bd_info->bi_access_allowed = fe_access_allowed;
 	frontendDB->bd_info->bi_acl_group = fe_acl_group;
 	frontendDB->bd_info->bi_acl_attribute = fe_acl_attribute;
 #endif /* SLAP_OVERLAY_ACCESS */

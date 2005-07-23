@@ -1653,6 +1653,14 @@ LDAP_SLAPD_F (int) fe_acl_attribute LDAP_P((
 	AttributeDescription *entry_at,
 	BerVarray *vals,
 	slap_access_t access ));
+LDAP_SLAPD_F (int) fe_access_allowed LDAP_P((
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp ));
 
 /* NOTE: this macro assumes that bv has been allocated
  * by ber_* malloc functions or is { 0L, NULL } */

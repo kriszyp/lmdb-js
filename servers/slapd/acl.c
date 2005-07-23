@@ -337,6 +337,28 @@ done:
 }
 
 int
+fe_access_allowed(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	slap_access_t		access,
+	AccessControlState	*state,
+	slap_mask_t		*maskp )
+{
+	BackendDB		*be_orig;
+	int			rc;
+
+	be_orig = op->o_bd;
+
+	op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+	rc = slap_access_allowed( op, e, desc, val, access, state, maskp );
+	op->o_bd = be_orig;
+
+	return rc;
+}
+
+int
 access_allowed_mask(
 	Operation		*op,
 	Entry			*e,
@@ -433,21 +455,14 @@ access_allowed_mask(
 				desc, val, access, state, &mask );
 
 	} else {
-#if 0
-		/* FIXME: this doesn't work because frontendDB doesn't have
-		 * the right rootn, ACLs and so. */
-		BackendDB	*be_orig;
+		BackendDB	*be_orig = op->o_bd;
 
 		/* use default (but pass through frontend
 		 * for global ACL overlays) */
-		be_orig = op->o_bd;
 		op->o_bd = frontendDB;
 		ret = frontendDB->bd_info->bi_access_allowed( op, e,
 				desc, val, access, state, &mask );
 		op->o_bd = be_orig;
-#endif
-		ret = slap_access_allowed( op, e, 
-				desc, val, access, state, &mask );
 	}
 
 	if ( !ret ) {
