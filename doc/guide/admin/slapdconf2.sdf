@@ -25,6 +25,10 @@ command-line option to {{slapd}}(8) or {{slurpd}}(8). This chapter
 describes the general format of the configuration system, followed by a
 detailed description of commonly used config settings.
 
+Note: some of the backends and of the distributed overlays
+do not support runtime configuration yet.  In those cases,
+the old style {{slapd.conf}}(5) file must be used.
+
 Note: the current version of {{slurpd}} has not been updated for
 compatibility with this new configuration engine. If you must use
 slurpd for replication at your site, you will have to maintain an
