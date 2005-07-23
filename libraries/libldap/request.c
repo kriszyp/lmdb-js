@@ -135,7 +135,7 @@ ldap_send_initial_request(
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 	rc = ldap_send_server_request( ld, ber, msgid, NULL,
-									servers, NULL, NULL );
+		servers, NULL, NULL );
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
@@ -612,8 +612,10 @@ void
 ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 {
 	if ( lr->lr_prev == NULL ) {
+		/* free'ing the first request? */
 		assert( ld->ld_requests == lr );
 		ld->ld_requests = lr->lr_next;
+
 	} else {
 		lr->lr_prev->lr_next = lr->lr_next;
 	}
@@ -1033,12 +1035,12 @@ ldap_chase_referrals( LDAP *ld,
 		rinfo.ri_msgid = origreq->lr_origid;
 
 #ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
 		rc = ldap_send_server_request( ld, ber, id,
-		    lr, srv, NULL, &rinfo );
+			lr, srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
-	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
 
 		LDAP_FREE( rinfo.ri_url );

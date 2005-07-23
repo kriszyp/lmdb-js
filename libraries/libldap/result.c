@@ -712,7 +712,13 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 					}
 				}
 
+#ifdef LDAP_R_COMPILE
+				ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 				ldap_free_request( ld, lr );
+#ifdef LDAP_R_COMPILE
+				ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+#endif
 			}
 
 			if ( lc != NULL ) {
