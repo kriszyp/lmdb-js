@@ -176,10 +176,11 @@ slapi_int_response( Slapi_Operation *op, SlapReply *rs )
 }
 
 static int
-slapi_int_get_ctrls( Operation *op, SlapReply *rs, LDAPControl **controls )
+slapi_int_get_ctrls( Operation *op, LDAPControl **controls )
 {
 	LDAPControl		**c;
 	int			rc;
+	SlapReply		rs = { REP_RESULT };
 
 	op->o_ctrls = controls;
 	if ( op->o_ctrls == NULL ) {
@@ -187,7 +188,7 @@ slapi_int_get_ctrls( Operation *op, SlapReply *rs, LDAPControl **controls )
 	}
 
 	for ( c = op->o_ctrls; *c != NULL; c++ ) {
-		rc = slap_parse_ctrl( op, rs, *c, &rs->sr_text );
+		rc = slap_parse_ctrl( op, &rs, *c, &rs.sr_text );
 		if ( rc != LDAP_SUCCESS )
 			break;
 	}
@@ -259,7 +260,7 @@ slapi_int_pblock_get_connection( Slapi_PBlock *pb, Operation *op )
 }
 
 static int
-slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
+slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op )
 {
 	int			isRoot = 0;
 	int			isUpdateDn = 0;
@@ -311,9 +312,9 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 	}
 
 	slapi_pblock_get( pb, SLAPI_REQCONTROLS, (void **)&controls );
-	rc = slapi_int_get_ctrls( op, rs, controls );
+	rc = slapi_int_get_ctrls( op, controls );
 	if ( rc != LDAP_SUCCESS ) {
-		return rs->sr_err;
+		return rc;
 	}
 
 	return LDAP_SUCCESS;
@@ -321,7 +322,6 @@ slapi_int_pblock_get_operation( Slapi_PBlock *pb, Operation *op, SlapReply *rs )
 
 int
 slapi_int_connection_init( Slapi_PBlock *pb,
-	SlapReply *rs,
 	int OpType,
 	Connection **pConn )
 {
@@ -423,7 +423,7 @@ slapi_int_connection_init( Slapi_PBlock *pb,
 	op->o_conn = conn;
 	op->o_connid = conn->c_connid;
 
-	rc = slapi_int_pblock_get_operation( pb, op, rs );
+	rc = slapi_int_pblock_get_operation( pb, op );
 
 	slapi_pblock_set( pb, SLAPI_OPERATION, op );
 	slapi_pblock_set( pb, SLAPI_CONNECTION, conn );
@@ -483,7 +483,7 @@ slapi_delete_internal_pb( Slapi_PBlock *pb )
 		return -1;
 	}
 
-	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_DELETE, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, LDAP_REQ_DELETE, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		slapi_pblock_set( pb, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 		return 0;
@@ -535,7 +535,7 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_ADD, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, LDAP_REQ_ADD, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -625,7 +625,7 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 	slapi_pblock_get( pb, SLAPI_MODRDN_NEWSUPERIOR, (void **)&newsuperior );
 	slapi_pblock_get( pb, SLAPI_MODRDN_DELOLDRDN,   (void **)&deloldrdn );
 
-	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_MODRDN, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, LDAP_REQ_MODRDN, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -707,7 +707,7 @@ slapi_modify_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_MODIFY, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, LDAP_REQ_MODIFY, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
@@ -832,7 +832,7 @@ slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRS,     (void **)&attrs );
 	slapi_pblock_get( pb, SLAPI_SEARCH_ATTRSONLY, (void **)&attrsonly );
 
-	rs.sr_err = slapi_int_connection_init( pb, &rs, LDAP_REQ_SEARCH, &conn );
+	rs.sr_err = slapi_int_connection_init( pb, LDAP_REQ_SEARCH, &conn );
 	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
