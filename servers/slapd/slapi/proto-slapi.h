@@ -44,6 +44,7 @@ LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));
 /* slapi_ops.c */
 LDAP_SLAPI_F (int) slapi_int_connection_init LDAP_P((Slapi_PBlock *pb, SlapReply *rs, int OpType, Connection **pConn));
 LDAP_SLAPI_F (void) slapi_int_connection_destroy LDAP_P(( Connection **pConn ));
+LDAP_SLAPI_F (int) slapi_int_response LDAP_P(( Slapi_Operation *op, SlapReply *rs ));
 
 /* slapi_pblock.c */
 LDAP_SLAPI_F (void) slapi_pblock_check_params LDAP_P(( Slapi_PBlock *pb, int flag ));
@@ -70,6 +71,9 @@ LDAP_SLAPI_F (int) slapi_int_init_object_extensions LDAP_P((void));
 LDAP_SLAPI_F (int) slapi_int_free_object_extensions LDAP_P((int objecttype, void *object));
 LDAP_SLAPI_F (int) slapi_int_create_object_extensions LDAP_P((int objecttype, void *object));
 LDAP_SLAPI_F (int) slapi_int_clear_object_extensions LDAP_P((int objecttype, void *object));
+
+/* slapi_overlay.c */
+LDAP_SLAPI_F (int) slapi_int_overlay_init LDAP_P((void));
 
 LDAP_END_DECL
 

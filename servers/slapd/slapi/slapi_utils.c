@@ -226,7 +226,8 @@ void
 slapi_entry_free( Slapi_Entry *e ) 
 {
 #ifdef LDAP_SLAPI
-	entry_free( e );
+	if ( e != NULL )
+		entry_free( e );
 #endif /* LDAP_SLAPI */
 }
 
@@ -550,7 +551,7 @@ slapi_entry_has_children(const Slapi_Entry *e)
 	}
 
 	op = conn->c_pending_ops.stqh_first;
-	op->o_bd = select_backend( &e->e_ndn, 0, 0 );
+	op->o_bd = select_backend( &e->e_nname, 0, 0 );
 	if ( op->o_bd != NULL ) {
 		op->o_bd->be_has_subordinates( op, (Entry *)e, &hasSubordinates );
 	}
@@ -1154,6 +1155,8 @@ void
 slapi_ch_free( void **ptr ) 
 {
 #ifdef LDAP_SLAPI
+	if ( ptr == NULL || *ptr == NULL )
+		return;
 	ch_free( *ptr );
 	*ptr = NULL;
 #endif /* LDAP_SLAPI */
@@ -2464,7 +2467,6 @@ static char *Authorization2AuthType( AuthorizationInformation *authz, int is_tls
 static int slapi_int_pblock_set_connection( Slapi_PBlock *pb, Connection *conn )
 {
 	char *connAuthType;
-	int rc;
 
 	slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
 
@@ -2536,7 +2538,6 @@ int slapi_int_pblock_set_operation( Slapi_PBlock *pb, Operation *op )
 #ifdef LDAP_SLAPI
 	int isRoot = 0;
 	int isUpdateDn = 0;
-	int rc;
 	char *opAuthType;
 	void *existingOp = NULL;
 	BackendDB *be_orig;
@@ -3508,7 +3509,7 @@ LDAPMod **slapi_int_modifications2ldapmods(Modifications **pmodlist)
  * LDAPMods array; the latter MUST be freed with
  * slapi_int_free_ldapmods() (see below).
  */
-Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
+Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods )
 {
 #ifdef LDAP_SLAPI
 	Modifications *modlist = NULL, **modtail;
@@ -3528,6 +3529,7 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 		const char *text;
 		AttributeDescription *ad = NULL;
 
+		/* Don't initialize attribute type if mods_check() is going to be called */
 		if ( slap_str2ad( (*modp)->mod_type, &ad, &text ) != LDAP_SUCCESS )
 			continue;
 
