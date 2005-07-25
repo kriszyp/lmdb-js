@@ -28,15 +28,15 @@
 
 /* some parameters require a valid connection and operation */
 #define PBLOCK_LOCK_CONN( _pb )		do { \
-		ldap_pvt_thread_mutex_lock( &(_pb)->pconn->c_mutex ); \
+		ldap_pvt_thread_mutex_lock( &(_pb)->pb_conn->c_mutex ); \
 	} while (0)
 
 #define PBLOCK_UNLOCK_CONN( _pb )	do { \
-		ldap_pvt_thread_mutex_unlock( &(_pb)->pconn->c_mutex ); \
+		ldap_pvt_thread_mutex_unlock( &(_pb)->pb_conn->c_mutex ); \
 	} while (0)
 
 /* some parameters are only settable for internal operations */
-#define PBLOCK_VALIDATE_IS_INTOP( _pb )	do { if ( (_pb)->internal_op == 0 ) break; } while ( 0 )
+#define PBLOCK_VALIDATE_IS_INTOP( _pb )	do { if ( (_pb)->pb_intop == 0 ) break; } while ( 0 )
 
 static slapi_pblock_class_t 
 pblock_get_param_class( int param ) 
@@ -289,13 +289,13 @@ pblock_get_param_class( int param )
 static void
 pblock_lock( Slapi_PBlock *pb )
 {
-	ldap_pvt_thread_mutex_lock(&pb->pblockMutex);
+	ldap_pvt_thread_mutex_lock(&pb->pb_mutex);
 }
 
 static void
 pblock_unlock( Slapi_PBlock *pb )
 {
-	ldap_pvt_thread_mutex_unlock(&pb->pblockMutex);
+	ldap_pvt_thread_mutex_unlock(&pb->pb_mutex);
 }
 
 static int 
@@ -324,20 +324,20 @@ pblock_get_default( Slapi_PBlock *pb, int param, void **value )
 		return PBLOCK_ERROR;
 	}
 
-	for ( i = 0; i < pb->numParams; i++ ) {
-		if ( pb->curParams[i] == param ) {
+	for ( i = 0; i < pb->pb_nParams; i++ ) {
+		if ( pb->pb_params[i] == param ) {
 			switch ( pbClass ) {
 			case PBLOCK_CLASS_INTEGER:
-				*((int *)value) = pb->curVals[i].pv_integer;
+				*((int *)value) = pb->pb_values[i].pv_integer;
 				break;
 			case PBLOCK_CLASS_LONG_INTEGER:
-				*((long *)value) = pb->curVals[i].pv_long_integer;
+				*((long *)value) = pb->pb_values[i].pv_long_integer;
 				break;
 			case PBLOCK_CLASS_POINTER:
-				*value = pb->curVals[i].pv_pointer;
+				*value = pb->pb_values[i].pv_pointer;
 				break;
 			case PBLOCK_CLASS_FUNCTION_POINTER:
-				*value = pb->curVals[i].pv_function_pointer;
+				*value = pb->pb_values[i].pv_function_pointer;
 				break;
 			default:
 				break;
@@ -387,35 +387,34 @@ pblock_set_default( Slapi_PBlock *pb, int param, void *value )
 		return PBLOCK_ERROR;
 	}
 
-	if ( pb->numParams == PBLOCK_MAX_PARAMS ) {
+	if ( pb->pb_nParams == PBLOCK_MAX_PARAMS ) {
 		return PBLOCK_ERROR;
 	}
 
-	for ( i = 0; i < pb->numParams; i++ ) {
-		if ( pb->curParams[i] == param ) {
-			switch ( pbClass ) {
-			case PBLOCK_CLASS_INTEGER:
-				pb->curVals[i].pv_integer = (*((int *)value));
-				break;
-			case PBLOCK_CLASS_LONG_INTEGER:
-				pb->curVals[i].pv_long_integer = (*((long *)value));
-				break;
-			case PBLOCK_CLASS_POINTER:
-				pb->curVals[i].pv_pointer = value;
-				break;
-			case PBLOCK_CLASS_FUNCTION_POINTER:
-				pb->curVals[i].pv_function_pointer = value;
-				break;
-			default:
-				break;
-			}
+	for ( i = 0; i < pb->pb_nParams; i++ ) {
+		if ( pb->pb_params[i] == param )
 			break;
-	  	}
+	}
+	if ( i >= pb->pb_nParams ) {
+		pb->pb_params[i] = param;
+	  	pb->pb_nParams++;
 	}
 
-	if ( i >= pb->numParams ) {
-		pb->curParams[i] = param;
-	  	pb->numParams++;
+	switch ( pbClass ) {
+	case PBLOCK_CLASS_INTEGER:
+		pb->pb_values[i].pv_integer = (*((int *)value));
+		break;
+	case PBLOCK_CLASS_LONG_INTEGER:
+		pb->pb_values[i].pv_long_integer = (*((long *)value));
+		break;
+	case PBLOCK_CLASS_POINTER:
+		pb->pb_values[i].pv_pointer = value;
+		break;
+	case PBLOCK_CLASS_FUNCTION_POINTER:
+		pb->pb_values[i].pv_function_pointer = value;
+		break;
+	default:
+		break;
 	}
 
 	return PBLOCK_SUCCESS;
@@ -430,75 +429,75 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 
 	switch ( param ) {
 	case SLAPI_OPERATION:
-		*value = pb->pop;
+		*value = pb->pb_op;
 		break;
 	case SLAPI_OPINITIATED_TIME:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((long *)value) = pb->pop->o_time;
+		*((long *)value) = pb->pb_op->o_time;
 		break;
 	case SLAPI_OPERATION_ID:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((long *)value) = pb->pop->o_opid;
+		*((long *)value) = pb->pb_op->o_opid;
 		break;
 	case SLAPI_OPERATION_TYPE:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((ber_tag_t *)value) = pb->pop->o_tag;
+		*((ber_tag_t *)value) = pb->pb_op->o_tag;
 		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((LDAPControl ***)value) = pb->pop->o_ctrls;
+		*((LDAPControl ***)value) = pb->pb_op->o_ctrls;
 		break;
 	case SLAPI_REQUESTOR_DN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((char **)value) = pb->pop->o_ndn.bv_val;
+		*((char **)value) = pb->pb_op->o_ndn.bv_val;
 		break;
 	case SLAPI_MANAGEDSAIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((int *)value) = get_manageDSAit( pb->pop );
+		*((int *)value) = get_manageDSAit( pb->pb_op );
 		break;
 	case SLAPI_BACKEND:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((BackendDB **)value) = pb->pop->o_bd;
+		*((BackendDB **)value) = pb->pb_op->o_bd;
 		break;
 	case SLAPI_BE_TYPE:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_bd != NULL )
-			*((char **)value) = pb->pop->o_bd->bd_info->bi_type;
+		if ( pb->pb_op->o_bd != NULL )
+			*((char **)value) = pb->pb_op->o_bd->bd_info->bi_type;
 		else
 			*value = NULL;
 		break;
 	case SLAPI_CONNECTION:
-		*value = pb->pconn;
+		*value = pb->pb_conn;
 		break;
 	case SLAPI_X_CONN_SSF:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((slap_ssf_t *)value) = pb->pconn->c_ssf;
+		*((slap_ssf_t *)value) = pb->pb_conn->c_ssf;
 		break;
 	case SLAPI_X_CONN_SASL_CONTEXT:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( pb->pconn->c_sasl_authctx != NULL )
-			*value = pb->pconn->c_sasl_authctx;
+		if ( pb->pb_conn->c_sasl_authctx != NULL )
+			*value = pb->pb_conn->c_sasl_authctx;
 		else
-			*value = pb->pconn->c_sasl_sockctx;
+			*value = pb->pb_conn->c_sasl_sockctx;
 		break;
 	case SLAPI_TARGET_DN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((char **)value) = pb->pop->o_req_ndn.bv_val;
+		*((char **)value) = pb->pb_op->o_req_ndn.bv_val;
 		break;
 	case SLAPI_REQUESTOR_ISROOT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((int *)value) = be_isroot( pb->pop );
+		*((int *)value) = be_isroot( pb->pb_op );
 		break;
 	case SLAPI_IS_REPLICATED_OPERATION:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((int *)value) = be_isupdate( pb->pop );
+		*((int *)value) = be_isupdate( pb->pb_op );
 		break;
 	case SLAPI_CONN_AUTHTYPE:
 	case SLAPI_CONN_AUTHMETHOD: /* XXX should return SASL mech */
 		PBLOCK_ASSERT_CONN( pb );
-		*((char **)value) = pblock_get_authtype( &pb->pconn->c_authz,
+		*((char **)value) = pblock_get_authtype( &pb->pb_conn->c_authz,
 #ifdef HAVE_TLS
-							 pb->pconn->c_is_tls
+							 pb->pb_conn->c_is_tls
 #else
 							 0
 #endif
@@ -507,61 +506,61 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 	case SLAPI_X_CONN_IS_UDP:
 		PBLOCK_ASSERT_CONN( pb );
 #ifdef LDAP_CONNECTIONLESS
-		*((int *)value) = pb->pconn->c_is_udp;
+		*((int *)value) = pb->pb_conn->c_is_udp;
 #else
 		*((int *)value) = 0;
 #endif
 		break;
 	case SLAPI_CONN_ID:
 		PBLOCK_ASSERT_CONN( pb );
-		*((long *)value) = pb->pconn->c_connid;
+		*((long *)value) = pb->pb_conn->c_connid;
 		break;
 	case SLAPI_CONN_DN:
 		PBLOCK_ASSERT_CONN( pb );
-		*((char **)value) = pb->pconn->c_dn.bv_val;
+		*((char **)value) = pb->pb_conn->c_dn.bv_val;
 		break;
 	case SLAPI_CONN_CLIENTIP:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pconn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
-			*((char **)value) = &pb->pconn->c_peer_name.bv_val[3];
+		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
+			*((char **)value) = &pb->pb_conn->c_peer_name.bv_val[3];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_X_CONN_CLIENTPATH:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pconn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
-			*((char **)value) = &pb->pconn->c_peer_name.bv_val[5];
+		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
+			*((char **)value) = &pb->pb_conn->c_peer_name.bv_val[5];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_CONN_SERVERIP:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pconn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
-			*((char **)value) = &pb->pconn->c_sock_name.bv_val[3];
+		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
+			*((char **)value) = &pb->pb_conn->c_sock_name.bv_val[3];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_X_CONN_SERVERPATH:
 		PBLOCK_ASSERT_CONN( pb );
-		if ( strncmp( pb->pconn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
-			*((char **)value) = &pb->pconn->c_sock_name.bv_val[5];
+		if ( strncmp( pb->pb_conn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
+			*((char **)value) = &pb->pb_conn->c_sock_name.bv_val[5];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_RESULT_CODE:
 	case SLAPI_PLUGIN_INTOP_RESULT:
-		*((int *)value) = pb->rs.sr_err;
+		*((int *)value) = pb->pb_rs.sr_err;
 		break;
         case SLAPI_RESULT_TEXT:
-		*((const char **)value) = pb->rs.sr_text;
+		*((const char **)value) = pb->pb_rs.sr_text;
 		break;
         case SLAPI_RESULT_MATCHED:
-		*((const char **)value) = pb->rs.sr_matched;
+		*((const char **)value) = pb->pb_rs.sr_matched;
 		break;
 	case SLAPI_ADD_ENTRY:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_ADD )
-			*((Slapi_Entry **)value) = pb->pop->ora_e;
+		if ( pb->pb_op->o_tag == LDAP_REQ_ADD )
+			*((Slapi_Entry **)value) = pb->pb_op->ora_e;
 		else
 			*value = NULL;
 		break;
@@ -569,12 +568,12 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		LDAPMod **mods = NULL;
 
 		pblock_get_default( pb, param, (void **)&mods );
-		if ( mods == NULL && pb->internal_op == 0 ) {
-			if ( pb->pop->o_tag != LDAP_REQ_MODIFY ) {
+		if ( mods == NULL && pb->pb_intop == 0 ) {
+			if ( pb->pb_op->o_tag != LDAP_REQ_MODIFY ) {
 				rc = PBLOCK_ERROR;
 				break;
 			}
-			mods = slapi_int_modifications2ldapmods( &pb->pop->orm_modlist, NULL );
+			mods = slapi_int_modifications2ldapmods( &pb->pb_op->orm_modlist, NULL );
 			pblock_set_default( pb, param, (void *)mods );
 		}
 		*((LDAPMod ***)value) = mods;
@@ -582,64 +581,64 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 	}
 	case SLAPI_MODRDN_NEWRDN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_MODRDN )
-			*((char **)value) = pb->pop->orr_newrdn.bv_val;
+		if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN )
+			*((char **)value) = pb->pb_op->orr_newrdn.bv_val;
 		else
 			*value = NULL;
 		break;
 	case SLAPI_MODRDN_NEWSUPERIOR:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_MODRDN && pb->pop->orr_newSup != NULL )
-			*((char **)value) = pb->pop->orr_newSup->bv_val;
+		if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN && pb->pb_op->orr_newSup != NULL )
+			*((char **)value) = pb->pb_op->orr_newSup->bv_val;
 		else
 			*value = NULL;
 		break;
 	case SLAPI_MODRDN_DELOLDRDN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_MODRDN )
-			*((int *)value) = pb->pop->orr_deleteoldrdn;
+		if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN )
+			*((int *)value) = pb->pb_op->orr_deleteoldrdn;
 		else
 			*((int *)value) = 0;
 		break;
 	case SLAPI_SEARCH_SCOPE:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			*((int *)value) = pb->pop->ors_scope;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			*((int *)value) = pb->pb_op->ors_scope;
 		else
 			*((int *)value) = 0;
 		break;
 	case SLAPI_SEARCH_DEREF:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			*((int *)value) = pb->pop->ors_deref;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			*((int *)value) = pb->pb_op->ors_deref;
 		else
 			*((int *)value) = 0;
 		break;
 	case SLAPI_SEARCH_SIZELIMIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			*((int *)value) = pb->pop->ors_slimit;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			*((int *)value) = pb->pb_op->ors_slimit;
 		else
 			*((int *)value) = 0;
 		break;
 	case SLAPI_SEARCH_TIMELIMIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			*((int *)value) = pb->pop->ors_tlimit;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			*((int *)value) = pb->pb_op->ors_tlimit;
 		else
 			*((int *)value) = 0;
 		break;
 	case SLAPI_SEARCH_FILTER:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			*((Slapi_Filter **)value) = pb->pop->ors_filter;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			*((Slapi_Filter **)value) = pb->pb_op->ors_filter;
 		else
 			*((Slapi_Filter **)value) = NULL;
 		break;
 	case SLAPI_SEARCH_STRFILTER:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			*((char **)value) = pb->pop->ors_filterstr.bv_val;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			*((char **)value) = pb->pb_op->ors_filterstr.bv_val;
 		else
 			*((char **)value) = NULL;
 		break;
@@ -647,69 +646,69 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		char **attrs = NULL;
 
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag != LDAP_REQ_SEARCH ) {
+		if ( pb->pb_op->o_tag != LDAP_REQ_SEARCH ) {
 			rc = PBLOCK_ERROR;
 			break;
 		}
 		pblock_get_default( pb, param, (void **)&attrs );
-		if ( attrs == NULL && pb->internal_op == 0 ) {
-			attrs = anlist2charray_x( pb->pop->ors_attrs, 0, pb->pop->o_tmpmemctx );
+		if ( attrs == NULL && pb->pb_intop == 0 ) {
+			attrs = anlist2charray_x( pb->pb_op->ors_attrs, 0, pb->pb_op->o_tmpmemctx );
 			pblock_set_default( pb, param, (void *)attrs );
 		}
 		*((char ***)attrs) = attrs;
 	}
 	case SLAPI_SEARCH_ATTRSONLY:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			*((int *)value) = pb->pop->ors_attrsonly;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			*((int *)value) = pb->pb_op->ors_attrsonly;
 		else
 			*((int *)value) = 0;
 		break;
 	case SLAPI_SEARCH_RESULT_ENTRY:
-		*((Slapi_Entry **)value) = pb->rs.sr_entry;
+		*((Slapi_Entry **)value) = pb->pb_rs.sr_entry;
 		break;
 	case SLAPI_BIND_RET_SASLCREDS:
-		*((struct berval **)value) = pb->rs.sr_sasldata;
+		*((struct berval **)value) = pb->pb_rs.sr_sasldata;
 		break;
 	case SLAPI_EXT_OP_REQ_OID:
-		*((const char **)value) = pb->pop->ore_reqoid.bv_val;
+		*((const char **)value) = pb->pb_op->ore_reqoid.bv_val;
 		break;
 	case SLAPI_EXT_OP_REQ_VALUE:
-		*((struct berval **)value) = pb->pop->ore_reqdata;
+		*((struct berval **)value) = pb->pb_op->ore_reqdata;
 		break;
 	case SLAPI_EXT_OP_RET_OID:
-		*((const char **)value) = pb->rs.sr_rspoid;
+		*((const char **)value) = pb->pb_rs.sr_rspoid;
 		break;
 	case SLAPI_EXT_OP_RET_VALUE:
-		*((struct berval **)value) = pb->rs.sr_rspdata;
+		*((struct berval **)value) = pb->pb_rs.sr_rspdata;
 		break;
 	case SLAPI_BIND_METHOD:
-		if ( pb->pop->o_tag == LDAP_REQ_BIND )
-			*((int *)value) = pb->pop->orb_method;
+		if ( pb->pb_op->o_tag == LDAP_REQ_BIND )
+			*((int *)value) = pb->pb_op->orb_method;
 		else
 			*((int *)value) = 0;
 		break;
 	case SLAPI_BIND_CREDENTIALS:
-		if ( pb->pop->o_tag == LDAP_REQ_BIND )
-			*((struct berval **)value) = &pb->pop->orb_cred;
+		if ( pb->pb_op->o_tag == LDAP_REQ_BIND )
+			*((struct berval **)value) = &pb->pb_op->orb_cred;
 		else
 			*value = NULL;
 		break;
 	case SLAPI_COMPARE_TYPE:
-		if ( pb->pop->o_tag == LDAP_REQ_COMPARE )
-			*((char **)value) = pb->pop->orc_ava->aa_desc->ad_cname.bv_val;
+		if ( pb->pb_op->o_tag == LDAP_REQ_COMPARE )
+			*((char **)value) = pb->pb_op->orc_ava->aa_desc->ad_cname.bv_val;
 		else
 			*value = NULL;
 		break;
 	case SLAPI_COMPARE_VALUE:
-		if ( pb->pop->o_tag == LDAP_REQ_COMPARE )
-			*((struct berval **)value) = &pb->pop->orc_ava->aa_value;
+		if ( pb->pb_op->o_tag == LDAP_REQ_COMPARE )
+			*((struct berval **)value) = &pb->pb_op->orc_ava->aa_value;
 		else
 			*value = NULL;
 		break;
 	case SLAPI_ABANDON_MSGID:
-		if ( pb->pop->o_tag == LDAP_REQ_ABANDON )
-			*((int *)value) = pb->pop->orn_msgid;
+		if ( pb->pb_op->o_tag == LDAP_REQ_ABANDON )
+			*((int *)value) = pb->pb_op->orn_msgid;
 		else
 			*((int *)value) = 0;
 		break;
@@ -774,23 +773,23 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 
 	switch ( param ) {
 	case SLAPI_OPERATION:
-		pb->pop = (Operation *)value;
+		pb->pb_op = (Operation *)value;
 		break;
 	case SLAPI_OPINITIATED_TIME:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pop->o_time = *((long *)value);
+		pb->pb_op->o_time = *((long *)value);
 		break;
 	case SLAPI_OPERATION_ID:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pop->o_opid = *((long *)value);
+		pb->pb_op->o_opid = *((long *)value);
 		break;
 	case SLAPI_OPERATION_TYPE:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pop->o_tag = *((ber_tag_t *)value);
+		pb->pb_op->o_tag = *((ber_tag_t *)value);
 		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pop->o_ctrls = (LDAPControl **)value;
+		pb->pb_op->o_ctrls = (LDAPControl **)value;
 		break;
 	case SLAPI_RESCONTROLS: {
 		LDAPControl **ctrls = NULL;
@@ -809,62 +808,62 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_REQUESTOR_DN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		rc = pblock_set_dn( value, &pb->pop->o_dn, &pb->pop->o_ndn, pb->pop->o_tmpmemctx );
+		rc = pblock_set_dn( value, &pb->pb_op->o_dn, &pb->pb_op->o_ndn, pb->pb_op->o_tmpmemctx );
 		break;
 	case SLAPI_MANAGEDSAIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pop->o_managedsait = *((int *)value);
+		pb->pb_op->o_managedsait = *((int *)value);
 		break;
 	case SLAPI_BACKEND:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pop->o_bd = (BackendDB *)value;
+		pb->pb_op->o_bd = (BackendDB *)value;
 		break;
 	case SLAPI_CONNECTION:
-		pb->pconn = (Connection *)value;
+		pb->pb_conn = (Connection *)value;
 		break;
 	case SLAPI_X_CONN_SSF:
 		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
-		pb->pconn->c_ssf = (slap_ssf_t)value;
+		pb->pb_conn->c_ssf = (slap_ssf_t)value;
 		PBLOCK_UNLOCK_CONN( pb );
 		break;
 	case SLAPI_X_CONN_SASL_CONTEXT:
 		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
-		pb->pconn->c_sasl_authctx = value;
+		pb->pb_conn->c_sasl_authctx = value;
 		PBLOCK_UNLOCK_CONN( pb );
 		break;
 	case SLAPI_TARGET_DN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		rc = pblock_set_dn( value, &pb->pop->o_req_dn, &pb->pop->o_req_ndn, pb->pop->o_tmpmemctx );
+		rc = pblock_set_dn( value, &pb->pb_op->o_req_dn, &pb->pb_op->o_req_ndn, pb->pb_op->o_tmpmemctx );
 		break;
 	case SLAPI_CONN_ID:
 		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
-		pb->pconn->c_connid = *((long *)value);
+		pb->pb_conn->c_connid = *((long *)value);
 		PBLOCK_UNLOCK_CONN( pb );
 		break;
 	case SLAPI_CONN_DN:
 		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
-		rc = pblock_set_dn( value, &pb->pconn->c_dn, &pb->pconn->c_ndn, NULL );
+		rc = pblock_set_dn( value, &pb->pb_conn->c_dn, &pb->pb_conn->c_ndn, NULL );
 		PBLOCK_UNLOCK_CONN( pb );
 		break;
 	case SLAPI_RESULT_CODE:
 	case SLAPI_PLUGIN_INTOP_RESULT:
-		pb->rs.sr_err = *((int *)value);
+		pb->pb_rs.sr_err = *((int *)value);
 		break;
 	case SLAPI_RESULT_TEXT:
-		snprintf( pb->textbuf, sizeof( pb->textbuf ), "%s", (char *)value );
-		pb->rs.sr_text = pb->textbuf;
+		snprintf( pb->pb_textbuf, sizeof( pb->pb_textbuf ), "%s", (char *)value );
+		pb->pb_rs.sr_text = pb->pb_textbuf;
 		break;
 	case SLAPI_RESULT_MATCHED:
-		pb->rs.sr_matched = (char *)value; /* XXX should dup? */
+		pb->pb_rs.sr_matched = (char *)value; /* XXX should dup? */
 		break;
 	case SLAPI_ADD_ENTRY:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_ADD ) {
-			pb->pop->ora_e = (Slapi_Entry *)value;
+		if ( pb->pb_op->o_tag == LDAP_REQ_ADD ) {
+			pb->pb_op->ora_e = (Slapi_Entry *)value;
 		} else {
 			rc = PBLOCK_ERROR;
 		}
@@ -878,16 +877,16 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			break;
 		}
 
-		if ( pb->pop->o_tag == LDAP_REQ_MODIFY ) {
-			mlp = &pb->pop->orm_modlist;
-		} else if ( pb->pop->o_tag == LDAP_REQ_ADD ) {
-			mlp = &pb->pop->ora_modlist;
+		if ( pb->pb_op->o_tag == LDAP_REQ_MODIFY ) {
+			mlp = &pb->pb_op->orm_modlist;
+		} else if ( pb->pb_op->o_tag == LDAP_REQ_ADD ) {
+			mlp = &pb->pb_op->ora_modlist;
 		} else {
 			break;
 		}
 
 		if ( *mlp != NULL ) {
-			if ( pb->internal_op )
+			if ( pb->pb_intop )
 				slapi_int_mods_free( *mlp ); /* caller owns values */
 			else
 				slap_mods_free( *mlp );	 /* we own values */
@@ -899,9 +898,9 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_MODRDN_NEWRDN:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
-		if ( pb->pop->o_tag == LDAP_REQ_MODRDN ) {
-			rc = pblock_set_dn( value, &pb->pop->orr_newrdn, &pb->pop->orr_nnewrdn, pb->pop->o_tmpmemctx );
-			if ( rc == LDAP_SUCCESS ) rc = rdn_validate( &pb->pop->orr_nnewrdn );
+		if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN ) {
+			rc = pblock_set_dn( value, &pb->pb_op->orr_newrdn, &pb->pb_op->orr_nnewrdn, pb->pb_op->o_tmpmemctx );
+			if ( rc == LDAP_SUCCESS ) rc = rdn_validate( &pb->pb_op->orr_nnewrdn );
 		} else {
 			rc = PBLOCK_ERROR;
 		}
@@ -909,26 +908,26 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_MODRDN_NEWSUPERIOR:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
-		if ( pb->pop->o_tag == LDAP_REQ_MODRDN ) {
+		if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN ) {
 			if ( value == NULL ) {
-				if ( pb->pop->orr_newSup != NULL ) {
-					pb->pop->o_tmpfree( pb->pop->orr_newSup, pb->pop->o_tmpmemctx );
-					pb->pop->orr_newSup = NULL;
+				if ( pb->pb_op->orr_newSup != NULL ) {
+					pb->pb_op->o_tmpfree( pb->pb_op->orr_newSup, pb->pb_op->o_tmpmemctx );
+					pb->pb_op->orr_newSup = NULL;
 				}
-				if ( pb->pop->orr_newSup != NULL ) {
-					pb->pop->o_tmpfree( pb->pop->orr_nnewSup, pb->pop->o_tmpmemctx );
-					pb->pop->orr_nnewSup = NULL;
+				if ( pb->pb_op->orr_newSup != NULL ) {
+					pb->pb_op->o_tmpfree( pb->pb_op->orr_nnewSup, pb->pb_op->o_tmpmemctx );
+					pb->pb_op->orr_nnewSup = NULL;
 				}
 			} else {
-				if ( pb->pop->orr_newSup == NULL ) {
-					pb->pop->orr_newSup = (struct berval *)pb->pop->o_tmpalloc(
-						sizeof(struct berval), pb->pop->o_tmpmemctx );
+				if ( pb->pb_op->orr_newSup == NULL ) {
+					pb->pb_op->orr_newSup = (struct berval *)pb->pb_op->o_tmpalloc(
+						sizeof(struct berval), pb->pb_op->o_tmpmemctx );
 				}
-				if ( pb->pop->orr_nnewSup == NULL ) {
-					pb->pop->orr_nnewSup = (struct berval *)pb->pop->o_tmpalloc(
-						sizeof(struct berval), pb->pop->o_tmpmemctx );
+				if ( pb->pb_op->orr_nnewSup == NULL ) {
+					pb->pb_op->orr_nnewSup = (struct berval *)pb->pb_op->o_tmpalloc(
+						sizeof(struct berval), pb->pb_op->o_tmpmemctx );
 				}
-				rc = pblock_set_dn( value, pb->pop->orr_newSup, pb->pop->orr_nnewSup, pb->pop->o_tmpmemctx );
+				rc = pblock_set_dn( value, pb->pb_op->orr_newSup, pb->pb_op->orr_nnewSup, pb->pb_op->o_tmpmemctx );
 			}
 		} else {
 			rc = PBLOCK_ERROR;
@@ -937,8 +936,8 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_MODRDN_DELOLDRDN:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
-		if ( pb->pop->o_tag == LDAP_REQ_MODRDN )
-			pb->pop->orr_deleteoldrdn = *((int *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN )
+			pb->pb_op->orr_deleteoldrdn = *((int *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
@@ -946,7 +945,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		int scope = *((int *)value);
 
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH ) {
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH ) {
 			switch ( *((int *)value) ) {
 			case LDAP_SCOPE_BASE:
 			case LDAP_SCOPE_ONELEVEL:
@@ -954,7 +953,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 #ifdef LDAP_SCOPE_SUBORDINATE
 			case LDAP_SCOPE_SUBORDINATE:
 #endif
-				pb->pop->ors_scope = scope;
+				pb->pb_op->ors_scope = scope;
 				break;
 			default:
 				rc = PBLOCK_ERROR;
@@ -967,37 +966,37 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	}
 	case SLAPI_SEARCH_DEREF:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			pb->pop->ors_deref = *((int *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			pb->pb_op->ors_deref = *((int *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_SEARCH_SIZELIMIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			pb->pop->ors_slimit = *((int *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			pb->pb_op->ors_slimit = *((int *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_SEARCH_TIMELIMIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			pb->pop->ors_tlimit = *((int *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			pb->pb_op->ors_tlimit = *((int *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_SEARCH_FILTER:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			pb->pop->ors_filter = (Slapi_Filter *)value;
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			pb->pb_op->ors_filter = (Slapi_Filter *)value;
 		else
 			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_SEARCH_STRFILTER:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH ) {
-			pb->pop->ors_filterstr.bv_val = (char *)value;
-			pb->pop->ors_filterstr.bv_len = strlen((char *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH ) {
+			pb->pb_op->ors_filterstr.bv_val = (char *)value;
+			pb->pb_op->ors_filterstr.bv_len = strlen((char *)value);
 		} else {
 			rc = PBLOCK_ERROR;
 		}
@@ -1010,7 +1009,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag != LDAP_REQ_SEARCH ) {
+		if ( pb->pb_op->o_tag != LDAP_REQ_SEARCH ) {
 			rc = PBLOCK_ERROR;
 			break;
 		}
@@ -1019,54 +1018,54 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		if ( rc != PBLOCK_SUCCESS ) {
 			break;
 		}
-		if ( pb->pop->ors_attrs != NULL ) {
-			pb->pop->o_tmpfree( pb->pop->ors_attrs, pb->pop->o_tmpmemctx );
-			pb->pop->ors_attrs = NULL;
+		if ( pb->pb_op->ors_attrs != NULL ) {
+			pb->pb_op->o_tmpfree( pb->pb_op->ors_attrs, pb->pb_op->o_tmpmemctx );
+			pb->pb_op->ors_attrs = NULL;
 		}
 		if ( attrs != NULL ) {
 			for ( i = 0; attrs[i] != NULL; i++ )
 				;
 		}
 		if ( i ) {
-			an = (AttributeName *)pb->pop->o_tmpalloc( (i + 1) *
-				sizeof(AttributeName), pb->pop->o_tmpmemctx );
+			an = (AttributeName *)pb->pb_op->o_tmpalloc( (i + 1) *
+				sizeof(AttributeName), pb->pb_op->o_tmpmemctx );
 			for ( i = 0; attrs[i] != NULL; i++ ) {
 				an[i].an_desc = NULL;
 				an[i].an_oc = NULL;
 				an[i].an_oc_exclude = 0;
 				an[i].an_name.bv_val = attrs[i];
 				an[i].an_name.bv_len = strlen( attrs[i] );
-				slap_bv2ad( &an[i].an_name, &an[i].an_desc, &pb->rs.sr_text );
+				slap_bv2ad( &an[i].an_name, &an[i].an_desc, &pb->pb_rs.sr_text );
 			}
 			an[i].an_name.bv_val = NULL;
 			an[i].an_name.bv_len = 0;
 		}	
-		pb->pop->ors_attrs = an;
+		pb->pb_op->ors_attrs = an;
 		break;
 	}
 	case SLAPI_SEARCH_ATTRSONLY:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
-			pb->pop->ors_attrsonly = *((int *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
+			pb->pb_op->ors_attrsonly = *((int *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_SEARCH_RESULT_ENTRY:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->rs.sr_entry = (Slapi_Entry *)value;
+		pb->pb_rs.sr_entry = (Slapi_Entry *)value;
 		break;
 	case SLAPI_BIND_RET_SASLCREDS:
-		pb->rs.sr_sasldata = (struct berval *)value;
+		pb->pb_rs.sr_sasldata = (struct berval *)value;
 		break;
 	case SLAPI_EXT_OP_REQ_OID:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_EXTENDED ) {
-			pb->pop->ore_reqoid.bv_val = (char *)value;
-			pb->pop->ore_reqoid.bv_len = strlen((char *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_EXTENDED ) {
+			pb->pb_op->ore_reqoid.bv_val = (char *)value;
+			pb->pb_op->ore_reqoid.bv_len = strlen((char *)value);
 		} else {
 			rc = PBLOCK_ERROR;
 		}
@@ -1075,23 +1074,23 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_EXTENDED )
-			pb->pop->ore_reqdata = (struct berval *)value;
+		if ( pb->pb_op->o_tag == LDAP_REQ_EXTENDED )
+			pb->pb_op->ore_reqdata = (struct berval *)value;
 		else
 			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_EXT_OP_RET_OID:
-		pb->rs.sr_rspoid = (char *)value;
+		pb->pb_rs.sr_rspoid = (char *)value;
 		break;
 	case SLAPI_EXT_OP_RET_VALUE:
-		pb->rs.sr_rspdata = (struct berval *)value;
+		pb->pb_rs.sr_rspdata = (struct berval *)value;
 		break;
 	case SLAPI_BIND_METHOD:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_BIND )
-			pb->pop->orb_method = *((int *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_BIND )
+			pb->pb_op->orb_method = *((int *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
@@ -1099,8 +1098,8 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_BIND )
-			pb->pop->orb_cred = *((struct berval *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_BIND )
+			pb->pb_op->orb_cred = *((struct berval *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
@@ -1108,11 +1107,11 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_COMPARE ) {
+		if ( pb->pb_op->o_tag == LDAP_REQ_COMPARE ) {
 			const char *text;
 
-			pb->pop->orc_ava->aa_desc = NULL;
-			rc = slap_str2ad( (char *)value, &pb->pop->orc_ava->aa_desc, &text );
+			pb->pb_op->orc_ava->aa_desc = NULL;
+			rc = slap_str2ad( (char *)value, &pb->pb_op->orc_ava->aa_desc, &text );
 		} else {
 			rc = PBLOCK_ERROR;
 		}
@@ -1121,8 +1120,8 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_COMPARE )
-			pb->pop->orc_ava->aa_value = *((struct berval *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_COMPARE )
+			pb->pb_op->orc_ava->aa_value = *((struct berval *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
@@ -1130,8 +1129,8 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_ABANDON)
-			pb->pop->orn_msgid = *((int *)value);
+		if ( pb->pb_op->o_tag == LDAP_REQ_ABANDON)
+			pb->pb_op->orn_msgid = *((int *)value);
 		else
 			rc = PBLOCK_ERROR;
 		break;
@@ -1160,7 +1159,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 static void
 pblock_clear( Slapi_PBlock *pb ) 
 {
-	pb->numParams = 1;
+	pb->pb_nParams = 1;
 }
 
 static int
@@ -1170,23 +1169,23 @@ pblock_delete_param( Slapi_PBlock *p, int param )
 
 	pblock_lock(p);
 
-	for ( i = 0; i < p->numParams; i++ ) { 
-		if ( p->curParams[i] == param ) {
+	for ( i = 0; i < p->pb_nParams; i++ ) { 
+		if ( p->pb_params[i] == param ) {
 			break;
 		}
 	}
     
-	if (i >= p->numParams ) {
+	if (i >= p->pb_nParams ) {
 		pblock_unlock( p );
 		return PBLOCK_ERROR;
 	}
 
 	/* move last parameter to index of deleted parameter */
-	if ( p->numParams > 1 ) {
-		p->curParams[i] = p->curParams[p->numParams - 1];
-		p->curVals[i] = p->curVals[p->numParams - 1];
+	if ( p->pb_nParams > 1 ) {
+		p->pb_params[i] = p->pb_params[p->pb_nParams - 1];
+		p->pb_values[i] = p->pb_values[p->pb_nParams - 1];
 	}
-	p->numParams--;
+	p->pb_nParams--;
 
 	pblock_unlock( p );	
 
@@ -1200,15 +1199,14 @@ slapi_pblock_new(void)
 
 	pb = (Slapi_PBlock *) ch_calloc( 1, sizeof(Slapi_PBlock) );
 	if ( pb != NULL ) {
-		ldap_pvt_thread_mutex_init( &pb->pblockMutex );
-		memset( pb->curParams, 0, sizeof(pb->curParams) );
-		memset( pb->curVals, 0, sizeof(pb->curVals) );
-		pb->curParams[0] = SLAPI_IBM_PBLOCK;
-		pb->curVals[0].pv_pointer = NULL;
-		pb->numParams = 1;
-		pb->pconn = NULL;
-		pb->pop = NULL;
-		pb->internal_op = 0;
+		ldap_pvt_thread_mutex_init( &pb->pb_mutex );
+
+		pb->pb_params[0] = SLAPI_IBM_PBLOCK;
+		pb->pb_values[0].pv_pointer = NULL;
+		pb->pb_nParams = 1;
+		pb->pb_conn = NULL;
+		pb->pb_op = NULL;
+		pb->pb_intop = 0;
 	}
 	return pb;
 }
@@ -1227,7 +1225,7 @@ pblock_destroy( Slapi_PBlock *pb )
 		ldap_controls_free( controls );
 	}
 
-	if ( pb->internal_op ) {
+	if ( pb->pb_intop ) {
 		slapi_int_connection_done_pb( pb );
 	} else {
 		pblock_get_default( pb, SLAPI_MODIFY_MODS, (void **)&mods );
@@ -1236,10 +1234,10 @@ pblock_destroy( Slapi_PBlock *pb )
 
 		pblock_get_default( pb, SLAPI_SEARCH_ATTRS, (void **)&attrs );
 		if ( attrs != NULL )
-			pb->pop->o_tmpfree( attrs, pb->pop->o_tmpmemctx );
+			pb->pb_op->o_tmpfree( attrs, pb->pb_op->o_tmpmemctx );
 	}
 
-	ldap_pvt_thread_mutex_destroy( &pb->pblockMutex );
+	ldap_pvt_thread_mutex_destroy( &pb->pb_mutex );
 	slapi_ch_free( (void **)&pb ); 
 }
 

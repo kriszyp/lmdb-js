@@ -165,9 +165,9 @@ slapi_int_get_ctrls( Slapi_PBlock *pb )
 	LDAPControl		**c;
 	int			rc = LDAP_SUCCESS;
 
-	if ( pb->pop->o_ctrls != NULL ) {
-		for ( c = pb->pop->o_ctrls; *c != NULL; c++ ) {
-			rc = slap_parse_ctrl( pb->pop, &pb->rs, *c, &pb->rs.sr_text );
+	if ( pb->pb_op->o_ctrls != NULL ) {
+		for ( c = pb->pb_op->o_ctrls; *c != NULL; c++ ) {
+			rc = slap_parse_ctrl( pb->pb_op, &pb->pb_rs, *c, &pb->pb_rs.sr_text );
 			if ( rc != LDAP_SUCCESS )
 				break;
 		}
@@ -277,9 +277,9 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 	op->o_connid = conn->c_connid;
 	op->o_bd = frontendDB;
 
-	pb->pop = op;
-	pb->pconn = conn;
-	pb->internal_op = 1;
+	pb->pb_op = op;
+	pb->pb_conn = conn;
+	pb->pb_intop = 1;
 
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 }
@@ -288,7 +288,7 @@ static void
 slapi_int_set_operation_dn( Slapi_PBlock *pb )
 {
 	Backend			*be;
-	Operation		*op = pb->pop;
+	Operation		*op = pb->pb_op;
 
 	if ( BER_BVISNULL( &op->o_ndn ) ) {
 		/* set to root DN */
@@ -308,8 +308,8 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 
 	PBLOCK_ASSERT_INTOP( pb, 0 );
 
-	conn = pb->pconn;
-	op = pb->pop;
+	conn = pb->pb_conn;
+	op = pb->pb_op;
 
 	/* free allocated DNs */
 	if ( !BER_BVISNULL( &op->o_dn ) )
@@ -363,16 +363,16 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 		ber_sockbuf_free( conn->c_sb );
 	}
 
-	slapi_ch_free( (void **)&pb->pop->o_callback );
-	slapi_ch_free( (void **)&pb->pop );
-	slapi_ch_free( (void **)&pb->pconn );
+	slapi_ch_free( (void **)&pb->pb_op->o_callback );
+	slapi_ch_free( (void **)&pb->pb_op );
+	slapi_ch_free( (void **)&pb->pb_conn );
 }
 
 static int
 slapi_int_func_internal_pb( Slapi_PBlock *pb, slap_operation_t which )
 {
 	BI_op_bind		**func;
-	SlapReply		*rs = &pb->rs;
+	SlapReply		*rs = &pb->pb_rs;
 	int			rc;
 
 	PBLOCK_ASSERT_INTOP( pb, 0 );
@@ -383,9 +383,9 @@ slapi_int_func_internal_pb( Slapi_PBlock *pb, slap_operation_t which )
 		return rc;
 	}
 
-	func = &pb->pop->o_bd->be_bind;
+	func = &pb->pb_op->o_bd->be_bind;
 
-	return func[which]( pb->pop, &pb->rs );
+	return func[which]( pb->pb_op, &pb->pb_rs );
 }
 
 int
@@ -398,7 +398,7 @@ slapi_delete_internal_pb( Slapi_PBlock *pb )
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_DELETE );
 
 	slapi_int_func_internal_pb( pb, op_delete );
-	slap_graduate_commit_csn( pb->pop );
+	slap_graduate_commit_csn( pb->pb_op );
 
 	return 0;
 }
@@ -415,21 +415,21 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_ADD );
 
-	rs = &pb->rs;
+	rs = &pb->pb_rs;
 
-	entry_orig = pb->pop->ora_e;
-	pb->pop->ora_e = NULL;
+	entry_orig = pb->pb_op->ora_e;
+	pb->pb_op->ora_e = NULL;
 
 	if ( entry_orig != NULL ) {
-		if ( pb->pop->ora_modlist != NULL || !BER_BVISNULL( &pb->pop->o_req_ndn )) {
+		if ( pb->pb_op->ora_modlist != NULL || !BER_BVISNULL( &pb->pb_op->o_req_ndn )) {
 			rs->sr_err = LDAP_PARAM_ERROR;
 			goto cleanup;
 		}
 
-		assert( BER_BVISNULL( &pb->pop->o_req_dn ) ); /* shouldn't get set */
-		ber_dupbv( &pb->pop->o_req_dn, &entry_orig->e_name );
-		ber_dupbv( &pb->pop->o_req_ndn, &entry_orig->e_nname );
-	} else if ( pb->pop->ora_modlist == NULL || BER_BVISNULL( &pb->pop->o_req_ndn )) {
+		assert( BER_BVISNULL( &pb->pb_op->o_req_dn ) ); /* shouldn't get set */
+		ber_dupbv( &pb->pb_op->o_req_dn, &entry_orig->e_name );
+		ber_dupbv( &pb->pb_op->o_req_ndn, &entry_orig->e_nname );
+	} else if ( pb->pb_op->ora_modlist == NULL || BER_BVISNULL( &pb->pb_op->o_req_ndn )) {
 		rs->sr_err = LDAP_PARAM_ERROR;
 		goto cleanup;
 	}
@@ -438,53 +438,53 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 	 * The caller can specify a new entry, or a target DN and set
 	 * of modifications, but not both.
 	 */
-	pb->pop->ora_e = (Entry *)slapi_ch_calloc( 1, sizeof(Entry) );
-	ber_dupbv( &pb->pop->ora_e->e_name,  &pb->pop->o_req_dn );
-	ber_dupbv( &pb->pop->ora_e->e_nname, &pb->pop->o_req_ndn );
+	pb->pb_op->ora_e = (Entry *)slapi_ch_calloc( 1, sizeof(Entry) );
+	ber_dupbv( &pb->pb_op->ora_e->e_name,  &pb->pb_op->o_req_dn );
+	ber_dupbv( &pb->pb_op->ora_e->e_nname, &pb->pb_op->o_req_ndn );
 
 	if ( entry_orig != NULL ) {
-		assert( pb->pop->ora_modlist == NULL );
+		assert( pb->pb_op->ora_modlist == NULL );
 
-		rs->sr_err = slap_entry2mods( entry_orig, &pb->pop->ora_modlist,
-			&rs->sr_text, pb->textbuf, sizeof( pb->textbuf ) );
+		rs->sr_err = slap_entry2mods( entry_orig, &pb->pb_op->ora_modlist,
+			&rs->sr_text, pb->pb_textbuf, sizeof( pb->pb_textbuf ) );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			goto cleanup;
 		}
 	} else {
-		assert( pb->pop->ora_modlist != NULL );
+		assert( pb->pb_op->ora_modlist != NULL );
 	}
 
-	rs->sr_err = slap_mods_check( pb->pop->ora_modlist, &rs->sr_text,
-		pb->textbuf, sizeof( pb->textbuf ), NULL );
+	rs->sr_err = slap_mods_check( pb->pb_op->ora_modlist, &rs->sr_text,
+		pb->pb_textbuf, sizeof( pb->pb_textbuf ), NULL );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
                 goto cleanup;
         }
 
 	if ( slapi_int_func_internal_pb( pb, op_add ) == 0 ) {
-		if ( pb->pop->ora_e != NULL && pb->pop->o_private != NULL ) {
-			BackendDB	*bd = pb->pop->o_bd;
+		if ( pb->pb_op->ora_e != NULL && pb->pb_op->o_private != NULL ) {
+			BackendDB	*bd = pb->pb_op->o_bd;
 
 			/* could we use SLAPI_BACKEND instead? */
-			pb->pop->o_bd = (BackendDB *)pb->pop->o_private;
-			pb->pop->o_private = NULL;
-			be_entry_release_w( pb->pop, pb->pop->ora_e );
-			pb->pop->ora_e = NULL;
-			pb->pop->o_bd = bd;
-			pb->pop->o_private = NULL;
+			pb->pb_op->o_bd = (BackendDB *)pb->pb_op->o_private;
+			pb->pb_op->o_private = NULL;
+			be_entry_release_w( pb->pb_op, pb->pb_op->ora_e );
+			pb->pb_op->ora_e = NULL;
+			pb->pb_op->o_bd = bd;
+			pb->pb_op->o_private = NULL;
 		}
 	}
 
 cleanup:
-	slap_graduate_commit_csn( pb->pop );
+	slap_graduate_commit_csn( pb->pb_op );
 
-	if ( pb->pop->ora_e != NULL ) {
-		slapi_entry_free( pb->pop->ora_e );
-		pb->pop->ora_e = NULL;
+	if ( pb->pb_op->ora_e != NULL ) {
+		slapi_entry_free( pb->pb_op->ora_e );
+		pb->pb_op->ora_e = NULL;
 	}
 	if ( entry_orig != NULL ) {
-		pb->pop->ora_e = entry_orig;
-		slapi_int_mods_free( pb->pop->ora_modlist );
-		pb->pop->ora_modlist = NULL;
+		pb->pb_op->ora_e = entry_orig;
+		slapi_int_mods_free( pb->pb_op->ora_modlist );
+		pb->pb_op->ora_modlist = NULL;
 	}
 
 	return 0;
@@ -499,15 +499,15 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_MODRDN );
 
-	if ( BER_BVISEMPTY( &pb->pop->o_req_ndn ) ) {
-		pb->rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
+	if ( BER_BVISEMPTY( &pb->pb_op->o_req_ndn ) ) {
+		pb->pb_rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 		goto cleanup;
 	}
 
 	slapi_int_func_internal_pb( pb, op_modrdn );
 
 cleanup:
-	slap_graduate_commit_csn( pb->pop );
+	slap_graduate_commit_csn( pb->pb_op );
 
 	return 0;
 }
@@ -523,20 +523,20 @@ slapi_modify_internal_pb( Slapi_PBlock *pb )
 
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_MODIFY );
 
-	rs = &pb->rs;
+	rs = &pb->pb_rs;
 
-	if ( pb->pop->orm_modlist == NULL ) {
+	if ( pb->pb_op->orm_modlist == NULL ) {
 		rs->sr_err = LDAP_PARAM_ERROR;
 		goto cleanup;
 	}
 
-	if ( BER_BVISEMPTY( &pb->pop->o_req_ndn ) ) {
+	if ( BER_BVISEMPTY( &pb->pb_op->o_req_ndn ) ) {
 		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_check( pb->pop->orm_modlist,
-		&rs->sr_text, pb->textbuf, sizeof( pb->textbuf ), NULL );
+	rs->sr_err = slap_mods_check( pb->pb_op->orm_modlist,
+		&rs->sr_text, pb->pb_textbuf, sizeof( pb->pb_textbuf ), NULL );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
                 goto cleanup;
         }
@@ -544,7 +544,7 @@ slapi_modify_internal_pb( Slapi_PBlock *pb )
 	slapi_int_func_internal_pb( pb, op_modify );
 
 cleanup:
-	slap_graduate_commit_csn( pb->pop );
+	slap_graduate_commit_csn( pb->pb_op );
 
 	return 0;
 }
@@ -618,7 +618,7 @@ slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_SEARCH );
 
-	rs = &pb->rs;
+	rs = &pb->pb_rs;
 
 	/* search callback and arguments */
 	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK,         (void *)prc );
@@ -626,14 +626,14 @@ slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 	slapi_pblock_set( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, (void *)prec );
 	slapi_pblock_set( pb, SLAPI_X_INTOP_CALLBACK_DATA,           (void *)callback_data );
 
-	if ( BER_BVISEMPTY( &pb->pop->ors_filterstr )) {
+	if ( BER_BVISEMPTY( &pb->pb_op->ors_filterstr )) {
 		rs->sr_err = LDAP_PARAM_ERROR;
 		goto cleanup;
 	}
 
-	if ( pb->pop->ors_filter == NULL ) {
-		pb->pop->ors_filter = slapi_str2filter( pb->pop->ors_filterstr.bv_val );
-		if ( pb->pop->ors_filter == NULL ) {
+	if ( pb->pb_op->ors_filter == NULL ) {
+		pb->pb_op->ors_filter = slapi_str2filter( pb->pb_op->ors_filterstr.bv_val );
+		if ( pb->pb_op->ors_filter == NULL ) {
 			rs->sr_err = LDAP_PROTOCOL_ERROR;
 			goto cleanup;
 		}
@@ -645,8 +645,8 @@ slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 
 cleanup:
 	if ( free_filter ) {
-		slapi_filter_free( pb->pop->ors_filter, 1 );
-		pb->pop->ors_filter = NULL;
+		slapi_filter_free( pb->pb_op->ors_filter, 1 );
+		pb->pb_op->ors_filter = NULL;
 	}
 
 	slapi_pblock_delete_param( pb, SLAPI_X_INTOP_RESULT_CALLBACK );

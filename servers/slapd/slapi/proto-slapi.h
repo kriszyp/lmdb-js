@@ -48,20 +48,20 @@ LDAP_SLAPI_F (int) slapi_int_pblock_get_next LDAP_P(( Slapi_PBlock **pb ));
 
 #define PBLOCK_ASSERT_CONN( _pb ) do { \
 		assert( (_pb) != NULL ); \
-		assert( (_pb)->pconn != NULL ); \
+		assert( (_pb)->pb_conn != NULL ); \
 	} while (0)
 
 #define PBLOCK_ASSERT_OP( _pb, _tag ) do { \
 		PBLOCK_ASSERT_CONN( _pb ); \
-		assert( (_pb)->pop != NULL ); \
+		assert( (_pb)->pb_op != NULL ); \
 		if ( _tag != 0 ) \
-			assert( (_pb)->pop->o_tag == (_tag)); \
+			assert( (_pb)->pb_op->o_tag == (_tag)); \
 	} while (0)
 	
 #define PBLOCK_ASSERT_INTOP( _pb, _tag ) do { \
 		PBLOCK_ASSERT_OP( _pb, _tag ); \
-		assert( (_pb)->internal_op ); \
-		assert( pb->pop == (Operation *)pb->pconn->c_pending_ops.stqh_first ); \
+		assert( (_pb)->pb_intop ); \
+		assert( (_pb)->pb_op == (Operation *)pb->pb_conn->c_pending_ops.stqh_first ); \
 	} while (0)
 	
 /* plugin.c */

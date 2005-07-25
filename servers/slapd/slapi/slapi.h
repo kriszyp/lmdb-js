@@ -110,20 +110,20 @@ union slapi_pblock_value {
 	int pv_integer;
 	long pv_long_integer;
 	void *pv_pointer;
-	void (*pv_function_pointer)(void *);
+	int (*pv_function_pointer)();
 };
 
 struct slapi_pblock {
-	ldap_pvt_thread_mutex_t	pblockMutex;
-	int			numParams;
-	int			curParams[PBLOCK_MAX_PARAMS];
-	union slapi_pblock_value curVals[PBLOCK_MAX_PARAMS];
+	ldap_pvt_thread_mutex_t	pb_mutex;
+	int			pb_nParams;
+	int			pb_params[PBLOCK_MAX_PARAMS];
+	union slapi_pblock_value pb_values[PBLOCK_MAX_PARAMS];
 	/* native types */
-	Connection		*pconn;
-	Operation		*pop;
-	SlapReply		rs;
-	int			internal_op;
-	char			textbuf[ SLAP_TEXT_BUFLEN ];
+	Connection		*pb_conn;
+	Operation		*pb_op;
+	SlapReply		pb_rs;
+	int			pb_intop;
+	char			pb_textbuf[ SLAP_TEXT_BUFLEN ];
 };
 
 #endif /* !NO_PBLOCK_CLASS */

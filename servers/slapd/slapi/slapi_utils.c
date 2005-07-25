@@ -462,9 +462,9 @@ slapi_entry_has_children( const Slapi_Entry *e )
 
 	slapi_pblock_set( pb, SLAPI_TARGET_DN, slapi_entry_get_dn( (Entry *)e ) );
 
-	pb->pop->o_bd = select_backend( (struct berval *)&e->e_nname, 0, 0 );
-	if ( pb->pop->o_bd != NULL ) {
-		pb->pop->o_bd->be_has_subordinates( pb->pop, (Entry *)e, &hasSubordinates );
+	pb->pb_op->o_bd = select_backend( (struct berval *)&e->e_nname, 0, 0 );
+	if ( pb->pb_op->o_bd != NULL ) {
+		pb->pb_op->o_bd->be_has_subordinates( pb->pb_op, (Entry *)e, &hasSubordinates );
 	}
 
 	slapi_pblock_destroy( pb );
@@ -591,7 +591,7 @@ slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **val
 	}
 
 	if ( vals[0] == NULL ) {
-		/* SLAPI doco says LDAP_OPERATIONS_ERROR but LDAP_OTHER is better */
+		/* SLAPI doco says LDApb_opERATIONS_ERROR but LDAP_OTHER is better */
 		return attr_delete( &e->e_attrs, mod.sm_desc ) ? LDAP_OTHER : LDAP_SUCCESS;
 	}
 
@@ -925,10 +925,10 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 	struct berval	dn, prettyDN;
 	struct berval	normalizedDN, parentDN;
 
-	if ( pb == NULL || pb->pop == NULL )
+	if ( pb == NULL || pb->pb_op == NULL )
 		return NULL;
 
-	be = pb->pop->o_bd;
+	be = pb->pb_op->o_bd;
 
 	dn.bv_val = (char *)_dn;
 	dn.bv_len = strlen( _dn );
@@ -1297,9 +1297,9 @@ slapi_send_ldap_result(
 {
 	SlapReply	*rs;
 
-	assert( pb->pop != NULL );
+	assert( pb->pb_op != NULL );
 
-	rs = &pb->rs;
+	rs = &pb->pb_rs;
 
 	rs->sr_err = err;
 	rs->sr_matched = matched;
@@ -1307,14 +1307,14 @@ slapi_send_ldap_result(
 	rs->sr_ref = NULL;
 
 	if ( err == LDAP_SASL_BIND_IN_PROGRESS ) {
-		send_ldap_sasl( pb->pop, rs );
+		send_ldap_sasl( pb->pb_op, rs );
 	} else if ( rs->sr_rspoid != NULL ) {
-		send_ldap_extended( pb->pop, rs );
+		send_ldap_extended( pb->pb_op, rs );
 	} else {
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
+		if ( pb->pb_op->o_tag == LDAP_REQ_SEARCH )
 			rs->sr_nentries = nentries;
 
-		send_ldap_result( pb->pop, rs );
+		send_ldap_result( pb->pb_op, rs );
 	}
 }
 
@@ -1332,7 +1332,7 @@ slapi_send_ldap_search_entry(
 	const char		*text;
 	int			rc;
 
-	assert( pb->pop != NULL );
+	assert( pb->pb_op != NULL );
 
 	if ( attrs != NULL ) {
 		for ( i = 0; attrs[ i ] != NULL; i++ ) {
@@ -1367,7 +1367,7 @@ slapi_send_ldap_search_entry(
 	rs.sr_v2ref = NULL;
 	rs.sr_flags = 0;
 
-	rc = send_search_entry( pb->pop, &rs );
+	rc = send_search_entry( pb->pb_op, &rs );
 
 	slapi_ch_free( (void **)&an );
 
@@ -1410,7 +1410,7 @@ slapi_send_ldap_search_reference(
 		rs.sr_v2ref = NULL;
 	}
 
-	rc = send_search_reference( pb->pop, &rs );
+	rc = send_search_reference( pb->pb_op, &rs );
 
 	slapi_ch_free( (void **)&rs.sr_ref );
 	slapi_ch_free( (void **)&rs.sr_v2ref );
@@ -1762,7 +1762,7 @@ slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	}
 
 	if ( verify_access ) {
-		op = pb->pop;
+		op = pb->pb_op;
 		if ( op == NULL )
 			return LDAP_PARAM_ERROR;
 	} else {
@@ -2008,11 +2008,11 @@ int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
 	if ( pb == NULL )
 		return LDAP_PARAM_ERROR;
 
-	if ( pb->pconn == NULL )
+	if ( pb->pb_conn == NULL )
 		return LDAP_PARAM_ERROR;
 
 #ifdef HAVE_TLS
-	*isSSL = pb->pconn->c_is_tls;
+	*isSSL = pb->pb_conn->c_is_tls;
 #else
 	*isSSL = 0;
 #endif
@@ -2618,9 +2618,9 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 		break;
 	}
 
-	assert( pb->pop != NULL );
+	assert( pb->pb_op != NULL );
 
-	if ( access_allowed( pb->pop, e, ad, val, slap_access, NULL ) ) {
+	if ( access_allowed( pb->pb_op, e, ad, val, slap_access, NULL ) ) {
 		return LDAP_SUCCESS;
 	}
 
@@ -2632,7 +2632,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 	int rc = LDAP_SUCCESS;
 	Modifications *ml;
 
-	if ( pb == NULL || pb->pop == NULL )
+	if ( pb == NULL || pb->pb_op == NULL )
 		return LDAP_PARAM_ERROR;
 
 	ml = slapi_int_ldapmods2modifications( mods, NULL );
@@ -2641,7 +2641,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = acl_check_modlist( pb->pop, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+		rc = acl_check_modlist( pb->pb_op, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	/* Careful when freeing the modlist because it has pointers into the mods array. */
@@ -2970,10 +2970,10 @@ int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slap
 int
 compute_rewrite_search_filter( Slapi_PBlock *pb )
 {
-	if ( pb == NULL || pb->pop == NULL )
+	if ( pb == NULL || pb->pb_op == NULL )
 		return LDAP_PARAM_ERROR;
 
-	return slapi_int_call_plugins( pb->pop->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
+	return slapi_int_call_plugins( pb->pb_op->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
 }
 
 /*

@@ -41,9 +41,9 @@ slapi_over_pblock_new( Operation *op )
 	Slapi_PBlock		*pb;
 
 	pb = slapi_pblock_new();
-	pb->pop = op;
-	pb->pconn = op->o_conn;
-	pb->internal_op = 0;
+	pb->pb_op = op;
+	pb->pb_conn = op->o_conn;
+	pb->pb_intop = 0;
 
 	PBLOCK_ASSERT_OP( pb, op->o_tag );
 
@@ -469,7 +469,7 @@ slapi_over_response( Operation *op, SlapReply *rs )
 	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
 	int			rc = SLAP_CB_CONTINUE;
 
-	if ( pb->internal_op == 0 ) {
+	if ( pb->pb_intop == 0 ) {
 		switch ( rs->sr_type ) {
 		case REP_RESULT:
 			rc = slapi_over_result( op, rs, SLAPI_PLUGIN_PRE_RESULT_FN );
@@ -498,7 +498,7 @@ slapi_over_cleanup( Operation *op, SlapReply *rs )
 
 	slapi_over_unmerge_controls( op, rs );
 
-	if ( pb->internal_op == 0 ) {
+	if ( pb->pb_intop == 0 ) {
 		switch ( rs->sr_type ) {
 		case REP_RESULT:
 			rc = slapi_over_result( op, rs, SLAPI_PLUGIN_POST_RESULT_FN );
@@ -761,7 +761,7 @@ slapi_over_acl_group(
 		if ( rc >= 0 ) /* 1 means no plugins called */
 			rc = SLAP_CB_CONTINUE;
 		else
-			rc = pb->rs.sr_err;
+			rc = pb->pb_rs.sr_err;
 
 		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_ENTRY );
 		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_OPERATION_DN );
