@@ -731,7 +731,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		struct berval	bv;
 
 		bv.bv_len = entry_flatsize( rs->sr_entry, 0 );
-		bv.bv_val = op->o_tmpalloc(bv.bv_len, op->o_tmpmemctx );
+		bv.bv_val = op->o_tmpalloc( bv.bv_len, op->o_tmpmemctx );
 
 		ber_init2( ber, &bv, LBER_USE_DER );
 		ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );

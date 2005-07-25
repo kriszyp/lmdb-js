@@ -2290,7 +2290,7 @@ acl_destroy( AccessControl *a, AccessControl *end )
 {
 	AccessControl *n;
 
-	for (; a && a!= end; a=n) {
+	for ( ; a && a != end; a = n ) {
 		n = a->acl_next;
 		acl_free( a );
 	}
