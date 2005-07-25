@@ -26,11 +26,10 @@
 LDAP_BEGIN_DECL
 
 /* slapi_utils.c */
-LDAP_SLAPI_F (int) slapi_int_pblock_set_operation LDAP_P(( Slapi_PBlock *pb, Operation *op ));
-
-LDAP_SLAPI_F (LDAPMod **) slapi_int_modifications2ldapmods LDAP_P((Modifications **));
-LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P((LDAPMod **));
-LDAP_SLAPI_F (void) slapi_int_free_ldapmods LDAP_P((LDAPMod **));
+LDAP_SLAPI_F (LDAPMod **) slapi_int_modifications2ldapmods LDAP_P(( Modifications **, void *ctx ));
+LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod **, void *ctx ));
+LDAP_SLAPI_F (void) slapi_int_free_ldapmods LDAP_P(( LDAPMod ** ));
+LDAP_SLAPI_F (int) slapi_int_count_controls LDAP_P(( LDAPControl **ctrls ));
 
 LDAP_SLAPI_F (int) slapi_int_access_allowed LDAP_P((Operation *op,
 	Entry *entry,
@@ -42,18 +41,32 @@ LDAP_SLAPI_F (int) slapi_int_access_allowed LDAP_P((Operation *op,
 LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));
 
 /* slapi_ops.c */
-LDAP_SLAPI_F (int) slapi_int_connection_init LDAP_P((Slapi_PBlock *pb, int OpType, Connection **pConn));
-LDAP_SLAPI_F (void) slapi_int_connection_destroy LDAP_P(( Connection **pConn ));
 LDAP_SLAPI_F (int) slapi_int_response LDAP_P(( Slapi_Operation *op, SlapReply *rs ));
+LDAP_SLAPI_F (void) slapi_int_connection_init_pb LDAP_P(( Slapi_PBlock *pb, ber_tag_t OpType ));
+LDAP_SLAPI_F (void) slapi_int_connection_done_pb LDAP_P(( Slapi_PBlock *pb ));
 
 /* slapi_pblock.c */
-LDAP_SLAPI_F (void) slapi_pblock_check_params LDAP_P(( Slapi_PBlock *pb, int flag ));
 LDAP_SLAPI_F (int) slapi_pblock_delete_param LDAP_P(( Slapi_PBlock *p, int param ));
 LDAP_SLAPI_F (void) slapi_pblock_clear LDAP_P(( Slapi_PBlock *pb ));
+LDAP_SLAPI_F (void) slapi_int_mods_free( Modifications *ml );
 
 LDAP_SLAPI_F (int) slapi_int_pblock_get_first LDAP_P(( Backend *be, Slapi_PBlock **pb ));
 LDAP_SLAPI_F (int) slapi_int_pblock_get_next LDAP_P(( Slapi_PBlock **pb ));
 
+#define PBLOCK_ASSERT_OP( _pb, _tag ) do { \
+		assert( (_pb) != NULL ); \
+		assert( (_pb)->pop != NULL ); \
+		assert( (_pb)->pconn != NULL ); \
+		if ( _tag != 0 ) \
+			assert( (_pb)->pop->o_tag == (_tag)); \
+	} while (0)
+	
+#define PBLOCK_ASSERT_INTOP( _pb, _tag ) do { \
+		PBLOCK_ASSERT_OP( _pb, _tag ); \
+		assert( (_pb)->internal_op ); \
+		assert( pb->pop == (Operation *)pb->pconn->c_pending_ops.stqh_first ); \
+	} while (0)
+	
 /* plugin.c */
 LDAP_SLAPI_F (int) slapi_int_register_plugin LDAP_P((Backend *be, Slapi_PBlock *pPB));
 LDAP_SLAPI_F (int) slapi_int_call_plugins LDAP_P((Backend *be, int funcType, Slapi_PBlock * pPB));

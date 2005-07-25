@@ -112,6 +112,12 @@ struct slapi_pblock {
 	int			numParams;
 	int			curParams[PBLOCK_MAX_PARAMS];
 	void			*curVals[PBLOCK_MAX_PARAMS];
+	/* native types */
+	Connection		*pconn;
+	Operation		*pop;
+	SlapReply		rs;
+	int			internal_op;
+	char			textbuf[ SLAP_TEXT_BUFLEN ];
 };
 
 #endif /* !NO_PBLOCK_CLASS */
@@ -121,14 +127,6 @@ struct slapi_pblock {
  */
 
 #define SLAPI_PLUGIN_IS_POST_FN(x) ((x) >= SLAPI_PLUGIN_POST_BIND_FN && (x) <= SLAPI_PLUGIN_BE_POST_DELETE_FN)
-
-/* really private stuff */
-#define SLAPI_X_CONFIG_ARGV			1400
-#define SLAPI_X_INTOP_FLAGS			1401
-#define SLAPI_X_INTOP_RESULT_CALLBACK		1402
-#define SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK	1403
-#define SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK	1404
-#define SLAPI_X_INTOP_CALLBACK_DATA		1405
 
 #define SLAPI_OPERATION_PARAMETERS		138
 
@@ -169,6 +167,15 @@ struct slapi_pblock {
 #define	SLAPI_LOG_OPERATION			198
 
 #define SLAPI_DBSIZE				199
+
+/* really private stuff */
+#define SLAPI_X_CONFIG_ARGV			1400
+#define SLAPI_X_INTOP_FLAGS			1401
+#define SLAPI_X_INTOP_RESULT_CALLBACK		1402
+#define SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK	1403
+#define SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK	1404
+#define SLAPI_X_INTOP_CALLBACK_DATA		1405
+#define SLAPI_X_OLD_RESCONTROLS			1406
 
 #define SLAPI_IBM_PBLOCK			-3
 
