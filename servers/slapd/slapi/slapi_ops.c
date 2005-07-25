@@ -751,9 +751,8 @@ slapi_modify_internal(
 
 	pb = slapi_pblock_new();
 
-	slapi_modify_internal_set_pb( pb, ldn, mods, controls, NULL, NULL,
-		log_change ? SLAPI_OP_FLAG_LOG_CHANGE : 0 );
-
+	slapi_modify_internal_set_pb( pb, ldn, mods, controls, NULL, NULL, 0 );
+	slapi_pblock_set( pb, SLAPI_LOG_OPERATION, (void *)log_change );
 	slapi_modify_internal_pb( pb );
 
 	return pb;
@@ -783,15 +782,14 @@ slapi_add_internal(
 	char * dn,
 	LDAPMod **attrs,
 	LDAPControl **controls,
-	int log_changes )
+	int log_change )
 {
 	Slapi_PBlock *pb;
 
 	pb = slapi_pblock_new();
 
-	slapi_add_internal_set_pb( pb, dn, attrs, controls, NULL,
-		log_changes ? SLAPI_OP_FLAG_LOG_CHANGE : 0 );
-	
+	slapi_add_internal_set_pb( pb, dn, attrs, controls, NULL, 0);
+	slapi_pblock_set( pb, SLAPI_LOG_OPERATION, (void *)log_change );
 	slapi_add_internal_pb( pb );
 
 	return pb;
@@ -816,15 +814,14 @@ Slapi_PBlock *
 slapi_add_entry_internal(
 	Slapi_Entry *e, 
 	LDAPControl **controls, 
-	int log_changes )
+	int log_change )
 {
 	Slapi_PBlock *pb;
 
 	pb = slapi_pblock_new();
 
-	slapi_add_entry_internal_set_pb( pb, e, controls, NULL,
-		log_changes ? SLAPI_OP_FLAG_LOG_CHANGE : 0 );
-	
+	slapi_add_entry_internal_set_pb( pb, e, controls, NULL, 0 );
+	slapi_pblock_set( pb, SLAPI_LOG_OPERATION, (void *)log_change );
 	slapi_add_internal_pb( pb );
 
 	return pb;
@@ -878,9 +875,8 @@ slapi_modrdn_internal(
 	pb = slapi_pblock_new ();
 
 	slapi_rename_internal_set_pb( pb, olddn, lnewrdn, NULL,
-		deloldrdn, controls, NULL, NULL,
-		log_change ? SLAPI_OP_FLAG_LOG_CHANGE : 0 );
-
+		deloldrdn, controls, NULL, NULL, 0 );
+	slapi_pblock_set( pb, SLAPI_LOG_OPERATION, (void *)log_change );
 	slapi_modrdn_internal_pb( pb );
 
 	return pb;
@@ -923,9 +919,8 @@ slapi_delete_internal(
 
 	pb = slapi_pblock_new();
 
-	slapi_delete_internal_set_pb( pb, ldn, controls, NULL, NULL,
-		log_change ? SLAPI_OP_FLAG_LOG_CHANGE : 0 );
-
+	slapi_delete_internal_set_pb( pb, ldn, controls, NULL, NULL, 0 );
+	slapi_pblock_set( pb, SLAPI_LOG_OPERATION, (void *)log_change );
 	slapi_delete_internal_pb( pb );
 
 	return pb;

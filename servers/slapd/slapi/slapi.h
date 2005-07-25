@@ -154,9 +154,6 @@ struct slapi_pblock {
 
 #define SLAPI_DB2LDIF_PRINTKEY			183
 
-#define SLAPI_PARENT_TXN			190
-#define SLAPI_TXN				191
-
 #define	SLAPI_CHANGENUMBER			197
 #define	SLAPI_LOG_OPERATION			198
 
