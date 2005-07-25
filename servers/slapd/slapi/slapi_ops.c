@@ -177,7 +177,7 @@ slapi_int_get_ctrls( Slapi_PBlock *pb )
 }
 
 void
-slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t OpType )
+slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 {
 	Connection		*conn;
 	Operation		*op;
@@ -265,7 +265,7 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t OpType )
 	conn->c_send_search_reference = slap_send_search_reference;
 
 	/* operation object */
-	op->o_tag = OpType;
+	op->o_tag = tag;
 	op->o_protocol = LDAP_VERSION3; 
 	BER_BVZERO( &op->o_authmech );
 	op->o_time = slap_get_time();
@@ -353,6 +353,10 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 	default:
 		break;
 	}
+
+	slapi_ch_free_string( &conn->c_authmech.bv_val );
+	slapi_ch_free_string( &conn->c_dn.bv_val );
+	slapi_ch_free_string( &conn->c_ndn.bv_val );
 
 	if ( conn->c_sb != NULL ) {
 		ber_sockbuf_free( conn->c_sb );
