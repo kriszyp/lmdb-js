@@ -372,19 +372,21 @@ slapi_int_func_internal_pb( Slapi_PBlock *pb, slap_operation_t which )
 {
 	BI_op_bind		**func;
 	SlapReply		*rs = &pb->rs;
+	int			rc;
 
 	PBLOCK_ASSERT_INTOP( pb, 0 );
 
-	rs->sr_err = slapi_int_get_ctrls( pb );
-	if ( rs->sr_err != LDAP_SUCCESS ) {
-		return rs->sr_err;
+	rc = slapi_int_get_ctrls( pb );
+	if ( rc != LDAP_SUCCESS ) {
+		rs->sr_err = rc;
+		return rc;
 	}
 
 	func = &pb->pop->o_bd->be_bind;
 
-	rs->sr_err = func[which]( pb->pop, &pb->rs );
+	rc = func[which]( pb->pop, &pb->rs );
 
-	return rs->sr_err;
+	return rc;
 }
 
 int
