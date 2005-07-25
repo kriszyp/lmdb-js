@@ -108,7 +108,6 @@ typedef enum slapi_pblock_class_e {
 
 struct slapi_pblock {
 	ldap_pvt_thread_mutex_t	pblockMutex;
-	int			ckParams;
 	int			numParams;
 	int			curParams[PBLOCK_MAX_PARAMS];
 	void			*curVals[PBLOCK_MAX_PARAMS];

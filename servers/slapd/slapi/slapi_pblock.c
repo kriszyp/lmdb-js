@@ -1147,9 +1147,11 @@ pblock_delete_param( Slapi_PBlock *p, int param )
 		pblock_unlock( p );
 		return PBLOCK_ERROR;
 	}
+
+	/* move last parameter to index of deleted parameter */
 	if ( p->numParams > 1 ) {
-		p->curParams[i] = p->curParams[p->numParams];
-		p->curVals[i] = p->curVals[p->numParams];
+		p->curParams[i] = p->curParams[p->numParams - 1];
+		p->curVals[i] = p->curVals[p->numParams - 1];
 	}
 	p->numParams--;
 
@@ -1165,7 +1167,6 @@ slapi_pblock_new(void)
 
 	pb = (Slapi_PBlock *) ch_calloc( 1, sizeof(Slapi_PBlock) );
 	if ( pb != NULL ) {
-		pb->ckParams = 1;
 		ldap_pvt_thread_mutex_init( &pb->pblockMutex );
 		memset( pb->curParams, 0, sizeof(pb->curParams) );
 		memset( pb->curVals, 0, sizeof(pb->curVals) );
