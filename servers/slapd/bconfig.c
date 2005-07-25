@@ -104,7 +104,6 @@ static ConfigDriver config_sizelimit;
 static ConfigDriver config_timelimit;
 static ConfigDriver config_overlay;
 static ConfigDriver config_suffix; 
-static ConfigDriver config_deref_depth;
 static ConfigDriver config_rootdn;
 static ConfigDriver config_rootpw;
 static ConfigDriver config_restrict;
@@ -1681,7 +1680,9 @@ config_rootpw(ConfigArgs *c) {
 
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if (!BER_BVISEMPTY(&c->be->be_rootpw)) {
-			ber_dupbv( &c->value_bv, &c->be->be_rootpw);
+			/* don't copy, because "rootpw" is marked
+			 * as CFG_BERVAL */
+			c->value_bv = c->be->be_rootpw;
 			return 0;
 		}
 		return 1;
@@ -1880,6 +1881,15 @@ loglevel_init( void )
 	};
 
 	return slap_verbmasks_init( &loglevel_ops, lo );
+}
+
+static void
+loglevel_destroy( void )
+{
+	if ( loglevel_ops ) {
+		(void)slap_verbmasks_destroy( loglevel_ops );
+	}
+	loglevel_ops = NULL;
 }
 
 static slap_mask_t	loglevel_ignore[] = { -1, 0 };
@@ -4113,6 +4123,8 @@ config_back_db_destroy( BackendDB *be )
 	}
 
 	free( be->be_private );
+
+	loglevel_destroy();
 
 	return 0;
 }

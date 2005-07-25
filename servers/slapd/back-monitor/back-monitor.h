@@ -40,7 +40,7 @@ typedef struct monitor_callback_t {
 						/* modify callback
 						   for user-defined entries */
 	int				(*mc_free)( Entry *e, void *priv );
-						/* update callback
+						/* delete callback
 						   for user-defined entries */
 	void				*mc_private;	/* opaque pointer to
 						   private data */

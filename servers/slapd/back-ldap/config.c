@@ -106,7 +106,7 @@ static ConfigTable ldapcfg[] = {
 		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "acl-bind", "args", 2, 0, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.4 "
 			"NAME 'olcDbACLBind' "
 			"DESC 'Remote ACL administrative identity auth bind configuration' "
@@ -144,7 +144,7 @@ static ConfigTable ldapcfg[] = {
 		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-bind", "args", 2, 0, 0,
-		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.7 "
 			"NAME 'olcDbIDAssertBind' "
 			"DESC 'Remote Identity Assertion administrative identity auth bind configuration' "
@@ -719,7 +719,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		li->url = ldap_charray2str( urllist, " " );
 		ldap_charray_free( urllist );
 #else
-		li->url = ch_strdup( c->value_string );
+		li->url = c->value_string;
 #endif
 		break;
 	}

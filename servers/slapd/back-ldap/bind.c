@@ -401,7 +401,8 @@ struct ldapconn *
 ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
-	struct ldapconn	*lc, lc_curr = { 0 };
+	struct ldapconn	*lc,
+			lc_curr = { 0 };
 	int		refcnt = 1;
 
 	/* Searches for a ldapconn in the avl tree */

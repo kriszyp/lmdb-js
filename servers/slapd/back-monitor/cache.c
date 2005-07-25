@@ -280,7 +280,11 @@ monitor_entry_destroy( void *v_mc )
 		mp = ( monitor_entry_t * )mc->mc_e->e_private;
 
 		if ( mp->mp_cb ) {
-			/* TODO */
+			if ( mp->mp_cb->mc_free ) {
+				mp->mp_cb->mc_free( mc->mc_e,
+					mp->mp_cb->mc_private );
+			}
+			ch_free( mp->mp_cb );
 		}
 
 		ldap_pvt_thread_mutex_destroy( &mp->mp_mutex );
