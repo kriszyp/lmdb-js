@@ -23,7 +23,10 @@
 #include <ac/errno.h>
 #include <sys/stat.h>
 #ifdef HAVE_UTIME_H
-#include <utime.h>
+#  ifdef HAVE_SYS_TYPES_H
+#    include <sys/types.h>
+#  endif
+#  include <utime.h>
 #endif /* HAVE_UTIME_H */
 #include "back-bdb.h"
 #include <lutil.h>
