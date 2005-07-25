@@ -421,6 +421,7 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 		free( bd->be_rootpw.bv_val );
 	}
 	acl_destroy( bd->be_acl, frontendDB->be_acl );
+	limits_destroy( bd->be_limits );
 	if ( dynamic ) {
 		free( bd );
 	}

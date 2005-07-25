@@ -93,7 +93,7 @@ limits_get(
 
 		switch ( style ) {
 		case SLAP_LIMITS_EXACT:
-			if ( ndn->bv_len == 0 ) {
+			if ( BER_BVISEMPTY( ndn ) ) {
 				break;
 			}
 
@@ -130,7 +130,7 @@ limits_get(
 		case SLAP_LIMITS_CHILDREN: {
 			size_t d;
 			
-			if ( ndn->bv_len == 0 ) {
+			if ( BER_BVISEMPTY( ndn ) ) {
 				break;
 			}
 
@@ -147,7 +147,7 @@ limits_get(
 				}
 			} else {
 				/* check for unescaped rdn separator */
-				if ( !DN_SEPARATOR( ndn->bv_val[d-1] ) ) {
+				if ( !DN_SEPARATOR( ndn->bv_val[d - 1] ) ) {
 					break;
 				}
 			}
@@ -180,7 +180,7 @@ limits_get(
 		}
 
 		case SLAP_LIMITS_REGEX:
-			if ( ndn->bv_len == 0 ) {
+			if ( BER_BVISEMPTY( ndn ) ) {
 				break;
 			}
 			if ( regexec( &lm[0]->lm_regex, ndn->bv_val,
@@ -194,7 +194,7 @@ limits_get(
 			break;
 
 		case SLAP_LIMITS_ANONYMOUS:
-			if ( ndn->bv_len == 0 ) {
+			if ( BER_BVISEMPTY( ndn ) ) {
 				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s\n",
 						limits2str( style ), 0, 0 );
 				*limit = &lm[0]->lm_limits;
@@ -203,7 +203,7 @@ limits_get(
 			break;
 
 		case SLAP_LIMITS_USERS:
-			if ( ndn->bv_len != 0 ) {
+			if ( !BER_BVISEMPTY( ndn ) ) {
 				*limit = &lm[0]->lm_limits;
 				Debug( LDAP_DEBUG_TRACE, "<== limits_get: type=DN match=%s\n",
 						limits2str( style ), 0, 0 );
@@ -271,8 +271,8 @@ limits_add(
 		{
 			int rc;
 			struct berval bv;
-			bv.bv_val = (char *) pattern;
-			bv.bv_len = strlen( pattern );
+
+			ber_str2bv( pattern, 0, 0, &bv );
 
 			rc = dnNormalize( 0, NULL, NULL, &bv, &lm->lm_pat, NULL );
 			if ( rc != LDAP_SUCCESS ) {
@@ -297,8 +297,7 @@ limits_add(
 	case SLAP_LIMITS_USERS:
 	case SLAP_LIMITS_ANY:
 		lm->lm_flags = style | type;
-		lm->lm_pat.bv_val = NULL;
-		lm->lm_pat.bv_len = 0;
+		BER_BVZERO( &lm->lm_pat );
 		break;
 	}
 
@@ -1319,3 +1318,37 @@ limits_check( Operation *op, SlapReply *rs )
 	return 0;
 }
 
+void
+limits_destroy( 
+	struct slap_limits	**lm )
+{
+	int		i;
+
+	if ( lm == NULL ) {
+		return;
+	}
+
+	for ( i = 0; lm[ i ]; i++ ) {
+		switch ( lm[ i ]->lm_flags & SLAP_LIMITS_MASK ) {
+		case SLAP_LIMITS_REGEX:
+			regfree( &lm[ i ]->lm_regex );
+			break;
+
+		case SLAP_LIMITS_EXACT:
+		case SLAP_LIMITS_ONE:
+		case SLAP_LIMITS_SUBTREE:
+		case SLAP_LIMITS_CHILDREN:
+			if ( !BER_BVISNULL( &lm[ i ]->lm_pat ) ) {
+				ch_free( lm[ i ]->lm_pat.bv_val );
+			}
+			break;
+
+		default:
+			break;
+		}
+
+		ch_free( lm[ i ] );
+	}
+
+	ch_free( lm );
+}

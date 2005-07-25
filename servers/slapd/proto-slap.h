@@ -914,6 +914,7 @@ LDAP_SLAPD_F (void) limits_unparse_one LDAP_P((
 	struct slap_limits_set *limit, int which, struct berval *bv ));
 LDAP_SLAPD_F (void) limits_unparse LDAP_P(( 
 	struct slap_limits *limit, struct berval *bv ));
+LDAP_SLAPD_F (void) limits_destroy LDAP_P(( struct slap_limits **lm ));
 
 /*
  * lock.c
