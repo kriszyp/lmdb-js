@@ -1695,7 +1695,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 		return BACKSQL_AVL_CONTINUE;
 	}
 
-	backsql_BindRowAsStrings( sth, &row );
+	backsql_BindRowAsStrings_x( sth, &row, bsi->bsi_op->o_tmpmemctx );
 	rc = SQLFetch( sth );
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
 		struct berval		dn, pdn, ndn;
@@ -1761,7 +1761,7 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			break;
 		}
 	}
-	backsql_FreeRow( &row );
+	backsql_FreeRow_x( &row, bsi->bsi_op->o_tmpmemctx );
 	SQLFreeStmt( sth, SQL_DROP );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_oc_get_candidates(): %d\n",
@@ -2131,7 +2131,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		 * filter_has_subordinates()
 		 */
 		if ( bsi.bsi_flags & BSQL_SF_FILTER_HASSUBORDINATE ) {
-			rc = backsql_has_children( bi, dbh, &e->e_nname );
+			rc = backsql_has_children( op, dbh, &e->e_nname );
 
 			switch ( rc ) {
 			case LDAP_COMPARE_TRUE:

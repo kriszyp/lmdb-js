@@ -129,7 +129,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	if ( backsql_has_children( bi, dbh, &op->o_req_ndn ) == LDAP_COMPARE_TRUE ) {
+	if ( backsql_has_children( op, dbh, &op->o_req_ndn ) == LDAP_COMPARE_TRUE ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 			"entry \"%s\" has children\n",
 			op->o_req_dn.bv_val, 0, 0 );

@@ -172,7 +172,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
-	rs->sr_err = backsql_has_children( bi, dbh, &op->o_req_ndn );
+	rs->sr_err = backsql_has_children( op, dbh, &op->o_req_ndn );
 	switch ( rs->sr_err ) {
 	case LDAP_COMPARE_FALSE:
 		rs->sr_err = LDAP_SUCCESS;

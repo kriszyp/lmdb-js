@@ -116,12 +116,12 @@ int backsql_dn2id( Operation *op, SlapReply *rs, SQLHDBC dbh,
 		int matched, int muck );
 
 /* stores in *nchildren the count of children for an entry */
-int backsql_count_children( backsql_info *bi, SQLHDBC dbh,
+int backsql_count_children( Operation *op, SQLHDBC dbh,
 		struct berval *dn, unsigned long *nchildren );
 
 /* returns LDAP_COMPARE_TRUE/LDAP_COMPARE_FALSE if the entry corresponding
  * to DN has/has not children */
-int backsql_has_children( backsql_info *bi, SQLHDBC dbh, struct berval *dn );
+int backsql_has_children( Operation *op, SQLHDBC dbh, struct berval *dn );
 
 /* frees *id and returns next in list */
 backsql_entryID *backsql_free_entryID( Operation *op, backsql_entryID *id,
@@ -203,7 +203,11 @@ RETCODE backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char* query, int timeout );
 	backsql_BindParamInt( (sth), (par_ind), (io), (id) )
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
+RETCODE backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx );
+
 RETCODE backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row );
+
+RETCODE backsql_FreeRow_x( BACKSQL_ROW_NTS *row, void *ctx );
 
 RETCODE backsql_FreeRow( BACKSQL_ROW_NTS *row );
 

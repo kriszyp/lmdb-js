@@ -130,7 +130,7 @@ backsql_Prepare( SQLHDBC dbh, SQLHSTMT *sth, char *query, int timeout )
 }
 
 RETCODE
-backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
+backsql_BindRowAsStrings_x( SQLHSTMT sth, BACKSQL_ROW_NTS *row, void *ctx )
 {
 	RETCODE		rc;
 	SQLCHAR		colname[ 64 ];
@@ -161,62 +161,45 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 			"ncols=%d\n", (int)row->ncols, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
-		row->col_names = (BerVarray)ch_calloc( row->ncols + 1, 
-				sizeof( struct berval ) );
-		row->cols = (char **)ch_calloc( row->ncols + 1, 
-				sizeof( char * ) );
-		row->col_prec = (UDWORD *)ch_calloc( row->ncols,
-				sizeof( UDWORD ) );
-		row->value_len = (SQLINTEGER *)ch_calloc( row->ncols,
-				sizeof( SQLINTEGER ) );
+		row->col_names = (BerVarray)ber_memcalloc_x( row->ncols + 1, 
+				sizeof( struct berval ), ctx );
+		row->cols = (char **)ber_memcalloc_x( row->ncols + 1, 
+				sizeof( char * ), ctx );
+		row->col_prec = (UDWORD *)ber_memcalloc_x( row->ncols,
+				sizeof( UDWORD ), ctx );
+		row->value_len = (SQLINTEGER *)ber_memcalloc_x( row->ncols,
+				sizeof( SQLINTEGER ), ctx );
 		for ( i = 1; i <= row->ncols; i++ ) {
 			rc = SQLDescribeCol( sth, (SQLSMALLINT)i, &colname[ 0 ],
 					(SQLUINTEGER)( sizeof( colname ) - 1 ),
 					&name_len, &col_type,
 					&col_prec, &col_scale, &col_null );
-			ber_str2bv( (char *)colname, 0, 1, &row->col_names[ i - 1 ] );
+			/* FIXME: test rc? */
+
+			ber_str2bv_x( (char *)colname, 0, 1,
+					&row->col_names[ i - 1 ], ctx );
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_BindRowAsStrings: "
 				"col_name=%s, col_prec[%d]=%d\n",
 				colname, (int)i, (int)col_prec );
 #endif /* BACKSQL_TRACE */
-			if ( col_type == SQL_LONGVARCHAR 
-					|| col_type == SQL_LONGVARBINARY) {
-#if 0
-				row->cols[ i - 1 ] = NULL;
-				row->col_prec[ i - 1 ] = -1;
-
-				/*
-				 * such fields must be handled 
-				 * in some other way since they return 2G 
-				 * as their precision (at least it does so 
-				 * with MS SQL Server w/native driver)
-				 * for now, we just set fixed precision 
-				 * for such fields - dirty hack, but...
-				 * no time to deal with SQLGetData()
-				 */
-#endif
+			if ( col_type != SQL_CHAR && col_type != SQL_VARCHAR )
+			{
 				col_prec = MAX_ATTR_LEN;
-				row->cols[ i - 1 ] = (char *)ch_calloc( col_prec + 1, sizeof( char ) );
-				row->col_prec[ i - 1 ] = col_prec;
-				rc = SQLBindCol( sth, (SQLUSMALLINT)i,
-						SQL_C_CHAR,
-						(SQLPOINTER)row->cols[ i - 1 ],
-						col_prec + 1,
-						&row->value_len[ i - 1 ] );
-			} else {
-				row->cols[ i - 1 ] = (char *)ch_calloc( col_prec + 1, sizeof( char ) );
-				row->col_prec[ i - 1 ] = col_prec;
-				rc = SQLBindCol( sth, (SQLUSMALLINT)i,
-						SQL_C_CHAR,
-						(SQLPOINTER)row->cols[ i - 1 ],
-						col_prec + 1,
-						&row->value_len[ i - 1 ] );
 			}
+
+			row->cols[ i - 1 ] = (char *)ber_memcalloc_x( col_prec + 1,
+					sizeof( char ), ctx );
+			row->col_prec[ i - 1 ] = col_prec;
+			rc = SQLBindCol( sth, (SQLUSMALLINT)i,
+					 SQL_C_CHAR,
+					 (SQLPOINTER)row->cols[ i - 1 ],
+					 col_prec + 1,
+					 &row->value_len[ i - 1 ] );
+			/* FIXME: test rc? */
 		}
 
-		row->col_names[ i - 1 ].bv_val = NULL;
-		row->col_names[ i - 1 ].bv_len = 0;
+		BER_BVZERO( &row->col_names[ i - 1 ] );
 		row->cols[ i - 1 ] = NULL;
 	}
 
@@ -228,18 +211,31 @@ backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
 }
 
 RETCODE
-backsql_FreeRow( BACKSQL_ROW_NTS *row )
+backsql_BindRowAsStrings( SQLHSTMT sth, BACKSQL_ROW_NTS *row )
+{
+	return backsql_BindRowAsStrings_x( sth, row, NULL );
+}
+
+RETCODE
+backsql_FreeRow_x( BACKSQL_ROW_NTS *row, void *ctx )
 {
 	if ( row->cols == NULL ) {
 		return SQL_ERROR;
 	}
 
-	ber_bvarray_free( row->col_names );
-	ldap_charray_free( row->cols );
-	free( row->col_prec );
-	free( row->value_len );
+	ber_bvarray_free_x( row->col_names, ctx );
+	ber_memvfree_x( (void **)row->cols, ctx );
+	ber_memfree_x( row->col_prec, ctx );
+	ber_memfree_x( row->value_len, ctx );
 
 	return SQL_SUCCESS;
+}
+
+
+RETCODE
+backsql_FreeRow( BACKSQL_ROW_NTS *row )
+{
+	return backsql_FreeRow_x( row, NULL );
 }
 
 static int

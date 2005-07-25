@@ -158,7 +158,7 @@ backsql_operational(
 			&& !got[ BACKSQL_OP_HASSUBORDINATES ]
 			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL )
 	{
-		rc = backsql_has_children( bi, dbh, &rs->sr_entry->e_nname );
+		rc = backsql_has_children( op, dbh, &rs->sr_entry->e_nname );
 
 		switch( rc ) {
 		case LDAP_COMPARE_TRUE:

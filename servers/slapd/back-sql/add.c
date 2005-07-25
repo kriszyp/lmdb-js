@@ -124,7 +124,7 @@ backsql_modify_delete_all_values(
 		return rs->sr_err = LDAP_OTHER;
 	}
 
-	backsql_BindRowAsStrings( asth, &row );
+	backsql_BindRowAsStrings_x( asth, &row, op->o_tmpmemctx );
 	for ( rc = SQLFetch( asth );
 			BACKSQL_SUCCESS( rc );
 			rc = SQLFetch( asth ) )
@@ -151,7 +151,8 @@ backsql_modify_delete_all_values(
 						sth, rc );
 
 				rs->sr_text = "SQL-backend error";
-				return rs->sr_err = LDAP_OTHER;
+				rs->sr_err = LDAP_OTHER;
+				goto done;
 			}
 
 	   		if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {
@@ -168,7 +169,8 @@ backsql_modify_delete_all_values(
 					SQLFreeStmt( sth, SQL_DROP );
 
 					rs->sr_text = "SQL-backend error";
-					return rs->sr_err = LDAP_OTHER;
+					rs->sr_err = LDAP_OTHER;
+					goto done;
 				}
 
 			} else {
@@ -187,7 +189,8 @@ backsql_modify_delete_all_values(
 				SQLFreeStmt( sth, SQL_DROP );
 
 				rs->sr_text = "SQL-backend error";
-				return rs->sr_err = LDAP_OTHER;
+				rs->sr_err = LDAP_OTHER;
+				goto done;
 			}
 #ifdef BACKSQL_ARBITRARY_KEY
 			Debug( LDAP_DEBUG_TRACE,
@@ -218,7 +221,8 @@ backsql_modify_delete_all_values(
 				SQLFreeStmt( sth, SQL_DROP );
 
 				rs->sr_text = "SQL-backend error";
-				return rs->sr_err = LDAP_OTHER;
+				rs->sr_err = LDAP_OTHER;
+				goto done;
 			}
 	 
 			Debug( LDAP_DEBUG_TRACE, 
@@ -248,15 +252,19 @@ backsql_modify_delete_all_values(
 				}
 				rs->sr_text = op->o_req_dn.bv_val;
 				SQLFreeStmt( sth, SQL_DROP );
-				return rs->sr_err;
+				goto done;
 			}
 			SQLFreeStmt( sth, SQL_DROP );
 		}
 	}
-	backsql_FreeRow( &row );
+
+	rs->sr_err = LDAP_SUCCESS;
+
+done:;
+	backsql_FreeRow_x( &row, op->o_tmpmemctx );
 	SQLFreeStmt( asth, SQL_DROP );
 
-	return LDAP_SUCCESS;
+	return rs->sr_err;
 }
 
 int
