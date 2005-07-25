@@ -456,7 +456,10 @@ rwm_int_filter_map_rewrite(
 			/* better than nothing... */
 			ber_bvtrue = BER_BVC( "(objectClass=*)" ),
 			ber_bvtf_true = BER_BVC( "(&)" ),
+#if 0
+			/* no longer needed; preserved for completeness */
 			ber_bvundefined = BER_BVC( "(?=undefined)" ),
+#endif
 			ber_bverror = BER_BVC( "(?=error)" ),
 			ber_bvunknown = BER_BVC( "(?=unknown)" ),
 			ber_bvnone = BER_BVC( "(?=none)" );
