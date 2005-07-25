@@ -925,8 +925,10 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 	struct berval	dn, prettyDN;
 	struct berval	normalizedDN, parentDN;
 
-	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void **)&be ) != 0 )
-		be = NULL;
+	if ( pb == NULL || pb->pop == NULL )
+		return NULL;
+
+	be = pb->pop->o_bd;
 
 	dn.bv_val = (char *)_dn;
 	dn.bv_len = strlen( _dn );
@@ -1760,13 +1762,13 @@ slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	}
 
 	if ( verify_access ) {
-		rc = slapi_pblock_get(pb, SLAPI_OPERATION, (void *)&op);
-		if ( rc != 0 ) {
+		op = pb->pop;
+		if ( op == NULL )
 			return LDAP_PARAM_ERROR;
-		}
 	} else {
 		op = NULL;
 	}
+
 	/*
 	 * According to acl.c it is safe to call test_filter() with
 	 * NULL arguments...
@@ -2003,16 +2005,14 @@ slapi_free_search_results_internal( Slapi_PBlock *pb )
 
 int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
 {
-	Connection *conn = NULL;
-	int rc;
+	if ( pb == NULL )
+		return LDAP_PARAM_ERROR;
 
-	rc = slapi_pblock_get( pb, SLAPI_CONNECTION, &conn );
-	if ( rc != PBLOCK_SUCCESS || conn == NULL ) {
-		return LDAP_OTHER;
-	}
+	if ( pb->pconn == NULL )
+		return LDAP_PARAM_ERROR;
 
 #ifdef HAVE_TLS
-	*isSSL = conn->c_is_tls;
+	*isSSL = pb->pconn->c_is_tls;
 #else
 	*isSSL = 0;
 #endif
@@ -2629,13 +2629,11 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 
 int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char **errbuf)
 {
-	Operation *op;
 	int rc = LDAP_SUCCESS;
 	Modifications *ml;
 
-	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&op ) != 0 ) {
+	if ( pb == NULL || pb->pop == NULL )
 		return LDAP_PARAM_ERROR;
-	}
 
 	ml = slapi_int_ldapmods2modifications( mods, NULL );
 	if ( ml == NULL ) {
@@ -2643,7 +2641,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 	}
 
 	if ( rc == LDAP_SUCCESS ) {
-		rc = acl_check_modlist( op, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
+		rc = acl_check_modlist( pb->pop, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	/* Careful when freeing the modlist because it has pointers into the mods array. */
@@ -2967,24 +2965,21 @@ int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slap
 	return rc;
 }
 
-int compute_rewrite_search_filter(Slapi_PBlock *pb)
+int
+compute_rewrite_search_filter( Slapi_PBlock *pb )
 {
-	Backend *be;
-	int rc;
+	if ( pb == NULL || pb->pop == NULL )
+		return LDAP_PARAM_ERROR;
 
-	rc = slapi_pblock_get( pb, SLAPI_BACKEND, (void *)&be );
-	if ( rc != 0 ) {
-		return rc;
-	}
-
-	return slapi_int_call_plugins( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
+	return slapi_int_call_plugins( pb->pop->o_bd, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
 }
 
 /*
  * New API to provide the plugin with access to the search
  * pblock. Have informed Sun DS team.
  */
-int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb)
+int
+slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb)
 {
 	if ( c == NULL )
 		return -1;
