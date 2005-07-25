@@ -665,7 +665,6 @@ slapi_entry_delete_string(Slapi_Entry *e, const char *type, const char *value)
 	return slapi_entry_delete_values_sv( e, type, vals );	
 }
 
-
 int
 slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
 {
@@ -3331,7 +3330,7 @@ LDAP *slapi_ldap_init( char *ldaphost, int ldapport, int secure, int shared )
 
 void slapi_ldap_unbind( LDAP *ld )
 {
-	ldap_unbind( ld );
+	ldap_unbind_ext_s( ld, NULL, NULL );
 }
 
 int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags )

@@ -30,15 +30,8 @@ LDAP_SLAPI_F (LDAPMod **) slapi_int_modifications2ldapmods LDAP_P(( Modification
 LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod **, void *ctx ));
 LDAP_SLAPI_F (void) slapi_int_free_ldapmods LDAP_P(( LDAPMod ** ));
 LDAP_SLAPI_F (int) slapi_int_count_controls LDAP_P(( LDAPControl **ctrls ));
-
-LDAP_SLAPI_F (int) slapi_int_access_allowed LDAP_P((Operation *op,
-	Entry *entry,
-	AttributeDescription *desc,
-	struct berval *val,
-	slap_access_t access,
-	AccessControlState *state ));
-
 LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));
+LDAP_SLAPI_F (int) slapi_int_access_allowed LDAP_P((Operation *op, Entry *entry, AttributeDescription *desc, struct berval *val, slap_access_t access, AccessControlState *state ));
 
 /* slapi_ops.c */
 LDAP_SLAPI_F (int) slapi_int_response LDAP_P(( Slapi_Operation *op, SlapReply *rs ));
@@ -53,10 +46,14 @@ LDAP_SLAPI_F (void) slapi_int_mods_free( Modifications *ml );
 LDAP_SLAPI_F (int) slapi_int_pblock_get_first LDAP_P(( Backend *be, Slapi_PBlock **pb ));
 LDAP_SLAPI_F (int) slapi_int_pblock_get_next LDAP_P(( Slapi_PBlock **pb ));
 
-#define PBLOCK_ASSERT_OP( _pb, _tag ) do { \
+#define PBLOCK_ASSERT_CONN( _pb ) do { \
 		assert( (_pb) != NULL ); \
-		assert( (_pb)->pop != NULL ); \
 		assert( (_pb)->pconn != NULL ); \
+	} while (0)
+
+#define PBLOCK_ASSERT_OP( _pb, _tag ) do { \
+		PBLOCK_ASSERT_CONN( _pb ); \
+		assert( (_pb)->pop != NULL ); \
 		if ( _tag != 0 ) \
 			assert( (_pb)->pop->o_tag == (_tag)); \
 	} while (0)

@@ -30,10 +30,11 @@
 #include <ac/ctype.h>
 #include <ac/unistd.h>
 
+#ifdef LDAP_SLAPI
+
 #include <slap.h>
 #include <slapi.h>
 
-#ifdef LDAP_SLAPI
 /*
  * Object extensions
  *
@@ -134,7 +135,6 @@ static void free_extension(struct slapi_extension_block *eblock, int objecttype,
 
 void *slapi_get_object_extension(int objecttype, void *object, int extensionhandle)
 {
-#ifdef LDAP_SLAPI
 	struct slapi_extension_block *eblock;
 	void *parent;
 
@@ -147,14 +147,10 @@ void *slapi_get_object_extension(int objecttype, void *object, int extensionhand
 	}
 
 	return NULL;
-#else
-	return NULL;
-#endif /* LDAP_SLAPI */
 }
 
 void slapi_set_object_extension(int objecttype, void *object, int extensionhandle, void *extension)
 {
-#ifdef LDAP_SLAPI
 	struct slapi_extension_block *eblock;
 	void *parent;
 
@@ -169,7 +165,6 @@ void slapi_set_object_extension(int objecttype, void *object, int extensionhandl
 		/* constructed by caller */
 		eblock->extensions[extensionhandle] = extension;
 	}
-#endif /* LDAP_SLAPI */
 }
 
 int slapi_register_object_extension(
@@ -180,7 +175,6 @@ int slapi_register_object_extension(
 	int *objecttype,
 	int *extensionhandle)
 {
-#ifdef LDAP_SLAPI
 	int rc;
 	slapi_extension_t type;
 	struct slapi_registered_extension *re;
@@ -228,14 +222,10 @@ int slapi_register_object_extension(
 	ldap_pvt_thread_mutex_unlock( &registered_extensions.mutex );
 
 	return 0;
-#else
-	return -1;
-#endif /* LDAP_SLAPI */
 }
 
 int slapi_int_create_object_extensions(int objecttype, void *object)
 {
-#ifdef LDAP_SLAPI
 	int i;
 	struct slapi_extension_block *eblock;
 	void **peblock;
@@ -281,14 +271,10 @@ int slapi_int_create_object_extensions(int objecttype, void *object)
 	*peblock = eblock;
 
 	return 0;
-#else
-	return -1;
-#endif
 }
 
 int slapi_int_free_object_extensions(int objecttype, void *object)
 {
-#ifdef LDAP_SLAPI
 	int i;
 	struct slapi_extension_block *eblock;
 	void **peblock;
@@ -321,15 +307,11 @@ int slapi_int_free_object_extensions(int objecttype, void *object)
 	slapi_ch_free( peblock );
 
 	return 0;
-#else
-	return -1;
-#endif
 }
 
 /* for reusable object types */
 int slapi_int_clear_object_extensions(int objecttype, void *object)
 {
-#ifdef LDAP_SLAPI
 	int i;
 	struct slapi_extension_block *eblock;
 	void *parent;
@@ -352,14 +334,10 @@ int slapi_int_clear_object_extensions(int objecttype, void *object)
 	}
 
 	return 0;
-#else
-	return -1;
-#endif
 }
 
 int slapi_int_init_object_extensions(void)
 {
-#ifdef LDAP_SLAPI
 	memset( &registered_extensions, 0, sizeof( registered_extensions ) );
 
 	if ( ldap_pvt_thread_mutex_init( &registered_extensions.mutex ) != 0 ) {
@@ -367,7 +345,6 @@ int slapi_int_init_object_extensions(void)
 	}
 
 	return 0;
-#else
-	return -1;
-#endif
 }
+
+#endif /* LDAP_SLAPI */

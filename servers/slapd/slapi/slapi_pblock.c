@@ -459,7 +459,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		*((slap_ssf_t *)value) = pb->pconn->c_ssf;
 		break;
 	case SLAPI_X_CONN_SASL_CONTEXT:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		if ( pb->pconn->c_sasl_authctx != NULL )
 			*value = pb->pconn->c_sasl_authctx;
 		else
@@ -479,7 +479,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_CONN_AUTHTYPE:
 	case SLAPI_CONN_AUTHMETHOD: /* XXX should return SASL mech */
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		*((char **)value) = pblock_get_authtype( &pb->pconn->c_authz,
 #ifdef HAVE_TLS
 							 pb->pconn->c_is_tls
@@ -489,7 +489,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 							 );
 		break;
 	case SLAPI_X_CONN_IS_UDP:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 #ifdef LDAP_CONNECTIONLESS
 		*((int *)value) = pb->pconn->c_is_udp;
 #else
@@ -497,36 +497,36 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 #endif
 		break;
 	case SLAPI_CONN_ID:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		*((unsigned long *)value) = pb->pconn->c_connid;
 		break;
 	case SLAPI_CONN_DN:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		*((char **)value) = pb->pconn->c_dn.bv_val;
 		break;
 	case SLAPI_CONN_CLIENTIP:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		if ( strncmp( pb->pconn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
 			*((char **)value) = &pb->pconn->c_peer_name.bv_val[3];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_X_CONN_CLIENTPATH:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		if ( strncmp( pb->pconn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
 			*((char **)value) = &pb->pconn->c_peer_name.bv_val[5];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_CONN_SERVERIP:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		if ( strncmp( pb->pconn->c_peer_name.bv_val, "IP=", 3 ) == 0 )
 			*((char **)value) = &pb->pconn->c_sock_name.bv_val[3];
 		else
 			*value = NULL;
 		break;
 	case SLAPI_X_CONN_SERVERPATH:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		if ( strncmp( pb->pconn->c_peer_name.bv_val, "PATH=", 3 ) == 0 )
 			*((char **)value) = &pb->pconn->c_sock_name.bv_val[5];
 		else
@@ -691,6 +691,12 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		else
 			*value = NULL;
 		break;
+	case SLAPI_ABANDON_MSGID:
+		if ( pb->pop->o_tag == LDAP_REQ_ABANDON )
+			*((int *)value) = pb->pop->orn_msgid;
+		else
+			*((int *)value) = 0;
+		break;
 	default:
 		rc = pblock_get_default( pb, param, value );
 		break;
@@ -801,13 +807,13 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		pb->pconn = (Connection *)value;
 		break;
 	case SLAPI_X_CONN_SSF:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
 		pb->pconn->c_ssf = (slap_ssf_t)value;
 		PBLOCK_UNLOCK_CONN( pb );
 		break;
 	case SLAPI_X_CONN_SASL_CONTEXT:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
 		pb->pconn->c_sasl_authctx = value;
 		PBLOCK_UNLOCK_CONN( pb );
@@ -817,13 +823,13 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		rc = pblock_set_dn( value, &pb->pop->o_req_dn, &pb->pop->o_req_ndn, pb->pop->o_tmpmemctx );
 		break;
 	case SLAPI_CONN_ID:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
 		pb->pconn->c_connid = (unsigned long)value;
 		PBLOCK_UNLOCK_CONN( pb );
 		break;
 	case SLAPI_CONN_DN:
-		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_ASSERT_CONN( pb );
 		PBLOCK_LOCK_CONN( pb );
 		rc = pblock_set_dn( value, &pb->pconn->c_dn, &pb->pconn->c_ndn, NULL );
 		PBLOCK_UNLOCK_CONN( pb );
@@ -963,11 +969,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_SEARCH_FILTER:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pop->o_tag == LDAP_REQ_SEARCH ) {
+		if ( pb->pop->o_tag == LDAP_REQ_SEARCH )
 			pb->pop->ors_filter = (Slapi_Filter *)value;
-		} else {
+		else
 			rc = PBLOCK_ERROR;
-		}
 		break;
 	case SLAPI_SEARCH_STRFILTER:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1097,11 +1102,19 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 
-		if ( pb->pop->o_tag == LDAP_REQ_COMPARE ) {
+		if ( pb->pop->o_tag == LDAP_REQ_COMPARE )
 			pb->pop->orc_ava->aa_value = *((struct berval *)value);
-		} else {
+		else
 			rc = PBLOCK_ERROR;
-		}
+		break;
+	case SLAPI_ABANDON_MSGID:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		PBLOCK_VALIDATE_IS_INTOP( pb );
+
+		if ( pb->pop->o_tag == LDAP_REQ_ABANDON)
+			pb->pop->orn_msgid = *((int *)value);
+		else
+			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_REQUESTOR_ISROOT:
 	case SLAPI_REQUESTOR_ISUPDATEDN:
@@ -1112,6 +1125,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_X_CONN_CLIENTPATH:
 	case SLAPI_CONN_SERVERIP:
 	case SLAPI_X_CONN_SERVERPATH:
+		/* These parameters cannot be set */
 		rc = PBLOCK_ERROR;
 		break;
 	default:
@@ -1180,38 +1194,42 @@ slapi_pblock_new(void)
 	return pb;
 }
 
-void 
-slapi_pblock_destroy( Slapi_PBlock* pb ) 
+static void
+pblock_destroy( Slapi_PBlock *pb )
 {
 	LDAPControl **controls = NULL;
+	LDAPMod **mods = NULL;
+	char **attrs = NULL;
 
 	assert( pb != NULL );
-
-	if ( pb->internal_op ) {
-		slapi_int_connection_done_pb( pb );
-	} else {
-		LDAPMod **mods = NULL;
-		char **attrs = NULL;
-
-		pblock_get_default( pb, SLAPI_MODIFY_MODS, (void **)&mods );
-
-		if ( mods != NULL )
-			slapi_int_free_ldapmods( mods );
-
-		pblock_get_default( pb, SLAPI_SEARCH_ATTRS, (void **)&attrs );
-
-		if ( attrs != NULL )
-			pb->pop->o_tmpfree( attrs, pb->pop->o_tmpmemctx );
-	}
 
 	pblock_get_default( pb, SLAPI_RESCONTROLS, (void **)&controls );
 	if ( controls != NULL ) {
 		ldap_controls_free( controls );
 	}
 
-	ldap_pvt_thread_mutex_destroy( &pb->pblockMutex );
+	if ( pb->internal_op ) {
+		slapi_int_connection_done_pb( pb );
+	} else {
+		pblock_get_default( pb, SLAPI_MODIFY_MODS, (void **)&mods );
+		if ( mods != NULL )
+			slapi_int_free_ldapmods( mods );
 
+		pblock_get_default( pb, SLAPI_SEARCH_ATTRS, (void **)&attrs );
+		if ( attrs != NULL )
+			pb->pop->o_tmpfree( attrs, pb->pop->o_tmpmemctx );
+	}
+
+	ldap_pvt_thread_mutex_destroy( &pb->pblockMutex );
 	slapi_ch_free( (void **)&pb ); 
+}
+
+void 
+slapi_pblock_destroy( Slapi_PBlock *pb ) 
+{
+	if ( pb != NULL ) {
+		pblock_destroy( pb );
+	}
 }
 
 int 

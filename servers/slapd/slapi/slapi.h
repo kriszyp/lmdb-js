@@ -127,14 +127,7 @@ struct slapi_pblock {
 
 #define SLAPI_PLUGIN_IS_POST_FN(x) ((x) >= SLAPI_PLUGIN_POST_BIND_FN && (x) <= SLAPI_PLUGIN_BE_POST_DELETE_FN)
 
-#define SLAPI_OPERATION_PARAMETERS		138
-
-#define	SLAPI_PLUGIN_DB_TEST_FN			227
-#define SLAPI_PLUGIN_DB_NO_ACL        		250
-
-/* DS 5.x Computed Attribute Callbacks (not exposed) */
-#define SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN	1200
-#define SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN	1201
+#define SLAPI_IBM_PBLOCK			-3
 
 #define	SLAPI_ENTRY_PRE_OP			52
 #define	SLAPI_ENTRY_POST_OP			53
@@ -143,6 +136,8 @@ struct slapi_pblock {
 #define	SLAPI_RES_CONTROLS	SLAPI_RESCONTROLS
 
 #define SLAPI_ABANDON_MSGID			120
+
+#define SLAPI_OPERATION_PARAMETERS		138
 
 #define SLAPI_SEQ_TYPE				150
 #define SLAPI_SEQ_ATTRNAME			151
@@ -167,7 +162,13 @@ struct slapi_pblock {
 
 #define SLAPI_DBSIZE				199
 
-/* really private stuff */
+#define	SLAPI_PLUGIN_DB_TEST_FN			227
+#define SLAPI_PLUGIN_DB_NO_ACL        		250
+
+/* OpenLDAP private parametrs */
+#define SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN	1200
+#define SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN	1201
+
 #define SLAPI_X_CONFIG_ARGV			1400
 #define SLAPI_X_INTOP_FLAGS			1401
 #define SLAPI_X_INTOP_RESULT_CALLBACK		1402
@@ -175,8 +176,6 @@ struct slapi_pblock {
 #define SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK	1404
 #define SLAPI_X_INTOP_CALLBACK_DATA		1405
 #define SLAPI_X_OLD_RESCONTROLS			1406
-
-#define SLAPI_IBM_PBLOCK			-3
 
 LDAP_SLAPI_V (ldap_pvt_thread_mutex_t)	slapi_hn_mutex;
 LDAP_SLAPI_V (ldap_pvt_thread_mutex_t)	slapi_time_mutex;
