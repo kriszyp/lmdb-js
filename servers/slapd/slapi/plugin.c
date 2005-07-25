@@ -70,9 +70,9 @@ plugin_pblock_new(
 	Slapi_PluginDesc *pPluginDesc = NULL;
 	lt_dlhandle	hdLoadHandle;
 	int		rc;
-	char **av2 = NULL, **ppPluginArgv;
-	char *path = argv[2];
-	char *initfunc = argv[3];
+	char		**av2 = NULL, **ppPluginArgv;
+	char		*path = argv[2];
+	char		*initfunc = argv[3];
 
 	pPlugin = slapi_pblock_new();
 	if ( pPlugin == NULL ) {
@@ -146,9 +146,9 @@ slapi_int_register_plugin(
 	Backend *be, 
 	Slapi_PBlock *pPB )
 { 
-	Slapi_PBlock *pTmpPB;
-	Slapi_PBlock *pSavePB;
-	int    rc = LDAP_SUCCESS;
+	Slapi_PBlock	*pTmpPB;
+	Slapi_PBlock	*pSavePB;
+	int   		 rc = LDAP_SUCCESS;
 
 	assert( be != NULL );
 
@@ -273,14 +273,12 @@ createExtendedOp()
 {
 	ExtendedOp *ret;
 
-	ret = (ExtendedOp *)ch_malloc(sizeof(ExtendedOp));
-	if ( ret != NULL ) {
-		ret->ext_oid.bv_val = NULL;
-		ret->ext_oid.bv_len = 0;
-		ret->ext_func = NULL;
-		ret->ext_be = NULL;
-		ret->ext_next = NULL;
-	}
+	ret = (ExtendedOp *)slapi_ch_malloc(sizeof(ExtendedOp));
+	ret->ext_oid.bv_val = NULL;
+	ret->ext_oid.bv_len = 0;
+	ret->ext_func = NULL;
+	ret->ext_be = NULL;
+	ret->ext_next = NULL;
 
 	return ret;
 }
@@ -600,12 +598,6 @@ slapi_int_call_plugins(
 	}
 
 	for ( pGetPlugin = tmpPlugin ; *pGetPlugin != NULL; pGetPlugin++ ) {
-		/*
-		 * FIXME: we should provide here a sort of sandbox,
-		 * to protect from plugin faults; e.g. trap signals
-		 * and longjump here, marking the plugin as unsafe for
-		 * later executions ...
-		 */
 		rc = (*pGetPlugin)(pPB);
 
 		/*
@@ -757,7 +749,7 @@ slapi_int_initialize(void)
 		return -1;
 	}
 
-	slapi_log_file = ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
+	slapi_log_file = slapi_ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
 	if ( slapi_log_file == NULL ) {
 		return -1;
 	}
