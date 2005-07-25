@@ -293,9 +293,10 @@ slapi_int_set_operation_dn( Slapi_PBlock *pb )
 	if ( BER_BVISNULL( &op->o_ndn ) ) {
 		/* set to root DN */
 		be = select_backend( &op->o_req_ndn, 0, 0 );
-		assert( be != NULL );
-		ber_dupbv( &op->o_dn, &be->be_rootdn );
-		ber_dupbv( &op->o_ndn, &be->be_rootndn );
+		if ( be != NULL ) {
+			ber_dupbv( &op->o_dn, &be->be_rootdn );
+			ber_dupbv( &op->o_ndn, &be->be_rootndn );
+		}
 	}
 }
 
@@ -384,9 +385,7 @@ slapi_int_func_internal_pb( Slapi_PBlock *pb, slap_operation_t which )
 
 	func = &pb->pop->o_bd->be_bind;
 
-	rc = func[which]( pb->pop, &pb->rs );
-
-	return rc;
+	return func[which]( pb->pop, &pb->rs );
 }
 
 int

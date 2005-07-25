@@ -131,7 +131,6 @@ static void free_extension(struct slapi_extension_block *eblock, int objecttype,
 		eblock->extensions[extensionhandle] = NULL;
 	}
 }
-#endif /* LDAP_SLAPI */
 
 void *slapi_get_object_extension(int objecttype, void *object, int extensionhandle)
 {

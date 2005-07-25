@@ -36,20 +36,16 @@ static int slapi_over_response( Operation *op, SlapReply *rs );
 static int slapi_over_cleanup( Operation *op, SlapReply *rs );
 
 static Slapi_PBlock *
-slapi_over_pblock_new ( Operation *op )
+slapi_over_pblock_new( Operation *op )
 {
 	Slapi_PBlock		*pb;
 
 	pb = slapi_pblock_new();
-	if ( pb == NULL ) {
-		return NULL;
-	}
-
 	pb->pop = op;
 	pb->pconn = op->o_conn;
 	pb->internal_op = 0;
 
-	PBLOCK_ASSERT_OP( pb, 0 );
+	PBLOCK_ASSERT_OP( pb, op->o_tag );
 
 	return pb;
 }
