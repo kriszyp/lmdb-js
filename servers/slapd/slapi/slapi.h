@@ -106,11 +106,18 @@ typedef enum slapi_pblock_class_e {
 #define PBLOCK_ERROR			(-1)
 #define PBLOCK_MAX_PARAMS		100
 
+union slapi_pblock_value {
+	int pv_integer;
+	long pv_long_integer;
+	void *pv_pointer;
+	void (*pv_function_pointer)(void *);
+};
+
 struct slapi_pblock {
 	ldap_pvt_thread_mutex_t	pblockMutex;
 	int			numParams;
 	int			curParams[PBLOCK_MAX_PARAMS];
-	void			*curVals[PBLOCK_MAX_PARAMS];
+	union slapi_pblock_value curVals[PBLOCK_MAX_PARAMS];
 	/* native types */
 	Connection		*pconn;
 	Operation		*pop;

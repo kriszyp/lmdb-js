@@ -80,15 +80,8 @@ plugin_pblock_new(
 		goto done;
 	}
 
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)type );
-	if ( rc != 0 ) {
-		goto done;
-	}
-
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGC, (void *)argc );
-	if ( rc != 0 ) {
-		goto done;
-	}
+	slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)&type );
+	slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGC, (void *)&argc );
 
 	av2 = ldap_charray_dup( argv );
 	if ( av2 == NULL ) {
@@ -101,15 +94,9 @@ plugin_pblock_new(
 	} else {
 		ppPluginArgv = NULL;
 	}
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGV, (void *)ppPluginArgv );
-	if ( rc != 0 ) { 
-		goto done;
-	}
 
-	rc = slapi_pblock_set( pPlugin, SLAPI_X_CONFIG_ARGV, (void *)av2 );
-	if ( rc != 0 ) { 
-		goto done;
-	}
+	slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGV, (void *)ppPluginArgv );
+	slapi_pblock_set( pPlugin, SLAPI_X_CONFIG_ARGV, (void *)av2 );
 
 	rc = slapi_int_load_plugin( pPlugin, path, initfunc, 1, NULL, &hdLoadHandle );
 	if ( rc != 0 ) {

@@ -2859,6 +2859,7 @@ int slapi_compute_add_evaluator(slapi_compute_callback_t function)
 {
 	Slapi_PBlock *pPlugin = NULL;
 	int rc;
+	int type = SLAPI_PLUGIN_OBJECT;
 
 	pPlugin = slapi_pblock_new();
 	if ( pPlugin == NULL ) {
@@ -2866,7 +2867,7 @@ int slapi_compute_add_evaluator(slapi_compute_callback_t function)
 		goto done;
 	}
 
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)SLAPI_PLUGIN_OBJECT );
+	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)&type );
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
@@ -2900,6 +2901,7 @@ int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function)
 {
 	Slapi_PBlock *pPlugin = NULL;
 	int rc;
+	int type = SLAPI_PLUGIN_OBJECT;
 
 	pPlugin = slapi_pblock_new();
 	if ( pPlugin == NULL ) {
@@ -2907,7 +2909,7 @@ int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function)
 		goto done;
 	}
 
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)SLAPI_PLUGIN_OBJECT );
+	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)&type );
 	if ( rc != LDAP_SUCCESS ) {
 		goto done;
 	}
