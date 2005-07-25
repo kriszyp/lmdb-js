@@ -774,11 +774,11 @@ if test $am_cv_sys_posix_termios = yes ; then
 		[define if you have POSIX termios])
 fi
 
-AC_CHECK_HEADERS(	\
+AC_CHECK_HEADERS(		\
 	arpa/inet.h		\
-	arpa/nameser.h	\
+	arpa/nameser.h		\
 	assert.h		\
-	bits/types.h	\
+	bits/types.h		\
 	conio.h			\
 	crypt.h			\
 	direct.h		\
@@ -791,7 +791,7 @@ AC_CHECK_HEADERS(	\
 	libutil.h		\
 	limits.h		\
 	locale.h		\
-	netinet/tcp.h	\
+	netinet/tcp.h		\
 	malloc.h		\
 	memory.h		\
 	psap.h			\
@@ -809,11 +809,11 @@ AC_CHECK_HEADERS(	\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
-	sys/resource.h	\
-	sys/select.h	\
-	sys/socket.h	\
+	sys/resource.h		\
+	sys/select.h		\
+	sys/socket.h		\
 	sys/stat.h		\
-	sys/syslog.h	\
+	sys/syslog.h		\
 	sys/time.h		\
 	sys/types.h		\
 	sys/ucred.h		\
@@ -821,6 +821,7 @@ AC_CHECK_HEADERS(	\
 	syslog.h		\
 	termios.h		\
 	unistd.h		\
+	utime.h			\
 	winsock.h		\
 	winsock2.h		\
 )

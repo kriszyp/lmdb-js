@@ -516,7 +516,6 @@ glue_close (
 	BackendInfo *bi
 )
 {
-	slap_overinst *on = glue_tool_inst( bi );
 	static int glueClosed = 0;
 	int rc = 0;
 

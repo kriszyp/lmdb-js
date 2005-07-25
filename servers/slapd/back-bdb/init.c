@@ -22,6 +22,9 @@
 #include <ac/stdlib.h>
 #include <ac/errno.h>
 #include <sys/stat.h>
+#ifdef HAVE_UTIME_H
+#include <utime.h>
+#endif /* HAVE_UTIME_H */
 #include "back-bdb.h"
 #include <lutil.h>
 #include <ldap_rq.h>
