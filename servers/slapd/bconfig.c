@@ -1906,7 +1906,7 @@ slap_loglevel_register( slap_mask_t m, struct berval *s )
 	rc = slap_verbmasks_append( &loglevel_ops, m, s, loglevel_ignore );
 
 	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "slap_loglevel_register(%d, \"%s\") failed\n",
+		Debug( LDAP_DEBUG_ANY, "slap_loglevel_register(%lu, \"%s\") failed\n",
 			m, s->bv_val, 0 );
 	}
 
