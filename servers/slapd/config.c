@@ -850,7 +850,7 @@ slap_verbmasks_append(
 	int	i;
 
 	if ( !m ) {
-		return 1;
+		return LDAP_OPERATIONS_ERROR;
 	}
 
 	for ( i = 0; !BER_BVISNULL( &(*vp)[ i ].word ); i++ ) {
@@ -869,15 +869,15 @@ slap_verbmasks_append(
 		if ( ( m & (*vp)[ i ].mask ) == (*vp)[ i ].mask ) {
 			if ( ber_bvstrcasecmp( v, &(*vp)[ i ].word ) == 0 ) {
 				/* already set; ignore */
-				return 0;
+				return LDAP_SUCCESS;
 			}
 			/* conflicts */
-			return 1;
+			return LDAP_TYPE_OR_VALUE_EXISTS;
 		}
 
 		if ( m & (*vp)[ i ].mask ) {
 			/* conflicts */
-			return 1;
+			return LDAP_CONSTRAINT_VIOLATION;
 		}
 check_next:;
 	}
@@ -887,7 +887,7 @@ check_next:;
 	*((slap_mask_t *)&(*vp)[ i ].mask) = m;
 	BER_BVZERO( &(*vp)[ i + 1 ].word );
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 int
