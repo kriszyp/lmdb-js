@@ -650,10 +650,10 @@ cleanup:
 		pb->pop->ors_filter = NULL;
 	}
 
-	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK,         NULL );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK,   NULL );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK, NULL );
-	slapi_pblock_set( pb, SLAPI_X_INTOP_CALLBACK_DATA,           NULL );
+	slapi_pblock_delete_param( pb, SLAPI_X_INTOP_RESULT_CALLBACK );
+	slapi_pblock_delete_param( pb, SLAPI_X_INTOP_SEARCH_ENTRY_CALLBACK );
+	slapi_pblock_delete_param( pb, SLAPI_X_INTOP_REFERRAL_ENTRY_CALLBACK );
+	slapi_pblock_delete_param( pb, SLAPI_X_INTOP_CALLBACK_DATA );
 
 	return 0;
 }

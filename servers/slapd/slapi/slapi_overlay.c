@@ -767,6 +767,11 @@ slapi_over_acl_group(
 		else
 			rc = pb->rs.sr_err;
 
+		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_ENTRY );
+		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_OPERATION_DN );
+		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_ATTRIBUTE );
+		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_TARGET_ENTRY );
+
 		if ( !internal_op )
 			slapi_pblock_destroy( pb );
 
