@@ -283,7 +283,6 @@ typedef int (*plugin_search_entry_callback)( Slapi_Entry *e,
 	void *callback_data );
 void slapi_free_search_results_internal( Slapi_PBlock *pb );
 
-#define SLAPI_OP_FLAG_LOG_CHANGE	0x0001
 #define SLAPI_OP_FLAG_NEVER_CHAIN	0x0800
 
 int slapi_search_internal_pb( Slapi_PBlock *pb );
@@ -436,7 +435,8 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 /* operation params */
 #define SLAPI_OPINITIATED_TIME			140
 #define SLAPI_REQUESTOR_DN			141
-#define SLAPI_REQUESTOR_ISUPDATEDN		142
+#define SLAPI_IS_REPLICATED_OPERATION		142
+#define SLAPI_REQUESTOR_ISUPDATEDN		SLAPI_IS_REPLICATED_OPERATION
 
 /* connection  structure params*/
 #define SLAPI_CONN_DN        			143
@@ -473,6 +473,10 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_PLUGIN_INTOP_RESULT		15
 #define SLAPI_PLUGIN_INTOP_SEARCH_ENTRIES	16
 #define SLAPI_PLUGIN_INTOP_SEARCH_REFERRALS	17
+
+/* transaction arguments */
+#define SLAPI_PARENT_TXN			190
+#define SLAPI_TXN				191
 
 /* function pointer params for backends */
 #define SLAPI_PLUGIN_DB_BIND_FN			200
@@ -648,11 +652,12 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_TARGET_ADDRESS			48
 #define SLAPI_TARGET_UNIQUEID			49
 #define SLAPI_TARGET_DN				50
-#define SLAPI_REQCONTROLS			51
 
 /* server LDAPv3 controls  */
+#define SLAPI_REQCONTROLS			51
 #define SLAPI_RESCONTROLS			55
 #define SLAPI_ADD_RESCONTROL			56	
+#define SLAPI_CONTROLS_ARG			58
 
 /* add params */
 #define SLAPI_ADD_TARGET			SLAPI_TARGET_DN
