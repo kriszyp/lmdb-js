@@ -218,11 +218,9 @@ slapi_over_result( Operation *op, SlapReply *rs, int type )
 
 
 static int
-slapi_op_bind_callback( Operation *op, SlapReply *rs )
+slapi_op_bind_callback( Operation *op, SlapReply *rs, int prc )
 {
-	int			rc = rs->sr_err;
-
-	switch ( rc ) {
+	switch ( prc ) {
 	case SLAPI_BIND_SUCCESS:
 		/* Continue with backend processing */
 		break;
@@ -241,7 +239,7 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs )
 			 * Plugin will have called slapi_pblock_set(LDAP_CONN_DN) which
 			 * will have set conn->c_dn and conn->c_ndn
 			 */
-			if ( BER_BVISNULL( &op->o_conn->c_ndn ) && rc == 1 ) {
+			if ( BER_BVISNULL( &op->o_conn->c_ndn ) && prc == 1 ) {
 				/* No plugins were called; continue processing */
 				return LDAP_SUCCESS;
 			}
@@ -266,17 +264,16 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs )
 		break;
 	}
 
-	return rc;
+	return rs->sr_err;
 }
 
 static int
-slapi_op_search_callback( Operation *op, SlapReply *rs )
+slapi_op_search_callback( Operation *op, SlapReply *rs, int prc )
 {
 	Slapi_PBlock		*pb = SLAPI_OPERATION_PBLOCK( op );
 
 	/* check preoperation result code */
-	if ( rs->sr_err < 0 ) {
-		slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void **)&rs->sr_err );
+	if ( prc < 0 ) {
 		return rs->sr_err;
 	}
 
@@ -299,7 +296,7 @@ struct slapi_op_info {
 	int soi_postop;			/* postoperation plugin parameter */
 	int soi_internal_preop;		/* internal preoperation plugin parameter */
 	int soi_internal_postop;	/* internal postoperation plugin parameter */
-	slap_response *soi_callback; 	/* preoperation result handler */
+	int (*soi_callback)(Operation *, SlapReply *, int); /* preoperation result handler */
 } slapi_op_dispatch_table[] = {
 	{
 		SLAPI_PLUGIN_PRE_BIND_FN,
@@ -570,23 +567,19 @@ slapi_op_func( Operation *op, SlapReply *rs )
 
 	if ( preop_type == 0 ) {
 		/* no SLAPI plugin types for this operation */
-		if ( !internal_op ) {
-			slapi_pblock_destroy(pb);
-			cb.sc_private = NULL;
-		}
-		op->o_callback = cb.sc_next;
-		return SLAP_CB_CONTINUE;
+		rc = SLAP_CB_CONTINUE;
+		goto cleanup;
 	}
 
 	pb = SLAPI_OPERATION_PBLOCK( op );
 
-	rs->sr_err = slapi_int_call_plugins( op->o_bd, preop_type, pb );
+	rc = slapi_int_call_plugins( op->o_bd, preop_type, pb );
 
 	/*
 	 * soi_callback is responsible for examining the result code
 	 * of the preoperation plugin and determining whether to
 	 * abort. This is needed because of special SLAPI behaviour
-	 * with bind preoperation plugins.
+	 e with bind preoperation plugins.
 	 *
 	 * The soi_callback function is also used to reset any values
 	 * returned from the preoperation plugin before calling the
@@ -594,12 +587,12 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	 */
 	if ( opinfo->soi_callback == NULL ) {
 		/* default behaviour is preop plugin can abort operation */
-		if ( rs->sr_err < 0 )
+		if ( rc < 0 ) {
+			rc = rs->sr_err;
 			goto cleanup;
-		else
-			rs->sr_err = LDAP_SUCCESS;
+		}
 	} else {
-		rc = (opinfo->soi_callback)( op, rs );
+		rc = (opinfo->soi_callback)( op, rs, rc );
 		if ( rc )
 			goto cleanup;
 	}
@@ -615,7 +608,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	on = (slap_overinst *)op->o_bd->bd_info;
 	oi = on->on_info;
 
-	rs->sr_err = overlay_op_walk( op, rs, which, oi, on->on_next );
+	rc = overlay_op_walk( op, rs, which, oi, on->on_next );
 
 	/*
 	 * Call postoperation plugins
@@ -630,7 +623,7 @@ cleanup:
 
 	op->o_callback = cb.sc_next;
 
-	return rs->sr_err;
+	return rc;
 }
 
 static int
