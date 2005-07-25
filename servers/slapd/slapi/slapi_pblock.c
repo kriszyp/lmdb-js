@@ -44,7 +44,6 @@ pblock_get_param_class( int param )
 	switch ( param ) {
 	case SLAPI_PLUGIN_TYPE:
 	case SLAPI_PLUGIN_ARGC:
-	case SLAPI_PLUGIN_VERSION:
 	case SLAPI_PLUGIN_OPRETURN:
 	case SLAPI_PLUGIN_INTOP_RESULT:
 	case SLAPI_CONFIG_LINENO:
@@ -277,6 +276,7 @@ pblock_get_param_class( int param )
 	case SLAPI_X_GROUP_TARGET_ENTRY:
 	case SLAPI_PLUGIN_AUDIT_DATA:
 	case SLAPI_IBM_PBLOCK:
+	case SLAPI_PLUGIN_VERSION:
 		return PBLOCK_CLASS_POINTER;
 		break;
 	default:
