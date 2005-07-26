@@ -326,7 +326,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 					bv.bv_len + 1 );
 			}
 
-			c->value_string = bv.bv_val;
+			ber_bvarray_add( &c->rvalue_vals, &bv );
 			break;
 		}
 
@@ -439,13 +439,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 			if ( !BER_BVISNULL( &bv ) ) {
 				ber_len_t	len = bv.bv_len + bc.bv_len;
 
-				c->value_string = ch_realloc( bv.bv_val, len + 1 );
+				bv.bv_val = ch_realloc( bv.bv_val, len + 1 );
 
 				assert( bc.bv_val[ 0 ] == ' ' );
 
-				(void)lutil_strcopy( &c->value_string[ bv.bv_len ], bc.bv_val );
-
+				ptr = lutil_strcopy( &bv.bv_val[ bv.bv_len ], bc.bv_val );
 				free( bc.bv_val );
+				bv.bv_len = ptr - bv.bv_val;
 
 			} else {
 				for ( i = 0; isspace( bc.bv_val[ i ] ); i++ )
@@ -456,9 +456,11 @@ ldap_back_cf_gen( ConfigArgs *c )
 					AC_MEMCPY( bc.bv_val, &bc.bv_val[ i ], bc.bv_len + 1 );
 				}
 
-				c->value_string = bv.bv_val;
+				bv = bc;
 			}
 			
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+
 			break;
 		}
 
