@@ -189,7 +189,6 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 
 	op = (Operation *) slapi_ch_calloc( 1, OPERATION_BUFFER_SIZE );
 	op->o_hdr = (Opheader *)(op + 1);
-	op->o_hdr->oh_extensions = NULL;
 	op->o_controls = (void **)(op->o_hdr + 1);
 
 	op->o_callback = (slap_callback *) slapi_ch_calloc( 1, sizeof(slap_callback) );
@@ -277,6 +276,10 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 	op->o_connid = conn->c_connid;
 	op->o_bd = frontendDB;
 
+	/* extensions */
+	slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
+	slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
+
 	pb->pb_op = op;
 	pb->pb_conn = conn;
 	pb->pb_intop = 1;
@@ -362,6 +365,9 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 	if ( conn->c_sb != NULL ) {
 		ber_sockbuf_free( conn->c_sb );
 	}
+
+	slapi_int_free_object_extensions( SLAPI_X_EXT_OPERATION, op );
+	slapi_int_free_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
 
 	slapi_ch_free( (void **)&pb->pb_op->o_callback );
 	slapi_ch_free( (void **)&pb->pb_op );
