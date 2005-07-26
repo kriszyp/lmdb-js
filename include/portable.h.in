@@ -620,6 +620,9 @@
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
+/* Define if you have the <utime.h> header file.  */
+#undef HAVE_UTIME_H
+
 /* Define if you have the <winsock.h> header file.  */
 #undef HAVE_WINSOCK_H
 
