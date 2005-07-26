@@ -221,6 +221,13 @@ void slapi_register_supported_saslmechanism(char *mechanism);
 char **slapi_get_supported_saslmechanisms();
 char **slapi_get_supported_extended_ops(void);
 
+/* operation */
+int slapi_op_abandoned( Slapi_PBlock *pb );
+unsigned long slapi_op_get_type(Slapi_Operation * op);
+void slapi_operation_set_flag(Slapi_Operation *op, unsigned long flag);
+void slapi_operation_clear_flag(Slapi_Operation *op, unsigned long flag);
+int slapi_operation_is_flag_set(Slapi_Operation *op, unsigned long flag);
+char *slapi_op_type_to_string(unsigned long type);
 
 /* send ldap result back */
 void slapi_send_ldap_result( Slapi_PBlock *pb, int err, char *matched,

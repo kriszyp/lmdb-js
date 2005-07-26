@@ -3354,5 +3354,117 @@ slapi_int_count_controls( LDAPControl **ctrls )
 	return i;
 }
 
+int
+slapi_op_abandoned( Slapi_PBlock *pb )
+{
+	if ( pb->pb_op == NULL )
+		return 0;
+
+	return ( pb->pb_op->o_abandon );
+}
+
+char *
+slapi_op_type_to_string(unsigned long type)
+{
+	char *str;
+
+	switch (type) {
+	case SLAPI_OPERATION_BIND:
+		str = "bind";
+		break;
+	case SLAPI_OPERATION_UNBIND:
+		str = "unbind";
+		break;
+	case SLAPI_OPERATION_SEARCH:
+		str = "search";
+		break;
+	case SLAPI_OPERATION_MODIFY:
+		str = "modify";
+		break;
+	case SLAPI_OPERATION_ADD:
+		str = "add";
+		break;
+	case SLAPI_OPERATION_DELETE:
+		str = "delete";
+		break;
+	case SLAPI_OPERATION_MODDN:
+		str = "modrdn";
+		break;
+	case SLAPI_OPERATION_COMPARE:
+		str = "compare";
+		break;
+	case SLAPI_OPERATION_ABANDON:
+		str = "abandon";
+		break;
+	case SLAPI_OPERATION_EXTENDED:
+		str = "extended";
+		break;
+	default:
+		str = "unknown operation type";
+		break;
+	}
+	return str;
+}
+
+unsigned long
+slapi_op_get_type(Slapi_Operation * op)
+{
+	unsigned long type;
+
+	switch ( op->o_tag ) {
+	case LDAP_REQ_BIND:
+		type = SLAPI_OPERATION_BIND;
+		break;
+	case LDAP_REQ_UNBIND:
+		type = SLAPI_OPERATION_UNBIND;
+		break;
+	case LDAP_REQ_SEARCH:
+		type = SLAPI_OPERATION_SEARCH;
+		break;
+	case LDAP_REQ_MODIFY:
+		type = SLAPI_OPERATION_MODIFY;
+		break;
+	case LDAP_REQ_ADD:
+		type = SLAPI_OPERATION_ADD;
+		break;
+	case LDAP_REQ_DELETE:
+		type = SLAPI_OPERATION_DELETE;
+		break;
+	case LDAP_REQ_MODRDN:
+		type = SLAPI_OPERATION_MODDN;
+		break;
+	case LDAP_REQ_COMPARE:
+		type = SLAPI_OPERATION_COMPARE;
+		break;
+	case LDAP_REQ_ABANDON:
+		type = SLAPI_OPERATION_ABANDON;
+		break;
+	case LDAP_REQ_EXTENDED:
+		type = SLAPI_OPERATION_EXTENDED;
+		break;
+	default:
+		type = SLAPI_OPERATION_NONE;
+		break;
+	}
+	return type;
+}
+
+#if 0
+void
+slapi_operation_set_flag(Slapi_Operation *op, unsigned long flag)
+{
+}
+
+void
+slapi_operation_clear_flag(Slapi_Operation *op, unsigned long flag)
+{
+}
+
+int
+slapi_operation_is_flag_set(Slapi_Operation *op, unsigned long flag)
+{
+}
+#endif
+
 #endif /* LDAP_SLAPI */
 
