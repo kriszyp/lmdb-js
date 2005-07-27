@@ -1318,15 +1318,15 @@ static void
 bdb_locker_id_free( void *key, void *data )
 {
 	DB_ENV *env = key;
-	int lockid = (int) data;
+	u_int32_t lockid = (u_int32_t) data;
 	int rc;
 
 	rc = XLOCK_ID_FREE( env, lockid );
 	if ( rc == EINVAL ) {
 		DB_LOCKREQ lr;
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_locker_id_free: %d err %s(%d)\n",
-			lockid, db_strerror(rc), rc );
+			"bdb_locker_id_free: %lu err %s(%d)\n",
+			(unsigned long) lockid, db_strerror(rc), rc );
 		/* release all locks held by this locker. */
 		lr.op = DB_LOCK_PUT_ALL;
 		lr.obj = NULL;
@@ -1336,9 +1336,10 @@ bdb_locker_id_free( void *key, void *data )
 }
 
 int
-bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
+bdb_locker_id( Operation *op, DB_ENV *env, u_int32_t *locker )
 {
-	int i, rc, lockid;
+	int i, rc;
+	u_int32_t lockid;
 	void *data;
 	void *ctx;
 
@@ -1375,12 +1376,12 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 			return rc;
 		}
 	} else {
-		lockid = (int)data;
+		lockid = (u_int32_t) data;
 	}
 	*locker = lockid;
 	return 0;
 }
-#endif
+#endif /* BDB_REUSE_LOCKERS */
 
 void
 bdb_cache_delete_entry(
