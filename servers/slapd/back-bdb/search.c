@@ -314,7 +314,9 @@ bdb_search( Operation *op, SlapReply *rs )
 	Entry		*matched = NULL;
 	EntryInfo	*ei, ei_root = {0};
 	struct berval	realbase = BER_BVNULL;
+#ifdef SLAP_ACL_HONOR_DISCLOSE
 	slap_mask_t	mask;
+#endif
 	int		manageDSAit;
 	int		tentries = 0;
 	ID		lastid = NOID;
