@@ -316,12 +316,12 @@ main( int argc, char **argv )
 #endif
 		|| preread || postread )
 	{
-		int err;
 		int i = 0;
 		LDAPControl c[1];
 
 #ifdef LDAP_GROUP_TRANSACTION
 		if( txn ) {
+			int err;
 			txnber = ber_alloc_t( LBER_USE_DER );
 			if( txnber == NULL ) return EXIT_FAILURE;
 
