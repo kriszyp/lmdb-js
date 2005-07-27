@@ -912,20 +912,24 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			if ( value == NULL ) {
 				if ( pb->pb_op->orr_newSup != NULL ) {
 					pb->pb_op->o_tmpfree( pb->pb_op->orr_newSup, pb->pb_op->o_tmpmemctx );
+					BER_BVZERO( pb->pb_op->orr_newSup );
 					pb->pb_op->orr_newSup = NULL;
 				}
 				if ( pb->pb_op->orr_newSup != NULL ) {
 					pb->pb_op->o_tmpfree( pb->pb_op->orr_nnewSup, pb->pb_op->o_tmpmemctx );
+					BER_BVZERO( pb->pb_op->orr_nnewSup );
 					pb->pb_op->orr_nnewSup = NULL;
 				}
 			} else {
 				if ( pb->pb_op->orr_newSup == NULL ) {
 					pb->pb_op->orr_newSup = (struct berval *)pb->pb_op->o_tmpalloc(
 						sizeof(struct berval), pb->pb_op->o_tmpmemctx );
+					BER_BVZERO( pb->pb_op->orr_newSup );
 				}
 				if ( pb->pb_op->orr_nnewSup == NULL ) {
 					pb->pb_op->orr_nnewSup = (struct berval *)pb->pb_op->o_tmpalloc(
 						sizeof(struct berval), pb->pb_op->o_tmpmemctx );
+					BER_BVZERO( pb->pb_op->orr_nnewSup );
 				}
 				rc = pblock_set_dn( value, pb->pb_op->orr_newSup, pb->pb_op->orr_nnewSup, pb->pb_op->o_tmpmemctx );
 			}
