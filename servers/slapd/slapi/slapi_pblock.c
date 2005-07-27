@@ -420,6 +420,24 @@ pblock_set_default( Slapi_PBlock *pb, int param, void *value )
 	return PBLOCK_SUCCESS;
 }
 
+static int
+pblock_be_call( Slapi_PBlock *pb, int (*bep)(Operation *) )
+{
+	BackendDB *be_orig;
+	Operation *op;
+	int rc;
+
+	PBLOCK_ASSERT_OP( pb, 0 );
+	op = pb->pb_op;
+
+	be_orig = op->o_bd;
+	op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+	rc = (*bep)( op );
+	op->o_bd = be_orig;
+
+	return rc;
+}
+
 static int 
 pblock_get( Slapi_PBlock *pb, int param, void **value ) 
 {
@@ -485,12 +503,10 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		*((char **)value) = pb->pb_op->o_req_ndn.bv_val;
 		break;
 	case SLAPI_REQUESTOR_ISROOT:
-		PBLOCK_ASSERT_OP( pb, 0 );
-		*((int *)value) = be_isroot( pb->pb_op );
+		*((int *)value) = pblock_be_call( pb, be_isroot );
 		break;
 	case SLAPI_IS_REPLICATED_OPERATION:
-		PBLOCK_ASSERT_OP( pb, 0 );
-		*((int *)value) = be_isupdate( pb->pb_op );
+		*((int *)value) = pblock_be_call( pb, be_slurp_update );
 		break;
 	case SLAPI_CONN_AUTHTYPE:
 	case SLAPI_CONN_AUTHMETHOD: /* XXX should return SASL mech */
