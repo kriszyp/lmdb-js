@@ -896,10 +896,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		}
 
 		if ( *mlp != NULL ) {
-			if ( pb->pb_intop )
-				slapi_int_mods_free( *mlp ); /* caller owns values */
-			else
-				slap_mods_free( *mlp );	 /* we own values */
+			slapi_int_mods_free( *mlp );
 			*mlp = NULL;
 		}
 		*mlp = slapi_int_ldapmods2modifications( (LDAPMod **)value, NULL );
@@ -910,7 +907,8 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_VALIDATE_IS_INTOP( pb );
 		if ( pb->pb_op->o_tag == LDAP_REQ_MODRDN ) {
 			rc = pblock_set_dn( value, &pb->pb_op->orr_newrdn, &pb->pb_op->orr_nnewrdn, pb->pb_op->o_tmpmemctx );
-			if ( rc == LDAP_SUCCESS ) rc = rdn_validate( &pb->pb_op->orr_nnewrdn );
+			if ( rc == LDAP_SUCCESS )
+				rc = rdn_validate( &pb->pb_op->orr_nnewrdn );
 		} else {
 			rc = PBLOCK_ERROR;
 		}
@@ -1247,8 +1245,7 @@ pblock_destroy( Slapi_PBlock *pb )
 		slapi_int_connection_done_pb( pb );
 	} else {
 		pblock_get_default( pb, SLAPI_MODIFY_MODS, (void **)&mods );
-		if ( mods != NULL )
-			slapi_int_free_ldapmods( mods );
+		slapi_int_free_ldapmods( mods );
 
 		pblock_get_default( pb, SLAPI_SEARCH_ATTRS, (void **)&attrs );
 		if ( attrs != NULL )
