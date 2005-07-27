@@ -679,9 +679,11 @@ enum {
 	PC_CHAINING = 1
 };
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static ConfigDriver chain_cf_gen;
-static ConfigLDAPadd chain_ldadd;
 static ConfigCfAdd chain_cfadd;
+#endif
+static ConfigLDAPadd chain_ldadd;
 
 static ConfigTable chaincfg[] = {
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
@@ -719,6 +721,8 @@ chain_ldadd( CfEntryInfo *p, Entry *e, ConfigArgs *ca )
 	return LDAP_SUCCESS;
 }
 
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+
 static int
 chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 {
@@ -742,7 +746,6 @@ chain_cfadd( Operation *op, SlapReply *rs, Entry *p, ConfigArgs *ca )
 	return 0;
 }
 
-#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 static slap_verbmasks chaining_mode[] = {
 	{ BER_BVC("referralsRequired"),		LDAP_REFERRALS_REQUIRED },
 	{ BER_BVC("referralsPreferred"),	LDAP_REFERRALS_PREFERRED },
@@ -750,13 +753,14 @@ static slap_verbmasks chaining_mode[] = {
 	{ BER_BVC("chainingPreferred"),		LDAP_CHAINING_PREFERRED },
 	{ BER_BVNULL,				0 }
 };
-#endif
 
 static int
 chain_cf_gen( ConfigArgs *c )
 {
 	slap_overinst	*on = (slap_overinst *)c->bi;
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	ldap_chain_t	*lc = (ldap_chain_t *)on->on_bi.bi_private;
+#endif
 
 	int		rc = 0;
 
@@ -934,6 +938,8 @@ chain_cf_gen( ConfigArgs *c )
 	}
 	return rc;
 }
+
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 
 static int
 ldap_chain_db_config(
