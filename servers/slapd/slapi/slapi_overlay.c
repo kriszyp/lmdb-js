@@ -379,7 +379,7 @@ slapi_tag2op( ber_tag_t tag )
 		op = op_add;
 		break;
 	case LDAP_REQ_DELETE:
-		op = op_compare;
+		op = op_delete;
 		break;
 	case LDAP_REQ_MODRDN:
 		op = op_modrdn;
