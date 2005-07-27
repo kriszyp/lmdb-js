@@ -3455,8 +3455,8 @@ slap_dynacl_get( const char *name )
 int
 acl_init( void )
 {
-	int		i, rc;
 #ifdef SLAP_DYNACL
+	int		i, rc;
 	slap_dynacl_t	*known_dynacl[] = {
 #ifdef SLAPD_ACI_ENABLED
 		&dynacl_aci,

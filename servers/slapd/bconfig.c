@@ -79,7 +79,9 @@ static int replicationInterval;
 
 static char	*passwd_salt;
 static char	*logfileName;
+#ifdef SLAP_AUTH_REWRITE
 static BerVarray authz_rewrites;
+#endif
 
 static struct berval cfdir;
 
