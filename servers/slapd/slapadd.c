@@ -301,16 +301,13 @@ slapadd( int argc, char **argv )
 				if( continuemode ) continue;
 				break;
 			}
-		}
-
-		if ( verbose ) {
-			if ( dryrun ) {
-				fprintf( stderr, "added: \"%s\"\n",
-					e->e_dn );
-			} else {
+			if ( verbose )
 				fprintf( stderr, "added: \"%s\" (%08lx)\n",
 					e->e_dn, (long) id );
-			}
+		} else {
+			if ( verbose )
+				fprintf( stderr, "added: \"%s\"\n",
+					e->e_dn );
 		}
 
 		entry_free( e );
