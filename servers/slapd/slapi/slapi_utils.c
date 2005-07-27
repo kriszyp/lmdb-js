@@ -1297,9 +1297,9 @@ slapi_send_ldap_result(
 {
 	SlapReply	*rs;
 
-	assert( pb->pb_op != NULL );
+	PBLOCK_ASSERT_OP( pb, 0 );
 
-	rs = &pb->pb_rs;
+	rs = pb->pb_rs;
 
 	rs->sr_err = err;
 	rs->sr_matched = matched;

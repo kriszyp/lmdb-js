@@ -167,7 +167,7 @@ slapi_int_get_ctrls( Slapi_PBlock *pb )
 
 	if ( pb->pb_op->o_ctrls != NULL ) {
 		for ( c = pb->pb_op->o_ctrls; *c != NULL; c++ ) {
-			rc = slap_parse_ctrl( pb->pb_op, &pb->pb_rs, *c, &pb->pb_rs.sr_text );
+			rc = slap_parse_ctrl( pb->pb_op, pb->pb_rs, *c, &pb->pb_rs->sr_text );
 			if ( rc != LDAP_SUCCESS )
 				break;
 		}
@@ -280,6 +280,7 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 	slapi_int_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 	slapi_int_create_object_extensions( SLAPI_X_EXT_CONNECTION, conn );
 
+	pb->pb_rs = (SlapReply *)slapi_ch_calloc( 1, sizeof(SlapReply) );
 	pb->pb_op = op;
 	pb->pb_conn = conn;
 	pb->pb_intop = 1;
@@ -372,13 +373,14 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 	slapi_ch_free( (void **)&pb->pb_op->o_callback );
 	slapi_ch_free( (void **)&pb->pb_op );
 	slapi_ch_free( (void **)&pb->pb_conn );
+	slapi_ch_free( (void **)&pb->pb_rs );
 }
 
 static int
 slapi_int_func_internal_pb( Slapi_PBlock *pb, slap_operation_t which )
 {
 	BI_op_bind		**func;
-	SlapReply		*rs = &pb->pb_rs;
+	SlapReply		*rs = pb->pb_rs;
 	int			rc;
 
 	PBLOCK_ASSERT_INTOP( pb, 0 );
@@ -391,7 +393,7 @@ slapi_int_func_internal_pb( Slapi_PBlock *pb, slap_operation_t which )
 
 	func = &pb->pb_op->o_bd->be_bind;
 
-	return func[which]( pb->pb_op, &pb->pb_rs );
+	return func[which]( pb->pb_op, pb->pb_rs );
 }
 
 int
@@ -421,7 +423,7 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_ADD );
 
-	rs = &pb->pb_rs;
+	rs = pb->pb_rs;
 
 	entry_orig = pb->pb_op->ora_e;
 	pb->pb_op->ora_e = NULL;
@@ -506,7 +508,7 @@ slapi_modrdn_internal_pb( Slapi_PBlock *pb )
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_MODRDN );
 
 	if ( BER_BVISEMPTY( &pb->pb_op->o_req_ndn ) ) {
-		pb->pb_rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
+		pb->pb_rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 		goto cleanup;
 	}
 
@@ -529,7 +531,7 @@ slapi_modify_internal_pb( Slapi_PBlock *pb )
 
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_MODIFY );
 
-	rs = &pb->pb_rs;
+	rs = pb->pb_rs;
 
 	if ( pb->pb_op->orm_modlist == NULL ) {
 		rs->sr_err = LDAP_PARAM_ERROR;
@@ -624,7 +626,7 @@ slapi_search_internal_callback_pb( Slapi_PBlock *pb,
 
 	PBLOCK_ASSERT_INTOP( pb, LDAP_REQ_SEARCH );
 
-	rs = &pb->pb_rs;
+	rs = pb->pb_rs;
 
 	/* search callback and arguments */
 	slapi_pblock_set( pb, SLAPI_X_INTOP_RESULT_CALLBACK,         (void *)prc );

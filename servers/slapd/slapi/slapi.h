@@ -121,7 +121,7 @@ struct slapi_pblock {
 	/* native types */
 	Connection		*pb_conn;
 	Operation		*pb_op;
-	SlapReply		pb_rs;
+	SlapReply		*pb_rs;
 	int			pb_intop;
 	char			pb_textbuf[ SLAP_TEXT_BUFLEN ];
 };

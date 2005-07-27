@@ -36,13 +36,14 @@ static int slapi_over_response( Operation *op, SlapReply *rs );
 static int slapi_over_cleanup( Operation *op, SlapReply *rs );
 
 static Slapi_PBlock *
-slapi_over_pblock_new( Operation *op )
+slapi_over_pblock_new( Operation *op, SlapReply *rs )
 {
 	Slapi_PBlock		*pb;
 
 	pb = slapi_pblock_new();
 	pb->pb_op = op;
 	pb->pb_conn = op->o_conn;
+	pb->pb_rs = rs;
 	pb->pb_intop = 0;
 
 	PBLOCK_ASSERT_OP( pb, op->o_tag );
@@ -51,7 +52,7 @@ slapi_over_pblock_new( Operation *op )
 }
 
 static int
-slapi_op_internal_p( Operation *op, slap_callback *cb )
+slapi_op_internal_p( Operation *op, SlapReply *rs, slap_callback *cb )
 {
 	int			internal_op = 0;
 	Slapi_PBlock		*pb = NULL;
@@ -73,7 +74,7 @@ slapi_op_internal_p( Operation *op, slap_callback *cb )
 
 	if ( cb != NULL ) {
 		if ( pb == NULL ) {
-			pb = slapi_over_pblock_new( op );
+			pb = slapi_over_pblock_new( op, rs );
 		}
 
 		cb->sc_response = slapi_over_response;
@@ -141,11 +142,11 @@ slapi_over_aux_operational( Operation *op, SlapReply *rs )
 	computed_attr_context    ctx;
 	AttributeName		*anp;
 
-	if ( slapi_op_internal_p( op, NULL ) ) {
+	if ( slapi_op_internal_p( op, rs, NULL ) ) {
 		return SLAP_CB_CONTINUE;
 	}
 
-	ctx.cac_pb = slapi_over_pblock_new( op );
+	ctx.cac_pb = slapi_over_pblock_new( op, rs );
 	ctx.cac_op = op;
 	ctx.cac_private = rs;
 
@@ -184,7 +185,7 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 	assert( rs->sr_type == REP_SEARCH || rs->sr_type == REP_SEARCHREF );
 
 	/* create a new pblock to not trample on result controls */
-	pb = slapi_over_pblock_new( op );
+	pb = slapi_over_pblock_new( op, rs );
 
 	rc = slapi_int_call_plugins( op->o_bd, type, pb );
 	if ( rc >= 0 ) /* 1 means no plugins called */
@@ -551,7 +552,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	internal_op = slapi_op_internal_p( op, &cb );
+	internal_op = slapi_op_internal_p( op, rs, &cb );
 
 	if ( internal_op ) {
 		preop_type = opinfo->soi_internal_preop;
@@ -637,7 +638,7 @@ slapi_over_extended( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
-	internal_op = slapi_op_internal_p( op, &cb );
+	internal_op = slapi_op_internal_p( op, rs, &cb );
 	if ( internal_op ) {
 		return SLAP_CB_CONTINUE;
 	}
@@ -683,8 +684,9 @@ slapi_over_access_allowed(
 	Slapi_PBlock		*pb;
 	slap_callback		cb;
 	int			internal_op;
+	SlapReply		rs = { REP_RESULT };
 
-	internal_op = slapi_op_internal_p( op, &cb );
+	internal_op = slapi_op_internal_p( op, &rs, &cb );
 
 	cb.sc_response = NULL;
 	cb.sc_cleanup = NULL;
@@ -718,6 +720,7 @@ slapi_over_acl_group(
 	Slapi_PBlock		*pb;
 	BackendDB		*be = op->o_bd;
 	GroupAssertion		*g;
+	SlapReply		rs = { REP_RESULT };
 
 	op->o_bd = select_backend( gr_ndn, 0, 0 );
 
@@ -746,7 +749,7 @@ slapi_over_acl_group(
 		int			internal_op;
 		slap_callback		cb;
 
-		internal_op = slapi_op_internal_p( op, &cb );
+		internal_op = slapi_op_internal_p( op, &rs, &cb );
 
 		cb.sc_response = NULL;
 		cb.sc_cleanup = NULL;
@@ -762,7 +765,7 @@ slapi_over_acl_group(
 		if ( rc >= 0 ) /* 1 means no plugins called */
 			rc = SLAP_CB_CONTINUE;
 		else
-			rc = pb->pb_rs.sr_err;
+			rc = pb->pb_rs->sr_err;
 
 		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_ENTRY );
 		slapi_pblock_delete_param( pb, SLAPI_X_GROUP_OPERATION_DN );

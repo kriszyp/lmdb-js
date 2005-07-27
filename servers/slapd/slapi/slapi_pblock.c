@@ -549,13 +549,16 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_RESULT_CODE:
 	case SLAPI_PLUGIN_INTOP_RESULT:
-		*((int *)value) = pb->pb_rs.sr_err;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((int *)value) = pb->pb_rs->sr_err;
 		break;
         case SLAPI_RESULT_TEXT:
-		*((const char **)value) = pb->pb_rs.sr_text;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((const char **)value) = pb->pb_rs->sr_text;
 		break;
         case SLAPI_RESULT_MATCHED:
-		*((const char **)value) = pb->pb_rs.sr_matched;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((const char **)value) = pb->pb_rs->sr_matched;
 		break;
 	case SLAPI_ADD_ENTRY:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -665,10 +668,12 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 			*((int *)value) = 0;
 		break;
 	case SLAPI_SEARCH_RESULT_ENTRY:
-		*((Slapi_Entry **)value) = pb->pb_rs.sr_entry;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((Slapi_Entry **)value) = pb->pb_rs->sr_entry;
 		break;
 	case SLAPI_BIND_RET_SASLCREDS:
-		*((struct berval **)value) = pb->pb_rs.sr_sasldata;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((struct berval **)value) = pb->pb_rs->sr_sasldata;
 		break;
 	case SLAPI_EXT_OP_REQ_OID:
 		*((const char **)value) = pb->pb_op->ore_reqoid.bv_val;
@@ -677,10 +682,12 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		*((struct berval **)value) = pb->pb_op->ore_reqdata;
 		break;
 	case SLAPI_EXT_OP_RET_OID:
-		*((const char **)value) = pb->pb_rs.sr_rspoid;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((const char **)value) = pb->pb_rs->sr_rspoid;
 		break;
 	case SLAPI_EXT_OP_RET_VALUE:
-		*((struct berval **)value) = pb->pb_rs.sr_rspdata;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((struct berval **)value) = pb->pb_rs->sr_rspdata;
 		break;
 	case SLAPI_BIND_METHOD:
 		if ( pb->pb_op->o_tag == LDAP_REQ_BIND )
@@ -851,14 +858,17 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_RESULT_CODE:
 	case SLAPI_PLUGIN_INTOP_RESULT:
-		pb->pb_rs.sr_err = *((int *)value);
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_rs->sr_err = *((int *)value);
 		break;
 	case SLAPI_RESULT_TEXT:
+		PBLOCK_ASSERT_OP( pb, 0 );
 		snprintf( pb->pb_textbuf, sizeof( pb->pb_textbuf ), "%s", (char *)value );
-		pb->pb_rs.sr_text = pb->pb_textbuf;
+		pb->pb_rs->sr_text = pb->pb_textbuf;
 		break;
 	case SLAPI_RESULT_MATCHED:
-		pb->pb_rs.sr_matched = (char *)value; /* XXX should dup? */
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_rs->sr_matched = (char *)value; /* XXX should dup? */
 		break;
 	case SLAPI_ADD_ENTRY:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1039,7 +1049,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 				an[i].an_oc_exclude = 0;
 				an[i].an_name.bv_val = attrs[i];
 				an[i].an_name.bv_len = strlen( attrs[i] );
-				slap_bv2ad( &an[i].an_name, &an[i].an_desc, &pb->pb_rs.sr_text );
+				slap_bv2ad( &an[i].an_name, &an[i].an_desc, &pb->pb_rs->sr_text );
 			}
 			an[i].an_name.bv_val = NULL;
 			an[i].an_name.bv_len = 0;
@@ -1058,10 +1068,11 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_SEARCH_RESULT_ENTRY:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		pb->pb_rs.sr_entry = (Slapi_Entry *)value;
+		pb->pb_rs->sr_entry = (Slapi_Entry *)value;
 		break;
 	case SLAPI_BIND_RET_SASLCREDS:
-		pb->pb_rs.sr_sasldata = (struct berval *)value;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_rs->sr_sasldata = (struct berval *)value;
 		break;
 	case SLAPI_EXT_OP_REQ_OID:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1084,10 +1095,12 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			rc = PBLOCK_ERROR;
 		break;
 	case SLAPI_EXT_OP_RET_OID:
-		pb->pb_rs.sr_rspoid = (char *)value;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_rs->sr_rspoid = (char *)value;
 		break;
 	case SLAPI_EXT_OP_RET_VALUE:
-		pb->pb_rs.sr_rspdata = (struct berval *)value;
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_rs->sr_rspdata = (struct berval *)value;
 		break;
 	case SLAPI_BIND_METHOD:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -1210,6 +1223,7 @@ slapi_pblock_new(void)
 		pb->pb_nParams = 1;
 		pb->pb_conn = NULL;
 		pb->pb_op = NULL;
+		pb->pb_rs = NULL;
 		pb->pb_intop = 0;
 	}
 	return pb;

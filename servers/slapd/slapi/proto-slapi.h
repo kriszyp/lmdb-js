@@ -54,6 +54,7 @@ LDAP_SLAPI_F (int) slapi_int_pblock_get_next LDAP_P(( Slapi_PBlock **pb ));
 #define PBLOCK_ASSERT_OP( _pb, _tag ) do { \
 		PBLOCK_ASSERT_CONN( _pb ); \
 		assert( (_pb)->pb_op != NULL ); \
+		assert( (_pb)->pb_rs != NULL ); \
 		if ( _tag != 0 ) \
 			assert( (_pb)->pb_op->o_tag == (_tag)); \
 	} while (0)
