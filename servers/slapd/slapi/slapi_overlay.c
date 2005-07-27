@@ -563,6 +563,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 
 	if ( preop_type == 0 ) {
 		/* no SLAPI plugin types for this operation */
+		pb = NULL;
 		rc = SLAP_CB_CONTINUE;
 		goto cleanup;
 	}
