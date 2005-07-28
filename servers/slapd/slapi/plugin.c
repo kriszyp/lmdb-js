@@ -552,11 +552,15 @@ slapi_int_load_plugin(
 	/* load in the module */
 	*pLdHandle = lt_dlopen( path );
 	if ( *pLdHandle == NULL ) {
+		fprintf( stderr, "failed to load plugin %s: %s\n",
+			 path, lt_dlerror() );
 		return LDAP_LOCAL_ERROR;
 	}
 
 	fpInitFunc = (SLAPI_FUNC)lt_dlsym( *pLdHandle, initfunc );
 	if ( fpInitFunc == NULL ) {
+		fprintf( stderr, "failed to find symbol %s in plugin %s: %s\n",
+			 initfunc, path, lt_dlerror() );
 		lt_dlclose( *pLdHandle );
 		return LDAP_LOCAL_ERROR;
 	}
