@@ -762,7 +762,8 @@ pblock_add_control( Slapi_PBlock *pb, LDAPControl *control )
 
 	controls = (LDAPControl **)slapi_ch_realloc( (char *)controls,
 		( i + 2 ) * sizeof(LDAPControl *));
-	controls[i] = slapi_dup_control( control );
+	controls[i++] = slapi_dup_control( control );
+	controls[i] = NULL;
 
 	return pblock_set_default( pb, SLAPI_RESCONTROLS, (void *)controls );
 }
@@ -818,7 +819,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		LDAPControl **ctrls = NULL;
 
 		pblock_get_default( pb, param, (void **)&ctrls );
-		if ( ctrls == NULL ) {
+		if ( ctrls != NULL ) {
 			/* free old ones first */
 			ldap_controls_free( ctrls );
 		}

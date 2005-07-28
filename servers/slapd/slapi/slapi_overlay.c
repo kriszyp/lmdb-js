@@ -462,6 +462,7 @@ slapi_over_merge_controls( Operation *op, SlapReply *rs )
 			ctrls[n_slapi_ctrls + i] = rs->sr_ctrls[i];
 		}
 	}
+	ctrls[n_slapi_ctrls + n_rs_ctrls] = NULL;
 
 	rs->sr_ctrls = ctrls;
 
