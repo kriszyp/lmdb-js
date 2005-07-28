@@ -148,6 +148,27 @@ slapi_x_entry_get_id( Slapi_Entry *e )
 	return e->e_id;
 }
 
+static int
+slapi_int_dn_pretty( struct berval *in, struct berval *out )
+{
+	Syntax		*syntax = slap_schema.si_syn_distinguishedName;
+
+	assert( syntax != NULL );
+
+	return (syntax->ssyn_pretty)( syntax, in, out, NULL );
+}
+
+static int
+slapi_int_dn_normalize( struct berval *in, struct berval *out )
+{
+	MatchingRule	*mr = slap_schema.si_mr_distinguishedNameMatch;
+	Syntax		*syntax = slap_schema.si_syn_distinguishedName;
+
+	assert( mr != NULL );
+
+	return (mr->smr_normalize)( 0, syntax, mr, in, out, NULL );
+}
+
 void 
 slapi_entry_set_dn(
 	Slapi_Entry	*e, 
@@ -158,7 +179,8 @@ slapi_entry_set_dn(
 	dn.bv_val = ldn;
 	dn.bv_len = strlen( ldn );
 
-	dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname, NULL );
+	slapi_int_dn_pretty( &dn, &e->e_name );
+	slapi_int_dn_normalize( &dn, &e->e_nname );
 }
 
 Slapi_Entry *
@@ -770,7 +792,7 @@ slapi_dn_normalize( char *dn )
 	bdn.bv_val = dn;
 	bdn.bv_len = strlen( dn );
 
-	if ( dnPretty( NULL, &bdn, &pdn, NULL ) != LDAP_SUCCESS ) {
+	if ( slapi_int_dn_pretty( &bdn, &pdn ) != LDAP_SUCCESS ) {
 		return NULL;
 	}
 
@@ -788,7 +810,7 @@ slapi_dn_normalize_case( char *dn )
 	bdn.bv_val = dn;
 	bdn.bv_len = strlen( dn );
 
-	if ( dnNormalize( 0, NULL, NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS ) {
+	if ( slapi_int_dn_normalize( &bdn, &ndn ) != LDAP_SUCCESS ) {
 		return NULL;
 	}
 
