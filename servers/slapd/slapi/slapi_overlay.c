@@ -176,6 +176,29 @@ slapi_over_aux_operational( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+/*
+ * We need this function to call frontendDB (global) plugins before
+ * database plugins, if we are invoked by a slap_callback.
+ */
+static int
+slapi_over_call_plugins( Slapi_PBlock *pb, int type )
+{
+	int 			rc = 1; /* means no plugins called */
+	Operation		*op;
+
+	PBLOCK_ASSERT_OP( pb, 0 );
+	op = pb->pb_op;
+
+	if ( op->o_bd != frontendDB ) {
+		rc = slapi_int_call_plugins( frontendDB, type, pb );
+	}
+	if ( rc >= 0 ) {
+		rc = slapi_int_call_plugins( op->o_bd, type, pb );
+	}
+
+	return rc;
+}
+
 static int
 slapi_over_search( Operation *op, SlapReply *rs, int type )
 {
@@ -187,7 +210,7 @@ slapi_over_search( Operation *op, SlapReply *rs, int type )
 	/* create a new pblock to not trample on result controls */
 	pb = slapi_over_pblock_new( op, rs );
 
-	rc = slapi_int_call_plugins( op->o_bd, type, pb );
+	rc = slapi_over_call_plugins( pb, type );
 	if ( rc >= 0 ) /* 1 means no plugins called */
 		rc = SLAP_CB_CONTINUE;
 	else
@@ -208,7 +231,7 @@ slapi_over_result( Operation *op, SlapReply *rs, int type )
 
 	assert( rs->sr_type == REP_RESULT );
 
-	slapi_int_call_plugins( op->o_bd, type, pb );
+	slapi_over_call_plugins( pb, type );
 
 	return SLAP_CB_CONTINUE;
 }
@@ -761,7 +784,7 @@ slapi_over_acl_group(
 		slapi_pblock_set( pb, SLAPI_X_GROUP_ATTRIBUTE,    (void *)group_at->ad_cname.bv_val );
 		slapi_pblock_set( pb, SLAPI_X_GROUP_TARGET_ENTRY, (void *)target );
 
-		rc = slapi_int_call_plugins( op->o_bd, SLAPI_X_PLUGIN_PRE_GROUP_FN, pb );
+		rc = slapi_over_call_plugins( pb, SLAPI_X_PLUGIN_PRE_GROUP_FN );
 		if ( rc >= 0 ) /* 1 means no plugins called */
 			rc = SLAP_CB_CONTINUE;
 		else
