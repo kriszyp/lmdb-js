@@ -1565,13 +1565,34 @@ config_suffix(ConfigArgs *c)
 	if ( notallowed != NULL ) {
 		char	buf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
-		if ( !BER_BVISNULL( &c->value_dn ) ) {
-			snprintf( buf, sizeof( buf ), "<%s> ", c->value_dn.bv_val );
+		switch ( c->op ) {
+		case LDAP_MOD_ADD:
+		case LDAP_MOD_DELETE:
+		case LDAP_MOD_REPLACE:
+		case LDAP_MOD_INCREMENT:
+		case SLAP_CONFIG_ADD:
+			if ( !BER_BVISNULL( &c->value_dn ) ) {
+				snprintf( buf, sizeof( buf ), "<%s> ",
+						c->value_dn.bv_val );
+			}
+
+			Debug(LDAP_DEBUG_ANY,
+				"%s: suffix %snot allowed in %s database.\n",
+				c->log, buf, notallowed );
+			break;
+
+		case SLAP_CONFIG_EMIT:
+			/* don't complain when emitting... */
+			break;
+
+		default:
+			/* FIXME: don't know what values may be valid;
+			 * please remove assertion, or add legal values
+			 * to either block */
+			assert( 0 );
+			break;
 		}
 
-		Debug(LDAP_DEBUG_ANY,
-			"%s: suffix %snot allowed in %s database.\n",
-			c->log, buf, notallowed );
 		return 1;
 	}
 
