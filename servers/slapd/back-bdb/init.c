@@ -270,6 +270,13 @@ bdb_db_open( BackendDB *be )
 	char path[MAXPATHLEN];
 	char *ptr;
 
+	if ( be->be_suffix == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_open: need suffix\n",
+			0, 0, 0 );
+		return -1;
+	}
+
 	Debug( LDAP_DEBUG_ARGS,
 		"bdb_db_open: %s\n",
 		be->be_suffix[0].bv_val, 0, 0 );
