@@ -137,14 +137,21 @@ bdb_db_open( BackendDB *be )
 	char path[MAXPATHLEN];
 #endif
 
+	if ( be->be_suffix == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_open: need suffix\n",
+			0, 0, 0 );
+		return -1;
+	}
+
 	Debug( LDAP_DEBUG_ARGS,
 		"bdb_db_open: %s\n",
 		be->be_suffix[0].bv_val, 0, 0 );
 
 #ifndef BDB_MULTIPLE_SUFFIXES
 	if ( be->be_suffix[1].bv_val ) {
-	Debug( LDAP_DEBUG_ANY,
-		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
 		return -1;
 	}
 #endif
@@ -420,7 +427,9 @@ bdb_db_close( BackendDB *be )
 		ldap_pvt_thread_rdwr_wunlock ( &bdb->bi_idl_tree_rwlock );
 	}
 
-	XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+	if ( bdb->bi_dbenv ) {
+		XLOCK_ID_FREE(bdb->bi_dbenv, bdb->bi_cache.c_locker);
+	}
 
 	return 0;
 }
