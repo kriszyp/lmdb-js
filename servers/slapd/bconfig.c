@@ -580,6 +580,7 @@ static ConfigLDAPadd cfAddSchema, cfAddInclude, cfAddDatabase,
 #define CFOC_OVERLAY	cf_ocs[5]
 #define CFOC_INCLUDE	cf_ocs[6]
 #define CFOC_MODULE	cf_ocs[7]
+#define CFOC_FRONTEND	cf_ocs[8]
 
 static ConfigOCs cf_ocs[] = {
 	{ "( OLcfgGlOc:1 "
@@ -602,7 +603,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcPluginLogFile $ olcReadOnly $ olcReferral $ "
 		 "olcReplicaPidFile $ olcReplicaArgsFile $ olcReplicationInterval $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
-		 "olcRootDSE $ olcRootPW $ "
+		 "olcRootDSE $ "
 		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSecurity $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ olcSrvtab $ "
@@ -655,6 +656,16 @@ static ConfigOCs cf_ocs[] = {
 		"MAY ( cn $ olcModulePath $ olcModuleLoad ) )",
 		Cft_Module, NULL, cfAddModule },
 #endif
+	/* This should be STRUCTURAL like all the other database classes, but
+	 * that would mean inheriting all of the olcDatabaseConfig attributes,
+	 * which causes them to be merged twice in config_build_entry.
+	 */
+	{ "( OLcfgGlOc:9 "
+		"NAME 'olcFrontendConfig' "
+		"DESC 'OpenLDAP frontend configuration' "
+		"AUXILIARY "
+		"MAY olcDefaultSearchBase )",
+		Cft_Database, NULL, NULL },
 	{ NULL, 0, NULL }
 };
 
@@ -1694,12 +1705,6 @@ config_rootdn(ConfigArgs *c) {
 static int
 config_rootpw(ConfigArgs *c) {
 	Backend *tbe;
-	/* config_add_internal sets c->be = frontendDB. While the cn=config
-	 * rootpw is technically inside a backend, we expose it in the
-	 * global entry, and need to point to it properly here.
-	 */
-	if (c->be == frontendDB)
-		c->be = LDAP_STAILQ_FIRST(&backendDB);
 
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if (!BER_BVISEMPTY(&c->be->be_rootpw)) {
@@ -2917,8 +2922,13 @@ check_name_index( CfEntryInfo *parent, ConfigType ce_type, Entry *e,
 			return LDAP_NAMING_VIOLATION;
 		gotindex = 1;
 		index = atoi(ptr1+1);
-		if ( index < 0 )
-			return LDAP_NAMING_VIOLATION;
+		if ( index < 0 ) {
+			/* Special case, we allow -1 for the frontendDB */
+			if ( index != -1 || ce_type != Cft_Database ||
+				strncmp( ptr2+1, "frontend,", STRLENOF("frontend,") ))
+
+				return LDAP_NAMING_VIOLATION;
+		}
 	}
 
 	/* count related kids */
@@ -3287,7 +3297,8 @@ ok:
 leave:
 	if ( rc ) {
 		if ( (colst[0]->co_type == Cft_Database) && ca->be ) {
-			backend_destroy_one( ca->be, 1 );
+			if ( ca->be != frontendDB )
+				backend_destroy_one( ca->be, 1 );
 		} else if ( (colst[0]->co_type == Cft_Overlay) && ca->bi ) {
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 		}
@@ -3946,7 +3957,6 @@ config_back_db_open( BackendDB *be )
 	CfEntryInfo *ce, *ceparent;
 	int i;
 	BackendInfo *bi;
-	BackendDB *bptr;
 	ConfigArgs c;
 	Connection conn = {0};
 	char opbuf[OPERATION_BUFFER_SIZE];
@@ -4030,25 +4040,22 @@ config_back_db_open( BackendDB *be )
 	}
 
 	/* Create database nodes... */
-	i = -1;
-	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
+	frontendDB->be_cf_ocs = &CFOC_FRONTEND;
+	LDAP_STAILQ_NEXT(frontendDB, be_next) = LDAP_STAILQ_FIRST(&backendDB);
+	for ( i = -1, be = frontendDB ; be;
+		i++, be = LDAP_STAILQ_NEXT( be, be_next )) {
 		slap_overinfo *oi = NULL;
-		i++;
-		if ( i == 0 ) {
-			bptr = frontendDB;
-		} else {
-			bptr = be;
-		}
-		if ( overlay_is_over( bptr )) {
-			oi = bptr->bd_info->bi_private;
+
+		if ( overlay_is_over( be )) {
+			oi = be->bd_info->bi_private;
 			bi = oi->oi_orig;
 		} else {
-			bi = bptr->bd_info;
+			bi = be->bd_info;
 		}
 		rdn.bv_val = c.log;
 		rdn.bv_len = sprintf(rdn.bv_val, "%s=" IFMT "%s", cfAd_database->ad_cname.bv_val,
 			i, bi->bi_type);
-		c.be = bptr;
+		c.be = be;
 		c.bi = bi;
 		e = config_build_entry( op, &rs, ceparent, &c, &rdn, &CFOC_DATABASE,
 			be->be_cf_ocs );
@@ -4065,7 +4072,7 @@ config_back_db_open( BackendDB *be )
 				rdn.bv_val = c.log;
 				rdn.bv_len = sprintf(rdn.bv_val, "%s=" IFMT "%s",
 					cfAd_overlay->ad_cname.bv_val, j, on->on_bi.bi_type );
-				c.be = bptr;
+				c.be = be;
 				c.bi = &on->on_bi;
 				oe = config_build_entry( op, &rs, ce, &c, &rdn,
 					&CFOC_OVERLAY, c.bi->bi_cf_ocs );
