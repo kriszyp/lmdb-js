@@ -407,7 +407,7 @@ install-schema: FORCE
 	fi
 	$(MKDIR) $(DESTDIR)$(schemadir)
 	@SD=$(DESTDIR)$(schemadir) ; \
-	files=`cd $(srcdir)/schema ; echo README *.schema` ; \
+	files=`cd $(srcdir)/schema ; echo README *.ldif *.schema` ; \
 	for i in $$files ; do \
 		echo $(INSTALL) $(INSTALLFLAGS) -m 444 schema/$$i $$SD/$$i ; \
 		$(INSTALL) $(INSTALLFLAGS) -m 444 $(srcdir)/schema/$$i $$SD/$$i ; \
