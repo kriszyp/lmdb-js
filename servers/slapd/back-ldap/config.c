@@ -88,7 +88,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDN "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; aliases "acl-authcDN" */
+	/* deprecated, will be removed; aliases "acl-authcDN" */
 	{ "binddn", "DN", 2, 2, 0,
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_ACL_AUTHCDN,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -101,9 +101,13 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; aliases "acl-passwd" */
+	/* deprecated, will be removed; aliases "acl-passwd" */
 	{ "bindpw", "cred", 2, 2, 0,
 		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
+		ldap_back_cf_gen, NULL, NULL, NULL },
+	/* deprecated, will be removed; aliases "acl-bind" */
+	{ "acl-method", "args", 2, 0, 0,
+		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_METHOD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "acl-bind", "args", 2, 0, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
@@ -113,10 +117,6 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; aliases "acl-bind" */
-	{ "acl-method", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
-		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-authcDN", "DN", 2, 2, 0,
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHCDN,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.5 "
@@ -126,7 +126,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDN "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; partially aliases "idassert-authcDN" */
+	/* deprecated, will be removed; partially aliases "idassert-authcDN" */
 	{ "proxyauthzdn", "DN", 2, 2, 0,
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHCDN,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -139,7 +139,7 @@ static ConfigTable ldapcfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	/* deprecated; partially aliases "idassert-passwd" */
+	/* deprecated, will be removed; partially aliases "idassert-passwd" */
 	{ "proxyauthzpw", "cred", 2, 2, 0,
 		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
@@ -513,7 +513,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		default:
-			/* we need to handle all... */
+			/* FIXME: we need to handle all... */
 			assert( 0 );
 			break;
 		}
@@ -580,7 +580,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		default:
-			/* we need to handle all... */
+			/* FIXME: we need to handle all... */
 			assert( 0 );
 			break;
 		}
@@ -1090,7 +1090,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 		return 1;
 		
 	default:
+		/* FIXME: try to catch inconsistencies */
 		assert( 0 );
+		break;
 	}
 
 	return 0;
