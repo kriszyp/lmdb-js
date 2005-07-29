@@ -643,6 +643,12 @@ slapi_int_read_config(
 		return 1;
 	}
 
+	if ( slapMode & SLAP_TOOL_MODE ) {
+		/* No SLAPI plugins for tools, yet... */
+		/* When we have DB overlays we will support DB plugins */
+		return 0;
+	}
+
 	/* automatically instantiate overlay if necessary */
 	if ( !overlay_is_inst( be, SLAPI_OVERLAY_NAME ) ) {
 		if ( overlay_config( be, SLAPI_OVERLAY_NAME ) != 0 ) {
