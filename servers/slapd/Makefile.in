@@ -401,23 +401,16 @@ all-cffiles: slapd $(SLAPD_DYNAMIC_BACKENDS) dynamic_overlays
 	touch all-cffiles
 
 install-schema: FORCE
-	@-$(MKDIR) $(DESTDIR)$(schemadir)
-	i="$(srcdir)/schema/README" ; \
-	SF=`basename $$i` ; \
-	SD="$(DESTDIR)$(schemadir)/$$SF" ; \
-	echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD ; \
-	$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD
-	for i in $(srcdir)/schema/*.schema ; do \
-		SF=`basename $$i` ; \
-		SD="$(DESTDIR)$(schemadir)/$$SF" ; \
-		if test ! -f $$SD ; then \
-			echo "installing $$SF in $(schemadir)" ; \
-			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD ; \
-			$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD ; \
-		else \
-			echo "PRESERVING EXISTING SCHEMA FILE $$SD" ; \
-		fi ; \
-		$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD.default ; \
+	@if test -e $(DESTDIR)$(schemadir) ; then \
+		echo "MOVING EXISTING SCHEMA DIR to $(DESTDIR)$(schemadir).$$$$" ; \
+		mv $(DESTDIR)$(schemadir) $(DESTDIR)$(schemadir).$$$$ ; \
+	fi
+	$(MKDIR) $(DESTDIR)$(schemadir)
+	@SD=$(DESTDIR)$(schemadir) ; \
+	files=`cd $(srcdir)/schema ; echo README *.schema` ; \
+	for i in $$files ; do \
+		echo $(INSTALL) $(INSTALLFLAGS) -m 444 schema/$$i $$SD/$$i ; \
+		$(INSTALL) $(INSTALLFLAGS) -m 444 $(srcdir)/schema/$$i $$SD/$$i ; \
 	done
 
 install-conf: FORCE
