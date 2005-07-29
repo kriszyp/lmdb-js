@@ -64,7 +64,7 @@ Listen on IPv4 addresses only.
 .B \-6
 Listen on IPv6 addresses only.
 .TP
-.B \-T {a|c|d|i|p|t}
+.B \-T {a|c|d|i|p|t|acl|auth}
 Run in Tool mode. The additional argument selects whether to run as
 slapadd, slapcat, slapdn, slapindex, slappasswd, or slaptest
 (slapacl and slapauth need the entire "\fIacl\fP" and "\fIauth\fP"
@@ -124,7 +124,7 @@ Specifies the slapd configuration file. The default is
 .BR ETCDIR/slapd.conf .
 .TP
 .BI \-F " slapd\-config\-directory"
-Specifies the slapd configuration file. The default is
+Specifies the slapd configuration directory. The default is
 .BR ETCDIR/slapd.d .
 If both
 .B -f
