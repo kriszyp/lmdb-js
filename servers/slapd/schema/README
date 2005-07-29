@@ -22,6 +22,14 @@ using the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
 Submissions should include a stable reference to a mature, open
 technical specification (e.g., an RFC) for the schema.
 
+The core.ldif and openldap.ldif files are equivalent to their
+corresponding .schema files. They have been provided as examples
+for use with the dynamic configuration backend. These example files
+are not actually necessary since slapd will automatically convert any
+included *.schema files into LDIF when converting a slapd.conf file
+to a configuration database, but they serve as a model of how to
+convert schema files in general.
+
 ---
 
 This notice applies to all files in this directory.
