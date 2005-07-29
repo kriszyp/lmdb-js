@@ -136,9 +136,19 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 		return(ARG_BAD_CONF);
 	}
 	if(Conf->max_args && (c->argc > Conf->max_args)) {
-		sprintf( c->msg, "<%s> extra cruft after <%s> ignored",
+		char	*ignored = " ignored";
+
+		sprintf( c->msg, "<%s> extra cruft after <%s>",
 			c->argv[0], Conf->what );
-		Debug(LDAP_DEBUG_CONFIG, "%s: %s\n", c->log, c->msg, 0 );
+
+#ifdef LDAP_DEVEL
+		ignored = "";
+#endif /* LDAP_DEVEL */
+		Debug(LDAP_DEBUG_CONFIG, "%s: %s%s.\n",
+				c->log, c->msg, ignored );
+#ifdef LDAP_DEVEL
+		return(ARG_BAD_CONF);
+#endif /* LDAP_DEVEL */
 	}
 	if((arg_type & ARG_DB) && !c->be) {
 		sprintf( c->msg, "<%s> only allowed within database declaration",
