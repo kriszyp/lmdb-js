@@ -2770,15 +2770,16 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
 		mod->sml_desc = ad;
 		mod->sml_next = NULL;
 
+		i = 0;
 		if ( lmod->mod_op & LDAP_MOD_BVALUES ) {
 			if ( lmod->mod_bvalues != NULL ) {
-				for ( i = 0; lmod->mod_bvalues[i] != NULL; i++ )
-					;
+				while ( lmod->mod_bvalues[i] != NULL )
+					i++;
 			}
 		} else {
-			if ( (*modp)->mod_values != NULL ) {
-				for ( i = 0; lmod->mod_values[i] != NULL; i++ )
-					;
+			if ( lmod->mod_values != NULL ) {
+				while ( lmod->mod_values[i] != NULL )
+					i++;
 			}
 		}
 
