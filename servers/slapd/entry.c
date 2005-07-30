@@ -230,6 +230,7 @@ str2entry2( char *s, int checkvals )
 			int j, k;
 			atail->a_next = (Attribute *) ch_malloc( sizeof(Attribute) );
 			atail = atail->a_next;
+			atail->a_flags = 0;
 			atail->a_desc = ad_prev;
 			atail->a_vals = ch_malloc( (attr_cnt + 1) * sizeof(struct berval));
 			if( ad_prev->ad_type->sat_equality &&
