@@ -269,7 +269,7 @@ struct bdb_op_info {
 		for ( i0=sizeof(ID)-1; i0>=0; i0-- ) {	\
 			_p[i0] = tmp & 0xff; tmp >>= 8;	\
 		} \
-	} while(0);
+	} while(0)
 
 /* Copy a pointer "src" to a pointer "dst" from big-endian to native order */
 #define BDB_DISK2ID( src, dst ) \
@@ -278,7 +278,7 @@ struct bdb_op_info {
 		for ( i0=0; i0<sizeof(ID); i0++ ) {	\
 			tmp <<= 8; tmp |= *_p++;	\
 		} *(dst) = tmp; \
-	} while (0);
+	} while (0)
 
 LDAP_END_DECL
 
