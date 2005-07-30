@@ -381,10 +381,7 @@ bdb_dn2idl(
 }
 
 #else	/* BDB_HIER */
-/* Experimental management routines for a hierarchically structured database.
- *
- * Unsupported! Use at your own risk!
- * -- Howard Chu, Symas Corp. 2003.
+/* Management routines for a hierarchically structured database.
  *
  * Instead of a ldbm-style dn2id database, we use a hierarchical one. Each
  * entry in this database is a struct diskNode, keyed by entryID and with
