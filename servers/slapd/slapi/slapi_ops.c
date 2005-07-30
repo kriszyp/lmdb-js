@@ -391,7 +391,8 @@ slapi_int_func_internal_pb( Slapi_PBlock *pb, slap_operation_t which )
 		return rc;
 	}
 
-	func = &pb->pb_op->o_bd->be_bind;
+	pb->pb_op->o_bd = frontendDB;
+	func = &frontendDB->be_bind;
 
 	return func[which]( pb->pb_op, pb->pb_rs );
 }
@@ -446,6 +447,10 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 	 * The caller can specify a new entry, or a target DN and set
 	 * of modifications, but not both.
 	 */
+	pb->pb_op->ora_e = (Entry *)slapi_ch_calloc( 1, sizeof(Entry) );
+	ber_dupbv( &pb->pb_op->ora_e->e_name,  &pb->pb_op->o_req_dn );
+	ber_dupbv( &pb->pb_op->ora_e->e_nname, &pb->pb_op->o_req_ndn );
+
 	if ( entry_orig != NULL ) {
 		assert( pb->pb_op->ora_modlist == NULL );
 
