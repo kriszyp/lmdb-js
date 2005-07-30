@@ -402,9 +402,9 @@ bdb_dn2idl(
  */
 typedef struct diskNode {
 	unsigned char nrdnlen[2];
-	unsigned char nrdn[1];
-	unsigned char rdn[1];
-	unsigned char entryID[sizeof(ID)];
+	char nrdn[1];
+	char rdn[1];                        /* variable placement */
+	unsigned char entryID[sizeof(ID)];  /* variable placement */
 } diskNode;
 
 /* This function constructs a full DN for a given entry.
@@ -516,7 +516,7 @@ hdb_dn2id_add(
 	 * will fail harmlessly.
 	 */
 	if ( eip->bei_id == 0 ) {
-		diskNode dummy = {0};
+		diskNode dummy = {{0, 0}, "", "", ""};
 		data.data = &dummy;
 		data.size = sizeof(diskNode);
 		data.flags = DB_DBT_USERMEM;
