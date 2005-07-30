@@ -307,54 +307,55 @@ wait4msg(
 	        	}
 
 		    	if ( !lc_ready ) {
-			    rc = ldap_int_select( ld, tvp );
+				rc = ldap_int_select( ld, tvp );
 #ifdef LDAP_DEBUG
-			    if ( rc == -1 ) {
-			        Debug( LDAP_DEBUG_TRACE,
-				        "ldap_int_select returned -1: errno %d\n",
-				        errno, 0, 0 );
-			    }
+				if ( rc == -1 ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"ldap_int_select returned -1: errno %d\n",
+						errno, 0, 0 );
+				}
 #endif
 
-			    if ( rc == 0 || ( rc == -1 && (
-				    !LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
-				    || errno != EINTR )))
-			    {
-				    ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
-				        LDAP_TIMEOUT);
-				    return( rc );
-			    }
+				if ( rc == 0 || ( rc == -1 && (
+					!LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
+						|| errno != EINTR )))
+				{
+					ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
+						LDAP_TIMEOUT);
+					return( rc );
+				}
 
-			    if ( rc == -1 ) {
-				    rc = -2;	/* select interrupted: loop */
-			    } else {
-				    rc = -2;
+				if ( rc == -1 ) {
+					rc = -2;	/* select interrupted: loop */
+				} else {
+					rc = -2;
 #ifdef LDAP_R_COMPILE
-				    ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+					ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
-				    if ( ld->ld_requests &&
+					if ( ld->ld_requests &&
 						ld->ld_requests->lr_status == LDAP_REQST_WRITING &&
 						ldap_is_write_ready( ld,
-							ld->ld_requests->lr_conn->lconn_sb ) ) {
+							ld->ld_requests->lr_conn->lconn_sb ) )
+					{
 						ldap_int_flush_request( ld, ld->ld_requests );
 					}
 #ifdef LDAP_R_COMPILE
-				    ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+					ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
 #endif
-				    for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
-				        lc = nextlc ) {
-					    nextlc = lc->lconn_next;
-					    if ( lc->lconn_status ==
-					        LDAP_CONNST_CONNECTED &&
-					        ldap_is_read_ready( ld,
-					        lc->lconn_sb )) {
-						    rc = try_read1msg( ld, msgid, all,
-						        lc->lconn_sb, &lc, result );
-							if ( lc == NULL ) lc = nextlc;
-					    }
-				    }
-			    }
-		    }
+					for ( lc = ld->ld_conns; rc == -2 && lc != NULL;
+						lc = nextlc )
+					{
+						nextlc = lc->lconn_next;
+						if ( lc->lconn_status == LDAP_CONNST_CONNECTED &&
+							ldap_is_read_ready( ld, lc->lconn_sb ))
+						{
+							rc = try_read1msg( ld, msgid, all,
+								lc->lconn_sb, &lc, result );
+								if ( lc == NULL ) lc = nextlc;
+						}
+					}
+				}
+			}
 		}
 
 		if ( rc == -2 && tvp != NULL ) {
@@ -504,7 +505,7 @@ nextresp2:
 
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_read: message type %s msgid %ld, original id %ld\n",
-	    ldap_int_msgtype2str( tag ),
+		ldap_int_msgtype2str( tag ),
 		(long) lr->lr_msgid, (long) lr->lr_origid );
 
 	id = lr->lr_origid;

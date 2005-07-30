@@ -269,11 +269,11 @@ ldap_send_server_request(
 		lr->lr_origid = lr->lr_msgid;
 	}
 
+	lr->lr_prev = NULL;
 	if (( lr->lr_next = ld->ld_requests ) != NULL ) {
 		lr->lr_next->lr_prev = lr;
 	}
 	ld->ld_requests = lr;
-	lr->lr_prev = NULL;
 
 	ld->ld_errno = LDAP_SUCCESS;
 	if ( ldap_int_flush_request( ld, lr ) == -1 ) {
@@ -608,7 +608,7 @@ ldap_dump_requests_and_responses( LDAP *ld )
 }
 #endif /* LDAP_DEBUG */
 
-void
+static void
 ldap_free_request_int( LDAP *ld, LDAPRequest *lr )
 {
 	if ( lr->lr_prev == NULL ) {
