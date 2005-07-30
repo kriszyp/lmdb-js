@@ -2434,13 +2434,14 @@ serialNumberAndIssuerPretty(
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
 	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
-	if( BER_BVISNULL( out ) ) {
+	if( out->bv_val == NULL ) {
+		out->bv_len = 0;
 		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
 	/* push issuer over */
-	AC_MEMCPY( &out->bv_val[sn.bv_len+1], newi.bv_val, newi.bv_len );
+	AC_MEMCPY( &out->bv_val[sn.bv_len+1], out->bv_val, newi.bv_len );
 	/* insert sn and "$" */
 	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
 	out->bv_val[sn.bv_len] = '$';
@@ -2510,13 +2511,14 @@ serialNumberAndIssuerNormalize(
 	out->bv_len = sn.bv_len + newi.bv_len + 1;
 	out->bv_val = slap_sl_realloc( newi.bv_val, out->bv_len + 1, ctx );
 
-	if( BER_BVISNULL( out ) ) {
+	if( out->bv_val == NULL ) {
+		out->bv_len = 0;
 		slap_sl_free( newi.bv_val, ctx );
 		return LDAP_OTHER;
 	}
 
 	/* push issuer over */
-	AC_MEMCPY( &out->bv_val[sn.bv_len+1], newi.bv_val, newi.bv_len );
+	AC_MEMCPY( &out->bv_val[sn.bv_len+1], out->bv_val, newi.bv_len );
 	/* insert sn and "$" */
 	AC_MEMCPY( out->bv_val, sn.bv_val, sn.bv_len );
 	out->bv_val[sn.bv_len] = '$';
