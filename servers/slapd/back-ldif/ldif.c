@@ -330,7 +330,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 							? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE );
 
 				ck->rs->sr_entry = e;
-				rc = send_search_reference( ck->op, ck->rs );
+				rc = send_search_reference( ck->op, ck->rs ) < 0;
 				ber_bvarray_free( ck->rs->sr_ref );
 				ber_bvarray_free( erefs );
 				ck->rs->sr_ref = NULL;
@@ -341,7 +341,7 @@ static int r_enum_tree(enumCookie *ck, struct berval *path,
 				ck->rs->sr_entry = e;
 				ck->rs->sr_attrs = ck->op->ors_attrs;
 				ck->rs->sr_flags = REP_ENTRY_MODIFIABLE;
-				rc = send_search_entry(ck->op, ck->rs);
+				rc = send_search_entry(ck->op, ck->rs) < 0;
 				ck->rs->sr_entry = NULL;
 			}
 			fd = 1;
@@ -520,7 +520,6 @@ static int apply_modify_to_entry(Entry * entry,
 				get_permissiveModify(op),
 				&rs->sr_text, textbuf,
 				sizeof( textbuf ) );
-
 			break;
 				
 		case LDAP_MOD_REPLACE:
@@ -528,10 +527,17 @@ static int apply_modify_to_entry(Entry * entry,
 				 get_permissiveModify(op),
 				 &rs->sr_text, textbuf,
 				 sizeof( textbuf ) );
+			break;
+
+		case LDAP_MOD_INCREMENT:
+			rc = modify_increment_values( entry,
+				mods, get_permissiveModify(op),
+				&rs->sr_text, textbuf,
+				sizeof( textbuf ) );
+			break;
 
 			break;
-		case LDAP_MOD_INCREMENT:
-			break;
+
 		case SLAP_MOD_SOFTADD:
 			mods->sm_op = LDAP_MOD_ADD;
 			rc = modify_add_values(entry, mods,
@@ -1196,6 +1202,7 @@ ldif_back_initialize(
 	int rc;
 
 	bi->bi_flags |=
+		SLAP_BFLAG_INCREMENT |
 		SLAP_BFLAG_REFERRALS;
 
 	bi->bi_controls = controls;
