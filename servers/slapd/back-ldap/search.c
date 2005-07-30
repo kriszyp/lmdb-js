@@ -310,7 +310,6 @@ fail:;
 
 		} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
 			char		**references = NULL;
-			int		cnt;
 
 			do_retry = 0;
 			rc = ldap_parse_reference( lc->lc_ld, res,
@@ -320,21 +319,31 @@ fail:;
 				continue;
 			}
 
-			if ( references == NULL ) {
-				continue;
+			/* FIXME: there MUST be at least one */
+			if ( references && references[ 0 ] && references[ 0 ][ 0 ] ) {
+				int		cnt;
+
+				for ( cnt = 0; references[ cnt ]; cnt++ )
+					/* NO OP */ ;
+
+				/* FIXME: there MUST be at least one */
+				rs->sr_ref = ch_malloc( ( cnt + 1 ) * sizeof( struct berval ) );
+
+				for ( cnt = 0; references[ cnt ]; cnt++ ) {
+					ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
+				}
+				BER_BVZERO( &rs->sr_ref[ cnt ] );
+
+				/* ignore return value by now */
+				( void )send_search_reference( op, rs );
+
+			} else {
+				Debug( LDAP_DEBUG_ANY,
+					"%s ldap_back_search: "
+					"got SEARCH_REFERENCE "
+					"with no referrals\n",
+					op->o_log_prefix, 0, 0 );
 			}
-
-			for ( cnt = 0; references[ cnt ]; cnt++ )
-				/* NO OP */ ;
-				
-			rs->sr_ref = ch_calloc( cnt + 1, sizeof( struct berval ) );
-
-			for ( cnt = 0; references[ cnt ]; cnt++ ) {
-				ber_str2bv( references[ cnt ], 0, 0, &rs->sr_ref[ cnt ] );
-			}
-
-			/* ignore return value by now */
-			( void )send_search_reference( op, rs );
 
 			/* cleanup */
 			if ( references ) {
@@ -360,22 +369,34 @@ fail:;
 			}
 			rs->sr_err = slap_map_api2result( rs );
 
-			if ( references ) {
+			if ( references && references[ 0 ] && references[ 0 ][ 0 ] ) {
 				int	cnt;
+
+				if ( rs->sr_err != LDAP_REFERRAL ) {
+					/* FIXME: error */
+					Debug( LDAP_DEBUG_ANY,
+						"%s ldap_back_search: "
+						"got referrals with %d\n",
+						op->o_log_prefix,
+						rs->sr_err, 0 );
+					rs->sr_err = LDAP_REFERRAL;
+				}
 
 				for ( cnt = 0; references[ cnt ]; cnt++ )
 					/* NO OP */ ;
 				
-				rs->sr_ref = ch_calloc( cnt + 1, sizeof( struct berval ) );
+				rs->sr_ref = ch_malloc( ( cnt + 1 ) * sizeof( struct berval ) );
 
 				for ( cnt = 0; references[ cnt ]; cnt++ ) {
+					/* duplicating ...*/
 					ber_str2bv( references[ cnt ], 0, 1, &rs->sr_ref[ cnt ] );
 				}
+				BER_BVZERO( &rs->sr_ref[ cnt ] );
+			}
 
-				/* cleanup */
-				if ( references ) {
-					ldap_value_free( references );
-				}
+			/* cleanup */
+			if ( references ) {
+				ldap_value_free( references );
 			}
 
 			rc = 0;
@@ -400,6 +421,7 @@ fail:;
 	if ( !BER_BVISNULL( &match ) && !BER_BVISEMPTY( &match ) ) {
 		rs->sr_matched = match.bv_val;
 	}
+
 	if ( rs->sr_v2ref ) {
 		rs->sr_err = LDAP_REFERRAL;
 	}
