@@ -573,21 +573,25 @@ static ConfigTable config_back_cf_table[] = {
 static ConfigLDAPadd cfAddSchema, cfAddInclude, cfAddDatabase,
 	cfAddBackend, cfAddModule, cfAddOverlay;
 
+/* NOTE: be careful when defining array members
+ * that can be conditionally compiled */
 #define CFOC_GLOBAL	cf_ocs[1]
 #define CFOC_SCHEMA	cf_ocs[2]
 #define CFOC_BACKEND	cf_ocs[3]
 #define CFOC_DATABASE	cf_ocs[4]
 #define CFOC_OVERLAY	cf_ocs[5]
 #define CFOC_INCLUDE	cf_ocs[6]
-#define CFOC_MODULE	cf_ocs[7]
-#define CFOC_FRONTEND	cf_ocs[8]
+#define CFOC_FRONTEND	cf_ocs[7]
+#ifdef SLAPD_MODULES
+#define CFOC_MODULE	cf_ocs[8]
+#endif /* SLAPD_MODULES */
 
 static ConfigOCs cf_ocs[] = {
-	{ "( OLcfgGlOc:1 "
+	{ "( OLcfgGlOc:0 "
 		"NAME 'olcConfig' "
 		"DESC 'OpenLDAP configuration object' "
 		"ABSTRACT SUP top )", Cft_Abstract, NULL },
-	{ "( OLcfgGlOc:2 "
+	{ "( OLcfgGlOc:1 "
 		"NAME 'olcGlobal' "
 		"DESC 'OpenLDAP Global configuration options' "
 		"SUP olcConfig STRUCTURAL "
@@ -613,19 +617,19 @@ static ConfigOCs cf_ocs[] = {
 		 "olcTLSRandFile $ olcTLSVerifyClient $ "
 		 "olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
 		 "olcDitContentRules ) )", Cft_Global },
-	{ "( OLcfgGlOc:3 "
+	{ "( OLcfgGlOc:2 "
 		"NAME 'olcSchemaConfig' "
 		"DESC 'OpenLDAP schema object' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( cn $ olcObjectIdentifier $ olcAttributeTypes $ "
 		 "olcObjectClasses $ olcDitContentRules ) )",
 		 	Cft_Schema, NULL, cfAddSchema },
-	{ "( OLcfgGlOc:4 "
+	{ "( OLcfgGlOc:3 "
 		"NAME 'olcBackendConfig' "
 		"DESC 'OpenLDAP Backend-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcBackend )", Cft_Backend, NULL, cfAddBackend },
-	{ "( OLcfgGlOc:5 "
+	{ "( OLcfgGlOc:4 "
 		"NAME 'olcDatabaseConfig' "
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
@@ -636,18 +640,28 @@ static ConfigOCs cf_ocs[] = {
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
 		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef ) )",
 		 	Cft_Database, NULL, cfAddDatabase },
-	{ "( OLcfgGlOc:6 "
+	{ "( OLcfgGlOc:5 "
 		"NAME 'olcOverlayConfig' "
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcOverlay )", Cft_Overlay, NULL, cfAddOverlay },
-	{ "( OLcfgGlOc:7 "
+	{ "( OLcfgGlOc:6 "
 		"NAME 'olcIncludeFile' "
 		"DESC 'OpenLDAP configuration include file' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST olcInclude "
 		"MAY ( cn $ olcRootDSE ) )",
 		Cft_Include, NULL, cfAddInclude },
+	/* This should be STRUCTURAL like all the other database classes, but
+	 * that would mean inheriting all of the olcDatabaseConfig attributes,
+	 * which causes them to be merged twice in config_build_entry.
+	 */
+	{ "( OLcfgGlOc:7 "
+		"NAME 'olcFrontendConfig' "
+		"DESC 'OpenLDAP frontend configuration' "
+		"AUXILIARY "
+		"MAY olcDefaultSearchBase )",
+		Cft_Database, NULL, NULL },
 #ifdef SLAPD_MODULES
 	{ "( OLcfgGlOc:8 "
 		"NAME 'olcModuleList' "
@@ -656,16 +670,6 @@ static ConfigOCs cf_ocs[] = {
 		"MAY ( cn $ olcModulePath $ olcModuleLoad ) )",
 		Cft_Module, NULL, cfAddModule },
 #endif
-	/* This should be STRUCTURAL like all the other database classes, but
-	 * that would mean inheriting all of the olcDatabaseConfig attributes,
-	 * which causes them to be merged twice in config_build_entry.
-	 */
-	{ "( OLcfgGlOc:9 "
-		"NAME 'olcFrontendConfig' "
-		"DESC 'OpenLDAP frontend configuration' "
-		"AUXILIARY "
-		"MAY olcDefaultSearchBase )",
-		Cft_Database, NULL, NULL },
 	{ NULL, 0, NULL }
 };
 
