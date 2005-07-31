@@ -395,11 +395,14 @@ slap_mods2entry(
 	const char **text,
 	char *textbuf, size_t textlen )
 {
-	Attribute **tail = &(*e)->e_attrs;
+	Attribute **tail;
 
 	if ( initial ) {
-		assert( *tail == NULL );
+		assert( (*e)->e_attrs == NULL );
 	}
+
+	for ( tail = &(*e)->e_attrs; *tail != NULL; tail = &(*tail)->a_next )
+		;
 
 	*text = textbuf;
 
