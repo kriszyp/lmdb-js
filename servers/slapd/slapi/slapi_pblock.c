@@ -76,6 +76,7 @@ pblock_get_param_class( int param )
 	case SLAPI_OPERATION_ID:
 	case SLAPI_OPINITIATED_TIME:
 	case SLAPI_ABANDON_MSGID:
+	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
 		return PBLOCK_CLASS_LONG_INTEGER;
 		break;
 
@@ -461,6 +462,10 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((ber_tag_t *)value) = pb->pb_op->o_tag;
 		break;
+	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((ber_tag_t *)value) = pb->pb_op->o_delete_glue_parent;
+		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((LDAPControl ***)value) = pb->pb_op->o_ctrls;
@@ -810,6 +815,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_OPERATION_TYPE:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_tag = *((ber_tag_t *)value);
+		break;
+	case SLAPI_X_OPERATION_DELETE_GLUE_PARENT:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_op->o_delete_glue_parent = *((int *)value);
 		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
