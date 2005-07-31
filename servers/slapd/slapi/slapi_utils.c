@@ -952,6 +952,8 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 		return NULL;
 	}
 
+	PBLOCK_ASSERT_OP( pb, 0 );
+
 	if ( slapi_is_rootdse( _dn ) ) {
 		return NULL;
 	}
@@ -963,7 +965,7 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 		return NULL;
 	}
 
-	be = select_backend( &dn, 0, 0 );
+	be = select_backend( &pb->pb_op->o_req_ndn, 0, 0 );
 
 	if ( be == NULL || be_issuffix( be, &normalizedDN ) == 0 ) {
 		dnParent( &prettyDN, &parentDN );
@@ -972,8 +974,8 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 			parent = slapi_ch_strdup( parentDN.bv_val );
 	}
 
-	slapi_ch_free( (void **)&prettyDN.bv_val );
-	slapi_ch_free( (void **)&normalizedDN.bv_val );
+	slapi_ch_free_string( &prettyDN.bv_val );
+	slapi_ch_free_string( &normalizedDN.bv_val );
 
 	return parent;
 }
