@@ -541,7 +541,7 @@ slap_mods_no_repl_user_mod_check(
 
 		/* check doesn't already appear */
 		for ( modp = ml; modp != NULL; modp = modp->sml_next ) {
-			if ( mods->sml_desc == modp->sml_desc  ) {
+			if ( mods->sml_desc == modp->sml_desc && mods != modp ) {
 				snprintf( textbuf, textlen,
 					"attribute '%s' provided more than once",
 					mods->sml_desc->ad_cname.bv_val );
