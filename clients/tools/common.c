@@ -32,10 +32,12 @@
 #include <ac/unistd.h>
 #include <ac/errno.h>
 
+#ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_SASL_H
 #include <sasl/sasl.h>
 #else
 #include <sasl.h>
+#endif
 #endif
 
 #include <ldap.h>
