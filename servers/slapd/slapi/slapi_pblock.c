@@ -467,7 +467,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_REQUESTOR_DN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((char **)value) = pb->pb_op->o_ndn.bv_val;
+		*((char **)value) = pb->pb_op->o_dn.bv_val;
 		break;
 	case SLAPI_MANAGEDSAIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -500,7 +500,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_TARGET_DN:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((char **)value) = pb->pb_op->o_req_ndn.bv_val;
+		*((char **)value) = pb->pb_op->o_req_dn.bv_val;
 		break;
 	case SLAPI_REQUESTOR_ISROOT:
 		*((int *)value) = pblock_be_call( pb, be_isroot );
