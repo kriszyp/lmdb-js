@@ -418,6 +418,17 @@ slap_mods2entry(
 #ifdef SLURPD_FRIENDLY
 			ber_len_t i,j;
 
+			if ( !initial ) {
+				/*	
+				 * This check allows overlays to override operational
+				 * attributes by setting them directly in the entry.
+				 * We assume slap_mods_no_user_mod_check() was called
+				 * with the user modifications.
+				 */
+				*text = NULL;
+				return LDAP_SUCCESS;
+			}
+
 			for( i=0; attr->a_vals[i].bv_val; i++ ) {
 				/* count them */
 			}
