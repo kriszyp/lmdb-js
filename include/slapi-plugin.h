@@ -456,6 +456,7 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_X_CONN_IS_UDP			1302
 #define SLAPI_X_CONN_SSF			1303
 #define SLAPI_X_CONN_SASL_CONTEXT		1304
+#define SLAPI_X_OPERATION_DELETE_GLUE_PARENT	1305
 
 /*  Authentication types */
 #define SLAPD_AUTH_NONE   "none"
