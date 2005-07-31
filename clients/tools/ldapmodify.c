@@ -1117,7 +1117,7 @@ static int process_response(
 {
 	LDAPMessage	*res;
 	int		rc = LDAP_OTHER;
-	struct timeval	tv = { 0 };
+	struct timeval	tv = { 0, 0 };
 
 	for ( ; ; ) {
 		tv.tv_sec = 0;

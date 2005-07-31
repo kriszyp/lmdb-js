@@ -877,7 +877,7 @@ static struct {
 	{ BER_BVC("minssf="), 0, GOT_MINSSF, 0 },
 	{ BER_BVC("maxssf="), 0, GOT_MAXSSF, INT_MAX },
 	{ BER_BVC("maxbufsize="), 0, GOT_MAXBUF, 65536 },
-	{ BER_BVNULL, 0, 0 }
+	{ BER_BVNULL, 0, 0, 0 }
 };
 
 void ldap_pvt_sasl_secprops_unparse(
