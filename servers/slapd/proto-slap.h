@@ -157,7 +157,7 @@ LDAP_SLAPD_V( AttributeName * ) slap_anlist_all_attributes;
  * add.c
  */
 LDAP_SLAPD_F (int) slap_mods2entry LDAP_P(( Modifications *mods, Entry **e,
-	int repl_user, int dup, const char **text, char *textbuf, size_t textlen ));
+	int initial, int dup, const char **text, char *textbuf, size_t textlen ));
 
 LDAP_SLAPD_F (int) slap_entry2mods LDAP_P(( Entry *e,
 						Modifications **mods, const char **text,
@@ -956,6 +956,13 @@ LDAP_SLAPD_F( int ) slap_mods_no_user_mod_check(
 	Modifications *ml,
 	const char **text,
 	char *textbuf, size_t textlen );
+
+LDAP_SLAPD_F ( int ) slap_mods_no_repl_user_mod_check(
+	Operation *op,
+	Modifications *ml,
+	const char **text,
+	char *textbuf,
+	size_t textlen );
 
 LDAP_SLAPD_F( int ) slap_mods_check(
 	Modifications *ml,

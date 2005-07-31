@@ -27,7 +27,7 @@ LDAP_BEGIN_DECL
 
 /* slapi_utils.c */
 LDAP_SLAPI_F (LDAPMod **) slapi_int_modifications2ldapmods LDAP_P(( Modifications **, void *ctx ));
-LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod **, void *ctx ));
+LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod **, int dup, void *ctx ));
 LDAP_SLAPI_F (void) slapi_int_free_ldapmods LDAP_P(( LDAPMod ** ));
 LDAP_SLAPI_F (int) slapi_int_count_controls LDAP_P(( LDAPControl **ctrls ));
 LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));

@@ -525,6 +525,34 @@ slap_mods_no_user_mod_check(
 	return LDAP_SUCCESS;
 }
 
+int
+slap_mods_no_repl_user_mod_check(
+	Operation *op,
+	Modifications *ml,
+	const char **text,
+	char *textbuf,
+	size_t textlen )
+{
+	Modifications *mods;
+	Modifications *modp;
+
+	for ( mods = ml; mods != NULL; mods = mods->sml_next ) {
+		assert( mods->sml_op == LDAP_MOD_ADD );
+
+		/* check doesn't already appear */
+		for ( modp = ml; modp != NULL; modp = modp->sml_next ) {
+			if ( mods->sml_desc == modp->sml_desc  ) {
+				snprintf( textbuf, textlen,
+					"attribute '%s' provided more than once",
+					mods->sml_desc->ad_cname.bv_val );
+				return LDAP_TYPE_OR_VALUE_EXISTS;
+			}
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
 /*
  * Do basic attribute type checking and syntax validation.
  */

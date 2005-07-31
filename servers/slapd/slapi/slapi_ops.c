@@ -296,7 +296,7 @@ slapi_int_set_operation_dn( Slapi_PBlock *pb )
 
 	if ( BER_BVISNULL( &op->o_ndn ) ) {
 		/* set to root DN */
-		be = select_backend( &op->o_req_ndn, 0, 0 );
+		be = select_backend( &op->o_req_ndn, get_manageDSAit( op ), 1 );
 		if ( be != NULL ) {
 			ber_dupbv( &op->o_dn, &be->be_rootdn );
 			ber_dupbv( &op->o_ndn, &be->be_rootndn );
@@ -344,10 +344,10 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 		}
 		break;
 	case LDAP_REQ_ADD:
-		slapi_int_mods_free( op->ora_modlist );
+		slap_mods_free( op->ora_modlist );
 		break;
 	case LDAP_REQ_MODIFY:
-		slapi_int_mods_free( op->orm_modlist );
+		slap_mods_free( op->orm_modlist );
 		break;
 	case LDAP_REQ_SEARCH:
 		if ( op->ors_attrs != NULL ) {
@@ -429,6 +429,10 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 	entry_orig = pb->pb_op->ora_e;
 	pb->pb_op->ora_e = NULL;
 
+	/*
+	 * The caller can specify a new entry, or a target DN and set
+	 * of modifications, but not both.
+	 */
 	if ( entry_orig != NULL ) {
 		if ( pb->pb_op->ora_modlist != NULL || !BER_BVISNULL( &pb->pb_op->o_req_ndn )) {
 			rs->sr_err = LDAP_PARAM_ERROR;
@@ -443,10 +447,6 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	/*
-	 * The caller can specify a new entry, or a target DN and set
-	 * of modifications, but not both.
-	 */
 	pb->pb_op->ora_e = (Entry *)slapi_ch_calloc( 1, sizeof(Entry) );
 	ber_dupbv( &pb->pb_op->ora_e->e_name,  &pb->pb_op->o_req_dn );
 	ber_dupbv( &pb->pb_op->ora_e->e_nname, &pb->pb_op->o_req_ndn );
@@ -469,11 +469,17 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
                 goto cleanup;
         }
 
+	/* Duplicate the values, because we may call slapi_entry_free() */
+	rs->sr_err = slap_mods2entry( pb->pb_op->ora_modlist, &pb->pb_op->ora_e,
+		1, 1, &rs->sr_text, pb->pb_textbuf, sizeof( pb->pb_textbuf ) );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		goto cleanup;
+	}
+
 	if ( slapi_int_func_internal_pb( pb, op_add ) == 0 ) {
 		if ( pb->pb_op->ora_e != NULL && pb->pb_op->o_private != NULL ) {
 			BackendDB	*bd = pb->pb_op->o_bd;
 
-			/* could we use SLAPI_BACKEND instead? */
 			pb->pb_op->o_bd = (BackendDB *)pb->pb_op->o_private;
 			pb->pb_op->o_private = NULL;
 			be_entry_release_w( pb->pb_op, pb->pb_op->ora_e );
@@ -492,7 +498,7 @@ cleanup:
 	}
 	if ( entry_orig != NULL ) {
 		pb->pb_op->ora_e = entry_orig;
-		slapi_int_mods_free( pb->pb_op->ora_modlist );
+		slap_mods_free( pb->pb_op->ora_modlist );
 		pb->pb_op->ora_modlist = NULL;
 	}
 

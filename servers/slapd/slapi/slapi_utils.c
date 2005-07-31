@@ -2657,7 +2657,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 	if ( pb == NULL || pb->pb_op == NULL )
 		return LDAP_PARAM_ERROR;
 
-	ml = slapi_int_ldapmods2modifications( mods, NULL );
+	ml = slapi_int_ldapmods2modifications( mods, 0, NULL );
 	if ( ml == NULL ) {
 		return LDAP_OTHER;
 	}
@@ -2741,7 +2741,7 @@ LDAPMod **slapi_int_modifications2ldapmods(
  * LDAPMods array; the latter MUST be freed with
  * slapi_int_free_ldapmods() (see below).
  */
-Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
+Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, int dup, void *memctx )
 {
 	Modifications *modlist = NULL, **modtail;
 	LDAPMod **modp;
@@ -2791,12 +2791,17 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
 			/* NB: This implicitly trusts a plugin to return valid modifications. */
 			if ( lmod->mod_op & LDAP_MOD_BVALUES ) {
 				for ( i = 0; lmod->mod_bvalues[i] != NULL; i++ ) {
-					mod->sml_values[i].bv_val = lmod->mod_bvalues[i]->bv_val;
-					mod->sml_values[i].bv_len = lmod->mod_bvalues[i]->bv_len;
+					if ( dup ) {
+						ber_dupbv( &mod->sml_values[i], lmod->mod_bvalues[i] );
+					} else {
+						mod->sml_values[i].bv_val = lmod->mod_bvalues[i]->bv_val;
+						mod->sml_values[i].bv_len = lmod->mod_bvalues[i]->bv_len;
+					}
 				}
 			} else {
 				for ( i = 0; lmod->mod_values[i] != NULL; i++ ) {
-					mod->sml_values[i].bv_val = lmod->mod_values[i];
+					mod->sml_values[i].bv_val = dup ? slapi_ch_strdup( lmod->mod_values[i] ) :
+						lmod->mod_values[i];
 					mod->sml_values[i].bv_len = strlen( lmod->mod_values[i] );
 				}
 			}
@@ -2837,7 +2842,7 @@ slapi_int_mods_free( Modifications *ml )
 /*
  * This function only frees the parts of the mods array that
  * are not shared with the Modification list that was created
- * by slapi_int_ldapmods2modifications(). 
+ * by slapi_int_ldapmods2modifications() (if dup == 0).
  */
 void
 slapi_int_free_ldapmods ( LDAPMod **mods )

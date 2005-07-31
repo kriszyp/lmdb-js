@@ -166,6 +166,14 @@ do_add( Operation *op, SlapReply *rs )
 	/* temporary; remove if not invoking backend function */
 	op->ora_modlist = modlist;
 
+	/* call this so global overlays/SLAPI have access to ora_e */
+	rs->sr_err = slap_mods2entry( op->ora_modlist, &op->ora_e,
+		1, 0, &rs->sr_text, textbuf, textlen );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
+		goto done;
+	}
+
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
 	if ( rc == 0 ) {
@@ -302,6 +310,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 					assert( (*modtail)->sml_desc != NULL );
 				}
 
+
 				rs->sr_err = slap_mods_opattrs( op, modlist,
 						modtail, &rs->sr_text,
 						textbuf, textlen, 1 );
@@ -309,13 +318,21 @@ fe_op_add( Operation *op, SlapReply *rs )
 					send_ldap_result( op, rs );
 					goto done;
 				}
-			}
 
-			rs->sr_err = slap_mods2entry( modlist, &op->ora_e,
-				repl_user, 0, &rs->sr_text, textbuf, textlen );
-			if ( rs->sr_err != LDAP_SUCCESS ) {
-				send_ldap_result( op, rs );
-				goto done;
+				/* check for duplicate values */
+				rs->sr_err = slap_mods_no_repl_user_mod_check( op,
+					modlist, &rs->sr_text, textbuf, textlen );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					send_ldap_result( op, rs );
+					goto done;
+				}
+
+				rs->sr_err = slap_mods2entry( *modtail, &op->ora_e,
+					0, 0, &rs->sr_text, textbuf, textlen );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					send_ldap_result( op, rs );
+					goto done;
+				}
 			}
 
 #ifdef SLAPD_MULTIMASTER
@@ -373,22 +390,22 @@ int
 slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
-	int repl_user,
+	int initial,
 	int dup,
 	const char **text,
 	char *textbuf, size_t textlen )
 {
 	Attribute **tail = &(*e)->e_attrs;
-	assert( *tail == NULL );
+
+	if ( initial ) {
+		assert( *tail == NULL );
+	}
 
 	*text = textbuf;
 
 	for( ; mods != NULL; mods = mods->sml_next ) {
 		Attribute *attr;
 
-		if ( !repl_user ) {
-			assert( mods->sml_op == LDAP_MOD_ADD );
-		}
 		assert( mods->sml_desc != NULL );
 
 		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
@@ -397,13 +414,6 @@ slap_mods2entry(
 #define SLURPD_FRIENDLY
 #ifdef SLURPD_FRIENDLY
 			ber_len_t i,j;
-
-			if( !repl_user ) {
-				snprintf( textbuf, textlen,
-					"attribute '%s' provided more than once",
-					mods->sml_desc->ad_cname.bv_val );
-				return LDAP_TYPE_OR_VALUE_EXISTS;
-			}
 
 			for( i=0; attr->a_vals[i].bv_val; i++ ) {
 				/* count them */

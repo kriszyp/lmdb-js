@@ -889,11 +889,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_ADD_ENTRY:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		if ( pb->pb_op->o_tag == LDAP_REQ_ADD ) {
+		if ( pb->pb_op->o_tag == LDAP_REQ_ADD )
 			pb->pb_op->ora_e = (Slapi_Entry *)value;
-		} else {
+		else
 			rc = PBLOCK_ERROR;
-		}
 		break;
 	case SLAPI_MODIFY_MODS: {
 		Modifications **mlp;
@@ -916,7 +915,14 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			slapi_int_mods_free( *mlp );
 			*mlp = NULL;
 		}
-		*mlp = slapi_int_ldapmods2modifications( (LDAPMod **)value, NULL );
+		/*
+		 * Note: for internal operations, the modifications need to be
+		 * duplicated because slap_mods_check() will free values before
+		 * prettying, and we have no idea how the values were
+		 * allocated. For frontend operations, slap_mods_check() will
+		 * have already been called.	
+		 */
+		*mlp = slapi_int_ldapmods2modifications( (LDAPMod **)value, pb->pb_intop, NULL );
 		break;
 	}
 	case SLAPI_MODRDN_NEWRDN:
