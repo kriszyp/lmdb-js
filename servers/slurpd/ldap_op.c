@@ -711,7 +711,7 @@ retry:
     }
 
 	{	/* set version 3 */
-		int err, version = 3;
+		int err, version = LDAP_VERSION3;
 		err = ldap_set_option(ri->ri_ldp,
 			LDAP_OPT_PROTOCOL_VERSION, &version);
 

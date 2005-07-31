@@ -204,7 +204,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			{
 				op->o_delete_glue_parent = 0;
 				if ( !be_issuffix( op->o_bd, &op->o_req_ndn )) {
-					slap_callback cb = { NULL };
+					slap_callback cb = { NULL, NULL, NULL, NULL };
 					cb.sc_response = slap_null_cb;
 					dnParent( &op->o_req_ndn, &pdn );
 					op->o_req_dn = pdn;

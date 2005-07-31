@@ -535,8 +535,8 @@ do_syncrep2(
 
 	int		syncstate;
 	struct berval	syncUUID = BER_BVNULL;
-	struct sync_cookie	syncCookie = { 0 };
-	struct sync_cookie	syncCookie_req = { 0 };
+	struct sync_cookie	syncCookie = { BER_BVNULL };
+	struct sync_cookie	syncCookie_req = { BER_BVNULL };
 	struct berval		cookie = BER_BVNULL;
 
 	int	rc, err, i;
@@ -1205,7 +1205,7 @@ syncrepl_entry(
 	struct berval* syncCSN )
 {
 	Backend *be = op->o_bd;
-	slap_callback	cb = { NULL };
+	slap_callback	cb = { NULL, NULL, NULL, NULL };
 	struct berval	*syncuuid_bv = NULL;
 	struct berval	syncUUID_strrep = BER_BVNULL;
 	struct berval	uuid_bv = BER_BVNULL;

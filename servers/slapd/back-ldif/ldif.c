@@ -746,7 +746,7 @@ ldif_back_bind( Operation *op, SlapReply *rs )
 static int ldif_back_search(Operation *op, SlapReply *rs)
 {
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
-	enumCookie ck = {0};
+	enumCookie ck = { NULL, NULL, NULL, 0, 0 };
 
 	ck.op = op;
 	ck.rs = rs;

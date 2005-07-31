@@ -147,7 +147,7 @@ slap_sasl_log(
 static const char *slap_propnames[] = {
 	"*slapConn", "*slapAuthcDN", "*slapAuthzDN", NULL };
 
-static Filter generic_filter = { LDAP_FILTER_PRESENT };
+static Filter generic_filter = { LDAP_FILTER_PRESENT, { 0 }, NULL };
 static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
 
 #define	PROP_CONN	0

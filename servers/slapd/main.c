@@ -181,7 +181,7 @@ struct option_helper {
 	const char	*oh_usage;
 } option_helpers[] = {
 	{ BER_BVC("slp"),	slapd_opt_slp,	NULL, "slp[={on|off}] enable/disable SLP" },
-	{ BER_BVNULL }
+	{ BER_BVNULL, 0, NULL, NULL }
 };
 
 static void

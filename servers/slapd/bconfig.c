@@ -2115,7 +2115,7 @@ replica_unparse( struct slap_replica_info *ri, int i, struct berval *bv )
 {
 	int len;
 	char *ptr;
-	struct berval bc = {0};
+	struct berval bc = BER_BVNULL;
 	char numbuf[32];
 
 	len = sprintf(numbuf, IFMT, i );
