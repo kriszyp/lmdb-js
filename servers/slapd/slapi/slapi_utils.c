@@ -946,11 +946,15 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 	Backend 	*be;
 	struct berval	dn, prettyDN;
 	struct berval	normalizedDN, parentDN;
+	char		*parent = NULL;
 
-	if ( pb == NULL || pb->pb_op == NULL )
+	if ( pb == NULL ) {
 		return NULL;
+	}
 
-	be = pb->pb_op->o_bd;
+	if ( slapi_is_rootdse( _dn ) ) {
+		return NULL;
+	}
 
 	dn.bv_val = (char *)_dn;
 	dn.bv_len = strlen( _dn );
@@ -959,22 +963,19 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 		return NULL;
 	}
 
-	if ( be != NULL && be_issuffix( be, &normalizedDN ) ) {
-		slapi_ch_free( (void **)&prettyDN.bv_val );
-		slapi_ch_free( (void **)&normalizedDN.bv_val );
-		return NULL;
-	}
+	be = select_backend( &dn, 0, 0 );
 
-	dnParent( &prettyDN, &parentDN );
+	if ( be == NULL || be_issuffix( be, &normalizedDN ) == 0 ) {
+		dnParent( &prettyDN, &parentDN );
+
+		if ( parentDN.bv_len != 0 )
+			parent = slapi_ch_strdup( parentDN.bv_val );
+	}
 
 	slapi_ch_free( (void **)&prettyDN.bv_val );
 	slapi_ch_free( (void **)&normalizedDN.bv_val );
 
-	if ( parentDN.bv_len == 0 ) {
-		return NULL;
-	}
-
-	return slapi_ch_strdup( parentDN.bv_val );
+	return parent;
 }
 
 char *
