@@ -27,7 +27,7 @@ LDAP_BEGIN_DECL
 
 /* slapi_utils.c */
 LDAP_SLAPI_F (LDAPMod **) slapi_int_modifications2ldapmods LDAP_P(( Modifications **, void *ctx ));
-LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod **, int dup, void *ctx ));
+LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod **, void *ctx ));
 LDAP_SLAPI_F (void) slapi_int_free_ldapmods LDAP_P(( LDAPMod ** ));
 LDAP_SLAPI_F (int) slapi_int_count_controls LDAP_P(( LDAPControl **ctrls ));
 LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));
@@ -41,7 +41,6 @@ LDAP_SLAPI_F (void) slapi_int_connection_done_pb LDAP_P(( Slapi_PBlock *pb ));
 /* slapi_pblock.c */
 LDAP_SLAPI_F (int) slapi_pblock_delete_param LDAP_P(( Slapi_PBlock *p, int param ));
 LDAP_SLAPI_F (void) slapi_pblock_clear LDAP_P(( Slapi_PBlock *pb ));
-LDAP_SLAPI_F (void) slapi_int_mods_free( Modifications *ml );
 
 LDAP_SLAPI_F (int) slapi_int_pblock_get_first LDAP_P(( Backend *be, Slapi_PBlock **pb ));
 LDAP_SLAPI_F (int) slapi_int_pblock_get_next LDAP_P(( Slapi_PBlock **pb ));
@@ -84,7 +83,8 @@ LDAP_SLAPI_F (int) slapi_int_create_object_extensions LDAP_P((int objecttype, vo
 LDAP_SLAPI_F (int) slapi_int_clear_object_extensions LDAP_P((int objecttype, void *object));
 
 /* slapi_overlay.c */
-LDAP_SLAPI_F (int) slapi_int_overlay_init LDAP_P((void));
+LDAP_SLAPI_F (int) slapi_over_is_inst LDAP_P((BackendDB *));
+LDAP_SLAPI_F (int) slapi_over_config LDAP_P((BackendDB *));
 
 LDAP_END_DECL
 

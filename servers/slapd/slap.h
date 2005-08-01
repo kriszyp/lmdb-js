@@ -2395,6 +2395,8 @@ typedef struct slap_op {
 
 	char o_nocaching;
 	char o_delete_glue_parent;
+	char o_no_schema_check;
+#define get_no_schema_check(op)			((op)->o_no_schema_check)
 
 #define SLAP_CONTROL_NONE	0
 #define SLAP_CONTROL_IGNORED	1

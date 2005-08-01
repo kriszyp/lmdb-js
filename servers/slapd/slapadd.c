@@ -64,7 +64,13 @@ slapadd( int argc, char **argv )
 	int ret;
 	struct berval bvtext;
 	int checkvals;
+	char opbuf[OPERATION_BUFFER_SIZE];
+	Operation *op;
+
 	slap_tool_init( progname, SLAPADD, argc, argv );
+
+	memset( opbuf, 0, sizeof(opbuf) );
+	op = (Operation *)opbuf;
 
 	if( !be->be_entry_open ||
 		!be->be_entry_close ||
@@ -181,7 +187,9 @@ slapadd( int argc, char **argv )
 			}
 
 			/* check schema */
-			rc = entry_schema_check( be, e, NULL, manage,
+			op->o_bd = be;
+
+			rc = entry_schema_check( op, e, NULL, manage,
 				&text, textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {

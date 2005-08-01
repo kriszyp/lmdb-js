@@ -1357,7 +1357,7 @@ LDAP_SLAPD_F( int ) structural_class(
 	char *textbuf, size_t textlen );
 
 LDAP_SLAPD_F( int ) entry_schema_check(
-	Backend *be,
+	Operation *op,
 	Entry *e,
 	Attribute *attrs,
 	int manage,
