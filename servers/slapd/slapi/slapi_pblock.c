@@ -64,6 +64,8 @@ pblock_get_param_class( int param )
 	case SLAPI_DB2LDIF_PRINTKEY:
 	case SLAPI_LDIF2DB_REMOVEDUPVALS:
 	case SLAPI_MANAGEDSAIT:
+	case SLAPI_X_MANAGEDIT:
+	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
 	case SLAPI_IS_REPLICATED_OPERATION:
 	case SLAPI_X_CONN_IS_UDP:
 	case SLAPI_X_CONN_SSF:
@@ -466,6 +468,10 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((ber_tag_t *)value) = pb->pb_op->o_delete_glue_parent;
 		break;
+	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((int *)value) = get_no_schema_check( pb->pb_op );
+		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((LDAPControl ***)value) = pb->pb_op->o_ctrls;
@@ -477,6 +483,10 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 	case SLAPI_MANAGEDSAIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		*((int *)value) = get_manageDSAit( pb->pb_op );
+		break;
+	case SLAPI_X_MANAGEDIT:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		*((int *)value) = get_manageDIT( pb->pb_op );
 		break;
 	case SLAPI_BACKEND:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -679,7 +689,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 			attrs = anlist2charray_x( pb->pb_op->ors_attrs, 0, pb->pb_op->o_tmpmemctx );
 			pblock_set_default( pb, param, (void *)attrs );
 		}
-		*((char ***)attrs) = attrs;
+		*((char ***)value) = attrs;
 	}
 	case SLAPI_SEARCH_ATTRSONLY:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -788,7 +798,7 @@ pblock_set_dn( void *value, struct berval *dn, struct berval *ndn, void *memctx 
 	}
 
 	bv.bv_val = (char *)value;
-	bv.bv_len = strlen( bv.bv_val );
+	bv.bv_len = ( value != NULL ) ? strlen( bv.bv_val ) : 0;
 
 	return dnPrettyNormal( NULL, &bv, dn, ndn, memctx );
 }
@@ -820,6 +830,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_delete_glue_parent = *((int *)value);
 		break;
+	case SLAPI_X_OPERATION_NO_SCHEMA_CHECK:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_op->o_no_schema_check = *((int *)value);
+		break;
 	case SLAPI_REQCONTROLS:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_ctrls = (LDAPControl **)value;
@@ -846,6 +860,10 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 	case SLAPI_MANAGEDSAIT:
 		PBLOCK_ASSERT_OP( pb, 0 );
 		pb->pb_op->o_managedsait = *((int *)value);
+		break;
+	case SLAPI_X_MANAGEDIT:
+		PBLOCK_ASSERT_OP( pb, 0 );
+		pb->pb_op->o_managedit = *((int *)value);
 		break;
 	case SLAPI_BACKEND:
 		PBLOCK_ASSERT_OP( pb, 0 );
@@ -905,6 +923,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 		break;
 	case SLAPI_MODIFY_MODS: {
 		Modifications **mlp;
+		Modifications *newmods;
 
 		PBLOCK_ASSERT_OP( pb, 0 );
 		rc = pblock_set_default( pb, param, value );
@@ -920,18 +939,11 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			break;
 		}
 
-		if ( *mlp != NULL ) {
-			slapi_int_mods_free( *mlp );
-			*mlp = NULL;
+		newmods = slapi_int_ldapmods2modifications( (LDAPMod **)value, NULL );
+		if ( newmods != NULL ) {
+			slap_mods_free( *mlp, 1 );
+			*mlp = newmods;
 		}
-		/*
-		 * Note: for internal operations, the modifications need to be
-		 * duplicated because slap_mods_check() will free values before
-		 * prettying, and we have no idea how the values were
-		 * allocated. For frontend operations, slap_mods_check() will
-		 * have already been called.	
-		 */
-		*mlp = slapi_int_ldapmods2modifications( (LDAPMod **)value, pb->pb_intop, NULL );
 		break;
 	}
 	case SLAPI_MODRDN_NEWRDN:
