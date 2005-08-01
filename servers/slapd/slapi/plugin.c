@@ -643,15 +643,9 @@ slapi_int_read_config(
 		return 1;
 	}
 
-	if ( slapMode & SLAP_TOOL_MODE ) {
-		/* No SLAPI plugins for tools, yet... */
-		/* When we have DB overlays we will support DB plugins */
-		return 0;
-	}
-
 	/* automatically instantiate overlay if necessary */
-	if ( !overlay_is_inst( be, SLAPI_OVERLAY_NAME ) ) {
-		if ( overlay_config( be, SLAPI_OVERLAY_NAME ) != 0 ) {
+	if ( !slapi_over_is_inst( be ) ) {
+		if ( slapi_over_config( be ) != 0 ) {
 			fprintf( stderr, "Failed to instantiate SLAPI overlay\n");
 			return -1;
 		}
@@ -744,29 +738,3 @@ slapi_int_plugin_unparse(
 	}
 }
 
-int
-slapi_int_initialize(void)
-{
-	if ( ldap_pvt_thread_mutex_init( &slapi_hn_mutex ) ) {
-		return -1;
-	}
-	
-	if ( ldap_pvt_thread_mutex_init( &slapi_time_mutex ) ) {
-		return -1;
-	}
-
-	if ( ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex ) ) {
-		return -1;
-	}
-
-	slapi_log_file = slapi_ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
-	if ( slapi_log_file == NULL ) {
-		return -1;
-	}
-
-	if ( slapi_int_init_object_extensions() != 0 ) {
-		return -1;
-	}
-
-	return slapi_int_overlay_init();
-}

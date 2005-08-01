@@ -31,6 +31,7 @@
 #ifdef LDAP_SLAPI
 
 static slap_overinst slapi;
+static int slapi_over_initialized = 0;
 
 static int slapi_over_response( Operation *op, SlapReply *rs );
 static int slapi_over_cleanup( Operation *op, SlapReply *rs );
@@ -554,6 +555,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	slap_callback		cb;
 	int			internal_op;
 	int			preop_type, postop_type;
+	BackendDB		*be;
 
 	if ( !slapi_plugins_used )
 		return SLAP_CB_CONTINUE;
@@ -595,7 +597,10 @@ slapi_op_func( Operation *op, SlapReply *rs )
 
 	pb = SLAPI_OPERATION_PBLOCK( op );
 
-	rc = slapi_int_call_plugins( op->o_bd, preop_type, pb );
+	/* cache backend so we call correct postop plugins */
+	be = pb->pb_op->o_bd;
+
+	rc = slapi_int_call_plugins( be, preop_type, pb );
 
 	/*
 	 * soi_callback is responsible for examining the result code
@@ -635,7 +640,7 @@ slapi_op_func( Operation *op, SlapReply *rs )
 	/*
 	 * Call postoperation plugins
 	 */
-	slapi_int_call_plugins( op->o_bd, postop_type, pb );
+	slapi_int_call_plugins( be, postop_type, pb );
 
 cleanup:
 	if ( !internal_op ) {
@@ -828,8 +833,8 @@ done:
 	return rc;
 }
 
-int
-slapi_int_overlay_init()
+static int
+slapi_over_init()
 {
 	memset( &slapi, 0, sizeof(slapi) );
 
@@ -852,6 +857,37 @@ slapi_int_overlay_init()
 	slapi.on_bi.bi_acl_group	= slapi_over_acl_group;
 
 	return overlay_register( &slapi );
+}
+
+int slapi_over_is_inst( BackendDB *be )
+{
+	return overlay_is_inst( be, SLAPI_OVERLAY_NAME );
+}
+
+int slapi_over_config( BackendDB *be )
+{
+	if ( slapi_over_initialized == 0 ) {
+		int rc;
+
+		/* do global initializaiton */
+		ldap_pvt_thread_mutex_init( &slapi_hn_mutex );
+		ldap_pvt_thread_mutex_init( &slapi_time_mutex );
+		ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex );
+
+		slapi_log_file = slapi_ch_strdup( LDAP_RUNDIR LDAP_DIRSEP "errors" );
+
+		rc = slapi_int_init_object_extensions();
+		if ( rc != 0 )
+			return rc;
+
+		rc = slapi_over_init();
+		if ( rc != 0 )
+			return rc;
+
+		slapi_over_initialized = 1;
+	}
+
+	return overlay_config( be, SLAPI_OVERLAY_NAME );
 }
 
 #endif /* LDAP_SLAPI */
