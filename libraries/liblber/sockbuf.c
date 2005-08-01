@@ -104,13 +104,13 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 
 		case LBER_SB_OPT_GET_FD:
 			if ( arg != NULL ) {
-				*((int *)arg) = sb->sb_fd;
+				*((ber_socket_t *)arg) = sb->sb_fd;
 			}
 			ret = ( sb->sb_fd == AC_SOCKET_INVALID ? -1 : 1);
 			break;
 
 		case LBER_SB_OPT_SET_FD:
-			sb->sb_fd = *((int *)arg);
+			sb->sb_fd = *((ber_socket_t *)arg);
 			ret = 1;
 			break;
 
