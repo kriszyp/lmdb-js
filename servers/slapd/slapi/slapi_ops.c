@@ -344,7 +344,7 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 		}
 		break;
 	case LDAP_REQ_ADD:
-		slap_mods_free( op->ora_modlist, 1 );
+		slap_mods_free( op->ora_modlist, 0 );
 		break;
 	case LDAP_REQ_MODIFY:
 		slap_mods_free( op->orm_modlist, 1 );
@@ -362,6 +362,8 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 	slapi_ch_free_string( &conn->c_authmech.bv_val );
 	slapi_ch_free_string( &conn->c_dn.bv_val );
 	slapi_ch_free_string( &conn->c_ndn.bv_val );
+	slapi_ch_free_string( &conn->c_peer_domain.bv_val );
+	slapi_ch_free_string( &conn->c_peer_name.bv_val );
 
 	if ( conn->c_sb != NULL ) {
 		ber_sockbuf_free( conn->c_sb );
@@ -471,7 +473,7 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 
 	/* Duplicate the values, because we may call slapi_entry_free() */
 	rs->sr_err = slap_mods2entry( pb->pb_op->ora_modlist, &pb->pb_op->ora_e,
-		1, 1, &rs->sr_text, pb->pb_textbuf, sizeof( pb->pb_textbuf ) );
+		1, 0, &rs->sr_text, pb->pb_textbuf, sizeof( pb->pb_textbuf ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
