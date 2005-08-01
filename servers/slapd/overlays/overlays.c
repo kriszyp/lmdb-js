@@ -24,7 +24,7 @@
 #include "slap.h"
 
 #if SLAPD_OVER_ACCESSLOG == SLAPD_MOD_STATIC
-extern int acceslog_init();
+extern int accesslog_init();
 #endif
 #if SLAPD_OVER_DENYOP == SLAPD_MOD_STATIC
 extern int denyop_init();
