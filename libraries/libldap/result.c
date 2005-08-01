@@ -484,7 +484,8 @@ retry_ber:
 		return( -2 );	/* continue looking */
 	}
 
-	if (( lr = ldap_find_request_by_msgid( ld, id )) == NULL ) {
+	lr = ldap_find_request_by_msgid( ld, id );
+	if ( lr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
 		    (long) id, 0, 0 );
@@ -551,12 +552,25 @@ nextresp2:
 			}
 		} else {
 			/* Check for V3 referral */
-			ber_len_t len;
+			ber_len_t	len;
+			char		*lr_res_error = NULL;
+
 			if ( ber_scanf( &tmpber, "{iaa",/*}*/ &lderr,
-				    &lr->lr_res_matched, &lr->lr_res_error )
-				    != LBER_ERROR ) {
+				    &lr->lr_res_matched, &lr_res_error )
+				    != LBER_ERROR )
+			{
+				if ( lr_res_error != NULL ) {
+					if ( lr->lr_res_error != NULL ) {
+						(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
+						LDAP_FREE( (char *)lr_res_error );
+
+					} else {
+						lr->lr_res_error = lr_res_error;
+					}
+				}
+
 				/* Check if V3 referral */
-				if( ber_peek_tag( &tmpber, &len) == LDAP_TAG_REFERRAL ) {
+				if ( ber_peek_tag( &tmpber, &len ) == LDAP_TAG_REFERRAL ) {
 					/* We have a V3 referral, assume we cannot chase it */
 					v3ref = -1;
 					if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
@@ -611,6 +625,8 @@ nextresp2:
 			( lr->lr_parent != NULL ||
 			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ) )
 		{
+			char		*lr_res_error = NULL;
+
 			tmpber = *ber;	/* struct copy */
 			if ( v3ref == 1 ) {
 				/* V3 search reference or V3 referral
@@ -621,8 +637,18 @@ nextresp2:
 				if ( tag == LDAP_RES_SEARCH_RESULT )
 					refer_cnt = 0;
 			} else if ( ber_scanf( &tmpber, "{iaa}", &lderr,
-			    &lr->lr_res_matched, &lr->lr_res_error )
-			    != LBER_ERROR ) {
+				&lr->lr_res_matched, &lr_res_error )
+				!= LBER_ERROR )
+			{
+				if ( lr_res_error != NULL ) {
+					if ( lr->lr_res_error != NULL ) {
+						(void)ldap_append_referral( ld, &lr->lr_res_error, lr_res_error );
+						LDAP_FREE( (char *)lr_res_error );
+					} else {
+						lr->lr_res_error = lr_res_error;
+					}
+				}
+
 				if ( lderr != LDAP_SUCCESS ) {
 					/* referrals are in error string */
 					refer_cnt = ldap_chase_referrals( ld, lr,
@@ -929,10 +955,10 @@ build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 	}
 
 	if ( ber_printf( ber, "{it{ess}}", lr->lr_msgid,
-	    lr->lr_res_msgtype, lr->lr_res_errno,
-	    lr->lr_res_matched ? lr->lr_res_matched : "",
-	    lr->lr_res_error ? lr->lr_res_error : "" ) == -1 ) {
-
+		lr->lr_res_msgtype, lr->lr_res_errno,
+		lr->lr_res_matched ? lr->lr_res_matched : "",
+		lr->lr_res_error ? lr->lr_res_error : "" ) == -1 )
+	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free(ber, 1);
 		return( LBER_ERROR );
@@ -978,14 +1004,15 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 			    lr->lr_res_error );
 		}
 	} else if ( lr->lr_res_errno != LDAP_SUCCESS &&
-	    parentr->lr_res_errno == LDAP_SUCCESS ) {
+		parentr->lr_res_errno == LDAP_SUCCESS )
+	{
 		parentr->lr_res_errno = lr->lr_res_errno;
 		if ( parentr->lr_res_error != NULL ) {
 			LDAP_FREE( parentr->lr_res_error );
 		}
 		parentr->lr_res_error = lr->lr_res_error;
 		lr->lr_res_error = NULL;
-		if ( LDAP_NAME_ERROR( lr->lr_res_errno )) {
+		if ( LDAP_NAME_ERROR( lr->lr_res_errno ) ) {
 			if ( parentr->lr_res_matched != NULL ) {
 				LDAP_FREE( parentr->lr_res_matched );
 			}
