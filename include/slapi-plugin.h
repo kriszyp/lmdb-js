@@ -79,6 +79,7 @@ char *slapi_dn_normalize( char *dn );
 char *slapi_dn_normalize_case( char *dn );
 int slapi_dn_issuffix( char *dn, char *suffix );
 char *slapi_dn_beparent( Slapi_PBlock *pb, const char *dn );
+int slapi_dn_isbesuffix( Slapi_PBlock *pb, char *dn );
 char *slapi_dn_parent( const char *dn );
 int slapi_dn_isparent( const char *parentdn, const char *childdn );
 char *slapi_dn_ignore_case( char *dn );
@@ -457,6 +458,8 @@ int slapi_x_backend_get_flags( const Slapi_Backend *be, unsigned long *flags );
 #define SLAPI_X_CONN_SSF			1303
 #define SLAPI_X_CONN_SASL_CONTEXT		1304
 #define SLAPI_X_OPERATION_DELETE_GLUE_PARENT	1305
+#define SLAPI_X_MANAGEDIT			1306
+#define SLAPI_X_OPERATION_NO_SCHEMA_CHECK	1307
 
 /*  Authentication types */
 #define SLAPD_AUTH_NONE   "none"
