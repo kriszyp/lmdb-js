@@ -609,16 +609,6 @@ unhandled_option:;
 	(void) ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
 #endif
 
-#ifdef LDAP_SLAPI
-	if ( slapi_int_initialize() != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "slapi initialization error\n",
-		    0, 0, 0 );
-
-		goto destroy;
-	}
-#endif /* LDAP_SLAPI */
-
 	if ( frontend_init() ) {
 		goto destroy;
 	}
