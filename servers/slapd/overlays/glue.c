@@ -788,9 +788,9 @@ glue_db_config(
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_GLUE_INSTANCE;
 
 	if ( strcasecmp( argv[0], "glue-sub" ) == 0 ) {
-		int i, async = 0, advertise = 0;
-		BackendDB *b2;
-		struct berval bv, dn;
+		int		i, async = 0, advertise = 0;
+		BackendDB	*b2;
+		struct berval	bv, dn = BER_BVNULL;
 
 		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: too few arguments in "
@@ -815,6 +815,7 @@ glue_db_config(
 			return -1;
 		}
 		b2 = select_backend( &dn, 0, 1 );
+		ber_memfree( dn.bv_val );
 		if ( !b2 ) {
 			fprintf( stderr, "%s: line %d: unknown suffix \"%s\"\n",
 				fname, lineno, argv[1] );

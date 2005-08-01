@@ -284,6 +284,10 @@ ldap_back_db_destroy(
 			ch_free( li->idassert_sasl_realm.bv_val );
 			BER_BVZERO( &li->idassert_sasl_realm );
 		}
+		if ( li->idassert_authz != NULL ) {
+			ber_bvarray_free( li->idassert_authz );
+			li->idassert_authz = NULL;
+		}
                 if ( li->conntree ) {
 			avl_free( li->conntree, ldap_back_conn_free );
 		}

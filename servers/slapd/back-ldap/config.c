@@ -72,7 +72,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "tls", "what", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_TLS,
+		ARG_MAGIC|LDAP_BACK_CFG_TLS,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.1 "
 			"NAME 'olcDbStartTLS' "
 			"DESC 'StartTLS' "
@@ -93,7 +93,7 @@ static ConfigTable ldapcfg[] = {
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_ACL_AUTHCDN,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "acl-passwd", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.3 "
 			"NAME 'olcDbACLPasswd' "
 			"DESC 'Remote ACL administrative identity credentials' "
@@ -103,11 +103,11 @@ static ConfigTable ldapcfg[] = {
 		NULL, NULL },
 	/* deprecated, will be removed; aliases "acl-passwd" */
 	{ "bindpw", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	/* deprecated, will be removed; aliases "acl-bind" */
 	{ "acl-method", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_ACL_METHOD,
+		ARG_MAGIC|LDAP_BACK_CFG_ACL_METHOD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "acl-bind", "args", 2, 0, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_ACL_BIND,
@@ -131,7 +131,7 @@ static ConfigTable ldapcfg[] = {
 		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHCDN,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-passwd", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.6 "
 			"NAME 'olcDbIDAssertPasswd' "
 			"DESC 'Remote Identity Assertion administrative identity credentials' "
@@ -141,7 +141,7 @@ static ConfigTable ldapcfg[] = {
 		NULL, NULL },
 	/* deprecated, will be removed; partially aliases "idassert-passwd" */
 	{ "proxyauthzpw", "cred", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_PASSWD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-bind", "args", 2, 0, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
@@ -152,7 +152,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "idassert-method", "args", 2, 0, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_METHOD,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_METHOD,
 		ldap_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-mode", "mode>|u:<user>|[dn:]<DN", 2, 0, 0,
 		ARG_STRING|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_MODE,
@@ -164,7 +164,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE)",
 		NULL, NULL },
 	{ "idassert-authzFrom", "authzRule", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHZFROM,
+		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_AUTHZFROM,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.9 "
 			"NAME 'olcDbIDAssertAuthzFrom' "
 			"DESC 'Remote Identity Assertion authz rules' "
@@ -172,7 +172,7 @@ static ConfigTable ldapcfg[] = {
 			"X-ORDERED 'VALUES' )",
 		NULL, NULL },
 	{ "rebind-as-user", "NO|yes", 1, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_REBIND,
+		ARG_MAGIC|LDAP_BACK_CFG_REBIND,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.10 "
 			"NAME 'olcDbRebindAsUser' "
 			"DESC 'Rebind as user' "
@@ -180,7 +180,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "chase-referrals", "YES|no", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_CHASE,
+		ARG_MAGIC|LDAP_BACK_CFG_CHASE,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.11 "
 			"NAME 'olcDbChaseReferrals' "
 			"DESC 'Chase referrals' "
@@ -188,7 +188,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "t-f-support", "NO|yes|discover", 2, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_T_F,
+		ARG_MAGIC|LDAP_BACK_CFG_T_F,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.12 "
 			"NAME 'olcDbTFSupport' "
 			"DESC 'Absolute filters support' "
@@ -196,7 +196,7 @@ static ConfigTable ldapcfg[] = {
 			"SINGLE-VALUE )",
 		NULL, NULL },
 	{ "proxy-whoami", "NO|yes", 1, 2, 0,
-		ARG_BERVAL|ARG_MAGIC|LDAP_BACK_CFG_WHOAMI,
+		ARG_MAGIC|LDAP_BACK_CFG_WHOAMI,
 		ldap_back_cf_gen, "( OLcfgDbAt:3.13 "
 			"NAME 'olcDbProxyWhoAmI' "
 			"DESC 'Proxy whoAmI exop' "
@@ -301,7 +301,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				c->value_bv = bv;
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -472,7 +472,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				c->value_bv = bv;
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -484,7 +484,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				c->value_bv = bv;
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -496,7 +496,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				c->value_bv = bv;
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -508,7 +508,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 				rc = 1;
 
 			} else {
-				c->value_bv = bv;
+				value_add_one( &c->rvalue_vals, &bv );
 			}
 			break;
 
@@ -542,6 +542,9 @@ ldap_back_cf_gen( ConfigArgs *c )
 			break;
 
 		case LDAP_BACK_CFG_TLS:
+			rc = 1;
+			break;
+
 		case LDAP_BACK_CFG_ACL_AUTHCDN:
 		case LDAP_BACK_CFG_ACL_PASSWD:
 		case LDAP_BACK_CFG_ACL_METHOD:
@@ -896,9 +899,12 @@ ldap_back_cf_gen( ConfigArgs *c )
 		li->idassert_passwd = c->value_bv;
 		break;
 
-	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM:
-		ber_bvarray_add( &li->idassert_authz, &c->value_bv );
-		break;
+	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
+		struct berval	bv;
+
+		ber_str2bv( c->argv[1], 0, 1, &bv );
+		ber_bvarray_add( &li->idassert_authz, &bv );
+		} break;
 
 	case LDAP_BACK_CFG_IDASSERT_METHOD:
 		/* no longer supported */
