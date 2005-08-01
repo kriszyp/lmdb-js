@@ -720,6 +720,9 @@ end_line:
 	if ( newrdn != NULL ) {
 		free( newrdn );
 	}
+	if ( newsup != NULL ) {
+		free( newsup );
+	}
 	if ( pmods != NULL ) {
 		ldap_mods_free( pmods, 1 );
 	}

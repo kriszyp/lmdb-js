@@ -603,7 +603,7 @@ main( int argc, char **argv )
 	{
 		filtpattern = "(objectclass=*)";
 	} else {
-		filtpattern = strdup( argv[optind++] );
+		filtpattern = argv[optind++];
 	}
 
 	if ( argv[optind] != NULL ) {

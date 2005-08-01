@@ -717,6 +717,9 @@ tool_args( int argc, char **argv )
 				LDAP_VENDOR_NAME, LDAP_VENDOR_VERSION );
 			if (version > 1) exit( EXIT_SUCCESS );
 		}
+
+		ldap_memfree( api.ldapai_vendor_name );
+		ldap_value_free( api.ldapai_extensions );
 	}
 
 	if (protocol == -1)
@@ -971,6 +974,9 @@ tool_bind( LDAP *ld )
 			}
 		}
 #endif
+		if ( ctrls ) {
+			ldap_controls_free( ctrls );
+		}
 		if ( err != LDAP_SUCCESS || msgbuf[0] ) {
 			fprintf( stderr, "ldap_bind: %s%s\n", ldap_err2string( err ),
 				msgbuf );
