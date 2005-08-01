@@ -368,6 +368,8 @@ searchit:
 						? LDAP_SCOPE_BASE
 						: LDAP_SCOPE_SUBTREE );
 
+				ber_bvarray_free( erefs );
+
 				send_search_reference( op, rs );
 
 				ber_bvarray_free( rs->sr_ref );
