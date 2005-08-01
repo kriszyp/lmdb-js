@@ -447,7 +447,8 @@ slap_mods2entry(
 				for ( j = 0; mods->sml_values[j].bv_val; j++ ) {
 					ber_dupbv( &attr->a_vals[i+j], &mods->sml_values[j] );
 				}
-				BER_BVZERO( &attr->a_vals[i+j] );	
+				BER_BVZERO( &attr->a_vals[i+j] );
+				j++;
 			} else {
 				AC_MEMCPY( &attr->a_vals[i], mods->sml_values,
 					sizeof( struct berval ) * j );
