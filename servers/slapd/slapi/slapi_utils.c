@@ -936,12 +936,33 @@ slapi_dn_parent( const char *_dn )
 	return slapi_ch_strdup( parentDN.bv_val );
 }
 
+int slapi_dn_isbesuffix( Slapi_PBlock *pb, char *ldn )
+{
+	struct berval	ndn;
+	Backend		*be;
+
+	if ( slapi_is_rootdse( ldn ) ) {
+		return 0;
+	}
+
+	/* according to spec should already be normalized */
+	ndn.bv_len = strlen( ldn );
+	ndn.bv_val = ldn;
+
+	be = select_backend( &pb->pb_op->o_req_ndn, 0, 0 );
+	if ( be == NULL ) {
+		return 0;
+	}
+
+	return be_issuffix( be, &ndn );
+}
+
 /*
  * Returns DN of the parent entry; or NULL if the DN is
  * an empty string, if the DN has no parent, or if the
  * DN is the suffix of the backend database
  */
-char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
+char *slapi_dn_beparent( Slapi_PBlock *pb, const char *ldn )
 {
 	Backend 	*be;
 	struct berval	dn, prettyDN;
@@ -954,12 +975,12 @@ char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
 
 	PBLOCK_ASSERT_OP( pb, 0 );
 
-	if ( slapi_is_rootdse( _dn ) ) {
+	if ( slapi_is_rootdse( ldn ) ) {
 		return NULL;
 	}
 
-	dn.bv_val = (char *)_dn;
-	dn.bv_len = strlen( _dn );
+	dn.bv_val = (char *)ldn;
+	dn.bv_len = strlen( ldn );
 
 	if ( dnPrettyNormal( NULL, &dn, &prettyDN, &normalizedDN, NULL ) != LDAP_SUCCESS ) {
 		return NULL;
@@ -2660,7 +2681,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 	if ( pb == NULL || pb->pb_op == NULL )
 		return LDAP_PARAM_ERROR;
 
-	ml = slapi_int_ldapmods2modifications( mods, 0, NULL );
+	ml = slapi_int_ldapmods2modifications( mods, NULL );
 	if ( ml == NULL ) {
 		return LDAP_OTHER;
 	}
@@ -2669,8 +2690,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 		rc = acl_check_modlist( pb->pb_op, e, ml ) ? LDAP_SUCCESS : LDAP_INSUFFICIENT_ACCESS;
 	}
 
-	/* Careful when freeing the modlist because it has pointers into the mods array. */
-	slapi_int_mods_free( ml );
+	slap_mods_free( ml, 1 );
 
 	return rc;
 }
@@ -2738,16 +2758,17 @@ LDAPMod **slapi_int_modifications2ldapmods(
 
 /*
  * Convert a potentially modified array of LDAPMods back to a
- * Modification list. 
- * 
- * The returned Modification list contains pointers into the
- * LDAPMods array; the latter MUST be freed with
- * slapi_int_free_ldapmods() (see below).
+ * Modification list. Unfortunately the values need to be
+ * duplicated because slap_mods_check() will try to free them
+ * before prettying (and we can't easily get out of calling
+ * slap_mods_check() because we need normalized values).
  */
-Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, int dup, void *memctx )
+Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
 {
 	Modifications *modlist = NULL, **modtail;
 	LDAPMod **modp;
+	char textbuf[SLAP_TEXT_BUFLEN];
+	const char *text;
 
 	if ( mods == NULL ) {
 		return NULL;
@@ -2794,12 +2815,7 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, int dup, void 
 			/* NB: This implicitly trusts a plugin to return valid modifications. */
 			if ( lmod->mod_op & LDAP_MOD_BVALUES ) {
 				for ( i = 0; lmod->mod_bvalues[i] != NULL; i++ ) {
-					if ( dup ) {
-						ber_dupbv( &mod->sml_values[i], lmod->mod_bvalues[i] );
-					} else {
-						mod->sml_values[i].bv_val = lmod->mod_bvalues[i]->bv_val;
-						mod->sml_values[i].bv_len = lmod->mod_bvalues[i]->bv_len;
-					}
+					ber_dupbv( &mod->sml_values[i], lmod->mod_bvalues[i] );
 				}
 			} else {
 				for ( i = 0; lmod->mod_values[i] != NULL; i++ ) {
@@ -2816,30 +2832,13 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, int dup, void 
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}
-	
-	return modlist;
-}
 
-/*
- * For an internal operation, the unnormalized values are
- * owned by the caller (ie. the plugin making the internal
- * operation).
- */
-void
-slapi_int_mods_free( Modifications *ml )
-{
-	Modifications           *next;
-
-	for ( ; ml != NULL; ml = next ) {
-		next = ml->sml_next;
-
-		if ( ml->sml_nvalues != NULL ) {
-			ber_bvarray_free( ml->sml_nvalues );
-			ml->sml_nvalues = NULL;
-		}
-		slapi_ch_free( (void **)&ml->sml_values );
-		slapi_ch_free( (void **)&ml );
+	if ( slap_mods_check( modlist, &text, textbuf, sizeof( textbuf ), memctx ) != LDAP_SUCCESS ) {
+		slap_mods_free( modlist, 1 );
+		modlist = NULL;
 	}
+
+	return modlist;
 }
 
 /*
@@ -3227,16 +3226,22 @@ char *slapi_dn_plus_rdn( const char *dn, const char *rdn )
 
 int slapi_entry_schema_check( Slapi_PBlock *pb, Slapi_Entry *e )
 {
-	Backend *be;
+	Backend *be_orig;
 	const char *text;
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 	int rc = LDAP_SUCCESS;
 
-	be = select_backend( &e->e_nname, 0, 0 );
-	if ( be != NULL )
-		rc = entry_schema_check( be, e, NULL, 0,
+	PBLOCK_ASSERT_OP( pb, 0 );
+
+	be_orig = pb->pb_op->o_bd;
+
+	pb->pb_op->o_bd = select_backend( &e->e_nname, 0, 0 );
+	if ( pb->pb_op->o_bd != NULL ) {
+		rc = entry_schema_check( pb->pb_op, e, NULL, 0,
 			&text, textbuf, textlen );
+	}
+	pb->pb_op->o_bd = be_orig;
 
 	return ( rc == LDAP_SUCCESS ) ? 0 : 1;
 }
