@@ -290,7 +290,7 @@ static int translucent_modify(Operation *op, SlapReply *rs) {
 				mm = m;
 				m = m->sml_next;
 				mm->sml_next = NULL;		/* hack */
-				slap_mods_free(mm);
+				slap_mods_free(mm, 1);
 				if(m) continue;
 			}
 			m->sml_op = LDAP_MOD_ADD;

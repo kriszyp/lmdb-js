@@ -1006,7 +1006,7 @@ LDAP_SLAPD_F( int ) modify_increment_values( Entry *e,
 	const char **text, char *textbuf, size_t textlen );
 
 LDAP_SLAPD_F( void ) slap_mod_free( Modification *mod, int freeit );
-LDAP_SLAPD_F( void ) slap_mods_free( Modifications *mods );
+LDAP_SLAPD_F( void ) slap_mods_free( Modifications *mods, int freevals );
 LDAP_SLAPD_F( void ) slap_modlist_free( LDAPModList *ml );
 
 /*

@@ -432,14 +432,16 @@ slap_mod_free(
 
 void
 slap_mods_free(
-    Modifications	*ml )
+    Modifications	*ml,
+    int			freevals )
 {
 	Modifications *next;
 
 	for ( ; ml != NULL; ml = next ) {
 		next = ml->sml_next;
 
-		slap_mod_free( &ml->sml_mod, 0 );
+		if ( freevals )
+			slap_mod_free( &ml->sml_mod, 0 );
 		free( ml );
 	}
 }

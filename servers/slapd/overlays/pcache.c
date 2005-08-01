@@ -186,7 +186,7 @@ merge_entry(
 			op->o_tag = LDAP_REQ_MODIFY;
 			op->orm_modlist = modlist;
 			op->o_bd->be_modify( op, &sreply );
-			slap_mods_free( modlist );
+			slap_mods_free( modlist, 1 );
 		} else if ( rc == LDAP_REFERRAL ||
 					rc == LDAP_NO_SUCH_OBJECT ) {
 			syncrepl_add_glue( op, e );

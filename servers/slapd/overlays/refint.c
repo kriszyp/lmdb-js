@@ -653,7 +653,7 @@ done:
 	for(dp = dd.mods; dp; dp = dd.mods) {
 		dd.mods = dp->next;
 		ch_free(dp->dn.bv_val);
-		slap_mods_free(dp->mm);
+		slap_mods_free(dp->mm, 1);
 	}
 	dd.mods = NULL;
 

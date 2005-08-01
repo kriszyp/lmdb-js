@@ -629,7 +629,7 @@ do_syncrep2(
 				}
 				ldap_controls_free( rctrls );
 				if ( modlist ) {
-					slap_mods_free( modlist );
+					slap_mods_free( modlist, 1 );
 				}
 				if ( rc_efree && entry ) {
 					entry_free( entry );

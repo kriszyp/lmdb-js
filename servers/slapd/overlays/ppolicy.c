@@ -919,7 +919,7 @@ locked:
 		op2.o_ndn = op->o_bd->be_rootndn;
 		op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		rc = op->o_bd->be_modify( &op2, &r2 );
-		slap_mods_free( mod );
+		slap_mods_free( mod, 1 );
 	}
 
 	if ( ppb->send_ctrl ) {

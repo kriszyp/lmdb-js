@@ -40,7 +40,7 @@ do_add( Operation *op, SlapReply *rs )
 	struct berval	dn = BER_BVNULL;
 	ber_len_t	len;
 	ber_tag_t	tag;
-	Modifications	*modlist = NULL;
+	Modifications	*modlist = NULL, *next;
 	Modifications	**modtail = &modlist;
 	Modifications	tmp;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
@@ -195,8 +195,9 @@ done:;
 	slap_graduate_commit_csn( op );
 
 	if ( modlist != NULL ) {
-		slap_mods_free( modlist );
+		slap_mods_free( modlist, 0 );
 	}
+
 	if ( op->ora_e != NULL ) {
 		entry_free( op->ora_e );
 	}
@@ -450,8 +451,6 @@ slap_mods2entry(
 			} else {
 				AC_MEMCPY( &attr->a_vals[i], mods->sml_values,
 					sizeof( struct berval ) * j );
-				ch_free( mods->sml_values );
-				mods->sml_values = NULL;
 			}
 
 			if( mods->sml_nvalues ) {
@@ -465,8 +464,6 @@ slap_mods2entry(
 				} else {
 					AC_MEMCPY( &attr->a_nvals[i], mods->sml_nvalues,
 						sizeof( struct berval ) * j );
-					ch_free( mods->sml_nvalues );
-					mods->sml_nvalues = NULL;
 				}
 			} else {
 				attr->a_nvals = attr->a_vals;
@@ -520,7 +517,6 @@ slap_mods2entry(
 
 		/* move ad to attr structure */
 		attr->a_desc = mods->sml_desc;
-		if ( !dup ) mods->sml_desc = NULL;
 
 		/* move values to attr structure */
 		/*	should check for duplicates */
@@ -534,7 +530,6 @@ slap_mods2entry(
 			BER_BVZERO( &attr->a_vals[i] );
 		} else {
 			attr->a_vals = mods->sml_values;
-			mods->sml_values = NULL;
 		}
 
 		if ( mods->sml_nvalues ) {
@@ -548,7 +543,6 @@ slap_mods2entry(
 				BER_BVZERO( &attr->a_nvals[i] );
 			} else {
 				attr->a_nvals = mods->sml_nvalues;
-				mods->sml_nvalues = NULL;
 			}
 		} else {
 			attr->a_nvals = attr->a_vals;

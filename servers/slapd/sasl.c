@@ -439,7 +439,7 @@ slap_auxprop_store(
 			}
 		}
 	}
-	slap_mods_free( modlist );
+	slap_mods_free( modlist, 1 );
 	return rc != LDAP_SUCCESS ? SASL_FAIL : SASL_OK;
 }
 #endif /* SASL_VERSION_FULL >= 2.1.16 */

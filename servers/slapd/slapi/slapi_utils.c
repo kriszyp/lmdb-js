@@ -2730,7 +2730,7 @@ LDAPMod **slapi_int_modifications2ldapmods(
 
 	mods[i] = NULL;
 
-	slap_mods_free( modlist );
+	slap_mods_free( modlist, 1 );
 	*pmodlist = NULL;
 
 	return mods;

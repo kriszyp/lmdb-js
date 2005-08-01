@@ -344,10 +344,10 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 		}
 		break;
 	case LDAP_REQ_ADD:
-		slap_mods_free( op->ora_modlist );
+		slap_mods_free( op->ora_modlist, 1 );
 		break;
 	case LDAP_REQ_MODIFY:
-		slap_mods_free( op->orm_modlist );
+		slap_mods_free( op->orm_modlist, 1 );
 		break;
 	case LDAP_REQ_SEARCH:
 		if ( op->ors_attrs != NULL ) {
@@ -498,7 +498,7 @@ cleanup:
 	}
 	if ( entry_orig != NULL ) {
 		pb->pb_op->ora_e = entry_orig;
-		slap_mods_free( pb->pb_op->ora_modlist );
+		slap_mods_free( pb->pb_op->ora_modlist, 1 );
 		pb->pb_op->ora_modlist = NULL;
 	}
 

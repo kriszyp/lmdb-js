@@ -529,7 +529,7 @@ return_results:
 			tmp = mod->sml_next;
 			free( mod );
 		}
-		slap_mods_free( mod );
+		slap_mods_free( mod, 1 );
 	}
 
 	/* LDAP v3 Support */
