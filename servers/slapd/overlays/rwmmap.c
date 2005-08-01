@@ -82,19 +82,21 @@ rwm_map_init( struct ldapmap *lm, struct ldapmapping **m )
 	}
 
 	/* FIXME: I don't think this is needed any more... */
-	rc = slap_str2ad( "objectClass", &mapping->m_src_ad, &text );
+	rc = slap_str2ad( "objectClass", &mapping[0].m_src_ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	mapping->m_dst_ad = mapping->m_src_ad;
-	ber_dupbv( &mapping->m_dst, &mapping->m_src_ad->ad_cname );
-	ber_dupbv( &mapping->m_dst, &mapping->m_src );
+	mapping[0].m_dst_ad = mapping[0].m_src_ad;
+	ber_dupbv( &mapping[0].m_src, &mapping[0].m_src_ad->ad_cname );
+	ber_dupbv( &mapping[0].m_dst, &mapping[0].m_src );
 
-	mapping[1].m_src = mapping->m_src;
-	mapping[1].m_dst = mapping->m_dst;
+	mapping[1].m_src = mapping[0].m_src;
+	mapping[1].m_dst = mapping[0].m_dst;
+	mapping[1].m_src_ad = mapping[0].m_src_ad;
+	mapping[1].m_dst_ad = mapping[1].m_src_ad;
 
-	avl_insert( &lm->map, (caddr_t)mapping, 
+	avl_insert( &lm->map, (caddr_t)&mapping[0], 
 			rwm_mapping_cmp, rwm_mapping_dup );
 	avl_insert( &lm->remap, (caddr_t)&mapping[1], 
 			rwm_mapping_cmp, rwm_mapping_dup );

@@ -1419,9 +1419,11 @@ rwm_db_init(
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldapmapping	*mapping = NULL;
 	struct ldaprwmap	*rwmap;
+#ifdef ENABLE_REWRITE
+	char			*rargv[ 3 ];
+#endif /* ENABLE_REWRITE */
 
-	rwmap = (struct ldaprwmap *)ch_malloc(sizeof(struct ldaprwmap));
-	memset(rwmap, 0, sizeof(struct ldaprwmap));
+	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
 
 #ifdef ENABLE_REWRITE
  	rwmap->rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
@@ -1430,22 +1432,17 @@ rwm_db_init(
  		return -1;
  	}
 
-	{
-		char	*rargv[3];
+	/* this rewriteContext by default must be null;
+	 * rules can be added if required */
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "searchFilter";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
 
-		/* this rewriteContext by default must be null;
-		 * rules can be added if required */
-		rargv[ 0 ] = "rewriteContext";
-		rargv[ 1 ] = "searchFilter";
-		rargv[ 2 ] = NULL;
-		rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
-
-		rargv[ 0 ] = "rewriteContext";
-		rargv[ 1 ] = "default";
-		rargv[ 2 ] = NULL;
-		rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
-	}
-	
+	rargv[ 0 ] = "rewriteContext";
+	rargv[ 1 ] = "default";
+	rargv[ 2 ] = NULL;
+	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
 #endif /* ENABLE_REWRITE */
 
 	if ( rwm_map_init( &rwmap->rwm_oc, &mapping ) != LDAP_SUCCESS ||
@@ -1485,6 +1482,8 @@ rwm_db_destroy(
 		avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
 		avl_free( rwmap->rwm_at.remap, NULL );
 		avl_free( rwmap->rwm_at.map, rwm_mapping_free );
+
+		ch_free( rwmap );
 	}
 
 	return rc;
