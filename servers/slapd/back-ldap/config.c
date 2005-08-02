@@ -779,7 +779,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->acl_passwd ) ) {
 			free( li->acl_passwd.bv_val );
 		}
-		li->acl_passwd = c->value_bv;
+		ber_str2bv( c->argv[ 1 ], 0, 1, &li->acl_passwd );
 		break;
 
 	case LDAP_BACK_CFG_ACL_METHOD:
@@ -896,13 +896,13 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->idassert_passwd ) ) {
 			free( li->idassert_passwd.bv_val );
 		}
-		li->idassert_passwd = c->value_bv;
+		ber_str2bv( c->argv[ 1 ], 0, 1, &li->idassert_passwd );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 		struct berval	bv;
 
-		ber_str2bv( c->argv[1], 0, 1, &bv );
+		ber_str2bv( c->argv[ 1 ], 0, 1, &bv );
 		ber_bvarray_add( &li->idassert_authz, &bv );
 		} break;
 
