@@ -1180,10 +1180,10 @@ syncprov_add_slog( Operation *op, struct berval *csn )
 		se->se_tag = op->o_tag;
 
 		se->se_uuid.bv_val = (char *)(se+1);
-		se->se_csn.bv_val = se->se_uuid.bv_val + opc->suuid.bv_len + 1;
 		AC_MEMCPY( se->se_uuid.bv_val, opc->suuid.bv_val, opc->suuid.bv_len );
 		se->se_uuid.bv_len = opc->suuid.bv_len;
 
+		se->se_csn.bv_val = se->se_uuid.bv_val + opc->suuid.bv_len;
 		AC_MEMCPY( se->se_csn.bv_val, csn->bv_val, csn->bv_len );
 		se->se_csn.bv_val[csn->bv_len] = '\0';
 		se->se_csn.bv_len = csn->bv_len;
