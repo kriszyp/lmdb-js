@@ -263,7 +263,7 @@ ldap_send_server_request(
 			++parentreq->lr_outrefcnt;
 		}
 		lr->lr_origid = parentreq->lr_origid;
-		lr->lr_parentcnt = parentreq->lr_parentcnt + 1;
+		lr->lr_parentcnt = ++parentreq->lr_parentcnt;
 		lr->lr_parent = parentreq;
 		lr->lr_refnext = parentreq->lr_child;
 		parentreq->lr_child = lr;
