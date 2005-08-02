@@ -457,8 +457,6 @@ retry_lock:;
 		lc->lc_conn = lc_curr.lc_conn;
 		ber_dupbv( &lc->lc_local_ndn, &lc_curr.lc_local_ndn );
 
-		ldap_pvt_thread_mutex_init( &lc->lc_mutex );
-
 		if ( lc_curr.lc_ispriv ) {
 			ber_dupbv( &lc->lc_cred, &li->acl_passwd );
 			ber_dupbv( &lc->lc_bound_ndn, &li->acl_authcDN );
@@ -553,8 +551,7 @@ retry_lock:;
  * it from all the callers, and I made the function return the flag, so
  * it can be used to simplify the check.
  *
- * Note: lc_mutex is locked; dolock indicates whether li->conn_mutex
- * must be locked or not
+ * Note: dolock indicates whether li->conn_mutex must be locked or not
  */
 static int
 ldap_back_dobind_int(
@@ -707,13 +704,7 @@ done:;
 int
 ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 {
-	int	rc;
-
-	ldap_pvt_thread_mutex_lock( &lc->lc_mutex );
-	rc = ldap_back_dobind_int( lc, op, rs, sendok, 1, 1 );
-	ldap_pvt_thread_mutex_unlock( &lc->lc_mutex );
-
-	return rc;
+	return ldap_back_dobind_int( lc, op, rs, sendok, 1, 1 );
 }
 
 /*

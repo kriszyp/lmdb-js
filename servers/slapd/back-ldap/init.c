@@ -216,7 +216,6 @@ ldap_back_conn_free( void *v_lc )
 	if ( !BER_BVISNULL( &lc->lc_local_ndn ) ) {
 		ch_free( lc->lc_local_ndn.bv_val );
 	}
-	ldap_pvt_thread_mutex_destroy( &lc->lc_mutex );
 	ch_free( lc );
 }
 

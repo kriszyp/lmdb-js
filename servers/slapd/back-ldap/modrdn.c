@@ -45,7 +45,7 @@ ldap_back_modrdn(
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
-		return -1;
+		return rs->sr_err;
 	}
 
 	if ( op->orr_newSup ) {

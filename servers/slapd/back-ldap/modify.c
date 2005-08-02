@@ -48,7 +48,7 @@ ldap_back_modify(
 
 	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
-		return -1;
+		return rs->sr_err;
 	}
 
 	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; i++, ml = ml->sml_next )
