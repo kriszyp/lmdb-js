@@ -2819,8 +2819,7 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
 				}
 			} else {
 				for ( i = 0; lmod->mod_values[i] != NULL; i++ ) {
-					mod->sml_values[i].bv_val = dup ? slapi_ch_strdup( lmod->mod_values[i] ) :
-						lmod->mod_values[i];
+					mod->sml_values[i].bv_val = slapi_ch_strdup( lmod->mod_values[i] );
 					mod->sml_values[i].bv_len = strlen( lmod->mod_values[i] );
 				}
 			}
