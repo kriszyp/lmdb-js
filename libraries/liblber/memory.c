@@ -143,8 +143,9 @@ ber_memfree_x( void *p, void *ctx )
 		ber_int_options.lbo_meminuse -= mh->bm_length;
 
 #ifdef LDAP_MEMORY_TRACE
-		fprintf(stderr, "0x%08x 0x%08x -f- %d ber_memfree %d\n",
-			mh->bm_sequence, mh, mh->bm_length, ber_int_options.lbo_meminuse);
+		fprintf(stderr, "0x%08lx 0x%08lx -f- %ld ber_memfree %ld\n",
+			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
+			ber_int_options.lbo_meminuse);
 #endif
 		/* Fill the free space with poison */
 		memset( mh, 0xff, mh->bm_length + sizeof(struct ber_mem_hdr) + sizeof(ber_int_t));
@@ -220,8 +221,9 @@ ber_memalloc_x( ber_len_t s, void *ctx )
 
 #ifdef LDAP_MEMORY_TRACE
 		mh->bm_sequence = sequence++;
-		fprintf(stderr, "0x%08x 0x%08x -a- %d ber_memalloc %d\n",
-			mh->bm_sequence, mh, mh->bm_length, ber_int_options.lbo_meminuse);
+		fprintf(stderr, "0x%08lx 0x%08lx -a- %ld ber_memalloc %ld\n",
+			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
+			ber_int_options.lbo_meminuse);
 #endif
 		/* poison new memory */
 		memset( (char *)&mh[1], 0xff, s);
@@ -277,8 +279,9 @@ ber_memcalloc_x( ber_len_t n, ber_len_t s, void *ctx )
 
 #ifdef LDAP_MEMORY_TRACE
 		mh->bm_sequence = sequence++;
-		fprintf(stderr, "0x%08x 0x%08x -a- %d ber_memcalloc %d\n",
-			mh->bm_sequence, mh, mh->bm_length, ber_int_options.lbo_meminuse);
+		fprintf(stderr, "0x%08lx 0x%08lx -a- %ld ber_memcalloc %ld\n",
+			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
+			ber_int_options.lbo_meminuse);
 #endif
 		BER_MEM_VALID( &mh[1] );
 		new = &mh[1];
@@ -351,8 +354,9 @@ ber_memrealloc_x( void* p, ber_len_t s, void *ctx )
 
 		ber_int_options.lbo_meminuse += s - oldlen;
 #ifdef LDAP_MEMORY_TRACE
-		fprintf(stderr, "0x%08x 0x%08x -a- %d ber_memrealloc %d\n",
-			mh->bm_sequence, mh, mh->bm_length, ber_int_options.lbo_meminuse);
+		fprintf(stderr, "0x%08lx 0x%08lx -a- %ld ber_memrealloc %ld\n",
+			(long)mh->bm_sequence, (long)mh, (long)mh->bm_length,
+			ber_int_options.lbo_meminuse);
 #endif
 			BER_MEM_VALID( &mh[1] );
 		return &mh[1];
