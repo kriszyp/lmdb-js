@@ -305,7 +305,7 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	}
 	
 	if ( use_ldsb ) {
-		assert( ld->ld_sb );
+		assert( ld->ld_sb != NULL );
 		lc->lconn_sb = ld->ld_sb;
 
 	} else {
