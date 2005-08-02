@@ -146,7 +146,10 @@ static AttributeDescription *ad_reqDN, *ad_reqStart, *ad_reqEnd, *ad_reqType,
 	*ad_reqNewSuperior, *ad_reqDeleteOldRDN, *ad_reqMod,
 	*ad_reqScope, *ad_reqFilter, *ad_reqAttr, *ad_reqEntries,
 	*ad_reqSizeLimit, *ad_reqTimeLimit, *ad_reqAttrsOnly, *ad_reqData,
-	*ad_reqId, *ad_reqMessage, *ad_oldest;
+	*ad_reqId, *ad_reqMessage;
+#if 0
+static AttributeDescription *ad_oldest;
+#endif
 
 static struct {
 	char *at;
