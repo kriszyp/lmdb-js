@@ -204,7 +204,7 @@ ldap_back_conn_free( void *v_lc )
 	struct ldapconn	*lc = v_lc;
 
 	if ( lc->lc_ld != NULL ) {	
-		ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+		ldap_unbind_ext( lc->lc_ld, NULL, NULL );
 	}
 	if ( !BER_BVISNULL( &lc->lc_bound_ndn ) ) {
 		ch_free( lc->lc_bound_ndn.bv_val );

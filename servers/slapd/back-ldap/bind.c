@@ -367,7 +367,7 @@ retry:;
 		if ( rs->sr_err == LDAP_SERVER_DOWN
 				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( li ) ) )
 		{
-			ldap_unbind_ext_s( ld, NULL, NULL );
+			ldap_unbind_ext( ld, NULL, NULL );
 			goto error_return;
 		}
 
@@ -672,7 +672,7 @@ retry_lock:;
 
 				assert( lc->lc_refcnt > 0 );
 				if ( lc->lc_refcnt == 1 ) {
-					ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+					ldap_unbind_ext( lc->lc_ld, NULL, NULL );
 					lc->lc_ld = NULL;
 
 					/* lc here must be the regular lc, reset and ready for init */
@@ -841,7 +841,7 @@ retry_lock:;
 	}
 
 	if ( lc->lc_refcnt == 1 ) {
-		ldap_unbind_ext_s( lc->lc_ld, NULL, NULL );
+		ldap_unbind_ext( lc->lc_ld, NULL, NULL );
 		lc->lc_ld = NULL;
 		lc->lc_bound = 0;
 
