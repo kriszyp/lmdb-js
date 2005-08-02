@@ -40,7 +40,7 @@ do_add( Operation *op, SlapReply *rs )
 	struct berval	dn = BER_BVNULL;
 	ber_len_t	len;
 	ber_tag_t	tag;
-	Modifications	*modlist = NULL, *next;
+	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
 	Modifications	tmp;
 	char		textbuf[ SLAP_TEXT_BUFLEN ];
