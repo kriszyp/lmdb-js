@@ -120,7 +120,7 @@ do_compare(
 cleanup:;
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( ava.aa_value.bv_val ) {
+	if ( !BER_BVISNULL( &ava.aa_value ) ) {
 		op->o_tmpfree( ava.aa_value.bv_val, op->o_tmpmemctx );
 	}
 

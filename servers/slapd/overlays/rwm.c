@@ -111,11 +111,8 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	}
 
 	if ( olddn != op->o_req_dn.bv_val ) {
-		ch_free( op->ora_e->e_name.bv_val );
-		ch_free( op->ora_e->e_nname.bv_val );
-
-		ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
-		ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
+		ber_bvreplace( &op->ora_e->e_name, &op->o_req_dn );
+		ber_bvreplace( &op->ora_e->e_nname, &op->o_req_ndn );
 	}
 
 	/* Count number of attributes in entry */ 
@@ -325,8 +322,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			return -1;
 
 		} else if ( mapped_vals[0].bv_val != op->orc_ava->aa_value.bv_val ) {
-			free( op->orc_ava->aa_value.bv_val );
-			op->orc_ava->aa_value = mapped_vals[0];
+			ber_bvreplace_x( &op->orc_ava->aa_value, &mapped_vals[0], op->o_tmpmemctx );
 		}
 		mapped_at = op->orc_ava->aa_desc->ad_cname;
 
@@ -371,7 +367,10 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 				return -1;
 			}
 
-			op->orc_ava->aa_value = mapped_vals[0];
+			if ( mapped_vals[ 0 ].bv_val != op->orc_ava->aa_value.bv_val ) {
+				ber_bvreplace_x( &op->orc_ava->aa_value, &mapped_vals[0],
+						op->o_tmpmemctx );
+			}
 		}
 		op->orc_ava->aa_desc = ad;
 	}
@@ -932,8 +931,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 					 * the value is replaced by
 					 * ch_alloc'ed memory
 					 */
-					ch_free( bv[0].bv_val );
-					ber_dupbv( &bv[0], &mapped );
+					ber_bvreplace( &bv[0], &mapped );
 				}
 			}
 
