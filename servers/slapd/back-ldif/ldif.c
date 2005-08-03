@@ -685,9 +685,9 @@ ldif_back_referrals( Operation *op, SlapReply *rs )
 
 		rs->sr_matched = NULL;
 		ber_bvarray_free( refs );
-
-		entry_free( entry );
 	}
+
+	entry_free( entry );
 
 	return rc;
 }
@@ -1009,39 +1009,25 @@ static int ldif_back_modrdn(Operation *op, SlapReply *rs) {
 	return 0;
 }
 
-static int ldif_back_compare(Operation *op, SlapReply *rs) {
+/* return LDAP_SUCCESS IFF we can retrieve the specified entry.
+ */
+int ldif_back_entry_get(
+	Operation *op,
+	struct berval *ndn,
+	ObjectClass *oc,
+	AttributeDescription *at,
+	int rw,
+	Entry **ent )
+{
 	struct ldif_info *ni = (struct ldif_info *) op->o_bd->be_private;
-	Entry * e = NULL;
-	Attribute	*a;
 
-	ldap_pvt_thread_mutex_lock(&ni->li_mutex);
+	ldap_pvt_thread_mutex_lock( &ni->li_mutex );
 
-	e = (Entry *) get_entry(op, &ni->li_base_path);
-	if(e != NULL) {
-		for(a = attrs_find( e->e_attrs, op->oq_compare.rs_ava->aa_desc );
-			a != NULL;
-			a = attrs_find( a->a_next, op->oq_compare.rs_ava->aa_desc )) {
-			rs->sr_err = LDAP_COMPARE_FALSE;
-		
-			if (value_find_ex(op->oq_compare.rs_ava->aa_desc,
-						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-						a->a_nvals, &op->oq_compare.rs_ava->aa_value,
-						op->o_tmpmemctx ) == 0) {
-				rs->sr_err = LDAP_COMPARE_TRUE;
-				break;
-			}
-		}
-	}
-	else {
-		rs->sr_err = LDAP_NO_SUCH_OBJECT;
-	}
+	*ent = (Entry *) get_entry( op, &ni->li_base_path );
 
-	if(e != NULL)
-		entry_free(e);
-	ldap_pvt_thread_mutex_unlock(&ni->li_mutex);
-	send_ldap_result(op, rs);
-	return 0;
+	ldap_pvt_thread_mutex_unlock( &ni->li_mutex );
+
+	return ( *ent == NULL ? 1 : 0 );
 }
 
 static int ldif_tool_entry_open(BackendDB * be, int mode) {
@@ -1221,7 +1207,7 @@ ldif_back_initialize(
 	bi->bi_op_bind = ldif_back_bind;
 	bi->bi_op_unbind = 0;
 	bi->bi_op_search = ldif_back_search;
-	bi->bi_op_compare = ldif_back_compare;
+	bi->bi_op_compare = 0;
 	bi->bi_op_modify = ldif_back_modify;
 	bi->bi_op_modrdn = ldif_back_modrdn;
 	bi->bi_op_add = ldif_back_add;
@@ -1234,6 +1220,14 @@ ldif_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	bi->bi_entry_get_rw = ldif_back_entry_get;
+
+#if 0	/* NOTE: uncomment to completely disable access control */
+#ifdef SLAP_OVERLAY_ACCESS
+	bi->bi_access_allowed = slap_access_always_allowed;
+#endif /* SLAP_OVERLAY_ACCESS */
+#endif
 
 	bi->bi_tool_entry_open = ldif_tool_entry_open;
 	bi->bi_tool_entry_close = ldif_tool_entry_close;
