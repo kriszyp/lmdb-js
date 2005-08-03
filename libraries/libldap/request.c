@@ -491,8 +491,10 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		ldap_int_sasl_close( ld, lc );
 
 		prevlc = NULL;
-		for ( tmplc = ld->ld_conns; tmplc != NULL;
-		    tmplc = tmplc->lconn_next ) {
+		for ( tmplc = ld->ld_conns;
+			tmplc != NULL;
+			tmplc = tmplc->lconn_next )
+		{
 			if ( tmplc == lc ) {
 				if ( prevlc == NULL ) {
 				    ld->ld_conns = tmplc->lconn_next;
@@ -514,9 +516,6 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		if ( force ) {
 			LDAPRequest	*lr;
 
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
-#endif
 			for ( lr = ld->ld_requests; lr; ) {
 				LDAPRequest	*lr_next = lr->lr_next;
 
@@ -526,9 +525,6 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 
 				lr = lr_next;
 			}
-#ifdef LDAP_R_COMPILE
-			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
-#endif
 		}
 		if ( lc->lconn_sb != ld->ld_sb ) {
 			ber_sockbuf_free( lc->lconn_sb );
