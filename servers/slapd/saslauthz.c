@@ -94,8 +94,8 @@ static const char *policy_txt[] = {
 
 static int authz_policy = SASL_AUTHZ_NONE;
 
-static
-int slap_sasl_match( Operation *opx, struct berval *rule,
+static int
+slap_sasl_match( Operation *opx, struct berval *rule,
 	struct berval *assertDN, struct berval *authc );
 
 int slap_sasl_setpolicy( const char *arg )
@@ -222,6 +222,7 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
 
 	rc = LDAP_PROTOCOL_ERROR;
+
 	/*
 	 * dn[.<dnstyle>]:<dnpattern>
 	 * <dnstyle> ::= {exact|regex|children|subtree|onelevel}
@@ -435,7 +436,8 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 			/*
 			 * must be ldap:///
 			 */
-			return LDAP_PROTOCOL_ERROR;
+			rc = LDAP_PROTOCOL_ERROR;
+			goto done;
 		}
 		break;
 
@@ -445,12 +447,14 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		 *
 		 * NOTE: must pass DN normalization
 		 */
+		ldap_free_urldesc( ludp );
 		bv.bv_val = uri->bv_val;
 		*scope = LDAP_X_SCOPE_EXACT;
 		goto is_dn;
 
 	default:
-		return LDAP_PROTOCOL_ERROR;
+		rc = LDAP_PROTOCOL_ERROR;
+		goto done;
 	}
 
 	if ( ( ludp->lud_host && *ludp->lud_host )
@@ -885,8 +889,8 @@ slap_sasl_matches( Operation *op, BerVarray rules,
  * The assertDN should not have the dn: prefix
  */
 
-static
-int slap_sasl_match( Operation *opx, struct berval *rule,
+static int
+slap_sasl_match( Operation *opx, struct berval *rule,
 	struct berval *assertDN, struct berval *authc )
 {
 	int rc; 
@@ -1136,8 +1140,12 @@ COMPLETE:
  * an internal search must be done, and if that search returns exactly one
  * entry, return the DN of that one entry.
  */
-void slap_sasl2dn( Operation *opx,
-	struct berval *saslname, struct berval *sasldn, int flags )
+void
+slap_sasl2dn(
+	Operation	*opx,
+	struct berval	*saslname,
+	struct berval	*sasldn,
+	int		flags )
 {
 	int rc;
 	slap_callback cb = { NULL, sasl_sc_sasl2dn, NULL, NULL };
