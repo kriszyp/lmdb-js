@@ -2681,7 +2681,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 	if ( pb == NULL || pb->pb_op == NULL )
 		return LDAP_PARAM_ERROR;
 
-	ml = slapi_int_ldapmods2modifications( mods, NULL );
+	ml = slapi_int_ldapmods2modifications( mods );
 	if ( ml == NULL ) {
 		return LDAP_OTHER;
 	}
@@ -2703,10 +2703,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
  * 
  * This function must also be called before slap_mods_check().
  */
-LDAPMod **slapi_int_modifications2ldapmods(
-	Modifications **pmodlist,
-	void *memctx
-)
+LDAPMod **slapi_int_modifications2ldapmods( Modifications **pmodlist )
 {
 	Modifications *ml, *modlist;
 	LDAPMod **mods, *modp;
@@ -2717,10 +2714,10 @@ LDAPMod **slapi_int_modifications2ldapmods(
 	for( i = 0, ml = modlist; ml != NULL; i++, ml = ml->sml_next )
 		;
 
-	mods = (LDAPMod **)slap_sl_malloc( (i + 1) * sizeof(LDAPMod *), memctx );
+	mods = (LDAPMod **)slapi_ch_malloc( (i + 1) * sizeof(LDAPMod *) );
 
 	for( i = 0, ml = modlist; ml != NULL; ml = ml->sml_next ) {
-		mods[i] = (LDAPMod *)slap_sl_malloc( sizeof(LDAPMod), memctx );
+		mods[i] = (LDAPMod *)slapi_ch_malloc( sizeof(LDAPMod) );
 		modp = mods[i];
 		modp->mod_op = ml->sml_op | LDAP_MOD_BVALUES;
 		modp->mod_type = slapi_ch_strdup( ml->sml_type.bv_val );
@@ -2729,12 +2726,12 @@ LDAPMod **slapi_int_modifications2ldapmods(
 		if ( ml->sml_values != NULL ) {
 			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ )
 				;
-			modp->mod_bvalues = (struct berval **)slap_sl_malloc( (j + 1) *
-				sizeof(struct berval *), memctx );
+			modp->mod_bvalues = (struct berval **)slapi_ch_malloc( (j + 1) *
+				sizeof(struct berval *) );
 			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ ) {
+				modp->mod_bvalues[j] = (struct berval *)slapi_ch_malloc(
+						sizeof(struct berval) );
 				/* Take ownership of original values. */
-				modp->mod_bvalues[j] = (struct berval *)slap_sl_malloc(
-						sizeof(struct berval), memctx );
 				modp->mod_bvalues[j]->bv_len = ml->sml_values[j].bv_len;
 				modp->mod_bvalues[j]->bv_val = ml->sml_values[j].bv_val;
 				ml->sml_values[j].bv_len = 0;
@@ -2763,7 +2760,7 @@ LDAPMod **slapi_int_modifications2ldapmods(
  * before prettying (and we can't easily get out of calling
  * slap_mods_check() because we need normalized values).
  */
-Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
+Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods )
 {
 	Modifications *modlist = NULL, **modtail;
 	LDAPMod **modp;
@@ -2787,7 +2784,7 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
 			continue;
 		}
 
-		mod = (Modifications *) slap_sl_malloc( sizeof(Modifications), memctx );
+		mod = (Modifications *) slapi_ch_malloc( sizeof(Modifications) );
 		mod->sml_op = lmod->mod_op & ~(LDAP_MOD_BVALUES);
 		mod->sml_flags = 0;
 		mod->sml_type = ad->ad_cname;
@@ -2810,7 +2807,7 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
 		if ( i == 0 ) {
 			mod->sml_values = NULL;
 		} else {
-			mod->sml_values = (BerVarray) slap_sl_malloc( (i + 1) * sizeof(struct berval), memctx );
+			mod->sml_values = (BerVarray) slapi_ch_malloc( (i + 1) * sizeof(struct berval) );
 
 			/* NB: This implicitly trusts a plugin to return valid modifications. */
 			if ( lmod->mod_op & LDAP_MOD_BVALUES ) {
@@ -2832,45 +2829,12 @@ Modifications *slapi_int_ldapmods2modifications ( LDAPMod **mods, void *memctx )
 		modtail = &mod->sml_next;
 	}
 
-	if ( slap_mods_check( modlist, &text, textbuf, sizeof( textbuf ), memctx ) != LDAP_SUCCESS ) {
+	if ( slap_mods_check( modlist, &text, textbuf, sizeof( textbuf ), NULL ) != LDAP_SUCCESS ) {
 		slap_mods_free( modlist, 1 );
 		modlist = NULL;
 	}
 
 	return modlist;
-}
-
-/*
- * This function only frees the parts of the mods array that
- * are not shared with the Modification list that was created
- * by slapi_int_ldapmods2modifications() (if dup == 0).
- */
-void
-slapi_int_free_ldapmods ( LDAPMod **mods )
-{
-	int i, j;
-
-	if ( mods == NULL )
-		return;
-
-	for ( i = 0; mods[i] != NULL; i++ ) {
-		/*
-		 * Don't free values themselves; they're owned by the
-		 * Modification list. Do free the containing array.
-		 */
-		if ( mods[i]->mod_op & LDAP_MOD_BVALUES ) {
-			if ( mods[i]->mod_bvalues != NULL ) {
-				for ( j = 0; mods[i]->mod_bvalues[j] != NULL; j++ )
-					slapi_ch_free( (void **)&mods[i]->mod_bvalues[j] );
-				slapi_ch_free( (void **)&mods[i]->mod_bvalues );
-			}
-		} else {
-			slapi_ch_free( (void **)&mods[i]->mod_values );
-		}
-		slapi_ch_free_string( &mods[i]->mod_type );
-		slapi_ch_free( (void **)&mods[i] );
-	}
-	slapi_ch_free( (void **)&mods );
 }
 
 /*

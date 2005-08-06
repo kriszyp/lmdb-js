@@ -607,7 +607,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 				rc = PBLOCK_ERROR;
 				break;
 			}
-			mods = slapi_int_modifications2ldapmods( &pb->pb_op->orm_modlist, NULL );
+			mods = slapi_int_modifications2ldapmods( &pb->pb_op->orm_modlist );
 			pblock_set_default( pb, param, (void *)mods );
 		}
 		*((LDAPMod ***)value) = mods;
@@ -939,7 +939,7 @@ pblock_set( Slapi_PBlock *pb, int param, void *value )
 			break;
 		}
 
-		newmods = slapi_int_ldapmods2modifications( (LDAPMod **)value, NULL );
+		newmods = slapi_int_ldapmods2modifications( (LDAPMod **)value );
 		if ( newmods != NULL ) {
 			slap_mods_free( *mlp, 1 );
 			*mlp = newmods;
@@ -1289,7 +1289,7 @@ pblock_destroy( Slapi_PBlock *pb )
 		slapi_int_connection_done_pb( pb );
 	} else {
 		pblock_get_default( pb, SLAPI_MODIFY_MODS, (void **)&mods );
-		slapi_int_free_ldapmods( mods );
+		ldap_mods_free( mods, 1 );
 
 		pblock_get_default( pb, SLAPI_SEARCH_ATTRS, (void **)&attrs );
 		if ( attrs != NULL )
