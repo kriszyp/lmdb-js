@@ -380,11 +380,11 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 			} else {
 				group_oc.bv_len = group_dn.bv_val - group_oc.bv_val;
-				BER_BVSTR( &member_at, "member" );
+				BER_BVSTR( &member_at, SLAPD_GROUP_ATTR );
 			}
 
 		} else {
-			BER_BVSTR( &group_oc, "groupOfNames" );
+			BER_BVSTR( &group_oc, SLAPD_GROUP_CLASS );
 		}
 		group_dn.bv_val++;
 		group_dn.bv_len = uri->bv_len - ( group_dn.bv_val - uri->bv_val );

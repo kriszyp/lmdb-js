@@ -2454,10 +2454,10 @@ access2text( Access *b, char *ptr )
 	if ( !BER_BVISEMPTY( &b->a_group_pat ) ) {
 		ptr = lutil_strcopy( ptr, " group/" );
 		ptr = lutil_strcopy( ptr, b->a_group_oc ?
-			b->a_group_oc->soc_cname.bv_val : "groupOfNames" );
+			b->a_group_oc->soc_cname.bv_val : SLAPD_GROUP_CLASS );
 		*ptr++ = '/';
 		ptr = lutil_strcopy( ptr, b->a_group_at ?
-			b->a_group_at->ad_cname.bv_val : "member" );
+			b->a_group_at->ad_cname.bv_val : SLAPD_GROUP_ATTR );
 		*ptr++ = '.';
 		ptr = lutil_strcopy( ptr, style_strings[b->a_group_style] );
 		*ptr++ = '=';
