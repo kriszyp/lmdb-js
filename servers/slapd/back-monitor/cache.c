@@ -136,6 +136,8 @@ monitor_cache_get(
 	assert( ndn != NULL );
 	assert( ep != NULL );
 
+	*ep = NULL;
+
 	tmp_mc.mc_ndn = *ndn;
 	ldap_pvt_thread_mutex_lock( &mi->mi_cache_mutex );
 	mc = ( monitor_cache_t * )avl_find( mi->mi_cache,
@@ -144,16 +146,12 @@ monitor_cache_get(
 	if ( mc != NULL ) {
 		/* entry is returned with mutex locked */
 		monitor_cache_lock( mc->mc_e );
-		ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
 		*ep = mc->mc_e;
-
-		return( 0 );
 	}
-	
-	ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
-	*ep = NULL;
 
-	return( -1 );
+	ldap_pvt_thread_mutex_unlock( &mi->mi_cache_mutex );
+
+	return ( *ep == NULL ? -1 : 0 );
 }
 
 /*

@@ -57,8 +57,7 @@ monitor_subsys_backend_init(
 		return -1;
 	}
 
-	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_backend ) )
-	{
+	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_backend ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_backend_init: "
 			"unable to get entry \"%s\"\n",
@@ -73,7 +72,7 @@ monitor_subsys_backend_init(
 	i = -1;
 	LDAP_STAILQ_FOREACH( bi, &backendInfo, bi_next ) {
 		char 		buf[ BACKMONITOR_BUFSIZE ];
-		BackendDB		*be;
+		BackendDB	*be;
 		struct berval 	bv;
 		int		j;
 		Entry		*e;

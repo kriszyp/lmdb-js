@@ -1366,7 +1366,6 @@ int
 monitor_back_db_init(
 	BackendDB	*be )
 {
-	monitor_info_t 	*mi;
 	int		rc;
 	struct berval	dn, ndn;
 	struct berval	bv;
@@ -1390,8 +1389,8 @@ monitor_back_db_init(
 	rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
-			"unable to normalize monitor DN \"%s\"\n",
-			SLAPD_MONITOR_DN, 0, 0 );
+			"unable to normalize monitor DN \"%s\" (%d)\n",
+			dn.bv_val, rc, 0 );
 		return -1;
 	}
 
@@ -1401,11 +1400,9 @@ monitor_back_db_init(
 
 	/* NOTE: only one monitor database is allowed,
 	 * so we use static storage */
-	mi = &monitor_info;
+	ldap_pvt_thread_mutex_init( &monitor_info.mi_cache_mutex );
 
-	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
-
-	be->be_private = mi;
+	be->be_private = &monitor_info;
 
 	return 0;
 }
