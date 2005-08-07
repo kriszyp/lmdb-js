@@ -417,11 +417,14 @@ backsql_free_db_conn( Operation *op )
 	 */
 	if ( conn != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_free_db_conn(): "
-			"closing db connection\n", 0, 0, 0 );
+			"closing db connection %lu (%p)\n",
+			op->o_connid, conn, 0 );
 		backsql_close_db_conn( conn );
 	}
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_free_db_conn()\n", 0, 0, 0 );
-	return SQL_SUCCESS;
+
+	return conn ? SQL_SUCCESS : SQL_ERROR;
 }
 
 int

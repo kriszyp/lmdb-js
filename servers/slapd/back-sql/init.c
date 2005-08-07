@@ -473,7 +473,17 @@ backsql_db_open(
 			"connection failed, exiting\n", 0, 0, 0 );
 		return 1;
 	}
-	(void)backsql_free_db_conn( op );
+
+	if ( backsql_free_db_conn( op ) != SQL_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"connection free failed\n", 0, 0, 0 );
+	}
+	if ( !BACKSQL_SCHEMA_LOADED( bi ) ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
+			"test failed, schema map not loaded - exiting\n",
+			0, 0, 0 );
+		return 1;
+	}
 
 	/*
 	 * Prepare ID selection query
@@ -532,14 +542,6 @@ backsql_db_open(
 			&bi->sql_aliasing_quote, "dn", &bi->sql_aliasing_quote );
 	bi->sql_dn_oc_aliasing = bb.bb_val;
  
-	backsql_free_db_conn( op );
-	if ( !BACKSQL_SCHEMA_LOADED( bi ) ) {
-		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
-			"test failed, schema map not loaded - exiting\n",
-			0, 0, 0 );
-		return 1;
-	}
-
 	/* should never happen! */
 	assert( bd->be_nsuffix != NULL );
 	
