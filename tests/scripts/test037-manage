@@ -54,6 +54,21 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# ITS#3898: #ifndef LDAP_DEVEL, the control is not available
+case `$LDAPSEARCH -s base -b "" -h $LOCALHOST -p $PORT1 \
+	-Emv='(supportedControl:objectIdentifierMatch:=1.3.6.1.4.1.4203.666.5.12)' \
+	'(supportedControl:objectIdentifierMatch:=1.3.6.1.4.1.4203.666.5.12)' \
+	supportedControl | grep '1.3.6.1.4.1.4203.666.5.12' | cut -d ' ' -f 2` in
+"1.3.6.1.4.1.4203.666.5.12")
+	echo "The \"manageDIT\" control appears to be (partially) supported..."
+	;;
+*)
+	echo "The \"manageDIT\" control appears to be unsupported; test disabled"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 0
+	;;
+esac
+
 echo "Testing modify, add, and delete..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 	-e \!manageDIT > \
