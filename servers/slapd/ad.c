@@ -775,6 +775,7 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	AttributeName *anew;
 
 	/* find last element in list */
+	i = 0;
 	if ( an != NULL ) {
 		for ( i = 0; !BER_BVISNULL( &an[ i ].an_name ) ; i++)
 			;
