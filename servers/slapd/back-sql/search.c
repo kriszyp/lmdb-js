@@ -1843,6 +1843,10 @@ backsql_search( Operation *op, SlapReply *rs )
 			}
 			break;
 		}
+
+		/* an entry was created; free it */
+		entry_clean( bsi.bsi_e );
+
 		/* fall thru */
 
 	default:
@@ -1863,8 +1867,13 @@ backsql_search( Operation *op, SlapReply *rs )
 #endif /* SLAP_ACL_HONOR_DISCLOSE */
 
 		send_ldap_result( op, rs );
-		goto done;
 
+		if ( rs->sr_ref ) {
+			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
+		}
+
+		goto done;
 	}
 #ifdef SLAP_ACL_HONOR_DISCLOSE
 	/* NOTE: __NEW__ "search" access is required
