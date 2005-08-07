@@ -2207,6 +2207,7 @@ config_replica(ConfigArgs *c) {
 				return(1);
 			}
 			if(!ludp->lud_host) {
+				ldap_free_urldesc(ludp);
 				sprintf( c->msg, "<%s> invalid uri - missing hostname",
 					c->argv[0] );
 				Debug(LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->msg, 0 );
