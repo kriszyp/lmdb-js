@@ -82,6 +82,7 @@ else
 		cp $SQLCONCURRENCYDIR/do_* $SQLDATADIR
 		;;
 	*)
+		echo "write is not supported for ${RDBMS}; performing read-only concurrency test"
 		cp $SQLCONCURRENCYDIR/do_read* $SQLCONCURRENCYDIR/do_search* \
 			$SQLDATADIR
 		;;
@@ -89,7 +90,7 @@ else
 fi
 
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -P "$PROGDIR" -d "$DATADIR/sql-concurrency" \
+$SLAPDTESTER -P "$PROGDIR" -d "$SQLDATADIR" \
 	-h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l 5 -j 4
 RC=$?
 
