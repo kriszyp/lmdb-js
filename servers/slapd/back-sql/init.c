@@ -567,8 +567,14 @@ int
 backsql_db_close(
 	BackendDB	*bd )
 {
+	backsql_info 	*bi = (backsql_info*)bd->be_private;
+
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_close()\n", 0, 0, 0 );
+
+	backsql_conn_destroy( bi );
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_close()\n", 0, 0, 0 );
+
 	return 0;
 }
 

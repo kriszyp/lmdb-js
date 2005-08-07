@@ -213,6 +213,8 @@ RETCODE backsql_FreeRow( BACKSQL_ROW_NTS *row );
 
 void backsql_PrintErrors( SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth, int rc );
 
+int backsql_conn_destroy( backsql_info *bi );
+
 int backsql_init_db_env( backsql_info *si );
 
 int backsql_free_db_env( backsql_info *si );
