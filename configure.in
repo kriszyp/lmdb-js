@@ -193,7 +193,7 @@ OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verif
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
 ol_enable_multimaster=${ol_enable_multimaster-no}
-OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and the rwm overlay], auto)dnl
+OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and rwm overlay], auto)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
 OL_ARG_ENABLE(slapi,[    --enable-slapi        enable SLAPI support (experimental)], no)dnl
 OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl     
@@ -208,37 +208,38 @@ AC_ARG_WITH(xxslapbackends,[
 SLAPD Backend Options:])
 
 OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends no|yes|mod],
-	no, [no yes mod])dnl
+	--, [no yes mod])dnl
+test -n "$ol_enable_backends" && ol_dflt_backends="$ol_enable_backends"
 OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend no|yes|mod],
-	yes, [no yes mod])dnl
+	${ol_dflt_backends-yes}, [no yes mod])dnl
 OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend no|yes|mod],
-	no, [no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
 OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend no|yes|mod],
-	yes, [no yes mod])dnl
+	${ol_dflt_backends-yes}, [no yes mod])dnl
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend no|yes|mod],
-	no, [no yes mod])dnl
-OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend no|yes|mod], no,
-	[no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend no|yes|mod],
+	${ol_dflt_backends-no}, [no yes mod])dnl
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api     with LDBM API auto|berkeley|bcompat|mdbm|gdbm],
 	auto, [auto berkeley bcompat mdbm gdbm])
 OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	  use LDBM type auto|btree|hash],
 	auto, [auto btree hash])
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend no|yes|mod],
-	no, [no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend no|yes|mod],
-	yes, [no yes mod])dnl
+	${ol_dflt_backends-yes}, [no yes mod])dnl
 OL_ARG_ENABLE(null,[    --enable-null	  enable null backend no|yes|mod],
-	no, [no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
 OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend no|yes|mod],
-	no, [no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
 OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend no|yes|mod],
-	no, [no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
 OL_ARG_ENABLE(relay,[    --enable-relay  	  enable relay backend no|yes|mod],
-	yes, [no yes mod])dnl
+	${ol_dflt_backends-yes}, [no yes mod])dnl
 OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend no|yes|mod],
-	no, [no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
 OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
-	no, [no yes mod])dnl
+	${ol_dflt_backends-no}, [no yes mod])dnl
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
@@ -249,35 +250,36 @@ AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
 
 OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no|yes|mod],
-	no, [no yes mod])dnl
-OL_ARG_ENABLE(accesslog,[    --enable-accesslog  	  In-Directory Access Logging overlay no|yes|mod],
-	no, [no yes mod])
+	--, [no yes mod])dnl
+test -n "$ol_enable_overlays" && ol_dflt_overlays="$ol_enable_overlays"
+OL_ARG_ENABLE(accesslog,[    --enable-accesslog	  In-Directory Access Logging overlay no|yes|mod],
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(dynlist,[    --enable-dynlist	  Dynamic List overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(glue,[    --enable-glue	  Backend Glue overlay no|yes|mod],
-	yes, [no yes mod])
+	${ol_dflt_overlays-yes}, [no yes mod])
 OL_ARG_ENABLE(lastmod,[    --enable-lastmod	  Last Modification overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(proxycache,[    --enable-proxycache	  Proxy Cache overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(retcode,[    --enable-retcode	  Return Code testing overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(syncprov,[    --enable-syncprov	  Syncrepl Provider overlay no|yes|mod],
-	yes, [no yes mod])
+	${ol_dflt_overlays-yes}, [no yes mod])
 OL_ARG_ENABLE(translucent,[    --enable-translucent  Translucent Proxy overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod],
-	no, [no yes mod])
+	${ol_dflt_overlays-no}, [no yes mod])
 
 
 dnl ----------------------------------------------------------------
@@ -294,36 +296,15 @@ AC_ENABLE_SHARED
 
 dnl ----------------------------------------------------------------
 
-dnl General "enable" options
-# Activate any backends that were not explicitly enabled.
-# Note that back_bdb defaults to "yes" so this loop won't touch it.
-if test $ol_enable_backends != no ; then
-	for i in $Backends; do
-		eval "ol_tmp=\$ol_enable_$i"
-		if test $ol_tmp = no ; then
-			eval "ol_enable_$i=$ol_enable_backends"
-		fi
-	done
-fi
-# Activate the overlays
-if test $ol_enable_overlays != no ; then
-	for i in $Overlays; do
-		eval "ol_tmp=\$ol_enable_$i"
-		if test $ol_tmp = no ; then
-			eval "ol_enable_$i=$ol_enable_overlays"
-		fi
-	done
-fi
-
 # validate options
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specificallly disabled
 	if test $ol_enable_slapi = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-slapi argument])
 	fi
-	if test $ol_enable_backends != no ; then
+	case "$ol_enable_backends" in yes | mod)
 		AC_MSG_WARN([slapd disabled, ignoring --enable-backends argument])
-	fi
+	esac
 	for i in $Backends; do
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
@@ -359,9 +340,9 @@ if test $ol_enable_slapd = no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
 	fi
 	dnl overlays
-	if test $ol_enable_overlays != no ; then
+	case "$ol_enable_overlays" in yes | mod)
 		AC_MSG_WARN([slapd disabled, ignoring --enable-overlays argument])
-	fi
+	esac
 	for i in $Overlays; do
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
@@ -373,8 +354,8 @@ if test $ol_enable_slapd = no ; then
 	# force settings to no
 	ol_enable_slapi=no
 
-	ol_enable_backends=no
-	ol_enable_overlays=no
+	ol_enable_backends=
+	ol_enable_overlays=
 	ol_enable_modules=no
 	ol_enable_multimaster=no
 	ol_enable_rlookups=no
