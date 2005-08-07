@@ -1945,6 +1945,7 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
+			eid = bsi.bsi_id_list;
 			rs->sr_err = SLAPD_ABANDON;
 			goto send_results;
 		}
