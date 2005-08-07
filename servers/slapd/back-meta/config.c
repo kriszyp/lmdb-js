@@ -610,7 +610,7 @@ meta_back_db_config(
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
 		BackendDB 	*tmp_be;
-		int 		i = mi->mi_ntargets - 1;
+		int 		i = mi->mi_ntargets - 1, rc;
 		struct berval	dn, nvnc, pvnc, nrnc, prnc;
 
 		if ( i < 0 ) {
@@ -638,8 +638,7 @@ meta_back_db_config(
 			return 1;
 		}
 
-		dn.bv_val = argv[ 1 ];
-		dn.bv_len = strlen( argv[ 1 ] );
+		ber_str2bv( argv[ 1 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &pvnc, &nvnc, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"suffix '%s' is invalid\n",
@@ -658,8 +657,7 @@ meta_back_db_config(
 			return 1;						
 		}
 
-		dn.bv_val = argv[ 2 ];
-		dn.bv_len = strlen( argv[ 2 ] );
+		ber_str2bv( argv[ 2 ], 0, 0, &dn );
 		if ( dnPrettyNormal( NULL, &dn, &prnc, &nrnc, NULL ) != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"massaged suffix '%s' is invalid\n",
@@ -690,8 +688,15 @@ meta_back_db_config(
 		 * FIXME: no extra rewrite capabilities should be added
 		 * to the database
 		 */
-	 	return suffix_massage_config( mi->mi_targets[ i ].mt_rwmap.rwm_rw,
+	 	rc = suffix_massage_config( mi->mi_targets[ i ].mt_rwmap.rwm_rw,
 				&pvnc, &nvnc, &prnc, &nrnc );
+
+		free( pvnc.bv_val );
+		free( nvnc.bv_val );
+		free( prnc.bv_val );
+		free( nrnc.bv_val );
+
+		return rc;
 		
 	/* rewrite stuff ... */
  	} else if ( strncasecmp( argv[ 0 ], "rewrite", 7 ) == 0 ) {
