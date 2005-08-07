@@ -41,10 +41,9 @@
 
 int
 add_replica_info(
-    Backend     *be,
-    const char  *uri, 
-    const char  *host 
-)
+	Backend		*be,
+	const char	*uri, 
+	const char	*host )
 {
 	int i = 0;
 
@@ -67,6 +66,45 @@ add_replica_info(
 	be->be_replica[ i + 1 ] = NULL;
 
 	return( i );
+}
+
+int
+destroy_replica_info(
+	Backend		*be )
+{
+	int i = 0;
+
+	assert( be );
+
+	if ( be->be_replica == NULL ) {
+		return 0;
+	}
+
+	for ( ; be->be_replica[ i ] != NULL; i++ ) {
+
+		ch_free( (char *)be->be_replica[ i ]->ri_uri );
+
+		ber_bvarray_free( be->be_replica[ i ]->ri_nsuffix );
+
+		if ( be->be_replica[ i ]->ri_attrs ) {
+			AttributeName	*an = be->be_replica[ i ]->ri_attrs;
+			int		j;
+
+			for ( j = 0; !BER_BVISNULL( &an[ j ].an_name ); j++ )
+			{
+				ch_free( an[ j ].an_name.bv_val );
+			}
+			ch_free( an );
+		}
+
+		bindconf_free( &be->be_replica[ i ]->ri_bindconf );
+
+		ch_free( be->be_replica[ i ] );
+	}
+
+	ch_free( be->be_replica );
+
+	return 0;
 }
 
 int

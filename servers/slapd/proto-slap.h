@@ -1228,6 +1228,7 @@ LDAP_SLAPD_F (int) get_alias_dn LDAP_P((
  */
 LDAP_SLAPD_F (int) add_replica_info LDAP_P(( Backend *be,
 	const char *uri, const char *host ));
+LDAP_SLAPD_F (int) destroy_replica_info LDAP_P (( Backend *be ));
 LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be,
 	int nr, const char *suffix ));
 LDAP_SLAPD_F (int) add_replica_attrs LDAP_P(( Backend *be,

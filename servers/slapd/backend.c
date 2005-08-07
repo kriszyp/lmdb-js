@@ -422,6 +422,11 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 	}
 	acl_destroy( bd->be_acl, frontendDB->be_acl );
 	limits_destroy( bd->be_limits );
+	if ( bd->be_replogfile ) {
+		ch_free( bd->be_replogfile );
+	}
+	destroy_replica_info( bd );
+
 	if ( dynamic ) {
 		free( bd );
 	}
@@ -465,6 +470,9 @@ int backend_destroy(void)
 			free( bd->be_rootpw.bv_val );
 		}
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
+
+		assert( bd->be_replogfile == NULL );
+		assert( bd->be_replica == NULL );
 	}
 
 	return 0;
