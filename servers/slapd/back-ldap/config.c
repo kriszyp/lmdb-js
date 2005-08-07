@@ -725,6 +725,7 @@ ldap_back_cf_gen( ConfigArgs *c )
 		ldap_charray_free( urllist );
 #else
 		li->url = c->value_string;
+		c->value_string = NULL;
 #endif
 		break;
 	}
@@ -757,7 +758,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->acl_authcDN ) ) {
 			free( li->acl_authcDN.bv_val );
 		}
+		ber_memfree_x( c->value_dn.bv_val, NULL );
 		li->acl_authcDN = c->value_ndn;
+		BER_BVZERO( &c->value_dn );
+		BER_BVZERO( &c->value_ndn );
 		break;
 
 	case LDAP_BACK_CFG_ACL_PASSWD:
@@ -874,7 +878,10 @@ ldap_back_cf_gen( ConfigArgs *c )
 		if ( !BER_BVISNULL( &li->idassert_authcDN ) ) {
 			free( li->idassert_authcDN.bv_val );
 		}
+		ber_memfree_x( c->value_dn.bv_val, NULL );
 		li->idassert_authcDN = c->value_ndn;
+		BER_BVZERO( &c->value_dn );
+		BER_BVZERO( &c->value_ndn );
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_PASSWD:
