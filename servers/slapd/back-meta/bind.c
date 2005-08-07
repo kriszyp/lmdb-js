@@ -265,17 +265,7 @@ retry:;
 
 			rc = slap_map_api2result( rs );
 			if ( rs->sr_err == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
-retry_lock:;
-				switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-				case LDAP_PVT_THREAD_EBUSY:
-				default:
-					ldap_pvt_thread_yield();
-					goto retry_lock;
-
-				case 0:
-					break;
-				}
-
+				ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 				if ( mc->mc_refcnt == 1 ) {
 					ldap_unbind_ext_s( msc->msc_ld, NULL, NULL );
 					msc->msc_ld = NULL;
@@ -444,16 +434,7 @@ retry:;
 			rc = slap_map_api2result( rs );
 			if ( rc == LDAP_UNAVAILABLE && nretries != META_RETRY_NEVER ) {
 				if ( dolock ) {
-retry_lock:;
-					switch ( ldap_pvt_thread_mutex_trylock( &mi->mi_conn_mutex ) ) {
-					case LDAP_PVT_THREAD_EBUSY:
-					default:
-						ldap_pvt_thread_yield();
-						goto retry_lock;
-	
-					case 0:
-						break;
-					}
+					ldap_pvt_thread_mutex_lock( &mi->mi_conn_mutex );
 				}
 
 				if ( mc->mc_refcnt == 1 ) {

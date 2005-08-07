@@ -235,16 +235,7 @@ ldap_back_freeconn( Operation *op, struct ldapconn *lc )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
 	assert( lc->lc_refcnt > 0 );
 	if ( --lc->lc_refcnt == 0 ) {
@@ -430,16 +421,7 @@ ldap_back_getconn( Operation *op, SlapReply *rs, ldap_back_send_t sendok )
 		lc_curr.lc_local_ndn = op->o_ndn;
 	}
 
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
 	lc = (struct ldapconn *)avl_find( li->conntree, 
 			(caddr_t)&lc_curr, ldap_back_conn_cmp );
@@ -475,16 +457,7 @@ retry_lock:;
 		lc->lc_bound = 0;
 
 		/* Inserts the newly created ldapconn in the avl tree */
-retry_lock2:;
-		switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-		case LDAP_PVT_THREAD_EBUSY:
-		default:
-			ldap_pvt_thread_yield();
-			goto retry_lock2;
-
-		case 0:
-			break;
-		}
+		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
 		assert( lc->lc_refcnt == 1 );
 		rs->sr_err = avl_insert( &li->conntree, (caddr_t)lc,
@@ -528,17 +501,7 @@ ldap_back_release_conn(
 {
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
 
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
-
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	assert( lc->lc_refcnt > 0 );
 	lc->lc_refcnt--;
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
@@ -655,16 +618,7 @@ retry:;
 		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 			if ( retries > 0 ) {
 				if ( dolock ) {
-retry_lock:;
-					switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-					case LDAP_PVT_THREAD_EBUSY:
-					default:
-						ldap_pvt_thread_yield();
-						goto retry_lock;
-
-					case 0:
-						break;
-					}
+					ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 				}
 
 				assert( lc->lc_refcnt > 0 );
@@ -820,16 +774,7 @@ ldap_back_retry( struct ldapconn *lc, Operation *op, SlapReply *rs, ldap_back_se
 	int		rc = 0;
 	struct ldapinfo	*li = (struct ldapinfo *)op->o_bd->be_private;
 	
-retry_lock:;
-	switch ( ldap_pvt_thread_mutex_trylock( &li->conn_mutex ) ) {
-	case LDAP_PVT_THREAD_EBUSY:
-	default:
-		ldap_pvt_thread_yield();
-		goto retry_lock;
-
-	case 0:
-		break;
-	}
+	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
 	if ( lc->lc_refcnt == 1 ) {
 		ldap_unbind_ext( lc->lc_ld, NULL, NULL );
