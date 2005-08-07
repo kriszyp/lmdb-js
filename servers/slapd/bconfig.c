@@ -2292,7 +2292,7 @@ config_updatedn(ConfigArgs *c) {
 		return 1;
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		ch_free( c->be->be_update_ndn.bv_val );
-		c->be->be_update_ndn.bv_val = NULL;
+		BER_BVZERO( &c->be->be_update_ndn );
 		SLAP_DBFLAGS(c->be) ^= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SLURP_SHADOW);
 		return 0;
 	}
@@ -2303,17 +2303,13 @@ config_updatedn(ConfigArgs *c) {
 		return(1);
 	}
 
-	ber_str2bv(c->argv[1], 0, 0, &dn);
-
-	rc = dnNormalize(0, NULL, NULL, &dn, &c->be->be_update_ndn, NULL);
-
-	if(rc != LDAP_SUCCESS) {
-		sprintf( c->msg, "<%s> invalid DN %d (%s)", c->argv[0],
-			rc, ldap_err2string(rc));
-		Debug(LDAP_DEBUG_ANY, "%s: %s\n",
-			c->log, c->msg, 0 );
-		return(1);
+	ber_memfree_x( c->value_dn.bv_val, NULL );
+	if ( !BER_BVISNULL( &c->be->be_update_ndn ) ) {
+		ber_memfree_x( c->be->be_update_ndn.bv_val, NULL );
 	}
+	c->be->be_update_ndn = c->value_ndn;
+	BER_BVZERO( &c->value_dn );
+	BER_BVZERO( &c->value_ndn );
 
 	SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SLURP_SHADOW);
 	return(0);

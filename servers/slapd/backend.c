@@ -426,6 +426,12 @@ void backend_destroy_one( BackendDB *bd, int dynamic )
 		ch_free( bd->be_replogfile );
 	}
 	destroy_replica_info( bd );
+	if ( !BER_BVISNULL( &bd->be_update_ndn ) ) {
+		ch_free( bd->be_update_ndn.bv_val );
+	}
+	if ( bd->be_update_refs ) {
+		ber_bvarray_free( bd->be_update_refs );
+	}
 
 	if ( dynamic ) {
 		free( bd );
