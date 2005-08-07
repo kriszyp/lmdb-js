@@ -676,11 +676,10 @@ slapi_over_extended( Operation *op, SlapReply *rs )
 
 	rc = (*callback)( pb );
 	if ( rc == SLAPI_PLUGIN_EXTENDED_SENT_RESULT ) {
-		slapi_pblock_destroy( pb );
-		return rc;
+		goto cleanup;
 	} else if ( rc == SLAPI_PLUGIN_EXTENDED_NOT_HANDLED ) {
-		slapi_pblock_destroy( pb );
-		return SLAP_CB_CONTINUE;
+		rc = SLAP_CB_CONTINUE;
+		goto cleanup;
 	}
 
 	assert( rs->sr_rspoid != NULL );
@@ -694,9 +693,13 @@ slapi_over_extended( Operation *op, SlapReply *rs )
 	if ( rs->sr_rspdata != NULL )
 		ber_bvfree( rs->sr_rspdata );
 
-	slapi_pblock_destroy( pb );
+	rc = rs->sr_err;
 
-	return rs->sr_err;
+cleanup:
+	slapi_pblock_destroy( pb );
+	op->o_callback = cb.sc_next;
+
+	return rc;
 }
 
 static int
@@ -727,10 +730,11 @@ slapi_over_access_allowed(
 		rc = SLAP_CB_CONTINUE;
 	}
 
-	op->o_callback = cb.sc_next;
-
-	if ( !internal_op )
+	if ( !internal_op ) {
 		slapi_pblock_destroy( pb );
+	}
+
+	op->o_callback = cb.sc_next;
 
 	return rc;
 }
@@ -807,6 +811,8 @@ slapi_over_acl_group(
 		if ( e != target ) {
 			be_entry_release_r( op, e );
 		}
+
+		op->o_callback = cb.sc_next;
 	} else {
 		rc = LDAP_NO_SUCH_OBJECT; /* return SLAP_CB_CONTINUE for correctness? */
 	}
