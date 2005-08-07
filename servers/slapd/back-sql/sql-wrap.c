@@ -268,7 +268,10 @@ backsql_close_db_conn( backsql_db_conn *conn )
 	SQLTransact( SQL_NULL_HENV, conn->dbh, SQL_ROLLBACK );
 	SQLDisconnect( conn->dbh );
 	SQLFreeConnect( conn->dbh );
+	ch_free( conn );
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_close_db_conn()\n", 0, 0, 0 );
+
 	return 1;
 }
 

@@ -843,6 +843,12 @@ backsql_free_attr( void *v_at )
 		ch_free( at->bam_query );
 	}
 
+#ifdef BACKSQL_COUNTQUERY
+	if ( at->bam_countquery != NULL ) {
+		ch_free( at->bam_countquery );
+	}
+#endif /* BACKSQL_COUNTQUERY */
+
 	/* TimesTen */
 	if ( !BER_BVISNULL( &at->bam_sel_expr_u ) ) {
 		ch_free( at->bam_sel_expr_u.bv_val );

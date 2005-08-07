@@ -117,6 +117,7 @@ backsql_db_destroy(
 	backsql_info	*bi = (backsql_info*)bd->be_private;
  
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_destroy()\n", 0, 0, 0 );
+
 	ldap_pvt_thread_mutex_lock( &bi->sql_dbconn_mutex );
 	backsql_free_db_env( bi );
 	ldap_pvt_thread_mutex_unlock( &bi->sql_dbconn_mutex );
@@ -125,37 +126,76 @@ backsql_db_destroy(
 	backsql_destroy_schema_map( bi );
 	ldap_pvt_thread_mutex_unlock( &bi->sql_schema_mutex );
 	ldap_pvt_thread_mutex_destroy( &bi->sql_schema_mutex );
-	free( bi->sql_dbname );
-	free( bi->sql_dbuser );
+
+	if ( bi->sql_dbname ) {
+		ch_free( bi->sql_dbname );
+	}
+	if ( bi->sql_dbuser ) {
+		ch_free( bi->sql_dbuser );
+	}
 	if ( bi->sql_dbpasswd ) {
-		free( bi->sql_dbpasswd );
+		ch_free( bi->sql_dbpasswd );
 	}
 	if ( bi->sql_dbhost ) {
-		free( bi->sql_dbhost );
+		ch_free( bi->sql_dbhost );
 	}
 	if ( bi->sql_upper_func.bv_val ) {
-		free( bi->sql_upper_func.bv_val );
-		free( bi->sql_upper_func_open.bv_val );
-		free( bi->sql_upper_func_close.bv_val );
+		ch_free( bi->sql_upper_func.bv_val );
+		ch_free( bi->sql_upper_func_open.bv_val );
+		ch_free( bi->sql_upper_func_close.bv_val );
 	}
-	
-	free( bi->sql_subtree_cond.bv_val );
-	free( bi->sql_oc_query );
-	free( bi->sql_at_query );
-	free( bi->sql_insentry_stmt );
-	free( bi->sql_delentry_stmt );
-	free( bi->sql_renentry_stmt );
-	free( bi->sql_delobjclasses_stmt );
-
-	free( bi->sql_aliasing.bv_val );
-	free( bi->sql_aliasing_quote.bv_val );
+	if ( bi->sql_concat_func ) {
+		ber_bvarray_free( bi->sql_concat_func );
+	}
+	if ( !BER_BVISNULL( &bi->sql_strcast_func ) ) {
+		ch_free( bi->sql_strcast_func.bv_val );
+	}
+	if ( !BER_BVISNULL( &bi->sql_children_cond ) ) {
+		ch_free( bi->sql_children_cond.bv_val );
+	}
+	if ( !BER_BVISNULL( &bi->sql_subtree_cond ) ) {
+		ch_free( bi->sql_subtree_cond.bv_val );
+	}
+	if ( !BER_BVISNULL( &bi->sql_dn_oc_aliasing ) ) {
+		ch_free( bi->sql_dn_oc_aliasing.bv_val );
+	}
+	if ( bi->sql_oc_query ) {
+		ch_free( bi->sql_oc_query );
+	}
+	if ( bi->sql_at_query ) {
+		ch_free( bi->sql_at_query );
+	}
+	if ( bi->sql_id_query ) {
+		ch_free( bi->sql_id_query );
+	}
+	if ( bi->sql_has_children_query ) {
+		ch_free( bi->sql_has_children_query );
+	}
+	if ( bi->sql_insentry_stmt ) {
+		ch_free( bi->sql_insentry_stmt );
+	}
+	if ( bi->sql_delentry_stmt ) {
+		ch_free( bi->sql_delentry_stmt );
+	}
+	if ( bi->sql_renentry_stmt ) {
+		ch_free( bi->sql_renentry_stmt );
+	}
+	if ( bi->sql_delobjclasses_stmt ) {
+		ch_free( bi->sql_delobjclasses_stmt );
+	}
+	if ( !BER_BVISNULL( &bi->sql_aliasing ) ) {
+		ch_free( bi->sql_aliasing.bv_val );
+	}
+	if ( !BER_BVISNULL( &bi->sql_aliasing_quote ) ) {
+		ch_free( bi->sql_aliasing_quote.bv_val );
+	}
 
 	if ( bi->sql_anlist ) {
 		int	i;
 
-		for ( i = 0; !BER_BVISNULL( &bi->sql_anlist[i].an_name ); i++ )
+		for ( i = 0; !BER_BVISNULL( &bi->sql_anlist[ i ].an_name ); i++ )
 		{
-			ch_free( bi->sql_anlist[i].an_name.bv_val );
+			ch_free( bi->sql_anlist[ i ].an_name.bv_val );
 		}
 		ch_free( bi->sql_anlist );
 	}
@@ -164,7 +204,7 @@ backsql_db_destroy(
 		entry_free( bi->sql_baseObject );
 	}
 	
-	free( bi );
+	ch_free( bi );
 	
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_db_destroy()\n", 0, 0, 0 );
 	return 0;
@@ -259,7 +299,7 @@ backsql_db_open(
 		return 1;
 	}
 	
-	if ( bi->sql_subtree_cond.bv_val == NULL ) {
+	if ( BER_BVISNULL( &bi->sql_subtree_cond ) ) {
 		/*
 		 * Prepare concat function for subtree search condition
 		 */
@@ -308,6 +348,8 @@ backsql_db_open(
 						"ldap_entries.dn LIKE ",
 					&concat );
 		}
+
+		ch_free( concat.bv_val );
 
 		bi->sql_subtree_cond = bb.bb_val;
 			
@@ -422,6 +464,7 @@ backsql_db_open(
 		bi->sql_delobjclasses_stmt = ch_strdup( backsql_def_delobjclasses_stmt );
 	}
 
+	/* This should just be to force schema loading */
 	op->o_hdr = (Opheader *)&op[ 1 ];
 	op->o_connid = (unsigned long)(-1);
 	op->o_bd = bd;
@@ -430,6 +473,7 @@ backsql_db_open(
 			"connection failed, exiting\n", 0, 0, 0 );
 		return 1;
 	}
+	(void)backsql_free_db_conn( op );
 
 	/*
 	 * Prepare ID selection query
@@ -523,6 +567,8 @@ backsql_db_close(
 int
 backsql_connection_destroy( Backend *bd, Connection *c )
 {
+	backsql_info 	*bi = (backsql_info*)bd->be_private;
+
 	char		opbuf[ OPERATION_BUFFER_SIZE ];
 	Operation*	op = (Operation *)opbuf;
 
