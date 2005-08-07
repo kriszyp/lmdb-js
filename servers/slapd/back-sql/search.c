@@ -2239,6 +2239,12 @@ send_results:;
 		send_ldap_result( op, rs );
 	}
 
+	/* cleanup in case of abandon */
+	for ( ; eid != NULL; 
+			eid = backsql_free_entryID( op,
+				eid, eid == &bsi.bsi_base_id ? 0 : 1 ) )
+		;
+
 	backsql_entry_clean( op, &base_entry );
 
 	/* in case we got here accidentally */
