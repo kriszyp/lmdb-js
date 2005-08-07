@@ -1766,6 +1766,9 @@ slap_acl_mask(
 				continue;
 			}
 
+			Debug( LDAP_DEBUG_ACL, "<= check a_group_pat: %s\n",
+				b->a_group_pat.bv_val, 0, 0 );
+
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
 			 * the values in the attribute group
@@ -1852,6 +1855,9 @@ slap_acl_mask(
 		if ( !BER_BVISEMPTY( &b->a_set_pat ) ) {
 			struct berval	bv;
 			char		buf[ACL_BUF_SIZE];
+
+			Debug( LDAP_DEBUG_ACL, "<= check a_set_pat: %s\n",
+				b->a_set_pat.bv_val, 0, 0 );
 
 			if ( b->a_set_style == ACL_STYLE_EXPAND ) {
 				int		tmp_nmatch;
@@ -1955,6 +1961,9 @@ slap_acl_mask(
 			slap_dynacl_t	*da;
 			slap_access_t	tgrant, tdeny;
 
+			Debug( LDAP_DEBUG_ACL, "<= check a_dynacl\n",
+				0, 0, 0 );
+
 			/* this case works different from the others above.
 			 * since aci's themselves give permissions, we need
 			 * to first check b->a_access_mask, the ACL's access level.
@@ -1977,6 +1986,9 @@ slap_acl_mask(
 
 			for ( da = b->a_dynacl; da; da = da->da_next ) {
 				slap_access_t	grant, deny;
+
+				Debug( LDAP_DEBUG_ACL, "    <= check a_dynacl: %s\n",
+					da->da_name, 0, 0 );
 
 				(void)( *da->da_mask )( da->da_private, op, e, desc, val, nmatch, matches, &grant, &deny );
 
@@ -2021,6 +2033,9 @@ slap_acl_mask(
 			struct berval	parent_ndn;
 			BerVarray	bvals = NULL;
 			int		ret, stop;
+
+			Debug( LDAP_DEBUG_ACL, "    <= check a_aci_at: %s\n",
+				b->a_aci_at->ad_cname.bv_val, 0, 0 );
 
 			/* this case works different from the others above.
 			 * since aci's themselves give permissions, we need
