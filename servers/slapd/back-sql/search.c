@@ -109,8 +109,6 @@ backsql_init_search(
 	backsql_srch_info 	*bsi, 
 	struct berval		*nbase, 
 	int 			scope, 
-	int 			slimit,
-	int 			tlimit,
 	time_t 			stoptime, 
 	Filter 			*filter, 
 	SQLHDBC 		dbh,
@@ -127,8 +125,6 @@ backsql_init_search(
 	BER_BVZERO( &bsi->bsi_base_id.eid_dn );
 	BER_BVZERO( &bsi->bsi_base_id.eid_ndn );
 	bsi->bsi_scope = scope;
-	bsi->bsi_slimit = slimit;
-	bsi->bsi_tlimit = tlimit;
 	bsi->bsi_filter = filter;
 	bsi->bsi_dbh = dbh;
 	bsi->bsi_op = op;
@@ -1827,7 +1823,6 @@ backsql_search( Operation *op, SlapReply *rs )
 	bsi.bsi_e = &base_entry;
 	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			op->ors_scope,
-			op->ors_slimit, op->ors_tlimit,
 			stoptime, op->ors_filter,
 			dbh, op, rs, op->ors_attrs,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
@@ -2079,7 +2074,6 @@ backsql_search( Operation *op, SlapReply *rs )
 				rc = backsql_init_search( &bsi2,
 						&e->e_nname,
 						LDAP_SCOPE_BASE, 
-						SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 						(time_t)(-1), NULL,
 						dbh, op, rs, NULL,
 						BACKSQL_ISF_GET_ENTRY );
@@ -2217,9 +2211,7 @@ next_entry:;
 		}
 
 next_entry2:;
-		if ( op->ors_slimit != SLAP_NO_LIMIT
-				&& rs->sr_nentries >= op->ors_slimit )
-		{
+		if ( --op->ors_slimit == -1 ) {
 			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
 			goto send_results;
 		}
@@ -2335,7 +2327,6 @@ backsql_entry_get(
 	rc = backsql_init_search( &bsi,
 			ndn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL,
 			dbh, op, &rs, at ? anlist : NULL,
 			BACKSQL_ISF_GET_ENTRY );

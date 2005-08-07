@@ -164,7 +164,7 @@ int backsql_destroy_schema_map( backsql_info *si );
  */
 
 int backsql_init_search( backsql_srch_info *bsi, 
-		struct berval *nbase, int scope, int slimit, int tlimit,
+		struct berval *nbase, int scope,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,
 		Operation *op, SlapReply *rs, AttributeName *attrs,
 		unsigned flags );

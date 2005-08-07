@@ -184,7 +184,6 @@ backsql_operational(
 
 		rc = backsql_init_search( &bsi, &rs->sr_entry->e_nname,
 				LDAP_SCOPE_BASE,
-				SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 				(time_t)(-1), NULL, dbh, op, rs, NULL,
 				BACKSQL_ISF_GET_ID );
 		if ( rc != LDAP_SUCCESS ) {

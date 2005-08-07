@@ -115,7 +115,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 	bsi.bsi_e = &d;
 	rs->sr_err = backsql_init_search( &bsi, &op->o_req_ndn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
 	switch ( rs->sr_err ) {
@@ -223,7 +222,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 	e_id = bsi.bsi_base_id;
 	rs->sr_err = backsql_init_search( &bsi, &pdn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
 			BACKSQL_ISF_GET_ENTRY );
 	if ( rs->sr_err != LDAP_SUCCESS ) {

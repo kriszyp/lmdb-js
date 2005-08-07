@@ -1102,7 +1102,6 @@ backsql_add( Operation *op, SlapReply *rs )
 	bsi.bsi_e = &p;
 	rs->sr_err = backsql_init_search( &bsi, &pdn,
 			LDAP_SCOPE_BASE, 
-			SLAP_NO_LIMIT, SLAP_NO_LIMIT,
 			(time_t)(-1), NULL, dbh, op, rs, slap_anlist_no_attrs,
 			( BACKSQL_ISF_MATCHED | BACKSQL_ISF_GET_ENTRY ) );
 	if ( rs->sr_err != LDAP_SUCCESS ) {

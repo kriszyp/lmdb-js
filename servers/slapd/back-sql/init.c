@@ -569,8 +569,6 @@ backsql_db_close(
 int
 backsql_connection_destroy( Backend *bd, Connection *c )
 {
-	backsql_info 	*bi = (backsql_info*)bd->be_private;
-
 	char		opbuf[ OPERATION_BUFFER_SIZE ];
 	Operation*	op = (Operation *)opbuf;
 
