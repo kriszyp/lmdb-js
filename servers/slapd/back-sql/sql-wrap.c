@@ -282,6 +282,7 @@ backsql_init_db_env( backsql_info *bi )
 	int		ret = SQL_SUCCESS;
 	
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_init_db_env()\n", 0, 0, 0 );
+
 	rc = SQLAllocEnv( &bi->sql_db_env );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "init_db_env: SQLAllocEnv failed:\n",
@@ -290,7 +291,9 @@ backsql_init_db_env( backsql_info *bi )
 				SQL_NULL_HENV, rc );
 		ret = SQL_ERROR;
 	}
+
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_init_db_env()=%d\n", ret, 0, 0 );
+
 	return ret;
 }
 
@@ -299,10 +302,8 @@ backsql_free_db_env( backsql_info *bi )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_env()\n", 0, 0, 0 );
 
-#ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "free_db_env(): delete AVL tree here!!!\n",
-			0, 0, 0 );
-#endif /* BACKSQL_TRACE */
+	(void)SQLFreeEnv( bi->sql_db_env );
+	bi->sql_db_env = SQL_NULL_HENV;
 
 	/*
 	 * stop, if frontend waits for all threads to shutdown 
@@ -310,6 +311,7 @@ backsql_free_db_env( backsql_info *bi )
 	 * everything is already deleted...
 	 */
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_free_db_env()\n", 0, 0, 0 );
+
 	return SQL_SUCCESS;
 }
 
