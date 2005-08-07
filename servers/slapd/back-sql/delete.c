@@ -93,7 +93,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	struct berval		pdn = BER_BVNULL;
 	int			manageDSAit = get_manageDSAit( op );
 	/* first parameter no */
-	SQLUSMALLINT		pno;
+	SQLUSMALLINT		pno = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_delete(): deleting entry \"%s\"\n",
 			op->o_req_ndn.bv_val, 0, 0 );
@@ -287,9 +287,6 @@ backsql_delete( Operation *op, SlapReply *rs )
 			e = NULL;
 			goto done;
 		}
-
-	} else {
-		pno = 0;
 	}
 
 	rc = backsql_BindParamID( sth, pno + 1, SQL_PARAM_INPUT, &e_id.eid_keyval );

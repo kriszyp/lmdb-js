@@ -131,7 +131,7 @@ backsql_modify_delete_all_values(
 	{
 		int		i;
 		/* first parameter no, parameter order */
-		SQLUSMALLINT	pno,
+		SQLUSMALLINT	pno = 0,
 				po = 0;
 		/* procedure return code */
 		int		prc = LDAP_SUCCESS;
@@ -193,12 +193,12 @@ backsql_modify_delete_all_values(
 #ifdef BACKSQL_ARBITRARY_KEY
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_modify_delete_all_values() "
-				"arg%d=%s\n",
+				"arg(%d)=%s\n",
 				pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_modify_delete_all_values() "
-				"arg%d=%lu\n",
+				"arg(%d)=%lu\n",
 				pno + 1 + po, e_id->eid_keyval, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
@@ -225,7 +225,7 @@ backsql_modify_delete_all_values(
 	 
 			Debug( LDAP_DEBUG_TRACE, 
 				"   backsql_modify_delete_all_values(): "
-				"arg%d=%s; executing \"%s\"\n",
+				"arg(%d)=%s; executing \"%s\"\n",
 				pno + 2 - po, row.cols[ i ],
 				at->bam_delete_proc );
 			rc = SQLExecute( sth );
@@ -480,12 +480,12 @@ add_only:;
 #ifdef BACKSQL_ARBITRARY_KEY
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"arg%d=\"%s\"\n", 
+					"arg(%d)=\"%s\"\n", 
 					pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"arg%d=\"%lu\"\n", 
+					"arg(%d)=\"%lu\"\n", 
 					pno + 1 + po, e_id->eid_keyval, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
@@ -510,7 +510,7 @@ add_only:;
 				}
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"arg%d=\"%s\"; executing \"%s\"\n", 
+					"arg(%d)=\"%s\"; executing \"%s\"\n", 
 					pno + 2 - po, at_val->bv_val,
 					at->bam_add_proc );
 
@@ -643,12 +643,12 @@ add_only:;
 #ifdef BACKSQL_ARBITRARY_KEY
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"arg%d=\"%s\"\n", 
+					"arg(%d)=\"%s\"\n", 
 					pno + 1 + po, e_id->eid_keyval.bv_val, 0 );
 #else /* ! BACKSQL_ARBITRARY_KEY */
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
-					"arg%d=\"%lu\"\n", 
+					"arg(%d)=\"%lu\"\n", 
 					pno + 1 + po, e_id->eid_keyval, 0 );
 #endif /* ! BACKSQL_ARBITRARY_KEY */
 
