@@ -2299,8 +2299,6 @@ config_replica(ConfigArgs *c) {
 
 static int
 config_updatedn(ConfigArgs *c) {
-	struct berval dn;
-	int rc;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if (!BER_BVISEMPTY(&c->be->be_update_ndn)) {
 			value_add_one(&c->rvalue_vals, &c->be->be_update_ndn);
