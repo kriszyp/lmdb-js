@@ -74,7 +74,7 @@ destroy_replica_info(
 {
 	int i = 0;
 
-	assert( be );
+	assert( be != NULL );
 
 	if ( be->be_replica == NULL ) {
 		return 0;
