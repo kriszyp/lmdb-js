@@ -347,6 +347,11 @@ int compute_rewrite_search_filter(Slapi_PBlock *pb);
 int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
 int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
+/* backend routines */
+void slapi_be_set_readonly(Slapi_Backend *be, int readonly);
+int slapi_be_get_readonly(Slapi_Backend *be);
+const char *slapi_x_be_get_updatedn(Slapi_Backend *be);
+
 /* ACL plugins; only SLAPI_PLUGIN_ACL_ALLOW_ACCESS supported now */
 typedef int (*slapi_acl_callback_t)(Slapi_PBlock *pb,
 	Slapi_Entry *e,
