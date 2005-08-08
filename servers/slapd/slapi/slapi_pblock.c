@@ -490,7 +490,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 		break;
 	case SLAPI_BACKEND:
 		PBLOCK_ASSERT_OP( pb, 0 );
-		*((BackendDB **)value) = pb->pb_op->o_bd;
+		*((BackendDB **)value) = select_backend( &pb->pb_op->o_req_ndn, 0, 0 );
 		break;
 	case SLAPI_BE_TYPE:
 		PBLOCK_ASSERT_OP( pb, 0 );

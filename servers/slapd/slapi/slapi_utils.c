@@ -3452,6 +3452,33 @@ slapi_op_get_type(Slapi_Operation * op)
 	return type;
 }
 
+void slapi_be_set_readonly( Slapi_Backend *be, int readonly )
+{
+	if ( be == NULL )
+		return;
+
+	if ( readonly )
+		be->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
+	else
+		be->be_restrictops &= ~(SLAP_RESTRICT_OP_WRITES);
+}
+
+int slapi_be_get_readonly( Slapi_Backend *be )
+{
+	if ( be == NULL )
+		return 0;
+
+	return ( (be->be_restrictops & SLAP_RESTRICT_OP_WRITES) == SLAP_RESTRICT_OP_WRITES );
+}
+
+const char *slapi_x_be_get_updatedn( Slapi_Backend *be )
+{
+	if ( be == NULL )
+		return NULL;
+
+	return be->be_update_ndn.bv_val;
+}
+
 #if 0
 void
 slapi_operation_set_flag(Slapi_Operation *op, unsigned long flag)
