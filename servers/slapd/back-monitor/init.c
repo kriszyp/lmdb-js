@@ -1768,6 +1768,10 @@ monitor_back_db_destroy(
 {
 	monitor_info_t	*mi = ( monitor_info_t * )be->be_private;
 
+	if ( mi == NULL ) {
+		return -1;
+	}
+
 	/*
 	 * FIXME: destroys all the data
 	 */
@@ -1792,6 +1796,8 @@ monitor_back_db_destroy(
 	}
 	
 	ldap_pvt_thread_mutex_destroy( &monitor_info.mi_cache_mutex );
+
+	be->be_private = NULL;
 
 	return 0;
 }
