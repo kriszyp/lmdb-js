@@ -362,7 +362,17 @@ int main( int argc, char **argv )
 			scp = (struct sync_cookie *) ch_calloc( 1,
 										sizeof( struct sync_cookie ));
 			ber_str2bv( optarg, 0, 1, &scp->octet_str );
+			
+			/* This only parses out the rid at this point */
 			slap_parse_sync_cookie( scp, NULL );
+
+			if ( scp->rid == -1 ) {
+				Debug( LDAP_DEBUG_ANY,
+						"main: invalid cookie \"%s\"\n",
+						optarg, 0, 0 );
+				slap_sync_cookie_free( scp, 1 );
+				goto destroy;
+			}
 
 			LDAP_STAILQ_FOREACH( scp_entry, &slap_sync_cookie, sc_next ) {
 				if ( scp->rid == scp_entry->rid ) {

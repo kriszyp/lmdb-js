@@ -482,6 +482,8 @@ do_syncrep1(
 
 			LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
 
+			/* ctxcsn wasn't parsed yet, do it now */
+			slap_parse_sync_cookie( sc, op->o_tmpmemctx );
 			if ( BER_BVISNULL( &sc->ctxcsn ) ) {
 				/* if cmdline cookie does not have ctxcsn */
 				/* component, set it to an initial value */
