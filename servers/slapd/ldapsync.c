@@ -86,7 +86,8 @@ slap_sync_cookie_free(
 
 int
 slap_parse_sync_cookie(
-	struct sync_cookie *cookie
+	struct sync_cookie *cookie,
+	void *memctx
 )
 {
 	char *csn_ptr;
@@ -125,7 +126,7 @@ slap_parse_sync_cookie(
 		break;
 	}
 	if ( valid ) {
-		ber_str2bv( csn_str, csn_str_len, 1, &cookie->ctxcsn );
+		ber_str2bv_x( csn_str, csn_str_len, 1, &cookie->ctxcsn, memctx );
 	} else {
 		BER_BVZERO( &cookie->ctxcsn );
 	}

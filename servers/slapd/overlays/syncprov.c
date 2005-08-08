@@ -2365,7 +2365,7 @@ static int syncprov_parseCtrl (
 	sr->sr_rhint = rhint;
 	if (!BER_BVISNULL(&cookie)) {
 		ber_dupbv( &sr->sr_state.octet_str, &cookie );
-		slap_parse_sync_cookie( &sr->sr_state );
+		slap_parse_sync_cookie( &sr->sr_state, op->o_tmpmemctx );
 	}
 
 	op->o_controls[slap_cids.sc_LDAPsync] = sr;

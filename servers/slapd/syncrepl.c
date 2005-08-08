@@ -615,7 +615,7 @@ do_syncrep2(
 					}
 					if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 					{
-						slap_parse_sync_cookie( &syncCookie );
+						slap_parse_sync_cookie( &syncCookie, NULL );
 					}
 				}
 				if ( syncrepl_message_to_entry( si, op, msg,
@@ -660,7 +660,7 @@ do_syncrep2(
 						}
 						if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 						{
-							slap_parse_sync_cookie( &syncCookie );
+							slap_parse_sync_cookie( &syncCookie, NULL );
 						}
 					}
 					if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDELETES )
@@ -744,7 +744,7 @@ do_syncrep2(
 							}
 							if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 							{
-								slap_parse_sync_cookie( &syncCookie );
+								slap_parse_sync_cookie( &syncCookie, NULL );
 							}
 						}
 						if ( ber_peek_tag( ber, &len ) ==
@@ -771,7 +771,7 @@ do_syncrep2(
 							}
 							if ( !BER_BVISNULL( &syncCookie.octet_str ) )
 							{
-								slap_parse_sync_cookie( &syncCookie );
+								slap_parse_sync_cookie( &syncCookie, NULL );
 							}
 						}
 						if ( ber_peek_tag( ber, &len ) ==

@@ -889,7 +889,7 @@ LDAP_SLAPD_F (void) slap_compose_sync_cookie LDAP_P((
 LDAP_SLAPD_F (void) slap_sync_cookie_free LDAP_P((
 				struct sync_cookie *, int free_cookie ));
 LDAP_SLAPD_F (int) slap_parse_sync_cookie LDAP_P((
-				struct sync_cookie * ));
+				struct sync_cookie *, void *memctx ));
 LDAP_SLAPD_F (int) slap_init_sync_cookie_ctxcsn LDAP_P((
 				struct sync_cookie * ));
 LDAP_SLAPD_F (struct sync_cookie *) slap_dup_sync_cookie LDAP_P((
