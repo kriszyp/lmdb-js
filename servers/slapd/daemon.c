@@ -1758,14 +1758,14 @@ slapd_daemon_task(
 			if ( !SLAP_EVENT_IS_READ( slap_listeners[l]->sl_sd ))
 				continue;
 			
-			ns--;
-
 			rc = slapd_handle_listener(slap_listeners[l]);
 
 #ifdef LDAP_CONNECTIONLESS
 			/* This is a UDP session, let the data loop process it */
 			if ( rc ) continue;
 #endif
+
+			ns--;
 
 			/* Don't need to look at this in the data loops */
 			SLAP_EVENT_CLR_READ( slap_listeners[l]->sl_sd );
