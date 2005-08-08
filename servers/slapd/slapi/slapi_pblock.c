@@ -690,6 +690,7 @@ pblock_get( Slapi_PBlock *pb, int param, void **value )
 			pblock_set_default( pb, param, (void *)attrs );
 		}
 		*((char ***)value) = attrs;
+		break;
 	}
 	case SLAPI_SEARCH_ATTRSONLY:
 		PBLOCK_ASSERT_OP( pb, 0 );
