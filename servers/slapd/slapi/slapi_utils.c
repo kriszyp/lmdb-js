@@ -3479,24 +3479,6 @@ const char *slapi_x_be_get_updatedn( Slapi_Backend *be )
 	return be->be_update_ndn.bv_val;
 }
 
-Slapi_Backend *slapi_x_be_select(const char *dn)
-{
-	struct berval bdn;
-	struct berval ndn;
-	Slapi_Backend *be;
-
-	bdn.bv_val = (char *)dn;
-	bdn.bv_len = (dn != NULL) ? strlen(dn) : 0;
-
-	if ( dnNormalize( 0, NULL, NULL, &bdn, &ndn, NULL ) != LDAP_SUCCESS )
-		return NULL;
-
-	be = select_backend( &ndn, 0, 0 );
-	slapi_ch_free_string( &ndn.bv_val );
-
-	return be;
-}
-
 Slapi_Backend *slapi_be_select( const Slapi_DN *sdn )
 {
 	Slapi_Backend *be;

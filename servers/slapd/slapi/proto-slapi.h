@@ -31,7 +31,6 @@ LDAP_SLAPI_F (Modifications *) slapi_int_ldapmods2modifications LDAP_P(( LDAPMod
 LDAP_SLAPI_F (int) slapi_int_count_controls LDAP_P(( LDAPControl **ctrls ));
 LDAP_SLAPI_F (char **) slapi_get_supported_extended_ops LDAP_P((void));
 LDAP_SLAPI_F (int) slapi_int_access_allowed LDAP_P((Operation *op, Entry *entry, AttributeDescription *desc, struct berval *val, slap_access_t access, AccessControlState *state ));
-LDAP_SLAPI_F (Slapi_Backend *) slapi_x_be_select LDAP_P((const char *dn));
 
 /* slapi_ops.c */
 LDAP_SLAPI_F (int) slapi_int_response LDAP_P(( Slapi_Operation *op, SlapReply *rs ));
