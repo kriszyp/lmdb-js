@@ -79,18 +79,6 @@ extern int
 monitor_subsys_conn_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_conn_update LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
-extern int
-monitor_subsys_conn_create LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	struct berval		*ndn,
-	Entry			*e_parent,
-	Entry			**ep ));
 
 /*
  * databases 
@@ -99,11 +87,6 @@ extern int
 monitor_subsys_database_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_database_modify LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
 
 /*
  * entry
@@ -194,11 +177,6 @@ extern int
 monitor_subsys_log_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_log_modify LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
 
 /*
  * operations
@@ -207,11 +185,6 @@ extern int
 monitor_subsys_ops_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_ops_update LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
 
 /*
  * overlay
@@ -228,11 +201,6 @@ extern int
 monitor_subsys_sent_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_sent_update LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
 
 /*
  * threads
@@ -241,11 +209,6 @@ extern int
 monitor_subsys_thread_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_thread_update LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
 
 /*
  * time
@@ -253,11 +216,6 @@ monitor_subsys_thread_update LDAP_P((
 extern int monitor_subsys_time_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_time_update LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
 
 /*
  * waiters
@@ -266,11 +224,6 @@ extern int
 monitor_subsys_rww_init LDAP_P((
 	BackendDB		*be,
 	monitor_subsys_t	*ms ));
-extern int
-monitor_subsys_rww_update LDAP_P((
-	Operation		*op,
-	SlapReply		*rs,
-	Entry			*e ));
 
 /*
  * former external.h

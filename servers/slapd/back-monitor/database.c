@@ -54,6 +54,12 @@ static int monitor_back_add_plugin( monitor_info_t *mi, Backend *be, Entry *e );
 #define PATH_MAX	4095
 #endif /* ! PATH_MAX */
 
+static int
+monitor_subsys_database_modify(
+	Operation	*op,
+	SlapReply	*rs,
+	Entry		*e );
+
 static struct restricted_ops_t {
 	struct berval	op;
 	unsigned int	tag;
@@ -128,6 +134,8 @@ monitor_subsys_database_init(
 				*ms_overlay;
 
 	assert( be != NULL );
+
+	ms->mss_modify = monitor_subsys_database_modify;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -545,12 +553,11 @@ value_mask( BerVarray v, slap_mask_t cur, slap_mask_t *delta )
 	return LDAP_SUCCESS;
 }
 
-int
+static int
 monitor_subsys_database_modify(
 	Operation	*op,
 	SlapReply	*rs,
-	Entry		*e
-)
+	Entry		*e )
 {
 	monitor_info_t	*mi = (monitor_info_t *)op->o_bd->be_private;
 	int		rc = LDAP_OTHER;

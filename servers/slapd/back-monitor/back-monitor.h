@@ -251,6 +251,8 @@ typedef struct monitor_subsys_t {
 
 	/* initialize entry and subentries */
 	int		( *mss_open )( BackendDB *, struct monitor_subsys_t *ms );
+	/* destroy structure */
+	int		( *mss_destroy )( BackendDB *, struct monitor_subsys_t *ms );
 	/* update existing dynamic entry and subentries */
 	int		( *mss_update )( Operation *, SlapReply *, Entry * );
 	/* create new dynamic subentries */

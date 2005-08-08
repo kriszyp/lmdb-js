@@ -27,6 +27,17 @@
 #include "slap.h"
 #include "back-monitor.h"
 
+static int
+monitor_subsys_sent_destroy(
+	BackendDB		*be,
+	monitor_subsys_t	*ms );
+
+static int
+monitor_subsys_sent_update(
+	Operation		*op,
+	SlapReply		*rs,
+	Entry                   *e );
+
 enum {
 	MONITOR_SENT_BYTES = 0,
 	MONITOR_SENT_PDU,
@@ -50,8 +61,7 @@ struct monitor_sent_t {
 int
 monitor_subsys_sent_init(
 	BackendDB		*be,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_info_t	*mi;
 	
@@ -60,6 +70,9 @@ monitor_subsys_sent_init(
 	int			i;
 
 	assert( be != NULL );
+
+	ms->mss_destroy = monitor_subsys_sent_destroy;
+	ms->mss_update = monitor_subsys_sent_update;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -143,7 +156,23 @@ monitor_subsys_sent_init(
 	return( 0 );
 }
 
-int
+static int
+monitor_subsys_sent_destroy(
+	BackendDB		*be,
+	monitor_subsys_t	*ms )
+{
+	int		i;
+
+	for ( i = 0; i < MONITOR_SENT_LAST; i++ ) {
+		if ( !BER_BVISNULL( &monitor_sent[ i ].nrdn ) ) {
+			ch_free( monitor_sent[ i ].nrdn.bv_val );
+		}
+	}
+
+	return 0;
+}
+
+static int
 monitor_subsys_sent_update(
 	Operation		*op,
 	SlapReply		*rs,

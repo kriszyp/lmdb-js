@@ -62,6 +62,7 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_backend_init,
+		NULL,	/* destroy */
 		NULL,   /* update */
 		NULL,   /* create */
 		NULL	/* modify */
@@ -72,8 +73,9 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_VOLATILE_CH,
 		monitor_subsys_conn_init,
-		monitor_subsys_conn_update,
-		monitor_subsys_conn_create,
+		NULL,	/* destroy */
+		NULL,   /* update */
+		NULL,   /* create */
 		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_DATABASE_NAME, 	
@@ -82,9 +84,10 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_database_init,
+		NULL,	/* destroy */
 		NULL,   /* update */
 		NULL,   /* create */
-		monitor_subsys_database_modify
+		NULL	/* modify */
        	}, { 
 		SLAPD_MONITOR_LISTENER_NAME, 	
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
@@ -92,6 +95,7 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_listener_init,
+		NULL,	/* destroy */
 		NULL,	/* update */
 		NULL,	/* create */
 		NULL	/* modify */
@@ -103,9 +107,10 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_NONE,
 		monitor_subsys_log_init,
+		NULL,	/* destroy */
 		NULL,	/* update */
 		NULL,   /* create */
-		monitor_subsys_log_modify
+		NULL,	/* modify */
        	}, { 
 		SLAPD_MONITOR_OPS_NAME,
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
@@ -113,7 +118,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_ops_init,
-		monitor_subsys_ops_update,
+		NULL,	/* destroy */
+		NULL,	/* update */
 		NULL,   /* create */
 		NULL,	/* modify */
        	}, { 
@@ -123,6 +129,7 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_overlay_init,
+		NULL,	/* destroy */
 		NULL,	/* update */
 		NULL,   /* create */
 		NULL,	/* modify */
@@ -133,6 +140,7 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_NONE,
 		NULL,   /* init */
+		NULL,	/* destroy */
 		NULL,   /* update */
 		NULL,   /* create */
 		NULL	/* modify */
@@ -143,7 +151,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_sent_init,
-		monitor_subsys_sent_update,
+		NULL,	/* destroy */
+		NULL,   /* update */
 		NULL,   /* create */
 		NULL,	/* modify */
        	}, { 
@@ -153,7 +162,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_thread_init,
-		monitor_subsys_thread_update,
+		NULL,	/* destroy */
+		NULL,   /* update */
 		NULL,   /* create */
 		NULL	/* modify */
        	}, { 
@@ -163,7 +173,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_time_init,
-		monitor_subsys_time_update,
+		NULL,	/* destroy */
+		NULL,   /* update */
 		NULL,   /* create */
 		NULL,	/* modify */
        	}, { 
@@ -173,6 +184,7 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_NONE,
 		NULL,   /* init */
+		NULL,	/* destroy */
 		NULL,   /* update */
 		NULL,   /* create */
 		NULL	/* modify */
@@ -183,7 +195,8 @@ static struct monitor_subsys_t known_monitor_subsys[] = {
 			BER_BVNULL },
 		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_rww_init,
-		monitor_subsys_rww_update,
+		NULL,	/* destroy */
+		NULL,   /* update */
 		NULL, 	/* create */
 		NULL	/* modify */
        	}, { NULL }
@@ -1766,6 +1779,10 @@ monitor_back_db_destroy(
 		int	i;
 
 		for ( i = 0; monitor_subsys[ i ] != NULL; i++ ) {
+			if ( monitor_subsys[ i ]->mss_destroy ) {
+				monitor_subsys[ i ]->mss_destroy( be, monitor_subsys[ i ] );
+			}
+
 			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_rdn ) ) {
 				ch_free( monitor_subsys[ i ]->mss_rdn.bv_val );
 			}

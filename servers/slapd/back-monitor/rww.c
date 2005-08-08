@@ -28,6 +28,12 @@
 #include "lutil.h"
 #include "back-monitor.h"
 
+static int
+monitor_subsys_rww_update(
+	Operation		*op,
+	SlapReply		*rs,
+	Entry                   *e );
+
 enum {
 	MONITOR_RWW_READ = 0,
 	MONITOR_RWW_WRITE,
@@ -57,6 +63,8 @@ monitor_subsys_rww_init(
 	int			i;
 
 	assert( be != NULL );
+
+	ms->mss_update = monitor_subsys_rww_update;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -139,12 +147,11 @@ monitor_subsys_rww_init(
 	return( 0 );
 }
 
-int
+static int
 monitor_subsys_rww_update(
 	Operation		*op,
 	SlapReply		*rs,
-	Entry                   *e
-)
+	Entry                   *e )
 {
 	monitor_info_t *mi = (monitor_info_t *)op->o_bd->be_private;
 	Connection	*c;

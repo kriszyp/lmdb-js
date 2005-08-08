@@ -31,11 +31,16 @@
 #include "proto-slap.h"
 #include "back-monitor.h"
 
+static int
+monitor_subsys_time_update(
+	Operation		*op,
+	SlapReply		*rs,
+	Entry                   *e );
+
 int
 monitor_subsys_time_init(
 	BackendDB		*be,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_info_t	*mi;
 	
@@ -44,6 +49,8 @@ monitor_subsys_time_init(
 	char		buf[ BACKMONITOR_BUFSIZE ];
 
 	assert( be != NULL );
+
+	ms->mss_update = monitor_subsys_time_update;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -166,7 +173,7 @@ monitor_subsys_time_init(
 	return( 0 );
 }
 
-int
+static int
 monitor_subsys_time_update(
 	Operation		*op,
 	SlapReply		*rs,

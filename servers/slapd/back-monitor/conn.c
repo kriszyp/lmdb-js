@@ -32,6 +32,20 @@
 #define MONITOR_LEGACY_CONN
 #endif
 
+static int
+monitor_subsys_conn_update(
+	Operation		*op,
+	SlapReply		*rs,
+	Entry                   *e );
+
+static int 
+monitor_subsys_conn_create( 
+	Operation		*op,
+	SlapReply		*rs,
+	struct berval		*ndn,
+	Entry 			*e_parent,
+	Entry			**ep );
+
 int
 monitor_subsys_conn_init(
 	BackendDB		*be,
@@ -44,6 +58,9 @@ monitor_subsys_conn_init(
 	struct berval	bv;
 
 	assert( be != NULL );
+
+	ms->mss_update = monitor_subsys_conn_update;
+	ms->mss_create = monitor_subsys_conn_create;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -170,7 +187,7 @@ monitor_subsys_conn_init(
 	return( 0 );
 }
 
-int
+static int
 monitor_subsys_conn_update(
 	Operation		*op,
 	SlapReply		*rs,
@@ -469,7 +486,7 @@ conn_create(
 	return SLAP_CB_CONTINUE;
 }
 
-int 
+static int 
 monitor_subsys_conn_create( 
 	Operation		*op,
 	SlapReply		*rs,

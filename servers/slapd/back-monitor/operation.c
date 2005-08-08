@@ -45,11 +45,21 @@ struct monitor_ops_t {
 	{ BER_BVNULL,			BER_BVNULL }
 };
 
+static int
+monitor_subsys_ops_destroy(
+	BackendDB		*be,
+	monitor_subsys_t	*ms );
+
+static int
+monitor_subsys_ops_update(
+	Operation		*op,
+	SlapReply		*rs,
+	Entry                   *e );
+
 int
 monitor_subsys_ops_init(
 	BackendDB		*be,
-	monitor_subsys_t	*ms
-)
+	monitor_subsys_t	*ms )
 {
 	monitor_info_t	*mi;
 	
@@ -60,6 +70,9 @@ monitor_subsys_ops_init(
 	struct berval	bv_zero = BER_BVC( "0" );
 
 	assert( be != NULL );
+
+	ms->mss_destroy = monitor_subsys_ops_destroy;
+	ms->mss_update = monitor_subsys_ops_update;
 
 	mi = ( monitor_info_t * )be->be_private;
 
@@ -152,12 +165,27 @@ monitor_subsys_ops_init(
 	return( 0 );
 }
 
-int
+static int
+monitor_subsys_ops_destroy(
+	BackendDB		*be,
+	monitor_subsys_t	*ms )
+{
+	int		i;
+
+	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
+		if ( !BER_BVISNULL( &monitor_op[ i ].nrdn ) ) {
+			ch_free( monitor_op[ i ].nrdn.bv_val );
+		}
+	}
+
+	return 0;
+}
+
+static int
 monitor_subsys_ops_update(
 	Operation		*op,
 	SlapReply		*rs,
-	Entry                   *e
-)
+	Entry                   *e )
 {
 	monitor_info_t		*mi = ( monitor_info_t * )op->o_bd->be_private;
 
