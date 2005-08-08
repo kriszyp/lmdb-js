@@ -294,7 +294,7 @@ slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type )
 
 		p = slapi_value_get_string( &attr->a_vals[0] );
 		if ( p != NULL ) {
-			return slapi_ch_strdup( (char *)p );
+			return slapi_ch_strdup( p );
 		}
 	}
 
@@ -1094,15 +1094,15 @@ slapi_ch_realloc(
 }
 
 char *
-slapi_ch_strdup( char *s ) 
+slapi_ch_strdup( const char *s ) 
 {
-	return ch_strdup( (const char *)s );
+	return ch_strdup( s );
 }
 
 size_t
-slapi_ch_stlen( char *s ) 
+slapi_ch_stlen( const char *s ) 
 {
-	return strlen( (const char *)s );
+	return strlen( s );
 }
 
 int 
@@ -2376,7 +2376,7 @@ Slapi_Value *slapi_value_init_berval(Slapi_Value *v, struct berval *bval)
 
 Slapi_Value *slapi_value_init_string(Slapi_Value *v, const char *s)
 {
-	v->bv_val = slapi_ch_strdup( (char *)s );
+	v->bv_val = slapi_ch_strdup( s );
 	v->bv_len = strlen( s );
 
 	return v;
@@ -3493,6 +3493,17 @@ Slapi_Backend *slapi_x_be_select(const char *dn)
 
 	be = select_backend( &ndn, 0, 0 );
 	slapi_ch_free_string( &ndn.bv_val );
+
+	return be;
+}
+
+Slapi_Backend *slapi_be_select( const Slapi_DN *sdn )
+{
+	Slapi_Backend *be;
+
+	slapi_sdn_get_ndn( sdn );
+
+	be = select_backend( (struct berval *)&sdn->ndn, 0, 0 );
 
 	return be;
 }

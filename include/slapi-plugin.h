@@ -145,7 +145,7 @@ Slapi_Value *slapi_value_new_value(const Slapi_Value *v);
 Slapi_Value *slapi_value_new_string(const char *s);
 Slapi_Value *slapi_value_init(Slapi_Value *v);
 Slapi_Value *slapi_value_init_berval(Slapi_Value *v, struct berval *bval);
-Slapi_Value *slapi_value_init_string(Slapi_Value *v,const char *s);
+Slapi_Value *slapi_value_init_string(Slapi_Value *v, const char *s);
 Slapi_Value *slapi_value_dup(const Slapi_Value *v);
 void slapi_value_free(Slapi_Value **value);
 const struct berval *slapi_value_get_berval( const Slapi_Value *value );
@@ -160,7 +160,7 @@ unsigned int slapi_value_get_uint(const Slapi_Value *value);
 long slapi_value_get_long(const Slapi_Value *value); 
 unsigned long slapi_value_get_ulong(const Slapi_Value *value); 
 size_t slapi_value_get_length(const Slapi_Value *value);
-int slapi_value_compare(const Slapi_Attr *a,const Slapi_Value *v1,const Slapi_Value *v2);
+int slapi_value_compare(const Slapi_Attr *a, const Slapi_Value *v1, const Slapi_Value *v2);
 
 Slapi_ValueSet *slapi_valueset_new( void );
 void slapi_valueset_free(Slapi_ValueSet *vs);
@@ -171,6 +171,70 @@ int slapi_valueset_first_value( Slapi_ValueSet *vs, Slapi_Value **v );
 int slapi_valueset_next_value( Slapi_ValueSet *vs, int index, Slapi_Value **v);
 int slapi_valueset_count( const Slapi_ValueSet *vs);
 void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2);
+
+/* DNs */
+Slapi_DN *slapi_sdn_new( void );
+Slapi_DN *slapi_sdn_new_dn_byval( const char *dn );
+Slapi_DN *slapi_sdn_new_ndn_byval( const char *ndn );
+Slapi_DN *slapi_sdn_new_dn_byref( const char *dn );
+Slapi_DN *slapi_sdn_new_ndn_byref( const char *ndn );
+Slapi_DN *slapi_sdn_new_dn_passin( const char *dn );
+Slapi_DN *slapi_sdn_set_dn_byval( Slapi_DN *sdn, const char *dn );
+Slapi_DN *slapi_sdn_set_dn_byref( Slapi_DN *sdn, const char *dn );
+Slapi_DN *slapi_sdn_set_dn_passin( Slapi_DN *sdn, const char *dn );
+Slapi_DN *slapi_sdn_set_ndn_byval( Slapi_DN *sdn, const char *ndn );
+Slapi_DN *slapi_sdn_set_ndn_byref( Slapi_DN *sdn, const char *ndn );
+void slapi_sdn_done( Slapi_DN *sdn );
+void slapi_sdn_free( Slapi_DN **sdn );
+const char * slapi_sdn_get_dn( const Slapi_DN *sdn );
+const char * slapi_sdn_get_ndn( const Slapi_DN *sdn );
+void slapi_sdn_get_parent( const Slapi_DN *sdn,Slapi_DN *sdn_parent );
+void slapi_sdn_get_backend_parent( const Slapi_DN *sdn, Slapi_DN *sdn_parent, const Slapi_Backend *backend );
+Slapi_DN * slapi_sdn_dup( const Slapi_DN *sdn );
+void slapi_sdn_copy( const Slapi_DN *from, Slapi_DN *to );
+int slapi_sdn_compare( const Slapi_DN *sdn1, const Slapi_DN *sdn2 );
+int slapi_sdn_isempty( const Slapi_DN *sdn );
+int slapi_sdn_issuffix(const Slapi_DN *sdn, const Slapi_DN *suffixsdn );
+int slapi_sdn_isparent( const Slapi_DN *parent, const Slapi_DN *child );
+int slapi_sdn_isgrandparent( const Slapi_DN *parent, const Slapi_DN *child );
+int slapi_sdn_get_ndn_len( const Slapi_DN *sdn );
+int slapi_sdn_scope_test( const Slapi_DN *dn, const Slapi_DN *base, int scope );
+void slapi_sdn_get_rdn( const Slapi_DN *sdn,Slapi_RDN *rdn );
+Slapi_DN *slapi_sdn_set_rdn( Slapi_DN *sdn, const Slapi_RDN *rdn );
+Slapi_DN *slapi_sdn_set_parent( Slapi_DN *sdn, const Slapi_DN *parentdn );
+int slapi_sdn_is_rdn_component( const Slapi_DN *rdn, const Slapi_Attr *a, const Slapi_Value *v );
+char * slapi_moddn_get_newdn( Slapi_DN *dn_olddn, char *newrdn, char *newsuperiordn );
+
+/* RDNs */
+Slapi_RDN *slapi_rdn_new( void );
+Slapi_RDN *slapi_rdn_new_dn( const char *dn );
+Slapi_RDN *slapi_rdn_new_sdn( const Slapi_DN *sdn );
+Slapi_RDN *slapi_rdn_new_rdn( const Slapi_RDN *fromrdn ); 
+void slapi_rdn_init( Slapi_RDN *rdn );
+void slapi_rdn_init_dn( Slapi_RDN *rdn, const char *dn );
+void slapi_rdn_init_sdn( Slapi_RDN *rdn, const Slapi_DN *sdn );
+void slapi_rdn_init_rdn( Slapi_RDN *rdn, const Slapi_RDN *fromrdn ); 
+void slapi_rdn_set_dn( Slapi_RDN *rdn, const char *dn );
+void slapi_rdn_set_sdn( Slapi_RDN *rdn, const Slapi_DN *sdn );
+void slapi_rdn_set_rdn( Slapi_RDN *rdn, const Slapi_RDN *fromrdn );
+void slapi_rdn_free( Slapi_RDN **rdn );
+void slapi_rdn_done( Slapi_RDN *rdn );
+int slapi_rdn_get_first( Slapi_RDN *rdn, char **type, char **value );
+int slapi_rdn_get_next( Slapi_RDN *rdn, int index, char **type, char **value );
+int slapi_rdn_get_index( Slapi_RDN *rdn, const char *type, const char *value, size_t length );
+int slapi_rdn_get_index_attr( Slapi_RDN *rdn, const char *type, char **value );
+int slapi_rdn_contains( Slapi_RDN *rdn, const char *type, const char *value,size_t length );
+int slapi_rdn_contains_attr( Slapi_RDN *rdn, const char *type, char **value );
+int slapi_rdn_add( Slapi_RDN *rdn, const char *type, const char *value );
+int slapi_rdn_remove_index( Slapi_RDN *rdn, int atindex );
+int slapi_rdn_remove( Slapi_RDN *rdn, const char *type, const char *value, size_t length );
+int slapi_rdn_remove_attr( Slapi_RDN *rdn, const char *type );
+int slapi_rdn_isempty( const Slapi_RDN *rdn );
+int slapi_rdn_get_num_components( Slapi_RDN *rdn );
+int slapi_rdn_compare( Slapi_RDN *rdn1, Slapi_RDN *rdn2 );
+const char *slapi_rdn_get_rdn( const Slapi_RDN *rdn );
+const char *slapi_rdn_get_nrdn( const Slapi_RDN *rdn );
+Slapi_DN *slapi_sdn_add_rdn( Slapi_DN *sdn, const Slapi_RDN *rdn );
 
 /* locks and synchronization */
 typedef struct slapi_mutex	Slapi_Mutex;
@@ -193,7 +257,7 @@ void slapi_ch_free( void **ptr );
 void slapi_ch_free_string( char **ptr );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );
 char *slapi_ch_realloc( char *block, unsigned long size );
-char *slapi_ch_strdup( char *s );
+char *slapi_ch_strdup( const char *s );
 void slapi_ch_array_free( char **arrayp );
 struct berval *slapi_ch_bvdup(const struct berval *v);
 struct berval **slapi_ch_bvecdup(const struct berval **v);
@@ -348,9 +412,10 @@ int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slap
 int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
 /* backend routines */
-void slapi_be_set_readonly(Slapi_Backend *be, int readonly);
-int slapi_be_get_readonly(Slapi_Backend *be);
-const char *slapi_x_be_get_updatedn(Slapi_Backend *be);
+void slapi_be_set_readonly( Slapi_Backend *be, int readonly );
+int slapi_be_get_readonly( Slapi_Backend *be );
+const char *slapi_x_be_get_updatedn( Slapi_Backend *be );
+Slapi_Backend *slapi_be_select( const Slapi_DN *sdn );
 
 /* ACL plugins; only SLAPI_PLUGIN_ACL_ALLOW_ACCESS supported now */
 typedef int (*slapi_acl_callback_t)(Slapi_PBlock *pb,

@@ -88,6 +88,18 @@ typedef enum slapi_extension_e {
 	SLAPI_X_EXT_MAX = 2
 } slapi_extension_t;
 
+struct slapi_dn {
+	unsigned char flag;
+	struct berval dn;
+	struct berval ndn;
+};
+
+struct slapi_rdn {
+	unsigned char flag;
+	struct berval bv;
+	LDAPRDN rdn;
+};
+
 /*
  * Was: slapi_pblock.h
  */
