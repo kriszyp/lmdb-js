@@ -1763,6 +1763,14 @@ monitor_back_db_destroy(
 	(void)monitor_cache_destroy( mi );
 
 	if ( monitor_subsys ) {
+		int	i;
+
+		for ( i = 0; monitor_subsys[ i ] != NULL; i++ ) {
+			if ( !BER_BVISNULL( &monitor_subsys[ i ]->mss_rdn ) ) {
+				ch_free( monitor_subsys[ i ]->mss_rdn.bv_val );
+			}
+		}
+
 		ch_free( monitor_subsys );
 	}
 	
