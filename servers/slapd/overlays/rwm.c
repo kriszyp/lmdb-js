@@ -370,6 +370,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			if ( mapped_vals[ 0 ].bv_val != op->orc_ava->aa_value.bv_val ) {
 				ber_bvreplace_x( &op->orc_ava->aa_value, &mapped_vals[0],
 						op->o_tmpmemctx );
+				ber_memfree_x( mapped_vals[ 0 ].bv_val, NULL );
 			}
 		}
 		op->orc_ava->aa_desc = ad;
