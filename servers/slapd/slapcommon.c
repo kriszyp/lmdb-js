@@ -400,13 +400,6 @@ slap_tool_init(
 	}
 #endif
 		
-	rc = slap_schema_init();
-
-	if ( rc != 0 ) {
-		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
-		exit( EXIT_FAILURE );
-	}
-
 	rc = slap_init( mode, progname );
 
 	if ( rc != 0 ) {

@@ -271,6 +271,14 @@ int main( int argc, char **argv )
 
 	slap_sl_mem_init();
 
+	if (( rc = slap_schema_init( )) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "schema initialization error\n",
+		    0, 0, 0 );
+
+		MAIN_RETURN(rc);
+	}
+
 	serverName = lutil_progname( "slapd", argc, argv );
 
 	if ( strcmp( serverName, "slapd" ) ) {
@@ -577,13 +585,6 @@ unhandled_option:;
 	}
 #endif
 
-	if ( slap_schema_init( ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "schema initialization error\n",
-		    0, 0, 0 );
-
-		goto destroy;
-	}
 
 	if ( slap_init( serverMode, serverName ) != 0 ) {
 		rc = 1;
