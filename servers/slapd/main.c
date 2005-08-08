@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 
+#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
