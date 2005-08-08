@@ -1791,6 +1791,8 @@ monitor_back_db_destroy(
 		ch_free( monitor_subsys );
 	}
 	
+	ldap_pvt_thread_mutex_destroy( &monitor_info.mi_cache_mutex );
+
 	return 0;
 }
 
