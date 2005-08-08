@@ -386,7 +386,21 @@ int main( int argc, char **argv )
 		case 'd':	/* set debug level and 'do not detach' flag */
 			no_detach = 1;
 #ifdef LDAP_DEBUG
-			slap_debug |= atoi( optarg );
+			if ( optarg != NULL && optarg[ 0 ] != '-' && !isdigit( optarg[ 0 ] ) )
+			{
+				int	level;
+
+				if ( str2loglevel( optarg, &level ) ) {
+					fprintf( stderr,
+						"unrecognized log level "
+						"\"%s\"\n", optarg );
+					goto destroy;
+				}
+
+				slap_debug |= level;
+			} else {
+				slap_debug |= atoi( optarg );
+			}
 #else
 			if ( atoi( optarg ) != 0 )
 				fputs( "must compile with LDAP_DEBUG for debugging\n",

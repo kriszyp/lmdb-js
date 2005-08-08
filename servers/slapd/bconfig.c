@@ -1945,6 +1945,26 @@ slap_loglevel_register( slap_mask_t m, struct berval *s )
 	return rc;
 }
 
+int
+str2loglevel( const char *s, int *l )
+{
+	int	i;
+
+	if ( loglevel_ops == NULL ) {
+		loglevel_init();
+	}
+
+	i = verb_to_mask( s, loglevel_ops );
+
+	if ( BER_BVISNULL( &loglevel_ops[ i ].word) ) {
+		return -1;
+	}
+
+	*l = loglevel_ops[ i ].mask;
+
+	return 0;
+}
+
 static int
 config_loglevel(ConfigArgs *c) {
 	int i;
@@ -1980,14 +2000,12 @@ config_loglevel(ConfigArgs *c) {
 				return( 1 );
 			}
 		} else {
-			int j = verb_to_mask(c->argv[i], loglevel_ops);
-			if(BER_BVISNULL(&loglevel_ops[j].word)) {
+			if ( str2loglevel( c->argv[i], &level ) ) {
 				sprintf( c->msg, "<%s> unknown level", c->argv[0] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s \"%s\"\n",
 					c->log, c->msg, c->argv[i]);
 				return( 1 );
 			}
-			level = loglevel_ops[j].mask;
 		}
 		ldap_syslog |= level;
 	}

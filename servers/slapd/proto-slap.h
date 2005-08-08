@@ -368,6 +368,7 @@ LDAP_SLAPD_F (int) overlay_op_walk LDAP_P((
  * bconfig.c
  */
 LDAP_SLAPD_F (int) slap_loglevel_register LDAP_P (( slap_mask_t m, struct berval *s ));
+LDAP_SLAPD_F (int) str2loglevel LDAP_P(( const char *s, int *l ));
 
 /*
  * ch_malloc.c
