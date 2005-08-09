@@ -226,12 +226,12 @@ slapi_entry_attr_merge(
 	BerVarray		bv;
 	int			rc;
 
-	rc = bvptr2obj( vals, &bv );
+	rc = slap_str2ad( type, &ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		return -1;
 	}
 	
-	rc = slap_str2ad( type, &ad, &text );
+	rc = bvptr2obj( vals, &bv );
 	if ( rc != LDAP_SUCCESS ) {
 		return -1;
 	}
