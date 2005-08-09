@@ -2720,8 +2720,14 @@ LDAPMod **slapi_int_modifications2ldapmods( Modifications **pmodlist )
 		mods[i] = (LDAPMod *)slapi_ch_malloc( sizeof(LDAPMod) );
 		modp = mods[i];
 		modp->mod_op = ml->sml_op | LDAP_MOD_BVALUES;
-		modp->mod_type = slapi_ch_strdup( ml->sml_type.bv_val );
-		ml->sml_type.bv_val = NULL;
+		if ( BER_BVISNULL( &ml->sml_type ) ) {
+			/* may happen for internally generated mods */
+			assert( ml->sml_desc != NULL );
+			modp->mod_type = slapi_ch_strdup( ml->sml_desc->ad_cname.bv_val );
+		} else {
+			modp->mod_type = slapi_ch_strdup( ml->sml_type.bv_val );
+			BER_BVZERO( &ml->sml_type );
+		}
 
 		if ( ml->sml_values != NULL ) {
 			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ )
