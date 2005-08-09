@@ -806,6 +806,25 @@ or the (even more silly) example
 .LP
 which grants everybody search and compare privileges, and adds read
 privileges to authenticated clients.
+.LP
+One useful application is to easily grant write privileges to an
+.B updatedn
+that is different from the
+.BR rootdn .
+In this case, since the
+.B updatedn
+needs write access to (almost) all data, one can use
+.LP
+.nf
+	access to *
+		by dn.exact="cn=The Update DN,dc=example,dc=com" write
+		by * break
+.fi
+.LP
+as the first access rule.
+As a consequence, unless the operation is performed with the 
+.B updatedn
+identity, control is passed straight to the subsequent rules.
 .SH OPERATION REQUIREMENTS
 Operations require different privileges on different portions of entries.
 The following summary applies to primary database backends such as

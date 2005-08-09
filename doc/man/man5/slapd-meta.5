@@ -105,6 +105,22 @@ before any target specification, it applies to all targets (by default,
 .BR never );
 the global value can be overridden by redefinitions inside each target
 specification.
+
+.TP
+.B onerr {CONTINUE|stop}
+This directive allows to select the behavior in case an error is returned
+by one target during a search.
+The default, \fBcontinue\fP, consists in continuing the operation, 
+trying to return as much data as possible.
+If this statement is set to \fBstop\fP, the search is terminated as soon 
+as an error is returned by one target, and the error is immediately 
+propagated to the client.
+
+.TP
+.B rebind-as-user {NO|yes}
+If this option is given, the client's bind credentials are remembered
+for rebinds when chasing referrals.
+
 .SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:
 
@@ -166,15 +182,12 @@ acl-authcDN
 above.
 
 .TP
-.B rebind-as-user {NO|yes}
-If this option is given, the client's bind credentials are remembered
-for rebinds when chasing referrals.
-
-.TP
 .B chase-referrals {YES|no}
 enable/disable automatic referral chasing, which is delegated to the
 underlying libldap, with rebinding eventually performed if the
 \fBrebind-as-user\fP directive is used.  The default is to chase referrals.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
 
 .TP
 .B tls {[try-]start|[try-]propagate}
@@ -184,6 +197,8 @@ only works if the URI directive protocol scheme is not \fBldaps://\fP.
 connection did.
 The \fBtry-\fP prefix instructs the proxy to continue operations
 if start TLS failed; its use is highly deprecated.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
 
 .TP
 .B t-f-support {NO|yes|discover}
@@ -192,16 +207,26 @@ enable if the remote server supports absolute filters
 If set to
 .BR discover ,
 support is detected by reading the remote server's root DSE.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
 
 .TP
-.B onerr {CONTINUE|stop}
-This directive allows to select the behavior in case an error is returned
-by one target during a search.
-The default, \fBcontinue\fP, consists in continuing the operation, 
-trying to return as much data as possible.
-If this statement is set to \fBstop\fP, the search is terminated as soon 
-as an error is returned by one target, and the error is immediately 
-propagated to the client.
+.B timeout [{add|delete|modify|modrdn}=]<val> [...]
+This directive allows to set per-database, per-target and per-operation
+timeouts.
+If no operation is specified, it affects all.
+Currently, only write operations are addressed, because searches
+can already be limited by means of the
+.B limits
+directive (see 
+.BR slapd.conf (5)
+for details), and other operations are not supposed to incur into the
+need for timeouts.
+Note: if the timelimit is exceeded, the operation is abandoned;
+the protocol does not provide any means to rollback the operation,
+so the client will not know if the operation eventually succeeded or not.
+If set before any target specification, it affects all targets, unless
+overridden by any per-target directive.
 
 .TP
 .B pseudorootdn "<substitute DN in case of rootdn bind>"

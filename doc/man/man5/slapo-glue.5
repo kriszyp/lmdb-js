@@ -15,11 +15,12 @@ should have identical rootdns.
 
 All search and write operations will be intercepted by this overlay. Searches
 against the root database will be propagated to all the subordinates. Write
-operations will pass unaltered to the relevant target database. Note that
+operations will pass unaltered to the relevant target database.
+
+Note that
 any overlays on the root database configured before this overlay will fail
 to execute. As such, the glue overlay should always be the first overlay
 configured on the root database.
-
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -37,6 +38,41 @@ optional \fBasync\fP keyword is supplied, searches against this database may
 be spawned in a separate thread to run concurrently with other operations
 (currently not implemented).  If the optional \fBadvertise\fP flag 
 is supplied, the naming context is advertised in the root DSE.
+.SH EXAMPLE
+The following will cause a search from dc=example,dc=com to search
+people as well, but it will not search services.
+.LP
+.RS
+.nf
+database  bdb
+suffix    "ou=people,dc=example,dc=com"
+
+database  bdb
+suffix    "ou=services,dc=example,dc=com"
+
+database  bdb
+suffix    "dc=example,dc=com"
+overlay   glue
+glue-sub  "ou=people,dc=example,dc=com"
+.fi
+.RE
+.SH NOTES
+Databases that are glued together should usually be configured with
+the same indexes, even for attributes that only exist in some of
+these databases.
+A search for an attribute which is only indexed in some of the glued
+databases must otherwise examine each entry in the search scope in the
+other databases, looking for the attribute.
+
+If the extra indexes assist searches one would prefer not to
+support, these can be disabled with access controls in some of the
+databases.
+E.g.:
+.RS
+access to attrs=cn by * =rcxd
+.RE
+See
+.BR slapd.access (5).
 .SH FILES
 .TP
 ETCDIR/slapd.conf

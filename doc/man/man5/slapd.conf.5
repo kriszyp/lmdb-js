@@ -970,9 +970,12 @@ type of backend.
 Mark the beginning of a backend definition. <databasetype>
 should be one of
 .BR bdb ,
+.BR config ,
 .BR dnssrv ,
+.BR hdb ,
 .BR ldap ,
 .BR ldbm ,
+.BR ldif ,
 .BR meta ,
 .BR monitor ,
 .BR null ,
@@ -980,9 +983,8 @@ should be one of
 .BR perl ,
 .BR relay ,
 .BR shell ,
-.BR sql ,
 or
-.BR tcl ,
+.BR sql ,
 depending on which backend will serve the database.
 
 .SH GENERAL DATABASE OPTIONS
@@ -998,9 +1000,12 @@ option are mandatory for each database.
 Mark the beginning of a new database instance definition. <databasetype>
 should be one of
 .BR bdb ,
+.BR config ,
 .BR dnssrv ,
+.BR hdb ,
 .BR ldap ,
 .BR ldbm ,
+.BR ldif ,
 .BR meta ,
 .BR monitor ,
 .BR null ,
@@ -1008,9 +1013,8 @@ should be one of
 .BR perl ,
 .BR relay ,
 .BR shell ,
-.BR sql ,
 or
-.BR tcl ,
+.BR sql ,
 depending on which backend will serve the database.
 .TP
 .B lastmod on | off
@@ -1552,20 +1556,33 @@ However, it takes more care than with the LDBM backend to configure
 it properly.
 It uses the Sleepycat Berkeley DB (BDB) package to store data.
 .TP
-.B ldbm
-This is the database backend which is easiest to configure.
-However, it does not offer the data durability features of the BDB
-backend.
-It uses Berkeley DB or GDBM to store data.
+.B config
+This backend is used to manage the configuration of slapd run-time.
 .TP
 .B dnssrv
 This backend is experimental.
 It serves up referrals based upon SRV resource records held in the
 Domain Name System.
 .TP
+.B hdb
+This is a variant of the BDB backend that uses a hierarchical database
+layout which supports subtree renames.
+.TP
 .B ldap
 This backend acts as a proxy to forward incoming requests to another
 LDAP server.
+.TP
+.B ldbm
+This is the database backend which is easiest to configure.
+However, it does not offer the data durability features of the BDB
+backend.
+It uses Berkeley DB or GDBM to store data.
+.TP
+.B ldif
+This database uses the filesystem to build the tree structure
+of the database, using plain ascii files to store data.
+Its usage should be limited to very simple databases, where performances
+are not a requirement.
 .TP
 .B meta
 This backend performs basic LDAP proxying with respect to a set of
@@ -1593,7 +1610,8 @@ interpreter into slapd.
 It runs Perl subroutines to implement LDAP operations.
 .TP
 .B relay
-This backend redirects LDAP operations to another database
+This backend is experimental.
+It redirects LDAP operations to another database
 in the same server, based on the naming context of the request.
 Its use requires the 
 .B rwm
@@ -1610,13 +1628,100 @@ It is primarily intended to be used in prototypes.
 .B sql
 This backend is experimental.
 It services LDAP requests from an SQL database.
+.SH OVERLAYS
+The following overlays can be compiled into slapd.
+They are documented in the
+.BR slapo-<overlay> (5)
+manual pages.
 .TP
-.B tcl
-This backend is experimental.
-It embeds a
-.BR Tcl (3tcl)
-interpreter into slapd.
-It runs Tcl commands to implement LDAP operations.
+.B accesslog
+Access Logging.
+This overlay can record accesses to a given backend database on another
+database.
+.TP
+.B auditlog
+Audit Logging.
+This overlay records changes on a given backend database to an LDIF log
+file.
+By default it is not built.
+.TP
+.B chain
+Chaining.
+This overlay allows automatic referral chasing when a referral would
+have been returned.
+.TP
+.B denyop
+Deny Operation.
+This overlay allows selected operations to be denied, similar to the
+\fBrestrict\fP option.
+.TP
+.B dyngroup
+Dynamic Group.
+This is a demo overlay which extends the Compare operation to detect
+members of a dynamic group.
+It has no effect on any other operations.
+.TP
+.B dynlist
+Dynamic List.
+This overlay allows expansion of dynamic groups and more.
+.TP
+.B glue
+Backend Glue.
+This overlay glues multiple databases into a single namingContext.
+.TP
+.B lastmod
+Last Modification.
+This overlay maintains a service entry in the database with the DN,
+modification type, modifiersName and modifyTimestamp of the last write
+operation performed on that database.
+.TP
+.B pcache
+Proxycache.
+This overlay allows caching of LDAP search requests in a local database.
+.TP
+.B ppolicy
+Password Policy.
+This overlay provides a variety of password control mechanisms,
+e.g. password aging, password reuse and duplication control, mandatory
+password resets, etc.
+.TP
+.B refint
+Referential Integrity.
+This overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to maintain the cohesiveness of a schema which utilizes reference
+attributes.
+.TP
+.B retcode
+Return Code.
+This overlay is useful to test the behavior of clients when
+server-generated erroneous and/or unusual responses occur.
+.TP
+.B rwm
+Rewrite/remap.
+This overlay is experimental.
+It performs basic DN/data rewrite and
+objectClass/attributeType mapping.
+.TP
+.B syncprov
+Syncrepl Provider.
+This overlay implements the provider-side support for
+.B syncrepl
+replication, including persistent search functionality.
+.TP
+.B translucent
+Translucent Proxy.
+This overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to create a "translucent proxy".
+Content of entries retrieved from a remote LDAP server can be partially
+overridden by the database.
+.TP
+.B unique
+Attribute Uniqueness.
+This overlay can be used with a backend database such as
+.BR slapd-bdb (5)
+to enforce the uniqueness of some or all attributes within a subtree.
 .SH EXAMPLES
 .LP
 Here is a short example of a configuration file:
@@ -1631,6 +1736,11 @@ pidfile   LOCALSTATEDIR/slapd.pid
 # but are not shown.  See \fBslapd.access\fP(5).
 attributeoptions x-hidden lang-
 access to attr=name;x-hidden by * =cs
+
+# Protect passwords.  See \fBslapd.access\fP(5).
+access    to attrs=userPassword  by * auth
+# Read access to other attributes and entries.
+access    to *  by * read
 
 database  bdb
 suffix    "dc=our-domain,dc=com"
@@ -1654,6 +1764,15 @@ lastmod   off
 "OpenLDAP Administrator's Guide" contains a longer annotated
 example of a configuration file.
 The original ETCDIR/slapd.conf is another example.
+.SH OBSOLETED DIRECTIVES
+.TP
+.B subordinate
+This directive was used in OpenLDAP 2.1 and 2.2 to glue a database
+with its superior.  The same functionality is now provided by the
+.B glue
+overlay; see
+.BR slapo-glue (5)
+for details.
 .SH FILES
 .TP
 ETCDIR/slapd.conf
@@ -1662,8 +1781,10 @@ default slapd configuration file
 .BR ldap (3),
 .BR slapd\-bdb (5),
 .BR slapd\-dnssrv (5),
+.BR slapd\-hdb (5),
 .BR slapd\-ldap (5),
 .BR slapd\-ldbm (5),
+.BR slapd\-ldif (5),
 .BR slapd\-meta (5),
 .BR slapd\-monitor (5),
 .BR slapd\-null (5),
@@ -1687,11 +1808,19 @@ default slapd configuration file
 .BR slurpd (8).
 
 Known overlays are documented in
+.BR slapo\-accesslog (5),
+.BR slapo\-auditlog (5),
+.BR slapo\-chain (5),
+.BR slapo\-dynlist (5),
+.BR slapo\-glue (5),
 .BR slapo\-lastmod (5),
 .BR slapo\-pcache (5),
 .BR slapo\-ppolicy (5),
 .BR slapo\-refint (5),
+.BR slapo\-retcode (5),
 .BR slapo\-rwm (5),
+.BR slapo\-syncprov (5),
+.BR slapo\-translucent (5),
 .BR slapo\-unique (5).
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
